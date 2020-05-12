@@ -37,13 +37,13 @@
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
 #define MACHINE_CPUS_PENTIUM_S5        {{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip},     {"AMD",   cpus_K5},      {"",      NULL},         {"",      NULL}}
 #define MACHINE_CPUS_PENTIUM_S73V      {{ "Intel", cpus_Pentium3V},  {"IDT", cpus_WinChip},     {"AMD",   cpus_K5},      {"Cyrix", cpus_6x863V},  {"",      NULL}}
-#define MACHINE_CPUS_PENTIUM_S73VCH    {{ "Intel", cpus_Pentium3V},  {"AMD",   cpus_K5},        {"",      NULL},         {"",      NULL},         {"",      NULL}}
+#define MACHINE_CPUS_PENTIUM_S73VCH    {{ "Intel", cpus_Pentium3V},  {"AMD", cpus_K5},          {"",      NULL},         {"",      NULL},         {"",      NULL}}
 #define MACHINE_CPUS_PENTIUM_S7        {{ "Intel", cpus_Pentium},    {"IDT", cpus_WinChip},     {"AMD",   cpus_K56},     {"Cyrix", cpus_6x86},    {"",      NULL}}
 #define MACHINE_CPUS_PENTIUM_SS7       {{ "Intel", cpus_Pentium},    {"IDT", cpus_WinChip_SS7}, {"AMD",   cpus_K56_SS7}, {"Cyrix", cpus_6x86SS7}, {"",      NULL}}
 #else
 #define MACHINE_CPUS_PENTIUM_S5        {{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip},     {"AMD",   cpus_K5},      {"",      NULL},         {"",      NULL}}
 #define MACHINE_CPUS_PENTIUM_S73V      {{ "Intel", cpus_Pentium3V},  {"IDT", cpus_WinChip},     {"AMD",   cpus_K5},      {"",      NULL},         {"",      NULL}}
-#define MACHINE_CPUS_PENTIUM_S73VCH    {{ "Intel", cpus_Pentium3V},  {"AMD",   cpus_K5},        {"",      NULL},         {"",      NULL},         {"",      NULL}}
+#define MACHINE_CPUS_PENTIUM_S73VCH    {{ "Intel", cpus_Pentium3V},  {"AMD", cpus_K5},          {"",      NULL},         {"",      NULL},         {"",      NULL}}
 #define MACHINE_CPUS_PENTIUM_S7        {{ "Intel", cpus_Pentium},    {"IDT", cpus_WinChip},     {"AMD",   cpus_K56},     {"",      NULL},         {"",      NULL}}
 #define MACHINE_CPUS_PENTIUM_SS7       {{ "Intel", cpus_Pentium},    {"IDT", cpus_WinChip_SS7}, {"AMD",   cpus_K56_SS7}, {"",      NULL},         {"",      NULL}}
 #endif
@@ -51,13 +51,13 @@
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
 #define MACHINE_CPUS_PENTIUM_S5        {{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip},     {"",      NULL},         {"",      NULL},         {"",      NULL}}
 #define MACHINE_CPUS_PENTIUM_S73V      {{ "Intel", cpus_Pentium3V},  {"IDT", cpus_WinChip},     {"Cyrix", cpus_6x863V},  {"",      NULL},         {"",      NULL}}
-#define MACHINE_CPUS_PENTIUM_S73VCH    {{ "Intel", cpus_Pentium3V},  {"AMD",   cpus_K5},        {"",      NULL},         {"",      NULL},         {"",      NULL}}
+#define MACHINE_CPUS_PENTIUM_S73VCH    {{ "Intel", cpus_Pentium3V},  {"",    NULL     },        {"",      NULL},         {"",      NULL},         {"",      NULL}}
 #define MACHINE_CPUS_PENTIUM_S7        {{ "Intel", cpus_Pentium},    {"IDT", cpus_WinChip},     {"AMD",   cpus_K56},     {"Cyrix", cpus_6x86},    {"",      NULL}}
 #define MACHINE_CPUS_PENTIUM_SS7       {{ "Intel", cpus_Pentium},    {"IDT", cpus_WinChip_SS7}, {"AMD",   cpus_K56_SS7}, {"Cyrix", cpus_6x86SS7}, {"",      NULL}}
 #else
 #define MACHINE_CPUS_PENTIUM_S5        {{ "Intel", cpus_PentiumS5},  {"IDT", cpus_WinChip},     {"",      NULL},         {"",      NULL},         {"",      NULL}}
 #define MACHINE_CPUS_PENTIUM_S73V      {{ "Intel", cpus_Pentium3V},  {"IDT", cpus_WinChip},     {"",      NULL},         {"",      NULL},         {"",      NULL}}
-#define MACHINE_CPUS_PENTIUM_S73VCH    {{ "Intel", cpus_Pentium3V},  {"AMD",   cpus_K5},        {"",      NULL},         {"",      NULL},         {"",      NULL}}
+#define MACHINE_CPUS_PENTIUM_S73VCH    {{ "Intel", cpus_Pentium3V},  {"",    NULL     },        {"",      NULL},         {"",      NULL},         {"",      NULL}}
 #define MACHINE_CPUS_PENTIUM_S7        {{ "Intel", cpus_Pentium},    {"IDT", cpus_WinChip},     {"AMD",   cpus_K56},     {"",      NULL},         {"",      NULL}}
 #define MACHINE_CPUS_PENTIUM_SS7       {{ "Intel", cpus_Pentium},    {"IDT", cpus_WinChip_SS7}, {"AMD",   cpus_K56_SS7}, {"",      NULL},         {"",      NULL}}
 #endif
@@ -234,7 +234,7 @@ const machine_t machines[] = {
     /* Socket 7 machines */
     /* 430FX */
     { "[Socket 7-3V FX] ASUS P/I-P54TP4XE",	"p54tp4xe",		MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	     machine_at_p54tp4xe_init, NULL			},
-    { "[Socket 7-3V FX] QDI Chariot",	"chariot",		MACHINE_CPUS_PENTIUM_S73VCH,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,					  8,  128,   8, 127,	     machine_at_chariot_init, NULL			},
+    { "[Socket 7-3V FX] QDI Chariot",		"chariot",		MACHINE_CPUS_PENTIUM_S73VCH,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,					  8,  128,   8, 127,	     machine_at_chariot_init, NULL			},
     { "[Socket 7-3V FX] Intel Advanced/ATX",	"thor",			MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,		 machine_at_thor_init, NULL			},
     { "[Socket 7-3V FX] Intel Advanced/EV",	"endeavor",		MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,			  8,  128,   8, 127,	     machine_at_endeavor_init, at_endeavor_get_device	},
 #if defined(DEV_BRANCH) && defined(USE_MRTHOR)
