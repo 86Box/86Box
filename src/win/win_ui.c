@@ -59,8 +59,8 @@ int		infocus = 1;
 int		rctrl_is_lalt = 0;
 int		user_resize = 0;
 
-char		openfilestring[512];
-WCHAR		wopenfilestring[512];
+extern char	openfilestring[512];
+extern WCHAR	wopenfilestring[512];
 
 
 /* Local data. */

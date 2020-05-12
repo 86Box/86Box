@@ -178,7 +178,7 @@ extern uintptr_t	*writelookup2;
 extern int		writelnext;
 extern uint32_t		ram_mapped_addr[64];
 
-mem_mapping_t		base_mapping,
+extern mem_mapping_t	base_mapping,
 			ram_low_mapping,
 #if 1
 			ram_mid_mapping,

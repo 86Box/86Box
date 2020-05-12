@@ -78,6 +78,15 @@
 #include <86box/plat_midi.h>
 
 
+/* Stuff that used to be globally declared in plat.h but is now extern there
+   and declared here instead. */
+int		dopause,			/* system is paused */
+		doresize,			/* screen resize requested */
+		quited;				/* system exit requested */
+uint64_t	timer_freq;
+char		emu_version[200];		/* version ID string */
+
+
 /* Commandline options. */
 int	dump_on_exit = 0;			/* (O) dump regs on exit */
 int	do_dump_config = 0;			/* (O) dump config on load */
@@ -101,7 +110,7 @@ int	window_w, window_h,			/* (C) window size and */
 	window_x, window_y,			/*     position info */
 	window_remember,
 	vid_resize,				/* (C) allow resizing */
-	invert_display,				/* (C) invert the display */
+	invert_display = 0,			/* (C) invert the display */
 	suppress_overscan = 0;			/* (C) suppress overscans */
 int	scale = 0;				/* (C) screen scale factor */
 int	vid_api = 0;				/* (C) video renderer */
@@ -141,8 +150,8 @@ extern int
 
 int	fps, framecount;			/* emulator % */
 
-int	CPUID;
-int	output;
+extern int	CPUID;
+extern int	output;
 int	atfullspeed;
 int	clockrate;
 

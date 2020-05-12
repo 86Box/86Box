@@ -62,17 +62,17 @@ extern "C" {
 #endif
 
 /* Global variables residing in the platform module. */
-GLOBAL int	dopause,			/* system is paused */
+extern int	dopause,			/* system is paused */
 		doresize,			/* screen resize requested */
 		quited,				/* system exit requested */
 		mouse_capture;			/* mouse is captured in app */
-GLOBAL uint64_t	timer_freq;
-GLOBAL int	infocus;
-GLOBAL char	emu_version[200];		/* version ID string */
-GLOBAL int	rctrl_is_lalt;
-GLOBAL int	update_icons;
+extern uint64_t	timer_freq;
+extern int	infocus;
+extern char	emu_version[200];		/* version ID string */
+extern int	rctrl_is_lalt;
+extern int	update_icons;
 
-GLOBAL int	unscaled_size_x,		/* current unscaled size X */
+extern int	unscaled_size_x,		/* current unscaled size X */
 		unscaled_size_y;		/* current unscaled size Y */
 
 /* System-related functions. */

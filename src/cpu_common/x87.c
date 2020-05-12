@@ -17,6 +17,10 @@
 #include "386_common.h"
 
 
+uint32_t x87_pc_off,x87_op_off;
+uint16_t x87_pc_seg,x87_op_seg;
+
+
 #ifdef ENABLE_FPU_LOG
 int fpu_do_log = ENABLE_FPU_LOG;
 

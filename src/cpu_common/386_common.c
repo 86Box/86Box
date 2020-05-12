@@ -37,11 +37,6 @@ uint32_t dr[8];
 
 uint32_t use32;
 int stack32;
-int optype;
-
-int trap;
-
-uint32_t rmdat;
 
 uint32_t *eal_r, *eal_w;
 
@@ -57,8 +52,10 @@ uint16_t cpu_cur_status = 0;
 uint32_t cpu_cur_status = 0;
 #endif
 
-uint32_t pccache;
-uint8_t *pccache2;
+extern uint8_t *pccache2;
+
+extern int optype;
+extern uint32_t pccache;
 
 
 int in_sys = 0;

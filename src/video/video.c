@@ -109,7 +109,6 @@ int		video_res_x = 0,
 		video_res_y = 0,
 		video_bpp = 0;
 static int	video_force_resize;
-int		invert_display = 0;
 int		video_grayscale = 0;
 int		video_graytype = 0;
 static int	vid_type;
