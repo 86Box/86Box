@@ -48,7 +48,7 @@ enum {
     VIDEO_ISA = 0,
     VIDEO_MCA,
     VIDEO_BUS,
-	VIDEO_PCI
+    VIDEO_PCI
 };
 
 #define VIDEO_FLAG_TYPE_CGA     0
