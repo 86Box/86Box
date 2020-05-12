@@ -258,17 +258,24 @@ svga_render_text_80_ksc5601(svga_t *svga)
 		}
 
 		if ((x + xinc) < svga->hdisp && (chr & (nextchr | svga->ksc5601_sbyte_mask) & 0x80)) {
-			if (((chr == 0xc9) || (chr == 0xfe)) && ((nextchr > 0xa0) && (nextchr < 0xff)))
-				dat = fontdatksc5601_user[((chr == 0xfe) ? 96 : 0) + (nextchr & 0x7F) - 0x20].chr[svga->sc];
-			else if (nextchr & 0x80)
+			if ((chr == svga->ksc5601_udc_area_msb[0] || chr == svga->ksc5601_udc_area_msb[1]) && (nextchr > 0xa0 && nextchr < 0xff))
+				dat = fontdatksc5601_user[(chr == svga->ksc5601_udc_area_msb[1] ? 96 : 0) + (nextchr & 0x7F) - 0x20].chr[svga->sc];
+			else if (nextchr & 0x80) {
+				if (svga->ksc5601_swap_mode == 1 && (nextchr > 0xa0 && nextchr < 0xff)) {
+					if(chr >= 0x80 && chr < 0x99) chr += 0x30;
+					else if(chr >= 0xB0 && chr < 0xC9) chr -= 0x30;
+				}
 				dat = fontdatksc5601[((chr & 0x7F) << 7) | (nextchr & 0x7F)].chr[svga->sc];
-			else
+			} else
 				dat = 0xff;
 		} else {
 			if (attr & 8)	charaddr = svga->charsetb + (chr * 128);
 			else		charaddr = svga->charseta + (chr * 128);
 
-			dat = svga->vram[charaddr + (svga->sc << 2)];
+			if ((svga->ksc5601_english_font_type >> 8) == 1) 
+				dat = fontdatksc5601[((svga->ksc5601_english_font_type & 0x7F) << 7) | (chr >> 1)].chr[((chr & 1) << 4) | svga->sc];
+			else 
+				dat = svga->vram[charaddr + (svga->sc << 2)];
 		}
 
 		if (svga->seqregs[1] & 1) {
@@ -301,8 +308,8 @@ svga_render_text_80_ksc5601(svga_t *svga)
 				}
 			}
 
-			if (((chr == 0xc9) || (chr == 0xfe)) && ((nextchr > 0xa0) && (nextchr < 0xff)))
-				dat = fontdatksc5601_user[(chr == 0xfe ? 96 : 0) + (nextchr & 0x7F) - 0x20].chr[svga->sc + 16];
+			if ((chr == svga->ksc5601_udc_area_msb[0] || chr == svga->ksc5601_udc_area_msb[1]) && (nextchr > 0xa0 && nextchr < 0xff))
+				dat = fontdatksc5601_user[(chr == svga->ksc5601_udc_area_msb[1] ? 96 : 0) + (nextchr & 0x7F) - 0x20].chr[svga->sc + 16];
 			else if(nextchr & 0x80)
 				dat = fontdatksc5601[((chr & 0x7f) << 7) | (nextchr & 0x7F)].chr[svga->sc + 16];
 			else

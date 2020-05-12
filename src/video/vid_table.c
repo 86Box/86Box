@@ -68,6 +68,7 @@ video_cards[] = {
 #endif
     { "[ISA] CGA",					"cga",			&cga_device				},
     { "[ISA] Chips & Technologies SuperEGA",		"superega",		&sega_device				},
+    { "[ISA] Cirrus Logic CL-GD 5401",			"cl_gd5401_isa",	&gd5401_isa_device			},
     { "[ISA] Cirrus Logic CL-GD 5402",			"cl_gd5402_isa",	&gd5402_isa_device			},
     { "[ISA] Cirrus Logic CL-GD 5420",			"cl_gd5420_isa",	&gd5420_isa_device			},
 #if defined(DEV_BRANCH) && defined(USE_CL5422)
@@ -86,6 +87,7 @@ video_cards[] = {
     { "[ISA] Hercules Plus",				"hercules_plus",	&herculesplus_device			},
     { "[ISA] Hercules InColor",				"incolor",		&incolor_device				},
     { "[ISA] Image Manager 1024",			"im1024",		&im1024_device				},
+    { "[ISA] Kasan Hangulmadang-16 VGA (ET4000AX)",	"kasan16vga",		&et4000_kasan_isa_device		},
     { "[ISA] MDA",					"mda",			&mda_device				},
     { "[ISA] MDSI Genius",				"genius",		&genius_device				},
     { "[ISA] OAK OTI-037C",				"oti037c",		&oti037c_device				},

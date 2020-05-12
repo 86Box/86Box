@@ -212,6 +212,7 @@ extern const device_t ati28800_wonderxl24_device;
 #endif
 
 /* Cirrus Logic CL-GD 54xx */
+extern const device_t gd5401_isa_device;
 extern const device_t gd5402_isa_device;
 extern const device_t gd5402_onboard_device;
 extern const device_t gd5420_isa_device;
@@ -245,6 +246,7 @@ extern const device_t compaq_cga_2_device;
 extern const device_t et4000_isa_device;
 extern const device_t et4000k_isa_device;
 extern const device_t et4000k_tg286_isa_device;
+extern const device_t et4000_kasan_isa_device;
 extern const device_t et4000_mca_device;
 
 /* Tseng ET4000-W32p */

@@ -39,8 +39,29 @@
 #include <86box/hdc.h>
 #include <86box/video.h>
 #include <86box/intel_flash.h>
+#include <86box/sst_flash.h>
 #include <86box/intel_sio.h>
+#include <86box/scsi_ncr53c8xx.h>
 #include <86box/machine.h>
+
+int
+machine_at_acc386_init(const machine_t *model)
+{
+    int ret;
+
+   ret = bios_load_linear(L"roms/machines/acc386/acc386.BIN",
+			  0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+    device_add(&acc2168_device);
+    device_add(&keyboard_at_ami_device);
+    device_add(&fdc_at_device);
+
+    return ret;
+}
 
 int
 machine_at_ecs386_init(const machine_t *model)
@@ -408,7 +429,7 @@ machine_at_alfredo_init(const machine_t *model)
     return ret;
 }
 
-
+#if defined(DEV_BRANCH) && defined(NO_SIO)
 int
 machine_at_486sp3g_init(const machine_t *model)
 {
@@ -432,12 +453,14 @@ machine_at_486sp3g_init(const machine_t *model)
     pci_register_slot(0x06, PCI_CARD_NORMAL, 4, 1, 2, 3);	/* 06 = Slot 4 */
     pci_register_slot(0x07, PCI_CARD_SCSI, 1, 2, 3, 4);		/* 07 = SCSI */
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&keyboard_ps2_ami_pci_device); /* Uses the AMIKEY KBC */
     device_add(&sio_device);	/* Site says it has a ZB, but the BIOS is designed for an IB. */
-    device_add(&pc87306_device);
-    device_add(&intel_flash_bxt_ami_device);
+    device_add(&pc87306_device); /*PC87332*/
+    device_add(&sst_flash_29ee010_device);
+	device_add(&ncr53c810_pci_device);
 
     device_add(&i420zx_device);
 
     return ret;
 }
+#endif
