@@ -279,6 +279,7 @@ extern const device_t	*at_endeavor_get_device(void);
 
 /* m_at_socket7_s7.c */
 extern int	machine_at_chariot_init(const machine_t *);
+extern int	machine_at_mr586_init(const machine_t *);
 extern int	machine_at_thor_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_MRTHOR)
 extern int	machine_at_mrthor_init(const machine_t *);
@@ -350,11 +351,21 @@ extern int	machine_at_bf6_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_tsunamiatx_init(const machine_t *);
 #endif
+extern int	machine_at_p6sba_init(const machine_t *);
+
+/* m_at_slot2.c */
+#if defined(DEV_BRANCH) && defined(NO_SIO)
+extern int	machine_at_s2dge_init(const machine_t *);
+#endif
 
 /* m_at_socket370.c */
+#if defined(DEV_BRANCH) && defined(NO_SIO)
+extern int	machine_at_s370slm_init(const machine_t *);
+#endif
 extern int	machine_at_cubx_init(const machine_t *);
 extern int	machine_at_atc7020bxii_init(const machine_t *);
 extern int	machine_at_63a_init(const machine_t *);
+extern int	machine_at_s370sba_init(const machine_t *);
 extern int	machine_at_apas3_init(const machine_t *);
 
 /* m_at_t3100e.c */

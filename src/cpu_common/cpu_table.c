@@ -720,11 +720,15 @@ CPU cpus_PentiumII[] = {
     {"Pentium II Deschutes 350",    CPU_PENTIUM2D,  350000000, 3.5,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 32,32,11,11, 42},
     {"Pentium II Deschutes 400",    CPU_PENTIUM2D,  400000000, 4.0,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
     {"Pentium II Deschutes 450",    CPU_PENTIUM2D,  450000000, 4.5,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 54},
-
-    /*Intel Celeron Mendocino Mobile(Applied on a BGA615 Socket)*/
-    {"Mobile Celeron Mendocino 466",       CPU_PENTIUM2D,  466666666, 7.0,  0x66a,  0x66a, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 40,40,14,14, 52},
     {"",                                       -1,          0, 0,        0,      0, 0, 0,  0, 0, 0, 0,  0}
 
+};
+
+CPU cpus_Xeon[] = {
+	/* Slot 2 Xeons. Literal P2D's with more cache */
+    {"Pentium II Xeon 166",    CPU_PENTIUM2D,  166666666, 2.5,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
+    {"Pentium II Xeon 400",    CPU_PENTIUM2D,  400000000, 4.0,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
+    {"",                                       -1,          0,   0,      0,      0, 0, 0,  0, 0, 0, 0,  0}	
 };
 
 CPU cpus_Celeron[] = {
