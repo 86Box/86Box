@@ -417,6 +417,9 @@ et4000_kasan_in(uint16_t addr, void *priv)
 		}
 	} else if (addr >= et4000->kasan_access_addr && addr < et4000->kasan_access_addr + 8) {
 		switch (addr - ((et4000->kasan_cfg_regs[2] << 8) | (et4000->kasan_cfg_regs[1]))) {
+			case 2:
+				val = 0;
+				break;
                         case 5:
 				if (((et4000->get_korean_font_base >> 7) & 0x7F) == (et4000->svga.ksc5601_udc_area_msb[0] & 0x7F) && (et4000->svga.ksc5601_udc_area_msb[0] & 0x80))
 					val = fontdatksc5601_user[(et4000->get_korean_font_base & 0x7F) - 0x20].chr[et4000->get_korean_font_index];
@@ -424,6 +427,7 @@ et4000_kasan_in(uint16_t addr, void *priv)
 					val = fontdatksc5601_user[96 + (et4000->get_korean_font_base & 0x7F) - 0x20].chr[et4000->get_korean_font_index];
 				else
 					val = fontdatksc5601[et4000->get_korean_font_base].chr[et4000->get_korean_font_index];
+				break;
                         default:
 				break;
 		}
@@ -447,7 +451,6 @@ et4000_kasan_out(uint16_t addr, uint8_t val, void *priv)
 					if (et4000->kasan_cfg_regs[4] & 8)
 						val = (val & 0xFC) | (et4000->kasan_cfg_regs[0] & 3);
 					et4000->kasan_cfg_regs[0] = val;
-					et4000->svga.ksc5601_sbyte_mask = (val & 4) << 5;
 					svga_recalctimings(&et4000->svga);
 					break;
 				case 1:
@@ -636,10 +639,10 @@ et4000_kasan_recalctimings(svga_t *svga)
         et4000_recalctimings(svga);
 
         if (svga->render == svga_render_text_80 && (et4000->kasan_cfg_regs[0] & 8)) {
-		svga->ma_latch -= 3 - (et4000->kasan_cfg_regs[3] >> 1);
-		svga->ca_adj = -(3 - (et4000->kasan_cfg_regs[0] >> 6));
-		svga->hdisp -= (et4000->kasan_cfg_regs[3] >> 1) * ((svga->seqregs[1] & 1) ? 8 : 9);
-		if ((et4000->kasan_cfg_regs[0] & 3) == 0 && (et4000->kasan_cfg_regs[4] & 0x80) && ((svga->crtc[0x37] & 0x0B) == 0x0A))
+		svga->ma_latch -= 3;
+		svga->ca_adj = (et4000->kasan_cfg_regs[0] >> 6) - 3;
+		svga->ksc5601_sbyte_mask = (et4000->kasan_cfg_regs[0] & 4) << 5;
+		if((et4000->kasan_cfg_regs[0] & 0x23) == 0x20 && (et4000->kasan_cfg_regs[4] & 0x80) && ((svga->crtc[0x37] & 0x0B) == 0x0A))
 			svga->render = svga_render_text_80_ksc5601;
 	}
 }

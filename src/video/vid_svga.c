@@ -431,7 +431,7 @@ svga_recalctimings(svga_t *svga)
 	svga->vblankstart |= 0x200;
     svga->vblankstart++;
 
-    svga->hdisp = svga->crtc[1];
+    svga->hdisp = svga->crtc[1] - ((svga->crtc[5] & 0x60) >> 5);
     svga->hdisp++;
 
     svga->htotal = svga->crtc[0];
@@ -806,10 +806,10 @@ svga_poll(void *p)
 		changeframecount = svga->interlace ? 3 : 2;
 		svga->vslines = 0;
 
-		if (svga->interlace && svga->oddeven)
-			svga->ma = svga->maback = svga->ma_latch + (svga->rowoffset << 1);
+		if (svga->interlace && svga->oddeven) 
+			svga->ma = svga->maback = svga->ma_latch + (svga->rowoffset << 1) + ((svga->crtc[5] & 0x60) >> 5);
 		else
-			svga->ma = svga->maback = svga->ma_latch;
+			svga->ma = svga->maback = svga->ma_latch + ((svga->crtc[5] & 0x60) >> 5);
 		svga->ca = ((svga->crtc[0xe] << 8) | svga->crtc[0xf]) + ((svga->crtc[0xb] & 0x60) >> 5) + svga->ca_adj;
 
 		svga->ma = (svga->ma << 2) + (skip << 2);
