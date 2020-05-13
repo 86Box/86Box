@@ -565,6 +565,7 @@ extern int	cpu_effective, cpu_alt_reset;
 extern void	cpu_dynamic_switch(int new_cpu);
 
 extern void	cpu_ven_reset(void);
+extern void	update_tsc(int cycs);
 
 extern int	sysenter(uint32_t fetchdat);
 extern int	sysexit(uint32_t fetchdat);

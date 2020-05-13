@@ -143,7 +143,6 @@ machine_at_thor_init(const machine_t *model)
 }
 
 
-#if defined(DEV_BRANCH) && defined(USE_MRTHOR)
 int
 machine_at_mrthor_init(const machine_t *model)
 {
@@ -159,7 +158,6 @@ machine_at_mrthor_init(const machine_t *model)
 
     return ret;
 }
-#endif
 
 
 int

@@ -205,7 +205,6 @@ machine_at_opti495_ami_init(const machine_t *model)
 }
 
 
-#if defined(DEV_BRANCH) && defined(USE_MR495)
 int
 machine_at_opti495_mr_init(const machine_t *model)
 {
@@ -221,7 +220,6 @@ machine_at_opti495_mr_init(const machine_t *model)
 
     return ret;
 }
-#endif
 
 
 static void

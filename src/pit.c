@@ -1017,7 +1017,7 @@ pit_set_clock(int clock)
     xt_cpu_multi <<= 32ULL;
 
     /* Delay for empty I/O ports. */
-    io_delay = (int) round(((double) machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed) / 1000000.0);
+    io_delay = (int) round(((double) machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed) / 2000000.0);
 
     MDACONST = (uint64_t) (cpuclock / 2032125.0 * (double)(1ull << 32));
     HERCCONST = MDACONST;

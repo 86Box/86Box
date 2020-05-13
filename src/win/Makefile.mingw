@@ -47,12 +47,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef MGA
   MGA		:= y
  endif
- ifndef MR495
-  MR495		:= y
- endif
- ifndef MRTHOR
-  MRTHOR	:= y
- endif
  ifndef PAS16
   PAS16		:= n
  endif
@@ -110,12 +104,6 @@ else
  endif
  ifndef MGA
   MGA		:= n
- endif
- ifndef MR495
-  MR495		:= n
- endif
- ifndef MRTHOR
-  MRTHOR	:= n
  endif
  ifndef PAS16
   PAS16		:= n
@@ -432,14 +420,6 @@ endif
 ifeq ($(MGA), y)
 OPTS		+= -DUSE_MGA
 DEVBROBJ	+= vid_mga.o
-endif
-
-ifeq ($(MR495), y)
-OPTS		+= -DUSE_MR495
-endif
-
-ifeq ($(MRTHOR), y)
-OPTS		+= -DUSE_MRTHOR
 endif
 
 ifeq ($(PAS16), y)

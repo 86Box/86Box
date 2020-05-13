@@ -328,8 +328,11 @@ outb(uint16_t port, uint8_t val)
 	p = p->next;
     }
 	
-    if (!found)
+    if (!found) {
 	sub_cycles(io_delay);
+	if (cpu_use_dynarec && (port == 0xeb))
+		update_tsc(io_delay);
+    }
 
     io_log("(%i, %i, %04i) outb(%04X, %02X)\n", in_smm, found, qfound, port, val);
 
@@ -418,8 +421,11 @@ outw(uint16_t port, uint16_t val)
 	}
     }
 
-    if (!found)
+    if (!found) {
 	sub_cycles(io_delay);
+	if (cpu_use_dynarec && (port == 0xeb))
+		update_tsc(io_delay);
+    }
 
     io_log("(%i, %i, %04i) outw(%04X, %04X)\n", in_smm, found, qfound, port, val);
 
@@ -542,8 +548,11 @@ outl(uint16_t port, uint32_t val)
 	}
     }
 
-    if (!found)
+    if (!found) {
 	sub_cycles(io_delay);
+	if (cpu_use_dynarec && (port == 0xeb))
+		update_tsc(io_delay);
+    }
 
     io_log("(%i, %i, %04i) outl(%04X, %08X)\n", in_smm, found, qfound, port, val);
 

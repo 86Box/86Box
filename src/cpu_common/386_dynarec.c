@@ -275,6 +275,15 @@ static void prefetch_flush()
 #ifdef USE_DYNAREC
 static int cycles_main = 0;
 
+void update_tsc(int cycs)
+{
+    if (cycs > 0) {
+	tsc += cycs;
+
+	if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t)tsc))
+		timer_process();
+    }
+}
 
 void exec386_dynarec(int cycs)
 {
@@ -282,7 +291,9 @@ void exec386_dynarec(int cycs)
 	uint32_t addr;
 	int tempi;
 	int cycdiff;
-	int oldcyc;
+	int oldcyc, oldtsc;
+	int oldcyc2;
+	int delta;
 	uint32_t start_pc = 0;
 
 	int cyc_period = cycs / 2000; /*5us*/
@@ -305,7 +316,8 @@ void exec386_dynarec(int cycs)
 
 			cycdiff=0;
 #endif
-			oldcyc=cycles;
+			oldcyc = oldcyc2 = cycles;
+			oldtsc = tsc;
 			if (!CACHE_ON()) /*Interpret block*/
 			{
 				cpu_block_end = 0;
@@ -699,8 +711,18 @@ void exec386_dynarec(int cycs)
 #endif
 			}
 
-			cycdiff=oldcyc-cycles;
-			tsc += cycdiff;
+			cycdiff = oldcyc - cycles;
+			delta = tsc - oldtsc;
+			if (delta > 0) {
+				/* TSC has changed, this means interim timer processing has happened,
+				   see how much we still need to add. */
+				cycdiff -= delta;
+				if (cycdiff > 0)
+					tsc += cycdiff;
+			} else {
+				/* TSC has not changed. */
+				tsc += cycdiff;
+			}
 		
 			if (cpu_state.abrt)
 			{
@@ -799,8 +821,10 @@ void exec386_dynarec(int cycs)
 				}
 			}
 
-			if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t)tsc))
-				timer_process();
+			if (cycdiff > 0) {
+				if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t)tsc))
+					timer_process();
+			}
 		}
 
 		cycles_main -= (cycles_start - cycles);
