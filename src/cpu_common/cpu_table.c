@@ -726,8 +726,10 @@ CPU cpus_PentiumII[] = {
 
 CPU cpus_Xeon[] = {
 	/* Slot 2 Xeons. Literal P2D's with more cache */
+    {"Pentium II Xeon 100",    CPU_PENTIUM2D,  100000000, 1.5,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
     {"Pentium II Xeon 166",    CPU_PENTIUM2D,  166666666, 2.5,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
     {"Pentium II Xeon 400",    CPU_PENTIUM2D,  400000000, 4.0,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
+    {"Pentium II Xeon 450",    CPU_PENTIUM2D,  450000000, 4.5,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 54},
     {"",                                       -1,          0,   0,      0,      0, 0, 0,  0, 0, 0, 0,  0}	
 };
 
