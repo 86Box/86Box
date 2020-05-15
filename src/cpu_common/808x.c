@@ -34,6 +34,7 @@
 #include <86box/rom.h>
 #include <86box/nmi.h>
 #include <86box/pic.h>
+#include <86box/ppi.h>
 #include <86box/timer.h>
 
 /* The opcode of the instruction currently being executed. */
@@ -978,8 +979,10 @@ reset_common(int hard)
     in_smm = smi_latched = 0;
     smi_line = smm_in_hlt = 0;
 
-    if (hard)
+    if (hard) {
 	smbase = 0x00030000;
+	ppi_reset();
+    }
     in_sys = 0;
 }
 

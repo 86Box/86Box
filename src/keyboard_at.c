@@ -2039,7 +2039,7 @@ do_command:
 		break;
 
 	case 0x61:
-		ppi.pb = val;
+		ppi.pb = (ppi.pb & 0x10) | (val & 0x0f);
 
 		speaker_update();
 		speaker_gated = val & 1;
