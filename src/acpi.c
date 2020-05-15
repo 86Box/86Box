@@ -125,6 +125,7 @@ acpi_reg_read_intel(int size, uint16_t addr, void *p)
 	case 0x08: case 0x09: case 0x0a: case 0x0b:
 		/* PMTMR - Power Management Timer Register (IO) */
 		ret = (dev->regs.timer_val >> shift32) & 0xff;
+		update_tsc();
 		break;
 	case 0x0c: case 0x0d:
 		/* GPSTS - General Purpose Status Register (IO) */
@@ -211,6 +212,7 @@ acpi_reg_read_via(int size, uint16_t addr, void *p)
 	case 0x08: case 0x09: case 0x0a: case 0x0b:
 		/* PMTMR - Power Management Timer Register (IO) */
 		ret = (dev->regs.timer_val >> shift32) & 0xff;
+		update_tsc();
 		break;
 	case 0x10: case 0x11: case 0x12: case 0x13:
 		/* PCNTRL - Processor Control Register (IO) */
