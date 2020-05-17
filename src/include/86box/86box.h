@@ -32,10 +32,15 @@
 #ifdef RELEASE_BUILD
 #define EMU_VERSION	"2.07"
 #define EMU_VERSION_W	L"2.07"
+#define EMU_VERSION_MAJ	2
+#define EMU_VERSION_MIN	7
 #else
 #define EMU_VERSION	"2.10"
 #define EMU_VERSION_W	L"2.10"
+#define EMU_VERSION_MAJ	2
+#define EMU_VERSION_MIN	10
 #endif
+#define COPYRIGHT_YEAR	"2020"
 
 /* Filename and pathname info. */
 #define CONFIG_FILE	L"86box.cfg"
