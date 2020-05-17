@@ -24,7 +24,7 @@ extern void	smbus_sethandler(uint8_t base, int size,
     			uint8_t (*read_byte)(uint8_t addr, void *priv),
     			uint8_t (*read_byte_cmd)(uint8_t addr, uint8_t cmd, void *priv),
     			uint16_t (*read_word_cmd)(uint8_t addr, uint8_t cmd, void *priv),
-    			uint8_t (*read_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, void *priv),
+    			uint8_t (*read_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
     			void (*write_byte)(uint8_t addr, uint8_t val, void *priv),
     			void (*write_byte_cmd)(uint8_t addr, uint8_t cmd, uint8_t val, void *priv),
     			void (*write_word_cmd)(uint8_t addr, uint8_t cmd, uint16_t val, void *priv),
@@ -35,7 +35,7 @@ extern void	smbus_removehandler(uint8_t base, int size,
     			uint8_t (*read_byte)(uint8_t addr, void *priv),
     			uint8_t (*read_byte_cmd)(uint8_t addr, uint8_t cmd, void *priv),
     			uint16_t (*read_word_cmd)(uint8_t addr, uint8_t cmd, void *priv),
-    			uint8_t (*read_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, void *priv),
+    			uint8_t (*read_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
     			void (*write_byte)(uint8_t addr, uint8_t val, void *priv),
     			void (*write_byte_cmd)(uint8_t addr, uint8_t cmd, uint8_t val, void *priv),
     			void (*write_word_cmd)(uint8_t addr, uint8_t cmd, uint16_t val, void *priv),
@@ -46,7 +46,7 @@ extern void	smbus_handler(int set, uint8_t base, int size,
     			uint8_t (*read_byte)(uint8_t addr, void *priv),
     			uint8_t (*read_byte_cmd)(uint8_t addr, uint8_t cmd, void *priv),
     			uint16_t (*read_word_cmd)(uint8_t addr, uint8_t cmd, void *priv),
-    			uint8_t (*read_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, void *priv),
+    			uint8_t (*read_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
     			void (*write_byte)(uint8_t addr, uint8_t val, void *priv),
     			void (*write_byte_cmd)(uint8_t addr, uint8_t cmd, uint8_t val, void *priv),
     			void (*write_word_cmd)(uint8_t addr, uint8_t cmd, uint16_t val, void *priv),
@@ -57,7 +57,7 @@ extern uint8_t	smbus_has_device(uint8_t addr);
 extern uint8_t	smbus_read_byte(uint8_t addr);
 extern uint8_t	smbus_read_byte_cmd(uint8_t addr, uint8_t cmd);
 extern uint16_t	smbus_read_word_cmd(uint8_t addr, uint8_t cmd);
-extern uint8_t	smbus_read_block_cmd(uint8_t addr, uint8_t cmd, uint8_t *data);
+extern uint8_t	smbus_read_block_cmd(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len);
 extern void	smbus_write_byte(uint8_t addr, uint8_t val);
 extern void	smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val);
 extern void	smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val);
