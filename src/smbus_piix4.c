@@ -157,7 +157,7 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
     					break;
     				case 0x5: /* block R/W */
     					if (smbus_read)
-    						dev->data0 = smbus_read_block_cmd(smbus_addr, dev->cmd, dev->data);
+    						dev->data0 = smbus_read_block_cmd(smbus_addr, dev->cmd, dev->data, SMBUS_PIIX4_BLOCK_DATA_SIZE);
     					else
     						smbus_write_block_cmd(smbus_addr, dev->cmd, dev->data, dev->data0);
     					dev->next_stat = 0x2;
