@@ -33,7 +33,7 @@ typedef struct _smbus_ {
     	uint8_t  (*read_byte)(uint8_t addr, void *priv);
     	uint8_t  (*read_byte_cmd)(uint8_t addr, uint8_t cmd, void *priv);
     	uint16_t (*read_word_cmd)(uint8_t addr, uint8_t cmd, void *priv);
-    	uint8_t  (*read_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, void *priv);
+    	uint8_t  (*read_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv);
 
     	void	 (*write_byte)(uint8_t addr, uint8_t val, void *priv);
     	void	 (*write_byte_cmd)(uint8_t addr, uint8_t cmd, uint8_t val, void *priv);
@@ -73,7 +73,7 @@ smbus_log(const char *fmt, ...)
 static uint8_t smbus_null_read_byte(uint8_t addr, void *priv) { smbus_log("SMBus: read_byte(%02x)\n", addr); return(0xff); }
 static uint8_t smbus_null_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv) { smbus_log("SMBus: read_byte_cmd(%02x, %02x)\n", addr, cmd); return(0xff); }
 static uint16_t smbus_null_read_word_cmd(uint8_t addr, uint8_t cmd, void *priv) { smbus_log("SMBus: read_word_cmd(%02x, %02x)\n", addr, cmd); return(0xffff); }
-static uint8_t smbus_null_read_block_cmd(uint8_t addr, uint8_t cmd, uint8_t *data, void *priv) { smbus_log("SMBus: read_block_cmd(%02x, %02x)\n", addr, cmd); return(0x00); };
+static uint8_t smbus_null_read_block_cmd(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv) { smbus_log("SMBus: read_block_cmd(%02x, %02x)\n", addr, cmd); return(0x00); };
 static void smbus_null_write_byte(uint8_t addr, uint8_t val, void *priv) { smbus_log("SMBus: write_byte(%02x, %02x)\n", addr, val); }
 static void smbus_null_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val, void *priv) { smbus_log("SMBus: write_byte_cmd(%02x, %02x, %02x)\n", addr, cmd, val); }
 static void smbus_null_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, void *priv) { smbus_log("SMBus: write_word_cmd(%02x, %02x, %04x)\n", addr, cmd, val); }
@@ -135,7 +135,7 @@ smbus_sethandler(uint8_t base, int size,
     		 uint8_t (*read_byte)(uint8_t addr, void *priv),
     		 uint8_t (*read_byte_cmd)(uint8_t addr, uint8_t cmd, void *priv),
     		 uint16_t (*read_word_cmd)(uint8_t addr, uint8_t cmd, void *priv),
-    		 uint8_t (*read_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, void *priv),
+    		 uint8_t (*read_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
     		 void (*write_byte)(uint8_t addr, uint8_t val, void *priv),
     		 void (*write_byte_cmd)(uint8_t addr, uint8_t cmd, uint8_t val, void *priv),
     		 void (*write_word_cmd)(uint8_t addr, uint8_t cmd, uint16_t val, void *priv),
@@ -180,7 +180,7 @@ smbus_removehandler(uint8_t base, int size,
     		    uint8_t (*read_byte)(uint8_t addr, void *priv),
     		    uint8_t (*read_byte_cmd)(uint8_t addr, uint8_t cmd, void *priv),
     		    uint16_t (*read_word_cmd)(uint8_t addr, uint8_t cmd, void *priv),
-    		    uint8_t (*read_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, void *priv),
+    		    uint8_t (*read_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
     		    void (*write_byte)(uint8_t addr, uint8_t val, void *priv),
     		    void (*write_byte_cmd)(uint8_t addr, uint8_t cmd, uint8_t val, void *priv),
     		    void (*write_word_cmd)(uint8_t addr, uint8_t cmd, uint16_t val, void *priv),
@@ -223,7 +223,7 @@ smbus_handler(int set, uint8_t base, int size,
     	      uint8_t (*read_byte)(uint8_t addr, void *priv),
     	      uint8_t (*read_byte_cmd)(uint8_t addr, uint8_t cmd, void *priv),
     	      uint16_t (*read_word_cmd)(uint8_t addr, uint8_t cmd, void *priv),
-    	      uint8_t (*read_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, void *priv),
+    	      uint8_t (*read_block_cmd)(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
     	      void (*write_byte)(uint8_t addr, uint8_t val, void *priv),
     	      void (*write_byte_cmd)(uint8_t addr, uint8_t cmd, uint8_t val, void *priv),
     	      void (*write_word_cmd)(uint8_t addr, uint8_t cmd, uint16_t val, void *priv),
@@ -308,7 +308,7 @@ smbus_read_word_cmd(uint8_t addr, uint8_t cmd)
 }
 
 uint8_t
-smbus_read_block_cmd(uint8_t addr, uint8_t cmd, uint8_t *data)
+smbus_read_block_cmd(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len)
 {
     uint8_t ret = 0;
     smbus_t *p;
@@ -318,7 +318,7 @@ smbus_read_block_cmd(uint8_t addr, uint8_t cmd, uint8_t *data)
     if (p) {
     	while(p) {
     		if (p->read_block_cmd) {
-    			ret = MAX(ret, p->read_block_cmd(addr, cmd, data, p->priv));
+    			ret = MAX(ret, p->read_block_cmd(addr, cmd, data, len, p->priv));
     			found++;
     		}
     		p = p->next;
