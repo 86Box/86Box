@@ -39,7 +39,7 @@ static uint8_t	spd_read_byte(uint8_t addr, void *priv);
 static uint8_t	spd_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv);
 static void	spd_write_byte(uint8_t addr, uint8_t val, void *priv);
 
-#define ENABLE_SPD_LOG 1
+
 #ifdef ENABLE_SPD_LOG
 int spd_do_log = ENABLE_SPD_LOG;
 
