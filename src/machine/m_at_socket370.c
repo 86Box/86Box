@@ -74,28 +74,23 @@ machine_at_s370slm_init(const machine_t *model)
 
     hwm_values_t machine_hwm = {
     	{    /* fan speeds */
-    		3000,	/* Chassis */
     		3000,	/* CPU */
-    		3000,	/* Power */
-    		0
+    		3000,	/* Fan 2 */
+    		3000	/* Chassis */
     	}, { /* temperatures */
-    		30,	/* MB */
     		0,	/* unused */
-    		28,	/* CPU */
-    		0
+    		30,	/* CPU */
+    		0	/* unused */
     	}, { /* voltages */
-    		2050,				   /* VCORE (2.05V by default) */
+    		2050,				   /* CPU1 (2.05V by default) */
     		0,				   /* unused */
     		3300,				   /* +3.3V */
     		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
     		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
     		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2), /* -5V  (divider values bruteforced) */
-    		0
+    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
     	}
     };
-    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
-    	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Klamath */
     hwm_set_values(machine_hwm);
     device_add(&w83781d_device);
 	
@@ -137,13 +132,11 @@ machine_at_cubx_init(const machine_t *model)
     	{    /* fan speeds */
     		3000,	/* Chassis */
     		3000,	/* CPU */
-    		3000,	/* Power */
-    		0
+    		3000	/* Power */
     	}, { /* temperatures */
     		30,	/* MB */
     		0,	/* unused */
-    		30,	/* CPU */
-    		0
+    		30	/* CPU */
     	}, { /* voltages */
     		2050,				   /* VCORE (2.05V by default) */
     		0,				   /* unused */
@@ -151,8 +144,7 @@ machine_at_cubx_init(const machine_t *model)
     		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
     		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
     		RESISTOR_DIVIDER(12000,  59,  20), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2), /* -5V  (divider values bruteforced) */
-    		0
+    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
     	}
     };
     hwm_set_values(machine_hwm);
@@ -197,9 +189,6 @@ machine_at_atc7020bxii_init(const machine_t *model)
 int
 machine_at_63a_init(const machine_t *model)
 {
-	
-    /* 440ZX Board. 440ZX is basically an underpowered 440BX. There no
-       difference between to chipsets other than the name. */
     int ret;
 
     ret = bios_load_linear(L"roms/machines/63a1/63a-q3.bin",
@@ -245,16 +234,16 @@ machine_at_apas3_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-	pci_register_slot(0x0F, PCI_CARD_NORMAL,      1, 2, 3, 4);
-	pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
-	pci_register_slot(0x13, PCI_CARD_NORMAL,      3, 4, 1, 2);
-	pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     pci_register_slot(0x01, PCI_CARD_NORMAL, 	  1, 2, 3, 4);
     device_add(&via_apro_device);
     device_add(&via_vt82c586b_device);
     device_add(&fdc37c669_device);
-     device_add(&keyboard_ps2_pci_device);
+    device_add(&keyboard_ps2_pci_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 

@@ -11,6 +11,7 @@
  *
  *
  * Author:	RichardG, <richardg867@gmail.com>
+ *
  *		Copyright 2020 RichardG.
  */
 #ifndef EMU_HWM_H
@@ -31,8 +32,10 @@ extern void		hwm_set_values(hwm_values_t new_values);
 extern hwm_values_t*	hwm_get_values();
 
 
+extern const device_t	lm78_device;
 extern const device_t	w83781d_device;
 extern const device_t	as99127f_device;
+extern const device_t	as99127f_rev2_device;
 
 
 #endif	/*EMU_HWM_H*/
