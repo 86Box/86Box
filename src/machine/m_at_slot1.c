@@ -114,7 +114,7 @@ machine_at_6bxc_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&um8669f_device); /*ITE 8671*/
     device_add(&sst_flash_39sf020_device);
-    spd_register(SPD_TYPE_SDRAM, 0xF, 256);    
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);    
 
     return ret;
 }
@@ -269,7 +269,7 @@ machine_at_bf6_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83977ef_device);
     device_add(&sst_flash_39sf020_device);
-    spd_register(SPD_TYPE_SDRAM, 0xF, 256);    
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);    
 
     return ret;
 }
@@ -277,7 +277,12 @@ machine_at_bf6_init(const machine_t *model)
 int
 machine_at_p6sba_init(const machine_t *model)
 {	
-
+	/*
+	   AMI 440BX Board.
+	   doesn't like the i686 CPU's.
+	   10 -> D3 -> D1 POST. Probably KBC related.
+	*/
+	
     int ret;
 
     ret = bios_load_linear(L"roms/machines/p6sba/SBAB21.ROM",
@@ -303,8 +308,35 @@ machine_at_p6sba_init(const machine_t *model)
     device_add(&w83977tf_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&intel_flash_bxt_device);
-    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
+    hwm_values_t machine_hwm = {
+    	{    /* fan speeds */
+    		3000,	/* Chassis */
+    		3000,	/* CPU */
+    		3000,	/* Power */
+    		0
+    	}, { /* temperatures */
+    		30,	/* MB */
+    		0,	/* unused */
+    		28,	/* CPU */
+    		0
+    	}, { /* voltages */
+    		2050,				   /* VCORE (2.05V by default) */
+    		0,				   /* unused */
+    		3300,				   /* +3.3V */
+    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
+    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
+    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
+    		RESISTOR_DIVIDER(5000,    1,   2), /* -5V  (divider values bruteforced) */
+    		0
+    	}
+    };
+    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
+    	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Klamath */
+    hwm_set_values(machine_hwm);
+    device_add(&w83781d_device);
+	
     return ret;
 }
 
@@ -339,7 +371,7 @@ machine_at_tsunamiatx_init(const machine_t *model)
     device_add(&pc87306_device); //PC87309
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&intel_flash_bxt_device);
-    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     return ret;
 }

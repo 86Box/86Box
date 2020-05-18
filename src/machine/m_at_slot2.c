@@ -46,7 +46,13 @@ int
 machine_at_s2dge_init(const machine_t *model)
 {
 	
-	/* 440GX AMI Slot 2 motherboard */
+	/* 
+	   440GX AMI Slot 2 motherboard
+	   
+	   This board under a i686 CPU freezes on POST code D0.
+	   According to the manual it has to do with the NMI which
+	   seems to be related on the I/O APIC. Works fine under a VIA C3.
+	*/
     int ret;
 
     ret = bios_load_linear(L"roms/machines/s2dge/2gu7301.rom",
@@ -67,13 +73,41 @@ machine_at_s2dge_init(const machine_t *model)
     pci_register_slot(0x0E, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x01, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	
     device_add(&i440bx_device); /* i440GX */
-    device_add(&piix4_device);
+    device_add(&piix4e_device);
     device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&w83977f_device);
+    device_add(&w83977tf_device);
     device_add(&intel_flash_bxt_device);
-    spd_register(SPD_TYPE_SDRAM, 0xF, 256);    
+    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
 
+    hwm_values_t machine_hwm = {
+    	{    /* fan speeds */
+    		3000,	/* Chassis */
+    		3000,	/* CPU */
+    		3000,	/* Power */
+    		0
+    	}, { /* temperatures */
+    		30,	/* MB */
+    		0,	/* unused */
+    		28,	/* CPU */
+    		0
+    	}, { /* voltages */
+    		2050,				   /* VCORE (2.05V by default) */
+    		0,				   /* unused */
+    		3300,				   /* +3.3V */
+    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
+    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
+    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
+    		RESISTOR_DIVIDER(5000,    1,   2), /* -5V  (divider values bruteforced) */
+    		0
+    	}
+    };
+    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
+    	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Klamath */
+    hwm_set_values(machine_hwm);
+    device_add(&w83781d_device);
+	
     return ret;
 }
 #endif
