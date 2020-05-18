@@ -645,6 +645,7 @@ machine_at_p55xb2_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
 //  device_add(&ali_m513x_device);
     device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
 
     return ret;
 }
@@ -677,6 +678,7 @@ machine_at_tx97_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83877tf_acorp_device);
     device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
 
     hwm_values_t machine_hwm = {
     	{    /* fan speeds */
@@ -744,6 +746,7 @@ machine_at_ym430tx_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83977tf_device);
     device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
 
     return ret;
 }
@@ -774,6 +777,7 @@ machine_at_586t2_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&um8669f_device); /*Placeholder for ITE 8679*/
     device_add(&sst_flash_29ee010_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
 
     return ret;
 }
@@ -804,6 +808,7 @@ machine_at_807ds_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&um8669f_device); /*Placeholder for ITE 8679*/
     device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
 
     return ret;
 }
@@ -834,6 +839,7 @@ machine_at_p5mms98_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&w83977tf_device);
     device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
 
     hwm_values_t machine_hwm = {
     	{    /* fan speeds */
