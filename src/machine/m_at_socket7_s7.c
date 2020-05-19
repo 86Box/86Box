@@ -847,7 +847,8 @@ machine_at_p5mms98_init(const machine_t *model)
     		3000,	/* CPU */
     		3000	/* Chassis */
     	}, { /* temperatures */
-    		28	/* CPU (locked at 28?) */
+    		0,	/* unused */
+    		30	/* CPU */
     	}, { /* voltages */
     		3300,				   /* VCORE (3.3V by default) */
     		3300,				   /* VIO (3.3V) */
@@ -873,6 +874,7 @@ machine_at_p5mms98_init(const machine_t *model)
     }
     hwm_set_values(machine_hwm);
     device_add(&lm78_device);
+    device_add(&lm75_1_4a_device);
 
     return ret;
 }
