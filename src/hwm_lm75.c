@@ -133,7 +133,7 @@ lm75_read(lm75_t *dev, uint8_t reg)
     else
     	ret = dev->regs[reg & 0x7];
 
-    lm75_log("LM75: read(%x) = %02x\n", reg, ret);
+    lm75_log("LM75: read(%02X) = %02X\n", reg, ret);
 
     return ret;
 }
@@ -186,7 +186,7 @@ lm75_smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, void *priv)
 uint8_t
 lm75_write(lm75_t *dev, uint8_t reg, uint8_t val)
 {
-    lm75_log("LM75: write(%x, %02x)\n", reg, val);
+    lm75_log("LM75: write(%02X, %02X)\n", reg, val);
 
     /* The AS99127F hardware monitor uses the addresses of its LM75 devices
        to access some of its proprietary registers. Pass this operation on to

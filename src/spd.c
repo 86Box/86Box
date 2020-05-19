@@ -73,7 +73,7 @@ spd_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv)
 {
     spd_t *dev = (spd_t *) priv;
     uint8_t ret = *(spd_data[dev->slot] + cmd);
-    spd_log("SPD: read(%02x, %02x) = %02x\n", addr, cmd, ret);
+    spd_log("SPD: read(%02X, %02X) = %02X\n", addr, cmd, ret);
     return ret;
 }
 
@@ -195,7 +195,7 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     	/* populate slot */
     	vslots[vslot] = (1 << log2_ui16(MIN(total_size, max_module_size)));
     	if (total_size >= vslots[vslot]) {
-    		spd_log("SPD: vslot %d = %d MB\n", vslot, vslots[vslot]);
+    		spd_log("SPD: initial vslot %d = %d MB\n", vslot, vslots[vslot]);
     		total_size -= vslots[vslot];
     	} else {
     		vslots[vslot] = 0;

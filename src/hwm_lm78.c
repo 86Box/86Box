@@ -142,7 +142,7 @@ lm78_isa_read(uint16_t port, void *priv)
     		}
     		break;
     	default:
-    		lm78_log("LM78: Read from unknown ISA port %x\n", port & 0x7);
+    		lm78_log("LM78: Read from unknown ISA port %d\n", port & 0x7);
     		break;
     }
 
@@ -197,7 +197,7 @@ lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank)
     		ret = dev->regs[reg];
     }
 
-    lm78_log("LM78: read(%02x, %d) = %02x\n", reg, bank, ret);
+    lm78_log("LM78: read(%02X, %d) = %02X\n", reg, bank, ret);
 
     return ret;
 }
@@ -223,7 +223,7 @@ lm78_isa_write(uint16_t port, uint8_t val, void *priv)
     		}
     		break;
     	default:
-    		lm78_log("LM78: Write %02x to unknown ISA port %x\n", val, port & 0x7);
+    		lm78_log("LM78: Write %02X to unknown ISA port %d\n", val, port & 0x7);
     		break;
     }
 }
@@ -258,7 +258,7 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 {
     lm75_t *lm75;
 
-    lm78_log("LM78: write(%02x, %d, %02x)\n", reg, bank, val);
+    lm78_log("LM78: write(%02X, %d, %02X)\n", reg, bank, val);
 
     if (((reg >> 4) == 0x5) && (bank != 0)) {
     	/* LM75 registers */
@@ -343,7 +343,7 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
     		dev->active_bank = (dev->regs[0x4e] & 0x07);
     		break;
     	case 0x87:
-    		/* fixes AS99127F boards hanging after save & exit, probably a reset register */
+    		/* fixes AS99127F boards hanging after BIOS save & exit, probably a reset register */
     		if ((dev->local & LM78_AS99127F) && (val == 0x01)) {
     			lm78_log("LM78: Reset requested through AS99127F\n");
     			resetx86();
