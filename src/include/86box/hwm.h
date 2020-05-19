@@ -27,10 +27,29 @@ typedef struct _hwm_values_ {
     uint16_t	voltages[8];
 } hwm_values_t;
 
+typedef struct {
+    uint32_t	 local;
+    hwm_values_t *values;
+
+    uint8_t	 regs[8];
+    uint8_t	 addr_register;
+    uint8_t	 temp_idx;
+    uint8_t	 smbus_addr;
+
+    uint8_t	 as99127f_smbus_addr;
+} lm75_t;
+
 
 extern void		hwm_set_values(hwm_values_t new_values);
 extern hwm_values_t*	hwm_get_values();
 
+extern void		lm75_remap(lm75_t *dev);
+extern uint8_t		lm75_read(lm75_t *dev, uint8_t reg);
+extern uint8_t		lm75_write(lm75_t *dev, uint8_t reg, uint8_t val);
+
+
+extern const device_t	lm75_1_4a_device;
+extern const device_t	lm75_w83781d_device;
 
 extern const device_t	lm78_device;
 extern const device_t	w83781d_device;

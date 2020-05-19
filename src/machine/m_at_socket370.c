@@ -135,7 +135,7 @@ machine_at_cubx_init(const machine_t *model)
     		3000	/* Power */
     	}, { /* temperatures */
     		30,	/* MB */
-    		0,	/* unused */
+    		30,	/* JTPWR */
     		30	/* CPU */
     	}, { /* voltages */
     		2050,				   /* VCORE (2.05V by default) */

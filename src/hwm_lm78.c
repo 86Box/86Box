@@ -39,23 +39,19 @@
 
 #define CLAMP(a, min, max)	(((a) < (min)) ? (min) : (((a) > (max)) ? (max) : (a)))
 #define LM78_RPM_TO_REG(r, d)	((r) ? CLAMP(1350000 / (r * d), 1, 255) : 0)
-#define LM78_TEMP_TO_REG(t)	((t) << 8)
 #define LM78_VOLTAGE_TO_REG(v)	((v) >> 4)
 
 
 typedef struct {
     uint32_t	  local;
-    hwm_values_t* values;
+    hwm_values_t  *values;
+    device_t      *lm75[2];
 
     uint8_t regs[256];
-    uint8_t regs_bank1[7];
-    uint8_t regs_bank2[7];
     uint8_t addr_register;
     uint8_t data_register;
 
-    uint8_t smbus_addr_main;
-    uint8_t smbus_addr_temp2;
-    uint8_t smbus_addr_temp3;
+    uint8_t smbus_addr;
     uint8_t hbacs;
     uint8_t active_bank;
 } lm78_t;
@@ -97,29 +93,31 @@ lm78_log(const char *fmt, ...)
 static void
 lm78_remap(lm78_t *dev)
 {
+    lm75_t *lm75;
+
     if (!(dev->local & LM78_SMBUS)) return;
 
-    lm78_log("LM78: SMBus remap: main = %02Xh; temp2 = %02Xh; temp3 = %02Xh\n", dev->smbus_addr_main, dev->smbus_addr_temp2, dev->smbus_addr_temp3);
+    lm78_log("LM78: remapping to SMBus %02Xh\n", dev->smbus_addr);
 
-    smbus_removehandler(0x00, 0x80,
+    smbus_removehandler(dev->smbus_addr, 1,
     			lm78_smbus_read_byte, lm78_smbus_read_byte_cmd, lm78_smbus_read_word_cmd, NULL,
     			lm78_smbus_write_byte, lm78_smbus_write_byte_cmd, lm78_smbus_write_word_cmd, NULL,
     			dev);
 
-    if (dev->smbus_addr_main) smbus_sethandler(dev->smbus_addr_main, 1,
+    if (dev->smbus_addr) smbus_sethandler(dev->smbus_addr, 1,
     			lm78_smbus_read_byte, lm78_smbus_read_byte_cmd, lm78_smbus_read_word_cmd, NULL,
     			lm78_smbus_write_byte, lm78_smbus_write_byte_cmd, lm78_smbus_write_word_cmd, NULL,
     			dev);
 
-    if (dev->smbus_addr_temp2) smbus_sethandler(dev->smbus_addr_temp2, 1,
-    			lm78_smbus_read_byte, lm78_smbus_read_byte_cmd, lm78_smbus_read_word_cmd, NULL,
-    			lm78_smbus_write_byte, lm78_smbus_write_byte_cmd, lm78_smbus_write_word_cmd, NULL,
-    			dev);
-
-    if (dev->smbus_addr_temp3) smbus_sethandler(dev->smbus_addr_temp3, 1,
-    			lm78_smbus_read_byte, lm78_smbus_read_byte_cmd, lm78_smbus_read_word_cmd, NULL,
-    			lm78_smbus_write_byte, lm78_smbus_write_byte_cmd, lm78_smbus_write_word_cmd, NULL,
-    			dev);
+    if (dev->local & LM78_AS99127F) {
+    	/* Store the main SMBus address on the LM75 devices to ensure reads/writes
+    	   to the AS99127F's proprietary registers are passed through to this side. */
+    	for (uint8_t i = 0; i <= 1; i++) {
+    		lm75 = device_get_priv(dev->lm75[i]);
+    		if (lm75)
+    			lm75->as99127f_smbus_addr = dev->smbus_addr;
+    	}
+    }
 }
 
 
@@ -127,9 +125,9 @@ static uint8_t
 lm78_isa_read(uint16_t port, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
-    uint8_t ret = 0xFF;
+    uint8_t ret = 0xff;
 
-    switch (port & 0xf) {
+    switch (port & 0x7) {
     	case 0x5:
     		ret = (dev->addr_register & 0x7f);
     		break;
@@ -143,6 +141,9 @@ lm78_isa_read(uint16_t port, void *priv)
     			dev->addr_register++;
     		}
     		break;
+    	default:
+    		lm78_log("LM78: Read from unknown ISA port %x\n", port & 0x7);
+    		break;
     }
 
     return ret;
@@ -153,7 +154,7 @@ static uint8_t
 lm78_smbus_read_byte(uint8_t addr, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
-    return lm78_smbus_read_byte_cmd(addr, dev->addr_register, priv);
+    return lm78_read(dev, dev->addr_register, dev->active_bank);
 }
 
 
@@ -161,14 +162,7 @@ static uint8_t
 lm78_smbus_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
-
-    uint8_t bank = 0;
-    if (addr == dev->smbus_addr_temp2)
-    	bank = 1;
-    else if (addr == dev->smbus_addr_temp3)
-    	bank = 2;
-
-    return lm78_read(dev, cmd, bank);
+    return lm78_read(dev, cmd, dev->active_bank);
 }
 
 
@@ -176,38 +170,7 @@ static uint16_t
 lm78_smbus_read_word_cmd(uint8_t addr, uint8_t cmd, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
-    uint8_t rethi = 0;
-    uint8_t retlo = 0;
-    uint8_t bank = 0;
-
-    if ((dev->local & LM78_WINBOND) && ((addr == dev->smbus_addr_temp2) || (addr == dev->smbus_addr_temp3))) {
-    	if (addr == dev->smbus_addr_temp2)
-    		bank = 2;
-    	else
-    		bank = 3;
-
-    	switch (cmd & 0x3) {
-    		case 0x0: /* temperature */
-    			rethi = lm78_read(dev, 0x50, bank);
-    			retlo = lm78_read(dev, 0x51, bank);
-    			break;
-    		case 0x1: /* configuration */
-    			rethi = retlo = lm78_read(dev, 0x52, bank);
-    			break;
-    		case 0x2: /* Thyst */
-    			rethi = lm78_read(dev, 0x53, bank);
-    			retlo = lm78_read(dev, 0x54, bank);
-    			break;
-    		case 0x3: /* Tos */
-    			rethi = lm78_read(dev, 0x55, bank);
-    			retlo = lm78_read(dev, 0x56, bank);
-    			break;
-    	}
-    } else {
-    	rethi = retlo = lm78_read(dev, cmd, bank);
-    }
-
-    return (retlo << 8) | rethi; /* byte-swapped for some reason */
+    return (lm78_read(dev, cmd, dev->active_bank) << 8) | lm78_read(dev, cmd, dev->active_bank);
 }
 
 
@@ -215,20 +178,20 @@ static uint8_t
 lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank)
 {
     uint8_t ret = 0;
+    lm75_t *lm75;
 
-    if ((dev->local & LM78_WINBOND) && ((reg >> 4) == 0x5) && (bank != 0)) {
-    	/* bank-switched temperature registers */
-    	if (bank == 1)
-    		ret = dev->regs_bank1[reg & 0x7];
-    	else
-    		ret = dev->regs_bank2[reg & 0x7];
+    if (((reg >> 4) == 0x5) && (bank != 0)) {
+    	/* LM75 registers */
+    	lm75 = device_get_priv(dev->lm75[bank - 1]);
+    	if (lm75)
+    		ret = lm75_read(lm75, reg & 0x7);
     } else {
     	/* regular registers */
     	if ((reg == 0x4f) && (dev->local & LM78_WINBOND)) /* special case for two-byte vendor ID register */
     		ret = (dev->hbacs ? (LM78_WINBOND_VENDOR_ID >> 8) : LM78_WINBOND_VENDOR_ID);
     	else if ((reg >= 0x60) && (reg <= 0x7f)) /* read auto-increment value RAM registers from their non-auto-increment locations */
     		ret = dev->regs[reg & 0x3f];
-    	else if ((reg >= 0x80) && (reg <= 0x92)) /* AS99127F mirrors POST RAM to 80-92 */
+    	else if ((reg >= 0x80) && (reg <= 0x92)) /* AS99127F mirrors [0x00:0x12] to [0x80:0x92] */
     		ret = dev->regs[reg - 0x7f];
     	else
     		ret = dev->regs[reg];
@@ -245,7 +208,7 @@ lm78_isa_write(uint16_t port, uint8_t val, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
 
-    switch (port & 0xf) {
+    switch (port & 0x7) {
     	case 0x5:
     		dev->addr_register = (val & 0x7f);
     		break;
@@ -259,6 +222,9 @@ lm78_isa_write(uint16_t port, uint8_t val, void *priv)
     			dev->addr_register++;
     		}
     		break;
+    	default:
+    		lm78_log("LM78: Write %02x to unknown ISA port %x\n", val, port & 0x7);
+    		break;
     }
 }
 
@@ -267,7 +233,6 @@ static void
 lm78_smbus_write_byte(uint8_t addr, uint8_t val, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
-
     dev->addr_register = val;
 }
 
@@ -276,8 +241,7 @@ static void
 lm78_smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
-
-    lm78_write(dev, cmd, val, 0);
+    lm78_write(dev, cmd, val, dev->active_bank);
 }
 
 
@@ -285,60 +249,23 @@ static void
 lm78_smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
-    uint8_t valhi = (val >> 8);
-    uint8_t vallo = (val & 0xff);
-    uint8_t bank = 0;
-
-    if ((dev->local & LM78_WINBOND) && ((addr == dev->smbus_addr_temp2) || (addr == dev->smbus_addr_temp3))) {
-    	if (addr == dev->smbus_addr_temp2)
-    		bank = 2;
-    	else
-    		bank = 3;
-
-    	switch (cmd & 0x3) {
-    		case 0x0: /* temperature */
-    			lm78_write(dev, 0x50, valhi, bank);
-    			lm78_write(dev, 0x51, vallo, bank);
-    			break;
-    		case 0x1: /* configuration */
-    			lm78_write(dev, 0x52, vallo, bank);
-    			break;
-    		case 0x2: /* Thyst */
-    			lm78_write(dev, 0x53, valhi, bank);
-    			lm78_write(dev, 0x54, vallo, bank);
-    			break;
-    		case 0x3: /* Tos */
-    			lm78_write(dev, 0x55, valhi, bank);
-    			lm78_write(dev, 0x56, vallo, bank);
-    			break;
-    		break;
-    	}
-    	return;
-    }
-
-    lm78_write(dev, cmd, vallo, bank);
+    lm78_write(dev, cmd, val, dev->active_bank);
 }
 
 
 static uint8_t
 lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 {
-    uint8_t remap = 0;
+    lm75_t *lm75;
 
-    if ((dev->local & LM78_WINBOND) && ((reg >> 4) == 0x5) && (bank != 0)) {
-    	/* bank-switched temperature registers */
-    	switch (reg) {
-    		case 0x50: case 0x51:
-    			/* read-only registers */
-    			return 0;
-    	}
+    lm78_log("LM78: write(%02x, %d, %02x)\n", reg, bank, val);
 
-    	if (bank == 1)
-    		dev->regs_bank1[reg & 0x7] = val;
-    	else
-    		dev->regs_bank2[reg & 0x7] = val;
-
-    	goto end;
+    if (((reg >> 4) == 0x5) && (bank != 0)) {
+    	/* LM75 registers */
+    	lm75 = device_get_priv(dev->lm75[bank - 1]);
+    	if (lm75)
+    		lm75_write(lm75, reg & 0x7, val);
+    	return 1;
     }
 
     /* regular registers */
@@ -357,7 +284,7 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 
     if ((reg >= 0x60) && (reg <= 0x7f)) /* write auto-increment value RAM registers to their non-auto-increment locations */
     	dev->regs[reg & 0x3f] = val;
-    else if ((reg >= 0x80) && (reg <= 0x92)) /* AS99127F mirrors POST RAM to 80-92 */
+    else if ((reg >= 0x80) && (reg <= 0x92)) /* AS99127F mirrors [0x00:0x12] to [0x80:0x92] */
     	dev->regs[reg & 0x7f] = val;
     else
     	dev->regs[reg] = val;
@@ -377,8 +304,8 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
     	case 0x48:
     		/* set main SMBus address */
     		if (dev->local & LM78_SMBUS) {
-    			dev->smbus_addr_main = (dev->regs[0x48] & 0x7f);
-    			remap = 1;
+    			dev->smbus_addr = (dev->regs[0x48] & 0x7f);
+    			lm78_remap(dev);
     		}
     		break;
     	case 0x49:
@@ -394,18 +321,16 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
     		}
     		break;
     	case 0x4a:
-    		/* set TEMP2 and TEMP3 SMBus addresses (Winbond only) */
+    		/* set LM75 SMBus addresses (Winbond only) */
     		if (dev->local & LM78_SMBUS) {
-    			/* DIS_T2 and DIS_T3 bit disable those interfaces */
-    			if (dev->regs[0x4a] & 0x08)
-    				dev->smbus_addr_temp2 = 0x00;
-    			else
-    				dev->smbus_addr_temp2 = (0x48 + (dev->regs[0x4a] & 0x7));
-    			if (dev->regs[0x4a] & 0x80)
-    				dev->smbus_addr_temp3 = 0x00;
-    			else
-    				dev->smbus_addr_temp3 = (0x48 + ((dev->regs[0x4a] >> 4) & 0x7));
-    			remap = 1;
+    			for (uint8_t i = 0; i <= 1; i++) {
+    				lm75 = device_get_priv(dev->lm75[i]);
+    				if (dev->regs[0x4a] & (0x08 * (0x10 * i))) /* DIS_T2 and DIS_T3 bit disable those interfaces */
+    					lm75->smbus_addr = 0x00;
+    				else
+    					lm75->smbus_addr = (0x48 + ((dev->regs[0x4a] >> (i * 4)) & 0x7));
+    				lm75_remap(lm75);
+    			}
     		}
     		break;
     	case 0x4b:
@@ -426,12 +351,6 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
     		break;
     }
 
-    if (remap)
-    	lm78_remap(dev);
-
-end:
-    lm78_log("LM78: write(%02x, %d) = %02x\n", reg, bank, val);
-
     return 1;
 }
 
@@ -441,8 +360,6 @@ lm78_reset(lm78_t *dev, uint8_t initialization)
 {
     memset(dev->regs, 0, 256);
     memset(dev->regs + 0xc0, 0xff, 32); /* C0-DF are 0xFF at least on the AS99127F */
-    memset(dev->regs_bank1, 0, 6);
-    memset(dev->regs_bank2, 0, 6);
 
     uint8_t i;
     for (i = 0; i <= 6; i++)
@@ -455,20 +372,14 @@ lm78_reset(lm78_t *dev, uint8_t initialization)
     dev->regs[0x47] = 0x50;
     if (dev->local & LM78_SMBUS) {
     	if (!initialization) /* don't reset main SMBus address if the reset was triggered by the INITIALIZATION bit */
-    		dev->smbus_addr_main = 0x2d;
-    	dev->regs[0x48] = dev->smbus_addr_main;
-    	if (dev->local & LM78_WINBOND) {
+    		dev->smbus_addr = 0x2d;
+    	dev->regs[0x48] = dev->smbus_addr;
+    	if (dev->local & LM78_WINBOND)
     		dev->regs[0x4a] = 0x01;
-    		dev->smbus_addr_temp2 = (0x48 + (dev->regs[0x4a] & 0x7));
-    		dev->smbus_addr_temp3 = (0x48 + ((dev->regs[0x4a] >> 4) & 0x7));
-    	} else {
-    		dev->smbus_addr_temp2 = dev->smbus_addr_temp3 = 0x00;
-    	}
     } else {
     	dev->regs[0x48] = 0x00;
     	if (dev->local & LM78_WINBOND)
     		dev->regs[0x4a] = 0x88;
-    	dev->smbus_addr_temp2 = dev->smbus_addr_temp3 = 0x00;
     }
     if (dev->local & LM78_WINBOND) {
     	dev->regs[0x49] = 0x02;
@@ -480,17 +391,15 @@ lm78_reset(lm78_t *dev, uint8_t initialization)
     	dev->regs[0x4f] = (LM78_WINBOND_VENDOR_ID >> 8);
     	dev->regs[0x57] = 0x80;
 
-    	/*
-    	 * Initialize proprietary registers on the AS99127F. The BIOS accesses some
-    	 * of these on boot through read_byte_cmd on the TEMP2 address, hanging on
-    	 * POST code C1 if they're set to 0. There's no documentation on what these
-    	 * are for. The following values were dumped from a live, initialized
-    	 * AS99127F Rev. 2 on a P4B motherboard, and they seem to work well enough.
-    	 */
+    	/* Initialize proprietary registers on the AS99127F. The BIOS accesses some
+    	   of these on boot through read_byte_cmd on the TEMP2 address, hanging on
+    	   POST code C1 if they're defaulted to 0. There's no documentation on what
+    	   these are for. The following values were dumped from a live, initialized
+    	   AS99127F Rev. 2 on a P4B motherboard, and they seem to work well enough. */
     	if (dev->local & LM78_AS99127F) {
     		/* 0x00 appears to mirror IN2 Low Limit */
     		dev->regs[0x01] = dev->regs[0x23]; /* appears to mirror IN3 */
-    		dev->regs[0x02] = LM78_VOLTAGE_TO_REG(2800); /* appears to be a "maximum VCORE" of some kind; mirrors VCORE on the P4 board, but the P3 boards require this to read 2.8V */
+    		dev->regs[0x02] = LM78_VOLTAGE_TO_REG(2800); /* appears to be a "maximum VCORE" of some kind; must read 2.8V on P3 boards */
     		dev->regs[0x03] = 0x60;
     		dev->regs[0x04] = dev->regs[0x23]; /* appears to mirror IN3 */
     		dev->regs[0x05] = dev->regs[0x22]; /* appears to mirror IN2 */
@@ -513,19 +422,6 @@ lm78_reset(lm78_t *dev, uint8_t initialization)
     	} else {
     		dev->regs[0x58] = 0x10;
     	}
-
-    	/* WARNING: Array elements are register - 0x50. */
-    	uint16_t temp;
-    	temp = LM78_TEMP_TO_REG(dev->values->temperatures[1]);
-    	dev->regs_bank1[0x0] = (temp >> 8);
-    	dev->regs_bank1[0x1] = (temp & 0xff);
-    	dev->regs_bank1[0x3] = 0x4b;
-    	dev->regs_bank1[0x5] = 0x50;
-    	temp = LM78_TEMP_TO_REG(dev->values->temperatures[2]);
-    	dev->regs_bank2[0x0] = (temp >> 8);
-    	dev->regs_bank2[0x1] = (temp & 0xff);
-    	dev->regs_bank2[0x3] = 0x4b;
-    	dev->regs_bank2[0x5] = 0x50;
     } else {
     	dev->regs[0x49] = 0x40;
     }
@@ -541,7 +437,7 @@ lm78_close(void *priv)
 
     uint16_t isa_io = (dev->local & 0xffff);
     if (isa_io)
-    	io_removehandler(isa_io, 2, lm78_isa_read, NULL, NULL, lm78_isa_write, NULL, NULL, dev);
+    	io_removehandler(isa_io, 8, lm78_isa_read, NULL, NULL, lm78_isa_write, NULL, NULL, dev);
 
     free(dev);
 }
@@ -555,11 +451,26 @@ lm78_init(const device_t *info)
 
     dev->local = info->local;
     dev->values = hwm_get_values();
+
+    /* initialize secondary/tertiary LM75 sensors on Winbond */
+    for (uint8_t i = 0; i <= 1; i++) {
+    	if (dev->local & LM78_WINBOND) {
+    		dev->lm75[i] = (device_t *) malloc(sizeof(device_t));
+    		memcpy(dev->lm75[i], &lm75_w83781d_device, sizeof(device_t));
+    		dev->lm75[i]->local = ((i + 1) << 8);
+    		if (dev->local & LM78_SMBUS)
+    			dev->lm75[i]->local |= (0x48 + i);
+    		device_add(dev->lm75[i]);
+    	} else {
+    		dev->lm75[i] = NULL;
+    	}
+    }
+
     lm78_reset(dev, 0);
 
     uint16_t isa_io = (dev->local & 0xffff);
     if (isa_io)
-    	io_sethandler(isa_io, 2, lm78_isa_read, NULL, NULL, lm78_isa_write, NULL, NULL, dev);
+    	io_sethandler(isa_io, 8, lm78_isa_read, NULL, NULL, lm78_isa_write, NULL, NULL, dev);
 
     return dev;
 }
@@ -569,7 +480,7 @@ lm78_init(const device_t *info)
 const device_t lm78_device = {
     "National Semiconductor LM78 Hardware Monitor",
     DEVICE_ISA,
-    0x295 | LM78_SMBUS,
+    0x290 | LM78_SMBUS,
     lm78_init, lm78_close, NULL,
     NULL, NULL, NULL,
     NULL
@@ -580,7 +491,7 @@ const device_t lm78_device = {
 const device_t w83781d_device = {
     "Winbond W83781D Hardware Monitor",
     DEVICE_ISA,
-    0x295 | LM78_SMBUS | LM78_W83781D,
+    0x290 | LM78_SMBUS | LM78_W83781D,
     lm78_init, lm78_close, NULL,
     NULL, NULL, NULL,
     NULL
