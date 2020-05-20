@@ -186,7 +186,7 @@ sound_card_get_from_internal_name(char *s)
 void
 sound_card_init(void)
 {
-    if ((sound_card_current != SOUND_INTERNAL) && (sound_cards[sound_card_current].device)) /* skip internal sound card */
+    if (sound_cards[sound_card_current].device)
 	device_add(sound_cards[sound_card_current].device);
 }
 
