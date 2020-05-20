@@ -38,7 +38,8 @@
 #define MACHINE_VIDEO		0x002000	/* sys has int video */
 #define MACHINE_VIDEO_FIXED	0x004000	/* sys has ONLY int video */
 #define MACHINE_MOUSE		0x008000	/* sys has int mouse */
-#define MACHINE_NONMI		0x010000	/* sys does not have NMI's */
+#define MACHINE_SOUND		0x010000	/* sys has int sound */
+#define MACHINE_NONMI		0x020000	/* sys does not have NMI's */
 #else
 #define MACHINE_PC		0x000000	/* PC architecture */
 #define MACHINE_AT		0x000001	/* PC/AT architecture */
@@ -54,7 +55,8 @@
 #define MACHINE_VIDEO		0x002000	/* sys has int video */
 #define MACHINE_VIDEO_FIXED	0x004000	/* sys has ONLY int video */
 #define MACHINE_MOUSE		0x008000	/* sys has int mouse */
-#define MACHINE_NONMI		0x010000	/* sys does not have NMI's */
+#define MACHINE_SOUND		0x010000	/* sys has int sound */
+#define MACHINE_NONMI		0x020000	/* sys does not have NMI's */
 #endif
 
 #define IS_ARCH(m, a)		(machines[(m)].flags & (a)) ? 1 : 0;
@@ -348,6 +350,12 @@ extern int	machine_at_bf6_init(const machine_t *);
 extern int	machine_at_tsunamiatx_init(const machine_t *);
 #endif
 extern int	machine_at_p6sba_init(const machine_t *);
+
+#ifdef EMU_DEVICE_H
+#if defined(DEV_BRANCH) && defined(NO_SIO)
+extern const device_t 	*at_tsunamiatx_get_device(void);
+#endif
+#endif
 
 /* m_at_slot2.c */
 #if defined(DEV_BRANCH) && defined(NO_SIO)
