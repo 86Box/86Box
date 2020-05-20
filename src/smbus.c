@@ -69,18 +69,6 @@ smbus_log(const char *fmt, ...)
 #endif
 
 
-#ifdef ENABLE_SMBUS_LOG
-static uint8_t smbus_null_read_byte(uint8_t addr, void *priv) { smbus_log("SMBus: read_byte(%02x)\n", addr); return(0xff); }
-static uint8_t smbus_null_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv) { smbus_log("SMBus: read_byte_cmd(%02x, %02x)\n", addr, cmd); return(0xff); }
-static uint16_t smbus_null_read_word_cmd(uint8_t addr, uint8_t cmd, void *priv) { smbus_log("SMBus: read_word_cmd(%02x, %02x)\n", addr, cmd); return(0xffff); }
-static uint8_t smbus_null_read_block_cmd(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv) { smbus_log("SMBus: read_block_cmd(%02x, %02x)\n", addr, cmd); return(0x00); };
-static void smbus_null_write_byte(uint8_t addr, uint8_t val, void *priv) { smbus_log("SMBus: write_byte(%02x, %02x)\n", addr, val); }
-static void smbus_null_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val, void *priv) { smbus_log("SMBus: write_byte_cmd(%02x, %02x, %02x)\n", addr, cmd, val); }
-static void smbus_null_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, void *priv) { smbus_log("SMBus: write_word_cmd(%02x, %02x, %04x)\n", addr, cmd, val); }
-static void smbus_null_write_block_cmd(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv) { smbus_log("SMBus: write_block_cmd(%02x, %02x, %02x)\n", addr, cmd, len); }
-#endif
-
-
 void
 smbus_init(void)
 {
@@ -106,26 +94,8 @@ smbus_init(void)
     		p = NULL;
     	}
 
-#ifdef ENABLE_SMBUS_LOG
-    	/* smbus[c] should be the only handler, pointing at the NULL catch handler. */
-    	p = (smbus_t *) malloc(sizeof(smbus_t));
-    	memset(p, 0, sizeof(smbus_t));
-    	smbus[c] = smbus_last[c] = p;
-    	p->next = NULL;
-    	p->prev = NULL;
-    	p->read_byte	   = smbus_null_read_byte;
-    	p->read_byte_cmd   = smbus_null_read_byte_cmd;
-    	p->read_word_cmd   = smbus_null_read_word_cmd;
-    	p->read_block_cmd  = smbus_null_read_block_cmd;
-    	p->write_byte	   = smbus_null_write_byte;
-    	p->write_byte_cmd  = smbus_null_write_byte_cmd;
-    	p->write_word_cmd  = smbus_null_write_word_cmd;
-    	p->write_block_cmd = smbus_null_write_block_cmd;
-    	p->priv = NULL;
-#else
     	/* smbus[c] should be NULL. */
     	smbus[c] = smbus_last[c] = NULL;
-#endif
     }
 }
 
@@ -262,6 +232,8 @@ smbus_read_byte(uint8_t addr)
     	}
     }
 
+    smbus_log("SMBus: read_byte(%02X) = %02X\n", addr, ret);
+
     return(ret);
 }
 
@@ -282,6 +254,8 @@ smbus_read_byte_cmd(uint8_t addr, uint8_t cmd)
     		p = p->next;
     	}
     }
+
+    smbus_log("SMBus: read_byte_cmd(%02X, %02X) = %02X\n", addr, cmd, ret);
 
     return(ret);
 }
@@ -304,6 +278,8 @@ smbus_read_word_cmd(uint8_t addr, uint8_t cmd)
     	}
     }
 
+    smbus_log("SMBus: read_word_cmd(%02X, %02X) = %04X\n", addr, cmd, ret);
+
     return(ret);
 }
 
@@ -324,6 +300,8 @@ smbus_read_block_cmd(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len)
     		p = p->next;
     	}
     }
+
+    smbus_log("SMBus: read_block_cmd(%02X, %02X) = %02X\n", addr, cmd, len);
 
     return(ret);
 }
@@ -346,6 +324,8 @@ smbus_write_byte(uint8_t addr, uint8_t val)
     	}
     }
 
+    smbus_log("SMBus: write_byte(%02X, %02X)\n", addr, val);
+
     return;
 }
 
@@ -365,6 +345,8 @@ smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val)
     		p = p->next;
     	}
     }
+
+    smbus_log("SMBus: write_byte_cmd(%02X, %02X, %02X)\n", addr, cmd, val);
 
     return;
 }
@@ -386,6 +368,8 @@ smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val)
     	}
     }
 
+    smbus_log("SMBus: write_word_cmd(%02X, %02X, %04X)\n", addr, cmd, val);
+
     return;
 }
 
@@ -405,6 +389,8 @@ smbus_write_block_cmd(uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len)
     		p = p->next;
     	}
     }
+
+    smbus_log("SMBus: write_block_cmd(%02X, %02X, %02X)\n", addr, cmd, len);
 
     return;
 }

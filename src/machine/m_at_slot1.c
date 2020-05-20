@@ -154,13 +154,11 @@ machine_at_p2bls_init(const machine_t *model)
     	{    /* fan speeds */
     		3000,	/* Chassis */
     		3000,	/* CPU */
-    		3000,	/* Power */
-    		0
+    		3000	/* Power */
     	}, { /* temperatures */
     		30,	/* MB */
     		0,	/* unused */
-    		27,	/* CPU */
-    		0
+    		27	/* CPU */
     	}, { /* voltages */
     		2050,				   /* VCORE (2.05V by default) */
     		0,				   /* unused */
@@ -168,8 +166,7 @@ machine_at_p2bls_init(const machine_t *model)
     		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
     		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
     		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2), /* -5V  (divider values bruteforced) */
-    		0
+    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
     	}
     };
     if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
@@ -214,13 +211,11 @@ machine_at_p3bf_init(const machine_t *model)
     	{    /* fan speeds */
     		3000,	/* Chassis */
     		3000,	/* CPU */
-    		3000,	/* Power */
-    		0
+    		3000	/* Power */
     	}, { /* temperatures */
     		30,	/* MB */
-    		0,	/* unused */
-    		30,	/* CPU */
-    		0
+    		30,	/* JTPWR */
+    		30	/* CPU */
     	}, { /* voltages */
     		2050,				   /* VCORE (2.05V by default) */
     		0,				   /* unused */
@@ -228,8 +223,7 @@ machine_at_p3bf_init(const machine_t *model)
     		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
     		RESISTOR_DIVIDER(12000,   3,   1), /* +12V (divider values bruteforced) */
     		RESISTOR_DIVIDER(12000,  59,  20), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2), /* -5V  (divider values bruteforced) */
-    		0
+    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
     	}
     };
     if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
@@ -255,13 +249,13 @@ machine_at_bf6_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-	pci_register_slot(0x13, PCI_CARD_NORMAL,      3, 3, 1, 2);
-	pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
-	pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
-	pci_register_slot(0x0D, PCI_CARD_NORMAL,      3, 4, 1, 2);
-	pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
-	pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 1, 4, 3);
-	pci_register_slot(0x08, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      3, 3, 1, 2);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 1, 4, 3);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);    
     pci_register_slot(0x01, PCI_CARD_NORMAL, 1, 2, 3, 4);
     device_add(&i440bx_device);
@@ -277,11 +271,11 @@ machine_at_bf6_init(const machine_t *model)
 int
 machine_at_p6sba_init(const machine_t *model)
 {	
-	/*
-	   AMI 440BX Board.
-	   doesn't like the i686 CPU's.
-	   10 -> D3 -> D1 POST. Probably KBC related.
-	*/
+    /*
+       AMI 440BX Board.
+       doesn't like the i686 CPU's.
+       10 -> D3 -> D1 POST. Probably KBC related.
+    */
 	
     int ret;
 
@@ -312,24 +306,21 @@ machine_at_p6sba_init(const machine_t *model)
 
     hwm_values_t machine_hwm = {
     	{    /* fan speeds */
-    		3000,	/* Chassis */
-    		3000,	/* CPU */
-    		3000,	/* Power */
-    		0
+    		3000,	/* CPU1 */
+    		0,	/* CPU2 */
+    		3000	/* Thermal Control */
     	}, { /* temperatures */
-    		30,	/* MB */
     		0,	/* unused */
-    		28,	/* CPU */
-    		0
+    		30,	/* CPU1 */
+    		0	/* unused (CPU2?) */
     	}, { /* voltages */
-    		2050,				   /* VCORE (2.05V by default) */
-    		0,				   /* unused */
+    		2050,				   /* CPU1 (2.05V by default) */
+    		0,				   /* CPU2 */
     		3300,				   /* +3.3V */
     		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
     		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
     		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2), /* -5V  (divider values bruteforced) */
-    		0
+    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
     	}
     };
     if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
@@ -359,12 +350,12 @@ machine_at_tsunamiatx_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-	pci_register_slot(0x10, PCI_CARD_NORMAL,	  1, 2, 3, 4);
-	pci_register_slot(0x11, PCI_CARD_NORMAL,      2, 3, 4, 1);	
-	pci_register_slot(0x12, PCI_CARD_NORMAL,      3, 4, 1, 2);
-	pci_register_slot(0x13, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,	  1, 2, 3, 4);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      2, 3, 4, 1);	
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-	pci_register_slot(0x0F, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x01, PCI_CARD_NORMAL, 	  1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
