@@ -110,8 +110,10 @@ timer_remove_head(void)
     if (timer_head) {
 	timer = timer_head;
 	timer_head = timer->next;
-	if (timer_head)
+	if (timer_head) {
 		timer_head->prev = NULL;
+		timer->next->prev = NULL;
+	}
 	timer->next = timer->prev = NULL;
 	timer->flags &= ~TIMER_ENABLED;
     }
@@ -151,6 +153,17 @@ timer_process(void)
 void
 timer_close(void)
 {
+    pc_timer_t *t = timer_head, *r;
+
+    /* Set all timers' prev and next to NULL so it is assured that
+       timers that are not in malloc'd structs don't keep pointing
+       to timers that may be in malloc'd structs. */
+    while (t != NULL) {
+	r = t;
+	r->prev = r->next = NULL;
+	t = r->next;
+    }
+
     timer_head = NULL;
 
     timer_inited = 0;

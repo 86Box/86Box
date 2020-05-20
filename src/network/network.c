@@ -350,6 +350,7 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETLINKST
 
     first_pkt[0] = first_pkt[1] = NULL;
     last_pkt[0] = last_pkt[1] = NULL;
+    memset(&network_rx_queue_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&network_rx_queue_timer, network_rx_queue, NULL, 0);
     /* 10 mbps. */
     timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0);

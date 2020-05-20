@@ -154,13 +154,14 @@ io_removehandler(uint16_t base, int size,
 	void *priv)
 {
     int c;
-    io_t *p;
+    io_t *p, *q;
 
     for (c = 0; c < size; c++) {
 	p = io[base + c];
 	if (!p)
 		continue;
 	while(p) {
+		q = p->next;
 		if ((p->inb == inb) && (p->inw == inw) &&
 		    (p->inl == inl) && (p->outb == outb) &&
 		    (p->outw == outw) && (p->outl == outl) &&
@@ -177,7 +178,7 @@ io_removehandler(uint16_t base, int size,
 			p = NULL;
 			break;
 		}
-		p = p->next;
+		p = q;
 	}
     }
 }
@@ -251,7 +252,7 @@ io_removehandler_interleaved(uint16_t base, int size,
 	void *priv)
 {
     int c;
-    io_t *p;
+    io_t *p, *q;
 
     size <<= 2;
     for (c = 0; c < size; c += 2) {
@@ -259,6 +260,7 @@ io_removehandler_interleaved(uint16_t base, int size,
 	if (!p)
 		return;
 	while(p) {
+		q = p->next;
 		if ((p->inb == inb) && (p->inw == inw) &&
 		    (p->inl == inl) && (p->outb == outb) &&
 		    (p->outw == outw) && (p->outl == outl) &&
@@ -270,7 +272,7 @@ io_removehandler_interleaved(uint16_t base, int size,
 			free(p);
 			break;
 		}
-		p = p->next;
+		p = q;
 	}
     }
 }
