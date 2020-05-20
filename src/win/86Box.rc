@@ -281,13 +281,8 @@ FONT 9, "Segoe UI"
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,129,94,71,12
     ICON            100,IDC_ABOUT_ICON,7,7,20,20
-#ifdef RELEASE_BUILD
-    LTEXT           "86Box v2.07 - An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information.",
+    LTEXT           "86Box v" EMU_VERSION " - An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information.",
                     IDC_ABOUT_ICON,54,7,146,73
-#else
-    LTEXT           "86Box v2.10 - An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information.",
-                    IDC_ABOUT_ICON,54,7,146,73
-#endif
     CONTROL         "",IDC_ABOUT_ICON,"Static",SS_BLACKFRAME | SS_SUNKEN,0,
                     86,208,1
 END
@@ -1043,8 +1038,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,10,0,0
- PRODUCTVERSION 2,10,0,0
+ FILEVERSION EMU_VERSION_MAJ,EMU_VERSION_MIN,0,0
+ PRODUCTVERSION EMU_VERSION_MAJ,EMU_VERSION_MIN,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -1059,14 +1054,14 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "86Box\0"
-            VALUE "FileDescription", "86Box\0"
-            VALUE "FileVersion", "2.10\0"
-            VALUE "InternalName", "86Box\0"
-            VALUE "LegalCopyright", "Copyright © 2007-2020 86Box contributors\0"
-            VALUE "OriginalFilename", "86Box.exe\0"
-            VALUE "ProductName", "86Box Emulator\0"
-            VALUE "ProductVersion", "2.10\0"
+            VALUE "CompanyName", EMU_NAME "\0"
+            VALUE "FileDescription", EMU_NAME "\0"
+            VALUE "FileVersion", EMU_VERSION "\0"
+            VALUE "InternalName", EMU_NAME "\0"
+            VALUE "LegalCopyright", "Copyright © 2007-" COPYRIGHT_YEAR " " EMU_NAME " contributors\0"
+            VALUE "OriginalFilename", EMU_NAME ".exe\0"
+            VALUE "ProductName", EMU_NAME " Emulator\0"
+            VALUE "ProductVersion", EMU_VERSION "\0"
         END
     END
     BLOCK "VarFileInfo"

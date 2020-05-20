@@ -114,7 +114,7 @@ machine_at_6bxc_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&um8669f_device); /*ITE 8671*/
     device_add(&sst_flash_39sf020_device);
-    spd_register(SPD_TYPE_SDRAM, 0xF, 256);    
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);    
 
     return ret;
 }
@@ -158,13 +158,11 @@ machine_at_p2bls_init(const machine_t *model)
     	{    /* fan speeds */
     		3000,	/* Chassis */
     		3000,	/* CPU */
-    		3000,	/* Power */
-    		0
+    		3000	/* Power */
     	}, { /* temperatures */
     		30,	/* MB */
     		0,	/* unused */
-    		27,	/* CPU */
-    		0
+    		27	/* CPU */
     	}, { /* voltages */
     		2050,				   /* VCORE (2.05V by default) */
     		0,				   /* unused */
@@ -172,8 +170,7 @@ machine_at_p2bls_init(const machine_t *model)
     		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
     		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
     		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2), /* -5V  (divider values bruteforced) */
-    		0
+    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
     	}
     };
     if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
@@ -222,13 +219,11 @@ machine_at_p3bf_init(const machine_t *model)
     	{    /* fan speeds */
     		3000,	/* Chassis */
     		3000,	/* CPU */
-    		3000,	/* Power */
-    		0
+    		3000	/* Power */
     	}, { /* temperatures */
     		30,	/* MB */
-    		0,	/* unused */
-    		30,	/* CPU */
-    		0
+    		30,	/* JTPWR */
+    		30	/* CPU */
     	}, { /* voltages */
     		2050,				   /* VCORE (2.05V by default) */
     		0,				   /* unused */
@@ -236,8 +231,7 @@ machine_at_p3bf_init(const machine_t *model)
     		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
     		RESISTOR_DIVIDER(12000,   3,   1), /* +12V (divider values bruteforced) */
     		RESISTOR_DIVIDER(12000,  59,  20), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2), /* -5V  (divider values bruteforced) */
-    		0
+    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
     	}
     };
     if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
@@ -263,13 +257,13 @@ machine_at_bf6_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-	pci_register_slot(0x13, PCI_CARD_NORMAL,      3, 3, 1, 2);
-	pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
-	pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
-	pci_register_slot(0x0D, PCI_CARD_NORMAL,      3, 4, 1, 2);
-	pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
-	pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 1, 4, 3);
-	pci_register_slot(0x08, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      3, 3, 1, 2);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 1, 4, 3);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);    
     pci_register_slot(0x01, PCI_CARD_NORMAL, 1, 2, 3, 4);
     device_add(&i440bx_device);
@@ -277,22 +271,23 @@ machine_at_bf6_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83977ef_device);
     device_add(&sst_flash_39sf020_device);
-    spd_register(SPD_TYPE_SDRAM, 0xF, 256);    
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);    
 
     return ret;
 }
 
 int
-machine_at_borapro_init(const machine_t *model)
-{
-	//AMI 440ZX Board. Packard Bell OEM of the MSI-6168
-	//MIGHT REQUIRE MORE EXCESSIVE TESTING!
-	//Reports emmersive amounts of RAM like few Intel OEM boards
-	//we have.
+machine_at_p6sba_init(const machine_t *model)
+{	
+    /*
+       AMI 440BX Board.
+       doesn't like the i686 CPU's.
+       10 -> D3 -> D1 POST. Probably KBC related.
+    */
 	
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/borapro/MS6168V2.50",
+    ret = bios_load_linear(L"roms/machines/p6sba/SBAB21.ROM",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -302,18 +297,81 @@ machine_at_borapro_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-	pci_register_slot(0x0E, PCI_CARD_NORMAL,	  1, 2, 3, 4);
-	pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);	
-	pci_register_slot(0x12, PCI_CARD_NORMAL,      3, 4, 1, 2);
-	pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x01, PCI_CARD_NORMAL, 	  1, 2, 3, 4);
-    device_add(&i440zx_device);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x10, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x14, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add(&w83977ef_device);
+    device_add(&w83977tf_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&intel_flash_bxt_device);
-    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
+    hwm_values_t machine_hwm = {
+    	{    /* fan speeds */
+    		3000,	/* CPU1 */
+    		0,	/* CPU2 */
+    		3000	/* Thermal Control */
+    	}, { /* temperatures */
+    		0,	/* unused */
+    		30,	/* CPU1 */
+    		0	/* unused (CPU2?) */
+    	}, { /* voltages */
+    		2050,				   /* CPU1 (2.05V by default) */
+    		0,				   /* CPU2 */
+    		3300,				   /* +3.3V */
+    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
+    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
+    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
+    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
+    	}
+    };
+    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
+    	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Klamath */
+    hwm_set_values(machine_hwm);
+    device_add(&w83781d_device);
+	
+    return ret;
+}
+
+#if defined(DEV_BRANCH) && defined(NO_SIO)
+int
+machine_at_tsunamiatx_init(const machine_t *model)
+{
+	//AMI 440BX Board. Requires the PC87309 and
+	//doesn't like the i686 CPU's
+	
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/tsunamiatx/bx46200f.rom",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,	  1, 2, 3, 4);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      2, 3, 4, 1);	
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_NORMAL, 	  1, 2, 3, 4);
+    device_add(&i440bx_device);
+    device_add(&piix4e_device);
+    device_add(&pc87306_device); //PC87309
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     return ret;
 }
+#endif

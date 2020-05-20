@@ -147,6 +147,7 @@ extern CPU	cpus_Cyrix3[];
 extern CPU	cpus_PentiumPro[];
 extern CPU	cpus_PentiumII_28v[];
 extern CPU	cpus_PentiumII[];
+extern CPU	cpus_Xeon[];
 extern CPU	cpus_Celeron[];
 
 
@@ -565,6 +566,7 @@ extern int	cpu_effective, cpu_alt_reset;
 extern void	cpu_dynamic_switch(int new_cpu);
 
 extern void	cpu_ven_reset(void);
+extern void	update_tsc(void);
 
 extern int	sysenter(uint32_t fetchdat);
 extern int	sysexit(uint32_t fetchdat);

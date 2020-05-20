@@ -27,9 +27,6 @@ endif
 ifndef DEV_BUILD
 DEV_BUILD	:= n
 endif
-ifndef FLTO
-FLTO		:= full
-endif
 
 ifeq ($(DEV_BUILD), y)
  ifndef DEBUG
@@ -49,12 +46,6 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef MGA
   MGA		:= y
- endif
- ifndef MR495
-  MR495		:= y
- endif
- ifndef MRTHOR
-  MRTHOR	:= y
  endif
  ifndef PAS16
   PAS16		:= n
@@ -113,12 +104,6 @@ else
  endif
  ifndef MGA
   MGA		:= n
- endif
- ifndef MR495
-  MR495		:= n
- endif
- ifndef MRTHOR
-  MRTHOR	:= n
  endif
  ifndef PAS16
   PAS16		:= n
@@ -320,7 +305,7 @@ else
  ifeq ($(OPTIM), y)
   AOPTIM	:= -mtune=native
   ifndef COPTIM
-   COPTIM	:= -O3 -ffp-contract=fast -flto=$(FLTO)
+   COPTIM	:= -O3 -ffp-contract=fast -flto
   endif
  else
   ifndef COPTIM
@@ -437,14 +422,6 @@ OPTS		+= -DUSE_MGA
 DEVBROBJ	+= vid_mga.o
 endif
 
-ifeq ($(MR495), y)
-OPTS		+= -DUSE_MR495
-endif
-
-ifeq ($(MRTHOR), y)
-OPTS		+= -DUSE_MRTHOR
-endif
-
 ifeq ($(PAS16), y)
 OPTS		+= -DUSE_PAS16
 DEVBROBJ	+= snd_pas16.o
@@ -556,9 +533,9 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_at_compaq.o \
 		    m_at_286_386sx.o m_at_386dx_486.o \
 		    m_at_socket4_5.o m_at_socket7_s7.o m_at_super7_ss7.o \
-			m_at_socket8.o m_at_slot1.o m_at_socket370.o
+			m_at_socket8.o m_at_slot1.o m_at_slot2.o m_at_socket370.o
 
-DEVOBJ		:= bugger.o hwm.o hwm_w83781d.o ibm_5161.o isamem.o isartc.o lpt.o postcard.o $(SERIAL) \
+DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o ibm_5161.o isamem.o isartc.o lpt.o postcard.o $(SERIAL) \
 		    sio_detect.o sio_acc3221.o \
 		    sio_f82c710.o \
 		    sio_fdc37c66x.o sio_fdc37c669.o \

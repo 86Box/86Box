@@ -3162,6 +3162,10 @@ void cpu_WRMSR()
                         case 0x10:
 				tsc = EAX | ((uint64_t)EDX << 32);
 				break;
+                        case 0x8B:
+				cpu_log("WRMSR: Invalid MSR: 0x8B/n"); /*Needed for Vista to correctly break on Pentium*/
+				x86gpf(NULL, 0);
+				break;
                 }
                 break;
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)

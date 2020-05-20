@@ -47,6 +47,16 @@
 #define SPD_SDR_ATTR_VCC_HI_5	0x20
 
 
+typedef struct _spd_ {
+    const device_t	*info;
+    uint8_t		slot;
+    uint16_t		size;
+    uint16_t		row1;
+    uint16_t		row2;
+
+    uint8_t		addr_register;
+} spd_t;
+
 typedef struct _spd_edo_ {
     uint8_t	bytes_used, spd_size, mem_type,
     		row_bits, col_bits, banks,
@@ -72,7 +82,7 @@ typedef struct _spd_sdram_ {
     		signal_level, tclk, tac,
     		config, refresh_rate,
     		sdram_width, ecc_width,
-    		tccd, burst, banks, cas, cs, we,
+    		tccd, burst, banks, cas, cslat, we,
     		mod_attr, dev_attr,
     		tclk2, tac2, tclk3, tac3,
     		trp, trrd, trcd, tras,
@@ -88,6 +98,9 @@ typedef struct _spd_sdram_ {
     		other_data[127],
     		checksum2;
 } spd_sdram_t;
+
+
+extern spd_t	*spd_devices[SPD_MAX_SLOTS];
 
 
 extern void spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size);

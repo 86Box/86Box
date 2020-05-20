@@ -99,54 +99,17 @@ piix_log(const char *fmt, ...)
 
 
 static void
-smsc_ide_handlers(piix_t *dev)
-{
-    uint16_t main, side;
-
-    ide_pri_disable();
-    ide_sec_disable();
-
-    if (dev->regs[1][0x09] & 0x01) {
-	main = (dev->regs[1][0x11] << 8) | (dev->regs[1][0x10] & 0xf8);
-	side = ((dev->regs[1][0x15] << 8) | (dev->regs[1][0x14] & 0xfc)) + 2;
-    } else {
-	main = 0x1f0;
-	side = 0x3f6;
-    }
-    ide_set_base(0, main);
-    ide_set_side(0, side);
-
-    if (dev->regs[1][0x09] & 0x04) {
-	main = (dev->regs[1][0x19] << 8) | (dev->regs[1][0x18] & 0xf8);
-	side = ((dev->regs[1][0x1d] << 8) | (dev->regs[1][0x1c] & 0xfc)) + 2;
-    } else {
-	main = 0x170;
-	side = 0x376;
-    }
-    ide_set_base(1, main);
-    ide_set_side(1, side);
-
-    if (dev->regs[1][0x04] & PCI_COMMAND_IO) {
-	if (dev->regs[1][0x41] & 0x80)
-		ide_pri_enable();
-	if (dev->regs[1][0x43] & 0x80)
-		ide_sec_enable();
-    }
-}
-
-
-static void
 smsc_ide_irqs(piix_t *dev)
 {
     int irq_line = 3, irq_mode[2] = { 0, 0 };
 
     if (dev->regs[1][0x09] & 0x01)
-	irq_mode[0] = (dev->regs[0][0xe0] & 0x01) ? 3 : 1;
+	irq_mode[0] = (dev->regs[0][0xe1] & 0x01) ? 3 : 1;
 
     if (dev->regs[1][0x09] & 0x04)
-	irq_mode[1] = (dev->regs[0][0xe0] & 0x01) ? 3 : 1;
+	irq_mode[1] = (dev->regs[0][0xe1] & 0x01) ? 3 : 1;
 
-    switch ((dev->regs[0][0xe0] >> 1) & 0x07) {
+    switch ((dev->regs[0][0xe1] >> 1) & 0x07) {
 	case 0x00:
 		irq_line = 3;
 		break;
@@ -184,16 +147,46 @@ smsc_ide_irqs(piix_t *dev)
 
 
 static void
-piix_ide_legacy_handlers(piix_t *dev, int bus)
+piix_ide_handlers(piix_t *dev, int bus)
 {
+    uint16_t main, side;
+
     if (bus & 0x01) {
 	ide_pri_disable();
+
+	if (dev->type == 5) {
+		if (dev->regs[1][0x09] & 0x01) {
+			main = (dev->regs[1][0x11] << 8) | (dev->regs[1][0x10] & 0xf8);
+			side = ((dev->regs[1][0x15] << 8) | (dev->regs[1][0x14] & 0xfc)) + 2;
+		} else {
+			main = 0x1f0;
+			side = 0x3f6;
+		}
+
+		ide_set_base(0, main);
+		ide_set_side(0, side);
+	}
+
 	if ((dev->regs[1][0x04] & 0x01) && (dev->regs[1][0x41] & 0x80))
 		ide_pri_enable();
     }
 
     if (bus & 0x02) {
 	ide_sec_disable();
+
+	if (dev->type == 5) {
+		if (dev->regs[1][0x09] & 0x04) {
+			main = (dev->regs[1][0x19] << 8) | (dev->regs[1][0x18] & 0xf8);
+			side = ((dev->regs[1][0x1d] << 8) | (dev->regs[1][0x1c] & 0xfc)) + 2;
+		} else {
+			main = 0x170;
+			side = 0x376;
+		}
+
+		ide_set_base(1, main);
+		ide_set_side(1, side);
+	}
+
 	if ((dev->regs[1][0x04] & 0x01) && (dev->regs[1][0x43] & 0x80))
 		ide_sec_enable();
     }
@@ -266,12 +259,15 @@ nvr_update_io_mapping(piix_t *dev)
 
     if (dev->regs[0][0xcb] & 0x01) {
 	piix_log("Adding low NVR at %04X...\n", dev->nvr_io_base);
-	nvr_at_handler(1, dev->nvr_io_base, dev->nvr);
-    	nvr_at_handler(1, dev->nvr_io_base + 0x0004, dev->nvr);
+	if (dev->nvr_io_base != 0x0000) {
+		nvr_at_handler(1, dev->nvr_io_base, dev->nvr);
+		nvr_at_handler(1, dev->nvr_io_base + 0x0004, dev->nvr);
+	}
     }
     if (dev->regs[0][0xcb] & 0x04) {
 	piix_log("Adding high NVR at %04X...\n", dev->nvr_io_base + 0x0002);
-	nvr_at_handler(1, dev->nvr_io_base + 0x0002, dev->nvr);
+	if (dev->nvr_io_base != 0x0000)
+		nvr_at_handler(1, dev->nvr_io_base + 0x0002, dev->nvr);
     }
 }
 
@@ -529,8 +525,10 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		}
 		break;
 	case 0xb0:
-		if (dev->type > 3)
+		if (dev->type == 4)
 			fregs[addr] = (fregs[addr] & 0x8c) | (val & 0x73);
+		else if (dev->type == 5)
+			fregs[addr] = val & 0x7f;
 		break;
 	case 0xb1:
 		if (dev->type > 3)
@@ -585,10 +583,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		fregs[0x04] = (val & 5);
 		if (dev->type < 3)
 			fregs[0x04] |= 0x02;
-		if (dev->type == 5)
-			smsc_ide_handlers(dev);
-		else
-			piix_ide_legacy_handlers(dev, 0x03);
+		piix_ide_handlers(dev, 0x03);
 		piix_ide_bm_handlers(dev);
 		break;
 	case 0x07:
@@ -602,7 +597,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 	case 0x09:
 		if (dev->type == 5) {
 			fregs[0x09] = (fregs[0x09] & 0xfa) | (val & 0x05);
-			smsc_ide_handlers(dev);
+			piix_ide_handlers(dev, 0x03);
 			smsc_ide_irqs(dev);
 		}
 		break;
@@ -611,35 +606,35 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x10:
 		fregs[0x10] = (val & 0xf8) | 1;
-		smsc_ide_handlers(dev);
+		piix_ide_handlers(dev, 0x01);
 		break;
 	case 0x11:
 		fregs[0x11] = val;
-		smsc_ide_handlers(dev);
+		piix_ide_handlers(dev, 0x01);
 		break;
 	case 0x14:
 		fregs[0x14] = (val & 0xfc) | 1;
-		smsc_ide_handlers(dev);
+		piix_ide_handlers(dev, 0x01);
 		break;
 	case 0x15:
 		fregs[0x15] = val;
-		smsc_ide_handlers(dev);
+		piix_ide_handlers(dev, 0x01);
 		break;
 	case 0x18:
 		fregs[0x18] = (val & 0xf8) | 1;
-		smsc_ide_handlers(dev);
+		piix_ide_handlers(dev, 0x02);
 		break;
 	case 0x19:
 		fregs[0x19] = val;
-		smsc_ide_handlers(dev);
+		piix_ide_handlers(dev, 0x02);
 		break;
 	case 0x1c:
 		fregs[0x1c] = (val & 0xfc) | 1;
-		smsc_ide_handlers(dev);
+		piix_ide_handlers(dev, 0x02);
 		break;
 	case 0x1d:
 		fregs[0x1d] = val;
-		smsc_ide_handlers(dev);
+		piix_ide_handlers(dev, 0x02);
 		break;
 	case 0x20:
 		fregs[0x20] = (val & 0xf0) | 1;
@@ -652,15 +647,16 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 	case 0x3c:
 		fregs[0x3c] = val;
 		break;
+	case 0x3d:
+		if (dev->type == 5)
+			fregs[0x3d] = val;
+		break;
 	case 0x40: case 0x42:
 		fregs[addr] = val;
 		break;
 	case 0x41: case 0x43:
 		fregs[addr] = val & ((dev->type > 1) ? 0xf3 : 0xb3);
-		if (dev->type == 5)
-			smsc_ide_handlers(dev);
-		else
-			piix_ide_legacy_handlers(dev, 1 << !!(addr & 0x02));
+		piix_ide_handlers(dev, 1 << !!(addr & 0x02));
 		break;
 	case 0x44:
 		if (dev->type > 1)
@@ -715,19 +711,19 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 			fregs[0x0c] = val;
 		break;
 	case 0x0d:
-		if (dev->type <= 4)
+		if (dev->type < 5)
 			fregs[0x0d] = val & 0xf0;
 		break;
 	case 0x11:
 		if (dev->type > 4) {
 			fregs[addr] = val & 0xf0;
-			ohci_update_mem_mapping(dev->usb, fregs[0x11], fregs[0x12], fregs[0x13], fregs[PCI_REG_COMMAND] & PCI_COMMAND_MEM);
+			ohci_update_mem_mapping(dev->usb, fregs[0x11], fregs[0x12], fregs[0x13], 1 /*fregs[PCI_REG_COMMAND] & PCI_COMMAND_MEM*/);
 		}
 		break;
 	case 0x12: case 0x13:
 		if (dev->type > 4) {
 			fregs[addr] = val;
-			ohci_update_mem_mapping(dev->usb, fregs[0x11], fregs[0x12], fregs[0x13], fregs[PCI_REG_COMMAND] & PCI_COMMAND_MEM);
+			ohci_update_mem_mapping(dev->usb, fregs[0x11], fregs[0x12], fregs[0x13], 1 /*fregs[PCI_REG_COMMAND] & PCI_COMMAND_MEM*/);
 		}
 		break;
 	case 0x20:
@@ -759,7 +755,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 			fregs[addr] = val & 0x01;
 		break;
 	case 0x6a:
-		if (dev->type == 4)
+		 if (dev->type == 4)
 			fregs[0x6a] = val & 0x01;
 		break;
 	case 0xc0:
@@ -1022,7 +1018,6 @@ piix_reset_hard(piix_t *dev)
     /* Function 1: IDE */
     fregs = (uint8_t *) dev->regs[1];
     piix_log("PIIX Function 1: %02X%02X:%02X%02X\n", fregs[0x01], fregs[0x00], fregs[0x03], fregs[0x02]);
-    fregs[0x04] = (dev->type > 3) ? 0x05 : 0x07;
     fregs[0x06] = 0x80; fregs[0x07] = 0x02;
     if (dev->type == 4)
 	fregs[0x08] = dev->rev & 0x07;
@@ -1050,7 +1045,6 @@ piix_reset_hard(piix_t *dev)
     if (dev->type > 1) {
 	fregs = (uint8_t *) dev->regs[2];
 	piix_log("PIIX Function 2: %02X%02X:%02X%02X\n", fregs[0x01], fregs[0x00], fregs[0x03], fregs[0x02]);
-	fregs[0x04] = 0x05;
 	fregs[0x06] = 0x80; fregs[0x07] = 0x02;
 	if (dev->type == 4)
 		fregs[0x08] = dev->rev & 0x07;
@@ -1058,12 +1052,14 @@ piix_reset_hard(piix_t *dev)
 		fregs[0x08] = dev->rev;
 	else
 		fregs[0x08] = 0x02;
-	if (dev->type == 5)
+	if (dev->type > 4)
 		fregs[0x09] = 0x10; /* SMSC has OHCI rather than UHCI */
 	fregs[0x0a] = 0x03; fregs[0x0b] = 0x0c;
-	fregs[0x20] = 0x01;
+	if (dev->type < 5)
+		fregs[0x20] = 0x01;
 	fregs[0x3d] = 0x04;
-	fregs[0x60] = (dev->type > 3) ? 0x10: 0x00;
+	if (dev->type > 4)
+		fregs[0x60] = (dev->type > 3) ? 0x10 : 0x00;
 	if (dev->type < 5) {
 		fregs[0x6a] = (dev->type == 3) ? 0x01 : 0x00;
 		fregs[0xc1] = 0x20;

@@ -154,13 +154,14 @@ io_removehandler(uint16_t base, int size,
 	void *priv)
 {
     int c;
-    io_t *p;
+    io_t *p, *q;
 
     for (c = 0; c < size; c++) {
 	p = io[base + c];
 	if (!p)
 		continue;
 	while(p) {
+		q = p->next;
 		if ((p->inb == inb) && (p->inw == inw) &&
 		    (p->inl == inl) && (p->outb == outb) &&
 		    (p->outw == outw) && (p->outl == outl) &&
@@ -177,7 +178,7 @@ io_removehandler(uint16_t base, int size,
 			p = NULL;
 			break;
 		}
-		p = p->next;
+		p = q;
 	}
     }
 }
@@ -251,7 +252,7 @@ io_removehandler_interleaved(uint16_t base, int size,
 	void *priv)
 {
     int c;
-    io_t *p;
+    io_t *p, *q;
 
     size <<= 2;
     for (c = 0; c < size; c += 2) {
@@ -259,6 +260,7 @@ io_removehandler_interleaved(uint16_t base, int size,
 	if (!p)
 		return;
 	while(p) {
+		q = p->next;
 		if ((p->inb == inb) && (p->inw == inw) &&
 		    (p->inl == inl) && (p->outb == outb) &&
 		    (p->outw == outw) && (p->outl == outl) &&
@@ -270,7 +272,7 @@ io_removehandler_interleaved(uint16_t base, int size,
 			free(p);
 			break;
 		}
-		p = p->next;
+		p = q;
 	}
     }
 }
@@ -328,8 +330,11 @@ outb(uint16_t port, uint8_t val)
 	p = p->next;
     }
 	
-    if (!found)
+    if (!found) {
 	sub_cycles(io_delay);
+	if (cpu_use_dynarec && (port == 0xeb))
+		update_tsc();
+    }
 
     io_log("(%i, %i, %04i) outb(%04X, %02X)\n", in_smm, found, qfound, port, val);
 
@@ -418,8 +423,11 @@ outw(uint16_t port, uint16_t val)
 	}
     }
 
-    if (!found)
+    if (!found) {
 	sub_cycles(io_delay);
+	if (cpu_use_dynarec && (port == 0xeb))
+		update_tsc();
+    }
 
     io_log("(%i, %i, %04i) outw(%04X, %04X)\n", in_smm, found, qfound, port, val);
 
@@ -542,8 +550,11 @@ outl(uint16_t port, uint32_t val)
 	}
     }
 
-    if (!found)
+    if (!found) {
 	sub_cycles(io_delay);
+	if (cpu_use_dynarec && (port == 0xeb))
+		update_tsc();
+    }
 
     io_log("(%i, %i, %04i) outl(%04X, %08X)\n", in_smm, found, qfound, port, val);
 
