@@ -28,6 +28,12 @@ extern int sound_gain;
 #define CD_BUFLEN	(CD_FREQ / 10)
 
 
+enum {
+    SOUND_NONE = 0,
+    SOUND_INTERNAL
+};
+
+
 extern int	ppispeakon;
 extern int	gated,
 		speakval,
@@ -79,6 +85,7 @@ extern const device_t azt1605_device;
 
 /* Ensoniq AudioPCI */
 extern const device_t es1371_device;
+extern const device_t es1371_onboard_device;
 
 /* Creative Labs Game Blaster */
 extern const device_t cms_device;

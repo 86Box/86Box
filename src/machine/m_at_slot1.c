@@ -40,6 +40,7 @@
 #include <86box/video.h>
 #include "cpu.h"
 #include <86box/machine.h>
+#include <86box/sound.h>
 
 int
 machine_at_p65up5_cpknd_init(const machine_t *model)
@@ -335,9 +336,9 @@ machine_at_p6sba_init(const machine_t *model)
 int
 machine_at_tsunamiatx_init(const machine_t *model)
 {
-	//AMI 440BX Board. Requires the PC87309 and
-	//doesn't like the i686 CPU's
-	
+    /* AMI 440BX board. Requires the PC87309
+       and doesn't like the i686 CPUs */
+
     int ret;
 
     ret = bios_load_linear(L"roms/machines/tsunamiatx/bx46200f.rom",
@@ -350,20 +351,31 @@ machine_at_tsunamiatx_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x10, PCI_CARD_NORMAL,	  1, 2, 3, 4);
-    pci_register_slot(0x11, PCI_CARD_NORMAL,      2, 3, 4, 1);	
+    pci_register_slot(0x0F, PCI_CARD_SOUND,       1, 0, 0, 0);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x12, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x13, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x0F, PCI_CARD_NORMAL,      1, 2, 3, 4);
-    pci_register_slot(0x01, PCI_CARD_NORMAL, 	  1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_NORMAL,      1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add(&pc87306_device); //PC87309
+
+    if (sound_card_current == SOUND_INTERNAL)
+    	device_add(&es1371_onboard_device);
+
+    device_add(&pc87306_device); /* PC87309 */
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     return ret;
+}
+
+const device_t *
+at_tsunamiatx_get_device(void)
+{
+    return &es1371_onboard_device;
 }
 #endif

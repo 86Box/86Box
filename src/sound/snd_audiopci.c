@@ -1313,7 +1313,7 @@ static void *es1371_init(const device_t *info)
 		
 	sound_add_handler(es1371_get_buffer, es1371);
 
-	es1371->card = pci_add_card(PCI_ADD_NORMAL, es1371_pci_read, es1371_pci_write, es1371);
+	es1371->card = pci_add_card(info->local ? PCI_ADD_SOUND : PCI_ADD_NORMAL, es1371_pci_read, es1371_pci_write, es1371);
 	
 	timer_add(&es1371->dac[1].timer, es1371_poll, es1371, 1); 
         
@@ -1382,14 +1382,28 @@ void es1371_add_status_info_dac(es1371_t *es1371, char *s, int max_len, int dac_
 
 const device_t es1371_device =
 {
-	"Ensoniq AudioPCI (ES1371)",
-	DEVICE_PCI,
-	0,
-	es1371_init,
-	es1371_close,
-	NULL,
-	NULL,
-	es1371_speed_changed,
-	NULL,
-	NULL
+    "Ensoniq AudioPCI (ES1371)",
+    DEVICE_PCI,
+    0,
+    es1371_init,
+    es1371_close,
+    NULL,
+    NULL,
+    es1371_speed_changed,
+    NULL,
+    NULL
+};
+
+const device_t es1371_onboard_device =
+{
+    "Ensoniq AudioPCI (ES1371) (On-Board)",
+    DEVICE_PCI,
+    1,
+    es1371_init,
+    es1371_close,
+    NULL,
+    NULL,
+    es1371_speed_changed,
+    NULL,
+    NULL
 };

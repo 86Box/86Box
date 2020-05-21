@@ -809,12 +809,12 @@ pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), 
 	pci_log("pci_add_card(): Adding PCI CARD at specific slot %02X [SPECIFIC]\n", add_type);
 
     if (! PCI) {
-	pci_log("pci_add_card(): Adding PCI CARD failed (non-PCI machine) [%s]\n", (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : "SPECIFIC")));
+	pci_log("pci_add_card(): Adding PCI CARD failed (non-PCI machine) [%s]\n", (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC"))));
 	return 0xff;
     }
 
     if (! last_pci_card) {
-	pci_log("pci_add_card(): Adding PCI CARD failed (no PCI slots) [%s]\n", (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : "SPECIFIC")));
+	pci_log("pci_add_card(): Adding PCI CARD failed (no PCI slots) [%s]\n", (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC"))));
 	return 0xff;
     }
 
@@ -825,19 +825,20 @@ pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), 
 		if (((dev->type == PCI_CARD_NORMAL) && (add_type >= PCI_ADD_NORMAL)) ||
 		    ((dev->type == PCI_CARD_ONBOARD) && (add_type == PCI_ADD_VIDEO)) ||
 		    ((dev->type == PCI_CARD_SCSI) && (add_type == PCI_ADD_SCSI)) ||
+		    ((dev->type == PCI_CARD_SOUND) && (add_type == PCI_ADD_SOUND)) ||
 		    ((dev->type == PCI_CARD_NORTHBRIDGE) && (add_type == PCI_ADD_NORTHBRIDGE)) ||
 		    ((dev->type == PCI_CARD_SOUTHBRIDGE) && (add_type == PCI_ADD_SOUTHBRIDGE)) ||
 		    ((dev->id == add_type) && (add_type < PCI_ADD_NORTHBRIDGE))) {
 			dev->read = read;
 			dev->write = write;
 			dev->priv = priv;
-			pci_log("pci_add_card(): Adding PCI CARD to pci_cards[%i] (slot %02X) [%s]\n", i, dev->id, (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : "SPECIFIC")));
+			pci_log("pci_add_card(): Adding PCI CARD to pci_cards[%i] (slot %02X) [%s]\n", i, dev->id, (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC"))));
 			return dev->id;
 		}
 	}
     }
 
-    pci_log("pci_add_card(): Adding PCI CARD failed (unable to find a suitable PCI slot) [%s]\n", (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : "SPECIFIC")));
+    pci_log("pci_add_card(): Adding PCI CARD failed (unable to find a suitable PCI slot) [%s]\n", (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC"))));
 
     return 0xff;
 }

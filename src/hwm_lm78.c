@@ -180,11 +180,11 @@ lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank)
     uint8_t ret = 0;
     lm75_t *lm75;
 
-    if (((reg >> 4) == 0x5) && (bank != 0)) {
+    if (((reg & 0xf0) == 0x50) && (bank != 0)) {
     	/* LM75 registers */
     	lm75 = device_get_priv(dev->lm75[bank - 1]);
     	if (lm75)
-    		ret = lm75_read(lm75, reg & 0x7);
+    		ret = lm75_read(lm75, reg & 0xf);
     } else {
     	/* regular registers */
     	if ((reg == 0x4f) && (dev->local & LM78_WINBOND)) /* special case for two-byte vendor ID register */
@@ -260,11 +260,11 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 
     lm78_log("LM78: write(%02X, %d, %02X)\n", reg, bank, val);
 
-    if (((reg >> 4) == 0x5) && (bank != 0)) {
+    if (((reg & 0xf0) == 0x50) && (bank != 0)) {
     	/* LM75 registers */
     	lm75 = device_get_priv(dev->lm75[bank - 1]);
     	if (lm75)
-    		lm75_write(lm75, reg & 0x7, val);
+    		lm75_write(lm75, reg & 0xf, val);
     	return 1;
     }
 
@@ -325,6 +325,8 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
     		if (dev->local & LM78_SMBUS) {
     			for (uint8_t i = 0; i <= 1; i++) {
     				lm75 = device_get_priv(dev->lm75[i]);
+    				if (!lm75)
+    					continue;
     				if (dev->regs[0x4a] & (0x08 * (0x10 * i))) /* DIS_T2 and DIS_T3 bit disable those interfaces */
     					lm75->smbus_addr = 0x00;
     				else
