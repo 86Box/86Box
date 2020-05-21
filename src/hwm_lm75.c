@@ -128,7 +128,7 @@ lm75_read(lm75_t *dev, uint8_t reg)
     /* The AS99127F hardware monitor uses the addresses of its LM75 devices
        to access some of its proprietary registers. Pass this operation on to
        the main monitor address through an internal SMBus call, if necessary. */
-    if ((reg >= 0x80) && (dev->as99127f_smbus_addr))
+    if (((reg & 0xf8) != 0x50) && (dev->as99127f_smbus_addr))
     	ret = smbus_read_byte_cmd(dev->as99127f_smbus_addr, reg);
     else
     	ret = dev->regs[reg & 0x7];
@@ -191,7 +191,7 @@ lm75_write(lm75_t *dev, uint8_t reg, uint8_t val)
     /* The AS99127F hardware monitor uses the addresses of its LM75 devices
        to access some of its proprietary registers. Pass this operation on to
        the main monitor address through an internal SMBus call, if necessary. */
-    if ((reg >= 0x80) && (dev->as99127f_smbus_addr)) {
+    if (((reg & 0xf8) != 0x50) && (dev->as99127f_smbus_addr)) {
     	smbus_write_byte_cmd(dev->as99127f_smbus_addr, reg, val);
     	return 1;
     }
