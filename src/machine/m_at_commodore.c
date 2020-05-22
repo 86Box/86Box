@@ -97,8 +97,8 @@ machine_at_cmdpc_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/cmdpc30/commodore pc 30 iii even.bin",
-				L"roms/machines/cmdpc30/commodore pc 30 iii odd.bin",
+    ret = bios_load_interleaved(L"roms/machines/commodore/cmdpc30/commodore pc 30 iii even.bin",
+				L"roms/machines/commodore/cmdpc30/commodore pc 30 iii odd.bin",
 				0x000f8000, 32768, 0);
 
     if (bios_only || !ret)

@@ -166,7 +166,7 @@ machine_ps2_m30_286_init(const machine_t *model)
 
 	int ret;
 
-	ret = bios_load_linear(L"roms/machines/ibmps2_m30_286/33f5381a.bin",
+	ret = bios_load_linear(L"roms/machines/ps2/ibmps2_m30_286/33f5381a.bin",
 			       0x000e0000, 131072, 0);
 
 	if (bios_only || !ret)

@@ -842,8 +842,8 @@ machine_at_portableii_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleavedr(L"roms/machines/portableii/109740-001.rom",
-				L"roms/machines/portableii/109739-001.rom",
+    ret = bios_load_interleavedr(L"roms/machines/compaq/portableii/109740-001.rom",
+				L"roms/machines/compaq/portableii/109739-001.rom",
 				0x000f8000, 65536, 0);
 
     if (bios_only || !ret)
@@ -860,8 +860,8 @@ machine_at_portableiii_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleavedr(L"roms/machines/portableiii/Compaq Portable III - BIOS - 106779-002 - Even.bin",
-				L"roms/machines/portableiii/Compaq Portable III - BIOS - 106778-002 - Odd.bin",
+    ret = bios_load_interleavedr(L"roms/machines/compaq/portableiii/Compaq Portable III - BIOS - 106779-002 - Even.bin",
+				L"roms/machines/compaq/portableiii/Compaq Portable III - BIOS - 106778-002 - Odd.bin",
 				0x000f8000, 65536, 0);
 
     if (bios_only || !ret)
@@ -878,8 +878,8 @@ machine_at_portableiii386_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleavedr(L"roms/machines/portableiii/Compaq Portable III - BIOS - 106779-002 - Even.bin",
-				L"roms/machines/portableiii/Compaq Portable III - BIOS - 106778-002 - Odd.bin",
+    ret = bios_load_interleavedr(L"roms/machines/compaq/portableiii/Compaq Portable III - BIOS - 106779-002 - Even.bin",
+				L"roms/machines/compaq/portableiii/Compaq Portable III - BIOS - 106778-002 - Odd.bin",
 				0x000f8000, 65536, 0);
 
     if (bios_only || !ret)

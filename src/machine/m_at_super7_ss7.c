@@ -50,7 +50,7 @@ machine_at_ax59pro_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/ax59pro/AX59P236.BIN",
+    ret = bios_load_linear(L"roms/machines/super7/ax59pro/AX59P236.BIN",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -82,7 +82,7 @@ machine_at_mvp3_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/ficva503p/je4333.bin",
+    ret = bios_load_linear(L"roms/machines/super7/ficva503p/je4333.bin",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)

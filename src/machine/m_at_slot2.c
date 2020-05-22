@@ -55,7 +55,7 @@ machine_at_s2dge_init(const machine_t *model)
 	*/
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/s2dge/2gu7301.rom",
+    ret = bios_load_linear(L"roms/machines/slot2/s2dge/2gu7301.rom",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
