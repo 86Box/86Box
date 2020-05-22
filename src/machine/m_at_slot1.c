@@ -229,6 +229,8 @@ machine_at_p3bf_init(const machine_t *model)
     };
     if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
     	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Klamath */
+    else if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_CYRIX3S)
+    	machine_hwm.voltages[0] = 2800; /* P3B-F specific issue: it believes the Cyrix III is a Klamath, and therefore expects a toasty 2.8V */
     hwm_set_values(machine_hwm);
     device_add(&as99127f_device);
 
