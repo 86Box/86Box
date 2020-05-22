@@ -180,11 +180,11 @@ lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank)
     uint8_t ret = 0;
     lm75_t *lm75;
 
-    if (((reg & 0xf0) == 0x50) && (bank != 0)) {
+    if (((reg & 0xf8) == 0x50) && (bank != 0)) {
     	/* LM75 registers */
     	lm75 = device_get_priv(dev->lm75[bank - 1]);
     	if (lm75)
-    		ret = lm75_read(lm75, reg & 0xf);
+    		ret = lm75_read(lm75, reg);
     } else {
     	/* regular registers */
     	if ((reg == 0x4f) && (dev->local & LM78_WINBOND)) /* special case for two-byte vendor ID register */
@@ -192,7 +192,7 @@ lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank)
     	else if ((reg >= 0x60) && (reg <= 0x7f)) /* read auto-increment value RAM registers from their non-auto-increment locations */
     		ret = dev->regs[reg & 0x3f];
     	else if ((reg >= 0x80) && (reg <= 0x92)) /* AS99127F mirrors [0x00:0x12] to [0x80:0x92] */
-    		ret = dev->regs[reg - 0x7f];
+    		ret = dev->regs[reg & 0x7f];
     	else
     		ret = dev->regs[reg];
     }
@@ -260,11 +260,11 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 
     lm78_log("LM78: write(%02X, %d, %02X)\n", reg, bank, val);
 
-    if (((reg & 0xf0) == 0x50) && (bank != 0)) {
+    if (((reg & 0xf8) == 0x50) && (bank != 0)) {
     	/* LM75 registers */
     	lm75 = device_get_priv(dev->lm75[bank - 1]);
     	if (lm75)
-    		lm75_write(lm75, reg & 0xf, val);
+    		lm75_write(lm75, reg, val);
     	return 1;
     }
 
