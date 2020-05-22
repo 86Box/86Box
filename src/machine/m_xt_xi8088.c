@@ -151,18 +151,18 @@ machine_xt_xi8088_init(const machine_t *model)
     int ret;
 
     if (bios_only) {
-	ret = bios_load_linear_inverted(L"roms/machines/xi8088/bios-xi8088-128k.bin",
+	ret = bios_load_linear_inverted(L"roms/machines/xt/xi8088/bios-xi8088-128k.bin",
 					0x000e0000, 131072, 0);
-	ret |= bios_load_linear(L"roms/machines/xi8088/bios-xi8088.bin",
+	ret |= bios_load_linear(L"roms/machines/xt/xi8088/bios-xi8088.bin",
 				0x000f0000, 65536, 0);
     } else {
 	device_add(&xi8088_device);
 
 	if (xi8088_bios_128kb()) {
-		ret = bios_load_linear_inverted(L"roms/machines/xi8088/bios-xi8088-128k.bin",
+		ret = bios_load_linear_inverted(L"roms/machines/xt/xi8088/bios-xi8088-128k.bin",
 						0x000e0000, 131072, 0);
 	} else {
-		ret = bios_load_linear(L"roms/machines/xi8088/bios-xi8088.bin",
+		ret = bios_load_linear(L"roms/machines/xt/xi8088/bios-xi8088.bin",
 				       0x000f0000, 65536, 0);
 	}
     }

@@ -156,8 +156,8 @@ machine_at_ibm_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/ibmat/62x0820.u27",
-				L"roms/machines/ibmat/62x0821.u47",
+    ret = bios_load_interleaved(L"roms/machines/at/ibmat/62x0820.u27",
+				L"roms/machines/at/ibmat/62x0821.u47",
 				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -174,8 +174,8 @@ machine_at_ibmatquadtel_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/ibmatquadtel/BIOS_30MAR90_U27_QUADTEL_ENH_286_BIOS_3.05.01_27256.BIN",
-				L"roms/machines/ibmatquadtel/BIOS_30MAR90_U47_QUADTEL_ENH_286_BIOS_3.05.01_27256.BIN",
+    ret = bios_load_interleaved(L"roms/machines/at/ibmatquadtel/BIOS_30MAR90_U27_QUADTEL_ENH_286_BIOS_3.05.01_27256.BIN",
+				L"roms/machines/at/ibmatquadtel/BIOS_30MAR90_U47_QUADTEL_ENH_286_BIOS_3.05.01_27256.BIN",
 				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -191,8 +191,8 @@ machine_at_ibmatami_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/ibmatami/BIOS_5170_30APR89_U27_AMI_27256.BIN",
-				L"roms/machines/ibmatami/BIOS_5170_30APR89_U47_AMI_27256.BIN",
+    ret = bios_load_interleaved(L"roms/machines/at/ibmatami/BIOS_5170_30APR89_U27_AMI_27256.BIN",
+				L"roms/machines/at/ibmatami/BIOS_5170_30APR89_U47_AMI_27256.BIN",
 				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -208,8 +208,8 @@ machine_at_ibmatpx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/ibmatpx/BIOS ROM - PhoenixBIOS A286 - Version 1.01 - Even.bin",
-				L"roms/machines/ibmatpx/BIOS ROM - PhoenixBIOS A286 - Version 1.01 - Odd.bin",
+    ret = bios_load_interleaved(L"roms/machines/at/ibmatpx/BIOS ROM - PhoenixBIOS A286 - Version 1.01 - Even.bin",
+				L"roms/machines/at/ibmatpx/BIOS ROM - PhoenixBIOS A286 - Version 1.01 - Odd.bin",
 				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -225,8 +225,8 @@ machine_at_ibmxt286_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/ibmxt286/bios_5162_21apr86_u34_78x7460_27256.bin",
-				L"roms/machines/ibmxt286/bios_5162_21apr86_u35_78x7461_27256.bin",
+    ret = bios_load_interleaved(L"roms/machines/at/ibmxt286/bios_5162_21apr86_u34_78x7460_27256.bin",
+				L"roms/machines/at/ibmxt286/bios_5162_21apr86_u35_78x7461_27256.bin",
 				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -243,7 +243,7 @@ machine_at_siemens_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/siemens/286BIOS.BIN",
+    ret = bios_load_linear(L"roms/machines/at/siemens/286BIOS.BIN",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -261,7 +261,7 @@ machine_at_open_at_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/open_at/bios.bin",
+    ret = bios_load_linear(L"roms/machines/at/open_at/bios.bin",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)

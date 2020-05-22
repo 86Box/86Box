@@ -63,7 +63,7 @@ machine_at_p6kfx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p6kfx/kfxa22.bin",
+    ret = bios_load_linear(L"roms/machines/slot1/p6kfx/kfxa22.bin",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -94,7 +94,7 @@ machine_at_6bxc_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/6bxc/powleap.bin",
+    ret = bios_load_linear(L"roms/machines/slot1/6bxc/powleap.bin",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -126,7 +126,7 @@ machine_at_p2bls_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p2bls/1014ls.003",
+    ret = bios_load_linear(L"roms/machines/slot1/p2bls/1014ls.003",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -183,7 +183,7 @@ machine_at_p3bf_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p3bf/bx3f1006.awd",
+    ret = bios_load_linear(L"roms/machines/slot1/p3bf/bx3f1006.awd",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -240,7 +240,7 @@ machine_at_bf6_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/bf6/Beh_70.bin",
+    ret = bios_load_linear(L"roms/machines/slot1/bf6/Beh_70.bin",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -280,7 +280,7 @@ machine_at_p6sba_init(const machine_t *model)
 	
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p6sba/SBAB21.ROM",
+    ret = bios_load_linear(L"roms/machines/slot1/p6sba/SBAB21.ROM",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -341,7 +341,7 @@ machine_at_tsunamiatx_init(const machine_t *model)
 
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/tsunamiatx/bx46200f.rom",
+    ret = bios_load_linear(L"roms/machines/slot1/tsunamiatx/bx46200f.rom",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)

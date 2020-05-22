@@ -109,7 +109,7 @@ machine_xt_zenith_init(const machine_t *model)
 {		
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/zdsupers/z184m v3.1d.10d",
+    ret = bios_load_linear(L"roms/machines/xt/zdsupers/z184m v3.1d.10d",
 			   0x000f8000, 32768, 0);
 
     if (bios_only || !ret)

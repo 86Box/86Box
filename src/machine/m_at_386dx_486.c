@@ -49,7 +49,7 @@ machine_at_acc386_init(const machine_t *model)
 {
     int ret;
 
-   ret = bios_load_linear(L"roms/machines/acc386/acc386.BIN",
+   ret = bios_load_linear(L"roms/machines/386dx_486/acc386/acc386.BIN",
 			  0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -68,8 +68,8 @@ machine_at_ecs386_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/ecs386/AMI BIOS for ECS-386_32 motherboard - L chip.bin",
-				L"roms/machines/ecs386/AMI BIOS for ECS-386_32 motherboard - H chip.bin",
+    ret = bios_load_interleaved(L"roms/machines/386dx_486/ecs386/AMI BIOS for ECS-386_32 motherboard - L chip.bin",
+				L"roms/machines/386dx_486/ecs386/AMI BIOS for ECS-386_32 motherboard - H chip.bin",
 				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -88,7 +88,7 @@ machine_at_pb410a_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/pb410a/pb410a.080337.4abf.u25.bin",
+    ret = bios_load_linear(L"roms/machines/386dx_486/pb410a/pb410a.080337.4abf.u25.bin",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -125,7 +125,7 @@ machine_at_ali1429_init(const machine_t *model)
 {
     int ret;
 
-   ret = bios_load_linear(L"roms/machines/ami486/ami486.bin",
+   ret = bios_load_linear(L"roms/machines/386dx_486/ami486/ami486.bin",
 			  0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -142,7 +142,7 @@ machine_at_winbios1429_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/win486/ali1429g.amw",
+    ret = bios_load_linear(L"roms/machines/386dx_486/win486/ali1429g.amw",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -159,7 +159,7 @@ machine_at_opti495_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/award495/opt495s.awa",
+    ret = bios_load_linear(L"roms/machines/386dx_486/award495/opt495s.awa",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -193,7 +193,7 @@ machine_at_opti495_ami_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/ami495/opt495sx.ami",
+    ret = bios_load_linear(L"roms/machines/386dx_486/ami495/opt495sx.ami",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -210,7 +210,7 @@ machine_at_opti495_mr_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/mr495/opt495sx.mr",
+    ret = bios_load_linear(L"roms/machines/386dx_486/mr495/opt495sx.mr",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -237,7 +237,7 @@ machine_at_ami471_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/ami471/SIS471BE.AMI",
+    ret = bios_load_linear(L"roms/machines/386dx_486/ami471/SIS471BE.AMI",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -255,7 +255,7 @@ machine_at_dtk486_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/dtk486/4siw005.bin",
+    ret = bios_load_linear(L"roms/machines/386dx_486/dtk486/4siw005.bin",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -273,7 +273,7 @@ machine_at_px471_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/px471/SIS471A1.PHO",
+    ret = bios_load_linear(L"roms/machines/386dx_486/px471/SIS471A1.PHO",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -292,7 +292,7 @@ machine_at_win471_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/win471/486-SiS_AC0360136.BIN",
+    ret = bios_load_linear(L"roms/machines/386dx_486/win471/486-SiS_AC0360136.BIN",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -331,7 +331,7 @@ machine_at_r418_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/r418/r418i.bin",
+    ret = bios_load_linear(L"roms/machines/386dx_486/r418/r418i.bin",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -354,7 +354,7 @@ machine_at_ls486e_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/ls486e/LS486E RevC.BIN",
+    ret = bios_load_linear(L"roms/machines/386dx_486/ls486e/LS486E RevC.BIN",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -378,7 +378,7 @@ machine_at_4dps_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/4dps/4DPS172G.BIN",
+    ret = bios_load_linear(L"roms/machines/386dx_486/4dps/4DPS172G.BIN",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -401,8 +401,8 @@ machine_at_alfredo_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined(L"roms/machines/alfredo/1010AQ0_.BIO",
-				    L"roms/machines/alfredo/1010AQ0_.BI1", 0x1c000, 128);
+    ret = bios_load_linear_combined(L"roms/machines/386dx_486/alfredo/1010AQ0_.BIO",
+				    L"roms/machines/386dx_486/alfredo/1010AQ0_.BI1", 0x1c000, 128);
 
     if (bios_only || !ret)
 	return ret;
@@ -433,7 +433,7 @@ machine_at_486sp3g_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/486sp3g/PCI-I-486SP3G_0306.001 (Beta).bin",
+    ret = bios_load_linear(L"roms/machines/386dx_486/486sp3g/PCI-I-486SP3G_0306.001 (Beta).bin",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
