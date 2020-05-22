@@ -1269,11 +1269,11 @@ machine_ps2_model_50_init(const machine_t *model)
 {
 	int ret;
 
-	ret = bios_load_interleaved(L"roms/machines/ps2/ibmps2_m50/90x7420.zm13",
-				    L"roms/machines/ps2/ibmps2_m50/90x7429.zm18",
+	ret = bios_load_interleaved(L"roms/machines/ibmps2_m50/90x7420.zm13",
+				    L"roms/machines/ibmps2_m50/90x7429.zm18",
 				    0x000f0000, 131072, 0);
-	ret &= bios_load_aux_interleaved(L"roms/machines/ps2/ibmps2_m50/90x7423.zm14",
-					 L"roms/machines/ps2/ibmps2_m50/90x7426.zm16",
+	ret &= bios_load_aux_interleaved(L"roms/machines/ibmps2_m50/90x7423.zm14",
+					 L"roms/machines/ibmps2_m50/90x7426.zm16",
 					 0x000e0000, 65536, 0);
 
 	if (bios_only || !ret)
@@ -1292,8 +1292,8 @@ machine_ps2_model_55sx_init(const machine_t *model)
 {
 	int ret;
 
-	ret = bios_load_interleaved(L"roms/machines/ps2/ibmps2_m55sx/33f8146.zm41",
-				    L"roms/machines/ps2/ibmps2_m55sx/33f8145.zm40",
+	ret = bios_load_interleaved(L"roms/machines/ibmps2_m55sx/33f8146.zm41",
+				    L"roms/machines/ibmps2_m55sx/33f8145.zm40",
 				    0x000e0000, 131072, 0);
 
 	if (bios_only || !ret)
@@ -1312,8 +1312,8 @@ machine_ps2_model_70_type3_init(const machine_t *model)
 {
 	int ret;
 
-	ret = bios_load_interleaved(L"roms/machines/ps2/ibmps2_m70_type3/70-a_even.bin",
-				    L"roms/machines/ps2/ibmps2_m70_type3/70-a_odd.bin",
+	ret = bios_load_interleaved(L"roms/machines/ibmps2_m70_type3/70-a_even.bin",
+				    L"roms/machines/ibmps2_m70_type3/70-a_odd.bin",
 				    0x000e0000, 131072, 0);
 
 	if (bios_only || !ret)
@@ -1333,8 +1333,8 @@ machine_ps2_model_70_type4_init(const machine_t *model)
 {
 	int ret;
 
-	ret = bios_load_interleaved(L"roms/machines/ps2/ibmps2_m70_type4/70-b_even.bin",
-				    L"roms/machines/ps2/ibmps2_m70_type4/70-b_odd.bin",
+	ret = bios_load_interleaved(L"roms/machines/ibmps2_m70_type4/70-b_even.bin",
+				    L"roms/machines/ibmps2_m70_type4/70-b_odd.bin",
 				    0x000e0000, 131072, 0);
 
 	if (bios_only || !ret)
@@ -1354,8 +1354,8 @@ machine_ps2_model_80_init(const machine_t *model)
 {
 	int ret;
 
-	ret = bios_load_interleaved(L"roms/machines/ps2/ibmps2_m80/15f6637.bin",
-				    L"roms/machines/ps2/ibmps2_m80/15f6639.bin",
+	ret = bios_load_interleaved(L"roms/machines/ibmps2_m80/15f6637.bin",
+				    L"roms/machines/ibmps2_m80/15f6639.bin",
 				    0x000e0000, 131072, 0);
 
 	if (bios_only || !ret)

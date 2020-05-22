@@ -46,7 +46,7 @@ machine_at_686nx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/socket8/686nx/6nx.140",
+    ret = bios_load_linear(L"roms/machines/686nx/6nx.140",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -76,7 +76,7 @@ machine_at_mb600n_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/socket8/mb600n/60915cs.rom",
+    ret = bios_load_linear(L"roms/machines/mb600n/60915cs.rom",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -105,7 +105,7 @@ machine_at_8500ttc_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/socket8/8500ttc/TTC0715B.ROM",
+    ret = bios_load_linear(L"roms/machines/8500ttc/TTC0715B.ROM",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -134,7 +134,7 @@ machine_at_m6mi_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/socket8/m6mi/M6MI05.ROM",
+    ret = bios_load_linear(L"roms/machines/m6mi/M6MI05.ROM",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)

@@ -47,7 +47,7 @@ machine_at_s370slm_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/socket370/s370slm/3LM1202.rom",
+    ret = bios_load_linear(L"roms/machines/s370slm/3LM1202.rom",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -103,7 +103,7 @@ machine_at_cubx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/socket370/cubx/1008cu.004",
+    ret = bios_load_linear(L"roms/machines/cubx/1008cu.004",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -158,7 +158,7 @@ machine_at_atc7020bxii_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/socket370/atc7020bxii/7020s102.bin",
+    ret = bios_load_linear(L"roms/machines/atc7020bxii/7020s102.bin",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -191,7 +191,7 @@ machine_at_63a_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/socket370/63a1/63a-q3.bin",
+    ret = bios_load_linear(L"roms/machines/63a1/63a-q3.bin",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -224,7 +224,7 @@ machine_at_apas3_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/socket370/apas3/V0218SAG.BIN",
+    ret = bios_load_linear(L"roms/machines/apas3/V0218SAG.BIN",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)

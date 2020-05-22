@@ -710,7 +710,7 @@ machine_europc_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/xt/europc/50145",
+    ret = bios_load_linear(L"roms/machines/europc/50145",
 			   0x000f8000, 32768, 0);
 
     if (bios_only || !ret)
