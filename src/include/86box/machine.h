@@ -300,9 +300,7 @@ extern int	machine_at_i430vx_init(const machine_t *);
 extern int	machine_at_brio80xx_init(const machine_t *);
 extern int	machine_at_pb680_init(const machine_t *);
 
-#if defined(DEV_BRANCH) && defined(NO_SIO)
-extern int	machine_at_p55xb2_init(const machine_t *);
-#endif
+extern int	machine_at_nupro592_init(const machine_t *);
 extern int	machine_at_tx97_init(const machine_t *);
 extern int	machine_at_ym430tx_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(NO_SIO)

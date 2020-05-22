@@ -619,14 +619,14 @@ machine_at_pb680_init(const machine_t *model)
     return ret;
 }
 
-#if defined(DEV_BRANCH) && defined(NO_SIO)
+
 int
-machine_at_p55xb2_init(const machine_t *model)
+machine_at_nupro592_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p55xb2/XB20721.BIN",
-			   0x000e0000, 131072, 0);
+    ret = bios_load_linear(L"roms/machines/nupro592/np590b10.bin",
+			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
 	return ret;
@@ -635,21 +635,57 @@ machine_at_p55xb2_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0A, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x14, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 4, 1, 2); /*Strongly suspect these are on-board slots*/
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 4, 1, 2, 3); 
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);	/* PIIX4 */
     device_add(&i430tx_device);
     device_add(&piix4_device);
     device_add(&keyboard_ps2_pci_device);
-//  device_add(&ali_m513x_device);
+    device_add(&w83977ef_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
-
+    
+    hwm_values_t machine_hwm = {
+    	{    /* fan speeds */
+    		3000,	/* Chassis */
+    		3000,	/* CPU */
+    		3000,	/* Power */
+    		0
+    	}, { /* temperatures */
+    		30,	/* MB */
+    		0,	/* unused */
+    		27,	/* CPU */
+    		0
+    	}, { /* voltages */
+    		3300,				   /* VCORE (3.3V by default) */
+    		0,				   /* unused */
+    		3300,				   /* +3.3V */
+    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
+    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
+    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
+    		RESISTOR_DIVIDER(5000,    1,   2), /* -5V  (divider values bruteforced) */
+    		0
+    	}
+    };
+    /* Pentium, Pentium OverDrive MMX, Pentium Mobile MMX: 3.3V (real Pentium Mobile MMX is 2.45V).
+       Pentium MMX: 2.8 V.
+       AMD K6 Model 6: 2.9 V for 166/200, 3.2 V for 233.
+       AMD K6 Model 7: 2.2 V. */
+    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUMMMX)
+	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Pentium MMX */
+    else if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_K6)
+	machine_hwm.voltages[0] = 2200; /* set higher VCORE (2.8V) for Pentium MMX */
+    else if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_K6_2)
+	machine_hwm.voltages[0] = 2200; /* set higher VCORE (2.8V) for Pentium MMX */
+    hwm_set_values(machine_hwm);
+    device_add(&w83781d_device);
+    
     return ret;
 }
-#endif
 
 int
 machine_at_tx97_init(const machine_t *model)
