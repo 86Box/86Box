@@ -291,7 +291,7 @@ const machine_t machines[] = {
     /* Slot 1 machines */
     /* 440FX */
     { "[Slot 1 FX] ASUS P/I-P65UP5 (C-PKND)",	"p65up5_cpknd",		{{"Intel", cpus_PentiumII_28v},{"",    NULL},        {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	 machine_at_p65up5_cpknd_init, NULL			},
-    { "[Slot 1 FX] ECS P6KFX-A",		"p6kfx",		{{"Intel", cpus_PentiumII_28v},{"",    NULL},        {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  384,   8, 127,	        machine_at_p6kfx_init, NULL			},
+    { "[Slot 1 FX] ASUS KN97",		"kn97",		{{"Intel", cpus_PentiumII_28v}, {"",    NULL},        {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  384,   8, 127,	        machine_at_kn97_init, NULL			},
 
     /* 440LX */
 

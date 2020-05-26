@@ -334,7 +334,7 @@ extern int	machine_at_p65up5_cp6nd_init(const machine_t *);
 
 /* m_at_slot1.c */
 extern int	machine_at_p65up5_cpknd_init(const machine_t *);
-extern int	machine_at_p6kfx_init(const machine_t *);
+extern int	machine_at_kn97_init(const machine_t *);
 
 #if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_6bxc_init(const machine_t *);
