@@ -182,67 +182,67 @@ ide_get_period(ide_t *ide, int size)
     switch(ide->mdma_mode & 0x300) {
 	case 0x000:	/* PIO */
 		switch(ide->mdma_mode & 0xff) {
-			case 0:
+			case 0x01:
 				period = (10.0 / 3.0);
 				break;
-			case 1:
+			case 0x02:
 				period = (20.0 / 3.83);
 				break;
-			case 2:
+			case 0x04:
 				period = (25.0 / 3.0);
 				break;
-			case 3:
+			case 0x08:
 				period = (100.0 / 9.0);
 				break;
-			case 4:
+			case 0x10:
 				period = (50.0 / 3.0);
 				break;
 		}
 		break;
 	case 0x100:	/* Single Word DMA */
 		switch(ide->mdma_mode & 0xff) {
-			case 0:
+			case 0x01:
 				period = (25.0 / 12.0);
 				break;
-			case 1:
+			case 0x02:
 				period = (25.0 / 6.0);
 				break;
-			case 2:
+			case 0x04:
 				period = (25.0 / 3.0);
 				break;
 		}
 		break;
 	case 0x200:	/* Multiword DMA */
 		switch(ide->mdma_mode & 0xff) {
-			case 0:
+			case 0x01:
 				period = (25.0 / 6.0);
 				break;
-			case 1:
+			case 0x02:
 				period = (40.0 / 3.0);
 				break;
-			case 2:
+			case 0x04:
 				period = (50.0 / 3.0);
 				break;
 		}
 		break;
 	case 0x300:	/* Ultra DMA */
 		switch(ide->mdma_mode & 0xff) {
-			case 0:
+			case 0x01:
 				period = (50.0 / 3.0);
 				break;
-			case 1:
+			case 0x02:
 				period = 25.0;
 				break;
-			case 2:
+			case 0x04:
 				period = (100.0 / 3.0);
 				break;
-			case 3:
+			case 0x08:
 				period = (400.0 / 9.0);
 				break;
-			case 4:
+			case 0x10:
 				period = (200.0 / 3.0);
 				break;
-			case 5:
+			case 0x20:
 				period = 100.0;
 				break;
 		}
