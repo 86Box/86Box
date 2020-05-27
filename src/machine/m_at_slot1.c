@@ -73,30 +73,27 @@ machine_at_kn97_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x09, PCI_CARD_NORMAL, 4, 1, 2, 3);
-	pci_register_slot(0x0D, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 4, 1, 2, 3);
     device_add(&i440fx_device);
     device_add(&piix3_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83877f_device);
     device_add(&intel_flash_bxt_device);
-	spd_register(SPD_TYPE_EDO, 0xF, 256);
-	
+
     hwm_values_t machine_hwm = {
-    	{    /* fan speeds */
-    		3000,	/* Chassis */
-    		3000,	/* CPU */
-    		3000	/* Power */
+    	{    /* fan speeds (incorrect divisor for some reason) */
+    		6000,	/* Chassis */
+    		6000,	/* CPU */
+    		6000	/* Power */
     	}, { /* temperatures */
-    		30,	/* MB */
-    		0,	/* unused */
-    		27	/* CPU */
+    		30	/* MB */
     	}, { /* voltages */
-    		2050,				   /* VCORE (2.05V by default) */
+    		2800,				   /* VCORE (2.8V by default) */
     		0,				   /* unused */
     		3300,				   /* +3.3V */
     		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
@@ -105,8 +102,6 @@ machine_at_kn97_init(const machine_t *model)
     		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
     	}
     };
-    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
-    	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Klamath */
     hwm_set_values(machine_hwm);
     device_add(&lm78_device);
 	
