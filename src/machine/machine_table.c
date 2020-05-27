@@ -260,10 +260,8 @@ const machine_t machines[] = {
     /* 430TX */
     { "[Socket 7 TX] ADLink NuPRO-592",		"nupro592",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	     machine_at_nupro592_init, NULL			},
     { "[Socket 7 TX] ASUS TX97",		"tx97",			MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	         machine_at_tx97_init, NULL			},
-#if defined(DEV_BRANCH) && defined(NO_SIO)
-    { "[Socket 7 TX] Gigabyte GA-586T2",        "586t2",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	        machine_at_586t2_init, NULL			},
-#endif
     { "[Socket 7 TX] Intel YM430TX",		"ym430tx",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	      machine_at_ym430tx_init, NULL			},
+    { "[Socket 7 TX] PC Partner MB540N",        "mb540n",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	       machine_at_mb540n_init, NULL			},
     { "[Socket 7 TX] Supermicro P5MMS98",	"p5mms98",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 255,	      machine_at_p5mms98_init, NULL			},
 
 
@@ -293,7 +291,7 @@ const machine_t machines[] = {
     /* Slot 1 machines */
     /* 440FX */
     { "[Slot 1 FX] ASUS P/I-P65UP5 (C-PKND)",	"p65up5_cpknd",		{{"Intel", cpus_PentiumII_28v},{"",    NULL},        {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	 machine_at_p65up5_cpknd_init, NULL			},
-    { "[Slot 1 FX] ECS P6KFX-A",		"p6kfx",		{{"Intel", cpus_PentiumII_28v},{"",    NULL},        {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  384,   8, 127,	        machine_at_p6kfx_init, NULL			},
+    { "[Slot 1 FX] ASUS KN97",		"kn97",		{{"Intel", cpus_PentiumII_28v}, {"",    NULL},        {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  384,   8, 127,	        machine_at_kn97_init, NULL			},
 
     /* 440LX */
 
