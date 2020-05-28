@@ -805,8 +805,8 @@ wd1007vse1_init(const device_t *info)
 		  esdi_read, esdi_readw, NULL,
 		  esdi_write, esdi_writew, NULL, esdi);
     io_sethandler(0x01f1, 7,
-		  esdi_read, NULL, NULL,
-		  esdi_write, NULL, NULL, esdi);
+		  esdi_read, esdi_readw, NULL,
+		  esdi_write, esdi_writew, NULL, esdi);
     io_sethandler(0x03f6, 1, NULL, NULL, NULL,
 		  esdi_write, NULL, NULL, esdi);
 
