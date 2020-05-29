@@ -2276,19 +2276,19 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
                 break;
                 case 0x68: case 0x69: case 0x6a: case 0x6b:
                 WRITE8(addr, mach64->cur_offset, val);
-                svga->hwcursor.addr = (mach64->cur_offset & 0xfffff) * 8;
+                svga->dac_hwcursor.addr = (mach64->cur_offset & 0xfffff) * 8;
                 mach64_cursor_dump(mach64);
                 break;
                 case 0x6c: case 0x6d: case 0x6e: case 0x6f:
                 WRITE8(addr, mach64->cur_horz_vert_posn, val);
-                svga->hwcursor.x = mach64->cur_horz_vert_posn & 0x7ff;
-                svga->hwcursor.y = (mach64->cur_horz_vert_posn >> 16) & 0x7ff;
+                svga->dac_hwcursor.x = mach64->cur_horz_vert_posn & 0x7ff;
+                svga->dac_hwcursor.y = (mach64->cur_horz_vert_posn >> 16) & 0x7ff;
                 mach64_cursor_dump(mach64);
                 break;
                 case 0x70: case 0x71: case 0x72: case 0x73:
                 WRITE8(addr, mach64->cur_horz_vert_off, val);
-                svga->hwcursor.xoff = mach64->cur_horz_vert_off & 0x3f;
-                svga->hwcursor.yoff = (mach64->cur_horz_vert_off >> 16) & 0x3f;
+                svga->dac_hwcursor.xoff = mach64->cur_horz_vert_off & 0x3f;
+                svga->dac_hwcursor.yoff = (mach64->cur_horz_vert_off >> 16) & 0x3f;
                 mach64_cursor_dump(mach64);
                 break;
 
@@ -2348,7 +2348,7 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
                 WRITE8(addr, mach64->gen_test_cntl, val);
                 ati_eeprom_write(&mach64->eeprom, mach64->gen_test_cntl & 0x10, mach64->gen_test_cntl & 2, mach64->gen_test_cntl & 1);
                 mach64->gen_test_cntl = (mach64->gen_test_cntl & ~8) | (ati_eeprom_read(&mach64->eeprom) ? 8 : 0);
-                svga->hwcursor.ena = mach64->gen_test_cntl & 0x80;
+                svga->dac_hwcursor.ena = mach64->gen_test_cntl & 0x80;
                 mach64_cursor_dump(mach64);
                 break;
 
