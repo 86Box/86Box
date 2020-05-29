@@ -2108,6 +2108,7 @@ uint8_t mach64_ext_readb(uint32_t addr, void *p)
 }
 uint16_t mach64_ext_readw(uint32_t addr, void *p)
 {
+        mach64_t *mach64 = (mach64_t *)p;
         uint16_t ret;
         if (!(addr & 0x400))
         {
