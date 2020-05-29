@@ -875,6 +875,16 @@ static void mach64_accel_write_fifo_w(mach64_t *mach64, uint32_t addr, uint16_t 
                 mach64_blit(val, 16, mach64);
                 break;
 
+                case 0x32c:
+                mach64->context_load_cntl = (mach64->context_load_cntl & 0xffff0000) | val;
+		break;
+
+                case 0x32e:
+                mach64->context_load_cntl = (mach64->context_load_cntl & 0x0000ffff) | (val << 16);
+                if (val & 0x30000)
+                        mach64_load_context(mach64);
+                break;
+
                 default:
                 mach64_accel_write_fifo(mach64, addr, val);
                 mach64_accel_write_fifo(mach64, addr + 1, val >> 8);
@@ -2106,6 +2116,13 @@ uint16_t mach64_ext_readw(uint32_t addr, void *p)
         }
         else switch (addr & 0x3ff)
         {
+                case 0xb4: case 0xb6:
+                ret = (mach64->bank_w[(addr & 2) >> 1] >> 15);
+                break;
+                case 0xb8: case 0xba:
+                ret = (mach64->bank_r[(addr & 2) >> 1] >> 15);
+                break;
+
                 default:
                 ret = mach64_ext_readb(addr, p);
                 ret |= mach64_ext_readb(addr + 1, p) << 8;
@@ -2137,7 +2154,7 @@ uint32_t mach64_ext_readl(uint32_t addr, void *p)
                 case 0xb8:
                 ret = (mach64->bank_r[0] >> 15) | ((mach64->bank_r[1] >> 15) << 16);
                 break;
-                
+
                 default:
                 ret = mach64_ext_readw(addr, p);
                 ret |= mach64_ext_readw(addr + 2, p) << 16;
