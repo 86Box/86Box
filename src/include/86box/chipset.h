@@ -47,6 +47,7 @@ extern const device_t	i440zx_device;
 
 /* OPTi */
 extern const device_t	opti495_device;
+extern const device_t	python_device;
 
 /* C&T */
 extern const device_t	neat_device;
