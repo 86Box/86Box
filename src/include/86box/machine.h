@@ -336,12 +336,10 @@ extern int	machine_at_p65up5_cp6nd_init(const machine_t *);
 extern int	machine_at_p65up5_cpknd_init(const machine_t *);
 extern int	machine_at_kn97_init(const machine_t *);
 
-#if defined(DEV_BRANCH) && defined(NO_SIO)
-extern int	machine_at_6bxc_init(const machine_t *);
-#endif
 extern int	machine_at_p2bls_init(const machine_t *);
 extern int	machine_at_p3bf_init(const machine_t *);
 extern int	machine_at_bf6_init(const machine_t *);
+extern int	machine_at_atc6310bxii_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_tsunamiatx_init(const machine_t *);
 #endif
