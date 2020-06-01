@@ -58,7 +58,6 @@ machine_at_excalibur_init(const machine_t *model)
 	device_add(&ide_vlb_2ch_device);
 	device_add(&fdc37c665_device);
 	device_add(&python_device);
-    device_add(&opti822_device);
 
     return ret;
 }
