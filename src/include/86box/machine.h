@@ -253,7 +253,7 @@ extern const device_t 	*at_cpqiii_get_device(void);
 #endif
 
 /* m_at_socket4_5.c */
-extern int	machine_at_hot523_init(const machine_t *);
+extern int	machine_at_excalibur_init(const machine_t *);
 
 extern int	machine_at_batman_init(const machine_t *);
 extern int	machine_at_ambradp60_init(const machine_t *);
@@ -361,6 +361,7 @@ extern int	machine_at_s2dge_init(const machine_t *);
 /* m_at_socket370.c */
 #if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_s370slm_init(const machine_t *);
+extern int	machine_at_773mr_init(const machine_t *);
 #endif
 extern int	machine_at_cubx_init(const machine_t *);
 extern int	machine_at_atc7020bxii_init(const machine_t *);

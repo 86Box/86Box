@@ -43,28 +43,22 @@
 #include <86box/machine.h>
 
 int
-machine_at_hot523_init(const machine_t *model)
+machine_at_excalibur_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/hot523/523R21.BIN",
+    ret = bios_load_linear(L"roms/machines/excalibur/S75P.ROM",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
 	return ret;
 
-    pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
-    pci_register_slot(0x01, PCI_CARD_SPECIAL, 0, 0, 0, 0);
-    pci_register_slot(0x03, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x04, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x05, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x06, PCI_CARD_NORMAL, 4, 1, 2, 3);
-
     machine_at_common_init(model);
-	device_add(&keyboard_at_device);
+	device_add(&keyboard_at_ami_device);
 	device_add(&ide_vlb_2ch_device);
-	device_add(&fdc_at_device);
+	device_add(&fdc37c665_device);
 	device_add(&python_device);
+    device_add(&opti822_device);
 
     return ret;
 }
