@@ -63,7 +63,6 @@ opti5x7_write(uint16_t addr, uint8_t val, void *priv)
 			dev->regs[dev->cur_reg] = val;
 			if (dev->cur_reg == 0x02) {
 				cpu_cache_ext_enabled = val & 0x10;
-				cpu_update_waitstates();
 			}
 			if (dev->cur_reg == 0x06) {
 				opti5x7_recalcmapping(dev);			
