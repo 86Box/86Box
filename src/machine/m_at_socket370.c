@@ -41,7 +41,6 @@
 #include "cpu.h"
 #include <86box/machine.h>
 
-#if defined(DEV_BRANCH) && defined(NO_SIO)
 int
 machine_at_s370slm_init(const machine_t *model)
 {
@@ -65,7 +64,7 @@ machine_at_s370slm_init(const machine_t *model)
     pci_register_slot(0x0E, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x01, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    device_add(&i440bx_device); /*i440LX*/
+    device_add(&i440lx_device);
     device_add(&piix4e_device);
     device_add(&w83977tf_device);
     device_add(&keyboard_ps2_ami_pci_device);
@@ -96,7 +95,6 @@ machine_at_s370slm_init(const machine_t *model)
 	
     return ret;
 }
-#endif
 
 int
 machine_at_cubx_init(const machine_t *model)

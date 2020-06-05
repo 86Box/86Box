@@ -141,7 +141,7 @@ CPU		*cpu_s;
 int		cpu_effective;
 int		cpu_multi;
 double		cpu_dmulti;
-int		cpu_16bitbus;
+int		cpu_16bitbus, cpu_64bitbus;
 int		cpu_busspeed;
 int		cpu_cyrix_alignment;
 int		CPUID;
@@ -309,7 +309,7 @@ cpu_set(void)
         isdx4        = (cpu_s->cpu_type >= CPU_iDX4) && (cpu_s->cpu_type < CPU_WINCHIP);
 	is_am486     = (cpu_s->cpu_type == CPU_Am486SX) || (cpu_s->cpu_type == CPU_Am486SX2) || (cpu_s->cpu_type == CPU_Am486DX) ||
 		       (cpu_s->cpu_type == CPU_Am486DX2) || (cpu_s->cpu_type == CPU_Am486DX4) || (cpu_s->cpu_type == CPU_Am5x86);
-        is_pentium   = (cpu_s->cpu_type == CPU_PENTIUM) || (cpu_s->cpu_type == CPU_PENTIUMMMX);
+        is_pentium   = (cpu_s->cpu_type == CPU_P24T) || (cpu_s->cpu_type == CPU_PENTIUM) || (cpu_s->cpu_type == CPU_PENTIUMMMX);
 	/* Not Pentiums, but they share the same SMM save state table layout. */
 	is_pentium  |= (cpu_s->cpu_type == CPU_i486DX2) || (cpu_s->cpu_type == CPU_iDX4);
 	/* The WinChip datasheet claims these are Pentium-compatible. */
@@ -335,7 +335,8 @@ cpu_set(void)
 #endif
 
         cpu_16bitbus = (cpu_s->cpu_type == CPU_286 || cpu_s->cpu_type == CPU_386SX || cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC );
-
+        cpu_64bitbus = (cpu_s->cpu_type >= CPU_WINCHIP);
+	
         if (cpu_s->multi)
 		cpu_busspeed = cpu_s->rspeed / cpu_s->multi;
 	else
@@ -995,6 +996,7 @@ cpu_set(void)
 #endif		
                 break;
 
+                case CPU_P24T:
                 case CPU_PENTIUM:
 #ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_pentium_0f, dynarec_ops_386, dynarec_ops_pentium_0f);
@@ -1787,7 +1789,8 @@ cpu_CPUID(void)
                         break;
                 }
                 break;
-
+		
+                case CPU_P24T:
                 case CPU_PENTIUM:
                 if (!EAX)
                 {
@@ -2697,6 +2700,7 @@ void cpu_RDMSR()
                 }
                 break;
 
+                case CPU_P24T:		
                 case CPU_PENTIUM:
                 case CPU_PENTIUMMMX:
                 EAX = EDX = 0;
@@ -3175,7 +3179,8 @@ void cpu_WRMSR()
 			break;
                 }
                 break;
-
+		
+                case CPU_P24T:
                 case CPU_PENTIUM:
                 case CPU_PENTIUMMMX:
                 switch (ECX)

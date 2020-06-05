@@ -52,6 +52,7 @@ enum {
     CPU_Cx486DX4,
     CPU_Am5x86,
     CPU_Cx5x86,
+    CPU_P24T,
     CPU_WINCHIP,	/* 586 class CPUs */
     CPU_WINCHIP2,
     CPU_PENTIUM,
@@ -370,7 +371,7 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state) <= 128)
 
 /* Global variables. */
 extern int	cpu_iscyrix;
-extern int	cpu_16bitbus;
+extern int	cpu_16bitbus, cpu_64bitbus;
 extern int	cpu_busspeed, cpu_pci_speed;
 extern int	cpu_multi;
 extern double	cpu_dmulti;
@@ -379,8 +380,8 @@ extern int	cpu_cyrix_alignment;	/*Cyrix 5x86/6x86 only has data misalignment
 
 extern int	is8086,	is286, is386, is486, is486sx, is486dx, is486sx2, is486dx2, isdx4;
 extern int	is_am486, is_pentium, is_k5, is_k6, is_p6;
-extern int      hascache;
-extern int      isibm486;
+extern int	hascache;
+extern int	isibm486;
 extern int	is_rapidcad;
 extern int	hasfpu;
 #define CPU_FEATURE_RDTSC (1 << 0)
