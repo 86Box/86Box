@@ -273,9 +273,6 @@ const machine_t machines[] = {
 
     /* Apollo VP3 */
     { "[Socket 7 VP3] FIC PA-2012",		"ficpa2012",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  192,   8, 127,	    machine_at_ficpa2012_init, NULL			},
-#if defined(DEV_BRANCH) && defined(NO_SIO)
-    { "[Socket 7 VP3] QDI Advance II",		"advanceii",		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 127,	    machine_at_advanceii_init, NULL			},
-#endif
   
     /* Super Socket 7 machines */
     /* Apollo MVP3 */
@@ -296,7 +293,8 @@ const machine_t machines[] = {
     { "[Slot 1 FX] ASUS P/I-P65UP5 (C-PKND)",	"p65up5_cpknd",		{{"Intel", cpus_PentiumII66}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	 machine_at_p65up5_cpknd_init, NULL			},
     { "[Slot 1 FX] ASUS KN97",			"kn97",			{{"Intel", cpus_PentiumII66}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  384,   8, 127,	         machine_at_kn97_init, NULL			},
 
-    /* 440LX */
+    /* 440EX */
+    { "[Slot 1 EX] QDI EXCELLENT II",			"p6i440e2",			{{"Intel", cpus_PentiumII66}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 255,	         machine_at_p6i440e2_init, NULL			},
 
     /* 440BX */
     { "[Slot 1 BX] ASUS P2B-LS",		"p2bls",		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8, 1024,   8, 255,		machine_at_p2bls_init, NULL			},
