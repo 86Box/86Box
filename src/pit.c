@@ -1029,8 +1029,10 @@ pit_set_clock(int clock)
     TIMER_USEC = (uint64_t)((cpuclock / 1000000.0) * (double)(1ull << 32));
 
     isa_timing = (cpuclock / (double)8000000.0);
-
-    bus_timing = (cpuclock / (double)cpu_busspeed);
+    if (cpu_64bitbus)
+    bus_timing = (cpuclock / ((double)cpu_busspeed) / 2);
+    else
+    bus_timing = (cpuclock / (double)cpu_busspeed);	    
     pci_timing = (cpuclock / (double)cpu_pci_speed);
 
     /* PCICLK in us for use with timer_on_auto(). */

@@ -41,6 +41,26 @@
 #include <86box/sio.h>
 #include <86box/video.h>
 #include <86box/machine.h>
+int
+machine_at_excalibur_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_inverted(L"roms/machines/excalibur/S75P.ROM",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&ide_vlb_device);
+    device_add(&opti5x7_device);
+    device_add(&fdc37c663_device);
+    device_add(&keyboard_at_ami_device);
+
+    return ret;
+}
 
 
 static void

@@ -253,6 +253,8 @@ extern const device_t 	*at_cpqiii_get_device(void);
 #endif
 
 /* m_at_socket4_5.c */
+extern int  machine_at_excalibur_init(const machine_t *);
+
 extern int	machine_at_batman_init(const machine_t *);
 extern int	machine_at_ambradp60_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_VPP60)

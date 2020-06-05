@@ -288,8 +288,8 @@ CPU cpus_i486[] = {
     {"iDX4/100",             CPU_iDX4,    100000000, 3.0,  0x483,  0x483, 0x0000, CPU_SUPPORTS_DYNAREC, 18,18, 9, 9, 12}, /*Is on some real Intel DX2s, limit here is pretty arbitary*/
     {"iDX4 OverDrive 75",    CPU_iDX4,     75000000, 3.0, 0x1480, 0x1480, 0x0000, CPU_SUPPORTS_DYNAREC, 12,12, 9, 9,  9},
     {"iDX4 OverDrive 100",   CPU_iDX4,    100000000, 3.0, 0x1480, 0x1480, 0x0000, CPU_SUPPORTS_DYNAREC, 18,18, 9, 9, 12}, 
-    {"Pentium OverDrive 63", CPU_PENTIUM,  62500000, 2.5, 0x1531, 0x1531, 0x0000, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10,7,7, 15/2},
-    {"Pentium OverDrive 83", CPU_PENTIUM,  83333333, 2.5, 0x1532, 0x1532, 0x0000, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15,8,8, 10},
+    {"Pentium OverDrive 63", CPU_P24T,     62500000, 2.5, 0x1531, 0x1531, 0x0000, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10,7,7, 15/2},
+    {"Pentium OverDrive 83", CPU_P24T,     83333333, 2.5, 0x1532, 0x1532, 0x0000, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15,8,8, 10},
     {"",                     -1,                  0, 0,        0,      0, 0x0000,                    0,  0, 0, 0, 0,  0}
 };
 
