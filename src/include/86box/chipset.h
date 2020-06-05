@@ -42,6 +42,7 @@ extern const device_t	i430hx_device;
 extern const device_t	i430vx_device;
 extern const device_t	i430tx_device;
 extern const device_t	i440fx_device;
+extern const device_t   i440lx_device;
 extern const device_t	i440bx_device;
 extern const device_t	i440zx_device;
 

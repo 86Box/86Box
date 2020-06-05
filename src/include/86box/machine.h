@@ -357,9 +357,8 @@ extern int	machine_at_s2dge_init(const machine_t *);
 #endif
 
 /* m_at_socket370.c */
-#if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_s370slm_init(const machine_t *);
-#endif
+
 extern int	machine_at_cubx_init(const machine_t *);
 extern int	machine_at_atc7020bxii_init(const machine_t *);
 extern int	machine_at_63a_init(const machine_t *);
