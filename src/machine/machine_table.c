@@ -313,9 +313,8 @@ const machine_t machines[] = {
 
     /* PGA370 machines */
     /* 440LX */
-#if defined(DEV_BRANCH) && defined(NO_SIO)
     { "[Socket 370 LX] Supermicro 370SLM",	"s370slm",		{{"Intel", cpus_Celeron},     {"", NULL},            {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  768,   8, 255,	      machine_at_s370slm_init, NULL			},
-#endif
+
     /* 440BX */
     { "[Socket 370 BX] ASUS CUBX",		"cubx",			{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8, 1024,   8, 255,		 machine_at_cubx_init, NULL			},
     { "[Socket 370 BX] A-Trend ATC7020BXII",	"atc7020bxii",		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8, 1024,   8, 255,	  machine_at_atc7020bxii_init, NULL			},
