@@ -39,8 +39,6 @@ rabbit_recalcmapping(rabbit_t *dev)
     shadowbios = !!shread;
     shadowbios_write = !!shwrite;
 
-    pclog("Shadow states: C%i, E%i, R%i, W%i\n", !!(dev->regs[0x100] & 0x01), !!(dev->regs[0x100] & 0x08), shadowbios, shadowbios_write);
-
 #ifdef USE_SHADOW_C0000
     mem_set_mem_state(0x000c0000, 0x00040000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 #else
@@ -86,7 +84,6 @@ rabbit_write(uint16_t addr, uint8_t val, void *priv)
 	case 0x22:
 		dev->cur_reg = val;
 		dev->tries = 0;
-		pclog("[W] dev->cur_reg = %02X\n", val);
 		break;
 	case 0x23:
 		if (dev->cur_reg == 0x83) {
