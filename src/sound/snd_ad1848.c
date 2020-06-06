@@ -117,7 +117,7 @@ void ad1848_write(uint16_t addr, uint8_t val, void *p)
                         case 24:
                         if (! (val & 0x70))
                                 ad1848->status &= 0xfe;
-                                break;
+			break;
 
                         case 25:
 				break;

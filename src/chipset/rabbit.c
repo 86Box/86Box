@@ -19,36 +19,63 @@
 
 typedef struct
 {
-    uint8_t	cur_reg,
-		regs[16];
+    uint8_t	cur_reg, tries,
+		regs[258];
 } rabbit_t;
 
-/*
+
 static void
 rabbit_recalcmapping(rabbit_t *dev)
 {
-    uint32_t base;
-    uint32_t i, shflags = 0;
+    uint32_t shread, shwrite;
+    uint32_t shflags = 0;
 
-    shadowbios = 0;
-    shadowbios_write = 0;
+    shread = !!(dev->regs[0x101] & 0x40);
+    shwrite = !!(dev->regs[0x100] & 0x02);
 
-    for (i = 0; i < 8; i++) {
-	base = 0xc0000 + (i << 15);
+    shflags = shread ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+    shflags |= shwrite ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
 
-	if (dev->regs[0x00] & 0x08) {
-		shadowbios |= (base >= 0xe0000) && (dev->regs[0x02] & 0x80);
-		shadowbios_write |= (base >= 0xe0000) && !(dev->regs[0x02] & 0x40);
-		shflags = (dev->regs[0x00] & 0x01) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
-		shflags |= (dev->regs[0x00] & 0x08) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL;
-		mem_set_mem_state(base, 0x8000, shflags);
-	} else
-		mem_set_mem_state(base, 0x8000, MEM_READ_EXTANY | MEM_WRITE_EXTERNAL);
+    shadowbios = !!shread;
+    shadowbios_write = !!shwrite;
+
+    pclog("Shadow states: C%i, E%i, R%i, W%i\n", !!(dev->regs[0x100] & 0x01), !!(dev->regs[0x100] & 0x08), shadowbios, shadowbios_write);
+
+#ifdef USE_SHADOW_C0000
+    mem_set_mem_state(0x000c0000, 0x00040000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+#else
+    mem_set_mem_state(0x000e0000, 0x00020000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+#endif
+
+    switch (dev->regs[0x100] & 0x09) {
+	case 0x01:
+/* The one BIOS we use seems to use something else to control C0000-DFFFF shadow,
+   no idea what. */
+#ifdef USE_SHADOW_C0000
+		/* 64K at 0C0000-0CFFFF */
+		mem_set_mem_state(0x000c0000, 0x00010000, shflags);
+		/* FALLTHROUGH */
+#endif
+	case 0x00:
+		/* 64K at 0F0000-0FFFFF */
+		mem_set_mem_state(0x000f0000, 0x00010000, shflags);
+		break;
+
+	case 0x09:
+#ifdef USE_SHADOW_C0000
+		/* 128K at 0C0000-0DFFFF */
+		mem_set_mem_state(0x000c0000, 0x00020000, shflags);
+		/* FALLTHROUGH */
+#endif
+	case 0x08:
+		/* 128K at 0E0000-0FFFFF */
+		mem_set_mem_state(0x000e0000, 0x00020000, shflags);
+		break;
     }
 
     flushmmucache();
 }
-*/
+
 
 static void
 rabbit_write(uint16_t addr, uint8_t val, void *priv)
@@ -58,16 +85,20 @@ rabbit_write(uint16_t addr, uint8_t val, void *priv)
     switch (addr) {
 	case 0x22:
 		dev->cur_reg = val;
+		dev->tries = 0;
+		pclog("[W] dev->cur_reg = %02X\n", val);
 		break;
 	case 0x23:
-			dev->regs[dev->cur_reg] = val;
-            /*
-			if (dev->cur_reg == 0x00) {
-				rabbit_recalcmapping(dev);
+		if (dev->cur_reg == 0x83) {
+			if (dev->tries < 0x02) {
+				dev->regs[dev->tries++ | 0x100] = val;
+				if (dev->tries == 0x02)
+					rabbit_recalcmapping(dev);
 			}
-            */
+		} else
+			dev->regs[dev->cur_reg] = val;
 		break;
-		}
+    }
 }
 
 
@@ -79,6 +110,10 @@ rabbit_read(uint16_t addr, void *priv)
 
     switch (addr) {
 	case 0x23:
+		if (dev->cur_reg == 0x83) {
+			if (dev->tries < 0x02)
+				ret = dev->regs[dev->tries++ | 0x100];
+		} else
 			ret = dev->regs[dev->cur_reg];
 		break;
     }
@@ -102,8 +137,7 @@ rabbit_init(const device_t *info)
     rabbit_t *dev = (rabbit_t *) malloc(sizeof(rabbit_t));
     memset(dev, 0, sizeof(rabbit_t));
 
-    io_sethandler(0x0022, 0x0001, rabbit_read, NULL, NULL, rabbit_write, NULL, NULL, dev);
-    io_sethandler(0x0023, 0x0001, rabbit_read, NULL, NULL, rabbit_write, NULL, NULL, dev);
+    io_sethandler(0x0022, 0x0002, rabbit_read, NULL, NULL, rabbit_write, NULL, NULL, dev);
 
     return dev;
 }
