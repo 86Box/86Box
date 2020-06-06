@@ -14,6 +14,8 @@
 #include <86box/device.h>
 #include <86box/sound.h>
 #include <86box/midi.h>
+#include <86Box/snd_ad1848.h>
+#include <math.h>
 
 enum
 {
@@ -108,6 +110,12 @@ typedef struct gus_t
         uint16_t gp1_addr, gp2_addr;
         
         uint8_t usrr;
+
+        uint8_t	max_ctrl;
+
+#if defined(DEV_BRANCH) && defined(USE_GUSMAX)
+        ad1848_t ad1848;
+#endif
 } gus_t;
 
 static int gus_gf1_irqs[8] = {-1, 2, 5, 3, 7, 11, 12, 15};
@@ -182,6 +190,9 @@ void writegus(uint16_t addr, uint8_t val, void *p)
         int c, d;
         int old;
 	uint16_t port;
+#if defined(DEV_BRANCH) && defined(USE_GUSMAX)
+        uint16_t csioport;
+#endif
 	
 	if ((addr == 0x388) || (addr == 0x389))
 		port = addr;
@@ -526,10 +537,16 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                                 }
                                 else
                                         gus->irq_midi = gus_midi_irqs[(val >> 3) & 7];
+#if defined(DEV_BRANCH) && defined(USE_GUSMAX)		
+					ad1848_setirq(&gus->ad1848, gus->irq);
+#endif
                         
                                 gus->sb_nmi = val & 0x80;			
 			} else {
 				gus->dma = gus_dmas[val & 7];
+#if defined(DEV_BRANCH) && defined(USE_GUSMAX)
+        			ad1848_setdma(&gus->ad1848, gus->dma);
+#endif	
 			}
                         break;
                         case 1:
@@ -584,6 +601,25 @@ gus->curx[gus->voice]=(gus->curx[gus->voice]&0xFFF8000)|((val&0x7F)<<8);
                 case 0x20f:
                 gus->reg_ctrl = val;
                 break;
+                case 0x306: case 0x706:
+		if (gus->dma >= 4)
+			val |= 0x30;
+		gus->max_ctrl = (val >> 6) & 1;
+#if defined(DEV_BRANCH) && defined(USE_GUSMAX)
+		if (val & 0x40) {
+			if ((val & 0xF) != ((addr >> 4) & 0xF)) {
+				csioport = 0x30c | ((addr >> 4) & 0xf);
+				io_removehandler(csioport, 4,
+						 ad1848_read,NULL,NULL,
+						 ad1848_write,NULL,NULL,&gus->ad1848);
+				csioport = 0x30c | ((val & 0xf) << 4);
+				io_sethandler(csioport, 4,
+					      ad1848_read,NULL,NULL,
+					      ad1848_write,NULL,NULL, &gus->ad1848);
+			}
+		}
+#endif
+                break;
         }
 }
 
@@ -632,7 +668,11 @@ uint8_t readgus(uint16_t addr, void *p)
                 return val;
 
                 case 0x20F:
-                return 0;
+		if (gus->max_ctrl)
+			val = 0x02;
+		else
+			val = 0x00;
+		break;
                 
 		case 0x302: 
 		return gus->voice;
@@ -719,8 +759,14 @@ uint8_t readgus(uint16_t addr, void *p)
                         break;
                 }                
                 break;
-                case 0x306: case 0x706: /*Revision level*/
-		return 0xff; /*Pre 3.7 - no mixer*/
+                case 0x306: case 0x706:
+		if (gus->max_ctrl)
+			val = 0x0a; /* GUS MAX */
+		else
+			val = 0xff; /*Pre 3.7 - no mixer*/
+		break;
+
+                break;
                 case 0x307: /*DRAM access*/
                 val=gus->ram[gus->addr];
                 gus->addr&=0xFFFFF;
@@ -1031,13 +1077,25 @@ static void gus_get_buffer(int32_t *buffer, int len, void *p)
         gus_t *gus = (gus_t *)p;
         int c;
 
+#if defined(DEV_BRANCH) && defined(USE_GUSMAX)  
+        if (gus->max_ctrl)
+	ad1848_update(&gus->ad1848);
+#endif	
         gus_update(gus);
         
         for (c = 0; c < len * 2; c++)
         {
+#if defined(DEV_BRANCH) && defined(USE_GUSMAX)    
+	if (gus->max_ctrl)
+		buffer[c] += (int32_t)(gus->ad1848.buffer[c] / 2);
+#endif	
                 buffer[c] += (int32_t)gus->buffer[c & 1][c >> 1];
         }
 
+#if defined(DEV_BRANCH) && defined(USE_GUSMAX)    
+    if (gus->max_ctrl)
+	gus->ad1848.pos = 0;
+#endif	
         gus->pos = 0;
 }
 
@@ -1119,6 +1177,15 @@ void *gus_init(const device_t *info)
         io_sethandler(0x0100+gus->base, 0x0010, readgus, NULL, NULL, writegus, NULL, NULL,  gus);
         io_sethandler(0x0506+gus->base, 0x0001, readgus, NULL, NULL, writegus, NULL, NULL,  gus);        
         io_sethandler(0x0388, 0x0002, readgus, NULL, NULL, writegus, NULL, NULL,  gus);
+
+#if defined(DEV_BRANCH) && defined(USE_GUSMAX)
+    	ad1848_init(&gus->ad1848, AD1848_TYPE_CS4231);
+	ad1848_setirq(&gus->ad1848, 5);
+	ad1848_setdma(&gus->ad1848, 3);
+        io_sethandler(0x10C+gus->base, 4,
+		      ad1848_read,NULL,NULL, ad1848_write,NULL,NULL, &gus->ad1848);
+#endif
+
 	timer_add(&gus->samp_timer, gus_poll_wave, gus, 1);
 	timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
 	timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
@@ -1147,6 +1214,11 @@ void gus_speed_changed(void *p)
                 gus->samp_latch = (uint64_t)(TIMER_USEC * (1000000.0 / 44100.0));
         else
                 gus->samp_latch = (uint64_t)(TIMER_USEC * (1000000.0 / gusfreqs[gus->voices - 14]));
+
+#if defined(DEV_BRANCH) && defined(USE_GUSMAX)
+        if (gus->max_ctrl)
+	ad1848_speed_changed(&gus->ad1848);
+#endif
 }
 
 static const device_config_t gus_config[] = {
@@ -1156,7 +1228,7 @@ static const device_config_t gus_config[] = {
 			{
 				"Classic", GUS_CLASSIC
 			},
-#if 0
+#if defined(DEV_BRANCH) && defined(USE_GUSMAX)
 			{
 				"MAX",	GUS_MAX
 			},
