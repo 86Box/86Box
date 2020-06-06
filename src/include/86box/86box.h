@@ -171,7 +171,6 @@ extern void	pc_close(void *threadid);
 extern void	pc_reset_hard_close(void);
 extern void	pc_reset_hard_init(void);
 extern void	pc_reset_hard(void);
-extern void	pc_reset(int hard);
 extern void	pc_full_speed(void);
 extern void	pc_speed_changed(void);
 extern void	pc_send_cad(void);

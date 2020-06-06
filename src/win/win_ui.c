@@ -314,12 +314,12 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				win_notify_dlg_open();
 				i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2112);
 				if (i == 0)
-					pc_reset(1);
+					pc_reset_hard();
 				win_notify_dlg_closed();
 				break;
 
 			case IDM_ACTION_RESET_CAD:
-				pc_reset(0);
+				pc_send_cad();
 				break;
 
 			case IDM_ACTION_EXIT:
@@ -733,7 +733,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		win_notify_dlg_open();
 		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2112);
 		if (i == 0)
-			pc_reset(1);
+			pc_reset_hard();
 		win_notify_dlg_closed();
 		break;
 
@@ -757,7 +757,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (manager_wm)
 			break;
 		manager_wm = 1;
-		pc_reset(0);
+		pc_send_cad();
 		manager_wm = 0;
 		break;
 
@@ -1307,4 +1307,5 @@ plat_set_input(HWND h)
     input_orig_proc = GetWindowLongPtr(h, GWLP_WNDPROC);
     input_orig_hwnd = h;
     SetWindowLongPtr(h, GWLP_WNDPROC, (LONG_PTR)&input_proc);
+    ImmAssociateContext(h, NULL);
 }

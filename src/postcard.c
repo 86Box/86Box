@@ -99,9 +99,6 @@ postcard_write(uint16_t port, uint8_t val, void *priv)
     if (postcard_written && val == postcard_code)
     	return;
 
-    if (val == 0x13)
-	pclog("[%04X:%08X] POST 13\n", CS, cpu_state.pc);
-
     postcard_prev_code = postcard_code;
     postcard_code = val;
     if (postcard_written < 2)

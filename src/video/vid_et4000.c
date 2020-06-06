@@ -277,56 +277,6 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
 				svga_recalctimings(svga);
 			}
 		}				
-
-		/*
-		 * Note - Silly hack to determine video memory
-		 * size automatically by ET4000 BIOS.
-		 */
-		if ((svga->crtcreg == 0x37) && (dev->type != 1)) {
-			switch (val & 0x0b) {
-				case 0x00:
-				case 0x01:
-					if (svga->vram_max == 64 * 1024)
-						mem_mapping_enable(&svga->mapping);
-					else
-						mem_mapping_disable(&svga->mapping);
-					break;
-
-				case 0x02:
-					if (svga->vram_max == 128 * 1024)
-						mem_mapping_enable(&svga->mapping);
-					else
-						mem_mapping_disable(&svga->mapping);
-					break;
-
-				case 0x03:
-				case 0x08:
-				case 0x09:
-					if (svga->vram_max == 256 * 1024)
-						mem_mapping_enable(&svga->mapping);
-					else
-						mem_mapping_disable(&svga->mapping);
-					break;
-
-				case 0x0a:
-					if (svga->vram_max == 512 * 1024)
-						mem_mapping_enable(&svga->mapping);
-					else
-						mem_mapping_disable(&svga->mapping);
-					break;
-
-				case 0x0b:
-					if (svga->vram_max == 1024 * 1024)
-						mem_mapping_enable(&svga->mapping);
-					else
-						mem_mapping_disable(&svga->mapping);
-					break;
-
-				default:
-					mem_mapping_enable(&svga->mapping);
-					break;
-			}
-		}
 		break;
     }
 

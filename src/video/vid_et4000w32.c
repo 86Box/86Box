@@ -1210,7 +1210,7 @@ uint8_t et4000w32p_pci_read(int func, int addr, void *p)
                 case 0x09: return 0; /*Programming interface*/
                 
                 case 0x0a: return 0x00; /*Supports VGA interface, XGA compatible*/
-                case 0x0b: return is_pentium ? 0x03 : 0x00;	/* This has to be done in order to make this card work with the two 486 PCI machines. */
+                case 0x0b: return cpu_64bitbus ? 0x03 : 0x00;	/* This has to be done in order to make this card work with the two 486 PCI machines. */
                 
                 case 0x10: return 0x00; /*Linear frame buffer address*/
                 case 0x11: return 0x00;

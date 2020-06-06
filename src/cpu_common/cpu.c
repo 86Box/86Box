@@ -141,7 +141,7 @@ CPU		*cpu_s;
 int		cpu_effective;
 int		cpu_multi;
 double		cpu_dmulti;
-int		cpu_16bitbus;
+int		cpu_16bitbus, cpu_64bitbus;
 int		cpu_busspeed;
 int		cpu_cyrix_alignment;
 int		CPUID;
@@ -309,7 +309,7 @@ cpu_set(void)
         isdx4        = (cpu_s->cpu_type >= CPU_iDX4) && (cpu_s->cpu_type < CPU_WINCHIP);
 	is_am486     = (cpu_s->cpu_type == CPU_Am486SX) || (cpu_s->cpu_type == CPU_Am486SX2) || (cpu_s->cpu_type == CPU_Am486DX) ||
 		       (cpu_s->cpu_type == CPU_Am486DX2) || (cpu_s->cpu_type == CPU_Am486DX4) || (cpu_s->cpu_type == CPU_Am5x86);
-        is_pentium   = (cpu_s->cpu_type == CPU_PENTIUM) || (cpu_s->cpu_type == CPU_PENTIUMMMX);
+        is_pentium   = (cpu_s->cpu_type == CPU_P24T) || (cpu_s->cpu_type == CPU_PENTIUM) || (cpu_s->cpu_type == CPU_PENTIUMMMX);
 	/* Not Pentiums, but they share the same SMM save state table layout. */
 	is_pentium  |= (cpu_s->cpu_type == CPU_i486DX2) || (cpu_s->cpu_type == CPU_iDX4);
 	/* The WinChip datasheet claims these are Pentium-compatible. */
@@ -335,7 +335,8 @@ cpu_set(void)
 #endif
 
         cpu_16bitbus = (cpu_s->cpu_type == CPU_286 || cpu_s->cpu_type == CPU_386SX || cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC );
-
+        cpu_64bitbus = (cpu_s->cpu_type >= CPU_WINCHIP);
+	
         if (cpu_s->multi)
 		cpu_busspeed = cpu_s->rspeed / cpu_s->multi;
 	else
@@ -995,6 +996,7 @@ cpu_set(void)
 #endif		
                 break;
 
+                case CPU_P24T:
                 case CPU_PENTIUM:
 #ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_pentium_0f, dynarec_ops_386, dynarec_ops_pentium_0f);
@@ -1787,7 +1789,8 @@ cpu_CPUID(void)
                         break;
                 }
                 break;
-
+		
+                case CPU_P24T:
                 case CPU_PENTIUM:
                 if (!EAX)
                 {
@@ -2414,27 +2417,31 @@ void cpu_RDMSR()
                         EAX = tsc & 0xffffffff;
                         EDX = tsc >> 32;
                         break;
-                        case 0x2a:
+                        case 0x2A:
+                        EAX = 0xC4000000;
+                        EDX = 0;
                         if (cpu_dmulti == 3)
-                        EAX = ((0 << 25) | (0 << 24) | (0 << 23) | (1 << 22));
+                        EAX |= ((0 << 25) | (0 << 24) | (0 << 23) | (1 << 22));
                         else if (cpu_dmulti == 3.5)
-                        EAX = ((0 << 25) | (1 << 24) | (0 << 23) | (1 << 22));
+                        EAX |= ((0 << 25) | (1 << 24) | (0 << 23) | (1 << 22));
                         else if (cpu_dmulti == 4)
-                        EAX = ((0 << 25) | (0 << 24) | (1 << 23) | (0 << 22));
+                        EAX |= ((0 << 25) | (0 << 24) | (1 << 23) | (0 << 22));
                         else if (cpu_dmulti == 4.5)
-                        EAX = ((0 << 25) | (1 << 24) | (1 << 23) | (0 << 22));
+                        EAX |= ((0 << 25) | (1 << 24) | (1 << 23) | (0 << 22));
                         else if (cpu_dmulti == 5)
-                        EAX = 0;
+                        EAX |= 0;
                         else if (cpu_dmulti == 5.5)
-                        EAX = ((0 << 25) | (1 << 24) | (0 << 23) | (0 << 22));
+                        EAX |= ((0 << 25) | (1 << 24) | (0 << 23) | (0 << 22));
                         else if (cpu_dmulti == 6)
-                        EAX = ((1 << 25) | (0 << 24) | (1 << 23) | (1 << 22));
+                        EAX |= ((1 << 25) | (0 << 24) | (1 << 23) | (1 << 22));
                         else if (cpu_dmulti == 6.5)
-                        EAX = ((1 << 25) | (1 << 24) | (1 << 23) | (1 << 22));
+                        EAX |= ((1 << 25) | (1 << 24) | (1 << 23) | (1 << 22));
                         else if (cpu_dmulti == 7)
-                        EAX = ((1 << 25) | (0 << 24) | (0 << 23) | (1 << 22));
+                        EAX |= ((1 << 25) | (0 << 24) | (0 << 23) | (1 << 22));
                         else
-                        EAX = ((0 << 25) | (0 << 24) | (0 << 23) | (1 << 22));
+                        EAX |= ((0 << 25) | (0 << 24) | (0 << 23) | (1 << 22));			
+                        if (cpu_busspeed >= 84000000)
+                        EAX |= (1 << 19);
                         break;
                         case 0x1107:
                         EAX = msr.fcr;
@@ -2693,6 +2700,7 @@ void cpu_RDMSR()
                 }
                 break;
 
+                case CPU_P24T:		
                 case CPU_PENTIUM:
                 case CPU_PENTIUMMMX:
                 EAX = EDX = 0;
@@ -2740,8 +2748,38 @@ void cpu_RDMSR()
 			/* pclog("APIC_BASE read : %08X%08X\n", EDX, EAX); */
 			break;
 			case 0x2A:
-			EAX = 0xC5800000;
-			EDX = 0;
+                        EAX = 0xC4000000;
+                        EDX = 0;
+                        if (cpu_dmulti == 2.5)
+                        EAX |= ((0 << 25) | (1 << 24) | (1 << 23) | (1 << 22));
+                        else if (cpu_dmulti == 3)
+                        EAX |= ((0 << 25) | (0 << 24) | (0 << 23) | (1 << 22));
+                        else if (cpu_dmulti == 3.5)
+                        EAX |= ((0 << 25) | (1 << 24) | (0 << 23) | (1 << 22));
+                        else if (cpu_dmulti == 4)
+                        EAX |= ((0 << 25) | (0 << 24) | (1 << 23) | (0 << 22));
+                        else if (cpu_dmulti == 4.5)
+                        EAX |= ((0 << 25) | (1 << 24) | (1 << 23) | (0 << 22));
+                        else if (cpu_dmulti == 5)
+                        EAX |= 0;
+                        else if (cpu_dmulti == 5.5)
+                        EAX |= ((0 << 25) | (1 << 24) | (0 << 23) | (0 << 22));
+                        else if (cpu_dmulti == 6)
+                        EAX |= ((1 << 25) | (0 << 24) | (1 << 23) | (1 << 22));
+                        else if (cpu_dmulti == 6.5)
+                        EAX |= ((1 << 25) | (1 << 24) | (1 << 23) | (1 << 22));
+                        else if (cpu_dmulti == 7)
+                        EAX |= ((1 << 25) | (0 << 24) | (0 << 23) | (1 << 22));
+                        else if (cpu_dmulti == 7.5)
+                        EAX |= ((1 << 25) | (1 << 24) | (0 << 23) | (1 << 22));	
+                        else if (cpu_dmulti == 8)
+                        EAX |= ((1 << 25) | (0 << 24) | (1 << 23) | (0 << 22));			
+                        else
+                        EAX |= ((0 << 25) | (1 << 24) | (1 << 23) | (1 << 22));		
+                        if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type != CPU_PENTIUMPRO) {
+                        if (cpu_busspeed >= 84000000)
+                        EAX |= (1 << 19);
+                        }
 			break;
                         case 0x79:
                         EAX = ecx79_msr & 0xffffffff;
@@ -3154,7 +3192,8 @@ void cpu_WRMSR()
 			break;
                 }
                 break;
-
+		
+                case CPU_P24T:
                 case CPU_PENTIUM:
                 case CPU_PENTIUMMMX:
                 switch (ECX)
@@ -3163,8 +3202,8 @@ void cpu_WRMSR()
 				tsc = EAX | ((uint64_t)EDX << 32);
 				break;
                         case 0x8B:
-				cpu_log("WRMSR: Invalid MSR: 0x8B/n"); /*Needed for Vista to correctly break on Pentium*/
-				x86gpf(NULL, 0);
+				cpu_log("WRMSR: Invalid MSR: 0x8B\n");
+				x86gpf(NULL, 0); /*Needed for Vista to correctly break on Pentium*/
 				break;
                 }
                 break;

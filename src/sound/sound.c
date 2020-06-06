@@ -29,6 +29,7 @@
 #include <86box/cdrom.h>
 #include <86box/hdc_ide.h>
 #include <86box/plat.h>
+#include <86box/machine.h>
 #include <86box/sound.h>
 #include <86box/midi.h>
 #include <86box/snd_opl.h>
@@ -79,6 +80,7 @@ static int cd_thread_enable = 0;
 static const SOUND_CARD sound_cards[] =
 {
     { "None",					"none",		NULL				},
+    { "Internal",				"internal",	NULL				},
     { "[ISA] Adlib",				"adlib",	&adlib_device			},
     { "[ISA] Adlib Gold",			"adlibgold",	&adgold_device			},
     { "[ISA] Aztech Sound Galaxy Pro 16 AB (Washington)", "azt2316a",	&azt2316a_device	},
@@ -126,6 +128,9 @@ sound_log(const char *fmt, ...)
 int
 sound_card_available(int card)
 {
+    if ((card == SOUND_INTERNAL) && !(machines[machine].flags & MACHINE_SOUND))
+    	return 0;
+
     if (sound_cards[card].device)
 	return device_available(sound_cards[card].device);
 

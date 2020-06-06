@@ -51,6 +51,7 @@ enum {
     PCI_CARD_NORMAL,
     PCI_CARD_ONBOARD,
     PCI_CARD_SCSI,
+    PCI_CARD_SOUND,
     PCI_CARD_SPECIAL
 };
 
@@ -59,7 +60,8 @@ enum {
     PCI_ADD_SOUTHBRIDGE,
     PCI_ADD_NORMAL,
     PCI_ADD_VIDEO,
-    PCI_ADD_SCSI
+    PCI_ADD_SCSI,
+    PCI_ADD_SOUND
 };
 
 typedef union {

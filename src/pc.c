@@ -820,26 +820,6 @@ pc_reset_hard(void)
 
 
 void
-pc_reset(int hard)
-{
-    plat_pause(1);
-
-    plat_delay_ms(100);
-
-    nvr_save();
-
-    config_save();
-
-    if (hard)
-        pc_reset_hard();
-      else
-        pc_send_cad();
-
-    plat_pause(0);
-}
-
-
-void
 pc_close(thread_t *ptr)
 {
     int i;

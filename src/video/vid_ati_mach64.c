@@ -875,6 +875,16 @@ static void mach64_accel_write_fifo_w(mach64_t *mach64, uint32_t addr, uint16_t 
                 mach64_blit(val, 16, mach64);
                 break;
 
+                case 0x32c:
+                mach64->context_load_cntl = (mach64->context_load_cntl & 0xffff0000) | val;
+		break;
+
+                case 0x32e:
+                mach64->context_load_cntl = (mach64->context_load_cntl & 0x0000ffff) | (val << 16);
+                if (val & 0x30000)
+                        mach64_load_context(mach64);
+                break;
+
                 default:
                 mach64_accel_write_fifo(mach64, addr, val);
                 mach64_accel_write_fifo(mach64, addr + 1, val >> 8);
@@ -2098,6 +2108,7 @@ uint8_t mach64_ext_readb(uint32_t addr, void *p)
 }
 uint16_t mach64_ext_readw(uint32_t addr, void *p)
 {
+        mach64_t *mach64 = (mach64_t *)p;
         uint16_t ret;
         if (!(addr & 0x400))
         {
@@ -2106,6 +2117,13 @@ uint16_t mach64_ext_readw(uint32_t addr, void *p)
         }
         else switch (addr & 0x3ff)
         {
+                case 0xb4: case 0xb6:
+                ret = (mach64->bank_w[(addr & 2) >> 1] >> 15);
+                break;
+                case 0xb8: case 0xba:
+                ret = (mach64->bank_r[(addr & 2) >> 1] >> 15);
+                break;
+
                 default:
                 ret = mach64_ext_readb(addr, p);
                 ret |= mach64_ext_readb(addr + 1, p) << 8;
@@ -2137,7 +2155,7 @@ uint32_t mach64_ext_readl(uint32_t addr, void *p)
                 case 0xb8:
                 ret = (mach64->bank_r[0] >> 15) | ((mach64->bank_r[1] >> 15) << 16);
                 break;
-                
+
                 default:
                 ret = mach64_ext_readw(addr, p);
                 ret |= mach64_ext_readw(addr + 2, p) << 16;
@@ -2276,19 +2294,19 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
                 break;
                 case 0x68: case 0x69: case 0x6a: case 0x6b:
                 WRITE8(addr, mach64->cur_offset, val);
-                svga->hwcursor.addr = (mach64->cur_offset & 0xfffff) * 8;
+                svga->dac_hwcursor.addr = (mach64->cur_offset & 0xfffff) * 8;
                 mach64_cursor_dump(mach64);
                 break;
                 case 0x6c: case 0x6d: case 0x6e: case 0x6f:
                 WRITE8(addr, mach64->cur_horz_vert_posn, val);
-                svga->hwcursor.x = mach64->cur_horz_vert_posn & 0x7ff;
-                svga->hwcursor.y = (mach64->cur_horz_vert_posn >> 16) & 0x7ff;
+                svga->dac_hwcursor.x = mach64->cur_horz_vert_posn & 0x7ff;
+                svga->dac_hwcursor.y = (mach64->cur_horz_vert_posn >> 16) & 0x7ff;
                 mach64_cursor_dump(mach64);
                 break;
                 case 0x70: case 0x71: case 0x72: case 0x73:
                 WRITE8(addr, mach64->cur_horz_vert_off, val);
-                svga->hwcursor.xoff = mach64->cur_horz_vert_off & 0x3f;
-                svga->hwcursor.yoff = (mach64->cur_horz_vert_off >> 16) & 0x3f;
+                svga->dac_hwcursor.xoff = mach64->cur_horz_vert_off & 0x3f;
+                svga->dac_hwcursor.yoff = (mach64->cur_horz_vert_off >> 16) & 0x3f;
                 mach64_cursor_dump(mach64);
                 break;
 
@@ -2348,7 +2366,7 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
                 WRITE8(addr, mach64->gen_test_cntl, val);
                 ati_eeprom_write(&mach64->eeprom, mach64->gen_test_cntl & 0x10, mach64->gen_test_cntl & 2, mach64->gen_test_cntl & 1);
                 mach64->gen_test_cntl = (mach64->gen_test_cntl & ~8) | (ati_eeprom_read(&mach64->eeprom) ? 8 : 0);
-                svga->hwcursor.ena = mach64->gen_test_cntl & 0x80;
+                svga->dac_hwcursor.ena = mach64->gen_test_cntl & 0x80;
                 mach64_cursor_dump(mach64);
                 break;
 

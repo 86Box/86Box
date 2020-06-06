@@ -787,6 +787,7 @@ acpi_reset(void *priv)
     int i;
 
     memset(&dev->regs, 0x00, sizeof(acpi_regs_t));
+    dev->regs.gpireg[0] = dev->regs.gpireg[1] = dev->regs.gpireg[2] = 0xff;
     for (i = 0; i < 4; i++)
 	dev->regs.gporeg[i] = dev->gporeg_default[i];
 }
@@ -831,6 +832,8 @@ acpi_init(const device_t *info)
 
     timer_add(&dev->timer, acpi_timer_count, dev, 0);
     timer_set_delay_u64(&dev->timer, ACPICONST);
+
+    dev->regs.gpireg[0] = dev->regs.gpireg[1] = dev->regs.gpireg[2] = 0xff;
 
     return dev;
 }
