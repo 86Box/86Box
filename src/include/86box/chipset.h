@@ -59,6 +59,7 @@ extern const device_t	scat_sx_device;
 extern const device_t	cs8230_device;
 
 /* SiS */
+extern const device_t   rabbit_device;
 extern const device_t	sis_85c471_device;
 extern const device_t	sis_85c496_device;
 #if defined(DEV_BRANCH) && defined(USE_SIS_85C50X)

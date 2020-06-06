@@ -64,6 +64,25 @@ machine_at_acc386_init(const machine_t *model)
 }
 
 int
+machine_at_asus386_init(const machine_t *model)
+{
+    int ret;
+
+ret = bios_load_linear(L"roms/machines/asus386/ASUS_ISA-386C_BIOS.bin",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+    device_add(&rabbit_device);
+    device_add(&keyboard_at_ami_device);
+    device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
 machine_at_ecs386_init(const machine_t *model)
 {
     int ret;
