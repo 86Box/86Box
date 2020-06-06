@@ -214,6 +214,7 @@ extern const device_t	*at_commodore_sl386sx_get_device(void);
 /* m_at_386dx_486.c */
 
 extern int	machine_at_acc386_init(const machine_t *);
+extern int	machine_at_asus386_init(const machine_t *);
 extern int  machine_at_ecs386_init(const machine_t *);
 extern int	machine_at_micronics386_init(const machine_t *);
 
