@@ -2970,10 +2970,10 @@ void cpu_WRMSR()
                         	cpu_log("MTRR physmask[%d] = %08llx\n", temp2, temp);
 
                         	if ((mtrr_physmask_msr[temp2] >> 11) & 0x1)
-                                	mem_del_mtrr(mtrr_physbase_msr[temp2] & ~(0xFFF), mtrr_physmask_msr[temp2] & ~(0xFFF));
+                                	mem_del_mtrr(mtrr_physbase_msr[temp2] & ~(0xfff), mtrr_physmask_msr[temp2] & ~(0xfff));
 
                                 if ((temp >> 11) & 0x1)
-                                	mem_add_mtrr(mtrr_physbase_msr[temp2] & ~(0xFFF), temp & ~(0xFFF), mtrr_physbase_msr[temp2] & 0xFF);
+                                	mem_add_mtrr(mtrr_physbase_msr[temp2] & ~(0xfff), temp & ~(0xfff), mtrr_physbase_msr[temp2] & 0xff);
 
                                 mtrr_physmask_msr[temp2] = temp;
                         } else {

@@ -810,7 +810,7 @@ nvr_start(nvr_t *nvr)
     	uint16_t checksum = 0;
     	for (i = 0x10; i <= 0x2d; i++)
     		checksum += nvr->regs[i];
-    	nvr->regs[0x2e] = checksum >> 8;
+    	nvr->regs[0x2e] = (checksum >> 8);
     	nvr->regs[0x2f] = checksum;
     }
 
