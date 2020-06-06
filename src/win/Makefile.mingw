@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.143	2020/01/25
+# Version:	@(#)Makefile.mingw	1.0.144	2020/06/06
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -86,6 +86,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef NO_SIO
   NO_SIO	:= y
  endif
+ ifndef GUSMAX
+  GUSMAX	:= y
+ endif
 else
  ifndef DEBUG
   DEBUG		:= n
@@ -140,6 +143,9 @@ else
  endif
  ifndef NO_SIO
   NO_SIO	:= n
+ endif
+ ifndef GUSMAX
+  GUSMAX	:= n
  endif
 endif
 
@@ -469,6 +475,10 @@ endif
 
 ifeq ($(NO_SIO), y)
 OPTS		+= -DNO_SIO
+endif
+
+ifeq ($(GUSMAX), y)
+OPTS		+= -DUSE_GUSMAX
 endif
 
 endif
