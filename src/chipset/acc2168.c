@@ -43,44 +43,30 @@ typedef struct acc2168_t
 } acc2168_t;
 
 
+/*
+    Based on reverse engineering using the AMI 386DX Clone BIOS:
+	Bit 0 of register 02 controls shadowing of C0000-C7FFF (1 = enabled, 0 = disabled);
+	Bit 1 of register 02 controls shadowing of C8000-CFFFF (1 = enabled, 0 = disabled);
+	Bit 2 of register 02 controls shadowing of D0000-DFFFF (1 = enabled, 0 = disabled);
+	Bit 3 of register 02 controls shadowing of E0000-EFFFF (1 = enabled, 0 = disabled);
+	Bit 4 of register 02 controls shadowing of F0000-FFFFF (1 = enabled, 0 = disabled);
+	Bit 5 is most likely: 1 = shadow enabled, 0 = shadow disabled;
+	Bit 6 of register 02 controls shadow RAM cacheability (1 = cacheable, 0 = non-cacheable).
+*/
+
 static void 
 acc2168_shadow_recalc(acc2168_t *dev)
 {
-    if (dev->regs[0x02] & 8) {
-	switch (dev->regs[0x02] & 0x30) {
-		case 0x00:
-			mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-			break;
-		case 0x10:
-			mem_set_mem_state(0xf0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-			break;
-		case 0x20:
-			mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-			break;
-		case 0x30:
-			mem_set_mem_state(0xf0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
-			break;
-	}
-    } else
-	mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+    int state;
 
-    if (dev->regs[0x02] & 4) {
-	switch (dev->regs[0x02] & 0x30) {
-		case 0x00:
-			mem_set_mem_state(0xe0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-			break;
-		case 0x10:
-			mem_set_mem_state(0xe0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-			break;
-		case 0x20:
-			mem_set_mem_state(0xe0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-			break;
-		case 0x30:
-			mem_set_mem_state(0xe0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
-			break;
-	}
-    } else
-	mem_set_mem_state(0xe0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+    if (dev->regs[0x02] & 0x20)
+	state = (dev->regs[0x02] & 0x20) ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+
+    mem_set_mem_state(0xc0000, 0x08000, (dev->regs[0x02] & 0x01) ? state : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
+    mem_set_mem_state(0xc8000, 0x08000, (dev->regs[0x02] & 0x02) ? state : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
+    mem_set_mem_state(0xd0000, 0x10000, (dev->regs[0x02] & 0x04) ? state : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
+    mem_set_mem_state(0xe0000, 0x10000, (dev->regs[0x02] & 0x08) ? state : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
+    mem_set_mem_state(0xf0000, 0x10000, (dev->regs[0x02] & 0x10) ? state : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
 }
 
 
