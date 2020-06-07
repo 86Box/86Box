@@ -247,7 +247,7 @@ VPATH		:= $(EXPATH) . cpu_new cpu_common \
 		   printer \
 		   sound \
 		    sound/munt sound/munt/c_interface sound/munt/sha1 \
-		    sound/munt/srchelper \
+		    sound/munt/srchelper sound/munt/srchelper/srctools/src \
 		    sound/resid-fp \
 		   scsi video network network/slirp win
 ifeq ($(X64), y)
@@ -393,8 +393,10 @@ MUNTOBJ		:= midi_mt32.o \
 		    Analog.o BReverbModel.o File.o FileStream.o LA32Ramp.o \
 		    LA32FloatWaveGenerator.o LA32WaveGenerator.o \
 		    MidiStreamParser.o Part.o Partial.o PartialManager.o \
-		    Poly.o ROMInfo.o SampleRateConverter_dummy.o Synth.o \
-		    Tables.o TVA.o TVF.o TVP.o sha1.o c_interface.o
+		    Poly.o ROMInfo.o SampleRateConverter.o \
+		    FIRResampler.o IIR2xResampler.o LinearResampler.o ResamplerModel.o \
+		    SincResampler.o InternalResampler.o \
+		    Synth.o Tables.o TVA.o TVF.o TVP.o sha1.o c_interface.o
 endif
 
 ifeq ($(VNC), y)

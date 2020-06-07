@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2017 Sergey V. Mikayev
+/* Copyright (C) 2015-2020 Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -19,7 +19,7 @@
 
 #include "../Enumerations.h"
 
-#include "FloatSampleProvider.h"
+#include "srctools/include/FloatSampleProvider.h"
 
 namespace MT32Emu {
 
