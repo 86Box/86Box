@@ -736,25 +736,72 @@ CPU cpus_PentiumII[] = {
 
 CPU cpus_Xeon[] = {
 	/* Slot 2 Xeons. Literal P2D's with more cache */
+    {"Pentium II Xeon 100",    CPU_PENTIUM2D,  100000000, 1.5,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
     {"Pentium II Xeon 166",    CPU_PENTIUM2D,  166666666, 2.5,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
     {"Pentium II Xeon 400",    CPU_PENTIUM2D,  400000000, 4.0,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
+    {"Pentium II Xeon 450",    CPU_PENTIUM2D,  450000000, 4.5,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 54},
     {"",                                       -1,          0,   0,      0,      0, 0, 0,  0, 0, 0, 0,  0}	
+	
 };
 
-CPU cpus_Celeron[] = {
-    /* Mendocino Celerons. Exact architecture as the P2D series with their L2 cache on-dye.
-       Intended for the PGA370 boards but they were capable to fit on a PGA 370 to Slot 1
-       adaptor card so they work on Slot 1 motherboards too!.
-
-       The 100Mhz & 166Mhz Mendocino is only meant to not cause any struggle
-       to the recompiler. */
+CPU cpus_Celeron66[] = {
+    /*Intel Celeron Covington*/
+    {"Celeron Covington 66",       CPU_PENTIUM2D,   66666666,  1.0,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
+    {"Celeron Covington 100",      CPU_PENTIUM2D,  100000000,  1.5,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
+    {"Celeron Covington 133",      CPU_PENTIUM2D,  133333333,  2.0,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 16},
+    {"Celeron Covington 166",      CPU_PENTIUM2D,  166666666,  2.5,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
+    {"Celeron Covington 266",      CPU_PENTIUM2D,  266666666,  4.0,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,12,12, 32},
+    {"Celeron Covington 300/66",   CPU_PENTIUM2D,  300000000,  4.5,  0x650,  0x650, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
+	
+    /*Slot 1 Mendocino Celerons. Exact architecture as the P2D series with their L2 cache on-dye. */
+    {"Celeron Mendocino 66",        CPU_PENTIUM2D,   66666666, 1.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
     {"Celeron Mendocino 100",       CPU_PENTIUM2D,  100000000, 1.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
+    {"Celeron Mendocino 133",       CPU_PENTIUM2D,  133333333, 2.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 16},
+    {"Celeron Mendocino 166",       CPU_PENTIUM2D,  166666666, 2.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
+    {"Celeron Mendocino 300/66",    CPU_PENTIUM2D,  300000000, 4.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
+    {"Celeron Mendocino 333",       CPU_PENTIUM2D,  333333333, 5.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 27,27,13,13, 40},
+    {"",                                       -1,          0,   0,      0,      0, 0, 0,  0, 0, 0, 0,  0}	
+	
+};
+
+CPU cpus_CeleronS1[] = {
+    /*Intel Celeron Covington*/
+    {"Celeron Covington 66",       CPU_PENTIUM2D,   66666666,  1.0,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
+    {"Celeron Covington 100",      CPU_PENTIUM2D,  100000000,  1.5,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
+    {"Celeron Covington 133",      CPU_PENTIUM2D,  133333333,  2.0,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 16},
+    {"Celeron Covington 166",      CPU_PENTIUM2D,  166666666,  2.5,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
+    {"Celeron Covington 266",      CPU_PENTIUM2D,  266666666,  4.0,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,12,12, 32},
+    {"Celeron Covington 300/66",   CPU_PENTIUM2D,  300000000,  4.5,  0x650,  0x650, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
+	
+    /*Slot 1 Mendocino Celerons. Exact architecture as the P2D series with their L2 cache on-dye. */
+    {"Celeron Mendocino 66",        CPU_PENTIUM2D,   66666666, 1.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
+    {"Celeron Mendocino 100",       CPU_PENTIUM2D,  100000000, 1.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
+    {"Celeron Mendocino 133",       CPU_PENTIUM2D,  133333333, 2.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 16},
     {"Celeron Mendocino 166",       CPU_PENTIUM2D,  166666666, 2.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
     {"Celeron Mendocino 300/66",    CPU_PENTIUM2D,  300000000, 4.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
     {"Celeron Mendocino 333",       CPU_PENTIUM2D,  333333333, 5.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 27,27,13,13, 40},
     {"Celeron Mendocino 366",       CPU_PENTIUM2D,  366666666, 5.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 33,33,17,17, 44},
     {"Celeron Mendocino 400",       CPU_PENTIUM2D,  400000000, 6.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
     {"Celeron Mendocino 433",       CPU_PENTIUM2D,  433333333, 6.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 39,39,13,13, 51},
+    {"",                                       -1,          0,   0,      0,      0, 0, 0,  0, 0, 0, 0,  0}	
+	
+};
+
+CPU cpus_Celeron[] = {
+    /* Socket 370 Mendocino Celerons. Exact architecture as the P2D series with their L2 cache on-dye.
+       
+       The 66MHz, 100Mhz, 133MHz & 166Mhz Mendocino is only meant to not cause any struggle
+       to the recompiler. */
+    {"Celeron Mendocino 66",        CPU_PENTIUM2D,   66666666, 1.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
+    {"Celeron Mendocino 100",       CPU_PENTIUM2D,  100000000, 1.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
+    {"Celeron Mendocino 133",       CPU_PENTIUM2D,  133333333, 2.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 16},
+    {"Celeron Mendocino 166",       CPU_PENTIUM2D,  166666666, 2.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
+    {"Celeron Mendocino 300/66",    CPU_PENTIUM2D,  300000000, 4.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
+    {"Celeron Mendocino 333",       CPU_PENTIUM2D,  333333333, 5.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 27,27,13,13, 40},
+    {"Celeron Mendocino 366",       CPU_PENTIUM2D,  366666666, 5.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 33,33,17,17, 44},
+    {"Celeron Mendocino 400",       CPU_PENTIUM2D,  400000000, 6.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
+    {"Celeron Mendocino 433",       CPU_PENTIUM2D,  433333333, 6.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 39,39,13,13, 51},
+    {"Celeron Mendocino 466",       CPU_PENTIUM2D,  466666666, 7.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 42,42,14,14, 56},
     {"Celeron Mendocino 500",       CPU_PENTIUM2D,  500000000, 7.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 45,45,15,15, 60},
     {"Celeron Mendocino 533",       CPU_PENTIUM2D,  533333333, 8.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 48,48,17,17, 64},
     {"",                                       -1,          0,   0,      0,      0, 0, 0,  0, 0, 0, 0,  0}	
@@ -762,18 +809,28 @@ CPU cpus_Celeron[] = {
 
 CPU cpus_Cyrix3[] = {
     /*VIA Cyrix III (Samuel)*/
-    {"Cyrix III 66",  CPU_CYRIX3S,  66666666, 1.0,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC,  6,  6,  3,  3,  8}, /*66 MHz version*/
-    {"Cyrix III 233", CPU_CYRIX3S, 233333333, 3.5,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 21, 21,  9,  9, 28},
-    {"Cyrix III 266", CPU_CYRIX3S, 266666666, 4.0,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 24, 24, 12, 12, 32},
-    {"Cyrix III 300", CPU_CYRIX3S, 300000000, 4.5,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 27, 27, 13, 13, 36},
-    {"Cyrix III 333", CPU_CYRIX3S, 333333333, 5.0,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 30, 30, 15, 15, 40},
-    {"Cyrix III 350", CPU_CYRIX3S, 350000000, 3.5,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 32, 32, 11, 11, 42},
-    {"Cyrix III 400", CPU_CYRIX3S, 400000000, 4.0,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 36, 36, 12, 12, 48},
-    {"Cyrix III 450", CPU_CYRIX3S, 450000000, 4.5,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 41, 41, 14, 14, 54}, /*^ is lower P2 speeds to allow emulation below 466 mhz*/
-    {"Cyrix III 500", CPU_CYRIX3S, 500000000, 5.0,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 45, 45, 15, 15, 60},
-    {"Cyrix III 550", CPU_CYRIX3S, 550000000, 5.5,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 50, 50, 17, 17, 66},
-    {"Cyrix III 600", CPU_CYRIX3S, 600000000, 6.0,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 54, 54, 18, 18, 72},
-    {"Cyrix III 650", CPU_CYRIX3S, 650000000, 6.5,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 58, 58, 20, 20, 78},
-    {"Cyrix III 700", CPU_CYRIX3S, 700000000, 7.0,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 62, 62, 21, 21, 84},
+    {"Cyrix III 66",      CPU_CYRIX3S,  66666666, 1.0,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC,  6,  6,  3,  3,  8}, /*66 MHz version*/
+    {"Cyrix III 100",     CPU_CYRIX3S, 100000000, 1.5,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 10, 10,  6,  6, 12}, /*100 MHz version*/
+    {"Cyrix III 133",     CPU_CYRIX3S, 133333333, 2.0,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 12, 12,  6,  6, 16}, /*133 MHz version*/
+    {"Cyrix III 233",     CPU_CYRIX3S, 233333333, 3.5,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 21, 21,  9,  9, 28},
+    {"Cyrix III 266",     CPU_CYRIX3S, 266666666, 4.0,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 24, 24, 12, 12, 32},
+    {"Cyrix III 300",     CPU_CYRIX3S, 300000000, 4.5,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 27, 27, 13, 13, 36},
+    {"Cyrix III 333",     CPU_CYRIX3S, 333333333, 5.0,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 30, 30, 15, 15, 40},
+    {"Cyrix III 350",     CPU_CYRIX3S, 350000000, 3.5,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 32, 32, 11, 11, 42},
+    {"Cyrix III 400",     CPU_CYRIX3S, 400000000, 4.0,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 36, 36, 12, 12, 48},
+    {"Cyrix III 450",     CPU_CYRIX3S, 450000000, 4.5,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 41, 41, 14, 14, 54}, /*^ is lower P2 speeds to allow emulation below 466 mhz*/
+    {"Cyrix III 466",     CPU_CYRIX3S, 466666666, 3.5,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 42, 42, 14, 14, 56},
+    {"Cyrix III 500",     CPU_CYRIX3S, 500000000, 5.0,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 45, 45, 15, 15, 60},
+    {"Cyrix III 533",     CPU_CYRIX3S, 533333333, 4.0,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 48, 48, 17, 17, 64},
+    {"Cyrix III 550",     CPU_CYRIX3S, 550000000, 5.5,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 50, 50, 17, 17, 66},
+    {"Cyrix III 600/133", CPU_CYRIX3S, 600000000, 4.0,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 54, 54, 18, 18, 72},
+    {"Cyrix III 600/100", CPU_CYRIX3S, 600000000, 6.0,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 54, 54, 18, 18, 72},
+    {"Cyrix III 650",     CPU_CYRIX3S, 650000000, 6.5,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 58, 58, 20, 20, 78},
+    {"Cyrix III 667",     CPU_CYRIX3S, 666666666, 5.0,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 60, 60, 21, 21, 81},
+    {"Cyrix III 700",     CPU_CYRIX3S, 700000000, 7.0,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 62, 62, 21, 21, 84},
+    {"Cyrix III 733",     CPU_CYRIX3S, 733333333, 5.5,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 64, 64, 22, 22, 87},
+    {"Cyrix III 750",     CPU_CYRIX3S, 750000000, 7.5,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 66, 66, 23, 23, 90},
+    {"Cyrix III 800/133", CPU_CYRIX3S, 800000000, 6.0,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 70, 70, 24, 24, 96},
+    {"Cyrix III 800/100", CPU_CYRIX3S, 800000000, 8.0,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 70, 70, 24, 24, 96},
     {"",                       -1,         0, 0.0,       0,     0, 0, 0,                    0,   0, 0,  0,  0}
 };
