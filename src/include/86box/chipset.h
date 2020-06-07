@@ -42,11 +42,14 @@ extern const device_t	i430hx_device;
 extern const device_t	i430vx_device;
 extern const device_t	i430tx_device;
 extern const device_t	i440fx_device;
+extern const device_t   i440lx_device;
+extern const device_t   i440ex_device;
 extern const device_t	i440bx_device;
 extern const device_t	i440zx_device;
 
 /* OPTi */
 extern const device_t	opti495_device;
+extern const device_t	opti5x7_device;
 
 /* C&T */
 extern const device_t	neat_device;
@@ -56,6 +59,7 @@ extern const device_t	scat_sx_device;
 extern const device_t	cs8230_device;
 
 /* SiS */
+extern const device_t   rabbit_device;
 extern const device_t	sis_85c471_device;
 extern const device_t	sis_85c496_device;
 #if defined(DEV_BRANCH) && defined(USE_SIS_85C50X)

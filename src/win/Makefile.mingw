@@ -8,7 +8,7 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.143	2020/01/25
+# Version:	@(#)Makefile.mingw	1.0.144	2020/06/06
 #
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
@@ -86,6 +86,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef NO_SIO
   NO_SIO	:= y
  endif
+ ifndef GUSMAX
+  GUSMAX	:= y
+ endif
 else
  ifndef DEBUG
   DEBUG		:= n
@@ -140,6 +143,9 @@ else
  endif
  ifndef NO_SIO
   NO_SIO	:= n
+ endif
+ ifndef GUSMAX
+  GUSMAX	:= n
  endif
 endif
 
@@ -244,7 +250,7 @@ VPATH		:= $(EXPATH) . cpu cpu_common \
 		   printer \
 		   sound \
 		    sound/munt sound/munt/c_interface sound/munt/sha1 \
-		    sound/munt/srchelper \
+		    sound/munt/srchelper sound/munt/srchelper/srctools/src \
 		    sound/resid-fp \
 		   scsi video network network/slirp win
 ifeq ($(X64), y)
@@ -378,8 +384,10 @@ MUNTOBJ		:= midi_mt32.o \
 		    Analog.o BReverbModel.o File.o FileStream.o LA32Ramp.o \
 		    LA32FloatWaveGenerator.o LA32WaveGenerator.o \
 		    MidiStreamParser.o Part.o Partial.o PartialManager.o \
-		    Poly.o ROMInfo.o SampleRateConverter_dummy.o Synth.o \
-		    Tables.o TVA.o TVF.o TVP.o sha1.o c_interface.o
+		    Poly.o ROMInfo.o SampleRateConverter.o \
+		    FIRResampler.o IIR2xResampler.o LinearResampler.o ResamplerModel.o \
+		    SincResampler.o InternalResampler.o \
+		    Synth.o Tables.o TVA.o TVF.o TVP.o sha1.o c_interface.o
 endif
 
 ifeq ($(VNC), y)
@@ -471,6 +479,10 @@ ifeq ($(NO_SIO), y)
 OPTS		+= -DNO_SIO
 endif
 
+ifeq ($(GUSMAX), y)
+OPTS		+= -DUSE_GUSMAX
+endif
+
 endif
 
 
@@ -515,8 +527,8 @@ CPUOBJ		:= cpu.o cpu_table.o \
 		    $(DYNARECOBJ)
 
 CHIPSETOBJ	:= acc2168.o acer_m3a.o cs8230.o ali1429.o headland.o \
-		    intel_4x0.o neat.o opti495.o scamp.o scat.o \
-		    sis_85c471.o sis_85c496.o \
+		    intel_4x0.o neat.o opti495.o opti5x7.o scamp.o scat.o \
+		    rabbit.o sis_85c471.o sis_85c496.o \
 		    via_apollo.o via_vpx.o wd76c10.o
 
 MCHOBJ		:= machine.o machine_table.o \

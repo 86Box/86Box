@@ -611,7 +611,6 @@ svga_poll(void *p)
     svga_t *svga = (svga_t *)p;
     uint32_t x, blink_delay;
     int wx, wy;
-    int skip = (svga->crtc[8] >> 5) & 0x03;
     int ret, old_ma;
 
     if (!svga->linepos) {
@@ -812,9 +811,9 @@ svga_poll(void *p)
 			svga->ma = svga->maback = svga->ma_latch + ((svga->crtc[5] & 0x60) >> 5);
 		svga->ca = ((svga->crtc[0xe] << 8) | svga->crtc[0xf]) + ((svga->crtc[0xb] & 0x60) >> 5) + svga->ca_adj;
 
-		svga->ma = (svga->ma << 2) + (skip << 2);
-		svga->maback = (svga->maback << 2) + (skip << 2);
-		svga->ca = (svga->ca << 2) + (skip << 2);
+		svga->ma = (svga->ma << 2);
+		svga->maback = (svga->maback << 2);
+		svga->ca = (svga->ca << 2);
 
 		if (svga->vsync_callback)
 			svga->vsync_callback(svga);

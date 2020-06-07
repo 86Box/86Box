@@ -1307,4 +1307,5 @@ plat_set_input(HWND h)
     input_orig_proc = GetWindowLongPtr(h, GWLP_WNDPROC);
     input_orig_hwnd = h;
     SetWindowLongPtr(h, GWLP_WNDPROC, (LONG_PTR)&input_proc);
+    ImmAssociateContext(h, NULL);
 }

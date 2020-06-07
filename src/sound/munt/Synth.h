@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2017 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2020 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -115,6 +115,7 @@ public:
 
 class Synth {
 friend class DefaultMidiStreamParser;
+friend class MemoryRegion;
 friend class Part;
 friend class Partial;
 friend class PartialManager;
@@ -153,7 +154,7 @@ private:
 	const char (*soundGroupNames)[9]; // Array
 
 	Bit32u partialCount;
-	Bit8u chantable[16]; // NOTE: value above 8 means that the channel is not assigned
+	Bit8u nukeme[16]; // FIXME: Nuke it. For binary compatibility only.
 
 	MidiEventQueue *midiQueue;
 	volatile Bit32u lastReceivedMIDIEventTimestamp;
@@ -198,6 +199,7 @@ private:
 	Bit32u addMIDIInterfaceDelay(Bit32u len, Bit32u timestamp);
 	bool isAbortingPoly() const { return abortingPoly != NULL; }
 
+	void writeSysexGlobal(Bit32u addr, const Bit8u *sysex, Bit32u len);
 	void readSysex(Bit8u channel, const Bit8u *sysex, Bit32u len) const;
 	void initMemoryRegions();
 	void deleteMemoryRegions();
@@ -310,7 +312,18 @@ public:
 	// Sets size of the internal MIDI event queue. The queue size is set to the minimum power of 2 that is greater or equal to the size specified.
 	// The queue is flushed before reallocation.
 	// Returns the actual queue size being used.
-	MT32EMU_EXPORT Bit32u setMIDIEventQueueSize(Bit32u);
+	MT32EMU_EXPORT Bit32u setMIDIEventQueueSize(Bit32u requestedSize);
+
+	// Configures the SysEx storage of the internal MIDI event queue.
+	// Supplying 0 in the storageBufferSize argument makes the SysEx data stored
+	// in multiple dynamically allocated buffers per MIDI event. These buffers are only disposed
+	// when a new MIDI event replaces the SysEx event in the queue, thus never on the rendering thread.
+	// This is the default behaviour.
+	// In contrast, when a positive value is specified, SysEx data will be stored in a single preallocated buffer,
+	// which makes this kind of storage safe for use in a realtime thread. Additionally, the space retained
+	// by a SysEx event, that has been processed and thus is no longer necessary, is disposed instantly.
+	// Note, the queue is flushed and recreated in the process so that its size remains intact.
+	MT32EMU_EXPORT void configureMIDIEventQueueSysexStorage(Bit32u storageBufferSize);
 
 	// Returns current value of the global counter of samples rendered since the synth was created (at the native sample rate 32000 Hz).
 	// This method helps to compute accurate timestamp of a MIDI message to use with the methods below.
@@ -378,6 +391,10 @@ public:
 	MT32EMU_EXPORT bool isMT32ReverbCompatibilityMode() const;
 	// Returns whether default reverb compatibility mode is the old MT-32 compatibility mode.
 	MT32EMU_EXPORT bool isDefaultReverbMT32Compatible() const;
+	// If enabled, reverb buffers for all modes are keept around allocated all the time to avoid memory
+	// allocating/freeing in the rendering thread, which may be required for realtime operation.
+	// Otherwise, reverb buffers that are not in use are deleted to save memory (the default behaviour).
+	MT32EMU_EXPORT void preallocateReverbMemory(bool enabled);
 	// Sets new DAC input mode. See DACInputMode for details.
 	MT32EMU_EXPORT void setDACInputMode(DACInputMode mode);
 	// Returns current DAC input mode. See DACInputMode for details.
@@ -420,6 +437,29 @@ public:
 	MT32EMU_EXPORT void setNiceAmpRampEnabled(bool enabled);
 	// Returns whether NiceAmpRamp mode is enabled.
 	MT32EMU_EXPORT bool isNiceAmpRampEnabled() const;
+
+	// Allows to toggle the NicePanning mode.
+	// Despite the Roland's manual specifies allowed panpot values in range 0-14,
+	// the LA-32 only receives 3-bit pan setting in fact. In particular, this
+	// makes it impossible to set the "middle" panning for a single partial.
+	// In the NicePanning mode, we enlarge the pan setting accuracy to 4 bits
+	// making it smoother thus sacrificing the emulation accuracy.
+	// This mode is disabled by default.
+	MT32EMU_EXPORT void setNicePanningEnabled(bool enabled);
+	// Returns whether NicePanning mode is enabled.
+	MT32EMU_EXPORT bool isNicePanningEnabled() const;
+
+	// Allows to toggle the NicePartialMixing mode.
+	// LA-32 is known to mix partials either in-phase (so that they are added)
+	// or in counter-phase (so that they are subtracted instead).
+	// In some cases, this quirk isn't highly desired because a pair of closely
+	// sounding partials may occasionally cancel out.
+	// In the NicePartialMixing mode, the mixing is always performed in-phase,
+	// thus making the behaviour more predictable.
+	// This mode is disabled by default.
+	MT32EMU_EXPORT void setNicePartialMixingEnabled(bool enabled);
+	// Returns whether NicePartialMixing mode is enabled.
+	MT32EMU_EXPORT bool isNicePartialMixingEnabled() const;
 
 	// Selects new type of the wave generator and renderer to be used during subsequent calls to open().
 	// By default, RendererType_BIT16S is selected.

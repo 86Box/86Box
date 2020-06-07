@@ -25,6 +25,7 @@
 #include <86box/pci.h>
 #include <86box/rom.h>
 #include <86box/device.h>
+#include <86box/dma.h>
 #include <86box/plat.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
@@ -2233,14 +2234,14 @@ run_dma(mystique_t *mystique)
 			switch (mystique->dma.primaddress & DMA_MODE_MASK) {
 				case DMA_MODE_REG:
 					if (mystique->dma.pri_state == 0) {
-						mystique->dma.pri_header = *(uint32_t *)&ram[mystique->dma.primaddress & DMA_ADDR_MASK];
+						dma_bm_read(mystique->dma.primaddress & DMA_ADDR_MASK, (uint8_t *) &mystique->dma.pri_header, 4, 4);
 						mystique->dma.primaddress += 4;
 					}
 
 					if ((mystique->dma.pri_header & 0xff) != 0x15) {
-						uint32_t val = *(uint32_t *)&ram[mystique->dma.primaddress & DMA_ADDR_MASK];
-						uint32_t reg_addr;
+						uint32_t val, reg_addr;
 
+						dma_bm_read(mystique->dma.primaddress & DMA_ADDR_MASK, (uint8_t *) &val, 4, 4);
 						mystique->dma.primaddress += 4;
 
 						reg_addr = (mystique->dma.pri_header & 0x7f) << 2;
@@ -2276,13 +2277,13 @@ run_dma(mystique_t *mystique)
 			switch (mystique->dma.secaddress & DMA_MODE_MASK) {
 				case DMA_MODE_REG:
 					if (mystique->dma.sec_state == 0) {
-						mystique->dma.sec_header = *(uint32_t *)&ram[mystique->dma.secaddress & DMA_ADDR_MASK];
+						dma_bm_read(mystique->dma.secaddress & DMA_ADDR_MASK, (uint8_t *) &mystique->dma.sec_header, 4, 4);
 						mystique->dma.secaddress += 4;
 					}
 
-					uint32_t val = *(uint32_t *)&ram[mystique->dma.secaddress & DMA_ADDR_MASK];
-					uint32_t reg_addr;
+					uint32_t val, reg_addr;
 
+					dma_bm_read(mystique->dma.secaddress & DMA_ADDR_MASK, (uint8_t *) &val, 4, 4);
 					mystique->dma.secaddress += 4;
 
 					reg_addr = (mystique->dma.sec_header & 0x7f) << 2;
@@ -2310,7 +2311,9 @@ run_dma(mystique_t *mystique)
 					break;
 
 				case DMA_MODE_BLIT: {
-					uint32_t val = *(uint32_t *)&ram[mystique->dma.secaddress & DMA_ADDR_MASK];
+					uint32_t val;
+
+					dma_bm_read(mystique->dma.secaddress & DMA_ADDR_MASK, (uint8_t *) &val, 4, 4);
 					mystique->dma.secaddress += 4;
 
 					if (mystique->busy)

@@ -1,6 +1,5 @@
-/*PCem v0.8 by Tom Walker
-
-  AD1848 CODEC emulation (Windows Sound System compatible)*/
+/*
+  AD1848 / CS4248 / CS4231 CODEC emulation (Windows Sound System compatible)*/
 
 #include <stdio.h>
 #include <stdint.h>
@@ -14,6 +13,7 @@
 #include <86box/sound.h>
 #include <86box/snd_ad1848.h>
 
+#define CS4231	  		0x80
 
 static int ad1848_vols_6bits[64];
 static uint32_t ad1848_vols_5bits_aux_gain[32];
@@ -40,7 +40,11 @@ uint8_t ad1848_read(uint16_t addr, void *p)
                 break;
                 case 1:
                 temp = ad1848->regs[ad1848->index];
-                break;
+                if (ad1848->index == 0x0b) {
+			temp ^= 0x20;
+			ad1848->regs[ad1848->index] = temp;
+		}
+                        break;
                 case 2:
                 temp = ad1848->status;
                 break;
@@ -97,6 +101,10 @@ void ad1848_write(uint16_t addr, uint8_t val, void *p)
 			}
                         break;
                                 
+                        
+                        case 11:
+                        break;
+                        
                         case 12:
 			if (ad1848->type != AD1848_TYPE_DEFAULT)
 				ad1848->regs[12] = ((ad1848->regs[12] & 0x0f) + (val & 0xf0)) | 0x80;
@@ -105,6 +113,14 @@ void ad1848_write(uint16_t addr, uint8_t val, void *p)
                         case 14:
                         ad1848->count = ad1848->regs[15] | (val << 8);
                         break;
+
+                        case 24:
+                        if (! (val & 0x70))
+                                ad1848->status &= 0xfe;
+			break;
+
+                        case 25:
+				break;
                 }
                 ad1848->regs[ad1848->index] = val;
 
@@ -197,7 +213,7 @@ static void ad1848_poll(void *p)
                         if (!(ad1848->status & 0x01))
                         {
                                 ad1848->status |= 0x01;
-                                if (ad1848->regs[0xa] & 2)
+                                if (ad1848->regs[10] & 2)
                                         picint(1 << ad1848->irq);
                         }                                
                 }
@@ -221,9 +237,9 @@ void ad1848_init(ad1848_t *ad1848, int type)
         ad1848->mce = 0x40;
         
         ad1848->regs[0] = ad1848->regs[1] = 0;
-        ad1848->regs[2] = ad1848->regs[3] = 0x80; /* AZT2316A Line-in */
+        ad1848->regs[2] = ad1848->regs[3] = 0x80; /* Line-in */
         ad1848->regs[4] = ad1848->regs[5] = 0x80;
-        ad1848->regs[6] = ad1848->regs[7] = 0x80; /* AZT2316A Master? */
+        ad1848->regs[6] = ad1848->regs[7] = 0x80; /* Left/right Output */
         ad1848->regs[8] = 0;
         ad1848->regs[9] = 0x08;
         ad1848->regs[10] = ad1848->regs[11] = 0;
@@ -236,8 +252,13 @@ void ad1848_init(ad1848_t *ad1848, int type)
         
         if (type == AD1848_TYPE_CS4231)
         {
-                ad1848->regs[0x12] = ad1848->regs[0x13] = 0x80; // AZT2316A CD
-                ad1848->regs[0x1A] = 0x80; // AZT2316A Mic
+                ad1848->regs[16] = ad1848->regs[17] = 0;
+                ad1848->regs[18] = ad1848->regs[19] = 0x88;
+                ad1848->regs[22] = 0x80;
+                ad1848->regs[24] = 0;
+                ad1848->regs[25] = CS4231;
+                ad1848->regs[26] = 0x80;
+                ad1848->regs[29] = 0x80;
         }	
 	
         ad1848->out_l = 0;
