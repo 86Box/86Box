@@ -150,6 +150,8 @@ extern CPU	cpus_PentiumII66[];
 extern CPU	cpus_PentiumII[];
 extern CPU	cpus_Xeon[];
 extern CPU	cpus_Celeron[];
+extern CPU	cpus_Celeron66[];
+extern CPU	cpus_CeleronS1[];
 
 
 #define C_FLAG		0x0001
