@@ -7,7 +7,7 @@
  *		This file is part of the 86Box distribution.
  *
  *		Skeleton I/O APIC implementation, currently housing the MPS
- *              table patcher for machines that require it.
+ *    	      table patcher for machines that require it.
  *
  *
  *
@@ -73,16 +73,16 @@ ioapic_write(uint16_t port, uint8_t val, void *priv)
     		continue;
 
     	/* read and check pointer to the PCMP table (Configuration Table) */
-        pcmp = mem_readl_phys(addr + 4);
-        if ((pcmp < 0xf0000) || (pcmp > 0xfffff) || (mem_readl_phys(pcmp) != 0x504d4350)) /* ASCII "PCMP" */
-        	continue;
+    	pcmp = mem_readl_phys(addr + 4);
+    	if ((pcmp < 0xf0000) || (pcmp > 0xfffff) || (mem_readl_phys(pcmp) != 0x504d4350)) /* ASCII "PCMP" */
+    		continue;
 
-        /* patch over the signature on both tables */
-        ioapic_log("IOAPIC: Patching _MP_ [%08x] and PCMP [%08x] tables\n", addr, pcmp);
-        ram[addr] = ram[addr + 1] = ram[addr + 2] = ram[addr + 3] = 0xff;
-        ram[pcmp] = ram[pcmp + 1] = ram[pcmp + 2] = ram[pcmp + 3] = 0xff;
+    	/* patch over the signature on both tables */
+    	ioapic_log("IOAPIC: Patching _MP_ [%08x] and PCMP [%08x] tables\n", addr, pcmp);
+    	ram[addr] = ram[addr + 1] = ram[addr + 2] = ram[addr + 3] = 0xff;
+    	ram[pcmp] = ram[pcmp + 1] = ram[pcmp + 2] = ram[pcmp + 3] = 0xff;
 
-        break;
+    	break;
     }
 }
 
