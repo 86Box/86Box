@@ -47,6 +47,8 @@ extern const device_t   i440ex_device;
 extern const device_t	i440bx_device;
 extern const device_t	i440zx_device;
 
+extern const device_t	ioapic_device;
+
 /* OPTi */
 extern const device_t	opti495_device;
 extern const device_t	opti5x7_device;
