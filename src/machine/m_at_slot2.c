@@ -50,8 +50,7 @@ machine_at_s2dge_init(const machine_t *model)
 	   440GX AMI Slot 2 motherboard
 	   
 	   This board under a i686 CPU freezes on POST code D0.
-	   According to the manual it has to do with the NMI which
-	   seems to be related on the I/O APIC. Works fine under a VIA C3.
+       Works fine under a VIA C3.
 	*/
     int ret;
 
@@ -74,7 +73,7 @@ machine_at_s2dge_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
 	
-    device_add(&i440bx_device); /* i440GX */
+    device_add(&i440gx_device);
     device_add(&piix4e_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&w83977tf_device);
