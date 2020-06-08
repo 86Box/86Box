@@ -294,6 +294,9 @@ const machine_t machines[] = {
     { "[Slot 1 FX] ASUS P/I-P65UP5 (C-PKND)",	"p65up5_cpknd",		{{"Intel", cpus_PentiumII66}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 127,	 machine_at_p65up5_cpknd_init, NULL			},
     { "[Slot 1 FX] ASUS KN97",			"kn97",			{{"Intel", cpus_PentiumII66}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  768,   8, 127,	         machine_at_kn97_init, NULL			},
 
+	/* 440LX */
+    { "[Slot 1 LX] Abit LX6",			"lx6",			{{"Intel", cpus_PentiumII66}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  1024,   8, 255,	         machine_at_lx6_init, NULL			},
+
     /* 440EX */
     { "[Slot 1 EX] QDI EXCELLENT II",		"p6i440e2",		{{"Intel", cpus_PentiumII66}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 255,	     machine_at_p6i440e2_init, NULL			},
 
