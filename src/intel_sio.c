@@ -41,10 +41,33 @@ typedef struct
     uint16_t	timer_base,
 		timer_latch;
 
-    pc_timer_t	timer;
+    double	fast_off_period;
 
+    pc_timer_t	timer, fast_off_timer;
+
+    apm_t *	apm;
     port_92_t *	port_92;
 } sio_t;
+
+
+#ifdef ENABLE_SIO_LOG
+int sio_do_log = ENABLE_SIO_LOG;
+
+
+static void
+sio_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (sio_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+}
+#else
+#define sio_log(fmt, ...)
+#endif
 
 
 static void
@@ -131,39 +154,57 @@ sio_write(int func, int addr, uint8_t val, void *priv)
 	return;
 
     old = dev->regs[addr];
-    dev->regs[addr] = val;
 
     switch (addr) {
-	case 0x00: case 0x01: case 0x02: case 0x03:
-	case 0x08: case 0x09: case 0x0a: case 0x0b:
-	case 0x0e:
-		return;
-
 	case 0x04: /*Command register*/
-		val &= 0x08;
-		val |= 0x07;
-		break;
-	case 0x05:
-		val = 0;
+		if (dev->id == 0x03)
+			dev->regs[addr] = (dev->regs[addr] & 0xf7) | (val & 0x08);
 		break;
 
-	case 0x06: /*Status*/
-		val = 0;
-		break;
 	case 0x07:
-		val = 0x02;
+		dev->regs[addr] &= ~(val & 0x38);
 		break;
 
 	case 0x40:
-		if (!((val ^ old) & 0x40))
-			return;
+		if (dev->id == 0x03) {
+			dev->regs[addr] = (val & 0x7f);
 
-		dma_alias_remove();
-		if (val & 0x40)
-			dma_alias_set();
+			if (!((val ^ old) & 0x40))
+				return;
+
+			dma_alias_remove();
+			if (val & 0x40)
+				dma_alias_set();
+		} else
+			dev->regs[addr] = (val & 0x3f);
 		break;
-
+	case 0x41: case 0x44:
+		dev->regs[addr] = (val & 0x1f);
+		break;
+	case 0x42:
+		if (dev->id == 0x03)
+			dev->regs[addr] = val;
+		else
+			dev->regs[addr] = (val & 0x77);
+		break;
+	case 0x43:
+		if (dev->id == 0x03)
+			dev->regs[addr] = (val & 0x01);
+		break;
+	case 0x45: case 0x46:
+	case 0x47: case 0x48:
+	case 0x49: case 0x4a:
+	case 0x4b: case 0x4e:
+	case 0x54: case 0x55:
+	case 0x56:
+		dev->regs[addr] = val;
+		break;
+	case 0x4c: case 0x4d:
+		dev->regs[addr] = (val & 0x7f);
+		break;
 	case 0x4f:
+		dev->regs[addr] = val;
+
 		if (!((val ^ old) & 0x40))
 			return;
 
@@ -171,34 +212,29 @@ sio_write(int func, int addr, uint8_t val, void *priv)
 		if (val & 0x40)
 			port_92_add(dev->port_92);
 		break;
+	case 0x57:
+		dev->regs[addr] = val;
 
-	case 0x60:
-		if (val & 0x80)
-			pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
-		else
-			pci_set_irq_routing(PCI_INTA, val & 0xf);
+		dma_remove_sg();
+		dma_set_sg_base(val);
 		break;
-	case 0x61:
-		if (val & 0x80)
-			pci_set_irq_routing(PCI_INTC, PCI_IRQ_DISABLED);
-		else
-			pci_set_irq_routing(PCI_INTC, val & 0xf);
+	case 0x60: case 0x61: case 0x62: case 0x63:
+		if (dev->id == 0x03) {
+			sio_log("Set IRQ routing: INT %c -> %02X\n", 0x41 + (addr & 0x03), val);
+			dev->regs[addr] = val & 0x8f;
+			if (val & 0x80)
+				pci_set_irq_routing(PCI_INTA + (addr & 0x03), PCI_IRQ_DISABLED);
+			else
+				pci_set_irq_routing(PCI_INTA + (addr & 0x03), val & 0xf);
+		}
 		break;
-	case 0x62:
-		if (val & 0x80)
-			pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
-		else
-			pci_set_irq_routing(PCI_INTB, val & 0xf);
-		break;
-	case 0x63:
-		if (val & 0x80)
-			pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
-		else
-			pci_set_irq_routing(PCI_INTD, val & 0xf);
-		break;
-
 	case 0x80:
 	case 0x81:
+		if (addr == 0x80)
+			dev->regs[addr] = val & 0xfd;
+		else
+			dev->regs[addr] = val;
+
 		if (dev->timer_base & 0x01) {
 			io_removehandler(dev->timer_base & 0xfffc, 0x0004,
 					 sio_timer_read, sio_timer_readw, NULL,
@@ -210,6 +246,67 @@ sio_write(int func, int addr, uint8_t val, void *priv)
 				      sio_timer_read, sio_timer_readw, NULL,
 				      sio_timer_write, sio_timer_writew, NULL, dev);
 		}
+		break;
+	case 0xa0:
+		if (dev->id == 0x03) {
+			dev->regs[addr] = val & 0x1f;
+			apm_set_do_smi(dev->apm, !!(val & 0x01) && !!(dev->regs[0xa2] & 0x80));
+			switch ((val & 0x18) >> 3) {
+				case 0x00:
+					dev->fast_off_period = PCICLK * 32768.0 * 60000.0;
+					break;
+				case 0x01:
+				default:
+					dev->fast_off_period = 0.0;
+					break;
+				case 0x02:
+					dev->fast_off_period = PCICLK;
+					break;
+				case 0x03:
+					dev->fast_off_period = PCICLK * 32768.0;
+					break;
+			}
+			cpu_fast_off_count = dev->regs[0xa8] + 1;
+			timer_disable(&dev->fast_off_timer);
+			if (dev->fast_off_period != 0.0)
+				timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+		}
+		break;
+	case 0xa2:
+		if (dev->id == 0x03) {
+			dev->regs[addr] = val & 0xff;
+			apm_set_do_smi(dev->apm, !!(dev->regs[0xa0] & 0x01) && !!(val & 0x80));
+		}
+		break;
+	case 0xaa: case 0xac: case 0xae:
+		if (dev->id == 0x03)
+			dev->regs[addr] = val & 0xff;
+		break;
+	case 0xa4:
+		if (dev->id == 0x03) {
+			dev->regs[addr] = val & 0xfb;
+			cpu_fast_off_flags = (cpu_fast_off_flags & 0xffffff00) | dev->regs[addr];
+		}
+		break;
+	case 0xa5:
+		if (dev->id == 0x03) {
+			dev->regs[addr] = val & 0xff;
+			cpu_fast_off_flags = (cpu_fast_off_flags & 0xffff00ff) | (dev->regs[addr] << 8);
+		}
+		break;
+	case 0xa7:
+		if (dev->id == 0x03) {
+			dev->regs[addr] = val & 0xa0;
+			cpu_fast_off_flags = (cpu_fast_off_flags & 0x00ffffff) | (dev->regs[addr] << 24);
+		}
+		break;
+	case 0xa8:
+		dev->regs[addr] = val & 0xff;
+		cpu_fast_off_val = val;
+		cpu_fast_off_count = val + 1;
+		timer_disable(&dev->fast_off_timer);
+		if (dev->fast_off_period != 0.0)
+			timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
 		break;
     }
 }
@@ -271,7 +368,7 @@ sio_config_read(uint16_t port, void *priv)
 
 
 static void
-sio_reset(void *priv)
+sio_reset_hard(void *priv)
 {
     sio_t *dev = (sio_t *) priv;
 
@@ -279,23 +376,26 @@ sio_reset(void *priv)
 
     dev->regs[0x00] = 0x86; dev->regs[0x01] = 0x80; /*Intel*/
     dev->regs[0x02] = 0x84; dev->regs[0x03] = 0x04; /*82378IB (SIO)*/
-    dev->regs[0x04] = 0x07; dev->regs[0x05] = 0x00;
-    dev->regs[0x06] = 0x00; dev->regs[0x07] = 0x02;
+    dev->regs[0x04] = 0x07;
+    dev->regs[0x07] = 0x02;
     dev->regs[0x08] = dev->id;
 
     dev->regs[0x40] = 0x20; dev->regs[0x41] = 0x00;
-    dev->regs[0x42] = 0x04; dev->regs[0x43] = 0x00;
-    dev->regs[0x44] = 0x20; dev->regs[0x45] = 0x10;
-    dev->regs[0x46] = 0x0f; dev->regs[0x47] = 0x00;
-    dev->regs[0x48] = 0x01; dev->regs[0x49] = 0x10;
+    dev->regs[0x42] = 0x04;
+    dev->regs[0x45] = 0x10; dev->regs[0x46] = 0x0f;
+    dev->regs[0x48] = 0x01;
     dev->regs[0x4a] = 0x10; dev->regs[0x4b] = 0x0f;
     dev->regs[0x4c] = 0x56; dev->regs[0x4d] = 0x40;
     dev->regs[0x4e] = 0x07; dev->regs[0x4f] = 0x4f;
-    dev->regs[0x54] = 0x00; dev->regs[0x55] = 0x00; dev->regs[0x56] = 0x00;
-    dev->regs[0x60] = 0x80; dev->regs[0x61] = 0x80; dev->regs[0x62] = 0x80; dev->regs[0x63] = 0x80;
-    dev->regs[0x80] = 0x78; dev->regs[0x81] = 0x00;
-    dev->regs[0xa0] = 0x08;
-    dev->regs[0xa8] = 0x0f;
+    dev->regs[0x57] = 0x04;
+    if (dev->id == 0x03) {
+	dev->regs[0x60] = 0x80; dev->regs[0x61] = 0x80; dev->regs[0x62] = 0x80; dev->regs[0x63] = 0x80;
+    }
+    dev->regs[0x80] = 0x78;
+    if (dev->id == 0x03) {
+	dev->regs[0xa0] = 0x08;
+	dev->regs[0xa8] = 0x0f;
+    }
 
     pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
     pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
@@ -313,11 +413,59 @@ sio_reset(void *priv)
 
 
 static void
+sio_apm_out(uint16_t port, uint8_t val, void *p)
+{
+    sio_t *dev = (sio_t *) p;
+
+    if (dev->apm->do_smi)
+	dev->regs[0xaa] |= 0x80;
+}
+
+
+static void
+sio_fast_off_count(void *priv)
+{
+    sio_t *dev = (sio_t *) priv;
+
+    cpu_fast_off_count--;
+
+    if (cpu_fast_off_count == 0) {
+	smi_line = 1;
+	dev->regs[0xaa] |= 0x20;
+	cpu_fast_off_count = dev->regs[0xa8] + 1;
+    }
+
+    timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+}
+
+
+static void
+sio_reset(void *p)
+{
+    sio_t *dev = (sio_t *) p;
+
+    sio_write(0, 0x57, 0x04, p);
+
+    dma_set_params(1, 0xffffffff);
+
+    if (dev->id == 0x03) {
+	sio_write(0, 0xa0, 0x08, p);
+	sio_write(0, 0xa2, 0x00, p);
+	sio_write(0, 0xa4, 0x00, p);
+	sio_write(0, 0xa5, 0x00, p);
+	sio_write(0, 0xa6, 0x00, p);
+	sio_write(0, 0xa7, 0x00, p);
+	sio_write(0, 0xa8, 0x0f, p);
+    }
+}
+
+
+static void
 sio_close(void *p)
 {
-    sio_t *sio = (sio_t *)p;
+    sio_t *dev = (sio_t *)p;
 
-    free(sio);
+    free(dev);
 }
 
 
@@ -332,34 +480,64 @@ sio_speed_changed(void *priv)
     timer_disable(&dev->timer);
     if (te)
 	timer_set_delay_u64(&dev->timer, ((uint64_t) dev->timer_latch) * TIMER_USEC);
+
+    if (dev->id == 0x03) {
+	te = timer_is_enabled(&dev->fast_off_timer);
+
+	timer_stop(&dev->fast_off_timer);
+	if (te)
+		timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+    }
 }
 
 
 static void *
 sio_init(const device_t *info)
 {
-    sio_t *sio = (sio_t *) malloc(sizeof(sio_t));
-    memset(sio, 0, sizeof(sio_t));
+    sio_t *dev = (sio_t *) malloc(sizeof(sio_t));
+    memset(dev, 0, sizeof(sio_t));
 
-    pci_add_card(PCI_ADD_SOUTHBRIDGE, sio_read, sio_write, sio);
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, sio_read, sio_write, dev);
 
-    device_add(&apm_device);
+    dev->id = info->local;
 
-    sio->id = info->local;
-    sio_reset(sio);
+    if (dev->id == 0x03)
+	timer_add(&dev->fast_off_timer, sio_fast_off_count, dev, 0);
 
-    sio->port_92 = device_add(&port_92_pci_device);
+    sio_reset_hard(dev);
 
-    dma_alias_set();
+    cpu_fast_off_flags = 0x00000000;
+
+    if (dev->id == 0x03) {
+	cpu_fast_off_val = dev->regs[0xa8];
+	cpu_fast_off_count = cpu_fast_off_val + 1;
+    } else
+	cpu_fast_off_val = cpu_fast_off_count = 0;
+
+    if (dev->id == 0x03) {
+	dev->apm = device_add(&apm_pci_device);
+	/* APM intercept handler to update 82378ZB SMI status on APM SMI. */
+	io_sethandler(0x00b2, 0x0001, NULL, NULL, NULL, sio_apm_out, NULL, NULL, dev);
+    }
+
+    dev->port_92 = device_add(&port_92_pci_device);
+
+    dma_set_sg_base(0x04);
+    dma_set_params(1, 0xffffffff);
+    dma_ext_mode_init();
+    dma_high_page_init();
+
+    if (dev->id == 0x03)
+	dma_alias_set();
 
     io_sethandler(0x0073, 0x0001,
-		  sio_config_read, NULL, NULL, sio_config_write, NULL, NULL, sio);
+		  sio_config_read, NULL, NULL, sio_config_write, NULL, NULL, dev);
     io_sethandler(0x0075, 0x0001,
-		  sio_config_read, NULL, NULL, sio_config_write, NULL, NULL, sio);
+		  sio_config_read, NULL, NULL, sio_config_write, NULL, NULL, dev);
 
-    timer_add(&sio->timer, NULL, NULL, 0);
+    timer_add(&dev->timer, NULL, NULL, 0);
 
-    return sio;
+    return dev;
 }
 
 
@@ -370,7 +548,7 @@ const device_t sio_device =
     0x00,
     sio_init,
     sio_close,
-    NULL,
+    sio_reset,
     NULL,
     sio_speed_changed,
     NULL,
@@ -385,7 +563,7 @@ const device_t sio_zb_device =
     0x03,
     sio_init,
     sio_close,
-    NULL,
+    sio_reset,
     NULL,
     sio_speed_changed,
     NULL,

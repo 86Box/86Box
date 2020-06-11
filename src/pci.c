@@ -677,6 +677,7 @@ static void
 trc_reset(uint8_t val)
 {
     if (val & 2) {
+	dma_reset();
 	device_reset_all_pci();
 
 	cpu_alt_reset = 0;

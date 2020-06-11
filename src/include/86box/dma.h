@@ -46,19 +46,21 @@
 
 
 typedef struct {
-    uint32_t	ab, ac;
-    uint16_t	cb;
-    int		cc;
-    int		wp;
-    uint8_t	m, mode;
-    uint8_t	page;
-    uint8_t	stat, stat_rq;
-    uint8_t	command;
-    int		size;
-
-    uint8_t	ps2_mode;
-    uint8_t	arb_level;
-    uint16_t	io_addr;
+    uint8_t	m, mode, page, stat,
+		stat_rq, command,
+		ps2_mode, arb_level,
+		sg_command, sg_status,
+		ptr0, enabled,
+		ext_mode, page_l,
+		page_h, pad;
+    uint16_t	cb, io_addr,
+		base, transfer_mode;
+    uint32_t	ptr, ptr_cur,
+		addr,
+		ab, ac;
+    int		cc, wp,
+		size, count,
+		eot;
 } dma_t;
 
 
@@ -92,6 +94,14 @@ extern void	dma_alias_remove_piix(void);
 
 extern void	dma_bm_read(uint32_t PhysAddress, uint8_t *DataRead, uint32_t TotalSize, int TransferSize);
 extern void	dma_bm_write(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize, int TransferSize);
+
+void		dma_set_params(uint8_t advanced, uint32_t mask);
+void		dma_ext_mode_init(void);
+
+void		dma_high_page_init(void);
+
+void		dma_remove_sg(void);
+void		dma_set_sg_base(uint8_t sg_base);
 
 
 #endif	/*EMU_DMA_H*/

@@ -1162,6 +1162,20 @@ piix_close(void *p)
 
 
 static void
+piix_speed_changed(void *priv)
+{
+    piix_t *dev = (piix_t *) priv;
+    int te;
+
+    te = timer_is_enabled(&dev->fast_off_timer);
+
+    timer_stop(&dev->fast_off_timer);
+    if (te)
+	timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
+}
+
+
+static void
 *piix_init(const device_t *info)
 {
     piix_t *dev = (piix_t *) malloc(sizeof(piix_t));
@@ -1300,7 +1314,7 @@ const device_t piix_device =
     piix_close, 
     piix_reset,
     NULL,
-    NULL,
+    piix_speed_changed,
     NULL,
     NULL
 };
@@ -1314,7 +1328,7 @@ const device_t piix_rev02_device =
     piix_close, 
     piix_reset,
     NULL,
-    NULL,
+    piix_speed_changed,
     NULL,
     NULL
 };
@@ -1328,7 +1342,7 @@ const device_t piix3_device =
     piix_close, 
     piix_reset,
     NULL,
-    NULL,
+    piix_speed_changed,
     NULL,
     NULL
 };
@@ -1342,7 +1356,7 @@ const device_t piix4_device =
     piix_close, 
     piix_reset,
     NULL,
-    NULL,
+    piix_speed_changed,
     NULL,
     NULL
 };
@@ -1356,7 +1370,7 @@ const device_t piix4e_device =
     piix_close, 
     piix_reset,
     NULL,
-    NULL,
+    piix_speed_changed,
     NULL,
     NULL
 };
@@ -1370,7 +1384,7 @@ const device_t slc90e66_device =
     piix_close, 
     piix_reset,
     NULL,
-    NULL,
+    piix_speed_changed,
     NULL,
     NULL
 };

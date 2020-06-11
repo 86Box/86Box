@@ -3811,7 +3811,7 @@ d86f_load(int drive, wchar_t *fn)
 			if (dev->extra_bit_cells[1] > 32768)  dev->extra_bit_cells[1] = 32768;
 		}
 	} else {
-		dev->extra_bit_cells[0] = 0;
+		dev->extra_bit_cells[1] = 0;
 	}
     } else {
 	switch ((dev->disk_flags >> 1) >> 3) {
