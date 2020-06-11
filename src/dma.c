@@ -865,7 +865,6 @@ dma_page_write(uint16_t addr, uint8_t val, void *priv)
 {
     uint8_t convert[8] = CHANNELS;
 
-    pclog("[W] addr = old %04X, ", addr);
     addr &= 0x0f;
     dmaregs[2][addr] = val;
 
@@ -873,7 +872,6 @@ dma_page_write(uint16_t addr, uint8_t val, void *priv)
 	addr = convert[addr & 0x07] | 4;
     else
 	addr = convert[addr & 0x07];
-    pclog("new %04X\n", addr);
 
     if (addr < 8) {
 	dma[addr].page_l = val;
@@ -897,7 +895,6 @@ dma_page_read(uint16_t addr, void *priv)
     uint8_t convert[8] = CHANNELS;
     uint8_t ret = 0xff;
 
-    pclog("[R] addr = old %04X, ", addr);
     addr &= 0x0f;
     ret = dmaregs[2][addr];
 
@@ -905,7 +902,6 @@ dma_page_read(uint16_t addr, void *priv)
 	addr = convert[addr & 0x07] | 4;
     else
 	addr = convert[addr & 0x07];
-    pclog("new %04X\n", addr);
 
     if (addr < 8)
 	ret = dma[addr].page_l;
