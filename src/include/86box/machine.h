@@ -270,6 +270,7 @@ extern int	machine_at_430nx_init(const machine_t *);
 extern int	machine_at_p54tp4xe_init(const machine_t *);
 extern int	machine_at_endeavor_init(const machine_t *);
 extern int	machine_at_zappa_init(const machine_t *);
+extern int	machine_at_gw2kzp_init(const machine_t *);
 extern int	machine_at_mb500n_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_VECTRA54)
 extern int	machine_at_vectra54_init(const machine_t *);
