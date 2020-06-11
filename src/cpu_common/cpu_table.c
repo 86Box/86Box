@@ -735,9 +735,13 @@ CPU cpus_PentiumII[] = {
 };
 
 CPU cpus_Xeon[] = {
-	/* Slot 2 Xeons. Literal P2D's with more cache */
-    {"Pentium II Xeon 166",    CPU_PENTIUM2D,  166666666, 2.5,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
-    {"Pentium II Xeon 400",    CPU_PENTIUM2D,  400000000, 4.0,  0x653,  0x653, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
+	/* Slot 2 Xeons. Literal P2D's with more cache
+	   The <400Mhz Xeons are only meant to not cause any struggle
+       to the recompiler. */
+    {"Pentium II Xeon 75",     CPU_PENTIUM2D,   75000000, 1.5,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  7, 7, 4, 4, 9},
+    {"Pentium II Xeon 133",    CPU_PENTIUM2D,  133333333, 2.0,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 16},
+    {"Pentium II Xeon 166",    CPU_PENTIUM2D,  166666666, 2.5,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
+    {"Pentium II Xeon 400",    CPU_PENTIUM2D,  400000000, 4.0,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
     {"",                                       -1,          0,   0,      0,      0, 0, 0,  0, 0, 0, 0,  0}	
 };
 

@@ -336,6 +336,8 @@ extern int	machine_at_p65up5_cp6nd_init(const machine_t *);
 extern int	machine_at_p65up5_cpknd_init(const machine_t *);
 extern int	machine_at_kn97_init(const machine_t *);
 
+extern int	machine_at_lx6_init(const machine_t *);
+
 extern int	machine_at_p6i440e2_init(const machine_t *);
 
 extern int	machine_at_p2bls_init(const machine_t *);
@@ -354,9 +356,7 @@ extern const device_t 	*at_tsunamiatx_get_device(void);
 #endif
 
 /* m_at_slot2.c */
-#if defined(DEV_BRANCH) && defined(NO_SIO)
-extern int	machine_at_s2dge_init(const machine_t *);
-#endif
+extern int	machine_at_6gxu_init(const machine_t *);
 
 /* m_at_socket370.c */
 extern int	machine_at_s370slm_init(const machine_t *);

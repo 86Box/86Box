@@ -31,6 +31,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/keyboard.h>
 #include <86box/intel_flash.h>
+#include <86box/sst_flash.h>
 #include <86box/intel_sio.h>
 #include <86box/piix.h>
 #include <86box/sio.h>
@@ -41,21 +42,12 @@
 #include "cpu.h"
 #include <86box/machine.h>
 
-#if defined(DEV_BRANCH) && defined(NO_SIO)
 int
-machine_at_s2dge_init(const machine_t *model)
+machine_at_6gxu_init(const machine_t *model)
 {
-	
-	/* 
-	   440GX AMI Slot 2 motherboard
-	   
-	   This board under a i686 CPU freezes on POST code D0.
-	   According to the manual it has to do with the NMI which
-	   seems to be related on the I/O APIC. Works fine under a VIA C3.
-	*/
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/s2dge/2gu7301.rom",
+    ret = bios_load_linear(L"roms/machines/6gxu/6gxu.f1c",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -66,33 +58,32 @@ machine_at_s2dge_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x0F, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x10, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x12, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x14, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x01, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4); /* On-Board SCSI. Not emulated at the moment */
+	pci_register_slot(0x01, PCI_CARD_NORMAL, 1, 2, 3, 4);
 	
-    device_add(&i440bx_device); /* i440GX */
+    device_add(&i440gx_device);
     device_add(&piix4e_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&w83977tf_device);
-    device_add(&intel_flash_bxt_device);
-    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
+    device_add(&keyboard_ps2_pci_device);
+    device_add(&w83977ef_device);
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0xF, 512);
 
     hwm_values_t machine_hwm = {
     	{    /* fan speeds */
-    		3000,	/* CPU1 */
-    		0,	/* CPU2 */
-    		3000	/* Thermal Control */
+    		3000,	/* Chassis */
+    		3000,	/* CPU */
+    		3000	/* Power */
     	}, { /* temperatures */
+    		30,	/* MB */
     		0,	/* unused */
-    		30,	/* CPU1 */
-    		20	/* unused (CPU2?) */
+    		27	/* CPU */
     	}, { /* voltages */
-    		2050,				   /* CPU1 (2.05V by default) */
-    		0,				   /* CPU2 */
+    		2050,				   /* VCORE (2.05V by default) */
+    		0,				   /* unused */
     		3300,				   /* +3.3V */
     		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
     		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
@@ -107,4 +98,3 @@ machine_at_s2dge_init(const machine_t *model)
 	
     return ret;
 }
-#endif
