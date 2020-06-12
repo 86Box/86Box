@@ -116,11 +116,11 @@ machine_at_v60n_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x10, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x12, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 2, 3, 4, 1);
     device_add(&i440fx_device);
     device_add(&piix3_device);
     device_add(&keyboard_ps2_pci_device);
