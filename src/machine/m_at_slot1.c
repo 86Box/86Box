@@ -376,13 +376,7 @@ machine_at_atc6310bxii_init(const machine_t *model)
 
 int
 machine_at_p6sba_init(const machine_t *model)
-{	
-    /*
-       AMI 440BX Board.
-       doesn't like the i686 CPU's.
-       10 -> D3 -> D1 POST. Probably KBC related.
-    */
-	
+{
     int ret;
 
     ret = bios_load_linear(L"roms/machines/p6sba/SBAB21.ROM",
@@ -441,9 +435,6 @@ machine_at_p6sba_init(const machine_t *model)
 int
 machine_at_tsunamiatx_init(const machine_t *model)
 {
-    /* AMI 440BX board. Requires the PC87309
-       and doesn't like the i686 CPUs */
-
     int ret;
 
     ret = bios_load_linear(L"roms/machines/tsunamiatx/bx46200f.rom",
