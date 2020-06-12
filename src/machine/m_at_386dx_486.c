@@ -511,3 +511,32 @@ machine_at_486ap4_init(const machine_t *model)
 
     return ret;
 }
+
+
+int
+machine_at_gw2kexni_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/gw2kexni/404c.rom",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1 | PCI_NO_IRQ_STEERING);
+    /* Excluded: 5, 6, 7, 8 */
+    pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 4);	/* 09 = Slot 1 */
+    pci_register_slot(0x0a, PCI_CARD_NORMAL, 2, 3, 4, 1);	/* 0a = Slot 2 */
+    pci_register_slot(0x0b, PCI_CARD_NORMAL, 3, 4, 1, 2);	/* 0b = Slot 3 */
+    pci_register_slot(0x0c, PCI_CARD_NORMAL, 4, 1, 2, 3);	/* 0c = Slot 4 */
+    device_add(&keyboard_ps2_pci_device);
+    device_add(&fdc_at_device);
+
+    device_add(&i420ex_device);
+
+    return ret;
+}
