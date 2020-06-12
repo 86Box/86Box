@@ -198,6 +198,7 @@ const machine_t machines[] = {
 #endif
 
     /* 486 machines which utilize the PCI bus */
+    { "[486 PCI] ASUS PVI-486AP4",		"486ap4",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,					  1,  128,   1, 127,	       machine_at_486ap4_init, NULL			},
 #if defined(DEV_BRANCH) && defined(NO_SIO)
     { "[486 PCI] ASUS PCI/I-486SP3G",		"486sp3g",		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  1,  128,   1, 127,	      machine_at_486sp3g_init, NULL			},
 #endif
@@ -313,8 +314,7 @@ const machine_t machines[] = {
 
     /* Slot 2 machines */
     /* 440GX */
-	/* Till the Heap limit issue is resolved. This board will use 1GB max instead of 2GB */
-    { "[Slot 2 GX] Gigabyte GA-6GXU",		"6gxu",		{{"Intel", cpus_Xeon},        {"",      NULL},{"",      NULL},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  16, 1024,   16, 511,	        machine_at_6gxu_init, NULL			},
+    { "[Slot 2 GX] Gigabyte GA-6GXU",		"6gxu",			{{"Intel", cpus_Xeon},        {"",      NULL},	     {"",      NULL},	     {"",      NULL},	  {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		 16, 2048,   16, 511,	        machine_at_6gxu_init, NULL			},
 
     /* PGA370 machines */
     /* 440LX */

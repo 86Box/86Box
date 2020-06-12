@@ -31,8 +31,8 @@
 #include <86box/pic.h>
 #include <86box/mem.h>
 #include <86box/device.h>
+#include <86box/dma.h>
 #include <86box/pci.h>
-#include <86box/piix.h>
 #include <86box/keyboard.h>
 
 

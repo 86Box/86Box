@@ -173,7 +173,7 @@ sio_write(int func, int addr, uint8_t val, void *priv)
 				return;
 
 			dma_alias_remove();
-			if (val & 0x40)
+			if (!(val & 0x40))
 				dma_alias_set();
 		} else
 			dev->regs[addr] = (val & 0x3f);

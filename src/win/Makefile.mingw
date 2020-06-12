@@ -516,7 +516,7 @@ MAINOBJ		:= pc.o config.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
 		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o sst_flash.o via_vt82c586b.o \
 		   via_vt82c596b.o $(VNCOBJ)
 
-INTELOBJ	:= intel_flash.o \
+INTELOBJ	:= intel_flash.o intel_420ex.o \
 		    intel_sio.o intel_piix.o
 
 CPUOBJ		:= cpu.o cpu_table.o \

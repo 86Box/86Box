@@ -64,8 +64,10 @@ mem_mapping_t		base_mapping,
 #endif
 			ram_remapped_mapping,	/* 640..1024K mapping */
 			ram_high_mapping,	/* 1024K+ mapping */
+			ram_2gb_mapping,	/* 1024M+ mapping */
 			ram_remapped_mapping,
 			ram_split_mapping,
+			ram_smram_mapping[2],
 			bios_mapping,
 			bios_high_mapping;
 
@@ -73,7 +75,7 @@ page_t			*pages,			/* RAM page table */
 			**page_lookup;		/* pagetable lookup */
 uint32_t		pages_sz;		/* #pages in table */
 
-uint8_t			*ram;			/* the virtual RAM */
+uint8_t			*ram, *ram2;		/* the virtual RAM */
 uint32_t		rammask;
 
 uint8_t			*rom;			/* the virtual ROM */
@@ -102,6 +104,8 @@ int			cachesize = 256;
 uint32_t		get_phys_virt,
 			get_phys_phys;
 
+smram_t			smram[2] = { { 0x000a0000, 0x000a0000 }, { 0x000a0000, 0x000a0000 } };
+
 int			mem_a20_key = 0,
 			mem_a20_alt = 0,
 			mem_a20_state = 0;
@@ -122,7 +126,7 @@ int			use_phys_exec = 0;
 static mem_mapping_t	*read_mapping[MEM_MAPPINGS_NO];
 static mem_mapping_t	*write_mapping[MEM_MAPPINGS_NO];
 static uint8_t		*_mem_exec[MEM_MAPPINGS_NO];
-static int		_mem_state[MEM_MAPPINGS_NO];
+static uint32_t		_mem_state[MEM_MAPPINGS_NO];
 
 #if FIXME
 #if (MEM_GRANULARITY_BITS >= 12)
@@ -272,10 +276,17 @@ mem_flush_write_page(uint32_t addr, uint32_t virt)
 {
     page_t *page_target = &pages[addr >> 12];
     int c;
+    uint32_t a;
 
     for (c = 0; c < 256; c++) {
 	if (writelookup[c] != (int) 0xffffffff) {
-		uintptr_t target = (uintptr_t)&ram[(uintptr_t)(addr & ~0xfff) - (virt & ~0xfff)];
+		a = (uintptr_t)(addr & ~0xfff) - (virt & ~0xfff);
+		uintptr_t target;
+
+		if ((addr & ~0xfff) >= (1 << 30))
+			target = (uintptr_t)&ram2[a - (1 << 30)];
+		else
+			target = (uintptr_t)&ram[a];
 
 		if (writelookup2[writelookup[c]] == target || page_lookup[writelookup[c]] == page_target) {
 			writelookup2[writelookup[c]] = -1;
@@ -562,6 +573,8 @@ mem_addr_translate(uint32_t addr, uint32_t chunk_start, uint32_t len)
 void
 addreadlookup(uint32_t virt, uint32_t phys)
 {
+    uint32_t a;
+
     if (virt == 0xffffffff) return;
 
     if (readlookup2[virt>>12] != (uintptr_t) -1) return;
@@ -569,7 +582,12 @@ addreadlookup(uint32_t virt, uint32_t phys)
     if (readlookup[readlnext] != (int) 0xffffffff)
 	readlookup2[readlookup[readlnext]] = -1;
 
-    readlookup2[virt>>12] = (uintptr_t)&ram[(uintptr_t)(phys & ~0xFFF) - (uintptr_t)(virt & ~0xfff)];
+    a = (uintptr_t)(phys & ~0xfff) - (uintptr_t)(virt & ~0xfff);
+
+    if ((phys & ~0xfff) >= (1 << 30))
+	readlookup2[virt>>12] = (uintptr_t)&ram2[a - (1 << 30)];
+    else
+	readlookup2[virt>>12] = (uintptr_t)&ram[a];
 
     readlookupp[readlnext] = mmu_perm;
     readlookup[readlnext++] = virt >> 12;
@@ -582,6 +600,8 @@ addreadlookup(uint32_t virt, uint32_t phys)
 void
 addwritelookup(uint32_t virt, uint32_t phys)
 {
+    uint32_t a;
+
     if (virt == 0xffffffff) return;
 
     if (page_lookup[virt >> 12]) return;
@@ -601,8 +621,14 @@ addwritelookup(uint32_t virt, uint32_t phys)
 #endif
 #endif
 	page_lookup[virt >> 12] = &pages[phys >> 12];
-    else
-	writelookup2[virt>>12] = (uintptr_t)&ram[(uintptr_t)(phys & ~0xFFF) - (uintptr_t)(virt & ~0xfff)];
+    else {
+	a = (uintptr_t)(phys & ~0xfff) - (uintptr_t)(virt & ~0xfff);
+
+	if ((phys & ~0xfff) >= (1 << 30))
+		writelookup2[virt>>12] = (uintptr_t)&ram2[a - (1 << 30)];
+	else
+		writelookup2[virt>>12] = (uintptr_t)&ram[a];
+    }
 
     writelookupp[writelnext] = mmu_perm;
     writelookup[writelnext++] = virt >> 12;
@@ -1566,6 +1592,87 @@ mem_read_raml(uint32_t addr, void *priv)
 }
 
 
+uint8_t
+mem_read_ram_2gb(uint32_t addr, void *priv)
+{
+#ifdef ENABLE_MEM_LOG
+    if ((addr >= 0xa0000) && (addr <= 0xbffff))
+	mem_log("Read  B       %02X from %08X\n", ram[addr], addr);
+#endif
+
+    addreadlookup(mem_logical_addr, addr);
+
+    return ram2[addr - (1 << 30)];
+}
+
+
+uint16_t
+mem_read_ram_2gbw(uint32_t addr, void *priv)
+{
+#ifdef ENABLE_MEM_LOG
+    if ((addr >= 0xa0000) && (addr <= 0xbffff))
+	mem_log("Read  W     %04X from %08X\n", *(uint16_t *)&ram[addr], addr);
+#endif
+
+    addreadlookup(mem_logical_addr, addr);
+
+    return *(uint16_t *)&ram2[addr - (1 << 30)];
+}
+
+
+uint32_t
+mem_read_ram_2gbl(uint32_t addr, void *priv)
+{
+#ifdef ENABLE_MEM_LOG
+    if ((addr >= 0xa0000) && (addr <= 0xbffff))
+	mem_log("Read  L %08X from %08X\n", *(uint32_t *)&ram[addr], addr);
+#endif
+
+    addreadlookup(mem_logical_addr, addr);
+
+    return *(uint32_t *)&ram2[addr - (1 << 30)];
+}
+
+
+uint8_t
+mem_read_smram(uint32_t addr, void *priv)
+{
+    smram_t *dev = (smram_t *) priv;
+    uint32_t new_addr = addr - dev->host_base + dev->ram_base;
+
+    if (new_addr >= (1 << 30))
+	return mem_read_ram_2gb(new_addr, priv);
+    else
+	return mem_read_ram(new_addr, priv);
+}
+
+
+uint16_t
+mem_read_smramw(uint32_t addr, void *priv)
+{
+    smram_t *dev = (smram_t *) priv;
+    uint32_t new_addr = addr - dev->host_base + dev->ram_base;
+
+    if (new_addr >= (1 << 30))
+	return mem_read_ram_2gbw(new_addr, priv);
+    else
+	return mem_read_ramw(new_addr, priv);
+}
+
+
+uint32_t
+mem_read_smraml(uint32_t addr, void *priv)
+{
+    smram_t *dev = (smram_t *) priv;
+    uint32_t new_addr = addr - dev->host_base + dev->ram_base;
+
+    if (new_addr >= (1 << 30))
+	return mem_read_ram_2gbl(new_addr, priv);
+    else
+	return mem_read_raml(new_addr, priv);
+}
+
+
 #ifdef USE_NEW_DYNAREC
 static inline int
 page_index(page_t *p)
@@ -1760,6 +1867,36 @@ mem_write_raml(uint32_t addr, uint32_t val, void *priv)
 }
 
 
+void
+mem_write_smram(uint32_t addr, uint8_t val, void *priv)
+{
+    smram_t *dev = (smram_t *) priv;
+    uint32_t new_addr = addr - dev->host_base + dev->ram_base;
+
+    mem_write_ram(new_addr, val, priv);
+}
+
+
+void
+mem_write_smramw(uint32_t addr, uint16_t val, void *priv)
+{
+    smram_t *dev = (smram_t *) priv;
+    uint32_t new_addr = addr - dev->host_base + dev->ram_base;
+
+    mem_write_ramw(new_addr, val, priv);
+}
+
+
+void
+mem_write_smraml(uint32_t addr, uint32_t val, void *priv)
+{
+    smram_t *dev = (smram_t *) priv;
+    uint32_t new_addr = addr - dev->host_base + dev->ram_base;
+
+    mem_write_raml(new_addr, val, priv);
+}
+
+
 static uint8_t
 mem_read_remapped(uint32_t addr, void *priv)
 {
@@ -1924,40 +2061,49 @@ mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
 
 
 static __inline int
-mem_mapping_read_allowed(uint32_t flags, int state, int exec)
+mem_mapping_read_allowed(uint32_t flags, uint32_t state, int exec)
 {
-    int smm_state = state >> MEM_STATE_SMM_SHIFT;
+    uint32_t smm_state = state >> MEM_STATE_SMM_SHIFT;
+    uint32_t state_masked;
 
     if (in_smm && ((smm_state & MEM_READ_MASK) != MEM_READ_NORMAL))
 	state = smm_state;
 
-    switch (state & MEM_READ_MASK) {
+    state_masked = (state & MEM_READ_MASK);
+
+    if (state_masked & MEM_READ_SMRAM)
+	return (flags & MEM_MAPPING_SMRAM);
+    else if ((state_masked & MEM_READ_SMRAM_EX) && exec)
+	return (flags & MEM_MAPPING_SMRAM);
+    else if (state_masked & MEM_READ_DISABLED_EX)
+	return 0;
+    else switch (state_masked) {
 	case MEM_READ_DISABLED:
 		return 0;
 
 	case MEM_READ_ANY:
-		return 1;
+		return !(flags & MEM_MAPPING_SMRAM);
 
 	/* On external and 0 mappings without ROMCS. */
 	case MEM_READ_EXTERNAL:
-		return !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_ROMCS);
+		return !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_ROMCS) && !(flags & MEM_MAPPING_SMRAM);
 
 	/* On external and 0 mappings with ROMCS. */
 	case MEM_READ_ROMCS:
-		return !(flags & MEM_MAPPING_INTERNAL) && (flags & MEM_MAPPING_ROMCS);
+		return !(flags & MEM_MAPPING_INTERNAL) && (flags & MEM_MAPPING_ROMCS) && !(flags & MEM_MAPPING_SMRAM);
 
 	/* On any external mappings. */
 	case MEM_READ_EXTANY:
-		return !(flags & MEM_MAPPING_INTERNAL);
+		return !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_SMRAM);
 
 	case MEM_READ_EXTERNAL_EX:
 		if (exec)
-			return !(flags & MEM_MAPPING_EXTERNAL);
+			return !(flags & MEM_MAPPING_EXTERNAL) && !(flags & MEM_MAPPING_SMRAM);
 		else
-			return !(flags & MEM_MAPPING_INTERNAL);
+			return !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_SMRAM);
 
 	case MEM_READ_INTERNAL:
-		return !(flags & MEM_MAPPING_EXTERNAL);
+		return !(flags & MEM_MAPPING_EXTERNAL) && !(flags & MEM_MAPPING_SMRAM);
 
 	default:
 		fatal("mem_mapping_read_allowed : bad state %x\n", state);
@@ -1968,34 +2114,41 @@ mem_mapping_read_allowed(uint32_t flags, int state, int exec)
 
 
 static __inline int
-mem_mapping_write_allowed(uint32_t flags, int state)
+mem_mapping_write_allowed(uint32_t flags, uint32_t state)
 {
-    int smm_state = state >> MEM_STATE_SMM_SHIFT;
+    uint32_t smm_state = state >> MEM_STATE_SMM_SHIFT;
+    uint32_t state_masked;
 
     if (in_smm && ((smm_state & MEM_WRITE_MASK) != MEM_WRITE_NORMAL))
 	state = smm_state;
 
-    switch (state & MEM_WRITE_MASK) {
+    state_masked = (state & MEM_WRITE_MASK);
+
+    if (state_masked & MEM_WRITE_SMRAM)
+	return (flags & MEM_MAPPING_SMRAM);
+    else if (state_masked & MEM_WRITE_DISABLED_EX)
+	return 0;
+    else  switch (state_masked) {
 	case MEM_WRITE_DISABLED:
 		return 0;
 
 	case MEM_WRITE_ANY:
-		return 1;
+		return !(flags & MEM_MAPPING_SMRAM);
 
 	/* On external and 0 mappings without ROMCS. */
 	case MEM_WRITE_EXTERNAL:
-		return !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_ROMCS);
+		return !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_ROMCS) && !(flags & MEM_MAPPING_SMRAM);
 
 	/* On external and 0 mappings with ROMCS. */
 	case MEM_WRITE_ROMCS:
-		return !(flags & MEM_MAPPING_INTERNAL) && (flags & MEM_MAPPING_ROMCS);
+		return !(flags & MEM_MAPPING_INTERNAL) && (flags & MEM_MAPPING_ROMCS) && !(flags & MEM_MAPPING_SMRAM);
 
 	/* On any external mappings. */
 	case MEM_WRITE_EXTANY:
-		return !(flags & MEM_MAPPING_INTERNAL);
+		return !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_SMRAM);
 
 	case MEM_WRITE_INTERNAL:
-		return !(flags & MEM_MAPPING_EXTERNAL);
+		return !(flags & MEM_MAPPING_EXTERNAL) && !(flags & MEM_MAPPING_SMRAM);
 
 	default:
 		fatal("mem_mapping_write_allowed : bad state %x\n", state);
@@ -2216,12 +2369,69 @@ mem_set_mem_state_common(int smm, uint32_t base, uint32_t size, int state)
 
     for (c = 0; c < size; c += MEM_GRANULARITY_SIZE) {
 	if (smm)
-		_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = (_mem_state[(c + base) >> MEM_GRANULARITY_BITS] & 0x00ff) | ((state & 0xff) << 8);
+		_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = (_mem_state[(c + base) >> MEM_GRANULARITY_BITS] & 0xf0f0ffff) | ((state & 0x0f0f) << MEM_STATE_SMM_SHIFT);
 	else
-		_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = (_mem_state[(c + base) >> MEM_GRANULARITY_BITS] & 0xff00) | (state & 0xff);
+		_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = (_mem_state[(c + base) >> MEM_GRANULARITY_BITS] & 0xfffff0f0) | (state & 0x0f0f);
 #ifdef ENABLE_MEM_LOG
 	if (((c + base) >= 0xa0000) && ((c + base) <= 0xbffff))
 		mem_log("Set mem state for block at %08X to %02X\n", c + base, state);
+#endif
+    }
+
+    mem_mapping_recalc(base, size);
+}
+
+
+void
+mem_set_mem_state_smram(int smm, uint32_t base, uint32_t size, int is_smram)
+{
+    uint32_t c, smstate = 0x0000;
+
+    smstate = is_smram ? (MEM_READ_SMRAM | MEM_WRITE_SMRAM) : 0x0000;
+
+    for (c = 0; c < size; c += MEM_GRANULARITY_SIZE) {
+	if (smm)
+		_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = (_mem_state[(c + base) >> MEM_GRANULARITY_BITS] & 0x0f0fffff) | (smstate << MEM_STATE_SMM_SHIFT);
+	else
+		_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = (_mem_state[(c + base) >> MEM_GRANULARITY_BITS] & 0xffff0f0f) | smstate;
+#ifdef ENABLE_MEM_LOG
+	if (((c + base) >= 0xa0000) && ((c + base) <= 0xbffff))
+		mem_log("Set mem state SMRAM flag for block at %08X to %02X\n", c + base, state);
+#endif
+    }
+
+    mem_mapping_recalc(base, size);
+}
+
+
+void
+mem_set_mem_state_smram_ex(int smm, uint32_t base, uint32_t size, int is_smram)
+{
+    uint32_t c, smstate = 0x0000;
+
+    switch (is_smram & 0x03) {
+	case 0x00:
+		smstate = 0x0000;
+		break;
+	case 0x01:
+		smstate = (MEM_READ_SMRAM | MEM_WRITE_SMRAM);
+		break;
+	case 0x02:
+		smstate = MEM_READ_SMRAM_EX;
+		break;
+	case 0x03:
+		smstate = (MEM_READ_DISABLED_EX | MEM_WRITE_DISABLED_EX);
+		break;
+    }
+	
+    for (c = 0; c < size; c += MEM_GRANULARITY_SIZE) {
+	if (smm)
+		_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = (_mem_state[(c + base) >> MEM_GRANULARITY_BITS] & 0x0f0fffff) | (smstate << MEM_STATE_SMM_SHIFT);
+	else
+		_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = (_mem_state[(c + base) >> MEM_GRANULARITY_BITS] & 0xffff0f0f) | smstate;
+#ifdef ENABLE_MEM_LOG
+	if (((c + base) >= 0xa0000) && ((c + base) <= 0xbffff))
+		mem_log("Set mem state SMRAM flag for block at %08X to %02X\n", c + base, state);
 #endif
     }
 
@@ -2244,6 +2454,14 @@ mem_set_mem_state_smm(uint32_t base, uint32_t size, int state)
 
 
 void
+mem_set_mem_state_both(uint32_t base, uint32_t size, int state)
+{
+    mem_set_mem_state_common(0, base, size, state);
+    mem_set_mem_state_common(1, base, size, state);
+}
+
+
+void
 mem_add_bios(void)
 {
     int temp_cpu_type, temp_cpu_16bitbus = 1;
@@ -2260,16 +2478,16 @@ mem_add_bios(void)
 			mem_write_null,mem_write_nullw,mem_write_nulll,
 			&rom[0x20000], MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
 
-	mem_set_mem_state(0x0e0000, 0x20000,
-			  MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+	mem_set_mem_state_both(0x0e0000, 0x20000,
+			       MEM_READ_ROMCS | MEM_WRITE_ROMCS);
     } else {
 	mem_mapping_add(&bios_mapping, biosaddr, biosmask + 1,
 			mem_read_bios,mem_read_biosw,mem_read_biosl,
 			mem_write_null,mem_write_nullw,mem_write_nulll,
 			rom, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
 
-	mem_set_mem_state(biosaddr, biosmask + 1,
-			  MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+	mem_set_mem_state_both(biosaddr, biosmask + 1,
+			       MEM_READ_ROMCS | MEM_WRITE_ROMCS);
     }
 
     if (AT) {
@@ -2278,8 +2496,8 @@ mem_add_bios(void)
 			mem_write_null,mem_write_nullw,mem_write_nulll,
 			rom, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
 
-	mem_set_mem_state(biosaddr | (temp_cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
-			  MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+	mem_set_mem_state_both(biosaddr | (temp_cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
+			       MEM_READ_ROMCS | MEM_WRITE_ROMCS);
     }
 }
 
@@ -2310,8 +2528,22 @@ mem_reset(void)
 	free(ram);
 	ram = NULL;
     }
-    ram = (uint8_t *)malloc(m);		/* allocate and clear the RAM block */
-    memset(ram, 0x00, m);
+    if (ram2 != NULL) {
+	free(ram2);
+	ram2 = NULL;
+    }
+    if (mem_size > 2097152)
+	fatal("Attempting to use more than 2 GB of guest RAM\n");
+
+    if (mem_size > 1048576) {
+	ram = (uint8_t *)malloc(1 << 30);		/* allocate and clear the RAM block of the first 1 GB */
+	memset(ram, 0x00, 1 << 30);
+	ram2 = (uint8_t *)malloc(m - (1 << 30));	/* allocate and clear the RAM block above 1 GB */
+	memset(ram2, 0x00, m - (1 << 30));
+    } else {
+	ram = (uint8_t *)malloc(m);		/* allocate and clear the RAM block */
+	memset(ram, 0x00, m);
+    }
 
     /*
      * Allocate the page table based on how much RAM we have.
@@ -2396,7 +2628,13 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 #endif
 
     for (c = 0; c < pages_sz; c++) {
-	pages[c].mem = &ram[c << 12];
+        if (mem_size > 1048576) {
+		if ((c << 12) < (1 << 30))
+			pages[c].mem = &ram[c << 12];
+		else
+			pages[c].mem = &ram2[(c << 12) - (1 << 30)];
+	} else
+		pages[c].mem = &ram[c << 12];
 	if (c < m) {
 		pages[c].write_b = mem_write_ramb_page;
 		pages[c].write_w = mem_write_ramw_page;
@@ -2420,16 +2658,11 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
     memset(&base_mapping, 0x00, sizeof(base_mapping));
 
     memset(_mem_state, 0x00, sizeof(_mem_state));
-    /* Set SMM states to (MEM_READ_NORMAL | MEM_WRITE_NORMAL). */
-    for (c = 0; c < MEM_MAPPINGS_NO; c++)
-	_mem_state[c] |= 0x4400;
 
-    mem_set_mem_state(0x000000, (mem_size > 640) ? 0xa0000 : mem_size * 1024,
-		      MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-    /* mem_set_mem_state(0x0c0000, 0x40000,
-		      MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL); */
-    mem_set_mem_state(0x0a0000, 0x60000,
-		      MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+    mem_set_mem_state_both(0x000000, (mem_size > 640) ? 0xa0000 : mem_size * 1024,
+			   MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    mem_set_mem_state_both(0x0a0000, 0x60000,
+			   MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
 
     mem_mapping_add(&ram_low_mapping, 0x00000,
 		    (mem_size > 640) ? 0xa0000 : mem_size * 1024,
@@ -2439,21 +2672,38 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 
     if (mem_size > 1024) {
 	if (cpu_16bitbus && mem_size > 16256) {
-		mem_set_mem_state(0x100000, (16256 - 1024) * 1024,
-				  MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+		mem_set_mem_state_both(0x100000, (16256 - 1024) * 1024,
+				       MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 		mem_mapping_add(&ram_high_mapping, 0x100000,
 				((16256 - 1024) * 1024),
 				mem_read_ram,mem_read_ramw,mem_read_raml,
 				mem_write_ram,mem_write_ramw,mem_write_raml,
 				ram + 0x100000, MEM_MAPPING_INTERNAL, NULL);
 	} else {
-		mem_set_mem_state(0x100000, (mem_size - 1024) * 1024,
-				  MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-		mem_mapping_add(&ram_high_mapping, 0x100000,
-				((mem_size - 1024) * 1024),
-				mem_read_ram,mem_read_ramw,mem_read_raml,
-				mem_write_ram,mem_write_ramw,mem_write_raml,
-				ram + 0x100000, MEM_MAPPING_INTERNAL, NULL);
+		if (mem_size > 1048576) {
+			mem_set_mem_state_both(0x100000, (1048576 - 1024) * 1024,
+					       MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+			mem_mapping_add(&ram_high_mapping, 0x100000,
+					((1048576 - 1024) * 1024),
+					mem_read_ram,mem_read_ramw,mem_read_raml,
+					mem_write_ram,mem_write_ramw,mem_write_raml,
+					ram + 0x100000, MEM_MAPPING_INTERNAL, NULL);
+			mem_set_mem_state_both((1 << 30), (mem_size - 1048576) * 1024,
+					       MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+			mem_mapping_add(&ram_2gb_mapping, (1 << 30),
+					((mem_size - 1048576) * 1024),
+					mem_read_ram_2gb,mem_read_ram_2gbw,mem_read_ram_2gbl,
+					mem_write_ram,mem_write_ramw,mem_write_raml,
+					ram2, MEM_MAPPING_INTERNAL, NULL);
+		} else {
+			mem_set_mem_state_both(0x100000, (mem_size - 1024) * 1024,
+					       MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+			mem_mapping_add(&ram_high_mapping, 0x100000,
+					((mem_size - 1024) * 1024),
+					mem_read_ram,mem_read_ramw,mem_read_raml,
+					mem_write_ram,mem_write_ramw,mem_write_raml,
+					ram + 0x100000, MEM_MAPPING_INTERNAL, NULL);
+		}
 	}
     }
 
@@ -2462,19 +2712,34 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 			mem_read_ram,mem_read_ramw,mem_read_raml,
 			mem_write_ram,mem_write_ramw,mem_write_raml,
 			ram + 0xc0000, MEM_MAPPING_INTERNAL, NULL); */
-    if (mem_size > 768)
+    if (mem_size > 768) {
 	mem_mapping_add(&ram_mid_mapping, 0xa0000, 0x60000,
 			mem_read_ram,mem_read_ramw,mem_read_raml,
 			mem_write_ram,mem_write_ramw,mem_write_raml,
 			ram + 0xa0000, MEM_MAPPING_INTERNAL, NULL);
+    }
+
+    mem_mapping_add(&ram_smram_mapping[0], 0xa0000, 0x60000,
+		    mem_read_smram,mem_read_smramw,mem_read_smraml,
+		    mem_write_smram,mem_write_smramw,mem_write_smraml,
+		    ram + 0xa0000, MEM_MAPPING_SMRAM, &(smram[0]));
+    mem_mapping_add(&ram_smram_mapping[1], 0xa0000, 0x60000,
+		    mem_read_ram,mem_read_ramw,mem_read_raml,
+		    mem_write_ram,mem_write_ramw,mem_write_raml,
+		    ram + 0xa0000, MEM_MAPPING_SMRAM, &(smram[1]));
+    mem_mapping_disable(&ram_smram_mapping[0]);
+    mem_mapping_disable(&ram_smram_mapping[1]);
 
     mem_mapping_add(&ram_remapped_mapping, mem_size * 1024, 256 * 1024,
 		    mem_read_remapped,mem_read_remappedw,mem_read_remappedl,
 		    mem_write_remapped,mem_write_remappedw,mem_write_remappedl,
 		    ram + 0xa0000, MEM_MAPPING_INTERNAL, NULL);
-    mem_mapping_disable(&ram_remapped_mapping);			
+    mem_mapping_disable(&ram_remapped_mapping);
 			
     mem_a20_init();
+
+    smram[0].host_base = smram[0].ram_base = 0x00000000;
+    smram[1].host_base = smram[1].ram_base = 0x00000000;
 
 #ifdef USE_NEW_DYNAREC
     purgable_page_list_head = 0;
@@ -2488,6 +2753,7 @@ mem_init(void)
 {
     /* Perform a one-time init. */
     ram = rom = NULL;
+    ram2 = NULL;
     pages = NULL;
 #if DYNAMIC_TABLES
     page_lookup = NULL;
@@ -2515,7 +2781,7 @@ mem_init(void)
 void
 mem_remap_top(int kb)
 {
-    int c;
+    uint32_t c;
     uint32_t start = (mem_size >= 1024) ? mem_size : 1024;
     int offset, size = mem_size - 640;
 
@@ -2545,8 +2811,8 @@ mem_remap_top(int kb)
 #endif
     }
 
-    mem_set_mem_state(start * 1024, size * 1024,
-		      MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+    mem_set_mem_state_both(start * 1024, size * 1024,
+			   MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
     mem_mapping_set_addr(&ram_remapped_mapping, start * 1024, size * 1024);
     mem_mapping_set_exec(&ram_remapped_mapping, ram + (start * 1024));
 

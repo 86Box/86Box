@@ -241,6 +241,7 @@ extern int	machine_at_alfredo_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_486sp3g_init(const machine_t *);
 #endif
+extern int	machine_at_486ap4_init(const machine_t *);
 
 /* m_at_commodore.c */
 extern int	machine_at_cmdpc_init(const machine_t *);

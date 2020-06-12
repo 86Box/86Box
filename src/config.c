@@ -536,8 +536,8 @@ load_machine(void)
 	mem_size = (((machines[machine].flags & MACHINE_AT) && (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram);
 #endif    
 	
-	if (mem_size > 1048576)
-	mem_size = 1048576;
+    if (mem_size > 2097152)
+	mem_size = 2097152;
 
     cpu_use_dynarec = !!config_get_int(cat, "cpu_use_dynarec", 0);
 
