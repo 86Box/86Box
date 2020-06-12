@@ -477,6 +477,7 @@ machine_at_486sp3g_init(const machine_t *model)
     device_add(&sst_flash_29ee010_device);
 
     device_add(&i420zx_device);
+    device_add(&ncr53c810_pci_device);
 
     return ret;
 }
