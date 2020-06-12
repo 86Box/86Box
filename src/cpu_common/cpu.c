@@ -203,6 +203,7 @@ uint64_t	ecx11e_msr = 0;
 uint64_t	ecx186_msr = 0;
 uint64_t	ecx187_msr = 0;
 uint64_t	ecx1e0_msr = 0;
+uint64_t	ecx404_msr = 0;
 uint64_t	ecx570_msr = 0;
 
 uint64_t	ecx83_msr = 0;			/* AMD K5 and K6 MSR's. */
@@ -2877,6 +2878,10 @@ void cpu_RDMSR()
                         EAX = mtrr_deftype_msr & 0xffffffff;
                         EDX = mtrr_deftype_msr >> 32;
 			break;
+			case 0x404:
+                        EAX = ecx404_msr & 0xffffffff;
+                        EDX = ecx404_msr >> 32;
+			break;
 			case 0x570:
                         EAX = ecx570_msr & 0xffffffff;
                         EDX = ecx570_msr >> 32;
@@ -3293,9 +3298,12 @@ void cpu_WRMSR()
 			case 0x2FF:
 			mtrr_deftype_msr = EAX | ((uint64_t)EDX << 32);
 			break;
+			case 0x404:
+			ecx404_msr = EAX | ((uint64_t)EDX << 32);
+			break;
 			case 0x570:
 			ecx570_msr = EAX | ((uint64_t)EDX << 32);
-			break;			
+			break;
 			default:
 i686_invalid_wrmsr:
 			cpu_log("WRMSR: Invalid MSR: %08X\n", ECX);
