@@ -60,6 +60,7 @@
 # include "codegen.h"
 #endif
 
+/*#define ENABLE_CPU_LOG 1*/
 
 static void	cpu_write(uint16_t addr, uint8_t val, void *priv);
 static uint8_t	cpu_read(uint16_t addr, void *priv);
@@ -195,6 +196,7 @@ uint64_t	apic_base_msr = 0;
 uint64_t	pat_msr = 0;
 uint64_t	msr_ia32_pmc[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 uint64_t	ecx17_msr = 0;
+uint64_t	ecx2a_msr = 0;
 uint64_t	ecx79_msr = 0;
 uint64_t	ecx8x_msr[4] = {0, 0, 0, 0};
 uint64_t	ecx116_msr = 0;
@@ -204,9 +206,19 @@ uint64_t	ecx186_msr = 0;
 uint64_t	ecx187_msr = 0;
 uint64_t	ecx1e0_msr = 0;
 uint64_t	ecx404_msr = 0;
+uint64_t	ecx408_msr = 0;
+uint64_t	ecx40c_msr = 0;
+uint64_t	ecx410_msr = 0;
 uint64_t	ecx570_msr = 0;
 
 uint64_t	ecx83_msr = 0;			/* AMD K5 and K6 MSR's. */
+
+/* Some weird long MSR's used by the Tyan Tsunami ATX */
+/* Will respond with: 0404040404040404. It'll be nice */
+/* If somebody could check them.                      */
+uint64_t	ecxf0f00250_msr = 0;	
+uint64_t	ecxf0f00258_msr = 0;
+
 uint64_t	star = 0;			/* AMD K6-2+. */
 
 uint64_t	amd_efer = 0, amd_whcr = 0,
@@ -2882,9 +2894,29 @@ void cpu_RDMSR()
                         EAX = ecx404_msr & 0xffffffff;
                         EDX = ecx404_msr >> 32;
 			break;
+			case 0x408:
+                        EAX = ecx408_msr & 0xffffffff;
+                        EDX = ecx408_msr >> 32;
+			break;
+			case 0x40c:
+                        EAX = ecx40c_msr & 0xffffffff;
+                        EDX = ecx40c_msr >> 32;
+			break;
+			case 0x410:
+                        EAX = ecx410_msr & 0xffffffff;
+                        EDX = ecx410_msr >> 32;
+			break;
 			case 0x570:
                         EAX = ecx570_msr & 0xffffffff;
                         EDX = ecx570_msr >> 32;
+			break;
+			case 0xf0f00250:
+                        EAX = ecxf0f00250_msr & 0xffffffff;
+                        EDX = ecxf0f00250_msr >> 32;
+			break;
+			case 0xf0f00258:
+                        EAX = ecxf0f00258_msr & 0xffffffff;
+                        EDX = ecxf0f00258_msr >> 32;
 			break;
 			default:
 i686_invalid_rdmsr:
@@ -3229,6 +3261,9 @@ void cpu_WRMSR()
 			/* pclog("APIC_BASE write: %08X%08X\n", EDX, EAX); */
 			// apic_base_msr = EAX | ((uint64_t)EDX << 32);
 			break;
+			case 0x2A:
+			ecx2a_msr = EAX | ((uint64_t)EDX << 32);
+			break;
 			case 0x79:
 			ecx79_msr = EAX | ((uint64_t)EDX << 32);
 			break;
@@ -3301,8 +3336,23 @@ void cpu_WRMSR()
 			case 0x404:
 			ecx404_msr = EAX | ((uint64_t)EDX << 32);
 			break;
+			case 0x408:
+			ecx408_msr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0x40c:
+			ecx40c_msr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0x410:
+			ecx410_msr = EAX | ((uint64_t)EDX << 32);
+			break;
 			case 0x570:
 			ecx570_msr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xf0f00250:
+			ecxf0f00250_msr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xf0f00258:
+			ecxf0f00258_msr = EAX | ((uint64_t)EDX << 32);
 			break;
 			default:
 i686_invalid_wrmsr:
