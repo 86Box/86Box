@@ -60,7 +60,7 @@
 # include "codegen.h"
 #endif
 
-/* #define ENABLE_CPU_LOG 1 */
+/*#define ENABLE_CPU_LOG 1*/
 
 static void	cpu_write(uint16_t addr, uint8_t val, void *priv);
 static uint8_t	cpu_read(uint16_t addr, void *priv);
@@ -212,6 +212,13 @@ uint64_t	ecx410_msr = 0;
 uint64_t	ecx570_msr = 0;
 
 uint64_t	ecx83_msr = 0;			/* AMD K5 and K6 MSR's. */
+
+/* Some weird long MSR's used by the Tyan Tsunami ATX */
+/* Will respond with: 0404040404040404. It'll be nice */
+/* If somebody could check them.                      */
+uint64_t	ecxf0f00250_msr = 0;	
+uint64_t	ecxf0f00258_msr = 0;
+
 uint64_t	star = 0;			/* AMD K6-2+. */
 
 uint64_t	amd_efer = 0, amd_whcr = 0,
@@ -2903,6 +2910,14 @@ void cpu_RDMSR()
                         EAX = ecx570_msr & 0xffffffff;
                         EDX = ecx570_msr >> 32;
 			break;
+			case 0xf0f00250:
+                        EAX = ecxf0f00250_msr & 0xffffffff;
+                        EDX = ecxf0f00250_msr >> 32;
+			break;
+			case 0xf0f00258:
+                        EAX = ecxf0f00258_msr & 0xffffffff;
+                        EDX = ecxf0f00258_msr >> 32;
+			break;
 			default:
 i686_invalid_rdmsr:
 			cpu_log("RDMSR: Invalid MSR: %08X\n", ECX);
@@ -3332,6 +3347,12 @@ void cpu_WRMSR()
 			break;
 			case 0x570:
 			ecx570_msr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xf0f00250:
+			ecxf0f00250_msr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xf0f00258:
+			ecxf0f00258_msr = EAX | ((uint64_t)EDX << 32);
 			break;
 			default:
 i686_invalid_wrmsr:
