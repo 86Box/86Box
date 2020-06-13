@@ -171,9 +171,6 @@ endif
 ifndef WX
 WX		:= n
 endif
-ifndef USB
-USB		:= n
-endif
 ifndef DINPUT
  DINPUT		:= n
 endif
@@ -587,10 +584,6 @@ ZIPOBJ		:= zip.o
 
 MOOBJ		:= mo.o
 
-ifeq ($(USB), y)
-USBOBJ		:= usb.o
-endif
-
 SCSIOBJ		:= scsi.o scsi_device.o \
 		    scsi_cdrom.o scsi_disk.o \
 		    scsi_x54x.o \
@@ -683,7 +676,7 @@ endif
 
 OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) \
 		   $(DEVOBJ) $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) \
-		   $(USBOBJ) $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) \
+		   $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) \
 		   $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) $(DEVBROBJ) \
 		   $(DISCORDOBJ)
 ifdef EXOBJ
