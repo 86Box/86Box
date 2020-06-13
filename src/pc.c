@@ -838,7 +838,7 @@ pc_close(thread_t *ptr)
 	plat_delay_ms(200);
     }
 
-#ifdef USE_NEW_DYNAREC
+#if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
     codegen_close();
 #endif
 

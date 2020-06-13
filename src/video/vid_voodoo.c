@@ -2663,7 +2663,6 @@ static inline void voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t 
 #include <86box/vid_voodoo_codegen_x86-64.h>
 #else
 #define NO_CODEGEN
-static int voodoo_recomp = 0;
 #endif
 
 static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *state, int ystart, int yend, int odd_even)

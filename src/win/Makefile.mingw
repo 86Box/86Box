@@ -8,8 +8,6 @@
 #
 #		Makefile for Win32 (MinGW32) environment.
 #
-# Version:	@(#)Makefile.mingw	1.0.144	2020/06/06
-#
 # Authors:	Miran Grca, <mgrca8@gmail.com>
 #               Fred N. van Kempen, <decwiz@yahoo.com>
 #
@@ -34,6 +32,9 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef DEV_BRANCH
   DEV_BRANCH	:= y
+ endif
+ ifndef 596B
+  596B		:= y
  endif
  ifndef AMD_K5
   AMD_K5	:= y
@@ -63,13 +64,10 @@ ifeq ($(DEV_BUILD), y)
   VECTRA54	:= y
  endif
  ifndef VPP60
-  VP660		:= y
+  VPP60		:= y
  endif
  ifndef SIEMENS
   SIEMENS	:= y
- endif
- ifndef 596B
-  596B		:= y
  endif
  ifndef VGAWONDER
   VGAWONDER	:= y
@@ -95,6 +93,9 @@ else
  endif
  ifndef DEV_BRANCH
   DEV_BRANCH	:= n
+ endif
+ ifndef 596B
+  596B		:= n
  endif
  ifndef AMD_K5
   AMD_K5	:= n
@@ -124,10 +125,10 @@ else
   VECTRA54	:= n
  endif
  ifndef VPP60
-  VP660		:= n
+  VPP60		:= n
  endif
- ifndef 596B
-  596B		:= n
+ ifndef SIEMENS
+  SIEMENS	:= n
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
@@ -183,17 +184,34 @@ endif
 ifndef MUNT
 MUNT		:= y
 endif
+ifndef NEW_DYNAREC
+ NEW_DYNAREC	:= n
+endif
 ifndef DYNAREC
  DYNAREC		:= y
+endif
+ifeq ($(DYNAREC), y)
  ifeq ($(ARM), y)
-  DYNAREC		:= n
+  ifeq ($(NEW_DYNAREC), n)
+   DYNAREC		:= n
+  endif
  endif
  ifeq ($(ARM64), y)
-  DYNAREC   := n
+  ifeq ($(NEW_DYNAREC), n)
+   DYNAREC		:= n
+  endif
  endif
 endif
 ifndef DISCORD
  DISCORD	:= y
+endif
+
+
+# Path to the dynamic recompiler code.
+ifeq ($(NEW_DYNAREC), y)
+ CODEGEN	:= codegen_new
+else
+ CODEGEN	:= codegen
 endif
 
 
@@ -242,9 +260,9 @@ endif
 #########################################################################
 #		Nothing should need changing from here on..		#
 #########################################################################
-VPATH		:= $(EXPATH) . codegen cpu \
-		   cdrom chipset disk floppy game machine \
-		   printer \
+VPATH		:= $(EXPATH) . $(CODEGEN) cpu \
+		   cdrom chipset device disk floppy \
+		   game machine mem printer \
 		   sio sound \
 		    sound/munt sound/munt/c_interface sound/munt/sha1 \
 		    sound/munt/srchelper sound/munt/srchelper/srctools/src \
@@ -256,7 +274,7 @@ else
 TOOL_PREFIX     := i686-w64-mingw32-
 endif
 CPP             := ${TOOL_PREFIX}g++
-CC              := gcc
+CC              := ${TOOL_PREFIX}gcc
 WINDRES		:= windres
 STRIP		:= strip
 ifeq ($(ARM64), y)
@@ -277,7 +295,7 @@ DEPFILE		:= win/.depends
 # Set up the correct toolchain flags.
 OPTS		:= $(EXTRAS) $(STUFF)
 OPTS		+= -Iinclude \
-		   -iquote codegen -iquote cpu
+		   -iquote $(CODEGEN) -iquote cpu
 ifdef EXFLAGS
 OPTS		+= $(EXFLAGS)
 endif
@@ -316,7 +334,7 @@ else
   endif
  endif
 endif
-AFLAGS		:= -msse2 -mfpmath=387
+AFLAGS		:= -msse2 -mfpmath=sse
 ifeq ($(ARM), y)
  DFLAGS	  := -march=armv7-a
  AOPTIM	  :=
@@ -340,22 +358,54 @@ endif
 
 # Optional modules.
 ifeq ($(DYNAREC), y)
-ifeq ($(X64), y)
-PLATCG		:= codegen_x86-64.o codegen_accumulate_x86-64.o
-else
-PLATCG		:= codegen_x86.o codegen_accumulate_x86.o
-endif
-
 OPTS		+= -DUSE_DYNAREC
 RFLAGS		+= -DUSE_DYNAREC
-DYNARECOBJ	:= 386_dynarec_ops.o \
-		    codegen.o \
-		    codegen_ops.o codegen_timing_486.o \
+
+ ifeq ($(NEW_DYNAREC), y)
+  OPTS		+= -DUSE_NEW_DYNAREC
+  RFLAGS	+= -DUSE_NEW_DYNAREC
+
+  ifeq ($(X64), y)
+   PLATCG	:= codegen_backend_x86-64.o codegen_backend_x86-64_ops.o codegen_backend_x86-64_ops_sse.o \
+		    codegen_backend_x86-64_uops.o
+  else ifeq ($(ARM64), y)
+   PLATCG	:= codegen_backend_arm64.o codegen_backend_arm64_ops.o codegen_backend_arm64_uops.o \
+		    codegen_backend_arm64_imm.o
+  else ifeq ($(ARM), y)
+   PLATCG	:= codegen_backend_arm.o codegen_backend_arm_ops.o codegen_backend_arm_uops.o
+  else
+   PLATCG	:= codegen_backend_x86.o codegen_backend_x86_ops.o codegen_backend_x86_ops_fpu.o \
+		    codegen_backend_x86_ops_sse.o codegen_backend_x86_uops.o
+  endif
+
+  DYNARECOBJ	:= codegen.o codegen_accumulate.o codegen_allocator.o codegen_block.o codegen_ir.o codegen_ops.o \
+		    codegen_ops_3dnow.o codegen_ops_branch.o codegen_ops_arith.o codegen_ops_fpu_arith.o \
+		    codegen_ops_fpu_constant.o codegen_ops_fpu_loadstore.o codegen_ops_fpu_misc.o codegen_ops_helpers.o \
+		    codegen_ops_jump.o codegen_ops_logic.o codegen_ops_misc.o codegen_ops_mmx_arith.o codegen_ops_mmx_cmp.o \
+		    codegen_ops_mmx_loadstore.o codegen_ops_mmx_logic.o codegen_ops_mmx_pack.o codegen_ops_mmx_shift.o \
+		    codegen_ops_mov.o codegen_ops_shift.o codegen_ops_stack.o codegen_reg.o $(PLATCG)
+ else
+  ifeq ($(X64), y)
+   PLATCG	:= codegen_x86-64.o codegen_accumulate_x86-64.o
+  else
+   PLATCG	:= codegen_x86.o codegen_accumulate_x86.o
+  endif
+
+  DYNARECOBJ	:= codegen.o \
+		    codegen_ops.o $(PLATCG)
+ endif
+
+  CGTOBJ	:= codegen_timing_486.o \
 		    codegen_timing_686.o codegen_timing_common.o codegen_timing_k6.o codegen_timing_pentium.o \
-		    codegen_timing_p6.o codegen_timing_winchip.o codegen_timing_winchip2.o $(PLATCG)
+		    codegen_timing_p6.o codegen_timing_winchip.o codegen_timing_winchip2.o
+else
+ ifeq ($(NEW_DYNAREC), y)
+  OPTS		+= -DUSE_NEW_DYNAREC
+  RFLAGS	+= -DUSE_NEW_DYNAREC
+ endif
 endif
 
-ifneq ($(WX), n)
+ifeq ($(WX), y)
  OPTS		+= -DUSE_WX $(WX_FLAGS)
  LIBS		+= $(WX_LIBS)
  UIOBJ		:= wx_main.o wx_ui.o wx_stbar.o wx_render.o
@@ -483,24 +533,13 @@ endif
 endif
 
 
-# Options for works-in-progress.
-ifndef SERIAL
-SERIAL		:= serial.o
-endif
-
-
 # Final versions of the toolchain flags.
 CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
-		   $(AFLAGS) -pipe -fomit-frame-pointer -mstackrealign -Wall \
+		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall \
 		   -fno-strict-aliasing
-# -funroll-loops
 
 # Add freetyp2 references through pkgconfig
-ifeq ($(DEBUG), y)
-CFLAGS          := $(CFLAGS) -fstack-protector-all  `pkg-config --cflags freetype2`
-else
 CFLAGS          := $(CFLAGS)  `pkg-config --cflags freetype2`
-endif
 
 CXXFLAGS	:= $(CFLAGS)
 
@@ -509,24 +548,22 @@ CXXFLAGS	:= $(CFLAGS)
 #		Create the (final) list of objects to build.		#
 #########################################################################
 MAINOBJ		:= pc.o config.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
-		   nmi.o pic.o pit.o port_92.o ppi.o pci.o mca.o mcr.o mem.o rom.o \
-		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o sst_flash.o via_vt82c586b.o \
-		   via_vt82c596b.o $(VNCOBJ)
+		   nmi.o pic.o pit.o port_92.o ppi.o pci.o mca.o \
+		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o \
+		   $(VNCOBJ)
 
-INTELOBJ	:= intel_flash.o intel_420ex.o \
-		    intel_sio.o intel_piix.o
+MEMOBJ		:= intel_flash.o mem.o rom.o spd.o sst_flash.o
 
 CPUOBJ		:= cpu.o cpu_table.o \
-		    808x.o \
-		    386.o 386_common.o \
-		    386_dynarec.o \
+		    808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o $(CGTOBJ) \
 		    x86seg.o x87.o \
 		    $(DYNARECOBJ)
 
 CHIPSETOBJ	:= acc2168.o acer_m3a.o cs8230.o ali1429.o headland.o \
-		    intel_4x0.o ioapic.o neat.o opti495.o opti5x7.o scamp.o scat.o \
-		    rabbit.o sis_85c471.o sis_85c496.o \
-		    via_apollo.o via_vpx.o wd76c10.o
+		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o neat.o \
+		    opti495.o opti5x7.o scamp.o scat.o \
+		    sis_85c310.o sis_85c471.o sis_85c496.o \
+		    via_apollo.o via_vpx.o via_vt82c586b.o via_vt82c596b.o wd76c10.o
 
 MCHOBJ		:= machine.o machine_table.o \
 		    m_xt.o m_xt_compaq.o \
@@ -544,29 +581,31 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_at_socket4_5.o m_at_socket7_s7.o m_at_sockets7.o \
 		    m_at_socket8.o m_at_slot1.o m_at_slot2.o m_at_socket370.o
 
-DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o ibm_5161.o isamem.o isartc.o lpt.o postcard.o $(SERIAL) \
-		    sio_detect.o sio_acc3221.o \
+DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o ibm_5161.o isamem.o isartc.o lpt.o postcard.o serial.o \
+		    smbus.o smbus_piix4.o \
+		   keyboard.o \
+		    keyboard_xt.o keyboard_at.o \
+		   mouse.o \
+		    mouse_bus.o \
+		    mouse_serial.o mouse_ps2.o
+
+SIOOBJ		:= sio_acc3221.o \
 		    sio_f82c710.o \
 		    sio_fdc37c66x.o sio_fdc37c669.o \
 		    sio_fdc37c93x.o \
 		    sio_pc87306.o \
 		    sio_w83787f.o \
 		    sio_w83877f.o sio_w83977f.o \
-		    sio_um8669f.o \
-		    smbus.o smbus_piix4.o spd.o \
-		   keyboard.o \
-		    keyboard_xt.o keyboard_at.o \
-		   gameport.o \
-		    joystick_standard.o joystick_ch_flightstick_pro.o \
-		    joystick_sw_pad.o joystick_tm_fcs.o \
-		   mouse.o \
-		    mouse_bus.o \
-		    mouse_serial.o mouse_ps2.o
+		    sio_um8669f.o
 
 FDDOBJ		:= fdd.o fdc.o fdi2raw.o \
 		   fdd_common.o fdd_86f.o \
 		   fdd_fdi.o fdd_imd.o fdd_img.o fdd_json.o \
 		   fdd_mfm.o fdd_td0.o
+
+GAMEOBJ		:= gameport.o \
+		    joystick_standard.o joystick_ch_flightstick_pro.o \
+		    joystick_sw_pad.o joystick_tm_fcs.o
 
 HDDOBJ		:= hdd.o \
 		    hdd_image.o hdd_table.o \
@@ -674,9 +713,9 @@ else
  PLATOBJ	+= win_joystick_rawinput.o
 endif
 
-OBJ		:= $(MAINOBJ) $(INTELOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) \
-		   $(DEVOBJ) $(FDDOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) \
-		   $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SNDOBJ) $(VIDOBJ) \
+OBJ		:= $(MAINOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
+		   $(FDDOBJ) $(GAMEOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) \
+		   $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SIOOBJ) $(SNDOBJ) $(VIDOBJ) \
 		   $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) $(DEVBROBJ) \
 		   $(DISCORDOBJ)
 ifdef EXOBJ
@@ -685,9 +724,6 @@ endif
 
 LIBS		:= -mwindows -lcomctl32 \
 		   -lopenal -lole32
-ifeq ($(DEBUG), y)
- LIBS    += -lssp
-endif
 
 ifeq ($(VNC), y)
 LIBS		+= $(VNCLIB) -lws2_32
@@ -765,10 +801,8 @@ pcap_if.res:	pcap_if.rc
 
 pcap_if.exe:	pcap_if.o win_dynld.o pcap_if.res
 		@echo Linking pcap_if.exe ..
-ifeq ($(DEBUG), y)
-		@$(CC) $(LDFLAGS) -o pcap_if.exe pcap_if.o win_dynld.o pcap_if.res -lssp
-else
 		@$(CC) $(LDFLAGS) -o pcap_if.exe pcap_if.o win_dynld.o pcap_if.res
+ifneq ($(DEBUG), y)
 		@$(STRIP) pcap_if.exe
 endif
 

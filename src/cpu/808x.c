@@ -953,7 +953,6 @@ reset_common(int hard)
 	makeznptable();
 	resetreadlookup();
 	makemod1table();
-	resetmcr();
 	pfq_clear();
 	cpu_set_edx();
 	mmu_perm = 4;
@@ -984,6 +983,8 @@ reset_common(int hard)
 	ppi_reset();
     }
     in_sys = 0;
+
+    shadowbios = shadowbios_write = 0;
 }
 
 

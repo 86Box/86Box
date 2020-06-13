@@ -24,10 +24,13 @@
 #include "386_common.h"
 #include "x86_flags.h"
 #include "x86seg.h"
+
+#ifdef USE_DYNAREC
 #include "codegen.h"
-
-
 #define CPU_BLOCK_END() cpu_block_end = 1
+#else
+#define CPU_BLOCK_END()
+#endif
 
 
 x86seg gdt, ldt, idt, tr;
@@ -1564,7 +1567,9 @@ sysenter(uint32_t fetchdat)
 	return 1;
     do_seg_load(&cpu_state.seg_ss, seg_data);
     cpu_state.seg_ss.checked = 0;
+#ifdef USE_DYNAREC
     codegen_flat_ss = 0;
+#endif
     if (cpu_state.seg_ss.base == 0 && cpu_state.seg_ss.limit_low == 0 &&
     cpu_state.seg_ss.limit_high == 0xffffffff)
 	cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
@@ -1657,7 +1662,9 @@ sysexit(uint32_t fetchdat)
 	return 1;
     do_seg_load(&cpu_state.seg_ss, seg_data);
     cpu_state.seg_ss.checked = 0;
+#ifdef USE_DYNAREC
     codegen_flat_ss = 0;
+#endif
     if (cpu_state.seg_ss.base == 0 && cpu_state.seg_ss.limit_low == 0 &&
 	cpu_state.seg_ss.limit_high == 0xffffffff)
 	cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
@@ -1725,7 +1732,9 @@ syscall(uint32_t fetchdat)
 	return 1;
     do_seg_load(&cpu_state.seg_ss, seg_data);
     cpu_state.seg_ss.checked = 0;
+#ifdef USE_DYNAREC
     codegen_flat_ss = 0;
+#endif
     if (cpu_state.seg_ss.base == 0 && cpu_state.seg_ss.limit_low == 0 &&
 	cpu_state.seg_ss.limit_high == 0xffffffff)
 	cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
@@ -1782,7 +1791,9 @@ sysret(uint32_t fetchdat)
 	return 1;
     do_seg_load(&cpu_state.seg_ss, seg_data);
     cpu_state.seg_ss.checked = 0;
+#ifdef USE_DYNAREC
     codegen_flat_ss = 0;
+#endif
     if (cpu_state.seg_ss.base == 0 && cpu_state.seg_ss.limit_low == 0 &&
 	cpu_state.seg_ss.limit_high == 0xffffffff)
 	cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
@@ -1797,3 +1808,13 @@ sysret(uint32_t fetchdat)
 
     return 1;
 }
+
+
+#ifndef USE_DYNAREC
+/* This is for compatibility with new x87 code. */
+void codegen_set_rounding_mode(int mode)
+{
+	/* cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (cpu_state.npxc & 0xc00); */
+	cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (mode << 10);
+}
+#endif

@@ -14,8 +14,10 @@ static int opRDTSC(uint32_t fetchdat)
         EAX = tsc & 0xffffffff;
         EDX = tsc >> 32;
         CLOCK_CYCLES(1);
+#ifdef USE_DYNAREC
 	if (cpu_use_dynarec)
 		update_tsc();
+#endif
         return 0;
 }
 
