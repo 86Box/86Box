@@ -83,14 +83,14 @@ bin_read(void *p, uint8_t *buffer, uint64_t seek, size_t count)
 	return 0;
 
     if (fseeko64(tf->file, seek, SEEK_SET) == -1) {
-#ifdef ENABLE_cdrom_image_backend_log
+#ifdef ENABLE_CDROM_IMAGE_BACKEND_LOG
 	cdrom_image_backend_log("CDROM: binary_read failed during seek!\n");
 #endif
 	return 0;
     }
 
     if (fread(buffer, count, 1, tf->file) != 1) {
-#ifdef ENABLE_cdrom_image_backend_log
+#ifdef ENABLE_CDROM_IMAGE_BACKEND_LOG
 	cdrom_image_backend_log("CDROM: binary_read failed during read!\n");
 #endif
 	return 0;
@@ -953,7 +953,7 @@ cdi_load_cue(cd_img_t *cdi, const wchar_t *cuefile)
 			trk.file = track_file_init(filename, &error);
 		}
 		if (error) {
-#ifdef ENABLE_cdrom_image_backend_log
+#ifdef ENABLE_CDROM_IMAGE_BACKEND_LOG
 			cdrom_image_backend_log("CUE: cannot open fille '%ls' in cue sheet!\n",
 					 filename);
 #endif
@@ -971,7 +971,7 @@ cdi_load_cue(cd_img_t *cdi, const wchar_t *cuefile)
 		/* Ignored commands. */
 		success = 1;
 	} else {
-#ifdef ENABLE_cdrom_image_backend_log
+#ifdef ENABLE_CDROM_IMAGE_BACKEND_LOG
 		cdrom_image_backend_log("CUE: unsupported command '%s' in cue sheet!\n",
 				 command.c_str());
 #endif
