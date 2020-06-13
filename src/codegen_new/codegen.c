@@ -614,7 +614,10 @@ generate_call:
                   To prevent having zero cycle blocks (eg with a jump instruction pointing
                   to itself), apply the cycles that would be taken if this jump is taken,
                   then reverse it for subsequent instructions if the jump is not taken*/
-                int jump_cycles = codegen_timing_jump_cycles();
+                int jump_cycles = 0;
+
+		if (codegen_timing_jump_cycles)
+			codegen_timing_jump_cycles();
                 
                 if (jump_cycles)
                         codegen_accumulate(ACCREG_cycles, -jump_cycles);

@@ -9,19 +9,19 @@
         - PMMX decode queue
         - MMX latencies
 */
-
+#include <stdio.h>
 #include <stdint.h>
+#include <string.h>
+#include <wchar.h>
 #include <86box/86box.h>
+#include <86box/mem.h>
 #include "cpu.h"
 #include "x86.h"
 #include "x86_ops.h"
 #include "x87.h"
-#include <86box/mem.h>
-
 #include "codegen.h"
 #include "codegen_ops.h"
 #include "codegen_timing_common.h"
-
 
 
 /*Instruction has different execution time for 16 and 32 bit data. Does not pair */
@@ -938,7 +938,6 @@ void codegen_timing_pentium_block_start()
 
 void codegen_timing_pentium_start()
 {
-//        decode_delay = 0;
         last_prefix = 0;
         prefixes = 0;
 }
@@ -1036,8 +1035,6 @@ static void codegen_instruction(uint64_t *timings, uint64_t *deps, uint8_t opcod
         }
         if ((timings[opcode] & PAIR_FPU) && !(deps[opcode] & FPU_FXCH))
         {
-  /*              if (fpu_latency)
-                        fatal("Bad latency FPU\n");*/
                 fpu_latency = FPU_F_LATENCY(timings[opcode]);
         }
 
@@ -1311,11 +1308,6 @@ void codegen_timing_pentium_block_end()
         }
 }
 
-int codegen_timing_pentium_jump_cycles()
-{
-        return 0;
-}
-
 codegen_timing_t codegen_timing_pentium =
 {
         codegen_timing_pentium_start,
@@ -1323,5 +1315,5 @@ codegen_timing_t codegen_timing_pentium =
         codegen_timing_pentium_opcode,
         codegen_timing_pentium_block_start,
         codegen_timing_pentium_block_end,
-        codegen_timing_pentium_jump_cycles
+        NULL
 };
