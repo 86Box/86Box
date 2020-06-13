@@ -76,9 +76,9 @@ STUFF	:=
 # -DENABLE_NEAT_LOG=N sets logging level at N.
 # -DENABLE_PIIX_LOG=N sets logging level at N.
 # -DENABLE_SIO_LOG=N sets logging level at N.
-# cpu/, cpu_common/, cpu_new/ logging:
+# codegen/, codegen_new/, cpu/ logging:
 # -DENABLE_X86SEG_LOG=N sets logging level at N.
-# cpu_common/ logging:
+# cpu/ logging:
 # -DENABLE_386_LOG=N sets logging level at N.
 # -DENABLE_386_COMMON_LOG=N sets logging level at N.
 # -DENABLE_386_DYNAREC_LOG=N sets logging level at N.

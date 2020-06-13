@@ -242,7 +242,7 @@ endif
 #########################################################################
 #		Nothing should need changing from here on..		#
 #########################################################################
-VPATH		:= $(EXPATH) . cpu cpu_common \
+VPATH		:= $(EXPATH) . codegen cpu \
 		   cdrom chipset disk floppy game machine \
 		   printer \
 		   sio sound \
@@ -277,7 +277,7 @@ DEPFILE		:= win/.depends
 # Set up the correct toolchain flags.
 OPTS		:= $(EXTRAS) $(STUFF)
 OPTS		+= -Iinclude \
-		   -iquote cpu -iquote cpu_common
+		   -iquote codegen -iquote cpu
 ifdef EXFLAGS
 OPTS		+= $(EXFLAGS)
 endif

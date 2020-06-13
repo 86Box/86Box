@@ -3,7 +3,7 @@
 
 #include <86box/mem.h>
 #include <stddef.h>
-#include "../cpu_common/x86_ops.h"
+#include "x86_ops.h"
 
 /*Handling self-modifying code (of which there is a lot on x86) :
 

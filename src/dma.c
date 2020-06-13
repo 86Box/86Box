@@ -23,8 +23,8 @@
 #include <string.h>
 #include <wchar.h>
 #include <86box/86box.h>
-#include "cpu_common/cpu.h"
-#include "cpu_common/x86.h"
+#include "cpu.h"
+#include "x86.h"
 #include <86box/machine.h>
 #include <86box/mca.h>
 #include <86box/mem.h>
