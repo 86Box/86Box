@@ -8,10 +8,8 @@
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
  *		Copyright 2016-2018 Miran Grca.
  */
 #include <stdint.h>
@@ -30,7 +28,7 @@
 #include <86box/pit.h>
 #include <86box/port_92.h>
 #include <86box/machine.h>
-#include <86box/intel_sio.h>
+#include <86box/chipset.h>
 
 
 typedef struct

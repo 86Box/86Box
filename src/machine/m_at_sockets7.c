@@ -34,11 +34,8 @@
 #include <86box/hdc_ide.h>
 #include <86box/keyboard.h>
 #include <86box/intel_flash.h>
-#include <86box/intel_sio.h>
-#include <86box/piix.h>
 #include <86box/sio.h>
 #include <86box/sst_flash.h>
-#include <86box/via_vt82c586b.h>
 #include <86box/spd.h>
 #include <86box/hwm.h>
 #include <86box/video.h>

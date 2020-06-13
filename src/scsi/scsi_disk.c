@@ -23,7 +23,6 @@
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/nvr.h>
-#include <86box/piix.h>
 #include <86box/hdd.h>
 #include <86box/hdc.h>
 #include <86box/scsi_device.h>

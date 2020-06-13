@@ -35,9 +35,7 @@
 #include <86box/fdc.h>
 #include <86box/keyboard.h>
 #include <86box/intel_flash.h>
-#include <86box/intel_sio.h>
 #include <86box/nvr.h>
-#include <86box/piix.h>
 #include <86box/sio.h>
 #include <86box/video.h>
 #include <86box/machine.h>

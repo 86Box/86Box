@@ -31,7 +31,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/hdc.h>
 #include <86box/machine.h>
-#include <86box/intel_420ex.h>
+#include <86box/chipset.h>
 
 
 #define MEM_STATE_SHADOW_R	0x01

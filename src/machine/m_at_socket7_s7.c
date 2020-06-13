@@ -34,11 +34,8 @@
 #include <86box/hdc_ide.h>
 #include <86box/keyboard.h>
 #include <86box/intel_flash.h>
-#include <86box/intel_sio.h>
-#include <86box/piix.h>
 #include <86box/sio.h>
 #include <86box/sst_flash.h>
-#include <86box/via_vt82c586b.h>
 #include <86box/hwm.h>
 #include <86box/video.h>
 #include <86box/spd.h>
@@ -180,7 +177,7 @@ machine_at_pb640_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL, 2, 1, 3, 4);
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 2, 1, 4);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&i430fx_pb640_device);
+    device_add(&i430fx_rev02_device);
     device_add(&piix_rev02_device);
 
     if (gfxcard == VID_INTERNAL)

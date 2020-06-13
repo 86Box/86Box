@@ -32,21 +32,32 @@ extern const device_t	headland_device;
 extern const device_t	headland_386_device;
 
 /* Intel 4x0xX */
+extern const device_t	i420ex_device;
 extern const device_t	i420tx_device;
 extern const device_t	i420zx_device;
 extern const device_t	i430lx_device;
 extern const device_t	i430nx_device;
 extern const device_t	i430fx_device;
-extern const device_t	i430fx_pb640_device;
+extern const device_t	i430fx_rev02_device;
 extern const device_t	i430hx_device;
 extern const device_t	i430vx_device;
 extern const device_t	i430tx_device;
 extern const device_t	i440fx_device;
-extern const device_t   i440lx_device;
-extern const device_t   i440ex_device;
+extern const device_t	i440lx_device;
+extern const device_t	i440ex_device;
 extern const device_t	i440bx_device;
 extern const device_t	i440gx_device;
 extern const device_t	i440zx_device;
+
+extern const device_t	sio_device;
+extern const device_t	sio_zb_device;
+
+extern const device_t	piix_device;
+extern const device_t	piix_rev02_device;
+extern const device_t	piix3_device;
+extern const device_t	piix4_device;
+extern const device_t	piix4e_device;
+extern const device_t	slc90e66_device;
 
 extern const device_t	ioapic_device;
 
@@ -71,9 +82,12 @@ extern const device_t	sis_85c50x_device;
 
 /* VIA */
 extern const device_t	via_vpx_device;
-extern const device_t   via_vp3_device;
-extern const device_t   via_mvp3_device;
-extern const device_t   via_apro_device;
+extern const device_t	via_vp3_device;
+extern const device_t	via_mvp3_device;
+extern const device_t	via_apro_device;
+
+extern const device_t	via_vt82c586b_device;
+extern const device_t	via_vt82c596b_device;
 
 /* VLSI */
 extern const device_t   vlsi_scamp_device;

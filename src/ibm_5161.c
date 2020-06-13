@@ -28,7 +28,6 @@
 #include <86box/pit.h>
 #include <86box/port_92.h>
 #include <86box/machine.h>
-#include <86box/intel_sio.h>
 
 
 typedef struct

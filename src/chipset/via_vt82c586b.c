@@ -45,7 +45,7 @@
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/zip.h>
 #include <86box/machine.h>
-#include <86box/via_vt82c586b.h>
+#include <86box/chipset.h>
 
 
 #define ACPI_TIMER_FREQ 3579545

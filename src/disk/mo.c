@@ -12,8 +12,8 @@
  *
  *
  * Authors:	Natalia Portillo <claunia@claunia.com>
- *          Fred N. van Kempen, <decwiz@yahoo.com>
- *		    Miran Grca, <mgrca8@gmail.com>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
  *		Copyright 2020 Miran Grca.
  */
@@ -29,7 +29,6 @@
 #include <86box/config.h>
 #include <86box/timer.h>
 #include <86box/device.h>
-#include <86box/piix.h>
 #include <86box/scsi_device.h>
 #include <86box/nvr.h>
 #include <86box/plat.h>
@@ -1298,7 +1297,6 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
     int ret;
     int32_t len, max_len;
     int32_t alloc_length;
-    uint32_t i = 0;
     int size_idx, idx = 0;
     unsigned preamble_len;
     int32_t blen = 0;
@@ -1863,9 +1861,6 @@ mo_phase_data_out(scsi_common_t *sc)
     uint32_t i = 0;
 
     uint8_t hdr_len, val, old_val, ch;
-
-    uint32_t last_to_write = 0;
-    uint32_t c, h, s;
 
     int len = 0;
 

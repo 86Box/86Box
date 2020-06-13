@@ -10,8 +10,7 @@
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
  *		Copyright 2019,2020 Miran Grca.
  */
@@ -1659,9 +1658,9 @@ const device_t i430fx_device =
 };
 
 
-const device_t i430fx_pb640_device =
+const device_t i430fx_rev02_device =
 {
-    "Intel SB82437FX-66 (PB640)",
+    "Intel SB82437FX-66 (Rev. 02)",
     DEVICE_PCI,
     0x0200 | INTEL_430FX,
     i4x0_init, 

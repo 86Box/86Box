@@ -13,10 +13,8 @@
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
@@ -53,7 +51,7 @@
 #include <86box/zip.h>
 #include <86box/machine.h>
 #include <86box/smbus_piix4.h>
-#include <86box/piix.h>
+#include <86box/chipset.h>
 
 
 typedef struct

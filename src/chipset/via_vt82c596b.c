@@ -49,7 +49,7 @@
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/zip.h>
 #include <86box/machine.h>
-#include <86box/via_vt82c586b.h>
+#include <86box/chipset.h>
 
 // As of now
 #include <86box/smbus_piix4.h>
