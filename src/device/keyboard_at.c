@@ -1219,7 +1219,8 @@ write64_generic(void *priv, uint8_t val)
 					   (dev->input_port & 0xfc) |
 					   (fdd_is_525(current_drive) ? 0x40 : 0x00);
 		} else {
-			if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF)
+			if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) &&
+			    ((dev->flags & KBC_VEN_MASK) != KBC_VEN_INTEL_AMI))
 				add_data(dev, (dev->input_port | fixed_bits) & 0xef);
 			else
 				add_data(dev, dev->input_port | fixed_bits);
