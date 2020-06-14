@@ -81,16 +81,16 @@ i420ex_map(uint32_t addr, uint32_t size, int state)
 {
     switch (state & 3) {
 	case 0:
-		mem_set_mem_state(addr, size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+		mem_set_mem_state_both(addr, size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 		break;
 	case 1:
-		mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
+		mem_set_mem_state_both(addr, size, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
 		break;
 	case 2:
-		mem_set_mem_state(addr, size, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
+		mem_set_mem_state_both(addr, size, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
 		break;
 	case 3:
-		mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+		mem_set_mem_state_both(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 		break;
     }
     flushmmucache_nopc();
@@ -98,7 +98,7 @@ i420ex_map(uint32_t addr, uint32_t size, int state)
 
 
 static void
-i420ex_smram_map(i420ex_t *dev, int smm, uint32_t addr, uint32_t size, int is_smram)
+i420ex_smram_map(int smm, uint32_t addr, uint32_t size, int is_smram)
 {
     mem_set_mem_state_smram(smm, addr, size, is_smram);
     flushmmucache();
@@ -106,11 +106,16 @@ i420ex_smram_map(i420ex_t *dev, int smm, uint32_t addr, uint32_t size, int is_sm
 
 
 static void
-i420ex_smram_handler_phase0(i420ex_t *dev)
+i420ex_smram_handler_phase0(void)
 {
     /* Disable low extended SMRAM. */
-    i420ex_smram_map(dev, 0, 0xa0000, 0x60000, 0);
-    i420ex_smram_map(dev, 1, 0xa0000, 0x60000, 0);
+    if (smram[0].size != 0x00000000) {
+	i420ex_smram_map(0, smram[0].host_base, smram[0].size, 0);
+	i420ex_smram_map(1, smram[0].host_base, smram[0].size, 0);
+
+	memset(&smram[0], 0x00, sizeof(smram_t));
+	mem_mapping_disable(&ram_smram_mapping[0]);
+    }
 }
 
 
@@ -159,15 +164,17 @@ i420ex_smram_handler_phase1(i420ex_t *dev)
 		break;
     }
 
-    if (base != 0x00000000) {
+    smram[0].size = size;
+
+    if (size != 0x00000000) {
 	mem_mapping_set_addr(&ram_smram_mapping[0], smram[0].host_base, 0x00010000);
 	mem_mapping_set_exec(&ram_smram_mapping[0], ram + smram[0].ram_base);
 
 	/* If OSS = 1 and LSS = 0, extended SMRAM is visible outside SMM. */
-	i420ex_smram_map(dev, 0, base, size, (regs[0x70] & 0x70) == 0x40);
+	i420ex_smram_map(0, base, size, (regs[0x70] & 0x70) == 0x40);
 
 	/* If the register is set accordingly, disable the mapping also in SMM. */
-	i420ex_smram_map(dev, 1, base, size, !(regs[0x70] & 0x20));
+	i420ex_smram_map(1, base, size, !(regs[0x70] & 0x20));
     }
 }
 
@@ -308,7 +315,7 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
 			pci_set_irq_routing(PCI_INTA + (addr & 0x01), val & 0xf);
 		break;
 	case 0x70:	/* SMRAM */
-		i420ex_smram_handler_phase0(dev);
+		i420ex_smram_handler_phase0();
 		if (dev->smram_locked)
 			dev->regs[0x70] = (dev->regs[0x70] & 0xdf) | (val & 0x20);
 		else {

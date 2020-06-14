@@ -22,6 +22,7 @@
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2017-2020 Fred N. van Kempen.
  */
+#include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -2085,6 +2086,7 @@ mem_mapping_read_allowed(uint32_t flags, uint32_t state, int exec)
 {
     uint32_t smm_state = state >> MEM_STATE_SMM_SHIFT;
     uint32_t state_masked;
+    int ret = 0;
 
     if (in_smm && ((smm_state & MEM_READ_MASK) != MEM_READ_NORMAL))
 	state = smm_state;
@@ -2092,44 +2094,46 @@ mem_mapping_read_allowed(uint32_t flags, uint32_t state, int exec)
     state_masked = (state & MEM_READ_MASK);
 
     if (state_masked & MEM_READ_SMRAM)
-	return (flags & MEM_MAPPING_SMRAM);
+	ret = (flags & MEM_MAPPING_SMRAM);
     else if ((state_masked & MEM_READ_SMRAM_EX) && exec)
-	return (flags & MEM_MAPPING_SMRAM);
-    else if (state_masked & MEM_READ_DISABLED_EX)
-	return 0;
-    else switch (state_masked) {
-	case MEM_READ_DISABLED:
-		return 0;
-
+	ret = (flags & MEM_MAPPING_SMRAM);
+    else if (!(state_masked & MEM_READ_DISABLED_EX))  switch (state_masked) {
 	case MEM_READ_ANY:
-		return !(flags & MEM_MAPPING_SMRAM);
+		ret = !(flags & MEM_MAPPING_SMRAM);
+		break;
 
 	/* On external and 0 mappings without ROMCS. */
 	case MEM_READ_EXTERNAL:
-		return !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_ROMCS) && !(flags & MEM_MAPPING_SMRAM);
+		ret = !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_ROMCS) && !(flags & MEM_MAPPING_SMRAM);
+		break;
 
 	/* On external and 0 mappings with ROMCS. */
 	case MEM_READ_ROMCS:
-		return !(flags & MEM_MAPPING_INTERNAL) && (flags & MEM_MAPPING_ROMCS) && !(flags & MEM_MAPPING_SMRAM);
+		ret = !(flags & MEM_MAPPING_INTERNAL) && (flags & MEM_MAPPING_ROMCS) && !(flags & MEM_MAPPING_SMRAM);
+		break;
 
 	/* On any external mappings. */
 	case MEM_READ_EXTANY:
-		return !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_SMRAM);
+		ret = !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_SMRAM);
+		break;
 
 	case MEM_READ_EXTERNAL_EX:
 		if (exec)
-			return !(flags & MEM_MAPPING_EXTERNAL) && !(flags & MEM_MAPPING_SMRAM);
+			ret = !(flags & MEM_MAPPING_EXTERNAL) && !(flags & MEM_MAPPING_SMRAM);
 		else
-			return !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_SMRAM);
+			ret = !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_SMRAM);
+		break;
 
 	case MEM_READ_INTERNAL:
-		return !(flags & MEM_MAPPING_EXTERNAL) && !(flags & MEM_MAPPING_SMRAM);
+		ret = !(flags & MEM_MAPPING_EXTERNAL) && !(flags & MEM_MAPPING_SMRAM);
+		break;
 
 	default:
 		fatal("mem_mapping_read_allowed : bad state %x\n", state);
+		break;
     }
 
-    return 0;
+    return ret;
 }
 
 
@@ -2138,6 +2142,7 @@ mem_mapping_write_allowed(uint32_t flags, uint32_t state)
 {
     uint32_t smm_state = state >> MEM_STATE_SMM_SHIFT;
     uint32_t state_masked;
+    int ret = 0;
 
     if (in_smm && ((smm_state & MEM_WRITE_MASK) != MEM_WRITE_NORMAL))
 	state = smm_state;
@@ -2145,36 +2150,37 @@ mem_mapping_write_allowed(uint32_t flags, uint32_t state)
     state_masked = (state & MEM_WRITE_MASK);
 
     if (state_masked & MEM_WRITE_SMRAM)
-	return (flags & MEM_MAPPING_SMRAM);
-    else if (state_masked & MEM_WRITE_DISABLED_EX)
-	return 0;
-    else  switch (state_masked) {
-	case MEM_WRITE_DISABLED:
-		return 0;
-
+	ret = (flags & MEM_MAPPING_SMRAM);
+    else if (!(state_masked & MEM_WRITE_DISABLED_EX))  switch (state_masked) {
 	case MEM_WRITE_ANY:
-		return !(flags & MEM_MAPPING_SMRAM);
+		ret = !(flags & MEM_MAPPING_SMRAM);
+		break;
 
 	/* On external and 0 mappings without ROMCS. */
 	case MEM_WRITE_EXTERNAL:
-		return !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_ROMCS) && !(flags & MEM_MAPPING_SMRAM);
+		ret = !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_ROMCS) && !(flags & MEM_MAPPING_SMRAM);
+		break;
 
 	/* On external and 0 mappings with ROMCS. */
 	case MEM_WRITE_ROMCS:
-		return !(flags & MEM_MAPPING_INTERNAL) && (flags & MEM_MAPPING_ROMCS) && !(flags & MEM_MAPPING_SMRAM);
+		ret = !(flags & MEM_MAPPING_INTERNAL) && (flags & MEM_MAPPING_ROMCS) && !(flags & MEM_MAPPING_SMRAM);
+		break;
 
 	/* On any external mappings. */
 	case MEM_WRITE_EXTANY:
-		return !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_SMRAM);
+		ret = !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_SMRAM);
+		break;
 
 	case MEM_WRITE_INTERNAL:
-		return !(flags & MEM_MAPPING_EXTERNAL) && !(flags & MEM_MAPPING_SMRAM);
+		ret = !(flags & MEM_MAPPING_EXTERNAL) && !(flags & MEM_MAPPING_SMRAM);
+		break;
 
 	default:
 		fatal("mem_mapping_write_allowed : bad state %x\n", state);
+		break;
     }
 
-    return 0;
+    return ret;
 }
 
 
@@ -2383,101 +2389,51 @@ mem_mapping_enable(mem_mapping_t *map)
 
 
 void
-mem_set_mem_state_common(int smm, uint32_t base, uint32_t size, int state)
+mem_set_state(int smm, int mode, uint32_t base, uint32_t size, uint32_t state)
 {
-    uint32_t c;
+    uint32_t c, mask_l, mask_h, smstate = 0x0000;
+
+    if (mode) {
+	mask_l = 0xffff0f0f;
+	mask_h = 0x0f0fffff;
+    } else {
+	mask_l = 0xfffff0f0;
+	mask_h = 0xf0f0ffff;
+    }
+
+    if (mode) {
+	if (mode == 1)
+		state = !!state;
+
+	switch (state & 0x03) {
+		case 0x00:
+			smstate = 0x0000;
+			break;
+		case 0x01:
+			smstate = (MEM_READ_SMRAM | MEM_WRITE_SMRAM);
+			break;
+		case 0x02:
+			smstate = MEM_READ_SMRAM_EX;
+			break;
+		case 0x03:
+			smstate = (MEM_READ_DISABLED_EX | MEM_WRITE_DISABLED_EX);
+			break;
+	}
+    } else
+	smstate = state & 0x0f0f;
 
     for (c = 0; c < size; c += MEM_GRANULARITY_SIZE) {
-	if (smm)
-		_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = (_mem_state[(c + base) >> MEM_GRANULARITY_BITS] & 0xf0f0ffff) | ((state & 0x0f0f) << MEM_STATE_SMM_SHIFT);
-	else
-		_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = (_mem_state[(c + base) >> MEM_GRANULARITY_BITS] & 0xfffff0f0) | (state & 0x0f0f);
+	if (smm != 0)
+		_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = (_mem_state[(c + base) >> MEM_GRANULARITY_BITS] & mask_h) | (smstate << MEM_STATE_SMM_SHIFT);
+	if (smm != 1)
+		_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = (_mem_state[(c + base) >> MEM_GRANULARITY_BITS] & mask_l) | smstate;
 #ifdef ENABLE_MEM_LOG
 	if (((c + base) >= 0xa0000) && ((c + base) <= 0xbffff))
-		mem_log("Set mem state for block at %08X to %02X\n", c + base, state);
+		mem_log("Set mem state for block at %08X to %02X\n", c + base, smstate);
 #endif
     }
 
     mem_mapping_recalc(base, size);
-}
-
-
-void
-mem_set_mem_state_smram(int smm, uint32_t base, uint32_t size, int is_smram)
-{
-    uint32_t c, smstate = 0x0000;
-
-    smstate = is_smram ? (MEM_READ_SMRAM | MEM_WRITE_SMRAM) : 0x0000;
-
-    for (c = 0; c < size; c += MEM_GRANULARITY_SIZE) {
-	if (smm)
-		_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = (_mem_state[(c + base) >> MEM_GRANULARITY_BITS] & 0x0f0fffff) | (smstate << MEM_STATE_SMM_SHIFT);
-	else
-		_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = (_mem_state[(c + base) >> MEM_GRANULARITY_BITS] & 0xffff0f0f) | smstate;
-#ifdef ENABLE_MEM_LOG
-	if (((c + base) >= 0xa0000) && ((c + base) <= 0xbffff))
-		mem_log("Set mem state SMRAM flag for block at %08X to %02X\n", c + base, state);
-#endif
-    }
-
-    mem_mapping_recalc(base, size);
-}
-
-
-void
-mem_set_mem_state_smram_ex(int smm, uint32_t base, uint32_t size, int is_smram)
-{
-    uint32_t c, smstate = 0x0000;
-
-    switch (is_smram & 0x03) {
-	case 0x00:
-		smstate = 0x0000;
-		break;
-	case 0x01:
-		smstate = (MEM_READ_SMRAM | MEM_WRITE_SMRAM);
-		break;
-	case 0x02:
-		smstate = MEM_READ_SMRAM_EX;
-		break;
-	case 0x03:
-		smstate = (MEM_READ_DISABLED_EX | MEM_WRITE_DISABLED_EX);
-		break;
-    }
-	
-    for (c = 0; c < size; c += MEM_GRANULARITY_SIZE) {
-	if (smm)
-		_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = (_mem_state[(c + base) >> MEM_GRANULARITY_BITS] & 0x0f0fffff) | (smstate << MEM_STATE_SMM_SHIFT);
-	else
-		_mem_state[(c + base) >> MEM_GRANULARITY_BITS] = (_mem_state[(c + base) >> MEM_GRANULARITY_BITS] & 0xffff0f0f) | smstate;
-#ifdef ENABLE_MEM_LOG
-	if (((c + base) >= 0xa0000) && ((c + base) <= 0xbffff))
-		mem_log("Set mem state SMRAM flag for block at %08X to %02X\n", c + base, state);
-#endif
-    }
-
-    mem_mapping_recalc(base, size);
-}
-
-
-void
-mem_set_mem_state(uint32_t base, uint32_t size, int state)
-{
-    mem_set_mem_state_common(0, base, size, state);
-}
-
-
-void
-mem_set_mem_state_smm(uint32_t base, uint32_t size, int state)
-{
-    mem_set_mem_state_common(1, base, size, state);
-}
-
-
-void
-mem_set_mem_state_both(uint32_t base, uint32_t size, int state)
-{
-    mem_set_mem_state_common(0, base, size, state);
-    mem_set_mem_state_common(1, base, size, state);
 }
 
 
@@ -2727,11 +2683,6 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 	}
     }
 
-    /* if (mem_size > 768)
-	mem_mapping_add(&ram_mid_mapping, 0xc0000, 0x40000,
-			mem_read_ram,mem_read_ramw,mem_read_raml,
-			mem_write_ram,mem_write_ramw,mem_write_raml,
-			ram + 0xc0000, MEM_MAPPING_INTERNAL, NULL); */
     if (mem_size > 768) {
 	mem_mapping_add(&ram_mid_mapping, 0xa0000, 0x60000,
 			mem_read_ram,mem_read_ramw,mem_read_raml,
@@ -2744,8 +2695,8 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 		    mem_write_smram,mem_write_smramw,mem_write_smraml,
 		    ram + 0xa0000, MEM_MAPPING_SMRAM, &(smram[0]));
     mem_mapping_add(&ram_smram_mapping[1], 0xa0000, 0x60000,
-		    mem_read_ram,mem_read_ramw,mem_read_raml,
-		    mem_write_ram,mem_write_ramw,mem_write_raml,
+		    mem_read_smram,mem_read_smramw,mem_read_smraml,
+		    mem_write_smram,mem_write_smramw,mem_write_smraml,
 		    ram + 0xa0000, MEM_MAPPING_SMRAM, &(smram[1]));
     mem_mapping_disable(&ram_smram_mapping[0]);
     mem_mapping_disable(&ram_smram_mapping[1]);
@@ -2758,8 +2709,8 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 			
     mem_a20_init();
 
-    smram[0].host_base = smram[0].ram_base = 0x00000000;
-    smram[1].host_base = smram[1].ram_base = 0x00000000;
+    smram[0].host_base = smram[0].ram_base = smram[0].size = 0x00000000;
+    smram[1].host_base = smram[1].ram_base = smram[1].size = 0x00000000;
 
 #ifdef USE_NEW_DYNAREC
     purgable_page_list_head = 0;

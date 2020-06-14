@@ -63,16 +63,16 @@ i4x0_map(uint32_t addr, uint32_t size, int state)
 {
     switch (state & 3) {
 	case 0:
-		mem_set_mem_state(addr, size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+		mem_set_mem_state_both(addr, size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 		break;
 	case 1:
-		mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
+		mem_set_mem_state_both(addr, size, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
 		break;
 	case 2:
-		mem_set_mem_state(addr, size, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
+		mem_set_mem_state_both(addr, size, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
 		break;
 	case 3:
-		mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+		mem_set_mem_state_both(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 		break;
     }
     flushmmucache_nopc();
@@ -92,16 +92,22 @@ i4x0_smram_handler_phase0(i4x0_t *dev)
     uint32_t tom = (mem_size << 10);
 
     /* Disable any active mappings. */
-    if (smram[0].host_base != 0x00000000) {
-	i4x0_smram_map(0, smram[0].host_base, ram_smram_mapping[0].size, 0);
-	i4x0_smram_map(1, smram[0].host_base, ram_smram_mapping[0].size, 0);
+    if (smram[0].size != 0x00000000) {
+	i4x0_smram_map(0, smram[0].host_base, smram[0].size, 0);
+	i4x0_smram_map(1, smram[0].host_base, smram[0].size, 0);
+
+	memset(&smram[0], 0x00, sizeof(smram_t));
+	mem_mapping_disable(&ram_smram_mapping[0]);
     }
 
-    if ((dev->type >= INTEL_440BX) && (smram[1].host_base != 0x00000000)) {
-	i4x0_smram_map(1, smram[1].host_base, ram_smram_mapping[1].size, 0);
+    if ((dev->type >= INTEL_440BX) && (smram[1].size != 0x00000000)) {
+	i4x0_smram_map(1, smram[1].host_base, smram[1].size, 0);
 
 	tom -=  (1 << 20);
 	mem_set_mem_state_smm(tom, (1 << 20), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+
+	memset(&smram[1], 0x00, sizeof(smram_t));
+	mem_mapping_disable(&ram_smram_mapping[1]);
     }
 }
 
@@ -117,31 +123,33 @@ i4x0_smram_handler_phase1(i4x0_t *dev)
 
     if (dev->type >= INTEL_430FX) {
 	/* Set temporary bases and sizes. */
-	smram[0].ram_base = 0x000a0000;
 	if ((dev->type >= INTEL_440BX) && (regs[0x73] & 0x80)) {
 		base[0] = 0x100a0000;
 		size[0] = 0x00060000;
-		smram[0].host_base = 0x100a0000;
 	} else {
 		if (((dev->type == INTEL_440LX) || (dev->type == INTEL_440EX)) && ((regs[0x72] & 0x07) == 0x04)) {
 			base[0] = 0x000c0000;
 			size[0] = 0x00010000;
-			smram[0].host_base = smram[0].ram_base = 0x000c0000;
 		} else {
 			base[0] = 0x000a0000;
 			size[0] = 0x00020000;
-			smram[0].host_base = 0x000a0000;
 		}
 	}
 
-	mem_mapping_set_addr(&ram_smram_mapping[0], smram[0].host_base, size[0]);
-	mem_mapping_set_exec(&ram_smram_mapping[0], ram + smram[0].ram_base);
+	if (((regs[0x72] & 0x70) == 0x40) || ((regs[0x72] & 0x08) && !(regs[0x72] & 0x20))) {
+		smram[0].host_base = base[0];
+		smram[0].ram_base = base[0] & 0x000f0000;
+		smram[0].size = size[0];
 
-	/* If D_OPEN = 1 and D_LCK = 0, extended SMRAM is visible outside SMM. */
-	i4x0_smram_map(0, base[0], size[0], ((regs[0x72] & 0x70) == 0x40));
+		mem_mapping_set_addr(&ram_smram_mapping[0], smram[0].host_base, size[0]);
+		mem_mapping_set_exec(&ram_smram_mapping[0], ram + smram[0].ram_base);
 
-	/* If the register is set accordingly, disable the mapping also in SMM. */
-	i4x0_smram_map(1, base[0], size[0], ((regs[0x72] & 0x08) && !(regs[0x72] & 0x20)));
+		/* If D_OPEN = 1 and D_LCK = 0, extended SMRAM is visible outside SMM. */
+		i4x0_smram_map(0, base[0], size[0], ((regs[0x72] & 0x70) == 0x40));
+
+		/* If the register is set accordingly, disable the mapping also in SMM. */
+		i4x0_smram_map(1, base[0], size[0], ((regs[0x72] & 0x08) && !(regs[0x72] & 0x20)));
+	}
 
 	/* TSEG mapping. */
 	if (dev->type >= INTEL_440BX) {
@@ -153,21 +161,20 @@ i4x0_smram_handler_phase1(i4x0_t *dev)
 			base[1] = size[1] = 0x00000000;
 
 		if (size[1] != 0x00000000) {
-			mem_set_mem_state_smm(base[1], size[1], MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-
 			smram[1].host_base = base[1] + (1 << 28);
 			smram[1].ram_base = base[1];
+			smram[1].size = size[1];
 
-			mem_mapping_set_addr(&ram_smram_mapping[1], smram[1].host_base, size[1]);
+			mem_mapping_set_addr(&ram_smram_mapping[1], smram[1].host_base, smram[1].size);
 			if (smram[1].ram_base < (1 << 30))
 				mem_mapping_set_exec(&ram_smram_mapping[1], ram + smram[1].ram_base);
 			else
 				mem_mapping_set_exec(&ram_smram_mapping[1], ram2 + smram[1].ram_base - (1 << 30));
 
+			mem_set_mem_state_smm(base[1], size[1], MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 			i4x0_smram_map(1, smram[1].host_base, size[1], 1);
 		}
-	} else
-		base[1] = size[1] = 0x00000000;
+	}
     } else {
 	size[0] = 0x00010000;
 	switch (regs[0x72] & 0x03) {
@@ -190,18 +197,19 @@ i4x0_smram_handler_phase1(i4x0_t *dev)
 			break;
 	}
 
-	if (base[0] != 0x00000000) {
+	if (((((regs[0x72] & 0x38) == 0x20) || s) || (!(regs[0x72] & 0x10) || s)) && (size[0] != 0x00000000)) {
+		smram[0].host_base = base[0];
+		smram[0].ram_base = base[0];
+		smram[0].size = size[0];
+
+		mem_mapping_set_addr(&ram_smram_mapping[0], smram[0].host_base, size[0]);
+		mem_mapping_set_exec(&ram_smram_mapping[0], ram + smram[0].ram_base);
+
 		/* If OSS = 1 and LSS = 0, extended SMRAM is visible outside SMM. */
-		i4x0_smram_map(0, base[0], size[0], ((regs[0x72] & 0x38) == 0x20) || s);
-		/* If base is on top of memory, this mapping will point to RAM.
-		   TODO: It should actually point to EXTERNAL (with a SMRAM mapping) instead. */
-		/* If we are open, not closed, and not locked, point to RAM. */
+		i4x0_smram_map(0, base[0], size[0], (((regs[0x72] & 0x38) == 0x20) || s));
 
 		/* If the register is set accordingly, disable the mapping also in SMM. */
-		i4x0_smram_map(0, base[0], size[0], !(regs[0x72] & 0x10) || s);
-		/* If base is on top of memory, this mapping will point to RAM.
-		   TODO: It should actually point to EXTERNAL (with a SMRAM mapping) instead. */
-		/* If we are not closed, point to RAM. */
+		i4x0_smram_map(0, base[0], size[0], (!(regs[0x72] & 0x10) || s));
 	}
     }
 
@@ -1265,9 +1273,6 @@ static void
     dev->type = info->local & 0xff;
 
     regs = (uint8_t *) dev->regs[0];
-
-    // This is off by default and has to be moved to the appropriate register handling.
-    // io_sethandler(0x0022, 0x01, pm2_cntrl_read, NULL, NULL, pm2_cntrl_write, NULL, NULL, dev);
 
     regs[0x00] = 0x86; regs[0x01] = 0x80; /*Intel*/
 

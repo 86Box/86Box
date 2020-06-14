@@ -94,6 +94,13 @@
 #define MEM_GRANULARITY_PAGE	(MEM_GRANULARITY_MASK & ~0xfff)
 #endif
 
+#define mem_set_mem_state_common(smm, base, size, state) mem_set_state(!!smm, 0, base, size, state)
+#define mem_set_mem_state(base, size, state) mem_set_state(0, 0, base, size, state)
+#define mem_set_mem_state_smm(base, size, state) mem_set_state(1, 0, base, size, state)
+#define mem_set_mem_state_both(base, size, state) mem_set_state(2, 0, base, size, state)
+#define mem_set_mem_state_smram(smm, base, size, is_smram) mem_set_state(!!smm, 1, base, size, is_smram)
+#define mem_set_mem_state_smram_ex(smm, base, size, is_smram) mem_set_state(!!smm, 2, base, size, is_smram)
+
 
 typedef struct _mem_mapping_ {
     struct _mem_mapping_ *prev, *next;
@@ -178,7 +185,8 @@ typedef struct _page_ {
 
 typedef struct
 {
-    uint32_t	host_base,
+    uint32_t	size,
+		host_base,
 		ram_base;
 } smram_t;
 
@@ -300,15 +308,7 @@ extern void	mem_mapping_disable(mem_mapping_t *);
 extern void	mem_mapping_enable(mem_mapping_t *);
 extern void	mem_mapping_recalc(uint64_t base, uint64_t size);
 
-extern void	mem_set_mem_state_common(int smm, uint32_t base, uint32_t size, int state);
-
-extern void	mem_set_mem_state_smram(int smm, uint32_t base, uint32_t size, int is_smram);
-extern void	mem_set_mem_state_smram_ex(int smm, uint32_t base, uint32_t size, int is_smram);
-
-extern void	mem_set_mem_state(uint32_t base, uint32_t size, int state);
-extern void	mem_set_mem_state_smm(uint32_t base, uint32_t size, int state);
-
-extern void	mem_set_mem_state_both(uint32_t base, uint32_t size, int state);
+extern void	mem_set_state(int smm, int mode, uint32_t base, uint32_t size, uint32_t state);
 
 extern uint8_t	mem_readb_phys(uint32_t addr);
 extern uint16_t	mem_readw_phys(uint32_t addr);
