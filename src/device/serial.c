@@ -597,6 +597,9 @@ serial_read(uint16_t addr, void *p)
 void
 serial_remove(serial_t *dev)
 {
+    if (dev == NULL)
+	return;
+
     if (!serial_enabled[dev->inst])
 	return;
 
@@ -615,6 +618,9 @@ void
 serial_setup(serial_t *dev, uint16_t addr, int irq)
 {
     serial_log("Adding serial port %i at %04X...\n", dev->inst, addr);
+
+    if (dev == NULL)
+	return;
 
     if (!serial_enabled[dev->inst])
 	return;

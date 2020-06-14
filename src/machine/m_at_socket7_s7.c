@@ -813,6 +813,7 @@ machine_at_ym430tx_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_mb540n_init(const machine_t *model)
 {
@@ -842,6 +843,7 @@ machine_at_mb540n_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_p5mms98_init(const machine_t *model)
@@ -908,6 +910,7 @@ machine_at_p5mms98_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_ficva502_init(const machine_t *model)
 {
@@ -936,6 +939,7 @@ machine_at_ficva502_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_ficpa2012_init(const machine_t *model)

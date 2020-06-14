@@ -731,6 +731,8 @@ pc_reset_hard_init(void)
 
     sound_reset();
 
+    scsi_device_init();
+
     /* Initialize the actual machine and its basic modules. */
     machine_init();
 

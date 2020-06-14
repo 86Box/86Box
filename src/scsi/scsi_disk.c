@@ -1261,6 +1261,8 @@ scsi_disk_close(void)
 
     for (c = 0; c < HDD_NUM; c++) {
 	if (hdd[c].bus == HDD_BUS_SCSI) {
+		memset(&scsi_devices[hdd[c].scsi_id], 0x00, sizeof(scsi_device_t));
+
 		hdd_image_close(c);
 
 		dev = hdd[c].priv;

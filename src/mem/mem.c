@@ -2129,7 +2129,8 @@ mem_mapping_read_allowed(uint32_t flags, uint32_t state, int exec)
 		break;
 
 	default:
-		fatal("mem_mapping_read_allowed : bad state %x\n", state);
+		if (state_masked != MEM_READ_DISABLED)
+			fatal("mem_mapping_read_allowed : bad state %x\n", state_masked);
 		break;
     }
 
@@ -2176,7 +2177,8 @@ mem_mapping_write_allowed(uint32_t flags, uint32_t state)
 		break;
 
 	default:
-		fatal("mem_mapping_write_allowed : bad state %x\n", state);
+		if (state_masked != MEM_WRITE_DISABLED)
+			fatal("mem_mapping_write_allowed : bad state %x\n", state_masked);
 		break;
     }
 

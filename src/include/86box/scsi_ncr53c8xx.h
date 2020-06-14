@@ -26,6 +26,7 @@
 
 
 extern const device_t ncr53c810_pci_device;
+extern const device_t ncr53c810_onboard_pci_device;
 extern const device_t ncr53c825a_pci_device;
 extern const device_t ncr53c860_pci_device;
 extern const device_t ncr53c875_pci_device;

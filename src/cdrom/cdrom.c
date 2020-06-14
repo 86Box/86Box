@@ -27,12 +27,14 @@
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/plat.h>
+#include <86box/scsi_device.h>
 #include <86box/sound.h>
 
 
 /* The addresses sent from the guest are absolute, ie. a LBA of 0 corresponds to a MSF of 00:00:00. Otherwise, the counter displayed by the guest is wrong:
    there is a seeming 2 seconds in which audio plays but counter does not move, while a data track before audio jumps to 2 seconds before the actual start
    of the audio while audio still plays. With an absolute conversion, the counter is fine. */
+#undef MSFtoLBA
 #define MSFtoLBA(m,s,f)		((((m*60)+s)*75)+f)
 
 #define RAW_SECTOR_SIZE		2352
@@ -1170,6 +1172,9 @@ cdrom_close(void)
 
     for (i = 0; i < CDROM_NUM; i++) {
 	dev = &cdrom[i];
+
+	if (dev->bus_type == CDROM_BUS_SCSI)
+		memset(&scsi_devices[dev->scsi_device_id], 0x00, sizeof(scsi_device_t));
 
 	if (dev->close)
 		dev->close(dev->priv);

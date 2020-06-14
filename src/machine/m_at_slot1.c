@@ -428,7 +428,6 @@ machine_at_p6sba_init(const machine_t *model)
     return ret;
 }
 
-#if defined(DEV_BRANCH) && defined(NO_SIO)
 int
 machine_at_tsunamiatx_init(const machine_t *model)
 {
@@ -458,7 +457,7 @@ machine_at_tsunamiatx_init(const machine_t *model)
     if (sound_card_current == SOUND_INTERNAL)
     	device_add(&es1371_onboard_device);
 
-    device_add(&pc87306_device); /* PC87309 */
+    device_add(&pc87309_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
@@ -471,4 +470,3 @@ at_tsunamiatx_get_device(void)
 {
     return &es1371_onboard_device;
 }
-#endif

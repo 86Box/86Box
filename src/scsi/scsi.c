@@ -84,7 +84,8 @@ static SCSI_CARD scsi_cards[] = {
 };
 
 
-int scsi_card_available(int card)
+int
+scsi_card_available(int card)
 {
     if (scsi_cards[card].device)
 	return(device_available(scsi_cards[card].device));
@@ -93,19 +94,22 @@ int scsi_card_available(int card)
 }
 
 
-char *scsi_card_getname(int card)
+char *
+scsi_card_getname(int card)
 {
     return((char *) scsi_cards[card].name);
 }
 
 
-const device_t *scsi_card_getdevice(int card)
+const device_t *
+scsi_card_getdevice(int card)
 {
     return(scsi_cards[card].device);
 }
 
 
-int scsi_card_has_config(int card)
+int
+scsi_card_has_config(int card)
 {
     if (! scsi_cards[card].device) return(0);
 
@@ -113,13 +117,15 @@ int scsi_card_has_config(int card)
 }
 
 
-char *scsi_card_get_internal_name(int card)
+char *
+scsi_card_get_internal_name(int card)
 {
     return((char *) scsi_cards[card].internal_name);
 }
 
 
-int scsi_card_get_from_internal_name(char *s)
+int
+scsi_card_get_from_internal_name(char *s)
 {
     int c = 0;
 
@@ -133,20 +139,11 @@ int scsi_card_get_from_internal_name(char *s)
 }
 
 
-void scsi_card_init(void)
+void
+scsi_card_init(void)
 {
-    int i;
-    scsi_device_t *dev;
-
     if (!scsi_cards[scsi_card_current].device)
 	return;
-
-    for (i = 0; i < SCSI_ID_MAX; i++) {
-	dev = &(scsi_devices[i]);
-
-	memset(dev, 0, sizeof(scsi_device_t));
-	dev->type = SCSI_NONE;
-    }
 
     device_add(scsi_cards[scsi_card_current].device);
 

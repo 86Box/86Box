@@ -2139,6 +2139,9 @@ mo_close(void)
     int c;
 
     for (c = 0; c < MO_NUM; c++) {
+	if (mo_drives[c].bus_type == MO_BUS_SCSI)
+		memset(&scsi_devices[mo_drives[c].scsi_device_id], 0x00, sizeof(scsi_device_t));
+
 	dev = (mo_t *) mo_drives[c].priv;
 
 	if (dev) {

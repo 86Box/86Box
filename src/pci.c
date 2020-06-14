@@ -71,6 +71,7 @@ static int		pci_type,
 static int		trc_reg = 0, elcr_enabled = 1;
 
 
+#define ENABLE_PCI_LOG 1
 #ifdef ENABLE_PCI_LOG
 int pci_do_log = ENABLE_PCI_LOG;
 

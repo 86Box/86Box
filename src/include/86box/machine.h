@@ -238,9 +238,7 @@ extern int	machine_at_r418_init(const machine_t *);
 extern int	machine_at_ls486e_init(const machine_t *);
 extern int	machine_at_4dps_init(const machine_t *);
 extern int	machine_at_alfredo_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_486sp3g_init(const machine_t *);
-#endif
 extern int	machine_at_486ap4_init(const machine_t *);
 
 /* m_at_commodore.c */
@@ -347,15 +345,11 @@ extern int	machine_at_p2bls_init(const machine_t *);
 extern int	machine_at_p3bf_init(const machine_t *);
 extern int	machine_at_bf6_init(const machine_t *);
 extern int	machine_at_atc6310bxii_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_tsunamiatx_init(const machine_t *);
-#endif
 extern int	machine_at_p6sba_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
-#if defined(DEV_BRANCH) && defined(NO_SIO)
 extern const device_t 	*at_tsunamiatx_get_device(void);
-#endif
 #endif
 
 /* m_at_slot2.c */

@@ -2646,14 +2646,17 @@ ncr53c8xx_init(const device_t *info)
 
     ncr53c8xx_pci_bar[0].addr_regs[0] = 1;
     ncr53c8xx_pci_bar[1].addr_regs[0] = 0;
-    dev->chip = info->local;
+    dev->chip = info->local & 0xff;
 
     ncr53c8xx_pci_regs[0x04] = 3;	
 
     ncr53c8xx_mem_init(dev, 0x0fffff00);
     ncr53c8xx_mem_disable(dev);
 
-    dev->has_bios = device_get_config_int("bios");
+    if (info->local & 0x8000)
+	dev->has_bios = 0;
+    else
+	dev->has_bios = device_get_config_int("bios");
     if (dev->has_bios)
 	rom_init(&dev->bios, NCR53C8XX_ROM, 0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     if (dev->chip >= CHIP_825) {
@@ -2728,6 +2731,16 @@ const device_t ncr53c810_pci_device =
     ncr53c8xx_init, ncr53c8xx_close, NULL,
     NULL, NULL, NULL,
     ncr53c8xx_pci_config
+};
+
+const device_t ncr53c810_onboard_pci_device =
+{
+    "NCR 53c810 (SCSI) On-Board",
+    DEVICE_PCI,
+    0x8001,
+    ncr53c8xx_init, ncr53c8xx_close, NULL,
+    NULL, NULL, NULL,
+    NULL
 };
 
 const device_t ncr53c825a_pci_device =

@@ -170,3 +170,18 @@ scsi_device_close_all(void)
 		dev->command_stop(dev->sc);
     }
 }
+
+
+void
+scsi_device_init(void)
+{
+    int i;
+    scsi_device_t *dev;
+
+    for (i = 0; i < SCSI_ID_MAX; i++) {
+	dev = &(scsi_devices[i]);
+
+	memset(dev, 0, sizeof(scsi_device_t));
+	dev->type = SCSI_NONE;
+    }
+}

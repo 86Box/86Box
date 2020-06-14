@@ -2418,6 +2418,9 @@ zip_close(void)
     int c;
 
     for (c = 0; c < ZIP_NUM; c++) {
+	if (zip_drives[c].bus_type == ZIP_BUS_SCSI)
+		memset(&scsi_devices[zip_drives[c].scsi_device_id], 0x00, sizeof(scsi_device_t));
+
 	dev = (zip_t *) zip_drives[c].priv;
 
 	if (dev) {

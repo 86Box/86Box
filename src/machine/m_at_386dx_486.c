@@ -445,7 +445,7 @@ machine_at_alfredo_init(const machine_t *model)
     return ret;
 }
 
-#if defined(DEV_BRANCH) && defined(NO_SIO)
+
 int
 machine_at_486sp3g_init(const machine_t *model)
 {
@@ -471,15 +471,14 @@ machine_at_486sp3g_init(const machine_t *model)
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&keyboard_ps2_ami_pci_device); /* Uses the AMIKEY KBC */
     device_add(&sio_device);	/* Site says it has a ZB, but the BIOS is designed for an IB. */
-    device_add(&pc87306_device); /*PC87332*/
+    device_add(&pc87332_device);
     device_add(&sst_flash_29ee010_device);
 
     device_add(&i420zx_device);
-    device_add(&ncr53c810_pci_device);
+    device_add(&ncr53c810_onboard_pci_device);
 
     return ret;
 }
-#endif
 
 
 int
