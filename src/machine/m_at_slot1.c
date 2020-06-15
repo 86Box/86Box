@@ -55,6 +55,7 @@ machine_at_p65up5_cpknd_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_kn97_init(const machine_t *model)
 {
@@ -105,58 +106,6 @@ machine_at_kn97_init(const machine_t *model)
     return ret;
 }
 
-int
-machine_at_pd440fx_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear_combined2(L"roms/machines/pd440fx/1009DT0_.bio",
-				     L"roms/machines/pd440fx/1009DT0_.bi1",
-				     L"roms/machines/pd440fx/1009DT0_.bi2",
-				     L"roms/machines/pd440fx/1009DT0_.bi3",
-				     L"roms/machines/pd440fx/1009DT0_.rcv",
-				     0x3a000, 128);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_at_common_init(model);
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-	pci_register_slot(0x0B, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0F, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x01, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x13, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    device_add(&i440fx_device);
-    device_add(&piix3_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&pc87307_device);
-    device_add(&intel_flash_bxt_ami_device);
-
-    hwm_values_t machine_hwm = {
-    	{    /* fan speeds (incorrect divisor for some reason) */
-    		6000,	/* Chassis */
-    		6000,	/* CPU */
-    		6000	/* Power */
-    	}, { /* temperatures */
-    		30	/* MB */
-    	}, { /* voltages */
-    		2800,				   /* VCORE (2.8V by default) */
-    		0,				   /* unused */
-    		3300,				   /* +3.3V */
-    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
-    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
-    	}
-    };
-    hwm_set_values(machine_hwm);
-    device_add(&lm78_device);
-
-    return ret;
-}
 
 int
 machine_at_lx6_init(const machine_t *model)
@@ -187,6 +136,7 @@ machine_at_lx6_init(const machine_t *model)
 	
     return ret;
 }
+
 
 int
 machine_at_p6i440e2_init(const machine_t *model)
@@ -240,6 +190,7 @@ machine_at_p6i440e2_init(const machine_t *model)
 	
     return ret;
 }
+
 
 int
 machine_at_p2bls_init(const machine_t *model)
@@ -297,6 +248,7 @@ machine_at_p2bls_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_p3bf_init(const machine_t *model)
@@ -357,6 +309,7 @@ machine_at_p3bf_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_bf6_init(const machine_t *model)
 {
@@ -391,6 +344,7 @@ machine_at_bf6_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_atc6310bxii_init(const machine_t *model)
 {
@@ -422,6 +376,7 @@ machine_at_atc6310bxii_init(const machine_t *model)
 
     return ret;	
 }
+
 
 int
 machine_at_p6sba_init(const machine_t *model)
@@ -480,6 +435,7 @@ machine_at_p6sba_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_tsunamiatx_init(const machine_t *model)
 {
@@ -516,6 +472,7 @@ machine_at_tsunamiatx_init(const machine_t *model)
 
     return ret;
 }
+
 
 const device_t *
 at_tsunamiatx_get_device(void)

@@ -339,7 +339,6 @@ extern int	machine_at_p65up5_cp6nd_init(const machine_t *);
 /* m_at_slot1.c */
 extern int	machine_at_p65up5_cpknd_init(const machine_t *);
 extern int	machine_at_kn97_init(const machine_t *);
-extern int	machine_at_pd440fx_init(const machine_t *);
 
 extern int	machine_at_lx6_init(const machine_t *);
 
