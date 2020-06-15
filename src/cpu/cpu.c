@@ -2764,7 +2764,7 @@ void cpu_RDMSR()
 			case 0x1B:
                         EAX = apic_base_msr & 0xffffffff;
                         EDX = apic_base_msr >> 32;
-			/* pclog("APIC_BASE read : %08X%08X\n", EDX, EAX); */
+			cpu_log("APIC_BASE read : %08X%08X\n", EDX, EAX);
 			break;
 			case 0x2A:
                         EAX = 0xC4000000;
@@ -3268,7 +3268,7 @@ void cpu_WRMSR()
 			ecx17_msr = EAX | ((uint64_t)EDX << 32);
 			break;
 			case 0x1B:
-			/* pclog("APIC_BASE write: %08X%08X\n", EDX, EAX); */
+			cpu_log("APIC_BASE write: %08X%08X\n", EDX, EAX);
 			// apic_base_msr = EAX | ((uint64_t)EDX << 32);
 			break;
 			case 0x2A:

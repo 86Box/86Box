@@ -154,10 +154,10 @@ fdc_handler(pc87307_t *dev)
     fdc_remove(dev->fdc);
 
     active = (dev->ld_regs[0x03][0x00] & 0x01) && (dev->pm[0x00] & 0x08);
-    addr = ((dev->ld_regs[0x03][0x30] << 8) | dev->ld_regs[0x00][0x31]) - 0x0002;
+    addr = ((dev->ld_regs[0x03][0x30] << 8) | dev->ld_regs[0x03][0x31]) - 0x0002;
     irq = (dev->ld_regs[0x03][0x40] & 0x0f);
 
-    if (active) {
+    if (active && (addr <= 0xfff2)) {
 	fdc_set_base(dev->fdc, addr);
 	fdc_set_irq(dev->fdc, irq);
     }
@@ -176,7 +176,7 @@ lpt1_handler(pc87307_t *dev)
     addr = (dev->ld_regs[0x04][0x30] << 8) | dev->ld_regs[0x04][0x31];
     irq = (dev->ld_regs[0x04][0x40] & 0x0f);
 
-    if (active) {
+    if (active && (addr <= 0xfffc)) {
 	lpt1_init(addr);
 	lpt1_irq(irq);
     }
@@ -195,7 +195,7 @@ serial_handler(pc87307_t *dev, int uart)
     addr = (dev->ld_regs[0x06 - uart][0x30] << 8) | dev->ld_regs[0x06 - uart][0x31];
     irq = (dev->ld_regs[0x06 - uart][0x40] & 0x0f);
 
-    if (active)
+    if (active && (addr <= 0xfff8))
 	serial_setup(dev->uart[uart], addr, irq);
 }
 
@@ -355,7 +355,6 @@ pc87307_write(uint16_t port, uint8_t val, void *priv)
 	case 0x74: case 0x75:
 		switch (dev->regs[0x07]) {
 			case 0x03:
-				dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30] = val & 0xfa;
 				fdc_handler(dev);
 				break;
 			case 0x04:
@@ -434,7 +433,7 @@ pc87307_reset(pc87307_t *dev)
     for (i = 0; i < 256; i++)
 	memset(dev->ld_regs[i], 0x00, 0xd0);
     memset(dev->pcregs, 0x00, 0x10);
-    memset(dev->gpio, 0x00, 0x08);
+    memset(dev->gpio, 0xff, 0x08);
     memset(dev->pm, 0x00, 0x08);
 
     dev->regs[0x20] = dev->id;

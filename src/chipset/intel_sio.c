@@ -276,7 +276,11 @@ sio_write(int func, int addr, uint8_t val, void *priv)
 			apm_set_do_smi(dev->apm, !!(dev->regs[0xa0] & 0x01) && !!(val & 0x80));
 		}
 		break;
-	case 0xaa: case 0xac: case 0xae:
+	case 0xaa:
+		if (dev->id == 0x03)
+			dev->regs[addr] &= (val & 0xff);
+		break;
+	case 0xac: case 0xae:
 		if (dev->id == 0x03)
 			dev->regs[addr] = val & 0xff;
 		break;

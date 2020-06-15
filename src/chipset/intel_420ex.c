@@ -353,9 +353,11 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
 		dev->regs[addr] = val & 0xff;
 		apm_set_do_smi(dev->apm, !!(dev->regs[0xa0] & 0x01) && !!(val & 0x80));
 		break;
-	case 0xaa: case 0xac: case 0xae:
-		if (dev->id == 0x03)
-			dev->regs[addr] = val & 0xff;
+	case 0xaa:
+		dev->regs[addr] &= (val & 0xff);
+		break;
+	case 0xac: case 0xae:
+		dev->regs[addr] = val & 0xff;
 		break;
 	case 0xa4:
 		dev->regs[addr] = val & 0xfb;

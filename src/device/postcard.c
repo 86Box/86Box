@@ -79,6 +79,7 @@ postcard_setui(void)
     	int len = strlen(postcard_str);
     	postcard_str[len + 1] = '\0';
     	postcard_str[len] = '\n';
+	postcard_log("[%04X:%08X] ", CS, cpu_state.pc);
     	postcard_log(postcard_str);
     }
 }

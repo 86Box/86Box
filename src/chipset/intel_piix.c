@@ -279,10 +279,10 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 
     /* Return on unsupported function. */
     if (dev->max_func > 0) {
-	    if (func > dev->max_func)
+	if (func > dev->max_func)
 		return;
     } else {
-	    if (func > 1)
+	if (func > 1)
 		return;
     }
 
@@ -478,11 +478,11 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 			apm_set_do_smi(dev->apm, !!(fregs[0xa0] & 0x01) && !!(val & 0x80));
 		}
 		break;
-	case 0xaa: case 0xac: case 0xae:
+	case 0xac: case 0xae:
 		if (dev->type < 4)
 			fregs[addr] = val & 0xff;
 		break;
-	case 0xa3: case 0xab:
+	case 0xa3:
 		if (dev->type == 3)
 			fregs[addr] = val & 0x01;
 		break;
@@ -521,6 +521,14 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 			if (dev->fast_off_period != 0.0)
 				timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
 		}
+		break;
+	case 0xaa:
+		if (dev->type < 4)
+			fregs[addr] &= val;
+		break;
+	case 0xab:
+		if (dev->type == 3)
+			fregs[addr] &= (val & 0x01);
 		break;
 	case 0xb0:
 		if (dev->type == 4)
@@ -753,16 +761,16 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 			fregs[addr] = val & 0x01;
 		break;
 	case 0x6a:
-		 if (dev->type == 4)
+		if (dev->type <= 4)
 			fregs[0x6a] = val & 0x01;
 		break;
 	case 0xc0:
-		if (dev->type == 4)
-			fregs[0xc0] = val;
+		if (dev->type <= 4)
+			fregs[0xc0] = (fregs[0xc0]  & ~(val & 0xbf)) | (val & 0x20);
 		break;
 	case 0xc1:
-		if (dev->type == 4)
-			fregs[0xc1] = val & 0xbf;
+		if (dev->type <= 4)
+			fregs[0xc1] &= ~val;
 		break;
 	case 0xff:
 		if (dev->type == 4) {
@@ -870,6 +878,9 @@ piix_read(int func, int addr, void *priv)
 {
     piix_t *dev = (piix_t *) priv;
     uint8_t ret = 0xff, *fregs;
+
+    if ((dev->type == 3) && (func == 2) && (dev->max_func == 1) && (addr >= 0x40))
+	ret = 0x00;
 
     /* Return on unsupported function. */
     if ((func <= dev->max_func) || ((func == 1) && (dev->max_func == 0))) {
@@ -993,6 +1004,8 @@ piix_reset_hard(piix_t *dev)
     fregs[0x69] = 0x02;
     if ((dev->type == 1) && (dev->rev != 2))
 	fregs[0x6a] = 0x04;
+    else if (dev->type == 3)
+	fregs[0x6a] = 0x10;
     fregs[0x70] = (dev->type < 4) ? 0x80 : 0x00;
     fregs[0x71] = (dev->type < 3) ? 0x80 : 0x00;
     if (dev->type <= 4) {
@@ -1063,7 +1076,7 @@ piix_reset_hard(piix_t *dev)
 		fregs[0xc1] = 0x20;
 		fregs[0xff] = (dev->type > 3) ? 0x10 : 0x00;
 	}
-	dev->max_func = 1;	/* It starts with USB disabled, then enables it. */
+	dev->max_func = 2;	/* It starts with USB disabled, then enables it. */
     }
 
     /* Function 3: Power Management */

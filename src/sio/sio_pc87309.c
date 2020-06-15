@@ -283,7 +283,6 @@ pc87309_write(uint16_t port, uint8_t val, void *priv)
 	case 0x74: case 0x75:
 		switch (dev->regs[0x07]) {
 			case 0x00:
-				dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30] = val & 0xfa;
 				fdc_handler(dev);
 				break;
 			case 0x01:
