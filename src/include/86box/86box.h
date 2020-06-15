@@ -116,7 +116,7 @@ extern uint32_t	mem_size;			/* (C) memory size */
 extern int	cpu_manufacturer,		/* (C) cpu manufacturer */
 		cpu,				/* (C) cpu type */
 		cpu_use_dynarec,		/* (C) cpu uses/needs Dyna */
-		enable_external_fpu;		/* (C) enable external FPU */
+		fpu_type;			/* (C) fpu type */
 extern int	time_sync;			/* (C) enable time sync */
 extern int	network_type;			/* (C) net provider type */
 extern int	network_card;			/* (C) net interface num */

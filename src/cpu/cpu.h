@@ -21,8 +21,6 @@
 #ifndef EMU_CPU_H
 # define EMU_CPU_H
 
-extern int fpu_type;
-
 enum {
 	FPU_NONE,
 	FPU_8087,
@@ -592,9 +590,9 @@ extern int	sysexit(uint32_t fetchdat);
 extern int	syscall(uint32_t fetchdat);
 extern int	sysret(uint32_t fetchdat);
 
-int fpu_get_type(int machine, int cpu_manufacturer, int cpu, const char *internal_name);
-const char *fpu_get_internal_name(int machine, int cpu_manufacturer, int cpu, int type);
-const char *fpu_get_name_from_index(int machine, int cpu_manufacturer, int cpu, int c);
-int fpu_get_type_from_index(int machine, int cpu_manufacturer, int cpu, int c);
+extern int	fpu_get_type(int machine, int cpu_manufacturer, int cpu, const char *internal_name);
+extern const	char *fpu_get_internal_name(int machine, int cpu_manufacturer, int cpu, int type);
+extern const	char *fpu_get_name_from_index(int machine, int cpu_manufacturer, int cpu, int c);
+extern int	fpu_get_type_from_index(int machine, int cpu_manufacturer, int cpu, int c);
 
 #endif	/*EMU_CPU_H*/

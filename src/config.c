@@ -528,9 +528,9 @@ load_machine(void)
     cpu = config_get_int(cat, "cpu", 0);
     cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
 
-    p = (char *)config_get_string(cat, "fpu", "none");
+    p = (char *)config_get_string(cat, "fpu_type", "none");
     fpu_type = fpu_get_type(machine, cpu_manufacturer, cpu, p);    
-    
+
     mem_size = config_get_int(cat, "mem_size", 4096);
 	
 #if 0
@@ -1510,17 +1510,17 @@ save_machine(void)
       else
 	config_set_int(cat, "cpu_waitstates", cpu_waitstates);
 
+    if (fpu_type == 0)
+	config_delete_var(cat, "fpu_type");
+      else
+	config_set_string(cat, "fpu_type", fpu_get_internal_name(machine, cpu_manufacturer, cpu, fpu_type));
+
     if (mem_size == 4096)
 	config_delete_var(cat, "mem_size");
       else
 	config_set_int(cat, "mem_size", mem_size);
 
     config_set_int(cat, "cpu_use_dynarec", cpu_use_dynarec);
-
-    if (enable_external_fpu == 0)
-	config_delete_var(cat, "cpu_enable_fpu");
-      else
-	config_set_int(cat, "cpu_enable_fpu", enable_external_fpu);
 
     if (time_sync & TIME_SYNC_ENABLED)
 	if (time_sync & TIME_SYNC_UTC)

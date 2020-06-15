@@ -172,7 +172,6 @@ int		is286,
 		is_am486, is_pentium, is_k5, is_k6, is_p6;
 
 int		hasfpu;
-int 		fpu_type;
 
 uint64_t	tsc = 0;
 msr_t		msr;

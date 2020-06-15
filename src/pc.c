@@ -135,7 +135,7 @@ uint32_t mem_size = 0;				/* (C) memory size */
 int	cpu_manufacturer = 0,			/* (C) cpu manufacturer */
 	cpu_use_dynarec = 0,			/* (C) cpu uses/needs Dyna */
 	cpu = 3,				/* (C) cpu type */
-	enable_external_fpu = 0;		/* (C) enable external FPU */
+	fpu_type = 0;				/* (C) fpu type */
 int	time_sync = 0;				/* (C) enable time sync */
 #ifdef USE_DISCORD
 int	enable_discord = 0;			/* (C) enable Discord integration */

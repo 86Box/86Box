@@ -205,7 +205,7 @@ win_settings_init(void)
 #ifdef USE_DYNAREC
     temp_dynarec = cpu_use_dynarec;
 #endif
-    temp_fpu = enable_external_fpu;
+    temp_fpu = fpu_type;
     temp_sync = time_sync;
 
     /* Video category */
@@ -318,7 +318,7 @@ win_settings_changed(void)
 #ifdef USE_DYNAREC
     i = i || (temp_dynarec != cpu_use_dynarec);
 #endif
-    i = i || (temp_fpu != enable_external_fpu);
+    i = i || (temp_fpu != fpu_type);
     i = i || (temp_sync != time_sync);
 
     /* Video category */
@@ -422,7 +422,7 @@ win_settings_save(void)
 #ifdef USE_DYNAREC
     cpu_use_dynarec = temp_dynarec;
 #endif
-    enable_external_fpu = temp_fpu;
+    fpu_type = temp_fpu;
     time_sync = temp_sync;
 
     /* Video category */
@@ -508,6 +508,40 @@ win_settings_save(void)
 
 
 static void
+win_settings_machine_recalc_fpu(HWND hdlg)
+{
+    HWND h;
+    int c, type;
+    LPTSTR lptsTemp;
+    const char *stransi;
+
+    lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
+
+    h = GetDlgItem(hdlg, IDC_COMBO_FPU);
+    SendMessage(h, CB_RESETCONTENT, 0, 0);
+    c = 0;
+    while (1) {
+	stransi = (char *) fpu_get_name_from_index(temp_machine, temp_cpu_m, temp_cpu, c);
+	type = fpu_get_type_from_index(temp_machine, temp_cpu_m, temp_cpu, c);
+	if (!stransi)
+		break;
+
+	mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
+	SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
+	if (!c || (type == temp_fpu))
+		SendMessage(h, CB_SETCURSEL, c, 0);
+
+	c++;
+    }
+
+    if (c > 1)
+	EnableWindow(h, TRUE);
+    else
+	EnableWindow(h, FALSE);
+}
+
+
+static void
 win_settings_machine_recalc_cpu(HWND hdlg)
 {
     HWND h;
@@ -539,15 +573,7 @@ win_settings_machine_recalc_cpu(HWND hdlg)
 	EnableWindow(h, TRUE);
 #endif
 
-    h = GetDlgItem(hdlg, IDC_CHECK_FPU);
-    cpu_type = machines[temp_machine].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
-    if (cpu_type < CPU_i486DX)
-	EnableWindow(h, TRUE);
-    else {
-	temp_fpu = 1;
-	EnableWindow(h, FALSE);
-    }
-    SendMessage(h, BM_SETCHECK, temp_fpu, 0);
+    win_settings_machine_recalc_fpu(hdlg);
 }
 
 
@@ -738,6 +764,12 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					win_settings_machine_recalc_cpu(hdlg);
 				}
 				break;
+			case IDC_COMBO_FPU:
+        	                if (HIWORD(wParam) == CBN_SELCHANGE) {
+       		                        h = GetDlgItem(hdlg, IDC_COMBO_FPU);
+					temp_fpu = fpu_get_type_from_index(temp_machine, temp_cpu_m, temp_cpu, SendMessage(h, CB_GETCURSEL, 0, 0));
+				}
+				break;
 			case IDC_CONFIGURE_MACHINE:
 				h = GetDlgItem(hdlg, IDC_COMBO_MACHINE);
 				temp_machine = listtomachine[SendMessage(h, CB_GETCURSEL, 0, 0)];
@@ -768,9 +800,6 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		h=GetDlgItem(hdlg, IDC_RADIO_TS_UTC);
 		if(SendMessage(h, BM_GETCHECK, 0, 0))
 			temp_sync = TIME_SYNC_ENABLED | TIME_SYNC_UTC;
-
-       	        h=GetDlgItem(hdlg, IDC_CHECK_FPU);
-		temp_fpu = SendMessage(h, BM_GETCHECK, 0, 0);
 
 		h = GetDlgItem(hdlg, IDC_COMBO_WS);
 		temp_wait_states = SendMessage(h, CB_GETCURSEL, 0, 0);
