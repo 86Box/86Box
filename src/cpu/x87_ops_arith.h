@@ -180,7 +180,7 @@ static int opFCOMPP(uint32_t fetchdat)
         cpu_state.npxs &= ~(C0|C2|C3);
 	p = (uint64_t *)&ST(0);
 	q = (uint64_t *)&ST(1);
-        if ((*p == ((uint64_t)1 << 63) && *q == 0) && ((fpu_type == FPU_287XL) || (fpu_type == FPU_387)))
+        if ((*p == ((uint64_t)1 << 63) && *q == 0) && (fpu_type >= FPU_287XL))
                 cpu_state.npxs |= C0; /*Nasty hack to fix 80387 detection*/
         else
                 cpu_state.npxs |= x87_compare(ST(0), ST(1));

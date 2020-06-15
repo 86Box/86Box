@@ -321,7 +321,7 @@ static __inline uint16_t x87_compare(double a, double b)
 	if (!memcmp(&ea, &ia, 8) && !memcmp(&eb, &ib, 8))
 		return C3;
 
-	if ((fpu_type != FPU_287XL) && (fpu_type != FPU_387) && !(cpu_state.npxc & 0x1000) &&
+	if ((fpu_type < FPU_287XL) && !(cpu_state.npxc & 0x1000) &&
 	    ((a == INFINITY) || (a == -INFINITY)) && ((b == INFINITY) || (b == -INFINITY)))
 		eb = ea;
 
@@ -358,7 +358,7 @@ static __inline uint16_t x87_compare(double a, double b)
         uint32_t result = 0;
 	double ea = a, eb = b;
 
-	if ((fpu_type != FPU_287XL) && (fpu_type != FPU_387) && !(cpu_state.npxc & 0x1000) &&
+	if ((fpu_type < FPU_287XL) && !(cpu_state.npxc & 0x1000) &&
 	    ((a == INFINITY) || (a == -INFINITY)) && ((b == INFINITY) || (b == -INFINITY)))
 		eb = ea;
 
