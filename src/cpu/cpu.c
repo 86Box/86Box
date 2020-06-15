@@ -61,7 +61,6 @@
 #endif
 
 /*#define ENABLE_CPU_LOG 1*/
-#define ENABLE_CPU_LOG 1
 
 static void	cpu_write(uint16_t addr, uint8_t val, void *priv);
 static uint8_t	cpu_read(uint16_t addr, void *priv);
