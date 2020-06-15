@@ -529,7 +529,7 @@ load_machine(void)
     cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
 
     p = (char *)config_get_string(cat, "fpu_type", "none");
-    fpu_type = fpu_get_type(machine, cpu_manufacturer, cpu, p);    
+    fpu_type = fpu_get_type(machine, cpu_manufacturer, cpu, p);
 
     mem_size = config_get_int(cat, "mem_size", 4096);
 	
@@ -1337,6 +1337,7 @@ config_load(void)
 #endif
 	scale = 1;
 	machine = machine_get_machine_from_internal_name("ibmpc");
+	fpu_type = fpu_get_type(machine, cpu_manufacturer, cpu, "none");
 	gfxcard = video_get_video_from_internal_name("cga");
 	vid_api = plat_vidapi("default");
 	time_sync = TIME_SYNC_ENABLED;
