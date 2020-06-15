@@ -285,6 +285,7 @@ extern const device_t	*at_endeavor_get_device(void);
 extern int	machine_at_chariot_init(const machine_t *);
 extern int	machine_at_mr586_init(const machine_t *);
 extern int	machine_at_thor_init(const machine_t *);
+extern int	machine_at_gw2katx_init(const machine_t *);
 extern int	machine_at_mrthor_init(const machine_t *);
 extern int	machine_at_pb640_init(const machine_t *);
 
@@ -327,6 +328,7 @@ extern int	machine_at_mvp3_init(const machine_t *);
 extern int	machine_at_686nx_init(const machine_t *);
 extern int	machine_at_v60n_init(const machine_t *);
 extern int	machine_at_vs440fx_init(const machine_t *);
+extern int	machine_at_gw2kvs_init(const machine_t *);
 extern int	machine_at_ap440fx_init(const machine_t *);
 extern int	machine_at_mb600n_init(const machine_t *);
 extern int	machine_at_8500ttc_init(const machine_t *);

@@ -235,12 +235,13 @@ const machine_t machines[] = {
     /* Socket 7 machines */
     /* 430FX */
     { "[Socket 7-3V FX] ASUS P/I-P54TP4XE",	"p54tp4xe",		MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	     machine_at_p54tp4xe_init, NULL			},
-    { "[Socket 7-3V FX] QDI Chariot",		"chariot",		MACHINE_CPUS_PENTIUM_S73VCH,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  8,  128,   8, 127,	      machine_at_chariot_init, NULL			},
-    { "[Socket 7-3V FX] MR 430FX clone",	"mr586",		MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC | MACHINE_PS2,					  8,  128,   8, 127,	        machine_at_mr586_init, NULL			},
+    { "[Socket 7-3V FX] Gateway 2000 Thor",	"gw2katx",		MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	      machine_at_gw2katx_init, NULL			},
     { "[Socket 7-3V FX] Intel Advanced/ATX",	"thor",			MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,		 machine_at_thor_init, NULL			},
     { "[Socket 7-3V FX] Intel Advanced/EV",	"endeavor",		MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,			  8,  128,   8, 127,	     machine_at_endeavor_init, at_endeavor_get_device	},
+    { "[Socket 7-3V FX] MR 430FX clone",	"mr586",		MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC | MACHINE_PS2,					  8,  128,   8, 127,	        machine_at_mr586_init, NULL			},	
     { "[Socket 7-3V FX] MR Intel Advanced/ATX",	"mrthor",		MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 127,	       machine_at_mrthor_init, NULL			},
     { "[Socket 7-3V FX] Packard Bell PB640",	"pb640",		MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,	 		  8,  128,   8, 127,		machine_at_pb640_init, at_pb640_get_device	},
+    { "[Socket 7-3V FX] QDI Chariot",		"chariot",		MACHINE_CPUS_PENTIUM_S73VCH,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  8,  128,   8, 127,	      machine_at_chariot_init, NULL			},	
 
     /* 430HX */
     { "[Socket 7-3V HX] Acer M3a",		"acerm3a",		MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  192,   8, 127,	      machine_at_acerm3a_init, NULL			},
@@ -283,14 +284,15 @@ const machine_t machines[] = {
 
     /* Socket 8 machines */
     /* 440FX */
-    { "[Socket 8 FX] Gigabyte GA-686NX",	"686nx",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	        machine_at_686nx_init, NULL			},
-    { "[Socket 8 FX] Intel Venus",	        "vs440fx",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	        machine_at_vs440fx_init, NULL		},
-    { "[Socket 8 FX] Intel AP440FX",		"ap440fx",		{{"Intel", cpus_PentiumPro}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	         machine_at_ap440fx_init, NULL		},
-    { "[Socket 8 FX] PC Partner MB600N",	"mb600n",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	       machine_at_mb600n_init, NULL			},
-    { "[Socket 8 FX] Biostar MB-8500ttc",	"8500ttc",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 127,	      machine_at_8500ttc_init, NULL			},
-    { "[Socket 8 FX] Micronics M6MI",		"m6mi",			{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  768,   8, 127,	         machine_at_m6mi_init, NULL			},
+    { "[Socket 8 FX] Acer V60N",	        "v60n",		        {{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	         machine_at_v60n_init, NULL			},
     { "[Socket 8 FX] ASUS P/I-P65UP5 (C-P6ND)",	"p65up5_cp6nd",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 127,	 machine_at_p65up5_cp6nd_init, NULL			},
-    { "[Socket 8 FX] Acer V60N",	"v60n",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	        machine_at_v60n_init, NULL			},
+    { "[Socket 8 FX] Biostar MB-8500ttc",	"8500ttc",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 127,	      machine_at_8500ttc_init, NULL			},
+    { "[Socket 8 FX] Gateway 2000 Venus",	"gw2kvs",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	       machine_at_gw2kvs_init, NULL		        },
+    { "[Socket 8 FX] Gigabyte GA-686NX",	"686nx",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	        machine_at_686nx_init, NULL	                },
+    { "[Socket 8 FX] Intel AP440FX",		"ap440fx",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	      machine_at_ap440fx_init, NULL		        },
+    { "[Socket 8 FX] Intel Venus",	        "vs440fx",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	      machine_at_vs440fx_init, NULL		        },
+    { "[Socket 8 FX] Micronics M6MI",		"m6mi",			{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  768,   8, 127,	         machine_at_m6mi_init, NULL			},
+    { "[Socket 8 FX] PC Partner MB600N",	"mb600n",		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	       machine_at_mb600n_init, NULL			},
 
     /* Slot 1 machines */
     /* 440FX */
