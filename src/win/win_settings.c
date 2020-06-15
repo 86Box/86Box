@@ -70,7 +70,7 @@
 static int first_cat = 0;
 
 /* Machine category */
-static int temp_machine, temp_cpu_m, temp_cpu, temp_wait_states, temp_fpu, temp_sync;
+static int temp_machine_type, temp_machine, temp_cpu_m, temp_cpu, temp_wait_states, temp_fpu, temp_sync;
 static uint32_t temp_mem_size;
 #ifdef USE_DYNAREC
 static int temp_dynarec;
@@ -120,6 +120,7 @@ static HWND hwndParentDialog, hwndChildDialog;
 static uint32_t displayed_category = 0;
 
 extern int is486;
+static int listtomachinetype[256], machinetypetolist[256];
 static int listtomachine[256], machinetolist[256];
 static int settings_device_to_list[2][20], settings_list_to_device[2][20];
 static int settings_midi_to_list[20], settings_list_to_midi[20];
@@ -197,6 +198,7 @@ win_settings_init(void)
     int i = 0;
 
     /* Machine category */
+    temp_machine_type = machines[machine].type;
     temp_machine = machine;
     temp_cpu_m = cpu_manufacturer;
     temp_wait_states = cpu_waitstates;
@@ -670,7 +672,8 @@ static BOOL CALLBACK
 win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HWND h, h2;
-    int c, d;
+    int c, d, e, f;
+    int old_machine_type;
     LPTSTR lptsTemp;
     char *stransi;
 
@@ -678,10 +681,35 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_INITDIALOG:
 		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
+		h = GetDlgItem(hdlg, IDC_COMBO_MACHINE_TYPE);
+		f = 0;
+		memset(machinetypetolist, 0x00, sizeof(machinetypetolist));
+		memset(listtomachinetype, 0x00, sizeof(listtomachinetype));
+		for (c = 1; c < MACHINE_TYPE_MAX; c++) {
+			d = e = 0;
+			while (machine_get_internal_name_ex(d) != NULL) {
+				if (machine_available(d) && (machines[d].type == c))
+					e++;
+				d++;
+			}
+
+			if (e > 0) {
+				stransi = (char *)machine_types[c].name;
+				mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
+				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+				machinetypetolist[c] = f;
+				listtomachinetype[f] = c;
+				f++;
+			}
+		}
+		SendMessage(h, CB_SETCURSEL, machinetypetolist[temp_machine_type], 0);
+
 		h = GetDlgItem(hdlg, IDC_COMBO_MACHINE);
 		c = d = 0;
+		memset(machinetolist, 0x00, sizeof(machinetolist));
+		memset(listtomachine, 0x00, sizeof(listtomachine));
 		while (machine_get_internal_name_ex(c) != NULL) {
-			if (machine_available(c)) {
+			if (machine_available(c) && (machines[c].type == temp_machine_type)) {
 				stransi = (char *)machines[c].name;
 				mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
@@ -739,6 +767,40 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_COMMAND:
                	switch (LOWORD(wParam)) {
+               	        case IDC_COMBO_MACHINE_TYPE:
+        	                if (HIWORD(wParam) == CBN_SELCHANGE) {
+					h = GetDlgItem(hdlg, IDC_COMBO_MACHINE_TYPE);
+					old_machine_type = temp_machine_type;
+                	                temp_machine_type = listtomachinetype[SendMessage(h,CB_GETCURSEL,0,0)];
+
+					lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
+
+					h = GetDlgItem(hdlg, IDC_COMBO_MACHINE);
+					SendMessage(h, CB_RESETCONTENT, 0, 0);
+					c = d = 0;
+					memset(machinetolist, 0x00, sizeof(machinetolist));
+					memset(listtomachine, 0x00, sizeof(listtomachine));
+					while (machine_get_internal_name_ex(c) != NULL) {
+						if (machine_available(c) && (machines[c].type == temp_machine_type)) {
+							stransi = (char *)machines[c].name;
+							mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
+							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+							machinetolist[c] = d;
+							listtomachine[d] = c;
+							d++;
+						}
+						c++;
+					}
+					if (old_machine_type == temp_machine_type)
+						SendMessage(h, CB_SETCURSEL, machinetolist[temp_machine], 0);
+					else {
+						SendMessage(h, CB_SETCURSEL, 0, 0);
+						temp_machine = listtomachine[0];
+
+						win_settings_machine_recalc_machine(hdlg);
+					}
+				}
+				break;
                	        case IDC_COMBO_MACHINE:
         	                if (HIWORD(wParam) == CBN_SELCHANGE) {
        		                        h = GetDlgItem(hdlg, IDC_COMBO_MACHINE);

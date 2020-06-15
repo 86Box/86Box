@@ -62,10 +62,38 @@
 #define IS_ARCH(m, a)		(machines[(m)].flags & (a)) ? 1 : 0;
 
 
+enum {
+    MACHINE_TYPE_NONE = 0,
+    MACHINE_TYPE_8088,
+    MACHINE_TYPE_8086,
+    MACHINE_TYPE_286,
+    MACHINE_TYPE_386SX,
+    MACHINE_TYPE_386DX,
+    MACHINE_TYPE_486,
+    MACHINE_TYPE_SOCKET4,
+    MACHINE_TYPE_SOCKET5,
+    MACHINE_TYPE_SOCKET7_3V,
+    MACHINE_TYPE_SOCKET7,
+    MACHINE_TYPE_SOCKETS7,
+    MACHINE_TYPE_SOCKET8,
+    MACHINE_TYPE_SLOT1,
+    MACHINE_TYPE_SLOT2,
+    MACHINE_TYPE_SOCKET370,
+    MACHINE_TYPE_MAX
+};
+
+
+typedef struct _machine_type_ {
+    const char	*name;
+    const char  id;
+} machine_type_t;
+
+
 #ifdef NEW_STRUCT
 typedef struct _machine_ {
     const char	*name;
     const char	*internal_name;
+    const char  type;
 #ifdef EMU_DEVICE_H
     const device_t	*device;
 #else
@@ -88,6 +116,7 @@ typedef struct _machine_ {
 typedef struct _machine_ {
     const char	*name;
     const char	*internal_name;
+    const char  type;
     struct {
 	const char *name;
 #ifdef EMU_CPU_H
@@ -111,10 +140,11 @@ typedef struct _machine_ {
 
 
 /* Global variables. */
-extern const machine_t	machines[];
-extern int		bios_only;
-extern int		machine;
-extern int		AT, PCI;
+extern const machine_type_t	machine_types[];
+extern const machine_t		machines[];
+extern int			bios_only;
+extern int			machine;
+extern int			AT, PCI;
 
 
 /* Core functions. */
