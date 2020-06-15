@@ -61,6 +61,7 @@
 #endif
 
 /*#define ENABLE_CPU_LOG 1*/
+#define ENABLE_CPU_LOG 1
 
 static void	cpu_write(uint16_t addr, uint8_t val, void *priv);
 static uint8_t	cpu_read(uint16_t addr, void *priv);
@@ -205,17 +206,21 @@ uint64_t	ecx11e_msr = 0;
 uint64_t	ecx186_msr = 0;
 uint64_t	ecx187_msr = 0;
 uint64_t	ecx1e0_msr = 0;
+
+/* Model Identification MSR's used by some Acer BIOSes*/
 uint64_t	ecx404_msr = 0;
 uint64_t	ecx408_msr = 0;
 uint64_t	ecx40c_msr = 0;
 uint64_t	ecx410_msr = 0;
+
 uint64_t	ecx570_msr = 0;
 
 uint64_t	ecx83_msr = 0;			/* AMD K5 and K6 MSR's. */
 
-/* Some weird long MSR's used by the Tyan Tsunami ATX */
-/* Will respond with: 0404040404040404. It'll be nice */
-/* If somebody could check them.                      */
+/* MSR used by some Intel AMI boards */
+uint64_t        ecx1002ff_msr = 0;
+
+/* Some weird long MSR's used by i686 AMI & some Phoenix BIOSes */
 uint64_t	ecxf0f00250_msr = 0;	
 uint64_t	ecxf0f00258_msr = 0;
 
@@ -2912,6 +2917,10 @@ void cpu_RDMSR()
                         EAX = ecx570_msr & 0xffffffff;
                         EDX = ecx570_msr >> 32;
 			break;
+			case 0x1002ff:
+                        EAX = ecx1002ff_msr & 0xffffffff;
+                        EDX = ecx1002ff_msr >> 32;
+			break;
 			case 0xf0f00250:
                         EAX = ecxf0f00250_msr & 0xffffffff;
                         EDX = ecxf0f00250_msr >> 32;
@@ -3349,6 +3358,9 @@ void cpu_WRMSR()
 			break;
 			case 0x570:
 			ecx570_msr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0x1002ff:
+			ecx1002ff_msr = EAX | ((uint64_t)EDX << 32);
 			break;
 			case 0xf0f00250:
 			ecxf0f00250_msr = EAX | ((uint64_t)EDX << 32);
