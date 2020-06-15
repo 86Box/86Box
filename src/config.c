@@ -528,6 +528,9 @@ load_machine(void)
     cpu = config_get_int(cat, "cpu", 0);
     cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
 
+    p = (char *)config_get_string(cat, "fpu", "none");
+    fpu_type = fpu_get_type(machine, cpu_manufacturer, cpu, p);    
+    
     mem_size = config_get_int(cat, "mem_size", 4096);
 	
 #if 0
@@ -540,8 +543,6 @@ load_machine(void)
 	mem_size = 2097152;
 
     cpu_use_dynarec = !!config_get_int(cat, "cpu_use_dynarec", 0);
-
-    enable_external_fpu = !!config_get_int(cat, "cpu_enable_fpu", 0);
 
     p = config_get_string(cat, "time_sync", NULL);
     if (p != NULL) {        

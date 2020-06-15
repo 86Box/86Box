@@ -20,6 +20,18 @@
  */
 #ifndef EMU_CPU_H
 # define EMU_CPU_H
+
+extern int fpu_type;
+
+enum {
+	FPU_NONE,
+	FPU_8087,
+	FPU_287,
+	FPU_287XL,
+	FPU_387,
+	FPU_BUILTIN
+};
+
 enum {
     CPU_8088,		/* 808x class CPUs */
     CPU_8086,
@@ -91,10 +103,16 @@ enum {
 #define CPU_REQUIRES_DYNAREC 2
 #define CPU_ALTERNATE_XTAL   4
 
+typedef struct {
+	const char    *name;
+	const char    *internal_name;
+	const int     type;
+} FPU;
 
 typedef struct {
     const char *name;
     int        cpu_type;
+	const FPU  *fpus;
     int        rspeed;
     double     multi;
     uint32_t   edx_reset;
@@ -375,6 +393,7 @@ extern int	cpu_16bitbus, cpu_64bitbus;
 extern int	cpu_busspeed, cpu_pci_speed;
 extern int	cpu_multi;
 extern double	cpu_dmulti;
+extern double   fpu_multi;
 extern int	cpu_cyrix_alignment;	/*Cyrix 5x86/6x86 only has data misalignment
 					  penalties when crossing 8-byte boundaries*/
 
@@ -573,5 +592,9 @@ extern int	sysexit(uint32_t fetchdat);
 extern int	syscall(uint32_t fetchdat);
 extern int	sysret(uint32_t fetchdat);
 
+int fpu_get_type(int machine, int cpu_manufacturer, int cpu, const char *internal_name);
+const char *fpu_get_internal_name(int machine, int cpu_manufacturer, int cpu, int type);
+const char *fpu_get_name_from_index(int machine, int cpu_manufacturer, int cpu, int c);
+int fpu_get_type_from_index(int machine, int cpu_manufacturer, int cpu, int c);
 
 #endif	/*EMU_CPU_H*/
