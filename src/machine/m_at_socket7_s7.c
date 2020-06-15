@@ -141,6 +141,23 @@ machine_at_thor_init(const machine_t *model)
 
 
 int
+machine_at_gw2katx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined(L"roms/machines/gw2katx/1003cn0t.bio",
+				    L"roms/machines/gw2katx/1003cn0t.bi1", 0x20000, 128);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_thor_common_init(model, 0);
+
+    return ret;
+}
+
+
+int
 machine_at_mrthor_init(const machine_t *model)
 {
     int ret;
