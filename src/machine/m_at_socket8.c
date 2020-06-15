@@ -182,11 +182,11 @@ machine_at_ap440fx_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-	pci_register_slot(0x08, PCI_CARD_ONBOARD, 4, 0, 0, 0);
-	pci_register_slot(0x13, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x11, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 0, 0, 0);	// Riser card slot
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_ONBOARD, 3, 0, 0, 0);
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 3, 2, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 2, 1, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 2, 1, 4);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
     device_add(&i440fx_device);
     device_add(&piix3_device);
     device_add(&keyboard_ps2_ami_pci_device);
