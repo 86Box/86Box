@@ -1160,6 +1160,13 @@ piix_reset(void *p)
 	piix_write(0, 0xa7, 0x00, p);
 	piix_write(0, 0xa8, 0x0f, p);
     }
+
+    piix_write(1, 0x04, 0x00, p);
+    piix_write(1, 0x41, 0x00, p);
+    piix_write(1, 0x43, 0x00, p);
+
+    ide_pri_disable();
+    ide_sec_disable();
 }
 
 
