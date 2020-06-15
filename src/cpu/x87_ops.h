@@ -22,6 +22,7 @@
  */
 #include <math.h>
 #include <fenv.h>
+#include "x87_timings.h"
 #ifdef _MSC_VER
 # include <intrin.h>
 #endif

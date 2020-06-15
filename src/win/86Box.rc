@@ -370,8 +370,6 @@ BEGIN
                     12,12
     LTEXT           "MB",IDT_1705,123,64,10,10
     LTEXT           "Memory:",IDT_1706,7,64,30,10
-    CONTROL         "Enable FPU",IDC_CHECK_FPU,"Button",BS_AUTOCHECKBOX | 
-                    WS_TABSTOP,7,81,113,10
     GROUPBOX        "Time synchronization",IDC_TIME_SYNC,7,96,100,56
     CONTROL         "Disabled",IDC_RADIO_TS_DISABLED,"Button",
                     BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,14,108,84,10

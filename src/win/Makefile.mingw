@@ -556,7 +556,7 @@ MEMOBJ		:= intel_flash.o mem.o rom.o spd.o sst_flash.o
 
 CPUOBJ		:= cpu.o cpu_table.o \
 		    808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o $(CGTOBJ) \
-		    x86seg.o x87.o \
+		    x86seg.o x87.o x87_timings.o \
 		    $(DYNARECOBJ)
 
 CHIPSETOBJ	:= acc2168.o acer_m3a.o cs8230.o ali1429.o headland.o \

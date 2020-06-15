@@ -59,6 +59,7 @@
 #ifdef USE_DYNAREC
 # include "codegen.h"
 #endif
+#include "x87_timings.h"
 
 /*#define ENABLE_CPU_LOG 1*/
 
@@ -171,7 +172,7 @@ int		is286,
 		is_am486, is_pentium, is_k5, is_k6, is_p6;
 
 int		hasfpu;
-
+int 		fpu_type;
 
 uint64_t	tsc = 0;
 msr_t		msr;
@@ -211,7 +212,6 @@ uint64_t	ecx404_msr = 0;
 uint64_t	ecx408_msr = 0;
 uint64_t	ecx40c_msr = 0;
 uint64_t	ecx410_msr = 0;
-
 uint64_t	ecx570_msr = 0;
 
 uint64_t	ecx83_msr = 0;			/* AMD K5 and K6 MSR's. */
@@ -296,6 +296,54 @@ cpu_set_edx(void)
         EDX = machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].edx_reset;
 }
 
+int fpu_get_type(int machine, int cpu_manufacturer, int cpu, const char *internal_name)
+{
+        CPU *cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu];
+        const FPU *fpus = cpu_s->fpus;
+        int fpu_type = fpus[0].type;
+        int c = 0;
+        
+        while (fpus[c].internal_name)
+        {
+                if (!strcmp(internal_name, fpus[c].internal_name))
+                        fpu_type = fpus[c].type;
+                c++;
+        }
+        
+        return fpu_type;
+}
+
+const char *fpu_get_internal_name(int machine, int cpu_manufacturer, int cpu, int type)
+{
+        CPU *cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu];
+        const FPU *fpus = cpu_s->fpus;
+        int c = 0;
+
+        while (fpus[c].internal_name)
+        {
+                if (fpus[c].type == type)
+                        return fpus[c].internal_name;
+                c++;
+        }
+
+        return fpus[0].internal_name;
+}
+
+const char *fpu_get_name_from_index(int machine, int cpu_manufacturer, int cpu, int c)
+{
+        CPU *cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu];
+        const FPU *fpus = cpu_s->fpus;
+        
+        return fpus[c].name;
+}
+
+int fpu_get_type_from_index(int machine, int cpu_manufacturer, int cpu, int c)
+{
+        CPU *cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu];
+        const FPU *fpus = cpu_s->fpus;
+
+        return fpus[c].type;
+}
 
 void
 cpu_set(void)
@@ -343,7 +391,7 @@ cpu_set(void)
 		       (cpu_s->cpu_type == CPU_PENTIUM2D);
 	/* The Samuel 2 datasheet claims it's Celeron-compatible. */
 	is_p6       |= (cpu_s->cpu_type == CPU_CYRIX3S);
-        hasfpu       = (cpu_s->cpu_type >= CPU_i486DX) || (cpu_s->cpu_type == CPU_RAPIDCAD);
+        hasfpu       = (fpu_type != FPU_NONE);
 	hascache     = (cpu_s->cpu_type >= CPU_486SLC) || (cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL);
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
         cpu_iscyrix  = (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_Cx486S || cpu_s->cpu_type == CPU_Cx486DX || cpu_s->cpu_type == CPU_Cx5x86 || cpu_s->cpu_type == CPU_Cx6x86 || cpu_s->cpu_type == CPU_Cx6x86MX || cpu_s->cpu_type == CPU_Cx6x86L || cpu_s->cpu_type == CPU_CxGX1);
@@ -362,11 +410,7 @@ cpu_set(void)
         cpu_dmulti = cpu_s->multi;
         ccr0 = ccr1 = ccr2 = ccr3 = ccr4 = ccr5 = ccr6 = 0;
 
-	if ((cpu_s->cpu_type == CPU_8088) || (cpu_s->cpu_type == CPU_8086) ||
-	    (cpu_s->cpu_type == CPU_286) || (cpu_s->cpu_type == CPU_386SX) ||
-	    (cpu_s->cpu_type == CPU_386DX) || (cpu_s->cpu_type == CPU_i486SX)) {
-		hasfpu = !!enable_external_fpu;
-	}
+
 
         cpu_update_waitstates();
 
@@ -509,7 +553,7 @@ cpu_set(void)
 #else
                 x86_setopcodes(ops_286, ops_286_0f);
 #endif
-		if (enable_external_fpu)
+		if (fpu_type == FPU_287)
 		{
 #ifdef USE_DYNAREC
                 	x86_dynarec_opcodes_d9_a16 = dynarec_ops_fpu_287_d9_a16;
@@ -617,6 +661,39 @@ cpu_set(void)
                 x86_setopcodes(ops_386, ops_486_0f);
 #endif
                 case CPU_386DX:
+                if (fpu_type == FPU_287) /*In case we get Deskpro 386 emulation*/
+                {
+#ifdef USE_DYNAREC
+                	x86_dynarec_opcodes_d9_a16 = dynarec_ops_fpu_287_d9_a16;
+        	        x86_dynarec_opcodes_d9_a32 = dynarec_ops_fpu_287_d9_a32;
+                	x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_287_da_a16;
+        	        x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_287_da_a32;
+	                x86_dynarec_opcodes_db_a16 = dynarec_ops_fpu_287_db_a16;
+        	        x86_dynarec_opcodes_db_a32 = dynarec_ops_fpu_287_db_a32;
+	                x86_dynarec_opcodes_dc_a16 = dynarec_ops_fpu_287_dc_a16;
+        	        x86_dynarec_opcodes_dc_a32 = dynarec_ops_fpu_287_dc_a32;
+	                x86_dynarec_opcodes_dd_a16 = dynarec_ops_fpu_287_dd_a16;
+        	        x86_dynarec_opcodes_dd_a32 = dynarec_ops_fpu_287_dd_a32;
+	                x86_dynarec_opcodes_de_a16 = dynarec_ops_fpu_287_de_a16;
+        	        x86_dynarec_opcodes_de_a32 = dynarec_ops_fpu_287_de_a32;
+	                x86_dynarec_opcodes_df_a16 = dynarec_ops_fpu_287_df_a16;
+        	        x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_287_df_a32;
+#endif
+	                x86_opcodes_d9_a16 = ops_fpu_287_d9_a16;
+	                x86_opcodes_d9_a32 = ops_fpu_287_d9_a32;
+	                x86_opcodes_da_a16 = ops_fpu_287_da_a16;
+	                x86_opcodes_da_a32 = ops_fpu_287_da_a32;
+        	        x86_opcodes_db_a16 = ops_fpu_287_db_a16;
+	                x86_opcodes_db_a32 = ops_fpu_287_db_a32;
+        	        x86_opcodes_dc_a16 = ops_fpu_287_dc_a16;
+	                x86_opcodes_dc_a32 = ops_fpu_287_dc_a32;
+        	        x86_opcodes_dd_a16 = ops_fpu_287_dd_a16;
+	                x86_opcodes_dd_a32 = ops_fpu_287_dd_a32;
+        	        x86_opcodes_de_a16 = ops_fpu_287_de_a16;
+	                x86_opcodes_de_a32 = ops_fpu_287_de_a32;
+        	        x86_opcodes_df_a16 = ops_fpu_287_df_a16;
+	                x86_opcodes_df_a32 = ops_fpu_287_df_a32;
+		}		
                 timing_rr  = 2; /*register dest - register src*/
                 timing_rm  = 6; /*register dest - memory src*/
                 timing_mr  = 7; /*memory dest   - register src*/
@@ -1619,9 +1696,30 @@ cpu_set(void)
                 default:
                 fatal("cpu_set : unknown CPU type %i\n", cpu_s->cpu_type);
         }
+
+                
+        switch (fpu_type)
+        {
+                case FPU_NONE:
+                break;
+		
+                case FPU_8087:
+                x87_timings = x87_timings_8087;
+		break;
+		
+                case FPU_287:
+                x87_timings = x87_timings_287;
+                break;
+		
+                case FPU_287XL:
+                case FPU_387:
+                x87_timings = x87_timings_387;
+	        break;
+		
+		default:
+		x87_timings = x87_timings_486;
+	}
 }
-
-
 char *
 cpu_current_pc(char *bufp)
 {
