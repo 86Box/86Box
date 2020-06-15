@@ -130,6 +130,40 @@ machine_at_v60n_init(const machine_t *model)
 }
 
 int
+machine_at_vs440fx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined2(L"roms/machines/vs440fx/1018CS1_.bio",
+				     L"roms/machines/vs440fx/1018CS1_.bi1",
+				     L"roms/machines/vs440fx/1018CS1_.bi2",
+				     L"roms/machines/vs440fx/1018CS1_.bi3",
+				     L"roms/machines/vs440fx/1018CS1_.rcv",
+				     0x3a000, 128);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+	pci_register_slot(0x13, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    device_add(&i440fx_device);
+    device_add(&piix3_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&pc87307_device);
+    device_add(&intel_flash_bxt_ami_device);
+
+    return ret;
+}
+
+
+int
 machine_at_8500ttc_init(const machine_t *model)
 {
     int ret;
