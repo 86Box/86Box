@@ -59,6 +59,7 @@
 #include <86box/gameport.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/hdd.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
