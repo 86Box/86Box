@@ -245,7 +245,7 @@ const machine_t machines[] = {
     /* 430FX */
     { "[Socket 5 FX] Gateway 2000 Zappa",	"gw2kzp",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	       machine_at_gw2kzp_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_VECTRA54)
-    { "[Socket 5 FX] HP Vectra VL 5 Series 4",  "vectra54",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  8,  128,   8, 511,	     machine_at_vectra54_init, NULL			},
+    { "[Socket 5 FX] HP Vectra VL 5 Series 4",  "vectra54",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,						  8,  128,   8, 511,	     machine_at_vectra54_init, NULL			},
 #endif
     { "[Socket 5 FX] Intel Advanced/ZP",	"zappa",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,		machine_at_zappa_init, NULL			},
     { "[Socket 5 FX] NEC PowerMate V",  	"powermate_v",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	  machine_at_powermate_v_init, NULL			},
@@ -303,7 +303,7 @@ const machine_t machines[] = {
 
     /* Socket 8 machines */
     /* 440FX */
-    { "[Socket 8 FX] Acer V60N",	        "v60n",		        MACHINE_TYPE_SOCKET8,		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	         machine_at_v60n_init, NULL			},
+    { "[Socket 8 FX] Acer V60N",	        "v60n",		        MACHINE_TYPE_SOCKET8,		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  384,   8, 127,	         machine_at_v60n_init, NULL			},
     { "[Socket 8 FX] ASUS P/I-P65UP5 (C-P6ND)",	"p65up5_cp6nd",		MACHINE_TYPE_SOCKET8,		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 127,	 machine_at_p65up5_cp6nd_init, NULL			},
     { "[Socket 8 FX] Biostar MB-8500ttc",	"8500ttc",		MACHINE_TYPE_SOCKET8,		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 127,	      machine_at_8500ttc_init, NULL			},
     { "[Socket 8 FX] Gateway 2000 Venus",	"gw2kvs",		MACHINE_TYPE_SOCKET8,		{{"Intel", cpus_PentiumPro},  {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	       machine_at_gw2kvs_init, NULL		        },
