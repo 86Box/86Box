@@ -52,6 +52,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/zip.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/fdd.h>
 #include <86box/network.h>
 #include <86box/sound.h>

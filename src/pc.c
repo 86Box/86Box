@@ -769,6 +769,8 @@ pc_reset_hard_init(void)
      */
     mouse_reset();
 
+    fdc_ext_reset();
+
     /* Reset the Hard Disk Controller module. */
     hdc_reset();
     /* Reset and reconfigure the SCSI layer. */
