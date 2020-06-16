@@ -1628,7 +1628,6 @@ recalc_fdc_list(HWND hdlg)
     }
     if (!found_card)
 	SendMessage(h, CB_SETCURSEL, 0, 0);
-    EnableWindow(h, (machines[temp_machine].flags & MACHINE_FDC_FIXED) ? FALSE : TRUE);
 }
 
 

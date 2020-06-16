@@ -31,6 +31,7 @@
 #include <86box/device.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/gameport.h>
 #include <86box/keyboard.h>
 #include <86box/lpt.h>
@@ -53,7 +54,8 @@ machine_xt_compaq_init(const machine_t *model)
     pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
 
     device_add(&keyboard_xt_compaq_device);
-    device_add(&fdc_xt_device);
+    if (fdc_type == FDC_INTERNAL)
+	device_add(&fdc_xt_device);
     nmi_init();
     if (joystick_type != JOYSTICK_TYPE_NONE)
 	device_add(&gameport_device);

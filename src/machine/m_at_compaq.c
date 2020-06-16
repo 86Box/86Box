@@ -33,6 +33,7 @@
 #include <86box/device.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/machine.h>
@@ -45,7 +46,8 @@ enum
 {
     COMPAQ_PORTABLEII = 0,
     COMPAQ_PORTABLEIII,
-    COMPAQ_PORTABLEIII386
+    COMPAQ_PORTABLEIII386,
+    COMPAQ_DESKPRO386
 };
 
 #define CGA_RGB 0
@@ -809,9 +811,11 @@ machine_at_compaq_init(const machine_t *model, int type)
 {
     machine_at_init(model);
 
-    mem_remap_top(384);
+    if (type != COMPAQ_DESKPRO386)
+	mem_remap_top(384);
 	
-    device_add(&fdc_at_device);
+    if (fdc_type == FDC_INTERNAL)	
+	device_add(&fdc_at_device);
 
     mem_mapping_add(&ram_mapping, 0xfa0000, 0x60000,
                     read_ram, read_ramw, read_raml,
@@ -832,6 +836,11 @@ machine_at_compaq_init(const machine_t *model, int type)
 			device_add(&ide_isa_device);
 		if (gfxcard == VID_INTERNAL)
 			device_add(&compaq_plasma_device);
+		break;
+
+	case COMPAQ_DESKPRO386:
+		if (hdc_current == 1)
+			device_add(&ide_isa_device);
 		break;
     }
 }
@@ -886,6 +895,23 @@ machine_at_portableiii386_init(const machine_t *model)
 	return ret;
 
     machine_at_compaq_init(model, COMPAQ_PORTABLEIII386);
+
+    return ret;
+}
+
+int
+machine_at_deskpro386_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleavedr(L"roms/machines/deskpro386/109592-005.U11.bin",
+				L"roms/machines/deskpro386/109591-005.U13.bin",
+				0x000f8000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_compaq_init(model, COMPAQ_DESKPRO386);
 
     return ret;
 }

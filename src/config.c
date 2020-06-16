@@ -784,24 +784,21 @@ load_other_peripherals(void)
       else
 	scsi_card_current = 0;
 
-    if (machines[machine].flags & MACHINE_FDC_FIXED) {
-	config_delete_var(cat, "fdc");
+    p = config_get_string(cat, "fdc", NULL);
+    if (p == NULL) {
+	p = (char *)malloc((strlen("internal")+1)*sizeof(char));
+	strcpy(p, "internal");
+	free_p = 1;
+    }
+
+    if (!strcmp(p, "internal"))
 	fdc_type = FDC_INTERNAL;
-    } else {
-	p = config_get_string(cat, "fdc", NULL);
-	if (p == NULL) {
-		if (machines[machine].flags & MACHINE_FDC) {
-			p = (char *)malloc((strlen("internal")+1)*sizeof(char));
-			strcpy(p, "internal");
-		} else {
-			p = (char *)malloc((strlen("none")+1)*sizeof(char));
-			strcpy(p, "none");
-		}
-		free_p = 1;
-	}
+    else
 	fdc_type = fdc_ext_get_from_internal_name(p);
-	if (free_p)
-		free(p);
+
+    if (free_p) {
+	free(p);
+	p = NULL;
     }
 
     p = config_get_string(cat, "hdc", NULL);

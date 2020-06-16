@@ -35,6 +35,7 @@
 #include <86box/nvr.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/gameport.h>
 #include <86box/keyboard.h>
 #include <86box/sound.h>
@@ -1495,7 +1496,8 @@ machine_tandy1k_init(const machine_t *model, int type)
     device_add(&keyboard_tandy_device);
     keyboard_set_table(scancode_tandy);
 
-    device_add(&fdc_xt_device);
+    if (fdc_type == FDC_INTERNAL)	
+	device_add(&fdc_xt_device);
 
     switch(type) {
 	case TYPE_TANDY:
@@ -1524,6 +1526,7 @@ machine_tandy1k_init(const machine_t *model, int type)
 		device_add_ex(&vid_device_sl, dev);
 		device_add(&pssj_device);
 		device_add(&eep_1000sl2_device);
+		break;
     }
 
     if (joystick_type != JOYSTICK_TYPE_NONE)

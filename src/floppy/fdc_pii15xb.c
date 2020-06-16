@@ -71,8 +71,8 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 
-#define ROM_PII_151B	L"floppy/dtk/pii-151b.rom"
-#define ROM_PII_158B	L"floppy/dtk/pii-158b.rom"
+#define ROM_PII_151B	L"roms/floppy/dtk/pii-151b.rom"
+#define ROM_PII_158B	L"roms/floppy/dtk/pii-158b.rom"
 
 typedef struct {
     const char	*name;
@@ -81,8 +81,8 @@ typedef struct {
     uint32_t	bios_addr,
 		bios_size;
     rom_t	bios_rom;
-
-    fdc_t	*fdc;
+    
+    fdc_t 	*fdc;
 } pii_t;
 
 
@@ -145,7 +145,7 @@ pii_init(const device_t *info)
     }
 
     /* Attach the DP8473 chip. */
-    dev->fdc = device_add(&fdc_dp8473_device);
+    dev->fdc = device_add(&fdc_at_device);
 
     //pclog("FDC: %s (I/O=%04X, flags=%08x)\n",
     //	info->name, dev->fdc->base_address, dev->fdc->flags);
@@ -178,20 +178,6 @@ static const device_config_t pii_config[] = {
 		},
 		{
 			"CE00H", 0x0ce000
-		},
-		{
-			""
-		}
-	}
-    },
-    {
-	"speed", "Drive Speed", CONFIG_SELECTION, "", 0,
-	{
-		{
-			"Single", 0
-		},
-		{
-			"Dual", 1
 		},
 		{
 			""

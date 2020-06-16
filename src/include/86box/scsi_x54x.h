@@ -423,7 +423,7 @@ typedef struct {
 		PendingInterrupt, Lock,
 		target_data_len, pad0;
 
-    uint32_t	Base, rom_addr,			/* address of BIOS ROM */
+    uint32_t	Base, fdc_address, rom_addr,			/* address of BIOS ROM */
 		CmdParamLeft, Outgoing,
 		transfer_size;
 
@@ -486,6 +486,8 @@ typedef struct {
     pc_timer_t	timer, ResetCB;
 
     Req_t	Req;
+    
+    fdc_t	*fdc;
 } x54x_t;
 
 

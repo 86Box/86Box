@@ -115,21 +115,15 @@ fdc_log(const char *fmt, ...)
 
 
 typedef struct {
+    const char		*name;
     const char  *internal_name;
     const device_t    *device;
 } fdc_ext_t;
 
 
-static const device_t fdc_none_device = {
-    "None",
-    0, FDC_NONE,
-    NULL, NULL, NULL,
-    NULL, NULL, NULL,
-    NULL
-};
 static const device_t fdc_internal_device = {
     "Internal Floppy Drive Controller",
-    0, FDC_INTERNAL,
+    0, 0,
     NULL, NULL, NULL,
     NULL, NULL, NULL,
     NULL
@@ -137,29 +131,25 @@ static const device_t fdc_internal_device = {
 
 
 static fdc_ext_t fdc_devices[] = {
-    { "none",		&fdc_none_device	},
-    { "internal",	&fdc_internal_device		},
-    { "dtk_pii151b",	&fdc_pii151b_device		},
-    { "dtk_pii158b",	&fdc_pii158b_device		},
-    { NULL,		NULL				}
+    { "Internal controller", 	"internal",	&fdc_internal_device		},
+    { "DTK PII-151B",		"dtk_pii151b",	&fdc_pii151b_device		},
+    { "DTK PII-158B",		"dtk_pii158b",	&fdc_pii158b_device		},
+    { "",			NULL,		NULL				}
 };
 
-/* Reset the HDC, whichever one that is. */
+/* Reset the FDC, whichever one that is. */
 void
 fdc_ext_reset(void)
 {
-    fdc_log("FDC: reset(current=%d, internal=%d)\n",
-	fdc_type, (machines[machine].flags & MACHINE_FDC) ? 1 : 0);
-
     /* If we have a valid controller, add its device. */
-    if (fdc_type > 1)
+    if (fdc_type > 0)
 	device_add(fdc_devices[fdc_type].device);
 }
 
 char *
 fdc_ext_get_name(int fdc_ext)
 {
-    return((char *)fdc_devices[fdc_ext].device->name);
+    return((char *)fdc_devices[fdc_ext].name);
 }
 
 
@@ -174,9 +164,9 @@ fdc_ext_get_id(char *s)
 {
 	int c = 0;
 	
-	while (strlen((char *) fdc_devices[c].internal_name))
+	while (strlen((char *) fdc_devices[c].name))
 	{
-		if (!strcmp((char *) fdc_devices[c].internal_name, s))
+		if (!strcmp((char *) fdc_devices[c].name, s))
 			return c;
 		c++;
 	}
@@ -2253,7 +2243,6 @@ fdc_init(const device_t *info)
     memset(fdc, 0, sizeof(fdc_t));
 
     fdc->flags = info->local;
-    fdc_reset(fdc);
 
     fdc->irq = 6;
 

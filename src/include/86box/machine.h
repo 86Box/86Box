@@ -41,7 +41,6 @@
 #define MACHINE_SOUND		0x010000	/* sys has int sound */
 #define MACHINE_NONMI		0x020000	/* sys does not have NMI's */
 #define MACHINE_FDC		0x040000	/* sys has int FDC */
-#define MACHINE_FDC_FIXED	0x080000	/* sys has ONLY int FDC */
 #else
 #define MACHINE_PC		0x000000	/* PC architecture */
 #define MACHINE_AT		0x000001	/* PC/AT architecture */
@@ -60,7 +59,6 @@
 #define MACHINE_SOUND		0x010000	/* sys has int sound */
 #define MACHINE_NONMI		0x020000	/* sys does not have NMI's */
 #define MACHINE_FDC		0x040000	/* sys has int FDC */
-#define MACHINE_FDC_FIXED	0x080000	/* sys has ONLY int FDC */
 #endif
 
 #define IS_ARCH(m, a)		(machines[(m)].flags & (a)) ? 1 : 0;
@@ -282,6 +280,7 @@ extern int	machine_at_cmdpc_init(const machine_t *);
 extern int	machine_at_portableii_init(const machine_t *);
 extern int	machine_at_portableiii_init(const machine_t *);
 extern int	machine_at_portableiii386_init(const machine_t *);
+extern int	machine_at_deskpro386_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_cpqiii_get_device(void);
 #endif
