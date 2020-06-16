@@ -95,3 +95,61 @@ machine_at_6gxu_init(const machine_t *model)
 	
     return ret;
 }
+
+int
+machine_at_s2dge_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/s2dge/2gu7301.rom",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x10, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x14, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
+	
+    device_add(&i440gx_device);
+    device_add(&piix4e_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&w83977tf_device);
+    device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
+
+    hwm_values_t machine_hwm = {
+    	{    /* fan speeds */
+    		3000,	/* CPU1 */
+    		0,	/* CPU2 */
+    		3000	/* Thermal Control */
+    	}, { /* temperatures */
+    		0,	/* unused */
+    		30,	/* CPU1 */
+    		20	/* unused (CPU2?) */
+    	}, { /* voltages */
+    		2050,				   /* CPU1 (2.05V by default) */
+    		0,				   /* CPU2 */
+    		3300,				   /* +3.3V */
+    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
+    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
+    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
+    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
+    	}
+    };
+    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
+    	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Klamath */
+    hwm_set_values(machine_hwm);
+    device_add(&w83781d_device);
+	
+    return ret;
+}
