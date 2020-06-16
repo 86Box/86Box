@@ -1601,12 +1601,6 @@ recalc_fdc_list(HWND hdlg)
     SendMessage(h, CB_SETCURSEL, 0, 0);
 
     while (1) {
-	/* Skip "internal" if machine doesn't have it. */
-	if ((c == 1) && !(machines[temp_machine].flags & MACHINE_FDC)) {
-		c++;
-		continue;
-	}
-
 	char *s = fdc_ext_get_name(c);
 
 	if (!s[0])
