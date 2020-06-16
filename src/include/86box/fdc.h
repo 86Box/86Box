@@ -24,10 +24,6 @@
 
 extern int fdc_type;
 
-/* Controller types. */
-#define FDC_NONE		0
-#define FDC_INTERNAL		1
-
 #define FDC_FLAG_PCJR		0x01	/* PCjr */
 #define FDC_FLAG_DISKCHG_ACTLOW	0x02	/* Amstrad, PS/1, PS/2 ISA */
 #define FDC_FLAG_AT		0x04	/* AT+, PS/x */
@@ -186,13 +182,5 @@ extern const device_t	fdc_at_winbond_device;
 extern const device_t	fdc_at_nsc_device;
 extern const device_t   fdc_dp8473_device;
 #endif
-
-extern char *fdc_ext_get_name(int fdc_ext);
-extern char *fdc_ext_get_internal_name(int fdc_ext);
-extern int fdc_ext_get_id(char *s);
-extern int fdc_ext_get_from_internal_name(char *s);
-extern const device_t *fdc_ext_get_device(int fdc_ext);
-extern int fdc_ext_has_config(int fdc_ext);
-extern int fdc_ext_available(int fdc_ext);
 
 #endif	/*EMU_FDC_H*/

@@ -68,8 +68,8 @@
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/fdd.h>
-#include <86box/fdc_pii15xb.h>
 
 #define ROM_PII_151B	L"floppy/dtk/pii-151b.rom"
 #define ROM_PII_158B	L"floppy/dtk/pii-158b.rom"

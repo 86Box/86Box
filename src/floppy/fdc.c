@@ -35,7 +35,7 @@
 #include <86box/ui.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
-#include <86box/fdc_pii15xb.h>
+#include <86box/fdc_ext.h>
 
 
 extern uint64_t motoron[FDD_NUM];
