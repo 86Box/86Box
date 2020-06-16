@@ -264,6 +264,9 @@ machine_xt_hed919_init(const machine_t *model)
 
     machine_xt_clone_init(model);
 
+    if (mem_size > 640)
+	mem_remap_top(mem_size - 640);
+
     return ret;
 }
 

@@ -123,7 +123,7 @@ const machine_t machines[] = {
 #endif
 
     /* 286 XT machines */
-    { "[Citygate D30 XT] Hedaka HED-919",	"hed919",		MACHINE_TYPE_286,		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA,											 64,  640,  64,   0,	       machine_xt_hed919_init, NULL			},
+    { "[Citygate D30 XT] Hedaka HED-919",	"hed919",		MACHINE_TYPE_286,		{{"",      cpus_286},         {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA,											 64, 1024,  64,   0,	       machine_xt_hed919_init, NULL			},
 
     /* 286 AT machines */
     { "[ISA] IBM AT",				"ibmat",		MACHINE_TYPE_286,		{{"",      cpus_ibmat},       {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										256,15872, 128,  63,		  machine_at_ibm_init, NULL			},
