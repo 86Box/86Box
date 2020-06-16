@@ -67,9 +67,9 @@
 #include <86box/timer.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
+#include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
-#include <86box/fdd.h>
 
 #define ROM_PII_151B	L"floppy/dtk/pii-151b.rom"
 #define ROM_PII_158B	L"floppy/dtk/pii-158b.rom"
@@ -88,7 +88,7 @@ typedef struct {
 
 /* Load and enable a BIOS ROM if we have one, and is enabled. */
 static void
-set_bios(pii_t *dev, const wchar_t *fn)
+set_bios(pii_t *dev, wchar_t *fn)
 {
     uint32_t temp;
     FILE *fp;
@@ -127,20 +127,21 @@ pii_init(const device_t *info)
 {
     pii_t *dev;
 
-    dev = (pii_t *)mem_alloc(sizeof(pii_t));
+    dev = (pii_t *)malloc(sizeof(pii_t));
     memset(dev, 0x00, sizeof(pii_t));
     dev->type = info->local;
 
     dev->bios_addr = device_get_config_hex20("bios_addr");
 
     if (dev->bios_addr != 0x000000) {
-	switch (dev->type)
+	switch (dev->type) {
 	    case 151:
 		set_bios(dev, ROM_PII_151B);
 		break;
 	    case 158:
 		set_bios(dev, ROM_PII_158B);
 		break;
+	}
     }
 
     /* Attach the DP8473 chip. */
