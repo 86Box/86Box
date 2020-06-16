@@ -174,9 +174,9 @@ fdc_ext_get_id(char *s)
 {
 	int c = 0;
 	
-	while (strlen((char *) fdc_devices[c].name))
+	while (strlen((char *) fdc_devices[c].internal_name))
 	{
-		if (!strcmp((char *) fdc_devices[c].name, s))
+		if (!strcmp((char *) fdc_devices[c].internal_name, s))
 			return c;
 		c++;
 	}
