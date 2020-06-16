@@ -22,6 +22,11 @@
 #ifndef EMU_FDC_H
 # define EMU_FDC_H
 
+extern int fdc_type;
+
+/* Controller types. */
+#define FDC_NONE		0
+#define FDC_INTERNAL		1
 
 #define FDC_FLAG_PCJR		0x01	/* PCjr */
 #define FDC_FLAG_DISKCHG_ACTLOW	0x02	/* Amstrad, PS/1, PS/2 ISA */
@@ -33,6 +38,7 @@
 #define FDC_FLAG_NSC		0x80	/* PC87306, PC87309 */
 #define FDC_FLAG_TOSHIBA	0x100	/* T1000, T1200 */
 #define FDC_FLAG_AMSTRAD	0x200	/* Non-AT Amstrad machines */
+#define FDC_FLAG_NSDP		0x400   /* DP8473N, DP8473V */
 
 
 typedef struct {
@@ -178,7 +184,15 @@ extern const device_t	fdc_at_ps1_device;
 extern const device_t	fdc_at_smc_device;
 extern const device_t	fdc_at_winbond_device;
 extern const device_t	fdc_at_nsc_device;
+extern const device_t   fdc_dp8473_device;
 #endif
 
+extern char *fdc_ext_get_name(int fdc_ext);
+extern char *fdc_ext_get_internal_name(int fdc_ext);
+extern int fdc_ext_get_id(char *s);
+extern int fdc_ext_get_from_internal_name(char *s);
+extern const device_t *fdc_ext_get_device(int fdc_ext);
+extern int fdc_ext_has_config(int fdc_ext);
+extern int fdc_ext_available(int fdc_ext);
 
 #endif	/*EMU_FDC_H*/

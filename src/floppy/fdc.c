@@ -35,6 +35,7 @@
 #include <86box/ui.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_pii15xb.h>
 
 
 extern uint64_t motoron[FDD_NUM];
@@ -89,6 +90,9 @@ int lastbyte=0;
 int floppymodified[4];
 int floppyrate[4];
 
+
+int fdc_type;
+
 #ifdef ENABLE_FDC_LOG
 int fdc_do_log = ENABLE_FDC_LOG;
 
@@ -108,6 +112,105 @@ fdc_log(const char *fmt, ...)
 #else
 #define fdc_log(fmt, ...)
 #endif
+
+
+typedef struct {
+    const char  *internal_name;
+    const device_t    *device;
+} fdc_ext_t;
+
+
+static const device_t fdc_none_device = {
+    "None",
+    0, FDC_NONE,
+    NULL, NULL, NULL,
+    NULL, NULL, NULL,
+    NULL
+};
+static const device_t fdc_internal_device = {
+    "Internal Floppy Drive Controller",
+    0, FDC_INTERNAL,
+    NULL, NULL, NULL,
+    NULL, NULL, NULL,
+    NULL
+};
+
+
+static fdc_ext_t fdc_devices[] = {
+    { "none",		&fdc_none_device	},
+    { "internal",	&fdc_internal_device		},
+    { "dtk_pii151b",	&fdc_pii151b_device		},
+    { "dtk_pii158b",	&fdc_pii158b_device		},
+    { NULL,		NULL				}
+};
+
+char *
+fdc_ext_get_name(int fdc_ext)
+{
+    return((char *)fdc_devices[fdc_ext].device->name);
+}
+
+
+char *
+fdc_ext_get_internal_name(int fdc_ext)
+{
+    return((char *)fdc_devices[fdc_ext].internal_name);
+}
+
+int
+fdc_ext_get_id(char *s)
+{
+	int c = 0;
+	
+	while (strlen((char *) fdc_devices[c].name))
+	{
+		if (!strcmp((char *) fdc_devices[c].name, s))
+			return c;
+		c++;
+	}
+	
+	return 0;
+}
+
+int
+fdc_ext_get_from_internal_name(char *s)
+{
+    int c = 0;
+
+    while (fdc_devices[c].internal_name != NULL) {
+	if (! strcmp((char *)fdc_devices[c].internal_name, s))
+		return(c);
+	c++;
+    }
+
+    return(0);
+}
+
+const device_t *
+fdc_ext_get_device(int fdc_ext)
+{
+    return(fdc_devices[fdc_ext].device);
+}
+
+
+int
+fdc_ext_has_config(int fdc_ext)
+{
+    const device_t *dev = fdc_ext_get_device(fdc_ext);
+
+    if (dev == NULL) return(0);
+
+    if (dev->config == NULL) return(0);
+
+    return(1);
+}
+
+int
+fdc_ext_available(int fdc_ext)
+{
+    return(device_available(fdc_devices[fdc_ext].device));
+}
+
 
 
 uint8_t
@@ -2268,6 +2371,16 @@ const device_t fdc_at_nsc_device = {
     FDC_FLAG_AT | FDC_FLAG_MORE_TRACKS | FDC_FLAG_NSC,
     fdc_init,
     fdc_close,
+    fdc_reset,
+    NULL, NULL, NULL
+};
+
+const device_t fdc_dp8473_device = {
+    "NS DP8473 Floppy Drive Controller",
+    0,
+    FDC_FLAG_NSDP,
+    fdc_init,
+    fdc_close, 
     fdc_reset,
     NULL, NULL, NULL
 };

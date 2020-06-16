@@ -783,6 +783,26 @@ load_other_peripherals(void)
       else
 	scsi_card_current = 0;
 
+    if (machines[machine].flags & MACHINE_FDC_FIXED) {
+	config_delete_var(cat, "fdc");
+	fdc_type = FDC_INTERNAL;
+    } else {
+	p = config_get_string(cat, "fdc", NULL);
+	if (p == NULL) {
+		if (machines[machine].flags & MACHINE_FDC) {
+			p = (char *)malloc((strlen("internal")+1)*sizeof(char));
+			strcpy(p, "internal");
+		} else {
+			p = (char *)malloc((strlen("none")+1)*sizeof(char));
+			strcpy(p, "none");
+		}
+		free_p = 1;
+	}
+	fdc_type = fdc_ext_get_from_internal_name(p);
+	if (free_p)
+		free(p);
+    }
+
     p = config_get_string(cat, "hdc", NULL);
     if (p == NULL) {
 	if (machines[machine].flags & MACHINE_HDC) {
@@ -1743,6 +1763,9 @@ save_other_peripherals(void)
       else
 	config_set_string(cat, "scsicard",
 			  scsi_card_get_internal_name(scsi_card_current));
+
+    config_set_string(cat, "fdc",
+	fdc_ext_get_internal_name(fdc_type));
 
     config_set_string(cat, "hdc",
 	hdc_get_internal_name(hdc_current));
