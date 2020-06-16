@@ -3392,7 +3392,7 @@ static const device_config_t gd5434_config[] =
 const device_t gd5401_isa_device =
 {
     "Cirrus Logic GD-5401 (ACUMOS AVGA1)",
-    DEVICE_AT | DEVICE_ISA,
+    DEVICE_ISA,
     CIRRUS_ID_CLGD5401,
     gd54xx_init, gd54xx_close,
     NULL,
@@ -3405,7 +3405,7 @@ const device_t gd5401_isa_device =
 const device_t gd5402_isa_device =
 {
     "Cirrus Logic GD-5402 (ACUMOS AVGA2)",
-    DEVICE_AT | DEVICE_ISA,
+    DEVICE_ISA,
     CIRRUS_ID_CLGD5402,
     gd54xx_init, gd54xx_close,
     NULL,
