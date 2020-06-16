@@ -31,6 +31,8 @@ extern int fdc_type;
 extern const device_t fdc_pii151b_device;
 extern const device_t fdc_pii158b_device;
 
+extern void fdc_ext_reset(void);
+
 extern char *fdc_ext_get_name(int fdc_ext);
 extern char *fdc_ext_get_internal_name(int fdc_ext);
 extern int fdc_ext_get_id(char *s);

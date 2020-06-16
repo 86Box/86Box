@@ -35,7 +35,7 @@
 #include <86box/ui.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
-#include <86box/fdc_ext.h>
+#include <86box/fdc_pii15xb.h>
 
 
 extern uint64_t motoron[FDD_NUM];
@@ -143,6 +143,18 @@ static fdc_ext_t fdc_devices[] = {
     { "dtk_pii158b",	&fdc_pii158b_device		},
     { NULL,		NULL				}
 };
+
+/* Reset the HDC, whichever one that is. */
+void
+fdc_ext_reset(void)
+{
+    fdc_log("FDC: reset(current=%d, internal=%d)\n",
+	fdc_type, (machines[machine].flags & MACHINE_FDC) ? 1 : 0);
+
+    /* If we have a valid controller, add its device. */
+    if (fdc_type > 1)
+	device_add(fdc_devices[fdc_type].device);
+}
 
 char *
 fdc_ext_get_name(int fdc_ext)
