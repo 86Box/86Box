@@ -748,6 +748,8 @@ pc_reset_hard_init(void)
 	
     /* Reset any ISA RTC cards. */
     isartc_reset();	
+
+    fdc_card_init();	
 	
     fdd_reset();
 
@@ -769,8 +771,6 @@ pc_reset_hard_init(void)
      * Reset the mouse, this will attach it to any port needed.
      */
     mouse_reset();
-
-    fdc_ext_reset();
 
     /* Reset the Hard Disk Controller module. */
     hdc_reset();

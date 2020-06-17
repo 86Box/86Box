@@ -30,14 +30,13 @@ extern int fdc_type;
 extern const device_t fdc_pii151b_device;
 extern const device_t fdc_pii158b_device;
 
-extern void fdc_ext_reset(void);
+extern void fdc_card_init(void);
 
-extern char *fdc_ext_get_name(int fdc_ext);
-extern char *fdc_ext_get_internal_name(int fdc_ext);
-extern int fdc_ext_get_id(char *s);
-extern int fdc_ext_get_from_internal_name(char *s);
-extern const device_t *fdc_ext_get_device(int fdc_ext);
-extern int fdc_ext_has_config(int fdc_ext);
-extern int fdc_ext_available(int fdc_ext);
+extern char *fdc_card_getname(int card);
+extern char *fdc_card_get_internal_name(int card);
+extern int fdc_card_get_from_internal_name(char *s);
+extern const device_t *fdc_card_getdevice(int card);
+extern int fdc_card_has_config(int card);
+extern int fdc_card_available(int card);
 
 #endif	/*EMU_FDC_H*/

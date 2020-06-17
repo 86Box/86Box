@@ -240,8 +240,34 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 		pic.ocw3 = val;
 		if (val & 2)
 			pic.read=(val & 1);
+		pic.read |= (val & 5);
 	}
     }
+}
+
+
+static int
+pic_highest_req(PIC* target_pic, int pic2)
+{
+    uint8_t pending = target_pic->pend & ~target_pic->mask;
+    int i, highest = 0;
+    int min = 0, max = 8;
+
+    if (AT && pic2) {
+	min = 8;
+	max = 16;
+    }
+
+    for (i = min; i < max; i++) {
+	if ((!AT || (i != 2)) && (pending & (1 << (i & 7)))) {
+		highest = (i & 7) | 0x80;
+		break;
+	}
+    }
+
+    target_pic->read &= ~4;
+
+    return highest;
 }
 
 
@@ -260,6 +286,8 @@ pic_read(uint16_t addr, void *priv)
 	ret  = ((pic.vector & 0xf8) >> 3) << 0;
     else if (addr & 1)
 	ret = pic.mask;
+    else if (pic.read & 5)
+	ret = pic_highest_req(&pic, 0);
     else if (pic.read) {
 	if (AT)
 		ret =  pic.ins | (pic2.ins ? 4 : 0);
@@ -394,6 +422,7 @@ pic2_write(uint16_t addr, uint8_t val, void *priv)
 		pic2.ocw3 = val;
 		if (val & 2)
 			pic2.read=(val & 1);
+		pic2.read |= (val & 5);
 	}
     }
 }
@@ -414,6 +443,8 @@ pic2_read(uint16_t addr, void *priv)
 	ret  = ((pic2.vector & 0xf8) >> 3) << 0;
     else if (addr & 1)
 	ret = pic2.mask;
+    else if (pic2.read & 5)
+	ret = pic_highest_req(&pic2, 1);
     else if (pic2.read)
 	ret = pic2.ins;
     else

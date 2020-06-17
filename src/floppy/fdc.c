@@ -91,7 +91,7 @@ int floppymodified[4];
 int floppyrate[4];
 
 
-int fdc_type;
+int fdc_type = 0;
 
 #ifdef ENABLE_FDC_LOG
 int fdc_do_log = ENABLE_FDC_LOG;
@@ -114,105 +114,83 @@ fdc_log(const char *fmt, ...)
 #endif
 
 
-typedef struct {
+typedef const struct {
     const char		*name;
     const char  *internal_name;
     const device_t    *device;
-} fdc_ext_t;
+} fdc_cards_t;
 
-
-static const device_t fdc_internal_device = {
-    "Internal Floppy Drive Controller",
-    0, 0,
-    NULL, NULL, NULL,
-    NULL, NULL, NULL,
-    NULL
+/* All emulated machines have at least one integrated FDC controller */
+static fdc_cards_t fdc_cards[] = {
+    { "Internal controller", 	"internal",	NULL,				},
+    { "DTK PII-151B",		"dtk_pii151b",	&fdc_pii151b_device,		},
+    { "DTK PII-158B",		"dtk_pii158b",	&fdc_pii158b_device,		},
+    { "",			"",		NULL,				},
 };
 
-
-static fdc_ext_t fdc_devices[] = {
-    { "Internal controller", 	"internal",	&fdc_internal_device		},
-    { "DTK PII-151B",		"dtk_pii151b",	&fdc_pii151b_device		},
-    { "DTK PII-158B",		"dtk_pii158b",	&fdc_pii158b_device		},
-    { "",			NULL,		NULL				}
-};
-
-/* Reset the FDC, whichever one that is. */
-void
-fdc_ext_reset(void)
-{
-    /* If we have a valid controller, add its device. */
-    if (fdc_type > 0)
-	device_add(fdc_devices[fdc_type].device);
-}
-
-char *
-fdc_ext_get_name(int fdc_ext)
-{
-    return((char *)fdc_devices[fdc_ext].name);
-}
-
-
-char *
-fdc_ext_get_internal_name(int fdc_ext)
-{
-    return((char *)fdc_devices[fdc_ext].internal_name);
-}
-
 int
-fdc_ext_get_id(char *s)
+fdc_card_available(int card)
 {
-	int c = 0;
-	
-	while (strlen((char *) fdc_devices[c].name))
-	{
-		if (!strcmp((char *) fdc_devices[c].name, s))
-			return c;
-		c++;
-	}
-	
-	return 0;
-}
-
-int
-fdc_ext_get_from_internal_name(char *s)
-{
-    int c = 0;
-
-    while (fdc_devices[c].internal_name != NULL) {
-	if (! strcmp((char *)fdc_devices[c].internal_name, s))
-		return(c);
-	c++;
-    }
-
-    return(0);
-}
-
-const device_t *
-fdc_ext_get_device(int fdc_ext)
-{
-    return(fdc_devices[fdc_ext].device);
-}
-
-
-int
-fdc_ext_has_config(int fdc_ext)
-{
-    const device_t *dev = fdc_ext_get_device(fdc_ext);
-
-    if (dev == NULL) return(0);
-
-    if (dev->config == NULL) return(0);
+    if (fdc_cards[card].device)
+	return(device_available(fdc_cards[card].device));
 
     return(1);
 }
 
-int
-fdc_ext_available(int fdc_ext)
+
+char *
+fdc_card_getname(int card)
 {
-    return(device_available(fdc_devices[fdc_ext].device));
+    return((char *) fdc_cards[card].name);
 }
 
+
+const device_t *
+fdc_card_getdevice(int card)
+{
+    return(fdc_cards[card].device);
+}
+
+
+int
+fdc_card_has_config(int card)
+{
+    if (! fdc_cards[card].device) return(0);
+
+    return(fdc_cards[card].device->config ? 1 : 0);
+}
+
+
+char *
+fdc_card_get_internal_name(int card)
+{
+    return((char *) fdc_cards[card].internal_name);
+}
+
+
+int
+fdc_card_get_from_internal_name(char *s)
+{
+    int c = 0;
+
+    while (strlen((char *) fdc_cards[c].internal_name)) {
+	if (!strcmp((char *) fdc_cards[c].internal_name, s))
+		return(c);
+	c++;
+    }
+	
+    return(0);
+}
+
+
+void
+fdc_card_init(void)
+{
+    if (!fdc_cards[fdc_type].device)
+	return;
+
+    device_add(fdc_cards[fdc_type].device);
+}
 
 
 uint8_t

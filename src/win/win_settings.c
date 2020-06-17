@@ -97,7 +97,7 @@ static int temp_lpt_devices[3];
 static int temp_serial[2], temp_lpt[3];
 
 /* Other peripherals category */
-static int temp_fdc_ext, temp_hdc, temp_scsi_card, temp_ide_ter, temp_ide_qua;
+static int temp_fdc_card, temp_hdc, temp_scsi_card, temp_ide_ter, temp_ide_qua;
 static int temp_bugger;
 static int temp_postcard;
 static int temp_isartc;
@@ -125,6 +125,7 @@ extern int is486;
 static int listtomachinetype[256], machinetypetolist[256];
 static int listtomachine[256], machinetolist[256];
 static int settings_device_to_list[2][20], settings_list_to_device[2][20];
+static int settings_fdc_to_list[2][20], settings_list_to_fdc[2][20];
 static int settings_midi_to_list[20], settings_list_to_midi[20];
 static int settings_midi_in_to_list[20], settings_list_to_midi_in[20];
 
@@ -249,7 +250,7 @@ win_settings_init(void)
 
     /* Other peripherals category */
     temp_scsi_card = scsi_card_current;
-    temp_fdc_ext = fdc_type;
+    temp_fdc_card = fdc_type;
     temp_hdc = hdc_current;
     temp_ide_ter = ide_ter_enabled;
     temp_ide_qua = ide_qua_enabled;
@@ -359,7 +360,7 @@ win_settings_changed(void)
 
     /* Peripherals category */
     i = i || (scsi_card_current != temp_scsi_card);
-    i = i || (fdc_type != temp_fdc_ext);
+    i = i || (fdc_type != temp_fdc_card);
     i = i || (hdc_current != temp_hdc);
     i = i || (temp_ide_ter != ide_ter_enabled);
     i = i || (temp_ide_qua != ide_qua_enabled);
@@ -466,7 +467,7 @@ win_settings_save(void)
     /* Peripherals category */
     scsi_card_current = temp_scsi_card;
     hdc_current = temp_hdc;
-    fdc_type = temp_fdc_ext;
+    fdc_type = temp_fdc_card;
     ide_ter_enabled = temp_ide_ter;
     ide_qua_enabled = temp_ide_qua;
     bugger_enabled = temp_bugger;
@@ -1590,42 +1591,6 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 static void
-recalc_fdc_list(HWND hdlg)
-{
-    HWND h = GetDlgItem(hdlg, IDC_COMBO_FDC_EXT);
-    int c = 0, d = 0;
-    int found_card = 0;
-    WCHAR szText[512];
-
-    SendMessage(h, CB_RESETCONTENT, 0, 0);
-    SendMessage(h, CB_SETCURSEL, 0, 0);
-
-    while (1) {
-	char *s = fdc_ext_get_name(c);
-
-	if (!s[0])
-		break;
-
-	if (fdc_ext_available(c) &&
-	    device_is_valid(fdc_ext_get_device(c), machines[temp_machine].flags)) {
-		mbstowcs(szText, s, strlen(s) + 1);
-		SendMessage(h, CB_ADDSTRING, 0, (LPARAM) szText);
-		if (c == temp_fdc_ext) {
-			SendMessage(h, CB_SETCURSEL, d, 0);
-			found_card = 1;
-		}
-
-		d++;
-	}
-
-	c++;
-    }
-    if (!found_card)
-	SendMessage(h, CB_SETCURSEL, 0, 0);
-}
-
-
-static void
 recalc_hdc_list(HWND hdlg)
 {
     HWND h = GetDlgItem(hdlg, IDC_COMBO_HDC);
@@ -1681,21 +1646,13 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
     char *stransi;
     const device_t *scsi_dev;
     const device_t *dev;
+    const device_t *fdc_dev;
     char *s;
 
     switch (message) {
 	case WM_INITDIALOG:
 		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 		stransi = (char *) malloc(512);
-
-		/*FD (Ext) controller config*/
-		recalc_fdc_list(hdlg);
-
-		h = GetDlgItem(hdlg, IDC_CONFIGURE_FDC_EXT);
-		if (fdc_ext_has_config(temp_fdc_ext))
-			EnableWindow(h, TRUE);
-		else
-			EnableWindow(h, FALSE);
 
 		/*HD controller config*/
 		recalc_hdc_list(hdlg);
@@ -1705,6 +1662,43 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 			EnableWindow(h, TRUE);
 		else
 			EnableWindow(h, FALSE);
+
+
+		/*FD controller config*/
+		h = GetDlgItem(hdlg, IDC_COMBO_FDC);
+		c = d = 0;
+		while (1) {
+			char *s = fdc_card_getname(c);
+
+			if (!s[0])
+				break;
+
+			settings_fdc_to_list[0][c] = d;			
+
+			if (fdc_card_available(c)) {
+				fdc_dev = fdc_card_getdevice(c);
+
+				if (device_is_valid(fdc_dev, machines[temp_machine].flags)) {
+					if (c == 0)
+						SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2118));
+					else {
+						mbstowcs(lptsTemp, s, strlen(s) + 1);
+						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+					}
+					settings_list_to_fdc[0][d] = c;
+					d++;
+				}
+			}
+
+			c++;
+		}
+		SendMessage(h, CB_SETCURSEL, settings_fdc_to_list[0][temp_fdc_card], 0);
+
+		EnableWindow(h, d ? TRUE : FALSE);
+
+		h = GetDlgItem(hdlg, IDC_CONFIGURE_FDC);
+		EnableWindow(h, fdc_card_has_config(temp_fdc_card) ? TRUE : FALSE);
+
 
 		/*SCSI config*/
 		h = GetDlgItem(hdlg, IDC_COMBO_SCSI);
@@ -1825,37 +1819,23 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 	case WM_COMMAND:
                	switch (LOWORD(wParam)) {
-			case IDC_CONFIGURE_FDC_EXT:
-				lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
-				stransi = (char *) malloc(512);
+			case IDC_CONFIGURE_FDC:
+				h = GetDlgItem(hdlg, IDC_COMBO_FDC);
+				temp_fdc_card = settings_list_to_fdc[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
-				h = GetDlgItem(hdlg, IDC_COMBO_FDC_EXT);
-	                        SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
-				wcstombs(stransi, lptsTemp, 512);
-				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)fdc_ext_get_device(fdc_ext_get_id(stransi)));
-
-				free(stransi);
-				free(lptsTemp);
+				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)fdc_card_getdevice(temp_fdc_card));
 				break;
 
-			case IDC_COMBO_FDC_EXT:
-				lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
-				stransi = (char *) malloc(512);
+			case IDC_COMBO_FDC:
+				h = GetDlgItem(hdlg, IDC_COMBO_FDC);
+				temp_fdc_card = settings_list_to_fdc[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
-	                        h = GetDlgItem(hdlg, IDC_COMBO_FDC_EXT);
-	                        SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
-				wcstombs(stransi, lptsTemp, 512);
-	                        temp_fdc_ext = fdc_ext_get_id(stransi);
-
-				h = GetDlgItem(hdlg, IDC_CONFIGURE_FDC_EXT);
-				if (fdc_ext_has_config(temp_fdc_ext))
+				h = GetDlgItem(hdlg, IDC_CONFIGURE_FDC);
+				if (fdc_card_has_config(temp_fdc_card))
 					EnableWindow(h, TRUE);
 				else
 					EnableWindow(h, FALSE);
-
-				free(stransi);
-				free(lptsTemp);
-				break;			
+				break;		
 			
 			case IDC_CONFIGURE_HDC:
 				lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
@@ -1979,15 +1959,13 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 		stransi = (char *) malloc(512);
 
-		h = GetDlgItem(hdlg, IDC_COMBO_FDC_EXT);
-		SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
-		wcstombs(stransi, lptsTemp, 512);
-		temp_fdc_ext = fdc_ext_get_id(stransi);
-
 		h = GetDlgItem(hdlg, IDC_COMBO_HDC);
 		SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
 		wcstombs(stransi, lptsTemp, 512);
 		temp_hdc = hdc_get_id(stransi);
+
+		h = GetDlgItem(hdlg, IDC_COMBO_FDC);
+		temp_fdc_card = settings_list_to_fdc[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 		h = GetDlgItem(hdlg, IDC_COMBO_SCSI);
 		temp_scsi_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];

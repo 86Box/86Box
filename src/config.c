@@ -785,21 +785,10 @@ load_other_peripherals(void)
 	scsi_card_current = 0;
 
     p = config_get_string(cat, "fdc", NULL);
-    if (p == NULL) {
-	p = (char *)malloc((strlen("internal")+1)*sizeof(char));
-	strcpy(p, "internal");
-	free_p = 1;
-    }
-
-    if (!strcmp(p, "internal"))
+    if (p != NULL)
+	fdc_type = fdc_card_get_from_internal_name(p);
+      else
 	fdc_type = FDC_INTERNAL;
-    else
-	fdc_type = fdc_ext_get_from_internal_name(p);
-
-    if (free_p) {
-	free(p);
-	p = NULL;
-    }
 
     p = config_get_string(cat, "hdc", NULL);
     if (p == NULL) {
@@ -1762,8 +1751,11 @@ save_other_peripherals(void)
 	config_set_string(cat, "scsicard",
 			  scsi_card_get_internal_name(scsi_card_current));
 
-    config_set_string(cat, "fdc",
-	fdc_ext_get_internal_name(fdc_type));
+    if (fdc_type == FDC_INTERNAL)
+	config_delete_var(cat, "fdc");
+      else
+	config_set_string(cat, "fdc",
+			  fdc_card_get_internal_name(fdc_type));
 
     config_set_string(cat, "hdc",
 	hdc_get_internal_name(hdc_current));
