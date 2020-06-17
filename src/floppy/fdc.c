@@ -93,6 +93,7 @@ int floppyrate[4];
 
 int fdc_type = 0;
 
+#define ENABLE_FDC_LOG 1
 #ifdef ENABLE_FDC_LOG
 int fdc_do_log = ENABLE_FDC_LOG;
 
@@ -1121,6 +1122,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 								fdc->fintr = 1;
 								fdc->interrupt = -4;
 							} else {
+								timer_disable(&fdc->timer);
 								fdc->interrupt = -3;
 								fdc_callback(fdc);
 							}
@@ -1184,6 +1186,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 								fdc->fintr = 1;
 								fdc->interrupt = -4;
 							} else {
+								timer_disable(&fdc->timer);
 								fdc->interrupt = -3;
 								fdc_callback(fdc);
 							}
@@ -1209,6 +1212,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 									fdc->fintr = 1;
 									fdc->interrupt = -4;
 								} else {
+									timer_disable(&fdc->timer);
 									fdc->interrupt = -3;
 									fdc_callback(fdc);
 								}
@@ -1223,6 +1227,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 									fdc->fintr = 1;
 									fdc->interrupt = -4;
 								} else {
+									timer_disable(&fdc->timer);
 									fdc->interrupt = -3;
 									fdc_callback(fdc);
 								}
