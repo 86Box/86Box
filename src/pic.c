@@ -243,7 +243,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 		pic.ocw3 = val;
 		if (val & 4)
 			pic.read=4;
-		else if (val & 2)
+		if (val & 2)
 			pic.read=(val & 1);
 	}
     }
@@ -406,7 +406,7 @@ pic2_write(uint16_t addr, uint8_t val, void *priv)
 		pic2.ocw3 = val;
 		if (val & 4)
 			pic2.read=4;
-		else if (val & 2)
+		if (val & 2)
 			pic2.read=(val & 3);
 	}
     }
