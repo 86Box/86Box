@@ -61,6 +61,9 @@ pic_log(const char *fmt, ...)
 #endif
 
 
+int	picinterrupt_poll(int is_pic2);
+
+
 void
 pic_updatepending()
 {
@@ -238,36 +241,12 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 		}
 	} else {               /*OCW3*/
 		pic.ocw3 = val;
-		if (val & 2)
+		if (val & 4)
+			pic.read=4;
+		else if (val & 2)
 			pic.read=(val & 1);
-		pic.read |= (val & 5);
 	}
     }
-}
-
-
-static int
-pic_highest_req(PIC* target_pic, int pic2)
-{
-    uint8_t pending = target_pic->pend & ~target_pic->mask;
-    int i, highest = 0;
-    int min = 0, max = 8;
-
-    if (AT && pic2) {
-	min = 8;
-	max = 16;
-    }
-
-    for (i = min; i < max; i++) {
-	if ((!AT || (i != 2)) && (pending & (1 << (i & 7)))) {
-		highest = (i & 7) | 0x80;
-		break;
-	}
-    }
-
-    target_pic->read &= ~4;
-
-    return highest;
 }
 
 
@@ -275,6 +254,7 @@ uint8_t
 pic_read(uint16_t addr, void *priv)
 {
     uint8_t ret = 0xff;
+    int temp;
 
     if ((addr == 0x20) && shadow) {
 	ret  = ((pic.ocw3   & 0x20) >> 5) << 4;
@@ -286,9 +266,13 @@ pic_read(uint16_t addr, void *priv)
 	ret  = ((pic.vector & 0xf8) >> 3) << 0;
     else if (addr & 1)
 	ret = pic.mask;
-    else if (pic.read & 5)
-	ret = pic_highest_req(&pic, 0);
-    else if (pic.read) {
+    else if (pic.read & 4) {
+	temp = picinterrupt_poll(0);
+	if (temp >= 0)
+		ret = temp | 0x80;
+	else
+		ret = 0x00;
+    } else if (pic.read) {
 	if (AT)
 		ret =  pic.ins | (pic2.ins ? 4 : 0);
 	else
@@ -420,9 +404,10 @@ pic2_write(uint16_t addr, uint8_t val, void *priv)
 		}
 	} else {               /*OCW3*/
 		pic2.ocw3 = val;
-		if (val & 2)
-			pic2.read=(val & 1);
-		pic2.read |= (val & 5);
+		if (val & 4)
+			pic2.read=4;
+		else if (val & 2)
+			pic2.read=(val & 3);
 	}
     }
 }
@@ -432,6 +417,7 @@ uint8_t
 pic2_read(uint16_t addr, void *priv)
 {
     uint8_t ret = 0xff;
+    int temp;
 
     if ((addr == 0xa0) && shadow) {
 	ret  = ((pic2.ocw3   & 0x20) >> 5) << 4;
@@ -443,9 +429,13 @@ pic2_read(uint16_t addr, void *priv)
 	ret  = ((pic2.vector & 0xf8) >> 3) << 0;
     else if (addr & 1)
 	ret = pic2.mask;
-    else if (pic2.read & 5)
-	ret = pic_highest_req(&pic2, 1);
-    else if (pic2.read)
+    else if (pic2.read & 4) {
+	temp = picinterrupt_poll(1);
+	if (temp >= 0)
+		ret = (temp | 0x80);
+	else
+		ret = 0x00;
+    } else if (pic2.read)
 	ret = pic2.ins;
     else
 	ret = pic2.pend;
@@ -648,6 +638,32 @@ picinterrupt()
 	} else {
 		ret = pic_process_interrupt(&pic, c);
 		if (ret != -1)  return ret;
+	}
+    }
+    return -1;
+}
+
+
+int
+picinterrupt_poll(int is_pic2)
+{
+    int c, d;
+    int ret;
+
+    if (is_pic2)
+	pic2.read &= ~4;
+    else
+	pic.read &= ~4;
+
+    for (c = 0; c <= 7; c++) {
+	if (AT && ((1 << c) == pic.icw3)) {
+		for (d = 8; d <= 15; d++) {
+			ret = pic_process_interrupt(&pic2, d);
+			if ((ret != -1) && is_pic2)  return c & 7;
+		}
+	} else {
+		ret = pic_process_interrupt(&pic, c);
+		if ((ret != -1) && !is_pic2)  return c;
 	}
     }
     return -1;
