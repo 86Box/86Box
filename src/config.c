@@ -47,6 +47,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/gameport.h>
 #include <86box/machine.h>
 #include <86box/mouse.h>
@@ -782,6 +783,12 @@ load_other_peripherals(void)
 	scsi_card_current = scsi_card_get_from_internal_name(p);
       else
 	scsi_card_current = 0;
+
+    p = config_get_string(cat, "fdc", NULL);
+    if (p != NULL)
+	fdc_type = fdc_card_get_from_internal_name(p);
+      else
+	fdc_type = FDC_INTERNAL;
 
     p = config_get_string(cat, "hdc", NULL);
     if (p == NULL) {
@@ -1743,6 +1750,12 @@ save_other_peripherals(void)
       else
 	config_set_string(cat, "scsicard",
 			  scsi_card_get_internal_name(scsi_card_current));
+
+    if (fdc_type == FDC_INTERNAL)
+	config_delete_var(cat, "fdc");
+      else
+	config_set_string(cat, "fdc",
+			  fdc_card_get_internal_name(fdc_type));
 
     config_set_string(cat, "hdc",
 	hdc_get_internal_name(hdc_current));

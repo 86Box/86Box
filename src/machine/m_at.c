@@ -49,6 +49,7 @@
 #include <86box/device.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/nvr.h>
 #include <86box/gameport.h>
 #include <86box/keyboard.h>
@@ -102,7 +103,8 @@ machine_at_ibm_common_init(const machine_t *model)
 
     mem_remap_top(384);
 
-    device_add(&fdc_at_device);
+    if (fdc_type == FDC_INTERNAL)
+	device_add(&fdc_at_device);
 }
 
 

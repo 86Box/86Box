@@ -38,6 +38,8 @@
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/device.h>
+#include <86box/fdd.h>
+#include <86box/fdc.h>
 #include <86box/nvr.h>
 #include <86box/plat.h>
 #include <86box/scsi.h>

@@ -91,6 +91,7 @@
 #define IDS_2115	2115		// "MO %i (%03i): %ls"
 #define IDS_2116	2116		// "MO images (*.IM?)\0*.IM..."
 #define IDS_2117	2117		// "Welcome to 86Box!"
+#define IDS_2118	2118		// "Internal controller"
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
@@ -169,7 +170,7 @@
 
 #define IDS_LANG_ENUS	IDS_7168
 
-#define STR_NUM_2048	70
+#define STR_NUM_2048	71
 #define STR_NUM_3072	11
 #define STR_NUM_4096	18
 #define STR_NUM_4352	7

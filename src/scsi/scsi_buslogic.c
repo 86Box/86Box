@@ -37,6 +37,8 @@
 #include <86box/device.h>
 #include <86box/nvr.h>
 #include <86box/dma.h>
+#include <86box/fdd.h>
+#include <86box/fdc.h>
 #include <86box/pic.h>
 #include <86box/pci.h>
 #include <86box/plat.h>

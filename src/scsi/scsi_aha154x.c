@@ -36,6 +36,8 @@
 #include <86box/dma.h>
 #include <86box/pic.h>
 #include <86box/plat.h>
+#include <86box/fdd.h>
+#include <86box/fdc.h>
 #include <86box/scsi.h>
 #include <86box/scsi_aha154x.h>
 #include <86box/scsi_x54x.h>
@@ -187,6 +189,13 @@ aha154x_eeprom(x54x_t *dev, uint8_t cmd,uint8_t arg,uint8_t len,uint8_t off,uint
 	r = 0;
 
 	aha_eeprom_save(dev);
+		
+	if (dev->type == AHA_154xCF) {
+		if (dev->fdc_address > 0) {
+			fdc_remove(dev->fdc);
+			fdc_set_base(dev->fdc, dev->fdc_address);
+		}
+	}
     }
 
     if (cmd == 0x23) {
@@ -702,6 +711,8 @@ aha_initnvr(x54x_t *dev)
     /* Initialize the on-board EEPROM. */
     dev->nvr[0] = dev->HostID;			/* SCSI ID 7 */
     dev->nvr[0] |= (0x10 | 0x20 | 0x40);
+    if (dev->fdc_address == 0x370)
+	dev->nvr[0] |= EE0_ALTFLOP;
     dev->nvr[1] = dev->Irq-9;			/* IRQ15 */
     dev->nvr[1] |= (dev->DmaChannel<<4);	/* DMA6 */
     dev->nvr[2] = (EE2_HABIOS	| 		/* BIOS enabled		*/
@@ -757,6 +768,10 @@ aha_init(const device_t *info)
     dev->Irq = device_get_config_int("irq");
     dev->DmaChannel = device_get_config_int("dma");
     dev->rom_addr = device_get_config_hex20("bios_addr");
+    if (!(dev->bus & DEVICE_MCA))
+	dev->fdc_address = device_get_config_hex16("fdc_addr");
+    else
+	dev->fdc_address = 0;
     dev->HostID = 7;		/* default HA ID */
     dev->setup_info_len = sizeof(aha_setup_t);
     dev->max_id = 7;
@@ -834,6 +849,8 @@ aha_init(const device_t *info)
 		dev->ven_get_irq = aha_get_irq;		/* function to return IRQ from EEPROM */
 		dev->ven_get_dma = aha_get_dma;		/* function to return DMA channel from EEPROM */
 		dev->ha_bps = 10000000.0;	/* fast SCSI */
+		if (dev->fdc_address > 0)
+			dev->fdc = device_add(&fdc_at_device);
 		break;
 
 	case AHA_154xCP:
@@ -1022,7 +1039,6 @@ static const device_config_t aha_154xb_config[] = {
 	}
 };
 
-
 static const device_config_t aha_154x_config[] = {
         {
 		"base", "Address", CONFIG_HEX16, "", 0x334,
@@ -1122,6 +1138,122 @@ static const device_config_t aha_154x_config[] = {
 };
 
 
+static const device_config_t aha_154xcf_config[] = {
+        {
+		"base", "Address", CONFIG_HEX16, "", 0x334,
+                {
+                        {
+                                "None",      0
+                        },
+                        {
+                                "0x330", 0x330
+                        },
+                        {
+                                "0x334", 0x334
+                        },
+                        {
+                                "0x230", 0x230
+                        },
+                        {
+                                "0x234", 0x234
+                        },
+                        {
+                                "0x130", 0x130
+                        },
+                        {
+                                "0x134", 0x134
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+        {
+		"irq", "IRQ", CONFIG_SELECTION, "", 9,
+                {
+                        {
+                                "IRQ 9", 9
+                        },
+                        {
+                                "IRQ 10", 10
+                        },
+                        {
+                                "IRQ 11", 11
+                        },
+                        {
+                                "IRQ 12", 12
+                        },
+                        {
+                                "IRQ 14", 14
+                        },
+                        {
+                                "IRQ 15", 15
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+        {
+		"dma", "DMA channel", CONFIG_SELECTION, "", 6,
+                {
+                        {
+                                "DMA 5", 5
+                        },
+                        {
+                                "DMA 6", 6
+                        },
+                        {
+                                "DMA 7", 7
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+        {
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0,
+                {
+                        {
+                                "Disabled", 0
+                        },
+                        {
+                                "C800H", 0xc8000
+                        },
+                        {
+                                "D000H", 0xd0000
+                        },
+                        {
+                                "D800H", 0xd8000
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+        {
+		"fdc_addr", "FDC address", CONFIG_HEX16, "", 0,
+                {
+                        {
+                                "None",      0
+                        },
+                        {
+                                "0x3f0", 0x3f0
+                        },
+                        {
+                                "0x370", 0x370
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+	{
+		"", "", -1
+	}
+};
+
+
 const device_t aha154xa_device = {
     "Adaptec AHA-154xA",
     DEVICE_ISA | DEVICE_AT,
@@ -1155,7 +1287,7 @@ const device_t aha154xcf_device = {
     AHA_154xCF,
     aha_init, x54x_close, NULL,
     NULL, NULL, NULL,
-    aha_154x_config
+    aha_154xcf_config
 };
 
 const device_t aha1640_device = {

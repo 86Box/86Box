@@ -59,6 +59,7 @@
 #include <86box/gameport.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/hdd.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
@@ -747,6 +748,8 @@ pc_reset_hard_init(void)
 	
     /* Reset any ISA RTC cards. */
     isartc_reset();	
+
+    fdc_card_init();	
 	
     fdd_reset();
 

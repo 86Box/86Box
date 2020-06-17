@@ -99,6 +99,7 @@
 #define IDT_1765		1765	/* Board #3: */
 #define IDT_1766		1766	/* Board #4: */
 #define IDT_1767		1767	/* ISA RTC: */
+#define IDT_1768		1768	/* Ext FD Controller: */
 
 
 /*
@@ -180,6 +181,8 @@
 #define IDC_CHECK_POSTCARD	1130
 #define IDC_COMBO_ISARTC	1131
 #define IDC_CONFIGURE_ISARTC	1132
+#define IDC_COMBO_FDC		1133
+#define IDC_CONFIGURE_FDC	1134
 #define IDC_GROUP_ISAMEM	1140
 #define IDC_COMBO_ISAMEM_1	1141
 #define IDC_COMBO_ISAMEM_2	1142
