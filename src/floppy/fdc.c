@@ -1120,8 +1120,10 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 							if (fdc->flags & FDC_FLAG_PCJR) {
 								fdc->fintr = 1;
 								fdc->interrupt = -4;
-							} else
+							} else {
 								fdc->interrupt = -3;
+								fdc_callback(fdc);
+							}
 							break;
 						}
 						if ((real_drive(fdc, fdc->drive) != 1) || fdc->drv2en)
@@ -1170,7 +1172,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						/* Three conditions under which the command should fail. */
 						if (!fdd_get_flags(drive_num) || (drive_num >= FDD_NUM) || !motoron[drive_num]) {
 							/* Yes, failed SEEK's still report success, unlike failed RECALIBRATE's. */
-							fdc->st0 = 0x20 | (fdc->params[0] & 7);
+							fdc->st0 = 0x20 | (fdc->params[0] & 3);
 							if (fdc->command & 0x80) {
 								if (fdc->command & 0x40)
 									fdc->pcn[fdc->params[0] & 3] += fdc->params[1];
@@ -1178,7 +1180,13 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 									fdc->pcn[fdc->params[0] & 3] -= fdc->params[1];
 							} else
 								fdc->pcn[fdc->params[0] & 3] = fdc->params[1];
-							fdc->interrupt = -3;
+							if (fdc->flags & FDC_FLAG_PCJR) {
+								fdc->fintr = 1;
+								fdc->interrupt = -4;
+							} else {
+								fdc->interrupt = -3;
+								fdc_callback(fdc);
+							}
 							break;
 						}
 						if (fdc->command & 0x80) {
@@ -1196,16 +1204,28 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 								}
 								fdc->step = 1;
 							} else {
-								fdc->st0 = 0x20 | (fdc->params[0] & 7);
-								fdc->interrupt = -3;
+								fdc->st0 = 0x20 | (fdc->params[0] & 3);
+								if (fdc->flags & FDC_FLAG_PCJR) {
+									fdc->fintr = 1;
+									fdc->interrupt = -4;
+								} else {
+									fdc->interrupt = -3;
+									fdc_callback(fdc);
+								}
 								break;
 							}
 						} else {
 							fdc_log("Seeking to track %i (PCN = %i)...\n", fdc->params[1], fdc->pcn[fdc->params[0] & 3]);
 							if ((fdc->params[1] - fdc->pcn[fdc->params[0] & 3]) == 0) {
 								fdc_log("Failed seek\n");
-								fdc->st0 = 0x20 | (fdc->params[0] & 7);
-								fdc->interrupt = -3;
+								fdc->st0 = 0x20 | (fdc->params[0] & 3);
+								if (fdc->flags & FDC_FLAG_PCJR) {
+									fdc->fintr = 1;
+									fdc->interrupt = -4;
+								} else {
+									fdc->interrupt = -3;
+									fdc_callback(fdc);
+								}
 								break;
 							}
 							if (fdc->params[1] > fdc->pcn[fdc->params[0] & 3])
@@ -1715,7 +1735,7 @@ fdc_callback(void *priv)
 		fdc->interrupt = 0;
 		return;
 	case 0x0f: /*Seek*/
-		fdc->st0 = 0x20 | (fdc->params[0] & 7);
+		fdc->st0 = 0x20 | (fdc->params[0] & 3);
 		fdc->stat = 0x80 | (1 << fdc->rw_drive);
 		if (fdc->flags & FDC_FLAG_PCJR) {
 			fdc->fintr = 1;
