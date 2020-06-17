@@ -1136,6 +1136,40 @@ gd54xx_recalctimings(svga_t *svga)
 				svga->map8 = video_8to32;
 				svga->render = svga_render_8bpp_highres;
 				break;
+
+			case 0xf:	
+				switch (svga->seqregs[7] & CIRRUS_SR7_BPP_MASK) {	
+					case CIRRUS_SR7_BPP_32:	
+						if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5430) {	
+							svga->bpp = 32;	
+							svga->render = svga_render_32bpp_highres;	
+							svga->rowoffset *= 2;	
+						}	
+						break;	
+
+					case CIRRUS_SR7_BPP_24:	
+						svga->bpp = 24;	
+						svga->render = svga_render_24bpp_highres;	
+						break;	
+
+					case CIRRUS_SR7_BPP_16:	
+						if ((svga->crtc[0x27] >= CIRRUS_ID_CLGD5428) || (svga->crtc[0x27] == CIRRUS_ID_CLGD5426)) {	
+							svga->bpp = 16;	
+							svga->render = svga_render_16bpp_highres;	
+						}	
+						break;	
+
+					case CIRRUS_SR7_BPP_16_DOUBLEVCLK:	
+						svga->bpp = 16;	
+						svga->render = svga_render_16bpp_highres;	
+						break;	
+
+					case CIRRUS_SR7_BPP_8:	
+						svga->bpp = 8;	
+						svga->render = svga_render_8bpp_highres;	
+						break;	
+				}	
+				break;
 		}
 	} else {
 		svga->bpp = 15;
