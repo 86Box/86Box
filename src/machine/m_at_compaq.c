@@ -898,20 +898,3 @@ machine_at_portableiii386_init(const machine_t *model)
 
     return ret;
 }
-
-int
-machine_at_deskpro386_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_interleavedr(L"roms/machines/deskpro386/109592-005.U11.bin",
-				L"roms/machines/deskpro386/109591-005.U13.bin",
-				0x000f8000, 65536, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_at_compaq_init(model, COMPAQ_DESKPRO386);
-
-    return ret;
-}
