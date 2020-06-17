@@ -93,7 +93,6 @@ int floppyrate[4];
 
 int fdc_type = 0;
 
-#define ENABLE_FDC_LOG 1
 #ifdef ENABLE_FDC_LOG
 int fdc_do_log = ENABLE_FDC_LOG;
 
