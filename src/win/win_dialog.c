@@ -34,95 +34,101 @@
 #include <86box/win.h>
 
 
+
+#define STRING_OR_RESOURCE(s) ((!(s)) ? (NULL) : ((((uintptr_t)s) < ((uintptr_t)65636)) ? (MAKEINTRESOURCE(s)) : (s)))
+
+
 WCHAR	wopenfilestring[512];
 char	openfilestring[512];
 uint8_t	filterindex = 0;
 
 
 int
-ui_msgbox(int flags, void *arg)
+ui_msgbox(int flags, void *message)
 {
-    WCHAR temp[512];
-    int fl = 0;
-    PCWSTR icon = NULL;
-    WCHAR *str = NULL;
-    WCHAR *cap = NULL;
+    return ui_msgbox_ex(flags, NULL, message, NULL, NULL, NULL);
+}
 
+
+int
+ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, void *btn3) {
+    WCHAR temp[512];
+    TASKDIALOGCONFIG tdconfig = {0};
+    TASKDIALOG_BUTTON tdbuttons[3],
+                      tdb_yes    = {IDYES,    STRING_OR_RESOURCE(btn1)},
+                      tdb_no     = {IDNO,     STRING_OR_RESOURCE(btn2)},
+                      tdb_cancel = {IDCANCEL, STRING_OR_RESOURCE(btn3)};
+    int ret = 0;
+
+    /* Configure the default OK button. */
+    tdconfig.cButtons = 0;
+    if (btn1)
+	tdbuttons[tdconfig.cButtons++] = tdb_yes;
+    else
+	tdconfig.dwCommonButtons = TDCBF_OK_BUTTON;
+
+    /* Configure the message type. */
     switch(flags & 0x1f) {
 	case MBX_INFO:		/* just an informational message */
-		icon = TD_INFORMATION_ICON;
-		fl = TDCBF_OK_BUTTON;
+		tdconfig.pszMainIcon = TD_INFORMATION_ICON;
 		break;
 
 	case MBX_ERROR:		/* error message */
-		fl = TDCBF_OK_BUTTON;
 		if (flags & MBX_FATAL) {
-			icon = TD_ERROR_ICON;
-			cap = plat_get_string(IDS_2050);    /* "Fatal error" */
+			tdconfig.pszMainIcon = TD_ERROR_ICON;
+			tdconfig.pszMainInstruction = MAKEINTRESOURCE(IDS_2050);    /* "Fatal error" */
 		} else {
-			icon = TD_WARNING_ICON;
-			cap = plat_get_string(IDS_2049);    /* "Error" */
+			tdconfig.pszMainIcon = TD_WARNING_ICON;
+			tdconfig.pszMainInstruction = MAKEINTRESOURCE(IDS_2049);    /* "Error" */
 		}
 		break;
 
 	case MBX_QUESTION:	/* question */
-		fl = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON | TDCBF_CANCEL_BUTTON;
-		break;
+	case MBX_QUESTION_YN:
+		if (!btn1) /* replace default "OK" button with "Yes" button */
+			tdconfig.dwCommonButtons = TDCBF_YES_BUTTON;
 
-	case MBX_QUESTION_YN:	/* question */
-		fl = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON;
+		if (btn2) /* "No" button */
+			tdbuttons[tdconfig.cButtons++] = tdb_no;
+		else
+			tdconfig.dwCommonButtons |= TDCBF_NO_BUTTON;
+
+		if (flags & MBX_QUESTION) {
+			if (btn3) /* "Cancel" button */
+				tdbuttons[tdconfig.cButtons++] = tdb_cancel;
+			else
+				tdconfig.dwCommonButtons |= TDCBF_CANCEL_BUTTON;
+		}
 		break;
     }
 
-    /* If ANSI string, convert it. */
-    str = (WCHAR *)arg;
+    /* If the message is an ANSI string, convert it. */
+    tdconfig.pszContent = (WCHAR *) STRING_OR_RESOURCE(message);
     if (flags & MBX_ANSI) {
-	mbstowcs(temp, (char *)arg, strlen((char *)arg)+1);
-	str = temp;
-    } else {
-	/*
-	 * It's a Unicode string.
-	 *
-	 * Well, no, maybe not. It could also be one of the
-	 * strings stored in the Resources. Those are wide,
-	 * but referenced by a numeric ID.
-	 *
-	 * The good news is, that strings are usually stored
-	 * in the executable near the end of the code/rodata
-	 * segment. This means, that *real* string pointers
-	 * usually have a pretty high (numeric) value, much
-	 * higher than the numeric ID's.  So, we guesswork
-	 * that if the value of 'arg' is low, its an ID..
-	 */
-	if (((uintptr_t)arg) < ((uintptr_t)65636))
-		str = MAKEINTRESOURCE((intptr_t)arg);
+	mbstowcs(temp, (char *)message, strlen((char *)message)+1);
+	tdconfig.pszContent = temp;
     }
 
-    /* At any rate, we do have a valid (wide) string now. */
-    TaskDialog(hwndMain,
-	       NULL,
-	       MAKEINTRESOURCE(IDS_STRINGS),
-	       cap,
-	       str,
-	       fl,
-	       icon,
-	       &fl);
+    /* Configure the rest of the TaskDialog. */
+    tdconfig.cbSize = sizeof(tdconfig);
+    tdconfig.hwndParent = hwndMain;
+    if (flags & MBX_LINKS)
+    	tdconfig.dwFlags = TDF_USE_COMMAND_LINKS;
+    tdconfig.pszWindowTitle = MAKEINTRESOURCE(IDS_STRINGS);
+    if (header)
+    	tdconfig.pszMainInstruction = STRING_OR_RESOURCE(header);
+    tdconfig.pButtons = tdbuttons;
+
+    /* Run the TaskDialog. */
+    TaskDialogIndirect(&tdconfig, &ret, NULL, NULL);
 
     /* Convert return values to generic ones. */
-    if (fl == IDNO) fl = 1;
-     else if (fl == IDCANCEL) fl = -1;
-     else fl = 0;
+    if (ret == IDNO) ret = 1;
+     else if (ret == IDCANCEL) ret = -1;
+     else ret = 0;
 
-    return(fl);
+    return(ret);
 }
-
-
-#if 0
-int
-msgbox_reset_yn(HWND hwnd)
-{
-    return(MessageBox(hwnd, plat_get_string(IDS_2051),
-#endif
 
 
 int
