@@ -891,8 +891,8 @@ END
 STRINGTABLE DISCARDABLE 
 BEGIN
     2048	"86Box"
-    IDS_2049	"86Box Error"
-    IDS_2050	"86Box Fatal Error"
+    IDS_2049	"Error"
+    IDS_2050	"Fatal error"
     IDS_2051	"Are you sure you want to save the settings?"
     IDS_2052	"Use CTRL+ALT+PAGE DOWN to return to windowed mode"
     IDS_2053	"Speed"

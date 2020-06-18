@@ -43,34 +43,34 @@ int
 ui_msgbox(int flags, void *arg)
 {
     WCHAR temp[512];
-    DWORD fl = 0;
+    int fl = 0;
+    PCWSTR icon = NULL;
     WCHAR *str = NULL;
     WCHAR *cap = NULL;
 
     switch(flags & 0x1f) {
 	case MBX_INFO:		/* just an informational message */
-		fl = (MB_OK | MB_ICONINFORMATION);
-		cap = plat_get_string(IDS_STRINGS);	    /* "86Box" */
+		icon = TD_INFORMATION_ICON;
+		fl = TDCBF_OK_BUTTON;
 		break;
 
 	case MBX_ERROR:		/* error message */
+		fl = TDCBF_OK_BUTTON;
 		if (flags & MBX_FATAL) {
-			fl = (MB_OK | MB_ICONERROR);
-			cap = plat_get_string(IDS_2050);    /* "Fatal Error"*/
+			icon = TD_ERROR_ICON;
+			cap = plat_get_string(IDS_2050);    /* "Fatal error" */
 		} else {
-			fl = (MB_OK | MB_ICONWARNING);
+			icon = TD_WARNING_ICON;
 			cap = plat_get_string(IDS_2049);    /* "Error" */
 		}
 		break;
 
 	case MBX_QUESTION:	/* question */
-		fl = (MB_YESNOCANCEL | MB_ICONQUESTION);
-		cap = plat_get_string(IDS_STRINGS);	    /* "86Box" */
+		fl = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON | TDCBF_CANCEL_BUTTON;
 		break;
 
 	case MBX_QUESTION_YN:	/* question */
-		fl = (MB_YESNO | MB_ICONQUESTION);
-		cap = plat_get_string(IDS_STRINGS);	    /* "86Box" */
+		fl = TDCBF_YES_BUTTON | TDCBF_NO_BUTTON;
 		break;
     }
 
@@ -95,14 +95,18 @@ ui_msgbox(int flags, void *arg)
 	 * that if the value of 'arg' is low, its an ID..
 	 */
 	if (((uintptr_t)arg) < ((uintptr_t)65636))
-		str = plat_get_string((intptr_t)arg);
+		str = MAKEINTRESOURCE((intptr_t)arg);
     }
 
     /* At any rate, we do have a valid (wide) string now. */
-    fl = MessageBox(hwndMain,		/* our main window */
-		    str,		/* error message etc */
-		    cap,		/* window caption */
-		    fl);
+    TaskDialog(hwndMain,
+	       NULL,
+	       MAKEINTRESOURCE(IDS_STRINGS),
+	       cap,
+	       str,
+	       fl,
+	       icon,
+	       &fl);
 
     /* Convert return values to generic ones. */
     if (fl == IDNO) fl = 1;

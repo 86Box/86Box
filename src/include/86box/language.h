@@ -22,8 +22,8 @@
 
 /* String IDs. */
 #define IDS_STRINGS	2048		// "86Box"
-#define IDS_2049	2049		// "86Box Error"
-#define IDS_2050	2050		// "86Box Fatal Error"
+#define IDS_2049	2049		// "Error"
+#define IDS_2050	2050		// "Fatal error"
 #define IDS_2051	2051		// "Are you sure you want to save..."
 #define IDS_2052	2052		// "Use CTRL+ALT+PAGE DOWN.."
 #define IDS_2053	2053		// "Speed"
