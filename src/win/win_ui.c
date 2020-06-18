@@ -845,7 +845,7 @@ ui_init(int nCmdShow)
     RECT sbar_rect;			/* RECT of the status bar */
     int bRet;
     TASKDIALOGCONFIG tdconfig = {0};
-    TASKDIALOG_BUTTON tdbuttons[] = {{IDOK, MAKEINTRESOURCE(IDS_2119)}};
+    TASKDIALOG_BUTTON tdbuttons[] = {{IDCANCEL, MAKEINTRESOURCE(IDS_2119)}};
 
     /* Set up TaskDialog configuration. */
     tdconfig.cbSize = sizeof(tdconfig);
