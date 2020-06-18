@@ -819,6 +819,20 @@ SubWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 }
 
 
+static HRESULT CALLBACK
+TaskDialogProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, LONG_PTR lpRefData)
+{
+    switch (message) {
+	case TDN_HYPERLINK_CLICKED:
+		/* open linked URL */
+		ShellExecute(hwnd, L"open", (LPCWSTR) lParam, NULL, NULL, SW_SHOW);
+		break;
+    }
+
+    return S_OK;
+}
+
+
 int
 ui_init(int nCmdShow)
 {
@@ -826,18 +840,31 @@ ui_init(int nCmdShow)
     WNDCLASSEX wincl;			/* buffer for main window's class */
     RAWINPUTDEVICE ridev;		/* RawInput device */
     MSG messages;			/* received-messages buffer */
-    HWND hwnd = NULL;				/* handle for our window */
+    HWND hwnd = NULL;			/* handle for our window */
     HACCEL haccel;			/* handle to accelerator table */
-	RECT sbar_rect;         /* RECT of the status bar */
+    RECT sbar_rect;			/* RECT of the status bar */
     int bRet;
+    TASKDIALOGCONFIG tdconfig = {0};
+    TASKDIALOG_BUTTON tdbuttons[] = {{IDOK, MAKEINTRESOURCE(IDS_2119)}};
 
+    /* Set up TaskDialog configuration. */
+    tdconfig.cbSize = sizeof(tdconfig);
+    tdconfig.dwFlags = TDF_ENABLE_HYPERLINKS;
+    tdconfig.dwCommonButtons = 0;
+    tdconfig.pszWindowTitle = MAKEINTRESOURCE(IDS_STRINGS);
+    tdconfig.pszMainIcon = TD_ERROR_ICON;
+    tdconfig.pszMainInstruction = MAKEINTRESOURCE(IDS_2050);
+    tdconfig.cButtons = ARRAYSIZE(tdbuttons);
+    tdconfig.pButtons = tdbuttons;
+    tdconfig.pfCallback = TaskDialogProcedure;
+
+    /* Start settings-only mode if requested. */
     if (settings_only) {
 	if (! pc_init_modules()) {
 		/* Dang, no ROMs found at all! */
-		MessageBox(hwnd,
-			   plat_get_string(IDS_2056),
-			   plat_get_string(IDS_2050),
-			   MB_OK | MB_ICONERROR);
+		tdconfig.pszMainInstruction = MAKEINTRESOURCE(IDS_2120);
+		tdconfig.pszContent = MAKEINTRESOURCE(IDS_2056);
+		TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
 		return(6);
 	}
 
@@ -895,7 +922,7 @@ ui_init(int nCmdShow)
 		menuMain,		/* menu */
 		hinstance,		/* Program Instance handler */
 		NULL);			/* no Window Creation data */
-    hwndMain = hwnd;
+    hwndMain = tdconfig.hwndParent = hwnd;
 
     ui_window_title(title);
 
@@ -925,10 +952,8 @@ ui_init(int nCmdShow)
     ridev.dwFlags = RIDEV_NOHOTKEYS;
     ridev.hwndTarget = NULL;	/* current focus window */
     if (! RegisterRawInputDevices(&ridev, 1, sizeof(ridev))) {
-	MessageBox(hwndMain,
-		   plat_get_string(IDS_2105),
-		   plat_get_string(IDS_2050),
-		   MB_OK | MB_ICONERROR);
+	tdconfig.pszContent = MAKEINTRESOURCE(IDS_2105);
+	TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
 	return(4);
     }
     keyboard_getkeymap();
@@ -939,10 +964,8 @@ ui_init(int nCmdShow)
     /* Load the accelerator table */
     haccel = LoadAccelerators(hinstance, ACCEL_NAME);
     if (haccel == NULL) {
-	MessageBox(hwndMain,
-		   plat_get_string(IDS_2104),
-		   plat_get_string(IDS_2050),
-		   MB_OK | MB_ICONERROR);
+	tdconfig.pszContent = MAKEINTRESOURCE(IDS_2104);
+	TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
 	return(3);
     }
 
@@ -972,19 +995,16 @@ ui_init(int nCmdShow)
     /* All done, fire up the actual emulated machine. */
     if (! pc_init_modules()) {
 	/* Dang, no ROMs found at all! */
-	MessageBox(hwnd,
-		   plat_get_string(IDS_2056),
-		   plat_get_string(IDS_2050),
-		   MB_OK | MB_ICONERROR);
+	tdconfig.pszMainInstruction = MAKEINTRESOURCE(IDS_2120);
+	tdconfig.pszContent = MAKEINTRESOURCE(IDS_2056);
+	TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
 	return(6);
     }
 
     /* Initialize the configured Video API. */
     if (! plat_setvid(vid_api)) {
-	MessageBox(hwnd,
-		   plat_get_string(IDS_2089),
-		   plat_get_string(IDS_2050),
-		   MB_OK | MB_ICONERROR);
+	tdconfig.pszContent = MAKEINTRESOURCE(IDS_2089);
+	TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
 	return(5);
     }
 
