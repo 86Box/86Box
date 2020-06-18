@@ -21,6 +21,7 @@
 #include <windows.h>
 #include <windowsx.h>
 #undef BITMAP
+#include <commctrl.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
@@ -31,45 +32,21 @@
 #include <86box/win.h>
 
 
-#if defined(__amd64__) || defined(__aarch64__)
-static LRESULT CALLBACK
-#else
-static BOOL CALLBACK
-#endif
-AboutDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    HWND h;
-    HANDLE ih;
-
-    switch (message) {
-	case WM_INITDIALOG:
-		plat_pause(1);
-		h = GetDlgItem(hdlg, IDC_ABOUT_ICON);
-		ih = LoadImage(hinstance,(PCTSTR)10,IMAGE_ICON,64,64,0);
-		SendMessage(h, STM_SETIMAGE, (WPARAM)IMAGE_ICON,
-		  (LPARAM)ih);
-		break;
-
-	case WM_COMMAND:
-                switch (LOWORD(wParam)) {
-			case IDOK:
-			case IDCANCEL:
-				EndDialog(hdlg, 0);
-				plat_pause(0);
-				return TRUE;
-
-			default:
-				break;
-		}
-		break;
-    }
-
-    return(FALSE);
-}
-
-
 void
 AboutDialogCreate(HWND hwnd)
 {
-    DialogBox(hinstance, (LPCTSTR)DLG_ABOUT, hwnd, AboutDialogProcedure);
+    TASKDIALOGCONFIG tdconfig = {0};
+    TASKDIALOG_BUTTON tdbuttons[] = {{IDCANCEL, MAKEINTRESOURCE(IDS_2127)}};
+
+    tdconfig.cbSize = sizeof(tdconfig);
+    tdconfig.hwndParent = hwnd;
+    tdconfig.hInstance = hinstance;
+    tdconfig.dwCommonButtons = 0;
+    tdconfig.pszWindowTitle = MAKEINTRESOURCE(IDS_2124);
+    tdconfig.pszMainIcon = (PCWSTR) 10;
+    tdconfig.pszMainInstruction = MAKEINTRESOURCE(IDS_2125);
+    tdconfig.pszContent = MAKEINTRESOURCE(IDS_2126);
+    tdconfig.cButtons = ARRAYSIZE(tdbuttons);
+    tdconfig.pButtons = tdbuttons;
+    TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
 }

@@ -274,19 +274,6 @@ END
 //
 // Dialog
 //
-DLG_ABOUT DIALOG DISCARDABLE  0, 0, 209, 114
-STYLE DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "About 86Box"
-FONT 9, "Segoe UI"
-BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,129,94,71,12
-    ICON            100,IDC_ABOUT_ICON,7,7,20,20
-    LTEXT           "86Box v" EMU_VERSION " - An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information.",
-                    IDC_ABOUT_ICON,54,7,146,73
-    CONTROL         "",IDC_ABOUT_ICON,"Static",SS_BLACKFRAME | SS_SUNKEN,0,
-                    86,208,1
-END
-
 DLG_STATUS DIALOG DISCARDABLE  0, 0, 186, 386
 STYLE DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Status"
@@ -974,6 +961,10 @@ BEGIN
     IDS_2121	"Save changes\nThis will hard reset the emulated machine."
     IDS_2122	"Discard changes\nAll changes made to the settings will be lost."
     IDS_2123	"Cancel\nGo back to the Settings window."
+    IDS_2124	"About " EMU_NAME
+    IDS_2125	EMU_NAME " v" EMU_VERSION
+    IDS_2126	"An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information."
+    IDS_2127	"OK"
 END
 
 STRINGTABLE DISCARDABLE 
