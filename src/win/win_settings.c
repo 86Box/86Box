@@ -396,17 +396,31 @@ static int
 settings_msgbox_reset(void)
 {
     int changed, i = 0;
+    TASKDIALOGCONFIG tdconfig = {0};
+    TASKDIALOG_BUTTON tdbuttons[] = {
+	{IDYES,    MAKEINTRESOURCE(IDS_2121)},
+	{IDNO,     MAKEINTRESOURCE(IDS_2122)},
+	{IDCANCEL, MAKEINTRESOURCE(IDS_2123)}
+    };
 
     changed = win_settings_changed();
 
     if (changed) {
-	i = settings_msgbox(MBX_QUESTION, (wchar_t *)IDS_2051);
+    	tdconfig.cbSize = sizeof(tdconfig);
+    	tdconfig.hwndParent = hwndParentDialog;
+    	tdconfig.dwFlags = TDF_USE_COMMAND_LINKS;
+    	tdconfig.dwCommonButtons = 0;
+    	tdconfig.pszWindowTitle = MAKEINTRESOURCE(IDS_STRINGS);
+    	tdconfig.pszMainInstruction = MAKEINTRESOURCE(IDS_2051);
+    	tdconfig.cButtons = ARRAYSIZE(tdbuttons);
+    	tdconfig.pButtons = tdbuttons;
+	TaskDialogIndirect(&tdconfig, &i, NULL, NULL);
 
-	if (i == 1) return(1);	/* no */
+	if (i == IDNO) return(1);	/* no */
 
-	if (i < 0) return(0);	/* cancel */
+	if (i == IDYES) return(2);	/* yes */
 
-	return(2);		/* yes */
+	return(0);		/* cancel */
     } else
 	return(1);
 }
