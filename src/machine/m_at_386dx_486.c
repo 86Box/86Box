@@ -287,6 +287,24 @@ machine_at_dtk486_init(const machine_t *model)
 
 
 int
+machine_at_vli486sv2g_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/vli486sv2g/0402.001",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_sis_85c471_common_init(model);
+    device_add(&keyboard_at_device);
+
+    return ret;
+}
+
+
+int
 machine_at_px471_init(const machine_t *model)
 {
     int ret;

@@ -259,6 +259,7 @@ extern int	machine_at_opti495_init(const machine_t *);
 extern int	machine_at_opti495_ami_init(const machine_t *);
 extern int	machine_at_opti495_mr_init(const machine_t *);
 
+extern int	machine_at_vli486sv2g_init(const machine_t *);
 extern int	machine_at_ami471_init(const machine_t *);
 extern int	machine_at_dtk486_init(const machine_t *);
 extern int	machine_at_px471_init(const machine_t *);
