@@ -283,7 +283,7 @@ fatal(const char *fmt, ...)
        to avoid things like threads getting stuck. */
     do_stop();
 
-    ui_msgbox(MBX_ERROR|MBX_FATAL|MBX_ANSI, temp);
+    ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
 
     fflush(stdlog);
 
@@ -553,6 +553,7 @@ int
 pc_init_modules(void)
 {
     int c, m;
+    wchar_t temp[512];
 
     pc_log("Scanning for ROM images:\n");
     c = m = 0;
@@ -568,11 +569,12 @@ pc_init_modules(void)
 
     /* Load the ROMs for the selected machine. */
     if (! machine_available(machine)) {
+    	swprintf(temp, sizeof(temp), plat_get_string(IDS_2063), machine_getname());
 	c = 0;
 	machine = -1;
 	while (machine_get_internal_name_ex(c) != NULL) {
 		if (machine_available(c)) {
-			ui_msgbox(MBX_INFO, (wchar_t *)IDS_2063);
+			ui_msgbox_header(MBX_INFO, (wchar_t *) IDS_2128, temp);
 			machine = c;
 			config_save();
 			break;
@@ -588,11 +590,12 @@ pc_init_modules(void)
 
     /* Make sure we have a usable video card. */
     if (! video_card_available(gfxcard)) {
+    	swprintf(temp, sizeof(temp), plat_get_string(IDS_2064), video_card_getname(gfxcard));
 	c = 0;
 	while (video_get_internal_name(c) != NULL) {
 		gfxcard = -1;
 		if (video_card_available(c)) {
-			ui_msgbox(MBX_INFO, (wchar_t *)IDS_2064);
+			ui_msgbox_header(MBX_INFO, (wchar_t *) IDS_2128, temp);
 			gfxcard = c;
 			config_save();
 			break;

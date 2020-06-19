@@ -49,7 +49,7 @@ hdd_string_to_bus(char *str, int cdrom)
     if (! strcmp(str, "mfm")) {
 	if (cdrom) {
 no_cdrom:
-		ui_msgbox(MBX_ERROR, (wchar_t *)IDS_4099);
+		ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2130, (wchar_t *) IDS_4099);
 		return(0);
 	}
 
@@ -92,9 +92,6 @@ no_cdrom:
 
     if (! strcmp(str, "scsi"))
 	return(HDD_BUS_SCSI);
-
-    if (! strcmp(str, "usb"))
-	ui_msgbox(MBX_ERROR, (wchar_t *)IDS_4110);
 
     return(0);
 }
