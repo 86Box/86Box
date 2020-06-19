@@ -1041,7 +1041,7 @@ write_output(atkbd_t *dev, uint8_t val)
 			   SeaBIOS gets caught in a soft reset loop as it tries to hard reset the
 			   machine. Hack around this by making the KBC reset a hard reset only on
 			   coreboot machines. */
-			pc_reset(1);
+			pc_reset_hard();
 		} else {
 			softresetx86(); /*Pulse reset!*/
 			cpu_set_edx();
