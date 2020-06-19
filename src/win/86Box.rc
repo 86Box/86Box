@@ -950,7 +950,7 @@ BEGIN
     IDS_2110	"Unable to initialize FreeType"
     IDS_2111	"Unable to initialize SDL, SDL2.dll is required"
     IDS_2112	"Are you sure you want to hard reset the emulated machine?"
-    IDS_2113	"Are you sure you want to quit 86Box?"
+    IDS_2113	"Are you sure you want to exit " EMU_NAME "?"
     IDS_2114	"Unable to initialize Ghostscript"
     IDS_2115	"MO %i (%03i): %ls"
     IDS_2116	"MO images (*.IM?)\0*.IM?\0All files (*.*)\0*.*\0"
@@ -993,6 +993,9 @@ BEGIN
     IDS_2133	LIB_NAME_FLUIDSYNTH " is required for FluidSynth MIDI output."
     IDS_2134	"Entering fullscreen mode"
     IDS_2135	"Don't show this message again"
+    IDS_2136	"Don't Exit"
+    IDS_2137	"Reset"
+    IDS_2138	"Don't Reset"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -1022,7 +1025,7 @@ BEGIN
     IDS_4118	"The selected file will be overwritten. Are you sure you want to use it?"
     IDS_4119	"Unsupported disk image"
     IDS_4120	"Overwrite"
-    IDS_4121	"Cancel"
+    IDS_4121	"Don't Overwrite"
 
     IDS_4352    "MFM/RLL"
     IDS_4353    "XTA"

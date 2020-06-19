@@ -312,7 +312,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_ACTION_HRESET:
 				win_notify_dlg_open();
-				i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2112);
+				i = ui_msgbox_ex(MBX_QUESTION_YN, (wchar_t *) IDS_2112, NULL, (wchar_t *) IDS_2137, (wchar_t *) IDS_2138, NULL);
 				if (i == 0)
 					pc_reset_hard();
 				win_notify_dlg_closed();
@@ -327,7 +327,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (no_quit_confirm)
 					i = 0;
 				else
-					i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2113);
+					i = ui_msgbox_ex(MBX_QUESTION_YN, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
 				if (i == 0) {
 					UnhookWindowsHookEx(hKeyboardHook);
 					KillTimer(hwnd, TIMER_1SEC);
@@ -695,7 +695,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (no_quit_confirm)
 			i = 0;
 		else
-			i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2113);
+			i = ui_msgbox_ex(MBX_QUESTION_YN, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
 		if (i == 0) {
 			UnhookWindowsHookEx(hKeyboardHook);
 			KillTimer(hwnd, TIMER_1SEC);
@@ -731,7 +731,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (manager_wm)
 			break;
 		win_notify_dlg_open();
-		i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2112);
+		i = ui_msgbox_ex(MBX_QUESTION_YN, (wchar_t *) IDS_2112, NULL, (wchar_t *) IDS_2137, (wchar_t *) IDS_2138, NULL);
 		if (i == 0)
 			pc_reset_hard();
 		win_notify_dlg_closed();
@@ -744,7 +744,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (no_quit_confirm)
 			i = 0;
 		else
-			i = ui_msgbox(MBX_QUESTION_YN, (wchar_t *)IDS_2113);
+			i = ui_msgbox_ex(MBX_QUESTION_YN, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
 		if (i == 0) {
 			UnhookWindowsHookEx(hKeyboardHook);
 			KillTimer(hwnd, TIMER_1SEC);

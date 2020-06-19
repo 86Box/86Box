@@ -109,6 +109,9 @@
 #define IDS_2133	2133		// LIB_NAME_FLUIDSYNTH " is required..."
 #define IDS_2134	2134		// "Entering fullscreen mode"
 #define IDS_2135	2135		// "Don't show this message again"
+#define IDS_2136	2136		// "Don't Exit"
+#define IDS_2137	2137		// "Reset"
+#define IDS_2138	2138		// "Don't Reset"
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
@@ -135,7 +138,7 @@
 #define IDS_4118	4118		// "The selected file will be..."
 #define IDS_4119	4119		// "Unsupported disk image"
 #define IDS_4120	4120		// "Overwrite"
-#define IDS_4121	4121		// "Cancel"
+#define IDS_4121	4121		// "Don't Overwrite"
 
 #define IDS_4352	4352		// "MFM/RLL"
 #define IDS_4353	4353		// "XT IDE"
