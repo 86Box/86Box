@@ -102,8 +102,10 @@
 #define IDS_2126	2126		// "An emulator of old computers..."
 #define IDS_2127	2127		// "OK"
 #define IDS_2128	2128		// "Hardware not available"
-#define IDS_2129	2129		// "Make sure " PCAP " is installed..."
+#define IDS_2129	2129		// "Make sure " LIB_NAME_PCAP "..."
 #define IDS_2130	2130		// "Invalid configuration"
+#define IDS_2131	2131		// LIB_NAME_FREETYPE " is required..."
+#define IDS_2132	2132		// LIB_NAME_GS " is required for...
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"

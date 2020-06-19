@@ -947,11 +947,11 @@ BEGIN
     IDS_2107	"%u MB (CHS: %i, %i, %i)"
     IDS_2108	"Floppy %i (%s): %ls"
     IDS_2109	"All images (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Advanced sector images (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Basic sector images (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux images (*.FDI)\0*.FDI\0Surface images (*.86F;*.MFM)\0*.86F;*.MFM\0All files (*.*)\0*.*\0"
-    IDS_2110	"Unable to initialize FreeType, freetype.dll is required"
+    IDS_2110	"Unable to initialize FreeType"
     IDS_2111	"Unable to initialize SDL, SDL2.dll is required"
     IDS_2112	"Are you sure you want to hard reset the emulated machine?"
     IDS_2113	"Are you sure you want to quit 86Box?"
-    IDS_2114	"Unable to initialize Ghostscript, gsdll32.dll is required for automatic convertion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript files (.ps)."
+    IDS_2114	"Unable to initialize Ghostscript"
     IDS_2115	"MO %i (%03i): %ls"
     IDS_2116	"MO images (*.IM?)\0*.IM?\0All files (*.*)\0*.*\0"
     IDS_2117	"Welcome to 86Box!"
@@ -967,12 +967,24 @@ BEGIN
     IDS_2127	"OK"
     IDS_2128	"Hardware not available"
 #ifdef _WIN32
-#define PCAP "WinPcap"
+#define LIB_NAME_PCAP "WinPcap"
 #else
-#define PCAP "libpcap"
+#define LIB_NAME_PCAP "libpcap"
 #endif
-    IDS_2129	"Make sure " PCAP " is installed and that you are on a " PCAP "-compatible network connection."
+    IDS_2129	"Make sure " LIB_NAME_PCAP " is installed and that you are on a " LIB_NAME_PCAP "-compatible network connection."
     IDS_2130	"Invalid configuration"
+#ifdef _WIN32
+#define LIB_NAME_FREETYPE "freetype.dll"
+#else
+#define LIB_NAME_FREETYPE "libfreetype"
+#endif
+    IDS_2131	LIB_NAME_FREETYPE " is required for ESC/P printer emulation."
+#ifdef _WIN32
+#define LIB_NAME_GS "gsdll32.dll"
+#else
+#define LIB_NAME_GS "libgs"
+#endif
+    IDS_2132	LIB_NAME_GS " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
 END
 
 STRINGTABLE DISCARDABLE 
