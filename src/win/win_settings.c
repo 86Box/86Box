@@ -3349,7 +3349,7 @@ hdd_add_file_open_error:
 					case HDD_BUS_MFM:
 						max_spt = 26;	/* 17 for MFM, 26 for RLL. */
 						max_hpc = 15;
-						max_tracks = 1023;
+						max_tracks = 2047;
 						break;
 					case HDD_BUS_XTA:
 						max_spt = 63;

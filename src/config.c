@@ -863,7 +863,7 @@ load_hard_disks(void)
 		case HDD_BUS_MFM:
 			max_spt = 26;	/* 26 for RLL */
 			max_hpc = 15;
-			max_tracks = 1023;
+			max_tracks = 2047;
 			break;
 
 		case HDD_BUS_XTA:
