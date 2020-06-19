@@ -333,7 +333,7 @@ outb(uint16_t port, uint8_t val)
     if (!found) {
 	sub_cycles(io_delay);
 #ifdef USE_DYNAREC
-	if (cpu_use_dynarec && (port == 0xeb))
+	if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
 		update_tsc();
 #endif
     }
@@ -428,7 +428,7 @@ outw(uint16_t port, uint16_t val)
     if (!found) {
 	sub_cycles(io_delay);
 #ifdef USE_DYNAREC
-	if (cpu_use_dynarec && (port == 0xeb))
+	if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
 		update_tsc();
 #endif
     }
@@ -502,8 +502,7 @@ inl(uint16_t port)
     if (!found)
 	sub_cycles(io_delay);
 
-    if (in_smm)
-	io_log("[%04X:%08X] (%i, %i, %04i) in l(%04X) = %08X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
+    io_log("[%04X:%08X] (%i, %i, %04i) in l(%04X) = %08X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
     return ret;
 }
@@ -557,7 +556,7 @@ outl(uint16_t port, uint32_t val)
     if (!found) {
 	sub_cycles(io_delay);
 #ifdef USE_DYNAREC
-	if (cpu_use_dynarec && (port == 0xeb))
+	if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
 		update_tsc();
 #endif
     }
