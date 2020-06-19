@@ -930,7 +930,7 @@ BEGIN
     IDS_2090	"Default"
     IDS_2091	"%i Wait state(s)"
     IDS_2092	"Type"
-    IDS_2093	"PCap failed to set up because it may not be initialized"
+    IDS_2093	"Failed to set up PCap"
     IDS_2094	"No PCap devices found"
     IDS_2095	"Invalid PCap device"
     IDS_2096	"Standard 2-button joystick(s)"
@@ -966,6 +966,12 @@ BEGIN
     IDS_2126	"An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information."
     IDS_2127	"OK"
     IDS_2128	"Hardware not available"
+#ifdef _WIN32
+#define PCAP "WinPcap"
+#else
+#define PCAP "libpcap"
+#endif
+    IDS_2129	"Make sure " PCAP " is installed and that you are on a " PCAP "-compatible network connection."
 END
 
 STRINGTABLE DISCARDABLE 
