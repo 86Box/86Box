@@ -163,7 +163,7 @@ BEGIN
 #endif
     POPUP "&Help"
     BEGIN
-        MENUITEM "&About 86Box...",             IDM_ABOUT
+        MENUITEM "&About " EMU_NAME "...",             IDM_ABOUT
     END
 END
 
@@ -318,7 +318,7 @@ END
 
 DLG_CONFIG DIALOG DISCARDABLE  0, 0, 366, 251
 STYLE DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
-CAPTION "86Box Settings"
+CAPTION EMU_NAME " Settings"
 FONT 9, "Segoe UI"
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,246,230,50,14
@@ -877,7 +877,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    2048	"86Box"
+    2048	EMU_NAME
     IDS_2049	"Error"
     IDS_2050	"Fatal error"
     IDS_2051	"Are you sure you want to save the settings?"
@@ -885,7 +885,7 @@ BEGIN
     IDS_2053	"Speed"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIP images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	"86Box could not find any usable ROM images.\n\nPlease download a ROM set from <a href=""https://github.com/86Box/roms/releases/latest"">https://github.com/86Box/roms/releases/latest</a> and extract it into the ""roms"" directory."
+    IDS_2056	EMU_NAME " could not find any usable ROM images.\n\nPlease download a ROM set from <a href=""https://github.com/86Box/roms/releases/latest"">https://github.com/86Box/roms/releases/latest</a> and extract it into the ""roms"" directory."
     IDS_2057	"(empty)"
     IDS_2058	"ZIP images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0All files (*.*)\0*.*\0"
     IDS_2059	"Turbo"
@@ -954,7 +954,7 @@ BEGIN
     IDS_2114	"Unable to initialize Ghostscript"
     IDS_2115	"MO %i (%03i): %ls"
     IDS_2116	"MO images (*.IM?)\0*.IM?\0All files (*.*)\0*.*\0"
-    IDS_2117	"Welcome to 86Box!"
+    IDS_2117	"Welcome to " EMU_NAME "!"
     IDS_2118	"Internal controller"
     IDS_2119	"Exit"
     IDS_2120	"No ROMs found"
