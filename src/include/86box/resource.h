@@ -50,6 +50,7 @@
 #define IDT_1705		1705	/* MB	== IDC_TEXT_MB */
 #define IDT_1706		1706	/* Memory: */
 #define IDT_1707		1707	/* Video: */
+#define IDT_1708		1708	/* Machine type: */
 #define IDT_1709		1709	/* Mouse: */
 #define IDT_1710		1710	/* Joystick: */
 #define IDT_1711		1711	/* Sound card: */
@@ -98,6 +99,7 @@
 #define IDT_1765		1765	/* Board #3: */
 #define IDT_1766		1766	/* Board #4: */
 #define IDT_1767		1767	/* ISA RTC: */
+#define IDT_1768		1768	/* Ext FD Controller: */
 
 
 /*
@@ -116,17 +118,18 @@
 #define IDC_COMBO_LANG		1009
 #endif
 
-#define IDC_COMBO_MACHINE	1010	/* machine/cpu config */
-#define IDC_CONFIGURE_MACHINE	1011
-#define IDC_COMBO_CPU_TYPE	1012
-#define IDC_COMBO_CPU		1013
-#define IDC_CHECK_FPU		1014
-#define IDC_COMBO_WS		1015
+#define IDC_COMBO_MACHINE_TYPE	1010
+#define IDC_COMBO_MACHINE	1011	/* machine/cpu config */
+#define IDC_CONFIGURE_MACHINE	1012
+#define IDC_COMBO_CPU_TYPE	1013
+#define IDC_COMBO_CPU		1014
+#define IDC_COMBO_FPU		1015
+#define IDC_COMBO_WS		1016
 #ifdef USE_DYNAREC
-#define IDC_CHECK_DYNAREC	1016
+#define IDC_CHECK_DYNAREC	1017
 #endif
-#define IDC_MEMTEXT		1017
-#define IDC_MEMSPIN		1018
+#define IDC_MEMTEXT		1018
+#define IDC_MEMSPIN		1019
 #define IDC_TEXT_MB		IDT_1705
 
 #define IDC_VIDEO		1030	/* video config */
@@ -178,6 +181,8 @@
 #define IDC_CHECK_POSTCARD	1130
 #define IDC_COMBO_ISARTC	1131
 #define IDC_CONFIGURE_ISARTC	1132
+#define IDC_COMBO_FDC		1133
+#define IDC_CONFIGURE_FDC	1134
 #define IDC_GROUP_ISAMEM	1140
 #define IDC_COMBO_ISAMEM_1	1141
 #define IDC_COMBO_ISAMEM_2	1142

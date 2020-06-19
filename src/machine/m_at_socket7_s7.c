@@ -34,11 +34,8 @@
 #include <86box/hdc_ide.h>
 #include <86box/keyboard.h>
 #include <86box/intel_flash.h>
-#include <86box/intel_sio.h>
-#include <86box/piix.h>
 #include <86box/sio.h>
 #include <86box/sst_flash.h>
-#include <86box/via_vt82c586b.h>
 #include <86box/hwm.h>
 #include <86box/video.h>
 #include <86box/spd.h>
@@ -144,6 +141,23 @@ machine_at_thor_init(const machine_t *model)
 
 
 int
+machine_at_gw2katx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined(L"roms/machines/gw2katx/1003cn0t.bio",
+				    L"roms/machines/gw2katx/1003cn0t.bi1", 0x20000, 128);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_thor_common_init(model, 0);
+
+    return ret;
+}
+
+
+int
 machine_at_mrthor_init(const machine_t *model)
 {
     int ret;
@@ -180,7 +194,7 @@ machine_at_pb640_init(const machine_t *model)
     pci_register_slot(0x13, PCI_CARD_NORMAL, 2, 1, 3, 4);
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 2, 1, 4);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    device_add(&i430fx_pb640_device);
+    device_add(&i430fx_rev02_device);
     device_add(&piix_rev02_device);
 
     if (gfxcard == VID_INTERNAL)
@@ -227,7 +241,7 @@ machine_at_acerm3a_init(const machine_t *model)
     device_add(&fdc37c932fr_device);
     device_add(&acerm3a_device);
 
-    device_add(&intel_flash_bxb_device);
+    device_add(&sst_flash_29ee010_device);
 
     return ret;
 }
@@ -260,7 +274,7 @@ machine_at_acerv35n_init(const machine_t *model)
     device_add(&fdc37c932fr_device);
     device_add(&acerm3a_device);
 
-    device_add(&intel_flash_bxb_device);
+    device_add(&sst_flash_29ee010_device);
 
     return ret;
 }
@@ -572,10 +586,10 @@ machine_at_brio80xx_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x14, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x11, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x14, PCI_CARD_ONBOARD, 4, 0, 0, 0);
     pci_register_slot(0x13, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
@@ -816,6 +830,7 @@ machine_at_ym430tx_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_mb540n_init(const machine_t *model)
 {
@@ -845,6 +860,7 @@ machine_at_mb540n_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_p5mms98_init(const machine_t *model)
@@ -911,6 +927,7 @@ machine_at_p5mms98_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_ficva502_init(const machine_t *model)
 {
@@ -939,6 +956,7 @@ machine_at_ficva502_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_ficpa2012_init(const machine_t *model)

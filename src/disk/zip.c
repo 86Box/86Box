@@ -27,7 +27,6 @@
 #include <86box/config.h>
 #include <86box/timer.h>
 #include <86box/device.h>
-#include <86box/piix.h>
 #include <86box/scsi_device.h>
 #include <86box/nvr.h>
 #include <86box/plat.h>
@@ -579,7 +578,7 @@ static void
 zip_set_callback(zip_t *dev)
 {
     if (dev->drv->bus_type != ZIP_BUS_SCSI)
-	ide_set_callback(dev->drv->ide_channel >> 1, dev->callback);
+	ide_set_callback(ide_drives[dev->drv->ide_channel], dev->callback);
 }
 
 
@@ -2419,6 +2418,9 @@ zip_close(void)
     int c;
 
     for (c = 0; c < ZIP_NUM; c++) {
+	if (zip_drives[c].bus_type == ZIP_BUS_SCSI)
+		memset(&scsi_devices[zip_drives[c].scsi_device_id], 0x00, sizeof(scsi_device_t));
+
 	dev = (zip_t *) zip_drives[c].priv;
 
 	if (dev) {

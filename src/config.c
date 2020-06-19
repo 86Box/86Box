@@ -47,6 +47,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/gameport.h>
 #include <86box/machine.h>
 #include <86box/mouse.h>
@@ -450,7 +451,7 @@ load_general(void)
 
     video_fullscreen_scale = config_get_int(cat, "video_fullscreen_scale", 0);
 
-    video_fullscreen_first = config_get_int(cat, "video_fullscreen_first", 0);
+    video_fullscreen_first = config_get_int(cat, "video_fullscreen_first", 1);
 
     force_43 = !!config_get_int(cat, "force_43", 0);
     scale = config_get_int(cat, "scale", 1);
@@ -528,6 +529,9 @@ load_machine(void)
     cpu = config_get_int(cat, "cpu", 0);
     cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
 
+    p = (char *)config_get_string(cat, "fpu_type", "none");
+    fpu_type = fpu_get_type(machine, cpu_manufacturer, cpu, p);
+
     mem_size = config_get_int(cat, "mem_size", 4096);
 	
 #if 0
@@ -536,12 +540,10 @@ load_machine(void)
 	mem_size = (((machines[machine].flags & MACHINE_AT) && (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram);
 #endif    
 	
-	if (mem_size > 1048576)
-	mem_size = 1048576;
+    if (mem_size > 2097152)
+	mem_size = 2097152;
 
     cpu_use_dynarec = !!config_get_int(cat, "cpu_use_dynarec", 0);
-
-    enable_external_fpu = !!config_get_int(cat, "cpu_enable_fpu", 0);
 
     p = config_get_string(cat, "time_sync", NULL);
     if (p != NULL) {        
@@ -711,9 +713,9 @@ load_network(void)
     if (p != NULL) {
 	if ((network_dev_to_id(p) == -1) || (network_ndev == 1)) {
 		if ((network_ndev == 1) && strcmp(network_host, "none")) {
-			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2094);
+			ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2094, (wchar_t *) IDS_2129);
 		} else if (network_dev_to_id(p) == -1) {
-			ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2095);
+			ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2095, (wchar_t *) IDS_2129);
 		}
 
 		strcpy(network_host, "none");
@@ -781,6 +783,12 @@ load_other_peripherals(void)
 	scsi_card_current = scsi_card_get_from_internal_name(p);
       else
 	scsi_card_current = 0;
+
+    p = config_get_string(cat, "fdc", NULL);
+    if (p != NULL)
+	fdc_type = fdc_card_get_from_internal_name(p);
+      else
+	fdc_type = FDC_INTERNAL;
 
     p = config_get_string(cat, "hdc", NULL);
     if (p == NULL) {
@@ -855,7 +863,7 @@ load_hard_disks(void)
 		case HDD_BUS_MFM:
 			max_spt = 26;	/* 26 for RLL */
 			max_hpc = 15;
-			max_tracks = 1023;
+			max_tracks = 2047;
 			break;
 
 		case HDD_BUS_XTA:
@@ -1336,6 +1344,7 @@ config_load(void)
 #endif
 	scale = 1;
 	machine = machine_get_machine_from_internal_name("ibmpc");
+	fpu_type = fpu_get_type(machine, cpu_manufacturer, cpu, "none");
 	gfxcard = video_get_video_from_internal_name("cga");
 	vid_api = plat_vidapi("default");
 	time_sync = TIME_SYNC_ENABLED;
@@ -1509,17 +1518,17 @@ save_machine(void)
       else
 	config_set_int(cat, "cpu_waitstates", cpu_waitstates);
 
+    if (fpu_type == 0)
+	config_delete_var(cat, "fpu_type");
+      else
+	config_set_string(cat, "fpu_type", fpu_get_internal_name(machine, cpu_manufacturer, cpu, fpu_type));
+
     if (mem_size == 4096)
 	config_delete_var(cat, "mem_size");
       else
 	config_set_int(cat, "mem_size", mem_size);
 
     config_set_int(cat, "cpu_use_dynarec", cpu_use_dynarec);
-
-    if (enable_external_fpu == 0)
-	config_delete_var(cat, "cpu_enable_fpu");
-      else
-	config_set_int(cat, "cpu_enable_fpu", enable_external_fpu);
 
     if (time_sync & TIME_SYNC_ENABLED)
 	if (time_sync & TIME_SYNC_UTC)
@@ -1741,6 +1750,12 @@ save_other_peripherals(void)
       else
 	config_set_string(cat, "scsicard",
 			  scsi_card_get_internal_name(scsi_card_current));
+
+    if (fdc_type == FDC_INTERNAL)
+	config_delete_var(cat, "fdc");
+      else
+	config_set_string(cat, "fdc",
+			  fdc_card_get_internal_name(fdc_type));
 
     config_set_string(cat, "hdc",
 	hdc_get_internal_name(hdc_current));

@@ -27,7 +27,6 @@
 #include <86box/config.h>
 #include <86box/timer.h>
 #include <86box/device.h>
-#include <86box/piix.h>
 #include <86box/scsi_device.h>
 #include <86box/nvr.h>
 #include <86box/hdc.h>
@@ -339,7 +338,7 @@ static void
 scsi_cdrom_set_callback(scsi_cdrom_t *dev)
 {
     if (dev && dev->drv && (dev->drv->bus_type != CDROM_BUS_SCSI))
-	ide_set_callback(dev->drv->ide_channel >> 1, dev->callback);
+	ide_set_callback(ide_drives[dev->drv->ide_channel], dev->callback);
 }
 
 

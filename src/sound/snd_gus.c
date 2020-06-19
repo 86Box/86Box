@@ -14,7 +14,7 @@
 #include <86box/device.h>
 #include <86box/sound.h>
 #include <86box/midi.h>
-#include <86Box/snd_ad1848.h>
+#include <86box/snd_ad1848.h>
 #include <math.h>
 
 enum

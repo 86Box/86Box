@@ -307,7 +307,7 @@ inb(uint16_t port)
     if (!found)
 	sub_cycles(io_delay);
 
-    io_log("(%i, %i, %04i) in b(%04X) = %02X\n", in_smm, found, qfound, port, ret);
+    io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
     return(ret);
 }
@@ -332,11 +332,13 @@ outb(uint16_t port, uint8_t val)
 	
     if (!found) {
 	sub_cycles(io_delay);
-	if (cpu_use_dynarec && (port == 0xeb))
+#ifdef USE_DYNAREC
+	if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
 		update_tsc();
+#endif
     }
 
-    io_log("(%i, %i, %04i) outb(%04X, %02X)\n", in_smm, found, qfound, port, val);
+    io_log("[%04X:%08X] (%i, %i, %04i) outb(%04X, %02X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
 
     return;
 }
@@ -387,7 +389,7 @@ inw(uint16_t port)
     if (!found)
 	sub_cycles(io_delay);
 
-    io_log("(%i, %i, %04i) in w(%04X) = %04X\n", in_smm, found, qfound, port, ret);
+    io_log("[%04X:%08X] (%i, %i, %04i) in w(%04X) = %04X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
     return ret;
 }
@@ -425,11 +427,13 @@ outw(uint16_t port, uint16_t val)
 
     if (!found) {
 	sub_cycles(io_delay);
-	if (cpu_use_dynarec && (port == 0xeb))
+#ifdef USE_DYNAREC
+	if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
 		update_tsc();
+#endif
     }
 
-    io_log("(%i, %i, %04i) outw(%04X, %04X)\n", in_smm, found, qfound, port, val);
+    io_log("[%04X:%08X] (%i, %i, %04i) outw(%04X, %04X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
 
     return;
 }
@@ -498,8 +502,7 @@ inl(uint16_t port)
     if (!found)
 	sub_cycles(io_delay);
 
-    if (in_smm)
-	io_log("(%i, %i, %04i) in l(%04X) = %08X\n", in_smm, found, qfound, port, ret);
+    io_log("[%04X:%08X] (%i, %i, %04i) in l(%04X) = %08X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
     return ret;
 }
@@ -552,11 +555,13 @@ outl(uint16_t port, uint32_t val)
 
     if (!found) {
 	sub_cycles(io_delay);
-	if (cpu_use_dynarec && (port == 0xeb))
+#ifdef USE_DYNAREC
+	if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
 		update_tsc();
+#endif
     }
 
-    io_log("(%i, %i, %04i) outl(%04X, %08X)\n", in_smm, found, qfound, port, val);
+    io_log("[%04X:%08X] (%i, %i, %04i) outl(%04X, %08X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
 
     return;
 }

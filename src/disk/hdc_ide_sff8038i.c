@@ -36,6 +36,7 @@
 #include <86box/mem.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
+#include <86box/timer.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>

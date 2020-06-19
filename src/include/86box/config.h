@@ -117,7 +117,8 @@ typedef struct {
 			parallel_enabled[3];		/* LPT1, LPT2, LPT3 enabled */
 
     /* Other peripherals category */
-    int			hdc,				/* Hard disk controller */
+    int			fdc_type,			/* Floppy disk controller type */
+			hdc,				/* Hard disk controller */
 			scsi_card,			/* SCSI controller */
 			ide_ter_enabled,		/* Tertiary IDE controller enabled */
 			ide_qua_enabled,		/* Quaternary IDE controller enabled */

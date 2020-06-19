@@ -59,6 +59,7 @@
 #include <86box/gameport.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/hdd.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
@@ -135,7 +136,7 @@ uint32_t mem_size = 0;				/* (C) memory size */
 int	cpu_manufacturer = 0,			/* (C) cpu manufacturer */
 	cpu_use_dynarec = 0,			/* (C) cpu uses/needs Dyna */
 	cpu = 3,				/* (C) cpu type */
-	enable_external_fpu = 0;		/* (C) enable external FPU */
+	fpu_type = 0;				/* (C) fpu type */
 int	time_sync = 0;				/* (C) enable time sync */
 #ifdef USE_DISCORD
 int	enable_discord = 0;			/* (C) enable Discord integration */
@@ -282,7 +283,7 @@ fatal(const char *fmt, ...)
        to avoid things like threads getting stuck. */
     do_stop();
 
-    ui_msgbox(MBX_ERROR|MBX_FATAL|MBX_ANSI, temp);
+    ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
 
     fflush(stdlog);
 
@@ -552,6 +553,7 @@ int
 pc_init_modules(void)
 {
     int c, m;
+    wchar_t temp[512];
 
     pc_log("Scanning for ROM images:\n");
     c = m = 0;
@@ -567,11 +569,12 @@ pc_init_modules(void)
 
     /* Load the ROMs for the selected machine. */
     if (! machine_available(machine)) {
+    	swprintf(temp, sizeof(temp), plat_get_string(IDS_2063), machine_getname());
 	c = 0;
 	machine = -1;
 	while (machine_get_internal_name_ex(c) != NULL) {
 		if (machine_available(c)) {
-			ui_msgbox(MBX_INFO, (wchar_t *)IDS_2063);
+			ui_msgbox_header(MBX_INFO, (wchar_t *) IDS_2128, temp);
 			machine = c;
 			config_save();
 			break;
@@ -587,11 +590,12 @@ pc_init_modules(void)
 
     /* Make sure we have a usable video card. */
     if (! video_card_available(gfxcard)) {
+    	swprintf(temp, sizeof(temp), plat_get_string(IDS_2064), video_card_getname(gfxcard));
 	c = 0;
 	while (video_get_internal_name(c) != NULL) {
 		gfxcard = -1;
 		if (video_card_available(c)) {
-			ui_msgbox(MBX_INFO, (wchar_t *)IDS_2064);
+			ui_msgbox_header(MBX_INFO, (wchar_t *) IDS_2128, temp);
 			gfxcard = c;
 			config_save();
 			break;
@@ -731,6 +735,8 @@ pc_reset_hard_init(void)
 
     sound_reset();
 
+    scsi_device_init();
+
     /* Initialize the actual machine and its basic modules. */
     machine_init();
 
@@ -745,6 +751,8 @@ pc_reset_hard_init(void)
 	
     /* Reset any ISA RTC cards. */
     isartc_reset();	
+
+    fdc_card_init();	
 	
     fdd_reset();
 
@@ -838,7 +846,7 @@ pc_close(thread_t *ptr)
 	plat_delay_ms(200);
     }
 
-#ifdef USE_NEW_DYNAREC
+#if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
     codegen_close();
 #endif
 

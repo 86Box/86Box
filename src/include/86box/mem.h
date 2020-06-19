@@ -27,31 +27,45 @@
 #define MEM_MAPPING_ROM		4	/* Executing from ROM may involve
 					 * additional wait states. */
 #define MEM_MAPPING_ROMCS	8	/* respond to ROMCS* */
+#define MEM_MAPPING_SMRAM	16	/* on internal bus (RAM) but SMRAM */
 
 #define MEM_MAP_TO_SHADOW_RAM_MASK 1
 #define MEM_MAP_TO_RAM_ADDR_MASK   2
 
-#define MEM_READ_ANY		0x00
-#define MEM_READ_INTERNAL	0x10
-#define MEM_READ_EXTERNAL	0x20
-#define MEM_READ_DISABLED	0x30
-#define MEM_READ_NORMAL		0x40	/* SMM only - means use the non-SMM state */
-#define MEM_READ_EXTERNAL_EX	0x50	/* External but with internal exec - needed by the VIA Apollo Pro */
-#define MEM_READ_ROMCS		0x60	/* EXTERNAL type + ROMC flag */
-#define MEM_READ_EXTANY		0x70	/* Any EXTERNAL type */
-#define MEM_READ_MASK		0xf0
+/* _mem_state layout:
+	Bits  0 - 7:	Normal write
+	Bits  8 -15:	Normal read
+	Bits 16 -23:	SMM write
+	Bits 24 -31:	SMM read
+*/
 
-#define MEM_WRITE_ANY		0x00
-#define MEM_WRITE_INTERNAL	0x01
-#define MEM_WRITE_EXTERNAL	0x02
-#define MEM_WRITE_DISABLED	0x03
-#define MEM_WRITE_NORMAL	0x04	/* SMM only - means use the non-SMM state */
-#define MEM_WRITE_EXTERNAL_EX	0x05
-#define MEM_WRITE_ROMCS		0x06	/* EXTERNAL type + ROMC flag */
-#define MEM_WRITE_EXTANY	0x07	/* Any EXTERNAL type */
-#define MEM_WRITE_MASK		0x0f
+#define MEM_READ_ANY		0x0000
+#define MEM_READ_INTERNAL	0x0100
+#define MEM_READ_EXTERNAL	0x0200
+#define MEM_READ_DISABLED	0x0300
+#define MEM_READ_NORMAL		0x0400	/* SMM only - means use the non-SMM state */
+#define MEM_READ_EXTERNAL_EX	0x0500	/* External but with internal exec - needed by the VIA Apollo Pro */
+#define MEM_READ_ROMCS		0x0600	/* EXTERNAL type + ROMC flag */
+#define MEM_READ_EXTANY		0x0700	/* Any EXTERNAL type */
+#define MEM_READ_SMRAM		0x1000
+#define MEM_READ_SMRAM_EX	0x2000
+#define MEM_READ_DISABLED_EX	0x4000
+#define MEM_READ_MASK		0xff00
 
-#define MEM_STATE_SMM_SHIFT	8
+#define MEM_WRITE_ANY		0x0000
+#define MEM_WRITE_INTERNAL	0x0001
+#define MEM_WRITE_EXTERNAL	0x0002
+#define MEM_WRITE_DISABLED	0x0003
+#define MEM_WRITE_NORMAL	0x0004	/* SMM only - means use the non-SMM state */
+#define MEM_WRITE_EXTERNAL_EX	0x0005
+#define MEM_WRITE_ROMCS		0x0006	/* EXTERNAL type + ROMC flag */
+#define MEM_WRITE_EXTANY	0x0007	/* Any EXTERNAL type */
+#define MEM_WRITE_SMRAM		0x0010
+#define MEM_WRITE_SMRAM_EX	0x0020
+#define MEM_WRITE_DISABLED_EX	0x0040
+#define MEM_WRITE_MASK		0x00ff
+
+#define MEM_STATE_SMM_SHIFT	16
 
 /* #define's for memory granularity, currently 16k, but may
    change in the future - 4k works, less does not because of
@@ -79,6 +93,13 @@
 #define MEM_MAPPINGS_NO		((0x100000 >> MEM_GRANULARITY_BITS) << 12)
 #define MEM_GRANULARITY_PAGE	(MEM_GRANULARITY_MASK & ~0xfff)
 #endif
+
+#define mem_set_mem_state_common(smm, base, size, state) mem_set_state(!!smm, 0, base, size, state)
+#define mem_set_mem_state(base, size, state) mem_set_state(0, 0, base, size, state)
+#define mem_set_mem_state_smm(base, size, state) mem_set_state(1, 0, base, size, state)
+#define mem_set_mem_state_both(base, size, state) mem_set_state(2, 0, base, size, state)
+#define mem_set_mem_state_smram(smm, base, size, is_smram) mem_set_state(!!smm, 1, base, size, is_smram)
+#define mem_set_mem_state_smram_ex(smm, base, size, is_smram) mem_set_state(!!smm, 2, base, size, is_smram)
 
 
 typedef struct _mem_mapping_ {
@@ -162,7 +183,15 @@ typedef struct _page_ {
 #endif
 
 
-extern uint8_t		*ram;
+typedef struct
+{
+    uint32_t	size,
+		host_base,
+		ram_base;
+} smram_t;
+
+
+extern uint8_t		*ram, *ram2;
 extern uint32_t		rammask;
 
 extern uint8_t		*rom;
@@ -185,6 +214,8 @@ extern mem_mapping_t	base_mapping,
 #endif
 			ram_remapped_mapping,
 			ram_high_mapping,
+			ram_2gb_mapping,
+			ram_smram_mapping[2],
 			bios_mapping,
 			bios_high_mapping;
 
@@ -193,7 +224,8 @@ extern uint32_t		mem_logical_addr;
 extern page_t		*pages,
 			**page_lookup;
 
-extern uint32_t		get_phys_virt,get_phys_phys;
+extern uint32_t		get_phys_virt, get_phys_phys;
+extern smram_t		smram[2];
 
 extern int		shadowbios,
 			shadowbios_write;
@@ -276,10 +308,7 @@ extern void	mem_mapping_disable(mem_mapping_t *);
 extern void	mem_mapping_enable(mem_mapping_t *);
 extern void	mem_mapping_recalc(uint64_t base, uint64_t size);
 
-extern void	mem_set_mem_state_common(int smm, uint32_t base, uint32_t size, int state);
-
-extern void	mem_set_mem_state(uint32_t base, uint32_t size, int state);
-extern void	mem_set_mem_state_smm(uint32_t base, uint32_t size, int state);
+extern void	mem_set_state(int smm, int mode, uint32_t base, uint32_t size, uint32_t state);
 
 extern uint8_t	mem_readb_phys(uint32_t addr);
 extern uint16_t	mem_readw_phys(uint32_t addr);
@@ -296,6 +325,13 @@ extern uint32_t	mem_read_raml(uint32_t addr, void *priv);
 extern void	mem_write_ram(uint32_t addr, uint8_t val, void *priv);
 extern void	mem_write_ramw(uint32_t addr, uint16_t val, void *priv);
 extern void	mem_write_raml(uint32_t addr, uint32_t val, void *priv);
+
+extern uint8_t	mem_read_smram(uint32_t addr, void *priv);
+extern uint16_t	mem_read_smramw(uint32_t addr, void *priv);
+extern uint32_t	mem_read_smraml(uint32_t addr, void *priv);
+extern void	mem_write_smram(uint32_t addr, uint8_t val, void *priv);
+extern void	mem_write_smramw(uint32_t addr, uint16_t val, void *priv);
+extern void	mem_write_smraml(uint32_t addr, uint32_t val, void *priv);
 
 extern uint8_t	mem_read_bios(uint32_t addr, void *priv);
 extern uint16_t	mem_read_biosw(uint32_t addr, void *priv);

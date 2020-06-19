@@ -52,6 +52,8 @@
 #include <86box/hdc_ide.h>
 #include <86box/zip.h>
 #include <86box/fdd.h>
+#include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/network.h>
 #include <86box/sound.h>
 #include <86box/midi.h>
@@ -70,7 +72,7 @@
 static int first_cat = 0;
 
 /* Machine category */
-static int temp_machine, temp_cpu_m, temp_cpu, temp_wait_states, temp_fpu, temp_sync;
+static int temp_machine_type, temp_machine, temp_cpu_m, temp_cpu, temp_wait_states, temp_fpu, temp_sync;
 static uint32_t temp_mem_size;
 #ifdef USE_DYNAREC
 static int temp_dynarec;
@@ -95,7 +97,7 @@ static int temp_lpt_devices[3];
 static int temp_serial[2], temp_lpt[3];
 
 /* Other peripherals category */
-static int temp_hdc, temp_scsi_card, temp_ide_ter, temp_ide_qua;
+static int temp_fdc_card, temp_hdc, temp_scsi_card, temp_ide_ter, temp_ide_qua;
 static int temp_bugger;
 static int temp_postcard;
 static int temp_isartc;
@@ -120,8 +122,10 @@ static HWND hwndParentDialog, hwndChildDialog;
 static uint32_t displayed_category = 0;
 
 extern int is486;
+static int listtomachinetype[256], machinetypetolist[256];
 static int listtomachine[256], machinetolist[256];
 static int settings_device_to_list[2][20], settings_list_to_device[2][20];
+static int settings_fdc_to_list[2][20], settings_list_to_fdc[2][20];
 static int settings_midi_to_list[20], settings_list_to_midi[20];
 static int settings_midi_in_to_list[20], settings_list_to_midi_in[20];
 
@@ -174,7 +178,7 @@ image_list_init(HWND hwndList, const uint8_t *icon_ids)
 
 /* Show a MessageBox dialog.  This is nasty, I know.  --FvK */
 static int
-settings_msgbox(int type, void *arg)
+settings_msgbox_header(int flags, void *header, void *message)
 {
     HWND h;
     int i;
@@ -182,7 +186,24 @@ settings_msgbox(int type, void *arg)
     h = hwndMain;
     hwndMain = hwndParentDialog;
 
-    i = ui_msgbox(type, arg);
+    i = ui_msgbox_header(flags, header, message);
+
+    hwndMain = h;
+
+    return(i);
+}
+
+
+static int
+settings_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, void *btn3)
+{
+    HWND h;
+    int i;
+
+    h = hwndMain;
+    hwndMain = hwndParentDialog;
+
+    i = ui_msgbox_ex(flags, header, message, btn1, btn2, btn3);
 
     hwndMain = h;
 
@@ -197,6 +218,7 @@ win_settings_init(void)
     int i = 0;
 
     /* Machine category */
+    temp_machine_type = machines[machine].type;
     temp_machine = machine;
     temp_cpu_m = cpu_manufacturer;
     temp_wait_states = cpu_waitstates;
@@ -205,7 +227,7 @@ win_settings_init(void)
 #ifdef USE_DYNAREC
     temp_dynarec = cpu_use_dynarec;
 #endif
-    temp_fpu = enable_external_fpu;
+    temp_fpu = fpu_type;
     temp_sync = time_sync;
 
     /* Video category */
@@ -245,6 +267,7 @@ win_settings_init(void)
 
     /* Other peripherals category */
     temp_scsi_card = scsi_card_current;
+    temp_fdc_card = fdc_type;
     temp_hdc = hdc_current;
     temp_ide_ter = ide_ter_enabled;
     temp_ide_qua = ide_qua_enabled;
@@ -318,7 +341,7 @@ win_settings_changed(void)
 #ifdef USE_DYNAREC
     i = i || (temp_dynarec != cpu_use_dynarec);
 #endif
-    i = i || (temp_fpu != enable_external_fpu);
+    i = i || (temp_fpu != fpu_type);
     i = i || (temp_sync != time_sync);
 
     /* Video category */
@@ -354,6 +377,7 @@ win_settings_changed(void)
 
     /* Peripherals category */
     i = i || (scsi_card_current != temp_scsi_card);
+    i = i || (fdc_type != temp_fdc_card);
     i = i || (hdc_current != temp_hdc);
     i = i || (temp_ide_ter != ide_ter_enabled);
     i = i || (temp_ide_qua != ide_qua_enabled);
@@ -389,15 +413,21 @@ static int
 settings_msgbox_reset(void)
 {
     int changed, i = 0;
+    HWND h;
 
     changed = win_settings_changed();
 
     if (changed) {
-	i = settings_msgbox(MBX_QUESTION, (wchar_t *)IDS_2051);
+	h = hwndMain;
+	hwndMain = hwndParentDialog;
+
+	i = ui_msgbox_ex(MBX_QUESTION | MBX_LINKS, (wchar_t *) IDS_2051, NULL, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, (wchar_t *) IDS_2123);
+
+	hwndMain = h;
 
 	if (i == 1) return(1);	/* no */
 
-	if (i < 0) return(0);	/* cancel */
+	if (i == -1) return(0);	/* cancel */
 
 	return(2);		/* yes */
     } else
@@ -422,7 +452,7 @@ win_settings_save(void)
 #ifdef USE_DYNAREC
     cpu_use_dynarec = temp_dynarec;
 #endif
-    enable_external_fpu = temp_fpu;
+    fpu_type = temp_fpu;
     time_sync = temp_sync;
 
     /* Video category */
@@ -460,6 +490,7 @@ win_settings_save(void)
     /* Peripherals category */
     scsi_card_current = temp_scsi_card;
     hdc_current = temp_hdc;
+    fdc_type = temp_fdc_card;
     ide_ter_enabled = temp_ide_ter;
     ide_qua_enabled = temp_ide_qua;
     bugger_enabled = temp_bugger;
@@ -508,6 +539,40 @@ win_settings_save(void)
 
 
 static void
+win_settings_machine_recalc_fpu(HWND hdlg)
+{
+    HWND h;
+    int c, type;
+    LPTSTR lptsTemp;
+    const char *stransi;
+
+    lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
+
+    h = GetDlgItem(hdlg, IDC_COMBO_FPU);
+    SendMessage(h, CB_RESETCONTENT, 0, 0);
+    c = 0;
+    while (1) {
+	stransi = (char *) fpu_get_name_from_index(temp_machine, temp_cpu_m, temp_cpu, c);
+	type = fpu_get_type_from_index(temp_machine, temp_cpu_m, temp_cpu, c);
+	if (!stransi)
+		break;
+
+	mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
+	SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
+	if (!c || (type == temp_fpu))
+		SendMessage(h, CB_SETCURSEL, c, 0);
+
+	c++;
+    }
+
+    if (c > 1)
+	EnableWindow(h, TRUE);
+    else
+	EnableWindow(h, FALSE);
+}
+
+
+static void
 win_settings_machine_recalc_cpu(HWND hdlg)
 {
     HWND h;
@@ -539,15 +604,7 @@ win_settings_machine_recalc_cpu(HWND hdlg)
 	EnableWindow(h, TRUE);
 #endif
 
-    h = GetDlgItem(hdlg, IDC_CHECK_FPU);
-    cpu_type = machines[temp_machine].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
-    if (cpu_type < CPU_i486DX)
-	EnableWindow(h, TRUE);
-    else {
-	temp_fpu = 1;
-	EnableWindow(h, FALSE);
-    }
-    SendMessage(h, BM_SETCHECK, temp_fpu, 0);
+    win_settings_machine_recalc_fpu(hdlg);
 }
 
 
@@ -644,7 +701,8 @@ static BOOL CALLBACK
 win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HWND h, h2;
-    int c, d;
+    int c, d, e, f;
+    int old_machine_type;
     LPTSTR lptsTemp;
     char *stransi;
 
@@ -652,10 +710,35 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_INITDIALOG:
 		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
+		h = GetDlgItem(hdlg, IDC_COMBO_MACHINE_TYPE);
+		f = 0;
+		memset(machinetypetolist, 0x00, sizeof(machinetypetolist));
+		memset(listtomachinetype, 0x00, sizeof(listtomachinetype));
+		for (c = 1; c < MACHINE_TYPE_MAX; c++) {
+			d = e = 0;
+			while (machine_get_internal_name_ex(d) != NULL) {
+				if (machine_available(d) && (machines[d].type == c))
+					e++;
+				d++;
+			}
+
+			if (e > 0) {
+				stransi = (char *)machine_types[c].name;
+				mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
+				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+				machinetypetolist[c] = f;
+				listtomachinetype[f] = c;
+				f++;
+			}
+		}
+		SendMessage(h, CB_SETCURSEL, machinetypetolist[temp_machine_type], 0);
+
 		h = GetDlgItem(hdlg, IDC_COMBO_MACHINE);
 		c = d = 0;
+		memset(machinetolist, 0x00, sizeof(machinetolist));
+		memset(listtomachine, 0x00, sizeof(listtomachine));
 		while (machine_get_internal_name_ex(c) != NULL) {
-			if (machine_available(c)) {
+			if (machine_available(c) && (machines[c].type == temp_machine_type)) {
 				stransi = (char *)machines[c].name;
 				mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 				SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
@@ -713,6 +796,40 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_COMMAND:
                	switch (LOWORD(wParam)) {
+               	        case IDC_COMBO_MACHINE_TYPE:
+        	                if (HIWORD(wParam) == CBN_SELCHANGE) {
+					h = GetDlgItem(hdlg, IDC_COMBO_MACHINE_TYPE);
+					old_machine_type = temp_machine_type;
+                	                temp_machine_type = listtomachinetype[SendMessage(h,CB_GETCURSEL,0,0)];
+
+					lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
+
+					h = GetDlgItem(hdlg, IDC_COMBO_MACHINE);
+					SendMessage(h, CB_RESETCONTENT, 0, 0);
+					c = d = 0;
+					memset(machinetolist, 0x00, sizeof(machinetolist));
+					memset(listtomachine, 0x00, sizeof(listtomachine));
+					while (machine_get_internal_name_ex(c) != NULL) {
+						if (machine_available(c) && (machines[c].type == temp_machine_type)) {
+							stransi = (char *)machines[c].name;
+							mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
+							SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+							machinetolist[c] = d;
+							listtomachine[d] = c;
+							d++;
+						}
+						c++;
+					}
+					if (old_machine_type == temp_machine_type)
+						SendMessage(h, CB_SETCURSEL, machinetolist[temp_machine], 0);
+					else {
+						SendMessage(h, CB_SETCURSEL, 0, 0);
+						temp_machine = listtomachine[0];
+
+						win_settings_machine_recalc_machine(hdlg);
+					}
+				}
+				break;
                	        case IDC_COMBO_MACHINE:
         	                if (HIWORD(wParam) == CBN_SELCHANGE) {
        		                        h = GetDlgItem(hdlg, IDC_COMBO_MACHINE);
@@ -736,6 +853,12 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
                 	                temp_cpu = SendMessage(h, CB_GETCURSEL, 0, 0);
 
 					win_settings_machine_recalc_cpu(hdlg);
+				}
+				break;
+			case IDC_COMBO_FPU:
+        	                if (HIWORD(wParam) == CBN_SELCHANGE) {
+       		                        h = GetDlgItem(hdlg, IDC_COMBO_FPU);
+					temp_fpu = fpu_get_type_from_index(temp_machine, temp_cpu_m, temp_cpu, SendMessage(h, CB_GETCURSEL, 0, 0));
 				}
 				break;
 			case IDC_CONFIGURE_MACHINE:
@@ -768,9 +891,6 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		h=GetDlgItem(hdlg, IDC_RADIO_TS_UTC);
 		if(SendMessage(h, BM_GETCHECK, 0, 0))
 			temp_sync = TIME_SYNC_ENABLED | TIME_SYNC_UTC;
-
-       	        h=GetDlgItem(hdlg, IDC_CHECK_FPU);
-		temp_fpu = SendMessage(h, BM_GETCHECK, 0, 0);
 
 		h = GetDlgItem(hdlg, IDC_COMBO_WS);
 		temp_wait_states = SendMessage(h, CB_GETCURSEL, 0, 0);
@@ -1493,7 +1613,6 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
     return FALSE;
 }
 
-
 static void
 recalc_hdc_list(HWND hdlg)
 {
@@ -1550,6 +1669,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
     char *stransi;
     const device_t *scsi_dev;
     const device_t *dev;
+    const device_t *fdc_dev;
     char *s;
 
     switch (message) {
@@ -1565,6 +1685,43 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 			EnableWindow(h, TRUE);
 		else
 			EnableWindow(h, FALSE);
+
+
+		/*FD controller config*/
+		h = GetDlgItem(hdlg, IDC_COMBO_FDC);
+		c = d = 0;
+		while (1) {
+			char *s = fdc_card_getname(c);
+
+			if (!s[0])
+				break;
+
+			settings_fdc_to_list[0][c] = d;			
+
+			if (fdc_card_available(c)) {
+				fdc_dev = fdc_card_getdevice(c);
+
+				if (device_is_valid(fdc_dev, machines[temp_machine].flags)) {
+					if (c == 0)
+						SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_2118));
+					else {
+						mbstowcs(lptsTemp, s, strlen(s) + 1);
+						SendMessage(h, CB_ADDSTRING, 0, (LPARAM) lptsTemp);
+					}
+					settings_list_to_fdc[0][d] = c;
+					d++;
+				}
+			}
+
+			c++;
+		}
+		SendMessage(h, CB_SETCURSEL, settings_fdc_to_list[0][temp_fdc_card], 0);
+
+		EnableWindow(h, d ? TRUE : FALSE);
+
+		h = GetDlgItem(hdlg, IDC_CONFIGURE_FDC);
+		EnableWindow(h, fdc_card_has_config(temp_fdc_card) ? TRUE : FALSE);
+
 
 		/*SCSI config*/
 		h = GetDlgItem(hdlg, IDC_COMBO_SCSI);
@@ -1685,6 +1842,24 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 	case WM_COMMAND:
                	switch (LOWORD(wParam)) {
+			case IDC_CONFIGURE_FDC:
+				h = GetDlgItem(hdlg, IDC_COMBO_FDC);
+				temp_fdc_card = settings_list_to_fdc[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)fdc_card_getdevice(temp_fdc_card));
+				break;
+
+			case IDC_COMBO_FDC:
+				h = GetDlgItem(hdlg, IDC_COMBO_FDC);
+				temp_fdc_card = settings_list_to_fdc[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
+
+				h = GetDlgItem(hdlg, IDC_CONFIGURE_FDC);
+				if (fdc_card_has_config(temp_fdc_card))
+					EnableWindow(h, TRUE);
+				else
+					EnableWindow(h, FALSE);
+				break;		
+			
 			case IDC_CONFIGURE_HDC:
 				lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 				stransi = (char *) malloc(512);
@@ -1811,6 +1986,9 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 		SendMessage(h, CB_GETLBTEXT, SendMessage(h, CB_GETCURSEL, 0, 0), (LPARAM) lptsTemp);
 		wcstombs(stransi, lptsTemp, 512);
 		temp_hdc = hdc_get_id(stransi);
+
+		h = GetDlgItem(hdlg, IDC_COMBO_FDC);
+		temp_fdc_card = settings_list_to_fdc[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
 
 		h = GetDlgItem(hdlg, IDC_COMBO_SCSI);
 		temp_scsi_card = settings_list_to_device[0][SendMessage(h, CB_GETCURSEL, 0, 0)];
@@ -2707,7 +2885,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 				/* Make sure no file name is allowed with removable SCSI hard disks. */
 				if (wcslen(hd_file_name) == 0) {
 					hdd_ptr->bus = HDD_BUS_DISABLED;
-					settings_msgbox(MBX_ERROR, (wchar_t *)IDS_4112);
+					settings_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2130, (wchar_t *) IDS_4112);
 					return TRUE;
 				}
 
@@ -2751,14 +2929,14 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 
 					if (size > 0x1FFFFFFE00ll) {
 						fclose(f);
-						settings_msgbox(MBX_ERROR, (wchar_t *)IDS_4105);
+						settings_msgbox_header(MBX_ERROR, (wchar_t *) IDS_4116, (wchar_t *) IDS_4105);
 						return TRUE;							
 					}
 
 					if (image_is_hdi(hd_file_name)) {
 						if (size >= 0x100000000ll) {
 							fclose(f);
-							settings_msgbox(MBX_ERROR, (wchar_t *)IDS_4104);
+							settings_msgbox_header(MBX_ERROR, (wchar_t *) IDS_4116, (wchar_t *) IDS_4104);
 							return TRUE;
 						}
 
@@ -2853,7 +3031,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 					free(big_buf);
 
 					fclose(f);
-					settings_msgbox(MBX_INFO, (wchar_t *)IDS_4113);	                        
+					settings_msgbox_header(MBX_INFO, (wchar_t *) IDS_4113, (wchar_t *) IDS_4117);	                        
 				}
 
 				hard_disk_added = 1;
@@ -2882,7 +3060,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 						f = _wfopen(wopenfilestring, L"rb");
 						if (f != NULL) {
 							fclose(f);
-							if (settings_msgbox(MBX_QUESTION, (wchar_t *)IDS_4111) != 0)	/* yes */
+							if (settings_msgbox_ex(MBX_QUESTION_YN, (wchar_t *) IDS_4111, (wchar_t *) IDS_4118, (wchar_t *) IDS_4120, (wchar_t *) IDS_4121, NULL) != 0)	/* yes */
 								return FALSE;
 						}
 					}
@@ -2891,7 +3069,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 					if (f == NULL) {
 hdd_add_file_open_error:
 						fclose(f);
-						settings_msgbox(MBX_ERROR, (existing & 1) ? (wchar_t *)IDS_4107 : (wchar_t *)IDS_4108);
+						settings_msgbox_header(MBX_ERROR, (existing & 1) ? (wchar_t *) IDS_4114 : (wchar_t *) IDS_4115, (existing & 1) ? (wchar_t *) IDS_4107 : (wchar_t *) IDS_4108);
 						return TRUE;
 					}
 					if (existing & 1) {
@@ -2899,7 +3077,7 @@ hdd_add_file_open_error:
 							fseeko64(f, 0x10, SEEK_SET);
 							fread(&sector_size, 1, 4, f);
 							if (sector_size != 512) {
-								settings_msgbox(MBX_ERROR, (wchar_t *)IDS_4109);
+								settings_msgbox_header(MBX_ERROR, (wchar_t *) IDS_4119, (wchar_t *) IDS_4109);
 								fclose(f);
 								return TRUE;
 							}
@@ -3171,7 +3349,7 @@ hdd_add_file_open_error:
 					case HDD_BUS_MFM:
 						max_spt = 26;	/* 17 for MFM, 26 for RLL. */
 						max_hpc = 15;
-						max_tracks = 1023;
+						max_tracks = 2047;
 						break;
 					case HDD_BUS_XTA:
 						max_spt = 63;

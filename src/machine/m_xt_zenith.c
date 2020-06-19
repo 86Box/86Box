@@ -36,6 +36,7 @@
 #include <86box/device.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/gameport.h>
 #include <86box/keyboard.h>
 #include <86box/lpt.h>
@@ -116,8 +117,10 @@ machine_xt_zenith_init(const machine_t *model)
 	return ret;
 
     machine_common_init(model);
-
-    device_add(&fdc_xt_device);
+ 
+    if (fdc_type == FDC_INTERNAL)
+	device_add(&fdc_xt_device);
+    
     lpt1_remove();	/* only one parallel port */
     lpt2_remove();
     lpt1_init(0x278);

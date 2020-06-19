@@ -515,7 +515,7 @@ static wchar_t	fd_file_name[1024];
 
 /* Show a MessageBox dialog.  This is nasty, I know.  --FvK */
 static int
-new_floppy_msgbox(HWND hwnd, int type, void *arg)
+new_floppy_msgbox_header(HWND hwnd, int flags, void *header, void *message)
 {
     HWND h;
     int i;
@@ -523,7 +523,24 @@ new_floppy_msgbox(HWND hwnd, int type, void *arg)
     h = hwndMain;
     hwndMain = hwnd;
 
-    i = ui_msgbox(type, arg);
+    i = ui_msgbox_header(flags, header, message);
+
+    hwndMain = h;
+
+    return(i);
+}
+
+
+static int
+new_floppy_msgbox_ex(HWND hwnd, int flags, void *header, void *message, void *btn1, void *btn2, void *btn3)
+{
+    HWND h;
+    int i;
+
+    h = hwndMain;
+    hwndMain = hwnd;
+
+    i = ui_msgbox_ex(flags, header, message, btn1, btn2, btn3);
 
     hwndMain = h;
 
@@ -607,7 +624,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 						//ui_sb_mount_floppy_img(fdd_id, sb_part, 0, fd_file_name);
 						floppy_mount(fdd_id, fd_file_name, 0);
 				} else {
-					new_floppy_msgbox(hdlg, MBX_ERROR, (wchar_t *)IDS_4108);
+					new_floppy_msgbox_header(hdlg, MBX_ERROR, (wchar_t *) IDS_4108, (wchar_t *) IDS_4115);
 					return TRUE;
 				}
 				/*FALLTHROUGH*/
@@ -637,7 +654,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					f = _wfopen(wopenfilestring, L"rb");
 					if (f != NULL) {
 						fclose(f);
-						if (new_floppy_msgbox(hdlg, MBX_QUESTION, (wchar_t *)IDS_4111) != 0)	/* yes */
+						if (new_floppy_msgbox_ex(hdlg, MBX_QUESTION, (wchar_t *) IDS_4111, (wchar_t *) IDS_4118, (wchar_t *) IDS_4120, (wchar_t *) IDS_4121, NULL) != 0)	/* yes */
 							return FALSE;
 					}
 					SendMessage(h, WM_SETTEXT, 0, (LPARAM) wopenfilestring);

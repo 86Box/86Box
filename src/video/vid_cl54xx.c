@@ -1136,6 +1136,40 @@ gd54xx_recalctimings(svga_t *svga)
 				svga->map8 = video_8to32;
 				svga->render = svga_render_8bpp_highres;
 				break;
+
+			case 0xf:	
+				switch (svga->seqregs[7] & CIRRUS_SR7_BPP_MASK) {	
+					case CIRRUS_SR7_BPP_32:	
+						if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5430) {	
+							svga->bpp = 32;	
+							svga->render = svga_render_32bpp_highres;	
+							svga->rowoffset *= 2;	
+						}	
+						break;	
+
+					case CIRRUS_SR7_BPP_24:	
+						svga->bpp = 24;	
+						svga->render = svga_render_24bpp_highres;	
+						break;	
+
+					case CIRRUS_SR7_BPP_16:	
+						if ((svga->crtc[0x27] >= CIRRUS_ID_CLGD5428) || (svga->crtc[0x27] == CIRRUS_ID_CLGD5426)) {	
+							svga->bpp = 16;	
+							svga->render = svga_render_16bpp_highres;	
+						}	
+						break;	
+
+					case CIRRUS_SR7_BPP_16_DOUBLEVCLK:	
+						svga->bpp = 16;	
+						svga->render = svga_render_16bpp_highres;	
+						break;	
+
+					case CIRRUS_SR7_BPP_8:	
+						svga->bpp = 8;	
+						svga->render = svga_render_8bpp_highres;	
+						break;	
+				}	
+				break;
 		}
 	} else {
 		svga->bpp = 15;
@@ -3335,6 +3369,33 @@ static const device_config_t gd5428_config[] =
         }
 };
 
+static const device_config_t gd5428_a1g_config[] =
+{
+        {
+                .name = "memory",
+                .description = "Onboard Video RAM size",
+                .type = CONFIG_SELECTION,
+                .selection =
+                {
+                        {
+                                .description = "1 MB",
+                                .value = 1
+                        },
+                        {
+                                .description = "2 MB",
+                                .value = 2
+                        },
+                        {
+                                .description = ""
+                        }
+                },
+                .default_int = 2
+        },
+        {
+                .type = -1
+        }
+};
+
 static const device_config_t gd5440_onboard_config[] =
 {
         {
@@ -3392,7 +3453,7 @@ static const device_config_t gd5434_config[] =
 const device_t gd5401_isa_device =
 {
     "Cirrus Logic GD-5401 (ACUMOS AVGA1)",
-    DEVICE_AT | DEVICE_ISA,
+    DEVICE_ISA,
     CIRRUS_ID_CLGD5401,
     gd54xx_init, gd54xx_close,
     NULL,
@@ -3405,7 +3466,7 @@ const device_t gd5401_isa_device =
 const device_t gd5402_isa_device =
 {
     "Cirrus Logic GD-5402 (ACUMOS AVGA2)",
-    DEVICE_AT | DEVICE_ISA,
+    DEVICE_ISA,
     CIRRUS_ID_CLGD5402,
     gd54xx_init, gd54xx_close,
     NULL,
@@ -3521,6 +3582,20 @@ const device_t gd5428_mca_device =
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     NULL
+};
+
+const device_t gd5428_a1g_device =
+{
+    "Cirrus Logic CL-GD 5428 (Onboard)",
+    DEVICE_AT | DEVICE_ISA,
+    CIRRUS_ID_CLGD5428,
+    gd54xx_init, 
+    gd54xx_close, 
+    NULL,
+    gd5428_isa_available,
+    gd54xx_speed_changed,
+    gd54xx_force_redraw,
+    gd5428_a1g_config
 };
 
 const device_t gd5429_isa_device =

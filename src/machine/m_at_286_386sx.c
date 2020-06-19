@@ -53,10 +53,10 @@ machine_at_mr286_init(const machine_t *model)
     machine_at_common_ide_init(model);
     device_add(&keyboard_at_device);
     device_add(&fdc_at_device);
-	device_add(&headland_device);
 
     return ret;
 }
+
 
 static void
 machine_at_headland_common_init(int ht386)

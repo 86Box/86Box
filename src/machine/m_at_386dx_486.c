@@ -40,7 +40,6 @@
 #include <86box/video.h>
 #include <86box/intel_flash.h>
 #include <86box/sst_flash.h>
-#include <86box/intel_sio.h>
 #include <86box/scsi_ncr53c8xx.h>
 #include <86box/machine.h>
 
@@ -124,6 +123,36 @@ machine_at_pb410a_init(const machine_t *model)
 	device_add(&ht216_32_pb410a_device);
 
     return ret;
+}
+
+int
+machine_at_acera1g_init(const machine_t *model)
+{
+    int ret;
+
+   ret = bios_load_linear(L"roms/machines/acera1g/4alo001.bin",
+			  0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_ide_init(model);
+
+    if (gfxcard == VID_INTERNAL)
+	device_add(&gd5428_a1g_device);
+
+    device_add(&ali1429_device);
+    device_add(&keyboard_ps2_acer_pci_device);
+    device_add(&fdc_at_device);
+    device_add(&ide_isa_device);
+
+    return ret;
+}
+
+const device_t *
+at_acera1g_get_device(void)
+{
+    return &gd5428_a1g_device;
 }
 
 
@@ -268,6 +297,22 @@ machine_at_ami471_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_vli486sv2g_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/vli486sv2g/0402.001",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_sis_85c471_common_init(model);
+    device_add(&keyboard_at_device);
+
+    return ret;
+}
 
 int
 machine_at_dtk486_init(const machine_t *model)
@@ -446,7 +491,7 @@ machine_at_alfredo_init(const machine_t *model)
     return ret;
 }
 
-#if defined(DEV_BRANCH) && defined(NO_SIO)
+
 int
 machine_at_486sp3g_init(const machine_t *model)
 {
@@ -472,12 +517,40 @@ machine_at_486sp3g_init(const machine_t *model)
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&keyboard_ps2_ami_pci_device); /* Uses the AMIKEY KBC */
     device_add(&sio_device);	/* Site says it has a ZB, but the BIOS is designed for an IB. */
-    device_add(&pc87306_device); /*PC87332*/
+    device_add(&pc87332_device);
     device_add(&sst_flash_29ee010_device);
-	device_add(&ncr53c810_pci_device);
 
     device_add(&i420zx_device);
+    device_add(&ncr53c810_onboard_pci_device);
 
     return ret;
 }
-#endif
+
+
+int
+machine_at_486ap4_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/486ap4/0205.002",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1 | PCI_NO_IRQ_STEERING);
+    /* Excluded: 5, 6, 7, 8 */
+    pci_register_slot(0x05, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 4);	/* 09 = Slot 1 */
+    pci_register_slot(0x0a, PCI_CARD_NORMAL, 2, 3, 4, 1);	/* 0a = Slot 2 */
+    pci_register_slot(0x0b, PCI_CARD_NORMAL, 3, 4, 1, 2);	/* 0b = Slot 3 */
+    pci_register_slot(0x0c, PCI_CARD_NORMAL, 4, 1, 2, 3);	/* 0c = Slot 4 */
+    device_add(&keyboard_ps2_ami_pci_device); /* Uses the AMIKEY KBC */
+    device_add(&fdc_at_device);
+
+    device_add(&i420ex_device);
+
+    return ret;
+}

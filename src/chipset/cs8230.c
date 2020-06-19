@@ -142,6 +142,11 @@ static void
 		cs8230_write, NULL, NULL,
 		cs8230);
 
+	if (mem_size > 768) {
+		mem_mapping_set_addr(&ram_mid_mapping, 0xa0000, mem_size > 1024 ? 0x60000 : 0x20000 + (mem_size - 768) * 1024);
+		mem_mapping_set_exec(&ram_mid_mapping, ram + 0xa0000);
+        }
+
 	return cs8230;
 }
 

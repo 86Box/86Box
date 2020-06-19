@@ -69,6 +69,9 @@ svga_render_overscan_left(svga_t *svga)
 {
     int i;
 
+    if ((svga->displine + svga->y_add) < 0)
+	return;
+
     if (svga->scrblank || (svga->hdisp == 0))
 	return;
 
@@ -81,6 +84,9 @@ void
 svga_render_overscan_right(svga_t *svga)
 {
     int i, right;
+
+    if ((svga->displine + svga->y_add) < 0)
+	return;
 
     if (svga->scrblank || (svga->hdisp == 0))
 	return;

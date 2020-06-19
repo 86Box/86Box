@@ -46,16 +46,16 @@ apollo_map(uint32_t addr, uint32_t size, int state)
 {
     switch (state & 3) {
 	case 0:
-		mem_set_mem_state(addr, size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+		mem_set_mem_state_both(addr, size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 		break;
 	case 1:
-		mem_set_mem_state(addr, size, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
+		mem_set_mem_state_both(addr, size, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
 		break;
 	case 2:
-		mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
+		mem_set_mem_state_both(addr, size, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
 		break;
 	case 3:
-		mem_set_mem_state(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+		mem_set_mem_state_both(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 		break;
     }
 
@@ -64,20 +64,17 @@ apollo_map(uint32_t addr, uint32_t size, int state)
 
 
 static void
-apollo_smram_map(int smm, uint32_t addr, uint32_t size, int ram)
+apollo_smram_map(int smm, uint32_t addr, uint32_t size, int is_smram)
 {
-    int state = (MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+    if (((is_smram & 0x03) == 0x01) || ((is_smram & 0x03) == 0x02)) {
+	smram[0].ram_base = 0x000a0000;
+	smram[0].size = size;
 
-    if (ram == 0)
-	state = (MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-    else if (ram == 1)
-	state = (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-    else if (ram == 2)
-	state = (MEM_READ_EXTERNAL_EX | MEM_WRITE_EXTANY);
-    else if (ram == 3)
-	state = (MEM_READ_DISABLED | MEM_WRITE_DISABLED);
+	mem_mapping_set_addr(&ram_smram_mapping[0], smram[0].host_base, size);
+	mem_mapping_set_exec(&ram_smram_mapping[0], ram + smram[0].ram_base);
+    }
 
-    mem_set_mem_state_common(smm, addr, size, state);
+    mem_set_mem_state_smram_ex(smm, addr, size, is_smram & 0x03);
     flushmmucache();
 }
 
@@ -272,6 +269,14 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 		if ((dev->pci_conf[0][0x63] ^ val) & 0xc0)
 			apollo_map(0xe0000, 0x10000, (val & 0xc0) >> 6);
 		dev->pci_conf[0][0x63] = val;
+		if (smram[0].size != 0x00000000) {
+			mem_set_mem_state_smram_ex(0, smram[0].host_base, smram[0].size, 0x00);
+			mem_set_mem_state_smram_ex(1, smram[0].host_base, smram[0].size, 0x00);
+
+			memset(&smram[0], 0x00, sizeof(smram_t));
+			mem_mapping_disable(&ram_smram_mapping[0]);
+			flushmmucache();
+		}
 		if (dev->id == 0x0691) switch (val & 0x03) {
 			case 0x00:
 			default:
@@ -310,9 +315,9 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 				/* Reserved */
 				apollo_smram_map(1, 0x000a0000, 0x00020000, 3);
 				if (dev->id == 0x0597) {
-					/* TODO: SMI 3xxxx-4xxxx redirect to Axxxx-Bxxxx
-						 (this needs a 3xxxx-4xxxx mapping set to EXTERNAL). */
-					apollo_smram_map(1, 0x00030000, 0x00020000, 3);
+					/* SMI 3xxxx-4xxxx redirect to Axxxx-Bxxxx. */
+					smram[0].host_base = 0x00030000;
+					apollo_smram_map(1, 0x00030000, 0x00020000, 1);
 				}
 				apollo_smram_map(0, 0x000a0000, 0x00020000, 3);
 				break;

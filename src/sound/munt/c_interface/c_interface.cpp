@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2017 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2020 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -41,7 +41,7 @@ static mt32emu_service_version getSynthVersionID(mt32emu_service_i) {
 	return MT32EMU_SERVICE_VERSION_CURRENT;
 }
 
-static const mt32emu_service_i_v2 SERVICE_VTABLE = {
+static const mt32emu_service_i_v3 SERVICE_VTABLE = {
 	getSynthVersionID,
 	mt32emu_get_supported_report_handler_version,
 	mt32emu_get_supported_midi_receiver_version,
@@ -112,7 +112,13 @@ static const mt32emu_service_i_v2 SERVICE_VTABLE = {
 	mt32emu_convert_synth_to_output_timestamp,
 	mt32emu_get_internal_rendered_sample_count,
 	mt32emu_set_nice_amp_ramp_enabled,
-	mt32emu_is_nice_amp_ramp_enabled
+	mt32emu_is_nice_amp_ramp_enabled,
+	mt32emu_set_nice_panning_enabled,
+	mt32emu_is_nice_panning_enabled,
+	mt32emu_set_nice_partial_mixing_enabled,
+	mt32emu_is_nice_partial_mixing_enabled,
+	mt32emu_preallocate_reverb_memory,
+	mt32emu_configure_midi_event_queue_sysex_storage
 };
 
 } // namespace MT32Emu
@@ -323,7 +329,7 @@ extern "C" {
 
 mt32emu_service_i mt32emu_get_service_i() {
 	mt32emu_service_i i;
-	i.v2 = &SERVICE_VTABLE;
+	i.v3 = &SERVICE_VTABLE;
 	return i;
 }
 
@@ -450,9 +456,7 @@ void mt32emu_set_analog_output_mode(mt32emu_context context, const mt32emu_analo
 }
 
 void mt32emu_set_stereo_output_samplerate(mt32emu_context context, const double samplerate) {
-	if (0.0 <= samplerate) {
-		context->srcState->outputSampleRate = samplerate;
-	}
+	context->srcState->outputSampleRate = SampleRateConverter::getSupportedOutputSampleRate(samplerate);
 }
 
 void mt32emu_set_samplerate_conversion_quality(mt32emu_context context, const mt32emu_samplerate_conversion_quality quality) {
@@ -517,6 +521,10 @@ void mt32emu_flush_midi_queue(mt32emu_const_context context) {
 
 mt32emu_bit32u mt32emu_set_midi_event_queue_size(mt32emu_const_context context, const mt32emu_bit32u queue_size) {
 	return context->synth->setMIDIEventQueueSize(queue_size);
+}
+
+void mt32emu_configure_midi_event_queue_sysex_storage(mt32emu_const_context context, const mt32emu_bit32u storage_buffer_size) {
+	return context->synth->configureMIDIEventQueueSysexStorage(storage_buffer_size);
 }
 
 void mt32emu_set_midi_receiver(mt32emu_context context, mt32emu_midi_receiver_i midi_receiver, void *instance_data) {
@@ -612,6 +620,10 @@ mt32emu_boolean mt32emu_is_default_reverb_mt32_compatible(mt32emu_const_context 
 	return context->synth->isDefaultReverbMT32Compatible() ? MT32EMU_BOOL_TRUE : MT32EMU_BOOL_FALSE;
 }
 
+void mt32emu_preallocate_reverb_memory(mt32emu_const_context context, const mt32emu_boolean enabled) {
+	return context->synth->preallocateReverbMemory(enabled != MT32EMU_BOOL_FALSE);
+}
+
 void mt32emu_set_dac_input_mode(mt32emu_const_context context, const mt32emu_dac_input_mode mode) {
 	context->synth->setDACInputMode(static_cast<DACInputMode>(mode));
 }
@@ -658,6 +670,22 @@ void mt32emu_set_nice_amp_ramp_enabled(mt32emu_const_context context, const mt32
 
 mt32emu_boolean mt32emu_is_nice_amp_ramp_enabled(mt32emu_const_context context) {
 	return context->synth->isNiceAmpRampEnabled() ? MT32EMU_BOOL_TRUE : MT32EMU_BOOL_FALSE;
+}
+
+MT32EMU_EXPORT void mt32emu_set_nice_panning_enabled(mt32emu_const_context context, const mt32emu_boolean enabled) {
+	context->synth->setNicePanningEnabled(enabled != MT32EMU_BOOL_FALSE);
+}
+
+MT32EMU_EXPORT mt32emu_boolean mt32emu_is_nice_panning_enabled(mt32emu_const_context context) {
+	return context->synth->isNicePanningEnabled() ? MT32EMU_BOOL_TRUE : MT32EMU_BOOL_FALSE;
+}
+
+MT32EMU_EXPORT void mt32emu_set_nice_partial_mixing_enabled(mt32emu_const_context context, const mt32emu_boolean enabled) {
+	context->synth->setNicePartialMixingEnabled(enabled != MT32EMU_BOOL_FALSE);
+}
+
+MT32EMU_EXPORT mt32emu_boolean mt32emu_is_nice_partial_mixing_enabled(mt32emu_const_context context) {
+	return context->synth->isNicePartialMixingEnabled() ? MT32EMU_BOOL_TRUE : MT32EMU_BOOL_FALSE;
 }
 
 void mt32emu_render_bit16s(mt32emu_const_context context, mt32emu_bit16s *stream, mt32emu_bit32u len) {

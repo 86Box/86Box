@@ -438,7 +438,7 @@ network_reset(void)
 
     if (i < 0) {
 	/* Tell user we can't do this (at the moment.) */
-	ui_msgbox(MBX_ERROR, (wchar_t *)IDS_2093);
+	ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2093, (wchar_t *) IDS_2129);
 
 	// FIXME: we should ask in the dialog if they want to
 	//	  reconfigure or quit, and throw them into the

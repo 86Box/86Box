@@ -1,4 +1,4 @@
-/* Copyright (C) 2015-2017 Sergey V. Mikayev
+/* Copyright (C) 2015-2020 Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -17,12 +17,12 @@
 #include <cmath>
 #include <cstddef>
 
-#include "ResamplerModel.h"
+#include "../include/ResamplerModel.h"
 
-#include "ResamplerStage.h"
-#include "SincResampler.h"
-#include "IIR2xResampler.h"
-#include "LinearResampler.h"
+#include "../include/ResamplerStage.h"
+#include "../include/SincResampler.h"
+#include "../include/IIR2xResampler.h"
+#include "../include/LinearResampler.h"
 
 namespace SRCTools {
 

@@ -68,7 +68,7 @@
 /*Instruction writes to ST(reg)*/
 #define FPU_WRITE_STREG (1ull << 32)
 /*Instruction reads from and writes to ST(reg)*/
-#define FPU_RW_STREG    (3ull << 30)
+#define FPU_RW_STREG    (3ull << 31)
 
 #define FPU_FXCH (1ull << 33)
 

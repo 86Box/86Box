@@ -10,6 +10,7 @@
 #include <86box/device.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/gameport.h>
 #include <86box/ibm_5161.h>
 #include <86box/keyboard.h>
@@ -24,7 +25,9 @@ machine_xt_common_init(const machine_t *model)
 
     pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
 
-    device_add(&fdc_xt_device);
+    if (fdc_type == FDC_INTERNAL)	
+	device_add(&fdc_xt_device);
+    
     nmi_init();
     if (joystick_type != JOYSTICK_TYPE_NONE)
 	device_add(&gameport_device);
@@ -263,6 +266,9 @@ machine_xt_hed919_init(const machine_t *model)
 	return ret;
 
     machine_xt_clone_init(model);
+
+    if (mem_size > 640)
+	mem_remap_top(mem_size - 640);
 
     return ret;
 }

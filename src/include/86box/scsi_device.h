@@ -379,5 +379,6 @@ extern void	scsi_device_command_phase0(scsi_device_t *dev, uint8_t *cdb);
 extern void	scsi_device_command_phase1(scsi_device_t *dev);
 extern void	scsi_device_command_stop(scsi_device_t *dev);
 extern void	scsi_device_close_all(void);
+extern void	scsi_device_init(void);
 
 #endif	/*SCSI_DEVICE_H*/

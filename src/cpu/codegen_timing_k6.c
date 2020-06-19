@@ -5,10 +5,9 @@
 #include <string.h>
 #include <wchar.h>
 #include <86box/86box.h>
-#include "cpu.h"
 #include <86box/mem.h>
+#include "cpu.h"
 #include <86box/machine.h>
-
 #include "x86.h"
 #include "x86_ops.h"
 #include "x87.h"

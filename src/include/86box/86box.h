@@ -42,6 +42,10 @@
 #endif
 #define COPYRIGHT_YEAR	"2020"
 
+/* Web URL info. */
+#define EMU_SITE	L"86box.github.io"
+#define EMU_ROMS_URL	L"https://github.com/86Box/roms/releases/latest"
+
 /* Filename and pathname info. */
 #define CONFIG_FILE	L"86box.cfg"
 #define NVR_PATH        L"nvr"
@@ -116,7 +120,7 @@ extern uint32_t	mem_size;			/* (C) memory size */
 extern int	cpu_manufacturer,		/* (C) cpu manufacturer */
 		cpu,				/* (C) cpu type */
 		cpu_use_dynarec,		/* (C) cpu uses/needs Dyna */
-		enable_external_fpu;		/* (C) enable external FPU */
+		fpu_type;			/* (C) fpu type */
 extern int	time_sync;			/* (C) enable time sync */
 extern int	network_type;			/* (C) net provider type */
 extern int	network_card;			/* (C) net interface num */

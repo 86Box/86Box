@@ -1,5 +1,5 @@
 /* Copyright (C) 2003, 2004, 2005, 2006, 2008, 2009 Dean Beeler, Jerome Fisher
- * Copyright (C) 2011-2017 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
+ * Copyright (C) 2011-2020 Dean Beeler, Jerome Fisher, Sergey V. Mikayev
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as published by
@@ -40,13 +40,14 @@ struct ControlROMPCMStruct;
 class Partial {
 private:
 	Synth *synth;
-	const int debugPartialNum; // Only used for debugging
+	const int partialIndex; // Index of this Partial in the global partial table
 	// Number of the sample currently being rendered by produceOutput(), or 0 if no run is in progress
 	// This is only kept available for debugging purposes.
 	Bit32u sampleNum;
 
-	// Actually, this is a 4-bit register but we abuse this to emulate inverted mixing.
-	// Also we double the value to enable INACCURATE_SMOOTH_PAN, with respect to MoK.
+	// Actually, LA-32 receives only 3 bits as a pan setting, but we abuse these to emulate
+	// the inverted partial mixing as well. Also we double the values (making them correspond
+	// to the panpot range) to enable NicePanning mode, with respect to MoK.
 	Bit32s leftPanValue, rightPanValue;
 
 	int ownerPart; // -1 if unassigned

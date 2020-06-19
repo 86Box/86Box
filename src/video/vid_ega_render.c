@@ -76,6 +76,9 @@ ega_render_overscan_left(ega_t *ega)
 {
     int i;
 
+    if ((ega->displine + ega->y_add) < 0)
+	return;
+
     if (ega->scrblank || (ega->hdisp == 0))
 	return;
 
@@ -88,6 +91,9 @@ void
 ega_render_overscan_right(ega_t *ega)
 {
     int i, right;
+
+    if ((ega->displine + ega->y_add) < 0)
+	return;
 
     if (ega->scrblank || (ega->hdisp == 0))
 	return;
