@@ -273,7 +273,7 @@ machine_at_opti495_mr_init(const machine_t *model)
 static void
 machine_at_sis_85c471_common_init(const machine_t *model)
 {
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
     device_add(&fdc_at_device);
 
     device_add(&sis_85c471_device);
@@ -292,6 +292,7 @@ machine_at_ami471_init(const machine_t *model)
 	return ret;
 
     machine_at_sis_85c471_common_init(model);
+    device_add(&ide_vlb_device);
     device_add(&keyboard_at_ami_device);
 
     return ret;
@@ -309,6 +310,7 @@ machine_at_vli486sv2g_init(const machine_t *model)
 	return ret;
 
     machine_at_sis_85c471_common_init(model);
+    device_add(&ide_vlb_2ch_device);
     device_add(&keyboard_at_device);
 
     return ret;
@@ -326,6 +328,7 @@ machine_at_dtk486_init(const machine_t *model)
 	return ret;
 
     machine_at_sis_85c471_common_init(model);
+    device_add(&ide_vlb_device);
     device_add(&keyboard_at_device);
 
     return ret;
@@ -344,6 +347,7 @@ machine_at_px471_init(const machine_t *model)
 	return ret;
 
     machine_at_sis_85c471_common_init(model);
+    device_add(&ide_vlb_device);
     device_add(&keyboard_at_device);
 
     return ret;
@@ -363,6 +367,7 @@ machine_at_win471_init(const machine_t *model)
 	return ret;
 
     machine_at_sis_85c471_common_init(model);
+    device_add(&ide_vlb_device);
     device_add(&keyboard_at_ami_device);
 
     return ret;
