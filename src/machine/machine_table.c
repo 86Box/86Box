@@ -331,16 +331,16 @@ const machine_t machines[] = {
     { "[i440BX] AOpen AX6BC",			"ax6bc",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  768,   8, 255,		machine_at_ax6bc_init, NULL			},
     { "[i440BX] A-Trend ATC6310BXII",		"atc6310bxii",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  768,   8, 255,	  machine_at_atc6310bxii_init, NULL			},
     { "[i440BX] Tyan Tsunami ATX",		"tsunamiatx",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"",      NULL},     {"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_SOUND,	 		  8, 1024,   8, 255,	   machine_at_tsunamiatx_init, at_tsunamiatx_get_device	},
-    { "[i440BX] Supermicro P6SBA",		"p6sba",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"",      NULL},     {"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  768,   8, 255,	        machine_at_p6sba_init, NULL			},
+    { "[i440BX] SuperMicro Super P6SBA",	"p6sba",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"",      NULL},     {"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  768,   8, 255,	        machine_at_p6sba_init, NULL			},
 
     /* Slot 2 machines(Including Slot 1/2 Hybrids) */
     /* 440GX */
     { "[i440GX] Gigabyte GA-6GXU",		"6gxu",			MACHINE_TYPE_SLOT2,		{{"Intel", cpus_Xeon},        {"",      NULL},	     {"",      NULL},	     {"",      NULL},	  {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		 16, 2048,  16, 511,	         machine_at_6gxu_init, NULL			},
-    { "[i440GX] Supermicro S2DGE",		"s2dge",		MACHINE_TYPE_SLOT2,		{{"Intel", cpus_Xeon},        {"",      NULL},	     {"",      NULL},	     {"",      NULL},	  {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		 16, 2048,  16, 511,	        machine_at_s2dge_init, NULL			},
+    { "[i440GX] SuperMicro Super S2DGE",	"s2dge",		MACHINE_TYPE_SLOT2,		{{"Intel", cpus_Xeon},        {"",      NULL},	     {"",      NULL},	     {"",      NULL},	  {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		 16, 2048,  16, 511,	        machine_at_s2dge_init, NULL			},
 
     /* PGA370 machines */
     /* 440LX */
-    { "[i440LX] Supermicro 370SLM",		"s370slm",		MACHINE_TYPE_SOCKET370,		{{"Intel", cpus_Celeron},     {"", NULL},            {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  768,   8, 255,	      machine_at_s370slm_init, NULL			},
+    { "[i440LX] SuperMicro Super 370SLM",	"s370slm",		MACHINE_TYPE_SOCKET370,		{{"Intel", cpus_Celeron},     {"", NULL},            {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  768,   8, 255,	      machine_at_s370slm_init, NULL			},
 
     /* 440BX */
     { "[i440BX] ASUS CUBX",			"cubx",			MACHINE_TYPE_SOCKET370,		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8, 1024,   8, 255,		 machine_at_cubx_init, NULL			},
