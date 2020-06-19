@@ -429,7 +429,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			plat_pause(1);
 			ret = d86f_export(id, wopenfilestring);
 			if (!ret)
-				ui_msgbox(MBX_ERROR, (wchar_t *)IDS_4108);
+				ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_4108, (wchar_t *) IDS_4115);
 			plat_pause(0);
 		}
 		break;

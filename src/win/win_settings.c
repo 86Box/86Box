@@ -178,7 +178,7 @@ image_list_init(HWND hwndList, const uint8_t *icon_ids)
 
 /* Show a MessageBox dialog.  This is nasty, I know.  --FvK */
 static int
-settings_msgbox(int type, void *arg)
+settings_msgbox_header(int flags, void *header, void *message)
 {
     HWND h;
     int i;
@@ -186,7 +186,7 @@ settings_msgbox(int type, void *arg)
     h = hwndMain;
     hwndMain = hwndParentDialog;
 
-    i = ui_msgbox(type, arg);
+    i = ui_msgbox_header(flags, header, message);
 
     hwndMain = h;
 
@@ -396,31 +396,23 @@ static int
 settings_msgbox_reset(void)
 {
     int changed, i = 0;
-    TASKDIALOGCONFIG tdconfig = {0};
-    TASKDIALOG_BUTTON tdbuttons[] = {
-	{IDYES,    MAKEINTRESOURCE(IDS_2121)},
-	{IDNO,     MAKEINTRESOURCE(IDS_2122)},
-	{IDCANCEL, MAKEINTRESOURCE(IDS_2123)}
-    };
+    HWND h;
 
     changed = win_settings_changed();
 
     if (changed) {
-    	tdconfig.cbSize = sizeof(tdconfig);
-    	tdconfig.hwndParent = hwndParentDialog;
-    	tdconfig.dwFlags = TDF_USE_COMMAND_LINKS;
-    	tdconfig.dwCommonButtons = 0;
-    	tdconfig.pszWindowTitle = MAKEINTRESOURCE(IDS_STRINGS);
-    	tdconfig.pszMainInstruction = MAKEINTRESOURCE(IDS_2051);
-    	tdconfig.cButtons = ARRAYSIZE(tdbuttons);
-    	tdconfig.pButtons = tdbuttons;
-	TaskDialogIndirect(&tdconfig, &i, NULL, NULL);
+	h = hwndMain;
+	hwndMain = hwndParentDialog;
 
-	if (i == IDNO) return(1);	/* no */
+	i = ui_msgbox_ex(MBX_QUESTION | MBX_LINKS, (wchar_t *) IDS_2051, NULL, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, (wchar_t *) IDS_2123);
 
-	if (i == IDYES) return(2);	/* yes */
+	hwndMain = h;
 
-	return(0);		/* cancel */
+	if (i == 1) return(1);	/* no */
+
+	if (i == -1) return(0);	/* cancel */
+
+	return(2);		/* yes */
     } else
 	return(1);
 }
@@ -2876,7 +2868,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 				/* Make sure no file name is allowed with removable SCSI hard disks. */
 				if (wcslen(hd_file_name) == 0) {
 					hdd_ptr->bus = HDD_BUS_DISABLED;
-					settings_msgbox(MBX_ERROR, (wchar_t *)IDS_4112);
+					settings_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2130, (wchar_t *) IDS_4112);
 					return TRUE;
 				}
 
@@ -2920,14 +2912,14 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 
 					if (size > 0x1FFFFFFE00ll) {
 						fclose(f);
-						settings_msgbox(MBX_ERROR, (wchar_t *)IDS_4105);
+						settings_msgbox_header(MBX_ERROR, (wchar_t *) IDS_4116, (wchar_t *) IDS_4105);
 						return TRUE;							
 					}
 
 					if (image_is_hdi(hd_file_name)) {
 						if (size >= 0x100000000ll) {
 							fclose(f);
-							settings_msgbox(MBX_ERROR, (wchar_t *)IDS_4104);
+							settings_msgbox_header(MBX_ERROR, (wchar_t *) IDS_4116, (wchar_t *) IDS_4104);
 							return TRUE;
 						}
 
@@ -3022,7 +3014,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 					free(big_buf);
 
 					fclose(f);
-					settings_msgbox(MBX_INFO, (wchar_t *)IDS_4113);	                        
+					settings_msgbox_header(MBX_INFO, (wchar_t *) IDS_4113, (wchar_t *) IDS_4117);	                        
 				}
 
 				hard_disk_added = 1;
@@ -3051,7 +3043,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 						f = _wfopen(wopenfilestring, L"rb");
 						if (f != NULL) {
 							fclose(f);
-							if (settings_msgbox(MBX_QUESTION, (wchar_t *)IDS_4111) != 0)	/* yes */
+							if (settings_msgbox_header(MBX_QUESTION, (wchar_t *) IDS_4111, (wchar_t *) IDS_4118) != 0)	/* yes */
 								return FALSE;
 						}
 					}
@@ -3060,7 +3052,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 					if (f == NULL) {
 hdd_add_file_open_error:
 						fclose(f);
-						settings_msgbox(MBX_ERROR, (existing & 1) ? (wchar_t *)IDS_4107 : (wchar_t *)IDS_4108);
+						settings_msgbox_header(MBX_ERROR, (existing & 1) ? (wchar_t *) IDS_4114 : (wchar_t *) IDS_4115, (existing & 1) ? (wchar_t *) IDS_4107 : (wchar_t *) IDS_4108);
 						return TRUE;
 					}
 					if (existing & 1) {
@@ -3068,7 +3060,7 @@ hdd_add_file_open_error:
 							fseeko64(f, 0x10, SEEK_SET);
 							fread(&sector_size, 1, 4, f);
 							if (sector_size != 512) {
-								settings_msgbox(MBX_ERROR, (wchar_t *)IDS_4109);
+								settings_msgbox_header(MBX_ERROR, (wchar_t *) IDS_4119, (wchar_t *) IDS_4109);
 								fclose(f);
 								return TRUE;
 							}
