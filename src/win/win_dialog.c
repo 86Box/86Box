@@ -51,6 +51,13 @@ ui_msgbox(int flags, void *message)
 
 
 int
+ui_msgbox_header(int flags, void *header, void *message)
+{
+    return ui_msgbox_ex(flags, header, message, NULL, NULL, NULL);
+}
+
+
+int
 ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, void *btn3) {
     WCHAR temp[512];
     TASKDIALOGCONFIG tdconfig = {0};

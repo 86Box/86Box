@@ -36,8 +36,8 @@
 #define IDS_2060	2060		// "On"
 #define IDS_2061	2061		// "Off"
 #define IDS_2062	2062		// "All floppy images (*.DSK..."
-#define IDS_2063	2063		// "Configured ROM set not avai.."
-#define IDS_2064	2064		// "Configured video BIOS not.."
+#define IDS_2063	2063		// "Machine ""%S"" is not..."
+#define IDS_2064	2064		// "Video card ""%S"" is not..."
 #define IDS_2065	2065		// "Machine"
 #define IDS_2066	2066		// "Display"
 #define IDS_2067	2067		// "Input devices"
@@ -101,6 +101,7 @@
 #define IDS_2125	2125		// EMU_NAME " v" EMU_VERSION
 #define IDS_2126	2126		// "An emulator of old computers..."
 #define IDS_2127	2127		// "OK"
+#define IDS_2128	2128		// "Hardware not available"
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"

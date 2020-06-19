@@ -892,12 +892,12 @@ BEGIN
     IDS_2060	"On"
     IDS_2061	"Off"
     IDS_2062	"All images (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Basic sector images (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Surface images (*.86F)\0*.86F\0"
-    IDS_2063	"Configured ROM set not available.\nDefaulting to an available ROM set."
+    IDS_2063	"Machine ""%S"" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_2064	"Configured video BIOS not available.\nDefaulting to an available video BIOS."
+    IDS_2064	"Video card ""%S"" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
     IDS_2065	"Machine"
     IDS_2066	"Display"
     IDS_2067	"Input devices"
@@ -965,6 +965,7 @@ BEGIN
     IDS_2125	EMU_NAME " v" EMU_VERSION
     IDS_2126	"An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information."
     IDS_2127	"OK"
+    IDS_2128	"Hardware not available"
 END
 
 STRINGTABLE DISCARDABLE 

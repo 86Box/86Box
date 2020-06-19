@@ -39,6 +39,7 @@ extern "C" {
 #define MBX_LINKS	0x100
 
 extern int	ui_msgbox(int flags, void *message);
+extern int	ui_msgbox_header(int flags, void *header, void *message);
 extern int	ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, void *btn3);
 
 extern void	ui_check_menu_item(int id, int checked);
