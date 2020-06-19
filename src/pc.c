@@ -283,7 +283,7 @@ fatal(const char *fmt, ...)
        to avoid things like threads getting stuck. */
     do_stop();
 
-    ui_msgbox_ex(MBX_ERROR | MBX_FATAL | MBX_ANSI, NULL, temp, (wchar_t *) IDS_2119, NULL, NULL);
+    ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
 
     fflush(stdlog);
 

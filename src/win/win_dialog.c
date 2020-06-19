@@ -64,7 +64,8 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
     TASKDIALOG_BUTTON tdbuttons[3],
                       tdb_yes    = {IDYES,    STRING_OR_RESOURCE(btn1)},
                       tdb_no     = {IDNO,     STRING_OR_RESOURCE(btn2)},
-                      tdb_cancel = {IDCANCEL, STRING_OR_RESOURCE(btn3)};
+                      tdb_cancel = {IDCANCEL, STRING_OR_RESOURCE(btn3)},
+                      tdb_exit   = {IDCLOSE,  MAKEINTRESOURCE(IDS_2119)};
     int ret = 0;
 
     /* Configure the default OK button. */
@@ -84,6 +85,13 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
 		if (flags & MBX_FATAL) {
 			tdconfig.pszMainIcon = TD_ERROR_ICON;
 			tdconfig.pszMainInstruction = MAKEINTRESOURCE(IDS_2050);    /* "Fatal error" */
+
+			/* replace default "OK" button with "Exit" button */
+			if (btn1)
+				tdconfig.cButtons = 0;
+			else
+				tdconfig.dwCommonButtons = 0;
+			tdbuttons[tdconfig.cButtons++] = tdb_exit;
 		} else {
 			tdconfig.pszMainIcon = TD_WARNING_ICON;
 			tdconfig.pszMainInstruction = MAKEINTRESOURCE(IDS_2049);    /* "Error" */
