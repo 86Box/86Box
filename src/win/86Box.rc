@@ -885,7 +885,7 @@ BEGIN
     IDS_2053	"Speed"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIP images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	EMU_NAME " could not find any usable ROM images.\n\nPlease download a ROM set from <a href=""https://github.com/86Box/roms/releases/latest"">https://github.com/86Box/roms/releases/latest</a> and extract it into the ""roms"" directory."
+    IDS_2056	EMU_NAME " could not find any usable ROM images.\n\nPlease download a ROM set from <a href=""" EMU_ROMS_URL """>" EMU_ROMS_URL "</a> and extract it into the ""roms"" directory."
     IDS_2057	"(empty)"
     IDS_2058	"ZIP images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0All files (*.*)\0*.*\0"
     IDS_2059	"Turbo"

@@ -42,6 +42,9 @@
 #endif
 #define COPYRIGHT_YEAR	"2020"
 
+/* Web URL info. */
+#define EMU_ROMS_URL	"https://github.com/86Box/roms/releases/latest"
+
 /* Filename and pathname info. */
 #define CONFIG_FILE	L"86box.cfg"
 #define NVR_PATH        L"nvr"
