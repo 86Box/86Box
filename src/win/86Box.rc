@@ -972,6 +972,7 @@ BEGIN
 #define PCAP "libpcap"
 #endif
     IDS_2129	"Make sure " PCAP " is installed and that you are on a " PCAP "-compatible network connection."
+    IDS_2130	"Invalid configuration"
 END
 
 STRINGTABLE DISCARDABLE 
