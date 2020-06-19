@@ -35,8 +35,12 @@
 void
 AboutDialogCreate(HWND hwnd)
 {
+    int i;
     TASKDIALOGCONFIG tdconfig = {0};
-    TASKDIALOG_BUTTON tdbuttons[] = {{IDCANCEL, MAKEINTRESOURCE(IDS_2127)}};
+    TASKDIALOG_BUTTON tdbuttons[] = {
+    	{IDOK, EMU_SITE},
+    	{IDCANCEL, MAKEINTRESOURCE(IDS_2127)}
+    };
 
     tdconfig.cbSize = sizeof(tdconfig);
     tdconfig.hwndParent = hwnd;
@@ -48,5 +52,9 @@ AboutDialogCreate(HWND hwnd)
     tdconfig.pszContent = MAKEINTRESOURCE(IDS_2126);
     tdconfig.cButtons = ARRAYSIZE(tdbuttons);
     tdconfig.pButtons = tdbuttons;
-    TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
+    tdconfig.nDefaultButton = IDCANCEL;
+    TaskDialogIndirect(&tdconfig, &i, NULL, NULL);
+
+    if (i == IDOK)
+    	ShellExecute(hwnd, L"open", L"https://" EMU_SITE, NULL, NULL, SW_SHOW);
 }
