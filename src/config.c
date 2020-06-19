@@ -451,7 +451,7 @@ load_general(void)
 
     video_fullscreen_scale = config_get_int(cat, "video_fullscreen_scale", 0);
 
-    video_fullscreen_first = config_get_int(cat, "video_fullscreen_first", 0);
+    video_fullscreen_first = config_get_int(cat, "video_fullscreen_first", 1);
 
     force_43 = !!config_get_int(cat, "force_43", 0);
     scale = config_get_int(cat, "scale", 1);

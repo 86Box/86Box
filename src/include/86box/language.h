@@ -25,7 +25,7 @@
 #define IDS_2049	2049		// "Error"
 #define IDS_2050	2050		// "Fatal error"
 #define IDS_2051	2051		// "Are you sure you want to save..."
-#define IDS_2052	2052		// "Use CTRL+ALT+PAGE DOWN.."
+#define IDS_2052	2052		// "Press CTRL+ALT+PAGE DOWN..."
 #define IDS_2053	2053		// "Speed"
 #define IDS_2054	2054		// "ZIP %i (%03i): %ls"
 #define IDS_2055	2055		// "ZIP images (*.IM?)\0*.IM..."
@@ -107,6 +107,8 @@
 #define IDS_2131	2131		// LIB_NAME_FREETYPE " is required..."
 #define IDS_2132	2132		// LIB_NAME_GS " is required for...
 #define IDS_2133	2133		// LIB_NAME_FLUIDSYNTH " is required..."
+#define IDS_2134	2134		// "Entering fullscreen mode"
+#define IDS_2135	2135		// "Don't show this message again"
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"

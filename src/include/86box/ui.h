@@ -37,6 +37,7 @@ extern "C" {
 #define MBX_FATAL	0x20
 #define MBX_ANSI	0x80
 #define MBX_LINKS	0x100
+#define MBX_DONTASK	0x200
 
 extern int	ui_msgbox(int flags, void *message);
 extern int	ui_msgbox_header(int flags, void *header, void *message);

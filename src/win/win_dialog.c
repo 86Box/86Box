@@ -66,7 +66,7 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
                       tdb_no     = {IDNO,     STRING_OR_RESOURCE(btn2)},
                       tdb_cancel = {IDCANCEL, STRING_OR_RESOURCE(btn3)},
                       tdb_exit   = {IDCLOSE,  MAKEINTRESOURCE(IDS_2119)};
-    int ret = 0;
+    int ret = 0, checked = 0;
 
     /* Configure the default OK button. */
     tdconfig.cButtons = 0;
@@ -133,14 +133,18 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
     if (header)
     	tdconfig.pszMainInstruction = STRING_OR_RESOURCE(header);
     tdconfig.pButtons = tdbuttons;
+    if (flags & MBX_DONTASK)
+    	tdconfig.pszVerificationText = MAKEINTRESOURCE(IDS_2135);
 
     /* Run the TaskDialog. */
-    TaskDialogIndirect(&tdconfig, &ret, NULL, NULL);
+    TaskDialogIndirect(&tdconfig, &ret, NULL, &checked);
 
     /* Convert return values to generic ones. */
     if (ret == IDNO) ret = 1;
      else if (ret == IDCANCEL) ret = -1;
      else ret = 0;
+
+    if (checked) ret += 10;
 
     return(ret);
 }
