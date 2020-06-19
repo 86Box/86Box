@@ -118,6 +118,7 @@ typedef struct {
 		diag, force_ata3;
     uint16_t	base_main, side_main;
     pc_timer_t	timer;
+    ide_t	*ide[2];
 } ide_board_t;
 
 typedef struct {
@@ -129,7 +130,7 @@ typedef struct {
 static ide_board_t	*ide_boards[4] = { NULL, NULL, NULL, NULL };
 static ide_bm_t		*ide_bm[4] = { NULL, NULL, NULL, NULL };
 
-static ide_t	*ide_drives[IDE_NUM];
+ide_t	*ide_drives[IDE_NUM];
 int	ide_ter_enabled = 0, ide_qua_enabled = 0;
 
 static void	ide_atapi_callback(ide_t *ide);
@@ -280,7 +281,7 @@ ide_irq_raise(ide_t *ide)
 
     ide_log("IDE %i: IRQ raise\n", ide->board);
 
-    if (!(ide->fdisk & 2)) {
+    if (!(ide->fdisk & 2) && ide->selected) {
 	if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
 		ide_bm[ide->board]->set_irq(ide->board | 0x40, ide_bm[ide->board]->priv);
 	else if (ide_boards[ide->board]->irq != -1)
@@ -300,9 +301,9 @@ ide_irq_lower(ide_t *ide)
 
     /* ide_log("Lowering IRQ %i (board %i)\n", ide_boards[ide->board]->irq, ide->board); */
 
-    ide_log("IDE %i: IRQ lower\n", ide->board);
+    // ide_log("IDE %i: IRQ lower\n", ide->board);
 
-    if (ide->irqstat) {
+    if (ide->irqstat && ide->selected) {
 	if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
 		ide_bm[ide->board]->set_irq(ide->board, ide_bm[ide->board]->priv);
 	else if (ide_boards[ide->board]->irq != -1)
@@ -330,7 +331,7 @@ ide_irq_update(ide_t *ide)
 		picintc(1 << ide_boards[ide->board]->irq);
 		picint(1 << ide_boards[ide->board]->irq);
 	}
-    } else if (ide->fdisk & 2) {
+    } else if ((ide->fdisk & 2) || !ide->irqstat) {
 	ide_log("IDE %i: IRQ update lower\n", ide->board);
 	if (!ide_boards[ide->board]->force_ata3 && ide_bm[ide->board] && ide_bm[ide->board]->set_irq)
 		ide_bm[ide->board]->set_irq(ide->board, ide_bm[ide->board]->priv);
@@ -819,6 +820,9 @@ ide_zero(int d)
     dev->atastat = DRDY_STAT | DSC_STAT;
     dev->service = 0;
     dev->board = d >> 1;
+    dev->selected = !(d & 1);
+    ide_boards[dev->board]->ide[d & 1] = dev;
+    timer_add(&dev->timer, ide_callback, dev, 0);
 }
 
 
@@ -847,14 +851,31 @@ ide_atapi_attach(ide_t *ide)
 
 
 void
-ide_set_callback(uint8_t board, double callback)
+ide_set_callback(ide_t *ide, double callback)
+{
+    ide_log("ide_set_callback(%i)\n", ide->channel);
+
+    if (!ide) {
+	ide_log("Set callback failed\n");
+	return;
+    }
+
+    if (callback == 0.0)
+	timer_stop(&ide->timer);
+    else
+    	timer_on_auto(&ide->timer, callback);
+}
+
+
+void
+ide_set_board_callback(uint8_t board, double callback)
 {
     ide_board_t *dev = ide_boards[board];
 
     ide_log("ide_set_callback(%i)\n", board);
 
     if (!dev) {
-	ide_log("Set callback failed\n");
+	ide_log("Set board callback failed\n");
 	return;
     }
 
@@ -872,7 +893,7 @@ ide_atapi_command_bus(ide_t *ide)
     ide->sc->phase = 1;
     ide->sc->pos = 0;
     ide->sc->callback = 1.0 * IDE_TIME;
-    ide_set_callback(ide->board, ide->sc->callback);
+    ide_set_callback(ide, ide->sc->callback);
 }
 
 
@@ -1008,7 +1029,7 @@ ide_atapi_pio_request(ide_t *ide, uint8_t out)
 	dev->status = BSY_STAT;
 	dev->phase = 1;
 	ide_atapi_callback(ide);
-	ide_set_callback(ide->board >> 1, 0.0);
+	ide_set_callback(ide, 0.0);
 
 	dev->request_pos = 0;
     }
@@ -1164,9 +1185,9 @@ ide_write_data(ide_t *ide, uint32_t val, int length)
 		ide->pos=0;
 		ide->atastat = BSY_STAT;
 		if (ide->command == WIN_WRITE_MULTIPLE)
-			ide_callback(ide_boards[ide->board]);
+			ide_callback(ide);
 		else
-			ide_set_callback(ide->board, ide_get_period(ide, 512));
+			ide_set_callback(ide, ide_get_period(ide, 512));
 	}
     }
 }
@@ -1276,7 +1297,8 @@ ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
 	/* Reset toggled from 0 to 1, initiate reset procedure. */
 	if (ide->type == IDE_ATAPI)
 		ide->sc->callback = 0.0;
-	ide_set_callback(ide->board, 0.0);
+	ide_set_callback(ide, 0.0);
+	ide_set_callback(ide_other, 0.0);
     } else if (!(val & 4) && (ide->fdisk & 4)) {
 	/* Reset toggled from 1 to 0. */
 	if (!(ch & 1)) {
@@ -1302,7 +1324,9 @@ ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
 		/* Fire the timer. */
 		dev->diag = 0;
 		ide->reset = 1;
-		ide_set_callback(ide->board, 500 * IDE_TIME);
+		ide_set_callback(ide, 0.0);
+		ide_set_callback(ide_other, 0.0);
+		ide_set_board_callback(ide->board, 500 * IDE_TIME);
 	} else {
 		/* Currently active device is 1, simply reset the status and the active device. */
 		dev_reset(ide);
@@ -1313,6 +1337,13 @@ ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
 			ide->sc->error = 1;
 		}
 		dev->cur_dev &= ~1;
+		ch = dev->cur_dev;
+
+		ide = ide_drives[ch];
+		ide->selected = 1;
+
+		ide_other = ide_drives[ch ^ 1];
+		ide_other->selected = 0;
 	}
     }
 
@@ -1418,6 +1449,12 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 			ide_boards[ide->board]->cur_dev = ((val >> 4) & 1) + (ide->board << 1);
 			ch = ide_boards[ide->board]->cur_dev;
 
+			ide = ide_drives[ch];
+			ide->selected = 1;
+
+			ide_other = ide_drives[ch ^ 1];
+			ide_other->selected = 0;
+
 			if (ide->reset || ide_other->reset) {
 				ide->atastat = ide_other->atastat = DRDY_STAT | DSC_STAT;
 				ide->error = ide_other->error = 1;
@@ -1445,11 +1482,11 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 					ide_other->cylinder = 0xEB14;
 				}
 
-				ide_set_callback(ide->board, 0.0);
+				ide_set_callback(ide, 0.0);
+				ide_set_callback(ide_other, 0.0);
+				ide_set_board_callback(ide->board, 0.0);
 				return;
 			}
-
-			ide = ide_drives[ch];
 		}
                                 
 		ide->head = val & 0xF;
@@ -1482,7 +1519,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 
 			if (ide->type == IDE_ATAPI)
 				ide->sc->callback = 100.0 * IDE_TIME;
-			ide_set_callback(ide->board, 100.0 * IDE_TIME);
+			ide_set_callback(ide, 100.0 * IDE_TIME);
 			return;
 		}
 
@@ -1494,7 +1531,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 				} else
 					ide->atastat = DRDY_STAT;
 				
-				ide_set_callback(ide->board, 100.0 * IDE_TIME);
+				ide_set_callback(ide, 100.0 * IDE_TIME);
 				return;
 
 			case WIN_READ_MULTIPLE:
@@ -1522,15 +1559,15 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 				if (ide->type == IDE_HDD) {
 					if ((val == WIN_READ_DMA) || (val == WIN_READ_DMA_ALT)) {
 						if (ide->secount)
-							ide_set_callback(ide->board, ide_get_period(ide, (int) ide->secount << 9));
+							ide_set_callback(ide, ide_get_period(ide, (int) ide->secount << 9));
 						else
-							ide_set_callback(ide->board, ide_get_period(ide, 131072));
+							ide_set_callback(ide, ide_get_period(ide, 131072));
 					} else if (val == WIN_READ_MULTIPLE)
-						ide_set_callback(ide->board, 200.0 * IDE_TIME);
+						ide_set_callback(ide, 200.0 * IDE_TIME);
 					else
-						ide_set_callback(ide->board, ide_get_period(ide, 512));
+						ide_set_callback(ide, ide_get_period(ide, 512));
 				} else
-					ide_set_callback(ide->board, 200.0 * IDE_TIME);
+					ide_set_callback(ide, 200.0 * IDE_TIME);
 				ide->do_initial_read = 1;
 				return;
 
@@ -1570,14 +1607,16 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 				if ((ide->type == IDE_HDD) &&
 				    ((val == WIN_WRITE_DMA) || (val == WIN_WRITE_DMA_ALT))) {
 					if (ide->secount)
-						ide_set_callback(ide->board, ide_get_period(ide, (int) ide->secount << 9));
+						ide_set_callback(ide, ide_get_period(ide, (int) ide->secount << 9));
 					else
-						ide_set_callback(ide->board, ide_get_period(ide, 131072));
+						ide_set_callback(ide, ide_get_period(ide, 131072));
 				} else if ((ide->type == IDE_HDD) &&
 					   ((val == WIN_VERIFY) || (val == WIN_VERIFY_ONCE)))
-					ide_set_callback(ide->board, ide_get_period(ide, 512));
+					ide_set_callback(ide, ide_get_period(ide, 512));
+				else if (val == WIN_IDENTIFY)
+					ide_callback(ide);
 				else
-					ide_set_callback(ide->board, 200.0 * IDE_TIME);
+					ide_set_callback(ide, 200.0 * IDE_TIME);
 				return;
 
 			case WIN_FORMAT:
@@ -1596,13 +1635,15 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 				} else
 					ide->atastat = BSY_STAT;
 
-				ide_set_callback(ide->board, 30.0 * IDE_TIME);
+				ide_set_callback(ide, 30.0 * IDE_TIME);
 				return;
 
 			case WIN_DRIVE_DIAGNOSTICS: /* Execute Drive Diagnostics */
 				dev->cur_dev &= ~1;
 				ide = ide_drives[ch & ~1];
+				ide->selected = 1;
 				ide_other = ide_drives[ch | 1];
+				ide_other->selected = 0;
 
 				/* Device 0. */
 				dev_reset(ide);
@@ -1625,7 +1666,9 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 				/* Fire the timer. */
 				dev->diag = 1;
 				ide->reset = 1;
-				ide_set_callback(ide->board, 200 * IDE_TIME);
+				ide_set_callback(ide, 0.0);
+				ide_set_callback(ide_other, 0.0);
+				ide_set_board_callback(ide->board, 200 * IDE_TIME);
 				return;
 
 			case WIN_PIDENTIFY: /* Identify Packet Device */
@@ -1640,7 +1683,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 					ide->sc->status = BSY_STAT;
 				else
 					ide->atastat = BSY_STAT;
-				ide_callback(dev);
+				ide_callback(ide);
 				return;
 
 			case WIN_PACKETCMD: /* ATAPI Packet */
@@ -1654,7 +1697,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 						ide_irq_raise(ide);	/* Interrupt DRQ, requires IRQ on any DRQ. */
 				} else {
 					ide->atastat = BSY_STAT;
-					ide_set_callback(ide->board, 200.0 * IDE_TIME);
+					ide_set_callback(ide, 200.0 * IDE_TIME);
 					ide->pos=0;
 				}
 				return;
@@ -1738,9 +1781,9 @@ ide_read_data(ide_t *ide, int length)
 			ide_next_sector(ide);
 			ide->atastat = BSY_STAT | READY_STAT | DSC_STAT;
 			if (ide->command == WIN_READ_MULTIPLE)
-				ide_callback(ide_boards[ide->board]);
+				ide_callback(ide);
 			else
-				ide_set_callback(ide->board, ide_get_period(ide, 512));
+				ide_set_callback(ide, ide_get_period(ide, 512));
 		} else if (ide->command != WIN_READ_MULTIPLE)
 			ui_sb_update_icon(SB_HDD | hdd[ide->hdd_num].bus, 0);
 	}
@@ -1947,40 +1990,39 @@ ide_readl(uint16_t addr, void *priv)
 
 
 static void
+ide_board_callback(void *priv)
+{
+     ide_board_t *dev = (ide_board_t *) priv;
+
+#ifdef ENABLE_IDE_LOG
+     ide_log("CALLBACK RESET\n");
+#endif
+
+     dev->ide[0]->atastat = DRDY_STAT | DSC_STAT;
+     if (dev->ide[0]->type == IDE_ATAPI)
+	dev->ide[0]->sc->status = DRDY_STAT | DSC_STAT;
+
+    dev->ide[1]->atastat = DRDY_STAT | DSC_STAT;
+    if (dev->ide[1]->type == IDE_ATAPI)
+	dev->ide[1]->sc->status = DRDY_STAT | DSC_STAT;
+
+    dev->cur_dev &= ~1;
+
+    if (dev->diag) {
+	dev->diag = 0;
+	ide_irq_raise(dev->ide[0]);
+    }
+}
+
+
+static void
 ide_callback(void *priv)
 {
-    ide_t *ide, *ide_other;
-    int snum, ret = 0, ch;
+    int snum, ret = 0;
 
-    ide_board_t *dev = (ide_board_t *) priv;
-    ch = dev->cur_dev;
+    ide_t *ide = (ide_t *) priv;
 
-    ide = ide_drives[ch];
-    ide_other = ide_drives[ch ^ 1];
-
-    if (ide->reset) {
-	ide_log("CALLBACK RESET %i  %i\n", ide->reset,ch);
-
-	ide->atastat = DRDY_STAT | DSC_STAT;
-	if (ide->type == IDE_ATAPI)
-		ide->sc->status = DRDY_STAT | DSC_STAT;
-
-	ide_other->atastat = DRDY_STAT | DSC_STAT;
-	if (ide_other->type == IDE_ATAPI)
-		ide_other->sc->status = DRDY_STAT | DSC_STAT;
-
-	dev->cur_dev &= ~1;
-
-	if (dev->diag) {
-		dev->diag = 0;
-		ide_irq_raise(ide);
-	}
-	ide->reset = 0;
-	ide_set_callback(ide->board, 0.0);
-	return;
-    }
-
-    ide_log("CALLBACK    %02X %i  %i\n", ide->command, ide->reset,ch);
+    ide_log("CALLBACK    %02X %i  %i\n", ide->command, ide->reset, ide->channel);
 
     if (((ide->command >= WIN_RECAL) && (ide->command <= 0x1F)) ||
 	((ide->command >= WIN_SEEK) && (ide->command <= 0x7F))) {
@@ -2099,7 +2141,7 @@ ide_callback(void *priv)
 			if (ret == 2) {
 				/* Bus master DMA disabled, simply wait for the host to enable DMA. */
 				ide->atastat = DRQ_STAT | DRDY_STAT | DSC_STAT;
-				ide_set_callback(ide->board, 6.0 * IDE_TIME);
+				ide_set_callback(ide, 6.0 * IDE_TIME);
 				return;
 			} else if (ret == 1) {
 				/*DMA successful*/
@@ -2198,7 +2240,7 @@ ide_callback(void *priv)
 			if (ret == 2) {
 				/* Bus master DMA disabled, simply wait for the host to enable DMA. */
 				ide->atastat = DRQ_STAT | DRDY_STAT | DSC_STAT;
-				ide_set_callback(ide->board, 6.0 * IDE_TIME);
+				ide_set_callback(ide, 6.0 * IDE_TIME);
 				return;
 			} else if (ret == 1) {
 				/*DMA successful*/
@@ -2513,6 +2555,9 @@ ide_board_close(int board)
     /* Close hard disk image files (if previously open) */
     for (d = 0; d < 2; d++) {
 	c = (board << 1) + d;
+
+	ide_boards[board]->ide[d] = NULL;
+
 	dev = ide_drives[c];
 
 	if (dev == NULL)
@@ -2623,7 +2668,7 @@ ide_board_init(int board, int irq, int base_main, int side_main, int type)
     ide_boards[board]->side_main = side_main;
     ide_set_handlers(board);
 
-    timer_add(&ide_boards[board]->timer, ide_callback, ide_boards[board], 0);
+    timer_add(&ide_boards[board]->timer, ide_board_callback, ide_boards[board], 0);
 
     ide_board_setup(board);
 
@@ -2727,6 +2772,8 @@ ide_drive_reset(int d)
     ide_drives[d]->atastat = DRDY_STAT | DSC_STAT;
     ide_drives[d]->service = 0;
     ide_drives[d]->board = d >> 1;
+    ide_drives[d]->selected = !(d & 1);
+    timer_stop(&ide_drives[d]->timer);
 
     if (ide_boards[d >> 1]) {
 	ide_boards[d >> 1]->cur_dev = d & ~1;

@@ -558,7 +558,7 @@ fdc_update_rate(fdc_t *fdc, int drive)
 		break;
     }
 
-    fdc->bitcell_period = 1000000 / fdc->bit_rate * 2; /*Bitcell period in ns*/
+    fdc->bitcell_period = (1000000 / fdc->bit_rate) * 2; /*Bitcell period in ns*/
 }
 
 

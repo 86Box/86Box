@@ -307,6 +307,7 @@ extern int	machine_at_mb500n_init(const machine_t *);
 extern int	machine_at_vectra54_init(const machine_t *);
 #endif
 extern int	machine_at_powermate_v_init(const machine_t *);
+extern int	machine_at_acerv30_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_endeavor_get_device(void);

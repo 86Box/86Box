@@ -241,7 +241,7 @@ machine_at_acerm3a_init(const machine_t *model)
     device_add(&fdc37c932fr_device);
     device_add(&acerm3a_device);
 
-    device_add(&intel_flash_bxb_device);
+    device_add(&sst_flash_29ee010_device);
 
     return ret;
 }
@@ -274,7 +274,7 @@ machine_at_acerv35n_init(const machine_t *model)
     device_add(&fdc37c932fr_device);
     device_add(&acerm3a_device);
 
-    device_add(&intel_flash_bxb_device);
+    device_add(&sst_flash_29ee010_device);
 
     return ret;
 }

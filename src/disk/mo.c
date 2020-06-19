@@ -412,7 +412,7 @@ static void
 mo_set_callback(mo_t *dev)
 {
     if (dev->drv->bus_type != MO_BUS_SCSI)
-	ide_set_callback(dev->drv->ide_channel >> 1, dev->callback);
+	ide_set_callback(ide_drives[dev->drv->ide_channel], dev->callback);
 }
 
 

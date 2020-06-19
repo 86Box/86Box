@@ -241,6 +241,7 @@ const machine_t machines[] = {
     { "[i430NX] Gigabyte GA-586IP",		"430nx",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  2,  128,   2, 127,		machine_at_430nx_init, NULL			},
 
     /* 430FX */
+    { "[i430FX] Acer V30",			"acerv30",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	      machine_at_acerv30_init, NULL			},
     { "[i430FX] Gateway 2000 Zappa",		"gw2kzp",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	       machine_at_gw2kzp_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_VECTRA54)
     { "[i430FX] HP Vectra VL 5 Series 4",	"vectra54",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC | MACHINE_PS2,						  8,  128,   8, 511,	     machine_at_vectra54_init, NULL			},

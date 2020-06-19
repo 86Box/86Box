@@ -1221,7 +1221,7 @@ write64_generic(void *priv, uint8_t val)
 		} else {
 			if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) &&
 			    ((dev->flags & KBC_VEN_MASK) != KBC_VEN_INTEL_AMI))
-				add_data(dev, (dev->input_port | fixed_bits) & 0xef);
+				add_data(dev, (dev->input_port | fixed_bits) & (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0xeb : 0xef));
 			else
 				add_data(dev, dev->input_port | fixed_bits);
 			dev->input_port = ((dev->input_port + 1) & 3) |
@@ -1265,40 +1265,6 @@ write64_generic(void *priv, uint8_t val)
     }
 
     return 1;
-}
-
-
-static uint8_t
-write60_acer(void *priv, uint8_t val)
-{
-#if 0
-    atkbd_t *dev = (atkbd_t *)priv;
-
-    switch(dev->command) {
-	case 0xc0:	/* sent by Acer V30 BIOS */
-		return 0;
-    }
-#endif
-
-    return 1;
-}
-
-
-static uint8_t
-write64_acer(void *priv, uint8_t val)
-{
-    atkbd_t *dev = (atkbd_t *)priv;
-
-    kbd_log("ACER: write64(%02x, %02x)\n", dev->command, val);
-
-#if 0
-    switch (val) {
-	case 0xc0:	/* sent by Acer V30 BIOS */
-		return 0;
-    }
-#endif
-
-    return write64_generic(dev, val);
 }
 
 
@@ -2335,7 +2301,7 @@ kbd_reset(void *priv)
     dev->key_wantdata = 0;
 
     /* Set up the correct Video Type bits. */
-    if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_XI8088)
+    if (((dev->flags & KBC_VEN_MASK) == KBC_VEN_XI8088) || ((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER))
 	dev->input_port = video_is_mda() ? 0xb0 : 0xf0;
     else
 	dev->input_port = video_is_mda() ? 0xf0 : 0xb0;
@@ -2414,6 +2380,7 @@ kbd_init(const device_t *info)
     dev->write64_ven = NULL;
 
     switch(dev->flags & KBC_VEN_MASK) {
+	case KBC_VEN_ACER:
 	case KBC_VEN_GENERIC:
 	case KBC_VEN_IBM_PS1:
 	case KBC_VEN_XI8088:
@@ -2438,11 +2405,6 @@ kbd_init(const device_t *info)
 	case KBC_VEN_TOSHIBA:
 		dev->write60_ven = write60_toshiba;
 		dev->write64_ven = write64_toshiba;
-		break;
-
-	case KBC_VEN_ACER:
-		dev->write60_ven = write60_acer;
-		dev->write64_ven = write64_acer;
 		break;
     }
 
@@ -2593,14 +2555,10 @@ const device_t keyboard_ps2_intel_ami_pci_device = {
     NULL, NULL, NULL
 };
 
-const device_t keyboard_ps2_acer_device = {
+const device_t keyboard_ps2_acer_pci_device = {
     "PS/2 Keyboard (Acer 90M002A)",
     DEVICE_PCI,
-#ifdef KBC_VEN_ACER
     KBC_TYPE_PS2_NOREF | KBC_VEN_ACER,
-#else
-    KBC_TYPE_PS2_NOREF | KBC_VEN_GENERIC,
-#endif
     kbd_init,
     kbd_close,
     kbd_reset,

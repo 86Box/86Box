@@ -29,7 +29,8 @@ enum
 
 #ifdef SCSI_DEVICE_H
 typedef struct ide_s {
-    uint8_t atastat, error,
+    uint8_t selected,
+	    atastat, error,
 	    command, fdisk;
     int type, board,
 	irqstat, service,
@@ -49,6 +50,8 @@ typedef struct ide_s {
     uint16_t *buffer;
     uint8_t *sector_buffer;
 
+    pc_timer_t	timer;
+
     /* Stuff mostly used by ATAPI */
     scsi_common_t	*sc;
     int		interrupt_drq;
@@ -63,6 +66,8 @@ typedef struct ide_s {
     void	(*command_stop)(scsi_common_t *sc);
     void	(*bus_master_error)(scsi_common_t *sc);
 } ide_t;
+
+extern 	ide_t	*ide_drives[IDE_NUM];
 #endif
 
 /* Type:
@@ -133,7 +138,10 @@ extern void	ide_sec_disable(void);
 extern void	ide_board_set_force_ata3(int board, int force_ata3);
 
 extern double	ide_atapi_get_period(uint8_t channel);
-extern void	ide_set_callback(uint8_t channel, double callback);
+#ifdef SCSI_DEVICE_H
+extern void	ide_set_callback(ide_t *ide, double callback);
+#endif
+extern void	ide_set_board_callback(uint8_t board, double callback);
 
 extern void	ide_padstr(char *str, const char *src, int len);
 extern void	ide_padstr8(uint8_t *buf, int buf_size, const char *src);
