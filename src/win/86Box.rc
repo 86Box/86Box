@@ -1021,6 +1021,8 @@ BEGIN
     IDS_4117	"Remember to partition and format the newly-created drive."
     IDS_4118	"The selected file will be overwritten. Are you sure you want to use it?"
     IDS_4119	"Unsupported disk image"
+    IDS_4120	"Overwrite"
+    IDS_4121	"Cancel"
 
     IDS_4352    "MFM/RLL"
     IDS_4353    "XTA"

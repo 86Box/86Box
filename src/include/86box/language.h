@@ -134,6 +134,8 @@
 #define IDS_4117	4117		// "Remember to partition and format..."
 #define IDS_4118	4118		// "The selected file will be..."
 #define IDS_4119	4119		// "Unsupported disk image"
+#define IDS_4120	4120		// "Overwrite"
+#define IDS_4121	4121		// "Cancel"
 
 #define IDS_4352	4352		// "MFM/RLL"
 #define IDS_4353	4353		// "XT IDE"

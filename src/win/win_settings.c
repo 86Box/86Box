@@ -194,6 +194,23 @@ settings_msgbox_header(int flags, void *header, void *message)
 }
 
 
+static int
+settings_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, void *btn3)
+{
+    HWND h;
+    int i;
+
+    h = hwndMain;
+    hwndMain = hwndParentDialog;
+
+    i = ui_msgbox_ex(flags, header, message, btn1, btn2, btn3);
+
+    hwndMain = h;
+
+    return(i);
+}
+
+
 /* This does the initial read of global variables into the temporary ones. */
 static void
 win_settings_init(void)
@@ -3043,7 +3060,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 						f = _wfopen(wopenfilestring, L"rb");
 						if (f != NULL) {
 							fclose(f);
-							if (settings_msgbox_header(MBX_QUESTION, (wchar_t *) IDS_4111, (wchar_t *) IDS_4118) != 0)	/* yes */
+							if (settings_msgbox_ex(MBX_QUESTION_YN, (wchar_t *) IDS_4111, (wchar_t *) IDS_4118, (wchar_t *) IDS_4120, (wchar_t *) IDS_4121, NULL) != 0)	/* yes */
 								return FALSE;
 						}
 					}

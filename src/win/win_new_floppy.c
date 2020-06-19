@@ -531,6 +531,23 @@ new_floppy_msgbox_header(HWND hwnd, int flags, void *header, void *message)
 }
 
 
+static int
+new_floppy_msgbox_ex(HWND hwnd, int flags, void *header, void *message, void *btn1, void *btn2, void *btn3)
+{
+    HWND h;
+    int i;
+
+    h = hwndMain;
+    hwndMain = hwnd;
+
+    i = ui_msgbox_ex(flags, header, message, btn1, btn2, btn3);
+
+    hwndMain = h;
+
+    return(i);
+}
+
+
 #if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
@@ -637,7 +654,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					f = _wfopen(wopenfilestring, L"rb");
 					if (f != NULL) {
 						fclose(f);
-						if (new_floppy_msgbox_header(hdlg, MBX_QUESTION, (wchar_t *) IDS_4111, (wchar_t *) IDS_4118) != 0)	/* yes */
+						if (new_floppy_msgbox_ex(hdlg, MBX_QUESTION, (wchar_t *) IDS_4111, (wchar_t *) IDS_4118, (wchar_t *) IDS_4120, (wchar_t *) IDS_4121, NULL) != 0)	/* yes */
 							return FALSE;
 					}
 					SendMessage(h, WM_SETTEXT, 0, (LPARAM) wopenfilestring);
