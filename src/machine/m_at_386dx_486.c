@@ -125,6 +125,36 @@ machine_at_pb410a_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_acera1g_init(const machine_t *model)
+{
+    int ret;
+
+   ret = bios_load_linear(L"roms/machines/acera1g/4alo001.bin",
+			  0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_ide_init(model);
+
+    if (gfxcard == VID_INTERNAL)
+	device_add(&gd5428_a1g_device);
+
+    device_add(&ali1429_device);
+    device_add(&keyboard_ps2_acer_pci_device);
+    device_add(&fdc_at_device);
+    device_add(&ide_isa_device);
+
+    return ret;
+}
+
+const device_t *
+at_acera1g_get_device(void)
+{
+    return &gd5428_a1g_device;
+}
+
 
 static void
 machine_at_ali1429_common_init(const machine_t *model)
@@ -267,13 +297,12 @@ machine_at_ami471_init(const machine_t *model)
     return ret;
 }
 
-
 int
-machine_at_dtk486_init(const machine_t *model)
+machine_at_vli486sv2g_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/dtk486/4siw005.bin",
+    ret = bios_load_linear(L"roms/machines/vli486sv2g/0402.001",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -285,13 +314,12 @@ machine_at_dtk486_init(const machine_t *model)
     return ret;
 }
 
-
 int
-machine_at_vli486sv2g_init(const machine_t *model)
+machine_at_dtk486_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/vli486sv2g/0402.001",
+    ret = bios_load_linear(L"roms/machines/dtk486/4siw005.bin",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
