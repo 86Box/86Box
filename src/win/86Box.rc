@@ -917,7 +917,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_2080	"Unable to initialize FluidSynth, libfluidsynth.dll is required"
+    IDS_2080	"Unable to initialize FluidSynth"
     IDS_2081	"Bus"
     IDS_2082	"File"
     IDS_2083	"C"
@@ -985,6 +985,12 @@ BEGIN
 #define LIB_NAME_GS "libgs"
 #endif
     IDS_2132	LIB_NAME_GS " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
+#ifdef _WIN32
+#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
+#else
+#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
+#endif
+    IDS_2133	LIB_NAME_FLUIDSYNTH " is required for FluidSynth MIDI output."
 END
 
 STRINGTABLE DISCARDABLE 

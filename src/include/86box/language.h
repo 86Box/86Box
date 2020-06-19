@@ -106,6 +106,7 @@
 #define IDS_2130	2130		// "Invalid configuration"
 #define IDS_2131	2131		// LIB_NAME_FREETYPE " is required..."
 #define IDS_2132	2132		// LIB_NAME_GS " is required for...
+#define IDS_2133	2133		// LIB_NAME_FLUIDSYNTH " is required..."
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
