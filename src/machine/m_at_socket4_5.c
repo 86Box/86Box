@@ -162,6 +162,23 @@ machine_at_valuepointp60_init(const machine_t *model)
 }
 #endif
 
+int
+machine_at_p5mp3_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/p5mp3/0205.bin",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_award_common_init(model);
+
+    device_add(&i430lx_device);
+
+    return ret;
+}
 
 int
 machine_at_586mc1_init(const machine_t *model)
