@@ -192,7 +192,6 @@ typedef struct {
     uint32_t	index_hole_pos[2];
     uint32_t	track_offset[512];
     uint32_t	file_size;
-    sector_id_t	format_sector_id;
     sector_id_t	last_sector;
     sector_id_t	req_sector;
     uint32_t	index_count;
@@ -1956,7 +1955,7 @@ d86f_format_track(int drive, int side, int do_write)
 				data &= 0xff;
        			if ((data == -1) && (dev->datac < 3))
 				data = 0;
-			dev->format_sector_id.byte_array[dev->datac] = data & 0xff;
+			d86f_fdc->format_sector_id.byte_array[dev->datac] = data & 0xff;
        			if (dev->datac == 3)
 				fdc_stop_id_request(d86f_fdc);
 		}
@@ -2001,11 +2000,11 @@ d86f_format_track(int drive, int side, int do_write)
 	case FMT_SECTOR_ID:
 		max_len = 4;
 		if (do_write) {
-			d86f_write_direct(drive, side, dev->format_sector_id.byte_array[dev->datac], 0);
-			d86f_calccrc(dev, dev->format_sector_id.byte_array[dev->datac]);
+			d86f_write_direct(drive, side, d86f_fdc->format_sector_id.byte_array[dev->datac], 0);
+			d86f_calccrc(dev, d86f_fdc->format_sector_id.byte_array[dev->datac]);
 		} else {
 			if (dev->datac == 3) {
-				d86f_handler[drive].set_sector(drive, side, dev->format_sector_id.id.c, dev->format_sector_id.id.h, dev->format_sector_id.id.r, dev->format_sector_id.id.n);
+				d86f_handler[drive].set_sector(drive, side, d86f_fdc->format_sector_id.id.c, d86f_fdc->format_sector_id.id.h, d86f_fdc->format_sector_id.id.r, d86f_fdc->format_sector_id.id.n);
 			}
 		}
 		break;
@@ -2250,10 +2249,10 @@ d86f_turbo_format(int drive, int side, int nop)
 		dat &= 0xff;
 	if ((dat == -1) && (dev->datac < 3))
 		dat = 0;
-	dev->format_sector_id.byte_array[dev->datac] = dat & 0xff;
+	d86f_fdc->format_sector_id.byte_array[dev->datac] = dat & 0xff;
 	if (dev->datac == 3) {
 		fdc_stop_id_request(d86f_fdc);
-		d86f_handler[drive].set_sector(drive, side, dev->format_sector_id.id.c, dev->format_sector_id.id.h, dev->format_sector_id.id.r, dev->format_sector_id.id.n);
+		d86f_handler[drive].set_sector(drive, side, d86f_fdc->format_sector_id.id.c, d86f_fdc->format_sector_id.id.h, d86f_fdc->format_sector_id.id.r, d86f_fdc->format_sector_id.id.n);
 	}
     } else if (dev->datac == 4) {
 	if (! nop) {

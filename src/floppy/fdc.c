@@ -659,18 +659,6 @@ fdc_seek(fdc_t *fdc, int drive, int params)
 }
 
 
-void
-fdc_implied_seek(fdc_t *fdc)
-{
-    if (fdc->config & 0x40) {
-	if (fdc->params[1] != fdc->pcn[fdc->params[0] & 3]) {
-		fdc_seek(fdc, fdc->drive, ((int) fdc->params[1]) - ((int) fdc->pcn[fdc->params[0] & 3]));
-		fdc->pcn[fdc->params[0] & 3] = fdc->params[1];
-	}
-    }
-}
-
-
 static void
 fdc_bad_command(fdc_t *fdc)
 {
@@ -691,8 +679,15 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
     fdc->eot[fdc->drive] = fdc->params[5];
     fdc->gap = fdc->params[6];
     fdc->dtl = fdc->params[7];
-    fdc_implied_seek(fdc);
     fdc->rw_track = fdc->params[1];
+
+    if (fdc->config & 0x40) {
+	if (fdc->rw_track != fdc->pcn[fdc->params[0] & 3]) {
+		fdc_seek(fdc, fdc->drive, ((int) fdc->rw_track) - ((int) fdc->pcn[fdc->params[0] & 3]));
+		fdc->pcn[fdc->params[0] & 3] = fdc->rw_track;
+	}
+    }
+
     ui_sb_update_icon(SB_FLOPPY | real_drive(fdc, fdc->drive), 1);
     fdc->stat = out ? 0x90 : 0x50;
     if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma)
@@ -965,7 +960,8 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 					if (!(fdc->flags & FDC_FLAG_NSC)) {
 						fdc_bad_command(fdc);
 						break;
-					}		
+					}
+					/*FALLTHROUGH*/
 				case 0x10: /*Get version*/
 				case 0x14: /*Unlock*/
 				case 0x94: /*Lock*/
@@ -1714,10 +1710,10 @@ fdc_callback(void *priv)
 			fdc->stat = 0xD0;
 			fdc->st0 = fdc->res[4] = (fdd_get_head(real_drive(fdc, fdc->drive)) ? 4 : 0) | fdc->drive;
 			fdc->res[5] = fdc->res[6] = 0;
-			fdc->res[7] = fdc->pcn[fdc->params[0] & 3];
-			fdc->res[8] = fdd_get_head(real_drive(fdc, fdc->drive));
-			fdc->res[9] = fdc->format_dat[fdc->pos - 2] + 1;
-			fdc->res[10] = fdc->params[4];
+			fdc->res[7] = fdc->format_sector_id.id.c;
+			fdc->res[8] = fdc->format_sector_id.id.h;
+			fdc->res[9] = fdc->format_sector_id.id.r;
+			fdc->res[10] = fdc->format_sector_id.id.n;
 			fdc->paramstogo = 7;
 			fdc->format_state = 0;
 			return;

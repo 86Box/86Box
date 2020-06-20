@@ -40,15 +40,15 @@ extern int fdc_type;
 typedef struct {
     uint8_t	dor, stat, command, processed_cmd, dat, st0, swap;
     uint8_t	swwp, disable_write;
-    uint8_t	params[256], res[256];
-    uint8_t	specify[256], format_dat[256];
+    uint8_t	params[8], res[11];
+    uint8_t	specify[2];
     uint8_t	config, pretrk;
     uint8_t	fifobuf[16];
 
     uint16_t	base_address;
 
     int		head, sector, drive, lastdrive;
-    int		pcn[4], eot[256];
+    int		pcn[4], eot[4];
     int		rw_track, pos;
     int		pnum, ptot;
     int		rate, reset_stat;
@@ -82,11 +82,11 @@ typedef struct {
     int		bit_rate;	/* Should be 250 at start. */
     int		paramstogo;
 
-    sector_id_t	read_track_sector;
+    sector_id_t	read_track_sector, format_sector_id;
 
-	uint64_t watchdog_count;
-	
-	pc_timer_t	timer, watchdog_timer;
+    uint64_t	watchdog_count;
+
+    pc_timer_t	timer, watchdog_timer;
 } fdc_t;
 
 
