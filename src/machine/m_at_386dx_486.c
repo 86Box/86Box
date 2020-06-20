@@ -148,7 +148,7 @@ machine_at_acera1g_init(const machine_t *model)
     device_add(&ali1429_device);
     device_add(&keyboard_ps2_acer_pci_device);
     device_add(&fdc_at_device);
-    device_add(&ide_vlb_2ch_device);
+    device_add(&ide_isa_2ch_device);
 
     return ret;
 }
