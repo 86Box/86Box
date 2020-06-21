@@ -333,6 +333,7 @@ extern int	machine_at_acerv35n_init(const machine_t *);
 extern int	machine_at_ap53_init(const machine_t *);
 extern int	machine_at_p55t2p4_init(const machine_t *);
 extern int	machine_at_p55t2s_init(const machine_t *);
+extern int	machine_at_8500tuc_init(const machine_t *);
 extern int	machine_at_m7shi_init(const machine_t *);
 extern int	machine_at_tc430hx_init(const machine_t *);
 extern int	machine_at_equium5200_init(const machine_t *);
