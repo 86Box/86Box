@@ -38,8 +38,7 @@
 #include <86box/sio.h>
 #include <86box/hdc.h>
 #include <86box/video.h>
-#include <86box/intel_flash.h>
-#include <86box/sst_flash.h>
+#include <86box/flash.h>
 #include <86box/scsi_ncr53c8xx.h>
 #include <86box/machine.h>
 

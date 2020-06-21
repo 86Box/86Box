@@ -34,8 +34,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/keyboard.h>
-#include <86box/intel_flash.h>
-#include <86box/sst_flash.h>
+#include <86box/flash.h>
 #include <86box/nvr.h>
 #include <86box/sio.h>
 #include <86box/video.h>
@@ -100,7 +99,6 @@ machine_at_award_common_init(const machine_t *model)
     device_add(&fdc_at_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&sio_device);
-    device_add(&intel_flash_bxt_device);
 }
 
 
@@ -162,6 +160,7 @@ machine_at_valuepointp60_init(const machine_t *model)
 }
 #endif
 
+
 int
 machine_at_p5mp3_init(const machine_t *model)
 {
@@ -175,10 +174,12 @@ machine_at_p5mp3_init(const machine_t *model)
 
     machine_at_award_common_init(model);
 
+    device_add(&catalyst_flash_device);
     device_add(&i430lx_device);
 
     return ret;
 }
+
 
 int
 machine_at_586mc1_init(const machine_t *model)
@@ -193,6 +194,7 @@ machine_at_586mc1_init(const machine_t *model)
 
     machine_at_award_common_init(model);
 
+    device_add(&intel_flash_bxt_device);
     device_add(&i430lx_device);
 
     return ret;
@@ -250,6 +252,7 @@ machine_at_430nx_init(const machine_t *model)
 
     machine_at_award_common_init(model);
 
+    device_add(&intel_flash_bxt_device);
     device_add(&i430nx_device);
 
     return ret;
@@ -415,6 +418,7 @@ machine_at_mb500n_init(const machine_t *model)
 
     return ret;
 }
+
 
 #if defined(DEV_BRANCH) && defined(USE_VECTRA54)
 int

@@ -463,6 +463,9 @@ intel_flash_close(void *p)
     fwrite(&(dev->array[dev->block_start[BLOCK_DATA2]]), dev->block_len[BLOCK_DATA2], 1, f);
     fclose(f);
 
+    free(dev->array);
+    dev->array = NULL;
+
     free(dev);
 }
 

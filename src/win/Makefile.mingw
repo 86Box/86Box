@@ -552,7 +552,7 @@ MAINOBJ		:= pc.o config.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
 		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o \
 		   $(VNCOBJ)
 
-MEMOBJ		:= intel_flash.o mem.o rom.o spd.o sst_flash.o
+MEMOBJ		:= catalyst_flash.o intel_flash.o mem.o rom.o spd.o sst_flash.o
 
 CPUOBJ		:= cpu.o cpu_table.o \
 		    808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o $(CGTOBJ) \
