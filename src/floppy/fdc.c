@@ -787,11 +787,9 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 			}
 			drive_num = real_drive(fdc, val & 0x03);
 			current_drive = drive_num;
-			fdc->st0 &= ~0x07;
-			fdc->st0 |= real_drive(fdc, drive_num);
-			fdc->st0 |= (fdd_get_head(drive_num) ? 4 : 0);
+			fdc->st0 = (fdc->st0 & 0xf8) | (val & 0x03) | (fdd_get_head(drive_num) ? 4 : 0);
 		}
-		fdc->dor=val;
+		fdc->dor = val;
 		return;
 	case 3:	/* TDR */
 		if (fdc->enh_mode) {
