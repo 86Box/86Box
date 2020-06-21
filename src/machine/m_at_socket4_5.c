@@ -62,12 +62,12 @@ machine_at_excalibur_init(const machine_t *model)
 
 
 static void
-machine_at_premiere_common_init(const machine_t *model)
+machine_at_premiere_common_init(const machine_t *model, int pci_switch)
 {
     machine_at_common_init(model);
     device_add(&ide_pci_2ch_device);
 
-    pci_init(PCI_CONFIG_TYPE_2);
+    pci_init(PCI_CONFIG_TYPE_2 | pci_switch);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     pci_register_slot(0x06, PCI_CARD_NORMAL, 3, 2, 1, 4);
@@ -98,7 +98,6 @@ machine_at_award_common_init(const machine_t *model)
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&fdc_at_device);
     device_add(&keyboard_ps2_pci_device);
-    device_add(&sio_device);
 }
 
 
@@ -113,7 +112,7 @@ machine_at_batman_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_premiere_common_init(model);
+    machine_at_premiere_common_init(model, 0);
 
     device_add(&i430lx_device);
 
@@ -132,7 +131,7 @@ machine_at_ambradp60_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_premiere_common_init(model);
+    machine_at_premiere_common_init(model, 0);
 
     device_add(&i430lx_device);
 
@@ -152,7 +151,7 @@ machine_at_valuepointp60_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_premiere_common_init(model);
+    machine_at_premiere_common_init(model, 0);
 
     device_add(&i430lx_device);
 
@@ -172,8 +171,19 @@ machine_at_p5mp3_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_award_common_init(model);
+    machine_at_common_init(model);
+    device_add(&ide_pci_device);
 
+    pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x05, PCI_CARD_NORMAL, 1, 2, 3, 4);	/* 05 = Slot 1 */
+    pci_register_slot(0x04, PCI_CARD_NORMAL, 2, 3, 4, 1);	/* 04 = Slot 2 */
+    pci_register_slot(0x03, PCI_CARD_NORMAL, 3, 4, 1, 2);	/* 03 = Slot 3 */
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&fdc_at_device);
+    device_add(&keyboard_ps2_pci_device);
+
+    device_add(&sio_zb_device);
     device_add(&catalyst_flash_device);
     device_add(&i430lx_device);
 
@@ -194,6 +204,7 @@ machine_at_586mc1_init(const machine_t *model)
 
     machine_at_award_common_init(model);
 
+    device_add(&sio_device);
     device_add(&intel_flash_bxt_device);
     device_add(&i430lx_device);
 
@@ -212,7 +223,7 @@ machine_at_plato_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_premiere_common_init(model);
+    machine_at_premiere_common_init(model, PCI_CAN_SWITCH_TYPE);
 
     device_add(&i430nx_device);
 
@@ -231,7 +242,7 @@ machine_at_ambradp90_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_premiere_common_init(model);
+    machine_at_premiere_common_init(model, PCI_CAN_SWITCH_TYPE);
 
     device_add(&i430nx_device);
 
@@ -252,6 +263,7 @@ machine_at_430nx_init(const machine_t *model)
 
     machine_at_award_common_init(model);
 
+    device_add(&sio_device);
     device_add(&intel_flash_bxt_device);
     device_add(&i430nx_device);
 

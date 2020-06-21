@@ -55,13 +55,14 @@ int			pci_burst_time,
 			pci_nonburst_time;
 
 static pci_card_t	pci_cards[32];
-static uint8_t		last_pci_card = 0;
+static uint8_t		pci_pmc = 0, last_pci_card = 0;
 static uint8_t		pci_card_to_slot_mapping[32];
 static uint8_t		elcr[2] = { 0, 0 };
 static uint8_t		pci_irqs[4], pci_irq_level[4];
 static uint64_t		pci_irq_hold[16];
 static pci_mirq_t	pci_mirqs[3];
 static int		pci_type,
+			pci_switch,
 			pci_index,
 			pci_func,
 			pci_card,
@@ -69,6 +70,9 @@ static int		pci_type,
 			pci_enable,
 			pci_key;
 static int		trc_reg = 0, elcr_enabled = 1;
+
+
+static void		pci_reset_regs(void);
 
 
 #ifdef ENABLE_PCI_LOG
@@ -244,15 +248,39 @@ pci_type2_write(uint16_t port, uint8_t val, void *priv)
 	if (!pci_key && (val & 0xf0))
 		io_sethandler(0xc000, 0x1000,
 			      pci_type2_read, NULL, NULL,
-			      pci_type2_write, NULL, NULL, priv);
-	else
+			      pci_type2_write, NULL, NULL, NULL);
+	else if (pci_key && !(val & 0xf0))
 		io_removehandler(0xc000, 0x1000,
 				 pci_type2_read, NULL, NULL,
-				 pci_type2_write, NULL, NULL, priv);
+				 pci_type2_write, NULL, NULL, NULL);
 
 	pci_key = val & 0xf0;
-    } else if (port == 0xcfa) {
+    } else if (port == 0xcfa)
 	pci_bus = val;
+    else if (port == 0xcfb) {
+	pci_reset_regs();
+
+	if (!pci_pmc && (val & 0x01)) {
+		io_removehandler(0x0cf8, 1,
+				 pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+		io_removehandler(0x0cfa, 1,
+				 pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+		io_sethandler(0x0cf8, 1,
+			      NULL,NULL,pci_cf8_read, NULL,NULL,pci_cf8_write, NULL);
+		io_sethandler(0x0cfc, 4,
+			      pci_read,NULL,NULL, pci_write,NULL,NULL, NULL);
+	} else if (pci_pmc && !(val & 0x01)) {
+		io_removehandler(0x0cf8, 1,
+				 NULL,NULL,pci_cf8_read, NULL,NULL,pci_cf8_write, NULL);
+		io_removehandler(0x0cfc, 4,
+				 pci_read,NULL,NULL, pci_write,NULL,NULL, NULL);
+		io_sethandler(0x0cf8, 1,
+			      pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+		io_sethandler(0x0cfa, 1,
+			      pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+	}
+
+	pci_pmc = (val & 0x01);
     } else {
 	pci_card = (port >> 8) & 0xf;
 	pci_index = port & 0xff;
@@ -283,9 +311,10 @@ pci_type2_read(uint16_t port, void *priv)
 
     if (port == 0xcf8)
 	return pci_key | (pci_func << 1);
-
-    if (port == 0xcfa)
+    else if (port == 0xcfa)
 	return pci_bus;
+    else if (port == 0xcfb)
+	return pci_pmc;
 
     pci_card = (port >> 8) & 0xf;
     pci_index = port & 0xff;
@@ -612,10 +641,23 @@ pci_elcr_set_enabled(int enabled)
 }
 
 
-void
-pci_reset(void)
+static void
+pci_reset_regs(void)
+{
+    pci_index = pci_card = pci_func = pci_bus = pci_key = 0;
+
+    io_removehandler(0xc000, 0x1000,
+		     pci_type2_read, NULL, NULL,
+		     pci_type2_write, NULL, NULL, NULL);
+}
+
+
+static void
+pci_reset_hard(void)
 {
     int i;
+
+    pci_reset_regs();
 
     for (i = 0; i < 16; i++) {
 	if (pci_irq_hold[i]) {
@@ -626,6 +668,26 @@ pci_reset(void)
     }
 
     elcr_reset();
+}
+
+
+void
+pci_reset(void)
+{
+    if (pci_switch) {
+	pci_pmc = 0x00;
+
+	io_removehandler(0x0cf8, 1,
+			 NULL,NULL,pci_cf8_read, NULL,NULL,pci_cf8_write, NULL);
+	io_removehandler(0x0cfc, 4,
+			 pci_read,NULL,NULL, pci_write,NULL,NULL, NULL);
+	io_sethandler(0x0cf8, 1,
+		      pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+	io_sethandler(0x0cfa, 1,
+		      pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+    }
+
+    pci_reset_hard();
 }
 
 
@@ -741,11 +803,19 @@ pci_init(int type)
 
     pci_slots_clear();
 
-    pci_reset();
+    pci_reset_hard();
 
     trc_init();
 
     pci_type = type;
+    pci_switch = !!(type & PCI_CAN_SWITCH_TYPE);
+
+    if (pci_switch) {
+	pci_pmc = 0x00;
+
+	io_sethandler(0x0cfb, 1,
+		      pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+    }
 
     if (!(type & PCI_NO_IRQ_STEERING)) {
 	io_sethandler(0x04d0, 0x0002,
