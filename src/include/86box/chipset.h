@@ -89,6 +89,9 @@ extern const device_t	via_apro_device;
 extern const device_t	via_vt82c586b_device;
 extern const device_t	via_vt82c596b_device;
 
+/* AMD */
+extern const device_t amd640_device;
+
 /* VLSI */
 extern const device_t   vlsi_scamp_device;
 
