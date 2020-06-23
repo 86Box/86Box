@@ -23,7 +23,7 @@ The earlier 596/597 appears to be register compatible with the 546/547 from test
 typedef struct
 {
     uint8_t	cur_reg,
-		regs[64];
+		regs[16];
     port_92_t  *port_92;		
 } opti5x7_t;
 
@@ -61,12 +61,10 @@ opti5x7_write(uint16_t addr, uint8_t val, void *priv)
 		break;	    
 	case 0x24:	
 			dev->regs[dev->cur_reg] = val;
-			if (dev->cur_reg == 0x02) {
-				cpu_cache_ext_enabled = val & 0x10;
-			}
-			if (dev->cur_reg == 0x06) {
+			if (dev->regs[0x02] & 0x0c)
+				cpu_cache_ext_enabled = 1;
+			if (dev->cur_reg == 0x06)
 				opti5x7_recalcmapping(dev);			
-			}
 		break;	    
     }
 }
