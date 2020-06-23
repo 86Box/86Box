@@ -31,7 +31,8 @@ extern const device_t	ali1429_device;
 extern const device_t	headland_device;
 extern const device_t	headland_386_device;
 
-/* Intel 4x0xX */
+/* Intel */
+extern const device_t   i82335_device;
 extern const device_t	i420ex_device;
 extern const device_t	i420tx_device;
 extern const device_t	i420zx_device;
