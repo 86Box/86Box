@@ -1030,7 +1030,7 @@ pit_set_clock(int clock)
 
     isa_timing = (cpuclock / (double)8000000.0);
     if (cpu_64bitbus)
-    bus_timing = (cpuclock / ((double)cpu_busspeed) / 2);
+    bus_timing = (cpuclock / ((double)cpu_busspeed / 2));
     else
     bus_timing = (cpuclock / (double)cpu_busspeed);	    
     pci_timing = (cpuclock / (double)cpu_pci_speed);

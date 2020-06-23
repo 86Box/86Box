@@ -54,7 +54,7 @@ machine_at_excalibur_init(const machine_t *model)
 
     device_add(&ide_vlb_device);
     device_add(&opti5x7_device);
-    device_add(&fdc37c663_device);
+    device_add(&fdc37c661_device);
     device_add(&keyboard_at_ami_device);
 
     return ret;

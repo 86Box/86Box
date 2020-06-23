@@ -179,7 +179,7 @@ const machine_t machines[] = {
 
     /* 386DX machines */
     { "[ACC 2168] AMI 386DX clone",		"acc386",		MACHINE_TYPE_386DX,		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,							       512, 16384, 128, 127,	       machine_at_acc386_init, NULL			},
-    { "[SiS Rabbit] ASUS ISA-386C",		"asus386",		MACHINE_TYPE_386DX,		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,							       512, 16384, 128, 127,	      machine_at_asus386_init, NULL			},
+    { "[SiS 310] ASUS ISA-386C",		"asus386",		MACHINE_TYPE_386DX,		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,							       512, 16384, 128, 127,	      machine_at_asus386_init, NULL			},
     { "[ISA] Compaq Portable III (386)",	"portableiii386",       MACHINE_TYPE_386DX,		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC | MACHINE_VIDEO,			  			  1,   14,   1, 127,   machine_at_portableiii386_init, at_cpqiii_get_device	},
     { "[ISA] Micronics 386 clone",		"micronics386",		MACHINE_TYPE_386DX,		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,								512, 8192, 128, 127,	 machine_at_micronics386_init, NULL			},
     { "[C&T 386] ECS 386/32",			"ecs386",		MACHINE_TYPE_386DX,		{{"Intel", cpus_i386DX},      {"AMD", cpus_Am386DX}, {"Cyrix", cpus_486DLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										  1,   16,   1, 127,	       machine_at_ecs386_init, NULL			},		
@@ -229,7 +229,7 @@ const machine_t machines[] = {
 
     /* Socket 4 machines */
     /* OPTi 596/597 */
-    { "[OPTi Python] AMI Excalibur VLB",	"excalibur",		MACHINE_TYPE_SOCKET4,		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   64,   1, 127,	    machine_at_excalibur_init, NULL			},     
+    { "[OPTi 597] AMI Excalibur VLB",		"excalibur",		MACHINE_TYPE_SOCKET4,		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  2,   64,   2, 127,	    machine_at_excalibur_init, NULL			},     
         
     /* 430LX */
     { "[i430LX] IBM Ambra DP60 PCI",		"ambradp60",		MACHINE_TYPE_SOCKET4,		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  2,  128,   2, 127,	    machine_at_ambradp60_init, NULL			},
