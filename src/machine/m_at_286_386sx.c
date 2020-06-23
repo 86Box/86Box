@@ -442,6 +442,27 @@ machine_at_shuttle386sx_init(const machine_t *model)
 }
 
 int
+machine_at_adi386sx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/adi386sx/3iip001l.bin",
+				L"roms/machines/adi386sx/3iip001h.bin",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&i82335_device);
+    device_add(&keyboard_at_ami_device);
+    device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
 machine_at_wd76c10_init(const machine_t *model)
 {
     int ret;
