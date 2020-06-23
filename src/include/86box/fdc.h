@@ -38,7 +38,7 @@ extern int fdc_type;
 
 
 typedef struct {
-    uint8_t	dor, stat, command, processed_cmd, dat, st0, swap;
+    uint8_t	dor, stat, command, processed_cmd, dat, st0, swap, dtl;
     uint8_t	swwp, disable_write;
     uint8_t	params[8], res[11];
     uint8_t	specify[2];
@@ -53,11 +53,9 @@ typedef struct {
     int		pnum, ptot;
     int		rate, reset_stat;
     int		lock, perp;
-    int		abort;
     int		format_state, format_n;
-    int		tc, written;
     int		step, seek_dir;
-    int		noprec;
+    int		tc, noprec;
 
     int		data_ready, inread;
     int		bitcell_period, enh_mode;
@@ -67,7 +65,7 @@ typedef struct {
     int		fifo, tfifo;
     int		fifobufpos, drv2en;
 
-    int		gap, dtl;
+    int		gap;
     int		enable_3f1, format_sectors;
     int		max_track, mfm;
     int		deleted, wrong_am;
