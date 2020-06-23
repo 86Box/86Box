@@ -5,8 +5,8 @@ running old operating systems and software designed for IBM PC systems and
 compatibles from 1981 through fairly recent system designs based on the
 PCI bus.
 
-86Box is released under the GNU General Public License, version 2. For more
-information, see the `LICENSE` file.
+86Box is released under the GNU General Public License, version 2 or later.
+For more information, see the `COPYING` file.
 
 The project maintainer is OBattler.
 
