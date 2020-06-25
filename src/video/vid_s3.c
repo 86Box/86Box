@@ -1720,7 +1720,7 @@ void s3_updatemapping(s3_t *s3)
 
 		s3->linear_base = (svga->crtc[0x5a] << 16) | (svga->crtc[0x59] << 24);
 		if ((s3->chip == S3_86C801) || (s3->chip == S3_86C805) ||
-		    (s3->chip == S3_86C911) || (s3->chip == S3_86C928)) {
+		    (s3->chip == S3_86C928)) {
 			if (s3->vlb)
 				s3->linear_base &= 0x03ffffff;
 			else
@@ -1768,6 +1768,10 @@ void s3_updatemapping(s3_t *s3)
 	/* Memory mapped I/O. */
 	if ((svga->crtc[0x53] & 0x10) || (s3->accel.advfunc_cntl & 0x20)) {
 		/* Old MMIO. */
+		if ((s3->chip == S3_86C801) || (s3->chip == S3_86C805) ||
+		    (s3->chip == S3_86C928))
+			mem_mapping_disable(&svga->mapping);
+
 		mem_mapping_enable(&s3->mmio_mapping);
 	} else
 		mem_mapping_disable(&s3->mmio_mapping);
@@ -1834,7 +1838,8 @@ void s3_accel_out(uint16_t port, uint8_t val, void *p)
 			break;
 			case 0x4948: case 0x4ae8:
 			s3->accel.advfunc_cntl = val;
-			s3_updatemapping(s3);
+			if (s3->chip != S3_86C911)
+				s3_updatemapping(s3);
 			break;
 		}
 	}
