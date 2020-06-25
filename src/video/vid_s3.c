@@ -647,7 +647,9 @@ static void s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		if (s3_cpu_dest(s3))
 			break;
 		s3->accel.pix_trans[0] = val;
-		if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80 && !(s3->accel.cmd & 0x600) && (s3->accel.cmd & 0x100))
+		/*Check to see if there's actual data from CPU*/
+		if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80 && !(s3->accel.cmd & 0x600) && (s3->accel.cmd & 0x100) &&
+			(((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40)))
 			s3_accel_start(8, 1, s3->accel.pix_trans[0], 0, s3);
 		else if (!(s3->accel.cmd & 0x600) && (s3->accel.cmd & 0x100))
 			s3_accel_start(1, 1, 0xffffffff, s3->accel.pix_trans[0], s3);
@@ -656,7 +658,9 @@ static void s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		if (s3_cpu_dest(s3))
 			break;
 		s3->accel.pix_trans[1] = val;
-		if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80 && (s3->accel.cmd & 0x600) == 0x200 && (s3->accel.cmd & 0x100))
+		/*Check to see if there's actual data from CPU*/
+		if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80 && (s3->accel.cmd & 0x600) == 0x200 && (s3->accel.cmd & 0x100) &&
+			&& (((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40)))
 		{
 			if (s3->accel.cmd & 0x1000) s3_accel_start(16, 1, s3->accel.pix_trans[1] | (s3->accel.pix_trans[0] << 8), 0, s3);
 			else			s3_accel_start(16, 1, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), 0, s3);
@@ -695,7 +699,9 @@ static void s3_accel_out_fifo_w(s3_t *s3, uint16_t port, uint16_t val)
 {
 	if (s3->accel.cmd & 0x100)
 	{
-		if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80 && (s3->chip != S3_86C911))
+		/*Check to see if there's actual data from CPU*/
+		if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80 && 
+			(((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40)))
 		{
 			if (s3->accel.cmd & 0x1000)
 				val = (val >> 8) | (val << 8);
@@ -1462,7 +1468,7 @@ void s3_out(uint16_t addr, uint8_t val, void *p)
 
 			case 0x53:
 			case 0x58: case 0x59: case 0x5a:
-			if (s3->chip != S3_86C911)
+			if (s3->chip != S3_86C911) /*S3 911/924 doesn't do MMIO*/
 				s3_updatemapping(s3);
 			break;
 
@@ -1738,7 +1744,7 @@ void s3_updatemapping(s3_t *s3)
 			s3->linear_size = 0x200000;
 			break;
 			case 3: /*8mb*/
-			switch (s3->chip) {
+			switch (s3->chip) { /* Not on video cards that don't support 4MB*/
 				case S3_TRIO64:
 				case S3_86C928:
 					s3->linear_size = 0x400000;
@@ -1768,10 +1774,8 @@ void s3_updatemapping(s3_t *s3)
 	/* Memory mapped I/O. */
 	if ((svga->crtc[0x53] & 0x10) || (s3->accel.advfunc_cntl & 0x20)) {
 		/* Old MMIO. */
-		if ((s3->chip == S3_86C801) || (s3->chip == S3_86C805) ||
-		    (s3->chip == S3_86C928))
-			mem_mapping_disable(&svga->mapping);
-
+		mem_mapping_disable(&svga->mapping); /* This must stay otherwise we can get a big messup in most operating systems,
+							like missing backgrounds, etc.*/
 		mem_mapping_enable(&s3->mmio_mapping);
 	} else
 		mem_mapping_disable(&s3->mmio_mapping);
@@ -1838,7 +1842,7 @@ void s3_accel_out(uint16_t port, uint8_t val, void *p)
 			break;
 			case 0x4948: case 0x4ae8:
 			s3->accel.advfunc_cntl = val;
-			if (s3->chip != S3_86C911)
+			if (s3->chip != S3_86C911) /*S3 911/924 doesn't do MMIO*/
 				s3_updatemapping(s3);
 			break;
 		}
