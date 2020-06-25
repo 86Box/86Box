@@ -1558,7 +1558,7 @@ uint8_t s3_in(uint16_t addr, void *p)
 		} else if (s3->chip == S3_86C801 || s3->chip == S3_86C805)
 			return att49x_ramdac_in(addr, svga->ramdac, svga);
 		else if (s3->chip == S3_86C911)
-			sc1148x_ramdac_in(addr, svga->ramdac, svga);
+			return sc1148x_ramdac_in(addr, svga->ramdac, svga);
 		else
 			return sdac_ramdac_in(addr, rs2, svga->ramdac, svga);			
 		break;
