@@ -226,6 +226,9 @@ extern void	ics2595_write(void *p, int strobe, int dat);
 extern double	ics2595_getclock(void *p);
 extern void	ics2595_setclock(void *p, double clock);
 
+extern void	sc1148x_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga);
+extern uint8_t	sc1148x_ramdac_in(uint16_t addr, void *p, svga_t *svga);
+
 extern void	sc1502x_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga);
 extern uint8_t	sc1502x_ramdac_in(uint16_t addr, void *p, svga_t *svga);
 
@@ -255,6 +258,8 @@ extern const device_t gendac_ramdac_device;
 extern const device_t ics2595_device;
 extern const device_t icd2061_device;
 extern const device_t ics9161_device;
+extern const device_t sc11483_ramdac_device;
+extern const device_t sc11487_ramdac_device;
 extern const device_t sc1502x_ramdac_device;
 extern const device_t sdac_ramdac_device;
 extern const device_t stg_ramdac_device;
