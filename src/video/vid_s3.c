@@ -695,7 +695,7 @@ static void s3_accel_out_fifo_w(s3_t *s3, uint16_t port, uint16_t val)
 {
 	if (s3->accel.cmd & 0x100)
 	{
-		if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80)
+		if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80 && (s3->chip != S3_86C911))
 		{
 			if (s3->accel.cmd & 0x1000)
 				val = (val >> 8) | (val << 8);
@@ -704,7 +704,7 @@ static void s3_accel_out_fifo_w(s3_t *s3, uint16_t port, uint16_t val)
 				s3_accel_start(8, 1, (val >> 8) & 0xff, 0, s3);
 				s3_accel_start(8, 1,  val       & 0xff, 0, s3);
 			}
-			if ((s3->accel.cmd & 0x600) == 0x000)
+			else if ((s3->accel.cmd & 0x600) == 0x000)
 				s3_accel_start(8, 1, val | (val << 16), 0, s3);
 			else
 				s3_accel_start(16, 1, val | (val << 16), 0, s3);
