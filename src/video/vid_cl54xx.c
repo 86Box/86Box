@@ -3023,7 +3023,10 @@ static void
 #endif
 
 	case CIRRUS_ID_CLGD5426:
-		romfn = BIOS_GD5426_PATH;
+		if (info->local & 0x200) {
+			romfn = NULL;
+		} else		
+			romfn = BIOS_GD5426_PATH;
 		break;
 
 	case CIRRUS_ID_CLGD5428:
@@ -3542,6 +3545,20 @@ const device_t gd5426_vlb_device =
     gd5428_config
 };
 
+const device_t gd5426_onboard_device =
+{
+    "Cirrus Logic CL-GD 5426 (On-board)",
+    DEVICE_VLB,
+    CIRRUS_ID_CLGD5426 | 0x200,
+    gd54xx_init, 
+    gd54xx_close, 
+    NULL,
+    NULL,
+    gd54xx_speed_changed,
+    gd54xx_force_redraw,
+    gd5428_config
+};
+
 const device_t gd5428_isa_device =
 {
     "Cirrus Logic CL-GD 5428 (ISA)",
@@ -3586,7 +3603,7 @@ const device_t gd5428_mca_device =
 
 const device_t gd5428_a1g_device =
 {
-    "Cirrus Logic CL-GD 5428 (Onboard)",
+    "Cirrus Logic CL-GD 5428 (On-Board)",
     DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5428,
     gd54xx_init, 
