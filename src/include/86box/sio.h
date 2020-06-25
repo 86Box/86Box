@@ -30,6 +30,7 @@ extern const device_t	pc87307_device;
 extern const device_t	pc87309_device;
 extern const device_t	pc87332_device;
 extern const device_t	pc97307_device;
+extern const device_t 	ps1_m2133_sio;
 extern const device_t	sio_detect_device;
 extern const device_t	um8669f_device;
 extern const device_t	w83787f_device;

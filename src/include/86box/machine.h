@@ -436,8 +436,10 @@ extern const device_t	*pcjr_get_device(void);
 /* m_ps1.c */
 extern int	machine_ps1_m2011_init(const machine_t *);
 extern int	machine_ps1_m2121_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_PS1M2133)
 extern int	machine_ps1_m2133_init(const machine_t *);
+
+#ifdef EMU_DEVICE_H
+extern const device_t	*ps1_m2133_get_device(void);
 #endif
 
 /* m_ps1_hdc.c */

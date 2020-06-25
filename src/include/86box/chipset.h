@@ -94,6 +94,7 @@ extern const device_t	via_vt82c596b_device;
 extern const device_t amd640_device;
 
 /* VLSI */
+extern const device_t   vl82c480_device;
 extern const device_t   vlsi_scamp_device;
 
 /* WD */
