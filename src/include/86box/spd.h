@@ -100,9 +100,12 @@ typedef struct _spd_sdram_ {
 } spd_sdram_t;
 
 
+extern int	spd_present;
 extern spd_t	*spd_devices[SPD_MAX_SLOTS];
 
 
+extern uint8_t log2_ui16(uint16_t i);
+extern void spd_populate(uint16_t *vslots, uint8_t slot_count, uint16_t total_size, uint16_t min_module_size, uint16_t max_module_size, uint8_t enable_asym);
 extern void spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size);
 
 

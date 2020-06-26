@@ -32,6 +32,7 @@
 #define SPD_ROLLUP(x)	((x) >= 16 ? ((x) - 15) : (x))
 
 
+int		spd_present = 0;
 spd_t		*spd_devices[SPD_MAX_SLOTS];
 uint8_t		spd_data[SPD_MAX_SLOTS][SPD_DATA_SIZE];
 
@@ -157,41 +158,13 @@ comp_ui16_rev(const void *elem1, const void *elem2)
 
 
 void
-spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
+spd_populate(uint16_t *vslots, uint8_t slot_count, uint16_t total_size, uint16_t min_module_size, uint16_t max_module_size, uint8_t enable_asym)
 {
-    uint8_t slot, slot_count, vslot, next_empty_vslot, i, split;
-    uint16_t min_module_size, total_size, vslots[SPD_MAX_SLOTS], asym;
-    device_t *info;
-    spd_edo_t *edo_data;
-    spd_sdram_t *sdram_data;
-
-    /* determine the minimum module size for this RAM type */
-    switch (ram_type) {
-    	case SPD_TYPE_FPM:
-    	case SPD_TYPE_EDO:
-    		min_module_size = SPD_MIN_SIZE_EDO;
-    		break;
-
-    	case SPD_TYPE_SDRAM:
-    		min_module_size = SPD_MIN_SIZE_SDRAM;
-    		break;
-
-	default:
-    		spd_log("SPD: unknown RAM type 0x%02X\n", ram_type);
-    		return;
-    }
-
-    /* count how many (real) slots are enabled */
-    slot_count = 0;
-    for (slot = 0; slot < SPD_MAX_SLOTS; slot++) {
-    	vslots[slot] = 0;
-    	if (slot_mask & (1 << slot)) {
-    		slot_count++;
-    	}
-    }
+    uint8_t vslot, next_empty_vslot, split, i;
+    uint16_t asym;
 
     /* populate vslots with modules in power-of-2 capacities */
-    total_size = (mem_size >> 10);
+    memset(vslots, 0x00, SPD_MAX_SLOTS << 1);
     for (vslot = 0; vslot < slot_count && total_size; vslot++) {
     	/* populate slot */
     	vslots[vslot] = (1 << log2_ui16(MIN(total_size, max_module_size)));
@@ -206,15 +179,17 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 
     /* did we populate all the RAM? */
     if (total_size) {
-    	/* work backwards to add the missing RAM as asymmetric modules */
-    	vslot = slot_count - 1;
-    	do {
-    		asym = (1 << log2_ui16(MIN(total_size, vslots[vslot])));
-    		if (vslots[vslot] + asym <= max_module_size) {
-    			vslots[vslot] += asym;
-    			total_size -= asym;
-    		}
-    	} while (vslot-- > 0 && total_size);
+    	/* work backwards to add the missing RAM as asymmetric modules if possible */
+    	if (enable_asym) {
+    		vslot = slot_count - 1;
+    		do {
+    			asym = (1 << log2_ui16(MIN(total_size, vslots[vslot])));
+    			if (vslots[vslot] + asym <= max_module_size) {
+    				vslots[vslot] += asym;
+    				total_size -= asym;
+    			}
+    		} while ((vslot-- > 0) && total_size);
+    	}
 
     	if (total_size) /* still not enough */
     		spd_log("SPD: not enough RAM slots (%d) to cover memory (%d MB short)\n", slot_count, total_size);
@@ -242,12 +217,52 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     		spd_log("SPD: splitting vslot %d (%d MB) into %d and %d (%d MB each)\n", vslot, vslots[vslot], vslot, next_empty_vslot, (vslots[vslot] >> 1));
     		vslots[vslot] = vslots[next_empty_vslot] = (vslots[vslot] >> 1);
     		split = 1;
+    		break;
     	}
 
-    	/* re-sort vslots by descending capacity if any modules were split */
+    	/* sort vslots by descending capacity if any were split */
     	if (split)
     		qsort(vslots, slot_count, sizeof(uint16_t), comp_ui16_rev);
     }
+}
+
+
+void
+spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
+{
+    uint8_t slot, slot_count, vslot, i;
+    uint16_t min_module_size, vslots[SPD_MAX_SLOTS], asym;
+    device_t *info;
+    spd_edo_t *edo_data;
+    spd_sdram_t *sdram_data;
+
+    /* determine the minimum module size for this RAM type */
+    switch (ram_type) {
+    	case SPD_TYPE_FPM:
+    	case SPD_TYPE_EDO:
+    		min_module_size = SPD_MIN_SIZE_EDO;
+    		break;
+
+    	case SPD_TYPE_SDRAM:
+    		min_module_size = SPD_MIN_SIZE_SDRAM;
+    		break;
+
+	default:
+    		spd_log("SPD: unknown RAM type 0x%02X\n", ram_type);
+    		return;
+    }
+
+    /* count how many (real) slots are enabled */
+    slot_count = 0;
+    for (slot = 0; slot < SPD_MAX_SLOTS; slot++) {
+    	vslots[slot] = 0;
+    	if (slot_mask & (1 << slot)) {
+    		slot_count++;
+    	}
+    }    
+
+    /* populate vslots  */
+    spd_populate(vslots, slot_count, (mem_size >> 10), min_module_size, max_module_size, 1);
 
     /* register SPD devices and populate their data according to the vslots */
     vslot = 0;
@@ -378,7 +393,9 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     			break;
     	}
 
-    	device_add(info);
+    	//device_add(info);
     	vslot++;
     }
+
+    spd_present = 1;
 }
