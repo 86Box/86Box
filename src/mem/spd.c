@@ -118,6 +118,8 @@ spd_close(void *priv)
     			spd_write_byte, NULL, NULL, NULL,
     			dev);
 
+    spd_present = 0;
+
     free(dev);
 }
 
@@ -133,6 +135,8 @@ spd_init(const device_t *info)
     		     spd_read_byte, spd_read_byte_cmd, spd_read_word_cmd, spd_read_block_cmd,
     		     spd_write_byte, NULL, NULL, NULL,
     		     dev);
+
+    spd_present = 1;
 
     return dev;
 }
@@ -396,6 +400,4 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     	//device_add(info);
     	vslot++;
     }
-
-    spd_present = 1;
 }
