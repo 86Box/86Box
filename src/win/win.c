@@ -47,6 +47,7 @@
 #endif
 #include <86box/win_sdl.h>
 #include <86box/win.h>
+#include <86box/version.h>
 
 
 typedef struct {

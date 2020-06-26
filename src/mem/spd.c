@@ -25,6 +25,7 @@
 #include <86box/device.h>
 #include <86box/smbus.h>
 #include <86box/spd.h>
+#include <86box/version.h>
 
 
 #define MIN(a, b)	((a) < (b) ? (a) : (b))

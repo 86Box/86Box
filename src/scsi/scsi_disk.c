@@ -30,6 +30,7 @@
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/scsi_disk.h>
+#include <86box/version.h>
 
 
 #define scsi_disk_sense_error dev->sense[0]

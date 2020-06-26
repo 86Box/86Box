@@ -77,6 +77,7 @@
 #include <86box/ui.h>
 #include <86box/plat.h>
 #include <86box/plat_midi.h>
+#include <86box/version.h>
 
 
 /* Stuff that used to be globally declared in plat.h but is now extern there

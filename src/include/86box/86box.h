@@ -26,26 +26,6 @@
 #define SCREEN_RES_X	640
 #define SCREEN_RES_Y	480
 
-/* Version info. */
-#define EMU_NAME	"86Box"
-#define EMU_NAME_W	L"86Box"
-#ifdef RELEASE_BUILD
-#define EMU_VERSION	"2.07"
-#define EMU_VERSION_W	L"2.07"
-#define EMU_VERSION_MAJ	2
-#define EMU_VERSION_MIN	7
-#else
-#define EMU_VERSION	"2.10"
-#define EMU_VERSION_W	L"2.10"
-#define EMU_VERSION_MAJ	2
-#define EMU_VERSION_MIN	10
-#endif
-#define COPYRIGHT_YEAR	"2020"
-
-/* Web URL info. */
-#define EMU_SITE	L"86box.github.io"
-#define EMU_ROMS_URL	L"https://github.com/86Box/roms/releases/latest"
-
 /* Filename and pathname info. */
 #define CONFIG_FILE	L"86box.cfg"
 #define NVR_PATH        L"nvr"

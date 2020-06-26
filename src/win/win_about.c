@@ -30,6 +30,7 @@
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/win.h>
+#include <86box/version.h>
 
 
 void
