@@ -81,6 +81,7 @@ page_t			*pages,			/* RAM page table */
 uint32_t		pages_sz;		/* #pages in table */
 
 uint8_t			*ram, *ram2;		/* the virtual RAM */
+uint8_t			page_ff[4096];
 uint32_t		rammask;
 
 uint8_t			*rom;			/* the virtual ROM */
@@ -1720,6 +1721,9 @@ page_remove_from_evict_list(page_t *p)
 void
 mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *p)
 {
+    if ((p != NULL) && (p->mem == page_ff))
+	return;
+
 #ifdef USE_DYNAREC
     if (val != p->mem[addr & 0xfff] || codegen_in_recompile) {
 #else
@@ -1743,6 +1747,9 @@ mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *p)
 void
 mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *p)
 {
+    if ((p != NULL) && (p->mem == page_ff))
+	return;
+
 #ifdef USE_DYNAREC
     if (val != *(uint16_t *)&p->mem[addr & 0xfff] || codegen_in_recompile) {
 #else
@@ -1776,6 +1783,9 @@ mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *p)
 void
 mem_write_raml_page(uint32_t addr, uint32_t val, page_t *p)
 {
+    if ((p != NULL) && (p->mem == page_ff))
+	return;
+
 #ifdef USE_DYNAREC
     if (val != *(uint32_t *)&p->mem[addr & 0xfff] || codegen_in_recompile) {
 #else
@@ -1805,6 +1815,9 @@ mem_write_raml_page(uint32_t addr, uint32_t val, page_t *p)
 void
 mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *p)
 {
+    if ((p != NULL) && (p->mem == page_ff))
+	return;
+
 #ifdef USE_DYNAREC
     if ((p == NULL) || (p->mem == NULL) || (val != p->mem[addr & 0xfff]) || codegen_in_recompile) {
 #else
@@ -1820,6 +1833,9 @@ mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *p)
 void
 mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *p)
 {
+    if ((p != NULL) && (p->mem == page_ff))
+	return;
+
 #ifdef USE_DYNAREC
     if ((p == NULL) || (p->mem == NULL) || (val != *(uint16_t *)&p->mem[addr & 0xfff]) || codegen_in_recompile) {
 #else
@@ -1837,6 +1853,9 @@ mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *p)
 void
 mem_write_raml_page(uint32_t addr, uint32_t val, page_t *p)
 {
+    if ((p != NULL) && (p->mem == page_ff))
+	return;
+
 #ifdef USE_DYNAREC
     if ((p == NULL) || (p->mem == NULL) || (val != *(uint32_t *)&p->mem[addr & 0xfff]) || codegen_in_recompile) {
 #else
@@ -2606,13 +2625,17 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 #endif
 
     for (c = 0; c < pages_sz; c++) {
-        if (mem_size > 1048576) {
-		if ((c << 12) < (1 << 30))
+	if ((c << 12) >= (mem_size << 10))
+		pages[c].mem = page_ff;
+	else {
+	        if (mem_size > 1048576) {
+			if ((c << 12) < (1 << 30))
+				pages[c].mem = &ram[c << 12];
+			else
+				pages[c].mem = &ram2[(c << 12) - (1 << 30)];
+		} else
 			pages[c].mem = &ram[c << 12];
-		else
-			pages[c].mem = &ram2[(c << 12) - (1 << 30)];
-	} else
-		pages[c].mem = &ram[c << 12];
+	}
 	if (c < m) {
 		pages[c].write_b = mem_write_ramb_page;
 		pages[c].write_w = mem_write_ramw_page;
@@ -2745,6 +2768,7 @@ mem_init(void)
 #if FIXME
     memset(ff_array, 0xff, sizeof(ff_array));
 #endif
+    memset(page_ff, 0xff, sizeof(page_ff));
 
     /* Reset the memory state. */
     mem_reset();

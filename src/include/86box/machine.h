@@ -235,6 +235,8 @@ extern int	machine_at_spc4216p_init(const machine_t *);
 extern int	machine_at_kmxc02_init(const machine_t *);
 extern int	machine_at_deskmaster286_init(const machine_t *);
 
+extern int	machine_at_shuttle386sx_init(const machine_t *);
+extern int	machine_at_adi386sx_init(const machine_t *);
 extern int	machine_at_commodore_sl386sx_init(const machine_t *);
 extern int	machine_at_wd76c10_init(const machine_t *);
 
@@ -298,6 +300,7 @@ extern int	machine_at_ambradp60_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_VPP60)
 extern int	machine_at_valuepointp60_init(const machine_t *);
 #endif
+extern int	machine_at_p5mp3_init(const machine_t *);
 extern int	machine_at_586mc1_init(const machine_t *);
 
 extern int	machine_at_plato_init(const machine_t *);
@@ -332,6 +335,7 @@ extern int	machine_at_acerv35n_init(const machine_t *);
 extern int	machine_at_ap53_init(const machine_t *);
 extern int	machine_at_p55t2p4_init(const machine_t *);
 extern int	machine_at_p55t2s_init(const machine_t *);
+extern int	machine_at_8500tuc_init(const machine_t *);
 extern int	machine_at_m7shi_init(const machine_t *);
 extern int	machine_at_tc430hx_init(const machine_t *);
 extern int	machine_at_equium5200_init(const machine_t *);
@@ -405,6 +409,7 @@ extern int	machine_at_s370slm_init(const machine_t *);
 
 extern int	machine_at_cubx_init(const machine_t *);
 extern int	machine_at_atc7020bxii_init(const machine_t *);
+extern int	machine_at_ambx133_init(const machine_t *);
 extern int	machine_at_63a_init(const machine_t *);
 extern int	machine_at_s370sba_init(const machine_t *);
 extern int	machine_at_apas3_init(const machine_t *);
@@ -431,8 +436,10 @@ extern const device_t	*pcjr_get_device(void);
 /* m_ps1.c */
 extern int	machine_ps1_m2011_init(const machine_t *);
 extern int	machine_ps1_m2121_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_PS1M2133)
 extern int	machine_ps1_m2133_init(const machine_t *);
+
+#ifdef EMU_DEVICE_H
+extern const device_t	*ps1_m2133_get_device(void);
 #endif
 
 /* m_ps1_hdc.c */

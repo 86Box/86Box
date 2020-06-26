@@ -36,6 +36,7 @@
 #include <86box/ui.h>
 #include <86box/cdrom.h>
 #include <86box/scsi_cdrom.h>
+#include <86box/version.h>
 
 
 #pragma pack(push,1)

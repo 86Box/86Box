@@ -31,7 +31,8 @@ extern const device_t	ali1429_device;
 extern const device_t	headland_device;
 extern const device_t	headland_386_device;
 
-/* Intel 4x0xX */
+/* Intel */
+extern const device_t   i82335_device;
 extern const device_t	i420ex_device;
 extern const device_t	i420tx_device;
 extern const device_t	i420zx_device;
@@ -89,7 +90,11 @@ extern const device_t	via_apro_device;
 extern const device_t	via_vt82c586b_device;
 extern const device_t	via_vt82c596b_device;
 
+/* AMD */
+extern const device_t amd640_device;
+
 /* VLSI */
+extern const device_t   vl82c480_device;
 extern const device_t   vlsi_scamp_device;
 
 /* WD */

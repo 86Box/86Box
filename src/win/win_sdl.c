@@ -70,6 +70,7 @@
 #include <86box/ui.h>
 #include <86box/win.h>
 #include <86box/win_sdl.h>
+#include <86box/version.h>
 
 
 #define RENDERER_FULL_SCREEN	1

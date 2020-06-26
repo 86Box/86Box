@@ -48,6 +48,8 @@
 #include <86box/nmi.h>
 #include <86box/rom.h>
 #include <86box/device.h>
+#include <86box/chipset.h>
+#include <86box/sio.h>
 #include <86box/nvr.h>
 #include <86box/gameport.h>
 #include <86box/lpt.h>
@@ -490,21 +492,12 @@ ps1_setup(int model)
 	device_add(&snd_device);
     }
 
-#if defined(DEV_BRANCH) && defined(USE_PS1M2133)
-    if (model == 2133) {
-	device_add(&fdc_at_device);
-
-	device_add(&ide_isa_device);
-    }
-#endif
-
     /* Enable the PS/1 VGA controller. */
     if (model == 2011)
 	device_add(&ps1vga_device);
     else
 	device_add(&ibm_ps1_2121_device);
 }
-
 
 static void
 ps1_common_init(const machine_t *model)
@@ -565,8 +558,6 @@ machine_ps1_m2121_init(const machine_t *model)
     return ret;
 }
 
-
-#if defined(DEV_BRANCH) && defined(USE_PS1M2133)
 int
 machine_ps1_m2133_init(const machine_t *model)
 {
@@ -579,11 +570,21 @@ machine_ps1_m2133_init(const machine_t *model)
 	return ret;
 
     ps1_common_init(model);
-
-    ps1_setup(2133);
+    device_add(&fdc_at_device);
+    device_add(&ide_isa_device);
+    device_add(&vl82c480_device);
 
     nmi_mask = 0x80;
 
+    if (gfxcard == VID_INTERNAL)
+	device_add(&gd5426_onboard_device);
+
     return ret;
 }
-#endif
+
+const device_t *
+ps1_m2133_get_device(void)
+{
+    return &gd5426_onboard_device;
+}
+

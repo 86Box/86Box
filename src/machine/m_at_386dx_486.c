@@ -38,8 +38,7 @@
 #include <86box/sio.h>
 #include <86box/hdc.h>
 #include <86box/video.h>
-#include <86box/intel_flash.h>
-#include <86box/sst_flash.h>
+#include <86box/flash.h>
 #include <86box/scsi_ncr53c8xx.h>
 #include <86box/machine.h>
 
@@ -62,6 +61,7 @@ machine_at_acc386_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_asus386_init(const machine_t *model)
 {
@@ -80,6 +80,7 @@ ret = bios_load_linear(L"roms/machines/asus386/ASUS_ISA-386C_BIOS.bin",
 
     return ret;
 }
+
 
 int
 machine_at_ecs386_init(const machine_t *model)
@@ -100,6 +101,7 @@ machine_at_ecs386_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_pb410a_init(const machine_t *model)
@@ -125,6 +127,7 @@ machine_at_pb410a_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_acera1g_init(const machine_t *model)
 {
@@ -136,7 +139,7 @@ machine_at_acera1g_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
 
     if (gfxcard == VID_INTERNAL)
 	device_add(&gd5428_a1g_device);
@@ -144,7 +147,7 @@ machine_at_acera1g_init(const machine_t *model)
     device_add(&ali1429_device);
     device_add(&keyboard_ps2_acer_pci_device);
     device_add(&fdc_at_device);
-    device_add(&ide_isa_device);
+    device_add(&ide_isa_2ch_device);
 
     return ret;
 }

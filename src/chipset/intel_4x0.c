@@ -413,8 +413,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		switch (dev->type) {
 			case INTEL_440LX: case INTEL_440EX:
 				regs[0x34] = (val & 0xa0);
-				}
 				break;
+		}
+		break;
 
 	case 0x4f:
 		switch (dev->type) {
@@ -983,7 +984,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				regs[0x7c] = val & 0x8f;
 				break;
 			case INTEL_440BX:  case INTEL_440GX:
-         case INTEL_440ZX:
+			case INTEL_440ZX:
 				regs[0x7c] = val & 0x1f;
 				break;
 		}
@@ -991,7 +992,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		switch (dev->type) {
 			case INTEL_420TX: case INTEL_420ZX:
 			case INTEL_430LX: case INTEL_430NX:
-				regs[0x7c] = val & 0x32;
+				regs[0x7d] = val & 0x32;
 				break;
 		}
 	case 0x7e: case 0x7f:
@@ -1286,9 +1287,9 @@ i4x0_read(int func, int addr, void *priv)
     uint8_t ret = 0xff;
     uint8_t *regs = (uint8_t *) dev->regs[func];
 
-  if (func > dev->max_func)
+    if (func > dev->max_func)
 	  ret = 0xff;
-  else {
+    else {
 	ret = regs[addr];
 	/* Special behavior for 440FX register 0x93 which is basically TRC in PCI space
 	   with the addition of bits 3 and 0. */
@@ -1657,11 +1658,11 @@ static void
 	regs = (uint8_t *) dev->regs[1];
 
 	regs[0x00] = 0x86; regs[0x01] = 0x80;	/* Intel */
-   if(dev->type != INTEL_440GX){
-	regs[0x02] = 0x91; regs[0x03] = 0x71;	/* 82443BX */
-   } else {
-   regs[0x02] = 0xa1; regs[0x03] = 0x71; /* 82443GX (They seem to share the same deal*/
-   }
+	if(dev->type != INTEL_440GX) {
+		regs[0x02] = 0x91; regs[0x03] = 0x71;	/* 82443BX */
+	} else {
+		regs[0x02] = 0xa1; regs[0x03] = 0x71; /* 82443GX (They seem to share the same deal*/
+	}
 	regs[0x06] = 0x20; regs[0x07] = 0x02;
 	regs[0x08] = 0x02;
 	regs[0x0a] = 0x04; regs[0x0b] = 0x06;

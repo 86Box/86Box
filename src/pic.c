@@ -407,7 +407,7 @@ pic2_write(uint16_t addr, uint8_t val, void *priv)
 		if (val & 4)
 			pic2.read=4;
 		if (val & 2)
-			pic2.read=(val & 3);
+			pic2.read=(val & 1);
 	}
     }
 }
