@@ -660,7 +660,7 @@ static void s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		s3->accel.pix_trans[1] = val;
 		/*Check to see if there's actual data from CPU*/
 		if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80 && (s3->accel.cmd & 0x600) == 0x200 && (s3->accel.cmd & 0x100) &&
-			&& (((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40)))
+			(((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40)))
 		{
 			if (s3->accel.cmd & 0x1000) s3_accel_start(16, 1, s3->accel.pix_trans[1] | (s3->accel.pix_trans[0] << 8), 0, s3);
 			else			s3_accel_start(16, 1, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), 0, s3);
