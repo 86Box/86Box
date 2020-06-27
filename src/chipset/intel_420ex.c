@@ -181,33 +181,6 @@ i420ex_smram_handler_phase1(i420ex_t *dev)
 
 
 static void
-i420ex_write_drbs(i420ex_t *dev)
-{
-    uint8_t row, dimm;
-    uint16_t size, vslots[SPD_MAX_SLOTS];
-
-    /* No SPD: let the SPD code split SIMMs into pairs as if they were "DIMM"s. */
-    dimm = (4 + 1) >> 1; /* amount of "DIMM"s, also used to determine the maximum "DIMM" size */
-    spd_populate(vslots, dimm, (mem_size >> 10), 1, 1 << (log2_ui16(machines[machine].max_ram / dimm)), 0);
-
-    /* Write DRBs for each row. */
-    i420ex_log("Writing DRBs...\n");
-    for (row = 0; row <= 4; row++) {
-    	dimm = (row >> 1);
-
-    	/* No SPD: use the values calculated above. */
-    	size = (vslots[dimm] >> 1);
-
-    	/* Populate DRB register, adding the previous DRB's value.. */
-    	dev->regs[0x60 | row] = ((row > 0) ? dev->regs[0x60 | (row - 1)] : 0);
-    	if (size)
-    		dev->regs[0x60 | row] += size;
-    	i420ex_log("DRB[%d] = %d MB (%02Xh raw)\n", row, size, dev->regs[0x60 | row]);
-    }
-}
-
-
-static void
 i420ex_write(int func, int addr, uint8_t val, void *priv)
 {
     i420ex_t *dev = (i420ex_t *) priv;
@@ -333,7 +306,7 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
 		dev->regs[0x5f] = val;
 		break;
 	case 0x60: case 0x61: case 0x62: case 0x63: case 0x64:
-		i420ex_write_drbs(dev);
+		spd_write_drbs(dev->regs, 0x60, 0x64, 1);
 		break;
 	case 0x66: case 0x67:
 		i420ex_log("Set IRQ routing: INT %c -> %02X\n", 0x41 + (addr & 0x01), val);

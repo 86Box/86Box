@@ -35,6 +35,7 @@
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/chipset.h>
+#include <86box/spd.h>
 
 typedef struct via_vpx_t
 {
@@ -92,6 +93,10 @@ via_vpx_t *dev = (via_vpx_t *) priv;
 
         case 0x07: // Status
         dev->pci_conf[0x07] &= ~(val & 0xb0);
+		break;
+
+	case 0x5a: case 0x5b: case 0x5c: case 0x5d: case 0x5e: case 0x5f: // Bank Ending
+		spd_write_drbs(dev->pci_conf, 0x5a, 0x5f, 4);
 		break;
 
         case 0x61: // Shadow RAM control 1
@@ -201,6 +206,7 @@ via_vpx_init(const device_t *info)
     dev->pci_conf[0x5e] = 1; // Bank 4 Ending
     dev->pci_conf[0x5f] = 1; // Bank 5 Ending
 
+    dev->pci_conf[0x60] = 0x3f; // DRAM type
     dev->pci_conf[0x64] = 0xab; // DRAM reference timing
 
     return dev;

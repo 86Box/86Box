@@ -26,6 +26,7 @@
 #include <86box/smbus.h>
 #include <86box/spd.h>
 #include <86box/version.h>
+#include <86box/machine.h>
 
 
 #define MIN(a, b)	((a) < (b) ? (a) : (b))
@@ -41,7 +42,7 @@ static uint8_t	spd_read_byte(uint8_t addr, void *priv);
 static uint8_t	spd_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv);
 static void	spd_write_byte(uint8_t addr, uint8_t val, void *priv);
 
-
+#define ENABLE_SPD_LOG 1
 #ifdef ENABLE_SPD_LOG
 int spd_do_log = ENABLE_SPD_LOG;
 
@@ -397,7 +398,50 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     			break;
     	}
 
-    	//device_add(info);
+    	device_add(info);
     	vslot++;
+    }
+}
+
+
+void
+spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit)
+{
+    uint8_t row, dimm;
+    uint16_t size, vslots[SPD_MAX_SLOTS];
+
+    spd_log("DRB write begin\n");
+
+    /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
+    if (!spd_present) {
+    	dimm = ((reg_max - reg_min) + 1) >> 1; /* amount of "DIMM"s, also used to determine the maximum "DIMM" size */
+    	spd_populate(vslots, dimm, (mem_size >> 10), drb_unit, 1 << (log2_ui16(machines[machine].max_ram / dimm)), 0);
+    }
+
+    /* Write DRBs for each row. */
+    spd_log("Writing DRBs... regs=[%02X:%02X] unit=%d\n", reg_min, reg_max, drb_unit);
+    for (row = 0; row <= (reg_max - reg_min); row++) {
+    	dimm = (row >> 1);
+    	size = 0;
+
+    	if (spd_present) {
+    		/* SPD enabled: use SPD info for this slot, if present. */
+    		if (spd_devices[dimm]) {
+    			if (spd_devices[dimm]->row1 < drb_unit) /* hack within a hack: turn a double-sided DIMM that is too small into a single-sided one */
+    				size = ((row & 1) ? 0 : drb_unit);
+    			else
+    				size = ((row & 1) ? spd_devices[dimm]->row2 : spd_devices[dimm]->row1);
+    		}
+    	} else {
+    		/* No SPD: use the values calculated above. */
+    		size = (vslots[dimm] >> 1);
+    	}
+
+    	/* Populate DRB register, adding the previous DRB's value.
+    	   This will intentionally overflow on 440GX with 2 GB. */
+    	regs[reg_min + row] = ((row > 0) ? regs[reg_min + row - 1] : 0);
+    	if (size)
+    		regs[reg_min + row] += (size / drb_unit);
+    	spd_log("DRB[%d] = %d MB (%02Xh raw)\n", row, size, regs[reg_min + row]);
     }
 }
