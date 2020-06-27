@@ -413,7 +413,7 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
     /* Special case for VIA Apollo Pro family, which jumps from 5F to 56. */
     if (reg_max < reg_min) {
     	apollo = reg_max;
-    	reg_max = reg_min + 8;
+    	reg_max = reg_min + 7;
     }
 
     /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
@@ -443,14 +443,21 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
 
     	/* Determine the DRB register to write. */
     	drb = reg_min + row;
-    	if ((apollo) && ((drb & 0xf) < 0x8))
-    		drb = apollo + (drb & 0xf);
 
-    	/* Write DRB register, adding the previous DRB's value.
-    	   This will intentionally overflow on 440GX with 2 GB. */
-    	regs[drb] = ((row > 0) ? regs[drb - 1] : 0);
+    	spd_log("want drb reg %02x", drb);
+    	if ((apollo) && ((drb & 0xf) < 0xa))
+    		drb = apollo + (drb & 0xf);
+    	spd_log(" got %02x\n", drb);
+
+    	/* Write DRB register, adding the previous DRB's value. */
+    	if (row == 0)
+    		regs[drb] = 0;
+    	else if ((apollo) && (drb == apollo))
+    		regs[drb] = regs[drb | 0xf]; /* 5F comes before 56 */
+    	else
+    		regs[drb] = regs[drb - 1];
     	if (size)
-    		regs[drb] += (size / drb_unit);
+    		regs[drb] += (size / drb_unit); /* this will intentionally overflow on 440GX with 2 GB */
     	spd_log("DRB[%d] = %d MB (%02Xh raw)\n", row, size, regs[drb]);
     }
 }
