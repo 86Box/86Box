@@ -443,11 +443,8 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
 
     	/* Determine the DRB register to write. */
     	drb = reg_min + row;
-
-    	spd_log("want drb reg %02x", drb);
     	if ((apollo) && ((drb & 0xf) < 0xa))
     		drb = apollo + (drb & 0xf);
-    	spd_log(" got %02x\n", drb);
 
     	/* Write DRB register, adding the previous DRB's value. */
     	if (row == 0)
