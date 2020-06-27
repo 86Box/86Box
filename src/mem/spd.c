@@ -407,10 +407,14 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 void
 spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit)
 {
-    uint8_t row, dimm;
+    uint8_t row, dimm, drb, apollo = 0;
     uint16_t size, vslots[SPD_MAX_SLOTS];
 
-    spd_log("DRB write begin\n");
+    /* Special case for VIA Apollo Pro family, which jumps from 5F to 56. */
+    if (reg_max < reg_min) {
+    	apollo = reg_max;
+    	reg_max = reg_min + 8;
+    }
 
     /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
     if (!spd_present) {
@@ -437,11 +441,16 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
     		size = (vslots[dimm] >> 1);
     	}
 
-    	/* Populate DRB register, adding the previous DRB's value.
+    	/* Determine the DRB register to write. */
+    	drb = reg_min + row;
+    	if ((apollo) && ((drb & 0xf) < 0x8))
+    		drb = apollo + (drb & 0xf);
+
+    	/* Write DRB register, adding the previous DRB's value.
     	   This will intentionally overflow on 440GX with 2 GB. */
-    	regs[reg_min + row] = ((row > 0) ? regs[reg_min + row - 1] : 0);
+    	regs[drb] = ((row > 0) ? regs[drb - 1] : 0);
     	if (size)
-    		regs[reg_min + row] += (size / drb_unit);
-    	spd_log("DRB[%d] = %d MB (%02Xh raw)\n", row, size, regs[reg_min + row]);
+    		regs[drb] += (size / drb_unit);
+    	spd_log("DRB[%d] = %d MB (%02Xh raw)\n", row, size, regs[drb]);
     }
 }
