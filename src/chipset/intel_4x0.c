@@ -29,7 +29,6 @@
 #include <86box/keyboard.h>
 #include <86box/chipset.h>
 #include <86box/spd.h>
-#include <86box/machine.h>
 
 
 enum
@@ -266,47 +265,6 @@ pm2_cntrl_write(uint16_t addr, uint8_t val, void *p)
     i4x0_t *dev = (i4x0_t *) p;
 
     dev->pm2_cntrl = val & 0x01;
-}
-
-
-static void
-i4x0_write_drbs(i4x0_t *dev)
-{
-    uint8_t row, dimm;
-    uint16_t size, vslots[SPD_MAX_SLOTS];
-
-    /* No SPD: let the SPD code split SIMMs into pairs as if they were "DIMM"s. */
-    if (!spd_present) {
-    	dimm = (dev->max_drb + 1) >> 1; /* amount of "DIMM"s, also used to determine the maximum "DIMM" size */
-    	spd_populate(vslots, dimm, (mem_size >> 10), dev->drb_unit, 1 << (log2_ui16(machines[machine].max_ram / dimm)), 0);
-    }
-
-    /* Write DRBs for each row. */
-    i4x0_log("Writing DRBs... unit=%d max=%d\n", dev->drb_unit, dev->max_drb);
-    for (row = 0; row <= dev->max_drb; row++) {
-    	dimm = (row >> 1);
-    	size = 0;
-
-    	if (spd_present) {
-    		/* SPD enabled: use SPD info for this slot, if present. */
-    		if (spd_devices[dimm]) {
-    			if (spd_devices[dimm]->row1 < dev->drb_unit) /* hack within a hack: turn a double-sided DIMM that is too small into a single-sided one */
-    				size = ((row & 1) ? 0 : dev->drb_unit);
-    			else
-    				size = ((row & 1) ? spd_devices[dimm]->row2 : spd_devices[dimm]->row1);
-    		}
-    	} else {
-    		/* No SPD: use the values calculated above. */
-    		size = (vslots[dimm] >> 1);
-    	}
-
-    	/* Populate DRB register, adding the previous DRB's value.
-    	   This will intentionally overflow on 440GX with 2 GB. */
-    	dev->regs[0][0x60 | row] = ((row > 0) ? dev->regs[0][0x60 | (row - 1)] : 0);
-    	if (size)
-    		dev->regs[0][0x60 | row] += (size / dev->drb_unit);
-    	i4x0_log("DRB[%d] = %d MB (%02Xh raw)\n", row, size, dev->regs[0][0x60 | row]);
-    }
 }
 
 
@@ -692,7 +650,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x60: case 0x61: case 0x62: case 0x63: case 0x64:
 		if ((addr & 0x7) <= dev->max_drb) {
-			i4x0_write_drbs(dev);
+			spd_write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
 			break;
 		}
 		switch (dev->type) {
@@ -715,7 +673,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x65:
 		if ((addr & 0x7) <= dev->max_drb) {
-			i4x0_write_drbs(dev);
+			spd_write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
 			break;
 		}
 		switch (dev->type) {
@@ -738,7 +696,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x66:
 		if ((addr & 0x7) <= dev->max_drb) {
-			i4x0_write_drbs(dev);
+			spd_write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
 			break;
 		}
 		switch (dev->type) {
@@ -752,7 +710,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x67:
 		if ((addr & 0x7) <= dev->max_drb) {
-			i4x0_write_drbs(dev);
+			spd_write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
 			break;
 		}
 		switch (dev->type) {

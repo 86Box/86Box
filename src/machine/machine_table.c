@@ -297,12 +297,12 @@ const machine_t machines[] = {
     { "[VIA VPX] FIC VA-502",			"ficva502",		MACHINE_TYPE_SOCKET7,		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  512,   8, 127,	     machine_at_ficva502_init, NULL			},
 
     /* Apollo VP3 */
-    { "[VIA VP3] FIC PA-2012",			"ficpa2012",		MACHINE_TYPE_SOCKET7,		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  192,   8, 127,	    machine_at_ficpa2012_init, NULL			},
+    { "[VIA VP3] FIC PA-2012",			"ficpa2012",		MACHINE_TYPE_SOCKET7,		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8, 1024,   8, 127,	    machine_at_ficpa2012_init, NULL			},
   
     /* Super Socket 7 machines */
     /* Apollo MVP3 */
-    { "[VIA MVP3] AOpen AX59 Pro",		"ax59pro",		MACHINE_TYPE_SOCKETS7,		MACHINE_CPUS_PENTIUM_SS7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,  8, 255,	      machine_at_ax59pro_init, NULL			},
-    { "[VIA MVP3] FIC VA-503+",			"ficva503p",		MACHINE_TYPE_SOCKETS7,		MACHINE_CPUS_PENTIUM_SS7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,  8, 255,	         machine_at_mvp3_init, NULL			},
+    { "[VIA MVP3] AOpen AX59 Pro",		"ax59pro",		MACHINE_TYPE_SOCKETS7,		MACHINE_CPUS_PENTIUM_SS7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,	      machine_at_ax59pro_init, NULL			},
+    { "[VIA MVP3] FIC VA-503+",			"ficva503p",		MACHINE_TYPE_SOCKETS7,		MACHINE_CPUS_PENTIUM_SS7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,	         machine_at_mvp3_init, NULL			},
 
     /* Socket 8 machines */
     /* 440FX */
@@ -348,13 +348,13 @@ const machine_t machines[] = {
     /* 440BX */
     { "[i440BX] ASUS CUBX",			"cubx",			MACHINE_TYPE_SOCKET370,		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8, 1024,   8, 255,		 machine_at_cubx_init, NULL			},
     { "[i440BX] A-Trend ATC7020BXII",		"atc7020bxii",		MACHINE_TYPE_SOCKET370,		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8, 1024,   8, 255,	  machine_at_atc7020bxii_init, NULL			},
-    { "[i440BX] AmazePC AM-BX133",		"ambx133",		MACHINE_TYPE_SOCKET370,		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8, 768,   8, 255,	  machine_at_ambx133_init, NULL			},
+    { "[i440BX] AmazePC AM-BX133",		"ambx133",		MACHINE_TYPE_SOCKET370,		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  768,   8, 255,	      machine_at_ambx133_init, NULL			},
 
     /* 440ZX */
     { "[i440ZX] Soltek SL-63A1",		"63a",			MACHINE_TYPE_SOCKET370,		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 255,		  machine_at_63a_init, NULL			},
 
     /* VIA Apollo Pro */
-    { "[VIA Apollo Pro] PC Partner APAS3",	"apas3",		MACHINE_TYPE_SOCKET370,		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,	  				  8, 1024,   8, 255,            machine_at_apas3_init, NULL			},
+    { "[VIA Apollo Pro] PC Partner APAS3",	"apas3",		MACHINE_TYPE_SOCKET370,		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,	  				  8,  768,   8, 255,            machine_at_apas3_init, NULL			},
 
     { NULL,					NULL,			MACHINE_TYPE_NONE,		{{"",      0},                {"",    0},            {"",      0},           {"",         0},     {"",      0}},    0,                                                                                                    0,    0,   0,   0,			         NULL, NULL			}
 };

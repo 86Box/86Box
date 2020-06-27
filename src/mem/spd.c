@@ -26,6 +26,7 @@
 #include <86box/smbus.h>
 #include <86box/spd.h>
 #include <86box/version.h>
+#include <86box/machine.h>
 
 
 #define MIN(a, b)	((a) < (b) ? (a) : (b))
@@ -118,6 +119,8 @@ spd_close(void *priv)
     			spd_write_byte, NULL, NULL, NULL,
     			dev);
 
+    spd_present = 0;
+
     free(dev);
 }
 
@@ -133,6 +136,8 @@ spd_init(const device_t *info)
     		     spd_read_byte, spd_read_byte_cmd, spd_read_word_cmd, spd_read_block_cmd,
     		     spd_write_byte, NULL, NULL, NULL,
     		     dev);
+
+    spd_present = 1;
 
     return dev;
 }
@@ -393,9 +398,63 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     			break;
     	}
 
-    	//device_add(info);
+    	device_add(info);
     	vslot++;
     }
+}
 
-    spd_present = 1;
+
+void
+spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit)
+{
+    uint8_t row, dimm, drb, apollo = 0;
+    uint16_t size, vslots[SPD_MAX_SLOTS];
+
+    /* Special case for VIA Apollo Pro family, which jumps from 5F to 56. */
+    if (reg_max < reg_min) {
+    	apollo = reg_max;
+    	reg_max = reg_min + 7;
+    }
+
+    /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
+    if (!spd_present) {
+    	dimm = ((reg_max - reg_min) + 1) >> 1; /* amount of "DIMM"s, also used to determine the maximum "DIMM" size */
+    	spd_populate(vslots, dimm, (mem_size >> 10), drb_unit, 1 << (log2_ui16(machines[machine].max_ram / dimm)), 0);
+    }
+
+    /* Write DRBs for each row. */
+    spd_log("Writing DRBs... regs=[%02X:%02X] unit=%d\n", reg_min, reg_max, drb_unit);
+    for (row = 0; row <= (reg_max - reg_min); row++) {
+    	dimm = (row >> 1);
+    	size = 0;
+
+    	if (spd_present) {
+    		/* SPD enabled: use SPD info for this slot, if present. */
+    		if (spd_devices[dimm]) {
+    			if (spd_devices[dimm]->row1 < drb_unit) /* hack within a hack: turn a double-sided DIMM that is too small into a single-sided one */
+    				size = ((row & 1) ? 0 : drb_unit);
+    			else
+    				size = ((row & 1) ? spd_devices[dimm]->row2 : spd_devices[dimm]->row1);
+    		}
+    	} else {
+    		/* No SPD: use the values calculated above. */
+    		size = (vslots[dimm] >> 1);
+    	}
+
+    	/* Determine the DRB register to write. */
+    	drb = reg_min + row;
+    	if ((apollo) && ((drb & 0xf) < 0xa))
+    		drb = apollo + (drb & 0xf);
+
+    	/* Write DRB register, adding the previous DRB's value. */
+    	if (row == 0)
+    		regs[drb] = 0;
+    	else if ((apollo) && (drb == apollo))
+    		regs[drb] = regs[drb | 0xf]; /* 5F comes before 56 */
+    	else
+    		regs[drb] = regs[drb - 1];
+    	if (size)
+    		regs[drb] += (size / drb_unit); /* this will intentionally overflow on 440GX with 2 GB */
+    	spd_log("DRB[%d] = %d MB (%02Xh raw)\n", row, size, regs[drb]);
+    }
 }

@@ -32,6 +32,7 @@
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/chipset.h>
+#include <86box/spd.h>
 
 
 typedef struct via_apollo_t
@@ -224,6 +225,13 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 			dev->pci_conf[0][0x53] = val;
 		else
 			dev->pci_conf[0][0x53] = (dev->pci_conf[0][0x53] & ~0xf0) | (val & 0xf0);
+		break;
+
+	case 0x56: case 0x57: case 0x5a: case 0x5b: case 0x5c: case 0x5d: case 0x5e: case 0x5f: /* DRAM Row Ending Address */
+		if (dev->id >= 0x0691)
+			spd_write_drbs(dev->pci_conf[0], 0x5a, 0x56, 8);
+		else if (addr >= 0x5a)
+			spd_write_drbs(dev->pci_conf[0], 0x5a, 0x5f, 8);
 		break;
 
 	case 0x58:
