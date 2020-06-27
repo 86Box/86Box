@@ -138,9 +138,9 @@ typedef struct {
 } sliding_buffer_t;
 
 typedef struct {
-    uint32_t	sync_marks;
     uint32_t	bits_obtained;
-    uint32_t	bytes_obtained;
+    uint16_t	bytes_obtained;
+    uint16_t	sync_marks;
     uint32_t	sync_pos;
 } find_t;
 
@@ -181,47 +181,35 @@ typedef struct {
  */
 typedef struct {
     FILE	*f;
-    uint16_t	version;
-    uint16_t	disk_flags;
-    int32_t	extra_bit_cells[2];
+    uint8_t	state, fill, sector_count, format_state,
+		error_condition, id_found;
+    uint16_t	version, disk_flags, satisfying_bytes, turbo_pos;
+    uint16_t	cur_track;
     uint16_t	track_encoded_data[2][53048];
     uint16_t	*track_surface_data[2];
     uint16_t	thin_track_encoded_data[2][2][53048];
     uint16_t	*thin_track_surface_data[2][2];
     uint16_t	side_flags[2];
+    uint16_t	preceding_bit[2];
+    uint16_t	current_byte[2];
+    uint16_t	current_bit[2];
+    uint16_t	last_word[2];
+#ifdef D86F_COMPRESS
+    int		is_compressed;
+#endif
+    int32_t	extra_bit_cells[2];
+    uint32_t	file_size, index_count, track_pos, datac,
+		id_pos, dma_over;
     uint32_t	index_hole_pos[2];
     uint32_t	track_offset[512];
-    uint32_t	file_size;
     sector_id_t	last_sector;
     sector_id_t	req_sector;
-    uint32_t	index_count;
-    uint8_t	state;
-    uint8_t	fill;
-    uint32_t	track_pos;
-    uint32_t	datac;
-    uint32_t	id_pos;
-    uint16_t	last_word[2];
     find_t	id_find;
     find_t	data_find;
     crc_t	calc_crc;
     crc_t	track_crc;
-    uint8_t	sector_count;
-    uint8_t	format_state;
-    uint16_t	satisfying_bytes;
-    uint16_t	preceding_bit[2];
-    uint16_t	current_byte[2];
-    uint16_t	current_bit[2];
-    int		cur_track;
-    uint32_t	error_condition;
-#ifdef D86F_COMPRESS
-    int		is_compressed;
-#endif
-    int		id_found;
     wchar_t	original_file_name[2048];
-    uint8_t	*filebuf;
-    uint8_t	*outbuf;
-    uint32_t	dma_over;
-    int		turbo_pos;
+    uint8_t	*filebuf, *outbuf;
     sector_t	*last_side_sector[2];
 } d86f_t;
 
@@ -973,7 +961,8 @@ d86f_encode_byte(int drive, int sync, decoded_t b, decoded_t prev_b)
     uint8_t bits3210 = b.nibbles.nibble0;
     uint16_t encoded_7654, encoded_3210, result;
 
-    if (encoding > 1) return 0xff;
+    if (encoding > 1)
+	return 0xffff;
 
     if (sync) {
 	result = d86f_encode_get_data(b.byte);
@@ -1475,7 +1464,7 @@ d86f_read_sector_id(int drive, int side, int match)
 			} else {
 				/* CRC is valid. */
 				dev->id_find.sync_marks = dev->id_find.bits_obtained = dev->id_find.bytes_obtained = 0;
-				dev->id_found++;
+				dev->id_found |= 1;
 				if ((dev->last_sector.dword == dev->req_sector.dword) || !match) {
 					d86f_handler[drive].set_sector(drive, side, dev->last_sector.id.c, dev->last_sector.id.h, dev->last_sector.id.r, dev->last_sector.id.n);
 					if (dev->state == STATE_02_READ_ID) {
