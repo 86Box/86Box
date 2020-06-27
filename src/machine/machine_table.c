@@ -302,7 +302,7 @@ const machine_t machines[] = {
     /* Super Socket 7 machines */
     /* Apollo MVP3 */
     { "[VIA MVP3] AOpen AX59 Pro",		"ax59pro",		MACHINE_TYPE_SOCKETS7,		MACHINE_CPUS_PENTIUM_SS7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,	      machine_at_ax59pro_init, NULL			},
-    { "[VIA MVP3] FIC VA-503+",			"ficva503p",		MACHINE_TYPE_SOCKETS7,		MACHINE_CPUS_PENTIUM_SS7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 255,	         machine_at_mvp3_init, NULL			},
+    { "[VIA MVP3] FIC VA-503+",			"ficva503p",		MACHINE_TYPE_SOCKETS7,		MACHINE_CPUS_PENTIUM_SS7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,	         machine_at_mvp3_init, NULL			},
 
     /* Socket 8 machines */
     /* 440FX */
