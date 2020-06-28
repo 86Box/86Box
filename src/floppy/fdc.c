@@ -1902,7 +1902,8 @@ void
 fdc_sector_finishcompare(fdc_t *fdc, int satisfying)
 {
     fdc->stat = 0x10;
-    fdc->satisfying_sectors++;
+    if (satisfying)
+	fdc->satisfying_sectors++;
     fdc->inread = 0;
     fdc_callback(fdc);
 }
