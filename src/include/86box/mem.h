@@ -39,10 +39,10 @@
 	Bits 24 -31:	SMM read
 */
 
-#define MEM_READ_ANY		0x0000
+#define MEM_READ_DISABLED	0x0000
 #define MEM_READ_INTERNAL	0x0100
 #define MEM_READ_EXTERNAL	0x0200
-#define MEM_READ_DISABLED	0x0300
+#define MEM_READ_ANY		0x0300
 #define MEM_READ_NORMAL		0x0400	/* SMM only - means use the non-SMM state */
 #define MEM_READ_EXTERNAL_EX	0x0500	/* External but with internal exec - needed by the VIA Apollo Pro */
 #define MEM_READ_ROMCS		0x0600	/* EXTERNAL type + ROMC flag */
@@ -52,10 +52,10 @@
 #define MEM_READ_DISABLED_EX	0x4000
 #define MEM_READ_MASK		0xff00
 
-#define MEM_WRITE_ANY		0x0000
+#define MEM_WRITE_DISABLED	0x0000
 #define MEM_WRITE_INTERNAL	0x0001
 #define MEM_WRITE_EXTERNAL	0x0002
-#define MEM_WRITE_DISABLED	0x0003
+#define MEM_WRITE_ANY		0x0003
 #define MEM_WRITE_NORMAL	0x0004	/* SMM only - means use the non-SMM state */
 #define MEM_WRITE_EXTERNAL_EX	0x0005
 #define MEM_WRITE_ROMCS		0x0006	/* EXTERNAL type + ROMC flag */

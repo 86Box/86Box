@@ -2520,6 +2520,11 @@ mem_reset(void)
 {
     uint32_t c, m, m2;
 
+#if FIXME
+    memset(ff_array, 0xff, sizeof(ff_array));
+#endif
+    memset(page_ff, 0xff, sizeof(page_ff));
+
     m = 1024UL * mem_size;
     if (ram != NULL) {
 	free(ram);
@@ -2654,6 +2659,9 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
 #endif
     }
 
+    memset(read_mapping,  0x00, sizeof(read_mapping));
+    memset(write_mapping, 0x00, sizeof(write_mapping));
+
     memset(_mem_exec,    0x00, sizeof(_mem_exec));
 
     memset(&base_mapping, 0x00, sizeof(base_mapping));
@@ -2663,6 +2671,8 @@ mem_log("MEM: reset: new pages=%08lx, pages_sz=%i\n", pages, pages_sz);
     mem_set_mem_state_both(0x000000, (mem_size > 640) ? 0xa0000 : mem_size * 1024,
 			   MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
     mem_set_mem_state_both(0x0a0000, 0x60000,
+			   MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+    mem_set_mem_state_both((mem_size << 10), (uint32_t) (0x100000000ULL - (mem_size << 10)),
 			   MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
 
     mem_mapping_add(&ram_low_mapping, 0x00000,
@@ -2764,11 +2774,6 @@ mem_init(void)
 
     writelookup2 = malloc((1<<20)*sizeof(uintptr_t));
 #endif
-
-#if FIXME
-    memset(ff_array, 0xff, sizeof(ff_array));
-#endif
-    memset(page_ff, 0xff, sizeof(page_ff));
 
     /* Reset the memory state. */
     mem_reset();

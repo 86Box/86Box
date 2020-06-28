@@ -137,6 +137,7 @@ const OpFn	*x86_opcodes_REPNE;
 const OpFn	*x86_opcodes_3DNOW;
 
 int in_smm = 0, smi_line = 0, smi_latched = 0, smm_in_hlt = 0;
+int smi_block = 0;
 uint32_t smbase = 0x30000;
 
 CPU		*cpu_s;
@@ -358,6 +359,7 @@ cpu_set(void)
         cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective];
 
 	cpu_alt_reset = 0;
+	unmask_a20_in_smm = 0;
 
         CPUID        = cpu_s->cpuid_model;
         is8086       = (cpu_s->cpu_type > CPU_8088);

@@ -238,7 +238,6 @@ machine_at_acerm3a_init(const machine_t *model)
     device_add(&piix3_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&fdc37c932fr_device);
-    device_add(&acerm3a_device);
 
     device_add(&sst_flash_29ee010_device);
 
@@ -271,7 +270,6 @@ machine_at_acerv35n_init(const machine_t *model)
     device_add(&piix3_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&fdc37c932fr_device);
-    device_add(&acerm3a_device);
 
     device_add(&sst_flash_29ee010_device);
 

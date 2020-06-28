@@ -512,6 +512,11 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x55:
 		switch (dev->type) {
+			case INTEL_420TX: case INTEL_420ZX:
+				/* According to the FreeBSD 3.x source code, the 420TX/ZX chipset has
+				   this register. The mask is unknown, so write all bits. */
+				regs[0x55] = val;
+				break;
 			case INTEL_430VX: case INTEL_430TX:
 				regs[0x55] = val & 0x01;
 				break;
@@ -523,6 +528,11 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x56:
 		switch (dev->type) {
+			case INTEL_420TX: case INTEL_420ZX:
+				/* According to the FreeBSD 3.x source code, the 420TX/ZX chipset has
+				   this register. The mask is unknown, so write all bits. */
+				regs[0x56] = val;
+				break;
 			case INTEL_430HX:
 				regs[0x56] = val & 0x1f;
 				break;
@@ -1321,24 +1331,28 @@ static void
 		regs[0x06] = 0x40;
 		regs[0x08] = (dev->type == INTEL_420ZX) ? 0x01 : 0x00;
 		regs[0x0d] = 0x20;
+		/* According to information from FreeBSD 3.x source code:
+			0x00 = 486DX, 0x20 = 486SX, 0x40 = 486DX2 or 486DX4, 0x80 = Pentium OverDrive. */
 		if (is486sx)
 			regs[0x50] = 0x20;
 		else if (is486sx2)
 			regs[0x50] = 0x60;	/* Guess based on the SX, DX, and DX2 values. */
-		else if (is486dx || isdx4)
+		else if (is486dx)
 			regs[0x50] = 0x00;
-		else if (is486dx2)
+		else if (is486dx2 || isdx4)
 			regs[0x50] = 0x40;
 		else
 			regs[0x50] = 0x80;	/* Pentium OverDrive. */
-		if (cpu_busspeed <= 25000000)
+		/* According to information from FreeBSD 3.x source code:
+			00 = 25 MHz, 01 = 33 MHz. */
+		if (cpu_busspeed > 25000000)
 			regs[0x50] |= 0x01;
-		else if ((cpu_busspeed > 25000000) && (cpu_busspeed <= 30000000))
-			regs[0x50] |= 0x02;
-		else if ((cpu_busspeed > 30000000) && (cpu_busspeed <= 33333333))
-			regs[0x50] |= 0x03;
 		regs[0x51] = 0x80;
-		regs[0x52] = 0xea;	/* 512 kB burst cache, set to 0xaa for 256 kB */
+		/* According to information from FreeBSD 3.x source code:
+			0x00 = None, 0x01 = 64 kB, 0x41 = 128 kB, 0x81 = 256 kB, 0xc1 = 512 kB,
+			If bit 0 is set, then if bit 2 is also set, the cache is write back,
+			otherwise it's write through. */
+		regs[0x52] = 0xc3;		/* 512 kB writeback cache */
 		regs[0x57] = 0x31;
 		regs[0x59] = 0x0f;
 		regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = 0x02;
