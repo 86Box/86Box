@@ -1,10 +1,16 @@
 name: C/C++ CI
 
 on:
+
   push:
-    branches: [ master ]
+    paths:
+    - src/**
+    - .github/workflows/**
+
   pull_request:
-    branches: [ master ]
+    paths:
+    - src/**
+    - .github/workflows/**
 
 jobs:
   build:
