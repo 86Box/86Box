@@ -103,10 +103,6 @@ enum {
     /* 1 11 01 ??? */
     STATE_0D_SPIN_TO_INDEX = 0xE8,	/* FORMAT TRACK */
     STATE_0D_FORMAT_TRACK,
-
-    /* 1 11 11 ??? */
-    STATE_0D_NOP_SPIN_TO_INDEX = 0xF8,	/* FORMAT TRACK */
-    STATE_0D_NOP_FORMAT_TRACK
 };
 
 enum {
@@ -821,16 +817,14 @@ uint32_t
 d86f_get_data_len(int drive)
 {
     d86f_t *dev = d86f[drive];
+    uint32_t i, ret = 128;
 
-    if (dev->req_sector.id.n) {
-	if (dev->req_sector.id.n == 8)  return 32768;
-	return (128 << ((uint32_t) dev->req_sector.id.n));
-    } else {
-	if (fdc_get_dtl(d86f_fdc) < 128)
-		return fdc_get_dtl(d86f_fdc);
-	  else
-		return (128 << ((uint32_t) dev->req_sector.id.n));
-    }
+    if (dev->req_sector.id.n)
+	ret = (uint32_t)128 << dev->req_sector.id.n;
+    else if ((i = fdc_get_dtl(d86f_fdc)) < 128)
+	ret = i;
+
+    return ret;
 }
 
 
@@ -1769,7 +1763,7 @@ d86f_spin_to_index(int drive, int side)
     d86f_advance_bit(drive, side);
 
     if (dev->track_pos == d86f_handler[drive].index_hole_pos(drive, side)) {
-	if ((dev->state == STATE_0D_SPIN_TO_INDEX) || (dev->state == STATE_0D_NOP_SPIN_TO_INDEX)) {
+	if (dev->state == STATE_0D_SPIN_TO_INDEX) {
 		/* When starting format, reset format state to the beginning. */
 		dev->preceding_bit[side] = 1;
 		dev->format_state = FMT_PRETRK_GAP0;
@@ -2090,22 +2084,6 @@ d86f_format_track(int drive, int side, int do_write)
 
 
 void
-d86f_format_track_normal(int drive, int side)
-{
-    d86f_t *dev = d86f[drive];
-
-    d86f_format_track(drive, side, (dev->version == D86FVER));
-}
-
-
-void
-d86f_format_track_nop(int drive, int side)
-{
-    d86f_format_track(drive, side, 0);
-}
-
-
-void
 d86f_initialize_last_sector_id(int drive, int c, int h, int r, int n)
 {
     d86f_t *dev = d86f[drive];
@@ -2306,7 +2284,6 @@ d86f_turbo_poll(int drive, int side)
 
     switch(dev->state) {
 	case STATE_0D_SPIN_TO_INDEX:
-	case STATE_0D_NOP_SPIN_TO_INDEX:
 		dev->sector_count = 0;
 		dev->datac = 5;
 		/*FALLTHROUGH*/
@@ -2401,11 +2378,7 @@ d86f_turbo_poll(int drive, int side)
 		break;
 
 	case STATE_0D_FORMAT_TRACK:
-		d86f_turbo_format(drive, side, 0);
-		return;
-
-	case STATE_0D_NOP_FORMAT_TRACK:
-		d86f_turbo_format(drive, side, 1);
+		d86f_turbo_format(drive, side, (side && (d86f_get_sides(drive) != 2)));
 		return;
 
 	case STATE_IDLE:
@@ -2449,7 +2422,6 @@ d86f_poll(int drive)
     switch(dev->state) {
 	case STATE_02_SPIN_TO_INDEX:
 	case STATE_0D_SPIN_TO_INDEX:
-	case STATE_0D_NOP_SPIN_TO_INDEX:
 		d86f_spin_to_index(drive, side);
 		return;
 
@@ -2536,12 +2508,7 @@ d86f_poll(int drive)
 
 	case STATE_0D_FORMAT_TRACK:
 		if (! (dev->track_pos & 15))
-			d86f_format_track_normal(drive, side);
-		return;
-
-	case STATE_0D_NOP_FORMAT_TRACK:
-		if (! (dev->track_pos & 15))
-			d86f_format_track_nop(drive, side);
+			d86f_format_track(drive, side, (!side || (d86f_get_sides(drive) == 2)) && (dev->version == D86FVER));
 		return;
 
 	case STATE_IDLE:
@@ -3421,10 +3388,7 @@ d86f_common_format(int drive, int side, int rate, uint8_t fill, int proxy)
     dev->index_count = dev->error_condition = dev->satisfying_bytes = dev->sector_count = 0;
     dev->dma_over = 0;
 
-    if (!side || (d86f_get_sides(drive) == 2))
-	dev->state = STATE_0D_SPIN_TO_INDEX;
-      else
-	dev->state = STATE_0D_NOP_SPIN_TO_INDEX;
+    dev->state = STATE_0D_SPIN_TO_INDEX;
 }
 
 
