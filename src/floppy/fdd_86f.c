@@ -3055,7 +3055,7 @@ d86f_write_tracks(int drive, FILE **f, uint32_t *track_table)
     fdd_side = fdd_get_head(drive);
     sides = d86f_get_sides(drive);
 
-    if (track_table)
+    if (track_table != NULL)
 	tbl = track_table;
 
     if (!fdd_doublestep_40(drive)) {
