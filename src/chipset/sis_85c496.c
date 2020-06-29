@@ -259,7 +259,7 @@ sis_85c49x_pci_write(int func, int addr, uint8_t val, void *priv)
 	case 0x48: case 0x49: case 0x4a: case 0x4b:	/* DRAM Boundary */
 	case 0x4c: case 0x4d: case 0x4e: case 0x4f:
 		// dev->pci_conf[addr] = val;
-		spd_write_drbs(dev->pci_conf, 0x40, 0x4f, 1);
+		spd_write_drbs(dev->pci_conf, 0x48, 0x4f, 1);
 		break;
 	case 0x50: case 0x51:	/* Exclusive Area 0 Setup */
 		dev->pci_conf[addr] = val;

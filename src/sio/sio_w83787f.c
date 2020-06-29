@@ -183,7 +183,7 @@ static void
 w83787f_fdc_handler(w83787f_t *dev)
 {
     fdc_remove(dev->fdc);
-    if (!(dev->regs[0] & 0x20))
+    if (!(dev->regs[0] & 0x20) && !(dev->regs[6] & 0x08))
 	fdc_set_base(dev->fdc, (dev->regs[0] & 0x10) ? 0x03f0 : 0x0370);
 }
 
@@ -251,11 +251,8 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
 			w83787f_lpt_handler(dev);
 		break;
 	case 6:
-		if (valxor & 0x08) {
-			fdc_remove(dev->fdc);
-			if (!(dev->regs[6] & 0x08))
-				fdc_set_base(dev->fdc, 0x03f0);
-		}
+		if (valxor & 0x08)
+			w83787f_fdc_handler(dev);
 		break;
 	case 7:
 		if (valxor & 0x03)
@@ -282,6 +279,9 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
 			dev->rw_locked = (val & 0x40) ? 1 : 0;
 		if (valxor & 0x80)
 			w83787f_lpt_handler(dev);
+		break;
+	case 0xB:
+		pclog("Writing %02X to CRB\n", val);
 		break;
 	case 0xC:
 		if (valxor & 0x20)
