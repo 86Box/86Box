@@ -9,13 +9,6 @@
  *		Implementation of the OPTi 82C802G/82C895 chipset.
  *
  *
- *		Note: The shadowing of the chipset is enough to get the current machine
- *			  to work. Getting anything other to work will require excessive amount
- *			  of rewrites and improvements. Also, considering the similarities with the
- *			  82C495XLC & 82C802G it can be merged with opti495.c and also get 82C802G
- *			  implemented.
- *
- *
  *
  * Authors:	Tiseno100,
  *		Miran Grca, <mgrca8@gmail.com>
@@ -145,47 +138,46 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
 		dev->idx = val;
 		break;
 	case 0x23:
-		if (dev->idx != 0x01)
-			break;
-
-		dev->regs[dev->idx] = val;
-		opti895_log("dev->regs[%04x] = %08x\n", dev->idx, val);
+		if (dev->idx == 0x01) {
+			dev->regs[dev->idx] = val;
+			opti895_log("dev->regs[%04x] = %08x\n", dev->idx, val);
+		}
 		break;
 	case 0x24:
-		if (dev->idx == 0x01)
-			break;
+		if (((dev->idx >= 0x20) && (dev->idx <= 0x2c)) ||
+		    ((dev->idx >= 0xe0) && (dev->idx <= 0xef))) {
+			dev->regs[dev->idx] = val;
+			opti895_log("dev->regs[%04x] = %08x\n", dev->idx, val);
 
-		dev->regs[dev->idx] = val;
-		opti895_log("dev->regs[%04x] = %08x\n", dev->idx, val);
-
-		switch(dev->idx) {
-			case 0x21:
-				cpu_cache_ext_enabled = !!(dev->regs[0x21] & 0x10);
-				cpu_update_waitstates();
-				break;
-
-			case 0x22:
-			case 0x23:
-			case 0x26:
-				opti895_recalc(dev);
-				break;
-
-			case 0x24:
-				opti895_smram_map(0, smram[0].host_base, smram[0].size, !!(val & 0x80));
-				break;
-
-			case 0xe0:
-				if (!(val & 0x01))
-					dev->forced_green = 0;
-				break;
-
-			case 0xe1:
-				if ((val & 0x08) && (dev->regs[0xe0] & 0x01)) {
-					smi_line = 1;
-					dev->forced_green = 1;
+			switch(dev->idx) {
+				case 0x21:
+					cpu_cache_ext_enabled = !!(dev->regs[0x21] & 0x10);
+					cpu_update_waitstates();
 					break;
-				}
-				break;
+
+				case 0x22:
+				case 0x23:
+				case 0x26:
+					opti895_recalc(dev);
+					break;
+
+				case 0x24:
+					opti895_smram_map(0, smram[0].host_base, smram[0].size, !!(val & 0x80));
+					break;
+
+				case 0xe0:
+					if (!(val & 0x01))
+						dev->forced_green = 0;
+					break;
+
+				case 0xe1:
+					if ((val & 0x08) && (dev->regs[0xe0] & 0x01)) {
+						smi_line = 1;
+						dev->forced_green = 1;
+						break;
+					}
+					break;
+			}
 		}
 		break;
 
@@ -205,18 +197,16 @@ opti895_read(uint16_t addr, void *priv)
 
     switch (addr) {
 	case 0x23:
-		if (dev->idx != 0x01)
-			break;
-
-		ret = dev->regs[dev->idx];
+		if (dev->idx == 0x01)
+			ret = dev->regs[dev->idx];
 		break;
 	case 0x24:
-		if (dev->idx == 0x01)
-			break;
-
-		ret = dev->regs[dev->idx];
-		if (dev->idx == 0xe0)
-			ret = (ret & 0xf6) | (in_smm ? 0x00 : 0x08) | !!dev->forced_green;
+		if (((dev->idx >= 0x20) && (dev->idx <= 0x2c)) ||
+		    ((dev->idx >= 0xe0) && (dev->idx <= 0xef))) {
+			ret = dev->regs[dev->idx];
+			if (dev->idx == 0xe0)
+				ret = (ret & 0xf6) | (in_smm ? 0x00 : 0x08) | !!dev->forced_green;
+		}
 		break;
 	case 0xe1:
 	case 0xe2:
