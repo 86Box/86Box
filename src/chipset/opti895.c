@@ -144,7 +144,17 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
 	case 0x22:
 		dev->idx = val;
 		break;
+	case 0x23:
+		if (dev->idx != 0x01)
+			break;
+
+		dev->regs[dev->idx] = val;
+		opti895_log("dev->regs[%04x] = %08x\n", dev->idx, val);
+		break;
 	case 0x24:
+		if (dev->idx == 0x01)
+			break;
+
 		dev->regs[dev->idx] = val;
 		opti895_log("dev->regs[%04x] = %08x\n", dev->idx, val);
 
@@ -194,7 +204,16 @@ opti895_read(uint16_t addr, void *priv)
     opti895_t *dev = (opti895_t *) priv;
 
     switch (addr) {
+	case 0x23:
+		if (dev->idx != 0x01)
+			break;
+
+		ret = dev->regs[dev->idx];
+		break;
 	case 0x24:
+		if (dev->idx == 0x01)
+			break;
+
 		ret = dev->regs[dev->idx];
 		if (dev->idx == 0xe0)
 			ret = (ret & 0xf6) | (in_smm ? 0x00 : 0x08) | !!dev->forced_green;
@@ -226,10 +245,11 @@ opti895_init(const device_t *info)
 
     device_add(&port_92_device);
 
-    io_sethandler(0x0022, 0x0001, opti895_read, NULL, NULL, opti895_write, NULL, NULL, dev);
-    io_sethandler(0x0024, 0x0001, opti895_read, NULL, NULL, opti895_write, NULL, NULL, dev);
+    io_sethandler(0x0022, 0x0003, opti895_read, NULL, NULL, opti895_write, NULL, NULL, dev);
 
     dev->scratch[0] = dev->scratch[1] = 0xff;
+
+    dev->regs[0x01] = 0xc0;
 
     dev->regs[0x22] = 0xc4;
     dev->regs[0x25] = 0x7c;
@@ -241,6 +261,8 @@ opti895_init(const device_t *info)
     dev->regs[0x2b] = 0x10;
     dev->regs[0x2d] = 0xc0;
 
+    dev->regs[0xe8] = 0x08;
+    dev->regs[0xe9] = 0x08;
     dev->regs[0xeb] = 0xff;
     dev->regs[0xef] = 0x40;
 
@@ -260,6 +282,16 @@ opti895_init(const device_t *info)
 
     return dev;
 }
+
+
+const device_t opti802g_device = {
+    "OPTi 82C802G",
+    0,
+    0,
+    opti895_init, opti895_close, NULL,
+    NULL, NULL, NULL,
+    NULL
+};
 
 
 const device_t opti895_device = {
