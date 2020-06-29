@@ -424,7 +424,7 @@ machine_at_r418_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_init_ex(model, 2)
+    machine_at_common_init_ex(model, 2);
 
     machine_at_sis_85c496_common_init(model);
     device_add(&sis_85c496_device);
