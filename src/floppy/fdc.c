@@ -1468,6 +1468,9 @@ fdc_poll_common_finish(fdc_t *fdc, int compare, int st5)
 static void
 fdc_poll_readwrite_finish(fdc_t *fdc, int compare)
 {
+    if ((fdc->interrupt == 5) || (fdc->interrupt == 9))
+	fdd_do_writeback(real_drive(fdc, fdc->drive));
+
     fdc->inread = 0;
     fdc->interrupt = -2;
 

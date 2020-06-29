@@ -1712,7 +1712,6 @@ d86f_write_sector_data(int drive, int side, int mfm, uint16_t am)
 			dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
 			dev->error_condition = 0;
 			dev->state = STATE_IDLE;
-			d86f_handler[drive].writeback(drive);
 			fdc_sector_finishread(d86f_fdc);
 			return;
 		}

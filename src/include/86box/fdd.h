@@ -112,6 +112,7 @@ extern void	fdd_readaddress(int drive, int side, int density);
 extern void	fdd_format(int drive, int side, int density, uint8_t fill);
 extern int	fdd_hole(int drive);
 extern void	fdd_stop(int drive);
+extern void	fdd_do_writeback(int drive);
 
 extern int	motorspin;
 extern uint64_t	motoron[FDD_NUM];
