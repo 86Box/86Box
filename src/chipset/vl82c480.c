@@ -171,7 +171,9 @@ vl82c480_init(const device_t *info)
 	dev->cfg_regs[CFG_ID] = ID_VL82C480;
 	
 	io_sethandler(0x00ec, 0x0004,  vl82c480_read, NULL, NULL, vl82c480_write, NULL, NULL,  dev);
-	
+
+	device_add(&port_92_device);
+
 	return dev;
 }
 
