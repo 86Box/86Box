@@ -15,9 +15,14 @@
  *			  82C495XLC & 82C802G it can be merged with opti495.c and also get 82C802G
  *			  implemented.
  *
- *		Copyright 2020 Tiseno100.
+ *
+ *
+ * Authors:	Tiseno100,
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2020 Tiseno100.
+ *		Copyright 2016-2020 Miran Grca.
  */
-
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -40,10 +45,31 @@
 
 typedef struct
 {
-    uint8_t	idx,
+    uint8_t	idx, forced_green,
 		regs[256],
 		scratch[2];
 } opti895_t;
+
+
+#ifdef ENABLE_OPTI895_LOG
+int opti895_do_log = ENABLE_OPTI895_LOG;
+
+
+static void
+opti895_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (opti895_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+}
+#else
+#define opti895_log(fmt, ...)
+#endif
+
 
 static void
 opti895_recalc(opti895_t *dev)
@@ -54,39 +80,60 @@ opti895_recalc(opti895_t *dev)
     shadowbios = 0;
     shadowbios_write = 0;
 
+    if (dev->regs[0x22] & 0x80) {
+	shadowbios = 1;
+	shadowbios_write = 0;
+	shflags = MEM_READ_EXTANY | MEM_WRITE_INTERNAL;
+    } else {
+	shadowbios = 0;
+	shadowbios_write = 1;
+	shflags = MEM_READ_INTERNAL | MEM_WRITE_DISABLED;
+    }
+
+    mem_set_mem_state_both(0xf0000, 0x10000, shflags);
+
     for (i = 0; i < 8; i++) {
-	if(dev->regs[0x22] & (i << 8) && (i==7)){
-		shadowbios = 1;
-		shadowbios_write = 1;
-		mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-	}
-	else if(!(dev->regs[0x22] & (i << 8)) && (i==7)) {
-		shadowbios = 0;
-		shadowbios_write = 0;
-		mem_set_mem_state(0xf0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-	}
-
-	/*
-	We'll ignore it for now
-	base = 0xc0000 + (i << 14);
-	if (dev->regs[0x26] & (1 << i) && (i<=3)) {
-		shflags = (dev->regs[0x26] & 0x20) ? (MEM_READ_INTERNAL | MEM_WRITE_DISABLED) : (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-		mem_set_mem_state(base, 0x4000, shflags);
-	} else mem_set_mem_state(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-	*/
-
 	base = 0xd0000 + (i << 14);
+
 	if (dev->regs[0x23] & (1 << i)) {
-		if(base < 0xe0000)
-		shflags = (dev->regs[0x22] & 0x10) ? (MEM_READ_INTERNAL | MEM_WRITE_DISABLED) : (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-		else
-		shflags = (dev->regs[0x22] & 0x08) ? (MEM_READ_INTERNAL | MEM_WRITE_DISABLED) : (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-		mem_set_mem_state(base, 0x4000, shflags);
-	} else mem_set_mem_state(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+		if (dev->regs[0x26] & 0x40)
+			shflags = MEM_READ_EXTANY | MEM_WRITE_INTERNAL;
+		else {
+			shflags = MEM_READ_INTERNAL;
+			shflags |= (dev->regs[0x22] & ((base >= 0xe0000) ? 0x08 : 0x10)) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
+		}
+	} else
+		shflags = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
+
+	mem_set_mem_state_both(base, 0x4000, shflags);
+    }
+
+    for (i = 0; i < 4; i++) {
+	base = 0xc0000 + (i << 14);
+
+	if (dev->regs[0x26] & (1 << i)) {
+		if (dev->regs[0x26] & 0x40)
+			shflags = MEM_READ_EXTANY | MEM_WRITE_INTERNAL;
+		else {
+			shflags = MEM_READ_INTERNAL;
+			shflags |= (dev->regs[0x26] & 0x20) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
+		}
+	} else
+		shflags = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
+
+	mem_set_mem_state_both(base, 0x4000, shflags);
     }
 
     flushmmucache();
 }
+
+
+static void
+opti895_smram_map(int smm, uint32_t addr, uint32_t size, int is_smram)
+{
+    mem_set_mem_state_smram(smm, addr, size, is_smram);
+}
+
 
 static void
 opti895_write(uint16_t addr, uint8_t val, void *priv)
@@ -98,24 +145,38 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
 		dev->idx = val;
 		break;
 	case 0x24:
-			dev->regs[dev->idx] = val;
-			pclog("dev->regs[%04x] = %08x\n", dev->idx, val);
-			switch(dev->idx){
-				case 0x21:
-				if(dev->regs[0x21] & 0x10){
-				cpu_cache_ext_enabled = 1;
+		dev->regs[dev->idx] = val;
+		opti895_log("dev->regs[%04x] = %08x\n", dev->idx, val);
+
+		switch(dev->idx) {
+			case 0x21:
+				cpu_cache_ext_enabled = !!(dev->regs[0x21] & 0x10);
 				cpu_update_waitstates();
-				}
 				break;
 
-				case 0x22:
-				case 0x23:
-				case 0x26:
+			case 0x22:
+			case 0x23:
+			case 0x26:
 				opti895_recalc(dev);
 				break;
 
-			}
+			case 0x24:
+				opti895_smram_map(0, smram[0].host_base, smram[0].size, !!(val & 0x80));
+				break;
 
+			case 0xe0:
+				if (!(val & 0x01))
+					dev->forced_green = 0;
+				break;
+
+			case 0xe1:
+				if ((val & 0x08) && (dev->regs[0xe0] & 0x01)) {
+					smi_line = 1;
+					dev->forced_green = 1;
+					break;
+				}
+				break;
+		}
 		break;
 
 	case 0xe1:
@@ -135,6 +196,8 @@ opti895_read(uint16_t addr, void *priv)
     switch (addr) {
 	case 0x24:
 		ret = dev->regs[dev->idx];
+		if (dev->idx == 0xe0)
+			ret = (ret & 0xf6) | (in_smm ? 0x00 : 0x08) | !!dev->forced_green;
 		break;
 	case 0xe1:
 	case 0xe2:
@@ -161,14 +224,39 @@ opti895_init(const device_t *info)
     opti895_t *dev = (opti895_t *) malloc(sizeof(opti895_t));
     memset(dev, 0, sizeof(opti895_t));
 
-	device_add(&port_92_device);
-	
+    device_add(&port_92_device);
+
     io_sethandler(0x0022, 0x0001, opti895_read, NULL, NULL, opti895_write, NULL, NULL, dev);
     io_sethandler(0x0024, 0x0001, opti895_read, NULL, NULL, opti895_write, NULL, NULL, dev);
 
     dev->scratch[0] = dev->scratch[1] = 0xff;
 
+    dev->regs[0x22] = 0xc4;
+    dev->regs[0x25] = 0x7c;
+    dev->regs[0x26] = 0x10;
+    dev->regs[0x27] = 0xde;
+    dev->regs[0x28] = 0xf8;
+    dev->regs[0x29] = 0x10;
+    dev->regs[0x2a] = 0xe0;
+    dev->regs[0x2b] = 0x10;
+    dev->regs[0x2d] = 0xc0;
+
+    dev->regs[0xeb] = 0xff;
+    dev->regs[0xef] = 0x40;
+
+    opti895_recalc(dev);
+
     io_sethandler(0x00e1, 0x0002, opti895_read, NULL, NULL, opti895_write, NULL, NULL, dev);
+
+    smram[0].host_base = 0x00030000;
+    smram[0].ram_base = 0x000b0000;
+    smram[0].size = 0x00010000;
+
+    mem_mapping_set_addr(&ram_smram_mapping[0], smram[0].host_base, smram[0].size);
+    mem_mapping_set_exec(&ram_smram_mapping[0], ram + smram[0].ram_base);
+
+    opti895_smram_map(0, smram[0].host_base, smram[0].size, 0);
+    opti895_smram_map(1, smram[0].host_base, smram[0].size, 1);
 
     return dev;
 }
