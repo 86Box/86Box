@@ -559,9 +559,9 @@ CPUOBJ		:= cpu.o cpu_table.o \
 		    x86seg.o x87.o x87_timings.o \
 		    $(DYNARECOBJ)
 
-CHIPSETOBJ	:= acc2168.o cs8230.o ali1429.o headland.o i82335.o \
+CHIPSETOBJ	:= acc2168.o acer_m3a.o cs8230.o ali1429.o headland.o i82335.o \
 		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
-		    neat.o opti495.o opti5x7.o scamp.o scat.o \
+		    neat.o opti495.o opti895.o opti5x7.o scamp.o scat.o \
 		    sis_85c310.o sis_85c471.o sis_85c496.o \
 		    via_apollo.o via_vpx.o via_vt82c586b.o via_vt82c596b.o wd76c10.o vl82c480.o \
 			amd640.o
