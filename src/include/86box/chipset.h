@@ -61,6 +61,7 @@ extern const device_t	ioapic_device;
 
 /* OPTi */
 extern const device_t	opti495_device;
+extern const device_t	opti895_device;
 extern const device_t	opti5x7_device;
 
 /* C&T */

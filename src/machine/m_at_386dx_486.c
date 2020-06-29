@@ -272,6 +272,26 @@ machine_at_opti495_mr_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_403tg_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/403tg/403TG.BIN",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add(&opti895_device);
+
+    device_add(&keyboard_at_device);
+    device_add(&fdc_at_device);
+
+    return ret;
+}
 
 static void
 machine_at_sis_85c471_common_init(const machine_t *model)
@@ -405,6 +425,7 @@ machine_at_r418_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init_ex(model, 2);
+
     machine_at_sis_85c496_common_init(model);
     device_add(&sis_85c496_device);
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 1, 2, 3, 4);
@@ -431,6 +452,7 @@ machine_at_ls486e_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init_ex(model, 2);
+
     machine_at_sis_85c496_common_init(model);
     device_add(&sis_85c496_ls486e_device);
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 1, 2, 3, 4);
@@ -457,6 +479,7 @@ machine_at_4dps_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init_ex(model, 2);
+
     machine_at_sis_85c496_common_init(model);
     device_add(&sis_85c496_device);
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 1, 2, 3, 4);
