@@ -2917,9 +2917,9 @@ d86f_read_track(int drive, int track, int thin_track, int side, uint16_t *da, ui
 	} else
 		fseek(dev->f, dev->track_offset[logical_track] + d86f_track_header_size(drive), SEEK_SET);
 	array_size = d86f_get_array_size(drive, side, 0);
+	fread(da, 1, array_size, dev->f);
 	if (d86f_has_surface_desc(drive))
 		fread(sa, 1, array_size, dev->f);
-	fread(da, 1, array_size, dev->f);
     } else {
 	if (! thin_track) {
 		switch((dev->disk_flags >> 1) & 3) {
@@ -3014,10 +3014,10 @@ d86f_write_track(int drive, FILE **f, int side, uint16_t *da0, uint16_t *sa0)
 
     fwrite(&index_hole_pos, 1, 4, *f);
 
+    fwrite(da0, 1, array_size, *f);
+
     if (d86f_has_surface_desc(drive))
 	fwrite(sa0, 1, array_size, *f);
-
-    fwrite(da0, 1, array_size, *f);
 }
 
 
