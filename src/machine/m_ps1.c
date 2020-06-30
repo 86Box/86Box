@@ -558,6 +558,7 @@ machine_ps1_m2121_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_ps1_m2133_init(const machine_t *model)
 {
@@ -573,6 +574,7 @@ machine_ps1_m2133_init(const machine_t *model)
     device_add(&fdc_at_device);
     device_add(&ide_isa_device);
     device_add(&vl82c480_device);
+    device_add(&ps1_m2133_sio);
 
     nmi_mask = 0x80;
 
@@ -581,6 +583,7 @@ machine_ps1_m2133_init(const machine_t *model)
 
     return ret;
 }
+
 
 const device_t *
 ps1_m2133_get_device(void)
