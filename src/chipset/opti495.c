@@ -90,14 +90,15 @@ opti495_recalc(opti495_t *dev)
 
 	if ((dev->regs[0x22] & ((base >= 0xe0000) ? 0x20 : 0x40)) &&
 	    (dev->regs[0x23] & (1 << i))) {
-		if (dev->regs[0x26] & 0x40)
-			shflags = MEM_READ_EXTANY | MEM_WRITE_INTERNAL;
-		else {
-			shflags = MEM_READ_INTERNAL;
+		shflags = MEM_READ_INTERNAL;
+		shflags |= (dev->regs[0x22] & ((base >= 0xe0000) ? 0x08 : 0x10)) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
+	} else {
+		if (dev->regs[0x26] & 0x40) {
+			shflags = MEM_READ_EXTANY;
 			shflags |= (dev->regs[0x22] & ((base >= 0xe0000) ? 0x08 : 0x10)) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
-		}
-	} else
-		shflags = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
+		} else
+			shflags = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
+	}
 
 	mem_set_mem_state_both(base, 0x4000, shflags);
     }
@@ -106,14 +107,15 @@ opti495_recalc(opti495_t *dev)
 	base = 0xc0000 + (i << 14);
 
 	if ((dev->regs[0x26] & 0x10) && (dev->regs[0x26] & (1 << i))) {
-		if (dev->regs[0x26] & 0x40)
-			shflags = MEM_READ_EXTANY | MEM_WRITE_INTERNAL;
-		else {
-			shflags = MEM_READ_INTERNAL;
+		shflags = MEM_READ_INTERNAL;
+		shflags |= (dev->regs[0x26] & 0x20) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
+	} else {
+		if (dev->regs[0x26] & 0x40) {
+			shflags = MEM_READ_EXTANY;
 			shflags |= (dev->regs[0x26] & 0x20) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
-		}
-	} else
-		shflags = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
+		} else
+			shflags = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
+	}
 
 	mem_set_mem_state_both(base, 0x4000, shflags);
     }
