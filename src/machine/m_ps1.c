@@ -571,7 +571,6 @@ machine_ps1_m2133_init(const machine_t *model)
 	return ret;
 
     ps1_common_init(model);
-    device_add(&fdc_at_device);
     device_add(&ide_isa_device);
     device_add(&vl82c480_device);
     device_add(&pc87332_ps1_device);
