@@ -160,6 +160,7 @@ machine_at_valuepointp60_init(const machine_t *model)
 }
 #endif
 
+#if defined(DEV_BRANCH) && defined(USE_DELL)
 int
 machine_at_opti560l_init(const machine_t *model)
 {
@@ -190,7 +191,6 @@ machine_at_opti560l_init(const machine_t *model)
     return ret;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_DELLXP60)
 int
 machine_at_dellxp60_init(const machine_t *model)	// Doesn't like the regular SMC 665
 {

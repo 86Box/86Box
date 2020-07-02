@@ -87,8 +87,8 @@ ifeq ($(DEV_BUILD), y)
  ifndef GUSMAX
   GUSMAX	:= y
  endif
- ifndef DELLXP60
-  DELLXP60		:= y
+ ifndef DELL
+  DELL		:= y
  endif
 else
  ifndef DEBUG
@@ -151,8 +151,8 @@ else
  ifndef GUSMAX
   GUSMAX	:= n
  endif
- ifndef DELLXP60
-  DELLXP60		:= n
+ ifndef DELL
+  DELL		:= n
  endif
 endif
 
@@ -536,8 +536,8 @@ ifeq ($(GUSMAX), y)
 OPTS		+= -DUSE_GUSMAX
 endif
 
-ifeq ($(DELLXP60), y)
-OPTS		+= -DUSE_DELLXP60
+ifeq ($(DELL), y)
+OPTS		+= -DUSE_DELL
 endif
 
 endif
