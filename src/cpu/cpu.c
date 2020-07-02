@@ -190,6 +190,10 @@ uint64_t	mtrr_fix16k_a000_msr = 0;
 uint64_t	mtrr_fix4k_msr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 uint64_t	mtrr_deftype_msr = 0;
 
+uint64_t	ibm_por_msr = 0; /*Processor Operation Register*/
+uint64_t	ibm_crcr_msr = 0; /*Cache Region Control Register*/
+uint64_t	ibm_por2_msr = 0; /*Processor Operation Register*/
+
 uint16_t	cs_msr = 0;
 uint32_t	esp_msr = 0;
 uint32_t	eip_msr = 0;
@@ -618,12 +622,12 @@ cpu_set(void)
                 break;
 		
                 case CPU_IBM486SLC:
+                case CPU_IBM386SLC:
 #ifdef USE_DYNAREC
-                x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
+                x86_setopcodes(ops_386, ops_ibm486_0f, dynarec_ops_386, dynarec_ops_ibm486_0f);
 #else
-                x86_setopcodes(ops_386, ops_486_0f);
-#endif
-		case CPU_IBM386SLC:
+                x86_setopcodes(ops_386, ops_ibm486_0f);
+#endif		
                 case CPU_386SX:
                 timing_rr  = 2;   /*register dest - register src*/
                 timing_rm  = 6;   /*register dest - memory src*/
@@ -657,9 +661,9 @@ cpu_set(void)
 		
                 case CPU_IBM486BL:
 #ifdef USE_DYNAREC
-                x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
+                x86_setopcodes(ops_386, ops_ibm486_0f, dynarec_ops_386, dynarec_ops_ibm486_0f);
 #else
-                x86_setopcodes(ops_386, ops_486_0f);
+                x86_setopcodes(ops_386, ops_ibm486_0f);
 #endif
                 case CPU_386DX:
                 if (fpu_type == FPU_287) /*In case we get Deskpro 386 emulation*/
@@ -724,7 +728,7 @@ cpu_set(void)
                 timing_jmp_pm      = 27;
                 timing_jmp_pm_gate = 45;
                 break;
-                
+                 
 		
                 case CPU_RAPIDCAD:
 #ifdef USE_DYNAREC
@@ -2496,6 +2500,36 @@ void cpu_RDMSR()
 {
         switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
         {
+                case CPU_IBM386SLC:
+                EAX = EDX = 0;
+                switch (ECX)
+                {
+                        case 0x1000:
+                        EAX = ibm_por_msr & 0xfeff;
+			
+                        case 0x1001:
+                        EAX = ibm_crcr_msr & 0xffffffffff;			
+                }
+                break;
+		
+                case CPU_IBM486SLC:
+                case CPU_IBM486BL:
+                EAX = EDX = 0;
+                switch (ECX)
+                {
+                        case 0x1000:
+                        EAX = ibm_por_msr & 0xffeff;
+			
+                        case 0x1001:
+                        EAX = ibm_crcr_msr & 0xffffffffff;
+			
+                        if (cpu_s->multi) {
+                        case 0x1002:
+                        EAX = ibm_por2_msr & 0x3f000000;
+                        }
+                }	
+                break;
+				
                 case CPU_WINCHIP:
                 case CPU_WINCHIP2:
                 EAX = EDX = 0;
@@ -3046,6 +3080,44 @@ void cpu_WRMSR()
 	cpu_log("WRMSR %08X %08X%08X\n", ECX, EDX, EAX);
         switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
         {
+                case CPU_IBM386SLC:
+                switch (ECX)
+                {
+                        case 0x1000:
+                        ibm_por_msr = EAX & 0xfeff;
+                        if (EAX & (1 << 7))
+                        cpu_cache_int_enabled = 1;
+                        else
+                        cpu_cache_int_enabled = 0;
+                        break;	
+                        case 0x1001:
+                        ibm_crcr_msr = EAX & 0xffffffffff;
+                        break;
+                }
+                break;
+		
+                case CPU_IBM486BL:
+                case CPU_IBM486SLC:		
+                switch (ECX)
+                {
+                        case 0x1000:
+                        ibm_por_msr = EAX & 0xffeff;
+                        if (EAX & (1 << 7))
+                        cpu_cache_int_enabled = 1;
+                        else
+                        cpu_cache_int_enabled = 0;
+                        break;
+                        case 0x1001:
+                        ibm_crcr_msr = EAX & 0xffffffffff;
+                        break;
+                        if (cpu_s->multi) {
+                        case 0x1002:
+                        ibm_por2_msr = EAX & 0x3f000000;
+                        }
+                        break;
+                }
+                break;
+				
                 case CPU_WINCHIP:
                 case CPU_WINCHIP2:
                 switch (ECX)
