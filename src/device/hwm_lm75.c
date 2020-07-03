@@ -60,19 +60,21 @@ lm75_log(const char *fmt, ...)
 
 
 void
-lm75_remap(lm75_t *dev)
+lm75_remap(lm75_t *dev, uint8_t addr)
 {
-    lm75_log("LM75: remapping to SMBus %02Xh\n", dev->smbus_addr);
+    lm75_log("LM75: remapping to SMBus %02Xh\n", addr);
 
     smbus_removehandler(dev->smbus_addr, 1,
     			lm75_smbus_read_byte, lm75_smbus_read_byte_cmd, lm75_smbus_read_word_cmd, NULL,
     			lm75_smbus_write_byte, lm75_smbus_write_byte_cmd, lm75_smbus_write_word_cmd, NULL,
     			dev);
 
-    if (dev->smbus_addr) smbus_sethandler(dev->smbus_addr, 1,
+    if (addr < 0x80) smbus_sethandler(addr, 1,
     			lm75_smbus_read_byte, lm75_smbus_read_byte_cmd, lm75_smbus_read_word_cmd, NULL,
     			lm75_smbus_write_byte, lm75_smbus_write_byte_cmd, lm75_smbus_write_word_cmd, NULL,
     			dev);
+
+    dev->smbus_addr = addr;
 }
 
 
@@ -128,7 +130,7 @@ lm75_read(lm75_t *dev, uint8_t reg)
     /* The AS99127F hardware monitor uses the addresses of its LM75 devices
        to access some of its proprietary registers. Pass this operation on to
        the main monitor address through an internal SMBus call, if necessary. */
-    if ((reg > 0x7) && ((reg & 0xf8) != 0x50) && (dev->as99127f_smbus_addr))
+    if ((reg > 0x7) && ((reg & 0xf8) != 0x50) && (dev->as99127f_smbus_addr < 0x80))
     	ret = smbus_read_byte_cmd(dev->as99127f_smbus_addr, reg);
     else
     	ret = dev->regs[reg & 0x7];
@@ -191,7 +193,7 @@ lm75_write(lm75_t *dev, uint8_t reg, uint8_t val)
     /* The AS99127F hardware monitor uses the addresses of its LM75 devices
        to access some of its proprietary registers. Pass this operation on to
        the main monitor address through an internal SMBus call, if necessary. */
-    if ((reg > 0x7) && ((reg & 0xf8) != 0x50) && (dev->as99127f_smbus_addr)) {
+    if ((reg > 0x7) && ((reg & 0xf8) != 0x50) && (dev->as99127f_smbus_addr < 0x80)) {
     	smbus_write_byte_cmd(dev->as99127f_smbus_addr, reg, val);
     	return 1;
     }
@@ -216,7 +218,7 @@ lm75_reset(lm75_t *dev)
     dev->regs[0x3] = 0x4b;
     dev->regs[0x5] = 0x50;
 
-    lm75_remap(dev);
+    lm75_remap(dev, dev->local & 0x7f);
 }
 
 
@@ -224,6 +226,9 @@ static void
 lm75_close(void *priv)
 {
     lm75_t *dev = (lm75_t *) priv;
+
+    lm75_remap(dev, 0);
+
     free(dev);
 }
 
@@ -237,8 +242,7 @@ lm75_init(const device_t *info)
     dev->local = info->local;
     dev->values = hwm_get_values();
 
-    dev->smbus_addr = dev->local;
-    dev->as99127f_smbus_addr = 0x00;
+    dev->as99127f_smbus_addr = 0x80;
 
     lm75_reset(dev);
 

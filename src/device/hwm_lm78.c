@@ -91,23 +91,25 @@ lm78_log(const char *fmt, ...)
 
 
 static void
-lm78_remap(lm78_t *dev)
+lm78_remap(lm78_t *dev, uint8_t addr)
 {
     lm75_t *lm75;
 
     if (!(dev->local & LM78_SMBUS)) return;
 
-    lm78_log("LM78: remapping to SMBus %02Xh\n", dev->smbus_addr);
+    lm78_log("LM78: remapping to SMBus %02Xh\n", addr);
 
     smbus_removehandler(dev->smbus_addr, 1,
     			lm78_smbus_read_byte, lm78_smbus_read_byte_cmd, lm78_smbus_read_word_cmd, NULL,
     			lm78_smbus_write_byte, lm78_smbus_write_byte_cmd, lm78_smbus_write_word_cmd, NULL,
     			dev);
 
-    if (dev->smbus_addr) smbus_sethandler(dev->smbus_addr, 1,
+    if (addr < 0x80) smbus_sethandler(addr, 1,
     			lm78_smbus_read_byte, lm78_smbus_read_byte_cmd, lm78_smbus_read_word_cmd, NULL,
     			lm78_smbus_write_byte, lm78_smbus_write_byte_cmd, lm78_smbus_write_word_cmd, NULL,
     			dev);
+
+    dev->smbus_addr = addr;
 
     if (dev->local & LM78_AS99127F) {
     	/* Store the main SMBus address on the LM75 devices to ensure reads/writes
@@ -291,10 +293,8 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 
     switch (reg) {
     	case 0x40:
-    		if (val & 0x80) {
-    			/* INITIALIZATION bit resets all registers except main SMBus address */
+    		if (val & 0x80) /* INITIALIZATION bit resets all registers except main SMBus address */
     			lm78_reset(dev, 1);
-    		}
     		break;
     	case 0x47:
     		/* update FAN1/FAN2 values to match the new divisor */
@@ -303,19 +303,15 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
     		break;
     	case 0x48:
     		/* set main SMBus address */
-    		if (dev->local & LM78_SMBUS) {
-    			dev->smbus_addr = (dev->regs[0x48] & 0x7f);
-    			lm78_remap(dev);
-    		}
+    		if (dev->local & LM78_SMBUS)
+    			lm78_remap(dev, dev->regs[0x48] & 0x7f);
     		break;
     	case 0x49:
     		if (!(dev->local & LM78_WINBOND)) {
-    			if (val & 0x20) {
-    				/* Chip Reset bit (LM78 only) resets all registers */
+    			if (val & 0x20) /* Chip Reset bit (LM78 only) resets all registers */
     				lm78_reset(dev, 0);
-    			} else {
+    			else
     				dev->regs[0x49] = 0x40;
-    			}
     		} else {
     			dev->regs[0x49] &= 0x01;
     		}
@@ -328,10 +324,9 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
     				if (!lm75)
     					continue;
     				if (dev->regs[0x4a] & (0x08 * (0x10 * i))) /* DIS_T2 and DIS_T3 bit disable those interfaces */
-    					lm75->smbus_addr = 0x00;
+    					lm75_remap(lm75, 0x80);
     				else
-    					lm75->smbus_addr = (0x48 + ((dev->regs[0x4a] >> (i * 4)) & 0x7));
-    				lm75_remap(lm75);
+    					lm75_remap(lm75, 0x48 + ((dev->regs[0x4a] >> (i * 4)) & 0x7));
     			}
     		}
     		break;
@@ -428,7 +423,7 @@ lm78_reset(lm78_t *dev, uint8_t initialization)
     	dev->regs[0x49] = 0x40;
     }
 
-    lm78_remap(dev);
+    lm78_remap(dev, dev->smbus_addr);
 }
 
 

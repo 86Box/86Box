@@ -102,9 +102,9 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
     switch (addr - dev->io_base) {
     	case 0x00:
     		/* some status bits are reset by writing 1 to them */
-    		for (smbus_addr = 0x02; smbus_addr <= 0x10; smbus_addr = smbus_addr << 1) {
+    		for (smbus_addr = 0x02; smbus_addr <= 0x10; smbus_addr <<= 1) {
     			if (val & smbus_addr)
-    				dev->stat = dev->stat & ~smbus_addr;
+    				dev->stat &= ~smbus_addr;
     		}
     		break;
     	case 0x02:
@@ -150,7 +150,7 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
     						dev->data0 = (temp & 0xFF);
     						dev->data1 = (temp >> 8);
     					} else {
-    						temp = (dev->data1 << 8) | dev->data0;
+    						temp = ((dev->data1 << 8) | dev->data0);
     						smbus_write_word_cmd(smbus_addr, dev->cmd, temp);
     					}
     					dev->next_stat = 0x2;
@@ -216,7 +216,7 @@ smbus_piix4_remap(smbus_piix4_t *dev, uint16_t new_io_base, uint8_t enable)
     dev->io_base = new_io_base;
     smbus_piix4_log("SMBus PIIX4: remap to %04Xh\n", dev->io_base);
 
-    if (enable && (dev->io_base != 0x0000))
+    if ((enable) && (dev->io_base != 0x0000))
 	io_sethandler(dev->io_base, 0x10, smbus_piix4_read, NULL, NULL, smbus_piix4_write, NULL, NULL, dev);
 }
 
