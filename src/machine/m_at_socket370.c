@@ -217,7 +217,7 @@ machine_at_63a_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/63a1/63a-q3.bin",
+    ret = bios_load_linear(L"roms/machines/63a1/6ZX82.BIN",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
