@@ -61,7 +61,7 @@
 #endif
 #include "x87_timings.h"
 
-#define ENABLE_CPU_LOG 1
+/*#define ENABLE_CPU_LOG 1*/
 
 static void	cpu_write(uint16_t addr, uint8_t val, void *priv);
 static uint8_t	cpu_read(uint16_t addr, void *priv);
@@ -3408,7 +3408,7 @@ void cpu_WRMSR()
 				break;
                         case 0x8B:
 				cpu_log("WRMSR: Invalid MSR: 0x8B\n");
-				//x86gpf(NULL, 0); /*Needed for Vista to correctly break on Pentium*/
+				x86gpf(NULL, 0); /*Needed for Vista to correctly break on Pentium*/
 				break;
                 }
                 break;
@@ -3541,7 +3541,7 @@ void cpu_WRMSR()
 			default:
 i686_invalid_wrmsr:
 			cpu_log("WRMSR: Invalid MSR: %08X\n", ECX);
-			//x86gpf(NULL, 0);
+			x86gpf(NULL, 0);
 			break;
                 }
                 break;
