@@ -515,3 +515,21 @@ machine_at_commodore_sl386sx_init(const machine_t *model)
 
     return ret;
 }
+int
+machine_at_awardsx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/awardsx/Unknown 386SX OPTi291 - Award (original).BIN",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_init(model);
+
+    device_add(&opti291_device);
+    device_add(&fdc_at_device);
+
+    return ret;
+}
