@@ -44,27 +44,28 @@ static void opti291_recalc(opti291_t *dev)
 		
 	for (i = 0; i < 4; i++) {
 	base = 0xe0000 + (i << 14);
-	shflags = (dev->regs[0x24] & (1 << i)) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
-	shflags |= (dev->regs[0x24] & (1 << (i+4))) ? write : MEM_WRITE_EXTANY;
+	shflags = (dev->regs[0x24] & (1 << (i+4))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+	shflags |= (dev->regs[0x24] & (1 << (i))) ? write : MEM_WRITE_EXTANY;
 	write = (dev->regs[0x27] & 0x40) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
 	mem_set_mem_state(base, 0x4000, shflags);
 	}
 	for (i = 0; i < 4; i++) {
 	base = 0xd0000 + (i << 14);
-	shflags = (dev->regs[0x25] & (1 << i)) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
-	shflags |= (dev->regs[0x25] & (1 << (i+4))) ? write : MEM_WRITE_EXTANY;
+	shflags = (dev->regs[0x25] & (1 << (i+4))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+	shflags |= (dev->regs[0x25] & (1 << (i))) ? write : MEM_WRITE_EXTANY;
 	write = (dev->regs[0x27] & 0x20) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
 	mem_set_mem_state(base, 0x4000, shflags);
 	}
+	
 	for (i = 0; i < 4; i++) {
 	base = 0xc0000 + (i << 14);
-	shflags = (dev->regs[0x26] & (1 << i)) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
-	shflags |= (dev->regs[0x26] & (1 << (i+4))) ? write : MEM_WRITE_EXTANY;
+	shflags = (dev->regs[0x26] & (1 << (i+4))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+	shflags |= (dev->regs[0x26] & (1 << i)) ? write : MEM_WRITE_EXTANY;
 	write = (dev->regs[0x27] & 0x10) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
 	mem_set_mem_state(base, 0x4000, shflags);
 	}
     flushmmucache();	
-}
+}	
 static void
 opti291_write(uint16_t addr, uint8_t val, void *priv)
 {
