@@ -67,7 +67,7 @@ machine_at_ax59pro_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83877tf_device);
     device_add(&sst_flash_39sf020_device);
-    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
     return ret;
 }
@@ -90,7 +90,7 @@ machine_at_mvp3_init(const machine_t *model)
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0a, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x01, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     device_add(&via_mvp3_device);
@@ -98,6 +98,7 @@ machine_at_mvp3_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83877tf_device);
     device_add(&sst_flash_39sf010_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 512);
 
     return ret;
 }

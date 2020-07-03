@@ -1468,6 +1468,9 @@ fdc_poll_common_finish(fdc_t *fdc, int compare, int st5)
 static void
 fdc_poll_readwrite_finish(fdc_t *fdc, int compare)
 {
+    if ((fdc->interrupt == 5) || (fdc->interrupt == 9))
+	fdd_do_writeback(real_drive(fdc, fdc->drive));
+
     fdc->inread = 0;
     fdc->interrupt = -2;
 
@@ -1902,7 +1905,8 @@ void
 fdc_sector_finishcompare(fdc_t *fdc, int satisfying)
 {
     fdc->stat = 0x10;
-    fdc->satisfying_sectors++;
+    if (satisfying)
+	fdc->satisfying_sectors++;
     fdc->inread = 0;
     fdc_callback(fdc);
 }

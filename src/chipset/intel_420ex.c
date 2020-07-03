@@ -32,6 +32,7 @@
 #include <86box/hdc.h>
 #include <86box/machine.h>
 #include <86box/chipset.h>
+#include <86box/spd.h>
 
 
 #define MEM_STATE_SHADOW_R	0x01
@@ -232,8 +233,6 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x4c: case 0x51:
 	case 0x57:
-	case 0x60: case 0x61: case 0x62: case 0x63:
-	case 0x64:
 	case 0x68: case 0x69:
 		dev->regs[addr] = val;
 		if (addr == 0x4c) {
@@ -305,6 +304,9 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
 		if ((dev->regs[0x5f] ^ val) & 0xf0)
 			i420ex_map(0xec000, 0x04000, val >> 4);
 		dev->regs[0x5f] = val;
+		break;
+	case 0x60: case 0x61: case 0x62: case 0x63: case 0x64:
+		spd_write_drbs(dev->regs, 0x60, 0x64, 1);
 		break;
 	case 0x66: case 0x67:
 		i420ex_log("Set IRQ routing: INT %c -> %02X\n", 0x41 + (addr & 0x01), val);

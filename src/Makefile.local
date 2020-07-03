@@ -74,8 +74,11 @@ STUFF	:=
 # chipset/ logging:
 # -DENABLE_I420EX_LOG=N sets logging level at N.
 # -DENABLE_NEAT_LOG=N sets logging level at N.
+# -DENABLE_OPTI495_LOG=N sets logging level at N.
+# -DENABLE_OPTI895_LOG=N sets logging level at N.
 # -DENABLE_PIIX_LOG=N sets logging level at N.
 # -DENABLE_SIO_LOG=N sets logging level at N.
+# -DENABLE_SIS_85C496_LOG=N sets logging level at N.
 # codegen/, codegen_new/, cpu/ logging:
 # -DENABLE_X86SEG_LOG=N sets logging level at N.
 # cpu/ logging:

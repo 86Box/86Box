@@ -485,9 +485,9 @@ dma_write(uint16_t addr, uint8_t val, void *priv)
 	case 6: /*Address registers*/
 		dma_wp[0] ^= 1;
 		if (dma_wp[0])
-			dma[channel].ab = (dma[channel].ab & 0xffff00) | val;
+			dma[channel].ab = (dma[channel].ab & 0xffffff00 & dma_mask) | val;
 		  else
-			dma[channel].ab = (dma[channel].ab & 0xff00ff) | (val << 8);
+			dma[channel].ab = (dma[channel].ab & 0xffff00ff & dma_mask) | (val << 8);
 		dma[channel].ac = dma[channel].ab;
 		return;
 
@@ -778,14 +778,14 @@ dma16_write(uint16_t addr, uint8_t val, void *priv)
 		dma_wp[1] ^= 1;
 		if (dma_ps2.is_ps2) {
 			if (dma_wp[1])
-				dma[channel].ab = (dma[channel].ab & 0xffff00) | val;
+				dma[channel].ab = (dma[channel].ab & 0xffffff00 & dma_mask) | val;
 			  else
-				dma[channel].ab = (dma[channel].ab & 0xff00ff) | (val << 8);
+				dma[channel].ab = (dma[channel].ab & 0xffff00ff & dma_mask) | (val << 8);
 		} else {
 			if (dma_wp[1])
-				dma[channel].ab = (dma[channel].ab & 0xfffe00) | (val << 1);
+				dma[channel].ab = (dma[channel].ab & 0xfffffe00 & dma_mask) | (val << 1);
 			  else
-				dma[channel].ab = (dma[channel].ab & 0xfe01ff) | (val << 9);
+				dma[channel].ab = (dma[channel].ab & 0xfffe01ff & dma_mask) | (val << 9);
 		}
 		dma[channel].ac = dma[channel].ab;
 		return;
@@ -878,12 +878,12 @@ dma_page_write(uint16_t addr, uint8_t val, void *priv)
 
 	if (addr > 4) {
 		dma[addr].page = val & 0xfe;
-		dma[addr].ab = (dma[addr].ab & 0x1ffff) | (dma[addr].page << 16);
-		dma[addr].ac = (dma[addr].ac & 0x1ffff) | (dma[addr].page << 16);
+		dma[addr].ab = (dma[addr].ab & 0xff01ffff & dma_mask) | (dma[addr].page << 16);
+		dma[addr].ac = (dma[addr].ac & 0xff01ffff & dma_mask) | (dma[addr].page << 16);
 	} else {
 		dma[addr].page = (AT) ? val : val & 0xf;
-		dma[addr].ab = (dma[addr].ab & 0xffff) | (dma[addr].page << 16);
-		dma[addr].ac = (dma[addr].ac & 0xffff) | (dma[addr].page << 16);
+		dma[addr].ab = (dma[addr].ab & 0xff00ffff & dma_mask) | (dma[addr].page << 16);
+		dma[addr].ac = (dma[addr].ac & 0xff00ffff & dma_mask) | (dma[addr].page << 16);
 	}
     }
 }
@@ -956,6 +956,20 @@ dma_set_params(uint8_t advanced, uint32_t mask)
 {
     dma_advanced = advanced;
     dma_mask = mask;
+}
+
+
+void
+dma_set_mask(uint32_t mask)
+{
+    int i;
+
+    dma_mask = mask;
+
+    for (i = 0; i < 8; i++) {
+	dma[i].ab &= mask;
+	dma[i].ac &= mask;
+    }
 }
 
 
@@ -1355,14 +1369,14 @@ dma_channel_read(int channel)
 		else if (dma_advanced)
 			dma_retreat(dma_c);
 		else
-			dma_c->ac = (dma_c->ac & 0xff0000) | ((dma_c->ac - 1) & 0xffff);
+			dma_c->ac = (dma_c->ac & 0xffff0000 & dma_mask) | ((dma_c->ac - 1) & 0xffff);
 	} else {
 		if (dma_ps2.is_ps2)
 			dma_c->ac++;
 		else if (dma_advanced)
 			dma_advance(dma_c);
 		else
-			dma_c->ac = (dma_c->ac & 0xff0000) | ((dma_c->ac + 1) & 0xffff);
+			dma_c->ac = (dma_c->ac & 0xffff0000 & dma_mask) | ((dma_c->ac + 1) & 0xffff);
 	}
     } else {
 	temp = _dma_readw(dma_c->ac, dma_c);
@@ -1373,14 +1387,14 @@ dma_channel_read(int channel)
 		else if (dma_advanced)
 			dma_retreat(dma_c);
 		else
-			dma_c->ac = (dma_c->ac & 0xfe0000) | ((dma_c->ac - 2) & 0x1ffff);
+			dma_c->ac = (dma_c->ac & 0xfffe0000 & dma_mask) | ((dma_c->ac - 2) & 0x1ffff);
 	} else {
 		if (dma_ps2.is_ps2)
 			dma_c->ac += 2;
 		else if (dma_advanced)
 			dma_advance(dma_c);
 		else
-			dma_c->ac = (dma_c->ac & 0xfe0000) | ((dma_c->ac + 2) & 0x1ffff);
+			dma_c->ac = (dma_c->ac & 0xfffe0000 & dma_mask) | ((dma_c->ac + 2) & 0x1ffff);
 	}
     }
 
@@ -1443,14 +1457,14 @@ dma_channel_write(int channel, uint16_t val)
 		else if (dma_advanced)
 			dma_retreat(dma_c);
 		else
-			dma_c->ac = (dma_c->ac & 0xff0000) | ((dma_c->ac - 1) & 0xffff);
+			dma_c->ac = (dma_c->ac & 0xffff0000 & dma_mask) | ((dma_c->ac - 1) & 0xffff);
 	} else {
 		if (dma_ps2.is_ps2)
 			dma_c->ac++;
 		else if (dma_advanced)
 			dma_advance(dma_c);
 		else
-			dma_c->ac = (dma_c->ac & 0xff0000) | ((dma_c->ac + 1) & 0xffff);
+			dma_c->ac = (dma_c->ac & 0xffff0000 & dma_mask) | ((dma_c->ac + 1) & 0xffff);
 	}
     } else {
 	_dma_writew(dma_c->ac,     val, dma_c);
@@ -1461,15 +1475,15 @@ dma_channel_write(int channel, uint16_t val)
 		else if (dma_advanced)
 			dma_retreat(dma_c);
 		else
-			dma_c->ac = (dma_c->ac & 0xfe0000) | ((dma_c->ac - 2) & 0x1ffff);
-		dma_c->ac = (dma_c->ac & 0xfe0000) | ((dma_c->ac - 2) & 0x1ffff);
+			dma_c->ac = (dma_c->ac & 0xfffe0000 & dma_mask) | ((dma_c->ac - 2) & 0x1ffff);
+		dma_c->ac = (dma_c->ac & 0xfffe0000 & dma_mask) | ((dma_c->ac - 2) & 0x1ffff);
 	} else {
 		if (dma_ps2.is_ps2)
 			dma_c->ac += 2;
 		else if (dma_advanced)
 			dma_advance(dma_c);
 		else
-			dma_c->ac = (dma_c->ac & 0xfe0000) | ((dma_c->ac + 2) & 0x1ffff);
+			dma_c->ac = (dma_c->ac & 0xfffe0000 & dma_mask) | ((dma_c->ac + 2) & 0x1ffff);
 	}
     }
 

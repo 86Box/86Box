@@ -61,7 +61,8 @@ extern int optype;
 extern uint32_t pccache;
 
 
-int in_sys = 0;
+int in_sys = 0, unmask_a20_in_smm = 0;
+uint32_t old_rammask = 0xffffffff;
 
 smram_t temp_smram[2];
 
@@ -1100,6 +1101,13 @@ enter_smm(int in_hlt)
 
     smm_in_hlt = in_hlt;
 
+    if (unmask_a20_in_smm) {
+	old_rammask = rammask;
+	rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+
+	flushmmucache();
+    }
+
     CPU_BLOCK_END();
 }
 
@@ -1149,6 +1157,12 @@ leave_smm(void)
 	smram_state -= 4;
 	saved_state[n] = readmeml(0, smram_state);
 	x386_common_log("Reading %08X from memory at %08X to array element %i\n", saved_state[n], smram_state, n);
+    }
+
+    if (unmask_a20_in_smm) {
+	rammask = old_rammask;
+
+	flushmmucache();
     }
 
     x386_common_log("New SMBASE: %08X (%08X)\n", saved_state[SMRAM_FIELD_P5_SMBASE_OFFSET], saved_state[66]);

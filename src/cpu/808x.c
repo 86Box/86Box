@@ -977,6 +977,7 @@ reset_common(int hard)
 
     in_smm = smi_latched = 0;
     smi_line = smm_in_hlt = 0;
+    smi_block = 0;
 
     if (hard) {
 	smbase = 0x00030000;

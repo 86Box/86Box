@@ -100,10 +100,8 @@ typedef struct _spd_sdram_ {
 } spd_sdram_t;
 
 
-extern spd_t	*spd_devices[SPD_MAX_SLOTS];
-
-
 extern void spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size);
+extern void spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit);
 
 
 #endif	/*EMU_SPD_H*/

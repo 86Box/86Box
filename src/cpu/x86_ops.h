@@ -79,6 +79,7 @@ extern const OpFn dynarec_ops_386[1024];
 extern const OpFn dynarec_ops_386_0f[1024];
 
 extern const OpFn dynarec_ops_486_0f[1024];
+extern const OpFn dynarec_ops_ibm486_0f[1024];
 
 extern const OpFn dynarec_ops_winchip_0f[1024];
 extern const OpFn dynarec_ops_winchip2_0f[1024];
@@ -174,6 +175,7 @@ extern const OpFn ops_386[1024];
 extern const OpFn ops_386_0f[1024];
 
 extern const OpFn ops_486_0f[1024];
+extern const OpFn ops_ibm486_0f[1024];
 
 extern const OpFn ops_winchip_0f[1024];
 extern const OpFn ops_winchip2_0f[1024];

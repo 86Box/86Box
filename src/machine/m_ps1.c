@@ -495,7 +495,7 @@ ps1_setup(int model)
     /* Enable the PS/1 VGA controller. */
     if (model == 2011)
 	device_add(&ps1vga_device);
-    else
+    else if (model == 2021)
 	device_add(&ibm_ps1_2121_device);
 }
 
@@ -558,6 +558,7 @@ machine_ps1_m2121_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_ps1_m2133_init(const machine_t *model)
 {
@@ -570,9 +571,9 @@ machine_ps1_m2133_init(const machine_t *model)
 	return ret;
 
     ps1_common_init(model);
-    device_add(&fdc_at_device);
     device_add(&ide_isa_device);
     device_add(&vl82c480_device);
+    device_add(&pc87332_ps1_device);
 
     nmi_mask = 0x80;
 
@@ -581,6 +582,7 @@ machine_ps1_m2133_init(const machine_t *model)
 
     return ret;
 }
+
 
 const device_t *
 ps1_m2133_get_device(void)

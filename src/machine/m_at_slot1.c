@@ -365,13 +365,30 @@ machine_at_ax6bc_init(const machine_t *model)
     pci_register_slot(0x09, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);    
-    pci_register_slot(0x01, PCI_CARD_NORMAL,       1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_NORMAL,      1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83977tf_device);
     device_add(&sst_flash_29ee020_device);
-    spd_register(SPD_TYPE_SDRAM, 0x7, 256);    
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
+    hwm_values_t machine_hwm = {
+    	{    /* fan speeds */
+    		3000,	/* System */
+    		3000	/* CPU */
+    	}, { /* temperatures */
+    		30	/* CPU */
+    	}, { /* voltages */
+    		2050,   			  /* VCORE (2.05V by default) */
+    		RESISTOR_DIVIDER(12000, 150, 47), /* +12V (15K/4.7K divider suggested in the GL518SM datasheet) */
+    		3300				  /* +3.3V */
+    	}
+    };
+    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
+    	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Klamath */
+    hwm_set_values(machine_hwm);
+    device_add(&gl518sm_2d_device);
 
     return ret;
 }

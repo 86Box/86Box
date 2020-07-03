@@ -252,6 +252,8 @@ extern int	machine_at_asus386_init(const machine_t *);
 extern int  machine_at_ecs386_init(const machine_t *);
 extern int	machine_at_micronics386_init(const machine_t *);
 
+extern int	machine_at_rycleopardlx_init(const machine_t *);
+
 extern int	machine_at_pb410a_init(const machine_t *);
 
 extern int	machine_at_acera1g_init(const machine_t *);
@@ -261,6 +263,8 @@ extern int	machine_at_winbios1429_init(const machine_t *);
 extern int	machine_at_opti495_init(const machine_t *);
 extern int	machine_at_opti495_ami_init(const machine_t *);
 extern int	machine_at_opti495_mr_init(const machine_t *);
+
+extern int	machine_at_403tg_init(const machine_t *);
 
 extern int	machine_at_vli486sv2g_init(const machine_t *);
 extern int	machine_at_ami471_init(const machine_t *);
@@ -299,6 +303,10 @@ extern int	machine_at_batman_init(const machine_t *);
 extern int	machine_at_ambradp60_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_VPP60)
 extern int	machine_at_valuepointp60_init(const machine_t *);
+#endif
+extern int	machine_at_opti560l_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(USE_DELLXP60)
+extern int	machine_at_dellxp60_init(const machine_t *);
 #endif
 extern int	machine_at_p5mp3_init(const machine_t *);
 extern int	machine_at_586mc1_init(const machine_t *);

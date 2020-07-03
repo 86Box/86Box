@@ -238,7 +238,6 @@ machine_at_acerm3a_init(const machine_t *model)
     device_add(&piix3_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&fdc37c932fr_device);
-    device_add(&acerm3a_device);
 
     device_add(&sst_flash_29ee010_device);
 
@@ -271,7 +270,6 @@ machine_at_acerv35n_init(const machine_t *model)
     device_add(&piix3_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&fdc37c932fr_device);
-    device_add(&acerm3a_device);
 
     device_add(&sst_flash_29ee010_device);
 
@@ -983,6 +981,7 @@ machine_at_ficva502_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&fdc37c669_device);
     device_add(&sst_flash_29ee010_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     return ret;
 }
@@ -1013,6 +1012,7 @@ machine_at_ficpa2012_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83877f_device);
     device_add(&sst_flash_39sf010_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
     return ret;
 }

@@ -702,7 +702,7 @@ gd54xx_in(uint16_t addr, void *p)
 				case 0x17:
 					ret = svga->gdcreg[0x17] & ~(7 << 3);
 					if (svga->crtc[0x27] <= CIRRUS_ID_CLGD5429) {
-						if (svga->crtc[0x27] == CIRRUS_ID_CLGD5428) {
+						if ((svga->crtc[0x27] == CIRRUS_ID_CLGD5428) || (svga->crtc[0x27] == CIRRUS_ID_CLGD5426)) {
 							if (gd54xx->vlb)
 								ret |= (CL_GD5428_SYSTEM_BUS_VESA << 3);
 							else if (gd54xx->mca)
@@ -3023,9 +3023,9 @@ static void
 #endif
 
 	case CIRRUS_ID_CLGD5426:
-		if (info->local & 0x200) {
+		if (info->local & 0x200)
 			romfn = NULL;
-		} else		
+		else		
 			romfn = BIOS_GD5426_PATH;
 		break;
 
@@ -3082,15 +3082,18 @@ static void
 	vram = 1;
 	gd54xx->vram_size = 1 << 20;
     } else {
-	if (id >= CIRRUS_ID_CLGD5420)
-	    vram = device_get_config_int("memory");
-	else
-	    vram = 0;
-    
+	if (id >= CIRRUS_ID_CLGD5420) {
+		if ((id == CIRRUS_ID_CLGD5426) && (info->local & 0x200))
+			vram = 1;
+		else
+			vram = device_get_config_int("memory");
+	} else
+		vram = 0;
+
 	if (vram)
-	    gd54xx->vram_size = vram << 20;	
+		gd54xx->vram_size = vram << 20;	
 	else
-	    gd54xx->vram_size = 1 << 19;
+		gd54xx->vram_size = 1 << 19;
     }
 
     gd54xx->vram_mask = gd54xx->vram_size - 1;
@@ -3556,7 +3559,7 @@ const device_t gd5426_onboard_device =
     NULL,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
-    gd5428_config
+    NULL
 };
 
 const device_t gd5428_isa_device =

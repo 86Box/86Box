@@ -964,6 +964,11 @@ static void ps2_mca_board_model_55sx_init()
 static void mem_encoding_update()
 {
 	mem_mapping_disable(&ps2.split_mapping);
+
+	if (ps2.split_size > 0)
+		mem_set_mem_state(ps2.split_addr, ps2.split_size << 10, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+	if (((mem_size << 10) - (1 << 20)) > 0)
+		mem_set_mem_state(1 << 20, (mem_size << 10) - (1 << 20), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
                 
         ps2.split_addr = ((uint32_t) (ps2.mem_regs[0] & 0xf)) << 20;
         
@@ -993,12 +998,15 @@ static void mem_encoding_update()
 			ps2.split_phys = 0xa0000;
 		}
 
+		mem_set_mem_state(ps2.split_addr, ps2.split_size << 10, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 		mem_mapping_set_exec(&ps2.split_mapping, &ram[ps2.split_phys]);
 		mem_mapping_set_addr(&ps2.split_mapping, ps2.split_addr, ps2.split_size << 10);
 
 		ps2_mca_log("PS/2 Model 80-111: Split memory block enabled at %08X\n", ps2.split_addr);
-        } else
+        } else {
+		ps2.split_size = 0;
 		ps2_mca_log("PS/2 Model 80-111: Split memory block disabled\n");
+	}
 }
 
 static uint8_t mem_encoding_read(uint16_t addr, void *p)
@@ -1242,6 +1250,8 @@ static void ps2_mca_board_model_80_type2_init(int is486)
 
 	if (gfxcard == VID_INTERNAL)	
 		device_add(&ps1vga_mca_device);
+
+	ps2.split_size = 0;
 }
 
 

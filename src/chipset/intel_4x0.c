@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the Intel PCISet chips from 420TX to 440BX.
+ *		Implementation of the Intel PCISet chips from 420TX to 440GX.
  *
  *
  *
@@ -28,6 +28,7 @@
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/chipset.h>
+#include <86box/spd.h>
 
 
 enum
@@ -52,10 +53,30 @@ typedef struct
 {
     uint8_t	pm2_cntrl, max_func,
 		smram_locked, max_drb,
-		drb_default;
+		drb_unit, drb_default;
     uint8_t	regs[2][256], regs_locked[2][256];
     int		type;
 } i4x0_t;
+
+
+#ifdef ENABLE_I4X0_LOG
+int i4x0_do_log = ENABLE_I4X0_LOG;
+
+
+static void
+i4x0_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (i4x0_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+}
+#else
+#define i4x0_log(fmt, ...)
+#endif
 
 
 static void
@@ -491,6 +512,11 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x55:
 		switch (dev->type) {
+			case INTEL_420TX: case INTEL_420ZX:
+				/* According to the FreeBSD 3.x source code, the 420TX/ZX chipset has
+				   this register. The mask is unknown, so write all bits. */
+				regs[0x55] = val;
+				break;
 			case INTEL_430VX: case INTEL_430TX:
 				regs[0x55] = val & 0x01;
 				break;
@@ -502,6 +528,11 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x56:
 		switch (dev->type) {
+			case INTEL_420TX: case INTEL_420ZX:
+				/* According to the FreeBSD 3.x source code, the 420TX/ZX chipset has
+				   this register. The mask is unknown, so write all bits. */
+				regs[0x56] = val;
+				break;
 			case INTEL_430HX:
 				regs[0x56] = val & 0x1f;
 				break;
@@ -628,6 +659,10 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		regs[0x5f] = val & 0x77;
 		break;
 	case 0x60: case 0x61: case 0x62: case 0x63: case 0x64:
+		if ((addr & 0x7) <= dev->max_drb) {
+			spd_write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+			break;
+		}
 		switch (dev->type) {
 			case INTEL_420TX: case INTEL_420ZX:
 			case INTEL_430LX: case INTEL_430NX:
@@ -647,6 +682,10 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		}
 		break;
 	case 0x65:
+		if ((addr & 0x7) <= dev->max_drb) {
+			spd_write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+			break;
+		}
 		switch (dev->type) {
 			case INTEL_420TX: case INTEL_420ZX:
 			case INTEL_430LX: case INTEL_430NX:
@@ -666,6 +705,10 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		}
 		break;
 	case 0x66:
+		if ((addr & 0x7) <= dev->max_drb) {
+			spd_write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+			break;
+		}
 		switch (dev->type) {
 			case INTEL_430NX: case INTEL_430HX:
 			case INTEL_440FX: case INTEL_440LX:
@@ -676,12 +719,16 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		}
 		break;
 	case 0x67:
+		if ((addr & 0x7) <= dev->max_drb) {
+			spd_write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
+			break;
+		}
 		switch (dev->type) {
 			case INTEL_430NX: case INTEL_430HX:	
 			case INTEL_440FX: case INTEL_440LX:
 			case INTEL_440EX:
 			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
+			case INTEL_440ZX:
 				regs[addr] = val;
 				break;
 			case INTEL_430VX:
@@ -1284,28 +1331,33 @@ static void
 		regs[0x06] = 0x40;
 		regs[0x08] = (dev->type == INTEL_420ZX) ? 0x01 : 0x00;
 		regs[0x0d] = 0x20;
+		/* According to information from FreeBSD 3.x source code:
+			0x00 = 486DX, 0x20 = 486SX, 0x40 = 486DX2 or 486DX4, 0x80 = Pentium OverDrive. */
 		if (is486sx)
 			regs[0x50] = 0x20;
 		else if (is486sx2)
 			regs[0x50] = 0x60;	/* Guess based on the SX, DX, and DX2 values. */
-		else if (is486dx || isdx4)
+		else if (is486dx)
 			regs[0x50] = 0x00;
-		else if (is486dx2)
+		else if (is486dx2 || isdx4)
 			regs[0x50] = 0x40;
 		else
 			regs[0x50] = 0x80;	/* Pentium OverDrive. */
-		if (cpu_busspeed <= 25000000)
+		/* According to information from FreeBSD 3.x source code:
+			00 = 25 MHz, 01 = 33 MHz. */
+		if (cpu_busspeed > 25000000)
 			regs[0x50] |= 0x01;
-		else if ((cpu_busspeed > 25000000) && (cpu_busspeed <= 30000000))
-			regs[0x50] |= 0x02;
-		else if ((cpu_busspeed > 30000000) && (cpu_busspeed <= 33333333))
-			regs[0x50] |= 0x03;
 		regs[0x51] = 0x80;
-		regs[0x52] = 0xea;	/* 512 kB burst cache, set to 0xaa for 256 kB */
+		/* According to information from FreeBSD 3.x source code:
+			0x00 = None, 0x01 = 64 kB, 0x41 = 128 kB, 0x81 = 256 kB, 0xc1 = 512 kB,
+			If bit 0 is set, then if bit 2 is also set, the cache is write back,
+			otherwise it's write through. */
+		regs[0x52] = 0xc3;		/* 512 kB writeback cache */
 		regs[0x57] = 0x31;
 		regs[0x59] = 0x0f;
 		regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = 0x02;
 		dev->max_drb = 5;
+		dev->drb_unit = 4;
 		dev->drb_default = 0x02;
 		break;
 	case INTEL_430LX:
@@ -1324,6 +1376,7 @@ static void
 		regs[0x59] = 0x0f;
 		regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = 0x02;
 		dev->max_drb = 5;
+		dev->drb_unit = 4;
 		dev->drb_default = 0x02;
 		break;
 	case INTEL_430NX:
@@ -1344,6 +1397,7 @@ static void
 		regs[0x59] = 0x0f;
 		regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x02;
 		dev->max_drb = 7;
+		dev->drb_unit = 4;
 		dev->drb_default = 0x02;
 		break;
 	case INTEL_430FX:
@@ -1359,6 +1413,7 @@ static void
 		regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = 0x02;
 		regs[0x72] = 0x02;
 		dev->max_drb = 4;
+		dev->drb_unit = 4;
 		dev->drb_default = 0x02;
 		break;
 	case INTEL_430HX:
@@ -1373,6 +1428,7 @@ static void
 		regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x02;
 		regs[0x72] = 0x02;
 		dev->max_drb = 7;
+		dev->drb_unit = 4;
 		dev->drb_default = 0x02;
 		break;
 	case INTEL_430VX:
@@ -1394,6 +1450,7 @@ static void
 		regs[0x74] = 0x0e;
 		regs[0x78] = 0x23;
 		dev->max_drb = 4;
+		dev->drb_unit = 4;
 		dev->drb_default = 0x02;
 		break;
 	case INTEL_430TX:
@@ -1411,6 +1468,7 @@ static void
 		regs[0x70] = 0x20;
 		regs[0x72] = 0x02;
 		dev->max_drb = 5;
+		dev->drb_unit = 4;
 		dev->drb_default = 0x02;
 		break;
 	case INTEL_440FX:
@@ -1427,6 +1485,7 @@ static void
 		regs[0x71] = 0x10;
 		regs[0x72] = 0x02;
 		dev->max_drb = 7;
+		dev->drb_unit = 8;
 		dev->drb_default = 0x02;
 		break;
 	case INTEL_440LX:
@@ -1451,12 +1510,13 @@ static void
 		regs[0xa5] = 0x02;
 		regs[0xa7] = 0x1f;
 		dev->max_drb = 7;
+		dev->drb_unit = 8;
 		dev->drb_default = 0x01;
 		break;
 	case INTEL_440EX:
 		dev->max_func = 1;
 
-		regs[0x02] = 0x80; regs[0x03] = 0x71;	/* 82443EX. Same Vendor ID as 440LX*/
+		regs[0x02] = 0x80; regs[0x03] = 0x71;	/* 82443EX. Same Vendor ID as 440LX */
 		regs[0x06] = 0x90;
 		regs[0x10] = 0x08;
 		regs[0x34] = 0xa0;
@@ -1475,6 +1535,7 @@ static void
 		regs[0xa5] = 0x02;
 		regs[0xa7] = 0x1f;
 		dev->max_drb = 7;
+		dev->drb_unit = 8;
 		dev->drb_default = 0x01;
 		break;
 	case INTEL_440BX: case INTEL_440ZX:
@@ -1503,6 +1564,7 @@ static void
 		regs[0xa5] = 0x02;
 		regs[0xa7] = 0x1f;
 		dev->max_drb = 7;
+		dev->drb_unit = 8;
 		dev->drb_default = 0x01;
 		break;
 	case INTEL_440GX:
@@ -1528,6 +1590,7 @@ static void
 		regs[0xa5] = 0x02;
 		regs[0xa7] = 0x1f;
 		dev->max_drb = 7;
+		dev->drb_unit = 8;
 		dev->drb_default = 0x01;
 		break;
     }
