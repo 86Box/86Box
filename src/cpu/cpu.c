@@ -369,8 +369,8 @@ cpu_set(void)
         is8086       = (cpu_s->cpu_type > CPU_8088);
         is286        = (cpu_s->cpu_type >= CPU_286);
         is386        = (cpu_s->cpu_type >= CPU_386SX);
-	israpidcad   = (cpu_s->cpu_type == CPU_RAPIDCAD);
-	isibm486     = (cpu_s->cpu_type == CPU_IBM486SLC) || (cpu_s->cpu_type == CPU_IBM486BL);
+        israpidcad   = (cpu_s->cpu_type == CPU_RAPIDCAD);
+        isibm486     = (cpu_s->cpu_type == CPU_IBM386SLC) || (cpu_s->cpu_type == CPU_IBM486SLC) || (cpu_s->cpu_type == CPU_IBM486BL);
         is486        = (cpu_s->cpu_type >= CPU_i486SX) || (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_RAPIDCAD);
         is486sx      = (cpu_s->cpu_type >= CPU_i486SX) && (cpu_s->cpu_type < CPU_i486SX2);
         is486sx2     = (cpu_s->cpu_type >= CPU_i486SX2) && (cpu_s->cpu_type < CPU_i486DX);
@@ -627,7 +627,8 @@ cpu_set(void)
                 x86_setopcodes(ops_386, ops_ibm486_0f, dynarec_ops_386, dynarec_ops_ibm486_0f);
 #else
                 x86_setopcodes(ops_386, ops_ibm486_0f);
-#endif		
+#endif
+                cpu_features = CPU_FEATURE_MSR;		
                 case CPU_386SX:
                 timing_rr  = 2;   /*register dest - register src*/
                 timing_rm  = 6;   /*register dest - memory src*/
@@ -665,6 +666,7 @@ cpu_set(void)
 #else
                 x86_setopcodes(ops_386, ops_ibm486_0f);
 #endif
+                cpu_features = CPU_FEATURE_MSR;
                 case CPU_386DX:
                 if (fpu_type == FPU_287) /*In case we get Deskpro 386 emulation*/
                 {
