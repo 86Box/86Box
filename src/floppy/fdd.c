@@ -719,3 +719,10 @@ fdd_init(void)
     fdd_load(2, floppyfns[2]);
     fdd_load(3, floppyfns[3]);
 }
+
+
+void
+fdd_do_writeback(int drive)
+{
+    d86f_handler[drive].writeback(drive);
+}

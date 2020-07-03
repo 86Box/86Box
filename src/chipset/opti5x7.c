@@ -1,5 +1,19 @@
-/*Based off the OPTI 82C546/82C547 datasheet. 
-The earlier 596/597 appears to be register compatible with the 546/547 from testing.*/
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Implementation of the OPTi 82C546/82C547 & 82C596/82C597 chipsets.
+ 
+ * Authors:	plant/nerd73
+ *              Miran Grca, <mgrca8@gmail.com>
+ *
+ *              Copyright 2020 plant/nerd73.
+ *              Copyright 2020 Miran Grca.
+ */
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -22,29 +36,40 @@ The earlier 596/597 appears to be register compatible with the 546/547 from test
 
 typedef struct
 {
-    uint8_t	cur_reg,
+    uint8_t	idx,
 		regs[16];
-    port_92_t  *port_92;		
+    port_92_t  *port_92;    
 } opti5x7_t;
 
 static void
-opti5x7_recalcmapping(opti5x7_t *dev)
+opti5x7_recalc(opti5x7_t *dev)
 {
-    uint32_t shflags = 0;
+    uint32_t base;
+    uint32_t i, j, shflags = 0;
+    uint32_t reg, lowest_bit;
+    uint32_t write = 0;
 
-    shadowbios = 0;
-    shadowbios_write = 0;
-
-
-    shadowbios |= !!(dev->regs[0x06] & 0x05);
-    shadowbios_write |= !!(dev->regs[0x06] & 0x0a);
+    for (i = 0; i < 8; i++) {
+        j = i / 2.01; /*Probably not a great way of doing this, but it does work*/
+        base = 0xc0000 + (j << 14); 
+	
+        lowest_bit = j * 2;
+        reg = 0x04 + ((base >> 16) & 0x01);
+	
+        shflags = (dev->regs[reg] & (1 << lowest_bit)) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+        shflags |= (dev->regs[reg] & (1 << (lowest_bit + 1))) ? MEM_WRITE_INTERNAL : write;
+        write = (dev->regs[reg] & (1 << lowest_bit)) ? MEM_WRITE_DISABLED : MEM_WRITE_EXTANY;
+        mem_set_mem_state(base, 0x4000, shflags);
+    }
 
     shflags = (dev->regs[0x06] & 0x01) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
-    shflags |= (dev->regs[0x06] & 0x02) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+    shflags |= (dev->regs[0x06] & 0x02) ? MEM_WRITE_INTERNAL : write;
+    write = (dev->regs[0x06] & 0x01) ? MEM_WRITE_DISABLED : MEM_WRITE_EXTANY;    
     mem_set_mem_state(0xe0000, 0x10000, shflags);
 
     shflags = (dev->regs[0x06] & 0x04) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
-    shflags |= (dev->regs[0x06] & 0x08) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+    shflags |= (dev->regs[0x06] & 0x08) ? MEM_WRITE_INTERNAL : write;
+    write = (dev->regs[0x06] & 0x04) ? MEM_WRITE_DISABLED : MEM_WRITE_EXTANY;    
     mem_set_mem_state(0xf0000, 0x10000, shflags);
 
     flushmmucache();
@@ -53,18 +78,25 @@ static void
 opti5x7_write(uint16_t addr, uint8_t val, void *priv)
 {	
     opti5x7_t *dev = (opti5x7_t *) priv;
-//  pclog("Write %02x to OPTi 5x7 address %02x\n", val, addr);
+    pclog("Write %02x to OPTi 5x7 address %02x\n", val, addr);
     
     switch (addr) {
 	case 0x22:
-		dev->cur_reg = val;
+		dev->idx = val;
 		break;	    
 	case 0x24:	
-			dev->regs[dev->cur_reg] = val;
-			if (dev->regs[0x02] & 0x0c)
-				cpu_cache_ext_enabled = 1;
-			if (dev->cur_reg == 0x06)
-				opti5x7_recalcmapping(dev);			
+		dev->regs[dev->idx] = val;
+		switch(dev->idx) {
+			case 0x02:
+				cpu_cache_ext_enabled = !!(dev->regs[0x02] & 0x04 & 0x08);
+				break;
+				
+			case 0x04:
+			case 0x05:
+			case 0x06:
+				opti5x7_recalc(dev);
+				break;
+		}
 		break;	    
     }
 }
@@ -78,8 +110,8 @@ opti5x7_read(uint16_t addr, void *priv)
 
     switch (addr) {
 	case 0x24:
-//			pclog("Read from OPTI 5x7 register %02x\n", dev->cur_reg);
-			ret = dev->regs[dev->cur_reg];
+			pclog("Read from OPTi 5x7 register %02x\n", dev->idx);
+			ret = dev->regs[dev->idx];
 		break;
     }
 
@@ -107,7 +139,7 @@ opti5x7_init(const device_t *info)
 
     dev->port_92 = device_add(&port_92_device);    
 //  pclog("OPTi 5x7 init\n");
-    opti5x7_recalcmapping(dev);
+    opti5x7_recalc(dev);
   
 
     return dev;

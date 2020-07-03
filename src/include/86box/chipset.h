@@ -21,9 +21,6 @@
 /* ACC */
 extern const device_t	acc2168_device;
 
-/* Acer M3A and V35N */
-extern const device_t	acerm3a_device;
-
 /* ALi */
 extern const device_t	ali1429_device;
 
@@ -63,7 +60,10 @@ extern const device_t	slc90e66_device;
 extern const device_t	ioapic_device;
 
 /* OPTi */
+extern const device_t	opti493_device;
 extern const device_t	opti495_device;
+extern const device_t	opti802g_device;
+extern const device_t	opti895_device;
 extern const device_t	opti5x7_device;
 
 /* C&T */
@@ -77,6 +77,7 @@ extern const device_t	cs8230_device;
 extern const device_t   rabbit_device;
 extern const device_t	sis_85c471_device;
 extern const device_t	sis_85c496_device;
+extern const device_t	sis_85c496_ls486e_device;
 #if defined(DEV_BRANCH) && defined(USE_SIS_85C50X)
 extern const device_t	sis_85c50x_device;
 #endif

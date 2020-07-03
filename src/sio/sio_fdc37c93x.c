@@ -108,8 +108,11 @@ static uint8_t
 fdc37c93x_gpio_read(uint16_t port, void *priv)
 {
     fdc37c93x_t *dev = (fdc37c93x_t *) priv;
+    uint8_t ret = 0xff;
 
-    return dev->gpio_regs[port & 1];
+    ret = dev->gpio_regs[port & 1];
+
+    return ret;
 }
 
 
@@ -118,7 +121,8 @@ fdc37c93x_gpio_write(uint16_t port, uint8_t val, void *priv)
 {
     fdc37c93x_t *dev = (fdc37c93x_t *) priv;
 
-    dev->gpio_regs[port & 1] = val;
+    if (!(port & 1))
+	dev->gpio_regs[0] = (dev->gpio_regs[0] & 0xfc) | (val & 0x03);
 }
 
 
@@ -756,8 +760,8 @@ fdc37c93x_init(const device_t *info)
 
     dev->chip_id = info->local;
 
-    dev->gpio_regs[0] = 0xFD;
-    dev->gpio_regs[1] = 0xFF;
+    dev->gpio_regs[0] = 0xff;
+    dev->gpio_regs[1] = 0xfd;
 
     if (dev->chip_id == 0x30) {
 	dev->nvr = device_add(&at_nvr_device);

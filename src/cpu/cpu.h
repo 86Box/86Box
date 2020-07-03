@@ -412,6 +412,7 @@ extern int	hasfpu;
 extern uint32_t	cpu_features;
 
 extern int	in_smm, smi_line, smi_latched, smm_in_hlt;
+extern int	smi_block;
 extern uint32_t	smbase;
 
 #ifdef USE_NEW_DYNAREC
@@ -497,7 +498,8 @@ extern int	timing_retf_rm, timing_retf_pm, timing_retf_pm_outer;
 extern int	timing_jmp_rm, timing_jmp_pm, timing_jmp_pm_gate;
 extern int	timing_misaligned;
 
-extern int	in_sys;
+extern int	in_sys, unmask_a20_in_smm;
+extern uint32_t	old_rammask;
 
 extern uint16_t	cpu_fast_off_count, cpu_fast_off_val;
 extern uint32_t	cpu_fast_off_flags;

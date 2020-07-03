@@ -41,7 +41,6 @@ typedef struct {
     int cur_reg;
     fdc_t *fdc;
     serial_t *uart[2];
-    nvr_t *nvr;
 } pc87332_t;
 
 
@@ -292,12 +291,15 @@ pc87332_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
-    // dev->nvr = device_add(&piix4_nvr_device);
-
     pc87332_reset(dev);
 
-    io_sethandler(0x02e, 0x0002,
-		  pc87332_read, NULL, NULL, pc87332_write, NULL, NULL, dev);
+    if (info->local == 1) {
+	io_sethandler(0x398, 0x0002,
+		      pc87332_read, NULL, NULL, pc87332_write, NULL, NULL, dev);
+    } else {
+	io_sethandler(0x02e, 0x0002,
+		      pc87332_read, NULL, NULL, pc87332_write, NULL, NULL, dev);
+    }
 
     return dev;
 }
@@ -307,6 +309,16 @@ const device_t pc87332_device = {
     "National Semiconductor PC87332 Super I/O",
     0,
     0,
+    pc87332_init, pc87332_close, NULL,
+    NULL, NULL, NULL,
+    NULL
+};
+
+
+const device_t pc87332_ps1_device = {
+    "National Semiconductor PC87332 Super I/O (IBM PS/1 Model 2133 EMEA 451)",
+    0,
+    1,
     pc87332_init, pc87332_close, NULL,
     NULL, NULL, NULL,
     NULL

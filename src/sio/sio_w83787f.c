@@ -145,27 +145,24 @@ w83787f_serial_handler(w83787f_t *dev, int uart)
 static void
 w83787f_lpt_handler(w83787f_t *dev)
 {
-    int ptrs0 = !!(dev->regs[1] & 4);
-    int ptrs1 = !!(dev->regs[1] & 5);
-    int ptrs, irq = 7;
+    int ptras = (dev->regs[1] >> 4) & 0x03;
+    int irq = 7;
     uint16_t addr = 0x378, enable = 1;
 
-    ptrs = (ptrs1 << 1) | ptrs0;
-
-    switch (ptrs) {
-	case 0:
+    switch (ptras) {
+	case 0x00:
 		addr = 0x3bc;
 		irq = 7;
 		break;
-	case 1:
+	case 0x01:
 		addr = 0x278;
 		irq = 5;
 		break;
-	case 2:
+	case 0x02:
 		addr = 0x378;
 		irq = 7;
 		break;
-	case 3:
+	case 0x03:
 	default:
 		enable = 0;
 		break;
@@ -186,7 +183,7 @@ static void
 w83787f_fdc_handler(w83787f_t *dev)
 {
     fdc_remove(dev->fdc);
-    if (!(dev->regs[0] & 0x20))
+    if (!(dev->regs[0] & 0x20) && !(dev->regs[6] & 0x08))
 	fdc_set_base(dev->fdc, (dev->regs[0] & 0x10) ? 0x03f0 : 0x0370);
 }
 
@@ -254,11 +251,8 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
 			w83787f_lpt_handler(dev);
 		break;
 	case 6:
-		if (valxor & 0x08) {
-			fdc_remove(dev->fdc);
-			if (!(dev->regs[6] & 0x08))
-				fdc_set_base(dev->fdc, 0x03f0);
-		}
+		if (valxor & 0x08)
+			w83787f_fdc_handler(dev);
 		break;
 	case 7:
 		if (valxor & 0x03)
@@ -285,6 +279,9 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
 			dev->rw_locked = (val & 0x40) ? 1 : 0;
 		if (valxor & 0x80)
 			w83787f_lpt_handler(dev);
+		break;
+	case 0xB:
+		pclog("Writing %02X to CRB\n", val);
 		break;
 	case 0xC:
 		if (valxor & 0x20)
