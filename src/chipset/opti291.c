@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the OPTi 82C546/82C547 & 82C596/82C597 chipsets.
+ *		Implementation of the OPTi 82C291 chipset.
  
  * Authors:	plant/nerd73
  *
