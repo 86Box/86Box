@@ -103,6 +103,25 @@ machine_at_ecs386_init(const machine_t *model)
 }
 
 int
+machine_at_contaq_init(const machine_t *model)
+{
+    int ret;
+
+ret = bios_load_linear(L"roms/machines/contaq/486-Contaq.BIN",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+    device_add(&contaq_82c59x_device);
+    device_add(&keyboard_at_ami_device);
+    device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
 machine_at_rycleopardlx_init(const machine_t *model)
 {
     int ret;

@@ -75,6 +75,9 @@ extern const device_t	scat_4_device;
 extern const device_t	scat_sx_device;
 extern const device_t	cs8230_device;
 
+/* Contaq */
+extern const device_t   contaq_82c59x_device;
+
 /* SiS */
 extern const device_t   rabbit_device;
 extern const device_t	sis_85c471_device;
