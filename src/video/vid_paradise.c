@@ -302,7 +302,7 @@ void *paradise_init(const device_t *info, uint32_t memsize)
 	switch(info->local) {
 		case PVGA1A:
 			svga_init(info, &paradise->svga, paradise, memsize, /*256kb*/
-				   NULL,
+				   paradise_recalctimings,
 				   paradise_in, paradise_out,
 				   NULL,
 				   NULL);
