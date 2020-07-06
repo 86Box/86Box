@@ -49,7 +49,7 @@ typedef struct stpc_t
     uint8_t	localbus_regs[256];
 
     /* PCI */
-    uint8_t	pci_conf[2][256];
+    uint8_t	pci_conf[3][256];
 } stpc_t;
 
 
@@ -206,20 +206,13 @@ stpc_nb_write(int func, int addr, uint8_t val, void *priv)
 
     switch (addr) {
 	case 0x00: case 0x01: case 0x02: case 0x03:
-	case 0x04: case 0x08: case 0x09: case 0x0a:
-	case 0x0b: case 0x0e: case 0x54:
+	case 0x04: case 0x06: case 0x07: case 0x08:
+	case 0x09: case 0x0a: case 0x0b: case 0x0e:
+	case 0x51: case 0x53: case 0x54:
 		return;
 
 	case 0x05:
 		val &= 0x01;
-		break;
-
-	case 0x06:
-		val = 0;
-		break;
-
-	case 0x07:
-		val = 0x02;
 		break;
 
 	case 0x50:
@@ -261,29 +254,19 @@ stpc_sb_write(int func, int addr, uint8_t val, void *priv)
     if (func > 0)
 	return;
 
-    switch(addr) {
+    switch (addr) {
 	case 0x00: case 0x01: case 0x02: case 0x03:
-	case 0x04: case 0x08: case 0x09: case 0x0a:
-	case 0x0b: case 0x0e: case 0x54:
+	case 0x04: case 0x06: case 0x07: case 0x08:
+	case 0x09: case 0x0a: case 0x0b: case 0x0e:
 		return;
 
 	case 0x05:
 		val &= 0x01;
 		break;
-
-	case 0x06:
-		val = 0;
-		break;
-
-	case 0x07:
-		val = 0x02;
-		break;
     }
 
     dev->pci_conf[1][addr] = val;
 }
-
-/* TODO: IDE and USB OHCI devices */
 
 static uint8_t
 stpc_sb_read(int func, int addr, void *priv)
@@ -299,6 +282,48 @@ stpc_sb_read(int func, int addr, void *priv)
     stpc_log("STPC: sb_read(%d, %02x) = %02x\n", func, addr, ret);
     return ret;
 }
+
+
+static void
+stpc_ide_write(int func, int addr, uint8_t val, void *priv)
+{
+    stpc_t *dev = (stpc_t *) priv;
+
+    stpc_log("STPC: ide_write(%d, %02x, %02x)\n", func, addr, val);
+
+    if (func > 0)
+	return;
+
+    switch (addr) {
+	case 0x00: case 0x01: case 0x02: case 0x03:
+	case 0x04: case 0x06: case 0x07: case 0x08:
+	case 0x09: case 0x0a: case 0x0b: case 0x0e:
+		return;
+
+	case 0x05:
+		val &= 0x01;
+		break;
+    }
+
+    dev->pci_conf[2][addr] = val;
+}
+
+static uint8_t
+stpc_ide_read(int func, int addr, void *priv)
+{
+    stpc_t *dev = (stpc_t *) priv;
+    uint8_t ret;
+
+    if (func > 0)
+    	ret = 0xff;
+    else
+    	ret = dev->pci_conf[2][addr];
+
+    stpc_log("STPC: ide_read(%d, %02x) = %02x\n", func, addr, ret);
+    return ret;
+}
+
+/* TODO: IDE and USB OHCI devices */
 
 
 static void
@@ -430,9 +455,9 @@ stpc_setup(stpc_t *dev)
     memset(dev, 0, sizeof(stpc_t));
 
     /* Northbridge */
-    dev->pci_conf[0][0x00] = 0x4A;
+    dev->pci_conf[0][0x00] = 0x4a;
     dev->pci_conf[0][0x01] = 0x10;
-    dev->pci_conf[0][0x02] = 0x0A;
+    dev->pci_conf[0][0x02] = 0x0a;
     dev->pci_conf[0][0x03] = 0x02;
 
     dev->pci_conf[0][0x04] = 0x07;
@@ -443,12 +468,12 @@ stpc_setup(stpc_t *dev)
     dev->pci_conf[0][0x0b] = 0x06;
 
     /* Southbridge */
-    dev->pci_conf[1][0x00] = 0x4A;
+    dev->pci_conf[1][0x00] = 0x4a;
     dev->pci_conf[1][0x01] = 0x10; 
     dev->pci_conf[1][0x02] = 0x10;
     dev->pci_conf[1][0x03] = 0x02;
 
-    dev->pci_conf[1][0x04] = 0x07;
+    dev->pci_conf[1][0x04] = 0x0f;
 
     dev->pci_conf[1][0x06] = 0x80;
     dev->pci_conf[1][0x07] = 0x02;
@@ -459,6 +484,33 @@ stpc_setup(stpc_t *dev)
     dev->pci_conf[1][0x0e] = 0x40;
 
     /* IDE */
+    dev->pci_conf[2][0x00] = 0x4A;
+    dev->pci_conf[2][0x01] = 0x10; 
+    dev->pci_conf[2][0x02] = 0x10;
+    dev->pci_conf[2][0x03] = 0x02;
+
+    dev->pci_conf[2][0x06] = 0x80;
+    dev->pci_conf[2][0x07] = 0x02;
+
+    dev->pci_conf[2][0x09] = 0x8a;
+    dev->pci_conf[2][0x0a] = 0x01;
+    dev->pci_conf[2][0x0b] = 0x01;
+
+    dev->pci_conf[2][0x0e] = 0x40;
+
+    dev->pci_conf[2][0x10] = 0x01;
+    dev->pci_conf[2][0x14] = 0x01;
+    dev->pci_conf[2][0x18] = 0x01;
+    dev->pci_conf[2][0x1c] = 0x01;
+
+    dev->pci_conf[2][0x40] = 0x60;
+    dev->pci_conf[2][0x41] = 0x97;
+    dev->pci_conf[2][0x42] = 0x60;
+    dev->pci_conf[2][0x43] = 0x97;
+    dev->pci_conf[2][0x44] = 0x60;
+    dev->pci_conf[2][0x45] = 0x97;
+    dev->pci_conf[2][0x46] = 0x60;
+    dev->pci_conf[2][0x47] = 0x97;
 
     /* USB */
 }
@@ -484,7 +536,7 @@ stpc_init(const device_t *info)
 
     pci_add_card(0x0B, stpc_nb_read, stpc_nb_write, dev);
     pci_add_card(0x0C, stpc_sb_read, stpc_sb_write, dev);
-    /* IDE = 0x0D */
+    pci_add_card(0x0D, stpc_ide_read, stpc_ide_write, dev);
     /* USB (Atlas only) = 0x0E */
 
     stpc_setup(dev);
