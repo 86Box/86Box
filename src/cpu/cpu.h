@@ -156,9 +156,7 @@ extern CPU	cpus_K56_SS7[];
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
 extern CPU	cpus_6x863V[];
 extern CPU	cpus_6x86[];
-#ifdef USE_NEW_DYNAREC
 extern CPU	cpus_6x86SS7[];
-#endif
 #endif
 extern CPU	cpus_Cyrix3[];
 extern CPU	cpus_PentiumPro[];
