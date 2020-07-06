@@ -399,10 +399,10 @@ cpu_set(void)
         hasfpu       = (fpu_type != FPU_NONE);
 	hascache     = (cpu_s->cpu_type >= CPU_486SLC) || (cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL);
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
-        cpu_iscyrix  = (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_Cx486S || cpu_s->cpu_type == CPU_Cx486DX || cpu_s->cpu_type == CPU_Cx5x86 || cpu_s->cpu_type == CPU_Cx6x86 || cpu_s->cpu_type == CPU_Cx6x86MX || cpu_s->cpu_type == CPU_Cx6x86L || cpu_s->cpu_type == CPU_CxGX1);
-#else
-        cpu_iscyrix  = (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_Cx486S || cpu_s->cpu_type == CPU_Cx486DX || cpu_s->cpu_type == CPU_Cx5x86);
-#endif
+        cpu_iscyrix  = (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_Cx486S || cpu_s->cpu_type == CPU_Cx486DX || cpu_s->cpu_type == CPU_Cx486DX2 || cpu_s->cpu_type == CPU_Cx486DX4 || cpu_s->cpu_type == CPU_Cx5x86 || cpu_s->cpu_type == CPU_Cx6x86 || cpu_s->cpu_type == CPU_Cx6x86MX || cpu_s->cpu_type == CPU_Cx6x86L || cpu_s->cpu_type == CPU_CxGX1);
+#else                                                                                                                                                                                                                              
+        cpu_iscyrix  = (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_Cx486S || cpu_s->cpu_type == CPU_Cx486DX || cpu_s->cpu_type == CPU_Cx486DX2 || cpu_s->cpu_type == CPU_Cx486DX4 || cpu_s->cpu_type == CPU_Cx5x86);
+#endif                                                                                                                                                                                                                                   
 
         cpu_16bitbus = (cpu_s->cpu_type == CPU_286 || cpu_s->cpu_type == CPU_386SX || cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC );
         cpu_64bitbus = (cpu_s->cpu_type >= CPU_WINCHIP);
@@ -935,6 +935,7 @@ cpu_set(void)
                 case CPU_Cx486S:
                 case CPU_Cx486DX:
                 case CPU_Cx486DX2:
+                case CPU_Cx486DX4:
 #ifdef USE_DYNAREC
                 x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
 #else
