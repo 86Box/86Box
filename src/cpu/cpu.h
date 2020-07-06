@@ -132,15 +132,18 @@ extern CPU	cpus_Am386SX[];
 extern CPU	cpus_Am386DX[];
 extern CPU	cpus_486SLC[];
 extern CPU	cpus_486DLC[];
-extern CPU  cpus_IBM386SLC[];
-extern CPU  cpus_IBM486SLC[];
-extern CPU  cpus_IBM486BL[];
-extern CPU  cpus_i486S1[];
+extern CPU	cpus_IBM386SLC[];
+extern CPU	cpus_IBM486SLC[];
+extern CPU	cpus_IBM486BL[];
+extern CPU	cpus_i486S1[];
 extern CPU	cpus_Am486S1[];
 extern CPU	cpus_Cx486S1[];
 extern CPU	cpus_i486[];
 extern CPU	cpus_Am486[];
 extern CPU	cpus_Cx486[];
+#if defined(DEV_BRANCH) && defined(USE_STPC)
+extern CPU	cpus_STPC[];
+#endif
 extern CPU	cpus_WinChip[];
 extern CPU	cpus_WinChip_SS7[];
 extern CPU	cpus_Pentium5V[];

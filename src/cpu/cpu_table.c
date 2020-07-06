@@ -366,6 +366,14 @@ CPU cpus_Cx486[] = {
     {"",             -1,                   0, 0,     0, 0,      0,                    0,  0, 0, 0, 0,  0}
 };
 
+#if defined(DEV_BRANCH) && defined(USE_STPC)
+CPU cpus_STPC[] = {
+    {"STPC 100",     CPU_Cx486DX2, fpus_internal, 100000000, 1.0, 0x430, 0, 0x0b1b, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6,  8},
+    {"STPC 133",     CPU_Cx486DX2, fpus_internal, 133333333, 2.0, 0x430, 0, 0x0b1b, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6,  8},
+    {"",               -1,                   0, 0,     0, 0,      0,                    0,  0, 0, 0, 0,  0}
+};
+#endif
+
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
 CPU cpus_6x863V[] = {
     /*Cyrix 6x86*/
