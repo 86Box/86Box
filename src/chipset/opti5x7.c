@@ -50,7 +50,7 @@ opti5x7_recalc(opti5x7_t *dev)
     uint32_t write = 0;
 
     for (i = 0; i < 8; i++) {
-        j = i / 2.01; /*Probably not a great way of doing this, but it does work*/
+        j = (i >> 1);
         base = 0xc0000 + (j << 14); 
 	
         lowest_bit = j * 2;
