@@ -100,7 +100,7 @@ opti283_write(uint16_t addr, uint8_t val, void *priv)
 		dev->index = val;
 		break;
 	case 0x24:
-        pclog("OPTi 283: dev->regs[%02x] = %02x\n", dev->index, val);
+        /* pclog("OPTi 283: dev->regs[%02x] = %02x\n", dev->index, val); */
 		dev->regs[dev->index] = val;
 
         switch(dev->index){
