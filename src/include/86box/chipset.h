@@ -86,6 +86,7 @@ extern const device_t	sis_85c50x_device;
 
 /* ST */
 #if defined(DEV_BRANCH) && defined(USE_STPC)
+extern const device_t	stpc_client_device;
 extern const device_t	stpc_consumer2_device;
 extern const device_t	stpc_elite_device;
 extern const device_t	stpc_atlas_device;
