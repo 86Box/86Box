@@ -368,8 +368,10 @@ CPU cpus_Cx486[] = {
 
 #if defined(DEV_BRANCH) && defined(USE_STPC)
 CPU cpus_STPC[] = {
-    {"STPC 100",     CPU_Cx486DX2, fpus_internal, 100000000, 1.0, 0x430, 0, 0x0b1b, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6,  8},
-    {"STPC 133",     CPU_Cx486DX2, fpus_internal, 133333333, 2.0, 0x430, 0, 0x0b1b, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6,  8},
+    {"STPC 66",      CPU_Cx486DX2, fpus_internal,  66666666, 1.0, 0x430, 0, 0x001a, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6,  8}, /* timings assumed */
+    {"STPC 75",      CPU_Cx486DX2, fpus_internal,  75000000, 1.0, 0x430, 0, 0x001a, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6,  8},
+    {"STPC 100",     CPU_Cx486DX2, fpus_internal, 100000000, 1.0, 0x430, 0, 0x001a, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6,  8},
+    {"STPC 133",     CPU_Cx486DX2, fpus_internal, 133333333, 2.0, 0x430, 0, 0x001b, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6,  8},
     {"",               -1,                   0, 0,     0, 0,      0,                    0,  0, 0, 0, 0,  0}
 };
 #endif
