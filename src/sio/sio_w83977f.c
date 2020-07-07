@@ -43,7 +43,7 @@ typedef struct {
 	    dev_regs[256][208];
     int locked, rw_locked,
 	cur_reg, base_address,
-	type;
+	type, hefras;
     fdc_t *fdc;
     serial_t *uart[2];
 } w83977f_t;
@@ -351,6 +351,7 @@ w83977f_reset(w83977f_t *dev)
     }
     dev->regs[0x22] = 0xff;
     dev->regs[0x24] = dev->type ? 0x84 : 0xa4;
+    dev->regs[0x26] = dev->hefras;
 
     /* WARNING: Array elements are register - 0x30. */
     /* Logical Device 0 (FDC) */
@@ -492,7 +493,8 @@ w83977f_init(const device_t *info)
     w83977f_t *dev = (w83977f_t *) malloc(sizeof(w83977f_t));
     memset(dev, 0, sizeof(w83977f_t));
 
-    dev->type = info->local;
+    dev->type = info->local & 0x0f;
+    dev->hefras = info->local & 0x40;
 
     dev->fdc = device_add(&fdc_at_smc_device);
 
@@ -515,6 +517,16 @@ const device_t w83977f_device = {
 };
 
 
+const device_t w83977f_370_device = {
+    "Winbond W83977F Super I/O (Port 370h)",
+    0,
+    0x40,
+    w83977f_init, w83977f_close, NULL,
+    NULL, NULL, NULL,
+    NULL
+};
+
+
 const device_t w83977tf_device = {
     "Winbond W83977TF Super I/O",
     0,
@@ -529,6 +541,16 @@ const device_t w83977ef_device = {
     "Winbond W83977TF Super I/O",
     0,
     2,
+    w83977f_init, w83977f_close, NULL,
+    NULL, NULL, NULL,
+    NULL
+};
+
+
+const device_t w83977ef_370_device = {
+    "Winbond W83977TF Super I/O (Port 370h)",
+    0,
+    0x42,
     w83977f_init, w83977f_close, NULL,
     NULL, NULL, NULL,
     NULL
