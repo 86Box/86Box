@@ -558,6 +558,20 @@ stpc_init(const device_t *info)
 }
 
 
+const device_t stpc_client_device =
+{
+    "STPC Client",
+    DEVICE_PCI,
+    0,
+    stpc_init, 
+    stpc_close, 
+    stpc_reset,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
 const device_t stpc_consumer2_device =
 {
     "STPC Consumer-II",
