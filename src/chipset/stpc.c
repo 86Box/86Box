@@ -29,14 +29,24 @@
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/port_92.h>
+#include <86box/usb.h>
 #include <86box/chipset.h>
+
+
+#define STPC_NB_CLIENT		0x01
+#define STPC_ISAB_CLIENT	0x02
+#define STPC_ISAB_CONSUMER2	0x04
+#define STPC_IDE_ATLAS		0x08
+#define STPC_USB		0x10
 
 
 typedef struct stpc_t
 {
-    /* ISA (port 22h/23h) */
-    uint8_t	isa_offset;
-    uint8_t	isa_regs[256];
+    uint32_t	local;
+
+    /* Main registers (port 22h/23h) */
+    uint8_t	reg_offset;
+    uint8_t	regs[256];
 
     /* Host bus interface */
     uint16_t	host_base;
@@ -48,8 +58,9 @@ typedef struct stpc_t
     uint8_t	localbus_offset;
     uint8_t	localbus_regs[256];
 
-    /* PCI */
-    uint8_t	pci_conf[3][256];
+    /* PCI devices */
+    uint8_t	pci_conf[4][256];
+    usb_t	*usb;
 } stpc_t;
 
 
@@ -96,7 +107,7 @@ stpc_recalcmapping(stpc_t *dev)
 		stpc_log("STPC: Shadowing for %05x-%05x (reg %02x bp %d wmask %02x rmask %02x) =", base, base + size - 1, 0x25 + reg, bitpair, 1 << (bitpair * 2), 1 << ((bitpair * 2) + 1));
 
 		state = 0;
-		if (dev->isa_regs[0x25 + reg] & (1 << (bitpair * 2))) {
+		if (dev->regs[0x25 + reg] & (1 << (bitpair * 2))) {
 			stpc_log(" w on");
 			state |= MEM_WRITE_INTERNAL;
 			if (base >= 0xe0000)
@@ -105,7 +116,7 @@ stpc_recalcmapping(stpc_t *dev)
 			stpc_log(" w off");
 			state |= MEM_WRITE_EXTANY;
 		}
-		if (dev->isa_regs[0x25 + reg] & (1 << ((bitpair * 2) + 1))) {
+		if (dev->regs[0x25 + reg] & (1 << ((bitpair * 2) + 1))) {
 			stpc_log("; r on\n");
 			state |= MEM_READ_INTERNAL;
 			if (base >= 0xe0000)
@@ -245,46 +256,6 @@ stpc_nb_read(int func, int addr, void *priv)
 
 
 static void
-stpc_sb_write(int func, int addr, uint8_t val, void *priv)
-{
-    stpc_t *dev = (stpc_t *) priv;
-
-    stpc_log("STPC: sb_write(%d, %02x, %02x)\n", func, addr, val);
-
-    if (func > 0)
-	return;
-
-    switch (addr) {
-	case 0x00: case 0x01: case 0x02: case 0x03:
-	case 0x04: case 0x06: case 0x07: case 0x08:
-	case 0x09: case 0x0a: case 0x0b: case 0x0e:
-		return;
-
-	case 0x05:
-		val &= 0x01;
-		break;
-    }
-
-    dev->pci_conf[1][addr] = val;
-}
-
-static uint8_t
-stpc_sb_read(int func, int addr, void *priv)
-{
-    stpc_t *dev = (stpc_t *) priv;
-    uint8_t ret;
-
-    if (func > 0)
-    	ret = 0xff;
-    else
-    	ret = dev->pci_conf[1][addr];
-
-    stpc_log("STPC: sb_read(%d, %02x) = %02x\n", func, addr, ret);
-    return ret;
-}
-
-
-static void
 stpc_ide_write(int func, int addr, uint8_t val, void *priv)
 {
     stpc_t *dev = (stpc_t *) priv;
@@ -308,6 +279,7 @@ stpc_ide_write(int func, int addr, uint8_t val, void *priv)
     dev->pci_conf[2][addr] = val;
 }
 
+
 static uint8_t
 stpc_ide_read(int func, int addr, void *priv)
 {
@@ -323,7 +295,105 @@ stpc_ide_read(int func, int addr, void *priv)
     return ret;
 }
 
-/* TODO: IDE and USB OHCI devices */
+
+static void
+stpc_isab_write(int func, int addr, uint8_t val, void *priv)
+{
+    stpc_t *dev = (stpc_t *) priv;
+
+    if (func == 1 && !(dev->local & STPC_IDE_ATLAS)) {
+    	stpc_ide_write(0, addr, val, priv);
+    	return;
+    }
+
+    stpc_log("STPC: isab_write(%d, %02x, %02x)\n", func, addr, val);
+
+    if (func > 0)
+	return;
+
+    switch (addr) {
+	case 0x00: case 0x01: case 0x02: case 0x03:
+	case 0x04: case 0x06: case 0x07: case 0x08:
+	case 0x09: case 0x0a: case 0x0b: case 0x0e:
+		return;
+
+	case 0x05:
+		val &= 0x01;
+		break;
+    }
+
+    dev->pci_conf[1][addr] = val;
+}
+
+
+static uint8_t
+stpc_isab_read(int func, int addr, void *priv)
+{
+    stpc_t *dev = (stpc_t *) priv;
+    uint8_t ret;
+
+    if (func == 1 && !(dev->local & STPC_IDE_ATLAS))
+    	return stpc_ide_read(0, addr, priv);
+    else if (func > 0)
+    	ret = 0xff;
+    else
+    	ret = dev->pci_conf[1][addr];
+
+    stpc_log("STPC: isab_read(%d, %02x) = %02x\n", func, addr, ret);
+    return ret;
+}
+
+
+static void
+stpc_usb_write(int func, int addr, uint8_t val, void *priv)
+{
+    stpc_t *dev = (stpc_t *) priv;
+
+    stpc_log("STPC: usb_write(%d, %02x, %02x)\n", func, addr, val);
+
+    if (func > 0)
+	return;
+
+    switch (addr) {
+	case 0x00: case 0x01: case 0x02: case 0x03:
+	case 0x04: case 0x06: case 0x07: case 0x08:
+	case 0x09: case 0x0a: case 0x0b: case 0x0e:
+	case 0x10:
+		return;
+
+	case 0x05:
+		val &= 0x01;
+		break;
+
+	case 0x11:
+		dev->pci_conf[3][addr] = val & 0xf0;
+		ohci_update_mem_mapping(dev->usb, dev->pci_conf[3][0x11], dev->pci_conf[3][0x12], dev->pci_conf[3][0x13], 1);
+		break;
+
+	case 0x12: case 0x13:
+		dev->pci_conf[3][addr] = val;
+		ohci_update_mem_mapping(dev->usb, dev->pci_conf[3][0x11], dev->pci_conf[3][0x12], dev->pci_conf[3][0x13], 1);
+		break;
+    }
+
+    dev->pci_conf[3][addr] = val;
+}
+
+
+static uint8_t
+stpc_usb_read(int func, int addr, void *priv)
+{
+    stpc_t *dev = (stpc_t *) priv;
+    uint8_t ret;
+
+    if (func > 0)
+    	ret = 0xff;
+    else
+    	ret = dev->pci_conf[3][addr];
+
+    stpc_log("STPC: usb_read(%d, %02x) = %02x\n", func, addr, ret);
+    return ret;
+}
 
 
 static void
@@ -357,29 +427,29 @@ stpc_remap_localbus(stpc_t *dev, uint16_t localbus_base)
 
 
 static void
-stpc_isa_write(uint16_t addr, uint8_t val, void *priv)
+stpc_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
     stpc_t *dev = (stpc_t *) priv;
 
-    stpc_log("STPC: isa_write(%04x, %02x)\n", addr, val);
+    stpc_log("STPC: reg_write(%04x, %02x)\n", addr, val);
 
     if (addr == 0x22) {
-	dev->isa_offset = val;
+	dev->reg_offset = val;
     } else {
-	stpc_log("STPC: isa_regs[%02x] = %02x\n", dev->isa_offset, val);
+	stpc_log("STPC: regs[%02x] = %02x\n", dev->reg_offset, val);
 
-	switch (dev->isa_offset) {
+	switch (dev->reg_offset) {
 		case 0x12:
-			if (dev->isa_regs[0x10] == 0x07)
+			if (dev->regs[0x10] == 0x07)
 				stpc_remap_host(dev, (dev->host_base & 0xff00) | val);
-			else if (dev->isa_regs[0x10] == 0x06)
+			else if (dev->regs[0x10] == 0x06)
 				stpc_remap_localbus(dev, (dev->localbus_base & 0xff00) | val);
 			break;
 
 		case 0x13:
-			if (dev->isa_regs[0x10] == 0x07)
+			if (dev->regs[0x10] == 0x07)
 				stpc_remap_host(dev, (dev->host_base & 0x00ff) | (val << 8));
-			else if (dev->isa_regs[0x10] == 0x06)
+			else if (dev->regs[0x10] == 0x06)
 				stpc_remap_localbus(dev, (dev->localbus_base & 0x00ff) | (val << 8));
 			break;
 
@@ -392,11 +462,11 @@ stpc_isa_write(uint16_t addr, uint8_t val, void *priv)
 			break;
 
 		case 0x25: case 0x26: case 0x27: case 0x28:
-			if (dev->isa_offset == 0x28) {
+			if (dev->reg_offset == 0x28) {
 				val &= 0xe3;
 				stpc_smram_map(0, smram[0].host_base, smram[0].size, !!(val & 0x80));
 			}
-			dev->isa_regs[dev->isa_offset] = val;
+			dev->regs[dev->reg_offset] = val;
 			stpc_recalcmapping(dev);
 			break;
 
@@ -409,23 +479,23 @@ stpc_isa_write(uint16_t addr, uint8_t val, void *priv)
 			break;
 	}
 
-	dev->isa_regs[dev->isa_offset] = val;
+	dev->regs[dev->reg_offset] = val;
     }
 }
 
 
 static uint8_t
-stpc_isa_read(uint16_t addr, void *priv)
+stpc_reg_read(uint16_t addr, void *priv)
 {
     stpc_t *dev = (stpc_t *) priv;
     uint8_t ret;
 
     if (addr == 0x22)
-	ret = dev->isa_offset;
+	ret = dev->reg_offset;
     else
-	ret = dev->isa_regs[dev->isa_offset];
+	ret = dev->regs[dev->reg_offset];
 
-    stpc_log("STPC: isa_read(%04x) = %02x\n", addr, ret);
+    stpc_log("STPC: reg_read(%04x) = %02x\n", addr, ret);
     return ret;
 }
 
@@ -437,13 +507,13 @@ stpc_reset(void *priv)
 
     stpc_log("STPC: reset()\n");
 
-    memset(dev->isa_regs, 0, sizeof(dev->isa_regs));
-    dev->isa_regs[0x7b] = 0xff;
+    memset(dev->regs, 0, sizeof(dev->regs));
+    dev->regs[0x7b] = 0xff;
 
     io_removehandler(0x22, 2,
-		     stpc_isa_read, NULL, NULL, stpc_isa_write, NULL, NULL, dev);
+		     stpc_reg_read, NULL, NULL, stpc_reg_write, NULL, NULL, dev);
     io_sethandler(0x22, 2,
-		  stpc_isa_read, NULL, NULL, stpc_isa_write, NULL, NULL, dev);
+		  stpc_reg_read, NULL, NULL, stpc_reg_write, NULL, NULL, dev);
 }
 
 
@@ -457,8 +527,13 @@ stpc_setup(stpc_t *dev)
     /* Northbridge */
     dev->pci_conf[0][0x00] = 0x4a;
     dev->pci_conf[0][0x01] = 0x10;
-    dev->pci_conf[0][0x02] = 0x0a;
-    dev->pci_conf[0][0x03] = 0x02;
+    if (dev->local & STPC_NB_CLIENT) {
+    	dev->pci_conf[0][0x02] = 0x64;
+    	dev->pci_conf[0][0x03] = 0x05;
+    } else {
+    	dev->pci_conf[0][0x02] = 0x0a;
+    	dev->pci_conf[0][0x03] = 0x02;
+    }
 
     dev->pci_conf[0][0x04] = 0x07;
 
@@ -467,11 +542,19 @@ stpc_setup(stpc_t *dev)
 
     dev->pci_conf[0][0x0b] = 0x06;
 
-    /* Southbridge */
+    /* ISA Bridge */
     dev->pci_conf[1][0x00] = 0x4a;
-    dev->pci_conf[1][0x01] = 0x10; 
-    dev->pci_conf[1][0x02] = 0x10;
-    dev->pci_conf[1][0x03] = 0x02;
+    dev->pci_conf[1][0x01] = 0x10;
+    if (dev->local & STPC_ISAB_CLIENT) {
+    	dev->pci_conf[1][0x02] = 0xcc;
+    	dev->pci_conf[1][0x03] = 0x55;
+    } else if (dev->local & STPC_ISAB_CONSUMER2) {
+    	dev->pci_conf[1][0x02] = 0x0b;
+    	dev->pci_conf[1][0x03] = 0x02;
+    } else {
+    	dev->pci_conf[1][0x02] = 0x10;
+    	dev->pci_conf[1][0x03] = 0x02;
+    }
 
     dev->pci_conf[1][0x04] = 0x0f;
 
@@ -484,10 +567,15 @@ stpc_setup(stpc_t *dev)
     dev->pci_conf[1][0x0e] = 0x40;
 
     /* IDE */
-    dev->pci_conf[2][0x00] = 0x4A;
-    dev->pci_conf[2][0x01] = 0x10; 
-    dev->pci_conf[2][0x02] = 0x10;
-    dev->pci_conf[2][0x03] = 0x02;
+    dev->pci_conf[2][0x00] = 0x4a;
+    dev->pci_conf[2][0x01] = 0x10;
+    if (dev->local & STPC_IDE_ATLAS) {
+    	dev->pci_conf[2][0x02] = 0x28;
+    	dev->pci_conf[2][0x03] = 0x02;
+    } else {
+    	dev->pci_conf[2][0x02] = dev->pci_conf[1][0x02];
+    	dev->pci_conf[2][0x03] = dev->pci_conf[1][0x03];
+    }
 
     dev->pci_conf[2][0x06] = 0x80;
     dev->pci_conf[2][0x07] = 0x02;
@@ -513,6 +601,21 @@ stpc_setup(stpc_t *dev)
     dev->pci_conf[2][0x47] = 0x97;
 
     /* USB */
+    if (dev->local & STPC_USB) {
+    	dev->pci_conf[3][0x00] = 0x4a;
+    	dev->pci_conf[3][0x01] = 0x10;
+    	dev->pci_conf[3][0x02] = 0x30;
+    	dev->pci_conf[3][0x03] = 0x02;
+	
+    	dev->pci_conf[3][0x06] = 0x80;
+    	dev->pci_conf[3][0x07] = 0x02;
+
+    	dev->pci_conf[3][0x09] = 0x10;
+    	dev->pci_conf[3][0x0a] = 0x03;
+    	dev->pci_conf[3][0x0b] = 0x0c;
+
+    	dev->pci_conf[3][0x0e] = 0x40;
+    }
 }
 
 
@@ -530,14 +633,19 @@ stpc_close(void *priv)
 static void *
 stpc_init(const device_t *info)
 {
-    stpc_t *dev = (stpc_t *) malloc(sizeof(stpc_t));
-
     stpc_log("STPC: init()\n");
 
+    stpc_t *dev = (stpc_t *) malloc(sizeof(stpc_t));
+    dev->local = info->local;
+
     pci_add_card(0x0B, stpc_nb_read, stpc_nb_write, dev);
-    pci_add_card(0x0C, stpc_sb_read, stpc_sb_write, dev);
-    pci_add_card(0x0D, stpc_ide_read, stpc_ide_write, dev);
-    /* USB (Atlas only) = 0x0E */
+    pci_add_card(0x0C, stpc_isab_read, stpc_isab_write, dev);
+    if (dev->local & STPC_IDE_ATLAS)
+    	pci_add_card(0x0D, stpc_ide_read, stpc_ide_write, dev);
+    if (dev->local & STPC_USB) {
+    	dev->usb = device_add(&usb_device);
+    	pci_add_card(0x0E, stpc_usb_read, stpc_usb_write, dev);
+    }
 
     stpc_setup(dev);
     stpc_reset(dev);
@@ -562,7 +670,7 @@ const device_t stpc_client_device =
 {
     "STPC Client",
     DEVICE_PCI,
-    0,
+    STPC_NB_CLIENT | STPC_ISAB_CLIENT,
     stpc_init, 
     stpc_close, 
     stpc_reset,
@@ -576,7 +684,7 @@ const device_t stpc_consumer2_device =
 {
     "STPC Consumer-II",
     DEVICE_PCI,
-    0,
+    STPC_ISAB_CONSUMER2,
     stpc_init, 
     stpc_close, 
     stpc_reset,
@@ -604,7 +712,7 @@ const device_t stpc_atlas_device =
 {
     "STPC Atlas",
     DEVICE_PCI,
-    0,
+    STPC_IDE_ATLAS | STPC_USB,
     stpc_init, 
     stpc_close, 
     stpc_reset,
