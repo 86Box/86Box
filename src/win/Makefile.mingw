@@ -647,7 +647,7 @@ HDDOBJ		:= hdd.o \
 		    hdc_xta.o \
 		    hdc_esdi_at.o hdc_esdi_mca.o \
 		    hdc_xtide.o hdc_ide.o \
-		    hdc_ide_sff8038i.o
+		    hdc_ide_opti611.o hdc_ide_sff8038i.o
 
 CDROMOBJ	:= cdrom.o \
 		    cdrom_image_backend.o cdrom_image.o

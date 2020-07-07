@@ -161,7 +161,6 @@ fdc37c661_write(uint16_t port, uint8_t val, void *priv)
 			case 0:
 				if (valxor & 0x10)
 					fdc_handler(dev);
-
 				break;
 			case 1:
 				if (valxor & 3)

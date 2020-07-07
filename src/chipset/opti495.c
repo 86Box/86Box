@@ -131,12 +131,13 @@ opti495_write(uint16_t addr, uint8_t val, void *priv)
 
     switch (addr) {
 	case 0x22:
+		opti495_log("[%04X:%08X] [W] dev->idx = %02X\n", CS, cpu_state.pc, val);
 		dev->idx = val;
 		break;
 	case 0x24:
-		if ((dev->idx >= 0x20) && (dev->idx <= 0x2c)) {
+		if ((dev->idx >= 0x20) && (dev->idx <= 0x2d)) {
 			dev->regs[dev->idx] = val;
-			opti495_log("dev->regs[%04x] = %08x\n", dev->idx, val);
+			opti495_log("[%04X:%08X] [W] dev->regs[%04X] = %02X\n", CS, cpu_state.pc, dev->idx, val);
 
 			switch(dev->idx) {
 				case 0x21:
@@ -168,9 +169,14 @@ opti495_read(uint16_t addr, void *priv)
     opti495_t *dev = (opti495_t *) priv;
 
     switch (addr) {
+	case 0x22:
+		opti495_log("[%04X:%08X] [R] dev->idx = %02X\n", CS, cpu_state.pc, ret);
+		break;
 	case 0x24:
-		if ((dev->idx >= 0x20) && (dev->idx <= 0x2c))
+		if ((dev->idx >= 0x20) && (dev->idx <= 0x2d)) {
 			ret = dev->regs[dev->idx];
+			opti495_log("[%04X:%08X] [R] dev->regs[%04X] = %02X\n", CS, cpu_state.pc, dev->idx, ret);
+		}
 		break;
 	case 0xe1:
 	case 0xe2:
@@ -196,6 +202,8 @@ opti495_init(const device_t *info)
 {
     opti495_t *dev = (opti495_t *) malloc(sizeof(opti495_t));
     memset(dev, 0, sizeof(opti495_t));
+
+    device_add(&port_92_device);
 
     io_sethandler(0x0022, 0x0001, opti495_read, NULL, NULL, opti495_write, NULL, NULL, dev);
     io_sethandler(0x0024, 0x0001, opti495_read, NULL, NULL, opti495_write, NULL, NULL, dev);

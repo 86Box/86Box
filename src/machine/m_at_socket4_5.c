@@ -53,8 +53,8 @@ machine_at_excalibur_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add(&ide_vlb_device);
     device_add(&opti5x7_device);
+    device_add(&ide_opti611_vlb_device);
     device_add(&fdc37c661_device);
     device_add(&keyboard_at_ami_device);
 
@@ -182,10 +182,10 @@ machine_at_opti560l_init(const machine_t *model)
     pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 3, 2, 4);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430lx_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
+    device_add(&keyboard_ps2_pci_device);
     device_add(&sio_device);
     device_add(&fdc37c665_device);
-    device_add(&intel_flash_bxt_ami_device);
+    device_add(&intel_flash_bxt_device);
 
     return ret;
 }
@@ -213,10 +213,10 @@ machine_at_dellxp60_init(const machine_t *model)	// Doesn't like the regular SMC
     pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 3, 2, 4);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430lx_device);
-    device_add(&keyboard_ps2_intel_ami_pci_device);
+    device_add(&keyboard_ps2_pci_device);
     device_add(&sio_device);
     device_add(&fdc37c665_device);
-    device_add(&intel_flash_bxt_ami_device);
+    device_add(&intel_flash_bxt_device);
 
     return ret;
 }
