@@ -35,6 +35,9 @@
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
+#define disabled_shadow (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
+
+
 typedef struct
 {
     uint8_t	index,
@@ -43,54 +46,46 @@ typedef struct
 
 static void opti283_shadow_recalc(opti283_t *dev)
 {
-uint32_t base;
-uint32_t shflags, i = 0;
+uint32_t base, i;
+uint32_t shflagsc, shflagsd, shflagse, shflagsf;
 
-shadowbios = 0;
-shadowbios_write = 0;
+shadowbios = !(dev->regs[0x11] & 0x80);
+shadowbios_write = (dev->regs[0x11] & 0x80);
 
-    /* F0000 - FFFFF segmentation */
+if(dev->regs[0x11] & 0x10){
+    shflagsc = MEM_READ_INTERNAL;
+    shflagsc |= (dev->regs[0x11] & 0x08) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+} else shflagsc = disabled_shadow;
+
+if(dev->regs[0x11] & 0x20){
+    shflagsd = MEM_READ_INTERNAL;
+    shflagsd |= (dev->regs[0x11] & 0x08) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+} else shflagsd = disabled_shadow;
+
+if(dev->regs[0x11] & 0x40){
+    shflagse = MEM_READ_INTERNAL;
+    shflagse |= (dev->regs[0x11] & 0x08) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+} else shflagse = disabled_shadow;
+
 if(!(dev->regs[0x11] & 0x80)){
-        shadowbios = 1;
-        shadowbios_write = 0;
-        mem_set_mem_state(0xf0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
-} else {
-        shadowbios = 0;
-        shadowbios_write = 1;
-        mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-}
+    shflagsf = MEM_READ_INTERNAL | MEM_WRITE_DISABLED;
+} else shflagsf = MEM_READ_EXTANY | MEM_WRITE_INTERNAL;
 
-    /* C0000 - CFFFF segmentation */
+mem_set_mem_state_both(0xf0000, 0x10000, shflagsf);
+
 for(i = 4; i < 8; i++){
-    base = 0xc0000 + ((i-4) << 14);
-
-    if((dev->regs[0x13] & (1 << i)) & (dev->regs[0x11] & 0x10)){
-        shflags = MEM_READ_INTERNAL;
-        shflags |= (!(dev->regs[0x11] & 0x01)) ? MEM_WRITE_INTERNAL : MEM_WRITE_DISABLED;
-        mem_set_mem_state_both(base, 0x4000, shflags);
-    } else {
-        mem_set_mem_state_both(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-}
+base = 0xc0000 + ((i-4) << 14);
+mem_set_mem_state_both(base, 0x4000, (dev->regs[0x13] & (1 << i)) ? shflagsc : disabled_shadow);
 }
 
-    /* D0000 - DFFFF segmentation */
 for(i = 0; i < 4; i++){
-    base = 0xd0000 + (i << 14);
-    if((dev->regs[0x12] & (1 << i)) & (dev->regs[0x11] & 0x20)){
-        shflags = MEM_READ_INTERNAL;
-        shflags |= (!(dev->regs[0x11] & 0x02)) ? MEM_WRITE_INTERNAL : MEM_WRITE_DISABLED;
-        mem_set_mem_state(base, 0x4000, shflags);
-    } else mem_set_mem_state(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+base = 0xd0000 + (i << 14);
+mem_set_mem_state_both(base, 0x4000, (dev->regs[0x12] & (1 << i)) ? shflagsd : disabled_shadow);
 }
 
-    /* E0000 - EFFFF segmentation */
 for(i = 4; i < 8; i++){
-    base = 0xe0000 + ((i-4) << 14);
-    if((dev->regs[0x12] & (1 << i)) & (dev->regs[0x11] & 0x40)){
-        shflags = MEM_READ_INTERNAL;
-        shflags |= (!(dev->regs[0x11] & 0x04)) ? MEM_WRITE_INTERNAL : MEM_WRITE_DISABLED;
-        mem_set_mem_state(base, 0x4000, shflags);
-    } else mem_set_mem_state(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+base = 0xe0000 + ((i-4) << 14);
+mem_set_mem_state_both(base, 0x4000, (dev->regs[0x12] & (1 << i)) ? shflagse : disabled_shadow);
 }
 
 }
@@ -105,12 +100,13 @@ opti283_write(uint16_t addr, uint8_t val, void *priv)
 		dev->index = val;
 		break;
 	case 0x24:
-        /*pclog("OPTi 283: dev->regs[%02x] = %02x\n", dev->index, val);*/
+        /* pclog("OPTi 283: dev->regs[%02x] = %02x\n", dev->index, val); */
 		dev->regs[dev->index] = val;
 
         switch(dev->index){
             case 0x10:
             cpu_update_waitstates();
+            break;
 
             case 0x11:
             case 0x12:
