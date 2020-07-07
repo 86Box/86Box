@@ -369,8 +369,8 @@ CPU cpus_Cx486[] = {
 #if defined(DEV_BRANCH) && defined(USE_STPC)
 /* All STPC timings and Cyrix CPUID values assumed. */
 CPU cpus_STPC6675[] = {
-    {"STPC 66",      CPU_Cx486DX2, fpus_internal,  66666666, 1.0, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC, 7, 7, 3, 3,  5},
-    {"STPC 75",      CPU_Cx486DX2, fpus_internal,  75000000, 1.0, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC, 7, 7, 3, 3,  5},
+    {"STPC 66",      CPU_Cx486DX,  fpus_internal,  66666666, 1.0, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC, 7, 7, 3, 3,  5},
+    {"STPC 75",      CPU_Cx486DX,  fpus_internal,  75000000, 1.0, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC, 7, 7, 3, 3,  5},
     {"",             -1,                   0, 0,     0, 0,      0,                    0,  0, 0, 0, 0,  0}
 };
 
