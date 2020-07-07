@@ -156,9 +156,7 @@ extern CPU	cpus_K56_SS7[];
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
 extern CPU	cpus_6x863V[];
 extern CPU	cpus_6x86[];
-#ifdef USE_NEW_DYNAREC
 extern CPU	cpus_6x86SS7[];
-#endif
 #endif
 extern CPU	cpus_Cyrix3[];
 extern CPU	cpus_PentiumPro[];
@@ -293,10 +291,10 @@ typedef struct {
 
 #ifdef USE_NEW_DYNAREC
     uint32_t	old_fp_control, new_fp_control;
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_
+#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
     uint16_t	old_fp_control2, new_fp_control2;
 #endif
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined __amd64__
+#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined __amd64__ || defined _M_X64
     uint32_t	trunc_fp_control;
 #endif
 #endif
