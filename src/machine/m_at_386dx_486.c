@@ -737,7 +737,7 @@ machine_at_pcm5330_init(const machine_t *model)
     pci_register_slot(0x0C, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     pci_register_slot(0x0D, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     pci_register_slot(0x0E, PCI_CARD_SPECIAL, 0, 0, 0, 0);
-    device_add(&w83977f_device);
+    device_add(&w83977f_370_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_atlas_device);
     device_add(&ide_vlb_device);
