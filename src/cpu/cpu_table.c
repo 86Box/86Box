@@ -367,13 +367,17 @@ CPU cpus_Cx486[] = {
 };
 
 #if defined(DEV_BRANCH) && defined(USE_STPC)
-CPU cpus_STPC[] = {
-    {"STPC 66",      CPU_Cx486DX2, fpus_internal,  66666666, 1.0, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6,  8}, /* timings assumed */
-    {"STPC 75",      CPU_Cx486DX2, fpus_internal,  75000000, 1.0, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6,  8},
-    {"STPC 100",     CPU_Cx486DX2, fpus_internal, 100000000, 1.0, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6,  8},
-    {"STPC 133",     CPU_Cx486DX2, fpus_internal, 133333333, 2.0, 0x430, 0, 0x0b1b, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6,  8},
-    {"",               -1,                   0, 0,     0, 0,      0,                    0,  0, 0, 0, 0,  0}
+/* All STPC timings and Cyrix CPUID values assumed. */
+CPU cpus_STPC6675[] = {
+    {"STPC 66",      CPU_Cx486DX2, fpus_internal,  66666666, 1.0, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC, 7, 7, 3, 3,  5},
+    {"STPC 75",      CPU_Cx486DX2, fpus_internal,  75000000, 1.0, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC, 7, 7, 3, 3,  5},
+    {"",             -1,                   0, 0,     0, 0,      0,                    0,  0, 0, 0, 0,  0}
 };
+
+CPU cpus_STPC133[] = {
+    {"STPC 133",     CPU_Cx486DX2, fpus_internal, 133333333, 2.0, 0x430, 0, 0x0b1b, CPU_SUPPORTS_DYNAREC, 14,14, 6, 6, 10},
+    {"",             -1,                   0, 0,     0, 0,      0,                    0,  0, 0, 0, 0,  0}
+}
 #endif
 
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
