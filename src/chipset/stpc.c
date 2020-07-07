@@ -492,6 +492,8 @@ stpc_reg_read(uint16_t addr, void *priv)
 
     if (addr == 0x22)
 	ret = dev->reg_offset;
+    else if (dev->reg_offset >= 0xc0)
+    	return 0xff; /* Cyrix CPU registers: let the CPU code handle those */
     else
 	ret = dev->regs[dev->reg_offset];
 
