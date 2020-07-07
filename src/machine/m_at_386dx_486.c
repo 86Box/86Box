@@ -610,3 +610,140 @@ machine_at_486ap4_init(const machine_t *model)
 
     return ret;
 }
+
+#include <86box/hwm.h>
+#if defined(DEV_BRANCH) && defined(USE_STPC)
+int
+machine_at_itoxstar_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/itoxstar/stara.rom",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x0B, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x0C, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x1F, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    device_add(&w83977f_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&stpc_client_device);
+    device_add(&ide_pci_device);
+    device_add(&sst_flash_39sf020_device);
+
+    hwm_values_t machine_hwm = {
+    	{    /* fan speeds (incorrect divisor for some reason) */
+    		3000,	/* Chassis */
+    		3000	/* CPU */
+    	}, { /* temperatures */
+    		30,	/* Chassis */
+    		30	/* CPU */
+    	}, { /* voltages */
+    		0,				   /* unused */
+    		0,				   /* unused */
+    		3300,				   /* Vio */
+    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
+    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
+    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
+    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
+    	}
+    };
+    hwm_set_values(machine_hwm);
+    device_add(&w83781d_device);
+
+    return ret;
+}
+
+
+int
+machine_at_arb1479_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/arb1479/1479a.rom",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x0B, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x0C, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x1F, PCI_CARD_NORMAL, 1, 0, 0, 0);
+    pci_register_slot(0x1E, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x1D, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    device_add(&w83977f_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&stpc_consumer2_device);
+    device_add(&ide_pci_2ch_device);
+    device_add(&sst_flash_39sf020_device);
+
+    return ret;
+}
+
+
+int
+machine_at_pcm9340_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/pcm9340/9340v110.bin",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x0B, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x0C, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x1D, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x1E, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x1F, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    device_add(&w83977f_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&stpc_elite_device);
+    device_add(&ide_pci_device);
+    device_add(&sst_flash_39sf020_device);
+
+    return ret;
+}
+
+
+int
+machine_at_pcm5330_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/pcm5330/5330_13b.bin",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x0B, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x0C, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    device_add(&w83977f_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&stpc_atlas_device);
+    device_add(&ide_pci_device);
+    device_add(&sst_flash_29ee020_device);
+
+    return ret;
+}
+#endif
