@@ -377,7 +377,7 @@ CPU cpus_STPC6675[] = {
 CPU cpus_STPC133[] = {
     {"STPC 133",     CPU_Cx486DX2, fpus_internal, 133333333, 2.0, 0x430, 0, 0x0b1b, CPU_SUPPORTS_DYNAREC, 14,14, 6, 6, 10},
     {"",             -1,                   0, 0,     0, 0,      0,                    0,  0, 0, 0, 0,  0}
-}
+};
 #endif
 
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
