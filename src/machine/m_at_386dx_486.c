@@ -629,9 +629,8 @@ machine_at_itoxstar_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x0B, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     pci_register_slot(0x0C, PCI_CARD_SPECIAL, 0, 0, 0, 0);
-    pci_register_slot(0x1F, PCI_CARD_NORMAL, 1, 0, 0, 0);
-    pci_register_slot(0x1E, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x1D, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0D, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x1F, PCI_CARD_NORMAL, 1, 2, 3, 4);
     device_add(&w83977f_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_client_device);
@@ -678,6 +677,7 @@ machine_at_arb1479_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x0B, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     pci_register_slot(0x0C, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     pci_register_slot(0x1F, PCI_CARD_NORMAL, 1, 0, 0, 0);
     pci_register_slot(0x1E, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x1D, PCI_CARD_NORMAL, 3, 4, 1, 2);
@@ -707,6 +707,7 @@ machine_at_pcm9340_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x0B, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     pci_register_slot(0x0C, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     pci_register_slot(0x1D, PCI_CARD_NORMAL, 4, 1, 2, 3);
     pci_register_slot(0x1E, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x1F, PCI_CARD_NORMAL, 2, 3, 4, 1);
@@ -736,6 +737,7 @@ machine_at_pcm5330_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x0B, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     pci_register_slot(0x0C, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     device_add(&w83977f_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_atlas_device);
