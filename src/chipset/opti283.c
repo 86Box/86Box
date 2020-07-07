@@ -79,7 +79,7 @@ mem_set_mem_state_both(base, 0x4000, (dev->regs[0x13] & (1 << i)) ? shflagsc : d
 }
 
 for(i = 0; i < 4; i++){
-base = 0xc0000 + (i << 14);
+base = 0xd0000 + (i << 14);
 mem_set_mem_state_both(base, 0x4000, (dev->regs[0x12] & (1 << i)) ? shflagsd : disabled_shadow);
 }
 
