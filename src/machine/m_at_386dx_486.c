@@ -40,6 +40,7 @@
 #include <86box/video.h>
 #include <86box/flash.h>
 #include <86box/scsi_ncr53c8xx.h>
+#include <86box/hwm.h>
 #include <86box/machine.h>
 
 int
@@ -611,7 +612,7 @@ machine_at_486ap4_init(const machine_t *model)
     return ret;
 }
 
-#include <86box/hwm.h>
+
 #if defined(DEV_BRANCH) && defined(USE_STPC)
 int
 machine_at_itoxstar_init(const machine_t *model)
@@ -633,7 +634,7 @@ machine_at_itoxstar_init(const machine_t *model)
     device_add(&w83977f_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_client_device);
-    device_add(&ide_pci_device);
+    device_add(&ide_vlb_device);
     device_add(&sst_flash_39sf020_device);
 
     hwm_values_t machine_hwm = {
@@ -682,7 +683,7 @@ machine_at_arb1479_init(const machine_t *model)
     device_add(&w83977f_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_consumer2_device);
-    device_add(&ide_pci_2ch_device);
+    device_add(&ide_vlb_2ch_device);
     device_add(&sst_flash_39sf020_device);
 
     return ret;
@@ -711,7 +712,7 @@ machine_at_pcm9340_init(const machine_t *model)
     device_add(&w83977f_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_elite_device);
-    device_add(&ide_pci_device);
+    device_add(&ide_vlb_device);
     device_add(&sst_flash_39sf020_device);
 
     return ret;
@@ -739,7 +740,7 @@ machine_at_pcm5330_init(const machine_t *model)
     device_add(&w83977f_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_atlas_device);
-    device_add(&ide_pci_device);
+    device_add(&ide_vlb_device);
     device_add(&sst_flash_29ee020_device);
 
     return ret;
