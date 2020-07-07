@@ -627,7 +627,7 @@ win_settings_machine_recalc_cpu_m(HWND hdlg)
 	SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
 	c++;
     }
-    EnableWindow(h, TRUE);
+    EnableWindow(h, (c == 1) ? FALSE : TRUE);
     if (temp_cpu >= c)
 	temp_cpu = (c - 1);
     SendMessage(h, CB_SETCURSEL, temp_cpu, 0);

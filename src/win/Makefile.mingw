@@ -42,6 +42,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef CL5422
   CL5422	:= y
  endif
+ ifndef CYRIX_6X86
+  CYRIX_6X86 := y
+ endif 
  ifndef LASERXT
   LASERXT	:= y
  endif
@@ -68,6 +71,9 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef SIEMENS
   SIEMENS	:= y
+ endif
+ ifndef STPC
+  STPC		:= y
  endif
  ifndef VGAWONDER
   VGAWONDER	:= y
@@ -106,6 +112,9 @@ else
  ifndef CL5422
   CL5422	:= n
  endif
+ ifndef CYRIX_6X86
+  CYRIX_6X86 := n
+ endif 
  ifndef LASERXT
   LASERXT	:= n
  endif
@@ -132,6 +141,9 @@ else
  endif
  ifndef SIEMENS
   SIEMENS	:= n
+ endif
+ ifndef STPC
+  STPC		:= y
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
@@ -473,6 +485,10 @@ ifeq ($(CL5422), y)
 OPTS		+= -DUSE_CL5422
 endif
 
+ifeq ($(CYRIX_6X86), y)
+OPTS		+= -DUSE_CYRIX_6X86
+endif
+
 ifeq ($(LASERXT), y)
 OPTS		+= -DUSE_LASERXT
 DEVBROBJ	+= m_xt_laserxt.o
@@ -510,6 +526,11 @@ endif
 
 ifeq ($(SIEMENS), y)
 OPTS		+= -DUSE_SIEMENS
+endif
+
+ifeq ($(STPC), y)
+OPTS		+= -DUSE_STPC
+STPCOBJ		:= stpc.o
 endif
 
 ifeq ($(596B), y)
@@ -572,7 +593,7 @@ CPUOBJ		:= cpu.o cpu_table.o \
 CHIPSETOBJ	:= acc2168.o cs8230.o ali1429.o headland.o i82335.o \
 		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
 		    neat.o opti495.o opti895.o opti5x7.o scamp.o scat.o \
-		    sis_85c310.o sis_85c471.o sis_85c496.o opti283.o opti291.o \
+		    sis_85c310.o sis_85c471.o sis_85c496.o opti283.o opti291.o $(STPCOBJ) \
 		    via_apollo.o via_vpx.o via_vt82c586b.o via_vt82c596b.o wd76c10.o vl82c480.o \
 			amd640.o
 
@@ -626,7 +647,7 @@ HDDOBJ		:= hdd.o \
 		    hdc_xta.o \
 		    hdc_esdi_at.o hdc_esdi_mca.o \
 		    hdc_xtide.o hdc_ide.o \
-		    hdc_ide_sff8038i.o
+		    hdc_ide_opti611.o hdc_ide_sff8038i.o
 
 CDROMOBJ	:= cdrom.o \
 		    cdrom_image_backend.o cdrom_image.o

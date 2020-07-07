@@ -45,35 +45,38 @@ static void
 opti5x7_recalc(opti5x7_t *dev)
 {
     uint32_t base;
-    uint32_t i, j, shflags = 0;
+    uint32_t i, shflags = 0;
     uint32_t reg, lowest_bit;
-    uint32_t write = 0;
+
+    shadowbios = 0;
+    shadowbios_write = 0;
 
     for (i = 0; i < 8; i++) {
-        j = i / 2.01; /*Probably not a great way of doing this, but it does work*/
-        base = 0xc0000 + (j << 14); 
-	
-        lowest_bit = j * 2;
-        reg = 0x04 + ((base >> 16) & 0x01);
-	
-        shflags = (dev->regs[reg] & (1 << lowest_bit)) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
-        shflags |= (dev->regs[reg] & (1 << (lowest_bit + 1))) ? MEM_WRITE_INTERNAL : write;
-        write = (dev->regs[reg] & (1 << lowest_bit)) ? MEM_WRITE_DISABLED : MEM_WRITE_EXTANY;
-        mem_set_mem_state(base, 0x4000, shflags);
+	base = 0xc0000 + (i << 14);
+
+	lowest_bit = (i << 1) & 0x07;
+	reg = 0x04 + ((base >> 16) & 0x01);
+
+	shflags = (dev->regs[reg] & (1 << lowest_bit)) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+	shflags |= (dev->regs[reg] & (1 << (lowest_bit + 1))) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+	mem_set_mem_state(base, 0x4000, shflags);
     }
 
+    shadowbios |= !!(dev->regs[0x06] & 0x05);
+    shadowbios_write |= !!(dev->regs[0x06] & 0x0a);
+
     shflags = (dev->regs[0x06] & 0x01) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
-    shflags |= (dev->regs[0x06] & 0x02) ? MEM_WRITE_INTERNAL : write;
-    write = (dev->regs[0x06] & 0x01) ? MEM_WRITE_DISABLED : MEM_WRITE_EXTANY;    
+    shflags |= (dev->regs[0x06] & 0x02) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
     mem_set_mem_state(0xe0000, 0x10000, shflags);
 
     shflags = (dev->regs[0x06] & 0x04) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
-    shflags |= (dev->regs[0x06] & 0x08) ? MEM_WRITE_INTERNAL : write;
-    write = (dev->regs[0x06] & 0x04) ? MEM_WRITE_DISABLED : MEM_WRITE_EXTANY;    
+    shflags |= (dev->regs[0x06] & 0x08) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
     mem_set_mem_state(0xf0000, 0x10000, shflags);
 
     flushmmucache();
 }
+
+
 static void
 opti5x7_write(uint16_t addr, uint8_t val, void *priv)
 {	
@@ -90,7 +93,7 @@ opti5x7_write(uint16_t addr, uint8_t val, void *priv)
 			case 0x02:
 				cpu_cache_ext_enabled = !!(dev->regs[0x02] & 0x04 & 0x08);
 				break;
-				
+
 			case 0x04:
 			case 0x05:
 			case 0x06:
@@ -138,9 +141,6 @@ opti5x7_init(const device_t *info)
     io_sethandler(0x0024, 0x0001, opti5x7_read, NULL, NULL, opti5x7_write, NULL, NULL, dev);
 
     dev->port_92 = device_add(&port_92_device);    
-//  pclog("OPTi 5x7 init\n");
-    opti5x7_recalc(dev);
-  
 
     return dev;
 }
