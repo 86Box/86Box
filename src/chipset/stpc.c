@@ -492,6 +492,8 @@ stpc_reg_read(uint16_t addr, void *priv)
 
     if (addr == 0x22)
 	ret = dev->reg_offset;
+    else if (dev->reg_offset >= 0xc0)
+    	return 0xff; /* Cyrix CPU registers: let the CPU code handle those */
     else
 	ret = dev->regs[dev->reg_offset];
 
@@ -521,8 +523,6 @@ static void
 stpc_setup(stpc_t *dev)
 {
     stpc_log("STPC: setup()\n");
-
-    memset(dev, 0, sizeof(stpc_t));
 
     /* Northbridge */
     dev->pci_conf[0][0x00] = 0x4a;
@@ -601,7 +601,7 @@ stpc_setup(stpc_t *dev)
     dev->pci_conf[2][0x47] = 0x97;
 
     /* USB */
-    if (dev->local & STPC_USB) {
+    if (dev->usb) {
     	dev->pci_conf[3][0x00] = 0x4a;
     	dev->pci_conf[3][0x01] = 0x10;
     	dev->pci_conf[3][0x02] = 0x30;
@@ -636,6 +636,8 @@ stpc_init(const device_t *info)
     stpc_log("STPC: init()\n");
 
     stpc_t *dev = (stpc_t *) malloc(sizeof(stpc_t));
+    memset(dev, 0, sizeof(stpc_t));
+    
     dev->local = info->local;
 
     pci_add_card(0x0B, stpc_nb_read, stpc_nb_write, dev);
