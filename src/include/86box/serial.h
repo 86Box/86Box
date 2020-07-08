@@ -32,6 +32,10 @@
 #define SERIAL1_IRQ		4
 #define SERIAL2_ADDR		0x02f8
 #define SERIAL2_IRQ		3
+#define SERIAL3_ADDR		0x03e8
+#define SERIAL3_IRQ		4
+#define SERIAL4_ADDR		0x02e8
+#define SERIAL4_IRQ		3
 
 
 struct serial_device_s;

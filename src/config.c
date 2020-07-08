@@ -745,7 +745,7 @@ load_ports(void)
     char temp[512];
     int c, d;
 
-    for (c = 0; c < 2; c++) {
+    for (c = 0; c < 4; c++) {
 	sprintf(temp, "serial%d_enabled", c + 1);
 	serial_enabled[c] = !!config_get_int(cat, temp, 1);
     }
@@ -1352,6 +1352,8 @@ config_load(void)
 	hdc_current = hdc_get_from_internal_name("none");
 	serial_enabled[0] = 1;
 	serial_enabled[1] = 1;
+	serial_enabled[2] = 0;
+	serial_enabled[3] = 0;
 	lpt_ports[0].enabled = 1;
 	lpt_ports[1].enabled = 0;
 	lpt_ports[2].enabled = 0;
@@ -1709,7 +1711,7 @@ save_ports(void)
     char temp[512];
     int c, d;
 
-    for (c = 0; c < 2; c++) {
+    for (c = 0; c < 4; c++) {
 	sprintf(temp, "serial%d_enabled", c + 1);
 	if (serial_enabled[c])
 		config_delete_var(cat, temp);
