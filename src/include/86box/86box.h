@@ -21,8 +21,8 @@
 
 
 /* Configuration values. */
-#define SERIAL_MAX	2
-#define PARALLEL_MAX	1
+#define SERIAL_MAX	4
+#define PARALLEL_MAX	3
 #define SCREEN_RES_X	640
 #define SCREEN_RES_Y	480
 

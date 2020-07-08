@@ -160,6 +160,38 @@ machine_at_valuepointp60_init(const machine_t *model)
 }
 #endif
 
+
+int
+machine_at_pb502r_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined(L"roms/machines/revenge/1009af2_.bio",
+				    L"roms/machines/revenge/1009af2_.bi1", 0x1c000, 128);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x06, PCI_CARD_NORMAL, 3, 2, 1, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL, 2, 1, 3, 4);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 3, 2, 4);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&i430lx_device);
+    device_add(&keyboard_ps2_pci_device);
+    device_add(&sio_device);
+    device_add(&ide_cmd640_pci_device);
+    device_add(&fdc37c665_device);
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+
 int
 machine_at_opti560l_init(const machine_t *model)
 {
@@ -189,6 +221,7 @@ machine_at_opti560l_init(const machine_t *model)
 
     return ret;
 }
+
 
 #if defined(DEV_BRANCH) && defined(USE_DELLXP60)
 int
@@ -222,6 +255,7 @@ machine_at_dellxp60_init(const machine_t *model)	// Doesn't like the regular SMC
 }
 #endif
 
+
 int
 machine_at_p5mp3_init(const machine_t *model)
 {
@@ -251,6 +285,7 @@ machine_at_p5mp3_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_586mc1_init(const machine_t *model)

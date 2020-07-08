@@ -50,6 +50,11 @@ extern const device_t	ide_vlb_2ch_device;		/* vlb_ide_2ch */
 extern const device_t	ide_pci_device;			/* pci_ide */
 extern const device_t	ide_pci_2ch_device;		/* pci_ide_2ch */
 
+extern const device_t	ide_cmd640_vlb_device;			/* CMD PCI-640B VLB */
+extern const device_t	ide_cmd640_vlb_178_device;		/* CMD PCI-640B VLB (Port 178h) */
+extern const device_t	ide_cmd640_pci_device;			/* CMD PCI-640B PCI */
+extern const device_t	ide_cmd640_pci_legacy_only_device;	/* CMD PCI-640B PCI (Legacy Mode Only) */
+
 extern const device_t	ide_opti611_vlb_device;		/* OPTi 82c611/611A VLB */
 
 extern const device_t	ide_ter_device;
