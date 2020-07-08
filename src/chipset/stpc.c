@@ -104,7 +104,7 @@ stpc_recalcmapping(stpc_t *dev)
 			size = 0x4000;
 			base = 0xc0000 + (size * ((reg * 4) + bitpair));
 		}
-		stpc_log("STPC: Shadowing for %05x-%05x (reg %02x bp %d wmask %02x rmask %02x) =", base, base + size - 1, 0x25 + reg, bitpair, 1 << (bitpair * 2), 1 << ((bitpair * 2) + 1));
+		stpc_log("STPC: Shadowing for %05x-%05x (reg %02X bp %d wmask %02X rmask %02X) =", base, base + size - 1, 0x25 + reg, bitpair, 1 << (bitpair * 2), 1 << ((bitpair * 2) + 1));
 
 		state = 0;
 		if (dev->regs[0x25 + reg] & (1 << (bitpair * 2))) {
@@ -146,7 +146,7 @@ stpc_host_write(uint16_t addr, uint8_t val, void *priv)
 {
     stpc_t *dev = (stpc_t *) priv;
 
-    stpc_log("STPC: host_write(%04x, %02x)\n", addr, val);
+    stpc_log("STPC: host_write(%04X, %02X)\n", addr, val);
 
     if (addr == dev->host_base)
 	dev->host_offset = val;
@@ -168,7 +168,7 @@ stpc_host_read(uint16_t addr, void *priv)
     else
 	ret = 0xff;
 
-    stpc_log("STPC: host_read(%04x) = %02x\n", addr, ret);
+    stpc_log("STPC: host_read(%04X) = %02X\n", addr, ret);
     return ret;
 }
 
@@ -178,7 +178,7 @@ stpc_localbus_write(uint16_t addr, uint8_t val, void *priv)
 {
     stpc_t *dev = (stpc_t *) priv;
 
-    stpc_log("STPC: localbus_write(%04x, %02x)\n", addr, val);
+    stpc_log("STPC: localbus_write(%04X, %02X)\n", addr, val);
 
     if (addr == dev->localbus_base)
 	dev->localbus_offset = val;
@@ -200,7 +200,7 @@ stpc_localbus_read(uint16_t addr, void *priv)
     else
 	ret = 0xff;
 
-    stpc_log("STPC: localbus_read(%04x) = %02x\n", addr, ret);
+    stpc_log("STPC: localbus_read(%04X) = %02X\n", addr, ret);
     return ret;
 }
 
@@ -210,7 +210,7 @@ stpc_nb_write(int func, int addr, uint8_t val, void *priv)
 {
     stpc_t *dev = (stpc_t *) priv;
 
-    stpc_log("STPC: nb_write(%d, %02x, %02x)\n", func, addr, val);
+    stpc_log("STPC: nb_write(%d, %02X, %02X)\n", func, addr, val);
 
     if (func > 0)
 	return;
@@ -250,7 +250,7 @@ stpc_nb_read(int func, int addr, void *priv)
     else
 	ret = dev->pci_conf[0][addr];
 
-    stpc_log("STPC: nb_read(%d, %02x) = %02x\n", func, addr, ret);
+    stpc_log("STPC: nb_read(%d, %02X) = %02X\n", func, addr, ret);
     return ret;
 }
 
@@ -260,7 +260,7 @@ stpc_ide_write(int func, int addr, uint8_t val, void *priv)
 {
     stpc_t *dev = (stpc_t *) priv;
 
-    stpc_log("STPC: ide_write(%d, %02x, %02x)\n", func, addr, val);
+    stpc_log("STPC: ide_write(%d, %02X, %02X)\n", func, addr, val);
 
     if (func > 0)
 	return;
@@ -291,7 +291,7 @@ stpc_ide_read(int func, int addr, void *priv)
     else
     	ret = dev->pci_conf[2][addr];
 
-    stpc_log("STPC: ide_read(%d, %02x) = %02x\n", func, addr, ret);
+    stpc_log("STPC: ide_read(%d, %02X) = %02X\n", func, addr, ret);
     return ret;
 }
 
@@ -306,7 +306,7 @@ stpc_isab_write(int func, int addr, uint8_t val, void *priv)
     	return;
     }
 
-    stpc_log("STPC: isab_write(%d, %02x, %02x)\n", func, addr, val);
+    stpc_log("STPC: isab_write(%d, %02X, %02X)\n", func, addr, val);
 
     if (func > 0)
 	return;
@@ -339,7 +339,7 @@ stpc_isab_read(int func, int addr, void *priv)
     else
     	ret = dev->pci_conf[1][addr];
 
-    stpc_log("STPC: isab_read(%d, %02x) = %02x\n", func, addr, ret);
+    stpc_log("STPC: isab_read(%d, %02X) = %02X\n", func, addr, ret);
     return ret;
 }
 
@@ -349,7 +349,7 @@ stpc_usb_write(int func, int addr, uint8_t val, void *priv)
 {
     stpc_t *dev = (stpc_t *) priv;
 
-    stpc_log("STPC: usb_write(%d, %02x, %02x)\n", func, addr, val);
+    stpc_log("STPC: usb_write(%d, %02X, %02X)\n", func, addr, val);
 
     if (func > 0)
 	return;
@@ -391,7 +391,7 @@ stpc_usb_read(int func, int addr, void *priv)
     else
     	ret = dev->pci_conf[3][addr];
 
-    stpc_log("STPC: usb_read(%d, %02x) = %02x\n", func, addr, ret);
+    stpc_log("STPC: usb_read(%d, %02X) = %02X\n", func, addr, ret);
     return ret;
 }
 
@@ -399,7 +399,7 @@ stpc_usb_read(int func, int addr, void *priv)
 static void
 stpc_remap_host(stpc_t *dev, uint16_t host_base)
 {
-    stpc_log("STPC: Remapping host bus from %04x to %04x\n", dev->host_base, host_base);
+    stpc_log("STPC: Remapping host bus from %04X to %04X\n", dev->host_base, host_base);
 
     io_removehandler(dev->host_base, 5,
 		     stpc_host_read, NULL, NULL, stpc_host_write, NULL, NULL, dev);
@@ -414,7 +414,7 @@ stpc_remap_host(stpc_t *dev, uint16_t host_base)
 static void
 stpc_remap_localbus(stpc_t *dev, uint16_t localbus_base)
 {
-    stpc_log("STPC: Remapping local bus from %04x to %04x\n", dev->localbus_base, localbus_base);
+    stpc_log("STPC: Remapping local bus from %04X to %04X\n", dev->localbus_base, localbus_base);
 
     io_removehandler(dev->localbus_base, 5,
 		     stpc_localbus_read, NULL, NULL, stpc_localbus_write, NULL, NULL, dev);
@@ -431,12 +431,12 @@ stpc_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
     stpc_t *dev = (stpc_t *) priv;
 
-    stpc_log("STPC: reg_write(%04x, %02x)\n", addr, val);
+    stpc_log("STPC: reg_write(%04X, %02X)\n", addr, val);
 
     if (addr == 0x22) {
 	dev->reg_offset = val;
     } else {
-	stpc_log("STPC: regs[%02x] = %02x\n", dev->reg_offset, val);
+	stpc_log("STPC: regs[%02X] = %02X\n", dev->reg_offset, val);
 
 	switch (dev->reg_offset) {
 		case 0x12:
@@ -497,7 +497,7 @@ stpc_reg_read(uint16_t addr, void *priv)
     else
 	ret = dev->regs[dev->reg_offset];
 
-    stpc_log("STPC: reg_read(%04x) = %02x\n", addr, ret);
+    stpc_log("STPC: reg_read(%04X) = %02X\n", addr, ret);
     return ret;
 }
 
