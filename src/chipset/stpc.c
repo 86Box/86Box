@@ -626,6 +626,12 @@ stpc_setup(stpc_t *dev)
 
     	dev->pci_conf[3][0x0e] = 0x40;
     }
+
+    /* PCI setup */
+    pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTC, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
 }
 
 
