@@ -231,7 +231,7 @@ const machine_t machines[] = {
     { "[STPC Client] ITOX STAR",		"itoxstar",		MACHINE_TYPE_486,		{{"ST", cpus_STPC6675},       {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 255,	     machine_at_itoxstar_init, NULL			},
     { "[STPC Consumer-II] Acrosser AR-B1479",	"arb1479",		MACHINE_TYPE_486,		{{"ST", cpus_STPC133},        {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					 32,  160,   8, 255,	      machine_at_arb1479_init, NULL			},
     { "[STPC Elite] Advantech PCM-9340",	"pcm9340",		MACHINE_TYPE_486,		{{"ST", cpus_STPC133},        {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					 32,   96,   8, 255,	      machine_at_pcm9340_init, NULL			},
-    { "[STPC Atlas] AAEON PCM-5330",		"pcm5330",		MACHINE_TYPE_486,		{{"ST", cpus_STPC133},        {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					 64,   64,   0, 255,	      machine_at_pcm5330_init, NULL			},
+    { "[STPC Atlas] AAEON PCM-5330",		"pcm5330",		MACHINE_TYPE_486,		{{"ST", cpus_STPC133},        {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					 32,  128,  32, 255,	      machine_at_pcm5330_init, NULL			},
 #endif
 
     /* Socket 4 machines */
