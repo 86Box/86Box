@@ -94,7 +94,7 @@ static char temp_pcap_dev[522];
 
 /* Ports category */
 static int temp_lpt_devices[3];
-static int temp_serial[2], temp_lpt[3];
+static int temp_serial[4], temp_lpt[3];
 
 /* Other peripherals category */
 static int temp_fdc_card, temp_hdc, temp_scsi_card, temp_ide_ter, temp_ide_qua;
@@ -262,7 +262,7 @@ win_settings_init(void)
 	temp_lpt_devices[i] = lpt_ports[i].device;
 	temp_lpt[i] = lpt_ports[i].enabled;
     }
-    for (i = 0; i < 2; i++)
+    for (i = 0; i < 4; i++)
 	temp_serial[i] = serial_enabled[i];
 
     /* Other peripherals category */
@@ -372,7 +372,7 @@ win_settings_changed(void)
 	i = i || (temp_lpt_devices[j] != lpt_ports[j].device);
 	i = i || (temp_lpt[j] != lpt_ports[j].enabled);
     }
-    for (j = 0; j < 2; j++)
+    for (j = 0; j < 4; j++)
 	i = i || (temp_serial[j] != serial_enabled[j]);
 
     /* Peripherals category */
@@ -484,7 +484,7 @@ win_settings_save(void)
 	lpt_ports[i].device = temp_lpt_devices[i];
 	lpt_ports[i].enabled = temp_lpt[i];
     }
-    for (i = 0; i < 2; i++)
+    for (i = 0; i < 4; i++)
 	serial_enabled[i] = temp_serial[i];
 
     /* Peripherals category */
@@ -627,7 +627,7 @@ win_settings_machine_recalc_cpu_m(HWND hdlg)
 	SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
 	c++;
     }
-    EnableWindow(h, TRUE);
+    EnableWindow(h, (c == 1) ? FALSE : TRUE);
     if (temp_cpu >= c)
 	temp_cpu = (c - 1);
     SendMessage(h, CB_SETCURSEL, temp_cpu, 0);
@@ -1563,7 +1563,7 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			EnableWindow(h, temp_lpt[i] ? TRUE : FALSE);
 		}
 
-		for (i = 0; i < 2; i++) {
+		for (i = 0; i < 4; i++) {
 			h=GetDlgItem(hdlg, IDC_CHECK_SERIAL1 + i);
 			SendMessage(h, BM_SETCHECK, temp_serial[i], 0);
 		}
@@ -1602,7 +1602,7 @@ win_settings_ports_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			temp_lpt[i] = SendMessage(h, BM_GETCHECK, 0, 0);
 		}
 
-		for (i = 0; i < 2; i++) {
+		for (i = 0; i < 4; i++) {
 			h = GetDlgItem(hdlg, IDC_CHECK_SERIAL1 + i);
 			temp_serial[i] = SendMessage(h, BM_GETCHECK, 0, 0);
 		}

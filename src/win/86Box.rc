@@ -459,7 +459,7 @@ BEGIN
     PUSHBUTTON      "Configure",IDC_CONFIGURE_NET,214,43,46,12
 END
 
-DLG_CFG_PORTS DIALOG DISCARDABLE  97, 0, 267, 117
+DLG_CFG_PORTS DIALOG DISCARDABLE  97, 0, 267, 135
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
@@ -479,13 +479,17 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,64,94,10
     CONTROL         "Serial port 2",IDC_CHECK_SERIAL2,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,147,64,94,10
+    CONTROL         "Serial port 3",IDC_CHECK_SERIAL3,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,82,94,10
+    CONTROL         "Serial port 4",IDC_CHECK_SERIAL4,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,147,82,94,10
 
     CONTROL         "Parallel port 1",IDC_CHECK_PARALLEL1,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,82,94,10
-    CONTROL         "Parallel port 2",IDC_CHECK_PARALLEL2,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,147,82,94,10
-    CONTROL         "Parallel port 3",IDC_CHECK_PARALLEL3,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,100,94,10
+    CONTROL         "Parallel port 2",IDC_CHECK_PARALLEL2,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,147,100,94,10
+    CONTROL         "Parallel port 3",IDC_CHECK_PARALLEL3,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,118,94,10
 END
 
 DLG_CFG_PERIPHERALS DIALOG DISCARDABLE  97, 0, 267, 220

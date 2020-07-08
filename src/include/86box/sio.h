@@ -40,8 +40,10 @@ extern const device_t	w83877f_president_device;
 extern const device_t	w83877tf_device;
 extern const device_t	w83877tf_acorp_device;
 extern const device_t	w83977f_device;
+extern const device_t	w83977f_370_device;
 extern const device_t	w83977tf_device;
 extern const device_t	w83977ef_device;
+extern const device_t	w83977ef_370_device;
 
 
 #endif	/*EMU_SIO_H*/

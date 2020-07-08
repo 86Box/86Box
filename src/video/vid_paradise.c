@@ -122,6 +122,7 @@ void paradise_out(uint16_t addr, uint8_t val, void *p)
                 {
                         svga->gdcreg[0xe] = val;
                         paradise_remap(paradise);
+			svga_recalctimings(svga);
                         return;
                 }
                 break;
@@ -251,9 +252,11 @@ void paradise_recalctimings(svga_t *svga)
 	if (paradise->type == WD90C30)
 		svga->interlace = (svga->crtc[0x2d] & 0x20);
 
-        svga->lowres = !(svga->gdcreg[0xe] & 0x01);
-        if (svga->bpp == 8 && !svga->lowres)
+	if (svga->gdcreg[0xe] & 0x01) {
+		svga->bpp = 8;
+		svga->lowres = 0;
                 svga->render = svga_render_8bpp_highres;
+	}
 }
 
 static void paradise_write(uint32_t addr, uint8_t val, void *p)
@@ -299,7 +302,7 @@ void *paradise_init(const device_t *info, uint32_t memsize)
 	switch(info->local) {
 		case PVGA1A:
 			svga_init(info, &paradise->svga, paradise, memsize, /*256kb*/
-				   NULL,
+				   paradise_recalctimings,
 				   paradise_in, paradise_out,
 				   NULL,
 				   NULL);

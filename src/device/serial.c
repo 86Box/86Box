@@ -684,9 +684,13 @@ serial_init(const device_t *info)
 	dev->sd = &(serial_devices[next_inst]);
 	dev->sd->serial = dev;
 	serial_reset_port(dev);
-	if (next_inst || (info->flags & DEVICE_PCJR))
+	if (next_inst == 3)
+		serial_setup(dev, SERIAL4_ADDR, SERIAL4_IRQ);
+	else if (next_inst == 2)
+		serial_setup(dev, SERIAL3_ADDR, SERIAL3_IRQ);
+	else if ((next_inst == 1) || (info->flags & DEVICE_PCJR))
 		serial_setup(dev, SERIAL2_ADDR, SERIAL2_IRQ);
-	else
+	else if (next_inst == 0)
 		serial_setup(dev, SERIAL1_ADDR, SERIAL1_IRQ);
 
 	/* Default to 1200,N,7. */
@@ -716,8 +720,17 @@ serial_standalone_init(void) {
     if (next_inst == 0) {
 	device_add_inst(&i8250_device, 1);
 	device_add_inst(&i8250_device, 2);
-    } else if (next_inst == 1)
+	device_add_inst(&i8250_device, 3);
+	device_add_inst(&i8250_device, 4);
+    } else if (next_inst == 1) {
 	device_add_inst(&i8250_device, 2);
+	device_add_inst(&i8250_device, 3);
+	device_add_inst(&i8250_device, 4);
+    } else if (next_inst == 2) {
+	device_add_inst(&i8250_device, 3);
+	device_add_inst(&i8250_device, 4);
+    } else
+	device_add_inst(&i8250_device, 4);
 };
 
 

@@ -745,9 +745,9 @@ load_ports(void)
     char temp[512];
     int c, d;
 
-    for (c = 0; c < 2; c++) {
+    for (c = 0; c < 4; c++) {
 	sprintf(temp, "serial%d_enabled", c + 1);
-	serial_enabled[c] = !!config_get_int(cat, temp, 1);
+	serial_enabled[c] = !!config_get_int(cat, temp, (c >= 2) ? 0 : 1);
     }
 
     for (c = 0; c < 3; c++) {
@@ -1352,6 +1352,8 @@ config_load(void)
 	hdc_current = hdc_get_from_internal_name("none");
 	serial_enabled[0] = 1;
 	serial_enabled[1] = 1;
+	serial_enabled[2] = 0;
+	serial_enabled[3] = 0;
 	lpt_ports[0].enabled = 1;
 	lpt_ports[1].enabled = 0;
 	lpt_ports[2].enabled = 0;
@@ -1521,7 +1523,7 @@ save_machine(void)
     if (fpu_type == 0)
 	config_delete_var(cat, "fpu_type");
       else
-	config_set_string(cat, "fpu_type", fpu_get_internal_name(machine, cpu_manufacturer, cpu, fpu_type));
+	config_set_string(cat, "fpu_type", (char *) fpu_get_internal_name(machine, cpu_manufacturer, cpu, fpu_type));
 
     if (mem_size == 4096)
 	config_delete_var(cat, "mem_size");
@@ -1709,9 +1711,9 @@ save_ports(void)
     char temp[512];
     int c, d;
 
-    for (c = 0; c < 2; c++) {
+    for (c = 0; c < 4; c++) {
 	sprintf(temp, "serial%d_enabled", c + 1);
-	if (serial_enabled[c])
+	if (((c < 2) && serial_enabled[c]) || ((c >= 2) && !serial_enabled[c]))
 		config_delete_var(cat, temp);
 	else
 		config_set_int(cat, temp, serial_enabled[c]);
