@@ -26,10 +26,13 @@
 #include <86box/io.h>
 #include <86box/rom.h>
 #include <86box/pci.h>
+#include <86box/pic.h>
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/port_92.h>
 #include <86box/usb.h>
+#include <86box/hdc_ide.h>
+#include <86box/hdc_ide_sff8038i.h>
 #include <86box/chipset.h>
 
 
@@ -61,6 +64,7 @@ typedef struct stpc_t
     /* PCI devices */
     uint8_t	pci_conf[4][256];
     usb_t	*usb;
+    int		ide_slot;
 } stpc_t;
 
 
@@ -255,6 +259,83 @@ stpc_nb_read(int func, int addr, void *priv)
 }
 
 
+void
+stpc_ide_irq(int channel, void *priv)
+{
+    stpc_t *dev = (stpc_t *) priv;
+
+    uint8_t status = (channel >> 4);
+    channel &= 0x01;
+    dev->pci_conf[2][0x48] &= ~(1 << channel);
+
+    if (status) {
+    	dev->pci_conf[2][0x48] |= (1 << channel);
+	if (dev->pci_conf[2][0x09] & (1 << (channel << 1)))
+		pci_set_irq(dev->ide_slot, PCI_INTA);
+	else
+		picint(1 << (14 + channel));
+    } else {
+	if (dev->pci_conf[2][0x09] & (1 << (channel << 1)))
+		pci_clear_irq(dev->ide_slot, PCI_INTA);
+	else
+		picintc(1 << (14 + channel));
+    }
+}
+
+
+static void
+stpc_ide_handlers(stpc_t *dev, int bus)
+{
+    uint16_t main, side;
+
+    if (bus & 0x01) {
+	ide_pri_disable();
+
+	if (dev->pci_conf[2][0x09] & 0x01) {
+		main = (dev->pci_conf[2][0x11] << 8) | (dev->pci_conf[2][0x10] & 0xf8);
+		side = ((dev->pci_conf[2][0x15] << 8) | (dev->pci_conf[2][0x14] & 0xfc)) + 2;
+	} else {
+		main = 0x1f0;
+		side = 0x3f6;
+	}
+
+	ide_set_base(0, main);
+	ide_set_side(0, side);
+
+	stpc_log("STPC: IDE primary main %04X side %04X enable ", main, side);
+	if ((dev->pci_conf[2][0x04] & 0x01) && !(dev->pci_conf[2][0x48] & 0x04)) {
+		stpc_log("1\n");
+		ide_pri_enable();
+	} else {
+		stpc_log("0\n");
+	}
+    }
+
+    if (bus & 0x02) {
+	ide_sec_disable();
+
+	if (dev->pci_conf[2][0x09] & 0x04) {
+		main = (dev->pci_conf[2][0x19] << 8) | (dev->pci_conf[2][0x18] & 0xf8);
+		side = ((dev->pci_conf[2][0x1d] << 8) | (dev->pci_conf[2][0x1c] & 0xfc)) + 2;
+	} else {
+		main = 0x170;
+		side = 0x376;
+	}
+
+	ide_set_base(1, main);
+	ide_set_side(1, side);
+
+	stpc_log("STPC: IDE secondary main %04X side %04X enable ", main, side);
+	if ((dev->pci_conf[2][0x04] & 0x01) && !(dev->pci_conf[2][0x48] & 0x08)) {
+		stpc_log("1\n");
+		ide_sec_enable();
+	} else {
+		stpc_log("0\n");
+	}
+    }
+}
+
+
 static void
 stpc_ide_write(int func, int addr, uint8_t val, void *priv)
 {
@@ -267,12 +348,76 @@ stpc_ide_write(int func, int addr, uint8_t val, void *priv)
 
     switch (addr) {
 	case 0x00: case 0x01: case 0x02: case 0x03:
-	case 0x04: case 0x06: case 0x07: case 0x08:
-	case 0x09: case 0x0a: case 0x0b: case 0x0e:
+	case 0x06: case 0x07: case 0x08: case 0x0a:
+	case 0x0b: case 0x0e:
+	case 0x30: case 0x31: case 0x32: case 0x33: /* unknown registers written to by Windows 2000 */
 		return;
+
+	case 0x04:
+		val &= 0x41;
+		dev->pci_conf[2][addr] = val;
+		stpc_ide_handlers(dev, 0x03);
+		break;
 
 	case 0x05:
 		val &= 0x01;
+		break;
+
+	case 0x09:
+		val &= 0x05;
+		val |= 0x8a;
+		dev->pci_conf[2][addr] = val;
+		stpc_ide_handlers(dev, 0x03);
+		break;
+
+	case 0x10:
+		dev->pci_conf[2][addr] = (val & 0xf8) | 1;
+		stpc_ide_handlers(dev, 0x01);
+		break;
+
+	case 0x11:
+		dev->pci_conf[2][addr] = val;
+		stpc_ide_handlers(dev, 0x01);
+		break;
+
+	case 0x14:
+		dev->pci_conf[2][addr] = (val & 0xfc) | 1;
+		stpc_ide_handlers(dev, 0x01);
+		break;
+
+	case 0x15:
+		dev->pci_conf[2][addr] = val;
+		stpc_ide_handlers(dev, 0x01);
+		break;
+
+	case 0x18:
+		dev->pci_conf[2][addr] = (val & 0xf8) | 1;
+		stpc_ide_handlers(dev, 0x02);
+		break;
+
+	case 0x19:
+		dev->pci_conf[2][addr] = val;
+		stpc_ide_handlers(dev, 0x02);
+		break;
+
+	case 0x1c:
+		dev->pci_conf[2][addr] = (val & 0xfc) | 1;
+		stpc_ide_handlers(dev, 0x02);
+		break;
+
+	case 0x1d:
+		dev->pci_conf[2][addr] = val;
+		stpc_ide_handlers(dev, 0x02);
+		break;
+
+	case 0x48:
+		val &= 0x8f;
+		if (val & 0x01)
+			val &= 0xfe;
+		if (val & 0x02)
+			val &= 0xfd;
+		dev->pci_conf[2][addr] = val;
+		stpc_ide_handlers(dev, 0x03);
 		break;
     }
 
@@ -526,6 +671,9 @@ stpc_reset(void *priv)
 		     stpc_reg_read, NULL, NULL, stpc_reg_write, NULL, NULL, dev);
     io_sethandler(0x22, 2,
 		  stpc_reg_read, NULL, NULL, stpc_reg_write, NULL, NULL, dev);
+
+    stpc_ide_irq(0x00, dev);
+    stpc_ide_irq(0x01, dev);
 }
 
 
@@ -600,6 +748,7 @@ stpc_setup(stpc_t *dev)
     dev->pci_conf[2][0x14] = 0x01;
     dev->pci_conf[2][0x18] = 0x01;
     dev->pci_conf[2][0x1c] = 0x01;
+    dev->pci_conf[2][0x20] = 0x01;
 
     dev->pci_conf[2][0x40] = 0x60;
     dev->pci_conf[2][0x41] = 0x97;
@@ -609,6 +758,14 @@ stpc_setup(stpc_t *dev)
     dev->pci_conf[2][0x45] = 0x97;
     dev->pci_conf[2][0x46] = 0x60;
     dev->pci_conf[2][0x47] = 0x97;
+
+    ide_set_bus_master(0, NULL, stpc_ide_irq, dev);
+    ide_set_bus_master(1, NULL, stpc_ide_irq, dev);
+
+    /* Initial datasheets indicated DMA support, but this was
+       later scrubbed. Assume DMA is broken in real hardware. */
+    ide_board_set_force_ata3(0, 1);
+    ide_board_set_force_ata3(1, 1);
 
     /* USB */
     if (dev->usb) {
@@ -657,9 +814,9 @@ stpc_init(const device_t *info)
     dev->local = info->local;
 
     pci_add_card(0x0B, stpc_nb_read, stpc_nb_write, dev);
-    pci_add_card(0x0C, stpc_isab_read, stpc_isab_write, dev);
+    dev->ide_slot = pci_add_card(0x0C, stpc_isab_read, stpc_isab_write, dev);
     if (dev->local & STPC_IDE_ATLAS)
-    	pci_add_card(0x0D, stpc_ide_read, stpc_ide_write, dev);
+    	dev->ide_slot = pci_add_card(0x0D, stpc_ide_read, stpc_ide_write, dev);
     if (dev->local & STPC_USB) {
     	dev->usb = device_add(&usb_device);
     	pci_add_card(0x0E, stpc_usb_read, stpc_usb_write, dev);
