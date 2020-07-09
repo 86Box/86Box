@@ -25,5 +25,5 @@
 #define COPYRIGHT_YEAR	"2020"
 
 /* Web URL info. */
-#define EMU_SITE	L"86box.github.io"
+#define EMU_SITE	L"86box.net"
 #define EMU_ROMS_URL	L"https://github.com/86Box/roms/releases/latest"
