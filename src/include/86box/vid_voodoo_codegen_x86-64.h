@@ -41,7 +41,8 @@ static int last_block[2] = {0, 0};
 static int next_block_to_write[2] = {0, 0};
 
 #define addbyte(val)                                    \
-        code_block[block_pos++] = val;                  \
+        if (block_pos < BLOCK_SIZE)                     \
+                code_block[block_pos++] = val;          \
         if (block_pos >= BLOCK_SIZE)                    \
                 fatal("Over!\n")
 

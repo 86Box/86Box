@@ -59,6 +59,8 @@ extern uint64_t	PITCONST, ISACONST,
 		VGACONST2,
 		RTCCONST, ACPICONST;
 
+extern int	refresh_at_enable;
+
 
 /* Gets a counter's count. */
 extern uint16_t	pit_ctr_get_count(ctr_t *ctr);

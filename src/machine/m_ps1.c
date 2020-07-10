@@ -506,6 +506,7 @@ ps1_common_init(const machine_t *model)
 
     mem_remap_top(384);
 
+    refresh_at_enable = 1;
     pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_at);
 
     dma16_init();

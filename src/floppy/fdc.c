@@ -1887,7 +1887,7 @@ fdc_data(fdc_t *fdc, uint8_t data)
 void
 fdc_finishread(fdc_t *fdc)
 {
-        fdc->inread = 0;
+    fdc->inread = 0;
 }
 
 

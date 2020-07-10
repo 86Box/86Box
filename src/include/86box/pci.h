@@ -103,6 +103,9 @@ extern uint8_t	trc_read(uint16_t port, void *priv);
 extern void	trc_write(uint16_t port, uint8_t val, void *priv);
 
 extern void	pci_elcr_set_enabled(int enabled);
+extern void	pci_elcr_io_disable(void);
+extern void	elcr_write(uint16_t port, uint8_t val, void *priv);
+extern uint8_t	elcr_read(uint16_t port, void *priv);
 
 
 #endif	/*EMU_PCI_H*/

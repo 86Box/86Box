@@ -35,33 +35,41 @@ typedef struct
 {
     uint8_t	index,
 	regs[256];
+    port_92_t  *port_92;  	
 } opti291_t;
 
 static void opti291_recalc(opti291_t *dev)
 {
 	uint32_t base;
-	uint32_t i, shflags, write = 0;
-		
+	uint32_t i, shflags, write, writef = 0;
+	
+	
+	writef = (dev->regs[0x27] & 0x80) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;	
+	if (!(dev->regs[0x23] & 0x40))
+	mem_set_mem_state(0xf0000, 0x10000, MEM_READ_INTERNAL | writef);
+	else
+	mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTANY | writef);		
+	
 	for (i = 0; i < 4; i++) {
 	base = 0xe0000 + (i << 14);
 	shflags = (dev->regs[0x24] & (1 << (i+4))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
-	shflags |= (dev->regs[0x24] & (1 << (i))) ? write : MEM_WRITE_EXTANY;
-	write = (dev->regs[0x27] & 0x40) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
+	write = (dev->regs[0x24] & (1 << i)) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;	
+	shflags |= (dev->regs[0x27] & 0x40) ? MEM_WRITE_DISABLED : write;
 	mem_set_mem_state(base, 0x4000, shflags);
 	}
 	for (i = 0; i < 4; i++) {
 	base = 0xd0000 + (i << 14);
 	shflags = (dev->regs[0x25] & (1 << (i+4))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
-	shflags |= (dev->regs[0x25] & (1 << (i))) ? write : MEM_WRITE_EXTANY;
-	write = (dev->regs[0x27] & 0x20) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
+	write = (dev->regs[0x25] & (1 << i)) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+	shflags |= (dev->regs[0x27] & 0x20) ? MEM_WRITE_DISABLED : write;	
 	mem_set_mem_state(base, 0x4000, shflags);
 	}
 	
 	for (i = 0; i < 4; i++) {
 	base = 0xc0000 + (i << 14);
 	shflags = (dev->regs[0x26] & (1 << (i+4))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
-	shflags |= (dev->regs[0x26] & (1 << i)) ? write : MEM_WRITE_EXTANY;
-	write = (dev->regs[0x27] & 0x10) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
+	write = (dev->regs[0x26] & (1 << i)) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+	shflags |= (dev->regs[0x27] & 0x10) ? MEM_WRITE_DISABLED : write;	
 	mem_set_mem_state(base, 0x4000, shflags);
 	}
     flushmmucache();	
@@ -83,10 +91,11 @@ opti291_write(uint16_t addr, uint8_t val, void *priv)
 				case 0x21:
 					cpu_update_waitstates();
 					break;
+				case 0x23:
 				case 0x24:
 				case 0x25:
 				case 0x26:
-				case 0x27:				
+				case 0x27:
 					opti291_recalc(dev);
 					break;
         }
@@ -103,6 +112,7 @@ opti291_read(uint16_t addr, void *priv)
 
     switch (addr) {
 	case 0x24:
+//        pclog("OPTi 291: read from dev->regs[%02x]\n", dev->index);	
 		ret = dev->regs[dev->index];
 		break;
     }
@@ -128,7 +138,8 @@ opti291_init(const device_t *info)
 
     io_sethandler(0x022, 0x0001, opti291_read, NULL, NULL, opti291_write, NULL, NULL, dev);
     io_sethandler(0x024, 0x0001, opti291_read, NULL, NULL, opti291_write, NULL, NULL, dev);
-
+    dev->regs[0x23] = 0x40;
+    dev->port_92 = device_add(&port_92_device);    
     opti291_recalc(dev);
     
     return dev;

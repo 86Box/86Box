@@ -337,9 +337,9 @@ pc87309_read(uint16_t port, void *priv)
     if (index)
 	ret = dev->cur_reg & 0x1f;
     else {
-	if (dev->cur_reg == 8)
-		ret = 0x70;
-	else if (dev->cur_reg < 28)
+	if (dev->cur_reg >= 0x30)
+		ret = dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30];
+	else
 		ret = dev->regs[dev->cur_reg];
     }
 

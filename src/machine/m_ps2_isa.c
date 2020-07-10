@@ -178,6 +178,7 @@ machine_ps2_m30_286_init(const machine_t *model)
 
 	device_add(&fdc_at_ps1_device);
 
+	refresh_at_enable = 1;
         pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_at);
         dma16_init();
 	device_add(&keyboard_ps2_ps2_device);
