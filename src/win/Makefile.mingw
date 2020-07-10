@@ -75,6 +75,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef STPC
   STPC		:= y
  endif
+ ifndef M1489
+  M1489		:= y
+ endif
  ifndef VGAWONDER
   VGAWONDER	:= y
  endif
@@ -144,6 +147,9 @@ else
  endif
  ifndef STPC
   STPC		:= y
+ endif
+ ifndef M1489
+  M1489		:= n
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
@@ -533,6 +539,11 @@ OPTS		+= -DUSE_STPC
 STPCOBJ		:= stpc.o
 endif
 
+ifeq ($(M1489), y)
+OPTS		+= -DUSE_M1489
+M1489OBJ		:= ali1489.o
+endif
+
 ifeq ($(596B), y)
 OPTS		+= -DUSE_596B
 endif
@@ -590,7 +601,7 @@ CPUOBJ		:= cpu.o cpu_table.o \
 		    x86seg.o x87.o x87_timings.o \
 		    $(DYNARECOBJ)
 
-CHIPSETOBJ	:= acc2168.o cs8230.o ali1429.o headland.o i82335.o \
+CHIPSETOBJ	:= acc2168.o cs8230.o ali1429.o $(M1489OBJ) headland.o i82335.o \
 		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
 		    neat.o opti495.o opti895.o opti5x7.o scamp.o scat.o \
 		    sis_85c310.o sis_85c471.o sis_85c496.o opti283.o opti291.o $(STPCOBJ) \

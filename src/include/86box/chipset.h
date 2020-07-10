@@ -23,6 +23,9 @@ extern const device_t	acc2168_device;
 
 /* ALi */
 extern const device_t	ali1429_device;
+#if defined(DEV_BRANCH) && defined(USE_M1489)
+extern const device_t   ali1489_device;
+#endif
 
 /* Headland */
 extern const device_t	headland_device;

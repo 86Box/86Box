@@ -289,6 +289,10 @@ extern int	machine_at_pcm9340_init(const machine_t *);
 extern int	machine_at_pcm5330_init(const machine_t *);
 #endif
 
+#if defined(DEV_BRANCH) && defined(USE_M1489)
+extern int	machine_at_abpb4_init(const machine_t *);
+#endif
+
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_acera1g_get_device(void);
 #endif

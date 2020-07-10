@@ -747,3 +747,30 @@ machine_at_pcm5330_init(const machine_t *model)
     return ret;
 }
 #endif
+
+#if defined(DEV_BRANCH) && defined(USE_M1489)
+int
+machine_at_abpb4_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/abpb4/486-AB-PB4.BIN",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x03, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x04, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x05, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    device_add(&ali1489_device);
+    device_add(&keyboard_ps2_pci_device);
+    device_add(&fdc_at_device);
+
+    return ret;
+}
+#endif

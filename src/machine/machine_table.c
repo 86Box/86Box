@@ -235,6 +235,10 @@ const machine_t machines[] = {
     { "[STPC Atlas] AAEON PCM-5330",		"pcm5330",		MACHINE_TYPE_486,		{{"ST", cpus_STPC133},        {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					 32,  128,  32, 255,	      machine_at_pcm5330_init, NULL			},
 #endif
 
+#if defined(DEV_BRANCH) && defined(USE_M1489)
+    { "[ALi M1489] Abit AB-PB4",		"abpb4",		MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT,						  1,  64,   1, 127,	       machine_at_abpb4_init, NULL			},
+#endif
+
     /* Socket 4 machines */
     /* OPTi 596/597 */
     { "[OPTi 597] AMI Excalibur VLB",		"excalibur",		MACHINE_TYPE_SOCKET4,		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  2,   64,   2, 127,	    machine_at_excalibur_init, NULL			},     
