@@ -626,9 +626,9 @@ stpc_reg_write(uint16_t addr, uint8_t val, void *priv)
 			break;
 
 		case 0x52: case 0x53: case 0x54: case 0x55:
-			stpc_log("STPC: Set IRQ routing: INT %c -> %d\n", 0x41 + (dev->reg_offset & 0x03), (val & 0x80) ? (val & 0xf) : -1);
+			stpc_log("STPC: Set IRQ routing: INT %c -> %d\n", 0x41 + ((dev->reg_offset - 2) & 0x03), (val & 0x80) ? (val & 0xf) : -1);
 			val &= 0x8f;
-			pci_set_irq_routing(PCI_INTA + (dev->reg_offset & 0x03), (val & 0x80) ? (val & 0xf) : PCI_IRQ_DISABLED);
+			pci_set_irq_routing(PCI_INTA + ((dev->reg_offset - 2) & 0x03), (val & 0x80) ? (val & 0xf) : PCI_IRQ_DISABLED);
 			break;
 
 		case 0x56: case 0x57:
