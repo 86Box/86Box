@@ -754,8 +754,14 @@ stpc_setup(stpc_t *dev)
     dev->pci_conf[1][0x0e] = /*0x40*/ 0x80;
 
     /* IDE */
-    dev->pci_conf[2][0x00] = 0x4a;
-    dev->pci_conf[2][0x01] = 0x10;
+    if (dev->local & STPC_ISAB_CLIENT) {
+	dev->pci_conf[2][0x00] = 0x0e;
+	dev->pci_conf[2][0x01] = 0x10;
+    } else {
+	dev->pci_conf[2][0x00] = 0x4a;
+	dev->pci_conf[2][0x01] = 0x10;
+    }
+
     if (dev->local & STPC_IDE_ATLAS) {
     	dev->pci_conf[2][0x02] = 0x28;
     	dev->pci_conf[2][0x03] = 0x02;
