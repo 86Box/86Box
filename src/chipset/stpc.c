@@ -692,12 +692,16 @@ stpc_setup(stpc_t *dev)
     stpc_log("STPC: setup()\n");
 
     /* Northbridge */
-    dev->pci_conf[0][0x00] = 0x4a;
-    dev->pci_conf[0][0x01] = 0x10;
     if (dev->local & STPC_NB_CLIENT) {
+	/* Client */
+	dev->pci_conf[0][0x00] = 0x0e;
+	dev->pci_conf[0][0x01] = 0x10;
     	dev->pci_conf[0][0x02] = 0x64;
     	dev->pci_conf[0][0x03] = 0x05;
     } else {
+	/* Atlas, Elite, Consumer II */
+	dev->pci_conf[0][0x00] = 0x4a;
+	dev->pci_conf[0][0x01] = 0x10;
     	dev->pci_conf[0][0x02] = 0x0a;
     	dev->pci_conf[0][0x03] = 0x02;
     }
@@ -710,16 +714,29 @@ stpc_setup(stpc_t *dev)
     dev->pci_conf[0][0x0b] = 0x06;
 
     /* ISA Bridge */
-    dev->pci_conf[1][0x00] = 0x4a;
-    dev->pci_conf[1][0x01] = 0x10;
     if (dev->local & STPC_ISAB_CLIENT) {
+	/* Client */
+	dev->pci_conf[1][0x00] = 0x0e;
+	dev->pci_conf[1][0x01] = 0x10;
     	dev->pci_conf[1][0x02] = 0xcc;
     	dev->pci_conf[1][0x03] = 0x55;
     } else if (dev->local & STPC_ISAB_CONSUMER2) {
+	/* Consumer II */
+	dev->pci_conf[1][0x00] = 0x4a;
+	dev->pci_conf[1][0x01] = 0x10;
     	dev->pci_conf[1][0x02] = 0x0b;
     	dev->pci_conf[1][0x03] = 0x02;
-    } else {
+    } else if (dev->local & STPC_IDE_ATLAS) {
+	/* Atlas */
+	dev->pci_conf[1][0x00] = 0x4a;
+	dev->pci_conf[1][0x01] = 0x10;
     	dev->pci_conf[1][0x02] = 0x10;
+    	dev->pci_conf[1][0x03] = 0x02;
+    } else {
+	/* Elite */
+	dev->pci_conf[1][0x00] = 0x4a;
+	dev->pci_conf[1][0x01] = 0x10;
+    	dev->pci_conf[1][0x02] = 0x1a;
     	dev->pci_conf[1][0x03] = 0x02;
     }
 
