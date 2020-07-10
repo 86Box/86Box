@@ -41,6 +41,27 @@ typedef struct
     port_92_t  *port_92;    
 } opti5x7_t;
 
+
+#ifdef ENABLE_OPTI5X7_LOG
+int opti5x7_do_log = ENABLE_OPTI5X7_LOG;
+
+
+static void
+opti5x7_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (opti5x7_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+}
+#else
+#define opti5x7_log(fmt, ...)
+#endif
+
+
 static void
 opti5x7_recalc(opti5x7_t *dev)
 {
@@ -81,7 +102,7 @@ static void
 opti5x7_write(uint16_t addr, uint8_t val, void *priv)
 {	
     opti5x7_t *dev = (opti5x7_t *) priv;
-    pclog("Write %02x to OPTi 5x7 address %02x\n", val, addr);
+    opti5x7_log("Write %02x to OPTi 5x7 address %02x\n", val, addr);
     
     switch (addr) {
 	case 0x22:
@@ -113,7 +134,7 @@ opti5x7_read(uint16_t addr, void *priv)
 
     switch (addr) {
 	case 0x24:
-			pclog("Read from OPTi 5x7 register %02x\n", dev->idx);
+			opti5x7_log("Read from OPTi 5x7 register %02x\n", dev->idx);
 			ret = dev->regs[dev->idx];
 		break;
     }

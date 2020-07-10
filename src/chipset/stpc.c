@@ -27,6 +27,8 @@
 #include <86box/rom.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
+#include <86box/timer.h>
+#include <86box/pit.h>
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/port_92.h>
@@ -631,6 +633,9 @@ stpc_reg_write(uint16_t addr, uint8_t val, void *priv)
 
 		case 0x56: case 0x57:
 			/* ELCR goes here */
+			elcr_write(dev->reg_offset, val, NULL);
+			if (dev->reg_offset == 0x57)
+				refresh_at_enable = val & 0x01;
 			break;
 	}
 
@@ -649,7 +654,11 @@ stpc_reg_read(uint16_t addr, void *priv)
 	ret = dev->reg_offset;
     else if (dev->reg_offset >= 0xc0)
     	return 0xff; /* Cyrix CPU registers: let the CPU code handle those */
-    else
+    else if ((dev->reg_offset == 0x56) || (dev->reg_offset == 0x57)) {
+	ret = elcr_read(dev->reg_offset, NULL);
+	if (dev->reg_offset == 0x57)
+		ret |= (dev->regs[dev->reg_offset] & 0x01);
+    } else
 	ret = dev->regs[dev->reg_offset];
 
     stpc_log("STPC: reg_read(%04X) = %02X\n", addr, ret);
@@ -836,6 +845,9 @@ stpc_init(const device_t *info)
     stpc_smram_map(1, smram[0].host_base, smram[0].size, 1);
 
     device_add(&port_92_pci_device);
+
+    pci_elcr_io_disable();
+    refresh_at_enable = 0;
 
     return dev;
 }

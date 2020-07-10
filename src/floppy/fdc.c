@@ -1350,10 +1350,6 @@ fdc_read(uint16_t addr, void *priv)
 		break;
 	case 4: /*Status*/
 		ret = fdc->stat;
-#ifdef USE_DYNAREC
-		if (cpu_use_dynarec)
-			update_tsc();
-#endif
 		break;
 	case 5: /*Data*/
 		if ((fdc->stat & 0xf0) == 0xf0) {
@@ -1891,7 +1887,7 @@ fdc_data(fdc_t *fdc, uint8_t data)
 void
 fdc_finishread(fdc_t *fdc)
 {
-        fdc->inread = 0;
+    fdc->inread = 0;
 }
 
 

@@ -53,7 +53,8 @@ uint64_t	PITCONST, ISACONST,
 		VGACONST1, VGACONST2,
 		RTCCONST, ACPICONST;
 
-int		io_delay = 5;
+int		refresh_at_enable = 1,
+		io_delay = 5;
 
 
 int64_t		firsttime = 1;
@@ -743,7 +744,7 @@ pit_refresh_timer_xt(int new_out, int old_out)
 void
 pit_refresh_timer_at(int new_out, int old_out)
 {
-    if (new_out && !old_out)
+    if (refresh_at_enable && new_out && !old_out)
 	ppi.pb ^= 0x10;
 }
 

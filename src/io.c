@@ -283,18 +283,19 @@ uint8_t
 inb(uint16_t port)
 {
     uint8_t ret = 0xff;
-    io_t *p;
+    io_t *p, *q;
     int found = 0;
     int qfound = 0;
 
     p = io[port];
     while(p) {
+	q = p->next;
 	if (p->inb) {
 		ret &= p->inb(port, p->priv);
 		found |= 1;
 		qfound++;
 	}
-	p = p->next;
+	p = q;
     }
 
     if (port & 0x80)
@@ -316,18 +317,19 @@ inb(uint16_t port)
 void
 outb(uint16_t port, uint8_t val)
 {
-    io_t *p;
+    io_t *p, *q;
     int found = 0;
     int qfound = 0;
 
     p = io[port];
     while(p) {
+	q = p->next;
 	if (p->outb) {
 		p->outb(port, val, p->priv);
 		found |= 1;
 		qfound++;
 	}
-	p = p->next;
+	p = q;
     }
 	
     if (!found) {
@@ -347,7 +349,7 @@ outb(uint16_t port, uint8_t val)
 uint16_t
 inw(uint16_t port)
 {
-    io_t *p;
+    io_t *p, *q;
     uint16_t ret = 0xffff;
     int found = 0;
     int qfound = 0;
@@ -356,12 +358,13 @@ inw(uint16_t port)
 
     p = io[port];
     while(p) {
+	q = p->next;
 	if (p->inw) {
 		ret &= p->inw(port, p->priv);
 		found |= 2;
 		qfound++;
 	}
-	p = p->next;
+	p = q;
     }
 
     ret8[0] = ret & 0xff;
@@ -369,12 +372,13 @@ inw(uint16_t port)
     for (i = 0; i < 2; i++) {
 	p = io[(port + i) & 0xffff];
 	while(p) {
+		q = p->next;
 		if (p->inb && !p->inw) {
 			ret8[i] &= p->inb(port + i, p->priv);
 			found |= 1;
 			qfound++;
 		}
-		p = p->next;
+		p = q;
 	}
     }
     ret = (ret8[1] << 8) | ret8[0];
@@ -398,30 +402,32 @@ inw(uint16_t port)
 void
 outw(uint16_t port, uint16_t val)
 {
-    io_t *p;
+    io_t *p, *q;
     int found = 0;
     int qfound = 0;
     int i = 0;
 
     p = io[port];
     while(p) {
+	q = p->next;
 	if (p->outw) {
 		p->outw(port, val, p->priv);
 		found |= 2;
 		qfound++;
 	}
-	p = p->next;
+	p = q;
     }
 
     for (i = 0; i < 2; i++) {
 	p = io[(port + i) & 0xffff];
 	while(p) {
+		q = p->next;
 		if (p->outb && !p->outw) {
 			p->outb(port + i, val >> (i << 3), p->priv);
 			found |= 1;
 			qfound++;
 		}
-		p = p->next;
+		p = q;
 	}
     }
 
@@ -442,7 +448,7 @@ outw(uint16_t port, uint16_t val)
 uint32_t
 inl(uint16_t port)
 {
-    io_t *p;
+    io_t *p, *q;
     uint32_t ret = 0xffffffff;
     uint16_t ret16[2];
     uint8_t ret8[4];
@@ -452,12 +458,13 @@ inl(uint16_t port)
 
     p = io[port];
     while(p) {
+	q = p->next;
 	if (p->inl) {
 		ret &= p->inl(port, p->priv);
 		found |= 4;
 		qfound++;
 	}
-	p = p->next;
+	p = q;
     }
 
     ret16[0] = ret & 0xffff;
@@ -465,12 +472,13 @@ inl(uint16_t port)
     for (i = 0; i < 4; i += 2) {
 	p = io[(port + i) & 0xffff];
 	while(p) {
+		q = p->next;
 		if (p->inw && !p->inl) {
 			ret16[i >> 1] &= p->inw(port + i, p->priv);
 			found |= 2;
 			qfound++;
 		}
-		p = p->next;
+		p = q;
 	}
     }
     ret = (ret16[1] << 16) | ret16[0];
@@ -482,12 +490,13 @@ inl(uint16_t port)
     for (i = 0; i < 4; i++) {
 	p = io[(port + i) & 0xffff];
 	while(p) {
+		q = p->next;
 		if (p->inb && !p->inw && !p->inl) {
 			ret8[i] &= p->inb(port + i, p->priv);
 			found |= 1;
 			qfound++;
 		}
-		p = p->next;
+		p = q;
 	}
     }
     ret = (ret8[3] << 24) | (ret8[2] << 16) | (ret8[1] << 8) | ret8[0];
@@ -511,7 +520,7 @@ inl(uint16_t port)
 void
 outl(uint16_t port, uint32_t val)
 {
-    io_t *p;
+    io_t *p, *q;
     int found = 0;
     int qfound = 0;
     int i = 0;
@@ -519,36 +528,39 @@ outl(uint16_t port, uint32_t val)
     p = io[port];
     if (p) {
 	while(p) {
+		q = p->next;
 		if (p->outl) {
 			p->outl(port, val, p->priv);
 			found |= 4;
 			qfound++;
 		}
-		p = p->next;
+		p = q;
 	}
     }
 
     for (i = 0; i < 4; i += 2) {
 	p = io[(port + i) & 0xffff];
 	while(p) {
+		q = p->next;
 		if (p->outw && !p->outl) {
 			p->outw(port + i, val >> (i << 3), p->priv);
 			found |= 2;
 			qfound++;
 		}
-		p = p->next;
+		p = q;
 	}
     }
 
     for (i = 0; i < 4; i++) {
 	p = io[(port + i) & 0xffff];
 	while(p) {
+		q = p->next;
 		if (p->outb && !p->outw && !p->outl) {
 			p->outb(port + i, val >> (i << 3), p->priv);
 			found |= 1;
 			qfound++;
 		}
-		p = p->next;
+		p = q;
 	}
     }
 

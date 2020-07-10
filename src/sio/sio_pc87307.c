@@ -413,11 +413,11 @@ pc87307_read(uint16_t port, void *priv)
 	ret = dev->cur_reg;
     else {
 	if (dev->cur_reg >= 0x30)
-		ret = dev->regs[dev->cur_reg];
+		ret = dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30];
 	else if (dev->cur_reg == 0x24)
 		ret = dev->pcregs[dev->regs[0x23]];
 	else
-		ret = dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30];
+		ret = dev->regs[dev->cur_reg];
     }
 
     return ret;

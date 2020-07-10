@@ -189,7 +189,7 @@ pci_read(uint16_t port, void *priv)
 }
 
 
-static void
+void
 elcr_write(uint16_t port, uint8_t val, void *priv)
 {
     pci_log("ELCR%i: WRITE %02X\n", port & 1, val);
@@ -214,7 +214,7 @@ elcr_write(uint16_t port, uint8_t val, void *priv)
 }
 
 
-static uint8_t
+uint8_t
 elcr_read(uint16_t port, void *priv)
 {
     pci_log("ELCR%i: READ %02X\n", port & 1, elcr[port & 1]);
@@ -638,6 +638,14 @@ void
 pci_elcr_set_enabled(int enabled)
 {
     elcr_enabled = enabled;
+}
+
+
+void
+pci_elcr_io_disable(void)
+{
+    io_removehandler(0x04d0, 0x0002,
+		     elcr_read,NULL,NULL, elcr_write,NULL,NULL, NULL);
 }
 
 
