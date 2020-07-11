@@ -66,9 +66,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef VECTRA54
   VECTRA54	:= y
  endif
- ifndef VPP60
-  VPP60		:= y
- endif
  ifndef SIEMENS
   SIEMENS	:= y
  endif
@@ -93,8 +90,8 @@ ifeq ($(DEV_BUILD), y)
  ifndef GUSMAX
   GUSMAX	:= y
  endif
- ifndef DELLXP60
-  DELLXP60		:= y
+ ifndef DELLS4
+  DELLS4	:= y
  endif
 else
  ifndef DEBUG
@@ -136,9 +133,6 @@ else
  ifndef VECTRA54
   VECTRA54	:= n
  endif
- ifndef VPP60
-  VPP60		:= n
- endif
  ifndef SIEMENS
   SIEMENS	:= n
  endif
@@ -163,8 +157,8 @@ else
  ifndef GUSMAX
   GUSMAX	:= n
  endif
- ifndef DELLXP60
-  DELLXP60		:= n
+ ifndef DELLS4
+  DELLS4	:= n
  endif
 endif
 
@@ -520,10 +514,6 @@ ifeq ($(VECTRA54), y)
 OPTS		+= -DUSE_VECTRA54
 endif
 
-ifeq ($(VPP60), y)
-OPTS		+= -DUSE_VPP60
-endif
-
 ifeq ($(SIEMENS), y)
 OPTS		+= -DUSE_SIEMENS
 endif
@@ -557,8 +547,8 @@ ifeq ($(GUSMAX), y)
 OPTS		+= -DUSE_GUSMAX
 endif
 
-ifeq ($(DELLXP60), y)
-OPTS		+= -DUSE_DELLXP60
+ifeq ($(DELLS4), y)
+OPTS		+= -DUSE_DELLS4
 endif
 
 endif
