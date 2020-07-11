@@ -1051,7 +1051,7 @@ ide_atapi_packet_read(ide_t *ide, int length)
 	return 0;
 
     if (dev->packet_status == PHASE_DATA_IN)
-	ide_log("PHASE_DATA_IN read: %i, %i< %i, %i\n", dev->request_pos, dev->max_transfer_len, dev->pos, dev->packet_len);
+	ide_log("PHASE_DATA_IN read: %i, %i, %i, %i\n", dev->request_pos, dev->max_transfer_len, dev->pos, dev->packet_len);
 
     bufferw = (uint16_t *) dev->temp_buffer;
     bufferl = (uint32_t *) dev->temp_buffer;

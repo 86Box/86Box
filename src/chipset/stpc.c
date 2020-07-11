@@ -399,6 +399,10 @@ stpc_ide_write(int func, int addr, uint8_t val, void *priv)
 		stpc_ide_bm_handlers(dev);
 		break;
 
+	case 0x3c:
+		dev->pci_conf[2][addr] = val;
+		break;
+
 	case 0x40: case 0x41: case 0x42: case 0x43:
 	case 0x44: case 0x45: case 0x46: case 0x47:
 		dev->pci_conf[2][addr] = val;
@@ -478,8 +482,8 @@ stpc_isab_read(int func, int addr, void *priv)
     stpc_t *dev = (stpc_t *) priv;
     uint8_t ret;
 
-    if (func == 1 && !(dev->local & STPC_IDE_ATLAS))
-    	return stpc_ide_read(0, addr, priv);
+    if ((func == 1) && !(dev->local & STPC_IDE_ATLAS))
+    	ret = stpc_ide_read(0, addr, priv);
     else if (func > 0)
     	ret = 0xff;
     else
@@ -688,12 +692,16 @@ stpc_setup(stpc_t *dev)
     stpc_log("STPC: setup()\n");
 
     /* Northbridge */
-    dev->pci_conf[0][0x00] = 0x4a;
-    dev->pci_conf[0][0x01] = 0x10;
     if (dev->local & STPC_NB_CLIENT) {
+	/* Client */
+	dev->pci_conf[0][0x00] = 0x0e;
+	dev->pci_conf[0][0x01] = 0x10;
     	dev->pci_conf[0][0x02] = 0x64;
     	dev->pci_conf[0][0x03] = 0x05;
     } else {
+	/* Atlas, Elite, Consumer II */
+	dev->pci_conf[0][0x00] = 0x4a;
+	dev->pci_conf[0][0x01] = 0x10;
     	dev->pci_conf[0][0x02] = 0x0a;
     	dev->pci_conf[0][0x03] = 0x02;
     }
@@ -706,16 +714,29 @@ stpc_setup(stpc_t *dev)
     dev->pci_conf[0][0x0b] = 0x06;
 
     /* ISA Bridge */
-    dev->pci_conf[1][0x00] = 0x4a;
-    dev->pci_conf[1][0x01] = 0x10;
     if (dev->local & STPC_ISAB_CLIENT) {
+	/* Client */
+	dev->pci_conf[1][0x00] = 0x0e;
+	dev->pci_conf[1][0x01] = 0x10;
     	dev->pci_conf[1][0x02] = 0xcc;
     	dev->pci_conf[1][0x03] = 0x55;
     } else if (dev->local & STPC_ISAB_CONSUMER2) {
+	/* Consumer II */
+	dev->pci_conf[1][0x00] = 0x4a;
+	dev->pci_conf[1][0x01] = 0x10;
     	dev->pci_conf[1][0x02] = 0x0b;
     	dev->pci_conf[1][0x03] = 0x02;
-    } else {
+    } else if (dev->local & STPC_IDE_ATLAS) {
+	/* Atlas */
+	dev->pci_conf[1][0x00] = 0x4a;
+	dev->pci_conf[1][0x01] = 0x10;
     	dev->pci_conf[1][0x02] = 0x10;
+    	dev->pci_conf[1][0x03] = 0x02;
+    } else {
+	/* Elite */
+	dev->pci_conf[1][0x00] = 0x4a;
+	dev->pci_conf[1][0x01] = 0x10;
+    	dev->pci_conf[1][0x02] = 0x1a;
     	dev->pci_conf[1][0x03] = 0x02;
     }
 
@@ -727,11 +748,20 @@ stpc_setup(stpc_t *dev)
     dev->pci_conf[1][0x0a] = 0x01;
     dev->pci_conf[1][0x0b] = 0x06;
 
-    dev->pci_conf[1][0x0e] = 0x40;
+    /* NOTE: This is an erratum in the STPC Atlas programming manual, the programming manuals for the other
+	     STPC chipsets say 0x80, which is indeed multi-function (as the STPC Atlas programming manual
+	     indicates as well, and Windows 2000 also issues a 0x7B STOP error if it is 0x40. */
+    dev->pci_conf[1][0x0e] = /*0x40*/ 0x80;
 
     /* IDE */
-    dev->pci_conf[2][0x00] = 0x4a;
-    dev->pci_conf[2][0x01] = 0x10;
+    if (dev->local & STPC_ISAB_CLIENT) {
+	dev->pci_conf[2][0x00] = 0x0e;
+	dev->pci_conf[2][0x01] = 0x10;
+    } else {
+	dev->pci_conf[2][0x00] = 0x4a;
+	dev->pci_conf[2][0x01] = 0x10;
+    }
+
     if (dev->local & STPC_IDE_ATLAS) {
     	dev->pci_conf[2][0x02] = 0x28;
     	dev->pci_conf[2][0x03] = 0x02;
@@ -747,7 +777,10 @@ stpc_setup(stpc_t *dev)
     dev->pci_conf[2][0x0a] = 0x01;
     dev->pci_conf[2][0x0b] = 0x01;
 
-    dev->pci_conf[2][0x0e] = 0x40;
+    /* NOTE: This is an erratum in the STPC Atlas programming manual, the programming manuals for the other
+	     STPC chipsets say 0x80, which is indeed multi-function (as the STPC Atlas programming manual
+	     indicates as well, and Windows 2000 also issues a 0x7B STOP error if it is 0x40. */
+    dev->pci_conf[2][0x0e] = /*0x40*/ 0x80;
 
     dev->pci_conf[2][0x10] = 0x01;
     dev->pci_conf[2][0x14] = 0x01;
@@ -778,7 +811,10 @@ stpc_setup(stpc_t *dev)
     	dev->pci_conf[3][0x0a] = 0x03;
     	dev->pci_conf[3][0x0b] = 0x0c;
 
-    	dev->pci_conf[3][0x0e] = 0x40;
+	/* NOTE: This is an erratum in the STPC Atlas programming manual, the programming manuals for the other
+		 STPC chipsets say 0x80, which is indeed multi-function (as the STPC Atlas programming manual
+		 indicates as well, and Windows 2000 also issues a 0x7B STOP error if it is 0x40. */
+    	dev->pci_conf[3][0x0e] = /*0x40*/ 0x80;
     }
 
     /* PCI setup */

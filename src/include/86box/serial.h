@@ -83,6 +83,7 @@ extern void	serial_write_fifo(serial_t *dev, uint8_t dat);
 extern void	serial_set_next_inst(int ni);
 extern void	serial_standalone_init(void);
 extern void	serial_set_clock_src(serial_t *dev, double clock_src);
+extern void	serial_reset_port(serial_t *dev);
 
 extern const device_t	i8250_device;
 extern const device_t	i8250_pcjr_device;

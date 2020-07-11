@@ -67,6 +67,8 @@
 #define CIRRUS_ID_CLGD5428		0x98
 #define CIRRUS_ID_CLGD5429		0x9c
 #define CIRRUS_ID_CLGD5430		0xa0
+#define CIRRUS_ID_CLGD5432		0xa2
+#define CIRRUS_ID_CLGD5434_4		0xa4
 #define CIRRUS_ID_CLGD5434		0xa8
 #define CIRRUS_ID_CLGD5436		0xac
 #define CIRRUS_ID_CLGD5440		0xa0	/* Yes, the 5440 has the same ID as the 5430. */
@@ -2875,43 +2877,82 @@ cl_pci_read(int func, int addr, void *p)
 {
     gd54xx_t *gd54xx = (gd54xx_t *)p;
     svga_t *svga = &gd54xx->svga;
+    uint8_t ret = 0x00;
 
     if ((addr >= 0x30) && (addr <= 0x33) && (!gd54xx->has_bios))
-	return 0;
-
-    switch (addr) {
-	case 0x00: return 0x13; /*Cirrus Logic*/
-	case 0x01: return 0x10;
+	ret =  0x00;
+    else switch (addr) {
+	case 0x00:
+		ret = 0x13;	/*Cirrus Logic*/
+		break;
+	case 0x01:
+		ret = 0x10;
+		break;
 
 	case 0x02:
-		return svga->crtc[0x27];
-	case 0x03: return 0x00;
+		ret = svga->crtc[0x27];
+		break;
+	case 0x03:
+		ret = 0x00;
+		break;
 	
 	case PCI_REG_COMMAND:
-		return gd54xx->pci_regs[PCI_REG_COMMAND]; /*Respond to IO and memory accesses*/
+		ret = gd54xx->pci_regs[PCI_REG_COMMAND];	/*Respond to IO and memory accesses*/
+		break;
 
-	case 0x07: return 0x02; /*Fast DEVSEL timing*/
-        
-	case 0x08: return gd54xx->rev; /*Revision ID*/
-	case 0x09: return 0x00; /*Programming interface*/
-        
-	case 0x0a: return 0x00; /*Supports VGA interface*/
-	case 0x0b: return 0x03;
+	case 0x07:
+		ret = 0x02;	/*Fast DEVSEL timing*/
+		break;
 
-	case 0x10: return 0x08; /*Linear frame buffer address*/
-	case 0x11: return 0x00;
-	case 0x12: return 0x00;
-	case 0x13: return gd54xx->lfb_base >> 24;
+	case 0x08:
+		ret = gd54xx->rev;	/*Revision ID*/
+		break;
+	case 0x09:
+		ret = 0x00;	/*Programming interface*/
+		break;
 
-	case 0x30: return (gd54xx->pci_regs[0x30] & 0x01); /*BIOS ROM address*/
-	case 0x31: return 0x00;
-	case 0x32: return gd54xx->pci_regs[0x32];
-	case 0x33: return gd54xx->pci_regs[0x33];
+	case 0x0a:
+		ret = 0x00;	/*Supports VGA interface*/
+		break;
+	case 0x0b:
+		ret = 0x03;
+		break;
 
-	case 0x3c: return gd54xx->int_line;
-	case 0x3d: return PCI_INTA;
+	case 0x10:
+		ret = 0x08;	/*Linear frame buffer address*/
+		break;
+	case 0x11:
+		ret = 0x00;
+		break;
+	case 0x12:
+		ret = 0x00;
+		break;
+	case 0x13:
+		ret = gd54xx->lfb_base >> 24;
+		break;
+
+	case 0x30:
+		ret = (gd54xx->pci_regs[0x30] & 0x01);	/*BIOS ROM address*/
+		break;
+	case 0x31:
+		ret = 0x00;
+		break;
+	case 0x32:
+		ret = gd54xx->pci_regs[0x32];
+		break;
+	case 0x33:
+		ret = gd54xx->pci_regs[0x33];
+		break;
+
+	case 0x3c:
+		ret = gd54xx->int_line;
+		break;
+	case 0x3d:
+		ret = PCI_INTA;
+		break;
     }
-    return 0;
+
+    return ret;
 }
 
 
@@ -3040,10 +3081,22 @@ static void
 		romfn = BIOS_GD5429_PATH;
 		break;
 
-	case CIRRUS_ID_CLGD5434:
-		romfn = BIOS_GD5434_PATH;
+	case CIRRUS_ID_CLGD5432:
+	case CIRRUS_ID_CLGD5434_4:
+		if (info->local & 0x200) {
+			romfn = NULL;
+			gd54xx->has_bios = 0;
+		}
 		break;
-		
+
+	case CIRRUS_ID_CLGD5434:
+		if (info->local & 0x200) {
+			romfn = NULL;
+			gd54xx->has_bios = 0;
+		} else		
+			romfn = BIOS_GD5434_PATH;
+		break;
+
 	case CIRRUS_ID_CLGD5436:
 		romfn = BIOS_GD5436_PATH;
 		break;
@@ -3059,7 +3112,10 @@ static void
 				romfn = BIOS_GD5440_PATH;
 		} else {
 			/* CL-GD 5430 */
-			if (gd54xx->pci)
+			if (info->local & 0x200) {
+				romfn = NULL;
+				gd54xx->has_bios = 0;
+			} else if (gd54xx->pci)
 				romfn = BIOS_GD5430_PCI_PATH;
 			else
 				romfn = BIOS_GD5430_VLB_PATH;
@@ -3683,6 +3739,20 @@ const device_t gd5434_isa_device =
     gd54xx_close,
     NULL,
     gd5434_available,
+    gd54xx_speed_changed,
+    gd54xx_force_redraw,
+    gd5434_config
+};
+
+const device_t gd5434_onboard_pci_device =
+{
+    "Cirrus Logic CL-GD 5434-4 (On-Board PCI)",
+    DEVICE_PCI,
+    CIRRUS_ID_CLGD5434 | 0x200,
+    gd54xx_init, 
+    gd54xx_close, 
+    NULL,
+    NULL,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5434_config
