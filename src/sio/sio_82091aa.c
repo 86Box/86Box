@@ -117,7 +117,7 @@ serial_handler(i82091aa_t *dev, int uart)
 		break;
     }
 
-    serial_setup(dev->uart[uart], uart_port, (dev->regs[0x20] & 0x10) ? 4 : 3);
+    serial_setup(dev->uart[uart], uart_port, (dev->regs[reg] & 0x10) ? 4 : 3);
 }
 
 
