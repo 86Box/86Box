@@ -68,7 +68,7 @@ machine_at_asus386_init(const machine_t *model)
 {
     int ret;
 
-ret = bios_load_linear(L"roms/machines/asus386/ASUS_ISA-386C_BIOS.bin",
+	ret = bios_load_linear(L"roms/machines/asus386/ASUS_ISA-386C_BIOS.bin",
 				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -147,6 +147,24 @@ machine_at_pb410a_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_vect486vl_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/vect486vl/AA0500.AMI",
+				0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+    device_add(&vl82c480_device);
+    device_add(&keyboard_ps2_ami_device);
+    device_add(&fdc37c661_device);
+
+    return ret;
+}
 
 int
 machine_at_acera1g_init(const machine_t *model)

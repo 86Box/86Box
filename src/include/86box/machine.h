@@ -258,6 +258,8 @@ extern int	machine_at_rycleopardlx_init(const machine_t *);
 
 extern int	machine_at_pb410a_init(const machine_t *);
 
+extern int	machine_at_vect486vl_init(const machine_t *);
+
 extern int	machine_at_acera1g_init(const machine_t *);
 extern int	machine_at_ali1429_init(const machine_t *);
 extern int	machine_at_winbios1429_init(const machine_t *);

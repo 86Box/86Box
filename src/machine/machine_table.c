@@ -197,6 +197,7 @@ const machine_t machines[] = {
 
     /* 486 machines with just the ISA slot */
     { "[ACC 2168] Packard Bell PB410A",		"pb410a",		MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,			  	  4,   36,   1, 127,	       machine_at_pb410a_init, NULL			},
+    { "[VLSI 82C480] HP Vectra 486VL",	"vect486vl",		MACHINE_TYPE_486,		{{"Intel", cpus_i486S1},      {"AMD", cpus_Am486S1}, {"Cyrix", cpus_Cx486S1},{"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,   1,   64,   1, 127,	       machine_at_vect486vl_init, NULL	},
 
     /* 486 machines */
     { "[OPTi 283] RYC Leopard LX",		"rycleopardlx",		MACHINE_TYPE_486,		{{"IBM", cpus_IBM486SLC},     {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_HDC,								  1,   16,   1, 127,     machine_at_rycleopardlx_init, NULL			},
