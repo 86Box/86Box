@@ -40,7 +40,7 @@
 typedef struct
 {
     uint8_t	vlb_idx, id,
-		in_cfg,
+		in_cfg, single_channel,
 		regs[256];
     int		slot, irq_mode[2],
 		irq_pin, irq_line;
@@ -92,6 +92,9 @@ cmd640_ide_handlers(cmd640_t *dev)
 
     if (dev->regs[0x04] & 0x01)
 	ide_pri_enable();
+
+    if (dev->single_channel)
+	return;
 
     ide_sec_disable();
 
@@ -360,7 +363,7 @@ cmd640_init(const device_t *info)
     dev->regs[0x59] = 0x40;
 
     if (info->flags & DEVICE_PCI) {
-	if (info->local == 0x0a) {
+	if ((info->local & 0xffff) == 0x0a) {
 		dev->regs[0x50] |= 0x40;	/* Enable Base address register R/W;
 						   If 0, they return 0 and are read-only 8 */
 	}
@@ -388,7 +391,7 @@ cmd640_init(const device_t *info)
 
 	device_add(&ide_vlb_2ch_device);
 
-	dev->slot = pci_add_card(PCI_ADD_NORMAL, cmd640_pci_read, cmd640_pci_write, dev);
+	dev->slot = pci_add_card(PCI_ADD_IDE, cmd640_pci_read, cmd640_pci_write, dev);
 	dev->irq_mode[0] = dev->irq_mode[1] = 0;
 	dev->irq_pin = PCI_INTA;
 	dev->irq_line = 14;
@@ -403,7 +406,7 @@ cmd640_init(const device_t *info)
 
 	ide_pri_disable();
     } else if (info->flags & DEVICE_VLB) {
-	if (info->local == 0x0078)
+	if ((info->local & 0xffff) == 0x0078)
 		dev->regs[0x50] |= 0x20;	/* 0 = 178h, 17Ch; 1 = 078h, 07Ch */
 	/* If bit 7 is 1, then device ID has to be written on port x78h before
 	   accessing the configuration registers */
@@ -417,7 +420,10 @@ cmd640_init(const device_t *info)
 		      dev);
     }
 
-    ide_sec_disable();
+    dev->single_channel = !!(info->local & 0x20000);
+
+    if (!dev->single_channel)
+	ide_sec_disable();
 
     next_id++;
 
@@ -456,6 +462,15 @@ const device_t ide_cmd640_pci_legacy_only_device = {
     "CMD PCI-0640B PCI (Legacy Mode Only)",
     DEVICE_PCI,
     0x00,
+    cmd640_init, cmd640_close, cmd640_reset,
+    NULL, NULL, NULL,
+    NULL
+};
+
+const device_t ide_cmd640_pci_single_channel_device = {
+    "CMD PCI-0640B PCI",
+    DEVICE_PCI,
+    0x2000a,
     cmd640_init, cmd640_close, cmd640_reset,
     NULL, NULL, NULL,
     NULL

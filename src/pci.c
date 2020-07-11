@@ -905,6 +905,7 @@ pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), 
 		    ((dev->type == PCI_CARD_ONBOARD) && (add_type == PCI_ADD_VIDEO)) ||
 		    ((dev->type == PCI_CARD_SCSI) && (add_type == PCI_ADD_SCSI)) ||
 		    ((dev->type == PCI_CARD_SOUND) && (add_type == PCI_ADD_SOUND)) ||
+		    ((dev->type == PCI_CARD_IDE) && (add_type == PCI_ADD_IDE)) ||
 		    ((dev->type == PCI_CARD_NORTHBRIDGE) && (add_type == PCI_ADD_NORTHBRIDGE)) ||
 		    ((dev->type == PCI_CARD_SOUTHBRIDGE) && (add_type == PCI_ADD_SOUTHBRIDGE)) ||
 		    ((dev->id == add_type) && (add_type < PCI_ADD_NORTHBRIDGE))) {
