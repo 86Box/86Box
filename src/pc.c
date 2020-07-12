@@ -681,7 +681,7 @@ pc_reset_hard_close(void)
 {
     ui_sb_set_ready(0);
 
-    network_timer_close();
+    network_timer_stop();
 
     /* Turn off timer processing to avoid potential segmentation faults. */
     timer_close();

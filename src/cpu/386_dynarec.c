@@ -296,7 +296,8 @@ void update_tsc(void)
 		tsc += cycdiff;
     } else {
 	/* TSC has not changed. */
-	tsc += cycdiff;
+	if (cycdiff > 0)
+		tsc += cycdiff;
     }
 
     if (cycdiff > 0) {

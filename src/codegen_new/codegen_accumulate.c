@@ -22,7 +22,7 @@ void codegen_accumulate(ir_data_t *ir, int acc_reg, int delta)
         acc_regs[acc_reg].count += delta;
 
 	if (delta != 0) {
-		uop_ADD_IMM(ir, IREG_acycs, IREG_acycs, delta);
+		uop_ADD_IMM(ir, IREG_acycs, IREG_acycs, -delta);
 	}
 }
 

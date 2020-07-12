@@ -25,7 +25,7 @@ void codegen_accumulate(int acc_reg, int delta)
 		addbyte(0x81); /*ADD $acc_regs[c].count,acc_regs[c].dest*/
 		addbyte(0x05);
 		addlong((uint32_t) (uintptr_t) &(acycs));
-		addlong((uintptr_t) delta);
+		addlong((uintptr_t) -delta);
 	}
 }
 

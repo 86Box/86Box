@@ -141,7 +141,7 @@ extern const device_t	*network_card_getdevice(int);
 extern void	network_set_wait(int wait);
 extern int	network_get_wait(void);
 
-extern int	network_timer_stop(void);
+extern void	network_timer_stop(void);
 
 extern void	network_queue_put(int tx, void *priv, uint8_t *data, int len);
 

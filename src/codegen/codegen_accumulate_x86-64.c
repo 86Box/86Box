@@ -26,7 +26,7 @@ void codegen_accumulate(int acc_reg, int delta)
 		addbyte(0x04);
 		addbyte(0x25);
 		addlong((uint32_t) (uintptr_t) &(acycs));
-		addlong(delta);
+		addlong(-delta);
 	}
 }
 
