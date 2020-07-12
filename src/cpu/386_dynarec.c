@@ -283,22 +283,19 @@ void update_tsc(void)
     int cycdiff;
     uint64_t delta;
 
-    if (CACHE_ON())
-	cycdiff = acycs;
-    else
-	cycdiff = cycles_old - cycles;
+    cycdiff = cycles_old - cycles;
+    if (inrecomp)
+	cycdiff += acycs;
+
     delta = tsc - tsc_old;
     if (delta > 0) {
 	/* TSC has changed, this means interim timer processing has happened,
 	   see how much we still need to add. */
 	cycdiff -= delta;
-	if (cycdiff > 0)
-		tsc += cycdiff;
-    } else {
-	/* TSC has not changed. */
-	if (cycdiff > 0)
-		tsc += cycdiff;
     }
+
+    if (cycdiff > 0)
+	tsc += cycdiff;
 
     if (cycdiff > 0) {
 	if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t)tsc))
@@ -319,6 +316,7 @@ void exec386_dynarec(int cycs)
 
 	int cyc_period = cycs / 2000; /*5us*/
 
+	acycs = 0;
 	cycles_main += cycs;
 	while (cycles_main > 0)
 	{
@@ -540,6 +538,7 @@ void exec386_dynarec(int cycs)
 
 					inrecomp=1;
 					code();
+					acycs = 0;
 					inrecomp=0;
 
 #ifndef USE_NEW_DYNAREC

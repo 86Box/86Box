@@ -21,7 +21,7 @@ void codegen_accumulate(int acc_reg, int delta)
 {
         acc_regs[acc_reg].count += delta;
 
-	if (delta != 0) {
+	if ((acc_reg == ACCREG_cycles) && (delta != 0)) {
 		addbyte(0x81); /*ADD $acc_regs[c].count,acc_regs[c].dest*/
 		addbyte(0x05);
 		addlong((uint32_t) (uintptr_t) &(acycs));
@@ -45,8 +45,6 @@ void codegen_accumulate_flush(void)
 
                 acc_regs[c].count = 0;
         }
-
-	acycs = 0;
 }
 
 void codegen_accumulate_reset()
