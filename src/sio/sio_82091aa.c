@@ -117,7 +117,7 @@ serial_handler(i82091aa_t *dev, int uart)
 		break;
     }
 
-    serial_setup(dev->uart[uart], uart_port, (dev->regs[0x20] & 0x10) ? 4 : 3);
+    serial_setup(dev->uart[uart], uart_port, (dev->regs[reg] & 0x10) ? 4 : 3);
 }
 
 
@@ -147,6 +147,8 @@ i82091aa_write(uint16_t port, uint8_t val, void *priv)
 	return;
     } else if (dev->cur_reg < 0x51)
 	valxor = val ^ *reg;
+    else if (dev->cur_reg >= 0x51)
+	return;
 
     switch(dev->cur_reg) {
 	case 0x02:
