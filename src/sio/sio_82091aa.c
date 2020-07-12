@@ -147,6 +147,8 @@ i82091aa_write(uint16_t port, uint8_t val, void *priv)
 	return;
     } else if (dev->cur_reg < 0x51)
 	valxor = val ^ *reg;
+    else if (dev->cur_reg >= 0x51)
+	return;
 
     switch(dev->cur_reg) {
 	case 0x02:

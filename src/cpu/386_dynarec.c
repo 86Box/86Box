@@ -276,12 +276,17 @@ static void prefetch_flush()
 static int cycles_main = 0, cycles_old = 0;
 static uint64_t tsc_old = 0;
 
+int acycs = 0;
+
 void update_tsc(void)
 {
     int cycdiff;
     uint64_t delta;
 
-    cycdiff = cycles_old - cycles;
+    if (CACHE_ON())
+	cycdiff = acycs;
+    else
+	cycdiff = cycles_old - cycles;
     delta = tsc - tsc_old;
     if (delta > 0) {
 	/* TSC has changed, this means interim timer processing has happened,

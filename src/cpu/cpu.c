@@ -362,6 +362,8 @@ cpu_set(void)
 	cpu_effective = cpu;
         cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective];
 
+	acycs = 0;
+
 	cpu_alt_reset = 0;
 	unmask_a20_in_smm = 0;
 

@@ -503,6 +503,8 @@ extern int	timing_misaligned;
 extern int	in_sys, unmask_a20_in_smm;
 extern uint32_t	old_rammask;
 
+extern int	acycs;
+
 extern uint16_t	cpu_fast_off_count, cpu_fast_off_val;
 extern uint32_t	cpu_fast_off_flags;
 
