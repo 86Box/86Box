@@ -39,11 +39,14 @@ ifeq ($(DEV_BUILD), y)
  ifndef AMD_K5
   AMD_K5	:= y
  endif
+ ifndef AMI386X
+  AMI386SX	:= y
+ endif
  ifndef CL5422
   CL5422	:= y
  endif
  ifndef CYRIX_6X86
-  CYRIX_6X86 := y
+  CYRIX_6X86	:= y
  endif 
  ifndef HEADAKA
   HEDAKA	:= y
@@ -53,6 +56,9 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef MGA
   MGA		:= y
+ endif
+ ifndef OPEN_AT
+  OPEN_AT	:= y
  endif
  ifndef PAS16
   PAS16		:= n
@@ -109,11 +115,14 @@ else
  ifndef AMD_K5
   AMD_K5	:= n
  endif
+ ifndef AMI386SX
+  AMI386SX	:= n
+ endif
  ifndef CL5422
   CL5422	:= n
  endif
  ifndef CYRIX_6X86
-  CYRIX_6X86 := n
+  CYRIX_6X86	:= n
  endif 
  ifndef HEDAKA
   HEDAKA	:= n
@@ -123,6 +132,9 @@ else
  endif
  ifndef MGA
   MGA		:= n
+ endif
+ ifndef OPEN_AT
+  OPEN_AT	:= n
  endif
  ifndef PAS16
   PAS16		:= n
@@ -481,6 +493,10 @@ ifeq ($(AMD_K5), y)
 OPTS		+= -DUSE_AMD_K5
 endif
 
+ifeq ($(AMI386SX), y)
+OPTS		+= -DUSE_AMI386SX
+endif
+
 ifeq ($(CL5422), y)
 OPTS		+= -DUSE_CL5422
 endif
@@ -501,6 +517,10 @@ endif
 ifeq ($(MGA), y)
 OPTS		+= -DUSE_MGA
 DEVBROBJ	+= vid_mga.o
+endif
+
+ifeq ($(OPEN_AT), y)
+OPTS		+= -DUSE_OPEN_AT
 endif
 
 ifeq ($(PAS16), y)
