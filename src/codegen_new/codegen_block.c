@@ -782,7 +782,7 @@ void codegen_block_end()
 void codegen_block_end_recompile(codeblock_t *block)
 {
         codegen_timing_block_end();
-        codegen_accumulate(ACCREG_cycles, -codegen_block_cycles);
+        codegen_accumulate(ir_data, ACCREG_cycles, -codegen_block_cycles);
 
         if (block->flags & CODEBLOCK_IN_DIRTY_LIST)
                 block_dirty_list_remove(block);

@@ -599,8 +599,8 @@ generate_call:
 
         codegen_timing_opcode(opcode, fetchdat, op_32, op_pc);
 
-        codegen_accumulate(ACCREG_ins, 1);
-        codegen_accumulate(ACCREG_cycles, -codegen_block_cycles);
+        codegen_accumulate(ir, ACCREG_ins, 1);
+        codegen_accumulate(ir, ACCREG_cycles, -codegen_block_cycles);
         codegen_block_cycles = 0;
 
         if ((op_table == x86_dynarec_opcodes &&
@@ -620,10 +620,10 @@ generate_call:
 			codegen_timing_jump_cycles();
                 
                 if (jump_cycles)
-                        codegen_accumulate(ACCREG_cycles, -jump_cycles);
+                        codegen_accumulate(ir, ACCREG_cycles, -jump_cycles);
                 codegen_accumulate_flush(ir);
                 if (jump_cycles)
-                        codegen_accumulate(ACCREG_cycles, jump_cycles);
+                        codegen_accumulate(ir, ACCREG_cycles, jump_cycles);
         }
 
         if (op_table == x86_dynarec_opcodes_0f && opcode == 0x0f)
