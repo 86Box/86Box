@@ -17,7 +17,7 @@ static struct
         [ACCREG_cycles] = {0, IREG_cycles},
 };
 
-void codegen_accumulate(r_data_t *ir, int acc_reg, int delta)
+void codegen_accumulate(ir_data_t *ir, int acc_reg, int delta)
 {
         acc_regs[acc_reg].count += delta;
 
