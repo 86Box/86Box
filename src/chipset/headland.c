@@ -126,7 +126,7 @@ get_addr(headland_t *dev, uint32_t addr, headland_mr_t *mr)
 		else
 			addr |= (mr->mr & 0x180) << 12;
 	}
-    } else if ((mr == NULL) && ((dev->cr[0] & 4) == 0) && (mem_size >= 1024) && (addr >= 0x100000))
+    } else if (((mr == NULL) || !mr->valid) && ((dev->cr[0] & 4) == 0) && (mem_size >= 1024) && (addr >= 0x100000))
 	addr -= 0x60000;
 
     return addr;
@@ -213,6 +213,7 @@ hl_write(uint16_t addr, uint8_t val, void *priv)
 
 	case 0x0023:
 		old_val = dev->regs[dev->indx];
+
 		if ((dev->indx == 0xc1) && !is486)
 			val = 0;
 		dev->regs[dev->indx] = val;
@@ -553,10 +554,6 @@ headland_init(const device_t *info)
 		  hl_read,hl_readw,NULL, hl_write,hl_writew,NULL, dev);
 
     io_sethandler(0x01ed, 3, hl_read,NULL,NULL, hl_write,NULL,NULL, dev);
-
-    dev->ems_mr[i].valid = 0;
-    dev->ems_mr[i].mr = 0xff;
-    dev->ems_mr[i].headland = dev;
 
     for (i = 0; i < 64; i++) {
 	dev->ems_mr[i].valid = 1;
