@@ -303,6 +303,23 @@ void update_tsc(void)
     }
 }
 
+int int_check(void)
+{
+    if (cpu_state.abrt)
+	return 1;
+
+    if (trap)
+	return 1;
+    else if (smi_line)
+	return 1;
+    else if (nmi && nmi_enable && nmi_mask)
+	return 1;
+    else if ((cpu_state.flags & I_FLAG) && pic_intpending)
+	return 1;
+
+    return 0;
+}
+
 void exec386_dynarec(int cycs)
 {
 	int vector;

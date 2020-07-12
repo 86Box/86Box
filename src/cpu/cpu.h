@@ -601,4 +601,6 @@ extern const	char *fpu_get_internal_name(int machine, int cpu_manufacturer, int 
 extern const	char *fpu_get_name_from_index(int machine, int cpu_manufacturer, int cpu, int c);
 extern int	fpu_get_type_from_index(int machine, int cpu_manufacturer, int cpu, int c);
 
+extern int	int_check();
+
 #endif	/*EMU_CPU_H*/

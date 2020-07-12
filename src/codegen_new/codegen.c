@@ -696,6 +696,9 @@ generate_call:
 
                         block->ins++;
 
+			/* Check for interrupts. */
+			uop_CALL_INSTRUCTION_FUNC(ir, int_check);
+
                 	if (block->ins >= MAX_INSTRUCTION_COUNT)
                 		CPU_BLOCK_END();
 
@@ -756,6 +759,8 @@ generate_call:
                 uop_MOV_IMM(ir, IREG_ssegs, op_ssegs);
         uop_LOAD_FUNC_ARG_IMM(ir, 0, fetchdat);
         uop_CALL_INSTRUCTION_FUNC(ir, op);
+	/* Check for interrupts. */
+        uop_CALL_INSTRUCTION_FUNC(ir, int_check);
         codegen_mark_code_present(block, cs+cpu_state.pc, 8);
 
         last_op_32 = op_32;
