@@ -365,6 +365,7 @@ network_timer_stop(void)
 {
     if (network_timer_active) {
 	timer_stop(&network_rx_queue_timer);
+	memset(&network_rx_queue_timer, 0x00, sizeof(pc_timer_t));
 	network_timer_active = 0;
     }
 }
