@@ -126,7 +126,7 @@ get_addr(headland_t *dev, uint32_t addr, headland_mr_t *mr)
 		else
 			addr |= (mr->mr & 0x180) << 12;
 	}
-    } else if (((mr == NULL) || !mr->valid) && ((dev->cr[0] & 4) == 0) && (mem_size >= 1024) && (addr >= 0x100000))
+    } else if (((mr == NULL) || ((mr != NULL) && !mr->valid)) && ((dev->cr[0] & 4) == 0) && (mem_size >= 1024) && (addr >= 0x100000))
 	addr -= 0x60000;
 
     return addr;
@@ -134,35 +134,56 @@ get_addr(headland_t *dev, uint32_t addr, headland_mr_t *mr)
 
 
 static void
-set_global_EMS_state(headland_t *dev, int state)
+hl_ems_disable(headland_t *dev, uint8_t mar, uint32_t base_addr, uint8_t indx)
+{
+    mem_mapping_set_exec(&dev->ems_mapping[mar & 0x3f], ram + base_addr);
+    mem_mapping_disable(&dev->ems_mapping[mar & 0x3f]);
+    if (indx < 24) {
+	mem_set_mem_state(base_addr, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+	mem_mapping_enable(&dev->upper_mapping[indx]);
+    } else
+	mem_set_mem_state(base_addr, 0x4000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+}
+
+
+static void
+hl_ems_update(headland_t *dev, uint8_t mar)
 {
     uint32_t base_addr, virt_addr;
-    int i;
+    uint8_t indx = mar & 0x1f;
 
-    for (i = 0; i < 32; i++) {
-	base_addr = (i + 16) << 14;
-	if (i >= 24)
-		base_addr += 0x20000;
-	if ((state & 2) && (dev->ems_mr[((state & 1) << 5) | i].mr & 0x200)) {
-		virt_addr = get_addr(dev, base_addr, &dev->ems_mr[((state & 1) << 5) | i]);
-		if (i < 24)
-			mem_mapping_disable(&dev->upper_mapping[i]);
-		mem_mapping_disable(&dev->ems_mapping[(((state ^ 1) & 1) << 5) | i]);
-		mem_mapping_enable(&dev->ems_mapping[((state & 1) << 5) | i]);
+    base_addr = (indx + 16) << 14;
+    if (indx >= 24)
+	base_addr += 0x20000;
+    /* Do not disable unless the MAR at the correct context is locally disabled or
+       EMS is globally disabled. */
+    if (!(dev->cr[0] & 2) || !(dev->ems_mr[(mar & 0x1f) | ((dev->cr[0] & 1) << 5)].mr & 0x200))
+	hl_ems_disable(dev, mar, base_addr, indx);
+    if ((dev->cr[0] & 2) && ((dev->cr[0] & 1) == ((mar & 0x20) >> 5))) {
+	if (dev->ems_mr[mar & 0x3f].mr & 0x200) {
+		mem_set_mem_state(base_addr, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+		virt_addr = get_addr(dev, base_addr, &dev->ems_mr[mar & 0x3f]);
+		if (indx < 24)
+			mem_mapping_disable(&dev->upper_mapping[indx]);
 		if (virt_addr < ((uint32_t)mem_size << 10))
-			mem_mapping_set_exec(&dev->ems_mapping[((state & 1) << 5) | i], ram + virt_addr);
+			mem_mapping_set_exec(&dev->ems_mapping[mar & 0x3f], ram + virt_addr);
 		else
-			mem_mapping_set_exec(&dev->ems_mapping[((state & 1) << 5) | i], NULL);
-	} else {
-		mem_mapping_set_exec(&dev->ems_mapping[((state & 1) << 5) | i], ram + base_addr);
-		mem_mapping_disable(&dev->ems_mapping[(((state ^ 1) & 1) << 5) | i]);
-		mem_mapping_disable(&dev->ems_mapping[((state & 1) << 5) | i]);
-		if (i < 24)
-			mem_mapping_enable(&dev->upper_mapping[i]);
+			mem_mapping_set_exec(&dev->ems_mapping[mar & 0x3f], NULL);
+		mem_mapping_enable(&dev->ems_mapping[mar & 0x3f]);
 	}
     }
 
     flushmmucache();
+}
+
+
+static void
+set_global_EMS_state(headland_t *dev, int state)
+{
+    int i;
+
+    for (i = 0; i < 64; i++)
+	hl_ems_update(dev, i);
 }
 
 
@@ -176,7 +197,7 @@ memmap_state_update(headland_t *dev)
 	addr = get_addr(dev, 0x40000 + (i << 14), NULL);
 	mem_mapping_set_exec(&dev->upper_mapping[i], addr < ((uint32_t)mem_size << 10) ? ram + addr : NULL);
     }
-    mem_set_mem_state(0xA0000, 0x40000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+    // mem_set_mem_state(0xA0000, 0x40000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
     if (mem_size > 640) {
 	if ((dev->cr[0] & 4) == 0) {
 		mem_mapping_set_addr(&dev->mid_mapping, 0x100000, mem_size > 1024 ? 0x60000 : (mem_size - 640) << 10);
@@ -203,8 +224,7 @@ static void
 hl_write(uint16_t addr, uint8_t val, void *priv)
 {
     headland_t *dev = (headland_t *)priv;
-    uint32_t base_addr, virt_addr;
-    uint8_t old_val, indx;
+    uint8_t old_val;
 
     switch(addr) {
 	case 0x0022:
@@ -232,21 +252,7 @@ hl_write(uint16_t addr, uint8_t val, void *priv)
 
 	case 0x01ec:
 		dev->ems_mr[dev->ems_mar & 0x3f].mr = val | 0xff00;
-		indx = dev->ems_mar & 0x1f;
-		base_addr = (indx + 16) << 14;
-		if (indx >= 24)
-			base_addr += 0x20000;
-		if ((dev->cr[0] & 2) && ((dev->cr[0] & 1) == ((dev->ems_mar & 0x20) >> 5))) {
-			virt_addr = get_addr(dev, base_addr, &dev->ems_mr[dev->ems_mar & 0x3F]);
-			if (indx < 24)
-				mem_mapping_disable(&dev->upper_mapping[indx]);
-			if (virt_addr < ((uint32_t)mem_size << 10))
-				mem_mapping_set_exec(&dev->ems_mapping[dev->ems_mar & 0x3f], ram + virt_addr);
-			else
-				mem_mapping_set_exec(&dev->ems_mapping[dev->ems_mar & 0x3f], NULL);
-			mem_mapping_enable(&dev->ems_mapping[dev->ems_mar & 0x3f]);
-			flushmmucache();
-		}
+		hl_ems_update(dev, dev->ems_mar & 0x3f);
 		if (dev->ems_mar & 0x80)
 			dev->ems_mar++;
 		break;
@@ -314,34 +320,11 @@ static void
 hl_writew(uint16_t addr, uint16_t val, void *priv)
 {
     headland_t *dev = (headland_t *)priv;
-    uint32_t base_addr, virt_addr;
-    uint8_t indx;
 
     switch(addr) {
 	case 0x01ec:
 		dev->ems_mr[dev->ems_mar & 0x3f].mr = val;
-		indx = dev->ems_mar & 0x1f;
-		base_addr = (indx + 16) << 14;
-		if (indx >= 24)
-			base_addr += 0x20000;
-		if ((dev->cr[0] & 2) && (dev->cr[0] & 1) == ((dev->ems_mar & 0x20) >> 5)) {
-			if (val & 0x200) {
-				virt_addr = get_addr(dev, base_addr, &dev->ems_mr[dev->ems_mar & 0x3f]);
-				if (indx < 24)
-					mem_mapping_disable(&dev->upper_mapping[indx]);
-				if (virt_addr < ((uint32_t)mem_size << 10))
-					mem_mapping_set_exec(&dev->ems_mapping[dev->ems_mar & 0x3f], ram + virt_addr);
-                                else
-					mem_mapping_set_exec(&dev->ems_mapping[dev->ems_mar & 0x3f], NULL);
-				mem_mapping_enable(&dev->ems_mapping[dev->ems_mar & 0x3f]);
-			} else {
-				mem_mapping_set_exec(&dev->ems_mapping[dev->ems_mar & 0x3f], ram + base_addr);
-				mem_mapping_disable(&dev->ems_mapping[dev->ems_mar & 0x3f]);
-				if (indx < 24)
-					mem_mapping_enable(&dev->upper_mapping[indx]);
-			}
-			flushmmucache();
-		}
+		hl_ems_update(dev, dev->ems_mar & 0x3f);
 		if (dev->ems_mar & 0x80)
 			dev->ems_mar++;
 		break;
@@ -550,10 +533,12 @@ headland_init(const device_t *info)
     } else
 	dev->cr[4] = 0x00;
 
-    io_sethandler(0x01ec, 1,
+    io_sethandler(0x01ec, 4,
 		  hl_read,hl_readw,NULL, hl_write,hl_writew,NULL, dev);
 
-    io_sethandler(0x01ed, 3, hl_read,NULL,NULL, hl_write,NULL,NULL, dev);
+    dev->null_mr.valid = 0;
+    dev->null_mr.mr = 0xff;
+    dev->null_mr.headland = dev;
 
     for (i = 0; i < 64; i++) {
 	dev->ems_mr[i].valid = 1;
@@ -604,7 +589,8 @@ headland_init(const device_t *info)
 			mem_read_b, mem_read_w, mem_read_l,
 			mem_write_b, mem_write_w, mem_write_l,
 			ram + (((i & 31) + ((i & 31) >= 24 ? 24 : 16)) << 14),
-			0, &dev->ems_mr[i]);
+			MEM_MAPPING_INTERNAL, &dev->ems_mr[i]);
+	mem_mapping_disable(&dev->ems_mapping[i]);
     }
 
     memmap_state_update(dev);
