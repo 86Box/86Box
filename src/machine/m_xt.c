@@ -254,6 +254,8 @@ machine_xt_open_xt_init(const machine_t *model)
     return ret;
 }
 
+
+#if defined(DEV_BRANCH) && defined(USE_HEDAKA)
 int
 machine_xt_hed919_init(const machine_t *model)
 {
@@ -272,6 +274,8 @@ machine_xt_hed919_init(const machine_t *model)
 
     return ret;
 }
+#endif
+
 
 int
 machine_xt_pxxt_init(const machine_t *model)

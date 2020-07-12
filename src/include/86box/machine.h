@@ -503,7 +503,9 @@ extern int	machine_xt_jukopc_init(const machine_t *);
 extern int	machine_xt_open_xt_init(const machine_t *);
 extern int	machine_xt_pxxt_init(const machine_t *);
 
-extern int  machine_xt_hed919_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(USE_HEDAKA)
+extern int 	machine_xt_hed919_init(const machine_t *);
+#endif
 
 /* m_xt_compaq.c */
 extern int	machine_xt_compaq_init(const machine_t *);
