@@ -36,8 +36,6 @@
 
 
 int inrecomp = 0, cpu_block_end = 0;
-int cpu_recomp_blocks, cpu_recomp_full_ins, cpu_new_blocks;
-int cpu_recomp_blocks_latched, cpu_recomp_ins_latched, cpu_recomp_full_ins_latched, cpu_new_blocks_latched;
 
 
 #ifdef ENABLE_386_DYNAREC_LOG
@@ -127,7 +125,6 @@ static __inline void fetch_ea_32_long(uint32_t rmdat)
 		if (writelookup2[addr >> 12] != -1)
 		   eal_w = (uint32_t *)(writelookup2[addr >> 12] + addr);
 	}
-	cpu_state.last_ea = cpu_state.eaaddr;
 }
 
 static __inline void fetch_ea_16_long(uint32_t rmdat)
@@ -168,7 +165,6 @@ static __inline void fetch_ea_16_long(uint32_t rmdat)
 		if (writelookup2[addr >> 12] != -1)
 		   eal_w = (uint32_t *)(writelookup2[addr >> 12] + addr);
 	}
-	cpu_state.last_ea = cpu_state.eaaddr;
 }
 
 #define fetch_ea_16(rmdat)	      cpu_state.pc++; cpu_mod=(rmdat >> 6) & 3; cpu_reg=(rmdat >> 3) & 7; cpu_rm = rmdat & 7; if (cpu_mod != 3) { fetch_ea_16_long(rmdat); if (cpu_state.abrt) return 1; } 
@@ -278,7 +274,9 @@ static uint64_t tsc_old = 0;
 
 int acycs = 0;
 
-void update_tsc(void)
+
+void
+update_tsc(void)
 {
     int cycdiff;
     uint64_t delta;
@@ -299,25 +297,8 @@ void update_tsc(void)
 
     if (cycdiff > 0) {
 	if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t)tsc))
-		timer_process();
+		timer_process_inline();
     }
-}
-
-int int_check(void)
-{
-    if (cpu_state.abrt)
-	return 1;
-
-    if (trap)
-	return 1;
-    else if (smi_line)
-	return 1;
-    else if (nmi && nmi_enable && nmi_mask)
-	return 1;
-    else if ((cpu_state.flags & I_FLAG) && pic_intpending)
-	return 1;
-
-    return 0;
 }
 
 void exec386_dynarec(int cycs)
@@ -406,8 +387,6 @@ void exec386_dynarec(int cycs)
 						CPU_BLOCK_END();
 					else if ((cpu_state.flags & I_FLAG) && pic_intpending)
 						CPU_BLOCK_END();
-
-					ins++;
 				}
 			}
 			else
@@ -561,7 +540,6 @@ void exec386_dynarec(int cycs)
 #ifndef USE_NEW_DYNAREC
 					if (!use32) cpu_state.pc &= 0xffff;
 #endif
-					cpu_recomp_blocks++;
 				}
 				else if (valid_block && !cpu_state.abrt)
 				{
@@ -574,8 +552,6 @@ void exec386_dynarec(int cycs)
 
 					cpu_block_end = 0;
 					x86_was_reset = 0;
-
-					cpu_new_blocks++;
 			
 					codegen_block_start_recompile(block);
 					codegen_in_recompile = 1;
@@ -644,7 +620,6 @@ void exec386_dynarec(int cycs)
 							CPU_BLOCK_END();
 						else if ((cpu_state.flags & I_FLAG) && pic_intpending)
 							CPU_BLOCK_END();
-						ins++;
 					}
 			
 					if (!cpu_state.abrt && !x86_was_reset)
@@ -734,8 +709,6 @@ void exec386_dynarec(int cycs)
 							CPU_BLOCK_END();
 						else if ((cpu_state.flags & I_FLAG) && pic_intpending)
 							CPU_BLOCK_END();
-
-						ins++;
 					}
 			
 					if (!cpu_state.abrt && !x86_was_reset)
@@ -862,7 +835,7 @@ void exec386_dynarec(int cycs)
 
 			if (cycdiff > 0) {
 				if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t)tsc))
-					timer_process();
+					timer_process_inline();
 			}
 		}
 

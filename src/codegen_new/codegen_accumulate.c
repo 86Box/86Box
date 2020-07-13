@@ -13,8 +13,7 @@ static struct
         int dest_reg;
 } acc_regs[] =
 {
-        [ACCREG_ins]    = {0, IREG_ins},
-        [ACCREG_cycles] = {0, IREG_cycles},
+        [ACCREG_cycles] = {0, IREG_cycles}
 };
 
 void codegen_accumulate(ir_data_t *ir, int acc_reg, int delta)
@@ -28,23 +27,14 @@ void codegen_accumulate(ir_data_t *ir, int acc_reg, int delta)
 
 void codegen_accumulate_flush(ir_data_t *ir)
 {
-        int c;
-        
-        for (c = 0; c < ACCREG_COUNT; c++)
-        {
-                if (acc_regs[c].count)
-		{
-                        uop_ADD_IMM(ir, acc_regs[c].dest_reg, acc_regs[c].dest_reg, acc_regs[c].count);
-                }
+	if (acc_regs[0].count) {
+		uop_ADD_IMM(ir, acc_regs[0].dest_reg, acc_regs[0].dest_reg, acc_regs[0].count);
+	}
 
-                acc_regs[c].count = 0;
-        }
+	acc_regs[0].count = 0;
 }
 
 void codegen_accumulate_reset()
 {
-        int c;
-
-        for (c = 0; c < ACCREG_COUNT; c++)
-                acc_regs[c].count = 0;
+	acc_regs[0].count = 0;
 }

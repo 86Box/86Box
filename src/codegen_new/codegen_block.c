@@ -37,11 +37,6 @@ int block_current = 0;
 static int block_num;
 int block_pos;
 
-int cpu_recomp_flushes, cpu_recomp_flushes_latched;
-int cpu_recomp_evicted, cpu_recomp_evicted_latched;
-int cpu_recomp_reuse, cpu_recomp_reuse_latched;
-int cpu_recomp_removed, cpu_recomp_removed_latched;
-
 uint32_t codegen_endpc;
 
 int codegen_block_cycles;
@@ -479,7 +474,6 @@ void codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr)
                 if (*block->dirty_mask & block->page_mask)
                 {
                         invalidate_block(block);
-                        cpu_recomp_evicted++;
                 }
                 if (block_nr == next_block)
                         fatal("Broken 1\n");
@@ -496,7 +490,6 @@ void codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr)
                 if (*block->dirty_mask2 & block->page_mask2)
                 {
                         invalidate_block(block);
-                        cpu_recomp_evicted++;
                 }
                 if (block_nr == next_block)
                         fatal("Broken 2\n");
@@ -626,7 +619,6 @@ void codegen_block_remove()
         codeblock_t *block = &codeblock[block_current];
 
         delete_block(block);
-        cpu_recomp_removed++;
 
         recomp_page = -1;
 }

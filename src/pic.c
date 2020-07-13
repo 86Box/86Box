@@ -34,6 +34,7 @@ int		output;
 int		intclear;
 int		keywaiting = 0;
 int		pic_intpending;
+int		pic_pending;
 PIC		pic, pic2;
 uint16_t	pic_current;
 
@@ -82,6 +83,7 @@ pic_updatepending()
 		pic_intpending |= temp_pending;
 	}
     }
+    pic_pending = !!((cpu_state.flags & I_FLAG) && pic_intpending);
     pic_log("pic_intpending = %i  %02X %02X %02X %02X\n", pic_intpending, pic.ins, pic.pend, pic.mask, pic.mask2);
     pic_log("                    %02X %02X %02X %02X %i %i\n", pic2.ins, pic2.pend, pic2.mask, pic2.mask2, ((pic.mask | pic.mask2) & (1 << 2)), ((pic2.pend&~pic2.mask)&~pic2.mask2));
 }

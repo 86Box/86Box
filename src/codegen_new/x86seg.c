@@ -908,11 +908,9 @@ void loadcscall(uint16_t seg, uint32_t old_pc)
         int type;
         uint16_t tempw;
 
-        int csout = output;
-
         if (msw&1 && !(cpu_state.eflags&VM_FLAG))
         {
-                if (csout) x86seg_log("Protected mode CS load! %04X\n",seg);
+                x86seg_log("Protected mode CS load! %04X\n", seg);
                 if (!(seg&~3))
                 {
                         x86gpf(NULL,0);
@@ -946,7 +944,7 @@ void loadcscall(uint16_t seg, uint32_t old_pc)
                 newpc=segdat[0];
                 if (type&0x800) newpc|=segdat[3]<<16;
 
-                if (csout) x86seg_log("Code seg call - %04X - %04X %04X %04X\n",seg,segdat[0],segdat[1],segdat[2]);
+                x86seg_log("Code seg call - %04X - %04X %04X %04X\n",seg,segdat[0],segdat[1],segdat[2]);
                 if (segdat[2]&0x1000)
                 {
                         if (!(segdat[2]&0x400)) /*Not conforming*/
@@ -992,13 +990,15 @@ void loadcscall(uint16_t seg, uint32_t old_pc)
                         do_seg_load(&cpu_state.seg_cs, segdat);
                         if (CPL==3 && oldcpl!=3) flushmmucache_cr3();
                         oldcpl = CPL;
-                        if (csout) x86seg_log("Complete\n");
+#ifdef ENABLE_X86SEG_LOG
+                        x86seg_log("Complete\n");
+#endif
                         cycles -= timing_call_pm;
                 }
                 else
                 {
                         type=segdat[2]&0xF00;
-                        if (csout) x86seg_log("Type %03X\n",type);
+                        x86seg_log("Type %03X\n",type);
                         switch (type)
                         {
                                 case 0x400: /*Call gate*/

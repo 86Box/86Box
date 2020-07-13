@@ -341,15 +341,8 @@ void codegen_delete_random_block(int required_mem_block);
 extern int cpu_block_end;
 extern uint32_t codegen_endpc;
 
-extern int cpu_recomp_blocks, cpu_recomp_full_ins, cpu_new_blocks;
-extern int cpu_recomp_blocks_latched, cpu_recomp_ins_latched, cpu_recomp_full_ins_latched, cpu_new_blocks_latched;
-extern int cpu_recomp_flushes, cpu_recomp_flushes_latched;
-extern int cpu_recomp_evicted, cpu_recomp_evicted_latched;
-extern int cpu_recomp_reuse, cpu_recomp_reuse_latched;
-extern int cpu_recomp_removed, cpu_recomp_removed_latched;
-
-extern int cpu_reps, cpu_reps_latched;
-extern int cpu_notreps, cpu_notreps_latched;
+extern int cpu_reps;
+extern int cpu_notreps;
 
 extern int codegen_block_cycles;
 

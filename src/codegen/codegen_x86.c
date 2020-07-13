@@ -50,6 +50,9 @@
 #include "x86_flags.h"
 #include "x86_ops.h"
 #include "x87.h"
+/*ex*/
+#include <86box/nmi.h>
+#include <86box/pic.h>
 
 #include "386_common.h"
 
@@ -87,11 +90,6 @@ codeblock_t **codeblock_hash;
 int block_current = 0;
 static int block_num;
 int block_pos;
-
-int cpu_recomp_flushes, cpu_recomp_flushes_latched;
-int cpu_recomp_evicted, cpu_recomp_evicted_latched;
-int cpu_recomp_reuse, cpu_recomp_reuse_latched;
-int cpu_recomp_removed, cpu_recomp_removed_latched;
 
 uint32_t codegen_endpc;
 
@@ -1367,7 +1365,6 @@ void codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr)
                 if (mask & block->page_mask)
                 {
                         delete_block(block);
-                        cpu_recomp_evicted++;
                 }
                 if (block == block->next)
                         fatal("Broken 1\n");
@@ -1381,7 +1378,6 @@ void codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr)
                 if (mask & block->page_mask2)
                 {
                         delete_block(block);
-                        cpu_recomp_evicted++;
                 }
                 if (block == block->next_2)
                         fatal("Broken 2\n");
@@ -1403,7 +1399,6 @@ void codegen_block_init(uint32_t phys_addr)
         if (block->valid != 0)
         {
                 delete_block(block);
-                cpu_recomp_reuse++;
         }
         block_num = HASH(phys_addr);
         codeblock_hash[block_num] = &codeblock[block_current];
@@ -1512,7 +1507,6 @@ void codegen_block_remove()
         codeblock_t *block = &codeblock[block_current];
 
         delete_block(block);
-        cpu_recomp_removed++;
 
         recomp_page = -1;
 }
@@ -2016,7 +2010,6 @@ void codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t 
 generate_call:
         codegen_timing_opcode(opcode, fetchdat, op_32, op_pc);
 
-        codegen_accumulate(ACCREG_ins, 1);
         codegen_accumulate(ACCREG_cycles, -codegen_block_cycles);
         codegen_block_cycles = 0;
 
@@ -2063,11 +2056,10 @@ generate_call:
                         codegen_endpc = (cs + cpu_state.pc) + 8;
 
 			/* Check for interrupts. */
-			addbyte(0xE8); /*CALL*/
-			addlong(((uint8_t *)int_check - (uint8_t *)(&block->data[block_pos + 4])));
-
-			addbyte(0x09); /*OR %eax, %eax*/
-			addbyte(0xc0);
+			addbyte(0xf6);	/* test byte ptr[&pic_pending],1 */
+			addbyte(0x05);
+			addlong((uint32_t) (uintptr_t) &pic_pending);
+			addbyte(0x01);
 			addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
 			addlong((uint32_t)&block->data[BLOCK_EXIT_OFFSET] - (uint32_t)(&block->data[block_pos + 4]));
 
@@ -2154,14 +2146,10 @@ generate_call:
         
         block->ins++;
 
-        addbyte(0x09); /*OR %eax, %eax*/
-        addbyte(0xc0);
-        addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
-        addlong((uint32_t)&block->data[BLOCK_EXIT_OFFSET] - (uint32_t)(&block->data[block_pos + 4]));
-
 	/* Check for interrupts. */
-        addbyte(0xE8); /*CALL*/
-        addlong(((uint8_t *)int_check - (uint8_t *)(&block->data[block_pos + 4])));
+	addbyte(0x0a);	/* or  al,byte ptr[&pic_pending] */
+	addbyte(0x05);
+	addlong((uint32_t) (uintptr_t) &pic_pending);
 
         addbyte(0x09); /*OR %eax, %eax*/
         addbyte(0xc0);

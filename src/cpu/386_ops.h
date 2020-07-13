@@ -58,13 +58,11 @@ static __inline void PUSH_W(uint16_t val)
         {
                 writememw(ss, ESP - 2, val);              if (cpu_state.abrt) return;
                 ESP -= 2;
-		cpu_state.last_ea = ESP;
         }
         else
         {
                 writememw(ss, (SP - 2) & 0xFFFF, val);    if (cpu_state.abrt) return;
                 SP -= 2;
-		cpu_state.last_ea = SP;
         }
 }
 
@@ -74,13 +72,11 @@ static __inline void PUSH_L(uint32_t val)
         {
                 writememl(ss, ESP - 4, val);              if (cpu_state.abrt) return;
                 ESP -= 4;
-		cpu_state.last_ea = ESP;
         }
         else
         {
                 writememl(ss, (SP - 4) & 0xFFFF, val);    if (cpu_state.abrt) return;
                 SP -= 4;
-		cpu_state.last_ea = SP;
         }
 }
 
@@ -91,13 +87,11 @@ static __inline uint16_t POP_W()
         {
                 ret = readmemw(ss, ESP);                        if (cpu_state.abrt) return 0;
                 ESP += 2;
-		cpu_state.last_ea = ESP;
         }
         else
         {
                 ret = readmemw(ss, SP);                         if (cpu_state.abrt) return 0;
                 SP += 2;
-		cpu_state.last_ea = SP;
         }
         return ret;
 }
@@ -109,13 +103,11 @@ static __inline uint32_t POP_L()
         {
                 ret = readmeml(ss, ESP);                        if (cpu_state.abrt) return 0;
                 ESP += 4;
-		cpu_state.last_ea = ESP;
         }
         else
         {
                 ret = readmeml(ss, SP);                         if (cpu_state.abrt) return 0;
                 SP += 4;
-		cpu_state.last_ea = SP;
         }
         return ret;
 }
@@ -127,13 +119,11 @@ static __inline uint16_t POP_W_seg(uint32_t seg)
         {
                 ret = readmemw(seg, ESP);                       if (cpu_state.abrt) return 0;
                 ESP += 2;
-		cpu_state.last_ea = ESP;
         }
         else
         {
                 ret = readmemw(seg, SP);                        if (cpu_state.abrt) return 0;
                 SP += 2;
-		cpu_state.last_ea = SP;
         }
         return ret;
 }
@@ -145,13 +135,11 @@ static __inline uint32_t POP_L_seg(uint32_t seg)
         {
                 ret = readmeml(seg, ESP);                       if (cpu_state.abrt) return 0;
                 ESP += 4;
-		cpu_state.last_ea = ESP;
         }
         else
         {
                 ret = readmeml(seg, SP);                        if (cpu_state.abrt) return 0;
                 SP += 4;
-		cpu_state.last_ea = SP;
         }
         return ret;
 }
