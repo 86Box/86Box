@@ -19,6 +19,7 @@ static uint32_t ropCLI(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32
         if (!IOPLp && (cr4 & (CR4_VME | CR4_PVI)))
                 return 0;
         CLEAR_BITS((uintptr_t)&cpu_state.flags, I_FLAG);
+        CLEAR_BITS((uintptr_t)&pic_pending, 0xffffffff);
         return op_pc;
 }
 static uint32_t ropSTI(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)

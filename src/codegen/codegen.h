@@ -308,13 +308,6 @@ void codegen_check_flush(page_t *page, uint64_t mask, uint32_t phys_addr);
 extern int cpu_block_end;
 extern uint32_t codegen_endpc;
 
-extern int cpu_recomp_blocks, cpu_recomp_full_ins, cpu_new_blocks;
-extern int cpu_recomp_blocks_latched, cpu_recomp_ins_latched, cpu_recomp_full_ins_latched, cpu_new_blocks_latched;
-extern int cpu_recomp_flushes, cpu_recomp_flushes_latched;
-extern int cpu_recomp_evicted, cpu_recomp_evicted_latched;
-extern int cpu_recomp_reuse, cpu_recomp_reuse_latched;
-extern int cpu_recomp_removed, cpu_recomp_removed_latched;
-
 extern int codegen_block_cycles;
 
 extern void (*codegen_timing_start)();

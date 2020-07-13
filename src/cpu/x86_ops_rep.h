@@ -201,12 +201,10 @@ static int opREP_MOVSB_ ## size(uint32_t fetchdat)                              
                 else                { DEST_REG++; SRC_REG++; }                  \
                 CNT_REG--;                                                      \
                 cycles -= is486 ? 3 : 4;                                        \
-                ins++;                                                          \
                 reads++; writes++; total_cycles += is486 ? 3 : 4;               \
                 if (cycles < cycles_end)                                        \
                         break;                                                  \
         }                                                                       \
-        ins--;                                                                  \
         PREFETCH_RUN(total_cycles, 1, -1, reads, 0, writes, 0, 0);              \
         if (CNT_REG > 0)                                                        \
         {                                                                       \
@@ -240,12 +238,10 @@ static int opREP_MOVSW_ ## size(uint32_t fetchdat)                              
                 else                { DEST_REG += 2; SRC_REG += 2; }            \
                 CNT_REG--;                                                      \
                 cycles -= is486 ? 3 : 4;                                        \
-                ins++;                                                          \
                 reads++; writes++; total_cycles += is486 ? 3 : 4;               \
                 if (cycles < cycles_end)                                        \
                         break;                                                  \
         }                                                                       \
-        ins--;                                                                  \
         PREFETCH_RUN(total_cycles, 1, -1, reads, 0, writes, 0, 0);              \
         if (CNT_REG > 0)                                                        \
         {                                                                       \
@@ -279,12 +275,10 @@ static int opREP_MOVSL_ ## size(uint32_t fetchdat)                              
                 else                { DEST_REG += 4; SRC_REG += 4; }            \
                 CNT_REG--;                                                      \
                 cycles -= is486 ? 3 : 4;                                        \
-                ins++;                                                          \
                 reads++; writes++; total_cycles += is486 ? 3 : 4;               \
                 if (cycles < cycles_end)                                        \
                         break;                                                  \
         }                                                                       \
-        ins--;                                                                  \
         PREFETCH_RUN(total_cycles, 1, -1, reads, 0, writes, 0, 0);              \
         if (CNT_REG > 0)                                                        \
         {                                                                       \
@@ -313,7 +307,6 @@ static int opREP_STOSB_ ## size(uint32_t fetchdat)                              
                 CNT_REG--;                                                      \
                 cycles -= is486 ? 4 : 5;                                        \
                 writes++; total_cycles += is486 ? 4 : 5;                        \
-                ins++;                                                          \
                 if (cycles < cycles_end)                                        \
                         break;                                                  \
         }                                                                       \
@@ -343,7 +336,6 @@ static int opREP_STOSW_ ## size(uint32_t fetchdat)                              
                 CNT_REG--;                                                      \
                 cycles -= is486 ? 4 : 5;                                        \
                 writes++; total_cycles += is486 ? 4 : 5;                        \
-                ins++;                                                          \
                 if (cycles < cycles_end)                                        \
                         break;                                                  \
         }                                                                       \
@@ -373,7 +365,6 @@ static int opREP_STOSL_ ## size(uint32_t fetchdat)                              
                 CNT_REG--;                                                      \
                 cycles -= is486 ? 4 : 5;                                        \
                 writes++; total_cycles += is486 ? 4 : 5;                        \
-                ins++;                                                          \
                 if (cycles < cycles_end)                                        \
                         break;                                                  \
         }                                                                       \
@@ -404,7 +395,6 @@ static int opREP_LODSB_ ## size(uint32_t fetchdat)                              
                 CNT_REG--;                                                      \
                 cycles -= is486 ? 4 : 5;                                        \
                 reads++; total_cycles += is486 ? 4 : 5;                         \
-                ins++;                                                          \
                 if (cycles < cycles_end)                                        \
                         break;                                                  \
         }                                                                       \
@@ -434,7 +424,6 @@ static int opREP_LODSW_ ## size(uint32_t fetchdat)                              
                 CNT_REG--;                                                      \
                 cycles -= is486 ? 4 : 5;                                        \
                 reads++; total_cycles += is486 ? 4 : 5;                         \
-                ins++;                                                          \
                 if (cycles < cycles_end)                                        \
                         break;                                                  \
         }                                                                       \
@@ -464,7 +453,6 @@ static int opREP_LODSL_ ## size(uint32_t fetchdat)                              
                 CNT_REG--;                                                      \
                 cycles -= is486 ? 4 : 5;                                        \
                 reads++; total_cycles += is486 ? 4 : 5;                         \
-                ins++;                                                          \
                 if (cycles < cycles_end)                                        \
                         break;                                                  \
         }                                                                       \
@@ -597,11 +585,9 @@ static int opREP_SCASB_ ## size(uint32_t fetchdat)                              
                 CNT_REG--;                                                      \
                 cycles -= is486 ? 5 : 8;                                        \
                 reads++; total_cycles += is486 ? 5 : 8;                         \
-                ins++;                                                          \
                 if (cycles < cycles_end)                                        \
                         break;                                                  \
         }                                                                       \
-        ins--;                                                                  \
         PREFETCH_RUN(total_cycles, 1, -1, reads, 0, 0, 0, 0);                   \
         if ((CNT_REG > 0) && (FV == tempz))                                     \
         {                                                                       \
@@ -631,11 +617,9 @@ static int opREP_SCASW_ ## size(uint32_t fetchdat)                              
                 CNT_REG--;                                                      \
                 cycles -= is486 ? 5 : 8;                                        \
                 reads++; total_cycles += is486 ? 5 : 8;                         \
-                ins++;                                                          \
                 if (cycles < cycles_end)                                        \
                         break;                                                  \
         }                                                                       \
-        ins--;                                                                  \
         PREFETCH_RUN(total_cycles, 1, -1, reads, 0, 0, 0, 0);                   \
         if ((CNT_REG > 0) && (FV == tempz))                                     \
         {                                                                       \
@@ -665,11 +649,9 @@ static int opREP_SCASL_ ## size(uint32_t fetchdat)                              
                 CNT_REG--;                                                      \
                 cycles -= is486 ? 5 : 8;                                        \
                 reads++; total_cycles += is486 ? 5 : 8;                         \
-                ins++;                                                          \
                 if (cycles < cycles_end)                                        \
                         break;                                                  \
         }                                                                       \
-        ins--;                                                                  \
         PREFETCH_RUN(total_cycles, 1, -1, 0, reads, 0, 0, 0);                   \
         if ((CNT_REG > 0) && (FV == tempz))                                     \
         {                                                                       \

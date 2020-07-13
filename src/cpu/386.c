@@ -334,8 +334,6 @@ exec386(int cycs)
 			}
 		}
 
-		ins++;
-
 		if (timetolive) {
 			timetolive--;
 			if (!timetolive)

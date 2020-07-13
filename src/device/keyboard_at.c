@@ -2246,8 +2246,8 @@ kbd_read(uint16_t port, void *priv)
                                 ret &= ~0x04;
                 }
 #ifdef USE_DYNAREC
-		flip_flop = (flip_flop + 1) & 3;
-		if (cpu_use_dynarec && (flip_flop == 3))
+		flip_flop = (flip_flop + 1) & 0xf;
+		if (cpu_use_dynarec && (flip_flop == 0xf))
 			update_tsc();
 #endif
 		break;

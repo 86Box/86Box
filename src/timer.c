@@ -11,10 +11,10 @@ uint32_t timer_target;
 
 /*Enabled timers are stored in a linked list, with the first timer to expire at
   the head.*/
-static pc_timer_t *timer_head = NULL;
+pc_timer_t *timer_head = NULL;
 
 /* Are we initialized? */
-static int timer_inited = 0;
+int timer_inited = 0;
 
 
 void
@@ -99,7 +99,7 @@ timer_disable(pc_timer_t *timer)
 }
 
 
-static void
+void
 timer_remove_head(void)
 {
     pc_timer_t *timer;
