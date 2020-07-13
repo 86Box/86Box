@@ -1651,8 +1651,13 @@ void s3_recalctimings(svga_t *svga)
 			break;
 			case 15:
 			svga->render = svga_render_15bpp_highres;
-			if (s3->chip != S3_VISION964 && s3->chip != S3_86C801 && s3->chip != S3_86C928 && s3->chip != S3_86C911)
-				svga->hdisp /= 2;
+			if (s3->chip != S3_VISION964 && s3->chip != S3_86C801)
+			{
+				if (s3->chip == S3_86C928)
+					svga->hdisp *= 2;
+				else
+					svga->hdisp /= 2;
+			}
 			break;
 			case 16: 
 			svga->render = svga_render_16bpp_highres;
