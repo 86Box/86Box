@@ -346,8 +346,6 @@ pc_init(int argc, wchar_t *argv[])
     plat_getcwd(usr_path, sizeof_w(usr_path)-1);
     memset(path, 0x00, sizeof(path));
 
-    pclog("sizeof(cpu_state_t) = %i\n", sizeof(cpu_state_t));
-
     for (c=1; c<argc; c++) {
 	if (argv[c][0] != L'-') break;
 
