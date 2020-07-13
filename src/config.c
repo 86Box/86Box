@@ -517,6 +517,8 @@ load_machine(void)
 	/* Detect the old model typos and fix them. */
 	if (! strcmp(p, "p55r2p4")) {
 		machine = machine_get_machine_from_internal_name("p55t2p4");
+	} else if (! strcmp(p, "8500ttc")) {
+		machine = machine_get_machine_from_internal_name("8600ttc");
 	} else {
 		machine = machine_get_machine_from_internal_name(p);
 	}
