@@ -20,6 +20,14 @@ static struct
 void codegen_accumulate(int acc_reg, int delta)
 {
         acc_regs[acc_reg].count += delta;
+
+	if ((acc_reg == ACCREG_cycles) && (delta != 0)) {
+		addbyte(0x81); /*ADD $acc_regs[c].count,acc_regs[c].dest*/
+		addbyte(0x04);
+		addbyte(0x25);
+		addlong((uint32_t) (uintptr_t) &(acycs));
+		addlong(-delta);
+	}
 }
 
 void codegen_accumulate_flush(void)

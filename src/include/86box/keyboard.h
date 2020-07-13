@@ -73,6 +73,7 @@ extern const device_t	keyboard_at_ami_device;
 extern const device_t	keyboard_at_toshiba_device;
 extern const device_t	keyboard_ps2_device;
 extern const device_t	keyboard_ps2_ps1_device;
+extern const device_t	keyboard_ps2_ps1_pci_device;
 extern const device_t	keyboard_ps2_ps2_device;
 extern const device_t	keyboard_ps2_xi8088_device;
 extern const device_t	keyboard_ps2_ami_device;

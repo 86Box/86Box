@@ -309,11 +309,9 @@ extern int  machine_at_excalibur_init(const machine_t *);
 
 extern int	machine_at_batman_init(const machine_t *);
 extern int	machine_at_ambradp60_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_VPP60)
 extern int	machine_at_valuepointp60_init(const machine_t *);
-#endif
+#if defined(DEV_BRANCH) && defined(USE_DELLS4)
 extern int	machine_at_opti560l_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_DELLXP60)
 extern int	machine_at_dellxp60_init(const machine_t *);
 #endif
 extern int	machine_at_p5mp3_init(const machine_t *);
@@ -505,7 +503,9 @@ extern int	machine_xt_jukopc_init(const machine_t *);
 extern int	machine_xt_open_xt_init(const machine_t *);
 extern int	machine_xt_pxxt_init(const machine_t *);
 
-extern int  machine_xt_hed919_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(USE_HEDAKA)
+extern int 	machine_xt_hed919_init(const machine_t *);
+#endif
 
 /* m_xt_compaq.c */
 extern int	machine_xt_compaq_init(const machine_t *);

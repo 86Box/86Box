@@ -2479,6 +2479,16 @@ const device_t keyboard_ps2_ps1_device = {
     NULL, NULL, NULL, NULL
 };
 
+const device_t keyboard_ps2_ps1_pci_device = {
+    "PS/2 Keyboard (IBM PS/1)",
+    DEVICE_PCI,
+    KBC_TYPE_PS2_NOREF | KBC_VEN_IBM_PS1,
+    kbd_init,
+    kbd_close,
+    kbd_reset,
+    NULL, NULL, NULL, NULL
+};
+
 const device_t keyboard_ps2_xi8088_device = {
     "PS/2 Keyboard (Xi8088)",
     0,

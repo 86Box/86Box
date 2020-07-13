@@ -122,6 +122,7 @@ int		nic_do_log = ENABLE_NIC_LOG;
 static volatile int	net_wait = 0;
 static mutex_t		*network_mutex;
 static uint8_t		*network_mac;
+static uint8_t		network_timer_active = 0;
 static pc_timer_t	network_rx_queue_timer;
 static netpkt_t		*first_pkt[2] = { NULL, NULL },
 			*last_pkt[2] = { NULL, NULL };
@@ -354,6 +355,19 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETLINKST
     timer_add(&network_rx_queue_timer, network_rx_queue, NULL, 0);
     /* 10 mbps. */
     timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0);
+    network_timer_active = 1;
+}
+
+
+/* Stop the network timer. */
+void
+network_timer_stop(void)
+{
+    if (network_timer_active) {
+	timer_stop(&network_rx_queue_timer);
+	memset(&network_rx_queue_timer, 0x00, sizeof(pc_timer_t));
+	network_timer_active = 0;
+    }
 }
 
 
@@ -361,7 +375,7 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETLINKST
 void
 network_close(void)
 {
-    timer_stop(&network_rx_queue_timer);
+    network_timer_stop();
 
     /* If already closed, do nothing. */
     if (network_mutex == NULL) return;

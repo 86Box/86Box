@@ -890,7 +890,7 @@ machine_xt_t1000_init(const machine_t *model)
     }
     mem_mapping_add(&t1000.rom_mapping, 0xa0000, 0x10000,
 		    t1000_read_rom,t1000_read_romw,t1000_read_roml,
-		    NULL,NULL,NULL, NULL, MEM_MAPPING_INTERNAL, &t1000);
+		    NULL,NULL,NULL, NULL, MEM_MAPPING_EXTERNAL, &t1000);
     mem_mapping_disable(&t1000.rom_mapping);
 
     /* Map the EMS page frame */
@@ -986,7 +986,7 @@ machine_xt_t1200_init(const machine_t *model)
 		    0x000f0000, 2048,
 		    read_t1200_nvram, NULL, NULL,
 		    write_t1200_nvram, NULL, NULL, 
-		    NULL, 0, &t1000);
+		    NULL, MEM_MAPPING_EXTERNAL, &t1000);
 
     pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
     device_add(&keyboard_xt_device);

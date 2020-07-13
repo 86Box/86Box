@@ -503,6 +503,8 @@ extern int	timing_misaligned;
 extern int	in_sys, unmask_a20_in_smm;
 extern uint32_t	old_rammask;
 
+extern int	acycs;
+
 extern uint16_t	cpu_fast_off_count, cpu_fast_off_val;
 extern uint32_t	cpu_fast_off_flags;
 
@@ -598,5 +600,7 @@ extern int	fpu_get_type(int machine, int cpu_manufacturer, int cpu, const char *
 extern const	char *fpu_get_internal_name(int machine, int cpu_manufacturer, int cpu, int type);
 extern const	char *fpu_get_name_from_index(int machine, int cpu_manufacturer, int cpu, int c);
 extern int	fpu_get_type_from_index(int machine, int cpu_manufacturer, int cpu, int c);
+
+extern int	int_check();
 
 #endif	/*EMU_CPU_H*/
