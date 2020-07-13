@@ -820,7 +820,7 @@ void adgold_close(void *p)
         f = nvr_fopen(L"adgold.bin", L"wb");
         if (f)
         {
-                fwrite(adgold->adgold_eeprom, 0x18, 1, f);
+                fwrite(adgold->adgold_eeprom, 0x1a, 1, f);
                 fclose(f);
         }
 

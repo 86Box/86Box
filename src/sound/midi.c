@@ -295,6 +295,9 @@ midi_in_device_init()
 void
 midi_raw_out_rt_byte(uint8_t val)
 {
+    if (!midi_in)
+	return;
+
     if (!midi_in->midi_realtime)
 	return;
 
@@ -310,7 +313,7 @@ midi_raw_out_rt_byte(uint8_t val)
 void
 midi_raw_out_thru_rt_byte(uint8_t val)
 {
-    if (midi_in->thruchan)
+    if (midi_in && midi_in->thruchan)
 	midi_raw_out_rt_byte(val);
 }
 
