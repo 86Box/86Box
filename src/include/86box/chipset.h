@@ -25,8 +25,10 @@ extern const device_t	acc2168_device;
 extern const device_t	ali1429_device;
 
 /* Headland */
-extern const device_t	headland_device;
-extern const device_t	headland_386_device;
+extern const device_t	headland_gc10x_device;
+extern const device_t	headland_ht18a_device;
+extern const device_t	headland_ht18b_device;
+extern const device_t	headland_ht18c_device;
 
 /* Intel */
 extern const device_t   i82335_device;
@@ -102,7 +104,7 @@ extern const device_t	via_vt82c586b_device;
 extern const device_t	via_vt82c596b_device;
 
 /* AMD */
-extern const device_t amd640_device;
+extern const device_t	amd640_device;
 
 /* VLSI */
 extern const device_t   vl82c480_device;
