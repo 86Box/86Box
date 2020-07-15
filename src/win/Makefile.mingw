@@ -384,6 +384,10 @@ ifeq ($(VRAMDUMP), y)
 OPTS		+= -DENABLE_VRAM_DUMP
 RFLAGS		+= -DENABLE_VRAM_DUMP
 endif
+ifeq ($(NOHOOK), y)
+OPTS		+= -DNO_KEYBOARD_HOOK
+RFLAGS		+= -DNO_KEYBOARD_HOOK
+endif
 
 
 # Optional modules.
