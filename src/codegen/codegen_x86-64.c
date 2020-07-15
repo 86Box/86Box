@@ -1097,6 +1097,7 @@ generate_call:
                         codegen_block_full_ins++;
                         codegen_endpc = (cs + cpu_state.pc) + 8;
 
+#ifdef CHECK_INT
 			/* Check for interrupts. */
 			addbyte(0xf6);	/* test byte ptr[&pic_pending],1 */
 			addbyte(0x04);
@@ -1105,6 +1106,7 @@ generate_call:
 			addbyte(0x01);
 			addbyte(0x0F); addbyte(0x85); /*JNZ 0*/
 			addlong((uint32_t)(uintptr_t)&block->data[BLOCK_EXIT_OFFSET] - (uint32_t)(uintptr_t)(&block->data[block_pos + 4]));
+#endif
 
                         return;
                 }
@@ -1178,11 +1180,13 @@ generate_call:
         
         block->ins++;
 
+#ifdef CHECK_INT
 	/* Check for interrupts. */
 	addbyte(0x0a);	/* or  al,byte ptr[&pic_pending] */
 	addbyte(0x04);
 	addbyte(0x25);
 	addlong((uint32_t) (uintptr_t) &pic_pending);
+#endif
 
         addbyte(0x85); /*OR %eax, %eax*/
         addbyte(0xc0);

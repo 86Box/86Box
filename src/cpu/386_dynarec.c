@@ -272,7 +272,9 @@ static void prefetch_flush()
 static int cycles_main = 0, cycles_old = 0;
 static uint64_t tsc_old = 0;
 
+#ifdef USE_ACYCS
 int acycs = 0;
+#endif
 
 
 void
@@ -282,8 +284,10 @@ update_tsc(void)
     uint64_t delta;
 
     cycdiff = cycles_old - cycles;
+#ifdef USE_ACYCS
     if (inrecomp)
 	cycdiff += acycs;
+#endif
 
     delta = tsc - tsc_old;
     if (delta > 0) {
@@ -314,7 +318,9 @@ void exec386_dynarec(int cycs)
 
 	int cyc_period = cycs / 2000; /*5us*/
 
+#ifdef USE_ACYCS
 	acycs = 0;
+#endif
 	cycles_main += cycs;
 	while (cycles_main > 0)
 	{
@@ -534,7 +540,9 @@ void exec386_dynarec(int cycs)
 
 					inrecomp=1;
 					code();
+#ifdef USE_ACYCS
 					acycs = 0;
+#endif
 					inrecomp=0;
 
 #ifndef USE_NEW_DYNAREC
