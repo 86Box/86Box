@@ -80,8 +80,7 @@ page_t			*pages,			/* RAM page table */
 			**page_lookup;		/* pagetable lookup */
 uint32_t		pages_sz;		/* #pages in table */
 
-uint8_t			*low_ram,
-			*ram, *ram2;		/* the virtual RAM */
+uint8_t			*ram, *ram2;		/* the virtual RAM */
 uint8_t			page_ff[4096];
 uint32_t		rammask;
 
@@ -580,7 +579,11 @@ mem_addr_translate(uint32_t addr, uint32_t chunk_start, uint32_t len)
 void
 addreadlookup(uint32_t virt, uint32_t phys)
 {
+#if (defined __amd64__ || defined _M_X64)
+    uint64_t a;
+#else
     uint32_t a;
+#endif
 
     if (virt == 0xffffffff) return;
 
@@ -589,12 +592,14 @@ addreadlookup(uint32_t virt, uint32_t phys)
     if (readlookup[readlnext] != (int) 0xffffffff)
 	readlookup2[readlookup[readlnext]] = LOOKUP_INV;
 
-    a = (uint32_t)(phys & ~0xfff) - (uint32_t)(virt & ~0xfff);
+#if (defined __amd64__ || defined _M_X64)
+    a = ((uint64_t)(phys & ~0xfff) - (uint64_t)(virt & ~0xfff));
+#else
+    a = ((uint32_t)(phys & ~0xfff) - (uint32_t)(virt & ~0xfff));
+#endif
 
     if ((phys & ~0xfff) >= (1 << 30))
 	readlookup2[virt>>12] = (uintptr_t)&ram2[a - (1 << 30)];
-    else if (a >= 0xfff00000)
-	readlookup2[virt>>12] = (uintptr_t)&low_ram[a & 0x000fffff];
     else
 	readlookup2[virt>>12] = (uintptr_t)&ram[a];
 
@@ -609,7 +614,11 @@ addreadlookup(uint32_t virt, uint32_t phys)
 void
 addwritelookup(uint32_t virt, uint32_t phys)
 {
+#if (defined __amd64__ || defined _M_X64)
+    uint64_t a;
+#else
     uint32_t a;
+#endif
 
     if (virt == 0xffffffff) return;
 
@@ -635,12 +644,14 @@ addwritelookup(uint32_t virt, uint32_t phys)
 #endif
 	page_lookup[virt >> 12] = &pages[phys >> 12];
     else {
-	a = (uint32_t)(phys & ~0xfff) - (uint32_t)(virt & ~0xfff);
+#if (defined __amd64__ || defined _M_X64)
+	a = ((uint64_t)(phys & ~0xfff) - (uint64_t)(virt & ~0xfff));
+#else
+	a = ((uint32_t)(phys & ~0xfff) - (uint32_t)(virt & ~0xfff));
+#endif
 
 	if ((phys & ~0xfff) >= (1 << 30))
 		writelookup2[virt>>12] = (uintptr_t)&ram2[a - (1 << 30)];
-	else if (a >= 0xfff00000)
-		writelookup2[virt>>12] = (uintptr_t)&low_ram[a & 0x000fffff];
 	else
 		writelookup2[virt>>12] = (uintptr_t)&ram[a];
     }
@@ -2531,9 +2542,9 @@ mem_reset(void)
     memset(page_ff, 0xff, sizeof(page_ff));
 
     m = 1024UL * mem_size;
-    if (low_ram != NULL) {
-	free(low_ram);
-	low_ram = NULL;
+    if (ram != NULL) {
+	free(ram);
+	ram = NULL;
     }
 #if (defined __amd64__ || defined _M_X64)
     if (ram2 != NULL) {
@@ -2546,21 +2557,20 @@ mem_reset(void)
 
 #if (defined __amd64__ || defined _M_X64)
     if (mem_size > 1048576) {
-	low_ram = (uint8_t *)malloc((1 << 30) + (1 << 10));		/* allocate and clear the RAM block of the first 1 GB */
-	memset(low_ram, 0x00, (1 << 30) + (1 << 10));
+	ram = (uint8_t *)malloc(1 << 30);		/* allocate and clear the RAM block of the first 1 GB */
+	memset(ram, 0x00, (1 << 30));
 	ram2 = (uint8_t *)malloc(m - (1 << 30));	/* allocate and clear the RAM block above 1 GB */
 	memset(ram2, 0x00, m - (1 << 30));
     } else {
-	low_ram = (uint8_t *)malloc(m + (1 << 10));		/* allocate and clear the RAM block */
-	memset(low_ram, 0x00, m + (1 << 10));
+	ram = (uint8_t *)malloc(m);		/* allocate and clear the RAM block */
+	memset(ram, 0x00, m);
     }
 #else
-    low_ram = (uint8_t *)malloc(m + (1 << 10));		/* allocate and clear the RAM block */
-    memset(low_ram, 0x00, m + (1 << 10));
+    ram = (uint8_t *)malloc(m);		/* allocate and clear the RAM block */
+    memset(ram, 0x00, m);
     if (mem_size > 1048576)
-    	ram2 = &(low_ram[(1 << 30) + (1 << 10)]);
+    	ram2 = &(ram[1 << 30]);
 #endif
-    ram = &(low_ram[1 << 10]);
 
     /*
      * Allocate the page table based on how much RAM we have.
@@ -2773,7 +2783,6 @@ void
 mem_init(void)
 {
     /* Perform a one-time init. */
-    low_ram = NULL;
     ram = rom = NULL;
     ram2 = NULL;
     pages = NULL;

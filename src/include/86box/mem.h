@@ -203,7 +203,7 @@ extern uintptr_t *	readlookup2;
 extern int		readlnext;
 extern int		writelookup[256],
 			writelookupp[256];
-extern uintptr_t	*writelookup2;
+extern uintptr_t *	writelookup2;
 extern int		writelnext;
 extern uint32_t		ram_mapped_addr[64];
 
