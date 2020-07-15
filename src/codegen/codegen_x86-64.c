@@ -294,6 +294,7 @@ void codegen_block_start_recompile(codeblock_t *block)
         block->status = cpu_cur_status;
         
         block_pos = BLOCK_GPF_OFFSET;
+#ifdef OLD_GPF
 #if WIN64
         addbyte(0x48); /*XOR RCX, RCX*/
         addbyte(0x31);
@@ -308,6 +309,17 @@ void codegen_block_start_recompile(codeblock_t *block)
         addbyte(0xf6);
 #endif
 	call(block, (uintptr_t)x86gpf);
+#else
+	addbyte(0xc6);	/* mov byte ptr[&(cpu_state.abrt)],ABRT_GPF */
+	addbyte(0x05);
+	addlong((uint32_t) (uintptr_t) &(cpu_state.abrt));
+	addbyte(ABRT_GPF);
+	addbyte(0x31);	/* xor eax,eax */
+	addbyte(0xc0);
+	addbyte(0x67);	/* mov [&(abrt_error)],eax */
+	addbyte(0xa3);
+	addlong((uint32_t) (uintptr_t) &(abrt_error));
+#endif
 	while (block_pos < BLOCK_EXIT_OFFSET)
 	       addbyte(0x90); /*NOP*/
         block_pos = BLOCK_EXIT_OFFSET; /*Exit code*/

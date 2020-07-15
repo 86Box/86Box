@@ -54,7 +54,7 @@ pic_log(const char *fmt, ...)
     if (pic_do_log) {
 	va_start(ap, fmt);
 	pclog_ex(fmt, ap);
-	va_end(ap);
+ic_u	va_end(ap);
     }
 }
 #else
@@ -83,7 +83,9 @@ pic_updatepending()
 		pic_intpending |= temp_pending;
 	}
     }
-    pic_pending = !!((cpu_state.flags & I_FLAG) && pic_intpending);
+    /* This is a variable needed by the compiler to know when to force interpret a block,
+       only do this for FDC IRQ's. */
+    pic_pending = !!((cpu_state.flags & I_FLAG) && (pic_intpending & (1 << 6)));
     pic_log("pic_intpending = %i  %02X %02X %02X %02X\n", pic_intpending, pic.ins, pic.pend, pic.mask, pic.mask2);
     pic_log("                    %02X %02X %02X %02X %i %i\n", pic2.ins, pic2.pend, pic2.mask, pic2.mask2, ((pic.mask | pic.mask2) & (1 << 2)), ((pic2.pend&~pic2.mask)&~pic2.mask2));
 }

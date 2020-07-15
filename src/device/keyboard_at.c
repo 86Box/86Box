@@ -2207,7 +2207,6 @@ kbd_read(uint16_t port, void *priv)
 {
     atkbd_t *dev = (atkbd_t *)priv;
     uint8_t ret = 0xff;
-    static int flip_flop = 0;
 
     if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF)
 	sub_cycles(ISA_CYCLES(8));
@@ -2245,11 +2244,6 @@ kbd_read(uint16_t port, void *priv)
                         else
                                 ret &= ~0x04;
                 }
-#ifdef USE_DYNAREC
-		flip_flop = (flip_flop + 1) & 0xf;
-		if (cpu_use_dynarec && (flip_flop == 0xf))
-			update_tsc();
-#endif
 		break;
 
 	case 0x64:
