@@ -7,7 +7,8 @@ static uint32_t ropINC_rw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
         host_reg = LOAD_REG_W(opcode & 7);
         
         STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_op1, host_reg);
-        ADD_HOST_REG_IMM_W(host_reg, 1);
+        // ADD_HOST_REG_IMM_W(host_reg, 1);
+	INC_HOST_REG_W(host_reg);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op2, 1);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_INC16);
         STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_res, host_reg);
@@ -26,7 +27,8 @@ static uint32_t ropINC_rl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
         host_reg = LOAD_REG_L(opcode & 7);
         
         STORE_HOST_REG_ADDR((uintptr_t)&cpu_state.flags_op1, host_reg);
-        ADD_HOST_REG_IMM(host_reg, 1);
+        // ADD_HOST_REG_IMM(host_reg, 1);
+	INC_HOST_REG(host_reg);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op2, 1);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_INC32);
         STORE_HOST_REG_ADDR((uintptr_t)&cpu_state.flags_res, host_reg);
@@ -45,7 +47,8 @@ static uint32_t ropDEC_rw(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
         host_reg = LOAD_REG_W(opcode & 7);
         
         STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_op1, host_reg);
-        SUB_HOST_REG_IMM_W(host_reg, 1);
+        // SUB_HOST_REG_IMM_W(host_reg, 1);
+        DEC_HOST_REG_W(host_reg);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op2, 1);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_DEC16);
         STORE_HOST_REG_ADDR_WL((uintptr_t)&cpu_state.flags_res, host_reg);
@@ -64,7 +67,8 @@ static uint32_t ropDEC_rl(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
         host_reg = LOAD_REG_L(opcode & 7);
         
         STORE_HOST_REG_ADDR((uintptr_t)&cpu_state.flags_op1, host_reg);
-        SUB_HOST_REG_IMM(host_reg, 1);
+        // SUB_HOST_REG_IMM(host_reg, 1);
+        DEC_HOST_REG(host_reg);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op2, 1);
         STORE_IMM_ADDR_L((uintptr_t)&cpu_state.flags_op, FLAGS_DEC32);
         STORE_HOST_REG_ADDR((uintptr_t)&cpu_state.flags_res, host_reg);

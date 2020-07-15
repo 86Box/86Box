@@ -333,7 +333,7 @@ recalc_mappings(void *priv)
                                 case BANK_256K:
 					if (phys_bank != BANK_NONE) {
 						mem_mapping_set_addr(&ram_low_mapping, 0, 0x80000);
-						mem_mapping_set_p(&ram_low_mapping, (void *)bank_nr);
+						mem_mapping_set_p(&ram_low_mapping, (void *)&dev->ram_struct[bank_nr]);
 					}
 					virt_base += 512*1024;
 					dev->row_virt_shift[bank_nr] = 10;
@@ -342,7 +342,7 @@ recalc_mappings(void *priv)
                                 case BANK_256K_INTERLEAVED:
 					if (phys_bank != BANK_NONE) {
 						mem_mapping_set_addr(&ram_low_mapping, 0, 0xa0000);
-						mem_mapping_set_p(&ram_low_mapping, (void *)bank_nr);
+						mem_mapping_set_p(&ram_low_mapping, (void *)&dev->ram_struct[bank_nr]);
 					}
 					virt_base += 512*1024*2;
 					dev->row_virt_shift[bank_nr] = 10;
@@ -351,7 +351,7 @@ recalc_mappings(void *priv)
                                 case BANK_1M:
 					if (phys_bank != BANK_NONE) {
 						mem_mapping_set_addr(&ram_low_mapping, 0, 0xa0000);
-						mem_mapping_set_p(&ram_low_mapping, (void *)bank_nr);
+						mem_mapping_set_p(&ram_low_mapping, (void *)&dev->ram_struct[bank_nr]);
 						mem_mapping_set_addr(&dev->ram_mapping[bank_nr], 0x100000, 0x100000);
 						mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr] + 0x100000]);
 					}
@@ -362,7 +362,7 @@ recalc_mappings(void *priv)
                                 case BANK_1M_INTERLEAVED:
 					if (phys_bank != BANK_NONE) {
 						mem_mapping_set_addr(&ram_low_mapping, 0, 0xa0000);
-						mem_mapping_set_p(&ram_low_mapping, (void *)bank_nr);
+						mem_mapping_set_p(&ram_low_mapping, (void *)&dev->ram_struct[bank_nr]);
 						mem_mapping_set_addr(&dev->ram_mapping[bank_nr], 0x100000, 0x300000);
 						mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr] + 0x100000]);
 					}
@@ -373,7 +373,7 @@ recalc_mappings(void *priv)
                                 case BANK_4M:
 					if (phys_bank != BANK_NONE) {
 						mem_mapping_set_addr(&ram_low_mapping, 0, 0xa0000);
-						mem_mapping_set_p(&ram_low_mapping, (void *)bank_nr);
+						mem_mapping_set_p(&ram_low_mapping, (void *)&dev->ram_struct[bank_nr]);
 						mem_mapping_set_addr(&dev->ram_mapping[bank_nr], 0x100000, 0x700000);
 						mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr] + 0x100000]);
 					}
@@ -384,7 +384,7 @@ recalc_mappings(void *priv)
                                 case BANK_4M_INTERLEAVED:
 					if (phys_bank != BANK_NONE) {
 						mem_mapping_set_addr(&ram_low_mapping, 0, 0xa0000);
-						mem_mapping_set_p(&ram_low_mapping, (void *)bank_nr);
+						mem_mapping_set_p(&ram_low_mapping, (void *)&dev->ram_struct[bank_nr]);
 						mem_mapping_set_addr(&dev->ram_mapping[bank_nr], 0x100000, 0xf00000);
 						mem_mapping_set_exec(&dev->ram_mapping[bank_nr], &ram[dev->ram_phys_base[bank_nr] + 0x100000]);
 					}

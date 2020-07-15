@@ -2967,6 +2967,29 @@ static inline void SUB_HOST_REG_IMM(int host_reg, uint32_t imm)
         addlong(imm);
 }
 
+static inline void INC_HOST_REG_W(int host_reg)
+{
+        addbyte(0x66); /*DECW host_reg*/
+        addbyte(0xff);
+        addbyte(0xc0 | (host_reg & 7));
+}
+static inline void INC_HOST_REG(int host_reg)
+{
+        addbyte(0xff); /*DECL host_reg*/
+        addbyte(0xc0 | (host_reg & 7));
+}
+static inline void DEC_HOST_REG_W(int host_reg)
+{
+        addbyte(0x66); /*DECW host_reg*/
+        addbyte(0xff);
+        addbyte(0xc8 | (host_reg & 7));
+}
+static inline void DEC_HOST_REG(int host_reg)
+{
+        addbyte(0xff); /*DECL host_reg*/
+        addbyte(0xc8 | (host_reg & 7));
+}
+
 static inline int CMP_HOST_REG_IMM_B(int host_reg, uint8_t imm)
 {
         if (host_reg & 8)
