@@ -309,6 +309,8 @@ void codegen_block_start_recompile(codeblock_t *block)
         addbyte(0xf6);
 #endif
 	call(block, (uintptr_t)x86gpf);
+	while (block_pos < BLOCK_EXIT_OFFSET)
+	       addbyte(0x90); /*NOP*/
 #else
 	addbyte(0xc6);	/* mov byte ptr[&(cpu_state.abrt)],ABRT_GPF */
 	addbyte(0x05);
@@ -320,8 +322,6 @@ void codegen_block_start_recompile(codeblock_t *block)
 	addbyte(0xa3);
 	addlong((uint32_t) (uintptr_t) &(abrt_error));
 #endif
-	while (block_pos < BLOCK_EXIT_OFFSET)
-	       addbyte(0x90); /*NOP*/
         block_pos = BLOCK_EXIT_OFFSET; /*Exit code*/
         addbyte(0x48); /*ADDL $40,%rsp*/
         addbyte(0x83);
