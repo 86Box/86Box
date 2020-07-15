@@ -20,6 +20,7 @@ void codegen_accumulate(int acc_reg, int delta)
 {
         acc_regs[acc_reg].count += delta;
 
+#ifdef USE_ACYCS
 	if ((acc_reg == ACCREG_cycles) && (delta != 0)) {
 		if (delta == -1) {
 			/* -delta = 1 */
@@ -38,6 +39,7 @@ void codegen_accumulate(int acc_reg, int delta)
 			addlong((uintptr_t) -delta);
 		}
 	}
+#endif
 }
 
 void codegen_accumulate_flush(void)

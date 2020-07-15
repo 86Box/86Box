@@ -101,6 +101,13 @@ enum {
 #define CPU_REQUIRES_DYNAREC 2
 #define CPU_ALTERNATE_XTAL   4
 
+#if (defined __amd64__ || defined _M_X64)
+#define LOOKUP_INV		-1LL
+#else
+#define LOOKUP_INV		-1
+#endif
+
+
 typedef struct {
 	const char    *name;
 	const char    *internal_name;
@@ -476,7 +483,10 @@ extern int	timing_misaligned;
 extern int	in_sys, unmask_a20_in_smm;
 extern uint32_t	old_rammask;
 
-extern int	acycs, pic_pending;
+#ifdef USE_ACYCS
+extern int	acycs;
+#endif
+extern int	pic_pending;
 
 extern uint16_t	cpu_fast_off_count, cpu_fast_off_val;
 extern uint32_t	cpu_fast_off_flags;
