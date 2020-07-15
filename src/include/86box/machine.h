@@ -251,7 +251,7 @@ extern const device_t	*at_commodore_sl386sx_get_device(void);
 
 extern int	machine_at_acc386_init(const machine_t *);
 extern int	machine_at_asus386_init(const machine_t *);
-extern int  machine_at_ecs386_init(const machine_t *);
+extern int	machine_at_ecs386_init(const machine_t *);
 extern int	machine_at_micronics386_init(const machine_t *);
 
 extern int	machine_at_rycleopardlx_init(const machine_t *);
@@ -305,7 +305,7 @@ extern const device_t 	*at_cpqiii_get_device(void);
 #endif
 
 /* m_at_socket4_5.c */
-extern int  machine_at_excalibur_init(const machine_t *);
+extern int	machine_at_excalibur_init(const machine_t *);
 
 extern int	machine_at_batman_init(const machine_t *);
 extern int	machine_at_ambradp60_init(const machine_t *);

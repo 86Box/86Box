@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the STPC series of SoCs.
+ *		Implementation of the STMicroelectronics STPC series of SoCs.
  *
  *
  *
@@ -35,6 +35,8 @@
 #include <86box/usb.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
+#include <86box/serial.h>
+#include <86box/lpt.h>
 #include <86box/chipset.h>
 
 
@@ -69,6 +71,19 @@ typedef struct stpc_t
     int		ide_slot;
     sff8038i_t	*bm[2];
 } stpc_t;
+
+typedef struct stpc_serial_t
+{
+    serial_t	*uart[2];
+} stpc_serial_t;
+
+typedef struct stpc_lpt_t
+{
+    uint8_t	unlocked;
+    uint8_t	offset;
+    uint8_t	reg1;
+    uint8_t	reg4;
+} stpc_lpt_t;
 
 
 #ifdef ENABLE_STPC_LOG
@@ -576,6 +591,50 @@ stpc_remap_localbus(stpc_t *dev, uint16_t localbus_base)
 }
 
 
+static uint8_t
+stpc_serial_handlers(uint8_t val)
+{
+    stpc_serial_t *dev;
+    if (!(dev = device_get_priv(&stpc_serial_device))) {
+    	stpc_log("STPC: Not remapping UARTs, disabled by strap (raw %02X)\n", val);
+    	return 0;
+    }
+
+    uint16_t uart0_io = 0x3f8, uart0_irq = 4, uart1_io = 0x3f8, uart1_irq = 3;
+
+    if (val & 0x10)
+    	uart1_io -= 0x100;
+    if (val & 0x20)
+    	uart1_io -= 0x10;
+    if (val & 0x40)
+    	uart0_io -= 0x100;
+    if (val & 0x80)
+    	uart0_io -= 0x10;
+
+    if (uart0_io == uart1_io) {
+    	/* Apply defaults if both UARTs are set to the same address. */
+    	stpc_log("STPC: Both UARTs set to %02X, resetting to defaults\n", uart0_io);
+    	uart0_io = 0x3f8;
+    	uart1_io = 0x2f8;
+    }
+
+    if ((uart0_io & 0x0f00) < 0x300) {
+    	/* The address for UART0 defines the IRQs for both ports. */
+    	uart0_irq = 3;
+    	uart1_irq = 4;
+    }
+
+    stpc_log("STPC: Remapping UART0 to %04X %d and UART1 to %04X %d (raw %02X)\n", uart0_io, uart0_irq, uart1_io, uart1_irq, val);
+
+    serial_remove(dev->uart[0]);
+    serial_setup(dev->uart[0], uart0_io, uart0_irq);
+    serial_remove(dev->uart[1]);
+    serial_setup(dev->uart[1], uart1_io, uart1_irq);
+
+    return 1;
+}
+
+
 static void
 stpc_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
@@ -635,10 +694,14 @@ stpc_reg_write(uint16_t addr, uint8_t val, void *priv)
 			break;
 
 		case 0x56: case 0x57:
-			/* ELCR goes here */
 			elcr_write(dev->reg_offset, val, NULL);
 			if (dev->reg_offset == 0x57)
 				refresh_at_enable = val & 0x01;
+			break;
+
+		case 0x59:
+			val &= 0xf1;
+			stpc_serial_handlers(val);
 			break;
 	}
 
@@ -678,11 +741,10 @@ stpc_reset(void *priv)
 
     memset(dev->regs, 0, sizeof(dev->regs));
     dev->regs[0x7b] = 0xff;
-
-    io_removehandler(0x22, 2,
-		     stpc_reg_read, NULL, NULL, stpc_reg_write, NULL, NULL, dev);
-    io_sethandler(0x22, 2,
-		  stpc_reg_read, NULL, NULL, stpc_reg_write, NULL, NULL, dev);
+    if (device_get_priv(&stpc_lpt_device))
+    	dev->regs[0x4c] |= 0x80; /* LPT strap */
+    if (stpc_serial_handlers(0))
+    	dev->regs[0x4c] |= 0x03; /* UART straps */
 }
 
 
@@ -690,6 +752,10 @@ static void
 stpc_setup(stpc_t *dev)
 {
     stpc_log("STPC: setup()\n");
+
+    /* Main register interface */
+    io_sethandler(0x22, 2,
+		  stpc_reg_read, NULL, NULL, stpc_reg_write, NULL, NULL, dev);
 
     /* Northbridge */
     if (dev->local & STPC_NB_CLIENT) {
@@ -832,6 +898,9 @@ stpc_close(void *priv)
 
     stpc_log("STPC: close()\n");
 
+    io_removehandler(0x22, 2,
+		     stpc_reg_read, NULL, NULL, stpc_reg_write, NULL, NULL, dev);
+
     free(dev);
 }
 
@@ -886,6 +955,152 @@ stpc_init(const device_t *info)
 }
 
 
+static void
+stpc_serial_close(void *priv)
+{
+    stpc_serial_t *dev = (stpc_serial_t *) priv;
+
+    stpc_log("STPC: serial_close()\n");
+
+    free(dev);
+}
+
+
+static void *
+stpc_serial_init(const device_t *info)
+{
+    stpc_log("STPC: serial_init()\n");
+
+    stpc_serial_t *dev = (stpc_serial_t *) malloc(sizeof(stpc_serial_t));
+    memset(dev, 0, sizeof(stpc_serial_t));
+
+    dev->uart[0] = device_add_inst(&ns16550_device, 1);
+    dev->uart[1] = device_add_inst(&ns16550_device, 2);
+
+    /* Initialization is performed by stpc_reset. */
+
+    return dev;
+}
+
+
+static void
+stpc_lpt_handlers(stpc_lpt_t *dev, uint8_t val)
+{
+    uint8_t old_addr = (dev->reg1 & 0x03), new_addr = (val & 0x03);
+
+    switch (old_addr) {
+    	case 0x1:
+    		lpt3_remove();
+    		break;
+
+    	case 0x2:
+    		lpt1_remove();
+    		break;
+
+    	case 0x3:
+    		lpt2_remove();
+    		break;
+    }
+
+    switch (new_addr) {
+    	case 0x1:
+    		stpc_log("STPC: Remapping parallel port to LPT3\n");
+    		lpt3_init(0x3bc);
+    		break;
+
+    	case 0x2:
+    		stpc_log("STPC: Remapping parallel port to LPT1\n");
+    		lpt1_init(0x378);
+    		break;
+
+    	case 0x3:
+    		stpc_log("STPC: Remapping parallel port to LPT2\n");
+    		lpt2_init(0x278);
+    		break;
+
+    	default:
+    		stpc_log("STPC: Disabling parallel port\n");
+    		break;
+    }
+
+    dev->reg1 = (val & 0x08);
+    dev->reg1 |= new_addr;
+    dev->reg1 |= 0x84; /* reserved bits that default to 1 - hardwired? */
+}
+
+
+static void
+stpc_lpt_write(uint16_t addr, uint8_t val, void *priv)
+{
+    stpc_lpt_t *dev = (stpc_lpt_t *) priv;
+
+    if (dev->unlocked < 2) {
+    	if (addr == 0x3f0) {
+    		if (val == 0x55)
+    			dev->unlocked++;
+    		else
+    			dev->unlocked = 0;
+    	}
+    } else if (addr == 0x3f0) {
+    	if (val == 0xaa)
+    		dev->unlocked = 0;
+	else    	
+    		dev->offset = val;
+    } else if (dev->offset == 1) {
+    	stpc_lpt_handlers(dev, val);
+    } else if (dev->offset == 4) {
+    	dev->reg4 = (val & 0x03);
+    }
+}
+
+
+static void
+stpc_lpt_reset(void *priv)
+{
+    stpc_lpt_t *dev = (stpc_lpt_t *) priv;
+
+    stpc_log("STPC: lpt_reset()\n");
+
+    dev->unlocked = 0;
+    dev->offset = 0x00;
+    dev->reg1 = 0x9f;
+    dev->reg4 = 0x00;
+    stpc_lpt_handlers(dev, dev->reg1);
+}
+
+
+static void
+stpc_lpt_close(void *priv)
+{
+    stpc_lpt_t *dev = (stpc_lpt_t *) priv;
+
+    stpc_log("STPC: lpt_close()\n");
+
+    io_removehandler(0x3f0, 2,
+		     NULL, NULL, NULL, stpc_lpt_write, NULL, NULL, dev);
+
+    free(dev);
+}
+
+
+static void *
+stpc_lpt_init(const device_t *info)
+{
+    stpc_log("STPC: lpt_init()\n");
+
+    stpc_lpt_t *dev = (stpc_lpt_t *) malloc(sizeof(stpc_lpt_t));
+    memset(dev, 0, sizeof(stpc_lpt_t));
+
+    stpc_lpt_reset(dev);
+
+    io_sethandler(0x3f0, 2,
+		  NULL, NULL, NULL, stpc_lpt_write, NULL, NULL, dev);
+
+    return dev;
+}
+
+
+/* STPC SoCs */
 const device_t stpc_client_device =
 {
     "STPC Client",
@@ -936,6 +1151,35 @@ const device_t stpc_atlas_device =
     stpc_init, 
     stpc_close, 
     stpc_reset,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+/* Auxiliary devices */
+const device_t stpc_serial_device =
+{
+    "STPC Serial UARTs",
+    0,
+    0,
+    stpc_serial_init,
+    stpc_serial_close,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+const device_t stpc_lpt_device =
+{
+    "STPC Parallel Port",
+    0,
+    0,
+    stpc_lpt_init,
+    stpc_lpt_close,
+    stpc_lpt_reset,
     NULL,
     NULL,
     NULL,
