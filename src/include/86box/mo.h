@@ -59,7 +59,8 @@ typedef struct
     int8_t supported_media[KNOWN_MO_TYPES];
 } mo_drive_type_t;
 
-static const mo_drive_type_t mo_drive_types[22] = {
+#define KNOWN_MO_DRIVE_TYPES 22
+static const mo_drive_type_t mo_drive_types[KNOWN_MO_DRIVE_TYPES] = {
     {"86BOX", "MAGNETO OPTICAL", "1.00",{1, 1, 1, 1, 1, 1, 1, 1, 1, 1}},
     {"FUJITSU", "M2512A", "1314",{1, 1, 0, 0, 0, 0, 0, 0, 0}},
     {"FUJITSU", "M2513-MCC3064SS", "1.00",{1, 1, 1, 1, 0, 0, 0, 0, 0, 0}},
@@ -117,35 +118,31 @@ typedef struct {
 } mo_drive_t;
 
 typedef struct {
-    uint8_t	id,
-		error, status,
-		phase,
-		features,
-		is_dma,
-		do_page_save,
-		unit_attention;
+  mode_sense_pages_t ms_pages_saved;
 
-    mo_drive_t	*drv;
+    mo_drive_t *drv;
 
-    uint16_t	request_length,
-		max_transfer_len;
+    uint8_t *buffer,
+	    atapi_cdb[16],
+	    current_cdb[16],
+	    sense[256];
 
-    int		requested_blocks, packet_status,
-		request_pos, old_len,
-		total_length;
+    uint8_t status, phase,
+	    error, id,
+	    features, pad0,
+	    pad1, pad2;
 
-    uint32_t	sector_pos, sector_len,
-		packet_len, pos,
-		seek_pos;
+    uint16_t request_length, max_transfer_len;
 
-    double	callback;
+    int requested_blocks, packet_status,
+    total_length, do_page_save,
+    unit_attention, request_pos,
+    old_len, pad3;
 
-    mode_sense_pages_t ms_pages_saved;
+    uint32_t sector_pos, sector_len,
+	     packet_len, pos;
 
-    uint8_t	*buffer,
-		atapi_cdb[16],
-		current_cdb[16],
-		sense[256];
+    double callback;
 } mo_t;
 
 
