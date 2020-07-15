@@ -35,6 +35,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/zip.h>
+#include <86box/mo.h>
 
 
 typedef struct
@@ -332,6 +333,11 @@ cmd640_reset(void *p)
 	    (zip_drives[i].ide_channel < 4) && zip_drives[i].priv)
 		zip_reset((scsi_common_t *) zip_drives[i].priv);
     }
+	for (i = 0; i < MO_NUM; i++) {
+	if ((mo_drives[i].bus_type == MO_BUS_ATAPI) &&
+	    (mo_drives[i].ide_channel < 4) && mo_drives[i].priv)
+		mo_reset((scsi_common_t *) mo_drives[i].priv);
+	}
 
     cmd640_set_irq(0x00, p);
     cmd640_set_irq(0x01, p);
