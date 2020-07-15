@@ -95,7 +95,7 @@ struct
 	
 	[IREG_rm_mod_reg] = {REG_DWORD, &cpu_state.rm_data.rm_mod_reg_data, REG_INTEGER, REG_PERMANENT},
 
-	[IREG_ins]    = {REG_DWORD, &cpu_state.cpu_recomp_ins, REG_INTEGER, REG_PERMANENT},
+	[IREG_acycs]  = {REG_DWORD, &acycs, 		       REG_INTEGER, REG_PERMANENT},
 	[IREG_cycles] = {REG_DWORD, &cpu_state._cycles,        REG_INTEGER, REG_PERMANENT},
 	
 	[IREG_CS_base] = {REG_DWORD, &cpu_state.seg_cs.base, REG_INTEGER, REG_PERMANENT},
@@ -180,8 +180,6 @@ struct
 	
 	[IREG_temp0d] = {REG_DOUBLE, (void *)40, REG_FP, REG_VOLATILE},
 	[IREG_temp1d] = {REG_DOUBLE, (void *)48, REG_FP, REG_VOLATILE},
-
-	[IREG_acycs]  = {REG_DWORD, &acycs,        	       REG_INTEGER, REG_PERMANENT}
 };
 
 void codegen_reg_mark_as_required()

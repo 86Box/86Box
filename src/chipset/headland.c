@@ -41,18 +41,19 @@
 
 
 typedef struct {
-    uint8_t		valid, pad;
+    uint8_t		valid, enabled;
     uint16_t		mr;
+    uint32_t		virt_base;
 
     struct headland_t *	headland;
 } headland_mr_t;
 
 
 typedef struct headland_t {
-    uint8_t		type;
+    uint8_t		revision;
 
     uint8_t		cri;
-    uint8_t		cr[8];
+    uint8_t		cr[7];
 
     uint8_t		indx;
     uint8_t		regs[256];
@@ -68,6 +69,7 @@ typedef struct headland_t {
     mem_mapping_t	ems_mapping[64];
     mem_mapping_t	mid_mapping;
     mem_mapping_t	high_mapping;
+    mem_mapping_t	shadow_mapping[2];
     mem_mapping_t	upper_mapping[24];
 } headland_t;
 
@@ -95,38 +97,51 @@ static const int mem_conf_cr1[41] = {
 static uint32_t
 get_addr(headland_t *dev, uint32_t addr, headland_mr_t *mr)
 {
+    uint32_t bank_base[4], bank_shift[4], shift, other_shift, bank;
+
+    if ((addr >= 0x0e0000) && (addr <= 0x0fffff))
+	return addr;
+    else if ((addr >= 0xfe0000) && (addr <= 0xffffff))
+	return addr & 0x0fffff;
+
+    if (dev->revision == 8) {
+	shift = (dev->cr[0] & 0x80) ? 21 : ((dev->cr[6] & 0x01) ? 23 : 19);
+	other_shift = (dev->cr[0] & 0x80) ? ((dev->cr[6] & 0x01) ? 19 : 23) : 21;
+    } else {
+	shift = (dev->cr[0] & 0x80) ? 21 : 19;
+	other_shift = (dev->cr[0] & 0x80) ? 21 : 19;
+    }
+
+    /* Bank size = 1 << (bank shift + 2) . */
+    bank_shift[0] = bank_shift[1] = shift;
+
+    bank_base[0] = 0x00000000;
+    bank_base[1] = bank_base[0] + (1 << shift);
+    bank_base[2] = bank_base[1] + (1 << shift);
+
+    if ((dev->revision > 0) && (dev->revision < 8) && (dev->cr[1] & 0x40)) {
+	bank_shift[2] = bank_shift[3] = other_shift;
+	bank_base[3] = bank_base[2] + (1 << other_shift);
+	/* First address after the memory is bank_base[3] + (1 << other_shift) */
+    } else {
+	bank_shift[2] = bank_shift[3] = shift;
+	bank_base[3] = bank_base[2] + (1 << shift);
+	/* First address after the memory is bank_base[3] + (1 << shift) */
+    }
+
     if (mr && mr->valid && (dev->cr[0] & 2) && (mr->mr & 0x200)) {
 	addr = (addr & 0x3fff) | ((mr->mr & 0x1F) << 14);
-	if (dev->cr[1] & 0x40) {
-		if ((dev->cr[4] & 0x80) && (dev->cr[6] & 1)) {
-			if (dev->cr[0] & 0x80) {
-				addr |= (mr->mr & 0x60) << 14;
-				if (mr->mr & 0x100)
-					addr += ((mr->mr & 0xC00) << 13) + (((mr->mr & 0x80) + 0x80) << 15);
-				else
-					addr += (mr->mr & 0x80) << 14;
-			} else if (mr->mr & 0x100)
-				addr += ((mr->mr & 0xC00) << 13) + (((mr->mr & 0x80) + 0x20) << 15);
-			else
-				addr += (mr->mr & 0x80) << 12;
-		} else if (dev->cr[0] & 0x80)
-			addr |= (mr->mr & 0x100) ? ((mr->mr & 0x80) + 0x400) << 12 : (mr->mr & 0xE0) << 14;
-		else
-			addr |= (mr->mr & 0x100) ? ((mr->mr & 0xE0) + 0x40) << 14 : (mr->mr & 0x80) << 12;
-	} else {
-		if ((dev->cr[4] & 0x80) && (dev->cr[6] & 1)) {
-			if (dev->cr[0] & 0x80) {
-				addr |= ((mr->mr & 0x60) << 14);
-				if (mr->mr & 0x180)
-					addr += ((mr->mr & 0xC00) << 13) + (((mr->mr & 0x180) - 0x60) << 16);
-			} else
-				addr |= ((mr->mr & 0x60) << 14) | ((mr->mr & 0x180) << 16) | ((mr->mr & 0xC00) << 13);
-		} else if (dev->cr[0] & 0x80)
-			addr |= (mr->mr & 0x1E0) << 14;
-		else
-			addr |= (mr->mr & 0x180) << 12;
-	}
-    } else if (((mr == NULL) || ((mr != NULL) && !mr->valid)) && ((dev->cr[0] & 4) == 0) && (mem_size >= 1024) && (addr >= 0x100000))
+
+	bank = (mr->mr >> 7) && 3;
+
+	if (bank_shift[bank] >= 21)
+		addr |= (mr->mr & 0x060) << 14;
+
+	if ((dev->revision == 8) && (bank_shift[bank] == 23))
+		addr |= (mr->mr & 0xc00) << 11;
+
+	addr |= bank_base[(mr->mr >> 7) & 3];
+    } else if (((mr == NULL) || !mr->valid) && (mem_size >= 1024) && (addr >= 0x100000) && ((dev->cr[0] & 4) == 0))
 	addr -= 0x60000;
 
     return addr;
@@ -136,7 +151,10 @@ get_addr(headland_t *dev, uint32_t addr, headland_mr_t *mr)
 static void
 hl_ems_disable(headland_t *dev, uint8_t mar, uint32_t base_addr, uint8_t indx)
 {
-    mem_mapping_set_exec(&dev->ems_mapping[mar & 0x3f], ram + base_addr);
+    if (base_addr < ((uint32_t)mem_size << 10))
+	mem_mapping_set_exec(&dev->ems_mapping[mar & 0x3f], ram + base_addr);
+    else
+	mem_mapping_set_exec(&dev->ems_mapping[mar & 0x3f], NULL);
     mem_mapping_disable(&dev->ems_mapping[mar & 0x3f]);
     if (indx < 24) {
 	mem_set_mem_state(base_addr, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
@@ -155,22 +173,21 @@ hl_ems_update(headland_t *dev, uint8_t mar)
     base_addr = (indx + 16) << 14;
     if (indx >= 24)
 	base_addr += 0x20000;
-    /* Do not disable unless the MAR at the correct context is locally disabled or
-       EMS is globally disabled. */
-    if (!(dev->cr[0] & 2) || !(dev->ems_mr[(mar & 0x1f) | ((dev->cr[0] & 1) << 5)].mr & 0x200))
-	hl_ems_disable(dev, mar, base_addr, indx);
-    if ((dev->cr[0] & 2) && ((dev->cr[0] & 1) == ((mar & 0x20) >> 5))) {
-	if (dev->ems_mr[mar & 0x3f].mr & 0x200) {
-		mem_set_mem_state(base_addr, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-		virt_addr = get_addr(dev, base_addr, &dev->ems_mr[mar & 0x3f]);
-		if (indx < 24)
-			mem_mapping_disable(&dev->upper_mapping[indx]);
-		if (virt_addr < ((uint32_t)mem_size << 10))
-			mem_mapping_set_exec(&dev->ems_mapping[mar & 0x3f], ram + virt_addr);
-		else
-			mem_mapping_set_exec(&dev->ems_mapping[mar & 0x3f], NULL);
-		mem_mapping_enable(&dev->ems_mapping[mar & 0x3f]);
-	}
+    hl_ems_disable(dev, mar, base_addr, indx);
+    dev->ems_mr[mar & 0x3f].enabled = 0;
+    dev->ems_mr[mar & 0x3f].virt_base = base_addr;
+    if ((dev->cr[0] & 2) && ((dev->cr[0] & 1) == ((mar & 0x20) >> 5)) && (dev->ems_mr[mar & 0x3f].mr & 0x200)) {
+	mem_set_mem_state(base_addr, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+	virt_addr = get_addr(dev, base_addr, &dev->ems_mr[mar & 0x3f]);
+	dev->ems_mr[mar & 0x3f].enabled = 1;
+	dev->ems_mr[mar & 0x3f].virt_base = virt_addr;
+	if (indx < 24)
+		mem_mapping_disable(&dev->upper_mapping[indx]);
+	if (virt_addr < ((uint32_t)mem_size << 10))
+		mem_mapping_set_exec(&dev->ems_mapping[mar & 0x3f], ram + virt_addr);
+	else
+		mem_mapping_set_exec(&dev->ems_mapping[mar & 0x3f], NULL);
+	mem_mapping_enable(&dev->ems_mapping[mar & 0x3f]);
     }
 
     flushmmucache();
@@ -182,8 +199,26 @@ set_global_EMS_state(headland_t *dev, int state)
 {
     int i;
 
-    for (i = 0; i < 64; i++)
-	hl_ems_update(dev, i);
+    for (i = 0; i < 32; i++) {
+	hl_ems_update(dev, i | (((dev->cr[0] & 0x01) << 5) ^ 0x20));
+	hl_ems_update(dev, i | ((dev->cr[0] & 0x01) << 5));
+   }
+}
+
+
+static void
+memmap_state_default(headland_t *dev, uint8_t ht_romcs)
+{
+    mem_mapping_disable(&dev->mid_mapping);
+
+    if (ht_romcs)
+	mem_set_mem_state(0x0e0000, 0x20000, MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+    else
+	mem_set_mem_state(0x0e0000, 0x20000, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+    mem_set_mem_state(0xfe0000, 0x20000, MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+
+    mem_mapping_disable(&dev->shadow_mapping[0]);
+    mem_mapping_disable(&dev->shadow_mapping[1]);
 }
 
 
@@ -192,31 +227,96 @@ memmap_state_update(headland_t *dev)
 {
     uint32_t addr;
     int i;
+    uint8_t ht_cr0 = dev->cr[0];
+    uint8_t ht_romcs = !(dev->cr[4] & 0x01);
+    if (dev->revision <= 1)
+	ht_romcs = 1;
+    if (!(dev->cr[0] & 0x04))
+	ht_cr0 &= ~0x18;
 
     for (i = 0; i < 24; i++) {
 	addr = get_addr(dev, 0x40000 + (i << 14), NULL);
 	mem_mapping_set_exec(&dev->upper_mapping[i], addr < ((uint32_t)mem_size << 10) ? ram + addr : NULL);
     }
-    // mem_set_mem_state(0xA0000, 0x40000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+
+    memmap_state_default(dev, ht_romcs);
+
     if (mem_size > 640) {
-	if ((dev->cr[0] & 4) == 0) {
-		mem_mapping_set_addr(&dev->mid_mapping, 0x100000, mem_size > 1024 ? 0x60000 : (mem_size - 640) << 10);
+	if (ht_cr0 & 0x04) {
+		mem_mapping_set_addr(&dev->mid_mapping, 0xA0000, 0x40000);
 		mem_mapping_set_exec(&dev->mid_mapping, ram + 0xA0000);
+		mem_mapping_disable(&dev->mid_mapping);
 		if (mem_size > 1024) {
-			mem_mapping_set_addr(&dev->high_mapping, 0x160000, (mem_size - 1024) << 10);
+			mem_set_mem_state((mem_size << 10), 0x60000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+			mem_mapping_set_addr(&dev->high_mapping, 0x100000, (mem_size - 1024) << 10);
 			mem_mapping_set_exec(&dev->high_mapping, ram + 0x100000);
 		}
 	} else {
-		mem_mapping_set_addr(&dev->mid_mapping, 0xA0000, mem_size > 1024 ? 0x60000 : (mem_size - 640) << 10);
+		/*	1 MB - 1 MB + 384k: RAM pointing to A0000-FFFFF
+			1 MB + 384k: Any ram pointing 1 MB onwards. */
+		/* First, do the addresses above 1 MB. */
+		mem_mapping_set_addr(&dev->mid_mapping, 0x100000, mem_size > 1024 ? 0x60000 : (mem_size - 640) << 10);
 		mem_mapping_set_exec(&dev->mid_mapping, ram + 0xA0000);
 		if (mem_size > 1024) {
-			mem_mapping_set_addr(&dev->high_mapping, 0x100000, (mem_size - 1024) << 10);
+			/* We have ram above 1 MB, we need to relocate that. */
+			mem_set_mem_state((mem_size << 10), 0x60000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+			mem_mapping_set_addr(&dev->high_mapping, 0x160000, (mem_size - 1024) << 10);
 			mem_mapping_set_exec(&dev->high_mapping, ram + 0x100000);
 		}
 	}
     }
 
-    set_global_EMS_state(dev, dev->cr[0] & 3);
+    switch (ht_cr0) {
+	case 0x18:
+		if ((mem_size << 10) > 0xe0000) {
+			mem_set_mem_state(0x0e0000, 0x20000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
+			mem_set_mem_state(0xfe0000, 0x20000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
+
+			mem_mapping_set_addr(&dev->shadow_mapping[0], 0x0e0000, 0x20000);
+			mem_mapping_set_exec(&dev->shadow_mapping[0], ram + 0xe0000);
+			mem_mapping_set_addr(&dev->shadow_mapping[1], 0xfe0000, 0x20000);
+			mem_mapping_set_exec(&dev->shadow_mapping[1], ram + 0xe0000);
+		} else {
+			mem_mapping_disable(&dev->shadow_mapping[0]);
+			mem_mapping_disable(&dev->shadow_mapping[1]);
+		}
+		break;
+	case 0x10:
+		if ((mem_size << 10) > 0xf0000) {
+			mem_set_mem_state(0x0f0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
+			mem_set_mem_state(0xff0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
+
+			mem_mapping_set_addr(&dev->shadow_mapping[0], 0x0f0000, 0x10000);
+			mem_mapping_set_exec(&dev->shadow_mapping[0], ram + 0xf0000);
+			mem_mapping_set_addr(&dev->shadow_mapping[1], 0xff0000, 0x10000);
+			mem_mapping_set_exec(&dev->shadow_mapping[1], ram + 0xf0000);
+		} else {
+			mem_mapping_disable(&dev->shadow_mapping[0]);
+			mem_mapping_disable(&dev->shadow_mapping[1]);
+		}
+		break;
+	case 0x08:
+		if ((mem_size << 10) > 0xe0000) {
+			mem_set_mem_state(0x0e0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
+			mem_set_mem_state(0xfe0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
+
+			mem_mapping_set_addr(&dev->shadow_mapping[0], 0x0e0000, 0x10000);
+			mem_mapping_set_exec(&dev->shadow_mapping[0], ram + 0xe0000);
+			mem_mapping_set_addr(&dev->shadow_mapping[1], 0xfe0000, 0x10000);
+			mem_mapping_set_exec(&dev->shadow_mapping[1], ram + 0xe0000);
+		} else {
+			mem_mapping_disable(&dev->shadow_mapping[0]);
+			mem_mapping_disable(&dev->shadow_mapping[1]);
+		}
+		break;
+	case 0x00:
+	default:
+		mem_mapping_disable(&dev->shadow_mapping[0]);
+		mem_mapping_disable(&dev->shadow_mapping[1]);
+		break;
+    }
+
+    set_global_EMS_state(dev, ht_cr0 & 3);
 }
 
 
@@ -224,32 +324,8 @@ static void
 hl_write(uint16_t addr, uint8_t val, void *priv)
 {
     headland_t *dev = (headland_t *)priv;
-    uint8_t old_val;
 
     switch(addr) {
-	case 0x0022:
-		dev->indx = val;
-		break;
-
-	case 0x0023:
-		old_val = dev->regs[dev->indx];
-
-		if ((dev->indx == 0xc1) && !is486)
-			val = 0;
-		dev->regs[dev->indx] = val;
-		if (dev->indx == 0x82) {
-			shadowbios = val & 0x10;
-			shadowbios_write = !(val & 0x10);
-			if (shadowbios)
-				mem_set_mem_state(0xf0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
-			else
-				mem_set_mem_state(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-		} else if (dev->indx == 0x87) {
-			if ((val & 1) && !(old_val & 1))
-				softresetx86();
-		}
-		break;
-
 	case 0x01ec:
 		dev->ems_mr[dev->ems_mar & 0x3f].mr = val | 0xff00;
 		hl_ems_update(dev, dev->ems_mar & 0x3f);
@@ -258,7 +334,8 @@ hl_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 
 	case 0x01ed:
-		dev->cri = val;
+		if (dev->revision > 0)
+			dev->cri = val;
 		break;
 
 	case 0x01ee:
@@ -266,12 +343,9 @@ hl_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 
 	case 0x01ef:
-		old_val = dev->cr[dev->cri];
 		switch(dev->cri) {
 			case 0:
 				dev->cr[0] = (val & 0x1f) | mem_conf_cr0[(mem_size > 640 ? mem_size : mem_size - 128) >> 9];
-				mem_set_mem_state(0xe0000, 0x10000, (val & 8 ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | MEM_WRITE_DISABLED);
-				mem_set_mem_state(0xf0000, 0x10000, (val & 0x10 ? MEM_READ_INTERNAL: MEM_READ_EXTANY) | MEM_WRITE_DISABLED);
 				memmap_state_update(dev);
 				break;
 
@@ -289,17 +363,11 @@ hl_write(uint16_t addr, uint8_t val, void *priv)
 
 			case 4:
 				dev->cr[4] = (dev->cr[4] & 0xf0) | (val & 0x0f);
-				if (val & 1) {
-					mem_mapping_set_addr(&bios_mapping, 0x000f0000, 0x10000);
-					mem_mapping_set_exec(&bios_mapping, &(rom[0x10000]));
-				} else {
-					mem_mapping_set_addr(&bios_mapping, 0x000e0000, 0x20000);
-					mem_mapping_set_exec(&bios_mapping, rom);
-				}
+				memmap_state_update(dev);
 				break;
 
 			case 6:
-				if (dev->cr[4] & 0x80) {
+				if (dev->revision == 8) {
 					dev->cr[dev->cri] = (val & 0xfe) | (mem_size > 8192 ? 1 : 0);
 					memmap_state_update(dev);
 				}
@@ -335,6 +403,14 @@ hl_writew(uint16_t addr, uint16_t val, void *priv)
 }
 
 
+static void
+hl_writel(uint16_t addr, uint32_t val, void *priv)
+{
+    hl_writew(addr, val, priv);
+    hl_writew(addr + 2, val >> 16, priv);
+}
+
+
 static uint8_t
 hl_read(uint16_t addr, void *priv)
 {
@@ -342,17 +418,6 @@ hl_read(uint16_t addr, void *priv)
     uint8_t ret = 0xff;
 
     switch(addr) {
-	case 0x0022:
-		ret = dev->indx;
-		break;
-
-	case 0x0023:
-		if ((dev->indx >= 0xc0 || dev->indx == 0x20) && cpu_iscyrix)
-			ret = 0xff; /*Don't conflict with Cyrix config registers*/
-		else
-			ret = dev->regs[dev->indx];
-		break;
-
 	case 0x01ec:
 		ret = (uint8_t)dev->ems_mr[dev->ems_mar & 0x3f].mr;
 		if (dev->ems_mar & 0x80)
@@ -360,7 +425,8 @@ hl_read(uint16_t addr, void *priv)
 		break;
 
 	case 0x01ed:
-		ret = dev->cri;
+		if (dev->revision > 0)
+			ret = dev->cri;
 		break;
 
 	case 0x01ee:
@@ -378,7 +444,7 @@ hl_read(uint16_t addr, void *priv)
 				break;
 
 			case 6:
-				if (dev->cr[4] & 0x80)
+				if (dev->revision == 8)
 					ret = (dev->cr[6] & 0xfe) | (mem_size > 8192 ? 1 : 0);
 				else
 					ret = 0;
@@ -414,6 +480,18 @@ hl_readw(uint16_t addr, void *priv)
 	default:
 		break;
     }
+
+    return ret;
+}
+
+
+static uint32_t
+hl_readl(uint16_t addr, void *priv)
+{
+    uint32_t ret = 0xffffffff;
+
+    ret = hl_readw(addr, priv);
+    ret |= (hl_readw(addr + 2, priv) << 16);
 
     return ret;
 }
@@ -518,23 +596,19 @@ headland_init(const device_t *info)
 
     dev = (headland_t *) malloc(sizeof(headland_t));
     memset(dev, 0x00, sizeof(headland_t));
-    dev->type = info->local;
 
-    ht386 = (dev->type == 32) ? 1 : 0;
+    dev->revision = info->local;
 
-    for (i = 0; i < 8; i++)
-	dev->cr[i] = 0x00;
-    dev->cr[0] = 0x04;
+    if (dev->revision > 0)
+	ht386 = 1;
 
-   if (ht386) {
-	dev->cr[4] = 0x20;
+    dev->cr[4] = dev->revision << 4;
 
+   if (ht386)
 	device_add(&port_92_inv_device);
-    } else
-	dev->cr[4] = 0x00;
 
     io_sethandler(0x01ec, 4,
-		  hl_read,hl_readw,NULL, hl_write,hl_writew,NULL, dev);
+		  hl_read,hl_readw,hl_readl, hl_write,hl_writew,hl_writel, dev);
 
     dev->null_mr.valid = 0;
     dev->null_mr.mr = 0xff;
@@ -557,11 +631,11 @@ headland_init(const device_t *info)
 		    ram, MEM_MAPPING_INTERNAL, &dev->null_mr);
 
     if (mem_size > 640) {
-	mem_mapping_add(&dev->mid_mapping, 0xa0000, 0x60000,
+	mem_mapping_add(&dev->mid_mapping, 0xa0000, 0x40000,
 			mem_read_b, mem_read_w, mem_read_l,
 			mem_write_b, mem_write_w, mem_write_l,
 			ram + 0xa0000, MEM_MAPPING_INTERNAL, &dev->null_mr);
-	mem_mapping_enable(&dev->mid_mapping);
+	mem_mapping_disable(&dev->mid_mapping);
     }
 
     if (mem_size > 1024) {
@@ -577,10 +651,26 @@ headland_init(const device_t *info)
 			0x40000 + (i << 14), 0x4000,
 			mem_read_b, mem_read_w, mem_read_l,
 			mem_write_b, mem_write_w, mem_write_l,
-			mem_size > 256 + (i << 4) ? ram + 0x40000 + (i << 14) : NULL,
+			mem_size > (256 + (i << 4)) ? (ram + 0x40000 + (i << 14)) : NULL,
 			MEM_MAPPING_INTERNAL, &dev->null_mr);
 	mem_mapping_enable(&dev->upper_mapping[i]);
     }
+
+    mem_mapping_add(&dev->shadow_mapping[0],
+		    0xe0000, 0x20000,
+		    mem_read_b, mem_read_w, mem_read_l,
+		    mem_write_b, mem_write_w, mem_write_l,
+		    ((mem_size << 10) > 0xe0000) ? (ram + 0xe0000) : NULL,
+		    MEM_MAPPING_INTERNAL, &dev->null_mr);
+    mem_mapping_disable(&dev->shadow_mapping[0]);
+
+    mem_mapping_add(&dev->shadow_mapping[1],
+		    0xfe0000, 0x20000,
+		    mem_read_b, mem_read_w, mem_read_l,
+		    mem_write_b, mem_write_w, mem_write_l,
+		    ((mem_size << 10) > 0xe0000) ? (ram + 0xe0000) : NULL,
+		    MEM_MAPPING_INTERNAL, &dev->null_mr);
+    mem_mapping_disable(&dev->shadow_mapping[1]);
 
     for (i = 0; i < 64; i++) {
 	dev->ems_mr[i].mr = 0x00;
@@ -599,8 +689,8 @@ headland_init(const device_t *info)
 }
 
 
-const device_t headland_device = {
-    "Headland 286",
+const device_t headland_gc10x_device = {
+    "Headland GC101/102/103",
     0,
     0,
     headland_init, headland_close, NULL,
@@ -608,10 +698,28 @@ const device_t headland_device = {
     NULL
 };
 
-const device_t headland_386_device = {
-    "Headland 386",
+const device_t headland_ht18a_device = {
+    "Headland HT18 Rev. A",
     0,
-    32,
+    1,
+    headland_init, headland_close, NULL,
+    NULL, NULL, NULL,
+    NULL
+};
+
+const device_t headland_ht18b_device = {
+    "Headland HT18 Rev. B",
+    0,
+    2,
+    headland_init, headland_close, NULL,
+    NULL, NULL, NULL,
+    NULL
+};
+
+const device_t headland_ht18c_device = {
+    "Headland HT18 Rev. C",
+    0,
+    8,
     headland_init, headland_close, NULL,
     NULL, NULL, NULL,
     NULL

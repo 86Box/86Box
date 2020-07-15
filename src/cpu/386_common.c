@@ -47,8 +47,6 @@ int nmi_enable = 1;
 
 int cpl_override=0;
 
-int fpucount=0;
-
 #ifdef USE_NEW_DYNAREC
 uint16_t cpu_cur_status = 0;
 #else

@@ -1010,7 +1010,10 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 						break;
                                         case 0x07:	/* Recalibrate */
 					case 0x0f:	/* Seek */
-						timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
+						if (fdc->flags & FDC_FLAG_PCJR)
+							timer_set_delay_u64(&fdc->timer, 1000 * TIMER_USEC);
+						else
+							timer_set_delay_u64(&fdc->timer, 256 * TIMER_USEC);
 						break;
 					default:
 						timer_set_delay_u64(&fdc->timer, 256 * TIMER_USEC);

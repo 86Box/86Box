@@ -41,7 +41,7 @@ enum
 	
 	IREG_rm_mod_reg = 18,
 	
-	IREG_ins = 19,
+	IREG_acycs = 19,
 	IREG_cycles = 20,
 
         IREG_CS_base = 21,
@@ -133,9 +133,7 @@ enum
         IREG_GS_limit_high = 86,
         IREG_SS_limit_high = 87,
 
-	IREG_acycs = 88,
-
-	IREG_COUNT = 89,
+	IREG_COUNT = 88,
 	
 	IREG_INVALID = 255,
 	

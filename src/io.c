@@ -26,6 +26,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/io.h>
+#include <86box/timer.h>
 #include "cpu.h"
 #include <86box/m_amstrad.h>
 

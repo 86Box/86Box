@@ -11,7 +11,7 @@ extern int	x86_was_reset, trap;
 extern int	codegen_flat_ss, codegen_flat_ds;
 extern int	timetolive, keyboardtimer, trap;
 extern int	optype, stack32;
-extern int	oldcpl, cgate32, cpl_override, fpucount;
+extern int	oldcpl, cgate32, cpl_override;
 extern int	nmi_enable;
 extern int	oddeven, inttype;
 

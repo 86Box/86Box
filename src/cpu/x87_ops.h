@@ -431,7 +431,6 @@ typedef union
 
 #ifdef FPU_8087
 #define FP_ENTER() {			\
-		fpucount++;		\
 	}
 #else
 #define FP_ENTER() do                   \
@@ -441,7 +440,6 @@ typedef union
                         x86_int(7);     \
                         return 1;       \
                 }                       \
-                fpucount++;             \
         } while (0)
 #endif
 

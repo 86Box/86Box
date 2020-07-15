@@ -9,7 +9,7 @@ typedef struct PIC {
 
 
 extern PIC	pic, pic2;
-extern int	pic_intpending;
+extern int	pic_intpending, pic_pending;
 
 
 extern void	pic_set_shadow(int sh);

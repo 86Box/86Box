@@ -110,7 +110,7 @@ typedef struct {
 typedef struct {
     const char *name;
     int        cpu_type;
-	const FPU  *fpus;
+    const FPU  *fpus;
     int        rspeed;
     double     multi;
     uint32_t   edx_reset;
@@ -210,14 +210,11 @@ typedef union {
 } x86reg;
 
 typedef struct {
-    uint32_t	base;
-    uint32_t	limit;
-    uint8_t	access;
-    uint8_t	ar_high;
+    uint8_t	access, ar_high;
+    int8_t	checked; /*Non-zero if selector is known to be valid*/
     uint16_t	seg;
-    uint32_t	limit_low,
-		limit_high;
-    int		checked; /*Non-zero if selector is known to be valid*/
+    uint32_t	base, limit,
+		limit_low, limit_high;
 } x86seg;
 
 typedef union {
@@ -250,19 +247,24 @@ typedef struct {
 
     uint8_t	tag[8];
 
+    int8_t	ssegs, ismmx,
+		abrt, pad;
+
+    uint16_t	npxs, npxc, flags, eflags,
+		old_npxc, new_npxc;
+
+    uint16_t	MM_w4[8];
+
+    int		_cycles,
+		flags_op, TOP;
+
+    uint32_t	flags_res,
+		flags_op1, flags_op2,
+		pc, oldpc, eaaddr, op32;
+
+    cr0_t	CR0;
+
     x86seg	*ea_seg;
-    uint32_t	eaaddr;
-
-    int		flags_op;
-    uint32_t	flags_res;
-    uint32_t	flags_op1,
-		flags_op2;
-
-    uint32_t	pc;
-    uint32_t	oldpc;
-    uint32_t	op32;  
-
-    int		TOP;
 
     union {
 	struct {
@@ -273,25 +275,9 @@ typedef struct {
 	int32_t		rm_mod_reg_data;
     }		rm_data;
 
-    int8_t	ssegs;
-    int8_t	ismmx;
-    int8_t	abrt;
-
-    int		_cycles;
-    int		cpu_recomp_ins;
-
-    uint16_t	npxs,
-		npxc;
-
     double	ST[8];
 
-    uint16_t	MM_w4[8];
-
     MMX_REG	MM[8];
-
-    uint16_t	old_npxc,
-		new_npxc;
-    uint32_t	last_ea;
 
 #ifdef USE_NEW_DYNAREC
     uint32_t	old_fp_control, new_fp_control;
@@ -303,16 +289,8 @@ typedef struct {
 #endif
 #endif
 
-    x86seg	seg_cs,
-		seg_ds,
-		seg_es,
-		seg_ss,
-		seg_fs,
-		seg_gs;
-
-    uint16_t flags, eflags;
-
-    cr0_t CR0;
+    x86seg	seg_cs, seg_ds, seg_es, seg_ss,
+		seg_fs, seg_gs;
 } cpu_state_t;
 
 /*The cpu_state.flags below must match in both cpu_cur_status and block->status for a block
@@ -345,7 +323,7 @@ typedef struct {
 # endif
 #endif
 
-COMPILE_TIME_ASSERT(sizeof(cpu_state) <= 128)
+COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 
 #define cpu_state_offset(MEMBER) ((uint8_t)((uintptr_t)&cpu_state.MEMBER - (uintptr_t)&cpu_state - 128))
 
@@ -425,19 +403,14 @@ extern uint32_t		cpu_cur_status;
 extern uint64_t		cpu_CR4_mask;
 extern uint64_t		tsc;
 extern msr_t		msr;
-extern cpu_state_t  cpu_state;
+extern cpu_state_t	cpu_state;
 extern uint8_t		opcode;
-extern int		insc;
-extern int		fpucount;
-extern float		mips,flops;
-extern int		clockrate;
 extern int		cgate16;
 extern int		cpl_override;
 extern int		CPUID;
-extern uint64_t xt_cpu_multi;
+extern uint64_t		xt_cpu_multi;
 extern int		isa_cycles;
 extern uint32_t		oldds,oldss,olddslimit,oldsslimit,olddslimitw,oldsslimitw;
-extern int		ins,output;
 extern uint32_t		pccache;
 extern uint8_t		*pccache2;
 
@@ -503,7 +476,7 @@ extern int	timing_misaligned;
 extern int	in_sys, unmask_a20_in_smm;
 extern uint32_t	old_rammask;
 
-extern int	acycs;
+extern int	acycs, pic_pending;
 
 extern uint16_t	cpu_fast_off_count, cpu_fast_off_val;
 extern uint32_t	cpu_fast_off_flags;
@@ -600,7 +573,5 @@ extern int	fpu_get_type(int machine, int cpu_manufacturer, int cpu, const char *
 extern const	char *fpu_get_internal_name(int machine, int cpu_manufacturer, int cpu, int type);
 extern const	char *fpu_get_name_from_index(int machine, int cpu_manufacturer, int cpu, int c);
 extern int	fpu_get_type_from_index(int machine, int cpu_manufacturer, int cpu, int c);
-
-extern int	int_check();
 
 #endif	/*EMU_CPU_H*/
