@@ -39,7 +39,8 @@
 #define  DLG_CFG_HARD_DISKS	118	/* sub-dialog of config */
 #define  DLG_CFG_HARD_DISKS_ADD	119	/* sub-dialog of config */
 #define  DLG_CFG_FLOPPY_DRIVES	120	/* sub-dialog of config */
-#define  DLG_CFG_OTHER_REMOVABLE_DEVICES	121	/* sub-dialog of config */
+#define  DLG_CFG_CDROM_DRIVES	121	/* sub-dialog of config */
+#define  DLG_CFG_OTHER_REMOVABLE_DEVICES	122	/* sub-dialog of config */
 
 /* Static text label IDs. */
 #define IDT_1700		1700	/* Language: */
@@ -100,6 +101,11 @@
 #define IDT_1766		1766	/* Board #4: */
 #define IDT_1767		1767	/* ISA RTC: */
 #define IDT_1768		1768	/* Ext FD Controller: */
+#define IDT_1769        1769    /* MO drives: */
+#define IDT_1770        1770    /* Bus: */
+#define IDT_1771        1771    /* ID: */
+#define IDT_1772        1772    /* Channel */
+#define IDT_1773        1773    /* Type: */
 
 
 /*
@@ -236,6 +242,7 @@
 #define IDC_COMBO_MO_ID		1189
 #define IDC_COMBO_MO_LUN	1191
 #define IDC_COMBO_MO_CHANNEL_IDE 1192
+#define IDC_COMBO_MO_TYPE  1193
 
 #define IDC_SLIDER_GAIN		1190	/* sound gain dialog */
 
