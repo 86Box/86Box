@@ -634,7 +634,6 @@ machine_at_itoxstar_init(const machine_t *model)
     device_add(&w83977f_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_client_device);
-    device_add(&ide_vlb_device);
     device_add(&sst_flash_29ee020_device);
 
     hwm_values_t machine_hwm = {
@@ -683,7 +682,6 @@ machine_at_arb1479_init(const machine_t *model)
     device_add(&w83977f_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_consumer2_device);
-    device_add(&ide_vlb_2ch_device);
     device_add(&sst_flash_29ee020_device);
 
     return ret;
@@ -709,10 +707,10 @@ machine_at_pcm9340_init(const machine_t *model)
     pci_register_slot(0x1D, PCI_CARD_NORMAL, 4, 1, 2, 3);
     pci_register_slot(0x1E, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x1F, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    device_add(&w83977f_device);
+    device_add_inst(&w83977f_device, 1);
+    device_add_inst(&w83977f_device, 2);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_elite_device);
-    device_add(&ide_vlb_device);
     device_add(&sst_flash_29ee020_device);
 
     return ret;
@@ -738,10 +736,10 @@ machine_at_pcm5330_init(const machine_t *model)
     pci_register_slot(0x0D, PCI_CARD_SPECIAL, 0, 0, 0, 0);
     pci_register_slot(0x0E, PCI_CARD_SPECIAL, 1, 2, 3, 4);
     pci_register_slot(0x13, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    device_add(&stpc_serial_device);
     device_add(&w83977f_370_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_atlas_device);
-    device_add(&ide_vlb_device);
     device_add(&sst_flash_29ee020_device);
 
     return ret;
