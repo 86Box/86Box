@@ -232,7 +232,7 @@ extern pc_timer_t *	timer_head;
 extern int		timer_inited;
 
 
-__inline void
+static __inline void
 timer_remove_head_inline(void)
 {
     pc_timer_t *timer;
@@ -250,7 +250,7 @@ timer_remove_head_inline(void)
 }
 
 
-__inline void
+static __inline void
 timer_process_inline(void)
 {
     pc_timer_t *timer;
