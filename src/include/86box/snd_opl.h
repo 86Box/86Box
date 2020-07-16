@@ -5,8 +5,7 @@ typedef struct opl_t
 {
     int		pos, chip_nr[2];
 
-    int32_t	filtbuf[2],
-		buffer[SOUNDBUFLEN * 2],
+    int32_t	buffer[SOUNDBUFLEN * 2],
 		buffer2[SOUNDBUFLEN * 2];
 
     pc_timer_t	timers[2][2];
