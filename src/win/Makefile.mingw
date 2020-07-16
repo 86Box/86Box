@@ -218,17 +218,17 @@ ifndef NEW_DYNAREC
  NEW_DYNAREC	:= n
 endif
 ifndef DYNAREC
- DYNAREC		:= y
+ DYNAREC	:= y
 endif
 ifeq ($(DYNAREC), y)
  ifeq ($(ARM), y)
   ifeq ($(NEW_DYNAREC), n)
-   DYNAREC		:= n
+   DYNAREC	:= n
   endif
  endif
  ifeq ($(ARM64), y)
   ifeq ($(NEW_DYNAREC), n)
-   DYNAREC		:= n
+   DYNAREC	:= n
   endif
  endif
 endif
@@ -311,13 +311,13 @@ ifeq ($(ARM64), y)
 CPP		:= aarch64-w64-mingw32-g++
 CC		:= aarch64-w64-mingw32-gcc
 WINDRES		:= aarch64-w64-mingw32-windres
-STRIP := aarch64-w64-mingw32-strip
+STRIP		:= aarch64-w64-mingw32-strip
 endif
 ifeq ($(ARM), y)
 CPP		:= armv7-w64-mingw32-g++
 CC		:= armv7-w64-mingw32-gcc
 WINDRES		:= armv7-w64-mingw32-windres
-STRIP := armv7-w64-mingw32-strip
+STRIP		:= armv7-w64-mingw32-strip
 endif
 DEPS		= -MMD -MF $*.d -c $<
 DEPFILE		:= win/.depends
@@ -366,13 +366,13 @@ else
 endif
 AFLAGS		:= -msse2 -mfpmath=sse
 ifeq ($(ARM), y)
- DFLAGS	  := -march=armv7-a
- AOPTIM	  :=
+ DFLAGS		:= -march=armv7-a
+ AOPTIM		:=
  AFLAGS		:= -mfloat-abi=hard
 endif
 ifeq ($(ARM64), y)
- DFLAGS	  := -march=armv8-a
- AOPTIM	  :=
+ DFLAGS		:= -march=armv8-a
+ AOPTIM		:=
  AFLAGS		:= -mfloat-abi=hard
 endif
 RFLAGS		:= --input-format=rc -O coff -Iinclude
@@ -383,6 +383,10 @@ endif
 ifeq ($(VRAMDUMP), y)
 OPTS		+= -DENABLE_VRAM_DUMP
 RFLAGS		+= -DENABLE_VRAM_DUMP
+endif
+ifeq ($(NOHOOK), y)
+OPTS		+= -DNO_KEYBOARD_HOOK
+RFLAGS		+= -DNO_KEYBOARD_HOOK
 endif
 
 

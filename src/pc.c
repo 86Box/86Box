@@ -67,6 +67,7 @@
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
 #include <86box/zip.h>
+#include <86box/mo.h>
 #include <86box/scsi_disk.h>
 #include <86box/cdrom_image.h>
 #include <86box/network.h>
@@ -519,6 +520,7 @@ usage:
     mouse_init();
     cdrom_global_init();
     zip_global_init();
+    mo_global_init();
 
     /* Load the configuration file. */
     config_load();
@@ -705,6 +707,8 @@ pc_reset_hard_close(void)
 
     zip_close();
 
+    mo_close();
+
     scsi_disk_close();
 
     closeal();
@@ -786,6 +790,8 @@ pc_reset_hard_init(void)
     cdrom_hard_reset();
 
     zip_hard_reset();
+
+    mo_hard_reset();
 
     scsi_disk_hard_reset();
 
@@ -887,6 +893,8 @@ pc_close(thread_t *ptr)
     cdrom_close();
 
     zip_close();
+
+    mo_close();
 
     scsi_disk_close();
 }

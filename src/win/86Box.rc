@@ -627,7 +627,7 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,196,86,64,10
 END
 
-DLG_CFG_OTHER_REMOVABLE_DEVICES DIALOG DISCARDABLE  97, 0, 267, 221
+DLG_CFG_CDROM_DRIVES DIALOG DISCARDABLE 97, 0, 267, 150
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
@@ -647,6 +647,30 @@ BEGIN
     COMBOBOX        IDC_COMBO_CD_SPEED,33,105,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Speed:",IDT_1758,7,107,24,8
+END
+
+DLG_CFG_OTHER_REMOVABLE_DEVICES DIALOG DISCARDABLE  97, 0, 267, 221
+STYLE DS_CONTROL | WS_CHILD
+FONT 9, "Segoe UI"
+BEGIN
+
+    CONTROL         "List1",IDC_LIST_MO_DRIVES,"SysListView32",LVS_REPORT | 
+                    LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
+                    WS_TABSTOP,7,18,253,60
+    LTEXT           "MO drives:",IDT_1769,7,7,50,8
+    COMBOBOX        IDC_COMBO_MO_BUS,33,85,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Bus:",IDT_1770,7,87,24,8
+    COMBOBOX        IDC_COMBO_MO_ID,170,85,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "ID:",IDT_1771,131,87,38,8
+    COMBOBOX        IDC_COMBO_MO_CHANNEL_IDE,170,85,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Channel:",IDT_1772,131,87,38,8
+    COMBOBOX        IDC_COMBO_MO_TYPE,33,105,120,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Type:",IDT_1773,7,107,24,8
+
     CONTROL         "List1",IDC_LIST_ZIP_DRIVES,"SysListView32",LVS_REPORT | 
                     LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
                     WS_TABSTOP,7,137,253,60
@@ -654,7 +678,7 @@ BEGIN
     COMBOBOX        IDC_COMBO_ZIP_BUS,23,204,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Bus:",IDT_1753,7,206,14,8
-    COMBOBOX        IDC_COMBO_ZIP_ID,139,204,61,12,CBS_DROPDOWNLIST | 
+    COMBOBOX        IDC_COMBO_ZIP_ID,149,204,61,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "ID:",IDT_1754,120,206,28,8
     COMBOBOX        IDC_COMBO_ZIP_CHANNEL_IDE,149,204,61,12,CBS_DROPDOWNLIST | 
@@ -708,8 +732,8 @@ END
 161                     ICON    DISCARDABLE     "win/icons/cdrom_empty_active.ico"
 176                     ICON    DISCARDABLE     "win/icons/zip_empty.ico"
 177                     ICON    DISCARDABLE     "win/icons/zip_empty_active.ico"
-183                     ICON    DISCARDABLE     "win/icons/mo_empty.ico"
-184                     ICON    DISCARDABLE     "win/icons/mo_empty_active.ico"
+184                     ICON    DISCARDABLE     "win/icons/mo_empty.ico"
+185                     ICON    DISCARDABLE     "win/icons/mo_empty_active.ico"
 240                     ICON    DISCARDABLE     "win/icons/machine.ico"
 241                     ICON    DISCARDABLE     "win/icons/display.ico"
 242                     ICON    DISCARDABLE     "win/icons/input_devices.ico"
@@ -955,7 +979,7 @@ BEGIN
     IDS_2112	"Are you sure you want to hard reset the emulated machine?"
     IDS_2113	"Are you sure you want to exit 86Box?"
     IDS_2114	"Unable to initialize Ghostscript"
-    IDS_2115	"MO %i (%03i): %ls"
+    IDS_2115	"MO %i (%ls): %ls"
     IDS_2116	"MO images (*.IM?)\0*.IM?\0All files (*.*)\0*.*\0"
     IDS_2117	"Welcome to 86Box!"
     IDS_2118	"Internal controller"
@@ -999,6 +1023,7 @@ BEGIN
     IDS_2136	"Don't Exit"
     IDS_2137	"Reset"
     IDS_2138	"Don't Reset"
+    IDS_2139	"CD-ROM drives"
 END
 
 STRINGTABLE DISCARDABLE 

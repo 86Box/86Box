@@ -22,7 +22,7 @@
 #include <stddef.h>
 
 #ifdef USE_NEW_DYNAREC
-#define readmemb(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV)?readmembl((s)+(a)): *(uint8_t *)(readlookup2[(uint32_t)((s)+(a))>>12] + (uintptr_t)((s) + (a))) )
+#define readmemb(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV)?readmembl((s)+(a)): *(uint8_t *)(readlookup2[(uint32_t)((s)+(a))>>12] + (uintptr_t)((s) + (a))))
 #define readmemw(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (((s)+(a)) & 1))?readmemwl((s)+(a)):*(uint16_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uintptr_t)((s)+(a))))
 #define readmeml(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (((s)+(a)) & 3))?readmemll((s)+(a)):*(uint32_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uintptr_t)((s)+(a))))
 #define readmemq(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (((s)+(a)) & 7))?readmemql((s)+(a)):*(uint64_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uintptr_t)((s)+(a))))

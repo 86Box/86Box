@@ -579,7 +579,11 @@ mem_addr_translate(uint32_t addr, uint32_t chunk_start, uint32_t len)
 void
 addreadlookup(uint32_t virt, uint32_t phys)
 {
+#if (defined __amd64__ || defined _M_X64)
+    uint64_t a;
+#else
     uint32_t a;
+#endif
 
     if (virt == 0xffffffff) return;
 
@@ -588,7 +592,11 @@ addreadlookup(uint32_t virt, uint32_t phys)
     if (readlookup[readlnext] != (int) 0xffffffff)
 	readlookup2[readlookup[readlnext]] = LOOKUP_INV;
 
-    a = (uintptr_t)(phys & ~0xfff) - (uintptr_t)(virt & ~0xfff);
+#if (defined __amd64__ || defined _M_X64)
+    a = ((uint64_t)(phys & ~0xfff) - (uint64_t)(virt & ~0xfff));
+#else
+    a = ((uint32_t)(phys & ~0xfff) - (uint32_t)(virt & ~0xfff));
+#endif
 
     if ((phys & ~0xfff) >= (1 << 30))
 	readlookup2[virt>>12] = (uintptr_t)&ram2[a - (1 << 30)];
@@ -606,7 +614,11 @@ addreadlookup(uint32_t virt, uint32_t phys)
 void
 addwritelookup(uint32_t virt, uint32_t phys)
 {
+#if (defined __amd64__ || defined _M_X64)
+    uint64_t a;
+#else
     uint32_t a;
+#endif
 
     if (virt == 0xffffffff) return;
 
@@ -632,7 +644,11 @@ addwritelookup(uint32_t virt, uint32_t phys)
 #endif
 	page_lookup[virt >> 12] = &pages[phys >> 12];
     else {
-	a = (uintptr_t)(phys & ~0xfff) - (uintptr_t)(virt & ~0xfff);
+#if (defined __amd64__ || defined _M_X64)
+	a = ((uint64_t)(phys & ~0xfff) - (uint64_t)(virt & ~0xfff));
+#else
+	a = ((uint32_t)(phys & ~0xfff) - (uint32_t)(virt & ~0xfff));
+#endif
 
 	if ((phys & ~0xfff) >= (1 << 30))
 		writelookup2[virt>>12] = (uintptr_t)&ram2[a - (1 << 30)];
@@ -2530,22 +2546,31 @@ mem_reset(void)
 	free(ram);
 	ram = NULL;
     }
+#if (defined __amd64__ || defined _M_X64)
     if (ram2 != NULL) {
 	free(ram2);
 	ram2 = NULL;
     }
+#endif
     if (mem_size > 2097152)
 	fatal("Attempting to use more than 2 GB of guest RAM\n");
 
+#if (defined __amd64__ || defined _M_X64)
     if (mem_size > 1048576) {
 	ram = (uint8_t *)malloc(1 << 30);		/* allocate and clear the RAM block of the first 1 GB */
-	memset(ram, 0x00, 1 << 30);
+	memset(ram, 0x00, (1 << 30));
 	ram2 = (uint8_t *)malloc(m - (1 << 30));	/* allocate and clear the RAM block above 1 GB */
 	memset(ram2, 0x00, m - (1 << 30));
     } else {
 	ram = (uint8_t *)malloc(m);		/* allocate and clear the RAM block */
 	memset(ram, 0x00, m);
     }
+#else
+    ram = (uint8_t *)malloc(m);		/* allocate and clear the RAM block */
+    memset(ram, 0x00, m);
+    if (mem_size > 1048576)
+    	ram2 = &(ram[1 << 30]);
+#endif
 
     /*
      * Allocate the page table based on how much RAM we have.

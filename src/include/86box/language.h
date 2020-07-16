@@ -112,6 +112,7 @@
 #define IDS_2136	2136		// "Don't Exit"
 #define IDS_2137	2137		// "Reset"
 #define IDS_2138	2138		// "Don't Reset"
+#define IDS_2139	2139		// "CD-ROM drives"
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
@@ -198,7 +199,7 @@
 
 #define IDS_LANG_ENUS	IDS_7168
 
-#define STR_NUM_2048	71
+#define STR_NUM_2048	92
 #define STR_NUM_3072	11
 #define STR_NUM_4096	18
 #define STR_NUM_4352	7
