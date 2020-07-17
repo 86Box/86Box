@@ -1030,27 +1030,14 @@ static void OPL3_ChannelSet4Op(struct opl3_chip *chip, Bit8u data)
     }
 }
 
-static Bit16s OPL3_ClipSample(Bit32s sample)
-{
-    if (sample > 32767)
-    {
-        sample = 32767;
-    }
-    else if (sample < -32768)
-    {
-        sample = -32768;
-    }
-    return (Bit16s)sample;
-}
-
-void OPL3_Generate(struct opl3_chip *chip, Bit16s *buf)
+void OPL3_Generate(struct opl3_chip *chip, Bit32s *buf)
 {
     Bit8u ii;
     Bit8u jj;
     Bit16s accm;
     Bit8u shift = 0;
 
-    buf[1] = OPL3_ClipSample(chip->mixbuff[1]);
+    buf[1] = chip->mixbuff[1];
 
     for (ii = 0; ii < 15; ii++)
     {
@@ -1079,7 +1066,7 @@ void OPL3_Generate(struct opl3_chip *chip, Bit16s *buf)
         OPL3_SlotGenerate(&chip->slot[ii]);
     }
 
-    buf[0] = OPL3_ClipSample(chip->mixbuff[0]);
+    buf[0] = chip->mixbuff[0];
 
     for (ii = 18; ii < 33; ii++)
     {

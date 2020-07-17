@@ -131,8 +131,8 @@ struct opl3_chip {
     //OPL3L
     Bit32s rateratio;
     Bit32s samplecnt;
-    Bit16s oldsamples[2];
-    Bit16s samples[2];
+    Bit32s oldsamples[2];
+    Bit32s samples[2];
 
     Bit64u writebuf_samplecnt;
     Bit32u writebuf_cur;
@@ -141,7 +141,7 @@ struct opl3_chip {
     struct opl3_writebuf writebuf[OPL_WRITEBUF_SIZE];
 };
 
-void OPL3_Generate(struct opl3_chip *chip, Bit16s *buf);
+void OPL3_Generate(struct opl3_chip *chip, Bit32s *buf);
 void OPL3_GenerateResampled(struct opl3_chip *chip, Bit32s *buf);
 void OPL3_Reset(struct opl3_chip *chip, Bit32u samplerate);
 Bit32u OPL3_WriteAddr(struct opl3_chip *chip, Bit32u port, Bit8u val);
