@@ -256,6 +256,8 @@ extern int	machine_at_micronics386_init(const machine_t *);
 
 extern int	machine_at_rycleopardlx_init(const machine_t *);
 
+extern int	machine_at_486vchd_init(const machine_t *);
+
 extern int	machine_at_pb410a_init(const machine_t *);
 
 extern int	machine_at_acera1g_init(const machine_t *);
@@ -287,6 +289,10 @@ extern int	machine_at_itoxstar_init(const machine_t *);
 extern int	machine_at_arb1479_init(const machine_t *);
 extern int	machine_at_pcm9340_init(const machine_t *);
 extern int	machine_at_pcm5330_init(const machine_t *);
+#endif
+
+#if defined(DEV_BRANCH) && defined(NO_SIO)
+extern int	machine_at_486vipio2_init(const machine_t *);
 #endif
 
 #ifdef EMU_DEVICE_H
