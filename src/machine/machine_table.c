@@ -239,7 +239,7 @@ const machine_t machines[] = {
 #endif
 
 #if defined(DEV_BRANCH) && defined(NO_SIO)
-    { "[VIA VT82C496G] FIC VIP-IO2",		"486vipio2",		MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_PS2 | MACHINE_AT | MACHINE_HDC,			  1,  128,   1, 255,		 machine_at_486vipio2_init, NULL			},
+    { "[VIA VT82C496G] FIC VIP-IO2",		"486vipio2",		MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,			  1,  128,   1, 255,		 machine_at_486vipio2_init, NULL			},
 #endif
 
     /* Socket 4 machines */
