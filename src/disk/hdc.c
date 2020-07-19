@@ -87,7 +87,7 @@ inthdc_close(void *priv)
 
 
 static const device_t inthdc_device = {
-    "Internal Controller", 0, 0,
+    "Internal controller", 0, 0,
     inthdc_init, inthdc_close, NULL,
     NULL, NULL, NULL, NULL
 };
@@ -101,7 +101,7 @@ static const struct {
     { "None",						"none",		
       &null_device			},
 
-    { "Internal Controller",				"internal",
+    { "Internal controller",				"internal",
       &inthdc_device			},
 
     { "[ISA] [MFM] IBM PC Fixed Disk Adapter",		"st506_xt",
