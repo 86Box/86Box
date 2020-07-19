@@ -41,8 +41,6 @@ typedef struct
 	regs[256];
 } vt82c49x_t;
 
-#define ENABLE_VT82C49X_LOG 1
-
 #ifdef ENABLE_VT82C49X_LOG
 int vt82c49x_do_log = ENABLE_VT82C49X_LOG;
 static void
