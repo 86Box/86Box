@@ -526,13 +526,13 @@ create_mo_sector_image(WCHAR *file_name, int8_t disk_size, uint8_t is_mdi, HWND 
     HWND h;
     FILE *f;
     const mo_type_t *dp = &mo_types[disk_size];
-    uint8_t *empty;
-    uint32_t total_size = 0;
+    uint8_t *empty, *empty2 = NULL;
+    uint32_t total_size = 0, total_size2;
     uint32_t total_sectors = 0;
     uint32_t sector_bytes = 0;
     uint16_t base = 0x1000;
-    uint32_t pbar_max = 0;
-    uint32_t i;
+    uint32_t pbar_max = 0, blocks_num;
+    uint32_t i, j;
     MSG msg;
     
     f = plat_fopen(file_name, L"wb");
@@ -543,11 +543,18 @@ create_mo_sector_image(WCHAR *file_name, int8_t disk_size, uint8_t is_mdi, HWND 
     total_sectors = dp->sectors;
     total_size = total_sectors * sector_bytes;
 
+    total_size2 = (total_size >> 20) << 20;
+    total_size = total_size - total_size2;
+
     pbar_max = total_size;
+    pbar_max >>= 20;
+    blocks_num = pbar_max;
     if (is_mdi)
-	pbar_max += base;
-    pbar_max >>= 11;
-    pbar_max--;
+	pbar_max++;
+    if (total_size2 == 0)
+	pbar_max++;
+
+    j = is_mdi ? 1 : 0;
 
     h = GetDlgItem(hwnd, IDC_COMBO_RPM_MODE);
     EnableWindow(h, FALSE);
@@ -556,7 +563,7 @@ create_mo_sector_image(WCHAR *file_name, int8_t disk_size, uint8_t is_mdi, HWND 
     EnableWindow(h, FALSE);
     ShowWindow(h, SW_HIDE);
     h = GetDlgItem(hwnd, IDC_PBAR_IMG_CREATE);
-    SendMessage(h, PBM_SETRANGE32, (WPARAM) 0, (LPARAM) pbar_max);
+    SendMessage(h, PBM_SETRANGE32, (WPARAM) 0, (LPARAM) pbar_max - 1);
     SendMessage(h, PBM_SETPOS, (WPARAM) 0, (LPARAM) 0);
     EnableWindow(h, TRUE);
     ShowWindow(h, SW_SHOW);
@@ -565,7 +572,6 @@ create_mo_sector_image(WCHAR *file_name, int8_t disk_size, uint8_t is_mdi, HWND 
     ShowWindow(h, SW_SHOW);
 
     h = GetDlgItem(hwnd, IDC_PBAR_IMG_CREATE);
-    pbar_max++;
 
     if (is_mdi) {
 	empty = (unsigned char *) malloc(base);
@@ -589,22 +595,7 @@ create_mo_sector_image(WCHAR *file_name, int8_t disk_size, uint8_t is_mdi, HWND 
 	fwrite(&empty[0x0800], 1, 2048, f);
 	free(empty);
 
-	SendMessage(h, PBM_SETPOS, (WPARAM) 2, (LPARAM) 0);
-
-	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
-		TranslateMessage(&msg); 
-		DispatchMessage(&msg); 
-	}
-
-	pbar_max -= 2;
-    }
-
-    empty = (unsigned char *) malloc(2048);
-    memset(empty, 0x00, 2048);
-
-    for (i = 0; i < pbar_max; i++) {
-	fwrite(empty, 1, 2048, f);
-	SendMessage(h, PBM_SETPOS, (WPARAM) i + 2, (LPARAM) 0);
+	SendMessage(h, PBM_SETPOS, (WPARAM) 1, (LPARAM) 0);
 
 	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
 		TranslateMessage(&msg); 
@@ -612,6 +603,38 @@ create_mo_sector_image(WCHAR *file_name, int8_t disk_size, uint8_t is_mdi, HWND 
 	}
     }
 
+    empty = (unsigned char *) malloc(1048576);
+    memset(empty, 0x00, 1048576);
+
+    if (total_size2 > 0) {
+	empty2 = (unsigned char *) malloc(total_size2);
+	memset(empty, 0x00, total_size2);
+    }
+
+    for (i = 0; i < blocks_num; i++) {
+	fwrite(empty, 1, 1048576, f);
+
+	SendMessage(h, PBM_SETPOS, (WPARAM) i + j, (LPARAM) 0);
+
+	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
+		TranslateMessage(&msg); 
+		DispatchMessage(&msg); 
+	}
+    }
+
+    if (total_size2 > 0) {
+	fwrite(empty2, 1, total_size2, f);
+
+	SendMessage(h, PBM_SETPOS, (WPARAM) pbar_max - 1, (LPARAM) 0);
+
+	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
+		TranslateMessage(&msg); 
+		DispatchMessage(&msg); 
+	}
+    }
+
+    if (empty2 != NULL)
+	free(empty2);
     free(empty);
 
     fclose(f);
