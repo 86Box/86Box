@@ -616,7 +616,7 @@ CPUOBJ		:= cpu.o cpu_table.o \
 
 CHIPSETOBJ	:= acc2168.o cs8230.o ali1429.o headland.o i82335.o \
 		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
-		    neat.o opti495.o opti895.o opti5x7.o scamp.o scat.o \
+		    neat.o opti495.o opti895.o opti5x7.o scamp.o scat.o via_vt82c49x.o via_vt82c505.o \
 		    sis_85c310.o sis_85c471.o sis_85c496.o opti283.o opti291.o $(STPCOBJ) \
 		    via_apollo.o via_vpx.o via_vt82c586b.o via_vt82c596b.o wd76c10.o vl82c480.o \
 			amd640.o
@@ -702,8 +702,7 @@ PRINTOBJ	:= png.o prt_cpmap.o \
 			
 SNDOBJ		:= sound.o \
 		    openal.o \
-		    snd_opl.o snd_opl_backend.o \
-		    nukedopl.o \
+		    snd_opl.o snd_opl_nuked.o \
 		    snd_resid.o \
 		     convolve.o convolve-sse.o envelope.o extfilt.o \
 		     filter.o pot.o sid.o voice.o wave6581__ST.o \

@@ -30,6 +30,7 @@
 #include <86box/random.h>
 #include <86box/ui.h>
 #include <86box/scsi_device.h>
+#include <86box/mo.h>
 #include <86box/zip.h>
 #include <86box/win.h>
 
@@ -173,6 +174,7 @@ create_86f(WCHAR *file_name, disk_size_t disk_size, uint8_t rpm_mode)
 
 
 static int	is_zip;
+static int	is_mo;
 
 
 static int
@@ -204,7 +206,7 @@ create_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_fdi)
     fat2_offs = fat1_offs + fat_size;
     zero_bytes = fat2_offs + fat_size + root_dir_bytes;
 
-    if (!is_zip && is_fdi) {
+    if (!is_zip && !is_mo && is_fdi) {
 	empty = (unsigned char *) malloc(base);
 	memset(empty, 0, base);
 
@@ -222,7 +224,7 @@ create_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_fdi)
     empty = (unsigned char *) malloc(total_size);
     memset(empty, 0x00, zero_bytes);
 
-    if (!is_zip) {
+    if (!is_zip && !is_mo) {
 	memset(empty + zero_bytes, 0xF6, total_size - zero_bytes);
 
 	empty[0x00] = 0xEB;			/* Jump to make MS-DOS happy. */
@@ -352,10 +354,21 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
 	fwrite(empty, 1, 2048, f);
 	SendMessage(h, PBM_SETPOS, (WPARAM) 1, (LPARAM) 0);
 
+	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
+		TranslateMessage(&msg); 
+		DispatchMessage(&msg); 
+	}
+
 	fwrite(&empty[0x0800], 1, 2048, f);
 	free(empty);
 
 	SendMessage(h, PBM_SETPOS, (WPARAM) 2, (LPARAM) 0);
+
+	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
+		TranslateMessage(&msg); 
+		DispatchMessage(&msg); 
+	}
+
 	pbar_max -= 2;
     }
 
@@ -507,6 +520,106 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
 }
 
 
+static int
+create_mo_sector_image(WCHAR *file_name, int8_t disk_size, uint8_t is_mdi, HWND hwnd)
+{
+    HWND h;
+    FILE *f;
+    const mo_type_t *dp = &mo_types[disk_size];
+    uint8_t *empty;
+    uint32_t total_size = 0;
+    uint32_t total_sectors = 0;
+    uint32_t sector_bytes = 0;
+    uint16_t base = 0x1000;
+    uint32_t pbar_max = 0;
+    uint32_t i;
+    MSG msg;
+    
+    f = plat_fopen(file_name, L"wb");
+    if (!f)
+	return 0;
+
+    sector_bytes = dp->bytes_per_sector;
+    total_sectors = dp->sectors;
+    total_size = total_sectors * sector_bytes;
+
+    pbar_max = dp->sectors >> 11;
+    if (is_mdi)
+	pbar_max += base;
+    pbar_max >>= 11;
+    pbar_max--;
+
+    h = GetDlgItem(hwnd, IDC_COMBO_RPM_MODE);
+    EnableWindow(h, FALSE);
+    ShowWindow(h, SW_HIDE);
+    h = GetDlgItem(hwnd, IDT_1751);
+    EnableWindow(h, FALSE);
+    ShowWindow(h, SW_HIDE);
+    h = GetDlgItem(hwnd, IDC_PBAR_IMG_CREATE);
+    SendMessage(h, PBM_SETRANGE32, (WPARAM) 0, (LPARAM) pbar_max);
+    SendMessage(h, PBM_SETPOS, (WPARAM) 0, (LPARAM) 0);
+    EnableWindow(h, TRUE);
+    ShowWindow(h, SW_SHOW);
+    h = GetDlgItem(hwnd, IDT_1757);
+    EnableWindow(h, TRUE);
+    ShowWindow(h, SW_SHOW);
+
+    h = GetDlgItem(hwnd, IDC_PBAR_IMG_CREATE);
+    pbar_max++;
+
+    if (is_mdi) {
+	empty = (unsigned char *) malloc(base);
+	memset(empty, 0, base);
+
+	*(uint32_t *) &(empty[0x08]) = (uint32_t) base;
+	*(uint32_t *) &(empty[0x0C]) = total_size;
+	*(uint16_t *) &(empty[0x10]) = (uint16_t) sector_bytes;
+	*(uint8_t *)  &(empty[0x14]) = (uint8_t)  25;
+	*(uint8_t *)  &(empty[0x18]) = (uint8_t)  64;
+	*(uint8_t *)  &(empty[0x1C]) = (uint8_t)  (dp->sectors / 64) / 25;
+
+	fwrite(empty, 1, 2048, f);
+	SendMessage(h, PBM_SETPOS, (WPARAM) 1, (LPARAM) 0);
+
+	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
+		TranslateMessage(&msg); 
+		DispatchMessage(&msg); 
+	}
+
+	fwrite(&empty[0x0800], 1, 2048, f);
+	free(empty);
+
+	SendMessage(h, PBM_SETPOS, (WPARAM) 2, (LPARAM) 0);
+
+	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
+		TranslateMessage(&msg); 
+		DispatchMessage(&msg); 
+	}
+
+	pbar_max -= 2;
+    }
+
+    empty = (unsigned char *) malloc(total_size);
+    memset(empty, 0x00, total_size);
+
+    for (i = 0; i < pbar_max; i++) {
+	fwrite(&empty[i << 11], 1, 2048, f);
+	SendMessage(h, PBM_SETPOS, (WPARAM) i + 2, (LPARAM) 0);
+
+	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
+		TranslateMessage(&msg); 
+		DispatchMessage(&msg); 
+	}
+    }
+
+    free(empty);
+
+    fclose(f);
+
+    return 1;
+}
+
+
 static int	fdd_id, sb_part;
 
 static int	file_type = 0;		/* 0 = IMG, 1 = Japanese FDI, 2 = 86F */
@@ -562,7 +675,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
     uint8_t disk_size, rpm_mode;
     int ret;
     FILE *f;
-    int zip_types;
+    int zip_types, mo_types;
     wchar_t *twcs;
 
     switch (message) {
@@ -574,6 +687,11 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			zip_types = zip_drives[fdd_id].is_250 ? 2 : 1;
 			for (i = 0; i < zip_types; i++)
 		                SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_5900 + i));
+		} else if (is_mo) {
+			mo_types = 10;
+			/* TODO: Proper string ID's. */
+			for (i = 0; i < mo_types; i++)
+		                SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_5902 + i));
 		} else {
 			for (i = 0; i < 12; i++)
 		                SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_5888 + i));
@@ -606,22 +724,24 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				disk_size = SendMessage(h, CB_GETCURSEL, 0, 0);
 				if (is_zip)
 					disk_size += 12;
-				if (file_type == 2) {
+				if (!is_zip && !is_mo && (file_type == 2)) {
 					h = GetDlgItem(hdlg, IDC_COMBO_RPM_MODE);
 					rpm_mode = SendMessage(h, CB_GETCURSEL, 0, 0);
 					ret = create_86f(fd_file_name, disk_sizes[disk_size], rpm_mode);
 				} else {
 					if (is_zip)
 						ret = create_zip_sector_image(fd_file_name, disk_sizes[disk_size], file_type, hdlg);
+					if (is_mo)
+						ret = create_mo_sector_image(fd_file_name, disk_size, file_type, hdlg);
 					else
 						ret = create_sector_image(fd_file_name, disk_sizes[disk_size], file_type);
 				}
 				if (ret) {
 					if (is_zip)
-						//ui_sb_mount_zip_img(fdd_id, sb_part, 0, fd_file_name);
 						zip_mount(fdd_id, fd_file_name, 0);
+					else if (is_mo)
+						mo_mount(fdd_id, fd_file_name, 0);
 					else
-						//ui_sb_mount_floppy_img(fdd_id, sb_part, 0, fd_file_name);
 						floppy_mount(fdd_id, fd_file_name, 0);
 				} else {
 					new_floppy_msgbox_header(hdlg, MBX_ERROR, (wchar_t *) IDS_4108, (wchar_t *) IDS_4115);
@@ -634,12 +754,12 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				return TRUE;
 
 			case IDC_CFILE:
-	                        if (!file_dlg_w(hdlg, plat_get_string(is_zip ? IDS_2055 : IDS_2062), L"", 1)) {
+	                        if (!file_dlg_w(hdlg, plat_get_string(is_mo ? IDS_2139 : (is_zip ? IDS_2055 : IDS_2062)), L"", 1)) {
 					if (!wcschr(wopenfilestring, L'.')) {
 						if (wcslen(wopenfilestring) && (wcslen(wopenfilestring) <= 256)) {
 							twcs = &wopenfilestring[wcslen(wopenfilestring)];
 							twcs[0] = L'.';
-							if (!is_zip && (filterindex == 3)) {
+							if (!is_zip && !is_mo && (filterindex == 3)) {
 								twcs[1] = L'8';
 								twcs[2] = L'6';
 								twcs[3] = L'f';
@@ -668,6 +788,11 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					ext = &(wopenfilestring[ext_offs]);
 					if (is_zip) {
 						if (((wcs_len >= 4) && !wcsicmp(ext, L".ZDI")))
+							file_type = 1;
+						else
+							file_type = 0;
+					} else if (is_mo) {
+						if (((wcs_len >= 4) && !wcsicmp(ext, L".MDI")))
 							file_type = 1;
 						else
 							file_type = 0;
@@ -717,5 +842,10 @@ NewFloppyDialogCreate(HWND hwnd, int id, int part)
     fdd_id = id & 0x7f;
     sb_part = part;
     is_zip = !!(id & 0x80);
+    is_mo = !!(id & 0x100);
+    if (is_zip && is_mo) {
+	fatal("Attempting to create a new image dialog that is for both ZIP and MO at the same time\n");
+	return;
+    }
     DialogBox(hinstance, (LPCTSTR)DLG_NEW_FLOPPY, hwnd, NewFloppyDialogProcedure);
 }

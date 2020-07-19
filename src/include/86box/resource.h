@@ -38,9 +38,8 @@
 #define  DLG_CFG_PERIPHERALS	117	/* sub-dialog of config */
 #define  DLG_CFG_HARD_DISKS	118	/* sub-dialog of config */
 #define  DLG_CFG_HARD_DISKS_ADD	119	/* sub-dialog of config */
-#define  DLG_CFG_FLOPPY_DRIVES	120	/* sub-dialog of config */
-#define  DLG_CFG_CDROM_DRIVES	121	/* sub-dialog of config */
-#define  DLG_CFG_OTHER_REMOVABLE_DEVICES	122	/* sub-dialog of config */
+#define  DLG_CFG_FLOPPY_AND_CDROM_DRIVES	120	/* sub-dialog of config */
+#define  DLG_CFG_OTHER_REMOVABLE_DEVICES	121	/* sub-dialog of config */
 
 /* Static text label IDs. */
 #define IDT_1700		1700	/* Language: */
@@ -101,11 +100,11 @@
 #define IDT_1766		1766	/* Board #4: */
 #define IDT_1767		1767	/* ISA RTC: */
 #define IDT_1768		1768	/* Ext FD Controller: */
-#define IDT_1769        1769    /* MO drives: */
-#define IDT_1770        1770    /* Bus: */
-#define IDT_1771        1771    /* ID: */
-#define IDT_1772        1772    /* Channel */
-#define IDT_1773        1773    /* Type: */
+#define IDT_1769		1769    /* MO drives: */
+#define IDT_1770		1770    /* Bus: */
+#define IDT_1771		1771    /* ID: */
+#define IDT_1772		1772    /* Channel */
+#define IDT_1773		1773    /* Type: */
 
 
 /*
@@ -201,7 +200,7 @@
 #define IDC_CONFIGURE_ISAMEM_3	1147
 #define IDC_CONFIGURE_ISAMEM_4	1148
 
-#define IDC_HARD_DISKS		1150	/* hard disk config */
+#define IDC_HARD_DISKS		1150	/* hard disks config */
 #define IDC_LIST_HARD_DISKS	1151
 #define IDC_BUTTON_HDD_ADD_NEW	1152
 #define IDC_BUTTON_HDD_ADD	1153
@@ -220,7 +219,7 @@
 #define IDC_COMBO_HD_TYPE	1165
 #define IDC_PBAR_IMG_CREATE	1166
 
-#define IDC_REMOV_DEVICES	1170	/* removable dev config */
+#define IDC_REMOV_DEVICES	1170	/* floppy and cd-rom drives config */
 #define IDC_LIST_FLOPPY_DRIVES	1171
 #define IDC_COMBO_FD_TYPE	1172
 #define IDC_CHECKTURBO		1173
@@ -230,7 +229,8 @@
 #define IDC_COMBO_CD_ID		1177
 #define IDC_COMBO_CD_LUN	1178
 #define IDC_COMBO_CD_CHANNEL_IDE 1179
-#define IDC_LIST_ZIP_DRIVES	1180
+
+#define IDC_LIST_ZIP_DRIVES	1180	/* other removable devices config */
 #define IDC_COMBO_ZIP_BUS	1181
 #define IDC_COMBO_ZIP_ID	1182
 #define IDC_COMBO_ZIP_LUN	1183
@@ -240,11 +240,11 @@
 #define IDC_LIST_MO_DRIVES	1187
 #define IDC_COMBO_MO_BUS	1188
 #define IDC_COMBO_MO_ID		1189
-#define IDC_COMBO_MO_LUN	1191
-#define IDC_COMBO_MO_CHANNEL_IDE 1192
-#define IDC_COMBO_MO_TYPE  1193
+#define IDC_COMBO_MO_LUN	1190
+#define IDC_COMBO_MO_CHANNEL_IDE 1191
+#define IDC_COMBO_MO_TYPE	1192
 
-#define IDC_SLIDER_GAIN		1190	/* sound gain dialog */
+#define IDC_SLIDER_GAIN		1193	/* sound gain dialog */
 
 #define IDC_EDIT_FILE_NAME	1200	/* new floppy image dialog */
 #define IDC_COMBO_DISK_SIZE	1201

@@ -97,6 +97,11 @@ extern const device_t	stpc_lpt_device;
 #endif
 
 /* VIA */
+
+extern const device_t   via_vt82c49x_device;
+
+extern const device_t   via_vt82c505_device;
+
 extern const device_t	via_vpx_device;
 extern const device_t	via_vp3_device;
 extern const device_t	via_mvp3_device;

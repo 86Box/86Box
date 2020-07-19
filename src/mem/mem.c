@@ -2546,7 +2546,7 @@ mem_reset(void)
 	free(ram);
 	ram = NULL;
     }
-#if (defined __amd64__ || defined _M_X64)
+#if (!(defined __amd64__ || defined _M_X64))
     if (ram2 != NULL) {
 	free(ram2);
 	ram2 = NULL;
@@ -2555,18 +2555,34 @@ mem_reset(void)
     if (mem_size > 2097152)
 	fatal("Attempting to use more than 2 GB of guest RAM\n");
 
-#if (defined __amd64__ || defined _M_X64)
+#if (!(defined __amd64__ || defined _M_X64))
     if (mem_size > 1048576) {
 	ram = (uint8_t *)malloc(1 << 30);		/* allocate and clear the RAM block of the first 1 GB */
+	if (ram == NULL) {
+		fatal("X86 > 1 GB: Failed to malloc() ram\n");
+		return;
+	}
 	memset(ram, 0x00, (1 << 30));
 	ram2 = (uint8_t *)malloc(m - (1 << 30));	/* allocate and clear the RAM block above 1 GB */
+	if (ram2 == NULL) {
+		fatal("X86 > 1 GB: Failed to malloc() ram2\n");
+		return;
+	}
 	memset(ram2, 0x00, m - (1 << 30));
     } else {
 	ram = (uint8_t *)malloc(m);		/* allocate and clear the RAM block */
+	if (ram == NULL) {
+		fatal("X86 <= 1 GB: Failed to malloc() ram\n");
+		return;
+	}
 	memset(ram, 0x00, m);
     }
 #else
     ram = (uint8_t *)malloc(m);		/* allocate and clear the RAM block */
+    if (ram == NULL) {
+	fatal("X64: Failed to malloc() ram\n");
+	return;
+    }
     memset(ram, 0x00, m);
     if (mem_size > 1048576)
     	ram2 = &(ram[1 << 30]);

@@ -113,7 +113,7 @@ typedef struct sb_ct1745_mixer_t
 typedef struct sb_t
 {
 	uint8_t		opl_enabled;
-        opl_t           opl;
+        opl_t           opl, opl2;
         sb_dsp_t        dsp;
         union {
                 sb_ct1335_mixer_t mixer_sb2;
