@@ -599,11 +599,11 @@ create_mo_sector_image(WCHAR *file_name, int8_t disk_size, uint8_t is_mdi, HWND 
 	pbar_max -= 2;
     }
 
-    empty = (unsigned char *) malloc(total_size);
-    memset(empty, 0x00, total_size);
+    empty = (unsigned char *) malloc(2048);
+    memset(empty, 0x00, 2048);
 
     for (i = 0; i < pbar_max; i++) {
-	fwrite(&empty[i << 11], 1, 2048, f);
+	fwrite(empty, 1, 2048, f);
 	SendMessage(h, PBM_SETPOS, (WPARAM) i + 2, (LPARAM) 0);
 
 	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
