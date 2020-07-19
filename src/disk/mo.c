@@ -327,10 +327,29 @@ mo_load_abort(mo_t *dev)
 
 
 int
+image_is_mdi(const wchar_t *s)
+{
+    int len;
+    wchar_t ext[5] = { 0, 0, 0, 0, 0 };
+    char *ws = (char *) s;
+    len = wcslen(s);
+    if ((len < 4) || (s[0] == L'.'))
+	return 0;
+    memcpy(ext, ws + ((len - 4) << 1), 8);
+    if (! wcscasecmp(ext, L".MDI"))
+	return 1;
+    else
+	return 0;
+}
+
+
+int
 mo_load(mo_t *dev, wchar_t *fn)
 {
-    int size = 0;
+    int is_mdi, size = 0;
     unsigned int i, found = 0;
+
+    is_mdi = image_is_mdi(fn);
 
     dev->drv->f = plat_fopen(fn, dev->drv->read_only ? L"rb" : L"rb+");
     if (!dev->drv->f) {
@@ -347,6 +366,12 @@ mo_load(mo_t *dev, wchar_t *fn)
     fseek(dev->drv->f, 0, SEEK_END);
     size = ftell(dev->drv->f);
 
+    if (is_mdi) {
+	/* This is a MDI image. */
+	size -= 0x1000;
+	dev->drv->base = 0x1000;
+    }
+
     for (i = 0; i < KNOWN_MO_TYPES; i++) {
 	if (size == mo_types[i].disk_size) {
 	    found = 1;
@@ -356,9 +381,8 @@ mo_load(mo_t *dev, wchar_t *fn)
 	}
     }
     
-    if (!found) {
+    if (!found)
 	return mo_load_abort(dev);
-    }
 
     if (fseek(dev->drv->f, dev->drv->base, SEEK_SET) == -1)
 	fatal("mo_load(): Error seeking to the beginning of the file\n");
