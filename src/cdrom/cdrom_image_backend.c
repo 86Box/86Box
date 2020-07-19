@@ -262,6 +262,7 @@ cdi_get_audio_tracks(cd_img_t *cdi, int *st_track, int *end, TMSF *lead_out)
 }
 
 
+/* TODO: This never returns anything other than 1, should it even be an int? */
 int
 cdi_get_audio_tracks_lba(cd_img_t *cdi, int *st_track, int *end, uint32_t *lead_out)
 {

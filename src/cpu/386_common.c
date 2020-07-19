@@ -74,9 +74,10 @@ smram_t temp_smram[2];
 /* SMM feature masks */
 #define SMM_IO_INSTRUCTION_RESTART  (0x00010000)
 #define SMM_SMBASE_RELOCATION       (0x00020000)
+#define SMM_REVISION		    (0x20000000)
 
 /* TODO: Which CPU added SMBASE relocation? */
-#define SMM_REVISION_ID SMM_SMBASE_RELOCATION
+#define SMM_REVISION_ID (SMM_SMBASE_RELOCATION | SMM_IO_INSTRUCTION_RESTART | SMM_REVISION)
 
 #define SMM_SAVE_STATE_MAP_SIZE 128
 
@@ -989,7 +990,7 @@ enter_smm(int in_hlt)
     uint32_t smram_state = smbase + 0x10000;
 
     /* If it's a CPU on which SMM is not supporter, do nothing. */
-    if (!is_pentium && !is_k5 && !is_k6 && !is_p6)
+    if (!is_am486 && !is_pentium && !is_k5 && !is_k6 && !is_p6)
 	return;
 
     x386_common_log("enter_smm(): smbase = %08X\n", smbase);
@@ -1146,7 +1147,7 @@ leave_smm(void)
     uint32_t smram_state = smbase + 0x10000;
 
     /* If it's a CPU on which SMM is not supported (or not implemented in 86Box), do nothing. */
-    if (!is_pentium && !is_k5 && !is_k6 && !is_p6)
+    if (!is_am486 && !is_pentium && !is_k5 && !is_k6 && !is_p6)
 	return;
 
     memset(saved_state, 0x00, SMM_SAVE_STATE_MAP_SIZE * sizeof(uint32_t));
