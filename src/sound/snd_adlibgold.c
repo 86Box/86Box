@@ -646,7 +646,7 @@ static void adgold_get_buffer(int32_t *buffer, int len, void *p)
         
         int c;
 
-        opl3_update2(&adgold->opl);
+        opl3_update(&adgold->opl);
         adgold_update(adgold);
         
         for (c = 0; c < len * 2; c += 2)
