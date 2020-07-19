@@ -373,7 +373,7 @@ mo_load(mo_t *dev, wchar_t *fn)
     }
 
     for (i = 0; i < KNOWN_MO_TYPES; i++) {
-	if (size == mo_types[i].disk_size) {
+	if (size == (mo_types[i].sectors * mo_types[i].bytes_per_sector)) {
 	    found = 1;
 	    dev->drv->medium_size = mo_types[i].sectors;
 	    dev->drv->sector_size = mo_types[i].bytes_per_sector;

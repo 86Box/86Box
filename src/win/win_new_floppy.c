@@ -543,7 +543,7 @@ create_mo_sector_image(WCHAR *file_name, int8_t disk_size, uint8_t is_mdi, HWND 
     total_sectors = dp->sectors;
     total_size = total_sectors * sector_bytes;
 
-    pbar_max = dp->sectors >> 11;
+    pbar_max = total_size;
     if (is_mdi)
 	pbar_max += base;
     pbar_max >>= 11;
