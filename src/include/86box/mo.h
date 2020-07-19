@@ -104,17 +104,16 @@ typedef struct {
 					   media status. */
 		pad, pad0;
 
-    uint32_t	medium_size,
-		base;
-    uint16_t 	sector_size;
-    uint8_t 	type;
-
-    void	*priv;
-
     FILE	*f;
+    void	*priv;
 
     wchar_t	image_path[1024],
 		prev_image_path[1024];
+
+    uint32_t	type, medium_size,
+		base;
+    uint16_t 	sector_size;
+
 } mo_drive_t;
 
 typedef struct {
@@ -135,9 +134,9 @@ typedef struct {
     uint16_t request_length, max_transfer_len;
 
     int requested_blocks, packet_status,
-    total_length, do_page_save,
-    unit_attention, request_pos,
-    old_len, pad3;
+	total_length, do_page_save,
+	unit_attention, request_pos,
+	old_len, pad3;
 
     uint32_t sector_pos, sector_len,
 	     packet_len, pos;

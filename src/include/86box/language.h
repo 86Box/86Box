@@ -46,7 +46,7 @@
 #define IDS_2070	2070		// "Ports (COM & LPT)"
 #define IDS_2071	2071		// "Other peripherals"
 #define IDS_2072	2072		// "Hard disks"
-#define IDS_2073	2073		// "Floppy drives"
+#define IDS_2073	2073		// "Floppy and CD-ROM drives"
 #define IDS_2074	2074		// "Other removable devices"
 #define IDS_2075	2075		// "CD-ROM images (*.ISO;*.CU.."
 #define IDS_2076	2076		// "Surface-based images (*.8.."
@@ -112,7 +112,6 @@
 #define IDS_2136	2136		// "Don't Exit"
 #define IDS_2137	2137		// "Reset"
 #define IDS_2138	2138		// "Don't Reset"
-#define IDS_2139	2139		// "CD-ROM drives"
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
@@ -189,6 +188,16 @@
 #define IDS_5899	5899		// "2.88 MB"
 #define IDS_5900	5900		// "ZIP 100"
 #define IDS_5901	5901		// "ZIP 250"
+#define IDS_5902	5902		// "3.5\" 128Mb M.O. (ISO 10090)"
+#define IDS_5903	5903		// "3.5\" 230Mb M.O. (ISO 13963)"
+#define IDS_5904	5904		// "3.5\" 540Mb M.O. (ISO 15498)"
+#define IDS_5905	5905		// "3.5\" 640Mb M.O. (ISO 15498)"
+#define IDS_5906	5906		// "3.5\" 1.3Gb M.O. (GigaMO)"
+#define IDS_5907	5907		// "3.5\" 2.3Gb M.O. (GigaMO 2)"
+#define IDS_5908	5908		// "5.25\" 600Mb M.O."
+#define IDS_5909	5909		// "5.25\" 650Mb M.O."
+#define IDS_5910	5910		// "5.25\" 1Gb M.O."
+#define IDS_5911	5911		// "5.25\" 1.3Gb M.O."
 
 #define IDS_6144	6144		// "Perfect RPM"
 #define IDS_6145	6145		// "1%% below perfect RPM"
@@ -199,7 +208,7 @@
 
 #define IDS_LANG_ENUS	IDS_7168
 
-#define STR_NUM_2048	92
+#define STR_NUM_2048	91
 #define STR_NUM_3072	11
 #define STR_NUM_4096	18
 #define STR_NUM_4352	7
@@ -207,7 +216,7 @@
 #define STR_NUM_5120	1
 #define STR_NUM_5376	7
 #define STR_NUM_5632	7
-#define STR_NUM_5888	14
+#define STR_NUM_5888	24
 #define STR_NUM_6144	4
 #define STR_NUM_7168	1
 

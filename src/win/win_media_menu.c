@@ -477,7 +477,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case IDM_MO_IMAGE_NEW:
-		NewFloppyDialogCreate(hwnd, id | 0x80, 0);	/* NewZIPDialogCreate */
+		NewFloppyDialogCreate(hwnd, id | 0x100, 0);	/* NewZIPDialogCreate */
 		break;
 
 	case IDM_MO_IMAGE_EXISTING_WP:

@@ -111,6 +111,9 @@ typedef struct {
 
 static list_t	config_head;
 
+/* TODO: Backwards compatibility, get rid of this when enough time has passed. */
+static int	backwards_compat = 0;
+
 
 #ifdef ENABLE_CONFIG_LOG
 int config_do_log = ENABLE_CONFIG_LOG;
@@ -1003,6 +1006,7 @@ load_hard_disks(void)
 }
 
 
+/* TODO: Backwards compatibility, get rid of this when enough time has passed. */
 /* Load "Floppy Drives" section. */
 static void
 load_floppy_drives(void)
@@ -1012,6 +1016,72 @@ load_floppy_drives(void)
     wchar_t *wp;
     int c;
 
+    if (!backwards_compat)
+	return;
+
+    for (c=0; c<FDD_NUM; c++) {
+	sprintf(temp, "fdd_%02i_type", c+1);
+	p = config_get_string(cat, temp, (c < 2) ? "525_2dd" : "none");
+       	fdd_set_type(c, fdd_get_from_internal_name(p));
+	if (fdd_get_type(c) > 13)
+		fdd_set_type(c, 13);
+	config_delete_var(cat, temp);
+
+	sprintf(temp, "fdd_%02i_fn", c + 1);
+	wp = config_get_wstring(cat, temp, L"");
+	config_delete_var(cat, temp);
+
+#if 0
+	/*
+	 * NOTE:
+	 * Temporary hack to remove the absolute
+	 * path currently saved in most config
+	 * files.  We should remove this before
+	 * finalizing this release!  --FvK
+	 */
+	if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
+		/*
+		 * Yep, its absolute and prefixed
+		 * with the EXE path.  Just strip
+		 * that off for now...
+		 */
+		wcsncpy(floppyfns[c], &wp[wcslen(usr_path)], sizeof_w(floppyfns[c]));
+	} else
+#endif
+	wcsncpy(floppyfns[c], wp, sizeof_w(floppyfns[c]));
+
+	/* if (*wp != L'\0')
+		config_log("Floppy%d: %ls\n", c, floppyfns[c]); */
+	sprintf(temp, "fdd_%02i_writeprot", c+1);
+	ui_writeprot[c] = !!config_get_int(cat, temp, 0);
+	config_delete_var(cat, temp);
+	sprintf(temp, "fdd_%02i_turbo", c + 1);
+	fdd_set_turbo(c, !!config_get_int(cat, temp, 0));
+	config_delete_var(cat, temp);
+	sprintf(temp, "fdd_%02i_check_bpb", c+1);
+	fdd_set_check_bpb(c, !!config_get_int(cat, temp, 1));
+	config_delete_var(cat, temp);
+    }
+
+    delete_section_if_empty(cat);
+}
+
+
+/* Load "Floppy and CD-ROM Drives" section. */
+static void
+load_floppy_and_cdrom_drives(void)
+{
+    char *cat = "Floppy and CD-ROM drives";
+    char temp[512], tmp2[512], *p;
+    char s[512];
+    unsigned int board = 0, dev = 0;
+    wchar_t *wp;
+    int c, d = 0;
+
+    /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
+    backwards_compat = (find_section(cat) == NULL);
+
+    memset(temp, 0x00, sizeof(temp));
     for (c=0; c<FDD_NUM; c++) {
 	sprintf(temp, "fdd_%02i_type", c+1);
 	p = config_get_string(cat, temp, (c < 2) ? "525_2dd" : "none");
@@ -1072,19 +1142,6 @@ load_floppy_drives(void)
 		config_delete_var(cat, temp);
 	}
     }
-}
-
-
-/* Load "Other Removable Devices" section. */
-static void
-load_other_removable_devices(void)
-{
-    char *cat = "Other removable devices";
-    char temp[512], tmp2[512], *p;
-    char s[512];
-    unsigned int board = 0, dev = 0;
-    wchar_t *wp;
-    int c, d = 0;
 
     memset(temp, 0x00, sizeof(temp));
     for (c=0; c<CDROM_NUM; c++) {
@@ -1179,6 +1236,102 @@ load_other_removable_devices(void)
 	sprintf(temp, "cdrom_%02i_iso_path", c+1);
 	config_delete_var(cat, temp);
     }
+}
+
+
+/* Load "Other Removable Devices" section. */
+static void
+load_other_removable_devices(void)
+{
+    char *cat = "Other removable devices";
+    char temp[512], tmp2[512], *p;
+    char s[512];
+    unsigned int board = 0, dev = 0;
+    wchar_t *wp;
+    int c, d = 0;
+
+    /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
+    if (backwards_compat) {
+	memset(temp, 0x00, sizeof(temp));
+	for (c=0; c<CDROM_NUM; c++) {
+		sprintf(temp, "cdrom_%02i_host_drive", c+1);
+		cdrom[c].host_drive = config_get_int(cat, temp, 0);
+		cdrom[c].prev_host_drive = cdrom[c].host_drive;
+		config_delete_var(cat, temp);
+
+		sprintf(temp, "cdrom_%02i_parameters", c+1);
+		p = config_get_string(cat, temp, NULL);
+		if (p != NULL)
+			sscanf(p, "%01u, %s", &d, s);
+		else
+			sscanf("0, none", "%01u, %s", &d, s);
+		cdrom[c].sound_on = d;
+		cdrom[c].bus_type = hdd_string_to_bus(s, 1);
+		config_delete_var(cat, temp);
+
+		sprintf(temp, "cdrom_%02i_speed", c+1);
+		cdrom[c].speed = config_get_int(cat, temp, 8);
+		config_delete_var(cat, temp);
+
+		/* Default values, needed for proper operation of the Settings dialog. */
+		cdrom[c].ide_channel = cdrom[c].scsi_device_id = c + 2;
+		config_delete_var(cat, temp);
+
+		sprintf(temp, "cdrom_%02i_ide_channel", c+1);
+		if (cdrom[c].bus_type == CDROM_BUS_ATAPI) {
+			sprintf(tmp2, "%01u:%01u", (c+2)>>1, (c+2)&1);
+			p = config_get_string(cat, temp, tmp2);
+			sscanf(p, "%01u:%01u", &board, &dev);
+			board &= 3;
+			dev &= 1;
+			cdrom[c].ide_channel = (board<<1)+dev;
+
+			if (cdrom[c].ide_channel > 7)
+				cdrom[c].ide_channel = 7;
+		} else {
+			sprintf(temp, "cdrom_%02i_scsi_id", c+1);
+			if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
+				cdrom[c].scsi_device_id = config_get_int(cat, temp, c+2);
+
+				if (cdrom[c].scsi_device_id > 15)
+					cdrom[c].scsi_device_id = 15;
+			} else
+				config_delete_var(cat, temp);
+		}
+		config_delete_var(cat, temp);
+
+		sprintf(temp, "cdrom_%02i_image_path", c+1);
+		wp = config_get_wstring(cat, temp, L"");
+		config_delete_var(cat, temp);
+
+#if 0
+		/*
+		 * NOTE:
+		 * Temporary hack to remove the absolute
+		 * path currently saved in most config
+		 * files.  We should remove this before
+		 * finalizing this release!  --FvK
+		 */
+		if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
+			/*
+			 * Yep, its absolute and prefixed
+			 * with the EXE path.  Just strip
+			 * that off for now...
+			 */
+			wcsncpy(cdrom[c].image_path, &wp[wcslen(usr_path)], sizeof_w(cdrom[c].image_path));
+		} else
+#endif
+		wcsncpy(cdrom[c].image_path, wp, sizeof_w(cdrom[c].image_path));
+
+		if (cdrom[c].host_drive && (cdrom[c].host_drive != 200))
+			cdrom[c].host_drive = 0;
+
+		if ((cdrom[c].host_drive == 0x200) &&
+		    (wcslen(cdrom[c].image_path) == 0))
+			cdrom[c].host_drive = 0;
+	}
+    }
+    backwards_compat = 0;
 
     memset(temp, 0x00, sizeof(temp));
     for (c=0; c<ZIP_NUM; c++) {
@@ -1386,6 +1539,8 @@ config_load(void)
     load_ports();			/* Ports (COM & LPT) */
     load_other_peripherals();		/* Other peripherals */
     load_hard_disks();			/* Hard disks */
+    load_floppy_and_cdrom_drives();	/* Floppy and CD-ROM drives */
+    /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
     load_floppy_drives();		/* Floppy drives */
     load_other_removable_devices();	/* Other removable devices */
 
@@ -1872,10 +2027,10 @@ save_hard_disks(void)
 
 /* Save "Floppy Drives" section. */
 static void
-save_floppy_drives(void)
+save_floppy_and_cdrom_drives(void)
 {
-    char *cat = "Floppy drives";
-    char temp[512];
+    char *cat = "Floppy and CD-ROM drives";
+    char temp[512], tmp2[512];
     int c;
 
     for (c=0; c<FDD_NUM; c++) {
@@ -1916,18 +2071,6 @@ save_floppy_drives(void)
 	  else
 		config_set_int(cat, temp, fdd_get_check_bpb(c));
     }
-
-    delete_section_if_empty(cat);
-}
-
-
-/* Save "Other Removable Devices" section. */
-static void
-save_other_removable_devices(void)
-{
-    char *cat = "Other removable devices";
-    char temp[512], tmp2[512];
-    int c;
 
     for (c=0; c<CDROM_NUM; c++) {
 	sprintf(temp, "cdrom_%02i_host_drive", c+1);
@@ -1977,6 +2120,18 @@ save_other_removable_devices(void)
 		config_set_wstring(cat, temp, cdrom[c].image_path);
 	}
     }
+
+    delete_section_if_empty(cat);
+}
+
+
+/* Save "Other Removable Devices" section. */
+static void
+save_other_removable_devices(void)
+{
+    char *cat = "Other removable devices";
+    char temp[512], tmp2[512];
+    int c;
 
     for (c=0; c<ZIP_NUM; c++) {
 	sprintf(temp, "zip_%02i_parameters", c+1);
@@ -2064,7 +2219,7 @@ config_save(void)
     save_ports();			/* Ports (COM & LPT) */
     save_other_peripherals();		/* Other peripherals */
     save_hard_disks();			/* Hard disks */
-    save_floppy_drives();		/* Floppy drives */
+    save_floppy_and_cdrom_drives();	/* Floppy and CD-ROM drives */
     save_other_removable_devices();	/* Other removable devices */
 
     config_write(cfg_path);

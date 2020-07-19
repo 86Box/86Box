@@ -163,9 +163,8 @@ extern void	NewFloppyDialogCreate(HWND hwnd, int id, int part);
 #define SETTINGS_PAGE_PORTS			5
 #define SETTINGS_PAGE_PERIPHERALS		6
 #define SETTINGS_PAGE_HARD_DISKS		7
-#define SETTINGS_PAGE_FLOPPY_DRIVES		8
-#define SETTINGS_PAGE_CDROM_DRIVES		9
-#define SETTINGS_PAGE_OTHER_REMOVABLE_DEVICES	10
+#define SETTINGS_PAGE_FLOPPY_AND_CDROM_DRIVES	8
+#define SETTINGS_PAGE_OTHER_REMOVABLE_DEVICES	9
 
 extern void	win_settings_open(HWND hwnd);
 extern void	win_settings_open_ex(HWND hwnd, int category);
