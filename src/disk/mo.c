@@ -346,7 +346,8 @@ image_is_mdi(const wchar_t *s)
 int
 mo_load(mo_t *dev, wchar_t *fn)
 {
-    int is_mdi, size = 0;
+    int is_mdi;
+    uint32_t size = 0;
     unsigned int i, found = 0;
 
     is_mdi = image_is_mdi(fn);
@@ -364,16 +365,16 @@ mo_load(mo_t *dev, wchar_t *fn)
     }
 
     fseek(dev->drv->f, 0, SEEK_END);
-    size = ftell(dev->drv->f);
+    size = (uint32_t) ftello64(dev->drv->f);
 
     if (is_mdi) {
 	/* This is a MDI image. */
-	size -= 0x1000;
+	size -= 0x1000LL;
 	dev->drv->base = 0x1000;
     }
 
     for (i = 0; i < KNOWN_MO_TYPES; i++) {
-	if (size == mo_types[i].disk_size) {
+	if (size == (mo_types[i].sectors * mo_types[i].bytes_per_sector)) {
 	    found = 1;
 	    dev->drv->medium_size = mo_types[i].sectors;
 	    dev->drv->sector_size = mo_types[i].bytes_per_sector;
@@ -1037,14 +1038,14 @@ mo_insert(mo_t *dev)
 void
 mo_format(mo_t *dev)
 {
-    long size;
+    unsigned long size;
     int ret;
     int fd;
 
     mo_log("MO %i: Formatting media...\n", dev->id);
 
     fseek(dev->drv->f, 0, SEEK_END);
-    size = ftell(dev->drv->f);
+    size = (uint32_t) ftello64(dev->drv->f);
 
     HANDLE fh;
     LARGE_INTEGER liSize;
