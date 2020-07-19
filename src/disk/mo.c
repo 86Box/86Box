@@ -365,11 +365,11 @@ mo_load(mo_t *dev, wchar_t *fn)
     }
 
     fseek(dev->drv->f, 0, SEEK_END);
-    size = ftell(dev->drv->f);
+    size = (uint32_t) ftello64(dev->drv->f);
 
     if (is_mdi) {
 	/* This is a MDI image. */
-	size -= 0x1000;
+	size -= 0x1000LL;
 	dev->drv->base = 0x1000;
     }
 
@@ -1045,7 +1045,7 @@ mo_format(mo_t *dev)
     mo_log("MO %i: Formatting media...\n", dev->id);
 
     fseek(dev->drv->f, 0, SEEK_END);
-    size = ftell(dev->drv->f);
+    size = (uint32_t) ftello64(dev->drv->f);
 
     HANDLE fh;
     LARGE_INTEGER liSize;
