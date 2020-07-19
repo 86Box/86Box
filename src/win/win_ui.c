@@ -39,6 +39,7 @@
 #include <86box/plat_midi.h>
 #include <86box/ui.h>
 #include <86box/win.h>
+#include <86box/version.h>
 #ifdef USE_DISCORD
 # include <86box/win_discord.h>
 #endif
@@ -361,6 +362,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_ABOUT:
 				AboutDialogCreate(hwnd);
+				break;
+
+			case IDM_DOCS:
+				ShellExecute(hwnd, L"open", EMU_DOCS_URL, NULL, NULL, SW_SHOW);
 				break;
 
 			case IDM_UPDATE_ICONS:
