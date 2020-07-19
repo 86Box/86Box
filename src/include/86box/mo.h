@@ -31,31 +31,29 @@
 typedef struct {
     uint32_t	sectors;
     uint16_t	bytes_per_sector;
-    int64_t	disk_size;
-    char	name[255];
 } mo_type_t;
 
 #define KNOWN_MO_TYPES 10
 static const mo_type_t mo_types[KNOWN_MO_TYPES] = {
     // 3.5" standard M.O. disks
-    {	248826,  512, 127398912, "3.5\" 128Mb M.O. (ISO 10090)" },
-    {	446325,  512, 228518400, "3.5\" 230Mb M.O. (ISO 13963)" },
-    {	1041500,  512, 533248000, "3.5\" 540Mb M.O. (ISO 15498)" },
-    {	310352,  2048, 635600896, "3.5\" 640Mb M.O. (ISO 15498)" },
-    {	605846,  2048, 1240772608, "3.5\" 1.3Gb M.O. (GigaMO)" },
-    {	1063146,  2048, 2177323008, "3.5\" 2.3Gb M.O. (GigaMO 2)" },
+    {	248826,  512 },
+    {	446325,  512 },
+    {	1041500,  512 },
+    {	310352,  2048 },
+    {	605846,  2048 },
+    {	1063146,  2048 },
     // 5.25" M.O. disks
-    {573624, 512, 293695488, "5.25\" 600Mb M.O."},
-    {314568, 1024, 322117632, "5.25\" 650Mb M.O."},
-    {904995, 512, 463357440, "5.25\" 1Gb M.O."},
-    {637041, 1024, 652329984, "5.25\" 1.3Gb M.O."},
+    {573624, 512 },
+    {314568, 1024 },
+    {904995, 512 },
+    {637041, 1024 },
 };
 
 typedef struct
 {
-    char vendor[8];
-    char model[16];
-    char revision[4];
+    const char vendor[8];
+    const char model[16];
+    const char revision[4];
     int8_t supported_media[KNOWN_MO_TYPES];
 } mo_drive_type_t;
 

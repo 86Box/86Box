@@ -1187,6 +1187,8 @@ sb_pro_v1_opl_read(uint16_t port, void *priv)
 {
     sb_t *sb = (sb_t *)priv;
 
+    sub_cycles((int)(isa_timing * 8));
+
     (void)opl2_read(port, &sb->opl2);	// read, but ignore
     return(opl2_read(port, &sb->opl));
 }
@@ -1225,7 +1227,9 @@ void *sb_pro_v1_init(const device_t *info)
 	sb->opl_enabled = device_get_config_int("opl");
 	if (sb->opl_enabled) {
         	opl2_init(&sb->opl);
+		opl_set_do_cycles(&sb->opl, 0);
         	opl2_init(&sb->opl2);
+		opl_set_do_cycles(&sb->opl2, 0);
 	}
         sb_dsp_init(&sb->dsp, SBPRO, SB_SUBTYPE_DEFAULT, sb);
         sb_dsp_setaddr(&sb->dsp, addr);

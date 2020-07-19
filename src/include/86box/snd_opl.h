@@ -32,7 +32,7 @@ typedef struct {
 #else
     void	*opl;
 #endif
-    int8_t	is_opl3;
+    int8_t	is_opl3, do_cycles;
 
     uint16_t	port;
     uint8_t	status;
@@ -46,6 +46,8 @@ typedef struct {
     int32_t	buffer[SOUNDBUFLEN * 2];
 } opl_t;
 
+
+extern void	opl_set_do_cycles(opl_t *dev, int8_t do_cycles);
 
 extern uint8_t	opl2_read(uint16_t port, void *);
 extern void	opl2_write(uint16_t port, uint8_t val, void *);
