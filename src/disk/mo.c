@@ -346,7 +346,8 @@ image_is_mdi(const wchar_t *s)
 int
 mo_load(mo_t *dev, wchar_t *fn)
 {
-    int is_mdi, size = 0;
+    int is_mdi;
+    uint32_t size = 0;
     unsigned int i, found = 0;
 
     is_mdi = image_is_mdi(fn);
@@ -1037,7 +1038,7 @@ mo_insert(mo_t *dev)
 void
 mo_format(mo_t *dev)
 {
-    long size;
+    unsigned long size;
     int ret;
     int fd;
 
