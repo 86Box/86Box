@@ -206,6 +206,7 @@ const machine_t machines[] = {
     { "[OPTi 495] MR 486 clone",		"mr486",		MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	   machine_at_opti495_mr_init, NULL			},
     { "[OPTi 495] Dataexpert SX495 (486)",	"ami486",		MACHINE_TYPE_486,		{{"Intel", cpus_i486S1},      {"AMD", cpus_Am486S1}, {"Cyrix", cpus_Cx486S1},{"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   32,   1, 127,	  machine_at_opti495_ami_init, NULL			},
     { "[OPTi 895] Jetway J-403TG",		"403tg",		MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT,								  1,   64,   1, 127,	        machine_at_403tg_init, NULL			},
+    { "[CS4031] AMI 486 CS4031",		"cs4031",		MACHINE_TYPE_486,		{{"Intel", cpus_i486S1},        {"AMD", cpus_Am486S1},   {"Cyrix", cpus_Cx486S1},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT,						  1,   64,   1, 127,	   machine_at_cs4031_init, NULL			},
     { "[SiS 471] ASUS VL/I-486SV2G (GX4)",	"vli486sv2g",		MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   64,   1, 127,	   machine_at_vli486sv2g_init, NULL			},
     { "[SiS 471] AMI 486 Clone",		"ami471",		MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,						  1,   64,   1, 127,	       machine_at_ami471_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_WIN471)
@@ -231,15 +232,14 @@ const machine_t machines[] = {
     { "[SiS 496] Lucky Star LS-486E",		"ls486e",		MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  1,  128,   1, 255,	       machine_at_ls486e_init, NULL			},
     { "[SiS 496] Rise Computer R418",		"r418",			MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  1,  255,   1, 255,		 machine_at_r418_init, NULL			},
     { "[SiS 496] Zida Tomato 4DP",		"4dps",			MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  1,  255,   1, 255,		 machine_at_4dps_init, NULL			},
+#if defined(DEV_BRANCH) && defined(NO_SIO)
+    { "[VIA VT82C496G] FIC VIP-IO2",		"486vipio2",		MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,			  1,  128,   1, 255,		 machine_at_486vipio2_init, NULL			},
+#endif
 #if defined(DEV_BRANCH) && defined(USE_STPC)
     { "[STPC Client] ITOX STAR",		"itoxstar",		MACHINE_TYPE_486,		{{"ST", cpus_STPC6675},       {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 255,	     machine_at_itoxstar_init, NULL			},
     { "[STPC Consumer-II] Acrosser AR-B1479",	"arb1479",		MACHINE_TYPE_486,		{{"ST", cpus_STPC133},        {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					 32,  160,   8, 255,	      machine_at_arb1479_init, NULL			},
     { "[STPC Elite] Advantech PCM-9340",	"pcm9340",		MACHINE_TYPE_486,		{{"ST", cpus_STPC133},        {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					 32,   96,   8, 255,	      machine_at_pcm9340_init, NULL			},
     { "[STPC Atlas] AAEON PCM-5330",		"pcm5330",		MACHINE_TYPE_486,		{{"ST", cpus_STPC133},        {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					 32,  128,  32, 255,	      machine_at_pcm5330_init, NULL			},
-#endif
-
-#if defined(DEV_BRANCH) && defined(NO_SIO)
-    { "[VIA VT82C496G] FIC VIP-IO2",		"486vipio2",		MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_VLB | MACHINE_AT | MACHINE_HDC,			  1,  128,   1, 255,		 machine_at_486vipio2_init, NULL			},
 #endif
 
     /* Socket 4 machines */

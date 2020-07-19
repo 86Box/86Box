@@ -144,6 +144,25 @@ machine_at_486vchd_init(const machine_t *model)
 }
 
 int
+machine_at_cs4031_init(const machine_t *model)
+{
+    int ret;
+
+ret = bios_load_linear(L"roms/machines/cs4031/CHIPS_1.AMI",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+    device_add(&cs4031_device);
+    device_add(&keyboard_at_ami_device);
+    device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
 machine_at_pb410a_init(const machine_t *model)
 {
     int ret;
@@ -632,6 +651,36 @@ machine_at_486ap4_init(const machine_t *model)
     return ret;
 }
 
+#if defined(DEV_BRANCH) && defined(NO_SIO)
+int
+machine_at_486vipio2_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/486vipio2/1175G701.BIN",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
+
+    device_add(&via_vt82c49x_device);
+    device_add(&via_vt82c505_device);
+    device_add(&ide_vlb_2ch_device);
+    device_add(&w83787f_device);
+    device_add(&keyboard_at_device);
+
+    return ret;
+}
+#endif
 
 #if defined(DEV_BRANCH) && defined(USE_STPC)
 int
@@ -761,37 +810,6 @@ machine_at_pcm5330_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_atlas_device);
     device_add(&sst_flash_29ee020_device);
-
-    return ret;
-}
-#endif
-
-#if defined(DEV_BRANCH) && defined(NO_SIO)
-int
-machine_at_486vipio2_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear(L"roms/machines/486vipio2/1175G701.BIN",
-			   0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_at_common_init(model);
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
-    pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
-
-    device_add(&via_vt82c49x_device);
-    device_add(&via_vt82c505_device);
-    device_add(&ide_vlb_2ch_device);
-    device_add(&w83787f_device);
-    device_add(&keyboard_at_device);
 
     return ret;
 }
