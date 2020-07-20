@@ -719,8 +719,9 @@ stpc_reg_read(uint16_t addr, void *priv)
     if (addr == 0x22)
 	ret = dev->reg_offset;
     else if (dev->reg_offset >= 0xc0)
-    	return 0xff; /* Cyrix CPU registers: let the CPU code handle those */
+    	return 0xff; /* Cyrix CPU registers: let the CPU code handle these */
     else if ((dev->reg_offset == 0x56) || (dev->reg_offset == 0x57)) {
+    	/* ELCR is in here, not in port 4D0h. */
 	ret = elcr_read(dev->reg_offset, NULL);
 	if (dev->reg_offset == 0x57)
 		ret |= (dev->regs[dev->reg_offset] & 0x01);
@@ -743,7 +744,7 @@ stpc_reset(void *priv)
     dev->regs[0x7b] = 0xff;
     if (device_get_priv(&stpc_lpt_device))
     	dev->regs[0x4c] |= 0x80; /* LPT strap */
-    if (stpc_serial_handlers(0))
+    if (stpc_serial_handlers(0x00))
     	dev->regs[0x4c] |= 0x03; /* UART straps */
 }
 
@@ -977,7 +978,7 @@ stpc_serial_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
-    /* Initialization is performed by stpc_reset. */
+    /* Initialization is performed by stpc_reset */
 
     return dev;
 }
@@ -1035,18 +1036,19 @@ stpc_lpt_write(uint16_t addr, uint8_t val, void *priv)
     stpc_lpt_t *dev = (stpc_lpt_t *) priv;
 
     if (dev->unlocked < 2) {
-    	if (addr == 0x3f0) {
-    		if (val == 0x55)
-    			dev->unlocked++;
-    		else
-    			dev->unlocked = 0;
-    	}
+    	/* Cheat a little bit: in reality, any write to any
+    	   I/O port is supposed to reset the unlock counter. */
+    	if ((addr == 0x3f0) && (val == 0x55))
+    		dev->unlocked++;
+    	else
+    		dev->unlocked = 0;
     } else if (addr == 0x3f0) {
     	if (val == 0xaa)
     		dev->unlocked = 0;
 	else    	
     		dev->offset = val;
     } else if (dev->offset == 1) {
+    	/* dev->reg1 is set by stpc_lpt_handlers */
     	stpc_lpt_handlers(dev, val);
     } else if (dev->offset == 4) {
     	dev->reg4 = (val & 0x03);
