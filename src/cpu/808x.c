@@ -980,7 +980,7 @@ reset_common(int hard)
     smi_block = 0;
 
     if (hard) {
-	smbase = 0x00030000;
+	smbase = is_am486 ? 0x00060000 : 0x00030000;
 	ppi_reset();
     }
     in_sys = 0;

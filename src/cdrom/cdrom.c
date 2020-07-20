@@ -512,35 +512,54 @@ cdrom_get_current_subcodeq_playstatus(cdrom_t *dev, uint8_t *b)
     return ret;
 }
 
+
 static int
 read_toc_normal(cdrom_t *dev, unsigned char *b, unsigned char start_track, int msf)
 {
     track_info_t ti;
-    int len = 4;
-    int c, d, first_track, last_track;
+    int i, len = 4;
+    int first_track, last_track;
     uint32_t temp;
+
+    cdrom_log("read_toc_normal(%08X, %08X, %02X, %i)\n", dev, b, start_track, msf);
 
     dev->ops->get_tracks(dev, &first_track, &last_track);
 
-    b[2] = first_track;
-    b[3] = last_track;
+    /* Byte 2 = Number of the first track */
+    dev->ops->get_track_info(dev, 1, 0, &ti);
+    b[2] = ti.number;
+    cdrom_log("    b[2] = %02X\n", b[2]);
 
-    d = 0;
-    for (c = 0; c <= last_track; c++) {
-	dev->ops->get_track_info(dev, c + 1, 0, &ti);
-	if (ti.number >= start_track) {
-		d = c;
-		break;
+    /* Byte 3 = Number of the last track before the lead-out track */
+    dev->ops->get_track_info(dev, last_track, 0, &ti);
+    b[3] = ti.number;
+    cdrom_log("    b[3] = %02X\n", b[2]);
+
+    if (start_track == 0x00)
+	first_track = 0;
+    else {
+	first_track = -1;
+	for (i = 0; i <= last_track; i++) {
+		dev->ops->get_track_info(dev, i + 1, 0, &ti);
+		if (ti.number >= start_track) {
+			first_track = i;
+			break;
+		}
 	}
     }
+    cdrom_log("    first_track = %i, last_track = %i\n", first_track, last_track);
 
-    if (start_track != 0xAA) {
-	dev->ops->get_track_info(dev, c + 1, 0, &ti);
-	b[2] = ti.number;
+    /* No suitable starting track, return with error. */
+    if (first_track == -1) {
+#ifdef ENABLE_CDROM_LOG
+	cdrom_log("    [ERROR] No suitable track found\n");
+#endif
+	return -1;
     }
 
-    for (c = d; c <= last_track; c++) {
-	dev->ops->get_track_info(dev, c + 1, 0, &ti);
+    for (i = first_track; i <= last_track; i++) {
+	cdrom_log("    tracks(%i) = %02X, %02X, %i:%02i.%02i\n", i, ti.attr, ti.number, ti.m, ti.s, ti.f);
+	dev->ops->get_track_info(dev, i + 1, 0, &ti);
 
 	b[len++] = 0; /* reserved */
 	b[len++] = ti.attr;
@@ -572,23 +591,27 @@ read_toc_session(cdrom_t *dev, unsigned char *b, int msf)
     int len = 4;
     uint32_t temp;
 
+    cdrom_log("read_toc_session(%08X, %08X, %i)\n", dev, b, msf);
+
+    /* Bytes 2 and 3 = Number of first and last sessions */
+    b[2] = b[3] = 1;
+
     dev->ops->get_track_info(dev, 1, 0, &ti);
 
-    if (ti.number == 0)
-	ti.number = 1;
+    cdrom_log("    tracks(0) = %02X, %02X, %i:%02i.%02i\n", ti.attr, ti.number, ti.m, ti.s, ti.f);
 
-    b[2] = b[3] = 1;
     b[len++] = 0; /* reserved */
     b[len++] = ti.attr;
     b[len++] = ti.number; /* track number */
     b[len++] = 0; /* reserved */
+
     if (msf) {
 	b[len++] = 0;
 	b[len++] = ti.m;
 	b[len++] = ti.s;
 	b[len++] = ti.f;
     } else {
-	temp = MSFtoLBA(ti.m, ti.s, ti.f) - 150;	/* Do the - 150. */
+	temp = MSFtoLBA(ti.m, ti.s, ti.f) - 150;
 	b[len++] = temp >> 24;
 	b[len++] = temp >> 16;
 	b[len++] = temp >> 8;
@@ -603,28 +626,31 @@ static int
 read_toc_raw(cdrom_t *dev, unsigned char *b)
 {
     track_info_t ti;
+    int i, len = 4;
     int first_track, last_track;
-    int track, len = 4;
+
+    cdrom_log("read_toc_raw(%08X, %08X)\n", dev, b);
 
     dev->ops->get_tracks(dev, &first_track, &last_track);
 
-    b[2] = first_track;
-    b[3] = last_track;
+    /* Bytes 2 and 3 = Number of first and last sessions */
+    b[2] = b[3] = 1;
 
-    for (track = first_track; track <= last_track; track++) {
-	dev->ops->get_track_info(dev, track, 0, &ti);
+    for (i = 0; i <= last_track; i++) {
+	dev->ops->get_track_info(dev, i + 1, 0, &ti);
 
-	b[len++] = track;
-	b[len++] = ti.attr;
+	cdrom_log("    tracks(%i) = %02X, %02X, %i:%02i.%02i\n", i, ti.attr, ti.number, ti.m, ti.s, ti.f);
+
+	b[len++] = 1;		/* Session number */
+	b[len++] = ti.attr;	/* Track ADR and Control */
+	b[len++] = 0;		/* TNO (always 0) */
+	b[len++] = ti.number;	/* Point (for track points - track number) */
+	b[len++] = ti.m;	/* M */
+	b[len++] = ti.s;	/* S */
+	b[len++] = ti.f;	/* F */
 	b[len++] = 0;
 	b[len++] = 0;
 	b[len++] = 0;
-	b[len++] = 0;
-	b[len++] = 0;
-	b[len++] = 0;
-	b[len++] = ti.m;
-	b[len++] = ti.s;
-	b[len++] = ti.f;
     }
 
     return len;

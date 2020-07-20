@@ -1534,9 +1534,15 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 			return;
 		}
 
-		if (toc_format < 3)
+		if (toc_format < 3) {
 			len = cdrom_read_toc(dev->drv, dev->buffer, toc_format, cdb[6], msf, max_len);
-		else {
+			if (len == -1) {
+				/* If the returned length is -1, this means cdrom_read_toc() has encountered an error. */
+				scsi_cdrom_invalid_field(dev);
+				scsi_cdrom_buf_free(dev);
+				return;
+			}
+		} else {
 			scsi_cdrom_invalid_field(dev);
 			scsi_cdrom_buf_free(dev);
 			return;
