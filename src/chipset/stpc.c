@@ -618,7 +618,7 @@ stpc_serial_handlers(uint8_t val)
     	uart1_io = 0x2f8;
     }
 
-    if ((uart0_io & 0x0f00) < 0x300) {
+    if (uart0_io < 0x300) {
     	/* The address for UART0 defines the IRQs for both ports. */
     	uart0_irq = 3;
     	uart1_irq = 4;
