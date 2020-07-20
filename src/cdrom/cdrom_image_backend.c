@@ -973,8 +973,7 @@ cdi_load_cue(cd_img_t *cdi, const wchar_t *cuefile)
 		success = 1;
 	} else {
 #ifdef ENABLE_CDROM_IMAGE_BACKEND_LOG
-		cdrom_image_backend_log("CUE: unsupported command '%s' in cue sheet!\n",
-				 command.c_str());
+		cdrom_image_backend_log("CUE: unsupported command '%s' in cue sheet!\n", command);
 #endif
 		success = 0;
 	}
