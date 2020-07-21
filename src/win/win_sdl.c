@@ -157,8 +157,8 @@ sdl_stretch(int *w, int *h, int *x, int *y)
 		}
 		dx = (hw - dw) / 2.0;
 		dy = (hh - dh) / 2.0;
-		*w = (int) hw;
-		*h = (int) hh;
+		*w = (int) dw;
+		*h = (int) dh;
 		*x = (int) dx;
 		*y = (int) dy;
 		break;
