@@ -27,6 +27,7 @@ enum {
 	FPU_287,
 	FPU_287XL,
 	FPU_387,
+	FPU_487SX,
 	FPU_INTERNAL
 };
 
