@@ -36,6 +36,8 @@
 #include "386_common.h"
 
 
+extern FILE *stdlog;
+
 /*Controls whether the accessed bit in a descriptor is set when CS is loaded.*/
 #define CS_ACCESSED
 
