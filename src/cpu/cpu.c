@@ -1726,6 +1726,7 @@ cpu_set(void)
                 x87_timings = x87_timings_387;
 	        break;
 		
+		case FPU_487SX:
 		default:
 		x87_timings = x87_timings_486;
 	}
