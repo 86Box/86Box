@@ -584,6 +584,8 @@ win_settings_machine_recalc_fpu(HWND hdlg)
 	EnableWindow(h, TRUE);
     else
 	EnableWindow(h, FALSE);
+
+    temp_fpu = fpu_get_type_from_index(temp_machine, temp_cpu_m, temp_cpu, SendMessage(h, CB_GETCURSEL, 0, 0));
 }
 
 

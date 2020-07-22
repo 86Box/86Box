@@ -73,6 +73,12 @@ FPU fpus_80386[] =
         {"387",  "387",   FPU_387},
         {NULL, NULL, 0}
 };
+FPU fpus_486sx[] =
+{
+        {"None", "none",  FPU_NONE},
+        {"487SX","487sx", FPU_487SX},
+        {NULL, NULL, 0}
+};
 FPU fpus_internal[] =
 {
         {"Internal", "internal", FPU_INTERNAL},
@@ -259,12 +265,12 @@ CPU cpus_486DLC[] = {
 
 CPU cpus_i486S1[] = {
     /*i486*/
-    {"i486SX/16",            CPU_i486SX,     fpus_none,  16000000, 1,  0x420,        0, 0, CPU_SUPPORTS_DYNAREC,  3, 3,3,3,  2},
-    {"i486SX/20",            CPU_i486SX,     fpus_none,  20000000, 1,  0x420,        0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
-    {"i486SX/25",            CPU_i486SX,     fpus_none,  25000000, 1,  0x422,        0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
-    {"i486SX/33",            CPU_i486SX,     fpus_none,  33333333, 1,  0x42a,        0, 0, CPU_SUPPORTS_DYNAREC,  6, 6,3,3,  4},
-    {"i486SX2/50",           CPU_i486SX2,    fpus_none,  50000000, 2,  0x45b,        0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  6},
-    {"i486SX2/66 (Q0569)",   CPU_i486SX2,    fpus_none,  66666666, 2,  0x45b,        0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  8},
+    {"i486SX/16",            CPU_i486SX,     fpus_486sx,  16000000, 1,  0x420,        0, 0, CPU_SUPPORTS_DYNAREC,  3, 3,3,3,  2},
+    {"i486SX/20",            CPU_i486SX,     fpus_486sx,  20000000, 1,  0x420,        0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
+    {"i486SX/25",            CPU_i486SX,     fpus_486sx,  25000000, 1,  0x422,        0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
+    {"i486SX/33",            CPU_i486SX,     fpus_486sx,  33333333, 1,  0x42a,        0, 0, CPU_SUPPORTS_DYNAREC,  6, 6,3,3,  4},
+    {"i486SX2/50",           CPU_i486SX2,    fpus_486sx,  50000000, 2,  0x45b,        0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  6},
+    {"i486SX2/66 (Q0569)",   CPU_i486SX2,    fpus_486sx,  66666666, 2,  0x45b,        0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  8},
     {"i486DX/25",            CPU_i486DX,  fpus_internal,  25000000, 1,  0x404,        0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
     {"i486DX/33",            CPU_i486DX,  fpus_internal,  33333333, 1,  0x414,        0, 0, CPU_SUPPORTS_DYNAREC,  6, 6,3,3,  4},
     {"i486DX/50",            CPU_i486DX,  fpus_internal,  50000000, 1,  0x411,        0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,4,4,  6},
@@ -277,10 +283,10 @@ CPU cpus_i486S1[] = {
 };
 CPU cpus_Am486S1[] = {
     /*Am486*/
-    {"Am486SX/33",   CPU_Am486SX,     fpus_none, 33333333, 1, 0x42a,     0, 0, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3, 4},
-    {"Am486SX/40",   CPU_Am486SX,     fpus_none, 40000000, 1, 0x42a,     0, 0, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3, 5}, 
-    {"Am486SX2/50",  CPU_Am486SX2,    fpus_none, 50000000, 2, 0x45b, 0x45b, 0, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6, 6}, /*CPUID available on SX2, DX2, DX4, 5x86, >= 50 MHz*/
-    {"Am486SX2/66",  CPU_Am486SX2,    fpus_none, 66666666, 2, 0x45b, 0x45b, 0, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6, 8}, /*Isn't on all real AMD SX2s and DX2s, availability here is pretty arbitary (and distinguishes them from the Intel chips)*/
+    {"Am486SX/33",   CPU_Am486SX,     fpus_486sx, 33333333, 1, 0x42a,     0, 0, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3, 4},
+    {"Am486SX/40",   CPU_Am486SX,     fpus_486sx, 40000000, 1, 0x42a,     0, 0, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3, 5}, 
+    {"Am486SX2/50",  CPU_Am486SX2,    fpus_486sx, 50000000, 2, 0x45b, 0x45b, 0, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6, 6}, /*CPUID available on SX2, DX2, DX4, 5x86, >= 50 MHz*/
+    {"Am486SX2/66",  CPU_Am486SX2,    fpus_486sx, 66666666, 2, 0x45b, 0x45b, 0, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6, 8}, /*Isn't on all real AMD SX2s and DX2s, availability here is pretty arbitary (and distinguishes them from the Intel chips)*/
     {"Am486DX/33",   CPU_Am486DX,  fpus_internal, 33333333, 1, 0x430,     0, 0, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3, 4},
     {"Am486DX/40",   CPU_Am486DX,  fpus_internal, 40000000, 1, 0x430,     0, 0, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3, 5},
     {"Am486DX2/50",  CPU_Am486DX2, fpus_internal, 50000000, 2, 0x470, 0x470, 0, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6, 6},
@@ -290,9 +296,9 @@ CPU cpus_Am486S1[] = {
 };
 CPU cpus_Cx486S1[] = {
     /*Cyrix 486*/
-    {"Cx486S/25",            CPU_Cx486S,    fpus_none,   25000000, 1.0,  0x420,      0, 0x0010, CPU_SUPPORTS_DYNAREC,  4, 4, 3, 3,  3},
-    {"Cx486S/33",            CPU_Cx486S,    fpus_none,   33333333, 1.0,  0x420,      0, 0x0010, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3,  4},
-    {"Cx486S/40",            CPU_Cx486S,    fpus_none,   40000000, 1.0,  0x420,      0, 0x0010, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3,  5},
+    {"Cx486S/25",            CPU_Cx486S,    fpus_486sx,   25000000, 1.0,  0x420,      0, 0x0010, CPU_SUPPORTS_DYNAREC,  4, 4, 3, 3,  3},
+    {"Cx486S/33",            CPU_Cx486S,    fpus_486sx,   33333333, 1.0,  0x420,      0, 0x0010, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3,  4},
+    {"Cx486S/40",            CPU_Cx486S,    fpus_486sx,   40000000, 1.0,  0x420,      0, 0x0010, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3,  5},
     {"Cx486DX/33",          CPU_Cx486DX, fpus_internal,   33333333, 1.0,  0x430,      0, 0x051a, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3,  4},
     {"Cx486DX/40",          CPU_Cx486DX, fpus_internal,   40000000, 1.0,  0x430,      0, 0x051a, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3,  5},
     {"Cx486DX2/50",        CPU_Cx486DX2, fpus_internal,   50000000, 2.0,  0x430,      0, 0x081b, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6,  6},
@@ -303,12 +309,12 @@ CPU cpus_Cx486S1[] = {
 
 CPU cpus_i486[] = {
     /*i486/P24T*/
-    {"i486SX/16",            CPU_i486SX,     fpus_none,  16000000, 1.0,  0x420,      0, 0x0000, CPU_SUPPORTS_DYNAREC,  3, 3, 3, 3,  2},
-    {"i486SX/20",            CPU_i486SX,     fpus_none,  20000000, 1.0,  0x420,      0, 0x0000, CPU_SUPPORTS_DYNAREC,  4, 4, 3, 3,  3},
-    {"i486SX/25",            CPU_i486SX,     fpus_none,  25000000, 1.0,  0x422,      0, 0x0000, CPU_SUPPORTS_DYNAREC,  4, 4, 3, 3,  3},
-    {"i486SX/33",            CPU_i486SX,     fpus_none,  33333333, 1.0,  0x42a,      0, 0x0000, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3,  4},
-    {"i486SX2/50",           CPU_i486SX2,    fpus_none,  50000000, 2.0,  0x45b,      0, 0x0000, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6,  6},
-    {"i486SX2/66 (Q0569)",   CPU_i486SX2,    fpus_none,  66666666, 2.0,  0x45b,      0, 0x0000, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6,  8},
+    {"i486SX/16",            CPU_i486SX,     fpus_486sx,  16000000, 1.0,  0x420,      0, 0x0000, CPU_SUPPORTS_DYNAREC,  3, 3, 3, 3,  2},
+    {"i486SX/20",            CPU_i486SX,     fpus_486sx,  20000000, 1.0,  0x420,      0, 0x0000, CPU_SUPPORTS_DYNAREC,  4, 4, 3, 3,  3},
+    {"i486SX/25",            CPU_i486SX,     fpus_486sx,  25000000, 1.0,  0x422,      0, 0x0000, CPU_SUPPORTS_DYNAREC,  4, 4, 3, 3,  3},
+    {"i486SX/33",            CPU_i486SX,     fpus_486sx,  33333333, 1.0,  0x42a,      0, 0x0000, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3,  4},
+    {"i486SX2/50",           CPU_i486SX2,    fpus_486sx,  50000000, 2.0,  0x45b,      0, 0x0000, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6,  6},
+    {"i486SX2/66 (Q0569)",   CPU_i486SX2,    fpus_486sx,  66666666, 2.0,  0x45b,      0, 0x0000, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6,  8},
     {"i486DX/25",            CPU_i486DX,  fpus_internal,  25000000, 1.0,  0x404,      0, 0x0000, CPU_SUPPORTS_DYNAREC,  4, 4, 3, 3,  3},
     {"i486DX/33",            CPU_i486DX,  fpus_internal,  33333333, 1.0,  0x414,      0, 0x0000, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3,  4},
     {"i486DX/50",            CPU_i486DX,  fpus_internal,  50000000, 1.0,  0x411,      0, 0x0000, CPU_SUPPORTS_DYNAREC,  8, 8, 4, 4,  6},
@@ -326,10 +332,10 @@ CPU cpus_i486[] = {
 
 CPU cpus_Am486[] = {
     /*Am486/5x86*/
-    {"Am486SX/33",   CPU_Am486SX,     fpus_none,   33333333, 1.0, 0x42a,     0, 0, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3, 4},
-    {"Am486SX/40",   CPU_Am486SX,     fpus_none,   40000000, 1.0, 0x42a,     0, 0, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3, 5}, 
-    {"Am486SX2/50",  CPU_Am486SX2,    fpus_none,   50000000, 2.0, 0x45b, 0x45b, 0, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6, 6}, /*CPUID available on SX2, DX2, DX4, 5x86, >= 50 MHz*/
-    {"Am486SX2/66",  CPU_Am486SX2,    fpus_none,   66666666, 2.0, 0x45b, 0x45b, 0, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6, 8},
+    {"Am486SX/33",   CPU_Am486SX,     fpus_486sx,   33333333, 1.0, 0x42a,     0, 0, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3, 4},
+    {"Am486SX/40",   CPU_Am486SX,     fpus_486sx,   40000000, 1.0, 0x42a,     0, 0, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3, 5}, 
+    {"Am486SX2/50",  CPU_Am486SX2,    fpus_486sx,   50000000, 2.0, 0x45b, 0x45b, 0, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6, 6}, /*CPUID available on SX2, DX2, DX4, 5x86, >= 50 MHz*/
+    {"Am486SX2/66",  CPU_Am486SX2,    fpus_486sx,   66666666, 2.0, 0x45b, 0x45b, 0, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6, 8},
     {"Am486DX/33",   CPU_Am486DX,  fpus_internal,   33333333, 1.0, 0x430,     0, 0, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3, 4},
     {"Am486DX/40",   CPU_Am486DX,  fpus_internal,   40000000, 1.0, 0x430,     0, 0, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3, 5},
     {"Am486DX2/50",  CPU_Am486DX2, fpus_internal,   50000000, 2.0, 0x470, 0x470, 0, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6, 6},
@@ -347,9 +353,9 @@ CPU cpus_Am486[] = {
 
 CPU cpus_Cx486[] = {
     /*Cyrix 486*/
-    {"Cx486S/25",    CPU_Cx486S,      fpus_none,  25000000, 1.0, 0x420, 0, 0x0010, CPU_SUPPORTS_DYNAREC,  4, 4, 3, 3,  3},
-    {"Cx486S/33",    CPU_Cx486S,      fpus_none,  33333333, 1.0, 0x420, 0, 0x0010, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3,  4},
-    {"Cx486S/40",    CPU_Cx486S,      fpus_none,  40000000, 1.0, 0x420, 0, 0x0010, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3,  5},
+    {"Cx486S/25",    CPU_Cx486S,      fpus_486sx,  25000000, 1.0, 0x420, 0, 0x0010, CPU_SUPPORTS_DYNAREC,  4, 4, 3, 3,  3},
+    {"Cx486S/33",    CPU_Cx486S,      fpus_486sx,  33333333, 1.0, 0x420, 0, 0x0010, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3,  4},
+    {"Cx486S/40",    CPU_Cx486S,      fpus_486sx,  40000000, 1.0, 0x420, 0, 0x0010, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3,  5},
     {"Cx486DX/33",   CPU_Cx486DX,  fpus_internal,  33333333, 1.0, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3,  4},
     {"Cx486DX/40",   CPU_Cx486DX,  fpus_internal,  40000000, 1.0, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3,  5},
     {"Cx486DX2/50",  CPU_Cx486DX2, fpus_internal,  50000000, 2.0, 0x430, 0, 0x081b, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6,  6},
