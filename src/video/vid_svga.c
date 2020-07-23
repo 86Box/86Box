@@ -1299,7 +1299,7 @@ svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
     if (ys_temp < 32)
 	ys_temp = 200;
 
-    if ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get()) {
+    if ((svga->crtc[0x17] & 0x80) && ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
 	/* Screen res has changed.. fix up, and let them know. */
 	xsize = xs_temp;
 	ysize = ys_temp;

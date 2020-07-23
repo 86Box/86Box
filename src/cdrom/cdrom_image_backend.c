@@ -262,6 +262,7 @@ cdi_get_audio_tracks(cd_img_t *cdi, int *st_track, int *end, TMSF *lead_out)
 }
 
 
+/* TODO: This never returns anything other than 1, should it even be an int? */
 int
 cdi_get_audio_tracks_lba(cd_img_t *cdi, int *st_track, int *end, uint32_t *lead_out)
 {
@@ -972,8 +973,7 @@ cdi_load_cue(cd_img_t *cdi, const wchar_t *cuefile)
 		success = 1;
 	} else {
 #ifdef ENABLE_CDROM_IMAGE_BACKEND_LOG
-		cdrom_image_backend_log("CUE: unsupported command '%s' in cue sheet!\n",
-				 command.c_str());
+		cdrom_image_backend_log("CUE: unsupported command '%s' in cue sheet!\n", command);
 #endif
 		success = 0;
 	}
