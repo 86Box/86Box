@@ -84,6 +84,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef VGAWONDER
   VGAWONDER	:= y
  endif
+ ifndef VIRTUALPC
+  VIRTUALPC := y
+ endif
  ifndef VNC
   VNC		:= y
  endif
@@ -159,6 +162,9 @@ else
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
+ endif
+ ifndef VIRTUALPC
+  VIRTUALPC	:= y
  endif
  ifndef VNC
   VNC		:= n
@@ -554,7 +560,7 @@ endif
 
 ifeq ($(STPC), y)
 OPTS		+= -DUSE_STPC
-STPCOBJ		:= stpc.o
+DEVBROBJ	+= stpc.o
 endif
 
 ifeq ($(596B), y)
@@ -563,6 +569,11 @@ endif
 
 ifeq ($(VGAWONDER), y)
 OPTS		+= -DUSE_VGAWONDER
+endif
+
+ifeq ($(VIRTUALPC), y)
+OPTS		+= -DUSE_VIRTUALPC
+DEVBROBJ	+= vpc2007.o
 endif
 
 ifeq ($(WIN471), y)
@@ -617,7 +628,7 @@ CPUOBJ		:= cpu.o cpu_table.o \
 CHIPSETOBJ	:= acc2168.o cs8230.o ali1429.o headland.o i82335.o cs4031.o \
 		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
 		    neat.o opti495.o opti895.o opti5x7.o scamp.o scat.o via_vt82c49x.o via_vt82c505.o \
-		    sis_85c310.o sis_85c471.o sis_85c496.o opti283.o opti291.o $(STPCOBJ) \
+		    sis_85c310.o sis_85c471.o sis_85c496.o opti283.o opti291.o \
 		    via_apollo.o via_vpx.o via_vt82c586b.o via_vt82c596b.o wd76c10.o vl82c480.o \
 			amd640.o
 
@@ -637,7 +648,7 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_at_socket4_5.o m_at_socket7_s7.o m_at_sockets7.o \
 		    m_at_socket8.o m_at_slot1.o m_at_slot2.o m_at_socket370.o
 
-DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o ibm_5161.o isamem.o isartc.o lpt.o postcard.o serial.o \
+DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o ibm_5161.o isamem.o isartc.o lpt.o postcard.o vpc2007.o serial.o \
 		    smbus.o smbus_piix4.o \
 		   keyboard.o \
 		    keyboard_xt.o keyboard_at.o \
