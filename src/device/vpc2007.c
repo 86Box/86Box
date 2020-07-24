@@ -129,7 +129,6 @@ static void
 vpc2007_write(uint16_t port, uint8_t val, void *priv)
 {
     vpc2007_t *dev = (vpc2007_t *) priv;
-    uint32_t seg;
 
     switch (port) {
     	case 0x440:
