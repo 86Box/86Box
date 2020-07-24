@@ -71,6 +71,7 @@ extern const device_t	piix4e_device;
 extern const device_t	slc90e66_device;
 
 extern const device_t	ioapic_device;
+extern const device_t	vpc2007_device;
 
 /* OPTi */
 extern const device_t	opti283_device;
