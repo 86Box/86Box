@@ -53,7 +53,7 @@ typedef struct
 {
     const char vendor[8];
     const char model[16];
-    const char revision[4];
+    const char revision[5];
     int8_t supported_media[KNOWN_MO_TYPES];
 } mo_drive_type_t;
 

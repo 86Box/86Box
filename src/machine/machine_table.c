@@ -355,6 +355,9 @@ const machine_t machines[] = {
     { "[i440BX] A-Trend ATC6310BXII",		"atc6310bxii",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  768,   8, 255,	  machine_at_atc6310bxii_init, NULL			},
     { "[i440BX] Tyan Tsunami ATX",		"tsunamiatx",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"",      NULL},     {"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_SOUND,	 		  8, 1024,   8, 255,	   machine_at_tsunamiatx_init, at_tsunamiatx_get_device	},
     { "[i440BX] SuperMicro Super P6SBA",	"p6sba",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"",      NULL},     {"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8,  768,   8, 255,	        machine_at_p6sba_init, NULL			},
+#if defined(DEV_BRANCH) && defined(USE_VIRTUALPC)
+    { "[i440BX] Microsoft Virtual PC 2007",	"vpc2007",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"",      NULL},     {"",      NULL},{"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			  		  8, 1024,   8, 255,	      machine_at_vpc2007_init, NULL			},
+#endif
 
     /* Slot 2 machines(Including Slot 1/2 Hybrids) */
     /* 440GX */

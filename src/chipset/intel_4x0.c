@@ -29,6 +29,7 @@
 #include <86box/keyboard.h>
 #include <86box/chipset.h>
 #include <86box/spd.h>
+#include <86box/machine.h>
 
 
 enum
@@ -442,9 +443,13 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				break;
 			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x51] = (regs[0x50] & 0x70) | (val & 0x8f);
+#if defined(DEV_BRANCH) && defined(USE_VIRTUALPC)
+				if (!strcmp(machines[machine].internal_name, "vpc2007"))
+					regs[0x51] |= 0x10; /* Virtual PC 2007 BIOS requires a reserved bus speed bit to be set */
+#endif
 				break;
 			case INTEL_440GX:
-            regs[0x51] = (regs[0x50] & 0x88) | (val & 0x08);
+            			regs[0x51] = (regs[0x50] & 0x88) | (val & 0x08);
 				/*regs[0x51] = (regs[0x50] & 0x88) | (val & 0x77);*/
 				break;
 		}
@@ -1548,9 +1553,13 @@ static void
 		regs[0x10] = 0x08;
 		regs[0x34] = (regs[0x7a] & 0x02) ? 0x00 : 0xa0;
 		if (cpu_busspeed <= 66666667)
-			regs[0x51] |= 0x00;
-		else if ((cpu_busspeed > 66666667) && (cpu_busspeed <= 100000000))
 			regs[0x51] |= 0x20;
+		else if ((cpu_busspeed > 66666667) && (cpu_busspeed <= 100000000))
+			regs[0x51] |= 0x00;
+#if defined(DEV_BRANCH) && defined(USE_VIRTUALPC)
+		if (!strcmp(machines[machine].internal_name, "vpc2007"))
+			regs[0x51] |= 0x10; /* Virtual PC 2007 BIOS requires a reserved bus speed bit to be set */
+#endif
 		regs[0x57] = 0x28;	/* 4 DIMMs, SDRAM */
 		regs[0x58] = 0x03;
 		regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x01;
