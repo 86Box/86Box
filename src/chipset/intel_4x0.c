@@ -1548,9 +1548,9 @@ static void
 		regs[0x10] = 0x08;
 		regs[0x34] = (regs[0x7a] & 0x02) ? 0x00 : 0xa0;
 		if (cpu_busspeed <= 66666667)
-			regs[0x51] |= 0x00;
-		else if ((cpu_busspeed > 66666667) && (cpu_busspeed <= 100000000))
 			regs[0x51] |= 0x20;
+		else if ((cpu_busspeed > 66666667) && (cpu_busspeed <= 100000000))
+			regs[0x51] |= 0x00;
 		regs[0x57] = 0x28;	/* 4 DIMMs, SDRAM */
 		regs[0x58] = 0x03;
 		regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x01;
