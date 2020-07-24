@@ -7,7 +7,7 @@
  *		This file is part of the 86Box distribution.
  *
  *		Skeleton I/O APIC implementation, currently housing the MPS
- *    	      table patcher for machines that require it.
+ *		table patcher for machines that require it.
  *
  *
  *
