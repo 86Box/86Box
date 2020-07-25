@@ -636,9 +636,6 @@ void sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
                 {
                         /* Reset */
                         /* Changed defaults from -14dB to 0dB*/
-                        mixer->regs[0x0E]=0x02;
-                        sb_dsp_set_stereo(&sb->dsp, mixer->regs[0x0E] & 2);
-
                         mixer->regs[0x30]=31 << 3;
                         mixer->regs[0x31]=31 << 3;
                         mixer->regs[0x32]=31 << 3;
