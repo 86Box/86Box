@@ -36,6 +36,7 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/mo.h>
+#include <86box/version.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -1324,6 +1325,7 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
     int32_t alloc_length;
     int size_idx, idx = 0;
     unsigned preamble_len;
+    char device_identify[9] = { '8', '6', 'B', '_', 'M', 'O', '0', '0', 0 };
     int32_t blen = 0;
     int32_t *BufLen;
     uint32_t previous_pos = 0;
@@ -1338,6 +1340,8 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
 
     dev->packet_len = 0;
     dev->request_pos = 0;
+
+    device_identify[7] = dev->id + 0x30;
 
     memcpy(dev->current_cdb, cdb, 12);
 
@@ -1725,9 +1729,15 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
 			}
 			dev->buffer[7] |= 0x02;
 
-			ide_padstr8(dev->buffer + 8, 8, mo_drive_types[dev->drv->type].vendor); /* Vendor */
-			ide_padstr8(dev->buffer + 16, 16, mo_drive_types[dev->drv->type].model); /* Product */
-			ide_padstr8(dev->buffer + 32, 4, mo_drive_types[dev->drv->type].revision); /* Revision */
+			if (dev->drv->type > 0) {
+				ide_padstr8(dev->buffer + 8, 8, mo_drive_types[dev->drv->type].vendor); /* Vendor */
+				ide_padstr8(dev->buffer + 16, 16, mo_drive_types[dev->drv->type].model); /* Product */
+				ide_padstr8(dev->buffer + 32, 4, mo_drive_types[dev->drv->type].revision); /* Revision */
+			} else {
+				ide_padstr8(dev->buffer + 8, 8, EMU_NAME); /* Vendor */
+				ide_padstr8(dev->buffer + 16, 16, device_identify); /* Product */
+				ide_padstr8(dev->buffer + 32, 4, EMU_VERSION); /* Revision */
+			}
 			idx = 36;
 
 			if (max_len == 96) {
@@ -2038,13 +2048,20 @@ static void
 mo_do_identify(ide_t *ide, int ide_has_dma)
 {
     char model[40];
-    mo_t* mo = (mo_t*)ide->sc;
+
+    mo_t* mo = (mo_t*) ide->sc;
 
     memset(model, 0, 40);
-    snprintf(model, 40, "%s %s", mo_drive_types[mo_drives[mo->id].type].vendor, mo_drive_types[mo_drives[mo->id].type].model);
 
-    ide_padstr((char *) (ide->buffer + 23), mo_drive_types[mo_drives[mo->id].type].revision, 8); /* Firmware */
-    ide_padstr((char *) (ide->buffer + 27), model, 40); /* Model */
+    if (mo_drives[mo->id].type > 0) {
+    	snprintf(model, 40, "%s %s", mo_drive_types[mo_drives[mo->id].type].vendor, mo_drive_types[mo_drives[mo->id].type].model);
+	ide_padstr((char *) (ide->buffer + 23), mo_drive_types[mo_drives[mo->id].type].revision, 8); /* Firmware */
+	ide_padstr((char *) (ide->buffer + 27), model, 40); /* Model */
+    } else {
+    	snprintf(model, 40, "%s %s%02i", EMU_NAME, "86B_MO", mo->id);
+	ide_padstr((char *) (ide->buffer + 23), EMU_VERSION, 8); /* Firmware */
+	ide_padstr((char *) (ide->buffer + 27), model, 40); /* Model */
+    }
 
     if (ide_has_dma) {
 	ide->buffer[80] = 0x30; /*Supported ATA versions : ATA/ATAPI-4 ATA/ATAPI-5*/

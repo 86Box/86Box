@@ -782,7 +782,6 @@ CPU cpus_PentiumII[] = {
     {"Pentium II Deschutes 400",    CPU_PENTIUM2D,  fpus_internal, 400000000, 4.0,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
     {"Pentium II Deschutes 450",    CPU_PENTIUM2D,  fpus_internal, 450000000, 4.5,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 54},
     {"",                                       -1,          0, 0,        0,      0, 0, 0,  0, 0, 0, 0,  0}
-
 };
 
 CPU cpus_Xeon[] = {
@@ -813,6 +812,21 @@ CPU cpus_Celeron[] = {
     {"Celeron Mendocino 500",       CPU_PENTIUM2D,  fpus_internal, 500000000, 7.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 45,45,15,15, 60},
     {"Celeron Mendocino 533",       CPU_PENTIUM2D,  fpus_internal, 533333333, 8.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 48,48,17,17, 64},
     {"",                                       -1,          0,   0,      0,      0, 0, 0,  0, 0, 0, 0,  0}	
+};
+
+CPU cpus_PentiumIID[] = {
+    /*Intel Pentium II Deschutes*/
+    {"Pentium II Deschutes 50",     CPU_PENTIUM2D,  fpus_internal,  50000000, 1.0,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  4, 4, 3, 3, 6},
+    {"Pentium II Deschutes 60",     CPU_PENTIUM2D,  fpus_internal,  60000000, 1.0,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 7},
+    {"Pentium II Deschutes 66",     CPU_PENTIUM2D,  fpus_internal,  66666666, 1.0,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
+    {"Pentium II Deschutes 75",     CPU_PENTIUM2D,  fpus_internal,  75000000, 1.5,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  7, 7, 4, 4, 9},
+    {"Pentium II Deschutes 266",    CPU_PENTIUM2D,  fpus_internal, 266666666, 4.0,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,12,12, 32},
+    {"Pentium II Deschutes 300/66", CPU_PENTIUM2D,  fpus_internal, 300000000, 4.5,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
+    {"Pentium II Deschutes 333",    CPU_PENTIUM2D,  fpus_internal, 333333333, 5.0,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 27,27,13,13, 40},
+    {"Pentium II Deschutes 350",    CPU_PENTIUM2D,  fpus_internal, 350000000, 3.5,  0x651,  0x651, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 32,32,11,11, 42},
+    {"Pentium II Deschutes 400",    CPU_PENTIUM2D,  fpus_internal, 400000000, 4.0,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
+    {"Pentium II Deschutes 450",    CPU_PENTIUM2D,  fpus_internal, 450000000, 4.5,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 54},
+    {"",                                       -1,          0, 0,        0,      0, 0, 0,  0, 0, 0, 0,  0}
 };
 
 CPU cpus_Cyrix3[] = {
