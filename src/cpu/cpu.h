@@ -174,6 +174,7 @@ extern CPU	cpus_Cyrix3[];
 extern CPU	cpus_PentiumPro[];
 extern CPU	cpus_PentiumII66[];
 extern CPU	cpus_PentiumII[];
+extern CPU	cpus_PentiumIID[];
 extern CPU	cpus_Xeon[];
 extern CPU	cpus_Celeron[];
 
@@ -487,7 +488,7 @@ extern uint32_t	old_rammask;
 #ifdef USE_ACYCS
 extern int	acycs;
 #endif
-extern int	pic_pending;
+extern int	pic_pending, is_vpc;
 
 extern uint16_t	cpu_fast_off_count, cpu_fast_off_val;
 extern uint32_t	cpu_fast_off_flags;
