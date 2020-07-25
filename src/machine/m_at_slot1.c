@@ -543,6 +543,7 @@ machine_at_vpc2007_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init_ex(model, 2);
+    is_vpc = 1;
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);

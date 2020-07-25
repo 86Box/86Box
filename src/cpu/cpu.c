@@ -157,6 +157,7 @@ int		cpu_cache_int_enabled, cpu_cache_ext_enabled;
 int		cpu_pci_speed, cpu_alt_reset;
 uint16_t	cpu_fast_off_count, cpu_fast_off_val;
 uint32_t	cpu_fast_off_flags;
+int		is_vpc;
 
 uint32_t cpu_features;
 

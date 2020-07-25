@@ -73,6 +73,8 @@ machine_init_ex(int m)
     if (!bios_only) {
 	machine_log("Initializing as \"%s\"\n", machine_getname_ex(m));
 
+	is_vpc = 0;
+
 	/* Set up the architecture flags. */
 	AT = IS_ARCH(machine, MACHINE_AT);
 	PCI = IS_ARCH(machine, MACHINE_PCI);
