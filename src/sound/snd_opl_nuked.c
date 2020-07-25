@@ -1079,7 +1079,7 @@ nuked_write_addr(void *priv, uint16_t port, uint8_t val)
     uint16_t addr;
 
     addr = val;
-    if ((port & 0x0002) && (addr == 0x0005 || dev->newm))
+    if ((port & 0x0002) && ((addr == 0x0005) || dev->newm))
 	addr |= 0x0100;
 
     return(addr);

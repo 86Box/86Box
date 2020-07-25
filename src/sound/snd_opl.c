@@ -51,35 +51,66 @@ enum {
 };
 
 
-static void
-status_update(opl_t *dev)
-{
-    if (dev->status & (STATUS_TIMER_1 | STATUS_TIMER_2) & dev->status_mask)
-	dev->status |= STATUS_TIMER_ALL;
-    else
-	dev->status &= ~STATUS_TIMER_ALL;
-}
+#ifdef ENABLE_OPL_LOG
+int opl_do_log = ENABLE_OPL_LOG;
 
 
 static void
-timer_set(opl_t *dev, int timer, uint64_t period)
+opl_log(const char *fmt, ...)
 {
-    timer_on_auto(&dev->timers[timer], ((double) period) * 20.0);
+    va_list ap;
+
+    if (opl_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
 }
+#else
+#define opl_log(fmt, ...)
+#endif
 
 
 static void
 timer_over(opl_t *dev, int tmr)
 {
-    if (tmr) {
+    opl_log("Count wrapped around to zero, reloading timer %i...\n", tmr);
+
+    if (tmr == 1) {
 	dev->status |= STATUS_TIMER_2;
-	timer_set(dev, 1, dev->timer[1] * 16);
+	dev->timer_cur_count[1] = dev->timer_count[1];
     } else {
 	dev->status |= STATUS_TIMER_1;
-	timer_set(dev, 0, dev->timer[0] * 4);
+	dev->timer_cur_count[0] = dev->timer_count[0];
     }
+}
 
-    status_update(dev);
+
+static void
+timer_tick(opl_t *dev, int tmr)
+{
+    dev->timer_cur_count[tmr] = (dev->timer_cur_count[tmr] + 1) & 0xff;
+
+    opl_log("Ticking timer %i, count now %02X...\n", tmr, dev->timer_cur_count[tmr]);
+
+    if (dev->timer_cur_count[tmr] == 0x00)
+	timer_over(dev, tmr);
+
+    timer_on_auto(&dev->timers[tmr], (tmr == 1) ? 320.0 : 80.0);
+}
+
+
+static void
+timer_control(opl_t *dev, int tmr, int start)
+{
+    timer_on_auto(&dev->timers[tmr], 0.0);
+
+    if (start) {
+	opl_log("Loading timer %i count: %02X = %02X\n", tmr, dev->timer_cur_count[tmr], dev->timer_count[tmr]);
+	dev->timer_cur_count[tmr] = dev->timer_count[tmr];
+	timer_on_auto(&dev->timers[tmr], (tmr == 1) ? 320.0 : 80.0);
+    } else
+	opl_log("Timer %i stopped\n", tmr);
 }
 
 
@@ -88,7 +119,7 @@ timer_1(void *priv)
 {
     opl_t *dev = (opl_t *)priv;
 
-    timer_over(dev, 0);
+    timer_tick(dev, 0);
 }
 
 
@@ -97,67 +128,62 @@ timer_2(void *priv)
 {
     opl_t *dev = (opl_t *)priv;
 
-    timer_over(dev, 1);
+    timer_tick(dev, 1);
 }
 
 
 static uint8_t
 opl_read(opl_t *dev, uint16_t port)
 {
-    if (! (port & 1))
-	return((dev->status & dev->status_mask) | (dev->is_opl3 ? 0x00 : 0x06));
+    uint8_t ret = 0xff;
 
-    if (dev->is_opl3 && ((port & 0x03) == 0x03))
-	return(0x00);
+    if ((port & 0x0003) == 0x0000) {
+	ret = ((dev->status & dev->status_mask) | (dev->is_opl3 ? 0x00 : 0x06));
+	if (dev->status & dev->status_mask)
+		ret |= STATUS_TIMER_ALL;
+    }
 
-    return(dev->is_opl3 ? 0x00 : 0xff);
+    return ret;
 }
 
 
 static void
 opl_write(opl_t *dev, uint16_t port, uint8_t val)
 {
-    if (! (port & 1)) {
+    if ((port & 0x0001) == 0x0001) {
+	nuked_write_reg_buffered(dev->opl, dev->port, val);
+
+	switch (dev->port) {
+		case 0x02:	/* Timer 1 */
+			dev->timer_count[0] = val;
+			opl_log("Timer 0 count now: %i\n", dev->timer_count[0]);
+			break;
+
+		case 0x03:	/* Timer 2 */
+			dev->timer_count[1] = val;
+			opl_log("Timer 1 count now: %i\n", dev->timer_count[1]);
+			break;
+
+		case 0x04:	/* Timer control */
+			if (val & CTRL_IRQ_RESET) {
+				opl_log("Resetting timer status...\n");
+				dev->status &= ~(STATUS_TIMER_1 | STATUS_TIMER_2);
+			} else {
+				timer_control(dev, 0, val & CTRL_TIMER1_CTRL);
+				timer_control(dev, 1, val & CTRL_TIMER2_CTRL);
+				dev->timer_ctrl = val;
+				dev->status_mask = (CTRL_TIMER1_MASK | CTRL_TIMER2_MASK) & ~(val & (CTRL_TIMER1_MASK | CTRL_TIMER2_MASK));
+				opl_log("Status mask now %02X (val = %02X)\n", dev->status_mask, val);
+			}
+			break;
+	}
+    } else {
 	dev->port = nuked_write_addr(dev->opl, port, val) & 0x01ff;
 
 	if (! dev->is_opl3)
 		dev->port &= 0x00ff;
 
 	return;
-    }
-
-    nuked_write_reg_buffered(dev->opl, dev->port, val);
-
-    switch (dev->port) {
-	case 0x02:	// timer 1
-		dev->timer[0] = 256 - val;
-		break;
-
-	case 0x03:	// timer 2
-		dev->timer[1] = 256 - val;
-		break;
-
-	case 0x04:	// timer control
-		if (val & CTRL_IRQ_RESET) {
-			dev->status &= ~(STATUS_TIMER_1 | STATUS_TIMER_2);
-			status_update(dev);
-			return;
-		}
-		if ((val ^ dev->timer_ctrl) & CTRL_TIMER1_CTRL) {
-			if (val & CTRL_TIMER1_CTRL)
-				timer_set(dev, 0, dev->timer[0] * 4);
-			else
-				timer_set(dev, 0, 0);
-		}
-		if ((val ^ dev->timer_ctrl) & CTRL_TIMER2_CTRL) {
-			if (val & CTRL_TIMER2_CTRL)
-				timer_set(dev, 1, dev->timer[1] * 16);
-			else
-				timer_set(dev, 1, 0);
-		}
-		dev->status_mask = (~val & (CTRL_TIMER1_MASK | CTRL_TIMER2_MASK)) | 0x80;
-		dev->timer_ctrl = val;
-		break;
     }
 }
 

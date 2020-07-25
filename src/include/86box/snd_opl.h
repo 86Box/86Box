@@ -38,7 +38,8 @@ typedef struct {
     uint8_t	status;
     uint8_t	status_mask;
     uint8_t	timer_ctrl;
-    uint16_t	timer[2];
+    uint16_t	timer_count[2],
+		timer_cur_count[2];
 
     pc_timer_t	timers[2];
 
