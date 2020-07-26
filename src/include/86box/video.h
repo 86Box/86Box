@@ -298,6 +298,7 @@ extern const device_t paradise_wd90c30_device;
 
 /* S3 9XX/8XX/Vision/Trio */
 extern const device_t s3_orchid_86c911_isa_device;
+extern const device_t s3_ami_86c924_isa_device;
 extern const device_t s3_metheus_premier_86c928_isa_device;
 extern const device_t s3_metheus_premier_86c928_vlb_device;
 extern const device_t s3_v7mirage_86c801_isa_device;
