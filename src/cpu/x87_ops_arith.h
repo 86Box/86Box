@@ -11,8 +11,8 @@ static int opFADD ## name ## _a ## a_size(uint32_t fetchdat)    \
         ST(0) += use_var;                                       \
         if ((cpu_state.npxc >> 10) & 3)                                   \
                 fesetround(FE_TONEAREST);                       \
-        FP_TAG_VALID;						\
-        CLOCK_CYCLES(x87_timings.fadd ## cycle_postfix);                                        \
+        FP_TAG_VALID;		\
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fadd ## cycle_postfix) : ((x87_timings.fadd ## cycle_postfix) * cpu_multi)); \
         return 0;                                               \
 }                                                               \
 static int opFCOM ## name ## _a ## a_size(uint32_t fetchdat)    \
@@ -24,7 +24,7 @@ static int opFCOM ## name ## _a ## a_size(uint32_t fetchdat)    \
         load_var = get(); if (cpu_state.abrt) return 1;                   \
         cpu_state.npxs &= ~(C0|C2|C3);                                    \
         cpu_state.npxs |= x87_compare(ST(0), (double)use_var);            \
-        CLOCK_CYCLES(x87_timings.fcom ## cycle_postfix);                                        \
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fcom ## cycle_postfix) : ((x87_timings.fcom ## cycle_postfix) * cpu_multi));                                        \
         return 0;                                               \
 }                                                               \
 static int opFCOMP ## name ## _a ## a_size(uint32_t fetchdat)   \
@@ -37,7 +37,7 @@ static int opFCOMP ## name ## _a ## a_size(uint32_t fetchdat)   \
         cpu_state.npxs &= ~(C0|C2|C3);                                    \
         cpu_state.npxs |= x87_compare(ST(0), (double)use_var);            \
         x87_pop();                                              \
-        CLOCK_CYCLES(x87_timings.fcom ## cycle_postfix);                                        \
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fcom ## cycle_postfix) : ((x87_timings.fcom ## cycle_postfix) * cpu_multi));                                        \
         return 0;                                               \
 }                                                               \
 static int opFDIV ## name ## _a ## a_size(uint32_t fetchdat)    \
@@ -49,7 +49,7 @@ static int opFDIV ## name ## _a ## a_size(uint32_t fetchdat)    \
         load_var = get(); if (cpu_state.abrt) return 1;                   \
         x87_div(ST(0), ST(0), use_var);                         \
         FP_TAG_VALID;						\
-        CLOCK_CYCLES(x87_timings.fdiv ## cycle_postfix);                                       \
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fdiv ## cycle_postfix) : ((x87_timings.fdiv ## cycle_postfix) * cpu_multi));                                       \
         return 0;                                               \
 }                                                               \
 static int opFDIVR ## name ## _a ## a_size(uint32_t fetchdat)   \
@@ -61,7 +61,7 @@ static int opFDIVR ## name ## _a ## a_size(uint32_t fetchdat)   \
         load_var = get(); if (cpu_state.abrt) return 1;                   \
         x87_div(ST(0), use_var, ST(0));                         \
         FP_TAG_VALID;						\
-        CLOCK_CYCLES(x87_timings.fdiv ## cycle_postfix);                                       \
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fdiv ## cycle_postfix) : ((x87_timings.fdiv ## cycle_postfix) * cpu_multi));                                       \
         return 0;                                               \
 }                                                               \
 static int opFMUL ## name ## _a ## a_size(uint32_t fetchdat)    \
@@ -73,7 +73,7 @@ static int opFMUL ## name ## _a ## a_size(uint32_t fetchdat)    \
         load_var = get(); if (cpu_state.abrt) return 1;                   \
         ST(0) *= use_var;                                       \
         FP_TAG_VALID;						\
-        CLOCK_CYCLES(x87_timings.fmul ## cycle_postfix);                                       \
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fmul ## cycle_postfix) : ((x87_timings.fmul ## cycle_postfix) * cpu_multi));                                       \
         return 0;                                               \
 }                                                               \
 static int opFSUB ## name ## _a ## a_size(uint32_t fetchdat)    \
@@ -85,7 +85,7 @@ static int opFSUB ## name ## _a ## a_size(uint32_t fetchdat)    \
         load_var = get(); if (cpu_state.abrt) return 1;                   \
         ST(0) -= use_var;                                       \
         FP_TAG_VALID;						\
-        CLOCK_CYCLES(x87_timings.fadd ## cycle_postfix);                                        \
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fadd ## cycle_postfix) : ((x87_timings.fadd ## cycle_postfix) * cpu_multi));                                        \
         return 0;                                               \
 }                                                               \
 static int opFSUBR ## name ## _a ## a_size(uint32_t fetchdat)   \
@@ -97,7 +97,7 @@ static int opFSUBR ## name ## _a ## a_size(uint32_t fetchdat)   \
         load_var = get(); if (cpu_state.abrt) return 1;                   \
         ST(0) = use_var - ST(0);                                \
         FP_TAG_VALID;						\
-        CLOCK_CYCLES(x87_timings.fadd ## cycle_postfix);                                        \
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fadd ## cycle_postfix) : ((x87_timings.fadd ## cycle_postfix) * cpu_multi));                                        \
         return 0;                                               \
 }
 
@@ -127,7 +127,7 @@ static int opFADD(uint32_t fetchdat)
         cpu_state.pc++;
         ST(0) = ST(0) + ST(fetchdat & 7);
 	FP_TAG_VALID;
-        CLOCK_CYCLES(x87_timings.fadd);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fadd) : (x87_timings.fadd * cpu_multi));
         return 0;
 }
 static int opFADDr(uint32_t fetchdat)
@@ -136,7 +136,7 @@ static int opFADDr(uint32_t fetchdat)
         cpu_state.pc++;
         ST(fetchdat & 7) = ST(fetchdat & 7) + ST(0);
 	FP_TAG_VALID_F;
-        CLOCK_CYCLES(x87_timings.fadd);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fadd) : (x87_timings.fadd * cpu_multi));
         return 0;
 }
 static int opFADDP(uint32_t fetchdat)
@@ -146,7 +146,7 @@ static int opFADDP(uint32_t fetchdat)
         ST(fetchdat & 7) = ST(fetchdat & 7) + ST(0);
 	FP_TAG_VALID_F;
         x87_pop();
-        CLOCK_CYCLES(x87_timings.fadd);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fadd) : (x87_timings.fadd * cpu_multi));
         return 0;
 }
 
@@ -157,7 +157,7 @@ static int opFCOM(uint32_t fetchdat)
         cpu_state.npxs &= ~(C0|C2|C3);
         if (ST(0) == ST(fetchdat & 7))     cpu_state.npxs |= C3;
         else if (ST(0) < ST(fetchdat & 7)) cpu_state.npxs |= C0;
-        CLOCK_CYCLES(x87_timings.fcom);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fcom) : (x87_timings.fcom * cpu_multi));
         return 0;
 }
 
@@ -168,7 +168,7 @@ static int opFCOMP(uint32_t fetchdat)
         cpu_state.npxs &= ~(C0|C2|C3);
         cpu_state.npxs |= x87_compare(ST(0), ST(fetchdat & 7));
         x87_pop();
-        CLOCK_CYCLES(x87_timings.fcom);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fcom) : (x87_timings.fcom * cpu_multi));
         return 0;
 }
 
@@ -187,7 +187,7 @@ static int opFCOMPP(uint32_t fetchdat)
 
         x87_pop();
         x87_pop();
-        CLOCK_CYCLES(x87_timings.fcom);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fcom) : (x87_timings.fcom * cpu_multi));
         return 0;
 }
 #ifndef FPU_8087
@@ -199,7 +199,7 @@ static int opFUCOMPP(uint32_t fetchdat)
         cpu_state.npxs |= x87_ucompare(ST(0), ST(1));
         x87_pop();
         x87_pop();
-        CLOCK_CYCLES(x87_timings.fucom);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fucom) : (x87_timings.fucom * cpu_multi));
         return 0;
 }
 
@@ -211,7 +211,7 @@ static int opFCOMI(uint32_t fetchdat)
         cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
         if (ST(0) == ST(fetchdat & 7))     cpu_state.flags |= Z_FLAG;
         else if (ST(0) < ST(fetchdat & 7)) cpu_state.flags |= C_FLAG;
-        CLOCK_CYCLES(x87_timings.fcom);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fcom) : (x87_timings.fcom * cpu_multi));
         return 0;
 }
 static int opFCOMIP(uint32_t fetchdat)
@@ -223,7 +223,7 @@ static int opFCOMIP(uint32_t fetchdat)
         if (ST(0) == ST(fetchdat & 7))     cpu_state.flags |= Z_FLAG;
         else if (ST(0) < ST(fetchdat & 7)) cpu_state.flags |= C_FLAG;
         x87_pop();
-        CLOCK_CYCLES(x87_timings.fcom);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fcom) : (x87_timings.fcom * cpu_multi));
         return 0;
 }
 #endif
@@ -234,7 +234,7 @@ static int opFDIV(uint32_t fetchdat)
         cpu_state.pc++;
         x87_div(ST(0), ST(0), ST(fetchdat & 7));
 	FP_TAG_VALID;
-        CLOCK_CYCLES(x87_timings.fdiv);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fdiv) : (x87_timings.fdiv * cpu_multi));
         return 0;
 }
 static int opFDIVr(uint32_t fetchdat)
@@ -243,7 +243,7 @@ static int opFDIVr(uint32_t fetchdat)
         cpu_state.pc++;
         x87_div(ST(fetchdat & 7), ST(fetchdat & 7), ST(0));
 	FP_TAG_VALID_F;
-        CLOCK_CYCLES(x87_timings.fdiv);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fdiv) : (x87_timings.fdiv * cpu_multi));
         return 0;
 }
 static int opFDIVP(uint32_t fetchdat)
@@ -253,7 +253,7 @@ static int opFDIVP(uint32_t fetchdat)
         x87_div(ST(fetchdat & 7), ST(fetchdat & 7), ST(0));
 	FP_TAG_VALID_F;
         x87_pop();
-        CLOCK_CYCLES(x87_timings.fdiv);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fdiv) : (x87_timings.fdiv * cpu_multi));
         return 0;
 }
 
@@ -263,7 +263,7 @@ static int opFDIVR(uint32_t fetchdat)
         cpu_state.pc++;
         x87_div(ST(0), ST(fetchdat&7), ST(0));
 	FP_TAG_VALID;
-        CLOCK_CYCLES(x87_timings.fdiv);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fdiv) : (x87_timings.fdiv * cpu_multi));
         return 0;
 }
 static int opFDIVRr(uint32_t fetchdat)
@@ -272,7 +272,7 @@ static int opFDIVRr(uint32_t fetchdat)
         cpu_state.pc++;
         x87_div(ST(fetchdat & 7), ST(0), ST(fetchdat & 7));
 	FP_TAG_VALID_F;
-        CLOCK_CYCLES(x87_timings.fdiv);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fdiv) : (x87_timings.fdiv * cpu_multi));
         return 0;
 }
 static int opFDIVRP(uint32_t fetchdat)
@@ -282,7 +282,7 @@ static int opFDIVRP(uint32_t fetchdat)
         x87_div(ST(fetchdat & 7), ST(0), ST(fetchdat & 7));
 	FP_TAG_VALID_F;
         x87_pop();
-        CLOCK_CYCLES(x87_timings.fdiv);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fdiv) : (x87_timings.fdiv * cpu_multi));
         return 0;
 }
 
@@ -292,7 +292,7 @@ static int opFMUL(uint32_t fetchdat)
         cpu_state.pc++;
         ST(0) = ST(0) * ST(fetchdat & 7);
 	FP_TAG_VALID;
-        CLOCK_CYCLES(x87_timings.fmul);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fmul) : (x87_timings.fmul * cpu_multi));
         return 0;
 }
 static int opFMULr(uint32_t fetchdat)
@@ -301,7 +301,7 @@ static int opFMULr(uint32_t fetchdat)
         cpu_state.pc++;
         ST(fetchdat & 7) = ST(0) * ST(fetchdat & 7);
 	FP_TAG_VALID_F;
-        CLOCK_CYCLES(x87_timings.fmul);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fmul) : (x87_timings.fmul * cpu_multi));
         return 0;
 }
 static int opFMULP(uint32_t fetchdat)
@@ -311,7 +311,7 @@ static int opFMULP(uint32_t fetchdat)
         ST(fetchdat & 7) = ST(0) * ST(fetchdat & 7);
 	FP_TAG_VALID_F;
         x87_pop();
-        CLOCK_CYCLES(x87_timings.fmul);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fmul) : (x87_timings.fmul * cpu_multi));
         return 0;
 }
 
@@ -321,7 +321,7 @@ static int opFSUB(uint32_t fetchdat)
         cpu_state.pc++;
         ST(0) = ST(0) - ST(fetchdat & 7);
 	FP_TAG_VALID;
-        CLOCK_CYCLES(x87_timings.fadd);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fadd) : (x87_timings.fadd * cpu_multi));
         return 0;
 }
 static int opFSUBr(uint32_t fetchdat)
@@ -330,7 +330,7 @@ static int opFSUBr(uint32_t fetchdat)
         cpu_state.pc++;
         ST(fetchdat & 7) = ST(fetchdat & 7) - ST(0);
 	FP_TAG_VALID_F;
-        CLOCK_CYCLES(x87_timings.fadd);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fadd) : (x87_timings.fadd * cpu_multi));
         return 0;
 }
 static int opFSUBP(uint32_t fetchdat)
@@ -340,7 +340,7 @@ static int opFSUBP(uint32_t fetchdat)
         ST(fetchdat & 7) = ST(fetchdat & 7) - ST(0);
 	FP_TAG_VALID_F;
         x87_pop();
-        CLOCK_CYCLES(x87_timings.fadd);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fadd) : (x87_timings.fadd * cpu_multi));
         return 0;
 }
 
@@ -350,7 +350,7 @@ static int opFSUBR(uint32_t fetchdat)
         cpu_state.pc++;
         ST(0) = ST(fetchdat & 7) - ST(0);
 	FP_TAG_VALID;
-        CLOCK_CYCLES(x87_timings.fadd);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fadd) : (x87_timings.fadd * cpu_multi));
         return 0;
 }
 static int opFSUBRr(uint32_t fetchdat)
@@ -359,7 +359,7 @@ static int opFSUBRr(uint32_t fetchdat)
         cpu_state.pc++;
         ST(fetchdat & 7) = ST(0) - ST(fetchdat & 7);
 	FP_TAG_VALID_F;
-        CLOCK_CYCLES(x87_timings.fadd);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fadd) : (x87_timings.fadd * cpu_multi));
         return 0;
 }
 static int opFSUBRP(uint32_t fetchdat)
@@ -369,7 +369,7 @@ static int opFSUBRP(uint32_t fetchdat)
         ST(fetchdat & 7) = ST(0) - ST(fetchdat & 7);
 	FP_TAG_VALID_F;
         x87_pop();
-        CLOCK_CYCLES(x87_timings.fadd);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fadd) : (x87_timings.fadd * cpu_multi));
         return 0;
 }
 
@@ -380,7 +380,7 @@ static int opFUCOM(uint32_t fetchdat)
         cpu_state.pc++;
         cpu_state.npxs &= ~(C0|C2|C3);
         cpu_state.npxs |= x87_ucompare(ST(0), ST(fetchdat & 7));
-        CLOCK_CYCLES(x87_timings.fucom);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fucom) : (x87_timings.fucom * cpu_multi));
         return 0;
 }
 
@@ -391,7 +391,7 @@ static int opFUCOMP(uint32_t fetchdat)
         cpu_state.npxs &= ~(C0|C2|C3);
         cpu_state.npxs |= x87_ucompare(ST(0), ST(fetchdat & 7));
         x87_pop();
-        CLOCK_CYCLES(x87_timings.fucom);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fucom) : (x87_timings.fucom * cpu_multi));
         return 0;
 }
 
@@ -403,7 +403,7 @@ static int opFUCOMI(uint32_t fetchdat)
         cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
         if (ST(0) == ST(fetchdat & 7))     cpu_state.flags |= Z_FLAG;
         else if (ST(0) < ST(fetchdat & 7)) cpu_state.flags |= C_FLAG;
-        CLOCK_CYCLES(x87_timings.fucom);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fucom) : (x87_timings.fucom * cpu_multi));
         return 0;
 }
 static int opFUCOMIP(uint32_t fetchdat)
@@ -415,7 +415,7 @@ static int opFUCOMIP(uint32_t fetchdat)
         if (ST(0) == ST(fetchdat & 7))     cpu_state.flags |= Z_FLAG;
         else if (ST(0) < ST(fetchdat & 7)) cpu_state.flags |= C_FLAG;
         x87_pop();
-        CLOCK_CYCLES(x87_timings.fucom);
+        CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fucom) : (x87_timings.fucom * cpu_multi));
         return 0;
 }
 #endif

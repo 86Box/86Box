@@ -13,8 +13,8 @@
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2018 Sarah Walker.
- *		Copyright 2016-2018 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 
 
@@ -222,6 +222,8 @@ extern float	icd2061_getclock(int clock, void *p);
 #define ics9161_write icd2061_write
 #define ics9161_getclock icd2061_getclock
 
+extern float	ics2494_getclock(int clock, void *p);
+
 extern void	ics2595_write(void *p, int strobe, int dat);
 extern double	ics2595_getclock(void *p);
 extern void	ics2595_setclock(void *p, double clock);
@@ -255,6 +257,7 @@ extern const device_t bt485_ramdac_device;
 extern const device_t att20c505_ramdac_device;
 extern const device_t bt485a_ramdac_device;
 extern const device_t gendac_ramdac_device;
+extern const device_t ics2494an_305_device;
 extern const device_t ics2595_device;
 extern const device_t icd2061_device;
 extern const device_t ics9161_device;

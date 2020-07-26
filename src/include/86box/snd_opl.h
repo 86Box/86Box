@@ -8,16 +8,11 @@
  *
  *		Definitions for the OPL interface.
  *
- * Version:	@(#)snd_opl.h	1.0.3	2020/07/15
- *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
- *		TheCollector1995, <mariogplayer@gmail.com>
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
  *		Copyright 2017-2020 Fred N. van Kempen.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #ifndef SOUND_OPL_H
 # define SOUND_OPL_H
@@ -32,13 +27,12 @@ typedef struct {
 #else
     void	*opl;
 #endif
-    int8_t	is_opl3, do_cycles;
+    int8_t	flags, pad;
 
     uint16_t	port;
-    uint8_t	status;
-    uint8_t	status_mask;
-    uint8_t	timer_ctrl;
-    uint16_t	timer[2];
+    uint8_t	status, timer_ctrl;
+    uint16_t	timer_count[2],
+		timer_cur_count[2];
 
     pc_timer_t	timers[2];
 

@@ -54,6 +54,7 @@ static const VIDEO_CARD
 video_cards[] = {
     { "None",						"none",			NULL					},
     { "Internal",					"internal",		NULL					},
+    { "[ISA] AMI S3 86c924",				"ami_s3_924",		&s3_ami_86c924_isa_device		},
     { "[ISA] ATI EGA Wonder 800+",			"egawonder800",		&atiega_device				},
     { "[ISA] ATI Graphics Pro Turbo (Mach64 GX)",	"mach64gx_isa",		&mach64gx_isa_device			},
     { "[ISA] ATI Korean VGA (ATI-28800-5)",		"ati28800k",		&ati28800k_device			},
