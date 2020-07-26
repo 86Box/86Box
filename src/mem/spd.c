@@ -29,7 +29,6 @@
 #include <86box/machine.h>
 
 
-#define MIN(a, b)	((a) < (b) ? (a) : (b))
 #define SPD_ROLLUP(x)	((x) >= 16 ? ((x) - 15) : (x))
 
 
@@ -328,8 +327,8 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     			sprintf(edo_data->part_no, EMU_NAME "-%s-%03dM", (ram_type == SPD_TYPE_FPM) ? "FPM" : "EDO", vslots[vslot]);
     			for (i = strlen(edo_data->part_no); i < sizeof(edo_data->part_no); i++)
     				edo_data->part_no[i] = ' '; /* part number should be space-padded */
-    			edo_data->rev_code[0] = EMU_VERSION_MAJ;
-    			edo_data->rev_code[1] = (((EMU_VERSION_MIN / 10) << 4) | (EMU_VERSION_MIN % 10));
+    			edo_data->rev_code[0] = BCD8(EMU_VERSION_MAJ);
+    			edo_data->rev_code[1] = BCD8(EMU_VERSION_MIN);
     			edo_data->mfg_year = 20;
     			edo_data->mfg_week = 17;
 
@@ -383,8 +382,8 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
     			sprintf(sdram_data->part_no, EMU_NAME "-SDR-%03dM", vslots[vslot]);
     			for (i = strlen(sdram_data->part_no); i < sizeof(sdram_data->part_no); i++)
     				sdram_data->part_no[i] = ' '; /* part number should be space-padded */
-    			sdram_data->rev_code[0] = EMU_VERSION_MAJ;
-    			sdram_data->rev_code[1] = (((EMU_VERSION_MIN / 10) << 4) | (EMU_VERSION_MIN % 10));
+    			sdram_data->rev_code[0] = BCD8(EMU_VERSION_MAJ);
+    			sdram_data->rev_code[1] = BCD8(EMU_VERSION_MIN);
     			sdram_data->mfg_year = 20;
     			sdram_data->mfg_week = 13;
 
