@@ -14,19 +14,17 @@
  *
  * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
  *		Miran Grca, <mgrca8@gmail.com>
- *		TheCollector1995, <mariogplayer@gmail.com>
- *		Sarah Walker, <tommowalker@tommowalker.co.uk>
  *
  *		Copyright 2017-2020 Fred N. van Kempen.
- *		Copyright 2016-2019 Miran Grca.
- *		Copyright 2008-2018 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
-#include <string.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <wchar.h>
-#define dbglog sound_card_log
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/timer.h>
 #include "cpu.h"
@@ -37,17 +35,24 @@
 
 
 enum {
-    STATUS_TIMER_1 = 0x40,
-    STATUS_TIMER_2 = 0x20,
-    STATUS_TIMER_ALL = 0x80
+    FLAG_CYCLES = 0x02,
+    FLAG_OPL3 = 0x01
 };
 
 enum {
-    CTRL_IRQ_RESET   = 0x80,
-    CTRL_TIMER1_MASK = 0x40,
-    CTRL_TIMER2_MASK = 0x20,
-    CTRL_TIMER2_CTRL = 0x02,
-    CTRL_TIMER1_CTRL = 0x01
+    STAT_TMR_OVER = 0x60,
+    STAT_TMR1_OVER = 0x40,
+    STAT_TMR2_OVER = 0x20,
+    STAT_TMR_ANY = 0x80
+};
+
+enum {
+    CTRL_RESET   = 0x80,
+    CTRL_TMR_MASK = 0x60,
+    CTRL_TMR1_MASK = 0x40,
+    CTRL_TMR2_MASK = 0x20,
+    CTRL_TMR2_START = 0x02,
+    CTRL_TMR1_START = 0x01
 };
 
 
@@ -72,29 +77,18 @@ opl_log(const char *fmt, ...)
 
 
 static void
-timer_over(opl_t *dev, int tmr)
-{
-    opl_log("Count wrapped around to zero, reloading timer %i...\n", tmr);
-
-    if (tmr == 1) {
-	dev->status |= STATUS_TIMER_2;
-	dev->timer_cur_count[1] = dev->timer_count[1];
-    } else {
-	dev->status |= STATUS_TIMER_1;
-	dev->timer_cur_count[0] = dev->timer_count[0];
-    }
-}
-
-
-static void
 timer_tick(opl_t *dev, int tmr)
 {
     dev->timer_cur_count[tmr] = (dev->timer_cur_count[tmr] + 1) & 0xff;
 
     opl_log("Ticking timer %i, count now %02X...\n", tmr, dev->timer_cur_count[tmr]);
 
-    if (dev->timer_cur_count[tmr] == 0x00)
-	timer_over(dev, tmr);
+    if (dev->timer_cur_count[tmr] == 0x00) {
+	dev->status |= ((STAT_TMR1_OVER >> tmr) & ~dev->timer_ctrl);
+	dev->timer_cur_count[tmr] = dev->timer_count[tmr];
+
+	opl_log("Count wrapped around to zero, reloading timer %i (%02X), status = %02X...\n", tmr, (STAT_TMR1_OVER >> tmr), dev->status);
+    }
 
     timer_on_auto(&dev->timers[tmr], (tmr == 1) ? 320.0 : 80.0);
 }
@@ -138,9 +132,9 @@ opl_read(opl_t *dev, uint16_t port)
     uint8_t ret = 0xff;
 
     if ((port & 0x0003) == 0x0000) {
-	ret = ((dev->status & dev->status_mask) | (dev->is_opl3 ? 0x00 : 0x06));
-	if (dev->status & dev->status_mask)
-		ret |= STATUS_TIMER_ALL;
+	ret = dev->status;
+	if (dev->status & STAT_TMR_OVER)
+		ret |= STAT_TMR_ANY;
     }
 
     return ret;
@@ -165,22 +159,21 @@ opl_write(opl_t *dev, uint16_t port, uint8_t val)
 			break;
 
 		case 0x04:	/* Timer control */
-			if (val & CTRL_IRQ_RESET) {
+			if (val & CTRL_RESET) {
 				opl_log("Resetting timer status...\n");
-				dev->status &= ~(STATUS_TIMER_1 | STATUS_TIMER_2);
+				dev->status &= ~STAT_TMR_OVER;
 			} else {
-				timer_control(dev, 0, val & CTRL_TIMER1_CTRL);
-				timer_control(dev, 1, val & CTRL_TIMER2_CTRL);
+				timer_control(dev, 0, val & CTRL_TMR1_START);
+				timer_control(dev, 1, val & CTRL_TMR2_START);
 				dev->timer_ctrl = val;
-				dev->status_mask = (CTRL_TIMER1_MASK | CTRL_TIMER2_MASK) & ~(val & (CTRL_TIMER1_MASK | CTRL_TIMER2_MASK));
-				opl_log("Status mask now %02X (val = %02X)\n", dev->status_mask, val);
+				opl_log("Status mask now %02X (val = %02X)\n", (val & ~CTRL_TMR_MASK) & CTRL_TMR_MASK, val);
 			}
 			break;
 	}
     } else {
 	dev->port = nuked_write_addr(dev->opl, port, val) & 0x01ff;
 
-	if (! dev->is_opl3)
+	if (!(dev->flags & FLAG_OPL3))
 		dev->port &= 0x00ff;
 
 	return;
@@ -191,7 +184,10 @@ opl_write(opl_t *dev, uint16_t port, uint8_t val)
 void
 opl_set_do_cycles(opl_t *dev, int8_t do_cycles)
 {
-    dev->do_cycles = do_cycles;
+    if (do_cycles)
+	dev->flags |= FLAG_CYCLES;
+    else
+	dev->flags &= ~FLAG_CYCLES;
 }
 
 
@@ -200,8 +196,11 @@ opl_init(opl_t *dev, int is_opl3)
 {
     memset(dev, 0x00, sizeof(opl_t));
 
-    dev->is_opl3 = is_opl3;
-    dev->do_cycles = 1;
+    dev->flags = FLAG_CYCLES;
+    if (is_opl3)
+	dev->flags |= FLAG_OPL3;
+    else
+	dev->status = 0x06;
 
     /* Create a NukedOPL object. */
     dev->opl = nuked_init(48000);
@@ -227,7 +226,7 @@ opl2_read(uint16_t port, void *priv)
 {
     opl_t *dev = (opl_t *)priv;
 
-    if (dev->do_cycles)
+    if (dev->flags & FLAG_CYCLES)
 	sub_cycles((int) (isa_timing * 8));
 
     opl2_update(dev);
@@ -276,7 +275,7 @@ opl3_read(uint16_t port, void *priv)
 {
     opl_t *dev = (opl_t *)priv;
 
-    if (dev->do_cycles)
+    if (dev->flags & FLAG_CYCLES)
 	sub_cycles((int)(isa_timing * 8));
 
     opl3_update(dev);
