@@ -106,7 +106,7 @@ static void sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
         {
                 int32_t out = 0;
 		if (sb->opl_enabled)
-                	out = ((sb->opl.buffer[c]     * (sb->opl_emu ? 47000 : 51000)) >> 16);
+                	out = ((sb->opl.buffer[c]     * 47000) >> 16);
 
                 //TODO: Recording: Mic and line In with AGC
                 out += (int32_t)(((sb_iir(0, (float)sb->dsp.buffer[c]) / 1.3) * 65536) / 3) >> 16;
@@ -140,7 +140,7 @@ static void sb_get_buffer_sb2_mixer(int32_t *buffer, int len, void *p)
                 int32_t out = 0;
                 
 		if (sb->opl_enabled)
-                	out = ((((sb->opl.buffer[c]     * mixer->fm) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
+                	out = ((((sb->opl.buffer[c]     * mixer->fm) >> 16) * 47000) >> 15);
 
                 /* TODO: Recording : I assume it has direct mic and line in like sb2 */
                 /* It is unclear from the docs if it has a filter, but it probably does */
@@ -188,11 +188,11 @@ void sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
 				 * Each chip stores data into the LEFT channel
 				 * only (no sample alternating.)
 				 */
-                		out_l = ((((sb->opl.buffer[c] * mixer->fm_l) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
-	                	out_r = ((((sb->opl2.buffer[c] * mixer->fm_r) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
+                		out_l = ((((sb->opl.buffer[c] * mixer->fm_l) >> 16) * 47000) >> 15);
+	                	out_r = ((((sb->opl2.buffer[c] * mixer->fm_r) >> 16) * 47000) >> 15);
 			} else {
-	                	out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
-        	        	out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
+	                	out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 16) * 47000) >> 15);
+        	        	out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 16) * 47000) >> 15);
 			}
 		}
 
@@ -244,8 +244,8 @@ static void sb_get_buffer_sb16(int32_t *buffer, int len, void *p)
                 int32_t out_l = 0, out_r = 0, in_l, in_r;
                 
 		if (sb->opl_enabled) {
-                	out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
-                	out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 16) * (sb->opl_emu ? 47000 : 51000)) >> 15);
+                	out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 16) * 47000) >> 15);
+                	out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 16) * 47000) >> 15);
 		}
 
                 /*TODO: multi-recording mic with agc/+20db, cd and line in with channel inversion */
@@ -328,8 +328,8 @@ static void sb_get_buffer_emu8k(int32_t *buffer, int len, void *p)
                 int c_emu8k = (((c/2) * 44100) / 48000)*2;
                 
 		if (sb->opl_enabled) {
-                	out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 15) * (sb->opl_emu ? 47000 : 51000)) >> 16);
-                	out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 15) * (sb->opl_emu ? 47000 : 51000)) >> 16);
+                	out_l = ((((sb->opl.buffer[c]     * mixer->fm_l) >> 15) * 47000) >> 16);
+                	out_r = ((((sb->opl.buffer[c + 1] * mixer->fm_r) >> 15) * 47000) >> 16);
 		}
 
                	out_l += ((sb->emu8k.buffer[c_emu8k]     * mixer->fm_l) >> 15);
@@ -825,6 +825,9 @@ uint8_t sb_ct1745_mixer_read(uint16_t addr, void *p)
 			break;
 		case 0x08:
 			ret = ((mixer->regs[0x36] >> 4) & 0x0f);
+			break;
+		case 0x0e:
+			ret = 0x02;
 			break;
 		case 0x22:
 			ret = ((mixer->regs[0x31] >> 4) & 0x0f) | (mixer->regs[0x30] & 0xf0);

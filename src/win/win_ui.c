@@ -1027,10 +1027,6 @@ ui_init(int nCmdShow)
 	return(5);
     }
 
-    /* Initialize the rendering window, or fullscreen. */
-    if (start_in_fullscreen)
-	plat_setfullscreen(1);
-
     /* Set up the current window size. */
     plat_resize(scrnsz_x, scrnsz_y);
 
@@ -1039,6 +1035,10 @@ ui_init(int nCmdShow)
 
     /* Set the PAUSE mode depending on the renderer. */
     plat_pause(0);
+
+    /* Initialize the rendering window, or fullscreen. */
+    if (start_in_fullscreen)
+	plat_setfullscreen(1);
 
     /* If so requested via the command line, inform the
      * application that started us of our HWND, using the
