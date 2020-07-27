@@ -315,9 +315,17 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_ACTION_HRESET:
 				win_notify_dlg_open();
-				i = ui_msgbox_ex(MBX_QUESTION_YN, (wchar_t *) IDS_2112, NULL, (wchar_t *) IDS_2137, (wchar_t *) IDS_2138, NULL);
-				if (i == 0)
+				if (confirm_reset)
+					i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2112, NULL, (wchar_t *) IDS_2137, (wchar_t *) IDS_2138, NULL);
+				else
+					i = 0;
+				if ((i % 10) == 0) {
 					pc_reset_hard();
+					if (i == 10) {
+						confirm_reset = 0;
+						config_save();
+					}
+				}
 				win_notify_dlg_closed();
 				break;
 
@@ -327,11 +335,15 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_ACTION_EXIT:
 				win_notify_dlg_open();
-				if (no_quit_confirm)
-					i = 0;
+				if (confirm_exit && confirm_exit_cmdl)
+					i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
 				else
-					i = ui_msgbox_ex(MBX_QUESTION_YN, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
-				if (i == 0) {
+					i = 0;
+				if ((i % 10) == 0) {
+					if (i == 10) {
+						confirm_exit = 0;
+						config_save();
+					}
 #ifndef NO_KEYBOARD_HOOK
 					UnhookWindowsHookEx(hKeyboardHook);
 #endif
@@ -701,11 +713,15 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_CLOSE:
 		win_notify_dlg_open();
-		if (no_quit_confirm)
-			i = 0;
+		if (confirm_exit && confirm_exit_cmdl)
+			i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
 		else
-			i = ui_msgbox_ex(MBX_QUESTION_YN, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
-		if (i == 0) {
+			i = 0;
+		if ((i % 10) == 0) {
+			if (i == 10) {
+				confirm_exit = 0;
+				config_save();
+			}
 #ifndef NO_KEYBOARD_HOOK
 			UnhookWindowsHookEx(hKeyboardHook);
 #endif
@@ -744,9 +760,17 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (manager_wm)
 			break;
 		win_notify_dlg_open();
-		i = ui_msgbox_ex(MBX_QUESTION_YN, (wchar_t *) IDS_2112, NULL, (wchar_t *) IDS_2137, (wchar_t *) IDS_2138, NULL);
-		if (i == 0)
+		if (confirm_reset)
+			i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2112, NULL, (wchar_t *) IDS_2137, (wchar_t *) IDS_2138, NULL);
+		else
+			i = 0;
+		if ((i % 10) == 0) {
 			pc_reset_hard();
+			if (i == 10) {
+				confirm_reset = 0;
+				config_save();
+			}
+		}
 		win_notify_dlg_closed();
 		break;
 
@@ -754,11 +778,15 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (manager_wm)
 			break;
 		win_notify_dlg_open();
-		if (no_quit_confirm)
-			i = 0;
+		if (confirm_exit && confirm_exit_cmdl)
+			i = ui_msgbox_ex(MBX_QUESTION_YN | MBX_DONTASK, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
 		else
-			i = ui_msgbox_ex(MBX_QUESTION_YN, (wchar_t *) IDS_2113, NULL, (wchar_t *) IDS_2119, (wchar_t *) IDS_2136, NULL);
-		if (i == 0) {
+			i = 0;
+		if ((i % 10) == 0) {
+			if (i == 10) {
+				confirm_exit = 0;
+				config_save();
+			}
 #ifndef NO_KEYBOARD_HOOK
 			UnhookWindowsHookEx(hKeyboardHook);
 #endif
