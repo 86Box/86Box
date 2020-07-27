@@ -214,7 +214,7 @@ static int opVPCEXT(uint32_t fetchdat)
 	time_t now;
 	struct tm *tm;
 
-	if (!is_vpc)
+	if (!is_vpc) /* only emulate this on Virtual PC machines */
 		return ILLEGAL(fetchdat);
 
 	cpu_state.pc += 2;
@@ -222,16 +222,19 @@ static int opVPCEXT(uint32_t fetchdat)
 	b1 = fetchdat & 0xff;
 	b2 = (fetchdat >> 8) & 0xff;
 
+	/* a lot of these opcodes (which?) return illegal instruction in user mode */
 	ILLEGAL_ON(CPL > 0);
 
 	CLOCK_CYCLES(1);
 
+	/* 0f 3f 03 xx opcodes are mostly related to the host clock, so fetch it now */
 	if (b1 == 0x03) {
 		(void)time(&now);
 		tm = localtime(&now);
 	}
 
 	if ((b1 == 0x07) && (b2 == 0x0b)) {
+		/* 0f 3f 07 0b: unknown, EDX output depends on EAX input */
 		switch (EAX) {
 			case 0x00000000:
 				EDX = 0x00000003;
@@ -254,46 +257,56 @@ static int opVPCEXT(uint32_t fetchdat)
 
 			default:
 				EDX = 0x00000000;
-				if (EAX > 0x00000012)
+				if (EAX > 0x00000012) /* unknown EAX values set zero flag */
 					cpu_state.flags &= ~(Z_FLAG);
 		}
 	} else if ((b1 == 0x03) && (b2 == 0x00)) {
+		/* 0f 3f 03 00: host time in BCD */
 		EDX = BCD8(tm->tm_hour);
 		ECX = BCD8(tm->tm_min);
 		EAX = BCD8(tm->tm_sec);
 	} else if ((b1 == 0x03) && (b2 == 0x01)) {
+		/* 0f 3f 03 00: host date in BCD */
 		EDX = BCD8(tm->tm_year % 100);
 		ECX = BCD8(tm->tm_mon + 1);
 		EAX = BCD8(tm->tm_mday);
-		cent = (((tm->tm_year - (tm->tm_year % 100)) / 100) % 4);
+		cent = (((tm->tm_year - (tm->tm_year % 100)) / 100) % 4); /* Sunday = 0 */
 		EBX = ((tm->tm_mday + tm->tm_mon + (tm->tm_year % 100) + cent + 3) % 7);
 	} else if ((b1 == 0x03) && (b2 == 0x03)) {
+		/* 0f 3f 03 03: host time in binary */
 		EDX = tm->tm_hour;
 		ECX = tm->tm_min;
 		EAX = tm->tm_sec;
 	} else if ((b1 == 0x03) && (b2 == 0x04)) {
+		/* 0f 3f 03 04: host date in binary */
 		EDX = 1900 + tm->tm_year;
 		ECX = tm->tm_mon + 1;
 		EBX = tm->tm_mday;
 	} else if ((b1 == 0x03) && (b2 == 0x05)) {
+		/* 0f 3f 03 05: unknown */
 		EBX = 0x0000000F;
 		ECX = 0x0000000A;
 	} else if ((b1 == 0x03) && (b2 == 0x06)) {
-		/* Some kind of timestamp. BX jumps around very quickly, CX not so much. */
+		/* 0f 3f 03 06: some kind of timestamp. BX jumps around very quickly, CX not so much. */
 		EBX = 0x00000000;
 		ECX = 0x00000000;
 	} else if ((b1 == 0x03) && (b2 >= 0x07)) {
+		/* 0f 3f 03 07+: set zero flag */
 		cpu_state.flags &= ~(Z_FLAG);
 	} else if ((b1 == 0x0a) && (b2 == 0x00)) {
+		/* 0f 3f 0a 00: memory size in KB */
 		EAX = mem_size;
-	} else if ((b1 == 0x11) && (b2 == 0x00))
+	} else if ((b1 == 0x11) && (b2 == 0x00)) {
+		/* 0f 3f 11 00: unknown, set EAX to 0 */
 		EAX = 0x00000000;
-	else if ((b1 == 0x11) && (b2 == 0x01)) {
+	} else if ((b1 == 0x11) && (b2 == 0x01)) {
+		/* 0f 3f 11 00: unknown, set EAX to 0 and set zero flag */
 		EAX = 0x00000000;
 		cpu_state.flags &= ~(Z_FLAG);
-	} else if ((b1 == 0x11) && (b2 == 0x02))
-		;	/* Do nothing */
-	else {
+	} else if ((b1 == 0x11) && (b2 == 0x02)) {
+		/* 0f 3f 11 02: unknown, no-op */
+	} else {
+		/* other unknown opcodes: illegal instruction */
 		cpu_state.pc = cpu_state.oldpc;
 
 		pclog("Illegal VPCEXT %08X (%02X %02X)\n", fetchdat, b1, b2);
