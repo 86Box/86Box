@@ -1587,7 +1587,7 @@ save_general(void)
       else
 	config_set_int(cat, "video_fullscreen_scale", video_fullscreen_scale);
 
-    if (video_fullscreen_first == 0)
+    if (video_fullscreen_first == 1)
 	config_delete_var(cat, "video_fullscreen_first");
       else
 	config_set_int(cat, "video_fullscreen_first", video_fullscreen_first);
