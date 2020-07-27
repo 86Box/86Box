@@ -101,7 +101,7 @@ int	force_debug = 0;			/* (O) force debug output */
 int	video_fps = RENDER_FPS;			/* (O) render speed in fps */
 #endif
 int	settings_only = 0;			/* (O) show only the settings dialog */
-int	no_quit_confirm = 0;			/* (O) do not ask for confirmation on quit */
+int	confirm_exit_cmdl = 1;			/* (O) do not ask for confirmation on quit if set to 0 */
 #ifdef _WIN32
 uint64_t	unique_id = 0;
 uint64_t	source_hwnd = 0;
@@ -140,6 +140,8 @@ int	cpu_manufacturer = 0,			/* (C) cpu manufacturer */
 	cpu = 3,				/* (C) cpu type */
 	fpu_type = 0;				/* (C) fpu type */
 int	time_sync = 0;				/* (C) enable time sync */
+int	confirm_reset = 1,			/* (C) enable reset confirmation */
+	confirm_exit = 1;			/* (C) enable exit confirmation */
 #ifdef USE_DISCORD
 int	enable_discord = 0;			/* (C) enable Discord integration */
 #endif
@@ -396,7 +398,7 @@ usage:
 		settings_only = 1;
 	} else if (!wcscasecmp(argv[c], L"--noconfirm") ||
 		   !wcscasecmp(argv[c], L"-N")) {
-		no_quit_confirm = 1;
+		confirm_exit_cmdl = 0;
 	} else if (!wcscasecmp(argv[c], L"--crashdump") ||
 		   !wcscasecmp(argv[c], L"-R")) {
 		enable_crashdump = 1;
