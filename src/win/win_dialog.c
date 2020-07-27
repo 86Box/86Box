@@ -144,6 +144,7 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
      else if (ret == IDCANCEL) ret = -1;
      else ret = 0;
 
+    /* 10 is added to the return value if "don't show again" is checked. */
     if (checked) ret += 10;
 
     return(ret);
