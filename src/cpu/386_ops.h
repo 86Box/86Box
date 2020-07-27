@@ -204,11 +204,15 @@ extern void	x386_dynarec_log(const char *fmt, ...);
 #include "x86_ops_shift.h"
 #include "x86_ops_amd.h"
 #include "x86_ops_3dnow.h"
+#include <time.h>
 
 
 static int opVPCEXT(uint32_t fetchdat)
 {
 	uint8_t b1, b2;
+	uint16_t cent;
+	time_t now;
+	struct tm *tm;
 
 	if (!is_vpc)
 		return ILLEGAL(fetchdat);
@@ -222,23 +226,68 @@ static int opVPCEXT(uint32_t fetchdat)
 
 	CLOCK_CYCLES(1);
 
+	if (b1 == 0x03) {
+		(void)time(&now);
+		tm = localtime(&now);
+	}
+
 	if ((b1 == 0x07) && (b2 == 0x0b)) {
-		EBX = 0x00000000;
-		EDX = 0x00000003;
+		switch (EAX) {
+			case 0x00000000:
+				EDX = 0x00000003;
+				break;
+
+			case 0x00000001:
+				EDX = 0x00000012;
+				break;
+
+			case 0x00000002:
+			case 0x00000003:
+			case 0x00000004:
+			case 0x00000005:
+				EDX = 0x00000001;
+				break;
+
+			case 0x00000007:
+				EDX = 0x0000009c;
+				break;
+
+			default:
+				EDX = 0x00000000;
+				if (EAX > 0x00000012)
+					cpu_state.flags &= ~(Z_FLAG);
+		}
 	} else if ((b1 == 0x03) && (b2 == 0x00)) {
-		/* TODO: Return host BCD time in DX/CX/AX */
-		EDX = 0x00000000;
-		ECX = 0x00000000;
-		EAX = 0x00000000;
+		EDX = BCD8(tm->tm_hour);
+		ECX = BCD8(tm->tm_min);
+		EAX = BCD8(tm->tm_sec);
 	} else if ((b1 == 0x03) && (b2 == 0x01)) {
-		/* TODO: Return host BCD date in DX/CX/AX */
-		EDX = 0x00000001;
-		ECX = 0x00000001;
-		EAX = 0x00001980;
+		EDX = BCD8(tm->tm_year % 100);
+		ECX = BCD8(tm->tm_mon + 1);
+		EAX = BCD8(tm->tm_mday);
+		cent = (((tm->tm_year - (tm->tm_year % 100)) / 100) % 4);
+		EBX = ((tm->tm_mday + tm->tm_mon + (tm->tm_year % 100) + cent + 3) % 7);
+	} else if ((b1 == 0x03) && (b2 == 0x03)) {
+		EDX = tm->tm_hour;
+		ECX = tm->tm_min;
+		EAX = tm->tm_sec;
+	} else if ((b1 == 0x03) && (b2 == 0x04)) {
+		EDX = 1900 + tm->tm_year;
+		ECX = tm->tm_mon + 1;
+		EBX = tm->tm_mday;
+	} else if ((b1 == 0x03) && (b2 == 0x05)) {
+		EBX = 0x0000000F;
+		ECX = 0x0000000A;
+	} else if ((b1 == 0x03) && (b2 == 0x06)) {
+		/* Some kind of timestamp. BX jumps around very quickly, CX not so much. */
+		EBX = 0x00000000;
+		ECX = 0x00000000;
+	} else if ((b1 == 0x03) && (b2 >= 0x07)) {
+		cpu_state.flags &= ~(Z_FLAG);
 	} else if ((b1 == 0x0a) && (b2 == 0x00)) {
 		EAX = mem_size;
 	} else if ((b1 == 0x11) && (b2 == 0x00))
-		;	/* Do nothing */
+		EAX = 0x00000000;
 	else if ((b1 == 0x11) && (b2 == 0x01)) {
 		EAX = 0x00000000;
 		cpu_state.flags &= ~(Z_FLAG);
