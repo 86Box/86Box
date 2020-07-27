@@ -1280,6 +1280,12 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		h = GetDlgItem(hdlg, IDC_COMBO_SOUND);
 		c = d = 0;
 		while (1) {
+			/* Skip "internal" if machine doesn't have it. */
+			if ((c == 1) && !(machines[temp_machine].flags & MACHINE_SOUND)) {
+				c++;
+				continue;
+			}
+
 			s = sound_card_getname(c);
 
 			if (!s[0])
