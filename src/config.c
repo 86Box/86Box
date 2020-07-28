@@ -484,6 +484,9 @@ load_general(void)
 
     sound_gain = config_get_int(cat, "sound_gain", 0);
 
+    confirm_reset = config_get_int(cat, "confirm_reset", 1);
+    confirm_exit = config_get_int(cat, "confirm_exit", 1);
+
 #ifdef USE_LANGUAGE
     /*
      * Currently, 86Box is English (US) only, but in the future
@@ -1587,7 +1590,7 @@ save_general(void)
       else
 	config_set_int(cat, "video_fullscreen_scale", video_fullscreen_scale);
 
-    if (video_fullscreen_first == 0)
+    if (video_fullscreen_first == 1)
 	config_delete_var(cat, "video_fullscreen_first");
       else
 	config_set_int(cat, "video_fullscreen_first", video_fullscreen_first);
@@ -1646,6 +1649,16 @@ save_general(void)
 	config_set_int(cat, "sound_gain", sound_gain);
     else
 	config_delete_var(cat, "sound_gain");
+
+    if (confirm_reset != 1)
+    	config_set_int(cat, "confirm_reset", confirm_reset);
+    else
+    	config_delete_var(cat, "confirm_reset");
+
+    if (confirm_exit != 1)
+    	config_set_int(cat, "confirm_exit", confirm_exit);
+    else
+    	config_delete_var(cat, "confirm_exit");
 
 #ifdef USE_LANGUAGE
     if (plat_langid == 0x0409)
