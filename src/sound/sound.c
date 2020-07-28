@@ -128,9 +128,6 @@ sound_log(const char *fmt, ...)
 int
 sound_card_available(int card)
 {
-    if ((card == SOUND_INTERNAL) && !(machines[machine].flags & MACHINE_SOUND))
-    	return 0;
-
     if (sound_cards[card].device)
 	return device_available(sound_cards[card].device);
 

@@ -175,8 +175,6 @@ opl_write(opl_t *dev, uint16_t port, uint8_t val)
 
 	if (!(dev->flags & FLAG_OPL3))
 		dev->port &= 0x00ff;
-
-	return;
     }
 }
 
