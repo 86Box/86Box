@@ -7,7 +7,7 @@
  *		This file is part of the 86Box distribution.
  *
  *		Emulation of nVidia's RIVA 128 graphics card.
- *		Special thanks to Marcin Kościelnicki, without whom this
+ *		Special thanks to Marcelina Kościelnicka, without whom this
  *		would not have been possible.
  *
  * Version:	@(#)vid_riva128.c	1.0.0	2019/09/13
@@ -40,6 +40,12 @@
 
 #define RIVA128_VENDOR_ID 0x12d2
 #define RIVA128_DEVICE_ID 0x0018
+
+#define RIVA128_PGRAPH_SURF_FORMAT_Y16 0
+#define RIVA128_PGRAPH_SURF_FORMAT_Y8 1
+#define RIVA128_PGRAPH_SURF_FORMAT_X1R5G5B5 2
+#define RIVA128_PGRAPH_SURF_FORMAT_X8R8G8B8 3
+
 
 typedef struct riva128_t
 {
@@ -168,7 +174,19 @@ typedef struct riva128_t
 
 		uint16_t clipx_min, clipx_max, clipy_min, clipy_max;
 
+		uint32_t surf_offset[4];
+		uint32_t beta;
+
+		uint16_t surf_pitch[4];
+
 		int fifo_access;
+		uint32_t surf_config;
+
+		uint16_t gdi_vtx_x[0x40];
+		uint16_t gdi_vtx_y[0x40];
+		uint16_t gdi_rect_w[0x40];
+		uint16_t gdi_rect_h[0x40];
+		uint32_t gdi_color;
 	} pgraph;
 	
 
@@ -1025,7 +1043,7 @@ riva128_ramht_lookup(uint32_t handle, int cache_num, uint8_t chanid, int subchan
 	{
 		uint32_t handle_check = riva128_ramin_read_l(ramht_addr, riva128);
 		uint8_t chanid_check = riva128_ramin_read(ramht_addr + 7, riva128);
-		if(handle_check == handle/* && chanid_check == chanid*/)
+		if(handle_check == handle && chanid_check == chanid)
 		{
 			found = 1;
 			break;
@@ -1144,28 +1162,35 @@ riva128_pgraph_write_pixel(uint16_t x, uint16_t y, uint32_t color, uint8_t a, vo
 	riva128_t *riva128 = (riva128_t *)p;
 	svga_t *svga = &riva128->svga;
 
-	int bytes_per_pixel = riva128->pfb.bpp >> 3;
+	uint16_t *vram_w = (uint16_t *)svga->vram;
+	uint32_t *vram_l = (uint32_t *)svga->vram;
+	int surf_num = (riva128->pgraph.ctx_switch_a >> 16) & 3;
 
-	uint32_t addr = (x + (riva128->pfb.width) + y) * bytes_per_pixel;
+	uint16_t clipx_min = riva128->pgraph.clipx_min;
+	uint16_t clipx_max = riva128->pgraph.clipx_max;
+	uint16_t clipy_min = riva128->pgraph.clipy_min;
+	uint16_t clipy_max = riva128->pgraph.clipy_max;
 
-	switch(bytes_per_pixel)
+	if(x >= clipx_min && x <= clipx_max && y >= clipy_min && y <= clipy_max)
 	{
-		case 1:
-			svga->vram[(addr & riva128->vram_mask)] = color & 0xff;
-			break;
-		case 2:
-			svga->vram[(addr & riva128->vram_mask) + 0] = color & 0xff;
-			svga->vram[(addr & riva128->vram_mask) + 1] = (color >> 8) & 0xff;
-			break;
-		case 4:
-			svga->vram[(addr & riva128->vram_mask) + 0] = color & 0xff;
-			svga->vram[(addr & riva128->vram_mask) + 1] = (color >> 8) & 0xff;
-			svga->vram[(addr & riva128->vram_mask) + 2] = (color >> 16) & 0xff;
-			svga->vram[(addr & riva128->vram_mask) + 3] = (color >> 24) & 0xff;
-			break;
-	}
+		uint32_t addr = ((x + (riva128->pgraph.surf_pitch[surf_num] * y)) * (riva128->pfb.bpp / 8)) +
+		riva128->pgraph.surf_offset[surf_num];
 
-	svga->changedvram[(addr & riva128->vram_mask) >> 12] = changeframecount;
+		switch(riva128->pfb.bpp)
+		{
+			case 8:
+				svga->vram[addr & riva128->vram_mask] = color & 0xff;
+				break;
+			case 16:
+				vram_w[addr & riva128->vram_mask] = color & 0xffff;
+				break;
+			case 32:
+				vram_l[addr & riva128->vram_mask] = color;
+				break;
+		}
+
+		svga->changedvram[(addr & riva128->vram_mask) >> 12] = changeframecount;
+	}
 }
 
 void
@@ -1180,6 +1205,22 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 
 	switch(objclass)
 	{
+		case 0x01:
+		{
+			switch(method)
+			{
+				case 0x300:
+				{
+					riva128->pgraph.beta = param & 0x80000000 ? 0 : param & 0x7f800000;
+					break;
+				}
+				default:
+				{
+					riva128_pgraph_invalid_interrupt(0, riva128);
+				}
+			}
+			break;
+		}
 		case 0x03:
 		{
 			switch(method)
@@ -1192,6 +1233,25 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 				default:
 				{
 					riva128_pgraph_invalid_interrupt(0, riva128);
+					break;
+				}
+			}
+			break;
+		}
+		case 0x05:
+		{
+			switch(method)
+			{
+				case 0x300:
+				{
+					riva128->pgraph.clipx_min = param & 0xffff;
+					riva128->pgraph.clipy_min = (param >> 16) & 0xffff;
+					break;
+				}
+				case 0x304:
+				{
+					riva128->pgraph.clipx_max = riva128->pgraph.clipx_min + (param & 0xffff);
+					riva128->pgraph.clipy_max = riva128->pgraph.clipy_min + ((param >> 16) & 0xffff);
 					break;
 				}
 			}
@@ -1213,6 +1273,74 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 					riva128_pgraph_color_t color = riva128_pgraph_expand_color(graphobj0, param, riva128);
 					riva128->pgraph.pattern_mono_color_rgb[1] = (color.r << 20) | (color.g << 10) | color.b;
 					riva128->pgraph.pattern_mono_color_a[1] = color.a;
+					break;
+				}
+			}
+			break;
+		}
+		case 0x0c:
+		{
+			if(!(method & 4) && (method >= 0x400 && method < 0x600))
+			{
+				riva128->pgraph.gdi_vtx_x[(method & 0x1fc) >> 2] = param & 0xffff;
+				riva128->pgraph.gdi_vtx_y[(method & 0x1fc) >> 2] = (param >> 16) & 0xffff;
+			}
+			else if((method & 4) && (method >= 0x400 && method < 0x600))
+			{
+				riva128->pgraph.gdi_rect_w[(method & 0x1fc) >> 2] = param & 0xffff;
+				riva128->pgraph.gdi_rect_h[(method & 0x1fc) >> 2] = (param >> 16) & 0xffff;
+				int startx = riva128->pgraph.gdi_vtx_x[(method & 0x1fc) >> 2];
+				int starty = riva128->pgraph.gdi_vtx_y[(method & 0x1fc) >> 2];
+				int endx = startx + riva128->pgraph.gdi_rect_w[(method & 0x1fc) >> 2];
+				int endy = starty + riva128->pgraph.gdi_rect_h[(method & 0x1fc) >> 2];
+				for(int y = starty; y <= endy; y++)
+				{
+					for(int x = startx; x <= endx; x++)
+					{
+						riva128_pgraph_write_pixel(x, y, riva128->pgraph.gdi_color, 0xff, riva128);
+					}
+				}
+			}
+			else switch(method)
+			{
+				case 0x3fc:
+				{
+					riva128->pgraph.gdi_color = param;
+					break;
+				}
+			}
+			break;
+		}
+		case 0x1c:
+		{
+			switch(method)
+			{
+				case 0x300:
+				{
+					int surf_num = (riva128->pgraph.ctx_switch_a >> 16) & 3;
+					uint32_t format = 1;
+					if(param & 1) format = 0;
+					if(!(param & 0x00010000)) format = 2;
+					if(!(param & 0x01000000)) format = 3;
+					riva128->pgraph.surf_config &= ~(7 << (surf_num << 2));
+					riva128->pgraph.surf_config |= ((format | 4) | (surf_num << 2)); //bit 2 of the format being set means it's valid.
+					break;
+				}
+				case 0x304:
+				{
+					riva128_pgraph_invalid_interrupt(0, riva128);
+					break;
+				}
+				case 0x308:
+				{
+					int surf_num = (riva128->pgraph.ctx_switch_a >> 16) & 3;
+					riva128->pgraph.surf_pitch[surf_num] = param & 0x1ff0;
+					break;
+				}
+				case 0x30c:
+				{
+					int surf_num = (riva128->pgraph.ctx_switch_a >> 16) & 3;
+					riva128->pgraph.surf_offset[surf_num] = param & 0x3ffff0;
 					break;
 				}
 			}
