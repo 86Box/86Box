@@ -233,6 +233,8 @@ timer_advance_ex(pc_timer_t *timer, int start)
     } else {
 	if (timer->period > 0.0)
 		timer_do_period(timer, (uint64_t) (timer->period * ((double) TIMER_USEC)), start);
+	else
+		timer_disable(timer);
 	timer->period = 0.0;
 	timer->flags &= ~TIMER_SPLIT;
     }
@@ -256,5 +258,8 @@ timer_on_auto(pc_timer_t *timer, double period)
     if (!timer_inited || (timer == NULL))
 	return;
 
-    timer_on(timer, period, (timer->period == 0.0));
+    if (period > 0.0)
+	timer_on(timer, period, (timer->period == 0.0));
+    else
+	timer_stop(timer);
 }
