@@ -27,7 +27,7 @@ jobs:
         new-dynarec: ['y', 'n']
 
     steps:
-    - uses: msys2/setup-msys2@v1
+    - uses: msys2/setup-msys2@v2
       with:
         update: true
         msystem: MINGW32
