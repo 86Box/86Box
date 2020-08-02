@@ -1432,9 +1432,9 @@ load_other_removable_devices(void)
 	sprintf(temp, "mo_%02i_parameters", c+1);
 	p = config_get_string(cat, temp, NULL);
 	if (p != NULL)
-		sscanf(p, "%01u, %s", &mo_drives[c].type, s);
+		sscanf(p, "%u, %s", &mo_drives[c].type, s);
 	else
-		sscanf("0, none", "%01u, %s", &mo_drives[c].type, s);
+		sscanf("00, none", "%u, %s", &mo_drives[c].type, s);
 	mo_drives[c].bus_type = hdd_string_to_bus(s, 1);
 
 	/* Default values, needed for proper operation of the Settings dialog. */
