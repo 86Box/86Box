@@ -179,17 +179,20 @@ ps2_write(uint8_t val, void *priv)
 
 		case 0xf4:	/* enable */
 			dev->flags |= FLAG_ENABLED;
+			mouse_scan = 1;
 			keyboard_at_adddata_mouse(0xfa);
 			break;
 
 		case 0xf5:	/* disable */
 			dev->flags &= ~FLAG_ENABLED;
+			mouse_scan = 0;
 			keyboard_at_adddata_mouse(0xfa);
 			break;
 
 		case 0xff:	/* reset */
 			dev->mode  = MODE_STREAM;
 			dev->flags &= 0x88;
+			mouse_scan = 0;
 			keyboard_at_mouse_reset();
 			keyboard_at_adddata_mouse(0xfa);
 			keyboard_at_adddata_mouse(0xaa);
