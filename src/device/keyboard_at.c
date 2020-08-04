@@ -97,7 +97,10 @@ typedef struct {
 
     uint8_t	mem[0x100];
 
-    int		out_new, out_delayed;
+    int		out_new;
+#ifdef USE_OUT_DELAYED
+    int		out_delayed;
+#endif
     int		last_irq, reset_delay;
 
     uint32_t	flags;
@@ -125,17 +128,11 @@ uint8_t		keyboard_set3_all_break;
 /* Bits 0 - 1 = scan code set, bit 6 = translate or not. */
 uint8_t		keyboard_mode = 0x42;
 
-int		mouse_queue_start = 0,
-		mouse_queue_end = 0;
 
-
-static uint8_t	key_ctrl_queue[16];
-static int	key_ctrl_queue_start = 0,
-		key_ctrl_queue_end = 0;
-static uint8_t	key_queue[16];
-static int	key_queue_start = 0,
-		key_queue_end = 0;
-static uint8_t	mouse_queue[16];
+static uint8_t	kbc_queue_pos, channel_queue_pos[3];
+static uint16_t	kbc_queue[48];
+static uint8_t	kbd_last_scan_code;
+static uint8_t	channel_queue[3][16];
 static void	(*mouse_write)(uint8_t val, void *priv) = NULL;
 static void	*mouse_p = NULL;
 static uint8_t	sc_or = 0;
@@ -625,71 +622,94 @@ set_scancode_map(atkbd_t *dev)
 
 
 static void
+kbc_queue_add(uint8_t val, uint8_t channel)
+{
+    if ((channel > 0x03) || (kbc_queue_pos >= 48))
+	return;
+    kbd_log("kbc_queue[%02X] = %04X;\n", kbc_queue_pos, val | (channel << 8));
+    kbc_queue[kbc_queue_pos] = val | (channel << 8);
+    kbc_queue_pos++;
+}
+
+
+static int
+channel_queue_get(uint8_t channel)
+{
+    int i, ret;
+
+    if (channel_queue_pos[channel] != 0) {
+	ret = channel_queue[channel][0];
+	kbd_log("channel_queue_get(%i): ret = %02X;\n", (uint32_t) channel, (uint32_t) channel_queue[channel][0]);
+	for (i = 0; i < 15; i++)
+		channel_queue[channel][i] = channel_queue[channel][i + 1];
+	channel_queue_pos[channel]--;
+    } else
+	ret = -1;
+
+    return ret;
+}
+
+
+static void
+channel_queue_check(uint8_t channel)
+{
+    int val;
+
+    if (channel >= 0x03)
+	return;
+
+    if ((channel == 0x01) && !keyboard_scan)
+	return;
+    if ((channel == 0x02) && !mouse_scan)
+	return;
+
+    val = channel_queue_get(channel);
+    if (val == -1)
+	return;
+    kbc_queue_add(val & 0xff, channel);
+}
+
+
+static void
 kbd_poll(void *priv)
 {
     atkbd_t *dev = (atkbd_t *)priv;
+    uint16_t irq_table[4] = { 0x0000, 0x0002, 0x1000, 0xffff };
+    int i, channel = (dev->out_new >> 8) & 0x03;
+    uint16_t irq = irq_table[channel];
 
     timer_advance_u64(&dev->send_delay_timer, (100ULL * TIMER_USEC));
 
-#ifdef ENABLE_KEYBOARD_AT_LOG
-    kbd_log("ATkbd[B]: out_new = %i, out_delayed = %i, STAT_OFULL = %i, qs = %i, qe = %i, last_irq = %08X\n",
-	    dev->out_new, dev->out_delayed, !!(dev->status & STAT_OFULL), key_ctrl_queue_start, key_ctrl_queue_end, dev->last_irq);
-#endif
+    channel_queue_check(0x00);	/* Transfer the next controller byte to the controller queue if there is any. */
+    channel_queue_check(0x01);	/* Transfer the next keyboard byte to the controller queue if there is any. */
+    channel_queue_check(0x02);	/* Transfer the next mouse byte to the controller queue if there is any. */
 
-    if ((dev->out_new != -1) && !dev->last_irq) {
+    if ((channel != 0x03) && !dev->last_irq) {
 	dev->wantirq = 0;
-	if (dev->out_new & 0x100) {
-		if (mouse_scan) {
-#ifdef ENABLE_KEYBOARD_AT_LOG
-			kbd_log("ATkbd: want mouse data\n");
-#endif
-			if (dev->mem[0] & 0x02)
-				picint(0x1000);
-			dev->out = dev->out_new & 0xff;
-			dev->out_new = -1;
-			dev->status |=  STAT_OFULL;
-			dev->status &= ~STAT_IFULL;
-			dev->status |=  STAT_MFULL;
-			dev->last_irq = 0x1000;
-		} else
-			dev->out_new = -1;
-	} else {
-#ifdef ENABLE_KEYBOARD_AT_LOG
-		kbd_log("ATkbd: want keyboard data\n");
-#endif
-		if (dev->mem[0] & 0x01)
-			picint(2);
-		dev->out = dev->out_new & 0xff;
-		dev->out_new = -1;
-		dev->status |=  STAT_OFULL;
-		dev->status &= ~STAT_IFULL;
+
+	if ((channel == 0) || (dev->mem[0] & channel))
+		picint(irq);
+	dev->out = dev->out_new & 0xff;
+	dev->out_new = 0xffff;
+	dev->status |=  STAT_OFULL;
+	dev->status &= ~STAT_IFULL;
+	if (channel == 0x02)
+		dev->status |= STAT_MFULL;
+	else
 		dev->status &= ~STAT_MFULL;
-		dev->last_irq = 2;
-	}
+	dev->last_irq = irq;
     }
 
-#ifdef ENABLE_KEYBOARD_AT_LOG
-    kbd_log("ATkbd[A]: out_new = %i, out_delayed = %i, STAT_OFULL = %i, qs = %i, qe = %i, last_irq = %08X\n",
-	    dev->out_new, dev->out_delayed, !!(dev->status & STAT_OFULL), key_ctrl_queue_start, key_ctrl_queue_end, dev->last_irq);
+    if ((dev->out_new == 0xffff) && !(dev->status & STAT_OFULL) && (kbc_queue_pos != 0)) {
+	dev->out_new = kbc_queue[0];
+	for (i = 0; i < 47; i++)
+		kbc_queue[i] = kbc_queue[i + 1];
+	kbc_queue_pos = (kbc_queue_pos - 1) & 0xff;
+#ifdef USE_OUT_DELAYED
+    } else if (!(dev->status & STAT_OFULL) && dev->out_new == 0xffff && dev->out_delayed != 0xffff) {
+	dev->out_new = dev->out_delayed;
+	dev->out_delayed = 0xffff;
 #endif
-
-    if (dev->out_new == -1 && !(dev->status & STAT_OFULL) && key_ctrl_queue_start != key_ctrl_queue_end) {
-	dev->out_new = key_ctrl_queue[key_ctrl_queue_start] | 0x200;
-	key_ctrl_queue_start = (key_ctrl_queue_start + 1) & 0xf;
-    } else if (!(dev->status & STAT_OFULL) && dev->out_new == -1 && dev->out_delayed != -1) {
-	dev->out_new = dev->out_delayed;
-	dev->out_delayed = -1;
-    } else if (!(dev->status & STAT_OFULL) && dev->out_new == -1 && !(dev->mem[0] & 0x10) && dev->out_delayed != -1) {
-	dev->out_new = dev->out_delayed;
-	dev->out_delayed = -1;
-    } else if (!(dev->status & STAT_OFULL) && dev->out_new == -1/* && !(dev->mem[0] & 0x20)*/ &&
-	    (mouse_queue_start != mouse_queue_end)) {
-	dev->out_new = mouse_queue[mouse_queue_start] | 0x100;
-	mouse_queue_start = (mouse_queue_start + 1) & 0xf;
-    } else if (!(dev->status & STAT_OFULL) && dev->out_new == -1 &&
-	       !(dev->mem[0]&0x10) && (key_queue_start != key_queue_end)) {
-	dev->out_new = key_queue[key_queue_start];
-	key_queue_start = (key_queue_start + 1) & 0xf;
     }
 
     if (dev->reset_delay) {
@@ -706,16 +726,34 @@ add_data(atkbd_t *dev, uint8_t val)
 #ifdef ENABLE_KEYBOARD_AT_LOG
     kbd_log("ATkbd: add to queue\n");
 #endif
-    key_ctrl_queue[key_ctrl_queue_end] = val;
-    key_ctrl_queue_end = (key_ctrl_queue_end + 1) & 0xf;
 
-    if (! (dev->out_new & 0x300)) {
+    if (channel_queue_pos[0] < 16) {
+	kbd_log("channel_queue[0][channel_queue_pos[0]] = %02X;\n", (uint32_t) val);
+	channel_queue[0][channel_queue_pos[0]] = val;
+	channel_queue_pos[0]++;
+    }
+
+#ifdef USE_OUT_DELAYED
+    if (((dev->out_new & 0x0300) == 0x0100) || ((dev->out_new & 0x0300) == 0x0200)) {
 #ifdef ENABLE_KEYBOARD_AT_LOG
 	kbd_log("ATkbd: delay\n");
 #endif
 	dev->out_delayed = dev->out_new;
-	dev->out_new = -1;
+	dev->out_new = 0xffff;
     }
+#endif
+}
+
+
+static void
+add_data_kbd_queue(uint8_t val)
+{
+    if (!keyboard_scan || (channel_queue_pos[1] >= 16))
+	return;
+    kbd_log("channel_queue[1][channel_queue_pos[1]] = %02X;\n", (uint32_t) val);
+    channel_queue[1][channel_queue_pos[1]] = val;
+    channel_queue_pos[1]++;
+    kbd_last_scan_code = val;
 }
 
 
@@ -748,11 +786,8 @@ add_data_vals(atkbd_t *dev, uint8_t *val, uint8_t len)
 #ifdef ENABLE_KEYBOARD_AT_LOG
 	kbd_log("%02X", send);
 #endif
-	key_queue[key_queue_end] = send;
-	key_queue_end = (key_queue_end + 1) & 0xf;
-#ifdef ENABLE_KEYBOARD_AT_LOG
-	if (i < (len - 1))  kbd_log(" ");
-#endif
+
+	add_data_kbd_queue(send);
     }
 
 #ifdef ENABLE_KEYBOARD_AT_LOG
@@ -998,8 +1033,7 @@ add_data_kbd(uint16_t val)
 			kbd_log("%02X\n", val);
 #endif
 
-		key_queue[key_queue_end] = (translate ? (nont_to_t[val] | sc_or) : val);
-		key_queue_end = (key_queue_end + 1) & 0xf;
+		add_data_kbd_queue(translate ? (nont_to_t[val] | sc_or) : val);
 		break;
     }
 
@@ -1779,6 +1813,9 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 				 * mess up with this, and repeat the command
 				 * code many times.  Fun!
 				 */
+/* Sure, but it is perfectly valid for a command parameter to be identical
+   to the command itself, and this would mess with that. */
+#if 0
 				if (val == dev->key_command) {
 #if 1
 					/* Respond NAK and ignore it. */
@@ -1789,6 +1826,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 					goto do_command;
 #endif
 				}
+#endif
 
 				switch (dev->key_command) {
 					case 0xed: /* set/reset LEDs */
@@ -1928,8 +1966,10 @@ do_command:
 #ifdef ENABLE_KEYBOARD_AT_LOG
 						kbd_log("ATkbd: set defaults\n");
 #endif
-						dev->out_new = -1;
-						dev->out_delayed = -1;
+						dev->out_new = 0xffff;
+#ifdef USE_OUT_DELAYED
+						dev->out_delayed = 0xffff;
+#endif
 						add_data_kbd(0xfa);
 
 						keyboard_set3_all_break = 0;
@@ -1976,14 +2016,16 @@ do_command:
 #ifdef ENABLE_KEYBOARD_AT_LOG
 						kbd_log("ATkbd: reset last scan code\n");
 #endif
-						add_data_kbd(key_queue[key_queue_end]);
+						add_data_kbd_queue(kbd_last_scan_code);
 						break;
 
 					case 0xff: /* reset */
 #ifdef ENABLE_KEYBOARD_AT_LOG
 						kbd_log("ATkbd: kbd reset\n");
 #endif
-						key_queue_start = key_queue_end = 0; /*Clear key queue*/
+						channel_queue_pos[1] = 0;
+						memset(channel_queue[1], 0x00, 16);
+						kbd_last_scan_code = 0x00;
 						add_data_kbd(0xfa);
 
 						/* Set scan code set to 2. */
@@ -2063,10 +2105,19 @@ do_command:
 					kbd_log("ATkbd: self-test reinitialization\n");
 #endif
 					dev->initialized = 1;
-					key_ctrl_queue_start = key_ctrl_queue_end = 0;
+					memset(kbc_queue, 0x00, 48 * sizeof(uint16_t));
+					kbc_queue_pos = 0;
+					for (i = 0; i < 2; i++) {
+						memset(channel_queue[i], 0x00, 16);
+						channel_queue_pos[i] = 0;
+					}
+					kbd_last_scan_code = 0x00;
 					dev->status &= ~STAT_OFULL;
 					dev->last_irq = 0;
-					dev->out_new = dev->out_delayed = -1;
+					dev->out_new = 0xffff;
+#ifdef USE_OUT_DELAYED
+					dev->out_delayed = 0xffff;
+#endif
 				}
 				dev->status |= STAT_SYSFLAG;
 				dev->mem[0] |= 0x04;
@@ -2283,17 +2334,19 @@ static void
 kbd_reset(void *priv)
 {
     atkbd_t *dev = (atkbd_t *)priv;
+    int i;
 
     dev->initialized = 0;
     dev->first_write = 1;
     dev->status = STAT_UNLOCKED | STAT_CD;
     dev->mem[0] = 0x01;
-    // if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_XI8088)
-	dev->mem[0] |= CCB_TRANSLATE;
+    dev->mem[0] |= CCB_TRANSLATE;
     dev->wantirq = 0;
     write_output(dev, 0xcf);
-    dev->out_new = -1;
-    dev->out_delayed = -1;
+    dev->out_new = 0xffff;
+#ifdef USE_OUT_DELAYED
+    dev->out_delayed = 0xffff;
+#endif
     dev->last_irq = 0;
     dev->secr_phase = 0;
     dev->key_wantdata = 0;
@@ -2310,6 +2363,14 @@ kbd_reset(void *priv)
     /* Enable keyboard, disable mouse. */
     set_enable_kbd(dev, 1);
     set_enable_mouse(dev, 0);
+
+    memset(kbc_queue, 0x00, 48 * sizeof(uint16_t));
+    kbc_queue_pos = 0;
+    for (i = 0; i < 2; i++) {
+	memset(channel_queue[i], 0x00, 16);
+	channel_queue_pos[i] = 0;
+    }
+    kbd_last_scan_code = 0;
 
     sc_or = 0;
 
@@ -2585,16 +2646,32 @@ keyboard_at_set_mouse(void (*func)(uint8_t val, void *priv), void *priv)
 void
 keyboard_at_adddata_keyboard_raw(uint8_t val)
 {
-    key_queue[key_queue_end] = val;
-    key_queue_end = (key_queue_end + 1) & 0xf;
+    add_data_kbd_queue(val);
 }
 
 
 void
 keyboard_at_adddata_mouse(uint8_t val)
 {
-    mouse_queue[mouse_queue_end] = val;
-    mouse_queue_end = (mouse_queue_end + 1) & 0xf;
+    if (!mouse_scan || (channel_queue_pos[2] >= 16))
+	return;
+    channel_queue[2][channel_queue_pos[2]] = val;
+    channel_queue_pos[2]++;
+}
+
+
+void
+keyboard_at_mouse_reset(void)
+{
+    channel_queue_pos[2] = 0;
+    memset(channel_queue[2], 0x00, 16);
+}
+
+
+uint8_t
+keyboard_at_mouse_pos(void)
+{
+    return channel_queue_pos[2];
 }
 
 
