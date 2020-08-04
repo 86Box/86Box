@@ -746,9 +746,9 @@ add_data(atkbd_t *dev, uint8_t val)
 
 
 static void
-add_data_kbd_queue(uint8_t val)
+add_data_kbd_queue(atkbd_t *dev, uint8_t val)
 {
-    if (!keyboard_scan || (channel_queue_pos[1] >= 16))
+    if (!keyboard_scan || dev->reset_delay || (channel_queue_pos[1] >= 16))
 	return;
     kbd_log("channel_queue[1][channel_queue_pos[1]] = %02X;\n", (uint32_t) val);
     channel_queue[1][channel_queue_pos[1]] = val;
@@ -787,7 +787,7 @@ add_data_vals(atkbd_t *dev, uint8_t *val, uint8_t len)
 	kbd_log("%02X", send);
 #endif
 
-	add_data_kbd_queue(send);
+	add_data_kbd_queue(dev, send);
     }
 
 #ifdef ENABLE_KEYBOARD_AT_LOG
@@ -1033,7 +1033,7 @@ add_data_kbd(uint16_t val)
 			kbd_log("%02X\n", val);
 #endif
 
-		add_data_kbd_queue(translate ? (nont_to_t[val] | sc_or) : val);
+		add_data_kbd_queue(dev, translate ? (nont_to_t[val] | sc_or) : val);
 		break;
     }
 
@@ -2016,7 +2016,7 @@ do_command:
 #ifdef ENABLE_KEYBOARD_AT_LOG
 						kbd_log("ATkbd: reset last scan code\n");
 #endif
-						add_data_kbd_queue(kbd_last_scan_code);
+						add_data_kbd_queue(dev, kbd_last_scan_code);
 						break;
 
 					case 0xff: /* reset */
@@ -2646,7 +2646,9 @@ keyboard_at_set_mouse(void (*func)(uint8_t val, void *priv), void *priv)
 void
 keyboard_at_adddata_keyboard_raw(uint8_t val)
 {
-    add_data_kbd_queue(val);
+    atkbd_t *dev = SavedKbd;
+
+    add_data_kbd_queue(dev, val);
 }
 
 
