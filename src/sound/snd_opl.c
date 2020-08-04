@@ -103,7 +103,7 @@ timer_control(opl_t *dev, int tmr, int start)
 	opl_log("Loading timer %i count: %02X = %02X\n", tmr, dev->timer_cur_count[tmr], dev->timer_count[tmr]);
 	dev->timer_cur_count[tmr] = dev->timer_count[tmr];
 	if (dev->flags & FLAG_OPL3)
-		timer_tick(dev, tmr);	/* Per the YMF262 datasheet, OPL3 starts counting immediately, unlike OPL2. */
+		timer_tick(dev, tmr);	/* Per the YMF 262 datasheet, OPL3 starts counting immediately, unlike OPL2. */
 	else
 		timer_on_auto(&dev->timers[tmr], (tmr == 1) ? 320.0 : 80.0);
     } else
