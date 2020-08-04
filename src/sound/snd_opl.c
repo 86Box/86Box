@@ -102,7 +102,10 @@ timer_control(opl_t *dev, int tmr, int start)
     if (start) {
 	opl_log("Loading timer %i count: %02X = %02X\n", tmr, dev->timer_cur_count[tmr], dev->timer_count[tmr]);
 	dev->timer_cur_count[tmr] = dev->timer_count[tmr];
-	timer_on_auto(&dev->timers[tmr], (tmr == 1) ? 320.0 : 80.0);
+	if (dev->flags & FLAG_OPL3)
+		timer_tick(dev, tmr);	/* Per the YMF 262 datasheet, OPL3 starts counting immediately, unlike OPL2. */
+	else
+		timer_on_auto(&dev->timers[tmr], (tmr == 1) ? 320.0 : 80.0);
     } else
 	opl_log("Timer %i stopped\n", tmr);
 }
@@ -163,9 +166,9 @@ opl_write(opl_t *dev, uint16_t port, uint8_t val)
 				opl_log("Resetting timer status...\n");
 				dev->status &= ~STAT_TMR_OVER;
 			} else {
+				dev->timer_ctrl = val;
 				timer_control(dev, 0, val & CTRL_TMR1_START);
 				timer_control(dev, 1, val & CTRL_TMR2_START);
-				dev->timer_ctrl = val;
 				opl_log("Status mask now %02X (val = %02X)\n", (val & ~CTRL_TMR_MASK) & CTRL_TMR_MASK, val);
 			}
 			break;

@@ -179,18 +179,21 @@ ps2_write(uint8_t val, void *priv)
 
 		case 0xf4:	/* enable */
 			dev->flags |= FLAG_ENABLED;
+			mouse_scan = 1;
 			keyboard_at_adddata_mouse(0xfa);
 			break;
 
 		case 0xf5:	/* disable */
 			dev->flags &= ~FLAG_ENABLED;
+			mouse_scan = 0;
 			keyboard_at_adddata_mouse(0xfa);
 			break;
 
 		case 0xff:	/* reset */
 			dev->mode  = MODE_STREAM;
 			dev->flags &= 0x88;
-			mouse_queue_start = mouse_queue_end = 0;
+			mouse_scan = 0;
+			keyboard_at_mouse_reset();
 			keyboard_at_adddata_mouse(0xfa);
 			keyboard_at_adddata_mouse(0xaa);
 			keyboard_at_adddata_mouse(0x00);
@@ -236,7 +239,7 @@ ps2_poll(int x, int y, int z, int b, void *priv)
     dev->y -= y;
     dev->z -= z;
     if ((dev->mode == MODE_STREAM) && (dev->flags & FLAG_ENABLED) &&
-	(((mouse_queue_end - mouse_queue_start) & 0x0f) < 13)) {
+	(keyboard_at_mouse_pos() < 13)) {
 	dev->b = b;
 
 	if (dev->x > 255) dev->x = 255;

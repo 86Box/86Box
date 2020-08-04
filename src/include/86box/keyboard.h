@@ -103,6 +103,8 @@ extern int	keyboard_ismsexit(void);
 
 extern void	keyboard_at_adddata_keyboard_raw(uint8_t val);
 extern void	keyboard_at_adddata_mouse(uint8_t val);
+extern void	keyboard_at_mouse_reset(void);
+extern uint8_t	keyboard_at_mouse_pos(void);
 extern void	keyboard_at_set_mouse(void (*mouse_write)(uint8_t val,void *), void *);
 extern void	keyboard_at_set_a20_key(int state);
 extern uint8_t	keyboard_at_get_mouse_scan(void);
