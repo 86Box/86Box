@@ -886,6 +886,8 @@ piix_read(int func, int addr, void *priv)
     if ((func <= dev->max_func) || ((func == 1) && (dev->max_func == 0))) {
     	fregs = (uint8_t *) dev->regs[func];
 	ret = fregs[addr];
+	if ((func == 0) && (addr == 0x4e))
+		ret |= keyboard_at_get_mouse_scan();
 
 	piix_log("PIIX function %i read: %02X from %02X\n", func, ret, addr);
     }
