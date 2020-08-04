@@ -567,6 +567,11 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
 				ctr->null_count = 1;
 				ctr_set_out(ctr, !!ctr->m);
 				ctr->state = 0;
+				if (ctr->latched) {
+					pit_log("PIT %i: Reload while counter is latched\n", t);
+					ctr->rl--;
+				}
+
 				pit_log("PIT %i: M = %i, RM/WM = %i, State = %i, Out = %i\n", t, ctr->m, ctr->rm, ctr->state, ctr->out);
 			}
 		}
