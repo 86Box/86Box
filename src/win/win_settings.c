@@ -941,7 +941,6 @@ recalc_vid_list(HWND hdlg)
     int c = 0, d = 0;
     int found_card = 0;
     WCHAR szText[512];
-    char *s;
 
     SendMessage(h, CB_RESETCONTENT, 0, 0);
     SendMessage(h, CB_SETCURSEL, 0, 0);
@@ -953,12 +952,7 @@ recalc_vid_list(HWND hdlg)
 		continue;
 	}
 
-	if (c == VID_INTERNAL) {
-		s = malloc(512);
-		sprintf(s, "%s (%s)", video_card_getname(c), machine_getdevice(temp_machine)->name);
-	} else {
-		s = video_card_getname(c);
-	}
+	char *s = video_card_getname(c);
 
 	if (!s[0])
 		break;
@@ -1292,12 +1286,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				continue;
 			}
 
-			if (c == SOUND_INTERNAL) {
-				s = malloc(512);
-				sprintf(s, "%s (%s)", sound_card_getname(c), machine_getdevice(temp_machine)->name);
-			} else {
-				s = sound_card_getname(c);
-			}
+			s = sound_card_getname(c);
 
 			if (!s[0])
 				break;
