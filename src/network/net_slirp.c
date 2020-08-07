@@ -1,48 +1,23 @@
 /*
- * VARCem	Virtual ARchaeological Computer EMulator.
- *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
- *		spanning the era between 1981 and 1995.
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
  *
- *		This file is part of the VARCem Project.
+ *		This file is part of the 86Box distribution.
  *
  *		Handle SLiRP library processing.
  *
+ *		Some of the code was borrowed from libvdeslirp
+ *		<https://github.com/virtualsquare/libvdeslirp>
  *
  *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *
+ * Authors:	Fred N. van Kempen, <decwiz@yahoo.com>
+ *		RichardG, <richardg867@gmail.com>
  *
  *		Copyright 2017-2019 Fred N. van Kempen.
- *
- *		Redistribution and  use  in source  and binary forms, with
- *		or  without modification, are permitted  provided that the
- *		following conditions are met:
- *
- *		1. Redistributions of  source  code must retain the entire
- *		   above notice, this list of conditions and the following
- *		   disclaimer.
- *
- *		2. Redistributions in binary form must reproduce the above
- *		   copyright  notice,  this list  of  conditions  and  the
- *		   following disclaimer in  the documentation and/or other
- *		   materials provided with the distribution.
- *
- *		3. Neither the  name of the copyright holder nor the names
- *		   of  its  contributors may be used to endorse or promote
- *		   products  derived from  this  software without specific
- *		   prior written permission.
- *
- * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
- * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
- * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE  ARE  DISCLAIMED. IN  NO  EVENT  SHALL THE COPYRIGHT
- * HOLDER OR  CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL,  EXEMPLARY,  OR  CONSEQUENTIAL  DAMAGES  (INCLUDING,  BUT  NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE  GOODS OR SERVICES;  LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON  ANY
- * THEORY OF  LIABILITY, WHETHER IN  CONTRACT, STRICT  LIABILITY, OR  TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *		Copyright 2020 RichardG.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -50,19 +25,49 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <slirp/libslirp.h>
 #define HAVE_STDARG_H
-#include <slirp/slirp.h>
-#include <slirp/queue.h>
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/plat.h>
 #include <86box/network.h>
+#include <86box/machine.h>
+#include <86box/timer.h>
+#include <86box/config.h>
 
 
-static volatile queueADT	slirpq;		/* SLiRP library handle */
-static volatile thread_t	*poll_tid;
-static const netcard_t		*poll_card;	/* netcard attached to us */
-static event_t			*poll_state;
+/* SLiRP can use poll() or select() for socket polling. While poll() is
+   better, it's slow and limited on Windows, so use select() there. */
+#ifndef _WIN32
+# define SLIRP_USE_POLL 1
+#endif
+#ifdef SLIRP_USE_POLL
+# ifdef _WIN32
+#  include <winsock2.h>
+#  define poll WSAPoll
+# else
+#  include <poll.h>
+# endif
+#endif
+
+
+typedef struct {
+    Slirp		*slirp;
+    void		*mac;
+    const netcard_t	*card; /* netcard attached to us */
+    volatile thread_t	*poll_tid;
+    event_t		*poll_state;
+    uint8_t		stop;
+#ifdef SLIRP_USE_POLL
+    uint32_t		pfd_len, pfd_size;
+    struct pollfd 	*pfd;
+#else
+    uint32_t		nfds;
+    fd_set		rfds, wfds, xfds;
+#endif
+} slirp_t;
+
+static slirp_t	*slirp;
 
 
 #ifdef ENABLE_SLIRP_LOG
@@ -86,98 +91,290 @@ slirp_log(const char *fmt, ...)
 
 
 static void
-slirp_tic(void)
+net_slirp_guest_error(const char *msg, void *opaque)
 {
-    int ret2, nfds;
-    struct timeval tv;
-    fd_set rfds, wfds, xfds;
-    int tmo;
+    slirp_log("SLiRP: guest_error: %s\n", msg);
+}
+
+
+static int64_t
+net_slirp_clock_get_ns(void *opaque)
+{
+    return (TIMER_USEC ? (tsc / (TIMER_USEC / 1000)) : 0);
+}
+
+
+static void *
+net_slirp_timer_new(SlirpTimerCb cb, void *cb_opaque, void *opaque)
+{
+    pc_timer_t *timer = malloc(sizeof(pc_timer_t));
+    timer_add(timer, cb, cb_opaque, 0);
+    return timer;
+}
+
+
+static void
+net_slirp_timer_free(void *timer, void *opaque)
+{
+    timer_stop(timer);
+}
+
+
+static void
+net_slirp_timer_mod(void *timer, int64_t expire_timer, void *opaque)
+{
+    timer_set_delay_u64(timer, expire_timer);
+}
+
+
+static void
+net_slirp_register_poll_fd(int fd, void *opaque)
+{
+    (void) fd;
+    (void) opaque;
+}
+
+
+static void
+net_slirp_unregister_poll_fd(int fd, void *opaque)
+{
+    (void) fd;
+    (void) opaque;
+}
+
+
+static void
+net_slirp_notify(void *opaque)
+{
+    (void) opaque;
+}
+
+
+int
+net_slirp_send_packet(const void *qp, size_t pkt_len, void *opaque)
+{
+    slirp_t *slirp = (slirp_t *) opaque;
+    uint8_t *mac = slirp->mac;
+    uint32_t mac_cmp32[2];
+    uint16_t mac_cmp16[2];    
+
+    if (!(slirp->card->set_link_state && slirp->card->set_link_state(slirp->card->priv)) && !(slirp->card->wait && slirp->card->wait(slirp->card->priv))) {
+	slirp_log("SLiRP: received %d-byte packet\n", pkt_len);
+
+	/* Received MAC. */
+	mac_cmp32[0] = *(uint32_t *) (((uint8_t *) qp) + 6);
+	mac_cmp16[0] = *(uint16_t *) (((uint8_t *) qp) + 10);
+
+	/* Local MAC. */
+	mac_cmp32[1] = *(uint32_t *) mac;
+	mac_cmp16[1] = *(uint16_t *) (mac + 4);
+	if ((mac_cmp32[0] != mac_cmp32[1]) ||
+	    (mac_cmp16[0] != mac_cmp16[1])) {
+		network_queue_put(0, slirp->card->priv, (uint8_t *) qp, pkt_len);
+	}
+
+	return pkt_len;
+    } else {
+	slirp_log("SLiRP: ignored %d-byte packet\n", pkt_len);
+    }
+
+    return 0;
+}
+
+
+static int
+net_slirp_add_poll(int fd, int events, void *opaque)
+{
+    slirp_t *slirp = (slirp_t *) opaque;
+#ifdef SLIRP_USE_POLL
+    if (slirp->pfd_len >= slirp->pfd_size) {
+	int newsize = slirp->pfd_size + 16;
+	struct pollfd *new = realloc(slirp->pfd, newsize * sizeof(struct pollfd));
+	if (new) {
+		slirp->pfd = new;
+		slirp->pfd_size = newsize;
+	}
+    }
+    if ((slirp->pfd_len < slirp->pfd_size)) {
+	int idx = slirp->pfd_len++;
+	slirp->pfd[idx].fd = fd;
+	int pevents = 0;
+	if (events & SLIRP_POLL_IN) pevents |= POLLIN;
+	if (events & SLIRP_POLL_OUT) pevents |= POLLOUT;
+# ifndef _WIN32
+	/* Windows does not support some events. */
+	if (events & SLIRP_POLL_ERR) pevents |= POLLERR;
+	if (events & SLIRP_POLL_PRI) pevents |= POLLPRI;
+	if (events & SLIRP_POLL_HUP) pevents |= POLLHUP;
+# endif
+	slirp->pfd[idx].events = pevents;
+	return idx;
+    } else
+	return -1;
+#else
+    if (events & SLIRP_POLL_IN)
+	FD_SET(fd, &slirp->rfds);
+    if (events & SLIRP_POLL_OUT)
+	FD_SET(fd, &slirp->wfds);
+    if (events & SLIRP_POLL_PRI)
+	FD_SET(fd, &slirp->xfds);
+    if (fd > slirp->nfds)
+	slirp->nfds = fd;
+    return fd;
+#endif
+}
+
+
+static int
+net_slirp_get_revents(int idx, void *opaque)
+{
+    slirp_t *slirp = (slirp_t *) opaque;
+    int ret = 0;
+#ifdef SLIRP_USE_POLL
+    int events = slirp->pfd[idx].revents;
+    if (events & POLLIN) ret |= SLIRP_POLL_IN;
+    if (events & POLLOUT) ret |= SLIRP_POLL_OUT;
+    if (events & POLLPRI) ret |= SLIRP_POLL_PRI;
+    if (events & POLLERR) ret |= SLIRP_POLL_ERR;
+    if (events & POLLHUP) ret |= SLIRP_POLL_HUP;
+#else
+    if (FD_ISSET(idx, &slirp->rfds))
+	ret |= SLIRP_POLL_IN;
+    if (FD_ISSET(idx, &slirp->wfds))
+	ret |= SLIRP_POLL_OUT;
+    if (FD_ISSET(idx, &slirp->xfds))
+	ret |= SLIRP_POLL_PRI;
+#endif
+    return ret;
+}
+
+
+static void
+slirp_tic(slirp_t *slirp)
+{
+    int ret2;
+    uint32_t tmo;
 
     /* Let SLiRP create a list of all open sockets. */
-    nfds = -1;
-    FD_ZERO(&rfds);
-    FD_ZERO(&wfds);
-    FD_ZERO(&xfds);
-    tmo = slirp_select_fill(&nfds, &rfds, &wfds, &xfds); /* this can crash */
+#ifdef SLIRP_USE_POLL
+    tmo = -1;
+    slirp->pfd_len = 0;
+#else
+    slirp->nfds = -1;
+    FD_ZERO(&slirp->rfds);
+    FD_ZERO(&slirp->wfds);
+    FD_ZERO(&slirp->xfds);
+#endif
+    slirp_pollfds_fill(slirp->slirp, &tmo, net_slirp_add_poll, slirp);
+
+    /* Now wait for something to happen, or at most 'tmo' usec. */
+#ifdef SLIRP_USE_POLL
+    ret2 = poll(slirp->pfd, slirp->pfd_len, tmo);
+#else
     if (tmo < 0)
 	tmo = 500;
 
+    struct timeval tv;
     tv.tv_sec = 0;
     tv.tv_usec = tmo;
 
-    /* Now wait for something to happen, or at most 'tmo' usec. */
-    ret2 = select(nfds+1, &rfds, &wfds, &xfds, &tv);
+    ret2 = select(slirp->nfds + 1, &slirp->rfds, &slirp->wfds, &slirp->xfds, &tv);
+#endif
 
     /* If something happened, let SLiRP handle it. */
-    if (ret2 >= 0)
-	slirp_select_poll(&rfds, &wfds, &xfds);
+    slirp_pollfds_poll(slirp->slirp, (ret2 <= 0), net_slirp_get_revents, slirp);
 }
+
+
+static const SlirpCb slirp_cb = {
+    .send_packet = net_slirp_send_packet,
+    .guest_error = net_slirp_guest_error,
+    .clock_get_ns = net_slirp_clock_get_ns,
+    .timer_new = net_slirp_timer_new,
+    .timer_free = net_slirp_timer_free,
+    .timer_mod = net_slirp_timer_mod,
+    .register_poll_fd = net_slirp_register_poll_fd,
+    .unregister_poll_fd = net_slirp_unregister_poll_fd,
+    .notify = net_slirp_notify
+};
 
 
 /* Handle the receiving of frames. */
 static void
 poll_thread(void *arg)
 {
-    uint8_t *mac = (uint8_t *)arg;
-    struct queuepacket *qp;
-    uint32_t mac_cmp32[2];
-    uint16_t mac_cmp16[2];
+    slirp_t *slirp = (slirp_t *) arg;
     event_t *evt;
-    int data_valid = 0;
     int tx;
 
+    slirp_log("SLiRP: initializing...\n");
+
+    /* Set the IP addresses to use. */
+    struct in_addr net  = { .s_addr = htonl(0x0a000200) }; /* 10.0.2.0 */
+    struct in_addr mask = { .s_addr = htonl(0xffffff00) }; /* 255.255.255.0 */
+    struct in_addr host = { .s_addr = htonl(0x0a000202) }; /* 10.0.2.2 */
+    struct in_addr dhcp = { .s_addr = htonl(0x0a00020f) }; /* 10.0.2.15 */
+    struct in_addr dns  = { .s_addr = htonl(0x0a000203) }; /* 10.0.2.3 */
+    struct in_addr bind = { .s_addr = htonl(0x00000000) }; /* 0.0.0.0 */
+    struct in6_addr ipv6dummy; /* contents don't matter; we're not doing IPv6 */
+
+    /* Initialize SLiRP. */
+    slirp->slirp = slirp_init(0, 1, net, mask, host, 0, ipv6dummy, 0, ipv6dummy, NULL, NULL, NULL, NULL, dhcp, dns, ipv6dummy, NULL, NULL, &slirp_cb, arg);
+    if (!slirp->slirp) {
+	slirp_log("SLiRP: initialization failed\n");
+	return;
+    }
+
+    /* Set up port forwarding. */
+    int udp, from, to, i = 0;
+    char *category = "SLiRP Port Forwarding";
+    char key[16];
+    while (1) {
+	sprintf(key, "%d_udp", i);
+	udp = config_get_int(category, key, 0);
+	sprintf(key, "%d_from", i);
+	from = config_get_int(category, key, 0);
+	if (from < 1)
+		break;
+	sprintf(key, "%d_to", i);
+	to = config_get_int(category, key, from);
+
+	if (slirp_add_hostfwd(slirp->slirp, udp, bind, from, dhcp, to) == 0)
+		pclog("SLiRP: Forwarded %s port host:%d to guest:%d\n", udp ? "UDP" : "TCP", from, to);
+	else
+		pclog("SLiRP: Failed to forward %s port host:%d to guest:%d\n", udp ? "UDP" : "TCP", from, to);
+
+	i++;
+    }
+
+    /* Start polling. */
     slirp_log("SLiRP: polling started.\n");
-    thread_set_event(poll_state);
+    thread_set_event(slirp->poll_state);
 
     /* Create a waitable event. */
     evt = thread_create_event();
 
-    while (slirpq != NULL) {
+    while (!slirp->stop) {
 	/* Request ownership of the queue. */
 	network_wait(1);
 
 	/* Wait for a poll request. */
 	network_poll();
 
-	/* See if there is any work. */
-	slirp_tic();
+	/* Stop processing if asked to. */
+	if (slirp->stop) break;
 
-	/* Our queue may have been nuked.. */
-	if (slirpq == NULL) break;
+	/* See if there is any work. */
+	slirp_tic(slirp);
 
 	/* Wait for the next packet to arrive. */
 	tx = network_tx_queue_check();
-	data_valid = 0;
-
-	if ((!network_get_wait() && !(poll_card->set_link_state && poll_card->set_link_state(poll_card->priv)) && !(poll_card->wait && poll_card->wait(poll_card->priv))) && (QueuePeek(slirpq) != 0)) {
-		/* Grab a packet from the queue. */
-		qp = QueueDelete(slirpq);
-		slirp_log("SLiRP: inQ:%d  got a %dbyte packet @%08lx\n",
-				QueuePeek(slirpq), qp->len, qp);
-
-		/* Received MAC. */
-		mac_cmp32[0] = *(uint32_t *)(((uint8_t *)qp->data)+6);
-		mac_cmp16[0] = *(uint16_t *)(((uint8_t *)qp->data)+10);
-
-		/* Local MAC. */
-		mac_cmp32[1] = *(uint32_t *)mac;
-		mac_cmp16[1] = *(uint16_t *)(mac+4);
-		if ((mac_cmp32[0] != mac_cmp32[1]) ||
-		    (mac_cmp16[0] != mac_cmp16[1])) {
-
-			network_queue_put(0, poll_card->priv, (uint8_t *)qp->data, qp->len);
-			data_valid = 1;
-		}
-
-		/* Done with this one. */
-		free(qp);
-	}
 
 	if (tx)
 		network_do_tx();
 
 	/* If we did not get anything, wait a while. */
-	if (!data_valid && !tx)
+	if (!tx)
 		thread_wait_event(evt, 10);
 
 	/* Release ownership of the queue. */
@@ -185,11 +382,16 @@ poll_thread(void *arg)
     }
 
     /* No longer needed. */
-    if (evt != NULL)
+    if (evt)
 	thread_destroy_event(evt);
 
     slirp_log("SLiRP: polling stopped.\n");
-    thread_set_event(poll_state);
+    thread_set_event(slirp->poll_state);
+
+    /* Free here instead of immediately freeing the global slirp on the main
+       thread to avoid a race condition. */
+    slirp_cleanup(slirp->slirp);
+    free(slirp);
 }
 
 
@@ -197,20 +399,7 @@ poll_thread(void *arg)
 int
 net_slirp_init(void)
 {
-    slirp_log("SLiRP: initializing..\n");
-
-    if (slirp_init() != 0) {
-	slirp_log("SLiRP could not be initialized!\n");
-	return(-1);
-    }
-
-    slirpq = QueueCreate();
-
-    poll_tid = NULL;
-    poll_state = NULL;
-    poll_card = NULL;
-
-    return(0);
+    return 0;
 }
 
 
@@ -218,49 +407,52 @@ net_slirp_init(void)
 int
 net_slirp_reset(const netcard_t *card, uint8_t *mac)
 {
+    slirp_t *new_slirp = malloc(sizeof(slirp_t));
+    memset(new_slirp, 0, sizeof(slirp_t));
+    new_slirp->mac = mac;
+    new_slirp->card = card;
+#ifdef SLIRP_USE_POLL
+    new_slirp->pfd_size = 16 * sizeof(struct pollfd);
+    new_slirp->pfd = malloc(new_slirp->pfd_size);
+    memset(new_slirp->pfd, 0, new_slirp->pfd_size);
+#endif
+
     /* Save the callback info. */
-    poll_card = card;
+    slirp = new_slirp;
 
-    slirp_log("SLiRP: creating thread..\n");
-    poll_state = thread_create_event();
-    poll_tid = thread_create(poll_thread, mac);
-    thread_wait_event(poll_state, -1);
+    slirp_log("SLiRP: creating thread...\n");
+    slirp->poll_state = thread_create_event();
+    slirp->poll_tid = thread_create(poll_thread, new_slirp);
+    thread_wait_event(slirp->poll_state, -1);
 
-    return(0);
+    return 0;
 }
 
 
 void
 net_slirp_close(void)
 {
-    queueADT sl;
-
-    if (slirpq == NULL)
+    if (!slirp)
 	return;
 
-    slirp_log("SLiRP: closing.\n");
+    slirp_log("SLiRP: closing\n");
 
     /* Tell the polling thread to shut down. */
-    sl = slirpq; slirpq = NULL;
+    slirp->stop = 1;
 
     /* Tell the thread to terminate. */
-    if (poll_tid != NULL) {
+    if (slirp->poll_tid) {
 	network_busy(0);
 
 	/* Wait for the thread to finish. */
 	slirp_log("SLiRP: waiting for thread to end...\n");
-	thread_wait_event(poll_state, -1);
+	thread_wait_event(slirp->poll_state, -1);
 	slirp_log("SLiRP: thread ended\n");
-	thread_destroy_event(poll_state);
-
-	poll_tid = NULL;
-	poll_state = NULL;
-	poll_card = NULL;
+	thread_destroy_event(slirp->poll_state);
     }
 
-    /* OK, now shut down SLiRP itself. */
-    QueueDestroy(sl);
-    slirp_exit(0);
+    /* Shutdown work is done by the thread on its local copy of slirp. */
+    slirp = NULL;
 }
 
 
@@ -268,31 +460,25 @@ net_slirp_close(void)
 void
 net_slirp_in(uint8_t *pkt, int pkt_len)
 {
-    if (slirpq == NULL)
+    if (!slirp || !slirp->slirp)
 	return;
 
-    slirp_input((const uint8_t *)pkt, pkt_len);
+    slirp_log("SLiRP: sending %d-byte packet\n", pkt_len);
+
+    slirp_input(slirp->slirp, (const uint8_t *) pkt, pkt_len);
 }
 
 
-/* Needed by SLiRP library. */
-void
-slirp_output(const uint8_t *pkt, int pkt_len)
-{
-    struct queuepacket *qp;
-
-    if (slirpq != NULL) {
-	qp = (struct queuepacket *)malloc(sizeof(struct queuepacket));
-	qp->len = pkt_len;
-	memcpy(qp->data, pkt, pkt_len);
-	QueueEnter(slirpq, qp);
-    }
-}
-
-
-/* Needed by SLiRP library. */
-int
-slirp_can_output(void)
-{
-    return((slirpq != NULL)?1:0);
-}
+/* Stub functions to stand in for the parts of libslirp we skip compiling. */
+void ncsi_input(void *slirp, const uint8_t *pkt, int pkt_len) {}
+void ip6_init(void *slirp) {}
+void ip6_cleanup(void *slirp) {}
+void ip6_input(void *m) {}
+void in6_compute_ethaddr(struct in6_addr ip, uint8_t *eth) {}
+bool in6_equal(const void *a, const void *b) { return 0; }
+int ip6_output(void *so, void *m, int fast) { return 0; }
+int udp6_output(void *so, void *m, void *saddr, void *daddr) { return 0; }
+void icmp6_send_error(void *m, uint8_t type, uint8_t code) {}
+void ndp_send_ns(void *slirp, struct in6_addr addr) {}
+bool ndp_table_search(void *slirp, struct in6_addr ip_addr, uint8_t *out_ethaddr) { return 0; }
+void tftp_input(void *srcsas, void *m) {}

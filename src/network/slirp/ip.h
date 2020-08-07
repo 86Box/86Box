@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: BSD-3-Clause */
 /*
  * Copyright (c) 1982, 1986, 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -30,225 +31,178 @@
  * ip.h,v 1.3 1994/08/21 05:27:30 paul Exp
  */
 
-#ifndef _IP_H_
-#define _IP_H_
+#ifndef IP_H
+#define IP_H
 
-#ifdef WORDS_BIGENDIAN
-# ifndef NTOHL
-#  define NTOHL(d)
-# endif
-# ifndef NTOHS
-#  define NTOHS(d)
-# endif
-# ifndef HTONL
-#  define HTONL(d)
-# endif
-# ifndef HTONS
-#  define HTONS(d)
-# endif
+#include <tinyglib.h>
+
+#if G_BYTE_ORDER == G_BIG_ENDIAN
+#undef NTOHL
+#undef NTOHS
+#undef HTONL
+#undef HTONS
+#define NTOHL(d)
+#define NTOHS(d)
+#define HTONL(d)
+#define HTONS(d)
 #else
-# ifndef NTOHL
-#  define NTOHL(d) ((d) = ntohl((d)))
-# endif
-# ifndef NTOHS
-#  define NTOHS(d) ((d) = ntohs((u_int16_t)(d)))
-# endif
-# ifndef HTONL
-#  define HTONL(d) ((d) = htonl((d)))
-# endif
-# ifndef HTONS
-#  define HTONS(d) ((d) = htons((u_int16_t)(d)))
-# endif
+#ifndef NTOHL
+#define NTOHL(d) ((d) = ntohl((d)))
+#endif
+#ifndef NTOHS
+#define NTOHS(d) ((d) = ntohs((uint16_t)(d)))
+#endif
+#ifndef HTONL
+#define HTONL(d) ((d) = htonl((d)))
+#endif
+#ifndef HTONS
+#define HTONS(d) ((d) = htons((uint16_t)(d)))
+#endif
 #endif
 
-typedef u_int32_t n_long;                 /* long as received from the net */
+typedef uint32_t n_long; /* long as received from the net */
 
 /*
  * Definitions for internet protocol version 4.
  * Per RFC 791, September 1981.
  */
-#define	IPVERSION	4
-
-#if defined(_MSC_VER)
-#pragma pack(push, 1)
-#endif
+#define IPVERSION 4
 
 /*
  * Structure of an internet header, naked of options.
  */
-#ifdef PRAGMA_PACK_SUPPORTED
-#pragma pack(1)
-#endif
-
 struct ip {
-#ifdef WORDS_BIGENDIAN
-	u_char ip_v:4,			/* version */
-		ip_hl:4;		/* header length */
+#if G_BYTE_ORDER == G_BIG_ENDIAN
+    uint8_t ip_v : 4, /* version */
+        ip_hl : 4; /* header length */
 #else
-	u_char ip_hl:4,		/* header length */
-		ip_v:4;			/* version */
+    uint8_t ip_hl : 4, /* header length */
+        ip_v : 4; /* version */
 #endif
-	u_int8_t ip_tos;			/* type of service */
-	u_int16_t	ip_len;			/* total length */
-	u_int16_t	ip_id;			/* identification */
-	u_int16_t	ip_off;			/* fragment offset field */
-#define	IP_DF 0x4000			/* don't fragment flag */
-#define	IP_MF 0x2000			/* more fragments flag */
-#define	IP_OFFMASK 0x1fff		/* mask for fragmenting bits */
-	u_int8_t ip_ttl;			/* time to live */
-	u_int8_t ip_p;			/* protocol */
-	u_int16_t	ip_sum;			/* checksum */
-	struct	in_addr ip_src,ip_dst;	/* source and dest address */
-} PACKED__;
+    uint8_t ip_tos; /* type of service */
+    uint16_t ip_len; /* total length */
+    uint16_t ip_id; /* identification */
+    uint16_t ip_off; /* fragment offset field */
+#define IP_DF 0x4000 /* don't fragment flag */
+#define IP_MF 0x2000 /* more fragments flag */
+#define IP_OFFMASK 0x1fff /* mask for fragmenting bits */
+    uint8_t ip_ttl; /* time to live */
+    uint8_t ip_p; /* protocol */
+    uint16_t ip_sum; /* checksum */
+    struct in_addr ip_src, ip_dst; /* source and dest address */
+} SLIRP_PACKED;
 
-#ifdef PRAGMA_PACK_SUPPORTED
-#pragma pack(PACK_END)	//WAS 0
-#endif
-
-#define	IP_MAXPACKET	65535		/* maximum packet size */
+#define IP_MAXPACKET 65535 /* maximum packet size */
 
 /*
  * Definitions for IP type of service (ip_tos)
  */
-#define	IPTOS_LOWDELAY		0x10
-#define	IPTOS_THROUGHPUT	0x08
-#define	IPTOS_RELIABILITY	0x04
+#define IPTOS_LOWDELAY 0x10
+#define IPTOS_THROUGHPUT 0x08
+#define IPTOS_RELIABILITY 0x04
 
 /*
  * Definitions for options.
  */
-#define	IPOPT_COPIED(o)		((o)&0x80)
-#define	IPOPT_CLASS(o)		((o)&0x60)
-#define	IPOPT_NUMBER(o)		((o)&0x1f)
+#define IPOPT_COPIED(o) ((o)&0x80)
+#define IPOPT_CLASS(o) ((o)&0x60)
+#define IPOPT_NUMBER(o) ((o)&0x1f)
 
-#define	IPOPT_CONTROL		0x00
-#define	IPOPT_RESERVED1		0x20
-#define	IPOPT_DEBMEAS		0x40
-#define	IPOPT_RESERVED2		0x60
+#define IPOPT_CONTROL 0x00
+#define IPOPT_RESERVED1 0x20
+#define IPOPT_DEBMEAS 0x40
+#define IPOPT_RESERVED2 0x60
 
-#define	IPOPT_EOL		0		/* end of option list */
-#define	IPOPT_NOP		1		/* no operation */
+#define IPOPT_EOL 0 /* end of option list */
+#define IPOPT_NOP 1 /* no operation */
 
-#define	IPOPT_RR		7		/* record packet route */
-#define	IPOPT_TS		68		/* timestamp */
-#define	IPOPT_SECURITY		130		/* provide s,c,h,tcc */
-#define	IPOPT_LSRR		131		/* loose source route */
-#define	IPOPT_SATID		136		/* satnet id */
-#define	IPOPT_SSRR		137		/* strict source route */
+#define IPOPT_RR 7 /* record packet route */
+#define IPOPT_TS 68 /* timestamp */
+#define IPOPT_SECURITY 130 /* provide s,c,h,tcc */
+#define IPOPT_LSRR 131 /* loose source route */
+#define IPOPT_SATID 136 /* satnet id */
+#define IPOPT_SSRR 137 /* strict source route */
 
 /*
  * Offsets to fields in options other than EOL and NOP.
  */
-#define	IPOPT_OPTVAL		0		/* option ID */
-#define	IPOPT_OLEN		1		/* option length */
-#define IPOPT_OFFSET		2		/* offset within option */
-#define	IPOPT_MINOFF		4		/* min value of above */
+#define IPOPT_OPTVAL 0 /* option ID */
+#define IPOPT_OLEN 1 /* option length */
+#define IPOPT_OFFSET 2 /* offset within option */
+#define IPOPT_MINOFF 4 /* min value of above */
 
 /*
  * Time stamp option structure.
  */
-#ifdef PRAGMA_PACK_SUPPORTED
-#pragma pack(1)
-#endif
-
-struct	ip_timestamp {
-	u_int8_t	ipt_code;		/* IPOPT_TS */
-	u_int8_t	ipt_len;		/* size of structure (variable) */
-	u_int8_t	ipt_ptr;		/* index of current entry */
-#ifdef WORDS_BIGENDIAN
-	u_char	ipt_oflw:4,		/* overflow counter */
-		ipt_flg:4;		/* flags, see below */
+struct ip_timestamp {
+    uint8_t ipt_code; /* IPOPT_TS */
+    uint8_t ipt_len; /* size of structure (variable) */
+    uint8_t ipt_ptr; /* index of current entry */
+#if G_BYTE_ORDER == G_BIG_ENDIAN
+    uint8_t ipt_oflw : 4, /* overflow counter */
+        ipt_flg : 4; /* flags, see below */
 #else
-	u_char	ipt_flg:4,		/* flags, see below */
-		ipt_oflw:4;		/* overflow counter */
+    uint8_t ipt_flg : 4, /* flags, see below */
+        ipt_oflw : 4; /* overflow counter */
 #endif
-	union ipt_timestamp {
-		n_long	ipt_time[1];
-		struct	ipt_ta {
-			struct in_addr ipt_addr;
-			n_long ipt_time;
-		} ipt_ta[1];
-	} ipt_timestamp;
-} PACKED__;
-
-#ifdef PRAGMA_PACK_SUPPORTED
-#pragma pack(PACK_END)
-#endif
+    union ipt_timestamp {
+        n_long ipt_time[1];
+        struct ipt_ta {
+            struct in_addr ipt_addr;
+            n_long ipt_time;
+        } ipt_ta[1];
+    } ipt_timestamp;
+} SLIRP_PACKED;
 
 /* flag bits for ipt_flg */
-#define	IPOPT_TS_TSONLY		0		/* timestamps only */
-#define	IPOPT_TS_TSANDADDR	1		/* timestamps and addresses */
-#define	IPOPT_TS_PRESPEC	3		/* specified modules only */
+#define IPOPT_TS_TSONLY 0 /* timestamps only */
+#define IPOPT_TS_TSANDADDR 1 /* timestamps and addresses */
+#define IPOPT_TS_PRESPEC 3 /* specified modules only */
 
 /* bits for security (not byte swapped) */
-#define	IPOPT_SECUR_UNCLASS	0x0000
-#define	IPOPT_SECUR_CONFID	0xf135
-#define	IPOPT_SECUR_EFTO	0x789a
-#define	IPOPT_SECUR_MMMM	0xbc4d
-#define	IPOPT_SECUR_RESTR	0xaf13
-#define	IPOPT_SECUR_SECRET	0xd788
-#define	IPOPT_SECUR_TOPSECRET	0x6bc5
+#define IPOPT_SECUR_UNCLASS 0x0000
+#define IPOPT_SECUR_CONFID 0xf135
+#define IPOPT_SECUR_EFTO 0x789a
+#define IPOPT_SECUR_MMMM 0xbc4d
+#define IPOPT_SECUR_RESTR 0xaf13
+#define IPOPT_SECUR_SECRET 0xd788
+#define IPOPT_SECUR_TOPSECRET 0x6bc5
 
 /*
  * Internet implementation parameters.
  */
-#define	MAXTTL		255		/* maximum time to live (seconds) */
-#define	IPDEFTTL	64		/* default ttl, from RFC 1340 */
-#define	IPFRAGTTL	60		/* time to live for frags, slowhz */
-#define	IPTTLDEC	1		/* subtracted when forwarding */
+#define MAXTTL 255 /* maximum time to live (seconds) */
+#define IPDEFTTL 64 /* default ttl, from RFC 1340 */
+#define IPFRAGTTL 60 /* time to live for frags, slowhz */
+#define IPTTLDEC 1 /* subtracted when forwarding */
 
-#define	IP_MSS		576		/* default maximum segment size */
+#define IP_MSS 576 /* default maximum segment size */
 
-#ifdef HAVE_SYS_TYPES32_H  /* Overcome some Solaris 2.x junk */
-#include <sys/types32.h>
+#if GLIB_SIZEOF_VOID_P == 4
+struct mbuf_ptr {
+    struct mbuf *mptr;
+    uint32_t dummy;
+} SLIRP_PACKED;
 #else
-#if SIZEOF_CHAR_P == 4
-typedef SLIRPcaddr_t caddr32_t;
-#else
-typedef u_int32_t caddr32_t;
+struct mbuf_ptr {
+    struct mbuf *mptr;
+} SLIRP_PACKED;
 #endif
-#endif
-
-#if defined(__amd64__) || defined(__aarch64__)
-typedef uintptr_t ipqp_32;
-typedef uintptr_t ipasfragp_32;
-#else
-#if SIZEOF_CHAR_P == 4
-typedef struct ipq *ipqp_32;
-typedef struct ipasfrag *ipasfragp_32;
-#else
-typedef caddr32_t ipqp_32;
-typedef caddr32_t ipasfragp_32;
-#endif
-#endif
+struct qlink {
+    void *next, *prev;
+};
 
 /*
  * Overlay for ip header used by other protocols (tcp, udp).
  */
-#ifdef PRAGMA_PACK_SUPPORTED
-#pragma pack(1)
-#endif
-
 struct ipovly {
-#if defined(__amd64__) || defined(__aarch64__)
-	uintptr_t	ih_next, ih_prev;	/* for protocol sequence q's */
-#else
-	caddr32_t	ih_next, ih_prev;	/* for protocol sequence q's */
-#endif
-	u_int8_t	ih_x1;			/* (unused) */
-	u_int8_t	ih_pr;			/* protocol */
-	u_int16_t	ih_len;			/* protocol length */
-	struct	in_addr ih_src;		/* source internet address */
-	struct	in_addr ih_dst;		/* destination internet address */
-} PACKED__;
-
-#ifdef PRAGMA_PACK_SUPPORTED
-#pragma pack(PACK_END)
-#endif
-
-#if defined(_MSC_VER)
-#pragma pack(pop)
-#endif
+    struct mbuf_ptr ih_mbuf; /* backpointer to mbuf */
+    uint8_t ih_x1; /* (unused) */
+    uint8_t ih_pr; /* protocol */
+    uint16_t ih_len; /* protocol length */
+    struct in_addr ih_src; /* source internet address */
+    struct in_addr ih_dst; /* destination internet address */
+} SLIRP_PACKED;
 
 /*
  * Ip reassembly queue structure.  Each fragment
@@ -258,105 +212,31 @@ struct ipovly {
  * size 28 bytes
  */
 struct ipq {
-#if defined(__amd64__) || defined(__aarch64__)
-	uintptr_t next,prev;	/* to other reass headers */
-#else
-	ipqp_32 next,prev;	/* to other reass headers */
-#endif
-	u_int8_t	ipq_ttl;		/* time for reass q to live */
-	u_int8_t	ipq_p;			/* protocol of this fragment */
-	u_int16_t	ipq_id;			/* sequence id for reassembly */
-	ipasfragp_32 ipq_next,ipq_prev;
-					/* to ip headers of fragments */
-	struct	in_addr ipq_src,ipq_dst;
+    struct qlink frag_link; /* to ip headers of fragments */
+    struct qlink ip_link; /* to other reass headers */
+    uint8_t ipq_ttl; /* time for reass q to live */
+    uint8_t ipq_p; /* protocol of this fragment */
+    uint16_t ipq_id; /* sequence id for reassembly */
+    struct in_addr ipq_src, ipq_dst;
 };
 
 /*
  * Ip header, when holding a fragment.
  *
- * Note: ipf_next must be at same offset as ipq_next above
+ * Note: ipf_link must be at same offset as frag_link above
  */
-#ifdef PRAGMA_PACK_SUPPORTED
-#pragma pack(1)
-#endif
-
-struct	ipasfrag {
-#ifdef WORDS_BIGENDIAN
-	u_char	ip_v:4,
- 		ip_hl:4;
-#else
-	u_char	ip_hl:4,
-		ip_v:4;
-#endif
-                                        /* BUG : u_int changed to u_int8_t.
-                                         * sizeof(u_int)==4 on linux 2.0
-					 */
-        u_int8_t ipf_mff;		/* XXX overlays ip_tos: use low bit
-					 * to avoid destroying tos (PPPDTRuu);
-					 * copied from (ip_off&IP_MF) */
-	u_int16_t	ip_len;
-	u_int16_t	ip_id;
-	u_int16_t	ip_off;
-	u_int8_t	ip_ttl;
-	u_int8_t	ip_p;
-	u_int16_t	ip_sum;
-	ipasfragp_32 ipf_next;		/* next fragment */
-	ipasfragp_32 ipf_prev;		/* previous fragment */
-} PACKED__;
-
-#ifdef PRAGMA_PACK_SUPPORTED
-#pragma pack(PACK_END)	//WAS 0
-#endif
-
-/*
- * Structure stored in mbuf in inpcb.ip_options
- * and passed to ip_output when ip options are in use.
- * The actual length of the options (including ipopt_dst)
- * is in m_len.
- */
-#define MAX_IPOPTLEN	40
-
-struct ipoption {
-	struct	in_addr ipopt_dst;	/* first-hop dst if source routed */
-	int8_t	ipopt_list[MAX_IPOPTLEN];	/* options proper */
+struct ipasfrag {
+    struct qlink ipf_link;
+    struct ip ipf_ip;
 };
 
-/*
- * Structure attached to inpcb.ip_moptions and
- * passed to ip_output when IP multicast options are in use.
- */
+G_STATIC_ASSERT(offsetof(struct ipq, frag_link) ==
+                offsetof(struct ipasfrag, ipf_link));
 
-struct	ipstat {
-	u_long	ips_total;		/* total packets received */
-	u_long	ips_badsum;		/* checksum bad */
-	u_long	ips_tooshort;		/* packet too short */
-	u_long	ips_toosmall;		/* not enough data */
-	u_long	ips_badhlen;		/* ip header length < data size */
-	u_long	ips_badlen;		/* ip length < ip header length */
-	u_long	ips_fragments;		/* fragments received */
-	u_long	ips_fragdropped;	/* frags dropped (dups, out of space) */
-	u_long	ips_fragtimeout;	/* fragments timed out */
-	u_long	ips_forward;		/* packets forwarded */
-	u_long	ips_cantforward;	/* packets rcvd for unreachable dest */
-	u_long	ips_redirectsent;	/* packets forwarded on same net */
-	u_long	ips_noproto;		/* unknown or unsupported protocol */
-	u_long	ips_delivered;		/* datagrams delivered to upper level*/
-	u_long	ips_localout;		/* total ip packets generated here */
-	u_long	ips_odropped;		/* lost packets due to nobufs, etc. */
-	u_long	ips_reassembled;	/* total packets reassembled ok */
-	u_long	ips_fragmented;		/* datagrams successfully fragmented */
-	u_long	ips_ofragments;		/* output fragments created */
-	u_long	ips_cantfrag;		/* don't fragment flag was set, etc. */
-	u_long	ips_badoptions;		/* error in option processing */
-	u_long	ips_noroute;		/* packets discarded due to no route */
-	u_long	ips_badvers;		/* ip version != 4 */
-	u_long	ips_rawout;		/* total raw ip packets generated */
-	u_long	ips_unaligned;		/* times the ip packet was not aligned */
-};
-
-extern struct	ipstat	ipstat;
-extern struct	ipq	ipq;			/* ip reass. queue */
-extern u_int16_t	ip_id;				/* ip packet ctr, for ids */
-extern int	ip_defttl;			/* default IP ttl */
+#define ipf_off ipf_ip.ip_off
+#define ipf_tos ipf_ip.ip_tos
+#define ipf_len ipf_ip.ip_len
+#define ipf_next ipf_link.next
+#define ipf_prev ipf_link.prev
 
 #endif
