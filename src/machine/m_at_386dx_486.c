@@ -68,7 +68,7 @@ machine_at_asus386_init(const machine_t *model)
 {
     int ret;
 
-ret = bios_load_linear(L"roms/machines/asus386/ASUS_ISA-386C_BIOS.bin",
+	ret = bios_load_linear(L"roms/machines/asus386/ASUS_ISA-386C_BIOS.bin",
 				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -148,7 +148,7 @@ machine_at_cs4031_init(const machine_t *model)
 {
     int ret;
 
-ret = bios_load_linear(L"roms/machines/cs4031/CHIPS_1.AMI",
+	ret = bios_load_linear(L"roms/machines/cs4031/CHIPS_1.AMI",
 				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -348,6 +348,27 @@ machine_at_403tg_init(const machine_t *model)
 
     device_add(&keyboard_at_device);
     device_add(&fdc_at_device);
+
+    return ret;
+}
+
+int
+machine_at_pc330_6571_init(const machine_t *model)	// doesn't like every CPU other than the Intel OverDrive, hangs without a PS/2 mouse
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/pc330_6571/$IMAGES.USF",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add(&opti802g_device);
+    device_add(&keyboard_ps2_device);
+    device_add(&fdc37c665_device);
+    device_add(&intel_flash_bxt_device);
 
     return ret;
 }
