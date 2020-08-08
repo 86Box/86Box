@@ -45,7 +45,7 @@
 #  define G_BYTE_ORDER G_PDP_ENDIAN
 # endif
 #endif
-#if !defined(G_BYTE_ORDER)
+#ifndef G_BYTE_ORDER
 /* Safe to assume LE for MSVC, as Windows is LE on all architectures. */
 # define G_BYTE_ORDER G_LITTLE_ENDIAN
 #endif
@@ -111,11 +111,21 @@ typedef struct _GRand {
 
 
 /* Functions */
-/* Inlining everything is not the best idea, but it keeps TinyGLib
-   contained to this header file without producing compiler warnings. */
+
+#ifdef __GNUC__
+static gboolean	g_spawn_async_with_fds(const gchar *working_directory, gchar **argv,
+                                       gchar **envp, GSpawnFlags flags,
+                                       GSpawnChildSetupFunc child_setup,
+                                       gpointer user_data, GPid *child_pid, gint stdin_fd,
+                                       gint stdout_fd, gint stderr_fd, GError **error) __attribute__((__unused__));
+static GString	*g_string_new(gchar *base) __attribute__((__unused__));
+static gchar	*g_string_free(GString *string, gboolean free_segment) __attribute__((__unused__));
+static gchar	*g_strstr_len(const gchar *haystack, gssize haystack_len, const gchar *needle) __attribute__((__unused__));
+static guint	g_strv_length(gchar **str_array) __attribute__((__unused__));
+#endif
 
 /* Must be a function, as libslirp redefines it as a macro. */
-inline gboolean
+static gboolean
 g_spawn_async_with_fds(const gchar *working_directory, gchar **argv,
                        gchar **envp, GSpawnFlags flags,
                        GSpawnChildSetupFunc child_setup,
@@ -127,7 +137,7 @@ g_spawn_async_with_fds(const gchar *working_directory, gchar **argv,
 
 
 /* Needs bounds checking, but not really used by libslirp. */
-inline GString *
+static GString *
 g_string_new(gchar *base)
 {
     char *ret = malloc(4096);
@@ -137,7 +147,8 @@ g_string_new(gchar *base)
 }
 
 
-inline gchar *
+/* Unimplemented, as with anything related to GString. */
+static gchar *
 g_string_free(GString *string, gboolean free_segment)
 {
     return (free_segment ? NULL : string);
@@ -145,7 +156,7 @@ g_string_free(GString *string, gboolean free_segment)
 
 
 /* Implementation borrowed from GLib itself. */
-inline gchar *
+static gchar *
 g_strstr_len(const gchar *haystack, gssize haystack_len, const gchar *needle)
 {
     if (haystack_len < 0)
@@ -182,7 +193,7 @@ next:
 
 
 /* Implementation borrowed from GLib itself. */
-inline guint
+static guint
 g_strv_length(gchar **str_array)
 {
     guint i = 0;
