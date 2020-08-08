@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: BSD-3-Clause */
 /*
  * Copyright (c) 1982, 1986, 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -30,85 +31,60 @@
  * udp.h,v 1.3 1994/08/21 05:27:41 paul Exp
  */
 
-#ifndef _UDP_H_
-#define _UDP_H_
+#ifndef UDP_H
+#define UDP_H
 
 #define UDP_TTL 0x60
 #define UDP_UDPDATALEN 16192
-
-extern struct SLIRPsocket *udp_last_so;
 
 /*
  * Udp protocol header.
  * Per RFC 768, September, 1981.
  */
-#ifdef PRAGMA_PACK_SUPPORTED
-#pragma pack(1)
-#endif
-
 struct udphdr {
-	u_int16_t	uh_sport;		/* source port */
-	u_int16_t	uh_dport;		/* destination port */
-	int16_t	uh_ulen;		/* udp length */
-	u_int16_t	uh_sum;			/* udp checksum */
-} PACKED__;
-
-#ifdef PRAGMA_PACK_SUPPORTED
-#pragma pack(PACK_END)
-#endif
+    uint16_t uh_sport; /* source port */
+    uint16_t uh_dport; /* destination port */
+    int16_t uh_ulen; /* udp length */
+    uint16_t uh_sum; /* udp checksum */
+};
 
 /*
  * UDP kernel structures and variables.
  */
 struct udpiphdr {
-	        struct  ipovly ui_i;            /* overlaid ip structure */
-	        struct  udphdr ui_u;            /* udp header */
+    struct ipovly ui_i; /* overlaid ip structure */
+    struct udphdr ui_u; /* udp header */
 };
-#define ui_next         ui_i.ih_next
-#define ui_prev         ui_i.ih_prev
-#define ui_x1           ui_i.ih_x1
-#define ui_pr           ui_i.ih_pr
-#define ui_len          ui_i.ih_len
-#define ui_src          ui_i.ih_src
-#define ui_dst          ui_i.ih_dst
-#define ui_sport        ui_u.uh_sport
-#define ui_dport        ui_u.uh_dport
-#define ui_ulen         ui_u.uh_ulen
-#define ui_sum          ui_u.uh_sum
-
-struct udpstat {
-	                                /* input statistics: */
-	        u_long  udps_ipackets;          /* total input packets */
-	        u_long  udps_hdrops;            /* packet shorter than header */
-	        u_long  udps_badsum;            /* checksum error */
-	        u_long  udps_badlen;            /* data length larger than packet */
-	        u_long  udps_noport;            /* no socket on port */
-	        u_long  udps_noportbcast;       /* of above, arrived as broadcast */
-	        u_long  udps_fullsock;          /* not delivered, input socket full */
-	        u_long  udpps_pcbcachemiss;     /* input packets missing pcb cache */
-	                                /* output statistics: */
-	        u_long  udps_opackets;          /* total output packets */
-};
+#define ui_mbuf ui_i.ih_mbuf.mptr
+#define ui_x1 ui_i.ih_x1
+#define ui_pr ui_i.ih_pr
+#define ui_len ui_i.ih_len
+#define ui_src ui_i.ih_src
+#define ui_dst ui_i.ih_dst
+#define ui_sport ui_u.uh_sport
+#define ui_dport ui_u.uh_dport
+#define ui_ulen ui_u.uh_ulen
+#define ui_sum ui_u.uh_sum
 
 /*
  * Names for UDP sysctl objects
  */
-#define UDPCTL_CHECKSUM         1       /* checksum UDP packets */
-#define UDPCTL_MAXID            2
+#define UDPCTL_CHECKSUM 1 /* checksum UDP packets */
+#define UDPCTL_MAXID 2
 
-extern struct udpstat udpstat;
-extern struct SLIRPsocket udb;
-struct SLIRPmbuf;
+struct mbuf;
 
-void udp_init _P((void));
-void udp_input _P((register struct SLIRPmbuf *, int));
-int udp_output _P((struct SLIRPsocket *, struct SLIRPmbuf *, struct sockaddr_in *));
-int udp_attach _P((struct SLIRPsocket *));
-void udp_detach _P((struct SLIRPsocket *));
-u_int8_t udp_tos _P((struct SLIRPsocket *));
-void udp_emu _P((struct SLIRPsocket *, struct SLIRPmbuf *));
-struct SLIRPsocket * udp_listen _P((u_int, u_int32_t, u_int, int));
-int udp_output2(struct SLIRPsocket *so, struct SLIRPmbuf *m, 
-                struct sockaddr_in *saddr, struct sockaddr_in *daddr,
-                int iptos);
+void udp_init(Slirp *);
+void udp_cleanup(Slirp *);
+void udp_input(register struct mbuf *, int);
+int udp_attach(struct socket *, unsigned short af);
+void udp_detach(struct socket *);
+struct socket *udp_listen(Slirp *, uint32_t, unsigned, uint32_t, unsigned, int);
+int udp_output(struct socket *so, struct mbuf *m, struct sockaddr_in *saddr,
+               struct sockaddr_in *daddr, int iptos);
+
+void udp6_input(register struct mbuf *);
+int udp6_output(struct socket *so, struct mbuf *m, struct sockaddr_in6 *saddr,
+                struct sockaddr_in6 *daddr);
+
 #endif

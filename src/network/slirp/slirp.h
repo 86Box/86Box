@@ -1,441 +1,285 @@
-#ifndef __COMMON_H__
-#define __COMMON_H__
-
-#define SLIRP_VERSION "Cockatrice special"
-
-#define CONFIG_QEMU
-
-#ifndef CONFIG_QEMU
-#include "version.h"
-#endif
-#include "config.h"
-#include "slirp_config.h"
+/* SPDX-License-Identifier: BSD-3-Clause */
+#ifndef SLIRP_H
+#define SLIRP_H
 
 #ifdef _WIN32
-#ifdef __GNUC__		/* MINGW? */
-# include <inttypes.h>	
-typedef uint8_t u_int8_t;
-typedef uint16_t u_int16_t;
-typedef uint32_t u_int32_t;
-typedef uint64_t u_int64_t;
-typedef char *SLIRPcaddr_t;
-typedef int socklen_t;
-typedef unsigned long ioctlsockopt_t;
+
+/* as defined in sdkddkver.h */
+#ifndef _WIN32_WINNT
+#define _WIN32_WINNT 0x0600 /* Vista */
+#endif
+/* reduces the number of implicitly included headers */
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+
+#include <winsock2.h>
+#include <windows.h>
+#include <ws2tcpip.h>
+#include <sys/timeb.h>
+#include <iphlpapi.h>
+
 #else
-typedef unsigned char 	u_int8_t;
-typedef char			int8_t;
-typedef unsigned char	uint8_t;
-typedef unsigned short 	u_int16_t;
-typedef unsigned short 	uint16_t;
-typedef short			int16_t;
-typedef unsigned int 	u_int32_t;
-typedef unsigned int	uint32_t;
-typedef	int				int32_t;
-
-typedef unsigned __int64 u_int64_t;
-typedef char 		*SLIRPcaddr_t;
-typedef int 		socklen_t;
-typedef unsigned long 	ioctlsockopt_t;
-
-#endif
-
-# include <winsock2.h>	/* needs to be on top otherwise, it'll pull in winsock1 */
-# include <windows.h>
-
-# include <sys/timeb.h>
-# include <iphlpapi.h>
-
-# define USE_FIONBIO 1
-#ifndef EWOULDBLOCK
-# define EWOULDBLOCK WSAEWOULDBLOCK
-#endif
-#ifndef EINPROGRESS
-# define EINPROGRESS WSAEINPROGRESS
-#endif
-#ifndef ENOTCONN
-# define ENOTCONN WSAENOTCONN
-#endif
-#ifndef EHOSTUNREACH
-# define EHOSTUNREACH WSAEHOSTUNREACH
-#endif
-#ifndef ENETUNREACH
-# define ENETUNREACH WSAENETUNREACH
-#endif
-#ifndef ECONNREFUSED
-# define ECONNREFUSED WSAECONNREFUSED
-#endif
-
-/* Basilisk II Router defines those */
-# define udp_read_completion slirp_udp_read_completion
-# define write_udp slirp_write_udp
-# define init_udp slirp_init_udp
-# define final_udp slirp_final_udp
-#else
-# include <inttypes.h>	
-# define HAVE_STDINT_H
-# define HAVE_STDLIB_H
-# define HAVE_STRING_H
-# define HAVE_UNISTD_H
-# define HAVE_INET_ATON
-typedef uint8_t u_int8_t;
-typedef uint16_t u_int16_t;
-typedef uint32_t u_int32_t;
-typedef uint64_t u_int64_t;
-typedef char *SLIRPcaddr_t;
-typedef int ioctlsockopt_t;
-# define ioctlsocket ioctl
-# define closesocket(s) close(s)
-# define O_BINARY 0
-#endif
-
-#include <sys/types.h>
-#ifdef HAVE_SYS_BITYPES_H
-# include <sys/bitypes.h>
-#endif
-#ifdef HAVE_STDINT_H
-# include <stdint.h>
-#endif
-
-#ifndef _MSC_VER
-#include <sys/time.h>
-#else
-#include <time.h>
-#endif
-
-#ifdef NEED_TYPEDEFS
-typedef char int8_t;
-typedef unsigned char u_int8_t;
-
-# if SIZEOF_SHORT == 2
-    typedef short int16_t;
-    typedef unsigned short u_int16_t;
-# else
-#  if SIZEOF_INT == 2
-    typedef int int16_t;
-    typedef unsigned int u_int16_t;
-#  else
-    #error Cannot find a type with sizeof() == 2
-#  endif
-# endif
-
-# if SIZEOF_SHORT == 4
-   typedef short int32_t;
-   typedef unsigned short u_int32_t;
-# else
-#  if SIZEOF_INT == 4
-    typedef int int32_t;
-    typedef unsigned int u_int32_t;
-#  else
-    #error Cannot find a type with sizeof() == 4
-#  endif
-# endif
-#endif /* NEED_TYPEDEFS */
-
-/* Basilisk II types glue */
-typedef u_int8_t uint8;
-typedef u_int16_t uint16;
-typedef u_int32_t uint32;
-
-#ifdef HAVE_UNISTD_H
-# include <unistd.h>
-#endif
-
-#ifdef HAVE_STDLIB_H
-# include <stdlib.h>
-#endif
-
-#include <stdio.h>
-#include <errno.h>
-
-#ifndef HAVE_MEMMOVE
-#define memmove(x, y, z) bcopy(y, x, z)
-#endif
-
-#if TIME_WITH_SYS_TIME
-# include <sys/time.h>
-# include <time.h>
-#else
-# if HAVE_SYS_TIME_H
-#  include <sys/time.h>
-# else
-#  include <time.h>
-# endif
-#endif
-
-#ifdef HAVE_STRING_H
-# include <string.h>
-#else
-#ifndef _MSC_VER
-# include <strings.h>
-#else
-#include <string.h>
+#if !defined(__HAIKU__)
+#define O_BINARY 0
 #endif
 #endif
 
 #ifndef _WIN32
 #include <sys/uio.h>
-#endif
-
-#ifndef _P
-#ifndef NO_PROTOTYPES
-#  define   _P(x)   x
-#else
-#  define   _P(x)   ()
-#endif
-#endif
-
-#ifndef _WIN32
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#endif
-
-#ifdef GETTIMEOFDAY_ONE_ARG
-#define gettimeofday(x, y) gettimeofday(x)
-#endif
-
-/* Systems lacking strdup() definition in <string.h>. */
-#if defined(ultrix)
-char *strdup _P((const char *));
-#endif
-
-/* Systems lacking malloc() definition in <stdlib.h>. */
-#if defined(ultrix) || defined(hcx)
-void *malloc _P((size_t arg));
-void free _P((void *ptr));
-#endif
-
-#ifndef HAVE_INET_ATON
-int inet_aton _P((const char *cp, struct in_addr *ia));
-#endif
-
-#include <fcntl.h>
-#ifndef NO_UNIX_SOCKETS
-#include <sys/un.h>
-#endif
-#include <signal.h>
-#ifdef HAVE_SYS_SIGNAL_H
-# include <sys/signal.h>
-#endif
-#ifndef _WIN32
 #include <sys/socket.h>
+#include <sys/ioctl.h>
 #endif
 
-#if defined(HAVE_SYS_IOCTL_H)
-# include <sys/ioctl.h>
+#ifdef __APPLE__
+#include <sys/filio.h>
 #endif
-
-#ifdef HAVE_SYS_SELECT_H
-# include <sys/select.h>
-#endif
-
-#ifdef HAVE_SYS_WAIT_H
-# include <sys/wait.h>
-#endif
-
-#ifdef HAVE_SYS_FILIO_H
-# include <sys/filio.h>
-#endif
-
-#ifdef USE_PPP
-#include <ppp/slirppp.h>
-#endif
-
-#ifdef __STDC__
-#include <stdarg.h>
-#else
-#include <varargs.h>
-#endif
-
-#include <sys/stat.h>
 
 /* Avoid conflicting with the libc insque() and remque(), which
    have different prototypes. */
 #define insque slirp_insque
 #define remque slirp_remque
-
-#ifdef HAVE_SYS_STROPTS_H
-#include <sys/stropts.h>
-#endif
+#define quehead slirp_quehead
 
 #include "debug.h"
+#include "util.h"
 
-#if defined __GNUC__
-#define PACKED__ __attribute__ ((packed))
-#elif defined __sgi
-#define PRAGMA_PACK_SUPPORTED 1
-#define PACK_END 0
-#define PACKED__
-#elif _MSC_VER
-#define PACKED__
-#else
-#error "Packed attribute or pragma shall be supported"
-#endif
-
-#if defined(_MSC_VER)
-#pragma pack(push, 1)
-#endif
-
+#include "libslirp.h"
 #include "ip.h"
+#include "ip6.h"
 #include "tcp.h"
 #include "tcp_timer.h"
 #include "tcp_var.h"
 #include "tcpip.h"
 #include "udp.h"
-#include "icmp_var.h"
+#include "ip_icmp.h"
+#include "ip6_icmp.h"
 #include "mbuf.h"
 #include "sbuf.h"
 #include "socket.h"
 #include "if.h"
 #include "main.h"
 #include "misc.h"
-#include "ctl.h"
-#ifdef USE_PPP
-#include "ppp/pppd.h"
-#include "ppp/ppp.h"
-#endif
 
 #include "bootp.h"
 #include "tftp.h"
-#include "libslirp.h"
 
-extern struct ttys *ttys_unit[MAX_INTERFACES];
+#define ARPOP_REQUEST 1 /* ARP request */
+#define ARPOP_REPLY 2 /* ARP reply   */
 
-#ifndef NULL
-#define NULL (void *)0
-#endif
+struct ethhdr {
+    unsigned char h_dest[ETH_ALEN]; /* destination eth addr */
+    unsigned char h_source[ETH_ALEN]; /* source ether addr    */
+    unsigned short h_proto; /* packet type ID field */
+};
 
-#ifndef FULL_BOLT
-void if_start _P((void));
-#else
-void if_start _P((struct ttys *));
-#endif
+struct slirp_arphdr {
+    unsigned short ar_hrd; /* format of hardware address */
+    unsigned short ar_pro; /* format of protocol address */
+    unsigned char ar_hln; /* length of hardware address */
+    unsigned char ar_pln; /* length of protocol address */
+    unsigned short ar_op; /* ARP opcode (command)       */
 
-#ifdef BAD_SPRINTF
-# define vsprintf vsprintf_len
-# define sprintf sprintf_len
- extern int vsprintf_len _P((char *, const char *, va_list));
- extern int sprintf_len _P((char *, const char *, ...));
-#endif
+    /*
+     *  Ethernet looks like this : This bit is variable sized however...
+     */
+    unsigned char ar_sha[ETH_ALEN]; /* sender hardware address */
+    uint32_t ar_sip; /* sender IP address       */
+    unsigned char ar_tha[ETH_ALEN]; /* target hardware address */
+    uint32_t ar_tip; /* target IP address       */
+} SLIRP_PACKED;
 
-#ifdef DECLARE_SPRINTF
-# ifndef BAD_SPRINTF
- extern int vsprintf _P((char *, const char *, va_list));
-# endif
- extern int vfprintf _P((FILE *, const char *, va_list));
-#endif
+#define ARP_TABLE_SIZE 16
 
-#ifndef HAVE_STRERROR
-#ifndef _MSC_VER
- extern char *strerror _P((int error));
- #define HAVE_STRERROR
-#endif
-#endif
+typedef struct ArpTable {
+    struct slirp_arphdr table[ARP_TABLE_SIZE];
+    int next_victim;
+} ArpTable;
 
-#ifndef HAVE_INDEX
- char *index _P((const char *, int));
-#endif
+void arp_table_add(Slirp *slirp, uint32_t ip_addr,
+                   const uint8_t ethaddr[ETH_ALEN]);
 
-#ifndef HAVE_GETHOSTID
- long gethostid _P((void));
-#endif
+bool arp_table_search(Slirp *slirp, uint32_t ip_addr,
+                      uint8_t out_ethaddr[ETH_ALEN]);
 
-void lprint _P((const char *, ...));
+struct ndpentry {
+    unsigned char eth_addr[ETH_ALEN]; /* sender hardware address */
+    struct in6_addr ip_addr; /* sender IP address       */
+};
 
-extern int do_echo;
+#define NDP_TABLE_SIZE 16
 
-#ifdef _MSC_VER
-#define __inline
-#endif
+typedef struct NdpTable {
+    struct ndpentry table[NDP_TABLE_SIZE];
+    int next_victim;
+} NdpTable;
 
-#if SIZEOF_CHAR_P == 4
-# define insque_32 insque
-# define remque_32 remque
-#else
-# ifdef NEED_QUE32_INLINE
-extern __inline void insque_32 _P((void *, void *));
-extern __inline void remque_32 _P((void *));
-# else
-extern void insque_32 _P((void *, void *));
-extern void remque_32 _P((void *));
-# endif
-#endif
+void ndp_table_add(Slirp *slirp, struct in6_addr ip_addr,
+                   uint8_t ethaddr[ETH_ALEN]);
+bool ndp_table_search(Slirp *slirp, struct in6_addr ip_addr,
+                      uint8_t out_ethaddr[ETH_ALEN]);
+
+struct Slirp {
+    unsigned time_fasttimo;
+    unsigned last_slowtimo;
+    bool do_slowtimo;
+
+    bool in_enabled, in6_enabled;
+
+    /* virtual network configuration */
+    struct in_addr vnetwork_addr;
+    struct in_addr vnetwork_mask;
+    struct in_addr vhost_addr;
+    struct in6_addr vprefix_addr6;
+    uint8_t vprefix_len;
+    struct in6_addr vhost_addr6;
+    struct in_addr vdhcp_startaddr;
+    struct in_addr vnameserver_addr;
+    struct in6_addr vnameserver_addr6;
+
+    struct in_addr client_ipaddr;
+    char client_hostname[33];
+
+    int restricted;
+    struct gfwd_list *guestfwd_list;
+
+    int if_mtu;
+    int if_mru;
+
+    bool disable_host_loopback;
+
+    /* mbuf states */
+    struct quehead m_freelist;
+    struct quehead m_usedlist;
+    int mbuf_alloced;
+
+    /* if states */
+    struct quehead if_fastq; /* fast queue (for interactive data) */
+    struct quehead if_batchq; /* queue for non-interactive data */
+    bool if_start_busy; /* avoid if_start recursion */
+
+    /* ip states */
+    struct ipq ipq; /* ip reass. queue */
+    uint16_t ip_id; /* ip packet ctr, for ids */
+
+    /* bootp/dhcp states */
+    BOOTPClient bootp_clients[NB_BOOTP_CLIENTS];
+    char *bootp_filename;
+    size_t vdnssearch_len;
+    uint8_t *vdnssearch;
+    char *vdomainname;
+
+    /* tcp states */
+    struct socket tcb;
+    struct socket *tcp_last_so;
+    tcp_seq tcp_iss; /* tcp initial send seq # */
+    uint32_t tcp_now; /* for RFC 1323 timestamps */
+
+    /* udp states */
+    struct socket udb;
+    struct socket *udp_last_so;
+
+    /* icmp states */
+    struct socket icmp;
+    struct socket *icmp_last_so;
+
+    /* tftp states */
+    char *tftp_prefix;
+    struct tftp_session tftp_sessions[TFTP_SESSIONS_MAX];
+    char *tftp_server_name;
+
+    ArpTable arp_table;
+    NdpTable ndp_table;
+
+    GRand *grand;
+    void *ra_timer;
+
+    bool enable_emu;
+
+    const SlirpCb *cb;
+    void *opaque;
+
+    struct sockaddr_in *outbound_addr;
+    struct sockaddr_in6 *outbound_addr6;
+    bool disable_dns; /* slirp will not redirect/serve any DNS packet */
+};
+
+void if_start(Slirp *);
+
+int get_dns_addr(struct in_addr *pdns_addr);
+int get_dns6_addr(struct in6_addr *pdns6_addr, uint32_t *scope_id);
+
+/* ncsi.c */
+void ncsi_input(Slirp *slirp, const uint8_t *pkt, int pkt_len);
 
 #ifndef _WIN32
 #include <netdb.h>
 #endif
 
-#define DEFAULT_BAUD 115200
+
+extern bool slirp_do_keepalive;
+
+#define TCP_MAXIDLE (TCPTV_KEEPCNT * TCPTV_KEEPINTVL)
+
+/* dnssearch.c */
+int translate_dnssearch(Slirp *s, const char **names);
 
 /* cksum.c */
-int cksum(struct SLIRPmbuf *m, int len);
+int cksum(struct mbuf *m, int len);
+int ip6_cksum(struct mbuf *m);
 
 /* if.c */
-void if_init _P((void));
-void if_output _P((struct SLIRPsocket *, struct SLIRPmbuf *));
+void if_init(Slirp *);
+void if_output(struct socket *, struct mbuf *);
 
 /* ip_input.c */
-void ip_init _P((void));
-void ip_input _P((struct SLIRPmbuf *));
-struct ip * ip_reass _P((register struct ipasfrag *, register struct ipq *));
-void ip_freef _P((struct ipq *));
-void ip_enq _P((register struct ipasfrag *, register struct ipasfrag *));
-void ip_deq _P((register struct ipasfrag *));
-void ip_slowtimo _P((void));
-void ip_stripoptions _P((register struct SLIRPmbuf *, struct SLIRPmbuf *));
+void ip_init(Slirp *);
+void ip_cleanup(Slirp *);
+void ip_input(struct mbuf *);
+void ip_slowtimo(Slirp *);
+void ip_stripoptions(register struct mbuf *, struct mbuf *);
 
 /* ip_output.c */
-int ip_output _P((struct SLIRPsocket *, struct SLIRPmbuf *));
+int ip_output(struct socket *, struct mbuf *);
+
+/* ip6_input.c */
+void ip6_init(Slirp *);
+void ip6_cleanup(Slirp *);
+void ip6_input(struct mbuf *);
+
+/* ip6_output */
+int ip6_output(struct socket *, struct mbuf *, int fast);
 
 /* tcp_input.c */
-int tcp_reass _P((register struct tcpcb *, register struct tcpiphdr *, struct SLIRPmbuf *));
-void tcp_input _P((register struct SLIRPmbuf *, int, struct SLIRPsocket *));
-void tcp_dooptions _P((struct tcpcb *, u_char *, int, struct tcpiphdr *));
-void tcp_xmit_timer _P((register struct tcpcb *, int));
-int tcp_mss _P((register struct tcpcb *, u_int));
+void tcp_input(register struct mbuf *, int, struct socket *, unsigned short af);
+int tcp_mss(register struct tcpcb *, unsigned);
 
 /* tcp_output.c */
-int tcp_output _P((register struct tcpcb *));
-void tcp_setpersist _P((register struct tcpcb *));
+int tcp_output(register struct tcpcb *);
+void tcp_setpersist(register struct tcpcb *);
 
 /* tcp_subr.c */
-void tcp_init _P((void));
-void tcp_template _P((struct tcpcb *));
-void tcp_respond _P((struct tcpcb *, register struct tcpiphdr *, register struct SLIRPmbuf *, tcp_seq, tcp_seq, int));
-struct tcpcb * tcp_newtcpcb _P((struct SLIRPsocket *));
-struct tcpcb * tcp_close _P((register struct tcpcb *));
-void tcp_drain _P((void));
-void tcp_sockclosed _P((struct tcpcb *));
-int tcp_fconnect _P((struct SLIRPsocket *));
-void tcp_connect _P((struct SLIRPsocket *));
-int tcp_attach _P((struct SLIRPsocket *));
-u_int8_t tcp_tos _P((struct SLIRPsocket *));
-int tcp_emu _P((struct SLIRPsocket *, struct SLIRPmbuf *));
-int tcp_ctl _P((struct SLIRPsocket *));
+void tcp_init(Slirp *);
+void tcp_cleanup(Slirp *);
+void tcp_template(struct tcpcb *);
+void tcp_respond(struct tcpcb *, register struct tcpiphdr *,
+                 register struct mbuf *, tcp_seq, tcp_seq, int, unsigned short);
+struct tcpcb *tcp_newtcpcb(struct socket *);
+struct tcpcb *tcp_close(register struct tcpcb *);
+void tcp_sockclosed(struct tcpcb *);
+int tcp_fconnect(struct socket *, unsigned short af);
+void tcp_connect(struct socket *);
+void tcp_attach(struct socket *);
+uint8_t tcp_tos(struct socket *);
+int tcp_emu(struct socket *, struct mbuf *);
+int tcp_ctl(struct socket *);
 struct tcpcb *tcp_drop(struct tcpcb *tp, int err);
 
+struct socket *slirp_find_ctl_socket(Slirp *slirp, struct in_addr guest_addr,
+                                     int guest_port);
 
-#if defined(_MSC_VER)
-#pragma pack(pop)
-#endif
-
-#ifdef USE_PPP
-#define MIN_MRU MINMRU
-#define MAX_MRU MAXMRU
-#else
-#define MIN_MRU 128
-#define MAX_MRU 16384
-#endif
-
-#ifndef _WIN32
-#define min(x,y) ((x) < (y) ? (x) : (y))
-#define max(x,y) ((x) > (y) ? (x) : (y))
-#endif
-
-#ifdef _WIN32
-#undef errno
-#define errno (WSAGetLastError())
-#endif
-
-#define PROBE_CONN
+void slirp_send_packet_all(Slirp *slirp, const void *buf, size_t len);
 
 #endif

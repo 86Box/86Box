@@ -46,6 +46,7 @@
 #endif
 
 #define MIN(a, b)	((a) < (b) ? (a) : (b))
+#define MAX(a, b)	((a) > (b) ? (a) : (b))
 #define ABS(x)		((x) > 0 ? (x) : -(x))
 #define BCD8(x)		((((x) / 10) << 4) | ((x) % 10))
 #define BCD16(x)	((((x) / 1000) << 12) | (((x) / 100) << 8) | BCD8(x))
