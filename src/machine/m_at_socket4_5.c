@@ -248,7 +248,7 @@ machine_at_opti560l_init(const machine_t *model)
 
 
 int
-machine_at_dellxp60_init(const machine_t *model)	// Doesn't like the regular SMC 665
+machine_at_dellxp60_init(const machine_t *model)
 {
     int ret;
 
