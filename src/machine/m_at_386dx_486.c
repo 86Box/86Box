@@ -353,7 +353,7 @@ machine_at_403tg_init(const machine_t *model)
 }
 
 int
-machine_at_pc330_6571_init(const machine_t *model)	// doesn't like every CPU other than the Intel OverDrive, hangs without a PS/2 mouse
+machine_at_pc330_6571_init(const machine_t *model)	// doesn't like every CPU other than the iDX4 and the Intel OverDrive, hangs without a PS/2 mouse
 {
     int ret;
 
