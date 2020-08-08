@@ -45,7 +45,7 @@
 #  define G_BYTE_ORDER G_PDP_ENDIAN
 # endif
 #endif
-#if !defined(G_BYTE_ORDER)
+#ifndef G_BYTE_ORDER
 /* Safe to assume LE for MSVC, as Windows is LE on all architectures. */
 # define G_BYTE_ORDER G_LITTLE_ENDIAN
 #endif
