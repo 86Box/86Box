@@ -48,7 +48,7 @@ ifeq ($(DEV_BUILD), y)
  ifndef CYRIX_6X86
   CYRIX_6X86	:= y
  endif 
- ifndef HEADAKA
+ ifndef HEDAKA
   HEDAKA	:= y
  endif
  ifndef LASERXT
