@@ -37,7 +37,6 @@
 #include <86box/chipset.h>
 
 #define disabled_shadow (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
-#define ENABLE_ALI1429_LOG 1
 
 #ifdef ENABLE_ALI1429_LOG
 int ali1429_do_log = ENABLE_ALI1429_LOG;
@@ -99,9 +98,12 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
     
 	case 0x23:
 
-        if (!(dev->index == 0x03)) /* Don't log register unlock patterns */
+        /* Don't log register unlock patterns */
+        if(dev->index != 0x03)
+        {
         ali1429_log("M1429: dev->regs[%02x] = %02x\n", dev->index, val);
-
+        }
+        
 		dev->regs[dev->index] = val;
 
         /* Unlock/Lock Registers */
