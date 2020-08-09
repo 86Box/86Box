@@ -353,7 +353,7 @@ machine_at_403tg_init(const machine_t *model)
 }
 
 int
-machine_at_pc330_6571_init(const machine_t *model)	// doesn't like every CPU other than the Intel OverDrive, hangs without a PS/2 mouse
+machine_at_pc330_6571_init(const machine_t *model)	// doesn't like every CPU other than the iDX4 and the Intel OverDrive, hangs without a PS/2 mouse
 {
     int ret;
 
@@ -363,10 +363,11 @@ machine_at_pc330_6571_init(const machine_t *model)	// doesn't like every CPU oth
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
 
     device_add(&opti802g_device);
     device_add(&keyboard_ps2_device);
+	device_add(&ide_opti611_vlb_device);
     device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
 
@@ -702,6 +703,33 @@ machine_at_486vipio2_init(const machine_t *model)
     return ret;
 }
 #endif
+
+int
+machine_at_abpb4_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/abpb4/486-AB-PB4.BIN",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+    
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_SPECIAL, 0, 0, 0, 0);
+    pci_register_slot(0x03, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x04, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x05, PCI_CARD_NORMAL, 3, 4, 1, 2);
+
+    device_add(&ali1489_device);
+    device_add(&ide_pci_2ch_device);
+    device_add(&w83787f_device);
+    device_add(&keyboard_at_device);
+
+    return ret;
+}
 
 #if defined(DEV_BRANCH) && defined(USE_STPC)
 int
