@@ -27,6 +27,9 @@ extern "C" {
 
 #define RSM_STS		(1 << 15)
 #define PWRBTN_STS	(1 << 8)
+#define GBL_STS		(1 << 5)
+#define BM_STS		(1 << 4)
+#define TMROF_STS	(1 << 0)
 
 #define RTC_EN		(1 << 10)
 #define PWRBTN_EN	(1 << 8)
@@ -40,6 +43,7 @@ extern "C" {
 #define	ACPI_DISABLE	0xf0
 
 #define VEN_INTEL	0x8086
+#define VEN_SMC		0x1055
 #define VEN_VIA		0x1106
 
 
@@ -52,13 +56,11 @@ typedef struct
 			gpireg[3], gporeg[4];
     uint16_t		pmsts, pmen,
 			pmcntrl, gpsts,
-			gpen, io_base,
-			gpscien, gpsmien,
-			pscntrl, gpo_val,
-			gpi_val;
-    int			slot, irq_mode,
-			irq_pin, smi_lock,
-			smi_active;
+			gpen, gpscien,
+			gpsmien, pscntrl,
+			gpo_val, gpi_val,
+			gpscists;
+    int			smi_lock, smi_active;
     uint32_t		pcntrl, glbsts,
 			devsts, glben,
 			glbctl, devctl,
@@ -72,7 +74,10 @@ typedef struct
 {
     acpi_regs_t		regs;
     uint8_t		gporeg_default[4];
-    int			vendor;
+    uint16_t		io_base, aux_io_base;
+    int			vendor,
+			slot, irq_mode,
+			irq_pin, irq_line;
     pc_timer_t		timer;
     nvr_t		*nvr;
     apm_t		*apm;
@@ -81,16 +86,19 @@ typedef struct
 
 /* Global variables. */
 extern const device_t	acpi_intel_device;
+extern const device_t	acpi_smc_device;
 extern const device_t	acpi_via_device;
 
 
 /* Functions. */
 extern void		acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en);
+extern void		acpi_update_aux_io_mapping(acpi_t *dev, uint32_t base, int chipset_en);
 extern void		acpi_init_gporeg(acpi_t *dev, uint8_t val0, uint8_t val1, uint8_t val2, uint8_t val3);
 extern void		acpi_set_timer32(acpi_t *dev, uint8_t timer32);
 extern void		acpi_set_slot(acpi_t *dev, int slot);
 extern void		acpi_set_irq_mode(acpi_t *dev, int irq_mode);
 extern void		acpi_set_irq_pin(acpi_t *dev, int irq_pin);
+extern void		acpi_set_irq_line(acpi_t *dev, int irq_line);
 extern void		acpi_set_nvr(acpi_t *dev, nvr_t *nvr);
 
 #ifdef __cplusplus
