@@ -99,7 +99,7 @@ acpi_raise_smi(void *priv)
 
 
 static uint32_t
-acpi_reg_read_intel(int size, uint16_t addr, void *p)
+acpi_reg_read_common_regs(int size, uint16_t addr, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
     uint32_t ret = 0x00000000;
@@ -130,6 +130,25 @@ acpi_reg_read_intel(int size, uint16_t addr, void *p)
 			update_tsc();
 #endif
 		break;
+    }
+
+    acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
+    return ret;
+}
+
+
+static uint32_t
+acpi_reg_read_intel(int size, uint16_t addr, void *p)
+{
+    acpi_t *dev = (acpi_t *) p;
+    uint32_t ret = 0x00000000;
+    int shift16, shift32;
+
+    addr &= 0x3f;
+    shift16 = (addr & 1) << 3;
+    shift32 = (addr & 3) << 3;
+
+    switch (addr) {
 	case 0x0c: case 0x0d:
 		/* GPSTS - General Purpose Status Register (IO) */
 		ret = (dev->regs.gpsts >> shift16) & 0xff;
@@ -181,6 +200,9 @@ acpi_reg_read_intel(int size, uint16_t addr, void *p)
 		if (size == 1)
 			ret = dev->regs.gporeg[addr & 3];
 		break;
+	default:
+		ret = acpi_reg_read_common_regs(size, addr, p);
+		break;
     }
 
     acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
@@ -200,26 +222,6 @@ acpi_reg_read_via(int size, uint16_t addr, void *p)
     shift32 = (addr & 3) << 3;
 
     switch (addr) {
-	case 0x00: case 0x01:
-		/* PMSTS - Power Management Status Register (IO) */
-		ret = (dev->regs.pmsts >> shift16) & 0xff;
-		break;
-	case 0x02: case 0x03:
-		/* PMEN - Power Management Resume Enable Register (IO) */
-		ret = (dev->regs.pmen >> shift16) & 0xff;
-		break;
-	case 0x04: case 0x05:
-		/* PMCNTRL - Power Management Control Register (IO) */
-		ret = (dev->regs.pmcntrl >> shift16) & 0xff;
-		break;
-	case 0x08: case 0x09: case 0x0a: case 0x0b:
-		/* PMTMR - Power Management Timer Register (IO) */
-		ret = (dev->regs.timer_val >> shift32) & 0xff;
-#ifdef USE_DYNAREC
-		if (cpu_use_dynarec)
-			update_tsc();
-#endif
-		break;
 	case 0x10: case 0x11: case 0x12: case 0x13:
 		/* PCNTRL - Processor Control Register (IO) */
 		ret = (dev->regs.pcntrl >> shift32) & 0xff;
@@ -295,6 +297,9 @@ acpi_reg_read_via(int size, uint16_t addr, void *p)
 		/* GPO Port Input Value */
 		ret = (dev->regs.gpi_val >> shift16) & 0xff;
 		break;
+	default:
+		ret = acpi_reg_read_common_regs(size, addr, p);
+		break;
     }
 
     acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
@@ -303,7 +308,7 @@ acpi_reg_read_via(int size, uint16_t addr, void *p)
 
 
 static void
-acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *p)
+acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
     int shift16, shift32;
@@ -363,6 +368,23 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *p)
 			}
 		}
 		break;
+    }
+}
+
+
+static void
+acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *p)
+{
+    acpi_t *dev = (acpi_t *) p;
+    int shift16, shift32;
+    int sus_typ;
+
+    addr &= 0x3f;
+    acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
+    shift16 = (addr & 1) << 3;
+    shift32 = (addr & 3) << 3;
+
+    switch (addr) {
 	case 0x0c: case 0x0d:
 		/* GPSTS - General Purpose Status Register (IO) */
 		dev->regs.gpsts &= ~((val << shift16) & 0x0f81);
@@ -406,6 +428,15 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *p)
 		if (size == 1)
 			dev->regs.gporeg[addr & 3] = val;
 		break;
+	default:
+		acpi_reg_write_common_regs(size, addr, val, p);
+		/* Setting GBL_RLS also sets BIOS_STS and generates SMI. */
+		if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
+			dev->regs.glbsts |= 0x01;
+			if (dev->regs.glben & 0x02)
+				acpi_raise_smi(dev);
+		}
+		break;
     }
 }
 
@@ -423,56 +454,6 @@ acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *p)
     shift32 = (addr & 3) << 3;
 
     switch (addr) {
-	case 0x00: case 0x01:
-		/* PMSTS - Power Management Status Register (IO) */
-		dev->regs.pmsts &= ~((val << shift16) & 0x8d31);
-		acpi_update_irq(dev);
-		if ((addr == 0x00) && !(dev->regs.pmsts & 0x20))
-			dev->regs.glbctl &= ~0x0002;
-		break;
-	case 0x02: case 0x03:
-		/* PMEN - Power Management Resume Enable Register (IO) */
-		dev->regs.pmen = ((dev->regs.pmen & ~(0xff << shift16)) | (val << shift16)) & 0x0521;
-		acpi_update_irq(dev);
-		break;
-	case 0x04: case 0x05:
-		/* PMCNTRL - Power Management Control Register (IO) */
-		dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c07;
-		/* Setting GBL_RLS also sets BIOS_STS and generates SMI. */
-		if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
-			dev->regs.glbsts |= 0x20;
-			if (dev->regs.glben & 0x20)
-				acpi_raise_smi(dev);
-		}
-		if (dev->regs.pmcntrl & 0x2000) {
-			sus_typ = (dev->regs.pmcntrl >> 10) & 7;
-			switch (sus_typ) {
-				case 0:
-					/* Soft power off. */
-					exit(-1);
-					break;
-				case 1:
-					/* Suspend to RAM. */
-					nvr_reg_write(0x000f, 0xff, dev->nvr);
-
-					/* Do a hard reset. */
-					device_reset_all_pci();
-
-					cpu_alt_reset = 0;
-
-					pci_reset();
-					keyboard_at_reset();
-
-					mem_a20_alt = 0;
-					mem_a20_recalc();
-
-					flushmmucache();
-
-					resetx86();
-					break;
-			}
-		}
-		break;
 	case 0x10: case 0x11: case 0x12: case 0x13:
 		/* PCNTRL - Processor Control Register (IO) */
 		dev->regs.pcntrl = ((dev->regs.pcntrl & ~(0xff << shift32)) | (val << shift32)) & 0x0000001e;
@@ -552,6 +533,17 @@ acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *p)
 	case 0x46: case 0x47:
 		/* GPO Port Output Value */
 		dev->regs.gpo_val = ((dev->regs.gpo_val & ~(0xff << shift16)) | (val << shift16)) & 0xffff;
+		break;
+	default:
+		acpi_reg_write_common_regs(size, addr, val, p);
+		/* Setting GBL_RLS also sets BIOS_STS and generates SMI. */
+		if ((addr == 0x00) && !(dev->regs.pmsts & 0x20))
+			dev->regs.glbctl &= ~0x0002;
+		else if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
+			dev->regs.glbsts |= 0x20;
+			if (dev->regs.glben & 0x20)
+				acpi_raise_smi(dev);
+		}
 		break;
     }
 }
