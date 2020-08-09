@@ -84,6 +84,7 @@ mem_set_mem_state_both(base, 0x8000, disabled_shadow);
 
 }
 
+flushmmucache();
 }
 
 static void
