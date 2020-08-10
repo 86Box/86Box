@@ -1,3 +1,4 @@
+/* SPDX-License-Identifier: BSD-3-Clause */
 /*
  * Copyright (c) 1982, 1986, 1988, 1993
  *	The Regents of the University of California.  All rights reserved.
@@ -33,334 +34,459 @@
 #include "slirp.h"
 #include "ip_icmp.h"
 
-struct icmpstat icmpstat;
+#ifndef WITH_ICMP_ERROR_MSG
+#define WITH_ICMP_ERROR_MSG 0
+#endif
 
 /* The message sent when emulating PING */
-/* Be nice and tell them it's just a psuedo-ping packet */
-char icmp_ping_msg[] = "This is a psuedo-PING packet used by Slirp to emulate ICMP ECHO-REQUEST packets.\n";
+/* Be nice and tell them it's just a pseudo-ping packet */
+static const char icmp_ping_msg[] =
+    "This is a pseudo-PING packet used by Slirp to emulate ICMP ECHO-REQUEST "
+    "packets.\n";
 
-/* list of actions for icmp_error() on RX of an icmp message */
-static int icmp_flush[19] = {
-/*  ECHO REPLY (0)  */   0,
-		         1,
-		         1,
-/* DEST UNREACH (3) */   1,
-/* SOURCE QUENCH (4)*/   1,
-/* REDIRECT (5) */       1,
-		         1,
-		         1,
-/* ECHO (8) */           0,
-/* ROUTERADVERT (9) */   1,
-/* ROUTERSOLICIT (10) */ 1,
-/* TIME EXCEEDED (11) */ 1,
-/* PARAMETER PROBLEM (12) */ 1,
-/* TIMESTAMP (13) */     0,
-/* TIMESTAMP REPLY (14) */ 0,
-/* INFO (15) */          0,
-/* INFO REPLY (16) */    0,
-/* ADDR MASK (17) */     0,
-/* ADDR MASK REPLY (18) */ 0 
+/* list of actions for icmp_send_error() on RX of an icmp message */
+static const int icmp_flush[19] = {
+    /*  ECHO REPLY (0)  */ 0,
+    1,
+    1,
+    /* DEST UNREACH (3) */ 1,
+    /* SOURCE QUENCH (4)*/ 1,
+    /* REDIRECT (5) */ 1,
+    1,
+    1,
+    /* ECHO (8) */ 0,
+    /* ROUTERADVERT (9) */ 1,
+    /* ROUTERSOLICIT (10) */ 1,
+    /* TIME EXCEEDED (11) */ 1,
+    /* PARAMETER PROBLEM (12) */ 1,
+    /* TIMESTAMP (13) */ 0,
+    /* TIMESTAMP REPLY (14) */ 0,
+    /* INFO (15) */ 0,
+    /* INFO REPLY (16) */ 0,
+    /* ADDR MASK (17) */ 0,
+    /* ADDR MASK REPLY (18) */ 0
 };
+
+void icmp_init(Slirp *slirp)
+{
+    slirp->icmp.so_next = slirp->icmp.so_prev = &slirp->icmp;
+    slirp->icmp_last_so = &slirp->icmp;
+}
+
+void icmp_cleanup(Slirp *slirp)
+{
+    struct socket *so, *so_next;
+
+    for (so = slirp->icmp.so_next; so != &slirp->icmp; so = so_next) {
+        so_next = so->so_next;
+        icmp_detach(so);
+    }
+}
+
+static int icmp_send(struct socket *so, struct mbuf *m, int hlen)
+{
+    struct ip *ip = mtod(m, struct ip *);
+    struct sockaddr_in addr;
+
+    so->s = slirp_socket(AF_INET, SOCK_DGRAM, IPPROTO_ICMP);
+    if (so->s == -1) {
+        return -1;
+    }
+
+    if (slirp_bind_outbound(so, AF_INET) != 0) {
+        // bind failed - close socket
+        closesocket(so->s);
+        so->s = -1;
+        return -1;
+    }
+
+    so->so_m = m;
+    so->so_faddr = ip->ip_dst;
+    so->so_laddr = ip->ip_src;
+    so->so_iptos = ip->ip_tos;
+    so->so_type = IPPROTO_ICMP;
+    so->so_state = SS_ISFCONNECTED;
+    so->so_expire = curtime + SO_EXPIRE;
+
+    addr.sin_family = AF_INET;
+    addr.sin_addr = so->so_faddr;
+
+    insque(so, &so->slirp->icmp);
+
+    if (sendto(so->s, m->m_data + hlen, m->m_len - hlen, 0,
+               (struct sockaddr *)&addr, sizeof(addr)) == -1) {
+        DEBUG_MISC("icmp_input icmp sendto tx errno = %d-%s", errno,
+                   strerror(errno));
+        icmp_send_error(m, ICMP_UNREACH, ICMP_UNREACH_NET, 0, strerror(errno));
+        icmp_detach(so);
+    }
+
+    return 0;
+}
+
+void icmp_detach(struct socket *so)
+{
+    so->slirp->cb->unregister_poll_fd(so->s, so->slirp->opaque);
+    closesocket(so->s);
+    sofree(so);
+}
 
 /*
  * Process a received ICMP message.
  */
-void
-icmp_input(m, hlen)
-     struct SLIRPmbuf *m;
-     int hlen;
+void icmp_input(struct mbuf *m, int hlen)
 {
-  register struct icmp *icp;
-  register struct ip *ip=mtod(m, struct ip *);
-  int icmplen=ip->ip_len;
-  /* int code; */
-	
-  DEBUG_CALL("icmp_input");
-  DEBUG_ARG("m = %lx", (long )m);
-  DEBUG_ARG("m_len = %d", m->m_len);
+    register struct icmp *icp;
+    register struct ip *ip = mtod(m, struct ip *);
+    int icmplen = ip->ip_len;
+    Slirp *slirp = m->slirp;
 
-  icmpstat.icps_received++;
-	
-  /*
-   * Locate icmp structure in SLIRPmbuf, and check
-   * that its not corrupted and of at least minimum length.
-   */
-  if (icmplen < ICMP_MINLEN) {          /* min 8 bytes payload */
-    icmpstat.icps_tooshort++;
-  freeit:
-    m_freem(m);
-    goto end_error;
-  }
+    DEBUG_CALL("icmp_input");
+    DEBUG_ARG("m = %p", m);
+    DEBUG_ARG("m_len = %d", m->m_len);
 
-  m->m_len -= hlen;
-  m->m_data += hlen;
-  icp = mtod(m, struct icmp *);
-  if (cksum(m, icmplen)) {
-    icmpstat.icps_checksum++;
-    goto freeit;
-  }
-  m->m_len += hlen;
-  m->m_data -= hlen;
-  
-  /*	icmpstat.icps_inhist[icp->icmp_type]++; */
-  /* code = icp->icmp_code; */
+    /*
+     * Locate icmp structure in mbuf, and check
+     * that its not corrupted and of at least minimum length.
+     */
+    if (icmplen < ICMP_MINLEN) { /* min 8 bytes payload */
+    freeit:
+        m_free(m);
+        goto end_error;
+    }
 
-  DEBUG_ARG("icmp_type = %d", icp->icmp_type);
-  switch (icp->icmp_type) {
-  case ICMP_ECHO:
-    icp->icmp_type = ICMP_ECHOREPLY;
-    ip->ip_len += hlen;	             /* since ip_input subtracts this */
-    if (ip->ip_dst.s_addr == alias_addr.s_addr) {
-      icmp_reflect(m);
-    } else {
-      struct SLIRPsocket *so;
-      struct sockaddr_in addr;
-      if ((so = socreate()) == NULL) goto freeit;
-      if(udp_attach(so) == -1) {
-	DEBUG_MISC((dfd,"icmp_input udp_attach errno = %d-%s\n", 
-		    errno,strerror(errno)));
-	sofree(so);
-	m_free(m);
-	goto end_error;
-      }
-      so->so_m = m;
-      so->so_faddr = ip->ip_dst;
-      so->so_fport = htons(7);
-      so->so_laddr = ip->ip_src;
-      so->so_lport = htons(9);
-      so->so_iptos = ip->ip_tos;
-      so->so_type = IPPROTO_ICMP;
-      so->so_state = SS_ISFCONNECTED;
-      
-      /* Send the packet */
-      addr.sin_family = AF_INET;
-      if ((so->so_faddr.s_addr & htonl(0xffffff00)) == special_addr.s_addr) {
-	/* It's an alias */
-	switch(ntohl(so->so_faddr.s_addr) & 0xff) {
-	case CTL_DNS:
-	  addr.sin_addr = dns_addr;
-	  break;
-	case CTL_ALIAS:
-	default:
-	  addr.sin_addr = loopback_addr;
-	  break;
-	}
-      } else {
-	addr.sin_addr = so->so_faddr;
-      }
-      addr.sin_port = so->so_fport;
-      if(sendto(so->s, icmp_ping_msg, strlen(icmp_ping_msg), 0,
-		(struct sockaddr *)&addr, sizeof(addr)) == -1) {
-	DEBUG_MISC((dfd,"icmp_input udp sendto tx errno = %d-%s\n",
-		    errno,strerror(errno)));
-	icmp_error(m, ICMP_UNREACH,ICMP_UNREACH_NET, 0,strerror(errno)); 
-	udp_detach(so);
-      }
-    } /* if ip->ip_dst.s_addr == alias_addr.s_addr */
-    break;
-  case ICMP_UNREACH:
-    /* XXX? report error? close socket? */
-  case ICMP_TIMXCEED:
-  case ICMP_PARAMPROB:
-  case ICMP_SOURCEQUENCH:
-  case ICMP_TSTAMP:
-  case ICMP_MASKREQ:
-  case ICMP_REDIRECT:
-    icmpstat.icps_notsupp++;
-    m_freem(m);
-    break;
-    
-  default:
-    icmpstat.icps_badtype++;
-    m_freem(m);
-  } /* swith */
+    m->m_len -= hlen;
+    m->m_data += hlen;
+    icp = mtod(m, struct icmp *);
+    if (cksum(m, icmplen)) {
+        goto freeit;
+    }
+    m->m_len += hlen;
+    m->m_data -= hlen;
+
+    DEBUG_ARG("icmp_type = %d", icp->icmp_type);
+    switch (icp->icmp_type) {
+    case ICMP_ECHO:
+        ip->ip_len += hlen; /* since ip_input subtracts this */
+        if (ip->ip_dst.s_addr == slirp->vhost_addr.s_addr ||
+            ip->ip_dst.s_addr == slirp->vnameserver_addr.s_addr) {
+            icmp_reflect(m);
+        } else if (slirp->restricted) {
+            goto freeit;
+        } else {
+            struct socket *so;
+            struct sockaddr_storage addr;
+            so = socreate(slirp);
+            if (icmp_send(so, m, hlen) == 0) {
+                return;
+            }
+            if (udp_attach(so, AF_INET) == -1) {
+                DEBUG_MISC("icmp_input udp_attach errno = %d-%s", errno,
+                           strerror(errno));
+                sofree(so);
+                m_free(m);
+                goto end_error;
+            }
+            so->so_m = m;
+            so->so_ffamily = AF_INET;
+            so->so_faddr = ip->ip_dst;
+            so->so_fport = htons(7);
+            so->so_lfamily = AF_INET;
+            so->so_laddr = ip->ip_src;
+            so->so_lport = htons(9);
+            so->so_iptos = ip->ip_tos;
+            so->so_type = IPPROTO_ICMP;
+            so->so_state = SS_ISFCONNECTED;
+
+            /* Send the packet */
+            addr = so->fhost.ss;
+            if (sotranslate_out(so, &addr) < 0) {
+                icmp_send_error(m, ICMP_UNREACH, ICMP_UNREACH_NET, 0,
+                                strerror(errno));
+                udp_detach(so);
+                return;
+            }
+
+            if (sendto(so->s, icmp_ping_msg, strlen(icmp_ping_msg), 0,
+                       (struct sockaddr *)&addr, sockaddr_size(&addr)) == -1) {
+                DEBUG_MISC("icmp_input udp sendto tx errno = %d-%s", errno,
+                           strerror(errno));
+                icmp_send_error(m, ICMP_UNREACH, ICMP_UNREACH_NET, 0,
+                                strerror(errno));
+                udp_detach(so);
+            }
+        } /* if ip->ip_dst.s_addr == alias_addr.s_addr */
+        break;
+    case ICMP_UNREACH:
+        /* XXX? report error? close socket? */
+    case ICMP_TIMXCEED:
+    case ICMP_PARAMPROB:
+    case ICMP_SOURCEQUENCH:
+    case ICMP_TSTAMP:
+    case ICMP_MASKREQ:
+    case ICMP_REDIRECT:
+        m_free(m);
+        break;
+
+    default:
+        m_free(m);
+    } /* swith */
 
 end_error:
-  /* m is m_free()'d xor put in a socket xor or given to ip_send */
-  return;
+    /* m is m_free()'d xor put in a socket xor or given to ip_send */
+    return;
 }
 
 
 /*
  *	Send an ICMP message in response to a situation
  *
- *	RFC 1122: 3.2.2	MUST send at least the IP header and 8 bytes of header. MAY send more (we do).
- *			MUST NOT change this header information.
- *			MUST NOT reply to a multicast/broadcast IP address.
- *			MUST NOT reply to a multicast/broadcast MAC address.
- *			MUST reply to only the first fragment.
+ *	RFC 1122: 3.2.2	MUST send at least the IP header and 8 bytes of header.
+ *MAY send more (we do). MUST NOT change this header information. MUST NOT reply
+ *to a multicast/broadcast IP address. MUST NOT reply to a multicast/broadcast
+ *MAC address. MUST reply to only the first fragment.
  */
 /*
  * Send ICMP_UNREACH back to the source regarding msrc.
- * SLIRPmbuf *msrc is used as a template, but is NOT m_free()'d.
+ * mbuf *msrc is used as a template, but is NOT m_free()'d.
  * It is reported as the bad ip packet.  The header should
  * be fully correct and in host byte order.
- * ICMP fragmentation is illegal.  All machines must accept 576 bytes in one 
+ * ICMP fragmentation is illegal.  All machines must accept 576 bytes in one
  * packet.  The maximum payload is 576-20(ip hdr)-8(icmp hdr)=548
  */
 
-#define ICMP_MAXDATALEN (IP_MSS-28)
-void
-icmp_error(struct SLIRPmbuf *msrc, u_char type, u_char code, int minsize, char *message)
+#define ICMP_MAXDATALEN (IP_MSS - 28)
+void icmp_send_error(struct mbuf *msrc, uint8_t type, uint8_t code, int minsize,
+                     const char *message)
 {
-  unsigned hlen, shlen, s_ip_len;
-  register struct ip *ip;
-  register struct icmp *icp;
-  register struct SLIRPmbuf *m;
+    unsigned hlen, shlen, s_ip_len;
+    register struct ip *ip;
+    register struct icmp *icp;
+    register struct mbuf *m;
 
-  DEBUG_CALL("icmp_error");
-  DEBUG_ARG("msrc = %lx", (long )msrc);
-  DEBUG_ARG("msrc_len = %d", msrc->m_len);
+    DEBUG_CALL("icmp_send_error");
+    DEBUG_ARG("msrc = %p", msrc);
+    DEBUG_ARG("msrc_len = %d", msrc->m_len);
 
-  if(type!=ICMP_UNREACH && type!=ICMP_TIMXCEED) goto end_error;
+    if (type != ICMP_UNREACH && type != ICMP_TIMXCEED)
+        goto end_error;
 
-  /* check msrc */
-  if(!msrc) goto end_error;
-  ip = mtod(msrc, struct ip *);
-#if SLIRP_DEBUG
-  { char bufa[20], bufb[20];
-    strcpy(bufa, inet_ntoa(ip->ip_src));
-    strcpy(bufb, inet_ntoa(ip->ip_dst));
-    DEBUG_MISC((dfd, " %.16s to %.16s\n", bufa, bufb));
-  }
-#endif
-  if(ip->ip_off & IP_OFFMASK) goto end_error;    /* Only reply to fragment 0 */
+    /* check msrc */
+    if (!msrc)
+        goto end_error;
+    ip = mtod(msrc, struct ip *);
+    if (slirp_debug & DBG_MISC) {
+        char bufa[20], bufb[20];
+        slirp_pstrcpy(bufa, sizeof(bufa), inet_ntoa(ip->ip_src));
+        slirp_pstrcpy(bufb, sizeof(bufb), inet_ntoa(ip->ip_dst));
+        DEBUG_MISC(" %.16s to %.16s", bufa, bufb);
+    }
+    if (ip->ip_off & IP_OFFMASK)
+        goto end_error; /* Only reply to fragment 0 */
 
-  shlen=ip->ip_hl << 2;
-  s_ip_len=ip->ip_len;
-  if(ip->ip_p == IPPROTO_ICMP) {
-    icp = (struct icmp *)((char *)ip + shlen);
-    /*
-     *	Assume any unknown ICMP type is an error. This isn't
-     *	specified by the RFC, but think about it..
-     */
-    if(icp->icmp_type>18 || icmp_flush[icp->icmp_type]) goto end_error;
-  }
+    /* Do not reply to source-only IPs */
+    if ((ip->ip_src.s_addr & htonl(~(0xf << 28))) == 0) {
+        goto end_error;
+    }
 
-  /* make a copy */
-  if(!(m=m_get())) goto end_error;               /* get SLIRPmbuf */
-  { u_int new_m_size;
-    new_m_size=sizeof(struct ip )+ICMP_MINLEN+msrc->m_len+ICMP_MAXDATALEN;
-    if(new_m_size>m->m_size) m_inc(m, new_m_size);
-  }
-  memcpy(m->m_data, msrc->m_data, msrc->m_len);
-  m->m_len = msrc->m_len;                        /* copy msrc to m */
+    shlen = ip->ip_hl << 2;
+    s_ip_len = ip->ip_len;
+    if (ip->ip_p == IPPROTO_ICMP) {
+        icp = (struct icmp *)((char *)ip + shlen);
+        /*
+         *	Assume any unknown ICMP type is an error. This isn't
+         *	specified by the RFC, but think about it..
+         */
+        if (icp->icmp_type > 18 || icmp_flush[icp->icmp_type])
+            goto end_error;
+    }
 
-  /* make the header of the reply packet */
-  ip  = mtod(m, struct ip *);
-  hlen= sizeof(struct ip );     /* no options in reply */
-  
-  /* fill in icmp */
-  m->m_data += hlen;                  
-  m->m_len -= hlen;
+    /* make a copy */
+    m = m_get(msrc->slirp);
+    if (!m) {
+        goto end_error;
+    }
 
-  icp = mtod(m, struct icmp *);
+    {
+        int new_m_size;
+        new_m_size =
+            sizeof(struct ip) + ICMP_MINLEN + msrc->m_len + ICMP_MAXDATALEN;
+        if (new_m_size > m->m_size)
+            m_inc(m, new_m_size);
+    }
+    memcpy(m->m_data, msrc->m_data, msrc->m_len);
+    m->m_len = msrc->m_len; /* copy msrc to m */
 
-  if(minsize) s_ip_len=shlen+ICMP_MINLEN;   /* return header+8b only */
-  else if(s_ip_len>ICMP_MAXDATALEN)         /* maximum size */
-    s_ip_len=ICMP_MAXDATALEN;
+    /* make the header of the reply packet */
+    ip = mtod(m, struct ip *);
+    hlen = sizeof(struct ip); /* no options in reply */
 
-  m->m_len=ICMP_MINLEN+s_ip_len;        /* 8 bytes ICMP header */  
+    /* fill in icmp */
+    m->m_data += hlen;
+    m->m_len -= hlen;
 
-  /* min. size = 8+sizeof(struct ip)+8 */
+    icp = mtod(m, struct icmp *);
 
-  icp->icmp_type = type;
-  icp->icmp_code = code;
-  icp->icmp_id = 0;
-  icp->icmp_seq = 0;
+    if (minsize)
+        s_ip_len = shlen + ICMP_MINLEN; /* return header+8b only */
+    else if (s_ip_len > ICMP_MAXDATALEN) /* maximum size */
+        s_ip_len = ICMP_MAXDATALEN;
 
-  memcpy(&icp->icmp_ip, msrc->m_data, s_ip_len);   /* report the ip packet */
-  HTONS(icp->icmp_ip.ip_len);
-  HTONS(icp->icmp_ip.ip_id);
-  HTONS(icp->icmp_ip.ip_off);
+    m->m_len = ICMP_MINLEN + s_ip_len; /* 8 bytes ICMP header */
 
-#if SLIRP_DEBUG
-  if(message) {           /* DEBUG : append message to ICMP packet */
-    int message_len;
-    char *cpnt;
-    message_len=strlen(message);
-    if(message_len>ICMP_MAXDATALEN) message_len=ICMP_MAXDATALEN;
-    cpnt=(char *)m->m_data+m->m_len;
-    memcpy(cpnt, message, message_len);
-    m->m_len+=message_len;
-  }
-#endif
+    /* min. size = 8+sizeof(struct ip)+8 */
 
-  icp->icmp_cksum = 0;
-  icp->icmp_cksum = cksum(m, m->m_len);
+    icp->icmp_type = type;
+    icp->icmp_code = code;
+    icp->icmp_id = 0;
+    icp->icmp_seq = 0;
 
-  m->m_data -= hlen;
-  m->m_len += hlen;
+    memcpy(&icp->icmp_ip, msrc->m_data, s_ip_len); /* report the ip packet */
+    HTONS(icp->icmp_ip.ip_len);
+    HTONS(icp->icmp_ip.ip_id);
+    HTONS(icp->icmp_ip.ip_off);
 
-  /* fill in ip */
-  ip->ip_hl = hlen >> 2;
-  ip->ip_len = (u_int16_t)m->m_len;
-  
-  ip->ip_tos=((ip->ip_tos & 0x1E) | 0xC0);  /* high priority for errors */
+    if (message && WITH_ICMP_ERROR_MSG) { /* append message to ICMP packet */
+        int message_len;
+        char *cpnt;
+        message_len = strlen(message);
+        if (message_len > ICMP_MAXDATALEN)
+            message_len = ICMP_MAXDATALEN;
+        cpnt = (char *)m->m_data + m->m_len;
+        memcpy(cpnt, message, message_len);
+        m->m_len += message_len;
+    }
 
-  ip->ip_ttl = MAXTTL;
-  ip->ip_p = IPPROTO_ICMP;
-  ip->ip_dst = ip->ip_src;    /* ip adresses */
-  ip->ip_src = alias_addr;
+    icp->icmp_cksum = 0;
+    icp->icmp_cksum = cksum(m, m->m_len);
 
-  (void ) ip_output((struct SLIRPsocket *)NULL, m);
-  
-  icmpstat.icps_reflect++;
+    m->m_data -= hlen;
+    m->m_len += hlen;
+
+    /* fill in ip */
+    ip->ip_hl = hlen >> 2;
+    ip->ip_len = m->m_len;
+
+    ip->ip_tos = ((ip->ip_tos & 0x1E) | 0xC0); /* high priority for errors */
+
+    ip->ip_ttl = MAXTTL;
+    ip->ip_p = IPPROTO_ICMP;
+    ip->ip_dst = ip->ip_src; /* ip addresses */
+    ip->ip_src = m->slirp->vhost_addr;
+
+    (void)ip_output((struct socket *)NULL, m);
 
 end_error:
-  return;
+    return;
 }
 #undef ICMP_MAXDATALEN
 
 /*
  * Reflect the ip packet back to the source
  */
-void
-icmp_reflect(m)
-     struct SLIRPmbuf *m;
+void icmp_reflect(struct mbuf *m)
 {
-  register struct ip *ip = mtod(m, struct ip *);
-  int hlen = ip->ip_hl << 2;
-  int optlen = hlen - sizeof(struct ip );
-  register struct icmp *icp;
+    register struct ip *ip = mtod(m, struct ip *);
+    int hlen = ip->ip_hl << 2;
+    int optlen = hlen - sizeof(struct ip);
+    register struct icmp *icp;
 
-  /*
-   * Send an icmp packet back to the ip level,
-   * after supplying a checksum.
-   */
-  m->m_data += hlen;
-  m->m_len -= hlen;
-  icp = mtod(m, struct icmp *);
-
-  icp->icmp_cksum = 0;
-  icp->icmp_cksum = cksum(m, ip->ip_len - hlen);
-
-  m->m_data -= hlen;
-  m->m_len += hlen;
-
-  /* fill in ip */
-  if (optlen > 0) {
     /*
-     * Strip out original options by copying rest of first
-     * SLIRPmbuf's data back, and adjust the IP length.
+     * Send an icmp packet back to the ip level,
+     * after supplying a checksum.
      */
-    memmove((SLIRPcaddr_t)(ip + 1), (SLIRPcaddr_t)ip + hlen,
-	    (unsigned )(m->m_len - hlen));
-    hlen -= optlen;
-    ip->ip_hl = hlen >> 2;
-    ip->ip_len -= optlen;
-    m->m_len -= optlen;
-  }
+    m->m_data += hlen;
+    m->m_len -= hlen;
+    icp = mtod(m, struct icmp *);
 
-  ip->ip_ttl = MAXTTL;
-  { /* swap */
-    struct in_addr icmp_dst;
-    icmp_dst = ip->ip_dst;
-    ip->ip_dst = ip->ip_src;
-    ip->ip_src = icmp_dst;
-  }
+    icp->icmp_type = ICMP_ECHOREPLY;
+    icp->icmp_cksum = 0;
+    icp->icmp_cksum = cksum(m, ip->ip_len - hlen);
 
-  (void ) ip_output((struct SLIRPsocket *)NULL, m);
+    m->m_data -= hlen;
+    m->m_len += hlen;
 
-  icmpstat.icps_reflect++;
+    /* fill in ip */
+    if (optlen > 0) {
+        /*
+         * Strip out original options by copying rest of first
+         * mbuf's data back, and adjust the IP length.
+         */
+        memmove((char *)(ip + 1), (char *)ip + hlen,
+                (unsigned)(m->m_len - hlen));
+        hlen -= optlen;
+        ip->ip_hl = hlen >> 2;
+        ip->ip_len -= optlen;
+        m->m_len -= optlen;
+    }
+
+    ip->ip_ttl = MAXTTL;
+    { /* swap */
+        struct in_addr icmp_dst;
+        icmp_dst = ip->ip_dst;
+        ip->ip_dst = ip->ip_src;
+        ip->ip_src = icmp_dst;
+    }
+
+    (void)ip_output((struct socket *)NULL, m);
+}
+
+void icmp_receive(struct socket *so)
+{
+    struct mbuf *m = so->so_m;
+    struct ip *ip = mtod(m, struct ip *);
+    int hlen = ip->ip_hl << 2;
+    uint8_t error_code;
+    struct icmp *icp;
+    int id, len;
+
+    m->m_data += hlen;
+    m->m_len -= hlen;
+    icp = mtod(m, struct icmp *);
+
+    id = icp->icmp_id;
+    len = recv(so->s, icp, M_ROOM(m), 0);
+    /*
+     * The behavior of reading SOCK_DGRAM+IPPROTO_ICMP sockets is inconsistent
+     * between host OSes.  On Linux, only the ICMP header and payload is
+     * included.  On macOS/Darwin, the socket acts like a raw socket and
+     * includes the IP header as well.  On other BSDs, SOCK_DGRAM+IPPROTO_ICMP
+     * sockets aren't supported at all, so we treat them like raw sockets.  It
+     * isn't possible to detect this difference at runtime, so we must use an
+     * #ifdef to determine if we need to remove the IP header.
+     */
+#ifdef CONFIG_BSD
+    if (len >= sizeof(struct ip)) {
+        struct ip *inner_ip = mtod(m, struct ip *);
+        int inner_hlen = inner_ip->ip_hl << 2;
+        if (inner_hlen > len) {
+            len = -1;
+            errno = -EINVAL;
+        } else {
+            len -= inner_hlen;
+            memmove(icp, (unsigned char *)icp + inner_hlen, len);
+        }
+    } else {
+        len = -1;
+        errno = -EINVAL;
+    }
+#endif
+    icp->icmp_id = id;
+
+    m->m_data -= hlen;
+    m->m_len += hlen;
+
+    if (len == -1 || len == 0) {
+        if (errno == ENETUNREACH) {
+            error_code = ICMP_UNREACH_NET;
+        } else {
+            error_code = ICMP_UNREACH_HOST;
+        }
+        DEBUG_MISC(" udp icmp rx errno = %d-%s", errno, strerror(errno));
+        icmp_send_error(so->so_m, ICMP_UNREACH, error_code, 0, strerror(errno));
+    } else {
+        icmp_reflect(so->so_m);
+        so->so_m = NULL; /* Don't m_free() it again! */
+    }
+    icmp_detach(so);
 }
