@@ -811,8 +811,8 @@ acpi_reg_writel(uint16_t addr, uint32_t val, void *p)
 {
     acpi_reg_write_common(4, addr, val & 0xff, p);
     acpi_reg_write_common(4, addr + 1, (val >> 8) & 0xff, p);
-    acpi_reg_write_common(4, addr + 1, (val >> 16) & 0xff, p);
-    acpi_reg_write_common(4, addr + 1, (val >> 24) & 0xff, p);
+    acpi_reg_write_common(4, addr + 2, (val >> 16) & 0xff, p);
+    acpi_reg_write_common(4, addr + 3, (val >> 24) & 0xff, p);
 }
 
 
@@ -836,8 +836,8 @@ acpi_aux_reg_writel(uint16_t addr, uint32_t val, void *p)
 {
     acpi_aux_reg_write_common(4, addr, val & 0xff, p);
     acpi_aux_reg_write_common(4, addr + 1, (val >> 8) & 0xff, p);
-    acpi_aux_reg_write_common(4, addr + 1, (val >> 16) & 0xff, p);
-    acpi_aux_reg_write_common(4, addr + 1, (val >> 24) & 0xff, p);
+    acpi_aux_reg_write_common(4, addr + 2, (val >> 16) & 0xff, p);
+    acpi_aux_reg_write_common(4, addr + 3, (val >> 24) & 0xff, p);
 }
 
 
