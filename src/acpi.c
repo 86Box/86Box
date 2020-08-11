@@ -388,12 +388,6 @@ acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
 	case 0x04: case 0x05:
 		/* PMCNTRL - Power Management Control Register (IO) */
 		dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c07;
-		/* Setting GBL_RLS also sets BIOS_STS and generates SMI. */
-		if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
-			dev->regs.glbsts |= 0x01;
-			if (dev->regs.glben & 0x02)
-				acpi_raise_smi(dev);
-		}
 		if (dev->regs.pmcntrl & 0x2000) {
 			sus_typ = (dev->regs.pmcntrl >> 10) & 7;
 			switch (sus_typ) {
