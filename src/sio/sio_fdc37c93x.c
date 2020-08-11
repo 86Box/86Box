@@ -31,6 +31,8 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/nvr.h>
+#include <86box/apm.h>
+#include <86box/acpi.h>
 #include <86box/sio.h>
 
 
@@ -47,10 +49,11 @@ typedef struct {
 } access_bus_t;
 
 typedef struct {
-    uint8_t chip_id, tries,
+    uint8_t chip_id, is_apm,
+	    tries,
 	    gpio_regs[2], auxio_reg,
 	    regs[48],
-	    ld_regs[10][256];
+	    ld_regs[11][256];
     uint16_t gpio_base,	/* Set to EA */
 	     auxio_base, nvr_sec_base;
     int locked,
@@ -59,6 +62,7 @@ typedef struct {
     serial_t *uart[2];
     access_bus_t *access_bus;
     nvr_t *nvr;
+    acpi_t *acpi;
 } fdc37c93x_t;
 
 
@@ -223,7 +227,8 @@ fdc37c93x_auxio_handler(fdc37c93x_t *dev)
 }
 
 
-static void fdc37c93x_gpio_handler(fdc37c93x_t *dev)
+static void
+fdc37c93x_gpio_handler(fdc37c93x_t *dev)
 {
     uint16_t ld_port = 0;
     uint8_t local_enable;
@@ -256,7 +261,7 @@ static void fdc37c93x_gpio_handler(fdc37c93x_t *dev)
 
 
 static uint8_t
-fdc37c932fr_access_bus_read(uint16_t port, void *priv)
+fdc37c93x_access_bus_read(uint16_t port, void *priv)
 {
     access_bus_t *dev = (access_bus_t *) priv;
     uint8_t ret = 0xff;
@@ -281,7 +286,7 @@ fdc37c932fr_access_bus_read(uint16_t port, void *priv)
 
 
 static void
-fdc37c932fr_access_bus_write(uint16_t port, uint8_t val, void *priv)
+fdc37c93x_access_bus_write(uint16_t port, uint8_t val, void *priv)
 {
     access_bus_t *dev = (access_bus_t *) priv;
 
@@ -303,20 +308,46 @@ fdc37c932fr_access_bus_write(uint16_t port, uint8_t val, void *priv)
 }
 
 
-static void fdc37c932fr_access_bus_handler(fdc37c93x_t *dev)
+static void
+fdc37c93x_access_bus_handler(fdc37c93x_t *dev)
 {
     uint16_t ld_port = 0;
     uint8_t global_enable = !!(dev->regs[0x22] & (1 << 6));
     uint8_t local_enable = !!dev->ld_regs[9][0x30];
 
     io_removehandler(dev->access_bus->base, 0x0004,
-		     fdc37c932fr_access_bus_read, NULL, NULL, fdc37c932fr_access_bus_write, NULL, NULL, dev->access_bus);
+		     fdc37c93x_access_bus_read, NULL, NULL, fdc37c93x_access_bus_write, NULL, NULL, dev->access_bus);
     if (global_enable && local_enable) {
 	dev->access_bus->base = ld_port = make_port(dev, 9);
 	if ((ld_port >= 0x0100) && (ld_port <= 0x0FFC))
 	        io_sethandler(dev->access_bus->base, 0x0004,
-			      fdc37c932fr_access_bus_read, NULL, NULL, fdc37c932fr_access_bus_write, NULL, NULL, dev->access_bus);
+			      fdc37c93x_access_bus_read, NULL, NULL, fdc37c93x_access_bus_write, NULL, NULL, dev->access_bus);
     }
+}
+
+
+static void
+fdc37c93x_acpi_handler(fdc37c93x_t *dev)
+{
+    uint16_t ld_port = 0;
+    uint8_t local_enable = !!dev->ld_regs[0x0a][0x30];
+    uint8_t sci_irq = dev->ld_regs[0x0a][0x70];
+
+    acpi_update_io_mapping(dev->acpi, 0x0000, local_enable);
+    if (local_enable) {
+	ld_port = make_port(dev, 0x0a);
+	if ((ld_port >= 0x0100) && (ld_port <= 0x0FF0))
+		acpi_update_io_mapping(dev->acpi, ld_port, local_enable);
+    }
+
+    acpi_update_aux_io_mapping(dev->acpi, 0x0000, local_enable);
+    if (local_enable) {
+	ld_port = make_port_sec(dev, 0x0a);
+	if ((ld_port >= 0x0100) && (ld_port <= 0x0FF8))
+		acpi_update_aux_io_mapping(dev->acpi, ld_port, local_enable);
+    }
+
+    acpi_set_irq_line(dev->acpi, sci_irq);
 }
 
 
@@ -361,17 +392,23 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 			if (((dev->cur_reg & 0xF0) == 0x70) && (dev->regs[7] < 4))
 				return;
 			/* Block writes to some logical devices. */
-			if (dev->regs[7] > 9)
+			if (dev->regs[7] > 0x0a)
 				return;
 			else switch (dev->regs[7]) {
-				case 1:
-				case 2:
-				case 7:
+				case 0x01:
+				case 0x02:
+				case 0x07:
 					return;
-				case 9:
+				case 0x09:
 					/* If we're on the FDC37C935, return as this is not a valid
 					   logical device there. */
-					if (dev->chip_id == 0x02)
+					if (!dev->is_apm && (dev->chip_id == 0x02))
+						return;
+					break;
+				case 0x0a:
+					/* If we're not on the FDC37C931APM, return as this is not a
+					   valid logical device there. */
+					if (!dev->is_apm)
 						return;
 					break;
 			}
@@ -398,7 +435,7 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 			if (valxor & 0x20)
 				fdc37c93x_serial_handler(dev, 1);
 			if ((valxor & 0x40) && (dev->chip_id != 0x02))
-				fdc37c932fr_access_bus_handler(dev);
+				fdc37c93x_access_bus_handler(dev);
 			break;
 	}
 
@@ -564,7 +601,7 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 		}
 		break;
 	case 9:
-		/* Access bus (FDC37C932FR only) */
+		/* Access bus (FDC37C932FR and FDC37C931APM only) */
 		switch(dev->cur_reg) {
 			case 0x30:
 			case 0x60:
@@ -573,7 +610,21 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 				if ((dev->cur_reg == 0x30) && (val & 0x01))
 					dev->regs[0x22] |= 0x40;
 				if (valxor)
-					fdc37c932fr_access_bus_handler(dev);
+					fdc37c93x_access_bus_handler(dev);
+				break;
+		}
+		break;
+	case 10:
+		/* Access bus (FDC37C931APM only) */
+		switch(dev->cur_reg) {
+			case 0x30:
+			case 0x60:
+			case 0x61:
+			case 0x62:
+			case 0x63:
+			case 0x70:
+				if (valxor)
+					fdc37c93x_acpi_handler(dev);
 				break;
 		}
 		break;
@@ -694,13 +745,17 @@ fdc37c93x_reset(fdc37c93x_t *dev)
 
     /* Logical device 9: ACCESS.bus */
 
+    /* Logical device A: ACPI */
+
     fdc37c93x_gpio_handler(dev);
     fdc37c93x_lpt_handler(dev);
     fdc37c93x_serial_handler(dev, 0);
     fdc37c93x_serial_handler(dev, 1);
     fdc37c93x_auxio_handler(dev);
-    if (dev->chip_id == 0x03)
-	fdc37c932fr_access_bus_handler(dev);
+    if (dev->is_apm || (dev->chip_id == 0x03))
+	fdc37c93x_access_bus_handler(dev);
+    if (dev->is_apm)
+	fdc37c93x_acpi_handler(dev);
 
     fdc_reset(dev->fdc);
     fdc37c93x_fdc_handler(dev);
@@ -758,7 +813,8 @@ fdc37c93x_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
-    dev->chip_id = info->local;
+    dev->chip_id = info->local & 0xff;
+    dev->is_apm = info->local >> 8;
 
     dev->gpio_regs[0] = 0xff;
     dev->gpio_regs[1] = 0xfd;
@@ -773,6 +829,9 @@ fdc37c93x_init(const device_t *info)
     if (dev->chip_id == 0x03)
 	dev->access_bus = device_add(&access_bus_device);
 
+    if (dev->is_apm)
+	dev->acpi = device_add(&acpi_smc_device);
+
     io_sethandler(0x370, 0x0002,
 		  fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
     io_sethandler(0x3f0, 0x0002,
@@ -783,6 +842,15 @@ fdc37c93x_init(const device_t *info)
     return dev;
 }
 
+
+const device_t fdc37c931apm_device = {
+    "SMC FDC37C932QF Super I/O",
+    0,
+    0x130,	/* Share the same ID with the 932QF. */
+    fdc37c93x_init, fdc37c93x_close, NULL,
+    NULL, NULL, NULL,
+    NULL
+};
 
 const device_t fdc37c932fr_device = {
     "SMC FDC37C932FR Super I/O",
@@ -796,7 +864,7 @@ const device_t fdc37c932fr_device = {
 const device_t fdc37c932qf_device = {
     "SMC FDC37C932QF Super I/O",
     0,
-    0x30,	/* Share the same ID with the 935. */
+    0x30,
     fdc37c93x_init, fdc37c93x_close, NULL,
     NULL, NULL, NULL,
     NULL

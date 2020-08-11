@@ -353,7 +353,7 @@ machine_at_403tg_init(const machine_t *model)
 }
 
 int
-machine_at_pc330_6571_init(const machine_t *model)	// doesn't like every CPU other than the Intel OverDrive, hangs without a PS/2 mouse
+machine_at_pc330_6571_init(const machine_t *model)	// doesn't like every CPU other than the iDX4 and the Intel OverDrive, hangs without a PS/2 mouse
 {
     int ret;
 
@@ -363,11 +363,12 @@ machine_at_pc330_6571_init(const machine_t *model)	// doesn't like every CPU oth
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
 
     device_add(&opti802g_device);
     device_add(&keyboard_ps2_device);
     device_add(&fdc37c665_device);
+    device_add(&ide_opti611_vlb_device);
     device_add(&intel_flash_bxt_device);
 
     return ret;
