@@ -170,44 +170,135 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 	case 0x23:
 
-        if(dev->regs[0x03] != 0x03)
-        {
-        ali1489_log("M1489: dev->regs[%02x] = %02x\n", dev->index, val);
-        }
-
 		dev->regs[dev->index] = val;
 
         if(dev->regs[0x03] == 0xc5) /* Check if the configuration registers are unlocked */
         {
         switch(dev->index){
 
-            /* Shadow RAM*/
-            case 0x13:
-            case 0x14:
+            case 0x10: /* DRAM Configuration Register I */
+            case 0x11: /* DRAM Configuration Register II */
+            case 0x12: /* ROM Function Register */
+            dev->regs[dev->index] = val;
+            break;
+
+            case 0x13: /* Shadow Region Register */
+            case 0x14: /* Shadow Control Register */
+
+            if(dev->index == 0x14)
+            dev->regs[dev->index] = (val & 0xbf);
+            else
+            {
+            dev->regs[dev->index] = val;
+            }
+
             ali1489_shadow_recalc(dev);
             break;
 
-            /* Internal/External Cache Enable */
-            case 0x16:
+            case 0x15: /* Cycle Check Point Control Register */
+            dev->regs[dev->index] = (val & 0xf1);
+            break;
+
+            case 0x16: /* Cache Control Register I */
+            dev->regs[dev->index] = val;
             cpu_cache_int_enabled = (val & 0x01);
             cpu_cache_ext_enabled = (val & 0x02);
             break;
 
-            /* SMM (Probably not functional at all) */
-            case 0x19:
+            case 0x17: /* Cache Control Register II */
+            dev->regs[dev->index] = val;
+            break;
+
+            case 0x19: /* SMM Control Register */
+            dev->regs[dev->index] = val;
             ali1489_smm_recalc(dev);
             break;
 
-            /* Port 92 Enable*/
-            case 0x29:
+            case 0x1a: /* EDO DRAM Configuration Register */
+            case 0x1b: /* DRAM Timing Control Register */
+            case 0x1c: /* Memory Data Buffer Direction Control Register */
+            dev->regs[dev->index] = val;
+            break;
+
+            case 0x1e: /* Linear Wrapped Burst Order Mode Control Register */
+            dev->regs[dev->index] = (val & 0x40);
+            break;
+
+            case 0x20: /* CPU to PCI Buffer Control Register */
+            case 0x21: /* DEVSELJ Check Point Setting Register */
+            dev->regs[dev->index] = val;
+            break;
+
+            case 0x22: /* PCI to CPU W/R Buffer Configuration Register */
+            dev->regs[dev->index] = (val & 0xfd);
+            break;
+
+            case 0x25: /* GP/MEM Address Definition Register I */
+            case 0x26: /* GP/MEM Address Definition Register II */
+            case 0x27: /* GP/MEM Address Definition Register III */
+            case 0x28: /* PCI Arbiter Control Register */
+            dev->regs[dev->index] = val;
+            break;
+
+            case 0x29: /* System Clock Register */
+            dev->regs[dev->index] = val;
+
             if(val & 0x10)
             port_92_add(dev->port_92);
             else
             port_92_remove(dev->port_92);
             break;
 
-            /* PCI IRQ routing */
-            case 0x42:
+            case 0x2a: /* I/O Recovery Register */
+            dev->regs[dev->index] = val;
+            break;
+
+            case 0x2b: /* Turbo Function Register */
+            dev->regs[dev->index] = (val & 0xbf);
+            break;
+
+            case 0x30: /* Power Management Unit Control Register */
+            case 0x31: /* Mode Timer Monitoring Events Selection Register I */
+            case 0x32: /* Mode Timer Monitoring Events Selection Register II */
+            case 0x33: /* SMI Triggered Events Selection Register I */
+            case 0x34: /* SMI Triggered Events Selection Register II */
+            case 0x35: /* SMI Status Register */
+            dev->regs[dev->index] = val;
+            break;
+
+            case 0x36: /* IRQ Channel Group Selected Control Register I */
+            dev->regs[dev->index] = (val & 0xe5);
+            break;
+
+            case 0x37: /* IRQ Channel Group Selected Control Register II */
+            dev->regs[dev->index] = (val & 0xef);
+            break;
+
+            case 0x38: /* DRQ Channel Selected Control  Register */
+            case 0x39: /* Mode Timer Setting Register */
+            case 0x3a: /* Input_device Timer Setting Register */
+            case 0x3b: /* GP/MEM Timer Setting Register */
+            case 0x3c: /* LED Flash Control Register */
+            dev->regs[dev->index] = val;
+            break;
+
+            case 0x3d: /* Miscellaneous Register I */
+            dev->regs[dev->index] = (val & 0x07);
+            break;
+
+            case 0x3f: /* Shadow Port 70h Register */
+            dev->regs[dev->index] = val;
+            break;
+
+            case 0x40: /* Clock Generator Control Feature Register */
+            dev->regs[dev->index] = (val & 0x3f);
+            break;
+
+            case 0x41: /* Power Control Output Register */
+            dev->regs[dev->index] = val;
+            break;
+
+            case 0x42: /* PCI INTx Routing Table Mapping Register I */
             if((val & 0x0f) != 0)
             pci_set_irq(PCI_INTA, (val & 0x0f));
             else
@@ -219,7 +310,7 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
             pci_set_irq(PCI_INTB, PCI_IRQ_DISABLED);
             break;
 
-            case 0x43:
+            case 0x43: /* PCI INTx Routing Table Mapping Register II */
             if((val & 0x0f) != 0)
             pci_set_irq(PCI_INTC, (val & 0x0f));
             else
@@ -231,7 +322,17 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
             pci_set_irq(PCI_INTD, PCI_IRQ_DISABLED);
             break;
 
+            case 0x44: /* PCI INTx Sensitivity Register */
+            dev->regs[dev->index] = val;
+            break;
+            
         }
+
+        if(dev->index != 0x03)
+        {
+        ali1489_log("M1489: dev->regs[%02x] = %02x\n", dev->index, val);
+        }
+
         }
 
 		break;
@@ -248,7 +349,7 @@ ali1489_read(uint16_t addr, void *priv)
     switch (addr) {
 	case 0x23:
 
-        if((((dev->index == 0x20) || (dev->index >= 0xc0)) && cpu_iscyrix)) /* Avoid conflict with Cyrix CPU registers */
+        if(((dev->index == 0x20) || (dev->index >= 0xc0)) && cpu_iscyrix) /* Avoid conflict with Cyrix CPU registers */
         ret = 0xff;
         else
         {
@@ -303,8 +404,8 @@ ali1489_t *dev = (ali1489_t *) priv;
 
     switch (addr) {
     case 0xf4: /* Usually it writes 30h here */
-    dev->ide_chip_id = val;
-    break;
+        dev->ide_chip_id = val;
+        break;
 
 	case 0xf8:
 		dev->ide_index = val;
