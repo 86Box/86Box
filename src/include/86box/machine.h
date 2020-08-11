@@ -290,6 +290,9 @@ extern int	machine_at_486ap4_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_486vipio2_init(const machine_t *);
 #endif
+#if defined(DEV_BRANCH) && defined(USE_M1489)
+extern int	machine_at_abpb4_init(const machine_t *);
+#endif
 #if defined(DEV_BRANCH) && defined(USE_STPC)
 extern int	machine_at_itoxstar_init(const machine_t *);
 extern int	machine_at_arb1479_init(const machine_t *);
@@ -370,6 +373,7 @@ extern int	machine_at_p55va_init(const machine_t *);
 extern int	machine_at_i430vx_init(const machine_t *);
 extern int	machine_at_brio80xx_init(const machine_t *);
 extern int	machine_at_8500tvxa_init(const machine_t *);
+extern int	machine_at_presario4500_init(const machine_t *);
 extern int	machine_at_pb680_init(const machine_t *);
 
 extern int	machine_at_nupro592_init(const machine_t *);

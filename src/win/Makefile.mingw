@@ -81,6 +81,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef STPC
   STPC		:= y
  endif
+ ifndef M1489
+  M1489		:= y
+ endif
  ifndef VGAWONDER
   VGAWONDER	:= y
  endif
@@ -159,6 +162,9 @@ else
  endif
  ifndef STPC
   STPC		:= y
+ endif
+ ifndef M1489
+  M1489		:= n
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
@@ -561,6 +567,11 @@ endif
 ifeq ($(STPC), y)
 OPTS		+= -DUSE_STPC
 DEVBROBJ	+= stpc.o
+endif
+
+ifeq ($(M1489), y)
+OPTS		+= -DUSE_M1489
+DEVBROBJ	+= ali1489.o
 endif
 
 ifeq ($(596B), y)
