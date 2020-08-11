@@ -430,6 +430,7 @@ extern const device_t 	*at_tsunamiatx_get_device(void);
 /* m_at_slot2.c */
 extern int	machine_at_6gxu_init(const machine_t *);
 extern int	machine_at_s2dge_init(const machine_t *);
+extern int	machine_at_fw6400gx_init(const machine_t *);
 
 /* m_at_socket370.c */
 extern int	machine_at_s370slm_init(const machine_t *);
