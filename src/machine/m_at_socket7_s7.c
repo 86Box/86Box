@@ -681,7 +681,6 @@ machine_at_presario4500_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&fdc37c931apm_device);
     device_add(&intel_flash_bxt_device);
-    spd_register(SPD_TYPE_SDRAM, 0x01, 128);
 
     return ret;
 }
