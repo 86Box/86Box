@@ -115,6 +115,9 @@ smbus_sethandler(uint8_t base, int size,
     int c;
     smbus_t *p, *q = NULL;
 
+    if ((base + size) >= NADDRS)
+    	return;
+
     for (c = 0; c < size; c++) {
     	p = smbus_last[base + c];
     	q = (smbus_t *) malloc(sizeof(smbus_t));
@@ -158,13 +161,17 @@ smbus_removehandler(uint8_t base, int size,
     		    void *priv)
 {
     int c;
-    smbus_t *p;
+    smbus_t *p, *q;
+
+    if ((base + size) >= NADDRS)
+    	return;
 
     for (c = 0; c < size; c++) {
     	p = smbus[base + c];
     	if (!p)
     		continue;
     	while(p) {
+    		q = p->next;
     		if ((p->read_byte == read_byte) && (p->read_byte_cmd == read_byte_cmd) &&
     		    (p->read_word_cmd == read_word_cmd) && (p->read_block_cmd == read_block_cmd) &&
     		    (p->write_byte == write_byte) && (p->write_byte_cmd == write_byte_cmd) &&
@@ -182,7 +189,7 @@ smbus_removehandler(uint8_t base, int size,
     			p = NULL;
     			break;
     		}
-    		p = p->next;
+    		p = q;
     	}
     }
 }
