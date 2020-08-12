@@ -368,7 +368,7 @@ const machine_t machines[] = {
     /* 440GX */
     { "[i440GX] Gigabyte GA-6GXU",		"6gxu",			MACHINE_TYPE_SLOT2,		{{"Intel", cpus_Xeon},        {"",      NULL},	     {"",      NULL},	     {"",      NULL},	  {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		 16, 2048,  16, 511,	         machine_at_6gxu_init, NULL			},
     { "[i440GX] SuperMicro Super S2DGE",	"s2dge",		MACHINE_TYPE_SLOT2,		{{"Intel", cpus_Xeon},        {"",      NULL},	     {"",      NULL},	     {"",      NULL},	  {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		 16, 2048,  16, 511,	        machine_at_s2dge_init, NULL			},
-    { "[i440GX] Freeway FW-6400GX",		"fw6400gx",		MACHINE_TYPE_SLOT2,		{{"Intel/Slot1", cpus_PentiumII},{"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"Intel/Slot2", cpus_Xeon},{"", NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 16, 2048,  16, 511,	     machine_at_fw6400gx_init, NULL			},
+    { "[i440GX] Freeway FW-6400GX",		"fw6400gx",		MACHINE_TYPE_SLOT2,		{{"Intel/Slot1", cpus_PentiumII},{"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"Intel/Slot2", cpus_Xeon},{"", NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 16, 2032,  16, 511,	     machine_at_fw6400gx_init, NULL			},
 
     /* PGA370 machines */
     /* 440LX */
