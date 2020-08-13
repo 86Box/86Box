@@ -26,13 +26,9 @@
 #include "cpu.h"
 #include <86box/timer.h>
 #include <86box/device.h>
-#include <86box/keyboard.h>
 #include <86box/io.h>
 #include <86box/mem.h>
-#include <86box/mouse.h>
 #include <86box/port_92.h>
-#include <86box/sio.h>
-#include <86box/hdc.h>
 #include <86box/video.h>
 #include <86box/chipset.h>
 
