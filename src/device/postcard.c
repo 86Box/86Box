@@ -113,8 +113,10 @@ postcard_init(const device_t *info)
 
     if (machines[machine].flags & MACHINE_MCA)
     	postcard_port = 0x680; /* MCA machines */
-    else if (strstr(machines[machine].name, " PS/2 "))
-    	postcard_port = 0x90;  /* ISA PS/2 machines */
+    else if (strstr(machines[machine].name, " PS/2 ") || strstr(machines[machine].name, " PS/1 "))
+    	postcard_port = 0x190; /* ISA PS/2 machines */
+    else if (strstr(machines[machine].name, " Compaq ") && !(machines[machine].flags & MACHINE_PCI))
+    	postcard_port = 0x84;  /* ISA Compaq machines */
     else
     	postcard_port = 0x80;  /* AT and clone machines */
     postcard_log("POST card initializing on port %04Xh\n", postcard_port);
