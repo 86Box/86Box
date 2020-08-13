@@ -668,12 +668,12 @@ machine_at_presario4500_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-	pci_register_slot(0x13, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x14, PCI_CARD_ONBOARD, 4, 0, 0, 0);
 
     device_add(&i430vx_device);
@@ -681,7 +681,6 @@ machine_at_presario4500_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&fdc37c931apm_device);
     device_add(&intel_flash_bxt_device);
-    spd_register(SPD_TYPE_SDRAM, 0x01, 128);
 
     return ret;
 }

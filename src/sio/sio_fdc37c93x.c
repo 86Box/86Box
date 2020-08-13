@@ -632,7 +632,8 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 }
 
 
-static uint8_t fdc37c93x_read(uint16_t port, void *priv)
+static uint8_t
+fdc37c93x_read(uint16_t port, void *priv)
 {
     fdc37c93x_t *dev = (fdc37c93x_t *) priv;
     uint8_t index = (port & 1) ? 0 : 1;
@@ -676,7 +677,7 @@ fdc37c93x_reset(fdc37c93x_t *dev)
     dev->regs[0x26] = 0xF0;
     dev->regs[0x27] = 0x03;
 
-    for (i = 0; i < 10; i++)
+    for (i = 0; i < 11; i++)
 	memset(dev->ld_regs[i], 0, 256);
 
     /* Logical device 0: FDD */
@@ -826,7 +827,7 @@ fdc37c93x_init(const device_t *info)
 	nvr_bank_set(1, 0xff, dev->nvr);
     }
 
-    if (dev->chip_id == 0x03)
+    if (dev->is_apm || (dev->chip_id == 0x03))
 	dev->access_bus = device_add(&access_bus_device);
 
     if (dev->is_apm)
