@@ -6,14 +6,16 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the ACC 2168 chipset 
- *		used by the Packard Bell Legend 760 Supreme (PB410A or PB430).
+ *		Implementation of the ACC 2042/2168 chipset 
+ *
  *
  *
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *
+ *          Tiseno100
+ * 
  *		Copyright 2019 Sarah Walker.
+ *      Copyright 2020 Tiseno100.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -34,39 +36,46 @@
 #include <86box/video.h>
 #include <86box/chipset.h>
 
+#define enabled_shadow (MEM_READ_INTERNAL | can_write)
+#define disabled_shadow (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
+
+#ifdef ENABLE_ACC2168_LOG
+int acc2168_do_log = ENABLE_ACC2168_LOG;
+static void
+acc2168_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (acc2168_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+}
+#else
+#define acc2168_log(fmt, ...)
+#endif
 
 typedef struct acc2168_t
 {
     int reg_idx;
-    uint8_t regs[256];
-    uint8_t port_78;
+    uint8_t regs[256], port_78;
 } acc2168_t;
-
-
-/*
-    Based on reverse engineering using the AMI 386DX Clone BIOS:
-	Bit 0 of register 02 controls shadowing of C0000-C7FFF (1 = enabled, 0 = disabled);
-	Bit 1 of register 02 controls shadowing of C8000-CFFFF (1 = enabled, 0 = disabled);
-	Bit 2 of register 02 controls shadowing of D0000-DFFFF (1 = enabled, 0 = disabled);
-	Bit 3 of register 02 controls shadowing of E0000-EFFFF (1 = enabled, 0 = disabled);
-	Bit 4 of register 02 controls shadowing of F0000-FFFFF (1 = enabled, 0 = disabled);
-	Bit 5 is most likely: 1 = shadow enabled, 0 = shadow disabled;
-	Bit 6 of register 02 controls shadow RAM cacheability (1 = cacheable, 0 = non-cacheable).
-*/
 
 static void 
 acc2168_shadow_recalc(acc2168_t *dev)
 {
-    int state;
 
-    if (dev->regs[0x02] & 0x20)
-	state = (dev->regs[0x02] & 0x20) ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+uint32_t can_write;
 
-    mem_set_mem_state(0xc0000, 0x08000, (dev->regs[0x02] & 0x01) ? state : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
-    mem_set_mem_state(0xc8000, 0x08000, (dev->regs[0x02] & 0x02) ? state : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
-    mem_set_mem_state(0xd0000, 0x10000, (dev->regs[0x02] & 0x04) ? state : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
-    mem_set_mem_state(0xe0000, 0x10000, (dev->regs[0x02] & 0x08) ? state : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
-    mem_set_mem_state(0xf0000, 0x10000, (dev->regs[0x02] & 0x10) ? state : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
+can_write = !(dev->regs[0x02] & 0x20) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+
+mem_set_mem_state_both(0xc0000, 0x8000, ((dev->regs[0x02] & 0x01) ? enabled_shadow : disabled_shadow));
+mem_set_mem_state_both(0xc8000, 0x8000, ((dev->regs[0x02] & 0x02) ? enabled_shadow : disabled_shadow));
+mem_set_mem_state_both(0xd0000, 0x10000, ((dev->regs[0x02] & 0x04) ? enabled_shadow : disabled_shadow));
+mem_set_mem_state_both(0xe0000, 0x10000, ((dev->regs[0x02] & 0x08) ? enabled_shadow : disabled_shadow));
+mem_set_mem_state_both(0xf0000, 0x10000, ((dev->regs[0x02] & 0x10) ? enabled_shadow : disabled_shadow));
+
 }
 
 
@@ -75,15 +84,23 @@ acc2168_write(uint16_t addr, uint8_t val, void *p)
 {
     acc2168_t *dev = (acc2168_t *)p;
 
-    if (!(addr & 1))
+    switch(addr){
+    case 0xf2:
 	dev->reg_idx = val;
-    else {
+    break;
+
+    case 0xf3:
+    acc2168_log("dev->regs[%02x] = %02x", dev->reg_idx, val);
 	dev->regs[dev->reg_idx] = val;
 
 	switch (dev->reg_idx) {
 		case 0x02:
 			acc2168_shadow_recalc(dev);
 			break;
+
+        case 0x1a:
+            cpu_cache_int_enabled = !(val & 0x40);
+            break;
 	}
     }
 }
@@ -94,10 +111,7 @@ acc2168_read(uint16_t addr, void *p)
 {
     acc2168_t *dev = (acc2168_t *)p;
 
-   if (!(addr & 1))
-	return dev->reg_idx;
-
-    return dev->regs[dev->reg_idx];
+    return (addr == 0xf2) ? dev->reg_idx : dev->regs[dev->reg_idx];
 }
 
 
@@ -130,10 +144,11 @@ acc2168_init(const device_t *info)
     acc2168_t *dev = (acc2168_t *)malloc(sizeof(acc2168_t));
     memset(dev, 0, sizeof(acc2168_t));
 	
-    io_sethandler(0x00f2, 0x0002,
-		  acc2168_read, NULL, NULL, acc2168_write, NULL, NULL, dev);	
-    io_sethandler(0x0078, 0x0001,
-		  acc2168_port_78_read, NULL, NULL, NULL, NULL, NULL, dev);	
+    io_sethandler(0x00f2, 0x0002, acc2168_read, NULL, NULL, acc2168_write, NULL, NULL, dev);
+    io_sethandler(0x00f3, 0x0002, acc2168_read, NULL, NULL, acc2168_write, NULL, NULL, dev);
+
+    /* Port 78 must be moved on the SIO's */
+    io_sethandler(0x0078, 0x0001, acc2168_port_78_read, NULL, NULL, NULL, NULL, NULL, dev);	
 
     device_add(&port_92_inv_device);
 
@@ -141,6 +156,10 @@ acc2168_init(const device_t *info)
 	dev->port_78 = 0x40;
     else
 	dev->port_78 = 0;
+
+    dev->regs[0x02] = 0x00;
+    dev->regs[0x1c] = 0x04;
+    acc2168_shadow_recalc(dev);
 
     return dev;
 }
