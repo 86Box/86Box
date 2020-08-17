@@ -31,7 +31,7 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
-
+#define ROM_MILLENNIUM                  L"roms/video/matrox/rev3.BIN"
 #define ROM_MYSTIQUE			L"roms/video/matrox/MYSTIQUE.VBI"
 #define ROM_MYSTIQUE_220		L"roms/video/matrox/Myst220_66-99mhz.vbi"
 
