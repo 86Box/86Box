@@ -23,7 +23,7 @@ to retro computing and, of course, 86Box. We look forward to hearing from you!
 
 Getting started
 ---------------
-See [this](https://86box.github.io/gettingstarted) page on our website for a quick guide that should help you get started with the emulator.
+See [our documentation](https://86box.readthedocs.io/en/latest/index.html) for an overview of the emulator's features and user interface.
 
 Building
 --------
