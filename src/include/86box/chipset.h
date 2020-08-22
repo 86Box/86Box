@@ -104,6 +104,9 @@ extern const device_t	stpc_serial_device;
 extern const device_t	stpc_lpt_device;
 #endif
 
+/* UMC */
+extern const device_t   umc491_device;
+
 /* VIA */
 
 extern const device_t   via_vt82c49x_device;
