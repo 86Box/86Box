@@ -64,7 +64,7 @@ lm75_remap(lm75_t *dev, uint8_t addr)
 {
     lm75_log("LM75: remapping to SMBus %02Xh\n", addr);
 
-    smbus_removehandler(dev->smbus_addr, 1,
+    if (dev->smbus_addr < 0x80) smbus_removehandler(dev->smbus_addr, 1,
     			lm75_smbus_read_byte, lm75_smbus_read_byte_cmd, lm75_smbus_read_word_cmd, NULL,
     			lm75_smbus_write_byte, lm75_smbus_write_byte_cmd, lm75_smbus_write_word_cmd, NULL,
     			dev);

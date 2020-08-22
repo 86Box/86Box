@@ -1,9 +1,8 @@
 86Box
 =====
-**86Box** is a hypervisor and IBM PC system emulator that specializes in
-running old operating systems and software designed for IBM PC systems and
-compatibles from 1981 through fairly recent system designs based on the
-PCI bus.
+**86Box** is an IBM PC system emulator that specializes in running old
+operating systems and software designed for IBM PC systems and compatibles
+from 1981 through fairly recent system designs based on the PCI bus.
 
 86Box is released under the GNU General Public License, version 2 or later.
 For more information, see the `COPYING` file.
@@ -24,7 +23,7 @@ to retro computing and, of course, 86Box. We look forward to hearing from you!
 
 Getting started
 ---------------
-See [this](https://86box.github.io/gettingstarted) page on our website for a quick guide that should help you get started with the emulator.
+See [our documentation](https://86box.readthedocs.io/en/latest/index.html) for an overview of the emulator's features and user interface.
 
 Building
 --------

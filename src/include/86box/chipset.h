@@ -23,6 +23,9 @@ extern const device_t	acc2168_device;
 
 /* ALi */
 extern const device_t	ali1429_device;
+#if defined(DEV_BRANCH) && defined(USE_M1489)
+extern const device_t	ali1489_device;
+#endif
 
 /* AMD */
 extern const device_t	amd640_device;
@@ -100,6 +103,9 @@ extern const device_t	stpc_atlas_device;
 extern const device_t	stpc_serial_device;
 extern const device_t	stpc_lpt_device;
 #endif
+
+/* UMC */
+extern const device_t   umc491_device;
 
 /* VIA */
 
