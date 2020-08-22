@@ -58,6 +58,7 @@ extern int	sdl_inith_fs(HWND h);
 extern int	sdl_pause(void);
 extern void	sdl_resize(int x, int y);
 extern void	sdl_enable(int enable);
+extern void	sdl_reinit_texture();
 
 
 #endif	/*WIN_SDL_H*/
