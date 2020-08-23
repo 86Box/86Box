@@ -265,6 +265,7 @@ const machine_t machines[] = {
 
     /* Socket 5 machines */
     /* 430NX */
+    { "[i430NX] Gateway 2000 Plato",		"gw2k_pci2",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  2,  128,   2, 127,	    machine_at_gw2k_pci2_init, NULL			},
     { "[i430NX] Intel Premiere/PCI II",		"plato",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  2,  128,   2, 127,		machine_at_plato_init, NULL			},
     { "[i430NX] IBM Ambra DP90 PCI",		"ambradp90",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  2,  128,   2, 127,	    machine_at_ambradp90_init, NULL			},
     { "[i430NX] Gigabyte GA-586IP",		"430nx",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  2,  128,   2, 127,		machine_at_430nx_init, NULL			},
