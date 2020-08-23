@@ -331,6 +331,7 @@ extern int	machine_at_pb520r_init(const machine_t *);
 extern int	machine_at_586mc1_init(const machine_t *);
 
 extern int	machine_at_plato_init(const machine_t *);
+extern int	machine_at_gw2k_pci2_init(const machine_t *);
 extern int	machine_at_ambradp90_init(const machine_t *);
 extern int	machine_at_430nx_init(const machine_t *);
 
