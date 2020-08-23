@@ -454,7 +454,7 @@ riva128_pmc_recompute_intr(int send_intr, void *p)
 	uint32_t intr = 0;
 	if(riva128->pfifo.intr & riva128->pfifo.intr_en) intr |= (1 << 8);
 	if((riva128->pgraph.intr_0 & (1 << 8)) && (riva128->pgraph.intr_en_0 & (1 << 8))) intr |= (1 << 24);
-	if((riva128->pgraph.intr_0 & ~(1 << 8)) & (riva128->pgraph.intr_en_0 & ~(1 << 8))) intr |= (1 << 12);
+	if((riva128->pgraph.intr_0 & ~(1 << 8)) && (riva128->pgraph.intr_en_0 & ~(1 << 8))) intr |= (1 << 12);
 	if(riva128->ptimer.intr & riva128->ptimer.intr_en) intr |= (1 << 20);
 	if(riva128->pmc.intr & (1u << 31)) intr |= (1u << 31);
 	
@@ -464,7 +464,7 @@ riva128_pmc_recompute_intr(int send_intr, void *p)
 		if((intr & 0x7fffffff) && (riva128->pmc.intr_en & 1)) pci_set_irq(riva128->card, PCI_INTA);
 		else pci_clear_irq(riva128->card, PCI_INTA);
 	}
-	else pci_clear_irq(riva128->card, PCI_INTA);
+	//else pci_clear_irq(riva128->card, PCI_INTA);
 	return intr;
 }
 
@@ -497,8 +497,8 @@ riva128_pmc_write(uint32_t addr, uint32_t val, void *p)
 	{
 	case 0x000100:
 		riva128->pmc.intr = val & (1u << 31);
-		if((val & (1u << 31)) && (riva128->pmc.intr_en & 2)) pci_set_irq(riva128->card, PCI_INTA);
-		else pci_clear_irq(riva128->card, PCI_INTA);
+		if((val & (1u << 31)) && (riva128->pmc.intr_en & 2)) pci_set_irq(riva128->card, PCI_INTA); //Software interrupt.
+		//else pci_clear_irq(riva128->card, PCI_INTA);
 		break;
 	case 0x000140:
 		riva128->pmc.intr_en = val & 3;
@@ -513,7 +513,6 @@ riva128_pmc_write(uint32_t addr, uint32_t val, void *p)
 void
 riva128_pfifo_interrupt(int num, void *p)
 {
-	//nv_riva_log("RIVA 128 PTIMER interrupt #%d fired!\n", num);
 	riva128_t *riva128 = (riva128_t *)p;
 
 	riva128->pfifo.intr |= (1 << num);
@@ -1028,7 +1027,7 @@ riva128_pramdac_write(uint32_t addr, uint32_t val, void *p)
 uint8_t
 riva128_ramht_hash(uint32_t handle, uint8_t chanid)
 {
-	return (handle ^ (handle >> 8) ^ (handle >> 16) ^ (handle >> 24) ^ chanid) & 0xff;
+	return (handle ^ (handle >> 8) ^ (handle >> 16) ^ (handle >> 24) ^ (chanid & 0x7f)) & 0xff;
 }
 
 int
@@ -1046,7 +1045,7 @@ riva128_ramht_lookup(uint32_t handle, int cache_num, uint8_t chanid, int subchan
 	}
 
 	uint32_t ramht_addr = riva128->pfifo.ramht_addr +
-	((uint32_t)riva128_ramht_hash(handle, chanid) * bucket_entries * 8);
+	((uint32_t)riva128_ramht_hash(handle, chanid) * bucket_entries);
 
 	int found = 0;
 
@@ -1067,13 +1066,14 @@ riva128_ramht_lookup(uint32_t handle, int cache_num, uint8_t chanid, int subchan
 		pclog("[RIVA 128] Cache error: Handle not found!\n");
 		riva128->pfifo.caches[cache_num].pull_ctrl |= 0x010;
 		riva128->pfifo.caches[cache_num].pull_ctrl &= ~1;
-		riva128->pfifo.cache_error |= 0x11;
+		riva128->pfifo.cache_error |= cache_num ? 0x10 : 0x01;
 		riva128_pfifo_interrupt(0, riva128);
 		return 1;
 	}
 	else
 	{
 		uint32_t ctx = riva128_ramin_read_l(ramht_addr + 4, riva128);
+		riva128->pfifo.caches[cache_num].pull_ctrl &= ~0x010;
 		if(cache_num) riva128->pfifo.caches[1].ctx[subchanid] = ctx & 0xffffff;
 		else riva128->pfifo.caches[0].ctx[0] = ctx & 0xffffff;
 		pclog("[RIVA 128] CTX %08x\n", ctx & 0xffffff);
@@ -1082,11 +1082,12 @@ riva128_ramht_lookup(uint32_t handle, int cache_num, uint8_t chanid, int subchan
 			pclog("[RIVA 128] Cache error: Software object!\n");
 			riva128->pfifo.caches[cache_num].pull_ctrl |= 0x100;
 			riva128->pfifo.caches[cache_num].pull_ctrl &= ~1;
-			riva128->pfifo.cache_error |= 0x11;
+			riva128->pfifo.cache_error |= cache_num ? 0x10 : 0x01;
 			riva128_pfifo_interrupt(0, riva128);
 			return 1;
 		}
-		else return 0;
+		else riva128->pfifo.caches[cache_num].pull_ctrl &= ~0x100;
+		return 0;
 	}
 	
 }
@@ -1494,7 +1495,7 @@ riva128_do_cache0_puller(void *p)
 				pclog("[RIVA 128] Cache error: Software method!\n");
 				riva128->pfifo.caches[0].pull_ctrl |= 0x100;
 				riva128->pfifo.caches[0].pull_ctrl &= ~1;
-				riva128->pfifo.cache_error |= 0x11;
+				riva128->pfifo.cache_error |= 0x01;
 				riva128_pfifo_interrupt(0, riva128);
 				return;
 			}
@@ -1546,7 +1547,7 @@ riva128_do_cache1_puller(void *p)
 				pclog("[RIVA 128] Cache error: Software method!\n");
 				riva128->pfifo.caches[1].pull_ctrl |= 0x100;
 				riva128->pfifo.caches[1].pull_ctrl &= ~1;
-				riva128->pfifo.cache_error |= 0x11;
+				riva128->pfifo.cache_error |= 0x10;
 				riva128_pfifo_interrupt(0, riva128);
 				return;
 			}
