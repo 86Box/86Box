@@ -1072,6 +1072,7 @@ riva128_ramht_lookup(uint32_t handle, int cache_num, uint8_t chanid, int subchan
 	}
 	else
 	{
+		pclog("[RIVA 128] Object found at RAMHT addr %08x\n", ramht_addr);
 		uint32_t ctx = riva128_ramin_read_l(ramht_addr + 4, riva128);
 		riva128->pfifo.caches[cache_num].pull_ctrl &= ~0x010;
 		if(cache_num) riva128->pfifo.caches[1].ctx[subchanid] = ctx & 0xffffff;
@@ -1339,6 +1340,11 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 			}
 			else switch(method)
 			{
+				case 0x104:
+				{
+					riva128_pgraph_interrupt(28, riva128);
+					break;
+				}
 				case 0x3fc:
 				{
 					riva128->pgraph.gdi_color = param;
