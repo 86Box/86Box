@@ -286,7 +286,7 @@ riva128_recalc_mapping(riva128_t *riva128)
 	//pclog("riva128->lfb_base = %08X\n", riva128->lfb_base);
 	if (riva128->lfb_base) {
 	mem_mapping_set_addr(&riva128->linear_mapping, riva128->lfb_base, 0x0400000);
-	mem_mapping_set_addr(&riva128->ramin_mapping, riva128->lfb_base + 0x0c00000, 0x0400000);
+	mem_mapping_set_addr(&riva128->ramin_mapping, riva128->lfb_base + 0x0c00000, 0x8000);
 	} else {
 		mem_mapping_disable(&riva128->linear_mapping);
 		mem_mapping_disable(&riva128->ramin_mapping);
@@ -1045,7 +1045,9 @@ riva128_ramht_lookup(uint32_t handle, int cache_num, uint8_t chanid, int subchan
 	}
 
 	uint32_t ramht_addr = riva128->pfifo.ramht_addr +
-	((uint32_t)riva128_ramht_hash(handle, chanid) * bucket_entries);
+	((uint32_t)riva128_ramht_hash(handle, chanid) * bucket_entries * 8);
+
+	pclog("[RIVA 128] RAMHT addr to search at %08x\n", ramht_addr);
 
 	int found = 0;
 
@@ -1348,6 +1350,17 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 				case 0x3fc:
 				{
 					riva128->pgraph.gdi_color = param;
+					uint16_t startx = riva128->pgraph.gdi_vtx_x[0];
+					uint16_t starty = riva128->pgraph.gdi_vtx_y[0];
+					uint16_t endx = startx + riva128->pgraph.gdi_rect_w[0];
+					uint16_t endy = starty + riva128->pgraph.gdi_rect_h[0];
+					for(uint16_t y = starty; y <= endy; y++)
+					{
+						for(uint16_t x = startx; x <= endx; x++)
+						{
+							riva128_pgraph_write_pixel(x, y, riva128->pgraph.gdi_color, 0xff, riva128);
+						}
+					}
 					break;
 				}
 			}
@@ -1743,7 +1756,7 @@ riva128_mmio_read_l(uint32_t addr, void *p)
 	if ((addr >= 0x1800) && (addr <= 0x18ff))
 		ret = (riva128_pci_read(0,(addr+0) & 0xff,p) << 0) | (riva128_pci_read(0,(addr+1) & 0xff,p) << 8) | (riva128_pci_read(0,(addr+2) & 0xff,p) << 16) | (riva128_pci_read(0,(addr+3) & 0xff,p) << 24);
 
-	pclog("[RIVA 128] MMIO read %08x returns value %08x\n", addr, ret);
+	if(!(addr <= 0x000fff) && !((addr >= 0x009000) && (addr <= 0x009fff))) pclog("[RIVA 128] MMIO read %08x returns value %08x\n", addr, ret);
 
 	riva128_do_gpu_work(riva128);
 
@@ -1810,7 +1823,7 @@ riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 
 	addr &= 0xffffff;
 
-	pclog("[RIVA 128] MMIO write %08x %08x\n", addr, val);
+	if(!(addr == 0x400100) && !(addr == 0x000140)) pclog("[RIVA 128] MMIO write %08x %08x\n", addr, val);
 
 	if ((addr >= 0x1800) && (addr <= 0x18ff)) {
 	riva128_pci_write(0, addr & 0xff, val & 0xff, p);
