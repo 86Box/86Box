@@ -181,6 +181,8 @@ sdl_stretch(int *w, int *h, int *x, int *y)
 		*y = (int) dy;
 		break;
     }
+
+    sdl_reinit_texture();
 }
 
 
@@ -489,6 +491,18 @@ sdl_inith_fs(HWND h)
 }
 
 
+void
+sdl_reinit_texture()
+{
+    if (sdl_render == NULL)
+        return;
+
+    SDL_DestroyTexture(sdl_tex);
+    sdl_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ARGB8888,
+				SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
+}
+
+
 int
 sdl_pause(void)
 {
@@ -514,6 +528,8 @@ sdl_resize(int x, int y)
 
     cur_w = x;
     cur_h = y;
+
+    sdl_reinit_texture();
 }
 
 
