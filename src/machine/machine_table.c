@@ -81,9 +81,7 @@ const machine_type_t machine_types[] = {
     { "Slot 1",		MACHINE_TYPE_SLOT1	},
     { "Slot 2",		MACHINE_TYPE_SLOT2	},
     { "Socket 370",	MACHINE_TYPE_SOCKET370	},
-#if defined(DEV_BRANCH) && defined(USE_VIRTUALPC)
     { "Miscellaneous", MACHINE_TYPE_MISC    },
-#endif
 };
 
 
@@ -349,6 +347,7 @@ const machine_t machines[] = {
 
 	/* 440LX */
     { "[i440LX] ABIT LX6",			"lx6",			MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII66}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,	          machine_at_lx6_init, NULL			},
+    { "[i440LX] Micronics Spitfire",			"spitfire",			MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII66}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,	          machine_at_spitfire_init, NULL			},
 
     /* 440EX */
     { "[i440EX] QDI EXCELLENT II",		"p6i440e2",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII66}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 255,	     machine_at_p6i440e2_init, NULL			},

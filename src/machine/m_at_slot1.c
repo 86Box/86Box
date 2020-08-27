@@ -137,6 +137,52 @@ machine_at_lx6_init(const machine_t *model)
 }
 
 int
+machine_at_spitfire_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/spitfire/SPIHM.02",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&i440lx_device);
+    device_add(&piix4e_device);
+    device_add(&keyboard_ps2_pci_device);
+    device_add(&fdc37c935_device);
+    device_add(&intel_flash_bxt_device);
+	spd_register(SPD_TYPE_SDRAM, 0xF, 256);
+
+    hwm_values_t machine_hwm = {
+    	{    /* fan speeds (incorrect divisor for some reason) */
+    		6000,	/* Chassis */
+    		6000,	/* CPU */
+    		6000	/* Power */
+    	}, { /* temperatures */
+    		30	/* MB */
+    	}, { /* voltages */
+    		2800,				   /* VCORE (2.8V by default) */
+    		0,				   /* unused */
+    		3300,				   /* +3.3V */
+    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
+    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
+    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
+    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
+    	}
+    };
+    hwm_set_values(machine_hwm);
+    device_add(&lm78_device);
+
+    return ret;
+}
+
+int
 machine_at_p6i440e2_init(const machine_t *model)
 {
     int ret;
