@@ -81,9 +81,7 @@ enum {
     MACHINE_TYPE_SLOT1,
     MACHINE_TYPE_SLOT2,
     MACHINE_TYPE_SOCKET370,
-#if defined(DEV_BRANCH) && defined(USE_VIRTUALPC)
     MACHINE_TYPE_MISC,
-#endif
     MACHINE_TYPE_MAX
 };
 
@@ -414,6 +412,7 @@ extern int	machine_at_p65up5_cpknd_init(const machine_t *);
 extern int	machine_at_kn97_init(const machine_t *);
 
 extern int	machine_at_lx6_init(const machine_t *);
+extern int	machine_at_spitfire_init(const machine_t *);
 
 extern int	machine_at_p6i440e2_init(const machine_t *);
 
