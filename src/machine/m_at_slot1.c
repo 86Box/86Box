@@ -530,7 +530,6 @@ at_tsunamiatx_get_device(void)
 }
 
 
-#if defined(DEV_BRANCH) && defined(USE_VIRTUALPC)
 int
 machine_at_vpc2007_init(const machine_t *model)
 {
@@ -558,7 +557,7 @@ machine_at_vpc2007_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add(&w83977tf_device);
+    device_add(&w83977f_370_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&intel_flash_bxt_device);
     device_add(&vpc2007_device);
@@ -566,4 +565,3 @@ machine_at_vpc2007_init(const machine_t *model)
 
     return ret;
 }
-#endif
