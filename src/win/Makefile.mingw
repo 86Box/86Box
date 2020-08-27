@@ -657,7 +657,8 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_at_compaq.o \
 		    m_at_286_386sx.o m_at_386dx_486.o \
 		    m_at_socket4_5.o m_at_socket7_s7.o m_at_sockets7.o \
-		    m_at_socket8.o m_at_slot1.o m_at_slot2.o m_at_socket370.o
+		    m_at_socket8.o m_at_slot1.o m_at_slot2.o m_at_socket370.o \
+			m_at_misc.o
 
 DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o ibm_5161.o isamem.o isartc.o lpt.o postcard.o serial.o \
 		    smbus.o smbus_piix4.o \
