@@ -493,7 +493,7 @@ machine_at_tsunamiatx_init(const machine_t *model)
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+	  return ret;
 
     machine_at_common_init_ex(model, 2);
 

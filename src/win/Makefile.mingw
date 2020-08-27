@@ -87,9 +87,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef VGAWONDER
   VGAWONDER	:= y
  endif
- ifndef VIRTUALPC
-  VIRTUALPC := y
- endif
  ifndef VNC
   VNC		:= y
  endif
@@ -168,9 +165,6 @@ else
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
- endif
- ifndef VIRTUALPC
-  VIRTUALPC	:= y
  endif
  ifndef VNC
   VNC		:= n
@@ -582,11 +576,6 @@ ifeq ($(VGAWONDER), y)
 OPTS		+= -DUSE_VGAWONDER
 endif
 
-ifeq ($(VIRTUALPC), y)
-OPTS		+= -DUSE_VIRTUALPC
-DEVBROBJ	+= vpc2007.o
-endif
-
 ifeq ($(WIN471), y)
 OPTS		+= -DUSE_WIN471
 endif
@@ -660,7 +649,7 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_at_socket8.o m_at_slot1.o m_at_slot2.o m_at_socket370.o \
 			m_at_misc.o
 
-DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o ibm_5161.o isamem.o isartc.o lpt.o postcard.o serial.o \
+DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o ibm_5161.o isamem.o isartc.o lpt.o postcard.o serial.o vpc2007.o \
 		    smbus.o smbus_piix4.o \
 		   keyboard.o \
 		    keyboard_xt.o keyboard_at.o \
