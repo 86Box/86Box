@@ -136,7 +136,6 @@ machine_at_lx6_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_p6i440e2_init(const machine_t *model)
 {
@@ -494,7 +493,7 @@ machine_at_tsunamiatx_init(const machine_t *model)
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
-	return ret;
+	  return ret;
 
     machine_at_common_init_ex(model, 2);
 
@@ -527,41 +526,4 @@ const device_t *
 at_tsunamiatx_get_device(void)
 {
     return &es1371_onboard_device;
-}
-
-
-int
-machine_at_vpc2007_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear(L"roms/machines/vpc2007/13500.bin",
-			   0x000c0000, 262144, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_at_common_init_ex(model, 2);
-    is_vpc = 1;
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
-    pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0A, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0F, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    device_add(&i440bx_device);
-    device_add(&piix4e_device);
-    device_add(&w83977f_370_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&intel_flash_bxt_device);
-    device_add(&vpc2007_device);
-    spd_register(SPD_TYPE_SDRAM, 0xF, 256); /* real VPC provides invalid SPD data */
-
-    return ret;
 }
