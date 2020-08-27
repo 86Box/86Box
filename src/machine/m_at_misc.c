@@ -38,7 +38,6 @@
 #include <86box/machine.h>
 #include <86box/sound.h>
 
-#if defined(DEV_BRANCH) && defined(USE_VIRTUALPC)
 int
 machine_at_vpc2007_init(const machine_t *model)
 {
@@ -74,4 +73,3 @@ machine_at_vpc2007_init(const machine_t *model)
 
     return ret;
 }
-#endif
