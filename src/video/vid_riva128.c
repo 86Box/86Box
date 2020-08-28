@@ -206,8 +206,8 @@ typedef struct riva128_t
 	pc_timer_t nvtimer;
 	pc_timer_t mtimer;
 
-	uint64_t nvtime;
-	uint64_t mtime;
+	double nvtime;
+	double mtime;
 } riva128_t;
 
 static uint8_t riva128_in(uint16_t addr, void *p);
@@ -1685,7 +1685,7 @@ riva128_ptimer_tick(void *p)
 	riva128_t *riva128 = (riva128_t *)p;
 	//pclog("[RIVA 128] PTIMER tick! mul %04x div %04x\n", riva128->ptimer.clock_mul, riva128->ptimer.clock_div);
 
-	double time = ((double)riva128->ptimer.clock_mul * 100.0f) / (double)riva128->ptimer.clock_div;
+	double time = ((double)riva128->ptimer.clock_mul * 10.0) / (double)riva128->ptimer.clock_div; //Multiply by 10 to avoid timer system limitations.
 	uint32_t tmp;
 	int alarm_check;
 
@@ -1694,13 +1694,13 @@ riva128_ptimer_tick(void *p)
 	tmp = riva128->ptimer.time;
 	riva128->ptimer.time += (uint64_t)time;
 
-	alarm_check = (riva128->ptimer.alarm - tmp) <= ((uint32_t)riva128->ptimer.time - tmp) ? 1 : 0;
+	alarm_check = ((uint32_t)riva128->ptimer.time >= (uint32_t)riva128->ptimer.alarm);
 
 	//pclog("[RIVA 128] Timer %08x %016llx %08x %d\n", riva128->ptimer.alarm, riva128->ptimer.time, tmp, alarm_check);
 
 	if(alarm_check)
 	{
-		//pclog("[RIVA 128] PTIMER ALARM interrupt fired!\n");
+		pclog("[RIVA 128] PTIMER ALARM interrupt fired!\n");
 		riva128_ptimer_interrupt(0, riva128);
 	}
 }
@@ -1710,7 +1710,7 @@ riva128_nvclk_poll(void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 	riva128_do_gpu_work(riva128);
-	timer_advance_u64(&riva128->nvtimer, riva128->nvtime);
+	timer_on_auto(&riva128->nvtimer, riva128->nvtime);
 }
 
 void
@@ -1720,7 +1720,7 @@ riva128_mclk_poll(void *p)
 
 	if(riva128->pmc.enable & (1 << 16)) riva128_ptimer_tick(riva128);
 
-	timer_advance_u64(&riva128->mtimer, riva128->mtime);
+	timer_on_auto(&riva128->mtimer, riva128->mtime);
 }
 
 uint32_t
@@ -1756,7 +1756,7 @@ riva128_mmio_read_l(uint32_t addr, void *p)
 	if ((addr >= 0x1800) && (addr <= 0x18ff))
 		ret = (riva128_pci_read(0,(addr+0) & 0xff,p) << 0) | (riva128_pci_read(0,(addr+1) & 0xff,p) << 8) | (riva128_pci_read(0,(addr+2) & 0xff,p) << 16) | (riva128_pci_read(0,(addr+3) & 0xff,p) << 24);
 
-	if(!(addr <= 0x000fff) && !((addr >= 0x009000) && (addr <= 0x009fff))) pclog("[RIVA 128] MMIO read %08x returns value %08x\n", addr, ret);
+	/*if(!(addr <= 0x000fff) && !((addr >= 0x009000) && (addr <= 0x009fff)))*/ pclog("[RIVA 128] MMIO read %08x returns value %08x\n", addr, ret);
 
 	riva128_do_gpu_work(riva128);
 
@@ -1823,7 +1823,7 @@ riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 
 	addr &= 0xffffff;
 
-	if(!(addr == 0x400100) && !(addr == 0x000140)) pclog("[RIVA 128] MMIO write %08x %08x\n", addr, val);
+	/*if(!(addr == 0x400100) && !(addr == 0x000140))*/ pclog("[RIVA 128] MMIO write %08x %08x\n", addr, val);
 
 	if ((addr >= 0x1800) && (addr <= 0x18ff)) {
 	riva128_pci_write(0, addr & 0xff, val & 0xff, p);
@@ -2129,7 +2129,7 @@ riva128_vblank_start(svga_t *svga)
 
 	riva128->pgraph.intr_0 |= (1u << 8);
 
-	if(riva128->pgraph.intr_en_0 & (1u << 8)) riva128_pmc_recompute_intr(1, riva128);
+	if((riva128->pgraph.intr_en_0 & (1u << 8)) && (riva128->pmc.enable & (1u << 20))) riva128_pmc_recompute_intr(1, riva128);
 }
 
 static void
@@ -2166,7 +2166,7 @@ riva128_recalctimings(svga_t *svga)
 		break;
 	}
 
-	uint64_t freq = 13500000;
+	double freq = 13500000.0;
 	int m_m = riva128->pramdac.mpll & 0xff;
 	int m_n = (riva128->pramdac.mpll >> 8) & 0xff;
 	int m_p = (riva128->pramdac.mpll >> 16) & 7;
@@ -2174,9 +2174,10 @@ riva128_recalctimings(svga_t *svga)
 	if(m_n == 0) m_n = 1;
 	if(m_m == 0) m_m = 1;
 
-	freq = (freq * m_n) / (1 << m_p) / m_m;
-	riva128->mtime = (TIMER_USEC * 100000000) / freq;
-	timer_enable(&riva128->mtimer);
+	freq = (freq * m_n) / (m_m << m_p);
+	riva128->mtime = 10000000.0 / freq; //Multiply period by 10 to work around timer system limitations.
+	pclog("[RIVA 128] mtime %f\n", riva128->mtime);
+	timer_on_auto(&riva128->mtimer, riva128->mtime);
 
 	freq = 13500000;
 	int nv_m = riva128->pramdac.nvpll & 0xff;
@@ -2186,9 +2187,20 @@ riva128_recalctimings(svga_t *svga)
 	if(nv_n == 0) nv_n = 1;
 	if(nv_m == 0) nv_m = 1;
 
-	freq = (freq * nv_n) / (1 << nv_p) / nv_m;
-	riva128->nvtime = (TIMER_USEC * 100000000) / freq;
-	timer_enable(&riva128->nvtimer);
+	freq = (freq * nv_n) / (nv_m << nv_p);
+	riva128->nvtime = 10000000.0 / freq; //Multiply period by 10 to work around timer system limitations.
+	timer_on_auto(&riva128->nvtimer, riva128->nvtime);
+
+	freq = 13500000;
+	int v_m = riva128->pramdac.vpll & 0xff;
+	int v_n = (riva128->pramdac.vpll >> 8) & 0xff;
+	int v_p = (riva128->pramdac.vpll >> 16) & 7;
+
+	if(v_n == 0) v_n = 1;
+	if(v_m == 0) v_m = 1;
+
+	freq = (freq * v_n) / (v_m << v_p);
+	svga->clock = (cpuclock * (double)(1ull << 32)) / freq;
 }
 
 
