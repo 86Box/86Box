@@ -81,6 +81,7 @@ enum {
     MACHINE_TYPE_SLOT1,
     MACHINE_TYPE_SLOT2,
     MACHINE_TYPE_SOCKET370,
+    MACHINE_TYPE_MISC,
     MACHINE_TYPE_MAX
 };
 
@@ -323,7 +324,6 @@ extern int	machine_at_batman_init(const machine_t *);
 extern int	machine_at_ambradp60_init(const machine_t *);
 extern int	machine_at_valuepointp60_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_DELLS4)
-extern int	machine_at_opti560l_init(const machine_t *);
 extern int	machine_at_dellxp60_init(const machine_t *);
 #endif
 extern int	machine_at_p5mp3_init(const machine_t *);
@@ -337,7 +337,6 @@ extern int	machine_at_430nx_init(const machine_t *);
 extern int	machine_at_p54tp4xe_init(const machine_t *);
 extern int	machine_at_endeavor_init(const machine_t *);
 extern int	machine_at_zappa_init(const machine_t *);
-extern int	machine_at_gw2kzp_init(const machine_t *);
 extern int	machine_at_mb500n_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_VECTRA54)
 extern int	machine_at_vectra54_init(const machine_t *);
@@ -399,7 +398,6 @@ extern int	machine_at_mvp3_init(const machine_t *);
 extern int	machine_at_686nx_init(const machine_t *);
 extern int	machine_at_v60n_init(const machine_t *);
 extern int	machine_at_vs440fx_init(const machine_t *);
-extern int	machine_at_gw2kvs_init(const machine_t *);
 extern int	machine_at_ap440fx_init(const machine_t *);
 extern int	machine_at_mb600n_init(const machine_t *);
 extern int	machine_at_8500ttc_init(const machine_t *);
@@ -414,6 +412,7 @@ extern int	machine_at_p65up5_cpknd_init(const machine_t *);
 extern int	machine_at_kn97_init(const machine_t *);
 
 extern int	machine_at_lx6_init(const machine_t *);
+extern int	machine_at_spitfire_init(const machine_t *);
 
 extern int	machine_at_p6i440e2_init(const machine_t *);
 
@@ -424,9 +423,6 @@ extern int	machine_at_ax6bc_init(const machine_t *);
 extern int	machine_at_atc6310bxii_init(const machine_t *);
 extern int	machine_at_tsunamiatx_init(const machine_t *);
 extern int	machine_at_p6sba_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_VIRTUALPC)
-extern int	machine_at_vpc2007_init(const machine_t *);
-#endif
 
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_tsunamiatx_get_device(void);
@@ -447,6 +443,9 @@ extern int	machine_at_awo671r_init(const machine_t *);
 extern int	machine_at_63a_init(const machine_t *);
 extern int	machine_at_s370sba_init(const machine_t *);
 extern int	machine_at_apas3_init(const machine_t *);
+
+/* m_at_misc.c */
+extern int	machine_at_vpc2007_init(const machine_t *);
 
 /* m_at_t3100e.c */
 extern int	machine_at_t3100e_init(const machine_t *);
