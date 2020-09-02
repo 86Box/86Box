@@ -226,6 +226,7 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_SCALE_1X+1, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SCALE_1X+2, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SCALE_1X+3, MF_UNCHECKED);
+	CheckMenuItem(menuMain, IDM_VID_HIDPI, MF_UNCHECKED);
 
     CheckMenuItem(menuMain, IDM_VID_CGACON, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_GRAYCT_601+0, MF_UNCHECKED);
@@ -275,6 +276,7 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+video_fullscreen_scale, MF_CHECKED);
     CheckMenuItem(menuMain, IDM_VID_REMEMBER, window_remember?MF_CHECKED:MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SCALE_1X+scale, MF_CHECKED);
+	CheckMenuItem(menuMain, IDM_VID_HIDPI, dpi_scale?MF_CHECKED:MF_UNCHECKED);
 
     CheckMenuItem(menuMain, IDM_VID_CGACON, vid_cga_contrast?MF_CHECKED:MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_GRAYCT_601+video_graytype, MF_CHECKED);
@@ -453,15 +455,23 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				else
 					SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW & ~WS_SIZEBOX & ~WS_MAXIMIZEBOX) | WS_VISIBLE);
 
+				/* scale the screen base on DPI */
+				if (dpi_scale) {
+					temp_x = MulDiv(unscaled_size_x, dpi, 96);
+					temp_y = MulDiv(unscaled_size_y, dpi, 96);
+				} else {
+					temp_x = unscaled_size_x;
+					temp_y = unscaled_size_y;
+				}
 				/* Main Window. */				
-				ResizeWindowByClientArea(hwnd, unscaled_size_x, unscaled_size_y + sbar_height);
+				ResizeWindowByClientArea(hwnd, temp_x, temp_y + sbar_height);
 
 				/* Render window. */
-				MoveWindow(hwndRender, 0, 0, unscaled_size_x, unscaled_size_y, TRUE);
+				MoveWindow(hwndRender, 0, 0, temp_x, temp_y, TRUE);
 				GetWindowRect(hwndRender, &rect);
 
 				/* Status bar. */
-				MoveWindow(hwndSBAR, 0, rect.bottom, unscaled_size_x, 17, TRUE);
+				MoveWindow(hwndSBAR, 0, rect.bottom, temp_x, 17, TRUE);
 
 				if (mouse_capture) {
 					ClipCursor(&rect);
@@ -532,6 +542,13 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				CheckMenuItem(hmenu, IDM_VID_SCALE_1X+scale, MF_CHECKED);
 				device_force_redraw();
 				video_force_resize_set(1);
+				config_save();
+				break;
+
+			case IDM_VID_HIDPI:
+				dpi_scale = !dpi_scale;
+				CheckMenuItem(hmenu, IDM_VID_HIDPI, dpi_scale ? MF_CHECKED : MF_UNCHECKED);
+				doresize = 1;
 				config_save();
 				break;
 
@@ -1280,6 +1297,11 @@ plat_resize(int x, int y)
 	video_wait_for_blit();
 
 
+	/* scale the screen base on DPI */
+	if (dpi_scale) {
+		x = MulDiv(x, dpi, 96);
+		y = MulDiv(y, dpi, 96);
+	}
 	ResizeWindowByClientArea(hwndMain, x, y + sbar_height);
 
 	MoveWindow(hwndRender, 0, 0, x, y, TRUE);
