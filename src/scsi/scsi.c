@@ -38,6 +38,7 @@
 #include <86box/scsi_buslogic.h>
 #include <86box/scsi_ncr5380.h>
 #include <86box/scsi_ncr53c8xx.h>
+#include <86box/scsi_pcscsi.h>
 #include <86box/scsi_spock.h>
 #ifdef WALTJE
 # include "scsi_wd33c93.h"
@@ -79,6 +80,7 @@ static SCSI_CARD scsi_cards[] = {
     { "[PCI] NCR 53C825A",		"ncr53c825a",	&ncr53c825a_pci_device,	},
     { "[PCI] NCR 53C860",		"ncr53c860",	&ncr53c860_pci_device,	},
     { "[PCI] NCR 53C875",		"ncr53c875",	&ncr53c875_pci_device,	},
+    { "[PCI] Tekram DC-390",		"dc390",	&dc390_pci_device,	},
     { "[VLB] BusLogic BT-445S",		"bt445s",	&buslogic_445s_device,	},
     { "",				"",		NULL,			},
 };
