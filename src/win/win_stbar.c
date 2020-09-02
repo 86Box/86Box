@@ -70,6 +70,8 @@ static uint8_t	*sb_part_icons;
 static int	sb_parts = 0;
 static int	sb_ready = 0;
 static uint8_t	sb_map[256];
+static int  dpi = 96;
+static int  icon_width = 24;
 
 /* Also used by win_settings.c */
 intptr_t
@@ -537,7 +539,7 @@ ui_sb_update_panes(void)
     sb_parts = 0;
     for (i=0; i<FDD_NUM; i++) {
 	if (fdd_get_type(i) != 0) {
-		edge += SB_ICON_WIDTH;
+		edge += icon_width;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = SB_FLOPPY | i;
 		sb_map[SB_FLOPPY | i] = sb_parts;
@@ -553,7 +555,7 @@ ui_sb_update_panes(void)
 	if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && (scsi_card_current == 0))
 		continue;
 	if (cdrom[i].bus_type != 0) {
-		edge += SB_ICON_WIDTH;
+		edge += icon_width;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = SB_CDROM | i;
 		sb_map[SB_CDROM | i] = sb_parts;
@@ -568,7 +570,7 @@ ui_sb_update_panes(void)
 	if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && (scsi_card_current == 0))
 		continue;
 	if (zip_drives[i].bus_type != 0) {
-		edge += SB_ICON_WIDTH;
+		edge += icon_width;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = SB_ZIP | i;
 		sb_map[SB_ZIP | i] = sb_parts;
@@ -583,7 +585,7 @@ ui_sb_update_panes(void)
 	if ((mo_drives[i].bus_type == MO_BUS_SCSI) && (scsi_card_current == 0))
 		continue;
 	if (mo_drives[i].bus_type != 0) {
-		edge += SB_ICON_WIDTH;
+		edge += icon_width;
 		iStatusWidths[sb_parts] = edge;
 		sb_part_meanings[sb_parts] = SB_MO | i;
 		sb_map[SB_MO | i] = sb_parts;
@@ -591,56 +593,55 @@ ui_sb_update_panes(void)
 	}
     }    
     if (c_mfm && (hdint || !memcmp(hdc_name, "st506", 5))) {
-	edge += SB_ICON_WIDTH;
+	edge += icon_width;
 	iStatusWidths[sb_parts] = edge;
 	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_MFM;
 	sb_map[SB_HDD | HDD_BUS_MFM] = sb_parts;
 	sb_parts++;
     }
     if (c_esdi && (hdint || !memcmp(hdc_name, "esdi", 4))) {
-	edge += SB_ICON_WIDTH;
+	edge += icon_width;
 	iStatusWidths[sb_parts] = edge;
 	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_ESDI;
 	sb_map[SB_HDD | HDD_BUS_ESDI] = sb_parts;
 	sb_parts++;
     }
     if (c_xta && (hdint || !memcmp(hdc_name, "xta", 3))) {
-	edge += SB_ICON_WIDTH;
+	edge += icon_width;
 	iStatusWidths[sb_parts] = edge;
 	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_XTA;
 	sb_map[SB_HDD | HDD_BUS_XTA] = sb_parts;
 	sb_parts++;
     }
     if (c_ide && (hdint || !memcmp(hdc_name, "xtide", 5) || !memcmp(hdc_name, "ide", 3))) {
-	edge += SB_ICON_WIDTH;
+	edge += icon_width;
 	iStatusWidths[sb_parts] = edge;
 	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_IDE;
 	sb_map[SB_HDD | HDD_BUS_IDE] = sb_parts;
 	sb_parts++;
     }
     if (c_scsi && (scsi_card_current != 0)) {
-	edge += SB_ICON_WIDTH;
+	edge += icon_width;
 	iStatusWidths[sb_parts] = edge;
 	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_SCSI;
 	sb_map[SB_HDD | HDD_BUS_SCSI] = sb_parts;
 	sb_parts++;
     }
     if (do_net) {
-	edge += SB_ICON_WIDTH;
+	edge += icon_width;
 	iStatusWidths[sb_parts] = edge;
 	sb_part_meanings[sb_parts] = SB_NETWORK;
 	sb_map[SB_NETWORK] = sb_parts;
 	sb_parts++;
     }
 
-    edge += SB_ICON_WIDTH;
+    edge += icon_width;
     iStatusWidths[sb_parts] = edge;
     sb_part_meanings[sb_parts] = SB_SOUND;
     sb_map[SB_SOUND] = sb_parts;
     sb_parts++;
 
     if (sb_parts)
-	iStatusWidths[sb_parts - 1] += (24 - SB_ICON_WIDTH);
     iStatusWidths[sb_parts] = -1;
     sb_part_meanings[sb_parts] = SB_TEXT;
     sb_map[SB_TEXT] = sb_parts;
@@ -718,7 +719,7 @@ StatusBarPopupMenu(HWND hwnd, POINT pt, int id)
 
     if (id >= (sb_parts - 1)) return;
 
-    pt.x = id * SB_ICON_WIDTH;	/* Justify to the left. */
+    pt.x = id * icon_width;	/* Justify to the left. */
     pt.y = 0;			/* Justify to the top. */
     ClientToScreen(hwnd, (LPPOINT) &pt);
 
@@ -744,6 +745,48 @@ StatusBarPopupMenu(HWND hwnd, POINT pt, int id)
 		   pt.x, pt.y, 0, hwndSBAR, NULL);
 }
 
+/* API: Load status bar icons */
+void
+StatusBarLoadIcon(HINSTANCE hInst) {
+	int i;
+	int x = win_get_system_metrics(SM_CXSMICON, dpi);
+
+	for (i=0; i<256; i++) {
+		if (hIcon[i] != 0)
+			DestroyIcon(hIcon[i]);
+	}
+	
+    for (i = 16; i < 18; i++)
+	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
+    for (i = 24; i < 26; i++)
+	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
+    for (i = 32; i < 34; i++)
+	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
+    for (i = 48; i < 50; i++)
+	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
+    for (i = 56; i < 58; i++)
+	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
+    for (i = 64; i < 66; i++)
+	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
+    for (i = 80; i < 82; i++)
+	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
+    for (i = 96; i < 98; i++)
+	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
+    for (i = 144; i < 146; i++)
+	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
+    for (i = 152; i < 154; i++)
+	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
+    for (i = 160; i < 162; i++)
+	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
+    for (i = 176; i < 178; i++)
+	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
+    for (i = 184; i < 186; i++)
+	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
+    for (i = 192; i < 194; i++)
+	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
+    for (i = 243; i < 244; i++)
+	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
+}
 
 /* Handle messages for the Status Bar window. */
 #if defined(__amd64__) || defined(__aarch64__)
@@ -756,6 +799,8 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     RECT rc;
     POINT pt;
     int item_id = 0;
+	int i;
+	HINSTANCE hInst;
 
     switch (message) {
 	case WM_COMMAND:
@@ -768,18 +813,36 @@ StatusBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		pt.x = GET_X_LPARAM(lParam);
 		pt.y = GET_Y_LPARAM(lParam);
 		if (PtInRect((LPRECT) &rc, pt))
-			StatusBarPopupMenu(hwnd, pt, (pt.x / SB_ICON_WIDTH));
+			StatusBarPopupMenu(hwnd, pt, (pt.x / icon_width));
 		break;
 
 	case WM_LBUTTONDBLCLK:
 		GetClientRect(hwnd, (LPRECT)& rc);
 		pt.x = GET_X_LPARAM(lParam);
 		pt.y = GET_Y_LPARAM(lParam);
-		item_id = (pt.x / SB_ICON_WIDTH);
+		item_id = (pt.x / icon_width);
 		if (PtInRect((LPRECT) &rc, pt) && (item_id < sb_parts)) {
 			if (sb_part_meanings[item_id] == SB_SOUND)
 				SoundGainDialogCreate(hwndMain);
 		}
+		break;
+
+	case WM_DPICHANGED_AFTERPARENT:
+		/* DPI changed, reload icons */
+		hInst = (HINSTANCE)GetWindowLongPtr(hwnd, GWLP_HINSTANCE);
+		dpi = win_get_dpi(hwnd);
+		icon_width = MulDiv(SB_ICON_WIDTH, dpi, 96);
+		StatusBarLoadIcon(hInst);
+
+		for (i=0; i<sb_parts; i++) {
+			if (sb_part_icons[i] != 255) {
+				SendMessage(hwndSBAR, SB_SETICON, i, (LPARAM)hIcon[sb_part_icons[i]]);
+			}
+
+			iStatusWidths[i] = (i+1)*icon_width;
+		}
+		iStatusWidths[i-1] = -1;
+		SendMessage(hwndSBAR, SB_SETPARTS, (WPARAM)sb_parts, (LPARAM)iStatusWidths);
 		break;
 
 	default:
@@ -797,39 +860,13 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
 {
     RECT rectDialog;
     int dw, dh;
-    uint8_t i;
+
+	/* Get current DPI and calculate icon sizes */
+	dpi = win_get_dpi(hwndParent);
+	icon_width = MulDiv(SB_ICON_WIDTH, dpi, 96);
 
     /* Load our icons into the cache for faster access. */
-    for (i = 16; i < 18; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
-    for (i = 24; i < 26; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
-    for (i = 32; i < 34; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
-    for (i = 48; i < 50; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
-    for (i = 56; i < 58; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
-    for (i = 64; i < 66; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
-    for (i = 80; i < 82; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
-    for (i = 96; i < 98; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
-    for (i = 144; i < 146; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
-    for (i = 152; i < 154; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
-    for (i = 160; i < 162; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
-    for (i = 176; i < 178; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
-    for (i = 184; i < 186; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
-    for (i = 192; i < 194; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
-    for (i = 243; i < 244; i++)
-	hIcon[i] = LoadIconEx((PCTSTR) (uintptr_t) i);
+	StatusBarLoadIcon(hInst);
 
     GetWindowRect(hwndParent, &rectDialog);
     dw = rectDialog.right - rectDialog.left;
