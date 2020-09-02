@@ -37,6 +37,7 @@
 #include <86box/vid_ega.h>		// for update_overscan
 #include <86box/plat.h>
 #include <86box/plat_midi.h>
+#include <86box/plat_dynld.h>
 #include <86box/ui.h>
 #include <86box/win.h>
 #include <86box/version.h>
@@ -72,6 +73,43 @@ static int	save_window_pos = 0, pause_state = 0;
 
 
 static int vis = -1;
+
+/* Per Monitor DPI Aware v2 APIs, Windows 10 v1703+ */
+void* user32_handle = NULL;
+static UINT  (WINAPI *pGetDpiForWindow)(HWND);
+static UINT (WINAPI *pGetSystemMetricsForDpi)(int i, UINT dpi);
+static DPI_AWARENESS_CONTEXT (WINAPI *pGetWindowDpiAwarenessContext)(HWND);
+static BOOL (WINAPI *pAreDpiAwarenessContextsEqual)(DPI_AWARENESS_CONTEXT A, DPI_AWARENESS_CONTEXT B);
+static dllimp_t user32_imports[] = {
+{ "GetDpiForWindow",	&pGetDpiForWindow },
+{ "GetSystemMetricsForDpi", &pGetSystemMetricsForDpi },
+{ "GetWindowDpiAwarenessContext", &pGetWindowDpiAwarenessContext },
+{ "AreDpiAwarenessContextsEqual", &pAreDpiAwarenessContextsEqual },
+{ NULL,		NULL		}
+};
+
+int
+win_get_dpi(HWND hwnd) {
+    if (user32_handle != NULL) {
+        return pGetDpiForWindow(hwnd);
+    } else {
+        HDC dc = GetDC(hwnd);
+        UINT dpi = GetDeviceCaps(dc, LOGPIXELSX);
+        ReleaseDC(hwnd, dc);
+        return dpi;
+    }
+}
+
+int win_get_system_metrics(int index, int dpi) {
+    if (user32_handle != NULL) {
+        /* Only call GetSystemMetricsForDpi when we are using PMv2 */
+        DPI_AWARENESS_CONTEXT c = pGetWindowDpiAwarenessContext(hwndMain);
+        if (pAreDpiAwarenessContextsEqual(c, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
+            return pGetSystemMetricsForDpi(index, dpi);
+    }
+    
+    return GetSystemMetrics(index);
+}
 
 /* Set host cursor visible or not. */
 void
@@ -894,6 +932,9 @@ ui_init(int nCmdShow)
     TASKDIALOGCONFIG tdconfig = {0};
     TASKDIALOG_BUTTON tdbuttons[] = {{IDCANCEL, MAKEINTRESOURCE(IDS_2119)}};
 
+    /* Load DPI related Windows 10 APIs */
+    user32_handle = dynld_module("user32.dll", user32_imports);
+
     /* Set up TaskDialog configuration. */
     tdconfig.cbSize = sizeof(tdconfig);
     tdconfig.dwFlags = TDF_ENABLE_HYPERLINKS;
@@ -1136,6 +1177,9 @@ ui_init(int nCmdShow)
     /* Shut down the Discord integration */
     discord_close();
 #endif
+
+	if (user32_handle != NULL)
+    	dynld_close(user32_handle);
 
     return(messages.wParam);
 }
