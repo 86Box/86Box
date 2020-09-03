@@ -2069,7 +2069,8 @@ kbd_read(uint16_t port, void *priv)
 		/* Only clear the transmit timeout flag on non-PS/2 controllers, as on
 		   PS/2 controller, it is the keyboard/mouse output source bit. */
 		dev->status &= ~STAT_RTIMEOUT;
-		if ((dev->flags & KBC_TYPE_MASK) > KBC_TYPE_PS2_NOREF)
+		if (((dev->flags & KBC_TYPE_MASK) > KBC_TYPE_PS2_NOREF) && 
+		   ((dev->flags & KBC_VEN_MASK) != KBC_VEN_IBM_MCA))
 			dev->status &= ~STAT_TTIMEOUT;
 		break;
 
