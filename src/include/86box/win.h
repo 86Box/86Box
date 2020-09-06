@@ -33,6 +33,19 @@
 # include "resource.h"
 # undef BITMAP
 
+/* DPI Awareness Context, copied from MinGW-w64 windef.h */
+#ifndef _DPI_AWARENESS_CONTEXTS_
+DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
+#define DPI_AWARENESS_CONTEXT_UNAWARE              ((DPI_AWARENESS_CONTEXT)-1)
+#define DPI_AWARENESS_CONTEXT_SYSTEM_AWARE         ((DPI_AWARENESS_CONTEXT)-2)
+#define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE    ((DPI_AWARENESS_CONTEXT)-3)
+#define DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 ((DPI_AWARENESS_CONTEXT)-4)
+#define DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED    ((DPI_AWARENESS_CONTEXT)-5)
+#endif
+
+#ifndef WM_DPICHANGED_AFTERPARENT
+#define WM_DPICHANGED_AFTERPARENT 0x02E3
+#endif
 
 /* Class names and such. */
 #define CLASS_NAME		L"86BoxMainWnd"
@@ -119,6 +132,8 @@ extern void     win_joystick_handle(PRAWINPUT raw);
 
 extern void     win_notify_dlg_open(void);
 extern void     win_notify_dlg_closed(void);
+extern int      win_get_dpi(HWND hwnd);
+extern int      win_get_system_metrics(int i, int dpi);
 
 extern LPARAM	win_get_string(int id);
 
