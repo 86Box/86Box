@@ -30,6 +30,7 @@ extern const device_t	i82091aa_device;
 extern const device_t	i82091aa_ide_device;
 extern const device_t	pc87306_device;
 extern const device_t	pc87307_device;
+extern const device_t	pc87307_15c_device;
 extern const device_t	pc87309_device;
 extern const device_t	pc87332_device;
 extern const device_t	pc87332_ps1_device;
