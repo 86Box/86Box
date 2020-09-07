@@ -180,7 +180,7 @@ machine_at_fw6400gx_init(const machine_t *model)
     device_add(&i440gx_device);
     device_add(&piix4e_device);
     device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&pc87309_device);
+    device_add(&pc87309_15c_device);
     device_add(&sst_flash_29ee020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 512);
 
