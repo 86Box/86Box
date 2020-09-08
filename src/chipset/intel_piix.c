@@ -275,6 +275,7 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 {
     piix_t *dev = (piix_t *) priv;
     uint8_t *fregs;
+    uint16_t base;
     int i;
 
     /* Return on unsupported function. */
@@ -443,8 +444,11 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 			else
 				fregs[addr] = val & 0xc0;
 
+			base = fregs[addr | 0x01] << 8;
+			base |= fregs[addr & 0xfe];
+
 			for (i = 0; i < 4; i++)
-				ddma_update_io_mapping(dev->ddma, (addr & 4) + i, fregs[addr & 0xfe] + (i << 4), fregs[addr | 0x01], 1);
+				ddma_update_io_mapping(dev->ddma, (addr & 4) + i, fregs[addr & 0xfe] + (i << 4), fregs[addr | 0x01], (base != 0x0000));
 		}
 		break;
 	case 0xa0:
