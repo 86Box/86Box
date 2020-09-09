@@ -115,13 +115,6 @@ ali6117_recalcmapping(ali6117_t *dev)
 
 
 static void
-ali6117_smram_map(int smm, uint32_t addr, uint32_t size, int is_smram)
-{
-    mem_set_mem_state_smram(smm, addr, size, is_smram);
-}
-
-
-static void
 ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 {
     ali6117_t *dev = (ali6117_t *) priv;
