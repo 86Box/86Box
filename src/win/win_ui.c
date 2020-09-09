@@ -37,6 +37,7 @@
 #include <86box/vid_ega.h>		// for update_overscan
 #include <86box/plat.h>
 #include <86box/plat_midi.h>
+#include <86box/plat_dynld.h>
 #include <86box/ui.h>
 #include <86box/win.h>
 #include <86box/version.h>
@@ -69,9 +70,66 @@ static wchar_t	wTitle[512];
 static HHOOK	hKeyboardHook;
 static int	hook_enabled = 0, manager_wm = 0;
 static int	save_window_pos = 0, pause_state = 0;
+static int  dpi = 96;
+static int  padded_frame = 0;
 
 
 static int vis = -1;
+
+/* Per Monitor DPI Aware v2 APIs, Windows 10 v1703+ */
+void* user32_handle = NULL;
+static UINT  (WINAPI *pGetDpiForWindow)(HWND);
+static UINT (WINAPI *pGetSystemMetricsForDpi)(int i, UINT dpi);
+static DPI_AWARENESS_CONTEXT (WINAPI *pGetWindowDpiAwarenessContext)(HWND);
+static BOOL (WINAPI *pAreDpiAwarenessContextsEqual)(DPI_AWARENESS_CONTEXT A, DPI_AWARENESS_CONTEXT B);
+static dllimp_t user32_imports[] = {
+{ "GetDpiForWindow",	&pGetDpiForWindow },
+{ "GetSystemMetricsForDpi", &pGetSystemMetricsForDpi },
+{ "GetWindowDpiAwarenessContext", &pGetWindowDpiAwarenessContext },
+{ "AreDpiAwarenessContextsEqual", &pAreDpiAwarenessContextsEqual },
+{ NULL,		NULL		}
+};
+
+int
+win_get_dpi(HWND hwnd) {
+    if (user32_handle != NULL) {
+        return pGetDpiForWindow(hwnd);
+    } else {
+        HDC dc = GetDC(hwnd);
+        UINT dpi = GetDeviceCaps(dc, LOGPIXELSX);
+        ReleaseDC(hwnd, dc);
+        return dpi;
+    }
+}
+
+int win_get_system_metrics(int index, int dpi) {
+    if (user32_handle != NULL) {
+        /* Only call GetSystemMetricsForDpi when we are using PMv2 */
+        DPI_AWARENESS_CONTEXT c = pGetWindowDpiAwarenessContext(hwndMain);
+        if (pAreDpiAwarenessContextsEqual(c, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
+            return pGetSystemMetricsForDpi(index, dpi);
+    }
+    
+    return GetSystemMetrics(index);
+}
+
+void
+ResizeWindowByClientArea(HWND hwnd, int width, int height)
+{
+	if (vid_resize || padded_frame) {
+		int padding = win_get_system_metrics(SM_CXPADDEDBORDER, dpi);
+		width  += (win_get_system_metrics(SM_CXFRAME, dpi) + padding) * 2;
+		height += (win_get_system_metrics(SM_CYFRAME, dpi) + padding) * 2;
+	} else {
+		width  += win_get_system_metrics(SM_CXFIXEDFRAME, dpi) * 2;
+		height += win_get_system_metrics(SM_CYFIXEDFRAME, dpi) * 2;
+	}
+
+	height += win_get_system_metrics(SM_CYCAPTION, dpi);
+	height += win_get_system_metrics(SM_CYBORDER, dpi) + win_get_system_metrics(SM_CYMENUSIZE, dpi);
+
+	SetWindowPos(hwnd, NULL, 0, 0, width, height, SWP_NOMOVE);
+}
 
 /* Set host cursor visible or not. */
 void
@@ -168,6 +226,7 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_SCALE_1X+1, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SCALE_1X+2, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SCALE_1X+3, MF_UNCHECKED);
+	CheckMenuItem(menuMain, IDM_VID_HIDPI, MF_UNCHECKED);
 
     CheckMenuItem(menuMain, IDM_VID_CGACON, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_GRAYCT_601+0, MF_UNCHECKED);
@@ -217,6 +276,7 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+video_fullscreen_scale, MF_CHECKED);
     CheckMenuItem(menuMain, IDM_VID_REMEMBER, window_remember?MF_CHECKED:MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SCALE_1X+scale, MF_CHECKED);
+	CheckMenuItem(menuMain, IDM_VID_HIDPI, dpi_scale?MF_CHECKED:MF_UNCHECKED);
 
     CheckMenuItem(menuMain, IDM_VID_CGACON, vid_cga_contrast?MF_CHECKED:MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_GRAYCT_601+video_graytype, MF_CHECKED);
@@ -290,8 +350,8 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HMENU hmenu;
 
-    int i, sb_borders[3];
-    RECT rect;
+    int i;
+    RECT rect, *rect_p;
 
     int temp_x, temp_y;
 
@@ -392,42 +452,28 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				if (vid_resize)
 					SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW) | WS_VISIBLE);
-				  else
-					SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW & ~WS_SIZEBOX & ~WS_THICKFRAME & ~WS_MAXIMIZEBOX) | WS_VISIBLE);
+				else
+					SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW & ~WS_SIZEBOX & ~WS_MAXIMIZEBOX) | WS_VISIBLE);
 
-				SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
-
-				GetWindowRect(hwnd, &rect);
-
-				/* Main Window. */
-				if (GetSystemMetrics(SM_CXPADDEDBORDER) == 0) {
-					/* For platforms that subsystem version < 6.0 (default on mingw/msys2) */
-					/* In this case, border sizes are different between resizable and non-resizable window */
-					MoveWindow(hwnd, rect.left, rect.top,
-						unscaled_size_x + (GetSystemMetrics(vid_resize ? SM_CXSIZEFRAME : SM_CXFIXEDFRAME) * 2),
-						unscaled_size_y + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + (GetSystemMetrics(SM_CYBORDER) + GetSystemMetrics(SM_CYMENUSIZE)) + GetSystemMetrics(SM_CYCAPTION) + sbar_height,
-						TRUE);
+				/* scale the screen base on DPI */
+				if (dpi_scale) {
+					temp_x = MulDiv(unscaled_size_x, dpi, 96);
+					temp_y = MulDiv(unscaled_size_y, dpi, 96);
 				} else {
-					/* For platforms that subsystem version >= 6.0 (default on llvm-mingw, mainly for Windows/ARM) */
-					/* In this case, border sizes are the same between resizable and non-resizable window */
-					MoveWindow(hwnd, rect.left, rect.top,
-						unscaled_size_x + ((GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER)) * 2),
-						unscaled_size_y + ((GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER)) * 2) + (GetSystemMetrics(SM_CYBORDER) + GetSystemMetrics(SM_CYMENUSIZE)) + GetSystemMetrics(SM_CYCAPTION) + sbar_height,
-						TRUE);
+					temp_x = unscaled_size_x;
+					temp_y = unscaled_size_y;
 				}
+				/* Main Window. */				
+				ResizeWindowByClientArea(hwnd, temp_x, temp_y + sbar_height);
 
 				/* Render window. */
-				MoveWindow(hwndRender, 0, 0, unscaled_size_x, unscaled_size_y, TRUE);
+				MoveWindow(hwndRender, 0, 0, temp_x, temp_y, TRUE);
 				GetWindowRect(hwndRender, &rect);
 
 				/* Status bar. */
-				MoveWindow(hwndSBAR,
-					   0, rect.bottom + GetSystemMetrics(SM_CYEDGE),
-					   unscaled_size_x, 17, TRUE);
+				MoveWindow(hwndSBAR, 0, rect.bottom, temp_x, 17, TRUE);
 
 				if (mouse_capture) {
-					GetWindowRect(hwndRender, &rect);
-
 					ClipCursor(&rect);
 				}
 
@@ -440,6 +486,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				EnableMenuItem(hmenu, IDM_VID_SCALE_2X, vid_resize ? MF_GRAYED : MF_ENABLED);
 				EnableMenuItem(hmenu, IDM_VID_SCALE_3X, vid_resize ? MF_GRAYED : MF_ENABLED);
 				EnableMenuItem(hmenu, IDM_VID_SCALE_4X, vid_resize ? MF_GRAYED : MF_ENABLED);
+
+				scrnsz_x = unscaled_size_x;
+				scrnsz_y = unscaled_size_y;
 				doresize = 1;
 				config_save();
 				break;
@@ -493,6 +542,13 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				CheckMenuItem(hmenu, IDM_VID_SCALE_1X+scale, MF_CHECKED);
 				device_force_redraw();
 				video_force_resize_set(1);
+				config_save();
+				break;
+
+			case IDM_VID_HIDPI:
+				dpi_scale = !dpi_scale;
+				CheckMenuItem(hmenu, IDM_VID_HIDPI, dpi_scale ? MF_CHECKED : MF_UNCHECKED);
+				doresize = 1;
 				config_save();
 				break;
 
@@ -624,11 +680,21 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_ENTERMENULOOP:
 		break;
 
+	case WM_DPICHANGED:
+		dpi = HIWORD(wParam);
+		GetWindowRect(hwndSBAR, &rect);
+		sbar_height = rect.bottom - rect.top;
+		rect_p = (RECT*)lParam;
+		if (vid_resize) {
+			MoveWindow(hwnd, rect_p->left, rect_p->top, rect_p->right - rect_p->left, rect_p->bottom - rect_p->top, TRUE);
+		} else if (!user_resize) {
+			doresize = 1;
+		}
+		break;
+
 	case WM_SIZE:
 		if (user_resize && !vid_resize)
 			break;
-
-		SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
 
 		temp_x = (lParam & 0xFFFF);
 		temp_y = (lParam >> 16);
@@ -646,26 +712,22 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (temp_y < 1)
 			temp_y = 1;
 
-		if ((temp_x != scrnsz_x) || (temp_y != scrnsz_y))
+		if (vid_resize && ((temp_x != scrnsz_x) || (temp_y != scrnsz_y))) {
+			scrnsz_x = temp_x;
+			scrnsz_y = temp_y;
 			doresize = 1;
+		}
 
-		scrnsz_x = temp_x;
-		scrnsz_y = temp_y;
-
-		MoveWindow(hwndRender, 0, 0, scrnsz_x, scrnsz_y, TRUE);
+		MoveWindow(hwndRender, 0, 0, temp_x, temp_y, TRUE);
 
 		GetWindowRect(hwndRender, &rect);
 
 		/* Status bar. */
-		MoveWindow(hwndSBAR,
-			   0, rect.bottom + GetSystemMetrics(SM_CYEDGE),
-			   scrnsz_x, 17, TRUE);
+		MoveWindow(hwndSBAR, 0, rect.bottom, temp_x, 17, TRUE);
 
-		plat_vidsize(scrnsz_x, scrnsz_y);
+		plat_vidsize(temp_x, temp_y);
 
 		if (mouse_capture) {
-			GetWindowRect(hwndRender, &rect);
-
 			ClipCursor(&rect);
 		}
 
@@ -894,6 +956,9 @@ ui_init(int nCmdShow)
     TASKDIALOGCONFIG tdconfig = {0};
     TASKDIALOG_BUTTON tdbuttons[] = {{IDCANCEL, MAKEINTRESOURCE(IDS_2119)}};
 
+    /* Load DPI related Windows 10 APIs */
+    user32_handle = dynld_module("user32.dll", user32_imports);
+
     /* Set up TaskDialog configuration. */
     tdconfig.cbSize = sizeof(tdconfig);
     tdconfig.dwFlags = TDF_ENABLE_HYPERLINKS;
@@ -973,6 +1038,19 @@ ui_init(int nCmdShow)
 
     ui_window_title(title);
 
+	/* Get the current DPI */
+	dpi = win_get_dpi(hwndMain);
+
+	/* Check if we have a padded window frame */
+	padded_frame = (GetSystemMetrics(SM_CXPADDEDBORDER) != 0);
+
+    /* Create the status bar window. */
+    StatusBarCreate(hwndMain, IDC_STATUS, hinstance);
+
+	/* Get the actual height of the status bar */
+	GetWindowRect(hwndSBAR, &sbar_rect);
+	sbar_height = sbar_rect.bottom - sbar_rect.top;
+
     /* Set up main window for resizing if configured. */
     if (vid_resize)
 	SetWindowLongPtr(hwnd, GWL_STYLE,
@@ -1018,15 +1096,6 @@ ui_init(int nCmdShow)
 
     /* Initialize the mouse module. */
     win_mouse_init();
-
-    /* Create the status bar window. */
-    StatusBarCreate(hwndMain, IDC_STATUS, hinstance);
-
-	/* Get the actual height of the statusbar, 
-	 * since that is not something we can change.
-	 */
-	GetWindowRect(hwndSBAR, &sbar_rect);
-	sbar_height = sbar_rect.bottom - sbar_rect.top;
 
     /*
      * Before we can create the Render window, we first have
@@ -1137,6 +1206,9 @@ ui_init(int nCmdShow)
     discord_close();
 #endif
 
+	if (user32_handle != NULL)
+    	dynld_close(user32_handle);
+
     return(messages.wParam);
 }
 
@@ -1218,42 +1290,26 @@ plat_pause(int p)
 void
 plat_resize(int x, int y)
 {
-    int sb_borders[3];
     RECT r;
 
     /* First, see if we should resize the UI window. */
     if (!vid_resize) {
 	video_wait_for_blit();
 
-	SendMessage(hwndSBAR, SB_GETBORDERS, 0, (LPARAM) sb_borders);
 
-	GetWindowRect(hwndMain, &r);
-
-	if (GetSystemMetrics(SM_CXPADDEDBORDER) == 0) {
-		/* For platforms that subsystem version < 6.0 (gcc on mingw/msys2) */
-		/* In this case, border sizes are different between resizable and non-resizable window */
-		MoveWindow(hwndMain, r.left, r.top,
-			x + (GetSystemMetrics(vid_resize ? SM_CXSIZEFRAME : SM_CXFIXEDFRAME) * 2),
-			y + (GetSystemMetrics(vid_resize ? SM_CYSIZEFRAME : SM_CYFIXEDFRAME) * 2) + (GetSystemMetrics(SM_CYBORDER) + GetSystemMetrics(SM_CYMENUSIZE)) + GetSystemMetrics(SM_CYCAPTION) + sbar_height,
-			TRUE);
-	} else {
-		/* For platforms that subsystem version >= 6.0 (clang/llvm on llvm-mingw, mainly for Windows/ARM) */
-		/* In this case, border sizes are the same between resizable and non-resizable window */
-		MoveWindow(hwndMain, r.left, r.top,
-			x + ((GetSystemMetrics(SM_CXFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER)) * 2),
-			y + ((GetSystemMetrics(SM_CYFRAME) + GetSystemMetrics(SM_CXPADDEDBORDER)) * 2) + (GetSystemMetrics(SM_CYBORDER) + GetSystemMetrics(SM_CYMENUSIZE)) + GetSystemMetrics(SM_CYCAPTION) + sbar_height,
-			TRUE);
+	/* scale the screen base on DPI */
+	if (dpi_scale) {
+		x = MulDiv(x, dpi, 96);
+		y = MulDiv(y, dpi, 96);
 	}
+	ResizeWindowByClientArea(hwndMain, x, y + sbar_height);
 
 	MoveWindow(hwndRender, 0, 0, x, y, TRUE);
 	GetWindowRect(hwndRender, &r);
 
-	MoveWindow(hwndSBAR,
-		   0, r.bottom + GetSystemMetrics(SM_CYEDGE),
-		   x, 17, TRUE);
+	MoveWindow(hwndSBAR, 0, y, x, 17, TRUE);
 
 	if (mouse_capture) {
-		GetWindowRect(hwndRender, &r);
 		ClipCursor(&r);
 	}
     }

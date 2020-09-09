@@ -71,6 +71,7 @@
 
 
 static int first_cat = 0;
+static int dpi = 96;
 
 /* Machine category */
 static int temp_machine_type, temp_machine, temp_cpu_m, temp_cpu, temp_wait_states, temp_fpu, temp_sync;
@@ -153,8 +154,11 @@ image_list_init(HWND hwndList, const uint8_t *icon_ids)
 
     int i = 0;
 
-    hSmall = ImageList_Create(GetSystemMetrics(SM_CXSMICON),
-			      GetSystemMetrics(SM_CYSMICON),
+	hSmall = ListView_GetImageList(hwndList, LVSIL_SMALL);
+	if (hSmall != 0) ImageList_Destroy(hSmall);
+
+    hSmall = ImageList_Create(win_get_system_metrics(SM_CXSMICON, dpi),
+			      win_get_system_metrics(SM_CYSMICON, dpi),
 			      ILC_MASK | ILC_COLOR32, 1, 1);
 
     while(1) {
@@ -2680,6 +2684,16 @@ win_settings_hard_disks_recalc_list(HWND hwndList)
     return TRUE;
 }
 
+static void
+win_settings_hard_disks_resize_columns(HWND hwndList)
+{
+    int iCol;
+	/* Bus, File, Cylinders, Heads, Sectors, Size */
+	int width[C_COLUMNS_HARD_DISKS] = {130, 130, 41, 25, 25, 41};
+    for (iCol = 0; iCol < C_COLUMNS_HARD_DISKS; iCol++) {
+		ListView_SetColumnWidth(hwndList, iCol, MulDiv(width[iCol], dpi, 96));
+	}
+}
 
 static BOOL
 win_settings_hard_disks_init_columns(HWND hwndList)
@@ -2695,7 +2709,7 @@ win_settings_hard_disks_init_columns(HWND hwndList)
 
 	switch(iCol) {
 		case 0: /* Bus */
-			lvc.cx = 135;
+			lvc.cx = 130;
 			lvc.fmt = LVCFMT_LEFT;
 			break;
 		case 2: /* Cylinders */
@@ -2708,7 +2722,7 @@ win_settings_hard_disks_init_columns(HWND hwndList)
 			lvc.fmt = LVCFMT_RIGHT;
 			break;
 		case 1: /* File */
-			lvc.cx = 150;
+			lvc.cx = 130;
 			lvc.fmt = LVCFMT_LEFT;
 			break;
 		case 5: /* Size (MB) 8 */
@@ -2721,6 +2735,7 @@ win_settings_hard_disks_init_columns(HWND hwndList)
 		return FALSE;
     }
 
+	win_settings_hard_disks_resize_columns(hwndList);
     return TRUE;
 }
 
@@ -3682,6 +3697,11 @@ hd_bus_skip:
 				return FALSE;
 		}
 
+	case WM_DPICHANGED_AFTERPARENT:
+		h = GetDlgItem(hdlg, IDC_LIST_HARD_DISKS);
+		win_settings_hard_disks_resize_columns(h);
+		image_list_init(h, (const uint8_t *) hd_icons);
+		break;
 	default:
 		return FALSE;
     }
@@ -3920,6 +3940,14 @@ win_settings_zip_drives_recalc_list(HWND hwndList)
 }
 
 
+static void
+win_settings_floppy_drives_resize_columns(HWND hwndList)
+{
+	ListView_SetColumnWidth(hwndList, 0, MulDiv(250, dpi, 96));
+	ListView_SetColumnWidth(hwndList, 1, MulDiv(50, dpi, 96));
+	ListView_SetColumnWidth(hwndList, 2, MulDiv(75, dpi, 96));
+}
+
 static BOOL
 win_settings_floppy_drives_init_columns(HWND hwndList)
 {
@@ -3930,7 +3958,7 @@ win_settings_floppy_drives_init_columns(HWND hwndList)
     lvc.iSubItem = 0;
     lvc.pszText = plat_get_string(IDS_2092);
 
-    lvc.cx = 292;
+    lvc.cx = 250;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 0, &lvc) == -1)
@@ -3952,11 +3980,19 @@ win_settings_floppy_drives_init_columns(HWND hwndList)
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 2, &lvc) == -1)
-	return FALSE;
+		return FALSE;
 
+	win_settings_floppy_drives_resize_columns(hwndList);
     return TRUE;
 }
 
+
+static void
+win_settings_cdrom_drives_resize_columns(HWND hwndList)
+{
+	ListView_SetColumnWidth(hwndList, 0, MulDiv(342, dpi, 96));
+	ListView_SetColumnWidth(hwndList, 1, MulDiv(50, dpi, 96));
+}
 
 static BOOL
 win_settings_cdrom_drives_init_columns(HWND hwndList)
@@ -3981,11 +4017,18 @@ win_settings_cdrom_drives_init_columns(HWND hwndList)
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 1, &lvc) == -1)
-	return FALSE;
+		return FALSE;
 
+	win_settings_cdrom_drives_resize_columns(hwndList);
     return TRUE;
 }
 
+static void
+win_settings_mo_drives_resize_columns(HWND hwndList)
+{
+	ListView_SetColumnWidth(hwndList, 0, MulDiv(120, dpi, 96));
+	ListView_SetColumnWidth(hwndList, 1, MulDiv(260, dpi, 96));
+}
 
 static BOOL
 win_settings_mo_drives_init_columns(HWND hwndList)
@@ -4010,11 +4053,18 @@ win_settings_mo_drives_init_columns(HWND hwndList)
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 1, &lvc) == -1)
-	return FALSE;
+		return FALSE;
 
+	win_settings_mo_drives_resize_columns(hwndList);
     return TRUE;
 }
 
+static void
+win_settings_zip_drives_resize_columns(HWND hwndList)
+{
+	ListView_SetColumnWidth(hwndList, 0, MulDiv(342, dpi, 96));
+	ListView_SetColumnWidth(hwndList, 1, MulDiv(50, dpi, 96));
+}
 
 static BOOL
 win_settings_zip_drives_init_columns(HWND hwndList)
@@ -4039,8 +4089,9 @@ win_settings_zip_drives_init_columns(HWND hwndList)
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 1, &lvc) == -1)
-	return FALSE;
+		return FALSE;
 
+	win_settings_zip_drives_resize_columns(hwndList);
     return TRUE;
 }
 
@@ -4856,6 +4907,14 @@ win_settings_floppy_and_cdrom_drives_proc(HWND hdlg, UINT message, WPARAM wParam
 		}
 		ignore_change = 0;
 
+	case WM_DPICHANGED_AFTERPARENT:
+		h = GetDlgItem(hdlg, IDC_LIST_FLOPPY_DRIVES);
+		win_settings_floppy_drives_resize_columns(h);
+		image_list_init(h, (const uint8_t *) fd_icons);
+		h = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
+		win_settings_cdrom_drives_resize_columns(h);
+		image_list_init(h, (const uint8_t *) cd_icons);
+		break;
 	default:
 		return FALSE;
     }
@@ -5122,6 +5181,14 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 		}
 		ignore_change = 0;
 
+	case WM_DPICHANGED_AFTERPARENT:
+		h = GetDlgItem(hdlg, IDC_LIST_MO_DRIVES);
+		win_settings_mo_drives_resize_columns(h);
+		image_list_init(h, (const uint8_t *) mo_icons);
+		h = GetDlgItem(hdlg, IDC_LIST_ZIP_DRIVES);
+		win_settings_zip_drives_resize_columns(h);
+		image_list_init(h, (const uint8_t *) zip_icons);
+		break;
 	default:
 		return FALSE;
     }
@@ -5244,6 +5311,7 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
     switch (message) {
 	case WM_INITDIALOG:
+		dpi = win_get_dpi(hdlg);
 		win_settings_init();
 		displayed_category = -1;
 		h = GetDlgItem(hdlg, IDC_SETTINGSCATLIST);
@@ -5276,6 +5344,11 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				win_notify_dlg_closed();
 	                        return TRUE;
 		}
+		break;
+	case WM_DPICHANGED:
+		dpi = HIWORD(wParam);
+		h = GetDlgItem(hdlg, IDC_SETTINGSCATLIST);
+		image_list_init(h, (const uint8_t *) cat_icons);
 		break;
 	default:
 		return FALSE;

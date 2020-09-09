@@ -116,6 +116,7 @@ int	window_w, window_h,			/* (C) window size and */
 	invert_display = 0,			/* (C) invert the display */
 	suppress_overscan = 0;			/* (C) suppress overscans */
 int	scale = 0;				/* (C) screen scale factor */
+int dpi_scale = 0;             /* (C) DPI scaling of the emulated screen */
 int	vid_api = 0;				/* (C) video renderer */
 int	vid_cga_contrast = 0,			/* (C) video */
 	video_fullscreen = 0,			/* (C) video */

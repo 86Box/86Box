@@ -255,7 +255,7 @@ pc87309_write(uint16_t port, uint8_t val, void *priv)
 	case 0x61:
 		switch (dev->regs[0x07]) {
 			case 0x00:
-				dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30] = val & 0xfa;
+				dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30] = (val & 0xfa) | 0x02;
 				fdc_handler(dev);
 				break;
 			case 0x01:
@@ -460,8 +460,13 @@ pc87309_init(const device_t *info)
 
     pc87309_reset(dev);
 
-    io_sethandler(0x02e, 0x0002,
-		  pc87309_read, NULL, NULL, pc87309_write, NULL, NULL, dev);
+    if (info->local & 0x100) {
+	io_sethandler(0x15c, 0x0002,
+		      pc87309_read, NULL, NULL, pc87309_write, NULL, NULL, dev);
+    } else {
+	io_sethandler(0x02e, 0x0002,
+		      pc87309_read, NULL, NULL, pc87309_write, NULL, NULL, dev);
+    }
 
     return dev;
 }
@@ -471,6 +476,16 @@ const device_t pc87309_device = {
     "National Semiconductor PC87309 Super I/O",
     0,
     0xe0,
+    pc87309_init, pc87309_close, NULL,
+    NULL, NULL, NULL,
+    NULL
+};
+
+
+const device_t pc87309_15c_device = {
+    "National Semiconductor PC87309 Super I/O (Port 15Ch)",
+    0,
+    0x1e0,
     pc87309_init, pc87309_close, NULL,
     NULL, NULL, NULL,
     NULL

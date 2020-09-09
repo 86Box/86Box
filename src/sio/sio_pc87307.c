@@ -157,7 +157,7 @@ fdc_handler(pc87307_t *dev)
     addr = ((dev->ld_regs[0x03][0x30] << 8) | dev->ld_regs[0x03][0x31]) - 0x0002;
     irq = (dev->ld_regs[0x03][0x40] & 0x0f);
 
-    if (active && (addr <= 0xfff2)) {
+    if (active && (addr <= 0xfff8)) {
 	fdc_set_base(dev->fdc, addr);
 	fdc_set_irq(dev->fdc, irq);
     }
@@ -322,7 +322,7 @@ pc87307_write(uint16_t port, uint8_t val, void *priv)
 				dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30] = val & 0xfb;
 				break;
 			case 0x03:
-				dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30] = val & 0xfa;
+				dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30] = (val & 0xfa) | 0x02;
 				fdc_handler(dev);
 				break;
 			case 0x04:
@@ -542,8 +542,13 @@ pc87307_init(const device_t *info)
 
     pc87307_reset(dev);
 
-    io_sethandler(0x02e, 0x0002,
-		  pc87307_read, NULL, NULL, pc87307_write, NULL, NULL, dev);
+    if (info->local & 0x100) {
+	io_sethandler(0x15c, 0x0002,
+		      pc87307_read, NULL, NULL, pc87307_write, NULL, NULL, dev);
+    } else {
+	io_sethandler(0x02e, 0x0002,
+		      pc87307_read, NULL, NULL, pc87307_write, NULL, NULL, dev);
+    }
 
     return dev;
 }
@@ -553,6 +558,16 @@ const device_t pc87307_device = {
     "National Semiconductor PC87307 Super I/O",
     0,
     0xc0,
+    pc87307_init, pc87307_close, NULL,
+    NULL, NULL, NULL,
+    NULL
+};
+
+
+const device_t pc87307_15c_device = {
+    "National Semiconductor PC87307 Super I/O (Port 15Ch)",
+    0,
+    0x1c0,
     pc87307_init, pc87307_close, NULL,
     NULL, NULL, NULL,
     NULL

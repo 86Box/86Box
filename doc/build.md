@@ -2,7 +2,7 @@ Building
 ========
 In order to compile 86Box from this repository, please follow this step-by-step guide:
 
-1. Install the [MSYS2](https://www.msys2.org/) environment. The rest of the guide will refer to the directory that you install it to (C:\msys32 or C:\msys64 by default) as the MSYS2 root.
+1. Install the [MSYS2](https://www.msys2.org/) environment. The rest of the guide will refer to the directory that you install it to (`C:\msys32` or `C:\msys64` by default) as the MSYS2 root.
 
 2. Launch your MSYS2 environment using the `MSYS2 MinGW 32-bit` shortcut. If you do not want to use the shortcut, launch it using the `mingw32.exe` executable in the MSYS2 root.
 

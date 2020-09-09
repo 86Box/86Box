@@ -459,7 +459,8 @@ load_general(void)
     force_43 = !!config_get_int(cat, "force_43", 0);
     scale = config_get_int(cat, "scale", 1);
     if (scale > 3)
-	scale = 3;
+        scale = 3;
+    dpi_scale = config_get_int(cat, "dpi_scale", 1);
 
     enable_overscan = !!config_get_int(cat, "enable_overscan", 0);
     vid_cga_contrast = !!config_get_int(cat, "vid_cga_contrast", 0);
@@ -1604,6 +1605,11 @@ save_general(void)
 	config_delete_var(cat, "scale");
       else
 	config_set_int(cat, "scale", scale);
+
+    if (dpi_scale == 1)
+	config_delete_var(cat, "dpi_scale");
+      else
+	config_set_int(cat, "dpi_scale", dpi_scale);
 
     if (enable_overscan == 0)
 	config_delete_var(cat, "enable_overscan");
