@@ -153,8 +153,8 @@ extern CPU	cpus_i486[];
 extern CPU	cpus_Am486[];
 extern CPU	cpus_Cx486[];
 #if defined(DEV_BRANCH) && defined(USE_STPC)
-extern CPU	cpus_STPC6675[];
-extern CPU	cpus_STPC133[];
+extern CPU	cpus_STPCDX[];
+extern CPU	cpus_STPCDX2[];
 #endif
 extern CPU	cpus_WinChip[];
 extern CPU	cpus_WinChip_SS7[];
