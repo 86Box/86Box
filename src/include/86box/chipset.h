@@ -26,6 +26,9 @@ extern const device_t	ali1429_device;
 #if defined(DEV_BRANCH) && defined(USE_M1489)
 extern const device_t	ali1489_device;
 #endif
+#if defined(DEV_BRANCH) && defined(USE_STPC)
+extern const device_t	ali6117d_device;
+#endif
 
 /* AMD */
 extern const device_t	amd640_device;

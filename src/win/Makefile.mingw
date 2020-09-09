@@ -560,7 +560,7 @@ endif
 
 ifeq ($(STPC), y)
 OPTS		+= -DUSE_STPC
-DEVBROBJ	+= stpc.o
+DEVBROBJ	+= ali6117.o stpc.o
 endif
 
 ifeq ($(M1489), y)
@@ -601,7 +601,7 @@ endif
 
 # Final versions of the toolchain flags.
 CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
-		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall \
+		   $(AFLAGS) -mstackrealign -Wall \
 		   -fno-strict-aliasing
 
 # Add freetyp2 references through pkgconfig
