@@ -180,7 +180,8 @@ const machine_t machines[] = {
     { "[Intel 82335] ADI 386SX",		"adi386sx",		MACHINE_TYPE_386SX,		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										512, 8192, 128, 127,	     machine_at_adi386sx_init, NULL			},
     { "[OPTi 291] DTK PPM-3333P",		"awardsx",		MACHINE_TYPE_386SX,		{{"Intel", cpus_i386SX},      {"AMD", cpus_Am386SX}, {"Cyrix", cpus_486SLC}, {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT,										  1,   16,   1, 127,	      machine_at_awardsx_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_M6117)
-    { "[ALi M6117D] Acrosser PJ-A511M",		"pja511m",		MACHINE_TYPE_386SX,		{{"ALi", cpus_ALiM6117},      {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,						  1,   64,   1, 127,	      machine_at_pja511m_init, NULL			},
+    { "[ALi M6117D] Acrosser AR-B1375",		"arb1375",		MACHINE_TYPE_386SX,		{{"ALi", cpus_ALiM6117},      {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,						  1,   32,   1, 127,	      machine_at_arb1375_init, NULL			},
+    { "[ALi M6117D] Acrosser PJ-A511M",		"pja511m",		MACHINE_TYPE_386SX,		{{"ALi", cpus_ALiM6117},      {"",      NULL},       {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,						  1,   32,   1, 127,	      machine_at_pja511m_init, NULL			},
 #endif
   
     /* 386SX machines which utilize the MCA bus */

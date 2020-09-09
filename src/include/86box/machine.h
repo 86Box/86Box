@@ -243,6 +243,7 @@ extern int	machine_at_wd76c10_init(const machine_t *);
 
 extern int	machine_at_awardsx_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_M6117)
+extern int	machine_at_arb1375_init(const machine_t *);
 extern int	machine_at_pja511m_init(const machine_t *);
 #endif
 

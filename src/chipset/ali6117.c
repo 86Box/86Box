@@ -77,7 +77,7 @@ ali6117_recalcmapping(ali6117_t *dev)
     shadowbios = 0;
     shadowbios_write = 0;
 
-    ali6117_log("M6117: Shadowing for 0xa0000-0xbffff (reg %02X) = %s\n", (dev->regs[0x12] & 0x02) ? "on" : "off");
+    ali6117_log("M6117: Shadowing for a0000-bffff (reg 12) = %s\n", (dev->regs[0x12] & 0x02) ? "on" : "off");
     mem_set_mem_state(0xa0000, 0x20000, (dev->regs[0x12] & 0x02) ? (MEM_WRITE_INTERNAL | MEM_READ_INTERNAL) : (MEM_WRITE_EXTANY | MEM_READ_EXTANY));
 
     for (reg = 0; reg <= 1; reg++) {
