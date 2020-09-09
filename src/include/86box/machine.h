@@ -241,7 +241,10 @@ extern int	machine_at_adi386sx_init(const machine_t *);
 extern int	machine_at_commodore_sl386sx_init(const machine_t *);
 extern int	machine_at_wd76c10_init(const machine_t *);
 
-extern int  machine_at_awardsx_init(const machine_t *);
+extern int	machine_at_awardsx_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(USE_M6117)
+extern int	machine_at_pja511m_init(const machine_t *);
+#endif
 
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_ama932j_get_device(void);

@@ -211,6 +211,18 @@ CPU cpus_Am386DX[] = {
     {"",             -1,                   0, 0,      0, 0, 0, 0, 0,0,0,0, 0}
 };
 
+
+#if defined(DEV_BRANCH) && defined(USE_M6117)
+/* All M6117 timings and edx_reset values assumed. */
+CPU cpus_ALiM6117[] = {
+    /*i386DX/RapidCAD*/
+    {"M6117/66",    CPU_386DX,      fpus_80386,  66666666, 1, 0x2308, 0, 0, 0, 3,3,3,3, 2},
+    {"M6117/80",    CPU_386DX,      fpus_80386,  80000000, 1, 0x2308, 0, 0, 0, 4,4,3,3, 3},
+    {"",             -1,                   0, 0,      0, 0, 0, 0, 0,0,0,0, 0}
+};
+#endif
+
+
 CPU cpus_486SLC[] = {
     /*Cx486SLC*/
     {"Cx486SLC/20",  CPU_486SLC, fpus_80386, 20000000, 1, 0x400, 0, 0x0000, 0, 4,4,3,3, 3},

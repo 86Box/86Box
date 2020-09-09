@@ -138,6 +138,9 @@ extern CPU	cpus_i386SX[];
 extern CPU	cpus_i386DX[];
 extern CPU	cpus_Am386SX[];
 extern CPU	cpus_Am386DX[];
+#if defined(DEV_BRANCH) && defined(USE_M6117)
+extern CPU	cpus_ALiM6117[];
+#endif
 extern CPU	cpus_486SLC[];
 extern CPU	cpus_486DLC[];
 extern CPU	cpus_IBM386SLC[];
