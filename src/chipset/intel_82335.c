@@ -57,9 +57,7 @@
 #define ro_shadow (MEM_READ_INTERNAL | MEM_WRITE_DISABLED)
 
 #define extended_granuality_enabled (dev->reg_2c & 0x01)
-#define determine_video_ram_write_acess ((dev->reg_22 & (0x08 << 8)) ? rw_shadow : ro_shadow)
-
-#define ENABLE_INTEL_82335_LOG 1
+#define determine_video_ram_write_access ((dev->reg_22 & (0x08 << 8)) ? rw_shadow : ro_shadow)
 
 typedef struct
 {
@@ -104,7 +102,7 @@ intel_82335_write(uint16_t addr, uint16_t val, void *priv)
     {
     mem_set_mem_state_both(0xa0000, 0x20000, (dev->reg_22 & (0x04 << 8)) ? enabled_shadow : disabled_shadow);
     mem_set_mem_state_both(0xc0000, 0x20000, (dev->reg_22 & (0x02 << 8)) ? enabled_shadow : disabled_shadow);
-    mem_set_mem_state_both(0xe0000, 0x20000, (dev->reg_22 & 0x01) ? determine_video_ram_write_acess : disabled_shadow);
+    mem_set_mem_state_both(0xe0000, 0x20000, (dev->reg_22 & 0x01) ? determine_video_ram_write_access : disabled_shadow);
     }
     break;
 
