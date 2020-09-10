@@ -38,8 +38,6 @@
 #define extended_granuality_enabled (dev->regs[0x2c] & 0x01)
 #define determine_video_ram_write_access ((dev->regs[0x22] & (0x08 << 8)) ? rw_shadow : ro_shadow)
 
-#define ENABLE_INTEL_82335_LOG 1
-
 typedef struct
 {
 
