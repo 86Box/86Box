@@ -222,7 +222,6 @@ machine_at_px286_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_goldstar386_init(const machine_t *model)
 {
@@ -440,7 +439,7 @@ machine_at_shuttle386sx_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add(&i82335_device);
+    device_add(&intel_82335_device);
     device_add(&keyboard_at_ami_device);
     device_add(&fdc_at_device);
 
@@ -462,7 +461,7 @@ machine_at_adi386sx_init(const machine_t *model)
 
     machine_at_common_init(model);
 
-    device_add(&i82335_device);
+    device_add(&intel_82335_device);
     device_add(&keyboard_at_ami_device);
     device_add(&fdc_at_device);
 

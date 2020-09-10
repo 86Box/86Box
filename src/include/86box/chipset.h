@@ -45,7 +45,7 @@ extern const device_t	headland_ht18b_device;
 extern const device_t	headland_ht18c_device;
 
 /* Intel */
-extern const device_t   i82335_device;
+extern const device_t   intel_82335_device;
 extern const device_t	i420ex_device;
 extern const device_t	i420tx_device;
 extern const device_t	i420zx_device;
