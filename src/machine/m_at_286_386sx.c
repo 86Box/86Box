@@ -36,6 +36,7 @@
 #include <86box/hdc.h>
 #include <86box/sio.h>
 #include <86box/video.h>
+#include <86box/flash.h>
 #include <86box/machine.h>
 
 int
@@ -544,3 +545,50 @@ machine_at_awardsx_init(const machine_t *model)
 
     return ret;
 }
+
+
+#if defined(DEV_BRANCH) && defined(USE_M6117)
+int
+machine_at_arb1375_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/arb1375/a1375v25.u11-a",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&fdc37c669_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&ali6117d_device);
+    device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
+
+
+int
+machine_at_pja511m_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/pja511m/2006915102435734.rom",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add_inst(&fdc37c669_device, 1);
+    //device_add_inst(&fdc37c669_device, 2); /* enable when dual FDC37C669 is implemented */
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&ali6117d_device);
+    device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
+#endif

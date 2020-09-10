@@ -84,6 +84,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef M1489
   M1489		:= y
  endif
+ ifndef M6117
+  M6117		:= y
+ endif
  ifndef VGAWONDER
   VGAWONDER	:= y
  endif
@@ -162,6 +165,9 @@ else
  endif
  ifndef M1489
   M1489		:= n
+ endif
+ ifndef M6117
+  M6117		:= n
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
@@ -568,6 +574,11 @@ OPTS		+= -DUSE_M1489
 DEVBROBJ	+= ali1489.o
 endif
 
+ifeq ($(M6117), y)
+OPTS		+= -DUSE_M6117
+DEVBROBJ	+= ali6117.o
+endif
+
 ifeq ($(596B), y)
 OPTS		+= -DUSE_596B
 endif
@@ -601,7 +612,7 @@ endif
 
 # Final versions of the toolchain flags.
 CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
-		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall \
+		   $(AFLAGS) -mstackrealign -Wall \
 		   -fno-strict-aliasing
 
 # Add freetyp2 references through pkgconfig

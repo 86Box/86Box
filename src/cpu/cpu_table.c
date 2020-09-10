@@ -211,6 +211,18 @@ CPU cpus_Am386DX[] = {
     {"",             -1,                   0, 0,      0, 0, 0, 0, 0,0,0,0, 0}
 };
 
+
+#if defined(DEV_BRANCH) && defined(USE_M6117)
+/* All M6117 timings and edx_reset values assumed. */
+CPU cpus_ALiM6117[] = {
+    /*i386DX/RapidCAD*/
+    {"M6117/33",    CPU_386DX,      fpus_80386,  33333333, 1, 0x2308, 0, 0, 0, 6,6,3,3, 4},
+    {"M6117/40",    CPU_386DX,      fpus_80386,  40000000, 1, 0x2308, 0, 0, 0, 7,7,3,3, 5},
+    {"",             -1,                   0, 0,      0, 0, 0, 0, 0,0,0,0, 0}
+};
+#endif
+
+
 CPU cpus_486SLC[] = {
     /*Cx486SLC*/
     {"Cx486SLC/20",  CPU_486SLC, fpus_80386, 20000000, 1, 0x400, 0, 0x0000, 0, 4,4,3,3, 3},
@@ -374,14 +386,14 @@ CPU cpus_Cx486[] = {
 
 #if defined(DEV_BRANCH) && defined(USE_STPC)
 /* All STPC timings and Cyrix CPUID values assumed. */
-CPU cpus_STPC6675[] = {
-    {"STPC 66",      CPU_Cx486DX,  fpus_internal,  66666666, 1.0, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC, 7, 7, 3, 3,  5},
-    {"STPC 75",      CPU_Cx486DX,  fpus_internal,  75000000, 1.0, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC, 7, 7, 3, 3,  5},
+CPU cpus_STPCDX[] = {
+    {"STPC-DX/66",      CPU_Cx486DX,  fpus_internal,  66666666, 1.0, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC, 7, 7, 3, 3,  5},
+    {"STPC-DX/75",      CPU_Cx486DX,  fpus_internal,  75000000, 1.0, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC, 7, 7, 3, 3,  5},
     {"",             -1,                   0, 0,     0, 0,      0,                    0,  0, 0, 0, 0,  0}
 };
 
-CPU cpus_STPC133[] = {
-    {"STPC 133",     CPU_Cx486DX2, fpus_internal, 133333333, 2.0, 0x430, 0, 0x0b1b, CPU_SUPPORTS_DYNAREC, 14,14, 6, 6, 10},
+CPU cpus_STPCDX2[] = {
+    {"STPC-DX2/133",     CPU_Cx486DX2, fpus_internal, 133333333, 2.0, 0x430, 0, 0x0b1b, CPU_SUPPORTS_DYNAREC, 14,14, 6, 6, 10},
     {"",             -1,                   0, 0,     0, 0,      0,                    0,  0, 0, 0, 0,  0}
 };
 #endif
