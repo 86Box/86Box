@@ -38,6 +38,9 @@
 #define extended_granuality_enabled (dev->regs[0x2c] & 0x01)
 #define determine_video_ram_write_access ((dev->regs[0x22] & (0x08 << 8)) ? rw_shadow : ro_shadow)
 
+#define enable_top_128kb (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL)
+#define disable_top_128kb (MEM_READ_DISABLED | MEM_WRITE_DISABLED)
+
 typedef struct
 {
 
@@ -83,6 +86,7 @@ intel_82335_write(uint16_t addr, uint16_t val, void *priv)
 	case 0x22:
     if (!extended_granuality_enabled)
     {
+    mem_set_mem_state_both(0x80000, 0x20000, (dev->regs[0x22] & 0x08) ? enable_top_128kb : disable_top_128kb);
     mem_set_mem_state_both(0xa0000, 0x20000, (dev->regs[0x22] & (0x04 << 8)) ? determine_video_ram_write_access : disabled_shadow);
     mem_set_mem_state_both(0xc0000, 0x20000, (dev->regs[0x22] & (0x02 << 8)) ? rw_shadow : disabled_shadow);
     mem_set_mem_state_both(0xe0000, 0x20000, (dev->regs[0x22] & 0x01) ? rw_shadow : disabled_shadow);
