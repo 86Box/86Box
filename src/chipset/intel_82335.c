@@ -179,7 +179,7 @@ intel_82335_init(const device_t *info)
     io_sethandler(0x0028, 0x0001, NULL, intel_82335_read, NULL, NULL, intel_82335_write, NULL, dev);
     io_sethandler(0x002a, 0x0001, NULL, intel_82335_read, NULL, NULL, intel_82335_write, NULL, dev);
 
-    /* granularity Enable */
+    /* Granularity Enable */
     io_sethandler(0x002c, 0x0001, NULL, intel_82335_read, NULL, NULL, intel_82335_write, NULL, dev);
 
     /* Extended granularity */
