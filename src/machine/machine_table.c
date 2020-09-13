@@ -270,6 +270,7 @@ const machine_t machines[] = {
 
     /* Socket 5 machines */
     /* 430NX */
+    { "[i430NX] Gateway 2000 Plato",		"gw2k_pci2",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  2,  128,   2, 127,	    machine_at_gw2k_pci2_init, NULL			},
     { "[i430NX] Intel Premiere/PCI II",		"plato",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  2,  128,   2, 127,		machine_at_plato_init, NULL			},
     { "[i430NX] IBM Ambra DP90 PCI",		"ambradp90",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  2,  128,   2, 127,	    machine_at_ambradp90_init, NULL			},
     { "[i430NX] Gigabyte GA-586IP",		"430nx",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  2,  128,   2, 127,		machine_at_430nx_init, NULL			},
@@ -287,7 +288,7 @@ const machine_t machines[] = {
     /* 430FX */
     { "[i430FX-3V] ASUS P/I-P54TP4XE",		"p54tp4xe",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	     machine_at_p54tp4xe_init, NULL			},
     { "[i430FX-3V] ASUS P/I-P54TP4XE (MR BIOS)","mr586",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC | MACHINE_PS2,					  8,  128,   8, 127,	        machine_at_mr586_init, NULL			},
-    { "[i430FX-3V] Gateway 2000 P5-xxx",	"gw2katx",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	      machine_at_gw2katx_init, NULL			},
+    { "[i430FX-3V] Gateway 2000 Thor",		"gw2katx",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	      machine_at_gw2katx_init, NULL			},
     { "[i430FX-3V] Intel Advanced/ATX",		"thor",			MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,		 machine_at_thor_init, NULL			},
     { "[i430FX-3V] Intel Advanced/ATX (MR BIOS)","mrthor",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 127,	       machine_at_mrthor_init, NULL			},
     { "[i430FX-3V] Intel Advanced/EV",		"endeavor",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,			  8,  128,   8, 127,	     machine_at_endeavor_init, at_endeavor_get_device	},
