@@ -320,6 +320,25 @@ machine_at_plato_init(const machine_t *model)
 
 
 int
+machine_at_gw2k_pci2_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_combined(L"roms/machines/plato/1012ax1t.bio",
+				    L"roms/machines/plato/1012ax1t.bi1", 0x1d000, 128);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_premiere_common_init(model, PCI_CAN_SWITCH_TYPE);
+
+    device_add(&i430nx_device);
+
+    return ret;
+}
+
+
+int
 machine_at_ambradp90_init(const machine_t *model)
 {
     int ret;
