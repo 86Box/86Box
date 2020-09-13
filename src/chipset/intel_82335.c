@@ -32,23 +32,23 @@
 #include <86box/chipset.h>
 
 /* Shadow capabilities */
-#define disabled_shadow (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
-#define rw_shadow (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL)
-#define ro_shadow (MEM_READ_INTERNAL | MEM_WRITE_DISABLED)
+#define DISABLED_SHADOW (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
+#define RW_SHADOW (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL)
+#define RO_SHADOW (MEM_READ_INTERNAL | MEM_WRITE_DISABLED)
 
 /* Granularity Register Enable & Recalc */
-#define extended_granularity_enabled (dev->regs[0x2c] & 0x01)
-#define granularity_recalc ((dev->regs[0x2e] & (1 << (i+8))) ? ((dev->regs[0x2e] & (1 << i)) ? ro_shadow : rw_shadow) : disabled_shadow)
+#define EXTENDED_GRANULARITY_ENABLED (dev->regs[0x2c] & 0x01)
+#define GRANULARITY_RECALC ((dev->regs[0x2e] & (1 << (i+8))) ? ((dev->regs[0x2e] & (1 << i)) ? RO_SHADOW : RW_SHADOW) : DISABLED_SHADOW)
 
 /* R/W operator for the Video RAM region */
-#define determine_video_ram_write_access ((dev->regs[0x22] & (0x08 << 8)) ? rw_shadow : ro_shadow)
+#define DETERMINE_VIDEO_RAM_WRITE_ACCESS ((dev->regs[0x22] & (0x08 << 8)) ? RW_SHADOW : RO_SHADOW)
 
 /* Base System 512/640KB switch */
-#define enable_top_128kb (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL)
-#define disable_top_128kb (MEM_READ_DISABLED | MEM_WRITE_DISABLED)
+#define ENABLE_TOP_128KB (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL)
+#define DISABLE_TOP_128KB (MEM_READ_DISABLED | MEM_WRITE_DISABLED)
 
 /* ROM size determination */
-#define rom_size ((dev->regs[0x22] & (0x01 << 8)) ? 0xe0000 : 0xf0000)
+#define ROM_SIZE ((dev->regs[0x22] & (0x01 << 8)) ? 0xe0000 : 0xf0000)
 
 typedef struct
 {
@@ -96,36 +96,36 @@ intel_82335_write(uint16_t addr, uint16_t val, void *priv)
 	case 0x22: /* Memory Controller */
 
     /* Check if the ROM chips are 256 or 512Kbit (Just for Shadowing sanity) */
-    romsize = rom_size; 
+    romsize = ROM_SIZE; 
 
-    if (!extended_granularity_enabled)
+    if (!EXTENDED_GRANULARITY_ENABLED)
     {
     shadowbios = (dev->regs[0x22] & 0x01);
     shadowbios_write = (dev->regs[0x22] & 0x01);
 
     /* Base System 512/640KB set */
-    mem_set_mem_state_both(0x80000, 0x20000, (dev->regs[0x22] & 0x08) ? enable_top_128kb : disable_top_128kb);
+    mem_set_mem_state_both(0x80000, 0x20000, (dev->regs[0x22] & 0x08) ? ENABLE_TOP_128KB : DISABLE_TOP_128KB);
 
     /* Video RAM shadow*/
-    mem_set_mem_state_both(0xa0000, 0x20000, (dev->regs[0x22] & (0x04 << 8)) ? determine_video_ram_write_access : disabled_shadow);
+    mem_set_mem_state_both(0xa0000, 0x20000, (dev->regs[0x22] & (0x04 << 8)) ? DETERMINE_VIDEO_RAM_WRITE_ACCESS : DISABLED_SHADOW);
 
     /* Option ROM shadow */
-    mem_set_mem_state_both(0xc0000, 0x20000, (dev->regs[0x22] & (0x02 << 8)) ? rw_shadow : disabled_shadow);
+    mem_set_mem_state_both(0xc0000, 0x20000, (dev->regs[0x22] & (0x02 << 8)) ? RW_SHADOW : DISABLED_SHADOW);
 
     /* System ROM shadow */
-    mem_set_mem_state_both(0xe0000, 0x20000, (dev->regs[0x22] & 0x01) ? rw_shadow : disabled_shadow);
+    mem_set_mem_state_both(0xe0000, 0x20000, (dev->regs[0x22] & 0x01) ? RW_SHADOW : DISABLED_SHADOW);
     }
     break;
 
 	case 0x2e: /* Extended Granularity (Enabled if Bit 0 in Register 2Ch is set) */
-    if(extended_granularity_enabled)
+    if(EXTENDED_GRANULARITY_ENABLED)
     {
     for(i=0; i<8; i++)
     {
         base = 0xc0000 + (i << 15);
         shadowbios = (dev->regs[0x2e] & (1 << (i+8))) && (base == romsize);
         shadowbios_write = (dev->regs[0x2e] & (1 << i)) && (base == romsize);
-        mem_set_mem_state_both(base, 0x8000, granularity_recalc);
+        mem_set_mem_state_both(base, 0x8000, GRANULARITY_RECALC);
     }
     break;
     }
