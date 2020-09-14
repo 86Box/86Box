@@ -31,8 +31,11 @@
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
+#define ENABLE_INTEL_82335_LOG 1
+
 /* Shadow capabilities */
 #define DISABLED_SHADOW (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
+#define ENABLED_SHADOW ((LOCK_STATUS) ? RO_SHADOW : RW_SHADOW)
 #define RW_SHADOW (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL)
 #define RO_SHADOW (MEM_READ_INTERNAL | MEM_WRITE_DISABLED)
 
@@ -45,10 +48,13 @@
 
 /* Base System 512/640KB switch */
 #define ENABLE_TOP_128KB (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL)
-#define DISABLE_TOP_128KB (MEM_READ_DISABLED | MEM_WRITE_DISABLED)
+#define DISABLE_TOP_128KB (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
 
 /* ROM size determination */
 #define ROM_SIZE ((dev->regs[0x22] & (0x01 << 8)) ? 0xe0000 : 0xf0000)
+
+/* Lock status */
+#define LOCK_STATUS (dev->regs[0x22] & (0x80 << 8))
 
 typedef struct
 {
@@ -84,9 +90,6 @@ intel_82335_write(uint16_t addr, uint16_t val, void *priv)
 
     dev->regs[addr] = val;
 
-    /* Unlock/Lock configuration registers */
-    dev->cfg_locked = (dev->regs[0x22] & (0x80 << 8));
-
     if(!dev->cfg_locked)
     {
 
@@ -110,10 +113,10 @@ intel_82335_write(uint16_t addr, uint16_t val, void *priv)
     mem_set_mem_state_both(0xa0000, 0x20000, (dev->regs[0x22] & (0x04 << 8)) ? DETERMINE_VIDEO_RAM_WRITE_ACCESS : DISABLED_SHADOW);
 
     /* Option ROM shadow */
-    mem_set_mem_state_both(0xc0000, 0x20000, (dev->regs[0x22] & (0x02 << 8)) ? RW_SHADOW : DISABLED_SHADOW);
+    mem_set_mem_state_both(0xc0000, 0x20000, (dev->regs[0x22] & (0x02 << 8)) ? ENABLED_SHADOW : DISABLED_SHADOW);
 
     /* System ROM shadow */
-    mem_set_mem_state_both(0xe0000, 0x20000, (dev->regs[0x22] & 0x01) ? RW_SHADOW : DISABLED_SHADOW);
+    mem_set_mem_state_both(0xe0000, 0x20000, (dev->regs[0x22] & 0x01) ? ENABLED_SHADOW : DISABLED_SHADOW);
     }
     break;
 
@@ -131,6 +134,9 @@ intel_82335_write(uint16_t addr, uint16_t val, void *priv)
     }
     }
     }
+
+    /* Unlock/Lock configuration registers */
+    dev->cfg_locked = LOCK_STATUS;
 
 }
 
@@ -182,7 +188,7 @@ intel_82335_init(const device_t *info)
     /* Granularity Enable */
     io_sethandler(0x002c, 0x0001, NULL, intel_82335_read, NULL, NULL, intel_82335_write, NULL, dev);
 
-    /* Extended granularity */
+    /* Extended Granularity */
 	io_sethandler(0x002e, 0x0001, NULL, intel_82335_read, NULL, NULL, intel_82335_write, NULL, dev);
     
     return dev;
