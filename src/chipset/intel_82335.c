@@ -31,8 +31,6 @@
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
-#define ENABLE_INTEL_82335_LOG 1
-
 /* Shadow capabilities */
 #define DISABLED_SHADOW (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
 #define ENABLED_SHADOW ((LOCK_STATUS) ? RO_SHADOW : RW_SHADOW)
