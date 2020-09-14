@@ -28,7 +28,6 @@
 #include <86box/mem.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
-#include <86box/port_92.h>
 #include <86box/chipset.h>
 
 /* Shadow capabilities */
@@ -165,7 +164,6 @@ intel_82335_init(const device_t *info)
     intel_82335_t *dev = (intel_82335_t *) malloc(sizeof(intel_82335_t));
     memset(dev, 0, sizeof(intel_82335_t));
 
-    device_add(&port_92_device);
     memset(dev->regs, 0, sizeof(dev->regs));
 
     dev->regs[0x28] = 0xf9;
