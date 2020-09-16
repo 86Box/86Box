@@ -134,7 +134,6 @@ intel_82335_write(uint16_t addr, uint16_t val, void *priv)
 
     /* Unlock/Lock configuration registers */
     dev->cfg_locked = LOCK_STATUS;
-
 }
 
 
@@ -164,11 +163,7 @@ intel_82335_init(const device_t *info)
     intel_82335_t *dev = (intel_82335_t *) malloc(sizeof(intel_82335_t));
     memset(dev, 0, sizeof(intel_82335_t));
 
-    memset(dev->regs, 0, sizeof(dev->regs));
-
-    dev->regs[0x28] = 0xf9;
-
-    dev->cfg_locked = 1;
+    dev->cfg_locked = 0;
 
     /* Memory Configuration */
     io_sethandler(0x0022, 0x0001, NULL, intel_82335_read, NULL, NULL, intel_82335_write, NULL, dev);
@@ -187,6 +182,12 @@ intel_82335_init(const device_t *info)
     /* Extended Granularity */
 	io_sethandler(0x002e, 0x0001, NULL, intel_82335_read, NULL, NULL, intel_82335_write, NULL, dev);
     
+    /* Default Programming(Fixes Shadowing failures on the ADI 386SX) */
+    for(uint16_t i=0x0022; i<0x002f; i=i+0x0002)
+    intel_82335_write(i, 0x0000, dev);
+
+    intel_82335_write(0x0028, 0x00f9, dev);
+
     return dev;
 }
 
