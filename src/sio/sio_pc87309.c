@@ -420,7 +420,7 @@ pc87309_reset(pc87309_t *dev)
     dev->regs[0x12] = 0x30;
     dev->regs[0x19] = 0xEF;
 
-    dev->pm[0] = 0xe9;
+    dev->pm[0] = 0x79;
     dev->pm[4] = 0x0e;
 
     dev->pm_base = 0xffff;
