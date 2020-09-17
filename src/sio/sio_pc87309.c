@@ -56,10 +56,9 @@ pc87309_pm_write(uint16_t port, uint8_t val, void *priv)
 {
     pc87309_t *dev = (pc87309_t *) priv;
 
-    if (port & 1)
+    if (port & 1) {
 	dev->pm[dev->pm_idx] = val;
-    else {
-	dev->pm_idx = val & 0x07;
+
 	switch (dev->pm_idx) {
 		case 0x00:
 			fdc_handler(dev);
@@ -68,7 +67,8 @@ pc87309_pm_write(uint16_t port, uint8_t val, void *priv)
 			serial_handler(dev, 0);
 			break;
 	}
-    }
+    } else
+	dev->pm_idx = val & 0x07;
 }
 
 
