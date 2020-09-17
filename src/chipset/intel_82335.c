@@ -28,18 +28,30 @@
 #include <86box/mem.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
-#include <86box/port_92.h>
 #include <86box/chipset.h>
 
-#define disabled_shadow (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
-#define rw_shadow (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL)
-#define ro_shadow (MEM_READ_INTERNAL | MEM_WRITE_DISABLED)
+/* Shadow capabilities */
+#define DISABLED_SHADOW (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
+#define ENABLED_SHADOW ((LOCK_STATUS) ? RO_SHADOW : RW_SHADOW)
+#define RW_SHADOW (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL)
+#define RO_SHADOW (MEM_READ_INTERNAL | MEM_WRITE_DISABLED)
 
-#define extended_granuality_enabled (dev->regs[0x2c] & 0x01)
-#define determine_video_ram_write_access ((dev->regs[0x22] & (0x08 << 8)) ? rw_shadow : ro_shadow)
+/* Granularity Register Enable & Recalc */
+#define EXTENDED_GRANULARITY_ENABLED (dev->regs[0x2c] & 0x01)
+#define GRANULARITY_RECALC ((dev->regs[0x2e] & (1 << (i+8))) ? ((dev->regs[0x2e] & (1 << i)) ? RO_SHADOW : RW_SHADOW) : DISABLED_SHADOW)
 
-#define enable_top_128kb (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL)
-#define disable_top_128kb (MEM_READ_DISABLED | MEM_WRITE_DISABLED)
+/* R/W operator for the Video RAM region */
+#define DETERMINE_VIDEO_RAM_WRITE_ACCESS ((dev->regs[0x22] & (0x08 << 8)) ? RW_SHADOW : RO_SHADOW)
+
+/* Base System 512/640KB switch */
+#define ENABLE_TOP_128KB (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL)
+#define DISABLE_TOP_128KB (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
+
+/* ROM size determination */
+#define ROM_SIZE ((dev->regs[0x22] & (0x01 << 8)) ? 0xe0000 : 0xf0000)
+
+/* Lock status */
+#define LOCK_STATUS (dev->regs[0x22] & (0x80 << 8))
 
 typedef struct
 {
@@ -71,11 +83,9 @@ static void
 intel_82335_write(uint16_t addr, uint16_t val, void *priv)
 {
     intel_82335_t *dev = (intel_82335_t *) priv;
-    uint32_t base, i;
+    uint32_t romsize = 0, base = 0, i = 0;
 
     dev->regs[addr] = val;
-
-    dev->cfg_locked = (dev->regs[0x22] & (0x80 << 8));
 
     if(!dev->cfg_locked)
     {
@@ -83,29 +93,47 @@ intel_82335_write(uint16_t addr, uint16_t val, void *priv)
     intel_82335_log("Register %02x: Write %04x\n", addr, val);
 
     switch (addr) {
-	case 0x22:
-    if (!extended_granuality_enabled)
+	case 0x22: /* Memory Controller */
+
+    /* Check if the ROM chips are 256 or 512Kbit (Just for Shadowing sanity) */
+    romsize = ROM_SIZE; 
+
+    if (!EXTENDED_GRANULARITY_ENABLED)
     {
-    mem_set_mem_state_both(0x80000, 0x20000, (dev->regs[0x22] & 0x08) ? enable_top_128kb : disable_top_128kb);
-    mem_set_mem_state_both(0xa0000, 0x20000, (dev->regs[0x22] & (0x04 << 8)) ? determine_video_ram_write_access : disabled_shadow);
-    mem_set_mem_state_both(0xc0000, 0x20000, (dev->regs[0x22] & (0x02 << 8)) ? rw_shadow : disabled_shadow);
-    mem_set_mem_state_both(0xe0000, 0x20000, (dev->regs[0x22] & 0x01) ? rw_shadow : disabled_shadow);
+    shadowbios = (dev->regs[0x22] & 0x01);
+    shadowbios_write = (dev->regs[0x22] & 0x01);
+
+    /* Base System 512/640KB set */
+    mem_set_mem_state_both(0x80000, 0x20000, (dev->regs[0x22] & 0x08) ? ENABLE_TOP_128KB : DISABLE_TOP_128KB);
+
+    /* Video RAM shadow*/
+    mem_set_mem_state_both(0xa0000, 0x20000, (dev->regs[0x22] & (0x04 << 8)) ? DETERMINE_VIDEO_RAM_WRITE_ACCESS : DISABLED_SHADOW);
+
+    /* Option ROM shadow */
+    mem_set_mem_state_both(0xc0000, 0x20000, (dev->regs[0x22] & (0x02 << 8)) ? ENABLED_SHADOW : DISABLED_SHADOW);
+
+    /* System ROM shadow */
+    mem_set_mem_state_both(0xe0000, 0x20000, (dev->regs[0x22] & 0x01) ? ENABLED_SHADOW : DISABLED_SHADOW);
     }
     break;
 
-	case 0x2e:
-    if(extended_granuality_enabled)
+	case 0x2e: /* Extended Granularity (Enabled if Bit 0 in Register 2Ch is set) */
+    if(EXTENDED_GRANULARITY_ENABLED)
     {
     for(i=0; i<8; i++)
     {
         base = 0xc0000 + (i << 15);
-        mem_set_mem_state_both(base, 0x8000, (dev->regs[0x2e] & (1 << (i+8))) ? ((dev->regs[0x2e] & (1 << i)) ? ro_shadow : rw_shadow) : disabled_shadow);
+        shadowbios = (dev->regs[0x2e] & (1 << (i+8))) && (base == romsize);
+        shadowbios_write = (dev->regs[0x2e] & (1 << i)) && (base == romsize);
+        mem_set_mem_state_both(base, 0x8000, GRANULARITY_RECALC);
     }
     break;
     }
     }
     }
 
+    /* Unlock/Lock configuration registers */
+    dev->cfg_locked = LOCK_STATUS;
 }
 
 
@@ -114,7 +142,7 @@ intel_82335_read(uint16_t addr, void *priv)
 {
     intel_82335_t *dev = (intel_82335_t *) priv;
 
-    intel_82335_log("Register %02x: Reading\n", addr);
+    intel_82335_log("Register %02x: Read %04x\n", addr, dev->regs[addr]);
 
     return dev->regs[addr];
 
@@ -135,12 +163,11 @@ intel_82335_init(const device_t *info)
     intel_82335_t *dev = (intel_82335_t *) malloc(sizeof(intel_82335_t));
     memset(dev, 0, sizeof(intel_82335_t));
 
-    device_add(&port_92_device);
     memset(dev->regs, 0, sizeof(dev->regs));
 
     dev->regs[0x28] = 0xf9;
 
-    dev->cfg_locked = 1;
+    dev->cfg_locked = 0;
 
     /* Memory Configuration */
     io_sethandler(0x0022, 0x0001, NULL, intel_82335_read, NULL, NULL, intel_82335_write, NULL, dev);
@@ -153,10 +180,10 @@ intel_82335_init(const device_t *info)
     io_sethandler(0x0028, 0x0001, NULL, intel_82335_read, NULL, NULL, intel_82335_write, NULL, dev);
     io_sethandler(0x002a, 0x0001, NULL, intel_82335_read, NULL, NULL, intel_82335_write, NULL, dev);
 
-    /* Granuality Enable */
+    /* Granularity Enable */
     io_sethandler(0x002c, 0x0001, NULL, intel_82335_read, NULL, NULL, intel_82335_write, NULL, dev);
 
-    /* Extended Granuality */
+    /* Extended Granularity */
 	io_sethandler(0x002e, 0x0001, NULL, intel_82335_read, NULL, NULL, intel_82335_write, NULL, dev);
     
     return dev;
