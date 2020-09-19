@@ -660,7 +660,7 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_at_socket8.o m_at_slot1.o m_at_slot2.o m_at_socket370.o \
 			m_at_misc.o
 
-DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o ibm_5161.o isamem.o isartc.o lpt.o postcard.o serial.o vpc2007.o \
+DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o ibm_5161.o isamem.o isartc.o lpt.o pci_bridge.o postcard.o serial.o vpc2007.o \
 		    smbus.o smbus_piix4.o \
 		   keyboard.o \
 		    keyboard_xt.o keyboard_at.o \

@@ -37,7 +37,7 @@
 
 
 typedef struct {
-    uint8_t	id, type;
+    uint8_t	bus, id, type;
     uint8_t	irq_routing[4];
 
     void	*priv;
@@ -53,10 +53,12 @@ typedef struct {
 
 int			pci_burst_time,
 			pci_nonburst_time;
+uint8_t			last_pci_bus = 1;
+uint8_t			pci_bus_number_to_index_mapping[256];
 
 static pci_card_t	pci_cards[32];
-static uint8_t		pci_pmc = 0, last_pci_card = 0;
-static uint8_t		pci_card_to_slot_mapping[32];
+static uint8_t		pci_pmc = 0, last_pci_card = 0, last_normal_pci_card = 0;
+static uint8_t		pci_card_to_slot_mapping[256][32];
 static uint8_t		elcr[2] = { 0, 0 };
 static uint8_t		pci_irqs[4], pci_irq_level[4];
 static uint64_t		pci_irq_hold[16];
@@ -121,7 +123,7 @@ pci_write(uint16_t port, uint8_t val, void *priv)
     uint8_t slot = 0;
 
     if (in_smm)
-    	pci_log("(%i) %03x write: %02X\n", pci_enable, port, val);
+	pci_log("(%i) %03x write: %02X\n", pci_enable, port, val);
 
     switch (port) {
 	case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff:
@@ -129,24 +131,22 @@ pci_write(uint16_t port, uint8_t val, void *priv)
 			return;
 		   
 		pci_log("Writing %02X to PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", val, pci_bus, pci_card, slot, pci_func, pci_index);
-		if (! pci_bus) {
-			slot = pci_card_to_slot_mapping[pci_card];
-			if (slot != 0xff) {
-				if (pci_cards[slot].write) {
-					pci_log("Writing to PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
-					pci_cards[slot].write(pci_func, pci_index | (port & 3), val, pci_cards[slot].priv);
-				}
-#ifdef ENABLE_PCI_LOG
-				else
-					pci_log("Writing to empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
-#endif
+		slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
+		if (slot != 0xff) {
+			if (pci_cards[slot].write) {
+				pci_log("Writing to PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+				pci_cards[slot].write(pci_func, pci_index | (port & 3), val, pci_cards[slot].priv);
 			}
 #ifdef ENABLE_PCI_LOG
 			else
-				pci_log("Writing to unassigned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+				pci_log("Writing to empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
 #endif
 		}
-		
+#ifdef ENABLE_PCI_LOG
+		else
+			pci_log("Writing to unassigned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+#endif
+
 		break;
     }
 }
@@ -166,24 +166,22 @@ pci_read(uint16_t port, void *priv)
 		if (! pci_enable) 
 			return 0xff;
 
-		if (! pci_bus) {
-			slot = pci_card_to_slot_mapping[pci_card];
-			if (slot != 0xff) {
-				if (pci_cards[slot].read)
-					ret = pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
-#ifdef ENABLE_PCI_LOG
-				else
-					pci_log("Reading from empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
-#endif
-			}
+		slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
+		if (slot != 0xff) {
+			if (pci_cards[slot].read)
+				ret = pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
 #ifdef ENABLE_PCI_LOG
 			else
-				pci_log("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+				pci_log("Reading from empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
 #endif
 		}
-
-		pci_log("Reading %02X, from PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", ret, pci_bus, pci_card, slot, pci_func, pci_index);
+#ifdef ENABLE_PCI_LOG
+		else
+			pci_log("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+#endif
     }
+
+    pci_log("Reading %02X, from PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", ret, pci_bus, pci_card, slot, pci_func, pci_index);
 
     return ret;
 }
@@ -285,21 +283,19 @@ pci_type2_write(uint16_t port, uint8_t val, void *priv)
 	pci_card = (port >> 8) & 0xf;
 	pci_index = port & 0xff;
 
-	if (! pci_bus) {
-		slot = pci_card_to_slot_mapping[pci_card];
-		if (slot != 0xff) {
-			if (pci_cards[slot].write)
-				pci_cards[slot].write(pci_func, pci_index | (port & 3), val, pci_cards[slot].priv);
-#ifdef ENABLE_PCI_LOG
-			else
-				pci_log("Writing to empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
-#endif
-		}
+	slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
+	if (slot != 0xff) {
+		if (pci_cards[slot].write)
+			pci_cards[slot].write(pci_func, pci_index | (port & 3), val, pci_cards[slot].priv);
 #ifdef ENABLE_PCI_LOG
 		else
-			pci_log("Writing to unassigned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+			pci_log("Writing to empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
 #endif
 	}
+#ifdef ENABLE_PCI_LOG
+	else
+		pci_log("Writing to unassigned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+#endif
     }
 }
 
@@ -319,21 +315,19 @@ pci_type2_read(uint16_t port, void *priv)
     pci_card = (port >> 8) & 0xf;
     pci_index = port & 0xff;
 
-    if (! pci_bus) {
-	slot = pci_card_to_slot_mapping[pci_card];
-	if (slot != 0xff) {
-		if (pci_cards[slot].read)
-			return pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
-#ifdef ENABLE_PCI_LOG
-		else
-			pci_log("Reading from empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
-#endif
-	}
+    slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
+    if (slot != 0xff) {
+	if (pci_cards[slot].read)
+		return pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
 #ifdef ENABLE_PCI_LOG
 	else
-		pci_log("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+		pci_log("Reading from empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
 #endif
     }
+#ifdef ENABLE_PCI_LOG
+    else
+	pci_log("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+#endif
 
     return 0xff;
 }
@@ -450,7 +444,7 @@ pci_set_mirq(uint8_t mirq, int level)
 
 
 void
-pci_set_irq(uint8_t card, uint8_t pci_int)
+pci_set_irq(int card, uint8_t pci_int)
 {
     uint8_t slot = 0;
     uint8_t irq_routing = 0;
@@ -464,7 +458,7 @@ pci_set_irq(uint8_t card, uint8_t pci_int)
     }
     pci_log("pci_set_irq(%02X, %02X): %i PCI slots\n", card, pci_int, last_pci_card);
 
-    slot = pci_card_to_slot_mapping[card];
+    slot = pci_card_to_slot_mapping[(card >> 5) & 0xff][card & 31];
     if (slot == 0xff) {
 	pci_log("pci_set_irq(%02X, %02X): Card is not on a PCI slot (how are we even here?!)\n", card, pci_int);
 	return;
@@ -492,7 +486,7 @@ pci_set_irq(uint8_t card, uint8_t pci_int)
     } else
 	pci_log("pci_set_irq(%02X, %02X): Using IRQ %i\n", card, pci_int, irq_line);
 
-    if (pci_irq_is_level(irq_line) && (pci_irq_hold[irq_line] & (1ULL << card))) {
+    if (pci_irq_is_level(irq_line) && (pci_irq_hold[irq_line] & (1ULL << slot))) {
 	/* IRQ already held, do nothing. */
 	pci_log("pci_set_irq(%02X, %02X): Card is already holding the IRQ\n", card, pci_int);
 	return;
@@ -514,7 +508,7 @@ pci_set_irq(uint8_t card, uint8_t pci_int)
     /* If the IRQ is level-triggered, mark that this card is holding it. */
     if (level) {
 	pci_log("pci_set_irq(%02X, %02X): Marking that this card is holding the IRQ\n", card, pci_int);
-	pci_irq_hold[irq_line] |= (1ULL << card);
+	pci_irq_hold[irq_line] |= (1ULL << slot);
     } else {
 	pci_log("pci_set_irq(%02X, %02X): Edge-triggered interrupt, not marking\n", card, pci_int);
     }
@@ -556,7 +550,7 @@ pci_clear_mirq(uint8_t mirq, int level)
 
 	if (! pci_irq_hold[irq_line]) {
 		pci_log("pci_clear_mirq(%02X): IRQ no longer held by any card, clearing it\n", mirq);
-       		picintc(1 << irq_line);
+   		picintc(1 << irq_line);
 	} else {
 		pci_log("pci_clear_mirq(%02X): IRQ is still being held\n", mirq);
 	}
@@ -568,7 +562,7 @@ pci_clear_mirq(uint8_t mirq, int level)
 
 
 void
-pci_clear_irq(uint8_t card, uint8_t pci_int)
+pci_clear_irq(int card, uint8_t pci_int)
 {
     uint8_t slot = 0;
     uint8_t irq_routing = 0;
@@ -582,7 +576,7 @@ pci_clear_irq(uint8_t card, uint8_t pci_int)
     }
     pci_log("pci_clear_irq(%02X, %02X): %i PCI slots\n", card, pci_int, last_pci_card);
 
-    slot = pci_card_to_slot_mapping[card];
+    slot = pci_card_to_slot_mapping[(card >> 5) & 0xff][card & 31];
     if (slot == 0xff) {
 	pci_log("pci_clear_irq(%02X, %02X): Card is not on a PCI slot (how are we even here?!)\n", card, pci_int);
 	return;
@@ -611,7 +605,7 @@ pci_clear_irq(uint8_t card, uint8_t pci_int)
 
     pci_log("pci_clear_irq(%02X, %02X): Using IRQ %i\n", card, pci_int, irq_line);
 
-    if (level && !(pci_irq_hold[irq_line] & (1ULL << card))) {
+    if (level && !(pci_irq_hold[irq_line] & (1ULL << slot))) {
 	/* IRQ not held, do nothing. */
 	pci_log("pci_clear_irq(%02X, %02X): Card is not holding the IRQ\n", card, pci_int);
 	return;
@@ -619,11 +613,11 @@ pci_clear_irq(uint8_t card, uint8_t pci_int)
 
     if (level) {
 	pci_log("pci_clear_irq(%02X, %02X): Releasing this card's hold on the IRQ\n", card, pci_int);
-	pci_irq_hold[irq_line] &= ~(1 << card);
+	pci_irq_hold[irq_line] &= ~(1 << slot);
 
 	if (! pci_irq_hold[irq_line]) {
 		pci_log("pci_clear_irq(%02X, %02X): IRQ no longer held by any card, clearing it\n", card, pci_int);
-       		picintc(1 << irq_line);
+   		picintc(1 << irq_line);
 	} else {
 		pci_log("pci_clear_irq(%02X, %02X): IRQ is still being held\n", card, pci_int);
 	}
@@ -631,6 +625,17 @@ pci_clear_irq(uint8_t card, uint8_t pci_int)
 	pci_log("pci_clear_irq(%02X, %02X): Clearing edge-triggered interrupt\n", card, pci_int);
 	picintc(1 << irq_line);
     }
+}
+
+
+uint8_t
+pci_get_int(int card, uint8_t pci_int)
+{
+    uint8_t slot = pci_card_to_slot_mapping[(card >> 5) & 0xff][card & 31];
+    if (slot == 0xff)
+	return 0xff;
+
+    return pci_cards[slot].irq_routing[pci_int - PCI_INTA];
 }
 
 
@@ -704,7 +709,7 @@ pci_slots_clear(void)
 {
     uint8_t i, j;
 
-    last_pci_card = 0;
+    last_pci_card = last_normal_pci_card = 0;
 
     for (i = 0; i < 32; i++) {
 	pci_cards[i].id = 0xFF;
@@ -716,9 +721,16 @@ pci_slots_clear(void)
 	pci_cards[i].read = NULL;
 	pci_cards[i].write = NULL;
 	pci_cards[i].priv = NULL;
-
-	pci_card_to_slot_mapping[i] = 0xFF;
     }
+
+    i = 0;
+    do {
+	for (j = 0; j < 32; j++)
+		pci_card_to_slot_mapping[i][j] = 0xFF;
+	pci_bus_number_to_index_mapping[i] = 0xFF;
+    } while (i++ < 0xff);
+
+    pci_bus_number_to_index_mapping[0] = 0; /* always map bus 0 to index 0 */
 }
 
 
@@ -859,8 +871,16 @@ pci_init(int type)
 void
 pci_register_slot(int card, int type, int inta, int intb, int intc, int intd)
 {
+    pci_register_bus_slot(0, card, type, inta, intb, intc, intd);
+}
+
+
+void
+pci_register_bus_slot(int bus, int card, int type, int inta, int intb, int intc, int intd)
+{
     pci_card_t *dev = &pci_cards[last_pci_card];
 
+    dev->bus = bus;
     dev->id = card;
     dev->type = type;
     dev->irq_routing[0] = inta;
@@ -870,15 +890,17 @@ pci_register_slot(int card, int type, int inta, int intb, int intc, int intd)
     dev->read = NULL;
     dev->write = NULL;
     dev->priv = NULL;
-    pci_card_to_slot_mapping[card] = last_pci_card;
+    pci_card_to_slot_mapping[bus][card] = last_pci_card;
 
-    pci_log("pci_register_slot(): pci_cards[%i].id = %02X\n", last_pci_card, card);
+    pci_log("pci_register_slot(): pci_cards[%i].bus = %02X; .id = %02X\n", last_pci_card, bus, card);
 
+    if (type == PCI_CARD_NORMAL)
+	last_normal_pci_card = last_pci_card;
     last_pci_card++;
 }
 
 
-uint8_t
+int
 pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv)
 {
     pci_card_t *dev;
@@ -889,12 +911,12 @@ pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), 
 
     if (! PCI) {
 	pci_log("pci_add_card(): Adding PCI CARD failed (non-PCI machine) [%s]\n", (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC"))));
-	return 0xff;
+	return 0xffff;
     }
 
     if (! last_pci_card) {
 	pci_log("pci_add_card(): Adding PCI CARD failed (no PCI slots) [%s]\n", (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC"))));
-	return 0xff;
+	return 0xffff;
     }
 
     for (i = 0; i < last_pci_card; i++) {
@@ -908,17 +930,25 @@ pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), 
 		    ((dev->type == PCI_CARD_IDE) && (add_type == PCI_ADD_IDE)) ||
 		    ((dev->type == PCI_CARD_NORTHBRIDGE) && (add_type == PCI_ADD_NORTHBRIDGE)) ||
 		    ((dev->type == PCI_CARD_SOUTHBRIDGE) && (add_type == PCI_ADD_SOUTHBRIDGE)) ||
-		    ((dev->id == add_type) && (add_type < PCI_ADD_NORTHBRIDGE))) {
+		    ((dev->bus == 0) && (dev->id == add_type) && (add_type < PCI_ADD_NORTHBRIDGE))) {
+			/* Add DEC 21150 PCI bridge if this is the last available NORMAL slot and
+			   the machine supports IRQ steering (the bridge code requires steering). */
+			if (!(pci_type & PCI_NO_IRQ_STEERING) && (dev->type == PCI_CARD_NORMAL) && (add_type != PCI_ADD_BRIDGE) && (i == last_normal_pci_card)) {
+				pci_log("pci_add_card(): Reached last NORMAL slot, adding bridge to pci_cards[%i]\n", i);
+				device_add_inst(&dec21150_device, last_pci_bus);
+				continue;
+			}
+
 			dev->read = read;
 			dev->write = write;
 			dev->priv = priv;
-			pci_log("pci_add_card(): Adding PCI CARD to pci_cards[%i] (slot %02X) [%s]\n", i, dev->id, (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC"))));
-			return dev->id;
+			pci_log("pci_add_card(): Adding PCI CARD to pci_cards[%i] (bus %02X slot %02X) [%s]\n", i, dev->bus, dev->id, (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC"))));
+			return (dev->bus << 5) | dev->id;
 		}
 	}
     }
 
     pci_log("pci_add_card(): Adding PCI CARD failed (unable to find a suitable PCI slot) [%s]\n", (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC"))));
 
-    return 0xff;
+    return 0xffff;
 }

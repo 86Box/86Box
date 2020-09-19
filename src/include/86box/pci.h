@@ -64,7 +64,8 @@ enum {
     PCI_ADD_VIDEO,
     PCI_ADD_SCSI,
     PCI_ADD_SOUND,
-    PCI_ADD_IDE
+    PCI_ADD_IDE,
+    PCI_ADD_BRIDGE
 };
 
 typedef union {
@@ -75,6 +76,8 @@ typedef union {
 
 extern int	pci_burst_time,
 		pci_nonburst_time;
+extern uint8_t	last_pci_bus;
+extern uint8_t	pci_bus_number_to_index_mapping[256];
 
 
 extern void	pci_set_irq_routing(int pci_int, int irq);
@@ -88,16 +91,19 @@ extern uint8_t	pci_use_mirq(uint8_t mirq);
 extern int	pci_irq_is_level(int irq);
 
 extern void	pci_set_mirq(uint8_t mirq, int level);
-extern void	pci_set_irq(uint8_t card, uint8_t pci_int);
+extern void	pci_set_irq(int card, uint8_t pci_int);
 extern void	pci_clear_mirq(uint8_t mirq, int level);
-extern void	pci_clear_irq(uint8_t card, uint8_t pci_int);
+extern void	pci_clear_irq(int card, uint8_t pci_int);
+extern uint8_t	pci_get_int(int card, uint8_t pci_int);
 
 extern void	pci_reset(void);
 extern void	pci_init(int type);
 extern void	pci_register_slot(int card, int type,
 				  int inta, int intb, int intc, int intd);
+extern void	pci_register_bus_slot(int bus, int card, int type,
+				      int inta, int intb, int intc, int intd);
 extern void	pci_close(void);
-extern uint8_t	pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv);
+extern int	pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv);
 
 extern void     trc_init(void);
 
@@ -108,6 +114,15 @@ extern void	pci_elcr_set_enabled(int enabled);
 extern void	pci_elcr_io_disable(void);
 extern void	elcr_write(uint16_t port, uint8_t val, void *priv);
 extern uint8_t	elcr_read(uint16_t port, void *priv);
+
+
+#ifdef EMU_DEVICE_H
+extern const device_t dec21150_device;
+
+extern const device_t i440lx_agp_device;
+extern const device_t i440bx_agp_device;
+extern const device_t i440gx_agp_device;
+#endif
 
 
 #endif	/*EMU_PCI_H*/
