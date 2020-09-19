@@ -36,7 +36,12 @@
 #define AGP_BRIDGE_INTEL_440LX	0x80867181
 #define AGP_BRIDGE_INTEL_440BX	0x80867191
 #define AGP_BRIDGE_INTEL_440GX	0x808671a1
-#define AGP_BRIDGE(x)		((x) >= AGP_BRIDGE_INTEL_440LX)
+#define AGP_BRIDGE_VIA_597	0x11068597
+#define AGP_BRIDGE_VIA_598	0x11068598
+#define AGP_BRIDGE_VIA_691	0x11068691
+
+#define AGP_BRIDGE_VIA(x)	(((x) >> 4) == 0x1106)
+#define AGP_BRIDGE(x)		((x) >= AGP_BRIDGE_VIA_597)
 
 
 typedef struct
@@ -97,6 +102,12 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 		val &= 0x03;
 		break;
 
+	case 0x18:
+		/* Parent bus number is always 0 on AGP bridges. */
+		if (AGP_BRIDGE(dev->local))
+			return;
+		break;
+
 	case 0x19:
 		/* Set our bus number. */
 		pci_bridge_log("PCI Bridge %d: switching from bus %02X to %02X\n", dev->bus_index, dev->regs[addr], val);
@@ -112,31 +123,53 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 		break;
 
 	case 0x3e:
-		val &= 0xef;
+		if (AGP_BRIDGE_VIA(dev->local))
+			val &= 0x0c;
+		else if (AGP_BRIDGE(dev->local))
+			val &= 0x0f;
+		else if (dev->local == PCI_BRIDGE_DEC_21150)
+			val &= 0xef;
 		break;
 
 	case 0x3f:
-		val &= 0x0f;
+		if (dev->local == AGP_BRIDGE_INTEL_440LX)
+			val &= 0x02;
+		else if (AGP_BRIDGE(dev->local))
+			return;
+		else if (dev->local == PCI_BRIDGE_DEC_21150)
+			val &= 0x0f;
 		break;
 
 	case 0x40:
-		val &= 0x32;
+		if (dev->local == PCI_BRIDGE_DEC_21150)
+			val &= 0x32;
 		break;
 
 	case 0x41:
-		val &= 0x07;
+		if (AGP_BRIDGE_VIA(dev->local))
+			val &= 0x7e;
+		else if (dev->local == PCI_BRIDGE_DEC_21150)
+			val &= 0x07;
+		break;
+
+	case 0x42:
+		if (AGP_BRIDGE_VIA(dev->local))
+			val &= 0xfe;
 		break;
 
 	case 0x43:
-		val &= 0x03;
+		if (dev->local == PCI_BRIDGE_DEC_21150)
+			val &= 0x03;
 		break;
 
 	case 0x64:
-		val &= 0x7e;
+		if (dev->local == PCI_BRIDGE_DEC_21150)
+			val &= 0x7e;
 		break;
 
 	case 0x69:
-		val &= 0x3f;
+		if (dev->local == PCI_BRIDGE_DEC_21150)
+			val &= 0x3f;
 		break;
     }
 
@@ -167,6 +200,8 @@ pci_bridge_reset(void *priv)
 
     pci_bridge_log("PCI Bridge %d: reset()\n", dev->bus_index);
 
+    memset(dev->regs, 0, sizeof(dev->regs));
+
     /* IDs */
     dev->regs[0x00] = dev->local >> 16;
     dev->regs[0x01] = dev->local >> 24;
@@ -190,6 +225,13 @@ pci_bridge_reset(void *priv)
 		dev->regs[0x06] = 0x20;
 		dev->regs[0x07] = dev->regs[0x08] = 0x02;
 		break;
+
+	case AGP_BRIDGE_VIA_597:
+	case AGP_BRIDGE_VIA_691:
+		dev->regs[0x04] = 0x07;
+		dev->regs[0x06] = 0x20;
+		dev->regs[0x07] = 0x02;
+		break;
     }
 
     dev->regs[0x0a] = 0x04; /* PCI-PCI bridge */
@@ -204,8 +246,10 @@ pci_bridge_reset(void *priv)
 	dev->regs[0x1c] = dev->regs[0x1d] = 0x01;
     }
 
-    dev->regs[0x1e] = AGP_BRIDGE(dev->local) ? 0xa0 : 0x80;
-    dev->regs[0x1f] = 0x02;
+    if (!AGP_BRIDGE_VIA(dev->local)) {
+	dev->regs[0x1e] = AGP_BRIDGE(dev->local) ? 0xa0 : 0x80;
+	dev->regs[0x1f] = 0x02;
+    }
 
     /* prefetchable memory limits */
     if (AGP_BRIDGE(dev->local)) {
@@ -315,6 +359,48 @@ const device_t i440gx_agp_device =
     "Intel 82443GX AGP Bridge",
     DEVICE_PCI,
     AGP_BRIDGE_INTEL_440GX,
+    pci_bridge_init,
+    NULL,
+    pci_bridge_reset,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+const device_t via_vp3_agp_device =
+{
+    "VIA Apollo VP3 AGP Bridge",
+    DEVICE_PCI,
+    AGP_BRIDGE_VIA_597,
+    pci_bridge_init,
+    NULL,
+    pci_bridge_reset,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+const device_t via_mvp3_agp_device =
+{
+    "VIA Apollo MVP3 AGP Bridge",
+    DEVICE_PCI,
+    AGP_BRIDGE_VIA_598,
+    pci_bridge_init,
+    NULL,
+    pci_bridge_reset,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+const device_t via_apro_agp_device =
+{
+    "VIA Apollo Pro AGP Bridge",
+    DEVICE_PCI,
+    AGP_BRIDGE_VIA_691,
     pci_bridge_init,
     NULL,
     pci_bridge_reset,

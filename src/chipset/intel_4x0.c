@@ -55,7 +55,7 @@ typedef struct
     uint8_t	pm2_cntrl,
 		smram_locked, max_drb,
 		drb_unit, drb_default;
-    uint8_t	regs[2][256], regs_locked[2][256];
+    uint8_t	regs[256], regs_locked[256];
     int		type;
 } i4x0_t;
 
@@ -137,7 +137,7 @@ i4x0_smram_handler_phase0(i4x0_t *dev)
 static void
 i4x0_smram_handler_phase1(i4x0_t *dev)
 {
-    uint8_t *regs = (uint8_t *) dev->regs[0];
+    uint8_t *regs = (uint8_t *) dev->regs;
     uint32_t tom = (mem_size << 10);
 
     uint32_t s, base[2] = { 0x000a0000, 0x00020000 };
@@ -273,8 +273,8 @@ static void
 i4x0_write(int func, int addr, uint8_t val, void *priv)
 {
     i4x0_t *dev = (i4x0_t *) priv;
-    uint8_t *regs = (uint8_t *) dev->regs[func];
-    uint8_t *regs_l = (uint8_t *) dev->regs_locked[func];
+    uint8_t *regs = (uint8_t *) dev->regs;
+    uint8_t *regs_l = (uint8_t *) dev->regs_locked;
     int i;
 
     if (func)
@@ -1256,7 +1256,7 @@ i4x0_read(int func, int addr, void *priv)
 {
     i4x0_t *dev = (i4x0_t *) priv;
     uint8_t ret = 0xff;
-    uint8_t *regs = (uint8_t *) dev->regs[func];
+    uint8_t *regs = (uint8_t *) dev->regs;
 
     if (func)
 	  ret = 0xff;
@@ -1290,15 +1290,15 @@ i4x0_reset(void *priv)
 	i4x0_write(0, 0x60 + i, dev->drb_default, priv);
 
     if (dev->type >= INTEL_430FX) {
-	dev->regs[0][0x72] &= 0xef;	/* Forcibly unlock the SMRAM register. */
+	dev->regs[0x72] &= 0xef;	/* Forcibly unlock the SMRAM register. */
 	i4x0_write(0, 0x72, 0x02, priv);
     } else {
-	dev->regs[0][0x72] &= 0xf7;	/* Forcibly unlock the SMRAM register. */
+	dev->regs[0x72] &= 0xf7;	/* Forcibly unlock the SMRAM register. */
 	i4x0_write(0, 0x72, 0x00, priv);
     }
 
     if ((dev->type == INTEL_440LX) || (dev->type == INTEL_440BX) || (dev->type == INTEL_440ZX)) {
-	memset(dev->regs_locked[0], 0x00, 256 * sizeof(uint8_t));
+	memset(dev->regs_locked, 0x00, 256 * sizeof(uint8_t));
     }
 }
 
@@ -1322,7 +1322,7 @@ static void
 
     dev->type = info->local & 0xff;
 
-    regs = (uint8_t *) dev->regs[0];
+    regs = (uint8_t *) dev->regs;
 
     regs[0x00] = 0x86; regs[0x01] = 0x80; /*Intel*/
 
