@@ -7,10 +7,10 @@ from 1981 through fairly recent system designs based on the PCI bus.
 86Box is released under the GNU General Public License, version 2 or later.
 For more information, see the `COPYING` file.
 
-The project maintainer is OBattler.
+The project maintainer is [OBattler](https://github.com/OBattler).
 
 If you need a configuration manager for 86Box, use the [86Box Manager](https://github.com/86Box/86BoxManager), our
-officially endorsed 86Box configuration manager, developed by Overdoze (daviunic).
+officially endorsed 86Box configuration manager, developed by Overdoze ([daviunic](https://github.com/daviunic)).
 
 Community
 ---------
