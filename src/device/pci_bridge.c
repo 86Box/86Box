@@ -40,7 +40,7 @@
 #define AGP_BRIDGE_VIA_598	0x11068598
 #define AGP_BRIDGE_VIA_691	0x11068691
 
-#define AGP_BRIDGE_VIA(x)	(((x) >> 4) == 0x1106)
+#define AGP_BRIDGE_VIA(x)	(((x) >> 16) == 0x1106)
 #define AGP_BRIDGE(x)		((x) >= AGP_BRIDGE_VIA_597)
 
 
@@ -110,11 +110,8 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 
 	case 0x19:
 		/* Set our bus number. */
-		pci_bridge_log("PCI Bridge %d: switching from bus %02X to %02X\n", dev->bus_index, dev->regs[addr], val);
-		if (dev->regs[addr])
-			pci_bus_number_to_index_mapping[dev->regs[addr]] = 0xff;
-		if (val)
-			pci_bus_number_to_index_mapping[val] = dev->bus_index;
+		pci_bridge_log("PCI Bridge %d: remapping from bus %02X to %02X\n", dev->bus_index, dev->regs[addr], val);
+		pci_remap_bus(dev->bus_index, val);
 		break;
 
 	case 0x1c: case 0x1d: case 0x20: case 0x22:
@@ -208,6 +205,7 @@ pci_bridge_reset(void *priv)
     dev->regs[0x02] = dev->local;
     dev->regs[0x03] = dev->local >> 8;
 
+    /* command and status */
     switch (dev->local) {
 	case PCI_BRIDGE_DEC_21150:
 		dev->regs[0x06] = 0x80;
@@ -227,6 +225,7 @@ pci_bridge_reset(void *priv)
 		break;
 
 	case AGP_BRIDGE_VIA_597:
+	case AGP_BRIDGE_VIA_598:
 	case AGP_BRIDGE_VIA_691:
 		dev->regs[0x04] = 0x07;
 		dev->regs[0x06] = 0x20;
@@ -234,17 +233,16 @@ pci_bridge_reset(void *priv)
 		break;
     }
 
+    /* class */
     dev->regs[0x0a] = 0x04; /* PCI-PCI bridge */
     dev->regs[0x0b] = 0x06; /* bridge device */
-
-    dev->regs[0x0e] = 0x01;
+    dev->regs[0x0e] = 0x01; /* bridge header */
 
     /* IO BARs */
-    if (AGP_BRIDGE(dev->local)) {
+    if (AGP_BRIDGE(dev->local))
 	dev->regs[0x1c] = 0xf0;
-    } else {
+    else
 	dev->regs[0x1c] = dev->regs[0x1d] = 0x01;
-    }
 
     if (!AGP_BRIDGE_VIA(dev->local)) {
 	dev->regs[0x1e] = AGP_BRIDGE(dev->local) ? 0xa0 : 0x80;
@@ -259,9 +257,7 @@ pci_bridge_reset(void *priv)
 	dev->regs[0x24] = dev->regs[0x26] = 0x01;
     }
 
-    if (dev->local == AGP_BRIDGE_INTEL_440LX)
-	dev->regs[0x3e] = 0x80;
-
+    /* power management */
     if (dev->local == PCI_BRIDGE_DEC_21150) {
     	dev->regs[0x34] = 0xdc;
 	dev->regs[0x43] = 0x02;
@@ -279,7 +275,7 @@ pci_bridge_init(const device_t *info)
     memset(dev, 0, sizeof(pci_bridge_t));
 
     dev->local = info->local;
-    dev->bus_index = last_pci_bus++;
+    dev->bus_index = pci_register_bus();
     pci_bridge_log("PCI Bridge %d: init()\n", dev->bus_index);
 
     pci_bridge_reset(dev);
@@ -299,7 +295,8 @@ pci_bridge_init(const device_t *info)
     for (i = 0; i < slot_count; i++) {
 	/* Interrupts for bridge slots are assigned in round-robin: ABCD, BCDA, CDAB and so on. */
 	pci_bridge_log("PCI Bridge %d: downstream slot %02X interrupts %02X %02X %02X %02X\n", dev->bus_index, i, interrupts[i & interrupt_mask], interrupts[(i + 1) & interrupt_mask], interrupts[(i + 2) & interrupt_mask], interrupts[(i + 3) & interrupt_mask]);
-	pci_register_bus_slot(dev->bus_index, i, /*AGP_BRIDGE(dev->local) ? PCI_CARD_SPECIAL : */PCI_CARD_NORMAL,
+	/* Use _NOBRIDGE for VIA AGP bridges, as they don't like PCI bridges under them. */
+	pci_register_bus_slot(dev->bus_index, i, AGP_BRIDGE_VIA(dev->local) ? PCI_CARD_NORMAL_NOBRIDGE : PCI_CARD_NORMAL,
 			      interrupts[i & interrupt_mask],
 			      interrupts[(i + 1) & interrupt_mask],
 			      interrupts[(i + 2) & interrupt_mask],
@@ -328,7 +325,7 @@ const device_t dec21150_device =
 /* AGP bridges */
 const device_t i440lx_agp_device =
 {
-    "Intel 82443LX AGP Bridge",
+    "Intel 82443LX/EX AGP Bridge",
     DEVICE_PCI,
     AGP_BRIDGE_INTEL_440LX,
     pci_bridge_init,
@@ -342,7 +339,7 @@ const device_t i440lx_agp_device =
 
 const device_t i440bx_agp_device =
 {
-    "Intel 82443BX AGP Bridge",
+    "Intel 82443BX/ZX AGP Bridge",
     DEVICE_PCI,
     AGP_BRIDGE_INTEL_440BX,
     pci_bridge_init,

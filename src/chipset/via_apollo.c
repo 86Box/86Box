@@ -108,7 +108,7 @@ via_apollo_setup(via_apollo_t *dev)
     dev->pci_conf[0x34] = 0xa0;
 
     if (dev->id == 0x0691) {
-    	dev->pci_conf[0x56] = 0x01;
+ 	dev->pci_conf[0x56] = 0x01;
 	dev->pci_conf[0x57] = 0x01;
     }
     dev->pci_conf[0x5a] = 0x01;
@@ -448,12 +448,19 @@ via_apollo_init(const device_t *info)
 
     dev->id = info->local;
 
-    if (dev->id == 0x0597)
-    	device_add(&via_vp3_agp_device);
-    else if (dev->id == 0x0598)
-    	device_add(&via_mvp3_agp_device);
-    else if (dev->id == 0x0691)
-    	device_add(&via_apro_agp_device);
+    switch (dev->id) {
+	case 0x0597:
+		device_add(&via_vp3_agp_device);
+		break;
+
+	case 0x0598:
+		device_add(&via_mvp3_agp_device);
+		break;
+
+	case 0x0691:
+		device_add(&via_apro_agp_device);
+		break;
+    }
 
     via_apollo_setup(dev);
     via_apollo_reset(dev);

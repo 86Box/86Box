@@ -29,6 +29,7 @@
 
 #define PCI_NO_IRQ_STEERING 0x8000
 #define PCI_CAN_SWITCH_TYPE 0x10000
+#define PCI_NO_BRIDGES	    0x20000
 
 #define PCI_CONFIG_TYPE_1 1
 #define PCI_CONFIG_TYPE_2 2
@@ -50,6 +51,7 @@ enum {
     PCI_CARD_NORTHBRIDGE = 0,
     PCI_CARD_SOUTHBRIDGE,
     PCI_CARD_NORMAL,
+    PCI_CARD_NORMAL_NOBRIDGE,
     PCI_CARD_ONBOARD,
     PCI_CARD_SCSI,
     PCI_CARD_SOUND,
@@ -76,8 +78,6 @@ typedef union {
 
 extern int	pci_burst_time,
 		pci_nonburst_time;
-extern uint8_t	last_pci_bus;
-extern uint8_t	pci_bus_number_to_index_mapping[256];
 
 
 extern void	pci_set_irq_routing(int pci_int, int irq);
@@ -91,19 +91,21 @@ extern uint8_t	pci_use_mirq(uint8_t mirq);
 extern int	pci_irq_is_level(int irq);
 
 extern void	pci_set_mirq(uint8_t mirq, int level);
-extern void	pci_set_irq(int card, uint8_t pci_int);
+extern void	pci_set_irq(uint8_t card, uint8_t pci_int);
 extern void	pci_clear_mirq(uint8_t mirq, int level);
-extern void	pci_clear_irq(int card, uint8_t pci_int);
-extern uint8_t	pci_get_int(int card, uint8_t pci_int);
+extern void	pci_clear_irq(uint8_t card, uint8_t pci_int);
+extern uint8_t	pci_get_int(uint8_t card, uint8_t pci_int);
 
 extern void	pci_reset(void);
 extern void	pci_init(int type);
+extern uint8_t	pci_register_bus();
+extern void	pci_remap_bus(uint8_t bus_index, uint8_t bus_number);
 extern void	pci_register_slot(int card, int type,
 				  int inta, int intb, int intc, int intd);
 extern void	pci_register_bus_slot(int bus, int card, int type,
 				      int inta, int intb, int intc, int intd);
 extern void	pci_close(void);
-extern int	pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv);
+extern uint8_t	pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv);
 
 extern void     trc_init(void);
 
