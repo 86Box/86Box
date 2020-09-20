@@ -282,11 +282,21 @@ esp_get_cmd(esp_t *dev, uint8_t *buf, uint8_t buflen)
 	if (dmalen > TI_BUFSZ)
 	    return 0;
 	memcpy(buf, dev->ti_buf, dmalen);
+	dev->lun = buf[0] & 7;
     }
     
     dev->ti_size = 0;
     dev->ti_rptr = 0;
     dev->ti_wptr = 0;
+    
+    if (scsi_device_present(&scsi_devices[dev->id]) && (dev->lun >= 1 && dev->lun <= 7)) {
+        /* We only support LUN 0 */
+        dev->rregs[ESP_RSTAT] = 0;
+        dev->rregs[ESP_RINTR] = INTR_DC;
+        dev->rregs[ESP_RSEQ] = SEQ_0;
+	esp_raise_irq(dev);
+	return 0;
+    }
     
     return dmalen;
 }
@@ -306,7 +316,7 @@ esp_do_busid_cmd(esp_t *dev, uint8_t *buf, uint8_t busid)
     dev->ti_size = sd->buffer_length;
     dev->xfer_counter = sd->buffer_length;
 
-    esp_log("ESP SCSI Command = %02x, ID = %d, len = %d\n", buf[0], busid, sd->buffer_length);
+    esp_log("ESP SCSI Command = %02x, ID = %d, LUN = %d, len = %d\n", buf[0], busid, buf[1] >> 5, sd->buffer_length);
     
     if (sd->buffer_length > 0) {
 	/* This should be set to the underlying device's buffer by command phase 0. */
@@ -539,7 +549,7 @@ handle_ti(void *priv)
 	dev->ti_size = 0;
 	dev->cmdlen = 0;
 	dev->do_cmd = 0;
-	esp_log("ESP Handle TI, do cmd, CDB[0] = 0x%02x\n", dev->cmdbuf[7]);
+	esp_log("ESP Handle TI, do cmd, CDB[1] = 0x%02x\n", dev->cmdbuf[8]);
 	esp_do_cmd(dev, dev->cmdbuf);
     }
 }
@@ -552,8 +562,8 @@ handle_s_without_atn(void *priv)
     int len;
 
     len = esp_get_cmd(dev, buf, sizeof(buf));
+    esp_log("ESP SEL w/o ATN len = %d, id = %d\n", len, dev->id);
     if (len) {
-	esp_log("ESP SEL without ATN\n");
 	esp_do_busid_cmd(dev, buf, 0);
     }
 }
@@ -691,7 +701,7 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
 				esp_log("ESP CmdBuf Write len = %d, = %02x\n", dev->cmdlen, val & 0xff);
 			}
 		} else {
-			esp_log("ESP FIFO increase = %d\n", dev->ti_size);
+			esp_log("ESP FIFO write = %02x\n", val & 0xff);
 			dev->ti_size++;
 			dev->ti_buf[dev->ti_wptr++] = val & 0xff;
 		}
