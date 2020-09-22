@@ -71,28 +71,6 @@ machine_at_headland_common_init(int ht386)
 	device_add(&headland_gc10x_device);
 }
 
-
-#if defined(DEV_BRANCH) && defined(USE_AMI386SX)
-int
-machine_at_headland_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear(L"roms/machines/ami386/ami386.bin",
-			   0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_at_common_ide_init(model);
-
-    machine_at_headland_common_init(1);
-
-    return ret;
-}
-#endif
-
-
 int
 machine_at_tg286m_init(const machine_t *model)
 {
@@ -219,26 +197,6 @@ machine_at_px286_init(const machine_t *model)
     device_add(&keyboard_at_device);
     device_add(&fdc_at_device);
     device_add(&neat_device);
-
-    return ret;
-}
-
-int
-machine_at_goldstar386_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_interleaved(L"roms/machines/goldstar386/386-Goldstar-E.BIN",
-				L"roms/machines/goldstar386/386-Goldstar-O.BIN",
-				0x000f0000, 131072, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_at_init(model);
-
-    device_add(&neat_device);
-    device_add(&fdc_at_device);
 
     return ret;
 }

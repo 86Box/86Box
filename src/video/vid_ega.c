@@ -42,13 +42,15 @@ void ega_doblit(int y1, int y2, int wx, int wy, ega_t *ega);
 #define BIOS_CPQ_PATH		L"roms/video/ega/108281-001.bin"
 #define BIOS_SEGA_PATH		L"roms/video/ega/lega.vbi"
 #define BIOS_ATIEGA_PATH	L"roms/video/ega/ATI EGA Wonder 800+ N1.00.BIN"
+#define BIOS_ISKRA_PATH		L"roms/video/ega/143-02.bin", L"roms/video/ega/143-03.bin"
 
 
 enum {
     EGA_IBM = 0,
     EGA_COMPAQ,
     EGA_SUPEREGA,
-    EGA_ATI
+    EGA_ATI,
+	EGA_ISKRA
 };
 
 
@@ -1032,6 +1034,10 @@ ega_standalone_init(const device_t *info)
 		rom_init(&ega->bios_rom, BIOS_ATIEGA_PATH,
 			 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 		break;
+	case EGA_ISKRA:
+		rom_init_interleaved(&ega->bios_rom, BIOS_ISKRA_PATH,
+			 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		break;
     }
 
     if ((ega->bios_rom.rom[0x3ffe] == 0xaa) && (ega->bios_rom.rom[0x3fff] == 0x55)) {
@@ -1228,6 +1234,18 @@ const device_t atiega_device =
 	EGA_ATI,
         ega_standalone_init, ega_close, NULL,
         atiega_standalone_available,
+        ega_speed_changed,
+        NULL,
+        ega_config
+};
+
+const device_t iskra_ega_device =
+{
+        "Iskra EGA (Cyrillic ROM)",
+        DEVICE_ISA,
+	EGA_ISKRA,
+        ega_standalone_init, ega_close, NULL,
+        ega_standalone_available,
         ega_speed_changed,
         NULL,
         ega_config

@@ -151,7 +151,6 @@ machine_genxt_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_xt86_init(const machine_t *model)
 {
@@ -186,6 +185,21 @@ machine_xt_clone_init(const machine_t *model)
     machine_xt_common_init(model);
 }
 
+int
+machine_xt_americxt_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/americxt/AMERICXT.ROM",
+			   0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_xt_clone_init(model);
+
+    return ret;
+}
 
 int
 machine_xt_amixt_init(const machine_t *model)
@@ -276,7 +290,6 @@ machine_xt_hed919_init(const machine_t *model)
 }
 #endif
 
-
 int
 machine_xt_pxxt_init(const machine_t *model)
 {
@@ -290,5 +303,22 @@ machine_xt_pxxt_init(const machine_t *model)
 
     machine_xt_clone_init(model);
 
-    return 1;
+    return ret;
+}
+
+int
+machine_xt_iskra3104_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/iskra3104/198.bin",
+    L"roms/machines/iskra3104/199.bin",
+			   0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_xt_clone_init(model);
+
+    return ret;
 }
