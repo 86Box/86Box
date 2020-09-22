@@ -801,9 +801,11 @@ CPU cpus_Xeon[] = {
 	   The <400Mhz Xeons are only meant to not cause any struggle
        to the recompiler. */
     {"Pentium II Xeon 75",     CPU_PENTIUM2D,  fpus_internal,  75000000, 1.5,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  7, 7, 4, 4, 9},
+    {"Pentium II Xeon 100",    CPU_PENTIUM2D,  fpus_internal, 100000000, 1.5,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
     {"Pentium II Xeon 133",    CPU_PENTIUM2D,  fpus_internal, 133333333, 2.0,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 16},
     {"Pentium II Xeon 166",    CPU_PENTIUM2D,  fpus_internal, 166666666, 2.5,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
     {"Pentium II Xeon 400",    CPU_PENTIUM2D,  fpus_internal, 400000000, 4.0,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
+    {"Pentium II Xeon 450",    CPU_PENTIUM2D,  fpus_internal, 450000000, 4.5,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 54},
     {"",                                       -1,          0,   0,      0,      0, 0, 0,  0, 0, 0, 0,  0}	
 };
 
@@ -812,15 +814,18 @@ CPU cpus_Celeron[] = {
        Intended for the PGA370 boards but they were capable to fit on a PGA 370 to Slot 1
        adaptor card so they work on Slot 1 motherboards too!.
 
-       The 100Mhz & 166Mhz Mendocino is only meant to not cause any struggle
+       The 66Mhz, 100Mhz, 133Mhz & 166Mhz Mendocino is only meant to not cause any struggle
        to the recompiler. */
+    {"Celeron Mendocino 66",	    CPU_PENTIUM2D,  fpus_internal,  66666666, 1.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
     {"Celeron Mendocino 100",       CPU_PENTIUM2D,  fpus_internal, 100000000, 1.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
+    {"Celeron Mendocino 133",       CPU_PENTIUM2D,  fpus_internal, 133333333, 2.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 16},
     {"Celeron Mendocino 166",       CPU_PENTIUM2D,  fpus_internal, 166666666, 2.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
     {"Celeron Mendocino 300/66",    CPU_PENTIUM2D,  fpus_internal, 300000000, 4.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 25,25,12,12, 36},
     {"Celeron Mendocino 333",       CPU_PENTIUM2D,  fpus_internal, 333333333, 5.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 27,27,13,13, 40},
     {"Celeron Mendocino 366",       CPU_PENTIUM2D,  fpus_internal, 366666666, 5.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 33,33,17,17, 44},
     {"Celeron Mendocino 400",       CPU_PENTIUM2D,  fpus_internal, 400000000, 6.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 36,36,12,12, 48},
     {"Celeron Mendocino 433",       CPU_PENTIUM2D,  fpus_internal, 433333333, 6.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 39,39,13,13, 51},
+    {"Celeron Mendocino 466",       CPU_PENTIUM2D,  fpus_internal, 466666666, 7.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 42,42,14,14, 56},
     {"Celeron Mendocino 500",       CPU_PENTIUM2D,  fpus_internal, 500000000, 7.5,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 45,45,15,15, 60},
     {"Celeron Mendocino 533",       CPU_PENTIUM2D,  fpus_internal, 533333333, 8.0,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 48,48,17,17, 64},
     {"",                                       -1,          0,   0,      0,      0, 0, 0,  0, 0, 0, 0,  0}	
@@ -851,10 +856,16 @@ CPU cpus_Cyrix3[] = {
     {"Cyrix III 350", CPU_CYRIX3S, fpus_internal, 350000000, 3.5,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 32, 32, 11, 11, 42},
     {"Cyrix III 400", CPU_CYRIX3S, fpus_internal, 400000000, 4.0,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 36, 36, 12, 12, 48},
     {"Cyrix III 450", CPU_CYRIX3S, fpus_internal, 450000000, 4.5,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 41, 41, 14, 14, 54}, /*^ is lower P2 speeds to allow emulation below 466 mhz*/
+    {"Cyrix III 466", CPU_CYRIX3S, fpus_internal, 466666666, 3.5,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 42, 42, 14, 14, 56},
     {"Cyrix III 500", CPU_CYRIX3S, fpus_internal, 500000000, 5.0,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 45, 45, 15, 15, 60},
+    {"Cyrix III 533", CPU_CYRIX3S, fpus_internal, 533333333, 4.0,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC, 48, 48, 17, 17, 64},
     {"Cyrix III 550", CPU_CYRIX3S, fpus_internal, 550000000, 5.5,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 50, 50, 17, 17, 66},
     {"Cyrix III 600", CPU_CYRIX3S, fpus_internal, 600000000, 6.0,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 54, 54, 18, 18, 72},
     {"Cyrix III 650", CPU_CYRIX3S, fpus_internal, 650000000, 6.5,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 58, 58, 20, 20, 78},
+    {"Cyrox III 667", CPU_CYRIX3S, fpus_internal, 666666666, 5.0,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 60, 60, 21, 21, 81},
     {"Cyrix III 700", CPU_CYRIX3S, fpus_internal, 700000000, 7.0,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 62, 62, 21, 21, 84},
+    {"Cyrix III 733", CPU_CYRIX3S, fpus_internal, 733333333, 5.5,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 64, 64, 22, 22, 87},
+    {"Cyrix III 750", CPU_CYRIX3S, fpus_internal, 750000000, 7.5,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 66, 66, 23, 23, 90},
+    {"Cyrix III 800", CPU_CYRIX3S, fpus_internal, 800000000, 6.0,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 70, 70, 24, 24, 96},
     {"",                       -1,         0, 0.0,       0,     0, 0, 0,                    0,   0, 0,  0,  0}
 };
