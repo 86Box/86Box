@@ -97,8 +97,8 @@
 #define IDS_2121	2121		// "Save changes\nThis will hard..."
 #define IDS_2122	2122		// "Discard changes\nAll changes..."
 #define IDS_2123	2123		// "Cancel\nGo back to the..."
-#define IDS_2124	2124		// "About " EMU_NAME
-#define IDS_2125	2125		// EMU_NAME " v" EMU_VERSION
+#define IDS_2124	2124		// "About 86Box"
+#define IDS_2125	2125		// "86Box v" EMU_VERSION
 #define IDS_2126	2126		// "An emulator of old computers..."
 #define IDS_2127	2127		// "OK"
 #define IDS_2128	2128		// "Hardware not available"

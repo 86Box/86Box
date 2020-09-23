@@ -24,8 +24,8 @@
 #include <86box/mem.h>
 #include <86box/io.h>
 #include <86box/rom.h>
-#include <86box/pci.h>
 #include <86box/device.h>
+#include <86box/pci.h>
 #include <86box/keyboard.h>
 #include <86box/chipset.h>
 #include <86box/spd.h>
@@ -52,10 +52,10 @@ enum
 
 typedef struct
 {
-    uint8_t	pm2_cntrl, max_func,
+    uint8_t	pm2_cntrl,
 		smram_locked, max_drb,
 		drb_unit, drb_default;
-    uint8_t	regs[2][256], regs_locked[2][256];
+    uint8_t	regs[256], regs_locked[256];
     int		type;
 } i4x0_t;
 
@@ -137,7 +137,7 @@ i4x0_smram_handler_phase0(i4x0_t *dev)
 static void
 i4x0_smram_handler_phase1(i4x0_t *dev)
 {
-    uint8_t *regs = (uint8_t *) dev->regs[0];
+    uint8_t *regs = (uint8_t *) dev->regs;
     uint32_t tom = (mem_size << 10);
 
     uint32_t s, base[2] = { 0x000a0000, 0x00020000 };
@@ -273,11 +273,11 @@ static void
 i4x0_write(int func, int addr, uint8_t val, void *priv)
 {
     i4x0_t *dev = (i4x0_t *) priv;
-    uint8_t *regs = (uint8_t *) dev->regs[func];
-    uint8_t *regs_l = (uint8_t *) dev->regs_locked[func];
+    uint8_t *regs = (uint8_t *) dev->regs;
+    uint8_t *regs_l = (uint8_t *) dev->regs_locked;
     int i;
 
-    if (func > dev->max_func)
+    if (func)
   	return;
 
     if ((addr >= 0x10) && (addr < 0x4f))
@@ -447,7 +447,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 					regs[0x51] |= 0x10; /* Virtual PC 2007 BIOS requires a reserved bus speed bit to be set */
 				break;
 			case INTEL_440GX:
-            			regs[0x51] = (regs[0x50] & 0x88) | (val & 0x08);
+   				regs[0x51] = (regs[0x50] & 0x88) | (val & 0x08);
 				/*regs[0x51] = (regs[0x50] & 0x88) | (val & 0x77);*/
 				break;
 		}
@@ -1256,9 +1256,9 @@ i4x0_read(int func, int addr, void *priv)
 {
     i4x0_t *dev = (i4x0_t *) priv;
     uint8_t ret = 0xff;
-    uint8_t *regs = (uint8_t *) dev->regs[func];
+    uint8_t *regs = (uint8_t *) dev->regs;
 
-    if (func > dev->max_func)
+    if (func)
 	  ret = 0xff;
     else {
 	ret = regs[addr];
@@ -1290,16 +1290,15 @@ i4x0_reset(void *priv)
 	i4x0_write(0, 0x60 + i, dev->drb_default, priv);
 
     if (dev->type >= INTEL_430FX) {
-	dev->regs[0][0x72] &= 0xef;	/* Forcibly unlock the SMRAM register. */
+	dev->regs[0x72] &= 0xef;	/* Forcibly unlock the SMRAM register. */
 	i4x0_write(0, 0x72, 0x02, priv);
     } else {
-	dev->regs[0][0x72] &= 0xf7;	/* Forcibly unlock the SMRAM register. */
+	dev->regs[0x72] &= 0xf7;	/* Forcibly unlock the SMRAM register. */
 	i4x0_write(0, 0x72, 0x00, priv);
     }
 
     if ((dev->type == INTEL_440LX) || (dev->type == INTEL_440BX) || (dev->type == INTEL_440ZX)) {
-	for (i = 0; i <= dev->max_func; i++)
-		memset(dev->regs_locked[i], 0x00, 256 * sizeof(uint8_t));
+	memset(dev->regs_locked, 0x00, 256 * sizeof(uint8_t));
     }
 }
 
@@ -1323,7 +1322,7 @@ static void
 
     dev->type = info->local & 0xff;
 
-    regs = (uint8_t *) dev->regs[0];
+    regs = (uint8_t *) dev->regs;
 
     regs[0x00] = 0x86; regs[0x01] = 0x80; /*Intel*/
 
@@ -1492,8 +1491,6 @@ static void
 		dev->drb_default = 0x02;
 		break;
 	case INTEL_440LX:
-		dev->max_func = 1;
-
 		regs[0x02] = 0x80; regs[0x03] = 0x71;	/* 82443LX */
 		regs[0x06] = 0x90;
 		regs[0x10] = 0x08;
@@ -1517,8 +1514,6 @@ static void
 		dev->drb_default = 0x01;
 		break;
 	case INTEL_440EX:
-		dev->max_func = 1;
-
 		regs[0x02] = 0x80; regs[0x03] = 0x71;	/* 82443EX. Same Vendor ID as 440LX */
 		regs[0x06] = 0x90;
 		regs[0x10] = 0x08;
@@ -1543,7 +1538,6 @@ static void
 		break;
 	case INTEL_440BX: case INTEL_440ZX:
 		regs[0x7a] = (info->local >> 8) & 0xff;
-		dev->max_func = (regs[0x7a] & 0x02) ? 0 : 1;
 
 		regs[0x02] = (regs[0x7a] & 0x02) ? 0x92 : 0x90; regs[0x03] = 0x71;	/* 82443BX */
 		regs[0x06] = (regs[0x7a] & 0x02) ? 0x00 : 0x10;
@@ -1574,7 +1568,6 @@ static void
 		break;
 	case INTEL_440GX:
 		regs[0x7a] = (info->local >> 8) & 0xff;
-		dev->max_func = (regs[0x7a] & 0x02) ? 0 : 1;
 
 		regs[0x02] = (regs[0x7a] & 0x02) ? 0xa2 : 0xa0; regs[0x03] = 0x71;	/* 82443GX */
 		regs[0x06] = (regs[0x7a] & 0x02) ? 0x00 : 0x10;
@@ -1617,41 +1610,12 @@ static void
     i4x0_write(regs[0x5f], 0x5f, 0x00, dev);
     i4x0_write(regs[0x72], 0x72, 0x00, dev);
 
-    if (((dev->type == INTEL_440LX) || (dev->type == INTEL_440EX)) && (dev->max_func == 1)) {
-	regs = (uint8_t *) dev->regs[1];
-
-	regs[0x00] = 0x86; regs[0x01] = 0x80;	/* Intel */
-	regs[0x02] = 0x81; regs[0x03] = 0x71;	/* 82443LX */
-	regs[0x06] = 0xa0; regs[0x07] = 0x02;
-	regs[0x0a] = 0x04; regs[0x0b] = 0x06;
-	regs[0x0e] = 0x01;
-	regs[0x1c] = 0xf0;
-	regs[0x1e] = 0xa0; regs[0x1f] = 0x02;
-	regs[0x20] = 0xf0; regs[0x21] = 0xff;
-	regs[0x24] = 0xf0; regs[0x25] = 0xff;
-    }
-
-    if (((dev->type == INTEL_440BX) || (dev->type == INTEL_440GX) || (dev->type == INTEL_440ZX)) && (dev->max_func == 1)) {
-	regs = (uint8_t *) dev->regs[1];
-
-	regs[0x00] = 0x86; regs[0x01] = 0x80;	/* Intel */
-	if(dev->type != INTEL_440GX) {
-		regs[0x02] = 0x91; regs[0x03] = 0x71;	/* 82443BX */
-	} else {
-		regs[0x02] = 0xa1; regs[0x03] = 0x71; /* 82443GX (They seem to share the same deal*/
-	}
-	regs[0x06] = 0x20; regs[0x07] = 0x02;
-	regs[0x08] = 0x02;
-	regs[0x0a] = 0x04; regs[0x0b] = 0x06;
-	regs[0x0e] = 0x01;
-	regs[0x1c] = 0xf0;
-	regs[0x1e] = 0xa0; regs[0x1f] = 0x02;
-	regs[0x20] = 0xf0; regs[0x21] = 0xff;
-	regs[0x24] = 0xf0; regs[0x25] = 0xff;
-	regs[0x3e] = 0x80;
-    }
-
     pci_add_card(PCI_ADD_NORTHBRIDGE, i4x0_read, i4x0_write, dev);
+
+    if ((dev->type >= INTEL_440BX) && !(regs[0x7a] & 0x02))
+	device_add((dev->type == INTEL_440GX) ? &i440gx_agp_device : &i440bx_agp_device);
+    else if (dev->type >= INTEL_440LX)
+	device_add(&i440lx_agp_device);
 
     return dev;
 }

@@ -29,6 +29,7 @@
 
 #define PCI_NO_IRQ_STEERING 0x8000
 #define PCI_CAN_SWITCH_TYPE 0x10000
+#define PCI_NO_BRIDGES	    0x20000
 
 #define PCI_CONFIG_TYPE_1 1
 #define PCI_CONFIG_TYPE_2 2
@@ -50,6 +51,7 @@ enum {
     PCI_CARD_NORTHBRIDGE = 0,
     PCI_CARD_SOUTHBRIDGE,
     PCI_CARD_NORMAL,
+    PCI_CARD_NORMAL_NOBRIDGE,
     PCI_CARD_ONBOARD,
     PCI_CARD_SCSI,
     PCI_CARD_SOUND,
@@ -64,7 +66,8 @@ enum {
     PCI_ADD_VIDEO,
     PCI_ADD_SCSI,
     PCI_ADD_SOUND,
-    PCI_ADD_IDE
+    PCI_ADD_IDE,
+    PCI_ADD_BRIDGE
 };
 
 typedef union {
@@ -91,11 +94,16 @@ extern void	pci_set_mirq(uint8_t mirq, int level);
 extern void	pci_set_irq(uint8_t card, uint8_t pci_int);
 extern void	pci_clear_mirq(uint8_t mirq, int level);
 extern void	pci_clear_irq(uint8_t card, uint8_t pci_int);
+extern uint8_t	pci_get_int(uint8_t card, uint8_t pci_int);
 
 extern void	pci_reset(void);
 extern void	pci_init(int type);
+extern uint8_t	pci_register_bus();
+extern void	pci_remap_bus(uint8_t bus_index, uint8_t bus_number);
 extern void	pci_register_slot(int card, int type,
 				  int inta, int intb, int intc, int intd);
+extern void	pci_register_bus_slot(int bus, int card, int type,
+				      int inta, int intb, int intc, int intd);
 extern void	pci_close(void);
 extern uint8_t	pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv);
 
@@ -108,6 +116,18 @@ extern void	pci_elcr_set_enabled(int enabled);
 extern void	pci_elcr_io_disable(void);
 extern void	elcr_write(uint16_t port, uint8_t val, void *priv);
 extern uint8_t	elcr_read(uint16_t port, void *priv);
+
+
+#ifdef EMU_DEVICE_H
+extern const device_t dec21150_device;
+
+extern const device_t i440lx_agp_device;
+extern const device_t i440bx_agp_device;
+extern const device_t i440gx_agp_device;
+extern const device_t via_vp3_agp_device;
+extern const device_t via_mvp3_agp_device;
+extern const device_t via_apro_agp_device;
+#endif
 
 
 #endif	/*EMU_PCI_H*/
