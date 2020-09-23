@@ -862,7 +862,7 @@ CPU cpus_Cyrix3[] = {
     {"Cyrix III 550", CPU_CYRIX3S, fpus_internal, 550000000, 5.5,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 50, 50, 17, 17, 66},
     {"Cyrix III 600", CPU_CYRIX3S, fpus_internal, 600000000, 6.0,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 54, 54, 18, 18, 72},
     {"Cyrix III 650", CPU_CYRIX3S, fpus_internal, 650000000, 6.5,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 58, 58, 20, 20, 78},
-    {"Cyrox III 667", CPU_CYRIX3S, fpus_internal, 666666666, 5.0,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 60, 60, 21, 21, 81},
+    {"Cyrix III 667", CPU_CYRIX3S, fpus_internal, 666666666, 5.0,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 60, 60, 21, 21, 81},
     {"Cyrix III 700", CPU_CYRIX3S, fpus_internal, 700000000, 7.0,   0x662, 0x662, 0, CPU_SUPPORTS_DYNAREC, 62, 62, 21, 21, 84},
     {"",                       -1,         0, 0.0,       0,     0, 0, 0,                    0,   0, 0,  0,  0}
 };
