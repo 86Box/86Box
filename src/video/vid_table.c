@@ -88,6 +88,7 @@ video_cards[] = {
     { "[ISA] Hercules Plus",				"hercules_plus",	&herculesplus_device			},
     { "[ISA] Hercules InColor",				"incolor",		&incolor_device				},
     { "[ISA] Image Manager 1024",			"im1024",		&im1024_device				},
+    { "[ISA] Schetmash Iskra EGA (Cyrillic ROM)",				"iskra_ega",		&iskra_ega_device		},
     { "[ISA] Kasan Hangulmadang-16 VGA (ET4000AX)",	"kasan16vga",		&et4000_kasan_isa_device		},
     { "[ISA] MDA",					"mda",			&mda_device				},
     { "[ISA] MDSI Genius",				"genius",		&genius_device				},
