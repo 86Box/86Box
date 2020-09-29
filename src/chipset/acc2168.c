@@ -100,21 +100,6 @@ acc2168_read(uint16_t addr, void *p)
     return dev->regs[dev->reg_idx];
 }
 
-
-/*
-    Bit 7 = Super I/O chip: 1 = enabled, 0 = disabled;
-    Bit 6 = Graphics card: 1 = standalone, 0 = on-board;
-    Bit 5 = ???? (if 1, siren and hangs).
-*/
-static uint8_t 
-acc2168_port_78_read(uint16_t addr, void *p)
-{
-    acc2168_t *dev = (acc2168_t *)p;
-
-    return dev->port_78;
-}
-
-
 static void
 acc2168_close(void *priv)
 {
@@ -132,8 +117,6 @@ acc2168_init(const device_t *info)
 	
     io_sethandler(0x00f2, 0x0002,
 		  acc2168_read, NULL, NULL, acc2168_write, NULL, NULL, dev);	
-    io_sethandler(0x0078, 0x0001,
-		  acc2168_port_78_read, NULL, NULL, NULL, NULL, NULL, dev);	
 
     device_add(&port_92_inv_device);
 
