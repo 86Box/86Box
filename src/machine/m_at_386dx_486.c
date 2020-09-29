@@ -200,6 +200,8 @@ machine_at_pb410a_init(const machine_t *model)
     device_add(&acc3221_device);
     device_add(&acc2168_device);
 
+    device_add(&phoenix_486_jumper_device);
+
     if (gfxcard == VID_INTERNAL)
 	device_add(&ht216_32_pb410a_device);
 
