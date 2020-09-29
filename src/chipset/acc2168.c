@@ -6,8 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the ACC 2168 chipset 
- *		used by the Packard Bell Legend 760 Supreme (PB410A or PB430).
+ *		Implementation of the ACC 2168 chipset
  *
  *
  *
@@ -24,51 +23,29 @@
 #include "cpu.h"
 #include <86box/timer.h>
 #include <86box/device.h>
-#include <86box/keyboard.h>
 #include <86box/io.h>
 #include <86box/mem.h>
-#include <86box/mouse.h>
 #include <86box/port_92.h>
-#include <86box/sio.h>
-#include <86box/hdc.h>
-#include <86box/video.h>
 #include <86box/chipset.h>
 
+#define enabled_shadow (MEM_READ_INTERNAL | ((dev->regs[0x02] & 0x20) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL))
+#define disabled_shadow (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
 
 typedef struct acc2168_t
 {
     int reg_idx;
     uint8_t regs[256];
-    uint8_t port_78;
 } acc2168_t;
-
-
-/*
-    Based on reverse engineering using the AMI 386DX Clone BIOS:
-	Bit 0 of register 02 controls shadowing of C0000-C7FFF (1 = enabled, 0 = disabled);
-	Bit 1 of register 02 controls shadowing of C8000-CFFFF (1 = enabled, 0 = disabled);
-	Bit 2 of register 02 controls shadowing of D0000-DFFFF (1 = enabled, 0 = disabled);
-	Bit 3 of register 02 controls shadowing of E0000-EFFFF (1 = enabled, 0 = disabled);
-	Bit 4 of register 02 controls shadowing of F0000-FFFFF (1 = enabled, 0 = disabled);
-	Bit 5 is most likely: 1 = shadow enabled, 0 = shadow disabled;
-	Bit 6 of register 02 controls shadow RAM cacheability (1 = cacheable, 0 = non-cacheable).
-*/
 
 static void 
 acc2168_shadow_recalc(acc2168_t *dev)
 {
-    int state;
-
-    if (dev->regs[0x02] & 0x20)
-	state = (dev->regs[0x02] & 0x20) ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-
-    mem_set_mem_state(0xc0000, 0x08000, (dev->regs[0x02] & 0x01) ? state : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
-    mem_set_mem_state(0xc8000, 0x08000, (dev->regs[0x02] & 0x02) ? state : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
-    mem_set_mem_state(0xd0000, 0x10000, (dev->regs[0x02] & 0x04) ? state : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
-    mem_set_mem_state(0xe0000, 0x10000, (dev->regs[0x02] & 0x08) ? state : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
-    mem_set_mem_state(0xf0000, 0x10000, (dev->regs[0x02] & 0x10) ? state : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
+mem_set_mem_state_both(0xc0000, 0x8000, ((dev->regs[0x01] & 0x01) ? enabled_shadow : disabled_shadow));
+mem_set_mem_state_both(0xc8000, 0x8000, ((dev->regs[0x01] & 0x02) ? enabled_shadow : disabled_shadow));
+mem_set_mem_state_both(0xd0000, 0x10000, ((dev->regs[0x01] & 0x04) ? enabled_shadow : disabled_shadow));
+mem_set_mem_state_both(0xe0000, 0x10000, ((dev->regs[0x01] & 0x08) ? enabled_shadow : disabled_shadow));
+mem_set_mem_state_both(0xf0000, 0x10000, ((dev->regs[0x01] & 0x10) ? enabled_shadow : disabled_shadow));
 }
-
 
 static void 
 acc2168_write(uint16_t addr, uint8_t val, void *p)
@@ -119,11 +96,6 @@ acc2168_init(const device_t *info)
 		  acc2168_read, NULL, NULL, acc2168_write, NULL, NULL, dev);	
 
     device_add(&port_92_inv_device);
-
-    if (gfxcard != VID_INTERNAL)
-	dev->port_78 = 0x40;
-    else
-	dev->port_78 = 0;
 
     return dev;
 }
