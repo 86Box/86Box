@@ -40,11 +40,11 @@ typedef struct acc2168_t
 static void 
 acc2168_shadow_recalc(acc2168_t *dev)
 {
-mem_set_mem_state_both(0xc0000, 0x8000, ((dev->regs[0x01] & 0x01) ? enabled_shadow : disabled_shadow));
-mem_set_mem_state_both(0xc8000, 0x8000, ((dev->regs[0x01] & 0x02) ? enabled_shadow : disabled_shadow));
-mem_set_mem_state_both(0xd0000, 0x10000, ((dev->regs[0x01] & 0x04) ? enabled_shadow : disabled_shadow));
-mem_set_mem_state_both(0xe0000, 0x10000, ((dev->regs[0x01] & 0x08) ? enabled_shadow : disabled_shadow));
-mem_set_mem_state_both(0xf0000, 0x10000, ((dev->regs[0x01] & 0x10) ? enabled_shadow : disabled_shadow));
+mem_set_mem_state_both(0xc0000, 0x8000, ((dev->regs[0x02] & 0x01) ? enabled_shadow : disabled_shadow));
+mem_set_mem_state_both(0xc8000, 0x8000, ((dev->regs[0x02] & 0x02) ? enabled_shadow : disabled_shadow));
+mem_set_mem_state_both(0xd0000, 0x10000, ((dev->regs[0x02] & 0x04) ? enabled_shadow : disabled_shadow));
+mem_set_mem_state_both(0xe0000, 0x10000, ((dev->regs[0x02] & 0x08) ? enabled_shadow : disabled_shadow));
+mem_set_mem_state_both(0xf0000, 0x10000, ((dev->regs[0x02] & 0x10) ? enabled_shadow : disabled_shadow));
 }
 
 static void 
