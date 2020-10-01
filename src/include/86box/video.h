@@ -299,8 +299,8 @@ extern const device_t paradise_wd90c30_device;
 /* S3 9XX/8XX/Vision/Trio */
 extern const device_t s3_orchid_86c911_isa_device;
 extern const device_t s3_ami_86c924_isa_device;
-extern const device_t s3_metheus_premier_86c928_isa_device;
-extern const device_t s3_metheus_premier_86c928_vlb_device;
+extern const device_t s3_metheus_86c928_isa_device;
+extern const device_t s3_metheus_86c928_vlb_device;
 extern const device_t s3_v7mirage_86c801_isa_device;
 extern const device_t s3_phoenix_86c805_vlb_device;
 extern const device_t s3_bahamas64_vlb_device;
@@ -318,6 +318,7 @@ extern const device_t s3_diamond_stealth64_pci_device;
 extern const device_t s3_diamond_stealth64_vlb_device;
 extern const device_t s3_diamond_stealth64_964_pci_device;
 extern const device_t s3_diamond_stealth64_964_vlb_device;
+extern const device_t s3_trio64v2_dx_pci_device;
 
 /* S3 ViRGE */
 extern const device_t s3_virge_vlb_device;
@@ -328,6 +329,7 @@ extern const device_t s3_virge_375_vlb_device;
 extern const device_t s3_virge_375_pci_device;
 extern const device_t s3_virge_375_4_vlb_device;
 extern const device_t s3_virge_375_4_pci_device;
+extern const device_t s3_trio3d_2x_pci_device;
 
 /* Sigma Color 400 */
 extern const device_t sigma_device;

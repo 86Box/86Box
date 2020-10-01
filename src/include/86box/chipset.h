@@ -131,6 +131,7 @@ extern const device_t   vlsi_scamp_device;
 extern const device_t	wd76c10_device;
 
 /* Miscellaneous Hardware */
+extern const device_t   phoenix_486_jumper_device;
 extern const device_t	vpc2007_device;
 
 #endif	/*EMU_CHIPSET_H*/
