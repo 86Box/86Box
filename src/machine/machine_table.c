@@ -282,20 +282,20 @@ const machine_t machines[] = {
 
     /* Socket 7 machines */
     /* 430FX */
-    { "[i430FX-3V] ASUS P/I-P54TP4XE",		"p54tp4xe",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	     machine_at_p54tp4xe_init, NULL			},
-    { "[i430FX-3V] ASUS P/I-P54TP4XE (MR BIOS)","mr586",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC | MACHINE_PS2,					  8,  128,   8, 127,	        machine_at_mr586_init, NULL			},
-    { "[i430FX-3V] Gateway 2000 P5-xxx",	"gw2katx",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	      machine_at_gw2katx_init, NULL			},
-    { "[i430FX-3V] Intel Advanced/ATX",		"thor",			MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,		 machine_at_thor_init, NULL			},
-    { "[i430FX-3V] Intel Advanced/ATX (MR BIOS)","mrthor",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 127,	       machine_at_mrthor_init, NULL			},
-    { "[i430FX-3V] Intel Advanced/EV",		"endeavor",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,			  8,  128,   8, 127,	     machine_at_endeavor_init, at_endeavor_get_device	},
-    { "[i430FX-3V] Packard Bell PB640",		"pb640",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,	 		  8,  128,   8, 127,		machine_at_pb640_init, at_pb640_get_device	},
-    { "[i430FX-3V] QDI Chariot",		"chariot",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73VCH,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  8,  128,   8, 127,	      machine_at_chariot_init, NULL			},
+    { "[i430FX] ASUS P/I-P54TP4XE",		"p54tp4xe",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	     machine_at_p54tp4xe_init, NULL			},
+    { "[i430FX] ASUS P/I-P54TP4XE (MR BIOS)",	"mr586",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC | MACHINE_PS2,					  8,  128,   8, 127,	        machine_at_mr586_init, NULL			},
+    { "[i430FX] Gateway 2000 P5-xxx",		"gw2katx",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,	      machine_at_gw2katx_init, NULL			},
+    { "[i430FX] Intel Advanced/ATX",		"thor",			MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  128,   8, 127,		 machine_at_thor_init, NULL			},
+    { "[i430FX] Intel Advanced/ATX (MR BIOS)",	"mrthor",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  128,   8, 127,	       machine_at_mrthor_init, NULL			},
+    { "[i430FX] Intel Advanced/EV",		"endeavor",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,			  8,  128,   8, 127,	     machine_at_endeavor_init, at_endeavor_get_device	},
+    { "[i430FX] Packard Bell PB640",		"pb640",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC | MACHINE_VIDEO,	 		  8,  128,   8, 127,		machine_at_pb640_init, at_pb640_get_device	},
+    { "[i430FX] QDI Chariot",			"chariot",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73VCH,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_HDC,						  8,  128,   8, 127,	      machine_at_chariot_init, NULL			},
 
     /* 430HX */
-    { "[i430HX-3V] Acer M3A",			"acerm3a",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  192,   8, 127,	      machine_at_acerm3a_init, NULL			},
-    { "[i430HX-3V] AOpen AP53",			"ap53",			MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  512,   8, 127,		 machine_at_ap53_init, NULL			},
-    { "[i430HX-3V] Biostar MB-8500TUC",		"8500tuc",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	      machine_at_8500tuc_init, NULL			},
-    { "[i430HX-3V] SuperMicro Super P55T2S",	"p55t2s",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  768,   8, 127,	       machine_at_p55t2s_init, NULL			},
+    { "[i430HX] Acer M3A",			"acerm3a",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  192,   8, 127,	      machine_at_acerm3a_init, NULL			},
+    { "[i430HX] AOpen AP53",			"ap53",			MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,			 		  8,  512,   8, 127,		 machine_at_ap53_init, NULL			},
+    { "[i430HX] Biostar MB-8500TUC",		"8500tuc",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  512,   8, 127,	      machine_at_8500tuc_init, NULL			},
+    { "[i430HX] SuperMicro Super P55T2S",	"p55t2s",		MACHINE_TYPE_SOCKET7_3V,	MACHINE_CPUS_PENTIUM_S73V,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  768,   8, 127,	       machine_at_p55t2s_init, NULL			},
 
     { "[i430HX] Acer V35N",			"acerv35n",		MACHINE_TYPE_SOCKET7,		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  192,   8, 127,	     machine_at_acerv35n_init, NULL			},
     { "[i430HX] ASUS P/I-P55T2P4",		"p55t2p4",		MACHINE_TYPE_SOCKET7,		MACHINE_CPUS_PENTIUM_S7,											    MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  256,   8, 127,	      machine_at_p55t2p4_init, NULL			},
@@ -348,7 +348,7 @@ const machine_t machines[] = {
     { "[i440FX] ASUS P/I-P65UP5 (C-PKND)",	"p65up5_cpknd",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII66}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 127,	 machine_at_p65up5_cpknd_init, NULL			},
     { "[i440FX] ASUS KN97",			"kn97",			MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII66}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8,  768,   8, 127,	         machine_at_kn97_init, NULL			},
 
-	/* 440LX */
+    /* 440LX */
     { "[i440LX] ABIT LX6",			"lx6",			MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII66}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,	          machine_at_lx6_init, NULL			},
     { "[i440LX] Micronics Spitfire",		"spitfire",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII66}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_ISA | MACHINE_AT | MACHINE_PS2 | MACHINE_HDC,					  8, 1024,   8, 255,	     machine_at_spitfire_init, NULL			},
 
