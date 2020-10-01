@@ -619,7 +619,7 @@ static int keysyms_ff[] = {
     0x0000,
     0x0000,
     0x0000,
-    0xe071	/* 0xff (XK_Delete) */
+    0xe053	/* 0xff (XK_Delete) */
 };
 
 
