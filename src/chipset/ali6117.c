@@ -77,14 +77,14 @@ ali6117_recalcmapping(ali6117_t *dev)
     shadowbios = 0;
     shadowbios_write = 0;
 
-    ali6117_log("M6117: Shadowing for a0000-bffff (reg 12) = %s\n", (dev->regs[0x12] & 0x02) ? "on" : "off");
+    ali6117_log("ALI6117: Shadowing for a0000-bffff (reg 12) = %s\n", (dev->regs[0x12] & 0x02) ? "on" : "off");
     mem_set_mem_state(0xa0000, 0x20000, (dev->regs[0x12] & 0x02) ? (MEM_WRITE_INTERNAL | MEM_READ_INTERNAL) : (MEM_WRITE_EXTANY | MEM_READ_EXTANY));
 
     for (reg = 0; reg <= 1; reg++) {
 	for (bitpair = 0; bitpair <= 3; bitpair++) {
 		size = 0x8000;
 		base = 0xc0000 + (size * ((reg * 4) + bitpair));
-		ali6117_log("M6117: Shadowing for %05x-%05x (reg %02X bp %d wmask %02X rmask %02X) =", base, base + size - 1, 0x14 + reg, bitpair, 1 << ((bitpair * 2) + 1), 1 << (bitpair * 2));
+		ali6117_log("ALI6117: Shadowing for %05X-%05X (reg %02X bp %d wmask %02X rmask %02X) =", base, base + size - 1, 0x14 + reg, bitpair, 1 << ((bitpair * 2) + 1), 1 << (bitpair * 2));
 
 		state = 0;
 		if (dev->regs[0x14 + reg] & (1 << ((bitpair * 2) + 1))) {
