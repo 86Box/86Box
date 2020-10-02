@@ -329,7 +329,9 @@ extern const device_t s3_virge_375_vlb_device;
 extern const device_t s3_virge_375_pci_device;
 extern const device_t s3_virge_375_4_vlb_device;
 extern const device_t s3_virge_375_4_pci_device;
+#if defined(DEV_BRANCH) && defined(USE_S3TRIO3D2X)
 extern const device_t s3_trio3d_2x_pci_device;
+#endif
 
 /* Sigma Color 400 */
 extern const device_t sigma_device;

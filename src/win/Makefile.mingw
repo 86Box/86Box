@@ -72,6 +72,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef VECTRA54
   VECTRA54	:= y
  endif
+ ifndef S3TRIO3D2X
+  S3TRIO3D2X	:= y
+ endif
  ifndef SIEMENS
   SIEMENS	:= y
  endif
@@ -150,6 +153,9 @@ else
  endif
  ifndef VECTRA54
   VECTRA54	:= n
+ endif
+ ifndef S3TRIO3D2X
+  S3TRIO3D2X	:= n
  endif
  ifndef SIEMENS
   SIEMENS	:= n
@@ -548,6 +554,10 @@ endif
 
 ifeq ($(VECTRA54), y)
 OPTS		+= -DUSE_VECTRA54
+endif
+
+ifeq ($(S3TRIO3D2X), y)
+OPTS		+= -DUSE_S3TRIO3D2X
 endif
 
 ifeq ($(SIEMENS), y)
