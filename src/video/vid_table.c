@@ -136,10 +136,11 @@ video_cards[] = {
     { "[PCI] Phoenix S3 Vision864",			"px_vision864_pci",	&s3_phoenix_vision864_pci_device	},
     { "[PCI] Phoenix S3 Trio32",			"px_trio32_pci",	&s3_phoenix_trio32_pci_device		},
     { "[PCI] Phoenix S3 Trio64",			"px_trio64_pci",	&s3_phoenix_trio64_pci_device		},
+    { "[PCI] Phoenix S3 Trio64V+",			"px_trio64vplus_pci",	&s3_phoenix_trio64vplus_pci_device	},
 #if defined(DEV_BRANCH) && defined(USE_S3TRIO3D2X)    
     { "[PCI] S3 Trio3D/2X",				"trio3d2x",		&s3_trio3d_2x_pci_device		},
 #endif    
-    { "[PCI] S3 Trio64V2/DX",				"trio64v2dx_pci",	&s3_trio64v2_dx_pci_device		},    
+    { "[PCI] S3 Trio64V2/DX",				"trio64v2dx_pci",	&s3_trio64v2_dx_pci_device		},
     { "[PCI] S3 ViRGE/DX",				"virge375_pci",		&s3_virge_375_pci_device		},
     { "[PCI] S3 ViRGE/DX (VBE 2.0)",			"virge375_vbe20_pci",	&s3_virge_375_4_pci_device		},
     { "[PCI] STB Nitro 64V (CL-GD 5446)",		"cl_gd5446_stb_pci",	&gd5446_stb_pci_device			},
@@ -166,6 +167,7 @@ video_cards[] = {
     { "[VLB] Phoenix S3 Vision864",			"px_vision864_vlb",	&s3_phoenix_vision864_vlb_device	},
     { "[VLB] Phoenix S3 Trio32",			"px_trio32_vlb",	&s3_phoenix_trio32_vlb_device		},
     { "[VLB] Phoenix S3 Trio64",			"px_trio64_vlb",	&s3_phoenix_trio64_vlb_device		},
+    { "[VLB] Phoenix S3 Trio64V+",			"px_trio64vplus_vlb",	&s3_phoenix_trio64vplus_vlb_device	},
     { "[VLB] S3 ViRGE/DX",				"virge375_vlb",		&s3_virge_375_vlb_device		},
     { "[VLB] S3 ViRGE/DX (VBE 2.0)",			"virge375_vbe20_vlb",	&s3_virge_375_4_vlb_device		},
     { "[VLB] Trident TGUI9400CXi",			"tgui9400cxi_vlb",	&tgui9400cxi_device			},
