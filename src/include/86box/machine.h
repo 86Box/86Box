@@ -387,6 +387,7 @@ extern int	machine_at_ficva502_init(const machine_t *);
 extern int	machine_at_ficpa2012_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
+extern const device_t 	*at_thor_get_device(void);
 extern const device_t	*at_pb640_get_device(void);
 #endif
 
@@ -458,6 +459,9 @@ extern const device_t europc_device;
 
 /* m_oivetti_m24.c */
 extern int	machine_olim24_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const 	device_t *m24_get_device(void);
+#endif
 
 /* m_pcjr.c */
 extern int	machine_pcjr_init(const machine_t *);
@@ -502,6 +506,7 @@ extern int	machine_tandy1000sl2_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t	*tandy1k_get_device(void);
 extern const device_t	*tandy1k_hx_get_device(void);
+extern const device_t   *tandy1k_sl_get_device(void);
 #endif
 
 /* m_xt.c */
@@ -527,7 +532,8 @@ extern int 	machine_xt_hed919_init(const machine_t *);
 #endif
 
 /* m_xt_compaq.c */
-extern int	machine_xt_compaq_init(const machine_t *);
+extern int	machine_xt_compaq_deskpro_init(const machine_t *);
+extern int	machine_xt_compaq_portable_init(const machine_t *);
 
 /* m_xt_laserxt.c */
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)

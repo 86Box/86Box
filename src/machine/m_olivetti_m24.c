@@ -818,6 +818,12 @@ const device_t m24_device = {
     NULL
 };
 
+const device_t *
+m24_get_device(void)
+{
+    return &m24_device;
+}
+
 
 static void
 kbd_reset(void *priv)
