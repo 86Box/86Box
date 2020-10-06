@@ -106,6 +106,7 @@ video_cards[] = {
     { "[ISA] SPEA V7 Mirage (S3 86c801)",		"px_s3_v7_801_isa",	&s3_v7mirage_86c801_isa_device		},
     { "[ISA] Trident TVGA8900B",			"tvga8900b",		&tvga8900b_device			},
     { "[ISA] Trident TVGA8900D",			"tvga8900d",		&tvga8900d_device			},
+    { "[ISA] Trident TVGA9000B",			"tvga9000b",		&tvga9000b_device			},
     { "[ISA] Trigem Korean VGA (ET4000AX)",		"tgkorvga",		&et4000k_isa_device			},
     { "[ISA] Tseng ET4000AX",				"et4000ax",		&et4000_isa_device			},
     { "[ISA] VGA",					"vga",			&vga_device				},
