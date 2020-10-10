@@ -53,14 +53,14 @@
 #include <86box/chipset.h>
 
 
-#define VIA_PIPC_586A	0x05862000
+/* Most revision numbers (PCI-ISA bridge or otherwise) were lifted from PCI device
+   listings on forums, as VIA's datasheets are not very helpful regarding those. */
+#define VIA_PIPC_586A	0x05862500
 #define VIA_PIPC_586B	0x05864700
 #define VIA_PIPC_596A	0x05961200
-#define VIA_PIPC_596B	0x05960000
+#define VIA_PIPC_596B	0x05962300
 #define VIA_PIPC_686A	0x06861400
 #define VIA_PIPC_686B	0x06864000
-
-#define VIA_PIPC_586(x) (((x) >> 16) == 0x0586)
 
 
 typedef struct
@@ -72,6 +72,7 @@ typedef struct
     uint8_t	ide_regs[256];
     uint8_t	usb_regs[2][256];
     uint8_t	power_regs[256];
+    uint8_t	ac97_regs[2][256];
     sff8038i_t	*bm[2];
     nvr_t	*nvr;
     int		nvr_enabled, slot;
@@ -118,6 +119,7 @@ pipc_reset_hard(void *priv)
     memset(dev->ide_regs, 0, 256);
     memset(dev->usb_regs, 0, 512);
     memset(dev->power_regs, 0, 256);
+    memset(dev->ac97_regs, 0, 512);
 
     dev->pci_isa_regs[0x00] = 0x06; dev->pci_isa_regs[0x01] = 0x11;
     dev->pci_isa_regs[0x02] = dev->local >> 16;
@@ -152,7 +154,7 @@ pipc_reset_hard(void *priv)
     dev->ide_regs[0x02] = 0x71; dev->ide_regs[0x03] = 0x05;
     dev->ide_regs[0x04] = 0x80;
     dev->ide_regs[0x06] = (dev->local == VIA_PIPC_686A) ? 0x90 : 0x80; dev->ide_regs[0x07] = 0x02;
-    dev->ide_regs[0x08] = (dev->local >= VIA_PIPC_596B) ? 0x10 : 0x06;
+    dev->ide_regs[0x08] = (dev->local == VIA_PIPC_596B) ? 0x10 : 0x06; /* only 596B has rev 0x10? */
     dev->ide_regs[0x09] = 0x85;
     dev->ide_regs[0x0a] = 0x01;
     dev->ide_regs[0x0b] = 0x01;
@@ -191,18 +193,34 @@ pipc_reset_hard(void *priv)
 	dev->ide_regs[0xc2] = 0x02;
     }
 
-    for (uint8_t i = 0; i <= (dev->local >= VIA_PIPC_686A); i++) {
+    for (i = 0; i <= (dev->local >= VIA_PIPC_686A); i++) {
 	dev->max_func++;
 	dev->usb_regs[i][0x00] = 0x06; dev->usb_regs[i][0x01] = 0x11;
 	dev->usb_regs[i][0x02] = 0x38; dev->usb_regs[i][0x03] = 0x30;
 	dev->usb_regs[i][0x04] = 0x00; dev->usb_regs[i][0x05] = 0x00;
 	dev->usb_regs[i][0x06] = 0x00; dev->usb_regs[i][0x07] = 0x02;
-	if (dev->local <= VIA_PIPC_586B)
-		dev->usb_regs[i][0x08] = 0x02;
-	else if (dev->local <= VIA_PIPC_596B)
-		dev->usb_regs[i][0x08] = 0x08;
-	else
-		dev->usb_regs[i][0x08] = 0x16;
+	switch (dev->local) {
+		case VIA_PIPC_586A:
+		case VIA_PIPC_586B:
+			dev->usb_regs[i][0x08] = 0x02;
+			break;
+
+		case VIA_PIPC_596A:
+			dev->usb_regs[i][0x08] = 0x08;
+			break;
+
+		case VIA_PIPC_596B:
+			dev->usb_regs[i][0x08] = 0x11;
+			break;
+
+		case VIA_PIPC_686A:
+			dev->usb_regs[i][0x08] = 0x06;
+			break;
+
+		case VIA_PIPC_686B:
+			dev->usb_regs[i][0x08] = 0x16;
+			break;
+	}
 
 	dev->usb_regs[i][0x0a] = 0x03;
 	dev->usb_regs[i][0x0b] = 0x0c;
@@ -231,16 +249,57 @@ pipc_reset_hard(void *priv)
 	dev->power_regs[0x03] = 0x30;
 	dev->power_regs[0x04] = 0x00; dev->power_regs[0x05] = 0x00;
 	dev->power_regs[0x06] = (dev->local == VIA_PIPC_686B) ? 0x90 : 0x80; dev->power_regs[0x07] = 0x02;
-	if (dev->local <= VIA_PIPC_586B)
-		dev->power_regs[0x08] = 0x10;
-	else if (dev->local <= VIA_PIPC_596B)
-		dev->power_regs[0x08] = 0x20;
-	else
-		dev->power_regs[0x08] = 0x40;
+	switch (dev->local) {
+		case VIA_PIPC_586B:
+		case VIA_PIPC_686A:
+			dev->power_regs[0x08] = 0x10;
+			break;
+
+		case VIA_PIPC_596A:
+			dev->power_regs[0x08] = 0x20;
+			break;
+
+		case VIA_PIPC_596B:
+			dev->power_regs[0x08] = 0x30;
+			break;
+
+		case VIA_PIPC_686B:
+			dev->power_regs[0x08] = 0x40;
+			break;
+	}
+	if (dev->local >= VIA_PIPC_686A)
+		dev->power_regs[0x42] = 0x40; /* external suspend-related pin, must be set */
 	dev->power_regs[0x48] = 0x01;
 
-	if (dev->local >= VIA_PIPC_596A)
+	if (dev->local == VIA_PIPC_596A)
+		dev->power_regs[0x80] = 0x01;
+	else if (dev->local >= VIA_PIPC_596B)
 		dev->power_regs[0x90] = 0x01;
+    }
+
+    if (dev->local >= VIA_PIPC_686A) {
+	for (i = 0; i <= 1; i++) {
+		dev->max_func++;
+		dev->ac97_regs[i][0x00] = 0x06; dev->ac97_regs[i][0x01] = 0x11;
+		dev->ac97_regs[i][0x02] = 0x58 + (0x10 * i); dev->ac97_regs[i][0x03] = 0x30;
+		dev->ac97_regs[i][0x06] = 0x10 * (1 - i); dev->ac97_regs[i][0x07] = 0x02;
+		dev->ac97_regs[i][0x08] = (dev->local == VIA_PIPC_686A) ? 0x12 : 0x50;
+
+		if (i == 0) {
+			dev->ac97_regs[i][0x0a] = 0x01;
+			dev->ac97_regs[i][0x0b] = 0x04;
+		} else {
+			dev->ac97_regs[i][0x0a] = 0x80;
+			dev->ac97_regs[i][0x0b] = 0x07;
+		}
+
+		dev->ac97_regs[i][0x10] = 0x01;
+		dev->ac97_regs[i][0x14] = 0x01;
+
+		dev->ac97_regs[i][0x3d] = 0x03;
+
+		dev->ac97_regs[i][0x43] = 0x1c;
+	}
     }
 
     pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
@@ -350,10 +409,12 @@ pipc_read(int func, int addr, void *priv)
     }
     else if (func == 1) /* IDE */
 	ret = dev->ide_regs[addr];
-    else if (func < pm_func) /* USB */
+    else if ((func < pm_func) && !((dev->local >= VIA_PIPC_686A) && (dev->pci_isa_regs[0x85] & 0x10))) /* USB */
 	ret = dev->usb_regs[func - 2][addr];
     else if (func == pm_func) /* Power */
 	ret = dev->power_regs[addr];
+    else if ((func <= (pm_func + 2)) && !(dev->pci_isa_regs[0x85] & ((func == (pm_func + 1)) ? 0x04 : 0x08))) /* AC97 / MC97 */
+	ret = dev->ac97_regs[func - pm_func - 1][addr];
 
     pipc_log("PIPC: read(%d, %02X) = %02X\n", func, addr, ret);
 
@@ -481,12 +542,17 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			dev->pci_isa_regs[(addr - 0x44)] = val;
 			break;
 
-		case 0x74:
-			dev->pci_isa_regs[addr] = val;
+		case 0x77:
+			if (val & 0x10)
+				pclog("PIPC: Warning: Internal I/O APIC enabled.\n");
 			break;
 
 		case 0x80: case 0x86: case 0x87:
 			dev->pci_isa_regs[addr] &= ~(val);
+			break;
+
+		case 0x85:
+			dev->pci_isa_regs[addr] = val;
 			break;
 
 		default:
@@ -580,10 +646,6 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			pipc_ide_handlers(dev);
 			break;
 
-		case 0x70: case 0x71: case 0x74: case 0x75: case 0x78: case 0x79: case 0x7c: case 0x7d: case 0x80: case 0x81: case 0x82: case 0x83: case 0x88: case 0x89: case 0x8a: case 0x8b:
-			pclog("them ide registers... %02X %02X\n", addr, val);
-			break;
-
 		default:
 			dev->ide_regs[addr] = val;
 			break;
@@ -594,6 +656,10 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 	    ((addr >= 0xe) && (addr < 0x20)) || ((addr >= 0x22) && (addr < 0x3c)) ||
 	    ((addr >= 0x3e) && (addr < 0x40)) || ((addr >= 0x42) && (addr < 0x44)) ||
 	    ((addr >= 0x46) && (addr < 0xc0)) || (addr >= 0xc2))
+		return;
+
+	/* Check Extended Function Enable bit for the second controller */
+	if ((func == 3) && (dev->local >= VIA_PIPC_686A) && (dev->pci_isa_regs[0x85] & 0x10))
 		return;
 
 	switch (addr) {
@@ -620,23 +686,20 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 	}
     } else if (func == pm_func) { /* Power */
 	/* Read-only addresses */
-	if ((addr < 0xd) || ((addr >= 0xe) && (addr < 0x40)) || (addr == 0x43) || (addr == 0x48) ||
+	if ((addr < 0xd) || ((addr >= 0xe) && (addr < 0x40)) || (addr == 0x43) ||
 	    (addr == 0x4e) || (addr == 0x4f) || (addr == 0x56) || (addr == 0x57) || ((addr >= 0x5c) && (addr < 0x61)) ||
 	    ((addr >= 0x64) && (addr < 0x70)) || (addr == 0x72) || (addr == 0x73) || ((addr >= 0x75) && (addr < 0x80)) ||
-	    ((addr >= 0x82) && (addr < 0x90)) || ((addr >= 0x92) && (addr < 0xd2)) || (addr >= 0xd7))
+	    (addr == 0x83) || ((addr >= 0x85) && (addr < 0x90)) || ((addr >= 0x92) && (addr < 0xd2)) || (addr >= 0xd7))
 		return;
 
-	if ((dev->local <= VIA_PIPC_586B) && ((addr == 0x4c) || (addr == 0x4d) || (addr >= 0x54)))
+	if ((dev->local <= VIA_PIPC_586B) && ((addr == 0x48) || (addr == 0x4c) || (addr == 0x4d) || (addr >= 0x54)))
 		return;
 
-	if ((dev->local <= VIA_PIPC_596A) && ((addr >= 0x64) && (addr < 0x80)))
-		return;
-
-	if ((dev->local <= VIA_PIPC_596B) && ((addr >= 0x64) && (addr < 0x90)))
+	if ((dev->local <= VIA_PIPC_596B) && ((addr >= 0x64) && (addr < (dev->local == VIA_PIPC_596A ? 0x80 : 0x85))))
 		return;
 
 	switch (addr) {
-		case 0x41: case 0x49:
+		case 0x41: case 0x48: case 0x49:
 			dev->power_regs[addr] = val;
 			c = (dev->power_regs[0x49] << 8);
 			if (dev->local >= VIA_PIPC_596A)
@@ -648,18 +711,37 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			dev->power_regs[(addr - 0x58)] = val;
 			break;
 
-		case 0x80: case 0x81:
+		case 0x80: case 0x81: case 0x84: /* 596(A) has the SMBus I/O base here instead. Enable bit is assumed. */
 			dev->power_regs[addr] = val;
-			smbus_piix4_remap(dev->smbus, (dev->power_regs[0x81] << 8) | (dev->power_regs[0x80] & 0xf0), 1);
+			smbus_piix4_remap(dev->smbus, (dev->power_regs[0x81] << 8) | (dev->power_regs[0x80] & 0xf0), dev->power_regs[0x84] & 0x01);
 			break;
 
-		case 0x90: case 0x91:
+		case 0x90: case 0x91: case 0xd2:
 			dev->power_regs[addr] = val;
 			smbus_piix4_remap(dev->smbus, (dev->power_regs[0x91] << 8) | (dev->power_regs[0x90] & 0xf0), dev->power_regs[0xd2] & 0x01);
 			break;
 
 		default:
 			dev->power_regs[addr] = val;
+			break;
+	}
+    } else if (func <= pm_func + 2) { /* AC97 / MC97 */
+	/* Read-only addresses */
+	if ((addr < 0x4) || ((addr >= 0x6) && (addr < 0xd)) || ((addr >= 0xe) && (addr < 0x10)) || ((addr >= 0x1c) && (addr < 0x2c)) ||
+	    ((addr >= 0x30) && (addr < 0x34)) || ((addr >= 0x35) && (addr < 0x3c)) || ((addr >= 0x3d) && (addr < 0x41)) ||
+	    ((addr >= 0x45) && (addr < 0x4a)) || (addr >= 0x4c))
+		return;
+
+	/* Also check Extended Function Enable bits */
+	if ((func == (pm_func + 1)) && ((addr == 0x44) || (dev->pci_isa_regs[0x85] & 0x04)))
+		return;
+
+	if ((func == (pm_func + 2)) && ((addr == 0x4a) || (addr == 0x4b) || (dev->pci_isa_regs[0x85] & 0x08)))
+		return;
+
+	switch (addr) {
+		default:
+			dev->ac97_regs[func - pm_func - 1][addr] = val;
 			break;
 	}
     }
@@ -693,7 +775,10 @@ pipc_init(const device_t *info)
 
     dev->smbus = device_add(&piix4_smbus_device);
 
-    dev->acpi = device_add(&acpi_via_device);
+    if (dev->local >= VIA_PIPC_596A)
+	dev->acpi = device_add(&acpi_via_596b_device);
+    else
+    	dev->acpi = device_add(&acpi_via_device);
 
     dev->usb[0] = device_add_inst(&usb_device, 1);
     if (dev->local >= VIA_PIPC_686A)
@@ -711,6 +796,8 @@ pipc_init(const device_t *info)
 	if (dev->local == VIA_PIPC_586B)
 		pci_enable_mirq(2);
     }
+
+    acpi_init_gporeg(dev->acpi, 0xff, 0xbf, 0xff, 0x7f);
 
     return dev;
 }
