@@ -3331,9 +3331,30 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 	uint32_t rd_mask = s3->accel.rd_mask;
 	int cmd = s3->accel.cmd >> 13;
 	int read = 0, byte_cnt = 0, i;
+	uint32_t srcbase, dstbase;
 
 	if ((s3->chip >= S3_TRIO64) && (s3->accel.cmd & (1 << 11)))
 		cmd |= 8;
+
+        // SRC-BASE/DST-BASE
+        if ((s3->accel.multifunc[0xd] >> 4) & 7) {
+            srcbase = 0x100000 * ((s3->accel.multifunc[0xd] >> 4) & 3);
+        } else {
+            srcbase = 0x100000 * ((s3->accel.multifunc[0xe] >> 2) & 3);
+        }
+        if ((s3->accel.multifunc[0xd] >> 0) & 7) {
+            dstbase = 0x100000 * ((s3->accel.multifunc[0xd] >> 0) & 3);
+        } else {
+            dstbase = 0x100000 * ((s3->accel.multifunc[0xe] >> 0) & 3);
+        }
+        if (s3->bpp == 1) {
+            srcbase >>= 1;
+            dstbase >>= 1;
+        } else if (s3->bpp == 3) {
+            srcbase >>= 2;
+            dstbase >>= 2;
+        }
+
 
 	if ((s3_cpu_src(s3) || s3_cpu_dest(s3))) {
 		if (s3->accel.pixtrans_failed) { /*Some hack for some 911/924 driver*/
@@ -3410,8 +3431,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 		{
 			while (count-- && s3->accel.sy >= 0)
 			{
-				if (s3->accel.cx >= clip_l && s3->accel.cx <= clip_r &&
-				    s3->accel.cy >= clip_t && s3->accel.cy <= clip_b)
+				if ((s3->accel.cx & 0xfff) >= clip_l && (s3->accel.cx & 0xfff) <= clip_r &&
+				    (s3->accel.cy & 0xfff) >= clip_t && (s3->accel.cy & 0xfff) <= clip_b)
 				{
 					switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix)
 					{
@@ -3469,8 +3490,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 			
 			while (count-- && s3->accel.sy >= 0)
 			{
-				if (s3->accel.cx >= clip_l && s3->accel.cx <= clip_r &&
-				    s3->accel.cy >= clip_t && s3->accel.cy <= clip_b)
+				if ((s3->accel.cx & 0xfff) >= clip_l && (s3->accel.cx & 0xfff) <= clip_r &&
+				    (s3->accel.cy & 0xfff) >= clip_t && (s3->accel.cy & 0xfff) <= clip_b)
 				{
 					switch ((mix_dat & mix_mask) ? frgd_mix : bkgd_mix)
 					{
@@ -3552,7 +3573,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 			s3->accel.cy   = s3->accel.cur_y;
 			if (s3->accel.cur_y & 0x1000) s3->accel.cy |= ~0xfff;
 			
-			s3->accel.dest = s3->accel.cy * s3->width;
+			s3->accel.dest = dstbase + s3->accel.cy * s3->width;
 
 			if (s3_cpu_src(s3)) {
 				return; /*Wait for data from CPU*/
@@ -3580,8 +3601,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 
 		while (count-- && s3->accel.sy >= 0)
 		{
-			if (s3->accel.cx >= clip_l && s3->accel.cx <= clip_r &&
-			    s3->accel.cy >= clip_t && s3->accel.cy <= clip_b)
+			if ((s3->accel.cx & 0xfff) >= clip_l && (s3->accel.cx & 0xfff) <= clip_r &&
+			    (s3->accel.cy & 0xfff) >= clip_t && (s3->accel.cy & 0xfff) <= clip_b)
 			{
 				if (s3_cpu_dest(s3) && ((s3->accel.multifunc[0xa] & 0xc0) == 0x00))
 					mix_dat = mix_mask;					/* Mix data = forced to foreground register. */
@@ -3656,7 +3677,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 				if (s3->accel.cmd & 0x80) s3->accel.cy++;
 				else		     s3->accel.cy--;
 				
-				s3->accel.dest = s3->accel.cy * s3->width;
+				s3->accel.dest = dstbase + s3->accel.cy * s3->width;
 				s3->accel.sy--;
 
 				if (s3->accel.sy < 0) {
@@ -3699,8 +3720,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 			s3->accel.cy   = s3->accel.cur_y & 0xfff;
 			if (s3->accel.cur_y & 0x1000) s3->accel.cy |= ~0xfff;
 
-			s3->accel.src  = s3->accel.cy * s3->width;
-			s3->accel.dest = s3->accel.dy * s3->width;
+			s3->accel.src  = srcbase + s3->accel.cy * s3->width;
+			s3->accel.dest = dstbase + s3->accel.dy * s3->width;
 		}
 
 		if ((s3->accel.cmd & 0x100) && !cpu_input) {
@@ -3715,8 +3736,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 		{
 			while (1)
 			{
-				if (s3->accel.dx >= clip_l && s3->accel.dx <= clip_r &&
-				    s3->accel.dy >= clip_t && s3->accel.dy <= clip_b)
+				if ((s3->accel.dx & 0xfff) >= clip_l && (s3->accel.dx & 0xfff) <= clip_r &&
+				    (s3->accel.dy & 0xfff) >= clip_t && (s3->accel.dy & 0xfff) <= clip_b)
 				{
 					READ(s3->accel.src + s3->accel.cx, src_dat);
 					READ(s3->accel.dest + s3->accel.dx, dest_dat);  
@@ -3738,8 +3759,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 					s3->accel.cy++;
 					s3->accel.dy++;
 	
-					s3->accel.src  = s3->accel.cy * s3->width;
-					s3->accel.dest = s3->accel.dy * s3->width;
+					s3->accel.src  = srcbase + s3->accel.cy * s3->width;
+					s3->accel.dest = dstbase + s3->accel.dy * s3->width;
 	
 					s3->accel.sy--;
 	
@@ -3754,8 +3775,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 		{		     
 			while (count-- && s3->accel.sy >= 0)
 			{
-				if (s3->accel.dx >= clip_l && s3->accel.dx <= clip_r &&
-				    s3->accel.dy >= clip_t && s3->accel.dy <= clip_b)
+				if ((s3->accel.dx & 0xfff) >= clip_l && (s3->accel.dx & 0xfff) <= clip_r &&
+				    (s3->accel.dy & 0xfff) >= clip_t && (s3->accel.dy & 0xfff) <= clip_b)
 				{
 					if (vram_mask)
 					{
@@ -3827,8 +3848,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 						s3->accel.dy--;
 					}
 
-					s3->accel.src  = s3->accel.cy * s3->width;
-					s3->accel.dest = s3->accel.dy * s3->width;
+					s3->accel.src  = srcbase + s3->accel.cy * s3->width;
+					s3->accel.dest = dstbase + s3->accel.dy * s3->width;
 
 					s3->accel.sy--;
 
@@ -3864,12 +3885,12 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 			
 			/*Align source with destination*/
 			s3->accel.pattern  = (s3->accel.cy * s3->width) + s3->accel.cx;
-			s3->accel.dest     = s3->accel.dy * s3->width;
+			s3->accel.dest     = dstbase + s3->accel.dy * s3->width;
 			
 			s3->accel.cx = s3->accel.dx & 7;
 			s3->accel.cy = s3->accel.dy & 7;
 			
-			s3->accel.src  = s3->accel.pattern + (s3->accel.cy * s3->width);
+			s3->accel.src  = srcbase + s3->accel.pattern + (s3->accel.cy * s3->width);
 		}
 
 		if ((s3->accel.cmd & 0x100) && !cpu_input) return; /*Wait for data from CPU*/
@@ -3879,8 +3900,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 
 		while (count-- && s3->accel.sy >= 0)
 		{
-			if (s3->accel.dx >= clip_l && s3->accel.dx <= clip_r &&
-			    s3->accel.dy >= clip_t && s3->accel.dy <= clip_b)
+                        if ((s3->accel.dx & 0xfff) >= clip_l && (s3->accel.dx & 0xfff) <= clip_r &&
+			    (s3->accel.dy & 0xfff) >= clip_t && (s3->accel.dy & 0xfff) <= clip_b)
 			{
 				if (vram_mask)
 				{
@@ -3952,8 +3973,8 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 					s3->accel.dy--;
 				}
 
-				s3->accel.src  = s3->accel.pattern + (s3->accel.cy * s3->width);
-				s3->accel.dest = s3->accel.dy * s3->width;
+                                s3->accel.src  = srcbase + s3->accel.pattern + (s3->accel.cy * s3->width);
+                                s3->accel.dest = dstbase + s3->accel.dy * s3->width;
 
 				s3->accel.sy--;
 
@@ -3988,12 +4009,12 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 				int y = s3->accel.poly_cy;
 				int x_count = ABS((s3->accel.poly_cx2 >> 20) - s3->accel.poly_x) + 1;
 
-				s3->accel.dest = y * s3->width;
+				s3->accel.dest = dstbase + y * s3->width;
 				
 				while (x_count-- && count--)
 				{
-					if (s3->accel.poly_x >= clip_l && s3->accel.poly_x <= clip_r &&
-					    s3->accel.poly_cy >= clip_t && s3->accel.poly_cy <= clip_b)
+					if ((s3->accel.poly_x & 0xfff) >= clip_l && (s3->accel.poly_x & 0xfff) <= clip_r &&
+					    (s3->accel.poly_cy & 0xfff) >= clip_t && (s3->accel.poly_cy & 0xfff) <= clip_b)
 					{
 						switch (frgd_mix)
 						{
@@ -4064,15 +4085,15 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 				int y = s3->accel.poly_cy;
 				int x_count = ABS((s3->accel.poly_cx2 >> 20) - s3->accel.poly_x) + 1;
 
-				s3->accel.src  = s3->accel.pattern + ((y & 7) * s3->width);
-				s3->accel.dest = y * s3->width;
+				s3->accel.src  = srcbase + s3->accel.pattern + ((y & 7) * s3->width);
+				s3->accel.dest = dstbase + y * s3->width;
 				
 				while (x_count-- && count--)
 				{
 					int pat_x = s3->accel.poly_x & 7;
 					
-					if (s3->accel.poly_x >= clip_l && s3->accel.poly_x <= clip_r &&
-					    s3->accel.poly_cy >= clip_t && s3->accel.poly_cy <= clip_b)
+					if ((s3->accel.poly_x & 0xfff) >= clip_l && (s3->accel.poly_x & 0xfff) <= clip_r &&
+					    (s3->accel.poly_cy & 0xfff) >= clip_t && (s3->accel.poly_cy & 0xfff) <= clip_b)
 					{
 						if (vram_mask) {
 							READ(s3->accel.src + pat_x, mix_dat);
@@ -4433,7 +4454,7 @@ static void *s3_init(const device_t *info)
 				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
 			else
 				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb);
-			break;
+			break;	
 		case S3_DIAMOND_STEALTH64_764:
 			bios_fn = ROM_DIAMOND_STEALTH64_764;
 			chip = S3_TRIO64;
