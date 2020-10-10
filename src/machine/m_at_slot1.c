@@ -567,6 +567,39 @@ machine_at_tsunamiatx_init(const machine_t *model)
 }
 
 
+int
+machine_at_6vx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/6vx/6vx.f1a",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	  return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_SPECIAL,     0, 0, 3, 4);
+    device_add(&via_apro_device);
+    device_add(&via_vt82c596b_device);
+    device_add(&w83877f_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
+    return ret;
+}
+
+
 const device_t *
 at_tsunamiatx_get_device(void)
 {
