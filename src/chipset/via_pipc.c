@@ -55,7 +55,8 @@
 
 #define VIA_PIPC_586A	0x05862000
 #define VIA_PIPC_586B	0x05864700
-#define VIA_PIPC_596B	0x05961200
+#define VIA_PIPC_596A	0x05961200
+#define VIA_PIPC_596B	0x05960000
 #define VIA_PIPC_686A	0x06861400
 #define VIA_PIPC_686B	0x06864000
 
@@ -151,7 +152,7 @@ pipc_reset_hard(void *priv)
     dev->ide_regs[0x02] = 0x71; dev->ide_regs[0x03] = 0x05;
     dev->ide_regs[0x04] = 0x80;
     dev->ide_regs[0x06] = (dev->local == VIA_PIPC_686A) ? 0x90 : 0x80; dev->ide_regs[0x07] = 0x02;
-    dev->ide_regs[0x08] = 0x06;
+    dev->ide_regs[0x08] = (dev->local >= VIA_PIPC_596B) ? 0x10 : 0x06;
     dev->ide_regs[0x09] = 0x85;
     dev->ide_regs[0x0a] = 0x01;
     dev->ide_regs[0x0b] = 0x01;
@@ -179,7 +180,7 @@ pipc_reset_hard(void *priv)
     dev->ide_regs[0x4f] = 0xff;
     dev->ide_regs[0x50] = 0x03; dev->ide_regs[0x51] = 0x03;
     dev->ide_regs[0x52] = 0x03; dev->ide_regs[0x53] = 0x03;
-    if (dev->local >= VIA_PIPC_596B)
+    if (dev->local >= VIA_PIPC_596A)
 	dev->ide_regs[0x54] = 0x06;
 
     dev->ide_regs[0x61] = 0x02;
@@ -196,12 +197,13 @@ pipc_reset_hard(void *priv)
 	dev->usb_regs[i][0x02] = 0x38; dev->usb_regs[i][0x03] = 0x30;
 	dev->usb_regs[i][0x04] = 0x00; dev->usb_regs[i][0x05] = 0x00;
 	dev->usb_regs[i][0x06] = 0x00; dev->usb_regs[i][0x07] = 0x02;
-	if (dev->local >= VIA_PIPC_686A)
-		dev->usb_regs[i][0x08] = 0x16;
-	else if (dev->local >= VIA_PIPC_596B)
+	if (dev->local <= VIA_PIPC_586B)
+		dev->usb_regs[i][0x08] = 0x02;
+	else if (dev->local <= VIA_PIPC_596B)
 		dev->usb_regs[i][0x08] = 0x08;
 	else
-		dev->usb_regs[i][0x08] = 0x02;
+		dev->usb_regs[i][0x08] = 0x16;
+
 	dev->usb_regs[i][0x0a] = 0x03;
 	dev->usb_regs[i][0x0b] = 0x0c;
 	dev->usb_regs[i][0x0d] = 0x16;
@@ -229,15 +231,15 @@ pipc_reset_hard(void *priv)
 	dev->power_regs[0x03] = 0x30;
 	dev->power_regs[0x04] = 0x00; dev->power_regs[0x05] = 0x00;
 	dev->power_regs[0x06] = (dev->local == VIA_PIPC_686B) ? 0x90 : 0x80; dev->power_regs[0x07] = 0x02;
-	if (dev->local >= VIA_PIPC_686A)
-		dev->power_regs[0x08] = 0x40;
-	else if (dev->local >= VIA_PIPC_596B)
+	if (dev->local <= VIA_PIPC_586B)
+		dev->power_regs[0x08] = 0x10;
+	else if (dev->local <= VIA_PIPC_596B)
 		dev->power_regs[0x08] = 0x20;
 	else
-		dev->power_regs[0x08] = 0x10;
+		dev->power_regs[0x08] = 0x40;
 	dev->power_regs[0x48] = 0x01;
 
-	if (dev->local >= VIA_PIPC_596B)
+	if (dev->local >= VIA_PIPC_596A)
 		dev->power_regs[0x90] = 0x01;
     }
 
@@ -246,9 +248,12 @@ pipc_reset_hard(void *priv)
     pci_set_irq_routing(PCI_INTC, PCI_IRQ_DISABLED);
     pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
 
-    pci_set_mirq_routing(PCI_MIRQ0, PCI_IRQ_DISABLED);
-    pci_set_mirq_routing(PCI_MIRQ1, PCI_IRQ_DISABLED);
-    pci_set_mirq_routing(PCI_MIRQ2, PCI_IRQ_DISABLED);
+    if (dev->local <= VIA_PIPC_586B) {
+	pci_set_mirq_routing(PCI_MIRQ0, PCI_IRQ_DISABLED);
+	pci_set_mirq_routing(PCI_MIRQ1, PCI_IRQ_DISABLED);
+	if (dev->local == VIA_PIPC_586B)
+		pci_set_mirq_routing(PCI_MIRQ2, PCI_IRQ_DISABLED);
+    }
 
     ide_pri_disable();
     ide_sec_disable();
@@ -392,10 +397,13 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 	    (addr == 0x53) || ((addr >= 0x5d) && (addr < 0x5f)) || ((addr >= 0x71) && (addr < 0x74)) || (addr >= 0x90))
 		return;
 
+	if ((dev->local <= VIA_PIPC_586A) && ((addr >= 0x58) && (addr < 0x80)))
+		return;
+
 	if ((dev->local <= VIA_PIPC_586B) && (addr >= 0x74))
 		return;
 
-	if ((dev->local <= VIA_PIPC_596B) && ((addr == 0x51) || (addr == 0x52) || (addr == 0x5f) || (addr == 0x85) || 
+	if ((dev->local <= VIA_PIPC_596A) && ((addr == 0x51) || (addr == 0x52) || (addr == 0x5f) || (addr == 0x85) || 
 	    (addr == 0x86) || ((addr >= 0x8a) && (addr < 0x90))))
 		return;
 
@@ -408,12 +416,8 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			break;
 
 		case 0x47:
-			if ((val & 0x81) == 0x81) {
-				/* Trigger TRC reset. */
-				outb(0xcf9, 0x00);
-				outb(0xcf9, 0xff);
-				return;
-			}
+			if (val & 0x01)
+				trc_write(0x0047, (val & 0x80) ? 0x06 : 0x04, NULL);
 			pic_set_shadow(!!(val & 0x10));
 			pci_elcr_set_enabled(!!(val & 0x20));
 			dev->pci_isa_regs[0x47] = val & 0xfe;
@@ -430,24 +434,24 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			pci_set_irq_level(PCI_INTD, !(val & 1));
 			break;
 		case 0x55:
-			pci_set_irq_routing((dev->local >= VIA_PIPC_596B) ? PCI_INTA : PCI_INTD, (val & 0xf0) ? (val >> 4) : PCI_IRQ_DISABLED);
-			if (dev->local < VIA_PIPC_686A)
+			pci_set_irq_routing((dev->local >= VIA_PIPC_596A) ? PCI_INTA : PCI_INTD, (val & 0xf0) ? (val >> 4) : PCI_IRQ_DISABLED);
+			if (dev->local <= VIA_PIPC_586B)
 				pci_set_mirq_routing(PCI_MIRQ0, (val & 0x0f) ? (val & 0x0f) : PCI_IRQ_DISABLED);
 			dev->pci_isa_regs[0x55] = val;
 	                break;
                 case 0x56:
-			pci_set_irq_routing((dev->local >= VIA_PIPC_596B) ? PCI_INTC : PCI_INTA, (val & 0xf0) ? (val >> 4) : PCI_IRQ_DISABLED);
+			pci_set_irq_routing((dev->local >= VIA_PIPC_596A) ? PCI_INTC : PCI_INTA, (val & 0xf0) ? (val >> 4) : PCI_IRQ_DISABLED);
 			pci_set_irq_routing(PCI_INTB, (val & 0x0f) ? (val & 0x0f) : PCI_IRQ_DISABLED);
 			dev->pci_isa_regs[0x56] = val;
 			break;
 		case 0x57:
-			pci_set_irq_routing((dev->local >= VIA_PIPC_596B) ? PCI_INTD : PCI_INTC, (val & 0xf0) ? (val >> 4) : PCI_IRQ_DISABLED);
-			if (dev->local < VIA_PIPC_686A)
+			pci_set_irq_routing((dev->local >= VIA_PIPC_596A) ? PCI_INTD : PCI_INTC, (val & 0xf0) ? (val >> 4) : PCI_IRQ_DISABLED);
+			if (dev->local <= VIA_PIPC_586B)
 				pci_set_mirq_routing(PCI_MIRQ1, (val & 0x0f) ? (val & 0x0f) : PCI_IRQ_DISABLED);
 			dev->pci_isa_regs[0x57] = val;
 			break;
 		case 0x58:
-			if (dev->local < VIA_PIPC_686A)
+			if (dev->local == VIA_PIPC_586B)
 				pci_set_mirq_routing(PCI_MIRQ2, (val & 0x0f) ? (val & 0x0f) : PCI_IRQ_DISABLED);
 			dev->pci_isa_regs[0x58] = val;
 			break;
@@ -618,11 +622,14 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 	/* Read-only addresses */
 	if ((addr < 0xd) || ((addr >= 0xe) && (addr < 0x40)) || (addr == 0x43) || (addr == 0x48) ||
 	    (addr == 0x4e) || (addr == 0x4f) || (addr == 0x56) || (addr == 0x57) || ((addr >= 0x5c) && (addr < 0x61)) ||
-	    ((addr >= 0x64) && (addr < 0x70)) || (addr == 0x72) || (addr == 0x73) || ((addr >= 0x75) && (addr < 0x90)) ||
-	    ((addr >= 0x92) && (addr < 0xd2)) || (addr >= 0xd7))
+	    ((addr >= 0x64) && (addr < 0x70)) || (addr == 0x72) || (addr == 0x73) || ((addr >= 0x75) && (addr < 0x80)) ||
+	    ((addr >= 0x82) && (addr < 0x90)) || ((addr >= 0x92) && (addr < 0xd2)) || (addr >= 0xd7))
 		return;
 
 	if ((dev->local <= VIA_PIPC_586B) && ((addr == 0x4c) || (addr == 0x4d) || (addr >= 0x54)))
+		return;
+
+	if ((dev->local <= VIA_PIPC_596A) && ((addr >= 0x64) && (addr < 0x80)))
 		return;
 
 	if ((dev->local <= VIA_PIPC_596B) && ((addr >= 0x64) && (addr < 0x90)))
@@ -631,11 +638,19 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 	switch (addr) {
 		case 0x41: case 0x49:
 			dev->power_regs[addr] = val;
-			acpi_update_io_mapping(dev->acpi, dev->power_regs[0x49] << 8, dev->power_regs[0x41] & 0x80);
+			c = (dev->power_regs[0x49] << 8);
+			if (dev->local >= VIA_PIPC_596A)
+				c |= (dev->power_regs[0x48] & 0x80);
+			acpi_update_io_mapping(dev->acpi, c, dev->power_regs[0x41] & 0x80);
 			break;
 
 		case 0x61: case 0x62: case 0x63:
 			dev->power_regs[(addr - 0x58)] = val;
+			break;
+
+		case 0x80: case 0x81:
+			dev->power_regs[addr] = val;
+			smbus_piix4_remap(dev->smbus, (dev->power_regs[0x81] << 8) | (dev->power_regs[0x80] & 0xf0), 1);
 			break;
 
 		case 0x90: case 0x91:
@@ -690,9 +705,12 @@ pipc_init(const device_t *info)
 
     dma_alias_set();
 
-    pci_enable_mirq(0);
-    pci_enable_mirq(1);
-    pci_enable_mirq(2);
+    if (dev->local <= VIA_PIPC_586B) {
+	pci_enable_mirq(0);
+	pci_enable_mirq(1);
+	if (dev->local == VIA_PIPC_586B)
+		pci_enable_mirq(2);
+    }
 
     return dev;
 }
@@ -721,6 +739,21 @@ const device_t via_vt82c586b_device =
     NULL,
     NULL
 };
+
+const device_t via_vt82c596_device =
+{
+    "VIA VT82C596(A)",
+    DEVICE_PCI,
+    VIA_PIPC_596A,
+    pipc_init, 
+    pipc_close, 
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
 
 const device_t via_vt82c596b_device =
 {
