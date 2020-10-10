@@ -537,7 +537,12 @@ ega_poll(void *p)
 	ega->vc++;
 	ega->vc &= 1023;
 	if (ega->vc == ega->split) {
-		ega->ma = ega->maback = 0;
+		if (ega->interlace && ega->oddeven)
+			ega->ma = ega->maback = ega->ma_latch + (ega->rowoffset << 1);
+		else
+			ega->ma = ega->maback = ega->ma_latch;
+		ega->ma <<= 2;
+		ega->maback <<= 2;
 		ega->sc = 0;
 		if (ega->attrregs[0x10] & 0x20) {
 			ega->scrollcache = 0;

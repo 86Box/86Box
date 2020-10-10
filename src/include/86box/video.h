@@ -312,6 +312,8 @@ extern const device_t s3_phoenix_trio32_pci_device;
 extern const device_t s3_phoenix_trio64_vlb_device;
 extern const device_t s3_phoenix_trio64_onboard_pci_device;
 extern const device_t s3_phoenix_trio64_pci_device;
+extern const device_t s3_phoenix_trio64vplus_vlb_device;
+extern const device_t s3_phoenix_trio64vplus_pci_device;
 extern const device_t s3_phoenix_vision864_pci_device;
 extern const device_t s3_phoenix_vision864_vlb_device;
 extern const device_t s3_diamond_stealth64_pci_device;
@@ -329,7 +331,9 @@ extern const device_t s3_virge_375_vlb_device;
 extern const device_t s3_virge_375_pci_device;
 extern const device_t s3_virge_375_4_vlb_device;
 extern const device_t s3_virge_375_4_pci_device;
+#if defined(DEV_BRANCH) && defined(USE_S3TRIO3D2X)
 extern const device_t s3_trio3d_2x_pci_device;
+#endif
 
 /* Sigma Color 400 */
 extern const device_t sigma_device;
@@ -345,6 +349,7 @@ extern const device_t ibm_ps1_2121_device;
 /* Trident TVGA 8900 */
 extern const device_t tvga8900b_device;
 extern const device_t tvga8900d_device;
+extern const device_t tvga9000b_device;
 
 /* IBM VGA */
 extern const device_t vga_device;

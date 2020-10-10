@@ -741,7 +741,12 @@ svga_poll(void *p)
 			ret = svga->line_compare(svga);
 		
 		if (ret) {
-			svga->ma = svga->maback = 0;
+			if (svga->interlace && svga->oddeven)
+				svga->ma = svga->maback = (svga->rowoffset << 1) + ((svga->crtc[5] & 0x60) >> 5);
+			else
+				svga->ma = svga->maback = ((svga->crtc[5] & 0x60) >> 5);
+			svga->ma = (svga->ma << 2);
+			svga->maback = (svga->maback << 2);
 			svga->sc = 0;
 			if (svga->attrregs[0x10] & 0x20) {
 				svga->scrollcache = 0;
@@ -805,7 +810,7 @@ svga_poll(void *p)
 		changeframecount = svga->interlace ? 3 : 2;
 		svga->vslines = 0;
 
-		if (svga->interlace && svga->oddeven) 
+		if (svga->interlace && svga->oddeven)
 			svga->ma = svga->maback = svga->ma_latch + (svga->rowoffset << 1) + ((svga->crtc[5] & 0x60) >> 5);
 		else
 			svga->ma = svga->maback = svga->ma_latch + ((svga->crtc[5] & 0x60) >> 5);
