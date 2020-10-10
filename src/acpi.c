@@ -216,7 +216,7 @@ acpi_reg_read_intel(int size, uint16_t addr, void *p)
 
 
 static uint32_t
-acpi_reg_read_via(int size, uint16_t addr, void *p)
+acpi_reg_read_via_common(int size, uint16_t addr, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
     uint32_t ret = 0x00000000;
@@ -279,6 +279,27 @@ acpi_reg_read_via(int size, uint16_t addr, void *p)
 		/* GP Timer Reload Enable */
 		ret = (dev->regs.gptren >> shift32) & 0xff;
 		break;
+	default:
+		ret = acpi_reg_read_common_regs(size, addr, p);
+		break;
+    }
+
+    acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
+    return ret;
+}
+
+
+static uint32_t
+acpi_reg_read_via(int size, uint16_t addr, void *p)
+{
+    acpi_t *dev = (acpi_t *) p;
+    uint32_t ret = 0x00000000;
+    int shift16;
+
+    addr &= 0xff;
+    shift16 = (addr & 1) << 3;
+
+    switch (addr) {
 	case 0x40:
 		/* GPIO Direction Control */
 		if (size == 1)
@@ -303,7 +324,41 @@ acpi_reg_read_via(int size, uint16_t addr, void *p)
 		ret = (dev->regs.gpi_val >> shift16) & 0xff;
 		break;
 	default:
-		ret = acpi_reg_read_common_regs(size, addr, p);
+		ret = acpi_reg_read_via_common(size, addr, p);
+		break;
+    }
+
+    acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
+    return ret;
+}
+
+
+static uint32_t
+acpi_reg_read_via_596b(int size, uint16_t addr, void *p)
+{
+    acpi_t *dev = (acpi_t *) p;
+    uint32_t ret = 0x00000000;
+    int shift16, shift32;
+
+    addr &= 0x7f;
+    shift16 = (addr & 1) << 3;
+    shift32 = (addr & 3) << 3;
+
+    switch (addr) {
+	case 0x44: case 0x45:
+		/* External SMI Input Value */
+		ret = (dev->regs.extsmi_val >> shift16) & 0xff;
+		break;
+	case 0x48: case 0x49: case 0x4a: case 0x4b:
+		/* GPI Port Input Value */
+		ret = (dev->regs.gpi_val >> shift32) & 0xff;
+		break;
+	case 0x4c: case 0x4d: case 0x4e: case 0x4f:
+		/* GPO Port Output Value */
+		ret = (dev->regs.gpi_val >> shift32) & 0xff;
+		break;
+	default:
+		ret = acpi_reg_read_via_common(size, addr, p);
 		break;
     }
 
@@ -492,7 +547,7 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *p)
 
 
 static void
-acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *p)
+acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
     int shift16, shift32;
@@ -569,6 +624,32 @@ acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *p)
 		/* GP Timer Reload Enable */
 		dev->regs.gptren = ((dev->regs.gptren & ~(0xff << shift32)) | (val << shift32)) & 0x000000d9;
 		break;
+	default:
+		acpi_reg_write_common_regs(size, addr, val, p);
+		/* Setting GBL_RLS also sets BIOS_STS and generates SMI. */
+		if ((addr == 0x00) && !(dev->regs.pmsts & 0x20))
+			dev->regs.glbctl &= ~0x0002;
+		else if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
+			dev->regs.glbsts |= 0x20;
+			if (dev->regs.glben & 0x20)
+				acpi_raise_smi(dev);
+		}
+		break;
+    }
+}
+
+
+static void
+acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *p)
+{
+    acpi_t *dev = (acpi_t *) p;
+    int shift16;
+
+    addr &= 0xff;
+    acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
+    shift16 = (addr & 1) << 3;
+
+    switch (addr) {
 	case 0x40:
 		/* GPIO Direction Control */
 		if (size == 1)
@@ -584,15 +665,29 @@ acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *p)
 		dev->regs.gpo_val = ((dev->regs.gpo_val & ~(0xff << shift16)) | (val << shift16)) & 0xffff;
 		break;
 	default:
-		acpi_reg_write_common_regs(size, addr, val, p);
-		/* Setting GBL_RLS also sets BIOS_STS and generates SMI. */
-		if ((addr == 0x00) && !(dev->regs.pmsts & 0x20))
-			dev->regs.glbctl &= ~0x0002;
-		else if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
-			dev->regs.glbsts |= 0x20;
-			if (dev->regs.glben & 0x20)
-				acpi_raise_smi(dev);
-		}
+		acpi_reg_write_via_common(size, addr, val, p);
+		break;
+    }
+}
+
+
+static void
+acpi_reg_write_via_596b(int size, uint16_t addr, uint8_t val, void *p)
+{
+    acpi_t *dev = (acpi_t *) p;
+    int shift32;
+
+    addr &= 0x7f;
+    acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
+    shift32 = (addr & 3) << 3;
+
+    switch (addr) {
+	case 0x4c: case 0x4d: case 0x4e: case 0x4f:
+		/* GPO Port Output Value */
+		dev->regs.gpo_val = ((dev->regs.gpo_val & ~(0xff << shift32)) | (val << shift32)) & 0x7fffffff;
+		break;
+	default:
+		acpi_reg_write_via_common(size, addr, val, p);
 		break;
     }
 }
@@ -672,6 +767,8 @@ acpi_reg_read_common(int size, uint16_t addr, void *p)
 
     if (dev->vendor == VEN_VIA)
 	ret = acpi_reg_read_via(size, addr, p);
+    else if (dev->vendor == VEN_VIA_596B)
+	ret = acpi_reg_read_via_596b(size, addr, p);
     else if (dev->vendor == VEN_INTEL)
 	ret = acpi_reg_read_intel(size, addr, p);
     else if (dev->vendor == VEN_SMC)
@@ -688,6 +785,8 @@ acpi_reg_write_common(int size, uint16_t addr, uint8_t val, void *p)
 
     if (dev->vendor == VEN_VIA)
 	acpi_reg_write_via(size, addr, val, p);
+    else if (dev->vendor == VEN_VIA_596B)
+	acpi_reg_write_via_596b(size, addr, val, p);
     else if (dev->vendor == VEN_INTEL)
 	acpi_reg_write_intel(size, addr, val, p);
     else if (dev->vendor == VEN_SMC)
@@ -853,7 +952,23 @@ acpi_aux_reg_write(uint16_t addr, uint8_t val, void *p)
 void
 acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en)
 {
-    int size = (dev->vendor == VEN_SMC) ? 0x10 : 0x40;
+    int size;
+
+    switch (dev->vendor) {
+	case VEN_INTEL:
+	default:
+		size = 0x040;
+		break;
+	case VEN_SMC:
+		size = 0x010;
+		break;
+	case VEN_VIA:
+		size = 0x100;
+		break;
+	case VEN_VIA_596B:
+		size = 0x080;
+		break;
+    }
 
     if (dev->io_base != 0x0000) {
 	io_removehandler(dev->io_base, size,
@@ -1022,6 +1137,8 @@ acpi_reset(void *priv)
     dev->regs.gpireg[0] = dev->regs.gpireg[1] = dev->regs.gpireg[2] = 0xff;
     for (i = 0; i < 4; i++)
 	dev->regs.gporeg[i] = dev->gporeg_default[i];
+    if (dev->vendor == VEN_VIA_596B)
+	dev->regs.gpo_val = 0x7fffffff;
 }
 
 
@@ -1067,7 +1184,7 @@ acpi_init(const device_t *info)
     timer_add(&dev->timer, acpi_timer_count, dev, 0);
     timer_set_delay_u64(&dev->timer, ACPICONST);
 
-    dev->regs.gpireg[0] = dev->regs.gpireg[1] = dev->regs.gpireg[2] = 0xff;
+    acpi_reset(dev);
 
     return dev;
 }
@@ -1093,6 +1210,21 @@ const device_t acpi_via_device =
     "VIA ACPI",
     DEVICE_PCI,
     VEN_VIA,
+    acpi_init, 
+    acpi_close, 
+    acpi_reset,
+    NULL,
+    acpi_speed_changed,
+    NULL,
+    NULL
+};
+
+
+const device_t acpi_via_596b_device =
+{
+    "VIA ACPI (VT82C596B)",
+    DEVICE_PCI,
+    VEN_VIA_596B,
     acpi_init, 
     acpi_close, 
     acpi_reset,
