@@ -237,7 +237,7 @@ pipc_reset_hard(void *priv)
 	dev->usb_regs[i][0xc1] = 0x20;
     }
 
-    if (dev->local >= VIA_PIPC_586B) {
+    if (dev->acpi) {
 	dev->max_func++;
 	dev->power_regs[0x00] = 0x06; dev->power_regs[0x01] = 0x11;
 	if (dev->local <= VIA_PIPC_586B)
@@ -391,7 +391,7 @@ pipc_read(int func, int addr, void *priv)
     pipc_t *dev = (pipc_t *) priv;
     uint8_t ret = 0xff;
     int c;
-    uint8_t pm_func = (dev->local >= VIA_PIPC_686A) ? 4 : 3;
+    uint8_t pm_func = dev->usb[1] ? 4 : 3;
 
     if (func > dev->max_func)
 	return ret;
@@ -445,7 +445,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 {
     pipc_t *dev = (pipc_t *) priv;
     int c;
-    uint8_t pm_func = (dev->local >= VIA_PIPC_686A) ? 4 : 3;
+    uint8_t pm_func = dev->usb[1] ? 4 : 3;
 
     if (func > dev->max_func)
 	return;
@@ -773,11 +773,12 @@ pipc_init(const device_t *info)
 
     dev->nvr = device_add(&via_nvr_device);
 
-    dev->smbus = device_add(&piix4_smbus_device);
+    if (dev->local >= VIA_PIPC_596A)
+	dev->smbus = device_add(&piix4_smbus_device);
 
     if (dev->local >= VIA_PIPC_596A)
 	dev->acpi = device_add(&acpi_via_596b_device);
-    else
+    else if (dev->local >= VIA_PIPC_586B)
     	dev->acpi = device_add(&acpi_via_device);
 
     dev->usb[0] = device_add_inst(&usb_device, 1);
@@ -797,7 +798,8 @@ pipc_init(const device_t *info)
 		pci_enable_mirq(2);
     }
 
-    acpi_init_gporeg(dev->acpi, 0xff, 0xbf, 0xff, 0x7f);
+    if (dev->acpi)
+	acpi_init_gporeg(dev->acpi, 0xff, 0xbf, 0xff, 0x7f);
 
     return dev;
 }
