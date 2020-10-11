@@ -409,8 +409,7 @@ pipc_read(int func, int addr, void *priv)
     }
     else if ((func == 1) && !(dev->pci_isa_regs[0x48] & 0x02)) /* IDE */
 	ret = dev->ide_regs[addr];
-    else if ((func < pm_func) && (((func == 2) && !(dev->pci_isa_regs[0x48] & 0x04)) ||
-    	     ((func == 3) && !(dev->pci_isa_regs[0x85] & 0x10)))) /* USB */
+    else if ((func < pm_func) && !((func == 2) ? (dev->pci_isa_regs[0x48] & 0x04) : (dev->pci_isa_regs[0x85] & 0x10))) /* USB */
 	ret = dev->usb_regs[func - 2][addr];
     else if (func == pm_func) /* Power */
 	ret = dev->power_regs[addr];
@@ -660,10 +659,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 		return;
 
 	/* Check disable bits for both controllers */
-	if ((func == 2) && (dev->pci_isa_regs[0x48] & 0x04))
-		return;
-
-	if ((func == 3) && (dev->pci_isa_regs[0x85] & 0x10))
+	if ((func == 2) ? (dev->pci_isa_regs[0x48] & 0x04) : (dev->pci_isa_regs[0x85] & 0x10))
 		return;
 
 	switch (addr) {
