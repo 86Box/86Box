@@ -426,7 +426,6 @@ extern int	machine_at_atc6310bxii_init(const machine_t *);
 extern int	machine_at_tsunamiatx_init(const machine_t *);
 extern int	machine_at_p6sba_init(const machine_t *);
 extern int	machine_at_ka6100_init(const machine_t *);
-extern int	machine_at_6vx_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_tsunamiatx_get_device(void);
