@@ -81,7 +81,7 @@ typedef struct
     acpi_t	*acpi;
 } pipc_t;
 
-//#define ENABLE_PIPC_LOG 1
+
 #ifdef ENABLE_PIPC_LOG
 int pipc_do_log = ENABLE_PIPC_LOG;
 
@@ -407,9 +407,10 @@ pipc_read(int func, int addr, void *priv)
 	} else
 		ret = dev->pci_isa_regs[addr];
     }
-    else if (func == 1) /* IDE */
+    else if ((func == 1) && !(dev->pci_isa_regs[0x48] & 0x02)) /* IDE */
 	ret = dev->ide_regs[addr];
-    else if ((func < pm_func) && !((dev->local >= VIA_PIPC_686A) && (dev->pci_isa_regs[0x85] & 0x10))) /* USB */
+    else if ((func < pm_func) && (((func == 2) && !(dev->pci_isa_regs[0x48] & 0x04)) ||
+    	     ((func == 3) && !(dev->pci_isa_regs[0x85] & 0x10)))) /* USB */
 	ret = dev->usb_regs[func - 2][addr];
     else if (func == pm_func) /* Power */
 	ret = dev->power_regs[addr];
@@ -560,7 +561,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			break;
 	}
     } else if (func == 1) { /* IDE */
-	/* Read-only addresses */
+	/* Read-only addresses and disable bit */
 	if ((addr < 4) || (addr == 5) || (addr == 8) || ((addr >= 0xa) && (addr < 0x0d)) ||
 	    ((addr >= 0x0e) && (addr < 0x10)) || ((addr >= 0x12) && (addr < 0x13)) ||
 	    ((addr >= 0x16) && (addr < 0x17)) || ((addr >= 0x1a) && (addr < 0x1b)) ||
@@ -569,7 +570,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 	    ((addr >= 0x62) && (addr < 0x68)) || ((addr >= 0x6a) && (addr < 0x70)) ||
 	    (addr == 0x72) || (addr == 0x73) || (addr == 0x76) || (addr == 0x77) ||
 	    (addr == 0x7a) || (addr == 0x7b) || (addr == 0x7e) || (addr == 0x7f) ||
-	    ((addr >= 0x84) && (addr < 0x88)) || (addr >= 0x8c))
+	    ((addr >= 0x84) && (addr < 0x88)) || (addr >= 0x8c) || (dev->pci_isa_regs[0x48] & 0x02))
 		return;
 
 	if ((dev->local <= VIA_PIPC_586B) && ((addr == 0x54) || (addr >= 0x70)))
@@ -658,8 +659,11 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 	    ((addr >= 0x46) && (addr < 0xc0)) || (addr >= 0xc2))
 		return;
 
-	/* Check Extended Function Enable bit for the second controller */
-	if ((func == 3) && (dev->local >= VIA_PIPC_686A) && (dev->pci_isa_regs[0x85] & 0x10))
+	/* Check disable bits for both controllers */
+	if ((func == 2) && (dev->pci_isa_regs[0x48] & 0x04))
+		return;
+
+	if ((func == 3) && (dev->pci_isa_regs[0x85] & 0x10))
 		return;
 
 	switch (addr) {
@@ -732,7 +736,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 	    ((addr >= 0x45) && (addr < 0x4a)) || (addr >= 0x4c))
 		return;
 
-	/* Also check Extended Function Enable bits */
+	/* Also check disable bits for both controllers */
 	if ((func == (pm_func + 1)) && ((addr == 0x44) || (dev->pci_isa_regs[0x85] & 0x04)))
 		return;
 
