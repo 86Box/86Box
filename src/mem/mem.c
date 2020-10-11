@@ -2857,7 +2857,7 @@ mem_remap_top(int kb)
     mem_set_mem_state_both(start * 1024, size * 1024,
 			   MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
     mem_mapping_set_addr(&ram_remapped_mapping, start * 1024, size * 1024);
-    mem_mapping_set_exec(&ram_remapped_mapping, ram + (start * 1024));
+    mem_mapping_set_exec(&ram_remapped_mapping, ram + 0xa0000);
 
     flushmmucache();
 }
