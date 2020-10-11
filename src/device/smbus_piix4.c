@@ -214,7 +214,7 @@ smbus_piix4_remap(smbus_piix4_t *dev, uint16_t new_io_base, uint8_t enable)
 	io_removehandler(dev->io_base, 0x10, smbus_piix4_read, NULL, NULL, smbus_piix4_write, NULL, NULL, dev);
 
     dev->io_base = new_io_base;
-    smbus_piix4_log("SMBus PIIX4: remap to %04Xh\n", dev->io_base);
+    smbus_piix4_log("SMBus PIIX4: remap to %04Xh (enable %d)\n", dev->io_base, !!enable);
 
     if ((enable) && (dev->io_base != 0x0000))
 	io_sethandler(dev->io_base, 0x10, smbus_piix4_read, NULL, NULL, smbus_piix4_write, NULL, NULL, dev);
