@@ -580,7 +580,17 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
 		break;
 
 	case RTC_REGC:		/* R/O */
+		break;
+
 	case RTC_REGD:		/* R/O */
+		/* VT82C686A/B have an ACPI register bit controlled by 0D bit 7.
+		   This is overwritten on read, but testing shows BIOSes will
+		   immediately check the ACPI register after writing to this. */
+		if (local->cent == RTC_CENTURY_VIA) {
+			nvr->regs[RTC_REGD] &= ~0x80;
+			if (val & 0x80)
+				nvr->regs[RTC_REGD] |= 0x80;
+		}
 		break;
 
 	case 0x2e:
