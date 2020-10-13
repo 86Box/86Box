@@ -85,7 +85,7 @@ acpi_raise_smi(void *priv)
 {
     acpi_t *dev = (acpi_t *) priv;
 
-    if (dev->vendor == VEN_VIA) {
+    if ((dev->vendor == VEN_VIA) || (dev->vendor == VEN_VIA_596B)) {
 	    if ((dev->regs.glbctl & 0x01) && (!dev->regs.smi_lock || !dev->regs.smi_active)) {
 		smi_line = 1;
 		dev->regs.smi_active = 1;
@@ -1137,8 +1137,15 @@ acpi_reset(void *priv)
     dev->regs.gpireg[0] = dev->regs.gpireg[1] = dev->regs.gpireg[2] = 0xff;
     for (i = 0; i < 4; i++)
 	dev->regs.gporeg[i] = dev->gporeg_default[i];
-    if (dev->vendor == VEN_VIA_596B)
+    if (dev->vendor == VEN_VIA_596B) {
 	dev->regs.gpo_val = 0x7fffffff;
+	/* FIC VA-503A:
+	   - Bit 11: ATX power
+	   - Bit  4: 80-conductor cable on primary IDE channel (active low)
+	   - Bit  3: 80-conductor cable on secondary IDE channel (active low)
+	   - Bit  2: password cleared (active low) */
+	dev->regs.gpi_val = 0xffffffe7;
+    }
 }
 
 
