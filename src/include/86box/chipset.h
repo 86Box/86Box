@@ -123,6 +123,8 @@ extern const device_t	via_apro_device;
 extern const device_t	via_vt82c586b_device;
 extern const device_t	via_vt82c596_device;
 extern const device_t	via_vt82c596b_device;
+extern const device_t	via_vt82c686a_device;
+extern const device_t	via_vt82c686b_device;
 
 /* VLSI */
 extern const device_t   vl82c480_device;

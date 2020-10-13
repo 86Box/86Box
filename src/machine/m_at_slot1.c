@@ -575,11 +575,11 @@ at_tsunamiatx_get_device(void)
 
 
 int
-machine_at_ka6100_init(const machine_t *model)
+machine_at_ficka6100_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/ka6100/610011ex.bin",
+    ret = bios_load_linear(L"roms/machines/ficka6100/610011ex.bin",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)

@@ -56,6 +56,11 @@ uhci_reg_read(uint16_t addr, void *p)
     uint8_t ret = 0xff;
 
     switch (addr & 0x1f) {
+    	case 0x02:
+    		/* Status */
+    		ret = 0x00;
+    		break;
+
 	case 0x10: case 0x11: case 0x12: case 0x13:
 		/* Port status */
                 ret = 0x00;

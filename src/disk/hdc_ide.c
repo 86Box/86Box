@@ -412,7 +412,7 @@ ide_get_max(ide_t *ide, int type)
 		return -1;
 	case TYPE_UDMA:	/* UDMA */
 		if (!ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL))
-			return 4 /*2*/;
+			return 5;
 
 		return -1;
 	default:
@@ -620,6 +620,9 @@ ide_identify(ide_t *ide)
 		ide->buffer[88] |= d;
 	ide_log("PIDENTIFY DMA Mode: %04X, %04X\n", ide->buffer[62], ide->buffer[63]);
     }
+
+    if (max_udma >= 4)
+	ide->buffer[93] = 0x6000; /* Drive reports 80-conductor cable */
 }
 
 
