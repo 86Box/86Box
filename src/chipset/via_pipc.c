@@ -51,6 +51,8 @@
 #include <86box/machine.h>
 #include <86box/smbus_piix4.h>
 #include <86box/chipset.h>
+#include <86box/sio.h>
+#include <86box/hwm.h>
 
 
 /* Most revision numbers (PCI-ISA bridge or otherwise) were lifted from PCI device
@@ -135,7 +137,7 @@ pipc_reset_hard(void *priv)
     dev->pci_isa_regs[0x4a] = 0x04;
     dev->pci_isa_regs[0x4f] = 0x03;
 
-    dev->pci_isa_regs[0x50] = (dev->local >= VIA_PIPC_686A) ? 0x2d : 0x24;
+    dev->pci_isa_regs[0x50] = (dev->local >= VIA_PIPC_686A) ? 0x0e : 0x24; /* 686A/B default value does not line up with default bits */
     dev->pci_isa_regs[0x59] = 0x04;
     if (dev->local >= VIA_PIPC_686A)
 	dev->pci_isa_regs[0x5a] = dev->pci_isa_regs[0x5f] = 0x04;
@@ -180,8 +182,7 @@ pipc_reset_hard(void *priv)
     dev->ide_regs[0x4c] = 0xff;
     dev->ide_regs[0x4e] = 0xff;
     dev->ide_regs[0x4f] = 0xff;
-    dev->ide_regs[0x50] = 0x03; dev->ide_regs[0x51] = 0x03;
-    dev->ide_regs[0x52] = 0x03; dev->ide_regs[0x53] = 0x03;
+    dev->ide_regs[0x50] = dev->ide_regs[0x51] = dev->ide_regs[0x52] = dev->ide_regs[0x53] = (dev->local >= VIA_PIPC_686A) ? 0x07 : 0x03;
     if (dev->local >= VIA_PIPC_596A)
 	dev->ide_regs[0x54] = 0x06;
 
@@ -270,6 +271,9 @@ pipc_reset_hard(void *priv)
 	if (dev->local >= VIA_PIPC_686A)
 		dev->power_regs[0x42] = 0x40; /* external suspend-related pin, must be set */
 	dev->power_regs[0x48] = 0x01;
+
+	if (dev->local >= VIA_PIPC_686A)
+		dev->power_regs[0x70] = 0x01;
 
 	if (dev->local == VIA_PIPC_596A)
 		dev->power_regs[0x80] = 0x01;
@@ -411,8 +415,14 @@ pipc_read(int func, int addr, void *priv)
 	ret = dev->ide_regs[addr];
     else if ((func < pm_func) && !((func == 2) ? (dev->pci_isa_regs[0x48] & 0x04) : (dev->pci_isa_regs[0x85] & 0x10))) /* USB */
 	ret = dev->usb_regs[func - 2][addr];
-    else if (func == pm_func) /* Power */
+    else if (func == pm_func) { /* Power */
 	ret = dev->power_regs[addr];
+	if (addr == 0x42) {
+		ret &= ~0x10;
+		if (dev->nvr->regs[0x0d] & 0x80)
+			ret |= 0x10;
+	}
+    }
     else if ((func <= (pm_func + 2)) && !(dev->pci_isa_regs[0x85] & ((func == (pm_func + 1)) ? 0x04 : 0x08))) /* AC97 / MC97 */
 	ret = dev->ac97_regs[func - pm_func - 1][addr];
 
@@ -446,6 +456,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
     pipc_t *dev = (pipc_t *) priv;
     int c;
     uint8_t pm_func = dev->usb[1] ? 4 : 3;
+    void *subdev;
 
     if (func > dev->max_func)
 	return;
@@ -486,6 +497,13 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 		case 0x48:
 			dev->pci_isa_regs[0x48] = val;
 			nvr_update_io_mapping(dev);
+			break;
+
+		case 0x50: case 0x51: case 0x52: case 0x85:
+			dev->pci_isa_regs[addr] = val;
+			/* Forward Super I/O-related registers to sio_vt82c686.c */
+			if ((subdev = device_get_priv(&via_vt82c686_sio_device)))
+				vt82c686_sio_write(addr, val, subdev);
 			break;
 
 		case 0x54:
@@ -549,10 +567,6 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 
 		case 0x80: case 0x86: case 0x87:
 			dev->pci_isa_regs[addr] &= ~(val);
-			break;
-
-		case 0x85:
-			dev->pci_isa_regs[addr] = val;
 			break;
 
 		default:
@@ -707,8 +721,19 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			acpi_update_io_mapping(dev->acpi, c, dev->power_regs[0x41] & 0x80);
 			break;
 
+		case 0x42:
+			dev->power_regs[addr] = val & 0x0f;
+			break;
+
 		case 0x61: case 0x62: case 0x63:
 			dev->power_regs[(addr - 0x58)] = val;
+			break;
+
+		case 0x70: case 0x71: case 0x74:
+			dev->power_regs[addr] = val;
+			/* Forward hardware monitor-related registers to hwm_vt82c686.c */
+			if ((subdev = device_get_priv(&via_vt82c686_hwm_device)))
+				vt82c686_hwm_write(addr, val, subdev);
 			break;
 
 		case 0x80: case 0x81: case 0x84: /* 596(A) has the SMBus I/O base here instead. Enable bit is assumed. */
@@ -804,14 +829,15 @@ pipc_init(const device_t *info)
     return dev;
 }
 
+
 static void
 pipc_close(void *p)
 {
-    pipc_t *pipc = (pipc_t *) p;
+    pipc_t *dev = (pipc_t *) p;
 
     pipc_log("PIPC: close()\n");
 
-    free(pipc);
+    free(dev);
 }
 
 
@@ -849,6 +875,36 @@ const device_t via_vt82c596b_device =
     "VIA VT82C596B",
     DEVICE_PCI,
     VIA_PIPC_596B,
+    pipc_init, 
+    pipc_close, 
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+
+const device_t via_vt82c686a_device =
+{
+    "VIA VT82C686A",
+    DEVICE_PCI,
+    VIA_PIPC_686A,
+    pipc_init, 
+    pipc_close, 
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+
+const device_t via_vt82c686b_device =
+{
+    "VIA VT82C686B",
+    DEVICE_PCI,
+    VIA_PIPC_686B,
     pipc_init, 
     pipc_close, 
     NULL,
