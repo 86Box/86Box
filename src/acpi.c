@@ -1134,7 +1134,8 @@ acpi_reset(void *priv)
     int i;
 
     memset(&dev->regs, 0x00, sizeof(acpi_regs_t));
-    dev->regs.gpireg[0] = dev->regs.gpireg[1] = dev->regs.gpireg[2] = 0xff;
+    dev->regs.gpireg[0] = 0xff; dev->regs.gpireg[1] = 0xff;
+    dev->regs.gpireg[2] = 0xf3;	/* SMSC: Bit 2: 80-conductor cable on primary IDE (0 = yes, 1 = no), Bit 3: on secondary IDE. */
     for (i = 0; i < 4; i++)
 	dev->regs.gporeg[i] = dev->gporeg_default[i];
     if (dev->vendor == VEN_VIA_596B)

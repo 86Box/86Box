@@ -1053,10 +1053,8 @@ piix_reset_hard(piix_t *dev)
     }
     fregs[0x20] = 0x01;
     if (dev->type == 5) {
-	fregs[0x3c] = 0x0e;
-	fregs[0x3d] = 0x01;
-	fregs[0x45] = 0x55;
-	fregs[0x46] = 0x01;
+	fregs[0x3c] = 0x0e; fregs[0x3d] = 0x01;
+	fregs[0x45] = 0x55; fregs[0x46] = 0x01;
     }
     if ((dev->type == 1) && (dev->rev == 2))
 	dev->max_func = 0;		/* It starts with IDE disabled, then enables it. */
