@@ -1135,13 +1135,16 @@ acpi_reset(void *priv)
 
     memset(&dev->regs, 0x00, sizeof(acpi_regs_t));
     dev->regs.gpireg[0] = 0xff; dev->regs.gpireg[1] = 0xff;
-    dev->regs.gpireg[2] = 0xf3;	/* SMSC: Bit 2: 80-conductor cable on primary IDE (0 = yes, 1 = no), Bit 3: on secondary IDE. */
+    /* SMSC SLC90E66 machines:
+       - Bit 3: 80-conductor cable on secondary IDE channel (active low)
+       - Bit 2: 80-conductor cable on primary IDE channel (active low) */
+    dev->regs.gpireg[2] = 0xf3;
     for (i = 0; i < 4; i++)
 	dev->regs.gporeg[i] = dev->gporeg_default[i];
     if (dev->vendor == VEN_VIA_596B) {
 	dev->regs.gpo_val = 0x7fffffff;
 	/* FIC VA-503A:
-	   - Bit 11: ATX power
+	   - Bit 11: ATX power (active high)
 	   - Bit  4: 80-conductor cable on primary IDE channel (active low)
 	   - Bit  3: 80-conductor cable on secondary IDE channel (active low)
 	   - Bit  2: password cleared (active low) */
