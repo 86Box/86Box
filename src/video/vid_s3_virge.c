@@ -2784,7 +2784,7 @@ static void tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int3
                         state->x1 += (dx1 * diff_y);
                         state->x2 += (dx2 * diff_y);
                         state->y -= diff_y;
-                        dest_offset -= s3d_tri->dest_str;
+                        dest_offset -= s3d_tri->dest_str * diff_y;
                         z_offset -= s3d_tri->z_str;
                         y_count -= diff_y;
                 }
