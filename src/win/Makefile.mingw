@@ -640,7 +640,7 @@ CHIPSETOBJ	:= acc2168.o cs8230.o ali1429.o headland.o intel_82335.o cs4031.o \
 		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
 		    neat.o opti495.o opti895.o opti5x7.o scamp.o scat.o via_vt82c49x.o via_vt82c505.o \
 		    sis_85c310.o sis_85c471.o sis_85c496.o opti283.o opti291.o umc491.o \
-		    via_apollo.o via_vpx.o via_vt82c586b.o via_vt82c596b.o wd76c10.o vl82c480.o \
+		    via_apollo.o via_vpx.o via_pipc.o wd76c10.o vl82c480.o \
 			amd640.o
 
 MCHOBJ		:= machine.o machine_table.o \
@@ -660,7 +660,7 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_at_socket8.o m_at_slot1.o m_at_slot2.o m_at_socket370.o \
 			m_at_misc.o
 
-DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o ibm_5161.o isamem.o isartc.o lpt.o pci_bridge.o postcard.o serial.o vpc2007.o \
+DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_vt82c686.o ibm_5161.o isamem.o isartc.o lpt.o pci_bridge.o postcard.o serial.o vpc2007.o \
 		    smbus.o smbus_piix4.o \
 		   keyboard.o \
 		    keyboard_xt.o keyboard_at.o \
@@ -675,7 +675,8 @@ SIOOBJ		:= sio_acc3221.o \
 		    sio_pc87306.o sio_pc87307.o sio_pc87309.o sio_pc87332.o \
 		    sio_w83787f.o \
 		    sio_w83877f.o sio_w83977f.o \
-		    sio_um8669f.o
+		    sio_um8669f.o \
+		    sio_vt82c686.o
 
 FDDOBJ		:= fdd.o fdc.o fdc_pii15xb.o \
 		   fdi2raw.o \

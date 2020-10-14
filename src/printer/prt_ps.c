@@ -184,7 +184,7 @@ convert_to_pdf(ps_t *dev)
 
 
 static void
-write_buffer(ps_t *dev, bool newline)
+write_buffer(ps_t *dev, bool finish)
 {
     wchar_t path[1024];
     FILE *fp;
@@ -205,17 +205,19 @@ write_buffer(ps_t *dev, bool newline)
 
     fseek(fp, 0, SEEK_END);
 
-    fprintf(fp, "%.*s%s", POSTSCRIPT_BUFFER_LENGTH, dev->buffer, newline ? "\n" : "");
+    fprintf(fp, "%.*s", POSTSCRIPT_BUFFER_LENGTH, dev->buffer);
 
     fclose(fp);
 
     dev->buffer[0] = 0;
     dev->buffer_pos = 0;
 
-    if (ghostscript_handle != NULL)
-	convert_to_pdf(dev);
+    if (finish) {
+	if (ghostscript_handle != NULL)
+		convert_to_pdf(dev);
 
-    dev->filename[0] = 0;
+	dev->filename[0] = 0;
+    }
 }
 
 
@@ -224,7 +226,7 @@ timeout_timer(void *priv)
 {
     ps_t *dev = (ps_t *) priv;
 
-    write_buffer(dev, false);
+    write_buffer(dev, true);
 
     timer_disable(&dev->timeout_timer);
 }
@@ -263,7 +265,7 @@ process_data(ps_t *dev)
 
 		/* Ctrl+D (0x04) marks the end of the document */
 		case '\4':
-			write_buffer(dev, false);
+			write_buffer(dev, true);
 			return;
 
 		/* Don't bother with the others */
@@ -307,7 +309,7 @@ ps_write_ctrl(uint8_t val, void *p)
 	dev->ack = true;
 
 	timer_set_delay_u64(&dev->pulse_timer, ISACONST);
-	timer_set_delay_u64(&dev->timeout_timer, 500000 * TIMER_USEC);
+	timer_set_delay_u64(&dev->timeout_timer, 5000000 * TIMER_USEC);
     }
 
     dev->ctrl = val;
@@ -376,7 +378,7 @@ ps_close(void *p)
 	return;
 
     if (dev->buffer[0] != 0)
-	write_buffer(dev, false);
+	write_buffer(dev, true);
 
     if (ghostscript_handle != NULL) {
 	dynld_close(ghostscript_handle);
