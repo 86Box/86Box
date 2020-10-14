@@ -263,6 +263,11 @@ pci_bridge_reset(void *priv)
 	dev->regs[0x43] = 0x02;
 	dev->regs[0xdc] = dev->regs[0xde] = 0x01;
     }
+
+    if (dev->local == AGP_BRIDGE_VIA_598) {
+        dev->regs[0x80] = 0x01;
+        dev->regs[0x82] = 0x02;
+    }
 }
 
 
@@ -379,11 +384,11 @@ const device_t via_vp3_agp_device =
     NULL
 };
 
-const device_t via_mvp3_agp_device =
+const device_t via_apro_agp_device =
 {
-    "VIA Apollo MVP3 AGP Bridge",
+    "VIA Apollo Pro AGP Bridge",
     DEVICE_PCI,
-    AGP_BRIDGE_VIA_598,
+    AGP_BRIDGE_VIA_691,
     pci_bridge_init,
     NULL,
     pci_bridge_reset,
@@ -393,11 +398,11 @@ const device_t via_mvp3_agp_device =
     NULL
 };
 
-const device_t via_apro_agp_device =
+const device_t via_mvp3_apro133a_agp_device =
 {
-    "VIA Apollo Pro AGP Bridge",
+    "VIA Apollo MVP3/Pro133A Common AGP Bridge",
     DEVICE_PCI,
-    AGP_BRIDGE_VIA_691,
+    AGP_BRIDGE_VIA_598,
     pci_bridge_init,
     NULL,
     pci_bridge_reset,

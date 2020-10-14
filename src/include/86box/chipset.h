@@ -119,6 +119,7 @@ extern const device_t	via_vpx_device;
 extern const device_t	via_vp3_device;
 extern const device_t	via_mvp3_device;
 extern const device_t	via_apro_device;
+extern const device_t	via_apro133a_device;
 
 extern const device_t	via_vt82c586b_device;
 extern const device_t	via_vt82c596_device;
