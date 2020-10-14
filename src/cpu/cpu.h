@@ -492,6 +492,7 @@ extern uint32_t	old_rammask;
 extern int	acycs;
 #endif
 extern int	pic_pending, is_vpc;
+extern int	soft_reset_mask;
 
 extern uint16_t	cpu_fast_off_count, cpu_fast_off_val;
 extern uint32_t	cpu_fast_off_flags;

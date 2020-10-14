@@ -52,9 +52,16 @@
 #define HA_ID		  7
 
 #define CHIP_810	  0x01
+#define CHIP_820	  0x02
 #define CHIP_825	  0x03
+#define CHIP_815	  0x04
+#define CHIP_810AP	  0x05
 #define CHIP_860	  0x06
+#define CHIP_895	  0x0c
 #define CHIP_875	  0x0f
+#define CHIP_895A	  0x12
+#define CHIP_875A	  0x13
+#define CHIP_875J	  0x8f
 
 #define NCR_SCNTL0_TRG    0x01
 #define NCR_SCNTL0_AAP    0x02

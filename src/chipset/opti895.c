@@ -30,6 +30,7 @@
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/mem.h>
+#include <86box/smram.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/port_92.h>
@@ -41,6 +42,8 @@ typedef struct
     uint8_t	idx, forced_green,
 		regs[256],
 		scratch[2];
+
+    smram_t	*smram;
 } opti895_t;
 
 
@@ -124,13 +127,6 @@ opti895_recalc(opti895_t *dev)
 
 
 static void
-opti895_smram_map(int smm, uint32_t addr, uint32_t size, int is_smram)
-{
-    mem_set_mem_state_smram(smm, addr, size, is_smram);
-}
-
-
-static void
 opti895_write(uint16_t addr, uint8_t val, void *priv)
 {
     opti895_t *dev = (opti895_t *) priv;
@@ -164,7 +160,7 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
 					break;
 
 				case 0x24:
-					opti895_smram_map(0, smram[0].host_base, smram[0].size, !!(val & 0x80));
+					smram_state_change(dev->smram, 0, !!(val & 0x80));
 					break;
 
 				case 0xe0:
@@ -225,6 +221,8 @@ opti895_close(void *priv)
 {
     opti895_t *dev = (opti895_t *) priv;
 
+    smram_del(dev->smram);
+
     free(dev);
 }
 
@@ -262,15 +260,9 @@ opti895_init(const device_t *info)
 
     io_sethandler(0x00e1, 0x0002, opti895_read, NULL, NULL, opti895_write, NULL, NULL, dev);
 
-    smram[0].host_base = 0x00030000;
-    smram[0].ram_base = 0x000b0000;
-    smram[0].size = 0x00010000;
+    dev->smram = smram_add();
 
-    mem_mapping_set_addr(&ram_smram_mapping[0], smram[0].host_base, smram[0].size);
-    mem_mapping_set_exec(&ram_smram_mapping[0], ram + smram[0].ram_base);
-
-    opti895_smram_map(0, smram[0].host_base, smram[0].size, 0);
-    opti895_smram_map(1, smram[0].host_base, smram[0].size, 1);
+    smram_enable(dev->smram, 0x00030000, 0x000b0000, 0x00010000, 0, 1);
 
     return dev;
 }

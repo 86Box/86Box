@@ -371,7 +371,7 @@ static int op0F01_common(uint32_t fetchdat, int is32, int is286, int ea32)
                 if (cpu_mod != 3)
                         SEG_CHECK_WRITE(cpu_state.ea_seg);
                 if (is486 || isibm486)      seteaw(msw);
-                else if (is386) seteaw(msw | 0xFF00);
+                else if (is386) seteaw(msw | /* 0xFF00 */ 0xFFE0);
                 else            seteaw(msw | 0xFFF0);
                 CLOCK_CYCLES(2);
                 PREFETCH_RUN(2, 2, rmdat, 0,0,(cpu_mod == 3) ? 0:1,0, ea32);

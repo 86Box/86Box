@@ -491,7 +491,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			if (val & 0x01)
 				trc_write(0x0047, (val & 0x80) ? 0x06 : 0x04, NULL);
 			pic_set_shadow(!!(val & 0x10));
-			pci_elcr_set_enabled(!!(val & 0x20));
+			pic_elcr_set_enabled(!!(val & 0x20));
 			dev->pci_isa_regs[0x47] = val & 0xfe;
 			break;
 		case 0x48:

@@ -89,6 +89,9 @@ extern const device_t	opti5x7_device;
 
 /* SiS */
 extern const device_t   rabbit_device;
+extern const device_t	sis_85c401_device;
+extern const device_t	sis_85c460_device;
+extern const device_t	sis_85c461_device;
 extern const device_t	sis_85c471_device;
 extern const device_t	sis_85c496_device;
 extern const device_t	sis_85c496_ls486e_device;
@@ -110,16 +113,13 @@ extern const device_t	stpc_lpt_device;
 extern const device_t   umc491_device;
 
 /* VIA */
-
 extern const device_t   via_vt82c49x_device;
-
+extern const device_t   via_vt82c49x_ide_device;
 extern const device_t   via_vt82c505_device;
-
 extern const device_t	via_vpx_device;
 extern const device_t	via_vp3_device;
 extern const device_t	via_mvp3_device;
 extern const device_t	via_apro_device;
-
 extern const device_t	via_vt82c586b_device;
 extern const device_t	via_vt82c596_device;
 extern const device_t	via_vt82c596b_device;

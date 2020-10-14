@@ -7731,12 +7731,12 @@ void *voodoo_init()
 
 void voodoo_card_close(voodoo_t *voodoo)
 {
-#ifndef RELEASE_BUILD
+/* #ifndef RELEASE_BUILD
         FILE *f;
-#endif
+#endif */
         int c;
         
-#ifndef RELEASE_BUILD        
+/* #ifndef RELEASE_BUILD        
         f = rom_fopen(L"texram.dmp", L"wb");
         fwrite(voodoo->tex_mem[0], voodoo->texture_size*1024*1024, 1, f);
         fclose(f);
@@ -7746,7 +7746,7 @@ void voodoo_card_close(voodoo_t *voodoo)
                 fwrite(voodoo->tex_mem[1], voodoo->texture_size*1024*1024, 1, f);
                 fclose(f);
         }
-#endif
+#endif */
 
         thread_kill(voodoo->fifo_thread);
         thread_kill(voodoo->render_thread[0]);

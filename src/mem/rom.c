@@ -30,6 +30,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/plat.h>
@@ -316,6 +317,89 @@ rom_reset(uint32_t addr, int sz)
 }
 
 
+uint8_t
+bios_read(uint32_t addr, void *priv)
+{
+    uint8_t ret = 0xff;
+
+    addr &= 0x000fffff;
+
+    if ((addr >= biosaddr) && (addr <= (biosaddr + biosmask)))
+	ret = rom[addr - biosaddr];
+
+    return ret;
+}
+
+
+uint16_t
+bios_readw(uint32_t addr, void *priv)
+{
+    uint16_t ret = 0xffff;
+
+    addr &= 0x000fffff;
+
+    if ((addr >= biosaddr) && (addr <= (biosaddr + biosmask)))
+	ret = *(uint16_t *)&rom[addr - biosaddr];
+
+    return ret;
+}
+
+
+uint32_t
+bios_readl(uint32_t addr, void *priv)
+{
+    uint32_t ret = 0xffffffff;
+
+    addr &= 0x000fffff;
+
+    if ((addr >= biosaddr) && (addr <= (biosaddr + biosmask)))
+	ret = *(uint32_t *)&rom[addr - biosaddr];
+
+    return ret;
+}
+
+
+static void
+bios_add(void)
+{
+    int temp_cpu_type, temp_cpu_16bitbus = 1;
+
+    if (AT) {
+	temp_cpu_type = machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type;
+	temp_cpu_16bitbus = (temp_cpu_type == CPU_286 || temp_cpu_type == CPU_386SX || temp_cpu_type == CPU_486SLC || temp_cpu_type == CPU_IBM386SLC || temp_cpu_type == CPU_IBM486SLC );
+    }
+
+    if (biosmask > 0x1ffff) {
+	/* 256k+ BIOS'es only have low mappings at E0000-FFFFF. */
+	mem_mapping_add(&bios_mapping, 0xe0000, 0x20000,
+			bios_read,bios_readw,bios_readl,
+			mem_write_null,mem_write_nullw,mem_write_nulll,
+			&rom[0x20000], MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
+
+	mem_set_mem_state_both(0x0e0000, 0x20000,
+			       MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+    } else {
+	mem_mapping_add(&bios_mapping, biosaddr, biosmask + 1,
+			bios_read,bios_readw,bios_readl,
+			mem_write_null,mem_write_nullw,mem_write_nulll,
+			rom, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
+
+	mem_set_mem_state_both(biosaddr, biosmask + 1,
+			       MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+    }
+
+    if (AT) {
+	mem_mapping_add(&bios_high_mapping, biosaddr | (temp_cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
+			bios_read,bios_readw,bios_readl,
+			mem_write_null,mem_write_nullw,mem_write_nulll,
+			rom, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
+
+	mem_set_mem_state_both(biosaddr | (temp_cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
+			       MEM_READ_ROMCS | MEM_WRITE_ROMCS);
+    }
+}
+
+
 /* These four are for loading the BIOS. */
 int
 bios_load(wchar_t *fn1, wchar_t *fn2, uint32_t addr, int sz, int off, int flags)
@@ -359,7 +443,7 @@ bios_load(wchar_t *fn1, wchar_t *fn2, uint32_t addr, int sz, int off, int flags)
     }
 
     if (!bios_only && ret && !(flags & FLAG_AUX))
-	mem_add_bios();
+	bios_add();
 
     return ret;
 }

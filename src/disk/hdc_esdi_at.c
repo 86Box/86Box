@@ -150,7 +150,7 @@ irq_lower(esdi_t *esdi)
 static __inline void
 irq_update(esdi_t *esdi)
 {
-    if (esdi->irqstat && !((pic2.pend | pic2.ins) & 0x40) && !(esdi->fdisk & 2))
+    if (esdi->irqstat && !((pic2.irr | pic2.isr) & 0x40) && !(esdi->fdisk & 2))
 	picint(1 << 14);
 }
 

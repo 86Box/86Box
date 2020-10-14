@@ -22,6 +22,7 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/smram.h>
 #include <86box/io.h>
 #include <86box/rom.h>
 #include <86box/device.h>
@@ -57,6 +58,7 @@ typedef struct
 		drb_unit, drb_default;
     uint8_t	regs[256], regs_locked[256];
     int		type;
+    smram_t	*smram_low, *smram_high;
 } i4x0_t;
 
 
@@ -102,35 +104,17 @@ i4x0_map(uint32_t addr, uint32_t size, int state)
 
 
 static void
-i4x0_smram_map(int smm, uint32_t addr, uint32_t size, int is_smram)
-{
-    mem_set_mem_state_smram(smm, addr, size, is_smram);
-}
-
-
-static void
 i4x0_smram_handler_phase0(i4x0_t *dev)
 {
     uint32_t tom = (mem_size << 10);
 
-    /* Disable any active mappings. */
-    if (smram[0].size != 0x00000000) {
-	i4x0_smram_map(0, smram[0].host_base, smram[0].size, 0);
-	i4x0_smram_map(1, smram[0].host_base, smram[0].size, 0);
-
-	memset(&smram[0], 0x00, sizeof(smram_t));
-	mem_mapping_disable(&ram_smram_mapping[0]);
-    }
-
-    if ((dev->type >= INTEL_440BX) && (smram[1].size != 0x00000000)) {
-	i4x0_smram_map(1, smram[1].host_base, smram[1].size, 0);
-
+    if ((dev->type >= INTEL_440BX) && smram_enabled(dev->smram_high)) {
 	tom -=  (1 << 20);
 	mem_set_mem_state_smm(tom, (1 << 20), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-
-	memset(&smram[1], 0x00, sizeof(smram_t));
-	mem_mapping_disable(&ram_smram_mapping[1]);
     }
+
+    /* Disable any active mappings. */
+    smram_disable_all();
 }
 
 
@@ -158,20 +142,9 @@ i4x0_smram_handler_phase1(i4x0_t *dev)
 		}
 	}
 
-	if (((regs[0x72] & 0x70) == 0x40) || ((regs[0x72] & 0x08) && !(regs[0x72] & 0x20))) {
-		smram[0].host_base = base[0];
-		smram[0].ram_base = base[0] & 0x000f0000;
-		smram[0].size = size[0];
-
-		mem_mapping_set_addr(&ram_smram_mapping[0], smram[0].host_base, size[0]);
-		mem_mapping_set_exec(&ram_smram_mapping[0], ram + smram[0].ram_base);
-
-		/* If D_OPEN = 1 and D_LCK = 0, extended SMRAM is visible outside SMM. */
-		i4x0_smram_map(0, base[0], size[0], ((regs[0x72] & 0x70) == 0x40));
-
-		/* If the register is set accordingly, disable the mapping also in SMM. */
-		i4x0_smram_map(1, base[0], size[0], ((regs[0x72] & 0x08) && !(regs[0x72] & 0x20)));
-	}
+	if (((regs[0x72] & 0x70) == 0x40) || ((regs[0x72] & 0x08) && !(regs[0x72] & 0x20)))
+		smram_enable(dev->smram_low, base[0], base[0] & 0x000f0000, size[0],
+			     ((regs[0x72] & 0x70) == 0x40), ((regs[0x72] & 0x08) && !(regs[0x72] & 0x20)));
 
 	/* TSEG mapping. */
 	if (dev->type >= INTEL_440BX) {
@@ -183,18 +156,10 @@ i4x0_smram_handler_phase1(i4x0_t *dev)
 			base[1] = size[1] = 0x00000000;
 
 		if (size[1] != 0x00000000) {
-			smram[1].host_base = base[1] + (1 << 28);
-			smram[1].ram_base = base[1];
-			smram[1].size = size[1];
-
-			mem_mapping_set_addr(&ram_smram_mapping[1], smram[1].host_base, smram[1].size);
-			if (smram[1].ram_base < (1 << 30))
-				mem_mapping_set_exec(&ram_smram_mapping[1], ram + smram[1].ram_base);
-			else
-				mem_mapping_set_exec(&ram_smram_mapping[1], ram2 + smram[1].ram_base - (1 << 30));
+			smram_enable(dev->smram_high, base[1] + (1 << 28), base[1], size[1],
+				     0, 1);
 
 			mem_set_mem_state_smm(base[1], size[1], MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-			i4x0_smram_map(1, smram[1].host_base, size[1], 1);
 		}
 	}
     } else {
@@ -220,18 +185,8 @@ i4x0_smram_handler_phase1(i4x0_t *dev)
 	}
 
 	if (((((regs[0x72] & 0x38) == 0x20) || s) || (!(regs[0x72] & 0x10) || s)) && (size[0] != 0x00000000)) {
-		smram[0].host_base = base[0];
-		smram[0].ram_base = base[0];
-		smram[0].size = size[0];
-
-		mem_mapping_set_addr(&ram_smram_mapping[0], smram[0].host_base, size[0]);
-		mem_mapping_set_exec(&ram_smram_mapping[0], ram + smram[0].ram_base);
-
-		/* If OSS = 1 and LSS = 0, extended SMRAM is visible outside SMM. */
-		i4x0_smram_map(0, base[0], size[0], (((regs[0x72] & 0x38) == 0x20) || s));
-
-		/* If the register is set accordingly, disable the mapping also in SMM. */
-		i4x0_smram_map(0, base[0], size[0], (!(regs[0x72] & 0x10) || s));
+		smram_enable(dev->smram_low, base[0], base[0], size[0],
+			     (((regs[0x72] & 0x38) == 0x20) || s), (!(regs[0x72] & 0x10) || s));
 	}
     }
 
@@ -1306,9 +1261,12 @@ i4x0_reset(void *priv)
 static void
 i4x0_close(void *p)
 {
-    i4x0_t *i4x0 = (i4x0_t *)p;
+    i4x0_t *dev = (i4x0_t *)p;
 
-    free(i4x0);
+    smram_del(dev->smram_high);
+    smram_del(dev->smram_low);
+
+    free(dev);
 }
 
 
@@ -1319,6 +1277,9 @@ static void
     uint8_t *regs;
 
     memset(dev, 0, sizeof(i4x0_t));
+
+    dev->smram_low = smram_add();
+    dev->smram_high = smram_add();
 
     dev->type = info->local & 0xff;
 

@@ -93,7 +93,8 @@ key_process(uint16_t scan, int down)
     scancode *codes = scan_table;
     int c;
 
-    if (! keyboard_scan) return;
+    if (!keyboard_scan || (keyboard_send == NULL))
+	return;
 
     oldkey[scan] = down;
     if (down && codes[scan].mk[0]  == 0)

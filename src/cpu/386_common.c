@@ -16,6 +16,7 @@
 #include "x87.h"
 #include <86box/nmi.h>
 #include <86box/mem.h>
+#include <86box/smram.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
 #include <86box/fdd.h>
@@ -62,7 +63,7 @@ extern uint32_t pccache;
 int in_sys = 0, unmask_a20_in_smm = 0;
 uint32_t old_rammask = 0xffffffff;
 
-smram_t temp_smram[2];
+int soft_reset_mask = 0;
 
 
 #define AMD_SYSCALL_EIP	(star & 0xFFFFFFFF)
@@ -1026,14 +1027,8 @@ enter_smm(int in_hlt)
 		    EAX, EBX, ECX, EDX, ESI, EDI, ESP, EBP);
 
     in_smm = 1;
-    if (smram[0].size)
-	mem_mapping_recalc(smram[0].host_base, smram[0].size);
-    if (smram[1].size)
-	mem_mapping_recalc(smram[1].host_base, smram[1].size);
-    /* This is used by leave_smm() to make sure we don't keep the old mappings in SMM mode if the SMM
-       handler has told the chipset to change the actual mappings. */
-    memcpy(temp_smram, smram, sizeof(temp_smram));
-    flushmmucache();
+    smram_backup_all();
+    smram_recalc_all(0);
 
     memset(saved_state, 0x00, SMM_SAVE_STATE_MAP_SIZE * sizeof(uint32_t));
 
@@ -1173,16 +1168,7 @@ leave_smm(void)
 	smram_restore_state_p6(saved_state);
 
     in_smm = 0;
-    if (temp_smram[0].size)
-	mem_mapping_recalc(temp_smram[0].host_base, temp_smram[0].size);
-    if (temp_smram[1].size)
-	mem_mapping_recalc(temp_smram[1].host_base, temp_smram[1].size);
-    memset(temp_smram, 0x00, sizeof(temp_smram));
-    if (smram[0].size)
-	mem_mapping_recalc(smram[0].host_base, smram[0].size);
-    if (smram[1].size)
-	mem_mapping_recalc(smram[1].host_base, smram[1].size);
-    flushmmucache();
+    smram_recalc_all(1);
 
     cpu_state.op32 = use32;
 

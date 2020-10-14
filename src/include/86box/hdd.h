@@ -66,6 +66,7 @@ enum {
     HDD_BUS_XTA,
     HDD_BUS_ESDI,
     HDD_BUS_IDE,
+    HDD_BUS_ATAPI,
     HDD_BUS_SCSI,
     HDD_BUS_USB
 };

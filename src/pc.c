@@ -197,6 +197,9 @@ pclog_ex(const char *fmt, va_list ap)
 #ifndef RELEASE_BUILD
     char temp[1024];
 
+    if (strcmp(fmt, "") == 0)
+	return;
+
     if (stdlog == NULL) {
 	if (log_path[0] != L'\0') {
 		stdlog = plat_fopen(log_path, L"w");
@@ -276,7 +279,6 @@ fatal(const char *fmt, ...)
 
     config_save();
 
-    dumppic();
 #ifdef ENABLE_808X_LOG
     dumpregs(1);
 #endif
@@ -686,6 +688,9 @@ pc_reset_hard_close(void)
 {
     ui_sb_set_ready(0);
 
+    /* Close all the memory mappings. */
+    mem_close();
+
     network_timer_stop();
 
     /* Turn off timer processing to avoid potential segmentation faults. */
@@ -868,6 +873,12 @@ pc_close(thread_t *ptr)
 
     plat_mouse_capture(0);
 
+    /* Close all the memory mappings. */
+    mem_close();
+
+    network_timer_stop();
+
+    /* Turn off timer processing to avoid potential segmentation faults. */
     timer_close();
 
     lpt_devices_close();
@@ -875,10 +886,9 @@ pc_close(thread_t *ptr)
     for (i=0; i<FDD_NUM; i++)
        fdd_close(i);
 
-    if (dump_on_exit)
-	dumppic();
 #ifdef ENABLE_808X_LOG
-    dumpregs(0);
+    if (dump_on_exit)
+	dumpregs(0);
 #endif
 
     video_close();

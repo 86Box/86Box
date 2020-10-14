@@ -17,10 +17,11 @@
 #define EMU_NAME	"86Box"
 #define EMU_NAME_W	L"86Box"
 
-#define EMU_VERSION	"2.10"
-#define EMU_VERSION_W	L"2.10"
-#define EMU_VERSION_MAJ	2
-#define EMU_VERSION_MIN	10
+#define EMU_VERSION	"3.0"
+#define EMU_VERSION_W	L"3.0"
+#define EMU_VERSION_EX	"3.00"
+#define EMU_VERSION_MAJ	3
+#define EMU_VERSION_MIN	0
 
 #define COPYRIGHT_YEAR	"2020"
 

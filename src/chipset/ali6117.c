@@ -321,7 +321,7 @@ ali6117_init(const device_t *info)
     ali6117_setup(dev);
     ali6117_reset(dev);
 
-    pci_elcr_io_disable();
+    pic_elcr_io_handler(0);
     refresh_at_enable = 0;
 
     return dev;
