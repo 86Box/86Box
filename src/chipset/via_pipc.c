@@ -718,6 +718,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			c = (dev->power_regs[0x49] << 8);
 			if (dev->local >= VIA_PIPC_596A)
 				c |= (dev->power_regs[0x48] & 0x80);
+			acpi_set_timer32(dev->acpi, dev->power_regs[0x41] & 0x08);
 			acpi_update_io_mapping(dev->acpi, c, dev->power_regs[0x41] & 0x80);
 			break;
 
@@ -823,8 +824,12 @@ pipc_init(const device_t *info)
 		pci_enable_mirq(2);
     }
 
-    if (dev->acpi)
+    if (dev->acpi) {
+	acpi_set_slot(dev->acpi, dev->slot);
+	acpi_set_nvr(dev->acpi, dev->nvr);
+
 	acpi_init_gporeg(dev->acpi, 0xff, 0xbf, 0xff, 0x7f);
+    }
 
     return dev;
 }
