@@ -1609,7 +1609,9 @@ d86f_read_sector_data(int drive, int side)
 				dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
 				dev->error_condition = 0;
 				dev->state = STATE_IDLE;
-				if (dev->state == STATE_11_SCAN_DATA)
+				if (dev->state == STATE_02_READ_DATA)
+					fdc_track_finishread(d86f_fdc, dev->error_condition);
+				else if (dev->state == STATE_11_SCAN_DATA)
 					fdc_sector_finishcompare(d86f_fdc, (dev->satisfying_bytes == ((128 << ((uint32_t) dev->last_sector.id.n)) - 1)) ? 1 : 0);
 				else
 					fdc_sector_finishread(d86f_fdc);
@@ -2149,20 +2151,23 @@ d86f_turbo_read(int drive, int side)
 	dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
 	if ((flags & SECTOR_CRC_ERROR) && (dev->state != STATE_02_READ_DATA)) {
 #ifdef ENABLE_D86F_LOG
-		d86f_log("86F: Data CRC error in turbo mode\n");
+		d86f_log("86F: Data CRC error in turbo mode (%02X)\n", dev->state);
 #endif
 		dev->error_condition = 0;
 		dev->state = STATE_IDLE;
 		fdc_finishread(d86f_fdc);
 		fdc_datacrcerror(d86f_fdc);
-	} else if ((dev->calc_crc.word != dev->track_crc.word) && (dev->state == STATE_02_READ_DATA)) {
+	} else if ((flags & SECTOR_CRC_ERROR) && (dev->state == STATE_02_READ_DATA)) {
+#ifdef ENABLE_D86F_LOG
+		d86f_log("86F: Data CRC error in turbo mode at READ TRACK command\n");
+#endif
 		dev->error_condition |= 2;	/* Mark that there was a data error. */
 		dev->state = STATE_IDLE;
 		fdc_track_finishread(d86f_fdc, dev->error_condition);
 	} else {
 		/* CRC is valid. */
 #ifdef ENABLE_D86F_LOG
-		d86f_log("86F: Data CRC OK error in turbo mode\n");
+		d86f_log("86F: Data CRC OK in turbo mode\n");
 #endif
 		dev->error_condition = 0;
 		dev->state = STATE_IDLE;

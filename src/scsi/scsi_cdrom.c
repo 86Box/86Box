@@ -1431,9 +1431,9 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
     device_identify[7] = dev->id + 0x30;
 
     device_identify_ex[7] = dev->id + 0x30;
-    device_identify_ex[10] = EMU_VERSION[0];
-    device_identify_ex[12] = EMU_VERSION[2];
-    device_identify_ex[13] = EMU_VERSION[3];
+    device_identify_ex[10] = EMU_VERSION_EX[0];
+    device_identify_ex[12] = EMU_VERSION_EX[2];
+    device_identify_ex[13] = EMU_VERSION_EX[3];
 
     memcpy(dev->current_cdb, cdb, 12);
 
@@ -2373,7 +2373,7 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 			} else {
 				ide_padstr8(dev->buffer + 8, 8, EMU_NAME); /* Vendor */
 				ide_padstr8(dev->buffer + 16, 16, device_identify); /* Product */
-				ide_padstr8(dev->buffer + 32, 4, EMU_VERSION); /* Revision */
+				ide_padstr8(dev->buffer + 32, 4, EMU_VERSION_EX); /* Revision */
 			}
 
 			idx = 36;
@@ -2655,7 +2655,7 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
     ide->buffer[0] = 0x8000 | (5<<8) | 0x80 | (2<<5); /* ATAPI device, CD-ROM drive, removable media, accelerated DRQ */
     ide_padstr((char *) (ide->buffer + 10), "", 20); /* Serial Number */
 #if 0
-    ide_padstr((char *) (ide->buffer + 23), EMU_VERSION, 8); /* Firmware */
+    ide_padstr((char *) (ide->buffer + 23), EMU_VERSION_EX, 8); /* Firmware */
     ide_padstr((char *) (ide->buffer + 27), device_identify, 40); /* Model */
 #else
     ide_padstr((char *) (ide->buffer + 23), "4.20    ", 8); /* Firmware */
@@ -2667,6 +2667,8 @@ scsi_cdrom_identify(ide_t *ide, int ide_has_dma)
     if (ide_has_dma) {
 	ide->buffer[71] = 30;
 	ide->buffer[72] = 30;
+	ide->buffer[80] = 0x7e; /*ATA-1 to ATA-6 supported*/
+	ide->buffer[81] = 0x19; /*ATA-6 revision 3a supported*/
     }
 }
 

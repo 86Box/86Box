@@ -2289,8 +2289,8 @@ zip_250_identify(ide_t *ide, int ide_has_dma)
     ide_padstr((char *) (ide->buffer + 27), "IOMEGA  ZIP 250       ATAPI", 40); /* Model */
 
     if (ide_has_dma) {
-	ide->buffer[80] = 0x30; /*Supported ATA versions : ATA/ATAPI-4 ATA/ATAPI-5*/
-	ide->buffer[81] = 0x15; /*Maximum ATA revision supported : ATA/ATAPI-5 T13 1321D revision 1*/
+	ide->buffer[80] = 0x70; /*Supported ATA versions : ATA/ATAPI-4 ATA/ATAPI-6*/
+	ide->buffer[81] = 0x19; /*Maximum ATA revision supported : ATA/ATAPI-6 T13 1410D revision 3a*/
     }
 }
 

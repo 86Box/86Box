@@ -37,11 +37,7 @@ timer_enable(pc_timer_t *timer)
     if (!timer_head) {
 	timer_head = timer;
 	timer->next = timer->prev = NULL;
-#if 0
-	timer_target = timer_head->ts_integer;
-#else
 	timer_target = timer_head->ts.ts32.integer;
-#endif
 	return;
     }
 
@@ -57,11 +53,7 @@ timer_enable(pc_timer_t *timer)
 			timer->prev->next = timer;
 		else {
 			timer_head = timer;
-#if 0
-			timer_target = timer_head->ts_integer;
-#else
 			timer_target = timer_head->ts.ts32.integer;
-#endif
 		}
 		return;
 	}
@@ -142,11 +134,7 @@ timer_process(void)
 		timer->callback(timer->p);
     }
 
-#if 0
-    timer_target = timer_head->ts_integer;
-#else
     timer_target = timer_head->ts.ts32.integer;
-#endif
 }
 
 

@@ -663,7 +663,7 @@ static void
 win_settings_machine_recalc_machine(HWND hdlg)
 {
     HWND h;
-    int c;
+    int c, is_at;
     LPTSTR lptsTemp;
     const char *stransi;
     UDACCEL accel;
@@ -700,7 +700,8 @@ win_settings_machine_recalc_machine(HWND hdlg)
     accel.nSec = 0;
     accel.nInc = machines[temp_machine].ram_granularity;
     SendMessage(h, UDM_SETACCEL, 1, (LPARAM)&accel);
-    if (!(machines[temp_machine].flags & MACHINE_AT) || (machines[temp_machine].ram_granularity >= 128)) {
+    is_at = IS_ARCH(temp_machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
+    if (!is_at || (machines[temp_machine].ram_granularity >= 128)) {
 	SendMessage(h, UDM_SETPOS, 0, temp_mem_size);
 	h = GetDlgItem(hdlg, IDC_TEXT_MB);
 	SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_2088));
@@ -723,7 +724,7 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HWND h, h2;
     int c, d, e, f;
-    int old_machine_type;
+    int old_machine_type, is_at;
     LPTSTR lptsTemp;
     char *stransi;
 
@@ -925,7 +926,8 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			temp_mem_size = machines[temp_machine].min_ram;
 		else if (temp_mem_size > machines[temp_machine].max_ram)
 			temp_mem_size = machines[temp_machine].max_ram;
-		if ((machines[temp_machine].flags & MACHINE_AT) && (machines[temp_machine].ram_granularity < 128))
+		is_at = IS_ARCH(temp_machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
+		if (is_at && (machines[temp_machine].ram_granularity < 128))
 			temp_mem_size *= 1024;
 		free(stransi);
 		free(lptsTemp);
@@ -977,7 +979,7 @@ recalc_vid_list(HWND hdlg)
     }
     if (!found_card)
 	SendMessage(h, CB_SETCURSEL, 0, 0);
-    EnableWindow(h, (machines[temp_machine].flags & MACHINE_VIDEO_FIXED) ? FALSE : TRUE);
+    EnableWindow(h, (machines[temp_machine].flags & MACHINE_VIDEO_ONLY) ? FALSE : TRUE);
 
     h = GetDlgItem(hdlg, IDC_CHECK_VOODOO);
     EnableWindow(h, (machines[temp_machine].flags & MACHINE_PCI) ? TRUE : FALSE);
@@ -1691,7 +1693,7 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 {
     HWND h;
     int c, d;
-    int e;
+    int e, is_at;
     LPTSTR lptsTemp;
     char *stransi;
     const device_t *scsi_dev;
@@ -1786,16 +1788,17 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 		EnableWindow(h, scsi_card_has_config(temp_scsi_card) ? TRUE : FALSE);
 
 		h = GetDlgItem(hdlg, IDC_CHECK_IDE_TER);
-	        EnableWindow(h, (machines[temp_machine].flags & MACHINE_AT) ? TRUE : FALSE);
+		is_at = IS_ARCH(temp_machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
+	        EnableWindow(h, is_at ? TRUE : FALSE);
 
 		h = GetDlgItem(hdlg, IDC_BUTTON_IDE_TER);
-		EnableWindow(h, ((machines[temp_machine].flags & MACHINE_AT) && temp_ide_ter) ? TRUE : FALSE);
+		EnableWindow(h, (is_at && temp_ide_ter) ? TRUE : FALSE);
 
        		h = GetDlgItem(hdlg, IDC_CHECK_IDE_QUA);
-	        EnableWindow(h, (machines[temp_machine].flags & MACHINE_AT) ? TRUE : FALSE);
+	        EnableWindow(h, is_at ? TRUE : FALSE);
 
 		h = GetDlgItem(hdlg, IDC_BUTTON_IDE_QUA);
-		EnableWindow(h, ((machines[temp_machine].flags & MACHINE_AT) && temp_ide_qua) ? TRUE : FALSE);
+		EnableWindow(h, (is_at && temp_ide_qua) ? TRUE : FALSE);
 
                 h=GetDlgItem(hdlg, IDC_CHECK_IDE_TER);
        	        SendMessage(h, BM_SETCHECK, temp_ide_ter, 0);
@@ -2260,7 +2263,7 @@ add_locations(HWND hdlg)
     lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
     h = GetDlgItem(hdlg, IDC_COMBO_HD_BUS);
-    for (i = 0; i < 5; i++)
+    for (i = 0; i < 6; i++)
 	SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_4352 + i));
 
     h = GetDlgItem(hdlg, IDC_COMBO_HD_CHANNEL);
@@ -2550,7 +2553,7 @@ win_settings_hard_disks_update_item(HWND hwndList, int i, int column)
 			wsprintf(szText, plat_get_string(IDS_4611), temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
 			break;
 		case HDD_BUS_SCSI:
-			wsprintf(szText, plat_get_string(IDS_4612), temp_hdd[i].scsi_id);
+			wsprintf(szText, plat_get_string(IDS_4613), temp_hdd[i].scsi_id);
 			break;
 	}
 	lvI.pszText = szText;
@@ -2617,7 +2620,7 @@ win_settings_hard_disks_recalc_list(HWND hwndList)
 				wsprintf(szText, plat_get_string(IDS_4611), temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
 				break;
 			case HDD_BUS_SCSI:
-				wsprintf(szText, plat_get_string(IDS_4612), temp_hdd[i].scsi_id);
+				wsprintf(szText, plat_get_string(IDS_4613), temp_hdd[i].scsi_id);
 				break;
 		}
 		lvI.pszText = szText;

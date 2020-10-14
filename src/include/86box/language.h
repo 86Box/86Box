@@ -144,18 +144,16 @@
 #define IDS_4352	4352		// "MFM/RLL"
 #define IDS_4353	4353		// "XT IDE"
 #define IDS_4354	4354		// "ESDI"
-#define IDS_4355	4355		// "IDE (PIO-only)"
-#define IDS_4356	4356		// "IDE (PIO+DMA)"
+#define IDS_4355	4355		// "IDE"
+#define IDS_4356	4356		// "ATAPI"
 #define IDS_4357	4357		// "SCSI"
-#define IDS_4358	4358		// "SCSI (removable)"
 
 #define IDS_4608	4608		// "MFM/RLL (%01i:%01i)"
 #define IDS_4609	4609		// "XT IDE (%01i:%01i)"
 #define IDS_4610	4610		// "ESDI (%01i:%01i)"
-#define IDS_4611	4611		// "IDE (PIO-only) (%01i:%01i)"
-#define IDS_4612	4612		// "IDE (PIO+DMA) (%01i:%01i)"
+#define IDS_4611	4611		// "IDE (%01i:%01i)"
+#define IDS_4612	4612		// "ATAPI (%01i:%01i)"
 #define IDS_4613	4613		// "SCSI (%02i:%02i)"
-#define IDS_4614	4614		// "SCSI (removable) (%02i:%02i)"
 
 #define IDS_5120	5120		// "CD-ROM %i (%s): %s"
 
@@ -163,16 +161,16 @@
 #define IDS_5377	5377		// <Reserved>
 #define IDS_5378	5378		// <Reserved>
 #define IDS_5379	5379		// <Reserved>
-#define IDS_5380	5380		// "ATAPI (PIO-only)"
-#define IDS_5381	5381		// "ATAPI (PIO and DMA)"
+#define IDS_5380	5380		// <Reserved>
+#define IDS_5381	5381		// "ATAPI"
 #define IDS_5382	5382		// "SCSI"
 
 #define IDS_5632	5632		// "Disabled"
 #define IDS_5633	5633		// <Reserved>
 #define IDS_5634	5634		// <Reserved>
 #define IDS_5635	5635		// <Reserved>
-#define IDS_5636	5636		// "ATAPI (PIO-only) (%01i:%01i)"
-#define IDS_5637	5637		// "ATAPI (PIO and DMA) (%01i:%01i)"
+#define IDS_5636	5636		// <Reserved>
+#define IDS_5637	5637		// "ATAPI (%01i:%01i)"
 #define IDS_5638	5638		// "SCSI (%02i:%02i)"
 
 #define IDS_5888	5888		// "160 kB"
@@ -212,8 +210,8 @@
 #define STR_NUM_2048	92
 #define STR_NUM_3072	11
 #define STR_NUM_4096	18
-#define STR_NUM_4352	7
-#define STR_NUM_4608	7
+#define STR_NUM_4352	6
+#define STR_NUM_4608	6
 #define STR_NUM_5120	1
 #define STR_NUM_5376	7
 #define STR_NUM_5632	7

@@ -614,10 +614,10 @@ static int opHLT(uint32_t fetchdat)
         }
 	if (smi_line)
 		enter_smm_check(1);
-        else if (!((cpu_state.flags & I_FLAG) && pic_intpending))
+        else if (!((cpu_state.flags & I_FLAG) && pic.int_pending))
         {
                 CLOCK_CYCLES_ALWAYS(100);
-		if (!((cpu_state.flags & I_FLAG) && pic_intpending))
+		if (!((cpu_state.flags & I_FLAG) && pic.int_pending))
                 	cpu_state.pc--;
         }
         else

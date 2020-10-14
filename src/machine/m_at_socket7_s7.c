@@ -114,9 +114,10 @@ machine_at_thor_common_init(const machine_t *model, int mr)
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 2, 1);
     pci_register_slot(0x10, PCI_CARD_NORMAL, 4, 3, 2, 1);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+
+    device_add(&keyboard_ps2_ami_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add(&keyboard_ps2_ami_pci_device);
     device_add(&pc87306_device);
     device_add(&intel_flash_bxt_ami_device);
 }
@@ -626,7 +627,7 @@ machine_at_p55va_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&i430vx_device);
     device_add(&piix3_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&keyboard_ps2_ami_pci_device);
     device_add(&fdc37c932fr_device);
     device_add(&intel_flash_bxt_device);
 
@@ -811,7 +812,7 @@ machine_at_nupro592_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);	/* PIIX4 */
     device_add(&i430tx_device);
     device_add(&piix4_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&keyboard_ps2_ami_pci_device);
     device_add(&w83977ef_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
@@ -859,8 +860,13 @@ machine_at_tx97_init(const machine_t *model)
 {
     int ret;
 
+#if 0
     ret = bios_load_linear(L"roms/machines/tx97/0112.001",
 			   0x000e0000, 131072, 0);
+#else
+    ret = bios_load_linear(L"roms/machines/tx97/0112.001",
+			   0x000c0000, 262144, 0);
+#endif
 
     if (bios_only || !ret)
 	return ret;
@@ -869,6 +875,7 @@ machine_at_tx97_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+#if 0
     pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
@@ -876,11 +883,22 @@ machine_at_tx97_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);	/* PIIX4 */
     pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x08, PCI_CARD_NORMAL, 1, 2, 3, 4);
+#else
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);	/* PIIX4 */
+#endif
     device_add(&i430tx_device);
-    device_add(&piix4_device);
-    device_add(&keyboard_ps2_pci_device);
-    device_add(&w83877tf_acorp_device);
-    device_add(&intel_flash_bxt_device);
+    // device_add(&piix4_device);
+    device_add(&piix4e_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    // device_add(&w83877tf_acorp_device);
+    device_add(&pc87307_15c_device);
+    // device_add(&intel_flash_bxt_device);
+    device_add(&sst_flash_29ee020_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
 
     hwm_values_t machine_hwm = {

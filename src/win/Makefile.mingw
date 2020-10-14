@@ -75,6 +75,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef S3TRIO3D2X
   S3TRIO3D2X	:= y
  endif
+ ifndef SEP
+  SEP		:= n
+ endif
  ifndef SIEMENS
   SIEMENS	:= y
  endif
@@ -92,9 +95,6 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef VNC
   VNC		:= y
- endif
- ifndef WIN471
-  WIN471	:= y
  endif
  ifndef XL24
   XL24		:= y
@@ -157,6 +157,9 @@ else
  ifndef S3TRIO3D2X
   S3TRIO3D2X	:= n
  endif
+ ifndef SEP
+  SEP		:= n
+ endif
  ifndef SIEMENS
   SIEMENS	:= n
  endif
@@ -174,9 +177,6 @@ else
  endif
  ifndef VNC
   VNC		:= n
- endif
- ifndef WIN471
-  WIN471	:= n
  endif
  ifndef XL24
   XL24		:= n
@@ -560,6 +560,10 @@ ifeq ($(S3TRIO3D2X), y)
 OPTS		+= -DUSE_S3TRIO3D2X
 endif
 
+ifeq ($(SEP), y)
+OPTS		+= -DUSE_SEP
+endif
+
 ifeq ($(SIEMENS), y)
 OPTS		+= -DUSE_SIEMENS
 endif
@@ -585,10 +589,6 @@ endif
 
 ifeq ($(VGAWONDER), y)
 OPTS		+= -DUSE_VGAWONDER
-endif
-
-ifeq ($(WIN471), y)
-OPTS		+= -DUSE_WIN471
 endif
 
 ifeq ($(XL24), y)
@@ -629,7 +629,7 @@ MAINOBJ		:= pc.o config.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
 		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o \
 		   $(VNCOBJ)
 
-MEMOBJ		:= catalyst_flash.o intel_flash.o mem.o rom.o spd.o sst_flash.o
+MEMOBJ		:= catalyst_flash.o intel_flash.o mem.o rom.o smram.o spd.o sst_flash.o
 
 CPUOBJ		:= cpu.o cpu_table.o \
 		    808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o $(CGTOBJ) \
@@ -639,7 +639,7 @@ CPUOBJ		:= cpu.o cpu_table.o \
 CHIPSETOBJ	:= acc2168.o cs8230.o ali1429.o headland.o intel_82335.o cs4031.o \
 		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
 		    neat.o opti495.o opti895.o opti5x7.o scamp.o scat.o via_vt82c49x.o via_vt82c505.o \
-		    sis_85c310.o sis_85c471.o sis_85c496.o opti283.o opti291.o umc491.o \
+		    sis_85c310.o sis_85c4xx.o sis_85c496.o opti283.o opti291.o umc491.o \
 		    via_apollo.o via_vpx.o via_pipc.o wd76c10.o vl82c480.o \
 			amd640.o
 
@@ -660,7 +660,8 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_at_socket8.o m_at_slot1.o m_at_slot2.o m_at_socket370.o \
 			m_at_misc.o
 
-DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_vt82c686.o ibm_5161.o isamem.o isartc.o lpt.o pci_bridge.o postcard.o serial.o vpc2007.o \
+DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_vt82c686.o ibm_5161.o isamem.o isartc.o \
+		    lpt.o pci_bridge.o postcard.o serial.o vpc2007.o \
 		    smbus.o smbus_piix4.o \
 		   keyboard.o \
 		    keyboard_xt.o keyboard_at.o \

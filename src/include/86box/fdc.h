@@ -39,7 +39,7 @@ extern int fdc_type;
 
 typedef struct {
     uint8_t	dor, stat, command, processed_cmd, dat, st0, swap, dtl;
-    uint8_t	swwp, disable_write;
+    uint8_t	swwp, disable_write, st5, st6, error;
     uint8_t	params[8], res[11];
     uint8_t	specify[2];
     uint8_t	config, pretrk;

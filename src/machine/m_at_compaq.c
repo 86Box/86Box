@@ -658,6 +658,7 @@ compaq_plasma_close(void *p)
 	compaq_plasma_t *self = (compaq_plasma_t *)p;
 
 	free(self->vram);
+
 	free(self);
 }
 

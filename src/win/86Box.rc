@@ -1060,24 +1060,24 @@ BEGIN
     IDS_4353    "XTA"
     IDS_4354    "ESDI"
     IDS_4355    "IDE"
-    IDS_4356    "SCSI"
+    IDS_4356    "ATAPI"
+    IDS_4357    "SCSI"
 
     IDS_4608	"MFM/RLL (%01i:%01i)"
     IDS_4609	"XTA (%01i:%01i)"
     IDS_4610	"ESDI (%01i:%01i)"
     IDS_4611	"IDE (%01i:%01i)"
-    IDS_4612	"SCSI (ID %02i)"
+    IDS_4612	"ATAPI (%01i:%01i)"
+    IDS_4613	"SCSI (ID %02i)"
 
     IDS_5120	"CD-ROM %i (%s): %s"
 
     IDS_5376	"Disabled"
-    IDS_5380	"ATAPI"
-    IDS_5381    "SCSI"
-    IDS_5382    "SCSI (Chinon)"
+    IDS_5381	"ATAPI"
+    IDS_5382    "SCSI"
 
     IDS_5632	"Disabled"
-    IDS_5636	"ATAPI (%01i:%01i)"
-    IDS_5637    "SCSI (ID %02i)"
+    IDS_5637	"ATAPI (%01i:%01i)"
     IDS_5638    "SCSI (ID %02i)"
 
     IDS_5888	"160 kB"

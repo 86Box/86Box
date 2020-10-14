@@ -165,7 +165,7 @@ irq_lower(mfm_t *mfm)
 static void
 irq_update(mfm_t *mfm)
 {
-    if (mfm->irqstat && !((pic2.pend | pic2.ins) & 0x40) && !(mfm->fdisk & 2))
+    if (mfm->irqstat && !((pic2.irr | pic2.isr) & 0x40) && !(mfm->fdisk & 2))
 	picint(1 << 14);
 }
 

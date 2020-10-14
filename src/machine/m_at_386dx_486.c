@@ -84,6 +84,26 @@ machine_at_asus386_init(const machine_t *model)
 
 
 int
+machine_at_sis401_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/sis401/SIS401-2.AMI",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_ide_init(model);
+    device_add(&sis_85c401_device);
+    device_add(&keyboard_at_ami_device);
+    device_add(&fdc_at_device);
+
+    return ret;
+}
+
+
+int
 machine_at_ecs386_init(const machine_t *model)
 {
     int ret;
@@ -134,7 +154,7 @@ machine_at_rycleopardlx_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_ide_init(model);
 
     device_add(&opti283_device);
     device_add(&keyboard_at_ami_device);
@@ -142,6 +162,7 @@ machine_at_rycleopardlx_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_486vchd_init(const machine_t *model)
@@ -480,7 +501,6 @@ machine_at_px471_init(const machine_t *model)
 }
 
 
-#if defined(DEV_BRANCH) && defined(USE_WIN471)
 int
 machine_at_win471_init(const machine_t *model)
 {
@@ -498,7 +518,25 @@ machine_at_win471_init(const machine_t *model)
 
     return ret;
 }
-#endif
+
+
+int
+machine_at_vi15g_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/vi15g/vi15gr23.rom",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_sis_85c471_common_init(model);
+    device_add(&ide_vlb_device);
+    device_add(&keyboard_at_ami_device);
+
+    return ret;
+}
 
 
 static void
@@ -593,7 +631,35 @@ machine_at_4dps_init(const machine_t *model)
     device_add(&w83787f_device);
     device_add(&keyboard_ps2_pci_device);
 
-    // device_add(&sst_flash_29ee010_device);
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+
+int
+machine_at_4sa2_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/4sa2/4saw0911.bin",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    machine_at_sis_85c496_common_init(model);
+    device_add(&sis_85c496_device);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x07, PCI_CARD_NORMAL, 4, 1, 2, 3);
+
+    device_add(&pc87332_device);
+    device_add(&keyboard_ps2_pci_device);
+
     device_add(&intel_flash_bxt_device);
 
     return ret;
@@ -694,6 +760,7 @@ machine_at_486ap4_init(const machine_t *model)
 
     return ret;
 }
+
 
 #if defined(DEV_BRANCH) && defined(NO_SIO)
 int

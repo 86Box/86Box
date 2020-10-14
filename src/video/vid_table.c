@@ -232,7 +232,7 @@ video_reset(int card)
 
     /* Do not initialize internal cards here. */
     if (!(card == VID_NONE) && \
-	!(card == VID_INTERNAL) && !(machines[machine].flags & MACHINE_VIDEO_FIXED)) {
+	!(card == VID_INTERNAL) && !(machines[machine].flags & MACHINE_VIDEO_ONLY)) {
 	vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].name);
 
 	/* Do an inform on the default values, so that that there's some sane values initialized
