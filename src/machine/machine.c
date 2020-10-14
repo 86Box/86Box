@@ -76,15 +76,14 @@ machine_init_ex(int m)
 	is_vpc = 0;
 
 	/* Set up the architecture flags. */
-	AT = IS_ARCH(machine, MACHINE_AT);
-	PCI = IS_ARCH(machine, MACHINE_PCI);
+	AT = IS_ARCH(machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
+	PCI = IS_ARCH(machine, MACHINE_BUS_PCI);
 
-	/* Resize the memory. */
+	/* Reset the memory state. */
 	mem_reset();
+	smbase = is_am486 ? 0x00060000 : 0x00030000;
 
 	lpt_init();
-
-	smbase = 0x30000;
     }
 
     /* All good, boot the machine! */

@@ -183,14 +183,6 @@ typedef struct _page_ {
 #endif
 
 
-typedef struct
-{
-    uint32_t	size,
-		host_base,
-		ram_base;
-} smram_t;
-
-
 extern uint8_t		*ram, *ram2;
 extern uint32_t		rammask;
 
@@ -207,15 +199,13 @@ extern uintptr_t *	writelookup2;
 extern int		writelnext;
 extern uint32_t		ram_mapped_addr[64];
 
-extern mem_mapping_t	base_mapping,
-			ram_low_mapping,
+extern mem_mapping_t	ram_low_mapping,
 #if 1
 			ram_mid_mapping,
 #endif
 			ram_remapped_mapping,
 			ram_high_mapping,
 			ram_2gb_mapping,
-			ram_smram_mapping[2],
 			bios_mapping,
 			bios_high_mapping;
 
@@ -225,7 +215,6 @@ extern page_t		*pages,
 			**page_lookup;
 
 extern uint32_t		get_phys_virt, get_phys_phys;
-extern smram_t		smram[2];
 
 extern int		shadowbios,
 			shadowbios_write;
@@ -241,6 +230,9 @@ extern int		mem_a20_state,
 			mem_a20_alt,
 			mem_a20_key;
 
+
+extern uint8_t	read_mem_b(uint32_t addr);
+extern void	write_mem_b(uint32_t addr, uint8_t val);
 
 #ifndef USE_NEW_DYNAREC
 #define readmemb(a) ((readlookup2[(a)>>12]==-1)?readmembl(a):*(uint8_t *)(readlookup2[(a) >> 12] + (a)))
@@ -258,14 +250,14 @@ extern void	writememll(uint32_t seg, uint32_t addr, uint32_t val);
 extern uint64_t	readmemql(uint32_t seg, uint32_t addr);
 extern void	writememql(uint32_t seg, uint32_t addr, uint64_t val);
 #else
-uint8_t readmembl(uint32_t addr);
-void writemembl(uint32_t addr, uint8_t val);
-uint16_t readmemwl(uint32_t addr);
-void writememwl(uint32_t addr, uint16_t val);
-uint32_t readmemll(uint32_t addr);
-void writememll(uint32_t addr, uint32_t val);
-uint64_t readmemql(uint32_t addr);
-void writememql(uint32_t addr, uint64_t val);
+extern uint8_t	readmembl(uint32_t addr);
+extern void	writemembl(uint32_t addr, uint8_t val);
+extern uint16_t	readmemwl(uint32_t addr);
+extern void	writememwl(uint32_t addr, uint16_t val);
+extern uint32_t	readmemll(uint32_t addr);
+extern void	writememll(uint32_t addr, uint32_t val);
+extern uint64_t	readmemql(uint32_t addr);
+extern void	writememql(uint32_t addr, uint64_t val);
 #endif
 
 extern uint8_t	*getpccache(uint32_t a);
@@ -326,16 +318,12 @@ extern void	mem_write_ram(uint32_t addr, uint8_t val, void *priv);
 extern void	mem_write_ramw(uint32_t addr, uint16_t val, void *priv);
 extern void	mem_write_raml(uint32_t addr, uint32_t val, void *priv);
 
-extern uint8_t	mem_read_smram(uint32_t addr, void *priv);
-extern uint16_t	mem_read_smramw(uint32_t addr, void *priv);
-extern uint32_t	mem_read_smraml(uint32_t addr, void *priv);
-extern void	mem_write_smram(uint32_t addr, uint8_t val, void *priv);
-extern void	mem_write_smramw(uint32_t addr, uint16_t val, void *priv);
-extern void	mem_write_smraml(uint32_t addr, uint32_t val, void *priv);
-
-extern uint8_t	mem_read_bios(uint32_t addr, void *priv);
-extern uint16_t	mem_read_biosw(uint32_t addr, void *priv);
-extern uint32_t	mem_read_biosl(uint32_t addr, void *priv);
+extern uint8_t	mem_read_ram_2gb(uint32_t addr, void *priv);
+extern uint16_t	mem_read_ram_2gbw(uint32_t addr, void *priv);
+extern uint32_t	mem_read_ram_2gbl(uint32_t addr, void *priv);
+extern void	mem_write_ram_2gb(uint32_t addr, uint8_t val, void *priv);
+extern void	mem_write_ram_2gbw(uint32_t addr, uint16_t val, void *priv);
+extern void	mem_write_ram_2gbl(uint32_t addr, uint32_t val, void *priv);
 
 extern void	mem_write_null(uint32_t addr, uint8_t val, void *p);
 extern void	mem_write_nullw(uint32_t addr, uint16_t val, void *p);
@@ -362,11 +350,8 @@ extern void     mmu_invalidate(uint32_t addr);
 extern void	mem_a20_init(void);
 extern void	mem_a20_recalc(void);
 
-extern void	mem_add_upper_bios(void);
-extern void	mem_add_bios(void);
-
 extern void	mem_init(void);
-
+extern void	mem_close(void);
 extern void	mem_reset(void);
 extern void	mem_remap_top(int kb);
 

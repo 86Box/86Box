@@ -80,17 +80,9 @@ extern void	timer_add(pc_timer_t *timer, void (*callback)(void *p), void *p, int
 extern uint64_t	TIMER_USEC;
 
 /*True if timer a expires before timer b*/
-#if 0
-#define TIMER_LESS_THAN(a, b) ((int32_t)((a)->ts_integer - (b)->ts_integer) <= 0)
-#else
 #define TIMER_LESS_THAN(a, b) ((int64_t)((a)->ts.ts64 - (b)->ts.ts64) <= 0)
-#endif
 /*True if timer a expires before 32 bit integer timestamp b*/
-#if 0
-#define TIMER_LESS_THAN_VAL(a, b) ((int32_t)((a)->ts_integer - (b)) <= 0)
-#else
 #define TIMER_LESS_THAN_VAL(a, b) ((int32_t)((a)->ts.ts32.integer - (b)) <= 0)
-#endif
 /*True if 32 bit integer timestamp a expires before 32 bit integer timestamp b*/
 #define TIMER_VAL_LESS_THAN_VAL(a, b) ((int32_t)((a) - (b)) <= 0)
 
@@ -100,17 +92,7 @@ extern uint64_t	TIMER_USEC;
 static __inline void
 timer_advance_u64(pc_timer_t *timer, uint64_t delay)
 {
-#if 0
-    uint32_t int_delay = delay >> 32;
-    uint32_t frac_delay = delay & 0xffffffff;
-
-    if ((frac_delay + timer->ts_frac) < frac_delay)
-	timer->ts_integer++;
-    timer->ts_frac += frac_delay;
-    timer->ts_integer += int_delay;
-#else
     timer->ts.ts64 += delay;
-#endif
 
     timer_enable(timer);
 }
@@ -121,17 +103,9 @@ timer_advance_u64(pc_timer_t *timer, uint64_t delay)
 static __inline void
 timer_set_delay_u64(pc_timer_t *timer, uint64_t delay)
 {
-#if 0
-    uint32_t int_delay = delay >> 32;
-    uint32_t frac_delay = delay & 0xffffffff;
-
-    timer->ts_frac = frac_delay;
-    timer->ts_integer = int_delay + (uint32_t)tsc;
-#else
     timer->ts.ts64 = 0ULL;
     timer->ts.ts32.integer = tsc;
     timer->ts.ts64 += delay;
-#endif
 
     timer_enable(timer);
 }
@@ -149,11 +123,7 @@ timer_is_enabled(pc_timer_t *timer)
 static __inline uint32_t
 timer_get_ts_int(pc_timer_t *timer)
 {
-#if 0
-    return timer->ts_integer;
-#else
     return timer->ts.ts32.integer;
-#endif
 }
 
 
@@ -165,11 +135,7 @@ timer_get_remaining_us(pc_timer_t *timer)
     int64_t remaining;
 
     if (timer->flags & TIMER_ENABLED) {
-#if 0
-	remaining = (((uint64_t)timer->ts_integer << 32) | timer->ts_frac) - (tsc << 32);
-#else
 	remaining = (int64_t) (timer->ts.ts64 - (uint64_t)(tsc << 32));
-#endif
 
 	if (remaining < 0)
 		return 0;
@@ -188,11 +154,7 @@ timer_get_remaining_u64(pc_timer_t *timer)
     int64_t remaining;
 
     if (timer->flags & TIMER_ENABLED) {
-#if 0
-	remaining = (((uint64_t)timer->ts_integer << 32) | timer->ts_frac) - (tsc << 32);
-#else
 	remaining = (int64_t) (timer->ts.ts64 - (uint64_t)(tsc << 32));
-#endif
 
 	if (remaining < 0)
 		return 0;

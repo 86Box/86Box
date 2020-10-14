@@ -276,6 +276,8 @@ machine_at_gdc212m_init(const machine_t *model)
 
     machine_at_scat_init(model, 0);
 
+    device_add(&ide_isa_device);
+
     return ret;
 }
 

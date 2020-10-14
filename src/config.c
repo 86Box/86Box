@@ -594,7 +594,7 @@ load_video(void)
     char *p;
     int free_p = 0;
 
-    if (machines[machine].flags & MACHINE_VIDEO_FIXED) {
+    if (machines[machine].flags & MACHINE_VIDEO_ONLY) {
 	config_delete_var(cat, "gfxcard");
 	gfxcard = VID_INTERNAL;
     } else {

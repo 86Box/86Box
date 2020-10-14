@@ -12,6 +12,12 @@ static int opMOV_r_CRx_a16(uint32_t fetchdat)
                 cpu_state.regs[cpu_rm].l = cr0;
                 if (is486 || isibm486)
                         cpu_state.regs[cpu_rm].l |= 0x10; /*ET hardwired on 486*/
+		else {
+			if (is386)
+				cpu_state.regs[cpu_rm].l |=0x7fffffe0;
+			else
+				cpu_state.regs[cpu_rm].l |=0x7ffffff0;
+		}
                 break;
                 case 2:
                 cpu_state.regs[cpu_rm].l = cr2;
@@ -48,6 +54,12 @@ static int opMOV_r_CRx_a32(uint32_t fetchdat)
                 cpu_state.regs[cpu_rm].l = cr0;
                 if (is486 || isibm486)
                         cpu_state.regs[cpu_rm].l |= 0x10; /*ET hardwired on 486*/
+		else {
+			if (is386)
+				cpu_state.regs[cpu_rm].l |=0x7fffffe0;
+			else
+				cpu_state.regs[cpu_rm].l |=0x7ffffff0;
+		}
                 break;
                 case 2:
                 cpu_state.regs[cpu_rm].l = cr2;

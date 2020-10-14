@@ -24,6 +24,7 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/smram.h>
 #include <86box/io.h>
 #include <86box/rom.h>
 #include <86box/pci.h>
@@ -45,6 +46,7 @@ typedef struct sis_85c496_t
     uint8_t	cur_reg, rmsmiblk_count,
 		regs[127],
 		pci_conf[256];
+    smram_t	*smram;
     pc_timer_t	rmsmiblk_timer;
     port_92_t *	port_92;
     nvr_t *	nvr;
@@ -185,14 +187,6 @@ sis_85c496_ide_handler(sis_85c496_t *dev)
 }
 
 
-static void
-sis_85c496_smram_map(int smm, uint32_t addr, uint32_t size, int is_smram)
-{
-    mem_set_mem_state_smram(smm, addr, size, is_smram);
-    flushmmucache();
-}
-
-
 /* 00 - 3F = PCI Configuration, 40 - 7F = 85C496, 80 - FF = 85C497 */
 static void
 sis_85c49x_pci_write(int func, int addr, uint8_t val, void *priv)
@@ -200,6 +194,7 @@ sis_85c49x_pci_write(int func, int addr, uint8_t val, void *priv)
     sis_85c496_t *dev = (sis_85c496_t *) priv;
     uint8_t old, valxor;
     uint8_t smm_irq[4] = { 10, 11, 12, 15 };
+    uint32_t host_base, ram_base, size;
 
     old = dev->pci_conf[addr];
     valxor = (dev->pci_conf[addr]) ^ val;
@@ -299,40 +294,33 @@ sis_85c49x_pci_write(int func, int addr, uint8_t val, void *priv)
 		if (valxor & 0x3e) {
 			unmask_a20_in_smm = !!(val & 0x20);
 
-			if (smram[0].size != 0x00000000) {
-				sis_85c496_smram_map(0, smram[0].host_base, smram[0].size, 0);
-				sis_85c496_smram_map(1, smram[0].host_base, smram[0].size, 0);
-
-				memset(&smram[0], 0x00, sizeof(smram_t));
-				mem_mapping_disable(&ram_smram_mapping[0]);
-			}
+			smram_disable_all();
 
 			if (val & 0x06) {
-				smram[0].size = 0x00010000;
+				host_base = 0x00060000;
+				ram_base = 0x000a0000;
+				size = 0x00010000;
 				switch ((val >> 3) & 0x03) {
 					case 0x00:
-						smram[0].host_base = 0x00060000;
-						smram[0].ram_base = 0x000a0000;
+						host_base = 0x00060000;
+						ram_base = 0x000a0000;
 						break;
 					case 0x01:
-						smram[0].host_base = 0x00060000;
-						smram[0].ram_base = 0x000b0000;
+						host_base = 0x00060000;
+						ram_base = 0x000b0000;
 						break;
 					case 0x02:
-						smram[0].host_base = 0x000e0000;
-						smram[0].ram_base = 0x000a0000;
+						host_base = 0x000e0000;
+						ram_base = 0x000a0000;
 						break;
 					case 0x03:
-						smram[0].host_base = 0x000e0000;
-						smram[0].ram_base = 0x000b0000;
+						host_base = 0x000e0000;
+						ram_base = 0x000b0000;
 						break;
 				}
 
-				mem_mapping_set_addr(&ram_smram_mapping[0], smram[0].host_base, 0x00010000);
-				mem_mapping_set_exec(&ram_smram_mapping[0], ram + smram[0].ram_base);
-
-				sis_85c496_smram_map(0, smram[0].host_base, smram[0].size, ((val & 0x06) == 0x06));
-				sis_85c496_smram_map(1, smram[0].host_base, smram[0].size, (val & 0x02));
+				smram_enable(dev->smram, host_base, ram_base, size,
+					     ((val & 0x06) == 0x06), (val & 0x02));
 			}
 		}
 		break;
@@ -562,9 +550,11 @@ sis_85c496_reset(void *priv)
 static void
 sis_85c496_close(void *p)
 {
-    sis_85c496_t *sis_85c496 = (sis_85c496_t *)p;
+    sis_85c496_t *dev = (sis_85c496_t *)p;
 
-    free(sis_85c496);
+    smram_del(dev->smram);
+
+    free(dev);
 }
 
 
@@ -573,6 +563,8 @@ static void
 {
     sis_85c496_t *dev = malloc(sizeof(sis_85c496_t));
     memset(dev, 0x00, sizeof(sis_85c496_t));
+
+    dev->smram = smram_add();
 
     /* PCI Configuration Header Registers (00h ~ 3Fh) */
     dev->pci_conf[0x00] = 0x39;	/* SiS */

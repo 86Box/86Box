@@ -46,7 +46,7 @@ hdd_string_to_bus(char *str, int cdrom)
     if (! strcmp(str, "none"))
 	return(HDD_BUS_DISABLED);
 
-    if (! strcmp(str, "mfm")) {
+    if (! strcmp(str, "mfm") || ! strcmp(str, "rll")) {
 	if (cdrom) {
 no_cdrom:
 		ui_msgbox_header(MBX_ERROR, (wchar_t *) IDS_2130, (wchar_t *) IDS_4099);
@@ -70,10 +70,10 @@ no_cdrom:
 	return(HDD_BUS_IDE);
 
     if (! strcmp(str, "atapi_pio_only"))
-	return(HDD_BUS_IDE);
+	return(HDD_BUS_ATAPI);
 
     if (! strcmp(str, "atapi"))
-	return(HDD_BUS_IDE);
+	return(HDD_BUS_ATAPI);
 
     if (! strcmp(str, "eide"))
 	return(HDD_BUS_IDE);
@@ -88,7 +88,7 @@ no_cdrom:
 	return(HDD_BUS_IDE);
 
     if (! strcmp(str, "atapi_pio_and_dma"))
-	return(HDD_BUS_IDE);
+	return(HDD_BUS_ATAPI);
 
     if (! strcmp(str, "scsi"))
 	return(HDD_BUS_SCSI);
@@ -120,7 +120,11 @@ hdd_bus_to_string(int bus, int cdrom)
 		break;
 
 	case HDD_BUS_IDE:
-		s = cdrom ? "atapi" : "ide";
+		s = "ide";
+		break;
+
+	case HDD_BUS_ATAPI:
+		s = "atapi";
 		break;
 
 	case HDD_BUS_SCSI:

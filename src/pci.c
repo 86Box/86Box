@@ -57,8 +57,7 @@ int			pci_burst_time,
 static pci_card_t	pci_cards[32];
 static uint8_t		pci_pmc = 0, last_pci_card = 0, last_normal_pci_card = 0, last_pci_bus = 1;
 static uint8_t		pci_card_to_slot_mapping[256][32], pci_bus_number_to_index_mapping[256];
-static uint8_t		elcr[2] = { 0, 0 };
-static uint8_t		pci_irqs[4], pci_irq_level[4];
+static uint8_t		pci_irqs[16], pci_irq_level[16];
 static uint64_t		pci_irq_hold[16];
 static pci_mirq_t	pci_mirqs[3];
 static int		pci_type,
@@ -69,7 +68,7 @@ static int		pci_type,
 			pci_bus,
 			pci_enable,
 			pci_key;
-static int		trc_reg = 0, elcr_enabled = 1;
+static int		trc_reg = 0;
 
 
 static void		pci_reset_regs(void);
@@ -128,21 +127,21 @@ pci_write(uint16_t port, uint8_t val, void *priv)
 		if (! pci_enable) 
 			return;
 		   
-		pci_log("Writing %02X to PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", val, pci_bus, pci_card, slot, pci_func, pci_index);
+		pci_log("Writing %02X to PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", val, pci_bus, pci_card, slot, pci_func, pci_index | (port & 3));
 		slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
 		if (slot != 0xff) {
 			if (pci_cards[slot].write) {
-				pci_log("Writing to PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+				pci_log("Writing to PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
 				pci_cards[slot].write(pci_func, pci_index | (port & 3), val, pci_cards[slot].priv);
 			}
 #ifdef ENABLE_PCI_LOG
 			else
-				pci_log("Writing to empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+				pci_log("Writing to empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
 #endif
 		}
 #ifdef ENABLE_PCI_LOG
 		else
-			pci_log("Writing to unassigned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+			pci_log("Writing to unassigned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
 #endif
 
 		break;
@@ -170,62 +169,18 @@ pci_read(uint16_t port, void *priv)
 				ret = pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
 #ifdef ENABLE_PCI_LOG
 			else
-				pci_log("Reading from empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+				pci_log("Reading from empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
 #endif
 		}
 #ifdef ENABLE_PCI_LOG
 		else
-			pci_log("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
+			pci_log("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
 #endif
     }
 
-    pci_log("Reading %02X, from PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", ret, pci_bus, pci_card, slot, pci_func, pci_index);
+    pci_log("Reading %02X, from PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", ret, pci_bus, pci_card, slot, pci_func, pci_index | (port & 3));
 
     return ret;
-}
-
-
-void
-elcr_write(uint16_t port, uint8_t val, void *priv)
-{
-    pci_log("ELCR%i: WRITE %02X\n", port & 1, val);
-
-    if (port & 1)
-	val &= 0xde;
-    else
-	val &= 0xf8;
-
-    elcr[port & 1] = val;
-
-    pci_log("ELCR %i: %c %c %c %c %c %c %c %c\n",
-	port & 1,
-	(val & 1) ? 'L' : 'E',
-	(val & 2) ? 'L' : 'E',
-	(val & 4) ? 'L' : 'E',
-	(val & 8) ? 'L' : 'E',
-	(val & 0x10) ? 'L' : 'E',
-	(val & 0x20) ? 'L' : 'E',
-	(val & 0x40) ? 'L' : 'E',
-	(val & 0x80) ? 'L' : 'E');
-}
-
-
-uint8_t
-elcr_read(uint16_t port, void *priv)
-{
-    pci_log("ELCR%i: READ %02X\n", port & 1, elcr[port & 1]);
-
-    return elcr[port & 1];
-}
-
-
-static void
-elcr_reset(void)
-{
-    pic_reset();
-
-    elcr[0] = 0x00;
-    elcr[1] = 0x00;
 }
 
 
@@ -359,28 +314,6 @@ pci_set_mirq_routing(int mirq, int irq)
 }
 
 
-int
-pci_irq_is_level(int irq)
-{
-    int real_irq = irq & 7;
-
-    if (elcr_enabled) {
-	if ((irq <= 2) || (irq == 8) || (irq == 13))
-		return 0;
-
-	if (irq > 7)
-		return !!(elcr[1] & (1 << real_irq));
-
-	return !!(elcr[0] & (1 << real_irq));
-    } else {
-	if (irq < 8)
-		return (pic.icw1 & 8) ? 1 : 0;
-	else
-		return (pic2.icw1 & 8) ? 1 : 0;
-    }
-}
-
-
 uint8_t
 pci_use_mirq(uint8_t mirq)
 {
@@ -484,7 +417,7 @@ pci_set_irq(uint8_t card, uint8_t pci_int)
     } else
 	pci_log("pci_set_irq(%02X, %02X): Using IRQ %i\n", card, pci_int, irq_line);
 
-    if (pci_irq_is_level(irq_line) && (pci_irq_hold[irq_line] & (1ULL << slot))) {
+    if (picint_is_level(irq_line) && (pci_irq_hold[irq_line] & (1ULL << slot))) {
 	/* IRQ already held, do nothing. */
 	pci_log("pci_set_irq(%02X, %02X): Card is already holding the IRQ\n", card, pci_int);
 	return;
@@ -633,21 +566,6 @@ pci_get_int(uint8_t slot, uint8_t pci_int)
 }
 
 
-void
-pci_elcr_set_enabled(int enabled)
-{
-    elcr_enabled = enabled;
-}
-
-
-void
-pci_elcr_io_disable(void)
-{
-    io_removehandler(0x04d0, 0x0002,
-		     elcr_read,NULL,NULL, elcr_write,NULL,NULL, NULL);
-}
-
-
 static void
 pci_reset_regs(void)
 {
@@ -674,7 +592,7 @@ pci_reset_hard(void)
 	}
     }
 
-    elcr_reset();
+    pic_reset();
 }
 
 
@@ -832,9 +750,12 @@ pci_init(int type)
 		      pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
     }
 
-    if (!(type & PCI_NO_IRQ_STEERING)) {
-	io_sethandler(0x04d0, 0x0002,
-		      elcr_read,NULL,NULL, elcr_write,NULL,NULL, NULL);
+    if (type & PCI_NO_IRQ_STEERING) {
+	pic_elcr_io_handler(0);
+	pic_elcr_set_enabled(0);
+    } else {
+	pic_elcr_io_handler(1);
+	pic_elcr_set_enabled(1);
     }
 
     if ((type & PCI_CONFIG_TYPE_MASK) == PCI_CONFIG_TYPE_1) {
@@ -858,8 +779,6 @@ pci_init(int type)
 	pci_mirqs[c].enabled = 0;
 	pci_mirqs[c].irq_line = PCI_IRQ_DISABLED;
     }
-
-    elcr_enabled = 1;
 }
 
 

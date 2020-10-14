@@ -54,6 +54,10 @@ extern int	rom_load_linear(wchar_t *fn, uint32_t addr, int sz,
 extern int	rom_load_interleaved(wchar_t *fnl, wchar_t *fnh, uint32_t addr,
 				     int sz, int off, uint8_t *ptr);
 
+extern uint8_t	bios_read(uint32_t addr, void *priv);
+extern uint16_t	bios_readw(uint32_t addr, void *priv);
+extern uint32_t	bios_readl(uint32_t addr, void *priv);
+
 extern int	bios_load(wchar_t *fn1, wchar_t *fn2, uint32_t addr, int sz,
 			  int off, int flags);
 extern int	bios_load_linear_combined(wchar_t *fn1, wchar_t *fn2,

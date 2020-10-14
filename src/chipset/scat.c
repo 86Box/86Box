@@ -1541,7 +1541,7 @@ scat_init(const device_t *info)
 
 	for (i = 0; i < 16; i++) {
 		mem_mapping_add(&dev->high_mapping[i], (i << 14) + 0xfc0000, 0x04000,
-				mem_read_bios, mem_read_biosw, mem_read_biosl,
+				bios_read, bios_readw, bios_readl,
 				mem_write_null, mem_write_nullw, mem_write_nulll,
 				rom + ((i << 14) & biosmask), 0, NULL);
 		mem_mapping_enable(&dev->high_mapping[i]);
@@ -1561,7 +1561,7 @@ scat_init(const device_t *info)
 
 	for (i = (dev->regs[SCAT_VERSION] < 4 ? 0 : 8); i < 16; i++) {
 		mem_mapping_add(&dev->high_mapping[i], (i << 14) + 0xfc0000, 0x04000,
-				mem_read_bios, mem_read_biosw, mem_read_biosl,
+				bios_read, bios_readw, bios_readl,
 				mem_write_null, mem_write_nullw, mem_write_nulll,
 				rom + ((i << 14) & biosmask), 0, NULL);
 		mem_mapping_enable(&dev->high_mapping[i]);

@@ -85,7 +85,7 @@ static const mo_drive_type_t mo_drive_types[KNOWN_MO_DRIVE_TYPES] = {
 
 enum {
     MO_BUS_DISABLED = 0,
-    MO_BUS_ATAPI = 4,
+    MO_BUS_ATAPI = 5,
     MO_BUS_SCSI,
     MO_BUS_USB
 };

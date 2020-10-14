@@ -1015,7 +1015,7 @@ const device_t ps_nvr_device = {
 
 const device_t amstrad_nvr_device = {
     "Amstrad NVRAM",
-    MACHINE_ISA | MACHINE_AT,
+    DEVICE_ISA | DEVICE_AT,
     3,
     nvr_at_init, nvr_at_close, NULL,
     NULL, nvr_at_speed_changed,

@@ -513,23 +513,23 @@ device_is_valid(const device_t *device, int mflags)
 {
     if (device == NULL) return(1);
 
-    if ((device->flags & DEVICE_AT) && !(mflags & MACHINE_AT)) return(0);
+    if ((device->flags & DEVICE_AT) && !(mflags & MACHINE_BUS_ISA16)) return(0);
 
-    if ((device->flags & DEVICE_CBUS) && !(mflags & MACHINE_CBUS)) return(0);
+    if ((device->flags & DEVICE_CBUS) && !(mflags & MACHINE_BUS_CBUS)) return(0);
 
-    if ((device->flags & DEVICE_ISA) && !(mflags & MACHINE_ISA)) return(0);
+    if ((device->flags & DEVICE_ISA) && !(mflags & MACHINE_BUS_ISA)) return(0);
 
-    if ((device->flags & DEVICE_MCA) && !(mflags & MACHINE_MCA)) return(0);
+    if ((device->flags & DEVICE_MCA) && !(mflags & MACHINE_BUS_MCA)) return(0);
 
-    if ((device->flags & DEVICE_EISA) && !(mflags & MACHINE_EISA)) return(0);
+    if ((device->flags & DEVICE_EISA) && !(mflags & MACHINE_BUS_EISA)) return(0);
 
-    if ((device->flags & DEVICE_VLB) && !(mflags & MACHINE_VLB)) return(0);
+    if ((device->flags & DEVICE_VLB) && !(mflags & MACHINE_BUS_VLB)) return(0);
 
-    if ((device->flags & DEVICE_PCI) && !(mflags & MACHINE_PCI)) return(0);
+    if ((device->flags & DEVICE_PCI) && !(mflags & MACHINE_BUS_PCI)) return(0);
 
-    if ((device->flags & DEVICE_AGP) && !(mflags & MACHINE_AGP)) return(0);
+    if ((device->flags & DEVICE_AGP) && !(mflags & MACHINE_BUS_AGP)) return(0);
 
-    if ((device->flags & DEVICE_PS2) && !(mflags & MACHINE_PS2)) return(0);
+    if ((device->flags & DEVICE_PS2) && !(mflags & MACHINE_BUS_PS2)) return(0);
 
     return(1);
 }

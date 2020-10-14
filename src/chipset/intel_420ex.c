@@ -24,6 +24,7 @@
 #include <86box/apm.h>
 #include <86box/dma.h>
 #include <86box/mem.h>
+#include <86box/smram.h>
 #include <86box/pci.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
@@ -47,6 +48,8 @@ typedef struct
 
     uint16_t	timer_base,
 		timer_latch;
+
+    smram_t	*smram;
 
     double	fast_off_period;
 
@@ -99,24 +102,10 @@ i420ex_map(uint32_t addr, uint32_t size, int state)
 
 
 static void
-i420ex_smram_map(int smm, uint32_t addr, uint32_t size, int is_smram)
-{
-    mem_set_mem_state_smram(smm, addr, size, is_smram);
-    flushmmucache();
-}
-
-
-static void
 i420ex_smram_handler_phase0(void)
 {
     /* Disable low extended SMRAM. */
-    if (smram[0].size != 0x00000000) {
-	i420ex_smram_map(0, smram[0].host_base, smram[0].size, 0);
-	i420ex_smram_map(1, smram[0].host_base, smram[0].size, 0);
-
-	memset(&smram[0], 0x00, sizeof(smram_t));
-	mem_mapping_disable(&ram_smram_mapping[0]);
-    }
+    smram_disable_all();
 }
 
 
@@ -125,58 +114,43 @@ i420ex_smram_handler_phase1(i420ex_t *dev)
 {
     uint8_t *regs = (uint8_t *) dev->regs;
 
-    uint32_t base = 0x000a0000;
+    uint32_t host_base = 0x000a0000, ram_base = 0x000a0000;
     uint32_t size = 0x00010000;
 
     switch (regs[0x70] & 0x07) {
 	case 0: case 1:
 	default:
-		base = size = 0x00000000;
+		host_base = ram_base = 0x00000000;
+		size = 0x00000000;
 		break;
 	case 2:
-		base = 0x000a0000;
-		smram[0].host_base = 0x000a0000;
-		smram[0].ram_base = 0x000a0000;
+		host_base = 0x000a0000;
+		ram_base = 0x000a0000;
 		break;
 	case 3:
-		base = 0x000b0000;
-		smram[0].host_base = 0x000b0000;
-		smram[0].ram_base = 0x000b0000;
+		host_base = 0x000b0000;
+		ram_base = 0x000b0000;
 		break;
 	case 4:
-		base = 0x000c0000;
-		smram[0].host_base = 0x000c0000;
-		smram[0].ram_base = 0x000a0000;
+		host_base = 0x000c0000;
+		ram_base = 0x000a0000;
 		break;
 	case 5:
-		base = 0x000d0000;
-		smram[0].host_base = 0x000d0000;
-		smram[0].ram_base = 0x000a0000;
+		host_base = 0x000d0000;
+		ram_base = 0x000a0000;
 		break;
 	case 6:
-		base = 0x000e0000;
-		smram[0].host_base = 0x000e0000;
-		smram[0].ram_base = 0x000a0000;
+		host_base = 0x000e0000;
+		ram_base = 0x000a0000;
 		break;
 	case 7:
-		base = 0x000f0000;
-		smram[0].host_base = 0x000f0000;
-		smram[0].ram_base = 0x000a0000;
+		host_base = 0x000f0000;
+		ram_base = 0x000a0000;
 		break;
     }
 
-    smram[0].size = size;
-
-    if (size != 0x00000000) {
-	mem_mapping_set_addr(&ram_smram_mapping[0], smram[0].host_base, 0x00010000);
-	mem_mapping_set_exec(&ram_smram_mapping[0], ram + smram[0].ram_base);
-
-	/* If OSS = 1 and LSS = 0, extended SMRAM is visible outside SMM. */
-	i420ex_smram_map(0, base, size, (regs[0x70] & 0x70) == 0x40);
-
-	/* If the register is set accordingly, disable the mapping also in SMM. */
-	i420ex_smram_map(1, base, size, !(regs[0x70] & 0x20));
-    }
+    smram_enable(dev->smram, host_base, ram_base, size,
+		 (regs[0x70] & 0x70) == 0x40, !(regs[0x70] & 0x20));
 }
 
 
@@ -496,6 +470,8 @@ i420ex_close(void *p)
 {
     i420ex_t *dev = (i420ex_t *)p;
 
+    smram_del(dev->smram);
+
     free(dev);
 }
 
@@ -527,6 +503,8 @@ i420ex_init(const device_t *info)
 {
     i420ex_t *dev = (i420ex_t *) malloc(sizeof(i420ex_t));
     memset(dev, 0, sizeof(i420ex_t));
+
+    dev->smram = smram_add();
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, i420ex_read, i420ex_write, dev);
 

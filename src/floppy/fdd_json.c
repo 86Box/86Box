@@ -108,6 +108,7 @@ typedef struct {
 static json_t	*images[FDD_NUM];
 
 
+#define ENABLE_JSON_LOG 1
 #ifdef ENABLE_JSON_LOG
 int json_do_log = ENABLE_JSON_LOG;
 
@@ -247,9 +248,9 @@ load_image(json_t *dev)
 	switch(state) {
 		case 0:		/* read level header */
 			dev->dmf = 1;
-			if (c != '[') {
+			if ((c != '[') && (c != '{') && (c != '\r') && (c != '\n')) {
 				state = unexpect(c, state, level);
-			} else {
+			} else if (c == '[') {
 				if (++level == 3)
 					state++;
 			}

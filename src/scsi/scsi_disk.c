@@ -584,9 +584,9 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
 
     device_identify_ex[6] = (dev->id / 10) + 0x30;
     device_identify_ex[7] = (dev->id % 10) + 0x30;
-    device_identify_ex[10] = EMU_VERSION[0];
-    device_identify_ex[12] = EMU_VERSION[2];
-    device_identify_ex[13] = EMU_VERSION[3];
+    device_identify_ex[10] = EMU_VERSION_EX[0];
+    device_identify_ex[12] = EMU_VERSION_EX[2];
+    device_identify_ex[13] = EMU_VERSION_EX[3];
 
     memcpy(dev->current_cdb, cdb, 12);
 
@@ -985,7 +985,7 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
 
 			ide_padstr8(dev->temp_buffer + 8, 8, EMU_NAME); /* Vendor */
 			ide_padstr8(dev->temp_buffer + 16, 16, device_identify); /* Product */
-			ide_padstr8(dev->temp_buffer + 32, 4, EMU_VERSION); /* Revision */
+			ide_padstr8(dev->temp_buffer + 32, 4, EMU_VERSION_EX); /* Revision */
 			idx = 36;
 
 			if (max_len == 96) {

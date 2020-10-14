@@ -143,10 +143,12 @@ static void
 onesec_timer(void *priv)
 {
     nvr_t *nvr = (nvr_t *)priv;
+    int is_at;
 
     if (++nvr->onesec_cnt >= 100) {
 	/* Update the internal clock. */
-	if (!(machines[machine].flags & MACHINE_AT))
+	is_at = IS_ARCH(machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
+	if (!is_at)
 		rtc_tick();
 
 	/* Update the RTC device if needed. */

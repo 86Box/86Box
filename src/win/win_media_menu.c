@@ -22,7 +22,7 @@
 #include <86box/zip.h>
 #include <86box/win.h>
 
-#define MACHINE_HAS_IDE	((machines[machine].flags & MACHINE_HDC) || !memcmp(hdc_get_internal_name(hdc_current), "ide", 3))
+#define MACHINE_HAS_IDE	(machines[machine].flags & MACHINE_IDE_QUAD)
 
 #define FDD_FIRST	0
 #define CDROM_FIRST	FDD_FIRST + FDD_NUM

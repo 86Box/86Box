@@ -314,7 +314,7 @@ exec386(int cycs)
 				nmi_auto_clear = 0;
 				nmi = 0;
 			}
-		} else if ((cpu_state.flags & I_FLAG) && pic_intpending) {
+		} else if ((cpu_state.flags & I_FLAG) && pic.int_pending) {
 			vector = picinterrupt();
 			if (vector != -1) {
 				flags_rebuild();
@@ -341,7 +341,7 @@ exec386(int cycs)
 		}
 
 		if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint32_t) tsc))
-			timer_process();
+			timer_process_inline();
 	}
     }
 }

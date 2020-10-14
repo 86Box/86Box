@@ -9,13 +9,11 @@
  *		808x CPU emulation, mostly ported from reenigne's XTCE, which
  *		is cycle-accurate.
  *
- *
- *
  * Authors:	Andrew Jenner, <https://www.reenigne.org>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2015-2019 Andrew Jenner.
- *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2015-2020 Andrew Jenner.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <math.h>
 #include <stdarg.h>
@@ -91,15 +89,16 @@ static int noint = 0;
 static int in_lock = 0;
 static int cpu_alu_op, pfq_size;
 
-static uint16_t cpu_src = 0, cpu_dest = 0;
-static uint16_t cpu_data = 0, last_addr = 0x0000;
+static uint32_t cpu_src = 0, cpu_dest = 0;
+static uint32_t cpu_data = 0;
+
+static uint16_t last_addr = 0x0000;
 
 static uint32_t *ovr_seg = NULL;
 static int prefetching = 1, completed = 1;
 static int in_rep = 0, repeating = 0;
 static int oldc, clear_lock = 0;
-static int refresh = 0, takeint = 0;
-static int cycdiff;
+static int refresh = 0, cycdiff;
 
 
 /* Various things needed for 8087. */
@@ -209,22 +208,6 @@ get_last_addr(void)
 }
 
 
-static int
-irq_pending(void)
-{
-    uint8_t temp;
-
-    if (takeint && !noint)
-	temp = 1;
-    else
-	temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint);
-
-    takeint = (cpu_state.flags & I_FLAG) && (pic.pend &~ pic.mask);
-
-    return temp;
-}
-
-
 static void
 clock_start(void)
 {
@@ -232,7 +215,7 @@ clock_start(void)
 }
 
 
-static void 
+static void
 clock_end(void)
 {
     int diff = cycdiff - cycles;
@@ -294,20 +277,14 @@ sub_cycles(int c)
 #undef readmeml
 #undef readmemq
 
+
 /* Common read function. */
 static uint8_t
 readmemb_common(uint32_t a)
 {
     uint8_t ret;
 
-    if (readlookup2 == NULL)
-	ret = readmembl(a);
-    else {
-	if (readlookup2[(a) >> 12] == ((uintptr_t) -1))
-		ret = readmembl(a);
-	else
-		ret = *(uint8_t *)(readlookup2[(a) >> 12] + (a));
-    }
+    ret = read_mem_b(a);
 
     return ret;
 }
@@ -414,14 +391,7 @@ readmemq(uint32_t s, uint16_t a)
 static void
 writememb_common(uint32_t a, uint8_t v)
 {
-    if (writelookup2 == NULL)
-	writemembl(a, v);
-    else {
-	if (writelookup2[(a) >> 12] == ((uintptr_t) -1))
-		writemembl(a, v);
-	else
-		*(uint8_t *)(writelookup2[a >> 12] + a) = v;
-    }
+    write_mem_b(a, v);
 
     if ((a >= 0xf0000) && (a <= 0xfffff))
 	last_addr = a & 0xffff;
@@ -896,6 +866,13 @@ makeznptable(void)
 }
 
 
+static void load_cs(uint16_t seg)
+{
+    cpu_state.seg_cs.base = seg << 4;
+    CS = seg & 0xffff;
+}
+
+
 /* Common reset function. */
 static void
 reset_common(int hard)
@@ -933,11 +910,11 @@ reset_common(int hard)
     cpu_state.eflags = 0;
     cgate32 = 0;
     if (AT) {
-	loadcs(0xF000);
+	load_cs(0xF000);
 	cpu_state.pc = 0xFFF0;
 	rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
     } else {
-	loadcs(0xFFFF);
+	load_cs(0xFFFF);
 	cpu_state.pc = 0;
 	rammask = 0xfffff;
     }
@@ -969,7 +946,6 @@ reset_common(int hard)
     cpu_alt_reset = 0;
 
     prefetching = 1;
-    takeint = 0;
 
     cpu_ven_reset();
 
@@ -994,6 +970,8 @@ void
 resetx86(void)
 {
     reset_common(1);
+
+    soft_reset_mask = 0;
 }
 
 
@@ -1001,6 +979,9 @@ resetx86(void)
 void
 softresetx86(void)
 {
+    if (soft_reset_mask)
+	return;
+
     reset_common(0);
 }
 
@@ -1125,7 +1106,9 @@ interrupt(uint16_t addr)
     cpu_state.eaaddr = (cpu_state.eaaddr + 2) & 0xffff;
     access(6, 16);
     new_cs = readmemw(0, cpu_state.eaaddr);
+    prefetching = 0;
     pfq_clear();
+    ovr_seg = NULL;
     access(39, 16);
     tempf = cpu_state.flags & 0x0fd7;
     push(&tempf);
@@ -1133,11 +1116,25 @@ interrupt(uint16_t addr)
     access(40, 16);
     push(&old_cs);
     old_ip = cpu_state.pc;
-    loadcs(new_cs);
+    load_cs(new_cs);
     access(68, 16);
     set_ip(new_ip);
     access(41, 16);
     push(&old_ip);
+}
+
+
+static int
+irq_pending(void)
+{
+    uint8_t temp;
+
+    if ((cpu_state.flags & I_FLAG) && pic.int_pending && !noint)
+	temp = 1;
+    else
+	temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint);
+
+    return temp;
 }
 
 
@@ -1156,16 +1153,24 @@ check_interrupts(void)
 		interrupt(2);
 		return;
 	}
-	temp = picinterrupt();
-	if (temp != -1) {
+	if ((cpu_state.flags & I_FLAG) && pic.int_pending && !noint) {
 		repeating = 0;
 		completed = 1;
 		ovr_seg = NULL;
+		wait(3, 0);
+		/* ACK to PIC */
+		temp = pic_irq_ack();
+		wait(1, 0);
+		/* ACK to PIC */
+		temp = pic_irq_ack();
+		wait(1, 0);
 		in_lock = 0;
 		clear_lock = 0;
-		ovr_seg = NULL;
-		wait(9, 0);
-		interrupt((uint16_t) (temp & 0xffff));
+		wait(1, 0);
+		/* Here is where temp should be filled, but we cheat. */
+		wait(3, 0);
+		opcode = 0x00;
+		interrupt(temp);
 	}
     }
 }
@@ -1511,6 +1516,7 @@ mul(uint16_t a, uint16_t b)
 
     set_sf(bit_count);
     set_pf();
+    set_af(0);
 }
 
 
@@ -1522,11 +1528,18 @@ set_of_rotate(int bits)
 
 
 static void
+set_zf_ex(int bits, int zf)
+{
+    cpu_state.flags = (cpu_state.flags & ~0x40) | (zf ? 0x40 : 0);
+}
+
+
+static void
 set_zf(int bits)
 {
     int size_mask = (1 << bits) - 1;
 
-    cpu_state.flags = (cpu_state.flags & ~0x40) | (((cpu_data & size_mask) == 0) ? 0x40 : 0);
+    set_zf_ex(bits, (cpu_data & size_mask) == 0);
 }
 
 
@@ -1544,6 +1557,9 @@ set_co_mul(int carry)
 {
     set_cf(carry);
     set_of(carry);
+    /* NOTE: When implementing the V20, care should be taken to not change
+	     the zero flag. */
+    set_zf(!carry);
     if (!carry)
 	wait(1, 0);
 }
@@ -1693,8 +1709,8 @@ stos(int bits)
 static void
 aa(void)
 {
-    set_of(0);
-    AL &= 0x0f;
+    set_pzs(8);
+    AL = cpu_data & 0x0f;
     wait(6, 0);
 }
 
@@ -1771,6 +1787,7 @@ void
 execx86(int cycs)
 {
     uint8_t temp = 0, temp2;
+    uint8_t old_af;
     uint16_t addr, tempw;
     uint16_t new_cs, new_ip;
     uint32_t result;
@@ -1793,6 +1810,7 @@ execx86(int cycs)
 	}
 
 	completed = 1;
+	// pclog("[%04X:%04X] Opcode: %02X\n", CS, cpu_state.pc, opcode);
 	switch (opcode) {
 		case 0x06: case 0x0E: case 0x16: case 0x1E:	/* PUSH seg */
 			access(29, 16);
@@ -1801,7 +1819,7 @@ execx86(int cycs)
 		case 0x07: case 0x0F: case 0x17: case 0x1F:	/* POP seg */
 			access(22, 16);
 			if (opcode == 0x0F) {
-				loadcs(pop());
+				load_cs(pop());
 				pfq_pos = 0;
 			} else
 				loadseg(pop(), _opseg[(opcode >> 3) & 0x03]);
@@ -1878,15 +1896,15 @@ execx86(int cycs)
 		case 0x27:	/*DAA*/
 			cpu_dest = AL;
 			set_of(0);
-			temp = !!(cpu_state.flags & A_FLAG);
+			old_af = !!(cpu_state.flags & A_FLAG);
 			if ((cpu_state.flags & A_FLAG) || (AL & 0x0f) > 9) {
 				cpu_src = 6;
 				cpu_data = cpu_dest + cpu_src;
 				set_of_add(8);
-				cpu_dest = cpu_data;
+				cpu_dest += cpu_data;
 				set_af(1);
 			}
-			if ((cpu_state.flags & C_FLAG) || AL > (temp ? 0x9f : 0x99)) {
+			if ((cpu_state.flags & C_FLAG) || AL > (old_af ? 0x9f : 0x99)) {
 				cpu_src = 0x60;
 				cpu_data = cpu_dest + cpu_src;
 				set_of_add(8);
@@ -1900,15 +1918,15 @@ execx86(int cycs)
 		case 0x2F:	/*DAS*/
 			cpu_dest = AL;
 			set_of(0);
-			temp = !!(cpu_state.flags & A_FLAG);
-			if ((cpu_state.flags & A_FLAG) || ((AL & 0xf) > 9)) {
+			old_af = !!(cpu_state.flags & A_FLAG);
+			if ((cpu_state.flags & A_FLAG) || (AL & 0xf) > 9) {
 				cpu_src = 6;
 				cpu_data = cpu_dest - cpu_src;
 				set_of_sub(8);
 				cpu_dest = cpu_data;
 				set_af(1);
 			}
-			if ((cpu_state.flags & C_FLAG) || AL > (temp ? 0x9f : 0x99)) {
+			if ((cpu_state.flags & C_FLAG) || AL > (old_af ? 0x9f : 0x99)) {
 				cpu_src = 0x60;
 				cpu_data = cpu_dest - cpu_src;
 				set_of_sub(8);
@@ -1921,7 +1939,7 @@ execx86(int cycs)
 			break;
 		case 0x37:	/*AAA*/
 			wait(1, 0);
-			if ((cpu_state.flags & A_FLAG) || ((AL & 0xf) > 9)) {
+			if ((cpu_state.flags & A_FLAG) || (AL & 0xf) > 9) {
 				cpu_src = 6;
 				++AH;
 				set_ca();
@@ -1932,13 +1950,12 @@ execx86(int cycs)
 			}
 			cpu_dest = AL;
 			cpu_data = cpu_dest + cpu_src;
-			AL = cpu_data;
 			set_of_add(8);
 			aa();
 			break;
 		case 0x3F: /*AAS*/
 			wait(1, 0);
-			if ((cpu_state.flags & A_FLAG) || ((AL & 0xf) > 9)) {
+			if ((cpu_state.flags & A_FLAG) || (AL & 0xf) > 9) {
 				cpu_src = 6;
 				--AH;
 				set_ca();
@@ -1949,7 +1966,6 @@ execx86(int cycs)
 			}
 			cpu_dest = AL;
 			cpu_data = cpu_dest - cpu_src;
-			AL = cpu_data;
 			set_of_sub(8);
 			aa();
 			break;
@@ -2137,7 +2153,7 @@ execx86(int cycs)
 			access(51, 16);
 			tempw = geteaw();
 			if ((rmdat & 0x18) == 0x08) {
-				loadcs(tempw);
+				load_cs(tempw);
 				pfq_pos = 0;
 			} else
 				loadseg(tempw, _opseg[(rmdat & 0x18) >> 3]);
@@ -2195,7 +2211,7 @@ execx86(int cycs)
 			push(&(CS));
 			access(60, 16);
 			cpu_state.oldpc = cpu_state.pc;
-			loadcs(new_cs);
+			load_cs(new_cs);
 			set_ip(new_ip);
 			access(32, 16);
 			push((uint16_t *) &(cpu_state.oldpc));
@@ -2407,7 +2423,7 @@ execx86(int cycs)
 				SP += cpu_src;
 				wait(1, 0);
 			}
-			loadcs(new_cs);
+			load_cs(new_cs);
 			access(72, bits);
 			set_ip(new_ip);
 			break;
@@ -2460,7 +2476,7 @@ execx86(int cycs)
 			wait(3, 0);
 			access(44, 8);
 			new_cs = pop();
-			loadcs(new_cs);
+			load_cs(new_cs);
 			access(62, 8);
 			set_ip(new_ip);
 			access(45, 8);
@@ -2494,6 +2510,7 @@ execx86(int cycs)
 						cpu_data <<= 1;
 						cpu_data |= ((cpu_state.flags & C_FLAG) ? 1 : 0);
 						set_of_rotate(bits);
+						set_af(0);
 						break;
 					case 0x08:	/* ROR */
 						set_cf((cpu_data & 1) != 0);
@@ -2501,11 +2518,13 @@ execx86(int cycs)
 						if (cpu_state.flags & C_FLAG)
 							cpu_data |= (!(opcode & 1) ? 0x80 : 0x8000);
 						set_of_rotate(bits);
+						set_af(0);
 						break;
 					case 0x10:	/* RCL */
 						set_cf(top_bit(cpu_data, bits));
 						cpu_data = (cpu_data << 1) | (oldc ? 1 : 0);
 						set_of_rotate(bits);
+						set_af(0);
 						break;
 					case 0x18: 	/* RCR */
 						set_cf((cpu_data & 1) != 0);
@@ -2514,18 +2533,20 @@ execx86(int cycs)
 							cpu_data |= (!(opcode & 0x01) ? 0x80 : 0x8000);
 						set_cf((cpu_dest & 1) != 0);
 						set_of_rotate(bits);
+						set_af(0);
 						break;
 					case 0x20:	/* SHL */
 						set_cf(top_bit(cpu_data, bits));
 						cpu_data <<= 1;
 						set_of_rotate(bits);
+						set_af((cpu_data & 0x10) != 0);
 						set_pzs(bits);
 						break;
 					case 0x28:	/* SHR */
 						set_cf((cpu_data & 1) != 0);
 						cpu_data >>= 1;
 						set_of_rotate(bits);
-						set_af(1);
+						set_af(0);
 						set_pzs(bits);
 						break;
 					case 0x30:	/* SETMO - undocumented? */
@@ -2543,7 +2564,7 @@ execx86(int cycs)
 						else
 							cpu_data |= (cpu_dest & 0x8000);
 						set_of_rotate(bits);
-						set_af(1);
+						set_af(0);
 						set_pzs(bits);
 						break;
 				}
@@ -2564,9 +2585,11 @@ execx86(int cycs)
 		case 0xD5:	/*AAD*/
 			wait(1, 0);
 			mul(pfq_fetchb(), AH);
-			AL += cpu_data;
+			cpu_dest = AL;
+			cpu_src = cpu_data;
+			add(8);
+			AL = cpu_data;
 			AH = 0x00;
-			set_pzs(16);
 			break;
 		case 0xD6:	/*SALC*/
 			wait(1, 0);
@@ -2700,7 +2723,7 @@ execx86(int cycs)
 			addr = pfq_fetchw();
 			wait(1, 0);
 			tempw = pfq_fetchw();
-			loadcs(tempw);
+			load_cs(tempw);
 			access(70, 8);
 			pfq_clear();
 			set_ip(addr);
@@ -2783,25 +2806,24 @@ execx86(int cycs)
 						mul(AX, cpu_data);
 						AX = cpu_data;
 						DX = cpu_dest;
-						cpu_data |= DX;
 						result = ((uint32_t) DX << 16) | AX;
 						if ((rmdat & 0x38) == 0x20)
 							set_co_mul(DX != 0x0000);
 						else
 							set_co_mul(result != sign_extend32(AX));
+						cpu_data = DX;
 					} else {
 						mul(AL, cpu_data);
 						AL = (uint8_t) cpu_data;
 						AH = (uint8_t) cpu_dest;
-						cpu_data |= AH;
 						if ((rmdat & 0x38) == 0x20)
 							set_co_mul(AH != 0x00);
 						else
 							set_co_mul(AX != sign_extend(AL));
+						cpu_data = AH;
 					}
-					/* NOTE: When implementing the V20, care should be taken to not change
-						 the zero flag. */
-					set_zf(bits);
+					set_sf(bits);
+					set_pf();
 					if (cpu_mod != 3)
 						wait(1, 0);
 					break;
@@ -2883,7 +2905,7 @@ execx86(int cycs)
 					access(64, bits);
 					wait(4, 0);
 					cpu_state.oldpc = cpu_state.pc;
-					loadcs(new_cs);
+					load_cs(new_cs);
 					set_ip(new_ip);
 					access(37, bits);
 					push((uint16_t *) &(cpu_state.oldpc));
@@ -2900,7 +2922,7 @@ execx86(int cycs)
 					if (!(opcode & 1))
 						cpu_data |= 0xff00;
 					new_cs = cpu_data;
-					loadcs(new_cs);
+					load_cs(new_cs);
 					access(66, bits);
 					set_ip(new_ip);
 					break;
@@ -2909,7 +2931,7 @@ execx86(int cycs)
 					if (cpu_mod != 3)
 						wait(1, 0);
 					access(38, bits);
-					push(&(cpu_data));
+					push((uint16_t *) &(cpu_data));
 					break;
 			}
 			break;

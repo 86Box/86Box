@@ -26,6 +26,7 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/mem.h>
+#include <86box/smram.h>
 #include <86box/io.h>
 #include <86box/rom.h>
 #include <86box/device.h>
@@ -37,8 +38,10 @@
 
 typedef struct via_apollo_t
 {
-    uint16_t id;
-    uint8_t pci_conf[256];
+    uint16_t	id;
+    uint8_t	pci_conf[256];
+
+    smram_t	*smram;
 } via_apollo_t;
 
 
@@ -65,17 +68,12 @@ apollo_map(uint32_t addr, uint32_t size, int state)
 
 
 static void
-apollo_smram_map(int smm, uint32_t addr, uint32_t size, int is_smram)
+apollo_smram_map(via_apollo_t *dev, int smm, uint32_t host_base, uint32_t size, int is_smram)
 {
-    if (((is_smram & 0x03) == 0x01) || ((is_smram & 0x03) == 0x02)) {
-	smram[0].ram_base = 0x000a0000;
-	smram[0].size = size;
+    if (((is_smram & 0x03) == 0x01) || ((is_smram & 0x03) == 0x02))
+	smram_enable(dev->smram, host_base, 0x000a0000, size, 0, 1);
 
-	mem_mapping_set_addr(&ram_smram_mapping[0], smram[0].host_base, size);
-	mem_mapping_set_exec(&ram_smram_mapping[0], ram + smram[0].ram_base);
-    }
-
-    mem_set_mem_state_smram_ex(smm, addr, size, is_smram & 0x03);
+    mem_set_mem_state_smram_ex(smm, host_base, size, is_smram & 0x03);
     flushmmucache();
 }
 
@@ -249,64 +247,56 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 		if ((dev->pci_conf[0x63] ^ val) & 0xc0)
 			apollo_map(0xe0000, 0x10000, (val & 0xc0) >> 6);
 		dev->pci_conf[0x63] = val;
-		if (smram[0].size != 0x00000000) {
-			mem_set_mem_state_smram_ex(0, smram[0].host_base, smram[0].size, 0x00);
-			mem_set_mem_state_smram_ex(1, smram[0].host_base, smram[0].size, 0x00);
-
-			memset(&smram[0], 0x00, sizeof(smram_t));
-			mem_mapping_disable(&ram_smram_mapping[0]);
-			flushmmucache();
-		}
+		smram_disable_all();
 		if (dev->id == 0x0691) switch (val & 0x03) {
 			case 0x00:
 			default:
-				apollo_smram_map(1, 0x000a0000, 0x00020000, 1);	/* SMM: Code DRAM, Data DRAM */
-				apollo_smram_map(0, 0x000a0000, 0x00020000, 0);	/* Non-SMM: Code PCI, Data PCI */
+				apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 1);	/* SMM: Code DRAM, Data DRAM */
+				apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 0);	/* Non-SMM: Code PCI, Data PCI */
 				break;
 			case 0x01:
-				apollo_smram_map(1, 0x000a0000, 0x00020000, 1);	/* SMM: Code DRAM, Data DRAM */
-				apollo_smram_map(0, 0x000a0000, 0x00020000, 1);	/* Non-SMM: Code DRAM, Data DRAM */
+				apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 1);	/* SMM: Code DRAM, Data DRAM */
+				apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 1);	/* Non-SMM: Code DRAM, Data DRAM */
 				break;
 			case 0x02:
-				apollo_smram_map(1, 0x000a0000, 0x00020000, 3);	/* SMM: Code Invalid, Data Invalid */
-				apollo_smram_map(0, 0x000a0000, 0x00020000, 2);	/* Non-SMM: Code DRAM, Data PCI */
+				apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 3);	/* SMM: Code Invalid, Data Invalid */
+				apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 2);	/* Non-SMM: Code DRAM, Data PCI */
 				break;
 			case 0x03:
-				apollo_smram_map(1, 0x000a0000, 0x00020000, 1);	/* SMM: Code DRAM, Data DRAM */
-				apollo_smram_map(0, 0x000a0000, 0x00020000, 3);	/* Non-SMM: Code Invalid, Data Invalid */
+				apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 1);	/* SMM: Code DRAM, Data DRAM */
+				apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 3);	/* Non-SMM: Code Invalid, Data Invalid */
 				break;
 		} else  switch (val & 0x03) {
 			case 0x00:
 			default:
 				/* Disable SMI Address Redirection (default) */
-				apollo_smram_map(1, 0x000a0000, 0x00020000, 0);
+				apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 0);
 				if (dev->id == 0x0597)
-					apollo_smram_map(1, 0x00030000, 0x00020000, 1);
-				apollo_smram_map(0, 0x000a0000, 0x00020000, 0);
+					apollo_smram_map(dev, 1, 0x00030000, 0x00020000, 1);
+				apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 0);
 				break;
 			case 0x01:
 				/* Allow access to DRAM Axxxx-Bxxxx for both normal and SMI cycles */
-				apollo_smram_map(1, 0x000a0000, 0x00020000, 1);
+				apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 1);
 				if (dev->id == 0x0597)
-					apollo_smram_map(1, 0x00030000, 0x00020000, 1);
-				apollo_smram_map(0, 0x000a0000, 0x00020000, 1);
+					apollo_smram_map(dev, 1, 0x00030000, 0x00020000, 1);
+				apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 1);
 				break;
 			case 0x02:
 				/* Reserved */
-				apollo_smram_map(1, 0x000a0000, 0x00020000, 3);
+				apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 3);
 				if (dev->id == 0x0597) {
 					/* SMI 3xxxx-4xxxx redirect to Axxxx-Bxxxx. */
-					smram[0].host_base = 0x00030000;
-					apollo_smram_map(1, 0x00030000, 0x00020000, 1);
+					apollo_smram_map(dev, 1, 0x00030000, 0x00020000, 1);
 				}
-				apollo_smram_map(0, 0x000a0000, 0x00020000, 3);
+				apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 3);
 				break;
 			case 0x03:
 				/* Allow SMI Axxxx-Bxxxx DRAM access */
-				apollo_smram_map(1, 0x000a0000, 0x00020000, 1);
+				apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 1);
 				if (dev->id == 0x0597)
-					apollo_smram_map(1, 0x00030000, 0x00020000, 1);
-				apollo_smram_map(0, 0x000a0000, 0x00020000, 0);
+					apollo_smram_map(dev, 1, 0x00030000, 0x00020000, 1);
+				apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 0);
 				break;
 		}
 		break;
@@ -444,6 +434,9 @@ via_apollo_init(const device_t *info)
     via_apollo_t *dev = (via_apollo_t *) malloc(sizeof(via_apollo_t));
     memset(dev, 0, sizeof(via_apollo_t));
 
+    dev->smram = smram_add();
+    apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 1);	/* SMM: Code DRAM, Data DRAM */
+
     pci_add_card(PCI_ADD_NORTHBRIDGE, via_apollo_read, via_apollo_write, dev);
 
     dev->id = info->local;
@@ -473,6 +466,8 @@ static void
 via_apollo_close(void *priv)
 {
     via_apollo_t *dev = (via_apollo_t *) priv;
+
+    smram_del(dev->smram);
 
     free(dev);
 }

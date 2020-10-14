@@ -32,7 +32,7 @@
 
 enum {
     ZIP_BUS_DISABLED = 0,
-    ZIP_BUS_ATAPI = 4,
+    ZIP_BUS_ATAPI = 5,
     ZIP_BUS_SCSI,
     ZIP_BUS_USB
 };

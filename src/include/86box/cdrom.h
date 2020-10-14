@@ -56,7 +56,7 @@ extern "C" {
 
 enum {
     CDROM_BUS_DISABLED = 0,
-    CDROM_BUS_ATAPI = 4,
+    CDROM_BUS_ATAPI = 5,
     CDROM_BUS_SCSI,
     CDROM_BUS_USB
 };

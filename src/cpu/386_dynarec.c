@@ -391,7 +391,7 @@ void exec386_dynarec(int cycs)
 						CPU_BLOCK_END();
 					else if (nmi && nmi_enable && nmi_mask)
 						CPU_BLOCK_END();
-					else if ((cpu_state.flags & I_FLAG) && pic_intpending)
+					else if ((cpu_state.flags & I_FLAG) && pic.int_pending)
 						CPU_BLOCK_END();
 				}
 			}
@@ -626,7 +626,7 @@ void exec386_dynarec(int cycs)
 							CPU_BLOCK_END();
 						else if (nmi && nmi_enable && nmi_mask)
 							CPU_BLOCK_END();
-						else if ((cpu_state.flags & I_FLAG) && pic_intpending)
+						else if ((cpu_state.flags & I_FLAG) && pic.int_pending)
 							CPU_BLOCK_END();
 					}
 			
@@ -715,7 +715,7 @@ void exec386_dynarec(int cycs)
 							CPU_BLOCK_END();
 						else if (nmi && nmi_enable && nmi_mask)
 							CPU_BLOCK_END();
-						else if ((cpu_state.flags & I_FLAG) && pic_intpending)
+						else if ((cpu_state.flags & I_FLAG) && pic.int_pending)
 							CPU_BLOCK_END();
 					}
 			
@@ -813,7 +813,7 @@ void exec386_dynarec(int cycs)
 					nmi = 0;
 				}
 			}
-			else if ((cpu_state.flags & I_FLAG) && pic_intpending)
+			else if ((cpu_state.flags & I_FLAG) && pic.int_pending)
 			{
 				vector = picinterrupt();
 				if (vector != -1)
