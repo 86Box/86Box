@@ -293,10 +293,15 @@ extern int	machine_at_opti495_init(const machine_t *);
 extern int	machine_at_opti495_ami_init(const machine_t *);
 extern int	machine_at_opti495_mr_init(const machine_t *);
 
+#if defined(DEV_BRANCH) && defined(USE_VECT486VL)
+extern int	machine_at_vect486vl_init(const machine_t *);
+#endif
+
 extern int	machine_at_403tg_init(const machine_t *);
 extern int	machine_at_pc330_6571_init(const machine_t *);
 
 extern int	machine_at_sis401_init(const machine_t *);
+extern int	machine_at_valuepoint433_init(const machine_t *);
 
 extern int	machine_at_vli486sv2g_init(const machine_t *);
 extern int	machine_at_ami471_init(const machine_t *);
@@ -327,6 +332,9 @@ extern int	machine_at_pcm5330_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_acera1g_get_device(void);
+#if defined(DEV_BRANCH) && defined(USE_VECT486VL)
+extern const device_t 	*at_vect486vl_get_device(void);
+#endif
 #endif
 
 /* m_at_commodore.c */
@@ -346,9 +354,6 @@ extern int	machine_at_excalibur_init(const machine_t *);
 extern int	machine_at_batman_init(const machine_t *);
 extern int	machine_at_ambradp60_init(const machine_t *);
 extern int	machine_at_valuepointp60_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_DELLS4)
-extern int	machine_at_dellxp60_init(const machine_t *);
-#endif
 extern int	machine_at_p5mp3_init(const machine_t *);
 extern int	machine_at_pb520r_init(const machine_t *);
 extern int	machine_at_586mc1_init(const machine_t *);

@@ -105,8 +105,8 @@ ifeq ($(DEV_BUILD), y)
  ifndef GUSMAX
   GUSMAX	:= y
  endif
- ifndef DELLS4
-  DELLS4	:= y
+ ifndef USE_VECT486VL
+  USE_VECT486VL	:= y
  endif
 else
  ifndef DEBUG
@@ -187,8 +187,8 @@ else
  ifndef GUSMAX
   GUSMAX	:= n
  endif
- ifndef DELLS4
-  DELLS4	:= n
+ ifndef USE_VECT486VL
+  USE_VECT486VL	:= n
  endif
 endif
 
@@ -603,8 +603,8 @@ ifeq ($(GUSMAX), y)
 OPTS		+= -DUSE_GUSMAX
 endif
 
-ifeq ($(DELLS4), y)
-OPTS		+= -DUSE_DELLS4
+ifeq ($(USE_VECT486VL), y)
+OPTS		+= -DUSE_VECT486VL
 endif
 
 endif
