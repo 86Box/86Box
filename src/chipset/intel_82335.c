@@ -53,6 +53,10 @@
 /* Lock status */
 #define LOCK_STATUS (dev->regs[0x22] & (0x80 << 8))
 
+/* Define Memory Remap Sizes */
+#define DEFINE_RC1_REMAP_SIZE ((dev->regs[0x24] & 0x02) ? 128 : 256)
+#define DEFINE_RC2_REMAP_SIZE ((dev->regs[0x26] & 0x02) ? 128 : 256)
+
 typedef struct
 {
 
@@ -83,7 +87,7 @@ static void
 intel_82335_write(uint16_t addr, uint16_t val, void *priv)
 {
     intel_82335_t *dev = (intel_82335_t *) priv;
-    uint32_t romsize = 0, base = 0, i = 0;
+    uint32_t romsize = 0, base = 0, i = 0, rc1_remap = 0, rc2_remap = 0;
 
     dev->regs[addr] = val;
 
@@ -115,6 +119,13 @@ intel_82335_write(uint16_t addr, uint16_t val, void *priv)
     /* System ROM shadow */
     mem_set_mem_state_both(0xe0000, 0x20000, (dev->regs[0x22] & 0x01) ? ENABLED_SHADOW : DISABLED_SHADOW);
     }
+    break;
+
+    case 0x24: /* Roll Compare (Just top remapping. Not followed according to datasheet!) */
+    case 0x26:
+    rc1_remap = (dev->regs[0x24] & 0x01) ? DEFINE_RC1_REMAP_SIZE : 0;
+    rc2_remap = (dev->regs[0x26] & 0x01) ? DEFINE_RC2_REMAP_SIZE : 0;
+    mem_remap_top(rc1_remap+rc2_remap);
     break;
 
 	case 0x2e: /* Extended Granularity (Enabled if Bit 0 in Register 2Ch is set) */
