@@ -45,6 +45,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef CYRIX_6X86
   CYRIX_6X86	:= y
  endif 
+ ifndef GUSMAX
+  GUSMAX	:= y
+ endif
  ifndef HEDAKA
   HEDAKA	:= y
  endif
@@ -53,6 +56,9 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef MGA
   MGA		:= y
+ endif
+ ifndef NO_SIO
+  NO_SIO	:= y
  endif
  ifndef OPEN_AT
   OPEN_AT	:= y
@@ -80,6 +86,9 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef SIEMENS
   SIEMENS	:= y
+ endif
+ ifndef SIO_DETECT
+  SIO_DETECT	:= y
  endif
  ifndef STPC
   STPC		:= y
@@ -126,7 +135,10 @@ else
  endif
  ifndef CYRIX_6X86
   CYRIX_6X86	:= n
- endif 
+ endif
+ ifndef GUSMAX
+  GUSMAX	:= n
+ endif
  ifndef HEDAKA
   HEDAKA	:= n
  endif
@@ -135,6 +147,9 @@ else
  endif
  ifndef MGA
   MGA		:= n
+ endif
+ ifndef NO_SIO
+  NO_SIO	:= n
  endif
  ifndef OPEN_AT
   OPEN_AT	:= n
@@ -162,6 +177,9 @@ else
  endif
  ifndef SIEMENS
   SIEMENS	:= n
+ endif
+ ifndef SIO_DETECT
+  SIO_DETECT	:= n
  endif
  ifndef STPC
   STPC		:= y
@@ -568,6 +586,11 @@ ifeq ($(SIEMENS), y)
 OPTS		+= -DUSE_SIEMENS
 endif
 
+ifeq ($(SIO_DETECT), y)
+OPTS		+= -DUSE_SIO_DETECT
+DEVBROBJ	+= sio_detect.o
+endif
+
 ifeq ($(STPC), y)
 OPTS		+= -DUSE_STPC
 DEVBROBJ	+= stpc.o
@@ -656,7 +679,7 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_ps2_isa.o m_ps2_mca.o \
 		    m_at_compaq.o \
 		    m_at_286_386sx.o m_at_386dx_486.o \
-		    m_at_socket4_5.o m_at_socket7_s7.o m_at_sockets7.o \
+		    m_at_socket4_5.o m_at_socket7.o m_at_sockets7.o \
 		    m_at_socket8.o m_at_slot1.o m_at_slot2.o m_at_socket370.o \
 			m_at_misc.o
 

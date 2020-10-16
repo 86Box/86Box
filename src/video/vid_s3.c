@@ -2581,7 +2581,6 @@ static uint8_t
 s3_accel_in(uint16_t port, void *p)
 {
 	s3_t *s3 = (s3_t *)p;
-	svga_t *svga = &s3->svga;
 	int temp;
 
 	if (!s3->enable_8514)
