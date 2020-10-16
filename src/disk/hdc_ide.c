@@ -546,6 +546,7 @@ static void
 ide_identify(ide_t *ide)
 {
     int d, i, max_pio, max_sdma, max_mdma, max_udma;
+    ide_t *ide_other = ide_drives[ide->channel ^ 1];
 
     ide_log("IDE IDENTIFY or IDENTIFY PACKET DEVICE on board %i (channel %i)\n", ide->board, ide->channel);
 
@@ -596,10 +597,16 @@ ide_identify(ide_t *ide)
 		ide->buffer[88] |= (1 << i);
 	if (max_udma >= 4)
 		ide->buffer[93] = 0x6000; /* Drive reports 80-conductor cable */
-	if (ide->channel)
-		ide->buffer[93] |= 0x0d00;
-	else
-		ide->buffer[93] |= 0x007d;
+
+	if (ide->channel & 1)
+		ide->buffer[93] |= 0x0b00;
+	else {
+		ide->buffer[93] |= 0x000b;
+		/* PDIAG- is assered by device 1, so the bit should be 1 if there's a device 1,
+		   so it should be |= 0x001b if device 1 is present. */
+		if (ide_other != NULL)
+			ide->buffer[93] |= 0x0010;
+	}
     }
 
     if ((max_sdma != -1) || (max_mdma != -1) || (max_udma != -1)) {
