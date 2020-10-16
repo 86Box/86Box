@@ -3431,7 +3431,7 @@ static const device_config_t gd5428_config[] =
         }
 };
 
-static const device_config_t gd5428_a1g_config[] =
+static const device_config_t gd5428_onboard_config[] =
 {
         {
                 .name = "memory",
@@ -3660,7 +3660,7 @@ const device_t gd5428_mca_device =
     NULL
 };
 
-const device_t gd5428_a1g_device =
+const device_t gd5428_onboard_device =
 {
     "Cirrus Logic CL-GD 5428 (On-Board)",
     DEVICE_AT | DEVICE_ISA,
@@ -3671,7 +3671,7 @@ const device_t gd5428_a1g_device =
     gd5428_isa_available,
     gd54xx_speed_changed,
     gd54xx_force_redraw,
-    gd5428_a1g_config
+    gd5428_onboard_config
 };
 
 const device_t gd5429_isa_device =

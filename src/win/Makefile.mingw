@@ -45,9 +45,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef CYRIX_6X86
   CYRIX_6X86	:= y
  endif 
- ifndef DELLS4
-  DELLS4	:= y
- endif
  ifndef GUSMAX
   GUSMAX	:= y
  endif
@@ -111,6 +108,15 @@ ifeq ($(DEV_BUILD), y)
  ifndef XL24
   XL24		:= y
  endif
+ ifndef NO_SIO
+  NO_SIO	:= y
+ endif
+ ifndef GUSMAX
+  GUSMAX	:= y
+ endif
+ ifndef USE_VECT486VL
+  USE_VECT486VL	:= y
+ endif
 else
  ifndef DEBUG
   DEBUG		:= n
@@ -129,9 +135,6 @@ else
  endif
  ifndef CYRIX_6X86
   CYRIX_6X86	:= n
- endif 
- ifndef DELLS4
-  DELLS4	:= n
  endif
  ifndef GUSMAX
   GUSMAX	:= n
@@ -195,6 +198,15 @@ else
  endif
  ifndef XL24
   XL24		:= n
+ endif
+ ifndef NO_SIO
+  NO_SIO	:= n
+ endif
+ ifndef GUSMAX
+  GUSMAX	:= n
+ endif
+ ifndef USE_VECT486VL
+  USE_VECT486VL	:= n
  endif
 endif
 
@@ -614,8 +626,8 @@ ifeq ($(GUSMAX), y)
 OPTS		+= -DUSE_GUSMAX
 endif
 
-ifeq ($(DELLS4), y)
-OPTS		+= -DUSE_DELLS4
+ifeq ($(USE_VECT486VL), y)
+OPTS		+= -DUSE_VECT486VL
 endif
 
 endif

@@ -102,6 +102,24 @@ machine_at_sis401_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_valuepoint433_init(const machine_t *model)	// hangs without the PS/2 mouse
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/valuepoint433/$IMAGEP.FLH",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_ide_init(model);
+    device_add(&sis_85c461_device);
+    device_add(&keyboard_ps2_device);
+    device_add(&fdc_at_device);
+
+    return ret;
+}
 
 int
 machine_at_ecs386_init(const machine_t *model)
@@ -229,6 +247,37 @@ machine_at_pb410a_init(const machine_t *model)
     return ret;
 }
 
+#if defined(DEV_BRANCH) && defined(USE_VECT486VL)
+int
+machine_at_vect486vl_init(const machine_t *model)	// has HDC problems
+{
+    int ret;
+
+   ret = bios_load_linear(L"roms/machines/vect486vl/aa0500.ami",
+			  0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&vl82c480_device);
+    device_add(&keyboard_ps2_ami_device);
+    device_add(&fdc37c661_device); // presumably SMC FDC37C651
+    device_add(&ide_isa_2ch_device);
+
+    if (gfxcard == VID_INTERNAL)
+	device_add(&gd5428_onboard_device);
+
+    return ret;
+}
+
+const device_t *
+at_vect486vl_get_device(void)
+{
+    return &gd5428_onboard_device;
+}
+#endif
 
 int
 machine_at_acera1g_init(const machine_t *model)
@@ -244,7 +293,7 @@ machine_at_acera1g_init(const machine_t *model)
     machine_at_common_init(model);
 
     if (gfxcard == VID_INTERNAL)
-	device_add(&gd5428_a1g_device);
+	device_add(&gd5428_onboard_device);
 
     device_add(&ali1429_device);
     device_add(&keyboard_ps2_acer_pci_device);
@@ -257,7 +306,7 @@ machine_at_acera1g_init(const machine_t *model)
 const device_t *
 at_acera1g_get_device(void)
 {
-    return &gd5428_a1g_device;
+    return &gd5428_onboard_device;
 }
 
 
