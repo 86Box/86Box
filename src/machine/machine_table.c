@@ -278,6 +278,7 @@ const machine_t machines[] = {
 
     /* 430FX */
     { "[i430FX] Acer V30",			"acerv30",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  8,  128,   8, 127,	      machine_at_acerv30_init, NULL			},
+    { "[i430FX] AMI Apollo",			"apollo",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  8,  128,   8, 127,	       machine_at_apollo_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_VECTRA54)
     { "[i430FX] HP Vectra VL 5 Series 4",	"vectra54",		MACHINE_TYPE_SOCKET5,		MACHINE_CPUS_PENTIUM_S5,											    MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  8,  128,   8, 511,	     machine_at_vectra54_init, NULL			},
 #endif

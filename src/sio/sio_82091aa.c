@@ -285,6 +285,16 @@ const device_t i82091aa_device = {
 };
 
 
+const device_t i82091aa_398_device = {
+    "Intel 82091AA Super I/O (Port 398h)",
+    0,
+    0x148,
+    i82091aa_init, i82091aa_close, NULL,
+    NULL, NULL, NULL,
+    NULL
+};
+
+
 const device_t i82091aa_ide_device = {
     "Intel 82091AA Super I/O (With IDE)",
     0,

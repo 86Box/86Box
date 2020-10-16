@@ -93,6 +93,7 @@ extern const device_t amstrad_nvr_device;
 extern const device_t ibmat_nvr_device;
 extern const device_t piix4_nvr_device;
 extern const device_t ls486e_nvr_device;
+extern const device_t ami_apollo_nvr_device;
 extern const device_t via_nvr_device;
 #endif
 

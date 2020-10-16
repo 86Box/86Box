@@ -286,8 +286,9 @@
 #define RTC_CENTURY_VIA	0x7F		/* century register for VIA VT82C586B */
 #define RTC_REGS	14		/* number of registers */
 
-#define FLAG_LS_HACK	0x01
-#define FLAG_PIIX4	0x02
+#define FLAG_LS_HACK		0x01
+#define FLAG_APOLLO_HACK	0x02
+#define FLAG_PIIX4		0x04
 
 
 typedef struct {
@@ -703,14 +704,31 @@ nvr_read(uint16_t addr, void *priv)
 	case 0x2e:
 	case 0x2f:
 		if (local->flags & FLAG_LS_HACK) {
-			checksum = (nvr->regs[0x2e] << 8) | nvr->regs[0x2f];
-			if (nvr->regs[0x2c] & 0x80)
-				checksum -= 0x80;
+			checksum = ((nvr->regs[0x2e] << 8) | nvr->regs[0x2f]) - (nvr->regs[0x2c] & 0x80);
 			if (local->addr[addr_id] == 0x2e)
 				ret = checksum >> 8;
 			else
 				ret = checksum & 0xff;
 		} else
+			ret = nvr->regs[local->addr[addr_id]];
+		break;
+
+	case 0x3e:
+	case 0x3f:
+		if (local->flags & FLAG_APOLLO_HACK) {
+			checksum = ((nvr->regs[0x3e] << 8) | nvr->regs[0x3f]) - (nvr->regs[0x52] & 0x0c);
+			if (local->addr[addr_id] == 0x3e)
+				ret = checksum >> 8;
+			else
+				ret = checksum & 0xff;
+		} else
+			ret = nvr->regs[local->addr[addr_id]];
+		break;
+
+	case 0x52:
+		if (local->flags & FLAG_APOLLO_HACK)
+			ret = nvr->regs[local->addr[addr_id]] & 0xf3;
+		else
 			ret = nvr->regs[local->addr[addr_id]];
 		break;
 
@@ -894,13 +912,17 @@ nvr_at_init(const device_t *info)
 		local->cent = 0xff;
 		break;
 
-	case 5:		/* Lucky Star LS-486E */
-		local->flags |= FLAG_LS_HACK;
-		/*FALLTHROUGH*/
-
 	case 1:		/* standard AT */
+	case 5:		/* Lucky Star LS-486E */
+	case 6:		/* AMI Apollo */
 		if (info->local == 9)
 			local->flags |= FLAG_PIIX4;
+		else {
+			if ((info->local & 7) == 5)
+				local->flags |= FLAG_LS_HACK;
+			else if ((info->local & 7) == 6)
+				local->flags |= FLAG_APOLLO_HACK;
+		}
 		nvr->irq = 8;
 		local->cent = RTC_CENTURY_AT;
 		break;
@@ -922,7 +944,7 @@ nvr_at_init(const device_t *info)
 		local->def = 0xff;
 		break;
 
-	case 6:		/* VIA VT82C586B */
+	case 7:		/* VIA VT82C586B */
 		nvr->irq = 8;
 		local->cent = RTC_CENTURY_VIA;
 		break;
@@ -1049,10 +1071,19 @@ const device_t ls486e_nvr_device = {
     NULL
 };
 
+const device_t ami_apollo_nvr_device = {
+    "AMI Apollo PC/AT NVRAM",
+    DEVICE_ISA | DEVICE_AT,
+    14,
+    nvr_at_init, nvr_at_close, NULL,
+    NULL, nvr_at_speed_changed,
+    NULL
+};
+
 const device_t via_nvr_device = {
     "VIA PC/AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
-    14,
+    15,
     nvr_at_init, nvr_at_close, NULL,
     NULL, nvr_at_speed_changed,
     NULL
