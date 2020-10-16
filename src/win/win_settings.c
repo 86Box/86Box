@@ -982,10 +982,10 @@ recalc_vid_list(HWND hdlg)
     EnableWindow(h, (machines[temp_machine].flags & MACHINE_VIDEO_ONLY) ? FALSE : TRUE);
 
     h = GetDlgItem(hdlg, IDC_CHECK_VOODOO);
-    EnableWindow(h, (machines[temp_machine].flags & MACHINE_PCI) ? TRUE : FALSE);
+    EnableWindow(h, (machines[temp_machine].flags & MACHINE_BUS_PCI) ? TRUE : FALSE);
 
     h = GetDlgItem(hdlg, IDC_BUTTON_VOODOO);
-    EnableWindow(h, ((machines[temp_machine].flags & MACHINE_PCI) && temp_voodoo) ? TRUE : FALSE);
+    EnableWindow(h, ((machines[temp_machine].flags & MACHINE_BUS_PCI) && temp_voodoo) ? TRUE : FALSE);
 }
 
 

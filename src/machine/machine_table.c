@@ -372,12 +372,11 @@ const machine_t machines[] = {
     { "[i440BX] Tyan Tsunami ATX",		"tsunamiatx",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"", NULL},	  {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_SOUND,	 	  8, 1024,   8, 255,	   machine_at_tsunamiatx_init, at_tsunamiatx_get_device	},
     { "[i440BX] SuperMicro Super P6SBA",	"p6sba",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"", NULL},	  {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		  8,  768,   8, 255,	        machine_at_p6sba_init, NULL			},
 
+    /* 440GX */
+    { "[i440GX] Freeway FW-6400GX",		"fw6400gx_s1",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"", NULL},	  {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 16, 2032,  16, 511,	     machine_at_fw6400gx_init, NULL			},
 
     /* VIA Apollo Pro */
     { "[VIA Apollo Pro] FIC KA-6100",		"ficka6100",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"", NULL},	  {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	 			  8,  768,   8, 255,	    machine_at_ficka6100_init, NULL			},
-
-    /* 440GX */
-    { "[i440GX] Freeway FW-6400GX",		"fw6400gx_s1",		MACHINE_TYPE_SLOT2,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"", NULL},	  {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 16, 2032,  16, 511,	     machine_at_fw6400gx_init, NULL			},
 
     /* Slot 2 machines(Including Slot 1/2 Hybrids) */
     /* 440GX */
