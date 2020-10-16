@@ -671,7 +671,7 @@ nvr_read(uint16_t addr, void *priv)
     local_t *local = (local_t *)nvr->data;
     uint8_t ret;
     uint8_t addr_id = (addr & 0x0e) >> 1;
-    uint16_t checksum;
+    uint16_t i, checksum = 0x0000;
 
     sub_cycles(ISA_CYCLES(8));
 
@@ -704,7 +704,12 @@ nvr_read(uint16_t addr, void *priv)
 	case 0x2e:
 	case 0x2f:
 		if (local->flags & FLAG_LS_HACK) {
-			checksum = ((nvr->regs[0x2e] << 8) | nvr->regs[0x2f]) - (nvr->regs[0x2c] & 0x80);
+			for (i = 0x10; i <= 0x2d; i++) {
+				if (i == 0x2c)
+					checksum += (nvr->regs[i] & 0x7f);
+				else
+					checksum += nvr->regs[i];
+			}
 			if (local->addr[addr_id] == 0x2e)
 				ret = checksum >> 8;
 			else
@@ -716,7 +721,15 @@ nvr_read(uint16_t addr, void *priv)
 	case 0x3e:
 	case 0x3f:
 		if (local->flags & FLAG_APOLLO_HACK) {
-			checksum = ((nvr->regs[0x3e] << 8) | nvr->regs[0x3f]) - (nvr->regs[0x52] & 0x0c);
+			/* The checksum at 3E-3F is for 37-3D and 40-7F. */
+			for (i = 0x37; i <= 0x3d; i++)
+				checksum += nvr->regs[i];
+			for (i = 0x40; i <= 0x7f; i++) {
+				if (i == 0x52)
+					checksum += (nvr->regs[i] & 0xf3);
+				else
+					checksum += nvr->regs[i];
+			}
 			if (local->addr[addr_id] == 0x3e)
 				ret = checksum >> 8;
 			else
