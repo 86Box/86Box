@@ -84,6 +84,8 @@ sio_detect_init(const device_t *info)
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x0108, 0x0002,
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
+    io_sethandler(0x015c, 0x0002,
+		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x0250, 0x0003,
 		  sio_detect_read, NULL, NULL, sio_detect_write, NULL, NULL, dev);
     io_sethandler(0x026e, 0x0002,
