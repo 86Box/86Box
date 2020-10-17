@@ -626,7 +626,7 @@ svga_poll(void *p)
 	}
 
 	if (svga->displine == svga->dac_hwcursor_latch.y && svga->dac_hwcursor_latch.ena) {
-		svga->dac_hwcursor_on = svga->dac_wcursor.ysize - svga->dac_hwcursor_latch.yoff;
+		svga->dac_hwcursor_on = svga->dac_hwcursor.ysize - svga->dac_hwcursor_latch.yoff;
 		svga->dac_hwcursor_oddeven = 0;
 	}
 

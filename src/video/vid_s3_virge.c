@@ -3668,7 +3668,7 @@ static void *s3_virge_init(const device_t *info)
                    s3_virge_in, s3_virge_out,
                    s3_virge_hwcursor_draw,
                    s3_virge_overlay_draw);
-	s3->svga.hwcursor.ysize = 64;
+	virge->svga.hwcursor.ysize = 64;
 
 	virge->pci = !!(info->flags & DEVICE_PCI);
 
