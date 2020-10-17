@@ -68,7 +68,7 @@ static uint8_t dss_read_status(void *p)
 {
         dss_t *dss = (dss_t *)p;
 
-	return dss->status;
+	return dss->status | 0x0f;
 }
 
 

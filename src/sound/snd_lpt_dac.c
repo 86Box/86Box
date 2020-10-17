@@ -60,7 +60,7 @@ static void dac_write_ctrl(uint8_t val, void *p)
 
 static uint8_t dac_read_status(void *p)
 {
-        return 0;
+        return 0x0f;
 }
 
 
