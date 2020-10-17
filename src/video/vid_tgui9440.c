@@ -388,7 +388,7 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
         			svga->hwcursor.x = (svga->crtc[0x40] | (svga->crtc[0x41] << 8)) & 0x7ff;
         			svga->hwcursor.y = (svga->crtc[0x42] | (svga->crtc[0x43] << 8)) & 0x7ff;
         			svga->hwcursor.xoff = svga->crtc[0x46] & 0x3f;
-        			svga->hwcursor.yoff = svga->crtc[0x47] & 0x3f;
+				svga->hwcursor.yoff = (svga->crtc[0x47] & 0x3f) + ((svga->hwcursor.ysize == 32) ? 32 : 0);
         			svga->hwcursor.addr = (svga->crtc[0x44] << 10) | ((svga->crtc[0x45] & 0x7) << 18) | (svga->hwcursor.yoff * 8);
                         }
 			break;
@@ -399,6 +399,7 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
         			svga->hwcursor.ena = val & 0x80;
         			svga->hwcursor.xsize = (val & 1) ? 64 : 32;
         			svga->hwcursor.ysize = (val & 1) ? 64 : 32;
+				svga->hwcursor.yoff = (svga->crtc[0x47] & 0x3f) + ((svga->hwcursor.ysize == 32) ? 32 : 0);
                         }
 			break;
 		}
@@ -702,20 +703,20 @@ void tgui_hwcursor_draw(svga_t *svga, int displine)
 				case 0x1:	/* Sceen data (Transparent curor) */
 					break;
 				case 0x2:	/* Palette index 0? */
-					color = svga->pallook[0x00];
+					color = 0x00000000;
 					break;
 				case 0x3:	/* Palette index 255? */
-					color = svga->pallook[0xff];
+					color = 0x00ffffff;
 					break;
 			}
 		} else {
 			/* Windows style? */
 			switch (val) {
 				case 0x0:	/* Palette index 0? */
-					color = svga->pallook[0x00];
+					color = 0x00000000;
 					break;
 				case 0x1:	/* Palette index 255? */
-					color = svga->pallook[0xff];
+					color = 0x00ffffff;
 					break;
 				case 0x2:	/* Sceen data (Transparent curor) */
 					break;
