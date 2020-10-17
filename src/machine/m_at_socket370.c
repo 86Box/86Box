@@ -301,7 +301,7 @@ machine_at_apas3_init(const machine_t *model)
     device_add(&via_apro_device);
     device_add(&via_vt82c586b_device);
     device_add(&fdc37c669_device);
-    device_add(&keyboard_ps2_pci_device);
+    device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
