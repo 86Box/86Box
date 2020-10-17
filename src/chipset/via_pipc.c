@@ -466,7 +466,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
     if (func == 0) { /* PCI-ISA bridge */
 	/* Read-only addresses */
 	if ((addr < 4) || (addr == 5) || ((addr >= 8) && (addr < 0x40)) || (addr == 0x49) || (addr == 0x4b) ||
-	    (addr == 0x53) || ((addr >= 0x5d) && (addr < 0x5f)) || ((addr >= 0x71) && (addr < 0x74)) || (addr >= 0x90))
+	    (addr == 0x53) || ((addr >= 0x5d) && (addr < 0x5f)) || (addr >= 0x90))
 		return;
 
 	if ((dev->local <= VIA_PIPC_586A) && ((addr >= 0x58) && (addr < 0x80)))
