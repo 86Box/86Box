@@ -683,7 +683,7 @@ void tgui_hwcursor_draw(svga_t *svga, int displine)
         int offset = svga->hwcursor_latch.x + svga->hwcursor_latch.xoff;
 	int pitch = (svga->hwcursor.xsize == 64) ? 16 : 8;
 	int byte, bit;
-	int color;
+	uint32_t color;
         
         if (svga->interlace && svga->hwcursor_oddeven)
                 svga->hwcursor_latch.addr += pitch;
@@ -694,7 +694,7 @@ void tgui_hwcursor_draw(svga_t *svga, int displine)
 		dat[0] = (svga->vram[byte] >> bit) & 0x01;			/* AND */
 		dat[1] = (svga->vram[(pitch >> 1) + byte] >> bit) & 0x01;	/* XOR */
 		val = (dat[0] << 1) || dat[1];
-		color = svga->vram[svga->x_add + offset + xx];
+		color = ((uint32_t *)buffer32->line[displine])[svga->x_add + offset + xx];
 		if (!!(svga->crtc[0x50] & 0x40)) {
 			/* X11 style? */
 			switch (val) {
@@ -724,7 +724,7 @@ void tgui_hwcursor_draw(svga_t *svga, int displine)
 					break;
 			}
 		}
-		svga->vram[svga->x_add + offset + xx] = color;
+		((uint32_t *)buffer32->line[displine])[svga->x_add + offset + xx] = color;
 	}
 
         svga->hwcursor_latch.addr += pitch;
