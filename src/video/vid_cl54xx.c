@@ -382,7 +382,6 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 								       ((val & CIRRUS_CURSOR_LARGE) && (svga->crtc[0x27] >= CIRRUS_ID_CLGD5422)) ? 64 : 32;
 					else
 						svga->hwcursor.xsize = 32;
-					svga->hwcursor.yoff = (svga->hwcursor.ysize == 32) ? 32 : 0;
 
 					if ((svga->seqregs[0x12] & CIRRUS_CURSOR_LARGE) && (svga->crtc[0x27] >= CIRRUS_ID_CLGD5422))
 						svga->hwcursor.addr = ((gd54xx->vram_size - 0x4000) + ((svga->seqregs[0x13] & 0x3c) * 256));
@@ -3208,8 +3207,7 @@ static void
 
     io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
     
-    svga->hwcursor.yoff = 32;
-    svga->hwcursor.xoff = 0;
+    svga->hwcursor.yoff = svga->hwcursor.xoff = 0;
 
     if (id >= CIRRUS_ID_CLGD5420) {
 	gd54xx->vclk_n[0] = 0x4a;

@@ -4336,6 +4336,7 @@ static void *s3_init(const device_t *info)
 			NULL);
 		}
 	}
+	s3->svga.hwcursor.ysize = 64;
 
 	if (chip == S3_VISION964)
 		svga->dac_hwcursor_draw = bt48x_hwcursor_draw;

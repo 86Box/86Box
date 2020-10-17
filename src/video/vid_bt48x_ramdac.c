@@ -170,7 +170,6 @@ bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t *
 					if (ramdac->type >= BT485A)
 						bt48x_set_bpp(ramdac, svga);
 					svga->dac_hwcursor.xsize = svga->dac_hwcursor.ysize = (val & 4) ? 64 : 32;
-					svga->dac_hwcursor.yoff = (svga->dac_hwcursor.ysize == 32) ? 32 : 0;
 					svga->dac_hwcursor.x = ramdac->hwc_x - svga->dac_hwcursor.xsize;
 					svga->dac_hwcursor.y = ramdac->hwc_y - svga->dac_hwcursor.ysize;
 					svga->dac_addr = (svga->dac_addr & 0x00ff) | ((val & 0x03) << 8);

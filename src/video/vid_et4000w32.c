@@ -1297,6 +1297,7 @@ void *et4000w32p_init(const device_t *info)
                    et4000w32p_in, et4000w32p_out,
                    et4000w32p_hwcursor_draw,
                    NULL); 
+	s3->svga.hwcursor.ysize = 64;
 
 	et4000->svga.ramdac = device_add(&stg_ramdac_device);
 

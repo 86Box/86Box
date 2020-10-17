@@ -3303,6 +3303,7 @@ static void *mach64_common_init(const device_t *info)
                    mach64_in, mach64_out,
                    NULL,
                    mach64_overlay_draw);
+	s3->svga.dac_hwcursor.ysize = 64;
 
         if (info->flags & DEVICE_PCI)
                 mem_mapping_disable(&mach64->bios_rom.mapping);
