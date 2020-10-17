@@ -117,6 +117,8 @@ timeout_timer(void *priv)
 	dev->rx_pkt = NULL;
     }
 
+    network_rx_pause = 0;
+
     timer_disable(&dev->timeout_timer);
 }
 
