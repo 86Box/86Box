@@ -21,4 +21,4 @@
 extern const lpt_device_t lpt_plip_device;
 extern const device_t plip_device;
 
-#endif	/*NET_PLIP_H*/
+#endif /*NET_PLIP_H*/

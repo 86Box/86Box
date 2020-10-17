@@ -93,8 +93,8 @@ lpt_devices_close(void)
     for (i = 0; i < 3; i++) {
 	dev = &lpt_ports[i];
 
-        if (dev->dt)
-       	        dev->dt->close(dev->priv);
+	if (dev->dt)
+		dev->dt->close(dev->priv);
 
         dev->dt = NULL;
     }
@@ -142,7 +142,7 @@ lpt_read(uint16_t port, void *priv)
 
 	case 1:
 		if (dev->dt && dev->dt->read_status)
-			ret = dev->dt->read_status(dev->priv);
+			ret = dev->dt->read_status(dev->priv) | 0x07;
 		else
 			ret = 0xdf;
 		break;

@@ -351,7 +351,7 @@ network_rx_queue(void *priv)
 
     network_queue_get(0, &pkt);
     if ((pkt != NULL) && (pkt->len > 0)) {
-    	network_dump_packet(pkt);
+	network_dump_packet(pkt);
 	net_cards[network_card].rx(pkt->priv, pkt->data, pkt->len);
 	if (pkt->len >= 128)
 		timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * ((double) pkt->len));
@@ -554,7 +554,7 @@ network_do_tx(void)
 
     network_queue_get(1, &pkt);
     if ((pkt != NULL) && (pkt->len > 0)) {
-    	network_dump_packet(pkt);
+	network_dump_packet(pkt);
 	switch(network_type) {
 		case NET_TYPE_PCAP:
 			net_pcap_in(pkt->data, pkt->len);
