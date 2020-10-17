@@ -693,7 +693,7 @@ void tgui_hwcursor_draw(svga_t *svga, int displine)
 		bit = (7 - xx);
 		dat[0] = (svga->vram[byte] >> bit) & 0x01;			/* AND */
 		dat[1] = (svga->vram[(pitch >> 1) + byte] >> bit) & 0x01;	/* XOR */
-		val = (dat[0] << 1) || dat[1];
+		val = (dat[0] << 1) | dat[1];
 		color = ((uint32_t *)buffer32->line[displine])[svga->x_add + offset + xx];
 		if (!!(svga->crtc[0x50] & 0x40)) {
 			/* X11 style? */
