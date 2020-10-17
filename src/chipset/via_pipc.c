@@ -170,8 +170,8 @@ pipc_reset_hard(void *priv)
 	dev->ide_regs[0x34] = 0xc0;
     dev->ide_regs[0x3c] = 0x0e;
 
-    if (dev->local < VIA_PIPC_686A)
-	dev->ide_regs[0x40] = 0x08;
+    if (dev->local <= VIA_PIPC_586B)
+	dev->ide_regs[0x40] = 0x04;
     dev->ide_regs[0x41] = 0x02;
     dev->ide_regs[0x42] = 0x09;
     dev->ide_regs[0x43] = (dev->local >= VIA_PIPC_686A) ? 0x0a : 0x3a;
@@ -513,17 +513,21 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			pci_set_irq_level(PCI_INTD, !(val & 1));
 			break;
 		case 0x55:
+			pipc_log("PIPC: PCI INT%c %d\n", (dev->local >= VIA_PIPC_596A) ? 'A' : 'D', val >> 4);
 			pci_set_irq_routing((dev->local >= VIA_PIPC_596A) ? PCI_INTA : PCI_INTD, (val & 0xf0) ? (val >> 4) : PCI_IRQ_DISABLED);
 			if (dev->local <= VIA_PIPC_586B)
 				pci_set_mirq_routing(PCI_MIRQ0, (val & 0x0f) ? (val & 0x0f) : PCI_IRQ_DISABLED);
 			dev->pci_isa_regs[0x55] = val;
 	                break;
                 case 0x56:
+                	pipc_log("PIPC: PCI INT%c %d\n", (dev->local >= VIA_PIPC_596A) ? 'C' : 'A', val >> 4);
+                	pipc_log("PIPC: PCI INTB %d\n", val & 0x0f);
 			pci_set_irq_routing((dev->local >= VIA_PIPC_596A) ? PCI_INTC : PCI_INTA, (val & 0xf0) ? (val >> 4) : PCI_IRQ_DISABLED);
 			pci_set_irq_routing(PCI_INTB, (val & 0x0f) ? (val & 0x0f) : PCI_IRQ_DISABLED);
 			dev->pci_isa_regs[0x56] = val;
 			break;
 		case 0x57:
+			pipc_log("PIPC: PCI INT%c %d\n", (dev->local >= VIA_PIPC_596A) ? 'D' : 'C', val >> 4);
 			pci_set_irq_routing((dev->local >= VIA_PIPC_596A) ? PCI_INTD : PCI_INTC, (val & 0xf0) ? (val >> 4) : PCI_IRQ_DISABLED);
 			if (dev->local <= VIA_PIPC_586B)
 				pci_set_mirq_routing(PCI_MIRQ1, (val & 0x0f) ? (val & 0x0f) : PCI_IRQ_DISABLED);
@@ -656,8 +660,35 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			break;
 
 		case 0x40:
-			dev->ide_regs[0x40] = val;
+			if (dev->local <= VIA_PIPC_586B) {
+				dev->ide_regs[0x40] = val & 0x03;
+				dev->ide_regs[0x40] |= 0x04;
+			} else
+				dev->ide_regs[0x40] = val & 0x0f;
 			pipc_ide_handlers(dev);
+			break;
+
+		case 0x50: case 0x52:
+			if (dev->local <= VIA_PIPC_586B)
+				dev->ide_regs[addr] = val & 0xe3;
+			else if (dev->local <= VIA_PIPC_596B)
+				dev->ide_regs[addr] = val & 0xeb;
+			else if (dev->local <= VIA_PIPC_686A)
+				dev->ide_regs[addr] = val & 0xef;
+			else
+				dev->ide_regs[addr] = val & 0xf7;
+			break;
+		case 0x51: case 0x53:
+			if (dev->local <= VIA_PIPC_596B)
+				dev->ide_regs[addr] = val & 0xe3;
+			else if (dev->local <= VIA_PIPC_686A)
+				dev->ide_regs[addr] = val & 0xe7;
+			else
+				dev->ide_regs[addr] = val & 0xf7;
+			break;
+
+		case 0x61: case 0x69:
+			dev->ide_regs[addr] = val & 0x0f;
 			break;
 
 		default:

@@ -744,7 +744,8 @@ NETOBJ		:= network.o \
 		     tcp_output.o tcp_subr.o tcp_timer.o udp.o util.o version.o \
 		    net_dp8390.o \
 		    net_3c503.o net_ne2000.o \
-		    net_pcnet.o net_wd8003.o
+		    net_pcnet.o net_wd8003.o \
+		    net_plip.o
 
 PRINTOBJ	:= png.o prt_cpmap.o \
 		    prt_escp.o prt_text.o prt_ps.o

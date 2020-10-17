@@ -101,6 +101,7 @@ extern "C" {
 /* Global variables. */
 extern int	nic_do_log;				/* config */
 extern int      network_ndev;
+extern int	network_rx_pause;
 extern netdev_t network_devs[32];
 
 
