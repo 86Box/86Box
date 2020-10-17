@@ -426,7 +426,7 @@ pipc_read(int func, int addr, void *priv)
     else if ((func <= (pm_func + 2)) && !(dev->pci_isa_regs[0x85] & ((func == (pm_func + 1)) ? 0x04 : 0x08))) /* AC97 / MC97 */
 	ret = dev->ac97_regs[func - pm_func - 1][addr];
 
-    if (func == 1) pipc_log("PIPC: read(%d, %02X) = %02X\n", func, addr, ret);
+    pipc_log("PIPC: read(%d, %02X) = %02X\n", func, addr, ret);
 
     return ret;
 }
@@ -461,7 +461,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
     if (func > dev->max_func)
 	return;
 
-    if (func == 1) pipc_log("PIPC: write(%d, %02X, %02X)\n", func, addr, val);
+    pipc_log("PIPC: write(%d, %02X, %02X)\n", func, addr, val);
 
     if (func == 0) { /* PCI-ISA bridge */
 	/* Read-only addresses */
@@ -513,17 +513,21 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			pci_set_irq_level(PCI_INTD, !(val & 1));
 			break;
 		case 0x55:
+			pipc_log("PIPC: PCI INT%c %d\n", (dev->local >= VIA_PIPC_596A) ? 'A' : 'D', val >> 4);
 			pci_set_irq_routing((dev->local >= VIA_PIPC_596A) ? PCI_INTA : PCI_INTD, (val & 0xf0) ? (val >> 4) : PCI_IRQ_DISABLED);
 			if (dev->local <= VIA_PIPC_586B)
 				pci_set_mirq_routing(PCI_MIRQ0, (val & 0x0f) ? (val & 0x0f) : PCI_IRQ_DISABLED);
 			dev->pci_isa_regs[0x55] = val;
 	                break;
                 case 0x56:
+                	pipc_log("PIPC: PCI INT%c %d\n", (dev->local >= VIA_PIPC_596A) ? 'C' : 'A', val >> 4);
+                	pipc_log("PIPC: PCI INTB %d\n", val & 0x0f);
 			pci_set_irq_routing((dev->local >= VIA_PIPC_596A) ? PCI_INTC : PCI_INTA, (val & 0xf0) ? (val >> 4) : PCI_IRQ_DISABLED);
 			pci_set_irq_routing(PCI_INTB, (val & 0x0f) ? (val & 0x0f) : PCI_IRQ_DISABLED);
 			dev->pci_isa_regs[0x56] = val;
 			break;
 		case 0x57:
+			pipc_log("PIPC: PCI INT%c %d\n", (dev->local >= VIA_PIPC_596A) ? 'D' : 'C', val >> 4);
 			pci_set_irq_routing((dev->local >= VIA_PIPC_596A) ? PCI_INTD : PCI_INTC, (val & 0xf0) ? (val >> 4) : PCI_IRQ_DISABLED);
 			if (dev->local <= VIA_PIPC_586B)
 				pci_set_mirq_routing(PCI_MIRQ1, (val & 0x0f) ? (val & 0x0f) : PCI_IRQ_DISABLED);
