@@ -679,32 +679,58 @@ void tgui_recalcmapping(tgui_t *tgui)
 void tgui_hwcursor_draw(svga_t *svga, int displine)
 {
         uint32_t dat[2];
-        int xx;
-        int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
+        int xx, val;
+        int offset = svga->hwcursor_latch.x + svga->hwcursor_latch.xoff;
+	int pitch = (svga->hwcursor.xsize == 64) ? 16 : 8;
+	int byte, bit;
+	int color;
         
         if (svga->interlace && svga->hwcursor_oddeven)
-                svga->hwcursor_latch.addr += 8;
+                svga->hwcursor_latch.addr += pitch;
 
-        dat[0] = (svga->vram[svga->hwcursor_latch.addr]     << 24) | (svga->vram[svga->hwcursor_latch.addr + 1] << 16) | (svga->vram[svga->hwcursor_latch.addr + 2] << 8) | svga->vram[svga->hwcursor_latch.addr + 3];
-        dat[1] = (svga->vram[svga->hwcursor_latch.addr + 4] << 24) | (svga->vram[svga->hwcursor_latch.addr + 5] << 16) | (svga->vram[svga->hwcursor_latch.addr + 6] << 8) | svga->vram[svga->hwcursor_latch.addr + 7];
-        for (xx = 0; xx < 32; xx++)
-        {
-                if (offset >= svga->hwcursor_latch.x)
-                {
-                        if (!(dat[0] & 0x80000000))
-                                buffer32->line[displine][offset + svga->x_add]  = (dat[1] & 0x80000000) ? 0xffffff : 0;
-                        else if (dat[1] & 0x80000000)
-                                buffer32->line[displine][offset + svga->x_add] ^= 0xffffff;
-                }
-                           
-                offset++;
-                dat[0] <<= 1;
-                dat[1] <<= 1;
-        }
-        svga->hwcursor_latch.addr += 8;
+        for (xx = 0; xx < svga->hwcursor.xsize; xx++) {
+		byte = (xx >> 3);
+		bit = (7 - xx);
+		dat[0] = (svga->vram[byte] >> bit) & 0x01;			/* AND */
+		dat[1] = (svga->vram[(pitch >> 1) + byte] >> bit) & 0x01;	/* XOR */
+		val = (dat[0] << 1) || dat[1];
+		color = svga->vram[svga->x_add + offset + xx];
+		if (!!(svga->crtc[0x50] & 0x40)) {
+			/* X11 style? */
+			switch (val) {
+				case 0x0:	/* Sceen data (Transparent curor) */
+				case 0x1:	/* Sceen data (Transparent curor) */
+					break;
+				case 0x2:	/* Palette index 0? */
+					color = svga->pallook[0x00];
+					break;
+				case 0x3:	/* Palette index 255? */
+					color = svga->pallook[0xff];
+					break;
+			}
+		} else {
+			/* Windows style? */
+			switch (val) {
+				case 0x0:	/* Palette index 0? */
+					color = svga->pallook[0x00];
+					break;
+				case 0x1:	/* Palette index 255? */
+					color = svga->pallook[0xff];
+					break;
+				case 0x2:	/* Sceen data (Transparent curor) */
+					break;
+				case 0x3:	/* Inverted screen (XOR cursor) */
+					color ^= 0x00ffffff;
+					break;
+			}
+		}
+		svga->vram[svga->x_add + offset + xx] = color;
+	}
+
+        svga->hwcursor_latch.addr += pitch;
         
         if (svga->interlace && !svga->hwcursor_oddeven)
-                svga->hwcursor_latch.addr += 8;
+                svga->hwcursor_latch.addr += pitch;
 }
 
 uint8_t tgui_pci_read(int func, int addr, void *p)
