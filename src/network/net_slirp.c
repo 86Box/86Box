@@ -36,8 +36,8 @@
 #include <86box/config.h>
 
 
-/* SLiRP can use poll() or select() for socket polling. While poll() is
-   better, it's slow and limited on Windows, so use select() there. */
+/* SLiRP can use poll() or select() for socket polling.
+   poll() is best on *nix but slow and limited on Windows. */
 #ifndef _WIN32
 # define SLIRP_USE_POLL 1
 #endif
@@ -93,7 +93,7 @@ slirp_log(const char *fmt, ...)
 static void
 net_slirp_guest_error(const char *msg, void *opaque)
 {
-    slirp_log("SLiRP: guest_error: %s\n", msg);
+    slirp_log("SLiRP: guest_error(): %s\n", msg);
 }
 
 
@@ -156,7 +156,7 @@ net_slirp_send_packet(const void *qp, size_t pkt_len, void *opaque)
     slirp_t *slirp = (slirp_t *) opaque;
     uint8_t *mac = slirp->mac;
     uint32_t mac_cmp32[2];
-    uint16_t mac_cmp16[2];    
+    uint16_t mac_cmp16[2];
 
     if (!(slirp->card->set_link_state && slirp->card->set_link_state(slirp->card->priv)) && !(slirp->card->wait && slirp->card->wait(slirp->card->priv))) {
 	slirp_log("SLiRP: received %d-byte packet\n", pkt_len);
@@ -252,7 +252,7 @@ net_slirp_get_revents(int idx, void *opaque)
 static void
 slirp_tic(slirp_t *slirp)
 {
-    int ret2;
+    int ret;
     uint32_t tmo;
 
     /* Let SLiRP create a list of all open sockets. */
@@ -269,7 +269,7 @@ slirp_tic(slirp_t *slirp)
 
     /* Now wait for something to happen, or at most 'tmo' usec. */
 #ifdef SLIRP_USE_POLL
-    ret2 = poll(slirp->pfd, slirp->pfd_len, tmo);
+    ret = poll(slirp->pfd, slirp->pfd_len, tmo);
 #else
     if (tmo < 0)
 	tmo = 500;
@@ -278,11 +278,11 @@ slirp_tic(slirp_t *slirp)
     tv.tv_sec = 0;
     tv.tv_usec = tmo;
 
-    ret2 = select(slirp->nfds + 1, &slirp->rfds, &slirp->wfds, &slirp->xfds, &tv);
+    ret = select(slirp->nfds + 1, &slirp->rfds, &slirp->wfds, &slirp->xfds, &tv);
 #endif
 
     /* If something happened, let SLiRP handle it. */
-    slirp_pollfds_poll(slirp->slirp, (ret2 <= 0), net_slirp_get_revents, slirp);
+    slirp_pollfds_poll(slirp->slirp, (ret <= 0), net_slirp_get_revents, slirp);
 }
 
 
@@ -316,7 +316,7 @@ poll_thread(void *arg)
     struct in_addr dhcp = { .s_addr = htonl(0x0a00020f) }; /* 10.0.2.15 */
     struct in_addr dns  = { .s_addr = htonl(0x0a000203) }; /* 10.0.2.3 */
     struct in_addr bind = { .s_addr = htonl(0x00000000) }; /* 0.0.0.0 */
-    struct in6_addr ipv6dummy; /* contents don't matter; we're not doing IPv6 */
+    struct in6_addr ipv6dummy; /* contents don't matter; we're not using IPv6 */
 
     /* Initialize SLiRP. */
     slirp->slirp = slirp_init(0, 1, net, mask, host, 0, ipv6dummy, 0, ipv6dummy, NULL, NULL, NULL, NULL, dhcp, dns, ipv6dummy, NULL, NULL, &slirp_cb, arg);
@@ -326,23 +326,27 @@ poll_thread(void *arg)
     }
 
     /* Set up port forwarding. */
-    int udp, from, to, i = 0;
+    int udp, external, internal, i = 0;
     char *category = "SLiRP Port Forwarding";
-    char key[16];
+    char key[20];
     while (1) {
-	sprintf(key, "%d_udp", i);
-	udp = config_get_int(category, key, 0);
-	sprintf(key, "%d_from", i);
-	from = config_get_int(category, key, 0);
-	if (from < 1)
+	sprintf(key, "%d_protocol", i);
+	udp = strncmp(config_get_string(category, key, "tcp"), "udp", -1) == 0;
+	sprintf(key, "%d_external", i);
+	external = config_get_int(category, key, 0);
+	sprintf(key, "%d_internal", i);
+	internal = config_get_int(category, key, 0);
+	if ((external <= 0) && (internal <= 0))
 		break;
-	sprintf(key, "%d_to", i);
-	to = config_get_int(category, key, from);
+	else if (internal <= 0)
+		internal = external;
+	else if (external <= 0)
+		external = internal;
 
-	if (slirp_add_hostfwd(slirp->slirp, udp, bind, from, dhcp, to) == 0)
-		pclog("SLiRP: Forwarded %s port host:%d to guest:%d\n", udp ? "UDP" : "TCP", from, to);
+	if (slirp_add_hostfwd(slirp->slirp, udp, bind, external, dhcp, internal) == 0)
+		pclog("SLiRP: Forwarded %s port external:%d to internal:%d\n", udp ? "UDP" : "TCP", external, internal);
 	else
-		pclog("SLiRP: Failed to forward %s port host:%d to guest:%d\n", udp ? "UDP" : "TCP", from, to);
+		pclog("SLiRP: Failed to forward %s port external:%d to internal:%d\n", udp ? "UDP" : "TCP", external, internal);
 
 	i++;
     }
