@@ -145,7 +145,8 @@ static struct {
 
 #ifdef ENABLE_NETWORK_LOG
 int network_do_log = ENABLE_NETWORK_LOG;
-FILE *network_dump = NULL;
+static FILE *network_dump = NULL;
+static mutex_t *network_dump_mutex;
 
 
 static void
@@ -175,9 +176,23 @@ network_dump_packet(netpkt_t *pkt)
 	tv.tv_sec, tv.tv_usec, pkt->len, pkt->len
     };
 
-    fwrite(&pcap_packet_hdr, sizeof(pcap_packet_hdr), 1, network_dump);
-    fwrite(pkt->data, pkt->len, 1, network_dump);
-    fflush(network_dump);
+    if (network_dump_mutex)
+	thread_wait_mutex(network_dump_mutex);
+
+    size_t written;
+    if ((written = fwrite(&pcap_packet_hdr, 1, sizeof(pcap_packet_hdr), network_dump)) < sizeof(pcap_packet_hdr)) {
+	network_log("NETWORK: failed to write dump packet header\n");
+	fseek(network_dump, -written, SEEK_CUR);
+    } else {
+	if ((written = fwrite(pkt->data, 1, pkt->len, network_dump)) < pkt->len) {
+		network_log("NETWORK: failed to write dump packet data\n");
+		fseek(network_dump, -written - sizeof(pcap_packet_hdr), SEEK_CUR);
+	}
+	fflush(network_dump);
+    }
+
+    if (network_dump_mutex)
+	thread_release_mutex(network_dump_mutex);
 }
 #else
 #define network_log(fmt, ...)
@@ -452,6 +467,10 @@ network_close(void)
     thread_close_mutex(network_mutex);
     network_mutex = NULL;
     network_mac = NULL;
+#ifdef ENABLE_NETWORK_LOG
+    thread_close_mutex(network_dump_mutex);
+    network_dump_mutex = NULL;
+#endif
 
     /* Here is where we clear the queues. */
     network_queue_clear(0);
@@ -491,6 +510,9 @@ network_reset(void)
     if ((network_type==NET_TYPE_NONE) || (network_card==0)) return;
 
     network_mutex = thread_create_mutex();
+#ifdef ENABLE_NETWORK_LOG
+    network_dump_mutex = thread_create_mutex();
+#endif
 
     /* Initialize the platform module. */
     switch(network_type) {
