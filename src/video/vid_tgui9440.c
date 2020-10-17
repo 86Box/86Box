@@ -689,7 +689,7 @@ void tgui_hwcursor_draw(svga_t *svga, int displine)
                 svga->hwcursor_latch.addr += pitch;
 
         for (xx = 0; xx < svga->hwcursor.xsize; xx++) {
-		byte = (xx >> 3);
+		byte = svga->hwcursor_latch.addr + (xx >> 3);
 		bit = (7 - xx);
 		dat[0] = (svga->vram[byte] >> bit) & 0x01;			/* AND */
 		dat[1] = (svga->vram[(pitch >> 1) + byte] >> bit) & 0x01;	/* XOR */
