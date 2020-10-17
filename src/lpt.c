@@ -11,6 +11,7 @@
 #include <86box/pic.h>
 #include <86box/sound.h>
 #include <86box/prt_devs.h>
+#include <86box/net_plip.h>
 
 
 lpt_port_t	lpt_ports[3];
@@ -30,6 +31,7 @@ static const struct
 	{"Generic Text Printer",	 "text_prt",       &lpt_prt_text_device},
 	{"Generic ESC/P Dot-Matrix",     "dot_matrix",     &lpt_prt_escp_device},
 	{"Generic PostScript Printer",   "postscript",     &lpt_prt_ps_device},
+	{"PLIP Network",		 "plip",           &lpt_plip_device},
         {"", "", NULL}
 };
 
@@ -140,7 +142,7 @@ lpt_read(uint16_t port, void *priv)
 
 	case 1:
 		if (dev->dt && dev->dt->read_status)
-			ret = dev->dt->read_status(dev->priv) | 0x0f;
+			ret = dev->dt->read_status(dev->priv);
 		else
 			ret = 0xdf;
 		break;

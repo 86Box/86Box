@@ -1,3 +1,6 @@
+#ifndef EMU_LPT_H
+# define EMU_LPT_H
+
 typedef struct
 {
     const char *name;
@@ -58,3 +61,5 @@ extern const lpt_device_t lpt_dac_device;
 extern const lpt_device_t lpt_dac_stereo_device;
 
 extern const lpt_device_t dss_device;
+
+#endif /*EMU_LPT_H*/
