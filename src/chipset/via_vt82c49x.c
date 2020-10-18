@@ -222,9 +222,9 @@ vt82c49x_write(uint16_t addr, uint8_t val, void *priv)
 			/* Edge/Level IRQ Control */
 			case 0x62: case 0x63:
 				if (dev->index == 0x63)
-					pic_elcr_write(dev->index, val & 0xde, NULL);
+					pic_elcr_write(dev->index, val & 0xde, &pic2);
 				else {
-					pic_elcr_write(dev->index, val & 0xf8, NULL);
+					pic_elcr_write(dev->index, val & 0xf8, &pic);
 					pic_elcr_set_enabled(val & 0x01);
 				}
 				break;
@@ -254,9 +254,9 @@ vt82c49x_read(uint16_t addr, void *priv)
     switch (addr) {
 	case 0xa9:
 		if (dev->index == 0x63)
-			ret = pic_elcr_read(dev->index, NULL) | (dev->regs[dev->index] & 0x01);
+			ret = pic_elcr_read(dev->index, &pic2) | (dev->regs[dev->index] & 0x01);
 		else if (dev->index == 0x62)
-			ret = pic_elcr_read(dev->index, NULL) | (dev->regs[dev->index] & 0x07);
+			ret = pic_elcr_read(dev->index, &pic) | (dev->regs[dev->index] & 0x07);
 		else
 			ret = dev->regs[dev->index];
 		break;

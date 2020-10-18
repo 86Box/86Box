@@ -689,7 +689,7 @@ stpc_reg_write(uint16_t addr, uint8_t val, void *priv)
 			break;
 
 		case 0x56: case 0x57:
-			pic_elcr_write(dev->reg_offset, val, NULL);
+			pic_elcr_write(dev->reg_offset, val, (dev->reg_offset & 1) ? &pic2 : &pic);
 			if (dev->reg_offset == 0x57)
 				refresh_at_enable = (val & 0x01);
 			break;
@@ -717,7 +717,7 @@ stpc_reg_read(uint16_t addr, void *priv)
     	return 0xff; /* Cyrix CPU registers: let the CPU code handle these */
     else if ((dev->reg_offset == 0x56) || (dev->reg_offset == 0x57)) {
     	/* ELCR is in here, not in port 4D0h. */
-	ret = pic_elcr_read(dev->reg_offset, NULL);
+	ret = pic_elcr_read(dev->reg_offset, (dev->reg_offset & 1) ? &pic2 : &pic);
 	if (dev->reg_offset == 0x57)
 		ret |= (dev->regs[dev->reg_offset] & 0x01);
     } else
