@@ -331,7 +331,7 @@ poll_thread(void *arg)
     char key[20];
     while (1) {
 	sprintf(key, "%d_protocol", i);
-	udp = strncmp(config_get_string(category, key, "tcp"), "udp", -1) == 0;
+	udp = strcmp(config_get_string(category, key, "tcp"), "udp") == 0;
 	sprintf(key, "%d_external", i);
 	external = config_get_int(category, key, 0);
 	sprintf(key, "%d_internal", i);
