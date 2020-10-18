@@ -286,8 +286,8 @@ sound_cd_thread(void *param)
 #endif
 
 			/*Apply sound card CD volume*/
-			cd_buffer_temp[0] *= ((float) cd_vol_l) / 65535.0;
-			cd_buffer_temp[1] *= ((float) cd_vol_r) / 65535.0;
+			cd_buffer_temp[0] *= ((float) cd_vol_l) / 32768.0;
+			cd_buffer_temp[1] *= ((float) cd_vol_r) / 32768.0;
 
 			if (sound_is_float) {
 				cd_out_buffer[c] += (cd_buffer_temp[0] / 32768.0);
