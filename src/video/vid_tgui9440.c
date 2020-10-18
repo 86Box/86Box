@@ -1063,7 +1063,7 @@ void tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 		{
 			for (x = 0; x < 8; x++)
 			{
-				tgui->accel.tgui_pattern[y][x] = tgui->accel.fg_col;
+				tgui->accel.tgui_pattern[y][7 - x] = tgui->accel.fg_col;
 			}
 		}
 	}
@@ -1073,7 +1073,7 @@ void tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 		{
 			for (x = 0; x < 8; x++)
 			{
-				tgui->accel.tgui_pattern[y][x] = (tgui->accel.pattern[y] & (1 << x)) ? tgui->accel.fg_col : tgui->accel.bg_col;
+				tgui->accel.tgui_pattern[y][7 - x] = (tgui->accel.pattern[y] & (1 << x)) ? tgui->accel.fg_col : tgui->accel.bg_col;
 			}
 		}
 	}
@@ -1085,7 +1085,7 @@ void tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
         		{
         			for (x = 0; x < 8; x++)
         			{
-        				tgui->accel.tgui_pattern[y][x] = tgui->accel.pattern[x + y*8];
+        				tgui->accel.tgui_pattern[y][7 - x] = tgui->accel.pattern[x + y*8];
         			}
                         }
 		}
@@ -1095,7 +1095,7 @@ void tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
         		{
         			for (x = 0; x < 8; x++)
         			{
-        				tgui->accel.tgui_pattern[y][x] = tgui->accel.pattern[x*2 + y*16] | (tgui->accel.pattern[x*2 + y*16 + 1] << 8);
+        				tgui->accel.tgui_pattern[y][7 - x] = tgui->accel.pattern[x*2 + y*16] | (tgui->accel.pattern[x*2 + y*16 + 1] << 8);
         			}
                         }
 		}
