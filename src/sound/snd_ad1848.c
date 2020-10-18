@@ -56,7 +56,6 @@ void ad1848_write(uint16_t addr, uint8_t val, void *p)
 {
         ad1848_t *ad1848 = (ad1848_t *)p;
         double freq;
-		uint32_t new_cd_vol_l, new_cd_vol_r;
         switch (addr & 3)
         {
                 case 0: /*Index*/
@@ -126,18 +125,13 @@ void ad1848_write(uint16_t addr, uint8_t val, void *p)
 
                 if (ad1848->type == AD1848_TYPE_CS4231) { /* TODO: configure CD volume for CS4248/AD1848 too */
                         if (ad1848->regs[0x12] & 0x80)
-                                new_cd_vol_l = 0;
+                                ad1848->cd_vol_l = 0;
                         else
-                                new_cd_vol_l = ad1848_vols_5bits_aux_gain[ad1848->regs[0x12] & 0x1f];
+                                ad1848->cd_vol_l = ad1848_vols_5bits_aux_gain[ad1848->regs[0x12] & 0x1f];
                         if (ad1848->regs[0x13] & 0x80)
-                                new_cd_vol_r = 0;
+                                ad1848->cd_vol_r = 0;
                         else
-                                new_cd_vol_r = ad1848_vols_5bits_aux_gain[ad1848->regs[0x13] & 0x1f];
-
-                        /* Apparently there is no master volume to modulate here
-                           (The windows mixer just adjusts all registers at the same
-                           time when the master slider is adjusted) */
-                        sound_set_cd_volume(new_cd_vol_l, new_cd_vol_r);
+                                ad1848->cd_vol_r = ad1848_vols_5bits_aux_gain[ad1848->regs[0x13] & 0x1f];
                 }
                 break;
                 case 2:
@@ -223,8 +217,18 @@ static void ad1848_poll(void *p)
         else
         {
                 ad1848->out_l = ad1848->out_r = 0;
-				sound_set_cd_volume(0, 0);
+		ad1848->cd_vol_l = ad1848->cd_vol_r = 0;
         }
+}
+
+static void ad1848_filter_cd_audio(int channel, float *buffer, void *p)
+{
+        ad1848_t *ad1848 = (ad1848_t *)p;
+	int32_t c;
+	uint32_t volume = channel ? ad1848->cd_vol_r : ad1848->cd_vol_l;
+
+        c = (((int32_t) buffer) * volume) >> 16;
+	*buffer     = (float) c;
 }
 
 void ad1848_init(ad1848_t *ad1848, int type)
@@ -294,4 +298,6 @@ void ad1848_init(ad1848_t *ad1848, int type)
 	ad1848->type = type;
 	
 	timer_add(&ad1848->timer_count, ad1848_poll, ad1848, 0);
+
+	sound_set_cd_audio_filter(ad1848_filter_cd_audio, ad1848);
 }

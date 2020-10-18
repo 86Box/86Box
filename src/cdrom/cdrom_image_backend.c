@@ -718,7 +718,8 @@ cdi_add_track(cd_img_t *cdi, track_t *cur, uint64_t *shift, uint64_t prestart, u
     uint64_t skip, temp;
     track_t *prev = NULL;
 
-    if (prestart > 0) {
+    /* Skip *MUST* be calculated even if prestart is 0. */
+    if (prestart >= 0) {
 	if (prestart > cur->start)
 		return 0;
 	skip = cur->start - prestart;

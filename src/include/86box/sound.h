@@ -45,6 +45,8 @@ extern int	sound_card_current;
 
 extern void	sound_add_handler(void (*get_buffer)(int32_t *buffer, \
 				  int len, void *p), void *p);
+extern void	sound_set_cd_audio_filter(void (*filter)(int channel, \
+					  float *buffer, void *p), void *p);
 
 extern int	sound_card_available(int card);
 extern char	*sound_card_getname(int card);

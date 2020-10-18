@@ -123,6 +123,14 @@ static void sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
         sb->dsp.pos = 0;
 }
 
+static void sb2_filter_cd_audio(int channel, float *buffer, void *p)
+{
+	int32_t c;
+
+	c = (int32_t)(((sb_iir(0, *buffer) / 1.3) * 65536) / 3) >> 16;
+	*buffer = (float) c;
+}
+
 static void sb_get_buffer_sb2_mixer(int32_t *buffer, int len, void *p)
 {
         sb_t *sb = (sb_t *)p;
@@ -158,6 +166,17 @@ static void sb_get_buffer_sb2_mixer(int32_t *buffer, int len, void *p)
 	        sb->opl.pos = 0;
 
         sb->dsp.pos = 0;
+}
+
+static void sb2_mixer_filter_cd_audio(int channel, float *buffer, void *p)
+{
+        sb_t *sb = (sb_t *)p;
+        sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;
+	int32_t c;
+
+	c = (int32_t)(((sb_iir(0, *buffer)     / 1.3) * mixer->voice) / 3) >> 15;
+	c = (c * mixer->master) >> 15;
+	*buffer = (float) c;
 }
 
 void sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
@@ -225,6 +244,22 @@ void sb_get_buffer_sbpro(int32_t *buffer, int len, void *p)
 	}
 
         sb->dsp.pos = 0;
+}
+
+static void sbpro_filter_cd_audio(int channel, float *buffer, void *p)
+{
+        sb_t *sb = (sb_t *)p;
+        sb_ct1345_mixer_t *mixer = &sb->mixer_sbpro;
+	int32_t c;
+	int32_t voice = channel ? mixer->voice_r : mixer->voice_l;
+	int32_t master = channel ? mixer->master_r : mixer->master_l;
+
+	if (mixer->output_filter)
+		c = (int32_t)(((sb_iir(channel, *buffer)     / 1.3) * voice) / 3) >> 15;
+	else
+		c = ((int32_t)(((int32_t) *buffer)     * voice) / 3) >> 15;
+	c = (c * master) >> 15;
+	*buffer = (float) c;
 }
 
 static void sb_get_buffer_sb16(int32_t *buffer, int len, void *p)
@@ -308,6 +343,32 @@ int old_dsp_rec_pos=0;
 int buf_written=0;
 int last_crecord=0;
 #endif
+
+static void sb16_awe32_filter_cd_audio(int channel, float *buffer, void *p)
+{
+        sb_t *sb = (sb_t *)p;
+        sb_ct1745_mixer_t *mixer = &sb->mixer_sb16;
+	int32_t c;
+	int32_t voice = channel ? mixer->voice_r : mixer->voice_l;
+	int32_t master = channel ? mixer->master_r : mixer->master_l;
+	int32_t bass = channel ? mixer->bass_r : mixer->bass_l;
+	int32_t treble = channel ? mixer->treble_r : mixer->treble_l;
+	int32_t output_gain = channel ? mixer->output_gain_R : mixer->output_gain_L;
+
+	c = ((int32_t)(low_fir_sb16(channel, *buffer)     * voice) / 3) >> 15;
+	c = (c * master) >> 15;
+
+	if (bass != 8 || treble != 8) {
+		/* This is not exactly how one does bass/treble controls, but the end result is like it. A better implementation would reduce the cpu usage */
+		if (bass>8) c += (int32_t)(low_iir(channel, (float)c)*sb_bass_treble_4bits[bass]);
+		if (treble>8) c += (int32_t)(high_iir(channel, (float)c)*sb_bass_treble_4bits[treble]);
+		if (bass<8)   c = (int32_t)((c )*sb_bass_treble_4bits[bass] + low_cut_iir(channel, (float)c)*(1.f-sb_bass_treble_4bits[bass]));
+		if (treble<8) c = (int32_t)((c )*sb_bass_treble_4bits[treble] + high_cut_iir(channel, (float)c)*(1.f-sb_bass_treble_4bits[treble]));
+	}
+
+	*buffer     = (float) (c << output_gain);
+}
+
 static void sb_get_buffer_emu8k(int32_t *buffer, int len, void *p)
 {
         sb_t *sb = (sb_t *)p;
@@ -460,9 +521,6 @@ void sb_ct1335_mixer_write(uint16_t addr, uint8_t val, void *p)
                 mixer->fm     = sb_att_4dbstep_3bits[(mixer->regs[0x06] >> 1)&0x7];
                 mixer->cd     = sb_att_4dbstep_3bits[(mixer->regs[0x08] >> 1)&0x7];
                 mixer->voice  = sb_att_7dbstep_2bits[(mixer->regs[0x0A] >> 1)&0x3];
-
-                sound_set_cd_volume(((uint32_t)mixer->master * (uint32_t)mixer->cd) / 32768,
-                                    ((uint32_t)mixer->master * (uint32_t)mixer->cd) / 32768);
         }
 }
 
@@ -582,8 +640,6 @@ void sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *p)
                 }
                 
                 /* TODO: pcspeaker volume? Or is it not worth? */
-                sound_set_cd_volume(((uint32_t)mixer->master_l * (uint32_t)mixer->cd_l) / 32768,
-                                    ((uint32_t)mixer->master_r * (uint32_t)mixer->cd_r) / 32768);
         }
 }
 
@@ -785,8 +841,6 @@ void sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
                 mixer->treble_r = mixer->regs[0x45] >> 4;
 
                 /*TODO: pcspeaker volume, with "output_selector" check? or better not? */
-                sound_set_cd_volume(((uint32_t)mixer->master_l * (uint32_t)mixer->cd_l) / 32768,
-                                    ((uint32_t)mixer->master_r * (uint32_t)mixer->cd_r) / 32768);
                 sb_log("sb_ct1745: Received register WRITE: %02X\t%02X\n", mixer->index, mixer->regs[mixer->index]);
         }
 }
@@ -1070,6 +1124,7 @@ void *sb_1_init(const device_t *info)
         	io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
 	}
         sound_add_handler(sb_get_buffer_sb2, sb);
+	sound_set_cd_audio_filter(sb2_filter_cd_audio, sb);
 
 	if (device_get_config_int("receive_input"))
 		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
@@ -1100,6 +1155,7 @@ void *sb_15_init(const device_t *info)
         	io_sethandler(0x0388, 0x0002, opl2_read, NULL, NULL, opl2_write, NULL, NULL, &sb->opl);
 	}
         sound_add_handler(sb_get_buffer_sb2, sb);
+	sound_set_cd_audio_filter(sb2_filter_cd_audio, sb);
 
 	if (device_get_config_int("receive_input"))
 		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
@@ -1123,6 +1179,7 @@ void *sb_mcv_init(const device_t *info)
         sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
         sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
         sound_add_handler(sb_get_buffer_sb2, sb);
+	sound_set_cd_audio_filter(sb2_filter_cd_audio, sb);
         /* I/O handlers activated in sb_mcv_write */
         mca_add(sb_mcv_read, sb_mcv_write, sb_mcv_feedb, NULL, sb);
         sb->pos_regs[0] = 0x84;
@@ -1174,9 +1231,11 @@ void *sb_2_init(const device_t *info)
         {
                 io_sethandler(mixer_addr+4, 0x0002, sb_ct1335_mixer_read, NULL, NULL, sb_ct1335_mixer_write, NULL, NULL, sb);
                 sound_add_handler(sb_get_buffer_sb2_mixer, sb);
-        }
-        else
-                sound_add_handler(sb_get_buffer_sb2, sb);    
+		sound_set_cd_audio_filter(sb2_mixer_filter_cd_audio, sb);
+        } else {
+                sound_add_handler(sb_get_buffer_sb2, sb);
+		sound_set_cd_audio_filter(sb2_filter_cd_audio, sb);
+	}
 
 	if (device_get_config_int("receive_input"))
 		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
@@ -1252,6 +1311,7 @@ void *sb_pro_v1_init(const device_t *info)
 	}
         io_sethandler(addr+4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sbpro, sb);
+	sound_set_cd_audio_filter(sbpro_filter_cd_audio, sb);
 
 	if (device_get_config_int("receive_input"))
 		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
@@ -1287,6 +1347,7 @@ void *sb_pro_v2_init(const device_t *info)
 	}
         io_sethandler(addr+4, 0x0002, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sbpro, sb);
+	sound_set_cd_audio_filter(sbpro_filter_cd_audio, sb);
 
 	if (device_get_config_int("receive_input"))
 		midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
@@ -1310,6 +1371,7 @@ void *sb_pro_mcv_init(const device_t *info)
         sb_ct1345_mixer_reset(sb);
         /* I/O handlers activated in sb_mcv_write */
         sound_add_handler(sb_get_buffer_sbpro, sb);
+	sound_set_cd_audio_filter(sbpro_filter_cd_audio, sb);
 
         /* I/O handlers activated in sb_pro_mcv_write */
         mca_add(sb_pro_mcv_read, sb_pro_mcv_write, sb_mcv_feedb, NULL, sb);
@@ -1345,6 +1407,7 @@ void *sb_16_init(const device_t *info)
 	}
         io_sethandler(addr+4, 0x0002, sb_ct1745_mixer_read, NULL, NULL, sb_ct1745_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_sb16, sb);
+	sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
 	if (mpu_addr) {
 		sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
 		memset(sb->mpu, 0, sizeof(mpu_t));
@@ -1391,6 +1454,7 @@ void *sb_awe32_init(const device_t *info)
 	}
         io_sethandler(addr+4, 0x0002, sb_ct1745_mixer_read, NULL, NULL, sb_ct1745_mixer_write, NULL, NULL, sb);
         sound_add_handler(sb_get_buffer_emu8k, sb);
+	sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
 	if (mpu_addr) {
 		sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
 		memset(sb->mpu, 0, sizeof(mpu_t));

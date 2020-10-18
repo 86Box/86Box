@@ -14,7 +14,9 @@ typedef struct ad1848_t
         int count;
         
         int16_t out_l, out_r;
-                
+
+	uint32_t cd_vol_l, cd_vol_r;
+
         int enable;
 
         int irq, dma;

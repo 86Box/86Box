@@ -16,6 +16,7 @@
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
  */
+#include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -75,6 +76,9 @@ static unsigned int cd_vol_l, cd_vol_r;
 static int cd_buf_update = CD_BUFLEN / SOUNDBUFLEN;
 static volatile int cdaudioon = 0;
 static int cd_thread_enable = 0;
+
+static void (*filter_cd_audio)(int channel, float *buffer, void *p) = NULL;
+static void *filter_cd_audio_p = NULL;
 
 
 static const SOUND_CARD sound_cards[] =
@@ -241,8 +245,20 @@ sound_cd_thread(void *param)
 			audio_vol_r = 255.0;
 		}
 
-		audio_vol_l /= 511.0;
-		audio_vol_r /= 511.0;
+		/* Calculate attenuation per the specification. */
+		if (audio_vol_l >= 255.0)
+			audio_vol_l = 1.0;
+		else if (audio_vol_l > 0.0)
+			audio_vol_l = (48.0 + (20.0 * log(audio_vol_l / 256.0))) / 48.0;
+		else
+			audio_vol_l = 0.0;
+
+		if (audio_vol_r >= 255.0)
+			audio_vol_r = 1.0;
+		else if (audio_vol_r > 0.0)
+			audio_vol_r = (48.0 + (20.0 * log(audio_vol_r / 256.0))) / 48.0;
+		else
+			audio_vol_r = 0.0;
 
 		if (cdrom[i].get_channel) {
 			channel_select[0] = cdrom[i].get_channel(cdrom[i].priv, 0);
@@ -256,16 +272,6 @@ sound_cd_thread(void *param)
 			/*Apply ATAPI channel select*/
 			cd_buffer_temp[0] = cd_buffer_temp[1] = 0.0;
 
-#if 0
-			if (channel_select[0] & 1)
-				cd_buffer_temp[0] += ((float) cd_buffer[i][c]) * audio_vol_l;
-			if (channel_select[0] & 2)
-				cd_buffer_temp[1] += ((float) cd_buffer[i][c]) * audio_vol_l;
-			if (channel_select[1] & 1)
-				cd_buffer_temp[0] += ((float) cd_buffer[i][c + 1]) * audio_vol_r;
-			if (channel_select[1] & 2)
-				cd_buffer_temp[1] += ((float) cd_buffer[i][c + 1]) * audio_vol_r;
-#else
 			if ((audio_vol_l != 0.0) && (channel_select[0] != 0)) {
 				if (channel_select[0] & 1)
 					cd_buffer_temp[0] += ((float) cd_buffer[i][c]);		/* Channel 0 => Port 0 */
@@ -283,11 +289,12 @@ sound_cd_thread(void *param)
 
 				cd_buffer_temp[1] *= audio_vol_r;				/* Multiply Port 1 by Port 1 volume */
 			}
-#endif
 
-			/*Apply sound card CD volume*/
-			cd_buffer_temp[0] *= ((float) cd_vol_l) / 32768.0;
-			cd_buffer_temp[1] *= ((float) cd_vol_r) / 32768.0;
+			/* Apply sound card CD volume and filters */
+			if (filter_cd_audio != NULL) {
+				filter_cd_audio(0, &(cd_buffer_temp[0]), filter_cd_audio_p);
+				filter_cd_audio(1, &(cd_buffer_temp[0]), filter_cd_audio_p);
+			}
 
 			if (sound_is_float) {
 				cd_out_buffer[c] += (cd_buffer_temp[0] / 32768.0);
@@ -377,6 +384,16 @@ sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *p), void *p
 
 
 void
+sound_set_cd_audio_filter(void (*filter)(int channel, float *buffer, void *p), void *p)
+{
+    if ((filter_cd_audio != NULL) || (filter == NULL)) {
+	filter_cd_audio = filter;
+	filter_cd_audio_p = p;
+    }
+}
+
+
+void
 sound_poll(void *priv)
 {
     timer_advance_u64(&sound_poll_timer, sound_poll_latch);
@@ -442,6 +459,10 @@ sound_reset(void)
     timer_add(&sound_poll_timer, sound_poll, NULL, 1);
 
     sound_handlers_num = 0;
+    memset(sound_handlers, 0x00, 8 * sizeof(sound_handler_t));
+
+    filter_cd_audio = NULL;
+    filter_cd_audio_p = NULL;
 
     sound_set_cd_volume(65535, 65535);
 }
