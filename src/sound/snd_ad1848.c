@@ -227,7 +227,7 @@ static void ad1848_filter_cd_audio(int channel, float *buffer, void *p)
 	int32_t c;
 	uint32_t volume = channel ? ad1848->cd_vol_r : ad1848->cd_vol_l;
 
-        c = (((int32_t) buffer) * volume) >> 16;
+        c = (((int32_t) *buffer) * volume) >> 16;
 	*buffer     = (float) c;
 }
 
