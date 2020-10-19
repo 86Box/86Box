@@ -293,7 +293,7 @@ sound_cd_thread(void *param)
 			/* Apply sound card CD volume and filters */
 			if (filter_cd_audio != NULL) {
 				filter_cd_audio(0, &(cd_buffer_temp[0]), filter_cd_audio_p);
-				filter_cd_audio(1, &(cd_buffer_temp[0]), filter_cd_audio_p);
+				filter_cd_audio(1, &(cd_buffer_temp[1]), filter_cd_audio_p);
 			}
 
 			if (sound_is_float) {
