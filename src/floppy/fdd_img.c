@@ -54,8 +54,8 @@ typedef struct {
     uint8_t	gap3_size;
     uint16_t	disk_flags;
     uint16_t	track_flags;
-    uint8_t	sector_pos_side[2][256];
-    uint16_t	sector_pos[2][256];
+    uint8_t	sector_pos_side[256][256];
+    uint16_t	sector_pos[256][256];
     uint8_t	current_sector_pos_side;
     uint16_t	current_sector_pos;
     uint8_t	*disk_data;
