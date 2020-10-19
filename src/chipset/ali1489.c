@@ -34,6 +34,7 @@
 #include <86box/fdc.h>
 #include <86box/pci.h>
 #include <86box/dma.h>
+#include <86box/smram.h>
 #include <86box/hdc_ide.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
@@ -63,7 +64,7 @@ typedef struct
     uint8_t	index, ide_index, ide_chip_id,
 	regs[256], pci_conf[256], ide_regs[256];
     port_92_t * port_92;
-
+    smram_t * smram;
 } ali1489_t;
 
 static void
@@ -138,25 +139,24 @@ mem_set_mem_state_both(base, 0x8000, disabled_shadow);
 flushmmucache();
 }
 
-static void ali1489_smm_recalc(ali1489_t *dev)
+static void ali1489_smram_recalc(ali1489_t *dev)
 {
-    if((dev->regs[0x19] & 0x08) && (((dev->regs[0x19] & 0x03) << 4) != 0x00))
-    {
-        if(((dev->regs[0x19] & 0x03) << 4) & 0x01)
-        {
-        mem_set_mem_state_smm(0xa0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-        }
-            
-        if(((dev->regs[0x19] & 0x03) << 4) & 0x02)
-        {
-        mem_set_mem_state_smm(0xe0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-        }
-
-        if(((dev->regs[0x19] & 0x03) << 4) & 0x03)
-        {
-        mem_set_mem_state_smm(0x38000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-        }
-    }
+/* The datasheet documents SMM behavior quite terribly.
+   Everything were done according to the M1489 programming guide. */
+switch(dev->regs[0x19] & 0x30)  {
+case 0:
+smram_disable_all();
+break;
+case 1:
+smram_enable(dev->smram, 0xa0000, 0xa0000, 0x20000, (dev->regs[0x19] & 0x08), !(dev->regs[0x19] & 0x08));
+break;
+case 2:
+smram_enable(dev->smram, 0xe0000, 0xe0000, 0x10000, (dev->regs[0x19] & 0x08), !(dev->regs[0x19] & 0x08));
+break;
+case 3:
+smram_enable(dev->smram, 0x30000, 0xa0000, 0x20000, (dev->regs[0x19] & 0x08), !(dev->regs[0x19] & 0x08));
+break;
+}
 }
 
 static void
@@ -170,7 +170,7 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 	case 0x23:
 
-		dev->regs[dev->index] = val;
+        dev->regs[dev->index] = val;
 
         if(dev->regs[0x03] == 0xc5) /* Check if the configuration registers are unlocked */
         {
@@ -211,7 +211,7 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
 
             case 0x19: /* SMM Control Register */
             dev->regs[dev->index] = val;
-            ali1489_smm_recalc(dev);
+            ali1489_smram_recalc(dev);
             break;
 
             case 0x1a: /* EDO DRAM Configuration Register */
@@ -262,8 +262,13 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
             case 0x32: /* Mode Timer Monitoring Events Selection Register II */
             case 0x33: /* SMI Triggered Events Selection Register I */
             case 0x34: /* SMI Triggered Events Selection Register II */
+            dev->regs[dev->index] = val;
+            break;
+
             case 0x35: /* SMI Status Register */
             dev->regs[dev->index] = val;
+            if(dev->regs[dev->index] & 0x30)
+            smi_line = 1;
             break;
 
             case 0x36: /* IRQ Channel Group Selected Control Register I */
@@ -379,7 +384,7 @@ switch (addr)
 
     /* Dummy PCI Status */
     case 0x07:
-    dev->pci_conf[0x07] = val;
+    dev->pci_conf[0x07] &= ~(val & 0xfe);
     break;
 }
 
@@ -477,7 +482,8 @@ static void
 ali1489_close(void *priv)
 {
     ali1489_t *dev = (ali1489_t *) priv;
-
+    
+    smram_del(dev->smram);
     free(dev);
 }
 
@@ -493,8 +499,7 @@ ali1489_init(const device_t *info)
     22h Index Port
     23h Data Port
     */
-    io_sethandler(0x022, 0x0001, ali1489_read, NULL, NULL, ali1489_write, NULL, NULL, dev);
-    io_sethandler(0x023, 0x0001, ali1489_read, NULL, NULL, ali1489_write, NULL, NULL, dev);
+    io_sethandler(0x0022, 0x0002, ali1489_read, NULL, NULL, ali1489_write, NULL, NULL, dev);
 
     /*
     M1489 IDE controller
@@ -513,6 +518,7 @@ ali1489_init(const device_t *info)
     ide_sec_disable();
 
     dev->port_92 = device_add(&port_92_pci_device);
+    dev->smram = smram_add();
 
     pci_set_irq(PCI_INTA, PCI_IRQ_DISABLED);
     pci_set_irq(PCI_INTB, PCI_IRQ_DISABLED);
