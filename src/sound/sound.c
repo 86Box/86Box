@@ -386,7 +386,7 @@ sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *p), void *p
 void
 sound_set_cd_audio_filter(void (*filter)(int channel, float *buffer, void *p), void *p)
 {
-    if ((filter_cd_audio != NULL) || (filter == NULL)) {
+    if ((filter_cd_audio == NULL) || (filter == NULL)) {
 	filter_cd_audio = filter;
 	filter_cd_audio_p = p;
     }
