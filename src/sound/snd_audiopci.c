@@ -79,6 +79,7 @@ typedef struct {
     int64_t dac_latch, dac_time;
 
     int master_vol_l, master_vol_r;
+    int cd_vol_l, cd_vol_r;
 
     int card;
 
@@ -592,7 +593,7 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 		if (!(val & CODEC_READ))
 		{
 //			audiopci_log("Write codec %02x %04x\n", (val >> 16) & 0x7f, val & 0xffff);
-			if ((((val >> 16) & 0x7f) != 0x7c) || (((val >> 16) & 0x7f) != 0x7e))
+			if ((((val >> 16) & 0x7f) != 0x7c) && (((val >> 16) & 0x7f) != 0x7e))
 				es1371->codec_regs[(val >> 16) & 0x7f] = val & 0xffff;
 			switch ((val >> 16) & 0x7f)
 			{
@@ -609,6 +610,15 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 						es1371->master_vol_r = codec_attn[0];
 					else					
 						es1371->master_vol_r = codec_attn[0x1f - (val & 0x1f)];
+				}
+				break;
+				case 0x12: /*CD volume*/
+				if (val & 0x8000)
+					es1371->cd_vol_l = es1371->cd_vol_r = 0;
+				else
+				{
+					es1371->cd_vol_l = codec_attn[0x1f - ((val >> 8) & 0x1f)];
+					es1371->cd_vol_r = codec_attn[0x1f - (val & 0x1f)];
 				}
 				break;
 			}       
@@ -1268,15 +1278,10 @@ static void es1371_filter_cd_audio(int channel, float *buffer, void *p)
 {
 	es1371_t *es1371 = (es1371_t *)p;
 	int32_t c;
-	int32_t volume, val = (int32_t) (uint32_t) es1371->codec_regs[0x12];
+	int cd = channel ? es1371->cd_vol_r : es1371->cd_vol_l;
 	int master = channel ? es1371->master_vol_r : es1371->master_vol_l;
 
-	if (val & 0x8000)
-		volume = 0;
-	else
-		volume = channel ? codec_attn[0x1f - (val & 0x1f)] : codec_attn[0x1f - ((val >> 8) & 0x1f)];
-
-        c = (((int32_t) buffer) * volume) >> 15;
+        c = (((int32_t) *buffer) * cd) >> 15;
 	c = (c * master) >> 15;
 
 	*buffer     = (float) c;
