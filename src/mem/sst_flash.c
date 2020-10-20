@@ -131,6 +131,8 @@ sst_new_command(sst_t *dev, uint32_t addr, uint8_t val)
 			memset(dev->page_buffer, 0xff, 128);
 			memset(dev->page_dirty, 0x00, 128);
 			dev->page_bytes = 0;
+			dev->last_addr = 0xffffffff;
+			timer_on_auto(&dev->page_write_timer, 210.0);
 		}
 		dev->command_state = 6;
 		break;
@@ -153,12 +155,19 @@ sst_page_write(void *priv)
     sst_t *dev = (sst_t *) priv;
     int i;
 
+    pclog("sst_page_write(): dev->last_addr = %08X\n", dev->last_addr);
+
+    if (dev->last_addr == 0xffffffff)
+	return;
+
     dev->page_base = dev->last_addr & dev->page_mask;
     for (i = 0; i < 128; i++) {
-	if (dev->page_dirty[i])
+	if (dev->page_dirty[i]) {
 		dev->array[dev->page_base + i] = dev->page_buffer[i];
+		dev->dirty |= 1;
+	}
     }
-    dev->dirty = 1;
+    pclog("dev->dirty = %i\n", dev->dirty);
     dev->page_bytes = 0;
     dev->command_state = 0;
     timer_disable(&dev->page_write_timer);
