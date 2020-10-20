@@ -161,6 +161,7 @@ sst_page_write(void *priv)
     dev->dirty = 1;
     dev->page_bytes = 0;
     dev->command_state = 0;
+    timer_disable(&dev->page_write_timer);
 }
 
 
@@ -183,7 +184,6 @@ sst_buf_write(sst_t *dev, uint32_t addr, uint8_t val)
 {
     dev->page_buffer[addr & 0x0000007f] = val;
     dev->page_dirty[addr & 0x0000007f] = 1;
-    timer_disable(&dev->page_write_timer);
     dev->page_bytes++;
     dev->last_addr = addr;
     if (dev->page_bytes >= 128) {
@@ -248,7 +248,7 @@ sst_write(uint32_t addr, uint8_t val, void *p)
 		} 
 		break;
 	case 7:
-		if (!dev->is_39 && ((addr & dev->page_mask) == dev->page_base))
+		if (!dev->is_39)
 			sst_buf_write(dev, addr, val);
 		break;
     }
