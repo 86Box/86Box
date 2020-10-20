@@ -399,6 +399,7 @@ const machine_t machines[] = {
 
     /* VIA Apollo Pro */
     { "[VIA Apollo Pro] PC Partner APAS3",	"apas3",		MACHINE_TYPE_SOCKET370,		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			  8,  768,   8, 255,            machine_at_apas3_init, NULL			},
+    { "[VIA Apollo ProMedia] Jetway 603TCF",	"603tcf",		MACHINE_TYPE_SOCKET370,		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			  8,  512,   8, 255,            machine_at_603tcf_init, NULL			},
 
     /* Miscellaneous/Fake/Hypervisor machines */
     { "[i440BX] Microsoft Virtual PC 2007",	"vpc2007",		MACHINE_TYPE_MISC,		{{"Intel", cpus_PentiumIID},  {"Intel/PGA370", cpus_Celeron},{"",      NULL}, {"",     NULL},     {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		  8, 1024,   8, 255,	      machine_at_vpc2007_init, NULL			},

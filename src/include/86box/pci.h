@@ -122,6 +122,7 @@ extern const device_t i440gx_agp_device;
 extern const device_t via_vp3_agp_device;
 extern const device_t via_mvp3_agp_device;
 extern const device_t via_apro_agp_device;
+extern const device_t via_vt8601_agp_device;
 #endif
 
 

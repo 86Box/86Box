@@ -478,6 +478,7 @@ extern int	machine_at_awo671r_init(const machine_t *);
 extern int	machine_at_63a_init(const machine_t *);
 extern int	machine_at_s370sba_init(const machine_t *);
 extern int	machine_at_apas3_init(const machine_t *);
+extern int	machine_at_603tcf_init(const machine_t *);
 
 /* m_at_misc.c */
 extern int	machine_at_vpc2007_init(const machine_t *);

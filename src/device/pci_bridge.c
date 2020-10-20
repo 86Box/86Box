@@ -39,6 +39,7 @@
 #define AGP_BRIDGE_VIA_597	0x11068597
 #define AGP_BRIDGE_VIA_598	0x11068598
 #define AGP_BRIDGE_VIA_691	0x11068691
+#define AGP_BRIDGE_VIA_8601 0x11068601
 
 #define AGP_BRIDGE_VIA(x)	(((x) >> 16) == 0x1106)
 #define AGP_BRIDGE(x)		((x) >= AGP_BRIDGE_VIA_597)
@@ -227,6 +228,7 @@ pci_bridge_reset(void *priv)
 	case AGP_BRIDGE_VIA_597:
 	case AGP_BRIDGE_VIA_598:
 	case AGP_BRIDGE_VIA_691:
+    case AGP_BRIDGE_VIA_8601:
 		dev->regs[0x04] = 0x07;
 		dev->regs[0x06] = 0x20;
 		dev->regs[0x07] = 0x02;
@@ -398,6 +400,20 @@ const device_t via_apro_agp_device =
     "VIA Apollo Pro AGP Bridge",
     DEVICE_PCI,
     AGP_BRIDGE_VIA_691,
+    pci_bridge_init,
+    NULL,
+    pci_bridge_reset,
+    NULL,
+    NULL,
+    NULL,
+    NULL
+};
+
+const device_t via_vt8601_agp_device =
+{
+    "VIA Apollo ProMedia AGP Bridge",
+    DEVICE_PCI,
+    AGP_BRIDGE_VIA_8601,
     pci_bridge_init,
     NULL,
     pci_bridge_reset,
