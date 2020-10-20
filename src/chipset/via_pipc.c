@@ -805,6 +805,35 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 }
 
 
+static void
+pipc_reset(void *p)
+{
+    pipc_t *dev = (pipc_t *) p;
+    uint8_t pm_func = dev->usb[1] ? 4 : 3;
+
+    pipc_write(pm_func, 0x41, 0x00, p);
+    pipc_write(pm_func, 0x48, 0x01, p);
+    pipc_write(pm_func, 0x49, 0x00, p);
+
+    pipc_write(1, 0x04, 0x80, p);
+    pipc_write(1, 0x09, 0x85, p);
+    pipc_write(1, 0x10, 0xf1, p);
+    pipc_write(1, 0x11, 0x01, p);
+    pipc_write(1, 0x14, 0xf5, p);
+    pipc_write(1, 0x15, 0x03, p);
+    pipc_write(1, 0x18, 0x71, p);
+    pipc_write(1, 0x19, 0x01, p);
+    pipc_write(1, 0x1c, 0x75, p);
+    pipc_write(1, 0x1d, 0x03, p);
+    pipc_write(1, 0x20, 0x01, p);
+    pipc_write(1, 0x21, 0xcc, p);
+    if (dev->local <= VIA_PIPC_586B)
+	pipc_write(1, 0x40, 0x04, p);
+    else
+	pipc_write(1, 0x40, 0x00, p);
+}
+
+
 static void *
 pipc_init(const device_t *info)
 {
@@ -884,7 +913,7 @@ const device_t via_vt82c586b_device =
     VIA_PIPC_586B,
     pipc_init, 
     pipc_close, 
-    NULL,
+    pipc_reset,
     NULL,
     NULL,
     NULL,
@@ -898,7 +927,7 @@ const device_t via_vt82c596_device =
     VIA_PIPC_596A,
     pipc_init, 
     pipc_close, 
-    NULL,
+    pipc_reset,
     NULL,
     NULL,
     NULL,
@@ -913,7 +942,7 @@ const device_t via_vt82c596b_device =
     VIA_PIPC_596B,
     pipc_init, 
     pipc_close, 
-    NULL,
+    pipc_reset,
     NULL,
     NULL,
     NULL,
@@ -928,7 +957,7 @@ const device_t via_vt82c686a_device =
     VIA_PIPC_686A,
     pipc_init, 
     pipc_close, 
-    NULL,
+    pipc_reset,
     NULL,
     NULL,
     NULL,
@@ -943,7 +972,7 @@ const device_t via_vt82c686b_device =
     VIA_PIPC_686B,
     pipc_init, 
     pipc_close, 
-    NULL,
+    pipc_reset,
     NULL,
     NULL,
     NULL,
