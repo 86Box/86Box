@@ -127,7 +127,6 @@ sst_new_command(sst_t *dev, uint32_t addr, uint8_t val)
 		if (!dev->is_39) {
 			memset(dev->page_buffer, 0xff, 128);
 			dev->page_bytes = 0;
-			timer_on_auto(&dev->page_write_timer, 210.0);
 		}
 		dev->command_state = 6;
 		break;
@@ -179,7 +178,7 @@ sst_buf_write(sst_t *dev, uint32_t addr, uint8_t val)
     if (dev->page_bytes >= 128)
 	sst_page_write(dev);
     else
-	timer_set_delay_u64(&dev->page_write_timer, 210 * TIMER_USEC);
+	timer_on_auto(&dev->page_write_timer, 210.0);
 }
 
 
