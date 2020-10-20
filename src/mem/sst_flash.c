@@ -155,8 +155,6 @@ sst_page_write(void *priv)
     sst_t *dev = (sst_t *) priv;
     int i;
 
-    pclog("sst_page_write(): dev->last_addr = %08X\n", dev->last_addr);
-
     if (dev->last_addr == 0xffffffff)
 	return;
 
@@ -167,7 +165,6 @@ sst_page_write(void *priv)
 		dev->dirty |= 1;
 	}
     }
-    pclog("dev->dirty = %i\n", dev->dirty);
     dev->page_bytes = 0;
     dev->command_state = 0;
     timer_disable(&dev->page_write_timer);
