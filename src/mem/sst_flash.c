@@ -155,14 +155,13 @@ sst_page_write(void *priv)
     sst_t *dev = (sst_t *) priv;
     int i;
 
-    if (dev->last_addr == 0xffffffff)
-	return;
-
-    dev->page_base = dev->last_addr & dev->page_mask;
-    for (i = 0; i < 128; i++) {
-	if (dev->page_dirty[i]) {
-		dev->array[dev->page_base + i] = dev->page_buffer[i];
-		dev->dirty |= 1;
+    if (dev->last_addr != 0xffffffff) {
+	dev->page_base = dev->last_addr & dev->page_mask;
+	for (i = 0; i < 128; i++) {
+		if (dev->page_dirty[i]) {
+			dev->array[dev->page_base + i] = dev->page_buffer[i];
+			dev->dirty |= 1;
+		}
 	}
     }
     dev->page_bytes = 0;
@@ -222,8 +221,8 @@ sst_write(uint32_t addr, uint8_t val, void *p)
 				dev->page_bytes = 0;
 				dev->command_state = 7;
 				sst_buf_write(dev, addr, val);
-			}
-			dev->command_state = 0;
+			} else
+				dev->command_state = 0;
 		}
 		break;
 	case 1:

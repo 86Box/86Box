@@ -56,7 +56,7 @@ apollo_map(uint32_t addr, uint32_t size, int state)
 		mem_set_mem_state_both(addr, size, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
 		break;
 	case 2:
-		mem_set_mem_state_both(addr, size, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
+		mem_set_mem_state_both(addr, size, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
 		break;
 	case 3:
 		mem_set_mem_state_both(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
