@@ -125,6 +125,7 @@ sst_new_command(sst_t *dev, uint32_t addr, uint8_t val)
 
 	case SST_BYTE_PROGRAM:
 		if (!dev->is_39) {
+			dev->sdp = 1;
 			memset(dev->page_buffer, 0xff, 128);
 			dev->page_bytes = 0;
 		}
