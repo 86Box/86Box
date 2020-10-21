@@ -155,8 +155,6 @@ recalc_sb16_filter(int c, int playback_freq)
     double fC = ((double) playback_freq) / 96000.0;
     double gain;
 
-    pclog("recalc_sb16_filter(%i, %i)\n", c, playback_freq);
-
     for (n = 0; n < SB16_NCoef; n++) {
 	/* Blackman window */
 	w = 0.42 - (0.5 * cos((2.0*n*M_PI)/(double)(SB16_NCoef-1))) + (0.08 * cos((4.0*n*M_PI)/(double)(SB16_NCoef-1)));
