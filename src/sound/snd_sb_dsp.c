@@ -117,7 +117,7 @@ uint8_t adjustMap2[24] = {
     252, 0, 252, 0
 };
 
-float low_fir_sb16_coef[SB16_NCoef];
+double low_fir_sb16_coef[2][SB16_NCoef];
 
 
 #ifdef ENABLE_SB_DSP_LOG
@@ -147,13 +147,15 @@ sinc(double x)
 }
 
 static void
-recalc_sb16_filter(int playback_freq)
+recalc_sb16_filter(int c, int playback_freq)
 {
     /* Cutoff frequency = playback / 2 */
-    float fC = ((float)playback_freq / 2.0) / 48000.0;
-    float gain;
     int n;
     double w, h;
+    double fC = ((double) playback_freq) / 96000.0;
+    double gain;
+
+    pclog("recalc_sb16_filter(%i, %i)\n", c, playback_freq);
 
     for (n = 0; n < SB16_NCoef; n++) {
 	/* Blackman window */
@@ -162,18 +164,18 @@ recalc_sb16_filter(int playback_freq)
 	h = sinc(2.0 * fC * ((double)n - ((double)(SB16_NCoef-1) / 2.0)));
 
 	/* Create windowed-sinc filter */
-	low_fir_sb16_coef[n] = w * h;
+	low_fir_sb16_coef[c][n] = w * h;
     }
 
-    low_fir_sb16_coef[(SB16_NCoef - 1) / 2] = 1.0;
+    low_fir_sb16_coef[c][(SB16_NCoef - 1) / 2] = 1.0;
 
     gain = 0.0;
     for (n = 0; n < SB16_NCoef; n++)
-	gain += low_fir_sb16_coef[n];
+	gain += low_fir_sb16_coef[c][n];
 
     /* Normalise filter, to produce unity gain */
     for (n = 0; n < SB16_NCoef; n++)
-	low_fir_sb16_coef[n] /= gain;
+	low_fir_sb16_coef[c][n] /= gain;
 }
 
 
@@ -555,7 +557,7 @@ sb_exec_command(sb_dsp_t *dsp)
 		temp = 1000000 / temp;
 		sb_dsp_log("Sample rate - %ihz (%i)\n",temp, dsp->sblatcho);
 		if ((dsp->sb_freq != temp) && (dsp->sb_type >= SB16))
-			recalc_sb16_filter(temp);
+			recalc_sb16_filter(0, temp);
 		dsp->sb_freq = temp;
 		break;
 	case 0x41:	/* Set output sampling rate */
@@ -569,7 +571,7 @@ sb_exec_command(sb_dsp_t *dsp)
 			dsp->sblatchi = dsp->sblatcho;
 			dsp->sb_timei = dsp->sb_timeo;
 			if (dsp->sb_freq != temp && dsp->sb_type >= SB16)
-				recalc_sb16_filter(dsp->sb_freq);
+				recalc_sb16_filter(0, dsp->sb_freq);
 		}
                 break;
 	case 0x48:	/* Set DSP block transfer size */
@@ -1046,7 +1048,8 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
 
     /* Initialise SB16 filter to same cutoff as 8-bit SBs (3.2 kHz). This will be recalculated when
        a set frequency command is sent. */
-    recalc_sb16_filter(3200*2);
+    recalc_sb16_filter(0, 3200*2);
+    recalc_sb16_filter(1, 44100);
 }
 
 

@@ -77,7 +77,7 @@ static int cd_buf_update = CD_BUFLEN / SOUNDBUFLEN;
 static volatile int cdaudioon = 0;
 static int cd_thread_enable = 0;
 
-static void (*filter_cd_audio)(int channel, float *buffer, void *p) = NULL;
+static void (*filter_cd_audio)(int channel, double *buffer, void *p) = NULL;
 static void *filter_cd_audio_p = NULL;
 
 
@@ -215,8 +215,8 @@ static void
 sound_cd_thread(void *param)
 {
     int c, r, i, channel_select[2];
-    float audio_vol_l, audio_vol_r;
-    float cd_buffer_temp[2] = {0.0, 0.0};
+    double audio_vol_l, audio_vol_r;
+    double cd_buffer_temp[2] = {0.0, 0.0};
 
     thread_set_event(sound_cd_start_event);
 
@@ -274,18 +274,18 @@ sound_cd_thread(void *param)
 
 			if ((audio_vol_l != 0.0) && (channel_select[0] != 0)) {
 				if (channel_select[0] & 1)
-					cd_buffer_temp[0] += ((float) cd_buffer[i][c]);		/* Channel 0 => Port 0 */
+					cd_buffer_temp[0] += ((double) cd_buffer[i][c]);	/* Channel 0 => Port 0 */
 				if (channel_select[0] & 2)
-					cd_buffer_temp[0] += ((float) cd_buffer[i][c + 1]);	/* Channel 1 => Port 0 */
+					cd_buffer_temp[0] += ((double) cd_buffer[i][c + 1]);	/* Channel 1 => Port 0 */
 
 				cd_buffer_temp[0] *= audio_vol_l;				/* Multiply Port 0 by Port 0 volume */
 			}
 
 			if ((audio_vol_r != 0.0) && (channel_select[1] != 0)) {
 				if (channel_select[1] & 1)
-					cd_buffer_temp[1] += ((float) cd_buffer[i][c]);		/* Channel 0 => Port 1 */
+					cd_buffer_temp[1] += ((double) cd_buffer[i][c]);	/* Channel 0 => Port 1 */
 				if (channel_select[1] & 2)
-					cd_buffer_temp[1] += ((float) cd_buffer[i][c + 1]);	/* Channel 1 => Port 1 */
+					cd_buffer_temp[1] += ((double) cd_buffer[i][c + 1]);	/* Channel 1 => Port 1 */
 
 				cd_buffer_temp[1] *= audio_vol_r;				/* Multiply Port 1 by Port 1 volume */
 			}
@@ -297,8 +297,8 @@ sound_cd_thread(void *param)
 			}
 
 			if (sound_is_float) {
-				cd_out_buffer[c] += (cd_buffer_temp[0] / 32768.0);
-				cd_out_buffer[c+1] += (cd_buffer_temp[1] / 32768.0);
+				cd_out_buffer[c] += (float) (cd_buffer_temp[0] / 32768.0);
+				cd_out_buffer[c+1] += (float) (cd_buffer_temp[1] / 32768.0);
 			} else {
 				if (cd_buffer_temp[0] > 32767)
 					cd_buffer_temp[0] = 32767;
@@ -309,8 +309,8 @@ sound_cd_thread(void *param)
 				if (cd_buffer_temp[1] < -32768)
 					cd_buffer_temp[1] = -32768;
 
-				cd_out_buffer_int16[c] += cd_buffer_temp[0];
-				cd_out_buffer_int16[c+1] += cd_buffer_temp[1];
+				cd_out_buffer_int16[c] += (int16_t) cd_buffer_temp[0];
+				cd_out_buffer_int16[c+1] += (int16_t) cd_buffer_temp[1];
 			}
 		}
 	}
@@ -384,7 +384,7 @@ sound_add_handler(void (*get_buffer)(int32_t *buffer, int len, void *p), void *p
 
 
 void
-sound_set_cd_audio_filter(void (*filter)(int channel, float *buffer, void *p), void *p)
+sound_set_cd_audio_filter(void (*filter)(int channel, double *buffer, void *p), void *p)
 {
     if ((filter_cd_audio == NULL) || (filter == NULL)) {
 	filter_cd_audio = filter;

@@ -221,14 +221,14 @@ static void ad1848_poll(void *p)
         }
 }
 
-static void ad1848_filter_cd_audio(int channel, float *buffer, void *p)
+static void ad1848_filter_cd_audio(int channel, double *buffer, void *p)
 {
         ad1848_t *ad1848 = (ad1848_t *)p;
 	int32_t c;
 	uint32_t volume = channel ? ad1848->cd_vol_r : ad1848->cd_vol_l;
 
         c = (((int32_t) *buffer) * volume) >> 16;
-	*buffer     = (float) c;
+	*buffer     = (double) c;
 }
 
 void ad1848_init(ad1848_t *ad1848, int type)
