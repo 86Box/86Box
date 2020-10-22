@@ -62,6 +62,7 @@ vt82c686_fdc_handler(vt82c686_t *dev)
     if (dev->regs[0x02] & 0x10)
 	fdc_set_base(dev->fdc, io_base);
 
+    fdc_set_dma_ch(dev->fdc, dev->fdc_dma);
     fdc_set_irq(dev->fdc, dev->fdc_irq);
 }
 
