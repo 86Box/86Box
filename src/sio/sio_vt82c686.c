@@ -110,8 +110,8 @@ vt82c686_write(uint16_t port, uint8_t val, void *priv)
     }
 
     /* Read-only registers */
-    if ((dev->cur_reg < 0x02) || (dev->cur_reg == 0x04) || (dev->cur_reg == 0x05) || ((dev->cur_reg >= 0xe9) && (dev->cur_reg < 0xee)) ||
-	(dev->cur_reg == 0xf3) || (dev->cur_reg == 0xf5) || (dev->cur_reg == 0xf7) || (dev->cur_reg >= 0xf9))
+    if ((dev->cur_reg < 0x02) || (dev->cur_reg == 0x04) || (dev->cur_reg == 0x05) || ((dev->cur_reg >= 0x09) && (dev->cur_reg < 0x0e)) ||
+	(dev->cur_reg == 0x13) || (dev->cur_reg == 0x15) || (dev->cur_reg == 0x17) || (dev->cur_reg >= 0x19))
 	return;
 
     switch (dev->cur_reg) {
