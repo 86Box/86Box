@@ -53,7 +53,6 @@
 #include <86box/chipset.h>
 #include <86box/sio.h>
 #include <86box/hwm.h>
-#define ENABLE_PIPC_LOG 1
 
 /* Most revision numbers (PCI-ISA bridge or otherwise) were lifted from PCI device
    listings on forums, as VIA's datasheets are not very helpful regarding those. */
