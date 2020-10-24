@@ -139,7 +139,7 @@ fdc37c93x_fdc_handler(fdc37c93x_t *dev)
 
     fdc_remove(dev->fdc);
     if (global_enable && local_enable) {
-	ld_port = make_port(dev, 0);
+	ld_port = make_port(dev, 0) & 0xFFF8;
 	if ((ld_port >= 0x0100) && (ld_port <= 0x0FF8))
 		fdc_set_base(dev->fdc, ld_port);
     }
@@ -159,7 +159,7 @@ fdc37c93x_lpt_handler(fdc37c93x_t *dev)
 
     lpt1_remove();
     if (global_enable && local_enable) {
-	ld_port = make_port(dev, 3);
+	ld_port = make_port(dev, 3) & 0xFFFC;
 	if ((ld_port >= 0x0100) && (ld_port <= 0x0FFC))
 		lpt1_init(ld_port);
     }
@@ -177,7 +177,7 @@ fdc37c93x_serial_handler(fdc37c93x_t *dev, int uart)
 
     serial_remove(dev->uart[uart]);
     if (global_enable && local_enable) {
-	ld_port = make_port(dev, uart_no);
+	ld_port = make_port(dev, uart_no) & 0xFFF8;
 	if ((ld_port >= 0x0100) && (ld_port <= 0x0FF8))
 		serial_setup(dev->uart[uart], ld_port, dev->ld_regs[uart_no][0x70]);
     }
@@ -203,7 +203,7 @@ fdc37c93x_nvr_sec_handler(fdc37c93x_t *dev)
 
     nvr_at_sec_handler(0, dev->nvr_sec_base, dev->nvr);
     if (local_enable) {
-	dev->nvr_sec_base = ld_port = make_port_sec(dev, 6);
+	dev->nvr_sec_base = ld_port = make_port_sec(dev, 6) & 0xFFFE;
 	if ((ld_port >= 0x0100) && (ld_port <= 0x0FFE))
 		nvr_at_sec_handler(1, ld_port, dev->nvr);
     }
@@ -335,14 +335,14 @@ fdc37c93x_acpi_handler(fdc37c93x_t *dev)
 
     acpi_update_io_mapping(dev->acpi, 0x0000, local_enable);
     if (local_enable) {
-	ld_port = make_port(dev, 0x0a);
+	ld_port = make_port(dev, 0x0a) & 0xFFF0;
 	if ((ld_port >= 0x0100) && (ld_port <= 0x0FF0))
 		acpi_update_io_mapping(dev->acpi, ld_port, local_enable);
     }
 
     acpi_update_aux_io_mapping(dev->acpi, 0x0000, local_enable);
     if (local_enable) {
-	ld_port = make_port_sec(dev, 0x0a);
+	ld_port = make_port_sec(dev, 0x0a) & 0xFFF8;
 	if ((ld_port >= 0x0100) && (ld_port <= 0x0FF8))
 		acpi_update_aux_io_mapping(dev->acpi, ld_port, local_enable);
     }
@@ -789,7 +789,7 @@ static const device_t access_bus_device = {
     0,
     0x03,
     access_bus_init, access_bus_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
