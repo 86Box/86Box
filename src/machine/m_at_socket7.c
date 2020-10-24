@@ -781,7 +781,7 @@ machine_at_gw2kte_init(const machine_t *model)
     device_add(&i430vx_device);
     device_add(&piix3_device);
     device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&pc87306_device);
+    device_add(&fdc37c932fr_device);
     device_add(&intel_flash_bxt_ami_device);
 
     return ret;
