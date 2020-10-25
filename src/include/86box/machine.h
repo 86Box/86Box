@@ -314,6 +314,7 @@ extern int	machine_at_r418_init(const machine_t *);
 extern int	machine_at_ls486e_init(const machine_t *);
 extern int	machine_at_4dps_init(const machine_t *);
 extern int	machine_at_4sa2_init(const machine_t *);
+extern int	machine_at_m4li_init(const machine_t *);
 extern int	machine_at_alfredo_init(const machine_t *);
 extern int	machine_at_486sp3g_init(const machine_t *);
 extern int	machine_at_486ap4_init(const machine_t *);
