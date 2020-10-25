@@ -120,6 +120,43 @@ machine_at_batman_init(const machine_t *model)
     return ret;
 }
 
+#if defined(DEV_BRANCH) && defined(USE_VECT486VL)
+int
+machine_at_dellxp60_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/dellxp60/XP60-A08.ROM",
+			   0x000e0000, 131072, 0);
+			   
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_premiere_common_init(model, PCI_NO_IRQ_STEERING);
+
+    device_add(&i430lx_device);
+
+    return ret;
+}
+
+int
+machine_at_opti560l_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/opti560l/560L_A06.ROM",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_premiere_common_init(model, PCI_NO_IRQ_STEERING);
+
+    device_add(&i430lx_device);
+
+    return ret;
+}
+#endif 
 
 int
 machine_at_ambradp60_init(const machine_t *model)
