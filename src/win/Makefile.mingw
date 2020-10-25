@@ -117,6 +117,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef USE_VECT486VL
   USE_VECT486VL	:= y
  endif
+ ifndef USE_DELLS4
+  USE_DELLS4	:= y
+ endif
 else
  ifndef DEBUG
   DEBUG		:= n
@@ -207,6 +210,9 @@ else
  endif
  ifndef USE_VECT486VL
   USE_VECT486VL	:= n
+ endif
+ ifndef USE_DELLS4
+  USE_DELLS4	:= n
  endif
 endif
 
@@ -628,6 +634,10 @@ endif
 
 ifeq ($(USE_VECT486VL), y)
 OPTS		+= -DUSE_VECT486VL
+endif
+
+ifeq ($(DELLS4), y)
+OPTS		+= -DUSE_DELLS4
 endif
 
 endif
