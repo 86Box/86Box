@@ -636,7 +636,7 @@ ifeq ($(USE_VECT486VL), y)
 OPTS		+= -DUSE_VECT486VL
 endif
 
-ifeq ($(DELLS4), y)
+ifeq ($(USE_DELLS4), y)
 OPTS		+= -DUSE_DELLS4
 endif
 
