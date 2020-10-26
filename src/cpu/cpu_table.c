@@ -538,7 +538,7 @@ CPU cpus_PentiumS5[] = {
     {"Pentium 100/50",               CPU_PENTIUM,    fpus_internal, 100000000, 2.0,  0x524,  0x524, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10,6,6, 12},
     {"Pentium 100/66",               CPU_PENTIUM,    fpus_internal, 100000000, 1.5,  0x526,  0x526, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  9, 9,4,4, 12},
     {"Pentium 120",                  CPU_PENTIUM,    fpus_internal, 120000000, 2.0,  0x526,  0x526, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12,6,6, 14},
-    {"Pentium 133",                  CPU_PENTIUM,    fpus_internal, 133333333, 2.0,  0x52c,  0x52c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 16},
+    {"Pentium 133",                  CPU_PENTIUM,    fpus_internal, 133333333, 2.0,  0x52c,  0x52c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12,6,6, 16},
 
     /*Intel Pentium OverDrive*/
     {"Pentium OverDrive 125",        CPU_PENTIUM,    fpus_internal, 125000000, 3.0,  0x52c,  0x52c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12,7,7, 16},
