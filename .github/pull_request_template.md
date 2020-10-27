@@ -12,8 +12,6 @@ Checklist
 * [ ] I have discussed this with core contributors already
 * [ ] This pull request requires inclusion of a ROM in the romset
   * [ ] I have opened a roms pull request - https://github.com/86Box/roms/pull/changeme/
-* [ ] This pull requests introduces new dependencies upon other packages/projects
-  * _list new dependencies here_
 * [ ] My commit messages are descriptive and I have not added any irrelevant files to the repository
 
 References
