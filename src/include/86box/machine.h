@@ -314,6 +314,7 @@ extern int	machine_at_r418_init(const machine_t *);
 extern int	machine_at_ls486e_init(const machine_t *);
 extern int	machine_at_4dps_init(const machine_t *);
 extern int	machine_at_4sa2_init(const machine_t *);
+extern int	machine_at_m4li_init(const machine_t *);
 extern int	machine_at_alfredo_init(const machine_t *);
 extern int	machine_at_486sp3g_init(const machine_t *);
 extern int	machine_at_486ap4_init(const machine_t *);
@@ -353,6 +354,10 @@ extern int	machine_at_excalibur_init(const machine_t *);
 
 extern int	machine_at_batman_init(const machine_t *);
 extern int	machine_at_ambradp60_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(USE_DELLS4)
+extern int	machine_at_dellxp60_init(const machine_t *);
+extern int	machine_at_opti560l_init(const machine_t *);
+#endif
 extern int	machine_at_valuepointp60_init(const machine_t *);
 extern int	machine_at_p5mp3_init(const machine_t *);
 extern int	machine_at_pb520r_init(const machine_t *);
