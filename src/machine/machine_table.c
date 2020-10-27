@@ -244,7 +244,6 @@ const machine_t machines[] = {
     { "[SiS 496] Lucky Star LS-486E",		"ls486e",		MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_IDE_DUAL,						  1,  128,   1, 255,	       machine_at_ls486e_init, NULL			},
     { "[SiS 496] Rise Computer R418",		"r418",			MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_IDE_DUAL,						  1,  255,   1, 255,		 machine_at_r418_init, NULL			},
     { "[SiS 496] Soyo 4SA2",			"4sa2",			MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_IDE_DUAL,						  1,  255,   1, 255,		 machine_at_4sa2_init, NULL			},
-    { "[SiS 496] Micronics M4Li",			"m4li",			MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,						  1,  128,   1, 127,		 machine_at_m4li_init, NULL			},
     { "[SiS 496] Zida Tomato 4DP",		"4dps",			MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_IDE_DUAL,						  1,  255,   1, 255,		 machine_at_4dps_init, NULL			},
 #if defined(DEV_BRANCH) && defined(NO_SIO)
     { "[VIA VT82C496G] FIC VIP-IO2",		"486vipio2",		MACHINE_TYPE_486,		{{"Intel", cpus_i486},        {"AMD", cpus_Am486},   {"Cyrix", cpus_Cx486},  {"",      NULL},     {"",      NULL}}, MACHINE_PCIV | MACHINE_IDE_DUAL,						  1,  128,   1, 255,	    machine_at_486vipio2_init, NULL			},
@@ -266,11 +265,7 @@ const machine_t machines[] = {
     /* 430LX */
     { "[i430LX] IBM Ambra DP60 PCI",		"ambradp60",		MACHINE_TYPE_SOCKET4,		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  2,  128,   2, 127,	    machine_at_ambradp60_init, NULL			},
     { "[i430LX] IBM PS/ValuePoint P60",		"valuepointp60",	MACHINE_TYPE_SOCKET4,		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  2,  128,   2, 127,	machine_at_valuepointp60_init, NULL			},
-#if defined(DEV_BRANCH) && defined(USE_DELLS4)
-    { "[i430LX] Dell Dimension XPS P60",		"dellxp60",		MACHINE_TYPE_SOCKET4,		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  2,  128,   2, 127,	       machine_at_dellxp60_init, NULL			},
-    { "[i430LX] Dell OptiPlex 560/L",		"opti560l",		MACHINE_TYPE_SOCKET4,		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  2,  128,   2, 127,	       machine_at_opti560l_init, NULL			},
-#endif
-	{ "[i430LX] Intel Premiere/PCI",		"revenge",		MACHINE_TYPE_SOCKET4,		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  2,  128,   2, 127,	       machine_at_batman_init, NULL			},
+    { "[i430LX] Intel Premiere/PCI",		"revenge",		MACHINE_TYPE_SOCKET4,		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  2,  128,   2, 127,	       machine_at_batman_init, NULL			},
     { "[i430LX] ASUS P/I-P5MP3",		"p5mp3",		MACHINE_TYPE_SOCKET4,		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE,		 		  2,  192,   2, 127,	        machine_at_p5mp3_init, NULL			},
     { "[i430LX] Micro Star 586MC1",		"586mc1",		MACHINE_TYPE_SOCKET4,		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  2,  128,   2, 127,	       machine_at_586mc1_init, NULL			},
     { "[i430LX] Packard Bell PB520R",		"pb520r",		MACHINE_TYPE_SOCKET4,		{{"Intel", cpus_Pentium5V},   {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO,		  8,  136,   2, 127,	       machine_at_pb520r_init, at_pb520r_get_device	},
@@ -367,7 +362,6 @@ const machine_t machines[] = {
 
     /* 440EX */
     { "[i440EX] QDI EXCELLENT II",		"p6i440e2",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII66}, {"",    NULL},         {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  8,  512,   8, 255,	     machine_at_p6i440e2_init, NULL			},
-
     /* 440BX */
     { "[i440BX] ASUS P2B-LS",			"p2bls",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"", NULL},	  {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  8, 1024,   8, 255,		machine_at_p2bls_init, NULL			},
     { "[i440BX] ASUS P3B-F",			"p3bf",			MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"", NULL},	  {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  8, 1024,   8, 255,		 machine_at_p3bf_init, NULL			},
@@ -404,6 +398,8 @@ const machine_t machines[] = {
 
     /* VIA Apollo Pro */
     { "[VIA Apollo Pro] PC Partner APAS3",	"apas3",		MACHINE_TYPE_SOCKET370,		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			  8,  768,   8, 255,            machine_at_apas3_init, NULL			},
+    { "[VIA Apollo Pro133A] Aewin WCF-681",	"wcf681",		MACHINE_TYPE_SOCKET370,		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			  8,  768,   8, 255,            machine_at_wcf681_init, NULL			},
+    { "[VIA Apollo Pro133A] Acorp 6VIA85X",	"6via85x",		MACHINE_TYPE_SOCKET370,		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			  8,  768,   8, 255,            machine_at_6via85x_init, NULL			},
     { "[VIA Apollo ProMedia] Jetway 603TCF",	"603tcf",		MACHINE_TYPE_SOCKET370,		{{"Intel", cpus_Celeron},     {"VIA", cpus_Cyrix3},  {"",      NULL},        {"",      NULL},     {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			  8,  512,   8, 255,            machine_at_603tcf_init, NULL			},
 
     /* Miscellaneous/Fake/Hypervisor machines */
