@@ -37,10 +37,10 @@
 /* SB 2.0 CD version */
 typedef struct sb_ct1335_mixer_t
 {
-        int32_t master;
-        int32_t voice;
-        int32_t fm;
-        int32_t cd;
+        double master;
+        double voice;
+        double fm;
+        double cd;
 
         uint8_t index;
         uint8_t regs[256];
@@ -48,12 +48,12 @@ typedef struct sb_ct1335_mixer_t
 /* SB PRO */
 typedef struct sb_ct1345_mixer_t
 {
-        int32_t master_l, master_r;
-        int32_t voice_l,  voice_r;
-        int32_t fm_l,     fm_r;
-        int32_t cd_l,     cd_r;
-        int32_t line_l,   line_r;
-        int32_t mic;
+        double master_l, master_r;
+        double voice_l,  voice_r;
+        double fm_l,     fm_r;
+        double cd_l,     cd_r;
+        double line_l,   line_r;
+        double mic;
         /*see sb_ct1745_mixer for values for input selector*/
         int32_t input_selector;
         
@@ -71,13 +71,13 @@ typedef struct sb_ct1345_mixer_t
 /* SB16 and AWE32 */
 typedef struct sb_ct1745_mixer_t
 {
-        int32_t master_l, master_r;
-        int32_t voice_l,  voice_r;
-        int32_t fm_l,     fm_r;
-        int32_t cd_l,     cd_r;
-        int32_t line_l,   line_r;
-        int32_t mic;
-        int32_t speaker;
+        double master_l, master_r;
+        double voice_l,  voice_r;
+        double fm_l,     fm_r;
+        double cd_l,     cd_r;
+        double line_l,   line_r;
+        double mic;
+        double speaker;
 
         int bass_l,   bass_r;
         int treble_l, treble_r;
@@ -103,8 +103,8 @@ typedef struct sb_ct1745_mixer_t
         
         int32_t input_gain_L;
         int32_t input_gain_R;
-        int32_t output_gain_L;
-        int32_t output_gain_R;
+        double output_gain_L;
+        double output_gain_R;
         
         uint8_t index;
         uint8_t regs[256];
@@ -112,7 +112,7 @@ typedef struct sb_ct1745_mixer_t
 
 typedef struct sb_t
 {
-	uint8_t		opl_enabled;
+	uint8_t		opl_enabled, mixer_enabled;
         opl_t           opl, opl2;
         sb_dsp_t        dsp;
         union {
@@ -133,6 +133,7 @@ extern uint8_t sb_ct1345_mixer_read(uint16_t addr, void *p);
 extern void sb_ct1345_mixer_reset(sb_t* sb);
 
 extern void sb_get_buffer_sbpro(int32_t *buffer, int len, void *p);
+extern void sbpro_filter_cd_audio(int channel, double *buffer, void *p);
 extern void sb_close(void *p);
 extern void sb_speed_changed(void *p);
 

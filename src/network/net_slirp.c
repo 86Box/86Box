@@ -392,6 +392,9 @@ poll_thread(void *arg)
     slirp_log("SLiRP: polling stopped.\n");
     thread_set_event(slirp->poll_state);
 
+    /* Destroy event here to avoid a crash. */
+    slirp_log("SLiRP: thread ended\n");
+    thread_destroy_event(slirp->poll_state);
     /* Free here instead of immediately freeing the global slirp on the main
        thread to avoid a race condition. */
     slirp_cleanup(slirp->slirp);
@@ -451,8 +454,6 @@ net_slirp_close(void)
 	/* Wait for the thread to finish. */
 	slirp_log("SLiRP: waiting for thread to end...\n");
 	thread_wait_event(slirp->poll_state, -1);
-	slirp_log("SLiRP: thread ended\n");
-	thread_destroy_event(slirp->poll_state);
     }
 
     /* Shutdown work is done by the thread on its local copy of slirp. */

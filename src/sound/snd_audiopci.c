@@ -1274,7 +1274,7 @@ static void es1371_get_buffer(int32_t *buffer, int len, void *p)
 	es1371->pos = 0;
 }
 
-static void es1371_filter_cd_audio(int channel, float *buffer, void *p)
+static void es1371_filter_cd_audio(int channel, double *buffer, void *p)
 {
 	es1371_t *es1371 = (es1371_t *)p;
 	int32_t c;
@@ -1284,7 +1284,7 @@ static void es1371_filter_cd_audio(int channel, float *buffer, void *p)
         c = (((int32_t) *buffer) * cd) >> 15;
 	c = (c * master) >> 15;
 
-	*buffer     = (float) c;
+	*buffer     = (double) c;
 }
 
 static inline double sinc(double x)

@@ -1172,6 +1172,7 @@ azt_init(const device_t *info)
 
         azt2316a_create_config_word(azt2316a);
         sound_add_handler(azt2316a_get_buffer, azt2316a);
+        sound_set_cd_audio_filter(sbpro_filter_cd_audio, azt2316a->sb);
 
 	if (azt2316a->cur_mpu401_enabled) {
 		azt2316a->mpu = (mpu_t *) malloc(sizeof(mpu_t));

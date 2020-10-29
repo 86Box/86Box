@@ -54,7 +54,6 @@
 #include <86box/sio.h>
 #include <86box/hwm.h>
 
-
 /* Most revision numbers (PCI-ISA bridge or otherwise) were lifted from PCI device
    listings on forums, as VIA's datasheets are not very helpful regarding those. */
 #define VIA_PIPC_586A	0x05862500
@@ -268,8 +267,9 @@ pipc_reset_hard(void *priv)
 			dev->power_regs[0x08] = 0x40;
 			break;
 	}
-	if (dev->local >= VIA_PIPC_686A)
-		dev->power_regs[0x42] = 0x40; /* external suspend-related pin, must be set */
+	dev->power_regs[0x40] = 0x20;
+
+	dev->power_regs[0x42] = 0xd0;
 	dev->power_regs[0x48] = 0x01;
 
 	if (dev->local >= VIA_PIPC_686A)
@@ -761,7 +761,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			break;
 
 		case 0x42:
-			dev->power_regs[addr] = val & 0x0f;
+			dev->power_regs[addr] = (dev->power_regs[0x42] & ~0x0f) | (val & 0x0f);
 			acpi_set_irq_line(dev->acpi, dev->power_regs[addr]);
 			pclog("VIA SCI: %d\n", dev->power_regs[addr]);
 			break;

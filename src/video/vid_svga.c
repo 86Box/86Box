@@ -912,10 +912,8 @@ svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
     svga->overlay_draw = overlay_draw;
 
     svga->hwcursor.xsize = svga->hwcursor.ysize = 32;
-    svga->hwcursor.yoff = 32;
 
     svga->dac_hwcursor.xsize = svga->dac_hwcursor.ysize = 32;
-    svga->dac_hwcursor.yoff = 32;
     
     svga->translate_address = NULL;
     svga->ksc5601_english_font_type = 0;    

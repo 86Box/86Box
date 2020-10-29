@@ -2223,7 +2223,7 @@ pcnet_bcr_readw(nic_t *dev, uint16_t rap)
 		val |= (val & 0x017f & dev->u32Lnkst) ? 0x8000 : 0;
 		break;
 		
-	case BCR_MIIADDR:
+	case BCR_MIIMDR:
 		if ((dev->board == DEV_AM79C973) && (((dev->aBCR[BCR_MIIADDR] >> 5) & 0x1f) == 0)) {
 		    uint16_t miiaddr = dev->aBCR[BCR_MIIADDR] & 0x1f;
 		    val = pcnet_mii_readw(dev, miiaddr);

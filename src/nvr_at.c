@@ -515,21 +515,18 @@ timer_intr(void *priv)
     timer_advance_u64(&local->rtc_timer, RTCCONST);
 
     if (local->state == 1) {
-	local->count--;
-	if (local->count == 0)
+	if (--local->count == 0) {
 		timer_load_count(nvr);
-	else
-		return;
-    } else
-	return;
 
-    nvr->regs[RTC_REGC] |= REGC_PF;
-    if (nvr->regs[RTC_REGB] & REGB_PIE) {
-	nvr->regs[RTC_REGC] |= REGC_IRQF;
+		nvr->regs[RTC_REGC] |= REGC_PF;
+		if (nvr->regs[RTC_REGB] & REGB_PIE) {
+			nvr->regs[RTC_REGC] |= REGC_IRQF;
 
-	/* Generate an interrupt. */
-	if (nvr->irq != -1)
-		picint(1 << nvr->irq);
+			/* Generate an interrupt. */
+			if (nvr->irq != -1)
+				picint(1 << nvr->irq);
+		}
+	}
     }
 }
 
