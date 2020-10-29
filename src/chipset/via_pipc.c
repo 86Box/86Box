@@ -761,9 +761,9 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			break;
 
 		case 0x42:
-			dev->power_regs[addr] = (dev->power_regs[0x42] & ~0x0f) | (val & 0x0f);
+			dev->power_regs[addr] &= ~0x0f;
+			dev->power_regs[addr] |= val & 0x0f;
 			acpi_set_irq_line(dev->acpi, dev->power_regs[addr]);
-			pclog("VIA SCI: %d\n", dev->power_regs[addr]);
 			break;
 
 		case 0x61: case 0x62: case 0x63:
