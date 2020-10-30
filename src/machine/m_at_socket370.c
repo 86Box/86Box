@@ -308,6 +308,91 @@ machine_at_apas3_init(const machine_t *model)
 }
 
 int
+machine_at_wcf681_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/wcf681/681osda2.bin",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 0, 0);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x12, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x01, PCI_CARD_SPECIAL,     1, 2, 3, 4);
+    device_add(&via_apro133a_device);
+    device_add(&via_vt82c596b_device);
+    device_add(&w83977tf_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+    return ret;
+}
+
+int
+machine_at_6via85x_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/6via85x/6VIA85X_ver_1_1.bin",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 0, 0);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_SPECIAL,     1, 2, 3, 4);
+    device_add(&via_apro133a_device);
+    device_add(&via_vt82c686b_device);
+    device_add(&via_vt82c686_sio_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
+    hwm_values_t machine_hwm = {
+    	{    /* fan speeds */
+    		3000,	/* Chassis */
+    		3000,	/* CPU */
+    		3000	/* Power */
+    	}, { /* temperatures */
+    		30,	/* MB */
+    		30,	/* JTPWR */
+    		30	/* CPU */
+    	}, { /* voltages */
+    		2050,				   /* VCORE (2.05V by default) */
+    		0,				   /* unused */
+    		3300,				   /* +3.3V */
+    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
+    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
+    		RESISTOR_DIVIDER(12000,  59,  20), /* -12V (divider values bruteforced) */
+    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
+    	}
+    };
+    hwm_set_values(machine_hwm);
+    device_add(&via_vt82c686_hwm_device);
+
+    return ret;
+}
+
+int
 machine_at_603tcf_init(const machine_t *model)
 {
     int ret;
