@@ -71,7 +71,7 @@ static void	lm78_smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, v
 static uint8_t	lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank);
 static void	lm78_reset(lm78_t *dev, uint8_t initialization);
 
-#define ENABLE_LM78_LOG 1
+
 #ifdef ENABLE_LM78_LOG
 int lm78_do_log = ENABLE_LM78_LOG;
 
