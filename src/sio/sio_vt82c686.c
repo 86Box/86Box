@@ -104,12 +104,12 @@ vt82c686_write(uint16_t port, uint8_t val, void *priv)
     if (!dev->config_enable)
 	return;
 
-    /* NOTE: Registers are [0xE0:0xFF] but we store them as [0x00:0x1F]. */
     if (!(port & 1)) {
 	dev->cur_reg = val;
 	return;
     }
 
+    /* NOTE: Registers are [0xE0:0xFF] but we store them as [0x00:0x1F]. */
     if (dev->cur_reg < 0xe0)
     	return;
     uint8_t reg = dev->cur_reg & 0x1f;
@@ -119,9 +119,10 @@ vt82c686_write(uint16_t port, uint8_t val, void *priv)
 	(reg == 0x13) || (reg == 0x15) || (reg == 0x17) || (reg >= 0x19))
 	return;
 
+    dev->regs[reg] = val;
+
     switch (reg) {
 	case 0x02:
-		dev->regs[reg] = val;
 		vt82c686_lpt_handler(dev);
 		vt82c686_serial_handler(dev, 0);
 		vt82c686_serial_handler(dev, 1);
@@ -129,27 +130,19 @@ vt82c686_write(uint16_t port, uint8_t val, void *priv)
 		break;
 
 	case 0x03:
-		dev->regs[reg] = val;
 		vt82c686_fdc_handler(dev);
 		break;
 
 	case 0x06:
-		dev->regs[reg] = val;
 		vt82c686_lpt_handler(dev);
 		break;
 
 	case 0x07:
-		dev->regs[reg] = val;
 		vt82c686_serial_handler(dev, 0);
 		break;
 
 	case 0x08:
-		dev->regs[reg] = val;
 		vt82c686_serial_handler(dev, 1);
-		break;
-
-	default:
-		dev->regs[reg] = val;
 		break;
     }
 }
