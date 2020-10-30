@@ -1901,7 +1901,7 @@ execx86(int cycs)
 				cpu_src = 6;
 				cpu_data = cpu_dest + cpu_src;
 				set_of_add(8);
-				cpu_dest += cpu_data;
+				cpu_dest = cpu_data;
 				set_af(1);
 			}
 			if ((cpu_state.flags & C_FLAG) || AL > (old_af ? 0x9f : 0x99)) {
