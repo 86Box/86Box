@@ -66,16 +66,16 @@ static void
 postcard_setui(void)
 {
     if (!postcard_written)
-    	sprintf(postcard_str, "POST: -- --");
+	sprintf(postcard_str, "POST: -- --");
     else if (postcard_written == 1)
-    	sprintf(postcard_str, "POST: %02X --", postcard_code);
+	sprintf(postcard_str, "POST: %02X --", postcard_code);
     else
-    	sprintf(postcard_str, "POST: %02X %02X", postcard_code, postcard_prev_code);
+	sprintf(postcard_str, "POST: %02X %02X", postcard_code, postcard_prev_code);
 
     ui_sb_bugui(postcard_str);
 
     if (postcard_do_log) {
-    	/* log same string sent to the UI */
+	/* log same string sent to the UI */
 	postcard_log("[%04X:%08X] %s\n", CS, cpu_state.pc, postcard_str);
     }
 }
@@ -95,12 +95,12 @@ static void
 postcard_write(uint16_t port, uint8_t val, void *priv)
 {
     if (postcard_written && val == postcard_code)
-    	return;
+	return;
 
     postcard_prev_code = postcard_code;
     postcard_code = val;
     if (postcard_written < 2)
-    	postcard_written++;
+	postcard_written++;
 
     postcard_setui();
 }
@@ -112,13 +112,15 @@ postcard_init(const device_t *info)
     postcard_reset();
 
     if (machines[machine].flags & MACHINE_MCA)
-    	postcard_port = 0x680; /* MCA machines */
+	postcard_port = 0x680; /* MCA machines */
     else if (strstr(machines[machine].name, " PS/2 ") || strstr(machines[machine].name, " PS/1 "))
-    	postcard_port = 0x190; /* ISA PS/2 machines */
+	postcard_port = 0x190; /* ISA PS/2 machines */
+    else if (strstr(machines[machine].name, " IBM XT "))
+	postcard_port = 0x60;  /* IBM XT */
     else if (strstr(machines[machine].name, " Compaq ") && !(machines[machine].flags & MACHINE_PCI))
-    	postcard_port = 0x84;  /* ISA Compaq machines */
+	postcard_port = 0x84;  /* ISA Compaq machines */
     else
-    	postcard_port = 0x80;  /* AT and clone machines */
+	postcard_port = 0x80;  /* AT and clone machines */
     postcard_log("POST card initializing on port %04Xh\n", postcard_port);
 
     if (postcard_port) io_sethandler(postcard_port, 1,
