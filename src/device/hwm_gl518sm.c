@@ -24,7 +24,6 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
-#include "cpu.h"
 #include <86box/smbus.h>
 #include <86box/hwm.h>
 
@@ -83,14 +82,14 @@ gl518sm_remap(gl518sm_t *dev, uint8_t addr)
     gl518sm_log("GL518SM: remapping to SMBus %02Xh\n", addr);
 
     smbus_removehandler(dev->smbus_addr, 1,
-    			gl518sm_smbus_read_byte, gl518sm_smbus_read_byte_cmd, gl518sm_smbus_read_word_cmd, NULL,
-    			gl518sm_smbus_write_byte, gl518sm_smbus_write_byte_cmd, gl518sm_smbus_write_word_cmd, NULL,
-    			dev);
+			gl518sm_smbus_read_byte, gl518sm_smbus_read_byte_cmd, gl518sm_smbus_read_word_cmd, NULL,
+			gl518sm_smbus_write_byte, gl518sm_smbus_write_byte_cmd, gl518sm_smbus_write_word_cmd, NULL,
+			dev);
 
     if (addr < 0x80) smbus_sethandler(addr, 1,
-    			gl518sm_smbus_read_byte, gl518sm_smbus_read_byte_cmd, gl518sm_smbus_read_word_cmd, NULL,
-    			gl518sm_smbus_write_byte, gl518sm_smbus_write_byte_cmd, gl518sm_smbus_write_word_cmd, NULL,
-    			dev);
+			gl518sm_smbus_read_byte, gl518sm_smbus_read_byte_cmd, gl518sm_smbus_read_word_cmd, NULL,
+			gl518sm_smbus_write_byte, gl518sm_smbus_write_byte_cmd, gl518sm_smbus_write_word_cmd, NULL,
+			dev);
 
     dev->smbus_addr = addr;
 }
@@ -126,13 +125,14 @@ gl518sm_read(gl518sm_t *dev, uint8_t reg)
     uint16_t ret = dev->regs[reg & 0x1f];
 
     switch (reg) {
-    	case 0x07: case 0x08: case 0x09: case 0x0a: case 0x0b: case 0x0c:
-    		/* two-byte registers: leave as-is */
-    		break;
-    	default:
-    		/* single-byte registers: duplicate low byte to high byte (real hardware behavior unknown) */
-    		ret |= (ret << 8);
-    		break;
+	case 0x07: case 0x08: case 0x09: case 0x0a: case 0x0b: case 0x0c:
+		/* two-byte registers: leave as-is */
+		break;
+
+	default:
+		/* single-byte registers: duplicate low byte to high byte (real hardware behavior unknown) */
+		ret |= (ret << 8);
+		break;
     }
 
     gl518sm_log("GL518SM: read(%02X) = %04X\n", reg, ret);
@@ -171,36 +171,36 @@ gl518sm_write(gl518sm_t *dev, uint8_t reg, uint16_t val)
     gl518sm_log("GL518SM: write(%02X, %04X)\n", reg, val);
 
     switch (reg) {
-    	case 0x00: case 0x01: case 0x04: case 0x07: case 0x0d: case 0x12: case 0x13: case 0x14: case 0x15:
-    		/* read-only registers */
-    		return 0;
+	case 0x00: case 0x01: case 0x04: case 0x07: case 0x0d: case 0x12: case 0x13: case 0x14: case 0x15:
+		/* read-only registers */
+		return 0;
 
-    	case 0x0a:
-    		dev->regs[0x13] = (val & 0xff);
-    		break;
+	case 0x0a:
+		dev->regs[0x13] = (val & 0xff);
+		break;
 
-    	case 0x03:
-    		dev->regs[reg] = (val & 0xfc);
+	case 0x03:
+		dev->regs[reg] = (val & 0xfc);
 
-    		if (val & 0x80) /* Init */
-    			gl518sm_reset(dev);
-    		break;
+		if (val & 0x80) /* Init */
+			gl518sm_reset(dev);
+		break;
 
-    	case 0x0f:
-    		dev->regs[reg] = (val & 0xf8);
+	case 0x0f:
+		dev->regs[reg] = (val & 0xf8);
 
-    		/* update fan values to match the new divisor */
-    		dev->regs[0x07] = (GL518SM_RPM_TO_REG(dev->values->fans[0], 1 << ((dev->regs[0x0f] >> 6) & 0x3)) << 8);
-    		dev->regs[0x07] |= GL518SM_RPM_TO_REG(dev->values->fans[1], 1 << ((dev->regs[0x0f] >> 4) & 0x3));
-    		break;
+		/* update fan values to match the new divisor */
+		dev->regs[0x07] = (GL518SM_RPM_TO_REG(dev->values->fans[0], 1 << ((dev->regs[0x0f] >> 6) & 0x3)) << 8);
+		dev->regs[0x07] |= GL518SM_RPM_TO_REG(dev->values->fans[1], 1 << ((dev->regs[0x0f] >> 4) & 0x3));
+		break;
 
-    	case 0x11:
-    		dev->regs[reg] = (val & 0x7f);
-    		break;
+	case 0x11:
+		dev->regs[reg] = (val & 0x7f);
+		break;
 
-    	default:
-    		dev->regs[reg] = val;
-    		break;
+	default:
+		dev->regs[reg] = val;
+		break;
     }
 
     return 1;
@@ -250,7 +250,22 @@ gl518sm_init(const device_t *info)
     memset(dev, 0, sizeof(gl518sm_t));
 
     dev->local = info->local;
-    dev->values = hwm_get_values();
+    
+    /* Set default values. */
+    hwm_values_t defaults = {
+	{    /* fan speeds */
+		3000,	/* System */
+		3000	/* CPU */
+	}, { /* temperatures */
+		30	/* CPU */
+	}, { /* voltages */
+		hwm_get_vcore(),		  /* Vcore */
+		RESISTOR_DIVIDER(12000, 150, 47), /* +12V (15K/4.7K divider suggested in the GL518SM datasheet) */
+		3300				  /* +3.3V */
+	}
+    };
+    hwm_values = defaults;
+    dev->values = &hwm_values;
 
     gl518sm_reset(dev);
     gl518sm_remap(dev, dev->local & 0x7f);
@@ -259,6 +274,7 @@ gl518sm_init(const device_t *info)
 }
 
 
+/* GL518SM on SMBus address 2Ch */
 const device_t gl518sm_2c_device = {
     "Genesys Logic GL518SM Hardware Monitor",
     DEVICE_ISA,
@@ -268,6 +284,7 @@ const device_t gl518sm_2c_device = {
     NULL
 };
 
+/* GL518SM on SMBus address 2Dh */
 const device_t gl518sm_2d_device = {
     "Genesys Logic GL518SM Hardware Monitor",
     DEVICE_ISA,

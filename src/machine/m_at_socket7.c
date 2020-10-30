@@ -817,41 +817,11 @@ machine_at_nupro592_init(const machine_t *model)
     device_add(&w83977ef_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
-    
-    hwm_values_t machine_hwm = {
-    	{    /* fan speeds */
-    		3000,	/* Chassis */
-    		3000,	/* CPU */
-    		3000,	/* Power */
-    		0
-    	}, { /* temperatures */
-    		30,	/* MB */
-    		0,	/* unused */
-    		27,	/* CPU */
-    		0
-    	}, { /* voltages */
-    		3300,				   /* VCORE (3.3V by default) */
-    		0,				   /* unused */
-    		3300,				   /* +3.3V */
-    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
-    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2), /* -5V  (divider values bruteforced) */
-    		0
-    	}
-    };
-    /* Pentium, Pentium OverDrive MMX, Pentium Mobile MMX: 3.3V (real Pentium Mobile MMX is 2.45V).
-       Pentium MMX: 2.8 V.
-       AMD K6 Model 6: 2.9 V for 166/200, 3.2 V for 233.
-       AMD K6 Model 7: 2.2 V. */
-    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUMMMX)
-	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Pentium MMX */
-    else if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_K6)
-	machine_hwm.voltages[0] = 2200; /* set higher VCORE (2.8V) for Pentium MMX */
-    else if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_K6_2)
-	machine_hwm.voltages[0] = 2200; /* set higher VCORE (2.8V) for Pentium MMX */
-    hwm_set_values(machine_hwm);
-    device_add(&w83781d_device);
+    device_add(&w83781d_device); /* fans: CPU1, unused, unused; temperatures: System, CPU1, unused */
+    hwm_values.temperatures[2] = 0; /* unused */
+    hwm_values.fans[1] = 0; /* unused */
+    hwm_values.fans[2] = 0; /* unused */
+    /* -5V is not reported by the BIOS, but leave it set */
     
     return ret;
 }
@@ -884,41 +854,13 @@ machine_at_tx97_init(const machine_t *model)
     device_add(&w83877tf_acorp_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
-
-    hwm_values_t machine_hwm = {
-    	{    /* fan speeds */
-    		3000,	/* Chassis */
-    		3000,	/* CPU */
-    		3000	/* Power */
-    	}, { /* temperatures */
-    		30,	/* MB */
-    		0,	/* unused */
-    		8	/* CPU */
-    	}, { /* voltages */
-    		3300,				   /* VCORE (3.3V by default) */
-    		0,				   /* unused */
-    		3300,				   /* +3.3V */
-    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
-    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
-    	}
-    };
-    /* Pentium, Pentium OverDrive MMX, Pentium Mobile MMX: 3.3V (real Pentium Mobile MMX is 2.45V).
-       Pentium MMX: 2.8 V.
-       AMD K6 Model 6: 2.9 V for 166/200, 3.2 V for 233.
-       AMD K6 Model 7: 2.2 V. */
-    switch (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type) {
-    	case CPU_PENTIUMMMX:
-    		machine_hwm.voltages[0] = 2800;
-    		break;
-    	case CPU_K6:
-    	case CPU_K6_2:
-    		machine_hwm.voltages[0] = 2200;
-    		break;
-    }
-    hwm_set_values(machine_hwm);
-    device_add(&w83781d_device);
+    device_add(&w83781d_device); /* fans: Chassis, CPU, Power; temperatures: MB, unused, CPU */
+    hwm_values.temperatures[1] = 0; /* unused */
+    /* CPU offset */
+    if (hwm_values.temperatures[2] < 32) /* prevent underflow */
+	hwm_values.temperatures[2] = 0;
+    else
+	hwm_values.temperatures[2] -= 32;
 
     return ret;
 }
@@ -1014,41 +956,8 @@ machine_at_p5mms98_init(const machine_t *model)
     device_add(&w83977tf_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 128);
-
-    hwm_values_t machine_hwm = {
-    	{    /* fan speeds */
-    		3000,	/* Thermal */
-    		3000,	/* CPU */
-    		3000	/* Chassis */
-    	}, { /* temperatures */
-    		0,	/* unused */
-    		30	/* CPU */
-    	}, { /* voltages */
-    		3300,				   /* VCORE (3.3V by default) */
-    		3300,				   /* VIO (3.3V) */
-    		3300,				   /* +3.3V */
-    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
-    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
-    	}
-    };
-    /* Pentium, Pentium OverDrive MMX, Pentium Mobile MMX: 3.3V (real Pentium Mobile MMX is 2.45V).
-       Pentium MMX: 2.8 V.
-       AMD K6 Model 6: 2.9 V for 166/200, 3.2 V for 233.
-       AMD K6 Model 7: 2.2 V. */
-    switch (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type) {
-    	case CPU_PENTIUMMMX:
-    		machine_hwm.voltages[0] = 2800;
-    		break;
-    	case CPU_K6:
-    	case CPU_K6_2:
-    		machine_hwm.voltages[0] = 2200;
-    		break;
-    }
-    hwm_set_values(machine_hwm);
-    device_add(&lm78_device);
-    device_add(&lm75_1_4a_device);
+    device_add(&lm78_device); /* fans: Thermal, CPU, Chassis; temperature: unused */
+    device_add(&lm75_1_4a_device); /* temperature: CPU */
 
     return ret;
 }

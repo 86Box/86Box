@@ -24,16 +24,15 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
-#include "cpu.h"
 #include <86box/smbus.h>
 #include <86box/hwm.h>
 
 
-#define CLAMP(a, min, max)	(((a) < (min)) ? (min) : (((a) > (max)) ? (max) : (a)))
+#define CLAMP(a, min, max)		(((a) < (min)) ? (min) : (((a) > (max)) ? (max) : (a)))
 #define VT82C686_RPM_TO_REG(r, d)	((r) ? CLAMP(1350000 / (r * d), 1, 255) : 0)
-/* Temperature formula from source comments in Linux's via686a.c driver */
+/* Temperature/voltage formulas and factors derived from Linux's via686a.c driver */
 #define VT82C686_TEMP_TO_REG(t)		(-1.160370e-10*(t*t*t*t*t*t) + 3.193693e-08*(t*t*t*t*t) - 1.464447e-06*(t*t*t*t) - 2.525453e-04*(t*t*t) + 1.424593e-02*(t*t) + 2.148941e+00*t + 7.275808e+01)
-#define VT82C686_VOLTAGE_TO_REG(v)	((v) >> 4)
+#define VT82C686_VOLTAGE_TO_REG(v, f)	CLAMP((((v) * (2.628 / (f))) - 120.5) / 25, 0, 255)
 
 
 typedef struct {
@@ -67,10 +66,10 @@ vt82c686_write(uint16_t port, uint8_t val, void *priv)
 	return;
 
     switch (reg) {
-    	case 0x40:
-    		if (val & 0x80)
-    			vt82c686_reset(dev, 1);
-    		break;
+	case 0x40:
+		if (val & 0x80)
+			vt82c686_reset(dev, 1);
+		break;
 
 	case 0x47:
 		val &= 0xf0;
@@ -92,19 +91,19 @@ vt82c686_hwm_write(uint8_t addr, uint8_t val, void *priv)
     vt82c686_t *dev = (vt82c686_t *) priv;
 
     if (dev->io_base)
-    	io_removehandler(dev->io_base, 0x0050,
+	io_removehandler(dev->io_base, 0x0050,
 			 vt82c686_read, NULL, NULL, vt82c686_write, NULL, NULL, dev);
 
     switch (addr) {
-    	case 0x70:
-    		dev->io_base &= 0xff00;
-    		dev->io_base |= val & 0x80;
-    		break;
+	case 0x70:
+		dev->io_base &= 0xff00;
+		dev->io_base |= val & 0x80;
+		break;
 
-    	case 0x71:
-    		dev->io_base &= 0x00ff;
-    		dev->io_base |= val << 8;
-    		break;
+	case 0x71:
+		dev->io_base &= 0x00ff;
+		dev->io_base |= val << 8;
+		break;
 
 	case 0x74:
 		dev->enable = val & 0x01;
@@ -112,7 +111,7 @@ vt82c686_hwm_write(uint8_t addr, uint8_t val, void *priv)
     }
 
     if (dev->enable && dev->io_base)
-    	io_sethandler(dev->io_base, 0x0050,
+	io_sethandler(dev->io_base, 0x0050,
 		      vt82c686_read, NULL, NULL, vt82c686_write, NULL, NULL, dev);
 }
 
@@ -126,11 +125,11 @@ vt82c686_reset(vt82c686_t *dev, uint8_t initialization)
     dev->regs[0x20] = VT82C686_TEMP_TO_REG(dev->values->temperatures[0]);
     dev->regs[0x21] = VT82C686_TEMP_TO_REG(dev->values->temperatures[1]);
 
-    dev->regs[0x22] = VT82C686_VOLTAGE_TO_REG(dev->values->voltages[0]);
-    dev->regs[0x23] = VT82C686_VOLTAGE_TO_REG(dev->values->voltages[1]);
-    dev->regs[0x24] = VT82C686_VOLTAGE_TO_REG(dev->values->voltages[2]);
-    dev->regs[0x25] = VT82C686_VOLTAGE_TO_REG(dev->values->voltages[3]);
-    dev->regs[0x26] = VT82C686_VOLTAGE_TO_REG(dev->values->voltages[4]);
+    dev->regs[0x22] = VT82C686_VOLTAGE_TO_REG(dev->values->voltages[0], 1.25);
+    dev->regs[0x23] = VT82C686_VOLTAGE_TO_REG(dev->values->voltages[1], 1.25);
+    dev->regs[0x24] = VT82C686_VOLTAGE_TO_REG(dev->values->voltages[2], 1.67);
+    dev->regs[0x25] = VT82C686_VOLTAGE_TO_REG(dev->values->voltages[3], 2.6);
+    dev->regs[0x26] = VT82C686_VOLTAGE_TO_REG(dev->values->voltages[4], 6.3);
 
     dev->regs[0x29] = VT82C686_RPM_TO_REG(dev->values->fans[0], 2);
     dev->regs[0x2a] = VT82C686_RPM_TO_REG(dev->values->fans[1], 2);
@@ -162,7 +161,26 @@ vt82c686_init(const device_t *info)
     vt82c686_t *dev = (vt82c686_t *) malloc(sizeof(vt82c686_t));
     memset(dev, 0, sizeof(vt82c686_t));
 
-    dev->values = hwm_get_values();
+    /* Set default values. Since this hardware monitor has a complex voltage factor system,
+       the values struct contains voltage values *before* applying their respective factors. */
+    hwm_values_t defaults = {
+	{    /* fan speeds */
+		3000,	/* CPU */
+		3000	/* Chassis */
+	}, { /* temperatures */
+		30,	/* CPU */
+		30,	/* System */
+		0	/* unused */
+	}, { /* voltages */
+		hwm_get_vcore(), /* Vcore */
+		2500,		 /* 2.5V */
+		3300,		 /* 3.3V */
+		5000,		 /* 5V */
+		12000		 /* 12V */
+	}
+    };
+    hwm_values = defaults;
+    dev->values = &hwm_values;
 
     vt82c686_reset(dev, 0);
 

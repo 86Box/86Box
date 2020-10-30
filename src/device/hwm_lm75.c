@@ -65,14 +65,14 @@ lm75_remap(lm75_t *dev, uint8_t addr)
     lm75_log("LM75: remapping to SMBus %02Xh\n", addr);
 
     if (dev->smbus_addr < 0x80) smbus_removehandler(dev->smbus_addr, 1,
-    			lm75_smbus_read_byte, lm75_smbus_read_byte_cmd, lm75_smbus_read_word_cmd, NULL,
-    			lm75_smbus_write_byte, lm75_smbus_write_byte_cmd, lm75_smbus_write_word_cmd, NULL,
-    			dev);
+			lm75_smbus_read_byte, lm75_smbus_read_byte_cmd, lm75_smbus_read_word_cmd, NULL,
+			lm75_smbus_write_byte, lm75_smbus_write_byte_cmd, lm75_smbus_write_word_cmd, NULL,
+			dev);
 
     if (addr < 0x80) smbus_sethandler(addr, 1,
-    			lm75_smbus_read_byte, lm75_smbus_read_byte_cmd, lm75_smbus_read_word_cmd, NULL,
-    			lm75_smbus_write_byte, lm75_smbus_write_byte_cmd, lm75_smbus_write_word_cmd, NULL,
-    			dev);
+			lm75_smbus_read_byte, lm75_smbus_read_byte_cmd, lm75_smbus_read_word_cmd, NULL,
+			lm75_smbus_write_byte, lm75_smbus_write_byte_cmd, lm75_smbus_write_word_cmd, NULL,
+			dev);
 
     dev->smbus_addr = addr;
 }
@@ -101,21 +101,21 @@ lm75_smbus_read_word_cmd(uint8_t addr, uint8_t cmd, void *priv)
     uint8_t retlo = 0;
 
     switch (cmd & 0x3) {
-    	case 0x0: /* temperature */
-    		rethi = lm75_read(dev, 0x0);
-    		retlo = lm75_read(dev, 0x1);
-    		break;
-    	case 0x1: /* configuration */
-    		rethi = retlo = lm75_read(dev, 0x2);
-    		break;
-    	case 0x2: /* Thyst */
-    		rethi = lm75_read(dev, 0x3);
-    		retlo = lm75_read(dev, 0x4);
-    		break;
-    	case 0x3: /* Tos */
-    		rethi = lm75_read(dev, 0x5);
-    		retlo = lm75_read(dev, 0x6);
-    		break;
+	case 0x0: /* temperature */
+		rethi = lm75_read(dev, 0x0);
+		retlo = lm75_read(dev, 0x1);
+		break;
+	case 0x1: /* configuration */
+		rethi = retlo = lm75_read(dev, 0x2);
+		break;
+	case 0x2: /* Thyst */
+		rethi = lm75_read(dev, 0x3);
+		retlo = lm75_read(dev, 0x4);
+		break;
+	case 0x3: /* Tos */
+		rethi = lm75_read(dev, 0x5);
+		retlo = lm75_read(dev, 0x6);
+		break;
     }
 
     return (retlo << 8) | rethi; /* byte-swapped for some reason */
@@ -131,9 +131,13 @@ lm75_read(lm75_t *dev, uint8_t reg)
        to access some of its proprietary registers. Pass this operation on to
        the main monitor address through an internal SMBus call, if necessary. */
     if ((reg > 0x7) && ((reg & 0xf8) != 0x50) && (dev->as99127f_smbus_addr < 0x80))
-    	ret = smbus_read_byte_cmd(dev->as99127f_smbus_addr, reg);
+	ret = smbus_read_byte_cmd(dev->as99127f_smbus_addr, reg);
+    else if ((reg & 0x7) == 0x0) /* temperature high byte */
+	ret = LM75_TEMP_TO_REG(dev->values->temperatures[dev->local >> 8]) >> 8;
+    else if ((reg & 0x7) == 0x1) /* temperature low byte */
+	ret = LM75_TEMP_TO_REG(dev->values->temperatures[dev->local >> 8]);
     else
-    	ret = dev->regs[reg & 0x7];
+	ret = dev->regs[reg & 0x7];
 
     lm75_log("LM75: read(%02X) = %02X\n", reg, ret);
 
@@ -165,22 +169,22 @@ lm75_smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, void *priv)
     uint8_t vallo = (val & 0xff);
 
     switch (cmd & 0x3) {
-    	case 0x0: /* temperature */
-    		lm75_write(dev, 0x0, valhi);
-    		lm75_write(dev, 0x1, vallo);
-    		break;
-    	case 0x1: /* configuration */
-    		lm75_write(dev, 0x2, vallo);
-    		break;
-    	case 0x2: /* Thyst */
-    		lm75_write(dev, 0x3, valhi);
-    		lm75_write(dev, 0x4, vallo);
-    		break;
-    	case 0x3: /* Tos */
-    		lm75_write(dev, 0x5, valhi);
-    		lm75_write(dev, 0x6, vallo);
-    		break;
-    	break;
+	case 0x0: /* temperature */
+		lm75_write(dev, 0x0, valhi);
+		lm75_write(dev, 0x1, vallo);
+		break;
+	case 0x1: /* configuration */
+		lm75_write(dev, 0x2, vallo);
+		break;
+	case 0x2: /* Thyst */
+		lm75_write(dev, 0x3, valhi);
+		lm75_write(dev, 0x4, vallo);
+		break;
+	case 0x3: /* Tos */
+		lm75_write(dev, 0x5, valhi);
+		lm75_write(dev, 0x6, vallo);
+		break;
+	break;
     }
 }
 
@@ -194,14 +198,14 @@ lm75_write(lm75_t *dev, uint8_t reg, uint8_t val)
        to access some of its proprietary registers. Pass this operation on to
        the main monitor address through an internal SMBus call, if necessary. */
     if ((reg > 0x7) && ((reg & 0xf8) != 0x50) && (dev->as99127f_smbus_addr < 0x80)) {
-    	smbus_write_byte_cmd(dev->as99127f_smbus_addr, reg, val);
-    	return 1;
+	smbus_write_byte_cmd(dev->as99127f_smbus_addr, reg, val);
+	return 1;
     }
 
     uint8_t reg_idx = (reg & 0x7);
 
     if ((reg_idx <= 0x1) || (reg_idx == 0x7))
-    	return 0; /* read-only registers */
+	return 0; /* read-only registers */
 
     dev->regs[reg_idx] = val;
 
@@ -212,9 +216,6 @@ lm75_write(lm75_t *dev, uint8_t reg, uint8_t val)
 static void
 lm75_reset(lm75_t *dev)
 {
-    uint16_t temp = LM75_TEMP_TO_REG(dev->values->temperatures[dev->local >> 8]);
-    dev->regs[0x0] = (temp >> 8);
-    dev->regs[0x1] = temp;
     dev->regs[0x3] = 0x4b;
     dev->regs[0x5] = 0x50;
 
@@ -240,7 +241,11 @@ lm75_init(const device_t *info)
     memset(dev, 0, sizeof(lm75_t));
 
     dev->local = info->local;
-    dev->values = hwm_get_values();
+
+    /* Set default value. */
+    if (dev->local)
+	hwm_values.temperatures[dev->local >> 8] = 30;
+    dev->values = &hwm_values;
 
     dev->as99127f_smbus_addr = 0x80;
 
@@ -253,7 +258,7 @@ lm75_init(const device_t *info)
 /* LM75 on SMBus address 4Ah, reporting temperatures[1]. */
 const device_t lm75_1_4a_device = {
     "National Semiconductor LM75 Temperature Sensor",
-    DEVICE_AT,
+    DEVICE_ISA,
     0x14a,
     lm75_init, lm75_close, NULL,
     NULL, NULL, NULL,
@@ -265,7 +270,7 @@ const device_t lm75_1_4a_device = {
    the Winbond W83781D family. Not to be used stand-alone. */
 const device_t lm75_w83781d_device = {
     "Winbond W83781D Secondary Temperature Sensor",
-    DEVICE_AT,
+    DEVICE_ISA,
     0,
     lm75_init, lm75_close, NULL,
     NULL, NULL, NULL,
