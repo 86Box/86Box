@@ -523,7 +523,7 @@ lm78_init(const device_t *info)
 
     /* Set per-chip defaults. */
     if (dev->local & LM78_AS99127F) {
-	defaults.voltages[5] = 12000 * (604.0 / 2400.0); /* different -12V Rin for AS99127F (bruteforced) */
+	defaults.voltages[5] = 12000 * (604.0 / 2400.0); /* different -12V Rin value for AS99127F (bruteforced) */
     } else if (dev->local & LM78_W83782D) {
 	/* different negative voltage formula for W83782D (from the datasheet) */
 	defaults.voltages[5] = ((3600 + 12000) * (232.0 / (232.0 + 56.0))) - 12000;
