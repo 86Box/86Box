@@ -64,28 +64,9 @@ machine_at_s370slm_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
-
-    hwm_values_t machine_hwm = {
-    	{    /* fan speeds */
-    		3000,	/* CPU */
-    		3000,	/* Fan 2 */
-    		3000	/* Chassis */
-    	}, { /* temperatures */
-    		0,	/* unused */
-    		30,	/* CPU */
-    		0	/* unused */
-    	}, { /* voltages */
-    		2050,				   /* CPU1 (2.05V by default) */
-    		0,				   /* unused */
-    		3300,				   /* +3.3V */
-    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
-    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
-    	}
-    };
-    hwm_set_values(machine_hwm);
-    device_add(&w83781d_device);
+    device_add(&w83781d_device); /* fans: CPU, Fan 2, Chassis; temperatures: unused, CPU, unused */
+    hwm_values.temperatures[0] = 0; /* unused */
+    hwm_values.temperatures[2] = 0; /* unused */
 	
     return ret;
 }
@@ -117,32 +98,10 @@ machine_at_cubx_init(const machine_t *model)
     device_add(&i440bx_device);
     device_add(&piix4e_device);
     device_add(&keyboard_ps2_ami_pci_device);
-    // device_add(&keyboard_ps2_pci_device);
     device_add(&w83977ef_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
-
-    hwm_values_t machine_hwm = {
-    	{    /* fan speeds */
-    		3000,	/* Chassis */
-    		3000,	/* CPU */
-    		3000	/* Power */
-    	}, { /* temperatures */
-    		30,	/* MB */
-    		30,	/* JTPWR */
-    		30	/* CPU */
-    	}, { /* voltages */
-    		2050,				   /* VCORE (2.05V by default) */
-    		0,				   /* unused */
-    		3300,				   /* +3.3V */
-    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
-    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-    		RESISTOR_DIVIDER(12000,  59,  20), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
-    	}
-    };
-    hwm_set_values(machine_hwm);
-    device_add(&as99127f_device);
+    device_add(&as99127f_device); /* fans: Chassis, CPU, Power; temperatures: MB, JTPWR, CPU */
 
     return ret;
 }
@@ -366,27 +325,6 @@ machine_at_6via85x_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
-
-    hwm_values_t machine_hwm = {
-    	{    /* fan speeds */
-    		3000,	/* Chassis */
-    		3000,	/* CPU */
-    		3000	/* Power */
-    	}, { /* temperatures */
-    		30,	/* MB */
-    		30,	/* JTPWR */
-    		30	/* CPU */
-    	}, { /* voltages */
-    		2050,				   /* VCORE (2.05V by default) */
-    		0,				   /* unused */
-    		3300,				   /* +3.3V */
-    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
-    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-    		RESISTOR_DIVIDER(12000,  59,  20), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
-    	}
-    };
-    hwm_set_values(machine_hwm);
     device_add(&via_vt82c686_hwm_device);
 
     return ret;
@@ -419,27 +357,6 @@ machine_at_603tcf_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
-
-    hwm_values_t machine_hwm = {
-    	{    /* fan speeds */
-    		3000,	/* Chassis */
-    		3000,	/* CPU */
-    		3000	/* Power */
-    	}, { /* temperatures */
-    		30,	/* MB */
-    		30,	/* JTPWR */
-    		30	/* CPU */
-    	}, { /* voltages */
-    		2050,				   /* VCORE (2.05V by default) */
-    		0,				   /* unused */
-    		3300,				   /* +3.3V */
-    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
-    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-    		RESISTOR_DIVIDER(12000,  59,  20), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
-    	}
-    };
-    hwm_set_values(machine_hwm);
     device_add(&via_vt82c686_hwm_device);
 
     return ret;

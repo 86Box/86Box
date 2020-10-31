@@ -62,6 +62,7 @@ vt82c686_fdc_handler(vt82c686_t *dev)
     if (dev->regs[0x02] & 0x10)
 	fdc_set_base(dev->fdc, io_base);
 
+    fdc_set_dma_ch(dev->fdc, dev->fdc_dma);
     fdc_set_irq(dev->fdc, dev->fdc_irq);
 }
 
@@ -104,19 +105,24 @@ vt82c686_write(uint16_t port, uint8_t val, void *priv)
 	return;
 
     if (!(port & 1)) {
-	/* Registers start at 0xE0 but we cut them down to start at 0x00. */
-	dev->cur_reg = (val & 0x1f);
+	dev->cur_reg = val;
 	return;
     }
 
+    /* NOTE: Registers are [0xE0:0xFF] but we store them as [0x00:0x1F]. */
+    if (dev->cur_reg < 0xe0)
+    	return;
+    uint8_t reg = dev->cur_reg & 0x1f;
+
     /* Read-only registers */
-    if ((dev->cur_reg < 0x02) || (dev->cur_reg == 0x04) || (dev->cur_reg == 0x05) || ((dev->cur_reg >= 0xe9) && (dev->cur_reg < 0xee)) ||
-	(dev->cur_reg == 0xf3) || (dev->cur_reg == 0xf5) || (dev->cur_reg == 0xf7) || (dev->cur_reg >= 0xf9))
+    if ((reg < 0x02) || (reg == 0x04) || (reg == 0x05) || ((reg >= 0x09) && (reg < 0x0e)) ||
+	(reg == 0x13) || (reg == 0x15) || (reg == 0x17) || (reg >= 0x19))
 	return;
 
-    switch (dev->cur_reg) {
+    dev->regs[reg] = val;
+
+    switch (reg) {
 	case 0x02:
-		dev->regs[dev->cur_reg] = val;
 		vt82c686_lpt_handler(dev);
 		vt82c686_serial_handler(dev, 0);
 		vt82c686_serial_handler(dev, 1);
@@ -124,27 +130,19 @@ vt82c686_write(uint16_t port, uint8_t val, void *priv)
 		break;
 
 	case 0x03:
-		dev->regs[dev->cur_reg] = val;
 		vt82c686_fdc_handler(dev);
 		break;
 
 	case 0x06:
-		dev->regs[dev->cur_reg] = val;
 		vt82c686_lpt_handler(dev);
 		break;
 
 	case 0x07:
-		dev->regs[dev->cur_reg] = val;
 		vt82c686_serial_handler(dev, 0);
 		break;
 
 	case 0x08:
-		dev->regs[dev->cur_reg] = val;
 		vt82c686_serial_handler(dev, 1);
-		break;
-
-	default:
-		dev->regs[dev->cur_reg] = val;
 		break;
     }
 }
@@ -156,10 +154,13 @@ vt82c686_read(uint16_t port, void *priv)
     vt82c686_t *dev = (vt82c686_t *) priv;
     uint8_t ret = 0xff;
     
+    /* NOTE: Registers are [0xE0:0xFF] but we store them as [0x00:0x1F]. */
     if (!(port & 1))
-	ret = dev->cur_reg | 0xe0;
+	ret = dev->cur_reg;
+    else if (dev->cur_reg < 0xe0)
+	ret = 0xff;
     else
-	ret = dev->regs[dev->cur_reg];
+	ret = dev->regs[dev->cur_reg & 0x1f];
 
     return ret;
 }

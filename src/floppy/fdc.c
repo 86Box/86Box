@@ -2161,6 +2161,13 @@ fdc_set_irq(fdc_t *fdc, int irq)
 
 
 void
+fdc_set_dma_ch(fdc_t *fdc, int dma_ch)
+{
+    fdc->dma_ch = dma_ch;
+}
+
+
+void
 fdc_set_base(fdc_t *fdc, int base)
 {
     int super_io = (fdc->flags & FDC_FLAG_SUPERIO);

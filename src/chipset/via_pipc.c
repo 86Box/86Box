@@ -491,7 +491,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			if (val & 0x01)
 				trc_write(0x0047, (val & 0x80) ? 0x06 : 0x04, NULL);
 			pic_set_shadow(!!(val & 0x10));
-			pic_elcr_set_enabled(!!(val & 0x20));
+			pic_elcr_io_handler(!!(val & 0x20));
 			dev->pci_isa_regs[0x47] = val & 0xfe;
 			break;
 		case 0x48:
@@ -511,31 +511,38 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			pci_set_irq_level(PCI_INTB, !(val & 4));
 			pci_set_irq_level(PCI_INTC, !(val & 2));
 			pci_set_irq_level(PCI_INTD, !(val & 1));
+			dev->pci_isa_regs[0x54] = val & 0x0f;
 			break;
 		case 0x55:
-			pipc_log("PIPC: PCI INT%c %d\n", (dev->local >= VIA_PIPC_596A) ? 'A' : 'D', val >> 4);
+			pipc_log("PIPC: Steering PIRQ%c to IRQ %d\n", (dev->local >= VIA_PIPC_596A) ? 'A' : 'D', val >> 4);
 			pci_set_irq_routing((dev->local >= VIA_PIPC_596A) ? PCI_INTA : PCI_INTD, (val & 0xf0) ? (val >> 4) : PCI_IRQ_DISABLED);
-			if (dev->local <= VIA_PIPC_586B)
+			if (dev->local <= VIA_PIPC_586B) {
+				pipc_log("PIPC: Steering MIRQ0 to IRQ %d\n", val & 0x0f);
 				pci_set_mirq_routing(PCI_MIRQ0, (val & 0x0f) ? (val & 0x0f) : PCI_IRQ_DISABLED);
+			}
 			dev->pci_isa_regs[0x55] = val;
-	                break;
-                case 0x56:
-                	pipc_log("PIPC: PCI INT%c %d\n", (dev->local >= VIA_PIPC_596A) ? 'C' : 'A', val >> 4);
-                	pipc_log("PIPC: PCI INTB %d\n", val & 0x0f);
+			break;
+		case 0x56:
+			pipc_log("PIPC: Steering PIRQ%c to IRQ %d\n", (dev->local >= VIA_PIPC_596A) ? 'C' : 'A', val >> 4);
+			pipc_log("PIPC: Steering PIRQB to IRQ %d\n", val & 0x0f);
 			pci_set_irq_routing((dev->local >= VIA_PIPC_596A) ? PCI_INTC : PCI_INTA, (val & 0xf0) ? (val >> 4) : PCI_IRQ_DISABLED);
 			pci_set_irq_routing(PCI_INTB, (val & 0x0f) ? (val & 0x0f) : PCI_IRQ_DISABLED);
 			dev->pci_isa_regs[0x56] = val;
 			break;
 		case 0x57:
-			pipc_log("PIPC: PCI INT%c %d\n", (dev->local >= VIA_PIPC_596A) ? 'D' : 'C', val >> 4);
+			pipc_log("PIPC: Steering PIRQ%c to IRQ %d\n", (dev->local >= VIA_PIPC_596A) ? 'D' : 'C', val >> 4);
 			pci_set_irq_routing((dev->local >= VIA_PIPC_596A) ? PCI_INTD : PCI_INTC, (val & 0xf0) ? (val >> 4) : PCI_IRQ_DISABLED);
-			if (dev->local <= VIA_PIPC_586B)
+			if (dev->local <= VIA_PIPC_586B) {
+				pipc_log("PIPC: Steering MIRQ1 to IRQ %d\n", val & 0x0f);
 				pci_set_mirq_routing(PCI_MIRQ1, (val & 0x0f) ? (val & 0x0f) : PCI_IRQ_DISABLED);
+			}
 			dev->pci_isa_regs[0x57] = val;
 			break;
 		case 0x58:
-			if (dev->local == VIA_PIPC_586B)
+			if (dev->local == VIA_PIPC_586B) {
+				pipc_log("PIPC: Steering MIRQ2 to IRQ %d\n", val & 0x0f);
 				pci_set_mirq_routing(PCI_MIRQ2, (val & 0x0f) ? (val & 0x0f) : PCI_IRQ_DISABLED);
+			}
 			dev->pci_isa_regs[0x58] = val;
 			break;
 		case 0x5b:
@@ -754,7 +761,9 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			break;
 
 		case 0x42:
-			dev->power_regs[addr] = (dev->power_regs[0x42] & ~0x0f) | (val & 0x0f);
+			dev->power_regs[addr] &= ~0x0f;
+			dev->power_regs[addr] |= val & 0x0f;
+			acpi_set_irq_line(dev->acpi, dev->power_regs[addr]);
 			break;
 
 		case 0x61: case 0x62: case 0x63:

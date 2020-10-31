@@ -81,26 +81,9 @@ machine_at_kn97_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83877f_device);
     device_add(&intel_flash_bxt_device);
-
-    hwm_values_t machine_hwm = {
-    	{    /* fan speeds (incorrect divisor for some reason) */
-    		6000,	/* Chassis */
-    		6000,	/* CPU */
-    		6000	/* Power */
-    	}, { /* temperatures */
-    		30	/* MB */
-    	}, { /* voltages */
-    		2800,				   /* VCORE (2.8V by default) */
-    		0,				   /* unused */
-    		3300,				   /* +3.3V */
-    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
-    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
-    	}
-    };
-    hwm_set_values(machine_hwm);
-    device_add(&lm78_device);
+    device_add(&lm78_device); /* fans: Chassis, CPU, Power; temperature: MB */
+    for (uint8_t i = 0; i < 3; i++)
+	hwm_values.fans[i] *= 2; /* BIOS reports fans with the wrong divisor for some reason */
 	
     return ret;
 }
@@ -159,27 +142,8 @@ machine_at_spitfire_init(const machine_t *model)
     device_add(&keyboard_ps2_pci_device);
     device_add(&fdc37c935_device);
     device_add(&intel_flash_bxt_device);
-	spd_register(SPD_TYPE_SDRAM, 0xF, 256);
-
-    hwm_values_t machine_hwm = {
-    	{    /* fan speeds (incorrect divisor for some reason) */
-    		6000,	/* Chassis */
-    		6000,	/* CPU */
-    		6000	/* Power */
-    	}, { /* temperatures */
-    		30	/* MB */
-    	}, { /* voltages */
-    		2800,				   /* VCORE (2.8V by default) */
-    		0,				   /* unused */
-    		3300,				   /* +3.3V */
-    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
-    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
-    	}
-    };
-    hwm_set_values(machine_hwm);
-    device_add(&lm78_device);
+    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
+    device_add(&lm78_device); /* no reporting in BIOS */
 
     return ret;
 }
@@ -210,30 +174,9 @@ machine_at_p6i440e2_init(const machine_t *model)
     device_add(&w83977tf_device);
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x03, 256);
-
-    hwm_values_t machine_hwm = {
-    	{    /* fan speeds */
-    		3000,	/* Chassis */
-    		3000,	/* CPU */
-    		3000	/* Power */
-    	}, { /* temperatures */
-    		30,	/* MB */
-    		0,	/* unused */
-    		27	/* CPU */
-    	}, { /* voltages */
-    		2050,				   /* VCORE (2.05V by default) */
-    		0,				   /* unused */
-    		3300,				   /* +3.3V */
-    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
-    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
-    	}
-    };
-    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
-    	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Klamath */
-    hwm_set_values(machine_hwm);
-    device_add(&w83781d_device);
+    device_add(&w83781d_device); /* fans: CPU, CHS, PS; temperatures: unused, CPU, System */
+    hwm_values.temperatures[0] = 0; /* unused */
+    hwm_values.voltages[1] = 1500; /* CPUVTT */
 
     return ret;
 }
@@ -268,30 +211,9 @@ machine_at_p2bls_init(const machine_t *model)
     device_add(&w83977ef_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
-
-    hwm_values_t machine_hwm = {
-    	{    /* fan speeds */
-    		3000,	/* Chassis */
-    		3000,	/* CPU */
-    		3000	/* Power */
-    	}, { /* temperatures */
-    		30,	/* MB */
-    		0,	/* unused */
-    		27	/* CPU */
-    	}, { /* voltages */
-    		2050,				   /* VCORE (2.05V by default) */
-    		0,				   /* unused */
-    		3300,				   /* +3.3V */
-    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
-    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
-    	}
-    };
-    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
-    	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Klamath */
-    hwm_set_values(machine_hwm);
-    device_add(&w83781d_device);
+    device_add(&w83781d_device); /* fans: Chassis, CPU, Power; temperatures: MB, unused, CPU */
+    hwm_values.temperatures[1] = 0; /* unused */
+    hwm_values.temperatures[2] -= 3; /* CPU offset */
 
     return ret;
 }
@@ -326,30 +248,8 @@ machine_at_p3bf_init(const machine_t *model)
     device_add(&w83977ef_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
-
-    hwm_values_t machine_hwm = {
-    	{    /* fan speeds */
-    		3000,	/* Chassis */
-    		3000,	/* CPU */
-    		3000	/* Power */
-    	}, { /* temperatures */
-    		30,	/* MB */
-    		30,	/* JTPWR */
-    		30	/* CPU */
-    	}, { /* voltages */
-    		2050,				   /* VCORE (2.05V by default) */
-    		0,				   /* unused */
-    		3300,				   /* +3.3V */
-    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
-    		RESISTOR_DIVIDER(12000,   3,   1), /* +12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(12000,  59,  20), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
-    	}
-    };
-    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
-    	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Klamath */
-    hwm_set_values(machine_hwm);
-    device_add(&as99127f_device);
+    device_add(&as99127f_device); /* fans: Chassis, CPU, Power; temperatures: MB, JTPWR, CPU */
+    hwm_values.voltages[4] = hwm_values.voltages[5]; /* +12V reading not in line with other boards; appears to be close to the -12V reading */
 
     return ret;
 }
@@ -418,23 +318,7 @@ machine_at_ax6bc_init(const machine_t *model)
     device_add(&w83977tf_device);
     device_add(&sst_flash_29ee020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
-
-    hwm_values_t machine_hwm = {
-    	{    /* fan speeds */
-    		3000,	/* System */
-    		3000	/* CPU */
-    	}, { /* temperatures */
-    		30	/* CPU */
-    	}, { /* voltages */
-    		2050,   			  /* VCORE (2.05V by default) */
-    		RESISTOR_DIVIDER(12000, 150, 47), /* +12V (15K/4.7K divider suggested in the GL518SM datasheet) */
-    		3300				  /* +3.3V */
-    	}
-    };
-    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
-    	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Klamath */
-    hwm_set_values(machine_hwm);
-    device_add(&gl518sm_2d_device);
+    device_add(&gl518sm_2d_device); /* fans: System, CPU; temperature: CPU; no reporting in BIOS */
 
     return ret;
 }
@@ -502,30 +386,11 @@ machine_at_p6sba_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
-
-    hwm_values_t machine_hwm = {
-    	{    /* fan speeds */
-    		3000,	/* CPU1 */
-    		0,	/* CPU2 */
-    		3000	/* Thermal Control */
-    	}, { /* temperatures */
-    		0,	/* unused */
-    		30,	/* CPU1 */
-    		0	/* unused (CPU2?) */
-    	}, { /* voltages */
-    		2050,				   /* CPU1 (2.05V by default) */
-    		0,				   /* CPU2 */
-    		3300,				   /* +3.3V */
-    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
-    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
-    	}
-    };
-    if (model->cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUM2)
-    	machine_hwm.voltages[0] = 2800; /* set higher VCORE (2.8V) for Klamath */
-    hwm_set_values(machine_hwm);
-    device_add(&w83781d_device);
+    device_add(&w83781d_device); /* fans: CPU1, CPU2, Thermal Control; temperatures: unused, CPU1, CPU2? */
+    hwm_values.fans[1] = 0; /* no CPU2 fan */
+    hwm_values.temperatures[0] = 0; /* unused */
+    hwm_values.temperatures[2] = 0; /* CPU2? */
+    /* no CPU2 voltage */
 
     return ret;
 }

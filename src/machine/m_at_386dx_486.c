@@ -918,26 +918,10 @@ machine_at_itoxstar_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_client_device);
     device_add(&sst_flash_29ee020_device);
-
-    hwm_values_t machine_hwm = {
-    	{    /* fan speeds (incorrect divisor for some reason) */
-    		3000,	/* Chassis */
-    		3000	/* CPU */
-    	}, { /* temperatures */
-    		30,	/* Chassis */
-    		30	/* CPU */
-    	}, { /* voltages */
-    		0,				   /* unused */
-    		0,				   /* unused */
-    		3300,				   /* Vio */
-    		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
-    		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-    		RESISTOR_DIVIDER(12000, 853, 347), /* -12V (divider values bruteforced) */
-    		RESISTOR_DIVIDER(5000,    1,   2)  /* -5V  (divider values bruteforced) */
-    	}
-    };
-    hwm_set_values(machine_hwm);
-    device_add(&w83781d_device);
+    device_add(&w83781d_device); /* fans: Chassis, CPU, unused; temperatures: Chassis, CPU, unused */
+    hwm_values.fans[2] = 0; /* unused */
+    hwm_values.temperatures[2] = 0; /* unused */
+    hwm_values.voltages[0] = 0; /* Vcore unused */
 
     return ret;
 }

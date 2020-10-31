@@ -70,12 +70,12 @@ acpi_update_irq(void *priv)
 	if (dev->irq_mode == 1)
 		pci_set_irq(dev->slot, dev->irq_pin);
 	else
-		picintlevel(1 << dev->irq_line);
+		pci_set_mirq(0xf0 | dev->irq_line, 1);
     } else {
 	if (dev->irq_mode == 1)
 		pci_clear_irq(dev->slot, dev->irq_pin);
 	else
-		picintc(1 << dev->irq_line);
+		pci_clear_mirq(0xf0 | dev->irq_line, 1);
     }
 }
 

@@ -16,15 +16,16 @@
  */
 #ifndef EMU_HWM_H
 # define EMU_HWM_H
+# include <stdint.h>
 
 
 #define RESISTOR_DIVIDER(v, r1, r2) (((v) * (r2)) / ((r1) + (r2)))
 
 
-typedef struct _hwm_values_ {
+typedef struct {
     uint16_t	fans[4];
     uint8_t	temperatures[4];
-    uint16_t	voltages[8];
+    uint16_t	voltages[9];
 } hwm_values_t;
 
 typedef struct {
@@ -40,8 +41,7 @@ typedef struct {
 } lm75_t;
 
 
-extern void		hwm_set_values(hwm_values_t new_values);
-extern hwm_values_t*	hwm_get_values();
+extern uint16_t		hwm_get_vcore();
 
 extern void		lm75_remap(lm75_t *dev, uint8_t addr);
 extern uint8_t		lm75_read(lm75_t *dev, uint8_t reg);
@@ -50,6 +50,9 @@ extern uint8_t		lm75_write(lm75_t *dev, uint8_t reg, uint8_t val);
 extern void		vt82c686_hwm_write(uint8_t addr, uint8_t val, void *priv);
 
 
+/* Refer to specific hardware monitor implementations for the meaning of hwm_values. */
+extern hwm_values_t	hwm_values;
+
 extern const device_t	lm75_1_4a_device;
 extern const device_t	lm75_w83781d_device;
 
@@ -57,6 +60,7 @@ extern const device_t	lm78_device;
 extern const device_t	w83781d_device;
 extern const device_t	as99127f_device;
 extern const device_t	as99127f_rev2_device;
+extern const device_t	w83782d_device;
 
 extern const device_t	gl518sm_2c_device;
 extern const device_t	gl518sm_2d_device;
