@@ -248,6 +248,9 @@ do_seg_load(x86seg *s, uint16_t *segdat)
 	else
 		cpu_cur_status |= CPU_STATUS_NOTFLATSS;
     }
+
+    if (s->base == 0xffffffff)
+	fatal("do_seg_load(): %04X%04X%04X%04X\n", segdat[3], segdat[2], segdat[1], segdat[0]);
 }
 
 
@@ -269,7 +272,7 @@ check_seg_valid(x86seg *s)
     int valid = 1;
     x86seg *dt = (s->seg & 0x0004) ? &ldt : &gdt;
 
-    if (((s->seg & 0xfff8) + 7) >= dt->limit)
+    if (((s->seg & 0xfff8) + 7) > dt->limit)
 	valid = 0;
 
     switch (s->access & 0x1f) {
@@ -522,7 +525,7 @@ loadcs(uint16_t seg)
 
 	addr = seg & 0xfff8;
 	dt = (seg & 0x0004)? &ldt : &gdt;
-	if ((addr + 7) >= dt->limit) {
+	if ((addr + 7) > dt->limit) {
 		x86gpf("loadcs(): Protected mode selector > DT limit", seg & 0xfffc);
 		return;
 	}
@@ -610,7 +613,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
 	}
 	addr = seg & 0xfff8;
 	dt = (seg & 0x0004) ? &ldt : &gdt;
-	if ((addr + 7) >= dt->limit) {
+	if ((addr + 7) > dt->limit) {
 		x86gpf("loacsjmp(): Selector > DT limit", seg & 0xfffc);
 		return;
 	}
@@ -694,7 +697,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
 				}
 				addr = seg2 & 0xfff8;
 				dt = (seg2 & 0x0004) ? &ldt : &gdt;
-				if ((addr + 7) >= dt->limit) {
+				if ((addr + 7) > dt->limit) {
 					x86gpf("loadcsjmp(): Call gate selector > DT limit", seg2 & 0xfffc);
 					return;
 				}
@@ -884,7 +887,7 @@ void loadcscall(uint16_t seg)
 	}
 	addr = seg & 0xfff8;
 	dt = (seg & 0x0004) ? &ldt : &gdt;
-	if ((addr + 7) >= dt->limit) {
+	if ((addr + 7) > dt->limit) {
 		x86gpf("loadcscall(): Selector > DT limit", seg & 0xfffc);
 		return;
 	}
@@ -975,7 +978,7 @@ void loadcscall(uint16_t seg)
 					}
 					addr = seg2 & 0xfff8;
 					dt = (seg2 & 0x0004) ? &ldt : &gdt;
-					if ((addr + 7) >= dt->limit) {
+					if ((addr + 7) > dt->limit) {
 						x86gpf("loadcscall(): ex Selector > DT limit", seg2 & 0xfff8);
 						return;
 					}
@@ -1239,7 +1242,7 @@ pmoderetf(int is32, uint16_t off)
     }
     addr = seg & 0xfff8;
     dt = (seg & 0x0004) ? &ldt : &gdt;
-    if ((addr + 7) >= dt->limit) {
+    if ((addr + 7) > dt->limit) {
 	x86gpf("pmoderetf(): Selector > DT limit", seg & 0xfffc);
 	return;
     }
@@ -1352,7 +1355,7 @@ pmoderetf(int is32, uint16_t off)
 	}
 	addr = newss & 0xfff8;
 	dt = (newss & 0x0004) ? &ldt : &gdt;
-	if ((addr + 7) >= dt->limit) {
+	if ((addr + 7) > dt->limit) {
 		ESP = oldsp;
 		x86gpf("pmoderetf(): New SS selector > DT limit", newss & 0xfffc);
 		return;
@@ -1444,7 +1447,7 @@ pmodeint(int num, int soft)
 	return;
     }
     addr = (num << 3);
-    if ((addr + 7) >= idt.limit) {
+    if ((addr + 7) > idt.limit) {
 	if (num == 0x08) {
 		/* Triple fault - reset! */
 		softresetx86();
@@ -1490,7 +1493,7 @@ pmodeint(int num, int soft)
 
 		addr = seg & 0xfff8;
 		dt = (seg & 0x0004) ? &ldt : &gdt;
-		if ((addr + 7) >= dt->limit) {
+		if ((addr + 7) > dt->limit) {
 			x86gpf("pmodeint(): Interrupt or trap gate selector > DT limit", seg & 0xfffc);
 			return;
 		}
@@ -1535,7 +1538,7 @@ pmodeint(int num, int soft)
 					}
 					addr = newss & 0xfff8;
 					dt = (newss & 0x0004) ? &ldt : &gdt;
-					if (addr >= dt->limit) {
+					if ((addr + 7) > dt->limit) {
 						x86ss("pmodeint(): Interrupt or trap gate stack segment > DT", newss & 0xfffc);
 						return;
 					}
@@ -1669,7 +1672,7 @@ pmodeint(int num, int soft)
 		seg = segdat[1];
 		addr = seg & 0xfff8;
 		dt = (seg & 0x0004) ? &ldt : &gdt;
-		if ((addr + 7) >= dt->limit) {
+		if ((addr + 7) > dt->limit) {
 			x86gpf("pmodeint(): Task gate selector > DT limit", seg & 0xfffc);
 			return;
 		}
@@ -1749,8 +1752,8 @@ pmodeiret(int is32)
 		x86ts("pmodeiret(): Selector points to LDT", seg & 0xfffc);
 		return;
 	} else {
-		if (addr >= gdt.limit) {
-			x86ts(NULL,seg&~3);
+		if ((addr + 7) > gdt.limit) {
+			x86ts(NULL,seg & 0xfffc);
 			return;
 		}
 		addr += gdt.base;
@@ -1842,7 +1845,7 @@ pmodeiret(int is32)
 
     addr = seg & 0xfff8;
     dt = (seg & 0x0004) ? & ldt : &gdt;
-    if ((addr + 7) >= dt->limit) {
+    if ((addr + 7) > dt->limit) {
 	ESP = oldsp;
 	x86gpf("pmodeiret(): Selector > DT limit", seg & 0xfffc);
 	return;
@@ -1927,7 +1930,7 @@ pmodeiret(int is32)
 	}
 	addr = newss & 0xfff8;
 	dt = (newss & 0x0004) ? &ldt : &gdt;
-	if ((addr + 7) >= dt->limit) {
+	if ((addr + 7) > dt->limit) {
 		ESP = oldsp;
 		x86gpf("pmodeiret(): New SS selector > DT limit", newss & 0xfffc);
 		return;
@@ -2138,7 +2141,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
 		}
 		addr = new_cs & 0xfff8;
 		dt = (new_cs & 0x0004) ? &ldt : &gdt;
-		if ((addr + 7) >= dt->limit) {
+		if ((addr + 7) > dt->limit) {
 			x86ts("taskswitch286(): New CS selector > DT limit", new_cs & 0xfffc);
 			return;
 		}
@@ -2300,7 +2303,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
 	}
 	addr = new_cs & 0xfff8;
 	dt = (new_cs & 0x0004) ? &ldt : &gdt;
-	if ((addr + 7) >= dt->limit) {
+	if ((addr + 7) > dt->limit) {
 		x86ts(NULL, new_cs & 0xfffc);
 		return;
 	}

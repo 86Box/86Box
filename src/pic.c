@@ -100,7 +100,7 @@ pic_elcr_read(uint16_t port, void *priv)
 {
     pic_t *dev = (pic_t *) priv;
 
-    pic_log("ELCR%i: READ %02X\n", port & 1, elcr[port & 1]);
+    pic_log("ELCR%i: READ %02X\n", port & 1, dev->elcr);
 
     return dev->elcr;
 }
