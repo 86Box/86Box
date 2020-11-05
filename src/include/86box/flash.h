@@ -24,3 +24,4 @@ extern const device_t sst_flash_29ee010_device;
 extern const device_t sst_flash_29ee020_device;
 extern const device_t sst_flash_39sf010_device;
 extern const device_t sst_flash_39sf020_device;
+extern const device_t sst_flash_39sf040_device;

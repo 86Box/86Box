@@ -472,3 +472,14 @@ const device_t sst_flash_39sf020_device =
     NULL,
     NULL, NULL, NULL, NULL
 };
+
+const device_t sst_flash_39sf040_device =
+{
+    "SST 39SF040 Flash BIOS",
+    0,
+    SST_ID_SST39SF040,
+    sst_init,
+    sst_close,
+    NULL,
+    NULL, NULL, NULL, NULL
+};

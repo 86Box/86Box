@@ -40,6 +40,8 @@ enum
 {
     BLOCK_MAIN1,
     BLOCK_MAIN2,
+	BLOCK_MAIN3,
+	BLOCK_MAIN4,
     BLOCK_DATA1,
     BLOCK_DATA2,
     BLOCK_BOOT,
@@ -171,7 +173,9 @@ flash_write(uint32_t addr, uint8_t val, void *p)
     flash_t *dev = (flash_t *) p;
     int i;
     uint32_t bb_mask = biosmask & 0xffffe000;
-    if (biosmask == 0x3ffff)
+    if (biosmask == 0x7ffff)
+	bb_mask &= 0xffff8000;
+    else if (biosmask == 0x3ffff)
 	bb_mask &= 0xffffc000;
 
     if (dev->flags & FLAG_INV_A16)
@@ -220,7 +224,9 @@ flash_writew(uint32_t addr, uint16_t val, void *p)
     flash_t *dev = (flash_t *) p;
     int i;
     uint32_t bb_mask = biosmask & 0xffffe000;
-    if (biosmask == 0x3ffff)
+    if (biosmask == 0x7ffff)
+	bb_mask &= 0xffff8000;
+    else if (biosmask == 0x3ffff)
 	bb_mask &= 0xffffc000;
 
     if (dev->flags & FLAG_INV_A16)
@@ -280,16 +286,23 @@ intel_flash_add_mappings(flash_t *dev)
     uint32_t base, fbase;
     uint32_t sub = 0x20000;
 
-    if (biosmask == 0x3ffff) {
+	if (biosmask == 0x7ffff) {
+	sub = 0x80000;
+	max = 8;
+    }
+    else if (biosmask == 0x3ffff) {
 	sub = 0x40000;
 	max = 4;
-    }
+	}
 
     for (i = 0; i < max; i++) {
-	if (biosmask == 0x3ffff)
+	if (biosmask == 0x7ffff)
+		base = 0x80000 + (i << 16);
+	else if (biosmask == 0x3ffff)
 		base = 0xc0000 + (i << 16);
 	else
 		base = 0xe0000 + (i << 16);
+
 	fbase = base & biosmask; 
 	if (dev->flags & FLAG_INV_A16)
 		fbase ^= 0x10000;
@@ -356,7 +369,57 @@ intel_flash_init(const device_t *info)
     dev->array = (uint8_t *) malloc(biosmask + 1);
     memset(dev->array, 0xff, biosmask + 1);
 
-    if (biosmask == 0x3ffff) {
+	switch(biosmask){
+	case 0x7ffff:
+
+	if (dev->flags & FLAG_WORD)
+	dev->flash_id = (dev->flags & FLAG_BXB) ? 0x4471 :0x4470;
+	else
+	dev->flash_id =(dev->flags & FLAG_BXB) ? 0x8A : 0x89;
+
+	/* The block lengths are the same both flash types. */
+	dev->block_len[BLOCK_MAIN1] = 0x20000;
+	dev->block_len[BLOCK_MAIN2] = 0x20000;
+	dev->block_len[BLOCK_MAIN3] = 0x20000;
+	dev->block_len[BLOCK_MAIN4] = 0x18000;
+	dev->block_len[BLOCK_DATA1] = 0x02000;
+	dev->block_len[BLOCK_DATA2] = 0x02000;
+	dev->block_len[BLOCK_BOOT] = 0x04000;
+
+	if (dev->flags & FLAG_BXB) {	/* 28F004BX-T/28F400BX-B */
+	dev->block_start[BLOCK_BOOT] = 0x00000;	/* MAIN BLOCK 1 */
+	dev->block_end[BLOCK_BOOT] = 0x1ffff;
+	dev->block_start[BLOCK_DATA2] = 0x20000;	/* MAIN BLOCK 2 */
+	dev->block_end[BLOCK_DATA2] = 0x3ffff;
+	dev->block_start[BLOCK_DATA1] = 0x40000;	/* MAIN BLOCK 3 */
+	dev->block_end[BLOCK_DATA1] = 0x5ffff;
+	dev->block_start[BLOCK_MAIN4] = 0x60000;	/* MAIN BLOCK 4 */
+	dev->block_end[BLOCK_MAIN4] = 0x77fff;
+	dev->block_start[BLOCK_MAIN3] = 0x78000;	/* DATA AREA 1 BLOCK */
+	dev->block_end[BLOCK_MAIN3] = 0x79fff;
+	dev->block_start[BLOCK_MAIN2] = 0x7a000;	/* DATA AREA 2 BLOCK */
+	dev->block_end[BLOCK_MAIN2] = 0x7bfff;
+	dev->block_start[BLOCK_MAIN1] = 0x7c000;		/* BOOT BLOCK */
+	dev->block_end[BLOCK_MAIN1] = 0x7ffff;
+	} else {
+	dev->block_start[BLOCK_MAIN1] = 0x00000;	/* MAIN BLOCK 1 */
+	dev->block_end[BLOCK_MAIN1] = 0x1ffff;
+	dev->block_start[BLOCK_MAIN2] = 0x20000;	/* MAIN BLOCK 2 */
+	dev->block_end[BLOCK_MAIN2] = 0x3ffff;
+	dev->block_start[BLOCK_MAIN3] = 0x40000;	/* MAIN BLOCK 3 */
+	dev->block_end[BLOCK_MAIN3] = 0x5ffff;
+	dev->block_start[BLOCK_MAIN4] = 0x60000;	/* MAIN BLOCK 4 */
+	dev->block_end[BLOCK_MAIN4] = 0x77fff;
+	dev->block_start[BLOCK_DATA1] = 0x78000;	/* DATA AREA 1 BLOCK */
+	dev->block_end[BLOCK_DATA1] = 0x79fff;
+	dev->block_start[BLOCK_DATA2] = 0x7a000;	/* DATA AREA 2 BLOCK */
+	dev->block_end[BLOCK_DATA2] = 0x7bfff;
+	dev->block_start[BLOCK_BOOT] = 0x7c000;		/* BOOT BLOCK */
+	dev->block_end[BLOCK_BOOT] = 0x7ffff;
+	}
+	break;
+
+    case 0x3ffff:
 	if (dev->flags & FLAG_WORD)
 		dev->flash_id = (dev->flags & FLAG_BXB) ? 0x2275 : 0x2274;
 	else
@@ -392,7 +455,9 @@ intel_flash_init(const device_t *info)
 		dev->block_start[BLOCK_BOOT] = 0x3c000;		/* BOOT BLOCK */
 		dev->block_end[BLOCK_BOOT] = 0x3ffff;
 	}
-    } else {
+    break;
+
+	default:
 	dev->flash_id = (type & FLAG_BXB) ? 0x95 : 0x94;
 
 	/* The block lengths are the same both flash types. */
@@ -425,7 +490,8 @@ intel_flash_init(const device_t *info)
 		dev->block_start[BLOCK_BOOT] = 0x1e000;		/* BOOT BLOCK */
 		dev->block_end[BLOCK_BOOT] = 0x1ffff;
 	}
-    }
+    break;		
+	}
 
     intel_flash_add_mappings(dev);
 
@@ -437,6 +503,11 @@ intel_flash_init(const device_t *info)
 	fread(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, f);
 	if (dev->block_len[BLOCK_MAIN2])
 		fread(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, f);
+	else if (dev->block_len[BLOCK_MAIN3])
+		fread(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, f);
+	else if (dev->block_len[BLOCK_MAIN4])
+		fread(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, f);
+
 	fread(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, f);
 	fread(&(dev->array[dev->block_start[BLOCK_DATA2]]), dev->block_len[BLOCK_DATA2], 1, f);
 	fclose(f);
@@ -459,6 +530,11 @@ intel_flash_close(void *p)
     fwrite(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, f);
     if (dev->block_len[BLOCK_MAIN2])
 	fwrite(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, f);
+    else if (dev->block_len[BLOCK_MAIN3])
+	fwrite(&(dev->array[dev->block_start[BLOCK_MAIN3]]), dev->block_len[BLOCK_MAIN3], 1, f);
+    else if (dev->block_len[BLOCK_MAIN4])
+	fwrite(&(dev->array[dev->block_start[BLOCK_MAIN4]]), dev->block_len[BLOCK_MAIN4], 1, f);
+
     fwrite(&(dev->array[dev->block_start[BLOCK_DATA1]]), dev->block_len[BLOCK_DATA1], 1, f);
     fwrite(&(dev->array[dev->block_start[BLOCK_DATA2]]), dev->block_len[BLOCK_DATA2], 1, f);
     fclose(f);
@@ -473,7 +549,7 @@ intel_flash_close(void *p)
 /* For AMI BIOS'es - Intel 28F001BXT with A16 pin inverted. */
 const device_t intel_flash_bxt_ami_device =
 {
-    "Intel 28F001BXT/28F002BXT Flash BIOS",
+    "Intel 28F001BXT/28F002BXT/28F004BXT Flash BIOS",
     DEVICE_PCI,
     FLAG_INV_A16,
     intel_flash_init,
@@ -485,7 +561,7 @@ const device_t intel_flash_bxt_ami_device =
 
 const device_t intel_flash_bxt_device =
 {
-    "Intel 28F001BXT/28F002BXT Flash BIOS",
+    "Intel 28F001BXT/28F002BXT/28F004BXT Flash BIOS",
     DEVICE_PCI, 0,
     intel_flash_init,
     intel_flash_close,
@@ -496,7 +572,7 @@ const device_t intel_flash_bxt_device =
 
 const device_t intel_flash_bxb_device =
 {
-    "Intel 28F001BXB/28F002BXB Flash BIOS",
+    "Intel 28F001BXB/28F002BXB/28F004BXB Flash BIOS",
     DEVICE_PCI, FLAG_BXB,
     intel_flash_init,
     intel_flash_close,
