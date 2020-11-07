@@ -261,17 +261,24 @@ net_pcap_prepare(netdev_t *list)
     }
 
     for (dev=devlist; dev!=NULL; dev=dev->next) {
-	if (strlen(dev->name) <= 127)
-		strcpy(list->device, dev->name);
-	else
-		strncpy(list->device, dev->name, 127);
-	if (dev->description) {
-		if (strlen(dev->description) <= 127)
-			strcpy(list->description, dev->description);
-		else
-			strncpy(list->description, dev->description, 127);
-	} else
+		/**
+		 * we initialize the strings to NULL first for strncpy
+		 */
+
+		memset(list->device, '\0', sizeof(list->device));
 		memset(list->description, '\0', sizeof(list->description));
+
+		strncpy(list->device, dev->name, 127);
+		if (dev->description) {
+			if (strlen(dev->description) <= 127)
+				strcpy(list->description, dev->description);
+			else
+				strncpy(list->description, dev->description, 127);
+		} else {
+			/* if description is NULL, set the name. This allows pcap to display *something* useful under WINE */
+			strncpy(list->description, dev->name, sizeof(list->description)-1);
+		}
+
 	list++; i++;
     }
 
