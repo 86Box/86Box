@@ -940,7 +940,7 @@ static const device_config_t aha_154xb_config[] = {
                 },
         },
         {
-		"irq", "IRQ", CONFIG_SELECTION, "", 9,
+		"irq", "IRQ", CONFIG_SELECTION, "", 11,
                 {
                         {
                                 "IRQ 9", 9
@@ -1070,7 +1070,7 @@ static const device_config_t aha_154x_config[] = {
                 },
         },
         {
-		"irq", "IRQ", CONFIG_SELECTION, "", 9,
+		"irq", "IRQ", CONFIG_SELECTION, "", 11,
                 {
                         {
                                 "IRQ 9", 9
@@ -1169,7 +1169,7 @@ static const device_config_t aha_154xcf_config[] = {
                 },
         },
         {
-		"irq", "IRQ", CONFIG_SELECTION, "", 9,
+		"irq", "IRQ", CONFIG_SELECTION, "", 11,
                 {
                         {
                                 "IRQ 9", 9
