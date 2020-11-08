@@ -66,9 +66,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef PAS16
   PAS16		:= n
  endif
- ifndef PORTABLE3
-  PORTABLE3	:= y
- endif
  ifndef PS1M2133
   PS1M2133	:= y
  endif
@@ -159,9 +156,6 @@ else
  endif
  ifndef PAS16
   PAS16		:= n
- endif
- ifndef PORTABLE3
-  PORTABLE3	:= n
  endif
  ifndef PS1M2133
   PS1M2133	:= n
@@ -562,10 +556,6 @@ endif
 ifeq ($(PAS16), y)
 OPTS		+= -DUSE_PAS16
 DEVBROBJ	+= snd_pas16.o
-endif
-
-ifeq ($(PORTABLE3), y)
-OPTS		+= -DUSE_PORTABLE3
 endif
 
 ifeq ($(PS1M2133), y)
