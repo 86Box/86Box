@@ -28,6 +28,7 @@
 #include <86box/io.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
+#include <86box/plat.h>
 #include <86box/timer.h>
 #include <86box/keyboard.h>
 #include <86box/nvr.h>
@@ -448,7 +449,7 @@ acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
 			switch (sus_typ) {
 				case 0:
 					/* Soft power off. */
-					exit(-1);
+					quited = 1;
 					break;
 				case 1:
 					/* Suspend to RAM. */
