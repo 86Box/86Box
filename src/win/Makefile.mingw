@@ -875,15 +875,15 @@ else
 
 %.d:		%.c $(wildcard $*.d)
 		@echo $<
-		@$(CC) $(CFLAGS) $(DEPS) -E $< >NUL
+		@$(CC) $(CFLAGS) $(DEPS) -E $< >/dev/null
 
 %.d:		%.cc $(wildcard $*.d)
 		@echo $<
-		@$(CPP) $(CXXFLAGS) $(DEPS) -E $< >NUL
+		@$(CPP) $(CXXFLAGS) $(DEPS) -E $< >/dev/null
 
 %.d:		%.cpp $(wildcard $*.d)
 		@echo $<
-		@$(CPP) $(CXXFLAGS) $(DEPS) -E $< >NUL
+		@$(CPP) $(CXXFLAGS) $(DEPS) -E $< >/dev/null
 endif
 
 
@@ -921,18 +921,18 @@ endif
 
 clean:
 		@echo Cleaning objects..
-		@-rm -f *.o 2>NUL
-		@-rm -f *.res 2>NUL
+		@-rm -f *.o 2>/dev/null
+		@-rm -f *.res 2>/dev/null
 
 clobber:	clean
 		@echo Cleaning executables..
-		@-rm -f *.d 2>NUL
-		@-rm -f *.exe 2>NUL
-#		@-rm -f $(DEPFILE) 2>NUL
+		@-rm -f *.d 2>/dev/null
+		@-rm -f *.exe 2>/dev/null
+#		@-rm -f $(DEPFILE) 2>/dev/null
 
 ifneq ($(AUTODEP), y)
 depclean:
-		@-rm -f $(DEPFILE) 2>NUL
+		@-rm -f $(DEPFILE) 2>/dev/null
 		@echo Creating dependencies..
 		@echo # Run "make depends" to re-create this file. >$(DEPFILE)
 
