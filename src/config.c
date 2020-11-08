@@ -1168,6 +1168,9 @@ load_floppy_and_cdrom_drives(void)
 	p = config_get_string(cat, temp, NULL);
 	if (p != NULL)
 		sscanf(p, "%01u, %s", &d, s);
+	else if (c == 0)
+		/* If this is the first drive, unmute the audio. */
+		sscanf("1, none", "%01u, %s", &d, s);
 	else
 		sscanf("0, none", "%01u, %s", &d, s);
 	cdrom[c].sound_on = d;
@@ -1536,6 +1539,9 @@ config_load(void)
 		fdd_set_turbo(i, 0);
 		fdd_set_check_bpb(i, 1);
 	}
+
+	/* Unmute the CD audio on the first CD-ROM drive. */
+	cdrom[0].sound_on = 1;
 	mem_size = 640;
 	isartc_type = 0;
 	for (i = 0; i < ISAMEM_MAX; i++)
