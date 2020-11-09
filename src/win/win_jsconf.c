@@ -326,8 +326,8 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
         *data++ = 0; /*predefined dialog box class*/
         data += MultiByteToWideChar(CP_ACP, 0, "Device Configuration", -1, data, 50);
 
-        *data++ = 8; /*Point*/
-        data += MultiByteToWideChar(CP_ACP, 0, "MS Sans Serif", -1, data, 50);
+        *data++ = 9; /*Point*/
+        data += MultiByteToWideChar(CP_ACP, 0, "Segoe UI", -1, data, 50);
         
         if (((uintptr_t)data) & 2)
                 data++;
@@ -548,8 +548,8 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
         item->y = y;
         item->cx = 50;
         item->cy = 14;
-        item->id = IDCANCEL;  /* OK button identifier */
-        item->style = WS_CHILD | WS_VISIBLE | BS_DEFPUSHBUTTON;
+        item->id = IDCANCEL;  /* Cancel button identifier */
+        item->style = WS_CHILD | WS_VISIBLE;
 
         data = (uint16_t *)(item + 1);
         *data++ = 0xFFFF;
