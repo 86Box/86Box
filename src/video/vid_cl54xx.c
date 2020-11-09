@@ -38,7 +38,7 @@
 
 #define BIOS_GD5401_PATH		L"roms/video/cirruslogic/avga1.rom"
 #define BIOS_GD5402_PATH		L"roms/video/cirruslogic/avga2.rom"
-#define BIOS_GD5402_ONBOARD_PATH	L"roms/video/machines/cbm_sl386sx25/Commodore386SX-25_AVGA2.bin"
+#define BIOS_GD5402_ONBOARD_PATH	L"roms/machines/cbm_sl386sx25/Commodore386SX-25_AVGA2.bin"
 #define BIOS_GD5420_PATH		L"roms/video/cirruslogic/5420.vbi"
 
 #if defined(DEV_BRANCH) && defined(USE_CL5422)
