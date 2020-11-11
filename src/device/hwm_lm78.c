@@ -42,8 +42,8 @@
 #define CLAMP(a, min, max)	(((a) < (min)) ? (min) : (((a) > (max)) ? (max) : (a)))
 #define LM78_RPM_TO_REG(r, d)	((r) ? CLAMP(1350000 / (r * d), 1, 255) : 0)
 #define LM78_VOLTAGE_TO_REG(v)	((v) >> 4)
-#define LM78_NEG_VOLTAGE(v, r)	(v * (604.0 / ((double) r)))
-#define LM78_NEG_VOLTAGE2(v, r)	(((3600 + v) * (((double) r) / (((double) r) + 56.0))) - v)
+#define LM78_NEG_VOLTAGE(v, r)	(v * (604.0 / ((double) r))) /* negative voltage formula from the W83781D datasheet */
+#define LM78_NEG_VOLTAGE2(v, r)	(((3600 + v) * (((double) r) / (((double) r) + 56.0))) - v) /* negative voltage formula from the W83782D datasheet */
 
 
 typedef struct {
@@ -510,10 +510,10 @@ lm78_init(const device_t *info)
 		3300,				 /* +3.3V */
 		RESISTOR_DIVIDER(5000,  11, 16), /* +5V  (divider values bruteforced) */
 		RESISTOR_DIVIDER(12000, 28, 10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-		LM78_NEG_VOLTAGE(12000, 2100),	 /* -12V (Rf/Rin negative voltage formula from the W83781D datasheet) */
-		LM78_NEG_VOLTAGE(5000,  909),	 /* -5V  (Rf/Rin negative voltage formula from the W83781D datasheet) */
+		LM78_NEG_VOLTAGE(12000, 2100),	 /* -12V */
+		LM78_NEG_VOLTAGE(5000,  909),	 /* -5V */
 		RESISTOR_DIVIDER(5000,  51, 75), /* W83782D only: +5VSB (5.1K/7.5K divider suggested in the datasheet) */
-		3000				 /* W83782D only: VBAT */
+		3000				 /* W83782D only: Vbat */
 	}
     };
 
@@ -522,7 +522,7 @@ lm78_init(const device_t *info)
     	/* different -12V Rin value for AS99127F (bruteforced) */
 	defaults.voltages[5] = LM78_NEG_VOLTAGE(12000, 2400);
     } else if (dev->local & LM78_W83782D) {
-	/* different negative voltage formula for W83782D (from the datasheet) */
+	/* W83782D uses a different negative voltage formula */
 	defaults.voltages[5] = LM78_NEG_VOLTAGE2(12000, 232);
 	defaults.voltages[6] = LM78_NEG_VOLTAGE2(5000,  120);
     }
