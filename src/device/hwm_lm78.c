@@ -42,6 +42,8 @@
 #define CLAMP(a, min, max)	(((a) < (min)) ? (min) : (((a) > (max)) ? (max) : (a)))
 #define LM78_RPM_TO_REG(r, d)	((r) ? CLAMP(1350000 / (r * d), 1, 255) : 0)
 #define LM78_VOLTAGE_TO_REG(v)	((v) >> 4)
+#define LM78_NEG_VOLTAGE(v, r)	(v * (604.0 / ((double) r)))
+#define LM78_NEG_VOLTAGE2(v, r)	(((3600 + v) * (((double) r) / (((double) r) + 56.0))) - v)
 
 
 typedef struct {
@@ -476,7 +478,7 @@ lm78_close(void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
 
-    uint16_t isa_io = (dev->local & 0xffff);
+    uint16_t isa_io = dev->local & 0xffff;
     if (isa_io)
 	io_removehandler(isa_io, 8, lm78_isa_read, NULL, NULL, lm78_isa_write, NULL, NULL, dev);
 
@@ -492,7 +494,7 @@ lm78_init(const device_t *info)
 
     dev->local = info->local;
 
-    /* Set default values. */
+    /* Set global default values. */
     hwm_values_t defaults = {
 	{    /* fan speeds */
 		3000,	/* usually Chassis, sometimes CPU */
@@ -503,25 +505,26 @@ lm78_init(const device_t *info)
 		30,	/* Winbond only: usually CPU, sometimes Probe */
 		30	/* Winbond only: usually CPU when not the one above */
 	}, { /* voltages */
-		hwm_get_vcore(),		  /* Vcore */
-		0,				  /* sometimes Vtt, Vio or second CPU */
-		3300,				  /* +3.3V */
-		RESISTOR_DIVIDER(5000,  11,  16), /* +5V  (divider values bruteforced) */
-		RESISTOR_DIVIDER(12000, 28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-		12000 * (604.0 / 2100.0),	  /* -12V (Rf/Rin negative voltage formula from the W83781D datasheet) */
-		5000 * (604.0 / 909.0),		  /* -5V  (Rf/Rin negative voltage formula from the W83781D datasheet) */
-		RESISTOR_DIVIDER(5000,  51,  75), /* W83782D only: +5VSB (5.1K/7.5K divider suggested in the datasheet) */
-		3000				  /* W83782D only: VBAT */
+		hwm_get_vcore(),		 /* Vcore */
+		0,				 /* sometimes Vtt, Vio or second CPU */
+		3300,				 /* +3.3V */
+		RESISTOR_DIVIDER(5000,  11, 16), /* +5V  (divider values bruteforced) */
+		RESISTOR_DIVIDER(12000, 28, 10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
+		LM78_NEG_VOLTAGE(12000, 2100),	 /* -12V (Rf/Rin negative voltage formula from the W83781D datasheet) */
+		LM78_NEG_VOLTAGE(5000,  909),	 /* -5V  (Rf/Rin negative voltage formula from the W83781D datasheet) */
+		RESISTOR_DIVIDER(5000,  51, 75), /* W83782D only: +5VSB (5.1K/7.5K divider suggested in the datasheet) */
+		3000				 /* W83782D only: VBAT */
 	}
     };
 
-    /* Set per-chip defaults. */
+    /* Set chip-specific default values. */
     if (dev->local & LM78_AS99127F) {
-	defaults.voltages[5] = 12000 * (604.0 / 2400.0); /* different -12V Rin value for AS99127F (bruteforced) */
+    	/* different -12V Rin value for AS99127F (bruteforced) */
+	defaults.voltages[5] = LM78_NEG_VOLTAGE(12000, 2400);
     } else if (dev->local & LM78_W83782D) {
 	/* different negative voltage formula for W83782D (from the datasheet) */
-	defaults.voltages[5] = ((3600 + 12000) * (232.0 / (232.0 + 56.0))) - 12000;
-	defaults.voltages[6] = ((3600 + 5000) * (120.0 / (120.0 + 56.0))) - 5000;
+	defaults.voltages[5] = LM78_NEG_VOLTAGE2(12000, 232);
+	defaults.voltages[6] = LM78_NEG_VOLTAGE2(5000,  120);
     }
 
     hwm_values = defaults;
@@ -532,9 +535,9 @@ lm78_init(const device_t *info)
 	if (dev->local & LM78_WINBOND) {
 		dev->lm75[i] = (device_t *) malloc(sizeof(device_t));
 		memcpy(dev->lm75[i], &lm75_w83781d_device, sizeof(device_t));
-		dev->lm75[i]->local = ((i + 1) << 8);
+		dev->lm75[i]->local = (i + 1) << 8;
 		if (dev->local & LM78_SMBUS)
-			dev->lm75[i]->local |= (0x48 + i);
+			dev->lm75[i]->local |= 0x48 + i;
 		device_add(dev->lm75[i]);
 	} else {
 		dev->lm75[i] = NULL;
@@ -543,7 +546,7 @@ lm78_init(const device_t *info)
 
     lm78_reset(dev, 0);
 
-    uint16_t isa_io = (dev->local & 0xffff);
+    uint16_t isa_io = dev->local & 0xffff;
     if (isa_io)
 	io_sethandler(isa_io, 8, lm78_isa_read, NULL, NULL, lm78_isa_write, NULL, NULL, dev);
 
