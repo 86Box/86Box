@@ -45,6 +45,9 @@ typedef struct {
 } vt82c686_t;
 
 
+static double voltage_factors[5] = {1.25, 1.25, 1.67, 2.6, 6.3};
+
+
 static void	vt82c686_reset(vt82c686_t *dev, uint8_t initialization);
 
 
@@ -52,7 +55,22 @@ static uint8_t
 vt82c686_read(uint16_t addr, void *priv)
 {
     vt82c686_t *dev = (vt82c686_t *) priv;
-    return dev->regs[addr - dev->io_base];
+
+    addr -= dev->io_base;
+
+    switch (addr) {
+	case 0x1f: case 0x20: case 0x21: /* temperatures */
+		return VT82C686_TEMP_TO_REG(dev->values->temperatures[(addr == 0x1f) ? 2 : (addr & 1)]);
+
+	case 0x22: case 0x23: case 0x24: case 0x25: case 0x26: /* voltages */
+		return VT82C686_VOLTAGE_TO_REG(dev->values->voltages[addr - 0x22], voltage_factors[addr - 0x22]);
+
+	case 0x29: case 0x2a: /* fan speeds */
+		return VT82C686_RPM_TO_REG(dev->values->fans[addr - 0x29], 1 << ((dev->regs[0x47] >> ((addr == 0x29) ? 4 : 6)) & 0x3));
+
+	default: /* other registers */
+		return dev->regs[addr];
+    }
 }
 
 
@@ -65,18 +83,9 @@ vt82c686_write(uint16_t port, uint8_t val, void *priv)
     if ((reg == 0x41) || (reg == 0x42) || (reg == 0x45) || (reg == 0x46) || (reg == 0x48) || (reg == 0x4a) || (reg >= 0x4c))
 	return;
 
-    switch (reg) {
-	case 0x40:
-		if (val & 0x80)
-			vt82c686_reset(dev, 1);
-		break;
-
-	case 0x47:
-		val &= 0xf0;
-		/* update FAN1/FAN2 values to match the new divisor */
-		dev->regs[0x29] = VT82C686_RPM_TO_REG(dev->values->fans[0], 1 << ((dev->regs[0x47] >> 4) & 0x3));
-		dev->regs[0x2a] = VT82C686_RPM_TO_REG(dev->values->fans[1], 1 << ((dev->regs[0x47] >> 6) & 0x3));
-		break;
+    if ((reg == 0x40) && (val & 0x80)) {
+	vt82c686_reset(dev, 1);
+	return;
     }
 
     dev->regs[reg] = val;
@@ -121,25 +130,9 @@ vt82c686_reset(vt82c686_t *dev, uint8_t initialization)
 {
     memset(dev->regs, 0, 80);
 
-    dev->regs[0x1f] = VT82C686_TEMP_TO_REG(dev->values->temperatures[2]);
-    dev->regs[0x20] = VT82C686_TEMP_TO_REG(dev->values->temperatures[0]);
-    dev->regs[0x21] = VT82C686_TEMP_TO_REG(dev->values->temperatures[1]);
-
-    dev->regs[0x22] = VT82C686_VOLTAGE_TO_REG(dev->values->voltages[0], 1.25);
-    dev->regs[0x23] = VT82C686_VOLTAGE_TO_REG(dev->values->voltages[1], 1.25);
-    dev->regs[0x24] = VT82C686_VOLTAGE_TO_REG(dev->values->voltages[2], 1.67);
-    dev->regs[0x25] = VT82C686_VOLTAGE_TO_REG(dev->values->voltages[3], 2.6);
-    dev->regs[0x26] = VT82C686_VOLTAGE_TO_REG(dev->values->voltages[4], 6.3);
-
-    dev->regs[0x29] = VT82C686_RPM_TO_REG(dev->values->fans[0], 2);
-    dev->regs[0x2a] = VT82C686_RPM_TO_REG(dev->values->fans[1], 2);
-
     dev->regs[0x40] = 0x08;
     dev->regs[0x47] = 0x50;
-    dev->regs[0x49] = (dev->values->temperatures[2] & 0x3) << 6;
-    dev->regs[0x49] |= (dev->values->temperatures[1] & 0x3) << 4;
-    dev->regs[0x4b] = (dev->values->temperatures[0] & 0x3) << 6;
-    dev->regs[0x4b] |= 0x15;
+    dev->regs[0x4b] = 0x15;
 
     if (!initialization)
 	vt82c686_hwm_write(0x85, 0x00, dev);
@@ -165,18 +158,18 @@ vt82c686_init(const device_t *info)
        the values struct contains voltage values *before* applying their respective factors. */
     hwm_values_t defaults = {
 	{    /* fan speeds */
-		3000,	/* CPU */
-		3000	/* Chassis */
+		3000,	/* usually CPU */
+		3000	/* usually Chassis */
 	}, { /* temperatures */
-		30,	/* CPU */
-		30,	/* System */
-		0	/* unused */
+		30,	/* usually CPU */
+		30,	/* usually System */
+		30
 	}, { /* voltages */
 		hwm_get_vcore(), /* Vcore */
-		2500,		 /* 2.5V */
-		3300,		 /* 3.3V */
-		5000,		 /* 5V */
-		12000		 /* 12V */
+		2500,		 /* +2.5V */
+		3300,		 /* +3.3V */
+		5000,		 /* +5V */
+		12000		 /* +12V */
 	}
     };
     hwm_values = defaults;
