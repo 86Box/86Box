@@ -55,22 +55,29 @@ static uint8_t
 vt82c686_read(uint16_t addr, void *priv)
 {
     vt82c686_t *dev = (vt82c686_t *) priv;
+    uint8_t ret;
 
     addr -= dev->io_base;
 
     switch (addr) {
 	case 0x1f: case 0x20: case 0x21: /* temperatures */
-		return VT82C686_TEMP_TO_REG(dev->values->temperatures[(addr == 0x1f) ? 2 : (addr & 1)]);
+		ret = VT82C686_TEMP_TO_REG(dev->values->temperatures[(addr == 0x1f) ? 2 : (addr & 1)]);
+		break;
 
 	case 0x22: case 0x23: case 0x24: case 0x25: case 0x26: /* voltages */
-		return VT82C686_VOLTAGE_TO_REG(dev->values->voltages[addr - 0x22], voltage_factors[addr - 0x22]);
+		ret = VT82C686_VOLTAGE_TO_REG(dev->values->voltages[addr - 0x22], voltage_factors[addr - 0x22]);
+		break;
 
 	case 0x29: case 0x2a: /* fan speeds */
-		return VT82C686_RPM_TO_REG(dev->values->fans[addr - 0x29], 1 << ((dev->regs[0x47] >> ((addr == 0x29) ? 4 : 6)) & 0x3));
+		ret = VT82C686_RPM_TO_REG(dev->values->fans[addr - 0x29], 1 << ((dev->regs[0x47] >> ((addr == 0x29) ? 4 : 6)) & 0x3));
+		break;
 
 	default: /* other registers */
-		return dev->regs[addr];
+		ret = dev->regs[addr];
+		break;
     }
+
+    return ret;
 }
 
 
@@ -84,8 +91,8 @@ vt82c686_write(uint16_t port, uint8_t val, void *priv)
 	return;
 
     if ((reg == 0x40) && (val & 0x80)) {
+	val &= 0x7f;
 	vt82c686_reset(dev, 1);
-	return;
     }
 
     dev->regs[reg] = val;
@@ -135,7 +142,7 @@ vt82c686_reset(vt82c686_t *dev, uint8_t initialization)
     dev->regs[0x4b] = 0x15;
 
     if (!initialization)
-	vt82c686_hwm_write(0x85, 0x00, dev);
+	vt82c686_hwm_write(0x74, 0x00, dev);
 }
 
 
