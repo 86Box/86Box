@@ -37,6 +37,7 @@
 #define LM78_AS99127F		(LM78_AS99127F_REV1 | LM78_AS99127F_REV2) /* special mask covering both _REV1 and _REV2 */
 #define LM78_WINBOND		(LM78_W83781D | LM78_AS99127F | LM78_W83782D) /* special mask covering all Winbond variants */
 #define LM78_WINBOND_VENDOR_ID	((dev->local & LM78_AS99127F_REV1) ? 0x12c3 : 0x5ca3)
+#define LM78_WINBOND_BANK	(dev->regs[0x4e] & 0x07)
 
 #define CLAMP(a, min, max)	(((a) < (min)) ? (min) : (((a) > (max)) ? (max) : (a)))
 #define LM78_RPM_TO_REG(r, d)	((r) ? CLAMP(1350000 / (r * d), 1, 255) : 0)
@@ -54,8 +55,6 @@ typedef struct {
     uint8_t data_register;
 
     uint8_t smbus_addr;
-    uint8_t hbacs;
-    uint8_t active_bank;
 } lm78_t;
 
 
@@ -135,17 +134,19 @@ lm78_isa_read(uint16_t port, void *priv)
 	case 0x5:
 		ret = (dev->addr_register & 0x7f);
 		break;
-	case 0x6:
-		ret = lm78_read(dev, dev->addr_register, dev->active_bank);
 
-		if (((dev->active_bank == 0) &&
+	case 0x6:
+		ret = lm78_read(dev, dev->addr_register, LM78_WINBOND_BANK);
+
+		if (((LM78_WINBOND_BANK == 0) &&
 		    ((dev->addr_register == 0x41) || (dev->addr_register == 0x43) || (dev->addr_register == 0x45) || (dev->addr_register == 0x56) ||
 		     ((dev->addr_register >= 0x60) && (dev->addr_register < 0x7f)))) ||
-		    ((dev->local & LM78_W83782D) && (dev->active_bank == 5) && (dev->addr_register >= 0x50) && (dev->addr_register < 0x58))) {
+		    ((dev->local & LM78_W83782D) && (LM78_WINBOND_BANK == 5) && (dev->addr_register >= 0x50) && (dev->addr_register < 0x58))) {
 			/* auto-increment registers */
 			dev->addr_register++;
 		}
 		break;
+
 	default:
 		lm78_log("LM78: Read from unknown ISA port %d\n", port & 0x7);
 		break;
@@ -159,7 +160,7 @@ static uint8_t
 lm78_smbus_read_byte(uint8_t addr, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
-    return lm78_read(dev, dev->addr_register, dev->active_bank);
+    return lm78_read(dev, dev->addr_register, LM78_WINBOND_BANK);
 }
 
 
@@ -167,7 +168,7 @@ static uint8_t
 lm78_smbus_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
-    return lm78_read(dev, cmd, dev->active_bank);
+    return lm78_read(dev, cmd, LM78_WINBOND_BANK);
 }
 
 
@@ -175,22 +176,22 @@ static uint16_t
 lm78_smbus_read_word_cmd(uint8_t addr, uint8_t cmd, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
-    return (lm78_read(dev, cmd, dev->active_bank) << 8) | lm78_read(dev, cmd, dev->active_bank);
+    return (lm78_read(dev, cmd, LM78_WINBOND_BANK) << 8) | lm78_read(dev, cmd, LM78_WINBOND_BANK);
 }
 
 
 static uint8_t
 lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank)
 {
-    uint8_t ret = 0, masked_reg = reg;
+    uint8_t ret = 0, masked_reg = reg, bankswitched = ((reg & 0xf8) == 0x50);
     lm75_t *lm75;
 
-    if (((reg & 0xf8) == 0x50) && ((bank == 1) || (bank == 2))) {
+    if (bankswitched && ((bank == 1) || (bank == 2))) {
 	/* LM75 registers */
 	lm75 = device_get_priv(dev->lm75[bank - 1]);
 	if (lm75)
 		ret = lm75_read(lm75, reg);
-    } else if (((reg & 0xf8) == 0x50) && ((bank == 4) || (bank == 5) || (bank == 6))) {
+    } else if (bankswitched && ((bank == 4) || (bank == 5) || (bank == 6))) {
 	/* W83782D additional registers */
 	if (dev->local & LM78_W83782D) {
 		if ((bank == 5) && ((reg == 0x50) || (reg == 0x51))) /* voltages */
@@ -210,7 +211,7 @@ lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank)
 	else if ((masked_reg >= 0x28) && (masked_reg <= 0x2a)) /* fan speeds */
 		ret = LM78_RPM_TO_REG(dev->values->fans[reg & 3], 1 << ((dev->regs[((reg & 3) == 2) ? 0x4b : 0x47] >> ((reg & 3) ? 6 : 4)) & 0x3));
 	else if ((reg == 0x4f) && (dev->local & LM78_WINBOND)) /* two-byte vendor ID register */
-		ret = (dev->hbacs ? (LM78_WINBOND_VENDOR_ID >> 8) : LM78_WINBOND_VENDOR_ID);
+		ret = ((dev->regs[0x4e] & 0x80) ? (LM78_WINBOND_VENDOR_ID >> 8) : LM78_WINBOND_VENDOR_ID);
 	else if ((reg >= 0x60) && (reg <= 0x7f)) /* read auto-increment value RAM registers from their non-auto-increment locations */
 		ret = dev->regs[reg & 0x3f];
 	else if (dev->local & LM78_AS99127F) { /* AS99127F mirrored registers */
@@ -244,12 +245,12 @@ lm78_isa_write(uint16_t port, uint8_t val, void *priv)
 		dev->addr_register = (val & 0x7f);
 		break;
 	case 0x6:
-		lm78_write(dev, dev->addr_register, val, dev->active_bank);
+		lm78_write(dev, dev->addr_register, val, LM78_WINBOND_BANK);
 
-		if (((dev->active_bank == 0) &&
+		if (((LM78_WINBOND_BANK == 0) &&
 		    ((dev->addr_register == 0x41) || (dev->addr_register == 0x43) || (dev->addr_register == 0x45) || (dev->addr_register == 0x56) ||
 		     ((dev->addr_register >= 0x60) && (dev->addr_register < 0x7f)))) ||
-		    ((dev->local & LM78_W83782D) && (dev->active_bank == 5) && (dev->addr_register >= 0x50) && (dev->addr_register < 0x58))) {
+		    ((dev->local & LM78_W83782D) && (LM78_WINBOND_BANK == 5) && (dev->addr_register >= 0x50) && (dev->addr_register < 0x58))) {
 			/* auto-increment registers */
 			dev->addr_register++;
 		}
@@ -273,7 +274,7 @@ static void
 lm78_smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
-    lm78_write(dev, cmd, val, dev->active_bank);
+    lm78_write(dev, cmd, val, LM78_WINBOND_BANK);
 }
 
 
@@ -281,7 +282,7 @@ static void
 lm78_smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
-    lm78_write(dev, cmd, val, dev->active_bank);
+    lm78_write(dev, cmd, val, LM78_WINBOND_BANK);
 }
 
 
@@ -387,12 +388,6 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 		}
 		break;
 
-	case 0x4e:
-		dev->hbacs = (dev->regs[0x4e] & 0x80);
-		/* BANKSEL[0:2] is a bitfield according to the datasheet, but not in reality */
-		dev->active_bank = (dev->regs[0x4e] & 0x07);
-		break;
-
 	case 0x87:
 		/* AS99127F boards perform a soft reset through this register */
 		if ((dev->local & LM78_AS99127F) && (val == 0x01)) {
@@ -432,7 +427,6 @@ lm78_reset(lm78_t *dev, uint8_t initialization)
 	dev->regs[0x4c] = 0x01;
 	dev->regs[0x4d] = 0x15;
 	dev->regs[0x4e] = 0x80;
-	dev->hbacs = (dev->regs[0x4e] & 0x80);
 	dev->regs[0x4f] = (LM78_WINBOND_VENDOR_ID >> 8);
 	dev->regs[0x57] = 0x80;
 
@@ -509,15 +503,15 @@ lm78_init(const device_t *info)
 		30,	/* Winbond only: usually CPU, sometimes Probe */
 		30	/* Winbond only: usually CPU when not the one above */
 	}, { /* voltages */
-		hwm_get_vcore(),		   /* Vcore */
-		0,				   /* sometimes Vtt, Vio or second CPU */
-		3300,				   /* +3.3V */
-		RESISTOR_DIVIDER(5000,   11,  16), /* +5V  (divider values bruteforced) */
-		RESISTOR_DIVIDER(12000,  28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
-		12000 * (604.0 / 2100.0),	   /* -12V (Rf/Rin negative voltage formula from the W83781D datasheet) */
-		5000 * (604.0 / 909.0),		   /* -5V  (Rf/Rin negative voltage formula from the W83781D datasheet) */
-		RESISTOR_DIVIDER(5000,   51,  75), /* W83782D only: +5VSB (5.1K/7.5K divider suggested in the datasheet) */
-		3000				   /* W83782D only: VBAT */
+		hwm_get_vcore(),		  /* Vcore */
+		0,				  /* sometimes Vtt, Vio or second CPU */
+		3300,				  /* +3.3V */
+		RESISTOR_DIVIDER(5000,  11,  16), /* +5V  (divider values bruteforced) */
+		RESISTOR_DIVIDER(12000, 28,  10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
+		12000 * (604.0 / 2100.0),	  /* -12V (Rf/Rin negative voltage formula from the W83781D datasheet) */
+		5000 * (604.0 / 909.0),		  /* -5V  (Rf/Rin negative voltage formula from the W83781D datasheet) */
+		RESISTOR_DIVIDER(5000,  51,  75), /* W83782D only: +5VSB (5.1K/7.5K divider suggested in the datasheet) */
+		3000				  /* W83782D only: VBAT */
 	}
     };
 
