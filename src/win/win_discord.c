@@ -45,7 +45,7 @@ static dllimp_t discord_imports[] = {
   { NULL,		NULL		}
 };
 
-#ifndef ENABLE_DISCORD_LOG
+#ifdef ENABLE_DISCORD_LOG
 int discord_do_log = 1;
 
 
@@ -88,16 +88,8 @@ discord_update_activity(int paused)
     else
     {
 	temp = strchr(machine_getname(), ']') + 2;
-
-	if (strlen(temp) <= 127)
-		strcpy(activity.details, temp);
-	else
-		strncpy(activity.details, temp, 127);
-
-	if (strlen(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].name) <= 127)
-		strcpy(activity.state, machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].name);
-	else
-		strncpy(activity.state, machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].name, 127);
+	strncpy(activity.details, temp, 127);
+	strncpy(activity.state, machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].name, 127);
     }
 
     activity.timestamps.start = time(NULL);
