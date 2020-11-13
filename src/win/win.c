@@ -366,10 +366,6 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
     /* First, set our (default) language. */
     set_language(0x0409);
 
-    /* Create console window. */
-    if (force_debug)
-	CreateConsole(1);
-
     /* Process the command line for options. */
     argc = ProcessCommandLine(&argw);
 
@@ -391,8 +387,11 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
     if (enable_crashdump)
 	InitCrashDump();
 
-    if (force_debug)
+    /* Create console window. */
+    if (force_debug) {
+	CreateConsole(1);
 	atexit(CloseConsole);
+}
 
     /* Handle our GUI. */
     i = ui_init(nCmdShow);
