@@ -519,10 +519,10 @@ lm78_init(const device_t *info)
 
     /* Set chip-specific default values. */
     if (dev->local & LM78_AS99127F) {
-    	/* different -12V Rin value for AS99127F (bruteforced) */
+    	/* AS99127: different -12V Rin value (bruteforced) */
 	defaults.voltages[5] = LM78_NEG_VOLTAGE(12000, 2400);
     } else if (dev->local & LM78_W83782D) {
-	/* W83782D uses a different negative voltage formula */
+	/* W83782D: different negative voltage formula */
 	defaults.voltages[5] = LM78_NEG_VOLTAGE2(12000, 232);
 	defaults.voltages[6] = LM78_NEG_VOLTAGE2(5000,  120);
     }
