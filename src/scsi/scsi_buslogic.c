@@ -1768,7 +1768,7 @@ static const device_config_t BT_ISA_Config[] = {
                 },
         },
         {
-		"irq", "IRQ", CONFIG_SELECTION, "", 9,
+		"irq", "IRQ", CONFIG_SELECTION, "", 11,
                 {
                         {
                                 "IRQ 9", 9
