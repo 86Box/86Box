@@ -375,6 +375,9 @@ const machine_t machines[] = {
     { "[i440BX] A-Trend ATC6310BXII",		"atc6310bxii",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"", NULL},	  {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  8,  768,   8, 255,	  machine_at_atc6310bxii_init, NULL			},
     { "[i440BX] Tyan Tsunami ATX",		"tsunamiatx",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"", NULL},	  {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_SOUND,	 	  8, 1024,   8, 255,	   machine_at_tsunamiatx_init, at_tsunamiatx_get_device	},
     { "[i440BX] SuperMicro Super P6SBA",	"p6sba",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"", NULL},	  {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		  8,  768,   8, 255,	        machine_at_p6sba_init, NULL			},
+#if defined(DEV_BRANCH) && defined(NO_SIO)
+	{ "[i440BX] Fujitsu ErgoPro x365",		"ergox365",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"", NULL},        {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  8,  384,   8, 511,	      machine_at_ergox365_init, NULL			},
+#endif
 
     /* 440GX */
     { "[i440GX] Freeway FW-6400GX",		"fw6400gx_s1",		MACHINE_TYPE_SLOT1,		{{"Intel", cpus_PentiumII},   {"Intel/PGA370", cpus_Celeron},{"VIA", cpus_Cyrix3},{"", NULL},	  {"",      NULL}}, MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 16, 2032,  16, 511,	     machine_at_fw6400gx_init, NULL			},
