@@ -122,18 +122,44 @@ gl518sm_smbus_read_word_cmd(uint8_t addr, uint8_t cmd, void *priv)
 static uint16_t
 gl518sm_read(gl518sm_t *dev, uint8_t reg)
 {
-    uint16_t ret = dev->regs[reg & 0x1f];
+    uint16_t ret;
+
+    reg &= 0x1f;
 
     switch (reg) {
-	case 0x07: case 0x08: case 0x09: case 0x0a: case 0x0b: case 0x0c:
-		/* two-byte registers: leave as-is */
+	case 0x04: /* temperature */
+		ret = (dev->values->temperatures[0] + 119) & 0xff;
 		break;
 
-	default:
-		/* single-byte registers: duplicate low byte to high byte (real hardware behavior unknown) */
-		ret |= (ret << 8);
+	case 0x07: /* fan speeds */
+		ret = GL518SM_RPM_TO_REG(dev->values->fans[0], 1 << ((dev->regs[0x0f] >> 6) & 0x3)) << 8;
+		ret |= GL518SM_RPM_TO_REG(dev->values->fans[1], 1 << ((dev->regs[0x0f] >> 4) & 0x3));
+		break;
+
+	case 0x0d: /* VIN3 - AOpen System Monitor requires an approximate voltage offset of 13 at least here */
+		ret = 13 + GL518SM_VOLTAGE_TO_REG(dev->values->voltages[2]);
+		break;
+
+	case 0x13: /* VIN2 */
+		ret = 13 + GL518SM_VOLTAGE_TO_REG(dev->values->voltages[1]);
+		break;
+
+	case 0x14: /* VIN1 */
+		ret = 13 + GL518SM_VOLTAGE_TO_REG(dev->values->voltages[0]);
+		break;
+
+	case 0x15: /* VDD */
+		ret = 13 + GL518SM_VDD_TO_REG(dev->values->voltages[3]);
+		break;
+
+	default: /* other registers */
+		ret = dev->regs[reg];
 		break;
     }
+
+    /* Duplicate the low byte to the high byte on single-byte registers, although real hardware behavior is undefined. */
+    if ((reg < 0x07) || (reg > 0x0c))
+	ret |= ret << 8;
 
     gl518sm_log("GL518SM: read(%02X) = %04X\n", reg, ret);
 
@@ -176,26 +202,22 @@ gl518sm_write(gl518sm_t *dev, uint8_t reg, uint16_t val)
 		return 0;
 
 	case 0x0a:
-		dev->regs[0x13] = (val & 0xff);
+		dev->regs[0x13] = val & 0xff;
 		break;
 
 	case 0x03:
-		dev->regs[reg] = (val & 0xfc);
+		dev->regs[reg] = val & 0xfc;
 
 		if (val & 0x80) /* Init */
 			gl518sm_reset(dev);
 		break;
 
 	case 0x0f:
-		dev->regs[reg] = (val & 0xf8);
-
-		/* update fan values to match the new divisor */
-		dev->regs[0x07] = (GL518SM_RPM_TO_REG(dev->values->fans[0], 1 << ((dev->regs[0x0f] >> 6) & 0x3)) << 8);
-		dev->regs[0x07] |= GL518SM_RPM_TO_REG(dev->values->fans[1], 1 << ((dev->regs[0x0f] >> 4) & 0x3));
+		dev->regs[reg] = val & 0xf8;
 		break;
 
 	case 0x11:
-		dev->regs[reg] = (val & 0x7f);
+		dev->regs[reg] = val & 0x7f;
 		break;
 
 	default:
@@ -214,21 +236,14 @@ gl518sm_reset(gl518sm_t *dev)
 
     dev->regs[0x00] = 0x80;
     dev->regs[0x01] = 0x80; /* revision 0x80 can read all voltages */
-    dev->regs[0x04] = ((dev->values->temperatures[0] + 119) & 0xff);
     dev->regs[0x05] = 0xc7;
     dev->regs[0x06] = 0xc2;
-    dev->regs[0x07] = ((GL518SM_RPM_TO_REG(dev->values->fans[0], 8) << 8) | GL518SM_RPM_TO_REG(dev->values->fans[1], 8));
     dev->regs[0x08] = 0x6464;
     dev->regs[0x09] = 0xdac5;
     dev->regs[0x0a] = 0xdac5;
     dev->regs[0x0b] = 0xdac5;
     dev->regs[0x0c] = 0xdac5;
-    /* AOpen System Monitor requires an approximate voltage offset of 13 at least on 3.3V (voltages[2]) */
-    dev->regs[0x0d] = 13 + GL518SM_VOLTAGE_TO_REG(dev->values->voltages[2]);
     dev->regs[0x0f] = 0xf8;
-    dev->regs[0x13] = 13 + GL518SM_VOLTAGE_TO_REG(dev->values->voltages[1]);
-    dev->regs[0x14] = 13 + GL518SM_VOLTAGE_TO_REG(dev->values->voltages[0]);
-    dev->regs[0x15] = 13 + GL518SM_VDD_TO_REG(5000);
 }
 
 
@@ -254,14 +269,15 @@ gl518sm_init(const device_t *info)
     /* Set default values. */
     hwm_values_t defaults = {
 	{    /* fan speeds */
-		3000,	/* System */
-		3000	/* CPU */
+		3000,	/* usually Chassis */
+		3000	/* usually CPU */
 	}, { /* temperatures */
-		30	/* CPU */
+		30	/* usually CPU */
 	}, { /* voltages */
 		hwm_get_vcore(),		  /* Vcore */
-		RESISTOR_DIVIDER(12000, 150, 47), /* +12V (15K/4.7K divider suggested in the GL518SM datasheet) */
-		3300				  /* +3.3V */
+		RESISTOR_DIVIDER(12000, 150, 47), /* +12V (15K/4.7K divider suggested in the datasheet) */
+		3300,				  /* +3.3V */
+		5000				  /* +5V */
 	}
     };
     hwm_values = defaults;

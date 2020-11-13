@@ -25,7 +25,7 @@
 typedef struct {
     uint16_t	fans[4];
     uint8_t	temperatures[4];
-    uint16_t	voltages[9];
+    uint16_t	voltages[10];
 } hwm_values_t;
 
 typedef struct {
