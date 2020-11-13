@@ -3756,6 +3756,7 @@ static void *s3_virge_init(const device_t *info)
 	virge->svga.crtc[0x53] = 8;
 
 	switch(info->local) {
+		case S3_VIRGE_325:
 		case S3_DIAMOND_STEALTH3D_2000:
 			virge->svga.decode_mask = (4 << 20) - 1;
 		        virge->virge_id_high = 0x56;
