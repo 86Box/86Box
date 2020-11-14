@@ -64,6 +64,7 @@ static int dither[4][4] =
 #define FIFO_TYPE 0xff000000
 #define FIFO_ADDR 0x00ffffff
 
+#define ROM_VIRGE_325			L"roms/video/s3virge/86c325.bin"
 #define ROM_DIAMOND_STEALTH3D_2000	L"roms/video/s3virge/s3virge.bin"
 #define ROM_DIAMOND_STEALTH3D_3000	L"roms/video/s3virge/diamondstealth3000.vbi"
 #define ROM_VIRGE_DX			L"roms/video/s3virge/86c375_1.bin"
@@ -74,6 +75,7 @@ static int dither[4][4] =
 
 enum
 {
+	S3_VIRGE_325,
 	S3_DIAMOND_STEALTH3D_2000,
 	S3_DIAMOND_STEALTH3D_3000,
 	S3_VIRGE_DX,
@@ -3641,6 +3643,9 @@ static void *s3_virge_init(const device_t *info)
         virge->memory_size = device_get_config_int("memory");
         
 	switch(info->local) {
+		case S3_VIRGE_325:
+			bios_fn = ROM_VIRGE_325;
+			break;
 		case S3_DIAMOND_STEALTH3D_2000:
 			bios_fn = ROM_DIAMOND_STEALTH3D_2000;
 			break;
@@ -3751,6 +3756,7 @@ static void *s3_virge_init(const device_t *info)
 	virge->svga.crtc[0x53] = 8;
 
 	switch(info->local) {
+		case S3_VIRGE_325:
 		case S3_DIAMOND_STEALTH3D_2000:
 			virge->svga.decode_mask = (4 << 20) - 1;
 		        virge->virge_id_high = 0x56;
@@ -3837,6 +3843,11 @@ static void s3_virge_close(void *p)
 static int s3_virge_available(void)
 {
         return rom_present(ROM_DIAMOND_STEALTH3D_2000);
+}
+
+static int s3_virge_325_available(void)
+{
+        return rom_present(ROM_VIRGE_325);
 }
 
 static int s3_virge_988_available(void)
@@ -3930,6 +3941,34 @@ static const device_config_t s3_trio3d_2x_config[] =
         }
 };
 #endif
+
+const device_t s3_virge_325_vlb_device =
+{
+        "S3 ViRGE (325) VLB",
+        DEVICE_VLB,
+        S3_VIRGE_325,
+        s3_virge_init,
+        s3_virge_close,
+	NULL,
+        s3_virge_325_available,
+        s3_virge_speed_changed,
+        s3_virge_force_redraw,
+        s3_virge_config
+};
+
+const device_t s3_virge_325_pci_device =
+{
+        "S3 ViRGE (325) PCI",
+        DEVICE_PCI,
+        S3_VIRGE_325,
+        s3_virge_init,
+        s3_virge_close,
+	NULL,
+        s3_virge_325_available,
+        s3_virge_speed_changed,
+        s3_virge_force_redraw,
+        s3_virge_config
+};
 
 const device_t s3_virge_vlb_device =
 {
