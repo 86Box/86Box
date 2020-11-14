@@ -183,7 +183,6 @@ static void
 via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 {
     via_apollo_t *dev = (via_apollo_t *) priv;
-	pclog("%02x: %02x\n", addr, val);
     if (func)
 	return;
 	
