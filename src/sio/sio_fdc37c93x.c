@@ -789,7 +789,7 @@ static const device_t access_bus_device = {
     0,
     0x03,
     access_bus_init, access_bus_close, NULL,
-    { NULL }, NULL, NULL,
+    NULL, NULL, NULL,
     NULL
 };
 

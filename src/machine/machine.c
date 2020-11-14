@@ -71,7 +71,7 @@ machine_init_ex(int m)
     int ret = 0;
 
     if (!bios_only) {
-	machine_log("Initializing as \"%s\"\n", machine_getname_ex(m));
+	machine_log("Initializing as \"%s\"\n", machine_getname());
 
 	is_vpc = 0;
 
