@@ -384,6 +384,12 @@ machine_at_ga686bx_init(const machine_t *model)
     device_add(&w83977tf_device);
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
+    device_add(&w83781d_device); /* fans: CPU, unused, unused; temperatures: unused, CPU, unused */
+    hwm_values.temperatures[0] = 0; /* unused */
+    hwm_values.temperatures[1] += 4; /* CPU offset */
+    hwm_values.temperatures[2] = 0; /* unused */
+    hwm_values.fans[1] = 0; /* unused */
+    hwm_values.fans[2] = 0; /* unused */
 
     return ret;
 }
