@@ -414,11 +414,10 @@ cpu_set(void)
 	/* The Samuel 2 datasheet claims it's Celeron-compatible. */
 	is_p6       |= (cpu_s->cpu_type == CPU_CYRIX3S);
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
-        is_cx6x86    = (cpu_s->cpu_type == CPU_PENTIUMPRO) || (cpu_s->cpu_type == CPU_PENTIUM2) ||
-		       (cpu_s->cpu_type == CPU_PENTIUM2D);
-#else
 	is_cx6x86    = (cpu_s->cpu_type == CPU_Cx6x86) || (cpu_s->cpu_type == CPU_Cx6x86MX) ||
 		       (cpu_s->cpu_type == CPU_Cx6x86L) || (cpu_s->cpu_type == CPU_CxGX1);
+#else
+	is_cx6x86    = 0;
 #endif
         hasfpu       = (fpu_type != FPU_NONE);
 	hascache     = (cpu_s->cpu_type >= CPU_486SLC) || (cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL);

@@ -170,7 +170,9 @@ extern void	x386_dynarec_log(const char *fmt, ...);
 #include "x86_ops_bcd.h"
 #include "x86_ops_bit.h"
 #include "x86_ops_bitscan.h"
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
 #include "x86_ops_cyrix.h"
+#endif
 #include "x86_ops_flag.h"
 #include "x86_ops_fpu.h"
 #include "x86_ops_inc_dec.h"
