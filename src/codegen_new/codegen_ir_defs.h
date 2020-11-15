@@ -55,6 +55,7 @@
 /*UOP_JMP_DEST - jump to ptr*/
 #define UOP_JMP_DEST              (UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0x17 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
 #define UOP_NOP_BARRIER           (UOP_TYPE_BARRIER | 0x18)
+#define UOP_STORE_P_IMM_16        (UOP_TYPE_PARAMS_IMM     | 0x19)
 
 #ifdef DEBUG_EXTRA
 /*UOP_LOG_INSTR - log non-recompiled instruction in imm_data*/
@@ -765,6 +766,7 @@ static inline void uop_gen_reg_src2_pointer(uint32_t uop_type, ir_data_t *ir, in
 
 #define uop_STORE_PTR_IMM(ir, p, imm)    uop_gen_pointer_imm(UOP_STORE_P_IMM, ir, p, imm)
 #define uop_STORE_PTR_IMM_8(ir, p, imm)  uop_gen_pointer_imm(UOP_STORE_P_IMM_8, ir, p, imm)
+#define uop_STORE_PTR_IMM_16(ir, p, imm)  uop_gen_pointer_imm(UOP_STORE_P_IMM_16, ir, p, imm)
 
 #define uop_TEST_JNS_DEST(ir, src_reg) uop_gen_reg_src1(UOP_TEST_JNS_DEST, ir, src_reg)
 #define uop_TEST_JS_DEST(ir, src_reg)  uop_gen_reg_src1(UOP_TEST_JS_DEST, ir, src_reg)
@@ -806,5 +808,10 @@ void codegen_direct_write_pointer_stack(codeblock_t *block, int stack_offset, in
 void codegen_direct_write_double_stack(codeblock_t *block, int stack_offset, int host_reg);
 
 void codegen_set_jump_dest(codeblock_t *block, void *p);
+
+void codegen_direct_write_8_imm(codeblock_t *block, void *p, uint8_t imm_data);
+void codegen_direct_write_16_imm(codeblock_t *block, void *p, uint16_t imm_data);
+void codegen_direct_write_32_imm(codeblock_t *block, void *p, uint32_t imm_data);
+void codegen_direct_write_32_imm_stack(codeblock_t *block, int stack_offset, uint32_t imm_data);
 
 #endif

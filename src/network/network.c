@@ -70,44 +70,25 @@
 
 
 static netcard_t net_cards[] = {
-    { "None",				"none",		NULL,
-      NULL								},
-    { "[ISA] 3Com EtherLink II (3C503)","3c503",	&threec503_device,
-      NULL								},
-    { "[ISA] AMD PCnet-ISA",		"pcnetisa",	&pcnet_am79c960_device,
-      NULL								},
-    { "[ISA] Novell NE1000",		"ne1k",		&ne1000_device,
-      NULL								},
-    { "[ISA] Novell NE2000",		"ne2k",		&ne2000_device,
-      NULL								},
-    { "[ISA] Racal Interlan EtherBlaster", "pcnetracal", &pcnet_am79c960_eb_device,
-      NULL								},
-    { "[ISA] Realtek RTL8019AS",	"ne2kpnp",	&rtl8019as_device,
-      NULL								},
-    { "[ISA] Western Digital WD8003E",  "wd8003e",	&wd8003e_device,
-      NULL								},
-    { "[ISA] Western Digital WD8003EB", "wd8003eb",	&wd8003eb_device,
-      NULL								},
-    { "[ISA] Western Digital WD8013EBT","wd8013ebt",	&wd8013ebt_device,
-      NULL								},
-    { "[LPT] PLIP",			"plip",		&plip_device,
-      NULL								},
-    { "[MCA] NetWorth Ethernet/MC",	"ethernextmc",	&ethernext_mc_device,
-      NULL								},
-    { "[MCA] Western Digital WD8003ET/A","wd8003eta",	&wd8003eta_device,
-      NULL								},
-    { "[MCA] Western Digital WD8003E/A", "wd8003ea",	&wd8003ea_device,
-      NULL								},
-    { "[PCI] AMD PCnet-FAST III",	"pcnetfast",	&pcnet_am79c973_device,
-      NULL								},
-    { "[PCI] AMD PCnet-PCI II",		"pcnetpci",	&pcnet_am79c970a_device,
-      NULL								},
-    { "[PCI] Realtek RTL8029AS",	"ne2kpci",	&rtl8029as_device,
-      NULL								},
-    { "[VLB] AMD PCnet-VL",		"pcnetvlb",	&pcnet_am79c960_vlb_device,
-      NULL								},
-    { "",				"",		NULL,
-      NULL								}
+    { "none",		NULL,				NULL	},
+    { "3c503",		&threec503_device,		NULL	},
+    { "pcnetisa",	&pcnet_am79c960_device, 	NULL	},
+    { "ne1k",		&ne1000_device,			NULL	},
+    { "ne2k",		&ne2000_device,			NULL	},
+    { "pcnetracal",	&pcnet_am79c960_eb_device,	NULL	},
+    { "ne2kpnp",	&rtl8019as_device,		NULL	},
+    { "wd8003e",	&wd8003e_device,		NULL	},
+    { "wd8003eb",	&wd8003eb_device,		NULL	},
+    { "wd8013ebt",	&wd8013ebt_device,		NULL	},
+    { "plip",		&plip_device,			NULL	},
+    { "ethernextmc",	&ethernext_mc_device,		NULL	},
+    { "wd8003eta",	&wd8003eta_device,		NULL	},
+    { "wd8003ea",	&wd8003ea_device,		NULL	},
+    { "pcnetfast",	&pcnet_am79c973_device,		NULL	},
+    { "pcnetpci",	&pcnet_am79c970a_device,	NULL	},
+    { "ne2kpci",	&rtl8029as_device,		NULL	},
+    { "pcnetvlb",	&pcnet_am79c960_vlb_device,	NULL	},
+    { "",		NULL,				NULL	}
 };
 
 
@@ -117,7 +98,8 @@ int		network_ndev;
 int		network_card;
 char		network_host[522];
 netdev_t	network_devs[32];
-int		network_rx_pause = 0;
+int		network_rx_pause = 0,
+		network_tx_pause = 0;
 #ifdef ENABLE_NIC_LOG
 int		nic_do_log = ENABLE_NIC_LOG;
 #endif
@@ -355,6 +337,8 @@ network_queue_clear(int tx)
 static void
 network_rx_queue(void *priv)
 {
+    int ret = 1;
+
     if (network_rx_pause) {
 	timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
 	return;
@@ -367,14 +351,15 @@ network_rx_queue(void *priv)
     network_queue_get(0, &pkt);
     if ((pkt != NULL) && (pkt->len > 0)) {
 	network_dump_packet(pkt);
-	net_cards[network_card].rx(pkt->priv, pkt->data, pkt->len);
+	ret = net_cards[network_card].rx(pkt->priv, pkt->data, pkt->len);
 	if (pkt->len >= 128)
 		timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * ((double) pkt->len));
 	else
 		timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
     } else
 	timer_on_auto(&network_rx_queue_timer, 0.762939453125 * 2.0 * 128.0);
-    network_queue_advance(0);
+    if (ret)
+	network_queue_advance(0);
 
     network_busy(0);
 }
@@ -475,7 +460,6 @@ network_close(void)
     /* Here is where we clear the queues. */
     network_queue_clear(0);
     network_queue_clear(1);
-    network_rx_pause = 0;
 
     network_log("NETWORK: closed.\n");
 }
@@ -574,6 +558,9 @@ network_do_tx(void)
 {
     netpkt_t *pkt = NULL;
 
+    if (network_tx_pause)
+	return;
+
     network_queue_get(1, &pkt);
     if ((pkt != NULL) && (pkt->len > 0)) {
 	network_dump_packet(pkt);
@@ -635,14 +622,6 @@ network_card_available(int card)
 	return(device_available(net_cards[card].device));
 
     return(1);
-}
-
-
-/* UI */
-char *
-network_card_getname(int card)
-{
-    return((char *)net_cards[card].name);
 }
 
 

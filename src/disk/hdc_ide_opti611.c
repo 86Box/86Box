@@ -317,6 +317,6 @@ const device_t ide_opti611_vlb_device = {
     0,
     0,
     opti611_init, opti611_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

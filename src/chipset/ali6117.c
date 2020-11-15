@@ -336,7 +336,7 @@ const device_t ali6117d_device =
     ali6117_init, 
     ali6117_close, 
     ali6117_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL

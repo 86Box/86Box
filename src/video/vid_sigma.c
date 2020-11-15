@@ -886,7 +886,7 @@ sigma_speed_changed(void *p)
 device_config_t sigma_config[] =
 {
     {
-	"rgb_type", "RGB type", CONFIG_SELECTION, "", 0,
+	"rgb_type", "RGB type", CONFIG_SELECTION, "", 0, "", { 0 },
 	{
 		{
 			"Color", 0
@@ -912,7 +912,7 @@ device_config_t sigma_config[] =
 	"enable_nmi", "Enable NMI for CGA emulation", CONFIG_BINARY, "", 1
     },
     {
-	"bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xc0000,
+	"bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xc0000, "", { 0 },
 	{
 		{
 			"C000H", 0xc0000
@@ -964,7 +964,7 @@ const device_t sigma_device =
         sigma_init,
         sigma_close,
         NULL,
-        sigma_available,
+        { sigma_available },
         sigma_speed_changed,
         NULL,
         sigma_config

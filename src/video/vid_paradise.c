@@ -473,7 +473,7 @@ const device_t paradise_pvga1a_pc2086_device =
         paradise_pvga1a_pc2086_init,
         paradise_close,
         NULL,
-	NULL,
+	{ NULL },
         paradise_speed_changed,
         paradise_force_redraw,
 	NULL
@@ -486,7 +486,7 @@ const device_t paradise_pvga1a_pc3086_device =
         paradise_pvga1a_pc3086_init,
         paradise_close,
 	NULL,
-        NULL,
+        { NULL },
         paradise_speed_changed,
         paradise_force_redraw,
 	NULL
@@ -495,7 +495,7 @@ const device_t paradise_pvga1a_pc3086_device =
 static const device_config_t paradise_pvga1a_config[] =
 {
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 512,
+                "memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
                 {
                         {
                                 "256 kB", 256
@@ -524,7 +524,7 @@ const device_t paradise_pvga1a_device =
         paradise_pvga1a_standalone_init,
         paradise_close,
 	NULL,
-        paradise_pvga1a_standalone_available,
+        { paradise_pvga1a_standalone_available },
         paradise_speed_changed,
         paradise_force_redraw,
 	paradise_pvga1a_config
@@ -537,7 +537,7 @@ const device_t paradise_wd90c11_megapc_device =
         paradise_wd90c11_megapc_init,
         paradise_close,
 	NULL,
-        NULL,
+        { NULL },
         paradise_speed_changed,
         paradise_force_redraw,
 	NULL
@@ -550,7 +550,7 @@ const device_t paradise_wd90c11_device =
         paradise_wd90c11_standalone_init,
         paradise_close,
 	NULL,
-        paradise_wd90c11_standalone_available,
+        { paradise_wd90c11_standalone_available },
         paradise_speed_changed,
         paradise_force_redraw,
 	NULL
@@ -559,7 +559,7 @@ const device_t paradise_wd90c11_device =
 static const device_config_t paradise_wd90c30_config[] =
 {
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 1024,
+                "memory", "Memory size", CONFIG_SELECTION, "", 1024, "", { 0 },
                 {
                         {
                                 "512 kB", 512
@@ -585,7 +585,7 @@ const device_t paradise_wd90c30_device =
         paradise_wd90c30_standalone_init,
         paradise_close,
 	NULL,
-        paradise_wd90c30_standalone_available,
+        { paradise_wd90c30_standalone_available },
         paradise_speed_changed,
         paradise_force_redraw,
 	paradise_wd90c30_config

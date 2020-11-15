@@ -318,6 +318,129 @@ device_available(const device_t *d)
 }
 
 
+int
+device_poll(const device_t *d, int x, int y, int z, int b)
+{
+    int c;
+
+    for (c = 0; c < DEVICE_MAX; c++) {
+	if (devices[c] != NULL) {
+		if (devices[c] == d) {
+			if (devices[c]->poll)
+				return(devices[c]->poll(x, y, z, b, device_priv[c]));
+		}
+	}
+    }
+
+    return(0);
+}
+
+
+void
+device_register_pci_slot(const device_t *d, int device, int type, int inta, int intb, int intc, int intd)
+{
+    int c;
+
+    for (c = 0; c < DEVICE_MAX; c++) {
+	if (devices[c] != NULL) {
+		if (devices[c] == d) {
+			if (devices[c]->register_pci_slot)
+				devices[c]->register_pci_slot(device, type, inta, intb, intc, intd, device_priv[c]);
+			return;
+		}
+	}
+    }
+
+    return;
+}
+
+
+void
+device_get_name(const device_t *d, int bus, char *name)
+{
+    char *sbus = NULL, *fbus;
+    char *tname, pbus[8] = { 0 };
+
+    if (d == NULL)
+	return;
+
+    name[0] = 0x00;
+
+    if (bus) {
+	if (d->flags & DEVICE_LPT)
+		sbus = "LPT";
+	else if (d->flags & DEVICE_ISA)
+		sbus = (d->flags & DEVICE_AT) ? "ISA16" : "ISA";
+	else if (d->flags & DEVICE_CBUS)
+		sbus = "C-BUS";
+	else if (d->flags & DEVICE_MCA)
+		sbus = "MCA";
+	else if (d->flags & DEVICE_EISA)
+		sbus = "EISA";
+	else if (d->flags & DEVICE_VLB)
+		sbus = "VLB";
+	else if (d->flags & DEVICE_PCI)
+		sbus = "PCI";
+	else if (d->flags & DEVICE_AGP)
+		sbus = "AGP";
+
+	if (sbus != NULL) {
+		/* First concatenate [<Bus>] before the device's name. */
+		strcat(name, "[");
+		strcat(name, sbus);
+		strcat(name, "] ");
+
+		/* Then change string from ISA16 to ISA if applicable. */
+		if (!strcmp(sbus, "ISA16"))
+			sbus = "ISA";
+		else if (!strcmp(sbus, "LPT")) {
+			sbus = NULL;
+			strcat(name, d->name);
+			return;
+		}
+
+		/* Generate the bus string with parentheses. */
+		strcat(pbus, "(");
+		strcat(pbus, sbus);
+		strcat(pbus, ")");
+
+		/* Allocate the temporary device name string and set it to all zeroes. */
+		tname = (char *) malloc(strlen(d->name) + 1);
+		memset(tname, 0x00, strlen(d->name) + 1);
+
+		/* First strip the bus string with parentheses. */
+		fbus = strstr(d->name, pbus);
+		if (fbus == d->name)
+			strcat(tname, d->name + strlen(pbus) + 1);
+		else if (fbus == NULL)
+			strcat(tname, d->name);
+		else {
+			strncat(tname, d->name, fbus - d->name - 1);
+			strcat(tname, fbus + strlen(pbus));
+		}
+
+		/* Then also strip the bus string with parentheses. */
+		fbus = strstr(tname, sbus);
+		if (fbus == tname)
+			strcat(name, tname + strlen(sbus) + 1);
+		/* Special case to not strip the "oPCI" from "Ensoniq AudioPCI". */
+		else if ((fbus == NULL) || (*(fbus - 1) == 'o'))
+			strcat(name, tname);
+		else {
+			strncat(name, tname, fbus - tname - 1);
+			strcat(name, fbus + strlen(sbus));
+		}
+
+		/* Free the temporary device name string. */
+		free(tname);
+		tname = NULL;
+	} else
+		strcat(name, d->name);
+    } else
+	strcat(name, d->name);
+}
+
+
 void
 device_speed_changed(void)
 {

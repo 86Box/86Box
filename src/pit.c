@@ -865,7 +865,7 @@ const device_t i8253_device =
         DEVICE_ISA,
 	PIT_8253,
         pit_init, pit_close, NULL,
-        NULL, NULL, NULL,
+        { NULL }, NULL, NULL,
 	NULL
 };
 
@@ -876,7 +876,7 @@ const device_t i8254_device =
         DEVICE_ISA,
 	PIT_8254,
         pit_init, pit_close, NULL,
-        NULL, NULL, NULL,
+        { NULL }, NULL, NULL,
 	NULL
 };
 
@@ -887,7 +887,7 @@ const device_t i8254_ext_io_device =
         DEVICE_ISA,
 	PIT_8254 | PIT_EXT_IO,
         pit_init, pit_close, NULL,
-        NULL, NULL, NULL,
+        { NULL }, NULL, NULL,
 	NULL
 };
 
@@ -898,7 +898,7 @@ const device_t i8254_ps2_device =
         DEVICE_ISA,
 	PIT_8254 | PIT_PS2 | PIT_EXT_IO,
         pit_init, pit_close, NULL,
-        NULL, NULL, NULL,
+        { NULL }, NULL, NULL,
 	NULL
 };
 

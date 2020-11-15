@@ -424,6 +424,6 @@ const device_t pc87306_device = {
     0,
     0,
     pc87306_init, pc87306_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

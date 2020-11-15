@@ -191,7 +191,7 @@ const device_t vga_device =
         vga_init,
         vga_close,
 	NULL,
-        vga_available,
+        { vga_available },
         vga_speed_changed,
         vga_force_redraw,
         NULL
@@ -205,7 +205,7 @@ const device_t ps1vga_device =
         ps1vga_init,
         vga_close,
 	NULL,
-        vga_available,
+        { vga_available },
         vga_speed_changed,
         vga_force_redraw,
         NULL
@@ -219,7 +219,7 @@ const device_t ps1vga_mca_device =
         ps1vga_init,
         vga_close,
 	NULL,
-        vga_available,
+        { vga_available },
         vga_speed_changed,
         vga_force_redraw,
         NULL

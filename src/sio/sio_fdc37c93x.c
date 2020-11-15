@@ -204,8 +204,10 @@ fdc37c93x_nvr_sec_handler(fdc37c93x_t *dev)
     nvr_at_sec_handler(0, dev->nvr_sec_base, dev->nvr);
     if (local_enable) {
 	dev->nvr_sec_base = ld_port = make_port_sec(dev, 6) & 0xFFFE;
-	if ((ld_port >= 0x0100) && (ld_port <= 0x0FFE))
-		nvr_at_sec_handler(1, ld_port, dev->nvr);
+	/* Datasheet erratum: First it says minimum address is 0x0100, but later implies that it's 0x0000
+			      and that default is 0x0070, same as (unrelocatable) primary NVR. */
+	if ((ld_port >= 0x0000) && (ld_port <= 0x0FFE))
+		nvr_at_sec_handler(1, dev->nvr_sec_base, dev->nvr);
     }
 }
 
@@ -356,7 +358,13 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 {
     fdc37c93x_t *dev = (fdc37c93x_t *) priv;
     uint8_t index = (port & 1) ? 0 : 1;
-    uint8_t valxor = 0;
+    uint8_t valxor = 0x00, keep = 0x00;
+
+    /* Compaq Presario 4500: Unlock at FB, Register at EA, Data at EB, Lock at F9. */
+    if ((port == 0xea) || (port == 0xf9) || (port == 0xfb))
+	index = 1;
+    else if (port == 0xeb)
+	index = 0;
 
     if (index) {
 	if ((val == 0x55) && !dev->locked) {
@@ -399,6 +407,14 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 				case 0x02:
 				case 0x07:
 					return;
+				case 0x06:
+					if (dev->chip_id != 0x30)
+						return;
+					/* Bits 0 to 3 of logical device 6 (RTC) register F0h must stay set
+					   once they are set. */
+					else if (dev->cur_reg == 0xf0)
+						keep = dev->ld_regs[dev->regs[7]][dev->cur_reg] & 0x0f;
+					break;
 				case 0x09:
 					/* If we're on the FDC37C935, return as this is not a valid
 					   logical device there. */
@@ -412,7 +428,7 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 						return;
 					break;
 			}
-			dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+			dev->ld_regs[dev->regs[7]][dev->cur_reg] = val | keep;
 		}
 	} else
 		return;
@@ -542,9 +558,8 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 			case 0x30:
 				if (valxor)
 					fdc37c93x_nvr_pri_handler(dev);
-				/* FALLTHROUGH */
-			case 0x60:
-			case 0x61:
+			case 0x62:
+			case 0x63:
 				if (valxor)
 					fdc37c93x_nvr_sec_handler(dev);
 				break;
@@ -638,6 +653,12 @@ fdc37c93x_read(uint16_t port, void *priv)
     fdc37c93x_t *dev = (fdc37c93x_t *) priv;
     uint8_t index = (port & 1) ? 0 : 1;
     uint8_t ret = 0xff;
+
+    /* Compaq Presario 4500: Unlock at FB, Register at EA, Data at EB, Lock at F9. */
+    if ((port == 0xea) || (port == 0xf9) || (port == 0xfb))
+	index = 1;
+    else if (port == 0xeb)
+	index = 0;
 
     if (dev->locked) {
 	if (index)
@@ -733,8 +754,8 @@ fdc37c93x_reset(fdc37c93x_t *dev)
     serial_setup(dev->uart[1], 0x2f8, dev->ld_regs[5][0x70]);
 
     /* Logical device 6: RTC */
-    dev->ld_regs[5][0x30] = 1;
-    dev->ld_regs[6][0x63] = 0x00;
+    dev->ld_regs[6][0x30] = 1;
+    dev->ld_regs[6][0x63] = (dev->chip_id == 0x30) ? 0x70 : 0x00;
     dev->ld_regs[6][0xF4] = 3;
 
     /* Logical device 7: Keyboard */
@@ -760,6 +781,13 @@ fdc37c93x_reset(fdc37c93x_t *dev)
 
     fdc_reset(dev->fdc);
     fdc37c93x_fdc_handler(dev);
+
+    if (dev->chip_id == 0x30) {
+	fdc37c93x_nvr_pri_handler(dev);
+	fdc37c93x_nvr_sec_handler(dev);
+	nvr_bank_set(0, 0, dev->nvr);
+	nvr_bank_set(1, 0xff, dev->nvr);
+    }
 
     dev->locked = 0;
 }
@@ -789,7 +817,7 @@ static const device_t access_bus_device = {
     0,
     0x03,
     access_bus_init, access_bus_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -806,6 +834,7 @@ fdc37c93x_close(void *priv)
 static void *
 fdc37c93x_init(const device_t *info)
 {
+    int is_compaq;
     fdc37c93x_t *dev = (fdc37c93x_t *) malloc(sizeof(fdc37c93x_t));
     memset(dev, 0, sizeof(fdc37c93x_t));
 
@@ -815,10 +844,12 @@ fdc37c93x_init(const device_t *info)
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
     dev->chip_id = info->local & 0xff;
-    dev->is_apm = info->local >> 8;
+    dev->is_apm = (info->local >> 8) & 0x01;
+    is_compaq = (info->local >> 8) & 0x02;
 
     dev->gpio_regs[0] = 0xff;
-    dev->gpio_regs[1] = 0xfd;
+    // dev->gpio_regs[1] = (info->local == 0x0030) ? 0xff : 0xfd;
+    dev->gpio_regs[1] = (dev->chip_id == 0x30) ? 0xff : 0xfd;
 
     if (dev->chip_id == 0x30) {
 	dev->nvr = device_add(&at_nvr_device);
@@ -833,10 +864,19 @@ fdc37c93x_init(const device_t *info)
     if (dev->is_apm)
 	dev->acpi = device_add(&acpi_smc_device);
 
-    io_sethandler(0x370, 0x0002,
-		  fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
-    io_sethandler(0x3f0, 0x0002,
-		  fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
+    if (is_compaq) {
+	io_sethandler(0x0ea, 0x0002,
+		      fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
+	io_sethandler(0x0f9, 0x0001,
+		      fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
+	io_sethandler(0x0fb, 0x0001,
+		      fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
+    } else {
+	io_sethandler(0x370, 0x0002,
+		      fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
+	io_sethandler(0x3f0, 0x0002,
+		      fdc37c93x_read, NULL, NULL, fdc37c93x_write, NULL, NULL, dev);
+    }
 
     fdc37c93x_reset(dev);
 
@@ -849,7 +889,16 @@ const device_t fdc37c931apm_device = {
     0,
     0x130,	/* Share the same ID with the 932QF. */
     fdc37c93x_init, fdc37c93x_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+const device_t fdc37c931apm_compaq_device = {
+    "SMC FDC37C932QF Super I/O (Compaq Presario 4500)",
+    0,
+    0x330,	/* Share the same ID with the 932QF. */
+    fdc37c93x_init, fdc37c93x_close, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -858,7 +907,7 @@ const device_t fdc37c932fr_device = {
     0,
     0x03,
     fdc37c93x_init, fdc37c93x_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -867,7 +916,7 @@ const device_t fdc37c932qf_device = {
     0,
     0x30,
     fdc37c93x_init, fdc37c93x_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -876,6 +925,6 @@ const device_t fdc37c935_device = {
     0,
     0x02,
     fdc37c93x_init, fdc37c93x_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

@@ -434,7 +434,7 @@ const device_t sis_85c50x_device =
     sis_85c50x_init, 
     sis_85c50x_close, 
     sis_85c50x_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL

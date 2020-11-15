@@ -53,19 +53,12 @@ usb_log(const char *fmt, ...)
 static uint8_t
 uhci_reg_read(uint16_t addr, void *p)
 {
-    uint8_t ret = 0xff;
+    usb_t *dev = (usb_t *) p;
+    uint8_t ret, *regs = dev->uhci_io;
 
-    switch (addr & 0x1f) {
-    	case 0x02:
-    		/* Status */
-    		ret = 0x00;
-    		break;
+    addr &= 0x0000001f;
 
-	case 0x10: case 0x11: case 0x12: case 0x13:
-		/* Port status */
-                ret = 0x00;
-		break;
-    }
+    ret = regs[addr];
 
     return ret;
 }
@@ -74,6 +67,56 @@ uhci_reg_read(uint16_t addr, void *p)
 static void
 uhci_reg_write(uint16_t addr, uint8_t val, void *p)
 {
+    usb_t *dev = (usb_t *) p;
+    uint8_t *regs = dev->uhci_io;
+
+    addr &= 0x0000001f;
+
+    switch (addr) {
+	case 0x02:
+		regs[0x02] &= ~(val & 0x3f);
+		break;
+	case 0x04:
+		regs[0x04] = (val & 0x0f);
+		break;
+	case 0x09:
+		regs[0x09] = (val & 0xf0);
+		break;
+	case 0x0a: case 0x0b:
+		regs[addr] = val;
+		break;
+	case 0x0c:
+		regs[0x0c] = (val & 0x7f);
+		break;
+    }
+}
+
+
+static void
+uhci_reg_writew(uint16_t addr, uint16_t val, void *p)
+{
+    usb_t *dev = (usb_t *) p;
+    uint16_t *regs = (uint16_t *) dev->uhci_io;
+
+    addr &= 0x0000001f;
+
+    switch (addr) {
+	case 0x00:
+		if ((regs[0x00] & 0x0001) && !(val & 0x0001))
+			regs[0x02] |= 0x20;
+		regs[0x00] = (val & 0x00ff);
+		break;
+	case 0x06:
+		regs[0x03] = (val & 0x07ff);
+		break;
+	case 0x10: case 0x12:
+		regs[addr >> 1] = ((regs[addr >> 1] & 0xedbb) | (val & 0x1244)) & ~(val & 0x080a);
+		break;
+	default:
+		uhci_reg_write(addr, val & 0xff, p);
+		uhci_reg_write(addr + 1, (val >> 8) & 0xff, p);
+		break;
+    }
 }
 
 
@@ -81,13 +124,13 @@ void
 uhci_update_io_mapping(usb_t *dev, uint8_t base_l, uint8_t base_h, int enable)
 {
     if (dev->uhci_enable && (dev->uhci_io_base != 0x0000))
-	io_removehandler(dev->uhci_io_base, 0x20, uhci_reg_read, NULL, NULL, uhci_reg_write, NULL, NULL, dev);
+	io_removehandler(dev->uhci_io_base, 0x20, uhci_reg_read, NULL, NULL, uhci_reg_write, uhci_reg_writew, NULL, dev);
 
     dev->uhci_io_base = base_l | (base_h << 8);
     dev->uhci_enable = enable;
 
     if (dev->uhci_enable && (dev->uhci_io_base != 0x0000))
-	io_sethandler(dev->uhci_io_base, 0x20, uhci_reg_read, NULL, NULL, uhci_reg_write, NULL, NULL, dev);
+	io_sethandler(dev->uhci_io_base, 0x20, uhci_reg_read, NULL, NULL, uhci_reg_write, uhci_reg_writew, NULL, dev);
 }
 
 
@@ -304,6 +347,28 @@ ohci_update_mem_mapping(usb_t *dev, uint8_t base1, uint8_t base2, uint8_t base3,
 
 
 static void
+usb_reset(void *priv)
+{
+    usb_t *dev = (usb_t *) priv;
+
+    memset(dev->uhci_io, 0x00, 128);
+    dev->uhci_io[0x0c] = 0x40;
+    dev->uhci_io[0x10] = dev->uhci_io[0x12] = 0x80;
+
+    memset(dev->ohci_mmio, 0x00, 4096);
+    dev->ohci_mmio[0x00] = 0x10;
+    dev->ohci_mmio[0x01] = 0x01;
+    dev->ohci_mmio[0x48] = 0x02;
+
+    io_removehandler(dev->uhci_io_base, 0x20, uhci_reg_read, NULL, NULL, uhci_reg_write, uhci_reg_writew, NULL, dev);
+    dev->uhci_enable = 0;
+
+    mem_mapping_disable(&dev->ohci_mmio_mapping);
+    dev->ohci_enable = 0;
+}
+
+
+static void
 usb_close(void *priv)
 {
     usb_t *dev = (usb_t *) priv;
@@ -321,6 +386,10 @@ usb_init(const device_t *info)
     if (dev == NULL) return(NULL);
     memset(dev, 0x00, sizeof(usb_t));
 
+    memset(dev->uhci_io, 0x00, 128);
+    dev->uhci_io[0x0c] = 0x40;
+    dev->uhci_io[0x10] = dev->uhci_io[0x12] = 0x80;
+
     memset(dev->ohci_mmio, 0x00, 4096);
     dev->ohci_mmio[0x00] = 0x10;
     dev->ohci_mmio[0x01] = 0x01;
@@ -330,7 +399,7 @@ usb_init(const device_t *info)
 		    ohci_mmio_read,  NULL, NULL,
 		    ohci_mmio_write, NULL, NULL,
 		    NULL, MEM_MAPPING_EXTERNAL, dev);
-    mem_mapping_disable(&dev->ohci_mmio_mapping);
+    usb_reset(dev);
 
     return dev;
 }
@@ -343,8 +412,8 @@ const device_t usb_device =
     0,
     usb_init, 
     usb_close, 
-    NULL,
-    NULL,
+    usb_reset,
+    { NULL },
     NULL,
     NULL,
     NULL

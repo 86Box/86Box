@@ -419,7 +419,7 @@ const device_t sis_85c401_device = {
     0,
     0x060,
     sis_85c4xx_init, sis_85c4xx_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -428,7 +428,7 @@ const device_t sis_85c460_device = {
     0,
     0x050,
     sis_85c4xx_init, sis_85c4xx_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -438,7 +438,7 @@ const device_t sis_85c461_device = {
     0,
     0x050,
     sis_85c4xx_init, sis_85c4xx_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -447,6 +447,6 @@ const device_t sis_85c471_device = {
     0,
     0x150,
     sis_85c4xx_init, sis_85c4xx_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

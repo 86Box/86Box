@@ -586,7 +586,7 @@ isartc_close(void *priv)
 
 static const device_config_t ev170_config[] = {
 	{
-		"base", "Address", CONFIG_HEX16, "", 0x02C0,
+		"base", "Address", CONFIG_HEX16, "", 0x02C0, "", { 0 },
 		{
 			{
 				"240H", 0x0240
@@ -600,7 +600,7 @@ static const device_config_t ev170_config[] = {
 		},
 	},
 	{
-		"irq", "IRQ", CONFIG_SELECTION, "", -1,
+		"irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
 		{
 			{
 				"Disabled", -1
@@ -629,14 +629,14 @@ static const device_t ev170_device = {
     DEVICE_ISA,
     0,
     isartc_init, isartc_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     ev170_config
 };
 
 
 static const device_config_t pii147_config[] = {
 	{
-		"base", "Address", CONFIG_HEX16, "", 0x0240,
+		"base", "Address", CONFIG_HEX16, "", 0x0240, "", { 0 },
 		{
 			{
 				"Clock 1", 0x0240
@@ -659,14 +659,14 @@ static const device_t pii147_device = {
     DEVICE_ISA,
     1,
     isartc_init, isartc_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     pii147_config
 };
 
 
 static const device_config_t p5pak_config[] = {
 	{
-		"irq", "IRQ", CONFIG_SELECTION, "", -1,
+		"irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
 		{
 			{
 				"Disabled", -1
@@ -695,21 +695,20 @@ static const device_t p5pak_device = {
     DEVICE_ISA,
     2,
     isartc_init, isartc_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     p5pak_config
 };
 
 
 static const struct {
-	const char		*name;	
     const char		*internal_name;
     const device_t	*dev;
 } boards[] = {
-    { "None",						"none",		NULL,		      },
-    { "Everex EV-170 Magic I/O",	"ev170",	&ev170_device,		},
-    { "DTK PII-147 Hexa I/O Plus",  "pii147",	&pii147_device,		},
-    { "Paradise Systems 5-PAK", 	"p5pak",	&p5pak_device,		},
-    { "",			"",		NULL,		      },
+    { "none",	NULL	      	},
+    { "ev170",	&ev170_device	},
+    { "pii147",	&pii147_device	},
+    { "p5pak",	&p5pak_device	},
+    { "",	NULL		},
 };
 
 
@@ -720,13 +719,6 @@ isartc_reset(void)
 
     /* Add the device to the system. */
     device_add(boards[isartc_type].dev);
-}
-
-
-char *
-isartc_get_name(int board)
-{
-    return((char *)boards[board].name);
 }
 
 

@@ -41,7 +41,6 @@
 
 
 typedef struct {
-        const char *name;
         const char *internal_name;
         const device_t *device;
 } SOUND_CARD;
@@ -83,30 +82,29 @@ static void *filter_cd_audio_p = NULL;
 
 static const SOUND_CARD sound_cards[] =
 {
-    { "None",					"none",		NULL				},
-    { "Internal",				"internal",	NULL				},
-    { "[ISA] Adlib",				"adlib",	&adlib_device			},
-    { "[ISA] Adlib Gold",			"adlibgold",	&adgold_device			},
-    { "[ISA] Aztech Sound Galaxy Pro 16 AB (Washington)", "azt2316a",	&azt2316a_device	},
-    { "[ISA] Aztech Sound Galaxy Nova 16 Extra (Clinton)", "azt1605",	&azt1605_device		},
-    { "[ISA] Sound Blaster 1.0",		"sb",		&sb_1_device			},
-    { "[ISA] Sound Blaster 1.5",		"sb1.5",	&sb_15_device			},
-    { "[ISA] Sound Blaster 2.0",		"sb2.0",	&sb_2_device			},
-    { "[ISA] Sound Blaster Pro v1",		"sbprov1",	&sb_pro_v1_device		},
-    { "[ISA] Sound Blaster Pro v2",		"sbprov2",	&sb_pro_v2_device		},
-    { "[ISA] Sound Blaster 16",			"sb16",		&sb_16_device			},
-    { "[ISA] Sound Blaster AWE32",		"sbawe32",	&sb_awe32_device		},
+    { "none",		NULL				},
+    { "internal",	NULL				},
+    { "adlib",		&adlib_device			},
+    { "adlibgold",	&adgold_device			},
+    { "azt2316a",	&azt2316a_device		},
+    { "azt1605",	&azt1605_device			},
+    { "sb",		&sb_1_device			},
+    { "sb1.5",		&sb_15_device			},
+    { "sb2.0",		&sb_2_device			},
+    { "sbprov1",	&sb_pro_v1_device		},
+    { "sbprov2",	&sb_pro_v2_device		},
+    { "sb16",		&sb_16_device			},
+    { "sbawe32",	&sb_awe32_device		},
 #if defined(DEV_BRANCH) && defined(USE_PAS16)
-    { "[ISA] Pro Audio Spectrum 16",		"pas16",	&pas16_device			},
+    { "pas16",		&pas16_device			},
 #endif
-    { "[ISA] Windows Sound System",		"wss",		&wss_device			},
-    { "[MCA] Adlib",                		"adlib_mca",	&adlib_mca_device		},
-    { "[MCA] NCR Business Audio",    		"ncraudio",	&ncr_business_audio_device	},
-    { "[MCA] Sound Blaster MCV",    		"sbmcv",	&sb_mcv_device			},
-    { "[MCA] Sound Blaster Pro MCV",		"sbpromcv",	&sb_pro_mcv_device		},
-    { "[PCI] Ensoniq AudioPCI (ES1371)",	"es1371",	&es1371_device			},
-    { "[PCI] Sound Blaster PCI 128",		"sbpci128",	&es1371_device			},
-    { "",					"",		NULL				}
+    { "wss",		&wss_device			},
+    { "adlib_mca",	&adlib_mca_device		},
+    { "ncraudio",	&ncr_business_audio_device	},
+    { "sbmcv",		&sb_mcv_device			},
+    { "sbpromcv",	&sb_pro_mcv_device		},
+    { "es1371",		&es1371_device			},
+    { "",		NULL				}
 };
 
 
@@ -137,13 +135,6 @@ sound_card_available(int card)
 	return device_available(sound_cards[card].device);
 
     return 1;
-}
-
-
-char *
-sound_card_getname(int card)
-{
-    return (char *) sound_cards[card].name;
 }
 
 

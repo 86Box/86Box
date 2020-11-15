@@ -10,3 +10,5 @@
 #define HASH(l) ((l) & 0x1ffff)
 
 #define BLOCK_MAX 0x3c0
+
+#define CODEGEN_BACKEND_HAS_MOV_IMM

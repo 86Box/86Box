@@ -200,10 +200,9 @@ poll_thread(void *arg)
 		mac_cmp32[1] = *(uint32_t *)mac;
 		mac_cmp16[1] = *(uint16_t *)(mac+4);
 		if ((mac_cmp32[0] != mac_cmp32[1]) ||
-		    (mac_cmp16[0] != mac_cmp16[1])) {
-
+		    (mac_cmp16[0] != mac_cmp16[1]))
 			network_queue_put(0, poll_card->priv, data, h.caplen);
-		} else {
+		else {
 			/* Mark as invalid packet. */
 			data = NULL;
 		}

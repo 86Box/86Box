@@ -166,6 +166,6 @@ const device_t opti283_device = {
     0,
     0,
     opti283_init, opti283_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

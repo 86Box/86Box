@@ -1600,7 +1600,7 @@ const device_t scat_device = {
     0,
     0,
     scat_init, scat_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -1609,7 +1609,7 @@ const device_t scat_4_device = {
     0,
     4,
     scat_init, scat_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -1618,6 +1618,6 @@ const device_t scat_sx_device = {
     0,
     32,
     scat_init, scat_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

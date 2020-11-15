@@ -196,7 +196,7 @@ extern void	dp8390_chipmem_write(dp8390_t *dev, uint32_t addr, uint32_t val, uns
 extern uint32_t	dp8390_read_cr(dp8390_t *dev);
 extern void	dp8390_write_cr(dp8390_t *dev, uint32_t val);
 
-extern void	dp8390_rx(void *priv, uint8_t *buf, int io_len);
+extern int	dp8390_rx(void *priv, uint8_t *buf, int io_len);
 
 extern uint32_t	dp8390_page0_read(dp8390_t *dev, uint32_t off, unsigned int len);
 extern void	dp8390_page0_write(dp8390_t *dev, uint32_t off, uint32_t val, unsigned len);

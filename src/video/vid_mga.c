@@ -5101,7 +5101,7 @@ const device_t mystique_device =
     mystique_init,
     mystique_close,
     NULL,
-    mystique_available,
+    { mystique_available },
     mystique_speed_changed,
     mystique_force_redraw,
     mystique_config
@@ -5116,7 +5116,7 @@ const device_t mystique_220_device =
     mystique_init,
     mystique_close,
     NULL,
-    mystique_220_available,
+    { mystique_220_available },
     mystique_speed_changed,
     mystique_force_redraw,
     mystique_config

@@ -618,7 +618,7 @@ const device_t sis_85c496_device =
     sis_85c496_init, 
     sis_85c496_close, 
     sis_85c496_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -633,7 +633,7 @@ const device_t sis_85c496_ls486e_device =
     sis_85c496_init, 
     sis_85c496_close, 
     sis_85c496_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL

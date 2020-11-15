@@ -47,14 +47,14 @@ static const device_t mouse_none_device = {
     "None",
     0, MOUSE_TYPE_NONE,
     NULL, NULL, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 static const device_t mouse_internal_device = {
     "Internal Mouse",
     0, MOUSE_TYPE_INTERNAL,
     NULL, NULL, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -172,9 +172,9 @@ mouse_process(void)
 
     mouse_poll();
 
-    if ((mouse_dev_poll != NULL) || (mouse_curr->available != NULL)) {
-	if (mouse_curr->available != NULL)
-	    	mouse_curr->available(mouse_x,mouse_y,mouse_z,mouse_buttons, mouse_priv);
+    if ((mouse_dev_poll != NULL) || (mouse_curr->poll != NULL)) {
+	if (mouse_curr->poll != NULL)
+	    	mouse_curr->poll(mouse_x,mouse_y,mouse_z,mouse_buttons, mouse_priv);
 	else
 	    	mouse_dev_poll(mouse_x,mouse_y,mouse_z,mouse_buttons, mouse_priv);
 

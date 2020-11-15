@@ -1223,7 +1223,7 @@ void gus_speed_changed(void *p)
 
 static const device_config_t gus_config[] = {
 	{
-		"type", "GUS type", CONFIG_SELECTION, "", 0,
+		"type", "GUS type", CONFIG_SELECTION, "", 0, "", { 0 },
 		{
 			{
 				"Classic", GUS_CLASSIC
@@ -1239,7 +1239,7 @@ static const device_config_t gus_config[] = {
 		},
 	},
 	{
-		"base", "Address", CONFIG_HEX16, "", 0x220,
+		"base", "Address", CONFIG_HEX16, "", 0x220, "", { 0 },
 		{
 			{
 				"210H", 0x210
@@ -1262,7 +1262,7 @@ static const device_config_t gus_config[] = {
 		},
 	},
 	{
-		 "gus_ram", "Onboard RAM", CONFIG_SELECTION, "", 0,
+		 "gus_ram", "Onboard RAM", CONFIG_SELECTION, "", 0, "", { 0 },
 		{
 			{
 				"256 KB", 0
@@ -1292,7 +1292,7 @@ const device_t gus_device =
         DEVICE_ISA,
 	0,
         gus_init, gus_close, NULL,
-	NULL,
+	{ NULL },
         gus_speed_changed, 
 	NULL,
         gus_config

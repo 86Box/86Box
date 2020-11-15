@@ -1016,7 +1016,7 @@ const device_t wy700_device =
         wy700_init,
         wy700_close,
 	NULL,
-        NULL,
+        { NULL },
         wy700_speed_changed,
 	NULL,
         NULL

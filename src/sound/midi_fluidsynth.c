@@ -379,16 +379,7 @@ static const device_config_t fluidsynth_config[] =
                 .description = "Sound Font",
                 .type = CONFIG_FNAME,
                 .default_string = "",
-                .file_filter =
-                {
-                        {
-                                .description = "SF2 Sound Fonts",
-                                .extensions =
-                                {
-                                        "sf2"
-                                }
-                        }
-                }
+                .file_filter = "SF2 Sound Fonts (*.sf2)|*.sf2"
         },
         {
                 .name = "output_gain",
@@ -556,7 +547,7 @@ const device_t fluidsynth_device =
         fluidsynth_init,
         fluidsynth_close,
         NULL,
-        fluidsynth_available,
+        { fluidsynth_available },
         NULL,
         NULL,
         fluidsynth_config

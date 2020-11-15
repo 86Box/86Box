@@ -696,7 +696,7 @@ speed_changed(void *priv)
 
 static const device_config_t herculesplus_config[] = {
     {
-	"rgb_type", "Display type", CONFIG_SELECTION, "", 0,
+	"rgb_type", "Display type", CONFIG_SELECTION, "", 0, "", { 0 },
 	{
 		{
 			"Default", 0
@@ -728,7 +728,7 @@ const device_t herculesplus_device = {
     DEVICE_ISA,
     0,
     herculesplus_init, herculesplus_close, NULL,
-    NULL,
+    { NULL },
     speed_changed,
     NULL,
     herculesplus_config

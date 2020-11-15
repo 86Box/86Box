@@ -49,7 +49,6 @@ extern void	sound_set_cd_audio_filter(void (*filter)(int channel, \
 					  double *buffer, void *p), void *p);
 
 extern int	sound_card_available(int card);
-extern char	*sound_card_getname(int card);
 #ifdef EMU_DEVICE_H
 extern const device_t	*sound_card_getdevice(int card);
 #endif

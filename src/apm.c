@@ -131,7 +131,7 @@ const device_t apm_device =
     apm_init,
     apm_close, 
     NULL,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -146,7 +146,7 @@ const device_t apm_pci_device =
     apm_init,
     apm_close, 
     apm_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -161,7 +161,7 @@ const device_t apm_pci_acpi_device =
     apm_init,
     apm_close, 
     apm_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL

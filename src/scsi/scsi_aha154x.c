@@ -911,7 +911,7 @@ aha_init(const device_t *info)
 
 static const device_config_t aha_154xb_config[] = {
         {
-		"base", "Address", CONFIG_HEX16, "", 0x334,
+		"base", "Address", CONFIG_HEX16, "", 0x334, "", { 0 },
                 {
                         {
                                 "None",      0
@@ -940,7 +940,7 @@ static const device_config_t aha_154xb_config[] = {
                 },
         },
         {
-		"irq", "IRQ", CONFIG_SELECTION, "", 11,
+		"irq", "IRQ", CONFIG_SELECTION, "", 11, "", { 0 },
                 {
                         {
                                 "IRQ 9", 9
@@ -966,7 +966,7 @@ static const device_config_t aha_154xb_config[] = {
                 },
         },
         {
-		"dma", "DMA channel", CONFIG_SELECTION, "", 6,
+		"dma", "DMA channel", CONFIG_SELECTION, "", 6, "", { 0 },
                 {
                         {
                                 "DMA 5", 5
@@ -983,7 +983,7 @@ static const device_config_t aha_154xb_config[] = {
                 },
         },
         {
-		"hostid", "Host ID", CONFIG_SELECTION, "", 7,
+		"hostid", "Host ID", CONFIG_SELECTION, "", 7, "", { 0 },
                 {
                         {
                                 "0", 0
@@ -1015,7 +1015,7 @@ static const device_config_t aha_154xb_config[] = {
                 },
         },
         {
-                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0,
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0, "", { 0 },
                 {
                         {
                                 "Disabled", 0
@@ -1041,7 +1041,7 @@ static const device_config_t aha_154xb_config[] = {
 
 static const device_config_t aha_154x_config[] = {
         {
-		"base", "Address", CONFIG_HEX16, "", 0x334,
+		"base", "Address", CONFIG_HEX16, "", 0x334, "", { 0 },
                 {
                         {
                                 "None",      0
@@ -1070,7 +1070,7 @@ static const device_config_t aha_154x_config[] = {
                 },
         },
         {
-		"irq", "IRQ", CONFIG_SELECTION, "", 11,
+		"irq", "IRQ", CONFIG_SELECTION, "", 11, "", { 0 },
                 {
                         {
                                 "IRQ 9", 9
@@ -1096,7 +1096,7 @@ static const device_config_t aha_154x_config[] = {
                 },
         },
         {
-		"dma", "DMA channel", CONFIG_SELECTION, "", 6,
+		"dma", "DMA channel", CONFIG_SELECTION, "", 6, "", { 0 },
                 {
                         {
                                 "DMA 5", 5
@@ -1113,7 +1113,7 @@ static const device_config_t aha_154x_config[] = {
                 },
         },
         {
-                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0,
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0, "", { 0 },
                 {
                         {
                                 "Disabled", 0
@@ -1140,7 +1140,7 @@ static const device_config_t aha_154x_config[] = {
 
 static const device_config_t aha_154xcf_config[] = {
         {
-		"base", "Address", CONFIG_HEX16, "", 0x334,
+		"base", "Address", CONFIG_HEX16, "", 0x334, "", { 0 },
                 {
                         {
                                 "None",      0
@@ -1169,7 +1169,7 @@ static const device_config_t aha_154xcf_config[] = {
                 },
         },
         {
-		"irq", "IRQ", CONFIG_SELECTION, "", 11,
+		"irq", "IRQ", CONFIG_SELECTION, "", 11, "", { 0 },
                 {
                         {
                                 "IRQ 9", 9
@@ -1195,7 +1195,7 @@ static const device_config_t aha_154xcf_config[] = {
                 },
         },
         {
-		"dma", "DMA channel", CONFIG_SELECTION, "", 6,
+		"dma", "DMA channel", CONFIG_SELECTION, "", 6, "", { 0 },
                 {
                         {
                                 "DMA 5", 5
@@ -1212,7 +1212,7 @@ static const device_config_t aha_154xcf_config[] = {
                 },
         },
         {
-                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0,
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0, "", { 0 },
                 {
                         {
                                 "Disabled", 0
@@ -1232,7 +1232,7 @@ static const device_config_t aha_154xcf_config[] = {
                 },
         },
         {
-		"fdc_addr", "FDC address", CONFIG_HEX16, "", 0,
+		"fdc_addr", "FDC address", CONFIG_HEX16, "", 0, "", { 0 },
                 {
                         {
                                 "None",      0
@@ -1259,7 +1259,7 @@ const device_t aha154xa_device = {
     DEVICE_ISA | DEVICE_AT,
     AHA_154xA,
     aha_init, x54x_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     aha_154xb_config
 };
 
@@ -1268,7 +1268,7 @@ const device_t aha154xb_device = {
     DEVICE_ISA | DEVICE_AT,
     AHA_154xB,
     aha_init, x54x_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     aha_154xb_config
 };
 
@@ -1277,7 +1277,7 @@ const device_t aha154xc_device = {
     DEVICE_ISA | DEVICE_AT,
     AHA_154xC,
     aha_init, x54x_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     aha_154x_config
 };
 
@@ -1286,7 +1286,7 @@ const device_t aha154xcf_device = {
     DEVICE_ISA | DEVICE_AT,
     AHA_154xCF,
     aha_init, x54x_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     aha_154xcf_config
 };
 
@@ -1295,6 +1295,6 @@ const device_t aha1640_device = {
     DEVICE_MCA,
     AHA_1640,
     aha_init, x54x_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

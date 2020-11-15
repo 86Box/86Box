@@ -287,6 +287,6 @@ const device_t wd76c10_device = {
     0,
     0,
     wd76c10_init, wd76c10_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

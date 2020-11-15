@@ -715,7 +715,7 @@ const device_t via_vpx_device =
     via_apollo_init, 
     via_apollo_close, 
     via_apollo_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -729,7 +729,7 @@ const device_t amd640_device =
     via_apollo_init, 
     via_apollo_close, 
     via_apollo_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -743,7 +743,7 @@ const device_t via_vp3_device =
     via_apollo_init, 
     via_apollo_close, 
     via_apollo_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -757,7 +757,7 @@ const device_t via_mvp3_device =
     via_apollo_init, 
     via_apollo_close, 
     via_apollo_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -770,7 +770,7 @@ const device_t via_apro_device = {
     via_apollo_init,
     via_apollo_close,
     via_apollo_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -783,7 +783,7 @@ const device_t via_apro133_device = {
     via_apollo_init,
     via_apollo_close,
     via_apollo_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -796,7 +796,7 @@ const device_t via_apro133a_device = {
     via_apollo_init,
     via_apollo_close,
     via_apollo_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -809,7 +809,7 @@ const device_t via_vt8601_device = {
     via_apollo_init,
     via_apollo_close,
     via_apollo_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL

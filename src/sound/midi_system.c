@@ -118,7 +118,7 @@ const device_t system_midi_device =
         system_midi_init,
         system_midi_close,
 	NULL,
-        system_midi_available,
+        { system_midi_available },
         NULL,
         NULL,
         system_midi_config
@@ -132,7 +132,7 @@ const device_t midi_input_device =
         midi_input_init,
         midi_input_close,
 	NULL,
-        midi_input_available,
+        { midi_input_available },
         NULL,
         NULL,
         midi_input_config

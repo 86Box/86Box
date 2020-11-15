@@ -155,6 +155,6 @@ const device_t cs8230_device = {
     0,
     0,
     cs8230_init, cs8230_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

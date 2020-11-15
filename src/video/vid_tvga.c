@@ -431,7 +431,7 @@ void tvga_force_redraw(void *p)
 static const device_config_t tvga_config[] =
 {
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 1024,
+                "memory", "Memory size", CONFIG_SELECTION, "", 1024, "", { 0 },
                 {
                         {
                                 "256 kB", 256
@@ -461,7 +461,7 @@ const device_t tvga8900b_device =
         tvga_init,
         tvga_close,
 	NULL,
-        tvga8900b_available,
+        { tvga8900b_available },
         tvga_speed_changed,
         tvga_force_redraw,
         tvga_config
@@ -475,7 +475,7 @@ const device_t tvga8900d_device =
         tvga_init,
         tvga_close,
 	NULL,
-        tvga8900d_available,
+        { tvga8900d_available },
         tvga_speed_changed,
         tvga_force_redraw,
         tvga_config
@@ -489,7 +489,7 @@ const device_t tvga9000b_device =
         tvga_init,
         tvga_close,
 	NULL,
-        tvga9000b_available,
+        { tvga9000b_available },
         tvga_speed_changed,
         tvga_force_redraw,
         NULL

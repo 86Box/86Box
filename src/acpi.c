@@ -82,25 +82,34 @@ acpi_update_irq(void *priv)
 
 
 static void
-acpi_raise_smi(void *priv)
+acpi_raise_smi_common(void *priv)
 {
     acpi_t *dev = (acpi_t *) priv;
 
     if ((dev->vendor == VEN_VIA) || (dev->vendor == VEN_VIA_596B)) {
-	    if ((dev->regs.glbctl & 0x01) && (!dev->regs.smi_lock || !dev->regs.smi_active)) {
+	    if ((!dev->regs.smi_lock || !dev->regs.smi_active)) {
 		smi_line = 1;
 		dev->regs.smi_active = 1;
     	}
     } else if (dev->vendor == VEN_INTEL) {
-	if (dev->regs.glbctl & 0x01) {
-		smi_line = 1;
-		/* Clear bit 16 of GLBCTL. */
-		dev->regs.glbctl &= ~0x00010000;
-	}
-    } else if (dev->vendor == VEN_SMC) {
-	if (dev->regs.glbctl & 0x01)
-		smi_line = 1;
-    }
+	smi_line = 1;
+	/* Clear bit 16 of GLBCTL. */
+	dev->regs.glbctl &= ~0x00010000;
+    } else if (dev->vendor == VEN_SMC)
+	smi_line = 1;
+}
+
+
+static void
+acpi_raise_smi(void *priv)
+{
+    acpi_t *dev = (acpi_t *) priv;
+
+    if ((dev->vendor == VEN_INTEL) && !(dev->regs.glbctl & 0x00010000))
+	return;
+
+    if (dev->regs.glbctl & 0x01)
+	acpi_raise_smi_common(dev);
 }
 
 
@@ -449,7 +458,7 @@ acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
 			switch (sus_typ) {
 				case 0:
 					/* Soft power off. */
-					quited = 1;
+					plat_power_off();
 					break;
 				case 1:
 					/* Suspend to RAM. */
@@ -1082,6 +1091,14 @@ acpi_set_irq_line(acpi_t *dev, int irq_line)
 
 
 void
+acpi_set_gpireg2_default(acpi_t *dev, uint8_t gpireg2_default)
+{
+    dev->gpireg2_default = gpireg2_default;
+    dev->regs.gpireg[2] = dev->gpireg2_default;
+}
+
+
+void
 acpi_set_nvr(acpi_t *dev, nvr_t *nvr)
 {
     dev->nvr = nvr;
@@ -1093,7 +1110,7 @@ acpi_apm_out(uint16_t port, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
 
-    acpi_log("[%04X:%08X] APM write: %04X = %02X (BX = %04X, CX = %04X)\n", CS, cpu_state.pc, port, val, BX, CX);
+    acpi_log("[%04X:%08X] APM write: %04X = %02X (AX = %04X, BX = %04X, CX = %04X)\n", CS, cpu_state.pc, port, val, AX, BX, CX);
 
     port &= 0x0001;
 
@@ -1102,7 +1119,7 @@ acpi_apm_out(uint16_t port, uint8_t val, void *p)
 	if (dev->apm->do_smi) {
 		if (dev->vendor == VEN_INTEL)
 			dev->regs.glbsts |= 0x20;
-		acpi_raise_smi(dev);
+		acpi_raise_smi_common(dev);
 	}
     } else
 	dev->apm->stat = val;
@@ -1141,7 +1158,7 @@ acpi_reset(void *priv)
        - Bit 2: 80-conductor cable on primary IDE channel (active low)
        Gigabyte GA-686BX:
        - Bit 1: CMOS battery low (active high) */
-    dev->regs.gpireg[2] = 0xf1;
+    dev->regs.gpireg[2] = dev->gpireg2_default;
     for (i = 0; i < 4; i++)
 	dev->regs.gporeg[i] = dev->gporeg_default[i];
     if (dev->vendor == VEN_VIA_596B) {
@@ -1212,7 +1229,7 @@ const device_t acpi_intel_device =
     acpi_init, 
     acpi_close, 
     acpi_reset,
-    NULL,
+    { NULL },
     acpi_speed_changed,
     NULL,
     NULL
@@ -1227,7 +1244,7 @@ const device_t acpi_via_device =
     acpi_init, 
     acpi_close, 
     acpi_reset,
-    NULL,
+    { NULL },
     acpi_speed_changed,
     NULL,
     NULL
@@ -1242,7 +1259,7 @@ const device_t acpi_via_596b_device =
     acpi_init, 
     acpi_close, 
     acpi_reset,
-    NULL,
+    { NULL },
     acpi_speed_changed,
     NULL,
     NULL
@@ -1257,7 +1274,7 @@ const device_t acpi_smc_device =
     acpi_init, 
     acpi_close, 
     acpi_reset,
-    NULL,
+    { NULL },
     acpi_speed_changed,
     NULL,
     NULL

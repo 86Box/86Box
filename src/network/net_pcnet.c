@@ -1238,7 +1238,7 @@ pcnetCalcPacketLen(nic_t *dev, int cb)
 /**
  * Write data into guest receive buffers.
  */
-static void 
+static int
 pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
 {
     nic_t *dev = (nic_t *)priv;
@@ -1248,7 +1248,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
     uint8_t buf1[60];
 
     if (CSR_DRX(dev) || CSR_STOP(dev) || CSR_SPND(dev) || !size)
-	return;
+	return 0;
 
     /* if too small buffer, then expand it */
     if (size < 60) {
@@ -1262,7 +1262,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
      * Drop packets if the cable is not connected
      */
     if (!pcnetIsLinkUp(dev))
-	return;    
+	return 0;
 
     pcnetlog(1, "%s: pcnetReceiveNoSync: RX %x:%x:%x:%x:%x:%x > %x:%x:%x:%x:%x:%x len %d\n", dev->name,
 	buf[6], buf[7], buf[8], buf[9], buf[10], buf[11],
@@ -1370,7 +1370,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
             /* RX disabled in the meantime? If so, abort RX. */
             if (CSR_DRX(dev) || CSR_STOP(dev) || CSR_SPND(dev)) {
 		pcnetlog(3, "%s: RX disabled 1\n", dev->name);
-                return;
+                return 0;
 	    }
 
             /* Was the register modified in the meantime? If so, don't touch the
@@ -1415,7 +1415,7 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
                 /* RX disabled in the meantime? If so, abort RX. */
                 if (CSR_DRX(dev) || CSR_STOP(dev) || CSR_SPND(dev)) {
 		    pcnetlog(3, "%s: RX disabled 2\n", dev->name);
-                    return;
+                    return 0;
 		}
 
                 /* Was the register modified in the meantime? If so, don't touch the
@@ -1459,6 +1459,8 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
     }
 
     pcnetUpdateIrq(dev);
+
+    return 1;
 }
 
 /**
@@ -3027,7 +3029,7 @@ static const device_config_t pcnet_pci_config[] =
 static const device_config_t pcnet_isa_config[] =
 {
 	{
-		"base", "Address", CONFIG_HEX16, "", 0x300,
+		"base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
 		{
 			{
 				"0x300", 0x300
@@ -3047,7 +3049,7 @@ static const device_config_t pcnet_isa_config[] =
 		},
 	},
 	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 3,
+		"irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
 		{
 			{
 				"IRQ 3", 3
@@ -3067,7 +3069,7 @@ static const device_config_t pcnet_isa_config[] =
 		},
 	},
 	{
-		"dma", "DMA channel", CONFIG_SELECTION, "", 5,
+		"dma", "DMA channel", CONFIG_SELECTION, "", 5, "", { 0 },
 		{
 			{
 				"DMA 3", 3
@@ -3097,7 +3099,7 @@ static const device_config_t pcnet_isa_config[] =
 static const device_config_t pcnet_vlb_config[] =
 {
 	{
-		"base", "Address", CONFIG_HEX16, "", 0x300,
+		"base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
 		{
 			{
 				"0x300", 0x300
@@ -3117,7 +3119,7 @@ static const device_config_t pcnet_vlb_config[] =
 		},
 	},
 	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 3,
+		"irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
 		{
 			{
 				"IRQ 3", 3
@@ -3149,7 +3151,7 @@ const device_t pcnet_am79c960_device = {
     DEVICE_AT | DEVICE_ISA,
     DEV_AM79C960,
     pcnet_init, pcnet_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     pcnet_isa_config
 };
 
@@ -3158,7 +3160,7 @@ const device_t pcnet_am79c960_eb_device = {
     DEVICE_AT | DEVICE_ISA,
     DEV_AM79C960_EB,
     pcnet_init, pcnet_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     pcnet_isa_config
 };
 
@@ -3167,7 +3169,7 @@ const device_t pcnet_am79c960_vlb_device = {
     DEVICE_VLB,
     DEV_AM79C960_VLB,
     pcnet_init, pcnet_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     pcnet_vlb_config
 };
 
@@ -3176,7 +3178,7 @@ const device_t pcnet_am79c970a_device = {
     DEVICE_PCI,
     DEV_AM79C970A,
     pcnet_init, pcnet_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     pcnet_pci_config
 };
 
@@ -3185,6 +3187,6 @@ const device_t pcnet_am79c973_device = {
     DEVICE_PCI,
     DEV_AM79C973,
     pcnet_init, pcnet_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     pcnet_pci_config
 };

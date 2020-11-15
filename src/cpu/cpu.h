@@ -150,6 +150,7 @@ extern CPU	cpus_i486S1[];
 extern CPU	cpus_Am486S1[];
 extern CPU	cpus_Cx486S1[];
 extern CPU	cpus_i486[];
+extern CPU	cpus_i486_PC330[];
 extern CPU	cpus_Am486[];
 extern CPU	cpus_Cx486[];
 #if defined(DEV_BRANCH) && defined(USE_STPC)
@@ -225,7 +226,8 @@ typedef struct {
     uint8_t	access, ar_high;
     int8_t	checked; /*Non-zero if selector is known to be valid*/
     uint16_t	seg;
-    uint32_t	base, limit,
+    uint32_t	base,
+		limit, limit_raw,
 		limit_low, limit_high;
 } x86seg;
 
@@ -311,6 +313,7 @@ typedef struct {
 #define CPU_STATUS_STACK32 (1 << 1)
 #define CPU_STATUS_PMODE   (1 << 2)
 #define CPU_STATUS_V86     (1 << 3)
+#define CPU_STATUS_SMM     (1 << 4)
 #define CPU_STATUS_FLAGS 0xffff
 
 /*If the cpu_state.flags below are set in cpu_cur_status, they must be set in block->status.
@@ -388,7 +391,7 @@ extern int	cpu_cyrix_alignment;	/*Cyrix 5x86/6x86 only has data misalignment
 					  penalties when crossing 8-byte boundaries*/
 
 extern int	is8086,	is286, is386, is486, is486sx, is486dx, is486sx2, is486dx2, isdx4;
-extern int	is_am486, is_pentium, is_k5, is_k6, is_p6;
+extern int	is_am486, is_pentium, is_k5, is_k6, is_p6, is_cx6x86;
 extern int	hascache;
 extern int	isibm486;
 extern int	is_rapidcad;
@@ -492,7 +495,8 @@ extern uint32_t	old_rammask;
 extern int	acycs;
 #endif
 extern int	pic_pending, is_vpc;
-extern int	soft_reset_mask;
+extern int	soft_reset_mask, alt_access;
+extern int	cpu_end_block_after_ins;
 
 extern uint16_t	cpu_fast_off_count, cpu_fast_off_val;
 extern uint32_t	cpu_fast_off_flags;
@@ -589,5 +593,24 @@ extern int	fpu_get_type(int machine, int cpu_manufacturer, int cpu, const char *
 extern const	char *fpu_get_internal_name(int machine, int cpu_manufacturer, int cpu, int type);
 extern const	char *fpu_get_name_from_index(int machine, int cpu_manufacturer, int cpu, int c);
 extern int	fpu_get_type_from_index(int machine, int cpu_manufacturer, int cpu, int c);
+
+void cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg);
+void cyrix_write_seg_descriptor(uint32_t addr, x86seg *seg);
+
+#define SMHR_VALID (1 << 0)
+#define SMHR_ADDR_MASK (0xfffffffc)
+
+typedef struct
+{
+        struct
+        {
+                uint32_t base;
+                uint64_t size;
+        } arr[8];
+        uint32_t smhr;
+} cyrix_t;
+
+
+extern cyrix_t	cyrix;
 
 #endif	/*EMU_CPU_H*/

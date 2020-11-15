@@ -112,6 +112,6 @@ const device_t sio_detect_device = {
     0,
     0,
     sio_detect_init, sio_detect_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

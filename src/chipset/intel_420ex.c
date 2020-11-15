@@ -546,7 +546,7 @@ const device_t i420ex_device =
     i420ex_init,
     i420ex_close,
     i420ex_reset,
-    NULL,
+    { NULL },
     i420ex_speed_changed,
     NULL,
     NULL

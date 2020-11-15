@@ -261,7 +261,7 @@ const device_t lm75_1_4a_device = {
     DEVICE_ISA,
     0x14a,
     lm75_init, lm75_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -273,6 +273,6 @@ const device_t lm75_w83781d_device = {
     DEVICE_ISA,
     0,
     lm75_init, lm75_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

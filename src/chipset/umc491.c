@@ -174,6 +174,6 @@ const device_t umc491_device = {
     0,
     0,
     umc491_init, umc491_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

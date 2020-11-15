@@ -90,7 +90,7 @@ static const joystick_if_t *joystick_list[] = {
     &joystick_standard_4button,
     &joystick_standard_6button,
     &joystick_standard_8button,
-	&joystick_4axis_4button,
+    &joystick_4axis_4button,
     &joystick_ch_flightstick_pro,
     &joystick_sw_pad,
     &joystick_tm_fcs,
@@ -319,7 +319,7 @@ const device_t gameport_device = {
     0, 0,
     gameport_init,
     gameport_close,
-    NULL, NULL, NULL,
+    NULL, { NULL }, NULL,
     NULL
 };
 
@@ -328,6 +328,6 @@ const device_t gameport_201_device = {
     0, 0,
     gameport_201_init,
     gameport_close,
-    NULL, NULL, NULL,
+    NULL, { NULL }, NULL,
     NULL
 };

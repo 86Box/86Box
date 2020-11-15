@@ -38,9 +38,10 @@
 typedef struct {
     uint8_t id, pm_idx,
 	    regs[48], ld_regs[256][208],
-	    pcregs[16], gpio[8],
+	    pcregs[16], gpio[2][4],
 	    pm[8];
-    uint16_t gpio_base, pm_base;
+    uint16_t gpio_base, gpio_base2,
+	     pm_base;
     int cur_reg;
     fdc_t *fdc;
     serial_t *uart[2];
@@ -56,8 +57,9 @@ static void
 pc87307_gpio_write(uint16_t port, uint8_t val, void *priv)
 {
     pc87307_t *dev = (pc87307_t *) priv;
+    uint8_t bank = ((port & 0xfffc) == dev->gpio_base2);
 
-    dev->gpio[port & 7] = val;
+    dev->gpio[bank][port & 3] = val;
 }
 
 
@@ -65,8 +67,17 @@ uint8_t
 pc87307_gpio_read(uint16_t port, void *priv)
 {
     pc87307_t *dev = (pc87307_t *) priv;
+    uint8_t pins = 0xff, bank = ((port & 0xfffc) == dev->gpio_base2);
+    uint8_t mask, ret = dev->gpio[bank][port & 0x0003];
 
-    return dev->gpio[port & 7];
+    switch (port & 0x0003) {
+	case 0x0000:
+		mask = dev->gpio[bank][0x0001];
+		ret = (ret & mask) | (pins & ~mask);
+		break;
+    }
+
+    return ret;
 }
 
 
@@ -74,19 +85,27 @@ static void
 pc87307_gpio_remove(pc87307_t *dev)
 {
     if (dev->gpio_base != 0xffff) {
-	io_removehandler(dev->gpio_base, 0x0008,
+	io_removehandler(dev->gpio_base, 0x0002,
 			 pc87307_gpio_read, NULL, NULL, pc87307_gpio_write, NULL, NULL, dev);
 	dev->gpio_base = 0xffff;
+    }
+
+    if (dev->gpio_base2 != 0xffff) {
+	io_removehandler(dev->gpio_base2, 0x0002,
+			 pc87307_gpio_read, NULL, NULL, pc87307_gpio_write, NULL, NULL, dev);
+	dev->gpio_base2 = 0xffff;
     }
 }
 
 
 static void
-pc87307_gpio_init(pc87307_t *dev, uint16_t addr)
+pc87307_gpio_init(pc87307_t *dev, int bank, uint16_t addr)
 {
-    dev->gpio_base = addr;
+    uint16_t *bank_base = bank ? &(dev->gpio_base2) : &(dev->gpio_base);
 
-    io_sethandler(dev->gpio_base, 0x0008,
+    *bank_base = addr;
+
+    io_sethandler(*bank_base, 0x0002,
 		  pc87307_gpio_read, NULL, NULL, pc87307_gpio_write, NULL, NULL, dev);
 }
 
@@ -212,7 +231,12 @@ gpio_handler(pc87307_t *dev)
     addr = (dev->ld_regs[0x07][0x30] << 8) | dev->ld_regs[0x07][0x31];
 
     if (active)
-	pc87307_gpio_init(dev, addr);
+	pc87307_gpio_init(dev, 0, addr);
+
+    addr = (dev->ld_regs[0x07][0x32] << 8) | dev->ld_regs[0x07][0x33];
+
+    if (active)
+	pc87307_gpio_init(dev, 1, addr);
 }
 
 
@@ -293,7 +317,7 @@ pc87307_write(uint16_t port, uint8_t val, void *priv)
 		break;
 	case 0x60: case 0x62:
 		dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30] = val & 0x07;
-		if (dev->cur_reg == 0x62)
+		if ((dev->cur_reg == 0x62) && (dev->regs[0x07] != 0x07))
 			break;
 		switch (dev->regs[0x07]) {
 			case 0x03:
@@ -350,6 +374,10 @@ pc87307_write(uint16_t port, uint8_t val, void *priv)
 	case 0x63:
 		if (dev->regs[0x07] == 0x00)
 			dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30] = (val & 0xfb) | 0x04;
+		else if (dev->regs[0x07] == 0x07) {
+			dev->ld_regs[dev->regs[0x07]][dev->cur_reg - 0x30] = val & 0xfe;
+			gpio_handler(dev);
+		}
 		break;
 	case 0x70:
 	case 0x74: case 0x75:
@@ -497,8 +525,16 @@ pc87307_reset(pc87307_t *dev)
     dev->ld_regs[0x08][0x44] = 0x04;
     dev->ld_regs[0x08][0x45] = 0x04;
 
-    dev->gpio[0] = 0xff;
-    dev->gpio[1] = 0xfb;
+    // dev->gpio[0] = 0xff;
+    // dev->gpio[1] = 0xfb;
+    dev->gpio[0][0] = 0xff;
+    dev->gpio[0][1] = 0x00;
+    dev->gpio[0][2] = 0x00;
+    dev->gpio[0][3] = 0xff;
+    dev->gpio[1][0] = 0xff;
+    dev->gpio[1][1] = 0x00;
+    dev->gpio[1][2] = 0x00;
+    dev->gpio[1][3] = 0xff;
 
     dev->pm[0] = 0xff;
     dev->pm[1] = 0xff;
@@ -543,10 +579,11 @@ pc87307_init(const device_t *info)
     pc87307_reset(dev);
 
     if (info->local & 0x100) {
-	io_sethandler(0x15c, 0x0002,
-		      pc87307_read, NULL, NULL, pc87307_write, NULL, NULL, dev);
-    } else {
 	io_sethandler(0x02e, 0x0002,
+		      pc87307_read, NULL, NULL, pc87307_write, NULL, NULL, dev);
+    }
+    if (info->local & 0x200) {
+	io_sethandler(0x15c, 0x0002,
 		      pc87307_read, NULL, NULL, pc87307_write, NULL, NULL, dev);
     }
 
@@ -557,9 +594,9 @@ pc87307_init(const device_t *info)
 const device_t pc87307_device = {
     "National Semiconductor PC87307 Super I/O",
     0,
-    0xc0,
+    0x1c0,
     pc87307_init, pc87307_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -567,9 +604,19 @@ const device_t pc87307_device = {
 const device_t pc87307_15c_device = {
     "National Semiconductor PC87307 Super I/O (Port 15Ch)",
     0,
-    0x1c0,
+    0x2c0,
     pc87307_init, pc87307_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+
+const device_t pc87307_both_device = {
+    "National Semiconductor PC87307 Super I/O (Ports 2Eh and 15Ch)",
+    0,
+    0x3c0,
+    pc87307_init, pc87307_close, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -577,8 +624,8 @@ const device_t pc87307_15c_device = {
 const device_t pc97307_device = {
     "National Semiconductor PC97307 Super I/O",
     0,
-    0xcf,
+    0x1cf,
     pc87307_init, pc87307_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

@@ -2643,6 +2643,11 @@ static int codegen_STORE_PTR_IMM_8(codeblock_t *block, uop_t *uop)
         host_x86_MOV8_ABS_IMM(block, uop->p, uop->imm_data);
         return 0;
 }
+static int codegen_STORE_PTR_IMM_16(codeblock_t *block, uop_t *uop)
+{
+        host_x86_MOV16_ABS_IMM(block, uop->p, uop->imm_data);
+        return 0;
+}
 
 static int codegen_SUB(codeblock_t *block, uop_t *uop)
 {
@@ -2838,6 +2843,7 @@ const uOpFn uop_handlers[UOP_MAX] =
 
         [UOP_STORE_P_IMM & UOP_MASK] = codegen_STORE_PTR_IMM,
         [UOP_STORE_P_IMM_8 & UOP_MASK] = codegen_STORE_PTR_IMM_8,
+        [UOP_STORE_P_IMM_16 & UOP_MASK] = codegen_STORE_PTR_IMM_16,
         
         [UOP_MEM_LOAD_ABS & UOP_MASK]    = codegen_MEM_LOAD_ABS,
         [UOP_MEM_LOAD_REG & UOP_MASK]    = codegen_MEM_LOAD_REG,
@@ -3136,6 +3142,23 @@ void codegen_direct_write_double_stack(codeblock_t *block, int stack_offset, int
 void codegen_set_jump_dest(codeblock_t *block, void *p)
 {
         *(uint32_t *)p = (uintptr_t)&block_write_data[block_pos] - ((uintptr_t)p + 4);
+}
+
+void codegen_direct_write_8_imm(codeblock_t *block, void *p, uint8_t imm_data)
+{
+        host_x86_MOV8_ABS_IMM(block, p, imm_data);
+}
+void codegen_direct_write_16_imm(codeblock_t *block, void *p, uint16_t imm_data)
+{
+        host_x86_MOV16_ABS_IMM(block, p, imm_data);
+}
+void codegen_direct_write_32_imm(codeblock_t *block, void *p, uint32_t imm_data)
+{
+        host_x86_MOV32_ABS_IMM(block, p, imm_data);
+}
+void codegen_direct_write_32_imm_stack(codeblock_t *block, int stack_offset, uint32_t imm_data)
+{
+        host_x86_MOV32_BASE_OFFSET_IMM(block, REG_ESP, stack_offset, imm_data);
 }
 
 #endif

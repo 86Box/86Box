@@ -1803,7 +1803,7 @@ mpu401_standalone_close(void *priv)
 static const device_config_t mpu401_standalone_config[] =
 {
         {
-                "base", "MPU-401 Address", CONFIG_HEX16, "", 0x330,
+                "base", "MPU-401 Address", CONFIG_HEX16, "", 0x330, "", { 0 },
                 {
                         {
                                 "0x300", 0x300
@@ -1817,7 +1817,7 @@ static const device_config_t mpu401_standalone_config[] =
                 }
         },
         {
-                "irq", "MPU-401 IRQ", CONFIG_SELECTION, "", 9,
+                "irq", "MPU-401 IRQ", CONFIG_SELECTION, "", 9, "", { 0 },
                 {
                         {
                                 "IRQ 9", 9
@@ -1872,7 +1872,7 @@ const device_t mpu401_device = {
     "Roland MPU-IPC-T",
     DEVICE_ISA, 0,
     mpu401_standalone_init, mpu401_standalone_close, NULL,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     mpu401_standalone_config
@@ -1882,7 +1882,7 @@ const device_t mpu401_mca_device = {
     "Roland MPU-IMC",
     DEVICE_MCA, 0,
     mpu401_standalone_init, mpu401_standalone_close, NULL,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     mpu401_standalone_mca_config

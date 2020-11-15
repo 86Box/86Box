@@ -739,7 +739,7 @@ const device_t i8250_device = {
     0,
     SERIAL_8250,
     serial_init, serial_close, NULL,
-    NULL, serial_speed_changed, NULL,
+    { NULL }, serial_speed_changed, NULL,
     NULL
 };
 
@@ -748,7 +748,7 @@ const device_t i8250_pcjr_device = {
     DEVICE_PCJR,
     SERIAL_8250_PCJR,
     serial_init, serial_close, NULL,
-    NULL, serial_speed_changed, NULL,
+    { NULL }, serial_speed_changed, NULL,
     NULL
 };
 
@@ -757,7 +757,7 @@ const device_t ns16450_device = {
     0,
     SERIAL_NS16450,
     serial_init, serial_close, NULL,
-    NULL, serial_speed_changed, NULL,
+    { NULL }, serial_speed_changed, NULL,
     NULL
 };
 
@@ -766,6 +766,6 @@ const device_t ns16550_device = {
     0,
     SERIAL_NS16550,
     serial_init, serial_close, NULL,
-    NULL, serial_speed_changed, NULL,
+    { NULL }, serial_speed_changed, NULL,
     NULL
 };

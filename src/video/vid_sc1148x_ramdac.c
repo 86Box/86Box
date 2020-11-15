@@ -131,7 +131,7 @@ const device_t sc11483_ramdac_device =
         "Sierra SC11483 RAMDAC",
         0, 0,
         sc1148x_ramdac_init, sc1148x_ramdac_close,
-	NULL, NULL, NULL, NULL
+	NULL, { NULL }, NULL, NULL
 };
 
 const device_t sc11487_ramdac_device =
@@ -139,5 +139,5 @@ const device_t sc11487_ramdac_device =
         "Sierra SC11487 RAMDAC",
         0, 1,
         sc1148x_ramdac_init, sc1148x_ramdac_close,
-	NULL, NULL, NULL, NULL
+	NULL, { NULL }, NULL, NULL
 };

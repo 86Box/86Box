@@ -752,7 +752,7 @@ const device_t t1000_video_device = {
     "Toshiba T1000 Video",
     0, 0,
     t1000_init, t1000_close, NULL,
-    NULL,
+    { NULL },
     t1000_speed_changed,
     NULL,
     t1000_config
@@ -763,7 +763,7 @@ const device_t t1200_video_device = {
     "Toshiba T1200 Video",
     0, 0,
     t1000_init, t1000_close, NULL,
-    NULL,
+    { NULL },
     t1000_speed_changed,
     NULL,
     t1000_config

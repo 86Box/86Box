@@ -283,7 +283,7 @@ const device_t ati18800_wonder_device =
         ati18800_init,
         ati18800_close,
 	NULL,
-        ati18800_wonder_available,
+        { ati18800_wonder_available },
         ati18800_speed_changed,
         ati18800_force_redraw,
 	NULL
@@ -297,7 +297,7 @@ const device_t ati18800_vga88_device =
         ati18800_init,
         ati18800_close,
 	NULL,
-        ati18800_vga88_available,
+        { ati18800_vga88_available },
         ati18800_speed_changed,
         ati18800_force_redraw,
 	NULL
@@ -310,7 +310,7 @@ const device_t ati18800_device =
         ati18800_init,
         ati18800_close,
 	NULL,
-        ati18800_available,
+        { ati18800_available },
         ati18800_speed_changed,
         ati18800_force_redraw,
 	NULL

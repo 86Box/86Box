@@ -37,27 +37,13 @@
 
 
 typedef struct {
-    uint8_t chip_id,
-	    lock[2],
+    uint8_t chip_id, tries,
 	    regs[16];
     int cur_reg,
 	com3_addr, com4_addr;
     fdc_t *fdc;
     serial_t *uart[2];
 } fdc37c66x_t;
-
-
-static void
-write_lock(fdc37c66x_t *dev, uint8_t val)
-{
-    if (val == 0x55 && dev->lock[1] == 0x55)
-	fdc_3f1_enable(dev->fdc, 0);
-    if ((dev->lock[0] == 0x55) && (dev->lock[1] == 0x55) && (val != 0x55))
-	fdc_3f1_enable(dev->fdc, 1);
-
-    dev->lock[0] = dev->lock[1];
-    dev->lock[1] = val;
-}
 
 
 static void
@@ -88,7 +74,12 @@ static void
 set_serial_addr(fdc37c66x_t *dev, int port)
 {
     uint8_t shift = (port << 4);
+    double clock_src = 24000000.0 / 13.0;
 
+    if (dev->regs[4] & (1 << (4 + port)))
+	clock_src = 24000000.0 / 12.0;
+
+    serial_remove(dev->uart[port]);
     if (dev->regs[2] & (4 << shift)) {
 	switch (dev->regs[2] & (3 << shift)) {
 		case 0:
@@ -105,6 +96,8 @@ set_serial_addr(fdc37c66x_t *dev, int port)
 			break;
 	}
     }
+
+    serial_set_clock_src(dev->uart[port], clock_src);
 }
 
 
@@ -144,10 +137,10 @@ fdc37c66x_write(uint16_t port, uint8_t val, void *priv)
     fdc37c66x_t *dev = (fdc37c66x_t *) priv;
     uint8_t valxor = 0;
 
-    if ((dev->lock[0] == 0x55) && (dev->lock[1] == 0x55)) {
+    if (dev->tries == 2) {
 	if (port == 0x3f0) {
 		if (val == 0xaa)
-			write_lock(dev, val);
+			dev->tries = 0;
 		else
 			dev->cur_reg = val;
 	} else {
@@ -166,26 +159,26 @@ fdc37c66x_write(uint16_t port, uint8_t val, void *priv)
 				if (valxor & 3)
 					lpt1_handler(dev);
 				if (valxor & 0x60) {
-					serial_remove(dev->uart[0]);
-					serial_remove(dev->uart[1]);
 					set_com34_addr(dev);
 					set_serial_addr(dev, 0);
 					set_serial_addr(dev, 1);
 				}
 				break;
 			case 2:
-				if (valxor & 7) {
-                	                serial_remove(dev->uart[0]);
+				if (valxor & 7)
 					set_serial_addr(dev, 0);
-				}
-				if (valxor & 0x70) {
-                	                serial_remove(dev->uart[1]);
+				if (valxor & 0x70)
 					set_serial_addr(dev, 1);
-				}
 				break;
 			case 3:
 				if (valxor & 2)
 					fdc_update_enh_mode(dev->fdc, (dev->regs[3] & 2) ? 1 : 0);
+				break;
+			case 4:
+				if (valxor & 0x10)
+					set_serial_addr(dev, 0);
+				if (valxor & 0x20)
+					set_serial_addr(dev, 1);
 				break;
 			case 5:
 				if (valxor & 0x01)
@@ -197,10 +190,8 @@ fdc37c66x_write(uint16_t port, uint8_t val, void *priv)
 				break;
 		}
 	}
-    } else {
-	if (port == 0x3f0)
-		write_lock(dev, val);
-    }
+    } else if ((port == 0x3f0) && (val == 0x55))
+	dev->tries++;
 }
 
 
@@ -208,9 +199,9 @@ static uint8_t
 fdc37c66x_read(uint16_t port, void *priv)
 {
     fdc37c66x_t *dev = (fdc37c66x_t *) priv;
-    uint8_t ret = 0xff;
+    uint8_t ret = 0x00;
 
-    if ((dev->lock[0] == 0x55) && (dev->lock[1] == 0x55)) {
+    if (dev->tries == 2) {
 	if (port == 0x3f1)
 		ret = dev->regs[dev->cur_reg];
     }
@@ -236,7 +227,7 @@ fdc37c66x_reset(fdc37c66x_t *dev)
 
     fdc_reset(dev->fdc);
 
-    memset(dev->lock, 0, 2);
+    dev->tries = 0;
     memset(dev->regs, 0, 16);
 
     dev->regs[0x0] = 0x3a;
@@ -287,7 +278,7 @@ const device_t fdc37c663_device = {
     0,
     0x63,
     fdc37c66x_init, fdc37c66x_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -296,7 +287,7 @@ const device_t fdc37c665_device = {
     0,
     0x65,
     fdc37c66x_init, fdc37c66x_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -305,6 +296,6 @@ const device_t fdc37c666_device = {
     0,
     0x66,
     fdc37c66x_init, fdc37c66x_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

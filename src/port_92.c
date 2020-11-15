@@ -213,7 +213,7 @@ const device_t port_92_device = {
     0,
     0,
     port_92_init, port_92_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -223,7 +223,7 @@ const device_t port_92_inv_device = {
     0,
     PORT_92_INV,
     port_92_init, port_92_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -233,7 +233,7 @@ const device_t port_92_word_device = {
     0,
     PORT_92_WORD,
     port_92_init, port_92_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -243,6 +243,6 @@ const device_t port_92_pci_device = {
     0,
     PORT_92_PCI,
     port_92_init, port_92_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

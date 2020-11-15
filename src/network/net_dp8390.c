@@ -30,7 +30,8 @@
 
 
 static void	dp8390_tx(dp8390_t *dev, uint32_t val);
-void	dp8390_rx(void *priv, uint8_t *buf, int io_len);
+static int	dp8390_rx_common(void *priv, uint8_t *buf, int io_len);
+int		dp8390_rx(void *priv, uint8_t *buf, int io_len);
 
 
 #ifdef ENABLE_DP8390_LOG
@@ -204,7 +205,7 @@ dp8390_write_cr(dp8390_t *dev, uint32_t val)
     /* Check for start-tx */
     if ((val & 0x04) && dev->TCR.loop_cntl) {
 	if (dev->TCR.loop_cntl) {
-	    dp8390_rx(dev, &dev->mem[(dev->tx_page_start * 256) - dev->mem_start],
+	    dp8390_rx_common(dev, &dev->mem[(dev->tx_page_start * 256) - dev->mem_start],
 		dev->tx_bytes);
 	}
     } else if (val & 0x04) {
@@ -270,8 +271,8 @@ dp8390_tx(dp8390_t *dev, uint32_t val)
  * if it should be accepted, and if the RX ring has enough room,
  * it is copied into it and the receive process is updated.
  */
-void
-dp8390_rx(void *priv, uint8_t *buf, int io_len)
+static int
+dp8390_rx_common(void *priv, uint8_t *buf, int io_len)
 {
     dp8390_t *dev = (dp8390_t *)priv;
     static uint8_t bcast_addr[6] = {0xff,0xff,0xff,0xff,0xff,0xff};
@@ -284,7 +285,8 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
     if (io_len != 60)
 	dp8390_log("%s: rx_frame with length %d\n", dev->name, io_len);
 
-    if ((dev->CR.stop != 0) || (dev->page_start == 0)) return;
+    if ((dev->CR.stop != 0) || (dev->page_start == 0))
+	return 0;
 
     /*
      * Add the pkt header + CRC to the length, and work
@@ -312,7 +314,7 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
 	dp8390_log("DP8390: no space\n");
 #endif
 
-	return;
+	return 0;
     }
 
     if ((io_len < 40/*60*/) && !dev->RCR.runts_ok) {
@@ -320,7 +322,7 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
 	dp8390_log("DP8390: rejected small packet, length %d\n", io_len);
 #endif
 
-	return;
+	return 1;
     }
 
     /* Some computers don't care... */
@@ -341,7 +343,7 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
 #ifdef ENABLE_DP8390_LOG
 			dp8390_log("DP8390: RX BC disabled\n");
 #endif
-			return;
+			return 1;
 		}
 	}
 
@@ -352,7 +354,7 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
 #ifdef ENABLE_DP8390_LOG
 			dp8390_log("DP8390: RX MC disabled\n");
 #endif
-			return;
+			return 1;
 		}
 
 		/* Are we listening to this multicast address? */
@@ -361,12 +363,13 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
 #ifdef ENABLE_DP8390_LOG
 			dp8390_log("DP8390: RX MC not listed\n");
 #endif
-			return;
+			return 1;
 		}
 	}
 
 	/* Unicast, must be for us.. */
-	else if (memcmp(buf, dev->physaddr, 6)) return;
+	else if (memcmp(buf, dev->physaddr, 6))
+		return 1;
     } else {
 #ifdef ENABLE_DP8390_LOG
 	dp8390_log("DP8390: RX promiscuous receive\n");
@@ -407,6 +410,20 @@ dp8390_rx(void *priv, uint8_t *buf, int io_len)
 
     if (dev->IMR.rx_inte && dev->interrupt)
 	dev->interrupt(dev->priv, 1);
+
+    return 1;
+}
+
+
+int
+dp8390_rx(void *priv, uint8_t *buf, int io_len)
+{
+    dp8390_t *dev = (dp8390_t *)priv;
+
+    if ((dev->DCR.loop == 0) || (dev->TCR.loop_cntl != 0))
+	return 0;
+
+   return dp8390_rx_common(priv, buf, io_len);
 }
 
 
@@ -1099,5 +1116,5 @@ const device_t dp8390_device =
         "DP8390 Network Interface Controller",
         0, 0,
         dp8390_init, dp8390_close,
-	NULL, NULL, NULL, NULL
+	NULL, { NULL }, NULL, NULL
 };

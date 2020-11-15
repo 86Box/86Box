@@ -360,6 +360,6 @@ const device_t bugger_device = {
     DEVICE_ISA | DEVICE_AT,
     0,
     bug_init, bug_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

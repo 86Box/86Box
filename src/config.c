@@ -668,6 +668,9 @@ load_sound(void)
     char *p;
 
     p = config_get_string(cat, "sndcard", NULL);
+    /* FIXME: Hack to not break configs with the Sound Blaster 128 PCI set. */
+    if ((p != NULL) && (!strcmp(p, "sbpci128") || !strcmp(p, "sb128pci")))
+	p = "es1371";
     if (p != NULL)
 	sound_card_current = sound_card_get_from_internal_name(p);
       else

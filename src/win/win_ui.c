@@ -30,6 +30,7 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/config.h>
+#include "../cpu/cpu.h"
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
@@ -345,6 +346,23 @@ win_notify_dlg_closed(void)
 }
 
 
+void
+plat_power_off(void)
+{
+    confirm_exit = 0;
+    config_save();
+
+    /* Deduct a sufficiently large number of cycles that no instructions will
+       run before the main thread is terminated */
+    cycles -= 99999999;
+
+    UnhookWindowsHookEx(hKeyboardHook);
+
+    KillTimer(hwndMain, TIMER_1SEC);
+    PostQuitMessage(0);
+}
+
+
 static LRESULT CALLBACK
 MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -390,6 +408,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_ACTION_RESET_CAD:
+				pclog("-\n");
 				pc_send_cad();
 				break;
 

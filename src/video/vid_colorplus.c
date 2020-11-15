@@ -432,7 +432,7 @@ void colorplus_speed_changed(void *p)
 static const device_config_t colorplus_config[] =
 {
         {
-                "display_type", "Display type", CONFIG_SELECTION, "", CGA_RGB,
+                "display_type", "Display type", CONFIG_SELECTION, "", CGA_RGB, "", { 0 },
                 {
                         {
                                 "RGB", CGA_RGB
@@ -446,7 +446,7 @@ static const device_config_t colorplus_config[] =
                 }
         },
         {
-                "composite_type", "Composite type", CONFIG_SELECTION, "", COMPOSITE_OLD,
+                "composite_type", "Composite type", CONFIG_SELECTION, "", COMPOSITE_OLD, "", { 0 },
                 {
                         {
                                 "Old", COMPOSITE_OLD
@@ -473,7 +473,7 @@ const device_t colorplus_device =
         DEVICE_ISA, 0,
         colorplus_standalone_init,
         colorplus_close,
-	NULL, NULL,
+	NULL, { NULL },
         colorplus_speed_changed,
         NULL,
         colorplus_config

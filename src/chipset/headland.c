@@ -694,7 +694,7 @@ const device_t headland_gc10x_device = {
     0,
     0,
     headland_init, headland_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -703,7 +703,7 @@ const device_t headland_ht18a_device = {
     0,
     1,
     headland_init, headland_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -712,7 +712,7 @@ const device_t headland_ht18b_device = {
     0,
     2,
     headland_init, headland_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -721,6 +721,6 @@ const device_t headland_ht18c_device = {
     0,
     8,
     headland_init, headland_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

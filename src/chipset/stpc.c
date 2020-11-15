@@ -910,13 +910,13 @@ stpc_init(const device_t *info)
     
     dev->local = info->local;
 
-    pci_add_card(0x0B, stpc_nb_read, stpc_nb_write, dev);
-    dev->ide_slot = pci_add_card(0x0C, stpc_isab_read, stpc_isab_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, stpc_nb_read, stpc_nb_write, dev);
+    dev->ide_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_isab_read, stpc_isab_write, dev);
     if (dev->local & STPC_IDE_ATLAS)
-    	dev->ide_slot = pci_add_card(0x0D, stpc_ide_read, stpc_ide_write, dev);
+    	dev->ide_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_ide_read, stpc_ide_write, dev);
     if (dev->local & STPC_USB) {
     	dev->usb = device_add(&usb_device);
-    	pci_add_card(0x0E, stpc_usb_read, stpc_usb_write, dev);
+    	pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_usb_read, stpc_usb_write, dev);
     }
 
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);
@@ -1096,7 +1096,7 @@ const device_t stpc_client_device =
     stpc_init, 
     stpc_close, 
     stpc_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1110,7 +1110,7 @@ const device_t stpc_consumer2_device =
     stpc_init, 
     stpc_close, 
     stpc_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1124,7 +1124,7 @@ const device_t stpc_elite_device =
     stpc_init, 
     stpc_close, 
     stpc_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1138,7 +1138,7 @@ const device_t stpc_atlas_device =
     stpc_init, 
     stpc_close, 
     stpc_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1153,7 +1153,7 @@ const device_t stpc_serial_device =
     stpc_serial_init,
     stpc_serial_close,
     NULL,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1167,7 +1167,7 @@ const device_t stpc_lpt_device =
     stpc_lpt_init,
     stpc_lpt_close,
     stpc_lpt_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL

@@ -1104,7 +1104,7 @@ xta_close(void *priv)
 
 static const device_config_t wdxt150_config[] = {
         {
-		"base", "Address", CONFIG_HEX16, "", 0x0320,		/*W2*/
+		"base", "Address", CONFIG_HEX16, "", 0x0320, "", { 0 },		/*W2*/
                 {
                         {
                                 "320H", 0x0320
@@ -1118,7 +1118,7 @@ static const device_config_t wdxt150_config[] = {
                 },
         },
         {
-		"irq", "IRQ", CONFIG_SELECTION, "", 5,			/*W3*/
+		"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },		/*W3*/
                 {
                         {
                                 "IRQ 5", 5
@@ -1132,7 +1132,7 @@ static const device_config_t wdxt150_config[] = {
                 },
         },
         {
-                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xc8000, /*W1*/
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xc8000, "", { 0 }, /*W1*/
                 {
                         {
                                 "C800H", 0xc8000
@@ -1156,7 +1156,7 @@ const device_t xta_wdxt150_device = {
     DEVICE_ISA,
     0,
     xta_init, xta_close, NULL,
-    xta_available, NULL, NULL,
+    { xta_available }, NULL, NULL,
     wdxt150_config
 };
 
@@ -1166,6 +1166,6 @@ const device_t xta_hd20_device = {
     DEVICE_ISA,
     1,
     xta_init, xta_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

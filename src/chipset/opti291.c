@@ -151,6 +151,6 @@ const device_t opti291_device = {
     0,
     0,
     opti291_init, opti291_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

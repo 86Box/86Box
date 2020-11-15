@@ -790,7 +790,7 @@ et4000_kasan_available(void)
 static const device_config_t et4000_config[] =
 {
 	{
-		"memory", "Memory size", CONFIG_SELECTION, "", 1024,
+		"memory", "Memory size", CONFIG_SELECTION, "", 1024, "", { 0 },
 		{
 			{
 				"256 KB", 256
@@ -816,7 +816,7 @@ const device_t et4000_isa_device = {
     DEVICE_ISA,
     0,
     et4000_init, et4000_close, NULL,
-    et4000_available,
+    { et4000_available },
     et4000_speed_changed,
     et4000_force_redraw,
     et4000_config
@@ -827,7 +827,7 @@ const device_t et4000_mca_device = {
     DEVICE_MCA,
     1,
     et4000_init, et4000_close, NULL,
-    et4000_available,
+    { et4000_available },
     et4000_speed_changed,
     et4000_force_redraw,
     et4000_config
@@ -838,7 +838,7 @@ const device_t et4000k_isa_device = {
     DEVICE_ISA,
     2,
     et4000_init, et4000_close, NULL,
-    et4000k_available,
+    { et4000k_available },
     et4000_speed_changed,
     et4000_force_redraw,
     et4000_config
@@ -849,7 +849,7 @@ const device_t et4000k_tg286_isa_device = {
     DEVICE_ISA,
     3,
     et4000_init, et4000_close, NULL,
-    et4000k_available,
+    { et4000k_available },
     et4000_speed_changed,
     et4000_force_redraw,
     et4000_config
@@ -860,7 +860,7 @@ const device_t et4000_kasan_isa_device = {
     DEVICE_ISA,
     4,
     et4000_init, et4000_close, NULL,
-    et4000_kasan_available,
+    { et4000_kasan_available },
     et4000_speed_changed,
     et4000_force_redraw,
     et4000_config

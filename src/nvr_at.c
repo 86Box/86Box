@@ -640,9 +640,12 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 
     sub_cycles(ISA_CYCLES(8));
 
+    if (local->bank[addr_id] == 0xff)
+	return;
+
     if (addr & 1) {
-	if (local->bank[addr_id] == 0xff)
-		return;
+	// if (local->bank[addr_id] == 0xff)
+		// return;
 	nvr_reg_write(local->addr[addr_id], val, priv);
     } else {
 	local->addr[addr_id] = (val & (nvr->size - 1));
@@ -672,7 +675,7 @@ nvr_read(uint16_t addr, void *priv)
 
     sub_cycles(ISA_CYCLES(8));
 
-    if ((addr & 1) && (local->bank[addr_id] == 0xff))
+    if (/* (addr & 1) && */(local->bank[addr_id] == 0xff))
 	return 0xff;
 
     if (addr & 1)  switch(local->addr[addr_id]) {
@@ -749,6 +752,8 @@ nvr_read(uint16_t addr, void *priv)
 	ret = local->addr[addr_id];
 	if (!local->read_addr)
 		ret &= 0x80;
+	if (alt_access)
+		ret = (ret & 0x7f) | (nmi_mask ? 0x00 : 0x80);
     }
 
     return(ret);
@@ -845,7 +850,7 @@ void
 nvr_at_handler(int set, uint16_t base, nvr_t *nvr)
 {
     io_handler(set, base, 2,
-		  nvr_read,NULL,NULL, nvr_write,NULL,NULL, nvr);
+	       nvr_read,NULL,NULL, nvr_write,NULL,NULL, nvr);
 }
 
 
@@ -853,7 +858,7 @@ void
 nvr_at_sec_handler(int set, uint16_t base, nvr_t *nvr)
 {
     io_handler(set, base, 2,
-		  nvr_sec_read,NULL,NULL, nvr_sec_write,NULL,NULL, nvr);
+	       nvr_sec_read,NULL,NULL, nvr_sec_write,NULL,NULL, nvr);
 }
 
 
@@ -1023,7 +1028,7 @@ const device_t at_nvr_old_device = {
     DEVICE_ISA | DEVICE_AT,
     0,
     nvr_at_init, nvr_at_close, NULL,
-    NULL, nvr_at_speed_changed,
+    { NULL }, nvr_at_speed_changed,
     NULL
 };
 
@@ -1032,7 +1037,7 @@ const device_t at_nvr_device = {
     DEVICE_ISA | DEVICE_AT,
     1,
     nvr_at_init, nvr_at_close, NULL,
-    NULL, nvr_at_speed_changed,
+    { NULL }, nvr_at_speed_changed,
     NULL
 };
 
@@ -1041,7 +1046,7 @@ const device_t ps_nvr_device = {
     DEVICE_PS2,
     2,
     nvr_at_init, nvr_at_close, NULL,
-    NULL, nvr_at_speed_changed,
+    { NULL }, nvr_at_speed_changed,
     NULL
 };
 
@@ -1050,7 +1055,7 @@ const device_t amstrad_nvr_device = {
     DEVICE_ISA | DEVICE_AT,
     3,
     nvr_at_init, nvr_at_close, NULL,
-    NULL, nvr_at_speed_changed,
+    { NULL }, nvr_at_speed_changed,
     NULL
 };
 
@@ -1059,7 +1064,7 @@ const device_t ibmat_nvr_device = {
     DEVICE_ISA | DEVICE_AT,
     4,
     nvr_at_init, nvr_at_close, NULL,
-    NULL, nvr_at_speed_changed,
+    { NULL }, nvr_at_speed_changed,
     NULL
 };
 
@@ -1068,7 +1073,7 @@ const device_t piix4_nvr_device = {
     DEVICE_ISA | DEVICE_AT,
     9,
     nvr_at_init, nvr_at_close, NULL,
-    NULL, nvr_at_speed_changed,
+    { NULL }, nvr_at_speed_changed,
     NULL
 };
 
@@ -1077,7 +1082,7 @@ const device_t ls486e_nvr_device = {
     DEVICE_ISA | DEVICE_AT,
     13,
     nvr_at_init, nvr_at_close, NULL,
-    NULL, nvr_at_speed_changed,
+    { NULL }, nvr_at_speed_changed,
     NULL
 };
 
@@ -1086,7 +1091,7 @@ const device_t ami_apollo_nvr_device = {
     DEVICE_ISA | DEVICE_AT,
     14,
     nvr_at_init, nvr_at_close, NULL,
-    NULL, nvr_at_speed_changed,
+    { NULL }, nvr_at_speed_changed,
     NULL
 };
 
@@ -1095,6 +1100,6 @@ const device_t via_nvr_device = {
     DEVICE_ISA | DEVICE_AT,
     15,
     nvr_at_init, nvr_at_close, NULL,
-    NULL, nvr_at_speed_changed,
+    { NULL }, nvr_at_speed_changed,
     NULL
 };

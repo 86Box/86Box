@@ -156,7 +156,7 @@ const device_t att490_ramdac_device =
         "AT&T 20c490/20c491 RAMDAC",
         0, ATT_490_1,
         att49x_ramdac_init, att49x_ramdac_close,
-	NULL, NULL, NULL, NULL
+	NULL, { NULL }, NULL, NULL
 };
 
 const device_t att492_ramdac_device =
@@ -164,5 +164,5 @@ const device_t att492_ramdac_device =
         "AT&T 20c492/20c493 RAMDAC",
         0, ATT_492_3,
         att49x_ramdac_init, att49x_ramdac_close,
-	NULL, NULL, NULL, NULL
+	NULL, { NULL }, NULL, NULL
 };

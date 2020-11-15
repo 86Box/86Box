@@ -193,7 +193,7 @@ const device_t ddma_device =
     ddma_init, 
     ddma_close, 
     NULL,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL

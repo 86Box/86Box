@@ -4775,7 +4775,7 @@ static void s3_force_redraw(void *p)
 static const device_config_t s3_orchid_86c911_config[] =
 {
 	{
-		"memory", "Memory size", CONFIG_SELECTION, "", 1,
+		"memory", "Memory size", CONFIG_SELECTION, "", 1, "", { 0 },
 		{
 			{
 				"512 KB", 0
@@ -4796,7 +4796,7 @@ static const device_config_t s3_orchid_86c911_config[] =
 static const device_config_t s3_9fx_config[] =
 {
 	{
-		"memory", "Memory size", CONFIG_SELECTION, "", 2,
+		"memory", "Memory size", CONFIG_SELECTION, "", 2, "", { 0 },
 		{
 			{
 				"1 MB", 1
@@ -4818,7 +4818,7 @@ static const device_config_t s3_9fx_config[] =
 static const device_config_t s3_phoenix_trio32_config[] =
 {
 	{
-		"memory", "Memory size", CONFIG_SELECTION, "", 2,
+		"memory", "Memory size", CONFIG_SELECTION, "", 2, "", { 0 },
 		{
 			{
 				"512 KB", 0
@@ -4842,7 +4842,7 @@ static const device_config_t s3_phoenix_trio32_config[] =
 static const device_config_t s3_phoenix_trio64_onboard_config[] =
 {
 	{
-		"memory", "Video memory size", CONFIG_SELECTION, "", 4,
+		"memory", "Video memory size", CONFIG_SELECTION, "", 4, "", { 0 },
 		{
 			{
 				"1 MB", 1
@@ -4866,7 +4866,7 @@ static const device_config_t s3_phoenix_trio64_onboard_config[] =
 static const device_config_t s3_config[] =
 {
 	{
-		"memory", "Memory size", CONFIG_SELECTION, "", 4,
+		"memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
 		{
 			{
 				"1 MB", 1
@@ -4876,6 +4876,9 @@ static const device_config_t s3_config[] =
 			},
 			{
 				"4 MB", 4
+			},
+			{
+				"8 MB", 8
 			},
 			{
 				""
@@ -4895,7 +4898,7 @@ const device_t s3_orchid_86c911_isa_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_orchid_86c911_available,
+	{ s3_orchid_86c911_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_orchid_86c911_config
@@ -4909,7 +4912,7 @@ const device_t s3_diamond_stealth_vram_isa_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_diamond_stealth_vram_available,
+	{ s3_diamond_stealth_vram_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_orchid_86c911_config
@@ -4923,7 +4926,7 @@ const device_t s3_ami_86c924_isa_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_ami_86c924_available,
+	{ s3_ami_86c924_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_orchid_86c911_config
@@ -4937,7 +4940,7 @@ const device_t s3_v7mirage_86c801_isa_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_v7mirage_86c801_available,
+	{ s3_v7mirage_86c801_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_9fx_config
@@ -4951,7 +4954,7 @@ const device_t s3_phoenix_86c805_vlb_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_phoenix_86c805_available,
+	{ s3_phoenix_86c805_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_9fx_config
@@ -4965,7 +4968,7 @@ const device_t s3_metheus_86c928_isa_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_metheus_86c928_available,
+	{ s3_metheus_86c928_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_config
@@ -4979,7 +4982,7 @@ const device_t s3_metheus_86c928_vlb_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_metheus_86c928_available,
+	{ s3_metheus_86c928_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_config
@@ -4993,7 +4996,7 @@ const device_t s3_metheus_86c928_pci_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_metheus_86c928_available,
+	{ s3_metheus_86c928_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_config
@@ -5007,7 +5010,7 @@ const device_t s3_bahamas64_vlb_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_bahamas64_available,
+	{ s3_bahamas64_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_9fx_config
@@ -5021,7 +5024,7 @@ const device_t s3_bahamas64_pci_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_bahamas64_available,
+	{ s3_bahamas64_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_9fx_config
@@ -5035,7 +5038,7 @@ const device_t s3_diamond_stealth64_964_vlb_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_diamond_stealth64_964_available,
+	{ s3_diamond_stealth64_964_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_config
@@ -5049,7 +5052,7 @@ const device_t s3_diamond_stealth64_964_pci_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_diamond_stealth64_964_available,
+	{ s3_diamond_stealth64_964_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_config
@@ -5063,7 +5066,7 @@ const device_t s3_9fx_vlb_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_9fx_available,
+	{ s3_9fx_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_9fx_config
@@ -5077,7 +5080,7 @@ const device_t s3_9fx_pci_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_9fx_available,
+	{ s3_9fx_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_9fx_config
@@ -5091,7 +5094,7 @@ const device_t s3_phoenix_trio32_vlb_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_phoenix_trio32_available,
+	{ s3_phoenix_trio32_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_phoenix_trio32_config
@@ -5105,7 +5108,7 @@ const device_t s3_phoenix_trio32_pci_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_phoenix_trio32_available,
+	{ s3_phoenix_trio32_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_phoenix_trio32_config
@@ -5119,7 +5122,7 @@ const device_t s3_diamond_stealth_se_vlb_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_diamond_stealth_se_available,
+	{ s3_diamond_stealth_se_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_phoenix_trio32_config
@@ -5133,7 +5136,7 @@ const device_t s3_diamond_stealth_se_pci_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_diamond_stealth_se_available,
+	{ s3_diamond_stealth_se_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_phoenix_trio32_config
@@ -5148,7 +5151,7 @@ const device_t s3_phoenix_trio64_vlb_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_phoenix_trio64_available,
+	{ s3_phoenix_trio64_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_config
@@ -5162,7 +5165,7 @@ const device_t s3_phoenix_trio64_onboard_pci_device =
 	s3_init,
 	s3_close,
 	NULL,
-	NULL,
+	{ NULL },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_phoenix_trio64_onboard_config
@@ -5176,7 +5179,7 @@ const device_t s3_phoenix_trio64_pci_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_phoenix_trio64_available,
+	{ s3_phoenix_trio64_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_config
@@ -5190,7 +5193,7 @@ const device_t s3_phoenix_trio64vplus_vlb_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_phoenix_trio64vplus_available,
+	{ s3_phoenix_trio64vplus_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_config
@@ -5204,7 +5207,7 @@ const device_t s3_phoenix_trio64vplus_onboard_pci_device =
 	s3_init,
 	s3_close,
 	NULL,
-	NULL,
+	{ NULL },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_phoenix_trio64_onboard_config
@@ -5218,7 +5221,7 @@ const device_t s3_phoenix_trio64vplus_pci_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_phoenix_trio64vplus_available,
+	{ s3_phoenix_trio64vplus_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_config
@@ -5232,7 +5235,7 @@ const device_t s3_phoenix_vision864_vlb_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_phoenix_vision864_available,
+	{ s3_phoenix_vision864_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_config
@@ -5246,7 +5249,7 @@ const device_t s3_phoenix_vision864_pci_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_phoenix_vision864_available,
+	{ s3_phoenix_vision864_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_config
@@ -5260,7 +5263,7 @@ const device_t s3_diamond_stealth64_vlb_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_diamond_stealth64_764_available,
+	{ s3_diamond_stealth64_764_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_9fx_config
@@ -5274,7 +5277,7 @@ const device_t s3_diamond_stealth64_pci_device =
 	s3_init,
 	s3_close,
 	NULL,
-	s3_diamond_stealth64_764_available,
+	{ s3_diamond_stealth64_764_available },
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_9fx_config
@@ -5288,7 +5291,7 @@ const device_t s3_trio64v2_dx_pci_device =
         s3_init,
         s3_close,
 	NULL,
-        s3_trio64v2_dx_available,
+        { s3_trio64v2_dx_available },
         s3_speed_changed,
         s3_force_redraw,
         s3_config

@@ -169,6 +169,14 @@ x86gpf(char *s, uint16_t error)
 
 
 void
+x86gpf_expected(char *s, uint16_t error)
+{
+    cpu_state.abrt = ABRT_GPF | ABRT_EXPECTED;
+    abrt_error = error;
+}
+
+
+void
 x86ss(char *s, uint16_t error)
 {
     cpu_state.abrt = ABRT_SS;
@@ -219,6 +227,7 @@ void
 do_seg_load(x86seg *s, uint16_t *segdat)
 {
     s->limit = segdat[0] | ((segdat[3] & 0x000f) << 16);
+    s->limit_raw = s->limit;
     if (segdat[3] & 0x0080)
 	s->limit = (s->limit << 12) | 0xfff;
     s->base = segdat[1] | ((segdat[2] & 0x00ff) << 16);
@@ -1469,7 +1478,11 @@ pmodeint(int num, int soft)
 
     x86seg_log("Addr %08X seg %04X %04X %04X %04X\n", addr, segdat[0], segdat[1], segdat[2], segdat[3]);
     if (!(segdat[2] & 0x1f00)) {
-	x86gpf("pmodeint(): Vector descriptor with bad type", (num << 3) + 2);
+	/* This fires on all V86 interrupts in EMM386. Mark as expected to prevent code churn */
+	if (cpu_state.eflags & VM_FLAG)
+		x86gpf_expected("pmodeint(): Expected vector descriptor with bad type", (num << 3) + 2);
+	else
+		x86gpf("pmodeint(): Vector descriptor with bad type", (num << 3) + 2);
 	return;
     }
     if ((DPL < CPL) && soft) {
@@ -2363,4 +2376,48 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
     tr.limit = limit;
     tr.access = segdat[2] >> 8;
     tr.ar_high = segdat[3] & 0xff;
+}
+
+
+void
+cyrix_write_seg_descriptor(uint32_t addr, x86seg *seg)
+{
+    writememl(0, addr, (seg->limit_raw & 0xffff) | (seg->base << 16));
+    writememl(0, addr + 4, ((seg->base >> 16) & 0xff) | (seg->access << 8) |
+	      (seg->limit_raw & 0xf0000) | (seg->ar_high << 16) |
+	      (seg->base & 0xff000000));
+}
+
+
+void
+cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg)
+{
+    uint16_t segdat[4], selector;
+
+    segdat[0] = readmemw(0, addr);
+    segdat[1] = readmemw(0, addr + 2);
+    segdat[2] = readmemw(0, addr + 4);
+    segdat[3] = readmemw(0, addr + 6);
+    selector = readmemw(0, addr+8);
+
+    if (!cpu_state.abrt) {
+	do_seg_load(seg, segdat);
+	seg->seg = selector;
+	seg->checked = 0;
+	if (seg == &cpu_state.seg_ds) {
+		if (seg->base == 0 && seg->limit_low == 0 && seg->limit_high == 0xffffffff)
+			cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
+		else
+			cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+		codegen_flat_ds = 0;
+	}
+	if (seg == &cpu_state.seg_ss) {
+		if (seg->base == 0 && seg->limit_low == 0 && seg->limit_high == 0xffffffff)
+			cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
+		else
+			cpu_cur_status |= CPU_STATUS_NOTFLATSS;
+		set_stack32((segdat[3] & 0x40) ? 1 : 0);
+		codegen_flat_ss = 0;
+	}
+    }
 }

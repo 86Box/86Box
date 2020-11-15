@@ -770,6 +770,6 @@ const device_t vlsi_scamp_device = {
     0,
     0,
     scamp_init, scamp_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

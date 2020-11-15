@@ -1751,106 +1751,109 @@ void emu8k_update(emu8k_t *emu8k)
                 {
                         int32_t dat;
 
-                        /* Waveform oscillator */
-#ifdef RESAMPLER_LINEAR
-                        dat = EMU8K_READ_INTERP_LINEAR(emu8k, emu_voice->addr.int_address, 
-                                                emu_voice->addr.fract_address);
-
-#elif defined RESAMPLER_CUBIC
-                        dat = EMU8K_READ_INTERP_CUBIC(emu8k, emu_voice->addr.int_address, 
-                                                emu_voice->addr.fract_address);
-#endif
-
-                        /* Filter section */
-                        if (emu_voice->filterq_idx || emu_voice->cvcf_curr_filt_ctoff != 0xFFFF )
+                        if (emu_voice->cvcf_curr_volume)
                         {
-                                int cutoff = emu_voice->cvcf_curr_filt_ctoff >> 8;
-                                const int64_t coef0 = filt_coeffs[emu_voice->filterq_idx][cutoff][0];
-                                const int64_t coef1 = filt_coeffs[emu_voice->filterq_idx][cutoff][1];
-                                const int64_t coef2 = filt_coeffs[emu_voice->filterq_idx][cutoff][2];
-                /* clip at twice the range */
-                #define ClipBuffer(buf) (buf < -16777216) ? -16777216 : (buf > 16777216) ? 16777216 : buf
+                                /* Waveform oscillator */
+        #ifdef RESAMPLER_LINEAR
+                                dat = EMU8K_READ_INTERP_LINEAR(emu8k, emu_voice->addr.int_address,
+                                                        emu_voice->addr.fract_address);
 
-                #ifdef FILTER_INITIAL
-                                #define NOOP(x) (void)x;
-                                NOOP(coef1)
-                                /* Apply expected attenuation. (FILTER_MOOG does it implicitly, but this one doesn't). 
-                                 * Work in 24bits. */
-                                dat = (dat * emu_voice->filt_att) >> 8;
-                                
-                                int64_t vhp = ((-emu_voice->filt_buffer[0] * coef2) >> 24) - emu_voice->filt_buffer[1] - dat;
-                                emu_voice->filt_buffer[1] += (emu_voice->filt_buffer[0] * coef0) >> 24;
-                                emu_voice->filt_buffer[0] += (vhp * coef0) >> 24;
-                                dat = (int32_t)(emu_voice->filt_buffer[1] >> 8);
-                                if (dat > 32767) { dat = 32767; }
-                                else if (dat < -32768) { dat = -32768; }
+        #elif defined RESAMPLER_CUBIC
+                                dat = EMU8K_READ_INTERP_CUBIC(emu8k, emu_voice->addr.int_address,
+                                                        emu_voice->addr.fract_address);
+        #endif
 
-                #elif defined FILTER_MOOG
-
-                                /*move to 24bits*/
-                                dat <<= 8;
-                                
-                                dat -= (coef2 * emu_voice->filt_buffer[4]) >> 24; /*feedback*/
-                                int64_t t1 = emu_voice->filt_buffer[1];
-                                emu_voice->filt_buffer[1] = ((dat + emu_voice->filt_buffer[0]) * coef0 - emu_voice->filt_buffer[1] * coef1) >> 24;
-                                emu_voice->filt_buffer[1] = ClipBuffer(emu_voice->filt_buffer[1]);
-
-                                int64_t t2 = emu_voice->filt_buffer[2];
-                                emu_voice->filt_buffer[2] = ((emu_voice->filt_buffer[1] + t1) * coef0 - emu_voice->filt_buffer[2] * coef1) >> 24;
-                                emu_voice->filt_buffer[2] = ClipBuffer(emu_voice->filt_buffer[2]);
-
-                                int64_t t3 = emu_voice->filt_buffer[3];
-                                emu_voice->filt_buffer[3] = ((emu_voice->filt_buffer[2] + t2) * coef0 - emu_voice->filt_buffer[3] * coef1) >> 24;
-                                emu_voice->filt_buffer[3] = ClipBuffer(emu_voice->filt_buffer[3]);
-
-                                emu_voice->filt_buffer[4] = ((emu_voice->filt_buffer[3] + t3) * coef0 - emu_voice->filt_buffer[4] * coef1) >> 24;
-                                emu_voice->filt_buffer[4] = ClipBuffer(emu_voice->filt_buffer[4]);
-
-                                emu_voice->filt_buffer[0] = ClipBuffer(dat);
-
-                                dat = (int32_t)(emu_voice->filt_buffer[4] >> 8);
-                                if (dat > 32767) { dat = 32767; }
-                                else if (dat < -32768) { dat = -32768; }
-
-                #elif defined FILTER_CONSTANT
-
-                                /* Apply expected attenuation. (FILTER_MOOG does it implicitly, but this one is constant gain). 
-                                 * Also stay at 24bits.*/
-                                dat = (dat * emu_voice->filt_att) >> 8;
-
-                                emu_voice->filt_buffer[0] = (coef1 * emu_voice->filt_buffer[0]
-                                        + coef0 * (dat + 
-                                            ((coef2 * (emu_voice->filt_buffer[0] - emu_voice->filt_buffer[1]))>>24))
-                                        ) >> 24;
-                                emu_voice->filt_buffer[1] = (coef1 * emu_voice->filt_buffer[1] 
-                                        + coef0 * emu_voice->filt_buffer[0]) >> 24;
-
-                                emu_voice->filt_buffer[0] = ClipBuffer(emu_voice->filt_buffer[0]);
-                                emu_voice->filt_buffer[1] = ClipBuffer(emu_voice->filt_buffer[1]);
-
-                                dat = (int32_t)(emu_voice->filt_buffer[1] >> 8);
-                                if (dat > 32767) { dat = 32767; }
-                                else if (dat < -32768) { dat = -32768; }
-
-                #endif
-                                
-                        }
-                        if (( emu8k->hwcf3 & 0x04) && !CCCA_DMA_ACTIVE(emu_voice->ccca))
-                        {
-                                /*volume and pan*/
-                                dat = (dat * emu_voice->cvcf_curr_volume) >> 16;
-
-                                (*buf++) += (dat * emu_voice->vol_l) >> 8;
-                                (*buf++) += (dat * emu_voice->vol_r) >> 8;
-
-                                /* Effects section */
-                                if (emu_voice->ptrx_revb_send > 0)
+                                /* Filter section */
+                                if (emu_voice->filterq_idx || emu_voice->cvcf_curr_filt_ctoff != 0xFFFF )
                                 {
-                                        emu8k->reverb_in_buffer[pos]+=(dat*emu_voice->ptrx_revb_send) >> 8;
+                                        int cutoff = emu_voice->cvcf_curr_filt_ctoff >> 8;
+                                        const int64_t coef0 = filt_coeffs[emu_voice->filterq_idx][cutoff][0];
+                                        const int64_t coef1 = filt_coeffs[emu_voice->filterq_idx][cutoff][1];
+                                        const int64_t coef2 = filt_coeffs[emu_voice->filterq_idx][cutoff][2];
+                        /* clip at twice the range */
+                        #define ClipBuffer(buf) (buf < -16777216) ? -16777216 : (buf > 16777216) ? 16777216 : buf
+
+                        #ifdef FILTER_INITIAL
+                                        #define NOOP(x) (void)x;
+                                        NOOP(coef1)
+                                        /* Apply expected attenuation. (FILTER_MOOG does it implicitly, but this one doesn't).
+                                         * Work in 24bits. */
+                                        dat = (dat * emu_voice->filt_att) >> 8;
+                                
+                                        int64_t vhp = ((-emu_voice->filt_buffer[0] * coef2) >> 24) - emu_voice->filt_buffer[1] - dat;
+                                        emu_voice->filt_buffer[1] += (emu_voice->filt_buffer[0] * coef0) >> 24;
+                                        emu_voice->filt_buffer[0] += (vhp * coef0) >> 24;
+                                        dat = (int32_t)(emu_voice->filt_buffer[1] >> 8);
+                                        if (dat > 32767) { dat = 32767; }
+                                        else if (dat < -32768) { dat = -32768; }
+
+                        #elif defined FILTER_MOOG
+
+                                        /*move to 24bits*/
+                                        dat <<= 8;
+                                
+                                        dat -= (coef2 * emu_voice->filt_buffer[4]) >> 24; /*feedback*/
+                                        int64_t t1 = emu_voice->filt_buffer[1];
+                                        emu_voice->filt_buffer[1] = ((dat + emu_voice->filt_buffer[0]) * coef0 - emu_voice->filt_buffer[1] * coef1) >> 24;
+                                        emu_voice->filt_buffer[1] = ClipBuffer(emu_voice->filt_buffer[1]);
+
+                                        int64_t t2 = emu_voice->filt_buffer[2];
+                                        emu_voice->filt_buffer[2] = ((emu_voice->filt_buffer[1] + t1) * coef0 - emu_voice->filt_buffer[2] * coef1) >> 24;
+                                        emu_voice->filt_buffer[2] = ClipBuffer(emu_voice->filt_buffer[2]);
+
+                                        int64_t t3 = emu_voice->filt_buffer[3];
+                                        emu_voice->filt_buffer[3] = ((emu_voice->filt_buffer[2] + t2) * coef0 - emu_voice->filt_buffer[3] * coef1) >> 24;
+                                        emu_voice->filt_buffer[3] = ClipBuffer(emu_voice->filt_buffer[3]);
+
+                                        emu_voice->filt_buffer[4] = ((emu_voice->filt_buffer[3] + t3) * coef0 - emu_voice->filt_buffer[4] * coef1) >> 24;
+                                        emu_voice->filt_buffer[4] = ClipBuffer(emu_voice->filt_buffer[4]);
+
+                                        emu_voice->filt_buffer[0] = ClipBuffer(dat);
+
+                                        dat = (int32_t)(emu_voice->filt_buffer[4] >> 8);
+                                        if (dat > 32767) { dat = 32767; }
+                                        else if (dat < -32768) { dat = -32768; }
+
+                        #elif defined FILTER_CONSTANT
+
+                                        /* Apply expected attenuation. (FILTER_MOOG does it implicitly, but this one is constant gain).
+                                         * Also stay at 24bits.*/
+                                        dat = (dat * emu_voice->filt_att) >> 8;
+
+                                        emu_voice->filt_buffer[0] = (coef1 * emu_voice->filt_buffer[0]
+                                                + coef0 * (dat +
+                                                    ((coef2 * (emu_voice->filt_buffer[0] - emu_voice->filt_buffer[1]))>>24))
+                                                ) >> 24;
+                                        emu_voice->filt_buffer[1] = (coef1 * emu_voice->filt_buffer[1]
+                                                + coef0 * emu_voice->filt_buffer[0]) >> 24;
+
+                                        emu_voice->filt_buffer[0] = ClipBuffer(emu_voice->filt_buffer[0]);
+                                        emu_voice->filt_buffer[1] = ClipBuffer(emu_voice->filt_buffer[1]);
+
+                                        dat = (int32_t)(emu_voice->filt_buffer[1] >> 8);
+                                        if (dat > 32767) { dat = 32767; }
+                                        else if (dat < -32768) { dat = -32768; }
+
+                        #endif
+                                
                                 }
-                                if (emu_voice->csl_chor_send > 0) 
+                                if (( emu8k->hwcf3 & 0x04) && !CCCA_DMA_ACTIVE(emu_voice->ccca))
                                 {
-                                        emu8k->chorus_in_buffer[pos]+=(dat*emu_voice->csl_chor_send) >> 8;
+                                        /*volume and pan*/
+                                        dat = (dat * emu_voice->cvcf_curr_volume) >> 16;
+
+                                        (*buf++) += (dat * emu_voice->vol_l) >> 8;
+                                        (*buf++) += (dat * emu_voice->vol_r) >> 8;
+
+                                        /* Effects section */
+                                        if (emu_voice->ptrx_revb_send > 0)
+                                        {
+                                                emu8k->reverb_in_buffer[pos]+=(dat*emu_voice->ptrx_revb_send) >> 8;
+                                        }
+                                        if (emu_voice->csl_chor_send > 0)
+                                        {
+                                                emu8k->chorus_in_buffer[pos]+=(dat*emu_voice->csl_chor_send) >> 8;
+                                        }
                                 }
                         }
 
@@ -2098,10 +2101,10 @@ I've recopilated these sentences to get an idea of how to loop
                 emu_voice->cpf_curr_frac_addr = emu_voice->addr.fract_address;
 
                 //if ( emu_voice->cvcf_curr_volume != old_vol[c]) {
-                //    emu8k_log("EMUVOL (%d):%d\n", c, emu_voice->cvcf_curr_volume);
+                //    pclog("EMUVOL (%d):%d\n", c, emu_voice->cvcf_curr_volume);
                 //    old_vol[c]=emu_voice->cvcf_curr_volume;
                 //}
-                //emu8k_log("EMUFILT :%d\n", emu_voice->cvcf_curr_filt_ctoff);
+                //pclog("EMUFILT :%d\n", emu_voice->cvcf_curr_filt_ctoff);
         }
 
         

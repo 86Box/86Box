@@ -767,7 +767,7 @@ const device_t t3100e_device =
         t3100e_init,
         t3100e_close,
         NULL,
-        NULL,
+        { NULL },
         t3100e_speed_changed,
         NULL
 };

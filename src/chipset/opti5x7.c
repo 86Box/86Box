@@ -171,6 +171,6 @@ const device_t opti5x7_device = {
     0,
     0,
     opti5x7_init, opti5x7_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

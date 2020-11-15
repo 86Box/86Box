@@ -249,6 +249,6 @@ const device_t piix4_smbus_device = {
     DEVICE_AT,
     0,
     smbus_piix4_init, smbus_piix4_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

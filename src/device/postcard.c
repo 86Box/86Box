@@ -143,6 +143,6 @@ const device_t postcard_device = {
     DEVICE_ISA,
     0,
     postcard_init, postcard_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

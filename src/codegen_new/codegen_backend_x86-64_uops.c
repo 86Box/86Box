@@ -3145,4 +3145,21 @@ void codegen_set_jump_dest(codeblock_t *block, void *p)
         *(uint32_t *)p = (uintptr_t)&block_write_data[block_pos] - ((uintptr_t)p + 4);
 }
 
+void codegen_direct_write_8_imm(codeblock_t *block, void *p, uint8_t imm_data)
+{
+        host_x86_MOV8_ABS_IMM(block, p, imm_data);
+}
+void codegen_direct_write_16_imm(codeblock_t *block, void *p, uint16_t imm_data)
+{
+        host_x86_MOV16_ABS_IMM(block, p, imm_data);
+}
+void codegen_direct_write_32_imm(codeblock_t *block, void *p, uint32_t imm_data)
+{
+        host_x86_MOV32_ABS_IMM(block, p, imm_data);
+}
+void codegen_direct_write_32_imm_stack(codeblock_t *block, int stack_offset, uint32_t imm_data)
+{
+        host_x86_MOV32_BASE_OFFSET_IMM(block, REG_ESP, stack_offset, imm_data);
+}
+
 #endif

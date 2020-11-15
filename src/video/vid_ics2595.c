@@ -129,5 +129,5 @@ const device_t ics2595_device =
         "ICS2595 clock chip",
         0, 0,
         ics2595_init, ics2595_close,
-	NULL, NULL, NULL, NULL
+	NULL, { NULL }, NULL, NULL
 };

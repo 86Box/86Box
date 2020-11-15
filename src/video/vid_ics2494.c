@@ -110,5 +110,5 @@ const device_t ics2494an_305_device =
         "ICS2494AN-305 Clock Generator",
         0, 305,
         ics2494_init, ics2494_close,
-	NULL, NULL, NULL, NULL
+	NULL, { NULL }, NULL, NULL
 };

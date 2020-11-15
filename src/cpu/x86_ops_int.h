@@ -59,7 +59,7 @@ static int opINT(uint32_t fetchdat)
                                 }
                         }
                 }
-                x86gpf(NULL,0);
+                x86gpf_expected(NULL,0);
                 return 1;
         }
 

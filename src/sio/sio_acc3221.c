@@ -480,6 +480,6 @@ const device_t acc3221_device = {
     0,
     0,
     acc3221_init, acc3221_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

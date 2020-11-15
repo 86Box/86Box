@@ -102,6 +102,6 @@ const device_t phoenix_486_jumper_device = {
     0,
     0,
     phoenix_486_jumper_init, phoenix_486_jumper_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

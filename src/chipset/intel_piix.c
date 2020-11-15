@@ -539,6 +539,9 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 			fregs[addr] = (fregs[addr] & 0x8c) | (val & 0x73);
 		else if (dev->type == 5)
 			fregs[addr] = val & 0x7f;
+
+		if (dev->type >= 4)
+			alt_access = !!(val & 0x20);
 		break;
 	case 0xb1:
 		if (dev->type > 3)
@@ -1069,7 +1072,7 @@ piix_reset_hard(piix_t *dev)
 	if (dev->type == 4)
 		fregs[0x08] = dev->rev & 0x07;
 	else if (dev->type < 4)
-		fregs[0x08] = dev->rev;
+		fregs[0x08] = 0x01;
 	else
 		fregs[0x08] = 0x02;
 	if (dev->type > 4)
@@ -1096,7 +1099,7 @@ piix_reset_hard(piix_t *dev)
 	if (dev->type > 4)
 		fregs[0x08] = 0x02;
 	else
-		fregs[0x08] = (dev->rev & 0x08) ? 0x02 : (dev->rev & 0x07);
+		fregs[0x08] = (dev->rev & 0x08) ? 0x02 : 0x01 /*(dev->rev & 0x07)*/;
 	fregs[0x0a] = 0x80; fregs[0x0b] = 0x06;
 	/* NOTE: The Specification Update says this should default to 0x00 and be read-only. */
 #ifdef WRONG_SPEC
@@ -1192,6 +1195,32 @@ piix_reset(void *p)
 
     ide_pri_disable();
     ide_sec_disable();
+
+    if (dev->type >= 3) {
+	piix_write(2, 0x04, 0x00, p);
+	if (dev->type == 5) {
+		piix_write(2, 0x10, 0x00, p);
+		piix_write(2, 0x11, 0x00, p);
+		piix_write(2, 0x12, 0x00, p);
+		piix_write(2, 0x13, 0x00, p);
+	} else {
+		piix_write(2, 0x20, 0x01, p);
+		piix_write(2, 0x21, 0x00, p);
+		piix_write(2, 0x22, 0x00, p);
+		piix_write(2, 0x23, 0x00, p);
+	}
+    }
+
+    if (dev->type >= 4) {
+	piix_write(0, 0xb0, (is_pentium) ? 0x00 : 0x04, p);
+	piix_write(3, 0x40, 0x01, p);
+	piix_write(3, 0x41, 0x00, p);
+	piix_write(3, 0x5b, 0x00, p);
+	piix_write(3, 0x80, 0x00, p);
+	piix_write(3, 0x90, 0x01, p);
+	piix_write(3, 0x91, 0x00, p);
+	piix_write(3, 0xd2, 0x00, p);
+    }
 }
 
 
@@ -1253,6 +1282,7 @@ static void
 	dev->acpi = device_add(&acpi_intel_device);
 	acpi_set_slot(dev->acpi, dev->pci_slot);
 	acpi_set_nvr(dev->acpi, dev->nvr);
+	acpi_set_gpireg2_default(dev->acpi, (dev->type > 4) ? 0xf1 : 0xfd);
 
 	dev->ddma = device_add(&ddma_device);
     } else
@@ -1283,7 +1313,9 @@ static void
     if (dev->type < 3)
 	pci_enable_mirq(1);
 
+    dev->readout_regs[0] = 0xff;
     dev->readout_regs[1] = 0x40;
+    dev->readout_regs[2] = 0xff;
 
     /* Port E1 register 01 (TODO: Find how multipliers > 3.0 are defined):
 
@@ -1356,7 +1388,7 @@ const device_t piix_device =
     piix_init, 
     piix_close, 
     piix_reset,
-    NULL,
+    { NULL },
     piix_speed_changed,
     NULL,
     NULL
@@ -1370,7 +1402,7 @@ const device_t piix_rev02_device =
     piix_init, 
     piix_close, 
     piix_reset,
-    NULL,
+    { NULL },
     piix_speed_changed,
     NULL,
     NULL
@@ -1384,7 +1416,7 @@ const device_t piix3_device =
     piix_init, 
     piix_close, 
     piix_reset,
-    NULL,
+    { NULL },
     piix_speed_changed,
     NULL,
     NULL
@@ -1398,7 +1430,7 @@ const device_t piix4_device =
     piix_init, 
     piix_close, 
     piix_reset,
-    NULL,
+    { NULL },
     piix_speed_changed,
     NULL,
     NULL
@@ -1412,7 +1444,7 @@ const device_t piix4e_device =
     piix_init, 
     piix_close, 
     piix_reset,
-    NULL,
+    { NULL },
     piix_speed_changed,
     NULL,
     NULL
@@ -1426,7 +1458,7 @@ const device_t slc90e66_device =
     piix_init, 
     piix_close, 
     piix_reset,
-    NULL,
+    { NULL },
     piix_speed_changed,
     NULL,
     NULL

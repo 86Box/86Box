@@ -669,7 +669,7 @@ europc_close(void *priv)
 
 static const device_config_t europc_config[] = {
     {
-	"js9", "JS9 Jumper (JIM)", CONFIG_INT, "", 0,
+	"js9", "JS9 Jumper (JIM)", CONFIG_INT, "", 0, "", { 0 },
 	{
 		{
 			"Disabled (250h)", 0
@@ -692,7 +692,7 @@ const device_t europc_device = {
     "EuroPC System Board",
     0, 0,
     europc_boot, europc_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     europc_config
 };
 

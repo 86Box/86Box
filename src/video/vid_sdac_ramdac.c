@@ -244,7 +244,7 @@ const device_t gendac_ramdac_device =
     "S3 GENDAC 86c708 RAMDAC",
     0, 0,
     sdac_ramdac_init, sdac_ramdac_close,
-    NULL, NULL, NULL, NULL
+    NULL, { NULL }, NULL, NULL
 };
 
 
@@ -253,5 +253,5 @@ const device_t sdac_ramdac_device =
     "S3 SDAC 86c716 RAMDAC",
     0, 7,
     sdac_ramdac_init, sdac_ramdac_close,
-    NULL, NULL, NULL, NULL
+    NULL, { NULL }, NULL, NULL
 };

@@ -123,5 +123,5 @@ const device_t tkd8001_ramdac_device =
         "Trident TKD8001 RAMDAC",
         0, 0,
         tkd8001_ramdac_init, tkd8001_ramdac_close,
-	NULL, NULL, NULL, NULL
+	NULL, { NULL }, NULL, NULL
 };

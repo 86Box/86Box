@@ -572,7 +572,7 @@ const device_t w83977f_device = {
     0,
     0,
     w83977f_init, w83977f_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -582,7 +582,7 @@ const device_t w83977f_370_device = {
     0,
     0x40,
     w83977f_init, w83977f_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -592,7 +592,7 @@ const device_t w83977tf_device = {
     0,
     1,
     w83977f_init, w83977f_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -602,7 +602,7 @@ const device_t w83977ef_device = {
     0,
     2,
     w83977f_init, w83977f_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -612,6 +612,6 @@ const device_t w83977ef_370_device = {
     0,
     0x42,
     w83977f_init, w83977f_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

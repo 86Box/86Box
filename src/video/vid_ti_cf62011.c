@@ -268,7 +268,7 @@ const device_t ibm_ps1_2121_device = {
     DEVICE_ISA,
     512,
     vid_init, vid_close, NULL,
-    NULL,
+    { NULL },
     vid_speed_changed,
     vid_force_redraw,
     NULL

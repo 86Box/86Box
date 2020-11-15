@@ -72,17 +72,8 @@ ifeq ($(DEV_BUILD), y)
  ifndef PS2M70T4
   PS2M70T4	:= y
  endif
- ifndef VECTRA54
-  VECTRA54	:= y
- endif
  ifndef S3TRIO3D2X
   S3TRIO3D2X	:= y
- endif
- ifndef SEP
-  SEP		:= n
- endif
- ifndef SIEMENS
-  SIEMENS	:= y
  endif
  ifndef SIO_DETECT
   SIO_DETECT	:= y
@@ -163,17 +154,8 @@ else
  ifndef PS2M70T4
   PS2M70T4	:= n
  endif
- ifndef VECTRA54
-  VECTRA54	:= n
- endif
  ifndef S3TRIO3D2X
   S3TRIO3D2X	:= n
- endif
- ifndef SEP
-  SEP		:= n
- endif
- ifndef SIEMENS
-  SIEMENS	:= n
  endif
  ifndef SIO_DETECT
   SIO_DETECT	:= n
@@ -566,20 +548,8 @@ ifeq ($(PS2M70T4), y)
 OPTS		+= -DUSE_PS2M70T4
 endif
 
-ifeq ($(VECTRA54), y)
-OPTS		+= -DUSE_VECTRA54
-endif
-
 ifeq ($(S3TRIO3D2X), y)
 OPTS		+= -DUSE_S3TRIO3D2X
-endif
-
-ifeq ($(SEP), y)
-OPTS		+= -DUSE_SEP
-endif
-
-ifeq ($(SIEMENS), y)
-OPTS		+= -DUSE_SIEMENS
 endif
 
 ifeq ($(SIO_DETECT), y)

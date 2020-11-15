@@ -516,20 +516,20 @@ pci_clear_irq(uint8_t card, uint8_t pci_int)
     uint8_t level = 0;
 
     if (! last_pci_card) {
-	pci_log("pci_clear_irq(%02X, %02X): No PCI slots (how are we even here?!)\n", card, pci_int);
+	// pci_log("pci_clear_irq(%02X, %02X): No PCI slots (how are we even here?!)\n", card, pci_int);
 	return;
     }
-    pci_log("pci_clear_irq(%02X, %02X): %i PCI slots\n", card, pci_int, last_pci_card);
+    // pci_log("pci_clear_irq(%02X, %02X): %i PCI slots\n", card, pci_int, last_pci_card);
 
     slot = card;
     if (slot == 0xff) {
-	pci_log("pci_clear_irq(%02X, %02X): Card is not on a PCI slot (how are we even here?!)\n", card, pci_int);
+	// pci_log("pci_clear_irq(%02X, %02X): Card is not on a PCI slot (how are we even here?!)\n", card, pci_int);
 	return;
     }
-    pci_log("pci_clear_irq(%02X, %02X): Card is on PCI slot %02X\n", card, pci_int, slot);
+    // pci_log("pci_clear_irq(%02X, %02X): Card is on PCI slot %02X\n", card, pci_int, slot);
 
     if (! pci_cards[slot].irq_routing[pci_int_index]) {
-	pci_log("pci_clear_irq(%02X, %02X): No IRQ routing for this slot and INT pin combination\n", card, pci_int);
+	// pci_log("pci_clear_irq(%02X, %02X): No IRQ routing for this slot and INT pin combination\n", card, pci_int);
 	return;
     }
 
@@ -537,37 +537,37 @@ pci_clear_irq(uint8_t card, uint8_t pci_int)
 	irq_line = pci_cards[slot].read(0, 0x3c, pci_cards[slot].priv);
     else {
 	irq_routing = (pci_cards[slot].irq_routing[pci_int_index] - PCI_INTA) & 3;
-	pci_log("pci_clear_irq(%02X, %02X): IRQ routing for this slot and INT pin combination: %02X\n", card, pci_int, irq_routing);
+	// pci_log("pci_clear_irq(%02X, %02X): IRQ routing for this slot and INT pin combination: %02X\n", card, pci_int, irq_routing);
 
 	irq_line = pci_irqs[irq_routing];
 	level = pci_irq_level[irq_routing];
     }
 
     if (irq_line > 0x0f) {
-	pci_log("pci_clear_irq(%02X, %02X): IRQ line is disabled\n", card, pci_int);
+	// pci_log("pci_clear_irq(%02X, %02X): IRQ line is disabled\n", card, pci_int);
 	return;
     }
 
-    pci_log("pci_clear_irq(%02X, %02X): Using IRQ %i\n", card, pci_int, irq_line);
+    // pci_log("pci_clear_irq(%02X, %02X): Using IRQ %i\n", card, pci_int, irq_line);
 
     if (level && !(pci_irq_hold[irq_line] & (1ULL << slot))) {
 	/* IRQ not held, do nothing. */
-	pci_log("pci_clear_irq(%02X, %02X): Card is not holding the IRQ\n", card, pci_int);
+	// pci_log("pci_clear_irq(%02X, %02X): Card is not holding the IRQ\n", card, pci_int);
 	return;
     }
 
     if (level) {
-	pci_log("pci_clear_irq(%02X, %02X): Releasing this card's hold on the IRQ\n", card, pci_int);
+	// pci_log("pci_clear_irq(%02X, %02X): Releasing this card's hold on the IRQ\n", card, pci_int);
 	pci_irq_hold[irq_line] &= ~(1 << slot);
 
 	if (! pci_irq_hold[irq_line]) {
-		pci_log("pci_clear_irq(%02X, %02X): IRQ no longer held by any card, clearing it\n", card, pci_int);
+		// pci_log("pci_clear_irq(%02X, %02X): IRQ no longer held by any card, clearing it\n", card, pci_int);
    		picintc(1 << irq_line);
-	} else {
-		pci_log("pci_clear_irq(%02X, %02X): IRQ is still being held\n", card, pci_int);
-	}
+	} // else {
+		// pci_log("pci_clear_irq(%02X, %02X): IRQ is still being held\n", card, pci_int);
+	// }
     } else {
-	pci_log("pci_clear_irq(%02X, %02X): Clearing edge-triggered interrupt\n", card, pci_int);
+	// pci_log("pci_clear_irq(%02X, %02X): Clearing edge-triggered interrupt\n", card, pci_int);
 	picintc(1 << irq_line);
     }
 }
@@ -850,10 +850,33 @@ pci_register_bus_slot(int bus, int card, int type, int inta, int intb, int intc,
 
 
 uint8_t
+pci_find_slot(uint8_t add_type, uint8_t ignore_slot)
+{
+    pci_card_t *dev;
+    uint8_t i, ret = 0xff;
+
+    for (i = 0; i < last_pci_card; i++) {
+	dev = &pci_cards[i];
+
+	if (!dev->read && !dev->write && ((ignore_slot == 0xff) || (i != ignore_slot))) {
+		if (((dev->type == PCI_CARD_NORMAL) && (add_type >= PCI_ADD_NORMAL)) ||
+		    (dev->type == add_type) ||
+		    ((dev->type == PCI_CARD_NORMAL_NOBRIDGE) && (add_type >= PCI_ADD_NORMAL) && (add_type != PCI_ADD_BRIDGE))) {
+			ret = i;
+			break;
+		}
+	}
+    }
+
+    return ret;
+}
+
+
+uint8_t
 pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), void (*write)(int func, int addr, uint8_t val, void *priv), void *priv)
 {
     pci_card_t *dev;
-    uint8_t i;
+    uint8_t i, j;
 
     if (add_type < PCI_ADD_NORMAL)
 	pci_log("pci_add_card(): Adding PCI CARD at specific slot %02X [SPECIFIC]\n", add_type);
@@ -868,37 +891,26 @@ pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), 
 	return 0xff;
     }
 
-    for (i = 0; i < last_pci_card; i++) {
+    /* First, find the next available slot. */
+    i = pci_find_slot(add_type, 0xff);
+
+    if (i != 0xff) {
 	dev = &pci_cards[i];
+	j = pci_find_slot(add_type, i);
 
-	if (!dev->read && !dev->write) {
-		if (((dev->type == PCI_CARD_NORMAL) && (add_type >= PCI_ADD_NORMAL)) ||
-		    ((dev->type == PCI_CARD_NORMAL_NOBRIDGE) && (add_type >= PCI_ADD_NORMAL) && (add_type != PCI_ADD_BRIDGE)) ||
-		    ((dev->type == PCI_CARD_ONBOARD) && (add_type == PCI_ADD_VIDEO)) ||
-		    ((dev->type == PCI_CARD_SCSI) && (add_type == PCI_ADD_SCSI)) ||
-		    ((dev->type == PCI_CARD_SOUND) && (add_type == PCI_ADD_SOUND)) ||
-		    ((dev->type == PCI_CARD_IDE) && (add_type == PCI_ADD_IDE)) ||
-		    ((dev->type == PCI_CARD_NORTHBRIDGE) && (add_type == PCI_ADD_NORTHBRIDGE)) ||
-		    ((dev->type == PCI_CARD_SOUTHBRIDGE) && (add_type == PCI_ADD_SOUTHBRIDGE)) ||
-		    ((dev->bus == 0) && (dev->id == add_type) && (add_type < PCI_ADD_NORTHBRIDGE))) {
-			/* Add DEC 21150 PCI bridge if this is the last available NORMAL
-			   slot, unless PCI bridges are blocked for this machine. */
-			if (!(pci_type & PCI_NO_BRIDGES) && (dev->type == PCI_CARD_NORMAL) && (add_type != PCI_ADD_BRIDGE) && (i == last_normal_pci_card)) {
-				pci_log("pci_add_card(): Reached last NORMAL slot, adding bridge to pci_cards[%i]\n", i);
-				device_add_inst(&dec21150_device, last_pci_bus);
-				continue;
-			}
-
-			dev->read = read;
-			dev->write = write;
-			dev->priv = priv;
-			pci_log("pci_add_card(): Adding PCI CARD to pci_cards[%i] (bus %02X slot %02X) [%s]\n", i, dev->bus, dev->id, (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC"))));
-			return i;
-		}
+	if (!(pci_type & PCI_NO_BRIDGES) && (dev->type == PCI_CARD_NORMAL) && (add_type != PCI_ADD_BRIDGE) && (j == 0xff)) {
+		pci_log("pci_add_card(): Reached last NORMAL slot, adding bridge to pci_cards[%i]\n", i);
+		device_add_inst(&dec21150_device, last_pci_bus);
+		i = pci_find_slot(add_type, 0xff);
+		dev = &pci_cards[i];
 	}
-    }
 
-    pci_log("pci_add_card(): Adding PCI CARD failed (unable to find a suitable PCI slot) [%s]\n", (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC"))));
+	dev->read = read;
+	dev->write = write;
+	dev->priv = priv;
+	pci_log("pci_add_card(): Adding PCI CARD to pci_cards[%i] (bus %02X slot %02X) [%s]\n", i, dev->bus, dev->id, (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC"))));
+	return i;
+    }
 
     return 0xff;
 }

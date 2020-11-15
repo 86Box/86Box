@@ -193,6 +193,6 @@ const device_t via_vt82c686_hwm_device = {
     DEVICE_ISA,
     0,
     vt82c686_init, vt82c686_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

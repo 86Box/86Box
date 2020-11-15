@@ -2725,7 +2725,7 @@ const device_t pgc_device = {
     pgc_standalone_init,
     pgc_close,
     NULL,
-    NULL,
+    { NULL },
     pgc_speed_changed,
     NULL,
     NULL

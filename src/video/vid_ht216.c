@@ -1141,7 +1141,7 @@ ht216_force_redraw(void *p)
 static const device_config_t v7_vga_1024i_config[] =
 {
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 512,
+                "memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
                 {
                         {
                                 "256 kB", 256
@@ -1167,7 +1167,7 @@ const device_t g2_gc205_device =
     g2_gc205_init,
     ht216_close,
     NULL,
-    g2_gc205_available,
+    { g2_gc205_available },
     ht216_speed_changed,
     ht216_force_redraw
 };
@@ -1180,7 +1180,7 @@ const device_t v7_vga_1024i_device =
     v7_vga_1024i_init,
     ht216_close,
     NULL,
-    v7_vga_1024i_available,
+    { v7_vga_1024i_available },
     ht216_speed_changed,
     ht216_force_redraw,
     v7_vga_1024i_config
@@ -1194,7 +1194,7 @@ const device_t ht216_32_pb410a_device =
     ht216_pb410a_init,
     ht216_close,
     NULL,
-    NULL,
+    { NULL },
     ht216_speed_changed,
     ht216_force_redraw
 };

@@ -64,7 +64,7 @@ enum {
 };
 
 
-typedef void (*NETRXCB)(void *, uint8_t *, int);
+typedef int (*NETRXCB)(void *, uint8_t *, int);
 typedef int (*NETWAITCB)(void *);
 typedef int (*NETSETLINKSTATE)(void *);
 
@@ -78,7 +78,6 @@ typedef struct netpkt {
 } netpkt_t;
 
 typedef struct {
-    const char		*name;
     const char		*internal_name;
     const device_t	*device;
     void		*priv;
@@ -133,7 +132,6 @@ extern void	net_slirp_in(uint8_t *, int);
 
 extern int	network_dev_to_id(char *);
 extern int	network_card_available(int);
-extern char	*network_card_getname(int);
 extern int	network_card_has_config(int);
 extern char	*network_card_get_internal_name(int);
 extern int	network_card_get_from_internal_name(char *);

@@ -483,7 +483,7 @@ const device_t compaq_cga_device =
         compaq_cga_init,
         compaq_cga_close,
         NULL,
-	NULL,
+	{ NULL },
         compaq_cga_speed_changed,
         NULL,
         cga_config
@@ -496,7 +496,7 @@ const device_t compaq_cga_2_device =
         compaq_cga_init,
         compaq_cga_close,
         NULL,
-	NULL,
+	{ NULL },
         compaq_cga_speed_changed,
         NULL,
         cga_config

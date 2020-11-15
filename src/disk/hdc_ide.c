@@ -886,7 +886,7 @@ ide_set_board_callback(uint8_t board, double callback)
 {
     ide_board_t *dev = ide_boards[board];
 
-    ide_log("ide_set_callback(%i)\n", board);
+    ide_log("ide_set_board_callback(%i)\n", board);
 
     if (!dev) {
 	ide_log("Set board callback failed\n");
@@ -1340,7 +1340,7 @@ ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
 		ide->reset = 1;
 		ide_set_callback(ide, 0.0);
 		ide_set_callback(ide_other, 0.0);
-		ide_set_board_callback(ide->board, 500 * IDE_TIME);
+		ide_set_board_callback(ide->board, 1000.4);	/* 1 ms + 400 ns, per the specification */
 	} else {
 		/* Currently active device is 1, simply reset the status and the active device. */
 		dev_reset(ide);
@@ -2848,7 +2848,7 @@ const device_t ide_isa_device = {
     DEVICE_ISA | DEVICE_AT,
     0,
     ide_init, ide_close, ide_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t ide_isa_2ch_device = {
@@ -2856,7 +2856,7 @@ const device_t ide_isa_2ch_device = {
     DEVICE_ISA | DEVICE_AT,
     1,
     ide_init, ide_close, ide_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t ide_vlb_device = {
@@ -2864,7 +2864,7 @@ const device_t ide_vlb_device = {
     DEVICE_VLB | DEVICE_AT,
     2,
     ide_init, ide_close, ide_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t ide_vlb_2ch_device = {
@@ -2872,7 +2872,7 @@ const device_t ide_vlb_2ch_device = {
     DEVICE_VLB | DEVICE_AT,
     3,
     ide_init, ide_close, ide_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t ide_pci_device = {
@@ -2880,7 +2880,7 @@ const device_t ide_pci_device = {
     DEVICE_PCI | DEVICE_AT,
     4,
     ide_init, ide_close, ide_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t ide_pci_2ch_device = {
@@ -2888,13 +2888,13 @@ const device_t ide_pci_2ch_device = {
     DEVICE_PCI | DEVICE_AT,
     5,
     ide_init, ide_close, ide_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 static const device_config_t ide_ter_config[] =
 {
         {
-                "irq", "IRQ", CONFIG_SELECTION, "", 10,
+                "irq", "IRQ", CONFIG_SELECTION, "", 10, "", { 0 },
                 {
                         {
                                 "IRQ 2", 2
@@ -2936,7 +2936,7 @@ static const device_config_t ide_ter_config[] =
 static const device_config_t ide_qua_config[] =
 {
         {
-                "irq", "IRQ", CONFIG_SELECTION, "", 11,
+                "irq", "IRQ", CONFIG_SELECTION, "", 11, "", { 0 },
                 {
                         {
                                 "IRQ 2", 2
@@ -2980,7 +2980,7 @@ const device_t ide_ter_device = {
     DEVICE_AT,
     0,
     ide_ter_init, ide_ter_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     ide_ter_config
 };
 
@@ -2989,6 +2989,6 @@ const device_t ide_qua_device = {
     DEVICE_AT,
     0,
     ide_qua_init, ide_qua_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     ide_qua_config
 };

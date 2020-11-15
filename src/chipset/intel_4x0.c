@@ -108,7 +108,8 @@ i4x0_smram_handler_phase0(i4x0_t *dev)
 {
     uint32_t tom = (mem_size << 10);
 
-    if ((dev->type >= INTEL_440BX) && smram_enabled(dev->smram_high)) {
+    if (((dev->type == INTEL_430TX) || (dev->type >= INTEL_440BX)) &&
+	smram_enabled(dev->smram_high)) {
 	tom -=  (1 << 20);
 	mem_set_mem_state_smm(tom, (1 << 20), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
     }
@@ -123,33 +124,39 @@ i4x0_smram_handler_phase1(i4x0_t *dev)
 {
     uint8_t *regs = (uint8_t *) dev->regs;
     uint32_t tom = (mem_size << 10);
+    uint8_t *ext_reg = (dev->type >= INTEL_440BX) ? &(regs[0x73]) : &(regs[0x71]);
 
-    uint32_t s, base[2] = { 0x000a0000, 0x00020000 };
-    uint32_t size[2] = { 0, 0 };
+    uint32_t s, base[2] = { 0x000a0000, 0x00000000 };
+    uint32_t size[2] = { 0x00010000, 0x00000000 };
 
     if (dev->type >= INTEL_430FX) {
 	/* Set temporary bases and sizes. */
-	if ((dev->type >= INTEL_440BX) && (regs[0x73] & 0x80)) {
+	if (((dev->type == INTEL_430TX) || (dev->type >= INTEL_440BX)) &&
+	    (*ext_reg & 0x80)) {
 		base[0] = 0x100a0000;
 		size[0] = 0x00060000;
+	} else if (((dev->type == INTEL_440LX) || (dev->type == INTEL_440EX)) && ((regs[0x72] & 0x07) == 0x04)) {
+		base[0] = 0x000c0000;
+		size[0] = 0x00010000;
 	} else {
-		if (((dev->type == INTEL_440LX) || (dev->type == INTEL_440EX)) && ((regs[0x72] & 0x07) == 0x04)) {
-			base[0] = 0x000c0000;
-			size[0] = 0x00010000;
-		} else {
-			base[0] = 0x000a0000;
-			size[0] = 0x00020000;
-		}
+		base[0] = 0x000a0000;
+		size[0] = 0x00020000;
 	}
 
-	if (((regs[0x72] & 0x70) == 0x40) || ((regs[0x72] & 0x08) && !(regs[0x72] & 0x20)))
+	if (((regs[0x72] & 0x78) == 0x48) || ((regs[0x72] & 0x28) == 0x08))
 		smram_enable(dev->smram_low, base[0], base[0] & 0x000f0000, size[0],
-			     ((regs[0x72] & 0x70) == 0x40), ((regs[0x72] & 0x08) && !(regs[0x72] & 0x20)));
+			     ((regs[0x72] & 0x78) == 0x48), (regs[0x72] & 0x08));
+
+	if ((regs[0x72] & 0x28) == 0x28) {
+		/* If SMRAM is enabled and DCLS is set, then data goes to PCI, but
+		   code still goes to DRAM. */
+		mem_set_mem_state_smram_ex(1, base[0], size[0], 0x02);
+	}
 
 	/* TSEG mapping. */
-	if (dev->type >= INTEL_440BX) {
-		if ((regs[0x72] & 0x08) && (regs[0x73] & 0x01)) {
-			size[1] = (1 << (17 + ((regs[0x73] >> 1) & 0x03)));
+	if ((dev->type == INTEL_430TX) || (dev->type >= INTEL_440BX)) {
+		if ((regs[0x72] & 0x08) && (*ext_reg & 0x01)) {
+			size[1] = (1 << (17 + ((*ext_reg >> 1) & 0x03)));
 			tom -= size[1];
 			base[1] = tom;
 		} else
@@ -184,9 +191,15 @@ i4x0_smram_handler_phase1(i4x0_t *dev)
 			break;
 	}
 
-	if (((((regs[0x72] & 0x38) == 0x20) || s) || (!(regs[0x72] & 0x10) || s)) && (size[0] != 0x00000000)) {
+	if (size[0] != 0x00000000) {
 		smram_enable(dev->smram_low, base[0], base[0], size[0],
-			     (((regs[0x72] & 0x38) == 0x20) || s), (!(regs[0x72] & 0x10) || s));
+			     (((regs[0x72] & 0x38) == 0x20) || s), 1);
+
+		if (regs[0x72] & 0x10) {
+			/* If SMRAM is enabled and DCLS is set, then data goes to PCI, but
+			   code still goes to DRAM. */
+			mem_set_mem_state_smram_ex(1, base[0], size[0], 0x02);
+		}
 	}
     }
 
@@ -232,11 +245,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
     uint8_t *regs_l = (uint8_t *) dev->regs_locked;
     int i;
 
-    if (func)
+    if (func > 0)
   	return;
-
-    if ((addr >= 0x10) && (addr < 0x4f))
-	return;
 
     if (func == 0)  switch (addr) {
 	case 0x04: /*Command register*/
@@ -247,34 +257,45 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				regs[0x04] = (regs[0x04] & ~0x42) | (val & 0x42);
 				break;
 			case INTEL_430FX: case INTEL_430HX: case INTEL_430VX: case INTEL_430TX:
-			case INTEL_440FX: case INTEL_440LX: case INTEL_440EX:
+			case INTEL_440FX:
 				regs[0x04] = (regs[0x04] & ~0x02) | (val & 0x02);
+				break;
+			case INTEL_440LX: case INTEL_440EX:
+				regs[0x04] = val & 0x40;
 				break;
 		}
 		break;
 	case 0x05:
 		switch (dev->type) {
-			case INTEL_420TX: case INTEL_420ZX: case INTEL_430LX: case INTEL_430NX: case INTEL_430HX:
-			case INTEL_440FX: case INTEL_440LX: case INTEL_440EX:
-			case INTEL_440BX: case INTEL_440GX: case INTEL_440ZX:
+			case INTEL_420TX: case INTEL_420ZX: case INTEL_430LX: case INTEL_430NX:
+			case INTEL_430HX: case INTEL_440FX: case INTEL_440BX: case INTEL_440GX:
+			case INTEL_440ZX:
 				regs[0x05] = (regs[0x05] & ~0x01) | (val & 0x01);
+				break;
+			case INTEL_440LX: case INTEL_440EX:
+				regs[0x05] = val & 0x01;
 				break;
 		}
 		break;
 	case 0x07:
 		switch (dev->type) {
-			case INTEL_420TX: case INTEL_420ZX: case INTEL_430LX: case INTEL_430NX: case INTEL_430HX:
+			case INTEL_420TX: case INTEL_420ZX: case INTEL_430LX: case INTEL_430NX:
+			case INTEL_430HX:
 			default:
 				regs[0x07] &= ~(val & 0x70);
 				break;
-			case INTEL_430FX: case INTEL_430VX: case INTEL_430TX:
-			case INTEL_440LX: case INTEL_440EX:
+			case INTEL_430FX: case INTEL_430VX:
+			case INTEL_430TX:
 				regs[0x07] &= ~(val & 0x30);
 				break;
 			case INTEL_440FX:
 				regs[0x07] &= ~(val & 0xf9);
 				break;
-			case INTEL_440BX: case INTEL_440GX: case INTEL_440ZX:
+			case INTEL_440LX: case INTEL_440EX:
+				regs[0x07] &= ~(val & 0xf1);
+				break;
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[0x07] &= ~(val & 0xf0);
 				break;
 		}
@@ -298,7 +319,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x12:
 		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX: case INTEL_440ZX:
+			case INTEL_440LX: case INTEL_440EX:
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[0x12] = (val & 0xc0);
 				i4x0_mask_bar(regs);
 				break;
@@ -306,7 +329,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x13:
 		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX: case INTEL_440ZX:
+			case INTEL_440LX: case INTEL_440EX:
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[0x13] = val;
 				i4x0_mask_bar(regs);
 				break;
@@ -314,19 +339,12 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x2c: case 0x2d: case 0x2e: case 0x2f:
 		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX: case INTEL_440ZX:
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				if (!regs_l[addr]) {
 					regs[addr] = val;
 					regs_l[addr] = 1;
 				}
-				break;
-		}
-		break;
-
-	case 0x34:
-		switch (dev->type) {
-			case INTEL_440LX: case INTEL_440EX:
-				regs[0x34] = (val & 0xa0);
 				break;
 		}
 		break;
@@ -366,18 +384,16 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				regs[0x50] = (val & 0xf4);
 				break;
 			case INTEL_440LX:
-				regs[0x50] = (val & 0x03);
+				regs[0x50] = (val & 0x70);
 				break;
 			case INTEL_440EX:
-				regs[0x50] = (val & 0x23);
+				regs[0x50] = (val & 0x20);
 				break;
 			case INTEL_440BX:
 				regs[0x50] = (regs[0x50] & 0x14) | (val & 0xeb);
 				break;
 			case INTEL_440GX:
-			/* TODO: Understand it more specifically */
-				regs[0x50] = (regs[0x50] & 0x2b) | (val & 0x28);
-			 /*regs[0x50] = (regs[0x50] & 0x2b) | (val & 0xd7);*/
+				regs[0x50] = (regs[0x50] & 0x04) | (val & 0xe8);
 				break;
 			case INTEL_440ZX:
 				regs[0x50] = (regs[0x50] & 0x34) | (val & 0xcb);
@@ -393,17 +409,17 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440FX:
 				regs[0x51] = (val & 0xc3);
 				break;
-			case INTEL_440LX: case INTEL_440EX:
-				regs[0x51] = (val & 0x80);
+			case INTEL_440LX:
+				regs[0x51] = (regs[0x51] & 0x40) | (val & 0x87);
+				break;
+			case INTEL_440EX:
+				regs[0x51] = (val & 0x86);
 				break;
 			case INTEL_440BX: case INTEL_440ZX:
-				regs[0x51] = (regs[0x50] & 0x70) | (val & 0x8f);
-				if (is_vpc)
-					regs[0x51] |= 0x10; /* Virtual PC 2007 BIOS requires a reserved bus speed bit to be set */
+				regs[0x51] = (regs[0x51] & 0x70) | (val & 0x8f);
 				break;
 			case INTEL_440GX:
-   				regs[0x51] = (regs[0x50] & 0x88) | (val & 0x08);
-				/*regs[0x51] = (regs[0x50] & 0x88) | (val & 0x77);*/
+   				regs[0x51] = (regs[0x51] & 0xb0) | (val & 0x4f);
 				break;
 		}
 		break;
@@ -419,10 +435,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440FX:
 				regs[0x52] = val;
 				break;
-			case INTEL_440LX:
-				regs[0x52] = (val & 0xd0);
-				break;
-			case INTEL_440BX: case INTEL_440GX: case INTEL_440ZX:
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[0x52] = val & 0x07;
 				break;
 		}
@@ -439,10 +453,10 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430VX: case INTEL_430TX:
 				regs[0x53] = val & 0x3f;
 				break;
-			case INTEL_440LX:
-				regs[0x53] = val & 0x0a;
+			case INTEL_440LX: case INTEL_440EX:
+				regs[0x53] = val & 0x60;
 				break;
-			case INTEL_440EX: case INTEL_440BX: case INTEL_440GX:
+			case INTEL_440BX: case INTEL_440GX:
 				/* Not applicable to 440ZX as that does not support ECC. */
 				regs[0x53] = val;
 				break;
@@ -462,9 +476,6 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				break;
 			case INTEL_440FX:
 				regs[0x54] = val & 0x82;
-				break;
-			case INTEL_440LX:
-				regs[0x54] = val;
 				break;
 		}
 		break;
@@ -500,8 +511,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430TX:
 				regs[0x56] = val & 0x76;
 				break;
-			case INTEL_440FX: case INTEL_440LX:
-			case INTEL_440EX:
+			case INTEL_440FX:
+			case INTEL_440LX: case INTEL_440EX:
 				regs[0x56] = val;
 				break;
 		}
@@ -512,7 +523,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430LX: default:
 				regs[0x57] = val & 0x3f;
 				break;
-			case INTEL_430NX: case INTEL_440EX:
+			case INTEL_430NX:
 				regs[0x57] = val;
 				break;
 			case INTEL_430FX: case INTEL_430HX:
@@ -525,8 +536,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440FX:
 				regs[0x57] = val & 0x77;
 				break;
-			case INTEL_440LX:
-				regs[0x57] = val & 0x11;
+			case INTEL_440LX: case INTEL_440EX:
+				regs[0x57] = val & 0x37;
 				break;
 			case INTEL_440BX: case INTEL_440GX:
 				regs[0x57] = val & 0x3f;
@@ -542,7 +553,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430LX: default:
 				regs[0x58] = val & 0x01;
 				break;
-			case INTEL_430NX: case INTEL_440LX:
+			case INTEL_430NX:
 			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x58] = val & 0x03;
 				break;
@@ -550,13 +561,11 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				regs[0x58] = val & 0x7f;
 				break;
 			case INTEL_430HX: case INTEL_430VX:
-				regs[0x57] = val;
+			case INTEL_440LX: case INTEL_440EX:
+				regs[0x58] = val;
 				break;
 			case INTEL_430TX:
-				regs[0x57] = val & 0x7b;
-				break;
-			case INTEL_440EX:
-				regs[0x58] = val & 0xbf;
+				regs[0x58] = val & 0x7b;
 				break;
 		}
 		break;
@@ -628,6 +637,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440FX:
 			case INTEL_440LX: case INTEL_440EX:
 			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 			default:
 				regs[addr] = val;
 				break;
@@ -683,8 +693,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		}
 		switch (dev->type) {
 			case INTEL_430NX: case INTEL_430HX:	
-			case INTEL_440FX: case INTEL_440LX:
-			case INTEL_440EX:
+			case INTEL_440FX:
+			case INTEL_440LX: case INTEL_440EX:
 			case INTEL_440BX: case INTEL_440GX:
 			case INTEL_440ZX:
 				regs[addr] = val;
@@ -706,15 +716,13 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430FX:
 				regs[0x68] = val & 0x1f;
 				break;
-			case INTEL_440FX: case INTEL_440LX:
-			case INTEL_440EX:
+			case INTEL_440FX:
+			case INTEL_440LX: case INTEL_440EX:
+			case INTEL_440GX:
 				regs[0x68] = val & 0xc0;
 				break;
 			case INTEL_440BX:
 				regs[0x68] = (regs[0x68] & 0x38) | (val & 0xc7);
-				break;
-			case INTEL_440GX:
-				regs[0x68] = (regs[0x68] & 0xc0) | (val & 0x3f);
 				break;
 			case INTEL_440ZX:
 				regs[0x68] = (regs[0x68] & 0x3f) | (val & 0xc0);
@@ -724,14 +732,13 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 	case 0x69:
 		switch (dev->type) {
 			case INTEL_430NX:
-			case INTEL_440BX:
-         case INTEL_440GX:
+			case INTEL_440BX: case INTEL_440GX:
 				regs[0x69] = val;
 				break;
 			case INTEL_430VX:
 				regs[0x69] = val & 0x07;
 				break;
-  		case INTEL_440ZX:
+			case INTEL_440ZX:
 				regs[0x69] = val & 0x3f;
 				break;
 		}
@@ -739,11 +746,12 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 	case 0x6a: case 0x6b:
 		switch (dev->type) {
 			case INTEL_430NX:
-			case INTEL_440LX:
-			case INTEL_440EX:
-			case INTEL_440BX:
-         case INTEL_440GX:
+			case INTEL_440BX: case INTEL_440GX:
 				regs[addr] = val;
+				break;
+			case INTEL_440LX: case INTEL_440EX:
+				if (addr == 0x6a)
+					regs[addr] = val & 0xef;
 				break;
 			case INTEL_440ZX:
 				if (addr == 0x6a)
@@ -755,11 +763,10 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x6c: case 0x6d: case 0x6e:
 		switch (dev->type) {
-			case INTEL_440LX:
-			case INTEL_440EX:
-			case INTEL_440BX:
-         case INTEL_440GX:
-				regs[addr] = val;
+			case INTEL_440LX: case INTEL_440EX:
+			case INTEL_440BX: case INTEL_440GX:
+				if (addr != 0x6e)
+					regs[addr] = val;
 				break;
 			case INTEL_440ZX:
 				if (addr == 0x6c)
@@ -770,11 +777,13 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		}
 		break;
 	case 0x6f:
-		switch (dev->type){
+		switch (dev->type) {
 			case INTEL_440LX:
+				regs[addr] = val;
+				break;
 			case INTEL_440EX:
-			regs[addr] = val;
-			break;
+				regs[addr] = val & 0xcf;
+				break;
 		}
 		break;
 	case 0x70:
@@ -789,8 +798,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430VX: case INTEL_430TX:
 				regs[addr] = val & 0xfc;
 				break;
-			case INTEL_440FX: case INTEL_440LX:
-			case INTEL_440EX:
+			case INTEL_440FX:
+			case INTEL_440LX: case INTEL_440EX:
 				regs[addr] = val & 0xf8;
 				break;
 		}
@@ -801,7 +810,14 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430LX:
 				regs[addr] = val & 0x4d;
 				break;
-			case INTEL_430TX: case INTEL_440EX:
+			case INTEL_430TX:
+				if (!dev->smram_locked) {
+					i4x0_smram_handler_phase0(dev);
+					regs[0x71] = (regs[0x71] & 0x20) | (val & 0xdf);
+					i4x0_smram_handler_phase1(dev);
+				}
+				break;
+			case INTEL_440EX:
 				regs[addr] = val;
 				break;
 			case INTEL_440FX: case INTEL_440LX:
@@ -815,8 +831,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			if (dev->smram_locked)
 				regs[0x72] = (regs[0x72] & 0xdf) | (val & 0x20);
 			else {
-				if ((dev->type == INTEL_440LX) || (dev->type == INTEL_440EX))
-					regs[0x72] = (regs[0x72] & 0x80) | (val & 0x7f);
+				if ((dev->type == INTEL_440LX) || (dev->type == INTEL_440EX) ||
+				    (dev->type == INTEL_440GX))
+					regs[0x72] = (val & 0x7f);
 				else
 					regs[0x72] = (regs[0x72] & 0x87) | (val & 0x78);
 				dev->smram_locked = (val & 0x10);
@@ -840,10 +857,11 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430VX:
 				regs[0x73] = val & 0x03;
 				break;
-			case INTEL_440BX: case INTEL_440GX: case INTEL_440ZX:
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				if (!dev->smram_locked) {
 					i4x0_smram_handler_phase0(dev);
-					regs[0x73] = (regs[0x72] & 0x38) | (val & 0xc7);
+					regs[0x73] = (regs[0x73] & 0x38) | (val & 0xc7);
 					i4x0_smram_handler_phase1(dev);
 				}
 				break;
@@ -853,6 +871,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		switch (dev->type) {
 			case INTEL_430VX:
 			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[0x74] = val;
 				break;
 		}
@@ -860,13 +879,14 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 	case 0x75: case 0x76:
 	case 0x7b:
 		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX: case INTEL_440ZX:
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[addr] = val;
 		}
 		break;
 	case 0x77:
 		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX: case INTEL_440ZX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x77] = val & 0x03;
 		}
 		break;
@@ -875,8 +895,11 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_430VX:
 				regs[0x78] = val & 0xcf;
 				break;
-			case INTEL_440BX: case INTEL_440GX: case INTEL_440ZX:
+			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x78] = val & 0x0f;
+				break;
+			case INTEL_440GX:
+				regs[0x78] = val & 0x1f;
 				break;
 		}
 		break;
@@ -888,14 +911,16 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				if (val & 0x40)
 					io_sethandler(0x0022, 0x01, pm2_cntrl_read, NULL, NULL, pm2_cntrl_write, NULL, NULL, dev);
 				break;
-			case INTEL_440BX: case INTEL_440GX: case INTEL_440ZX:
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[0x79] = val;
 				break;
 		}
 		break;
 	case 0x7a:
 		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX: case INTEL_440ZX:
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[0x7a] = (regs[0x7a] & 0x0a) | (val & 0xf5);
 				io_removehandler(0x0022, 0x01, pm2_cntrl_read, NULL, NULL, pm2_cntrl_write, NULL, NULL, dev);
 				if (val & 0x40)
@@ -931,6 +956,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 	case 0x80:
 		switch (dev->type) {
 			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[0x80] &= ~(val & 0x03);
 				break;
 		}
@@ -938,19 +964,20 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 	case 0x90:
 		switch (dev->type) {
 			case INTEL_430HX:
-				regs[0x80] = val & 0x87;
+				regs[0x90] = val & 0x87;
 				break;
 			case INTEL_440FX:
-				regs[0x80] = val & 0x1b;
+				regs[0x90] = val & 0x1b;
 				break;
 			case INTEL_440LX:
-				regs[0x80] = val & 0x08;
+				regs[0x90] = val & 0xfb;
 				break;
-			case INTEL_440EX: case INTEL_440GX:
-				regs[0x80] = val & 0x18;
+			case INTEL_440EX:
+				regs[0x90] = val & 0xf8;
 				break;
 			case INTEL_440BX: case INTEL_440ZX:
-				regs[0x7c] = val;
+			case INTEL_440GX:
+				regs[0x90] = val;
 				break;
 		}
 		break;
@@ -958,8 +985,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		switch (dev->type) {
 			case INTEL_430HX: case INTEL_440BX:
 			case INTEL_440FX: case INTEL_440LX:
-			case INTEL_440EX: case INTEL_440GX:
-				/* Not applicable on 82443ZX. */
+			case INTEL_440GX:
+				/* Not applicable on 82443EX and 82443ZX. */
 				regs[0x91] &= ~(val & 0x11);
 				break;
 		}
@@ -967,8 +994,10 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 	case 0x92:
 		switch (dev->type) {
 			case INTEL_440LX: case INTEL_440EX:
-			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
+				regs[0x92] &= ~(val & 0x07);
+				break;
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[0x92] &= ~(val & 0x1f);
 				break;
 		}
@@ -976,45 +1005,56 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 	case 0x93:
 		switch (dev->type) {
 			case INTEL_440FX:
-			case INTEL_440LX:
-			case INTEL_440EX:
 				regs[0x93] = (val & 0x0f);
 				trc_write(0x0093, val & 0x06, NULL);
+				break;
+			case INTEL_440LX: case INTEL_440EX:
+				regs[0x93] = (val & 0x0e);
+				trc_write(0x0093, val & 0x06, NULL);
+				break;
+		}
+		break;
+	case 0xa7:
+		switch (dev->type) {
+			case INTEL_440LX: case INTEL_440EX:
+				regs[0xa7] = val & 0x1f;
 				break;
 		}
 		break;
 	case 0xa8: case 0xa9:
 		switch (dev->type) {
+			case INTEL_440LX: case INTEL_440EX:
 			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[addr] = (val & 0x03);
 				break;
 		}
 		break;
 	case 0xb0:
 		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
+			case INTEL_440LX: case INTEL_440EX:
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[0xb0] = (val & 0x80);
 				break;
 		}
 		break;
 	case 0xb1:
 		switch (dev->type) {
-			case INTEL_440EX:
+			case INTEL_440LX: case INTEL_440EX:
 				regs[0xb1] = (val & 0x22);
 				break;
 			case INTEL_440BX: case INTEL_440ZX:
-				regs[0xb1] = (val & 0xa0);
-				break;
 			case INTEL_440GX:
-				regs[0xb1] = (val & 0xa2);
+				regs[0xb1] = (val & 0xa0);
 				break;
 		}
 		break;
 	case 0xb4:
 		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
+			case INTEL_440LX: case INTEL_440EX:
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[0xb4] = (val & 0x3f);
 				i4x0_mask_bar(regs);
 				break;
@@ -1022,8 +1062,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0xb9:
 		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
+			case INTEL_440LX: case INTEL_440EX:
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[0xb9] = (val & 0xf0);
 				break;
 		}
@@ -1031,8 +1072,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 
 	case 0xba: case 0xbb:
 		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
+			case INTEL_440LX: case INTEL_440EX:
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[addr] = val;
 				break;
 		}
@@ -1040,7 +1082,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 
 	case 0xbc:
 		switch (dev->type) {
-			case INTEL_440EX: case INTEL_440GX:
+			case INTEL_440LX: case INTEL_440EX:
 				regs[addr] = (val & 0xf8);
 				break;
 		}
@@ -1048,16 +1090,17 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 
 	case 0xbd:
 		switch (dev->type) {
-			case INTEL_440EX: case INTEL_440GX:
+			case INTEL_440LX: case INTEL_440EX:
 				regs[addr] = (val & 0xf8);
 				break;
 		}
 		break;
 
-	case 0xd0: case 0xd1: case 0xd2: case 0xd3: case 0xd4: case 0xd5: case 0xd6: case 0xd7:
+	case 0xd0: case 0xd1: case 0xd2: case 0xd3:
+	case 0xd4: case 0xd5: case 0xd6: case 0xd7:
 		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[addr] = val;
 				break;
 		}
@@ -1095,8 +1138,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 	case 0xe0: case 0xe1: case 0xe2: case 0xe3: case 0xe4:
 	case 0xe8: case 0xe9: case 0xea: case 0xeb: case 0xec:
 		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				if (!regs_l[addr])
 					regs[addr] = val;
 				break;
@@ -1104,8 +1147,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0xe5: case 0xed:
 		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				if (!regs_l[addr])
 					regs[addr] = (val & 0x3f);
 				break;
@@ -1113,8 +1156,8 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0xe7:
 		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[0xe7] = 0x80;
 				for (i = 0; i < 16; i++)
 					regs_l[0xe0 + i] = !!(val & 0x80);
@@ -1126,79 +1169,17 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0xf0:
 		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
+			case INTEL_440BX: case INTEL_440ZX:
+			case INTEL_440GX:
 				regs[0xf0] = (val & 0xc0);
 				break;
 		}
 		break;
 	case 0xf1:
 		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
-				regs[0xf1] = (val & 0x03);
-				break;
-		}
-		break;
-    } else if (func == 1)  switch (addr) {
-	case 0x04:
-		switch (dev->type) {
 			case INTEL_440BX: case INTEL_440ZX:
-				regs[0x04] = (val & 0x1f);
-				break;
-         case INTEL_440GX:
-            regs[0x04] = val;
-		}
-		break;
-	case 0x05:
-		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
-				regs[0x05] = (val & 0x01);
-				break;
-		}
-		break;
-	case 0x0d: case 0x1b:
-		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
-				regs[addr] = (val & 0xf8);
-				break;
-		}
-		break;
-	case 0x19: case 0x1a:
-	case 0x21: case 0x23:
-	case 0x25: case 0x27:
-		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
-				regs[addr] = val;
-				break;
-		}
-		break;
-	case 0x1c: case 0x1d:
-	case 0x20: case 0x22:
-	case 0x24: case 0x26:
-		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
-				regs[addr] = (val & 0xf0);
-				break;
-		}
-		break;
-	case 0x1f:
-		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
-				regs[0x1f] &= ~(val & 0xf0);
-				break;
-		}
-		break;
-	case 0x3e:
-		switch (dev->type) {
-			case INTEL_440BX: case INTEL_440GX:
-         case INTEL_440ZX:
-				regs[0x3e] = (val & 0xed);
+			case INTEL_440GX:
+				regs[0xf1] = (val & 0x03);
 				break;
 		}
 		break;
@@ -1213,13 +1194,13 @@ i4x0_read(int func, int addr, void *priv)
     uint8_t ret = 0xff;
     uint8_t *regs = (uint8_t *) dev->regs;
 
-    if (func)
-	  ret = 0xff;
-    else {
+    if (func == 0) {
 	ret = regs[addr];
 	/* Special behavior for 440FX register 0x93 which is basically TRC in PCI space
 	   with the addition of bits 3 and 0. */
-	if ((func == 0) && (addr == 0x93) && (dev->type == INTEL_440FX))
+	if ((func == 0) && (addr == 0x93) &&
+	    ((dev->type == INTEL_440FX) || (dev->type == INTEL_440LX) ||
+	     (dev->type == INTEL_440EX)))
 		ret = (ret & 0xf9) | (trc_read(0x0093, NULL) & 0x06);
     }
 
@@ -1252,9 +1233,9 @@ i4x0_reset(void *priv)
 	i4x0_write(0, 0x72, 0x00, priv);
     }
 
-    if ((dev->type == INTEL_440LX) || (dev->type == INTEL_440BX) || (dev->type == INTEL_440ZX)) {
+    if ((dev->type == INTEL_440LX) || (dev->type == INTEL_440BX) ||
+	(dev->type == INTEL_440ZX))
 	memset(dev->regs_locked, 0x00, 256 * sizeof(uint8_t));
-    }
 }
 
 
@@ -1453,15 +1434,16 @@ static void
 		break;
 	case INTEL_440LX:
 		regs[0x02] = 0x80; regs[0x03] = 0x71;	/* 82443LX */
+		regs[0x08] = 0x03;
 		regs[0x06] = 0x90;
 		regs[0x10] = 0x08;
 		regs[0x34] = 0xa0;
-		if (cpu_busspeed <= 66666667)
+		if (cpu_busspeed <= 60000000)
+			regs[0x51] |= 0x40;
+		else if ((cpu_busspeed > 60000000) && (cpu_busspeed <= 66666667))
 			regs[0x51] |= 0x00;
-		else if ((cpu_busspeed > 66666667) && (cpu_busspeed <= 100000000))
-			regs[0x51] |= 0x20;
 		regs[0x53] = 0x83;
-		regs[0x57] = 0x28;
+		regs[0x57] = 0x01;
 		regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x01;
 		regs[0x6c] = regs[0x6d] = regs[0x6e] = regs[0x6f] = 0x55;
 		regs[0x72] = 0x02;
@@ -1476,15 +1458,13 @@ static void
 		break;
 	case INTEL_440EX:
 		regs[0x02] = 0x80; regs[0x03] = 0x71;	/* 82443EX. Same Vendor ID as 440LX */
+		regs[0x08] = 0x03;
 		regs[0x06] = 0x90;
 		regs[0x10] = 0x08;
 		regs[0x34] = 0xa0;
-		if (cpu_busspeed <= 66666667)
-			regs[0x51] |= 0x00;
-		else if ((cpu_busspeed > 66666667) && (cpu_busspeed <= 100000000))
-			regs[0x51] |= 0x20;
+		regs[0x51] = 0x80;
 		regs[0x53] = 0x83;
-		regs[0x57] = 0x28;
+		regs[0x57] = 0x01;
 		regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x01;
 		regs[0x6c] = regs[0x6d] = regs[0x6e] = regs[0x6f] = 0x55;
 		regs[0x72] = 0x02;
@@ -1509,8 +1489,6 @@ static void
 			regs[0x51] |= 0x20;
 		else if ((cpu_busspeed > 66666667) && (cpu_busspeed <= 100000000))
 			regs[0x51] |= 0x00;
-		if (is_vpc)
-			regs[0x51] |= 0x10; /* Virtual PC 2007 BIOS requires a reserved bus speed bit to be set */
 		regs[0x57] = 0x28;	/* 4 DIMMs, SDRAM */
 		regs[0x58] = 0x03;
 		regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x01;
@@ -1532,12 +1510,9 @@ static void
 
 		regs[0x02] = (regs[0x7a] & 0x02) ? 0xa2 : 0xa0; regs[0x03] = 0x71;	/* 82443GX */
 		regs[0x06] = (regs[0x7a] & 0x02) ? 0x00 : 0x10;
-		regs[0x08] = 0x02;
 		regs[0x10] = 0x08;
 		regs[0x34] = (regs[0x7a] & 0x02) ? 0x00 : 0xa0;
-		regs[0x51] |= 0x20;
 		regs[0x57] = 0x28;
-		regs[0x58] = 0x03;
 		regs[0x60] = regs[0x61] = regs[0x62] = regs[0x63] = regs[0x64] = regs[0x65] = regs[0x66] = regs[0x67] = 0x01;
 		regs[0x72] = 0x02;
 		regs[0x73] = 0x38;
@@ -1590,7 +1565,7 @@ const device_t i420tx_device =
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1605,7 +1580,7 @@ const device_t i420zx_device =
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1620,7 +1595,7 @@ const device_t i430lx_device =
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1635,7 +1610,7 @@ const device_t i430nx_device =
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1650,7 +1625,7 @@ const device_t i430fx_device =
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1665,7 +1640,7 @@ const device_t i430fx_rev02_device =
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1680,7 +1655,7 @@ const device_t i430hx_device =
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1695,7 +1670,7 @@ const device_t i430vx_device =
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1710,7 +1685,7 @@ const device_t i430tx_device =
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1725,7 +1700,7 @@ const device_t i440fx_device =
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1739,7 +1714,7 @@ const device_t i440lx_device =
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1753,7 +1728,7 @@ const device_t i440ex_device =
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1768,7 +1743,7 @@ const device_t i440bx_device =
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1782,7 +1757,7 @@ const device_t i440gx_device =
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -1796,7 +1771,7 @@ const device_t i440zx_device =
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL

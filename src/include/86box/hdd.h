@@ -19,7 +19,7 @@
 # define EMU_HDD_H
 
 
-#define HDD_NUM		30	/* total of 30 images supported */
+#define HDD_NUM		40	/* total of 40 images supported */
 
 
 /* Hard Disk bus types. */
@@ -76,11 +76,15 @@ enum {
 /* Define the virtual Hard Disk. */
 typedef struct {
     uint8_t	id;
-    uint8_t	mfm_channel;		/* Should rename and/or unionize */
-    uint8_t	esdi_channel;
-    uint8_t	xta_channel;
-    uint8_t	ide_channel;
-    uint8_t	scsi_id;
+    union {
+	uint8_t	channel;		/* Needed for Settings to reduce the number of if's */
+
+	uint8_t	mfm_channel;		/* Should rename and/or unionize */
+	uint8_t	esdi_channel;
+	uint8_t	xta_channel;
+	uint8_t	ide_channel;
+	uint8_t	scsi_id;
+    };
     uint8_t	bus,
 		res;			/* Reserved for bus mode */
     uint8_t	wp;			/* Disk has been mounted READ-ONLY */

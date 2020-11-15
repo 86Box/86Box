@@ -443,7 +443,7 @@ oti067_077_available(void)
 static const device_config_t oti067_config[] =
 {
 	{
-		"memory", "Memory size", CONFIG_SELECTION, "", 512,
+		"memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
 		{
 			{
 				"256 kB", 256
@@ -465,7 +465,7 @@ static const device_config_t oti067_config[] =
 static const device_config_t oti067_ama932j_config[] =
 {
 	{
-		"memory", "Memory size", CONFIG_SELECTION, "", 256,
+		"memory", "Memory size", CONFIG_SELECTION, "", 256, "", { 0 },
 		{
 			{
 				"256 kB", 256
@@ -487,7 +487,7 @@ static const device_config_t oti067_ama932j_config[] =
 static const device_config_t oti077_config[] =
 {
 	{
-		"memory", "Memory size", CONFIG_SELECTION, "", 1024,
+		"memory", "Memory size", CONFIG_SELECTION, "", 1024, "", { 0 },
 		{
 			{
 				"256 kB", 256
@@ -514,7 +514,7 @@ const device_t oti037c_device =
 	DEVICE_ISA,
 	0,
 	oti_init, oti_close, NULL,
-	oti037c_available,
+	{ oti037c_available },
 	oti_speed_changed,
 	oti_force_redraw
 };
@@ -525,7 +525,7 @@ const device_t oti067_device =
 	DEVICE_ISA,
 	2,
 	oti_init, oti_close, NULL,
-	oti067_077_available,
+	{ oti067_077_available },
 	oti_speed_changed,
 	oti_force_redraw,
 	oti067_config
@@ -537,7 +537,7 @@ const device_t oti067_ama932j_device =
 	DEVICE_ISA,
 	3,
 	oti_init, oti_close, NULL,
-	oti067_ama932j_available,
+	{ oti067_ama932j_available },
 	oti_speed_changed,
 	oti_force_redraw,
 	oti067_ama932j_config
@@ -549,7 +549,7 @@ const device_t oti077_device =
 	DEVICE_ISA,
 	5,
 	oti_init, oti_close, NULL,
-	oti067_077_available,
+	{ oti067_077_available },
 	oti_speed_changed,
 	oti_force_redraw,
 	oti077_config

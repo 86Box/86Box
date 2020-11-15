@@ -342,6 +342,17 @@ CPU cpus_i486[] = {
     {"",                     -1,                  0, 0,        0,      0, 0x0000,                    0,  0, 0, 0, 0,  0}
 };
 
+CPU cpus_i486_PC330[] = {
+    /*i486/P24T*/
+    {"i486DX2/50",           CPU_i486DX2, fpus_internal,  50000000, 2.0,  0x470,  0x470, 0x0000, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6,  6},
+    {"i486DX2/66",           CPU_i486DX2, fpus_internal,  66666666, 2.0,  0x470,  0x470, 0x0000, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6,  8},
+    {"iDX4/75",              CPU_iDX4,    fpus_internal,  75000000, 3.0,  0x480,  0x480, 0x0000, CPU_SUPPORTS_DYNAREC, 12,12, 9, 9,  9}, /*CPUID available on DX4, >= 75 MHz*/
+    {"iDX4/100",             CPU_iDX4,    fpus_internal, 100000000, 3.0,  0x483,  0x483, 0x0000, CPU_SUPPORTS_DYNAREC, 18,18, 9, 9, 12}, /*Is on some real Intel DX2s, limit here is pretty arbitary*/
+    {"Pentium OverDrive 63", CPU_P24T,    fpus_internal,  62500000, 2.5, 0x1531, 0x1531, 0x0000, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10,7,7, 15/2},
+    {"Pentium OverDrive 83", CPU_P24T,    fpus_internal,  83333333, 2.5, 0x1532, 0x1532, 0x0000, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15,8,8, 10},
+    {"",                     -1,                  0, 0,        0,      0, 0x0000,                    0,  0, 0, 0, 0,  0}
+};
+
 CPU cpus_Am486[] = {
     /*Am486/5x86*/
     {"Am486SX/33",   CPU_Am486SX,     fpus_486sx,   33333333, 1.0, 0x42a,     0, 0, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3, 4},
@@ -579,7 +590,7 @@ CPU cpus_Pentium3V[] = {
 
 CPU cpus_Pentium[] = {
     /*Intel Pentium*/
-    {"Pentium 75",                   CPU_PENTIUM,    fpus_internal,  75000000, 1.5,  0x524,  0x524, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  7, 7, 4, 4,  9},
+    {"Pentium 75",                   CPU_PENTIUM,    fpus_internal,  75000000, 1.5,  0x524,  0x524, 0, CPU_SUPPORTS_DYNAREC /*| CPU_REQUIRES_DYNAREC*/,  7, 7, 4, 4,  9},
     {"Pentium OverDrive MMX 75",     CPU_PENTIUMMMX, fpus_internal,  75000000, 1.5, 0x1542, 0x1542, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  7, 7, 4, 4,  9},
     {"Pentium 90",                   CPU_PENTIUM,    fpus_internal,  90000000, 1.5,  0x524,  0x524, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  9, 9, 4, 4, 21/2},
     {"Pentium 100/50",               CPU_PENTIUM,    fpus_internal, 100000000, 2.0,  0x524,  0x524, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},

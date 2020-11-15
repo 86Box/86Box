@@ -102,18 +102,18 @@ fdc_log(const char *fmt, ...)
 
 
 typedef const struct {
-    const char		*name;
     const char  *internal_name;
     const device_t    *device;
 } fdc_cards_t;
 
 /* All emulated machines have at least one integrated FDC controller */
 static fdc_cards_t fdc_cards[] = {
-    { "Internal controller", 	"internal",	NULL,				},
-    { "DTK PII-151B",		"dtk_pii151b",	&fdc_pii151b_device,		},
-    { "DTK PII-158B",		"dtk_pii158b",	&fdc_pii158b_device,		},
-    { "",			"",		NULL,				},
+    { "internal",	NULL			},
+    { "dtk_pii151b",	&fdc_pii151b_device	},
+    { "dtk_pii158b",	&fdc_pii158b_device	},
+    { "",		NULL			},
 };
+
 
 int
 fdc_card_available(int card)
@@ -122,13 +122,6 @@ fdc_card_available(int card)
 	return(device_available(fdc_cards[card].device));
 
     return(1);
-}
-
-
-char *
-fdc_card_getname(int card)
-{
-    return((char *) fdc_cards[card].name);
 }
 
 
@@ -2336,7 +2329,7 @@ const device_t fdc_xt_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 
 const device_t fdc_xt_t1x00_device = {
@@ -2346,7 +2339,7 @@ const device_t fdc_xt_t1x00_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 
 const device_t fdc_xt_amstrad_device = {
@@ -2356,7 +2349,7 @@ const device_t fdc_xt_amstrad_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 
 
@@ -2367,7 +2360,7 @@ const device_t fdc_pcjr_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 
 const device_t fdc_at_device = {
@@ -2377,7 +2370,7 @@ const device_t fdc_at_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 
 const device_t fdc_at_actlow_device = {
@@ -2387,7 +2380,7 @@ const device_t fdc_at_actlow_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 
 const device_t fdc_at_ps1_device = {
@@ -2397,7 +2390,7 @@ const device_t fdc_at_ps1_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 
 const device_t fdc_at_smc_device = {
@@ -2407,7 +2400,7 @@ const device_t fdc_at_smc_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 
 const device_t fdc_at_winbond_device = {
@@ -2417,7 +2410,7 @@ const device_t fdc_at_winbond_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 
 const device_t fdc_at_nsc_device = {
@@ -2427,7 +2420,7 @@ const device_t fdc_at_nsc_device = {
     fdc_init,
     fdc_close,
     fdc_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 
 const device_t fdc_dp8473_device = {
@@ -2437,5 +2430,5 @@ const device_t fdc_dp8473_device = {
     fdc_init,
     fdc_close, 
     fdc_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };

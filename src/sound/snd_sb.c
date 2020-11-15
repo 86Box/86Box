@@ -1497,7 +1497,7 @@ sb_speed_changed(void *p)
 static const device_config_t sb_config[] =
 {
         {
-                "base", "Address", CONFIG_HEX16, "", 0x220,
+                "base", "Address", CONFIG_HEX16, "", 0x220, "", { 0 },
                 {
                         {
                                 "0x220", 0x220
@@ -1511,7 +1511,7 @@ static const device_config_t sb_config[] =
                 }
         },
         {
-                "irq", "IRQ", CONFIG_SELECTION, "", 7,
+                "irq", "IRQ", CONFIG_SELECTION, "", 7, "", { 0 },
                 {
                         {
                                 "IRQ 2", 2
@@ -1531,7 +1531,7 @@ static const device_config_t sb_config[] =
                 }
         },
         {
-                "dma", "DMA", CONFIG_SELECTION, "", 1,
+                "dma", "DMA", CONFIG_SELECTION, "", 1, "", { 0 },
                 {
                         {
                                 "DMA 1", 1
@@ -1558,7 +1558,7 @@ static const device_config_t sb_config[] =
 static const device_config_t sb_mcv_config[] =
 {
         {
-                "irq", "IRQ", CONFIG_SELECTION, "", 7,
+                "irq", "IRQ", CONFIG_SELECTION, "", 7, "", { 0 },
                 {
                         {
                                 "IRQ 3", 3
@@ -1575,7 +1575,7 @@ static const device_config_t sb_mcv_config[] =
                 }
         },
         {
-                "dma", "DMA", CONFIG_SELECTION, "", 1,
+                "dma", "DMA", CONFIG_SELECTION, "", 1, "", { 0 },
                 {
                         {
                                 "DMA 1", 1
@@ -1602,7 +1602,7 @@ static const device_config_t sb_mcv_config[] =
 static const device_config_t sb_pro_config[] =
 {
         {
-                "base", "Address", CONFIG_HEX16, "", 0x220,
+                "base", "Address", CONFIG_HEX16, "", 0x220, "", { 0 },
                 {
                         {
                                 "0x220", 0x220
@@ -1616,7 +1616,7 @@ static const device_config_t sb_pro_config[] =
                 }
         },
         {
-                "irq", "IRQ", CONFIG_SELECTION, "", 7,
+                "irq", "IRQ", CONFIG_SELECTION, "", 7, "", { 0 },
                 {
                         {
                                 "IRQ 2", 2
@@ -1636,7 +1636,7 @@ static const device_config_t sb_pro_config[] =
                 }
         },
         {
-                "dma", "DMA", CONFIG_SELECTION, "", 1,
+                "dma", "DMA", CONFIG_SELECTION, "", 1, "", { 0 },
                 {
                         {
                                 "DMA 1", 1
@@ -1663,7 +1663,7 @@ static const device_config_t sb_pro_config[] =
 static const device_config_t sb_16_config[] =
 {
         {
-                "base", "Address", CONFIG_HEX16, "", 0x220,
+                "base", "Address", CONFIG_HEX16, "", 0x220, "", { 0 },
                 {
                         {
                                 "0x220", 0x220
@@ -1683,7 +1683,7 @@ static const device_config_t sb_16_config[] =
                 }
         },
         {
-                "base401", "MPU-401 Address", CONFIG_HEX16, "", 0x330,
+                "base401", "MPU-401 Address", CONFIG_HEX16, "", 0x330, "", { 0 },
                 {
                         {
                                 "Disabled", 0
@@ -1700,7 +1700,7 @@ static const device_config_t sb_16_config[] =
                 }
         },
         {
-                "irq", "IRQ", CONFIG_SELECTION, "", 5,
+                "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
                 {
                         {
                                 "IRQ 2", 2
@@ -1720,7 +1720,7 @@ static const device_config_t sb_16_config[] =
                 }
         },
         {
-                "dma", "Low DMA channel", CONFIG_SELECTION, "", 1,
+                "dma", "Low DMA channel", CONFIG_SELECTION, "", 1, "", { 0 },
                 {
                         {
                                 "DMA 0", 0
@@ -1737,7 +1737,7 @@ static const device_config_t sb_16_config[] =
                 }
         },
         {
-                "dma16", "High DMA channel", CONFIG_SELECTION, "", 5,
+                "dma16", "High DMA channel", CONFIG_SELECTION, "", 5, "", { 0 },
                 {
                         {
                                 "DMA 5", 5
@@ -1770,7 +1770,7 @@ static const device_config_t sb_16_config[] =
 static const device_config_t sb_awe32_config[] =
 {
         {
-                "base", "Address", CONFIG_HEX16, "", 0x220,
+                "base", "Address", CONFIG_HEX16, "", 0x220, "", { 0 },
                 {
                         {
                                 "0x220", 0x220
@@ -1790,7 +1790,7 @@ static const device_config_t sb_awe32_config[] =
                 }
         },
         {
-                "emu_base", "EMU8000 Address", CONFIG_HEX16, "", 0x620,
+                "emu_base", "EMU8000 Address", CONFIG_HEX16, "", 0x620, "", { 0 },
                 {
                         {
                                 "0x620", 0x620
@@ -1810,7 +1810,7 @@ static const device_config_t sb_awe32_config[] =
                 }
         },
         {
-                "base401", "MPU-401 Address", CONFIG_HEX16, "", 0x330,
+                "base401", "MPU-401 Address", CONFIG_HEX16, "", 0x330, "", { 0 },
                 {
                         {
                                 "Disabled", 0
@@ -1827,7 +1827,7 @@ static const device_config_t sb_awe32_config[] =
                 }
         },
         {
-                "irq", "IRQ", CONFIG_SELECTION, "", 5,
+                "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
                 {
                         {
                                 "IRQ 2", 2
@@ -1847,7 +1847,7 @@ static const device_config_t sb_awe32_config[] =
                 }
         },
         {
-                "dma", "Low DMA channel", CONFIG_SELECTION, "", 1,
+                "dma", "Low DMA channel", CONFIG_SELECTION, "", 1, "", { 0 },
                 {
                         {
                                 "DMA 0", 0
@@ -1864,7 +1864,7 @@ static const device_config_t sb_awe32_config[] =
                 }
         },
         {
-                "dma16", "High DMA channel", CONFIG_SELECTION, "", 5,
+                "dma16", "High DMA channel", CONFIG_SELECTION, "", 5, "", { 0 },
                 {
                         {
                                 "DMA 5", 5
@@ -1881,7 +1881,7 @@ static const device_config_t sb_awe32_config[] =
                 }
         },
         {
-                "onboard_ram", "Onboard RAM", CONFIG_SELECTION, "", 512,
+                "onboard_ram", "Onboard RAM", CONFIG_SELECTION, "", 512, "", { 0 },
                 {
                         {
                                 "None", 0
@@ -1922,88 +1922,96 @@ const device_t sb_1_device =
         "Sound Blaster v1.0",
         DEVICE_ISA,
 	0,
-        sb_1_init, sb_close, NULL, NULL,
+        sb_1_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
         sb_config
 };
+
 const device_t sb_15_device =
 {
         "Sound Blaster v1.5",
         DEVICE_ISA,
 	0,
-        sb_15_init, sb_close, NULL, NULL,
+        sb_15_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
         sb_config
 };
+
 const device_t sb_mcv_device =
 {
         "Sound Blaster MCV",
         DEVICE_MCA,
 	0,
-        sb_mcv_init, sb_close, NULL, NULL,
+        sb_mcv_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
         sb_mcv_config
 };
+
 const device_t sb_2_device =
 {
         "Sound Blaster v2.0",
         DEVICE_ISA,
 	0,
-        sb_2_init, sb_close, NULL, NULL,
+        sb_2_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
         sb_config
 };
+
 const device_t sb_pro_v1_device =
 {
         "Sound Blaster Pro v1",
         DEVICE_ISA,
 	0,
-        sb_pro_v1_init, sb_close, NULL, NULL,
+        sb_pro_v1_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
         sb_pro_config
 };
+
 const device_t sb_pro_v2_device =
 {
         "Sound Blaster Pro v2",
         DEVICE_ISA,
 	0,
-        sb_pro_v2_init, sb_close, NULL, NULL,
+        sb_pro_v2_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
         sb_pro_config
 };
+
 const device_t sb_pro_mcv_device =
 {
         "Sound Blaster Pro MCV",
         DEVICE_MCA,
 	0,
-        sb_pro_mcv_init, sb_close, NULL, NULL,
+        sb_pro_mcv_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
         NULL
 };
+
 const device_t sb_16_device =
 {
         "Sound Blaster 16",
-        DEVICE_ISA,
+        DEVICE_ISA | DEVICE_AT,
 	0,
-        sb_16_init, sb_close, NULL, NULL,
+        sb_16_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
         sb_16_config
 };
+
 const device_t sb_awe32_device =
 {
         "Sound Blaster AWE32",
-        DEVICE_ISA,
+        DEVICE_ISA | DEVICE_AT,
 	0,
         sb_awe32_init, sb_awe32_close, NULL,
-        sb_awe32_available,
+        { sb_awe32_available },
         sb_speed_changed,
         NULL,
         sb_awe32_config

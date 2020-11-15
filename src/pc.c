@@ -562,6 +562,7 @@ pc_init_modules(void)
 {
     int c, m;
     wchar_t temp[512];
+    char tempc[512];
 
     pc_log("Scanning for ROM images:\n");
     c = m = 0;
@@ -598,7 +599,9 @@ pc_init_modules(void)
 
     /* Make sure we have a usable video card. */
     if (! video_card_available(gfxcard)) {
-    	swprintf(temp, sizeof(temp), plat_get_string(IDS_2064), video_card_getname(gfxcard));
+	memset(tempc, 0, sizeof(tempc));
+	device_get_name(video_card_getdevice(gfxcard), 0, tempc);
+    	swprintf(temp, sizeof(temp), plat_get_string(IDS_2064), tempc);
 	c = 0;
 	while (video_get_internal_name(c) != NULL) {
 		gfxcard = -1;

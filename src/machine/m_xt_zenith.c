@@ -99,7 +99,7 @@ static const device_t zenith_scratchpad_device = {
     "Zenith scratchpad RAM",
     0, 0,
     zenith_scratchpad_init, zenith_scratchpad_close, NULL,
-    NULL,
+    { NULL },
     NULL,
     NULL
 };

@@ -159,5 +159,5 @@ const device_t sc1502x_ramdac_device =
         "Sierra SC1502x RAMDAC",
         0, 0,
         sc1502x_ramdac_init, sc1502x_ramdac_close,
-	NULL, NULL, NULL, NULL
+	NULL, { NULL }, NULL, NULL
 };

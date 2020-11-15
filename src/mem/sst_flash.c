@@ -434,7 +434,7 @@ const device_t sst_flash_29ee010_device =
     sst_init,
     sst_close,
     NULL,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 
@@ -446,7 +446,7 @@ const device_t sst_flash_29ee020_device =
     sst_init,
     sst_close,
     NULL,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 
@@ -458,7 +458,7 @@ const device_t sst_flash_39sf010_device =
     sst_init,
     sst_close,
     NULL,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 
@@ -470,7 +470,7 @@ const device_t sst_flash_39sf020_device =
     sst_init,
     sst_close,
     NULL,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t sst_flash_39sf040_device =
@@ -481,5 +481,5 @@ const device_t sst_flash_39sf040_device =
     sst_init,
     sst_close,
     NULL,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };

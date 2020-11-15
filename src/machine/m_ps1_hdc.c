@@ -1355,7 +1355,7 @@ const device_t ps1_hdc_device = {
     DEVICE_ISA | DEVICE_PS2,
     0,
     ps1_hdc_init, ps1_hdc_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 

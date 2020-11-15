@@ -849,7 +849,7 @@ const device_t esdi_at_wd1007vse1_device = {
     DEVICE_ISA | DEVICE_AT,
     0,
     wd1007vse1_init, wd1007vse1_close, NULL,
-    wd1007vse1_available,
+    { wd1007vse1_available },
     NULL, NULL,
     NULL
 };

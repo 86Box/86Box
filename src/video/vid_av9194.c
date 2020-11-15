@@ -100,6 +100,6 @@ const device_t av9194_device =
         "AV9194 Clock Generator",
         0, 0,
         av9194_init, NULL,
-	NULL, NULL, NULL, NULL
+	NULL, { NULL }, NULL, NULL
 };
 

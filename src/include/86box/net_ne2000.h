@@ -40,7 +40,7 @@ enum {
     NE2K_NONE = 0,
     NE2K_NE1000 = 1,			/* 8-bit ISA NE1000 */
     NE2K_NE2000 = 2,			/* 16-bit ISA NE2000 */
-	NE2K_ETHERNEXT_MC = 3,		/* 16-bit MCA EtherNext/MC */
+    NE2K_ETHERNEXT_MC = 3,		/* 16-bit MCA EtherNext/MC */
     NE2K_RTL8019AS = 4,			/* 16-bit ISA PnP Realtek 8019AS */
     NE2K_RTL8029AS = 5			/* 32-bit PCI Realtek 8029AS */
 };

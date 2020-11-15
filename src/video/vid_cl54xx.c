@@ -3384,13 +3384,13 @@ gd54xx_force_redraw(void *p)
 static const device_config_t gd5422_config[] =
 {
         {
-                "memory","Memory size",CONFIG_SELECTION,"",1,
+                "memory","Memory size",CONFIG_SELECTION,"", 1, "", { 0 },
                 {
                         {
-                                "512 KB",0
+                                "512 KB", 0
                         },
                         {
-                                "1 MB",1
+                                "1 MB", 1
                         },
                         {
                                 ""
@@ -3398,7 +3398,7 @@ static const device_config_t gd5422_config[] =
                 },
         },
         {
-                "","",-1
+                "", "", -1
         }
 };
 
@@ -3517,7 +3517,7 @@ const device_t gd5401_isa_device =
     CIRRUS_ID_CLGD5401,
     gd54xx_init, gd54xx_close,
     NULL,
-    gd5401_available,
+    { gd5401_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     NULL,
@@ -3530,7 +3530,7 @@ const device_t gd5402_isa_device =
     CIRRUS_ID_CLGD5402,
     gd54xx_init, gd54xx_close,
     NULL,
-    gd5402_available,
+    { gd5402_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     NULL,
@@ -3543,7 +3543,7 @@ const device_t gd5402_onboard_device =
     CIRRUS_ID_CLGD5402 | 0x200,
     gd54xx_init, gd54xx_close,
     NULL,
-    NULL,
+    { NULL },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     NULL,
@@ -3556,7 +3556,7 @@ const device_t gd5420_isa_device =
     CIRRUS_ID_CLGD5420,
     gd54xx_init, gd54xx_close,
     NULL,
-    gd5420_available,
+    { gd5420_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5422_config,
@@ -3569,7 +3569,7 @@ const device_t gd5422_isa_device = {
     CIRRUS_ID_CLGD5422,
     gd54xx_init, gd54xx_close,
     NULL,
-    gd5422_available, /* Common BIOS between 5422 and 5424 */
+    { gd5422_available }, /* Common BIOS between 5422 and 5424 */
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5422_config,
@@ -3581,7 +3581,7 @@ const device_t gd5424_vlb_device = {
     CIRRUS_ID_CLGD5424,
     gd54xx_init, gd54xx_close,
     NULL,
-    gd5422_available, /* Common BIOS between 5422 and 5424 */
+    { gd5422_available }, /* Common BIOS between 5422 and 5424 */
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5422_config,
@@ -3596,7 +3596,7 @@ const device_t gd5426_vlb_device =
     gd54xx_init, 
     gd54xx_close, 
     NULL,
-    gd5426_available,
+    { gd5426_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5428_config
@@ -3610,7 +3610,7 @@ const device_t gd5426_onboard_device =
     gd54xx_init, 
     gd54xx_close, 
     NULL,
-    NULL,
+    { NULL },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     NULL
@@ -3624,7 +3624,7 @@ const device_t gd5428_isa_device =
     gd54xx_init, 
     gd54xx_close, 
     NULL,
-    gd5428_isa_available,
+    { gd5428_isa_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5428_config
@@ -3638,7 +3638,7 @@ const device_t gd5428_vlb_device =
     gd54xx_init, 
     gd54xx_close, 
     NULL,
-    gd5428_available,
+    { gd5428_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5428_config
@@ -3652,7 +3652,7 @@ const device_t gd5428_mca_device =
     gd54xx_init, 
     gd54xx_close, 
     NULL,
-    gd5428_available,
+    { gd5428_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     NULL
@@ -3666,7 +3666,7 @@ const device_t gd5428_onboard_device =
     gd54xx_init, 
     gd54xx_close, 
     NULL,
-    gd5428_isa_available,
+    { gd5428_isa_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5428_onboard_config
@@ -3680,7 +3680,7 @@ const device_t gd5429_isa_device =
     gd54xx_init, 
     gd54xx_close, 
     NULL,
-    gd5429_available,
+    { gd5429_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5428_config
@@ -3694,7 +3694,7 @@ const device_t gd5429_vlb_device =
     gd54xx_init, 
     gd54xx_close, 
     NULL,
-    gd5429_available,
+    { gd5429_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5428_config
@@ -3708,7 +3708,7 @@ const device_t gd5430_vlb_device =
     gd54xx_init, 
     gd54xx_close, 
     NULL,
-    gd5430_vlb_available,
+    { gd5430_vlb_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5428_config
@@ -3722,7 +3722,7 @@ const device_t gd5430_pci_device =
     gd54xx_init, 
     gd54xx_close, 
     NULL,
-    gd5430_pci_available,
+    { gd5430_pci_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5428_config
@@ -3736,7 +3736,7 @@ const device_t gd5434_isa_device =
     gd54xx_init, 
     gd54xx_close,
     NULL,
-    gd5434_available,
+    { gd5434_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5434_config
@@ -3750,7 +3750,7 @@ const device_t gd5434_onboard_pci_device =
     gd54xx_init, 
     gd54xx_close, 
     NULL,
-    NULL,
+    { NULL },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5434_config
@@ -3764,7 +3764,7 @@ const device_t gd5434_vlb_device =
     gd54xx_init, 
     gd54xx_close, 
     NULL,
-    gd5434_available,
+    { gd5434_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5434_config
@@ -3778,7 +3778,7 @@ const device_t gd5434_pci_device =
     gd54xx_init, 
     gd54xx_close, 
     NULL,
-    gd5434_available,
+    { gd5434_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5434_config
@@ -3792,7 +3792,7 @@ const device_t gd5436_pci_device =
     gd54xx_init, 
     gd54xx_close, 
     NULL,
-    gd5436_available,
+    { gd5436_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5434_config
@@ -3806,7 +3806,7 @@ const device_t gd5440_onboard_pci_device =
     gd54xx_init,
     gd54xx_close, 
     NULL,
-    NULL,
+    { NULL },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5440_onboard_config
@@ -3820,7 +3820,7 @@ const device_t gd5440_pci_device =
     gd54xx_init,
     gd54xx_close, 
     NULL,
-    gd5440_available,
+    { gd5440_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5428_config
@@ -3834,7 +3834,7 @@ const device_t gd5446_pci_device =
     gd54xx_init,
     gd54xx_close, 
     NULL,
-    gd5446_available,
+    { gd5446_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5434_config
@@ -3848,7 +3848,7 @@ const device_t gd5446_stb_pci_device =
     gd54xx_init,
     gd54xx_close, 
     NULL,
-    gd5446_stb_available,
+    { gd5446_stb_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5434_config
@@ -3862,7 +3862,7 @@ const device_t gd5480_pci_device =
     gd54xx_init, 
     gd54xx_close, 
     NULL,
-    gd5480_available,
+    { gd5480_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     gd5434_config

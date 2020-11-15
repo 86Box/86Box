@@ -232,6 +232,6 @@ const device_t f82c710_device = {
 	0,
 	0,
 	f82c710_init, f82c710_close, NULL,
-	NULL, NULL, NULL,
+	{ NULL }, NULL, NULL,
 	NULL
 };

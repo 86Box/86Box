@@ -50,39 +50,38 @@ int		scsi_card_last = 0;
 
 
 typedef const struct {
-    const char		*name;
     const char		*internal_name;
     const device_t	*device;
 } SCSI_CARD;
 
 
 static SCSI_CARD scsi_cards[] = {
-    { "None",				"none",		NULL,			},
-    { "[ISA] Adaptec AHA-154xA",	"aha154xa",	&aha154xa_device,	},
-    { "[ISA] Adaptec AHA-154xB",	"aha154xb",	&aha154xb_device,	},
-    { "[ISA] Adaptec AHA-154xC",	"aha154xc",	&aha154xc_device,	},
-    { "[ISA] Adaptec AHA-154xCF",	"aha154xcf",	&aha154xcf_device,	},
-    { "[ISA] BusLogic BT-542B",		"bt542b",	&buslogic_542b_1991_device,	},
-    { "[ISA] BusLogic BT-542BH",	"bt542bh",	&buslogic_device,	},
-    { "[ISA] BusLogic BT-545S",		"bt545s",	&buslogic_545s_device,	},
-    { "[ISA] Longshine LCS-6821N",	"lcs6821n",	&scsi_lcs6821n_device,	},
-    { "[ISA] Rancho RT1000B",		"rt1000b",	&scsi_rt1000b_device,	},
-    { "[ISA] Trantor T130B",		"t130b",	&scsi_t130b_device,	},
+    { "none",		NULL,			},
+    { "aha154xa",	&aha154xa_device,	},
+    { "aha154xb",	&aha154xb_device,	},
+    { "aha154xc",	&aha154xc_device,	},
+    { "aha154xcf",	&aha154xcf_device,	},
+    { "bt542b",		&buslogic_542b_1991_device,	},
+    { "bt542bh",	&buslogic_device,	},
+    { "bt545s",		&buslogic_545s_device,	},
+    { "lcs6821n",	&scsi_lcs6821n_device,	},
+    { "rt1000b",	&scsi_rt1000b_device,	},
+    { "t130b",		&scsi_t130b_device,	},
 #ifdef WALTJE
-    { "[ISA] Sumo SCSI-AT",		"scsiat",	&scsi_scsiat_device,	},
-    { "[ISA] Generic WDC33C93",		"wd33c93",	&scsi_wd33c93_device,	},
+    { "scsiat",		&scsi_scsiat_device,	},
+    { "wd33c93",	&scsi_wd33c93_device,	},
 #endif
-    { "[MCA] Adaptec AHA-1640",		"aha1640",	&aha1640_device,	},
-    { "[MCA] BusLogic BT-640A",		"bt640a",	&buslogic_640a_device,	},
-    { "[MCA] IBM PS/2 SCSI",		"spock",	&spock_device,		},
-    { "[PCI] BusLogic BT-958D",		"bt958d",	&buslogic_pci_device,	},
-    { "[PCI] NCR 53C810",		"ncr53c810",	&ncr53c810_pci_device,	},
-    { "[PCI] NCR 53C825A",		"ncr53c825a",	&ncr53c825a_pci_device,	},
-    { "[PCI] NCR 53C860",		"ncr53c860",	&ncr53c860_pci_device,	},
-    { "[PCI] NCR 53C875",		"ncr53c875",	&ncr53c875_pci_device,	},
-    { "[PCI] Tekram DC-390",		"dc390",	&dc390_pci_device,	},
-    { "[VLB] BusLogic BT-445S",		"bt445s",	&buslogic_445s_device,	},
-    { "",				"",		NULL,			},
+    { "aha1640",	&aha1640_device,	},
+    { "bt640a",		&buslogic_640a_device,	},
+    { "spock",		&spock_device,		},
+    { "bt958d",		&buslogic_pci_device,	},
+    { "ncr53c810",	&ncr53c810_pci_device,	},
+    { "ncr53c825a",	&ncr53c825a_pci_device,	},
+    { "ncr53c860",	&ncr53c860_pci_device,	},
+    { "ncr53c875",	&ncr53c875_pci_device,	},
+    { "dc390",		&dc390_pci_device,	},
+    { "bt445s",		&buslogic_445s_device,	},
+    { "",		NULL,			},
 };
 
 
@@ -93,13 +92,6 @@ scsi_card_available(int card)
 	return(device_available(scsi_cards[card].device));
 
     return(1);
-}
-
-
-char *
-scsi_card_getname(int card)
-{
-    return((char *) scsi_cards[card].name);
 }
 
 

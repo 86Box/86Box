@@ -200,7 +200,7 @@ void wss_speed_changed(void *p)
 static const device_config_t wss_config[] =
 {
         {
-                "base", "Address", CONFIG_HEX16, "", 0x530,
+                "base", "Address", CONFIG_HEX16, "", 0x530, "", { 0 },
                 {
                         {
                                 "0x530", 0x530
@@ -232,7 +232,7 @@ const device_t wss_device =
         "Windows Sound System",
         DEVICE_ISA | DEVICE_AT, 0,
         wss_init, wss_close, NULL,
-        NULL,
+        { NULL },
         wss_speed_changed,
         NULL,
         wss_config
@@ -243,7 +243,7 @@ const device_t ncr_business_audio_device =
         "NCR Business Audio",
         DEVICE_MCA, 0,
         ncr_audio_init, wss_close, NULL,
-        NULL,
+        { NULL },
         wss_speed_changed,
         NULL,
         NULL

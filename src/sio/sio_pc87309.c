@@ -477,7 +477,7 @@ const device_t pc87309_device = {
     0,
     0xe0,
     pc87309_init, pc87309_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -487,6 +487,6 @@ const device_t pc87309_15c_device = {
     0,
     0x1e0,
     pc87309_init, pc87309_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

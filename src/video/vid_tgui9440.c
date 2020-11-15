@@ -1795,7 +1795,7 @@ const device_t tgui9400cxi_device =
         tgui_init,
         tgui_close,
 	NULL,
-        tgui9400cxi_available,
+        { tgui9400cxi_available },
         tgui_speed_changed,
         tgui_force_redraw,
         tgui9440_config
@@ -1809,7 +1809,7 @@ const device_t tgui9440_vlb_device =
         tgui_init,
         tgui_close,
 	NULL,
-        tgui9440_available,
+        { tgui9440_available },
         tgui_speed_changed,
         tgui_force_redraw,
         tgui9440_config
@@ -1823,7 +1823,7 @@ const device_t tgui9440_pci_device =
         tgui_init,
         tgui_close,
 	NULL,
-        tgui9440_available,
+        { tgui9440_available },
         tgui_speed_changed,
         tgui_force_redraw,
         tgui9440_config

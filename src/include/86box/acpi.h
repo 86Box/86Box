@@ -75,7 +75,8 @@ typedef struct
 typedef struct
 {
     acpi_regs_t		regs;
-    uint8_t		gporeg_default[4];
+    uint8_t		gpireg2_default, pad[3],
+			gporeg_default[4];
     uint16_t		io_base, aux_io_base;
     int			vendor,
 			slot, irq_mode,
@@ -102,6 +103,7 @@ extern void		acpi_set_slot(acpi_t *dev, int slot);
 extern void		acpi_set_irq_mode(acpi_t *dev, int irq_mode);
 extern void		acpi_set_irq_pin(acpi_t *dev, int irq_pin);
 extern void		acpi_set_irq_line(acpi_t *dev, int irq_line);
+extern void		acpi_set_gpireg2_default(acpi_t *dev, uint8_t gpireg2_default);
 extern void		acpi_set_nvr(acpi_t *dev, nvr_t *nvr);
 
 #ifdef __cplusplus

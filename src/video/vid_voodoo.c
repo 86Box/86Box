@@ -7912,7 +7912,7 @@ const device_t voodoo_device =
         voodoo_init,
         voodoo_close,
 	NULL,
-        NULL,
+        { NULL },
         voodoo_speed_changed,
         NULL,
         voodoo_config

@@ -743,7 +743,7 @@ wd_close(void *priv)
 static const device_config_t wd8003_config[] =
 {
 	{
-		"base", "Address", CONFIG_HEX16, "", 0x300,
+		"base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
 		{
 			{
 				"0x240", 0x240
@@ -763,7 +763,7 @@ static const device_config_t wd8003_config[] =
 		},
 	},
 	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 3,
+		"irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
 		{
 			{
 				"IRQ 2", 2
@@ -783,7 +783,7 @@ static const device_config_t wd8003_config[] =
 		},
 	},
 	{
-		"ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000,
+		"ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000, "", { 0 },
 		{
 			{
 				"C800", 0xC8000
@@ -819,7 +819,7 @@ static const device_config_t wd8003_config[] =
 static const device_config_t wd8003eb_config[] =
 {
 	{
-		"base", "Address", CONFIG_HEX16, "", 0x280,
+		"base", "Address", CONFIG_HEX16, "", 0x280, "", { 0 },
 		{
 			{
 				"0x200", 0x200
@@ -857,7 +857,7 @@ static const device_config_t wd8003eb_config[] =
 		},
 	},
 	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 3,
+		"irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
 		{
 			{
 				"IRQ 2/9", 9
@@ -877,7 +877,7 @@ static const device_config_t wd8003eb_config[] =
 		},
 	},
 	{
-		"ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000,
+		"ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000, "", { 0 },
 		{
 			{
 				"C000", 0xC0000
@@ -909,7 +909,7 @@ static const device_config_t wd8003eb_config[] =
 		},
 	},
 	{
-		"ram_size", "RAM size", CONFIG_SELECTION, "", 8192,
+		"ram_size", "RAM size", CONFIG_SELECTION, "", 8192, "", { 0 },
 		{
 			{
 				"8 kB", 8192
@@ -935,7 +935,7 @@ static const device_config_t wd8003eb_config[] =
 static const device_config_t wd8013_config[] =
 {
 	{
-		"base", "Address", CONFIG_HEX16, "", 0x280,
+		"base", "Address", CONFIG_HEX16, "", 0x280, "", { 0 },
 		{
 			{
 				"0x200", 0x200
@@ -973,7 +973,7 @@ static const device_config_t wd8013_config[] =
 		},
 	},
 	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 3,
+		"irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
 		{
 			{
 				"IRQ 2/9", 9
@@ -1005,7 +1005,7 @@ static const device_config_t wd8013_config[] =
 		},
 	},
 	{
-		"ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000,
+		"ram_addr", "RAM address", CONFIG_HEX20, "", 0xD0000, "", { 0 },
 		{
 			{
 				"C000", 0xC0000
@@ -1037,7 +1037,7 @@ static const device_config_t wd8013_config[] =
 		},
 	},
 	{
-		"ram_size", "RAM size", CONFIG_SELECTION, "", 16384,
+		"ram_size", "RAM size", CONFIG_SELECTION, "", 16384, "", { 0 },
 		{
 			{
 				"16 kB", 16384
@@ -1074,7 +1074,7 @@ const device_t wd8003e_device = {
     DEVICE_ISA,
     WD8003E,
     wd_init, wd_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     wd8003_config
 };
 
@@ -1083,7 +1083,7 @@ const device_t wd8003eb_device = {
     DEVICE_ISA,
     WD8003EB,
     wd_init, wd_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     wd8003eb_config
 };
 
@@ -1092,7 +1092,7 @@ const device_t wd8013ebt_device = {
     DEVICE_ISA,
     WD8013EBT,
     wd_init, wd_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     wd8013_config
 };
 
@@ -1101,7 +1101,7 @@ const device_t wd8003eta_device = {
     DEVICE_MCA,
     WD8003ETA,
     wd_init, wd_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     mca_mac_config
 };
 
@@ -1110,6 +1110,6 @@ const device_t wd8003ea_device = {
     DEVICE_MCA,
     WD8003EA,
     wd_init, wd_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     mca_mac_config
 };

@@ -1129,7 +1129,7 @@ vid_init(tandy_t *dev)
 
 static const device_config_t vid_config[] = {
     {
-	"display_type", "Display type", CONFIG_SELECTION, "", TANDY_RGB,
+	"display_type", "Display type", CONFIG_SELECTION, "", TANDY_RGB, "", { 0 },
 	{
 		{
 			"RGB", TANDY_RGB
@@ -1152,7 +1152,7 @@ static const device_t vid_device = {
     "Tandy 1000",
     0, 0,
     NULL, vid_close, NULL,
-    NULL,
+    { NULL },
     vid_speed_changed,
     NULL,
     vid_config
@@ -1162,7 +1162,7 @@ static const device_t vid_device_hx = {
     "Tandy 1000 HX",
     0, 0,
     NULL, vid_close, NULL,
-    NULL,
+    { NULL },
     vid_speed_changed,
     NULL,
     vid_config
@@ -1172,7 +1172,7 @@ static const device_t vid_device_sl = {
     "Tandy 1000SL2",
     0, 1,
     NULL, vid_close, NULL,
-    NULL,
+    { NULL },
     vid_speed_changed,
     NULL,
     NULL
@@ -1330,7 +1330,7 @@ static const device_t eep_1000hx_device = {
     "Tandy 1000HX EEPROM",
     0, TYPE_TANDY1000HX,
     eep_init, eep_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -1339,7 +1339,7 @@ static const device_t eep_1000sl2_device = {
     "Tandy 1000SL2 EEPROM",
     0, TYPE_TANDY1000SL2,
     eep_init, eep_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 

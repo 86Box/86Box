@@ -1742,7 +1742,7 @@ buslogic_init(const device_t *info)
 
 static const device_config_t BT_ISA_Config[] = {
         {
-		"base", "Address", CONFIG_HEX16, "", 0x334,
+		"base", "Address", CONFIG_HEX16, "", 0x334, "", { 0 },
                 {
                         {
                                 "0x330", 0x330
@@ -1768,7 +1768,7 @@ static const device_config_t BT_ISA_Config[] = {
                 },
         },
         {
-		"irq", "IRQ", CONFIG_SELECTION, "", 11,
+		"irq", "IRQ", CONFIG_SELECTION, "", 11, "", { 0 },
                 {
                         {
                                 "IRQ 9", 9
@@ -1794,7 +1794,7 @@ static const device_config_t BT_ISA_Config[] = {
                 },
         },
         {
-		"dma", "DMA channel", CONFIG_SELECTION, "", 6,
+		"dma", "DMA channel", CONFIG_SELECTION, "", 6, "", { 0 },
                 {
                         {
                                 "DMA 5", 5
@@ -1811,7 +1811,7 @@ static const device_config_t BT_ISA_Config[] = {
                 },
         },
         {
-                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0,
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0, "", { 0 },
                 {
                         {
                                 "Disabled", 0
@@ -1850,7 +1850,7 @@ const device_t buslogic_542b_1991_device = {
 	DEVICE_ISA | DEVICE_AT,
 	CHIP_BUSLOGIC_ISA_542_1991,
 	buslogic_init, x54x_close, NULL,
-	NULL, NULL, NULL,
+	{ NULL }, NULL, NULL,
 	BT_ISA_Config
 };
 
@@ -1859,7 +1859,7 @@ const device_t buslogic_device = {
 	DEVICE_ISA | DEVICE_AT,
 	CHIP_BUSLOGIC_ISA_542,
 	buslogic_init, x54x_close, NULL,
-	NULL, NULL, NULL,
+	{ NULL }, NULL, NULL,
 	BT_ISA_Config
 };
 
@@ -1868,7 +1868,7 @@ const device_t buslogic_545s_device = {
 	DEVICE_ISA | DEVICE_AT,
 	CHIP_BUSLOGIC_ISA,
 	buslogic_init, x54x_close, NULL,
-	NULL, NULL, NULL,
+	{ NULL }, NULL, NULL,
 	BT_ISA_Config
 };
 
@@ -1877,7 +1877,7 @@ const device_t buslogic_640a_device = {
 	DEVICE_MCA,
 	CHIP_BUSLOGIC_MCA,
 	buslogic_init, x54x_close, NULL,
-	NULL, NULL, NULL,
+	{ NULL }, NULL, NULL,
 	NULL
 };
 
@@ -1886,7 +1886,7 @@ const device_t buslogic_445s_device = {
 	DEVICE_VLB,
 	CHIP_BUSLOGIC_VLB,
 	buslogic_init, x54x_close, NULL,
-	NULL, NULL, NULL,
+	{ NULL }, NULL, NULL,
 	BT_ISA_Config
 };
 
@@ -1895,6 +1895,6 @@ const device_t buslogic_pci_device = {
 	DEVICE_PCI,
 	CHIP_BUSLOGIC_PCI,
 	buslogic_init, x54x_close, NULL,
-	NULL, NULL, NULL,
+	{ NULL }, NULL, NULL,
 	BT958D_Config
 };

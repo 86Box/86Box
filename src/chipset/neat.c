@@ -856,6 +856,6 @@ const device_t neat_device = {
     0,
     0,
     neat_init, neat_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

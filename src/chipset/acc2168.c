@@ -106,6 +106,6 @@ const device_t acc2168_device = {
     0,
     0,
     acc2168_init, acc2168_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

@@ -639,7 +639,7 @@ threec503_nic_close(void *priv)
 static const device_config_t threec503_config[] =
 {
     {
-	"base", "Address", CONFIG_HEX16, "", 0x300,
+	"base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
 	{
 		{
 			"0x250", 0x250
@@ -669,11 +669,9 @@ static const device_config_t threec503_config[] =
 			"", 0
 		}
 	},
-	{	{	NULL, { NULL }	}	},
-	{	0, 0, 0		}
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 3,
+	"irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
 	{
 		{
 			"IRQ 2", 2
@@ -691,11 +689,9 @@ static const device_config_t threec503_config[] =
 			"", 0
 		}
 	},
-	{	{	NULL, { NULL }	}	},
-	{	0, 0, 0		}
     },
     {
-	"dma", "DMA", CONFIG_SELECTION, "", 3,
+	"dma", "DMA", CONFIG_SELECTION, "", 3, "", { 0 },
 	{
 		{
 			"DMA 1", 1
@@ -710,21 +706,17 @@ static const device_config_t threec503_config[] =
 			"", 0
 		}
 	},
-	{	{	NULL, { NULL }	}	},
-	{	0, 0, 0		}
     },
     {
-	"mac", "MAC Address", CONFIG_MAC, "", -1,
+	"mac", "MAC Address", CONFIG_MAC, "", -1, "", { 0 },
 	{
 		{
 			"", 0
 		}
 	},
-	{	{	NULL, { NULL }	}	},
-	{	0, 0, 0		}
     },
     {
-	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xCC000,
+	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xCC000, "", { 0 },
 	{
 		{
 			"DC00", 0xDC000
@@ -742,18 +734,9 @@ static const device_config_t threec503_config[] =
 			"", 0
 		}
 	},
-	{	{	NULL, { NULL }	}	},
-	{	0, 0, 0		}
     },
     {
-	"", "", -1, "", -1,
-	{
-		{
-			"", 0
-		}
-	},
-	{	{	NULL, { NULL }	}	},
-	{	0, 0, 0		}
+	"", "", -1
     }
 };
 
@@ -763,6 +746,6 @@ const device_t threec503_device = {
     DEVICE_ISA,
     0,
     threec503_nic_init, threec503_nic_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     threec503_config
 };

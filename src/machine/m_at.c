@@ -171,7 +171,8 @@ machine_at_ibm_init(const machine_t *model)
     return ret;
 }
 
-//IBM AT machines with custom BIOSes
+
+/* IBM AT machines with custom BIOSes */
 int
 machine_at_ibmatquadtel_init(const machine_t *model)
 {
@@ -188,6 +189,7 @@ machine_at_ibmatquadtel_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_ibmatami_init(const machine_t *model)
@@ -206,6 +208,7 @@ machine_at_ibmatami_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_ibmatpx_init(const machine_t *model)
 {
@@ -222,6 +225,7 @@ machine_at_ibmatpx_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_ibmxt286_init(const machine_t *model)
@@ -240,7 +244,6 @@ machine_at_ibmxt286_init(const machine_t *model)
     return ret;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_SIEMENS)
 int
 machine_at_siemens_init(const machine_t *model)
 {
@@ -256,7 +259,7 @@ machine_at_siemens_init(const machine_t *model)
 
     return ret;
 }
-#endif
+
 
 #if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
 int

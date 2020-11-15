@@ -24,7 +24,7 @@ extern "C" {
 
 typedef struct
 {
-    uint8_t		ohci_mmio[4096];
+    uint8_t		uhci_io[32], ohci_mmio[4096];
     uint16_t		uhci_io_base;
     int			uhci_enable, ohci_enable;
     uint32_t		ohci_mem_base;

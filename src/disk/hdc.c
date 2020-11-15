@@ -69,7 +69,7 @@ null_close(void *priv)
 static const device_t null_device = {
     "Null HDC", 0, 0,
     null_init, null_close, NULL,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 
@@ -89,83 +89,37 @@ inthdc_close(void *priv)
 static const device_t inthdc_device = {
     "Internal controller", 0, 0,
     inthdc_init, inthdc_close, NULL,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 
 static const struct {
-    const char		*name;
     const char		*internal_name;
     const device_t	*device;
 } controllers[] = {
-    { "None",						"none",		
-      &null_device			},
-
-    { "Internal controller",				"internal",
-      &inthdc_device			},
-
-    { "[ISA] [MFM] IBM PC Fixed Disk Adapter",		"st506_xt",
-      &st506_xt_xebec_device		},
-
-    { "[ISA] [MFM] DTC-5150X Fixed Disk Adapter",	"st506_xt_dtc5150x",
-      &st506_xt_dtc5150x_device		},
-
-    { "[ISA] [MFM] ST-11M Fixed Disk Adapter",		"st506_xt_st11_m",
-      &st506_xt_st11_m_device		},
-
-    { "[ISA] [MFM] WD1002A-WX1 Fixed Disk Adapter",	"st506_xt_wd1002a_wx1",
-      &st506_xt_wd1002a_wx1_device	},
-
-    { "[ISA] [MFM/RLL] IBM PC/AT Fixed Disk Adapter",	"st506_at",
-      &st506_at_wd1003_device		},
-
-    { "[ISA] [RLL] ST-11R Fixed Disk Adapter",		"st506_xt_st11_r",
-      &st506_xt_st11_r_device		},
-
-    { "[ISA] [RLL] WD1002A-27X Fixed Disk Adapter",	"st506_xt_wd1002a_27x",
-      &st506_xt_wd1002a_27x_device	},
-
-    { "[ISA] [ESDI] PC/AT ESDI Fixed Disk Adapter",	"esdi_at",
-      &esdi_at_wd1007vse1_device	},
-
-    { "[ISA] [IDE] PC/AT IDE Adapter",			"ide_isa",
-      &ide_isa_device			},
-
-    { "[ISA] [IDE] PC/AT IDE Adapter (Dual-Channel)",	"ide_isa_2ch",
-      &ide_isa_2ch_device		},
-
-    { "[ISA] [IDE] PC/AT XTIDE",			"xtide_at",
-      &xtide_at_device			},
-
-    { "[ISA] [IDE] PS/2 AT XTIDE (1.1.5)",		"xtide_at_ps2",
-      &xtide_at_ps2_device		},
-
-    { "[ISA] [IDE] WDXT-150 IDE (XTA) Adapter",		"xta_wdxt150",
-      &xta_wdxt150_device		},
-
-    { "[ISA] [XT IDE] Acculogic XT IDE",		"xtide_acculogic",
-      &xtide_acculogic_device		},
-
-    { "[ISA] [XT IDE] PC/XT XTIDE",			"xtide",
-      &xtide_device			},
-
-    { "[MCA] [ESDI] IBM PS/2 ESDI Fixed Disk Adapter","esdi_mca",
-      &esdi_ps2_device			},
-
-    { "[PCI] [IDE] PCI IDE Adapter",			"ide_pci",
-      &ide_pci_device			},
-
-    { "[PCI] [IDE] PCI IDE Adapter (Dual-Channel)",	"ide_pci_2ch",
-      &ide_pci_2ch_device		},
-
-    { "[VLB] [IDE] PC/AT IDE Adapter",			"vlb_isa",
-      &ide_vlb_device			},
-
-    { "[VLB] [IDE] PC/AT IDE Adapter (Dual-Channel)",	"vlb_isa_2ch",
-      &ide_vlb_2ch_device		},
-
-    { "",						"",
-      NULL				}
+    { "none",			&null_device			},
+    { "internal",		&inthdc_device			},
+    { "st506_xt",		&st506_xt_xebec_device		},
+    { "st506_xt_dtc5150x",	&st506_xt_dtc5150x_device	},
+    { "st506_xt_st11_m",	&st506_xt_st11_m_device		},
+    { "st506_xt_wd1002a_wx1",	&st506_xt_wd1002a_wx1_device	},
+    { "st506_at",		&st506_at_wd1003_device		},
+    { "st506_xt_st11_r",	&st506_xt_st11_r_device		},
+    { "st506_xt_wd1002a_27x",	&st506_xt_wd1002a_27x_device	},
+    { "esdi_at",		&esdi_at_wd1007vse1_device	},
+    { "ide_isa",		&ide_isa_device			},
+    { "ide_isa_2ch",		&ide_isa_2ch_device		},
+    { "xtide_at",		&xtide_at_device		},
+    { "xtide_at_ps2",		&xtide_at_ps2_device		},
+    { "xta_wdxt150",		&xta_wdxt150_device		},
+    { "xtide_acculogic",	&xtide_acculogic_device		},
+    { "xtide",			&xtide_device			},
+    { "esdi_mca",		&esdi_ps2_device		},
+    { "ide_pci",		&ide_pci_device			},
+    { "ide_pci_2ch",		&ide_pci_2ch_device		},
+    { "vlb_isa",		&ide_vlb_device			},
+    { "vlb_isa_2ch",		&ide_vlb_2ch_device		},
+    { "",			NULL				}
 };
 
 
@@ -200,32 +154,9 @@ hdc_reset(void)
 
 
 char *
-hdc_get_name(int hdc)
-{
-    return((char *) controllers[hdc].name);
-}
-
-
-char *
 hdc_get_internal_name(int hdc)
 {
     return((char *) controllers[hdc].internal_name);
-}
-
-
-int
-hdc_get_id(char *s)
-{
-	int c = 0;
-	
-	while (strlen((char *) controllers[c].name))
-	{
-		if (!strcmp((char *) controllers[c].name, s))
-			return c;
-		c++;
-	}
-	
-	return 0;
 }
 
 

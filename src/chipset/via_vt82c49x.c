@@ -311,7 +311,7 @@ const device_t via_vt82c49x_device = {
     0,
     0,
     vt82c49x_init, vt82c49x_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -321,6 +321,6 @@ const device_t via_vt82c49x_ide_device = {
     0,
     1,
     vt82c49x_init, vt82c49x_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

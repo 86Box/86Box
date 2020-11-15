@@ -175,7 +175,7 @@ static int opIRET(uint32_t fetchdat)
                 }
                 else
                 {
-                        x86gpf(NULL,0);
+                        x86gpf_expected(NULL,0);
                         return 1;
                 }
         }
@@ -224,7 +224,7 @@ static int opIRETD(uint32_t fetchdat)
         
         if ((cr0 & 1) && (cpu_state.eflags & VM_FLAG) && (IOPL != 3))
         {
-                x86gpf(NULL,0);
+                x86gpf_expected(NULL,0);
                 return 1;
         }
         if (msw & 1)

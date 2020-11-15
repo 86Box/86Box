@@ -512,7 +512,7 @@ ali1489_init(const device_t *info)
     io_sethandler(0x0fc, 0x0001, ali1489_ide_read, NULL, NULL, ali1489_ide_write, NULL, NULL, dev);
 
     /* Dummy M1489 PCI device */
-    pci_add_card(0, ali1489_pci_read, ali1489_pci_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, ali1489_pci_read, ali1489_pci_write, dev);
 
     ide_pri_disable();
     ide_sec_disable();
@@ -540,7 +540,7 @@ const device_t ali1489_device = {
     ali1489_init,
     ali1489_close,
     ali1489_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL

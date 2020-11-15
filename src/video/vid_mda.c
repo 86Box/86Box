@@ -332,7 +332,7 @@ void mda_speed_changed(void *p)
 static const device_config_t mda_config[] =
 {
         {
-                "rgb_type", "Display type", CONFIG_SELECTION, "", 0,
+                "rgb_type", "Display type", CONFIG_SELECTION, "", 0, "", { 0 },
                 {
                         {
                                 "Default", 0
@@ -362,7 +362,7 @@ const device_t mda_device =
         "MDA",
         DEVICE_ISA, 0,
         mda_standalone_init, mda_close, NULL,
-        NULL,
+        { NULL },
         mda_speed_changed,
         NULL,
 	mda_config

@@ -32,7 +32,7 @@ int codegen_get_instruction_uop(codeblock_t *block, uint32_t pc, int *first_inst
 {
         int c;
         
-        for (c = 0; c < block->ins; c++)
+        for (c = 0; c <= block->ins; c++)
         {
                 if (codegen_instructions[c].pc == pc)
                 {

@@ -417,7 +417,7 @@ rx_timer(void *priv)
 }
 
 
-static void
+static int
 plip_rx(void *priv, uint8_t *buf, int io_len)
 {
     plip_t *dev = (plip_t *) priv;
@@ -426,7 +426,7 @@ plip_rx(void *priv, uint8_t *buf, int io_len)
 
     if (dev->rx_pkt) { /* shouldn't really happen with the RX queue paused */
 	plip_log(3, "PLIP: already have a packet to receive");
-	return;
+	return 0;
     }
 
     if (!(dev->rx_pkt = malloc(io_len))) /* unlikely */
@@ -440,6 +440,8 @@ plip_rx(void *priv, uint8_t *buf, int io_len)
 
     /* Dispatch this packet immediately if we're doing nothing. */
     plip_receive_packet(dev);
+
+    return 1;
 }
 
 
@@ -502,8 +504,8 @@ const lpt_device_t lpt_plip_device = {
 
 const device_t plip_device =
 {
-        "Parallel Line Internet Protocol (Network)",
-        0, 0,
+        "Parallel Line Internet Protocol",
+        DEVICE_LPT, 0,
         plip_net_init, NULL,
-	NULL, NULL, NULL, NULL
+	NULL, { NULL }, NULL, NULL
 };

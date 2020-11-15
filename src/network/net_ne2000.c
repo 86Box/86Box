@@ -1492,7 +1492,7 @@ nic_close(void *priv)
 static const device_config_t ne1000_config[] =
 {
 	{
-		"base", "Address", CONFIG_HEX16, "", 0x300,
+		"base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
 		{
 			{
 				"0x280", 0x280
@@ -1518,7 +1518,7 @@ static const device_config_t ne1000_config[] =
 		},
 	},
 	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 3,
+		"irq", "IRQ", CONFIG_SELECTION, "", 3, "", { 0 },
 		{
 			{
 				"IRQ 2", 2
@@ -1554,7 +1554,7 @@ static const device_config_t ne1000_config[] =
 static const device_config_t ne2000_config[] =
 {
 	{
-		"base", "Address", CONFIG_HEX16, "", 0x300,
+		"base", "Address", CONFIG_HEX16, "", 0x300, "", { 0 },
 		{
 			{
 				"0x280", 0x280
@@ -1580,7 +1580,7 @@ static const device_config_t ne2000_config[] =
 		},
 	},
 	{
-		"irq", "IRQ", CONFIG_SELECTION, "", 10,
+		"irq", "IRQ", CONFIG_SELECTION, "", 10, "", { 0 },
 		{
 			{
 				"IRQ 2", 2
@@ -1609,7 +1609,7 @@ static const device_config_t ne2000_config[] =
 		"mac", "MAC Address", CONFIG_MAC, "", -1
 	},
 	{
-		"bios_addr", "BIOS address", CONFIG_HEX20, "", 0,
+		"bios_addr", "BIOS address", CONFIG_HEX20, "", 0, "", { 0 },
 		{
 			{
 				"Disabled", 0x00000
@@ -1673,7 +1673,7 @@ const device_t ne1000_device = {
     DEVICE_ISA,
     NE2K_NE1000,
     nic_init, nic_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     ne1000_config
 };
 
@@ -1682,7 +1682,7 @@ const device_t ne2000_device = {
     DEVICE_ISA | DEVICE_AT,
     NE2K_NE2000,
     nic_init, nic_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     ne2000_config
 };
 
@@ -1691,7 +1691,7 @@ const device_t ethernext_mc_device = {
     DEVICE_MCA,
     NE2K_ETHERNEXT_MC,
     nic_init, nic_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     mca_mac_config
 };
 
@@ -1700,7 +1700,7 @@ const device_t rtl8019as_device = {
     DEVICE_ISA | DEVICE_AT,
     NE2K_RTL8019AS,
     nic_init, nic_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     rtl8019as_config
 };
 
@@ -1709,6 +1709,6 @@ const device_t rtl8029as_device = {
     DEVICE_PCI,
     NE2K_RTL8029AS,
     nic_init, nic_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     rtl8029as_config
 };

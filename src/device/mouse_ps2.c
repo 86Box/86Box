@@ -325,7 +325,7 @@ ps2_close(void *priv)
 
 static const device_config_t ps2_config[] = {
     {
-	"buttons", "Buttons", CONFIG_SELECTION, "", 2, {
+	"buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
 		{
 			"Two", 2
 		},
@@ -351,6 +351,6 @@ const device_t mouse_ps2_device = {
     DEVICE_PS2,
     MOUSE_TYPE_PS2,
     mouse_ps2_init, ps2_close, NULL,
-    ps2_poll, NULL, NULL,
+    { .poll = ps2_poll }, NULL, NULL,
     ps2_config
 };

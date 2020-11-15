@@ -1238,7 +1238,7 @@ t130b_available(void)
 
 static const device_config_t ncr5380_mmio_config[] = {
         {
-                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000,
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000, "", { 0 },
                 {
                         {
                                 "C800H", 0xc8000
@@ -1259,7 +1259,7 @@ static const device_config_t ncr5380_mmio_config[] = {
 
         },
         {
-		"irq", "IRQ", CONFIG_SELECTION, "", 5,
+		"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
                 {
                         {
                                 "IRQ 3", 3
@@ -1279,7 +1279,7 @@ static const device_config_t ncr5380_mmio_config[] = {
 
 static const device_config_t rancho_config[] = {
         {
-                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000,
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000, "", { 0 },
                 {
                         {
                                 "C800H", 0xc8000
@@ -1300,7 +1300,7 @@ static const device_config_t rancho_config[] = {
 
         },
         {
-		        "irq", "IRQ", CONFIG_SELECTION, "", 5,
+		        "irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
                 {
                         {
                                 "IRQ 3", 3
@@ -1314,7 +1314,7 @@ static const device_config_t rancho_config[] = {
                 },
         },
         {
-		        "bios_ver", "BIOS Version", CONFIG_SELECTION, "", 1,
+		        "bios_ver", "BIOS Version", CONFIG_SELECTION, "", 1, "", { 0 },
                 {
                         {
                                 "8.20R", 1
@@ -1334,7 +1334,7 @@ static const device_config_t rancho_config[] = {
 
 static const device_config_t t130b_config[] = {
         {
-                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000,
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000, "", { 0 },
                 {
                         {
                                 "Disabled", 0
@@ -1357,7 +1357,7 @@ static const device_config_t t130b_config[] = {
                 },
         },
         {
-		"base", "Address", CONFIG_HEX16, "", 0x0350,
+		"base", "Address", CONFIG_HEX16, "", 0x0350, "", { 0 },
                 {
                         {
                                 "240H", 0x0240
@@ -1377,7 +1377,7 @@ static const device_config_t t130b_config[] = {
                 },
         },
         {
-		"irq", "IRQ", CONFIG_SELECTION, "", 5,
+		"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
                 {
                         {
                                 "IRQ 3", 3
@@ -1405,7 +1405,7 @@ const device_t scsi_lcs6821n_device =
     DEVICE_ISA,
     0,
     ncr_init, ncr_close, NULL,
-    lcs6821n_available,
+    { lcs6821n_available },
     NULL, NULL,
     ncr5380_mmio_config
 };
@@ -1416,7 +1416,7 @@ const device_t scsi_rt1000b_device =
     DEVICE_ISA,
     1,
     ncr_init, ncr_close, NULL,
-    rt1000b_available,
+    { rt1000b_available },
     NULL, NULL,
     rancho_config
 };
@@ -1427,7 +1427,7 @@ const device_t scsi_t130b_device =
     DEVICE_ISA,
     2,
     ncr_init, ncr_close, NULL,
-    t130b_available,
+    { t130b_available },
     NULL, NULL,
     t130b_config
 };

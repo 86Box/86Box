@@ -376,6 +376,6 @@ const device_t w83787f_device = {
     0,
     0x09,
     w83787f_init, w83787f_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

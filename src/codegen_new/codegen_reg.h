@@ -325,17 +325,21 @@ static inline ir_reg_t codegen_reg_read(int reg)
         ir_reg_t ireg;
         reg_version_t *version;
         
+#ifndef RELEASE_BUILD
         if (IREG_GET_REG(reg) == IREG_INVALID)
                 fatal("codegen_reg_read - IREG_INVALID\n");
-        
+#endif
         ireg.reg = reg;
         ireg.version = reg_last_version[IREG_GET_REG(reg)];
         version = &reg_version[IREG_GET_REG(ireg.reg)][ireg.version];
         version->flags = 0;
         version->refcount++;
+#ifndef RELEASE_BUILD
         if (!version->refcount)
                 fatal("codegen_reg_read - refcount overflow\n");
-        else if (version->refcount > REG_REFCOUNT_MAX)
+        else
+#endif
+	if (version->refcount > REG_REFCOUNT_MAX)
                 CPU_BLOCK_END();
         if (version->refcount > max_version_refcount)
                 max_version_refcount = version->refcount;
@@ -350,9 +354,10 @@ static inline ir_reg_t codegen_reg_write(int reg, int uop_nr)
         int last_version = reg_last_version[IREG_GET_REG(reg)];
         reg_version_t *version;
         
+#ifndef RELEASE_BUILD
         if (IREG_GET_REG(reg) == IREG_INVALID)
                 fatal("codegen_reg_write - IREG_INVALID\n");
-
+#endif
         ireg.reg = reg;
         ireg.version = last_version + 1;
         
@@ -364,9 +369,12 @@ static inline ir_reg_t codegen_reg_write(int reg, int uop_nr)
         }
         
         reg_last_version[IREG_GET_REG(reg)]++;
+#ifndef RELEASE_BUILD
         if (!reg_last_version[IREG_GET_REG(reg)])
                 fatal("codegen_reg_write - version overflow\n");
-        else if (reg_last_version[IREG_GET_REG(reg)] > REG_VERSION_MAX)
+        else
+#endif
+	if (reg_last_version[IREG_GET_REG(reg)] > REG_VERSION_MAX)
                 CPU_BLOCK_END();
         if (reg_last_version[IREG_GET_REG(reg)] > max_version_refcount)
                 max_version_refcount = reg_last_version[IREG_GET_REG(reg)];
@@ -394,8 +402,15 @@ void codegen_reg_flush_invalidate(struct ir_data_t *ir, codeblock_t *block);
 /*Register ir_reg usage for this uOP. This ensures that required registers aren't evicted*/
 void codegen_reg_alloc_register(ir_reg_t dest_reg_a, ir_reg_t src_reg_a, ir_reg_t src_reg_b, ir_reg_t src_reg_c);
 
+#ifdef CODEGEN_BACKEND_HAS_MOV_IMM
+int codegen_reg_is_loaded(ir_reg_t ir_reg);
+void codegen_reg_write_imm(codeblock_t *block, ir_reg_t ir_reg, uint32_t imm_data);
+#endif
+
 ir_host_reg_t codegen_reg_alloc_read_reg(codeblock_t *block, ir_reg_t ir_reg, int *host_reg_idx);
 ir_host_reg_t codegen_reg_alloc_write_reg(codeblock_t *block, ir_reg_t ir_reg);
+
+void codegen_reg_rename(codeblock_t *block, ir_reg_t src, ir_reg_t dst);
 
 void codegen_reg_mark_as_required();
 void codegen_reg_process_dead_list(struct ir_data_t *ir);

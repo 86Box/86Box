@@ -138,12 +138,10 @@ extern void	(*video_recalctimings)(void);
 
 /* Table functions. */
 extern int	video_card_available(int card);
-extern char	*video_card_getname(int card);
 #ifdef EMU_DEVICE_H
 extern const device_t	*video_card_getdevice(int card);
 #endif
 extern int	video_card_has_config(int card);
-extern int	video_card_getid(char *s);
 extern char	*video_get_internal_name(int card);
 extern int	video_get_video_from_internal_name(char *s);
 extern int 	video_is_mda(void);

@@ -923,7 +923,7 @@ const device_t via_vt82c586b_device =
     pipc_init, 
     pipc_close, 
     pipc_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -937,7 +937,7 @@ const device_t via_vt82c596_device =
     pipc_init, 
     pipc_close, 
     pipc_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -952,7 +952,7 @@ const device_t via_vt82c596b_device =
     pipc_init, 
     pipc_close, 
     pipc_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -967,7 +967,7 @@ const device_t via_vt82c686a_device =
     pipc_init, 
     pipc_close, 
     pipc_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL
@@ -982,7 +982,7 @@ const device_t via_vt82c686b_device =
     pipc_init, 
     pipc_close, 
     pipc_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL

@@ -1151,7 +1151,7 @@ spock_available(void)
 
 static const device_config_t spock_rom_config[] = {
         {
-		        "bios_ver", "BIOS Version", CONFIG_SELECTION, "", 1,
+		        "bios_ver", "BIOS Version", CONFIG_SELECTION, "", 1, "", { 0 },
                 {
                         {
                                 "1991 BIOS (>1GB)", 1
@@ -1175,7 +1175,7 @@ const device_t spock_device =
 	DEVICE_MCA,
 	0,
 	spock_init, spock_close, NULL,
-	spock_available,
+	{ spock_available },
 	NULL, NULL,
 	spock_rom_config
 };

@@ -265,7 +265,7 @@ static const device_t snd_device = {
     "PS/1 Audio Card",
     0, 0,
     snd_init, snd_close, NULL,
-    NULL,
+    { NULL },
     NULL,
     NULL
 };

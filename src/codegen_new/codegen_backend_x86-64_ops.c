@@ -521,6 +521,26 @@ void host_x86_MOV8_ABS_IMM(codeblock_t *block, void *p, uint32_t imm_data)
                 codegen_addbyte(block, imm_data);
         }
 }
+void host_x86_MOV16_ABS_IMM(codeblock_t *block, void *p, uint16_t imm_data)
+{
+        int64_t offset = (uintptr_t)p - (((uintptr_t)&cpu_state) + 128);
+
+        if (offset >= -128 && offset < 127)
+        {
+                codegen_alloc_bytes(block, 6);
+                codegen_addbyte4(block, 0x66, 0xc7, 0x45, offset); /*MOV offset[RBP], imm_data*/
+                codegen_addword(block, imm_data);
+        }
+        else
+        {
+                if ((uintptr_t)p >> 32)
+                        fatal("host_x86_MOV32_ABS_IMM - out of range %p\n", p);
+                codegen_alloc_bytes(block, 10);
+                codegen_addbyte4(block, 0x66, 0xc7, 0x04, 0x25); /*MOV p, imm_data*/
+                codegen_addlong(block, (uint32_t)(uintptr_t)p);
+                codegen_addword(block, imm_data);
+        }
+}
 void host_x86_MOV32_ABS_IMM(codeblock_t *block, void *p, uint32_t imm_data)
 {
         int64_t offset = (uintptr_t)p - (((uintptr_t)&cpu_state) + 128);
@@ -943,6 +963,30 @@ void host_x86_MOV64_BASE_OFFSET_REG(codeblock_t *block, int base_reg, int offset
         }
         else
                 fatal("MOV64_BASE_OFFSET_REG - offset %i\n", offset);
+}
+
+void host_x86_MOV32_BASE_OFFSET_IMM(codeblock_t *block, int base_reg, int offset, uint32_t imm_data)
+{
+        if (base_reg & 8)
+                fatal("host_x86_MOV32_BASE_OFFSET_IMM reg & 8\n");
+
+        if (offset >= -128 && offset < 127)
+        {
+                if (base_reg == REG_RSP)
+                {
+                        codegen_alloc_bytes(block, 8);
+                        codegen_addbyte4(block, 0xc7, 0x40 | base_reg, 0x24, offset);
+                        codegen_addlong(block, imm_data);
+                }
+                else
+                {
+                        codegen_alloc_bytes(block, 7);
+                        codegen_addbyte3(block, 0xc7, 0x40 | base_reg, offset);
+                        codegen_addlong(block, imm_data);
+                }
+        }
+        else
+                fatal("MOV32_BASE_OFFSET_IMM - offset %i\n", offset);
 }
 
 void host_x86_MOV8_REG_IMM(codeblock_t *block, int reg, uint16_t imm_data)

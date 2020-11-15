@@ -268,6 +268,6 @@ const device_t via_vt82c686_sio_device = {
     0,
     0,
     vt82c686_init, vt82c686_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

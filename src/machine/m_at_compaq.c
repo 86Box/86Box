@@ -673,7 +673,7 @@ compaq_plasma_speed_changed(void *p)
 const device_config_t compaq_plasma_config[] =
 {
         {
-                "display_type", "Display type", CONFIG_SELECTION, "", CGA_RGB,
+                "display_type", "Display type", CONFIG_SELECTION, "", CGA_RGB, "", { 0 },
                 {
                         {
                                 "RGB", CGA_RGB
@@ -687,7 +687,7 @@ const device_config_t compaq_plasma_config[] =
                 }
         },
         {
-                "composite_type", "Composite type", CONFIG_SELECTION, "", COMPOSITE_OLD,
+                "composite_type", "Composite type", CONFIG_SELECTION, "", COMPOSITE_OLD, "", { 0 },
                 {
                         {
                                 "Old", COMPOSITE_OLD
@@ -701,7 +701,7 @@ const device_config_t compaq_plasma_config[] =
                 }
         },
         {
-                "rgb_type", "RGB type", CONFIG_SELECTION, "", 0,
+                "rgb_type", "RGB type", CONFIG_SELECTION, "", 0, "", { 0 },
                 {
                         {
                                 "Color", 0
@@ -736,7 +736,7 @@ static const device_t compaq_plasma_device =
         compaq_plasma_init,
         compaq_plasma_close,
         NULL,
-	NULL,
+	{ NULL },
         compaq_plasma_speed_changed,
         NULL,
         compaq_plasma_config

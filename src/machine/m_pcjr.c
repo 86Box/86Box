@@ -763,7 +763,7 @@ speed_changed(void *priv)
 
 static const device_config_t pcjr_config[] = {
     {
-	"display_type", "Display type", CONFIG_SELECTION, "", PCJR_RGB,
+	"display_type", "Display type", CONFIG_SELECTION, "", PCJR_RGB, "", { 0 },
 	{
 		{
 			"RGB", PCJR_RGB
@@ -786,7 +786,7 @@ static const device_t pcjr_device = {
     "IBM PCjr",
     0, 0,
     NULL, NULL, NULL,
-    NULL,
+    { NULL },
     speed_changed,
     NULL,
     pcjr_config

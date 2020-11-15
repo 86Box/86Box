@@ -844,7 +844,7 @@ const device_t adgold_device =
         adgold_init,
         adgold_close,
 	NULL,
-        NULL,
+        { NULL },
         NULL,
         NULL,
         adgold_config

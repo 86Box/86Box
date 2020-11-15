@@ -59,7 +59,7 @@ machine_at_6gxu_init(const machine_t *model)
     pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4); /* On-Board SCSI. Not emulated at the moment */
-    pci_register_slot(0x01, PCI_CARD_SPECIAL,     1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&i440gx_device);
     device_add(&piix4e_device);
@@ -99,7 +99,7 @@ machine_at_s2dge_init(const machine_t *model)
     pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      1, 2, 3, 4);
-    pci_register_slot(0x01, PCI_CARD_SPECIAL,     1, 2, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 0, 0);
 
     device_add(&i440gx_device);
     device_add(&piix4e_device);
@@ -137,7 +137,7 @@ machine_at_fw6400gx_init(const machine_t *model)
     pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x0E, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x0F, PCI_CARD_NORMAL,      4, 1, 2, 3);
-    pci_register_slot(0x01, PCI_CARD_SPECIAL,     1, 2, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 0, 0);
 
     device_add(&i440gx_device);
     device_add(&piix4e_device);

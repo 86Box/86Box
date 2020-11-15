@@ -292,5 +292,5 @@ const device_t ati68860_ramdac_device =
         "ATI-68860 RAMDAC",
         0, 0,
         ati68860_ramdac_init, ati68860_ramdac_close,
-	NULL, NULL, NULL, NULL
+	NULL, { NULL }, NULL, NULL
 };

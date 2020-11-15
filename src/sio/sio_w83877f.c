@@ -473,7 +473,7 @@ const device_t w83877f_device = {
     0,
     0x0a05,
     w83877f_init, w83877f_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -483,7 +483,7 @@ const device_t w83877f_president_device = {
     0,
     0x0a04,
     w83877f_init, w83877f_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -493,7 +493,7 @@ const device_t w83877tf_device = {
     0,
     0x0c04,
     w83877f_init, w83877f_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -503,6 +503,6 @@ const device_t w83877tf_acorp_device = {
     0,
     0x0c05,
     w83877f_init, w83877f_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

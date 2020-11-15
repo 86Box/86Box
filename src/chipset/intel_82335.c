@@ -206,6 +206,6 @@ const device_t intel_82335_device = {
     0,
     0,
     intel_82335_init, intel_82335_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

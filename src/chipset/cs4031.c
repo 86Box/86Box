@@ -195,6 +195,6 @@ const device_t cs4031_device = {
     0,
     0,
     cs4031_init, cs4031_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

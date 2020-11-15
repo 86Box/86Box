@@ -70,30 +70,31 @@ uint8_t MIDI_evt_len[256] = {
 
 typedef struct
 {
-    const char *name, *internal_name;
+    const char *internal_name;
     const device_t *device;
 } MIDI_DEVICE, MIDI_IN_DEVICE;
 
 static const MIDI_DEVICE devices[] =
 {
-    {"None",                        "none",                         NULL},
+    { "none",				NULL			},
 #ifdef USE_FLUIDSYNTH
-    {"FluidSynth",                  "fluidsynth",                   &fluidsynth_device},
+    { "fluidsynth",			&fluidsynth_device	},
 #endif
 #ifdef USE_MUNT
-    {"Roland MT-32 Emulation",      "mt32",                         &mt32_device},
-    {"Roland CM-32L Emulation",     "cm32l",                        &cm32l_device},
+    { "mt32",				&mt32_device		},
+    { "cm32l",				&cm32l_device		},
 #endif
-    {SYSTEM_MIDI_NAME,              SYSTEM_MIDI_INTERNAL_NAME,      &system_midi_device},
-    {"", "", NULL}
+    { SYSTEM_MIDI_INTERNAL_NAME,	&system_midi_device	},
+    { "",				NULL			}
 };
 
 static const MIDI_IN_DEVICE midi_in_devices[] =
 {
-    {"None",                        "none",                         NULL},
-    {MIDI_INPUT_NAME,              MIDI_INPUT_INTERNAL_NAME,      &midi_input_device},
-    {"", "", NULL}
+    { "none",				NULL			},
+    { MIDI_INPUT_INTERNAL_NAME,		&midi_input_device	},
+    { "",				NULL			}
 };
+
 
 int
 midi_device_available(int card)
@@ -102,13 +103,6 @@ midi_device_available(int card)
 	return device_available(devices[card].device);
 
     return 1;
-}
-
-
-char *
-midi_device_getname(int card)
-{
-    return (char *) devices[card].name;
 }
 
 
@@ -240,17 +234,13 @@ midi_in_device_available(int card)
     return 1;
 }
 
-char *
-midi_in_device_getname(int card)
-{
-    return (char *) midi_in_devices[card].name;
-}
 
 const device_t *
 midi_in_device_getdevice(int card)
 {
     return midi_in_devices[card].device;
 }
+
 
 int
 midi_in_device_has_config(int card)

@@ -118,6 +118,10 @@ extern void	do_start(void);
 extern void	do_stop(void);
 
 
+/* Power off. */
+extern void	plat_power_off(void);
+
+
 /* Platform-specific device support. */
 extern void	floppy_mount(uint8_t id, wchar_t *fn, uint8_t wp);
 extern void	floppy_eject(uint8_t id);

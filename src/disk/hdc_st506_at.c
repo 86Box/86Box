@@ -773,5 +773,5 @@ const device_t st506_at_wd1003_device = {
     DEVICE_ISA | DEVICE_AT,
     0,
     mfm_init, mfm_close, NULL,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };

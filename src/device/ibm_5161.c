@@ -106,7 +106,7 @@ const device_t ibm_5161_device =
     ibm_5161_init,
     ibm_5161_close,
     NULL,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL

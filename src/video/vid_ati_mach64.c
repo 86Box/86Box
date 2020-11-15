@@ -3456,7 +3456,7 @@ void mach64_force_redraw(void *p)
 static const device_config_t mach64gx_config[] =
 {
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 4,
+                "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
                 {
                         {
                                 "1 MB", 1
@@ -3480,7 +3480,7 @@ static const device_config_t mach64gx_config[] =
 static const device_config_t mach64vt2_config[] =
 {
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 4,
+                "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
                 {
                         {
                                 "2 MB", 2
@@ -3504,7 +3504,7 @@ const device_t mach64gx_isa_device =
         DEVICE_AT | DEVICE_ISA,
 	0,
         mach64gx_init, mach64_close, NULL,
-        mach64gx_isa_available,
+        { mach64gx_isa_available },
         mach64_speed_changed,
         mach64_force_redraw,
         mach64gx_config
@@ -3516,7 +3516,7 @@ const device_t mach64gx_vlb_device =
         DEVICE_VLB,
 	0,
         mach64gx_init, mach64_close, NULL,
-        mach64gx_vlb_available,
+        { mach64gx_vlb_available },
         mach64_speed_changed,
         mach64_force_redraw,
         mach64gx_config
@@ -3528,7 +3528,7 @@ const device_t mach64gx_pci_device =
         DEVICE_PCI,
 	0,
         mach64gx_init, mach64_close, NULL,
-        mach64gx_available,
+        { mach64gx_available },
         mach64_speed_changed,
         mach64_force_redraw,
         mach64gx_config
@@ -3540,7 +3540,7 @@ const device_t mach64vt2_device =
         DEVICE_PCI,
 	0,
         mach64vt2_init, mach64_close, NULL,
-        mach64vt2_available,
+        { mach64vt2_available },
         mach64_speed_changed,
         mach64_force_redraw,
         mach64vt2_config

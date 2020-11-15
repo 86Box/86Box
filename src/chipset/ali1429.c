@@ -189,6 +189,6 @@ const device_t ali1429_device = {
     0,
     0,
     ali1429_init, ali1429_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

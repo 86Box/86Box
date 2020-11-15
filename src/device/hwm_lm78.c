@@ -560,7 +560,7 @@ const device_t lm78_device = {
     DEVICE_ISA,
     0x290 | LM78_SMBUS,
     lm78_init, lm78_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -571,7 +571,7 @@ const device_t w83781d_device = {
     DEVICE_ISA,
     0x290 | LM78_SMBUS | LM78_W83781D,
     lm78_init, lm78_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -583,7 +583,7 @@ const device_t as99127f_device = {
     DEVICE_ISA,
     LM78_SMBUS | LM78_AS99127F_REV1,
     lm78_init, lm78_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -594,7 +594,7 @@ const device_t as99127f_rev2_device = {
     DEVICE_ISA,
     LM78_SMBUS | LM78_AS99127F_REV2,
     lm78_init, lm78_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -605,6 +605,6 @@ const device_t w83782d_device = {
     DEVICE_ISA,
     0x290 | LM78_SMBUS | LM78_W83782D,
     lm78_init, lm78_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

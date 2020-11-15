@@ -524,7 +524,7 @@ const device_t sff8038i_device =
     sff_init, 
     sff_close, 
     sff_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL

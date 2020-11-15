@@ -183,6 +183,6 @@ const device_t vl82c480_device = {
     0,
     0,
     vl82c480_init, vl82c480_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

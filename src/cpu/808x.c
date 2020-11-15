@@ -964,6 +964,7 @@ reset_common(int hard)
     in_sys = 0;
 
     shadowbios = shadowbios_write = 0;
+    alt_access = cpu_end_block_after_ins = 0;
 }
 
 

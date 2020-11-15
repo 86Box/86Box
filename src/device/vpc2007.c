@@ -181,6 +181,6 @@ const device_t vpc2007_device = {
     DEVICE_ISA,
     0,
     vpc2007_init, vpc2007_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

@@ -90,14 +90,15 @@
 
 
 typedef struct {
-    uint8_t	command, status, out, secr_phase,
+    uint8_t	command, status, old_status, out, old_out, secr_phase,
 		mem_addr, input_port, output_port, old_output_port,
 		key_command, output_locked, ami_stat, initialized,
 		want60, wantirq, key_wantdata, refresh, first_write;
 
     uint8_t	mem[0x100];
 
-    int		last_irq, reset_delay;
+    int		last_irq, old_last_irq,
+		reset_delay;
 
     uint32_t	flags;
 
@@ -649,22 +650,37 @@ channel_queue_get(uint8_t channel)
 
 
 static void
+add_to_kbc_queue_front(atkbd_t *dev, uint8_t val)
+{
+    dev->wantirq = 0;
+    picint(0x0000);
+    dev->out = val;
+    dev->status |=  STAT_OFULL;
+    dev->status &= ~STAT_IFULL;
+    dev->status &= ~STAT_MFULL;
+    dev->last_irq = 0x0000;
+}
+
+
+static int
 channel_queue_check(atkbd_t *dev, uint8_t channel)
 {
     int val;
 
     if (channel >= 0x03)
-	return;
+	return 0;
 
     if ((channel == 0x01) && (dev->mem[0] & 0x10))
-	return;
+	return 0;
     if ((channel == 0x02) && (((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF) || (dev->mem[0] & 0x20)))
-	return;
+	return 0;
 
     val = channel_queue_get(channel);
     if (val == -1)
-	return;
+	return 0;
     kbc_queue_add(val & 0xff, channel);
+
+    return 1;
 }
 
 
@@ -748,9 +764,10 @@ kbd_poll(void *priv)
 	}
     }
 
-    channel_queue_check(dev, 0x00);	/* Transfer the next controller byte to the controller queue if there is any. */
-    channel_queue_check(dev, 0x01);	/* Transfer the next keyboard byte to the controller queue if there is any. */
-    channel_queue_check(dev, 0x02);	/* Transfer the next mouse byte to the controller queue if there is any. */
+    for (i = 0x00; i < 0x03; i++) {
+	if (channel_queue_check(dev, i))
+		break;
+    }
 
     if (dev->reset_delay > 0) {
 	dev->reset_delay--;
@@ -1168,16 +1185,16 @@ write64_generic(void *priv, uint8_t val)
 			fixed_bits |= 0x40;
 		if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_IBM_PS1) {
 			current_drive = fdc_get_current_drive();
-			add_data(dev, dev->input_port | fixed_bits | (fdd_is_525(current_drive) ? 0x40 : 0x00));
+			add_to_kbc_queue_front(dev, dev->input_port | fixed_bits | (fdd_is_525(current_drive) ? 0x40 : 0x00));
 			dev->input_port = ((dev->input_port + 1) & 3) |
 					   (dev->input_port & 0xfc) |
 					   (fdd_is_525(current_drive) ? 0x40 : 0x00);
 		} else {
 			if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) &&
 			    ((dev->flags & KBC_VEN_MASK) != KBC_VEN_INTEL_AMI))
-				add_data(dev, (dev->input_port | fixed_bits) & (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0xeb : 0xef));
+				add_to_kbc_queue_front(dev, (dev->input_port | fixed_bits) & (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0xeb : 0xef));
 			else
-				add_data(dev, dev->input_port | fixed_bits);
+				add_to_kbc_queue_front(dev, dev->input_port | fixed_bits);
 			dev->input_port = ((dev->input_port + 1) & 3) |
 					   (dev->input_port & 0xfc);
 		}
@@ -1977,7 +1994,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 					mask &= 0xbf;
 				if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) && (dev->mem[0] & 0x20))
 					mask &= 0xf7;
-				add_data(dev, dev->output_port & mask);
+				add_to_kbc_queue_front(dev, dev->output_port & mask);
 				break;
 
 			case 0xd1:	/* write output port */
@@ -2042,6 +2059,13 @@ kbd_read(uint16_t port, void *priv)
 		if ((dev->last_irq == 0x0002) || (dev->last_irq == 0x1000))
 			picintc(dev->last_irq);
 		dev->last_irq = 0xffff;
+		if (dev->old_last_irq != 0xffff) {
+			dev->out = dev->old_out;
+			dev->last_irq = dev->old_last_irq;
+			dev->status = dev->old_status;
+			dev->old_last_irq = 0xffff;
+			picint(dev->last_irq);
+		}
 		break;
 
 	case 0x61:
@@ -2110,6 +2134,7 @@ kbd_reset(void *priv)
     dev->wantirq = 0;
     write_output(dev, 0xcf);
     dev->last_irq = 0xffff;
+    dev->old_last_irq = 0xffff;
     dev->secr_phase = 0;
     dev->key_wantdata = 0;
 
@@ -2243,7 +2268,7 @@ const device_t keyboard_at_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t keyboard_at_ami_device = {
@@ -2253,7 +2278,7 @@ const device_t keyboard_at_ami_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t keyboard_at_toshiba_device = {
@@ -2263,7 +2288,7 @@ const device_t keyboard_at_toshiba_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_device = {
@@ -2273,7 +2298,7 @@ const device_t keyboard_ps2_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_ps2_device = {
@@ -2283,7 +2308,7 @@ const device_t keyboard_ps2_ps2_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_ps1_device = {
@@ -2293,7 +2318,7 @@ const device_t keyboard_ps2_ps1_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_ps1_pci_device = {
@@ -2303,7 +2328,7 @@ const device_t keyboard_ps2_ps1_pci_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_xi8088_device = {
@@ -2313,7 +2338,7 @@ const device_t keyboard_ps2_xi8088_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_ami_device = {
@@ -2323,7 +2348,7 @@ const device_t keyboard_ps2_ami_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_mca_device = {
@@ -2333,7 +2358,7 @@ const device_t keyboard_ps2_mca_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_mca_2_device = {
@@ -2343,7 +2368,7 @@ const device_t keyboard_ps2_mca_2_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_quadtel_device = {
@@ -2353,7 +2378,7 @@ const device_t keyboard_ps2_quadtel_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_pci_device = {
@@ -2363,7 +2388,7 @@ const device_t keyboard_ps2_pci_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_ami_pci_device = {
@@ -2373,7 +2398,7 @@ const device_t keyboard_ps2_ami_pci_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_intel_ami_pci_device = {
@@ -2383,7 +2408,7 @@ const device_t keyboard_ps2_intel_ami_pci_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 const device_t keyboard_ps2_acer_pci_device = {
@@ -2393,7 +2418,7 @@ const device_t keyboard_ps2_acer_pci_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 

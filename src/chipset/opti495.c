@@ -246,7 +246,7 @@ const device_t opti493_device = {
     0,
     0,
     opti495_init, opti495_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -256,6 +256,6 @@ const device_t opti495_device = {
     0,
     1,
     opti495_init, opti495_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

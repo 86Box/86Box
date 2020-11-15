@@ -738,7 +738,7 @@ const device_t keyboard_pc_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 
 const device_t keyboard_pc82_device = {
@@ -748,7 +748,7 @@ const device_t keyboard_pc82_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 
 const device_t keyboard_xt_device = {
@@ -758,7 +758,7 @@ const device_t keyboard_xt_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 
 const device_t keyboard_xt86_device = {
@@ -768,7 +768,7 @@ const device_t keyboard_xt86_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 
 const device_t keyboard_xt_compaq_device = {
@@ -778,7 +778,7 @@ const device_t keyboard_xt_compaq_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 
 const device_t keyboard_tandy_device = {
@@ -788,7 +788,7 @@ const device_t keyboard_tandy_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 
 const device_t keyboard_xt_t1x00_device = {
@@ -798,7 +798,7 @@ const device_t keyboard_xt_t1x00_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
@@ -809,6 +809,6 @@ const device_t keyboard_xt_lxt3_device = {
     kbd_init,
     kbd_close,
     kbd_reset,
-    NULL, NULL, NULL
+    { NULL }, NULL, NULL
 };
 #endif

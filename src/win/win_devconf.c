@@ -401,31 +401,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 							SendMessage(h, WM_GETTEXT, 511, (LPARAM)s);
 							file_filter[0] = 0;
 
-							c = 0;
-							while (config->file_filter[c].description && config->file_filter[c].description[0]) {
-								if (c > 0)
-									strcat(file_filter, "|");
-								strcat(file_filter, config->file_filter[c].description);
-								strcat(file_filter, " (");
-								d = 0;
-								while (config->file_filter[c].extensions[d] && config->file_filter[c].extensions[d][0]) {
-									if (d > 0)
-										strcat(file_filter, ";");
-									strcat(file_filter, "*.");
-									strcat(file_filter, config->file_filter[c].extensions[d]);
-									d++;
-								}
-								strcat(file_filter, ")|");
-								d = 0;
-								while (config->file_filter[c].extensions[d] && config->file_filter[c].extensions[d][0]) {
-									if (d > 0)
-										strcat(file_filter, ";");
-									strcat(file_filter, "*.");
-									strcat(file_filter, config->file_filter[c].extensions[d]);
-									d++;
-								}
-								c++;
-							}
+							strcat(file_filter, config->file_filter);
 							strcat(file_filter, "|All files (*.*)|*.*|");
 							mbstowcs(ws, file_filter, strlen(file_filter) + 1);
 							d = strlen(file_filter);

@@ -318,6 +318,6 @@ const device_t um8669f_device = {
     0,
     0,
     um8669f_init, um8669f_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

@@ -131,7 +131,7 @@ const device_t xi8088_device =
         xi8088_init,
         NULL,
         NULL,
-        NULL,
+        { NULL },
         NULL,
         NULL,
         xi8088_config

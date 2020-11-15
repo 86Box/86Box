@@ -1485,10 +1485,10 @@ static const device_config_t dc390_pci_config[] = {
 
 const device_t dc390_pci_device =
 {
-    "Tekram DC-390 PCI (SCSI)",
+    "Tekram DC-390 PCI",
     DEVICE_PCI,
     0,
     dc390_init, esp_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     dc390_pci_config
 };

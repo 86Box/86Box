@@ -199,10 +199,10 @@ static inline void fetch_ea_16_long(uint32_t rmdat)
 
 #include "x86_ops.h"
 
+
 void
 exec386(int cycs)
 {
-    // uint8_t opcode;
     int vector, tempi, cycdiff, oldcyc;
     int cycle_period, ins_cycles;
     uint32_t addr;
@@ -257,30 +257,6 @@ exec386(int cycs)
 		if (!use32) cpu_state.pc &= 0xffff;
 #endif
 
-		if (cpu_state.abrt) {
-			flags_rebuild();
-			tempi = cpu_state.abrt;
-			cpu_state.abrt = 0;
-			x86_doabrt(tempi);
-			if (cpu_state.abrt) {
-				cpu_state.abrt = 0;
-#ifndef USE_NEW_DYNAREC
-				CS = oldcs;
-#endif
-				cpu_state.pc = cpu_state.oldpc;
-				x386_log("Double fault %i\n", ins);
-				pmodeint(8, 0);
-				if (cpu_state.abrt) {
-					cpu_state.abrt = 0;
-					softresetx86();
-					cpu_set_edx();
-#ifdef ENABLE_386_LOG
-					x386_log("Triple fault - reset\n");
-#endif
-				}
-			}
-		}
-
 		ins_cycles -= cycles;
 		tsc += ins_cycles;
 
@@ -314,7 +290,7 @@ exec386(int cycs)
 				nmi_auto_clear = 0;
 				nmi = 0;
 			}
-		} else if ((cpu_state.flags & I_FLAG) && pic.int_pending) {
+		} else if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins) {
 			vector = picinterrupt();
 			if (vector != -1) {
 				flags_rebuild();
@@ -332,7 +308,31 @@ exec386(int cycs)
 					loadcs(readmemw(0, addr + 2));
 				}
 			}
+		} else if (cpu_state.abrt) {
+			flags_rebuild();
+			tempi = cpu_state.abrt & ABRT_MASK;
+			cpu_state.abrt = 0;
+			x86_doabrt(tempi);
+			if (cpu_state.abrt) {
+				cpu_state.abrt = 0;
+#ifndef USE_NEW_DYNAREC
+				CS = oldcs;
+#endif
+				cpu_state.pc = cpu_state.oldpc;
+				x386_log("Double fault %i\n", ins);
+				pmodeint(8, 0);
+				if (cpu_state.abrt) {
+					cpu_state.abrt = 0;
+					softresetx86();
+					cpu_set_edx();
+#ifdef ENABLE_386_LOG
+					x386_log("Triple fault - reset\n");
+#endif
+				}
+			}
 		}
+
+		cpu_end_block_after_ins = 0;
 
 		if (timetolive) {
 			timetolive--;

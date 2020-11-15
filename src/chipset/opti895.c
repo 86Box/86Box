@@ -273,7 +273,7 @@ const device_t opti802g_device = {
     0,
     0,
     opti895_init, opti895_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -283,6 +283,6 @@ const device_t opti895_device = {
     0,
     0,
     opti895_init, opti895_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

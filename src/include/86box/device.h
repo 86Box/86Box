@@ -55,16 +55,17 @@
 
 enum {
     DEVICE_NOT_WORKING = 1,	/* does not currently work correctly and will be disabled in a release build */
-    DEVICE_PCJR = 2,		/* requires an IBM PCjr */
-    DEVICE_AT = 4,		/* requires an AT-compatible system */
-    DEVICE_PS2 = 8,		/* requires a PS/1 or PS/2 system */
-    DEVICE_ISA = 0x10,		/* requires the ISA bus */
-    DEVICE_CBUS = 0x20,		/* requires the C-BUS bus */
-    DEVICE_MCA = 0x40,		/* requires the MCA bus */
-    DEVICE_EISA = 0x80,		/* requires the EISA bus */
-    DEVICE_VLB = 0x100,		/* requires the PCI bus */
-    DEVICE_PCI = 0x200,		/* requires the VLB bus */
-    DEVICE_AGP = 0x400		/* requires the AGP bus */
+    DEVICE_LPT = 2,		/* requires a parallel port */
+    DEVICE_PCJR = 4,		/* requires an IBM PCjr */
+    DEVICE_AT = 8,		/* requires an AT-compatible system */
+    DEVICE_PS2 = 0x10,		/* requires a PS/1 or PS/2 system */
+    DEVICE_ISA = 0x20,		/* requires the ISA bus */
+    DEVICE_CBUS = 0x40,		/* requires the C-BUS bus */
+    DEVICE_MCA = 0x80,		/* requires the MCA bus */
+    DEVICE_EISA = 0x100,	/* requires the EISA bus */
+    DEVICE_VLB = 0x200,		/* requires the PCI bus */
+    DEVICE_PCI = 0x400,		/* requires the VLB bus */
+    DEVICE_AGP = 0x800		/* requires the AGP bus */
 };
 
 
@@ -74,14 +75,9 @@ typedef struct {
 } device_config_selection_t;
 
 typedef struct {
-    const char *description;
-    const char *extensions[5];
-} device_config_file_filter_t;
-
-typedef struct {
-    int min;
-    int max;
-    int step;
+    int16_t min;
+    int16_t max;
+    int16_t step;
 } device_config_spinner_t;
 
 typedef struct {
@@ -90,9 +86,9 @@ typedef struct {
     int type;
     const char *default_string;
     int default_int;
-    device_config_selection_t selection[16];
-    device_config_file_filter_t file_filter[16];
+    const char *file_filter;
     device_config_spinner_t spinner;
+    const device_config_selection_t selection[16];
 } device_config_t;
 
 typedef struct _device_ {
@@ -103,7 +99,11 @@ typedef struct _device_ {
     void	*(*init)(const struct _device_ *);
     void	(*close)(void *priv);
     void	(*reset)(void *priv);
-    int		(*available)(/*void*/);
+    union {
+	int		(*available)(void);
+	int		(*poll)(int x, int y, int z, int b, void *priv);
+	void		(*register_pci_slot)(int device, int type, int inta, int intb, int intc, int intd, void *priv);
+    };
     void	(*speed_changed)(void *priv);
     void	(*force_redraw)(void *priv);
 
@@ -138,8 +138,11 @@ extern void		device_reset_all(void);
 extern void		device_reset_all_pci(void);
 extern void		*device_get_priv(const device_t *d);
 extern int		device_available(const device_t *d);
+extern int		device_poll(const device_t *d, int x, int y, int z, int b);
+extern void		device_register_pci_slot(const device_t *d, int device, int type, int inta, int intb, int intc, int intd);
 extern void		device_speed_changed(void);
 extern void		device_force_redraw(void);
+extern void		device_get_name(const device_t *d, int bus, char *name);
 
 extern int		device_is_valid(const device_t *, int machine_flags);
 

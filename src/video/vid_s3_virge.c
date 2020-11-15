@@ -3889,7 +3889,7 @@ static void s3_virge_force_redraw(void *p)
 static const device_config_t s3_virge_config[] =
 {
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 4,
+                "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
                 {
                         {
                                 "2 MB", 2
@@ -3917,7 +3917,7 @@ static const device_config_t s3_virge_config[] =
 static const device_config_t s3_trio3d_2x_config[] =
 {
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 4,
+                "memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
                 {
                         {
                                 "4 MB", 4
@@ -3950,7 +3950,7 @@ const device_t s3_virge_325_vlb_device =
         s3_virge_init,
         s3_virge_close,
 	NULL,
-        s3_virge_325_available,
+        { s3_virge_325_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
         s3_virge_config
@@ -3964,7 +3964,7 @@ const device_t s3_virge_325_pci_device =
         s3_virge_init,
         s3_virge_close,
 	NULL,
-        s3_virge_325_available,
+        { s3_virge_325_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
         s3_virge_config
@@ -3978,7 +3978,7 @@ const device_t s3_virge_vlb_device =
         s3_virge_init,
         s3_virge_close,
 	NULL,
-        s3_virge_available,
+        { s3_virge_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
         s3_virge_config
@@ -3992,7 +3992,7 @@ const device_t s3_virge_pci_device =
         s3_virge_init,
         s3_virge_close,
 	NULL,
-        s3_virge_available,
+        { s3_virge_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
         s3_virge_config
@@ -4006,7 +4006,7 @@ const device_t s3_virge_988_vlb_device =
         s3_virge_init,
         s3_virge_close,
 	NULL,
-        s3_virge_988_available,
+        { s3_virge_988_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
         s3_virge_config
@@ -4020,7 +4020,7 @@ const device_t s3_virge_988_pci_device =
         s3_virge_init,
         s3_virge_close,
 	NULL,
-        s3_virge_988_available,
+        { s3_virge_988_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
         s3_virge_config
@@ -4034,7 +4034,7 @@ const device_t s3_virge_375_vlb_device =
         s3_virge_init,
         s3_virge_close,
 	NULL,
-        s3_virge_375_1_available,
+        { s3_virge_375_1_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
         s3_virge_config
@@ -4048,7 +4048,7 @@ const device_t s3_virge_375_pci_device =
         s3_virge_init,
         s3_virge_close,
 	NULL,
-        s3_virge_375_1_available,
+        { s3_virge_375_1_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
         s3_virge_config
@@ -4062,7 +4062,7 @@ const device_t s3_virge_375_4_vlb_device =
         s3_virge_init,
         s3_virge_close,
 	NULL,
-        s3_virge_375_4_available,
+        { s3_virge_375_4_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
         s3_virge_config
@@ -4076,7 +4076,7 @@ const device_t s3_virge_375_4_pci_device =
         s3_virge_init,
         s3_virge_close,
 	NULL,
-        s3_virge_375_4_available,
+        { s3_virge_375_4_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
         s3_virge_config
@@ -4091,7 +4091,7 @@ const device_t s3_trio3d_2x_pci_device =
         s3_virge_init,
         s3_virge_close,
 	NULL,
-        s3_trio3d_2x_available,
+        { s3_trio3d_2x_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
         s3_trio3d_2x_config

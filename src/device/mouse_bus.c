@@ -696,7 +696,7 @@ bm_init(const device_t *info)
 
 static const device_config_t lt_config[] = {
     {
-	"base", "Address", CONFIG_HEX16, "", 0x23c,
+	"base", "Address", CONFIG_HEX16, "", 0x23c, "", { 0 },
 	{
 		{
 			"0x230", 0x230
@@ -716,7 +716,7 @@ static const device_config_t lt_config[] = {
 	}
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 5, {
+	"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 }, {
 		{
 			"IRQ 2", 2
 		},
@@ -735,7 +735,7 @@ static const device_config_t lt_config[] = {
 	}
     },
     {
-	"hz", "Hz", CONFIG_SELECTION, "", 45, {
+	"hz", "Hz", CONFIG_SELECTION, "", 45, "", { 0 }, {
 		{
 			"Non-timed (original)", 0
 		},
@@ -754,7 +754,7 @@ static const device_config_t lt_config[] = {
 	}
     },
     {
-	"buttons", "Buttons", CONFIG_SELECTION, "", 2, {
+	"buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
 		{
 			"Two", 2
 		},
@@ -774,7 +774,7 @@ static const device_config_t lt_config[] = {
 
 static const device_config_t ms_config[] = {
     {
-	"base", "Address", CONFIG_HEX16, "", 0x23c,
+	"base", "Address", CONFIG_HEX16, "", 0x23c, "", { 0 },
 	{
 		{
 			"0x230", 0x230
@@ -794,7 +794,7 @@ static const device_config_t ms_config[] = {
 	}
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 5, {
+	"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 }, {
 		{
 			"IRQ 2", 2
 		},
@@ -813,7 +813,7 @@ static const device_config_t ms_config[] = {
 	}
     },
     {
-	"buttons", "Buttons", CONFIG_SELECTION, "", 2, {
+	"buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
 		{
 			"Two", 2
 		},
@@ -836,7 +836,7 @@ const device_t mouse_logibus_device = {
     DEVICE_ISA,
     MOUSE_TYPE_LOGIBUS,
     bm_init, bm_close, NULL,
-    bm_poll, NULL, NULL,
+    { .poll = bm_poll }, NULL, NULL,
     lt_config
 };
 
@@ -845,7 +845,7 @@ const device_t mouse_logibus_onboard_device = {
     DEVICE_ISA,
     MOUSE_TYPE_LOGIBUS | MOUSE_TYPE_ONBOARD,
     bm_init, bm_close, NULL,
-    bm_poll, NULL, NULL
+    { .poll = bm_poll }, NULL, NULL
 };
 
 const device_t mouse_msinport_device = {
@@ -853,6 +853,6 @@ const device_t mouse_msinport_device = {
     DEVICE_ISA,
     MOUSE_TYPE_INPORT,
     bm_init, bm_close, NULL,
-    bm_poll, NULL, NULL,
+    { .poll = bm_poll }, NULL, NULL,
     ms_config
 };

@@ -1180,8 +1180,8 @@ esdi_available(void)
 
 
 const device_t esdi_ps2_device = {
-    "IBM ESDI Fixed Disk Adapter (MCA)",
+    "IBM PS/2 ESDI Fixed Disk Adapter (MCA)",
     DEVICE_MCA, 0,
     esdi_init, esdi_close, NULL,
-    esdi_available, NULL, NULL, NULL
+    { esdi_available }, NULL, NULL, NULL
 };

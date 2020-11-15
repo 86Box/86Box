@@ -165,7 +165,7 @@ static int pii_158_available(void)
 
 static const device_config_t pii_config[] = {
     {
-	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0x0ce000,
+	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0x0ce000, "", { 0 },
 	{
 		{
 			"Disabled", 0
@@ -194,7 +194,7 @@ const device_t fdc_pii151b_device = {
     DEVICE_ISA,
     151,
     pii_init, pii_close, NULL,
-    pii_151b_available, NULL, NULL,
+    { pii_151b_available }, NULL, NULL,
     pii_config
 };
 
@@ -203,6 +203,6 @@ const device_t fdc_pii158b_device = {
     DEVICE_ISA,
     158,
     pii_init, pii_close, NULL,
-    pii_158_available, NULL, NULL,
+    { pii_158_available }, NULL, NULL,
     pii_config
 };

@@ -812,7 +812,7 @@ const device_t m24_device = {
     "Olivetti M24",
     0, 0,
     NULL, vid_close, NULL,
-    NULL,
+    { NULL },
     speed_changed,
     NULL,
     NULL

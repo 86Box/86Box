@@ -24,6 +24,7 @@
 #define ESDI_NUM	2	/* 2 drives per controller supported */
 #define XTA_NUM		2	/* 2 drives per controller supported */
 #define IDE_NUM		10	/* 8 drives per AT IDE + 2 for XT IDE */
+#define ATAPI_NUM	8	/* 8 drives per AT IDE */
 #define SCSI_NUM	16	/* theoretically the controller can have at
 				 * least 7 devices, with each device being
 				 * able to support 8 units, but hey... */
@@ -73,9 +74,7 @@ extern const device_t	xtide_at_ps2_device;		/* xtide_at_ps2 */
 extern void	hdc_init(void);
 extern void	hdc_reset(void);
 
-extern char	*hdc_get_name(int hdc);
 extern char	*hdc_get_internal_name(int hdc);
-extern int	hdc_get_id(char *s);
 extern int	hdc_get_from_internal_name(char *s);
 extern int	hdc_has_config(int hdc);
 extern const device_t	*hdc_get_device(int hdc);

@@ -1257,7 +1257,7 @@ static const device_config_t azt1605_config[] =
                 .default_int = 0
         },
         {
-                "addr", "SB Address", CONFIG_HEX16, "", 0,
+                "addr", "SB Address", CONFIG_HEX16, "", 0, "", { 0 },
                 {
                         {
                                 "0x220", 0x220
@@ -1385,7 +1385,7 @@ static const device_config_t azt2316a_config[] =
                 .default_int = 0
         },
         {
-                "addr", "SB Address", CONFIG_HEX16, "", 0,
+                "addr", "SB Address", CONFIG_HEX16, "", 0, "", { 0 },
                 {
                         {
                                 "0x220", 0x220
@@ -1468,7 +1468,7 @@ const device_t azt2316a_device =
         "Aztech Sound Galaxy Pro 16 AB (Washington)",
         DEVICE_ISA | DEVICE_AT,
 	SB_SUBTYPE_CLONE_AZT2316A_0X11,
-        azt_init, azt_close, NULL, NULL,
+        azt_init, azt_close, NULL, { NULL },
         azt_speed_changed,
         NULL,
         azt2316a_config
@@ -1479,7 +1479,7 @@ const device_t azt1605_device =
         "Aztech Sound Galaxy Nova 16 Extra (Clinton)",
         DEVICE_ISA | DEVICE_AT,
 	SB_SUBTYPE_CLONE_AZT1605_0X0C,
-        azt_init, azt_close, NULL, NULL,
+        azt_init, azt_close, NULL, { NULL },
         azt_speed_changed,
         NULL,
         azt1605_config

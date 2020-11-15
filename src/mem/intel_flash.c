@@ -14,8 +14,8 @@
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2008-2019 Sarah Walker.
- *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2008-2020 Sarah Walker.
+ *		Copyright 2016-2020 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -186,7 +186,7 @@ flash_write(uint32_t addr, uint8_t val, void *p)
 	case CMD_ERASE_SETUP:
 		if (val == CMD_ERASE_CONFIRM) {
 			for (i = 0; i < 3; i++) {
-				if ((addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
+				if ((i == dev->program_addr) && (addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
 					memset(&(dev->array[dev->block_start[i]]), 0xff, dev->block_len[i]);
 			}
 
@@ -208,6 +208,12 @@ flash_write(uint32_t addr, uint8_t val, void *p)
 		switch (val) {
 			case CMD_CLEAR_STATUS:
 				dev->status = 0;
+				break;
+			case CMD_ERASE_SETUP:
+				for (i = 0; i < 3; i++) {
+					if ((addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
+						dev->program_addr = i;
+				}
 				break;
 			case CMD_PROGRAM_SETUP:
 			case CMD_PROGRAM_SETUP_ALT:
@@ -237,7 +243,7 @@ flash_writew(uint32_t addr, uint16_t val, void *p)
 	case CMD_ERASE_SETUP:
 		if (val == CMD_ERASE_CONFIRM) {
 			for (i = 0; i < 3; i++) {
-				if ((addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
+				if ((i == dev->program_addr) && (addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
 					memset(&(dev->array[dev->block_start[i]]), 0xff, dev->block_len[i]);
 			}
 
@@ -259,6 +265,12 @@ flash_writew(uint32_t addr, uint16_t val, void *p)
 		switch (val) {
 			case CMD_CLEAR_STATUS:
 				dev->status = 0;
+				break;
+			case CMD_ERASE_SETUP:
+				for (i = 0; i < 3; i++) {
+					if ((addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
+						dev->program_addr = i;
+				}
 				break;
 			case CMD_PROGRAM_SETUP:
 			case CMD_PROGRAM_SETUP_ALT:
@@ -555,7 +567,7 @@ const device_t intel_flash_bxt_ami_device =
     intel_flash_init,
     intel_flash_close,
     intel_flash_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 
@@ -566,7 +578,7 @@ const device_t intel_flash_bxt_device =
     intel_flash_init,
     intel_flash_close,
     intel_flash_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };
 
 
@@ -577,5 +589,5 @@ const device_t intel_flash_bxb_device =
     intel_flash_init,
     intel_flash_close,
     intel_flash_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };

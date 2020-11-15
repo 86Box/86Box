@@ -646,7 +646,7 @@ ati28800_force_redraw(void *priv)
 static const device_config_t ati28800_config[] =
 {
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 512,
+                "memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
                 {
                         {
                                 "256 kB", 256
@@ -671,7 +671,7 @@ static const device_config_t ati28800_config[] =
 static const device_config_t ati28800_wonderxl_config[] =
 {
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 512,
+                "memory", "Memory size", CONFIG_SELECTION, "", 512, "", { 0 },
                 {
                         {
                                 "256 kB", 256
@@ -699,7 +699,7 @@ const device_t ati28800_device =
         DEVICE_ISA,
 	0,
         ati28800_init, ati28800_close, NULL,
-        ati28800_available,
+        { ati28800_available },
         ati28800_speed_changed,
         ati28800_force_redraw,
 	ati28800_config
@@ -711,7 +711,7 @@ const device_t ati28800k_device =
         DEVICE_ISA,
 	0,
         ati28800k_init, ati28800_close, NULL,
-        ati28800k_available,
+        { ati28800k_available },
         ati28800_speed_changed,
         ati28800_force_redraw,
 	ati28800_config
@@ -723,7 +723,7 @@ const device_t compaq_ati28800_device =
         DEVICE_ISA,
 	VGAWONDERXL,
         ati28800_init, ati28800_close, NULL,
-        compaq_ati28800_available,
+        { compaq_ati28800_available },
         ati28800_speed_changed,
         ati28800_force_redraw,
 	ati28800_config
@@ -736,7 +736,7 @@ const device_t ati28800_wonderxl24_device =
         DEVICE_ISA,
 	VGAWONDERXL24,
         ati28800_init, ati28800_close, NULL,
-        ati28800_wonderxl24_available,
+        { ati28800_wonderxl24_available },
         ati28800_speed_changed,
         ati28800_force_redraw,
 	ati28800_wonderxl_config

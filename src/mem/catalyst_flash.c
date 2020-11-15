@@ -265,5 +265,5 @@ const device_t catalyst_flash_device =
     catalyst_flash_init,
     catalyst_flash_close,
     catalyst_flash_reset,
-    NULL, NULL, NULL, NULL
+    { NULL }, NULL, NULL, NULL
 };

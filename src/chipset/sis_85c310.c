@@ -145,6 +145,6 @@ const device_t rabbit_device = {
     0,
     0,
     rabbit_init, rabbit_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

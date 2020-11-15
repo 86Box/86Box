@@ -171,7 +171,7 @@ const device_t icd2061_device =
         "ICD2061 Clock Generator",
         0, 0,
         icd2061_init, icd2061_close,
-	NULL, NULL, NULL, NULL
+	NULL, { NULL }, NULL, NULL
 };
 
 
@@ -180,5 +180,5 @@ const device_t ics9161_device =
         "ICS9161 Clock Generator",
         0, 0,
         icd2061_init, icd2061_close,
-	NULL, NULL, NULL, NULL
+	NULL, { NULL }, NULL, NULL
 };

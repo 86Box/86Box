@@ -575,7 +575,7 @@ cga_speed_changed(void *p)
 const device_config_t cga_config[] =
 {
         {
-                "display_type", "Display type", CONFIG_SELECTION, "", CGA_RGB,
+                "display_type", "Display type", CONFIG_SELECTION, "", CGA_RGB, "", { 0 },
                 {
                         {
                                 "RGB", CGA_RGB
@@ -589,7 +589,7 @@ const device_config_t cga_config[] =
                 }
         },
         {
-                "composite_type", "Composite type", CONFIG_SELECTION, "", COMPOSITE_OLD,
+                "composite_type", "Composite type", CONFIG_SELECTION, "", COMPOSITE_OLD, "", { 0 },
                 {
                         {
                                 "Old", COMPOSITE_OLD
@@ -603,7 +603,7 @@ const device_config_t cga_config[] =
                 }
         },
         {
-                "rgb_type", "RGB type", CONFIG_SELECTION, "", 0,
+                "rgb_type", "RGB type", CONFIG_SELECTION, "", 0, "", { 0 },
                 {
                         {
                                 "Color", 0
@@ -641,7 +641,7 @@ const device_t cga_device =
         cga_standalone_init,
         cga_close,
 	NULL,
-        NULL,
+        { NULL },
         cga_speed_changed,
         NULL,
         cga_config

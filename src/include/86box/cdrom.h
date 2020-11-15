@@ -90,11 +90,15 @@ typedef struct {
 } cdrom_ops_t;
 
 typedef struct cdrom {
-    uint8_t id,
-	    res, res0,		/* Reserved for other ID's. */
-	    res1,
-	    ide_channel, scsi_device_id,
-	    bus_type,		/* 0 = ATAPI, 1 = SCSI */
+    uint8_t id;
+
+    union {
+	uint8_t res, res0,		/* Reserved for other ID's. */
+		res1,
+		ide_channel, scsi_device_id;
+    };
+
+    uint8_t bus_type,		/* 0 = ATAPI, 1 = SCSI */
 	    bus_mode,		/* Bit 0 = PIO suported;
 				   Bit 1 = DMA supportd. */
 	    cd_status,		/* Struct variable reserved for

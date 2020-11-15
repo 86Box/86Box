@@ -442,7 +442,7 @@ const device_t ide_cmd640_vlb_device = {
     DEVICE_VLB,
     0x0078,
     cmd640_init, cmd640_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -451,7 +451,7 @@ const device_t ide_cmd640_vlb_178_device = {
     DEVICE_VLB,
     0x0178,
     cmd640_init, cmd640_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -460,7 +460,7 @@ const device_t ide_cmd640_pci_device = {
     DEVICE_PCI,
     0x0a,
     cmd640_init, cmd640_close, cmd640_reset,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -469,7 +469,7 @@ const device_t ide_cmd640_pci_legacy_only_device = {
     DEVICE_PCI,
     0x00,
     cmd640_init, cmd640_close, cmd640_reset,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -478,6 +478,6 @@ const device_t ide_cmd640_pci_single_channel_device = {
     DEVICE_PCI,
     0x2000a,
     cmd640_init, cmd640_close, cmd640_reset,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

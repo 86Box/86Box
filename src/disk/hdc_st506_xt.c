@@ -1617,7 +1617,7 @@ wd1002a_27x_available(void)
 
 static const device_config_t dtc_config[] = {
     {
-	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000,
+	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000, "", { 0 },
 	{
 		{
 			"Disabled", 0x00000
@@ -1646,7 +1646,7 @@ static const device_config_t dtc_config[] = {
 
 static const device_config_t st11_config[] = {
     {
-	"base", "Address", CONFIG_HEX16, "", 0x0320,
+	"base", "Address", CONFIG_HEX16, "", 0x0320, "", { 0 },
 	{
 		{
 			"320H", 0x0320
@@ -1666,7 +1666,7 @@ static const device_config_t st11_config[] = {
 	}
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 5,
+	"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
 	{
 		{
 			"IRQ 2", 2
@@ -1680,7 +1680,7 @@ static const device_config_t st11_config[] = {
 	}
     },
     {
-	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000,
+	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000, "", { 0 },
 	{
 		{
 			"Disabled", 0x00000
@@ -1703,7 +1703,7 @@ static const device_config_t st11_config[] = {
 	}
     },
     {
-	"revision", "Board Revision", CONFIG_SELECTION, "", 19,
+	"revision", "Board Revision", CONFIG_SELECTION, "", 19, "", { 0 },
 	{
 		{
 			"Rev. 05 (v1.7)", 5
@@ -1723,7 +1723,7 @@ static const device_config_t st11_config[] = {
 
 static const device_config_t wd_config[] = {
     {
-	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000,
+	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000, "", { 0 },
 	{
 		{
 			"Disabled", 0x00000
@@ -1737,7 +1737,7 @@ static const device_config_t wd_config[] = {
 	}
     },
     {
-	"base", "Address", CONFIG_HEX16, "", 0x0320,
+	"base", "Address", CONFIG_HEX16, "", 0x0320, "", { 0 },
 	{
 		{
 			"320H", 0x0320
@@ -1751,7 +1751,7 @@ static const device_config_t wd_config[] = {
 	}
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 5,
+	"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
 	{
 		{
 			"IRQ 2", 2
@@ -1771,7 +1771,7 @@ static const device_config_t wd_config[] = {
 
 static const device_config_t wd_rll_config[] = {
     {
-	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000,
+	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0xc8000, "", { 0 },
 	{
 		{
 			"Disabled", 0x00000
@@ -1785,7 +1785,7 @@ static const device_config_t wd_rll_config[] = {
 	}
     },
     {
-	"base", "Address", CONFIG_HEX16, "", 0x0320,
+	"base", "Address", CONFIG_HEX16, "", 0x0320, "", { 0 },
 	{
 		{
 			"320H", 0x0320
@@ -1799,7 +1799,7 @@ static const device_config_t wd_rll_config[] = {
 	}
     },
     {
-	"irq", "IRQ", CONFIG_SELECTION, "", 5,
+	"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
 	{
 		{
 			"IRQ 2", 2
@@ -1813,7 +1813,7 @@ static const device_config_t wd_rll_config[] = {
 	}
     },
     {
-	"translate", "Translate 26 -> 17", CONFIG_SELECTION, "", 0,
+	"translate", "Translate 26 -> 17", CONFIG_SELECTION, "", 0, "", { 0 },
 	{
 		{
 			"Off", 0
@@ -1837,7 +1837,7 @@ const device_t st506_xt_xebec_device = {
     DEVICE_ISA,
     (HDD_BUS_MFM << 8) | 0,
     st506_init, st506_close, NULL,
-    xebec_available,
+    { xebec_available },
     NULL, NULL,
     NULL
 };
@@ -1847,7 +1847,7 @@ const device_t st506_xt_dtc5150x_device = {
     DEVICE_ISA,
     (HDD_BUS_MFM << 8) | 1,
     st506_init, st506_close, NULL,
-    dtc5150x_available,
+    { dtc5150x_available },
     NULL, NULL,
     dtc_config
 };
@@ -1857,7 +1857,7 @@ const device_t st506_xt_st11_m_device = {
     DEVICE_ISA,
     (HDD_BUS_MFM << 8) | 11,
     st506_init, st506_close, NULL,
-    st11_m_available,
+    { st11_m_available },
     NULL, NULL,
     st11_config
 };
@@ -1867,7 +1867,7 @@ const device_t st506_xt_st11_r_device = {
     DEVICE_ISA,
     (HDD_BUS_MFM << 8) | 12,
     st506_init, st506_close, NULL,
-    st11_r_available,
+    { st11_r_available },
     NULL, NULL,
     st11_config
 };
@@ -1877,7 +1877,7 @@ const device_t st506_xt_wd1002a_wx1_device = {
     DEVICE_ISA,
     (HDD_BUS_MFM << 8) | 21,
     st506_init, st506_close, NULL,
-    wd1002a_wx1_available,
+    { wd1002a_wx1_available },
     NULL, NULL,
     wd_config
 };
@@ -1887,7 +1887,7 @@ const device_t st506_xt_wd1002a_27x_device = {
     DEVICE_ISA,
     (HDD_BUS_MFM << 8) | 22,
     st506_init, st506_close, NULL,
-    wd1002a_27x_available,
+    { wd1002a_27x_available },
     NULL, NULL,
     wd_rll_config
 };

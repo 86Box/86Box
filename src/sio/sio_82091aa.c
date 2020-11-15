@@ -223,6 +223,8 @@ i82091aa_reset(i82091aa_t *dev)
     dev->regs[0x31] = dev->regs[0x41] = 0x02;
     dev->regs[0x50] = 0x01;
 
+    fdc_reset(dev->fdc);
+
     fdc_handler(dev);
     lpt1_handler(dev);
     serial_handler(dev, 0);
@@ -232,8 +234,6 @@ i82091aa_reset(i82091aa_t *dev)
 
     if (dev->has_ide)
 	ide_handler(dev);
-
-    fdc_reset(dev->fdc);
 }
 
 
@@ -280,7 +280,7 @@ const device_t i82091aa_device = {
     0,
     0x40,
     i82091aa_init, i82091aa_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -290,7 +290,7 @@ const device_t i82091aa_398_device = {
     0,
     0x148,
     i82091aa_init, i82091aa_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -300,6 +300,6 @@ const device_t i82091aa_ide_device = {
     0,
     0x240,
     i82091aa_init, i82091aa_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

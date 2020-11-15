@@ -296,7 +296,7 @@ const device_t gl518sm_2c_device = {
     DEVICE_ISA,
     0x2c,
     gl518sm_init, gl518sm_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -306,6 +306,6 @@ const device_t gl518sm_2d_device = {
     DEVICE_ISA,
     0x2d,
     gl518sm_init, gl518sm_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

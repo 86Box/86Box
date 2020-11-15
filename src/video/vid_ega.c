@@ -1134,7 +1134,7 @@ ega_speed_changed(void *p)
 static const device_config_t ega_config[] =
 {
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 256,
+                "memory", "Memory size", CONFIG_SELECTION, "", 256, "", { 0 },
                 {
                         {
                                 "64 kB", 64
@@ -1202,7 +1202,7 @@ const device_t ega_device =
         DEVICE_ISA,
 	EGA_IBM,
         ega_standalone_init, ega_close, NULL,
-        ega_standalone_available,
+        { ega_standalone_available },
         ega_speed_changed,
         NULL,
         ega_config
@@ -1214,7 +1214,7 @@ const device_t cpqega_device =
         DEVICE_ISA,
 	EGA_COMPAQ,
         ega_standalone_init, ega_close, NULL,
-        cpqega_standalone_available,
+        { cpqega_standalone_available },
         ega_speed_changed,
         NULL,
         ega_config
@@ -1226,7 +1226,7 @@ const device_t sega_device =
         DEVICE_ISA,
 	EGA_SUPEREGA,
         ega_standalone_init, ega_close, NULL,
-        sega_standalone_available,
+        { sega_standalone_available },
         ega_speed_changed,
         NULL,
         ega_config
@@ -1238,7 +1238,7 @@ const device_t atiega_device =
         DEVICE_ISA,
 	EGA_ATI,
         ega_standalone_init, ega_close, NULL,
-        atiega_standalone_available,
+        { atiega_standalone_available },
         ega_speed_changed,
         NULL,
         ega_config
@@ -1250,7 +1250,7 @@ const device_t iskra_ega_device =
         DEVICE_ISA,
 	EGA_ISKRA,
         ega_standalone_init, ega_close, NULL,
-        ega_standalone_available,
+        { ega_standalone_available },
         ega_speed_changed,
         NULL,
         ega_config

@@ -62,7 +62,7 @@ machine_at_ax59pro_init(const machine_t *model)
     pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
-    pci_register_slot(0x01, PCI_CARD_SPECIAL,     1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&via_mvp3_device);
     device_add(&via_vt82c586b_device);
@@ -94,7 +94,7 @@ machine_at_mvp3_init(const machine_t *model)
     pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
-    pci_register_slot(0x01, PCI_CARD_SPECIAL,     1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&via_mvp3_device);
     device_add(&via_vt82c586b_device);
@@ -127,7 +127,7 @@ machine_at_ficva503a_init(const machine_t *model)
     pci_register_slot(0x09, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
-    pci_register_slot(0x01, PCI_CARD_SPECIAL,     1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&via_mvp3_device);
     device_add(&via_vt82c686a_device);

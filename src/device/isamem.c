@@ -667,16 +667,14 @@ isamem_close(void *priv)
 static const device_config_t ibmxt_config[] =
 {
 	{
-		"size", "Memory Size", CONFIG_SPINNER, "", 128,
-		{ { 0 } },
-		{ { 0 } },
-		{ 0, 512, 16 }
+		"size", "Memory Size", CONFIG_SPINNER, "", 128, "",
+		{ 0, 512, 16 },
+		{ { 0 } }
 	},
 	{
-		"start", "Start Address", CONFIG_SPINNER, "", 256,
-		{ { 0 } },
-		{ { 0 } },
-		{ 0, 640-64, 64 }
+		"start", "Start Address", CONFIG_SPINNER, "", 256, "",
+		{ 0, 640-64, 64 },
+		{ { 0 } }
 	},
 	{
 		"", "", -1
@@ -688,7 +686,7 @@ static const device_t ibmxt_device = {
     DEVICE_ISA,
     0,
     isamem_init, isamem_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     ibmxt_config
 };
 
@@ -696,16 +694,14 @@ static const device_t ibmxt_device = {
 static const device_config_t ibmat_config[] =
 {
 	{
-		"size", "Memory Size", CONFIG_SPINNER, "", 512,
-		{ { 0 } },
-		{ { 0 } },
-		{ 0, 4096, 512 }
+		"size", "Memory Size", CONFIG_SPINNER, "", 512, "",
+		{ 0, 4096, 512 },
+		{ { 0 } }
 	},
 	{
-		"start", "Start Address", CONFIG_SPINNER, "", 512,
-		{ { 0 } },
-		{ { 0 } },
-		{ 0, 16128, 128 }
+		"start", "Start Address", CONFIG_SPINNER, "", 512, "",
+		{ 0, 16128, 128 },
+		{ { 0 } }
 	},
 	{
 		"", "", -1
@@ -717,7 +713,7 @@ static const device_t ibmat_device = {
     DEVICE_ISA,
     1,
     isamem_init, isamem_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     ibmat_config
 };
 
@@ -725,16 +721,14 @@ static const device_t ibmat_device = {
 static const device_config_t p5pak_config[] =
 {
 	{
-		"size", "Memory Size", CONFIG_SPINNER, "", 128,
-		{ { 0 } },
-		{ { 0 } },
-		{ 0, 384, 64 }
+		"size", "Memory Size", CONFIG_SPINNER, "", 128, "",
+		{ 0, 384, 64 },
+		{ { 0 } }
 	},
 	{
-		"start", "Start Address", CONFIG_SPINNER, "", 512,
-		{ { 0 } },
-		{ { 0 } },
-		{ 64, 576, 64 }
+		"start", "Start Address", CONFIG_SPINNER, "", 512, "",
+		{ 64, 576, 64 },
+		{ { 0 } }
 	},
 	{
 		"", "", -1
@@ -746,7 +740,7 @@ static const device_t p5pak_device = {
     DEVICE_ISA,
     2,
     isamem_init, isamem_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     p5pak_config
 };
 
@@ -755,12 +749,12 @@ static const device_config_t ems5150_config[] =
 {
 	{
 		"size", "Memory Size", CONFIG_SPINNER, "", 256,
-		{ { 0 } },
-		{ { 0 } },
-		{ 0, 2048, 64 }
+		"",
+		{ 0, 2048, 64 },
+		{ { 0 } }
 	},
 	{
-		"base", "Address", CONFIG_HEX16, "", 0,
+		"base", "Address", CONFIG_HEX16, "", 0, "", { 0 },
 		{
 			{
 				"Disabled", 0
@@ -792,7 +786,7 @@ static const device_t ems5150_device = {
     DEVICE_ISA,
     3,
     isamem_init, isamem_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     ems5150_config
 };
 
@@ -800,25 +794,22 @@ static const device_t ems5150_device = {
 static const device_config_t ev159_config[] =
 {
 	{
-		"size", "Memory Size", CONFIG_SPINNER, "", 512,
-		{ { 0 } },
-		{ { 0 } },
-		{ 0, 3072, 512 }
+		"size", "Memory Size", CONFIG_SPINNER, "", 512, "",
+		{ 0, 3072, 512 },
+		{ { 0 } }
 	},
 	{
-		"start", "Start Address", CONFIG_SPINNER, "", 0,
-		{ { 0 } },
-		{ { 0 } },
-		{ 0, 16128, 128 }
+		"start", "Start Address", CONFIG_SPINNER, "", 0, "",
+		{ 0, 16128, 128 },
+		{ { 0 } }
 	},
 	{
-		"length", "Contiguous Size", CONFIG_SPINNER, "", 0,
-		{ { 0 } },
-		{ { 0 } },
-		{ 0, 16384, 128 }
+		"length", "Contiguous Size", CONFIG_SPINNER, "", 0, "",
+		{ 0, 16384, 128 },
+		{ { 0 } }
 	},
 	{
-		"width", "I/O Width", CONFIG_SELECTION, "", 0,
+		"width", "I/O Width", CONFIG_SELECTION, "", 0, "", { 0 },
 		{
 			{
 				"8-bit", 0
@@ -832,7 +823,7 @@ static const device_config_t ev159_config[] =
 		},
 	},
 	{
-		"speed", "Transfer Speed", CONFIG_SELECTION, "", 0,
+		"speed", "Transfer Speed", CONFIG_SELECTION, "", 0, "", { 0 },
 		{
 			{
 				"Standard (150ns)", 0
@@ -846,7 +837,7 @@ static const device_config_t ev159_config[] =
 		}
 	},
 	{
-		"ems", "EMS mode", CONFIG_SELECTION, "", 0,
+		"ems", "EMS mode", CONFIG_SELECTION, "", 0, "", { 0 },
 		{
 			{
 				"Disabled", 0
@@ -860,7 +851,7 @@ static const device_config_t ev159_config[] =
 		},
 	},
 	{
-		"base", "Address", CONFIG_HEX16, "", 0x0258,
+		"base", "Address", CONFIG_HEX16, "", 0x0258, "", { 0 },
 		{
 			{
 				"208H", 0x0208
@@ -898,7 +889,7 @@ static const device_t ev159_device = {
     DEVICE_ISA,
     10,
     isamem_init, isamem_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     ev159_config
 };
 
@@ -907,7 +898,7 @@ static const device_t ev159_device = {
 static const device_config_t rampage_config[] =
 {
 	{
-		"base", "Address", CONFIG_HEX16, "", 0x0258,
+		"base", "Address", CONFIG_HEX16, "", 0x0258, "", { 0 },
 		{
 			{
 				"208H", 0x0208
@@ -936,7 +927,7 @@ static const device_config_t rampage_config[] =
 		},
 	},
 	{
-		"frame", "Frame Address", CONFIG_HEX20, "", 0,
+		"frame", "Frame Address", CONFIG_HEX20, "", 0, "", { 0 },
 		{
 			{
 				"Disabled", 0x00000
@@ -956,7 +947,7 @@ static const device_config_t rampage_config[] =
 		},
 	},
 	{
-		"width", "I/O Width", CONFIG_SELECTION, "", 8,
+		"width", "I/O Width", CONFIG_SELECTION, "", 8, "", { 0 },
 		{
 			{
 				"8-bit", 8
@@ -970,7 +961,7 @@ static const device_config_t rampage_config[] =
 		},
 	},
 	{
-		"speed", "Transfer Speed", CONFIG_SELECTION, "", 0,
+		"speed", "Transfer Speed", CONFIG_SELECTION, "", 0, "", { 0 },
 		{
 			{
 				"Standard", 0
@@ -985,9 +976,9 @@ static const device_config_t rampage_config[] =
 	},
 	{
 		"size", "Memory Size", CONFIG_SPINNER, "", 128,
-		{ { 0 } },
-		{ { 0 } },
-		{ 0, 8192, 128 }
+		"",
+		{ 0, 8192, 128 },
+		{ 0 }
 	},
 	{
 		"", "", -1
@@ -999,7 +990,7 @@ static const device_t isamem_rampage_device = {
     DEVICE_ISA,
     11,
     isamem_init, isamem_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     rampage_config
 };
 #endif
@@ -1024,7 +1015,7 @@ static const struct {
 #ifdef USE_ISAMEM_IAB
     { "iab",		&iab_device		},
 #endif
-    { NULL,		NULL			}
+    { "",		NULL			}
 };
 
 

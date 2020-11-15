@@ -832,7 +832,7 @@ sermouse_init(const device_t *info)
 
 static const device_config_t mssermouse_config[] = {
     {
-	"port", "Serial Port", CONFIG_SELECTION, "", 0, {
+	"port", "Serial Port", CONFIG_SELECTION, "", 0, "", { 0 }, {
 		{
 			"COM1", 0
 		},
@@ -845,7 +845,7 @@ static const device_config_t mssermouse_config[] = {
 	}
     },
     {
-	"buttons", "Buttons", CONFIG_SELECTION, "", 2, {
+	"buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
 		{
 			"Two", 2
 		},
@@ -868,7 +868,7 @@ static const device_config_t mssermouse_config[] = {
 
 static const device_config_t ltsermouse_config[] = {
     {
-	"port", "Serial Port", CONFIG_SELECTION, "", 0, {
+	"port", "Serial Port", CONFIG_SELECTION, "", 0, "", { 0 }, {
 		{
 			"COM1", 0
 		},
@@ -881,7 +881,7 @@ static const device_config_t ltsermouse_config[] = {
 	}
     },
     {
-	"buttons", "Buttons", CONFIG_SELECTION, "", 2, {
+	"buttons", "Buttons", CONFIG_SELECTION, "", 2, "", { 0 }, {
 		{
 			"Two", 2
 		},
@@ -904,7 +904,7 @@ const device_t mouse_mssystems_device = {
     0,
     MOUSE_TYPE_MSYSTEMS,
     sermouse_init, sermouse_close, NULL,
-    sermouse_poll, sermouse_speed_changed, NULL,
+    { .poll = sermouse_poll }, sermouse_speed_changed, NULL,
     mssermouse_config
 };
 
@@ -913,7 +913,7 @@ const device_t mouse_msserial_device = {
     0,
     0,
     sermouse_init, sermouse_close, NULL,
-    sermouse_poll, sermouse_speed_changed, NULL,
+    { .poll = sermouse_poll }, sermouse_speed_changed, NULL,
     mssermouse_config
 };
 
@@ -922,6 +922,6 @@ const device_t mouse_ltserial_device = {
     0,
     1,
     sermouse_init, sermouse_close, NULL,
-    sermouse_poll, sermouse_speed_changed, NULL,
+    { .poll = sermouse_poll }, sermouse_speed_changed, NULL,
     ltsermouse_config
 };

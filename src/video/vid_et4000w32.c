@@ -1396,7 +1396,7 @@ void et4000w32p_force_redraw(void *p)
 static const device_config_t et4000w32p_config[] =
 {
         {
-                "memory", "Memory size", CONFIG_SELECTION, "", 2,
+                "memory", "Memory size", CONFIG_SELECTION, "", 2, "", { 0 },
                 {
                         {
                                 "1 MB", 1
@@ -1419,7 +1419,7 @@ const device_t et4000w32p_cardex_vlb_device =
         "Tseng Labs ET4000/w32p VLB (Cardex)",
         DEVICE_VLB, ET4000W32_CARDEX,
         et4000w32p_init, et4000w32p_close, NULL,
-        et4000w32p_cardex_available,
+        { et4000w32p_cardex_available },
         et4000w32p_speed_changed,
         et4000w32p_force_redraw,
         et4000w32p_config
@@ -1430,7 +1430,7 @@ const device_t et4000w32p_cardex_pci_device =
         "Tseng Labs ET4000/w32p PCI (Cardex)",
         DEVICE_PCI, ET4000W32_CARDEX,
         et4000w32p_init, et4000w32p_close, NULL,
-        et4000w32p_cardex_available,
+        { et4000w32p_cardex_available },
         et4000w32p_speed_changed,
         et4000w32p_force_redraw,
         et4000w32p_config
@@ -1441,7 +1441,7 @@ const device_t et4000w32p_vlb_device =
         "Tseng Labs ET4000/w32p VLB (Diamond)",
         DEVICE_VLB, ET4000W32_DIAMOND,
         et4000w32p_init, et4000w32p_close, NULL,
-        et4000w32p_available,
+        { et4000w32p_available },
         et4000w32p_speed_changed,
         et4000w32p_force_redraw,
         et4000w32p_config
@@ -1452,7 +1452,7 @@ const device_t et4000w32p_pci_device =
         "Tseng Labs ET4000/w32p PCI (Diamond)",
         DEVICE_PCI, ET4000W32_DIAMOND,
         et4000w32p_init, et4000w32p_close, NULL,
-        et4000w32p_available,
+        { et4000w32p_available },
         et4000w32p_speed_changed,
         et4000w32p_force_redraw,
         et4000w32p_config

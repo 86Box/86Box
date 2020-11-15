@@ -252,5 +252,5 @@ const device_t stg_ramdac_device =
         "SGS-Thompson STG170x RAMDAC",
         0, 0,
         stg_ramdac_init, stg_ramdac_close,
-	NULL, NULL, NULL, NULL
+	NULL, { NULL }, NULL, NULL
 };

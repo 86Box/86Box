@@ -10,41 +10,41 @@
 
 uint64_t opcode_deps[256] =
 {
-/*      ADD                      ADD                      ADD                              ADD*/
-/*00*/  SRCDEP_REG | MODRM,      SRCDEP_REG | MODRM,      SRCDEP_REG | DSTDEP_REG | MODRM, SRCDEP_REG | DSTDEP_REG | MODRM,
-/*      ADD                      ADD                      PUSH ES                          POP ES*/
-        SRCDEP_EAX | DSTDEP_EAX, SRCDEP_EAX | DSTDEP_EAX, IMPL_ESP,                        IMPL_ESP,
-/*      OR                       OR                       OR                               OR*/
-        SRCDEP_REG | MODRM,      SRCDEP_REG | MODRM,      SRCDEP_REG | DSTDEP_REG | MODRM, SRCDEP_REG | DSTDEP_REG | MODRM,
-/*      OR                       OR                       PUSH CS*/
-        SRCDEP_EAX | DSTDEP_EAX, SRCDEP_EAX | DSTDEP_EAX, IMPL_ESP,                        0,
+/*      ADD                                     ADD                                     ADD                              ADD*/
+/*00*/  SRCDEP_REG | MODRM,                     SRCDEP_REG | MODRM,                     SRCDEP_REG | DSTDEP_REG | MODRM, SRCDEP_REG | DSTDEP_REG | MODRM,
+/*      ADD                                     ADD                                     PUSH ES                          POP ES*/
+        SRCDEP_EAX | DSTDEP_EAX | HAS_IMM8,     SRCDEP_EAX | DSTDEP_EAX | HAS_IMM1632,  IMPL_ESP,                        IMPL_ESP,
+/*      OR                                      OR                                      OR                               OR*/
+        SRCDEP_REG | MODRM,                     SRCDEP_REG | MODRM,                     SRCDEP_REG | DSTDEP_REG | MODRM, SRCDEP_REG | DSTDEP_REG | MODRM,
+/*      OR                                      OR                                      PUSH CS*/
+        SRCDEP_EAX | DSTDEP_EAX | HAS_IMM8,     SRCDEP_EAX | DSTDEP_EAX | HAS_IMM1632,  IMPL_ESP,                        0,
 
-/*      ADC                      ADC                      ADC                              ADC*/
-/*10*/  SRCDEP_REG | MODRM,      SRCDEP_REG | MODRM,      SRCDEP_REG | DSTDEP_REG | MODRM, SRCDEP_REG | DSTDEP_REG | MODRM,
-/*      ADC                      ADC                      PUSH SS                          POP SS*/
-        SRCDEP_EAX | DSTDEP_EAX, SRCDEP_EAX | DSTDEP_EAX, IMPL_ESP,                        IMPL_ESP,
-/*      SBB                      SBB                      SBB                              SBB*/        
-        SRCDEP_REG | MODRM,      SRCDEP_REG | MODRM,      SRCDEP_REG | DSTDEP_REG | MODRM, SRCDEP_REG | DSTDEP_REG | MODRM,
-/*      SBB                      SBB                      PUSH DS                          POP DS*/
-        SRCDEP_EAX | DSTDEP_EAX, SRCDEP_EAX | DSTDEP_EAX, IMPL_ESP,                        IMPL_ESP,
+/*      ADC                                     ADC                                     ADC                              ADC*/
+/*10*/  SRCDEP_REG | MODRM,                     SRCDEP_REG | MODRM,                     SRCDEP_REG | DSTDEP_REG | MODRM, SRCDEP_REG | DSTDEP_REG | MODRM,
+/*      ADC                                     ADC                                     PUSH SS                          POP SS*/
+        SRCDEP_EAX | DSTDEP_EAX | HAS_IMM8,     SRCDEP_EAX | DSTDEP_EAX | HAS_IMM1632,  IMPL_ESP,                        IMPL_ESP,
+/*      SBB                                     SBB                                     SBB                              SBB*/
+        SRCDEP_REG | MODRM,                     SRCDEP_REG | MODRM,                     SRCDEP_REG | DSTDEP_REG | MODRM, SRCDEP_REG | DSTDEP_REG | MODRM,
+/*      SBB                                     SBB                                     PUSH DS                          POP DS*/
+        SRCDEP_EAX | DSTDEP_EAX | HAS_IMM8,     SRCDEP_EAX | DSTDEP_EAX | HAS_IMM1632,  IMPL_ESP,                        IMPL_ESP,
 
-/*      AND                      AND                              AND                              AND*/
-/*20*/  SRCDEP_REG | MODRM,      SRCDEP_REG | MODRM,              SRCDEP_REG | DSTDEP_REG | MODRM, SRCDEP_REG | DSTDEP_REG | MODRM,
-/*      AND                      AND                                                               DAA*/
-        SRCDEP_EAX | DSTDEP_EAX, SRCDEP_EAX | DSTDEP_EAX | MODRM, 0,                               SRCDEP_EAX | DSTDEP_EAX,
-/*      SUB                      SUB                              SUB                              SUB*/
-        SRCDEP_REG | MODRM,      SRCDEP_REG | MODRM,              SRCDEP_REG | DSTDEP_REG | MODRM, SRCDEP_REG | DSTDEP_REG | MODRM,
-/*      SUB                      SUB                                                               DAS*/
-        SRCDEP_EAX | DSTDEP_EAX, SRCDEP_EAX | DSTDEP_EAX | MODRM, 0,                               SRCDEP_EAX | DSTDEP_EAX,
+/*      AND                                     AND                                     AND                              AND*/
+/*20*/  SRCDEP_REG | MODRM,                     SRCDEP_REG | MODRM,                     SRCDEP_REG | DSTDEP_REG | MODRM, SRCDEP_REG | DSTDEP_REG | MODRM,
+/*      AND                                     AND                                                                      DAA*/
+        SRCDEP_EAX | DSTDEP_EAX | HAS_IMM8,     SRCDEP_EAX | DSTDEP_EAX | HAS_IMM1632,  0,                               SRCDEP_EAX | DSTDEP_EAX,
+/*      SUB                                     SUB                                     SUB                              SUB*/
+        SRCDEP_REG | MODRM,                     SRCDEP_REG | MODRM,                     SRCDEP_REG | DSTDEP_REG | MODRM, SRCDEP_REG | DSTDEP_REG | MODRM,
+/*      SUB                                     SUB                                                                      DAS*/
+        SRCDEP_EAX | DSTDEP_EAX | HAS_IMM8,     SRCDEP_EAX | DSTDEP_EAX | HAS_IMM1632,  0,                               SRCDEP_EAX | DSTDEP_EAX,
         
-/*      XOR                      XOR                              XOR                              XOR*/
-/*30*/  SRCDEP_REG | MODRM,      SRCDEP_REG | MODRM,              SRCDEP_REG | DSTDEP_REG | MODRM, SRCDEP_REG | DSTDEP_REG | MODRM,
-/*      XOR                      XOR                                                               AAA*/
-        SRCDEP_EAX | DSTDEP_EAX, SRCDEP_EAX | DSTDEP_EAX | MODRM, 0,                               SRCDEP_EAX | DSTDEP_EAX,
-/*      CMP                      CMP                              CMP                              CMP*/
-        SRCDEP_REG | MODRM,      SRCDEP_REG | MODRM,              SRCDEP_REG | MODRM,              SRCDEP_REG | MODRM,
-/*      CMP                      CMP                                                               AAS*/
-        SRCDEP_EAX,              SRCDEP_EAX,                      0,                               SRCDEP_EAX | DSTDEP_EAX,
+/*      XOR                                     XOR                                     XOR                              XOR*/
+/*30*/  SRCDEP_REG | MODRM,                     SRCDEP_REG | MODRM,                     SRCDEP_REG | DSTDEP_REG | MODRM, SRCDEP_REG | DSTDEP_REG | MODRM,
+/*      XOR                                     XOR                                                                      AAA*/
+        SRCDEP_EAX | DSTDEP_EAX | HAS_IMM8,     SRCDEP_EAX | DSTDEP_EAX | HAS_IMM1632,  0,                               SRCDEP_EAX | DSTDEP_EAX,
+/*      CMP                                     CMP                                     CMP                              CMP*/
+        SRCDEP_REG | MODRM,                     SRCDEP_REG | MODRM,                     SRCDEP_REG | MODRM,              SRCDEP_REG | MODRM,
+/*      CMP                                     CMP                                                                      AAS*/
+        SRCDEP_EAX | HAS_IMM8,                  SRCDEP_EAX | HAS_IMM1632,               0,                               SRCDEP_EAX | DSTDEP_EAX,
 
 /*      INC EAX                  INC ECX                  INC EDX                  INC EBX*/
 /*40*/  SRCDEP_EAX | DSTDEP_EAX, SRCDEP_ECX | DSTDEP_ECX, SRCDEP_EDX | DSTDEP_EDX, SRCDEP_EBX | DSTDEP_EBX,
@@ -68,7 +68,7 @@ uint64_t opcode_deps[256] =
 /*60*/  IMPL_ESP,              IMPL_ESP,                0,                       0,
         0,                     0,                       0,                       0,
 /*      PUSH imm               IMUL                     PUSH imm                 IMUL*/
-        IMPL_ESP,              DSTDEP_REG | MODRM,      IMPL_ESP,                DSTDEP_REG | MODRM,
+        IMPL_ESP | HAS_IMM1632,DSTDEP_REG | MODRM,      IMPL_ESP | HAS_IMM8,     DSTDEP_REG | MODRM,
 /*      INSB                   INSW                     OUTSB                    OUTSW*/
         0,                     0,                       0,                       0,
         
@@ -102,15 +102,15 @@ uint64_t opcode_deps[256] =
         0,                       0,                       0,                       0,
 
 /*      MOV*/
-/*b0*/  DSTDEP_EAX,              DSTDEP_ECX,              DSTDEP_EDX,              DSTDEP_EBX,
-        DSTDEP_EAX,              DSTDEP_ECX,              DSTDEP_EDX,              DSTDEP_EBX,
-        DSTDEP_EAX,              DSTDEP_ECX,              DSTDEP_EDX,              DSTDEP_EBX,
-        DSTDEP_ESP,              DSTDEP_EBP,              DSTDEP_ESI,              DSTDEP_EDI,
+/*b0*/  DSTDEP_EAX | HAS_IMM8,    DSTDEP_ECX | HAS_IMM8,    DSTDEP_EDX | HAS_IMM8,    DSTDEP_EBX | HAS_IMM8,
+        DSTDEP_EAX | HAS_IMM8,    DSTDEP_ECX | HAS_IMM8,    DSTDEP_EDX | HAS_IMM8,    DSTDEP_EBX | HAS_IMM8,
+        DSTDEP_EAX | HAS_IMM1632, DSTDEP_ECX | HAS_IMM1632, DSTDEP_EDX | HAS_IMM1632, DSTDEP_EBX | HAS_IMM1632,
+        DSTDEP_ESP | HAS_IMM1632, DSTDEP_EBP | HAS_IMM1632, DSTDEP_ESI | HAS_IMM1632, DSTDEP_EDI | HAS_IMM1632,
 
 /*                                                      RET imm                   RET*/
 /*c0*/  0,                       0,                     SRCDEP_ESP | DSTDEP_ESP,  IMPL_ESP,
 /*      LES                      LDS                    MOV                       MOV*/
-        DSTDEP_REG | MODRM,      DSTDEP_REG | MODRM,    MODRM,                    MODRM,
+        DSTDEP_REG | MODRM,      DSTDEP_REG | MODRM,    MODRM | HAS_IMM8,         MODRM | HAS_IMM1632,
 /*      ENTER                    LEAVE                  RETF                      RETF*/
         IMPL_ESP,                IMPL_ESP,              IMPL_ESP,                 IMPL_ESP,
 /*      INT3                     INT                    INTO                      IRET*/
@@ -147,38 +147,38 @@ uint64_t opcode_deps_mod3[256] =
 /*      ADD                      ADD                 ADD                                          ADD*/
 /*00*/  SRCDEP_REG | SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_REG | SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_REG | DSTDEP_REG | SRCDEP_RM | MODRM, SRCDEP_REG | DSTDEP_REG | SRCDEP_RM | MODRM,
 /*      ADD                                          ADD                                          PUSH ES                                      POP ES*/
-        SRCDEP_EAX | DSTDEP_EAX,                     SRCDEP_EAX | DSTDEP_EAX,                     IMPL_ESP,                                    IMPL_ESP,
+        SRCDEP_EAX | DSTDEP_EAX | HAS_IMM8,          SRCDEP_EAX | DSTDEP_EAX | HAS_IMM1632,       IMPL_ESP,                                    IMPL_ESP,
 /*      OR                                           OR                                           OR                                           OR*/
         SRCDEP_REG | SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_REG | SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_REG | DSTDEP_REG | SRCDEP_RM | MODRM, SRCDEP_REG | DSTDEP_REG | SRCDEP_RM | MODRM,
 /*      OR                                           OR                                           PUSH CS*/
-        SRCDEP_EAX | DSTDEP_EAX,                     SRCDEP_EAX | DSTDEP_EAX,                     IMPL_ESP,                                    0,
+        SRCDEP_EAX | DSTDEP_EAX | HAS_IMM8,          SRCDEP_EAX | DSTDEP_EAX | HAS_IMM1632,       IMPL_ESP,                                    0,
 
 /*      ADC                                          ADC                                          ADC                                          ADC*/
 /*10*/  SRCDEP_REG | SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_REG | SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_REG | DSTDEP_REG | SRCDEP_RM | MODRM, SRCDEP_REG | DSTDEP_REG | SRCDEP_RM | MODRM,
 /*      ADC                                          ADC                                          PUSH SS                                      POP SS*/
-        SRCDEP_EAX | DSTDEP_EAX,                     SRCDEP_EAX | DSTDEP_EAX,                     IMPL_ESP,                                    IMPL_ESP,
+        SRCDEP_EAX | DSTDEP_EAX | HAS_IMM8,          SRCDEP_EAX | DSTDEP_EAX | HAS_IMM1632,       IMPL_ESP,                                    IMPL_ESP,
 /*      SBB                                          SBB                                          SBB                                          SBB*/        
         SRCDEP_REG |SRCDEP_RM | DSTDEP_RM |  MODRM,  SRCDEP_REG | SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_REG | DSTDEP_REG | SRCDEP_RM | MODRM, SRCDEP_REG | DSTDEP_REG | SRCDEP_RM | MODRM,
 /*      SBB                                          SBB                                          PUSH DS                                      POP DS*/
-        SRCDEP_EAX | DSTDEP_EAX,                     SRCDEP_EAX | DSTDEP_EAX,                     IMPL_ESP,                                    IMPL_ESP,
+        SRCDEP_EAX | DSTDEP_EAX | HAS_IMM8,          SRCDEP_EAX | DSTDEP_EAX | HAS_IMM1632,       IMPL_ESP,                                    IMPL_ESP,
 
 /*      AND                                          AND                                          AND                                          AND*/
 /*20*/  SRCDEP_REG | SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_REG | SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_REG | DSTDEP_REG | SRCDEP_RM | MODRM, SRCDEP_REG | DSTDEP_REG | SRCDEP_RM | MODRM,
 /*      AND                                          AND                                                                                       DAA*/
-        SRCDEP_EAX | DSTDEP_EAX,                     SRCDEP_EAX | DSTDEP_EAX | MODRM,             0,                                           SRCDEP_EAX | DSTDEP_EAX,
+        SRCDEP_EAX | DSTDEP_EAX | HAS_IMM8,          SRCDEP_EAX | DSTDEP_EAX | HAS_IMM1632,       0,                                           SRCDEP_EAX | DSTDEP_EAX,
 /*      SUB                                          SUB                                          SUB                                          SUB*/
         SRCDEP_REG | SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_REG | SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_REG | DSTDEP_REG | SRCDEP_RM | MODRM, SRCDEP_REG | DSTDEP_REG | SRCDEP_RM | MODRM,
 /*      SUB                                          SUB                                                                                       DAS*/
-        SRCDEP_EAX | DSTDEP_EAX,                     SRCDEP_EAX | DSTDEP_EAX | MODRM,             0,                                           SRCDEP_EAX | DSTDEP_EAX,
+        SRCDEP_EAX | DSTDEP_EAX | HAS_IMM8,          SRCDEP_EAX | DSTDEP_EAX | HAS_IMM1632,       0,                                           SRCDEP_EAX | DSTDEP_EAX,
         
 /*      XOR                                          XOR                                          XOR                                          XOR*/
 /*30*/  SRCDEP_REG | SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_REG | SRCDEP_RM | DSTDEP_RM | MODRM,  SRCDEP_REG | DSTDEP_REG | SRCDEP_RM | MODRM, SRCDEP_REG | DSTDEP_REG | SRCDEP_RM | MODRM,
 /*      XOR                                          XOR                                                                                       AAA*/
-        SRCDEP_EAX | DSTDEP_EAX,                     SRCDEP_EAX | DSTDEP_EAX | MODRM,             0,                                           SRCDEP_EAX | DSTDEP_EAX,
+        SRCDEP_EAX | DSTDEP_EAX | HAS_IMM8,          SRCDEP_EAX | DSTDEP_EAX | HAS_IMM1632,       0,                                           SRCDEP_EAX | DSTDEP_EAX,
 /*      CMP                                          CMP                                          CMP                                          CMP*/
         SRCDEP_REG | SRCDEP_RM | MODRM,              SRCDEP_REG | SRCDEP_RM | MODRM,              SRCDEP_REG | SRCDEP_RM | MODRM,              SRCDEP_REG | SRCDEP_RM | MODRM,
 /*      CMP                                          CMP                                                                                       AAS*/
-        SRCDEP_EAX,                                  SRCDEP_EAX,                                  0,                                           SRCDEP_EAX | DSTDEP_EAX,
+        SRCDEP_EAX | HAS_IMM8,                       SRCDEP_EAX | HAS_IMM1632,                    0,                                           SRCDEP_EAX | DSTDEP_EAX,
 
 /*      INC EAX                  INC ECX                  INC EDX                  INC EBX*/
 /*40*/  SRCDEP_EAX | DSTDEP_EAX, SRCDEP_ECX | DSTDEP_ECX, SRCDEP_EDX | DSTDEP_EDX, SRCDEP_EBX | DSTDEP_EBX,
@@ -202,7 +202,7 @@ uint64_t opcode_deps_mod3[256] =
 /*60*/  IMPL_ESP,              IMPL_ESP,                        0,                       0,
         0,                     0,                               0,                       0,
 /*      PUSH imm               IMUL                             PUSH imm                 IMUL*/
-        IMPL_ESP,              DSTDEP_REG | SRCDEP_RM | MODRM,  IMPL_ESP,                DSTDEP_REG | SRCDEP_RM | MODRM,
+        IMPL_ESP | HAS_IMM1632,DSTDEP_REG | SRCDEP_RM | MODRM,  IMPL_ESP | HAS_IMM8,     DSTDEP_REG | SRCDEP_RM | MODRM,
 /*      INSB                   INSW                             OUTSB                    OUTSW*/
         0,                     0,                               0,                       0,
         
@@ -236,19 +236,19 @@ uint64_t opcode_deps_mod3[256] =
         0,                       0,                       0,                       0,
 
 /*      MOV*/
-/*b0*/  DSTDEP_EAX,              DSTDEP_ECX,              DSTDEP_EDX,              DSTDEP_EBX,
-        DSTDEP_EAX,              DSTDEP_ECX,              DSTDEP_EDX,              DSTDEP_EBX,
-        DSTDEP_EAX,              DSTDEP_ECX,              DSTDEP_EDX,              DSTDEP_EBX,
-        DSTDEP_ESP,              DSTDEP_EBP,              DSTDEP_ESI,              DSTDEP_EDI,
+/*b0*/  DSTDEP_EAX | HAS_IMM8,    DSTDEP_ECX | HAS_IMM8,    DSTDEP_EDX | HAS_IMM8,    DSTDEP_EBX | HAS_IMM8,
+        DSTDEP_EAX | HAS_IMM8,    DSTDEP_ECX | HAS_IMM8,    DSTDEP_EDX | HAS_IMM8,    DSTDEP_EBX | HAS_IMM8,
+        DSTDEP_EAX | HAS_IMM1632, DSTDEP_ECX | HAS_IMM1632, DSTDEP_EDX | HAS_IMM1632, DSTDEP_EBX | HAS_IMM1632,
+        DSTDEP_ESP | HAS_IMM1632, DSTDEP_EBP | HAS_IMM1632, DSTDEP_ESI | HAS_IMM1632, DSTDEP_EDI | HAS_IMM1632,
 
-/*                                                      RET imm                   RET*/
-/*c0*/  0,                       0,                     SRCDEP_ESP | DSTDEP_ESP,  IMPL_ESP,
-/*      LES                      LDS                    MOV                       MOV*/
-        DSTDEP_REG | MODRM,      DSTDEP_REG | MODRM,    DSTDEP_RM | MODRM,        DSTDEP_RM | MODRM,
-/*      ENTER                    LEAVE                  RETF                      RETF*/
-        IMPL_ESP,                IMPL_ESP,              IMPL_ESP,                 IMPL_ESP,
-/*      INT3                     INT                    INTO                      IRET*/
-        0,                       0,                     0,                        0,
+/*                                                      RET imm                         RET*/
+/*c0*/  0,                       0,                     SRCDEP_ESP | DSTDEP_ESP,        IMPL_ESP,
+/*      LES                      LDS                    MOV                             MOV*/
+        DSTDEP_REG | MODRM,      DSTDEP_REG | MODRM,    DSTDEP_RM | MODRM | HAS_IMM8,   DSTDEP_RM | MODRM | HAS_IMM1632,
+/*      ENTER                    LEAVE                  RETF                            RETF*/
+        IMPL_ESP,                IMPL_ESP,              IMPL_ESP,                       IMPL_ESP,
+/*      INT3                     INT                    INTO                            IRET*/
+        0,                       0,                     0,                              0,
 
 
 /*d0*/  0,                       0,                       0,                      0,
@@ -331,7 +331,7 @@ uint64_t opcode_deps_0f[256] =
 /*a0*/  MODRM,  MODRM,   MODRM,   MODRM,
         MODRM,  MODRM,   0,       0,
         MODRM,  MODRM,   0,       MODRM,
-        MODRM,  MODRM,   0,       MODRM,
+        MODRM,  MODRM,   MODRM,   MODRM,
         
 /*b0*/  MODRM,  MODRM,   MODRM,   MODRM,
         MODRM,  MODRM,   MODRM,   MODRM,
@@ -413,7 +413,7 @@ uint64_t opcode_deps_0f_mod3[256] =
 /*a0*/  MODRM,  MODRM,   MODRM,   MODRM,
         MODRM,  MODRM,   0,       0,
         MODRM,  MODRM,   0,       MODRM,
-        MODRM,  MODRM,   0,       MODRM,
+        MODRM,  MODRM,   MODRM,   MODRM,
         
 /*b0*/  MODRM,  MODRM,   MODRM,   MODRM,
         MODRM,  MODRM,   MODRM,   MODRM,

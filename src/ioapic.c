@@ -125,6 +125,6 @@ const device_t ioapic_device = {
     DEVICE_AT,
     0,
     ioapic_init, ioapic_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

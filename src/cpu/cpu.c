@@ -61,6 +61,18 @@
 #endif
 #include "x87_timings.h"
 
+
+#define CCR1_USE_SMI  (1 << 1)
+#define CCR1_SMAC     (1 << 2)
+#define CCR1_SM3      (1 << 7)
+
+#define CCR3_SMI_LOCK (1 << 0)
+#define CCR3_NMI_EN   (1 << 1)
+
+
+cyrix_t		cyrix;
+
+
 static void	cpu_write(uint16_t addr, uint8_t val, void *priv);
 static uint8_t	cpu_read(uint16_t addr, void *priv);
 
@@ -169,7 +181,7 @@ int		is286,
 		hascache,
 		isibm486,
 		israpidcad,
-		is_am486, is_pentium, is_k5, is_k6, is_p6;
+		is_am486, is_pentium, is_k5, is_k6, is_p6, is_cx6x86;
 
 int		hasfpu;
 
@@ -250,6 +262,8 @@ int		timing_misaligned;
 
 
 static uint8_t	ccr0, ccr1, ccr2, ccr3, ccr4, ccr5, ccr6;
+
+static int cyrix_addr;
 
 
 #ifdef ENABLE_CPU_LOG
@@ -399,6 +413,13 @@ cpu_set(void)
 		       (cpu_s->cpu_type == CPU_PENTIUM2D);
 	/* The Samuel 2 datasheet claims it's Celeron-compatible. */
 	is_p6       |= (cpu_s->cpu_type == CPU_CYRIX3S);
+#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
+        is_cx6x86    = (cpu_s->cpu_type == CPU_PENTIUMPRO) || (cpu_s->cpu_type == CPU_PENTIUM2) ||
+		       (cpu_s->cpu_type == CPU_PENTIUM2D);
+#else
+	is_cx6x86    = (cpu_s->cpu_type == CPU_Cx6x86) || (cpu_s->cpu_type == CPU_Cx6x86MX) ||
+		       (cpu_s->cpu_type == CPU_Cx6x86L) || (cpu_s->cpu_type == CPU_CxGX1);
+#endif
         hasfpu       = (fpu_type != FPU_NONE);
 	hascache     = (cpu_s->cpu_type >= CPU_486SLC) || (cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL);
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
@@ -444,10 +465,13 @@ cpu_set(void)
         else
 		io_removehandler(0x0022, 0x0002, cpu_read, NULL, NULL, cpu_write, NULL, NULL, NULL);
 
-	if (hasfpu)
+	if (hasfpu) {
 		io_sethandler(0x00f0, 0x000f, cpu_read, NULL, NULL, cpu_write, NULL, NULL, NULL);
-	else
+		io_sethandler(0xf007, 0x0001, cpu_read, NULL, NULL, cpu_write, NULL, NULL, NULL);
+	} else {
 		io_removehandler(0x00f0, 0x000f, cpu_read, NULL, NULL, cpu_write, NULL, NULL, NULL);
+		io_removehandler(0xf007, 0x0001, cpu_read, NULL, NULL, cpu_write, NULL, NULL, NULL);
+	}
 
 #ifdef USE_DYNAREC
         x86_setopcodes(ops_386, ops_386_0f, dynarec_ops_386, dynarec_ops_386_0f);
@@ -548,6 +572,7 @@ cpu_set(void)
 
         timing_misaligned = 0;
         cpu_cyrix_alignment = 0;
+	cpu_CR4_mask = 0;
 
         switch (cpu_s->cpu_type)
         {
@@ -1191,9 +1216,9 @@ cpu_set(void)
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
   		case CPU_Cx6x86:
 #ifdef USE_DYNAREC
-                x86_setopcodes(ops_386, ops_pentium_0f, dynarec_ops_386, dynarec_ops_pentium_0f);
+                x86_setopcodes(ops_386, ops_c6x86_0f, dynarec_ops_386, dynarec_ops_c6x86_0f);
 #else
-                x86_setopcodes(ops_386, ops_pentium_0f);
+                x86_setopcodes(ops_386, ops_c6x86_0f);
 #endif
                 timing_rr  = 1; /*register dest - register src*/
                 timing_rm  = 1; /*register dest - memory src*/
@@ -2366,10 +2391,7 @@ cpu_CPUID(void)
                 {
                         EAX = CPUID;
                         EBX = ECX = 0;
-                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR/* | CPUID_SEP*/ | CPUID_CMOV;
-#ifdef USE_SEP
-			EDX |= CPUID_SEP;
-#endif
+                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_SEP | CPUID_CMOV;
                 }
 		else if (EAX == 2)
 		{
@@ -2393,10 +2415,7 @@ cpu_CPUID(void)
                 {
                         EAX = CPUID;
                         EBX = ECX = 0;
-                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR/* | CPUID_SEP*/ | CPUID_FXSR | CPUID_CMOV;
-#ifdef USE_SEP
-			EDX |= CPUID_SEP;
-#endif
+                        EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_SEP | CPUID_FXSR | CPUID_CMOV;
                 }
 		else if (EAX == 2)
 		{
@@ -3555,8 +3574,6 @@ i686_invalid_wrmsr:
         }
 }
 
-static int cyrix_addr;
-
 static void cpu_write(uint16_t addr, uint8_t val, void *priv)
 {
 	if (addr == 0xf0) {
@@ -3577,14 +3594,46 @@ static void cpu_write(uint16_t addr, uint8_t val, void *priv)
                 ccr0 = val;
                 break;
                 case 0xc1: /*CCR1*/
+                if ((ccr3 & CCR3_SMI_LOCK) && !in_smm)
+                        val = (val & ~(CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3)) | (ccr1 & (CCR1_USE_SMI | CCR1_SMAC | CCR1_SM3));
                 ccr1 = val;
                 break;
                 case 0xc2: /*CCR2*/
                 ccr2 = val;
                 break;
                 case 0xc3: /*CCR3*/
+                if ((ccr3 & CCR3_SMI_LOCK) && !in_smm)
+                        val = (val & ~(CCR3_NMI_EN)) | (ccr3 & CCR3_NMI_EN) | CCR3_SMI_LOCK;
                 ccr3 = val;
                 break;
+                case 0xcd:
+                if (!(ccr3 & CCR3_SMI_LOCK) || in_smm)
+                {
+                        cyrix.arr[3].base = (cyrix.arr[3].base & ~0xff000000) | (val << 24);
+                        cyrix.smhr &= ~SMHR_VALID;
+                }
+                break;
+                case 0xce:
+                if (!(ccr3 & CCR3_SMI_LOCK) || in_smm)
+                {
+                        cyrix.arr[3].base = (cyrix.arr[3].base & ~0x00ff0000) | (val << 16);
+                        cyrix.smhr &= ~SMHR_VALID;
+                }
+                break;
+                case 0xcf:
+                if (!(ccr3 & CCR3_SMI_LOCK) || in_smm)
+                {
+                        cyrix.arr[3].base = (cyrix.arr[3].base & ~0x0000f000) | ((val & 0xf0) << 8);
+                        if ((val & 0xf) == 0xf)
+                                cyrix.arr[3].size = 1ull << 32; /*4 GB*/
+                        else if (val & 0xf)
+                                cyrix.arr[3].size = 2048 << (val & 0xf);
+                        else
+                                cyrix.arr[3].size = 0; /*Disabled*/
+                        cyrix.smhr &= ~SMHR_VALID;
+                }
+                break;
+
                 case 0xe8: /*CCR4*/
                 if ((ccr3 & 0xf0) == 0x10)
                 {
@@ -3613,6 +3662,9 @@ static void cpu_write(uint16_t addr, uint8_t val, void *priv)
 
 static uint8_t cpu_read(uint16_t addr, void *priv)
 {
+	if (addr == 0xf007)
+		return 0x7f;
+
 	if (addr >= 0xf0)
 		return 0xff;		/* FPU stuff */
 

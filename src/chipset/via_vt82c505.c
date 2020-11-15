@@ -124,7 +124,7 @@ vt82c505_init(const device_t *info)
     vt82c505_t *dev = (vt82c505_t *) malloc(sizeof(vt82c505_t));
     memset(dev, 0, sizeof(vt82c505_t));
 
-    pci_add_card(0, vt82c505_read, vt82c505_write, dev);
+    pci_add_card(PCI_ADD_NORTHBRIDGE, vt82c505_read, vt82c505_write, dev);
 
     dev->pci_conf[0x00] = 0x06;
     dev->pci_conf[0x01] = 0x11;
@@ -152,7 +152,7 @@ const device_t via_vt82c505_device = {
     vt82c505_init,
     vt82c505_close,
     vt82c505_reset,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     NULL

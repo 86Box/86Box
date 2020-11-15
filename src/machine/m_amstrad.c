@@ -668,7 +668,7 @@ vid_speed_change_1512(void *priv)
 device_config_t vid_1512_config[] =
 {
 	{
-		"display_type", "Display type", CONFIG_SELECTION, "", 0,
+		"display_type", "Display type", CONFIG_SELECTION, "", 0, "", { 0 },
 		{
 			{
 				"PC-CM (Colour)", 0
@@ -682,7 +682,7 @@ device_config_t vid_1512_config[] =
 		}
 	},
 	{
-        "codepage", "Hardware font", CONFIG_SELECTION, "", 3,
+        "codepage", "Hardware font", CONFIG_SELECTION, "", 3, "", { 0 },
 		{
 			{
 				"US English", 3
@@ -699,7 +699,7 @@ device_config_t vid_1512_config[] =
 		}
 	},
 	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7,
+        "language", "BIOS language", CONFIG_SELECTION, "", 7, "", { 0 },
 		{
 			{
 				"English", 7
@@ -740,7 +740,7 @@ static const device_t vid_1512_device = {
     "Amstrad PC1512 (video)",
     0, 0,
     NULL, vid_close_1512, NULL,
-    NULL,
+    { NULL },
     vid_speed_change_1512,
     NULL,
     vid_1512_config
@@ -896,7 +896,7 @@ vid_speed_changed_1640(void *priv)
 device_config_t vid_1640_config[] =
 {
 	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7,
+        "language", "BIOS language", CONFIG_SELECTION, "", 7, "", { 0 },
 		{
 			{
 				"English", 7
@@ -936,7 +936,7 @@ static const device_t vid_1640_device = {
     "Amstrad PC1640 (video)",
     0, 0,
     NULL, vid_close_1640, NULL,
-    NULL,
+    { NULL },
     vid_speed_changed_1640,
     NULL,
     vid_1640_config
@@ -1729,7 +1729,7 @@ device_config_t vid_200_config[] =
 	*	> Display port (TTL or RF)
 	*/
 	{
-		"video_emulation", "Display type", CONFIG_SELECTION, "", PC200_CGA,
+		"video_emulation", "Display type", CONFIG_SELECTION, "", PC200_CGA, "", { 0 },
 		{
 			{
 				"CGA monitor", PC200_CGA
@@ -1746,7 +1746,7 @@ device_config_t vid_200_config[] =
 		}
 	},
         {
-		"display_type", "Monitor type", CONFIG_SELECTION, "", 0,
+		"display_type", "Monitor type", CONFIG_SELECTION, "", 0, "", { 0 },
 		{
 			{
 					"RGB", 0
@@ -1769,7 +1769,7 @@ device_config_t vid_200_config[] =
 		}
         },
         {
-		"codepage", "Hardware font", CONFIG_SELECTION, "", 3,
+		"codepage", "Hardware font", CONFIG_SELECTION, "", 3, "", { 0 },
 		{
 			{
 				"US English", 3
@@ -1789,7 +1789,7 @@ device_config_t vid_200_config[] =
 		}
 	},
 	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7,
+        "language", "BIOS language", CONFIG_SELECTION, "", 7, "", { 0 },
 		{
 			{
 				"English", 7
@@ -1830,7 +1830,7 @@ static const device_t vid_200_device = {
     "Amstrad PC200 (video)",
     0, 0,
     NULL, vid_close_200, NULL,
-    NULL,
+    { NULL },
     vid_speed_changed_200,
     NULL,
     vid_200_config
@@ -1851,7 +1851,7 @@ device_config_t vid_ppc512_config[] =
 	*	> Display port (TTL or RF)
 	*/
 	{
-		"video_emulation", "Display type", CONFIG_SELECTION, "", PC200_LCDC,
+		"video_emulation", "Display type", CONFIG_SELECTION, "", PC200_LCDC, "", { 0 },
 		{
 			{
 				"CGA monitor", PC200_CGA
@@ -1871,7 +1871,7 @@ device_config_t vid_ppc512_config[] =
 		},
 	},
         {
-                "display_type", "Monitor type", CONFIG_SELECTION, "", 0,
+                "display_type", "Monitor type", CONFIG_SELECTION, "", 0, "", { 0 },
                 {
                         {
                                 "RGB", 0
@@ -1894,7 +1894,7 @@ device_config_t vid_ppc512_config[] =
                 },
         },
         {
-                "codepage", "Hardware font", CONFIG_SELECTION, "", 3,
+                "codepage", "Hardware font", CONFIG_SELECTION, "", 3, "", { 0 },
 				{
 					{
 						"US English", 3
@@ -1914,7 +1914,7 @@ device_config_t vid_ppc512_config[] =
 				},
         },
 	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7,
+        "language", "BIOS language", CONFIG_SELECTION, "", 7, "", { 0 },
 		{
 			{
 				"English", 7
@@ -1954,7 +1954,7 @@ static const device_t vid_ppc512_device = {
     "Amstrad PPC512 (video)",
     0, 0,
     NULL, vid_close_200, NULL,
-    NULL,
+    { NULL },
     vid_speed_changed_200,
     NULL,
     vid_ppc512_config
@@ -1971,7 +1971,7 @@ ppc512_get_device(void)
 device_config_t vid_pc2086_config[] =
 {
 	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7,
+        "language", "BIOS language", CONFIG_SELECTION, "", 7, "", { 0 },
 		{
 			{
 				"English", 7
@@ -1993,7 +1993,7 @@ static const device_t vid_pc2086_device = {
     "Amstrad PC2086",
     0, 0,
     NULL, NULL, NULL,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     vid_pc2086_config
@@ -2010,7 +2010,7 @@ pc2086_get_device(void)
 device_config_t vid_pc3086_config[] =
 {
 	{
-        "language", "BIOS language", CONFIG_SELECTION, "", 7,
+        "language", "BIOS language", CONFIG_SELECTION, "", 7, "", { 0 },
 		{
 			{
 				"English", 7
@@ -2032,7 +2032,7 @@ static const device_t vid_pc3086_device = {
     "Amstrad PC3086",
     0, 0,
     NULL, NULL, NULL,
-    NULL,
+    { NULL },
     NULL,
     NULL,
     vid_pc3086_config

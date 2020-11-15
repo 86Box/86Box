@@ -310,7 +310,7 @@ const device_t pc87332_device = {
     0,
     0,
     pc87332_init, pc87332_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 
@@ -320,6 +320,6 @@ const device_t pc87332_ps1_device = {
     0,
     1,
     pc87332_init, pc87332_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };

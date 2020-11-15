@@ -271,7 +271,7 @@ const device_t fdc37c661_device = {
     0,
     0,
     fdc37c661_init, fdc37c661_close, NULL,
-    NULL, NULL, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
 

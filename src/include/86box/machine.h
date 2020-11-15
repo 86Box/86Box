@@ -226,9 +226,7 @@ extern int	machine_at_ibmatquadtel_init(const machine_t *); // IBM AT with Quadt
 
 extern int	machine_at_ibmxt286_init(const machine_t *);
 
-#if defined(DEV_BRANCH) && defined(USE_SIEMENS)
 extern int	machine_at_siemens_init(const machine_t *); //Siemens PCD-2L. N82330 discrete machine. It segfaults in some places
-#endif
 
 #if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
 extern int	machine_at_open_at_init(const machine_t *);
@@ -372,14 +370,13 @@ extern int	machine_at_endeavor_init(const machine_t *);
 extern int	machine_at_zappa_init(const machine_t *);
 extern int	machine_at_mb500n_init(const machine_t *);
 extern int	machine_at_apollo_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_VECTRA54)
 extern int	machine_at_vectra54_init(const machine_t *);
-#endif
 extern int	machine_at_powermate_v_init(const machine_t *);
 extern int	machine_at_acerv30_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_endeavor_get_device(void);
+#define at_vectra54_get_device at_endeavor_get_device
 extern const device_t	*at_pb520r_get_device(void);
 extern const device_t	*at_thor_get_device(void);
 #endif
@@ -416,6 +413,9 @@ extern int	machine_at_pb680_init(const machine_t *);
 extern int	machine_at_nupro592_init(const machine_t *);
 extern int	machine_at_tx97_init(const machine_t *);
 extern int	machine_at_ym430tx_init(const machine_t *);
+#if defined(DEV_BRANCH) && defined(NO_SIO)
+extern int	machine_at_an430tx_init(const machine_t *);
+#endif
 extern int	machine_at_mb540n_init(const machine_t *);
 extern int	machine_at_p5mms98_init(const machine_t *);
 
