@@ -1135,10 +1135,12 @@ acpi_reset(void *priv)
 
     memset(&dev->regs, 0x00, sizeof(acpi_regs_t));
     dev->regs.gpireg[0] = 0xff; dev->regs.gpireg[1] = 0xff;
-    /* SMSC SLC90E66 machines:
+    /* A-Trend ATC7020BXII:
        - Bit 3: 80-conductor cable on secondary IDE channel (active low)
-       - Bit 2: 80-conductor cable on primary IDE channel (active low) */
-    dev->regs.gpireg[2] = 0xf3;
+       - Bit 2: 80-conductor cable on primary IDE channel (active low)
+       Gigabyte GA-686BX:
+       - Bit 1: CMOS battery low (active high) */
+    dev->regs.gpireg[2] = 0xf1;
     for (i = 0; i < 4; i++)
 	dev->regs.gporeg[i] = dev->gporeg_default[i];
     if (dev->vendor == VEN_VIA_596B) {
