@@ -1019,7 +1019,7 @@ enter_smm(int in_hlt)
     uint32_t saved_state[SMM_SAVE_STATE_MAP_SIZE], n;
     uint32_t smram_state = smbase + 0x10000;
 
-    /* If it's a CPU on which SMM is not supporter, do nothing. */
+    /* If it's a CPU on which SMM is not supported, do nothing. */
     if (!is_am486 && !is_pentium && !is_k5 && !is_k6 && !is_p6 && !is_cx6x86)
 	return;
 
@@ -1622,10 +1622,8 @@ sysenter(uint32_t fetchdat)
 #endif
 
     /* Set VM, RF, and IF to 0. */
-    flags_rebuild();
     cpu_state.eflags &= ~(RF_FLAG | VM_FLAG);
     cpu_state.flags &= ~I_FLAG;
-    cpu_cur_status &= ~CPU_STATUS_V86;
 
 #ifndef USE_NEW_DYNAREC
     oldcs = CS;
@@ -1643,6 +1641,7 @@ sysenter(uint32_t fetchdat)
     cpu_state.seg_cs.access = 0x9b;
     cpu_state.seg_cs.ar_high = 0xcf;
     cpu_state.seg_cs.checked = 1;
+    oldcpl = 0;
 
     cpu_state.seg_ss.seg = ((cs_msr + 8) & 0xfffc);
     cpu_state.seg_ss.base = 0;
@@ -1653,9 +1652,12 @@ sysenter(uint32_t fetchdat)
     cpu_state.seg_ss.access = 0x93;
     cpu_state.seg_ss.ar_high = 0xcf;
     cpu_state.seg_ss.checked = 1;
+#ifdef USE_DYNAREC
+    codegen_flat_ss = 0;
+#endif
 
     cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS | CPU_STATUS_V86);
-    cpu_cur_status |= (CPU_STATUS_USE32 | CPU_STATUS_STACK32 | CPU_STATUS_PMODE);
+    cpu_cur_status |= (CPU_STATUS_USE32 | CPU_STATUS_STACK32/* | CPU_STATUS_PMODE*/);
     set_use32(1);
     set_stack32(1);
 
@@ -1737,10 +1739,13 @@ sysexit(uint32_t fetchdat)
     cpu_state.seg_ss.limit_raw = 0x000fffff;
     cpu_state.seg_ss.limit_high = 0xffffffff;
     cpu_state.seg_ss.access = 0xf3;
-    cpu_state.seg_cs.ar_high = 0xcf;
+    cpu_state.seg_ss.ar_high = 0xcf;
     cpu_state.seg_ss.checked = 1;
+#ifdef USE_DYNAREC
+    codegen_flat_ss = 0;
+#endif
 
-    cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS | CPU_STATUS_V86);
+    cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS/* | CPU_STATUS_V86*/);
     cpu_cur_status |= (CPU_STATUS_USE32 | CPU_STATUS_STACK32 | CPU_STATUS_PMODE);
     flushmmucache_cr3();
     set_use32(1);
@@ -1767,23 +1772,16 @@ syscall(uint32_t fetchdat)
     x386_common_log("SYSCALL called\n");
 #endif
 
-    if (!(cr0 & 1)) {
-	x86gpf("SYSCALL: CPU not in protected mode", 0);
-	return cpu_state.abrt;
-    }
-
-    if (!AMD_SYSCALL_SB) {
-	x86gpf("SYSCALL: AMD SYSCALL SB MSR is zero", 0);
-	return cpu_state.abrt;
-    }
-
     /* Let's do this by the AMD spec. */
-    ECX = cpu_state.pc;
+    /* Set VM and IF to 0. */
+    cpu_state.eflags &= ~VM_FLAG;
+    cpu_state.flags &= ~I_FLAG;
 
-    flags_rebuild();
-    cpu_state.eflags &= ~0x0002;
-    cpu_state.flags &= ~0x0200;
-    cpu_cur_status &= ~CPU_STATUS_V86;
+#ifndef USE_NEW_DYNAREC
+    oldcs = CS;
+#endif
+    cpu_state.oldpc = cpu_state.pc;
+    ECX = cpu_state.pc;
 
     /* CS */
     CS = AMD_SYSCALL_SB & 0xfffc;
@@ -1795,6 +1793,7 @@ syscall(uint32_t fetchdat)
     cpu_state.seg_cs.access = 0x9b;
     cpu_state.seg_cs.ar_high = 0xcf;
     cpu_state.seg_cs.checked = 1;
+    oldcpl = 0;
 
     /* SS */
     SS = (AMD_SYSCALL_SB + 8) & 0xfffc;
@@ -1806,6 +1805,9 @@ syscall(uint32_t fetchdat)
     cpu_state.seg_ss.access = 0x93;
     cpu_state.seg_ss.ar_high = 0xcf;
     cpu_state.seg_ss.checked = 1;
+#ifdef USE_DYNAREC
+    codegen_flat_ss = 0;
+#endif
 
     cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS | CPU_STATUS_V86);
     cpu_cur_status |= (CPU_STATUS_USE32 | CPU_STATUS_STACK32 | CPU_STATUS_PMODE);
@@ -1825,19 +1827,24 @@ sysret(uint32_t fetchdat)
     x386_common_log("SYSRET called\n");
 #endif
 
-    if (!AMD_SYSRET_SB) {
-	x86gpf("SYSRET: CS MSR is zero", 0);
+    if (CPL) {
+#ifdef ENABLE_386_COMMON_LOG
+	x386_common_log("SYSRET: CPL not 0");
+#endif
+	x86gpf("SYSRET: CPL not 0", 0);
 	return cpu_state.abrt;
     }
 
-    if (!(cr0 & 1)) {
-	x86gpf("SYSRET: CPU not in protected mode", 0);
-	return cpu_state.abrt;
-    }
+    cpu_state.flags |= I_FLAG;
+    /* First instruction after SYSRET will always execute, regardless of whether
+       there is a pending interrupt, following the STI logic */
+    cpu_end_block_after_ins = 2;
 
+#ifndef USE_NEW_DYNAREC
+    oldcs = CS;
+#endif
+    cpu_state.oldpc = cpu_state.pc;
     cpu_state.pc = ECX;
-
-    cpu_state.eflags |= (1 << 1);
 
     /* CS */
     CS = (AMD_SYSRET_SB & 0xfffc) | 3;
@@ -1861,8 +1868,11 @@ sysret(uint32_t fetchdat)
     cpu_state.seg_ss.access = 0xf3;
     cpu_state.seg_cs.ar_high = 0xcf;
     cpu_state.seg_ss.checked = 1;
+#ifdef USE_DYNAREC
+    codegen_flat_ss = 0;
+#endif
 
-    cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS | CPU_STATUS_V86);
+    cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS/* | CPU_STATUS_V86*/);
     cpu_cur_status |= (CPU_STATUS_USE32 | CPU_STATUS_STACK32 | CPU_STATUS_PMODE);
     flushmmucache_cr3();
     set_use32(1);

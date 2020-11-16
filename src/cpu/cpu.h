@@ -437,7 +437,7 @@ extern uint32_t		esp_msr;
 extern uint32_t		eip_msr;
 
 /* For the AMD K6. */
-extern uint64_t		star;
+extern uint64_t		amd_efer, star;
 
 #define FPU_CW_Reserved_Bits (0xe0c0)
 
@@ -489,6 +489,7 @@ extern int	timing_jmp_rm, timing_jmp_pm, timing_jmp_pm_gate;
 extern int	timing_misaligned;
 
 extern int	in_sys, unmask_a20_in_smm;
+extern int	cycles_main;
 extern uint32_t	old_rammask;
 
 #ifdef USE_ACYCS

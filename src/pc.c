@@ -835,6 +835,8 @@ pc_reset_hard_init(void)
 
     atfullspeed = 0;
     pc_full_speed();
+
+    cycles = cycles_main = 0;
 }
 
 

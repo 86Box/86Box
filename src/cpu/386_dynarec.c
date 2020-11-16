@@ -270,7 +270,8 @@ static void prefetch_flush()
 #define CACHE_ON() (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG))
 
 #ifdef USE_DYNAREC
-static int cycles_main = 0, cycles_old = 0;
+int cycles_main = 0;
+static int cycles_old = 0;
 static uint64_t tsc_old = 0;
 
 #ifdef USE_ACYCS

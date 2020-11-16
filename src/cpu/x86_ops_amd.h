@@ -16,7 +16,11 @@
 static int
 opSYSCALL(uint32_t fetchdat)
 {
-    int ret = syscall(fetchdat);
+    int ret;
+
+    ILLEGAL_ON(!(amd_efer & 0x0000000000000001));
+
+    ret = syscall(fetchdat);
 
     if (ret <= 1) {
 	CLOCK_CYCLES(20);
@@ -32,7 +36,11 @@ opSYSCALL(uint32_t fetchdat)
 static int
 opSYSRET(uint32_t fetchdat)
 {
-    int ret = sysret(fetchdat);
+    int ret;
+
+    ILLEGAL_ON(!(amd_efer & 0x0000000000000001));
+
+    ret = sysret(fetchdat);
 
     if (ret <= 1) {
 	CLOCK_CYCLES(20);
