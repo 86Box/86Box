@@ -674,6 +674,27 @@ read_mem_b(uint32_t addr)
 }
 
 
+uint16_t
+read_mem_w(uint32_t addr)
+{
+    mem_mapping_t *map;
+    mem_logical_addr = addr;
+
+    if (addr & 1)
+	return read_mem_b(addr) | (read_mem_b(addr + 1) << 8);
+
+    map = read_mapping[addr >> MEM_GRANULARITY_BITS];
+
+    if (map && map->read_w)
+	return map->read_w(addr, map->p);
+
+    if (map && map->read_b)
+	return map->read_b(addr, map->p) | (map->read_b(addr + 1, map->p) << 8);
+
+    return 0xffff;
+}
+
+
 void
 write_mem_b(uint32_t addr, uint8_t val)
 {
@@ -683,6 +704,30 @@ write_mem_b(uint32_t addr, uint8_t val)
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map && map->write_b)
 	map->write_b(addr, val, map->p);
+}
+
+
+void
+write_mem_w(uint32_t addr, uint16_t val)
+{
+    mem_mapping_t *map;
+    mem_logical_addr = addr;
+
+    if (addr & 1) {
+	write_mem_b(addr, val);
+	write_mem_b(addr + 1, val >> 8);
+	return;
+    }
+
+    map = write_mapping[addr >> MEM_GRANULARITY_BITS];
+    if (map) {
+	if (map->write_w)
+		map->write_w(addr, val, map->p);
+	else if (map->write_b) {
+		map->write_b(addr, val, map->p);
+		map->write_b(addr + 1, val >> 8, map->p);
+	}
+    }
 }
 
 
