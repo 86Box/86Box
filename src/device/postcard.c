@@ -117,6 +117,8 @@ postcard_init(const device_t *info)
 	postcard_port = 0x190; /* ISA PS/2 machines */
     else if (strstr(machines[machine].name, " IBM XT "))
 	postcard_port = 0x60;  /* IBM XT */
+    else if (strstr(machines[machine].name, "PCjr"))
+	postcard_port = 0x10;  /* IBM PCjr */
     else if (strstr(machines[machine].name, " Compaq ") && !(machines[machine].flags & MACHINE_PCI))
 	postcard_port = 0x84;  /* ISA Compaq machines */
     else
