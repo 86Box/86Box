@@ -1089,6 +1089,8 @@ ui_init(int nCmdShow)
     /* Make the window visible on the screen. */
     ShowWindow(hwnd, nCmdShow);
 
+    GetClipCursor(&oldclip);
+
     /* Initialize the RawInput (keyboard) module. */
     memset(&ridev, 0x00, sizeof(ridev));
     ridev.usUsagePage = 0x01;

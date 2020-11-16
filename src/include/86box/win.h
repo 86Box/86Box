@@ -99,6 +99,7 @@ extern HWND		hwndMain,
 extern HANDLE		ghMutex;
 extern LCID		lang_id;
 extern HICON		hIcon[256];
+extern RECT		oldclip;
 
 // extern int		status_is_open;
 
