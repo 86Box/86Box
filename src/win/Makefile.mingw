@@ -303,7 +303,7 @@ endif
 #		Nothing should need changing from here on..		#
 #########################################################################
 VPATH		:= $(EXPATH) . $(CODEGEN) cpu \
-		   cdrom chipset device disk floppy \
+		   cdrom chipset device disk disk/minivhd floppy \
 		   game machine mem printer \
 		   sio sound \
 		    sound/munt sound/munt/c_interface sound/munt/sha1 \
@@ -690,6 +690,10 @@ HDDOBJ		:= hdd.o \
 		    hdc_xtide.o hdc_ide.o \
 		    hdc_ide_opti611.o \
 		    hdc_ide_cmd640.o hdc_ide_sff8038i.o
+            
+MINIVHDOBJ  := cwalk.o libxml2_encoding.o minivhd_convert.o \
+		    minivhd_create.o minivhd_io.o minivhd_manage.o \
+            minivhd_struct_rw.o minivhd_util.o		                
 
 CDROMOBJ	:= cdrom.o \
 		    cdrom_image_backend.o cdrom_image.o
@@ -789,7 +793,7 @@ else
 endif
 
 OBJ		:= $(MAINOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
-		   $(FDDOBJ) $(GAMEOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) \
+		   $(FDDOBJ) $(GAMEOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) $(MINIVHDOBJ) \
 		   $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SIOOBJ) $(SNDOBJ) $(VIDOBJ) \
 		   $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) $(DEVBROBJ) \
 		   $(DISCORDOBJ)

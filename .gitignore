@@ -9,3 +9,4 @@ src/*.dmp
 src/NUL
 src/nvr/
 src/roms/
+/.vs
