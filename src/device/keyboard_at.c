@@ -562,7 +562,6 @@ static const scancode scancode_set3[512] = {
 static void	add_data_kbd(uint16_t val);
 
 
-#define ENABLE_KEYBOARD_AT_LOG 1
 #ifdef ENABLE_KEYBOARD_AT_LOG
 int keyboard_at_do_log = ENABLE_KEYBOARD_AT_LOG;
 
