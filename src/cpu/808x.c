@@ -631,16 +631,26 @@ makemod1table(void)
 
 
 static uint16_t
-sign_extend(uint8_t data)
+get_accum(int bits)
 {
-    return data + (data < 0x80 ? 0 : 0xff00);
+    return (bits == 16) ? AX : AL;
 }
 
 
-static uint32_t
-sign_extend32(uint16_t data)
+static void
+set_accum(int bits, uint16_t val)
 {
-    return data + (data < 0x8000 ? 0 : 0xffff0000);
+    if (bits == 16)
+	AX = val;
+    else
+	AL = val;
+}
+
+
+static uint16_t
+sign_extend(uint8_t data)
+{
+    return data + (data < 0x80 ? 0 : 0xff00);
 }
 
 
@@ -1308,10 +1318,7 @@ set_of(int of)
 static int
 top_bit(uint16_t w, int bits)
 {
-    if (bits == 16)
-	return ((w & 0x8000) != 0);
-    else
-	return ((w & 0x80) != 0);
+    return (w & (1 << (bits - 1)));
 }
 
 
@@ -1540,7 +1547,7 @@ set_of_rotate(int bits)
 
 
 static void
-set_zf_ex(int bits, int zf)
+set_zf_ex(int zf)
 {
     cpu_state.flags = (cpu_state.flags & ~0x40) | (zf ? 0x40 : 0);
 }
@@ -1551,7 +1558,7 @@ set_zf(int bits)
 {
     int size_mask = (1 << bits) - 1;
 
-    set_zf_ex(bits, (cpu_data & size_mask) == 0);
+    set_zf_ex((cpu_data & size_mask) == 0);
 }
 
 
@@ -1565,13 +1572,13 @@ set_pzs(int bits)
 
 
 static void
-set_co_mul(int carry)
+set_co_mul(int bits, int carry)
 {
     set_cf(carry);
     set_of(carry);
     /* NOTE: When implementing the V20, care should be taken to not change
 	     the zero flag. */
-    set_zf(!carry);
+    set_zf_ex(!carry);
     if (!carry)
 	wait(1, 0);
 }
@@ -1802,7 +1809,6 @@ execx86(int cycs)
     uint8_t old_af;
     uint16_t addr, tempw;
     uint16_t new_cs, new_ip;
-    uint32_t result;
     int bits;
 
     cycles += cycs;
@@ -1813,7 +1819,6 @@ execx86(int cycs)
 	if (!repeating) {
 		cpu_state.oldpc = cpu_state.pc;
 		opcode = pfq_fetchb();
-		if ((CS == 0xf000) && (cpu_state.oldpc == 0x49d))
 		oldc = cpu_state.flags & C_FLAG;
 		if (clear_lock) {
 			in_lock = 0;
@@ -1897,12 +1902,12 @@ execx86(int cycs)
 			bits = 8 << (opcode & 1);
 			wait(1, 0);
 			cpu_data = pfq_fetch();
-			cpu_dest = get_reg(0);	/* AX/AL */
+			cpu_dest = get_accum(bits);	/* AX/AL */
 			cpu_src = cpu_data;
 			cpu_alu_op = (opcode >> 3) & 7;
 			alu_op(bits);
 			if (cpu_alu_op != 7)
-				set_reg(0, cpu_data);
+				set_accum(bits, cpu_data);
 			wait(1, 0);
 			break;
 
@@ -1932,7 +1937,7 @@ execx86(int cycs)
 			cpu_dest = AL;
 			set_of(0);
 			old_af = !!(cpu_state.flags & A_FLAG);
-			if ((cpu_state.flags & A_FLAG) || (AL & 0xf) > 9) {
+			if ((cpu_state.flags & A_FLAG) || ((AL & 0xf) > 9)) {
 				cpu_src = 6;
 				cpu_data = cpu_dest - cpu_src;
 				set_of_sub(8);
@@ -1952,7 +1957,7 @@ execx86(int cycs)
 			break;
 		case 0x37:	/*AAA*/
 			wait(1, 0);
-			if ((cpu_state.flags & A_FLAG) || (AL & 0xf) > 9) {
+			if ((cpu_state.flags & A_FLAG) || ((AL & 0xf) > 9)) {
 				cpu_src = 6;
 				++AH;
 				set_ca();
@@ -1968,7 +1973,7 @@ execx86(int cycs)
 			break;
 		case 0x3F: /*AAS*/
 			wait(1, 0);
-			if ((cpu_state.flags & A_FLAG) || (AL & 0xf) > 9) {
+			if ((cpu_state.flags & A_FLAG) || ((AL & 0xf) > 9)) {
 				cpu_src = 6;
 				--AH;
 				set_ca();
@@ -2273,7 +2278,7 @@ execx86(int cycs)
 			wait(1, 0);
 			cpu_state.eaaddr = pfq_fetchw();
 			access(1, bits);
-			set_reg(0, readmem((ovr_seg ? *ovr_seg : ds)));
+			set_accum(bits, readmem((ovr_seg ? *ovr_seg : ds)));
 			wait(1, 0);
 			break;
 		case 0xA2: case 0xA3:
@@ -2282,7 +2287,7 @@ execx86(int cycs)
 			wait(1, 0);
 			cpu_state.eaaddr = pfq_fetchw();
 			access(7, bits);
-			writemem((ovr_seg ? *ovr_seg : ds), get_reg(0));
+			writemem((ovr_seg ? *ovr_seg : ds), get_accum(bits));
 			break;
 
 		case 0xA4: case 0xA5:	/* MOVS */
@@ -2307,7 +2312,7 @@ execx86(int cycs)
 				access(27, bits);
 				stos(bits);
 			} else {
-				set_reg(0, cpu_data);
+				set_accum(bits, cpu_data);
 				if (in_rep != 0)
 					wait(2, 0);
 			}
@@ -2333,7 +2338,7 @@ execx86(int cycs)
 			if (in_rep != 0)
 				wait(1, 0);
 			wait(1, 0);
-			cpu_dest = get_reg(0);
+			cpu_dest = get_accum(bits);
 			if ((opcode & 8) == 0) {
 				access(21, bits);
 				lods(bits);
@@ -2365,7 +2370,7 @@ execx86(int cycs)
 			bits = 8 << (opcode & 1);
 			wait(1, 0);
 			cpu_data = pfq_fetch();
-			test(bits, get_reg(0), cpu_data);
+			test(bits, get_accum(bits), cpu_data);
 			wait(1, 0);
 			break;
 
@@ -2804,27 +2809,20 @@ execx86(int cycs)
 				case 0x20:	/* MUL */
 				case 0x28:	/* IMUL */
 					wait(1, 0);
+					mul(get_accum(bits), cpu_data);
 					if (opcode & 1) {
-						result = cpu_data;
-						mul(AX, cpu_data);
 						AX = cpu_data;
 						DX = cpu_dest;
-						result = ((uint32_t) DX << 16) | AX;
-						if ((rmdat & 0x38) == 0x20)
-							set_co_mul(DX != 0x0000);
-						else
-							set_co_mul(result != sign_extend32(AX));
+						set_co_mul(bits, DX != ((AX & 0x8000) == 0 || (rmdat & 0x38) == 0x20 ? 0 : 0xffff));
 						cpu_data = DX;
 					} else {
-						mul(AL, cpu_data);
 						AL = (uint8_t) cpu_data;
 						AH = (uint8_t) cpu_dest;
-						if ((rmdat & 0x38) == 0x20)
-							set_co_mul(AH != 0x00);
-						else
-							set_co_mul(AX != sign_extend(AL));
+						set_co_mul(bits, AH != ((AL & 0x80) == 0 || (rmdat & 0x38) == 0x20 ? 0 : 0xff));
 						cpu_data = AH;
 					}
+					/* NOTE: When implementing the V20, care should be taken to not change
+						 the zero flag. */
 					set_sf(bits);
 					set_pf();
 					if (cpu_mod != 3)
