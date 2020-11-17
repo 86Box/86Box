@@ -32,6 +32,7 @@
 #include <86box/device.h>
 #include <86box/plat.h>
 #include <86box/video.h>
+#include <86box/vid_ddc.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
@@ -283,6 +284,8 @@ typedef struct virge_t
         int virge_busy;
 
 	uint8_t subsys_stat, subsys_cntl, advfunc_cntl;
+	
+	uint8_t serialport;
 } virge_t;
 
 static video_timings_t timing_diamond_stealth3d_2000_vlb	= {VIDEO_BUS, 2,  2,  3,  28, 28, 45};
@@ -360,6 +363,11 @@ enum
 #define INT_FIFO_EMP (1 << 3)
 #define INT_3DF_EMP  (1 << 6)
 #define INT_MASK 0xff
+
+#define SERIAL_PORT_SCW (1 << 0)
+#define SERIAL_PORT_SDW (1 << 1)
+#define SERIAL_PORT_SCR (1 << 2)
+#define SERIAL_PORT_SDR (1 << 3)
 
 
 #ifdef ENABLE_S3_VIRGE_LOG
@@ -883,6 +891,14 @@ s3_virge_mmio_read(uint32_t addr, void *p)
                 case 0x83d8: case 0x83d9: case 0x83da: case 0x83db:
                 case 0x83dc: case 0x83dd: case 0x83de: case 0x83df:
 		return s3_virge_in(addr & 0x3ff, virge);
+		
+                case 0xff20: case 0xff21:
+                ret = virge->serialport & ~(SERIAL_PORT_SCR | SERIAL_PORT_SDR);
+                if ((virge->serialport & SERIAL_PORT_SCW) && ddc_read_clock())
+                        ret |= SERIAL_PORT_SCR;
+                if ((virge->serialport & SERIAL_PORT_SDW) && ddc_read_data())
+                        ret |= SERIAL_PORT_SDR;
+                return ret;		
         }
         return 0xff;
 }
@@ -1161,6 +1177,11 @@ static void s3_virge_mmio_write(uint32_t addr, uint8_t val, void *p)
 			case 0x83dc: case 0x83dd: case 0x83de: case 0x83df:
 				s3_virge_out(addr & 0x3ff, val, virge);
 				break;
+				
+			case 0xff20:
+			virge->serialport = val;
+			ddc_i2c_change((val & SERIAL_PORT_SCW) ? 1 : 0, (val & SERIAL_PORT_SDW) ? 1 : 0);
+			break;
 		}	
 	}
 }
@@ -1176,7 +1197,8 @@ s3_virge_mmio_write_w(uint32_t addr, uint16_t val, void *p)
 		if ((addr & 0xfffe) == 0x83d4) {
 			s3_virge_mmio_write(addr, val, virge);
 			s3_virge_mmio_write(addr + 1, val >> 8, virge);
-		}
+		} else if ((addr & 0xfffe) == 0xff20)
+			s3_virge_mmio_write(addr, val, virge);
 	}
 }
 
@@ -1625,6 +1647,10 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 			virge->s3d_tri.tlr = val >> 31;
 			if (virge->s3d_tri.cmd_set & CMD_SET_AE)
 				queue_triangle(virge);
+			break;
+
+			case 0xff20:
+			s3_virge_mmio_write(addr, val, virge);
 			break;
 		}		
 	}
@@ -3818,6 +3844,8 @@ static void *s3_virge_init(const device_t *info)
         virge->wake_fifo_thread = thread_create_event();
         virge->fifo_not_full_event = thread_create_event();
         virge->fifo_thread = thread_create(fifo_thread, virge);
+ 
+	ddc_init();
  
         return virge;
 }

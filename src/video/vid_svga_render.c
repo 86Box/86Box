@@ -28,6 +28,16 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
+void
+svga_render_null(svga_t *svga)
+{
+    if ((svga->displine + svga->y_add) < 0)
+	return;
+
+    if (svga->firstline_draw == 2000) 
+	svga->firstline_draw = svga->displine;
+    svga->lastline_draw = svga->displine;	
+}
 
 void
 svga_render_blank(svga_t *svga)
