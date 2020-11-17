@@ -143,7 +143,7 @@ i4x0_smram_handler_phase1(i4x0_t *dev)
 		size[0] = 0x00020000;
 	}
 
-	if (((regs[0x72] & 0x78) == 0x48) || ((regs[0x72] & 0x28) == 0x08))
+	if (regs[0x72] & 0x08)
 		smram_enable(dev->smram_low, base[0], base[0] & 0x000f0000, size[0],
 			     ((regs[0x72] & 0x78) == 0x48), (regs[0x72] & 0x08));
 
