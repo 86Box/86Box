@@ -106,32 +106,6 @@ typedef struct {
 extern hard_disk_t      hdd[HDD_NUM];
 extern unsigned int	hdd_table[128][3];
 
-
-typedef struct vhd_footer_t
-{
-    uint8_t	cookie[8];
-    uint32_t	features;
-    uint32_t	version;
-    uint64_t	offset;
-    uint32_t	timestamp;
-    uint8_t	creator[4];
-    uint32_t	creator_vers;
-    uint8_t	creator_host_os[4];
-    uint64_t	orig_size;
-    uint64_t	curr_size;
-    struct {
-	uint16_t	cyl;
-	uint8_t		heads;
-	uint8_t		spt;
-    } geom;
-    uint32_t	type;
-    uint32_t	checksum;
-    uint8_t	uuid[16];
-    uint8_t	saved_state;
-    uint8_t	reserved[427];
-} vhd_footer_t;
-
-
 extern int	hdd_init(void);
 extern int	hdd_string_to_bus(char *str, int cdrom);
 extern char	*hdd_bus_to_string(int bus, int cdrom);
@@ -152,11 +126,6 @@ extern uint8_t	hdd_image_get_type(uint8_t id);
 extern void	hdd_image_unload(uint8_t id, int fn_preserve);
 extern void	hdd_image_close(uint8_t id);
 extern void	hdd_image_calc_chs(uint32_t *c, uint32_t *h, uint32_t *s, uint32_t size);
-
-extern void	vhd_footer_from_bytes(vhd_footer_t *vhd, uint8_t *bytes);
-extern void	vhd_footer_to_bytes(uint8_t *bytes, vhd_footer_t *vhd);
-extern void	new_vhd_footer(vhd_footer_t **vhd);
-extern void	generate_vhd_checksum(vhd_footer_t *vhd);
 
 extern int	image_is_hdi(const wchar_t *s);
 extern int	image_is_hdx(const wchar_t *s, int check_signature);

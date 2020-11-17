@@ -49,27 +49,6 @@ hdd_image_t hdd_images[HDD_NUM];
 static char empty_sector[512];
 static char *empty_sector_1mb;
 
-
-#define VHD_OFFSET_COOKIE 0
-#define VHD_OFFSET_FEATURES 8 
-#define VHD_OFFSET_VERSION 12
-#define VHD_OFFSET_DATA_OFFSET 16
-#define VHD_OFFSET_TIMESTAMP 24
-#define VHD_OFFSET_CREATOR 28
-#define VHD_OFFSET_CREATOR_VERS 32
-#define VHD_OFFSET_CREATOR_HOST 36
-#define VHD_OFFSET_ORIG_SIZE 40
-#define VHD_OFFSET_CURR_SIZE 48
-#define VHD_OFFSET_GEOM_CYL 56
-#define VHD_OFFSET_GEOM_HEAD 58
-#define VHD_OFFSET_GEOM_SPT 59
-#define VHD_OFFSET_TYPE 60
-#define VHD_OFFSET_CHECKSUM 64
-#define VHD_OFFSET_UUID 68
-#define VHD_OFFSET_SAVED_STATE 84
-#define VHD_OFFSET_RESERVED 85
-
-
 #ifdef ENABLE_HDD_IMAGE_LOG
 int hdd_image_do_log = ENABLE_HDD_IMAGE_LOG;
 
@@ -152,10 +131,7 @@ image_is_hdx(const wchar_t *s, int check_signature)
 int
 image_is_vhd(const wchar_t *s, int check_signature)
 {
-    int len;
-    FILE *f;
-    uint64_t filelen;
-    uint64_t signature;
+    int len;    
     char *ws = (char *) s;
     wchar_t ext[5] = { 0, 0, 0, 0, 0 };
     len = wcslen(s);
@@ -164,256 +140,15 @@ image_is_vhd(const wchar_t *s, int check_signature)
     memcpy(ext, ws + ((len - 4) << 1), 8);
     if (wcscasecmp(ext, L".VHD") == 0) {
 	if (check_signature) {
-		f = plat_fopen((wchar_t *)s, L"rb");
-		if (!f)
-			return 0;
-		fseeko64(f, 0, SEEK_END);
-		filelen = ftello64(f);
-		if (fseeko64(f, -512, SEEK_END) == -1) {
-			fclose(f);
-			fatal("image_is_vhd(): Error seeking\n");
-		}
-		if (filelen < 512) {
-			if (f != NULL)
-				fclose(f);
-			return 0;
-		}
-		if (fread(&signature, 1, 8, f) != 8)
-			fatal("image_is_vhd(): Error reading signature\n");
-		fclose(f);
-		if (signature == 0x78697463656E6F63ll)
+		// if is VHD
 			return 1;
-		else
-			return 0;
+		// else
+		//	return 0;
 	} else
 		return 1;
     } else
     	return 0;
 }
-
-
-static uint64_t
-be_to_u64(uint8_t *bytes, int start)
-{
-    uint64_t n = ((uint64_t) bytes[start + 7] <<  0) | 
-		 ((uint64_t) bytes[start + 6] <<  8) |
-		 ((uint64_t) bytes[start + 5] << 16) | 
-		 ((uint64_t) bytes[start + 4] << 24) | 
-		 ((uint64_t) bytes[start + 3] << 32) | 
-		 ((uint64_t) bytes[start + 2] << 40) | 
-		 ((uint64_t) bytes[start + 1] << 48) | 
-		 ((uint64_t) bytes[start    ] << 56);
-    return n;
-}
-
-
-static uint32_t
-be_to_u32(uint8_t *bytes, int start)
-{
-    uint32_t n = ((uint32_t) bytes[start + 3] <<  0) | 
-		 ((uint32_t) bytes[start + 2] <<  8) | 
-		 ((uint32_t) bytes[start + 1] << 16) | 
-		 ((uint32_t) bytes[start    ] << 24);
-    return n;
-}
-
-
-static uint16_t
-be_to_u16(uint8_t *bytes, int start)
-{
-    uint16_t n = ((uint16_t) bytes[start + 1] << 0) | 
-		 ((uint16_t) bytes[start    ] << 8);
-    return n;
-}
-
-
-static uint64_t
-u64_to_be(uint64_t value, int is_be)
-{
-    uint64_t res = 0;
-    if (is_be) 
-	res = value;
-    else {
-	uint64_t mask = 0xff00000000000000;
-	res = ((value & (mask >>  0)) >> 56) |
-	      ((value & (mask >>  8)) >> 40) |
-	      ((value & (mask >> 16)) >> 24) |
-	      ((value & (mask >> 24)) >>  8) |
-	      ((value & (mask >> 32)) <<  8) |
-	      ((value & (mask >> 40)) << 24) |
-	      ((value & (mask >> 48)) << 40) |
-	      ((value & (mask >> 56)) << 56);
-    }
-    return res;
-}
-
-
-static uint32_t
-u32_to_be(uint32_t value, int is_be)
-{
-    uint32_t res = 0;
-    if (is_be) 
-	res = value;
-    else {
-	uint32_t mask = 0xff000000;
-	res = ((value & (mask >>  0)) >> 24) |
-	      ((value & (mask >>  8)) >>  8) |
-	      ((value & (mask >> 16)) <<  8) |
-	      ((value & (mask >> 24)) << 24);
-    }
-    return res;
-}
-
-
-static uint16_t
-u16_to_be(uint16_t value, int is_be)
-{
-    uint16_t res = 0;
-    if (is_be) 
-	res = value;
-    else 
-	res = (value >> 8) | (value << 8);
-
-    return res;
-}
-
-
-static void
-mk_guid(uint8_t *guid)
-{
-    int n;
-
-    for (n = 0; n < 16; n++)
-	guid[n] = random_generate();
-
-    guid[6] &= 0x0F;
-    guid[6] |= 0x40;	/* Type 4 */
-    guid[8] &= 0x3F;
-    guid[8] |= 0x80;	/* Variant 1 */
-}
-
-
-static uint32_t
-calc_vhd_timestamp()
-{
-    time_t start_time;
-    time_t curr_time;
-    double vhd_time;
-    start_time = 946684800;	/* 1 Jan 2000 00:00 */
-    curr_time = time(NULL);
-    vhd_time = difftime(curr_time, start_time);
-
-    return (uint32_t)vhd_time;
-}
-
-
-void
-vhd_footer_from_bytes(vhd_footer_t *vhd, uint8_t *bytes)
-{
-    memcpy(vhd->cookie, bytes + VHD_OFFSET_COOKIE, sizeof(vhd->cookie));
-    vhd->features = be_to_u32(bytes, VHD_OFFSET_FEATURES);
-    vhd->version = be_to_u32(bytes, VHD_OFFSET_VERSION);
-    vhd->offset = be_to_u64(bytes, VHD_OFFSET_DATA_OFFSET);
-    vhd->timestamp = be_to_u32(bytes, VHD_OFFSET_TIMESTAMP);
-    memcpy(vhd->creator, bytes + VHD_OFFSET_CREATOR, sizeof(vhd->creator));
-    vhd->creator_vers = be_to_u32(bytes, VHD_OFFSET_CREATOR_VERS);
-    memcpy(vhd->creator_host_os, bytes + VHD_OFFSET_CREATOR_HOST, sizeof(vhd->creator_host_os));
-    vhd->orig_size = be_to_u64(bytes, VHD_OFFSET_ORIG_SIZE);
-    vhd->curr_size = be_to_u64(bytes, VHD_OFFSET_CURR_SIZE);
-    vhd->geom.cyl = be_to_u16(bytes, VHD_OFFSET_GEOM_CYL);
-    vhd->geom.heads = bytes[VHD_OFFSET_GEOM_HEAD];
-    vhd->geom.spt = bytes[VHD_OFFSET_GEOM_SPT];
-    vhd->type = be_to_u32(bytes, VHD_OFFSET_TYPE);
-    vhd->checksum = be_to_u32(bytes, VHD_OFFSET_CHECKSUM);
-    memcpy(vhd->uuid, bytes + VHD_OFFSET_UUID, sizeof(vhd->uuid)); /* TODO: handle UUID's properly */
-    vhd->saved_state = bytes[VHD_OFFSET_SAVED_STATE];
-    memcpy(vhd->reserved, bytes + VHD_OFFSET_RESERVED, sizeof(vhd->reserved));
-}
-
-
-void
-vhd_footer_to_bytes(uint8_t *bytes, vhd_footer_t *vhd)
-{
-    /* Quick endian check */
-    int is_be = 0;
-    uint8_t e = 1;
-    uint8_t *ep = &e;
-    uint16_t u16;
-    uint32_t u32;
-    uint64_t u64;
-
-    if (ep[0] == 0) 
-	is_be = 1;
-
-    memcpy(bytes + VHD_OFFSET_COOKIE, vhd->cookie, sizeof(vhd->cookie));
-    u32 = u32_to_be(vhd->features, is_be);
-    memcpy(bytes + VHD_OFFSET_FEATURES, &u32, sizeof(vhd->features));
-    u32 = u32_to_be(vhd->version, is_be);
-    memcpy(bytes + VHD_OFFSET_VERSION, &u32, sizeof(vhd->version));
-    u64 = u64_to_be(vhd->offset, is_be);
-    memcpy(bytes + VHD_OFFSET_DATA_OFFSET, &u64, sizeof(vhd->offset));
-    u32 = u32_to_be(vhd->timestamp, is_be);
-    memcpy(bytes + VHD_OFFSET_TIMESTAMP, &u32, sizeof(vhd->timestamp));
-    memcpy(bytes + VHD_OFFSET_CREATOR, vhd->creator, sizeof(vhd->creator));
-    u32 = u32_to_be(vhd->creator_vers, is_be);
-    memcpy(bytes + VHD_OFFSET_CREATOR_VERS, &u32, sizeof(vhd->creator_vers));
-    memcpy(bytes + VHD_OFFSET_CREATOR_HOST, vhd->creator_host_os, sizeof(vhd->creator_host_os));
-    u64 = u64_to_be(vhd->orig_size, is_be);
-    memcpy(bytes + VHD_OFFSET_ORIG_SIZE, &u64, sizeof(vhd->orig_size));
-    u64 = u64_to_be(vhd->curr_size, is_be);
-    memcpy(bytes + VHD_OFFSET_CURR_SIZE, &u64, sizeof(vhd->curr_size));
-    u16 = u16_to_be(vhd->geom.cyl, is_be);
-    memcpy(bytes + VHD_OFFSET_GEOM_CYL, &u16, sizeof(vhd->geom.cyl));
-    memcpy(bytes + VHD_OFFSET_GEOM_HEAD, &(vhd->geom.heads), sizeof(vhd->geom.heads));
-    memcpy(bytes + VHD_OFFSET_GEOM_SPT, &(vhd->geom.spt), sizeof(vhd->geom.spt));
-    u32 = u32_to_be(vhd->type, is_be);
-    memcpy(bytes + VHD_OFFSET_TYPE, &u32, sizeof(vhd->type));
-    u32 = u32_to_be(vhd->checksum, is_be);
-    memcpy(bytes + VHD_OFFSET_CHECKSUM, &u32, sizeof(vhd->checksum));
-    memcpy(bytes + VHD_OFFSET_UUID, vhd->uuid, sizeof(vhd->uuid));
-    memcpy(bytes + VHD_OFFSET_SAVED_STATE, &(vhd->saved_state), sizeof(vhd->saved_state));
-    memcpy(bytes + VHD_OFFSET_RESERVED, vhd->reserved, sizeof(vhd->reserved));
-}
-
-
-void
-new_vhd_footer(vhd_footer_t **vhd)
-{
-    uint8_t cookie[8] = {'c', 'o', 'n', 'e', 'c', 't', 'i', 'x'};
-    uint8_t creator[4] = {'8', '6', 'b', 'x'};
-    uint8_t cr_host_os[4] = {'W', 'i', '2', 'k'};
-
-    if (*vhd == NULL)
-	*vhd = (vhd_footer_t *) malloc(sizeof(vhd_footer_t));
-
-    memcpy((*vhd)->cookie, cookie, 8);
-    (*vhd)->features = 0x00000002;
-    (*vhd)->version = 0x00010000;
-    (*vhd)->offset = 0xffffffffffffffff; /* fixed disk */
-    (*vhd)->timestamp = calc_vhd_timestamp();
-    memcpy((*vhd)->creator, creator, 4);
-    (*vhd)->creator_vers = 0x00010000;
-    memcpy((*vhd)->creator_host_os, cr_host_os, 4);
-    (*vhd)->type = 2; /* fixed disk */
-    mk_guid((*vhd)->uuid);
-    (*vhd)->saved_state = 0;
-    memset((*vhd)->reserved, 0, 427);
-}
-
-
-void
-generate_vhd_checksum(vhd_footer_t *vhd)
-{
-    uint32_t chk = 0;
-    int i;
-    for (i = 0; i < sizeof(vhd_footer_t); i++) {
-	/* We don't include the checksum field in the checksum */
-	if ((i < VHD_OFFSET_CHECKSUM) || (i >= VHD_OFFSET_UUID))
-		chk += ((uint8_t*)vhd)[i];
-    }
-    vhd->checksum = ~chk;
-}
-
 
 void
 hdd_image_calc_chs(uint32_t *c, uint32_t *h, uint32_t *s, uint32_t size)
@@ -510,26 +245,6 @@ hdd_image_init(void)
 	memset(&hdd_images[i], 0, sizeof(hdd_image_t));
 }
 
-
-static void
-hdd_image_gen_vft(int id, vhd_footer_t **vft, uint64_t full_size)
-{
-    /* Generate new footer. */
-    new_vhd_footer(vft);
-    (*vft)->orig_size = (*vft)->curr_size = full_size;
-    (*vft)->geom.cyl = hdd[id].tracks;
-    (*vft)->geom.heads = hdd[id].hpc;
-    (*vft)->geom.spt = hdd[id].spt;
-    generate_vhd_checksum(*vft);
-    vhd_footer_to_bytes((uint8_t *) empty_sector, *vft);
-    fseeko64(hdd_images[id].file, 0, SEEK_END);
-    fwrite(empty_sector, 1, 512, hdd_images[id].file);
-    free(*vft);
-    *vft = NULL;
-    hdd_images[id].type = 3;
-}
-
-
 int
 hdd_image_load(int id)
 {
@@ -542,8 +257,7 @@ hdd_image_load(int id)
     uint64_t s = 0;
     wchar_t *fn = hdd[id].fn;
     int is_hdx[2] = { 0, 0 };
-    int is_vhd[2] = { 0, 0 };
-    vhd_footer_t *vft = NULL;
+    int is_vhd[2] = { 0, 0 };    
 
     memset(empty_sector, 0, sizeof(empty_sector));
 
@@ -633,7 +347,7 @@ hdd_image_load(int id)
 
 		if (is_vhd[0]) {
 			/* VHD image. */
-			hdd_image_gen_vft(id, &vft, full_size);
+			hdd_images[id].type = 3;
 		}
 
 		return ret;
@@ -704,29 +418,11 @@ hdd_image_load(int id)
 		hdd[id].hpc = hpc;
 		hdd[id].tracks = tracks;
 		hdd_images[id].type = 2;
-	} else if (is_vhd[1]) {
-		if (fseeko64(hdd_images[id].file, -512, SEEK_END) == -1)
-			fatal("hdd_image_load(): VHD: Error seeking to 512 bytes before the end of file\n");
-		if (fread(empty_sector, 1, 512, hdd_images[id].file) != 512)
-			fatal("hdd_image_load(): HDX: Error reading the footer\n");
-		new_vhd_footer(&vft);
-		vhd_footer_from_bytes(vft, (uint8_t *) empty_sector);
-		if (vft->type != 2) {
-			/* VHD is not fixed size */
-			hdd_image_log("VHD: Image is not fixed size\n");
-			free(vft);
-			vft = NULL;
-			fclose(hdd_images[id].file);
-			hdd_images[id].file = NULL;
-			memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
-			return 0;
-		}
-		full_size = vft->orig_size;
-		hdd[id].tracks = vft->geom.cyl;
-		hdd[id].hpc = vft->geom.heads;
-		hdd[id].spt = vft->geom.spt;
-		free(vft);
-		vft = NULL;
+	} else if (is_vhd[1]) {		
+		// full_size = VHD size in bytes
+		// hdd[id].tracks = VHD cylinders
+		// hdd[id].hpc = VHD heads
+		// hdd[id].spt = VHD spt		
 		hdd_images[id].type = 3;
 		/* If we're here, this means there is a valid VHD footer in the
 		   image, which means that by definition, all valid sectors
@@ -751,17 +447,7 @@ hdd_image_load(int id)
 	hdd_images[id].last_sector = (uint32_t) (full_size >> 9) - 1;
 	hdd_images[id].loaded = 1;
 	ret = 1;
-    }
-
-    if (is_vhd[0]) {
-	if (fseeko64(hdd_images[id].file, 0, SEEK_END) == -1)
-		fatal("hdd_image_load(): VHD: Error seeking to the end of file\n");
-	s = ftello64(hdd_images[id].file);
-	if (s == (full_size + hdd_images[id].base)) {
-		/* VHD image. */
-		hdd_image_gen_vft(id, &vft, full_size);
-	}
-    }
+    }   
 
     return ret;
 }

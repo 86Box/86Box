@@ -1,4 +1,4 @@
-﻿/*
+/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -2401,12 +2401,11 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
     uint32_t zero = 0, base = 0x1000;
     uint64_t signature = 0xD778A82044445459ll;
     uint64_t temp_size, r = 0;
-    char buf[512], *big_buf;
+    char *big_buf;
     int b = 0;
     uint8_t channel = 0;
     uint8_t id = 0;
-    wchar_t *twcs;
-    vhd_footer_t *vft = NULL;
+    wchar_t *twcs;    
     MSG msg;
 
     switch (message) {
@@ -2584,18 +2583,8 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 					}
 
 					if (image_is_vhd(hd_file_name, 0)) {
-						/* VHD image. */
-						/* Generate new footer. */
-						new_vhd_footer(&vft);
-						vft->orig_size = vft->curr_size = temp_size;
-						vft->geom.cyl = tracks;
-						vft->geom.heads = hpc;
-						vft->geom.spt = spt;
-						generate_vhd_checksum(vft);
-						vhd_footer_to_bytes((uint8_t *) big_buf, vft);
-						fwrite(big_buf, 1, 512, f);
-						free(vft);
-						vft = NULL;
+						/* VHD image. */	
+						// Create VHD image here of size temp_size bytes.
 					}
 
 					free(big_buf);
@@ -2656,16 +2645,7 @@ hdd_add_file_open_error:
 							fread(&hpc, 1, 4, f);
 							fread(&tracks, 1, 4, f);
 						} else if (image_is_vhd(wopenfilestring, 1)) {
-							fseeko64(f, -512, SEEK_END);
-							fread(buf, 1, 512, f);
-							new_vhd_footer(&vft);
-							vhd_footer_from_bytes(vft, (uint8_t *) buf);
-							size = vft->orig_size;
-							tracks = vft->geom.cyl;
-							hpc = vft->geom.heads;
-							spt = vft->geom.spt;
-							free(vft);
-							vft = NULL;
+							// Read VHD geometry							
 						} else {
 							fseeko64(f, 0, SEEK_END);
 							size = ftello64(f);
