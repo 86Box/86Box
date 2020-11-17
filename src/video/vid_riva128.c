@@ -784,7 +784,7 @@ riva128_ptimer_interrupt(int num, void *p)
 	//nv_riva_log("RIVA 128 PTIMER interrupt #%d fired!\n", num);
 	riva128_t *riva128 = (riva128_t *)p;
 
-	riva128->ptimer.intr |= (1 << num);
+	if((riva128->pmc.intr_en & 1) && (riva128->pmc.enable & 0x10000)) riva128->ptimer.intr |= (1 << num);
 
 	riva128_pmc_recompute_intr(1, riva128);
 }
@@ -1700,7 +1700,7 @@ riva128_ptimer_tick(void *p)
 
 	if(alarm_check)
 	{
-		pclog("[RIVA 128] PTIMER ALARM interrupt fired!\n");
+		//pclog("[RIVA 128] PTIMER ALARM interrupt fired!\n");
 		riva128_ptimer_interrupt(0, riva128);
 	}
 }
@@ -2176,7 +2176,7 @@ riva128_recalctimings(svga_t *svga)
 
 	freq = (freq * m_n) / (m_m << m_p);
 	riva128->mtime = 10000000.0 / freq; //Multiply period by 10 to work around timer system limitations.
-	pclog("[RIVA 128] mtime %f\n", riva128->mtime);
+	//pclog("[RIVA 128] mtime %f\n", riva128->mtime);
 	timer_on_auto(&riva128->mtimer, riva128->mtime);
 
 	freq = 13500000;
