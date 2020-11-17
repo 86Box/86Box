@@ -549,8 +549,6 @@ addreadlookup(uint32_t virt, uint32_t phys)
     uint32_t a;
 #endif
 
-    return;
-
     if (virt == 0xffffffff) return;
 
     if (readlookup2[virt>>12] != (uintptr_t) LOOKUP_INV) return;
@@ -585,8 +583,6 @@ addwritelookup(uint32_t virt, uint32_t phys)
 #else
     uint32_t a;
 #endif
-
-    return;
 
     if (virt == 0xffffffff) return;
 
