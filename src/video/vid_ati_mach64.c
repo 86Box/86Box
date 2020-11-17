@@ -32,6 +32,7 @@
 #include <86box/rom.h>
 #include <86box/plat.h>
 #include <86box/video.h>
+#include <86box/vid_ddc.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include <86box/vid_ati_eeprom.h>
@@ -1737,6 +1738,7 @@ static void mach64_vblank_start(svga_t *svga)
 uint8_t mach64_ext_readb(uint32_t addr, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;
+	uint8_t gpio_state;
 
         uint8_t ret;
         if (!(addr & 0x400))
@@ -1866,10 +1868,26 @@ uint8_t mach64_ext_readb(uint32_t addr, void *p)
                 else
                         ret = ati68860_ramdac_in(addr & 3, mach64->svga.ramdac, &mach64->svga);
                 break;
-                case 0xc4: case 0xc5: case 0xc6: case 0xc7:
-                if (mach64->type == MACH64_VT2)
-                        mach64->dac_cntl |= (4 << 24);
+                case 0xc4: case 0xc5: case 0xc6:
                 READ8(addr, mach64->dac_cntl);
+                break;
+		
+		case 0xc7:
+                READ8(addr, mach64->dac_cntl);
+                if (mach64->type == MACH64_VT2) {
+                        gpio_state = 6;
+
+                        if ((ret & (1 << 4)) && !(ret & (1 << 1)))
+                                gpio_state &= ~(1 << 1);
+                        if (!(ret & (1 << 4)) && !ddc_read_data())
+                                gpio_state &= ~(1 << 1);
+                        if ((ret & (1 << 5)) && !(ret & (1 << 2)))
+                                gpio_state &= ~(1 << 2);
+                        if (!(ret & (1 << 5)) && !ddc_read_clock())
+                                gpio_state &= ~(1 << 2);
+
+                        ret = (ret & ~6) | gpio_state;
+                }
                 break;
 
                 case 0xd0: case 0xd1: case 0xd2: case 0xd3:
@@ -2169,6 +2187,7 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;
         svga_t *svga = &mach64->svga;
+	int data, clk;
 
         mach64_log("mach64_ext_writeb : addr %08X val %02X\n", addr, val);
 
@@ -2360,7 +2379,10 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
                 WRITE8(addr, mach64->dac_cntl, val);
                 svga_set_ramdac_type(svga, (mach64->dac_cntl & 0x100) ? RAMDAC_8BIT : RAMDAC_6BIT);
                 ati68860_set_ramdac_type(mach64->svga.ramdac, (mach64->dac_cntl & 0x100) ? RAMDAC_8BIT : RAMDAC_6BIT);
-                break;
+                data = (val & (1 << 4)) ? ((val & (1 << 1)) ? 1 : 0) : 1;
+		clk  = (val & (1 << 5)) ? ((val & (1 << 2)) ? 1 : 0) : 1;
+		ddc_i2c_change(clk, data);
+		break;
 
                 case 0xd0: case 0xd1: case 0xd2: case 0xd3:
                 WRITE8(addr, mach64->gen_test_cntl, val);
@@ -3346,6 +3368,8 @@ static void *mach64_common_init(const device_t *info)
         mach64->fifo_not_full_event = thread_create_event();
         mach64->fifo_thread = thread_create(fifo_thread, mach64);
         
+	ddc_init();
+	
         return mach64;
 }
 

@@ -1,4 +1,22 @@
-uint8_t dither_rb[256][4][4] =
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Voodoo Graphics and 2 specific emulation.
+ *
+ *
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		leilei
+ *
+ *		Copyright 2008-2020 Sarah Walker.
+ */
+
+static const uint8_t dither_rb[256][4][4] =
 {
 	{
 		{0, 0, 0, 0},
@@ -1538,7 +1556,7 @@ uint8_t dither_rb[256][4][4] =
 	},
 };
 
-uint8_t dither_g[256][4][4] =
+static const uint8_t dither_g[256][4][4] =
 {
 	{
 		{0, 0, 0, 0},
@@ -3078,7 +3096,7 @@ uint8_t dither_g[256][4][4] =
 	},
 };
 
-uint8_t dither_rb2x2[256][2][2] =
+static const uint8_t dither_rb2x2[256][2][2] =
 {
 	{
 		{0, 0},
@@ -4106,7 +4124,7 @@ uint8_t dither_rb2x2[256][2][2] =
 	},
 };
 
-uint8_t dither_g2x2[256][2][2] =
+static const uint8_t dither_g2x2[256][2][2] =
 {
 	{
 		{0, 0},
