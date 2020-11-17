@@ -562,6 +562,7 @@ static const scancode scancode_set3[512] = {
 static void	add_data_kbd(uint16_t val);
 
 
+#define ENABLE_KEYBOARD_AT_LOG 1
 #ifdef ENABLE_KEYBOARD_AT_LOG
 int keyboard_at_do_log = ENABLE_KEYBOARD_AT_LOG;
 
@@ -734,7 +735,7 @@ static void
 kbd_poll(void *priv)
 {
     atkbd_t *dev = (atkbd_t *)priv;
-    uint16_t irq_table[4] = { 0x0000, 0x0002, 0x1000, 0xffff };
+    uint16_t irq_table[4] = { 0x0002, 0x0002, 0x1000, 0xffff };
     int i, channel;
     uint16_t val, irq;
 
