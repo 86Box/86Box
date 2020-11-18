@@ -43,6 +43,9 @@
 #include <86box/vid_voodoo_render.h>
 
 
+static video_timings_t timing_banshee		= {VIDEO_BUS, 2,  2,  1,  20, 20, 21};
+
+
 #ifdef CLAMP
 #undef CLAMP
 #endif
@@ -2623,6 +2626,8 @@ static void *banshee_init_common(const device_t *info, wchar_t *fn, int has_sgra
         banshee->vidSerialParallelPort = VIDSERIAL_DDC_DCK_W | VIDSERIAL_DDC_DDA_W;
 
         ddc_init();
+
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_banshee);
 
         return banshee;
 }
