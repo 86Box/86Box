@@ -1858,5 +1858,5 @@ const cpu_legacy_machine_t cpu_legacy_table[] = {
     {"p6bap",                   cputables_Celeron_Cyrix3},
     {"603tcf",                  cputables_Celeron_Cyrix3},
     {"vpc2007",                 cputables_PentiumIID_Celeron},
-    {NULL, {NULL}}
+    {NULL, NULL}
 };

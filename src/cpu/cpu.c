@@ -320,7 +320,7 @@ cpu_get_family(const char *internal_name)
 	int c = 0;
 	while (cpu_families[c].package) {
 		if (!strcmp(internal_name, cpu_families[c].internal_name))
-			return &cpu_families[c];
+			return (cpu_family_t *) &cpu_families[c];
 		c++;
 	}
 
