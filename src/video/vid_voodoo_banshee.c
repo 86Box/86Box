@@ -1604,7 +1604,7 @@ void banshee_hwcursor_draw(svga_t *svga, int displine)
                 /*X11 mode*/
                 for (x = 0; x < 64; x += 8)
                 {
-                        if (x_off > (32-8))
+                        if (x_off > -8)
                         {
                                 for (xx = 0; xx < 8; xx++)
                                 {
@@ -1624,7 +1624,7 @@ void banshee_hwcursor_draw(svga_t *svga, int displine)
                 /*Windows mode*/
                 for (x = 0; x < 64; x += 8)
                 {
-                        if (x_off > (32-8))
+                        if (x_off > -8)
                         {
                                 for (xx = 0; xx < 8; xx++)
                                 {
