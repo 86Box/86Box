@@ -656,7 +656,7 @@ static void banshee_ext_outl(uint16_t addr, uint32_t val, void *p)
                 break;
                 case Video_hwCurLoc:
                 banshee->hwCurLoc = val;
-                svga->hwcursor.x = (val & 0x7ff) - 32;
+                svga->hwcursor.x = (val & 0x7ff) - 64;
                 svga->hwcursor.y = ((val >> 16) & 0x7ff) - 64;
                 if (svga->hwcursor.y < 0)
                 {
