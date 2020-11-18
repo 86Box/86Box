@@ -315,7 +315,7 @@ cpu_set_edx(void)
 }
 
 cpu_family_t *
-cpu_get_family(char *internal_name)
+cpu_get_family(const char *internal_name)
 {
 	int c = 0;
 	while (cpu_families[c].package) {
@@ -329,7 +329,7 @@ cpu_get_family(char *internal_name)
 
 
 uint8_t
-cpu_is_eligible(cpu_family_t *cpu_family, int cpu, int machine)
+cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 {
 	/* Get machine. */
 	const machine_t *machine_s = &machines[machine];
@@ -399,7 +399,7 @@ cpu_is_eligible(cpu_family_t *cpu_family, int cpu, int machine)
 
 
 uint8_t
-cpu_family_is_eligible(cpu_family_t *cpu_family, int machine)
+cpu_family_is_eligible(const cpu_family_t *cpu_family, int machine)
 {
 	int c = 0;
 
@@ -413,7 +413,7 @@ cpu_family_is_eligible(cpu_family_t *cpu_family, int machine)
 }
 
 
-int fpu_get_type(cpu_family_t *cpu_family, int cpu, const char *internal_name)
+int fpu_get_type(const cpu_family_t *cpu_family, int cpu, const char *internal_name)
 {
         const CPU *cpu_s = &cpu_family->cpus[cpu];
         const FPU *fpus = cpu_s->fpus;
@@ -430,7 +430,7 @@ int fpu_get_type(cpu_family_t *cpu_family, int cpu, const char *internal_name)
         return fpu_type;
 }
 
-const char *fpu_get_internal_name(cpu_family_t *cpu_family, int cpu, int type)
+const char *fpu_get_internal_name(const cpu_family_t *cpu_family, int cpu, int type)
 {
         const CPU *cpu_s = &cpu_family->cpus[cpu];
         const FPU *fpus = cpu_s->fpus;
@@ -446,7 +446,7 @@ const char *fpu_get_internal_name(cpu_family_t *cpu_family, int cpu, int type)
         return fpus[0].internal_name;
 }
 
-const char *fpu_get_name_from_index(cpu_family_t *cpu_family, int cpu, int c)
+const char *fpu_get_name_from_index(const cpu_family_t *cpu_family, int cpu, int c)
 {
         const CPU *cpu_s = &cpu_family->cpus[cpu];
         const FPU *fpus = cpu_s->fpus;
@@ -454,7 +454,7 @@ const char *fpu_get_name_from_index(cpu_family_t *cpu_family, int cpu, int c)
         return fpus[c].name;
 }
 
-int fpu_get_type_from_index(cpu_family_t *cpu_family, int cpu, int c)
+int fpu_get_type_from_index(const cpu_family_t *cpu_family, int cpu, int c)
 {
         const CPU *cpu_s = &cpu_family->cpus[cpu];
         const FPU *fpus = cpu_s->fpus;

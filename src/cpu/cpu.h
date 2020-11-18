@@ -161,13 +161,13 @@ typedef struct {
 
 typedef struct {
     const char	*family;
-    const int	old_offset;
-    const int	new_offset;
+    const int	rspeed;
+    const double multi;
 } cpu_legacy_table_t;
 
 typedef struct {
     const char	*machine;
-    const cpu_legacy_table_t *tables[5];
+    const cpu_legacy_table_t **tables;
 } cpu_legacy_machine_t;
 
 
@@ -370,8 +370,8 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 
 
 /* Global variables. */
-extern cpu_family_t cpu_families[];
-extern cpu_legacy_machine_t cpu_legacy_table[];
+extern const cpu_family_t cpu_families[];
+extern const cpu_legacy_machine_t cpu_legacy_table[];
 extern cpu_family_t *cpu_f;
 extern CPU	*cpu_s;
 
@@ -574,13 +574,13 @@ extern int	sysexit(uint32_t fetchdat);
 extern int	syscall(uint32_t fetchdat);
 extern int	sysret(uint32_t fetchdat);
 
-extern cpu_family_t *cpu_get_family(char *internal_name);
-extern uint8_t	cpu_is_eligible(cpu_family_t *cpu_family, int cpu, int machine);
-extern uint8_t	cpu_family_is_eligible(cpu_family_t *cpu_family, int machine);
-extern int	fpu_get_type(cpu_family_t *cpu_family, int cpu, const char *internal_name);
-extern const	char *fpu_get_internal_name(cpu_family_t *cpu_family, int cpu, int type);
-extern const	char *fpu_get_name_from_index(cpu_family_t *cpu_family, int cpu, int c);
-extern int	fpu_get_type_from_index(cpu_family_t *cpu_family, int cpu, int c);
+extern cpu_family_t *cpu_get_family(const char *internal_name);
+extern uint8_t	cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine);
+extern uint8_t	cpu_family_is_eligible(const cpu_family_t *cpu_family, int machine);
+extern int	fpu_get_type(const cpu_family_t *cpu_family, int cpu, const char *internal_name);
+extern const	char *fpu_get_internal_name(const cpu_family_t *cpu_family, int cpu, int type);
+extern const	char *fpu_get_name_from_index(const cpu_family_t *cpu_family, int cpu, int c);
+extern int	fpu_get_type_from_index(const cpu_family_t *cpu_family, int cpu, int c);
 
 void cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg);
 void cyrix_write_seg_descriptor(uint32_t addr, x86seg *seg);

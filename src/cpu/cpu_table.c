@@ -67,7 +67,7 @@ FPU fpus_internal[] =
 };
 
 
-cpu_family_t cpu_families[] = {
+const cpu_family_t cpu_families[] = {
     {
 	.package = CPU_PKG_8088, /* pcjr = only 4.77 */
 	.manufacturer = "Intel",
@@ -205,7 +205,7 @@ cpu_family_t cpu_families[] = {
 	.cpus = {
 		{"16",  CPU_IBM386SLC, fpus_80386, 16000000, 1, 5000, 0xA301, 0, 0, 0, 3,3,3,3, 2},
 		{"20",  CPU_IBM386SLC, fpus_80386, 20000000, 1, 5000, 0xA301, 0, 0, 0, 4,4,3,3, 3},
-		{"25",  CPU_IBM386SLC, fpus_80386, 25000000, 1, 5000, 0xA301, 0, 0, 0, 4,4,3,3, 3},	
+		{"25",  CPU_IBM386SLC, fpus_80386, 25000000, 1, 5000, 0xA301, 0, 0, 0, 4,4,3,3, 3},
 		{"", 0}
 	}
     }, {
@@ -258,14 +258,14 @@ cpu_family_t cpu_families[] = {
 	.cpus = {
 		{"60",  CPU_IBM486SLC, fpus_80386, 60000000,  3, 5000, 0xA439, 0, 0, 0, 12,12,9,9,  7},
 		{"75",  CPU_IBM486SLC, fpus_80386, 75000000,  3, 5000, 0xA439, 0, 0, 0, 12,12,9,9,  9},
-		{"100", CPU_IBM486SLC, fpus_80386, 100000000, 3, 5000, 0xA439, 0, 0, 0, 18,18,9,9, 12},	
+		{"100", CPU_IBM486SLC, fpus_80386, 100000000, 3, 5000, 0xA439, 0, 0, 0, 18,18,9,9, 12},
 		{"", 0}
 	}
     }, {
 	.package = CPU_PKG_486BL,
 	.manufacturer = "IBM",
 	.name = "486BL2",
-	.internal_name = "486bl2",
+	.internal_name = "ibm486bl2",
 	.cpus = {
 		{"50",  CPU_IBM486BL, fpus_80386, 50000000,  2, 5000, 0xA439, 0, 0, 0, 8,8,6,6,    6},
 		{"66",  CPU_IBM486BL, fpus_80386, 66666666,  2, 5000, 0xA439, 0, 0, 0, 12,12,6,6,  8},
@@ -275,10 +275,10 @@ cpu_family_t cpu_families[] = {
 	.package = CPU_PKG_486BL,
 	.manufacturer = "IBM",
 	.name = "486BL3",
-	.internal_name = "486bl3",
+	.internal_name = "ibm486bl3",
 	.cpus = {
 		{"75",  CPU_IBM486BL, fpus_80386, 75000000,  3, 5000, 0xA439, 0, 0, 0, 12,12,9,9,  9},
-		{"100", CPU_IBM486BL, fpus_80386, 100000000, 3, 5000, 0xA439, 0, 0, 0, 18,18,9,9, 12},	
+		{"100", CPU_IBM486BL, fpus_80386, 100000000, 3, 5000, 0xA439, 0, 0, 0, 18,18,9,9, 12},
 		{"", 0}
 	}
     }, {
@@ -382,7 +382,7 @@ cpu_family_t cpu_families[] = {
 	.package = CPU_PKG_SOCKET3 | CPU_PKG_SOCKET3_PC330,
 	.manufacturer = "Intel",
 	.name = "Pentium OverDrive",
-	.internal_name = "pentium_od_s3",
+	.internal_name = "pentium_p24t",
 	.cpus = {
 		{"63", CPU_P24T,    fpus_internal,  62500000, 2.5, 5000, 0x1531, 0x1531, 0x0000, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10,7,7, 15/2},
 		{"83", CPU_P24T,    fpus_internal,  83333333, 2.5, 5000, 0x1532, 0x1532, 0x0000, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15,8,8, 10},
@@ -543,7 +543,7 @@ cpu_family_t cpu_families[] = {
 	.package = CPU_PKG_SOCKET4,
 	.manufacturer = "Intel",
 	.name = "Pentium OverDrive",
-	.internal_name = "pentium_od_s4",
+	.internal_name = "pentium_p54c_od4",
 	.cpus = {
 		{"100", CPU_PENTIUM, fpus_internal, 100000000, 2, 5000, 0x51A, 0x51A, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  8, 8,6,6, 12},
 		{"120", CPU_PENTIUM, fpus_internal, 120000000, 2, 5000, 0x51A, 0x51A, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12,6,6, 14},
@@ -598,7 +598,7 @@ cpu_family_t cpu_families[] = {
 	.package = CPU_PKG_SOCKET5_7,
 	.manufacturer = "Intel",
 	.name = "Pentium OverDrive",
-	.internal_name = "pentium_od_s5",
+	.internal_name = "pentium_p54c_od5",
 	.cpus = {
 		{"125",        CPU_PENTIUM,    fpus_internal, 125000000, 3.0, 3520,  0x52c,  0x52c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12,7,7, 16},
 		{"150",        CPU_PENTIUM,    fpus_internal, 150000000, 2.5, 3520,  0x52c,  0x52c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15,7,7, 35/2},
@@ -609,7 +609,7 @@ cpu_family_t cpu_families[] = {
 	.package = CPU_PKG_SOCKET5_7,
 	.manufacturer = "Intel",
 	.name = "Pentium OverDrive MMX",
-	.internal_name = "pentium_od_p55c",
+	.internal_name = "pentium_p55c_od",
 	.cpus = {
 		{"75",     CPU_PENTIUMMMX, fpus_internal,  75000000, 1.5, 3520, 0x1542, 0x1542, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  7, 7,4,4,  9},
 		{"125",    CPU_PENTIUMMMX, fpus_internal, 125000000, 2.5, 3520, 0x1542, 0x1542, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12,7,7, 15},
@@ -958,271 +958,905 @@ cpu_family_t cpu_families[] = {
     }
 };
 
-static cpu_legacy_table_t cpus_8088[] = {{NULL, 6}, {"8088", 0, 0}};
-static cpu_legacy_table_t cpus_pcjr[] = {{NULL, 1}, {"8088", 0, 0}};
-static cpu_legacy_table_t cpus_europc[] = {{NULL, 3}, {"8088_europc", 0, 0}};
-static cpu_legacy_table_t cpus_8086[] = {{NULL, 6}, {"8086", 0, 0}};
-static cpu_legacy_table_t cpus_pc1512[] = {{NULL, 1}, {"8086", 0, 1}};
-static cpu_legacy_table_t cpus_286[] = {{NULL, 7}, {"286", 0, 0}};
-static cpu_legacy_table_t cpus_ibmat[] = {{NULL, 2}, {"286", 0, 0}};
-static cpu_legacy_table_t cpus_ibmxt286[] = {{NULL, 1}, {"286", 0, 0}};
-static cpu_legacy_table_t cpus_ps1_m2011[] = {{NULL, 1}, {"286", 0, 2}};
-static cpu_legacy_table_t cpus_ps2_m30_286[] = {{NULL, 5}, {"286", 0, 2}};
-static cpu_legacy_table_t cpus_i386SX[] = {{NULL, 5}, {"i386sx", 0, 0}};
-static cpu_legacy_table_t cpus_i386DX[] = {{NULL, 8}, {"rapidcad", 5, 0}, {"i386dx", 0, 0}};
-static cpu_legacy_table_t cpus_Am386SX[] = {{NULL, 5}, {"am386sx", 0, 0}};
-static cpu_legacy_table_t cpus_Am386DX[] = {{NULL, 3}, {"am386dx", 0, 0}};
-static cpu_legacy_table_t cpus_ALiM6117[] = {{NULL, 2}, {"m6117", 0, 0}};
-static cpu_legacy_table_t cpus_486SLC[] = {{NULL, 6}, {"cx486srx2", 3, 0}, {"cx486slc", 0, 0}};
-static cpu_legacy_table_t cpus_IBM486SLC[] = {{NULL, 7}, {"ibm486slc3", 4, 0}, {"ibm486slc2", 1, 0}, {"ibm386slc", 0, 0}};
-static cpu_legacy_table_t cpus_IBM486BL[] = {{NULL, 4}, {"ibm486bl3", 2, 0}, {"ibm486bl2", 0, 0}};
-static cpu_legacy_table_t cpus_486DLC[] = {{NULL, 7}, {"cx486drx2", 3, 0}, {"cx486dlc", 0, 0}};
-static cpu_legacy_table_t cpus_i486S1[] = {{NULL, 14}, {"idx4_od", 12, 0}, {"i486dx2", 9, 0}, {"i486dx", 6, 0}, {"i486sx2", 4, 0}, {"i486sx", 0, 0}};
-static cpu_legacy_table_t cpus_Am486S1[] = {{NULL, 9}, {"am486dx2", 6, 0}, {"am486dx", 4, 0}, {"am486sx2", 2, 0}, {"am486sx", 0, 0}};
-static cpu_legacy_table_t cpus_Cx486S1[] = {{NULL, 8}, {"cx486dx2", 5, 0}, {"cx486dx", 3, 0}, {"cx486s", 0, 0}};
-static cpu_legacy_table_t cpus_i486[] = {{NULL, 18}, {"pentium_od_s3", 16, 0}, {"idx4_od", 14, 0}, {"idx4", 12, 0}, {"i486dx2", 9, 0}, {"i486dx", 6, 0}, {"i486sx2", 4, 0}, {"i486sx", 0, 0}};
-static cpu_legacy_table_t cpus_i486_PC330[] = {{NULL, 6}, {"pentium_od_s3", 4, 0}, {"idx4", 2, 0}, {"i486dx2_pc330", 0, 0}};
-static cpu_legacy_table_t cpus_Am486[] = {{NULL, 16}, {"am5x86", 13, 0}, {"am486dx4", 9, 0}, {"am486dx2", 6, 0}, {"am486dx", 4, 0}, {"am486sx2", 2, 0}, {"am486sx", 0, 0}};
-static cpu_legacy_table_t cpus_Cx486[] = {{NULL, 14}, {"cx5x86", 10, 0}, {"cx486dx4", 8, 0}, {"cx486dx2", 5, 0}, {"cx486dx", 3, 0}, {"cx486s", 0, 0}};
-static cpu_legacy_table_t cpus_STPCDX[] = {{NULL, 2}, {"stpc_dx", 0, 0}};
-static cpu_legacy_table_t cpus_STPCDX2[] = {{NULL, 1}, {"stpc_dx2", 0, 0}};
-static cpu_legacy_table_t cpus_6x863V[] = {{NULL, 6}, {"cx6x86", 0, 0}};
-static cpu_legacy_table_t cpus_6x86[] = {{NULL, 16}, {"mii", 14, 0}, {"cx6x86mx", 10, 0}, {"cx6x86l", 6, 0}, {"cx6x86", 0, 0}};
-static cpu_legacy_table_t cpus_6x86SS7[] = {{NULL, 19}, {"mii", 14, 0}, {"cx6x86mx", 10, 0}, {"cx6x86l", 6, 0}, {"cx6x86", 0, 0}};
-static cpu_legacy_table_t cpus_WinChip[] = {{NULL, 17}, {"winchip2a", 15, 0}, {"winchip2", 11, 0}, {"winchip", 0, 0}};
-static cpu_legacy_table_t cpus_WinChip_SS7[] = {{NULL, 19}, {"winchip2a", 15, 0}, {"winchip2", 11, 0}, {"winchip", 0, 0}};
-static cpu_legacy_table_t cpus_Pentium5V[] = {{NULL, 4}, {"pentium_od_s4", 2, 1}, {"pentium_p5", 0, 1}};
-static cpu_legacy_table_t cpus_PentiumS5[] = {{NULL, 15}, {"pentium_od_p55c", 10, 1}, {"pentium_od_s5", 7, 0}, {"pentium_p54c", 2, 1}, {"pentium_od_p55c", 1, 0}, {"pentium_p54c", 0, 0}};
-static cpu_legacy_table_t cpus_Pentium3V[] = {{NULL, 18}, {"pentium_od_p55c", 13, 1}, {"pentium_od_s5", 10, 0}, {"pentium_p54c", 2, 1}, {"pentium_od_p55c", 1, 0}, {"pentium_p54c", 0, 0}};
-static cpu_legacy_table_t cpus_Pentium[] = {{NULL, 29}, {"pentium_od_p55c", 24, 1}, {"pentium_od_s5", 21, 0}, {"pentium_tillamook", 13, 0}, {"pentium_p55c", 10, 0}, {"pentium_p54c", 2, 1}, {"pentium_od_p55c", 1, 0}, {"pentium_p54c", 0, 0}};
-static cpu_legacy_table_t cpus_K5[] = {{NULL, 11}, {"k5_5k86", 6, 3}, {"k5_ssa5", 5, 2}, {"k5_5k86", 4, 2}, {"k5_ssa5", 3, 1}, {"k5_5k86", 2, 1}, {"k5_ssa5", 1, 0}, {"k5_5k86", 0, 0}};
-#define K6_ENTRIES {"k6_2", 7, 0}, {"k6_m7", 3, 0}, {"k6_m6", 0, 0}
-static cpu_legacy_table_t cpus_K56[] = {{NULL, 11}, K6_ENTRIES};
-static cpu_legacy_table_t cpus_K56_SS7[] = {{NULL, 43}, {"k6_3p", 38, 0}, {"k6_3", 36, 0}, {"k6_2p", 31, 0}, K6_ENTRIES};
-static cpu_legacy_table_t cpus_PentiumPro[] = {{NULL, 20}, {"pentium2_od", 8, 0}, {"pentiumpro", 0, 0}};
-static cpu_legacy_table_t cpus_PentiumII66[] = {{NULL, 14}, {"pentium2_deschutes", 7, 0}, {"pentium2_klamath", 0, 0}};
-static cpu_legacy_table_t cpus_PentiumII[] = {{NULL, 17}, {"pentium2_deschutes", 7, 0}, {"pentium2_klamath", 0, 0}};
-static cpu_legacy_table_t cpus_Xeon[] = {{NULL, 6}, {"pentium2_xeon", 0, 0}};
-static cpu_legacy_table_t cpus_Celeron[] = {{NULL, 12}, {"celeron_mendocino", 0, 0}};
-static cpu_legacy_table_t cpus_PentiumIID[] = {{NULL, 10}, {"pentium2_deschutes", 0, 0}};
-static cpu_legacy_table_t cpus_Cyrix3[] = {{NULL, 13}, {"c3_samuel", 0, 0}};
+/* Legacy CPU tables for backwards compatibility. */
 
-cpu_legacy_machine_t cpu_legacy_table[] = {
-    {"ibmpc",			{cpus_8088}},
-    {"ibmpc82",			{cpus_8088}},
-    {"ibmpcjr",			{cpus_pcjr}},
-    {"ibmxt",			{cpus_8088}},
-    {"ibmxt86",			{cpus_8088}},
-    {"americxt",		{cpus_8088}},
-    {"amixt",			{cpus_8088}},
-    {"portable",		{cpus_8088}},
-    {"dtk",			{cpus_8088}},
-    {"genxt",			{cpus_8088}},
-    {"jukopc",			{cpus_8088}},
-    {"open_xt",			{cpus_8088}},
-    {"pxxt",			{cpus_8088}},
-    {"europc",			{cpus_europc}},
-    {"tandy",			{cpus_europc}},
-    {"tandy1000hx",		{cpus_europc}},
-    {"t1000",			{cpus_8088}},
-    {"ltxt",			{cpus_8088}},
-    {"xi8088",			{cpus_8088}},
-    {"zdsupers",		{cpus_8088}},
-    {"pc1512",			{cpus_pc1512}},
-    {"pc1640",			{cpus_8086}},
-    {"pc2086",			{cpus_8086}},
-    {"pc3086",			{cpus_8086}},
-    {"pc200",			{cpus_8086}},
-    {"ppc512",			{cpus_8086}},
-    {"deskpro",			{cpus_8086}},
-    {"olivetti_m24",		{cpus_8086}},
-    {"iskra3104",		{cpus_8086}},
-    {"tandy1000sl2",		{cpus_8086}},
-    {"t1200",			{cpus_8086}},
-    {"lxt3",			{cpus_8086}},
-    {"hed919",			{cpus_286}},
-    {"ibmat",			{cpus_ibmat}},
-    {"ibmps1es",		{cpus_ps1_m2011}},
-    {"ibmps2_m30_286",		{cpus_ps2_m30_286, cpus_IBM486SLC}},
-    {"ibmxt286",		{cpus_ibmxt286}},
-    {"ibmatami",		{cpus_ibmat}},
-    {"cmdpc30",			{cpus_286}},
-    {"portableii",		{cpus_286}},
-    {"portableiii",		{cpus_286}},
-    {"mr286",			{cpus_286}},
-    {"open_at",			{cpus_286}},
-    {"ibmatpx",			{cpus_ibmat}},
-    {"ibmatquadtel",		{cpus_ibmat}},
-    {"siemens",			{cpus_286}},
-    {"t3100e",			{cpus_286}},
-    {"quadt286",		{cpus_286}},
-    {"tg286m",			{cpus_286}},
-    {"ami286",			{cpus_286}},
-    {"px286",			{cpus_286}},
-    {"award286",		{cpus_286}},
-    {"gw286ct",			{cpus_286}},
-    {"gdc212m",			{cpus_286}},
-    {"super286tr",		{cpus_286}},
-    {"spc4200p",		{cpus_286}},
-    {"spc4216p",		{cpus_286}},
-    {"deskmaster286",		{cpus_286}},
-    {"ibmps2_m50",		{cpus_ps2_m30_286, cpus_IBM486SLC}},
-    {"ibmps1_2121",		{cpus_i386SX, cpus_Am386SX, cpus_486SLC}},
-    {"ibmps1_2121_isa",		{cpus_i386SX, cpus_Am386SX, cpus_486SLC}},
-    {"arb1375",			{cpus_ALiM6117}},
-    {"pja511m",			{cpus_ALiM6117}},
-    {"ama932j",			{cpus_i386SX, cpus_Am386SX, cpus_486SLC}},
-    {"adi386sx",		{cpus_i386SX, cpus_Am386SX, cpus_486SLC}},
-    {"shuttle386sx",		{cpus_i386SX, cpus_Am386SX, cpus_486SLC}},
-    {"dtk386",			{cpus_i386SX, cpus_Am386SX, cpus_486SLC}},
-    {"awardsx",			{cpus_i386SX, cpus_Am386SX, cpus_486SLC}},
-    {"cbm_sl386sx25",		{cpus_i386SX, cpus_Am386SX, cpus_486SLC}},
-    {"kmxc02",			{cpus_i386SX, cpus_Am386SX, cpus_486SLC}},
-    {"megapc",			{cpus_i386SX, cpus_Am386SX, cpus_486SLC}},
-    {"ibmps2_m55sx",		{cpus_i386SX, cpus_Am386SX, cpus_486SLC, cpus_IBM486SLC}},
-    {"acc386",			{cpus_i386DX, cpus_Am386DX, cpus_486DLC}},
-    {"ecs386",			{cpus_i386DX, cpus_Am386DX, cpus_486DLC}},
-    {"portableiii386",		{cpus_i386DX, cpus_Am386DX, cpus_486DLC}},
-    {"micronics386",		{cpus_i386DX, cpus_Am386DX, cpus_486DLC}},
-    {"asus386",			{cpus_i386DX, cpus_Am386DX, cpus_486DLC}},
-    {"ustechnologies386",	{cpus_i386DX, cpus_Am386DX, cpus_486DLC}},
-    {"award386dx",		{cpus_i386DX, cpus_Am386DX, cpus_486DLC}},
-    {"ami386dx",		{cpus_i386DX, cpus_Am386DX, cpus_486DLC}},
-    {"mr386dx",			{cpus_i386DX, cpus_Am386DX, cpus_486DLC}},
-    {"ibmps2_m70_type3",	{cpus_i386DX, cpus_Am386DX, cpus_486DLC, cpus_IBM486BL}},
-    {"ibmps2_m80",		{cpus_i386DX, cpus_Am386DX, cpus_486DLC, cpus_IBM486BL}},
-    {"pb410a",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"acera1g",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"win486",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"ali1429",			{cpus_i486S1, cpus_Am486S1, cpus_Cx486S1}},
-    {"cs4031",			{cpus_i486S1, cpus_Am486S1, cpus_Cx486S1}},
-    {"rycleopardlx",		{cpus_IBM486SLC}},
-    {"award486",		{cpus_i486S1, cpus_Am486S1, cpus_Cx486S1}},
-    {"ami486",			{cpus_i486S1, cpus_Am486S1, cpus_Cx486S1}},
-    {"mr486",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"pc330_6571",		{cpus_i486_PC330}},
-    {"403tg",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"sis401",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"valuepoint433",		{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"ami471",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"win471",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"vi15g",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"vli486sv2g",		{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"dtk486",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"px471",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"486vchd",			{cpus_i486S1, cpus_Am486S1, cpus_Cx486S1}},
-    {"ibmps1_2133",		{cpus_i486S1, cpus_Am486S1, cpus_Cx486S1}},
-    {"vect486vl",		{cpus_i486S1, cpus_Am486S1, cpus_Cx486S1}},
-    {"ibmps2_m70_type4",	{cpus_i486S1, cpus_Am486S1, cpus_Cx486S1}},
-    {"abpb4",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"486ap4",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"486sp3g",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"alfredo",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"ls486e",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"m4li",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"r418",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"4sa2",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"4dps",			{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"itoxstar",		{cpus_STPCDX}},
-    {"arb1479",			{cpus_STPCDX2}},
-    {"pcm9340",			{cpus_STPCDX2}},
-    {"pcm5330",			{cpus_STPCDX2}},
-    {"486vipio2",		{cpus_i486, cpus_Am486, cpus_Cx486}},
-    {"p5mp3",			{cpus_Pentium5V}},
-    {"dellxp60",		{cpus_Pentium5V}},
-    {"opti560l",		{cpus_Pentium5V}},
-    {"ambradp60",		{cpus_Pentium5V}},
-    {"valuepointp60",		{cpus_Pentium5V}},
-    {"revenge",			{cpus_Pentium5V}},
-    {"586mc1",			{cpus_Pentium5V}},
-    {"pb520r",			{cpus_Pentium5V}},
-    {"excalibur",		{cpus_Pentium5V}},
-    {"plato",			{cpus_PentiumS5, cpus_WinChip, cpus_K5}},
-    {"ambradp90",		{cpus_PentiumS5, cpus_WinChip, cpus_K5}},
-    {"430nx",			{cpus_PentiumS5, cpus_WinChip, cpus_K5}},
-    {"acerv30",			{cpus_PentiumS5, cpus_WinChip, cpus_K5}},
-    {"apollo",			{cpus_PentiumS5, cpus_WinChip, cpus_K5}},
-    {"vectra54",		{cpus_PentiumS5, cpus_WinChip, cpus_K5}},
-    {"zappa",			{cpus_PentiumS5, cpus_WinChip, cpus_K5}},
-    {"powermate_v",		{cpus_PentiumS5, cpus_WinChip, cpus_K5}},
-    {"mb500n",			{cpus_PentiumS5, cpus_WinChip, cpus_K5}},
-    {"p54tp4xe",		{cpus_Pentium3V, cpus_WinChip, cpus_K5, cpus_6x863V}},
-    {"mr586",			{cpus_Pentium3V, cpus_WinChip, cpus_K5, cpus_6x863V}},
-    {"gw2katx",			{cpus_Pentium3V, cpus_WinChip, cpus_K5, cpus_6x863V}},
-    {"thor",			{cpus_Pentium3V, cpus_WinChip, cpus_K5, cpus_6x863V}},
-    {"mrthor",			{cpus_Pentium3V, cpus_WinChip, cpus_K5, cpus_6x863V}},
-    {"endeavor",		{cpus_Pentium3V, cpus_WinChip, cpus_K5, cpus_6x863V}},
-    {"pb640",			{cpus_Pentium3V, cpus_WinChip, cpus_K5, cpus_6x863V}},
-    {"chariot",			{cpus_Pentium3V, cpus_K5}},
-    {"acerm3a",			{cpus_Pentium3V, cpus_WinChip, cpus_K5, cpus_6x863V}},
-    {"ap53",			{cpus_Pentium3V, cpus_WinChip, cpus_K5, cpus_6x863V}},
-    {"8500tuc",			{cpus_Pentium3V, cpus_WinChip, cpus_K5, cpus_6x863V}},
-    {"p55t2s",			{cpus_Pentium3V, cpus_WinChip, cpus_K5, cpus_6x863V}},
-    {"acerv35n",		{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"p55t2p4",			{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"m7shi",			{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"tc430hx",			{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"equium5200",		{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"pcv240",			{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"p65up5_cp55t2d",		{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"p55tvp4",			{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"8500tvxa",		{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"presario4500",		{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"p55va",			{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"gw2kte",			{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"brio80xx",		{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"pb680",			{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"430vx",			{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"nupro592",		{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"tx97",			{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"an430tx",			{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"ym430tx",			{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"mb540n",			{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"p5mms98",			{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"ficva502",		{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"ficpa2012",		{cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86}},
-    {"ax59pro",			{cpus_Pentium, cpus_WinChip_SS7, cpus_K56_SS7, cpus_6x86SS7}},
-    {"ficva503p",		{cpus_Pentium, cpus_WinChip_SS7, cpus_K56_SS7, cpus_6x86SS7}},
-    {"ficva503a",		{cpus_Pentium, cpus_WinChip_SS7, cpus_K56_SS7, cpus_6x86SS7}},
-    {"v60n",			{cpus_PentiumPro}},
-    {"p65up5_cp6nd",		{cpus_PentiumPro}},
-    {"8600ttc",			{cpus_PentiumPro}},
-    {"686nx",			{cpus_PentiumPro}},
-    {"ap440fx",			{cpus_PentiumPro}},
-    {"vs440fx",			{cpus_PentiumPro}},
-    {"m6mi",			{cpus_PentiumPro}},
-    {"mb600n",			{cpus_PentiumPro}},
-    {"p65up5_cpknd",		{cpus_PentiumII66}},
-    {"kn97",			{cpus_PentiumII66}},
-    {"lx6",			{cpus_PentiumII66}},
-    {"spitfire",		{cpus_PentiumII66}},
-    {"p6i440e2",		{cpus_PentiumII66}},
-    {"p2bls",			{cpus_PentiumII, cpus_Celeron, cpus_Cyrix3}},
-    {"p3bf",			{cpus_PentiumII, cpus_Celeron, cpus_Cyrix3}},
-    {"bf6",			{cpus_PentiumII, cpus_Celeron, cpus_Cyrix3}},
-    {"ax6bc",			{cpus_PentiumII, cpus_Celeron, cpus_Cyrix3}},
-    {"atc6310bxii",		{cpus_PentiumII, cpus_Celeron, cpus_Cyrix3}},
-    {"ga686bx",			{cpus_PentiumII, cpus_Celeron, cpus_Cyrix3}},
-    {"tsunamiatx",		{cpus_PentiumII, cpus_Celeron, cpus_Cyrix3}},
-    {"p6sba",			{cpus_PentiumII, cpus_Celeron, cpus_Cyrix3}},
-    {"ergox365",		{cpus_PentiumII, cpus_Celeron, cpus_Cyrix3}},
-    {"fw6400gx_s1",		{cpus_PentiumII, cpus_Celeron, cpus_Cyrix3}},
-    {"ficka6130",		{cpus_PentiumII, cpus_Celeron, cpus_Cyrix3}},
-    {"6gxu",			{cpus_Xeon}},
-    {"fw6400gx",		{cpus_Xeon}},
-    {"s2dge",			{cpus_Xeon}},
-    {"s370slm",			{cpus_Celeron, cpus_Cyrix3}},
-    {"awo671r",			{cpus_Celeron, cpus_Cyrix3}},
-    {"cubx",			{cpus_Celeron, cpus_Cyrix3}},
-    {"atc7020bxii",		{cpus_Celeron, cpus_Cyrix3}},
-    {"ambx133",			{cpus_Celeron, cpus_Cyrix3}},
-    {"trinity371",		{cpus_Celeron}},
-    {"63a",			{cpus_Celeron, cpus_Cyrix3}},
-    {"apas3",			{cpus_Celeron, cpus_Cyrix3}},
-    {"wcf681",			{cpus_Celeron, cpus_Cyrix3}},
-    {"6via85x",			{cpus_Celeron, cpus_Cyrix3}},
-    {"p6bap",			{cpus_Celeron, cpus_Cyrix3}},
-    {"603tcf",			{cpus_Celeron, cpus_Cyrix3}},
-    {"vpc2007",			{cpus_PentiumIID, cpus_Celeron}},
-    {NULL, {NULL}}
+static const cpu_legacy_table_t cpus_8088[] = {
+    {"8088", 4772728, 1},
+    {"8088", 7159092, 1},
+    {"8088", 8000000, 1},
+    {"8088", 10000000, 1},
+    {"8088", 12000000, 1},
+    {"8088", 16000000, 1},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_pcjr[] = {
+    {"8088", 4772728, 1},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_europc[] = {
+    {"8088", 4772728, 1},
+    {"8088", 7159092, 1},
+    {"8088", 9545456, 1},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_8086[] = {
+    {"8086", 7159092, 1},
+    {"8086", 8000000, 1},
+    {"8086", 9545456, 1},
+    {"8086", 10000000, 1},
+    {"8086", 12000000, 1},
+    {"8086", 16000000, 1},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_pc1512[] = {
+    {"8086", 8000000, 1},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_286[] = {
+    {"286", 6000000, 1},
+    {"286", 8000000, 1},
+    {"286", 10000000, 1},
+    {"286", 12500000, 1},
+    {"286", 16000000, 1},
+    {"286", 20000000, 1},
+    {"286", 25000000, 1},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_ibmat[] = {
+    {"286", 6000000, 1},
+    {"286", 8000000, 1},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_ibmxt286[] = {
+    {"286", 6000000, 1},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_ps1_m2011[] = {
+    {"286", 10000000, 1},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_ps2_m30_286[] = {
+    {"286", 10000000, 1},
+    {"286", 12500000, 1},
+    {"286", 16000000, 1},
+    {"286", 20000000, 1},
+    {"286", 25000000, 1},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_i386SX[] = {
+    {"i386sx", 16000000, 1},
+    {"i386sx", 20000000, 1},
+    {"i386sx", 25000000, 1},
+    {"i386sx", 33333333, 1},
+    {"i386sx", 40000000, 1},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_i386DX[] = {
+    {"i386dx", 16000000, 1},
+    {"i386dx", 20000000, 1},
+    {"i386dx", 25000000, 1},
+    {"i386dx", 33333333, 1},
+    {"i386dx", 40000000, 1},
+    {"rapidcad", 25000000, 1},
+    {"rapidcad", 33333333, 1},
+    {"rapidcad", 40000000, 1},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_Am386SX[] = {
+    {"am386sx", 16000000, 1},
+    {"am386sx", 20000000, 1},
+    {"am386sx", 25000000, 1},
+    {"am386sx", 33333333, 1},
+    {"am386sx", 40000000, 1},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_Am386DX[] = {
+    {"am386dx", 25000000, 1},
+    {"am386dx", 33333333, 1},
+    {"am386dx", 40000000, 1},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_ALiM6117[] = {
+    {"m6117", 33333333, 1},
+    {"m6117", 40000000, 1},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_486SLC[] = {
+    {"cx486slc", 20000000, 1},
+    {"cx486slc", 25000000, 1},
+    {"cx486slc", 33333333, 1},
+    {"cx486srx2", 32000000, 2},
+    {"cx486srx2", 40000000, 2},
+    {"cx486srx2", 50000000, 2},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_IBM486SLC[] = {
+    {"ibm486slc", 33333333, 1},
+    {"ibm486slc2", 40000000, 2},
+    {"ibm486slc2", 50000000, 2},
+    {"ibm486slc2", 66666666, 2},
+    {"ibm486slc3", 60000000, 3},
+    {"ibm486slc3", 75000000, 3},
+    {"ibm486slc3", 100000000, 3},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_IBM486BL[] = {	
+    {"ibm486bl2", 50000000, 2},
+    {"ibm486bl2", 66666666, 2},
+    {"ibm486bl3", 75000000, 3},
+    {"ibm486bl3", 100000000, 3},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_486DLC[] = {
+    {"cx486dlc", 25000000, 1},
+    {"cx486dlc", 33333333, 1},
+    {"cx486dlc", 40000000, 1},
+    {"cx486drx2", 32000000, 2},
+    {"cx486drx2", 40000000, 2},
+    {"cx486drx2", 50000000, 2},
+    {"cx486drx2", 66666666, 2},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_i486S1[] = {
+    {"i486sx", 16000000, 1},
+    {"i486sx", 20000000, 1},
+    {"i486sx", 25000000, 1},
+    {"i486sx", 33333333, 1},
+    {"i486sx2", 50000000, 2},
+    {"i486sx2", 66666666, 2},
+    {"i486dx", 25000000, 1},
+    {"i486dx", 33333333, 1},
+    {"i486dx", 50000000, 1},
+    {"i486dx2", 40000000, 2},
+    {"i486dx2", 50000000, 2},
+    {"i486dx2", 66666666, 2},
+    {"idx4_od", 75000000, 3},
+    {"idx4_od", 100000000, 3}, 
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_Am486S1[] = {
+    {"am486sx", 33333333, 1},
+    {"am486sx", 40000000, 1}, 
+    {"am486sx2", 50000000, 2},
+    {"am486sx2", 66666666, 2},
+    {"am486dx", 33333333, 1},
+    {"am486dx", 40000000, 1},
+    {"am486dx2", 50000000, 2},
+    {"am486dx2", 66666666, 2},
+    {"am486dx2", 80000000, 2},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_Cx486S1[] = {
+    {"cx486s", 25000000, 1.0},
+    {"cx486s", 33333333, 1.0},
+    {"cx486s", 40000000, 1.0},
+    {"cx486dx", 33333333, 1.0},
+    {"cx486dx", 40000000, 1.0},
+    {"cx486dx2", 50000000, 2.0},
+    {"cx486dx2", 66666666, 2.0},
+    {"cx486dx2", 80000000, 2.0},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_i486[] = {
+    {"i486sx", 16000000, 1.0},
+    {"i486sx", 20000000, 1.0},
+    {"i486sx", 25000000, 1.0},
+    {"i486sx", 33333333, 1.0},
+    {"i486sx2", 50000000, 2.0},
+    {"i486sx2", 66666666, 2.0},
+    {"i486dx", 25000000, 1.0},
+    {"i486dx", 33333333, 1.0},
+    {"i486dx", 50000000, 1.0},
+    {"i486dx2", 40000000, 2.0},
+    {"i486dx2", 50000000, 2.0},
+    {"i486dx2", 66666666, 2.0},
+    {"idx4", 75000000, 3.0},
+    {"idx4", 100000000, 3.0},
+    {"idx4_od", 75000000, 3.0},
+    {"idx4_od", 100000000, 3.0}, 
+    {"pentium_p24t", 62500000, 2.5},
+    {"pentium_p24t", 83333333, 2.5},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_i486_PC330[] = {
+    {"i486dx2", 50000000, 2.0},
+    {"i486dx2", 66666666, 2.0},
+    {"idx4", 75000000, 3.0},
+    {"idx4", 100000000, 3.0},
+    {"pentium_p24t", 62500000, 2.5},
+    {"pentium_p24t", 83333333, 2.5},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_Am486[] = {
+    {"am486sx", 33333333, 1.0},
+    {"am486sx", 40000000, 1.0}, 
+    {"am486sx2", 50000000, 2.0},
+    {"am486sx2", 66666666, 2.0},
+    {"am486dx", 33333333, 1.0},
+    {"am486dx", 40000000, 1.0},
+    {"am486dx2", 50000000, 2.0},
+    {"am486dx2", 66666666, 2.0},
+    {"am486dx2", 80000000, 2.0},
+    {"am486dx4", 75000000, 3.0},
+    {"am486dx4", 90000000, 3.0},
+    {"am486dx4", 100000000, 3.0},
+    {"am486dx4", 120000000, 3.0},
+    {"am5x86", 133333333, 4.0},
+    {"am5x86", 150000000, 3.0},
+    {"am5x86", 160000000, 4.0}, 
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_Cx486[] = {
+    {"cx486s", 25000000, 1.0},
+    {"cx486s", 33333333, 1.0},
+    {"cx486s", 40000000, 1.0},
+    {"cx486dx", 33333333, 1.0},
+    {"cx486dx", 40000000, 1.0},
+    {"cx486dx2", 50000000, 2.0},
+    {"cx486dx2", 66666666, 2.0},
+    {"cx486dx2", 80000000, 2.0},
+    {"cx486dx4", 75000000, 3.0},
+    {"cx486dx4", 100000000, 3.0},
+    {"cx5x86", 80000000, 2.0},
+    {"cx5x86", 100000000, 3.0},
+    {"cx5x86", 120000000, 3.0},
+    {"cx5x86", 133333333, 4.0},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_STPCDX[] = {
+    {"stpc_dx", 66666666, 1.0},
+    {"stpc_dx", 75000000, 1.0},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_STPCDX2[] = {
+    {"stpc_dx2", 133333333, 2.0},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_6x863V[] = {
+    {"cx6x86", 80000000, 2.0},
+    {"cx6x86", 100000000, 2.0},
+    {"cx6x86", 110000000, 2.0},
+    {"cx6x86", 120000000, 2.0},
+    {"cx6x86", 133333333, 2.0},
+    {"cx6x86", 150000000, 2.0},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_6x86[] = {
+    {"cx6x86", 80000000, 2.0},
+    {"cx6x86", 100000000, 2.0},
+    {"cx6x86", 110000000, 2.0},
+    {"cx6x86", 120000000, 2.0},
+    {"cx6x86", 133333333, 2.0},
+    {"cx6x86", 150000000, 2.0},
+    {"cx6x86l", 110000000, 2.0},
+    {"cx6x86l", 120000000, 2.0},
+    {"cx6x86l", 133333333, 2.0},
+    {"cx6x86l", 150000000, 2.0},
+    {"cx6x86mx", 133333333, 2.0},
+    {"cx6x86mx", 166666666, 2.5},
+    {"cx6x86mx", 187500000, 2.5},
+    {"cx6x86mx", 208333333, 2.5},
+    {"mii", 233333333, 3.5},
+    {"mii", 250000000, 3.0},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_6x86SS7[] = {
+    {"cx6x86", 80000000, 2.0},
+    {"cx6x86", 100000000, 2.0},
+    {"cx6x86", 110000000, 2.0},
+    {"cx6x86", 120000000, 2.0},
+    {"cx6x86", 133333333, 2.0},
+    {"cx6x86", 150000000, 2.0},
+    {"cx6x86l", 110000000, 2.0},
+    {"cx6x86l", 120000000, 2.0},
+    {"cx6x86l", 133333333, 2.0},
+    {"cx6x86l", 150000000, 2.0},
+    {"cx6x86mx", 133333333, 2.0},
+    {"cx6x86mx", 166666666, 2.5},
+    {"cx6x86mx", 187500000, 2.5},
+    {"cx6x86mx", 208333333, 2.5},
+    {"mii", 233333333, 3.5},
+    {"mii", 250000000, 3.0},
+    {"mii", 250000000, 2.5},
+    {"mii", 285000000, 3.0},
+    {"mii", 300000000, 3.0},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_WinChip[] = {
+    {"winchip", 75000000, 1.5},
+    {"winchip", 90000000, 1.5},
+    {"winchip", 100000000, 1.5},
+    {"winchip", 120000000, 2.0},
+    {"winchip", 133333333, 2.0},
+    {"winchip", 150000000, 2.5},
+    {"winchip", 166666666, 2.5},
+    {"winchip", 180000000, 3.0},
+    {"winchip", 200000000, 3.0},
+    {"winchip", 225000000, 3.0},
+    {"winchip", 240000000, 4.0},
+    {"winchip2", 200000000, 3.0},
+    {"winchip2", 225000000, 3.0},
+    {"winchip2", 240000000, 4.0},
+    {"winchip2", 250000000, 3.0},
+    {"winchip2a", 200000000, 3.0},
+    {"winchip2a", 233333333, 3.5},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_WinChip_SS7[] = {
+    {"winchip", 75000000, 1.5},
+    {"winchip", 90000000, 1.5},
+    {"winchip", 100000000, 1.5},
+    {"winchip", 120000000, 2.0},
+    {"winchip", 133333333, 2.0},
+    {"winchip", 150000000, 2.5},
+    {"winchip", 166666666, 2.5},
+    {"winchip", 180000000, 3.0},
+    {"winchip", 200000000, 3.0},
+    {"winchip", 225000000, 3.0},
+    {"winchip", 240000000, 4.0},
+    {"winchip2", 200000000, 3.0},
+    {"winchip2", 225000000, 3.0},
+    {"winchip2", 240000000, 4.0},
+    {"winchip2", 250000000, 3.0},
+    {"winchip2a", 200000000, 3.0},
+    {"winchip2a", 233333333, 3.5},
+    {"winchip2a", 233333333, 7.0},
+    {"winchip2a", 250000000, 2.5},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_Pentium5V[] = {
+    {"pentium_p5", 60000000, 1},
+    {"pentium_p5", 66666666, 1},
+    {"pentium_p54c_od4", 120000000, 2},
+    {"pentium_p54c_od4", 133333333, 2},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_PentiumS5[] = {
+    {"pentium_p54c", 75000000, 1.5},
+    {"pentium_p55c_od", 75000000, 1.5},
+    {"pentium_p54c", 90000000, 1.5},
+    {"pentium_p54c", 100000000, 2.0},
+    {"pentium_p54c", 100000000, 1.5},
+    {"pentium_p54c", 120000000, 2.0},
+    {"pentium_p54c", 133333333, 2.0},
+    {"pentium_p54c_od5", 125000000, 3.0},
+    {"pentium_p54c_od5", 150000000, 2.5},
+    {"pentium_p54c_od5", 166666666, 2.5},
+    {"pentium_p55c_od", 125000000, 2.5},
+    {"pentium_p55c_od", 150000000, 2.5},
+    {"pentium_p55c_od", 166000000, 2.5},
+    {"pentium_p55c_od", 180000000, 3.0},
+    {"pentium_p55c_od", 200000000, 3.0},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_Pentium3V[] = {
+    {"pentium_p54c", 75000000, 1.5},
+    {"pentium_p55c_od", 75000000, 1.5},
+    {"pentium_p54c", 90000000, 1.5},
+    {"pentium_p54c", 100000000, 2.0},
+    {"pentium_p54c", 100000000, 1.5},
+    {"pentium_p54c", 120000000, 2.0},
+    {"pentium_p54c", 133333333, 2.0},
+    {"pentium_p54c", 150000000, 2.5},
+    {"pentium_p54c", 166666666, 2.5},
+    {"pentium_p54c", 200000000, 3.0},
+    {"pentium_p54c_od5", 125000000, 2.5},
+    {"pentium_p54c_od5", 150000000, 2.5},
+    {"pentium_p54c_od5", 166666666, 2.5},
+    {"pentium_p55c_od", 125000000, 2.5},
+    {"pentium_p55c_od", 150000000, 2.5},
+    {"pentium_p55c_od", 166000000, 2.5},
+    {"pentium_p55c_od", 180000000, 3.0},
+    {"pentium_p55c_od", 200000000, 3.0},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_Pentium[] = {
+    {"pentium_p54c", 75000000, 1.5},
+    {"pentium_p55c_od", 75000000, 1.5},
+    {"pentium_p54c", 90000000, 1.5},
+    {"pentium_p54c", 100000000, 2.0},
+    {"pentium_p54c", 100000000, 1.5},
+    {"pentium_p54c", 120000000, 2.0},
+    {"pentium_p54c", 133333333, 2.0},
+    {"pentium_p54c", 150000000, 2.5},
+    {"pentium_p54c", 166666666, 2.5},
+    {"pentium_p54c", 200000000, 3.0},
+    {"pentium_p55c", 166666666, 2.5},
+    {"pentium_p55c", 200000000, 3.0},
+    {"pentium_p55c", 233333333, 3.5},
+    {"pentium_tillamook", 120000000, 2.0},
+    {"pentium_tillamook", 133333333, 2.0},
+    {"pentium_tillamook", 150000000, 2.5},
+    {"pentium_tillamook", 166666666, 2.5},
+    {"pentium_tillamook", 200000000, 3.0},
+    {"pentium_tillamook", 233333333, 3.5},
+    {"pentium_tillamook", 266666666, 4.0},
+    {"pentium_tillamook", 300000000, 4.5},
+    {"pentium_p54c_od5", 125000000, 2.5},
+    {"pentium_p54c_od5", 150000000, 2.5},
+    {"pentium_p54c_od5", 166666666, 2.5},
+    {"pentium_p55c_od", 125000000, 2.5},
+    {"pentium_p55c_od", 150000000, 2.5},
+    {"pentium_p55c_od", 166000000, 2.5},
+    {"pentium_p55c_od", 180000000, 3.0},
+    {"pentium_p55c_od", 200000000, 3.0},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_K5[] = {
+    {"k5_5k86", 75000000, 1.5},
+    {"k5_ssa5", 75000000, 1.5},
+    {"k5_5k86", 90000000, 1.5},
+    {"k5_ssa5", 90000000, 1.5},
+    {"k5_5k86", 100000000, 1.5},
+    {"k5_ssa5", 100000000, 1.5},
+    {"k5_5k86", 120000000, 2.0},
+    {"k5_5k86", 133333333, 2.0},
+    {"k5_5k86", 150000000, 2.5},
+    {"k5_5k86", 166666666, 2.5},
+    {"k5_5k86", 200000000, 3.0},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_K56[] = {
+    {"k6_m6", 166666666, 2.5},
+    {"k6_m6", 200000000, 3.0},
+    {"k6_m6", 233333333, 3.5},
+    {"k6_m7", 200000000, 3.0},
+    {"k6_m7", 233333333, 3.5},
+    {"k6_m7", 266666666, 4.0},
+    {"k6_m7", 300000000, 4.5},
+    {"k6_2", 233333333, 3.5},
+    {"k6_2", 266666666, 4.0},
+    {"k6_2", 300000000, 4.5},
+    {"k6_2", 366666666, 5.5},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_K56_SS7[] = {
+    {"k6_m6", 166666666, 2.5},
+    {"k6_m6", 200000000, 3.0},
+    {"k6_m6", 233333333, 3.5},
+    {"k6_m7", 200000000, 3.0},
+    {"k6_m7", 233333333, 3.5},
+    {"k6_m7", 266666666, 4.0},
+    {"k6_m7", 300000000, 4.5},
+    {"k6_2", 233333333, 3.5},
+    {"k6_2", 266666666, 4.0},
+    {"k6_2", 300000000, 3.0},
+    {"k6_2", 332500000, 3.5},
+    {"k6_2", 350000000, 3.5},
+    {"k6_2", 366666666, 5.5},
+    {"k6_2", 380000000, 4.0},
+    {"k6_2", 400000000, 4.0},
+    {"k6_2", 450000000, 4.5},
+    {"k6_2", 475000000, 5.0},
+    {"k6_2", 500000000, 5.0},
+    {"k6_2", 533333333, 5.5},
+    {"k6_2", 550000000, 5.5},
+    {"k6_2p", 450000000, 4.5},
+    {"k6_2p", 475000000, 5.0},
+    {"k6_2p", 500000000, 5.0},
+    {"k6_2p", 533333333, 5.5},
+    {"k6_2p", 550000000, 5.5},
+    {"k6_3", 400000000, 4.0},
+    {"k6_3", 450000000, 4.5},
+    {"k6_3p", 75000000, 1.5},
+    {"k6_3p", 400000000, 4.0},
+    {"k6_3p", 450000000, 4.5},
+    {"k6_3p", 475000000, 5.0},
+    {"k6_3p", 500000000, 5.0},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_PentiumPro[] = {
+    {"pentiumpro", 50000000, 1.0},
+    {"pentiumpro", 60000000, 1.0},
+    {"pentiumpro", 66666666, 1.0},
+    {"pentiumpro", 75000000, 1.5},
+    {"pentiumpro", 150000000, 2.5},
+    {"pentiumpro", 166666666, 2.5},
+    {"pentiumpro", 180000000, 3.0},
+    {"pentiumpro", 200000000, 3.0},
+    {"pentium2_od", 50000000, 1.0},
+    {"pentium2_od", 60000000, 1.0},
+    {"pentium2_od", 66666666, 1.0},
+    {"pentium2_od", 75000000, 1.5},
+    {"pentium2_od", 210000000, 3.5},
+    {"pentium2_od", 233333333, 3.5},
+    {"pentium2_od", 240000000, 4.0},
+    {"pentium2_od", 266666666, 4.0},
+    {"pentium2_od", 270000000, 4.5},
+    {"pentium2_od", 300000000, 4.5},
+    {"pentium2_od", 300000000, 5.0},
+    {"pentium2_od", 333333333, 5.0},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_PentiumII66[] = {
+    {"pentium2_klamath", 50000000, 1.0},
+    {"pentium2_klamath", 60000000, 1.0},
+    {"pentium2_klamath", 66666666, 1.0},
+    {"pentium2_klamath", 75000000, 1.5},
+    {"pentium2_klamath", 233333333, 3.5},
+    {"pentium2_klamath", 266666666, 4.0},
+    {"pentium2_klamath", 300000000, 4.5},
+    {"pentium2_deschutes", 50000000, 1.0},
+    {"pentium2_deschutes", 60000000, 1.0},
+    {"pentium2_deschutes", 66666666, 1.0},
+    {"pentium2_deschutes", 75000000, 1.5},
+    {"pentium2_deschutes", 266666666, 4.0},
+    {"pentium2_deschutes", 300000000, 4.5},
+    {"pentium2_deschutes", 333333333, 5.0},
+    {NULL, 0, 0}
+
+};
+
+static const cpu_legacy_table_t cpus_PentiumII[] = {
+    {"pentium2_klamath", 50000000, 1.0},
+    {"pentium2_klamath", 60000000, 1.0},
+    {"pentium2_klamath", 66666666, 1.0},
+    {"pentium2_klamath", 75000000, 1.5},
+    {"pentium2_klamath", 233333333, 3.5},
+    {"pentium2_klamath", 266666666, 4.0},
+    {"pentium2_klamath", 300000000, 4.5},
+    {"pentium2_deschutes", 50000000, 1.0},
+    {"pentium2_deschutes", 60000000, 1.0},
+    {"pentium2_deschutes", 66666666, 1.0},
+    {"pentium2_deschutes", 75000000, 1.5},
+    {"pentium2_deschutes", 266666666, 4.0},
+    {"pentium2_deschutes", 300000000, 4.5},
+    {"pentium2_deschutes", 333333333, 5.0},
+    {"pentium2_deschutes", 350000000, 3.5},
+    {"pentium2_deschutes", 400000000, 4.0},
+    {"pentium2_deschutes", 450000000, 4.5},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_Xeon[] = {
+    {"pentium2_xeon", 75000000, 1.5},
+    {"pentium2_xeon", 100000000, 1.5},
+    {"pentium2_xeon", 133333333, 2.0},
+    {"pentium2_xeon", 166666666, 2.5},
+    {"pentium2_xeon", 400000000, 4.0},
+    {"pentium2_xeon", 450000000, 4.5},
+    {NULL, 0, 0}	
+};
+
+static const cpu_legacy_table_t cpus_Celeron[] = {
+    {"celeron_mendocino", 66666666, 1.0},
+    {"celeron_mendocino", 100000000, 1.5},
+    {"celeron_mendocino", 133333333, 2.0},
+    {"celeron_mendocino", 166666666, 2.5},
+    {"celeron_mendocino", 300000000, 4.5},
+    {"celeron_mendocino", 333333333, 5.0},
+    {"celeron_mendocino", 366666666, 5.5},
+    {"celeron_mendocino", 400000000, 6.0},
+    {"celeron_mendocino", 433333333, 6.5},
+    {"celeron_mendocino", 466666666, 7.0},
+    {"celeron_mendocino", 500000000, 7.5},
+    {"celeron_mendocino", 533333333, 8.0},
+    {NULL, 0, 0}	
+};
+
+static const cpu_legacy_table_t cpus_PentiumIID[] = {
+    {"pentium2_deschutes", 50000000, 1.0},
+    {"pentium2_deschutes", 60000000, 1.0},
+    {"pentium2_deschutes", 66666666, 1.0},
+    {"pentium2_deschutes", 75000000, 1.5},
+    {"pentium2_deschutes", 266666666, 4.0},
+    {"pentium2_deschutes", 300000000, 4.5},
+    {"pentium2_deschutes", 333333333, 5.0},
+    {"pentium2_deschutes", 350000000, 3.5},
+    {"pentium2_deschutes", 400000000, 4.0},
+    {"pentium2_deschutes", 450000000, 4.5},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t cpus_Cyrix3[] = {
+    {"c3_samuel", 66666666, 1.0},
+    {"c3_samuel", 233333333, 3.5},
+    {"c3_samuel", 266666666, 4.0},
+    {"c3_samuel", 300000000, 4.5},
+    {"c3_samuel", 333333333, 5.0},
+    {"c3_samuel", 350000000, 3.5},
+    {"c3_samuel", 400000000, 4.0},
+    {"c3_samuel", 450000000, 4.5},
+    {"c3_samuel", 500000000, 5.0},
+    {"c3_samuel", 550000000, 5.5},
+    {"c3_samuel", 600000000, 6.0},
+    {"c3_samuel", 650000000, 6.5},
+    {"c3_samuel", 700000000, 7.0},
+    {NULL, 0, 0}
+};
+
+static const cpu_legacy_table_t *cputables_8088[] = {cpus_8088};
+static const cpu_legacy_table_t *cputables_pcjr[] = {cpus_pcjr};
+static const cpu_legacy_table_t *cputables_europc[] = {cpus_europc};
+static const cpu_legacy_table_t *cputables_pc1512[] = {cpus_pc1512};
+static const cpu_legacy_table_t *cputables_8086[] = {cpus_8086};
+static const cpu_legacy_table_t *cputables_286[] = {cpus_286};
+static const cpu_legacy_table_t *cputables_ibmat[] = {cpus_ibmat};
+static const cpu_legacy_table_t *cputables_ps1_m2011[] = {cpus_ps1_m2011};
+static const cpu_legacy_table_t *cputables_ps2_m30_286_IBM486SLC[] = {cpus_ps2_m30_286, cpus_IBM486SLC};
+static const cpu_legacy_table_t *cputables_ibmxt286[] = {cpus_ibmxt286};
+static const cpu_legacy_table_t *cputables_i386SX_Am386SX_486SLC[] = {cpus_i386SX, cpus_Am386SX, cpus_486SLC};
+static const cpu_legacy_table_t *cputables_ALiM6117[] = {cpus_ALiM6117};
+static const cpu_legacy_table_t *cputables_i386SX_Am386SX_486SLC_IBM486SLC[] = {cpus_i386SX, cpus_Am386SX, cpus_486SLC, cpus_IBM486SLC};
+static const cpu_legacy_table_t *cputables_i386DX_Am386DX_486DLC[] = {cpus_i386DX, cpus_Am386DX, cpus_486DLC};
+static const cpu_legacy_table_t *cputables_i386DX_Am386DX_486DLC_IBM486BL[] = {cpus_i386DX, cpus_Am386DX, cpus_486DLC, cpus_IBM486BL};
+static const cpu_legacy_table_t *cputables_i486_Am486_Cx486[] = {cpus_i486, cpus_Am486, cpus_Cx486};
+static const cpu_legacy_table_t *cputables_i486S1_Am486S1_Cx486S1[] = {cpus_i486S1, cpus_Am486S1, cpus_Cx486S1};
+static const cpu_legacy_table_t *cputables_IBM486SLC[] = {cpus_IBM486SLC};
+static const cpu_legacy_table_t *cputables_i486_PC330[] = {cpus_i486_PC330};
+static const cpu_legacy_table_t *cputables_STPCDX[] = {cpus_STPCDX};
+static const cpu_legacy_table_t *cputables_STPCDX2[] = {cpus_STPCDX2};
+static const cpu_legacy_table_t *cputables_Pentium5V[] = {cpus_Pentium5V};
+static const cpu_legacy_table_t *cputables_PentiumS5_WinChip_K5[] = {cpus_PentiumS5, cpus_WinChip, cpus_K5};
+static const cpu_legacy_table_t *cputables_Pentium3V_WinChip_K5_6x863V[] = {cpus_Pentium3V, cpus_WinChip, cpus_K5, cpus_6x863V};
+static const cpu_legacy_table_t *cputables_Pentium3V_K5[] = {cpus_Pentium3V, cpus_K5};
+static const cpu_legacy_table_t *cputables_Pentium_WinChip_K56_6x86[] = {cpus_Pentium, cpus_WinChip, cpus_K56, cpus_6x86};
+static const cpu_legacy_table_t *cputables_Pentium_WinChip_SS7_K56_SS7_6x86SS7[] = {cpus_Pentium, cpus_WinChip_SS7, cpus_K56_SS7, cpus_6x86SS7};
+static const cpu_legacy_table_t *cputables_PentiumPro[] = {cpus_PentiumPro};
+static const cpu_legacy_table_t *cputables_PentiumII66[] = {cpus_PentiumII66};
+static const cpu_legacy_table_t *cputables_PentiumII_Celeron_Cyrix3[] = {cpus_PentiumII, cpus_Celeron, cpus_Cyrix3};
+static const cpu_legacy_table_t *cputables_Xeon[] = {cpus_Xeon};
+static const cpu_legacy_table_t *cputables_Celeron_Cyrix3[] = {cpus_Celeron, cpus_Cyrix3};
+static const cpu_legacy_table_t *cputables_Celeron[] = {cpus_Celeron};
+static const cpu_legacy_table_t *cputables_PentiumIID_Celeron[] = {cpus_PentiumIID, cpus_Celeron};
+
+const cpu_legacy_machine_t cpu_legacy_table[] = {
+    {"ibmpc",                   cputables_8088},
+    {"ibmpc82",                 cputables_8088},
+    {"ibmpcjr",                 cputables_pcjr},
+    {"ibmxt",                   cputables_8088},
+    {"ibmxt86",                 cputables_8088},
+    {"americxt",                cputables_8088},
+    {"amixt",                   cputables_8088},
+    {"portable",                cputables_8088},
+    {"dtk",                     cputables_8088},
+    {"genxt",                   cputables_8088},
+    {"jukopc",                  cputables_8088},
+    {"open_xt",                 cputables_8088},
+    {"pxxt",                    cputables_8088},
+    {"europc",                  cputables_europc},
+    {"tandy",                   cputables_europc},
+    {"tandy1000hx",             cputables_europc},
+    {"t1000",                   cputables_8088},
+    {"ltxt",                    cputables_8088},
+    {"xi8088",                  cputables_8088},
+    {"zdsupers",                cputables_8088},
+    {"pc1512",                  cputables_pc1512},
+    {"pc1640",                  cputables_8086},
+    {"pc2086",                  cputables_8086},
+    {"pc3086",                  cputables_8086},
+    {"pc200",                   cputables_8086},
+    {"ppc512",                  cputables_8086},
+    {"deskpro",                 cputables_8086},
+    {"olivetti_m24",            cputables_8086},
+    {"iskra3104",               cputables_8086},
+    {"tandy1000sl2",            cputables_8086},
+    {"t1200",                   cputables_8086},
+    {"lxt3",                    cputables_8086},
+    {"hed919",                  cputables_286},
+    {"ibmat",                   cputables_ibmat},
+    {"ibmps1es",                cputables_ps1_m2011},
+    {"ibmps2_m30_286",          cputables_ps2_m30_286_IBM486SLC},
+    {"ibmxt286",                cputables_ibmxt286},
+    {"ibmatami",                cputables_ibmat},
+    {"cmdpc30",                 cputables_286},
+    {"portableii",              cputables_286},
+    {"portableiii",             cputables_286},
+    {"mr286",                   cputables_286},
+    {"open_at",                 cputables_286},
+    {"ibmatpx",                 cputables_ibmat},
+    {"ibmatquadtel",            cputables_ibmat},
+    {"siemens",                 cputables_286},
+    {"t3100e",                  cputables_286},
+    {"quadt286",                cputables_286},
+    {"tg286m",                  cputables_286},
+    {"ami286",                  cputables_286},
+    {"px286",                   cputables_286},
+    {"award286",                cputables_286},
+    {"gw286ct",                 cputables_286},
+    {"gdc212m",                 cputables_286},
+    {"super286tr",              cputables_286},
+    {"spc4200p",                cputables_286},
+    {"spc4216p",                cputables_286},
+    {"deskmaster286",           cputables_286},
+    {"ibmps2_m50",              cputables_ps2_m30_286_IBM486SLC},
+    {"ibmps1_2121",             cputables_i386SX_Am386SX_486SLC},
+    {"ibmps1_2121_isa",         cputables_i386SX_Am386SX_486SLC},
+    {"arb1375",                 cputables_ALiM6117},
+    {"pja511m",                 cputables_ALiM6117},
+    {"ama932j",                 cputables_i386SX_Am386SX_486SLC},
+    {"adi386sx",                cputables_i386SX_Am386SX_486SLC},
+    {"shuttle386sx",            cputables_i386SX_Am386SX_486SLC},
+    {"dtk386",                  cputables_i386SX_Am386SX_486SLC},
+    {"awardsx",                 cputables_i386SX_Am386SX_486SLC},
+    {"cbm_sl386sx25",           cputables_i386SX_Am386SX_486SLC},
+    {"kmxc02",                  cputables_i386SX_Am386SX_486SLC},
+    {"megapc",                  cputables_i386SX_Am386SX_486SLC},
+    {"ibmps2_m55sx",            cputables_i386SX_Am386SX_486SLC_IBM486SLC},
+    {"acc386",                  cputables_i386DX_Am386DX_486DLC},
+    {"ecs386",                  cputables_i386DX_Am386DX_486DLC},
+    {"portableiii386",          cputables_i386DX_Am386DX_486DLC},
+    {"micronics386",            cputables_i386DX_Am386DX_486DLC},
+    {"asus386",                 cputables_i386DX_Am386DX_486DLC},
+    {"ustechnologies386",       cputables_i386DX_Am386DX_486DLC},
+    {"award386dx",              cputables_i386DX_Am386DX_486DLC},
+    {"ami386dx",                cputables_i386DX_Am386DX_486DLC},
+    {"mr386dx",                 cputables_i386DX_Am386DX_486DLC},
+    {"ibmps2_m70_type3",        cputables_i386DX_Am386DX_486DLC_IBM486BL},
+    {"ibmps2_m80",              cputables_i386DX_Am386DX_486DLC_IBM486BL},
+    {"pb410a",                  cputables_i486_Am486_Cx486},
+    {"acera1g",                 cputables_i486_Am486_Cx486},
+    {"win486",                  cputables_i486_Am486_Cx486},
+    {"ali1429",                 cputables_i486S1_Am486S1_Cx486S1},
+    {"cs4031",                  cputables_i486S1_Am486S1_Cx486S1},
+    {"rycleopardlx",            cputables_IBM486SLC},
+    {"award486",                cputables_i486S1_Am486S1_Cx486S1},
+    {"ami486",                  cputables_i486S1_Am486S1_Cx486S1},
+    {"mr486",                   cputables_i486_Am486_Cx486},
+    {"pc330_6571",              cputables_i486_PC330},
+    {"403tg",                   cputables_i486_Am486_Cx486},
+    {"sis401",                  cputables_i486_Am486_Cx486},
+    {"valuepoint433",           cputables_i486_Am486_Cx486},
+    {"ami471",                  cputables_i486_Am486_Cx486},
+    {"win471",                  cputables_i486_Am486_Cx486},
+    {"vi15g",                   cputables_i486_Am486_Cx486},
+    {"vli486sv2g",              cputables_i486_Am486_Cx486},
+    {"dtk486",                  cputables_i486_Am486_Cx486},
+    {"px471",                   cputables_i486_Am486_Cx486},
+    {"486vchd",                 cputables_i486S1_Am486S1_Cx486S1},
+    {"ibmps1_2133",             cputables_i486S1_Am486S1_Cx486S1},
+    {"vect486vl",               cputables_i486S1_Am486S1_Cx486S1},
+    {"ibmps2_m70_type4",        cputables_i486S1_Am486S1_Cx486S1},
+    {"abpb4",                   cputables_i486_Am486_Cx486},
+    {"486ap4",                  cputables_i486_Am486_Cx486},
+    {"486sp3g",                 cputables_i486_Am486_Cx486},
+    {"alfredo",                 cputables_i486_Am486_Cx486},
+    {"ls486e",                  cputables_i486_Am486_Cx486},
+    {"m4li",                    cputables_i486_Am486_Cx486},
+    {"r418",                    cputables_i486_Am486_Cx486},
+    {"4sa2",                    cputables_i486_Am486_Cx486},
+    {"4dps",                    cputables_i486_Am486_Cx486},
+    {"itoxstar",                cputables_STPCDX},
+    {"arb1479",                 cputables_STPCDX2},
+    {"pcm9340",                 cputables_STPCDX2},
+    {"pcm5330",                 cputables_STPCDX2},
+    {"486vipio2",               cputables_i486_Am486_Cx486},
+    {"p5mp3",                   cputables_Pentium5V},
+    {"dellxp60",                cputables_Pentium5V},
+    {"opti560l",                cputables_Pentium5V},
+    {"ambradp60",               cputables_Pentium5V},
+    {"valuepointp60",           cputables_Pentium5V},
+    {"revenge",                 cputables_Pentium5V},
+    {"586mc1",                  cputables_Pentium5V},
+    {"pb520r",                  cputables_Pentium5V},
+    {"excalibur",               cputables_Pentium5V},
+    {"plato",                   cputables_PentiumS5_WinChip_K5},
+    {"ambradp90",               cputables_PentiumS5_WinChip_K5},
+    {"430nx",                   cputables_PentiumS5_WinChip_K5},
+    {"acerv30",                 cputables_PentiumS5_WinChip_K5},
+    {"apollo",                  cputables_PentiumS5_WinChip_K5},
+    {"vectra54",                cputables_PentiumS5_WinChip_K5},
+    {"zappa",                   cputables_PentiumS5_WinChip_K5},
+    {"powermate_v",             cputables_PentiumS5_WinChip_K5},
+    {"mb500n",                  cputables_PentiumS5_WinChip_K5},
+    {"p54tp4xe",                cputables_Pentium3V_WinChip_K5_6x863V},
+    {"mr586",                   cputables_Pentium3V_WinChip_K5_6x863V},
+    {"gw2katx",                 cputables_Pentium3V_WinChip_K5_6x863V},
+    {"thor",                    cputables_Pentium3V_WinChip_K5_6x863V},
+    {"mrthor",                  cputables_Pentium3V_WinChip_K5_6x863V},
+    {"endeavor",                cputables_Pentium3V_WinChip_K5_6x863V},
+    {"pb640",                   cputables_Pentium3V_WinChip_K5_6x863V},
+    {"chariot",                 cputables_Pentium3V_K5},
+    {"acerm3a",                 cputables_Pentium3V_WinChip_K5_6x863V},
+    {"ap53",                    cputables_Pentium3V_WinChip_K5_6x863V},
+    {"8500tuc",                 cputables_Pentium3V_WinChip_K5_6x863V},
+    {"p55t2s",                  cputables_Pentium3V_WinChip_K5_6x863V},
+    {"acerv35n",                cputables_Pentium_WinChip_K56_6x86},
+    {"p55t2p4",                 cputables_Pentium_WinChip_K56_6x86},
+    {"m7shi",                   cputables_Pentium_WinChip_K56_6x86},
+    {"tc430hx",                 cputables_Pentium_WinChip_K56_6x86},
+    {"equium5200",              cputables_Pentium_WinChip_K56_6x86},
+    {"pcv240",                  cputables_Pentium_WinChip_K56_6x86},
+    {"p65up5_cp55t2d",          cputables_Pentium_WinChip_K56_6x86},
+    {"p55tvp4",                 cputables_Pentium_WinChip_K56_6x86},
+    {"8500tvxa",                cputables_Pentium_WinChip_K56_6x86},
+    {"presario4500",            cputables_Pentium_WinChip_K56_6x86},
+    {"p55va",                   cputables_Pentium_WinChip_K56_6x86},
+    {"gw2kte",                  cputables_Pentium_WinChip_K56_6x86},
+    {"brio80xx",                cputables_Pentium_WinChip_K56_6x86},
+    {"pb680",                   cputables_Pentium_WinChip_K56_6x86},
+    {"430vx",                   cputables_Pentium_WinChip_K56_6x86},
+    {"nupro592",                cputables_Pentium_WinChip_K56_6x86},
+    {"tx97",                    cputables_Pentium_WinChip_K56_6x86},
+    {"an430tx",                 cputables_Pentium_WinChip_K56_6x86},
+    {"ym430tx",                 cputables_Pentium_WinChip_K56_6x86},
+    {"mb540n",                  cputables_Pentium_WinChip_K56_6x86},
+    {"p5mms98",                 cputables_Pentium_WinChip_K56_6x86},
+    {"ficva502",                cputables_Pentium_WinChip_K56_6x86},
+    {"ficpa2012",               cputables_Pentium_WinChip_K56_6x86},
+    {"ax59pro",                 cputables_Pentium_WinChip_SS7_K56_SS7_6x86SS7},
+    {"ficva503p",               cputables_Pentium_WinChip_SS7_K56_SS7_6x86SS7},
+    {"ficva503a",               cputables_Pentium_WinChip_SS7_K56_SS7_6x86SS7},
+    {"v60n",                    cputables_PentiumPro},
+    {"p65up5_cp6nd",            cputables_PentiumPro},
+    {"8600ttc",                 cputables_PentiumPro},
+    {"686nx",                   cputables_PentiumPro},
+    {"ap440fx",                 cputables_PentiumPro},
+    {"vs440fx",                 cputables_PentiumPro},
+    {"m6mi",                    cputables_PentiumPro},
+    {"mb600n",                  cputables_PentiumPro},
+    {"p65up5_cpknd",            cputables_PentiumII66},
+    {"kn97",                    cputables_PentiumII66},
+    {"lx6",                     cputables_PentiumII66},
+    {"spitfire",                cputables_PentiumII66},
+    {"p6i440e2",                cputables_PentiumII66},
+    {"p2bls",                   cputables_PentiumII_Celeron_Cyrix3},
+    {"p3bf",                    cputables_PentiumII_Celeron_Cyrix3},
+    {"bf6",                     cputables_PentiumII_Celeron_Cyrix3},
+    {"ax6bc",                   cputables_PentiumII_Celeron_Cyrix3},
+    {"atc6310bxii",             cputables_PentiumII_Celeron_Cyrix3},
+    {"ga686bx",                 cputables_PentiumII_Celeron_Cyrix3},
+    {"tsunamiatx",              cputables_PentiumII_Celeron_Cyrix3},
+    {"p6sba",                   cputables_PentiumII_Celeron_Cyrix3},
+    {"ergox365",                cputables_PentiumII_Celeron_Cyrix3},
+    {"fw6400gx_s1",             cputables_PentiumII_Celeron_Cyrix3},
+    {"ficka6130",               cputables_PentiumII_Celeron_Cyrix3},
+    {"6gxu",                    cputables_Xeon},
+    {"fw6400gx",                cputables_Xeon},
+    {"s2dge",                   cputables_Xeon},
+    {"s370slm",                 cputables_Celeron_Cyrix3},
+    {"awo671r",                 cputables_Celeron_Cyrix3},
+    {"cubx",                    cputables_Celeron_Cyrix3},
+    {"atc7020bxii",             cputables_Celeron_Cyrix3},
+    {"ambx133",                 cputables_Celeron_Cyrix3},
+    {"trinity371",              cputables_Celeron},
+    {"63a",                     cputables_Celeron_Cyrix3},
+    {"apas3",                   cputables_Celeron_Cyrix3},
+    {"wcf681",                  cputables_Celeron_Cyrix3},
+    {"6via85x",                 cputables_Celeron_Cyrix3},
+    {"p6bap",                   cputables_Celeron_Cyrix3},
+    {"603tcf",                  cputables_Celeron_Cyrix3},
+    {"vpc2007",                 cputables_PentiumIID_Celeron},
+    {NULL, NULL}
 };
