@@ -546,7 +546,7 @@ load_machine(void)
 	if (cpu_f && !cpu_family_is_eligible(cpu_f, machine)) /* only honor eligible families */
 		cpu_f = NULL;
     } else {
-	/* Backwards compatibility for the previous CPU model system. */
+	/* Backwards compatibility with the previous CPU model system. */
 	legacy_mfg = config_get_int(cat, "cpu_manufacturer", 0);
 	legacy_cpu = config_get_int(cat, "cpu", 0);
 	if (legacy_mfg || legacy_cpu) {
@@ -567,8 +567,12 @@ load_machine(void)
 				legacy_table_entry = (cpu_legacy_table_t *) &cpu_legacy_table[c].tables[legacy_mfg][i];
 				if (legacy_cpu >= legacy_table_entry->old_offset) {
 					/* Found CPU entry, set new values. */
+
+					if (!legacy_table_entry->family) /* reset to defaults if the CPU ID is beyond what is supported by the legacy table */
+						break;
+
 					legacy_family = cpu_get_family((char *) legacy_table_entry->family);
-					if (!legacy_family || !cpu_family_is_eligible(legacy_family, machine)) /* check if the family exists and is eligible */
+					if (!legacy_family || !cpu_family_is_eligible(legacy_family, machine)) /* check if the family exists and is eligible; if not, reset to defaults */
 						break;
 					config_set_string(cat, "cpu_family", (char *) legacy_family->internal_name);
 					cpu_f = legacy_family;
@@ -585,7 +589,7 @@ load_machine(void)
 							break;
 						}
 					}
-					if (new_cpu != -1) { /* store only if an eligible CPU was found */
+					if (new_cpu != -1) { /* store only if an eligible CPU was found; if not, reset CPU (but not family) to defaults */
 						config_set_int(cat, "cpu_speed", legacy_family->cpus[new_cpu].rspeed);
 						config_set_double(cat, "cpu_multi", legacy_family->cpus[new_cpu].multi);
 					}
@@ -603,18 +607,20 @@ load_machine(void)
 
 	/* Find the configured CPU. */
 	cpu = 0;
-	i = -1;
+	c = 0;
+	i = 256;
 	while (cpu_f->cpus[cpu].cpu_type != -1) {
 		if (cpu_is_eligible(cpu_f, cpu, machine)) { /* skip ineligible CPUs */
-			if (i == -1) /* store the first eligible CPU */
-				i = cpu;
 			if ((cpu_f->cpus[cpu].rspeed == speed) && (cpu_f->cpus[cpu].multi == multi)) /* check if clock speed and multiplier match */
 				break;
+			else if ((cpu_f->cpus[cpu].rspeed > speed) && (i == 256)) /* store closest matching faster CPU */
+				i = cpu;
+			c = cpu; /* store fastest eligible CPU */
 		}
 		cpu++;
 	}
-	if (cpu_f->cpus[cpu].cpu_type == -1) /* use first eligible CPU if no match was found */
-		cpu = MAX(i, 0);
+	if (cpu_f->cpus[cpu].cpu_type == -1) /* if no exact match was found, use closest matching faster CPU, or fastest eligible CPU */
+		cpu = MIN(i, c);
     } else { /* default */
 	/* Find first eligible family. */
 	c = 0;
@@ -1790,7 +1796,7 @@ save_machine(void)
 {
     char *cat = "Machine";
     char *p;
-    int c, i, j, legacy_cpu = -1;
+    int c, i, j, old_offset_max, legacy_cpu = -1;
 
     p = machine_get_internal_name();
     config_set_string(cat, "machine", p);
@@ -1799,7 +1805,7 @@ save_machine(void)
     config_set_int(cat, "cpu_speed", cpu_f->cpus[cpu].rspeed);
     config_set_double(cat, "cpu_multi", cpu_f->cpus[cpu].multi);
 
-    /* Limited forwards compatibility for the previous CPU model system. */
+    /* Limited forwards compatibility with the previous CPU model system. */
     config_delete_var(cat, "cpu_manufacturer");
     config_delete_var(cat, "cpu");
 
@@ -1817,20 +1823,23 @@ save_machine(void)
 		if (!cpu_legacy_table[c].tables[j])
 			continue;
 
+		old_offset_max = 256;
 		i = -1;
 		do {
 			i++;
 			legacy_table_entry = (cpu_legacy_table_t *) &cpu_legacy_table[c].tables[j][i];
-			if (!strcmp(legacy_table_entry->family, cpu_f->internal_name) && (cpu >= legacy_table_entry->new_offset)) {
+			if (legacy_table_entry->family && (cpu >= legacy_table_entry->new_offset) && !strcmp(legacy_table_entry->family, cpu_f->internal_name)) {
 				/* Found CPU entry, set legacy values. */
 				if (j)
 					config_set_int(cat, "cpu_manufacturer", j);
 				legacy_cpu = cpu - legacy_table_entry->new_offset + legacy_table_entry->old_offset;
+				if (legacy_cpu >= old_offset_max) /* if the CPU ID is beyond what is supported by the legacy table, reset to the last supported ID */
+					legacy_cpu = old_offset_max - 1;
 				if (legacy_cpu)
 					config_set_int(cat, "cpu", legacy_cpu);
-
 				break;
 			}
+			old_offset_max = legacy_table_entry->old_offset;
 		} while (cpu_legacy_table[c].tables[j][i].old_offset);
 	}
     }

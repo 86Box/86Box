@@ -958,54 +958,54 @@ cpu_family_t cpu_families[] = {
     }
 };
 
-static cpu_legacy_table_t cpus_8088[] = {{"8088", 0, 0}};
-#define cpus_pcjr cpus_8088
-static cpu_legacy_table_t cpus_europc[] = {{"8088_europc", 0, 0}};
-static cpu_legacy_table_t cpus_8086[] = {{"8086", 0, 0}};
-static cpu_legacy_table_t cpus_pc1512[] = {{"8086", 0, 1}};
-static cpu_legacy_table_t cpus_286[] = {{"286", 0, 0}};
-#define cpus_ibmat cpus_286
-#define cpus_ibmxt286 cpus_286
-static cpu_legacy_table_t cpus_ps1_m2011[] = {{"286", 0, 2}};
-#define cpus_ps2_m30_286 cpus_ps1_m2011
-static cpu_legacy_table_t cpus_i386SX[] = {{"i386sx", 0, 0}};
-static cpu_legacy_table_t cpus_i386DX[] = {{"rapidcad", 5, 0}, {"i386dx", 0, 0}};
-static cpu_legacy_table_t cpus_Am386SX[] = {{"am386sx", 0, 0}};
-static cpu_legacy_table_t cpus_Am386DX[] = {{"am386dx", 0, 0}};
-static cpu_legacy_table_t cpus_ALiM6117[] = {{"m6117", 0, 0}};
-static cpu_legacy_table_t cpus_486SLC[] = {{"cx486srx2", 3, 0}, {"cx486slc", 0, 0}};
-static cpu_legacy_table_t cpus_IBM486SLC[] = {{"ibm486slc3", 4, 0}, {"ibm486slc2", 1, 0}, {"ibm386slc", 0, 0}};
-static cpu_legacy_table_t cpus_IBM486BL[] = {{"ibm486bl3", 2, 0}, {"ibm486bl2", 0, 0}};
-static cpu_legacy_table_t cpus_486DLC[] = {{"cx486drx2", 3, 0}, {"cx486dlc", 0, 0}};
-static cpu_legacy_table_t cpus_i486S1[] = {{"idx4_od", 12, 0}, {"i486dx2", 9, 0}, {"i486dx", 6, 0}, {"i486sx2", 4, 0}, {"i486sx", 0, 0}};
-static cpu_legacy_table_t cpus_Am486S1[] = {{"am486dx2", 6, 0}, {"am486dx", 4, 0}, {"am486sx2", 2, 0}, {"am486sx", 0, 0}};
-static cpu_legacy_table_t cpus_Cx486S1[] = {{"cx486dx2", 5, 0}, {"cx486dx", 3, 0}, {"cx486s", 0, 0}};
-static cpu_legacy_table_t cpus_i486[] = {{"pentium_od_s3", 16, 0}, {"idx4_od", 14, 0}, {"idx4", 12, 0}, {"i486dx2", 9, 0}, {"i486dx", 6, 0}, {"i486sx2", 4, 0}, {"i486sx", 0, 0}};
-static cpu_legacy_table_t cpus_i486_PC330[] = {{"pentium_od_s3", 4, 0}, {"idx4", 2, 0}, {"i486dx2_pc330", 0, 0}};
-static cpu_legacy_table_t cpus_Am486[] = {{"am5x86", 13, 0}, {"am486dx4", 9, 0}, {"am486dx2", 6, 0}, {"am486dx", 4, 0}, {"am486sx2", 2, 0}, {"am486sx", 0, 0}};
-static cpu_legacy_table_t cpus_Cx486[] = {{"cx5x86", 10, 0}, {"cx486dx4", 8, 0}, {"cx486dx2", 5, 0}, {"cx486dx", 3, 0}, {"cx486s", 0, 0}};
-static cpu_legacy_table_t cpus_STPCDX[] = {{"stpc_dx", 0, 0}};
-static cpu_legacy_table_t cpus_STPCDX2[] = {{"stpc_dx2", 0, 0}};
-static cpu_legacy_table_t cpus_6x863V[] = {{"cx6x86", 0, 0}};
-static cpu_legacy_table_t cpus_6x86[] = {{"mii", 14, 0}, {"cx6x86mx", 10, 0}, {"cx6x86l", 6, 0}, {"cx6x86", 0, 0}};
-#define cpus_6x86SS7 cpus_6x86
-static cpu_legacy_table_t cpus_WinChip[] = {{"winchip2a", 15, 0}, {"winchip2", 11, 0}, {"winchip", 0, 0}};
-#define cpus_WinChip_SS7 cpus_WinChip
-static cpu_legacy_table_t cpus_Pentium5V[] = {{"pentium_od_s4", 2, 1}, {"pentium_p5", 0, 1}};
-static cpu_legacy_table_t cpus_PentiumS5[] = {{"pentium_od_p55c", 10, 1}, {"pentium_od_s5", 7, 0}, {"pentium_p54c", 2, 1}, {"pentium_od_p55c", 1, 0}, {"pentium_p54c", 0, 0}};
-static cpu_legacy_table_t cpus_Pentium3V[] = {{"pentium_od_p55c", 13, 1}, {"pentium_od_s5", 10, 0}, {"pentium_p54c", 2, 1}, {"pentium_od_p55c", 1, 0}, {"pentium_p54c", 0, 0}};
-static cpu_legacy_table_t cpus_Pentium[] = {{"pentium_od_p55c", 24, 1}, {"pentium_od_s5", 21, 0}, {"pentium_tillamook", 13, 0}, {"pentium_p55c", 10, 0}, {"pentium_p54c", 2, 1}, {"pentium_od_p55c", 1, 0}, {"pentium_p54c", 0, 0}};
-static cpu_legacy_table_t cpus_K5[] = {{"k5_5k86", 6, 3}, {"k5_ssa5", 5, 2}, {"k5_5k86", 4, 2}, {"k5_ssa5", 3, 1}, {"k5_5k86", 2, 1}, {"k5_ssa5", 1, 0}, {"k5_5k86", 0, 0}};
-#define K6_ENTRIES {"k6_2", 18, 0}, {"k6_m7", 14, 0}, {"k6_m6", 11, 0}
-static cpu_legacy_table_t cpus_K56[] = {K6_ENTRIES};
-static cpu_legacy_table_t cpus_K56_SS7[] = {{"k6_3p", 38, 0}, {"k6_3", 36, 0}, {"k6_2p", 31, 0}, K6_ENTRIES};
-static cpu_legacy_table_t cpus_PentiumPro[] = {{"pentium2_od", 8, 0}, {"pentiumpro", 0, 0}};
-static cpu_legacy_table_t cpus_PentiumII66[] = {{"pentium2_deschutes", 7, 0}, {"pentium2_klamath", 0, 0}};
-#define cpus_PentiumII cpus_PentiumII66
-static cpu_legacy_table_t cpus_Xeon[] = {{"pentium2_xeon", 0, 0}};
-static cpu_legacy_table_t cpus_Celeron[] = {{"celeron_mendocino", 0, 0}};
-static cpu_legacy_table_t cpus_PentiumIID[] = {{"pentium2_deschutes", 0, 0}};
-static cpu_legacy_table_t cpus_Cyrix3[] = {{"c3_samuel", 0, 0}};
+static cpu_legacy_table_t cpus_8088[] = {{NULL, 6}, {"8088", 0, 0}};
+static cpu_legacy_table_t cpus_pcjr[] = {{NULL, 1}, {"8088", 0, 0}};
+static cpu_legacy_table_t cpus_europc[] = {{NULL, 3}, {"8088_europc", 0, 0}};
+static cpu_legacy_table_t cpus_8086[] = {{NULL, 6}, {"8086", 0, 0}};
+static cpu_legacy_table_t cpus_pc1512[] = {{NULL, 1}, {"8086", 0, 1}};
+static cpu_legacy_table_t cpus_286[] = {{NULL, 7}, {"286", 0, 0}};
+static cpu_legacy_table_t cpus_ibmat[] = {{NULL, 2}, {"286", 0, 0}};
+static cpu_legacy_table_t cpus_ibmxt286[] = {{NULL, 1}, {"286", 0, 0}};
+static cpu_legacy_table_t cpus_ps1_m2011[] = {{NULL, 1}, {"286", 0, 2}};
+static cpu_legacy_table_t cpus_ps2_m30_286[] = {{NULL, 5}, {"286", 0, 2}};
+static cpu_legacy_table_t cpus_i386SX[] = {{NULL, 5}, {"i386sx", 0, 0}};
+static cpu_legacy_table_t cpus_i386DX[] = {{NULL, 8}, {"rapidcad", 5, 0}, {"i386dx", 0, 0}};
+static cpu_legacy_table_t cpus_Am386SX[] = {{NULL, 5}, {"am386sx", 0, 0}};
+static cpu_legacy_table_t cpus_Am386DX[] = {{NULL, 3}, {"am386dx", 0, 0}};
+static cpu_legacy_table_t cpus_ALiM6117[] = {{NULL, 2}, {"m6117", 0, 0}};
+static cpu_legacy_table_t cpus_486SLC[] = {{NULL, 6}, {"cx486srx2", 3, 0}, {"cx486slc", 0, 0}};
+static cpu_legacy_table_t cpus_IBM486SLC[] = {{NULL, 7}, {"ibm486slc3", 4, 0}, {"ibm486slc2", 1, 0}, {"ibm386slc", 0, 0}};
+static cpu_legacy_table_t cpus_IBM486BL[] = {{NULL, 4}, {"ibm486bl3", 2, 0}, {"ibm486bl2", 0, 0}};
+static cpu_legacy_table_t cpus_486DLC[] = {{NULL, 7}, {"cx486drx2", 3, 0}, {"cx486dlc", 0, 0}};
+static cpu_legacy_table_t cpus_i486S1[] = {{NULL, 14}, {"idx4_od", 12, 0}, {"i486dx2", 9, 0}, {"i486dx", 6, 0}, {"i486sx2", 4, 0}, {"i486sx", 0, 0}};
+static cpu_legacy_table_t cpus_Am486S1[] = {{NULL, 9}, {"am486dx2", 6, 0}, {"am486dx", 4, 0}, {"am486sx2", 2, 0}, {"am486sx", 0, 0}};
+static cpu_legacy_table_t cpus_Cx486S1[] = {{NULL, 8}, {"cx486dx2", 5, 0}, {"cx486dx", 3, 0}, {"cx486s", 0, 0}};
+static cpu_legacy_table_t cpus_i486[] = {{NULL, 18}, {"pentium_od_s3", 16, 0}, {"idx4_od", 14, 0}, {"idx4", 12, 0}, {"i486dx2", 9, 0}, {"i486dx", 6, 0}, {"i486sx2", 4, 0}, {"i486sx", 0, 0}};
+static cpu_legacy_table_t cpus_i486_PC330[] = {{NULL, 6}, {"pentium_od_s3", 4, 0}, {"idx4", 2, 0}, {"i486dx2_pc330", 0, 0}};
+static cpu_legacy_table_t cpus_Am486[] = {{NULL, 16}, {"am5x86", 13, 0}, {"am486dx4", 9, 0}, {"am486dx2", 6, 0}, {"am486dx", 4, 0}, {"am486sx2", 2, 0}, {"am486sx", 0, 0}};
+static cpu_legacy_table_t cpus_Cx486[] = {{NULL, 14}, {"cx5x86", 10, 0}, {"cx486dx4", 8, 0}, {"cx486dx2", 5, 0}, {"cx486dx", 3, 0}, {"cx486s", 0, 0}};
+static cpu_legacy_table_t cpus_STPCDX[] = {{NULL, 2}, {"stpc_dx", 0, 0}};
+static cpu_legacy_table_t cpus_STPCDX2[] = {{NULL, 1}, {"stpc_dx2", 0, 0}};
+static cpu_legacy_table_t cpus_6x863V[] = {{NULL, 6}, {"cx6x86", 0, 0}};
+static cpu_legacy_table_t cpus_6x86[] = {{NULL, 16}, {"mii", 14, 0}, {"cx6x86mx", 10, 0}, {"cx6x86l", 6, 0}, {"cx6x86", 0, 0}};
+static cpu_legacy_table_t cpus_6x86SS7[] = {{NULL, 19}, {"mii", 14, 0}, {"cx6x86mx", 10, 0}, {"cx6x86l", 6, 0}, {"cx6x86", 0, 0}};
+static cpu_legacy_table_t cpus_WinChip[] = {{NULL, 17}, {"winchip2a", 15, 0}, {"winchip2", 11, 0}, {"winchip", 0, 0}};
+static cpu_legacy_table_t cpus_WinChip_SS7[] = {{NULL, 19}, {"winchip2a", 15, 0}, {"winchip2", 11, 0}, {"winchip", 0, 0}};
+static cpu_legacy_table_t cpus_Pentium5V[] = {{NULL, 4}, {"pentium_od_s4", 2, 1}, {"pentium_p5", 0, 1}};
+static cpu_legacy_table_t cpus_PentiumS5[] = {{NULL, 15}, {"pentium_od_p55c", 10, 1}, {"pentium_od_s5", 7, 0}, {"pentium_p54c", 2, 1}, {"pentium_od_p55c", 1, 0}, {"pentium_p54c", 0, 0}};
+static cpu_legacy_table_t cpus_Pentium3V[] = {{NULL, 18}, {"pentium_od_p55c", 13, 1}, {"pentium_od_s5", 10, 0}, {"pentium_p54c", 2, 1}, {"pentium_od_p55c", 1, 0}, {"pentium_p54c", 0, 0}};
+static cpu_legacy_table_t cpus_Pentium[] = {{NULL, 29}, {"pentium_od_p55c", 24, 1}, {"pentium_od_s5", 21, 0}, {"pentium_tillamook", 13, 0}, {"pentium_p55c", 10, 0}, {"pentium_p54c", 2, 1}, {"pentium_od_p55c", 1, 0}, {"pentium_p54c", 0, 0}};
+static cpu_legacy_table_t cpus_K5[] = {{NULL, 11}, {"k5_5k86", 6, 3}, {"k5_ssa5", 5, 2}, {"k5_5k86", 4, 2}, {"k5_ssa5", 3, 1}, {"k5_5k86", 2, 1}, {"k5_ssa5", 1, 0}, {"k5_5k86", 0, 0}};
+#define K6_ENTRIES {"k6_2", 7, 0}, {"k6_m7", 3, 0}, {"k6_m6", 0, 0}
+static cpu_legacy_table_t cpus_K56[] = {{NULL, 11}, K6_ENTRIES};
+static cpu_legacy_table_t cpus_K56_SS7[] = {{NULL, 43}, {"k6_3p", 38, 0}, {"k6_3", 36, 0}, {"k6_2p", 31, 0}, K6_ENTRIES};
+static cpu_legacy_table_t cpus_PentiumPro[] = {{NULL, 20}, {"pentium2_od", 8, 0}, {"pentiumpro", 0, 0}};
+static cpu_legacy_table_t cpus_PentiumII66[] = {{NULL, 14}, {"pentium2_deschutes", 7, 0}, {"pentium2_klamath", 0, 0}};
+static cpu_legacy_table_t cpus_PentiumII[] = {{NULL, 17}, {"pentium2_deschutes", 7, 0}, {"pentium2_klamath", 0, 0}};
+static cpu_legacy_table_t cpus_Xeon[] = {{NULL, 6}, {"pentium2_xeon", 0, 0}};
+static cpu_legacy_table_t cpus_Celeron[] = {{NULL, 12}, {"celeron_mendocino", 0, 0}};
+static cpu_legacy_table_t cpus_PentiumIID[] = {{NULL, 10}, {"pentium2_deschutes", 0, 0}};
+static cpu_legacy_table_t cpus_Cyrix3[] = {{NULL, 13}, {"c3_samuel", 0, 0}};
 
 cpu_legacy_machine_t cpu_legacy_table[] = {
     {"ibmpc",			{cpus_8088}},
