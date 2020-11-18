@@ -101,13 +101,14 @@ enum {
     CPU_PKG_486DLC = (1 << 11),
     CPU_PKG_SOCKET1 = (1 << 12),
     CPU_PKG_SOCKET3 = (1 << 13),
-    CPU_PKG_STPC = (1 << 14),
-    CPU_PKG_SOCKET4 = (1 << 15),
-    CPU_PKG_SOCKET5_7 = (1 << 16),
-    CPU_PKG_SOCKET8 = (1 << 17),
-    CPU_PKG_SLOT1 = (1 << 18),
-    CPU_PKG_SLOT2 = (1 << 19),
-    CPU_PKG_SOCKET370 = (1 << 20)
+    CPU_PKG_SOCKET3_PC330 = (1 << 14),
+    CPU_PKG_STPC = (1 << 15),
+    CPU_PKG_SOCKET4 = (1 << 16),
+    CPU_PKG_SOCKET5_7 = (1 << 17),
+    CPU_PKG_SOCKET8 = (1 << 18),
+    CPU_PKG_SLOT1 = (1 << 19),
+    CPU_PKG_SLOT2 = (1 << 20),
+    CPU_PKG_SOCKET370 = (1 << 21)
 };
 
 

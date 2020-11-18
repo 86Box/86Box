@@ -349,7 +349,17 @@ cpu_family_t cpu_families[] = {
 		{"", 0}
 	}
     }, {
-	.package = CPU_PKG_SOCKET3,
+	.package = CPU_PKG_SOCKET3_PC330,
+	.manufacturer = "Intel",
+	.name = "i486DX2",
+	.internal_name = "i486dx2_pc330",
+	.cpus = {
+		{"50",           CPU_i486DX2, fpus_internal,  50000000, 2,  5000, 0x470,    0x470, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  6},
+		{"66",           CPU_i486DX2, fpus_internal,  66666666, 2,  5000, 0x470,    0x470, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6,  8},
+		{"", 0}
+	}
+    }, {
+	.package = CPU_PKG_SOCKET3 | CPU_PKG_SOCKET3_PC330,
 	.manufacturer = "Intel",
 	.name = "iDX4",
 	.internal_name = "idx4",
@@ -369,7 +379,7 @@ cpu_family_t cpu_families[] = {
 		{"", 0}
 	}
     }, {
-	.package = CPU_PKG_SOCKET3, /* PC330 = only DX2/50, DX2/66, DX4/75, DX4/100, POD63 and POD83 */
+	.package = CPU_PKG_SOCKET3 | CPU_PKG_SOCKET3_PC330,
 	.manufacturer = "Intel",
 	.name = "Pentium OverDrive",
 	.internal_name = "pentium_od_s3",
@@ -971,7 +981,7 @@ static cpu_legacy_table_t cpus_i486S1[] = {{"idx4_od", 12, 0}, {"i486dx2", 9, 0}
 static cpu_legacy_table_t cpus_Am486S1[] = {{"am486dx2", 6, 0}, {"am486dx", 4, 0}, {"am486sx2", 2, 0}, {"am486sx", 0, 0}};
 static cpu_legacy_table_t cpus_Cx486S1[] = {{"cx486dx2", 5, 0}, {"cx486dx", 3, 0}, {"cx486s", 0, 0}};
 static cpu_legacy_table_t cpus_i486[] = {{"pentium_od_s3", 16, 0}, {"idx4_od", 14, 0}, {"idx4", 12, 0}, {"i486dx2", 9, 0}, {"i486dx", 6, 0}, {"i486sx2", 4, 0}, {"i486sx", 0, 0}};
-static cpu_legacy_table_t cpus_i486_PC330[] = {{"pentium_od_s3", 4, 0}, {"idx4", 2, 0}, {"i486dx2", 0, 1}};
+static cpu_legacy_table_t cpus_i486_PC330[] = {{"pentium_od_s3", 4, 0}, {"idx4", 2, 0}, {"i486dx2_pc330", 0, 0}};
 static cpu_legacy_table_t cpus_Am486[] = {{"am5x86", 13, 0}, {"am486dx4", 9, 0}, {"am486dx2", 6, 0}, {"am486dx", 4, 0}, {"am486sx2", 2, 0}, {"am486sx", 0, 0}};
 static cpu_legacy_table_t cpus_Cx486[] = {{"cx5x86", 10, 0}, {"cx486dx4", 8, 0}, {"cx486dx2", 5, 0}, {"cx486dx", 3, 0}, {"cx486s", 0, 0}};
 static cpu_legacy_table_t cpus_STPCDX[] = {{"stpc_dx", 0, 0}};
@@ -1215,5 +1225,5 @@ cpu_legacy_machine_t cpu_legacy_table[] = {
     {"p6bap",			{cpus_Celeron, cpus_Cyrix3}},
     {"603tcf",			{cpus_Celeron, cpus_Cyrix3}},
     {"vpc2007",			{cpus_PentiumIID, cpus_Celeron}},
-    {NULL, NULL}
+    {NULL, {NULL}}
 };
