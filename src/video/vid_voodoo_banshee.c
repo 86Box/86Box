@@ -1307,7 +1307,9 @@ static void banshee_reg_writel(uint32_t addr, uint32_t val, void *p)
                         break;
                         
                         case SST_swapPending:
+                        thread_wait_mutex(voodoo->swap_mutex);
                         voodoo->swap_count++;
+                        thread_release_mutex(voodoo->swap_mutex);
 //                        voodoo->cmd_written++;
                         break;
                         
@@ -2246,11 +2248,13 @@ static void banshee_vsync_callback(svga_t *svga)
         voodoo_t *voodoo = banshee->voodoo;
 
         voodoo->retrace_count++;
+        thread_wait_mutex(voodoo->swap_mutex);
         if (voodoo->swap_pending && (voodoo->retrace_count > voodoo->swap_interval))
         {
                 if (voodoo->swap_count > 0)
                         voodoo->swap_count--;
                 voodoo->swap_pending = 0;
+                thread_release_mutex(voodoo->swap_mutex);
 
                 memset(voodoo->dirty_line, 1, sizeof(voodoo->dirty_line));
                 voodoo->retrace_count = 0;
@@ -2258,6 +2262,8 @@ static void banshee_vsync_callback(svga_t *svga)
                 thread_set_event(voodoo->wake_fifo_thread);
                 voodoo->frame_count++;
         }
+        else
+                thread_release_mutex(voodoo->swap_mutex);
 
         voodoo->overlay.src_y = 0;
         banshee->desktop_addr = banshee->vidDesktopStartAddr;
