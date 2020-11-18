@@ -324,8 +324,8 @@ const machine_t machines[] = {
 
     /* Slot 1 machines */
     /* 440FX */
-    { "[i440FX] ASUS P/I-P65UP5 (C-PKND)",	"p65up5_cpknd",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 60000000, 83600001, 0, 0, 0, 0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  8, 1024,   8, 127,	 machine_at_p65up5_cpknd_init, NULL			},
-    { "[i440FX] ASUS KN97",			"kn97",			MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 60000000, 83600001, 0, 0, 0, 0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  8,  768,   8, 127,	         machine_at_kn97_init, NULL			},
+    { "[i440FX] ASUS P/I-P65UP5 (C-PKND)",	"p65up5_cpknd",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 60000000, 83600000, 0, 0, 0, 0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  8, 1024,   8, 127,	 machine_at_p65up5_cpknd_init, NULL			},
+    { "[i440FX] ASUS KN97",			"kn97",			MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 60000000, 83600000, 0, 0, 0, 0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  8,  768,   8, 127,	         machine_at_kn97_init, NULL			},
 
     /* 440LX */
     { "[i440LX] ABIT LX6",			"lx6",			MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 100000000, 0, 0, 0, 0,								MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  8, 1024,   8, 255,	          machine_at_lx6_init, NULL			},
