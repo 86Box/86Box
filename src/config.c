@@ -558,10 +558,8 @@ load_machine(void)
 			legacy_table_entry = (cpu_legacy_table_t *) &cpu_legacy_table[c].tables[legacy_mfg][i];
 			if (legacy_cpu >= legacy_table_entry->old_offset) {
 				/* Found CPU entry. */
-				if (!(legacy_family = cpu_get_family((char *) legacy_table_entry->family))) {
-					fatal("CPU family %s not found during legacy conversion\n", (char *) legacy_table_entry->family);
-					return;
-				}
+				if (!(legacy_family = cpu_get_family((char *) legacy_table_entry->family))) /* check if the family exists */
+					break;
 				config_set_string(cat, "cpu_family", (char *) legacy_family->internal_name);
 
 				legacy_cpu -= legacy_table_entry->old_offset;
