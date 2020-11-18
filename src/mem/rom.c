@@ -365,7 +365,7 @@ bios_add(void)
     int temp_cpu_type, temp_cpu_16bitbus = 1;
 
     if (AT) {
-	temp_cpu_type = machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type;
+	temp_cpu_type = cpu_s->cpu_type;
 	temp_cpu_16bitbus = (temp_cpu_type == CPU_286 || temp_cpu_type == CPU_386SX || temp_cpu_type == CPU_486SLC || temp_cpu_type == CPU_IBM386SLC || temp_cpu_type == CPU_IBM486SLC );
     }
 

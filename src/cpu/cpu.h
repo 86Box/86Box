@@ -32,63 +32,82 @@ enum {
 };
 
 enum {
-    CPU_8088,		/* 808x class CPUs */
-    CPU_8086,
+    CPU_8088 = (1ULL << 0),		/* 808x class CPUs */
+    CPU_8086 = (1ULL << 1),
 #ifdef USE_NEC_808X
-    CPU_V20,		/* NEC 808x class CPUs - future proofing */
-    CPU_V30,
+    CPU_V20 = (1ULL << 2),		/* NEC 808x class CPUs - future proofing */
+    CPU_V30 = (1ULL << 3),
 #endif
-    CPU_286,		/* 286 class CPUs */
-    CPU_386SX,		/* 386 class CPUs */
-    CPU_386DX,
-    CPU_IBM386SLC,
-    CPU_IBM486SLC,
-    CPU_IBM486BL,
-    CPU_RAPIDCAD,
-    CPU_486SLC,
-    CPU_486DLC,
-    CPU_i486SX,		/* 486 class CPUs */
-    CPU_Am486SX,
-    CPU_Cx486S,
-    CPU_i486SX2,
-    CPU_Am486SX2,
-    CPU_i486DX,
-    CPU_i486DX2,
-    CPU_Am486DX,
-    CPU_Am486DX2,
-    CPU_Cx486DX,
-    CPU_Cx486DX2,
-    CPU_iDX4,
-    CPU_Am486DX4,
-    CPU_Cx486DX4,
-    CPU_Am5x86,
-    CPU_Cx5x86,
-    CPU_P24T,
-    CPU_WINCHIP,	/* 586 class CPUs */
-    CPU_WINCHIP2,
-    CPU_PENTIUM,
-    CPU_PENTIUMMMX,
-#if (defined(USE_NEW_DYNAREC) || (defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)))
-    CPU_Cx6x86,
-    CPU_Cx6x86MX,
-    CPU_Cx6x86L,
-    CPU_CxGX1,
-#endif
-#if defined(DEV_BRANCH) && defined(USE_AMD_K5)
-    CPU_K5,
-    CPU_5K86,
-#endif
-    CPU_K6,
-    CPU_K6_2,
-    CPU_K6_2C,
-    CPU_K6_3,
-    CPU_K6_2P,
-    CPU_K6_3P,
-    CPU_CYRIX3S,
-    CPU_PENTIUMPRO,	/* 686 class CPUs */
-    CPU_PENTIUM2,
-    CPU_PENTIUM2D,
-    CPU_MAX		/* Only really needed to close the enum in a way independent of the #ifdef's. */
+    CPU_286 = (1ULL << 4),		/* 286 class CPUs */
+    CPU_386SX = (1ULL << 5),		/* 386 class CPUs */
+    CPU_386DX = (1ULL << 6),
+    CPU_IBM386SLC = (1ULL << 7),
+    CPU_IBM486SLC = (1ULL << 8),
+    CPU_IBM486BL = (1ULL << 9),
+    CPU_RAPIDCAD = (1ULL << 10),
+    CPU_486SLC = (1ULL << 11),
+    CPU_486DLC = (1ULL << 12),
+    CPU_i486SX = (1ULL << 13),		/* 486 class CPUs */
+    CPU_Am486SX = (1ULL << 14),
+    CPU_Cx486S = (1ULL << 15),
+    CPU_i486SX2 = (1ULL << 16),
+    CPU_Am486SX2 = (1ULL << 17),
+    CPU_i486DX = (1ULL << 18),
+    CPU_i486DX2 = (1ULL << 19),
+    CPU_Am486DX = (1ULL << 20),
+    CPU_Am486DX2 = (1ULL << 21),
+    CPU_Cx486DX = (1ULL << 22),
+    CPU_Cx486DX2 = (1ULL << 23),
+    CPU_iDX4 = (1ULL << 24),
+    CPU_Am486DX4 = (1ULL << 25),
+    CPU_Cx486DX4 = (1ULL << 26),
+    CPU_Am5x86 = (1ULL << 27),
+    CPU_Cx5x86 = (1ULL << 28),
+    CPU_P24T = (1ULL << 29),
+    CPU_WINCHIP = (1ULL << 30),	/* 586 class CPUs */
+    CPU_WINCHIP2 = (1ULL << 31),
+    CPU_PENTIUM = (1ULL << 32),
+    CPU_PENTIUMMMX = (1ULL << 33),
+    CPU_Cx6x86 = (1ULL << 34),
+    CPU_Cx6x86MX = (1ULL << 35),
+    CPU_Cx6x86L = (1ULL << 36),
+    CPU_CxGX1 = (1ULL << 37),
+    CPU_K5 = (1ULL << 38),
+    CPU_5K86 = (1ULL << 39),
+    CPU_K6 = (1ULL << 40),
+    CPU_K6_2 = (1ULL << 41),
+    CPU_K6_2C = (1ULL << 42),
+    CPU_K6_3 = (1ULL << 43),
+    CPU_K6_2P = (1ULL << 44),
+    CPU_K6_3P = (1ULL << 45),
+    CPU_CYRIX3S = (1ULL << 46),
+    CPU_PENTIUMPRO = (1ULL << 47),	/* 686 class CPUs */
+    CPU_PENTIUM2 = (1ULL << 48),
+    CPU_PENTIUM2D = (1ULL << 49)
+};
+
+enum {
+    CPU_PKG_8088 = (1 << 0),
+    CPU_PKG_8088_EUROPC = (1 << 1),
+    CPU_PKG_8086 = (1 << 2),
+    CPU_PKG_286 = (1 << 3),
+    CPU_PKG_386SX = (1 << 4),
+    CPU_PKG_386DX = (1 << 5),
+    CPU_PKG_M6117 = (1 << 6),
+    CPU_PKG_386SLC_IBM = (1 << 7),
+    CPU_PKG_486SLC = (1 << 8),
+    CPU_PKG_486SLC_IBM = (1 << 9),
+    CPU_PKG_486BL = (1 << 10),
+    CPU_PKG_486DLC = (1 << 11),
+    CPU_PKG_SOCKET1 = (1 << 12),
+    CPU_PKG_SOCKET3 = (1 << 13),
+    CPU_PKG_STPC = (1 << 14),
+    CPU_PKG_SOCKET4 = (1 << 15),
+    CPU_PKG_SOCKET5_7 = (1 << 16),
+    CPU_PKG_SOCKET8 = (1 << 17),
+    CPU_PKG_SLOT1 = (1 << 18),
+    CPU_PKG_SLOT2 = (1 << 19),
+    CPU_PKG_SOCKET370 = (1 << 20)
 };
 
 
@@ -110,17 +129,18 @@ enum {
 
 
 typedef struct {
-	const char    *name;
-	const char    *internal_name;
-	const int     type;
+    const char    *name;
+    const char    *internal_name;
+    const int     type;
 } FPU;
 
 typedef struct {
     const char *name;
-    int        cpu_type;
+    uint64_t   cpu_type;
     const FPU  *fpus;
     int        rspeed;
     double     multi;
+    uint16_t   voltage;
     uint32_t   edx_reset;
     uint32_t   cpuid_model;
     uint16_t   cyrix_id;
@@ -130,57 +150,25 @@ typedef struct {
     int8_t     atclk_div;
 } CPU;
 
+typedef struct {
+    const uint32_t	package;
+    const char		*manufacturer;
+    const char    	*name;
+    const char		*internal_name;
+    const CPU		cpus[32];
+} cpu_family_t;
 
-extern CPU	cpus_8088[];
-extern CPU	cpus_8086[];
-extern CPU	cpus_286[];
-extern CPU	cpus_i386SX[];
-extern CPU	cpus_i386DX[];
-extern CPU	cpus_Am386SX[];
-extern CPU	cpus_Am386DX[];
-#if defined(DEV_BRANCH) && defined(USE_M6117)
-extern CPU	cpus_ALiM6117[];
-#endif
-extern CPU	cpus_486SLC[];
-extern CPU	cpus_486DLC[];
-extern CPU	cpus_IBM386SLC[];
-extern CPU	cpus_IBM486SLC[];
-extern CPU	cpus_IBM486BL[];
-extern CPU	cpus_i486S1[];
-extern CPU	cpus_Am486S1[];
-extern CPU	cpus_Cx486S1[];
-extern CPU	cpus_i486[];
-extern CPU	cpus_i486_PC330[];
-extern CPU	cpus_Am486[];
-extern CPU	cpus_Cx486[];
-#if defined(DEV_BRANCH) && defined(USE_STPC)
-extern CPU	cpus_STPCDX[];
-extern CPU	cpus_STPCDX2[];
-#endif
-extern CPU	cpus_WinChip[];
-extern CPU	cpus_WinChip_SS7[];
-extern CPU	cpus_Pentium5V[];
-extern CPU	cpus_Pentium5V50[];
-extern CPU	cpus_PentiumS5[];
-extern CPU	cpus_Pentium3V[];
-extern CPU	cpus_Pentium[];
-#if defined(DEV_BRANCH) && defined(USE_AMD_K5)
-extern CPU	cpus_K5[];
-#endif
-extern CPU	cpus_K56[];
-extern CPU	cpus_K56_SS7[];
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
-extern CPU	cpus_6x863V[];
-extern CPU	cpus_6x86[];
-extern CPU	cpus_6x86SS7[];
-#endif
-extern CPU	cpus_Cyrix3[];
-extern CPU	cpus_PentiumPro[];
-extern CPU	cpus_PentiumII66[];
-extern CPU	cpus_PentiumII[];
-extern CPU	cpus_PentiumIID[];
-extern CPU	cpus_Xeon[];
-extern CPU	cpus_Celeron[];
+typedef struct {
+    const char	*family;
+    const int	old_offset;
+    const int	new_offset;
+} cpu_legacy_table_t;
+
+typedef struct {
+    const char	*machine;
+    const cpu_legacy_table_t *tables[5];
+} cpu_legacy_machine_t;
+
 
 
 #define C_FLAG		0x0001
@@ -381,6 +369,12 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 
 
 /* Global variables. */
+extern cpu_family_t cpu_families[];
+extern cpu_legacy_machine_t cpu_legacy_table[];
+extern cpu_family_t *cpu_f;
+extern CPU	*cpu_s;
+
+extern int	cpu_isintel;
 extern int	cpu_iscyrix;
 extern int	cpu_16bitbus, cpu_64bitbus;
 extern int	cpu_busspeed, cpu_pci_speed;
@@ -502,17 +496,6 @@ extern int	cpu_end_block_after_ins;
 extern uint16_t	cpu_fast_off_count, cpu_fast_off_val;
 extern uint32_t	cpu_fast_off_flags;
 
-extern CPU	cpus_pcjr[];		// FIXME: should be in machine file!
-extern CPU	cpus_europc[];		// FIXME: should be in machine file!
-extern CPU	cpus_pc1512[];		// FIXME: should be in machine file!
-extern CPU	cpus_ibmat[];		// FIXME: should be in machine file!
-extern CPU	cpus_ibmxt286[];	// FIXME: should be in machine file!
-extern CPU	cpus_ps1_m2011[];	// FIXME: should be in machine file!
-extern CPU	cpus_ps2_m30_286[];	// FIXME: should be in machine file!
-#if 0
-extern CPU	cpus_acer[];		// FIXME: should be in machine file!
-#endif
-
 
 /* Functions. */
 extern int cpu_has_feature(int feature);
@@ -565,7 +548,7 @@ extern void	resetx86(void);
 extern void	refreshread(void);
 extern void	resetreadlookup(void);
 extern void	softresetx86(void);
-extern void x86_int(int num);
+extern void	x86_int(int num);
 extern void	x86_int_sw(int num);
 extern int	x86_int_sw_rm(int num);
 extern void	x86gpf(char *s, uint16_t error);
@@ -590,10 +573,13 @@ extern int	sysexit(uint32_t fetchdat);
 extern int	syscall(uint32_t fetchdat);
 extern int	sysret(uint32_t fetchdat);
 
-extern int	fpu_get_type(int machine, int cpu_manufacturer, int cpu, const char *internal_name);
-extern const	char *fpu_get_internal_name(int machine, int cpu_manufacturer, int cpu, int type);
-extern const	char *fpu_get_name_from_index(int machine, int cpu_manufacturer, int cpu, int c);
-extern int	fpu_get_type_from_index(int machine, int cpu_manufacturer, int cpu, int c);
+extern cpu_family_t *cpu_get_family(char *internal_name);
+extern uint8_t	cpu_is_eligible(cpu_family_t *cpu_family, int cpu, int machine);
+extern uint8_t	cpu_family_is_eligible(cpu_family_t *cpu_family, int machine);
+extern int	fpu_get_type(cpu_family_t *cpu_family, int cpu, const char *internal_name);
+extern const	char *fpu_get_internal_name(cpu_family_t *cpu_family, int cpu, int type);
+extern const	char *fpu_get_name_from_index(cpu_family_t *cpu_family, int cpu, int c);
+extern int	fpu_get_type_from_index(cpu_family_t *cpu_family, int cpu, int c);
 
 void cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg);
 void cyrix_write_seg_descriptor(uint32_t addr, x86seg *seg);

@@ -136,9 +136,9 @@ int	sound_is_float = 1,			/* (C) sound uses FP values */
 	SSI2001 = 0,				/* (C) sound option */
 	voodoo_enabled = 0;			/* (C) video option */
 uint32_t mem_size = 0;				/* (C) memory size */
-int	cpu_manufacturer = 0,			/* (C) cpu manufacturer */
+int	cpu_family = 0,				/* (C) cpu family */
 	cpu_use_dynarec = 0,			/* (C) cpu uses/needs Dyna */
-	cpu = 3,				/* (C) cpu type */
+	cpu = 0,				/* (C) cpu type */
 	fpu_type = 0;				/* (C) fpu type */
 int	time_sync = 0;				/* (C) enable time sync */
 int	confirm_reset = 1,			/* (C) enable reset confirmation */
@@ -538,8 +538,8 @@ usage:
 void
 pc_speed_changed(void)
 {
-    if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286)
-	pit_set_clock(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed);
+    if (cpu_s->cpu_type >= CPU_286)
+	pit_set_clock(cpu_s->rspeed);
     else
 	pit_set_clock(14318184.0);
 }
@@ -928,7 +928,7 @@ pc_close(thread_t *ptr)
 void
 pc_thread(void *param)
 {
-    wchar_t temp[200], wcpu[2048];
+    wchar_t temp[200], wcpufamily[2048], wcpu[2048];
     wchar_t wmachine[2048];
     uint64_t start_time, end_time;
     uint32_t old_time, new_time;
@@ -957,7 +957,7 @@ pc_thread(void *param)
 
 		/* Run a block of code. */
 		startblit();
-		clockrate = machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed;
+		clockrate = cpu_s->rspeed;
 
 		if (is386) {
 #ifdef USE_DYNAREC
@@ -966,7 +966,7 @@ pc_thread(void *param)
 			  else
 #endif
 				exec386(clockrate/100);
-		} else if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286) {
+		} else if (cpu_s->cpu_type >= CPU_286) {
 			exec386(clockrate/100);
 		} else {
 			execx86(clockrate/100);
@@ -991,11 +991,13 @@ pc_thread(void *param)
 
 		if (title_update) {
 			mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
-			mbstowcs(wcpu, machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].name,
-				 strlen(machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].name)+1);
+			mbstowcs(wcpufamily, cpu_f->name,
+				 strlen(cpu_f->name)+1);
+			mbstowcs(wcpu, cpu_s->name,
+				 strlen(cpu_s->name)+1);
 			swprintf(temp, sizeof_w(temp),
-				 L"%ls v%ls - %i%% - %ls - %ls - %ls",
-				 EMU_NAME_W,EMU_VERSION_W,fps,wmachine,wcpu,
+				 L"%ls v%ls - %i%% - %ls - %ls/%ls - %ls",
+				 EMU_NAME_W,EMU_VERSION_W,fps,wmachine,wcpufamily,wcpu,
 				 (!mouse_capture) ? plat_get_string(IDS_2077)
 				  : (mouse_get_buttons() > 2) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079));
 

@@ -260,7 +260,7 @@ sis_85c4xx_init(const device_t *info)
 
     mem_size_mb = mem_size >> 10;
 
-    if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed < 25000000)
+    if (cpu_s->rspeed < 25000000)
 	dev->regs[0x08] = 0x80;
 
     if (dev->is_471) {

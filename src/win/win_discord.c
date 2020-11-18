@@ -83,13 +83,13 @@ discord_update_activity(int paused)
     if (WideCharToMultiByte(CP_UTF8, WC_ERR_INVALID_CHARS, plat_get_filename(config_name_w), -1, config_name, 128, NULL, NULL) > 0)
     {
 	sprintf_s(activity.details, 128, "Running \"%s\"", config_name);
-	sprintf_s(activity.state, 128, "%s (%s)", strchr(machine_getname(), ']') + 2, machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].name);
+	sprintf_s(activity.state, 128, "%s (%s)", strchr(machine_getname(), ']') + 2, cpu_s->name);
     }
     else
     {
 	temp = strchr(machine_getname(), ']') + 2;
 	strncpy(activity.details, temp, 127);
-	strncpy(activity.state, machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].name, 127);
+	strncpy(activity.state, cpu_s->name, 127);
     }
 
     activity.timestamps.start = time(NULL);
