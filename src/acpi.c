@@ -86,9 +86,6 @@ acpi_raise_smi(void *priv)
 {
     acpi_t *dev = (acpi_t *) priv;
 
-    if ((dev->vendor == VEN_INTEL) && !(dev->regs.glbctl & 0x00010000))
-	return;
-
     if (dev->regs.glbctl & 0x01) {
 	if ((dev->vendor == VEN_VIA) || (dev->vendor == VEN_VIA_596B)) {
 		    if ((!dev->regs.smi_lock || !dev->regs.smi_active)) {
