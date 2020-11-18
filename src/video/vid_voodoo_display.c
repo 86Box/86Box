@@ -525,7 +525,7 @@ void voodoo_callback(void *p)
 
                         if (draw_voodoo->dirty_line[draw_line])
                         {
-                                uint32_t *p = &((uint32_t *)buffer32->line[voodoo->line])[32];
+                                uint32_t *p = &buffer32->line[voodoo->line + 8][8];
                                 uint16_t *src = (uint16_t *)&draw_voodoo->fb_mem[draw_voodoo->front_offset + draw_line*draw_voodoo->row_width];
                                 int x;
 
@@ -538,6 +538,10 @@ void voodoo_callback(void *p)
                                 }
                                 if (voodoo->line > voodoo->dirty_line_high)
                                         voodoo->dirty_line_high = voodoo->line;
+
+				/* Draw left overscan. */
+				for (x = 0; x < 8; x++)
+					buffer32->line[voodoo->line + 8][x] = 0x00000000;
 
                                 if (voodoo->scrfilter && voodoo->scrfilterEnabled)
                                 {
@@ -560,6 +564,10 @@ void voodoo_callback(void *p)
                                                 p[x] = draw_voodoo->video_16to32[src[x]];
                                         }
                                 }
+
+				/* Draw right overscan. */
+				for (x = 0; x < 8; x++)
+					buffer32->line[voodoo->line + 8][voodoo->h_disp + x + 8] = 0x00000000;
                         }
                 }
         }
@@ -574,6 +582,7 @@ skip_draw:
                         {
                                 voodoo_t *voodoo_1 = voodoo->set->voodoos[1];
 
+                                thread_wait_mutex(voodoo->swap_mutex);
                                 /*Only swap if both Voodoos are waiting for buffer swap*/
                                 if (voodoo->swap_pending && (voodoo->retrace_count > voodoo->swap_interval) &&
                                     voodoo_1->swap_pending && (voodoo_1->retrace_count > voodoo_1->swap_interval))
@@ -591,6 +600,7 @@ skip_draw:
                                         if (voodoo_1->swap_count > 0)
                                                 voodoo_1->swap_count--;
                                         voodoo_1->swap_pending = 0;
+                                        thread_release_mutex(voodoo->swap_mutex);
 
                                         thread_set_event(voodoo->wake_fifo_thread);
                                         thread_set_event(voodoo_1->wake_fifo_thread);
@@ -598,22 +608,28 @@ skip_draw:
                                         voodoo->frame_count++;
                                         voodoo_1->frame_count++;
                                 }
+                                else
+                                        thread_release_mutex(voodoo->swap_mutex);
                         }
                 }
                 else
                 {
+                        thread_wait_mutex(voodoo->swap_mutex);
                         if (voodoo->swap_pending && (voodoo->retrace_count > voodoo->swap_interval))
                         {
                                 voodoo->front_offset = voodoo->swap_offset;
                                 if (voodoo->swap_count > 0)
                                         voodoo->swap_count--;
                                 voodoo->swap_pending = 0;
+                                thread_release_mutex(voodoo->swap_mutex);
 
                                 memset(voodoo->dirty_line, 1, 1024);
                                 voodoo->retrace_count = 0;
                                 thread_set_event(voodoo->wake_fifo_thread);
                                 voodoo->frame_count++;
                         }
+                        else
+                                thread_release_mutex(voodoo->swap_mutex);
                 }
                 voodoo->v_retrace = 1;
         }

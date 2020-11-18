@@ -3126,13 +3126,6 @@ win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPar
 			lv1_current_sel = get_selected_hard_disk(hdlg);
 			if (lv1_current_sel == old_sel)
 				return FALSE;
-			else if (lv1_current_sel == -1) {
-				ignore_change = 1;
-				lv1_current_sel = old_sel;
-				settings_listview_select(hdlg, IDC_LIST_HARD_DISKS, lv1_current_sel);
-				ignore_change = 0;
-				return FALSE;
-			}
 			ignore_change = 1;
 			settings_set_cur_sel(hdlg, IDC_COMBO_HD_BUS, temp_hdd[lv1_current_sel].bus - 1);
 			recalc_location_controls(hdlg, 0, 0);
@@ -4209,13 +4202,6 @@ win_settings_floppy_and_cdrom_drives_proc(HWND hdlg, UINT message, WPARAM wParam
 			lv1_current_sel = get_selected_drive(hdlg, IDC_LIST_FLOPPY_DRIVES);
 			if (lv1_current_sel == old_sel)
 				return FALSE;
-			else if (lv1_current_sel == -1) {
-				ignore_change = 1;
-				lv1_current_sel = old_sel;
-				settings_listview_select(hdlg, IDC_LIST_FLOPPY_DRIVES, lv1_current_sel);
-				ignore_change = 0;
-				return FALSE;
-			}
 			ignore_change = 1;
 			settings_set_cur_sel(hdlg, IDC_COMBO_FD_TYPE, temp_fdd_types[lv1_current_sel]);
 			settings_set_check(hdlg, IDC_CHECKTURBO, temp_fdd_turbo[lv1_current_sel]);
@@ -4226,13 +4212,6 @@ win_settings_floppy_and_cdrom_drives_proc(HWND hdlg, UINT message, WPARAM wParam
 			lv2_current_sel = get_selected_drive(hdlg, IDC_LIST_CDROM_DRIVES);
 			if (lv2_current_sel == old_sel)
 				return FALSE;
-			else if (lv2_current_sel == -1) {
-				ignore_change = 1;
-				lv2_current_sel = old_sel;
-				settings_listview_select(hdlg, IDC_LIST_CDROM_DRIVES, lv2_current_sel);
-				ignore_change = 0;
-				return FALSE;
-			}
 			ignore_change = 1;
 
 			switch (temp_cdrom[lv2_current_sel].bus_type) {
@@ -4407,13 +4386,6 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 			lv1_current_sel = get_selected_drive(hdlg, IDC_LIST_MO_DRIVES);
 			if (lv1_current_sel == old_sel)
 				return FALSE;
-			else if (lv1_current_sel == -1) {
-				ignore_change = 1;
-				lv1_current_sel = old_sel;
-				settings_listview_select(hdlg, IDC_LIST_MO_DRIVES, lv1_current_sel);
-				ignore_change = 0;
-				return FALSE;
-			}
 			ignore_change = 1;
 
 			switch (temp_mo_drives[lv1_current_sel].bus_type) {
@@ -4437,13 +4409,6 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 			lv2_current_sel = get_selected_drive(hdlg, IDC_LIST_ZIP_DRIVES);
 			if (lv2_current_sel == old_sel)
 				return FALSE;
-			else if (lv2_current_sel == -1) {
-				ignore_change = 1;
-				lv2_current_sel = old_sel;
-				settings_listview_select(hdlg, IDC_LIST_ZIP_DRIVES, lv2_current_sel);
-				ignore_change = 0;
-				return FALSE;
-			}
 			ignore_change = 1;
 
 			switch (temp_zip_drives[lv2_current_sel].bus_type) {

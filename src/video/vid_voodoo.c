@@ -139,7 +139,9 @@ void voodoo_recalc(voodoo_t *voodoo)
         if (voodoo->fbiInit1 & (1 << 24))
                 voodoo->block_width += 32;
         voodoo->row_width = voodoo->block_width * 32 * 2;
+	voodoo->params.row_width = voodoo->row_width;
         voodoo->aux_row_width = voodoo->row_width;
+	voodoo->params.aux_row_width = voodoo->aux_row_width;
 }
 
 
@@ -450,7 +452,9 @@ static void voodoo_writel(uint32_t addr, uint32_t val, void *p)
                 
                 case SST_swapbufferCMD:
                 voodoo->cmd_written++;
+                thread_wait_mutex(voodoo->swap_mutex);
                 voodoo->swap_count++;
+                thread_release_mutex(voodoo->swap_mutex);
                 if (voodoo->fbiInit7 & FBIINIT7_CMDFIFO_ENABLE)
                         return;
                 voodoo_queue_command(voodoo, addr | FIFO_WRITEL_REG, val);
@@ -531,7 +535,9 @@ static void voodoo_writel(uint32_t addr, uint32_t val, void *p)
                         if ((voodoo->fbiInit1 & FBIINIT1_VIDEO_RESET) && !(val & FBIINIT1_VIDEO_RESET))
                         {
                                 voodoo->line = 0;
+                                thread_wait_mutex(voodoo->swap_mutex);
                                 voodoo->swap_count = 0;
+                                thread_release_mutex(voodoo->swap_mutex);
                                 voodoo->retrace_count = 0;
                         }
                         voodoo->fbiInit1 = (val & ~5) | (voodoo->fbiInit1 & 5);
