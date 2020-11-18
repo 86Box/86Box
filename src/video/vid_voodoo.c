@@ -139,7 +139,9 @@ void voodoo_recalc(voodoo_t *voodoo)
         if (voodoo->fbiInit1 & (1 << 24))
                 voodoo->block_width += 32;
         voodoo->row_width = voodoo->block_width * 32 * 2;
+	voodoo->params.row_width = voodoo->row_width;
         voodoo->aux_row_width = voodoo->row_width;
+	voodoo->params.aux_row_width = voodoo->aux_row_width;
 }
 
 
