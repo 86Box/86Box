@@ -354,8 +354,8 @@ cpu_family_t cpu_families[] = {
 	.name = "iDX4",
 	.internal_name = "idx4",
 	.cpus = {
-		{"75",              CPU_iDX4,    fpus_internal,  75000000, 3.0,  0x480,  0x480, 0x0000, CPU_SUPPORTS_DYNAREC, 12,12, 9, 9,  9}, /*CPUID available on DX4, >= 75 MHz*/
-		{"100",             CPU_iDX4,    fpus_internal, 100000000, 3.0,  0x483,  0x483, 0x0000, CPU_SUPPORTS_DYNAREC, 18,18, 9, 9, 12}, /*Is on some real Intel DX2s, limit here is pretty arbitary*/
+		{"75",              CPU_iDX4,    fpus_internal,  75000000, 3.0,  5000,  0x480,  0x480, 0x0000, CPU_SUPPORTS_DYNAREC, 12,12, 9, 9,  9}, /*CPUID available on DX4, >= 75 MHz*/
+		{"100",             CPU_iDX4,    fpus_internal, 100000000, 3.0,  5000,  0x483,  0x483, 0x0000, CPU_SUPPORTS_DYNAREC, 18,18, 9, 9, 12}, /*Is on some real Intel DX2s, limit here is pretty arbitary*/
 		{"", 0}
 	}
     }, {
