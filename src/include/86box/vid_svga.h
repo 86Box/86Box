@@ -57,7 +57,7 @@ typedef struct svga_t
 	firstline, lastline, firstline_draw, lastline_draw,
 	displine, fullchange, x_add, y_add, pan,
 	vram_display_mask, vidclock,
-	hwcursor_on, dac_hwcursor_on, overlay_on;
+	hwcursor_on, dac_hwcursor_on, overlay_on, set_override;
 
     /*The three variables below allow us to implement memory maps like that seen on a 1MB Trio64 :
       0MB-1MB - VRAM
@@ -77,7 +77,7 @@ typedef struct svga_t
 	     extra_banks[2],
 	     banked_mask,
 	     ca, overscan_color,
-	     *map8, pallook[256];
+	     *map8, pallook[512];
 
     PALETTE vgapal;
 

@@ -232,7 +232,9 @@ extern int		mem_a20_state,
 
 
 extern uint8_t	read_mem_b(uint32_t addr);
+extern uint16_t	read_mem_w(uint32_t addr);
 extern void	write_mem_b(uint32_t addr, uint8_t val);
+extern void	write_mem_w(uint32_t addr, uint16_t val);
 
 #ifndef USE_NEW_DYNAREC
 #define readmemb(a) ((readlookup2[(a)>>12]==-1)?readmembl(a):*(uint8_t *)(readlookup2[(a) >> 12] + (a)))

@@ -225,7 +225,8 @@ machine_at_micronics386_init(const machine_t *model)
 static void
 machine_at_scat_init(const machine_t *model, int is_v4)
 {
-    machine_at_init(model);
+    machine_at_common_init(model);
+    device_add(&keyboard_at_ami_device);
     device_add(&fdc_at_device);
 
     if (is_v4)

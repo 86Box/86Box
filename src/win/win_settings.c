@@ -662,7 +662,6 @@ win_settings_machine_recalc_fpu(HWND hdlg)
 static void
 win_settings_machine_recalc_cpu(HWND hdlg)
 {
-    HWND h;
     int cpu_type;
 #ifdef USE_DYNAREC
     int cpu_flags;
@@ -672,7 +671,6 @@ win_settings_machine_recalc_cpu(HWND hdlg)
     settings_enable_window(hdlg, IDC_COMBO_WS, (cpu_type >= CPU_286) && (cpu_type <= CPU_386DX));
 
 #ifdef USE_DYNAREC
-    h = GetDlgItem(hdlg, IDC_CHECK_DYNAREC);
     cpu_flags = temp_cpu_f->cpus[temp_cpu].cpu_flags;
     if (!(cpu_flags & CPU_SUPPORTS_DYNAREC) && (cpu_flags & CPU_REQUIRES_DYNAREC))
 	fatal("Attempting to select a CPU that requires the recompiler and does not support it at the same time\n");
@@ -681,10 +679,12 @@ win_settings_machine_recalc_cpu(HWND hdlg)
 		temp_dynarec = 0;
 	if (cpu_flags & CPU_REQUIRES_DYNAREC)
 		temp_dynarec = 1;
-	SendMessage(h, BM_SETCHECK, temp_dynarec, 0);
-	EnableWindow(h, FALSE);
-    } else
-	EnableWindow(h, TRUE);
+	settings_set_check(hdlg, IDC_CHECK_DYNAREC, temp_dynarec);
+	settings_enable_window(hdlg, IDC_CHECK_DYNAREC, FALSE);
+    } else {
+	settings_set_check(hdlg, IDC_CHECK_DYNAREC, temp_dynarec);
+	settings_enable_window(hdlg, IDC_CHECK_DYNAREC, TRUE);
+    }
 #endif
 
     win_settings_machine_recalc_fpu(hdlg);
@@ -3275,6 +3275,7 @@ win_settings_floppy_drives_recalc_list(HWND hdlg)
 
 	lvI.iSubItem = 1;
 	lvI.pszText = plat_get_string(temp_fdd_turbo[i] ? IDS_2060 : IDS_2061);
+	lvI.iItem = i;
 	lvI.iImage = 0;
 
 	if (ListView_SetItem(hwndList, &lvI) == -1)
@@ -3282,6 +3283,8 @@ win_settings_floppy_drives_recalc_list(HWND hdlg)
 
 	lvI.iSubItem = 2;
 	lvI.pszText = plat_get_string(temp_fdd_check_bpb[i] ? IDS_2060 : IDS_2061);
+	lvI.iItem = i;
+	lvI.iImage = 0;
 
 	if (ListView_SetItem(hwndList, &lvI) == -1)
 		return FALSE;

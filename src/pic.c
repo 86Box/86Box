@@ -45,7 +45,10 @@ enum
 pic_t		pic, pic2;
 
 
-static int	shadow = 0, elcr_enabled = 0;
+static pc_timer_t	pic_timer;
+
+static int	shadow = 0, elcr_enabled = 0,
+		tmr_inited = 0, latched = 0;
 
 
 #ifdef ENABLE_PIC_LOG
@@ -184,9 +187,7 @@ find_best_interrupt(pic_t *dev)
 void
 pic_update_pending(void)
 {
-    int is_at;
-
-    is_at = IS_ARCH(machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
+    int is_at = IS_ARCH(machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
 
     if (is_at) {
 	pic2.int_pending = (find_best_interrupt(&pic2) != -1);
@@ -195,26 +196,52 @@ pic_update_pending(void)
 		pic.irr |= (1 << pic2.icw3);
 	else
 		pic.irr &= ~(1 << pic2.icw3);
+
+	pic.int_pending = (find_best_interrupt(&pic) != -1);
+	return;
     }
 
-    pic.int_pending = (find_best_interrupt(&pic) != -1);
+    if (find_best_interrupt(&pic) != -1) {
+	latched++;
+	if (latched == 1)
+		timer_on_auto(&pic_timer, is_at ? 0.3 : 0.35);
+		/* 300 ms on AT+, 350 ns on PC/PCjr/XT */
+    } else if (latched == 0)
+	pic.int_pending = 0;
+}
+
+
+static void
+pic_callback(void *priv)
+{
+    pic_t *dev = (pic_t *) priv;
+
+    dev->int_pending = 1;
+
+    latched--;
+    if (latched > 0)
+	timer_on_auto(&pic_timer, 0.35);
 }
 
 
 void
 pic_reset()
 {
-    int is_at;
+    int is_at = IS_ARCH(machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
 
     memset(&pic, 0, sizeof(pic_t));
     memset(&pic2, 0, sizeof(pic_t));
 
     pic.is_master = 1;
 
-    is_at = IS_ARCH(machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
-
     if (is_at)
 	pic.slaves[2] = &pic2;
+
+    if (tmr_inited)
+	timer_on_auto(&pic_timer, 0.0);
+    memset(&pic_timer, 0x00, sizeof(pc_timer_t));
+    timer_add(&pic_timer, pic_callback, &pic, 0);
+    tmr_inited = 1;
 }
 
 

@@ -913,7 +913,7 @@ machine_at_an430tx_init(const machine_t *model)
 				     L"roms/machines/an430tx/P10-0095.BI1",
 				     L"roms/machines/an430tx/P10-0095.BI2",
 				     L"roms/machines/an430tx/P10-0095.BI3",
-				     NULL,
+				     L"roms/machines/an430tx/P10-0095.RCV",
 				     0x3a000, 160);
 
     if (bios_only || !ret)
@@ -924,11 +924,11 @@ machine_at_an430tx_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);	/* PIIX4 */
+    pci_register_slot(0x08, PCI_CARD_VIDEO, 4, 0, 0, 0);
     pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x0E, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x10, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    pci_register_slot(0x08, PCI_CARD_VIDEO, 4, 0, 0, 0);
     device_add(&i430tx_device);
     device_add(&piix4_device);
     device_add(&keyboard_ps2_ami_pci_device);
@@ -1028,7 +1028,7 @@ machine_at_ficva502_init(const machine_t *model)
     device_add(&via_vpx_device);
     device_add(&via_vt82c586b_device);
     device_add(&keyboard_ps2_pci_device);
-    device_add(&fdc37c669_device);
+    device_add(&fdc37c669_370_device);
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
@@ -1062,7 +1062,7 @@ machine_at_ficpa2012_init(const machine_t *model)
     device_add(&via_vt82c586b_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83877f_device);
-    device_add(&sst_flash_39sf010_device);
+    device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
     return ret;

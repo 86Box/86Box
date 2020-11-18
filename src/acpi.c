@@ -82,34 +82,23 @@ acpi_update_irq(void *priv)
 
 
 static void
-acpi_raise_smi_common(void *priv)
-{
-    acpi_t *dev = (acpi_t *) priv;
-
-    if ((dev->vendor == VEN_VIA) || (dev->vendor == VEN_VIA_596B)) {
-	    if ((!dev->regs.smi_lock || !dev->regs.smi_active)) {
-		smi_line = 1;
-		dev->regs.smi_active = 1;
-    	}
-    } else if (dev->vendor == VEN_INTEL) {
-	smi_line = 1;
-	/* Clear bit 16 of GLBCTL. */
-	dev->regs.glbctl &= ~0x00010000;
-    } else if (dev->vendor == VEN_SMC)
-	smi_line = 1;
-}
-
-
-static void
 acpi_raise_smi(void *priv)
 {
     acpi_t *dev = (acpi_t *) priv;
 
-    if ((dev->vendor == VEN_INTEL) && !(dev->regs.glbctl & 0x00010000))
-	return;
-
-    if (dev->regs.glbctl & 0x01)
-	acpi_raise_smi_common(dev);
+    if (dev->regs.glbctl & 0x01) {
+	if ((dev->vendor == VEN_VIA) || (dev->vendor == VEN_VIA_596B)) {
+		    if ((!dev->regs.smi_lock || !dev->regs.smi_active)) {
+			smi_line = 1;
+			dev->regs.smi_active = 1;
+	    	}
+	} else if (dev->vendor == VEN_INTEL) {
+		smi_line = 1;
+		/* Clear bit 16 of GLBCTL. */
+		dev->regs.glbctl &= ~0x00010000;
+	} else if (dev->vendor == VEN_SMC)
+		smi_line = 1;
+    }
 }
 
 
@@ -1119,7 +1108,7 @@ acpi_apm_out(uint16_t port, uint8_t val, void *p)
 	if (dev->apm->do_smi) {
 		if (dev->vendor == VEN_INTEL)
 			dev->regs.glbsts |= 0x20;
-		acpi_raise_smi_common(dev);
+		acpi_raise_smi(dev);
 	}
     } else
 	dev->apm->stat = val;

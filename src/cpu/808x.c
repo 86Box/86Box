@@ -98,8 +98,7 @@ static uint32_t *ovr_seg = NULL;
 static int prefetching = 1, completed = 1;
 static int in_rep = 0, repeating = 0;
 static int oldc, clear_lock = 0;
-static int refresh = 0, takeint = 0;
-static int cycdiff;
+static int refresh = 0, cycdiff;
 
 
 /* Various things needed for 8087. */
@@ -254,7 +253,6 @@ static void
 wait(int c, int bus)
 {
     cycles -= c;
-
     fetch_and_bus(c, bus);
 }
 
@@ -279,16 +277,36 @@ sub_cycles(int c)
 #undef readmemq
 
 
-/* Common read function. */
-static uint8_t
-readmemb_common(uint32_t a)
+static void
+cpu_io(int bits, int out, uint16_t port)
 {
-    uint8_t ret;
-
-    ret = read_mem_b(a);
-
-    return ret;
+    if (out) {
+	wait(4, 1);
+	if (bits == 16) {
+		if (is8086 && !(port & 1))
+			outw(port, AX);
+		else {
+			wait(4, 1);
+			outb(port++, AL);
+			outb(port, AH);
+		}
+	} else
+		outb(port, AL);
+    } else {
+	wait(4, 1);
+	if (bits == 16) {
+		if (is8086 && !(port & 1))
+			AX = inw(port);
+		else {
+			wait(4, 1);
+			AL = inb(port++);
+			AH = inb(port);
+		}
+	} else
+		AL = inb(port);
+    }
 }
+
 
 /* Reads a byte from the memory and advances the BIU. */
 static uint8_t
@@ -297,7 +315,7 @@ readmemb(uint32_t a)
     uint8_t ret;
 
     wait(4, 1);
-    ret = readmemb_common(a);
+    ret = read_mem_b(a);
 
     return ret;
 }
@@ -310,7 +328,7 @@ readmembf(uint32_t a)
     uint8_t ret;
 
     a = cs + (a & 0xffff);
-    ret = readmemb_common(a);
+    ret = read_mem_b(a);
 
     return ret;
 }
@@ -318,27 +336,18 @@ readmembf(uint32_t a)
 
 /* Reads a word from the memory and advances the BIU. */
 static uint16_t
-readmemw_common(uint32_t s, uint16_t a)
-{
-    uint16_t ret;
-
-    ret = readmemb_common(s + a);
-    ret |= readmemb_common(s + ((a + 1) & 0xffff)) << 8;
-
-    return ret;
-}
-
-
-static uint16_t
 readmemw(uint32_t s, uint16_t a)
 {
     uint16_t ret;
 
+    wait(4, 1);
     if (is8086 && !(a & 1))
+	ret = read_mem_w(s + a);
+    else {
 	wait(4, 1);
-    else
-	wait(8, 1);
-    ret = readmemw_common(s, a);
+	ret = read_mem_b(s + a);
+	ret |= read_mem_b(s + ((a + 1) & 0xffff)) << 8;
+    }
 
     return ret;
 }
@@ -349,7 +358,7 @@ readmemwf(uint16_t a)
 {
     uint16_t ret;
 
-    ret = readmemw_common(cs, a & 0xffff);
+    ret = read_mem_w(cs + (a & 0xffff));
 
     return ret;
 }
@@ -389,22 +398,17 @@ readmemq(uint32_t s, uint16_t a)
 }
 
 
-static void
-writememb_common(uint32_t a, uint8_t v)
-{
-    write_mem_b(a, v);
-
-    if ((a >= 0xf0000) && (a <= 0xfffff))
-	last_addr = a & 0xffff;
-}
-
-
 /* Writes a byte to the memory and advances the BIU. */
 static void
 writememb(uint32_t s, uint32_t a, uint8_t v)
 {
+    uint32_t addr = s + a;
+
     wait(4, 1);
-    writememb_common(s + a, v);
+    write_mem_b(addr, v);
+
+    if ((addr >= 0xf0000) && (addr <= 0xfffff))
+	last_addr = addr & 0xffff;
 }
 
 
@@ -412,12 +416,20 @@ writememb(uint32_t s, uint32_t a, uint8_t v)
 static void
 writememw(uint32_t s, uint32_t a, uint16_t v)
 {
+    uint32_t addr = s + a;
+
+    wait(4, 1);
     if (is8086 && !(a & 1))
+	write_mem_w(addr, v);
+    else {
+	write_mem_b(addr, v & 0xff);
 	wait(4, 1);
-    else
-	wait(8, 1);
-    writememb_common(s + a, v & 0xff);
-    writememb_common(s + ((a + 1) & 0xffff), v >> 8);
+	addr = s + ((a + 1) & 0xffff);
+	write_mem_b(addr, v >> 8);
+    }
+
+    if ((addr >= 0xf0000) && (addr <= 0xfffff))
+	last_addr = addr & 0xffff;
 }
 
 
@@ -619,16 +631,26 @@ makemod1table(void)
 
 
 static uint16_t
-sign_extend(uint8_t data)
+get_accum(int bits)
 {
-    return data + (data < 0x80 ? 0 : 0xff00);
+    return (bits == 16) ? AX : AL;
 }
 
 
-static uint32_t
-sign_extend32(uint16_t data)
+static void
+set_accum(int bits, uint16_t val)
 {
-    return data + (data < 0x8000 ? 0 : 0xffff0000);
+    if (bits == 16)
+	AX = val;
+    else
+	AL = val;
+}
+
+
+static uint16_t
+sign_extend(uint8_t data)
+{
+    return data + (data < 0x80 ? 0 : 0xff00);
 }
 
 
@@ -947,7 +969,6 @@ reset_common(int hard)
     cpu_alt_reset = 0;
 
     prefetching = 1;
-    takeint = 0;
 
     cpu_ven_reset();
 
@@ -1132,12 +1153,8 @@ irq_pending(void)
 {
     uint8_t temp;
 
-    if (takeint && !noint)
-	temp = 1;
-    else
-	temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint);
-
-    takeint = (cpu_state.flags & I_FLAG) && pic.int_pending;
+    temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint) ||
+	   ((cpu_state.flags & I_FLAG) && pic.int_pending && !noint);
 
     return temp;
 }
@@ -1301,10 +1318,7 @@ set_of(int of)
 static int
 top_bit(uint16_t w, int bits)
 {
-    if (bits == 16)
-	return ((w & 0x8000) != 0);
-    else
-	return ((w & 0x80) != 0);
+    return (w & (1 << (bits - 1)));
 }
 
 
@@ -1533,7 +1547,7 @@ set_of_rotate(int bits)
 
 
 static void
-set_zf_ex(int bits, int zf)
+set_zf_ex(int zf)
 {
     cpu_state.flags = (cpu_state.flags & ~0x40) | (zf ? 0x40 : 0);
 }
@@ -1544,7 +1558,7 @@ set_zf(int bits)
 {
     int size_mask = (1 << bits) - 1;
 
-    set_zf_ex(bits, (cpu_data & size_mask) == 0);
+    set_zf_ex((cpu_data & size_mask) == 0);
 }
 
 
@@ -1558,13 +1572,13 @@ set_pzs(int bits)
 
 
 static void
-set_co_mul(int carry)
+set_co_mul(int bits, int carry)
 {
     set_cf(carry);
     set_of(carry);
     /* NOTE: When implementing the V20, care should be taken to not change
 	     the zero flag. */
-    set_zf(!carry);
+    set_zf_ex(!carry);
     if (!carry)
 	wait(1, 0);
 }
@@ -1795,7 +1809,6 @@ execx86(int cycs)
     uint8_t old_af;
     uint16_t addr, tempw;
     uint16_t new_cs, new_ip;
-    uint32_t result;
     int bits;
 
     cycles += cycs;
@@ -1889,12 +1902,12 @@ execx86(int cycs)
 			bits = 8 << (opcode & 1);
 			wait(1, 0);
 			cpu_data = pfq_fetch();
-			cpu_dest = get_reg(0);	/* AX/AL */
+			cpu_dest = get_accum(bits);	/* AX/AL */
 			cpu_src = cpu_data;
 			cpu_alu_op = (opcode >> 3) & 7;
 			alu_op(bits);
 			if (cpu_alu_op != 7)
-				set_reg(0, cpu_data);
+				set_accum(bits, cpu_data);
 			wait(1, 0);
 			break;
 
@@ -1924,7 +1937,7 @@ execx86(int cycs)
 			cpu_dest = AL;
 			set_of(0);
 			old_af = !!(cpu_state.flags & A_FLAG);
-			if ((cpu_state.flags & A_FLAG) || (AL & 0xf) > 9) {
+			if ((cpu_state.flags & A_FLAG) || ((AL & 0xf) > 9)) {
 				cpu_src = 6;
 				cpu_data = cpu_dest - cpu_src;
 				set_of_sub(8);
@@ -1944,7 +1957,7 @@ execx86(int cycs)
 			break;
 		case 0x37:	/*AAA*/
 			wait(1, 0);
-			if ((cpu_state.flags & A_FLAG) || (AL & 0xf) > 9) {
+			if ((cpu_state.flags & A_FLAG) || ((AL & 0xf) > 9)) {
 				cpu_src = 6;
 				++AH;
 				set_ca();
@@ -1960,7 +1973,7 @@ execx86(int cycs)
 			break;
 		case 0x3F: /*AAS*/
 			wait(1, 0);
-			if ((cpu_state.flags & A_FLAG) || (AL & 0xf) > 9) {
+			if ((cpu_state.flags & A_FLAG) || ((AL & 0xf) > 9)) {
 				cpu_src = 6;
 				--AH;
 				set_ca();
@@ -2265,7 +2278,7 @@ execx86(int cycs)
 			wait(1, 0);
 			cpu_state.eaaddr = pfq_fetchw();
 			access(1, bits);
-			set_reg(0, readmem((ovr_seg ? *ovr_seg : ds)));
+			set_accum(bits, readmem((ovr_seg ? *ovr_seg : ds)));
 			wait(1, 0);
 			break;
 		case 0xA2: case 0xA3:
@@ -2274,7 +2287,7 @@ execx86(int cycs)
 			wait(1, 0);
 			cpu_state.eaaddr = pfq_fetchw();
 			access(7, bits);
-			writemem((ovr_seg ? *ovr_seg : ds), get_reg(0));
+			writemem((ovr_seg ? *ovr_seg : ds), get_accum(bits));
 			break;
 
 		case 0xA4: case 0xA5:	/* MOVS */
@@ -2299,7 +2312,7 @@ execx86(int cycs)
 				access(27, bits);
 				stos(bits);
 			} else {
-				set_reg(0, cpu_data);
+				set_accum(bits, cpu_data);
 				if (in_rep != 0)
 					wait(2, 0);
 			}
@@ -2325,7 +2338,7 @@ execx86(int cycs)
 			if (in_rep != 0)
 				wait(1, 0);
 			wait(1, 0);
-			cpu_dest = get_reg(0);
+			cpu_dest = get_accum(bits);
 			if ((opcode & 8) == 0) {
 				access(21, bits);
 				lods(bits);
@@ -2357,7 +2370,7 @@ execx86(int cycs)
 			bits = 8 << (opcode & 1);
 			wait(1, 0);
 			cpu_data = pfq_fetch();
-			test(bits, get_reg(0), cpu_data);
+			test(bits, get_accum(bits), cpu_data);
 			wait(1, 0);
 			break;
 
@@ -2686,30 +2699,20 @@ execx86(int cycs)
 			cpu_state.eaaddr = cpu_data;
 			if ((opcode & 2) == 0) {
 				access(3, bits);
-				if ((opcode & 1) && is8086 && !(cpu_data & 1)) {
-					AX = inw(cpu_data);
-					wait(4, 1);		/* I/O access and wait state. */
-				} else {
-					AL = inb(cpu_data);
-					if (opcode & 1)
-						AH = inb(cpu_data + 1);
-					wait(bits >> 1, 1);	/* I/O access. */
-				}
+				if (opcode & 1)
+					cpu_io(16, 0, cpu_data);
+				else
+					cpu_io(8, 0, cpu_data);
 				wait(1, 0);
 			} else {
 				if ((opcode & 8) == 0)
 					access(8, bits);
 				else
 					access(9, bits);
-				if ((opcode & 1) && is8086 && !(cpu_data & 1)) {
-					outw(cpu_data, AX);
-					wait(4, 1);
-				} else {
-					outb(cpu_data, AL);
-					if (opcode & 1)
-						outb(cpu_data + 1, AH);
-					wait(bits >> 1, 1);	/* I/O access. */
-				}
+				if (opcode & 1)
+					cpu_io(16, 1, cpu_data);
+				else
+					cpu_io(8, 1, cpu_data);
 			}
 			break;
 
@@ -2806,27 +2809,20 @@ execx86(int cycs)
 				case 0x20:	/* MUL */
 				case 0x28:	/* IMUL */
 					wait(1, 0);
+					mul(get_accum(bits), cpu_data);
 					if (opcode & 1) {
-						result = cpu_data;
-						mul(AX, cpu_data);
 						AX = cpu_data;
 						DX = cpu_dest;
-						result = ((uint32_t) DX << 16) | AX;
-						if ((rmdat & 0x38) == 0x20)
-							set_co_mul(DX != 0x0000);
-						else
-							set_co_mul(result != sign_extend32(AX));
+						set_co_mul(bits, DX != ((AX & 0x8000) == 0 || (rmdat & 0x38) == 0x20 ? 0 : 0xffff));
 						cpu_data = DX;
 					} else {
-						mul(AL, cpu_data);
 						AL = (uint8_t) cpu_data;
 						AH = (uint8_t) cpu_dest;
-						if ((rmdat & 0x38) == 0x20)
-							set_co_mul(AH != 0x00);
-						else
-							set_co_mul(AX != sign_extend(AL));
+						set_co_mul(bits, AH != ((AL & 0x80) == 0 || (rmdat & 0x38) == 0x20 ? 0 : 0xff));
 						cpu_data = AH;
 					}
+					/* NOTE: When implementing the V20, care should be taken to not change
+						 the zero flag. */
 					set_sf(bits);
 					set_pf();
 					if (cpu_mod != 3)

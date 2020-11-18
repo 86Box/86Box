@@ -268,7 +268,7 @@ machine_at_p65up5_common_init(const machine_t *model, const device_t *northbridg
     device_add(&piix3_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&w83877f_device);
-    device_add(&intel_flash_bxt_device);
+    device_add(&sst_flash_29ee010_device);
     device_add(&ioapic_device);
 }
 

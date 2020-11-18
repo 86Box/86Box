@@ -362,6 +362,10 @@ extern const device_t ps1vga_mca_device;
 
 /* 3DFX Voodoo Graphics */
 extern const device_t voodoo_device;
+extern const device_t voodoo_banshee_device;
+extern const device_t creative_voodoo_banshee_device;
+extern const device_t voodoo_3_2000_device;
+extern const device_t voodoo_3_3000_device;
 
 /* Wyse 700 */
 extern const device_t wy700_device;
