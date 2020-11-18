@@ -509,7 +509,7 @@ load_machine(void)
 {
     char *cat = "Machine";
     char *p;
-    int c, i, speed, legacy_mfg, legacy_cpu;
+    int c, i, speed, legacy_mfg, legacy_cpu, new_cpu;
     double multi;
     cpu_family_t *legacy_family;
 
@@ -538,76 +538,88 @@ load_machine(void)
     if (machine >= machine_count())
 	machine = machine_count() - 1;
 
-    /* Backwards compatibility for the previous CPU model system. */
-    legacy_mfg = config_get_int(cat, "cpu_manufacturer", 0);
-    legacy_cpu = config_get_int(cat, "cpu", 0);
-    if (legacy_mfg || legacy_cpu) {
-	/* Look for a machine entry on the legacy table. */
-	p = machine_get_internal_name();
-	c = 0;
-	while (cpu_legacy_table[c].machine) {
-		if (!strcmp(p, cpu_legacy_table[c].machine))
-			break;
-		c++;
-	}
-	if (cpu_legacy_table[c].machine) {
-		/* Look for a corresponding CPU entry. */
-		i = -1;
-		cpu_legacy_table_t *legacy_table_entry;
-		do {
-			i++;
-			legacy_table_entry = (cpu_legacy_table_t *) &cpu_legacy_table[c].tables[legacy_mfg][i];
-			if (legacy_cpu >= legacy_table_entry->old_offset) {
-				/* Found CPU entry. */
-				if (!(legacy_family = cpu_get_family((char *) legacy_table_entry->family))) /* check if the family exists */
-					break;
-				config_set_string(cat, "cpu_family", (char *) legacy_family->internal_name);
+    cpu_f = NULL;
+    p = config_get_string(cat, "cpu_family", NULL);
+    if (p) {
+    	cpu_f = cpu_get_family(p);
 
-				legacy_cpu -= legacy_table_entry->old_offset;
-				legacy_cpu += legacy_table_entry->new_offset;
-				while (!cpu_is_eligible(legacy_family, legacy_cpu, machine) && (legacy_family->cpus[legacy_cpu].cpu_type != 0)) /* if the legacy CPU is no longer eligible, bump it up until one is eligible or we're out of CPUs */
-					legacy_cpu++;
-				if (legacy_family->cpus[legacy_cpu].cpu_type != 0) { /* store only if an eligible CPU was found; if none are, reset to the first one */
-					config_set_int(cat, "cpu_speed", legacy_family->cpus[legacy_cpu].rspeed);
-					config_set_double(cat, "cpu_multi", legacy_family->cpus[legacy_cpu].multi);
-				}
-
+    	if (cpu_f && !cpu_family_is_eligible(cpu_f, machine)) /* only honor eligible families */
+    		cpu_f = NULL;
+    } else {
+    	/* Backwards compatibility for the previous CPU model system. */
+	legacy_mfg = config_get_int(cat, "cpu_manufacturer", 0);
+	legacy_cpu = config_get_int(cat, "cpu", 0);
+	if (legacy_mfg || legacy_cpu) {
+		/* Look for a machine entry on the legacy table. */
+		p = machine_get_internal_name();
+		c = 0;
+		while (cpu_legacy_table[c].machine) {
+			if (!strcmp(p, cpu_legacy_table[c].machine))
 				break;
-			}
-		} while (cpu_legacy_table[c].tables[legacy_mfg][i].old_offset);
+			c++;
+		}
+		if (cpu_legacy_table[c].machine) {
+			/* Look for a corresponding CPU entry. */
+			i = -1;
+			cpu_legacy_table_t *legacy_table_entry;
+			do {
+				i++;
+				legacy_table_entry = (cpu_legacy_table_t *) &cpu_legacy_table[c].tables[legacy_mfg][i];
+				if (legacy_cpu >= legacy_table_entry->old_offset) {
+					/* Found CPU entry. */
+					legacy_family = cpu_get_family((char *) legacy_table_entry->family);
+					if (!legacy_family || !cpu_family_is_eligible(legacy_family, machine)) /* check if the family exists and is eligible */
+						break;
+					config_set_string(cat, "cpu_family", (char *) legacy_family->internal_name);
+					cpu_f = legacy_family;
+
+					legacy_cpu -= legacy_table_entry->old_offset;
+					legacy_cpu += legacy_table_entry->new_offset;
+					new_cpu = legacy_cpu;
+					while (!cpu_is_eligible(legacy_family, new_cpu, machine)) { /* if the legacy CPU is no longer eligible, find the next eligible one */
+						new_cpu++;
+						if (legacy_family->cpus[new_cpu].cpu_type == 0) /* end of list, wrap around */
+							new_cpu = 0;
+						if (new_cpu == legacy_cpu) { /* back at legacy CPU = no eligible ones found (shouldn't really happen due to the cpu_family_is_eligible check above) */
+							new_cpu = -1;
+							break;
+						}
+					}
+					if (new_cpu != -1) { /* store only if an eligible CPU was found */
+						config_set_int(cat, "cpu_speed", legacy_family->cpus[new_cpu].rspeed);
+						config_set_double(cat, "cpu_multi", legacy_family->cpus[new_cpu].multi);
+					}
+
+					break;
+				}
+			} while (cpu_legacy_table[c].tables[legacy_mfg][i].old_offset);
+		}
 	}
     }
 
-    /* Current CPU model system. */
-    cpu_f = NULL;
-    p = config_get_string(cat, "cpu_family", NULL);
-    if (p)
-	cpu_f = cpu_get_family(p);
     if (cpu_f) {
 	speed = config_get_int(cat, "cpu_speed", 0);
 	multi = config_get_double(cat, "cpu_multi", 0);
 
 	/* Find the configured CPU. */
-	c = 0;
+	cpu = 0;
 	i = -1;
-	while (cpu_f->cpus[c].cpu_type != -1) {
-		if (cpu_is_eligible(cpu_f, c, machine)) { /* skip ineligible CPUs */
+	while (cpu_f->cpus[cpu].cpu_type != -1) {
+		if (cpu_is_eligible(cpu_f, cpu, machine)) { /* skip ineligible CPUs */
 			if (i == -1) /* store the first eligible CPU */
-				i = c;
-			if ((cpu_f->cpus[c].rspeed == speed) && (cpu_f->cpus[c].multi == multi)) /* check if clock speed and multiplier match */
+				i = cpu;
+			if ((cpu_f->cpus[cpu].rspeed == speed) && (cpu_f->cpus[cpu].multi == multi)) /* check if clock speed and multiplier match */
 				break;
 		}
-		c++;
+		cpu++;
 	}
-	if (cpu_f->cpus[c].cpu_type == -1) /* use first eligible CPU if no match was found */
-		c = MAX(i, 0);
-	cpu = c;
-	cpu_s = (CPU *) &cpu_f->cpus[cpu];
+	if (cpu_f->cpus[cpu].cpu_type == -1) /* use first eligible CPU if no match was found */
+		cpu = MAX(i, 0);
     } else { /* default */
     	/* Find first eligible family. */
 	c = 0;
 	while (!cpu_family_is_eligible(&cpu_families[c], machine)) {
-		if (cpu_families[c++].package == 0) {
+		if (cpu_families[c++].package == 0) { /* end of list */
 			fatal("No eligible CPU families for the selected machine\n");
 			return;
 		}
@@ -615,16 +627,15 @@ load_machine(void)
 	cpu_f = &cpu_families[c];
 
 	/* Find first eligible CPU in that family. */
-	c = 0;
-	while (!cpu_is_eligible(cpu_f, c, machine)) {
-		if (cpu_f->cpus[c++].cpu_type == 0) {
-			fatal("No eligible CPUs for the default CPU family for the selected machine\n");
-			return;
+	cpu = 0;
+	while (!cpu_is_eligible(cpu_f, cpu, machine)) {
+		if (cpu_f->cpus[cpu++].cpu_type == 0) { /* end of list */
+			cpu = 0;
+			break;
 		}
 	}
-	cpu = c;
-	cpu_s = (CPU *) &cpu_f->cpus[cpu];
     }
+    cpu_s = (CPU *) &cpu_f->cpus[cpu];
 
     cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
 
