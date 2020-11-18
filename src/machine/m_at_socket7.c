@@ -1028,7 +1028,7 @@ machine_at_ficva502_init(const machine_t *model)
     device_add(&via_vpx_device);
     device_add(&via_vt82c586b_device);
     device_add(&keyboard_ps2_pci_device);
-    device_add(&fdc37c669_device);
+    device_add(&fdc37c669_370_device);
     device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
@@ -1062,7 +1062,7 @@ machine_at_ficpa2012_init(const machine_t *model)
     device_add(&via_vt82c586b_device);
     device_add(&keyboard_ps2_pci_device);
     device_add(&w83877f_device);
-    device_add(&sst_flash_39sf010_device);
+    device_add(&sst_flash_29ee010_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
     return ret;

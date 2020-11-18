@@ -363,20 +363,16 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 				apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 1);	/* SMM: Code DRAM, Data DRAM */
 				apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 3);	/* Non-SMM: Code Invalid, Data Invalid */
 				break;
-		} else if(dev->id >= VIA_597)  switch (val & 0x03) {
+		} else if (dev->id >= VIA_597)  switch (val & 0x03) {
 			case 0x00:
 			default:
 				/* Disable SMI Address Redirection (default) */
 				apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 0);
-				if (dev->id == VIA_597)
-					apollo_smram_map(dev, 1, 0x00030000, 0x00020000, 1);
 				apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 0);
 				break;
 			case 0x01:
 				/* Allow access to DRAM Axxxx-Bxxxx for both normal and SMI cycles */
 				apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 1);
-				if (dev->id == VIA_597)
-					apollo_smram_map(dev, 1, 0x00030000, 0x00020000, 1);
 				apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 1);
 				break;
 			case 0x02:
@@ -391,8 +387,6 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 			case 0x03:
 				/* Allow SMI Axxxx-Bxxxx DRAM access */
 				apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 1);
-				if (dev->id == VIA_597)
-					apollo_smram_map(dev, 1, 0x00030000, 0x00020000, 1);
 				apollo_smram_map(dev, 0, 0x000a0000, 0x00020000, 0);
 				break;
 		} else switch(val & 0x03) {
@@ -711,7 +705,7 @@ const device_t via_vpx_device =
 {
     "VIA Apollo VPX",
     DEVICE_PCI,
-    VIA_597,	/*VT82C585*/
+    VIA_585,	/*VT82C585*/
     via_apollo_init, 
     via_apollo_close, 
     via_apollo_reset,
@@ -725,7 +719,7 @@ const device_t amd640_device =
 {
     "AMD 640 System Controller",
     DEVICE_PCI,
-    VIA_597,	/*VT82C595*/
+    VIA_595,	/*VT82C595*/
     via_apollo_init, 
     via_apollo_close, 
     via_apollo_reset,
