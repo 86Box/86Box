@@ -29,7 +29,7 @@
 static uint8_t edid_data[128] =
 {
         0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, /*Fixed header pattern*/
-        0x65, 0x40, /*Manufacturer "PCE" - apparently unassigned by UEFI*/
+        0x09, 0xf8, /*Manufacturer "BOX" - apparently unassigned by UEFI - and it has to be big endian*/
         0x00, 0x00, /*Product code*/
         0x12, 0x34, 0x56, 0x78, /*Serial number*/
         0x01, 9, /*Manufacturer week and year*/
