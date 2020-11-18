@@ -1673,10 +1673,11 @@ void banshee_hwcursor_draw(svga_t *svga, int displine)
         {                                                               \
                 int c;                                                  \
                 int wp = 0;                                             \
+		uint32_t base_addr = buf ? src_addr2 : src_addr;        \
                                                                         \
                 for (c = 0; c < voodoo->overlay.overlay_bytes; c += 2) \
                 {                                                       \
-                        uint16_t data = *(uint16_t *)&src[(c & 127) + (c >> 7)*128*32];               \
+                        uint16_t data = *(uint16_t *)&svga->vram[(base_addr + (c & 127) + (c >> 7)*128*32) & svga->vram_mask];               \
                         int r = data & 0x1f;                            \
                         int g = (data >> 5) & 0x3f;                     \
                         int b = data >> 11;                             \
@@ -1972,7 +1973,8 @@ static void banshee_overlay_draw(svga_t *svga, int displine)
                             !(banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) && !(banshee->vidProcCfg & VIDPROCCFG_FILTER_MODE_DITHER_4X4) &&
                             !(banshee->vidProcCfg & VIDPROCCFG_FILTER_MODE_DITHER_2X2));
         else
-                skip_filtering = ((banshee->vidProcCfg & VIDPROCCFG_FILTER_MODE_MASK) != VIDPROCCFG_FILTER_MODE_BILINEAR);
+                skip_filtering = ((banshee->vidProcCfg & VIDPROCCFG_FILTER_MODE_MASK) != VIDPROCCFG_FILTER_MODE_BILINEAR &&
+                                !(banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE));
 
         if (skip_filtering)
         {
