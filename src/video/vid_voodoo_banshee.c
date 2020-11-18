@@ -363,10 +363,12 @@ static void banshee_render_16bpp_tiled(svga_t *svga)
 {
         banshee_t *banshee = (banshee_t *)svga->p;
         int x;
-        int offset = 32;
-        uint32_t *p = &((uint32_t *)buffer32->line[svga->displine])[offset];
+        uint32_t *p = &((uint32_t *)buffer32->line[svga->displine + svga->y_add])[svga->x_add];
         uint32_t addr;
         int drawn = 0;
+
+	if ((svga->displine + svga->y_add) < 0)
+		return;
 
         if (banshee->vidProcCfg & VIDPROCCFG_HALF_MODE)
                 addr = banshee->desktop_addr + ((banshee->desktop_y >> 1) & 31) * 128 + ((banshee->desktop_y >> 6) * banshee->desktop_stride_tiled);
@@ -1605,7 +1607,7 @@ void banshee_hwcursor_draw(svga_t *svga, int displine)
                                 for (xx = 0; xx < 8; xx++)
                                 {
                                         if (plane0[x >> 3] & (1 << 7))
-                                                ((uint32_t *)buffer32->line[displine])[x_off + xx] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
+                                                ((uint32_t *)buffer32->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
 
                                         plane0[x >> 3] <<= 1;
                                         plane1[x >> 3] <<= 1;
@@ -1625,9 +1627,9 @@ void banshee_hwcursor_draw(svga_t *svga, int displine)
                                 for (xx = 0; xx < 8; xx++)
                                 {
                                         if (!(plane0[x >> 3] & (1 << 7)))
-                                                ((uint32_t *)buffer32->line[displine])[x_off + xx] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
+                                                ((uint32_t *)buffer32->line[displine])[x_off + xx + svga->x_add] = (plane1[x >> 3] & (1 << 7)) ? col1 : col0;
                                         else if (plane1[x >> 3] & (1 << 7))
-                                                ((uint32_t *)buffer32->line[displine])[x_off + xx] ^= 0xffffff;
+                                                ((uint32_t *)buffer32->line[displine])[x_off + xx + svga->x_add] ^= 0xffffff;
 
                                         plane0[x >> 3] <<= 1;
                                         plane1[x >> 3] <<= 1;
@@ -1961,7 +1963,7 @@ static void banshee_overlay_draw(svga_t *svga, int displine)
 //        pclog("displine=%i addr=%08x %08x  %08x  %08x\n", displine, svga->overlay_latch.addr, src_addr, voodoo->overlay.vidOverlayDvdy, *(uint32_t *)src);
 //        if (src_addr >= 0x800000)
 //                fatal("overlay out of range!\n");
-        p = &((uint32_t *)buffer32->line[displine])[svga->overlay_latch.x + 32];
+        p = &((uint32_t *)buffer32->line[displine])[svga->overlay_latch.x + svga->x_add];
 
         if (banshee->voodoo->scrfilter && banshee->voodoo->scrfilterEnabled)
                 skip_filtering = ((banshee->vidProcCfg & VIDPROCCFG_FILTER_MODE_MASK) != VIDPROCCFG_FILTER_MODE_BILINEAR &&
