@@ -40,8 +40,8 @@ enum
 {
     BLOCK_MAIN1,
     BLOCK_MAIN2,
-	BLOCK_MAIN3,
-	BLOCK_MAIN4,
+    BLOCK_MAIN3,
+    BLOCK_MAIN4,
     BLOCK_DATA1,
     BLOCK_DATA2,
     BLOCK_BOOT,
@@ -185,7 +185,7 @@ flash_write(uint32_t addr, uint8_t val, void *p)
     switch (dev->command) {
 	case CMD_ERASE_SETUP:
 		if (val == CMD_ERASE_CONFIRM) {
-			for (i = 0; i < 3; i++) {
+			for (i = 0; i < 6; i++) {
 				if ((i == dev->program_addr) && (addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
 					memset(&(dev->array[dev->block_start[i]]), 0xff, dev->block_len[i]);
 			}
@@ -197,7 +197,7 @@ flash_write(uint32_t addr, uint8_t val, void *p)
 
 	case CMD_PROGRAM_SETUP:
 	case CMD_PROGRAM_SETUP_ALT:
-		if (((addr & bb_mask) != (dev->block_start[4] & bb_mask)) && (addr == dev->program_addr))
+		if (((addr & bb_mask) != (dev->block_start[6] & bb_mask)) && (addr == dev->program_addr))
 			dev->array[addr] = val;
 		dev->command = CMD_READ_STATUS;
 		dev->status = 0x80;
@@ -210,7 +210,7 @@ flash_write(uint32_t addr, uint8_t val, void *p)
 				dev->status = 0;
 				break;
 			case CMD_ERASE_SETUP:
-				for (i = 0; i < 3; i++) {
+				for (i = 0; i < 7; i++) {
 					if ((addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
 						dev->program_addr = i;
 				}
@@ -242,7 +242,7 @@ flash_writew(uint32_t addr, uint16_t val, void *p)
     if (dev->flags & FLAG_WORD)  switch (dev->command) {
 	case CMD_ERASE_SETUP:
 		if (val == CMD_ERASE_CONFIRM) {
-			for (i = 0; i < 3; i++) {
+			for (i = 0; i < 6; i++) {
 				if ((i == dev->program_addr) && (addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
 					memset(&(dev->array[dev->block_start[i]]), 0xff, dev->block_len[i]);
 			}
@@ -254,7 +254,7 @@ flash_writew(uint32_t addr, uint16_t val, void *p)
 
 	case CMD_PROGRAM_SETUP:
 	case CMD_PROGRAM_SETUP_ALT:
-		if (((addr & bb_mask) != (dev->block_start[4] & bb_mask)) && (addr == dev->program_addr))
+		if (((addr & bb_mask) != (dev->block_start[6] & bb_mask)) && (addr == dev->program_addr))
 			*(uint16_t *) (&dev->array[addr]) = val;
 		dev->command = CMD_READ_STATUS;
 		dev->status = 0x80;
@@ -267,7 +267,7 @@ flash_writew(uint32_t addr, uint16_t val, void *p)
 				dev->status = 0;
 				break;
 			case CMD_ERASE_SETUP:
-				for (i = 0; i < 3; i++) {
+				for (i = 0; i < 7; i++) {
 					if ((addr >= dev->block_start[i]) && (addr <= dev->block_end[i]))
 						dev->program_addr = i;
 				}
@@ -381,53 +381,52 @@ intel_flash_init(const device_t *info)
     dev->array = (uint8_t *) malloc(biosmask + 1);
     memset(dev->array, 0xff, biosmask + 1);
 
-	switch(biosmask){
+    switch (biosmask) {
 	case 0x7ffff:
+		if (dev->flags & FLAG_WORD)
+			dev->flash_id = (dev->flags & FLAG_BXB) ? 0x4471 : 0x4470;
+		else
+			dev->flash_id =(dev->flags & FLAG_BXB) ? 0x8A : 0x89;
 
-	if (dev->flags & FLAG_WORD)
-	dev->flash_id = (dev->flags & FLAG_BXB) ? 0x4471 :0x4470;
-	else
-	dev->flash_id =(dev->flags & FLAG_BXB) ? 0x8A : 0x89;
+		/* The block lengths are the same both flash types. */
+		dev->block_len[BLOCK_MAIN1] = 0x20000;
+		dev->block_len[BLOCK_MAIN2] = 0x20000;
+		dev->block_len[BLOCK_MAIN3] = 0x20000;
+		dev->block_len[BLOCK_MAIN4] = 0x18000;
+		dev->block_len[BLOCK_DATA1] = 0x02000;
+		dev->block_len[BLOCK_DATA2] = 0x02000;
+		dev->block_len[BLOCK_BOOT] = 0x04000;
 
-	/* The block lengths are the same both flash types. */
-	dev->block_len[BLOCK_MAIN1] = 0x20000;
-	dev->block_len[BLOCK_MAIN2] = 0x20000;
-	dev->block_len[BLOCK_MAIN3] = 0x20000;
-	dev->block_len[BLOCK_MAIN4] = 0x18000;
-	dev->block_len[BLOCK_DATA1] = 0x02000;
-	dev->block_len[BLOCK_DATA2] = 0x02000;
-	dev->block_len[BLOCK_BOOT] = 0x04000;
-
-	if (dev->flags & FLAG_BXB) {	/* 28F004BX-T/28F400BX-B */
-	dev->block_start[BLOCK_BOOT] = 0x00000;	/* MAIN BLOCK 1 */
-	dev->block_end[BLOCK_BOOT] = 0x1ffff;
-	dev->block_start[BLOCK_DATA2] = 0x20000;	/* MAIN BLOCK 2 */
-	dev->block_end[BLOCK_DATA2] = 0x3ffff;
-	dev->block_start[BLOCK_DATA1] = 0x40000;	/* MAIN BLOCK 3 */
-	dev->block_end[BLOCK_DATA1] = 0x5ffff;
-	dev->block_start[BLOCK_MAIN4] = 0x60000;	/* MAIN BLOCK 4 */
-	dev->block_end[BLOCK_MAIN4] = 0x77fff;
-	dev->block_start[BLOCK_MAIN3] = 0x78000;	/* DATA AREA 1 BLOCK */
-	dev->block_end[BLOCK_MAIN3] = 0x79fff;
-	dev->block_start[BLOCK_MAIN2] = 0x7a000;	/* DATA AREA 2 BLOCK */
-	dev->block_end[BLOCK_MAIN2] = 0x7bfff;
-	dev->block_start[BLOCK_MAIN1] = 0x7c000;		/* BOOT BLOCK */
-	dev->block_end[BLOCK_MAIN1] = 0x7ffff;
-	} else {
-	dev->block_start[BLOCK_MAIN1] = 0x00000;	/* MAIN BLOCK 1 */
-	dev->block_end[BLOCK_MAIN1] = 0x1ffff;
-	dev->block_start[BLOCK_MAIN2] = 0x20000;	/* MAIN BLOCK 2 */
-	dev->block_end[BLOCK_MAIN2] = 0x3ffff;
-	dev->block_start[BLOCK_MAIN3] = 0x40000;	/* MAIN BLOCK 3 */
-	dev->block_end[BLOCK_MAIN3] = 0x5ffff;
-	dev->block_start[BLOCK_MAIN4] = 0x60000;	/* MAIN BLOCK 4 */
-	dev->block_end[BLOCK_MAIN4] = 0x77fff;
-	dev->block_start[BLOCK_DATA1] = 0x78000;	/* DATA AREA 1 BLOCK */
-	dev->block_end[BLOCK_DATA1] = 0x79fff;
-	dev->block_start[BLOCK_DATA2] = 0x7a000;	/* DATA AREA 2 BLOCK */
-	dev->block_end[BLOCK_DATA2] = 0x7bfff;
-	dev->block_start[BLOCK_BOOT] = 0x7c000;		/* BOOT BLOCK */
-	dev->block_end[BLOCK_BOOT] = 0x7ffff;
+		if (dev->flags & FLAG_BXB) {	/* 28F004BX-T/28F400BX-B */
+			dev->block_start[BLOCK_BOOT] = 0x00000;		/* MAIN BLOCK 1 */
+			dev->block_end[BLOCK_BOOT] = 0x1ffff;
+			dev->block_start[BLOCK_DATA2] = 0x20000;	/* MAIN BLOCK 2 */
+			dev->block_end[BLOCK_DATA2] = 0x3ffff;
+			dev->block_start[BLOCK_DATA1] = 0x40000;	/* MAIN BLOCK 3 */
+			dev->block_end[BLOCK_DATA1] = 0x5ffff;
+			dev->block_start[BLOCK_MAIN4] = 0x60000;	/* MAIN BLOCK 4 */
+			dev->block_end[BLOCK_MAIN4] = 0x77fff;
+			dev->block_start[BLOCK_MAIN3] = 0x78000;	/* DATA AREA 1 BLOCK */
+			dev->block_end[BLOCK_MAIN3] = 0x79fff;
+			dev->block_start[BLOCK_MAIN2] = 0x7a000;	/* DATA AREA 2 BLOCK */
+			dev->block_end[BLOCK_MAIN2] = 0x7bfff;
+			dev->block_start[BLOCK_MAIN1] = 0x7c000;	/* BOOT BLOCK */
+			dev->block_end[BLOCK_MAIN1] = 0x7ffff;
+		} else {
+			dev->block_start[BLOCK_MAIN1] = 0x00000;	/* MAIN BLOCK 1 */
+			dev->block_end[BLOCK_MAIN1] = 0x1ffff;
+			dev->block_start[BLOCK_MAIN2] = 0x20000;	/* MAIN BLOCK 2 */
+			dev->block_end[BLOCK_MAIN2] = 0x3ffff;
+			dev->block_start[BLOCK_MAIN3] = 0x40000;	/* MAIN BLOCK 3 */
+			dev->block_end[BLOCK_MAIN3] = 0x5ffff;
+			dev->block_start[BLOCK_MAIN4] = 0x60000;	/* MAIN BLOCK 4 */
+			dev->block_end[BLOCK_MAIN4] = 0x77fff;
+			dev->block_start[BLOCK_DATA1] = 0x78000;	/* DATA AREA 1 BLOCK */
+			dev->block_end[BLOCK_DATA1] = 0x79fff;
+			dev->block_start[BLOCK_DATA2] = 0x7a000;	/* DATA AREA 2 BLOCK */
+			dev->block_end[BLOCK_DATA2] = 0x7bfff;
+			dev->block_start[BLOCK_BOOT] = 0x7c000;		/* BOOT BLOCK */
+			dev->block_end[BLOCK_BOOT] = 0x7ffff;
 	}
 	break;
 
@@ -440,6 +439,8 @@ intel_flash_init(const device_t *info)
 	/* The block lengths are the same both flash types. */
 	dev->block_len[BLOCK_MAIN1] = 0x20000;
 	dev->block_len[BLOCK_MAIN2] = 0x18000;
+	dev->block_len[BLOCK_MAIN3] = 0x00000;
+	dev->block_len[BLOCK_MAIN4] = 0x00000;
 	dev->block_len[BLOCK_DATA1] = 0x02000;
 	dev->block_len[BLOCK_DATA2] = 0x02000;
 	dev->block_len[BLOCK_BOOT] = 0x04000;
@@ -449,6 +450,10 @@ intel_flash_init(const device_t *info)
 		dev->block_end[BLOCK_MAIN1] = 0x3ffff;
 		dev->block_start[BLOCK_MAIN2] = 0x08000;	/* MAIN BLOCK 2 */
 		dev->block_end[BLOCK_MAIN2] = 0x1ffff;
+		dev->block_start[BLOCK_MAIN3] = 0xfffff;	/* MAIN BLOCK 3 */
+		dev->block_end[BLOCK_MAIN3] = 0xfffff;
+		dev->block_start[BLOCK_MAIN4] = 0xfffff;	/* MAIN BLOCK 4 */
+		dev->block_end[BLOCK_MAIN4] = 0xfffff;
 		dev->block_start[BLOCK_DATA1] = 0x06000;	/* DATA AREA 1 BLOCK */
 		dev->block_end[BLOCK_DATA1] = 0x07fff;
 		dev->block_start[BLOCK_DATA2] = 0x04000;	/* DATA AREA 2 BLOCK */
@@ -460,6 +465,10 @@ intel_flash_init(const device_t *info)
 		dev->block_end[BLOCK_MAIN1] = 0x1ffff;
 		dev->block_start[BLOCK_MAIN2] = 0x20000;	/* MAIN BLOCK 2 */
 		dev->block_end[BLOCK_MAIN2] = 0x37fff;
+		dev->block_start[BLOCK_MAIN3] = 0xfffff;	/* MAIN BLOCK 3 */
+		dev->block_end[BLOCK_MAIN3] = 0xfffff;
+		dev->block_start[BLOCK_MAIN4] = 0xfffff;	/* MAIN BLOCK 4 */
+		dev->block_end[BLOCK_MAIN4] = 0xfffff;
 		dev->block_start[BLOCK_DATA1] = 0x38000;	/* DATA AREA 1 BLOCK */
 		dev->block_end[BLOCK_DATA1] = 0x39fff;
 		dev->block_start[BLOCK_DATA2] = 0x3a000;	/* DATA AREA 2 BLOCK */
@@ -467,14 +476,16 @@ intel_flash_init(const device_t *info)
 		dev->block_start[BLOCK_BOOT] = 0x3c000;		/* BOOT BLOCK */
 		dev->block_end[BLOCK_BOOT] = 0x3ffff;
 	}
-    break;
+	break;
 
-	default:
+    default:
 	dev->flash_id = (type & FLAG_BXB) ? 0x95 : 0x94;
 
 	/* The block lengths are the same both flash types. */
 	dev->block_len[BLOCK_MAIN1] = 0x1c000;
 	dev->block_len[BLOCK_MAIN2] = 0x00000;
+	dev->block_len[BLOCK_MAIN3] = 0x00000;
+	dev->block_len[BLOCK_MAIN4] = 0x00000;
 	dev->block_len[BLOCK_DATA1] = 0x01000;
 	dev->block_len[BLOCK_DATA2] = 0x01000;
 	dev->block_len[BLOCK_BOOT] = 0x02000;
@@ -484,6 +495,10 @@ intel_flash_init(const device_t *info)
 		dev->block_end[BLOCK_MAIN1] = 0x1ffff;
 		dev->block_start[BLOCK_MAIN2] = 0xfffff;	/* MAIN BLOCK 2 */
 		dev->block_end[BLOCK_MAIN2] = 0xfffff;
+		dev->block_start[BLOCK_MAIN3] = 0xfffff;	/* MAIN BLOCK 3 */
+		dev->block_end[BLOCK_MAIN3] = 0xfffff;
+		dev->block_start[BLOCK_MAIN4] = 0xfffff;	/* MAIN BLOCK 4 */
+		dev->block_end[BLOCK_MAIN4] = 0xfffff;
 		dev->block_start[BLOCK_DATA1] = 0x02000;	/* DATA AREA 1 BLOCK */
 		dev->block_end[BLOCK_DATA1] = 0x02fff;
 		dev->block_start[BLOCK_DATA2] = 0x03000;	/* DATA AREA 2 BLOCK */
@@ -495,6 +510,10 @@ intel_flash_init(const device_t *info)
 		dev->block_end[BLOCK_MAIN1] = 0x1bfff;
 		dev->block_start[BLOCK_MAIN2] = 0xfffff;	/* MAIN BLOCK 2 */
 		dev->block_end[BLOCK_MAIN2] = 0xfffff;
+		dev->block_start[BLOCK_MAIN3] = 0xfffff;	/* MAIN BLOCK 3 */
+		dev->block_end[BLOCK_MAIN3] = 0xfffff;
+		dev->block_start[BLOCK_MAIN4] = 0xfffff;	/* MAIN BLOCK 4 */
+		dev->block_end[BLOCK_MAIN4] = 0xfffff;
 		dev->block_start[BLOCK_DATA1] = 0x1c000;	/* DATA AREA 1 BLOCK */
 		dev->block_end[BLOCK_DATA1] = 0x1cfff;
 		dev->block_start[BLOCK_DATA2] = 0x1d000;	/* DATA AREA 2 BLOCK */
@@ -502,8 +521,8 @@ intel_flash_init(const device_t *info)
 		dev->block_start[BLOCK_BOOT] = 0x1e000;		/* BOOT BLOCK */
 		dev->block_end[BLOCK_BOOT] = 0x1ffff;
 	}
-    break;		
-	}
+	break;		
+    }
 
     intel_flash_add_mappings(dev);
 
