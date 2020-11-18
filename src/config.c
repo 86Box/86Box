@@ -537,7 +537,7 @@ load_machine(void)
     if (machine >= machine_count())
 	machine = machine_count() - 1;
 
-    /* Backwards compatibility the previous CPU model system. */
+    /* Backwards compatibility for the previous CPU model system. */
     legacy_mfg = config_get_int(cat, "cpu_manufacturer", 0);
     legacy_cpu = config_get_int(cat, "cpu", 0);
     if (legacy_mfg || legacy_cpu) {
@@ -564,8 +564,12 @@ load_machine(void)
 
 				legacy_cpu -= legacy_table_entry->old_offset;
 				legacy_cpu += legacy_table_entry->new_offset;
-				config_set_int(cat, "cpu_speed", legacy_family->cpus[legacy_cpu].rspeed);
-				config_set_double(cat, "cpu_multi", legacy_family->cpus[legacy_cpu].multi);
+				while (!cpu_is_eligible(legacy_family, legacy_cpu, machine) && (legacy_family->cpus[legacy_cpu].cpu_type != 0)) /* if the legacy CPU is no longer eligible, bump it up until one is eligible or we're out of CPUs */
+					legacy_cpu++;
+				if (legacy_family->cpus[legacy_cpu].cpu_type != 0) { /* store only if an eligible CPU was found; if none are, reset to the first one */
+					config_set_int(cat, "cpu_speed", legacy_family->cpus[legacy_cpu].rspeed);
+					config_set_double(cat, "cpu_multi", legacy_family->cpus[legacy_cpu].multi);
+				}
 
 				break;
 			}
@@ -581,17 +585,25 @@ load_machine(void)
     if (cpu_f) {
 	speed = config_get_int(cat, "cpu_speed", 0);
 	multi = config_get_double(cat, "cpu_multi", 0);
+
+	/* Find the configured CPU. */
 	c = 0;
+	i = -1;
 	while (cpu_f->cpus[c].cpu_type != -1) {
-		if ((cpu_f->cpus[c].rspeed == speed) && (cpu_f->cpus[c].multi == multi))
-			break;
+		if (cpu_is_eligible(cpu_f, c, machine)) { /* skip ineligible CPUs */
+			if (i == -1) /* store the first eligible CPU */
+				i = c;
+			if ((cpu_f->cpus[c].rspeed == speed) && (cpu_f->cpus[c].multi == multi)) /* check if clock speed and multiplier match */
+				break;
+		}
 		c++;
 	}
-	if (cpu_f->cpus[c].cpu_type == -1)
-		c = 0;
+	if (cpu_f->cpus[c].cpu_type == -1) /* use first eligible CPU if no match was found */
+		c = MAX(i, 0);
 	cpu = c;
 	cpu_s = (CPU *) &cpu_f->cpus[cpu];
-    } else {
+    } else { /* default */
+    	/* Find first eligible family. */
 	c = 0;
 	while (!cpu_family_is_eligible(&cpu_families[c], machine)) {
 		if (cpu_families[c++].package == 0) {
@@ -601,6 +613,7 @@ load_machine(void)
 	}
 	cpu_f = &cpu_families[c];
 
+	/* Find first eligible CPU in that family. */
 	c = 0;
 	while (!cpu_is_eligible(cpu_f, c, machine)) {
 		if (cpu_f->cpus[c++].cpu_type == 0) {
