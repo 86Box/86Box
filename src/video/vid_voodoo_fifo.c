@@ -134,6 +134,7 @@ void voodoo_wait_for_swap_complete(voodoo_t *voodoo)
                 thread_wait_event(voodoo->wake_fifo_thread, -1);
                 thread_reset_event(voodoo->wake_fifo_thread);
 
+                thread_wait_mutex(voodoo->swap_mutex);
                 if ((voodoo->swap_pending && voodoo->flush) || FIFO_FULL)
                 {
                         /*Main thread is waiting for FIFO to empty, so skip vsync wait and just swap*/
@@ -142,8 +143,11 @@ void voodoo_wait_for_swap_complete(voodoo_t *voodoo)
                         if (voodoo->swap_count > 0)
                                 voodoo->swap_count--;
                         voodoo->swap_pending = 0;
+                        thread_release_mutex(voodoo->swap_mutex);;
                         break;
                 }
+                else
+                        thread_release_mutex(voodoo->swap_mutex);;
         }
 }
 
