@@ -541,12 +541,12 @@ load_machine(void)
     cpu_f = NULL;
     p = config_get_string(cat, "cpu_family", NULL);
     if (p) {
-    	cpu_f = cpu_get_family(p);
+	cpu_f = cpu_get_family(p);
 
-    	if (cpu_f && !cpu_family_is_eligible(cpu_f, machine)) /* only honor eligible families */
-    		cpu_f = NULL;
+	if (cpu_f && !cpu_family_is_eligible(cpu_f, machine)) /* only honor eligible families */
+		cpu_f = NULL;
     } else {
-    	/* Backwards compatibility for the previous CPU model system. */
+	/* Backwards compatibility for the previous CPU model system. */
 	legacy_mfg = config_get_int(cat, "cpu_manufacturer", 0);
 	legacy_cpu = config_get_int(cat, "cpu", 0);
 	if (legacy_mfg || legacy_cpu) {
@@ -566,7 +566,7 @@ load_machine(void)
 				i++;
 				legacy_table_entry = (cpu_legacy_table_t *) &cpu_legacy_table[c].tables[legacy_mfg][i];
 				if (legacy_cpu >= legacy_table_entry->old_offset) {
-					/* Found CPU entry. */
+					/* Found CPU entry, set new values. */
 					legacy_family = cpu_get_family((char *) legacy_table_entry->family);
 					if (!legacy_family || !cpu_family_is_eligible(legacy_family, machine)) /* check if the family exists and is eligible */
 						break;
@@ -616,7 +616,7 @@ load_machine(void)
 	if (cpu_f->cpus[cpu].cpu_type == -1) /* use first eligible CPU if no match was found */
 		cpu = MAX(i, 0);
     } else { /* default */
-    	/* Find first eligible family. */
+	/* Find first eligible family. */
 	c = 0;
 	while (!cpu_family_is_eligible(&cpu_families[c], machine)) {
 		if (cpu_families[c++].package == 0) { /* end of list */
@@ -1789,15 +1789,51 @@ static void
 save_machine(void)
 {
     char *cat = "Machine";
+    char *p;
+    int c, i, j, legacy_cpu = -1;
 
-    config_set_string(cat, "machine", machine_get_internal_name());
+    p = machine_get_internal_name();
+    config_set_string(cat, "machine", p);
 
     config_set_string(cat, "cpu_family", (char *) cpu_f->internal_name);
     config_set_int(cat, "cpu_speed", cpu_f->cpus[cpu].rspeed);
     config_set_double(cat, "cpu_multi", cpu_f->cpus[cpu].multi);
 
+    /* Limited forwards compatibility for the previous CPU model system. */
     config_delete_var(cat, "cpu_manufacturer");
     config_delete_var(cat, "cpu");
+
+    /* Look for a machine entry on the legacy table. */
+    c = 0;
+    while (cpu_legacy_table[c].machine) {
+	if (!strcmp(p, cpu_legacy_table[c].machine))
+		break;
+	c++;
+    }
+    if (cpu_legacy_table[c].machine) {
+	/* Look for a corresponding CPU entry. */
+	cpu_legacy_table_t *legacy_table_entry;
+	for (j = 0; (j < 5) && (legacy_cpu == -1); j++) {
+		if (!cpu_legacy_table[c].tables[j])
+			continue;
+
+		i = -1;
+		do {
+			i++;
+			legacy_table_entry = (cpu_legacy_table_t *) &cpu_legacy_table[c].tables[j][i];
+			if (!strcmp(legacy_table_entry->family, cpu_f->internal_name) && (cpu >= legacy_table_entry->new_offset)) {
+				/* Found CPU entry, set legacy values. */
+				if (j)
+					config_set_int(cat, "cpu_manufacturer", j);
+				legacy_cpu = cpu - legacy_table_entry->new_offset + legacy_table_entry->old_offset;
+				if (legacy_cpu)
+					config_set_int(cat, "cpu", legacy_cpu);
+
+				break;
+			}
+		} while (cpu_legacy_table[c].tables[j][i].old_offset);
+	}
+    }
 
     if (cpu_waitstates == 0)
 	config_delete_var(cat, "cpu_waitstates");
