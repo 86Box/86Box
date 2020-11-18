@@ -995,11 +995,10 @@ static cpu_legacy_table_t cpus_Pentium5V[] = {{"pentium_od_s4", 2, 1}, {"pentium
 static cpu_legacy_table_t cpus_PentiumS5[] = {{"pentium_od_p55c", 10, 1}, {"pentium_od_s5", 7, 0}, {"pentium_p54c", 2, 1}, {"pentium_od_p55c", 1, 0}, {"pentium_p54c", 0, 0}};
 static cpu_legacy_table_t cpus_Pentium3V[] = {{"pentium_od_p55c", 13, 1}, {"pentium_od_s5", 10, 0}, {"pentium_p54c", 2, 1}, {"pentium_od_p55c", 1, 0}, {"pentium_p54c", 0, 0}};
 static cpu_legacy_table_t cpus_Pentium[] = {{"pentium_od_p55c", 24, 1}, {"pentium_od_s5", 21, 0}, {"pentium_tillamook", 13, 0}, {"pentium_p55c", 10, 0}, {"pentium_p54c", 2, 1}, {"pentium_od_p55c", 1, 0}, {"pentium_p54c", 0, 0}};
-#define K5_ENTRIES {"k5_5k86", 6, 3}, {"k5_ssa5", 5, 2}, {"k5_5k86", 4, 2}, {"k5_ssa5", 3, 1}, {"k5_5k86", 2, 1}, {"k5_ssa5", 1, 0}, {"k5_5k86", 0, 0}
-static cpu_legacy_table_t cpus_K5[] = {K5_ENTRIES};
-#define K56_ENTRIES {"k6_2", 18, 0}, {"k6_m7", 14, 0}, {"k6_m6", 11, 0}, K5_ENTRIES
-static cpu_legacy_table_t cpus_K56[] = {K56_ENTRIES};
-static cpu_legacy_table_t cpus_K56_SS7[] = {{"k6_3p", 38, 0}, {"k6_3", 36, 0}, {"k6_2p", 31, 0}, K56_ENTRIES};
+static cpu_legacy_table_t cpus_K5[] = {{"k5_5k86", 6, 3}, {"k5_ssa5", 5, 2}, {"k5_5k86", 4, 2}, {"k5_ssa5", 3, 1}, {"k5_5k86", 2, 1}, {"k5_ssa5", 1, 0}, {"k5_5k86", 0, 0}};
+#define K6_ENTRIES {"k6_2", 18, 0}, {"k6_m7", 14, 0}, {"k6_m6", 11, 0}
+static cpu_legacy_table_t cpus_K56[] = {K6_ENTRIES};
+static cpu_legacy_table_t cpus_K56_SS7[] = {{"k6_3p", 38, 0}, {"k6_3", 36, 0}, {"k6_2p", 31, 0}, K6_ENTRIES};
 static cpu_legacy_table_t cpus_PentiumPro[] = {{"pentium2_od", 8, 0}, {"pentiumpro", 0, 0}};
 static cpu_legacy_table_t cpus_PentiumII66[] = {{"pentium2_deschutes", 7, 0}, {"pentium2_klamath", 0, 0}};
 #define cpus_PentiumII cpus_PentiumII66
