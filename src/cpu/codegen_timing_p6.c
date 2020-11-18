@@ -1945,7 +1945,7 @@ void codegen_timing_p6_block_start()
 
 void codegen_timing_p6_start()
 {
-        if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)
+        if (cpu_s->cpu_type == CPU_PENTIUMPRO)
         {
                 units = ppro_units;
                 nr_units = NR_PPRO_UNITS;

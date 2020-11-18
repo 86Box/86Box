@@ -509,11 +509,17 @@ load_machine(void)
 {
     char *cat = "Machine";
     char *p;
+    int c, i, speed, legacy_mfg, legacy_cpu;
+    double multi;
+    cpu_family_t *legacy_family;
 
     p = config_get_string(cat, "machine", NULL);
-    if (p != NULL)
-	machine = machine_get_machine_from_internal_name(p);
-      else 
+    if (p != NULL) {
+	if (! strcmp(p, "8500ttc"))
+		machine = machine_get_machine_from_internal_name("8600ttc");
+	else
+		machine = machine_get_machine_from_internal_name(p);
+    } else 
 	machine = 0;
     if (machine >= machine_count())
 	machine = machine_count() - 1;
@@ -522,35 +528,96 @@ load_machine(void)
     p = config_get_string(cat, "model", NULL);
     if (p != NULL) {
 	/* Detect the old model typos and fix them. */
-	if (! strcmp(p, "p55r2p4")) {
+	if (! strcmp(p, "p55r2p4"))
 		machine = machine_get_machine_from_internal_name("p55t2p4");
-	} else if (! strcmp(p, "8500ttc")) {
-		machine = machine_get_machine_from_internal_name("8600ttc");
-	} else {
+	else
 		machine = machine_get_machine_from_internal_name(p);
-	}
 	config_delete_var(cat, "model");
     }
     if (machine >= machine_count())
 	machine = machine_count() - 1;
 
-    cpu_manufacturer = config_get_int(cat, "cpu_manufacturer", 0);
-    if ((cpu_manufacturer >= (sizeof(machines[machine].cpu) / sizeof(machines[machine].cpu[0]))) ||
-	(machines[machine].cpu[cpu_manufacturer].cpus == NULL))
-	cpu_manufacturer = 0;
-
-    cpu = config_get_int(cat, "cpu", 0);
-    for (int i = 0; i != cpu; i++) {
-	if (machines[machine].cpu[cpu_manufacturer].cpus[i].cpu_type == -1) {
-		cpu = 0;
-		break;
+    /* Backwards compatibility the previous CPU model system. */
+    legacy_mfg = config_get_int(cat, "cpu_manufacturer", 0);
+    legacy_cpu = config_get_int(cat, "cpu", 0);
+    if (legacy_mfg || legacy_cpu) {
+	/* Look for a machine entry on the legacy table. */
+	p = machine_get_internal_name();
+	c = 0;
+	while (cpu_legacy_table[c].machine) {
+		if (!strcmp(p, cpu_legacy_table[c].machine))
+			break;
+		c++;
 	}
+	if (cpu_legacy_table[c].machine) {
+		/* Look for a corresponding CPU entry. */
+		i = -1;
+		cpu_legacy_table_t *legacy_table_entry;
+		do {
+			i++;
+			legacy_table_entry = (cpu_legacy_table_t *) &cpu_legacy_table[c].tables[legacy_mfg][i];
+			if (legacy_cpu >= legacy_table_entry->old_offset) {
+				/* Found CPU entry. */
+				if (!(legacy_family = cpu_get_family((char *) legacy_table_entry->family))) {
+					fatal("CPU family %s not found during legacy conversion\n", (char *) legacy_table_entry->family);
+					return;
+				}
+				config_set_string(cat, "cpu_family", (char *) legacy_family->internal_name);
+
+				legacy_cpu -= legacy_table_entry->old_offset;
+				legacy_cpu += legacy_table_entry->new_offset;
+				config_set_int(cat, "cpu_speed", legacy_family->cpus[legacy_cpu].rspeed);
+				config_set_double(cat, "cpu_multi", legacy_family->cpus[legacy_cpu].multi);
+
+				break;
+			}
+		} while (cpu_legacy_table[c].tables[legacy_mfg][i].old_offset);
+	}
+    }
+
+    /* Current CPU model system. */
+    cpu_f = NULL;
+    p = config_get_string(cat, "cpu_family", NULL);
+    if (p)
+	cpu_f = cpu_get_family(p);
+    if (cpu_f) {
+	speed = config_get_int(cat, "cpu_speed", 0);
+	multi = config_get_double(cat, "cpu_multi", 0);
+	c = 0;
+	while (cpu_f->cpus[c].cpu_type != -1) {
+		if ((cpu_f->cpus[c].rspeed == speed) && (cpu_f->cpus[c].multi == multi))
+			break;
+		c++;
+	}
+	if (cpu_f->cpus[c].cpu_type == -1)
+		c = 0;
+	cpu = c;
+	cpu_s = (CPU *) &cpu_f->cpus[cpu];
+    } else {
+	c = 0;
+	while (!cpu_family_is_eligible(&cpu_families[c], machine)) {
+		if (cpu_families[c++].package == 0) {
+			fatal("No eligible CPU families for the selected machine\n");
+			return;
+		}
+	}
+	cpu_f = &cpu_families[c];
+
+	c = 0;
+	while (!cpu_is_eligible(cpu_f, c, machine)) {
+		if (cpu_f->cpus[c++].cpu_type == 0) {
+			fatal("No eligible CPUs for the default CPU family for the selected machine\n");
+			return;
+		}
+	}
+	cpu = c;
+	cpu_s = (CPU *) &cpu_f->cpus[cpu];
     }
 
     cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
 
     p = (char *)config_get_string(cat, "fpu_type", "none");
-    fpu_type = fpu_get_type(machine, cpu_manufacturer, cpu, p);
+    fpu_type = fpu_get_type(cpu_f, cpu, p);
 
     mem_size = config_get_int(cat, "mem_size", 4096);
 	
@@ -1040,7 +1107,7 @@ load_floppy_drives(void)
     for (c=0; c<FDD_NUM; c++) {
 	sprintf(temp, "fdd_%02i_type", c+1);
 	p = config_get_string(cat, temp, (c < 2) ? "525_2dd" : "none");
-       	fdd_set_type(c, fdd_get_from_internal_name(p));
+   	fdd_set_type(c, fdd_get_from_internal_name(p));
 	if (fdd_get_type(c) > 13)
 		fdd_set_type(c, 13);
 	config_delete_var(cat, temp);
@@ -1103,7 +1170,7 @@ load_floppy_and_cdrom_drives(void)
     for (c=0; c<FDD_NUM; c++) {
 	sprintf(temp, "fdd_%02i_type", c+1);
 	p = config_get_string(cat, temp, (c < 2) ? "525_2dd" : "none");
-       	fdd_set_type(c, fdd_get_from_internal_name(p));
+   	fdd_set_type(c, fdd_get_from_internal_name(p));
 	if (fdd_get_type(c) > 13)
 		fdd_set_type(c, 13);
 
@@ -1514,13 +1581,14 @@ config_load(void)
     memset(zip_drives, 0, sizeof(zip_drive_t));
 
     if (! config_read(cfg_path)) {
+	cpu_f = &cpu_families[0];
 	cpu = 0;
 #ifdef USE_LANGUAGE
 	plat_langid = 0x0409;
 #endif
 	scale = 1;
 	machine = machine_get_machine_from_internal_name("ibmpc");
-	fpu_type = fpu_get_type(machine, cpu_manufacturer, cpu, "none");
+	fpu_type = fpu_get_type(cpu_f, cpu, "none");
 	gfxcard = video_get_video_from_internal_name("cga");
 	vid_api = plat_vidapi("default");
 	time_sync = TIME_SYNC_ENABLED;
@@ -1666,14 +1734,14 @@ save_general(void)
 	config_delete_var(cat, "sound_gain");
 
     if (confirm_reset != 1)
-    	config_set_int(cat, "confirm_reset", confirm_reset);
+	config_set_int(cat, "confirm_reset", confirm_reset);
     else
-    	config_delete_var(cat, "confirm_reset");
+	config_delete_var(cat, "confirm_reset");
 
     if (confirm_exit != 1)
-    	config_set_int(cat, "confirm_exit", confirm_exit);
+	config_set_int(cat, "confirm_exit", confirm_exit);
     else
-    	config_delete_var(cat, "confirm_exit");
+	config_delete_var(cat, "confirm_exit");
 
 #ifdef USE_LANGUAGE
     if (plat_langid == 0x0409)
@@ -1701,15 +1769,12 @@ save_machine(void)
 
     config_set_string(cat, "machine", machine_get_internal_name());
 
-    if (cpu_manufacturer == 0)
-	config_delete_var(cat, "cpu_manufacturer");
-      else
-	config_set_int(cat, "cpu_manufacturer", cpu_manufacturer);
+    config_set_string(cat, "cpu_family", (char *) cpu_f->internal_name);
+    config_set_int(cat, "cpu_speed", cpu_f->cpus[cpu].rspeed);
+    config_set_double(cat, "cpu_multi", cpu_f->cpus[cpu].multi);
 
-    if (cpu == 0)
-	config_delete_var(cat, "cpu");
-      else
-	config_set_int(cat, "cpu", cpu);
+    config_delete_var(cat, "cpu_manufacturer");
+    config_delete_var(cat, "cpu");
 
     if (cpu_waitstates == 0)
 	config_delete_var(cat, "cpu_waitstates");
@@ -1719,7 +1784,7 @@ save_machine(void)
     if (fpu_type == 0)
 	config_delete_var(cat, "fpu_type");
       else
-	config_set_string(cat, "fpu_type", (char *) fpu_get_internal_name(machine, cpu_manufacturer, cpu, fpu_type));
+	config_set_string(cat, "fpu_type", (char *) fpu_get_internal_name(cpu_f, cpu, fpu_type));
 
     if (mem_size == 4096)
 	config_delete_var(cat, "mem_size");
@@ -2327,6 +2392,27 @@ config_get_int(char *head, char *name, int def)
 }
 
 
+double
+config_get_double(char *head, char *name, double def)
+{
+    section_t *section;
+    entry_t *entry;
+    double value;
+
+    section = find_section(head);
+    if (section == NULL)
+	return(def);
+		
+    entry = find_entry(section, name);
+    if (entry == NULL)
+	return(def);
+
+    sscanf(entry->data, "%lg", &value);
+
+    return(value);
+}
+
+
 int
 config_get_hex16(char *head, char *name, int def)
 {
@@ -2441,6 +2527,25 @@ config_set_int(char *head, char *name, int val)
 	ent = create_entry(section, name);
 
     sprintf(ent->data, "%i", val);
+    mbstowcs(ent->wdata, ent->data, 512);
+}
+
+
+void
+config_set_double(char *head, char *name, double val)
+{
+    section_t *section;
+    entry_t *ent;
+
+    section = find_section(head);
+    if (section == NULL)
+	section = create_section(head);
+
+    ent = find_entry(section, name);
+    if (ent == NULL)
+	ent = create_entry(section, name);
+
+    sprintf(ent->data, "%lg", val);
     mbstowcs(ent->wdata, ent->data, 512);
 }
 

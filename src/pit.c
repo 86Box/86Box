@@ -953,7 +953,7 @@ void
 pit_set_clock(int clock)
 {
     /* Set default CPU/crystal clock and xt_cpu_multi. */
-    if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_286) {
+    if (cpu_s->cpu_type >= CPU_286) {
 	if (clock == 66666666)
 		cpuclock = 200000000.0 / 3.0;
 	else if (clock == 33333333)
@@ -973,9 +973,9 @@ pit_set_clock(int clock)
         CGACONST = (8ULL << 32ULL);
 	xt_cpu_multi = 3ULL;
 
-	switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed) {
+	switch (cpu_s->rspeed) {
 		case 7159092:
-			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_flags & CPU_ALTERNATE_XTAL) {
+			if (cpu_s->cpu_flags & CPU_ALTERNATE_XTAL) {
 				cpuclock = 28636368.0;
 				xt_cpu_multi = 4ULL;
 			} else
@@ -999,7 +999,7 @@ pit_set_clock(int clock)
 			break;
 
 		default:
-			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_flags & CPU_ALTERNATE_XTAL) {
+			if (cpu_s->cpu_flags & CPU_ALTERNATE_XTAL) {
 				cpuclock = 28636368.0;
 				xt_cpu_multi = 6ULL;
 			}
@@ -1021,7 +1021,7 @@ pit_set_clock(int clock)
     xt_cpu_multi <<= 32ULL;
 
     /* Delay for empty I/O ports. */
-    io_delay = (int) round(((double) machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].rspeed) / 3000000.0);
+    io_delay = (int) round(((double) cpu_s->rspeed) / 3000000.0);
 
     MDACONST = (uint64_t) (cpuclock / 2032125.0 * (double)(1ull << 32));
     HERCCONST = MDACONST;
