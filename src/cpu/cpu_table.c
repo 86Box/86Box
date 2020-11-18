@@ -1215,5 +1215,5 @@ cpu_legacy_machine_t cpu_legacy_table[] = {
     {"p6bap",			{cpus_Celeron, cpus_Cyrix3}},
     {"603tcf",			{cpus_Celeron, cpus_Cyrix3}},
     {"vpc2007",			{cpus_PentiumIID, cpus_Celeron}},
-    {NULL, NULL}
+    {NULL, {NULL}}
 };
