@@ -140,6 +140,12 @@
 #define IDS_4119	4119		// "Unsupported disk image"
 #define IDS_4120	4120		// "Overwrite"
 #define IDS_4121	4121		// "Don't Overwrite"
+#define IDS_4122    4122        // "Raw image (.img)"
+#define IDS_4123    4123        // "HDI image (.hdi)"
+#define IDS_4124    4124        // "HDX image (.hdx)"
+#define IDS_4125    4125        // "Fixed-size VHD (.vhd)"
+#define IDS_4126    4126        // "Dynamic-size VHD (.vhd)"
+#define IDS_4127    4127        // "Differencing VHD (.vhd)"
 
 #define IDS_4352	4352		// "MFM/RLL"
 #define IDS_4353	4353		// "XT IDE"
@@ -209,7 +215,7 @@
 
 #define STR_NUM_2048	92
 #define STR_NUM_3072	11
-#define STR_NUM_4096	18
+#define STR_NUM_4096	32
 #define STR_NUM_4352	6
 #define STR_NUM_4608	6
 #define STR_NUM_5120	1

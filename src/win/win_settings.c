@@ -64,6 +64,8 @@
 #include <86box/plat_midi.h>
 #include <86box/ui.h>
 #include <86box/win.h>
+#include "../disk/minivhd/minivhd.h"
+#include "../disk/minivhd/minivhd_util.h"
 
 
 /* Icon, Bus, File, C, H, S, Size */
@@ -2344,6 +2346,17 @@ set_edit_box_contents(HWND hdlg, int id, uint32_t val)
     SendMessage(h, WM_SETTEXT, (WPARAM) wcslen(szText), (LPARAM) szText);
 }
 
+static void set_edit_box_text_contents(HWND hdlg, int id, WCHAR* text)
+{
+	HWND h = GetDlgItem(hdlg, id);
+	SendMessage(h, WM_SETTEXT, (WPARAM) wcslen(text), (LPARAM) text);
+}
+
+static void get_edit_box_text_contents(HWND hdlg, int id, WCHAR* text_buffer, int buffer_size)
+{
+	HWND h = GetDlgItem(hdlg, id);
+	SendMessage(h, WM_GETTEXT, (WPARAM) buffer_size, (LPARAM) text_buffer);
+}
 
 static int hdconf_initialize_hdt_combo(HWND hdlg)
 {
@@ -2387,6 +2400,161 @@ recalc_selection(HWND hdlg)
     settings_set_cur_sel(hdlg, IDC_COMBO_HD_TYPE, selection);
 }
 
+HWND vhd_progress_hdlg;
+
+static void vhd_progress_callback(uint32_t current_sector, uint32_t total_sectors)
+{
+	MSG msg;
+	HWND h = GetDlgItem(vhd_progress_hdlg, IDC_PBAR_IMG_CREATE);	
+	SendMessage(h, PBM_SETPOS, (WPARAM) current_sector, (LPARAM) 0);
+	while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
+		TranslateMessage(&msg); 
+		DispatchMessage(&msg);
+	}				
+}
+
+/* If the disk geometry requested in the 86Box GUI is not compatible with the internal VHD geometry,
+ * we adjust it to the next-largest size that is compatible. On average, this will be a difference
+ * of about 21 MB, and should only be necessary for VHDs larger than 31.5 GB, so should never be more
+ * than a tenth of a percent change in size.
+ */
+static void adjust_86box_geometry_for_vhd(MVHDGeom *_86box_geometry, MVHDGeom *vhd_geometry)
+{
+        if (_86box_geometry->cyl <= 65535) {
+			vhd_geometry->cyl = _86box_geometry->cyl;
+			vhd_geometry->heads = _86box_geometry->heads;
+			vhd_geometry->spt = _86box_geometry->spt;
+            return;				
+		}
+
+        int desired_sectors = _86box_geometry->cyl * _86box_geometry->heads * _86box_geometry->spt;
+        if (desired_sectors > 267321600)
+                desired_sectors = 267321600;
+
+        int remainder = desired_sectors % 85680; /* 8560 is the LCM of 1008 (63*16) and 4080 (255*16) */
+        if (remainder > 0)
+                desired_sectors += (85680 - remainder);
+
+        _86box_geometry->cyl = desired_sectors / (16 * 63);
+        _86box_geometry->heads = 16;
+        _86box_geometry->spt = 63;
+
+        vhd_geometry->cyl = desired_sectors / (16 * 255);
+        vhd_geometry->heads = 16;
+        vhd_geometry->spt = 255;
+}
+
+static void adjust_vhd_geometry_for_86box(MVHDGeom *vhd_geometry)
+{
+        if (vhd_geometry->spt <= 63) 
+            return;
+
+        int desired_sectors = vhd_geometry->cyl * vhd_geometry->heads * vhd_geometry->spt;
+        if (desired_sectors > 267321600)
+                desired_sectors = 267321600;
+
+        int remainder = desired_sectors % 85680; /* 8560 is the LCM of 1008 (63*16) and 4080 (255*16) */
+        if (remainder > 0)
+                desired_sectors -= remainder;
+
+        vhd_geometry->cyl = desired_sectors / (16 * 63);
+        vhd_geometry->heads = 16;
+        vhd_geometry->spt = 63;
+}
+
+static MVHDGeom create_drive_vhd_fixed(char* filename, int cyl, int heads, int spt)
+{
+        MVHDGeom _86box_geometry = { .cyl = cyl, .heads = heads, .spt = spt };
+		MVHDGeom vhd_geometry;
+        adjust_86box_geometry_for_vhd(&_86box_geometry, &vhd_geometry);
+
+		HWND h = GetDlgItem(vhd_progress_hdlg, IDC_PBAR_IMG_CREATE);
+		settings_show_window(vhd_progress_hdlg, IDT_1731, FALSE);
+		settings_show_window(vhd_progress_hdlg, IDC_EDIT_HD_FILE_NAME, FALSE);
+		settings_show_window(vhd_progress_hdlg, IDC_CFILE, FALSE);
+		settings_show_window(vhd_progress_hdlg, IDC_PBAR_IMG_CREATE, TRUE);
+		settings_enable_window(vhd_progress_hdlg, IDT_1752, TRUE);						
+		SendMessage(h, PBM_SETRANGE32, (WPARAM) 0, (LPARAM) vhd_geometry.cyl * vhd_geometry.heads * vhd_geometry.spt);
+		SendMessage(h, PBM_SETPOS, (WPARAM) 0, (LPARAM) 0);
+
+        int vhd_error = 0;
+        MVHDMeta *vhd = mvhd_create_fixed(filename, vhd_geometry, &vhd_error, vhd_progress_callback);
+        if (vhd == NULL)
+        {
+			_86box_geometry.cyl = 0;
+			_86box_geometry.heads = 0;
+			_86box_geometry.spt = 0;
+        }
+        else
+        {
+                mvhd_close(vhd);                
+        }
+
+		return _86box_geometry;
+}
+
+static MVHDGeom create_drive_vhd_dynamic(char* filename, int cyl, int heads, int spt, int blocksize)
+{
+        MVHDGeom _86box_geometry = { .cyl = cyl, .heads = heads, .spt = spt };
+		MVHDGeom vhd_geometry;
+        adjust_86box_geometry_for_vhd(&_86box_geometry, &vhd_geometry);
+        int vhd_error = 0;
+        MVHDCreationOptions options;
+        options.block_size_in_sectors = blocksize;
+        options.path = filename;
+        options.size_in_bytes = 0;
+        options.geometry = vhd_geometry;
+        options.type = MVHD_TYPE_DYNAMIC;
+
+        MVHDMeta *vhd = mvhd_create_ex(options, &vhd_error);
+        if (vhd == NULL)
+        {
+            _86box_geometry.cyl = 0;
+			_86box_geometry.heads = 0;
+			_86box_geometry.spt = 0;
+        }
+        else
+        {
+                mvhd_close(vhd);
+        }
+
+		return _86box_geometry;
+}
+
+static MVHDGeom create_drive_vhd_diff(char* filename, char* parent_filename, int blocksize)
+{
+        int vhd_error = 0;
+        MVHDCreationOptions options;
+        options.block_size_in_sectors = blocksize;
+        options.path = filename;
+        options.parent_path = parent_filename;
+        options.type = MVHD_TYPE_DIFF;
+
+        MVHDMeta *vhd = mvhd_create_ex(options, &vhd_error);
+		MVHDGeom vhd_geometry;
+        if (vhd == NULL)
+        {
+			vhd_geometry.cyl = 0;
+			vhd_geometry.heads = 0;
+			vhd_geometry.spt = 0;
+        }
+        else
+        {
+                vhd_geometry = mvhd_get_geometry(vhd);
+
+                if (vhd_geometry.spt > 63)
+                {
+                        vhd_geometry.cyl = mvhd_calc_size_sectors(&vhd_geometry) / (16 * 63);
+                        vhd_geometry.heads = 16;
+                        vhd_geometry.spt = 63;
+                }                
+
+                mvhd_close(vhd);                
+        }
+
+		return vhd_geometry;
+}
+
 
 #if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
@@ -2400,19 +2568,26 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
     uint32_t temp, i = 0, sector_size = 512;
     uint32_t zero = 0, base = 0x1000;
     uint64_t signature = 0xD778A82044445459ll;
-    uint64_t temp_size, r = 0;
+    uint64_t r = 0;
     char *big_buf;
+	char hd_file_name_multibyte[1200];
     int b = 0;
+	int vhd_error = 0;
     uint8_t channel = 0;
     uint8_t id = 0;
     wchar_t *twcs;    
     MSG msg;
+	int img_format, block_size;
+	WCHAR text_buf[256];
+	RECT rect;
+	POINT point;
+	int dlg_height_adjust;
 
     switch (message) {
 	case WM_INITDIALOG:
 		memset(hd_file_name, 0, sizeof(hd_file_name));
 
-		hdd_ptr = &(temp_hdd[next_free_id]);
+		hdd_ptr = &(temp_hdd[next_free_id]);		
 
 		SetWindowText(hdlg, plat_get_string((existing & 1) ? IDS_4103 : IDS_4102));
 
@@ -2426,15 +2601,61 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 		size = (tracks * hpc * spt) << 9;
 		set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20LL));
 		hdconf_initialize_hdt_combo(hdlg);
+
+		// TODO: Why is it crashing when I try to use string resources here?
+		// settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4122));
+		// settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4123));
+		// settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4124));
+		// settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4125));
+		// settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4126));
+		// settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4127)); 
+
+		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, (LPARAM) L"Raw image (.img)");
+		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, (LPARAM) L"HDI image (.hdi)");
+		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, (LPARAM) L"HDX image (.hdx)");
+		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, (LPARAM) L"Fixed-size VHD (.vhd)");
+		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, (LPARAM) L"Dynamic-size VHD (.vhd)");
+		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, (LPARAM) L"Differencing VHD (.vhd)");    	
+    	settings_set_cur_sel(hdlg, IDC_COMBO_HD_IMG_FORMAT, 0);
+
+		settings_add_string(hdlg, IDC_COMBO_HD_BLOCK_SIZE, (LPARAM) L"Large blocks (2 MB)");
+		settings_add_string(hdlg, IDC_COMBO_HD_BLOCK_SIZE, (LPARAM) L"Small blocks (512 KB)");
+		settings_set_cur_sel(hdlg, IDC_COMBO_HD_BLOCK_SIZE, 0);
+
+		settings_show_window(hdlg, IDC_COMBO_HD_BLOCK_SIZE, FALSE);
+		settings_show_window(hdlg, IDT_1775, FALSE);
+
 		if (existing & 1) {
 			settings_enable_window(hdlg, IDC_EDIT_HD_SPT, FALSE);
 			settings_enable_window(hdlg, IDC_EDIT_HD_HPC, FALSE);
 			settings_enable_window(hdlg, IDC_EDIT_HD_CYL, FALSE);
 			settings_enable_window(hdlg, IDC_EDIT_HD_SIZE, FALSE);
 			settings_enable_window(hdlg, IDC_COMBO_HD_TYPE, FALSE);
+			settings_show_window(hdlg, IDC_COMBO_HD_IMG_FORMAT, FALSE);
+			settings_show_window(hdlg, IDT_1774, FALSE);
+			
+			/* adjust window size */
+			GetWindowRect(hdlg, &rect);
+			OffsetRect(&rect, -rect.left, -rect.top);
+			dlg_height_adjust = rect.bottom / 5;
+			SetWindowPos(hdlg, NULL, 0, 0, rect.right, rect.bottom - dlg_height_adjust, SWP_NOMOVE | SWP_NOREPOSITION | SWP_NOZORDER);
+			h = GetDlgItem(hdlg, IDOK);
+			GetWindowRect(h, &rect);
+			point.x = rect.left;
+			point.y = rect.top;
+			ScreenToClient(hdlg, &point);
+			SetWindowPos(h, NULL, point.x, point.y - dlg_height_adjust, 0, 0, SWP_NOSIZE | SWP_NOREPOSITION | SWP_NOZORDER);
+			h = GetDlgItem(hdlg, IDCANCEL);
+			GetWindowRect(h, &rect);
+			point.x = rect.left;
+			point.y = rect.top;
+			ScreenToClient(hdlg, &point);
+			SetWindowPos(h, NULL, point.x, point.y - dlg_height_adjust, 0, 0, SWP_NOSIZE | SWP_NOREPOSITION | SWP_NOZORDER);
+
 			chs_enabled = 0;
 		} else
 			chs_enabled = 1;
+
 		add_locations(hdlg);
 		hdd_ptr->bus = HDD_BUS_IDE;
 		max_spt = 63;
@@ -2502,19 +2723,22 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 
 				memset(hdd_ptr->fn, 0, sizeof(hdd_ptr->fn));
 				wcscpy(hdd_ptr->fn, hd_file_name);
+				wcstombs(hd_file_name_multibyte, hd_file_name, sizeof hd_file_name_multibyte);
 
 				sector_size = 512;
 
 				if (!(existing & 1) && (wcslen(hd_file_name) > 0)) {
-					f = _wfopen(hd_file_name, L"wb");
-
-					if (size > 0x1FFFFFFE00ll) {
-						fclose(f);
+					if (size > 0x1FFFFFFE00ll) {						
 						settings_msgbox_header(MBX_ERROR, (wchar_t *) IDS_4116, (wchar_t *) IDS_4105);
 						return TRUE;							
 					}
 
-					if (image_is_hdi(hd_file_name)) {
+					img_format = settings_get_cur_sel(hdlg, IDC_COMBO_HD_IMG_FORMAT);
+					if (img_format < 3) {
+						f = _wfopen(hd_file_name, L"wb");
+					}
+
+					if (img_format == 1) { /* HDI file */
 						if (size >= 0x100000000ll) {
 							fclose(f);
 							settings_msgbox_header(MBX_ERROR, (wchar_t *) IDS_4116, (wchar_t *) IDS_4104);
@@ -2532,7 +2756,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 
 						for (i = 0; i < 0x3f8; i++)
 							fwrite(&zero, 1, 4, f);
-					} else if (image_is_hdx(hd_file_name, 0)) {
+					} else if (img_format == 2) { /* HDX file */
 						fwrite(&signature, 1, 8, f);		/* 00000000: Signature */
 						fwrite(&size, 1, 8, f);			/* 00000008: Full size of the data (64-bit) */
 						fwrite(&sector_size, 1, 4, f);		/* 00000010: Sector size in bytes */
@@ -2541,12 +2765,39 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 						fwrite(&tracks, 1, 4, f);		/* 0000001C: Cylinders */
 						fwrite(&zero, 1, 4, f);			/* 00000020: [Translation] Sectors per cylinder */
 						fwrite(&zero, 1, 4, f);			/* 00000004: [Translation] Heads per cylinder */
-					}
+					} else if (img_format >= 3) { /* VHD file */
+						MVHDGeom _86box_geometry;
+						block_size = settings_get_cur_sel(hdlg, IDC_COMBO_HD_BLOCK_SIZE) == 0 ? MVHD_BLOCK_LARGE : MVHD_BLOCK_SMALL;
+						switch (img_format) {
+							case 3: 
+								vhd_progress_hdlg = hdlg;
+								_86box_geometry = create_drive_vhd_fixed(hd_file_name_multibyte, tracks, hpc, spt);
+								break;
+							case 4:								
+								_86box_geometry = create_drive_vhd_dynamic(hd_file_name_multibyte, tracks, hpc, spt, block_size);								
+								break;
+							case 5:								
+								if (file_dlg_w(hdlg, L"VHD files (*.VHD)\0*.VHD\0All files (*.*)\0*.*\0", L"", L"Select the parent VHD",0)) {
+									return TRUE;
+								}
+								_86box_geometry = create_drive_vhd_diff(hd_file_name_multibyte, openfilestring, block_size);
+								break;
+						}
+
+						if (img_format != 5)
+							settings_msgbox_header(MBX_INFO, (wchar_t *) IDS_4113, (wchar_t *) IDS_4117);
+
+						hdd_ptr->tracks = _86box_geometry.cyl;
+						hdd_ptr->hpc = _86box_geometry.heads;
+						hdd_ptr->spt = _86box_geometry.spt;						
+
+						hard_disk_added = 1;
+						EndDialog(hdlg, 0);
+						return TRUE;						
+					} 
 
 					big_buf = (char *) malloc(1048576);
-					memset(big_buf, 0, 1048576);
-
-					temp_size = size;
+					memset(big_buf, 0, 1048576);					
 
 					r = size >> 20;
 					size &= 0xfffff;
@@ -2580,12 +2831,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 								DispatchMessage(&msg);
 							}
 						}
-					}
-
-					if (image_is_vhd(hd_file_name, 0)) {
-						/* VHD image. */	
-						// Create VHD image here of size temp_size bytes.
-					}
+					}					
 
 					free(big_buf);
 
@@ -2603,8 +2849,8 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 				EndDialog(hdlg, 0);
 				return TRUE;
 
-			case IDC_CFILE:
-				if (!file_dlg_w(hdlg, plat_get_string(IDS_4106), L"", !(existing & 1))) {
+			case IDC_CFILE:				
+				if (!file_dlg_w(hdlg, plat_get_string(IDS_4106), L"", NULL, !(existing & 1))) {
 					if (!wcschr(wopenfilestring, L'.')) {
 						if (wcslen(wopenfilestring) && (wcslen(wopenfilestring) <= 256)) {
 							twcs = &wopenfilestring[wcslen(wopenfilestring)];
@@ -2645,7 +2891,39 @@ hdd_add_file_open_error:
 							fread(&hpc, 1, 4, f);
 							fread(&tracks, 1, 4, f);
 						} else if (image_is_vhd(wopenfilestring, 1)) {
-							// Read VHD geometry							
+							fclose(f);
+							wcstombs(hd_file_name_multibyte, wopenfilestring, sizeof hd_file_name_multibyte);							
+							MVHDMeta* vhd = mvhd_open(hd_file_name_multibyte, 0, &vhd_error);
+							if (vhd == NULL) {
+								settings_msgbox_header(MBX_ERROR, (existing & 1) ? (wchar_t *) IDS_4114 : (wchar_t *) IDS_4115, (existing & 1) ? (wchar_t *) IDS_4107 : (wchar_t *) IDS_4108);
+								return TRUE;
+							} else if (vhd_error == MVHD_ERR_TIMESTAMP) {
+								wchar_t* ts_warning =
+                                        L"WARNING: VHD PARENT/CHILD TIMESTAMPS DO NOT MATCH!\n\n"
+                                        "This could indicate that the parent image was modified after this VHD was created.\n\n"
+                                        "This could also happen if the VHD files were moved/copied, or the differencing VHD was created with DiskPart.\n\n"
+                                        "Do you wish to fix this error after a file copy or DiskPart creation?";
+								if (settings_msgbox_ex(MBX_QUESTION_YN, L"VHD Timestamp Mismatch", ts_warning, NULL, NULL, NULL) != 0) {
+									int ts_res = mvhd_diff_update_par_timestamp(vhd, &vhd_error);
+									if (ts_res != 0)
+									{
+										settings_msgbox_header(MBX_ERROR, L"Error", L"Could not fix VHD timestamp.");											
+										mvhd_close(vhd);
+										return TRUE;
+									}
+								} else {
+									mvhd_close(vhd);
+									return TRUE;
+								}								
+							}
+
+							MVHDGeom vhd_geom = mvhd_get_geometry(vhd);							
+							adjust_vhd_geometry_for_86box(&vhd_geom);
+							tracks = vhd_geom.cyl;
+							hpc = vhd_geom.heads;
+							spt = vhd_geom.spt;
+							size = (uint64_t)tracks * hpc * spt * 512;
+							mvhd_close(vhd);
 						} else {
 							fseeko64(f, 0, SEEK_END);
 							size = ftello64(f);
@@ -2950,6 +3228,51 @@ hdd_add_file_open_error:
 				}
 
 				no_update = 0;
+				break;
+			case IDC_COMBO_HD_IMG_FORMAT:
+				img_format = settings_get_cur_sel(hdlg, IDC_COMBO_HD_IMG_FORMAT);
+				
+				no_update = 1;
+				if (img_format == 5) { /* They switched to a diff VHD; disable the geometry fields. */
+					settings_enable_window(hdlg, IDC_EDIT_HD_SPT, FALSE);
+					set_edit_box_text_contents(hdlg, IDC_EDIT_HD_SPT, L"(N/A)");
+					settings_enable_window(hdlg, IDC_EDIT_HD_HPC, FALSE);
+					set_edit_box_text_contents(hdlg, IDC_EDIT_HD_HPC, L"(N/A)");
+					settings_enable_window(hdlg, IDC_EDIT_HD_CYL, FALSE);
+					set_edit_box_text_contents(hdlg, IDC_EDIT_HD_CYL, L"(N/A)");
+					settings_enable_window(hdlg, IDC_EDIT_HD_SIZE, FALSE);
+					set_edit_box_text_contents(hdlg, IDC_EDIT_HD_SIZE, L"(N/A)");
+					settings_enable_window(hdlg, IDC_COMBO_HD_TYPE, FALSE);
+					settings_reset_content(hdlg, IDC_COMBO_HD_TYPE);
+					settings_add_string(hdlg, IDC_COMBO_HD_TYPE, (LPARAM) L"(use parent)");
+					settings_set_cur_sel(hdlg, IDC_COMBO_HD_TYPE, 0);					
+				} else {
+					get_edit_box_text_contents(hdlg, IDC_EDIT_HD_SPT, text_buf, 256);
+					if (!wcscmp(text_buf, L"(N/A)")) {
+						settings_enable_window(hdlg, IDC_EDIT_HD_SPT, TRUE);
+						set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, 17);
+						settings_enable_window(hdlg, IDC_EDIT_HD_HPC, TRUE);
+						set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, 15);
+						settings_enable_window(hdlg, IDC_EDIT_HD_CYL, TRUE);
+						set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, 1023);
+						settings_enable_window(hdlg, IDC_EDIT_HD_SIZE, TRUE);
+						set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) ((uint64_t)17 * 15 * 1023 * 512 >> 20));
+						settings_enable_window(hdlg, IDC_COMBO_HD_TYPE, TRUE);	
+						hdconf_initialize_hdt_combo(hdlg);		
+					}
+				}
+				no_update = 0;
+
+				if (img_format == 4 || img_format == 5) /* For dynamic and diff VHDs, show the block size dropdown. */
+				{
+					settings_show_window(hdlg, IDC_COMBO_HD_BLOCK_SIZE, TRUE);
+					settings_show_window(hdlg, IDT_1775, TRUE);					
+				}
+				else /* Hide it otherwise. */
+				{
+					settings_show_window(hdlg, IDC_COMBO_HD_BLOCK_SIZE, FALSE);
+					settings_show_window(hdlg, IDT_1775, FALSE);
+				}
 				break;
 		}
 
