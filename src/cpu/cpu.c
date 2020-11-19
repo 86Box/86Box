@@ -377,6 +377,8 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 			multi = 2.5;
 		else if ((multi == 2.0) && (cpu_s->cpu_type & CPU_5K86)) /* K5 */
 			multi = 3.0;
+		else if ((multi == 2.0) && (cpu_s->cpu_type & (CPU_K6_2P | CPU_K6_3P))) /* K6-2+ / K6-3+ */
+			multi = 2.5;
 		else if (multi == (7.0 / 3.0)) /* WinChip 2A */
 			multi = 5.0;
 		else if (multi == (8.0 / 3.0)) /* WinChip 2A */
@@ -393,6 +395,9 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 			multi = 3.0;
 		else if (multi == 6.0) /* K6-2 */
 			multi = 2.0;
+	} else if (cpu_family->package & CPU_PKG_SOCKET8) {
+		if (multi == 5.0) /* Pentium II OverDrive */
+			multi = machine_s->cpu_min_multi; /* fixed multiplier */
 	}
 
 	if (multi < machine_s->cpu_min_multi) /* minimum multiplier */
