@@ -125,8 +125,8 @@ machine_at_p6bap_init(const machine_t *model)
     pci_register_slot(0x11, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x10, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
-    device_add(&via_apro133a_device);  //Rebranded as ET82C693A
-    device_add(&via_vt82c596b_device); //Rebranded as ET82C696B
+    device_add(&via_apro133a_device);  /* Rebranded as ET82C693A */
+    device_add(&via_vt82c596b_device); /* Rebranded as ET82C696B */
     device_add(&w83977ef_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf020_device);
@@ -356,7 +356,13 @@ machine_at_wcf681_init(const machine_t *model)
     device_add(&w83977tf_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf020_device);
-    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+    device_add(&w83781d_device); /* fans: CPU, unused, unused; temperatures: System, unused, CPU */
+    hwm_values.voltages[1] = 2500; /* +2.5V */
+    hwm_values.fans[1] = 0; /* unused */
+    hwm_values.fans[2] = 0; /* unused */
+    hwm_values.temperatures[1] = 0; /* unused */
+
     return ret;
 }
 
@@ -388,7 +394,10 @@ machine_at_6via85x_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
-    device_add(&via_vt82c686_hwm_device);
+    device_add(&via_vt82c686_hwm_device); /* fans: CPU1, CPU2; temperatures: CPU, System, unused */
+    hwm_values.temperatures[0] += 2; /* CPU offset */
+    hwm_values.temperatures[1] += 2; /* System offset */
+    hwm_values.temperatures[2] = 0; /* unused */
 
     return ret;
 }
@@ -420,7 +429,10 @@ machine_at_603tcf_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
-    device_add(&via_vt82c686_hwm_device);
+    device_add(&via_vt82c686_hwm_device); /* fans: 1, 2; temperatures: CPU, System, unused */
+    hwm_values.temperatures[0] += 2; /* CPU offset */
+    hwm_values.temperatures[1] += 2; /* System offset */
+    hwm_values.temperatures[2] = 0; /* unused */
 
     return ret;
 }
