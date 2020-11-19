@@ -514,10 +514,12 @@ load_machine(void)
 
     p = config_get_string(cat, "machine", NULL);
     if (p != NULL) {
-	if (! strcmp(p, "8500ttc")) /* correct typo */
+	if (! strcmp(p, "8500ttc")) /* fix typo */
 		machine = machine_get_machine_from_internal_name("8600ttc");
-	else if (! strcmp(p, "president")) /* migrate from removed machine */
+	else if (! strcmp(p, "president")) /* migrate removed machine */
 		machine = machine_get_machine_from_internal_name("mb500n");
+	else if (! strcmp(p, "j656vxd")) /* migrate removed machine */
+		machine = machine_get_machine_from_internal_name("p55va");
 	else
 		machine = machine_get_machine_from_internal_name(p);
     } else 
@@ -528,7 +530,7 @@ load_machine(void)
     /* This is for backwards compatibility. */
     p = config_get_string(cat, "model", NULL);
     if (p != NULL) {
-	if (! strcmp(p, "p55r2p4")) /* correct typo */
+	if (! strcmp(p, "p55r2p4")) /* fix typo */
 		machine = machine_get_machine_from_internal_name("p55t2p4");
 	else
 		machine = machine_get_machine_from_internal_name(p);
