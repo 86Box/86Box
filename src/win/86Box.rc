@@ -988,7 +988,7 @@ BEGIN
     IDS_2120	"No ROMs found"
     IDS_2121	"Save changes\nThis will hard reset the emulated machine."
     IDS_2122	"Discard changes\nAll changes made to the settings will be lost."
-    IDS_2123	"Cancel\nGo back to the Settings window."
+    IDS_2123	"Do you want to save the settings?"
     IDS_2124	"About 86Box"
     IDS_2125	"86Box v" EMU_VERSION
     IDS_2126	"An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information."

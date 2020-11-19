@@ -495,7 +495,7 @@ win_settings_changed(void)
 
 
 static int
-settings_msgbox_reset(void)
+settings_msgbox_reset(int button)
 {
     int changed, i = 0;
     HWND h;
@@ -506,7 +506,7 @@ settings_msgbox_reset(void)
 	h = hwndMain;
 	hwndMain = hwndParentDialog;
 
-	i = ui_msgbox_ex(MBX_QUESTION | MBX_LINKS, (wchar_t *) IDS_2051, NULL, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, (wchar_t *) IDS_2123);
+	i = ui_msgbox_ex(MBX_QUESTION | MBX_LINKS, (wchar_t *) (button ? IDS_2051 : IDS_2123), NULL, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, NULL);
 
 	hwndMain = h;
 
@@ -4622,7 +4622,7 @@ win_settings_confirm(HWND hdlg, int button)
     int i;
 
     SendMessage(hwndChildDialog, WM_SAVESETTINGS, 0, 0);
-    i = settings_msgbox_reset();
+    i = settings_msgbox_reset(button);
     if (i > 0) {
 	if (i == 2)
 		win_settings_save();
