@@ -226,19 +226,19 @@ const machine_t machines[] = {
 
     /* Socket 4 machines */
     /* 430LX */
-    { "[i430LX] ASUS P/I-P5MP3",		"p5mp3",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 0, 0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE,		 			  2,  192,   2, 127,	        machine_at_p5mp3_init, NULL			},
+    { "[i430LX] ASUS P/I-P5MP3",		"p5mp3",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE,		 			  2,  192,   2, 127,	        machine_at_p5mp3_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_DELLS4)
-    { "[i430LX] Dell Dimension XPS P60",	"dellxp60",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 0, 0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE,					  2,  128,   2, 127,	     machine_at_dellxp60_init, NULL			},
-    { "[i430LX] Dell OptiPlex 560/L",		"opti560l",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 0, 0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  2,  128,   2, 127,	     machine_at_opti560l_init, NULL			},
+    { "[i430LX] Dell Dimension XPS P60",	"dellxp60",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE,					  2,  128,   2, 127,	     machine_at_dellxp60_init, NULL			},
+    { "[i430LX] Dell OptiPlex 560/L",		"opti560l",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  2,  128,   2, 127,	     machine_at_opti560l_init, NULL			},
 #endif
-    { "[i430LX] IBM Ambra DP60 PCI",		"ambradp60",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 0, 0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  2,  128,   2, 127,	    machine_at_ambradp60_init, NULL			},
-    { "[i430LX] IBM PS/ValuePoint P60",		"valuepointp60",	MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 0, 0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  2,  128,   2, 127,	machine_at_valuepointp60_init, NULL			},
-    { "[i430LX] Intel Premiere/PCI",		"revenge",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 0, 0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  2,  128,   2, 127,	       machine_at_batman_init, NULL			},
-    { "[i430LX] Micro Star 586MC1",		"586mc1",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 0, 0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  2,  128,   2, 127,	       machine_at_586mc1_init, NULL			},
-    { "[i430LX] Packard Bell PB520R",		"pb520r",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 0, 0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO,		  8,  136,   2, 127,	       machine_at_pb520r_init, at_pb520r_get_device	},
+    { "[i430LX] IBM Ambra DP60 PCI",		"ambradp60",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  2,  128,   2, 127,	    machine_at_ambradp60_init, NULL			},
+    { "[i430LX] IBM PS/ValuePoint P60",		"valuepointp60",	MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  2,  128,   2, 127,	machine_at_valuepointp60_init, NULL			},
+    { "[i430LX] Intel Premiere/PCI",		"revenge",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  2,  128,   2, 127,	       machine_at_batman_init, NULL			},
+    { "[i430LX] Micro Star 586MC1",		"586mc1",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  2,  128,   2, 127,	       machine_at_586mc1_init, NULL			},
+    { "[i430LX] Packard Bell PB520R",		"pb520r",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO,		  8,  136,   2, 127,	       machine_at_pb520r_init, at_pb520r_get_device	},
 
     /* OPTi 596/597 */
-    { "[OPTi 597] AMI Excalibur VLB",		"excalibur",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 0, 0,								MACHINE_VLB | MACHINE_IDE,							  2,   64,   2, 127,	    machine_at_excalibur_init, NULL			},
+    { "[OPTi 597] AMI Excalibur VLB",		"excalibur",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_VLB | MACHINE_IDE,							  2,   64,   2, 127,	    machine_at_excalibur_init, NULL			},
 
     /* Socket 5 machines */
     /* 430NX */
