@@ -35,6 +35,7 @@
 #include <86box/pit.h>
 #include <86box/apm.h>
 #include <86box/acpi.h>
+#include <86box/machine.h>
 
 
 #ifdef ENABLE_ACPI_LOG
@@ -1156,8 +1157,14 @@ acpi_reset(void *priv)
 	   - Bit 11: ATX power (active high)
 	   - Bit  4: 80-conductor cable on primary IDE channel (active low)
 	   - Bit  3: 80-conductor cable on secondary IDE channel (active low)
-	   - Bit  2: password cleared (active low) */
-	dev->regs.gpi_val = 0xffffffe7;
+	   - Bit  2: password cleared (active low)
+	   AEWIN WCF-681:
+	   - Bit  3: 80-conductor cable on primary IDE channel (active low)
+	   - Bit  2: 80-conductor cable on secondary IDE channel (active low)
+	   Acorp 6VIA85X:
+	   - Bit  3: 80-conductor cable on secondary IDE channel (active low)
+	   - Bit  1: 80-conductor cable on primary IDE channel (active low) */
+	dev->regs.gpi_val = !strcmp(machines[machine].internal_name, "wcf681") ? 0xffffffe3 : 0xffffffe5;
     }
 }
 
