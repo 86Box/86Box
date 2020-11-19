@@ -217,6 +217,17 @@ settings_listview_select(HWND hdlg, int id, int selection)
 }
 
 
+static void
+settings_process_messages()
+{
+    MSG msg;
+    while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
+	TranslateMessage(&msg); 
+	DispatchMessage(&msg);
+    }
+}
+
+
 static BOOL
 image_list_init(HWND hdlg, int id, const uint8_t *icon_ids)
 {
@@ -1067,6 +1078,8 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 
 			c++;
+
+			settings_process_messages();
 		}
 
 		settings_enable_window(hdlg, IDC_COMBO_VIDEO, !(machines[temp_machine].flags & MACHINE_VIDEO_ONLY));
@@ -2606,10 +2619,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 							fwrite(big_buf, 1, 1048576, f);
 							SendMessage(h, PBM_SETPOS, (WPARAM) (i + 1), (LPARAM) 0);
 
-							while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
-								TranslateMessage(&msg); 
-								DispatchMessage(&msg);
-							}
+							settings_process_messages();
 						}
 					}
 
