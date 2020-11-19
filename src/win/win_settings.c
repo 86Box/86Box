@@ -1,4 +1,4 @@
-﻿/*
+/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -20,6 +20,7 @@
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #include <windowsx.h>
+#include <uxtheme.h>
 #undef BITMAP
 #ifdef ENABLE_SETTINGS_LOG
 #include <assert.h>
@@ -204,6 +205,17 @@ settings_show_window(HWND hdlg, int id, int condition)
     h = GetDlgItem(hdlg, id);
     EnableWindow(h, condition ? TRUE : FALSE);
     ShowWindow(h, condition ? SW_SHOW : SW_HIDE);
+}
+
+
+static void
+settings_listview_enable_styles(HWND hdlg, int id)
+{
+    HWND h;
+
+    h = GetDlgItem(hdlg, id);
+    SetWindowTheme(h, L"Explorer", NULL);
+    ListView_SetExtendedListViewStyle(h, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
 }
 
 
@@ -3124,6 +3136,8 @@ win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPar
 			lv1_current_sel = -1;
 		recalc_location_controls(hdlg, 0, 0);
 
+		settings_listview_enable_styles(hdlg, IDC_LIST_HARD_DISKS);
+
 		ignore_change = 0;
 		return TRUE;
 
@@ -4178,6 +4192,8 @@ win_settings_floppy_and_cdrom_drives_proc(HWND hdlg, UINT message, WPARAM wParam
 		settings_set_check(hdlg, IDC_CHECKTURBO, temp_fdd_turbo[lv1_current_sel]);
 		settings_set_check(hdlg, IDC_CHECKBPB, temp_fdd_check_bpb[lv1_current_sel]);
 
+		settings_listview_enable_styles(hdlg, IDC_LIST_FLOPPY_DRIVES);
+
 		lv2_current_sel = 0;
 		win_settings_cdrom_drives_init_columns(hdlg);
 		image_list_init(hdlg, IDC_LIST_CDROM_DRIVES, (const uint8_t *) cd_icons);
@@ -4199,6 +4215,8 @@ win_settings_floppy_and_cdrom_drives_proc(HWND hdlg, UINT message, WPARAM wParam
 		}
 		settings_set_cur_sel(hdlg, IDC_COMBO_CD_BUS, b);
 		cdrom_recalc_location_controls(hdlg, 0);
+
+		settings_listview_enable_styles(hdlg, IDC_LIST_CDROM_DRIVES);
 
 		ignore_change = 0;
 		return TRUE;
@@ -4362,6 +4380,8 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 		settings_set_cur_sel(hdlg, IDC_COMBO_MO_BUS, b);
 		mo_recalc_location_controls(hdlg, 0);
 
+		settings_listview_enable_styles(hdlg, IDC_LIST_MO_DRIVES);
+
 		lv2_current_sel = 0;
 		win_settings_zip_drives_init_columns(hdlg);
 		image_list_init(hdlg, IDC_LIST_ZIP_DRIVES, (const uint8_t *) zip_icons);
@@ -4383,6 +4403,8 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 		}
 		settings_set_cur_sel(hdlg, IDC_COMBO_ZIP_BUS, b);
 		zip_recalc_location_controls(hdlg, 0);
+
+		settings_listview_enable_styles(hdlg, IDC_LIST_ZIP_DRIVES);
 
 		ignore_change = 0;
 		return TRUE;
@@ -4669,6 +4691,7 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		image_list_init(hdlg, IDC_SETTINGSCATLIST, (const uint8_t *) cat_icons);
 		win_settings_main_insert_categories(h);
 		settings_listview_select(hdlg, IDC_SETTINGSCATLIST, first_cat);
+		settings_listview_enable_styles(hdlg, IDC_SETTINGSCATLIST);
 		return TRUE;
 	case WM_NOTIFY:
 		if ((((LPNMHDR)lParam)->code == LVN_ITEMCHANGED) && (((LPNMHDR)lParam)->idFrom == IDC_SETTINGSCATLIST)) {
