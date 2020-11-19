@@ -34,6 +34,8 @@
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
+#include <86box/timer.h>
+#include <86box/nvr.h>
 #include <86box/video.h>
 #include <86box/vid_ega.h>		// for update_overscan
 #include <86box/plat.h>
@@ -350,6 +352,7 @@ void
 plat_power_off(void)
 {
     confirm_exit = 0;
+    nvr_save();
     config_save();
 
     /* Deduct a sufficiently large number of cycles that no instructions will
@@ -360,6 +363,12 @@ plat_power_off(void)
 
     KillTimer(hwndMain, TIMER_1SEC);
     PostQuitMessage(0);
+
+    /* Cleanly terminate all of the emulator's components so as
+       to avoid things like threads getting stuck. */
+    do_stop();
+
+    exit(-1);
 }
 
 
@@ -401,6 +410,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 					pc_reset_hard();
 					if (i == 10) {
 						confirm_reset = 0;
+						nvr_save();
 						config_save();
 					}
 				}
@@ -421,6 +431,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if ((i % 10) == 0) {
 					if (i == 10) {
 						confirm_exit = 0;
+						nvr_save();
 						config_save();
 					}
 #ifndef NO_KEYBOARD_HOOK
@@ -801,6 +812,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if ((i % 10) == 0) {
 			if (i == 10) {
 				confirm_exit = 0;
+				nvr_save();
 				config_save();
 			}
 #ifndef NO_KEYBOARD_HOOK
@@ -849,6 +861,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			pc_reset_hard();
 			if (i == 10) {
 				confirm_reset = 0;
+				nvr_save();
 				config_save();
 			}
 		}
@@ -866,6 +879,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if ((i % 10) == 0) {
 			if (i == 10) {
 				confirm_exit = 0;
+				nvr_save();
 				config_save();
 			}
 #ifndef NO_KEYBOARD_HOOK
