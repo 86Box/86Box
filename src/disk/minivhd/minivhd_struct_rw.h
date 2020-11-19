@@ -1,5 +1,5 @@
 #ifndef MINIVHD_STRUCT_RW_H
-#define minivhd_struct_rw
+#define MINIVHD_STRUCT_RW_H
 
 #include "minivhd_internal.h"
 

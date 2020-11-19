@@ -2,7 +2,9 @@
  * \file
  * \brief Header and footer serialize/deserialize functions
  */
-
+#ifndef _FILE_OFFSET_BITS
+#define _FILE_OFFSET_BITS 64
+#endif
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>

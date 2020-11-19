@@ -3,6 +3,9 @@
  * \brief Sector reading and writing implementations
  */
 
+#ifndef _FILE_OFFSET_BITS
+#define _FILE_OFFSET_BITS 64
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include "minivhd_internal.h"

@@ -2,7 +2,9 @@
  * \file
  * \brief Utility functions
  */
-
+#ifndef _FILE_OFFSET_BITS
+#define _FILE_OFFSET_BITS 64
+#endif
 #include <errno.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -152,7 +154,7 @@ FILE* mvhd_fopen(const char* path, const char* mode, int* err) {
         }
     }
 #else
-    f = fopen64(path, mode);
+    f = fopen(path, mode);
     if (f == NULL) {
         mvhd_errno = errno;
         *err = MVHD_ERR_FILE;
@@ -253,8 +255,10 @@ int64_t mvhd_ftello64(FILE* stream)
 {
 #ifdef _MSC_VER
     return _ftelli64(stream);
-#else
+#elif defined(__MINGW32__)
     return ftello64(stream);
+#else /* This should work with linux (with _FILE_OFFSET_BITS), and hopefully OS X and BSD */
+    return ftello(stream);
 #endif
 }
 
@@ -262,8 +266,10 @@ int mvhd_fseeko64(FILE* stream, int64_t offset, int origin)
 {
 #ifdef _MSC_VER
     return _fseeki64(stream, offset, origin);
-#else
+#elif defined(__MINGW32__)
     return fseeko64(stream, offset, origin);
+#else /* This should work with linux (with _FILE_OFFSET_BITS), and hopefully OS X and BSD */
+    return fseeko(stream, offset, origin);
 #endif
 }
 
