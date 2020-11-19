@@ -1,4 +1,4 @@
-/*
+﻿/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -2462,7 +2462,6 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
     uint8_t id = 0;
     wchar_t *twcs;
     vhd_footer_t *vft = NULL;
-    MSG msg;
 
     switch (message) {
 	case WM_INITDIALOG:
