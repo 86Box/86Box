@@ -363,10 +363,17 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 	if (machine_s->cpu_max_voltage && (cpu_s->voltage > (machine_s->cpu_max_voltage + 10))) /* maximum voltage with 10 mV tolerance */
 		return 0;
 
-	/* Account for CPUs that use a different multiplier than specified by jumpers. */
+	/* Account for CPUs that use a different internal multiplier than specified by jumpers. */
 	double multi = cpu_s->multi;
-	if (cpu_family->package & CPU_PKG_SOCKET5_7) {
-		if (multi == 1.75) /* K5 */
+	if (cpu_family->package & CPU_PKG_SOCKET4) {
+		if (multi == 2.0) /* Pentium OverDrive */
+			multi = 1.0;
+	} else if (cpu_family->package & CPU_PKG_SOCKET5_7) {
+		if ((cpu_s->cpuid_model == 0x52c) && !strcmp(cpu_family->internal_name, "pentium_p54c_od3v")) /* Pentium OverDrive 3.3V */
+			multi = machine_s->cpu_min_multi; /* fixed multiplier */
+		else if (cpu_s->cpuid_model == 0x1542) /* Pentium OverDrive MMX */
+			multi = machine_s->cpu_min_multi; /* fixed multiplier */
+		else if (multi == 1.75) /* K5 */
 			multi = 2.5;
 		else if ((multi == 2.0) && (cpu_s->cpu_type & CPU_5K86)) /* K5 */
 			multi = 3.0;
