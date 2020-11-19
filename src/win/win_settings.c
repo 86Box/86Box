@@ -2591,25 +2591,17 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 		size = (tracks * hpc * spt) << 9;
 		set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) (size >> 20LL));
 		hdconf_initialize_hdt_combo(hdlg);
-
-		// TODO: Why is it crashing when I try to use string resources here?
-		// settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4122));
-		// settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4123));
-		// settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4124));
-		// settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4125));
-		// settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4126));
-		// settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4127)); 
-
-		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, (LPARAM) L"Raw image (.img)");
-		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, (LPARAM) L"HDI image (.hdi)");
-		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, (LPARAM) L"HDX image (.hdx)");
-		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, (LPARAM) L"Fixed-size VHD (.vhd)");
-		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, (LPARAM) L"Dynamic-size VHD (.vhd)");
-		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, (LPARAM) L"Differencing VHD (.vhd)");
+		
+		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4122));
+		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4123));
+		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4124));
+		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4125));
+		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4126));
+		settings_add_string(hdlg, IDC_COMBO_HD_IMG_FORMAT, win_get_string(IDS_4127)); 	
 		settings_set_cur_sel(hdlg, IDC_COMBO_HD_IMG_FORMAT, 0);
 
-		settings_add_string(hdlg, IDC_COMBO_HD_BLOCK_SIZE, (LPARAM) L"Large blocks (2 MB)");
-		settings_add_string(hdlg, IDC_COMBO_HD_BLOCK_SIZE, (LPARAM) L"Small blocks (512 KB)");
+		settings_add_string(hdlg, IDC_COMBO_HD_BLOCK_SIZE, win_get_string(IDS_4128));
+		settings_add_string(hdlg, IDC_COMBO_HD_BLOCK_SIZE, win_get_string(IDS_4129));
 		settings_set_cur_sel(hdlg, IDC_COMBO_HD_BLOCK_SIZE, 0);
 
 		settings_show_window(hdlg, IDC_COMBO_HD_BLOCK_SIZE, FALSE);
@@ -2767,7 +2759,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 								_86box_geometry = create_drive_vhd_dynamic(hd_file_name_multibyte, tracks, hpc, spt, block_size);
 								break;
 							case 5:
-								if (file_dlg_w(hdlg, L"VHD files (*.VHD)\0*.VHD\0All files (*.*)\0*.*\0", L"", L"Select the parent VHD",0)) {
+								if (file_dlg_w(hdlg, plat_get_string(IDS_4130), L"", plat_get_string(IDS_4131), 0)) {
 									return TRUE;
 								}
 								_86box_geometry = create_drive_vhd_diff(hd_file_name_multibyte, openfilestring, block_size);
@@ -2887,16 +2879,11 @@ hdd_add_file_open_error:
 							if (vhd == NULL) {
 								settings_msgbox_header(MBX_ERROR, (existing & 1) ? (wchar_t *) IDS_4114 : (wchar_t *) IDS_4115, (existing & 1) ? (wchar_t *) IDS_4107 : (wchar_t *) IDS_4108);
 								return TRUE;
-							} else if (vhd_error == MVHD_ERR_TIMESTAMP) {
-								wchar_t* ts_warning =
-								    L"WARNING: VHD PARENT/CHILD TIMESTAMPS DO NOT MATCH!\n\n"
-								    "This could indicate that the parent image was modified after this VHD was created.\n\n"
-								    "This could also happen if the VHD files were moved/copied, or the differencing VHD was created with DiskPart.\n\n"
-								    "Do you wish to fix this error after a file copy or DiskPart creation?";
-								if (settings_msgbox_ex(MBX_QUESTION_YN, L"VHD Timestamp Mismatch", ts_warning, NULL, NULL, NULL) != 0) {
+							} else if (vhd_error == MVHD_ERR_TIMESTAMP) {								
+								if (settings_msgbox_ex(MBX_QUESTION_YN, plat_get_string(IDS_4133), plat_get_string(IDS_4132), NULL, NULL, NULL) != 0) {
 									int ts_res = mvhd_diff_update_par_timestamp(vhd, &vhd_error);
 									if (ts_res != 0) {
-										settings_msgbox_header(MBX_ERROR, L"Error", L"Could not fix VHD timestamp.");
+										settings_msgbox_header(MBX_ERROR, plat_get_string(IDS_2049), plat_get_string(IDS_4134));
 										mvhd_close(vhd);
 										return TRUE;
 									}

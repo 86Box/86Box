@@ -146,6 +146,13 @@
 #define IDS_4125	4125		// "Fixed-size VHD (.vhd)"
 #define IDS_4126	4126		// "Dynamic-size VHD (.vhd)"
 #define IDS_4127	4127		// "Differencing VHD (.vhd)"
+#define IDS_4128	4128		// "Large blocks (2 MB)"
+#define IDS_4129	4129		// "Small blocks (512 KB)"
+#define IDS_4130	4130		// "VHD files (*.VHD)\0*.VHD\0All files (*.*)\0*.*\0"
+#define IDS_4131	4131		// "Select the parent VHD"
+#define IDS_4132	4132		// "WARNING: VHD PARENT/CHILD TIMESTAMPS DO NOT MATCH..."
+#define IDS_4133	4133		// "VHD Timestamp Mismatch"
+#define IDS_4134	4134		// "Could not fix VHD timestamp."
 
 #define IDS_4352	4352		// "MFM/RLL"
 #define IDS_4353	4353		// "XT IDE"
@@ -215,7 +222,7 @@
 
 #define STR_NUM_2048	92
 #define STR_NUM_3072	11
-#define STR_NUM_4096	32
+#define STR_NUM_4096	39
 #define STR_NUM_4352	6
 #define STR_NUM_4608	6
 #define STR_NUM_5120	1
