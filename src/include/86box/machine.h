@@ -85,6 +85,8 @@
 
 #define IS_ARCH(m, a)		(machines[(m)].flags & (a)) ? 1 : 0;
 
+#define MACHINE_MULTIPLIER_FIXED -1, -1
+
 
 enum {
     MACHINE_TYPE_NONE = 0,

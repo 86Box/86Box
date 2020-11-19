@@ -121,6 +121,7 @@ enum {
 #define CPU_SUPPORTS_DYNAREC 1
 #define CPU_REQUIRES_DYNAREC 2
 #define CPU_ALTERNATE_XTAL   4
+#define CPU_FIXED_MULTIPLIER 8
 
 #if (defined __amd64__ || defined _M_X64)
 #define LOOKUP_INV		-1LL

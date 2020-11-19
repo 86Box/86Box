@@ -357,23 +357,18 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 	if (machine_s->cpu_max_bus && (bus_speed > (machine_s->cpu_max_bus + 840907))) /* maximum bus speed with ~0.84 MHz (for 8086) tolerance */
 		return 0;
 
-	if (machine_s->cpu_min_voltage && (cpu_s->voltage < (machine_s->cpu_min_voltage - 10))) /* minimum voltage with 10 mV tolerance */
+	if (machine_s->cpu_min_voltage && (cpu_s->voltage < (machine_s->cpu_min_voltage - 100))) /* minimum voltage with 0.1V tolerance */
 		return 0;
 
-	if (machine_s->cpu_max_voltage && (cpu_s->voltage > (machine_s->cpu_max_voltage + 10))) /* maximum voltage with 10 mV tolerance */
+	if (machine_s->cpu_max_voltage && (cpu_s->voltage > (machine_s->cpu_max_voltage + 100))) /* maximum voltage with 0.1V tolerance */
 		return 0;
 
 	/* Account for CPUs that use a different internal multiplier than specified by jumpers. */
 	double multi = cpu_s->multi;
-	if (cpu_family->package & CPU_PKG_SOCKET4) {
-		if (multi == 2.0) /* Pentium OverDrive */
-			multi = 1.0;
+	if (cpu_s->cpu_flags & CPU_FIXED_MULTIPLIER) {
+		multi = machine_s->cpu_min_multi;
 	} else if (cpu_family->package & CPU_PKG_SOCKET5_7) {
-		if ((cpu_s->cpuid_model == 0x52c) && !strcmp(cpu_family->internal_name, "pentium_p54c_od3v")) /* Pentium OverDrive 3.3V */
-			multi = machine_s->cpu_min_multi; /* fixed multiplier */
-		else if (cpu_s->cpuid_model == 0x1542) /* Pentium OverDrive MMX */
-			multi = machine_s->cpu_min_multi; /* fixed multiplier */
-		else if (multi == 1.75) /* K5 */
+		if (multi == 1.75) /* K5 */
 			multi = 2.5;
 		else if ((multi == 2.0) && (cpu_s->cpu_type & CPU_5K86)) /* K5 */
 			multi = 3.0;
@@ -395,14 +390,6 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 			multi = 3.0;
 		else if (multi == 6.0) /* K6-2 */
 			multi = 2.0;
-	} else if (cpu_family->package & CPU_PKG_SOCKET8) {
-		if (multi == 5.0) /* Pentium II OverDrive */
-			multi = machine_s->cpu_min_multi; /* fixed multiplier */
-	} else if (cpu_family->package & CPU_PKG_SOCKET370) {
-		if (cpu_s->cpu_type & CPU_PENTIUM2D) /* Celeron Mendocino */
-			multi = machine_s->cpu_min_multi; /* fixed multiplier */
-		else if (cpu_s->cpu_type & CPU_CYRIX3S) /* Cyrix III Samuel */
-			multi = machine_s->cpu_min_multi; /* fixed multiplier */
 	}
 
 	if (multi < machine_s->cpu_min_multi) /* minimum multiplier */

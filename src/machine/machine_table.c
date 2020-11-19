@@ -215,10 +215,10 @@ const machine_t machines[] = {
     { "[SiS 496] Soyo 4SA2",			"4sa2",			MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							  1,  255,   1, 255,		 machine_at_4sa2_init, NULL			},
     { "[SiS 496] Zida Tomato 4DP",		"4dps",			MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							  1,  255,   1, 255,		 machine_at_4dps_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_STPC)
-    { "[STPC Client] ITOX STAR",		"itoxstar",		MACHINE_TYPE_486,		CPU_PKG_STPC, 0, 66666667, 75000000, 0, 0, 0, 0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  8,  128,   8, 255,	     machine_at_itoxstar_init, NULL			},
-    { "[STPC Consumer-II] Acrosser AR-B1479",	"arb1479",		MACHINE_TYPE_486,		CPU_PKG_STPC, 0, 66666667, 66666667, 0, 0, 0, 0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 32,  160,   8, 255,	      machine_at_arb1479_init, NULL			},
-    { "[STPC Elite] Advantech PCM-9340",	"pcm9340",		MACHINE_TYPE_486,		CPU_PKG_STPC, 0, 66666667, 66666667, 0, 0, 0, 0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 32,   96,   8, 255,	      machine_at_pcm9340_init, NULL			},
-    { "[STPC Atlas] AAEON PCM-5330",		"pcm5330",		MACHINE_TYPE_486,		CPU_PKG_STPC, 0, 66666667, 66666667, 0, 0, 0, 0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 32,  128,  32, 255,	      machine_at_pcm5330_init, NULL			},
+    { "[STPC Client] ITOX STAR",		"itoxstar",		MACHINE_TYPE_486,		CPU_PKG_STPC, 0, 66666667, 75000000, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  8,  128,   8, 255,	     machine_at_itoxstar_init, NULL			},
+    { "[STPC Consumer-II] Acrosser AR-B1479",	"arb1479",		MACHINE_TYPE_486,		CPU_PKG_STPC, 0, 66666667, 66666667, 0, 0, 2.0, 2.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 32,  160,   8, 255,	      machine_at_arb1479_init, NULL			},
+    { "[STPC Elite] Advantech PCM-9340",	"pcm9340",		MACHINE_TYPE_486,		CPU_PKG_STPC, 0, 66666667, 66666667, 0, 0, 2.0, 2.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 32,   96,   8, 255,	      machine_at_pcm9340_init, NULL			},
+    { "[STPC Atlas] AAEON PCM-5330",		"pcm5330",		MACHINE_TYPE_486,		CPU_PKG_STPC, 0, 66666667, 66666667, 0, 0, 2.0, 2.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 32,  128,  32, 255,	      machine_at_pcm5330_init, NULL			},
 #endif
 #if defined(DEV_BRANCH) && defined(NO_SIO)
     { "[VIA VT82C496G] FIC VIP-IO2",		"486vipio2",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_IDE_DUAL,						  1,  128,   1, 255,	    machine_at_486vipio2_init, NULL			},
@@ -226,16 +226,16 @@ const machine_t machines[] = {
 
     /* Socket 4 machines */
     /* 430LX */
-    { "[i430LX] ASUS P/I-P5MP3",		"p5mp3",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE,		 			  2,  192,   2, 127,	        machine_at_p5mp3_init, NULL			},
+    { "[i430LX] ASUS P/I-P5MP3",		"p5mp3",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE,		 			  2,  192,   2, 127,	        machine_at_p5mp3_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_DELLS4)
-    { "[i430LX] Dell Dimension XPS P60",	"dellxp60",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE,					  2,  128,   2, 127,	     machine_at_dellxp60_init, NULL			},
-    { "[i430LX] Dell OptiPlex 560/L",		"opti560l",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  2,  128,   2, 127,	     machine_at_opti560l_init, NULL			},
+    { "[i430LX] Dell Dimension XPS P60",	"dellxp60",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE,					  2,  128,   2, 127,	     machine_at_dellxp60_init, NULL			},
+    { "[i430LX] Dell OptiPlex 560/L",		"opti560l",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  2,  128,   2, 127,	     machine_at_opti560l_init, NULL			},
 #endif
-    { "[i430LX] IBM Ambra DP60 PCI",		"ambradp60",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  2,  128,   2, 127,	    machine_at_ambradp60_init, NULL			},
-    { "[i430LX] IBM PS/ValuePoint P60",		"valuepointp60",	MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  2,  128,   2, 127,	machine_at_valuepointp60_init, NULL			},
-    { "[i430LX] Intel Premiere/PCI",		"revenge",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  2,  128,   2, 127,	       machine_at_batman_init, NULL			},
-    { "[i430LX] Micro Star 586MC1",		"586mc1",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  2,  128,   2, 127,	       machine_at_586mc1_init, NULL			},
-    { "[i430LX] Packard Bell PB520R",		"pb520r",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO,		  8,  136,   2, 127,	       machine_at_pb520r_init, at_pb520r_get_device	},
+    { "[i430LX] IBM Ambra DP60 PCI",		"ambradp60",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  2,  128,   2, 127,	    machine_at_ambradp60_init, NULL			},
+    { "[i430LX] IBM PS/ValuePoint P60",		"valuepointp60",	MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  2,  128,   2, 127,	machine_at_valuepointp60_init, NULL			},
+    { "[i430LX] Intel Premiere/PCI",		"revenge",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  2,  128,   2, 127,	       machine_at_batman_init, NULL			},
+    { "[i430LX] Micro Star 586MC1",		"586mc1",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  2,  128,   2, 127,	       machine_at_586mc1_init, NULL			},
+    { "[i430LX] Packard Bell PB520R",		"pb520r",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO,		  8,  136,   2, 127,	       machine_at_pb520r_init, at_pb520r_get_device	},
 
     /* OPTi 596/597 */
     { "[OPTi 597] AMI Excalibur VLB",		"excalibur",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_VLB | MACHINE_IDE,							  2,   64,   2, 127,	    machine_at_excalibur_init, NULL			},
@@ -361,7 +361,7 @@ const machine_t machines[] = {
 
     /* PGA370 machines */
     /* 440LX */
-    { "[i440LX] SuperMicro Super 370SLM",	"s370slm",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 100000000, 1800, 3500, 0.1, 0.1,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  8,  768,   8, 255,	      machine_at_s370slm_init, NULL			},
+    { "[i440LX] SuperMicro Super 370SLM",	"s370slm",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 100000000, 1800, 3500, MACHINE_MULTIPLIER_FIXED,				MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  8,  768,   8, 255,	      machine_at_s370slm_init, NULL			},
 
     /* 440BX */
     { "[i440BX] AEWIN AW-O671R",		"awo671r",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1800, 3500, 0, 0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  8,  512,   8, 255,	      machine_at_awo671r_init, NULL			},
