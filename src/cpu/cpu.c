@@ -398,6 +398,9 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 	} else if (cpu_family->package & CPU_PKG_SOCKET8) {
 		if (multi == 5.0) /* Pentium II OverDrive */
 			multi = machine_s->cpu_min_multi; /* fixed multiplier */
+	} else if (cpu_family->package & CPU_PKG_SOCKET370) {
+		if (cpu_s->cpu_type & CPU_PENTIUM2D) /* Celeron Mendocino */
+			multi = machine_s->cpu_min_multi; /* fixed multiplier */
 	}
 
 	if (multi < machine_s->cpu_min_multi) /* minimum multiplier */
