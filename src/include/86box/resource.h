@@ -100,13 +100,13 @@
 #define IDT_1766		1766	/* Board #4: */
 #define IDT_1767		1767	/* ISA RTC: */
 #define IDT_1768		1768	/* Ext FD Controller: */
-#define IDT_1769		1769    /* MO drives: */
-#define IDT_1770		1770    /* Bus: */
-#define IDT_1771		1771    /* ID: */
-#define IDT_1772		1772    /* Channel */
-#define IDT_1773		1773    /* Type: */
-#define IDT_1774        1774    /* Image Format: */
-#define IDT_1775        1775    /* Block Size: */
+#define IDT_1769		1769	/* MO drives: */
+#define IDT_1770		1770	/* Bus: */
+#define IDT_1771		1771	/* ID: */
+#define IDT_1772		1772	/* Channel */
+#define IDT_1773		1773	/* Type: */
+#define IDT_1774		1774	/* Image Format: */
+#define IDT_1775		1775	/* Block Size: */
 
 
 /*
@@ -220,8 +220,8 @@
 #define IDC_EDIT_HD_SIZE	1164
 #define IDC_COMBO_HD_TYPE	1165
 #define IDC_PBAR_IMG_CREATE	1166
-#define IDC_COMBO_HD_IMG_FORMAT 1167
-#define IDC_COMBO_HD_BLOCK_SIZE 1168
+#define IDC_COMBO_HD_IMG_FORMAT	1167
+#define IDC_COMBO_HD_BLOCK_SIZE	1168
 
 #define IDC_REMOV_DEVICES	1170	/* floppy and cd-rom drives config */
 #define IDC_LIST_FLOPPY_DRIVES	1171
