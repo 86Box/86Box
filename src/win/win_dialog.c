@@ -114,6 +114,9 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
 			else
 				tdconfig.dwCommonButtons |= TDCBF_CANCEL_BUTTON;
 		}
+
+		if (flags & MBX_WARNING)
+			tdconfig.pszMainIcon = TD_WARNING_ICON;
 		break;
     }
 
