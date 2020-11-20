@@ -450,7 +450,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case IDM_CDROM_IMAGE:
-		if (!file_dlg_w_st(hwnd, IDS_2075, cdrom[id].image_path, NULL, 0)) {
+		if (!file_dlg_w_st(hwnd, IDS_2140, cdrom[id].image_path, NULL, 0)) {
 			cdrom_mount(id, wopenfilestring);
 		}
 		break;

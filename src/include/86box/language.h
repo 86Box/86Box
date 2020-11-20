@@ -44,11 +44,11 @@
 #define IDS_2068	2068		// "Sound"
 #define IDS_2069	2069		// "Network"
 #define IDS_2070	2070		// "Ports (COM & LPT)"
-#define IDS_2071	2071		// "Other peripherals"
+#define IDS_2071	2071		// "Storage controllers"
 #define IDS_2072	2072		// "Hard disks"
 #define IDS_2073	2073		// "Floppy and CD-ROM drives"
 #define IDS_2074	2074		// "Other removable devices"
-#define IDS_2075	2075		// "CD-ROM images (*.ISO;*.CU.."
+#define IDS_2075	2075		// "Other peripherals"
 #define IDS_2076	2076		// "Surface-based images (*.8.."
 #define IDS_2077	2077		// "Click to capture mouse"
 #define IDS_2078	2078		// "Press F12-F8 to release mouse"
@@ -113,6 +113,7 @@
 #define IDS_2137	2137		// "Reset"
 #define IDS_2138	2138		// "Don't Reset"
 #define IDS_2139	2139		// "MO images (*.IM?)\0*.IM?..."
+#define IDS_2140	2140		// "CD-ROM images (*.ISO;*.CU.."
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
@@ -220,7 +221,7 @@
 
 #define IDS_LANG_ENUS	IDS_7168
 
-#define STR_NUM_2048	92
+#define STR_NUM_2048	93
 #define STR_NUM_3072	11
 #define STR_NUM_4096	39
 #define STR_NUM_4352	6

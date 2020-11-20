@@ -1531,14 +1531,14 @@ static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
-win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     int c, d;
-    int e, is_at;
+    int is_at;
     LPTSTR lptsTemp;
     char *stransi;
-    const device_t *scsi_dev, *dev;
-    const device_t *fdc_dev, *hdc_dev;
+    const device_t *scsi_dev, *fdc_dev;
+    const device_t *hdc_dev;
 
     switch (message) {
 	case WM_INITDIALOG:
@@ -1643,48 +1643,6 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 		settings_enable_window(hdlg, IDC_BUTTON_IDE_QUA, is_at && temp_ide_qua);
 		settings_set_check(hdlg, IDC_CHECK_IDE_TER, temp_ide_ter);
 		settings_set_check(hdlg, IDC_CHECK_IDE_QUA, temp_ide_qua);
-		settings_set_check(hdlg, IDC_CHECK_BUGGER, temp_bugger);
-		settings_set_check(hdlg, IDC_CHECK_POSTCARD, temp_postcard);
-
-		/* Populate the ISA RTC card dropdown. */
-		e = 0;
-		settings_reset_content(hdlg, IDC_COMBO_ISARTC);
-		for (d = 0; ; d++) {
-			generate_device_name(isartc_get_device(d), isartc_get_internal_name(d), 0);
-
-			if (!device_name[0])
-				break;
-
-			if (d == 0) {
-				settings_add_string(hdlg, IDC_COMBO_ISARTC, win_get_string(IDS_2103));
-				settings_set_cur_sel(hdlg, IDC_COMBO_ISARTC, 0);
-			} else
-				settings_add_string(hdlg, IDC_COMBO_ISARTC, (LPARAM) device_name);
-			settings_list_to_device[1][e] = d;
-			if (d == temp_isartc)
-				settings_set_cur_sel(hdlg, IDC_COMBO_ISARTC, e);
-			e++;
-		}
-		settings_enable_window(hdlg, IDC_CONFIGURE_ISARTC, temp_isartc != 0);
-
-		/* Populate the ISA memory card dropdowns. */
-		settings_reset_content(hdlg, IDC_COMBO_ISAMEM_1 + c);
-		for (c = 0; c < ISAMEM_MAX; c++) {
-			for (d = 0; ; d++) {
-				generate_device_name(isamem_get_device(d), (char *) isamem_get_internal_name(d), 0);
-
-				if (!device_name[0])
-					break;
-
-				if (d == 0) {
-					settings_add_string(hdlg, IDC_COMBO_ISAMEM_1 + c, win_get_string(IDS_2103));
-					settings_set_cur_sel(hdlg, IDC_COMBO_ISAMEM_1 + c, 0);
-				} else
-					settings_add_string(hdlg, IDC_COMBO_ISAMEM_1 + c, (LPARAM) device_name);
-			}
-			settings_set_cur_sel(hdlg, IDC_COMBO_ISAMEM_1 + c, temp_isamem[c]);
-			settings_enable_window(hdlg, IDC_CONFIGURE_ISAMEM_1 + c, temp_isamem[c] != 0);
-		}
 
 		free(stransi);
 		free(lptsTemp);
@@ -1723,30 +1681,6 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 				settings_enable_window(hdlg, IDC_CONFIGURE_SCSI, scsi_card_has_config(temp_scsi_card));
 				break;
 
-			case IDC_CONFIGURE_ISARTC:
-				temp_isartc = settings_list_to_device[1][settings_get_cur_sel(hdlg, IDC_COMBO_ISARTC)];
-				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)isartc_get_device(temp_isartc));
-				break;
-
-			case IDC_COMBO_ISARTC:
-				temp_isartc = settings_list_to_device[1][settings_get_cur_sel(hdlg, IDC_COMBO_ISARTC)];
-				settings_enable_window(hdlg, IDC_CONFIGURE_ISARTC, temp_isartc != 0);
-				break;
-
-			case IDC_COMBO_ISAMEM_1: case IDC_COMBO_ISAMEM_2:
-			case IDC_COMBO_ISAMEM_3: case IDC_COMBO_ISAMEM_4:
-				c = LOWORD(wParam) - IDC_COMBO_ISAMEM_1;
-				temp_isamem[c] = settings_get_cur_sel(hdlg, LOWORD(wParam));
-				settings_enable_window(hdlg, IDC_CONFIGURE_ISAMEM_1 + c, temp_isamem[c] != 0);
-				break;
-
-			case IDC_CONFIGURE_ISAMEM_1: case IDC_CONFIGURE_ISAMEM_2:
-			case IDC_CONFIGURE_ISAMEM_3: case IDC_CONFIGURE_ISAMEM_4:
-				c = LOWORD(wParam) - IDC_CONFIGURE_ISAMEM_1;
-				dev = isamem_get_device(temp_isamem[c]);
-				temp_deviceconfig |= deviceconfig_inst_open(hdlg, (void *)dev, c + 1);
-				break;
-
 			case IDC_CHECK_IDE_TER:
 				temp_ide_ter = settings_get_check(hdlg, IDC_CHECK_IDE_TER);
 				settings_enable_window(hdlg, IDC_BUTTON_IDE_TER, temp_ide_ter);
@@ -1771,11 +1705,8 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 		temp_hdc = settings_list_to_hdc[settings_get_cur_sel(hdlg, IDC_COMBO_HDC)];
 		temp_fdc_card = settings_list_to_fdc[settings_get_cur_sel(hdlg, IDC_COMBO_FDC)];
 		temp_scsi_card = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SCSI)];
-		temp_isartc = settings_list_to_device[1][settings_get_cur_sel(hdlg, IDC_COMBO_ISARTC)];
 		temp_ide_ter = settings_get_check(hdlg, IDC_CHECK_IDE_TER);
 		temp_ide_qua = settings_get_check(hdlg, IDC_CHECK_IDE_QUA);
-		temp_bugger = settings_get_check(hdlg, IDC_CHECK_BUGGER);
-		temp_postcard = settings_get_check(hdlg, IDC_CHECK_POSTCARD);
 
 	default:
 		return FALSE;
@@ -2187,8 +2118,10 @@ win_settings_hard_disks_update_item(HWND hdlg, int i, int column)
 			wsprintf(szText, plat_get_string(IDS_4610), temp_hdd[i].esdi_channel >> 1, temp_hdd[i].esdi_channel & 1);
 			break;
 		case HDD_BUS_IDE:
-		case HDD_BUS_ATAPI:
 			wsprintf(szText, plat_get_string(IDS_4611), temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
+			break;
+		case HDD_BUS_ATAPI:
+			wsprintf(szText, plat_get_string(IDS_4612), temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
 			break;
 		case HDD_BUS_SCSI:
 			wsprintf(szText, plat_get_string(IDS_4613), temp_hdd[i].scsi_id);
@@ -2256,8 +2189,10 @@ win_settings_hard_disks_recalc_list(HWND hdlg)
 				wsprintf(szText, plat_get_string(IDS_4610), temp_hdd[i].esdi_channel >> 1, temp_hdd[i].esdi_channel & 1);
 				break;
 			case HDD_BUS_IDE:
-			case HDD_BUS_ATAPI:
 				wsprintf(szText, plat_get_string(IDS_4611), temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
+				break;
+			case HDD_BUS_ATAPI:
+				wsprintf(szText, plat_get_string(IDS_4612), temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
 				break;
 			case HDD_BUS_SCSI:
 				wsprintf(szText, plat_get_string(IDS_4613), temp_hdd[i].scsi_id);
@@ -2322,7 +2257,7 @@ static void
 win_settings_hard_disks_resize_columns(HWND hdlg)
 {
     /* Bus, File, Cylinders, Heads, Sectors, Size */
-    int iCol, width[C_COLUMNS_HARD_DISKS] = {130, 130, 41, 25, 25, 41};
+    int iCol, width[C_COLUMNS_HARD_DISKS] = {104, 177, 50, 26, 32, 50};
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_HARD_DISKS);
 
     for (iCol = 0; iCol < C_COLUMNS_HARD_DISKS; iCol++)
@@ -2345,24 +2280,27 @@ win_settings_hard_disks_init_columns(HWND hdlg)
 
 	switch(iCol) {
 		case 0: /* Bus */
-			lvc.cx = 130;
+			lvc.cx = 104;
+			lvc.fmt = LVCFMT_LEFT;
+			break;
+		case 1: /* File */
+			lvc.cx = 177;
 			lvc.fmt = LVCFMT_LEFT;
 			break;
 		case 2: /* Cylinders */
-			lvc.cx = 41;
+			lvc.cx = 50;
 			lvc.fmt = LVCFMT_RIGHT;
 			break;
 		case 3: /* Heads */
-		case 4: /* Sectors */
-			lvc.cx = 25;
+			lvc.cx = 26;
 			lvc.fmt = LVCFMT_RIGHT;
 			break;
-		case 1: /* File */
-			lvc.cx = 130;
-			lvc.fmt = LVCFMT_LEFT;
+		case 4: /* Sectors */
+			lvc.cx = 32;
+			lvc.fmt = LVCFMT_RIGHT;
 			break;
 		case 5: /* Size (MB) 8 */
-			lvc.cx = 41;
+			lvc.cx = 50;
 			lvc.fmt = LVCFMT_RIGHT;
 			break;
 	}
@@ -3762,9 +3700,9 @@ win_settings_floppy_drives_resize_columns(HWND hdlg)
 {
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_FLOPPY_DRIVES);
 
-    ListView_SetColumnWidth(hwndList, 0, MulDiv(250, dpi, 96));
-    ListView_SetColumnWidth(hwndList, 1, MulDiv(50, dpi, 96));
-    ListView_SetColumnWidth(hwndList, 2, MulDiv(75, dpi, 96));
+    ListView_SetColumnWidth(hwndList, 0, MulDiv(292, dpi, 96));
+    ListView_SetColumnWidth(hwndList, 1, MulDiv(58, dpi, 96));
+    ListView_SetColumnWidth(hwndList, 2, MulDiv(89, dpi, 96));
 }
 
 
@@ -3779,7 +3717,7 @@ win_settings_floppy_drives_init_columns(HWND hdlg)
     lvc.iSubItem = 0;
     lvc.pszText = plat_get_string(IDS_2092);
 
-    lvc.cx = 250;
+    lvc.cx = 292;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 0, &lvc) == -1)
@@ -3788,7 +3726,7 @@ win_settings_floppy_drives_init_columns(HWND hdlg)
     lvc.iSubItem = 1;
     lvc.pszText = plat_get_string(IDS_2059);
 
-    lvc.cx = 50;
+    lvc.cx = 58;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 1, &lvc) == -1)
@@ -3797,7 +3735,7 @@ win_settings_floppy_drives_init_columns(HWND hdlg)
     lvc.iSubItem = 2;
     lvc.pszText = plat_get_string(IDS_2087);
 
-    lvc.cx = 75;
+    lvc.cx = 89;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 2, &lvc) == -1)
@@ -3813,8 +3751,8 @@ win_settings_cdrom_drives_resize_columns(HWND hdlg)
 {
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
 
-    ListView_SetColumnWidth(hwndList, 0, MulDiv(342, dpi, 96));
-    ListView_SetColumnWidth(hwndList, 1, MulDiv(50, dpi, 96));
+    ListView_SetColumnWidth(hwndList, 0, MulDiv(292, dpi, 96));
+    ListView_SetColumnWidth(hwndList, 1, MulDiv(147, dpi, 96));
 }
 
 
@@ -3829,7 +3767,7 @@ win_settings_cdrom_drives_init_columns(HWND hdlg)
     lvc.iSubItem = 0;
     lvc.pszText = plat_get_string(IDS_2081);
 
-    lvc.cx = 342;
+    lvc.cx = 292;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 0, &lvc) == -1)
@@ -3838,7 +3776,7 @@ win_settings_cdrom_drives_init_columns(HWND hdlg)
     lvc.iSubItem = 1;
     lvc.pszText = plat_get_string(IDS_2053);
 
-    lvc.cx = 50;
+    lvc.cx = 147;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 1, &lvc) == -1)
@@ -3854,8 +3792,8 @@ win_settings_mo_drives_resize_columns(HWND hdlg)
 {
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_MO_DRIVES);
 
-    ListView_SetColumnWidth(hwndList, 0, MulDiv(120, dpi, 96));
-    ListView_SetColumnWidth(hwndList, 1, MulDiv(260, dpi, 96));
+    ListView_SetColumnWidth(hwndList, 0, MulDiv(292, dpi, 96));
+    ListView_SetColumnWidth(hwndList, 1, MulDiv(147, dpi, 96));
 }
 
 
@@ -3870,7 +3808,7 @@ win_settings_mo_drives_init_columns(HWND hdlg)
     lvc.iSubItem = 0;
     lvc.pszText = plat_get_string(IDS_2081);
 
-    lvc.cx = 120;
+    lvc.cx = 292;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 0, &lvc) == -1)
@@ -3879,7 +3817,7 @@ win_settings_mo_drives_init_columns(HWND hdlg)
     lvc.iSubItem = 1;
     lvc.pszText = plat_get_string(IDS_2092);
 
-    lvc.cx = 260;
+    lvc.cx = 147;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 1, &lvc) == -1)
@@ -3895,8 +3833,8 @@ win_settings_zip_drives_resize_columns(HWND hdlg)
 {
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_ZIP_DRIVES);
 
-    ListView_SetColumnWidth(hwndList, 0, MulDiv(342, dpi, 96));
-    ListView_SetColumnWidth(hwndList, 1, MulDiv(50, dpi, 96));
+    ListView_SetColumnWidth(hwndList, 0, MulDiv(292, dpi, 96));
+    ListView_SetColumnWidth(hwndList, 1, MulDiv(147, dpi, 96));
 }
 
 
@@ -3911,7 +3849,7 @@ win_settings_zip_drives_init_columns(HWND hdlg)
     lvc.iSubItem = 0;
     lvc.pszText = plat_get_string(IDS_2081);
 
-    lvc.cx = 342;
+    lvc.cx = 292;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 0, &lvc) == -1)
@@ -3920,7 +3858,7 @@ win_settings_zip_drives_init_columns(HWND hdlg)
     lvc.iSubItem = 1;
     lvc.pszText = plat_get_string(IDS_2092);
 
-    lvc.cx = 50;
+    lvc.cx = 147;
     lvc.fmt = LVCFMT_LEFT;
 
     if (ListView_InsertColumn(hwndList, 1, &lvc) == -1)
@@ -4845,6 +4783,112 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 }
 
 
+#if defined(__amd64__) || defined(__aarch64__)
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    int c, d;
+    int e;
+    LPTSTR lptsTemp;
+    char *stransi;
+    const device_t *dev;
+
+    switch (message) {
+	case WM_INITDIALOG:
+		lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
+		stransi = (char *) malloc(512);
+
+		/* Populate the ISA RTC card dropdown. */
+		e = 0;
+		settings_reset_content(hdlg, IDC_COMBO_ISARTC);
+		for (d = 0; ; d++) {
+			generate_device_name(isartc_get_device(d), isartc_get_internal_name(d), 0);
+
+			if (!device_name[0])
+				break;
+
+			if (d == 0) {
+				settings_add_string(hdlg, IDC_COMBO_ISARTC, win_get_string(IDS_2103));
+				settings_set_cur_sel(hdlg, IDC_COMBO_ISARTC, 0);
+			} else
+				settings_add_string(hdlg, IDC_COMBO_ISARTC, (LPARAM) device_name);
+			settings_list_to_device[1][e] = d;
+			if (d == temp_isartc)
+				settings_set_cur_sel(hdlg, IDC_COMBO_ISARTC, e);
+			e++;
+		}
+		settings_enable_window(hdlg, IDC_CONFIGURE_ISARTC, temp_isartc != 0);
+
+		/* Populate the ISA memory card dropdowns. */
+		for (c = 0; c < ISAMEM_MAX; c++) {
+			settings_reset_content(hdlg, IDC_COMBO_ISAMEM_1 + c);
+			for (d = 0; ; d++) {
+				generate_device_name(isamem_get_device(d), (char *) isamem_get_internal_name(d), 0);
+
+				if (!device_name[0])
+					break;
+
+				if (d == 0) {
+					settings_add_string(hdlg, IDC_COMBO_ISAMEM_1 + c, win_get_string(IDS_2103));
+					settings_set_cur_sel(hdlg, IDC_COMBO_ISAMEM_1 + c, 0);
+				} else
+					settings_add_string(hdlg, IDC_COMBO_ISAMEM_1 + c, (LPARAM) device_name);
+			}
+			settings_set_cur_sel(hdlg, IDC_COMBO_ISAMEM_1 + c, temp_isamem[c]);
+			settings_enable_window(hdlg, IDC_CONFIGURE_ISAMEM_1 + c, temp_isamem[c] != 0);
+		}
+
+		settings_set_check(hdlg, IDC_CHECK_BUGGER, temp_bugger);
+		settings_set_check(hdlg, IDC_CHECK_POSTCARD, temp_postcard);
+
+		free(stransi);
+		free(lptsTemp);
+
+		return TRUE;
+
+	case WM_COMMAND:
+		switch (LOWORD(wParam)) {
+			case IDC_CONFIGURE_ISARTC:
+				temp_isartc = settings_list_to_device[1][settings_get_cur_sel(hdlg, IDC_COMBO_ISARTC)];
+				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)isartc_get_device(temp_isartc));
+				break;
+
+			case IDC_COMBO_ISARTC:
+				temp_isartc = settings_list_to_device[1][settings_get_cur_sel(hdlg, IDC_COMBO_ISARTC)];
+				settings_enable_window(hdlg, IDC_CONFIGURE_ISARTC, temp_isartc != 0);
+				break;
+
+			case IDC_COMBO_ISAMEM_1: case IDC_COMBO_ISAMEM_2:
+			case IDC_COMBO_ISAMEM_3: case IDC_COMBO_ISAMEM_4:
+				c = LOWORD(wParam) - IDC_COMBO_ISAMEM_1;
+				temp_isamem[c] = settings_get_cur_sel(hdlg, LOWORD(wParam));
+				settings_enable_window(hdlg, IDC_CONFIGURE_ISAMEM_1 + c, temp_isamem[c] != 0);
+				break;
+
+			case IDC_CONFIGURE_ISAMEM_1: case IDC_CONFIGURE_ISAMEM_2:
+			case IDC_CONFIGURE_ISAMEM_3: case IDC_CONFIGURE_ISAMEM_4:
+				c = LOWORD(wParam) - IDC_CONFIGURE_ISAMEM_1;
+				dev = isamem_get_device(temp_isamem[c]);
+				temp_deviceconfig |= deviceconfig_inst_open(hdlg, (void *)dev, c + 1);
+				break;
+		}
+		return FALSE;
+
+	case WM_SAVESETTINGS:
+		temp_isartc = settings_list_to_device[1][settings_get_cur_sel(hdlg, IDC_COMBO_ISARTC)];
+		temp_bugger = settings_get_check(hdlg, IDC_CHECK_BUGGER);
+		temp_postcard = settings_get_check(hdlg, IDC_CHECK_POSTCARD);
+
+	default:
+		return FALSE;
+    }
+    return FALSE;
+}
+
+
 void win_settings_show_child(HWND hwndParent, DWORD child_id)
 {
     if (child_id == displayed_category)
@@ -4875,8 +4919,8 @@ void win_settings_show_child(HWND hwndParent, DWORD child_id)
 	case SETTINGS_PAGE_PORTS:
 		hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_PORTS, hwndParent, win_settings_ports_proc);
 		break;
-	case SETTINGS_PAGE_PERIPHERALS:
-		hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_PERIPHERALS, hwndParent, win_settings_peripherals_proc);
+	case SETTINGS_PAGE_STORAGE:
+		hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_STORAGE, hwndParent, win_settings_storage_proc);
 		break;
 	case SETTINGS_PAGE_HARD_DISKS:
 		hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_HARD_DISKS, hwndParent, win_settings_hard_disks_proc);
@@ -4886,6 +4930,9 @@ void win_settings_show_child(HWND hwndParent, DWORD child_id)
 		break;
 	case SETTINGS_PAGE_OTHER_REMOVABLE_DEVICES:
 		hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_OTHER_REMOVABLE_DEVICES, hwndParent, win_settings_other_removable_devices_proc);
+		break;
+	case SETTINGS_PAGE_PERIPHERALS:
+		hwndChildDialog = CreateDialog(hinstance, (LPCWSTR)DLG_CFG_PERIPHERALS, hwndParent, win_settings_peripherals_proc);
 		break;
 	default:
 		fatal("Invalid child dialog ID\n");
@@ -4905,7 +4952,7 @@ win_settings_main_insert_categories(HWND hwndList)
     lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
     lvI.stateMask = lvI.iSubItem = lvI.state = 0;
 
-    for (i = 0; i < 10; i++) {
+    for (i = 0; i < 11; i++) {
 		lvI.pszText = plat_get_string(IDS_2065+i);
 		lvI.iItem = i;
 		lvI.iImage = i;
@@ -4944,6 +4991,38 @@ win_settings_confirm(HWND hdlg, int button)
 }
 
 
+static BOOL
+win_settings_categories_init_columns(HWND hdlg)
+{
+    LVCOLUMN lvc;
+    int iCol;
+    HWND hwndList = GetDlgItem(hdlg, IDC_SETTINGSCATLIST);
+
+    lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
+
+    lvc.iSubItem = 0;
+    lvc.pszText = plat_get_string(2048);
+
+    lvc.cx = 171;
+    lvc.fmt = LVCFMT_LEFT;
+
+    if (ListView_InsertColumn(hwndList, iCol, &lvc) == -1)
+	return FALSE;
+
+    win_settings_hard_disks_resize_columns(hdlg);
+    return TRUE;
+}
+
+
+static void
+win_settings_categories_resize_columns(HWND hdlg)
+{
+    HWND hwndList = GetDlgItem(hdlg, IDC_SETTINGSCATLIST);
+
+    ListView_SetColumnWidth(hwndList, 0, MulDiv(171, dpi, 96));
+}
+
+
 #if defined(__amd64__) || defined(__aarch64__)
 static LRESULT CALLBACK
 #else
@@ -4953,7 +5032,7 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HWND h = NULL;
     int category, i = 0, j = 0;
-    const uint8_t cat_icons[12] = { 240, 241, 242, 243, 96, 244, 245, 80, 246, 247, 0 };
+    const uint8_t cat_icons[12] = { 240, 241, 242, 243, 96, 244, 252, 80, 246, 247, 245, 0 };
 
     hwndParentDialog = hdlg;
 
@@ -4963,6 +5042,7 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		win_settings_init();
 		displayed_category = -1;
 		h = GetDlgItem(hdlg, IDC_SETTINGSCATLIST);
+		win_settings_categories_init_columns(hdlg);
 		image_list_init(hdlg, IDC_SETTINGSCATLIST, (const uint8_t *) cat_icons);
 		win_settings_main_insert_categories(h);
 		settings_listview_select(hdlg, IDC_SETTINGSCATLIST, first_cat);
@@ -4994,8 +5074,10 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				return TRUE;
 		}
 		break;
+
 	case WM_DPICHANGED:
 		dpi = HIWORD(wParam);
+		win_settings_categories_resize_columns(hdlg);
 		image_list_init(hdlg, IDC_SETTINGSCATLIST, (const uint8_t *) cat_icons);
 		break;
 	default:
