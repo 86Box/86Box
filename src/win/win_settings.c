@@ -520,7 +520,7 @@ win_settings_changed(void)
 
 
 static int
-settings_msgbox_reset(int button)
+settings_msgbox_reset()
 {
     int changed, i = 0;
     HWND h;
@@ -531,7 +531,7 @@ settings_msgbox_reset(int button)
 	h = hwndMain;
 	hwndMain = hwndParentDialog;
 
-	i = ui_msgbox_ex(MBX_QUESTION | MBX_LINKS, (wchar_t *) (button ? IDS_2051 : IDS_2123), NULL, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, NULL);
+	i = ui_msgbox_ex(MBX_QUESTION_OK | MBX_WARNING, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, (wchar_t *) IDS_2123, NULL, NULL);
 
 	hwndMain = h;
 
@@ -4971,12 +4971,12 @@ static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
-win_settings_confirm(HWND hdlg, int button)
+win_settings_confirm(HWND hdlg)
 {
     int i;
 
     SendMessage(hwndChildDialog, WM_SAVESETTINGS, 0, 0);
-    i = settings_msgbox_reset(button);
+    i = settings_msgbox_reset();
     if (i > 0) {
 	if (i == 2)
 		win_settings_save();
@@ -4985,9 +4985,9 @@ win_settings_confirm(HWND hdlg, int button)
 	EndDialog(hdlg, 0);
 	win_notify_dlg_closed();
 
-	return button ? TRUE : FALSE;
+	return TRUE;
     } else
-	return button ? FALSE : TRUE;
+	return FALSE;
 }
 
 
@@ -5062,11 +5062,14 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 	case WM_CLOSE:
-		return win_settings_confirm(hdlg, 0);
+		DestroyWindow(hwndChildDialog);
+		EndDialog(hdlg, 0);
+		win_notify_dlg_closed();
+		return TRUE;
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
 			case IDOK:
-				return win_settings_confirm(hdlg, 1);
+				return win_settings_confirm(hdlg);
 			case IDCANCEL:
 				DestroyWindow(hwndChildDialog);
 				EndDialog(hdlg, 0);

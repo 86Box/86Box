@@ -920,7 +920,7 @@ BEGIN
     2048	"86Box"
     IDS_2049	"Error"
     IDS_2050	"Fatal error"
-    IDS_2051	"Are you sure you want to save the settings?"
+    IDS_2051	"<reserved>"
     IDS_2052	"Press CTRL+ALT+PAGE DOWN to return to windowed mode."
     IDS_2053	"Speed"
     IDS_2054	"ZIP %03i %i (%s): %ls"
@@ -998,9 +998,9 @@ BEGIN
     IDS_2118	"Internal controller"
     IDS_2119	"Exit"
     IDS_2120	"No ROMs found"
-    IDS_2121	"Save changes\nThis will hard reset the emulated machine."
-    IDS_2122	"Discard changes\nAll changes made to the settings will be lost."
-    IDS_2123	"Do you want to save the settings?"
+    IDS_2121	"Do you want to save the settings?"
+    IDS_2122	"This will hard reset the virtual machine."
+    IDS_2123	"Save"
     IDS_2124	"About 86Box"
     IDS_2125	"86Box v" EMU_VERSION
     IDS_2126	"An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information."
@@ -1038,6 +1038,7 @@ BEGIN
     IDS_2138	"Don't reset"
     IDS_2139	"MO images (*.IM?;*.MDI)\0*.IM?;*.MDI\0All files (*.*)\0*.*\0"
     IDS_2140	"CD-ROM images (*.ISO;*.CUE)\0*.ISO;*.CUE\0All files (*.*)\0*.*\0"
+    IDS_2141	"%hs Device Configuration"
 END
 
 STRINGTABLE DISCARDABLE 
