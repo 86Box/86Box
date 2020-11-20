@@ -270,6 +270,8 @@ hdd_image_load(int id)
 	int is_hdx[2] = { 0, 0 };
 	int is_vhd[2] = { 0, 0 };   
 	int vhd_error = 0; 
+	MVHDMeta *vhdm;
+	MVHDGeom geom;
 
 	memset(empty_sector, 0, sizeof(empty_sector));
 
@@ -358,6 +360,7 @@ hdd_image_load(int id)
 					full_size = ((uint64_t) hdd[id].spt) *
 					            ((uint64_t) hdd[id].hpc) *
 					            ((uint64_t) hdd[id].tracks) << 9LL;
+					hdd_images[id].last_sector = (full_size >> 9LL) - 1;
 
 					wcstombs(fn_multibyte_buf, fn, sizeof fn_multibyte_buf);
 					hdd_images[id].vhd = mvhd_create_fixed(fn_multibyte_buf, geometry, &vhd_error, NULL);
@@ -460,10 +463,13 @@ hdd_image_load(int id)
 				fatal("hdd_image_load(): VHD: Parent/child timestamp mismatch for VHD file '%s'\n", fn_multibyte_buf);
 			}
 
-			full_size = hdd_images[id].vhd->footer.curr_sz;
-			hdd[id].tracks = hdd_images[id].vhd->footer.geom.cyl;
-			hdd[id].hpc = hdd_images[id].vhd->footer.geom.heads;
-			hdd[id].spt = hdd_images[id].vhd->footer.geom.spt;
+			mvhd_get_geometry(hdd_images[id].vhd);
+			hdd[id].spt = geom.spt;
+			hdd[id].hpc = geom.heads;
+			hdd[id].tracks = geom.cyl;
+			full_size = ((uint64_t) hdd[id].spt) *
+			            ((uint64_t) hdd[id].hpc) *
+			            ((uint64_t) hdd[id].tracks) << 9LL;
 			hdd_images[id].type = HDD_IMAGE_VHD;
 			/* If we're here, this means there is a valid VHD footer in the
 			   image, which means that by definition, all valid sectors
@@ -534,14 +540,16 @@ hdd_image_read(uint8_t id, uint32_t sector, uint32_t count, uint8_t *buffer)
 
 
 uint32_t
+hdd_image_get_last_sector(uint8_t id)
+{
+	return hdd_images[id].last_sector;
+}
+
+
+uint32_t
 hdd_sectors(uint8_t id)
 {
-	if (hdd_images[id].type == HDD_IMAGE_VHD) {
-		return (uint32_t) (hdd_images[id].vhd->footer.curr_sz >> 9);
-	} else {
-		fseeko64(hdd_images[id].file, 0, SEEK_END);
-		return (uint32_t)((ftello64(hdd_images[id].file) - hdd_images[id].base) >> 9);
-	}
+	return hdd_image_get_last_sector(id) - 1;
 }
 
 
@@ -645,13 +653,6 @@ hdd_image_zero_ex(uint8_t id, uint32_t sector, uint32_t count)
 	if (count != transfer_sectors)
 		return 1;
 	return 0;
-}
-
-
-uint32_t
-hdd_image_get_last_sector(uint8_t id)
-{
-	return hdd_images[id].last_sector;
 }
 
 
