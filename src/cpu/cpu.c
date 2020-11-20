@@ -150,6 +150,7 @@ int in_smm = 0, smi_line = 0, smi_latched = 0, smm_in_hlt = 0;
 int smi_block = 0;
 uint32_t smbase = 0x30000;
 
+cpu_family_t	*cpu_f;
 CPU		*cpu_s;
 int		cpu_effective;
 int		cpu_multi;
@@ -177,7 +178,7 @@ int		is286,
 		is386,
 		is486 = 1,
 		is486sx, is486dx, is486sx2, is486dx2, isdx4,
-		cpu_iscyrix,
+		cpu_isintel, cpu_iscyrix,
 		hascache,
 		isibm486,
 		israpidcad,
@@ -310,12 +311,115 @@ cpu_dynamic_switch(int new_cpu)
 void
 cpu_set_edx(void)
 {
-        EDX = machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].edx_reset;
+        EDX = cpu_s->edx_reset;
 }
 
-int fpu_get_type(int machine, int cpu_manufacturer, int cpu, const char *internal_name)
+cpu_family_t *
+cpu_get_family(const char *internal_name)
 {
-        CPU *cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu];
+	int c = 0;
+	while (cpu_families[c].package) {
+		if (!strcmp(internal_name, cpu_families[c].internal_name))
+			return (cpu_family_t *) &cpu_families[c];
+		c++;
+	}
+
+	return NULL;
+}
+
+
+uint8_t
+cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
+{
+	/* Get machine. */
+	const machine_t *machine_s = &machines[machine];
+
+	/* Add implicit CPU package compatibility. */
+	uint32_t packages = machine_s->cpu_package;
+	if (packages & CPU_PKG_SOCKET3)
+		packages |= CPU_PKG_SOCKET1;
+	else if (packages & CPU_PKG_SLOT1)
+		packages |= CPU_PKG_SOCKET370;
+
+	if (!(cpu_family->package & packages)) /* package type */
+		return 0;
+
+	const CPU *cpu_s = &cpu_family->cpus[cpu];
+
+	if (machine_s->cpu_block & cpu_s->cpu_type) /* CPU type blocklist */
+		return 0;
+
+	uint32_t bus_speed = cpu_s->rspeed / cpu_s->multi;
+
+	if (machine_s->cpu_min_bus && (bus_speed < (machine_s->cpu_min_bus - 840907))) /* minimum bus speed with ~0.84 MHz (for 8086) tolerance */
+		return 0;
+
+	if (machine_s->cpu_max_bus && (bus_speed > (machine_s->cpu_max_bus + 840907))) /* maximum bus speed with ~0.84 MHz (for 8086) tolerance */
+		return 0;
+
+	if (machine_s->cpu_min_voltage && (cpu_s->voltage < (machine_s->cpu_min_voltage - 100))) /* minimum voltage with 0.1V tolerance */
+		return 0;
+
+	if (machine_s->cpu_max_voltage && (cpu_s->voltage > (machine_s->cpu_max_voltage + 100))) /* maximum voltage with 0.1V tolerance */
+		return 0;
+
+	/* Account for CPUs that use a different internal multiplier than specified by jumpers. */
+	double multi = cpu_s->multi;
+	if (cpu_s->cpu_flags & CPU_FIXED_MULTIPLIER) {
+		multi = machine_s->cpu_min_multi;
+	} else if (cpu_family->package & CPU_PKG_SOCKET5_7) {
+		if (multi == 1.75) /* K5 */
+			multi = 2.5;
+		else if ((multi == 2.0) && (cpu_s->cpu_type & CPU_5K86)) /* K5 */
+			multi = 3.0;
+		else if ((multi == 2.0) && (cpu_s->cpu_type & (CPU_K6_2P | CPU_K6_3P))) /* K6-2+ / K6-3+ */
+			multi = 2.5;
+		else if (multi == (7.0 / 3.0)) /* WinChip 2A */
+			multi = 5.0;
+		else if (multi == (8.0 / 3.0)) /* WinChip 2A */
+			multi = 5.5;
+		else if ((multi == 3.0) && (cpu_s->cpu_type & (CPU_Cx6x86 | CPU_Cx6x86L))) /* 6x86(L) */
+			multi = 1.5;
+		else if (multi == (10.0 / 3.0)) /* WinChip 2A */
+			multi = 2.0;
+		else if (multi == 3.5) /* standard set by the Pentium MMX */
+			multi = 1.5;
+		else if ((multi == 4.0) && (cpu_s->cpu_type & (CPU_WINCHIP | CPU_WINCHIP2))) /* WinChip (2) */
+			multi = 1.5;
+		else if ((multi == 4.0) && (cpu_s->cpu_type & (CPU_Cx6x86 | CPU_Cx6x86L))) /* 6x86(L) */
+			multi = 3.0;
+		else if (multi == 6.0) /* K6-2 */
+			multi = 2.0;
+	}
+
+	if (multi < machine_s->cpu_min_multi) /* minimum multiplier */
+		return 0;
+
+	if (machine_s->cpu_max_multi && (multi > machine_s->cpu_max_multi)) /* maximum multiplier */
+		return 0;
+
+	return 1;
+}
+
+
+uint8_t
+cpu_family_is_eligible(const cpu_family_t *cpu_family, int machine)
+{
+	int c = 0;
+
+	while (cpu_family->cpus[c].cpu_type) {
+		if (cpu_is_eligible(cpu_family, c, machine))
+			return 1;
+		c++;
+	}
+
+	return 0;
+}
+
+
+int fpu_get_type(const cpu_family_t *cpu_family, int cpu, const char *internal_name)
+{
+        const CPU *cpu_s = &cpu_family->cpus[cpu];
         const FPU *fpus = cpu_s->fpus;
         int fpu_type = fpus[0].type;
         int c = 0;
@@ -330,9 +434,9 @@ int fpu_get_type(int machine, int cpu_manufacturer, int cpu, const char *interna
         return fpu_type;
 }
 
-const char *fpu_get_internal_name(int machine, int cpu_manufacturer, int cpu, int type)
+const char *fpu_get_internal_name(const cpu_family_t *cpu_family, int cpu, int type)
 {
-        CPU *cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu];
+        const CPU *cpu_s = &cpu_family->cpus[cpu];
         const FPU *fpus = cpu_s->fpus;
         int c = 0;
 
@@ -346,17 +450,17 @@ const char *fpu_get_internal_name(int machine, int cpu_manufacturer, int cpu, in
         return fpus[0].internal_name;
 }
 
-const char *fpu_get_name_from_index(int machine, int cpu_manufacturer, int cpu, int c)
+const char *fpu_get_name_from_index(const cpu_family_t *cpu_family, int cpu, int c)
 {
-        CPU *cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu];
+        const CPU *cpu_s = &cpu_family->cpus[cpu];
         const FPU *fpus = cpu_s->fpus;
         
         return fpus[c].name;
 }
 
-int fpu_get_type_from_index(int machine, int cpu_manufacturer, int cpu, int c)
+int fpu_get_type_from_index(const cpu_family_t *cpu_family, int cpu, int c)
 {
-        CPU *cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu];
+        const CPU *cpu_s = &cpu_family->cpus[cpu];
         const FPU *fpus = cpu_s->fpus;
 
         return fpus[c].type;
@@ -365,15 +469,8 @@ int fpu_get_type_from_index(int machine, int cpu_manufacturer, int cpu, int c)
 void
 cpu_set(void)
 {
-        if (!machines[machine].cpu[cpu_manufacturer].cpus)
-        {
-                /*CPU is invalid, set to default*/
-                cpu_manufacturer = 0;
-                cpu = 0;
-        }
-
 	cpu_effective = cpu;
-        cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective];
+        cpu_s = (CPU *) &cpu_f->cpus[cpu_effective];
 
 #ifdef USE_ACYCS
 	acycs = 0;
@@ -421,11 +518,8 @@ cpu_set(void)
 #endif
         hasfpu       = (fpu_type != FPU_NONE);
 	hascache     = (cpu_s->cpu_type >= CPU_486SLC) || (cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC || cpu_s->cpu_type == CPU_IBM486BL);
-#if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
+	cpu_isintel = !strcmp(cpu_f->manufacturer, "Intel");
         cpu_iscyrix  = (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_Cx486S || cpu_s->cpu_type == CPU_Cx486DX || cpu_s->cpu_type == CPU_Cx486DX2 || cpu_s->cpu_type == CPU_Cx486DX4 || cpu_s->cpu_type == CPU_Cx5x86 || cpu_s->cpu_type == CPU_Cx6x86 || cpu_s->cpu_type == CPU_Cx6x86MX || cpu_s->cpu_type == CPU_Cx6x86L || cpu_s->cpu_type == CPU_CxGX1);
-#else                                                                                                                                                                                                                              
-        cpu_iscyrix  = (cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_486DLC || cpu_s->cpu_type == CPU_Cx486S || cpu_s->cpu_type == CPU_Cx486DX || cpu_s->cpu_type == CPU_Cx486DX2 || cpu_s->cpu_type == CPU_Cx486DX4 || cpu_s->cpu_type == CPU_Cx5x86);
-#endif                                                                                                                                                                                                                                   
 
         cpu_16bitbus = (cpu_s->cpu_type == CPU_286 || cpu_s->cpu_type == CPU_386SX || cpu_s->cpu_type == CPU_486SLC || cpu_s->cpu_type == CPU_IBM386SLC || cpu_s->cpu_type == CPU_IBM486SLC );
         cpu_64bitbus = (cpu_s->cpu_type >= CPU_WINCHIP);
@@ -588,34 +682,34 @@ cpu_set(void)
 		if (fpu_type == FPU_287)
 		{
 #ifdef USE_DYNAREC
-                	x86_dynarec_opcodes_d9_a16 = dynarec_ops_fpu_287_d9_a16;
-        	        x86_dynarec_opcodes_d9_a32 = dynarec_ops_fpu_287_d9_a32;
-                	x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_287_da_a16;
-        	        x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_287_da_a32;
+            	x86_dynarec_opcodes_d9_a16 = dynarec_ops_fpu_287_d9_a16;
+    	        x86_dynarec_opcodes_d9_a32 = dynarec_ops_fpu_287_d9_a32;
+            	x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_287_da_a16;
+    	        x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_287_da_a32;
 	                x86_dynarec_opcodes_db_a16 = dynarec_ops_fpu_287_db_a16;
-        	        x86_dynarec_opcodes_db_a32 = dynarec_ops_fpu_287_db_a32;
+    	        x86_dynarec_opcodes_db_a32 = dynarec_ops_fpu_287_db_a32;
 	                x86_dynarec_opcodes_dc_a16 = dynarec_ops_fpu_287_dc_a16;
-        	        x86_dynarec_opcodes_dc_a32 = dynarec_ops_fpu_287_dc_a32;
+    	        x86_dynarec_opcodes_dc_a32 = dynarec_ops_fpu_287_dc_a32;
 	                x86_dynarec_opcodes_dd_a16 = dynarec_ops_fpu_287_dd_a16;
-        	        x86_dynarec_opcodes_dd_a32 = dynarec_ops_fpu_287_dd_a32;
+    	        x86_dynarec_opcodes_dd_a32 = dynarec_ops_fpu_287_dd_a32;
 	                x86_dynarec_opcodes_de_a16 = dynarec_ops_fpu_287_de_a16;
-        	        x86_dynarec_opcodes_de_a32 = dynarec_ops_fpu_287_de_a32;
+    	        x86_dynarec_opcodes_de_a32 = dynarec_ops_fpu_287_de_a32;
 	                x86_dynarec_opcodes_df_a16 = dynarec_ops_fpu_287_df_a16;
-        	        x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_287_df_a32;
+    	        x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_287_df_a32;
 #endif
 	                x86_opcodes_d9_a16 = ops_fpu_287_d9_a16;
 	                x86_opcodes_d9_a32 = ops_fpu_287_d9_a32;
 	                x86_opcodes_da_a16 = ops_fpu_287_da_a16;
 	                x86_opcodes_da_a32 = ops_fpu_287_da_a32;
-        	        x86_opcodes_db_a16 = ops_fpu_287_db_a16;
+    	        x86_opcodes_db_a16 = ops_fpu_287_db_a16;
 	                x86_opcodes_db_a32 = ops_fpu_287_db_a32;
-        	        x86_opcodes_dc_a16 = ops_fpu_287_dc_a16;
+    	        x86_opcodes_dc_a16 = ops_fpu_287_dc_a16;
 	                x86_opcodes_dc_a32 = ops_fpu_287_dc_a32;
-        	        x86_opcodes_dd_a16 = ops_fpu_287_dd_a16;
+    	        x86_opcodes_dd_a16 = ops_fpu_287_dd_a16;
 	                x86_opcodes_dd_a32 = ops_fpu_287_dd_a32;
-        	        x86_opcodes_de_a16 = ops_fpu_287_de_a16;
+    	        x86_opcodes_de_a16 = ops_fpu_287_de_a16;
 	                x86_opcodes_de_a32 = ops_fpu_287_de_a32;
-        	        x86_opcodes_df_a16 = ops_fpu_287_df_a16;
+    	        x86_opcodes_df_a16 = ops_fpu_287_df_a16;
 	                x86_opcodes_df_a32 = ops_fpu_287_df_a32;
 		}
                 timing_rr  = 2;   /*register dest - register src*/
@@ -698,34 +792,34 @@ cpu_set(void)
                 if (fpu_type == FPU_287) /*In case we get Deskpro 386 emulation*/
                 {
 #ifdef USE_DYNAREC
-                	x86_dynarec_opcodes_d9_a16 = dynarec_ops_fpu_287_d9_a16;
-        	        x86_dynarec_opcodes_d9_a32 = dynarec_ops_fpu_287_d9_a32;
-                	x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_287_da_a16;
-        	        x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_287_da_a32;
+            	x86_dynarec_opcodes_d9_a16 = dynarec_ops_fpu_287_d9_a16;
+    	        x86_dynarec_opcodes_d9_a32 = dynarec_ops_fpu_287_d9_a32;
+            	x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_287_da_a16;
+    	        x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_287_da_a32;
 	                x86_dynarec_opcodes_db_a16 = dynarec_ops_fpu_287_db_a16;
-        	        x86_dynarec_opcodes_db_a32 = dynarec_ops_fpu_287_db_a32;
+    	        x86_dynarec_opcodes_db_a32 = dynarec_ops_fpu_287_db_a32;
 	                x86_dynarec_opcodes_dc_a16 = dynarec_ops_fpu_287_dc_a16;
-        	        x86_dynarec_opcodes_dc_a32 = dynarec_ops_fpu_287_dc_a32;
+    	        x86_dynarec_opcodes_dc_a32 = dynarec_ops_fpu_287_dc_a32;
 	                x86_dynarec_opcodes_dd_a16 = dynarec_ops_fpu_287_dd_a16;
-        	        x86_dynarec_opcodes_dd_a32 = dynarec_ops_fpu_287_dd_a32;
+    	        x86_dynarec_opcodes_dd_a32 = dynarec_ops_fpu_287_dd_a32;
 	                x86_dynarec_opcodes_de_a16 = dynarec_ops_fpu_287_de_a16;
-        	        x86_dynarec_opcodes_de_a32 = dynarec_ops_fpu_287_de_a32;
+    	        x86_dynarec_opcodes_de_a32 = dynarec_ops_fpu_287_de_a32;
 	                x86_dynarec_opcodes_df_a16 = dynarec_ops_fpu_287_df_a16;
-        	        x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_287_df_a32;
+    	        x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_287_df_a32;
 #endif
 	                x86_opcodes_d9_a16 = ops_fpu_287_d9_a16;
 	                x86_opcodes_d9_a32 = ops_fpu_287_d9_a32;
 	                x86_opcodes_da_a16 = ops_fpu_287_da_a16;
 	                x86_opcodes_da_a32 = ops_fpu_287_da_a32;
-        	        x86_opcodes_db_a16 = ops_fpu_287_db_a16;
+    	        x86_opcodes_db_a16 = ops_fpu_287_db_a16;
 	                x86_opcodes_db_a32 = ops_fpu_287_db_a32;
-        	        x86_opcodes_dc_a16 = ops_fpu_287_dc_a16;
+    	        x86_opcodes_dc_a16 = ops_fpu_287_dc_a16;
 	                x86_opcodes_dc_a32 = ops_fpu_287_dc_a32;
-        	        x86_opcodes_dd_a16 = ops_fpu_287_dd_a16;
+    	        x86_opcodes_dd_a16 = ops_fpu_287_dd_a16;
 	                x86_opcodes_dd_a32 = ops_fpu_287_dd_a32;
-        	        x86_opcodes_de_a16 = ops_fpu_287_de_a16;
+    	        x86_opcodes_de_a16 = ops_fpu_287_de_a16;
 	                x86_opcodes_de_a32 = ops_fpu_287_de_a32;
-        	        x86_opcodes_df_a16 = ops_fpu_287_df_a16;
+    	        x86_opcodes_df_a16 = ops_fpu_287_df_a16;
 	                x86_opcodes_df_a32 = ops_fpu_287_df_a32;
 		}		
                 timing_rr  = 2; /*register dest - register src*/
@@ -1294,9 +1388,9 @@ cpu_set(void)
                 cpu_features = CPU_FEATURE_RDTSC;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
 #ifdef USE_DYNAREC
-         	codegen_timing_set(&codegen_timing_686);
+     	codegen_timing_set(&codegen_timing_686);
 #endif
-         	ccr4 = 0x80;
+     	ccr4 = 0x80;
                 break;
 
 
@@ -1321,7 +1415,7 @@ cpu_set(void)
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_PCE;
 #ifdef USE_DYNAREC
-         	codegen_timing_set(&codegen_timing_686);
+     	codegen_timing_set(&codegen_timing_686);
 #endif
                 break;
 
@@ -1377,9 +1471,9 @@ cpu_set(void)
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_PCE;
 #ifdef USE_DYNAREC
-         	codegen_timing_set(&codegen_timing_686);
+     	codegen_timing_set(&codegen_timing_686);
 #endif
-         	ccr4 = 0x80;
+     	ccr4 = 0x80;
                 break;
 #endif
 
@@ -1570,7 +1664,7 @@ cpu_set(void)
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_PAE | CR4_MCE | CR4_PCE;
 #ifdef USE_DYNAREC
-         	codegen_timing_set(&codegen_timing_p6);
+     	codegen_timing_set(&codegen_timing_p6);
 #endif
                 break;
 
@@ -1625,7 +1719,7 @@ cpu_set(void)
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_PAE | CR4_MCE | CR4_PCE;
 #ifdef USE_DYNAREC
-         	codegen_timing_set(&codegen_timing_p6);
+     	codegen_timing_set(&codegen_timing_p6);
 #endif
                 break;
 
@@ -1680,7 +1774,7 @@ cpu_set(void)
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PAE | CR4_PCE | CR4_OSFXSR;
 #ifdef USE_DYNAREC
-         	codegen_timing_set(&codegen_timing_p6);
+     	codegen_timing_set(&codegen_timing_p6);
 #endif
                 break;
 
@@ -1773,7 +1867,7 @@ cpu_current_pc(char *bufp)
 void
 cpu_CPUID(void)
 {
-        switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
+        switch (cpu_s->cpu_type)
         {
                 case CPU_RAPIDCAD:
                 case CPU_i486DX:
@@ -2241,7 +2335,7 @@ cpu_CPUID(void)
                         break;
 
                         case 0x80000006: /*L2 Cache information*/
-                        if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_K6_3P)
+                        if (cpu_s->cpu_type == CPU_K6_3P)
                                 ECX = 0x01004220;
                         else
                                 ECX = 0x00804220;
@@ -2483,7 +2577,7 @@ cpu_CPUID(void)
 
 void cpu_ven_reset(void)
 {
-        switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
+        switch (cpu_s->cpu_type)
         {
 #if defined(DEV_BRANCH) && defined(USE_AMD_K5)
                 case CPU_K5:
@@ -2523,7 +2617,7 @@ void cpu_ven_reset(void)
 
 void cpu_RDMSR()
 {
-        switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
+        switch (cpu_s->cpu_type)
         {
                 case CPU_IBM386SLC:
                 EAX = EDX = 0;
@@ -2915,7 +3009,7 @@ void cpu_RDMSR()
                         EDX = tsc >> 32;
                         break;
                         case 0x17:
-			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type != CPU_PENTIUM2D)  goto i686_invalid_rdmsr;
+			if (cpu_s->cpu_type != CPU_PENTIUM2D)  goto i686_invalid_rdmsr;
                         EAX = ecx17_msr & 0xffffffff;
                         EDX = ecx17_msr >> 32;
                         break;
@@ -2953,7 +3047,7 @@ void cpu_RDMSR()
                         EAX |= ((1 << 25) | (0 << 24) | (1 << 23) | (0 << 22));			
                         else
                         EAX |= ((0 << 25) | (1 << 24) | (1 << 23) | (1 << 22));		
-                        if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type != CPU_PENTIUMPRO) {
+                        if (cpu_s->cpu_type != CPU_PENTIUMPRO) {
                         if (cpu_busspeed >= 84000000)
                         EAX |= (1 << 19);
                         }
@@ -2987,18 +3081,18 @@ void cpu_RDMSR()
                         EDX = ecx11e_msr >> 32;
 			break;
 			case 0x174:
-			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_rdmsr;
+			if (cpu_s->cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_rdmsr;
 			EAX &= 0xFFFF0000;
 			EAX |= cs_msr;
 			EDX = 0x00000000;
 			break;
 			case 0x175:
-			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_rdmsr;
+			if (cpu_s->cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_rdmsr;
 			EAX = esp_msr;
 			EDX = 0x00000000;
 			break;
 			case 0x176:
-			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_rdmsr;
+			if (cpu_s->cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_rdmsr;
 			EAX = eip_msr;
 			EDX = 0x00000000;
 			break;
@@ -3021,12 +3115,12 @@ void cpu_RDMSR()
 			case 0x208: case 0x209: case 0x20A: case 0x20B: case 0x20C: case 0x20D: case 0x20E: case 0x20F:
 			if (ECX & 1)
 			{
-                        	EAX = mtrr_physmask_msr[(ECX - 0x200) >> 1] & 0xffffffff;
+                    	EAX = mtrr_physmask_msr[(ECX - 0x200) >> 1] & 0xffffffff;
 	                        EDX = mtrr_physmask_msr[(ECX - 0x200) >> 1] >> 32;
 			}
 			else
 			{
-                        	EAX = mtrr_physbase_msr[(ECX - 0x200) >> 1] & 0xffffffff;
+                    	EAX = mtrr_physbase_msr[(ECX - 0x200) >> 1] & 0xffffffff;
 	                        EDX = mtrr_physbase_msr[(ECX - 0x200) >> 1] >> 32;
 			}
 			break;
@@ -3103,7 +3197,7 @@ void cpu_WRMSR()
 	uint64_t temp;
 
 	cpu_log("WRMSR %08X %08X%08X\n", ECX, EDX, EAX);
-        switch (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type)
+        switch (cpu_s->cpu_type)
         {
                 case CPU_IBM386SLC:
                 switch (ECX)
@@ -3169,14 +3263,14 @@ void cpu_WRMSR()
 				cpu_features |= CPU_FEATURE_CX8;
 			else
 				cpu_features &= ~CPU_FEATURE_CX8;
-			if ((EAX & (1 << 20)) && machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpu_type >= CPU_WINCHIP2)
+			if ((EAX & (1 << 20)) && cpu_s->cpu_type >= CPU_WINCHIP2)
                                 cpu_features |= CPU_FEATURE_3DNOW;
 			else
                                 cpu_features &= ~CPU_FEATURE_3DNOW;
                          if (EAX & (1 << 29))
                                  CPUID = 0;
                          else
-                                 CPUID = machines[machine].cpu[cpu_manufacturer].cpus[cpu].cpuid_model;
+                                 CPUID = cpu_s->cpuid_model;
                         break;
                         case 0x108:
                         msr.fcr2 = EAX | ((uint64_t)EDX << 32);
@@ -3460,7 +3554,7 @@ void cpu_WRMSR()
                         tsc = EAX | ((uint64_t)EDX << 32);
                         break;
 			case 0x17:
-			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type != CPU_PENTIUM2D)  goto i686_invalid_wrmsr;
+			if (cpu_s->cpu_type != CPU_PENTIUM2D)  goto i686_invalid_wrmsr;
 			ecx17_msr = EAX | ((uint64_t)EDX << 32);
 			break;
 			case 0x1B:
@@ -3492,15 +3586,15 @@ void cpu_WRMSR()
 			ecx11e_msr = EAX | ((uint64_t)EDX << 32);
 			break;
 			case 0x174:
-			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_wrmsr;
+			if (cpu_s->cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_wrmsr;
 			cs_msr = EAX & 0xFFFF;
 			break;
 			case 0x175:
-			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_wrmsr;
+			if (cpu_s->cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_wrmsr;
 			esp_msr = EAX;
 			break;
 			case 0x176:
-			if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_wrmsr;
+			if (cpu_s->cpu_type == CPU_PENTIUMPRO)  goto i686_invalid_wrmsr;
 			eip_msr = EAX;
 			break;
 			case 0x179:
@@ -3638,10 +3732,10 @@ static void cpu_write(uint16_t addr, uint8_t val, void *priv)
                 {
                         ccr4 = val;
 #if defined(DEV_BRANCH) && defined(USE_CYRIX_6X86)
-                        if (machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type >= CPU_Cx6x86)
+                        if (cpu_s->cpu_type >= CPU_Cx6x86)
                         {
                                 if (val & 0x80)
-                                        CPUID = machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpuid_model;
+                                        CPUID = cpu_s->cpuid_model;
                                 else
                                         CPUID = 0;
                         }
@@ -3678,11 +3772,11 @@ static uint8_t cpu_read(uint16_t addr, void *priv)
                         case 0xe8: return ((ccr3 & 0xf0) == 0x10) ? ccr4 : 0xff;
                         case 0xe9: return ((ccr3 & 0xf0) == 0x10) ? ccr5 : 0xff;
                         case 0xea: return ((ccr3 & 0xf0) == 0x10) ? ccr6 : 0xff;
-                        case 0xfe: return machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cyrix_id & 0xff;
-                        case 0xff: return machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cyrix_id >> 8;
+                        case 0xfe: return cpu_s->cyrix_id & 0xff;
+                        case 0xff: return cpu_s->cyrix_id >> 8;
                 }
                 if ((cyrix_addr & 0xf0) == 0xc0) return 0xff;
-                if (cyrix_addr == 0x20 && machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective].cpu_type == CPU_Cx5x86) return 0xff;
+                if (cyrix_addr == 0x20 && cpu_s->cpu_type == CPU_Cx5x86) return 0xff;
         }
         return 0xff;
 }
@@ -3710,7 +3804,7 @@ x86_setopcodes(const OpFn *opcodes, const OpFn *opcodes_0f)
 void
 cpu_update_waitstates(void)
 {
-        cpu_s = &machines[machine].cpu[cpu_manufacturer].cpus[cpu_effective];
+        cpu_s = (CPU *) &cpu_f->cpus[cpu_effective];
 
         if (is486)
                 cpu_prefetch_width = 16;

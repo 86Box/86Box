@@ -19,7 +19,7 @@ static int opAAA(uint32_t fetchdat)
 static int opAAD(uint32_t fetchdat)
 {
         int base = getbytef();
-        if (cpu_manufacturer != MANU_INTEL) base = 10;
+        if (!cpu_isintel) base = 10;
         AL = (AH * base) + AL;
         AH = 0;
         setznp16(AX);
@@ -31,7 +31,7 @@ static int opAAD(uint32_t fetchdat)
 static int opAAM(uint32_t fetchdat)
 {
         int base = getbytef();
-        if (!base || cpu_manufacturer != MANU_INTEL) base = 10;
+        if (!base || !cpu_isintel) base = 10;
         AH = AL / base;
         AL %= base;
         setznp16(AX);

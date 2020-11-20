@@ -20,6 +20,7 @@
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #include <windowsx.h>
+#include <uxtheme.h>
 #undef BITMAP
 #ifdef ENABLE_SETTINGS_LOG
 #include <assert.h>
@@ -76,7 +77,8 @@ static int first_cat = 0;
 static int dpi = 96;
 
 /* Machine category */
-static int temp_machine_type, temp_machine, temp_cpu_m, temp_cpu, temp_wait_states, temp_fpu, temp_sync;
+static int temp_machine_type, temp_machine, temp_cpu, temp_wait_states, temp_fpu, temp_sync;
+static cpu_family_t *temp_cpu_f;
 static uint32_t temp_mem_size;
 #ifdef USE_DYNAREC
 static int temp_dynarec;
@@ -128,6 +130,7 @@ static uint32_t displayed_category = 0;
 
 extern int is486;
 static int listtomachinetype[256], listtomachine[256];
+static int listtocpufamily[256], listtocpu[256];
 static int settings_list_to_device[2][20], settings_list_to_fdc[20];
 static int settings_list_to_midi[20], settings_list_to_midi_in[20];
 static int settings_list_to_hdc[20];
@@ -208,12 +211,34 @@ settings_show_window(HWND hdlg, int id, int condition)
 
 
 static void
+settings_listview_enable_styles(HWND hdlg, int id)
+{
+    HWND h;
+
+    h = GetDlgItem(hdlg, id);
+    SetWindowTheme(h, L"Explorer", NULL);
+    ListView_SetExtendedListViewStyle(h, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
+}
+
+
+static void
 settings_listview_select(HWND hdlg, int id, int selection)
 {
     HWND h;
 
     h = GetDlgItem(hdlg, id);
     ListView_SetItemState(h, selection, LVIS_FOCUSED | LVIS_SELECTED, 0x000F);
+}
+
+
+static void
+settings_process_messages()
+{
+    MSG msg;
+    while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
+	TranslateMessage(&msg); 
+	DispatchMessage(&msg);
+    }
 }
 
 
@@ -298,7 +323,7 @@ win_settings_init(void)
     /* Machine category */
     temp_machine_type = machines[machine].type;
     temp_machine = machine;
-    temp_cpu_m = cpu_manufacturer;
+    temp_cpu_f = cpu_f;
     temp_wait_states = cpu_waitstates;
     temp_cpu = cpu;
     temp_mem_size = mem_size;
@@ -418,7 +443,7 @@ win_settings_changed(void)
 
     /* Machine category */
     i = i || (machine != temp_machine);
-    i = i || (cpu_manufacturer != temp_cpu_m);
+    i = i || (cpu_f != temp_cpu_f);
     i = i || (cpu_waitstates != temp_wait_states);
     i = i || (cpu != temp_cpu);
     i = i || (mem_size != temp_mem_size);
@@ -495,7 +520,7 @@ win_settings_changed(void)
 
 
 static int
-settings_msgbox_reset(void)
+settings_msgbox_reset(int button)
 {
     int changed, i = 0;
     HWND h;
@@ -506,7 +531,7 @@ settings_msgbox_reset(void)
 	h = hwndMain;
 	hwndMain = hwndParentDialog;
 
-	i = ui_msgbox_ex(MBX_QUESTION | MBX_LINKS, (wchar_t *) IDS_2051, NULL, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, (wchar_t *) IDS_2123);
+	i = ui_msgbox_ex(MBX_QUESTION | MBX_LINKS, (wchar_t *) (button ? IDS_2051 : IDS_2123), NULL, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, NULL);
 
 	hwndMain = h;
 
@@ -530,7 +555,7 @@ win_settings_save(void)
 
     /* Machine category */
     machine = temp_machine;
-    cpu_manufacturer = temp_cpu_m;
+    cpu_f = temp_cpu_f;
     cpu_waitstates = temp_wait_states;
     cpu = temp_cpu;
     mem_size = temp_mem_size;
@@ -640,8 +665,8 @@ win_settings_machine_recalc_fpu(HWND hdlg)
     settings_reset_content(hdlg, IDC_COMBO_FPU);
     c = 0;
     while (1) {
-	stransi = (char *) fpu_get_name_from_index(temp_machine, temp_cpu_m, temp_cpu, c);
-	type = fpu_get_type_from_index(temp_machine, temp_cpu_m, temp_cpu, c);
+	stransi = (char *) fpu_get_name_from_index(temp_cpu_f, temp_cpu, c);
+	type = fpu_get_type_from_index(temp_cpu_f, temp_cpu, c);
 	if (!stransi)
 		break;
 
@@ -655,25 +680,23 @@ win_settings_machine_recalc_fpu(HWND hdlg)
 
     settings_enable_window(hdlg, IDC_COMBO_FPU, c > 1);
 
-    temp_fpu = fpu_get_type_from_index(temp_machine, temp_cpu_m, temp_cpu, settings_get_cur_sel(hdlg, IDC_COMBO_FPU));
+    temp_fpu = fpu_get_type_from_index(temp_cpu_f, temp_cpu, settings_get_cur_sel(hdlg, IDC_COMBO_FPU));
 }
 
 
 static void
 win_settings_machine_recalc_cpu(HWND hdlg)
 {
-    HWND h;
     int cpu_type;
 #ifdef USE_DYNAREC
     int cpu_flags;
 #endif
 
-    cpu_type = machines[temp_machine].cpu[temp_cpu_m].cpus[temp_cpu].cpu_type;
+    cpu_type = temp_cpu_f->cpus[temp_cpu].cpu_type;
     settings_enable_window(hdlg, IDC_COMBO_WS, (cpu_type >= CPU_286) && (cpu_type <= CPU_386DX));
 
 #ifdef USE_DYNAREC
-    h = GetDlgItem(hdlg, IDC_CHECK_DYNAREC);
-    cpu_flags = machines[temp_machine].cpu[temp_cpu_m].cpus[temp_cpu].cpu_flags;
+    cpu_flags = temp_cpu_f->cpus[temp_cpu].cpu_flags;
     if (!(cpu_flags & CPU_SUPPORTS_DYNAREC) && (cpu_flags & CPU_REQUIRES_DYNAREC))
 	fatal("Attempting to select a CPU that requires the recompiler and does not support it at the same time\n");
     if (!(cpu_flags & CPU_SUPPORTS_DYNAREC) || (cpu_flags & CPU_REQUIRES_DYNAREC)) {
@@ -681,10 +704,12 @@ win_settings_machine_recalc_cpu(HWND hdlg)
 		temp_dynarec = 0;
 	if (cpu_flags & CPU_REQUIRES_DYNAREC)
 		temp_dynarec = 1;
-	SendMessage(h, BM_SETCHECK, temp_dynarec, 0);
-	EnableWindow(h, FALSE);
-    } else
-	EnableWindow(h, TRUE);
+	settings_set_check(hdlg, IDC_CHECK_DYNAREC, temp_dynarec);
+	settings_enable_window(hdlg, IDC_CHECK_DYNAREC, FALSE);
+    } else {
+	settings_set_check(hdlg, IDC_CHECK_DYNAREC, temp_dynarec);
+	settings_enable_window(hdlg, IDC_CHECK_DYNAREC, TRUE);
+    }
 #endif
 
     win_settings_machine_recalc_fpu(hdlg);
@@ -694,24 +719,39 @@ win_settings_machine_recalc_cpu(HWND hdlg)
 static void
 win_settings_machine_recalc_cpu_m(HWND hdlg)
 {
-    int c;
+    int c, i, first_eligible = -1, current_eligible = 0, last_eligible = 0;
     LPTSTR lptsTemp;
     char *stransi;
 
     lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
     settings_reset_content(hdlg, IDC_COMBO_CPU);
-    c = 0;
-    while (machines[temp_machine].cpu[temp_cpu_m].cpus[c].cpu_type != -1) {
-	stransi = (char *) machines[temp_machine].cpu[temp_cpu_m].cpus[c].name;
-	mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
-	settings_add_string(hdlg, IDC_COMBO_CPU, (LPARAM)(LPCSTR)lptsTemp);
+    c = i = 0;
+    while (temp_cpu_f->cpus[c].cpu_type != 0) {
+	if (cpu_is_eligible(temp_cpu_f, c, temp_machine)) {
+		stransi = (char *) temp_cpu_f->cpus[c].name;
+		mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
+		settings_add_string(hdlg, IDC_COMBO_CPU, (LPARAM)(LPCSTR)lptsTemp);
+
+		if (first_eligible == -1)
+			first_eligible = i;
+		if (temp_cpu == c)
+			current_eligible = i;
+		last_eligible = i;
+
+		listtocpu[i++] = c;
+	}
 	c++;
     }
-    settings_enable_window(hdlg, IDC_COMBO_CPU, c != 1);
-    if (temp_cpu >= c)
-	temp_cpu = (c - 1);
-    settings_set_cur_sel(hdlg, IDC_COMBO_CPU, temp_cpu);
+    if (i == 0)
+    	fatal("No eligible CPUs for the selected family\n");
+    settings_enable_window(hdlg, IDC_COMBO_CPU, i != 1);
+    if (current_eligible < first_eligible)
+    	current_eligible = first_eligible;
+    else if (current_eligible > last_eligible)
+	current_eligible = last_eligible;
+    temp_cpu = listtocpu[current_eligible];
+    settings_set_cur_sel(hdlg, IDC_COMBO_CPU, current_eligible);
 
     win_settings_machine_recalc_cpu(hdlg);
 
@@ -723,9 +763,9 @@ static void
 win_settings_machine_recalc_machine(HWND hdlg)
 {
     HWND h;
-    int c, is_at;
+    int c, i, current_eligible, is_at;
     LPTSTR lptsTemp;
-    const char *stransi;
+    char *stransi;
     UDACCEL accel;
     device_t *d;
 
@@ -735,18 +775,31 @@ win_settings_machine_recalc_machine(HWND hdlg)
     settings_enable_window(hdlg, IDC_CONFIGURE_MACHINE, d && d->config);
 
     settings_reset_content(hdlg, IDC_COMBO_CPU_TYPE);
-    c = 0;
-    while (machines[temp_machine].cpu[c].cpus != NULL && c < 4) {
-	stransi = machines[temp_machine].cpu[c].name;
-	mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
-	settings_add_string(hdlg, IDC_COMBO_CPU_TYPE, (LPARAM)(LPCSTR)lptsTemp);
+    c = i = 0;
+    current_eligible = -1;
+    while (cpu_families[c].package != 0) {
+	if (cpu_family_is_eligible(&cpu_families[c], temp_machine)) {
+		stransi = malloc(strlen((char *) cpu_families[c].manufacturer) + strlen((char *) cpu_families[c].name) + 2);
+		sprintf(stransi, "%s %s", (char *) cpu_families[c].manufacturer, (char *) cpu_families[c].name);
+		mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
+		free(stransi);
+		settings_add_string(hdlg, IDC_COMBO_CPU_TYPE, (LPARAM)(LPCSTR)lptsTemp);
+		if (&cpu_families[c] == temp_cpu_f)
+			current_eligible = i;
+		listtocpufamily[i++] = c;
+	}
 	c++;
     }
+    if (i == 0)
+	fatal("No eligible CPU families for the selected machine\n");
     settings_enable_window(hdlg, IDC_COMBO_CPU_TYPE, TRUE);
-    if (temp_cpu_m >= c)
-	temp_cpu_m = (c - 1);
-    settings_set_cur_sel(hdlg, IDC_COMBO_CPU_TYPE, temp_cpu_m);
-    settings_enable_window(hdlg, IDC_COMBO_CPU_TYPE, c != 1);
+    if (current_eligible == -1) {
+	temp_cpu_f = (cpu_family_t *) &cpu_families[listtocpufamily[0]];
+	settings_set_cur_sel(hdlg, IDC_COMBO_CPU_TYPE, 0);
+    } else {
+	settings_set_cur_sel(hdlg, IDC_COMBO_CPU_TYPE, current_eligible);
+    }
+    settings_enable_window(hdlg, IDC_COMBO_CPU_TYPE, i != 1);
 
     win_settings_machine_recalc_cpu_m(hdlg);
 
@@ -909,20 +962,20 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 			case IDC_COMBO_CPU_TYPE:
 				if (HIWORD(wParam) == CBN_SELCHANGE) {
-					temp_cpu_m = settings_get_cur_sel(hdlg, IDC_COMBO_CPU_TYPE);
+					temp_cpu_f = (cpu_family_t *) &cpu_families[listtocpufamily[settings_get_cur_sel(hdlg, IDC_COMBO_CPU_TYPE)]];
 					temp_cpu = 0;
 					win_settings_machine_recalc_cpu_m(hdlg);
 				}
 				break;
 			case IDC_COMBO_CPU:
 				if (HIWORD(wParam) == CBN_SELCHANGE) {
-					temp_cpu = settings_get_cur_sel(hdlg, IDC_COMBO_CPU);
+					temp_cpu = listtocpu[settings_get_cur_sel(hdlg, IDC_COMBO_CPU)];
 					win_settings_machine_recalc_cpu(hdlg);
 				}
 				break;
 			case IDC_COMBO_FPU:
 				if (HIWORD(wParam) == CBN_SELCHANGE) {
-					temp_fpu = fpu_get_type_from_index(temp_machine, temp_cpu_m, temp_cpu,
+					temp_fpu = fpu_get_type_from_index(temp_cpu_f, temp_cpu,
 									   settings_get_cur_sel(hdlg, IDC_COMBO_FPU));
 				}
 				break;
@@ -1039,6 +1092,8 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 
 			c++;
+
+			settings_process_messages();
 		}
 
 		settings_enable_window(hdlg, IDC_COMBO_VIDEO, !(machines[temp_machine].flags & MACHINE_VIDEO_ONLY));
@@ -2566,7 +2621,6 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 	uint8_t channel = 0;
 	uint8_t id = 0;
 	wchar_t *twcs;
-	MSG msg;
 	int img_format, block_size;
 	WCHAR text_buf[256];
 	RECT rect;
@@ -2808,10 +2862,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 							fwrite(big_buf, 1, 1048576, f);
 							SendMessage(h, PBM_SETPOS, (WPARAM) (i + 1), (LPARAM) 0);
 
-							while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
-								TranslateMessage(&msg); 
-								DispatchMessage(&msg);
-							}
+							settings_process_messages();
 						}
 					}
 
@@ -3360,6 +3411,8 @@ win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPar
 			lv1_current_sel = -1;
 		recalc_location_controls(hdlg, 0, 0);
 
+		settings_listview_enable_styles(hdlg, IDC_LIST_HARD_DISKS);
+
 		ignore_change = 0;
 		return TRUE;
 
@@ -3372,13 +3425,6 @@ win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPar
 			lv1_current_sel = get_selected_hard_disk(hdlg);
 			if (lv1_current_sel == old_sel)
 				return FALSE;
-			else if (lv1_current_sel == -1) {
-				ignore_change = 1;
-				lv1_current_sel = old_sel;
-				settings_listview_select(hdlg, IDC_LIST_HARD_DISKS, lv1_current_sel);
-				ignore_change = 0;
-				return FALSE;
-			}
 			ignore_change = 1;
 			settings_set_cur_sel(hdlg, IDC_COMBO_HD_BUS, temp_hdd[lv1_current_sel].bus - 1);
 			recalc_location_controls(hdlg, 0, 0);
@@ -3521,6 +3567,7 @@ win_settings_floppy_drives_recalc_list(HWND hdlg)
 
 	lvI.iSubItem = 1;
 	lvI.pszText = plat_get_string(temp_fdd_turbo[i] ? IDS_2060 : IDS_2061);
+	lvI.iItem = i;
 	lvI.iImage = 0;
 
 	if (ListView_SetItem(hwndList, &lvI) == -1)
@@ -3528,6 +3575,8 @@ win_settings_floppy_drives_recalc_list(HWND hdlg)
 
 	lvI.iSubItem = 2;
 	lvI.pszText = plat_get_string(temp_fdd_check_bpb[i] ? IDS_2060 : IDS_2061);
+	lvI.iItem = i;
+	lvI.iImage = 0;
 
 	if (ListView_SetItem(hwndList, &lvI) == -1)
 		return FALSE;
@@ -4236,8 +4285,8 @@ mo_recalc_location_controls(HWND hdlg, int assign_id)
 
     switch(bus) {
 	case MO_BUS_ATAPI:		/* ATAPI */
-    		settings_show_window(hdlg, IDT_1772, TRUE);
-    		settings_show_window(hdlg, IDC_COMBO_MO_CHANNEL_IDE, TRUE);
+		settings_show_window(hdlg, IDT_1772, TRUE);
+		settings_show_window(hdlg, IDC_COMBO_MO_CHANNEL_IDE, TRUE);
 
 		if (assign_id)
 			temp_mo_drives[lv1_current_sel].ide_channel = next_free_ide_channel();
@@ -4245,8 +4294,8 @@ mo_recalc_location_controls(HWND hdlg, int assign_id)
 		settings_set_cur_sel(hdlg, IDC_COMBO_MO_CHANNEL_IDE, temp_mo_drives[lv1_current_sel].ide_channel);
 		break;
 	case MO_BUS_SCSI:		/* SCSI */
-    		settings_show_window(hdlg, IDT_1771, TRUE);
-    		settings_show_window(hdlg, IDC_COMBO_MO_ID, TRUE);
+		settings_show_window(hdlg, IDT_1771, TRUE);
+		settings_show_window(hdlg, IDC_COMBO_MO_ID, TRUE);
 
 		if (assign_id)
 			next_free_scsi_id((uint8_t *) &temp_mo_drives[lv1_current_sel].scsi_device_id);
@@ -4302,8 +4351,8 @@ zip_recalc_location_controls(HWND hdlg, int assign_id)
 
     switch(bus) {
 	case ZIP_BUS_ATAPI:		/* ATAPI */
-    		settings_show_window(hdlg, IDT_1755, TRUE);
-    		settings_show_window(hdlg, IDC_COMBO_ZIP_CHANNEL_IDE, TRUE);
+		settings_show_window(hdlg, IDT_1755, TRUE);
+		settings_show_window(hdlg, IDC_COMBO_ZIP_CHANNEL_IDE, TRUE);
 
 		if (assign_id)
 			temp_zip_drives[lv2_current_sel].ide_channel = next_free_ide_channel();
@@ -4311,8 +4360,8 @@ zip_recalc_location_controls(HWND hdlg, int assign_id)
 		settings_set_cur_sel(hdlg, IDC_COMBO_ZIP_CHANNEL_IDE, temp_zip_drives[lv2_current_sel].ide_channel);
 		break;
 	case ZIP_BUS_SCSI:		/* SCSI */
-    		settings_show_window(hdlg, IDT_1754, TRUE);
-    		settings_show_window(hdlg, IDC_COMBO_ZIP_ID, TRUE);
+		settings_show_window(hdlg, IDT_1754, TRUE);
+		settings_show_window(hdlg, IDC_COMBO_ZIP_ID, TRUE);
 
 		if (assign_id)
 			next_free_scsi_id((uint8_t *) &temp_zip_drives[lv2_current_sel].scsi_device_id);
@@ -4418,6 +4467,8 @@ win_settings_floppy_and_cdrom_drives_proc(HWND hdlg, UINT message, WPARAM wParam
 		settings_set_check(hdlg, IDC_CHECKTURBO, temp_fdd_turbo[lv1_current_sel]);
 		settings_set_check(hdlg, IDC_CHECKBPB, temp_fdd_check_bpb[lv1_current_sel]);
 
+		settings_listview_enable_styles(hdlg, IDC_LIST_FLOPPY_DRIVES);
+
 		lv2_current_sel = 0;
 		win_settings_cdrom_drives_init_columns(hdlg);
 		image_list_init(hdlg, IDC_LIST_CDROM_DRIVES, (const uint8_t *) cd_icons);
@@ -4440,6 +4491,8 @@ win_settings_floppy_and_cdrom_drives_proc(HWND hdlg, UINT message, WPARAM wParam
 		settings_set_cur_sel(hdlg, IDC_COMBO_CD_BUS, b);
 		cdrom_recalc_location_controls(hdlg, 0);
 
+		settings_listview_enable_styles(hdlg, IDC_LIST_CDROM_DRIVES);
+
 		ignore_change = 0;
 		return TRUE;
 
@@ -4452,13 +4505,6 @@ win_settings_floppy_and_cdrom_drives_proc(HWND hdlg, UINT message, WPARAM wParam
 			lv1_current_sel = get_selected_drive(hdlg, IDC_LIST_FLOPPY_DRIVES);
 			if (lv1_current_sel == old_sel)
 				return FALSE;
-			else if (lv1_current_sel == -1) {
-				ignore_change = 1;
-				lv1_current_sel = old_sel;
-				settings_listview_select(hdlg, IDC_LIST_FLOPPY_DRIVES, lv1_current_sel);
-				ignore_change = 0;
-				return FALSE;
-			}
 			ignore_change = 1;
 			settings_set_cur_sel(hdlg, IDC_COMBO_FD_TYPE, temp_fdd_types[lv1_current_sel]);
 			settings_set_check(hdlg, IDC_CHECKTURBO, temp_fdd_turbo[lv1_current_sel]);
@@ -4469,13 +4515,6 @@ win_settings_floppy_and_cdrom_drives_proc(HWND hdlg, UINT message, WPARAM wParam
 			lv2_current_sel = get_selected_drive(hdlg, IDC_LIST_CDROM_DRIVES);
 			if (lv2_current_sel == old_sel)
 				return FALSE;
-			else if (lv2_current_sel == -1) {
-				ignore_change = 1;
-				lv2_current_sel = old_sel;
-				settings_listview_select(hdlg, IDC_LIST_CDROM_DRIVES, lv2_current_sel);
-				ignore_change = 0;
-				return FALSE;
-			}
 			ignore_change = 1;
 
 			switch (temp_cdrom[lv2_current_sel].bus_type) {
@@ -4616,6 +4655,8 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 		settings_set_cur_sel(hdlg, IDC_COMBO_MO_BUS, b);
 		mo_recalc_location_controls(hdlg, 0);
 
+		settings_listview_enable_styles(hdlg, IDC_LIST_MO_DRIVES);
+
 		lv2_current_sel = 0;
 		win_settings_zip_drives_init_columns(hdlg);
 		image_list_init(hdlg, IDC_LIST_ZIP_DRIVES, (const uint8_t *) zip_icons);
@@ -4638,6 +4679,8 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 		settings_set_cur_sel(hdlg, IDC_COMBO_ZIP_BUS, b);
 		zip_recalc_location_controls(hdlg, 0);
 
+		settings_listview_enable_styles(hdlg, IDC_LIST_ZIP_DRIVES);
+
 		ignore_change = 0;
 		return TRUE;
 
@@ -4650,13 +4693,6 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 			lv1_current_sel = get_selected_drive(hdlg, IDC_LIST_MO_DRIVES);
 			if (lv1_current_sel == old_sel)
 				return FALSE;
-			else if (lv1_current_sel == -1) {
-				ignore_change = 1;
-				lv1_current_sel = old_sel;
-				settings_listview_select(hdlg, IDC_LIST_MO_DRIVES, lv1_current_sel);
-				ignore_change = 0;
-				return FALSE;
-			}
 			ignore_change = 1;
 
 			switch (temp_mo_drives[lv1_current_sel].bus_type) {
@@ -4680,13 +4716,6 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 			lv2_current_sel = get_selected_drive(hdlg, IDC_LIST_ZIP_DRIVES);
 			if (lv2_current_sel == old_sel)
 				return FALSE;
-			else if (lv2_current_sel == -1) {
-				ignore_change = 1;
-				lv2_current_sel = old_sel;
-				settings_listview_select(hdlg, IDC_LIST_ZIP_DRIVES, lv2_current_sel);
-				ignore_change = 0;
-				return FALSE;
-			}
 			ignore_change = 1;
 
 			switch (temp_zip_drives[lv2_current_sel].bus_type) {
@@ -4900,7 +4929,7 @@ win_settings_confirm(HWND hdlg, int button)
     int i;
 
     SendMessage(hwndChildDialog, WM_SAVESETTINGS, 0, 0);
-    i = settings_msgbox_reset();
+    i = settings_msgbox_reset(button);
     if (i > 0) {
 	if (i == 2)
 		win_settings_save();
@@ -4937,6 +4966,7 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		image_list_init(hdlg, IDC_SETTINGSCATLIST, (const uint8_t *) cat_icons);
 		win_settings_main_insert_categories(h);
 		settings_listview_select(hdlg, IDC_SETTINGSCATLIST, first_cat);
+		settings_listview_enable_styles(hdlg, IDC_SETTINGSCATLIST);
 		return TRUE;
 	case WM_NOTIFY:
 		if ((((LPNMHDR)lParam)->code == LVN_ITEMCHANGED) && (((LPNMHDR)lParam)->idFrom == IDC_SETTINGSCATLIST)) {

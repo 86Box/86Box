@@ -281,7 +281,7 @@ fdc37c669_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
-    io_sethandler(0x3f0, 0x0002,
+    io_sethandler(info->local ? 0x370 : 0x3f0, 0x0002,
 		  fdc37c669_read, NULL, NULL, fdc37c669_write, NULL, NULL, dev);
 
     fdc37c669_reset(dev);
@@ -294,6 +294,16 @@ const device_t fdc37c669_device = {
     "SMC FDC37C669 Super I/O",
     0,
     0,
+    fdc37c669_init, fdc37c669_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+
+const device_t fdc37c669_370_device = {
+    "SMC FDC37C669 Super I/O (Port 370h)",
+    0,
+    1,
     fdc37c669_init, fdc37c669_close, NULL,
     { NULL }, NULL, NULL,
     NULL

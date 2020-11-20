@@ -25,6 +25,7 @@ extern const device_t	fdc37c663_device;
 extern const device_t	fdc37c665_device;
 extern const device_t	fdc37c666_device;
 extern const device_t	fdc37c669_device;
+extern const device_t	fdc37c669_370_device;
 extern const device_t	fdc37c931apm_device;
 extern const device_t	fdc37c931apm_compaq_device;
 extern const device_t	fdc37c932fr_device;

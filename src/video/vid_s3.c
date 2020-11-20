@@ -2664,7 +2664,7 @@ s3_accel_in(uint16_t port, void *p)
 			wake_fifo_thread(s3);
 		temp = 0;
 		if ((s3->chip >= S3_86C928) && s3_enable_fifo(s3)) {
-			if (!FIFO_EMPTY || s3->busy || s3->force_busy)
+			if (!FIFO_EMPTY || s3->force_busy)
 				temp |= 0x02; /*Hardware busy*/
 			else
 				temp |= 0x04; /*FIFO empty*/

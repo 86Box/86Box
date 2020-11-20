@@ -35,6 +35,7 @@
 #include <86box/pit.h>
 #include <86box/apm.h>
 #include <86box/acpi.h>
+#include <86box/machine.h>
 
 
 #ifdef ENABLE_ACPI_LOG
@@ -82,34 +83,23 @@ acpi_update_irq(void *priv)
 
 
 static void
-acpi_raise_smi_common(void *priv)
-{
-    acpi_t *dev = (acpi_t *) priv;
-
-    if ((dev->vendor == VEN_VIA) || (dev->vendor == VEN_VIA_596B)) {
-	    if ((!dev->regs.smi_lock || !dev->regs.smi_active)) {
-		smi_line = 1;
-		dev->regs.smi_active = 1;
-    	}
-    } else if (dev->vendor == VEN_INTEL) {
-	smi_line = 1;
-	/* Clear bit 16 of GLBCTL. */
-	dev->regs.glbctl &= ~0x00010000;
-    } else if (dev->vendor == VEN_SMC)
-	smi_line = 1;
-}
-
-
-static void
 acpi_raise_smi(void *priv)
 {
     acpi_t *dev = (acpi_t *) priv;
 
-    if ((dev->vendor == VEN_INTEL) && !(dev->regs.glbctl & 0x00010000))
-	return;
-
-    if (dev->regs.glbctl & 0x01)
-	acpi_raise_smi_common(dev);
+    if (dev->regs.glbctl & 0x01) {
+	if ((dev->vendor == VEN_VIA) || (dev->vendor == VEN_VIA_596B)) {
+		    if ((!dev->regs.smi_lock || !dev->regs.smi_active)) {
+			smi_line = 1;
+			dev->regs.smi_active = 1;
+	    	}
+	} else if (dev->vendor == VEN_INTEL) {
+		smi_line = 1;
+		/* Clear bit 16 of GLBCTL. */
+		dev->regs.glbctl &= ~0x00010000;
+	} else if (dev->vendor == VEN_SMC)
+		smi_line = 1;
+    }
 }
 
 
@@ -1119,7 +1109,7 @@ acpi_apm_out(uint16_t port, uint8_t val, void *p)
 	if (dev->apm->do_smi) {
 		if (dev->vendor == VEN_INTEL)
 			dev->regs.glbsts |= 0x20;
-		acpi_raise_smi_common(dev);
+		acpi_raise_smi(dev);
 	}
     } else
 	dev->apm->stat = val;
@@ -1167,8 +1157,14 @@ acpi_reset(void *priv)
 	   - Bit 11: ATX power (active high)
 	   - Bit  4: 80-conductor cable on primary IDE channel (active low)
 	   - Bit  3: 80-conductor cable on secondary IDE channel (active low)
-	   - Bit  2: password cleared (active low) */
-	dev->regs.gpi_val = 0xffffffe7;
+	   - Bit  2: password cleared (active low)
+	   AEWIN WCF-681:
+	   - Bit  3: 80-conductor cable on primary IDE channel (active low)
+	   - Bit  2: 80-conductor cable on secondary IDE channel (active low)
+	   Acorp 6VIA85X:
+	   - Bit  3: 80-conductor cable on secondary IDE channel (active low)
+	   - Bit  1: 80-conductor cable on primary IDE channel (active low) */
+	dev->regs.gpi_val = !strcmp(machines[machine].internal_name, "wcf681") ? 0xffffffe3 : 0xffffffe5;
     }
 }
 

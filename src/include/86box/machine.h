@@ -85,6 +85,8 @@
 
 #define IS_ARCH(m, a)		(machines[(m)].flags & (a)) ? 1 : 0;
 
+#define MACHINE_MULTIPLIER_FIXED -1, -1
+
 
 enum {
     MACHINE_TYPE_NONE = 0,
@@ -142,14 +144,14 @@ typedef struct _machine_ {
     const char	*name;
     const char	*internal_name;
     const char  type;
-    struct {
-	const char *name;
-#ifdef EMU_CPU_H
-	CPU *cpus;
-#else
-	void *cpus;
-#endif
-    }		cpu[5];
+    uint32_t	cpu_package;
+    uint64_t	cpu_block;
+    uint32_t	cpu_min_bus;
+    uint32_t	cpu_max_bus;
+    uint16_t	cpu_min_voltage;
+    uint16_t	cpu_max_voltage;
+    double	cpu_min_multi;
+    double	cpu_max_multi;
     int		flags;
     uint32_t	min_ram, max_ram;
     int		ram_granularity;

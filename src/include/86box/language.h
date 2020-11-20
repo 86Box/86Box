@@ -96,7 +96,7 @@
 #define IDS_2120	2120		// "No ROMs found"
 #define IDS_2121	2121		// "Save changes\nThis will hard..."
 #define IDS_2122	2122		// "Discard changes\nAll changes..."
-#define IDS_2123	2123		// "Cancel\nGo back to the..."
+#define IDS_2123	2123		// "Do you want to save the settings?"
 #define IDS_2124	2124		// "About 86Box"
 #define IDS_2125	2125		// "86Box v" EMU_VERSION
 #define IDS_2126	2126		// "An emulator of old computers..."

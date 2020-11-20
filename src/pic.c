@@ -196,6 +196,9 @@ pic_update_pending(void)
 		pic.irr |= (1 << pic2.icw3);
 	else
 		pic.irr &= ~(1 << pic2.icw3);
+
+	pic.int_pending = (find_best_interrupt(&pic) != -1);
+	return;
     }
 
     if (find_best_interrupt(&pic) != -1) {

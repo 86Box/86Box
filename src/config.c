@@ -509,11 +509,20 @@ load_machine(void)
 {
     char *cat = "Machine";
     char *p;
+    int c, i, speed, legacy_mfg, legacy_cpu;
+    double multi;
 
     p = config_get_string(cat, "machine", NULL);
-    if (p != NULL)
-	machine = machine_get_machine_from_internal_name(p);
-      else 
+    if (p != NULL) {
+	if (! strcmp(p, "8500ttc")) /* fix typo */
+		machine = machine_get_machine_from_internal_name("8600ttc");
+	else if (! strcmp(p, "president")) /* migrate removed machine */
+		machine = machine_get_machine_from_internal_name("mb500n");
+	else if (! strcmp(p, "j656vxd")) /* migrate removed machine */
+		machine = machine_get_machine_from_internal_name("p55va");
+	else
+		machine = machine_get_machine_from_internal_name(p);
+    } else 
 	machine = 0;
     if (machine >= machine_count())
 	machine = machine_count() - 1;
@@ -521,36 +530,106 @@ load_machine(void)
     /* This is for backwards compatibility. */
     p = config_get_string(cat, "model", NULL);
     if (p != NULL) {
-	/* Detect the old model typos and fix them. */
-	if (! strcmp(p, "p55r2p4")) {
+	if (! strcmp(p, "p55r2p4")) /* fix typo */
 		machine = machine_get_machine_from_internal_name("p55t2p4");
-	} else if (! strcmp(p, "8500ttc")) {
-		machine = machine_get_machine_from_internal_name("8600ttc");
-	} else {
+	else
 		machine = machine_get_machine_from_internal_name(p);
-	}
 	config_delete_var(cat, "model");
     }
     if (machine >= machine_count())
 	machine = machine_count() - 1;
 
-    cpu_manufacturer = config_get_int(cat, "cpu_manufacturer", 0);
-    if ((cpu_manufacturer >= (sizeof(machines[machine].cpu) / sizeof(machines[machine].cpu[0]))) ||
-	(machines[machine].cpu[cpu_manufacturer].cpus == NULL))
-	cpu_manufacturer = 0;
+    cpu_f = NULL;
+    p = config_get_string(cat, "cpu_family", NULL);
+    if (p) {
+	cpu_f = cpu_get_family(p);
 
-    cpu = config_get_int(cat, "cpu", 0);
-    for (int i = 0; i != cpu; i++) {
-	if (machines[machine].cpu[cpu_manufacturer].cpus[i].cpu_type == -1) {
-		cpu = 0;
-		break;
+	if (cpu_f && !cpu_family_is_eligible(cpu_f, machine)) /* only honor eligible families */
+		cpu_f = NULL;
+    } else {
+	/* Backwards compatibility with the previous CPU model system. */
+	legacy_mfg = config_get_int(cat, "cpu_manufacturer", 0);
+	legacy_cpu = config_get_int(cat, "cpu", 0);
+
+	/* Check if either legacy ID is present, and if they are within bounds. */
+	if (((legacy_mfg > 0) || (legacy_cpu > 0)) && (legacy_mfg >= 0) && (legacy_mfg < 4) && (legacy_cpu >= 0)) {
+		/* Look for a machine entry on the legacy table. */
+		p = machine_get_internal_name();
+		c = 0;
+		while (cpu_legacy_table[c].machine) {
+			if (!strcmp(p, cpu_legacy_table[c].machine))
+				break;
+			c++;
+		}
+		if (cpu_legacy_table[c].machine) {
+			/* Determine the amount of CPU entries on the table. */
+			i = -1;
+			while (cpu_legacy_table[c].tables[legacy_mfg][++i].family);
+
+			/* If the CPU ID is out of bounds, reset to the last known ID. */
+			if (legacy_cpu >= i)
+				legacy_cpu = i - 1;
+
+			const cpu_legacy_table_t *legacy_table_entry = &cpu_legacy_table[c].tables[legacy_mfg][legacy_cpu];
+
+			/* Check if the referenced family exists. */
+			cpu_f = cpu_get_family(legacy_table_entry->family);
+			if (cpu_f) {
+				/* Save the new values. */
+				config_set_string(cat, "cpu_family", (char *) legacy_table_entry->family);
+				config_set_int(cat, "cpu_speed", legacy_table_entry->rspeed);
+				config_set_double(cat, "cpu_multi", legacy_table_entry->multi);
+			}
+		}
 	}
     }
+
+    if (cpu_f) {
+	speed = config_get_int(cat, "cpu_speed", 0);
+	multi = config_get_double(cat, "cpu_multi", 0);
+
+	/* Find the configured CPU. */
+	cpu = 0;
+	c = 0;
+	i = 256;
+	while (cpu_f->cpus[cpu].cpu_type) {
+		if (cpu_is_eligible(cpu_f, cpu, machine)) { /* skip ineligible CPUs */
+			if ((cpu_f->cpus[cpu].rspeed == speed) && (cpu_f->cpus[cpu].multi == multi)) /* exact speed/multiplier match */
+				break;
+			else if ((cpu_f->cpus[cpu].rspeed >= speed) && (i == 256)) /* closest speed match */
+				i = cpu;
+			c = cpu; /* store fastest eligible CPU */
+		}
+		cpu++;
+	}
+	if (!cpu_f->cpus[cpu].cpu_type) /* if no exact match was found, use closest matching faster CPU, or fastest eligible CPU */
+		cpu = MIN(i, c);
+    } else { /* default */
+	/* Find first eligible family. */
+	c = 0;
+	while (!cpu_family_is_eligible(&cpu_families[c], machine)) {
+		if (cpu_families[c++].package == 0) { /* end of list */
+			fatal("No eligible CPU families for the selected machine\n");
+			return;
+		}
+	}
+	cpu_f = (cpu_family_t *) &cpu_families[c];
+
+	/* Find first eligible CPU in that family. */
+	cpu = 0;
+	while (!cpu_is_eligible(cpu_f, cpu, machine)) {
+		if (cpu_f->cpus[cpu++].cpu_type == 0) { /* end of list */
+			cpu = 0;
+			break;
+		}
+	}
+    }
+    cpu_s = (CPU *) &cpu_f->cpus[cpu];
 
     cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
 
     p = (char *)config_get_string(cat, "fpu_type", "none");
-    fpu_type = fpu_get_type(machine, cpu_manufacturer, cpu, p);
+    fpu_type = fpu_get_type(cpu_f, cpu, p);
 
     mem_size = config_get_int(cat, "mem_size", 4096);
 	
@@ -1045,7 +1124,7 @@ load_floppy_drives(void)
     for (c=0; c<FDD_NUM; c++) {
 	sprintf(temp, "fdd_%02i_type", c+1);
 	p = config_get_string(cat, temp, (c < 2) ? "525_2dd" : "none");
-       	fdd_set_type(c, fdd_get_from_internal_name(p));
+   	fdd_set_type(c, fdd_get_from_internal_name(p));
 	if (fdd_get_type(c) > 13)
 		fdd_set_type(c, 13);
 	config_delete_var(cat, temp);
@@ -1108,7 +1187,7 @@ load_floppy_and_cdrom_drives(void)
     for (c=0; c<FDD_NUM; c++) {
 	sprintf(temp, "fdd_%02i_type", c+1);
 	p = config_get_string(cat, temp, (c < 2) ? "525_2dd" : "none");
-       	fdd_set_type(c, fdd_get_from_internal_name(p));
+   	fdd_set_type(c, fdd_get_from_internal_name(p));
 	if (fdd_get_type(c) > 13)
 		fdd_set_type(c, 13);
 
@@ -1519,13 +1598,14 @@ config_load(void)
     memset(zip_drives, 0, sizeof(zip_drive_t));
 
     if (! config_read(cfg_path)) {
+	cpu_f = (cpu_family_t *) &cpu_families[0];
 	cpu = 0;
 #ifdef USE_LANGUAGE
 	plat_langid = 0x0409;
 #endif
 	scale = 1;
 	machine = machine_get_machine_from_internal_name("ibmpc");
-	fpu_type = fpu_get_type(machine, cpu_manufacturer, cpu, "none");
+	fpu_type = fpu_get_type(cpu_f, cpu, "none");
 	gfxcard = video_get_video_from_internal_name("cga");
 	vid_api = plat_vidapi("default");
 	time_sync = TIME_SYNC_ENABLED;
@@ -1671,14 +1751,14 @@ save_general(void)
 	config_delete_var(cat, "sound_gain");
 
     if (confirm_reset != 1)
-    	config_set_int(cat, "confirm_reset", confirm_reset);
+	config_set_int(cat, "confirm_reset", confirm_reset);
     else
-    	config_delete_var(cat, "confirm_reset");
+	config_delete_var(cat, "confirm_reset");
 
     if (confirm_exit != 1)
-    	config_set_int(cat, "confirm_exit", confirm_exit);
+	config_set_int(cat, "confirm_exit", confirm_exit);
     else
-    	config_delete_var(cat, "confirm_exit");
+	config_delete_var(cat, "confirm_exit");
 
 #ifdef USE_LANGUAGE
     if (plat_langid == 0x0409)
@@ -1703,18 +1783,67 @@ static void
 save_machine(void)
 {
     char *cat = "Machine";
+    char *p;
+    int c, i = 0, legacy_mfg, legacy_cpu = -1, closest_legacy_cpu = -1;
 
-    config_set_string(cat, "machine", machine_get_internal_name());
+    p = machine_get_internal_name();
+    config_set_string(cat, "machine", p);
 
-    if (cpu_manufacturer == 0)
-	config_delete_var(cat, "cpu_manufacturer");
-      else
-	config_set_int(cat, "cpu_manufacturer", cpu_manufacturer);
+    config_set_string(cat, "cpu_family", (char *) cpu_f->internal_name);
+    config_set_int(cat, "cpu_speed", cpu_f->cpus[cpu].rspeed);
+    config_set_double(cat, "cpu_multi", cpu_f->cpus[cpu].multi);
 
-    if (cpu == 0)
-	config_delete_var(cat, "cpu");
-      else
-	config_set_int(cat, "cpu", cpu);
+    /* Forwards compatibility with the previous CPU model system. */
+    config_delete_var(cat, "cpu_manufacturer");
+    config_delete_var(cat, "cpu");
+
+    /* Look for a machine entry on the legacy table. */
+    c = 0;
+    while (cpu_legacy_table[c].machine) {
+	if (!strcmp(p, cpu_legacy_table[c].machine))
+		break;
+	c++;
+    }
+    if (cpu_legacy_table[c].machine) {
+	/* Look for a corresponding CPU entry. */
+	cpu_legacy_table_t *legacy_table_entry;
+	for (legacy_mfg = 0; legacy_mfg < 4; legacy_mfg++) {
+		if (!cpu_legacy_table[c].tables[legacy_mfg])
+			continue;
+
+		i = 0;
+		do {
+			legacy_table_entry = (cpu_legacy_table_t *) &cpu_legacy_table[c].tables[legacy_mfg][i];
+
+			/* Match the family name, speed and multiplier. */
+			if (!strcmp(cpu_f->internal_name, legacy_table_entry->family)) {
+				if ((legacy_table_entry->rspeed == cpu_f->cpus[cpu].rspeed) && 
+				    (legacy_table_entry->multi == cpu_f->cpus[cpu].multi)) { /* exact speed/multiplier match */
+					legacy_cpu = i;
+					break;
+				} else if ((legacy_table_entry->rspeed >= cpu_f->cpus[cpu].rspeed) &&
+					   (closest_legacy_cpu == -1)) { /* closest speed match */
+					closest_legacy_cpu = i;
+				}
+			}
+		} while (cpu_legacy_table[c].tables[legacy_mfg][++i].family);
+
+		/* Use the closest speed match if no exact match was found. */
+		if ((legacy_cpu == -1) && (closest_legacy_cpu > -1)) {
+			legacy_cpu = closest_legacy_cpu;
+			break;
+		} else if (legacy_cpu > -1) /* exact match found */
+			break;
+	}
+
+	/* Set legacy values if a match was found. */
+	if (legacy_cpu > -1) {
+		if (legacy_mfg)
+			config_set_int(cat, "cpu_manufacturer", legacy_mfg);
+		if (legacy_cpu)
+			config_set_int(cat, "cpu", legacy_cpu);
+	}
+    }
 
     if (cpu_waitstates == 0)
 	config_delete_var(cat, "cpu_waitstates");
@@ -1724,7 +1853,7 @@ save_machine(void)
     if (fpu_type == 0)
 	config_delete_var(cat, "fpu_type");
       else
-	config_set_string(cat, "fpu_type", (char *) fpu_get_internal_name(machine, cpu_manufacturer, cpu, fpu_type));
+	config_set_string(cat, "fpu_type", (char *) fpu_get_internal_name(cpu_f, cpu, fpu_type));
 
     if (mem_size == 4096)
 	config_delete_var(cat, "mem_size");
@@ -2332,6 +2461,27 @@ config_get_int(char *head, char *name, int def)
 }
 
 
+double
+config_get_double(char *head, char *name, double def)
+{
+    section_t *section;
+    entry_t *entry;
+    double value;
+
+    section = find_section(head);
+    if (section == NULL)
+	return(def);
+		
+    entry = find_entry(section, name);
+    if (entry == NULL)
+	return(def);
+
+    sscanf(entry->data, "%lg", &value);
+
+    return(value);
+}
+
+
 int
 config_get_hex16(char *head, char *name, int def)
 {
@@ -2446,6 +2596,25 @@ config_set_int(char *head, char *name, int val)
 	ent = create_entry(section, name);
 
     sprintf(ent->data, "%i", val);
+    mbstowcs(ent->wdata, ent->data, 512);
+}
+
+
+void
+config_set_double(char *head, char *name, double val)
+{
+    section_t *section;
+    entry_t *ent;
+
+    section = find_section(head);
+    if (section == NULL)
+	section = create_section(head);
+
+    ent = find_entry(section, name);
+    if (ent == NULL)
+	ent = create_entry(section, name);
+
+    sprintf(ent->data, "%lg", val);
     mbstowcs(ent->wdata, ent->data, 512);
 }
 
