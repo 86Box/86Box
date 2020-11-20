@@ -413,7 +413,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		wp = 1;
 		/* FALLTHROUGH */
 	case IDM_FLOPPY_IMAGE_EXISTING:
-		ret = file_dlg_w_st(hwnd, IDS_2109, floppyfns[id], 0);
+		ret = file_dlg_w_st(hwnd, IDS_2109, floppyfns[id], NULL, 0);
 		if (! ret) {
 			floppy_mount(id, wopenfilestring, wp);
 		}
@@ -424,7 +424,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case IDM_FLOPPY_EXPORT_TO_86F:
-		ret = file_dlg_w_st(hwnd, IDS_2076, floppyfns[id], 1);
+		ret = file_dlg_w_st(hwnd, IDS_2076, floppyfns[id], NULL, 1);
 		if (! ret) {
 			plat_pause(1);
 			ret = d86f_export(id, wopenfilestring);
@@ -450,7 +450,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case IDM_CDROM_IMAGE:
-		if (!file_dlg_w_st(hwnd, IDS_2075, cdrom[id].image_path, 0)) {
+		if (!file_dlg_w_st(hwnd, IDS_2075, cdrom[id].image_path, NULL, 0)) {
 			cdrom_mount(id, wopenfilestring);
 		}
 		break;
@@ -463,7 +463,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		wp = 1;
 		/* FALLTHROUGH */
 	case IDM_ZIP_IMAGE_EXISTING:
-		ret = file_dlg_w_st(hwnd, IDS_2058, zip_drives[id].image_path, 0);
+		ret = file_dlg_w_st(hwnd, IDS_2058, zip_drives[id].image_path, NULL, 0);
 		if (! ret)
 			zip_mount(id, wopenfilestring, wp);
 		break;
@@ -484,7 +484,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		wp = 1;
 		/* FALLTHROUGH */
 	case IDM_MO_IMAGE_EXISTING:
-		ret = file_dlg_w_st(hwnd, IDS_2116, mo_drives[id].image_path, 0);
+		ret = file_dlg_w_st(hwnd, IDS_2116, mo_drives[id].image_path, NULL, 0);
 		if (! ret)
 			mo_mount(id, wopenfilestring, wp);
 		break;

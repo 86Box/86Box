@@ -140,6 +140,19 @@
 #define IDS_4119	4119		// "Unsupported disk image"
 #define IDS_4120	4120		// "Overwrite"
 #define IDS_4121	4121		// "Don't Overwrite"
+#define IDS_4122	4122		// "Raw image (.img)"
+#define IDS_4123	4123		// "HDI image (.hdi)"
+#define IDS_4124	4124		// "HDX image (.hdx)"
+#define IDS_4125	4125		// "Fixed-size VHD (.vhd)"
+#define IDS_4126	4126		// "Dynamic-size VHD (.vhd)"
+#define IDS_4127	4127		// "Differencing VHD (.vhd)"
+#define IDS_4128	4128		// "Large blocks (2 MB)"
+#define IDS_4129	4129		// "Small blocks (512 KB)"
+#define IDS_4130	4130		// "VHD files (*.VHD)\0*.VHD\0All files (*.*)\0*.*\0"
+#define IDS_4131	4131		// "Select the parent VHD"
+#define IDS_4132	4132		// "WARNING: VHD PARENT/CHILD TIMESTAMPS DO NOT MATCH..."
+#define IDS_4133	4133		// "VHD Timestamp Mismatch"
+#define IDS_4134	4134		// "Could not fix VHD timestamp."
 
 #define IDS_4352	4352		// "MFM/RLL"
 #define IDS_4353	4353		// "XT IDE"
@@ -209,7 +222,7 @@
 
 #define STR_NUM_2048	92
 #define STR_NUM_3072	11
-#define STR_NUM_4096	18
+#define STR_NUM_4096	39
 #define STR_NUM_4352	6
 #define STR_NUM_4608	6
 #define STR_NUM_5120	1

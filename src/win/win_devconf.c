@@ -412,7 +412,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 									ws[c] = 0;
 							}
 
-							if (!file_dlg(hdlg, ws, s, 0))
+							if (!file_dlg(hdlg, ws, s, NULL, 0))
 								SendMessage(h, WM_SETTEXT, 0, (LPARAM)wopenfilestring);
 						}
 						break;

@@ -1060,6 +1060,11 @@ load_hard_disks(void)
 	 * files.  We should remove this before
 	 * finalizing this release!  --FvK
 	 */
+	/*
+	 * ANOTHER NOTE:
+	 * When loading differencing VHDs, the absolute path is required.
+	 * So we should not convert absolute paths to relative. -sards
+	 */
 	if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
 		/*
 		 * Yep, its absolute and prefixed
