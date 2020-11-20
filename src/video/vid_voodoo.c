@@ -390,7 +390,7 @@ static uint32_t voodoo_readl(uint32_t addr, void *p)
                 break;
                 
                 default:
-                fatal("voodoo_readl  : bad addr %08X\n", addr);
+                voodoo_log("voodoo_readl  : bad addr %08X\n", addr);
                 temp = 0xffffffff;
         }
         
