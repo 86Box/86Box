@@ -988,7 +988,7 @@ BEGIN
     IDS_2120	"No ROMs found"
     IDS_2121	"Save changes\nThis will hard reset the emulated machine."
     IDS_2122	"Discard changes\nAll changes made to the settings will be lost."
-    IDS_2123	"Cancel\nGo back to the Settings window."
+    IDS_2123	"Do you want to save the settings?"
     IDS_2124	"About 86Box"
     IDS_2125	"86Box v" EMU_VERSION
     IDS_2126	"An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information."
@@ -1021,9 +1021,9 @@ BEGIN
     IDS_2133	LIB_NAME_FLUIDSYNTH " is required for FluidSynth MIDI output."
     IDS_2134	"Entering fullscreen mode"
     IDS_2135	"Don't show this message again"
-    IDS_2136	"Don't Exit"
+    IDS_2136	"Don't exit"
     IDS_2137	"Reset"
-    IDS_2138	"Don't Reset"
+    IDS_2138	"Don't reset"
     IDS_2139	"MO images (*.IM?;*.MDI)\0*.IM?;*.MDI\0All files (*.*)\0*.*\0"
 END
 
@@ -1035,8 +1035,8 @@ BEGIN
     IDS_4099	"MFM/RLL or ESDI CD-ROM drives never existed"
     IDS_4100	"Custom..."
     IDS_4101	"Custom (large)..."
-    IDS_4102	"Add New Hard Disk"
-    IDS_4103	"Add Existing Hard Disk"
+    IDS_4102	"Add new hard disk"
+    IDS_4103	"Add existing hard disk"
     IDS_4104	"HDI disk images cannot be larger than 4 GB."
     IDS_4105	"Disk images cannot be larger than 127 GB."
     IDS_4106	"Hard disk images (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0All files (*.*)\0*.*\0"
@@ -1054,7 +1054,7 @@ BEGIN
     IDS_4118	"The selected file will be overwritten. Are you sure you want to use it?"
     IDS_4119	"Unsupported disk image"
     IDS_4120	"Overwrite"
-    IDS_4121	"Don't Overwrite"
+    IDS_4121	"Don't overwrite"
 
     IDS_4352    "MFM/RLL"
     IDS_4353    "XTA"

@@ -20,6 +20,7 @@
 #define BITMAP WINDOWS_BITMAP
 #include <windows.h>
 #include <windowsx.h>
+#include <uxtheme.h>
 #undef BITMAP
 #ifdef ENABLE_SETTINGS_LOG
 #include <assert.h>
@@ -208,12 +209,34 @@ settings_show_window(HWND hdlg, int id, int condition)
 
 
 static void
+settings_listview_enable_styles(HWND hdlg, int id)
+{
+    HWND h;
+
+    h = GetDlgItem(hdlg, id);
+    SetWindowTheme(h, L"Explorer", NULL);
+    ListView_SetExtendedListViewStyle(h, LVS_EX_FULLROWSELECT | LVS_EX_DOUBLEBUFFER);
+}
+
+
+static void
 settings_listview_select(HWND hdlg, int id, int selection)
 {
     HWND h;
 
     h = GetDlgItem(hdlg, id);
     ListView_SetItemState(h, selection, LVIS_FOCUSED | LVIS_SELECTED, 0x000F);
+}
+
+
+static void
+settings_process_messages()
+{
+    MSG msg;
+    while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
+	TranslateMessage(&msg); 
+	DispatchMessage(&msg);
+    }
 }
 
 
@@ -495,7 +518,7 @@ win_settings_changed(void)
 
 
 static int
-settings_msgbox_reset(void)
+settings_msgbox_reset(int button)
 {
     int changed, i = 0;
     HWND h;
@@ -506,7 +529,7 @@ settings_msgbox_reset(void)
 	h = hwndMain;
 	hwndMain = hwndParentDialog;
 
-	i = ui_msgbox_ex(MBX_QUESTION | MBX_LINKS, (wchar_t *) IDS_2051, NULL, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, (wchar_t *) IDS_2123);
+	i = ui_msgbox_ex(MBX_QUESTION | MBX_LINKS, (wchar_t *) (button ? IDS_2051 : IDS_2123), NULL, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, NULL);
 
 	hwndMain = h;
 
@@ -1067,6 +1090,8 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 
 			c++;
+
+			settings_process_messages();
 		}
 
 		settings_enable_window(hdlg, IDC_COMBO_VIDEO, !(machines[temp_machine].flags & MACHINE_VIDEO_ONLY));
@@ -2437,7 +2462,6 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
     uint8_t id = 0;
     wchar_t *twcs;
     vhd_footer_t *vft = NULL;
-    MSG msg;
 
     switch (message) {
 	case WM_INITDIALOG:
@@ -2606,10 +2630,7 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 							fwrite(big_buf, 1, 1048576, f);
 							SendMessage(h, PBM_SETPOS, (WPARAM) (i + 1), (LPARAM) 0);
 
-							while (PeekMessage(&msg, 0, 0, 0, PM_REMOVE | PM_NOYIELD)) {
-								TranslateMessage(&msg); 
-								DispatchMessage(&msg);
-							}
+							settings_process_messages();
 						}
 					}
 
@@ -3113,6 +3134,8 @@ win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPar
 		} else
 			lv1_current_sel = -1;
 		recalc_location_controls(hdlg, 0, 0);
+
+		settings_listview_enable_styles(hdlg, IDC_LIST_HARD_DISKS);
 
 		ignore_change = 0;
 		return TRUE;
@@ -4168,6 +4191,8 @@ win_settings_floppy_and_cdrom_drives_proc(HWND hdlg, UINT message, WPARAM wParam
 		settings_set_check(hdlg, IDC_CHECKTURBO, temp_fdd_turbo[lv1_current_sel]);
 		settings_set_check(hdlg, IDC_CHECKBPB, temp_fdd_check_bpb[lv1_current_sel]);
 
+		settings_listview_enable_styles(hdlg, IDC_LIST_FLOPPY_DRIVES);
+
 		lv2_current_sel = 0;
 		win_settings_cdrom_drives_init_columns(hdlg);
 		image_list_init(hdlg, IDC_LIST_CDROM_DRIVES, (const uint8_t *) cd_icons);
@@ -4189,6 +4214,8 @@ win_settings_floppy_and_cdrom_drives_proc(HWND hdlg, UINT message, WPARAM wParam
 		}
 		settings_set_cur_sel(hdlg, IDC_COMBO_CD_BUS, b);
 		cdrom_recalc_location_controls(hdlg, 0);
+
+		settings_listview_enable_styles(hdlg, IDC_LIST_CDROM_DRIVES);
 
 		ignore_change = 0;
 		return TRUE;
@@ -4352,6 +4379,8 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 		settings_set_cur_sel(hdlg, IDC_COMBO_MO_BUS, b);
 		mo_recalc_location_controls(hdlg, 0);
 
+		settings_listview_enable_styles(hdlg, IDC_LIST_MO_DRIVES);
+
 		lv2_current_sel = 0;
 		win_settings_zip_drives_init_columns(hdlg);
 		image_list_init(hdlg, IDC_LIST_ZIP_DRIVES, (const uint8_t *) zip_icons);
@@ -4373,6 +4402,8 @@ win_settings_other_removable_devices_proc(HWND hdlg, UINT message, WPARAM wParam
 		}
 		settings_set_cur_sel(hdlg, IDC_COMBO_ZIP_BUS, b);
 		zip_recalc_location_controls(hdlg, 0);
+
+		settings_listview_enable_styles(hdlg, IDC_LIST_ZIP_DRIVES);
 
 		ignore_change = 0;
 		return TRUE;
@@ -4622,7 +4653,7 @@ win_settings_confirm(HWND hdlg, int button)
     int i;
 
     SendMessage(hwndChildDialog, WM_SAVESETTINGS, 0, 0);
-    i = settings_msgbox_reset();
+    i = settings_msgbox_reset(button);
     if (i > 0) {
 	if (i == 2)
 		win_settings_save();
@@ -4659,6 +4690,7 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		image_list_init(hdlg, IDC_SETTINGSCATLIST, (const uint8_t *) cat_icons);
 		win_settings_main_insert_categories(h);
 		settings_listview_select(hdlg, IDC_SETTINGSCATLIST, first_cat);
+		settings_listview_enable_styles(hdlg, IDC_SETTINGSCATLIST);
 		return TRUE;
 	case WM_NOTIFY:
 		if ((((LPNMHDR)lParam)->code == LVN_ITEMCHANGED) && (((LPNMHDR)lParam)->idFrom == IDC_SETTINGSCATLIST)) {
