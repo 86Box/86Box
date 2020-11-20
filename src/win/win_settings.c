@@ -531,7 +531,7 @@ settings_msgbox_reset()
 	h = hwndMain;
 	hwndMain = hwndParentDialog;
 
-	i = ui_msgbox_ex(MBX_QUESTION_OK | MBX_WARNING, (wchar_t *) IDS_2051, (wchar_t *) IDS_2143, (wchar_t *) IDS_2141, NULL, NULL);
+	i = ui_msgbox_ex(MBX_QUESTION_OK | MBX_WARNING, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, (wchar_t *) IDS_2123, NULL, NULL);
 
 	hwndMain = h;
 
