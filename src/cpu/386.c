@@ -281,11 +281,6 @@ exec386(int cycs)
 			}
 		}
 
-		ins_cycles -= cycles;
-		tsc += ins_cycles;
-
-		cycdiff = oldcyc - cycles;
-
 		if (smi_line)
 			enter_smm_check(0);
 		else if (trap) {
@@ -335,6 +330,11 @@ exec386(int cycs)
 		}
 
 		cpu_end_block_after_ins = 0;
+
+		ins_cycles -= cycles;
+		tsc += ins_cycles;
+
+		cycdiff = oldcyc - cycles;
 
 		if (timetolive) {
 			timetolive--;

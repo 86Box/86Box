@@ -756,19 +756,6 @@ exec386_dynarec(int cycs)
 			exec386_dynarec_dyn();
 		}
 
-		cycdiff = oldcyc - cycles;
-		delta = tsc - oldtsc;
-		if (delta > 0) {
-			/* TSC has changed, this means interim timer processing has happened,
-			   see how much we still need to add. */
-			cycdiff -= delta;
-			if (cycdiff > 0)
-				tsc += cycdiff;
-		} else {
-			/* TSC has not changed. */
-			tsc += cycdiff;
-		}
-
 		if (cpu_state.abrt) {
 			flags_rebuild();
 			tempi = cpu_state.abrt & ABRT_MASK;
@@ -817,6 +804,19 @@ exec386_dynarec(int cycs)
 				cpu_state.oldpc = cpu_state.pc;
 				x86_int(vector);
 			}
+		}
+
+		cycdiff = oldcyc - cycles;
+		delta = tsc - oldtsc;
+		if (delta > 0) {
+			/* TSC has changed, this means interim timer processing has happened,
+			   see how much we still need to add. */
+			cycdiff -= delta;
+			if (cycdiff > 0)
+				tsc += cycdiff;
+		} else {
+			/* TSC has not changed. */
+			tsc += cycdiff;
 		}
 
 		if (cycdiff > 0) {
