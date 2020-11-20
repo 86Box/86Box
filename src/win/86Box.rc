@@ -1041,6 +1041,7 @@ BEGIN
     IDS_2141	"Save"
     IDS_2142	"Don't save"
     IDS_2143	"This will hard reset the virtual machine."
+    IDS_2144	"%hs Device Configuration"
 END
 
 STRINGTABLE DISCARDABLE 
