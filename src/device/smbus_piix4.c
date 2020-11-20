@@ -25,7 +25,7 @@
 #include <86box/io.h>
 #include <86box/device.h>
 #include <86box/timer.h>
-#include <86box/smbus.h>
+#include <86box/i2c.h>
 #include <86box/smbus_piix4.h>
 
 
@@ -59,22 +59,28 @@ smbus_piix4_read(uint16_t addr, void *priv)
 	case 0x00:
 		ret = dev->stat;
 		break;
+
 	case 0x02:
 		dev->index = 0; /* reading from this resets the block data index */
 		ret = dev->ctl;
 		break;
+
 	case 0x03:
 		ret = dev->cmd;
 		break;
+
 	case 0x04:
 		ret = dev->addr;
 		break;
+
 	case 0x05:
 		ret = dev->data0;
 		break;
+
 	case 0x06:
 		ret = dev->data1;
 		break;
+
 	case 0x07:
 		ret = dev->data[dev->index++];
 		if (dev->index >= SMBUS_PIIX4_BLOCK_DATA_SIZE)
@@ -82,7 +88,7 @@ smbus_piix4_read(uint16_t addr, void *priv)
 		break;
     }
 
-    smbus_piix4_log("SMBus PIIX4: read(%02x) = %02x\n", addr, ret);
+    smbus_piix4_log("SMBus PIIX4: read(%02X) = %02x\n", addr, ret);
 
     return ret;
 }
@@ -95,7 +101,7 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
     uint8_t smbus_addr, smbus_read, prev_stat;
     uint16_t temp;
 
-    smbus_piix4_log("SMBus PIIX4: write(%02x, %02x)\n", addr, val);
+    smbus_piix4_log("SMBus PIIX4: write(%02X, %02X)\n", addr, val);
 
     prev_stat = dev->next_stat;
     dev->next_stat = 0;
@@ -107,6 +113,7 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 				dev->stat &= ~smbus_addr;
 		}
 		break;
+
 	case 0x02:
 		dev->ctl = val & ~(0x40); /* START always reads 0 */
 		if (val & 0x02) { /* cancel an in-progress command if KILL is set */
@@ -118,49 +125,53 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 		}
 		if (val & 0x40) { /* dispatch command if START is set */
 			smbus_addr = (dev->addr >> 1);
-			if (!smbus_has_device(smbus_addr)) {
+			if (!i2c_has_device(i2c_smbus, smbus_addr)) {
 				/* raise DEV_ERR if no device is at this address */
 				dev->next_stat = 0x4;
 				break;
 			}
-			smbus_read = (dev->addr & 0x01);
+			smbus_read = dev->addr & 0x01;
 
 			/* decode the 3-bit command protocol */
 			dev->next_stat = 0x2; /* raise INTER (command completed) by default */
 			switch ((val >> 2) & 0x7) {
 				case 0x0: /* quick R/W */
+					if (smbus_read)
+						i2c_read_quick(i2c_smbus, smbus_addr);
+					else
+						i2c_write_quick(i2c_smbus, smbus_addr);
 					break;
 
 				case 0x1: /* byte R/W */
 					if (smbus_read)
-						dev->data0 = smbus_read_byte(smbus_addr);
+						dev->data0 = i2c_read_byte(i2c_smbus, smbus_addr);
 					else
-						smbus_write_byte(smbus_addr, dev->data0);
+						i2c_write_byte(i2c_smbus, smbus_addr, dev->data0);
 					break;
 
 				case 0x2: /* byte data R/W */
 					if (smbus_read)
-						dev->data0 = smbus_read_byte_cmd(smbus_addr, dev->cmd);
+						dev->data0 = i2c_read_byte_cmd(i2c_smbus, smbus_addr, dev->cmd);
 					else
-						smbus_write_byte_cmd(smbus_addr, dev->cmd, dev->data0);
+						i2c_write_byte_cmd(i2c_smbus, smbus_addr, dev->cmd, dev->data0);
 					break;
 
 				case 0x3: /* word data R/W */
 					if (smbus_read) {
-						temp = smbus_read_word_cmd(smbus_addr, dev->cmd);
-						dev->data0 = (temp & 0xFF);
-						dev->data1 = (temp >> 8);
+						temp = i2c_read_word_cmd(i2c_smbus, smbus_addr, dev->cmd);
+						dev->data0 = temp;
+						dev->data1 = temp >> 8;
 					} else {
-						temp = ((dev->data1 << 8) | dev->data0);
-						smbus_write_word_cmd(smbus_addr, dev->cmd, temp);
+						temp = (dev->data1 << 8) | dev->data0;
+						i2c_write_word_cmd(i2c_smbus, smbus_addr, dev->cmd, temp);
 					}
 					break;
 
 				case 0x5: /* block R/W */
 					if (smbus_read)
-						dev->data0 = smbus_read_block_cmd(smbus_addr, dev->cmd, dev->data, SMBUS_PIIX4_BLOCK_DATA_SIZE);
+						dev->data0 = i2c_read_block_cmd(i2c_smbus, smbus_addr, dev->cmd, dev->data, SMBUS_PIIX4_BLOCK_DATA_SIZE);
 					else
-						smbus_write_block_cmd(smbus_addr, dev->cmd, dev->data, dev->data0);
+						i2c_write_block_cmd(i2c_smbus, smbus_addr, dev->cmd, dev->data, dev->data0);
 					break;
 
 				default:
@@ -170,18 +181,23 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 			}
 		}
 		break;
+
 	case 0x03:
 		dev->cmd = val;
 		break;
+
 	case 0x04:
 		dev->addr = val;
 		break;
+
 	case 0x05:
 		dev->data0 = val;
 		break;
+
 	case 0x06:
 		dev->data1 = val;
 		break;
+
 	case 0x07:
 		dev->data[dev->index++] = val;
 		if (dev->index >= SMBUS_PIIX4_BLOCK_DATA_SIZE)
@@ -189,7 +205,7 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 		break;
     }
 
-    /* if a status register update was given, dispatch it after 10ms to ensure nothing breaks */
+    /* if a status register update was given, dispatch it after 10us to ensure nothing breaks */
     if (dev->next_stat) {
 	dev->stat = 0x1; /* raise HOST_BUSY while waiting */
 	timer_disable(&dev->response_timer);
@@ -228,7 +244,8 @@ smbus_piix4_init(const device_t *info)
     smbus_piix4_t *dev = (smbus_piix4_t *) malloc(sizeof(smbus_piix4_t));
     memset(dev, 0, sizeof(smbus_piix4_t));
 
-    smbus_init();
+    i2c_smbus = i2c_addbus("smbus_piix4");
+
     timer_add(&dev->response_timer, smbus_piix4_response, dev, 0);
 
     return dev;
@@ -239,6 +256,9 @@ static void
 smbus_piix4_close(void *priv)
 {
     smbus_piix4_t *dev = (smbus_piix4_t *) priv;
+
+    i2c_removebus(i2c_smbus);
+    i2c_smbus = NULL;
 
     free(dev);
 }

@@ -24,7 +24,6 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
-#include <86box/smbus.h>
 #include <86box/hwm.h>
 
 

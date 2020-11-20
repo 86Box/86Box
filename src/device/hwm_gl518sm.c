@@ -24,7 +24,7 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
-#include <86box/smbus.h>
+#include <86box/i2c.h>
 #include <86box/hwm.h>
 
  
@@ -41,17 +41,17 @@ typedef struct {
     uint16_t regs[32];
     uint8_t addr_register;
 
-    uint8_t smbus_addr;
+    uint8_t i2c_addr;
 } gl518sm_t;
 
 
-static uint8_t	gl518sm_smbus_read_byte(uint8_t addr, void *priv);
-static uint8_t	gl518sm_smbus_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv);
-static uint16_t	gl518sm_smbus_read_word_cmd(uint8_t addr, uint8_t cmd, void *priv);
+static uint8_t	gl518sm_i2c_read_byte(void *bus, uint8_t addr, void *priv);
+static uint8_t	gl518sm_i2c_read_byte_cmd(void *bus, uint8_t addr, uint8_t cmd, void *priv);
+static uint16_t	gl518sm_i2c_read_word_cmd(void *bus, uint8_t addr, uint8_t cmd, void *priv);
 static uint16_t	gl518sm_read(gl518sm_t *dev, uint8_t reg);
-static void	gl518sm_smbus_write_byte(uint8_t addr, uint8_t val, void *priv);
-static void	gl518sm_smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val, void *priv);
-static void	gl518sm_smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, void *priv);
+static void	gl518sm_i2c_write_byte(void *bus, uint8_t addr, uint8_t val, void *priv);
+static void	gl518sm_i2c_write_byte_cmd(void *bus, uint8_t addr, uint8_t cmd, uint8_t val, void *priv);
+static void	gl518sm_i2c_write_word_cmd(void *bus, uint8_t addr, uint8_t cmd, uint16_t val, void *priv);
 static uint8_t	gl518sm_write(gl518sm_t *dev, uint8_t reg, uint16_t val);
 static void	gl518sm_reset(gl518sm_t *dev);
 
@@ -79,24 +79,24 @@ gl518sm_log(const char *fmt, ...)
 static void
 gl518sm_remap(gl518sm_t *dev, uint8_t addr)
 {
-    gl518sm_log("GL518SM: remapping to SMBus %02Xh\n", addr);
+    gl518sm_log("GL518SM: remapping to I2C %02Xh\n", addr);
 
-    smbus_removehandler(dev->smbus_addr, 1,
-			gl518sm_smbus_read_byte, gl518sm_smbus_read_byte_cmd, gl518sm_smbus_read_word_cmd, NULL,
-			gl518sm_smbus_write_byte, gl518sm_smbus_write_byte_cmd, gl518sm_smbus_write_word_cmd, NULL,
-			dev);
+    i2c_removehandler(i2c_smbus, dev->i2c_addr, 1,
+		      NULL, gl518sm_i2c_read_byte, gl518sm_i2c_read_byte_cmd, gl518sm_i2c_read_word_cmd, NULL,
+		      NULL, gl518sm_i2c_write_byte, gl518sm_i2c_write_byte_cmd, gl518sm_i2c_write_word_cmd, NULL,
+		      dev);
 
-    if (addr < 0x80) smbus_sethandler(addr, 1,
-			gl518sm_smbus_read_byte, gl518sm_smbus_read_byte_cmd, gl518sm_smbus_read_word_cmd, NULL,
-			gl518sm_smbus_write_byte, gl518sm_smbus_write_byte_cmd, gl518sm_smbus_write_word_cmd, NULL,
-			dev);
+    if (addr < 0x80) i2c_sethandler(i2c_smbus, addr, 1,
+				    NULL, gl518sm_i2c_read_byte, gl518sm_i2c_read_byte_cmd, gl518sm_i2c_read_word_cmd, NULL,
+				    NULL, gl518sm_i2c_write_byte, gl518sm_i2c_write_byte_cmd, gl518sm_i2c_write_word_cmd, NULL,
+				    dev);
 
-    dev->smbus_addr = addr;
+    dev->i2c_addr = addr;
 }
 
 
 static uint8_t
-gl518sm_smbus_read_byte(uint8_t addr, void *priv)
+gl518sm_i2c_read_byte(void *bus, uint8_t addr, void *priv)
 {
     gl518sm_t *dev = (gl518sm_t *) priv;
     return gl518sm_read(dev, dev->addr_register);
@@ -104,7 +104,7 @@ gl518sm_smbus_read_byte(uint8_t addr, void *priv)
 
 
 static uint8_t
-gl518sm_smbus_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv)
+gl518sm_i2c_read_byte_cmd(void *bus, uint8_t addr, uint8_t cmd, void *priv)
 {
     gl518sm_t *dev = (gl518sm_t *) priv;
     return gl518sm_read(dev, cmd);
@@ -112,7 +112,7 @@ gl518sm_smbus_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv)
 
 
 static uint16_t
-gl518sm_smbus_read_word_cmd(uint8_t addr, uint8_t cmd, void *priv)
+gl518sm_i2c_read_word_cmd(void *bus, uint8_t addr, uint8_t cmd, void *priv)
 {
     gl518sm_t *dev = (gl518sm_t *) priv;
     return gl518sm_read(dev, cmd);
@@ -168,7 +168,7 @@ gl518sm_read(gl518sm_t *dev, uint8_t reg)
 
 
 static void
-gl518sm_smbus_write_byte(uint8_t addr, uint8_t val, void *priv)
+gl518sm_i2c_write_byte(void *bus, uint8_t addr, uint8_t val, void *priv)
 {
     gl518sm_t *dev = (gl518sm_t *) priv;
     dev->addr_register = val;
@@ -176,7 +176,7 @@ gl518sm_smbus_write_byte(uint8_t addr, uint8_t val, void *priv)
 
 
 static void
-gl518sm_smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val, void *priv)
+gl518sm_i2c_write_byte_cmd(void *bus, uint8_t addr, uint8_t cmd, uint8_t val, void *priv)
 {
     gl518sm_t *dev = (gl518sm_t *) priv;
     gl518sm_write(dev, cmd, val);
@@ -184,7 +184,7 @@ gl518sm_smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val, void *priv)
 
 
 static void
-gl518sm_smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, void *priv)
+gl518sm_i2c_write_word_cmd(void *bus, uint8_t addr, uint8_t cmd, uint16_t val, void *priv)
 {
     gl518sm_t *dev = (gl518sm_t *) priv;
     gl518sm_write(dev, cmd, val);
@@ -290,7 +290,7 @@ gl518sm_init(const device_t *info)
 }
 
 
-/* GL518SM on SMBus address 2Ch */
+/* GL518SM on I2C address 2Ch */
 const device_t gl518sm_2c_device = {
     "Genesys Logic GL518SM Hardware Monitor",
     DEVICE_ISA,
@@ -300,7 +300,7 @@ const device_t gl518sm_2c_device = {
     NULL
 };
 
-/* GL518SM on SMBus address 2Dh */
+/* GL518SM on I2C address 2Dh */
 const device_t gl518sm_2d_device = {
     "Genesys Logic GL518SM Hardware Monitor",
     DEVICE_ISA,

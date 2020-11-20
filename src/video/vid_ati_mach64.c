@@ -32,6 +32,7 @@
 #include <86box/rom.h>
 #include <86box/plat.h>
 #include <86box/video.h>
+#include <86box/i2c.h>
 #include <86box/vid_ddc.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
@@ -251,6 +252,8 @@ typedef struct mach64_t
         uint32_t buf_offset[2], buf_pitch[2];
         
         int overlay_v_acc;
+
+        void *i2c;
 } mach64_t;
 
 static video_timings_t timing_mach64_isa	= {VIDEO_ISA, 3,  3,  6,   5,  5, 10};
@@ -1740,7 +1743,7 @@ uint8_t mach64_ext_readb(uint32_t addr, void *p)
         mach64_t *mach64 = (mach64_t *)p;
 	uint8_t gpio_state;
 
-        uint8_t ret;
+        uint8_t ret = 0xff;
         if (!(addr & 0x400))
         {
                 mach64_log("nmach64_ext_readb: addr=%04x\n", addr);
@@ -1879,11 +1882,11 @@ uint8_t mach64_ext_readb(uint32_t addr, void *p)
 
                         if ((ret & (1 << 4)) && !(ret & (1 << 1)))
                                 gpio_state &= ~(1 << 1);
-                        if (!(ret & (1 << 4)) && !ddc_read_data())
+                        if (!(ret & (1 << 4)) && !i2c_gpio_get_sda(mach64->i2c))
                                 gpio_state &= ~(1 << 1);
                         if ((ret & (1 << 5)) && !(ret & (1 << 2)))
                                 gpio_state &= ~(1 << 2);
-                        if (!(ret & (1 << 5)) && !ddc_read_clock())
+                        if (!(ret & (1 << 5)) && !i2c_gpio_get_scl(mach64->i2c))
                                 gpio_state &= ~(1 << 2);
 
                         ret = (ret & ~6) | gpio_state;
@@ -2381,7 +2384,7 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
                 ati68860_set_ramdac_type(mach64->svga.ramdac, (mach64->dac_cntl & 0x100) ? RAMDAC_8BIT : RAMDAC_6BIT);
                 data = (val & (1 << 4)) ? ((val & (1 << 1)) ? 1 : 0) : 1;
 		clk  = (val & (1 << 5)) ? ((val & (1 << 2)) ? 1 : 0) : 1;
-		ddc_i2c_change(clk, data);
+		i2c_gpio_set(mach64->i2c, clk, data);
 		break;
 
                 case 0xd0: case 0xd1: case 0xd2: case 0xd3:
@@ -3368,7 +3371,8 @@ static void *mach64_common_init(const device_t *info)
         mach64->fifo_not_full_event = thread_create_event();
         mach64->fifo_thread = thread_create(fifo_thread, mach64);
         
-	ddc_init();
+        mach64->i2c = i2c_gpio_init("ddc_ati_mach64");
+	ddc_init(i2c_gpio_get_bus(mach64->i2c));
 	
         return mach64;
 }

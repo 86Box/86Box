@@ -23,19 +23,19 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/device.h>
-#include <86box/smbus.h>
+#include <86box/i2c.h>
 #include <86box/hwm.h>
 
 
 #define LM75_TEMP_TO_REG(t)	((t) << 8)
 
 
-static uint8_t	lm75_smbus_read_byte(uint8_t addr, void *priv);
-static uint8_t	lm75_smbus_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv);
-static uint16_t	lm75_smbus_read_word_cmd(uint8_t addr, uint8_t cmd, void *priv);
-static void	lm75_smbus_write_byte(uint8_t addr, uint8_t val, void *priv);
-static void	lm75_smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val, void *priv);
-static void	lm75_smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, void *priv);
+static uint8_t	lm75_i2c_read_byte(void *bus, uint8_t addr, void *priv);
+static uint8_t	lm75_i2c_read_byte_cmd(void *bus, uint8_t addr, uint8_t cmd, void *priv);
+static uint16_t	lm75_i2c_read_word_cmd(void *bus, uint8_t addr, uint8_t cmd, void *priv);
+static void	lm75_i2c_write_byte(void *bus, uint8_t addr, uint8_t val, void *priv);
+static void	lm75_i2c_write_byte_cmd(void *bus, uint8_t addr, uint8_t cmd, uint8_t val, void *priv);
+static void	lm75_i2c_write_word_cmd(void *bus, uint8_t addr, uint8_t cmd, uint16_t val, void *priv);
 static void	lm75_reset(lm75_t *dev);
 
 
@@ -62,24 +62,24 @@ lm75_log(const char *fmt, ...)
 void
 lm75_remap(lm75_t *dev, uint8_t addr)
 {
-    lm75_log("LM75: remapping to SMBus %02Xh\n", addr);
+    lm75_log("LM75: remapping to I2C %02Xh\n", addr);
 
-    if (dev->smbus_addr < 0x80) smbus_removehandler(dev->smbus_addr, 1,
-			lm75_smbus_read_byte, lm75_smbus_read_byte_cmd, lm75_smbus_read_word_cmd, NULL,
-			lm75_smbus_write_byte, lm75_smbus_write_byte_cmd, lm75_smbus_write_word_cmd, NULL,
-			dev);
+    if (dev->i2c_addr < 0x80) i2c_removehandler(i2c_smbus, dev->i2c_addr, 1,
+						NULL, lm75_i2c_read_byte, lm75_i2c_read_byte_cmd, lm75_i2c_read_word_cmd, NULL,
+						NULL, lm75_i2c_write_byte, lm75_i2c_write_byte_cmd, lm75_i2c_write_word_cmd, NULL,
+						dev);
 
-    if (addr < 0x80) smbus_sethandler(addr, 1,
-			lm75_smbus_read_byte, lm75_smbus_read_byte_cmd, lm75_smbus_read_word_cmd, NULL,
-			lm75_smbus_write_byte, lm75_smbus_write_byte_cmd, lm75_smbus_write_word_cmd, NULL,
-			dev);
+    if (addr < 0x80) i2c_sethandler(i2c_smbus, addr, 1,
+				    NULL, lm75_i2c_read_byte, lm75_i2c_read_byte_cmd, lm75_i2c_read_word_cmd, NULL,
+				    NULL, lm75_i2c_write_byte, lm75_i2c_write_byte_cmd, lm75_i2c_write_word_cmd, NULL,
+				    dev);
 
-    dev->smbus_addr = addr;
+    dev->i2c_addr = addr;
 }
 
 
 static uint8_t
-lm75_smbus_read_byte(uint8_t addr, void *priv)
+lm75_i2c_read_byte(void *bus, uint8_t addr, void *priv)
 {
     lm75_t *dev = (lm75_t *) priv;
     return lm75_read(dev, dev->addr_register);
@@ -87,14 +87,14 @@ lm75_smbus_read_byte(uint8_t addr, void *priv)
 
 
 static uint8_t
-lm75_smbus_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv)
+lm75_i2c_read_byte_cmd(void *bus, uint8_t addr, uint8_t cmd, void *priv)
 {
     lm75_t *dev = (lm75_t *) priv;
     return lm75_read(dev, cmd);
 }
 
 static uint16_t
-lm75_smbus_read_word_cmd(uint8_t addr, uint8_t cmd, void *priv)
+lm75_i2c_read_word_cmd(void *bus, uint8_t addr, uint8_t cmd, void *priv)
 {
     lm75_t *dev = (lm75_t *) priv;
     uint8_t rethi = 0;
@@ -129,9 +129,9 @@ lm75_read(lm75_t *dev, uint8_t reg)
 
     /* The AS99127F hardware monitor uses the addresses of its LM75 devices
        to access some of its proprietary registers. Pass this operation on to
-       the main monitor address through an internal SMBus call, if necessary. */
-    if ((reg > 0x7) && ((reg & 0xf8) != 0x50) && (dev->as99127f_smbus_addr < 0x80))
-	ret = smbus_read_byte_cmd(dev->as99127f_smbus_addr, reg);
+       the main monitor address through an internal I2C call, if necessary. */
+    if ((reg > 0x7) && ((reg & 0xf8) != 0x50) && (dev->as99127f_i2c_addr < 0x80))
+	ret = i2c_read_byte_cmd(i2c_smbus, dev->as99127f_i2c_addr, reg);
     else if ((reg & 0x7) == 0x0) /* temperature high byte */
 	ret = LM75_TEMP_TO_REG(dev->values->temperatures[dev->local >> 8]) >> 8;
     else if ((reg & 0x7) == 0x1) /* temperature low byte */
@@ -146,7 +146,7 @@ lm75_read(lm75_t *dev, uint8_t reg)
 
 
 static void
-lm75_smbus_write_byte(uint8_t addr, uint8_t val, void *priv)
+lm75_i2c_write_byte(void *bus, uint8_t addr, uint8_t val, void *priv)
 {
     lm75_t *dev = (lm75_t *) priv;
     dev->addr_register = val;
@@ -154,7 +154,7 @@ lm75_smbus_write_byte(uint8_t addr, uint8_t val, void *priv)
 
 
 static void
-lm75_smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val, void *priv)
+lm75_i2c_write_byte_cmd(void *bus, uint8_t addr, uint8_t cmd, uint8_t val, void *priv)
 {
     lm75_t *dev = (lm75_t *) priv;
     lm75_write(dev, cmd, val);
@@ -162,7 +162,7 @@ lm75_smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val, void *priv)
 
 
 static void
-lm75_smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, void *priv)
+lm75_i2c_write_word_cmd(void *bus, uint8_t addr, uint8_t cmd, uint16_t val, void *priv)
 {
     lm75_t *dev = (lm75_t *) priv;
     uint8_t valhi = (val >> 8);
@@ -196,9 +196,9 @@ lm75_write(lm75_t *dev, uint8_t reg, uint8_t val)
 
     /* The AS99127F hardware monitor uses the addresses of its LM75 devices
        to access some of its proprietary registers. Pass this operation on to
-       the main monitor address through an internal SMBus call, if necessary. */
-    if ((reg > 0x7) && ((reg & 0xf8) != 0x50) && (dev->as99127f_smbus_addr < 0x80)) {
-	smbus_write_byte_cmd(dev->as99127f_smbus_addr, reg, val);
+       the main monitor address through an internal I2C call, if necessary. */
+    if ((reg > 0x7) && ((reg & 0xf8) != 0x50) && (dev->as99127f_i2c_addr < 0x80)) {
+	i2c_write_byte_cmd(i2c_smbus, dev->as99127f_i2c_addr, reg, val);
 	return 1;
     }
 
@@ -247,7 +247,7 @@ lm75_init(const device_t *info)
 	hwm_values.temperatures[dev->local >> 8] = 30;
     dev->values = &hwm_values;
 
-    dev->as99127f_smbus_addr = 0x80;
+    dev->as99127f_i2c_addr = 0x80;
 
     lm75_reset(dev);
 

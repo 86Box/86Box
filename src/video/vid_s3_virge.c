@@ -32,6 +32,7 @@
 #include <86box/device.h>
 #include <86box/plat.h>
 #include <86box/video.h>
+#include <86box/i2c.h>
 #include <86box/vid_ddc.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
@@ -286,6 +287,8 @@ typedef struct virge_t
 	uint8_t subsys_stat, subsys_cntl, advfunc_cntl;
 	
 	uint8_t serialport;
+
+	void *i2c;
 } virge_t;
 
 static video_timings_t timing_diamond_stealth3d_2000_vlb	= {VIDEO_BUS, 2,  2,  3,  28, 28, 45};
@@ -894,9 +897,9 @@ s3_virge_mmio_read(uint32_t addr, void *p)
 		
                 case 0xff20: case 0xff21:
                 ret = virge->serialport & ~(SERIAL_PORT_SCR | SERIAL_PORT_SDR);
-                if ((virge->serialport & SERIAL_PORT_SCW) && ddc_read_clock())
+                if ((virge->serialport & SERIAL_PORT_SCW) && i2c_gpio_get_scl(virge->i2c))
                         ret |= SERIAL_PORT_SCR;
-                if ((virge->serialport & SERIAL_PORT_SDW) && ddc_read_data())
+                if ((virge->serialport & SERIAL_PORT_SDW) && i2c_gpio_get_sda(virge->i2c))
                         ret |= SERIAL_PORT_SDR;
                 return ret;		
         }
@@ -1180,7 +1183,7 @@ static void s3_virge_mmio_write(uint32_t addr, uint8_t val, void *p)
 				
 			case 0xff20:
 			virge->serialport = val;
-			ddc_i2c_change((val & SERIAL_PORT_SCW) ? 1 : 0, (val & SERIAL_PORT_SDW) ? 1 : 0);
+			i2c_gpio_set(virge->i2c, !!(val & SERIAL_PORT_SCW), !!(val & SERIAL_PORT_SDW));
 			break;
 		}	
 	}
@@ -3845,7 +3848,8 @@ static void *s3_virge_init(const device_t *info)
         virge->fifo_not_full_event = thread_create_event();
         virge->fifo_thread = thread_create(fifo_thread, virge);
  
-	ddc_init();
+	virge->i2c = i2c_gpio_init("ddc_s3_virge");
+	ddc_init(i2c_gpio_get_bus(virge->i2c));
  
         return virge;
 }
