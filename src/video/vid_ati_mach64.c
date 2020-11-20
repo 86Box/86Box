@@ -1740,7 +1740,7 @@ uint8_t mach64_ext_readb(uint32_t addr, void *p)
         mach64_t *mach64 = (mach64_t *)p;
 	uint8_t gpio_state;
 
-        uint8_t ret;
+        uint8_t ret = 0xff;
         if (!(addr & 0x400))
         {
                 mach64_log("nmach64_ext_readb: addr=%04x\n", addr);
