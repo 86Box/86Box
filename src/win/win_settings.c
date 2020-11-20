@@ -131,7 +131,7 @@ static uint32_t displayed_category = 0;
 extern int is486;
 static int listtomachinetype[256], listtomachine[256];
 static int listtocpufamily[256], listtocpu[256];
-static int settings_list_to_device[2][20], settings_list_to_fdc[20];
+static int settings_list_to_device[2][256], settings_list_to_fdc[20];
 static int settings_list_to_midi[20], settings_list_to_midi_in[20];
 static int settings_list_to_hdc[20];
 
