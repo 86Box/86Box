@@ -2931,7 +2931,7 @@ hdd_add_file_open_error:
 								settings_msgbox_header(MBX_ERROR, (existing & 1) ? (wchar_t *) IDS_4114 : (wchar_t *) IDS_4115, (existing & 1) ? (wchar_t *) IDS_4107 : (wchar_t *) IDS_4108);
 								return TRUE;
 							} else if (vhd_error == MVHD_ERR_TIMESTAMP) {								
-								if (settings_msgbox_ex(MBX_QUESTIONYN | MBX_WARNING, plat_get_string(IDS_4133), plat_get_string(IDS_4132), NULL, NULL, NULL) != 0) {
+								if (settings_msgbox_ex(MBX_QUESTION_YN | MBX_WARNING, plat_get_string(IDS_4133), plat_get_string(IDS_4132), NULL, NULL, NULL) != 0) {
 									int ts_res = mvhd_diff_update_par_timestamp(vhd, &vhd_error);
 									if (ts_res != 0) {
 										settings_msgbox_header(MBX_ERROR, plat_get_string(IDS_2049), plat_get_string(IDS_4134));
