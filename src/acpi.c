@@ -650,6 +650,16 @@ acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *p)
 
 
 static void
+acpi_i2c_set(acpi_t *dev)
+{
+    if (dev->i2c) {
+	/* Check direction as well due to pull-ups. */
+	i2c_gpio_set(dev->i2c, !(dev->regs.gpio_dir & 0x02) || (dev->regs.gpio_val & 0x02), !(dev->regs.gpio_dir & 0x04) || (dev->regs.gpio_val & 0x04));
+    }
+}
+
+
+static void
 acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
@@ -664,22 +674,14 @@ acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *p)
 		/* GPIO Direction Control */
 		if (size == 1) {
 			dev->regs.gpio_dir = val & 0x7f;
-
-			if (dev->i2c) {
-				/* Check direction as well due to pull-ups. */
-				i2c_gpio_set(dev->i2c, !(dev->regs.gpio_dir & 0x02) || (dev->regs.gpio_val & 0x02), !(dev->regs.gpio_dir & 0x04) || (dev->regs.gpio_val & 0x04));
-			}
+			acpi_i2c_set(dev);
 		}
 		break;
 	case 0x42:
 		/* GPIO port Output Value */
 		if (size == 1) {
 			dev->regs.gpio_val = val & 0x1f;
-
-			if (dev->i2c) {
-				/* Check direction as well due to pull-ups. */
-				i2c_gpio_set(dev->i2c, !(dev->regs.gpio_dir & 0x02) || (dev->regs.gpio_val & 0x02), !(dev->regs.gpio_dir & 0x04) || (dev->regs.gpio_val & 0x04));
-			}
+			acpi_i2c_set(dev);
 		}
 		break;
 	case 0x46: case 0x47:

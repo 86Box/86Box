@@ -76,7 +76,7 @@ gl518sm_log(const char *fmt, ...)
 static void
 gl518sm_remap(gl518sm_t *dev, uint8_t addr)
 {
-    gl518sm_log("GL518SM: remapping to I2C %02Xh\n", addr);
+    gl518sm_log("GL518SM: remapping to SMBus %02Xh\n", addr);
 
     i2c_removehandler(i2c_smbus, dev->i2c_addr, 1, gl518sm_i2c_start, gl518sm_i2c_read, gl518sm_i2c_write, NULL, dev);
 
@@ -284,7 +284,7 @@ gl518sm_init(const device_t *info)
 }
 
 
-/* GL518SM on I2C address 2Ch */
+/* GL518SM on SMBus address 2Ch */
 const device_t gl518sm_2c_device = {
     "Genesys Logic GL518SM Hardware Monitor",
     DEVICE_ISA,
@@ -294,7 +294,7 @@ const device_t gl518sm_2c_device = {
     NULL
 };
 
-/* GL518SM on I2C address 2Dh */
+/* GL518SM on SMBus address 2Dh */
 const device_t gl518sm_2d_device = {
     "Genesys Logic GL518SM Hardware Monitor",
     DEVICE_ISA,
