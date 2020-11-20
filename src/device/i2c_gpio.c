@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of a GPIO-based I2C device.
+ *		Emulation of a GPIO-based I2C device.
  *
  *
  *
@@ -16,13 +16,13 @@
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2020 RichardG.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
-#include <string.h>
 #include <stdlib.h>
-#include <stddef.h>
+#include <string.h>
+#define HAVE_STDARG_H
 #include <wchar.h>
-#include <math.h>
 #include <86box/86box.h>
 #include <86box/i2c.h>
 
@@ -53,8 +53,8 @@ enum {
 
 typedef struct {
     void	*i2c;
-    uint8_t	scl, sda, state, slave_state, slave_addr, slave_reg,
-		slave_writing, slave_rw, last_sda, pos, transmit, byte;
+    uint8_t	scl, sda, state, slave_state, slave_addr,
+		slave_rw, last_sda, pos, transmit, byte;
 } i2c_gpio_t;
 
 
@@ -66,6 +66,7 @@ i2c_gpio_init(char *bus_name)
 
     dev->i2c = i2c_addbus(bus_name);
     dev->scl = dev->sda = 1;
+    dev->slave_addr = 0xff;
 
     return dev;
 }
@@ -85,49 +86,46 @@ i2c_gpio_close(void *dev_handle)
 void
 i2c_gpio_next_byte(i2c_gpio_t *dev)
 {
-    dev->byte = i2c_read_byte(dev->i2c, dev->slave_addr);
+    dev->byte = i2c_read(dev->i2c, dev->slave_addr);
 }
 
 
 void
 i2c_gpio_write(i2c_gpio_t *dev)
 {
+    uint8_t i;
+
     switch (dev->slave_state) {
 	case SLAVE_IDLE:
+		i = dev->slave_addr;
 		dev->slave_addr = dev->byte >> 1;
+		dev->slave_rw = dev->byte & 1;
+
 		if (!i2c_has_device(dev->i2c, dev->slave_addr)) {
 			dev->slave_state = SLAVE_INVALID;
 			break;
 		}
-		dev->slave_rw = dev->byte & 1;
-		dev->slave_writing = 0;
+
+		if (i == 0xff)
+			i2c_start(dev->i2c, dev->slave_addr);
+
 		if (dev->slave_rw) {
 			dev->slave_state = SLAVE_SENDDATA;
 			dev->transmit = TRANSMITTER_SLAVE;
-			dev->byte = i2c_read_byte(dev->i2c, dev->slave_addr);
+			dev->byte = i2c_read(dev->i2c, dev->slave_addr);
 		} else {
 			dev->slave_state = SLAVE_RECEIVEADDR;
 			dev->transmit = TRANSMITTER_MASTER;
 		}
-		pclog("slave_idle %02X %d\n", dev->slave_addr, dev->slave_rw);
 		break;
 
 	case SLAVE_RECEIVEADDR:
-		pclog("slave_receiveaddr %02X %d\n", dev->slave_addr, dev->slave_rw);
-		i2c_write_byte(dev->i2c, dev->slave_addr, dev->byte);
-		dev->slave_writing = 1;
-		dev->slave_reg = dev->byte;
+		i2c_write(dev->i2c, dev->slave_addr, dev->byte);
 		dev->slave_state = dev->slave_rw ? SLAVE_SENDDATA : SLAVE_RECEIVEDATA;
 		break;
 
 	case SLAVE_RECEIVEDATA:
-		pclog("slave_receivedata %02X %d = %02X\n", dev->slave_addr, dev->slave_rw, dev->byte);
-		dev->slave_writing = 0;
-		i2c_write_byte_cmd(dev->i2c, dev->slave_addr, dev->slave_reg, dev->byte);
-		break;
-
-	case SLAVE_SENDDATA:
-		pclog("slave_senddata %02X %d = %02X\n", dev->slave_addr, dev->slave_rw, dev->byte);
+		i2c_write(dev->i2c, dev->slave_addr, dev->byte);
 		break;
     }
 }
@@ -136,10 +134,9 @@ i2c_gpio_write(i2c_gpio_t *dev)
 void
 i2c_gpio_stop(i2c_gpio_t *dev)
 {
-    pclog("stopping... state = %d\n", dev->slave_state);
-    if (dev->slave_writing)
-    	i2c_write_byte(dev->i2c, dev->slave_addr, dev->slave_reg);
+    i2c_stop(dev->i2c, dev->slave_addr);
 
+    dev->slave_addr = 0xff;
     dev->slave_state = SLAVE_IDLE;
     dev->transmit = TRANSMITTER_MASTER;
 }

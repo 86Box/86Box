@@ -288,7 +288,7 @@ typedef struct virge_t
 	
 	uint8_t serialport;
 
-	void *i2c;
+	void *i2c, *ddc;
 } virge_t;
 
 static video_timings_t timing_diamond_stealth3d_2000_vlb	= {VIDEO_BUS, 2,  2,  3,  28, 28, 45};
@@ -3849,7 +3849,7 @@ static void *s3_virge_init(const device_t *info)
         virge->fifo_thread = thread_create(fifo_thread, virge);
  
 	virge->i2c = i2c_gpio_init("ddc_s3_virge");
-	ddc_init(i2c_gpio_get_bus(virge->i2c));
+	virge->ddc = ddc_init(i2c_gpio_get_bus(virge->i2c));
  
         return virge;
 }
@@ -3868,6 +3868,9 @@ static void s3_virge_close(void *p)
         thread_destroy_event(virge->fifo_not_full_event);
 
         svga_close(&virge->svga);
+
+        ddc_close(virge->ddc);
+        i2c_gpio_close(virge->i2c);
         
         free(virge);
 }

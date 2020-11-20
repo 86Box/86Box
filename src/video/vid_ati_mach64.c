@@ -253,7 +253,7 @@ typedef struct mach64_t
         
         int overlay_v_acc;
 
-        void *i2c;
+        void *i2c, *ddc;
 } mach64_t;
 
 static video_timings_t timing_mach64_isa	= {VIDEO_ISA, 3,  3,  6,   5,  5, 10};
@@ -3372,7 +3372,7 @@ static void *mach64_common_init(const device_t *info)
         mach64->fifo_thread = thread_create(fifo_thread, mach64);
         
         mach64->i2c = i2c_gpio_init("ddc_ati_mach64");
-	ddc_init(i2c_gpio_get_bus(mach64->i2c));
+	mach64->ddc = ddc_init(i2c_gpio_get_bus(mach64->i2c));
 	
         return mach64;
 }
@@ -3463,6 +3463,9 @@ void mach64_close(void *p)
         thread_kill(mach64->fifo_thread);
         thread_destroy_event(mach64->wake_fifo_thread);
         thread_destroy_event(mach64->fifo_not_full_event);
+
+        ddc_close(mach64->ddc);
+        i2c_gpio_close(mach64->i2c);
 
         free(mach64);
 }

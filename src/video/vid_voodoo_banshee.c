@@ -118,7 +118,7 @@ typedef struct banshee_t
 
         int type;
 
-        void *i2c;
+        void *i2c, *ddc;
 } banshee_t;
 
 enum
@@ -2629,7 +2629,7 @@ static void *banshee_init_common(const device_t *info, wchar_t *fn, int has_sgra
         banshee->vidSerialParallelPort = VIDSERIAL_DDC_DCK_W | VIDSERIAL_DDC_DDA_W;
 
         banshee->i2c = i2c_gpio_init("ddc_voodoo_banshee");
-        ddc_init(i2c_gpio_get_bus(banshee->i2c));
+        banshee->ddc = ddc_init(i2c_gpio_get_bus(banshee->i2c));
 
 	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_banshee);
 
@@ -2676,6 +2676,7 @@ static void banshee_close(void *p)
 
         voodoo_card_close(banshee->voodoo);
         svga_close(&banshee->svga);
+        ddc_close(banshee->ddc);
         i2c_gpio_close(banshee->i2c);
         
         free(banshee);

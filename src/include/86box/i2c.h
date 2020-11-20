@@ -27,55 +27,35 @@ extern void	*i2c_addbus(char *name);
 extern void	i2c_removebus(void *bus_handle);
 
 extern void	i2c_sethandler(void *bus_handle, uint8_t base, int size,
-			       void (*read_quick)(void *bus, uint8_t addr, void *priv),
-			       uint8_t (*read_byte)(void *bus, uint8_t addr, void *priv),
-			       uint8_t (*read_byte_cmd)(void *bus, uint8_t addr, uint8_t cmd, void *priv),
-			       uint16_t (*read_word_cmd)(void *bus, uint8_t addr, uint8_t cmd, void *priv),
-			       uint8_t (*read_block_cmd)(void *bus, uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
-			       void (*write_quick)(void *bus, uint8_t addr, void *priv),
-			       void (*write_byte)(void *bus, uint8_t addr, uint8_t val, void *priv),
-			       void (*write_byte_cmd)(void *bus, uint8_t addr, uint8_t cmd, uint8_t val, void *priv),
-			       void (*write_word_cmd)(void *bus, uint8_t addr, uint8_t cmd, uint16_t val, void *priv),
-			       void (*write_block_cmd)(void *bus, uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
+			       void (*start)(void *bus, uint8_t addr, void *priv),
+			       uint8_t (*read)(void *bus, uint8_t addr, void *priv),
+			       uint8_t (*write)(void *bus, uint8_t addr, uint8_t data, void *priv),
+			       void (*stop)(void *bus, uint8_t addr, void *priv),
 			       void *priv);
 
 extern void	i2c_removehandler(void *bus_handle, uint8_t base, int size,
-				  void (*read_quick)(void *bus, uint8_t addr, void *priv),
-				  uint8_t (*read_byte)(void *bus, uint8_t addr, void *priv),
-				  uint8_t (*read_byte_cmd)(void *bus, uint8_t addr, uint8_t cmd, void *priv),
-				  uint16_t (*read_word_cmd)(void *bus, uint8_t addr, uint8_t cmd, void *priv),
-				  uint8_t (*read_block_cmd)(void *bus, uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
-				  void (*write_quick)(void *bus, uint8_t addr, void *priv),
-				  void (*write_byte)(void *bus, uint8_t addr, uint8_t val, void *priv),
-				  void (*write_byte_cmd)(void *bus, uint8_t addr, uint8_t cmd, uint8_t val, void *priv),
-				  void (*write_word_cmd)(void *bus, uint8_t addr, uint8_t cmd, uint16_t val, void *priv),
-				  void (*write_block_cmd)(void *bus, uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
+				  void (*start)(void *bus, uint8_t addr, void *priv),
+				  uint8_t (*read)(void *bus, uint8_t addr, void *priv),
+				  uint8_t (*write)(void *bus, uint8_t addr, uint8_t data, void *priv),
+				  void (*stop)(void *bus, uint8_t addr, void *priv),
 				  void *priv);
 
 extern void	i2c_handler(int set, void *bus_handle, uint8_t base, int size,
-			    void (*read_quick)(void *bus, uint8_t addr, void *priv),
-			    uint8_t (*read_byte)(void *bus, uint8_t addr, void *priv),
-			    uint8_t (*read_byte_cmd)(void *bus, uint8_t addr, uint8_t cmd, void *priv),
-			    uint16_t (*read_word_cmd)(void *bus, uint8_t addr, uint8_t cmd, void *priv),
-			    uint8_t (*read_block_cmd)(void *bus, uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
-			    void (*write_quick)(void *bus, uint8_t addr, void *priv),
-			    void (*write_byte)(void *bus, uint8_t addr, uint8_t val, void *priv),
-			    void (*write_byte_cmd)(void *bus, uint8_t addr, uint8_t cmd, uint8_t val, void *priv),
-			    void (*write_word_cmd)(void *bus, uint8_t addr, uint8_t cmd, uint16_t val, void *priv),
-			    void (*write_block_cmd)(void *bus, uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv),
+			    void (*start)(void *bus, uint8_t addr, void *priv),
+			    uint8_t (*read)(void *bus, uint8_t addr, void *priv),
+			    uint8_t (*write)(void *bus, uint8_t addr, uint8_t data, void *priv),
+			    void (*stop)(void *bus, uint8_t addr, void *priv),
 			    void *priv);
 
 extern uint8_t	i2c_has_device(void *bus_handle, uint8_t addr);
-extern void	i2c_read_quick(void *bus_handle, uint8_t addr);
-extern uint8_t	i2c_read_byte(void *bus_handle, uint8_t addr);
-extern uint8_t	i2c_read_byte_cmd(void *bus_handle, uint8_t addr, uint8_t cmd);
-extern uint16_t	i2c_read_word_cmd(void *bus_handle, uint8_t addr, uint8_t cmd);
-extern uint8_t	i2c_read_block_cmd(void *bus_handle, uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len);
-extern void	i2c_write_quick(void *bus_handle, uint8_t addr);
-extern void	i2c_write_byte(void *bus_handle, uint8_t addr, uint8_t val);
-extern void	i2c_write_byte_cmd(void *bus_handle, uint8_t addr, uint8_t cmd, uint8_t val);
-extern void	i2c_write_word_cmd(void *bus_handle, uint8_t addr, uint8_t cmd, uint16_t val);
-extern void	i2c_write_block_cmd(void *bus_handle, uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len);
+extern void	i2c_start(void *bus_handle, uint8_t addr);
+extern uint8_t	i2c_read(void *bus_handle, uint8_t addr);
+extern uint8_t	i2c_write(void *bus_handle, uint8_t addr, uint8_t data);
+extern void	i2c_stop(void *bus_handle, uint8_t addr);
+
+/* i2c_eeprom.c */
+extern void	*i2c_eeprom_init(void *i2c, uint8_t addr, uint8_t *data, uint16_t size, uint8_t writable);
+extern void	i2c_eeprom_close(void *dev_handle);
 
 /* i2c_gpio.c */
 extern void	*i2c_gpio_init(char *bus_name);

@@ -29,6 +29,7 @@ typedef struct
 		index,
 		data[SMBUS_PIIX4_BLOCK_DATA_SIZE];
     pc_timer_t	response_timer;
+    void	*i2c;
 } smbus_piix4_t;
 
 

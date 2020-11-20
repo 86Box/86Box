@@ -84,6 +84,7 @@ typedef struct
     pc_timer_t		timer;
     nvr_t		*nvr;
     apm_t		*apm;
+    void		*i2c;
 } acpi_t;
 
 

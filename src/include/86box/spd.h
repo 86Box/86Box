@@ -47,17 +47,17 @@
 #define SPD_SDR_ATTR_VCC_HI_5	0x20
 
 
-typedef struct _spd_ {
-    const device_t	*info;
-    uint8_t		slot;
-    uint16_t		size;
-    uint16_t		row1;
-    uint16_t		row2;
+typedef struct {
+    const device_t *info;
+    uint8_t	slot;
+    uint16_t	size;
+    uint16_t	row1;
+    uint16_t	row2;
 
-    uint8_t		addr_register;
+    void	*eeprom;
 } spd_t;
 
-typedef struct _spd_edo_ {
+typedef struct {
     uint8_t	bytes_used, spd_size, mem_type,
     		row_bits, col_bits, banks,
     		data_width_lsb, data_width_msb,
@@ -75,7 +75,7 @@ typedef struct _spd_edo_ {
     		checksum2;
 } spd_edo_t;
 
-typedef struct _spd_sdram_ {
+typedef struct {
     uint8_t	bytes_used, spd_size, mem_type,
     		row_bits, col_bits, rows,
     		data_width_lsb, data_width_msb,

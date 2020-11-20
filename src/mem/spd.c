@@ -57,49 +57,6 @@ spd_log(const char *fmt, ...)
 #endif
 
 
-uint8_t
-spd_read_byte_cmd(void *bus, uint8_t addr, uint8_t cmd, void *priv)
-{
-    spd_t *dev = (spd_t *) priv;
-    uint8_t ret = *(spd_data[dev->slot] + cmd);
-    spd_log("SPD: read(%02X, %02X) = %02X\n", addr, cmd, ret);
-    return ret;
-}
-
-
-uint8_t
-spd_read_byte(void *bus, uint8_t addr, void *priv)
-{
-    spd_t *dev = (spd_t *) priv;
-    return spd_read_byte_cmd(bus, addr, dev->addr_register, priv);
-}
-
-
-uint16_t
-spd_read_word_cmd(void *bus, uint8_t addr, uint8_t cmd, void *priv)
-{
-    return (spd_read_byte_cmd(bus, addr, cmd + 1, priv) << 8) | spd_read_byte_cmd(bus, addr, cmd, priv);
-}
-
-
-uint8_t
-spd_read_block_cmd(void *bus, uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv)
-{
-    uint8_t read = 0;
-    for (uint8_t i = cmd; (i < len) && (i < SPD_DATA_SIZE); i++)
-	data[read++] = spd_read_byte_cmd(bus, addr, i, priv);
-    return read;
-}
-
-
-void
-spd_write_byte(void *bus, uint8_t addr, uint8_t val, void *priv)
-{
-    spd_t *dev = (spd_t *) priv;
-    dev->addr_register = val;
-}
-
-
 static void
 spd_close(void *priv)
 {
@@ -107,10 +64,7 @@ spd_close(void *priv)
 
     spd_log("SPD: closing slot %d (SMBus %02X)\n", dev->slot, SPD_BASE_ADDR + dev->slot);
 
-    i2c_removehandler(i2c_smbus, SPD_BASE_ADDR + dev->slot, 1,
-		      NULL, spd_read_byte, spd_read_byte_cmd, spd_read_word_cmd, spd_read_block_cmd,
-		      NULL, spd_write_byte, NULL, NULL, NULL,
-		      dev);
+    i2c_eeprom_close(dev->eeprom);
 
     spd_present = 0;
 
@@ -125,10 +79,7 @@ spd_init(const device_t *info)
 
     spd_log("SPD: initializing slot %d (SMBus %02X)\n", dev->slot, SPD_BASE_ADDR + dev->slot);
 
-    i2c_sethandler(i2c_smbus, SPD_BASE_ADDR + dev->slot, 1,
-		   NULL, spd_read_byte, spd_read_byte_cmd, spd_read_word_cmd, spd_read_block_cmd,
-		   NULL, spd_write_byte, NULL, NULL, NULL,
-		   dev);
+    dev->eeprom = i2c_eeprom_init(i2c_smbus, SPD_BASE_ADDR + dev->slot, spd_data[info->local], SPD_DATA_SIZE, 0);
 
     spd_present = 1;
 

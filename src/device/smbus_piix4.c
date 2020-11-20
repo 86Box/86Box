@@ -99,7 +99,6 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 {
     smbus_piix4_t *dev = (smbus_piix4_t *) priv;
     uint8_t smbus_addr, smbus_read, prev_stat;
-    uint16_t temp;
 
     smbus_piix4_log("SMBus PIIX4: write(%02X, %02X)\n", addr, val);
 
@@ -132,46 +131,53 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 			}
 			smbus_read = dev->addr & 0x01;
 
+			/* start transaction */
+			i2c_start(i2c_smbus, smbus_addr);
+
 			/* decode the 3-bit command protocol */
 			dev->next_stat = 0x2; /* raise INTER (command completed) by default */
 			switch ((val >> 2) & 0x7) {
 				case 0x0: /* quick R/W */
-					if (smbus_read)
-						i2c_read_quick(i2c_smbus, smbus_addr);
-					else
-						i2c_write_quick(i2c_smbus, smbus_addr);
 					break;
 
 				case 0x1: /* byte R/W */
 					if (smbus_read)
-						dev->data0 = i2c_read_byte(i2c_smbus, smbus_addr);
+						dev->data0 = i2c_read(i2c_smbus, smbus_addr);
 					else
-						i2c_write_byte(i2c_smbus, smbus_addr, dev->data0);
+						i2c_write(i2c_smbus, smbus_addr, dev->data0);
 					break;
 
 				case 0x2: /* byte data R/W */
+					i2c_write(i2c_smbus, smbus_addr, dev->cmd);
 					if (smbus_read)
-						dev->data0 = i2c_read_byte_cmd(i2c_smbus, smbus_addr, dev->cmd);
+						dev->data0 = i2c_read(i2c_smbus, smbus_addr);
 					else
-						i2c_write_byte_cmd(i2c_smbus, smbus_addr, dev->cmd, dev->data0);
+						i2c_write(i2c_smbus, smbus_addr, dev->data0);
 					break;
 
 				case 0x3: /* word data R/W */
+					i2c_write(i2c_smbus, smbus_addr, dev->cmd);
 					if (smbus_read) {
-						temp = i2c_read_word_cmd(i2c_smbus, smbus_addr, dev->cmd);
-						dev->data0 = temp;
-						dev->data1 = temp >> 8;
+						dev->data0 = i2c_read(i2c_smbus, smbus_addr);
+						dev->data1 = i2c_read(i2c_smbus, smbus_addr);
 					} else {
-						temp = (dev->data1 << 8) | dev->data0;
-						i2c_write_word_cmd(i2c_smbus, smbus_addr, dev->cmd, temp);
+						i2c_write(i2c_smbus, smbus_addr, dev->data0);
+						i2c_write(i2c_smbus, smbus_addr, dev->data1);
 					}
 					break;
 
 				case 0x5: /* block R/W */
-					if (smbus_read)
-						dev->data0 = i2c_read_block_cmd(i2c_smbus, smbus_addr, dev->cmd, dev->data, SMBUS_PIIX4_BLOCK_DATA_SIZE);
-					else
-						i2c_write_block_cmd(i2c_smbus, smbus_addr, dev->cmd, dev->data, dev->data0);
+					i2c_write(i2c_smbus, smbus_addr, dev->cmd);
+					/* SMBus block data is preceded by a length */
+					if (smbus_read) {
+						dev->data0 = i2c_read(i2c_smbus, smbus_addr);
+						for (smbus_read = 0; smbus_read < MIN(SMBUS_PIIX4_BLOCK_DATA_SIZE, dev->data0); smbus_read++)
+							dev->data[smbus_read] = i2c_read(i2c_smbus, smbus_addr);
+					} else {
+						i2c_write(i2c_smbus, smbus_addr, dev->data0);
+						for (smbus_read = 0; smbus_read < MIN(SMBUS_PIIX4_BLOCK_DATA_SIZE, dev->data0); smbus_read++)
+							i2c_write(i2c_smbus, smbus_addr, dev->data[smbus_read]);
+					}
 					break;
 
 				default:
@@ -179,6 +185,9 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 					dev->next_stat = 0x4;
 					break;
 			}
+
+			/* stop transaction */
+			i2c_stop(i2c_smbus, smbus_addr);
 		}
 		break;
 
@@ -244,7 +253,7 @@ smbus_piix4_init(const device_t *info)
     smbus_piix4_t *dev = (smbus_piix4_t *) malloc(sizeof(smbus_piix4_t));
     memset(dev, 0, sizeof(smbus_piix4_t));
 
-    i2c_smbus = i2c_addbus("smbus_piix4");
+    i2c_smbus = dev->i2c = i2c_addbus("smbus_piix4");
 
     timer_add(&dev->response_timer, smbus_piix4_response, dev, 0);
 
@@ -257,8 +266,9 @@ smbus_piix4_close(void *priv)
 {
     smbus_piix4_t *dev = (smbus_piix4_t *) priv;
 
-    i2c_removebus(i2c_smbus);
-    i2c_smbus = NULL;
+    if (i2c_smbus == dev->i2c)
+    	i2c_smbus = NULL;
+    i2c_removebus(dev->i2c);
 
     free(dev);
 }

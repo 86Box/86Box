@@ -27,11 +27,6 @@
 #include <86box/i2c.h>
 
 
-typedef struct {
-    uint8_t addr_register;
-} ddc_t;
-
-
 static uint8_t edid_data[128] = {
     0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, /* Fixed header pattern */
     0x09, 0xf8, /* Manufacturer "BOX" - apparently unassigned by UEFI - and it has to be big endian */
@@ -74,59 +69,20 @@ static uint8_t edid_data[128] = {
 };
 
 
-uint8_t
-ddc_read_byte_cmd(void *bus, uint8_t addr, uint8_t cmd, void *priv)
-{
-    return edid_data[cmd & 0x7f];
-}
-
-
-uint8_t
-ddc_read_byte(void *bus, uint8_t addr, void *priv)
-{
-    ddc_t *dev = (ddc_t *) priv;
-    return ddc_read_byte_cmd(bus, addr, dev->addr_register++, priv);
-}
-
-
-uint16_t
-ddc_read_word_cmd(void *bus, uint8_t addr, uint8_t cmd, void *priv)
-{
-    return (ddc_read_byte_cmd(bus, addr, cmd + 1, priv) << 8) | ddc_read_byte_cmd(bus, addr, cmd, priv);
-}
-
-
-uint8_t
-ddc_read_block_cmd(void *bus, uint8_t addr, uint8_t cmd, uint8_t *data, uint8_t len, void *priv)
-{
-    uint8_t read = 0;
-    for (uint8_t i = cmd; (i < len) && (i < 0x80); i++)
-	data[read++] = ddc_read_byte_cmd(bus, addr, i, priv);
-    return read;
-}
-
-
-void
-ddc_write_byte(void *bus, uint8_t addr, uint8_t val, void *priv)
-{
-    ddc_t *dev = (ddc_t *) priv;
-    dev->addr_register = val;
-}
-
-
-void
+void *
 ddc_init(void *i2c)
 {
-    ddc_t *dev = (ddc_t *) malloc(sizeof(ddc_t));
-    memset(dev, 0, sizeof(ddc_t));
-
     uint8_t checksum = 0;
     for (int c = 0; c < 127; c++)
         checksum += edid_data[c];
     edid_data[127] = 256 - checksum;
 
-    i2c_sethandler(i2c, 0x50, 1,
-		   NULL, ddc_read_byte, ddc_read_byte_cmd, ddc_read_word_cmd, ddc_read_block_cmd,
-		   NULL, ddc_write_byte, NULL, NULL, NULL,
-		   dev);
+    return i2c_eeprom_init(i2c, 0x50, edid_data, sizeof(edid_data), 0);
+}
+
+
+void
+ddc_close(void *dev_handle)
+{
+    i2c_eeprom_close(dev_handle);
 }

@@ -56,19 +56,16 @@ typedef struct {
     uint8_t addr_register;
     uint8_t data_register;
 
-    uint8_t i2c_addr;
+    uint8_t i2c_addr, i2c_state;
 } lm78_t;
 
 
+static void	lm78_i2c_start(void *bus, uint8_t addr, void *priv);
 static uint8_t	lm78_isa_read(uint16_t port, void *priv);
-static uint8_t	lm78_i2c_read_byte(void *bus, uint8_t addr, void *priv);
-static uint8_t	lm78_i2c_read_byte_cmd(void *bus, uint8_t addr, uint8_t cmd, void *priv);
-static uint16_t	lm78_i2c_read_word_cmd(void *bus, uint8_t addr, uint8_t cmd, void *priv);
+static uint8_t	lm78_i2c_read(void *bus, uint8_t addr, void *priv);
 static uint8_t	lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank);
 static void	lm78_isa_write(uint16_t port, uint8_t val, void *priv);
-static void	lm78_i2c_write_byte(void *bus, uint8_t addr, uint8_t val, void *priv);
-static void	lm78_i2c_write_byte_cmd(void *bus, uint8_t addr, uint8_t cmd, uint8_t val, void *priv);
-static void	lm78_i2c_write_word_cmd(void *bus, uint8_t addr, uint8_t cmd, uint16_t val, void *priv);
+static uint8_t	lm78_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv);
 static uint8_t	lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank);
 static void	lm78_reset(lm78_t *dev, uint8_t initialization);
 
@@ -100,17 +97,12 @@ lm78_remap(lm78_t *dev, uint8_t addr)
 
     if (!(dev->local & LM78_I2C)) return;
 
-    lm78_log("LM78: remapping to I2C %02Xh\n", addr);
+    lm78_log("LM78: remapping to SMBus %02Xh\n", addr);
 
-    i2c_removehandler(i2c_smbus, dev->i2c_addr, 1,
-		      NULL, lm78_i2c_read_byte, lm78_i2c_read_byte_cmd, lm78_i2c_read_word_cmd, NULL,
-		      NULL, lm78_i2c_write_byte, lm78_i2c_write_byte_cmd, lm78_i2c_write_word_cmd, NULL,
-		      dev);
+    i2c_removehandler(i2c_smbus, dev->i2c_addr, 1, lm78_i2c_start, lm78_i2c_read, lm78_i2c_write, NULL, dev);
 
-    if (addr < 0x80) i2c_sethandler(i2c_smbus, addr, 1,
-				    NULL, lm78_i2c_read_byte, lm78_i2c_read_byte_cmd, lm78_i2c_read_word_cmd, NULL,
-				    NULL, lm78_i2c_write_byte, lm78_i2c_write_byte_cmd, lm78_i2c_write_word_cmd, NULL,
-				    dev);
+    if (addr < 0x80)
+	i2c_sethandler(i2c_smbus, addr, 1, lm78_i2c_start, lm78_i2c_read, lm78_i2c_write, NULL, dev);
 
     dev->i2c_addr = addr;
 
@@ -123,6 +115,15 @@ lm78_remap(lm78_t *dev, uint8_t addr)
 			lm75->as99127f_i2c_addr = dev->i2c_addr;
 	}
     }
+}
+
+
+static void
+lm78_i2c_start(void *bus, uint8_t addr, void *priv)
+{
+    lm78_t *dev = (lm78_t *) priv;
+
+    dev->i2c_state = 0;
 }
 
 
@@ -159,26 +160,11 @@ lm78_isa_read(uint16_t port, void *priv)
 
 
 static uint8_t
-lm78_i2c_read_byte(void *bus, uint8_t addr, void *priv)
+lm78_i2c_read(void *bus, uint8_t addr, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
-    return lm78_read(dev, dev->addr_register, LM78_WINBOND_BANK);
-}
 
-
-static uint8_t
-lm78_i2c_read_byte_cmd(void *bus, uint8_t addr, uint8_t cmd, void *priv)
-{
-    lm78_t *dev = (lm78_t *) priv;
-    return lm78_read(dev, cmd, LM78_WINBOND_BANK);
-}
-
-
-static uint16_t
-lm78_i2c_read_word_cmd(void *bus, uint8_t addr, uint8_t cmd, void *priv)
-{
-    lm78_t *dev = (lm78_t *) priv;
-    return (lm78_read(dev, cmd, LM78_WINBOND_BANK) << 8) | lm78_read(dev, cmd, LM78_WINBOND_BANK);
+    return lm78_read(dev, dev->addr_register++, LM78_WINBOND_BANK);
 }
 
 
@@ -264,27 +250,18 @@ lm78_isa_write(uint16_t port, uint8_t val, void *priv)
 }
 
 
-static void
-lm78_i2c_write_byte(void *bus, uint8_t addr, uint8_t val, void *priv)
+static uint8_t
+lm78_i2c_write(void *bus, uint8_t addr, uint8_t val, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
-    dev->addr_register = val;
-}
 
+    if (dev->i2c_state == 0) {
+	dev->i2c_state = 1;
+	dev->addr_register = val;
+    } else
+	lm78_write(dev, dev->addr_register++, val, LM78_WINBOND_BANK);
 
-static void
-lm78_i2c_write_byte_cmd(void *bus, uint8_t addr, uint8_t cmd, uint8_t val, void *priv)
-{
-    lm78_t *dev = (lm78_t *) priv;
-    lm78_write(dev, cmd, val, LM78_WINBOND_BANK);
-}
-
-
-static void
-lm78_i2c_write_word_cmd(void *bus, uint8_t addr, uint8_t cmd, uint16_t val, void *priv)
-{
-    lm78_t *dev = (lm78_t *) priv;
-    lm78_write(dev, cmd, val, LM78_WINBOND_BANK);
+    return 1;
 }
 
 
