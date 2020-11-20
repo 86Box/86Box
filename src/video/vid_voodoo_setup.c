@@ -36,6 +36,24 @@
 #include <86box/vid_voodoo_render.h>
 #include <86box/vid_voodoo_setup.h>
 
+#ifdef ENABLE_VOODOO_SETUP_LOG
+int voodoo_setup_do_log = ENABLE_VOODOO_SETUP_LOG;
+
+static void
+voodoo_setup_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (voodoo_setup_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+}
+#else
+#define voodoo_setup_log(fmt, ...)
+#endif
+
 
 void voodoo_triangle_setup(voodoo_t *voodoo)
 {
@@ -152,8 +170,10 @@ void voodoo_triangle_setup(voodoo_t *voodoo)
         voodoo->params.vertexCx = (int32_t)(int16_t)((int32_t)(verts[vc].sVx * 16.0f) & 0xffff);
         voodoo->params.vertexCy = (int32_t)(int16_t)((int32_t)(verts[vc].sVy * 16.0f) & 0xffff);
 
-        if (voodoo->params.vertexAy > voodoo->params.vertexBy || voodoo->params.vertexBy > voodoo->params.vertexCy)
-                fatal("triangle_setup wrong order %d %d %d\n", voodoo->params.vertexAy, voodoo->params.vertexBy, voodoo->params.vertexCy);
+        if (voodoo->params.vertexAy > voodoo->params.vertexBy || voodoo->params.vertexBy > voodoo->params.vertexCy) {
+                voodoo_setup_log("triangle_setup wrong order %d %d %d\n", voodoo->params.vertexAy, voodoo->params.vertexBy, voodoo->params.vertexCy);
+		return;
+	}
 
         if (voodoo->sSetupMode & SETUPMODE_RGB)
         {
