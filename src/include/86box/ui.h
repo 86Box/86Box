@@ -34,6 +34,7 @@ extern "C" {
 #define MBX_ERROR	2
 #define MBX_QUESTION	3
 #define MBX_QUESTION_YN	4
+#define MBX_QUESTION_OK	8
 #define MBX_QMARK	0x10
 #define MBX_WARNING	0x20
 #define MBX_FATAL	0x40

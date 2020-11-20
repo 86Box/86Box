@@ -100,13 +100,14 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
 
 	case MBX_QUESTION:	/* question */
 	case MBX_QUESTION_YN:
+	case MBX_QUESTION_OK:
 		if (!btn1) /* replace default "OK" button with "Yes" button */
-			tdconfig.dwCommonButtons = TDCBF_YES_BUTTON;
+			tdconfig.dwCommonButtons = (flags & MBX_QUESTION_OK) ? TDCBF_OK_BUTTON : TDCBF_YES_BUTTON;
 
 		if (btn2) /* "No" button */
 			tdbuttons[tdconfig.cButtons++] = tdb_no;
 		else
-			tdconfig.dwCommonButtons |= TDCBF_NO_BUTTON;
+			tdconfig.dwCommonButtons |= (flags & MBX_QUESTION_OK) ? TDCBF_CANCEL_BUTTON : TDCBF_NO_BUTTON;
 
 		if (flags & MBX_QUESTION) {
 			if (btn3) /* "Cancel" button */

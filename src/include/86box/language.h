@@ -114,6 +114,9 @@
 #define IDS_2138	2138		// "Don't Reset"
 #define IDS_2139	2139		// "MO images (*.IM?)\0*.IM?..."
 #define IDS_2140	2140		// "CD-ROM images (*.ISO;*.CU.."
+#define IDS_2141	2141		// "Save"
+#define IDS_2142	2142		// "Don't save"
+#define IDS_2143	2143		// "This will hard reset the virtual..."
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
@@ -221,7 +224,7 @@
 
 #define IDS_LANG_ENUS	IDS_7168
 
-#define STR_NUM_2048	93
+#define STR_NUM_2048	96
 #define STR_NUM_3072	11
 #define STR_NUM_4096	39
 #define STR_NUM_4352	6

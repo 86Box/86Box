@@ -531,7 +531,10 @@ settings_msgbox_reset(int button)
 	h = hwndMain;
 	hwndMain = hwndParentDialog;
 
-	i = ui_msgbox_ex(MBX_QUESTION | MBX_LINKS, (wchar_t *) (button ? IDS_2051 : IDS_2123), NULL, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, NULL);
+	if (button)
+		i = ui_msgbox_ex(MBX_QUESTION_OK | MBX_WARNING, (wchar_t *) IDS_2051, (wchar_t *) IDS_2142, (wchar_t *) IDS_2140, NULL, NULL);
+	else
+		i = ui_msgbox_ex(MBX_QUESTION | MBX_LINKS, (wchar_t *) IDS_2123, NULL, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, NULL);
 
 	hwndMain = h;
 

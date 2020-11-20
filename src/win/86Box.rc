@@ -1038,6 +1038,9 @@ BEGIN
     IDS_2138	"Don't reset"
     IDS_2139	"MO images (*.IM?;*.MDI)\0*.IM?;*.MDI\0All files (*.*)\0*.*\0"
     IDS_2140	"CD-ROM images (*.ISO;*.CUE)\0*.ISO;*.CUE\0All files (*.*)\0*.*\0"
+    IDS_2141	"Save"
+    IDS_2142	"Don't save"
+    IDS_2143	"This will hard reset the virtual machine."
 END
 
 STRINGTABLE DISCARDABLE 
