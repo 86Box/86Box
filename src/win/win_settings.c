@@ -792,7 +792,7 @@ win_settings_machine_recalc_machine(HWND hdlg)
 	fatal("No eligible CPU families for the selected machine\n");
     settings_enable_window(hdlg, IDC_COMBO_CPU_TYPE, TRUE);
     if (current_eligible == -1) {
-	temp_cpu_f = &cpu_families[listtocpufamily[0]];
+	temp_cpu_f = (cpu_family_t *) &cpu_families[listtocpufamily[0]];
 	settings_set_cur_sel(hdlg, IDC_COMBO_CPU_TYPE, 0);
     } else {
 	settings_set_cur_sel(hdlg, IDC_COMBO_CPU_TYPE, current_eligible);
@@ -960,7 +960,7 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 			case IDC_COMBO_CPU_TYPE:
 				if (HIWORD(wParam) == CBN_SELCHANGE) {
-					temp_cpu_f = &cpu_families[listtocpufamily[settings_get_cur_sel(hdlg, IDC_COMBO_CPU_TYPE)]];
+					temp_cpu_f = (cpu_family_t *) &cpu_families[listtocpufamily[settings_get_cur_sel(hdlg, IDC_COMBO_CPU_TYPE)]];
 					temp_cpu = 0;
 					win_settings_machine_recalc_cpu_m(hdlg);
 				}

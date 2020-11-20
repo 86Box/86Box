@@ -315,12 +315,12 @@ cpu_set_edx(void)
 }
 
 cpu_family_t *
-cpu_get_family(char *internal_name)
+cpu_get_family(const char *internal_name)
 {
 	int c = 0;
 	while (cpu_families[c].package) {
 		if (!strcmp(internal_name, cpu_families[c].internal_name))
-			return &cpu_families[c];
+			return (cpu_family_t *) &cpu_families[c];
 		c++;
 	}
 
@@ -329,7 +329,7 @@ cpu_get_family(char *internal_name)
 
 
 uint8_t
-cpu_is_eligible(cpu_family_t *cpu_family, int cpu, int machine)
+cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 {
 	/* Get machine. */
 	const machine_t *machine_s = &machines[machine];
@@ -357,19 +357,23 @@ cpu_is_eligible(cpu_family_t *cpu_family, int cpu, int machine)
 	if (machine_s->cpu_max_bus && (bus_speed > (machine_s->cpu_max_bus + 840907))) /* maximum bus speed with ~0.84 MHz (for 8086) tolerance */
 		return 0;
 
-	if (machine_s->cpu_min_voltage && (cpu_s->voltage < (machine_s->cpu_min_voltage - 10))) /* minimum voltage with 10 mV tolerance */
+	if (machine_s->cpu_min_voltage && (cpu_s->voltage < (machine_s->cpu_min_voltage - 100))) /* minimum voltage with 0.1V tolerance */
 		return 0;
 
-	if (machine_s->cpu_max_voltage && (cpu_s->voltage > (machine_s->cpu_max_voltage + 10))) /* maximum voltage with 10 mV tolerance */
+	if (machine_s->cpu_max_voltage && (cpu_s->voltage > (machine_s->cpu_max_voltage + 100))) /* maximum voltage with 0.1V tolerance */
 		return 0;
 
-	/* Account for CPUs that use a different multiplier than specified by jumpers. */
+	/* Account for CPUs that use a different internal multiplier than specified by jumpers. */
 	double multi = cpu_s->multi;
-	if (cpu_family->package & CPU_PKG_SOCKET5_7) {
+	if (cpu_s->cpu_flags & CPU_FIXED_MULTIPLIER) {
+		multi = machine_s->cpu_min_multi;
+	} else if (cpu_family->package & CPU_PKG_SOCKET5_7) {
 		if (multi == 1.75) /* K5 */
 			multi = 2.5;
 		else if ((multi == 2.0) && (cpu_s->cpu_type & CPU_5K86)) /* K5 */
 			multi = 3.0;
+		else if ((multi == 2.0) && (cpu_s->cpu_type & (CPU_K6_2P | CPU_K6_3P))) /* K6-2+ / K6-3+ */
+			multi = 2.5;
 		else if (multi == (7.0 / 3.0)) /* WinChip 2A */
 			multi = 5.0;
 		else if (multi == (8.0 / 3.0)) /* WinChip 2A */
@@ -399,7 +403,7 @@ cpu_is_eligible(cpu_family_t *cpu_family, int cpu, int machine)
 
 
 uint8_t
-cpu_family_is_eligible(cpu_family_t *cpu_family, int machine)
+cpu_family_is_eligible(const cpu_family_t *cpu_family, int machine)
 {
 	int c = 0;
 
@@ -413,7 +417,7 @@ cpu_family_is_eligible(cpu_family_t *cpu_family, int machine)
 }
 
 
-int fpu_get_type(cpu_family_t *cpu_family, int cpu, const char *internal_name)
+int fpu_get_type(const cpu_family_t *cpu_family, int cpu, const char *internal_name)
 {
         const CPU *cpu_s = &cpu_family->cpus[cpu];
         const FPU *fpus = cpu_s->fpus;
@@ -430,7 +434,7 @@ int fpu_get_type(cpu_family_t *cpu_family, int cpu, const char *internal_name)
         return fpu_type;
 }
 
-const char *fpu_get_internal_name(cpu_family_t *cpu_family, int cpu, int type)
+const char *fpu_get_internal_name(const cpu_family_t *cpu_family, int cpu, int type)
 {
         const CPU *cpu_s = &cpu_family->cpus[cpu];
         const FPU *fpus = cpu_s->fpus;
@@ -446,7 +450,7 @@ const char *fpu_get_internal_name(cpu_family_t *cpu_family, int cpu, int type)
         return fpus[0].internal_name;
 }
 
-const char *fpu_get_name_from_index(cpu_family_t *cpu_family, int cpu, int c)
+const char *fpu_get_name_from_index(const cpu_family_t *cpu_family, int cpu, int c)
 {
         const CPU *cpu_s = &cpu_family->cpus[cpu];
         const FPU *fpus = cpu_s->fpus;
@@ -454,7 +458,7 @@ const char *fpu_get_name_from_index(cpu_family_t *cpu_family, int cpu, int c)
         return fpus[c].name;
 }
 
-int fpu_get_type_from_index(cpu_family_t *cpu_family, int cpu, int c)
+int fpu_get_type_from_index(const cpu_family_t *cpu_family, int cpu, int c)
 {
         const CPU *cpu_s = &cpu_family->cpus[cpu];
         const FPU *fpus = cpu_s->fpus;

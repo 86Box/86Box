@@ -928,7 +928,7 @@ void
 pc_thread(void *param)
 {
     wchar_t temp[200], wcpufamily[2048], wcpu[2048];
-    wchar_t wmachine[2048];
+    wchar_t wmachine[2048], *wcp;
     uint64_t start_time, end_time;
     uint32_t old_time, new_time;
     int done, drawits, frames;
@@ -992,6 +992,9 @@ pc_thread(void *param)
 			mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
 			mbstowcs(wcpufamily, cpu_f->name,
 				 strlen(cpu_f->name)+1);
+			wcp = wcschr(wcpufamily, L'(');
+			if (wcp) /* remove parentheses */
+				*(wcp - 1) = L'\0';
 			mbstowcs(wcpu, cpu_s->name,
 				 strlen(cpu_s->name)+1);
 			swprintf(temp, sizeof_w(temp),
