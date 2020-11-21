@@ -270,8 +270,6 @@ hdd_image_load(int id)
 	int is_hdx[2] = { 0, 0 };
 	int is_vhd[2] = { 0, 0 };   
 	int vhd_error = 0; 
-	MVHDMeta *vhdm;
-	MVHDGeom geom;
 
 	memset(empty_sector, 0, sizeof(empty_sector));
 
@@ -463,10 +461,9 @@ hdd_image_load(int id)
 				fatal("hdd_image_load(): VHD: Parent/child timestamp mismatch for VHD file '%s'\n", fn_multibyte_buf);
 			}
 
-			mvhd_get_geometry(hdd_images[id].vhd);
-			hdd[id].spt = geom.spt;
-			hdd[id].hpc = geom.heads;
-			hdd[id].tracks = geom.cyl;
+			hdd[id].tracks = hdd_images[id].vhd->footer.geom.cyl;
+			hdd[id].hpc = hdd_images[id].vhd->footer.geom.heads;
+			hdd[id].spt = hdd_images[id].vhd->footer.geom.spt;
 			full_size = ((uint64_t) hdd[id].spt) *
 			            ((uint64_t) hdd[id].hpc) *
 			            ((uint64_t) hdd[id].tracks) << 9LL;
