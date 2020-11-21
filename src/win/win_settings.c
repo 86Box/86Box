@@ -4964,15 +4964,16 @@ win_settings_confirm(HWND hdlg)
 
 	if (i == 0) {
 		win_settings_save();
-	}
 
-	DestroyWindow(hwndChildDialog);
-	EndDialog(hdlg, 0);
-	win_notify_dlg_closed();
+		DestroyWindow(hwndChildDialog);
+		EndDialog(hdlg, 0);
+		win_notify_dlg_closed();
 
-	return TRUE;
+		return TRUE;
+	} else
+		return FALSE;
     } else
-	return FALSE;
+	return TRUE;
 }
 
 
