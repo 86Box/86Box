@@ -111,7 +111,8 @@ extern int	network_card;			/* (C) net interface num */
 extern char	network_host[522];		/* (C) host network intf */
 extern int	hdd_format_type;		/* (C) hard disk file format */
 extern int	confirm_reset,			/* (C) enable reset confirmation */
-		confirm_exit;			/* (C) enable exit confirmation */
+		confirm_exit,			/* (C) enable exit confirmation */
+		confirm_save;			/* (C) enable save confirmation */
 #ifdef USE_DISCORD
 extern int	enable_discord;			/* (C) enable Discord integration */
 #endif

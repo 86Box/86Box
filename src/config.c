@@ -487,6 +487,7 @@ load_general(void)
 
     confirm_reset = config_get_int(cat, "confirm_reset", 1);
     confirm_exit = config_get_int(cat, "confirm_exit", 1);
+    confirm_save = config_get_int(cat, "confirm_save", 1);
 
 #ifdef USE_LANGUAGE
     /*
@@ -1759,6 +1760,11 @@ save_general(void)
 	config_set_int(cat, "confirm_exit", confirm_exit);
     else
 	config_delete_var(cat, "confirm_exit");
+
+    if (confirm_save != 1)
+	config_set_int(cat, "confirm_save", confirm_save);
+    else
+	config_delete_var(cat, "confirm_save");
 
 #ifdef USE_LANGUAGE
     if (plat_langid == 0x0409)
