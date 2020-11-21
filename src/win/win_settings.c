@@ -3278,14 +3278,20 @@ hdd_add_file_open_error:
 					if (!wcscmp(text_buf, L"(N/A)")) {
 						settings_enable_window(hdlg, IDC_EDIT_HD_SPT, TRUE);
 						set_edit_box_contents(hdlg, IDC_EDIT_HD_SPT, 17);
+						spt = 17;
 						settings_enable_window(hdlg, IDC_EDIT_HD_HPC, TRUE);
 						set_edit_box_contents(hdlg, IDC_EDIT_HD_HPC, 15);
+						hpc = 15;
 						settings_enable_window(hdlg, IDC_EDIT_HD_CYL, TRUE);
 						set_edit_box_contents(hdlg, IDC_EDIT_HD_CYL, 1023);
+						tracks = 1023;
 						settings_enable_window(hdlg, IDC_EDIT_HD_SIZE, TRUE);
 						set_edit_box_contents(hdlg, IDC_EDIT_HD_SIZE, (uint32_t) ((uint64_t)17 * 15 * 1023 * 512 >> 20));
-						settings_enable_window(hdlg, IDC_COMBO_HD_TYPE, TRUE);
+						size = (uint64_t)17 * 15 * 1023 * 512;
+						
+						settings_reset_content(hdlg, IDC_COMBO_HD_TYPE);
 						hdconf_initialize_hdt_combo(hdlg);
+						settings_enable_window(hdlg, IDC_COMBO_HD_TYPE, TRUE);						
 					}
 				}
 				no_update = 0;
