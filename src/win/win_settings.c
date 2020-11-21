@@ -519,38 +519,6 @@ win_settings_changed(void)
 }
 
 
-static int
-settings_msgbox_reset()
-{
-    int changed, i = 0;
-    HWND h;
-
-    changed = win_settings_changed();
-
-    if (changed) {
-	h = hwndMain;
-	hwndMain = hwndParentDialog;
-
-	if (confirm_save)
-		i = ui_msgbox_ex(MBX_QUESTION_OK | MBX_WARNING | MBX_DONTASK, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, (wchar_t *) IDS_2123, NULL, NULL);
-	else
-		i = 0;
-
-	if (i == 10)
-		confirm_save = 0;
-
-	hwndMain = h;
-
-	if (i == 1) return(1);	/* no */
-
-	if (i == -1) return(0);	/* cancel */
-
-	return(2);		/* yes */
-    } else
-	return(1);
-}
-
-
 /* This saves the settings back to the global variables. */
 static void
 win_settings_save(void)
@@ -4982,10 +4950,21 @@ win_settings_confirm(HWND hdlg)
     int i;
 
     SendMessage(hwndChildDialog, WM_SAVESETTINGS, 0, 0);
-    i = settings_msgbox_reset();
-    if (i > 0) {
-	if (i == 2)
+
+    if (win_settings_changed()) {
+	if (confirm_save)
+		i = settings_msgbox_ex(MBX_QUESTION_OK | MBX_WARNING | MBX_DONTASK, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, (wchar_t *) IDS_2123, NULL, NULL);
+	else
+		i = 0;
+
+	if (i == 10) {
+		confirm_save = 0;
+		i = 0;
+	}
+
+	if (i == 0) {
 		win_settings_save();
+	}
 
 	DestroyWindow(hwndChildDialog);
 	EndDialog(hdlg, 0);
