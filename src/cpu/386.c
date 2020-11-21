@@ -257,6 +257,9 @@ exec386(int cycs)
 		if (!use32) cpu_state.pc &= 0xffff;
 #endif
 
+		if (cpu_end_block_after_ins)
+			cpu_end_block_after_ins--;
+
 		if (cpu_state.abrt) {
 			flags_rebuild();
 			tempi = cpu_state.abrt & ABRT_MASK;
@@ -328,8 +331,6 @@ exec386(int cycs)
 				}
 			}
 		}
-
-		cpu_end_block_after_ins = 0;
 
 		ins_cycles -= cycles;
 		tsc += ins_cycles;
