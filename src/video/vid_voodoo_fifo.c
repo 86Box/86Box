@@ -155,16 +155,19 @@ void voodoo_wait_for_swap_complete(voodoo_t *voodoo)
 static uint32_t cmdfifo_get(voodoo_t *voodoo)
 {
         uint32_t val;
-
-        while (voodoo->cmdfifo_depth_rd == voodoo->cmdfifo_depth_wr)
-        {
-                thread_wait_event(voodoo->wake_fifo_thread, -1);
-                thread_reset_event(voodoo->wake_fifo_thread);
-        }
+	
+	if (!voodoo->cmdfifo_in_sub) {
+		while (voodoo->cmdfifo_depth_rd == voodoo->cmdfifo_depth_wr)
+		{
+			thread_wait_event(voodoo->wake_fifo_thread, -1);
+			thread_reset_event(voodoo->wake_fifo_thread);
+		}
+	}
 
         val = *(uint32_t *)&voodoo->fb_mem[voodoo->cmdfifo_rp & voodoo->fb_mask];
 
-        voodoo->cmdfifo_depth_rd++;
+        if (!voodoo->cmdfifo_in_sub)
+                voodoo->cmdfifo_depth_rd++;
         voodoo->cmdfifo_rp += 4;
 
 //        voodoo_fifo_log("  CMDFIFO get %08x\n", val);
@@ -285,7 +288,7 @@ void voodoo_fifo_thread(void *param)
                         voodoo->time += end_time - start_time;
                 }
 
-                while (voodoo->cmdfifo_enabled && voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr)
+                while (voodoo->cmdfifo_enabled && (voodoo->cmdfifo_depth_rd != voodoo->cmdfifo_depth_wr || voodoo->cmdfifo_in_sub))
                 {
                         uint64_t start_time = plat_timer_read();
                         uint64_t end_time;
@@ -306,6 +309,18 @@ void voodoo_fifo_thread(void *param)
                                 switch ((header >> 3) & 7)
                                 {
                                         case 0: /*NOP*/
+                                        break;
+
+                                        case 1: /*JSR*/
+//                                        voodoo_fifo_log("JSR %08x\n", (header >> 4) & 0xfffffc);
+                                        voodoo->cmdfifo_ret_addr = voodoo->cmdfifo_rp;
+                                        voodoo->cmdfifo_rp = (header >> 4) & 0xfffffc;
+                                        voodoo->cmdfifo_in_sub = 1;
+                                        break;
+
+                                        case 2: /*RET*/
+                                        voodoo->cmdfifo_rp = voodoo->cmdfifo_ret_addr;
+                                        voodoo->cmdfifo_in_sub = 0;
                                         break;
 
                                         case 3: /*JMP local frame buffer*/

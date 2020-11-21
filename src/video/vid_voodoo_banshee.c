@@ -1203,6 +1203,8 @@ static void banshee_cmd_write(banshee_t *banshee, uint32_t addr, uint32_t val)
                 voodoo->cmdfifo_size = val;
                 voodoo->cmdfifo_end = voodoo->cmdfifo_base + (((voodoo->cmdfifo_size & 0xff) + 1) << 12);
                 voodoo->cmdfifo_enabled = val & 0x100;
+                if (!voodoo->cmdfifo_enabled)
+                        voodoo->cmdfifo_in_sub = 0; /*Not sure exactly when this should be reset*/
 //                banshee_log("cmdfifo_base=%08x  cmdfifo_end=%08x\n", voodoo->cmdfifo_base, voodoo->cmdfifo_end);
                 break;
                 
