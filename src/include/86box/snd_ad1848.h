@@ -15,7 +15,7 @@ typedef struct ad1848_t
         
         int16_t out_l, out_r;
 
-	uint32_t cd_vol_l, cd_vol_r;
+	double cd_vol_l, cd_vol_r;
 
         int enable;
 
