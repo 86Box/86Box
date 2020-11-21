@@ -4962,18 +4962,16 @@ win_settings_confirm(HWND hdlg)
 		i = 0;
 	}
 
-	if (i == 0) {
+	if (i == 0)
 		win_settings_save();
-
-		DestroyWindow(hwndChildDialog);
-		EndDialog(hdlg, 0);
-		win_notify_dlg_closed();
-
-		return TRUE;
-	} else
+	else
 		return FALSE;
-    } else
-	return TRUE;
+    }
+
+    DestroyWindow(hwndChildDialog);
+    EndDialog(hdlg, 0);
+    win_notify_dlg_closed();
+    return TRUE;
 }
 
 
