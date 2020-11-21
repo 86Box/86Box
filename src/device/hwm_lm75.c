@@ -35,7 +35,7 @@ static uint8_t	lm75_i2c_read(void *bus, uint8_t addr, void *priv);
 static uint8_t	lm75_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv);
 static void	lm75_reset(lm75_t *dev);
 
-
+#define ENABLE_LM75_LOG 1
 #ifdef ENABLE_LM75_LOG
 int lm75_do_log = ENABLE_LM75_LOG;
 
@@ -86,22 +86,38 @@ lm75_i2c_read(void *bus, uint8_t addr, void *priv)
     lm75_t *dev = (lm75_t *) priv;
     uint8_t ret = 0;
 
-    switch (dev->addr_register & 0x3) {
-	case 0x0: /* temperature */
-		ret = lm75_read(dev, (dev->i2c_state == 1) ? 0x1 : 0x0);
-		break;
+    if (dev->i2c_state == 0)
+	dev->i2c_state = 1;
 
-	case 0x1: /* configuration */
-		ret = lm75_read(dev, 0x2);
-		break;
+    /* The AS99127F hardware monitor uses the addresses of its LM75 devices
+       to access some of its proprietary registers. Pass this operation on to
+       the main monitor address through an internal I2C call, if necessary. */
+    if ((dev->addr_register > 0x7) && ((dev->addr_register & 0xf8) != 0x50) && (dev->as99127f_i2c_addr < 0x80)) {
+	i2c_start(i2c_smbus, dev->as99127f_i2c_addr);
+	i2c_write(i2c_smbus, dev->as99127f_i2c_addr, dev->addr_register);
+	ret = i2c_read(i2c_smbus, dev->as99127f_i2c_addr);
+	i2c_stop(i2c_smbus, dev->as99127f_i2c_addr);
+    } else {
+	switch (dev->addr_register & 0x3) {
+		case 0x0: /* temperature */
+			ret = lm75_read(dev, (dev->i2c_state == 1) ? 0x0 : 0x1);
+			break;
 
-	case 0x2: /* Thyst */
-		ret = lm75_read(dev, (dev->i2c_state == 1) ? 0x4 : 0x3);
-		break;
-	case 0x3: /* Tos */
-		ret = lm75_read(dev, (dev->i2c_state == 1) ? 0x6 : 0x5);
-		break;
+		case 0x1: /* configuration */
+			ret = lm75_read(dev, 0x2);
+			break;
+
+		case 0x2: /* Thyst */
+			ret = lm75_read(dev, (dev->i2c_state == 1) ? 0x3 : 0x4);
+			break;
+		case 0x3: /* Tos */
+			ret = lm75_read(dev, (dev->i2c_state == 1) ? 0x5 : 0x6);
+			break;
+	}
     }
+
+    if (++dev->i2c_state > 2)
+    	dev->i2c_state = 2;
 
     return ret;
 }
@@ -112,15 +128,7 @@ lm75_read(lm75_t *dev, uint8_t reg)
 {
     uint8_t ret;
 
-    /* The AS99127F hardware monitor uses the addresses of its LM75 devices
-       to access some of its proprietary registers. Pass this operation on to
-       the main monitor address through an internal I2C call, if necessary. */
-    if ((reg > 0x7) && ((reg & 0xf8) != 0x50) && (dev->as99127f_i2c_addr < 0x80)) {
-	i2c_start(i2c_smbus, dev->as99127f_i2c_addr);
-	i2c_write(i2c_smbus, dev->as99127f_i2c_addr, reg);
-	ret = i2c_read(i2c_smbus, dev->as99127f_i2c_addr);
-	i2c_stop(i2c_smbus, dev->as99127f_i2c_addr);
-    } else if ((reg & 0x7) == 0x0) /* temperature high byte */
+    if ((reg & 0x7) == 0x0) /* temperature high byte */
 	ret = LM75_TEMP_TO_REG(dev->values->temperatures[dev->local >> 8]) >> 8;
     else if ((reg & 0x7) == 0x1) /* temperature low byte */
 	ret = LM75_TEMP_TO_REG(dev->values->temperatures[dev->local >> 8]);
@@ -145,22 +153,36 @@ lm75_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv)
 	return 1;
     }
 
-    switch (dev->addr_register & 0x3) {
-	case 0x0: /* temperature */
-		lm75_write(dev, (dev->i2c_state == 1) ? 0x1 : 0x0, data);
-		break;
+    /* The AS99127F hardware monitor uses the addresses of its LM75 devices
+       to access some of its proprietary registers. Pass this operation on to
+       the main monitor address through an internal I2C call, if necessary. */
+    if ((dev->addr_register > 0x7) && ((dev->addr_register & 0xf8) != 0x50) && (dev->as99127f_i2c_addr < 0x80)) {
+	i2c_start(i2c_smbus, dev->as99127f_i2c_addr);
+	i2c_write(i2c_smbus, dev->as99127f_i2c_addr, dev->addr_register);
+	i2c_write(i2c_smbus, dev->as99127f_i2c_addr, data);
+	i2c_stop(i2c_smbus, dev->as99127f_i2c_addr);
+	return 1;
+    } else {
+	switch (dev->addr_register & 0x3) {
+		case 0x0: /* temperature */
+			lm75_write(dev, (dev->i2c_state == 1) ? 0x0 : 0x1, data);
+			break;
 
-	case 0x1: /* configuration */
-		lm75_write(dev, 0x2, data);
-		break;
+		case 0x1: /* configuration */
+			lm75_write(dev, 0x2, data);
+			break;
 
-	case 0x2: /* Thyst */
-		lm75_write(dev, (dev->i2c_state == 1) ? 0x4 : 0x3, data);
-		break;
-	case 0x3: /* Tos */
-		lm75_write(dev, (dev->i2c_state == 1) ? 0x6 : 0x5, data);
-		break;
+		case 0x2: /* Thyst */
+			lm75_write(dev, (dev->i2c_state == 1) ? 0x3 : 0x4, data);
+			break;
+		case 0x3: /* Tos */
+			lm75_write(dev, (dev->i2c_state == 1) ? 0x5 : 0x6, data);
+			break;
+	}
     }
+
+    if (++dev->i2c_state > 2)
+    	dev->i2c_state = 2;
 
     return 1;
 }
@@ -170,17 +192,6 @@ uint8_t
 lm75_write(lm75_t *dev, uint8_t reg, uint8_t val)
 {
     lm75_log("LM75: write(%02X, %02X)\n", reg, val);
-
-    /* The AS99127F hardware monitor uses the addresses of its LM75 devices
-       to access some of its proprietary registers. Pass this operation on to
-       the main monitor address through an internal I2C call, if necessary. */
-    if ((reg > 0x7) && ((reg & 0xf8) != 0x50) && (dev->as99127f_i2c_addr < 0x80)) {
-	i2c_start(i2c_smbus, dev->as99127f_i2c_addr);
-	i2c_write(i2c_smbus, dev->as99127f_i2c_addr, reg);
-	i2c_write(i2c_smbus, dev->as99127f_i2c_addr, val);
-	i2c_stop(i2c_smbus, dev->as99127f_i2c_addr);
-	return 1;
-    }
 
     uint8_t reg_idx = (reg & 0x7);
 

@@ -194,6 +194,8 @@ i2c_has_device(void *bus_handle, uint8_t addr)
     if (!bus)
 	return 0;
 
+    i2c_log("I2C: has_device(%s, %02X) = %d\n", bus->name, addr, !!bus->devices[addr]);
+
     return(!!bus->devices[addr]);
 }
 

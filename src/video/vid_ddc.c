@@ -38,7 +38,7 @@ static uint8_t edid_data[128] = {
     0x08, /* Analog input, separate sync */
     34, 0, /* Landscape, 4:3 */
     0, /* Gamma */
-    0x08, /* RGB colour */
+    0x08, /* RGB color */
     0x81, 0xf1, 0xa3, 0x57, 0x53, 0x9f, 0x27, 0x0a, 0x50, /* Chromaticity */
 
     0xff, 0xff, 0xff, /* Established timing bitmap */

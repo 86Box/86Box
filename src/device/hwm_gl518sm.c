@@ -103,13 +103,16 @@ gl518sm_i2c_read(void *bus, uint8_t addr, void *priv)
     uint16_t read = gl518sm_read(dev, dev->addr_register);
     uint8_t ret = 0;
 
+    if (dev->i2c_state == 0)
+	dev->i2c_state = 1;
+
     if ((dev->i2c_state == 1) && (dev->addr_register >= 0x07) && (dev->addr_register <= 0x0c)) { /* two-byte registers: read MSB first */
 	dev->i2c_state = 2;
 	ret = read >> 8;
-    } else
+    } else {
 	ret = read;
-
-    dev->addr_register++;
+	dev->addr_register++;
+    }
 
     return ret;
 }
@@ -178,6 +181,7 @@ gl518sm_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv)
 		break;
 
 	default:
+		dev->i2c_state = 3;
 		return 0;
     }
 

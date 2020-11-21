@@ -52,10 +52,31 @@ enum {
 };
 
 typedef struct {
+    char	*bus_name;
     void	*i2c;
     uint8_t	scl, sda, state, slave_state, slave_addr,
 		slave_rw, last_sda, pos, transmit, byte;
 } i2c_gpio_t;
+
+
+#ifdef ENABLE_I2C_GPIO_LOG
+int i2c_gpio_do_log = ENABLE_I2C_GPIO_LOG;
+
+
+static void
+i2c_gpio_log(int level, const char *fmt, ...)
+{
+    va_list ap;
+
+    if (i2c_gpio_do_log >= level) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+}
+#else
+#define i2c_gpio_log(fmt, ...)
+#endif
 
 
 void *
@@ -64,7 +85,10 @@ i2c_gpio_init(char *bus_name)
     i2c_gpio_t *dev = (i2c_gpio_t *) malloc(sizeof(i2c_gpio_t));
     memset(dev, 0, sizeof(i2c_gpio_t));
 
-    dev->i2c = i2c_addbus(bus_name);
+    i2c_gpio_log(1, "I2C GPIO %s: init()\n", bus_name);
+
+    dev->bus_name = bus_name;
+    dev->i2c = i2c_addbus(dev->bus_name);
     dev->scl = dev->sda = 1;
     dev->slave_addr = 0xff;
 
@@ -77,6 +101,8 @@ i2c_gpio_close(void *dev_handle)
 {
     i2c_gpio_t *dev = (i2c_gpio_t *) dev_handle;
 
+    i2c_gpio_log(1, "I2C GPIO %s: close()\n", dev->bus_name);
+
     i2c_removebus(dev->i2c);
 
     free(dev);
@@ -87,6 +113,7 @@ void
 i2c_gpio_next_byte(i2c_gpio_t *dev)
 {
     dev->byte = i2c_read(dev->i2c, dev->slave_addr);
+    i2c_gpio_log(1, "I2C GPIO %s: next_byte() = %02X\n", dev->bus_name, dev->byte);
 }
 
 
@@ -100,6 +127,8 @@ i2c_gpio_write(i2c_gpio_t *dev)
 		i = dev->slave_addr;
 		dev->slave_addr = dev->byte >> 1;
 		dev->slave_rw = dev->byte & 1;
+
+		i2c_gpio_log(1, "I2C GPIO %s: Initiating transfer to address %02X rw %d\n", dev->bus_name, dev->slave_addr, dev->slave_rw);
 
 		if (!i2c_has_device(dev->i2c, dev->slave_addr)) {
 			dev->slave_state = SLAVE_INVALID;
@@ -120,11 +149,13 @@ i2c_gpio_write(i2c_gpio_t *dev)
 		break;
 
 	case SLAVE_RECEIVEADDR:
+		i2c_gpio_log(1, "I2C GPIO %s: Receiving address %02X\n", dev->bus_name, dev->byte);
 		i2c_write(dev->i2c, dev->slave_addr, dev->byte);
 		dev->slave_state = dev->slave_rw ? SLAVE_SENDDATA : SLAVE_RECEIVEDATA;
 		break;
 
 	case SLAVE_RECEIVEDATA:
+		i2c_gpio_log(1, "I2C GPIO %s: Receiving data %02X\n", dev->bus_name, dev->byte);
 		i2c_write(dev->i2c, dev->slave_addr, dev->byte);
 		break;
     }
@@ -134,7 +165,10 @@ i2c_gpio_write(i2c_gpio_t *dev)
 void
 i2c_gpio_stop(i2c_gpio_t *dev)
 {
-    i2c_stop(dev->i2c, dev->slave_addr);
+    i2c_gpio_log(1, "I2C GPIO %s: Stopping transfer\n", dev->bus_name);
+
+    if (dev->slave_addr != 0xff)
+	i2c_stop(dev->i2c, dev->slave_addr);
 
     dev->slave_addr = 0xff;
     dev->slave_state = SLAVE_IDLE;
@@ -149,7 +183,9 @@ i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda)
 
     switch (dev->state) {
 	case I2C_IDLE:
-		if (dev->scl && scl && dev->last_sda && !sda) { /* start bit */
+		/* !dev->scl check breaks NCR SDMS. */
+		if (/*!dev->scl &&*/ scl && dev->last_sda && !sda) { /* start bit */
+			i2c_gpio_log(2, "I2C GPIO %s: Start bit received (from IDLE)\n", dev->bus_name);
 			dev->state = I2C_RECEIVE;
 			dev->pos = 0;
 		}
@@ -173,9 +209,11 @@ i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda)
 			}
 		} else if (dev->scl && scl) {
 			if (sda && !dev->last_sda) { /* stop bit */
+				i2c_gpio_log(2, "I2C GPIO %s: Stop bit received (from RECEIVE)\n", dev->bus_name);
 				dev->state = I2C_IDLE;
 				i2c_gpio_stop(dev);
 			} else if (!sda && dev->last_sda) { /* start bit */
+				i2c_gpio_log(2, "I2C GPIO %s: Start bit received (from RECEIVE)\n", dev->bus_name);
 				dev->pos = 0;
 				dev->slave_state = SLAVE_IDLE;
 			}
@@ -184,6 +222,7 @@ i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda)
 
 	case I2C_ACKNOWLEDGE:
 		if (!dev->scl && scl) {
+			i2c_gpio_log(2, "I2C GPIO %s: Acknowledging transfer\n", dev->bus_name);
 			sda = 0;
 			dev->pos = 0;
 			dev->state = (dev->transmit == TRANSMITTER_MASTER) ? I2C_RECEIVE_WAIT : I2C_TRANSMIT;
@@ -193,12 +232,14 @@ i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda)
 	case I2C_TRANSACKNOWLEDGE:
 		if (!dev->scl && scl) {
 			if (sda) { /* not acknowledged; must be end of transfer */
+				i2c_gpio_log(2, "I2C GPIO %s: End of transfer\n", dev->bus_name);
 				dev->state = I2C_IDLE;
 				i2c_gpio_stop(dev);
 			} else { /* next byte to transfer */
 				dev->state = I2C_TRANSMIT_START;
 				i2c_gpio_next_byte(dev);
 				dev->pos = 0;
+				i2c_gpio_log(2, "I2C GPIO %s: Next byte = %02X\n", dev->bus_name, dev->byte);
 			}
 		}
 		break;
@@ -208,8 +249,10 @@ i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda)
 			if (dev->last_sda && !sda) { /* start bit */
 				i2c_gpio_next_byte(dev);
 				dev->pos = 0;
+				i2c_gpio_log(2, "I2C GPIO %s: Next byte = %02X\n", dev->bus_name, dev->byte);
 			}
 			if (!dev->last_sda && sda) { /* stop bit */
+				i2c_gpio_log(2, "I2C GPIO %s: Stop bit received (from TRANSMIT_WAIT)\n", dev->bus_name);
 				dev->state = I2C_IDLE;
 				i2c_gpio_stop(dev);
 			}
@@ -220,6 +263,7 @@ i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda)
 		if (!dev->scl && scl)
 			dev->state = I2C_TRANSMIT;
 		if (dev->scl && scl && !dev->last_sda && sda) { /* stop bit */
+			i2c_gpio_log(2, "I2C GPIO %s: Stop bit received (from TRANSMIT_START)\n", dev->bus_name);
 			dev->state = I2C_IDLE;
 			i2c_gpio_stop(dev);
 		}
@@ -228,13 +272,18 @@ i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda)
 	case I2C_TRANSMIT:
 		if (!dev->scl && scl) {
 			dev->scl = scl;
+			if (!dev->pos)
+				i2c_gpio_log(2, "I2C GPIO %s: Transmit byte %02X\n", dev->bus_name, dev->byte);
 			dev->sda = sda = dev->byte & 0x80;
+			i2c_gpio_log(2, "I2C GPIO %s: Transmit bit %02X %d\n", dev->bus_name, dev->byte, dev->pos);
 			dev->byte <<= 1;
 			dev->pos++;
 			return;
 		}
-		if (dev->scl && !scl && (dev->pos == 8))
+		if (dev->scl && !scl && (dev->pos == 8)) {
 			dev->state = I2C_TRANSACKNOWLEDGE;
+			i2c_gpio_log(2, "I2C GPIO %s: Acknowledge mode\n", dev->bus_name);
+		}
 		break;
     }
 
