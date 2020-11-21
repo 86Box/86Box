@@ -245,6 +245,10 @@ int mvhd_sparse_diff_write(MVHDMeta* vhdm, uint32_t offset, int num_sectors, voi
     for (s = offset; s < ls; s++) {
         blk = s / vhdm->sect_per_block;
         sib = s % vhdm->sect_per_block;
+        if (vhdm->bitmap.curr_block != blk && prev_blk >= 0) {            
+            /* Write the sector bitmap for the previous block, before we replace it. */
+            mvhd_write_curr_sect_bitmap(vhdm);
+        }
         if (vhdm->block_offset[blk] == MVHD_SPARSE_BLK) {
             /* "read" the sector bitmap first, before creating a new block, as the bitmap will be
                zero either way */
@@ -252,11 +256,7 @@ int mvhd_sparse_diff_write(MVHDMeta* vhdm, uint32_t offset, int num_sectors, voi
             mvhd_create_block(vhdm, blk);
         } 
         if (blk != prev_blk) {
-            if (vhdm->bitmap.curr_block != blk) {
-                if (prev_blk >= 0) {
-                    /* Write the sector bitmap for the previous block, before we replace it. */
-                    mvhd_write_curr_sect_bitmap(vhdm);
-                }
+            if (vhdm->bitmap.curr_block != blk) {                
                 mvhd_read_sect_bitmap(vhdm, blk);
                 mvhd_fseeko64(vhdm->f, (uint64_t)sib * MVHD_SECTOR_SIZE, SEEK_CUR);
             } else {
