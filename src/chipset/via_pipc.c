@@ -868,7 +868,9 @@ pipc_init(const device_t *info)
 
     dev->nvr = device_add(&via_nvr_device);
 
-    if (dev->local >= VIA_PIPC_596A)
+    if (dev->local >= VIA_PIPC_686B)
+	dev->smbus = device_add(&via_smbus_device);
+    else if (dev->local >= VIA_PIPC_596A)
 	dev->smbus = device_add(&piix4_smbus_device);
 
     if (dev->local >= VIA_PIPC_596A)

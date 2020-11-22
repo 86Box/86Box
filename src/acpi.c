@@ -653,7 +653,7 @@ static void
 acpi_i2c_set(acpi_t *dev)
 {
     if (dev->i2c) {
-	/* Check direction as well due to pull-ups. */
+	/* Check direction as well to account for the I2C pull-ups. */
 	i2c_gpio_set(dev->i2c, !(dev->regs.gpio_dir & 0x02) || (dev->regs.gpio_val & 0x02), !(dev->regs.gpio_dir & 0x04) || (dev->regs.gpio_val & 0x04));
     }
 }

@@ -30,7 +30,7 @@
 #define LM75_TEMP_TO_REG(t)	((t) << 8)
 
 
-static void	lm75_i2c_start(void *bus, uint8_t addr, void *priv);
+static uint8_t	lm75_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv);
 static uint8_t	lm75_i2c_read(void *bus, uint8_t addr, void *priv);
 static uint8_t	lm75_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv);
 static void	lm75_reset(lm75_t *dev);
@@ -59,7 +59,7 @@ lm75_log(const char *fmt, ...)
 void
 lm75_remap(lm75_t *dev, uint8_t addr)
 {
-    lm75_log("LM75: remapping to I2C %02Xh\n", addr);
+    lm75_log("LM75: remapping to SMBus %02Xh\n", addr);
 
     if (dev->i2c_addr < 0x80)
 	i2c_removehandler(i2c_smbus, dev->i2c_addr, 1, lm75_i2c_start, lm75_i2c_read, lm75_i2c_write, NULL, dev);
@@ -71,12 +71,14 @@ lm75_remap(lm75_t *dev, uint8_t addr)
 }
 
 
-static void
-lm75_i2c_start(void *bus, uint8_t addr, void *priv)
+static uint8_t
+lm75_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv)
 {
     lm75_t *dev = (lm75_t *) priv;
 
     dev->i2c_state = 0;
+
+    return 1;
 }
 
 
@@ -93,7 +95,7 @@ lm75_i2c_read(void *bus, uint8_t addr, void *priv)
        to access some of its proprietary registers. Pass this operation on to
        the main monitor address through an internal I2C call, if necessary. */
     if ((dev->addr_register > 0x7) && ((dev->addr_register & 0xf8) != 0x50) && (dev->as99127f_i2c_addr < 0x80)) {
-	i2c_start(i2c_smbus, dev->as99127f_i2c_addr);
+	i2c_start(i2c_smbus, dev->as99127f_i2c_addr, 1);
 	i2c_write(i2c_smbus, dev->as99127f_i2c_addr, dev->addr_register);
 	ret = i2c_read(i2c_smbus, dev->as99127f_i2c_addr);
 	i2c_stop(i2c_smbus, dev->as99127f_i2c_addr);
@@ -149,7 +151,10 @@ lm75_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv)
     if ((dev->i2c_state > 2) || ((dev->i2c_state == 2) && ((dev->addr_register & 0x3) == 0x1))) {
 	return 0;
     } else if (dev->i2c_state == 0) {
-	dev->addr_register = data;
+    	dev->i2c_state = 1;
+    	/* Linux lm75.c driver relies on a 3-bit address register that doesn't change if bit 2 is set. */
+    	if ((dev->as99127f_i2c_addr >= 0x80) && !(data & 0x04))
+		dev->addr_register = (data & 0x7);
 	return 1;
     }
 
@@ -157,7 +162,7 @@ lm75_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv)
        to access some of its proprietary registers. Pass this operation on to
        the main monitor address through an internal I2C call, if necessary. */
     if ((dev->addr_register > 0x7) && ((dev->addr_register & 0xf8) != 0x50) && (dev->as99127f_i2c_addr < 0x80)) {
-	i2c_start(i2c_smbus, dev->as99127f_i2c_addr);
+	i2c_start(i2c_smbus, dev->as99127f_i2c_addr, 0);
 	i2c_write(i2c_smbus, dev->as99127f_i2c_addr, dev->addr_register);
 	i2c_write(i2c_smbus, dev->as99127f_i2c_addr, data);
 	i2c_stop(i2c_smbus, dev->as99127f_i2c_addr);
@@ -175,13 +180,14 @@ lm75_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv)
 		case 0x2: /* Thyst */
 			lm75_write(dev, (dev->i2c_state == 1) ? 0x3 : 0x4, data);
 			break;
+
 		case 0x3: /* Tos */
 			lm75_write(dev, (dev->i2c_state == 1) ? 0x5 : 0x6, data);
 			break;
 	}
     }
 
-    if (++dev->i2c_state > 2)
+    if (dev->i2c_state == 1)
     	dev->i2c_state = 2;
 
     return 1;

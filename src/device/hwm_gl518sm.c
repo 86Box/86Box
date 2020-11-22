@@ -45,7 +45,7 @@ typedef struct {
 } gl518sm_t;
 
 
-static void	gl518sm_i2c_start(void *bus, uint8_t addr, void *priv);
+static uint8_t	gl518sm_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv);
 static uint8_t	gl518sm_i2c_read(void *bus, uint8_t addr, void *priv);
 static uint16_t	gl518sm_read(gl518sm_t *dev, uint8_t reg);
 static uint8_t	gl518sm_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv);
@@ -87,12 +87,14 @@ gl518sm_remap(gl518sm_t *dev, uint8_t addr)
 }
 
 
-static void
-gl518sm_i2c_start(void *bus, uint8_t addr, void *priv)
+static uint8_t
+gl518sm_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv)
 {
     gl518sm_t *dev = (gl518sm_t *) priv;
 
     dev->i2c_state = 0;
+
+    return 1;
 }
 
 
@@ -173,11 +175,11 @@ gl518sm_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv)
 		break;
 
 	case 1:
-		gl518sm_write(dev, dev->addr_register, data);
+		gl518sm_write(dev, dev->addr_register, (gl518sm_read(dev, dev->addr_register) & 0xff00) | data);
 		break;
 
 	case 2:
-		gl518sm_write(dev, dev->addr_register, (data << 8) | gl518sm_read(dev, dev->addr_register));
+		gl518sm_write(dev, dev->addr_register, (gl518sm_read(dev, dev->addr_register) << 8) | data);
 		break;
 
 	default:

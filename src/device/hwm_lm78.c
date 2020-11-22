@@ -60,7 +60,7 @@ typedef struct {
 } lm78_t;
 
 
-static void	lm78_i2c_start(void *bus, uint8_t addr, void *priv);
+static uint8_t	lm78_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv);
 static uint8_t	lm78_isa_read(uint16_t port, void *priv);
 static uint8_t	lm78_i2c_read(void *bus, uint8_t addr, void *priv);
 static uint8_t	lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank);
@@ -69,7 +69,7 @@ static uint8_t	lm78_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv)
 static uint8_t	lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank);
 static void	lm78_reset(lm78_t *dev, uint8_t initialization);
 
-#define ENABLE_LM78_LOG 1
+
 #ifdef ENABLE_LM78_LOG
 int lm78_do_log = ENABLE_LM78_LOG;
 
@@ -118,12 +118,14 @@ lm78_remap(lm78_t *dev, uint8_t addr)
 }
 
 
-static void
-lm78_i2c_start(void *bus, uint8_t addr, void *priv)
+static uint8_t
+lm78_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
 
     dev->i2c_state = 0;
+
+    return 1;
 }
 
 

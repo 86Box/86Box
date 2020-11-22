@@ -98,95 +98,189 @@ static void
 smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 {
     smbus_piix4_t *dev = (smbus_piix4_t *) priv;
-    uint8_t smbus_addr, smbus_read, prev_stat;
+    uint8_t smbus_addr, cmd, read, block_len, prev_stat, timer_bytes = 0;
 
     smbus_piix4_log("SMBus PIIX4: write(%02X, %02X)\n", addr, val);
 
     prev_stat = dev->next_stat;
-    dev->next_stat = 0;
+    dev->next_stat = 0x00;
     switch (addr - dev->io_base) {
 	case 0x00:
-		/* some status bits are reset by writing 1 to them */
-		for (smbus_addr = 0x02; smbus_addr <= 0x10; smbus_addr <<= 1) {
+		for (smbus_addr = 0x02; smbus_addr <= 0x10; smbus_addr <<= 1) { /* handle clearable bits */
 			if (val & smbus_addr)
 				dev->stat &= ~smbus_addr;
 		}
 		break;
 
 	case 0x02:
-		dev->ctl = val & ~(0x40); /* START always reads 0 */
+		dev->ctl = val & ((dev->local == SMBUS_VIA) ? 0x3f : 0x1f);
 		if (val & 0x02) { /* cancel an in-progress command if KILL is set */
-			/* cancel only if a command is in progress */
-			if (prev_stat) {
-				dev->stat = 0x10; /* raise FAILED */
+			if (prev_stat) { /* cancel only if a command is in progress */
 				timer_disable(&dev->response_timer);
+				dev->stat = 0x10; /* raise FAILED */
 			}
 		}
 		if (val & 0x40) { /* dispatch command if START is set */
+			timer_bytes++; /* address */
+
 			smbus_addr = (dev->addr >> 1);
-			if (!i2c_has_device(i2c_smbus, smbus_addr)) {
-				/* raise DEV_ERR if no device is at this address */
-				dev->next_stat = 0x4;
+			read = dev->addr & 0x01;
+
+			/* Raise DEV_ERR if no device is at this address, or if the device returned NAK when starting the transfer. */
+			if (!i2c_has_device(i2c_smbus, smbus_addr) || !i2c_start(i2c_smbus, smbus_addr, read)) {
+				dev->next_stat = 0x04;
 				break;
 			}
-			smbus_read = dev->addr & 0x01;
 
-			/* start transaction */
-			i2c_start(i2c_smbus, smbus_addr);
+			dev->next_stat = 0x02; /* raise INTER (command completed) by default */
 
-			/* decode the 3-bit command protocol */
-			dev->next_stat = 0x2; /* raise INTER (command completed) by default */
-			switch ((val >> 2) & 0x7) {
+			/* Decode the command protocol.
+			   VIA-specific modes (0x4 and [0x6:0xf]) are undocumented and required real hardware research. */
+			cmd = (val >> 2) & 0xf;
+			smbus_piix4_log("SMBus PIIX4: protocol=%X cmd=%02X data0=%02X data1=%02X\n", cmd, dev->cmd, dev->data0, dev->data1);
+			switch (cmd) {
 				case 0x0: /* quick R/W */
 					break;
 
 				case 0x1: /* byte R/W */
-					if (smbus_read)
+					if (read) /* byte read */
 						dev->data0 = i2c_read(i2c_smbus, smbus_addr);
-					else
+					else /* byte write */
 						i2c_write(i2c_smbus, smbus_addr, dev->data0);
+					timer_bytes++;
+
 					break;
 
 				case 0x2: /* byte data R/W */
+					/* command write */
 					i2c_write(i2c_smbus, smbus_addr, dev->cmd);
-					if (smbus_read)
+					timer_bytes++;
+
+					if (read) /* byte read */
 						dev->data0 = i2c_read(i2c_smbus, smbus_addr);
-					else
+					else /* byte write */
 						i2c_write(i2c_smbus, smbus_addr, dev->data0);
+					timer_bytes++;
+
 					break;
 
 				case 0x3: /* word data R/W */
+					/* command write */
 					i2c_write(i2c_smbus, smbus_addr, dev->cmd);
-					if (smbus_read) {
+					timer_bytes++;
+
+					if (read) { /* word read */
 						dev->data0 = i2c_read(i2c_smbus, smbus_addr);
 						dev->data1 = i2c_read(i2c_smbus, smbus_addr);
-					} else {
+					} else { /* word write */
 						i2c_write(i2c_smbus, smbus_addr, dev->data0);
 						i2c_write(i2c_smbus, smbus_addr, dev->data1);
 					}
+					timer_bytes += 2;
+
+					break;
+
+				case 0x4: /* process call */
+					if (dev->local != SMBUS_VIA) /* VIA only */
+						goto unknown_protocol;
+
+					if (!read) { /* command write (only when writing) */
+						i2c_write(i2c_smbus, smbus_addr, dev->cmd);
+						timer_bytes++;
+					}
+
+					/* fall-through */
+
+				case 0xc: /* I2C process call */
+					if (!read) { /* word write (only when writing) */
+						i2c_write(i2c_smbus, smbus_addr, dev->data0);
+						i2c_write(i2c_smbus, smbus_addr, dev->data1);
+						timer_bytes += 2;
+					}
+
+					/* word read */
+					dev->data0 = i2c_read(i2c_smbus, smbus_addr);
+					dev->data1 = i2c_read(i2c_smbus, smbus_addr);
+					timer_bytes += 2;
+
 					break;
 
 				case 0x5: /* block R/W */
+					timer_bytes++; /* account for the SMBus length byte now */
+
+					/* fall-through */
+
+				case 0xd: /* I2C block R/W */
 					i2c_write(i2c_smbus, smbus_addr, dev->cmd);
-					/* SMBus block data is preceded by a length */
-					if (smbus_read) {
-						dev->data0 = i2c_read(i2c_smbus, smbus_addr);
-						for (smbus_read = 0; smbus_read < MIN(SMBUS_PIIX4_BLOCK_DATA_SIZE, dev->data0); smbus_read++)
-							dev->data[smbus_read] = i2c_read(i2c_smbus, smbus_addr);
+					timer_bytes++;
+
+					if (read) {
+						/* block read [data0] (I2C) or [first byte] (SMBus) bytes */
+						block_len = (cmd == 0x5) ? i2c_read(i2c_smbus, smbus_addr) : dev->data0;
+						for (read = 0; read < block_len; read++)
+							dev->data[read & SMBUS_PIIX4_BLOCK_DATA_MASK] = i2c_read(i2c_smbus, smbus_addr);
 					} else {
-						i2c_write(i2c_smbus, smbus_addr, dev->data0);
-						for (smbus_read = 0; smbus_read < MIN(SMBUS_PIIX4_BLOCK_DATA_SIZE, dev->data0); smbus_read++)
-							i2c_write(i2c_smbus, smbus_addr, dev->data[smbus_read]);
+						block_len = dev->data0;
+						if (cmd == 0x5) /* send length [data0] as first byte on SMBus */
+							i2c_write(i2c_smbus, smbus_addr, block_len);
+						/* block write [data0] bytes */
+						for (read = 0; read < block_len; read++) {
+							if (!i2c_write(i2c_smbus, smbus_addr, dev->data[read & SMBUS_PIIX4_BLOCK_DATA_MASK]))
+								break;
+						}
 					}
+					timer_bytes += read;
+
 					break;
 
-				default:
-					/* other command protocols have undefined behavior, but raise DEV_ERR to be safe */
-					dev->next_stat = 0x4;
+				case 0x6: /* I2C with 10-bit address */
+					if (dev->local != SMBUS_VIA) /* VIA only */
+						goto unknown_protocol;
+
+					/* command write */
+					i2c_write(i2c_smbus, smbus_addr, dev->cmd);
+					timer_bytes += 1;
+
+					/* fall-through */
+
+				case 0xe: /* I2C with 7-bit address */
+					if (!read) { /* word write (only when writing) */
+						i2c_write(i2c_smbus, smbus_addr, dev->data0);
+						i2c_write(i2c_smbus, smbus_addr, dev->data1);
+						timer_bytes += 2;
+					}
+
+					/* block read [first byte] bytes */
+					block_len = dev->data[0];
+					for (read = 0; read < block_len; read++)
+						dev->data[read & SMBUS_PIIX4_BLOCK_DATA_MASK] = i2c_read(i2c_smbus, smbus_addr);
+					timer_bytes += read;
+
+					break;
+
+				case 0xf: /* universal */
+					/* block write [data0] bytes */
+					for (read = 0; read < dev->data0; read++) {
+						if (!i2c_write(i2c_smbus, smbus_addr, dev->data[read & SMBUS_PIIX4_BLOCK_DATA_MASK]))
+							break;
+					}
+					timer_bytes += read;
+
+					/* block read [data1] bytes */
+					for (read = 0; read < dev->data1; read++)
+						dev->data[read & SMBUS_PIIX4_BLOCK_DATA_MASK] = i2c_read(i2c_smbus, smbus_addr);
+					timer_bytes += read;
+
+					break;
+
+				default: /* unknown */
+unknown_protocol:
+					dev->next_stat = 0x04; /* raise DEV_ERR */
+					timer_bytes = 0;
 					break;
 			}
 
-			/* stop transaction */
+			/* Finish transfer. */
 			i2c_stop(i2c_smbus, smbus_addr);
 		}
 		break;
@@ -214,11 +308,11 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 		break;
     }
 
-    /* if a status register update was given, dispatch it after 10us to ensure nothing breaks */
-    if (dev->next_stat) {
-	dev->stat = 0x1; /* raise HOST_BUSY while waiting */
+    if (dev->next_stat) { /* schedule dispatch of any pending status register update */
+	dev->stat = 0x01; /* raise HOST_BUSY while waiting */
 	timer_disable(&dev->response_timer);
-	timer_set_delay_u64(&dev->response_timer, 10 * TIMER_USEC);
+	/* delay = ((half clock for start + half clock for stop) + (bytes * (8 bits + ack))) * 60us period measured on real VIA 686B */
+	timer_set_delay_u64(&dev->response_timer, (1 + (timer_bytes * 9)) * 60 * TIMER_USEC);
     }
 }
 
@@ -228,7 +322,7 @@ smbus_piix4_response(void *priv)
 {
     smbus_piix4_t *dev = (smbus_piix4_t *) priv;
 
-    /* dispatch the status register update */
+    /* Dispatch the status register update. */
     dev->stat = dev->next_stat;
 }
 
@@ -253,7 +347,8 @@ smbus_piix4_init(const device_t *info)
     smbus_piix4_t *dev = (smbus_piix4_t *) malloc(sizeof(smbus_piix4_t));
     memset(dev, 0, sizeof(smbus_piix4_t));
 
-    i2c_smbus = dev->i2c = i2c_addbus("smbus_piix4");
+    dev->local = info->local;
+    i2c_smbus = dev->i2c = i2c_addbus((dev->local == SMBUS_VIA) ? "smbus_vt82c686b" : "smbus_piix4");
 
     timer_add(&dev->response_timer, smbus_piix4_response, dev, 0);
 
@@ -277,7 +372,16 @@ smbus_piix4_close(void *priv)
 const device_t piix4_smbus_device = {
     "PIIX4-compatible SMBus Host Controller",
     DEVICE_AT,
-    0,
+    SMBUS_PIIX4,
+    smbus_piix4_init, smbus_piix4_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+const device_t via_smbus_device = {
+    "VIA VT82C686B SMBus Host Controller",
+    DEVICE_AT,
+    SMBUS_VIA,
     smbus_piix4_init, smbus_piix4_close, NULL,
     { NULL }, NULL, NULL,
     NULL
