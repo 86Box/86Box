@@ -99,6 +99,7 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 {
     smbus_piix4_t *dev = (smbus_piix4_t *) priv;
     uint8_t smbus_addr, cmd, read, block_len, prev_stat, timer_bytes = 0;
+    uint16_t i;
 
     smbus_piix4_log("SMBus PIIX4: write(%02X, %02X)\n", addr, val);
 
@@ -217,19 +218,19 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 					if (read) {
 						/* block read [data0] (I2C) or [first byte] (SMBus) bytes */
 						block_len = (cmd == 0x5) ? i2c_read(i2c_smbus, smbus_addr) : dev->data0;
-						for (read = 0; read < block_len; read++)
-							dev->data[read & SMBUS_PIIX4_BLOCK_DATA_MASK] = i2c_read(i2c_smbus, smbus_addr);
+						for (i = 0; i < block_len; i++)
+							dev->data[i & SMBUS_PIIX4_BLOCK_DATA_MASK] = i2c_read(i2c_smbus, smbus_addr);
 					} else {
 						block_len = dev->data0;
 						if (cmd == 0x5) /* send length [data0] as first byte on SMBus */
 							i2c_write(i2c_smbus, smbus_addr, block_len);
 						/* block write [data0] bytes */
-						for (read = 0; read < block_len; read++) {
-							if (!i2c_write(i2c_smbus, smbus_addr, dev->data[read & SMBUS_PIIX4_BLOCK_DATA_MASK]))
+						for (i = 0; i < block_len; i++) {
+							if (!i2c_write(i2c_smbus, smbus_addr, dev->data[i & SMBUS_PIIX4_BLOCK_DATA_MASK]))
 								break;
 						}
 					}
-					timer_bytes += read;
+					timer_bytes += i;
 
 					break;
 
@@ -252,24 +253,24 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 
 					/* block read [first byte] bytes */
 					block_len = dev->data[0];
-					for (read = 0; read < block_len; read++)
-						dev->data[read & SMBUS_PIIX4_BLOCK_DATA_MASK] = i2c_read(i2c_smbus, smbus_addr);
-					timer_bytes += read;
+					for (i = 0; i < block_len; i++)
+						dev->data[i & SMBUS_PIIX4_BLOCK_DATA_MASK] = i2c_read(i2c_smbus, smbus_addr);
+					timer_bytes += i;
 
 					break;
 
 				case 0xf: /* universal */
 					/* block write [data0] bytes */
-					for (read = 0; read < dev->data0; read++) {
-						if (!i2c_write(i2c_smbus, smbus_addr, dev->data[read & SMBUS_PIIX4_BLOCK_DATA_MASK]))
+					for (i = 0; i < dev->data0; i++) {
+						if (!i2c_write(i2c_smbus, smbus_addr, dev->data[i & SMBUS_PIIX4_BLOCK_DATA_MASK]))
 							break;
 					}
-					timer_bytes += read;
+					timer_bytes += i;
 
 					/* block read [data1] bytes */
-					for (read = 0; read < dev->data1; read++)
-						dev->data[read & SMBUS_PIIX4_BLOCK_DATA_MASK] = i2c_read(i2c_smbus, smbus_addr);
-					timer_bytes += read;
+					for (i = 0; i < dev->data1; i++)
+						dev->data[i & SMBUS_PIIX4_BLOCK_DATA_MASK] = i2c_read(i2c_smbus, smbus_addr);
+					timer_bytes += i;
 
 					break;
 
