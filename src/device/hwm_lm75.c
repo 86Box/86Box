@@ -152,9 +152,9 @@ lm75_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv)
 	return 0;
     } else if (dev->i2c_state == 0) {
     	dev->i2c_state = 1;
-    	/* Linux lm75.c driver relies on a 3-bit address register that doesn't change if bit 2 is set. */
-    	if ((dev->as99127f_i2c_addr >= 0x80) && !(data & 0x04))
-		dev->addr_register = (data & 0x7);
+    	/* Linux lm75.c driver relies on the address register not changing if bit 2 is set. */
+    	if ((dev->as99127f_i2c_addr < 0x80) || !(data & 0x04))
+		dev->addr_register = data;
 	return 1;
     }
 

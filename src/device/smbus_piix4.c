@@ -98,8 +98,8 @@ static void
 smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 {
     smbus_piix4_t *dev = (smbus_piix4_t *) priv;
-    uint8_t smbus_addr, cmd, read, block_len, prev_stat, timer_bytes = 0;
-    uint16_t i;
+    uint8_t smbus_addr, cmd, read, block_len, prev_stat;
+    uint16_t timer_bytes = 0, i;
 
     smbus_piix4_log("SMBus PIIX4: write(%02X, %02X)\n", addr, val);
 
@@ -207,7 +207,7 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 					break;
 
 				case 0x5: /* block R/W */
-					timer_bytes++; /* account for the SMBus length byte now */
+					timer_bytes++; /* count the SMBus length byte now */
 
 					/* fall-through */
 

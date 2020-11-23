@@ -652,10 +652,8 @@ acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *p)
 static void
 acpi_i2c_set(acpi_t *dev)
 {
-    if (dev->i2c) {
-	/* Check direction as well to account for the I2C pull-ups. */
+    if (dev->i2c)
 	i2c_gpio_set(dev->i2c, !(dev->regs.gpio_dir & 0x02) || (dev->regs.gpio_val & 0x02), !(dev->regs.gpio_dir & 0x04) || (dev->regs.gpio_val & 0x04));
-    }
 }
 
 

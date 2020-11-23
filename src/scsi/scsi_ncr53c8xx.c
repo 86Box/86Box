@@ -186,6 +186,7 @@
 /* Flag set if this is a tagged command.  */
 #define NCR_TAG_VALID     (1 << 16)
 
+#define NCR_NVRAM_SIZE	  2048
 #define NCR_BUF_SIZE	  4096
 
 typedef struct ncr53c8xx_request {
@@ -226,9 +227,9 @@ typedef struct {
     int msg_action;
     int msg_len;
     uint8_t msg[NCR_MAX_MSGIN_LEN];
-    uint8_t nvram[2048]; /* 24C16 EEPROM (16 kbit) */
+    uint8_t nvram[NCR_NVRAM_SIZE]; /* 24C16 EEPROM (16 Kbit) */
     void *i2c, *eeprom;
-    uint8_t ram[NCR_BUF_SIZE];	/* NCR 53c875 RAM (4 kB). */
+    uint8_t ram[NCR_BUF_SIZE];	/* NCR 53C875 RAM (4 KB) */
     /* 0 if SCRIPTS are running or stopped.
      * 1 if a Wait Reselect instruction has been issued.
      * 2 if processing DMA from ncr53c8xx_execute_script.
@@ -2584,14 +2585,14 @@ ncr53c8xx_close(void *priv)
     ncr53c8xx_t *dev = (ncr53c8xx_t *)priv;
 
     if (dev) {
-	/* Save the serial EEPROM. */
-	ncr53c8xx_eeprom(dev, 1);
-
 	if (dev->eeprom)
 		i2c_eeprom_close(dev->eeprom);
 
 	if (dev->i2c)
 		i2c_gpio_close(dev->i2c);
+
+	/* Save the serial EEPROM. */
+	ncr53c8xx_eeprom(dev, 1);
 
 	free(dev);
 	dev = NULL;
@@ -2611,7 +2612,7 @@ static const device_config_t ncr53c8xx_pci_config[] = {
 
 const device_t ncr53c810_pci_device =
 {
-    "NCR 53c810",
+    "NCR 53C810",
     DEVICE_PCI,
     0x01,
     ncr53c8xx_init, ncr53c8xx_close, NULL,
@@ -2621,7 +2622,7 @@ const device_t ncr53c810_pci_device =
 
 const device_t ncr53c810_onboard_pci_device =
 {
-    "NCR 53c810 On-Board",
+    "NCR 53C810 On-Board",
     DEVICE_PCI,
     0x8001,
     ncr53c8xx_init, ncr53c8xx_close, NULL,
@@ -2631,7 +2632,7 @@ const device_t ncr53c810_onboard_pci_device =
 
 const device_t ncr53c825a_pci_device =
 {
-    "NCR 53c825A",
+    "NCR 53C825A",
     DEVICE_PCI,
     CHIP_825,
     ncr53c8xx_init, ncr53c8xx_close, NULL,
@@ -2641,7 +2642,7 @@ const device_t ncr53c825a_pci_device =
 
 const device_t ncr53c860_pci_device =
 {
-    "NCR 53c860",
+    "NCR 53C860",
     DEVICE_PCI,
     CHIP_860,
     ncr53c8xx_init, ncr53c8xx_close, NULL,
@@ -2651,7 +2652,7 @@ const device_t ncr53c860_pci_device =
 
 const device_t ncr53c875_pci_device =
 {
-    "NCR 53c875",
+    "NCR 53C875",
     DEVICE_PCI,
     CHIP_875,
     ncr53c8xx_init, ncr53c8xx_close, NULL,

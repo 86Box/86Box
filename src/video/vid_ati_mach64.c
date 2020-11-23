@@ -2383,8 +2383,8 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
                 svga_set_ramdac_type(svga, (mach64->dac_cntl & 0x100) ? RAMDAC_8BIT : RAMDAC_6BIT);
                 ati68860_set_ramdac_type(mach64->svga.ramdac, (mach64->dac_cntl & 0x100) ? RAMDAC_8BIT : RAMDAC_6BIT);
                 data = (val & (1 << 4)) ? ((val & (1 << 1)) ? 1 : 0) : 1;
-		clk  = (val & (1 << 5)) ? ((val & (1 << 2)) ? 1 : 0) : 1;
-		i2c_gpio_set(mach64->i2c, clk, data);
+                clk  = (val & (1 << 5)) ? ((val & (1 << 2)) ? 1 : 0) : 1;
+                i2c_gpio_set(mach64->i2c, clk, data);
 		break;
 
                 case 0xd0: case 0xd1: case 0xd2: case 0xd3:
@@ -3372,7 +3372,7 @@ static void *mach64_common_init(const device_t *info)
         mach64->fifo_thread = thread_create(fifo_thread, mach64);
         
         mach64->i2c = i2c_gpio_init("ddc_ati_mach64");
-	mach64->ddc = ddc_init(i2c_gpio_get_bus(mach64->i2c));
+        mach64->ddc = ddc_init(i2c_gpio_get_bus(mach64->i2c));
 	
         return mach64;
 }

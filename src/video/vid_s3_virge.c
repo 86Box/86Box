@@ -285,7 +285,7 @@ typedef struct virge_t
         int virge_busy;
 
 	uint8_t subsys_stat, subsys_cntl, advfunc_cntl;
-	
+
 	uint8_t serialport;
 
 	void *i2c, *ddc;
@@ -901,7 +901,7 @@ s3_virge_mmio_read(uint32_t addr, void *p)
                         ret |= SERIAL_PORT_SCR;
                 if ((virge->serialport & SERIAL_PORT_SDW) && i2c_gpio_get_sda(virge->i2c))
                         ret |= SERIAL_PORT_SDR;
-                return ret;		
+                return ret;
         }
         return 0xff;
 }
@@ -3848,8 +3848,8 @@ static void *s3_virge_init(const device_t *info)
         virge->fifo_not_full_event = thread_create_event();
         virge->fifo_thread = thread_create(fifo_thread, virge);
  
-	virge->i2c = i2c_gpio_init("ddc_s3_virge");
-	virge->ddc = ddc_init(i2c_gpio_get_bus(virge->i2c));
+        virge->i2c = i2c_gpio_init("ddc_s3_virge");
+        virge->ddc = ddc_init(i2c_gpio_get_bus(virge->i2c));
  
         return virge;
 }

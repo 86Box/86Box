@@ -48,12 +48,12 @@
 
 
 typedef struct {
-    const device_t *info;
     uint8_t	slot;
     uint16_t	size;
     uint16_t	row1;
     uint16_t	row2;
 
+    uint8_t	data[SPD_DATA_SIZE];
     void	*eeprom;
 } spd_t;
 
