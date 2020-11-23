@@ -41,11 +41,10 @@
 #include <86box/chipset.h>
 
 
-#define STPC_NB_CLIENT		0x01
-#define STPC_ISAB_CLIENT	0x02
-#define STPC_ISAB_CONSUMER2	0x04
-#define STPC_IDE_ATLAS		0x08
-#define STPC_USB		0x10
+#define STPC_CONSUMER2	0x104a020b
+#define STPC_ATLAS	0x104a0210
+#define STPC_ELITE	0x104a021a
+#define STPC_CLIENT	0x100e55cc
 
 
 typedef struct stpc_t
@@ -119,7 +118,7 @@ stpc_recalcmapping(stpc_t *dev)
     shadowbios_write = 0;
 
     for (reg = 0; reg <= 3; reg++) {
-	for (bitpair = 0; bitpair <= (reg == 3 ? 0 : 3); bitpair++) {
+	for (bitpair = 0; bitpair <= ((reg == 3) ? 0 : 3); bitpair++) {
 		if (reg == 3) {
 			size = 0x10000;
 			base = 0xf0000;
@@ -166,7 +165,7 @@ stpc_host_write(uint16_t addr, uint8_t val, void *priv)
 
     if (addr == dev->host_base)
 	dev->host_offset = val;
-    else if (addr == dev->host_base + 4)
+    else if (addr == (dev->host_base + 4))
 	dev->host_regs[dev->host_offset] = val;
 }
 
@@ -179,7 +178,7 @@ stpc_host_read(uint16_t addr, void *priv)
 
     if (addr == dev->host_base)
 	ret = dev->host_offset;
-    else if (addr == dev->host_base + 4)
+    else if (addr == (dev->host_base + 4))
 	ret = dev->host_regs[dev->host_offset];
     else
 	ret = 0xff;
@@ -198,7 +197,7 @@ stpc_localbus_write(uint16_t addr, uint8_t val, void *priv)
 
     if (addr == dev->localbus_base)
 	dev->localbus_offset = val;
-    else if (addr == dev->localbus_base + 4)
+    else if (addr == (dev->localbus_base + 4))
 	dev->localbus_regs[addr] = val;
 }
 
@@ -211,7 +210,7 @@ stpc_localbus_read(uint16_t addr, void *priv)
 
     if (addr == dev->localbus_base)
 	ret = dev->localbus_offset;
-    else if (addr == dev->localbus_base + 4)
+    else if (addr == (dev->localbus_base + 4))
 	ret = dev->localbus_regs[dev->localbus_offset];
     else
 	ret = 0xff;
@@ -329,8 +328,8 @@ stpc_ide_bm_handlers(stpc_t *dev)
 {
     uint16_t base = (dev->pci_conf[2][0x20] & 0xf0) | (dev->pci_conf[2][0x21] << 8);
 
-    sff_bus_master_handler(dev->bm[0], (dev->pci_conf[2][0x04] & 1), base);
-    sff_bus_master_handler(dev->bm[1], (dev->pci_conf[2][0x04] & 1), base + 8);
+    sff_bus_master_handler(dev->bm[0], dev->pci_conf[2][0x04] & 1, base);
+    sff_bus_master_handler(dev->bm[1], dev->pci_conf[2][0x04] & 1, base + 8);
 }
 
 
@@ -352,7 +351,7 @@ stpc_ide_write(int func, int addr, uint8_t val, void *priv)
 		break;
 
 	case 0x05:
-		dev->pci_conf[2][addr] = (val & 0x01);
+		dev->pci_conf[2][addr] = val & 0x01;
 		break;
 
 	case 0x07:
@@ -441,13 +440,13 @@ stpc_ide_read(int func, int addr, void *priv)
     uint8_t ret;
 
     if (func > 0)
-    	ret = 0xff;
+	ret = 0xff;
     else {
 	ret = dev->pci_conf[2][addr];
 	if (addr == 0x48) {
 		ret &= 0xfc;
-		ret |= (!!(dev->bm[0]->status & 0x04));
-		ret |= ((!!(dev->bm[1]->status & 0x04)) << 1);
+		ret |= !!(dev->bm[0]->status & 0x04);
+		ret |= (!!(dev->bm[1]->status & 0x04)) << 1;
 	}
     }
 
@@ -461,9 +460,9 @@ stpc_isab_write(int func, int addr, uint8_t val, void *priv)
 {
     stpc_t *dev = (stpc_t *) priv;
 
-    if (func == 1 && !(dev->local & STPC_IDE_ATLAS)) {
-    	stpc_ide_write(0, addr, val, priv);
-    	return;
+    if ((func == 1) && (dev->local != STPC_ATLAS)) {
+	stpc_ide_write(0, addr, val, priv);
+	return;
     }
 
     stpc_log("STPC: isab_write(%d, %02X, %02X)\n", func, addr, val);
@@ -492,12 +491,12 @@ stpc_isab_read(int func, int addr, void *priv)
     stpc_t *dev = (stpc_t *) priv;
     uint8_t ret;
 
-    if ((func == 1) && !(dev->local & STPC_IDE_ATLAS))
-    	ret = stpc_ide_read(0, addr, priv);
+    if ((func == 1) && (dev->local != STPC_ATLAS))
+	ret = stpc_ide_read(0, addr, priv);
     else if (func > 0)
-    	ret = 0xff;
+	ret = 0xff;
     else
-    	ret = dev->pci_conf[1][addr];
+	ret = dev->pci_conf[1][addr];
 
     stpc_log("STPC: isab_read(%d, %02X) = %02X\n", func, addr, ret);
     return ret;
@@ -547,9 +546,9 @@ stpc_usb_read(int func, int addr, void *priv)
     uint8_t ret;
 
     if (func > 0)
-    	ret = 0xff;
+	ret = 0xff;
     else
-    	ret = dev->pci_conf[3][addr];
+	ret = dev->pci_conf[3][addr];
 
     stpc_log("STPC: usb_read(%d, %02X) = %02X\n", func, addr, ret);
     return ret;
@@ -589,34 +588,35 @@ stpc_remap_localbus(stpc_t *dev, uint16_t localbus_base)
 static uint8_t
 stpc_serial_handlers(uint8_t val)
 {
-    stpc_serial_t *dev;
-    if (!(dev = device_get_priv(&stpc_serial_device))) {
-    	stpc_log("STPC: Not remapping UARTs, disabled by strap (raw %02X)\n", val);
-    	return 0;
+    stpc_serial_t *dev = device_get_priv(&stpc_serial_device);
+    if (!dev) {
+	stpc_log("STPC: Not remapping UARTs, disabled by strap (raw %02X)\n", val);
+	return 0;
     }
 
-    uint16_t uart0_io = 0x3f8, uart0_irq = 4, uart1_io = 0x3f8, uart1_irq = 3;
+    uint16_t uart0_io = 0x3f8, uart1_io = 0x3f8;
+    uint8_t uart0_irq = 4, uart1_irq = 3;
 
     if (val & 0x10)
-    	uart1_io -= 0x100;
+	uart1_io &= 0xfeff;
     if (val & 0x20)
-	uart1_io -= 0x10;
+	uart1_io &= 0xffef;
     if (val & 0x40)
-    	uart0_io -= 0x100;
+	uart0_io &= 0xfeff;
     if (val & 0x80)
-	uart0_io -= 0x10;
+	uart0_io &= 0xffef;
 
     if (uart0_io == uart1_io) {
-    	/* Apply defaults if both UARTs are set to the same address. */
-    	stpc_log("STPC: Both UARTs set to %02X, resetting to defaults\n", uart0_io);
-    	uart0_io = 0x3f8;
-    	uart1_io = 0x2f8;
+	/* Apply defaults if both UARTs are set to the same address. */
+	stpc_log("STPC: Both UARTs set to %02X, resetting to defaults\n", uart0_io);
+	uart0_io = 0x3f8;
+	uart1_io = 0x2f8;
     }
 
-    if (uart0_io < 0x300) {
-    	/* The address for UART0 defines the IRQs for both ports. */
-    	uart0_irq = 3;
-    	uart1_irq = 4;
+    if (!(uart0_io & 0x100)) {
+	/* The address for UART0 establishes the IRQs for both ports. */
+	uart0_irq = 3;
+	uart1_irq = 4;
     }
 
     stpc_log("STPC: Remapping UART0 to %04X %d and UART1 to %04X %d (raw %02X)\n", uart0_io, uart0_irq, uart1_io, uart1_irq, val);
@@ -714,9 +714,9 @@ stpc_reg_read(uint16_t addr, void *priv)
     if (addr == 0x22)
 	ret = dev->reg_offset;
     else if (dev->reg_offset >= 0xc0)
-    	return 0xff; /* Cyrix CPU registers: let the CPU code handle these */
+	return 0xff; /* let the CPU code handle Cyrix CPU registers */
     else if ((dev->reg_offset == 0x56) || (dev->reg_offset == 0x57)) {
-    	/* ELCR is in here, not in port 4D0h. */
+	/* ELCR registers. */
 	ret = pic_elcr_read(dev->reg_offset, (dev->reg_offset & 1) ? &pic2 : &pic);
 	if (dev->reg_offset == 0x57)
 		ret |= (dev->regs[dev->reg_offset] & 0x01);
@@ -738,9 +738,9 @@ stpc_reset(void *priv)
     memset(dev->regs, 0, sizeof(dev->regs));
     dev->regs[0x7b] = 0xff;
     if (device_get_priv(&stpc_lpt_device))
-    	dev->regs[0x4c] |= 0x80; /* LPT strap */
+	dev->regs[0x4c] |= 0x80; /* LPT strap */
     if (stpc_serial_handlers(0x00))
-    	dev->regs[0x4c] |= 0x03; /* UART straps */
+	dev->regs[0x4c] |= 0x03; /* UART straps */
 }
 
 
@@ -754,14 +754,12 @@ stpc_setup(stpc_t *dev)
 		  stpc_reg_read, NULL, NULL, stpc_reg_write, NULL, NULL, dev);
 
     /* Northbridge */
-    if (dev->local & STPC_NB_CLIENT) {
-	/* Client */
+    if (dev->local & STPC_CLIENT) {
 	dev->pci_conf[0][0x00] = 0x0e;
 	dev->pci_conf[0][0x01] = 0x10;
 	dev->pci_conf[0][0x02] = 0x64;
 	dev->pci_conf[0][0x03] = 0x05;
     } else {
-	/* Atlas, Elite, Consumer II */
 	dev->pci_conf[0][0x00] = 0x4a;
 	dev->pci_conf[0][0x01] = 0x10;
 	dev->pci_conf[0][0x02] = 0x0a;
@@ -776,31 +774,10 @@ stpc_setup(stpc_t *dev)
     dev->pci_conf[0][0x0b] = 0x06;
 
     /* ISA Bridge */
-    if (dev->local & STPC_ISAB_CLIENT) {
-	/* Client */
-	dev->pci_conf[1][0x00] = 0x0e;
-	dev->pci_conf[1][0x01] = 0x10;
-	dev->pci_conf[1][0x02] = 0xcc;
-	dev->pci_conf[1][0x03] = 0x55;
-    } else if (dev->local & STPC_ISAB_CONSUMER2) {
-	/* Consumer II */
-	dev->pci_conf[1][0x00] = 0x4a;
-	dev->pci_conf[1][0x01] = 0x10;
-	dev->pci_conf[1][0x02] = 0x0b;
-	dev->pci_conf[1][0x03] = 0x02;
-    } else if (dev->local & STPC_IDE_ATLAS) {
-	/* Atlas */
-	dev->pci_conf[1][0x00] = 0x4a;
-	dev->pci_conf[1][0x01] = 0x10;
-	dev->pci_conf[1][0x02] = 0x10;
-	dev->pci_conf[1][0x03] = 0x02;
-    } else {
-	/* Elite */
-	dev->pci_conf[1][0x00] = 0x4a;
-	dev->pci_conf[1][0x01] = 0x10;
-	dev->pci_conf[1][0x02] = 0x1a;
-	dev->pci_conf[1][0x03] = 0x02;
-    }
+    dev->pci_conf[1][0x00] = dev->local >> 16;
+    dev->pci_conf[1][0x01] = dev->local >> 24;
+    dev->pci_conf[1][0x02] = dev->local;
+    dev->pci_conf[1][0x03] = dev->local >> 8;
 
     dev->pci_conf[1][0x04] = 0x0f;
 
@@ -812,24 +789,19 @@ stpc_setup(stpc_t *dev)
 
     /* NOTE: This is an erratum in the STPC Atlas programming manual, the programming manuals for the other
 	     STPC chipsets say 0x80, which is indeed multi-function (as the STPC Atlas programming manual
-	     indicates as well, and Windows 2000 also issues a 0x7B STOP error if it is 0x40. */
+	     indicates as well), and Windows 2000 also issues a 0x7B STOP error if it is 0x40. */
     dev->pci_conf[1][0x0e] = /*0x40*/ 0x80;
 
     /* IDE */
-    if (dev->local & STPC_ISAB_CLIENT) {
-	dev->pci_conf[2][0x00] = 0x0e;
-	dev->pci_conf[2][0x01] = 0x10;
-    } else {
-	dev->pci_conf[2][0x00] = 0x4a;
-	dev->pci_conf[2][0x01] = 0x10;
-    }
+    dev->pci_conf[2][0x00] = dev->local >> 16;
+    dev->pci_conf[2][0x01] = dev->local >> 24;
 
-    if (dev->local & STPC_IDE_ATLAS) {
-    	dev->pci_conf[2][0x02] = 0x28;
-    	dev->pci_conf[2][0x03] = 0x02;
+    if (dev->local == STPC_ATLAS) {
+	dev->pci_conf[2][0x02] = 0x28;
+	dev->pci_conf[2][0x03] = 0x02;
     } else {
-    	dev->pci_conf[2][0x02] = dev->pci_conf[1][0x02];
-    	dev->pci_conf[2][0x03] = dev->pci_conf[1][0x03];
+	dev->pci_conf[2][0x02] = dev->pci_conf[1][0x02];
+	dev->pci_conf[2][0x03] = dev->pci_conf[1][0x03];
     }
 
     dev->pci_conf[2][0x06] = 0x80;
@@ -841,7 +813,7 @@ stpc_setup(stpc_t *dev)
 
     /* NOTE: This is an erratum in the STPC Atlas programming manual, the programming manuals for the other
 	     STPC chipsets say 0x80, which is indeed multi-function (as the STPC Atlas programming manual
-	     indicates as well, and Windows 2000 also issues a 0x7B STOP error if it is 0x40. */
+	     indicates as well), and Windows 2000 also issues a 0x7B STOP error if it is 0x40. */
     dev->pci_conf[2][0x0e] = /*0x40*/ 0x80;
 
     dev->pci_conf[2][0x10] = 0x01;
@@ -861,22 +833,22 @@ stpc_setup(stpc_t *dev)
 
     /* USB */
     if (dev->usb) {
-    	dev->pci_conf[3][0x00] = 0x4a;
-    	dev->pci_conf[3][0x01] = 0x10;
-    	dev->pci_conf[3][0x02] = 0x30;
-    	dev->pci_conf[3][0x03] = 0x02;
+	dev->pci_conf[3][0x00] = dev->local >> 16;
+	dev->pci_conf[3][0x01] = dev->local >> 24;
+	dev->pci_conf[3][0x02] = 0x30;
+	dev->pci_conf[3][0x03] = 0x02;
 	
-    	dev->pci_conf[3][0x06] = 0x80;
-    	dev->pci_conf[3][0x07] = 0x02;
+	dev->pci_conf[3][0x06] = 0x80;
+	dev->pci_conf[3][0x07] = 0x02;
 
-    	dev->pci_conf[3][0x09] = 0x10;
-    	dev->pci_conf[3][0x0a] = 0x03;
-    	dev->pci_conf[3][0x0b] = 0x0c;
+	dev->pci_conf[3][0x09] = 0x10;
+	dev->pci_conf[3][0x0a] = 0x03;
+	dev->pci_conf[3][0x0b] = 0x0c;
 
 	/* NOTE: This is an erratum in the STPC Atlas programming manual, the programming manuals for the other
 		 STPC chipsets say 0x80, which is indeed multi-function (as the STPC Atlas programming manual
-		 indicates as well, and Windows 2000 also issues a 0x7B STOP error if it is 0x40. */
-    	dev->pci_conf[3][0x0e] = /*0x40*/ 0x80;
+		 indicates as well), and Windows 2000 also issues a 0x7B STOP error if it is 0x40. */
+	dev->pci_conf[3][0x0e] = /*0x40*/ 0x80;
     }
 
     /* PCI setup */
@@ -912,11 +884,10 @@ stpc_init(const device_t *info)
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, stpc_nb_read, stpc_nb_write, dev);
     dev->ide_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_isab_read, stpc_isab_write, dev);
-    if (dev->local & STPC_IDE_ATLAS)
-    	dev->ide_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_ide_read, stpc_ide_write, dev);
-    if (dev->local & STPC_USB) {
-    	dev->usb = device_add(&usb_device);
-    	pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_usb_read, stpc_usb_write, dev);
+    if (dev->local == STPC_ATLAS) {
+	dev->ide_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_ide_read, stpc_ide_write, dev);
+	dev->usb = device_add(&usb_device);
+	pci_add_card(PCI_ADD_SOUTHBRIDGE, stpc_usb_read, stpc_usb_write, dev);
     }
 
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);
@@ -978,43 +949,43 @@ stpc_lpt_handlers(stpc_lpt_t *dev, uint8_t val)
     uint8_t old_addr = (dev->reg1 & 0x03), new_addr = (val & 0x03);
 
     switch (old_addr) {
-    	case 0x1:
-    		lpt3_remove();
-    		break;
+	case 0x1:
+		lpt3_remove();
+		break;
 
-    	case 0x2:
-    		lpt1_remove();
-    		break;
+	case 0x2:
+		lpt1_remove();
+		break;
 
-    	case 0x3:
-    		lpt2_remove();
-    		break;
+	case 0x3:
+		lpt2_remove();
+		break;
     }
 
     switch (new_addr) {
-    	case 0x1:
-    		stpc_log("STPC: Remapping parallel port to LPT3\n");
-    		lpt3_init(0x3bc);
-    		break;
+	case 0x1:
+		stpc_log("STPC: Remapping parallel port to LPT3\n");
+		lpt3_init(0x3bc);
+		break;
 
-    	case 0x2:
-    		stpc_log("STPC: Remapping parallel port to LPT1\n");
-    		lpt1_init(0x378);
-    		break;
+	case 0x2:
+		stpc_log("STPC: Remapping parallel port to LPT1\n");
+		lpt1_init(0x378);
+		break;
 
-    	case 0x3:
-    		stpc_log("STPC: Remapping parallel port to LPT2\n");
-    		lpt2_init(0x278);
-    		break;
+	case 0x3:
+		stpc_log("STPC: Remapping parallel port to LPT2\n");
+		lpt2_init(0x278);
+		break;
 
-    	default:
-    		stpc_log("STPC: Disabling parallel port\n");
-    		break;
+	default:
+		stpc_log("STPC: Disabling parallel port\n");
+		break;
     }
 
     dev->reg1 = (val & 0x08);
     dev->reg1 |= new_addr;
-    dev->reg1 |= 0x84; /* reserved bits that default to 1 - hardwired? */
+    dev->reg1 |= 0x84; /* reserved bits that default to 1; hardwired? */
 }
 
 
@@ -1024,22 +995,22 @@ stpc_lpt_write(uint16_t addr, uint8_t val, void *priv)
     stpc_lpt_t *dev = (stpc_lpt_t *) priv;
 
     if (dev->unlocked < 2) {
-    	/* Cheat a little bit: in reality, any write to any
-    	   I/O port is supposed to reset the unlock counter. */
-    	if ((addr == 0x3f0) && (val == 0x55))
-    		dev->unlocked++;
-    	else
-    		dev->unlocked = 0;
+	/* Cheat a little bit: in reality, any write to any
+	   I/O port is supposed to reset the unlock counter. */
+	if ((addr == 0x3f0) && (val == 0x55))
+		dev->unlocked++;
+	else
+		dev->unlocked = 0;
     } else if (addr == 0x3f0) {
-    	if (val == 0xaa)
-    		dev->unlocked = 0;
-	else    	
-    		dev->offset = val;
+	if (val == 0xaa)
+		dev->unlocked = 0;
+	else	
+		dev->offset = val;
     } else if (dev->offset == 1) {
-    	/* dev->reg1 is set by stpc_lpt_handlers */
-    	stpc_lpt_handlers(dev, val);
+	/* dev->reg1 is set by stpc_lpt_handlers */
+	stpc_lpt_handlers(dev, val);
     } else if (dev->offset == 4) {
-    	dev->reg4 = (val & 0x03);
+	dev->reg4 = (val & 0x03);
     }
 }
 
@@ -1092,7 +1063,7 @@ const device_t stpc_client_device =
 {
     "STPC Client",
     DEVICE_PCI,
-    STPC_NB_CLIENT | STPC_ISAB_CLIENT,
+    STPC_CLIENT,
     stpc_init, 
     stpc_close, 
     stpc_reset,
@@ -1106,7 +1077,7 @@ const device_t stpc_consumer2_device =
 {
     "STPC Consumer-II",
     DEVICE_PCI,
-    STPC_ISAB_CONSUMER2,
+    STPC_CONSUMER2,
     stpc_init, 
     stpc_close, 
     stpc_reset,
@@ -1120,7 +1091,7 @@ const device_t stpc_elite_device =
 {
     "STPC Elite",
     DEVICE_PCI,
-    0,
+    STPC_ELITE,
     stpc_init, 
     stpc_close, 
     stpc_reset,
@@ -1134,7 +1105,7 @@ const device_t stpc_atlas_device =
 {
     "STPC Atlas",
     DEVICE_PCI,
-    STPC_IDE_ATLAS | STPC_USB,
+    STPC_ATLAS,
     stpc_init, 
     stpc_close, 
     stpc_reset,

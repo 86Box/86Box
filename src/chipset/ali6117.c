@@ -277,7 +277,7 @@ ali6117_reset(void *priv)
     dev->regs[0x31] = 0x01;
     dev->regs[0x34] = 0x04; /* enable internal RTC */
     dev->regs[0x35] = 0x20; /* enable internal KBC */
-    dev->regs[0x36] = (dev->local & 0x4); /* M6117D ID */
+    dev->regs[0x36] = dev->local & 0x4; /* M6117D ID */
 }
 
 
