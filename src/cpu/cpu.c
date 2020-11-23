@@ -152,6 +152,7 @@ uint32_t smbase = 0x30000;
 
 cpu_family_t	*cpu_f;
 CPU		*cpu_s;
+int		cpu_override;
 int		cpu_effective;
 int		cpu_multi;
 double		cpu_dmulti;
@@ -331,6 +332,9 @@ cpu_get_family(const char *internal_name)
 uint8_t
 cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 {
+	if (cpu_override > 1) /* full override */
+		return 1;
+
 	/* Get machine. */
 	const machine_t *machine_s = &machines[machine];
 
@@ -343,6 +347,9 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 
 	if (!(cpu_family->package & packages)) /* package type */
 		return 0;
+
+	if (cpu_override) /* partial override */
+		return 1;
 
 	const CPU *cpu_s = &cpu_family->cpus[cpu];
 
