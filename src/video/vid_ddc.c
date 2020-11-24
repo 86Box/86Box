@@ -10,10 +10,8 @@
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		RichardG, <richardg867@gmail.com>
+ * Authors:	RichardG, <richardg867@gmail.com>
  *
- *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2020 RichardG.
  */
 #include <stdio.h>
@@ -27,57 +25,160 @@
 #include <86box/i2c.h>
 
 
-static uint8_t edid_data[128] = {
-    0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, /* Fixed header pattern */
-    0x09, 0xf8, /* Manufacturer "BOX" - apparently unassigned by UEFI - and it has to be big endian */
-    0x00, 0x00, /* Product code */
-    0x12, 0x34, 0x56, 0x78, /* Serial number */
-    47, 30, /* Manufacturer week and year */
-    0x01, 0x03, /* EDID version (1.3) */
+#define STD_TIMING(idx, width, aspect_ratio)	do { \
+							edid.std_timings[idx].horiz_pixels = ((width) / 8) - 31; \
+							edid.std_timings[idx].aspect_ratio_refresh_rate = (aspect_ratio) << 6; /* 60 Hz */ \
+						} while (0)
 
-    0x08, /* Analog input, separate sync */
-    34, 0, /* Landscape, 4:3 */
-    0, /* Gamma */
-    0x08, /* RGB color */
-    0x81, 0xf1, 0xa3, 0x57, 0x53, 0x9f, 0x27, 0x0a, 0x50, /* Chromaticity */
-
-    0xff, 0xff, 0xff, /* Established timing bitmap */
-    0x00, 0x00, /* Standard timing information */
-    0x00, 0x00,
-    0x00, 0x00,
-    0x00, 0x00,
-    0x00, 0x00,
-    0x00, 0x00,
-    0x00, 0x00,
-    0x00, 0x00,
-
-    /* Detailed mode descriptions */
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-
-    0x00, /* No extensions */
-    0x00
+enum {
+    STD_ASPECT_16_10 = 0x0,
+    STD_ASPECT_4_3,
+    STD_ASPECT_5_4,
+    STD_ASPECT_16_9
 };
+
+typedef struct {
+    uint8_t	horiz_pixels, aspect_ratio_refresh_rate;
+} edid_std_timing_t;
+
+typedef struct {
+    uint8_t	pixel_clock_lsb, pixel_clock_msb, h_active_lsb, h_blank_lsb,
+		h_active_blank_msb, v_active_lsb, v_blank_lsb, v_active_blank_msb,
+		h_front_porch_lsb, h_sync_pulse_lsb, v_front_porch_sync_pulse_lsb,
+		hv_front_porch_sync_pulse_msb, h_size_lsb, v_size_lsb, hv_size_msb,
+		h_border, v_border, features;
+} edid_detailed_timing_t;
+
+typedef struct {
+    uint8_t	min_v_field, max_v_field, min_h_line, max_h_line, max_pixel_clock,
+		timing_type;
+    union {
+	uint8_t	padding[7];
+	struct {
+		uint8_t	reserved, gtf_start_freq, gtf_c, gtf_m_lsb, gtf_m_msb,
+			gtf_k, gtf_j;
+	};
+	struct {
+		uint8_t	cvt_version, add_clock_precision, max_active_pixels,
+			aspect_ratios, aspect_ratio_pref, scaling_support,
+			refresh_pref;
+	};
+    };
+} edid_range_limits_t;
+
+typedef struct {
+    uint8_t	version, timings[6], reserved[6];
+} edid_established_timings3_t;
+
+typedef struct {
+    uint8_t	version;
+    struct {
+	uint8_t	lines_lsb, lines_msb_aspect_ratio, refresh_rate;
+    } timings[4];
+} edid_cvt_timings_t;
+
+typedef struct {
+    uint8_t	magic[2], reserved, type, range_limit_offsets;
+    union {
+	char	ascii[13];
+	edid_range_limits_t range_limits;
+	edid_established_timings3_t established_timings3;
+	edid_cvt_timings_t cvt_timings;
+    };
+} edid_descriptor_t;
+
+typedef struct {
+    uint8_t	magic[8], mfg[2], mfg_product[2], serial[4], mfg_week, mfg_year,
+		edid_version, edid_rev;
+    uint8_t	input_params, horiz_size, vert_size, gamma, features;
+    uint8_t	chromaticity[10], established_timings[3];
+    edid_std_timing_t std_timings[8];
+    union {
+	edid_detailed_timing_t detailed_timings[4];
+	edid_descriptor_t descriptors[4];
+    };
+    uint8_t	extensions, checksum;
+} edid_t;
+
+
+static edid_t	edid;
 
 
 void *
 ddc_init(void *i2c)
 {
-    uint8_t checksum = 0;
-    for (int c = 0; c < 127; c++)
-        checksum += edid_data[c];
-    edid_data[127] = 256 - checksum;
+    memset(&edid.magic[1], 0xff, sizeof(edid.magic) - 2);
+    edid.magic[0] = edid.magic[7] = 0x00;
 
-    return i2c_eeprom_init(i2c, 0x50, edid_data, sizeof(edid_data), 0);
+    edid.mfg[0] = 0x09; /* manufacturer "BOX" (apparently unassigned by UEFI) */
+    edid.mfg[1] = 0xf8;
+    edid.mfg_week = 48;
+    edid.mfg_year = 2020 - 1990;
+    edid.edid_version = 0x01;
+    edid.edid_rev = 0x03; /* EDID 1.3 */
+
+    edid.input_params = 0x0e; /* analog input; separate sync; composite sync; sync on green */
+    edid.horiz_size = ((4.0 / 3.0) * 100) - 99; /* landscape 4:3 */
+    edid.features = 0x09; /* RGB color; CVT */
+
+    edid.chromaticity[0] = 0x81;
+    edid.chromaticity[1] = 0xf1;
+    edid.chromaticity[2] = 0xa3;
+    edid.chromaticity[3] = 0x57;
+    edid.chromaticity[4] = 0x53;
+    edid.chromaticity[5] = 0x9f;
+    edid.chromaticity[6] = 0x27;
+    edid.chromaticity[7] = 0x0a;
+    edid.chromaticity[8] = 0x50;
+    edid.chromaticity[9] = 0x00;
+
+    memset(&edid.established_timings, 0xff, sizeof(edid.established_timings)); /* all enabled */
+
+    memset(&edid.std_timings, 0x01, sizeof(edid.std_timings)); /* pad unused entries with 0x01 */
+    STD_TIMING(0, 800,  STD_ASPECT_4_3);   /* 800x600 (preferred) */
+    STD_TIMING(1, 1280, STD_ASPECT_16_9);  /* 1280x720 */
+    STD_TIMING(1, 1280, STD_ASPECT_16_10); /* 1280x800 */
+    STD_TIMING(2, 1366, STD_ASPECT_16_9);  /* 1360x768 (closest to 1366x768) */
+    STD_TIMING(3, 1600, STD_ASPECT_16_9);  /* 1600x900 */
+    STD_TIMING(4, 1920, STD_ASPECT_16_9);  /* 1920x1080 */
+    STD_TIMING(5, 2048, STD_ASPECT_4_3);   /* 2048x1536 */
+
+    /* Detailed timings for the preferred resolution of 800x600 */
+    edid.detailed_timings[0].pixel_clock_lsb = 0xa0; /* 40000 KHz */
+    edid.detailed_timings[0].pixel_clock_msb = 0x0f;
+    edid.detailed_timings[0].h_active_lsb = 800 & 0xff;
+    edid.detailed_timings[0].h_blank_lsb = 256 & 0xff;
+    edid.detailed_timings[0].h_active_blank_msb = ((800 >> 4) & 0xf0) | ((256 >> 8) & 0x0f);
+    edid.detailed_timings[0].v_active_lsb = 600 & 0xff;
+    edid.detailed_timings[0].v_blank_lsb = 28;
+    edid.detailed_timings[0].v_active_blank_msb = (600 >> 4) & 0xf0;
+    edid.detailed_timings[0].h_front_porch_lsb = 40;
+    edid.detailed_timings[0].h_sync_pulse_lsb = 128;
+    edid.detailed_timings[0].v_front_porch_sync_pulse_lsb = (1 << 4) | 4;
+
+    edid.descriptors[1].type = 0xf7; /* established timings 3 */
+    edid.descriptors[1].established_timings3.version = 0x10;
+    memset(&edid.descriptors[1].established_timings3.timings, 0xff, sizeof(edid.descriptors[1].established_timings3.timings)); /* all enabled */
+
+    edid.descriptors[2].type = 0xfc; /* display name */
+    memcpy(&edid.descriptors[2].ascii, "86Box Monitor", 13); /* exactly 13 characters (would otherwise require LF termination and space padding) */
+
+    edid.descriptors[3].type = 0xfd; /* range limits */
+    edid.descriptors[3].range_limits.min_v_field = 1;
+    edid.descriptors[3].range_limits.max_v_field = -1;
+    edid.descriptors[3].range_limits.min_h_line = 1;
+    edid.descriptors[3].range_limits.max_h_line = -1;
+    edid.descriptors[3].range_limits.max_pixel_clock = -1;
+    edid.descriptors[3].range_limits.timing_type = 0x00; /* default GTF */
+    edid.descriptors[3].range_limits.padding[0] = 0x0a;
+    memset(&edid.descriptors[3].range_limits.padding[1], 0x20, sizeof(edid.descriptors[3].range_limits.padding) - 1);
+
+    uint8_t *edid_data = (uint8_t *) &edid;
+    for (uint8_t c = 0; c < 127; c++)
+        edid.checksum += edid_data[c];
+    edid.checksum = 256 - edid.checksum;
+
+    return i2c_eeprom_init(i2c, 0x50, edid_data, sizeof(edid), 0);
 }
 
 

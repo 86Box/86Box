@@ -126,7 +126,7 @@ i2c_eeprom_init(void *i2c, uint8_t addr, uint8_t *data, uint32_t size, uint8_t w
     dev->addr_len = (size >= 4096) ? 16 : 8; /* use 16-bit addresses on 24C32 and above */
     dev->addr_mask = size - 1;
 
-    i2c_sethandler(i2c, dev->addr & ~(dev->addr_mask >> dev->addr_len), (dev->addr_mask >> dev->addr_len) + 1, i2c_eeprom_start, i2c_eeprom_read, i2c_eeprom_write, NULL, dev);
+    i2c_sethandler(dev->i2c, dev->addr & ~(dev->addr_mask >> dev->addr_len), (dev->addr_mask >> dev->addr_len) + 1, i2c_eeprom_start, i2c_eeprom_read, i2c_eeprom_write, NULL, dev);
 
     return dev;
 }

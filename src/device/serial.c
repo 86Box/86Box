@@ -186,47 +186,6 @@ write_fifo(serial_t *dev, uint8_t dat)
 }
 
 
-#include <windows.h>
-#include <86box/pit.h>
-HANDLE serialdbg = NULL;
-OVERLAPPED serialdbgoverlapped_r;
-OVERLAPPED serialdbgoverlapped_w;
-uint8_t serialdbg_reading = 0;
-DWORD serialdbg_read;
-uint8_t serialdbg_buf[1];
-pc_timer_t serialdbgtimer;
-void
-serial_dbg_timer(void *p)
-{
-    double dbps = (double) 115200;
-    double temp = 0.0;
-    int word_len = 32;
-    temp = (double) word_len;
-    temp = (1000000.0 / dbps) * temp;
-    if (serialdbg_reading) {
-    	if (HasOverlappedIoCompleted(&serialdbgoverlapped_r)) {
-    		if (!GetOverlappedResult(serialdbg, &serialdbgoverlapped_r, &serialdbg_read, FALSE)) {
-    			return;
-    		}
-    		//pclog("overlapped %d\n", serialdbg_read);
-	    for (uint32_t i = 0; i < serialdbg_read; i++) {
-	    	pclog("reading %02X\n", serialdbg_buf[i]);
-	    	serial_write_fifo((serial_t *) p, serialdbg_buf[i]);
-	    }
-	    serialdbg_reading = 0;
-    	}// else pclog(" not yet\n");
-    } else {
-    	if (!ReadFile(serialdbg, serialdbg_buf, sizeof(serialdbg_buf), &serialdbg_read, &serialdbgoverlapped_r) && GetLastError() != ERROR_IO_PENDING) {
-    		pclog("serial broken (read) %08X\n", GetLastError());
-    		CancelIo(serialdbg);
-    		return;
-    	}
-    	serialdbg_reading = 1;
-    }
-    timer_on_auto(&serialdbgtimer, temp);//((serial_t *) p)->transmit_period);
-}
-
-
 void
 serial_write_fifo(serial_t *dev, uint8_t dat)
 {
@@ -234,8 +193,6 @@ serial_write_fifo(serial_t *dev, uint8_t dat)
 
     if (!(dev->mctrl & 0x10))
 	write_fifo(dev, dat);
-    else
-    	pclog("fifo not in rx mode?\n");
 }
 
 
@@ -246,14 +203,6 @@ serial_transmit(serial_t *dev, uint8_t val)
 	write_fifo(dev, val);
     else if (dev->sd->dev_write)
 	dev->sd->dev_write(dev, dev->sd->priv, val);
-    if (serialdbg && dev->base_address == SERIAL1_ADDR) {
-    	uint8_t buf[1];
-    	buf[0] = val;
-    	pclog("writing %02X...", buf[0]);
-	WriteFile(serialdbg, buf, 1, NULL, &serialdbgoverlapped_w);
-	//while (!HasOverlappedIoCompleted(&serialdbgoverlapped_w));
-	pclog("written\n");
-    }
 }
 
 
@@ -374,7 +323,6 @@ serial_update_speed(serial_t *dev)
 
     if (timer_is_enabled(&dev->timeout_timer))
 	timer_on_auto(&dev->timeout_timer, 4.0 * dev->bits * dev->transmit_period);
-    //pclog("SPEED UPDATED!!! %f\n", dev->transmit_period);
 }
 
 
@@ -755,15 +703,6 @@ serial_init(const device_t *info)
     }
 
     next_inst++;
-
-    if (dev->base_address == SERIAL1_ADDR) {
-	serialdbg = CreateFileA(TEXT("\\\\.\\COM4"), GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_FLAG_OVERLAPPED, NULL);
-	pclog("%02X\n", GetLastError());
-	if (serialdbg)
-		timer_add(&serialdbgtimer, serial_dbg_timer, dev, 1);
-	else
-		pclog("serial open failed??\n");
-    }
 
     return dev;
 }
