@@ -61,7 +61,6 @@
 #endif
 #include "x87_timings.h"
 
-#define ENABLE_CPU_LOG 1
 #define CCR1_USE_SMI  (1 << 1)
 #define CCR1_SMAC     (1 << 2)
 #define CCR1_SM3      (1 << 7)
