@@ -151,8 +151,8 @@ ddc_init(void *i2c)
     STD_TIMING(7, 2048, STD_ASPECT_4_3);   /* 2048x1536 */
 
     /* Detailed timings for the preferred mode of 800x600 */
-    edid->detailed_timings[0].pixel_clock_lsb = 0xa0; /* 40000 KHz */
-    edid->detailed_timings[0].pixel_clock_msb = 0x0f;
+    edid->detailed_timings[0].pixel_clock_lsb = 4000 & 0xff; /* 40.000 MHz */
+    edid->detailed_timings[0].pixel_clock_msb = 4000 >> 8;
     edid->detailed_timings[0].h_active_lsb = 800 & 0xff;
     edid->detailed_timings[0].h_blank_lsb = 256 & 0xff;
     edid->detailed_timings[0].h_active_blank_msb = ((800 >> 4) & 0xf0) | ((256 >> 8) & 0x0f);
