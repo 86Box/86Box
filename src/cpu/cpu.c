@@ -61,7 +61,6 @@
 #endif
 #include "x87_timings.h"
 
-
 #define CCR1_USE_SMI  (1 << 1)
 #define CCR1_SMAC     (1 << 2)
 #define CCR1_SM3      (1 << 7)
@@ -238,6 +237,7 @@ uint64_t        ecx1002ff_msr = 0;
 /* Some weird long MSR's used by i686 AMI & some Phoenix BIOSes */
 uint64_t	ecxf0f00250_msr = 0;	
 uint64_t	ecxf0f00258_msr = 0;
+uint64_t	ecxf0f00259_msr = 0;
 
 uint64_t	star = 0;			/* AMD K6-2+. */
 
@@ -3180,6 +3180,10 @@ void cpu_RDMSR()
                         EAX = ecxf0f00258_msr & 0xffffffff;
                         EDX = ecxf0f00258_msr >> 32;
 			break;
+			case 0xf0f00259:
+                        EAX = ecxf0f00259_msr & 0xffffffff;
+                        EDX = ecxf0f00259_msr >> 32;
+			break;
 			default:
 i686_invalid_rdmsr:
 			cpu_log("RDMSR: Invalid MSR: %08X\n", ECX);
@@ -3656,6 +3660,9 @@ void cpu_WRMSR()
 			break;
 			case 0xf0f00258:
 			ecxf0f00258_msr = EAX | ((uint64_t)EDX << 32);
+			break;
+			case 0xf0f00259:
+			ecxf0f00259_msr = EAX | ((uint64_t)EDX << 32);
 			break;
 			default:
 i686_invalid_wrmsr:
