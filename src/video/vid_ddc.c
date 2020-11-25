@@ -222,10 +222,6 @@ ddc_init(void *i2c)
         edid->checksum2 += edid_bytes[c];
     edid->checksum2 = 256 - edid->checksum2;
 
-    FILE *f = fopen("C:\\Users\\Richard\\Desktop\\86boxedid.bin", "wb");
-    fwrite(edid_bytes, 1, sizeof(edid_t), f);
-    fclose(f);
-
     return i2c_eeprom_init(i2c, 0x50, edid_bytes, sizeof(edid_t), 0);
 }
 
