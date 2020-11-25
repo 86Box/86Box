@@ -26,7 +26,7 @@
 
 
 #define STD_TIMING(idx, width, aspect_ratio)	do { \
-							edid->standard_timings[idx].horiz_pixels = ((width) / 8) - 31; \
+							edid->standard_timings[idx].horiz_pixels = ((width) >> 3) - 31; \
 							edid->standard_timings[idx].aspect_ratio_refresh_rate = (aspect_ratio) << 6; /* 60 Hz */ \
 						} while (0)
 
@@ -50,40 +50,38 @@ typedef struct {
 } edid_detailed_timing_t;
 
 typedef struct {
-    uint8_t	min_v_field, max_v_field, min_h_line, max_h_line, max_pixel_clock,
-		timing_type;
-    union {
-	uint8_t	padding[7];
-	struct {
-		uint8_t	reserved, gtf_start_freq, gtf_c, gtf_m_lsb, gtf_m_msb,
-			gtf_k, gtf_j;
-	};
-	struct {
-		uint8_t	cvt_version, add_clock_precision, max_active_pixels,
-			aspect_ratios, aspect_ratio_pref, scaling_support,
-			refresh_pref;
-	};
-    };
-} edid_range_limits_t;
-
-typedef struct {
-    uint8_t	version, timings[6], reserved[6];
-} edid_established_timings3_t;
-
-typedef struct {
-    uint8_t	version;
-    struct {
-	uint8_t	lines_lsb, lines_msb_aspect_ratio, refresh_rate;
-    } timings[4];
-} edid_cvt_timings_t;
-
-typedef struct {
     uint8_t	magic[2], reserved, tag, range_limit_offsets;
     union {
 	char	ascii[13];
-	edid_range_limits_t range_limits;
-	edid_established_timings3_t established_timings3;
-	edid_cvt_timings_t cvt_timings;
+	struct {
+		uint8_t	min_v_field, max_v_field, min_h_line, max_h_line, max_pixel_clock,
+			timing_type;
+		union {
+			uint8_t	padding[7];
+			struct {
+				uint8_t	reserved, gtf_start_freq, gtf_c, gtf_m_lsb, gtf_m_msb,
+					gtf_k, gtf_j;
+			};
+			struct {
+				uint8_t	cvt_version, add_clock_precision, max_active_pixels,
+					aspect_ratios, aspect_ratio_pref, scaling_support,
+					refresh_pref;
+			};
+		};
+	} range_limits;
+	struct {
+		edid_standard_timing_t standard_timings[6];
+		uint8_t padding;
+	} ext_standard_timings;
+	struct {
+		uint8_t	version;
+		struct {
+			uint8_t	lines_lsb, lines_msb_aspect_ratio, refresh_rate;
+		} timings[4];
+	} cvt_timings;
+	struct {
+		uint8_t	version, timings[6], reserved[6];
+	} established_timings3;
     };
 } edid_descriptor_t;
 
