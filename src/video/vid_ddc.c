@@ -70,7 +70,7 @@ typedef struct {
 		};
 	} range_limits;
 	struct {
-		edid_standard_timing_t standard_timings[6];
+		edid_standard_timing_t timings[6];
 		uint8_t padding;
 	} ext_standard_timings;
 	struct {
@@ -140,7 +140,9 @@ ddc_init(void *i2c)
 
     memset(&edid->established_timings, 0xff, sizeof(edid->established_timings)); /* all enabled */
 
+#if 0
     memset(&edid->standard_timings, 0x01, sizeof(edid->standard_timings)); /* pad unused entries */
+#endif
     STD_TIMING(0, 1280, STD_ASPECT_16_9);  /* 1280x720 */
     STD_TIMING(1, 1280, STD_ASPECT_16_10); /* 1280x800 */
     STD_TIMING(2, 1366, STD_ASPECT_16_9);  /* 1360x768 (closest to 1366x768) */
@@ -150,7 +152,7 @@ ddc_init(void *i2c)
     STD_TIMING(6, 1920, STD_ASPECT_16_9);  /* 1920x1080 */
     STD_TIMING(7, 2048, STD_ASPECT_4_3);   /* 2048x1536 */
 
-    /* Detailed timings for the preferred mode of 800x600 */
+    /* Detailed timings for the preferred mode of 800x600 @ 60 Hz */
     edid->detailed_timings[0].pixel_clock_lsb = 4000 & 0xff; /* 40.000 MHz */
     edid->detailed_timings[0].pixel_clock_msb = 4000 >> 8;
     edid->detailed_timings[0].h_active_lsb = 800 & 0xff;
