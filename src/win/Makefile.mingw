@@ -39,9 +39,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef AMD_K5
   AMD_K5	:= y
  endif
- ifndef CL5422
-  CL5422	:= y
- endif
  ifndef CYRIX_6X86
   CYRIX_6X86	:= y
  endif 
@@ -120,9 +117,6 @@ else
  endif
  ifndef AMD_K5
   AMD_K5	:= n
- endif
- ifndef CL5422
-  CL5422	:= n
  endif
  ifndef CYRIX_6X86
   CYRIX_6X86	:= n
@@ -507,10 +501,6 @@ DEVBROBJ	:=
 
 ifeq ($(AMD_K5), y)
 OPTS		+= -DUSE_AMD_K5
-endif
-
-ifeq ($(CL5422), y)
-OPTS		+= -DUSE_CL5422
 endif
 
 ifeq ($(CYRIX_6X86), y)

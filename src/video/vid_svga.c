@@ -1077,9 +1077,16 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
 		}
 		break;
 	case 1:
-		for (i = 0; i < count; i++) {
-			if (writemask2 & (1 << i))
-				svga->vram[addr | i] = svga->latch.b[i];
+		if (svga->adv_flags & FLAG_EXTENDED_WRITE) {
+			for (i = 0; i < count; i++) {
+				if (writemask2 & (0x80 >> i))
+					svga->vram[addr | i] = svga->latch.b[i];
+			}
+		} else {
+			for (i = 0; i < count; i++) {
+				if (writemask2 & (1 << i))
+					svga->vram[addr | i] = svga->latch.b[i];
+			}
 		}
 		return;
 	case 2:
@@ -1087,9 +1094,16 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
 			vall.b[i] = !!(val & (1 << i)) * 0xff;
 
 		if (!(svga->gdcreg[3] & 0x18) && (!svga->gdcreg[1] || svga->set_reset_disabled)) {
-			for (i = 0; i < count; i++) {
-				if (writemask2 & (1 << i))
-					svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | (svga->latch.b[i] & ~svga->gdcreg[8]);
+			if (svga->adv_flags & FLAG_EXTENDED_WRITE) {
+				for (i = 0; i < count; i++) {
+					if (writemask2 & (0x80 >> i))
+						svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | (svga->latch.b[i] & ~svga->gdcreg[8]);
+				}
+			} else {
+				for (i = 0; i < count; i++) {
+					if (writemask2 & (1 << i))
+						svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | (svga->latch.b[i] & ~svga->gdcreg[8]);
+				}
 			}
 			return;
 		}
@@ -1113,27 +1127,55 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
 
     switch (svga->gdcreg[3] & 0x18) {
 	case 0x00:	/* Set */
-		for (i = 0; i < count; i++) {
-			if (writemask2 & (1 << i))
-				svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | (svga->latch.b[i] & ~svga->gdcreg[8]);
+		if (svga->adv_flags & FLAG_EXTENDED_WRITE) {
+			for (i = 0; i < count; i++) {
+				if (writemask2 & (0x80 >> i))
+					svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | (svga->latch.b[i] & ~svga->gdcreg[8]);
+			}			
+		} else {
+			for (i = 0; i < count; i++) {
+				if (writemask2 & (1 << i))
+					svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | (svga->latch.b[i] & ~svga->gdcreg[8]);
+			}
 		}
 		break;
 	case 0x08:	/* AND */
-		for (i = 0; i < count; i++) {
-			if (writemask2 & (1 << i))
-				svga->vram[addr | i] = (vall.b[i] | ~svga->gdcreg[8]) & svga->latch.b[i];
+		if (svga->adv_flags & FLAG_EXTENDED_WRITE) {
+			for (i = 0; i < count; i++) {
+				if (writemask2 & (0x80 >> i))
+					svga->vram[addr | i] = (vall.b[i] | ~svga->gdcreg[8]) & svga->latch.b[i];
+			}
+		} else {
+			for (i = 0; i < count; i++) {
+				if (writemask2 & (1 << i))
+					svga->vram[addr | i] = (vall.b[i] | ~svga->gdcreg[8]) & svga->latch.b[i];
+			}
 		}
 		break;
 	case 0x10:	/* OR */
-		for (i = 0; i < count; i++) {
-			if (writemask2 & (1 << i))
-				svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | svga->latch.b[i];
+		if (svga->adv_flags & FLAG_EXTENDED_WRITE) {
+			for (i = 0; i < count; i++) {
+				if (writemask2 & (0x80 >> i))
+					svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | svga->latch.b[i];
+			}
+		} else {
+			for (i = 0; i < count; i++) {
+				if (writemask2 & (1 << i))
+					svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | svga->latch.b[i];
+			}
 		}
 		break;
 	case 0x18:	/* XOR */
-		for (i = 0; i < count; i++) {
-			if (writemask2 & (1 << i))
-				svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) ^ svga->latch.b[i];
+		if (svga->adv_flags & FLAG_EXTENDED_WRITE) {
+			for (i = 0; i < count; i++) {
+				if (writemask2 & (0x80 >> i))
+					svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) ^ svga->latch.b[i];
+			}
+		} else {
+			for (i = 0; i < count; i++) {
+				if (writemask2 & (1 << i))
+					svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) ^ svga->latch.b[i];
+			}
 		}
 		break;
     }

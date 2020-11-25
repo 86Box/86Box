@@ -71,9 +71,7 @@ video_cards[] = {
     { "cl_gd5401_isa",		&gd5401_isa_device			},
     { "cl_gd5402_isa",		&gd5402_isa_device			},
     { "cl_gd5420_isa",		&gd5420_isa_device			},
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
     { "cl_gd5422_isa",		&gd5422_isa_device			},
-#endif
     { "cl_gd5428_isa",		&gd5428_isa_device			},
     { "cl_gd5429_isa",		&gd5429_isa_device			},
     { "cl_gd5434_isa",		&gd5434_isa_device			},
@@ -154,9 +152,7 @@ video_cards[] = {
     { "voodoo3_3k_pci",		&voodoo_3_3000_device 			},
     { "mach64gx_vlb",		&mach64gx_vlb_device			},
     { "et4000w32p_vlb",		&et4000w32p_cardex_vlb_device		},
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
     { "cl_gd5424_vlb",		&gd5424_vlb_device			},
-#endif
     { "cl_gd5428_vlb",		&gd5428_vlb_device			},
     { "cl_gd5429_vlb",		&gd5429_vlb_device			},
     { "cl_gd5434_vlb",		&gd5434_vlb_device			},

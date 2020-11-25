@@ -42,11 +42,7 @@
 #define BIOS_GD5402_PATH		L"roms/video/cirruslogic/avga2.rom"
 #define BIOS_GD5402_ONBOARD_PATH	L"roms/machines/cbm_sl386sx25/Commodore386SX-25_AVGA2.bin"
 #define BIOS_GD5420_PATH		L"roms/video/cirruslogic/5420.vbi"
-
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 #define BIOS_GD5422_PATH		L"roms/video/cirruslogic/cl5422.bin"
-#endif
-
 #define BIOS_GD5426_PATH		L"roms/video/cirruslogic/Diamond SpeedStar PRO VLB v3.04.bin"
 #define BIOS_GD5428_ISA_PATH		L"roms/video/cirruslogic/5428.bin"
 #define BIOS_GD5428_PATH		L"roms/video/cirruslogic/vlbusjapan.BIN"
@@ -535,6 +531,8 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 						svga->adv_flags = FLAG_EXTRA_BANKS;
 					if (svga->gdcreg[0xb] & 0x02)
 						svga->adv_flags |= FLAG_ADDR_BY8;
+					if (svga->gdcreg[0xb] & 0x04)
+						svga->adv_flags |= FLAG_EXTENDED_WRITE;
 					if (svga->gdcreg[0xb] & 0x08)
 						svga->adv_flags |= FLAG_LATCH8;
 					gd54xx_recalc_banking(gd54xx);
@@ -3072,12 +3070,10 @@ static void
 		romfn = BIOS_GD5420_PATH;
 		break;
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 	case CIRRUS_ID_CLGD5422:
 	case CIRRUS_ID_CLGD5424:
 		romfn = BIOS_GD5422_PATH;
-		break;		
-#endif
+		break;
 
 	case CIRRUS_ID_CLGD5426:
 		if (info->local & 0x200)
@@ -3295,13 +3291,11 @@ gd5420_available(void)
     return rom_present(BIOS_GD5420_PATH);
 }
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 static int
 gd5422_available(void)
 {
     return rom_present(BIOS_GD5422_PATH);
 }
-#endif
 
 static int
 gd5426_available(void)
@@ -3539,7 +3533,7 @@ static const device_config_t gd5434_config[] =
 
 const device_t gd5401_isa_device =
 {
-    "Cirrus Logic GD-5401 (ACUMOS AVGA1)",
+    "Cirrus Logic CL-GD 5401 (ACUMOS AVGA1)",
     DEVICE_ISA,
     CIRRUS_ID_CLGD5401,
     gd54xx_init, gd54xx_close,
@@ -3552,7 +3546,7 @@ const device_t gd5401_isa_device =
 
 const device_t gd5402_isa_device =
 {
-    "Cirrus Logic GD-5402 (ACUMOS AVGA2)",
+    "Cirrus Logic CL-GD 5402 (ACUMOS AVGA2)",
     DEVICE_ISA,
     CIRRUS_ID_CLGD5402,
     gd54xx_init, gd54xx_close,
@@ -3565,7 +3559,7 @@ const device_t gd5402_isa_device =
 
 const device_t gd5402_onboard_device =
 {
-    "Cirrus Logic GD-5402 (ACUMOS AVGA2) (On-Board)",
+    "Cirrus Logic CL-GD 5402 (ACUMOS AVGA2) (On-Board)",
     DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5402 | 0x200,
     gd54xx_init, gd54xx_close,
@@ -3578,7 +3572,7 @@ const device_t gd5402_onboard_device =
 
 const device_t gd5420_isa_device =
 {
-    "Cirrus Logic GD-5420",
+    "Cirrus Logic CL-GD 5420",
     DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5420,
     gd54xx_init, gd54xx_close,
@@ -3589,9 +3583,8 @@ const device_t gd5420_isa_device =
     gd5422_config,
 };
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 const device_t gd5422_isa_device = {
-    "Cirrus Logic GD-5422",
+    "Cirrus Logic CL-GD 5422",
     DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5422,
     gd54xx_init, gd54xx_close,
@@ -3603,7 +3596,7 @@ const device_t gd5422_isa_device = {
 };
 
 const device_t gd5424_vlb_device = {
-    "Cirrus Logic GD-5424",
+    "Cirrus Logic CL-GD 5424",
     DEVICE_VLB,
     CIRRUS_ID_CLGD5424,
     gd54xx_init, gd54xx_close,
@@ -3613,7 +3606,6 @@ const device_t gd5424_vlb_device = {
     gd54xx_force_redraw,
     gd5422_config,
 };
-#endif
 
 const device_t gd5426_vlb_device =
 {

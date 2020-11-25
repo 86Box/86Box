@@ -21,6 +21,7 @@
 #define FLAG_EXTRA_BANKS	1
 #define	FLAG_ADDR_BY8		2
 #define FLAG_LATCH8		4
+#define FLAG_EXTENDED_WRITE	8
 
 
 typedef struct {
