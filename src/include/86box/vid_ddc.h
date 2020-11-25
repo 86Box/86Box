@@ -20,6 +20,6 @@
 # define EMU_VID_DDC_H
 
 extern void	*ddc_init(void *i2c);
-extern void	ddc_close(void *dev_handle);
+extern void	ddc_close(void *eeprom);
 
 #endif	/*EMU_VID_DDC_H*/

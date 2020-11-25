@@ -2702,7 +2702,7 @@ static void banshee_force_redraw(void *p)
 
 const device_t voodoo_banshee_device =
 {
-        "Voodoo Banshee PCI (reference)",
+        "3dfx Voodoo Banshee",
         DEVICE_PCI,
 	0,
         banshee_init,
@@ -2716,7 +2716,7 @@ const device_t voodoo_banshee_device =
 
 const device_t creative_voodoo_banshee_device =
 {
-        "Creative Labs 3D Blaster Banshee PCI",
+        "Creative 3D Blaster Banshee",
         DEVICE_PCI,
 	0,
         creative_banshee_init,
@@ -2730,7 +2730,7 @@ const device_t creative_voodoo_banshee_device =
 
 const device_t voodoo_3_2000_device =
 {
-        "Voodoo 3 2000 PCI",
+        "3dfx Voodoo3 2000",
         DEVICE_PCI,
         0,
 	v3_2000_init,
@@ -2744,7 +2744,7 @@ const device_t voodoo_3_2000_device =
 
 const device_t voodoo_3_3000_device =
 {
-        "Voodoo 3 3000 PCI",
+        "3dfx Voodoo3 3000",
         DEVICE_PCI,
 	0,
         v3_3000_init,

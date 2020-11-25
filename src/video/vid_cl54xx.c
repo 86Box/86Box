@@ -33,6 +33,8 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/video.h>
+#include <86box/i2c.h>
+#include <86box/vid_ddc.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
@@ -208,6 +210,8 @@ typedef struct gd54xx_t
 
     uint32_t		extpallook[256];
     PALETTE		extpal;
+
+    void		*i2c, *ddc;
 } gd54xx_t;
 
 
@@ -354,6 +358,10 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 						svga->seqregs[6] = 0x0f;
 					if (svga->crtc[0x27] < CIRRUS_ID_CLGD5429)
 						gd54xx->unlocked = (svga->seqregs[6] == 0x12);
+					break;
+				case 0x08:
+					if (gd54xx->i2c)
+						i2c_gpio_set(gd54xx->i2c, !!(val & 0x01), !!(val & 0x02));
 					break;
 				case 0x0b: case 0x0c: case 0x0d: case 0x0e: /* VCLK stuff */
 					gd54xx->vclk_n[svga->seqaddr-0x0b] = val;
@@ -696,6 +704,15 @@ gd54xx_in(uint16_t addr, void *p)
 			switch (svga->seqaddr) {
 				case 6:
 					ret = svga->seqregs[6];
+					break;
+				case 0x08:
+					if (gd54xx->i2c) {
+						ret &= 0x7b;
+						if (i2c_gpio_get_scl(gd54xx->i2c))
+							ret |= 0x04;
+						if (i2c_gpio_get_sda(gd54xx->i2c))
+							ret |= 0x80;
+					}
 					break;
 				case 0x0b: case 0x0c: case 0x0d: case 0x0e:
 					ret = gd54xx->vclk_n[svga->seqaddr-0x0b];
@@ -3252,6 +3269,11 @@ static void
 	mca_add(gd5428_mca_read, gd5428_mca_write, gd5428_mca_feedb, NULL, gd54xx);
     }
 
+    if (gd54xx_is_5434(svga)) {
+	gd54xx->i2c = i2c_gpio_init("ddc_cl54xx");
+	gd54xx->ddc = ddc_init(i2c_gpio_get_bus(gd54xx->i2c));
+    }
+
     return gd54xx;
 }
 
@@ -3359,6 +3381,11 @@ gd54xx_close(void *p)
     gd54xx_t *gd54xx = (gd54xx_t *)p;
 
     svga_close(&gd54xx->svga);
+
+    if (gd54xx->i2c) {
+	ddc_close(gd54xx->ddc);
+	i2c_gpio_close(gd54xx->i2c);
+    }
     
     free(gd54xx);
 }

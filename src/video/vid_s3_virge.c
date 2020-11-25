@@ -447,7 +447,11 @@ static void s3_virge_out(uint16_t addr, uint8_t val, void *p)
 			return;
 		if ((svga->crtcreg == 0x36) && (svga->crtc[0x39] != 0xa5))
 			return;
-                if (svga->crtcreg >= 0x80)
+                if ((svga->crtcreg >= 0x80)
+#if defined(DEV_BRANCH) && defined(USE_S3TRIO3D2X)
+                    && !((virge->chip == S3_TRIO3D2X) && (svga->crtcreg == 0xaa))
+#endif
+                   )
                         return;
                 old = svga->crtc[svga->crtcreg];
                 svga->crtc[svga->crtcreg] = val;
@@ -550,6 +554,12 @@ static void s3_virge_out(uint16_t addr, uint8_t val, void *p)
                                 default: svga->bpp = 8;  break;
                         }
                         break;
+
+#if defined(DEV_BRANCH) && defined(USE_S3TRIO3D2X)
+                        case 0xaa:
+                        i2c_gpio_set(virge->i2c, !!(val & SERIAL_PORT_SCW), !!(val & SERIAL_PORT_SDW));
+                        break;
+#endif
                 }
                 if (old != val)
                 {
@@ -607,6 +617,18 @@ static uint8_t s3_virge_in(uint16_t addr, void *p)
                         case 0x51: ret = (svga->crtc[0x51] & 0xf0) | ((virge->bank >> 2) & 0xc) | ((virge->ma_ext >> 2) & 3); break;
                         case 0x69: ret = virge->ma_ext; break;
                         case 0x6a: ret = virge->bank; break;
+#if defined(DEV_BRANCH) && defined(USE_S3TRIO3D2X)
+                        case 0xaa: /* Trio3D DDC */
+                        if (virge->chip == S3_TRIO3D2X) {
+                                ret = svga->crtc[0xaa] & ~(SERIAL_PORT_SCR | SERIAL_PORT_SDR);
+                                if ((svga->crtc[0xaa] & SERIAL_PORT_SCW) && i2c_gpio_get_scl(virge->i2c))
+                                        ret |= SERIAL_PORT_SCR;
+                                if ((svga->crtc[0xaa] & SERIAL_PORT_SDW) && i2c_gpio_get_sda(virge->i2c))
+                                        ret |= SERIAL_PORT_SDR;
+                                break;
+                        }
+                        /* fall-through */
+#endif
                         default:   ret = svga->crtc[svga->crtcreg]; break;
                 }
                 break;

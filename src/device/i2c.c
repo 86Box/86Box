@@ -112,7 +112,7 @@ i2c_getbusname(void *bus_handle)
     i2c_bus_t *bus = (i2c_bus_t *) bus_handle;
 
     if (!bus_handle)
-	return;
+	return(NULL);
 
     return(bus->name);
 }

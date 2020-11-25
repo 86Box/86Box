@@ -30,6 +30,8 @@
 #include <86box/rom.h>
 #include <86box/plat.h>
 #include <86box/video.h>
+#include <86box/i2c.h>
+#include <86box/vid_ddc.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 #include "cpu.h"
@@ -266,6 +268,9 @@ typedef struct s3_t
 	int translate;
 	int enable_8514;
 	volatile int busy, force_busy;
+
+	uint8_t serialport;
+	void *i2c, *ddc;
 } s3_t;
 
 #define INT_VSY      (1 << 0)
@@ -273,6 +278,11 @@ typedef struct s3_t
 #define INT_FIFO_OVR (1 << 2)
 #define INT_FIFO_EMP (1 << 3)
 #define INT_MASK     0xf
+
+#define SERIAL_PORT_SCW (1 << 0)
+#define SERIAL_PORT_SDW (1 << 1)
+#define SERIAL_PORT_SCR (1 << 2)
+#define SERIAL_PORT_SDR (1 << 3)
 
 static void s3_updatemapping(s3_t *s3);
 
@@ -1051,6 +1061,10 @@ s3_accel_write_fifo(s3_t *s3, uint32_t addr, uint8_t val)
 				s3->accel.advfunc_cntl = val;
 				s3_updatemapping(s3);
 				break;
+			case 0xff20:
+				s3->serialport = val;
+				i2c_gpio_set(s3->i2c, !!(val & SERIAL_PORT_SCW), !!(val & SERIAL_PORT_SDW));
+				break;
 			default:
 				s3_accel_out_fifo(s3, addr & 0xffff, val);
 				break;
@@ -1084,7 +1098,10 @@ s3_accel_write_fifo_w(s3_t *s3, uint32_t addr, uint16_t val)
 				default:
 					s3_accel_write_fifo(s3, addr,     val);
 					s3_accel_write_fifo(s3, addr + 1, val >> 8);
-					break;					
+					break;
+				case 0xff20:
+					s3_accel_write_fifo(s3, addr, val);
+					break;
 			}
 		}
 	} else {
@@ -1231,6 +1248,10 @@ s3_accel_write_fifo_l(s3_t *s3, uint32_t addr, uint32_t val)
 			case 0x850c:
 			s3->accel.advfunc_cntl = val & 0xff;
 			s3_updatemapping(s3);
+			break;
+
+			case 0xff20:
+			s3_accel_write_fifo(s3, addr, val);
 			break;
 
 			default:
@@ -2900,6 +2921,14 @@ s3_accel_in(uint16_t port, void *p)
 		else if ((s3->accel.cmd & 0x600) == 0x000 && (s3->accel.cmd & 0x100))
 			s3_accel_start(1, 1, 0xffffffff, 0xff, s3);
 		return temp;
+
+		case 0xff20: case 0xff21:
+		temp = s3->serialport & ~(SERIAL_PORT_SCR | SERIAL_PORT_SDR);
+		if ((s3->serialport & SERIAL_PORT_SCW) && i2c_gpio_get_scl(s3->i2c))
+			temp |= SERIAL_PORT_SCR;
+		if ((s3->serialport & SERIAL_PORT_SDW) && i2c_gpio_get_sda(s3->i2c))
+			temp |= SERIAL_PORT_SDR;
+		return temp;
 	}
 	
 	return 0xff;
@@ -2976,7 +3005,7 @@ s3_accel_read(uint32_t addr, void *p)
 	    case 0x8504:
 		return s3->subsys_stat;
 	    case 0x8505:
-		return s3->subsys_cntl;;
+		return s3->subsys_cntl;
 	    default:
 		return s3_accel_in(addr & 0xffff, p);
 	}
@@ -4662,6 +4691,9 @@ static void *s3_init(const device_t *info)
 			return NULL;
 	}
 
+	s3->i2c = i2c_gpio_init("ddc_s3");
+	s3->ddc = ddc_init(i2c_gpio_get_bus(s3->i2c));
+
 	return s3;
 }
 
@@ -4754,6 +4786,9 @@ static void s3_close(void *p)
 	thread_kill(s3->fifo_thread);
 	thread_destroy_event(s3->wake_fifo_thread);
 	thread_destroy_event(s3->fifo_not_full_event);
+
+	ddc_close(s3->ddc);
+	i2c_gpio_close(s3->i2c);
 
 	free(s3);
 }
