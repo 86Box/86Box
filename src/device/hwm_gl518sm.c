@@ -24,7 +24,7 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
-#include <86box/smbus.h>
+#include <86box/i2c.h>
 #include <86box/hwm.h>
 
  
@@ -41,17 +41,14 @@ typedef struct {
     uint16_t regs[32];
     uint8_t addr_register;
 
-    uint8_t smbus_addr;
+    uint8_t i2c_addr, i2c_state;
 } gl518sm_t;
 
 
-static uint8_t	gl518sm_smbus_read_byte(uint8_t addr, void *priv);
-static uint8_t	gl518sm_smbus_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv);
-static uint16_t	gl518sm_smbus_read_word_cmd(uint8_t addr, uint8_t cmd, void *priv);
+static uint8_t	gl518sm_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv);
+static uint8_t	gl518sm_i2c_read(void *bus, uint8_t addr, void *priv);
 static uint16_t	gl518sm_read(gl518sm_t *dev, uint8_t reg);
-static void	gl518sm_smbus_write_byte(uint8_t addr, uint8_t val, void *priv);
-static void	gl518sm_smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val, void *priv);
-static void	gl518sm_smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, void *priv);
+static uint8_t	gl518sm_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv);
 static uint8_t	gl518sm_write(gl518sm_t *dev, uint8_t reg, uint16_t val);
 static void	gl518sm_reset(gl518sm_t *dev);
 
@@ -81,41 +78,45 @@ gl518sm_remap(gl518sm_t *dev, uint8_t addr)
 {
     gl518sm_log("GL518SM: remapping to SMBus %02Xh\n", addr);
 
-    smbus_removehandler(dev->smbus_addr, 1,
-			gl518sm_smbus_read_byte, gl518sm_smbus_read_byte_cmd, gl518sm_smbus_read_word_cmd, NULL,
-			gl518sm_smbus_write_byte, gl518sm_smbus_write_byte_cmd, gl518sm_smbus_write_word_cmd, NULL,
-			dev);
+    i2c_removehandler(i2c_smbus, dev->i2c_addr, 1, gl518sm_i2c_start, gl518sm_i2c_read, gl518sm_i2c_write, NULL, dev);
 
-    if (addr < 0x80) smbus_sethandler(addr, 1,
-			gl518sm_smbus_read_byte, gl518sm_smbus_read_byte_cmd, gl518sm_smbus_read_word_cmd, NULL,
-			gl518sm_smbus_write_byte, gl518sm_smbus_write_byte_cmd, gl518sm_smbus_write_word_cmd, NULL,
-			dev);
+    if (addr < 0x80)
+	i2c_sethandler(i2c_smbus, addr, 1, gl518sm_i2c_start, gl518sm_i2c_read, gl518sm_i2c_write, NULL, dev);
 
-    dev->smbus_addr = addr;
+    dev->i2c_addr = addr;
 }
 
 
 static uint8_t
-gl518sm_smbus_read_byte(uint8_t addr, void *priv)
+gl518sm_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv)
 {
     gl518sm_t *dev = (gl518sm_t *) priv;
-    return gl518sm_read(dev, dev->addr_register);
+
+    dev->i2c_state = 0;
+
+    return 1;
 }
 
 
 static uint8_t
-gl518sm_smbus_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv)
+gl518sm_i2c_read(void *bus, uint8_t addr, void *priv)
 {
     gl518sm_t *dev = (gl518sm_t *) priv;
-    return gl518sm_read(dev, cmd);
-}
+    uint16_t read = gl518sm_read(dev, dev->addr_register);
+    uint8_t ret = 0;
 
+    if (dev->i2c_state == 0)
+	dev->i2c_state = 1;
 
-static uint16_t
-gl518sm_smbus_read_word_cmd(uint8_t addr, uint8_t cmd, void *priv)
-{
-    gl518sm_t *dev = (gl518sm_t *) priv;
-    return gl518sm_read(dev, cmd);
+    if ((dev->i2c_state == 1) && (dev->addr_register >= 0x07) && (dev->addr_register <= 0x0c)) { /* two-byte registers: read MSB first */
+	dev->i2c_state = 2;
+	ret = read >> 8;
+    } else {
+	ret = read;
+	dev->addr_register++;
+    }
+
+    return ret;
 }
 
 
@@ -157,37 +158,36 @@ gl518sm_read(gl518sm_t *dev, uint8_t reg)
 		break;
     }
 
-    /* Duplicate the low byte to the high byte on single-byte registers, although real hardware behavior is undefined. */
-    if ((reg < 0x07) || (reg > 0x0c))
-	ret |= ret << 8;
-
     gl518sm_log("GL518SM: read(%02X) = %04X\n", reg, ret);
 
     return ret;
 }
 
 
-static void
-gl518sm_smbus_write_byte(uint8_t addr, uint8_t val, void *priv)
+static uint8_t
+gl518sm_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv)
 {
     gl518sm_t *dev = (gl518sm_t *) priv;
-    dev->addr_register = val;
-}
 
+    switch (dev->i2c_state++) {
+	case 0:
+		dev->addr_register = data;
+		break;
 
-static void
-gl518sm_smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val, void *priv)
-{
-    gl518sm_t *dev = (gl518sm_t *) priv;
-    gl518sm_write(dev, cmd, val);
-}
+	case 1:
+		gl518sm_write(dev, dev->addr_register, (gl518sm_read(dev, dev->addr_register) & 0xff00) | data);
+		break;
 
+	case 2:
+		gl518sm_write(dev, dev->addr_register, (gl518sm_read(dev, dev->addr_register) << 8) | data);
+		break;
 
-static void
-gl518sm_smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, void *priv)
-{
-    gl518sm_t *dev = (gl518sm_t *) priv;
-    gl518sm_write(dev, cmd, val);
+	default:
+		dev->i2c_state = 3;
+		return 0;
+    }
+
+    return 1;
 }
 
 

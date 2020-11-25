@@ -626,6 +626,7 @@ load_machine(void)
 	}
     }
     cpu_s = (CPU *) &cpu_f->cpus[cpu];
+    cpu_override = config_get_int(cat, "cpu_override", 0);
 
     cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
 
@@ -1798,6 +1799,10 @@ save_machine(void)
     config_set_string(cat, "cpu_family", (char *) cpu_f->internal_name);
     config_set_int(cat, "cpu_speed", cpu_f->cpus[cpu].rspeed);
     config_set_double(cat, "cpu_multi", cpu_f->cpus[cpu].multi);
+    if (cpu_override)
+	config_set_int(cat, "cpu_override", cpu_override);
+    else
+	config_delete_var(cat, "cpu_override");
 
     /* Forwards compatibility with the previous CPU model system. */
     config_delete_var(cat, "cpu_manufacturer");

@@ -149,9 +149,9 @@ video_cards[] = {
     { "virge375_vbe20_pci",	&s3_virge_375_4_pci_device		},
     { "cl_gd5446_stb_pci",	&gd5446_stb_pci_device			},
     { "tgui9440_pci",		&tgui9440_pci_device			},
+    { "voodoo_banshee_pci",	&voodoo_banshee_device  		},
     { "voodoo3_2k_pci",		&voodoo_3_2000_device 			},
     { "voodoo3_3k_pci",		&voodoo_3_3000_device 			},
-    { "voodoo_banshee_pci",	&voodoo_banshee_device  		},
     { "mach64gx_vlb",		&mach64gx_vlb_device			},
     { "et4000w32p_vlb",		&et4000w32p_cardex_vlb_device		},
 #if defined(DEV_BRANCH) && defined(USE_CL5422)

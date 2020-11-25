@@ -28,6 +28,8 @@
 #include <86box/dma.h>
 #include <86box/plat.h>
 #include <86box/video.h>
+#include <86box/i2c.h>
+#include <86box/vid_ddc.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
@@ -499,6 +501,8 @@ typedef struct mystique_t
 
 	mutex_t *lock;
     } dma;
+
+    void *i2c, *i2c_ddc, *ddc;
 } mystique_t;
 
 
@@ -1019,7 +1023,15 @@ mystique_read_xreg(mystique_t *mystique, int reg)
 		ret = mystique->xgenioctrl;
 		break;
 	case XREG_XGENIODATA:
-		ret = mystique->xgeniodata;
+		ret = mystique->xgeniodata & 0xf0;
+		if (i2c_gpio_get_scl(mystique->i2c_ddc))
+			ret |= 0x08;
+		if (i2c_gpio_get_scl(mystique->i2c))
+			ret |= 0x04;
+		if (i2c_gpio_get_sda(mystique->i2c_ddc))
+			ret |= 0x02;
+		if (i2c_gpio_get_sda(mystique->i2c))
+			ret |= 0x01;
 		break;
 
 	case XREG_XSYSPLLM:
@@ -1154,6 +1166,8 @@ mystique_write_xreg(mystique_t *mystique, int reg, uint8_t val)
 
 	case XREG_XGENIOCTRL:
 		mystique->xgenioctrl = val;
+		i2c_gpio_set(mystique->i2c_ddc, !(mystique->xgenioctrl & 0x08) || (mystique->xgeniodata & 0x08), !(mystique->xgenioctrl & 0x02) || (mystique->xgeniodata & 0x02));
+		i2c_gpio_set(mystique->i2c, !(mystique->xgenioctrl & 0x04) || (mystique->xgeniodata & 0x04), !(mystique->xgenioctrl & 0x01) || (mystique->xgeniodata & 0x01));
 		break;
 	case XREG_XGENIODATA:
 		mystique->xgeniodata = val;
@@ -5009,6 +5023,10 @@ mystique_init(const device_t *info)
 
     mystique->svga.vsync_callback = mystique_vsync_callback;
 
+    mystique->i2c = i2c_gpio_init("i2c_mga");
+    mystique->i2c_ddc = i2c_gpio_init("ddc_mga");
+    mystique->ddc = ddc_init(i2c_gpio_get_bus(mystique->i2c_ddc));
+
     return mystique;		
 }
 
@@ -5024,6 +5042,10 @@ mystique_close(void *p)
     thread_close_mutex(mystique->dma.lock);
 
     svga_close(&mystique->svga);
+
+    ddc_close(mystique->ddc);
+    i2c_gpio_close(mystique->i2c_ddc);
+    i2c_gpio_close(mystique->i2c);
 
     free(mystique);
 }

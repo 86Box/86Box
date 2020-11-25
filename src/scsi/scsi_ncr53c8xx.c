@@ -43,6 +43,7 @@
 #include <86box/device.h>
 #include <86box/nvr.h>
 #include <86box/plat.h>
+#include <86box/i2c.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_ncr53c8xx.h>
@@ -185,6 +186,7 @@
 /* Flag set if this is a tagged command.  */
 #define NCR_TAG_VALID     (1 << 16)
 
+#define NCR_NVRAM_SIZE	  2048
 #define NCR_BUF_SIZE	  4096
 
 typedef struct ncr53c8xx_request {
@@ -225,15 +227,9 @@ typedef struct {
     int msg_action;
     int msg_len;
     uint8_t msg[NCR_MAX_MSGIN_LEN];
-#ifdef USE_NVRAM
-    uint16_t nvram;
-    uint8_t nvram_t;
-    uint8_t nvram_op;
-    uint8_t nvram_param;
-    uint8_t nvram_start;
-    uint8_t nvram_index;
-#endif
-    uint8_t ram[NCR_BUF_SIZE];	/* NCR 53c875 RAM (4 kB). */
+    uint8_t nvram[NCR_NVRAM_SIZE]; /* 24C16 EEPROM (16 Kbit) */
+    void *i2c, *eeprom;
+    uint8_t ram[NCR_BUF_SIZE];	/* NCR 53C875 RAM (4 KB) */
     /* 0 if SCRIPTS are running or stopped.
      * 1 if a Wait Reselect instruction has been issued.
      * 2 if processing DMA from ncr53c8xx_execute_script.
@@ -434,10 +430,7 @@ ncr53c8xx_soft_reset(ncr53c8xx_t *dev)
     dev->gpreg = 0;
     dev->slpar = 0;
     dev->sstop = 1;
-    dev->gpcntl = 0x0f;
-#ifdef USE_NVRAM
-    dev->nvram_t = dev->nvram_index = 0;
-#endif
+    dev->gpcntl = 0x03;
 
     if (dev->chip >= CHIP_825) {
 	/* This *IS* a wide SCSI controller, so reset all SCSI
@@ -474,7 +467,7 @@ ncr53c8xx_read(ncr53c8xx_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 			buf[i] = inb((uint16_t) (addr + i));
 	} else {
 		ncr53c8xx_log("NCR 810: Reading from memory address %08X\n", addr);
-        	dma_bm_read(addr, buf, len, 4);
+    	dma_bm_read(addr, buf, len, 4);
 	}
 }
 
@@ -492,7 +485,7 @@ ncr53c8xx_write(ncr53c8xx_t *dev, uint32_t addr, uint8_t *buf, uint32_t len)
 			outb((uint16_t) (addr + i), buf[i]);
 	} else {
 		ncr53c8xx_log("NCR 810: Writing to memory address %08X\n", addr);
-        	dma_bm_write(addr, buf, len, 4);
+    	dma_bm_write(addr, buf, len, 4);
 	}
 }
 
@@ -511,10 +504,10 @@ static
 void do_irq(ncr53c8xx_t *dev, int level)
 {
     if (level) {
-    	pci_set_irq(dev->pci_slot, PCI_INTA);
+	pci_set_irq(dev->pci_slot, PCI_INTA);
 	ncr53c8xx_log("Raising IRQ...\n");
     } else {
-    	pci_clear_irq(dev->pci_slot, PCI_INTA);
+	pci_clear_irq(dev->pci_slot, PCI_INTA);
 	ncr53c8xx_log("Lowering IRQ...\n");
     }
 }
@@ -852,8 +845,8 @@ ncr53c8xx_do_msgin(ncr53c8xx_t *dev)
 	   switch to PHASE_MO.  */
 	switch (dev->msg_action) {
 		case 0:
-            		ncr53c8xx_set_phase(dev, PHASE_CMD);
-            		break;
+			ncr53c8xx_set_phase(dev, PHASE_CMD);
+			break;
 		case 1:
 			ncr53c8xx_disconnect(dev);
 			break;
@@ -1444,7 +1437,7 @@ ncr53c8xx_callback(void *p)
 	if (dev->waiting)
 		timer_on_auto(&dev->timer, 40.0);
 	else
-    		ncr53c8xx_process_script(dev);
+		ncr53c8xx_process_script(dev);
     }
 
     if (dev->sstop)
@@ -1452,144 +1445,20 @@ ncr53c8xx_callback(void *p)
 }
 
 
-#ifdef USE_NVRAM
 static void
-ncr53c8xx_eeprom(ncr53c8xx_t *dev, int save)
+ncr53c8xx_eeprom(ncr53c8xx_t *dev, uint8_t save)
 {
     FILE *f;
 
-    if (save)
-	f = nvr_fopen(dev->nvr_path, L"wb");
-    else
-	f = nvr_fopen(dev->nvr_path, L"rb");
-    if (f)
-    {
-	if (save) {
-		fwrite((uint8_t *) &dev->nvram, 1, 1, f);
-		fwrite(((uint8_t *) &dev->nvram) + 1, 1, 1, f);
-	} else {
-		fread((uint8_t *) &dev->nvram, 1, 1, f);
-		fread(((uint8_t *) &dev->nvram) + 1, 1, 1, f);
-	}
+    f = nvr_fopen(dev->nvr_path, save ? L"wb": L"rb");
+    if (f) {
+	if (save)
+		fwrite(&dev->nvram, sizeof(dev->nvram), 1, f);
+	else
+		fread(&dev->nvram, sizeof(dev->nvram), 1, f);
 	fclose(f);
-	f = NULL;
     }
 }
-
-
-#define ADDRESS_LENGTH	9
-#define ADDRESS_END	(ADDRESS_LENGTH + 2)
-#define ADDRESS_SHIFT	(ADDRESS_LENGTH - 2)
-#define ADDRESS_MASK	0x3f
-#define DATA_LENGTH	8
-#define DATA_START	(ADDRESS_END + 1)
-#define DATA_END	(ADDRESS_END + DATA_LENGTH)
-
-
-static void
-ncr53c8xx_serial_eeprom_write(ncr53c8xx_t *dev, uint8_t val)
-{
-    uint8_t temp, old = dev->nvram_t;
-    dev->nvram_t = val & 0x03;
-
-    if (val & 0x02) {
-	if (!dev->nvram_index) {
-		/* First signal clocked in after clock is high, start bit. */
-		dev->nvram_start = 1;
-		ncr53c8xx_log("[W] Serial EEPROM: Start bit\n");
-		dev->nvram_op = 0;
-	} else if ((dev->nvram_index == 1) || (dev->nvram_index == 2)) {
-		if (!dev->nvram_start)
-			return;
-
-		dev->nvram_op = (val & 0x01) << (dev->nvram_index - 1);
-		if (dev->nvram_index == 2) {
-			// ncr53c8xx_log("[W] Serial EEPROM: Opcode: %01X\n", dev->nvram_op);
-			dev->nvram_param = 0;
-		}
-	} else if ((dev->nvram_index >= 3) && (dev->nvram_index <= ADDRESS_END)) {
-		if (!dev->nvram_start)
-			return;
-
-		dev->nvram_param = (val & 0x01) << (dev->nvram_index - 3);
-		if (dev->nvram_index < ADDRESS_END) {
-			dev->nvram_index++;
-			return;
-		}
-
-		switch (dev->nvram_op) {
-			case 0x00:
-				temp = dev->nvram_param >> ADDRESS_SHIFT;
-				switch(temp) {
-					case 0x00:
-						ncr53c8xx_log("[W] Serial EEPROM: EWDS\n");
-						break;
-					case 0x01:
-						ncr53c8xx_log("[W] Serial EEPROM: WRAL\n");
-						break;
-					case 0x02:
-						ncr53c8xx_log("[W] Serial EEPROM: ERAL\n");
-						break;
-					case 0x03:
-						ncr53c8xx_log("[W] Serial EEPROM: EWEN\n");
-						break;
-					default:
-						ncr53c8xx_log("[W] Serial EEPROM: UNKNOWN 00\n");
-						break;
-				}
-				dev->nvram_start = dev->nvram_index = dev->nvram_op = dev->nvram_param = 0;
-				return;
-			case 0x01:
-				ncr53c8xx_log("[W] Serial EEPROM: WRITE\n");
-				break;
-			case 0x02:
-				ncr53c8xx_log("[W] Serial EEPROM: READ\n");
-				break;
-			case 0x03:
-				ncr53c8xx_log("[W] Serial EEPROM: ERASE\n");
-				break;
-			default:
-				ncr53c8xx_log("[W] Serial EEPROM: UNKNOWN\n");
-				break;
-		}
-	} else if ((dev->nvram_index >= DATA_START) && (dev->nvram_index <= DATA_END)) {
-		if (!dev->nvram_start)
-			return;
-
-		if (dev->nvram_index == DATA_END) {
-			ncr53c8xx_log("[W] Serial EEPROM: Data end\n");
-			dev->nvram_start = dev->nvram_index = dev->nvram_op = dev->nvram_param = 0;
-			return;
-		}
-	}
-	dev->nvram_index++;
-    }
-}
-
-
-static uint8_t
-ncr53c8xx_serial_eeprom_read(ncr53c8xx_t *dev)
-{
-    uint8_t temp = 0;
-
-    if (dev->gpreg & 0x02) {
-	if ((dev->nvram_index >= DATA_START) && (dev->nvram_index <= DATA_END)) {
-		if (!dev->nvram_start)
-			return temp;
-
-		dev->nvram_index++;
-
-		if (dev->nvram_index == DATA_END) {
-			ncr53c8xx_log("[R] Serial EEPROM: Data end\n");
-			dev->nvram_start = dev->nvram_index = dev->nvram_op = dev->nvram_param = 0;
-			return temp;
-		}
-	}
-    }
-
-    return temp;
-}
-#endif
 
 
 static void
@@ -1659,12 +1528,8 @@ ncr53c8xx_reg_writeb(ncr53c8xx_t *dev, uint32_t offset, uint8_t val)
 		break;
 	case 0x07: /* GPREG */
 		ncr53c8xx_log("NCR 810: GPREG write %02X\n", val);
-		tmp = dev->gpreg;
-		dev->gpreg = val & 0xfe;
-#ifdef USE_NVRAM
-		if ((dev->gpcntl & 0xc3) == 0x00)
-			ncr53c8xx_serial_eeprom_write(dev, val & 0x03);
-#endif
+		dev->gpreg = val;
+		i2c_gpio_set(dev->i2c, !!(dev->gpreg & 0x02), !!(dev->gpreg & 0x01));
 		break;
 	case 0x08: /* SFBR */
 		/* The CPU is not allowed to write to this register.  However the
@@ -1893,13 +1758,18 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
 		ncr53c8xx_log("NCR 810: Read SDID %02X\n", dev->sdid);
 		return dev->sdid;
 	case 0x07: /* GPREG */
-#ifdef USE_NVRAM
-		tmp = (dev->gpreg & (dev->gpcntl ^ 0x1f)) & 0x1e;
-		if ((dev->gpcntl & 0xc3) == 0x01)
-			tmp |= ncr53c8xx_serial_eeprom_read(dev);
-#else
-		tmp = ((dev->gpreg & (dev->gpcntl ^ 0x1f)) & 0x1e) | 0x01;
-#endif
+		tmp = (dev->gpreg & (dev->gpcntl ^ 0x1f)) & 0x1f;
+		if ((dev->gpcntl & 0x41) == 0x01) {
+			tmp &= 0xfe;
+			if (i2c_gpio_get_sda(dev->i2c))
+				tmp |= 0x01;
+		}
+		if ((dev->gpcntl & 0x82) == 0x02) {
+			tmp &= 0xfd;
+			if (i2c_gpio_get_scl(dev->i2c))
+				tmp |= 0x02;
+		}
+
 		ncr53c8xx_log("NCR 810: Read GPREG %02X\n", tmp);
 		return tmp;
 	case 0x08: /* Revision ID */
@@ -2677,8 +2547,8 @@ ncr53c8xx_init(const device_t *info)
 		dev->chip_rev = 0x26;
 		dev->nvr_path = L"ncr53c825a.nvr";
 	}
-    	ncr53c8xx_pci_bar[2].addr_regs[0] = 0;
-    	ncr53c8xx_pci_bar[3].addr = 0xffff0000;
+	ncr53c8xx_pci_bar[2].addr_regs[0] = 0;
+	ncr53c8xx_pci_bar[3].addr = 0xffff0000;
 	/* Need to make it align on a 16k boundary as that's this emulator's
 	   memory mapping granularity. */
 	ncr53c8xx_ram_init(dev, 0x0fffc000);
@@ -2695,10 +2565,11 @@ ncr53c8xx_init(const device_t *info)
 	dev->nvr_path = L"ncr53c810.nvr";
     }
 
-#ifdef USE_NVRAM
+    dev->i2c = i2c_gpio_init("nvr_ncr53c8xx");
+    dev->eeprom = i2c_eeprom_init(i2c_gpio_get_bus(dev->i2c), 0x50, dev->nvram, sizeof(dev->nvram), 1);
+
     /* Load the serial EEPROM. */
     ncr53c8xx_eeprom(dev, 0);
-#endif
 
     ncr53c8xx_soft_reset(dev);
 
@@ -2714,6 +2585,15 @@ ncr53c8xx_close(void *priv)
     ncr53c8xx_t *dev = (ncr53c8xx_t *)priv;
 
     if (dev) {
+	if (dev->eeprom)
+		i2c_eeprom_close(dev->eeprom);
+
+	if (dev->i2c)
+		i2c_gpio_close(dev->i2c);
+
+	/* Save the serial EEPROM. */
+	ncr53c8xx_eeprom(dev, 1);
+
 	free(dev);
 	dev = NULL;
     }
@@ -2732,7 +2612,7 @@ static const device_config_t ncr53c8xx_pci_config[] = {
 
 const device_t ncr53c810_pci_device =
 {
-    "NCR 53c810",
+    "NCR 53C810",
     DEVICE_PCI,
     0x01,
     ncr53c8xx_init, ncr53c8xx_close, NULL,
@@ -2742,7 +2622,7 @@ const device_t ncr53c810_pci_device =
 
 const device_t ncr53c810_onboard_pci_device =
 {
-    "NCR 53c810 On-Board",
+    "NCR 53C810 On-Board",
     DEVICE_PCI,
     0x8001,
     ncr53c8xx_init, ncr53c8xx_close, NULL,
@@ -2752,7 +2632,7 @@ const device_t ncr53c810_onboard_pci_device =
 
 const device_t ncr53c825a_pci_device =
 {
-    "NCR 53c825A",
+    "NCR 53C825A",
     DEVICE_PCI,
     CHIP_825,
     ncr53c8xx_init, ncr53c8xx_close, NULL,
@@ -2762,7 +2642,7 @@ const device_t ncr53c825a_pci_device =
 
 const device_t ncr53c860_pci_device =
 {
-    "NCR 53c860",
+    "NCR 53C860",
     DEVICE_PCI,
     CHIP_860,
     ncr53c8xx_init, ncr53c8xx_close, NULL,
@@ -2772,7 +2652,7 @@ const device_t ncr53c860_pci_device =
 
 const device_t ncr53c875_pci_device =
 {
-    "NCR 53c875",
+    "NCR 53C875",
     DEVICE_PCI,
     CHIP_875,
     ncr53c8xx_init, ncr53c8xx_close, NULL,

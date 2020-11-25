@@ -423,7 +423,7 @@ pipc_read(int func, int addr, void *priv)
 			ret |= 0x10;
 	}
     }
-    else if ((func <= (pm_func + 2)) && !(dev->pci_isa_regs[0x85] & ((func == (pm_func + 1)) ? 0x04 : 0x08))) /* AC97 / MC97 */
+    else if ((func <= (pm_func + 2)) && !(dev->pci_isa_regs[0x85] & ((func == (pm_func + 1)) ? 0x04 : 0x08)) && 0) /* AC97 / MC97; temporarily disabled while unimplemented */
 	ret = dev->ac97_regs[func - pm_func - 1][addr];
 
     pipc_log("PIPC: read(%d, %02X) = %02X\n", func, addr, ret);
@@ -805,6 +805,9 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 	if ((func == (pm_func + 2)) && ((addr == 0x4a) || (addr == 0x4b) || (dev->pci_isa_regs[0x85] & 0x08)))
 		return;
 
+	if (1) /* temporarily disabled while unimplemented */
+		return;
+
 	switch (addr) {
 		default:
 			dev->ac97_regs[func - pm_func - 1][addr] = val;
@@ -868,7 +871,9 @@ pipc_init(const device_t *info)
 
     dev->nvr = device_add(&via_nvr_device);
 
-    if (dev->local >= VIA_PIPC_596A)
+    if (dev->local >= VIA_PIPC_686B)
+	dev->smbus = device_add(&via_smbus_device);
+    else if (dev->local >= VIA_PIPC_596A)
 	dev->smbus = device_add(&piix4_smbus_device);
 
     if (dev->local >= VIA_PIPC_596A)

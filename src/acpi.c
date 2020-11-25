@@ -36,6 +36,7 @@
 #include <86box/apm.h>
 #include <86box/acpi.h>
 #include <86box/machine.h>
+#include <86box/i2c.h>
 
 
 #ifdef ENABLE_ACPI_LOG
@@ -92,7 +93,7 @@ acpi_raise_smi(void *priv)
 		    if ((!dev->regs.smi_lock || !dev->regs.smi_active)) {
 			smi_line = 1;
 			dev->regs.smi_active = 1;
-	    	}
+		}
 	} else if (dev->vendor == VEN_INTEL) {
 		smi_line = 1;
 		/* Clear bit 16 of GLBCTL. */
@@ -311,9 +312,18 @@ acpi_reg_read_via(int size, uint16_t addr, void *p)
 			ret = dev->regs.gpio_val & 0xff;
 		break;
 	case 0x44:
-		/* GPIO port Output Value */
-		if (size == 1)
+		/* GPIO port Input Value */
+		if (size == 1) {
 			ret = dev->regs.extsmi_val & 0xff;
+
+			if (dev->i2c) {
+				ret &= 0xf9;
+				if (!(dev->regs.gpio_dir & 0x02) && i2c_gpio_get_scl(dev->i2c))
+					ret |= 0x02;
+				if (!(dev->regs.gpio_dir & 0x04) && i2c_gpio_get_sda(dev->i2c))
+					ret |= 0x04;
+			}
+		}
 		break;
 	case 0x46: case 0x47:
 		/* GPO Port Output Value */
@@ -640,6 +650,14 @@ acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *p)
 
 
 static void
+acpi_i2c_set(acpi_t *dev)
+{
+    if (dev->i2c)
+	i2c_gpio_set(dev->i2c, !(dev->regs.gpio_dir & 0x02) || (dev->regs.gpio_val & 0x02), !(dev->regs.gpio_dir & 0x04) || (dev->regs.gpio_val & 0x04));
+}
+
+
+static void
 acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
@@ -652,13 +670,17 @@ acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *p)
     switch (addr) {
 	case 0x40:
 		/* GPIO Direction Control */
-		if (size == 1)
-			dev->regs.gpio_dir = val & 0xff;
+		if (size == 1) {
+			dev->regs.gpio_dir = val & 0x7f;
+			acpi_i2c_set(dev);
+		}
 		break;
 	case 0x42:
 		/* GPIO port Output Value */
-		if (size == 1)
-			dev->regs.gpio_val = val & 0xff;
+		if (size == 1) {
+			dev->regs.gpio_val = val & 0x1f;
+			acpi_i2c_set(dev);
+		}
 		break;
 	case 0x46: case 0x47:
 		/* GPO Port Output Value */
@@ -1184,6 +1206,12 @@ acpi_close(void *priv)
 {
     acpi_t *dev = (acpi_t *) priv;
 
+    if (dev->i2c) {
+	if (i2c_smbus == i2c_gpio_get_bus(dev->i2c))
+		i2c_smbus = NULL;
+	i2c_gpio_close(dev->i2c);
+    }
+
     timer_disable(&dev->timer);
 
     free(dev);
@@ -1206,6 +1234,9 @@ acpi_init(const device_t *info)
     if (dev->vendor == VEN_INTEL) {
 	dev->apm = device_add(&apm_pci_acpi_device);
 	io_sethandler(0x00b2, 0x0002, acpi_apm_in, NULL, NULL, acpi_apm_out, NULL, NULL, dev);
+    } else if (dev->vendor == VEN_VIA) {
+	dev->i2c = i2c_gpio_init("smbus_vt82c586b");
+	i2c_smbus = i2c_gpio_get_bus(dev->i2c);
     }
 
     timer_add(&dev->timer, acpi_timer_count, dev, 0);

@@ -25,11 +25,11 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include "cpu.h"
-#include <86box/smbus.h>
+#include <86box/i2c.h>
 #include <86box/hwm.h>
 
 
-#define LM78_SMBUS		0x010000
+#define LM78_I2C		0x010000
 #define LM78_W83781D		0x020000
 #define LM78_AS99127F_REV1	0x040000
 #define LM78_AS99127F_REV2	0x080000
@@ -56,19 +56,16 @@ typedef struct {
     uint8_t addr_register;
     uint8_t data_register;
 
-    uint8_t smbus_addr;
+    uint8_t i2c_addr, i2c_state;
 } lm78_t;
 
 
+static uint8_t	lm78_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv);
 static uint8_t	lm78_isa_read(uint16_t port, void *priv);
-static uint8_t	lm78_smbus_read_byte(uint8_t addr, void *priv);
-static uint8_t	lm78_smbus_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv);
-static uint16_t	lm78_smbus_read_word_cmd(uint8_t addr, uint8_t cmd, void *priv);
+static uint8_t	lm78_i2c_read(void *bus, uint8_t addr, void *priv);
 static uint8_t	lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank);
 static void	lm78_isa_write(uint16_t port, uint8_t val, void *priv);
-static void	lm78_smbus_write_byte(uint8_t addr, uint8_t val, void *priv);
-static void	lm78_smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val, void *priv);
-static void	lm78_smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, void *priv);
+static uint8_t	lm78_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv);
 static uint8_t	lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank);
 static void	lm78_reset(lm78_t *dev, uint8_t initialization);
 
@@ -98,31 +95,37 @@ lm78_remap(lm78_t *dev, uint8_t addr)
 {
     lm75_t *lm75;
 
-    if (!(dev->local & LM78_SMBUS)) return;
+    if (!(dev->local & LM78_I2C)) return;
 
     lm78_log("LM78: remapping to SMBus %02Xh\n", addr);
 
-    smbus_removehandler(dev->smbus_addr, 1,
-			lm78_smbus_read_byte, lm78_smbus_read_byte_cmd, lm78_smbus_read_word_cmd, NULL,
-			lm78_smbus_write_byte, lm78_smbus_write_byte_cmd, lm78_smbus_write_word_cmd, NULL,
-			dev);
+    i2c_removehandler(i2c_smbus, dev->i2c_addr, 1, lm78_i2c_start, lm78_i2c_read, lm78_i2c_write, NULL, dev);
 
-    if (addr < 0x80) smbus_sethandler(addr, 1,
-			lm78_smbus_read_byte, lm78_smbus_read_byte_cmd, lm78_smbus_read_word_cmd, NULL,
-			lm78_smbus_write_byte, lm78_smbus_write_byte_cmd, lm78_smbus_write_word_cmd, NULL,
-			dev);
+    if (addr < 0x80)
+	i2c_sethandler(i2c_smbus, addr, 1, lm78_i2c_start, lm78_i2c_read, lm78_i2c_write, NULL, dev);
 
-    dev->smbus_addr = addr;
+    dev->i2c_addr = addr;
 
     if (dev->local & LM78_AS99127F) {
-	/* Store the main SMBus address on the LM75 devices to ensure reads/writes
+	/* Store the main I2C address on the LM75 devices to ensure reads/writes
 	   to the AS99127F's proprietary registers are passed through to this side. */
 	for (uint8_t i = 0; i <= 1; i++) {
 		lm75 = device_get_priv(dev->lm75[i]);
 		if (lm75)
-			lm75->as99127f_smbus_addr = dev->smbus_addr;
+			lm75->as99127f_i2c_addr = dev->i2c_addr;
 	}
     }
+}
+
+
+static uint8_t
+lm78_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv)
+{
+    lm78_t *dev = (lm78_t *) priv;
+
+    dev->i2c_state = 0;
+
+    return 1;
 }
 
 
@@ -159,26 +162,11 @@ lm78_isa_read(uint16_t port, void *priv)
 
 
 static uint8_t
-lm78_smbus_read_byte(uint8_t addr, void *priv)
+lm78_i2c_read(void *bus, uint8_t addr, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
-    return lm78_read(dev, dev->addr_register, LM78_WINBOND_BANK);
-}
 
-
-static uint8_t
-lm78_smbus_read_byte_cmd(uint8_t addr, uint8_t cmd, void *priv)
-{
-    lm78_t *dev = (lm78_t *) priv;
-    return lm78_read(dev, cmd, LM78_WINBOND_BANK);
-}
-
-
-static uint16_t
-lm78_smbus_read_word_cmd(uint8_t addr, uint8_t cmd, void *priv)
-{
-    lm78_t *dev = (lm78_t *) priv;
-    return (lm78_read(dev, cmd, LM78_WINBOND_BANK) << 8) | lm78_read(dev, cmd, LM78_WINBOND_BANK);
+    return lm78_read(dev, dev->addr_register++, LM78_WINBOND_BANK);
 }
 
 
@@ -264,27 +252,18 @@ lm78_isa_write(uint16_t port, uint8_t val, void *priv)
 }
 
 
-static void
-lm78_smbus_write_byte(uint8_t addr, uint8_t val, void *priv)
+static uint8_t
+lm78_i2c_write(void *bus, uint8_t addr, uint8_t val, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
-    dev->addr_register = val;
-}
 
+    if (dev->i2c_state == 0) {
+	dev->i2c_state = 1;
+	dev->addr_register = val;
+    } else
+	lm78_write(dev, dev->addr_register++, val, LM78_WINBOND_BANK);
 
-static void
-lm78_smbus_write_byte_cmd(uint8_t addr, uint8_t cmd, uint8_t val, void *priv)
-{
-    lm78_t *dev = (lm78_t *) priv;
-    lm78_write(dev, cmd, val, LM78_WINBOND_BANK);
-}
-
-
-static void
-lm78_smbus_write_word_cmd(uint8_t addr, uint8_t cmd, uint16_t val, void *priv)
-{
-    lm78_t *dev = (lm78_t *) priv;
-    lm78_write(dev, cmd, val, LM78_WINBOND_BANK);
+    return 1;
 }
 
 
@@ -354,13 +333,13 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 
     switch (reg) {
 	case 0x40:
-		if (val & 0x80) /* INITIALIZATION bit resets all registers except main SMBus address */
+		if (val & 0x80) /* INITIALIZATION bit resets all registers except main I2C address */
 			lm78_reset(dev, 1);
 		break;
 
 	case 0x48:
-		/* set main SMBus address */
-		if (dev->local & LM78_SMBUS)
+		/* set main I2C address */
+		if (dev->local & LM78_I2C)
 			lm78_remap(dev, dev->regs[0x48] & 0x7f);
 		break;
 
@@ -376,8 +355,8 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 		break;
 
 	case 0x4a:
-		/* set LM75 SMBus addresses (Winbond only) */
-		if (dev->local & LM78_SMBUS) {
+		/* set LM75 I2C addresses (Winbond only) */
+		if (dev->local & LM78_I2C) {
 			for (uint8_t i = 0; i <= 1; i++) {
 				lm75 = device_get_priv(dev->lm75[i]);
 				if (!lm75)
@@ -412,10 +391,10 @@ lm78_reset(lm78_t *dev, uint8_t initialization)
     dev->regs[0x40] = 0x08;
     dev->regs[0x46] = 0x40;
     dev->regs[0x47] = 0x50;
-    if (dev->local & LM78_SMBUS) {
-	if (!initialization) /* don't reset main SMBus address if the reset was triggered by the INITIALIZATION bit */
-		dev->smbus_addr = 0x2d;
-	dev->regs[0x48] = dev->smbus_addr;
+    if (dev->local & LM78_I2C) {
+	if (!initialization) /* don't reset main I2C address if the reset was triggered by the INITIALIZATION bit */
+		dev->i2c_addr = 0x2d;
+	dev->regs[0x48] = dev->i2c_addr;
 	if (dev->local & LM78_WINBOND)
 		dev->regs[0x4a] = 0x01;
     } else {
@@ -469,7 +448,7 @@ lm78_reset(lm78_t *dev, uint8_t initialization)
 	dev->regs[0x49] = 0x40;
     }
 
-    lm78_remap(dev, dev->smbus_addr);
+    lm78_remap(dev, dev->i2c_addr);
 }
 
 
@@ -519,7 +498,7 @@ lm78_init(const device_t *info)
 
     /* Set chip-specific default values. */
     if (dev->local & LM78_AS99127F) {
-    	/* AS99127: different -12V Rin value (bruteforced) */
+	/* AS99127: different -12V Rin value (bruteforced) */
 	defaults.voltages[5] = LM78_NEG_VOLTAGE(12000, 2400);
     } else if (dev->local & LM78_W83782D) {
 	/* W83782D: different negative voltage formula */
@@ -536,7 +515,7 @@ lm78_init(const device_t *info)
 		dev->lm75[i] = (device_t *) malloc(sizeof(device_t));
 		memcpy(dev->lm75[i], &lm75_w83781d_device, sizeof(device_t));
 		dev->lm75[i]->local = (i + 1) << 8;
-		if (dev->local & LM78_SMBUS)
+		if (dev->local & LM78_I2C)
 			dev->lm75[i]->local |= 0x48 + i;
 		device_add(dev->lm75[i]);
 	} else {
@@ -558,7 +537,7 @@ lm78_init(const device_t *info)
 const device_t lm78_device = {
     "National Semiconductor LM78 Hardware Monitor",
     DEVICE_ISA,
-    0x290 | LM78_SMBUS,
+    0x290 | LM78_I2C,
     lm78_init, lm78_close, NULL,
     { NULL }, NULL, NULL,
     NULL
@@ -569,19 +548,19 @@ const device_t lm78_device = {
 const device_t w83781d_device = {
     "Winbond W83781D Hardware Monitor",
     DEVICE_ISA,
-    0x290 | LM78_SMBUS | LM78_W83781D,
+    0x290 | LM78_I2C | LM78_W83781D,
     lm78_init, lm78_close, NULL,
     { NULL }, NULL, NULL,
     NULL
 };
 
 
-/* The ASUS AS99127F is a customized W83781D with no ISA interface (SMBus
+/* The ASUS AS99127F is a customized W83781D with no ISA interface (I2C
    only), added proprietary registers and different chip/vendor IDs. */
 const device_t as99127f_device = {
     "ASUS AS99127F Rev. 1 Hardware Monitor",
     DEVICE_ISA,
-    LM78_SMBUS | LM78_AS99127F_REV1,
+    LM78_I2C | LM78_AS99127F_REV1,
     lm78_init, lm78_close, NULL,
     { NULL }, NULL, NULL,
     NULL
@@ -592,7 +571,7 @@ const device_t as99127f_device = {
 const device_t as99127f_rev2_device = {
     "ASUS AS99127F Rev. 2 Hardware Monitor",
     DEVICE_ISA,
-    LM78_SMBUS | LM78_AS99127F_REV2,
+    LM78_I2C | LM78_AS99127F_REV2,
     lm78_init, lm78_close, NULL,
     { NULL }, NULL, NULL,
     NULL
@@ -603,7 +582,7 @@ const device_t as99127f_rev2_device = {
 const device_t w83782d_device = {
     "Winbond W83782D Hardware Monitor",
     DEVICE_ISA,
-    0x290 | LM78_SMBUS | LM78_W83782D,
+    0x290 | LM78_I2C | LM78_W83782D,
     lm78_init, lm78_close, NULL,
     { NULL }, NULL, NULL,
     NULL

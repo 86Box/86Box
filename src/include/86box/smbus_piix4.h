@@ -19,16 +19,22 @@
 
 
 #define SMBUS_PIIX4_BLOCK_DATA_SIZE	32
+#define SMBUS_PIIX4_BLOCK_DATA_MASK	(SMBUS_PIIX4_BLOCK_DATA_SIZE - 1)
 
 
-typedef struct
-{
+enum {
+    SMBUS_PIIX4 = 0,
+    SMBUS_VIA
+};
+
+typedef struct {
+    uint32_t	local;
     uint16_t	io_base;
     uint8_t	stat, next_stat, ctl, cmd, addr,
 		data0, data1,
-		index,
-		data[SMBUS_PIIX4_BLOCK_DATA_SIZE];
+		index, data[SMBUS_PIIX4_BLOCK_DATA_SIZE];
     pc_timer_t	response_timer;
+    void	*i2c;
 } smbus_piix4_t;
 
 
@@ -37,6 +43,7 @@ extern void	smbus_piix4_remap(smbus_piix4_t *dev, uint16_t new_io_base, uint8_t 
 
 #ifdef EMU_DEVICE_H
 extern const device_t piix4_smbus_device;
+extern const device_t via_smbus_device;
 #endif
 
 

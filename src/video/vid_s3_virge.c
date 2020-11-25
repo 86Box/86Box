@@ -32,6 +32,7 @@
 #include <86box/device.h>
 #include <86box/plat.h>
 #include <86box/video.h>
+#include <86box/i2c.h>
 #include <86box/vid_ddc.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
@@ -284,8 +285,10 @@ typedef struct virge_t
         int virge_busy;
 
 	uint8_t subsys_stat, subsys_cntl, advfunc_cntl;
-	
+
 	uint8_t serialport;
+
+	void *i2c, *ddc;
 } virge_t;
 
 static video_timings_t timing_diamond_stealth3d_2000_vlb	= {VIDEO_BUS, 2,  2,  3,  28, 28, 45};
@@ -444,7 +447,11 @@ static void s3_virge_out(uint16_t addr, uint8_t val, void *p)
 			return;
 		if ((svga->crtcreg == 0x36) && (svga->crtc[0x39] != 0xa5))
 			return;
-                if (svga->crtcreg >= 0x80)
+                if ((svga->crtcreg >= 0x80)
+#if defined(DEV_BRANCH) && defined(USE_S3TRIO3D2X)
+                    && !((virge->chip == S3_TRIO3D2X) && (svga->crtcreg == 0xaa))
+#endif
+                   )
                         return;
                 old = svga->crtc[svga->crtcreg];
                 svga->crtc[svga->crtcreg] = val;
@@ -547,6 +554,12 @@ static void s3_virge_out(uint16_t addr, uint8_t val, void *p)
                                 default: svga->bpp = 8;  break;
                         }
                         break;
+
+#if defined(DEV_BRANCH) && defined(USE_S3TRIO3D2X)
+                        case 0xaa:
+                        i2c_gpio_set(virge->i2c, !!(val & SERIAL_PORT_SCW), !!(val & SERIAL_PORT_SDW));
+                        break;
+#endif
                 }
                 if (old != val)
                 {
@@ -604,6 +617,18 @@ static uint8_t s3_virge_in(uint16_t addr, void *p)
                         case 0x51: ret = (svga->crtc[0x51] & 0xf0) | ((virge->bank >> 2) & 0xc) | ((virge->ma_ext >> 2) & 3); break;
                         case 0x69: ret = virge->ma_ext; break;
                         case 0x6a: ret = virge->bank; break;
+#if defined(DEV_BRANCH) && defined(USE_S3TRIO3D2X)
+                        case 0xaa: /* Trio3D DDC */
+                        if (virge->chip == S3_TRIO3D2X) {
+                                ret = svga->crtc[0xaa] & ~(SERIAL_PORT_SCR | SERIAL_PORT_SDR);
+                                if ((svga->crtc[0xaa] & SERIAL_PORT_SCW) && i2c_gpio_get_scl(virge->i2c))
+                                        ret |= SERIAL_PORT_SCR;
+                                if ((svga->crtc[0xaa] & SERIAL_PORT_SDW) && i2c_gpio_get_sda(virge->i2c))
+                                        ret |= SERIAL_PORT_SDR;
+                                break;
+                        }
+                        /* fall-through */
+#endif
                         default:   ret = svga->crtc[svga->crtcreg]; break;
                 }
                 break;
@@ -894,11 +919,11 @@ s3_virge_mmio_read(uint32_t addr, void *p)
 		
                 case 0xff20: case 0xff21:
                 ret = virge->serialport & ~(SERIAL_PORT_SCR | SERIAL_PORT_SDR);
-                if ((virge->serialport & SERIAL_PORT_SCW) && ddc_read_clock())
+                if ((virge->serialport & SERIAL_PORT_SCW) && i2c_gpio_get_scl(virge->i2c))
                         ret |= SERIAL_PORT_SCR;
-                if ((virge->serialport & SERIAL_PORT_SDW) && ddc_read_data())
+                if ((virge->serialport & SERIAL_PORT_SDW) && i2c_gpio_get_sda(virge->i2c))
                         ret |= SERIAL_PORT_SDR;
-                return ret;		
+                return ret;
         }
         return 0xff;
 }
@@ -1180,7 +1205,7 @@ static void s3_virge_mmio_write(uint32_t addr, uint8_t val, void *p)
 				
 			case 0xff20:
 			virge->serialport = val;
-			ddc_i2c_change((val & SERIAL_PORT_SCW) ? 1 : 0, (val & SERIAL_PORT_SDW) ? 1 : 0);
+			i2c_gpio_set(virge->i2c, !!(val & SERIAL_PORT_SCW), !!(val & SERIAL_PORT_SDW));
 			break;
 		}	
 	}
@@ -3845,7 +3870,8 @@ static void *s3_virge_init(const device_t *info)
         virge->fifo_not_full_event = thread_create_event();
         virge->fifo_thread = thread_create(fifo_thread, virge);
  
-	ddc_init();
+        virge->i2c = i2c_gpio_init("ddc_s3_virge");
+        virge->ddc = ddc_init(i2c_gpio_get_bus(virge->i2c));
  
         return virge;
 }
@@ -3864,6 +3890,9 @@ static void s3_virge_close(void *p)
         thread_destroy_event(virge->fifo_not_full_event);
 
         svga_close(&virge->svga);
+
+        ddc_close(virge->ddc);
+        i2c_gpio_close(virge->i2c);
         
         free(virge);
 }

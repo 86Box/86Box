@@ -976,9 +976,9 @@ static const cpu_legacy_table_t cpus_pcjr[] = {
 };
 
 static const cpu_legacy_table_t cpus_europc[] = {
-    {"8088", 4772728, 1},
-    {"8088", 7159092, 1},
-    {"8088", 9545456, 1},
+    {"8088_europc", 4772728, 1},
+    {"8088_europc", 7159092, 1},
+    {"8088_europc", 9545456, 1},
     {NULL, 0, 0}
 };
 

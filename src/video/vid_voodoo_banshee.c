@@ -33,6 +33,7 @@
 #include <86box/device.h>
 #include <86box/plat.h>
 #include <86box/video.h>
+#include <86box/i2c.h>
 #include <86box/vid_ddc.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
@@ -116,6 +117,8 @@ typedef struct banshee_t
         uint32_t desktop_stride_tiled;
 
         int type;
+
+        void *i2c, *i2c_ddc, *ddc;
 } banshee_t;
 
 enum
@@ -684,7 +687,8 @@ static void banshee_ext_outl(uint16_t addr, uint32_t val, void *p)
                 case Video_vidSerialParallelPort:
                 banshee->vidSerialParallelPort = val;
 //                banshee_log("vidSerialParallelPort: write %08x %08x %04x(%08x):%08x\n", val, val & (VIDSERIAL_DDC_DCK_W | VIDSERIAL_DDC_DDA_W), CS,cs,cpu_state.pc);
-                ddc_i2c_change((val & VIDSERIAL_DDC_DCK_W) ? 1 : 0, (val & VIDSERIAL_DDC_DDA_W) ? 1 : 0);
+                i2c_gpio_set(banshee->i2c_ddc, !!(val & VIDSERIAL_DDC_DCK_W), !!(val & VIDSERIAL_DDC_DDA_W));
+                i2c_gpio_set(banshee->i2c, !!(val & VIDSERIAL_I2C_SCK_W), !!(val & VIDSERIAL_I2C_SDA_W));
                 break;
 
                 case Video_vidScreenSize:
@@ -917,14 +921,14 @@ static uint32_t banshee_ext_inl(uint16_t addr, void *p)
 
                 case Video_vidSerialParallelPort:
                 ret = banshee->vidSerialParallelPort & ~(VIDSERIAL_DDC_DCK_R | VIDSERIAL_DDC_DDA_R);
-                if ((banshee->vidSerialParallelPort & VIDSERIAL_DDC_DCK_W) && ddc_read_clock())
+                if (!(banshee->vidSerialParallelPort & VIDSERIAL_DDC_DCK_W) || i2c_gpio_get_scl(banshee->i2c_ddc))
                         ret |= VIDSERIAL_DDC_DCK_R;
-                if ((banshee->vidSerialParallelPort & VIDSERIAL_DDC_DDA_W) && ddc_read_data())
+                if (!(banshee->vidSerialParallelPort & VIDSERIAL_DDC_DDA_W) || i2c_gpio_get_sda(banshee->i2c_ddc))
                         ret |= VIDSERIAL_DDC_DDA_R;
                 ret = ret & ~(VIDSERIAL_I2C_SCK_R | VIDSERIAL_I2C_SDA_R);
-                if (banshee->vidSerialParallelPort & VIDSERIAL_I2C_SCK_W)
+                if (!(banshee->vidSerialParallelPort & VIDSERIAL_I2C_SCK_W) || i2c_gpio_get_scl(banshee->i2c))
                         ret |= VIDSERIAL_I2C_SCK_R;
-                if (banshee->vidSerialParallelPort & VIDSERIAL_I2C_SDA_W)
+                if (!(banshee->vidSerialParallelPort & VIDSERIAL_I2C_SDA_W) || i2c_gpio_get_sda(banshee->i2c))
                         ret |= VIDSERIAL_I2C_SDA_R;
 //                banshee_log("vidSerialParallelPort: read %08x %08x  %04x(%08x):%08x\n", ret, ret & (VIDSERIAL_DDC_DCK_R | VIDSERIAL_DDC_DDA_R), CS,cs,cpu_state.pc);
                 break;
@@ -2640,7 +2644,9 @@ static void *banshee_init_common(const device_t *info, wchar_t *fn, int has_sgra
 
         banshee->vidSerialParallelPort = VIDSERIAL_DDC_DCK_W | VIDSERIAL_DDC_DDA_W;
 
-        ddc_init();
+        banshee->i2c = i2c_gpio_init("i2c_voodoo_banshee");
+        banshee->i2c_ddc = i2c_gpio_init("ddc_voodoo_banshee");
+        banshee->ddc = ddc_init(i2c_gpio_get_bus(banshee->i2c_ddc));
 
 	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_banshee);
 
@@ -2687,6 +2693,9 @@ static void banshee_close(void *p)
 
         voodoo_card_close(banshee->voodoo);
         svga_close(&banshee->svga);
+        ddc_close(banshee->ddc);
+        i2c_gpio_close(banshee->i2c_ddc);
+        i2c_gpio_close(banshee->i2c);
         
         free(banshee);
 }
@@ -2708,7 +2717,7 @@ static void banshee_force_redraw(void *p)
 
 const device_t voodoo_banshee_device =
 {
-        "Voodoo Banshee PCI (reference)",
+        "3dfx Voodoo Banshee",
         DEVICE_PCI,
 	0,
         banshee_init,
@@ -2722,7 +2731,7 @@ const device_t voodoo_banshee_device =
 
 const device_t creative_voodoo_banshee_device =
 {
-        "Creative Labs 3D Blaster Banshee PCI",
+        "Creative 3D Blaster Banshee",
         DEVICE_PCI,
 	0,
         creative_banshee_init,
@@ -2736,7 +2745,7 @@ const device_t creative_voodoo_banshee_device =
 
 const device_t voodoo_3_2000_device =
 {
-        "Voodoo 3 2000 PCI",
+        "3dfx Voodoo3 2000",
         DEVICE_PCI,
         0,
 	v3_2000_init,
@@ -2750,7 +2759,7 @@ const device_t voodoo_3_2000_device =
 
 const device_t voodoo_3_3000_device =
 {
-        "Voodoo 3 3000 PCI",
+        "3dfx Voodoo3 3000",
         DEVICE_PCI,
 	0,
         v3_3000_init,
