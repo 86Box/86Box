@@ -42,10 +42,10 @@
 												edid->slot.h_front_porch_lsb = (hfp) & 0xff; \
 												edid->slot.h_sync_pulse_lsb = (hsp) & 0xff; \
 												edid->slot.v_front_porch_sync_pulse_lsb = (((vfp) & 0x0f) << 4) | ((vsp) & 0x0f); \
-												edid->slot.hv_front_porch_sync_pulse_msb = (((hfp) >> 2) & 0x03) | (((hsp) >> 4) & 0x03) | (((vfp) >> 6) & 0x03) | (((vsp) >> 8) & 0x03); \
-												edid->slot.h_size_lsb = PIXEL_MM(width) & 0xff; \
-												edid->slot.v_size_lsb = PIXEL_MM(height) & 0xff; \
-												edid->slot.hv_size_msb = ((PIXEL_MM(width) >> 4) & 0xf0) | ((PIXEL_MM(height) >> 8) & 0x0f); \
+												edid->slot.hv_front_porch_sync_pulse_msb = (((hfp) >> 2) & 0xc0) | (((hsp) >> 4) & 0x30) | (((vfp) >> 2) & 0x0c) | (((vsp) >> 4) & 0x03); \
+												edid->slot.h_size_lsb = horiz_mm & 0xff; \
+												edid->slot.v_size_lsb = vert_mm & 0xff; \
+												edid->slot.hv_size_msb = ((horiz_mm >> 4) & 0xf0) | ((vert_mm >> 8) & 0x0f); \
 											} while (0)
 
 
@@ -131,8 +131,10 @@ void *
 ddc_init(void *i2c)
 {
     edid_t *edid = malloc(sizeof(edid_t));
-    uint8_t *edid_bytes = (uint8_t *) edid;
     memset(edid, 0, sizeof(edid_t));
+
+    uint8_t *edid_bytes = (uint8_t *) edid;
+    uint16_t horiz_mm = PIXEL_MM(1366), vert_mm = PIXEL_MM(768);
 
     memset(&edid->magic[1], 0xff, sizeof(edid->magic) - 2);
 
@@ -141,11 +143,12 @@ ddc_init(void *i2c)
     edid->mfg_week = 48;
     edid->mfg_year = 2020 - 1990;
     edid->edid_version = 0x01;
-    edid->edid_rev = 0x04; /* EDID 1.4 */
+    edid->edid_rev = 0x03; /* EDID 1.3 */
 
     edid->input_params = 0x0e; /* analog input; separate sync; composite sync; sync on green */
-    edid->horiz_size = ((4.0 / 3.0) * 100) - 99; /* landscape 4:3 */
-    edid->features = 0x09; /* RGB color; GTF/CVT */
+    edid->horiz_size = horiz_mm / 10;
+    edid->vert_size = vert_mm / 10;
+    edid->features = 0x0b; /* RGB color; first timing is preferred; GTF/CVT */
 
     edid->red_green_lsb = 0x81;
     edid->blue_white_lsb = 0xf1;
@@ -198,6 +201,7 @@ ddc_init(void *i2c)
 
     edid->ext_tag = 0x02;
     edid->ext_rev = 0x03;
+    edid->ext_native_dtds = 0x80; /* underscans IT; no native extended modes */
     edid->ext_dtd_offset = 0x04;
 
     /* Detailed timing for 1366x768 */
