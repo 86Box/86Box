@@ -1102,8 +1102,13 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
 
 		if (!(svga->gdcreg[3] & 0x18) && (!svga->gdcreg[1] || svga->set_reset_disabled)) {
 			for (i = 0; i < count; i++) {
-				if (writemask2 & (1 << i))
-					svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | (svga->latch.b[i] & ~svga->gdcreg[8]);
+				if ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) {
+					if (writemask2 & (0x80 >> i))
+						svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | (svga->latch.b[i] & ~svga->gdcreg[8]);
+				} else {
+					if (writemask2 & (1 << i))
+						svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | (svga->latch.b[i] & ~svga->gdcreg[8]);
+				}
 			}
 			return;
 		}
