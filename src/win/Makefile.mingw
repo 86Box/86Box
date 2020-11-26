@@ -69,8 +69,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef PS2M70T4
   PS2M70T4	:= y
  endif
-<<<<<<< HEAD
-=======
  ifndef RIVA128
   RIVA128	:= y
  endif
@@ -80,7 +78,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef VECTRA54
   VECTRA54	:= y
  endif
->>>>>>> c3fb7ddc (Experimental implementation of the RIVA 128)
  ifndef S3TRIO3D2X
   S3TRIO3D2X	:= y
  endif
@@ -157,8 +154,6 @@ else
  ifndef PS2M70T4
   PS2M70T4	:= n
  endif
-<<<<<<< HEAD
-=======
  ifndef RIVA128
   RIVA128	:= n
  endif
@@ -168,7 +163,6 @@ else
  ifndef VECTRA54
   VECTRA54	:= n
  endif
->>>>>>> c3fb7ddc (Experimental implementation of the RIVA 128)
  ifndef S3TRIO3D2X
   S3TRIO3D2X	:= n
  endif
