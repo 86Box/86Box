@@ -65,7 +65,7 @@
 /* Combined flags. */
 #define MACHINE_VIDEO_FIXED	0x00003000	/* sys has fixed int video */
 /* Feature flags for internal storage controllers. */
-#define MACHINE_HDC		0x0FFC0000	/* sys has int HDC */
+#define MACHINE_HDC		0x07FC0000	/* sys has int HDC */
 #define MACHINE_MFM		0x00100000	/* sys has int MFM/RLL */
 #define MACHINE_XTA		0x00200000	/* sys has int XTA */
 #define MACHINE_ESDI		0x00400000	/* sys has int ESDI */

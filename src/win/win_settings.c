@@ -1523,6 +1523,12 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		c = d = 0;
 		settings_reset_content(hdlg, IDC_COMBO_HDC);
 		while (1) {
+			/* Skip "internal" if machine doesn't have it. */
+			if ((c == 1) && !(machines[temp_machine].flags & MACHINE_HDC)) {
+				c++;
+				continue;
+			}
+
 			generate_device_name(hdc_get_device(c), hdc_get_internal_name(c), 1);
 
 			if (!device_name[0])
