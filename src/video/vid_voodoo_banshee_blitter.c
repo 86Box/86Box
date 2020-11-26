@@ -948,7 +948,6 @@ static void banshee_do_line(voodoo_t *voodoo)
                         {
                                 error += dx;
                                 y += y_inc;
-                                pat_y += y_inc;
                         }
                         x += x_inc;
                         step_line(voodoo);
@@ -970,7 +969,6 @@ static void banshee_do_line(voodoo_t *voodoo)
                         {
                                 error += dy;
                                 x += x_inc;
-                                pat_x += x_inc;
                         }
                         y += y_inc;
                         step_line(voodoo);
