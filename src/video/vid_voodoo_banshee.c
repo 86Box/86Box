@@ -1157,7 +1157,7 @@ static uint32_t banshee_reg_readl(uint32_t addr, void *p)
                         break;
 
                         default:
-                        fatal("banshee_reg_readl: 3D addr=%08x\n", addr);
+                        banshee_log("banshee_reg_readl: 3D addr=%08x\n", addr);
                         break;
                 }
                 break;
