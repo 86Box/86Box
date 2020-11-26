@@ -100,7 +100,7 @@ void colorplus_write(uint32_t addr, uint8_t val, void *p)
 				colorplus->cga.charbuffer[offset | 1] = colorplus->cga.vram[addr & 0x7fff];
         }
         egawrites++;
-        sub_cycles(4);
+        cycles -= 4;
 }
 
 uint8_t colorplus_read(uint32_t addr, void *p)
@@ -117,7 +117,7 @@ uint8_t colorplus_read(uint32_t addr, void *p)
 	{
 		addr &= 0x3FFF;
 	}
-        sub_cycles(4);        
+        cycles -= 4;        
         if (colorplus->cga.snow_enabled)
         {
 				int offset = ((timer_get_remaining_u64(&colorplus->cga.timer) / CGACONST) * 2) & 0xfc;

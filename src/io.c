@@ -307,7 +307,7 @@ inb(uint16_t port)
 	amstrad_latch = AMSTRAD_SW9;
 
     if (!found)
-	sub_cycles(io_delay);
+	cycles -= io_delay;
 
     io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
@@ -334,7 +334,7 @@ outb(uint16_t port, uint8_t val)
     }
 	
     if (!found) {
-	sub_cycles(io_delay);
+	cycles -= io_delay;
 #ifdef USE_DYNAREC
 	if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
 		update_tsc();
@@ -392,7 +392,7 @@ inw(uint16_t port)
 	amstrad_latch = AMSTRAD_SW9;
 
     if (!found)
-	sub_cycles(io_delay);
+	cycles -= io_delay;
 
     io_log("[%04X:%08X] (%i, %i, %04i) in w(%04X) = %04X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
@@ -433,7 +433,7 @@ outw(uint16_t port, uint16_t val)
     }
 
     if (!found) {
-	sub_cycles(io_delay);
+	cycles -= io_delay;
 #ifdef USE_DYNAREC
 	if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
 		update_tsc();
@@ -510,7 +510,7 @@ inl(uint16_t port)
 	amstrad_latch = AMSTRAD_SW9;
 
     if (!found)
-	sub_cycles(io_delay);
+	cycles -= io_delay;
 
     io_log("[%04X:%08X] (%i, %i, %04i) in l(%04X) = %08X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
@@ -566,7 +566,7 @@ outl(uint16_t port, uint32_t val)
     }
 
     if (!found) {
-	sub_cycles(io_delay);
+	cycles -= io_delay;
 #ifdef USE_DYNAREC
 	if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
 		update_tsc();

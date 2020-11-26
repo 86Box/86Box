@@ -39,6 +39,9 @@
 #include <86box/i2c.h>
 
 
+int acpi_rtc_status = 0;
+
+
 #ifdef ENABLE_ACPI_LOG
 int acpi_do_log = ENABLE_ACPI_LOG;
 
@@ -119,6 +122,8 @@ acpi_reg_read_common_regs(int size, uint16_t addr, void *p)
 	case 0x00: case 0x01:
 		/* PMSTS - Power Management Status Register (IO) */
 		ret = (dev->regs.pmsts >> shift16) & 0xff;
+		if (addr == 0x01)
+			ret |= (acpi_rtc_status << 2);
 		break;
 	case 0x02: case 0x03:
 		/* PMEN - Power Management Resume Enable Register (IO) */
@@ -127,6 +132,8 @@ acpi_reg_read_common_regs(int size, uint16_t addr, void *p)
 	case 0x04: case 0x05:
 		/* PMCNTRL - Power Management Control Register (IO) */
 		ret = (dev->regs.pmcntrl >> shift16) & 0xff;
+		if (addr == 0x05)
+			ret = (ret & 0xdf) | 0x02;	/* Bit 5 is write-only. */
 		break;
 	case 0x08: case 0x09: case 0x0a: case 0x0b:
 		/* PMTMR - Power Management Timer Register (IO) */
@@ -138,7 +145,10 @@ acpi_reg_read_common_regs(int size, uint16_t addr, void *p)
 		break;
     }
 
-    acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
+#ifdef ENABLE_ACPI_LOG
+    if (size != 1)
+	acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
+#endif
     return ret;
 }
 
@@ -211,7 +221,10 @@ acpi_reg_read_intel(int size, uint16_t addr, void *p)
 		break;
     }
 
-    acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
+#ifdef ENABLE_ACPI_LOG
+    if (size != 1)
+		acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
+#endif
     return ret;
 }
 
@@ -285,7 +298,10 @@ acpi_reg_read_via_common(int size, uint16_t addr, void *p)
 		break;
     }
 
-    acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
+#ifdef ENABLE_ACPI_LOG
+    if (size != 1)
+	acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
+#endif
     return ret;
 }
 
@@ -338,7 +354,10 @@ acpi_reg_read_via(int size, uint16_t addr, void *p)
 		break;
     }
 
-    acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
+#ifdef ENABLE_ACPI_LOG
+    if (size != 1)
+	acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
+#endif
     return ret;
 }
 
@@ -372,7 +391,10 @@ acpi_reg_read_via_596b(int size, uint16_t addr, void *p)
 		break;
     }
 
-    acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
+#ifdef ENABLE_ACPI_LOG
+    if (size != 1)
+	acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
+#endif
     return ret;
 }
 
@@ -386,7 +408,10 @@ acpi_reg_read_smc(int size, uint16_t addr, void *p)
 
     ret = acpi_reg_read_common_regs(size, addr, p);
 
-    acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
+#ifdef ENABLE_ACPI_LOG
+    if (size != 1)
+	acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
+#endif
     return ret;
 }
 
@@ -436,13 +461,18 @@ acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
     int shift16, sus_typ;
 
     addr &= 0x3f;
-    acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
+#ifdef ENABLE_ACPI_LOG
+    if (size != 1)
+	acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
+#endif
     shift16 = (addr & 1) << 3;
 
     switch (addr) {
 	case 0x00: case 0x01:
 		/* PMSTS - Power Management Status Register (IO) */
 		dev->regs.pmsts &= ~((val << shift16) & 0x8d31);
+		if ((addr == 0x01) && (val & 0x04))
+			acpi_rtc_status = 0;
 		acpi_update_irq(dev);
 		break;
 	case 0x02: case 0x03:
@@ -452,8 +482,7 @@ acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
 		break;
 	case 0x04: case 0x05:
 		/* PMCNTRL - Power Management Control Register (IO) */
-		dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c07;
-		if (dev->regs.pmcntrl & 0x2000) {
+		if ((addr == 0x05) && (dev->regs.pmcntrl & 0x2000)) {
 			sus_typ = (dev->regs.pmcntrl >> 10) & 7;
 			switch (sus_typ) {
 				case 0:
@@ -479,8 +508,12 @@ acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
 
 					resetx86();
 					break;
+				default:
+					dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c07;
+					break;
 			}
-		}
+		} else
+			dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c07;
 		break;
     }
 }
@@ -493,7 +526,10 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *p)
     int shift16, shift32;
 
     addr &= 0x3f;
-    acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
+#ifdef ENABLE_ACPI_LOG
+    if (size != 1)
+	acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
+#endif
     shift16 = (addr & 1) << 3;
     shift32 = (addr & 3) << 3;
 
@@ -876,6 +912,8 @@ acpi_reg_read(uint16_t addr, void *p)
 
     ret = acpi_reg_read_common(1, addr, p);
 
+    acpi_log("ACPI: Read B %02X from %04X\n", ret, addr);
+
     return ret;
 }
 
@@ -924,6 +962,8 @@ acpi_aux_read_read(uint16_t addr, void *p)
 static void
 acpi_reg_writel(uint16_t addr, uint32_t val, void *p)
 {
+    acpi_log("ACPI: Write L %08X to %04X\n", val, addr);
+
     acpi_reg_write_common(4, addr, val & 0xff, p);
     acpi_reg_write_common(4, addr + 1, (val >> 8) & 0xff, p);
     acpi_reg_write_common(4, addr + 2, (val >> 16) & 0xff, p);
@@ -934,6 +974,8 @@ acpi_reg_writel(uint16_t addr, uint32_t val, void *p)
 static void
 acpi_reg_writew(uint16_t addr, uint16_t val, void *p)
 {
+    acpi_log("ACPI: Write W %04X to %04X\n", val, addr);
+
     acpi_reg_write_common(2, addr, val & 0xff, p);
     acpi_reg_write_common(2, addr + 1, (val >> 8) & 0xff, p);
 }
@@ -942,6 +984,8 @@ acpi_reg_writew(uint16_t addr, uint16_t val, void *p)
 static void
 acpi_reg_write(uint16_t addr, uint8_t val, void *p)
 {
+    acpi_log("ACPI: Write B %02X to %04X\n", val, addr);
+
     acpi_reg_write_common(1, addr, val, p);
 }
 
@@ -1188,6 +1232,8 @@ acpi_reset(void *priv)
 	   - Bit  1: 80-conductor cable on primary IDE channel (active low) */
 	dev->regs.gpi_val = !strcmp(machines[machine].internal_name, "wcf681") ? 0xffffffe3 : 0xffffffe5;
     }
+
+    acpi_rtc_status = 0;
 }
 
 

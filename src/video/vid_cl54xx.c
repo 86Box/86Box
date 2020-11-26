@@ -42,11 +42,7 @@
 #define BIOS_GD5402_PATH		L"roms/video/cirruslogic/avga2.rom"
 #define BIOS_GD5402_ONBOARD_PATH	L"roms/machines/cbm_sl386sx25/Commodore386SX-25_AVGA2.bin"
 #define BIOS_GD5420_PATH		L"roms/video/cirruslogic/5420.vbi"
-
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 #define BIOS_GD5422_PATH		L"roms/video/cirruslogic/cl5422.bin"
-#endif
-
 #define BIOS_GD5426_PATH		L"roms/video/cirruslogic/Diamond SpeedStar PRO VLB v3.04.bin"
 #define BIOS_GD5428_ISA_PATH		L"roms/video/cirruslogic/5428.bin"
 #define BIOS_GD5428_PATH		L"roms/video/cirruslogic/vlbusjapan.BIN"
@@ -535,6 +531,8 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 						svga->adv_flags = FLAG_EXTRA_BANKS;
 					if (svga->gdcreg[0xb] & 0x02)
 						svga->adv_flags |= FLAG_ADDR_BY8;
+					if (svga->gdcreg[0xb] & 0x04)
+						svga->adv_flags |= FLAG_EXT_WRITE;
 					if (svga->gdcreg[0xb] & 0x08)
 						svga->adv_flags |= FLAG_LATCH8;
 					gd54xx_recalc_banking(gd54xx);
@@ -1447,6 +1445,7 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
 	case 4:
 		if (svga->gdcreg[0xb] & 0x10) {
 			addr <<= 2;
+			addr &= svga->decode_mask;
 
 			for (i = 0; i < 8; i++) {
 				if (val & svga->seqregs[2] & (0x80 >> i)) {
@@ -1456,6 +1455,7 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
 			}
 		} else {
 			addr <<= 1;
+			addr &= svga->decode_mask;
 
 			for (i = 0; i < 8; i++) {
 				if (val & svga->seqregs[2] & (0x80 >> i))
@@ -1467,6 +1467,7 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
 	case 5:
 		if (svga->gdcreg[0xb] & 0x10) {
 			addr <<= 2;
+			addr &= svga->decode_mask;
 
 			for (i = 0; i < 8; i++) {
 				j = (0x80 >> i);
@@ -1479,6 +1480,7 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
 			}
 		} else {
 			addr <<= 1;
+			addr &= svga->decode_mask;
 
 			for (i = 0; i < 8; i++) {
 				j = (0x80 >> i);
@@ -1602,7 +1604,7 @@ gd54xx_readw_linear(uint32_t addr, void *p)
 		temp |= (svga_readb_linear(addr, svga) << 8);
 
 		if (svga->fast)
-		        sub_cycles(video_timing_read_w);
+		        cycles -= video_timing_read_w;
 
 		return temp;
 	case 3:
@@ -1653,7 +1655,7 @@ gd54xx_readl_linear(uint32_t addr, void *p)
 		temp |= (svga_readb_linear(addr + 2, svga) << 24);
 
 		if (svga->fast)
-		        sub_cycles(video_timing_read_l);
+		        cycles -= video_timing_read_l;
 
 		return temp;
 	case 2:
@@ -1663,7 +1665,7 @@ gd54xx_readl_linear(uint32_t addr, void *p)
 		temp |= (svga_readb_linear(addr, svga) << 24);
 
 		if (svga->fast)
-		        sub_cycles(video_timing_read_l);
+		        cycles -= video_timing_read_l;
 
 		return temp;
 	case 3:
@@ -1852,7 +1854,7 @@ gd54xx_writew_linear(uint32_t addr, uint16_t val, void *p)
 			svga_writeb_linear(addr, val >> 8, svga);
 
 			if (svga->fast)
-		        	sub_cycles(video_timing_write_w);
+				cycles -= video_timing_write_w;
 		case 3:
 			return;
 	}
@@ -3072,12 +3074,10 @@ static void
 		romfn = BIOS_GD5420_PATH;
 		break;
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 	case CIRRUS_ID_CLGD5422:
 	case CIRRUS_ID_CLGD5424:
 		romfn = BIOS_GD5422_PATH;
 		break;		
-#endif
 
 	case CIRRUS_ID_CLGD5426:
 		if (info->local & 0x200)
@@ -3295,13 +3295,11 @@ gd5420_available(void)
     return rom_present(BIOS_GD5420_PATH);
 }
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 static int
 gd5422_available(void)
 {
     return rom_present(BIOS_GD5422_PATH);
 }
-#endif
 
 static int
 gd5426_available(void)
@@ -3589,7 +3587,6 @@ const device_t gd5420_isa_device =
     gd5422_config,
 };
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 const device_t gd5422_isa_device = {
     "Cirrus Logic GD-5422",
     DEVICE_AT | DEVICE_ISA,
@@ -3613,7 +3610,6 @@ const device_t gd5424_vlb_device = {
     gd54xx_force_redraw,
     gd5422_config,
 };
-#endif
 
 const device_t gd5426_vlb_device =
 {

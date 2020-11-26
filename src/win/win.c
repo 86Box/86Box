@@ -89,14 +89,16 @@ static const struct {
 } vid_apis[2][RENDERERS_NUM] = {
   {
     {	"SDL_Software", 1, (int(*)(void*))sdl_inits, sdl_close, NULL, sdl_pause, sdl_enable		},
-    {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable		}
+    {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable		},
+    {	"SDL_OpenGL", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable		}
 #ifdef USE_VNC
     ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL					}
 #endif
   },
   {
     {	"SDL_Software", 1, (int(*)(void*))sdl_inits_fs, sdl_close, sdl_resize, sdl_pause, sdl_enable	},
-    {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith_fs, sdl_close, sdl_resize, sdl_pause, sdl_enable	}
+    {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith_fs, sdl_close, sdl_resize, sdl_pause, sdl_enable	},
+    {	"SDL_OpenGL", 1, (int(*)(void*))sdl_initho_fs, sdl_close, sdl_resize, sdl_pause, sdl_enable	}
 #ifdef USE_VNC
     ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL					}
 #endif
@@ -700,9 +702,12 @@ plat_vidapi_name(int api)
 		break;
 	case 1:
 		break;
+	case 2:
+		name = "sdl_opengl";
+		break;
 
 #ifdef USE_VNC
-	case 2:
+	case 3:
 		name = "vnc";
 		break;
 #endif
@@ -762,12 +767,21 @@ plat_vidsize(int x, int y)
 void
 plat_vidapi_enable(int enable)
 {
+    int i = 1;
+
     if (!vid_api_inited || !vid_apis[video_fullscreen][vid_api].enable) return;
 
     startblit();
     video_wait_for_blit();
-    vid_apis[video_fullscreen][vid_api].enable(enable);
+
+    vid_apis[video_fullscreen][vid_api].enable(enable & 1);
+
     endblit();
+
+    if (! i) return;
+
+   if (enable)
+	device_force_redraw();
 }
 
 int

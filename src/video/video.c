@@ -336,7 +336,7 @@ static png_infop	info_ptr;
 
 
 static void
-video_take_screenshot(const wchar_t *fn, int startx, int starty, int w, int h)
+video_take_screenshot(const wchar_t *fn, int startx, int starty, int y1, int y2, int w, int h)
 {
     int i, x, y;
     png_bytep *b_rgb = NULL;
@@ -382,7 +382,7 @@ video_take_screenshot(const wchar_t *fn, int startx, int starty, int w, int h)
     for (y = 0; y < h; ++y) {
 	b_rgb[y] = (png_byte *) malloc(png_get_rowbytes(png_ptr, info_ptr));
     	for (x = 0; x < w; ++x) {
-		temp = render_buffer->line[y + starty][x + startx];
+		temp = render_buffer->dat[(y * w) + x];
 
 		b_rgb[y][(x) * 3 + 0] = (temp >> 16) & 0xff;
 		b_rgb[y][(x) * 3 + 1] = (temp >> 8) & 0xff;
@@ -407,7 +407,7 @@ video_take_screenshot(const wchar_t *fn, int startx, int starty, int w, int h)
 
 
 static void
-video_screenshot(int x, int y, int w, int h)
+video_screenshot(int x, int y, int y1, int y2, int w, int h)
 {
     wchar_t path[1024], fn[128];
 
@@ -426,7 +426,7 @@ video_screenshot(int x, int y, int w, int h)
 
     video_log("taking screenshot to: %S\n", path);
 
-    video_take_screenshot((const wchar_t *) path, x, y, w, h);
+    video_take_screenshot((const wchar_t *) path, x, y, y1, y2, w, h);
     png_destroy_write_struct(&png_ptr, &info_ptr);
 }
 
@@ -449,20 +449,20 @@ video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
     int yy;
 
-    if ((w > 0) && (h > 0)) {
-	for (yy = 0; yy < h; yy++) {
+    if (y2 > 0) {
+	for (yy = y1; yy < y2; yy++) {
 		if (((y + yy) >= 0) && ((y + yy) < buffer32->h)) {
 			if (video_grayscale || invert_display)
-				video_transform_copy(&(render_buffer->line[y + yy][x]), &(buffer32->line[y + yy][x]), w);
+				video_transform_copy(&(render_buffer->dat)[yy * w], &(buffer32->line[y + yy][x]), w);
 			else
-				memcpy(&(render_buffer->line[y + yy][x]), &(buffer32->line[y + yy][x]), w << 2);
+				memcpy(&(render_buffer->dat)[yy * w], &(buffer32->line[y + yy][x]), w << 2);
 		}
 	}
     }
 
     if (screenshots) {
 	if (render_buffer != NULL)
-		video_screenshot(x, y, w, h);
+		video_screenshot(x, y, y1, y2, w, h);
 	screenshots--;
 	video_log("screenshot taken, %i left\n", screenshots);
     }

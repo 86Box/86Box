@@ -102,8 +102,10 @@ uhci_reg_writew(uint16_t addr, uint16_t val, void *p)
 
     switch (addr) {
 	case 0x00:
-		if ((regs[0x00] & 0x0001) && !(val & 0x0001))
-			regs[0x02] |= 0x20;
+		if ((val & 0x0001) && !(regs[0x00] & 0x0001))
+			regs[0x01] &= ~0x20;
+		else if (!(val & 0x0001))
+			regs[0x01] |= 0x20;
 		regs[0x00] = (val & 0x00ff);
 		break;
 	case 0x06:

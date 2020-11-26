@@ -729,7 +729,7 @@ ht216_write_common(ht216_t *ht216, uint32_t addr, uint8_t val)
     svga_t *svga = &ht216->svga;
     uint8_t bit_mask = 0, rop_select = 0;
 
-    sub_cycles(video_timing_write_b);
+    cycles -= video_timing_write_b;
 
     egawrites++;
 
@@ -911,7 +911,7 @@ ht216_read_common(ht216_t *ht216, uint32_t addr)
 
     addr &= 0xfffff;
 
-    sub_cycles(video_timing_read_b);
+    cycles -= video_timing_read_b;
 
     egareads++;
 

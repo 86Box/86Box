@@ -186,7 +186,7 @@ gameport_write(uint16_t addr, uint8_t val, void *priv)
 	
     p->joystick->write(p->joystick_dat);
 
-    sub_cycles(ISA_CYCLES(8));
+    cycles -= ISA_CYCLES(8);
 }
 
 
@@ -198,7 +198,7 @@ gameport_read(uint16_t addr, void *priv)
 
     ret = p->state | p->joystick->read(p->joystick_dat);
 
-    sub_cycles(ISA_CYCLES(8));
+    cycles -= ISA_CYCLES(8);
 
     return(ret);
 }

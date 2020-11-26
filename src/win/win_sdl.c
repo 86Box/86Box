@@ -75,6 +75,7 @@
 
 #define RENDERER_FULL_SCREEN	1
 #define RENDERER_HARDWARE	2
+#define RENDERER_OPENGL		4
 
 
 static SDL_Window	*sdl_win = NULL;
@@ -83,10 +84,53 @@ static SDL_Texture	*sdl_tex = NULL;
 static HWND		sdl_parent_hwnd = NULL;
 static HWND		sdl_hwnd = NULL;
 static int		sdl_w, sdl_h;
-static int		sdl_fs;
+static int		sdl_fs, sdl_flags = -1;
 static int		cur_w, cur_h;
+static int		cur_wx = 0, cur_wy = 0, cur_ww =0, cur_wh = 0;
 static volatile int	sdl_enabled = 0;
 static SDL_mutex*	sdl_mutex = NULL;
+
+
+typedef struct
+{
+    const void *magic;
+    Uint32 id;
+    char *title;
+    SDL_Surface *icon;
+    int x, y;
+    int w, h;
+    int min_w, min_h;
+    int max_w, max_h;
+    Uint32 flags;
+    Uint32 last_fullscreen_flags;
+
+    /* Stored position and size for windowed mode */
+    SDL_Rect windowed;
+
+    SDL_DisplayMode fullscreen_mode;
+
+    float brightness;
+    Uint16 *gamma;
+    Uint16 *saved_gamma;        /* (just offset into gamma) */
+
+    SDL_Surface *surface;
+    SDL_bool surface_valid;
+
+    SDL_bool is_hiding;
+    SDL_bool is_destroying;
+
+    void *shaper;
+
+    SDL_HitTest hit_test;
+    void *hit_test_data;
+
+    void *data;
+
+    void *driverdata;
+
+    SDL_Window *prev;
+    SDL_Window *next;
+} SDL_Window_Ex;
 
 
 #ifdef ENABLE_SDL_LOG
@@ -190,9 +234,7 @@ static void
 sdl_blit(int x, int y, int y1, int y2, int w, int h)
 {
     SDL_Rect r_src;
-    void *pixeldata;
-    int pitch;
-    int yy, ret;
+    int ret;
 
     if (!sdl_enabled) {
 	video_blit_complete();
@@ -211,21 +253,12 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
 
     SDL_LockMutex(sdl_mutex);
 
-    /*
-     * TODO:
-     * SDL_UpdateTexture() might be better here, as it is
-     * (reportedly) slightly faster.
-     */
-    SDL_LockTexture(sdl_tex, 0, &pixeldata, &pitch);
-
-    for (yy = y1; yy < y2; yy++) {
-       	if ((y + yy) >= 0 && (y + yy) < render_buffer->h)
-		memcpy((uint32_t *) &(((uint8_t *)pixeldata)[yy * pitch]), &(render_buffer->line[y + yy][x]), w * 4);
-    }
-
+    r_src.x = 0;
+    r_src.y = y1;
+    r_src.w = w;
+    r_src.h = y2 - y1;
+    SDL_UpdateTexture(sdl_tex, &r_src, &(render_buffer->dat)[y1 * w], w * 4);
     video_blit_complete();
-
-    SDL_UnlockTexture(sdl_tex);
 
     if (sdl_fs) {
 	sdl_log("sdl_blit(%i, %i, %i, %i, %i, %i) (%i, %i)\n", x, y, y1, y2, w, h, unscaled_size_x, efscrnsz_y);
@@ -233,6 +266,8 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
 		sdl_resize(w, h);
 	sdl_log("(%08X, %08X, %08X)\n", sdl_win, sdl_render, sdl_tex);
     }
+
+    SDL_RenderClear(sdl_render);
 
     r_src.x = 0;
     r_src.y = 0;
@@ -252,6 +287,8 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
 void
 sdl_close(void)
 {
+    SDL_LockMutex(sdl_mutex);
+
     /* Unregister our renderer! */
     video_setblit(NULL);
 
@@ -297,6 +334,8 @@ sdl_close(void)
 
     /* Quit. */
     SDL_Quit();
+
+    sdl_flags = -1;
 }
 
 
@@ -340,8 +379,12 @@ sdl_init_common(int flags)
 	return(0);
     }
 
-    if (flags & RENDERER_HARDWARE)
-	sdl_select_best_hw_driver();
+    if (flags & RENDERER_HARDWARE) {
+	if (flags & RENDERER_OPENGL)
+		SDL_SetHint(SDL_HINT_RENDER_DRIVER, "OpenGL");
+	else
+		sdl_select_best_hw_driver();
+    }
 
     if (flags & RENDERER_FULL_SCREEN) {
 	/* Get the size of the (current) desktop. */
@@ -461,6 +504,8 @@ sdl_init_common(int flags)
 
     sdl_mutex = SDL_CreateMutex();
 
+    sdl_flags = flags;
+
     return(1);
 }
 
@@ -480,6 +525,13 @@ sdl_inith(HWND h)
 
 
 int
+sdl_initho(HWND h)
+{
+    return sdl_init_common(RENDERER_HARDWARE | RENDERER_OPENGL);
+}
+
+
+int
 sdl_inits_fs(HWND h)
 {
     return sdl_init_common(RENDERER_FULL_SCREEN);
@@ -493,15 +545,30 @@ sdl_inith_fs(HWND h)
 }
 
 
+int
+sdl_initho_fs(HWND h)
+{
+    return sdl_init_common(RENDERER_FULL_SCREEN | RENDERER_HARDWARE | RENDERER_OPENGL);
+}
+
+
 void
 sdl_reinit_texture()
 {
-    if (sdl_render == NULL)
+    if ((sdl_render == NULL) || (sdl_flags == -1))
         return;
 
     SDL_DestroyTexture(sdl_tex);
+    SDL_DestroyRenderer(sdl_render);
+    if (sdl_flags & RENDERER_HARDWARE) {
+	sdl_render = SDL_CreateRenderer(sdl_win, -1, SDL_RENDERER_ACCELERATED);
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2");
+    } else
+	sdl_render = SDL_CreateRenderer(sdl_win, -1, SDL_RENDERER_SOFTWARE);
     sdl_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ARGB8888,
 				SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
+    SDL_SetWindowSize(sdl_win, cur_ww, cur_wh);
+    SDL_SetWindowPosition(sdl_win, cur_wx, cur_wy);
 }
 
 
@@ -520,6 +587,8 @@ sdl_resize(int x, int y)
     if ((x == cur_w) && (y == cur_h))
 	return;
 
+    SDL_LockMutex(sdl_mutex);
+
     ww = x;
     wh = y;
 
@@ -531,12 +600,26 @@ sdl_resize(int x, int y)
     cur_w = x;
     cur_h = y;
 
+    cur_wx = wx;
+    cur_wy = wy;
+    cur_ww = ww;
+    cur_wh = wh;
+
     sdl_reinit_texture();
+
+    SDL_UnlockMutex(sdl_mutex);
 }
 
 
 void
 sdl_enable(int enable)
 {
+    if (sdl_flags == -1)
+	return;
+
+    SDL_LockMutex(sdl_mutex);
     sdl_enabled = enable;
+    if (enable)
+	sdl_reinit_texture();
+    SDL_UnlockMutex(sdl_mutex);
 }

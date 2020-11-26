@@ -301,7 +301,7 @@ vid_write_1512(uint32_t addr, uint8_t val, void *priv)
     amsvid_t *vid = (amsvid_t *)priv;
 
     egawrites++;
-    sub_cycles(12);
+    cycles -= 12;
     addr &= 0x3fff;
 
     if ((vid->cgamode & 0x12) == 0x12) {
@@ -320,7 +320,7 @@ vid_read_1512(uint32_t addr, void *priv)
     amsvid_t *vid = (amsvid_t *)priv;
 
     egareads++;
-    sub_cycles(12);
+    cycles -= 12;
     addr &= 0x3fff;
 
     if ((vid->cgamode & 0x12) == 0x12)

@@ -216,6 +216,7 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_RESIZE, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_SW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_HW, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SDL_OPENGL, MF_UNCHECKED);
 #ifdef USE_VNC
     CheckMenuItem(menuMain, IDM_VID_VNC, MF_UNCHECKED);
 #endif
@@ -418,7 +419,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_ACTION_RESET_CAD:
-				pclog("-\n");
 				pc_send_cad();
 				break;
 
@@ -538,6 +538,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_VID_SDL_SW:
 			case IDM_VID_SDL_HW:
+			case IDM_VID_SDL_OPENGL:
 #ifdef USE_VNC
 			case IDM_VID_VNC:
 #endif
@@ -730,6 +731,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		temp_y = (lParam >> 16);
 
 		if ((temp_x <= 0) || (temp_y <= 0)) {
+			plat_vidapi_enable(0);
 			minimized = 1;
 			break;
 		} else if (minimized == 1) {
@@ -936,6 +938,14 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 #endif
 		break;
 
+	case WM_ACTIVATE:
+		if (wParam != WA_INACTIVE) {
+			video_force_resize_set(1);
+			plat_vidapi_enable(0);
+			plat_vidapi_enable(1);
+		}
+		break;
+
 	case WM_ENTERSIZEMOVE:
 		user_resize = 1;
 		break;
@@ -1071,18 +1081,18 @@ ui_init(int nCmdShow)
 
     ui_window_title(title);
 
-	/* Get the current DPI */
-	dpi = win_get_dpi(hwndMain);
+    /* Get the current DPI */
+    dpi = win_get_dpi(hwndMain);
 
-	/* Check if we have a padded window frame */
-	padded_frame = (GetSystemMetrics(SM_CXPADDEDBORDER) != 0);
+    /* Check if we have a padded window frame */
+    padded_frame = (GetSystemMetrics(SM_CXPADDEDBORDER) != 0);
 
     /* Create the status bar window. */
     StatusBarCreate(hwndMain, IDC_STATUS, hinstance);
 
-	/* Get the actual height of the status bar */
-	GetWindowRect(hwndSBAR, &sbar_rect);
-	sbar_height = sbar_rect.bottom - sbar_rect.top;
+    /* Get the actual height of the status bar */
+    GetWindowRect(hwndSBAR, &sbar_rect);
+    sbar_height = sbar_rect.bottom - sbar_rect.top;
 
     /* Set up main window for resizing if configured. */
     if (vid_resize)

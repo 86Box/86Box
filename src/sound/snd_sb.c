@@ -1207,7 +1207,7 @@ sb_pro_v1_opl_read(uint16_t port, void *priv)
 {
     sb_t *sb = (sb_t *)priv;
 
-    sub_cycles((int)(isa_timing * 8));
+    cycles -= ((int) (isa_timing * 8));
 
     (void)opl2_read(port, &sb->opl2);	// read, but ignore
     return(opl2_read(port, &sb->opl));

@@ -271,6 +271,19 @@ sub_cycles(int c)
 }
 
 
+void
+resub_cycles(int old_cycles)
+{
+    int cyc_diff = 0;
+
+    if (old_cycles > cycles) {
+	cyc_diff = old_cycles - cycles;
+	cycles = old_cycles;
+	resub_cycles(cyc_diff);
+    }
+}
+
+
 #undef readmemb
 #undef readmemw
 #undef readmeml
@@ -280,6 +293,8 @@ sub_cycles(int c)
 static void
 cpu_io(int bits, int out, uint16_t port)
 {
+    int old_cycles = cycles;
+
     if (out) {
 	wait(4, 1);
 	if (bits == 16) {
@@ -305,6 +320,8 @@ cpu_io(int bits, int out, uint16_t port)
 	} else
 		AL = inb(port);
     }
+
+    resub_cycles(old_cycles);
 }
 
 

@@ -105,7 +105,7 @@ sio_timer_read(uint16_t addr, void *priv)
     uint8_t ret = 0xff;
 
     if (!(addr & 0x0002)) {
-	sub_cycles((int)(PITCONST >> 32));
+	cycles -= ((int) (PITCONST >> 32));
 
 	sio_timer_latch = timer_get_remaining_us(&dev->timer);
 
@@ -126,7 +126,7 @@ sio_timer_readw(uint16_t addr, void *priv)
     uint16_t ret = 0xffff;
 
     if (!(addr & 0x0002)) {
-	sub_cycles((int)(PITCONST >> 32));
+	cycles -= ((int) (PITCONST >> 32));
 
 	ret = timer_get_remaining_us(&dev->timer);
     }

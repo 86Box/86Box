@@ -53,8 +53,10 @@
 extern void	sdl_close(void);
 extern int	sdl_inits(HWND h);
 extern int	sdl_inith(HWND h);
+extern int	sdl_initho(HWND h);
 extern int	sdl_inits_fs(HWND h);
 extern int	sdl_inith_fs(HWND h);
+extern int	sdl_initho_fs(HWND h);
 extern int	sdl_pause(void);
 extern void	sdl_resize(int x, int y);
 extern void	sdl_enable(int enable);

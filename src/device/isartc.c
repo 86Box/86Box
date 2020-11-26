@@ -388,7 +388,7 @@ mm67_read(uint16_t port, void *priv)
     uint8_t ret = 0xff;
 
     /* This chip is directly mapped on I/O. */
-    sub_cycles(ISA_CYCLES(4));
+    cycles -= ISA_CYCLES(4);
 
     switch(reg) {
 	case MM67_ISTAT:		/* IRQ status (RO) */
@@ -424,7 +424,7 @@ mm67_write(uint16_t port, uint8_t val, void *priv)
 #endif
 
     /* This chip is directly mapped on I/O. */
-    sub_cycles(ISA_CYCLES(4));
+    cycles -= ISA_CYCLES(4);
 
     switch(reg) {
 	case MM67_ISTAT:		/* intr status (RO) */

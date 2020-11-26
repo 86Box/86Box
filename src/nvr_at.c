@@ -638,7 +638,7 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
     local_t *local = (local_t *)nvr->data;
     uint8_t addr_id = (addr & 0x0e) >> 1;
 
-    sub_cycles(ISA_CYCLES(8));
+    cycles -= ISA_CYCLES(8);
 
     if (local->bank[addr_id] == 0xff)
 	return;
@@ -673,7 +673,7 @@ nvr_read(uint16_t addr, void *priv)
     uint8_t addr_id = (addr & 0x0e) >> 1;
     uint16_t i, checksum = 0x0000;
 
-    sub_cycles(ISA_CYCLES(8));
+    cycles -= ISA_CYCLES(8);
 
     if (/* (addr & 1) && */(local->bank[addr_id] == 0xff))
 	return 0xff;

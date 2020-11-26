@@ -552,7 +552,7 @@ fdd_hole(int drive)
 }
 
 
-uint64_t
+static __inline uint64_t
 fdd_byteperiod(int drive)
 {
     if (!fdd_get_turbo(drive) && drives[drive].byteperiod)

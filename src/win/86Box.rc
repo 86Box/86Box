@@ -66,7 +66,8 @@ BEGIN
         POPUP "Re&nderer"
         BEGIN
             MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
-            MENUITEM "&SDL (Hardware)",         IDM_VID_SDL_HW
+            MENUITEM "SDL (&Hardware)",         IDM_VID_SDL_HW
+            MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
 #ifdef USE_VNC
             MENUITEM "&VNC",                    IDM_VID_VNC
 #endif

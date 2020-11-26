@@ -2232,10 +2232,18 @@ win_settings_hard_disks_resize_columns(HWND hdlg)
 {
     /* Bus, File, Cylinders, Heads, Sectors, Size */
     int iCol, width[C_COLUMNS_HARD_DISKS] = {104, 177, 50, 26, 32, 50};
+    int total = 0;
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_HARD_DISKS);
+    RECT r;
 
-    for (iCol = 0; iCol < C_COLUMNS_HARD_DISKS; iCol++)
+    GetWindowRect(hwndList, &r);
+    for (iCol = 0; iCol < (C_COLUMNS_HARD_DISKS - 1); iCol++) {
+	width[iCol] = MulDiv(width[iCol], dpi, 96);
+	total += width[iCol];
 	ListView_SetColumnWidth(hwndList, iCol, MulDiv(width[iCol], dpi, 96));
+    }
+    width[C_COLUMNS_HARD_DISKS - 1] = (r.right - r.left) - 4 - total;
+    ListView_SetColumnWidth(hwndList, C_COLUMNS_HARD_DISKS - 1, width[C_COLUMNS_HARD_DISKS - 1]);
 }
 
 
@@ -3678,11 +3686,19 @@ win_settings_zip_drives_recalc_list(HWND hdlg)
 static void
 win_settings_floppy_drives_resize_columns(HWND hdlg)
 {
+    int iCol, width[3] = {292, 58, 89};
+    int total = 0;
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_FLOPPY_DRIVES);
+    RECT r;
 
-    ListView_SetColumnWidth(hwndList, 0, MulDiv(292, dpi, 96));
-    ListView_SetColumnWidth(hwndList, 1, MulDiv(58, dpi, 96));
-    ListView_SetColumnWidth(hwndList, 2, MulDiv(89, dpi, 96));
+    GetWindowRect(hwndList, &r);
+    for (iCol = 0; iCol < 2; iCol++) {
+	width[iCol] = MulDiv(width[iCol], dpi, 96);
+	total += width[iCol];
+	ListView_SetColumnWidth(hwndList, iCol, MulDiv(width[iCol], dpi, 96));
+    }
+    width[2] = (r.right - r.left) - 4 - total;
+    ListView_SetColumnWidth(hwndList, 2, width[2]);
 }
 
 
@@ -3729,10 +3745,15 @@ win_settings_floppy_drives_init_columns(HWND hdlg)
 static void
 win_settings_cdrom_drives_resize_columns(HWND hdlg)
 {
+    int width[2] = {292, 147};
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_CDROM_DRIVES);
+    RECT r;
 
-    ListView_SetColumnWidth(hwndList, 0, MulDiv(292, dpi, 96));
-    ListView_SetColumnWidth(hwndList, 1, MulDiv(147, dpi, 96));
+    GetWindowRect(hwndList, &r);
+    width[0] = MulDiv(width[0], dpi, 96);
+    ListView_SetColumnWidth(hwndList, 0, MulDiv(width[0], dpi, 96));
+    width[1] = (r.right - r.left) - 4 - width[0];
+    ListView_SetColumnWidth(hwndList, 1, width[1]);
 }
 
 
@@ -3770,10 +3791,15 @@ win_settings_cdrom_drives_init_columns(HWND hdlg)
 static void
 win_settings_mo_drives_resize_columns(HWND hdlg)
 {
+    int width[2] = {292, 147};
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_MO_DRIVES);
+    RECT r;
 
-    ListView_SetColumnWidth(hwndList, 0, MulDiv(292, dpi, 96));
-    ListView_SetColumnWidth(hwndList, 1, MulDiv(147, dpi, 96));
+    GetWindowRect(hwndList, &r);
+    width[0] = MulDiv(width[0], dpi, 96);
+    ListView_SetColumnWidth(hwndList, 0, MulDiv(width[0], dpi, 96));
+    width[1] = (r.right - r.left) - 4 - width[0];
+    ListView_SetColumnWidth(hwndList, 1, width[1]);
 }
 
 
@@ -3811,10 +3837,15 @@ win_settings_mo_drives_init_columns(HWND hdlg)
 static void
 win_settings_zip_drives_resize_columns(HWND hdlg)
 {
+    int width[2] = {292, 147};
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_ZIP_DRIVES);
+    RECT r;
 
-    ListView_SetColumnWidth(hwndList, 0, MulDiv(292, dpi, 96));
-    ListView_SetColumnWidth(hwndList, 1, MulDiv(147, dpi, 96));
+    GetWindowRect(hwndList, &r);
+    width[0] = MulDiv(width[0], dpi, 96);
+    ListView_SetColumnWidth(hwndList, 0, MulDiv(width[0], dpi, 96));
+    width[1] = (r.right - r.left) - 4 - width[0];
+    ListView_SetColumnWidth(hwndList, 1, width[1]);
 }
 
 
@@ -4981,6 +5012,17 @@ win_settings_confirm(HWND hdlg)
 }
 
 
+static void
+win_settings_categories_resize_columns(HWND hdlg)
+{
+    HWND hwndList = GetDlgItem(hdlg, IDC_SETTINGSCATLIST);
+    RECT r;
+
+    GetWindowRect(hwndList, &r);
+    ListView_SetColumnWidth(hwndList, 0, (r.right - r.left) + 1 - 5);
+}
+
+
 static BOOL
 win_settings_categories_init_columns(HWND hdlg)
 {
@@ -4999,17 +5041,8 @@ win_settings_categories_init_columns(HWND hdlg)
     if (ListView_InsertColumn(hwndList, iCol, &lvc) == -1)
 	return FALSE;
 
-    win_settings_hard_disks_resize_columns(hdlg);
+    win_settings_categories_resize_columns(hdlg);
     return TRUE;
-}
-
-
-static void
-win_settings_categories_resize_columns(HWND hdlg)
-{
-    HWND hwndList = GetDlgItem(hdlg, IDC_SETTINGSCATLIST);
-
-    ListView_SetColumnWidth(hwndList, 0, MulDiv(171, dpi, 96));
 }
 
 

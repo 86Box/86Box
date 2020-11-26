@@ -2132,7 +2132,7 @@ mystique_readb_linear(uint32_t addr, void *p)
 
         egareads++;
 
-        sub_cycles(video_timing_read_b);
+        cycles -= video_timing_read_b;
 
         addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
@@ -2149,7 +2149,7 @@ mystique_readw_linear(uint32_t addr, void *p)
 
         egareads += 2;
 
-        sub_cycles(video_timing_read_w);
+        cycles -= video_timing_read_w;
 
         addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
@@ -2166,7 +2166,7 @@ mystique_readl_linear(uint32_t addr, void *p)
 
         egareads += 4;
 
-        sub_cycles(video_timing_read_l);
+        cycles -= video_timing_read_l;
 
         addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
@@ -2183,7 +2183,7 @@ mystique_writeb_linear(uint32_t addr, uint8_t val, void *p)
 
         egawrites++;
 
-        sub_cycles(video_timing_write_b);
+        cycles -= video_timing_write_b;
 
         addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
@@ -2201,7 +2201,7 @@ mystique_writew_linear(uint32_t addr, uint16_t val, void *p)
 
         egawrites += 2;
 
-        sub_cycles(video_timing_write_w);
+        cycles -= video_timing_write_w;
 
         addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
@@ -2219,7 +2219,7 @@ mystique_writel_linear(uint32_t addr, uint32_t val, void *p)
 
         egawrites += 4;
 
-        sub_cycles(video_timing_write_l);
+        cycles -= video_timing_write_l;
 
         addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
