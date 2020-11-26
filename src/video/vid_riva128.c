@@ -33,6 +33,8 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/video.h>
+#include <86box/i2c.h>
+#include <86box/vid_ddc.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
@@ -66,11 +68,6 @@ typedef struct riva128_t
 	uint8_t		int_line;
 
 	int			card;
-
-	struct
-	{
-		int sda, scl;
-	} i2c;
 
 	struct
 	{
@@ -208,7 +205,11 @@ typedef struct riva128_t
 
 	double nvtime;
 	double mtime;
+
+	void *i2c, *ddc;
 } riva128_t;
+
+static video_timings_t timing_riva128		= {VIDEO_BUS, 2,  2,  1,  20, 20, 21};
 
 static uint8_t riva128_in(uint16_t addr, void *p);
 static void riva128_out(uint16_t addr, uint8_t val, void *p);
@@ -2055,8 +2056,7 @@ riva128_out(uint16_t addr, uint8_t val, void *p)
 					riva128->rma.rma_mode = val & 0xf;
 					break;
 				case 0x3f:
-					riva128->i2c.sda = (val >> 4) & 1;
-					riva128->i2c.scl = (val >> 5) & 1;
+					i2c_gpio_set(riva128->i2c, !!(val & 0x20), !!(val & 0x10));
 					break;
 			}
 		}
@@ -2107,7 +2107,7 @@ riva128_in(uint16_t addr, void *p)
 				break;
 			case 0x3e:
 					/* DDC status register */
-				temp = (riva128->i2c.sda << 3) | (riva128->i2c.scl << 2);
+				temp = (i2c_gpio_get_sda(riva128->i2c) << 3) | (i2c_gpio_get_scl(riva128->i2c) << 2);
 				break;
 			default:
 				temp = svga->crtc[svga->crtcreg];
@@ -2260,6 +2260,11 @@ static void
 	timer_add(&riva128->nvtimer, riva128_nvclk_poll, riva128, 0);
 	timer_add(&riva128->mtimer, riva128_mclk_poll, riva128, 0);
 
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_riva128);
+
+	riva128->i2c = i2c_gpio_init("ddc_riva128");
+	riva128->ddc = ddc_init(i2c_gpio_get_bus(riva128->i2c));
+
 	return riva128;
 }
 
@@ -2277,6 +2282,9 @@ riva128_close(void *p)
 	riva128_t *riva128 = (riva128_t *)p;
 	
 	svga_close(&riva128->svga);
+
+	ddc_close(riva128->ddc);
+	i2c_gpio_close(riva128->i2c);
 	
 	free(riva128);
 }
@@ -2339,7 +2347,7 @@ const device_t riva128_pci_device =
 	riva128_init,
 	riva128_close, 
 	NULL,
-	riva128_available,
+	{ riva128_available },
 	riva128_speed_changed,
 	riva128_force_redraw,
 	riva128_config
