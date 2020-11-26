@@ -385,6 +385,8 @@ typedef struct voodoo_t
                 uint32_t dstFormat;
                 uint32_t dstSize;
                 uint32_t dstXY;
+                uint32_t lineStipple;
+                uint32_t lineStyle;
                 uint32_t rop;
                 uint32_t srcBaseAddr;
                 uint32_t srcFormat;
@@ -432,6 +434,9 @@ typedef struct voodoo_t
                 int src_stride_src, src_stride_dest;
                 
                 int src_bpp;
+
+                int line_pix_pos, line_bit_pos;
+                int line_rep_cnt, line_bit_mask_size;
         } banshee_blt;
         
         struct
