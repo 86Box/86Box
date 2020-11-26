@@ -570,8 +570,6 @@ ifeq ($(PS2M70T4), y)
 OPTS		+= -DUSE_PS2M70T4
 endif
 
-<<<<<<< HEAD
-=======
 ifeq ($(RIVA128), y)
 OPTS		+= -DUSE_RIVA128
 DEVBROBJ	+= vid_riva128.o
@@ -585,7 +583,6 @@ ifeq ($(VECTRA54), y)
 OPTS		+= -DUSE_VECTRA54
 endif
 
->>>>>>> c3fb7ddc (Experimental implementation of the RIVA 128)
 ifeq ($(S3TRIO3D2X), y)
 OPTS		+= -DUSE_S3TRIO3D2X
 endif
