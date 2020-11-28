@@ -127,6 +127,15 @@ void tvga_out(uint16_t addr, uint8_t val, void *p)
                 case 0x3CF:
                 switch (svga->gdcaddr & 15)
                 {
+                        case 0x6:
+                        old = svga->gdcreg[6];
+                        svga_out(addr, val, svga);
+                        if ((old & 0xc) != 0 && (val & 0xc) == 0)
+                        {
+                                /*override mask - TVGA supports linear 128k at A0000*/
+                                svga->banked_mask = 0x1ffff;
+                        }
+                        return;			
                         case 0xE:
                         svga->gdcreg[0xe] = val ^ 2;
                         tvga->tvga_3d9 = svga->gdcreg[0xe] & 0xf;
