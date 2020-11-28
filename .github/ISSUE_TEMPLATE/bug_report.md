@@ -25,7 +25,7 @@ If applicable, add screenshots to help explain your problem.
 
 **Desktop (please complete the following information):**
  - OS: [e.g. Windows 10]
- - 86Box version: [e.g. v2.06 build 2007]
+ - 86Box version: [e.g. v2.06 build 2007, saying "Latest from Jenkins" isn't helpful]
  - Build type: [i.e. regular, optimized, or dev]
 
 **Additional context**
