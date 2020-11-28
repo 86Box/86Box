@@ -55,6 +55,8 @@ DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
 #define SB_CLASS_NAME		L"86BoxStatusBar"
 #define SB_MENU_NAME		L"StatusBarMenu"
 #define FS_CLASS_NAME		L"86BoxFullScreen"
+#define SDL_CLASS_NAME		L"86BoxSDLWnd"
+#define SDL_SUB_CLASS_NAME	L"86BoxSDLSubWnd"
 
 #define FLOPPY_SUBMENU_NAME	L"FloppySubmenu"
 #define CDROM_SUBMENU_NAME	L"CdromSubmenu"
@@ -155,7 +157,6 @@ extern int	hard_disk_was_added(void);
 
 /* Platform UI support functions. */
 extern int	ui_init(int nCmdShow);
-extern void	plat_set_input(HWND h);
 
 
 /* Functions in win_about.c: */

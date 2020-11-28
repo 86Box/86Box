@@ -49,6 +49,8 @@ extern FILE	*rom_fopen(wchar_t *fn, wchar_t *mode);
 extern int	rom_getfile(wchar_t *fn, wchar_t *s, int size);
 extern int	rom_present(wchar_t *fn);
 
+extern int	rom_load_linear_oddeven(wchar_t *fn, uint32_t addr, int sz,
+					int off, uint8_t *ptr);
 extern int	rom_load_linear(wchar_t *fn, uint32_t addr, int sz,
 				int off, uint8_t *ptr);
 extern int	rom_load_interleaved(wchar_t *fnl, wchar_t *fnh, uint32_t addr,
@@ -68,6 +70,8 @@ extern int	bios_load_linear_combined2(wchar_t *fn1, wchar_t *fn2,
 
 extern int	rom_init(rom_t *rom, wchar_t *fn, uint32_t address, int size,
 			 int mask, int file_offset, uint32_t flags);
+extern int	rom_init_oddeven(rom_t *rom, wchar_t *fn, uint32_t address, int size,
+				 int mask, int file_offset, uint32_t flags);
 extern int	rom_init_interleaved(rom_t *rom, wchar_t *fn_low,
 				     wchar_t *fn_high, uint32_t address,
 				     int size, int mask, int file_offset,

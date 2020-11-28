@@ -152,6 +152,7 @@ extern void	pclog_toggle_suppr(void);
 extern void	pclog(const char *fmt, ...);
 extern void	fatal(const char *fmt, ...);
 extern void	set_screen_size(int x, int y);
+extern void	reset_screen_size(void);
 extern void	set_screen_size_natural(void);
 #if 0
 extern void	pc_reload(wchar_t *fn);
