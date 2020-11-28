@@ -162,6 +162,42 @@ rom_readl(uint32_t addr, void *priv)
 }
 
 
+int
+rom_load_linear_oddeven(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
+{
+    FILE *f = rom_fopen(fn, L"rb");
+    int i;
+        
+    if (f == NULL) {
+	rom_log("ROM: image '%ls' not found\n", fn);
+	return(0);
+    }
+
+    /* Make sure we only look at the base-256K offset. */
+    if (addr >= 0x40000)
+	addr = 0;
+    else
+	addr &= 0x03ffff;
+
+    if (ptr != NULL) {
+	if (fseek(f, off, SEEK_SET) == -1)
+		fatal("rom_load_linear(): Error seeking to the beginning of the file\n");
+	for (i = 0; i < (sz >> 1); i++) {
+		if (fread(ptr + (addr + (i << 1)), 1, 1, f) != 1)
+			fatal("rom_load_linear(): Error reading even data\n");
+	}
+	for (i = 0; i < (sz >> 1); i++) {
+		if (fread(ptr + (addr + (i << 1) + 1), 1, 1, f) != 1)
+			fatal("rom_load_linear(): Error reading od data\n");
+	}
+    }
+
+    (void)fclose(f);
+
+    return(1);
+}
+
+
 /* Load a ROM BIOS from its chips, interleaved mode. */
 int
 rom_load_linear(wchar_t *fn, uint32_t addr, int sz, int off, uint8_t *ptr)
@@ -488,6 +524,36 @@ rom_init(rom_t *rom, wchar_t *fn, uint32_t addr, int sz, int mask, int off, uint
 
     /* Load the image file into the buffer. */
     if (! rom_load_linear(fn, addr, sz, off, rom->rom)) {
+	/* Nope.. clean up. */
+	free(rom->rom);
+	rom->rom = NULL;
+	return(-1);
+    }
+
+    rom->sz = sz;
+    rom->mask = mask;
+
+    mem_mapping_add(&rom->mapping,
+		    addr, sz,
+		    rom_read, rom_readw, rom_readl,
+		    mem_write_null, mem_write_nullw, mem_write_nulll,
+		    rom->rom, flags | MEM_MAPPING_ROM, rom);
+
+    return(0);
+}
+
+
+int
+rom_init_oddeven(rom_t *rom, wchar_t *fn, uint32_t addr, int sz, int mask, int off, uint32_t flags)
+{
+    rom_log("rom_init(%08X, %08X, %08X, %08X, %08X, %08X, %08X)\n", rom, fn, addr, sz, mask, off, flags);
+
+    /* Allocate a buffer for the image. */
+    rom->rom = malloc(sz);
+    memset(rom->rom, 0xff, sz);
+
+    /* Load the image file into the buffer. */
+    if (! rom_load_linear_oddeven(fn, addr, sz, off, rom->rom)) {
 	/* Nope.. clean up. */
 	free(rom->rom);
 	rom->rom = NULL;

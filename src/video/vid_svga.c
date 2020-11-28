@@ -1063,8 +1063,6 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
     switch (svga->writemode) {
 	case 0:
 		val = ((val >> (svga->gdcreg[3] & 7)) | (val << (8 - (svga->gdcreg[3] & 7))));
-		// if (svga->gdcreg[3] & 7) 
-			// val = svga_rotate[svga->gdcreg[3] & 7][val];
 		if ((svga->gdcreg[8] == 0xff) && !(svga->gdcreg[3] & 0x18) && (!svga->gdcreg[1] || svga->set_reset_disabled)) {
 			for (i = 0; i < count; i++) {
 				if ((svga->adv_flags & FLAG_EXT_WRITE) && (svga->adv_flags & FLAG_ADDR_BY8)) {
@@ -1115,8 +1113,6 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
 		break;
 	case 3:
 		val = ((val >> (svga->gdcreg[3] & 7)) | (val << (8 - (svga->gdcreg[3] & 7))));
-                // if (svga->gdcreg[3] & 7) 
-                        // val = svga_rotate[svga->gdcreg[3] & 7][val];
                 wm = svga->gdcreg[8];
                 svga->gdcreg[8] &= val;
 

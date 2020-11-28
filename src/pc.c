@@ -1133,6 +1133,13 @@ set_screen_size(int x, int y)
 
 
 void
+reset_screen_size(void)
+{
+    set_screen_size(unscaled_size_x, efscrnsz_y);
+}
+
+
+void
 set_screen_size_natural(void)
 {
     set_screen_size(unscaled_size_x, unscaled_size_y);

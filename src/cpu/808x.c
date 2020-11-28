@@ -279,7 +279,7 @@ resub_cycles(int old_cycles)
     if (old_cycles > cycles) {
 	cyc_diff = old_cycles - cycles;
 	cycles = old_cycles;
-	resub_cycles(cyc_diff);
+	sub_cycles(cyc_diff);
     }
 }
 
@@ -298,27 +298,35 @@ cpu_io(int bits, int out, uint16_t port)
     if (out) {
 	wait(4, 1);
 	if (bits == 16) {
-		if (is8086 && !(port & 1))
+		if (is8086 && !(port & 1)) {
+			old_cycles = cycles;
 			outw(port, AX);
-		else {
+		} else {
 			wait(4, 1);
+			old_cycles = cycles;
 			outb(port++, AL);
 			outb(port, AH);
 		}
-	} else
+	} else {
+		old_cycles = cycles;
 		outb(port, AL);
+	}
     } else {
 	wait(4, 1);
 	if (bits == 16) {
-		if (is8086 && !(port & 1))
+		if (is8086 && !(port & 1)) {
+			old_cycles = cycles;
 			AX = inw(port);
-		else {
+		} else {
 			wait(4, 1);
+			old_cycles = cycles;
 			AL = inb(port++);
 			AH = inb(port);
 		}
-	} else
+	} else {
+		old_cycles = cycles;
 		AL = inb(port);
+	}
     }
 
     resub_cycles(old_cycles);
