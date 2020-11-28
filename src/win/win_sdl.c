@@ -543,7 +543,7 @@ sdl_enable(int enable)
 	return;
 
     SDL_LockMutex(sdl_mutex);
-    sdl_enabled = enable;
+    sdl_enabled = !!enable;
 
     if (enable == 1) {
 	SDL_SetWindowSize(sdl_win, cur_ww, cur_wh);

@@ -853,10 +853,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			window_h = rect.bottom - rect.top;
 			save_window_pos = 1;
 		}
-		plat_vidapi_enable(1);
-
-		plat_vidapi_enable(0);
-		plat_vidapi_enable(1);
+		plat_vidapi_enable(2);
 
 		config_save();
 		break;
