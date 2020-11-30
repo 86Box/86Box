@@ -76,7 +76,7 @@ machine_init_ex(int m)
 	is_vpc = 0;
 
 	/* Set up the architecture flags. */
-	AT = IS_ARCH(machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
+	AT = IS_AT(machine);
 	PCI = IS_ARCH(machine, MACHINE_BUS_PCI);
 
 	/* Reset the memory state. */

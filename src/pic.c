@@ -176,7 +176,7 @@ find_best_interrupt(pic_t *dev)
 
     dev->interrupt = (ret == -1) ? 7 : ret;
 
-    is_at = IS_ARCH(machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
+    is_at = IS_AT(machine);
     if (is_at && (ret != -1) && (cpu_fast_off_flags & (1 << dev->interrupt)))
 	cpu_fast_off_count = cpu_fast_off_val + 1;
 
@@ -187,7 +187,7 @@ find_best_interrupt(pic_t *dev)
 void
 pic_update_pending(void)
 {
-    int is_at = IS_ARCH(machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
+    int is_at = IS_AT(machine);
 
     if (is_at) {
 	pic2.int_pending = (find_best_interrupt(&pic2) != -1);
@@ -227,7 +227,7 @@ pic_callback(void *priv)
 void
 pic_reset()
 {
-    int is_at = IS_ARCH(machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
+    int is_at = IS_AT(machine);
 
     memset(&pic, 0, sizeof(pic_t));
     memset(&pic2, 0, sizeof(pic_t));
@@ -493,7 +493,7 @@ picint_common(uint16_t num, int level, int set)
     int is_at;
     uint8_t b, slaves = 0;
 
-    is_at = IS_ARCH(machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
+    is_at = IS_AT(machine);
 
     /* Make sure to ignore all slave IRQ's, and in case of AT+,
        translate IRQ 2 to IRQ 9. */
