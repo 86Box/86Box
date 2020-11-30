@@ -1529,7 +1529,7 @@ ncr53c8xx_reg_writeb(ncr53c8xx_t *dev, uint32_t offset, uint8_t val)
 	case 0x07: /* GPREG */
 		ncr53c8xx_log("NCR 810: GPREG write %02X\n", val);
 		dev->gpreg = val;
-		i2c_gpio_set(dev->i2c, !!(dev->gpreg & 0x02), !!(dev->gpreg & 0x01));
+		i2c_gpio_set(dev->i2c, (dev->gpreg & 0x02) || ((dev->gpcntl & 0x82) == 0x02), (dev->gpreg & 0x01) || ((dev->gpcntl & 0x41) == 0x01));
 		break;
 	case 0x08: /* SFBR */
 		/* The CPU is not allowed to write to this register.  However the
