@@ -622,7 +622,7 @@ MAINOBJ		:= pc.o config.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
 		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o \
 		   $(VNCOBJ)
 
-MEMOBJ		:= catalyst_flash.o intel_flash.o mem.o rom.o smram.o spd.o sst_flash.o
+MEMOBJ		:= catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o smram.o spd.o sst_flash.o
 
 CPUOBJ		:= cpu.o cpu_table.o \
 		    808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o $(CGTOBJ) \
@@ -654,7 +654,7 @@ MCHOBJ		:= machine.o machine_table.o \
 
 DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_vt82c686.o ibm_5161.o isamem.o isartc.o \
 		    lpt.o pci_bridge.o postcard.o serial.o vpc2007.o \
-		    i2c.o i2c_eeprom.o i2c_gpio.o smbus_piix4.o \
+		    i2c.o i2c_gpio.o smbus_piix4.o \
 		   keyboard.o \
 		    keyboard_xt.o keyboard_at.o \
 		   mouse.o \
