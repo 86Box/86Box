@@ -88,16 +88,6 @@ spd_init(const device_t *info)
 }
 
 
-uint8_t
-log2_ui16(uint16_t i)
-{
-    uint8_t ret = 0;
-    while ((i >>= 1))
-	ret++;
-    return ret;
-}
-
-
 int
 comp_ui16_rev(const void *elem1, const void *elem2)
 {
@@ -117,7 +107,7 @@ spd_populate(uint16_t *rows, uint8_t slot_count, uint16_t total_size, uint16_t m
     memset(rows, 0, SPD_MAX_SLOTS << 1);
     for (row = 0; row < slot_count && total_size; row++) {
 	/* populate slot */
-	rows[row] = 1 << log2_ui16(MIN(total_size, max_module_size));
+	rows[row] = 1 << log2i(MIN(total_size, max_module_size));
 	if (total_size >= rows[row]) {
 		spd_log("SPD: Initial row %d = %d MB\n", row, rows[row]);
 		total_size -= rows[row];
@@ -133,7 +123,7 @@ spd_populate(uint16_t *rows, uint8_t slot_count, uint16_t total_size, uint16_t m
 	if (enable_asym) {
 		row = slot_count - 1;
 		do {
-			asym = (1 << log2_ui16(MIN(total_size, rows[row])));
+			asym = (1 << log2i(MIN(total_size, rows[row])));
 			if (rows[row] + asym <= max_module_size) {
 				rows[row] += asym;
 				total_size -= asym;
@@ -151,7 +141,7 @@ spd_populate(uint16_t *rows, uint8_t slot_count, uint16_t total_size, uint16_t m
 	/* Look for a module to split. */
 	split = 0;
 	for (row = 0; row < slot_count; row++) {
-		if ((rows[row] < (min_module_size << 1)) || (rows[row] != (1 << log2_ui16(rows[row]))))
+		if ((rows[row] < (min_module_size << 1)) || (rows[row] != (1 << log2i(rows[row]))))
 			continue; /* no module here, module is too small to be split, or asymmetric module */
 
 		/* Find next empty row. */
@@ -224,7 +214,7 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 	spd_modules[slot]->size = rows[row];
 
 	/* Determine the second row size, from which the first row size can be obtained. */
-	asym = rows[row] - (1 << log2_ui16(rows[row])); /* separate the powers of 2 */
+	asym = rows[row] - (1 << log2i(rows[row])); /* separate the powers of 2 */
 	if (!asym) /* is the module asymmetric? */
 		asym = rows[row] >> 1; /* symmetric, therefore divide by 2 */
 
@@ -245,10 +235,10 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 			edo_data->bytes_used = 0x80;
 			edo_data->spd_size = 0x08;
 			edo_data->mem_type = ram_type;
-			edo_data->row_bits = SPD_ROLLUP(7 + log2_ui16(spd_modules[slot]->row1)); /* first row */
+			edo_data->row_bits = SPD_ROLLUP(7 + log2i(spd_modules[slot]->row1)); /* first row */
 			edo_data->col_bits = 9;
 			if (spd_modules[slot]->row1 != spd_modules[slot]->row2) { /* the upper 4 bits of row_bits/col_bits should be 0 on a symmetric module */
-				edo_data->row_bits |= SPD_ROLLUP(7 + log2_ui16(spd_modules[slot]->row2)) << 4; /* second row, if different from first */
+				edo_data->row_bits |= SPD_ROLLUP(7 + log2i(spd_modules[slot]->row2)) << 4; /* second row, if different from first */
 				edo_data->col_bits |= 9 << 4; /* same as first row, but just in case */
 			}
 			edo_data->banks = 2;
@@ -281,10 +271,10 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 			sdram_data->bytes_used = 0x80;
 			sdram_data->spd_size = 0x08;
 			sdram_data->mem_type = ram_type;
-			sdram_data->row_bits = SPD_ROLLUP(6 + log2_ui16(spd_modules[slot]->row1)); /* first row */
+			sdram_data->row_bits = SPD_ROLLUP(6 + log2i(spd_modules[slot]->row1)); /* first row */
 			sdram_data->col_bits = 9;
 			if (spd_modules[slot]->row1 != spd_modules[slot]->row2) { /* the upper 4 bits of row_bits/col_bits should be 0 on a symmetric module */
-				sdram_data->row_bits |= SPD_ROLLUP(6 + log2_ui16(spd_modules[slot]->row2)) << 4; /* second row, if different from first */
+				sdram_data->row_bits |= SPD_ROLLUP(6 + log2i(spd_modules[slot]->row2)) << 4; /* second row, if different from first */
 				sdram_data->col_bits |= 9 << 4; /* same as first row, but just in case */
 			}
 			sdram_data->rows = 2;
@@ -306,10 +296,10 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 			sdram_data->trp = sdram_data->trrd = sdram_data->trcd = sdram_data->tras = 1;
 			if (spd_modules[slot]->row1 != spd_modules[slot]->row2) {
 				/* Utilities interpret bank_density a bit differently on asymmetric modules. */
-				sdram_data->bank_density  = 1 << (log2_ui16(spd_modules[slot]->row1 >> 1) - 2); /* first row */
-				sdram_data->bank_density |= 1 << (log2_ui16(spd_modules[slot]->row2 >> 1) - 2); /* second row */
+				sdram_data->bank_density  = 1 << (log2i(spd_modules[slot]->row1 >> 1) - 2); /* first row */
+				sdram_data->bank_density |= 1 << (log2i(spd_modules[slot]->row2 >> 1) - 2); /* second row */
 			} else {
-				sdram_data->bank_density  = 1 << (log2_ui16(spd_modules[slot]->row1 >> 1) - 1); /* symmetric module = only one bit is set */
+				sdram_data->bank_density  = 1 << (log2i(spd_modules[slot]->row1 >> 1) - 1); /* symmetric module = only one bit is set */
 			}
 			sdram_data->ca_setup = sdram_data->data_setup = 0x15;
 			sdram_data->ca_hold = sdram_data->data_hold = 0x08;
@@ -355,7 +345,7 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
     /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
     if (!spd_present) {
 	dimm = ((reg_max - reg_min) + 1) >> 1; /* amount of "DIMM"s, also used to determine the maximum "DIMM" size */
-	spd_populate(rows, dimm, mem_size >> 10, drb_unit, 1 << (log2_ui16(machines[machine].max_ram / dimm)), 0);
+	spd_populate(rows, dimm, mem_size >> 10, drb_unit, 1 << (log2i(machines[machine].max_ram / dimm)), 0);
     }
 
     /* Write DRBs for each row. */
