@@ -1465,11 +1465,7 @@ checkio(int port)
 	return 1;
 
     cpl_override = 1;
-#ifdef USE_NEW_DYNAREC
     d = readmembl(tr.base + t + (port >> 3));
-#else
-    d = readmemb386l(0, tr.base + t + (port >> 3));
-#endif
     cpl_override = 0;
     return d & (1 << (port & 7));
 }

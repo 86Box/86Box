@@ -148,13 +148,14 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_B()
         addbyte(0x3a);
         addbyte(0xc3); /*RET*/
 
-        addbyte(0x50); /*slowpath: PUSH EAX*/
+        addbyte(0x01); /*slowpath: ADD ESI,EAX*/
+        addbyte(0xc6);
         addbyte(0x56); /*PUSH ESI*/
         addbyte(0xe8); /*CALL readmembl*/
-        addlong((uint32_t)readmemb386l - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 8*/
+        addlong((uint32_t)readmembl - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+        addbyte(0x83); /*ADD ESP, 4*/
         addbyte(0xc4);
-        addbyte(8);
+        addbyte(4);
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
         addbyte((uint8_t)cpu_state_offset(abrt));
@@ -360,13 +361,14 @@ static uint32_t gen_MEM_STORE_ADDR_EA_B()
         addbyte(0xc3); /*RET*/
 
         addbyte(0x51); /*slowpath: PUSH ECX*/
-        addbyte(0x50); /*PUSH EAX*/
+        addbyte(0x01); /*ADD EBX,EAX*/
+        addbyte(0xC3);
         addbyte(0x53); /*PUSH EBX*/
-        addbyte(0xe8); /*CALL writememb386l*/
-        addlong((uint32_t)writememb386l - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 12*/
+        addbyte(0xe8); /*CALL writemembl*/
+        addlong((uint32_t)writemembl - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+        addbyte(0x83); /*ADD ESP, 8*/
         addbyte(0xc4);
-        addbyte(12);
+        addbyte(8);
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
         addbyte((uint8_t)cpu_state_offset(abrt));
@@ -575,13 +577,14 @@ static uint32_t gen_MEM_LOAD_ADDR_EA_B_NO_ABRT()
         addbyte(0x3a);
         addbyte(0xc3); /*RET*/
 
-        addbyte(0x50); /*slowpath: PUSH EAX*/
+        addbyte(0x01); /*slowpath: ADD ESI,EAX*/
+        addbyte(0xc6);
         addbyte(0x56); /*PUSH ESI*/
         addbyte(0xe8); /*CALL readmembl*/
-        addlong((uint32_t)readmemb386l - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 8*/
+        addlong((uint32_t)readmembl - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+        addbyte(0x83); /*ADD ESP, 4*/
         addbyte(0xc4);
-        addbyte(8);
+        addbyte(4);
 #ifndef RELEASE_BUILD
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
@@ -777,13 +780,14 @@ static uint32_t gen_MEM_STORE_ADDR_EA_B_NO_ABRT()
         addbyte(0xc3); /*RET*/
 
         addbyte(0x51); /*slowpath: PUSH ECX*/
-        addbyte(0x50); /*PUSH EAX*/
+        addbyte(0x01); /*ADD EBX,EAX*/
+        addbyte(0xc3);
         addbyte(0x53); /*PUSH EBX*/
-        addbyte(0xe8); /*CALL writememb386l*/
-        addlong((uint32_t)writememb386l - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
-        addbyte(0x83); /*ADD ESP, 12*/
+        addbyte(0xe8); /*CALL writemembl*/
+        addlong((uint32_t)writemembl - (uint32_t)(&codeblock[block_current].data[block_pos + 4]));
+        addbyte(0x83); /*ADD ESP, 8*/
         addbyte(0xc4);
-        addbyte(12);
+        addbyte(8);
 #ifndef RELEASE_BUILD
         addbyte(0x80); /*CMP abrt, 0*/
         addbyte(0x7d);
