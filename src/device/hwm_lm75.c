@@ -35,7 +35,7 @@ static uint8_t	lm75_i2c_read(void *bus, uint8_t addr, void *priv);
 static uint8_t	lm75_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv);
 static void	lm75_reset(lm75_t *dev);
 
-#define ENABLE_LM75_LOG 1
+
 #ifdef ENABLE_LM75_LOG
 int lm75_do_log = ENABLE_LM75_LOG;
 
