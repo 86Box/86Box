@@ -622,7 +622,7 @@ win_settings_save(void)
     }
 
     /* Mark configuration as changed. */
-    config_changed = 1;
+    config_changed = 2;
 
     pc_reset_hard_init();
 }
