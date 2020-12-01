@@ -918,7 +918,7 @@ static void step_line(voodoo_t *voodoo)
 }
 
 
-static void banshee_do_line(voodoo_t *voodoo)
+static void banshee_do_line(voodoo_t *voodoo, int draw_last_pixel)
 {
         clip_t *clip = &voodoo->banshee_blt.clip[(voodoo->banshee_blt.command & COMMAND_CLIP_SEL) ? 1 : 0];
         uint8_t rop = voodoo->banshee_blt.command >> 24;
@@ -973,6 +973,15 @@ static void banshee_do_line(voodoo_t *voodoo)
                         y += y_inc;
                         step_line(voodoo);
                 }
+        }
+
+        if (draw_last_pixel)
+        {
+                int mask = stipple & (1 << voodoo->banshee_blt.line_bit_pos);
+                int pattern_trans = (voodoo->banshee_blt.command & COMMAND_TRANS_MONO) ? mask : 1;
+
+                if (y >= clip->y_min && y < clip->y_max && x >= clip->x_min && x < clip->x_max && pattern_trans)
+                        PLOT_LINE(voodoo, x, y, rop, mask ? voodoo->banshee_blt.colorFore : voodoo->banshee_blt.colorBack, COLORKEY_32);
         }
 
         voodoo->banshee_blt.srcXY = (x & 0xffff) | (y << 16);
@@ -1112,8 +1121,12 @@ static void banshee_do_2d_blit(voodoo_t *voodoo, int count, uint32_t data)
                 banshee_do_rectfill(voodoo);
                 break;
 
+                case COMMAND_CMD_LINE:
+                banshee_do_line(voodoo, 1);
+                break;
+
                 case COMMAND_CMD_POLYLINE:
-                banshee_do_line(voodoo);
+                banshee_do_line(voodoo, 0);
                 break;
 
                 default:
@@ -1386,18 +1399,18 @@ void voodoo_2d_reg_writel(voodoo_t *voodoo, uint32_t addr, uint32_t val)
                         banshee_do_rectfill(voodoo);
                         break;
 
-/*                        case COMMAND_CMD_LINE:
+                        case COMMAND_CMD_LINE:
                         voodoo->banshee_blt.dstXY = val;
                         voodoo->banshee_blt.dstX = ((int32_t)(val << 19)) >> 19;
                         voodoo->banshee_blt.dstY = ((int32_t)(val << 3)) >> 19;
-                        banshee_do_line(voodoo);
-                        break;*/
+                        banshee_do_line(voodoo, 1);
+                        break;
 
                         case COMMAND_CMD_POLYLINE:
                         voodoo->banshee_blt.dstXY = val;
                         voodoo->banshee_blt.dstX = ((int32_t)(val << 19)) >> 19;
                         voodoo->banshee_blt.dstY = ((int32_t)(val << 3)) >> 19;
-                        banshee_do_line(voodoo);
+                        banshee_do_line(voodoo, 0);
                         break;
                         
                         case COMMAND_CMD_POLYFILL:

@@ -1169,6 +1169,8 @@ enter_smm(int in_hlt)
 
 	flushmmucache();
     }
+    
+    oldcpl = 0;
 
     cpu_cur_status &= ~(CPU_STATUS_PMODE | CPU_STATUS_V86);
     CPU_BLOCK_END();
@@ -1264,6 +1266,8 @@ leave_smm(void)
     }
 
     nmi_mask = 1;
+
+    oldcpl = CPL;
 
     CPU_BLOCK_END();
 
