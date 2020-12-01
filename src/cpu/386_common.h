@@ -21,47 +21,20 @@
 
 #include <stddef.h>
 
-#ifdef USE_NEW_DYNAREC
-#define readmemb(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV)?readmembl((s)+(a)): *(uint8_t *)(readlookup2[(uint32_t)((s)+(a))>>12] + (uintptr_t)((s) + (a))))
-#define readmemw(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (((s)+(a)) & 1))?readmemwl((s)+(a)):*(uint16_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uintptr_t)((s)+(a))))
-#define readmeml(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (((s)+(a)) & 3))?readmemll((s)+(a)):*(uint32_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uintptr_t)((s)+(a))))
-#define readmemq(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (((s)+(a)) & 7))?readmemql((s)+(a)):*(uint64_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uintptr_t)((s)+(a))))
-
-#define writememb(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV) writemembl((s)+(a),v); else *(uint8_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uintptr_t)((s) + (a))) = v
-#define writememw(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (((s)+(a)) & 1)) writememwl((s)+(a),v); else *(uint16_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uintptr_t)((s) + (a))) = v
-#define writememl(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (((s)+(a)) & 3)) writememll((s)+(a),v); else *(uint32_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uintptr_t)((s) + (a))) = v
-#define writememq(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (((s)+(a)) & 7)) writememql((s)+(a),v); else *(uint64_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uintptr_t)((s) + (a))) = v
-#else
 #define readmemb(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (s)==0xFFFFFFFF)?readmembl((s)+(a)): *(uint8_t *)(readlookup2[(uint32_t)((s)+(a))>>12] + (uintptr_t)((s) + (a))) )
-#define readmemw(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (s)==0xFFFFFFFF || (((s)+(a)) & 1))?readmemwl(s,a):*(uint16_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
-#define readmeml(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (s)==0xFFFFFFFF || (((s)+(a)) & 3))?readmemll(s,a):*(uint32_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
-#define readmemq(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (s)==0xFFFFFFFF || (((s)+(a)) & 7))?readmemql(s,a):*(uint64_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uintptr_t)((s)+(a))))
+#define readmemw(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (s)==0xFFFFFFFF || (((s)+(a)) & 1))?readmemwl((s)+(a)):*(uint16_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
+#define readmeml(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (s)==0xFFFFFFFF || (((s)+(a)) & 3))?readmemll((s)+(a)):*(uint32_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uint32_t)((s)+(a))))
+#define readmemq(s,a) ((readlookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (s)==0xFFFFFFFF || (((s)+(a)) & 7))?readmemql((s)+(a)):*(uint64_t *)(readlookup2[(uint32_t)((s)+(a))>>12]+(uintptr_t)((s)+(a))))
 
 #define writememb(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (s)==0xFFFFFFFF) writemembl((s)+(a),v); else *(uint8_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uintptr_t)((s) + (a))) = v
-#define writememw(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (s)==0xFFFFFFFF || (((s)+(a)) & 1)) writememwl(s,a,v); else *(uint16_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uintptr_t)((s) + (a))) = v
-#define writememl(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (s)==0xFFFFFFFF || (((s)+(a)) & 3)) writememll(s,a,v); else *(uint32_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uintptr_t)((s) + (a))) = v
-#define writememq(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (s)==0xFFFFFFFF || (((s)+(a)) & 7)) writememql(s,a,v); else *(uint64_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uintptr_t)((s) + (a))) = v
-#endif
+#define writememw(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (s)==0xFFFFFFFF || (((s)+(a)) & 1)) writememwl((s)+(a),v); else *(uint16_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uintptr_t)((s) + (a))) = v
+#define writememl(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (s)==0xFFFFFFFF || (((s)+(a)) & 3)) writememll((s)+(a),v); else *(uint32_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uintptr_t)((s) + (a))) = v
+#define writememq(s,a,v) if (writelookup2[(uint32_t)((s)+(a))>>12]==LOOKUP_INV || (s)==0xFFFFFFFF || (((s)+(a)) & 7)) writememql((s)+(a),v); else *(uint64_t *)(writelookup2[(uint32_t)((s) + (a)) >> 12] + (uintptr_t)((s) + (a))) = v
 
 
 int checkio(int port);
 
 
-#ifdef USE_NEW_DYNAREC
-#define check_io_perm(port) if (!IOPLp || (cpu_state.eflags&VM_FLAG)) \
-                        { \
-                                int tempi = checkio(port); \
-                                if (cpu_state.abrt) return 1; \
-                                if (tempi) \
-                                { \
-                                        if (cpu_state.eflags & VM_FLAG) \
-                                                x86gpf_expected(NULL,0); \
-                                        else \
-                                                x86gpf(NULL,0); \
-                                        return 1; \
-                                } \
-                        }
-#else
 #define check_io_perm(port) if (msw&1 && ((CPL > IOPL) || (cpu_state.eflags&VM_FLAG))) \
                         { \
                                 int tempi = checkio(port); \
@@ -75,7 +48,6 @@ int checkio(int port);
                                         return 1; \
                                 } \
                         }
-#endif
 
 #define SEG_CHECK_READ(seg)                             \
         do                                              \
@@ -344,32 +316,16 @@ static __inline void seteaq(uint64_t v)
 {
 	if (seteaq_cwc())
 		return;
-#ifdef USE_NEW_DYNAREC
         writememql(easeg + cpu_state.eaaddr, v);
-#else
-        writememql(easeg, cpu_state.eaaddr, v);
-#endif
 }
 
-#ifdef USE_NEW_DYNAREC
 #define seteab(v) if (cpu_mod!=3) { CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr); if (eal_w) *(uint8_t *)eal_w=v;  else writemembl(easeg+cpu_state.eaaddr,v); } else if (cpu_rm&4) cpu_state.regs[cpu_rm&3].b.h=v; else cpu_state.regs[cpu_rm].b.l=v
-#define seteaw(v) if (cpu_mod!=3) { CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1); if (eal_w) *(uint16_t *)eal_w=v; else writememwl(easeg+cpu_state.eaaddr,v);    } else cpu_state.regs[cpu_rm].w=v
-#define seteal(v) if (cpu_mod!=3) { CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3); if (eal_w) *eal_w=v;             else writememll(easeg+cpu_state.eaaddr,v);    } else cpu_state.regs[cpu_rm].l=v
-#else
-#define seteab(v) if (cpu_mod!=3) { CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr); if (eal_w) *(uint8_t *)eal_w=v;  else { writemembl(easeg+cpu_state.eaaddr,v); } } else if (cpu_rm&4) cpu_state.regs[cpu_rm&3].b.h=v; else cpu_state.regs[cpu_rm].b.l=v
-#define seteaw(v) if (cpu_mod!=3) { CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1); if (eal_w) *(uint16_t *)eal_w=v; else { writememwl(easeg,cpu_state.eaaddr,v); } } else cpu_state.regs[cpu_rm].w=v
-#define seteal(v) if (cpu_mod!=3) { CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3); if (eal_w) *eal_w=v;             else { writememll(easeg,cpu_state.eaaddr,v); } } else cpu_state.regs[cpu_rm].l=v
-#endif
+#define seteaw(v) if (cpu_mod!=3) { CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1); if (eal_w) *(uint16_t *)eal_w=v; else writememwl(easeg+cpu_state.eaaddr,v); } else cpu_state.regs[cpu_rm].w=v
+#define seteal(v) if (cpu_mod!=3) { CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3); if (eal_w) *eal_w=v;             else writememll(easeg+cpu_state.eaaddr,v); } else cpu_state.regs[cpu_rm].l=v
 
-#ifdef USE_NEW_DYNAREC
 #define seteab_mem(v) if (eal_w) *(uint8_t *)eal_w=v;  else writemembl(easeg+cpu_state.eaaddr,v);
 #define seteaw_mem(v) if (eal_w) *(uint16_t *)eal_w=v; else writememwl(easeg+cpu_state.eaaddr,v);
 #define seteal_mem(v) if (eal_w) *eal_w=v;             else writememll(easeg+cpu_state.eaaddr,v);
-#else
-#define seteab_mem(v) if (eal_w) *(uint8_t *)eal_w=v;  else writemembl(easeg+cpu_state.eaaddr,v);
-#define seteaw_mem(v) if (eal_w) *(uint16_t *)eal_w=v; else writememwl(easeg,cpu_state.eaaddr,v);
-#define seteal_mem(v) if (eal_w) *eal_w=v;             else writememll(easeg,cpu_state.eaaddr,v);
-#endif
 
 #define getbytef() ((uint8_t)(fetchdat)); cpu_state.pc++
 #define getwordf() ((uint16_t)(fetchdat)); cpu_state.pc+=2

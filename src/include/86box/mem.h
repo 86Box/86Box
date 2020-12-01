@@ -240,21 +240,12 @@ extern uint8_t	readmembl(uint32_t addr);
 extern void	writemembl(uint32_t addr, uint8_t val);
 extern void	rwmembl(uint32_t raddr, uint32_t waddr, uint8_t val);
 
-#ifndef USE_NEW_DYNAREC
-extern uint16_t	readmemwl(uint32_t seg, uint32_t addr);
-extern void	writememwl(uint32_t seg, uint32_t addr, uint16_t val);
-extern uint32_t	readmemll(uint32_t seg, uint32_t addr);
-extern void	writememll(uint32_t seg, uint32_t addr, uint32_t val);
-extern uint64_t	readmemql(uint32_t seg, uint32_t addr);
-extern void	writememql(uint32_t seg, uint32_t addr, uint64_t val);
-#else
 extern uint16_t	readmemwl(uint32_t addr);
 extern void	writememwl(uint32_t addr, uint16_t val);
 extern uint32_t	readmemll(uint32_t addr);
 extern void	writememll(uint32_t addr, uint32_t val);
 extern uint64_t	readmemql(uint32_t addr);
 extern void	writememql(uint32_t addr, uint64_t val);
-#endif
 
 extern uint8_t	*getpccache(uint32_t a);
 extern uint64_t	mmutranslatereal(uint32_t addr, int rw);
