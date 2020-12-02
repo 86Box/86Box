@@ -21,6 +21,7 @@
 #define UNICODE
 #define NTDDI_VERSION 0x06010000
 #include <windows.h>
+#include <commctrl.h>
 #include <shlobj.h>
 #include <shobjidl.h>
 #include <fcntl.h>
@@ -784,6 +785,10 @@ get_vidpause(void)
 void
 plat_setfullscreen(int on)
 {
+    RECT rect;
+    int temp_x, temp_y;
+    int dpi = win_get_dpi(hwndMain);
+
     /* Are we changing from the same state to the same state? */
     if ((!!on) == (!!video_fullscreen))
 	return;
@@ -805,8 +810,34 @@ plat_setfullscreen(int on)
     video_fullscreen = on | 2;
     if (vid_apis[vid_api].set_fs)
 	vid_apis[vid_api].set_fs(on);
-    if (!on)
+    if (!on) {
 	plat_resize(scrnsz_x, scrnsz_y);
+	if (vid_resize) {
+		/* scale the screen base on DPI */
+		if (dpi_scale) {
+			temp_x = MulDiv(unscaled_size_x, dpi, 96);
+			temp_y = MulDiv(unscaled_size_y, dpi, 96);
+		} else {
+			temp_x = unscaled_size_x;
+			temp_y = unscaled_size_y;
+		}
+		/* Main Window. */				
+		ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
+
+		/* Render window. */
+		MoveWindow(hwndRender, 0, 0, temp_x, temp_y, TRUE);
+		GetWindowRect(hwndRender, &rect);
+
+		/* Status bar. */
+		MoveWindow(hwndSBAR, 0, rect.bottom, temp_x, 17, TRUE);
+
+		if (mouse_capture)
+			ClipCursor(&rect);
+
+		scrnsz_x = unscaled_size_x;
+		scrnsz_y = unscaled_size_y;
+	}
+    }
     video_fullscreen &= 1;
     video_force_resize_set(1);
     if (!on)

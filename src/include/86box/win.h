@@ -102,6 +102,7 @@ extern HANDLE		ghMutex;
 extern LCID		lang_id;
 extern HICON		hIcon[256];
 extern RECT		oldclip;
+extern int		sbar_height;
 
 // extern int		status_is_open;
 
@@ -111,6 +112,7 @@ extern WCHAR		wopenfilestring[512];
 extern uint8_t		filterindex;
 
 
+extern void	ResizeWindowByClientArea(HWND hwnd, int width, int height);
 extern void	InitCrashDump(void);
 
 extern HICON	LoadIconEx(PCTSTR pszIconName);

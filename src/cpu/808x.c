@@ -1207,9 +1207,11 @@ check_interrupts(void)
 		wait(3, 0);
 		/* ACK to PIC */
 		temp = pic_irq_ack();
+		wait(4, 1);
 		wait(1, 0);
 		/* ACK to PIC */
 		temp = pic_irq_ack();
+		wait(4, 1);
 		wait(1, 0);
 		in_lock = 0;
 		clear_lock = 0;
