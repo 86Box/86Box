@@ -760,7 +760,7 @@ VIDOBJ		:= video.o \
 		    vid_ati_eeprom.o \
 		    vid_ati18800.o vid_ati28800.o \
 		    vid_ati_mach64.o vid_ati68860_ramdac.o \
-		    vid_bt48x_ramdac.o \
+		    vid_bt48x_ramdac.o vid_ibm_rgb525_ramdac.o \
 		    vid_av9194.o vid_icd2061.o vid_ics2494.o vid_ics2595.o \
 		    vid_cl54xx.o \
 		    vid_et4000.o vid_sc1148x_ramdac.o \
