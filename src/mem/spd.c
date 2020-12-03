@@ -345,7 +345,7 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
     /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
     if (!spd_present) {
 	dimm = ((reg_max - reg_min) + 1) >> 1; /* amount of "DIMM"s, also used to determine the maximum "DIMM" size */
-	spd_populate(rows, dimm, mem_size >> 10, drb_unit, 1 << (log2i(machines[machine].max_ram / dimm)), 0);
+	spd_populate(rows, dimm, mem_size >> 10, drb_unit, 1 << (log2i((machines[machine].max_ram >> 10) / dimm)), 0);
     }
 
     /* Write DRBs for each row. */
