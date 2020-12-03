@@ -799,7 +799,7 @@ const device_t ics9250_18_device = {
 const device_t ics9250_19_device = {
     "ICS9250-19 Clock Generator",
     DEVICE_ISA,
-    ICS9250_08,
+    ICS9250_19,
     ics9xxx_init, ics9xxx_close, NULL,
     { NULL }, NULL, NULL,
     NULL
