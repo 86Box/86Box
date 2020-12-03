@@ -462,13 +462,14 @@ extern int	machine_at_p3bf_init(const machine_t *);
 extern int	machine_at_bf6_init(const machine_t *);
 extern int	machine_at_ax6bc_init(const machine_t *);
 extern int	machine_at_atc6310bxii_init(const machine_t *);
-extern int	machine_at_ga686bx_init(const machine_t *);
+extern int	machine_at_686bx_init(const machine_t *);
 extern int	machine_at_tsunamiatx_init(const machine_t *);
 extern int	machine_at_p6sba_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_ergox365_init(const machine_t *);
 #endif
 extern int	machine_at_ficka6130_init(const machine_t *);
+extern int	machine_at_p3v4x_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_tsunamiatx_get_device(void);
@@ -490,7 +491,8 @@ extern int	machine_at_63a_init(const machine_t *);
 extern int	machine_at_s370sba_init(const machine_t *);
 extern int	machine_at_apas3_init(const machine_t *);
 extern int	machine_at_wcf681_init(const machine_t *);
-extern int	machine_at_6via85x_init(const machine_t *);
+extern int	machine_at_cuv4xls_init(const machine_t *);
+extern int	machine_at_6via90ap_init(const machine_t *);
 extern int	machine_at_603tcf_init(const machine_t *);
 extern int	machine_at_trinity371_init(const machine_t *);
 extern int	machine_at_p6bap_init(const machine_t *);
