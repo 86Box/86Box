@@ -410,6 +410,7 @@ extern int	machine_at_brio80xx_init(const machine_t *);
 extern int	machine_at_8500tvxa_init(const machine_t *);
 extern int	machine_at_presario4500_init(const machine_t *);
 extern int	machine_at_gw2kte_init(const machine_t *);
+extern int	machine_at_gw2kmm_init(const machine_t *);
 extern int	machine_at_pb680_init(const machine_t *);
 
 extern int	machine_at_nupro592_init(const machine_t *);
