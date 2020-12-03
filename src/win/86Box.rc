@@ -1000,7 +1000,7 @@ BEGIN
     IDS_2119	"Exit"
     IDS_2120	"No ROMs found"
     IDS_2121	"Do you want to save the settings?"
-    IDS_2122	"This will hard reset the virtual machine."
+    IDS_2122	"This will hard reset the emulated machine."
     IDS_2123	"Save"
     IDS_2124	"About 86Box"
     IDS_2125	"86Box v" EMU_VERSION
