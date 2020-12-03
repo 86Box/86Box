@@ -586,7 +586,7 @@ ics9xxx_write(void *bus, uint8_t addr, uint8_t data, void *priv)
 	switch (dev->addr_register) {
 		case 0:
 			if (dev->model == ICS9250_38)
-				data = (dev->regs[dev->addr_register] & ~0xef) | (data & 0xef);
+				data = (dev->regs[dev->addr_register] & ~0xe8) | (data & 0xe8);
 			else {
 				dev->regs[dev->addr_register] = data;
 				if (dev->model == ICS9250_10)
@@ -616,7 +616,7 @@ ics9xxx_write(void *bus, uint8_t addr, uint8_t data, void *priv)
 			break;
 
 		case 6:
-			if (dev->model == ICS9250_38)
+			if (dev->model == ICS9250_38) /* read-only */
 				data = dev->regs[dev->addr_register];
 			break;
 	}
