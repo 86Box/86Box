@@ -587,14 +587,17 @@ ics9xxx_write(void *bus, uint8_t addr, uint8_t data, void *priv)
 		case 0:
 			if (dev->model == ICS9250_38)
 				data = (dev->regs[dev->addr_register] & ~0xef) | (data & 0xef);
-			else if (dev->model == ICS9250_10)
-				ics9xxx_set(dev, (cpu_busspeed >= 100000000) * 0x08);
-			else if ((dev->model == ICS9250_16) || (dev->model == ICS9250_26))
-				ics9xxx_set(dev, ((cpu_busspeed >= 120000000) * 0x08) | ((((cpu_busspeed >= 100000000) && (cpu_busspeed < 120000000)) || (cpu_busspeed == 150000000) || (cpu_busspeed == 132999999)) * 0x04));
-			else if ((dev->model == ICS9250_27) || (dev->model == ICS9250_28) || (dev->model == ICS9250_29))
-				ics9xxx_set(dev, ((cpu_busspeed == 100000000) * 0x02) | ((cpu_busspeed > 100000000) * 0x01));
-			else
-				ics9xxx_set(dev, 0x00);
+			else {
+				dev->regs[dev->addr_register] = data;
+				if (dev->model == ICS9250_10)
+					ics9xxx_set(dev, (cpu_busspeed >= 100000000) * 0x08);
+				else if ((dev->model == ICS9250_16) || (dev->model == ICS9250_26))
+					ics9xxx_set(dev, ((cpu_busspeed >= 120000000) * 0x08) | ((((cpu_busspeed >= 100000000) && (cpu_busspeed < 120000000)) || (cpu_busspeed == 150000000) || (cpu_busspeed == 132999999)) * 0x04));
+				else if ((dev->model == ICS9250_27) || (dev->model == ICS9250_28) || (dev->model == ICS9250_29))
+					ics9xxx_set(dev, ((cpu_busspeed == 100000000) * 0x02) | ((cpu_busspeed > 100000000) * 0x01));
+				else
+					ics9xxx_set(dev, 0x00);
+			}
 			break;
 
 		case 1:
