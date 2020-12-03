@@ -83,7 +83,7 @@
 #define MACHINE_SCSI_DUAL	0x18000000	/* sys has int dual SCSI - mark as both pri and sec SCSI */
 
 #define IS_ARCH(m, a)		(machines[m].flags & (a)) ? 1 : 0;
-#define IS_AT(m)		((machines[m].flags & 0x00000FCC) && !(machines[m].flags & MACHINE_PC98)) ? 1 : 0;
+#define IS_AT(m)		((machines[m].flags & 0x00000FC8) && !(machines[m].flags & MACHINE_PC98)) ? 1 : 0;
 
 #define MACHINE_MULTIPLIER_FIXED -1, -1
 
