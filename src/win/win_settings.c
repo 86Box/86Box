@@ -621,7 +621,7 @@ win_settings_save(void)
     }
 
     /* Mark configuration as changed. */
-    config_changed = 1;
+    config_changed = 2;
 
     pc_reset_hard_init();
 }
@@ -782,7 +782,7 @@ win_settings_machine_recalc_machine(HWND hdlg)
     accel.nSec = 0;
     accel.nInc = machines[temp_machine].ram_granularity;
     SendMessage(h, UDM_SETACCEL, 1, (LPARAM)&accel);
-    is_at = IS_ARCH(temp_machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
+    is_at = IS_AT(temp_machine);
     if (!is_at || (machines[temp_machine].ram_granularity >= 128)) {
 	SendMessage(h, UDM_SETPOS, 0, temp_mem_size);
 	h = GetDlgItem(hdlg, IDC_TEXT_MB);
@@ -989,7 +989,7 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			temp_mem_size = machines[temp_machine].min_ram;
 		else if (temp_mem_size > machines[temp_machine].max_ram)
 			temp_mem_size = machines[temp_machine].max_ram;
-		is_at = IS_ARCH(temp_machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
+		is_at = IS_AT(temp_machine);
 		if (is_at && (machines[temp_machine].ram_granularity < 128))
 			temp_mem_size *= 1024;
 		free(stransi);
@@ -1616,7 +1616,7 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 		settings_enable_window(hdlg, IDC_COMBO_SCSI, d);
 		settings_enable_window(hdlg, IDC_CONFIGURE_SCSI, scsi_card_has_config(temp_scsi_card));
-		is_at = IS_ARCH(temp_machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
+		is_at = IS_AT(temp_machine);
 		settings_enable_window(hdlg, IDC_CHECK_IDE_TER, is_at);
 		settings_enable_window(hdlg, IDC_BUTTON_IDE_TER, is_at && temp_ide_ter);
 		settings_enable_window(hdlg, IDC_CHECK_IDE_QUA, is_at);

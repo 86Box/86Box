@@ -24,6 +24,7 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
+#include <86box/timer.h>
 #include "cpu.h"
 #include <86box/i2c.h>
 #include <86box/hwm.h>
@@ -50,6 +51,7 @@ typedef struct {
     uint32_t	  local;
     hwm_values_t  *values;
     device_t      *lm75[2];
+    pc_timer_t	  hard_reset_timer;
 
     uint8_t regs[256];
     uint8_t regs_782d[2][16];
@@ -369,16 +371,31 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 		}
 		break;
 
+	case 0x81:
+		/* CUV4X-LS performs a hard reset through this register. */
+		if ((dev->local & LM78_AS99127F) && (val == 0xa9)) {
+			lm78_log("LM78: Hard reset requested through AS99127F\n");
+			timer_set_delay_u64(&dev->hard_reset_timer, 1); /* hard reset on a timer to avoid issues caused by invalidation of the I2C bus */
+		}
+		break;
+
 	case 0x87:
-		/* AS99127F boards perform a soft reset through this register */
+		/* Other AS99127F boards perform a soft reset through this register. */
 		if ((dev->local & LM78_AS99127F) && (val == 0x01)) {
-			lm78_log("LM78: Reset requested through AS99127F\n");
+			lm78_log("LM78: Soft reset requested through AS99127F\n");
 			resetx86();
 		}
 		break;
     }
 
     return 1;
+}
+
+
+static void
+lm78_hard_reset_timer(void *priv)
+{
+    pc_reset_hard();
 }
 
 
@@ -500,6 +517,8 @@ lm78_init(const device_t *info)
     if (dev->local & LM78_AS99127F) {
 	/* AS99127: different -12V Rin value (bruteforced) */
 	defaults.voltages[5] = LM78_NEG_VOLTAGE(12000, 2400);
+
+	timer_add(&dev->hard_reset_timer, lm78_hard_reset_timer, dev, 0);
     } else if (dev->local & LM78_W83782D) {
 	/* W83782D: different negative voltage formula */
 	defaults.voltages[5] = LM78_NEG_VOLTAGE2(12000, 232);

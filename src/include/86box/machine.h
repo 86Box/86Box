@@ -54,7 +54,6 @@
 #define MACHINE_PCMCIA		0x00000400	/* sys is AT-compatible laptop with PCMCIA */
 #define MACHINE_AGP		0x00000A0C	/* sys is AT-compatible with AGP  */
 #define MACHINE_AGP98		0x00000A10	/* sys is NEC PC-98x1 series with AGP (did that even exist?) */
-#define MACHINE_IS_AT		0x00000FCC	/* sys is AT-compatible (ISA + ISA16) */
 /* Feature flags for miscellaneous internal devices. */
 #define MACHINE_VIDEO		0x00001000	/* sys has int video */
 #define MACHINE_VIDEO_ONLY	0x00002000	/* sys has fixed video */
@@ -83,7 +82,8 @@
 #define MACHINE_SCSI		0x08000000	/* sys has int single SCSI - mark as pri SCSI */
 #define MACHINE_SCSI_DUAL	0x18000000	/* sys has int dual SCSI - mark as both pri and sec SCSI */
 
-#define IS_ARCH(m, a)		(machines[(m)].flags & (a)) ? 1 : 0;
+#define IS_ARCH(m, a)		(machines[m].flags & (a)) ? 1 : 0;
+#define IS_AT(m)		((machines[m].flags & 0x00000FCC) && !(machines[m].flags & MACHINE_PC98)) ? 1 : 0;
 
 #define MACHINE_MULTIPLIER_FIXED -1, -1
 
@@ -462,13 +462,14 @@ extern int	machine_at_p3bf_init(const machine_t *);
 extern int	machine_at_bf6_init(const machine_t *);
 extern int	machine_at_ax6bc_init(const machine_t *);
 extern int	machine_at_atc6310bxii_init(const machine_t *);
-extern int	machine_at_ga686bx_init(const machine_t *);
+extern int	machine_at_686bx_init(const machine_t *);
 extern int	machine_at_tsunamiatx_init(const machine_t *);
 extern int	machine_at_p6sba_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_ergox365_init(const machine_t *);
 #endif
 extern int	machine_at_ficka6130_init(const machine_t *);
+extern int	machine_at_p3v4x_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_tsunamiatx_get_device(void);
@@ -490,10 +491,11 @@ extern int	machine_at_63a_init(const machine_t *);
 extern int	machine_at_s370sba_init(const machine_t *);
 extern int	machine_at_apas3_init(const machine_t *);
 extern int	machine_at_wcf681_init(const machine_t *);
-extern int	machine_at_6via85x_init(const machine_t *);
+extern int	machine_at_cuv4xls_init(const machine_t *);
+extern int	machine_at_6via90ap_init(const machine_t *);
 extern int	machine_at_603tcf_init(const machine_t *);
-extern int  machine_at_trinity371_init(const machine_t *);
-extern int  machine_at_p6bap_init(const machine_t *);
+extern int	machine_at_trinity371_init(const machine_t *);
+extern int	machine_at_p6bap_init(const machine_t *);
 
 /* m_at_misc.c */
 extern int	machine_at_vpc2007_init(const machine_t *);
