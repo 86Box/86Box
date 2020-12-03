@@ -490,10 +490,10 @@ static const ics9xxx_t ics9xxx_devices[] = {
 	.regs = {0x02, 0x6f, 0xff, 0xff, 0xef, 0xff, 0x06},
 	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {0, 7, 1, 7}, {0, 2, 4, 4}},
 	.frequencies = {
-		{.bus =  6667, .ram_mult =  1.5, .pci_div = 2},
-		{.bus = 10000, .ram_mult =    1, .pci_div = 3},
-		{.bus = 13333, .ram_mult =    1, .pci_div = 4},
-		{.bus = 13333, .ram_mult = 0.75, .pci_div = 4}
+		[0]  = {.bus =  6667, .ram_mult =  1.5, .pci_div = 2},
+		[8]  = {.bus = 10000, .ram_mult =    1, .pci_div = 3},
+		[16] = {.bus = 13333, .ram_mult =    1, .pci_div = 4},
+		[24] = {.bus = 13333, .ram_mult = 0.75, .pci_div = 4}
 	}
     }
 };
