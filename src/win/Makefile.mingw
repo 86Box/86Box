@@ -303,7 +303,7 @@ endif
 #		Nothing should need changing from here on..		#
 #########################################################################
 VPATH		:= $(EXPATH) . $(CODEGEN) cpu \
-		   cdrom chipset device disk floppy \
+		   cdrom chipset device disk disk/minivhd floppy \
 		   game machine mem printer \
 		   sio sound \
 		    sound/munt sound/munt/c_interface sound/munt/sha1 \
@@ -509,10 +509,6 @@ ifeq ($(AMD_K5), y)
 OPTS		+= -DUSE_AMD_K5
 endif
 
-ifeq ($(CL5422), y)
-OPTS		+= -DUSE_CL5422
-endif
-
 ifeq ($(CYRIX_6X86), y)
 OPTS		+= -DUSE_CYRIX_6X86
 endif
@@ -690,6 +686,10 @@ HDDOBJ		:= hdd.o \
 		    hdc_xtide.o hdc_ide.o \
 		    hdc_ide_opti611.o \
 		    hdc_ide_cmd640.o hdc_ide_sff8038i.o
+            
+MINIVHDOBJ  := cwalk.o libxml2_encoding.o minivhd_convert.o \
+		    minivhd_create.o minivhd_io.o minivhd_manage.o \
+            minivhd_struct_rw.o minivhd_util.o		                
 
 CDROMOBJ	:= cdrom.o \
 		    cdrom_image_backend.o cdrom_image.o
@@ -796,7 +796,7 @@ else
 endif
 
 OBJ		:= $(MAINOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
-		   $(FDDOBJ) $(GAMEOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) \
+		   $(FDDOBJ) $(GAMEOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) $(MINIVHDOBJ) \
 		   $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SIOOBJ) $(SNDOBJ) $(VIDOBJ) \
 		   $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) $(DEVBROBJ) \
 		   $(DISCORDOBJ)
@@ -813,7 +813,7 @@ endif
 ifneq ($(WX), n)
 LIBS		+= $(WX_LIBS) -lm
 endif
-LIBS		+= -lpng -lz -lwsock32 -lshell32 -liphlpapi -lpsapi -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -lversion -lwinmm -static -lstdc++
+LIBS		+= -lpng -lz -lwsock32 -lshell32 -liphlpapi -lpsapi -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -luxtheme -lversion -lwinmm -static -lstdc++
 ifneq ($(X64), y)
 LIBS		+= -Wl,--large-address-aware
 endif

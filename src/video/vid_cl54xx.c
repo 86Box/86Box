@@ -11,11 +11,13 @@
  *
  *
  *
- * Authors:	TheCollector1995,
- *		Miran Grca, <mgrca8@gmail.com>
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
+ *		tonioni,
+ *		TheCollector1995,
  *
- *		Copyright 2016-2020 TheCollector1995.
  *		Copyright 2016-2020 Miran Grca.
+ *		Copyright 2020 tonioni.
+ *		Copyright 2016-2020 TheCollector1995.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -42,11 +44,7 @@
 #define BIOS_GD5402_PATH		L"roms/video/cirruslogic/avga2.rom"
 #define BIOS_GD5402_ONBOARD_PATH	L"roms/machines/cbm_sl386sx25/Commodore386SX-25_AVGA2.bin"
 #define BIOS_GD5420_PATH		L"roms/video/cirruslogic/5420.vbi"
-
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 #define BIOS_GD5422_PATH		L"roms/video/cirruslogic/cl5422.bin"
-#endif
-
 #define BIOS_GD5426_PATH		L"roms/video/cirruslogic/Diamond SpeedStar PRO VLB v3.04.bin"
 #define BIOS_GD5428_ISA_PATH		L"roms/video/cirruslogic/5428.bin"
 #define BIOS_GD5428_PATH		L"roms/video/cirruslogic/vlbusjapan.BIN"
@@ -93,7 +91,7 @@
 #define CIRRUS_CURSOR_HIDDENPEL		0x02
 #define CIRRUS_CURSOR_LARGE		0x04	/* 64x64 if set, 32x32 if clear */
 
-// sequencer 0x17
+/* sequencer 0x17 */
 #define CIRRUS_BUSTYPE_VLBFAST   0x10
 #define CIRRUS_BUSTYPE_PCI       0x20
 #define CIRRUS_BUSTYPE_VLBSLOW   0x30
@@ -102,7 +100,7 @@
 #define CIRRUS_MMIO_USE_PCIADDR  0x40	/* 0xb8000 if cleared. */
 #define CIRRUS_MEMSIZEEXT_DOUBLE 0x80
 
-// control 0x0b
+/* control 0x0b */
 #define CIRRUS_BANKING_DUAL             0x01
 #define CIRRUS_BANKING_GRANULARITY_16K  0x20	/* set:16k, clear:4k */
 
@@ -119,7 +117,7 @@
 #define CIRRUS_BLTMODE_PIXELWIDTH24	0x20
 #define CIRRUS_BLTMODE_PIXELWIDTH32	0x30
 
-// control 0x31
+/* control 0x31 */
 #define CIRRUS_BLT_BUSY                 0x01
 #define CIRRUS_BLT_START                0x02
 #define CIRRUS_BLT_RESET                0x04
@@ -128,7 +126,7 @@
 #define CIRRUS_BLT_APERTURE2		0x40
 #define CIRRUS_BLT_AUTOSTART            0x80
 
-// control 0x33
+/* control 0x33 */
 #define CIRRUS_BLTMODEEXT_BACKGROUNDONLY   0x08
 #define CIRRUS_BLTMODEEXT_SOLIDFILL        0x04
 #define CIRRUS_BLTMODEEXT_COLOREXPINV      0x02
@@ -150,6 +148,7 @@ typedef struct gd54xx_t
     mem_mapping_t	mmio_mapping;
     mem_mapping_t 	linear_mapping;
     mem_mapping_t 	aperture2_mapping;
+    mem_mapping_t	vgablt_mapping;
 
     svga_t		svga;
 
@@ -191,11 +190,24 @@ typedef struct gd54xx_t
 	int			unlock_special;
     } blt;
 
-    int			pci, vlb, mca;
-    int			countminusone;
+    struct {
+	int			mode;
+	uint16_t		stride, r1sz, r1adjust, r2sz,
+				r2adjust, r2sdz, wvs, wve,
+				hzoom, vzoom;
+	uint8_t			occlusion, colorkeycomparemask,
+				colorkeycompare;
+	int			region1size, region2size,
+				colorkeymode;
+	uint32_t		ck;
+    } overlay;
+
+    int			pci, vlb, mca, countminusone;
+    int			vblank_irq, vportsync;
 
     uint8_t		pci_regs[256];
-    uint8_t		int_line, unlocked;
+    uint8_t		int_line, unlocked, status, extensions;
+    uint8_t		crtcreg_mask;
 
     uint8_t		fc;		/* Feature Connector */
 
@@ -204,7 +216,7 @@ typedef struct gd54xx_t
     uint8_t		pos_regs[8];
     svga_t		*mb_vga;
 
-    uint32_t		lfb_base;
+    uint32_t		lfb_base, vgablt_base;
 
     int			mmio_vram_overlap;
 
@@ -247,6 +259,266 @@ static void
 gd54xx_start_blit(uint32_t cpu_dat, uint32_t count, gd54xx_t *gd54xx, svga_t *svga);
 
 
+#define CLAMP(x) do                                     \
+        {                                               \
+                if ((x) & ~0xff)                        \
+                        x = ((x) < 0) ? 0 : 0xff;       \
+        }                               \
+        while (0)
+
+#define DECODE_YCbCr()                                                  \
+        do                                                              \
+        {                                                               \
+                int c;                                                  \
+                                                                        \
+                for (c = 0; c < 2; c++)                                 \
+                {                                                       \
+                        uint8_t y1, y2;                                 \
+                        int8_t Cr, Cb;                                  \
+                        int dR, dG, dB;                                 \
+                                                                        \
+                        y1 = src[0];                                    \
+                        Cr = src[1] - 0x80;                             \
+                        y2 = src[2];                                    \
+                        Cb = src[3] - 0x80;                             \
+                        src += 4;                                       \
+                                                                        \
+                        dR = (359*Cr) >> 8;                             \
+                        dG = (88*Cb + 183*Cr) >> 8;                     \
+                        dB = (453*Cb) >> 8;                             \
+                                                                        \
+                        r[x_write] = y1 + dR;                           \
+                        CLAMP(r[x_write]);                              \
+                        g[x_write] = y1 - dG;                           \
+                        CLAMP(g[x_write]);                              \
+                        b[x_write] = y1 + dB;                           \
+                        CLAMP(b[x_write]);                              \
+                                                                        \
+                        r[x_write+1] = y2 + dR;                         \
+                        CLAMP(r[x_write+1]);                            \
+                        g[x_write+1] = y2 - dG;                         \
+                        CLAMP(g[x_write+1]);                            \
+                        b[x_write+1] = y2 + dB;                         \
+                        CLAMP(b[x_write+1]);                            \
+                                                                        \
+                        x_write = (x_write + 2) & 7;                    \
+                }                                                       \
+        } while (0)
+
+/*Both YUV formats are untested*/
+#define DECODE_YUV211()                                         \
+        do                                                      \
+        {                                                       \
+                uint8_t y1, y2, y3, y4;                         \
+                int8_t U, V;                                    \
+                int dR, dG, dB;                                 \
+                                                                \
+                U = src[0] - 0x80;                              \
+                y1 = (298 * (src[1] - 16)) >> 8;                \
+                y2 = (298 * (src[2] - 16)) >> 8;                \
+                V = src[3] - 0x80;                              \
+                y3 = (298 * (src[4] - 16)) >> 8;                \
+                y4 = (298 * (src[5] - 16)) >> 8;                \
+                src += 6;                                       \
+                                                                \
+                dR = (309*V) >> 8;                              \
+                dG = (100*U + 208*V) >> 8;                      \
+                dB = (516*U) >> 8;                              \
+                                                                \
+                r[x_write] = y1 + dR;                           \
+                CLAMP(r[x_write]);                              \
+                g[x_write] = y1 - dG;                           \
+                CLAMP(g[x_write]);                              \
+                b[x_write] = y1 + dB;                           \
+                CLAMP(b[x_write]);                              \
+                                                                \
+                r[x_write+1] = y2 + dR;                         \
+                CLAMP(r[x_write+1]);                            \
+                g[x_write+1] = y2 - dG;                         \
+                CLAMP(g[x_write+1]);                            \
+                b[x_write+1] = y2 + dB;                         \
+                CLAMP(b[x_write+1]);                            \
+                                                                \
+                r[x_write+2] = y3 + dR;                         \
+                CLAMP(r[x_write+2]);                            \
+                g[x_write+2] = y3 - dG;                         \
+                CLAMP(g[x_write+2]);                            \
+                b[x_write+2] = y3 + dB;                         \
+                CLAMP(b[x_write+2]);                            \
+                                                                \
+                r[x_write+3] = y4 + dR;                         \
+                CLAMP(r[x_write+3]);                            \
+                g[x_write+3] = y4 - dG;                         \
+                CLAMP(g[x_write+3]);                            \
+                b[x_write+3] = y4 + dB;                         \
+                CLAMP(b[x_write+3]);                            \
+                                                                \
+                x_write = (x_write + 4) & 7;                    \
+        } while (0)
+
+#define DECODE_YUV422()                                                 \
+        do                                                              \
+        {                                                               \
+                int c;                                                  \
+                                                                        \
+                for (c = 0; c < 2; c++)                                 \
+                {                                                       \
+                        uint8_t y1, y2;                                 \
+                        int8_t U, V;                                    \
+                        int dR, dG, dB;                                 \
+                                                                        \
+                        U = src[0] - 0x80;                              \
+                        y1 = (298 * (src[1] - 16)) >> 8;                \
+                        V = src[2] - 0x80;                              \
+                        y2 = (298 * (src[3] - 16)) >> 8;                \
+                        src += 4;                                       \
+                                                                        \
+                        dR = (309*V) >> 8;                              \
+                        dG = (100*U + 208*V) >> 8;                      \
+                        dB = (516*U) >> 8;                              \
+                                                                        \
+                        r[x_write] = y1 + dR;                           \
+                        CLAMP(r[x_write]);                              \
+                        g[x_write] = y1 - dG;                           \
+                        CLAMP(g[x_write]);                              \
+                        b[x_write] = y1 + dB;                           \
+                        CLAMP(b[x_write]);                              \
+                                                                        \
+                        r[x_write+1] = y2 + dR;                         \
+                        CLAMP(r[x_write+1]);                            \
+                        g[x_write+1] = y2 - dG;                         \
+                        CLAMP(g[x_write+1]);                            \
+                        b[x_write+1] = y2 + dB;                         \
+                        CLAMP(b[x_write+1]);                            \
+                                                                        \
+                        x_write = (x_write + 2) & 7;                    \
+                }                                                       \
+        } while (0)
+
+#define DECODE_RGB555()                                                 \
+        do                                                              \
+        {                                                               \
+                int c;                                                  \
+                                                                        \
+                for (c = 0; c < 4; c++)                                 \
+                {                                                       \
+                        uint16_t dat;                                   \
+                                                                        \
+                        dat = *(uint16_t *)src;                         \
+                        src += 2;                                       \
+                                                                        \
+                        r[x_write + c] = ((dat & 0x001f) << 3) | ((dat & 0x001f) >> 2); \
+                        g[x_write + c] = ((dat & 0x03e0) >> 2) | ((dat & 0x03e0) >> 7); \
+                        b[x_write + c] = ((dat & 0x7c00) >> 7) | ((dat & 0x7c00) >> 12); \
+                }                                                       \
+                x_write = (x_write + 4) & 7;                            \
+        } while (0)
+
+#define DECODE_RGB565()                                                 \
+        do                                                              \
+        {                                                               \
+                int c;                                                  \
+                                                                        \
+                for (c = 0; c < 4; c++)                                 \
+                {                                                       \
+                        uint16_t dat;                                   \
+                                                                        \
+                        dat = *(uint16_t *)src;                         \
+                        src += 2;                                       \
+                                                                        \
+                        r[x_write + c] = ((dat & 0x001f) << 3) | ((dat & 0x001f) >> 2); \
+                        g[x_write + c] = ((dat & 0x07e0) >> 3) | ((dat & 0x07e0) >> 9); \
+                        b[x_write + c] = ((dat & 0xf800) >> 8) | ((dat & 0xf800) >> 13); \
+                }                                                       \
+                x_write = (x_write + 4) & 7;                            \
+        } while (0)
+
+#define DECODE_CLUT()                                                   \
+        do                                                              \
+        {                                                               \
+                int c;                                                  \
+                                                                        \
+                for (c = 0; c < 4; c++)                                 \
+                {                                                       \
+                        uint8_t dat;                                    \
+                                                                        \
+                        dat = *(uint8_t *)src;                          \
+                        src++;                                          \
+                                                                        \
+                        r[x_write + c] = svga->pallook[dat] >>  0;      \
+                        g[x_write + c] = svga->pallook[dat] >>  8;      \
+                        b[x_write + c] = svga->pallook[dat] >> 16;      \
+                }                                                       \
+                x_write = (x_write + 4) & 7;                            \
+        } while (0)
+
+
+
+#define OVERLAY_SAMPLE()                        \
+        do                                      \
+        {                                       \
+                switch (gd54xx->overlay.mode)   \
+                {                               \
+                        case 0:                 \
+                        DECODE_YUV422();        \
+                        break;                  \
+                        case 2:                 \
+                        DECODE_CLUT();          \
+                        break;                  \
+                        case 3:                 \
+                        DECODE_YUV211();        \
+                        break;                  \
+                        case 4:                 \
+                        DECODE_RGB555();        \
+                        break;                  \
+                        case 5:                 \
+                        DECODE_RGB565();        \
+                        break;                  \
+                }                               \
+        } while (0)
+
+
+static int
+gd54xx_interrupt_enabled(gd54xx_t *gd54xx)
+{
+    return !gd54xx->pci || (gd54xx->svga.gdcreg[0x17] & 0x04);
+}
+
+
+static int
+gd54xx_vga_vsync_enabled(gd54xx_t *gd54xx)
+{
+    if (!(gd54xx->svga.crtc[0x11] & 0x20) && (gd54xx->svga.crtc[0x11] & 0x10) &&
+	gd54xx_interrupt_enabled(gd54xx))
+        return 1;
+    return 0;
+}
+
+
+static void
+gd54xx_update_irqs(gd54xx_t *gd54xx)
+{
+    if (!gd54xx->pci)
+	return;
+
+    if ((gd54xx->vblank_irq > 0) && gd54xx_vga_vsync_enabled(gd54xx))
+        pci_set_irq(gd54xx->card, PCI_INTA);
+    else
+        pci_clear_irq(gd54xx->card, PCI_INTA);
+}
+
+
+static void
+gd54xx_vblank_start(svga_t *svga)
+{
+    gd54xx_t *gd54xx = (gd54xx_t*) svga->p;
+    if (gd54xx->vblank_irq >= 0) {
+        gd54xx->vblank_irq = 1;
+        gd54xx_update_irqs(gd54xx);
+    }
+}
+
+
 /* Returns 1 if the card is a 5422+ */
 static int
 gd54xx_is_5422(svga_t *svga)
@@ -255,6 +527,92 @@ gd54xx_is_5422(svga_t *svga)
 	return 1;
     else
 	return 0;
+}
+
+
+static void
+gd54xx_overlay_draw(svga_t *svga, int displine)
+{
+    gd54xx_t *gd54xx = (gd54xx_t *) svga->p;
+    int shift = (svga->crtc[0x27] >= CIRRUS_ID_CLGD5446) ? 2 : 0;
+    int h_acc = svga->overlay_latch.h_acc;
+    int r[8], g[8], b[8];
+    int x_read = 4, x_write = 4;
+    int x;
+    uint32_t *p;
+    uint8_t *src = &svga->vram[(svga->overlay_latch.addr << shift) & svga->vram_mask];
+    int bpp = svga->bpp;
+    int bytesperpix = (bpp + 7) / 8;
+    uint8_t *src2 = &svga->vram[(svga->ma - (svga->hdisp * bytesperpix))  & svga->vram_display_mask];
+    int w = gd54xx->overlay.r2sdz;
+    int occl, ckval;
+
+    if (gd54xx->overlay.mode == 2)
+	w *= 4;
+    else
+	w *= 2;
+
+    p = &((uint32_t *)buffer32->line[displine])[gd54xx->overlay.region1size + svga->x_add];
+    src2 += gd54xx->overlay.region1size * bytesperpix;
+
+    OVERLAY_SAMPLE();
+
+    for (x = 0; (x < gd54xx->overlay.region2size) &&
+	 ((x + gd54xx->overlay.region1size) < svga->hdisp); x++) {
+	if (gd54xx->overlay.occlusion) {
+		occl = 1;
+		ckval = gd54xx->overlay.ck;
+		if (bytesperpix == 1) {
+			if (*src2 == ckval)
+				occl = 0;
+		} else if (bytesperpix == 2) {
+			if (*((uint16_t*)src2) == ckval)
+				occl = 0;
+		} else
+			occl = 0;
+		if (!occl)
+			*p++ = r[x_read] | (g[x_read] << 8) | (b[x_read] << 16);
+		src2 += bytesperpix;
+	} else
+		*p++ = r[x_read] | (g[x_read] << 8) | (b[x_read] << 16);
+
+	h_acc += gd54xx->overlay.hzoom;
+	if (h_acc >= 256) {
+		if ((x_read ^ (x_read + 1)) & ~3)
+			OVERLAY_SAMPLE();
+		x_read = (x_read + 1) & 7;
+
+		h_acc -= 256;
+	}
+    }
+
+    svga->overlay_latch.v_acc += gd54xx->overlay.vzoom;
+    if (svga->overlay_latch.v_acc >= 256) {
+	svga->overlay_latch.v_acc -= 256;
+	svga->overlay_latch.addr += svga->overlay.pitch << 1;
+    }
+}
+
+
+static void
+gd54xx_update_overlay(gd54xx_t *gd54xx)
+{
+    svga_t *svga = &gd54xx->svga;
+    int bpp = svga->bpp;
+
+    svga->overlay.ysize = gd54xx->overlay.wve - gd54xx->overlay.wvs + 1;
+    gd54xx->overlay.region1size = 32 * gd54xx->overlay.r1sz / bpp + (gd54xx->overlay.r1adjust * 8 / bpp);
+    gd54xx->overlay.region2size = 32 * gd54xx->overlay.r2sz / bpp + (gd54xx->overlay.r2adjust * 8 / bpp);
+
+    gd54xx->overlay.occlusion = (svga->crtc[0x3e] & 0x80) != 0 && svga->bpp <= 16;
+
+    /* Mask and chroma key ignored. */
+    if (gd54xx->overlay.colorkeymode == 0)
+	gd54xx->overlay.ck = gd54xx->overlay.colorkeycompare;
+    else if (gd54xx->overlay.colorkeymode == 1)
+	gd54xx->overlay.ck = gd54xx->overlay.colorkeycompare | (gd54xx->overlay.colorkeycomparemask << 8);
+    else
+	gd54xx->overlay.occlusion = 0;
 }
 
 
@@ -535,9 +893,20 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 						svga->adv_flags = FLAG_EXTRA_BANKS;
 					if (svga->gdcreg[0xb] & 0x02)
 						svga->adv_flags |= FLAG_ADDR_BY8;
+					if (svga->gdcreg[0xb] & 0x04)
+						svga->adv_flags |= FLAG_EXT_WRITE;
 					if (svga->gdcreg[0xb] & 0x08)
 						svga->adv_flags |= FLAG_LATCH8;
 					gd54xx_recalc_banking(gd54xx);
+					break;
+
+				case 0x0c:
+					gd54xx->overlay.colorkeycompare = val;
+					gd54xx_update_overlay(gd54xx);
+					break;
+				case 0x0d:
+					gd54xx->overlay.colorkeycomparemask = val;
+					gd54xx_update_overlay(gd54xx);
 					break;
 
 				case 0x10:
@@ -642,7 +1011,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 		}
 		return;
 	case 0x3d4:
-		svga->crtcreg = val & 0x3f;
+		svga->crtcreg = val & gd54xx->crtcreg_mask;
 		return;
 	case 0x3d5:
 		if (((svga->crtcreg == 0x19) || (svga->crtcreg == 0x1a) ||
@@ -657,7 +1026,104 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 		old = svga->crtc[svga->crtcreg];
 		svga->crtc[svga->crtcreg] = val;
 
+		if (svga->crtcreg == 0x11) {
+			if (!(val & 0x10)) {
+				if (gd54xx->vblank_irq > 0)
+					gd54xx->vblank_irq = -1;
+			} else if (gd54xx->vblank_irq < 0)
+				gd54xx->vblank_irq = 0;
+			gd54xx_update_irqs(gd54xx);
+			if ((val & ~0x30) == (old & ~0x30))
+				old = val;
+		}
+
 		if (old != val) {
+			/* Overlay registers */
+			switch (svga->crtcreg) {
+				case 0x1d:
+					if (((old >> 3) & 7) != ((val >> 3) & 7)) {
+						gd54xx->overlay.colorkeymode = (val >> 3) & 7;
+						gd54xx_update_overlay(gd54xx);
+					}
+					break;
+				case 0x31:
+					gd54xx->overlay.hzoom = val == 0 ? 256 : val;
+					gd54xx_update_overlay(gd54xx);
+					break;
+				case 0x32:
+					gd54xx->overlay.vzoom = val == 0 ? 256 : val;
+					gd54xx_update_overlay(gd54xx);
+					break;
+				case 0x33:
+					gd54xx->overlay.r1sz &= ~0xff;
+					gd54xx->overlay.r1sz |= val;
+					gd54xx_update_overlay(gd54xx);
+					break;
+				case 0x34:
+					gd54xx->overlay.r2sz &= ~0xff;
+					gd54xx->overlay.r2sz |= val;
+					gd54xx_update_overlay(gd54xx);
+					break;
+				case 0x35:
+					gd54xx->overlay.r2sdz &= ~0xff;
+					gd54xx->overlay.r2sdz |= val;
+					gd54xx_update_overlay(gd54xx);
+					break;
+				case 0x36:
+					gd54xx->overlay.r1sz &= 0xff;
+					gd54xx->overlay.r1sz |= (val << 8) & 0x300;
+					gd54xx->overlay.r2sz &= 0xff;
+					gd54xx->overlay.r2sz |= (val << 6) & 0x300;
+					gd54xx->overlay.r2sdz &= 0xff;
+					gd54xx->overlay.r2sdz |= (val << 4) & 0x300;
+					gd54xx_update_overlay(gd54xx);
+					break;
+				case 0x37:
+					gd54xx->overlay.wvs &= ~0xff;
+					gd54xx->overlay.wvs |= val;
+					svga->overlay.y = gd54xx->overlay.wvs;
+					break;
+				case 0x38:
+					gd54xx->overlay.wve &= ~0xff;
+					gd54xx->overlay.wve |= val;
+					gd54xx_update_overlay(gd54xx);
+					break;
+				case 0x39:
+					gd54xx->overlay.wvs &= 0xff;
+					gd54xx->overlay.wvs |= (val << 8) & 0x300;
+					gd54xx->overlay.wve &= 0xff;
+					gd54xx->overlay.wve |= (val << 6) & 0x300;
+					gd54xx_update_overlay(gd54xx);
+					break;
+				case 0x3a:
+					svga->overlay.addr &= ~0xff;
+					svga->overlay.addr |= val;
+					gd54xx_update_overlay(gd54xx);
+					break;
+				case 0x3b:
+					svga->overlay.addr &= ~0xff00;
+					svga->overlay.addr |= val << 8;
+					gd54xx_update_overlay(gd54xx);
+					break;
+				case 0x3c:
+					svga->overlay.addr &= ~0x0f0000;
+					svga->overlay.addr |= (val << 16) & 0x0f0000;
+					svga->overlay.pitch &= ~0x100;
+					svga->overlay.pitch |= (val & 0x20) << 3;
+					gd54xx_update_overlay(gd54xx);
+					break;
+				case 0x3d:
+					svga->overlay.pitch &= ~0xff;
+					svga->overlay.pitch |= val;
+					gd54xx_update_overlay(gd54xx);
+					break;
+				case 0x3e:
+					gd54xx->overlay.mode = (val >> 1) & 7;
+					svga->overlay.ena = (val & 1) != 0;
+					gd54xx_update_overlay(gd54xx);
+					break;
+			}
+
 			if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
 				svga->fullchange = changeframecount;
 				svga_recalctimings(svga);
@@ -681,6 +1147,11 @@ gd54xx_in(uint16_t addr, void *p)
 	addr ^= 0x60;
 
     switch (addr) {
+	case 0x3c2:
+		ret = svga_in(addr, svga);
+		ret |= gd54xx->vblank_irq > 0 ? 0x80 : 0x00;
+		break;
+
 	case 0x3c4:
 		if (svga->seqregs[6] == 0x12) {
 			ret = svga->seqaddr;
@@ -913,6 +1384,12 @@ gd54xx_in(uint16_t addr, void *p)
 				case 0x39:
 					ret = gd543x_mmio_read(0xb8021, gd54xx);
 					break;
+
+				case 0x3f:
+					if (svga->crtc[0x27] == CIRRUS_ID_CLGD5446)
+						gd54xx->vportsync = !gd54xx->vportsync;
+					ret = gd54xx->vportsync ? 0x80 : 0x00;
+					break;
 			}
 		} else {
 			if ((svga->gdcaddr < 2) && !gd54xx->unlocked)
@@ -1058,7 +1535,9 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
 		}
 	} else if (gd54xx->pci) {
 		base = gd54xx->lfb_base;
-		if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5436)
+		/* if (svga->crtc[0x27] == CIRRUS_ID_CLGD5480)
+			size = 32 * 1024 * 1024;
+		else */ if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5436)
 			size = 16 * 1024 * 1024;
 		else
 			size = 4 * 1024 * 1024;
@@ -1082,9 +1561,12 @@ gd543x_recalc_mapping(gd54xx_t *gd54xx)
 
 	if ((svga->crtc[0x27] >= CIRRUS_ID_CLGD5436) && (gd54xx->blt.status & CIRRUS_BLT_APERTURE2) &&
 	    ((gd54xx->blt.mode & (CIRRUS_BLTMODE_COLOREXPAND | CIRRUS_BLTMODE_MEMSYSSRC)) ==
-	    (CIRRUS_BLTMODE_COLOREXPAND | CIRRUS_BLTMODE_MEMSYSSRC)))
-		mem_mapping_set_addr(&gd54xx->aperture2_mapping, 0xbc000, 0x04000);
-	else
+	    (CIRRUS_BLTMODE_COLOREXPAND | CIRRUS_BLTMODE_MEMSYSSRC))) {
+		if (svga->crtc[0x27] == CIRRUS_ID_CLGD5480)
+			mem_mapping_set_addr(&gd54xx->aperture2_mapping, gd54xx->lfb_base + (16777216), 16777216);
+		else
+			mem_mapping_set_addr(&gd54xx->aperture2_mapping, 0xbc000, 0x04000);
+	} else
 		mem_mapping_disable(&gd54xx->aperture2_mapping);
     }
 }
@@ -1095,15 +1577,19 @@ gd54xx_recalctimings(svga_t *svga)
 {
     gd54xx_t *gd54xx = (gd54xx_t *)svga->p;	
     uint8_t clocksel, rdmask;
+    uint8_t linedbl = svga->dispend * 9 / 10 >= svga->hdisp;
 
     svga->rowoffset = (svga->crtc[0x13]) | ((svga->crtc[0x1b] & 0x10) << 4);
 
     svga->interlace = (svga->crtc[0x1a] & 0x01);
 
     svga->map8 = svga->pallook;
-    if (svga->seqregs[7] & CIRRUS_SR7_BPP_SVGA)
-	svga->render = svga_render_8bpp_highres;
-    else if (svga->gdcreg[5] & 0x40)
+    if (svga->seqregs[7] & CIRRUS_SR7_BPP_SVGA) {
+	if (linedbl)
+		svga->render = svga_render_8bpp_lowres;
+	else
+		svga->render = svga_render_8bpp_highres;
+    } else if (svga->gdcreg[5] & 0x40)
 	svga->render = svga_render_8bpp_lowres;
 
     svga->ma_latch |= ((svga->crtc[0x1b] & 0x01) << 16) | ((svga->crtc[0x1b] & 0xc) << 15);
@@ -1120,39 +1606,61 @@ gd54xx_recalctimings(svga_t *svga)
 		switch (gd54xx->ramdac.ctrl & rdmask) {
 			case 0:
 				svga->bpp = 15;
-				if (gd54xx->ramdac.ctrl & 0x10)
-					svga->render = svga_render_15bpp_mix_highres;
-				else
-					svga->render = svga_render_15bpp_highres;
+				if (linedbl) {
+					if (gd54xx->ramdac.ctrl & 0x10)
+						svga->render = svga_render_15bpp_mix_lowres;
+					else
+						svga->render = svga_render_15bpp_lowres;
+				} else {
+					if (gd54xx->ramdac.ctrl & 0x10)
+						svga->render = svga_render_15bpp_mix_highres;
+					else
+						svga->render = svga_render_15bpp_highres;
+				}
 				break;
 
 			case 1:
 				svga->bpp = 16;
-				svga->render = svga_render_16bpp_highres;
+				if (linedbl)
+					svga->render = svga_render_16bpp_lowres;
+				else
+					svga->render = svga_render_16bpp_highres;
 				break;
 
 			case 5:
 				if (gd54xx_is_5434(svga) && (svga->seqregs[7] & CIRRUS_SR7_BPP_32)) {
 					svga->bpp = 32;
-					svga->render = svga_render_32bpp_highres;
+					if (linedbl)
+						svga->render = svga_render_32bpp_lowres;
+					else
+						svga->render = svga_render_32bpp_highres;
 					if (svga->crtc[0x27] < CIRRUS_ID_CLGD5436)
 						svga->rowoffset *= 2;
 				} else {
 					svga->bpp = 24;
-					svga->render = svga_render_24bpp_highres;
+					if (linedbl)
+						svga->render = svga_render_24bpp_lowres;
+					else
+						svga->render = svga_render_24bpp_highres;
 				}
 				break;
 
 			case 8:
 				svga->bpp = 8;
 				svga->map8 = video_8togs;
-				svga->render = svga_render_8bpp_highres;
+				if (linedbl)
+					svga->render = svga_render_8bpp_lowres;
+				else
+					svga->render = svga_render_8bpp_highres;
 				break;
 
 			case 9:
 				svga->bpp = 8;
 				svga->map8 = video_8to32;
-				svga->render = svga_render_8bpp_highres;
+				if (linedbl)
+					svga->render = svga_render_8bpp_lowres;
+				else
+					svga->render = svga_render_8bpp_highres;
 				break;
 
 			case 0xf:	
@@ -1160,41 +1668,63 @@ gd54xx_recalctimings(svga_t *svga)
 					case CIRRUS_SR7_BPP_32:	
 						if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5430) {	
 							svga->bpp = 32;	
-							svga->render = svga_render_32bpp_highres;	
+							if (linedbl)
+								svga->render = svga_render_32bpp_lowres;
+							else
+								svga->render = svga_render_32bpp_highres;
 							svga->rowoffset *= 2;	
 						}	
 						break;	
 
 					case CIRRUS_SR7_BPP_24:	
 						svga->bpp = 24;	
-						svga->render = svga_render_24bpp_highres;	
+						if (linedbl)
+							svga->render = svga_render_24bpp_lowres;
+						else
+							svga->render = svga_render_24bpp_highres;
 						break;	
 
 					case CIRRUS_SR7_BPP_16:	
 						if ((svga->crtc[0x27] >= CIRRUS_ID_CLGD5428) || (svga->crtc[0x27] == CIRRUS_ID_CLGD5426)) {	
 							svga->bpp = 16;	
-							svga->render = svga_render_16bpp_highres;	
+							if (linedbl)
+								svga->render = svga_render_16bpp_lowres;
+							else
+								svga->render = svga_render_16bpp_highres;
 						}	
 						break;	
 
 					case CIRRUS_SR7_BPP_16_DOUBLEVCLK:	
 						svga->bpp = 16;	
-						svga->render = svga_render_16bpp_highres;	
+						if (linedbl)
+							svga->render = svga_render_16bpp_lowres;
+						else
+							svga->render = svga_render_16bpp_highres;
 						break;	
 
 					case CIRRUS_SR7_BPP_8:	
 						svga->bpp = 8;	
-						svga->render = svga_render_8bpp_highres;	
+						if (linedbl)
+							svga->render = svga_render_8bpp_lowres;
+						else
+							svga->render = svga_render_8bpp_highres;
 						break;	
 				}	
 				break;
 		}
 	} else {
 		svga->bpp = 15;
-		if (gd54xx->ramdac.ctrl & 0x10)
-			svga->render = svga_render_15bpp_mix_highres;
-		else
-			svga->render = svga_render_15bpp_highres;
+		if (linedbl) {
+			if (gd54xx->ramdac.ctrl & 0x10)
+				svga->render = svga_render_15bpp_mix_lowres;
+			else
+				svga->render = svga_render_15bpp_lowres;
+		} else {
+			if (gd54xx->ramdac.ctrl & 0x10)
+				svga->render = svga_render_15bpp_mix_highres;
+			else
+				svga->render = svga_render_15bpp_highres;
+		}
 	}
     }
 
@@ -1235,16 +1765,19 @@ void gd54xx_hwcursor_draw(svga_t *svga, int displine)
     int pitch = (svga->hwcursor.xsize == 64) ? 16 : 4;
     uint32_t bgcol = gd54xx->extpallook[0x00];
     uint32_t fgcol = gd54xx->extpallook[0x0f];
+    uint8_t linedbl = svga->dispend * 9 / 10 >= svga->hdisp;
+
+    offset <<= linedbl;
 
     if (svga->interlace && svga->hwcursor_oddeven)
 	svga->hwcursor_latch.addr += pitch;
 
     for (x = 0; x < svga->hwcursor.xsize; x += 8) {
-	dat[0] = svga->vram[svga->hwcursor_latch.addr];
+	dat[0] = svga->vram[svga->hwcursor_latch.addr & svga->vram_display_mask];
 	if (svga->hwcursor.xsize == 64)
-		dat[1] = svga->vram[svga->hwcursor_latch.addr + 0x08];
+		dat[1] = svga->vram[(svga->hwcursor_latch.addr + 0x08) & svga->vram_display_mask];
 	else
-		dat[1] = svga->vram[svga->hwcursor_latch.addr + 0x80];
+		dat[1] = svga->vram[(svga->hwcursor_latch.addr + 0x80) & svga->vram_display_mask];
 	for (xx = 0; xx < 8; xx++) {
 		b0 = (dat[0] >> (7 - xx)) & 1;
 		b1 = (dat[1] >> (7 - xx)) & 1;
@@ -1447,6 +1980,7 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
 	case 4:
 		if (svga->gdcreg[0xb] & 0x10) {
 			addr <<= 2;
+			addr &= svga->decode_mask;
 
 			for (i = 0; i < 8; i++) {
 				if (val & svga->seqregs[2] & (0x80 >> i)) {
@@ -1456,6 +1990,7 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
 			}
 		} else {
 			addr <<= 1;
+			addr &= svga->decode_mask;
 
 			for (i = 0; i < 8; i++) {
 				if (val & svga->seqregs[2] & (0x80 >> i))
@@ -1467,6 +2002,7 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
 	case 5:
 		if (svga->gdcreg[0xb] & 0x10) {
 			addr <<= 2;
+			addr &= svga->decode_mask;
 
 			for (i = 0; i < 8; i++) {
 				j = (0x80 >> i);
@@ -1479,6 +2015,7 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
 			}
 		} else {
 			addr <<= 1;
+			addr &= svga->decode_mask;
 
 			for (i = 0; i < 8; i++) {
 				j = (0x80 >> i);
@@ -1602,7 +2139,7 @@ gd54xx_readw_linear(uint32_t addr, void *p)
 		temp |= (svga_readb_linear(addr, svga) << 8);
 
 		if (svga->fast)
-		        sub_cycles(video_timing_read_w);
+		        cycles -= video_timing_read_w;
 
 		return temp;
 	case 3:
@@ -1653,7 +2190,7 @@ gd54xx_readl_linear(uint32_t addr, void *p)
 		temp |= (svga_readb_linear(addr + 2, svga) << 24);
 
 		if (svga->fast)
-		        sub_cycles(video_timing_read_l);
+		        cycles -= video_timing_read_l;
 
 		return temp;
 	case 2:
@@ -1663,7 +2200,7 @@ gd54xx_readl_linear(uint32_t addr, void *p)
 		temp |= (svga_readb_linear(addr, svga) << 24);
 
 		if (svga->fast)
-		        sub_cycles(video_timing_read_l);
+		        cycles -= video_timing_read_l;
 
 		return temp;
 	case 3:
@@ -1852,7 +2389,7 @@ gd54xx_writew_linear(uint32_t addr, uint16_t val, void *p)
 			svga_writeb_linear(addr, val >> 8, svga);
 
 			if (svga->fast)
-		        	sub_cycles(video_timing_write_w);
+				cycles -= video_timing_write_w;
 		case 3:
 			return;
 	}
@@ -2449,6 +2986,98 @@ gd543x_mmio_readl(uint32_t addr, void *p)
 }
 
 
+static void
+gd5480_vgablt_write(uint32_t addr, uint8_t val, void *p)
+{
+    addr &= 0x00000fff;
+
+    if ((addr >= 0x00000100) && (addr < 0x00000200))
+	gd543x_mmio_writeb((addr & 0x000000ff) | 0x000b8000, val, p);
+    else if (addr < 0x00000100)
+	gd54xx_out(0x03c0 + addr, val, p);
+}
+
+
+static void
+gd5480_vgablt_writew(uint32_t addr, uint16_t val, void *p)
+{
+    addr &= 0x00000fff;
+
+    if ((addr >= 0x00000100) && (addr < 0x00000200))
+	gd543x_mmio_writew((addr & 0x000000ff) | 0x000b8000, val, p);
+    else if (addr < 0x00000100) {
+	gd5480_vgablt_write(addr, val & 0xff, p);
+	gd5480_vgablt_write(addr + 1, val >> 8, p);
+   }
+}
+
+
+static void
+gd5480_vgablt_writel(uint32_t addr, uint32_t val, void *p)
+{
+    addr &= 0x00000fff;
+
+    if ((addr >= 0x00000100) && (addr < 0x00000200))
+	gd543x_mmio_writel((addr & 0x000000ff) | 0x000b8000, val, p);
+    else if (addr < 0x00000100) {
+	gd5480_vgablt_writew(addr, val & 0xffff, p);
+	gd5480_vgablt_writew(addr + 2, val >> 16, p);
+   }
+}
+
+
+static uint8_t
+gd5480_vgablt_read(uint32_t addr, void *p)
+{
+    uint8_t ret = 0xff;
+
+    addr &= 0x00000fff;
+
+    if ((addr >= 0x00000100) && (addr < 0x00000200))
+	ret = gd543x_mmio_read((addr & 0x000000ff) | 0x000b8000, p);
+    else if (addr < 0x00000100)
+	ret = gd54xx_in(0x03c0 + addr, p);
+
+    return ret;
+}
+
+
+static uint16_t
+gd5480_vgablt_readw(uint32_t addr, void *p)
+{
+    uint16_t ret = 0xffff;
+
+    addr &= 0x00000fff;
+
+    if ((addr >= 0x00000100) && (addr < 0x00000200))
+	ret = gd543x_mmio_readw((addr & 0x000000ff) | 0x000b8000, p);
+    else if (addr < 0x00000100) {
+	ret = gd5480_vgablt_read(addr, p);
+	ret |= (gd5480_vgablt_read(addr + 1, p) << 8);
+    }
+
+    return ret;
+}
+
+
+static uint32_t
+gd5480_vgablt_readl(uint32_t addr, void *p)
+{
+    uint32_t ret = 0xffffffff;
+
+    addr &= 0x00000fff;
+
+    if ((addr >= 0x00000100) && (addr < 0x00000200))
+	ret = gd543x_mmio_readl((addr & 0x000000ff) | 0x000b8000, p);
+    else if (addr < 0x00000100) {
+	ret = gd5480_vgablt_readw(addr, p);
+	ret |= (gd5480_vgablt_readw(addr + 2, p) << 16);
+    }
+
+    return ret;
+}
+
+
 static uint8_t
 gd54xx_color_expand(gd54xx_t *gd54xx, int mask, int shift)
 {
@@ -2945,6 +3574,21 @@ cl_pci_read(int func, int addr, void *p)
 		break;
 	case 0x13:
 		ret = gd54xx->lfb_base >> 24;
+		if (svga->crtc[0x27] == CIRRUS_ID_CLGD5480)
+			ret = 0xfe;
+		break;
+
+	case 0x14:
+		ret = 0x00;	/*PCI VGA/BitBLT Register Base Address*/
+		break;
+	case 0x15:
+		ret = (svga->crtc[0x27] == CIRRUS_ID_CLGD5480) ? ((gd54xx->vgablt_base >> 8) & 0xf0) : 0x00;
+		break;
+	case 0x16:
+		ret = (svga->crtc[0x27] == CIRRUS_ID_CLGD5480) ? ((gd54xx->vgablt_base >> 16) & 0xff) : 0x00;
+		break;
+	case 0x17:
+		ret = (svga->crtc[0x27] == CIRRUS_ID_CLGD5480) ? ((gd54xx->vgablt_base >> 24) & 0xff) : 0x00;
 		break;
 
 	case 0x30:
@@ -2976,6 +3620,8 @@ static void
 cl_pci_write(int func, int addr, uint8_t val, void *p)
 {
     gd54xx_t *gd54xx = (gd54xx_t *)p;
+    svga_t *svga = &gd54xx->svga;
+    uint32_t byte;
 
     if ((addr >= 0x30) && (addr <= 0x33) && (!gd54xx->has_bios))
 	return;
@@ -2983,16 +3629,36 @@ cl_pci_write(int func, int addr, uint8_t val, void *p)
     switch (addr) {
 	case PCI_REG_COMMAND:
 		gd54xx->pci_regs[PCI_REG_COMMAND] = val & 0x23;
+		mem_mapping_disable(&gd54xx->vgablt_mapping);
 		io_removehandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
 		if (val & PCI_COMMAND_IO)
 			io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
+		if ((val & PCI_COMMAND_MEM) && (gd54xx->vgablt_base != 0x00000000) && (gd54xx->vgablt_base < 0xfff00000))
+			mem_mapping_set_addr(&gd54xx->vgablt_mapping, gd54xx->vgablt_base, 0x1000);
 		gd543x_recalc_mapping(gd54xx);
 		break;
 
-	case 0x13: 
+	case 0x13:
+		/* 5480, like 5446 rev. B, has a 32 MB aperture, with the second set used for
+		   BitBLT transfers. */
+		if (svga->crtc[0x27] == CIRRUS_ID_CLGD5480)
+			val &= 0xfe;
 		gd54xx->lfb_base = val << 24;
 		gd543x_recalc_mapping(gd54xx);
 		break;                
+
+	case 0x15: case 0x16: case 0x17:
+		if (svga->crtc[0x27] != CIRRUS_ID_CLGD5480)
+			return;
+		byte = (addr & 3) << 3;
+		gd54xx->vgablt_base &= ~(0xff << byte);
+		if (addr == 0x15)
+			val &= 0xf0;
+		gd54xx->vgablt_base |= (val << byte);
+		mem_mapping_disable(&gd54xx->vgablt_mapping);
+		if ((gd54xx->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM) && (gd54xx->vgablt_base != 0x00000000) && (gd54xx->vgablt_base < 0xfff00000))
+			mem_mapping_set_addr(&gd54xx->vgablt_mapping, gd54xx->vgablt_base, 0x1000);
+		break;
 
 	case 0x30: case 0x32: case 0x33:
 		gd54xx->pci_regs[addr] = val;
@@ -3072,12 +3738,10 @@ static void
 		romfn = BIOS_GD5420_PATH;
 		break;
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 	case CIRRUS_ID_CLGD5422:
 	case CIRRUS_ID_CLGD5424:
 		romfn = BIOS_GD5422_PATH;
 		break;		
-#endif
 
 	case CIRRUS_ID_CLGD5426:
 		if (info->local & 0x200)
@@ -3173,7 +3837,6 @@ static void
     if (romfn)
 	rom_init(&gd54xx->bios_rom, romfn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
-
     if (info->flags & DEVICE_ISA)
 	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_isa);
     else if (info->flags & DEVICE_PCI)
@@ -3181,9 +3844,16 @@ static void
     else
 	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gd54xx_vlb);
 
-    svga_init(info, &gd54xx->svga, gd54xx, gd54xx->vram_size,
-	      gd54xx_recalctimings, gd54xx_in, gd54xx_out,
-	      gd54xx_hwcursor_draw, NULL);
+    if (id >= CIRRUS_ID_CLGD5426) {
+	svga_init(info, &gd54xx->svga, gd54xx, gd54xx->vram_size,
+		  gd54xx_recalctimings, gd54xx_in, gd54xx_out,
+		  gd54xx_hwcursor_draw, gd54xx_overlay_draw);
+    } else {
+	svga_init(info, &gd54xx->svga, gd54xx, gd54xx->vram_size,
+		  gd54xx_recalctimings, gd54xx_in, gd54xx_out,
+		  gd54xx_hwcursor_draw, NULL);
+    }
+    svga->vblank_start = gd54xx_vblank_start;
     svga->ven_write = gd54xx_write_modes45;
     if (vram <= 1)
 	svga->decode_mask = gd54xx->vram_mask;
@@ -3202,6 +3872,10 @@ static void
 			gd5436_aperture2_readb, gd5436_aperture2_readw, gd5436_aperture2_readl,
 			gd5436_aperture2_writeb, gd5436_aperture2_writew, gd5436_aperture2_writel,
 			NULL, MEM_MAPPING_EXTERNAL, gd54xx);
+	mem_mapping_add(&gd54xx->vgablt_mapping, 0, 0,
+			gd5480_vgablt_read, gd5480_vgablt_readw, gd5480_vgablt_readl,
+			gd5480_vgablt_write, gd5480_vgablt_writew, gd5480_vgablt_writel,
+			NULL, MEM_MAPPING_EXTERNAL, gd54xx);
     } else {
 	mem_mapping_set_handler(&svga->mapping, gd54xx_read, gd54xx_readw, NULL, gd54xx_write, gd54xx_writew, NULL);
 	mem_mapping_add(&gd54xx->mmio_mapping, 0, 0,
@@ -3216,11 +3890,16 @@ static void
 			gd5436_aperture2_readb, gd5436_aperture2_readw, NULL,
 			gd5436_aperture2_writeb, gd5436_aperture2_writew, NULL,
 			NULL, MEM_MAPPING_EXTERNAL, gd54xx);
+	mem_mapping_add(&gd54xx->vgablt_mapping, 0, 0,
+			gd5480_vgablt_read, gd5480_vgablt_readw, NULL,
+			gd5480_vgablt_write, gd5480_vgablt_writew, NULL,
+			NULL, MEM_MAPPING_EXTERNAL, gd54xx);
     }
     mem_mapping_set_p(&svga->mapping, gd54xx);
     mem_mapping_disable(&gd54xx->mmio_mapping);
     mem_mapping_disable(&gd54xx->linear_mapping);
     mem_mapping_disable(&gd54xx->aperture2_mapping);
+    mem_mapping_disable(&gd54xx->vgablt_mapping);
 
     io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
     
@@ -3274,6 +3953,13 @@ static void
 	gd54xx->ddc = ddc_init(i2c_gpio_get_bus(gd54xx->i2c));
     }
 
+    if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5446)
+	gd54xx->crtcreg_mask = 0x7f;
+    else
+	gd54xx->crtcreg_mask = 0x3f;
+
+    gd54xx->overlay.colorkeycompare = 0xff;
+
     return gd54xx;
 }
 
@@ -3295,13 +3981,11 @@ gd5420_available(void)
     return rom_present(BIOS_GD5420_PATH);
 }
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 static int
 gd5422_available(void)
 {
     return rom_present(BIOS_GD5422_PATH);
 }
-#endif
 
 static int
 gd5426_available(void)
@@ -3589,7 +4273,6 @@ const device_t gd5420_isa_device =
     gd5422_config,
 };
 
-#if defined(DEV_BRANCH) && defined(USE_CL5422)
 const device_t gd5422_isa_device = {
     "Cirrus Logic GD-5422",
     DEVICE_AT | DEVICE_ISA,
@@ -3613,7 +4296,6 @@ const device_t gd5424_vlb_device = {
     gd54xx_force_redraw,
     gd5422_config,
 };
-#endif
 
 const device_t gd5426_vlb_device =
 {

@@ -55,6 +55,8 @@ DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
 #define SB_CLASS_NAME		L"86BoxStatusBar"
 #define SB_MENU_NAME		L"StatusBarMenu"
 #define FS_CLASS_NAME		L"86BoxFullScreen"
+#define SDL_CLASS_NAME		L"86BoxSDLWnd"
+#define SDL_SUB_CLASS_NAME	L"86BoxSDLSubWnd"
 
 #define FLOPPY_SUBMENU_NAME	L"FloppySubmenu"
 #define CDROM_SUBMENU_NAME	L"CdromSubmenu"
@@ -83,9 +85,9 @@ DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
 #define WM_HAS_SHUTDOWN		0x8897
 
 #ifdef USE_VNC
-#define RENDERERS_NUM		3
+#define RENDERERS_NUM		4
 #else
-#define RENDERERS_NUM		2
+#define RENDERERS_NUM		3
 #endif
 
 
@@ -100,6 +102,7 @@ extern HANDLE		ghMutex;
 extern LCID		lang_id;
 extern HICON		hIcon[256];
 extern RECT		oldclip;
+extern int		sbar_height;
 
 // extern int		status_is_open;
 
@@ -109,6 +112,7 @@ extern WCHAR		wopenfilestring[512];
 extern uint8_t		filterindex;
 
 
+extern void	ResizeWindowByClientArea(HWND hwnd, int width, int height);
 extern void	InitCrashDump(void);
 
 extern HICON	LoadIconEx(PCTSTR pszIconName);
@@ -155,7 +159,6 @@ extern int	hard_disk_was_added(void);
 
 /* Platform UI support functions. */
 extern int	ui_init(int nCmdShow);
-extern void	plat_set_input(HWND h);
 
 
 /* Functions in win_about.c: */
@@ -177,10 +180,11 @@ extern void	NewFloppyDialogCreate(HWND hwnd, int id, int part);
 #define SETTINGS_PAGE_SOUND			3
 #define SETTINGS_PAGE_NETWORK			4
 #define SETTINGS_PAGE_PORTS			5
-#define SETTINGS_PAGE_PERIPHERALS		6
+#define SETTINGS_PAGE_STORAGE			6
 #define SETTINGS_PAGE_HARD_DISKS		7
 #define SETTINGS_PAGE_FLOPPY_AND_CDROM_DRIVES	8
 #define SETTINGS_PAGE_OTHER_REMOVABLE_DEVICES	9
+#define SETTINGS_PAGE_PERIPHERALS		10
 
 extern void	win_settings_open(HWND hwnd);
 extern void	win_settings_open_ex(HWND hwnd, int category);
@@ -193,11 +197,12 @@ extern int	MediaMenuHandler(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 
 
 /* Functions in win_dialog.c: */
-extern int	file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save);
-extern int	file_dlg(HWND hwnd, WCHAR *f, char *fn, int save);
-extern int	file_dlg_mb(HWND hwnd, char *f, char *fn, int save);
-extern int	file_dlg_w_st(HWND hwnd, int i, WCHAR *fn, int save);
-extern int	file_dlg_st(HWND hwnd, int i, char *fn, int save);
+/* Pass NULL in the title param to use the default title. */
+extern int	file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, WCHAR *title, int save);
+extern int	file_dlg(HWND hwnd, WCHAR *f, char *fn, char *title, int save);
+extern int	file_dlg_mb(HWND hwnd, char *f, char *fn, char *title, int save);
+extern int	file_dlg_w_st(HWND hwnd, int i, WCHAR *fn, char *title, int save);
+extern int	file_dlg_st(HWND hwnd, int i, char *fn, char *title, int save);
 
 extern wchar_t	*BrowseFolder(wchar_t *saved_path, wchar_t *title);
 

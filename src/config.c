@@ -113,6 +113,7 @@ static list_t	config_head;
 
 /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
 static int	backwards_compat = 0;
+static int	backwards_compat2 = 0;
 
 
 #ifdef ENABLE_CONFIG_LOG
@@ -487,6 +488,7 @@ load_general(void)
 
     confirm_reset = config_get_int(cat, "confirm_reset", 1);
     confirm_exit = config_get_int(cat, "confirm_exit", 1);
+    confirm_save = config_get_int(cat, "confirm_save", 1);
 
 #ifdef USE_LANGUAGE
     /*
@@ -872,14 +874,16 @@ load_ports(void)
 }
 
 
-/* Load "Other Peripherals" section. */
+/* Load "Storage Controllers" section. */
 static void
-load_other_peripherals(void)
+load_storage_controllers(void)
 {
-    char *cat = "Other peripherals";
+    char *cat = "Storage controllers";
     char *p;
-    char temp[512];
-    int c, free_p = 0;
+    int free_p = 0;
+
+    /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
+    backwards_compat2 = (find_section(cat) == NULL);
 	
     p = config_get_string(cat, "scsicard", NULL);
     if (p != NULL)
@@ -920,19 +924,6 @@ load_other_peripherals(void)
 
     ide_ter_enabled = !!config_get_int(cat, "ide_ter", 0);
     ide_qua_enabled = !!config_get_int(cat, "ide_qua", 0);
-
-    bugger_enabled = !!config_get_int(cat, "bugger_enabled", 0);
-    postcard_enabled = !!config_get_int(cat, "postcard_enabled", 0);
-
-    for (c = 0; c < ISAMEM_MAX; c++) {
-	sprintf(temp, "isamem%d_type", c);
-
-	p = config_get_string(cat, temp, "none");
-	isamem_type[c] = isamem_get_from_internal_name(p);
-    }
-
-    p = config_get_string(cat, "isartc_type", "none");
-    isartc_type = isartc_get_from_internal_name(p);	
 }
 
 
@@ -1060,6 +1051,11 @@ load_hard_disks(void)
 	 * path currently saved in most config
 	 * files.  We should remove this before
 	 * finalizing this release!  --FvK
+	 */
+	/*
+	 * ANOTHER NOTE:
+	 * When loading differencing VHDs, the absolute path is required.
+	 * So we should not convert absolute paths to relative. -sards
 	 */
 	if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
 		/*
@@ -1512,7 +1508,6 @@ load_other_removable_devices(void)
 	sprintf(temp, "zip_%02i_iso_path", c+1);
 	config_delete_var(cat, temp);
     }
-    
 
     memset(temp, 0x00, sizeof(temp));
     for (c=0; c<MO_NUM; c++) {
@@ -1575,6 +1570,78 @@ load_other_removable_devices(void)
 	sprintf(temp, "mo_%02i_iso_path", c+1);
 	config_delete_var(cat, temp);
     }    
+}
+
+
+/* Load "Other Peripherals" section. */
+static void
+load_other_peripherals(void)
+{
+    char *cat = "Other peripherals";
+    char *p;
+    char temp[512];
+    int c, free_p = 0;
+
+    if (backwards_compat2) {	
+	p = config_get_string(cat, "scsicard", NULL);
+	if (p != NULL)
+		scsi_card_current = scsi_card_get_from_internal_name(p);
+	else
+		scsi_card_current = 0;
+	config_delete_var(cat, "scsicard");
+
+	p = config_get_string(cat, "fdc", NULL);
+	if (p != NULL)
+		fdc_type = fdc_card_get_from_internal_name(p);
+	else
+		fdc_type = FDC_INTERNAL;
+	config_delete_var(cat, "fdc");
+
+	p = config_get_string(cat, "hdc", NULL);
+	if (p == NULL) {
+		if (machines[machine].flags & MACHINE_HDC) {
+			p = (char *)malloc((strlen("internal")+1)*sizeof(char));
+			strcpy(p, "internal");
+		} else {
+			p = (char *)malloc((strlen("none")+1)*sizeof(char));
+			strcpy(p, "none");
+		}
+		free_p = 1;
+	}
+	if (!strcmp(p, "mfm_xt"))
+		hdc_current = hdc_get_from_internal_name("st506_xt");
+	else if (!strcmp(p, "mfm_xt_dtc5150x"))
+		hdc_current = hdc_get_from_internal_name("st506_xt_dtc5150x");
+	else if (!strcmp(p, "mfm_at"))
+		hdc_current = hdc_get_from_internal_name("st506_at");
+	else
+		hdc_current = hdc_get_from_internal_name(p);
+	config_delete_var(cat, "hdc");
+
+	if (free_p) {
+		free(p);
+		p = NULL;
+	}
+
+	ide_ter_enabled = !!config_get_int(cat, "ide_ter", 0);
+	config_delete_var(cat, "ide_ter");
+	ide_qua_enabled = !!config_get_int(cat, "ide_qua", 0);
+	config_delete_var(cat, "ide_qua");
+    }
+    backwards_compat2 = 0;
+
+    bugger_enabled = !!config_get_int(cat, "bugger_enabled", 0);
+    postcard_enabled = !!config_get_int(cat, "postcard_enabled", 0);
+
+    for (c = 0; c < ISAMEM_MAX; c++) {
+	sprintf(temp, "isamem%d_type", c);
+
+	p = config_get_string(cat, temp, "none");
+	isamem_type[c] = isamem_get_from_internal_name(p);
+    }
+
+    p = config_get_string(cat, "isartc_type", "none");
+    isartc_type = isartc_get_from_internal_name(p);	
 }
 
 
@@ -1642,12 +1709,13 @@ config_load(void)
     load_sound();			/* Sound */
     load_network();			/* Network */
     load_ports();			/* Ports (COM & LPT) */
-    load_other_peripherals();		/* Other peripherals */
+    load_storage_controllers();		/* Storage controllers */
     load_hard_disks();			/* Hard disks */
     load_floppy_and_cdrom_drives();	/* Floppy and CD-ROM drives */
     /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
     load_floppy_drives();		/* Floppy drives */
     load_other_removable_devices();	/* Other removable devices */
+    load_other_peripherals();		/* Other peripherals */
 
     /* Mark the configuration as changed. */
     config_changed = 1;
@@ -1755,6 +1823,11 @@ save_general(void)
 	config_set_int(cat, "confirm_exit", confirm_exit);
     else
 	config_delete_var(cat, "confirm_exit");
+
+    if (confirm_save != 1)
+	config_set_int(cat, "confirm_save", confirm_save);
+    else
+	config_delete_var(cat, "confirm_save");
 
 #ifdef USE_LANGUAGE
     if (plat_langid == 0x0409)
@@ -2069,13 +2142,11 @@ save_ports(void)
 }
 
 
-/* Save "Other Peripherals" section. */
+/* Save "Storage Controllers" section. */
 static void
-save_other_peripherals(void)
+save_storage_controllers(void)
 {
-    char *cat = "Other peripherals";
-    char temp[512];
-    int c;
+    char *cat = "Storage controllers";
 
     if (scsi_card_current == 0)
 	config_delete_var(cat, "scsicard");
@@ -2101,6 +2172,18 @@ save_other_peripherals(void)
 	config_delete_var(cat, "ide_qua");
       else
 	config_set_int(cat, "ide_qua", ide_qua_enabled);
+
+    delete_section_if_empty(cat);
+}
+
+
+/* Save "Other Peripherals" section. */
+static void
+save_other_peripherals(void)
+{
+    char *cat = "Other peripherals";
+    char temp[512];
+    int c;
 
     if (bugger_enabled == 0)
 	config_delete_var(cat, "bugger_enabled");
@@ -2390,10 +2473,11 @@ config_save(void)
     save_sound();			/* Sound */
     save_network();			/* Network */
     save_ports();			/* Ports (COM & LPT) */
-    save_other_peripherals();		/* Other peripherals */
+    save_storage_controllers();		/* Storage controllers */
     save_hard_disks();			/* Hard disks */
     save_floppy_and_cdrom_drives();	/* Floppy and CD-ROM drives */
     save_other_removable_devices();	/* Other removable devices */
+    save_other_peripherals();		/* Other peripherals */
 
     config_write(cfg_path);
 }

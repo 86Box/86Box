@@ -595,7 +595,6 @@ handle_satn_stop(void *priv)
 	dev->rregs[ESP_RSEQ] = SEQ_CD;
 	esp_log("ESP SCSI Command len = %d, raising IRQ\n", dev->cmdlen);
 	esp_raise_irq(dev);
-	timer_on_auto(&dev->timer, 10.0);
     }
 }
 
@@ -729,6 +728,7 @@ esp_reg_write(esp_t *dev, uint32_t saddr, uint32_t val)
 				dev->rregs[ESP_RINTR] = INTR_FC;
 				dev->rregs[ESP_RSEQ] = 0;
 				dev->rregs[ESP_RFLAGS] = 0;
+				timer_on_auto(&dev->timer, 10.0);
 				break;
 			case CMD_RESET:
 				esp_pci_soft_reset(dev);

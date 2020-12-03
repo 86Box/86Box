@@ -28,6 +28,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <wchar.h>
+#include <86box/plat.h>
 #include <86box/86box.h>
 #include <86box/config.h>
 #include "../cpu/cpu.h"
@@ -38,7 +39,6 @@
 #include <86box/nvr.h>
 #include <86box/video.h>
 #include <86box/vid_ega.h>		// for update_overscan
-#include <86box/plat.h>
 #include <86box/plat_midi.h>
 #include <86box/plat_dynld.h>
 #include <86box/ui.h>
@@ -216,6 +216,7 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_RESIZE, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_SW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_HW, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_SDL_OPENGL, MF_UNCHECKED);
 #ifdef USE_VNC
     CheckMenuItem(menuMain, IDM_VID_VNC, MF_UNCHECKED);
 #endif
@@ -372,6 +373,85 @@ plat_power_off(void)
 }
 
 
+/* Catch WM_INPUT messages for 'current focus' window. */
+#if defined(__amd64__) || defined(__aarch64__)
+static LRESULT CALLBACK
+#else
+static BOOL CALLBACK
+#endif
+input_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message) {
+	case WM_INPUT:
+		if (infocus) {
+			UINT size = 0;
+			PRAWINPUT raw = NULL;
+
+			/* Here we read the raw input data */
+			GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
+			raw = (PRAWINPUT)malloc(size);
+			if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, raw, &size, sizeof(RAWINPUTHEADER)) == size) {
+				switch(raw->header.dwType)
+				{
+					case RIM_TYPEKEYBOARD:
+						keyboard_handle(raw);
+						break;
+					case RIM_TYPEMOUSE:
+						win_mouse_handle(raw);
+						break;
+					case RIM_TYPEHID:
+						win_joystick_handle(raw);
+						break;
+				}
+			}
+			free(raw);
+		}
+		break;
+	case WM_SETFOCUS:
+		infocus = 1;
+#ifndef NO_KEYBOARD_HOOK
+		if (! hook_enabled) {
+			hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL,
+							 LowLevelKeyboardProc,
+							 GetModuleHandle(NULL),
+							 0);
+			hook_enabled = 1;
+		}
+#endif
+		break;
+
+	case WM_KILLFOCUS:
+		infocus = 0;
+		plat_mouse_capture(0);
+#ifndef NO_KEYBOARD_HOOK
+		if (hook_enabled) {
+			UnhookWindowsHookEx(hKeyboardHook);
+			hook_enabled = 0;
+		}
+#endif
+		break;
+
+	case WM_LBUTTONUP:
+		pclog("video_fullscreen = %i\n", video_fullscreen);
+		if (! video_fullscreen)
+			plat_mouse_capture(1);
+		break;
+
+	case WM_MBUTTONUP:
+		if (mouse_get_buttons() < 3)
+			plat_mouse_capture(0);
+		break;
+
+	default:
+		return(1);
+		/* return(CallWindowProc((WNDPROC)input_orig_proc,
+				      hwnd, message, wParam, lParam)); */
+    }
+
+    return(0);
+}
+
+
 static LRESULT CALLBACK
 MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -381,6 +461,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     RECT rect, *rect_p;
 
     int temp_x, temp_y;
+
+    if (input_proc(hwnd, message, wParam, lParam) == 0)
+	return(0);
 
     switch (message) {
 	case WM_CREATE:
@@ -418,7 +501,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_ACTION_RESET_CAD:
-				pclog("-\n");
 				pc_send_cad();
 				break;
 
@@ -538,6 +620,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_VID_SDL_SW:
 			case IDM_VID_SDL_HW:
+			case IDM_VID_SDL_OPENGL:
 #ifdef USE_VNC
 			case IDM_VID_VNC:
 #endif
@@ -570,6 +653,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				CheckMenuItem(hmenu, IDM_VID_SCALE_1X+scale, MF_UNCHECKED);
 				scale = LOWORD(wParam) - IDM_VID_SCALE_1X;
 				CheckMenuItem(hmenu, IDM_VID_SCALE_1X+scale, MF_CHECKED);
+				reset_screen_size();
 				device_force_redraw();
 				video_force_resize_set(1);
 				config_save();
@@ -715,11 +799,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		GetWindowRect(hwndSBAR, &rect);
 		sbar_height = rect.bottom - rect.top;
 		rect_p = (RECT*)lParam;
-		if (vid_resize) {
+		if (vid_resize)
 			MoveWindow(hwnd, rect_p->left, rect_p->top, rect_p->right - rect_p->left, rect_p->bottom - rect_p->top, TRUE);
-		} else if (!user_resize) {
+		else if (!user_resize)
 			doresize = 1;
-		}
 		break;
 
 	case WM_SIZE:
@@ -730,6 +813,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		temp_y = (lParam >> 16);
 
 		if ((temp_x <= 0) || (temp_y <= 0)) {
+			plat_vidapi_enable(0);
 			minimized = 1;
 			break;
 		} else if (minimized == 1) {
@@ -769,7 +853,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			window_h = rect.bottom - rect.top;
 			save_window_pos = 1;
 		}
-		plat_vidapi_enable(1);
+		plat_vidapi_enable(2);
 
 		config_save();
 		break;
@@ -936,6 +1020,14 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 #endif
 		break;
 
+	case WM_ACTIVATE:
+		if ((wParam != WA_INACTIVE) && !(video_fullscreen & 2)) {
+			video_force_resize_set(1);
+			plat_vidapi_enable(0);
+			plat_vidapi_enable(1);
+		}
+		break;
+
 	case WM_ENTERSIZEMOVE:
 		user_resize = 1;
 		break;
@@ -956,6 +1048,38 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 static LRESULT CALLBACK
 SubWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message) {
+	case WM_LBUTTONUP:
+		if (! video_fullscreen)
+			plat_mouse_capture(1);
+		break;
+
+	case WM_MBUTTONUP:
+		if (mouse_get_buttons() < 3)
+			plat_mouse_capture(0);
+		break;
+
+	default:
+		return(DefWindowProc(hwnd, message, wParam, lParam));
+    }
+
+    return(0);
+}
+
+
+static LRESULT CALLBACK
+SDLMainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    if (input_proc(hwnd, message, wParam, lParam) == 0)
+	return(0);
+
+    return(DefWindowProc(hwnd, message, wParam, lParam));
+}
+
+
+static LRESULT CALLBACK
+SDLSubWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     return(DefWindowProc(hwnd, message, wParam, lParam));
 }
@@ -1048,6 +1172,14 @@ ui_init(int nCmdShow)
     wincl.lpfnWndProc = SubWindowProcedure;
     if (! RegisterClassEx(&wincl))
 			return(2);
+    wincl.lpszClassName = SDL_CLASS_NAME;
+    wincl.lpfnWndProc = SDLMainWindowProcedure;
+    if (! RegisterClassEx(&wincl))
+			return(2);
+    wincl.lpszClassName = SDL_SUB_CLASS_NAME;
+    wincl.lpfnWndProc = SDLSubWindowProcedure;
+    if (! RegisterClassEx(&wincl))
+			return(2);
 
     /* Load the Window Menu(s) from the resources. */
     menuMain = LoadMenu(hinstance, MENU_NAME);
@@ -1071,18 +1203,18 @@ ui_init(int nCmdShow)
 
     ui_window_title(title);
 
-	/* Get the current DPI */
-	dpi = win_get_dpi(hwndMain);
+    /* Get the current DPI */
+    dpi = win_get_dpi(hwndMain);
 
-	/* Check if we have a padded window frame */
-	padded_frame = (GetSystemMetrics(SM_CXPADDEDBORDER) != 0);
+    /* Check if we have a padded window frame */
+    padded_frame = (GetSystemMetrics(SM_CXPADDEDBORDER) != 0);
 
     /* Create the status bar window. */
     StatusBarCreate(hwndMain, IDC_STATUS, hinstance);
 
-	/* Get the actual height of the status bar */
-	GetWindowRect(hwndSBAR, &sbar_rect);
-	sbar_height = sbar_rect.bottom - sbar_rect.top;
+    /* Get the actual height of the status bar */
+    GetWindowRect(hwndSBAR, &sbar_rect);
+    sbar_height = sbar_rect.bottom - sbar_rect.top;
 
     /* Set up main window for resizing if configured. */
     if (vid_resize)
@@ -1118,9 +1250,6 @@ ui_init(int nCmdShow)
     }
     keyboard_getkeymap();
 
-    /* Set up the main window for RawInput. */
-    plat_set_input(hwndMain);
-
     /* Load the accelerator table */
     haccel = LoadAccelerators(hinstance, ACCEL_NAME);
     if (haccel == NULL) {
@@ -1139,7 +1268,7 @@ ui_init(int nCmdShow)
     ghMutex = CreateMutex(NULL, FALSE, NULL);
 
     /* Create the Machine Rendering window. */
-    hwndRender = CreateWindow(L"STATIC", NULL, WS_CHILD|SS_BITMAP,
+    hwndRender = CreateWindow(/*L"STATIC"*/ SUB_CLASS_NAME, NULL, WS_CHILD|SS_BITMAP,
 			      0, 0, 1, 1, hwnd, NULL, hinstance, NULL);
     MoveWindow(hwndRender, 0, 0, scrnsz_x, scrnsz_y, TRUE);
 
@@ -1231,6 +1360,8 @@ ui_init(int nCmdShow)
     /* Close down the emulator. */
     do_stop();
 
+    UnregisterClass(SDL_SUB_CLASS_NAME, hinstance);
+    UnregisterClass(SDL_CLASS_NAME, hinstance);
     UnregisterClass(SUB_CLASS_NAME, hinstance);
     UnregisterClass(CLASS_NAME, hinstance);
 
@@ -1373,101 +1504,4 @@ plat_mouse_capture(int on)
 
 	mouse_capture = 0;
     }
-}
-
-
-/* Catch WM_INPUT messages for 'current focus' window. */
-static LONG_PTR	input_orig_proc;
-static HWND input_orig_hwnd = NULL;
-#if defined(__amd64__) || defined(__aarch64__)
-static LRESULT CALLBACK
-#else
-static BOOL CALLBACK
-#endif
-input_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
-{
-    switch (message) {
-	case WM_INPUT:
-		if (infocus) {
-			UINT size = 0;
-			PRAWINPUT raw = NULL;
-
-			/* Here we read the raw input data */
-			GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
-			raw = (PRAWINPUT)malloc(size);
-			if (GetRawInputData((HRAWINPUT)lParam, RID_INPUT, raw, &size, sizeof(RAWINPUTHEADER)) == size) {
-				switch(raw->header.dwType)
-				{
-					case RIM_TYPEKEYBOARD:
-						keyboard_handle(raw);
-						break;
-					case RIM_TYPEMOUSE:
-						win_mouse_handle(raw);
-						break;
-					case RIM_TYPEHID:
-						win_joystick_handle(raw);
-						break;
-				}
-			}
-			free(raw);
-		}
-		break;
-	case WM_SETFOCUS:
-		infocus = 1;
-#ifndef NO_KEYBOARD_HOOK
-		if (! hook_enabled) {
-			hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL,
-							 LowLevelKeyboardProc,
-							 GetModuleHandle(NULL),
-							 0);
-			hook_enabled = 1;
-		}
-#endif
-		break;
-
-	case WM_KILLFOCUS:
-		infocus = 0;
-		plat_mouse_capture(0);
-#ifndef NO_KEYBOARD_HOOK
-		if (hook_enabled) {
-			UnhookWindowsHookEx(hKeyboardHook);
-			hook_enabled = 0;
-		}
-#endif
-		break;
-
-	case WM_LBUTTONUP:
-		if (! video_fullscreen)
-			plat_mouse_capture(1);
-		break;
-
-	case WM_MBUTTONUP:
-		if (mouse_get_buttons() < 3)
-			plat_mouse_capture(0);
-		break;
-
-	default:
-		return(CallWindowProc((WNDPROC)input_orig_proc,
-				      hwnd, message, wParam, lParam));
-    }
-
-    return(0);
-}
-
-
-/* Set up a handler for the 'currently active' window. */
-void
-plat_set_input(HWND h)
-{
-    /* If needed, rest the old one first. */
-    if (input_orig_hwnd != NULL) {
-	SetWindowLongPtr(input_orig_hwnd, GWLP_WNDPROC,
-			 (LONG_PTR)input_orig_proc);
-    }
-
-    /* Redirect the window procedure so we can catch WM_INPUT. */
-    input_orig_proc = GetWindowLongPtr(h, GWLP_WNDPROC);
-    input_orig_hwnd = h;
-    SetWindowLongPtr(h, GWLP_WNDPROC, (LONG_PTR)&input_proc);
-    ImmAssociateContext(h, NULL);
 }

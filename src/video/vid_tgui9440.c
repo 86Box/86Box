@@ -798,7 +798,7 @@ static uint8_t tgui_ext_linear_read(uint32_t addr, void *p)
         tgui_t *tgui = (tgui_t *)svga->p;
         int c;
 
-        sub_cycles(video_timing_read_b);
+        cycles -= video_timing_read_b;
 
         addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
@@ -829,7 +829,7 @@ static void tgui_ext_linear_write(uint32_t addr, uint8_t val, void *p)
         uint8_t bg[2] = {tgui->ext_gdc_regs[1], tgui->ext_gdc_regs[2]};
         uint8_t mask = tgui->ext_gdc_regs[7];
 
-        sub_cycles(video_timing_write_b);
+        cycles -= video_timing_write_b;
 
         addr &= svga->decode_mask;
         if (addr >= svga->vram_max)
@@ -898,7 +898,7 @@ static void tgui_ext_linear_writew(uint32_t addr, uint16_t val, void *p)
         uint8_t bg[2] = {tgui->ext_gdc_regs[1], tgui->ext_gdc_regs[2]};
         uint16_t mask = (tgui->ext_gdc_regs[7] << 8) | tgui->ext_gdc_regs[8];
         
-        sub_cycles(video_timing_write_w);
+        cycles -= video_timing_write_w;
 
         addr &= svga->decode_mask;
         if (addr >= svga->vram_max)

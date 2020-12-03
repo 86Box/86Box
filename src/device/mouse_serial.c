@@ -173,7 +173,6 @@ sermouse_callback(struct serial_s *serial, void *priv)
 	dev->format = 7;
     dev->transmit_period = sermouse_transmit_period(dev, 1200, -1);
     timer_stop(&dev->command_timer);
-    sub_cycles(ISA_CYCLES(8));
 #ifdef USE_NEW_DYNAREC
     sermouse_timer_on(dev, 5000.0, 0);
 #else

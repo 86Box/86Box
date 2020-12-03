@@ -600,9 +600,9 @@ const cpu_family_t cpu_families[] = {
 	.name = "Pentium OverDrive",
 	.internal_name = "pentium_p54c_od3v",
 	.cpus = {
-		{"125",        CPU_PENTIUM,    fpus_internal, 125000000, 3.0, 3520,  0x52c,  0x52c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER, 12,12,7,7, 16},
+		{"125",        CPU_PENTIUM,    fpus_internal, 125000000, 3.0, 3520,  0x52c,  0x52c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER, 12,12,7,7, 15},
 		{"150",        CPU_PENTIUM,    fpus_internal, 150000000, 2.5, 3520,  0x52c,  0x52c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER, 15,15,7,7, 35/2},
-		{"166",        CPU_PENTIUM,    fpus_internal, 166666666, 2.5, 3520,  0x52c,  0x52c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER, 15,15,7,7, 40},
+		{"166",        CPU_PENTIUM,    fpus_internal, 166666666, 2.5, 3520,  0x52c,  0x52c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER, 15,15,7,7, 20},
 		{"", 0}
 	}
     }, {

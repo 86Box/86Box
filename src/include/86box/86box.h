@@ -111,7 +111,8 @@ extern int	network_card;			/* (C) net interface num */
 extern char	network_host[522];		/* (C) host network intf */
 extern int	hdd_format_type;		/* (C) hard disk file format */
 extern int	confirm_reset,			/* (C) enable reset confirmation */
-		confirm_exit;			/* (C) enable exit confirmation */
+		confirm_exit,			/* (C) enable exit confirmation */
+		confirm_save;			/* (C) enable save confirmation */
 #ifdef USE_DISCORD
 extern int	enable_discord;			/* (C) enable Discord integration */
 #endif
@@ -151,6 +152,7 @@ extern void	pclog_toggle_suppr(void);
 extern void	pclog(const char *fmt, ...);
 extern void	fatal(const char *fmt, ...);
 extern void	set_screen_size(int x, int y);
+extern void	reset_screen_size(void);
 extern void	set_screen_size_natural(void);
 #if 0
 extern void	pc_reload(wchar_t *fn);
@@ -176,6 +178,7 @@ extern uint16_t	get_last_addr(void);
    should be in cpu.c but I put it here to avoid
    having to include cpu.c everywhere. */
 extern void	sub_cycles(int c);
+extern void	resub_cycles(int old_cycles);
 
 extern double	isa_timing;
 extern int	io_delay;

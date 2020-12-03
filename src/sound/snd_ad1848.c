@@ -16,7 +16,7 @@
 #define CS4231	  		0x80
 
 static int ad1848_vols_6bits[64];
-static uint32_t ad1848_vols_5bits_aux_gain[32];
+static double ad1848_vols_5bits_aux_gain[32];
 
 
 void ad1848_setirq(ad1848_t *ad1848, int irq)
@@ -224,11 +224,11 @@ static void ad1848_poll(void *p)
 static void ad1848_filter_cd_audio(int channel, double *buffer, void *p)
 {
         ad1848_t *ad1848 = (ad1848_t *)p;
-	int32_t c;
-	uint32_t volume = channel ? ad1848->cd_vol_r : ad1848->cd_vol_l;
+	double c;
+	double volume = channel ? ad1848->cd_vol_r : ad1848->cd_vol_l;
 
-        c = (((int32_t) *buffer) * volume) >> 16;
-	*buffer     = (double) c;
+        c = ((*buffer) * volume) / 65536.0;
+	*buffer = c;
 }
 
 void ad1848_init(ad1848_t *ad1848, int type)
@@ -292,12 +292,13 @@ void ad1848_init(ad1848_t *ad1848, int type)
 
                 attenuation = pow(10, attenuation / 10);
 
-                ad1848_vols_5bits_aux_gain[c] = (int)(attenuation * 65536);
+                ad1848_vols_5bits_aux_gain[c] = (attenuation * 65536);
         }	
 	
 	ad1848->type = type;
 	
 	timer_add(&ad1848->timer_count, ad1848_poll, ad1848, 0);
 
-	sound_set_cd_audio_filter(ad1848_filter_cd_audio, ad1848);
+	if (ad1848->type != AD1848_TYPE_DEFAULT)
+		sound_set_cd_audio_filter(ad1848_filter_cd_audio, ad1848);
 }

@@ -735,7 +735,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 
     fdc_log("Write FDC %04X %02X\n", addr, val);
 
-    sub_cycles(ISA_CYCLES(8));
+    cycles -= ISA_CYCLES(8);
 
     switch (addr&7) {
 	case 0:
@@ -1261,7 +1261,7 @@ fdc_read(uint16_t addr, void *priv)
     uint8_t ret;
     int drive;
 
-    sub_cycles(ISA_CYCLES(8));
+    cycles -= ISA_CYCLES(8);
 
     switch (addr & 7) {
 	case 0:		/* STA */

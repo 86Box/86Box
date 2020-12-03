@@ -66,7 +66,8 @@ BEGIN
         POPUP "Re&nderer"
         BEGIN
             MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
-            MENUITEM "&SDL (Hardware)",         IDM_VID_SDL_HW
+            MENUITEM "SDL (&Hardware)",         IDM_VID_SDL_HW
+            MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
 #ifdef USE_VNC
             MENUITEM "&VNC",                    IDM_VID_VNC
 #endif
@@ -324,7 +325,7 @@ FONT 9, "Segoe UI"
 BEGIN
     DEFPUSHBUTTON   "OK",IDOK,246,235,50,14
     PUSHBUTTON      "Cancel",IDCANCEL,307,235,50,14
-    CONTROL         "List2",IDC_SETTINGSCATLIST,"SysListView32",LVS_LIST | 
+    CONTROL         "List2",IDC_SETTINGSCATLIST,"SysListView32",LVS_REPORT | LVS_NOCOLUMNHEADER | 
                     LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | WS_TABSTOP,7,7,100,212
     CONTROL         "",-1,"Static",SS_BLACKFRAME | SS_SUNKEN,1,226,373,1
 /* Leave this commented out until we get into localization. */
@@ -335,45 +336,45 @@ BEGIN
 #endif
 END
 
-DLG_CFG_MACHINE DIALOG DISCARDABLE  107, 0, 305, 199
+DLG_CFG_MACHINE DIALOG DISCARDABLE  107, 0, 305, 200
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
     COMBOBOX        IDC_COMBO_MACHINE_TYPE,71,7,189,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Machine type:",IDT_1708,7,8,60,10
+    LTEXT           "Machine type:",IDT_1708,7,9,60,10
     COMBOBOX        IDC_COMBO_MACHINE,71,26,138,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Machine:",IDT_1701,7,27,60,10
+    LTEXT           "Machine:",IDT_1701,7,28,60,10
     PUSHBUTTON      "Configure",IDC_CONFIGURE_MACHINE,214,26,46,12
-    COMBOBOX        IDC_COMBO_CPU_TYPE,71,44,110,120,CBS_DROPDOWNLIST | 
+    COMBOBOX        IDC_COMBO_CPU_TYPE,71,45,110,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "CPU type:",IDT_1702,7,45,59,10
-    COMBOBOX        IDC_COMBO_CPU,215,44,45,120,CBS_DROPDOWNLIST | 
+    LTEXT           "CPU type:",IDT_1702,7,47,59,10
+    COMBOBOX        IDC_COMBO_CPU,215,45,45,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Speed:",IDT_1704,189,45,24,10
-    COMBOBOX        IDC_COMBO_FPU,71,63,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    LTEXT           "Speed:",IDT_1704,189,47,24,10
+    COMBOBOX        IDC_COMBO_FPU,71,64,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    LTEXT           "FPU:",IDT_1707,7,63,59,10
-    COMBOBOX        IDC_COMBO_WS,71,82,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    LTEXT           "FPU:",IDT_1707,7,66,59,10
+    COMBOBOX        IDC_COMBO_WS,71,83,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    LTEXT           "Wait states:",IDT_1703,7,83,60,10
-    EDITTEXT        IDC_MEMTEXT,70,101,45,12,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Wait states:",IDT_1703,7,85,60,10
+    EDITTEXT        IDC_MEMTEXT,70,102,45,12,ES_AUTOHSCROLL | ES_NUMBER
     CONTROL         "",IDC_MEMSPIN,"msctls_updown32",UDS_SETBUDDYINT | 
                     UDS_ALIGNRIGHT | UDS_ARROWKEYS | UDS_NOTHOUSANDS,113,101,
                     12,12
-    LTEXT           "MB",IDT_1705,123,102,10,10
-    LTEXT           "Memory:",IDT_1706,7,102,30,10
-    GROUPBOX        "Time synchronization",IDC_TIME_SYNC,7,134,100,56
+    LTEXT           "MB",IDT_1705,123,104,10,10
+    LTEXT           "Memory:",IDT_1706,7,104,30,10
+    GROUPBOX        "Time synchronization",IDC_TIME_SYNC,7,135,100,56
     CONTROL         "Disabled",IDC_RADIO_TS_DISABLED,"Button",
-                    BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,14,146,84,10
+                    BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,14,147,84,10
     CONTROL         "Enabled (local time)", IDC_RADIO_TS_LOCAL,"Button",
-                    BS_AUTORADIOBUTTON | WS_TABSTOP,14,160,84,10
+                    BS_AUTORADIOBUTTON | WS_TABSTOP,14,161,84,10
     CONTROL         "Enabled (UTC)", IDC_RADIO_TS_UTC,"Button",
-                    BS_AUTORADIOBUTTON | WS_TABSTOP,14,174,84,10
+                    BS_AUTORADIOBUTTON | WS_TABSTOP,14,175,84,10
 #ifdef USE_DYNAREC
     CONTROL         "Dynamic Recompiler",IDC_CHECK_DYNAREC,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,119,94,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,120,94,10
 #endif
 END
 
@@ -381,7 +382,7 @@ DLG_CFG_VIDEO DIALOG DISCARDABLE  107, 0, 267, 45
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
-    LTEXT           "Video:",IDT_1707,7,8,48,10
+    LTEXT           "Video:",IDT_1707,7,9,48,10
     COMBOBOX        IDC_COMBO_VIDEO,64,7,155,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Configure",IDC_CONFIGURE_VID,222,7,38,12
@@ -394,11 +395,11 @@ DLG_CFG_INPUT DIALOG DISCARDABLE  107, 0, 267, 65
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
-    LTEXT           "Mouse :",IDT_1709,7,8,57,10
+    LTEXT           "Mouse :",IDT_1709,7,9,57,10
     COMBOBOX        IDC_COMBO_MOUSE,71,7,140,120,CBS_DROPDOWNLIST | 
 		    WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Configure",IDC_CONFIGURE_MOUSE,214,7,46,12
-    LTEXT           "Joystick :",IDT_1710,7,26,58,10
+    LTEXT           "Joystick :",IDT_1710,7,27,58,10
     COMBOBOX        IDC_COMBO_JOYSTICK,71,25,189,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Joystick 1...",IDC_JOY1,7,44,50,14
@@ -407,73 +408,73 @@ BEGIN
     PUSHBUTTON      "Joystick 4...",IDC_JOY4,209,44,50,14
 END
 
-DLG_CFG_SOUND DIALOG DISCARDABLE  107, 0, 267, 199
+DLG_CFG_SOUND DIALOG DISCARDABLE  107, 0, 267, 201
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
     COMBOBOX        IDC_COMBO_SOUND,71,7,140,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    LTEXT           "Sound card:",IDT_1711,7,8,59,10
+    LTEXT           "Sound card:",IDT_1711,7,9,59,10
     PUSHBUTTON      "Configure",IDC_CONFIGURE_SND,214,7,46,12
 
-    COMBOBOX        IDC_COMBO_MIDI,71,25,140,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    COMBOBOX        IDC_COMBO_MIDI,71,26,140,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    LTEXT           "MIDI Out Device:",IDT_1712,7,26,59,10
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_MIDI,214,25,46,12
+    LTEXT           "MIDI Out Device:",IDT_1712,7,28,59,10
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_MIDI,214,26,46,12
 
-    COMBOBOX        IDC_COMBO_MIDI_IN,71,43,140,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    COMBOBOX        IDC_COMBO_MIDI_IN,71,45,140,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    LTEXT           "MIDI In Device:",IDT_1713,7,44,59,10
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_MIDI_IN,214,43,46,12
+    LTEXT           "MIDI In Device:",IDT_1713,7,47,59,10
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_MIDI_IN,214,45,46,12
 
     CONTROL         "Standalone MPU-401",IDC_CHECK_MPU401,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,65,199,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,66,199,10
     PUSHBUTTON      "Configure",IDC_CONFIGURE_MPU401,214,64,46,12
 
     CONTROL         "Innovation SSI-2001",IDC_CHECK_SSI,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,83,94,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,84,95,10
     CONTROL         "CMS / Game Blaster",IDC_CHECK_CMS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,147,83,94,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,147,84,95,10
 
     CONTROL         "Gravis Ultrasound",IDC_CHECK_GUS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,99,94,10
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_GUS,214,99,46,12
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,101,94,10
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_GUS,214,101,46,12
     
     CONTROL         "Use FLOAT32 sound",IDC_CHECK_FLOAT,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,115,94,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,117,94,10
 END
 
-DLG_CFG_NETWORK DIALOG DISCARDABLE  107, 0, 267, 63
+DLG_CFG_NETWORK DIALOG DISCARDABLE  107, 0, 267, 65
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
-    LTEXT           "Network type:",IDT_1714,7,8,59,10
+    LTEXT           "Network type:",IDT_1714,7,9,59,10
     COMBOBOX        IDC_COMBO_NET_TYPE,71,7,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
 
-    LTEXT           "PCap device:",IDT_1715,7,26,59,10
-    COMBOBOX        IDC_COMBO_PCAP,71,25,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    LTEXT           "PCap device:",IDT_1715,7,28,59,10
+    COMBOBOX        IDC_COMBO_PCAP,71,26,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
 
-    LTEXT           "Network adapter:",IDT_1716,7,44,59,10
-    COMBOBOX        IDC_COMBO_NET,71,43,140,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+    LTEXT           "Network adapter:",IDT_1716,7,47,59,10
+    COMBOBOX        IDC_COMBO_NET,71,45,140,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
                     WS_TABSTOP
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_NET,214,43,46,12
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_NET,214,44,46,12
 END
 
 DLG_CFG_PORTS DIALOG DISCARDABLE  107, 0, 267, 135
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
-    LTEXT           "LPT1 Device:",IDT_1717,7,8,61,10
+    LTEXT           "LPT1 Device:",IDT_1717,7,9,61,10
     COMBOBOX        IDC_COMBO_LPT1,71,7,189,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
 
-    LTEXT           "LPT2 Device:",IDT_1718,7,27,61,10
+    LTEXT           "LPT2 Device:",IDT_1718,7,28,61,10
     COMBOBOX        IDC_COMBO_LPT2,71,26,189,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
 
-    LTEXT           "LPT3 Device:",IDT_1719,7,46,61,10
+    LTEXT           "LPT3 Device:",IDT_1719,7,47,61,10
     COMBOBOX        IDC_COMBO_LPT3,71,45,189,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
 
@@ -494,61 +495,32 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,118,94,10
 END
 
-DLG_CFG_PERIPHERALS DIALOG DISCARDABLE  107, 0, 267, 220
+DLG_CFG_STORAGE DIALOG DISCARDABLE  107, 0, 267, 111
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
-    LTEXT           "SCSI Controller:",IDT_1717,7,8,48,10
+    LTEXT           "SCSI Controller:",IDT_1717,7,9,48,10
     COMBOBOX        IDC_COMBO_SCSI,64,7,155,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Configure",IDC_CONFIGURE_SCSI,222,7,38,12
 
-    LTEXT           "HD Controller:",IDT_1718,7,26,48,10
-    COMBOBOX        IDC_COMBO_HDC,64,25,155,120,CBS_DROPDOWNLIST | 
+    LTEXT           "HD Controller:",IDT_1718,7,28,48,10
+    COMBOBOX        IDC_COMBO_HDC,64,26,155,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_HDC,222,25,38,12
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_HDC,222,26,38,12
 
-    LTEXT           "FD Controller:",IDT_1768,7,44,48,10
-    COMBOBOX        IDC_COMBO_FDC,64,43,155,120,CBS_DROPDOWNLIST | 
+    LTEXT           "FD Controller:",IDT_1768,7,47,48,10
+    COMBOBOX        IDC_COMBO_FDC,64,45,155,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_FDC,222,43,38,12
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_FDC,222,45,38,12
 
     CONTROL         "Tertiary IDE Controller",IDC_CHECK_IDE_TER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,62,199,10
-    PUSHBUTTON      "Configure",IDC_BUTTON_IDE_TER,222,61,38,12
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,66,199,10
+    PUSHBUTTON      "Configure",IDC_BUTTON_IDE_TER,222,64,38,12
 
     CONTROL         "Quaternary IDE Controller",IDC_CHECK_IDE_QUA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,80,199,10
-    PUSHBUTTON      "Configure",IDC_BUTTON_IDE_QUA,222,79,38,12
-
-    CONTROL         "ISABugger device",IDC_CHECK_BUGGER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,98,94,10
-
-    CONTROL         "POST card",IDC_CHECK_POSTCARD,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,147,98,94,10
-
-    LTEXT           "ISA RTC",IDT_1767,7,117,48,10
-    COMBOBOX        IDC_COMBO_ISARTC,64,116,155,120,
-                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_ISARTC,222,116,38,12
-
-    GROUPBOX        "ISA Memory Expansion",IDC_GROUP_ISAMEM,7,136,255,70
-    LTEXT           "#1:",IDT_1763,12,148,21,10
-    COMBOBOX        IDC_COMBO_ISAMEM_1,25,147,190,120,
-                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_ISAMEM_1,217,147,38,12
-    LTEXT           "#2:",IDT_1764,12,162,21,10
-    COMBOBOX        IDC_COMBO_ISAMEM_2,25,161,190,120,
-                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_ISAMEM_2,217,161,38,12
-    LTEXT           "#3:",IDT_1765,12,176,21,10
-    COMBOBOX        IDC_COMBO_ISAMEM_3,25,175,190,120,
-                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_ISAMEM_3,217,175,38,12
-    LTEXT           "#4:",IDT_1766,12,190,21,10
-    COMBOBOX        IDC_COMBO_ISAMEM_4,25,189,190,120,
-                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_ISAMEM_4,217,189,38,12
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,85,199,10
+    PUSHBUTTON      "Configure",IDC_BUTTON_IDE_QUA,222,83,38,12
 END
 
 DLG_CFG_HARD_DISKS DIALOG DISCARDABLE  107, 0, 267, 154
@@ -575,13 +547,13 @@ BEGIN
                     WS_VSCROLL | WS_TABSTOP
 END
 
-DLG_CFG_HARD_DISKS_ADD DIALOG DISCARDABLE  0, 0, 219, 111
+DLG_CFG_HARD_DISKS_ADD DIALOG DISCARDABLE  0, 0, 219, 149
 STYLE DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Add Hard Disk"
 FONT 9, "Segoe UI"
 BEGIN
-    DEFPUSHBUTTON   "OK",IDOK,55,89,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,112,89,50,14
+    DEFPUSHBUTTON   "OK",IDOK,55,127,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,112,127,50,14
     EDITTEXT        IDC_EDIT_HD_FILE_NAME,7,16,153,12
     PUSHBUTTON      "&Specify...",IDC_CFILE,167,16,44,12
     EDITTEXT        IDC_EDIT_HD_SPT,183,34,28,12
@@ -606,6 +578,12 @@ BEGIN
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "ID:",IDT_1723,99,73,34,8
     COMBOBOX        IDC_COMBO_HD_CHANNEL_IDE,134,71,77,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Image Format:",IDT_1774,7,92,50,12
+    COMBOBOX        IDC_COMBO_HD_IMG_FORMAT,58,90,153,12,CBS_DROPDOWNLIST |
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Block Size:",IDT_1775,7,111,50,12
+    COMBOBOX        IDC_COMBO_HD_BLOCK_SIZE,58,109,153,12,CBS_DROPDOWNLIST |
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Progress:",IDT_1752,7,7,204,9
     CONTROL         "IMGCreateProgress",IDC_PBAR_IMG_CREATE,"msctls_progress32",PBS_SMOOTH | 
@@ -685,6 +663,40 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,218,205,44,10
 END
 
+DLG_CFG_PERIPHERALS DIALOG DISCARDABLE  107, 0, 267, 154
+STYLE DS_CONTROL | WS_CHILD
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT           "ISA RTC:",IDT_1767,7,9,48,10
+    COMBOBOX        IDC_COMBO_ISARTC,64,7,155,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_ISARTC,222,7,38,12
+
+    GROUPBOX        "ISA Memory Expansion",IDC_GROUP_ISAMEM,7,28,253,93
+    LTEXT           "Card 1:",IDT_1763,16,45,48,10
+    COMBOBOX        IDC_COMBO_ISAMEM_1,73,43,137,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_ISAMEM_1,213,43,38,12
+    LTEXT           "Card 2:",IDT_1764,16,64,48,10
+    COMBOBOX        IDC_COMBO_ISAMEM_2,73,62,137,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_ISAMEM_2,213,62,38,12
+    LTEXT           "Card 3:",IDT_1765,16,83,48,10
+    COMBOBOX        IDC_COMBO_ISAMEM_3,73,81,137,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_ISAMEM_3,213,81,38,12
+    LTEXT           "Card 4:",IDT_1766,16,102,48,10
+    COMBOBOX        IDC_COMBO_ISAMEM_4,73,100,137,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_ISAMEM_4,213,100,38,12
+
+    CONTROL         "ISABugger device",IDC_CHECK_BUGGER,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,128,94,10
+
+    CONTROL         "POST card",IDC_CHECK_POSTCARD,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,147,128,94,10
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -747,6 +759,7 @@ END
 249                     ICON    DISCARDABLE     "win/icons/cdrom_disabled.ico"
 250                     ICON    DISCARDABLE     "win/icons/zip_disabled.ico"
 251                     ICON    DISCARDABLE     "win/icons/mo_disabled.ico"
+252                     ICON    DISCARDABLE     "win/icons/storage_controllers.ico"
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -908,7 +921,7 @@ BEGIN
     2048	"86Box"
     IDS_2049	"Error"
     IDS_2050	"Fatal error"
-    IDS_2051	"Are you sure you want to save the settings?"
+    IDS_2051	"<reserved>"
     IDS_2052	"Press CTRL+ALT+PAGE DOWN to return to windowed mode."
     IDS_2053	"Speed"
     IDS_2054	"ZIP %03i %i (%s): %ls"
@@ -932,11 +945,11 @@ BEGIN
     IDS_2068	"Sound"
     IDS_2069	"Network"
     IDS_2070	"Ports (COM & LPT)"
-    IDS_2071	"Other peripherals"
+    IDS_2071	"Storage controllers"
     IDS_2072	"Hard disks"
     IDS_2073	"Floppy & CD-ROM drives"
     IDS_2074	"Other removable devices"
-    IDS_2075	"CD-ROM images (*.ISO;*.CUE)\0*.ISO;*.CUE\0All files (*.*)\0*.*\0"
+    IDS_2075	"Other peripherals"
     IDS_2076	"Surface images (*.86F)\0*.86F\0"
     IDS_2077	"Click to capture mouse"
     IDS_2078	"Press F8+F12 to release mouse"
@@ -986,9 +999,9 @@ BEGIN
     IDS_2118	"Internal controller"
     IDS_2119	"Exit"
     IDS_2120	"No ROMs found"
-    IDS_2121	"Save changes\nThis will hard reset the emulated machine."
-    IDS_2122	"Discard changes\nAll changes made to the settings will be lost."
-    IDS_2123	"Cancel\nGo back to the Settings window."
+    IDS_2121	"Do you want to save the settings?"
+    IDS_2122	"This will hard reset the virtual machine."
+    IDS_2123	"Save"
     IDS_2124	"About 86Box"
     IDS_2125	"86Box v" EMU_VERSION
     IDS_2126	"An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information."
@@ -1021,10 +1034,12 @@ BEGIN
     IDS_2133	LIB_NAME_FLUIDSYNTH " is required for FluidSynth MIDI output."
     IDS_2134	"Entering fullscreen mode"
     IDS_2135	"Don't show this message again"
-    IDS_2136	"Don't Exit"
+    IDS_2136	"Don't exit"
     IDS_2137	"Reset"
-    IDS_2138	"Don't Reset"
+    IDS_2138	"Don't reset"
     IDS_2139	"MO images (*.IM?;*.MDI)\0*.IM?;*.MDI\0All files (*.*)\0*.*\0"
+    IDS_2140	"CD-ROM images (*.ISO;*.CUE)\0*.ISO;*.CUE\0All files (*.*)\0*.*\0"
+    IDS_2141	"%hs Device Configuration"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -1054,7 +1069,20 @@ BEGIN
     IDS_4118	"The selected file will be overwritten. Are you sure you want to use it?"
     IDS_4119	"Unsupported disk image"
     IDS_4120	"Overwrite"
-    IDS_4121	"Don't Overwrite"
+    IDS_4121	"Don't overwrite"
+    IDS_4122	"Raw image (.img)"
+    IDS_4123	"HDI image (.hdi)"
+    IDS_4124	"HDX image (.hdx)"
+    IDS_4125	"Fixed-size VHD (.vhd)"
+    IDS_4126	"Dynamic-size VHD (.vhd)"
+    IDS_4127	"Differencing VHD (.vhd)"
+    IDS_4128	"Large blocks (2 MB)"
+    IDS_4129	"Small blocks (512 KB)"
+    IDS_4130	"VHD files (*.VHD)\0*.VHD\0All files (*.*)\0*.*\0"
+    IDS_4131	"Select the parent VHD"
+    IDS_4132	"This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
+    IDS_4133	"Parent and child disk timestamps do not match"
+    IDS_4134	"Could not fix VHD timestamp."
 
     IDS_4352    "MFM/RLL"
     IDS_4353    "XTA"

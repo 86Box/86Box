@@ -100,13 +100,14 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
 
 	case MBX_QUESTION:	/* question */
 	case MBX_QUESTION_YN:
+	case MBX_QUESTION_OK:
 		if (!btn1) /* replace default "OK" button with "Yes" button */
-			tdconfig.dwCommonButtons = TDCBF_YES_BUTTON;
+			tdconfig.dwCommonButtons = (flags & MBX_QUESTION_OK) ? TDCBF_OK_BUTTON : TDCBF_YES_BUTTON;
 
 		if (btn2) /* "No" button */
 			tdbuttons[tdconfig.cButtons++] = tdb_no;
 		else
-			tdconfig.dwCommonButtons |= TDCBF_NO_BUTTON;
+			tdconfig.dwCommonButtons |= (flags & MBX_QUESTION_OK) ? TDCBF_CANCEL_BUTTON : TDCBF_NO_BUTTON;
 
 		if (flags & MBX_QUESTION) {
 			if (btn3) /* "Cancel" button */
@@ -114,6 +115,9 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
 			else
 				tdconfig.dwCommonButtons |= TDCBF_CANCEL_BUTTON;
 		}
+
+		if (flags & MBX_WARNING)
+			tdconfig.pszMainIcon = TD_WARNING_ICON;
 		break;
     }
 
@@ -152,7 +156,7 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
 
 
 int
-file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save)
+file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, WCHAR *title, int save)
 {
     OPENFILENAME ofn;
     BOOL r;
@@ -177,7 +181,9 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save)
     ofn.lpstrInitialDir = NULL;
     ofn.Flags = OFN_PATHMUSTEXIST;
     if (! save)
-	ofn.Flags |= OFN_FILEMUSTEXIST;
+	ofn.Flags |= OFN_FILEMUSTEXIST;    
+    if (title)
+    ofn.lpstrTitle = title;
 
     /* Display the Open dialog box. */
     if (save)
@@ -199,37 +205,44 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, int save)
 
 
 int
-file_dlg(HWND hwnd, WCHAR *f, char *fn, int save)
+file_dlg(HWND hwnd, WCHAR *f, char *fn, char *title, int save)
 {
-    WCHAR ufn[512];
+    WCHAR ufn[512], title_buf[512];
 
     mbstowcs(ufn, fn, strlen(fn) + 1);
+    if (title)
+        mbstowcs(title_buf, title, sizeof title_buf);
 
-    return(file_dlg_w(hwnd, f, ufn, save));
+    return(file_dlg_w(hwnd, f, ufn, title ? title_buf : NULL, save));
 }
 
 
 int
-file_dlg_mb(HWND hwnd, char *f, char *fn, int save)
+file_dlg_mb(HWND hwnd, char *f, char *fn, char *title, int save)
 {
-    WCHAR uf[512], ufn[512];
+    WCHAR uf[512], ufn[512], title_buf[512];
 
     mbstowcs(uf, f, strlen(fn) + 1);
     mbstowcs(ufn, fn, strlen(fn) + 1);
+    if (title)
+        mbstowcs(title_buf, title, sizeof title_buf);
 
-    return(file_dlg_w(hwnd, uf, ufn, save));
+    return(file_dlg_w(hwnd, uf, ufn, title ? title_buf : NULL, save));
 }
 
 
 int
-file_dlg_w_st(HWND hwnd, int id, WCHAR *fn, int save)
+file_dlg_w_st(HWND hwnd, int id, WCHAR *fn, char *title, int save)
 {
-    return(file_dlg_w(hwnd, plat_get_string(id), fn, save));
+    WCHAR title_buf[512];
+    if (title)
+        mbstowcs(title_buf, title, sizeof title_buf);
+    return(file_dlg_w(hwnd, plat_get_string(id), fn, title ? title_buf : NULL, save));
 }
 
 
 int
-file_dlg_st(HWND hwnd, int id, char *fn, int save)
-{
-    return(file_dlg(hwnd, plat_get_string(id), fn, save));
+file_dlg_st(HWND hwnd, int id, char *fn, char *title, int save)
+{    
+    return(file_dlg(hwnd, plat_get_string(id), fn, title, save));
 }

@@ -412,7 +412,7 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 									ws[c] = 0;
 							}
 
-							if (!file_dlg(hdlg, ws, s, 0))
+							if (!file_dlg(hdlg, ws, s, NULL, 0))
 								SendMessage(h, WM_SETTEXT, 0, (LPARAM)wopenfilestring);
 						}
 						break;
@@ -454,7 +454,8 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 
     *data++ = 0; /*no menu*/
     *data++ = 0; /*predefined dialog box class*/
-    data += MultiByteToWideChar(CP_ACP, 0, "Device Configuration", -1, data, 120);
+
+    data += wsprintf(data, plat_get_string(IDS_2141), device->name) + 1;
 
     *data++ = 9; /*Point*/
     data += MultiByteToWideChar(CP_ACP, 0, "Segoe UI", -1, data, 120);
@@ -499,7 +500,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 			item->cx = 140;
 			item->cy = 150;
 
-			item->style = WS_CHILD | WS_VISIBLE | CBS_DROPDOWN | WS_VSCROLL;
+			item->style = WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL;
 
 			data = (uint16_t *)(item + 1);
 			*data++ = 0xFFFF;
@@ -514,7 +515,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 			/*Static text*/
 			item = (DLGITEMTEMPLATE *)data;
 			item->x = 10;
-			item->y = y;
+			item->y = y + 2;
 			item->id = id++;
 
 			item->cx = 60;
@@ -561,7 +562,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 			/*Static text*/
 			item = (DLGITEMTEMPLATE *)data;
 			item->x = 10;
-			item->y = y;
+			item->y = y + 2;
 			item->id = id++;
 
 			item->cx = 60;
@@ -628,7 +629,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 			/*Static text*/
 			item = (DLGITEMTEMPLATE *)data;
 			item->x = 10;
-			item->y = y;
+			item->y = y + 2;
 			item->id = id++;
 
 			item->cx = 60;
@@ -659,8 +660,8 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
     dlg->cdit = (id - IDC_CONFIG_BASE) + 2;
 
     item = (DLGITEMTEMPLATE *)data;
-    item->x = 20;
-    item->y = y;
+    item->x = 100;
+    item->y = y + 5;
     item->cx = 50;
     item->cy = 14;
     item->id = IDOK;  /* OK button identifier */
@@ -677,8 +678,8 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 	data++;
 
     item = (DLGITEMTEMPLATE *)data;
-    item->x = 80;
-    item->y = y;
+    item->x = 160;
+    item->y = y + 5;
     item->cx = 50;
     item->cy = 14;
     item->id = IDCANCEL;  /* OK button identifier */
@@ -691,7 +692,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
     data += MultiByteToWideChar(CP_ACP, 0, "Cancel", -1, data, 50);
     *data++ = 0;              /* no creation data */
 
-    dlg->cy = y + 20;
+    dlg->cy = y + 25;
 
     device_set_context(&config_device, device, inst);
 

@@ -228,7 +228,7 @@ opl2_read(uint16_t port, void *priv)
     opl_t *dev = (opl_t *)priv;
 
     if (dev->flags & FLAG_CYCLES)
-	sub_cycles((int) (isa_timing * 8));
+	cycles -= ((int) (isa_timing * 8));
 
     opl2_update(dev);
 
@@ -277,7 +277,7 @@ opl3_read(uint16_t port, void *priv)
     opl_t *dev = (opl_t *)priv;
 
     if (dev->flags & FLAG_CYCLES)
-	sub_cycles((int)(isa_timing * 8));
+	cycles -= ((int)(isa_timing * 8));
 
     opl3_update(dev);
 

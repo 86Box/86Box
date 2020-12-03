@@ -2697,7 +2697,7 @@ s3_accel_in(uint16_t port, void *p)
 			if (FIFO_FULL && s3->chip >= S3_VISION964)
 				temp |= 0xf8; /*FIFO full*/
 		} else {
-			if (s3->busy || s3->force_busy) {
+			if (s3->force_busy) {
 				temp |= 0x02; /*Hardware busy*/
 			}
 			s3->force_busy = 0;
@@ -3343,10 +3343,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
             dstbase >>= 2;
         }
 
-	if (((s3_cpu_src(s3) || s3_cpu_dest(s3))) && (s3->chip >= S3_86C928 && s3->chip < S3_TRIO64V)) {
-		s3->busy = 1;
-	}
-
 	if ((s3->accel.cmd & 0x100) && (s3_cpu_src(s3) || s3_cpu_dest(s3)) && !cpu_input) {
 		s3->force_busy = 1;
 	}
@@ -3439,7 +3435,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 				if (s3->bpp == 0) cpu_dat >>= 8;
 				else	      cpu_dat >>= 16;
 				if (!s3->accel.sy) {
-					s3->busy = 0;
 					break;
 				}
 
@@ -3510,7 +3505,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 				else	     cpu_dat >>= 16;
 
 				if (!s3->accel.sy) {
-					s3->busy = 0;
 					break;
 				}
 				
@@ -3682,10 +3676,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 				s3->accel.dest = dstbase + s3->accel.cy * s3->width;
 				s3->accel.sy--;
 
-				if (s3->accel.sy < 0) {
-					s3->busy = 0;
-				}
-
 				if (cpu_input) {
 					if (s3_cpu_dest(s3))
 						s3->data_available = 1;
@@ -3766,7 +3756,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 					s3->accel.sy--;
 	
 					if (s3->accel.sy < 0) {
-						s3->busy = 0;
 						return;
 					}
 				}
@@ -3853,9 +3842,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 					s3->accel.dest = dstbase + s3->accel.dy * s3->width;
 
 					s3->accel.sy--;
-
-					if (s3->accel.sy < 0)
-						s3->busy = 0;
 
 					if (cpu_input)
 						return;
@@ -3979,9 +3965,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 
 				s3->accel.sy--;
 
-				if (s3->accel.sy < 0)
-					s3->busy = 0;
-
 				if (cpu_input/* && (s3->accel.multifunc[0xa] & 0xc0) == 0x80*/) return;
 				if (s3->accel.sy < 0)
 					return;
@@ -4061,7 +4044,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 			s3->accel.cur_x2 = s3->accel.poly_cx2 & 0xfff;
 			s3->accel.cur_y2 = s3->accel.poly_cy & 0xfff;
 		}
-		s3->busy = 0;
 		break;
 
 		case 11: /*Polygon Fill Pattern (Trio64 only)*/
@@ -4150,7 +4132,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 			s3->accel.cur_x2 = s3->accel.poly_cx2 & 0xfff;
 			s3->accel.cur_y2 = s3->accel.poly_cy & 0xfff;
 		}
-		s3->busy = 0;
 		break;
 	}
 }

@@ -355,7 +355,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 
     serial_log("UART: Write %02X to port %02X\n", val, addr);
 
-    sub_cycles(ISA_CYCLES(8));
+    cycles -= ISA_CYCLES(8);
 
     switch (addr & 7) {
 	case 0:
@@ -513,7 +513,7 @@ serial_read(uint16_t addr, void *p)
     serial_t *dev = (serial_t *)p;
     uint8_t i, ret = 0;
 
-    sub_cycles(ISA_CYCLES(8));
+    cycles -= ISA_CYCLES(8);
 
     switch (addr & 7) {
 	case 0:

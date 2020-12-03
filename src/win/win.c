@@ -21,6 +21,7 @@
 #define UNICODE
 #define NTDDI_VERSION 0x06010000
 #include <windows.h>
+#include <commctrl.h>
 #include <shlobj.h>
 #include <shobjidl.h>
 #include <fcntl.h>
@@ -86,21 +87,14 @@ static const struct {
     void	(*resize)(int x, int y);
     int		(*pause)(void);
     void	(*enable)(int enable);
-} vid_apis[2][RENDERERS_NUM] = {
-  {
-    {	"SDL_Software", 1, (int(*)(void*))sdl_inits, sdl_close, NULL, sdl_pause, sdl_enable		},
-    {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable		}
+    void	(*set_fs)(int fs);
+} vid_apis[RENDERERS_NUM] = {
+  {	"SDL_Software", 1, (int(*)(void*))sdl_inits, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs	},
+  {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs	},
+  {	"SDL_OpenGL", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs	}
 #ifdef USE_VNC
-    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL					}
+ ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL, NULL				}
 #endif
-  },
-  {
-    {	"SDL_Software", 1, (int(*)(void*))sdl_inits_fs, sdl_close, sdl_resize, sdl_pause, sdl_enable	},
-    {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith_fs, sdl_close, sdl_resize, sdl_pause, sdl_enable	}
-#ifdef USE_VNC
-    ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL					}
-#endif
-  },
 };
 
 
@@ -679,8 +673,8 @@ plat_vidapi(char *name)
     if (!strcasecmp(name, "ddraw") || !strcasecmp(name, "sdl")) return(1);
 
     for (i = 0; i < RENDERERS_NUM; i++) {
-	if (vid_apis[0][i].name &&
-	    !strcasecmp(vid_apis[0][i].name, name)) return(i);
+	if (vid_apis[i].name &&
+	    !strcasecmp(vid_apis[i].name, name)) return(i);
     }
 
     /* Default value. */
@@ -700,9 +694,12 @@ plat_vidapi_name(int api)
 		break;
 	case 1:
 		break;
+	case 2:
+		name = "sdl_opengl";
+		break;
 
 #ifdef USE_VNC
-	case 2:
+	case 3:
 		name = "vnc";
 		break;
 #endif
@@ -725,16 +722,16 @@ plat_setvid(int api)
     video_wait_for_blit();
 
     /* Close the (old) API. */
-    vid_apis[0][vid_api].close();
+    vid_apis[vid_api].close();
     vid_api = api;
 
-    if (vid_apis[0][vid_api].local)
+    if (vid_apis[vid_api].local)
 	ShowWindow(hwndRender, SW_SHOW);
       else
 	ShowWindow(hwndRender, SW_HIDE);
 
     /* Initialize the (new) API. */
-    i = vid_apis[0][vid_api].init((void *)hwndRender);
+    i = vid_apis[vid_api].init((void *)hwndRender);
     endblit();
     if (! i) return(0);
 
@@ -750,11 +747,11 @@ plat_setvid(int api)
 void
 plat_vidsize(int x, int y)
 {
-    if (!vid_api_inited || !vid_apis[video_fullscreen][vid_api].resize) return;
+    if (!vid_api_inited || !vid_apis[vid_api].resize) return;
 
     startblit();
     video_wait_for_blit();
-    vid_apis[video_fullscreen][vid_api].resize(x, y);
+    vid_apis[vid_api].resize(x, y);
     endblit();
 }
 
@@ -762,59 +759,93 @@ plat_vidsize(int x, int y)
 void
 plat_vidapi_enable(int enable)
 {
-    if (!vid_api_inited || !vid_apis[video_fullscreen][vid_api].enable) return;
+    int i = 1;
 
-    startblit();
+    if (!vid_api_inited || !vid_apis[vid_api].enable)
+	return;
+
     video_wait_for_blit();
-    vid_apis[video_fullscreen][vid_api].enable(enable);
-    endblit();
+    vid_apis[vid_api].enable(enable != 0);
+
+    if (! i)
+	return;
+
+    if (enable)
+	device_force_redraw();
 }
+
 
 int
 get_vidpause(void)
 {
-    return(vid_apis[video_fullscreen][vid_api].pause());
+    return(vid_apis[vid_api].pause());
 }
 
 
 void
 plat_setfullscreen(int on)
 {
-    HWND *hw;
+    RECT rect;
+    int temp_x, temp_y;
+    int dpi = win_get_dpi(hwndMain);
 
-    /* Want off and already off? */
-    if (!on && !video_fullscreen) return;
-
-    /* Want on and already on? */
-    if (on && video_fullscreen) return;
+    /* Are we changing from the same state to the same state? */
+    if ((!!on) == (!!video_fullscreen))
+	return;
 
     if (on && video_fullscreen_first) {
+	video_fullscreen |= 2;
 	if (ui_msgbox_header(MBX_INFO | MBX_DONTASK, (wchar_t *) IDS_2134, (wchar_t *) IDS_2052) == 10) {
 		video_fullscreen_first = 0;
 		config_save();
 	}
+	video_fullscreen &= 1;
     }
 
     /* OK, claim the video. */
-    startblit();
     video_wait_for_blit();
-
-    plat_vidapi_enable(0);
-
     win_mouse_close();
 
     /* Close the current mode, and open the new one. */
-    vid_apis[video_fullscreen][vid_api].close();
-    video_fullscreen = on;
-    hw = (video_fullscreen) ? &hwndMain : &hwndRender;
-    vid_apis[video_fullscreen][vid_api].init((void *) *hw);
+    video_fullscreen = on | 2;
+    if (vid_apis[vid_api].set_fs)
+	vid_apis[vid_api].set_fs(on);
+    if (!on) {
+	plat_resize(scrnsz_x, scrnsz_y);
+	if (vid_resize) {
+		/* scale the screen base on DPI */
+		if (dpi_scale) {
+			temp_x = MulDiv(unscaled_size_x, dpi, 96);
+			temp_y = MulDiv(unscaled_size_y, dpi, 96);
+		} else {
+			temp_x = unscaled_size_x;
+			temp_y = unscaled_size_y;
+		}
+		/* Main Window. */				
+		ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
+
+		/* Render window. */
+		MoveWindow(hwndRender, 0, 0, temp_x, temp_y, TRUE);
+		GetWindowRect(hwndRender, &rect);
+
+		/* Status bar. */
+		MoveWindow(hwndSBAR, 0, rect.bottom, temp_x, 17, TRUE);
+
+		if (mouse_capture)
+			ClipCursor(&rect);
+
+		scrnsz_x = unscaled_size_x;
+		scrnsz_y = unscaled_size_y;
+	}
+    }
+    video_fullscreen &= 1;
+    video_force_resize_set(1);
+    if (!on)
+	doresize = 1;
 
     win_mouse_init();
 
-    plat_vidapi_enable(1);
-
     /* Release video and make it redraw the screen. */
-    endblit();
     device_force_redraw();
 
     /* Send a CTRL break code so CTRL does not get stuck. */
@@ -823,6 +854,10 @@ plat_setfullscreen(int on)
     /* Finally, handle the host's mouse cursor. */
     /* win_log("%s full screen, %s cursor\n", on ? "enter" : "leave", on ? "hide" : "show"); */
     show_cursor(video_fullscreen ? 0 : -1);
+
+    /* This is needed for OpenGL. */
+    plat_vidapi_enable(0);
+    plat_vidapi_enable(1);
 }
 
 

@@ -358,7 +358,7 @@ ctr_load(ctr_t *ctr)
 }
 
 
-static void
+static __inline void
 ctr_latch_status(ctr_t *ctr)
 {
     ctr->read_status = (ctr->ctrl & 0x3f) | (ctr->out ? 0x80 : 0) | (ctr->null_count ? 0x40 : 0);
@@ -366,7 +366,7 @@ ctr_latch_status(ctr_t *ctr)
 }
 
 
-static void
+static __inline void
 ctr_latch_count(ctr_t *ctr)
 {
     int count = (ctr->latch || (ctr->state == 1)) ? ctr->l : ctr->count;
@@ -459,8 +459,8 @@ pit_ctr_set_gate(ctr_t *ctr, int gate)
 }
 
 
-void
-pit_ctr_set_clock(ctr_t *ctr, int clock)
+static __inline void
+pit_ctr_set_clock_common(ctr_t *ctr, int clock)
 {
     int old = ctr->clock;
 
@@ -492,6 +492,13 @@ pit_ctr_set_clock(ctr_t *ctr, int clock)
 
 
 void
+pit_ctr_set_clock(ctr_t *ctr, int clock)
+{
+    pit_ctr_set_clock_common(ctr, clock);
+}
+
+
+void
 pit_ctr_set_using_timer(ctr_t *ctr, int using_timer)
 {
     timer_process();
@@ -509,7 +516,7 @@ pit_timer_over(void *p)
     dev->clock ^= 1;
 
     for (i = 0; i < 3; i++)
-	pit_ctr_set_clock(&dev->counters[i], dev->clock);
+	pit_ctr_set_clock_common(&dev->counters[i], dev->clock);
 
     timer_advance_u64(&dev->callback_timer, PITCONST >> 1ULL);
 }

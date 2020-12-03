@@ -245,6 +245,15 @@ et4000_out(uint16_t addr, uint8_t val, void *priv)
 				svga->read_bank = ((dev->banking >> 4) & 0x0f) * 0x10000;
 			} else
 				svga->write_bank = svga->read_bank = 0;
+			
+                        old = svga->gdcreg[6];
+                        svga_out(addr, val, svga);
+                        if ((old & 0xc) != 0 && (val & 0xc) == 0)
+                        {
+                                /*override mask - ET4000 supports linear 128k at A0000*/
+                                svga->banked_mask = 0x1ffff;
+                        }
+                        return;			
 		}
 		break;
 

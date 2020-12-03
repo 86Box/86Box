@@ -2047,7 +2047,7 @@ kbd_read(uint16_t port, void *priv)
     uint8_t ret = 0xff;
 
     if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF)
-	sub_cycles(ISA_CYCLES(8));
+	cycles -= ISA_CYCLES(8);
 
     if (((dev->flags & KBC_VEN_MASK) == KBC_VEN_XI8088) && (port == 0x63))
 	port = 0x61;

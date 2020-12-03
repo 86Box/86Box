@@ -349,6 +349,12 @@ exec386_dynarec_int(void)
 	if (((cs + cpu_state.pc) >> 12) != pccache)
 		CPU_BLOCK_END();
 
+	if (cpu_end_block_after_ins) {
+		cpu_end_block_after_ins--;
+		if (!cpu_end_block_after_ins)
+			CPU_BLOCK_END();
+	}
+
 	if (cpu_state.abrt)
 		CPU_BLOCK_END();
 	if (smi_line)
@@ -357,14 +363,8 @@ exec386_dynarec_int(void)
 		CPU_BLOCK_END();
 	else if (nmi && nmi_enable && nmi_mask)
 		CPU_BLOCK_END();
-	else if ((cpu_state.flags & I_FLAG) && pic.int_pending)
+	else if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins)
 		CPU_BLOCK_END();
-
-	if (cpu_end_block_after_ins) {
-		cpu_end_block_after_ins--;
-		if (!cpu_end_block_after_ins)
-			CPU_BLOCK_END();
-	}
     }
 
     if (trap) {
@@ -585,20 +585,20 @@ exec386_dynarec_dyn(void)
 #endif
 			CPU_BLOCK_END();
 
+		if (cpu_end_block_after_ins) {
+			cpu_end_block_after_ins--;
+			if (!cpu_end_block_after_ins)
+				CPU_BLOCK_END();
+		}
+
 		if (smi_line)
 			CPU_BLOCK_END();
 		else if (cpu_state.flags & T_FLAG)
 			CPU_BLOCK_END();
 		else if (nmi && nmi_enable && nmi_mask)
 			CPU_BLOCK_END();
-		else if ((cpu_state.flags & I_FLAG) && pic.int_pending)
+		else if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins)
 			CPU_BLOCK_END();
-
-		if (cpu_end_block_after_ins) {
-			cpu_end_block_after_ins--;
-			if (!cpu_end_block_after_ins)
-				CPU_BLOCK_END();
-		}
 
 		if (cpu_state.abrt) {
 			if (!(cpu_state.abrt & ABRT_EXPECTED))
@@ -683,7 +683,7 @@ exec386_dynarec_dyn(void)
 			CPU_BLOCK_END();
 		else if (nmi && nmi_enable && nmi_mask)
 			CPU_BLOCK_END();
-		else if ((cpu_state.flags & I_FLAG) && pic.int_pending)
+		else if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins)
 			CPU_BLOCK_END();
 
 		if (cpu_end_block_after_ins) {
@@ -756,19 +756,6 @@ exec386_dynarec(int cycs)
 			exec386_dynarec_dyn();
 		}
 
-		cycdiff = oldcyc - cycles;
-		delta = tsc - oldtsc;
-		if (delta > 0) {
-			/* TSC has changed, this means interim timer processing has happened,
-			   see how much we still need to add. */
-			cycdiff -= delta;
-			if (cycdiff > 0)
-				tsc += cycdiff;
-		} else {
-			/* TSC has not changed. */
-			tsc += cycdiff;
-		}
-
 		if (cpu_state.abrt) {
 			flags_rebuild();
 			tempi = cpu_state.abrt & ABRT_MASK;
@@ -817,6 +804,19 @@ exec386_dynarec(int cycs)
 				cpu_state.oldpc = cpu_state.pc;
 				x86_int(vector);
 			}
+		}
+
+		cycdiff = oldcyc - cycles;
+		delta = tsc - oldtsc;
+		if (delta > 0) {
+			/* TSC has changed, this means interim timer processing has happened,
+			   see how much we still need to add. */
+			cycdiff -= delta;
+			if (cycdiff > 0)
+				tsc += cycdiff;
+		} else {
+			/* TSC has not changed. */
+			tsc += cycdiff;
 		}
 
 		if (cycdiff > 0) {

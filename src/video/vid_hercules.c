@@ -212,7 +212,7 @@ hercules_waitstates(void *p)
     int ws;
 
     ws = ws_array[cycles & 0xf];
-    sub_cycles(ws);
+    cycles -= ws;
 }
 
 

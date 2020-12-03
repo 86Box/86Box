@@ -730,8 +730,8 @@ machine_at_4sa2_init(const machine_t *model)
     device_add(&sis_85c496_device);
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x07, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 4, 1, 2, 3);
 
     device_add(&pc87332_device);
     device_add(&keyboard_ps2_pci_device);

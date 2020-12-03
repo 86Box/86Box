@@ -31,6 +31,10 @@
 #include <86box/pic.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
+#include <86box/device.h>
+#include <86box/apm.h>
+#include <86box/nvr.h>
+#include <86box/acpi.h>
 
 
 enum
@@ -142,7 +146,7 @@ pic_cascade_mode(pic_t *dev)
 }
 
 
-static uint8_t
+static __inline uint8_t
 pic_slave_on(pic_t *dev, int channel)
 {
     pic_log("pic_slave_on(%i): %i, %02X, %02X\n", channel, pic_cascade_mode(dev), dev->icw4 & 0x0c, dev->icw3 & (1 << channel));
@@ -152,7 +156,7 @@ pic_slave_on(pic_t *dev, int channel)
 }
 
 
-static int
+static __inline int
 find_best_interrupt(pic_t *dev)
 {
     uint8_t b, s;
@@ -184,7 +188,7 @@ find_best_interrupt(pic_t *dev)
 }
 
 
-void
+static __inline void
 pic_update_pending(void)
 {
     int is_at = IS_AT(machine);
@@ -321,7 +325,7 @@ pic_action(pic_t *dev, uint8_t irq, uint8_t eoi, uint8_t rotate)
 
 
 /* Automatic non-specific EOI. */
-static void
+static __inline void
 pic_auto_non_specific_eoi(pic_t *dev)
 {
     uint8_t irq;
@@ -520,6 +524,9 @@ picint_common(uint16_t num, int level, int set)
 	return;
     }
 
+    if (num & 0x0100)
+	acpi_rtc_status = !!set;
+
     if (set) {
 	if (num & 0xff00) {
 		if (level)
@@ -650,8 +657,13 @@ picinterrupt()
 		pit_ctr_set_gate(&pit2->counters[0], 0);
 
 	/* Two ACK's - do them in a loop to avoid potential compiler misoptimizations. */
-	for (i = 0; i < 2; i++)
-		ret = pic_irq_ack();
+	for (i = 0; i < 2; i++) {
+		ret = pic_irq_ack_read(&pic, pic.ack_bytes);
+		pic.ack_bytes = (pic.ack_bytes + 1) % (pic_i86_mode(&pic) ? 2 : 3);
+
+		if (pic.ack_bytes == 0)
+			pic_update_pending();
+	}
     }
 
     return ret;

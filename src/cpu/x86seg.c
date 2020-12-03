@@ -808,8 +808,8 @@ void
 PUSHL(uint32_t v)
 {
     if (cpu_16bitbus) {
-	PUSHW(v & 0xffff);
 	PUSHW(v >> 16);
+	PUSHW(v & 0xffff);
     } else {
 	if (stack32) {
 		writememl(ss, ESP - 4, v);

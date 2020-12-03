@@ -151,7 +151,7 @@ static uint16_t voodoo_readw(uint32_t addr, void *p)
         
         addr &= 0xffffff;
 
-        sub_cycles(voodoo->read_time);
+        cycles -= voodoo->read_time;
         
         if ((addr & 0xc00000) == 0x400000) /*Framebuffer*/
         {
@@ -190,7 +190,7 @@ static uint32_t voodoo_readl(uint32_t addr, void *p)
         voodoo->rd_count++;
         addr &= 0xffffff;
         
-        sub_cycles(voodoo->read_time);
+        cycles -= voodoo->read_time;
 
         if (addr & 0x800000) /*Texture*/
         {
@@ -390,7 +390,7 @@ static uint32_t voodoo_readl(uint32_t addr, void *p)
                 break;
                 
                 default:
-                fatal("voodoo_readl  : bad addr %08X\n", addr);
+                voodoo_log("voodoo_readl  : bad addr %08X\n", addr);
                 temp = 0xffffffff;
         }
         
@@ -403,7 +403,7 @@ static void voodoo_writew(uint32_t addr, uint16_t val, void *p)
         voodoo->wr_count++;
         addr &= 0xffffff;
         
-        sub_cycles(voodoo->write_time);
+        cycles -= voodoo->write_time;
 
         if ((addr & 0xc00000) == 0x400000) /*Framebuffer*/
                 voodoo_queue_command(voodoo, addr | FIFO_WRITEW_FB, val);
@@ -418,9 +418,9 @@ static void voodoo_writel(uint32_t addr, uint32_t val, void *p)
         addr &= 0xffffff;
         
         if (addr == voodoo->last_write_addr+4)
-                sub_cycles(voodoo->burst_time);
+                cycles -= voodoo->burst_time;
         else
-                sub_cycles(voodoo->write_time);
+                cycles -= voodoo->write_time;
         voodoo->last_write_addr = addr;
 
         if (addr & 0x800000) /*Texture*/

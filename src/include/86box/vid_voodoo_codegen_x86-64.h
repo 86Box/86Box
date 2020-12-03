@@ -1733,10 +1733,44 @@ static inline void voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo
 
         if ((params->fbzMode & FBZ_CHROMAKEY))
         {
-                addbyte(0x66); /*MOVD EAX, XMM0*/
-                addbyte(0x0f);
-                addbyte(0x7e);
-                addbyte(0xc0);
+                switch (_rgb_sel)
+                {
+			case CC_LOCALSELECT_ITER_RGB:
+			addbyte(0xf3); /*MOVDQU XMM0, ib*/ /* ir, ig and ib must be in same dqword!*/
+                        addbyte(0x0f);
+                        addbyte(0x6f);
+                        addbyte(0x87);
+                        addlong(offsetof(voodoo_state_t, ib));
+                        addbyte(0x66); /*PSRAD XMM0, 12*/
+                        addbyte(0x0f);
+                        addbyte(0x72);
+                        addbyte(0xe0);
+                        addbyte(12);
+                        addbyte(0x66); /*PACKSSDW XMM0, XMM0*/
+                        addbyte(0x0f);
+                        addbyte(0x6b);
+                        addbyte(0xc0);
+                        addbyte(0x66); /*PACKUSWB XMM0, XMM0*/
+                        addbyte(0x0f);
+                        addbyte(0x67);
+                        addbyte(0xc0);
+                        addbyte(0x66); /*MOVD EAX, XMM0*/
+                        addbyte(0x0f);
+                        addbyte(0x7e);
+                        addbyte(0xc0);
+                        break;
+                        case CC_LOCALSELECT_COLOR1:
+                        addbyte(0x8b); /*MOV EAX, params->color1[RSI]*/
+                        addbyte(0x86);
+                        addlong(offsetof(voodoo_params_t, color1));
+                        break;
+                        case CC_LOCALSELECT_TEX:
+                        addbyte(0x66); /*MOVD EAX, XMM0*/
+                        addbyte(0x0f);
+                        addbyte(0x7e);
+                        addbyte(0xc0);
+                        break;
+                }
                 addbyte(0x8b); /*MOV EBX, params->chromaKey[ESI]*/
                 addbyte(0x9e);
                 addlong(offsetof(voodoo_params_t, chromaKey));

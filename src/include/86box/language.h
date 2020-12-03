@@ -24,7 +24,7 @@
 #define IDS_STRINGS	2048		// "86Box"
 #define IDS_2049	2049		// "Error"
 #define IDS_2050	2050		// "Fatal error"
-#define IDS_2051	2051		// "Are you sure you want to save..."
+#define IDS_2051	2051		// "<reserved>"
 #define IDS_2052	2052		// "Press CTRL+ALT+PAGE DOWN..."
 #define IDS_2053	2053		// "Speed"
 #define IDS_2054	2054		// "ZIP %i (%03i): %ls"
@@ -44,11 +44,11 @@
 #define IDS_2068	2068		// "Sound"
 #define IDS_2069	2069		// "Network"
 #define IDS_2070	2070		// "Ports (COM & LPT)"
-#define IDS_2071	2071		// "Other peripherals"
+#define IDS_2071	2071		// "Storage controllers"
 #define IDS_2072	2072		// "Hard disks"
 #define IDS_2073	2073		// "Floppy and CD-ROM drives"
 #define IDS_2074	2074		// "Other removable devices"
-#define IDS_2075	2075		// "CD-ROM images (*.ISO;*.CU.."
+#define IDS_2075	2075		// "Other peripherals"
 #define IDS_2076	2076		// "Surface-based images (*.8.."
 #define IDS_2077	2077		// "Click to capture mouse"
 #define IDS_2078	2078		// "Press F12-F8 to release mouse"
@@ -94,9 +94,9 @@
 #define IDS_2118	2118		// "Internal controller"
 #define IDS_2119	2119		// "Exit"
 #define IDS_2120	2120		// "No ROMs found"
-#define IDS_2121	2121		// "Save changes\nThis will hard..."
-#define IDS_2122	2122		// "Discard changes\nAll changes..."
-#define IDS_2123	2123		// "Cancel\nGo back to the..."
+#define IDS_2121	2121		// "Do you want to save the settings?"
+#define IDS_2122	2122		// "This will hard reset the virtual..."
+#define IDS_2123	2123		// "Save"
 #define IDS_2124	2124		// "About 86Box"
 #define IDS_2125	2125		// "86Box v" EMU_VERSION
 #define IDS_2126	2126		// "An emulator of old computers..."
@@ -109,10 +109,12 @@
 #define IDS_2133	2133		// LIB_NAME_FLUIDSYNTH " is required..."
 #define IDS_2134	2134		// "Entering fullscreen mode"
 #define IDS_2135	2135		// "Don't show this message again"
-#define IDS_2136	2136		// "Don't Exit"
+#define IDS_2136	2136		// "Don't exit"
 #define IDS_2137	2137		// "Reset"
-#define IDS_2138	2138		// "Don't Reset"
+#define IDS_2138	2138		// "Don't reset"
 #define IDS_2139	2139		// "MO images (*.IM?)\0*.IM?..."
+#define IDS_2140	2140		// "CD-ROM images (*.ISO;*.CU.."
+#define IDS_2141	2141		// "%hs Device Configuration"
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
@@ -139,7 +141,20 @@
 #define IDS_4118	4118		// "The selected file will be..."
 #define IDS_4119	4119		// "Unsupported disk image"
 #define IDS_4120	4120		// "Overwrite"
-#define IDS_4121	4121		// "Don't Overwrite"
+#define IDS_4121	4121		// "Don't overwrite"
+#define IDS_4122	4122		// "Raw image (.img)"
+#define IDS_4123	4123		// "HDI image (.hdi)"
+#define IDS_4124	4124		// "HDX image (.hdx)"
+#define IDS_4125	4125		// "Fixed-size VHD (.vhd)"
+#define IDS_4126	4126		// "Dynamic-size VHD (.vhd)"
+#define IDS_4127	4127		// "Differencing VHD (.vhd)"
+#define IDS_4128	4128		// "Large blocks (2 MB)"
+#define IDS_4129	4129		// "Small blocks (512 KB)"
+#define IDS_4130	4130		// "VHD files (*.VHD)\0*.VHD\0All..."
+#define IDS_4131	4131		// "Select the parent VHD"
+#define IDS_4132	4132		// "This could mean that the parent..."
+#define IDS_4133	4133		// "Parent and child disk timestamps..."
+#define IDS_4134	4134		// "Could not fix VHD timestamp."
 
 #define IDS_4352	4352		// "MFM/RLL"
 #define IDS_4353	4353		// "XT IDE"
@@ -207,9 +222,9 @@
 
 #define IDS_LANG_ENUS	IDS_7168
 
-#define STR_NUM_2048	92
+#define STR_NUM_2048	94
 #define STR_NUM_3072	11
-#define STR_NUM_4096	18
+#define STR_NUM_4096	39
 #define STR_NUM_4352	6
 #define STR_NUM_4608	6
 #define STR_NUM_5120	1

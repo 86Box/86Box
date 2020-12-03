@@ -141,7 +141,8 @@ int	cpu_use_dynarec = 0,			/* (C) cpu uses/needs Dyna */
 	fpu_type = 0;				/* (C) fpu type */
 int	time_sync = 0;				/* (C) enable time sync */
 int	confirm_reset = 1,			/* (C) enable reset confirmation */
-	confirm_exit = 1;			/* (C) enable exit confirmation */
+	confirm_exit = 1,			/* (C) enable exit confirmation */
+	confirm_save = 1;			/* (C) enable save confirmation */
 #ifdef USE_DISCORD
 int	enable_discord = 0;			/* (C) enable Discord integration */
 #endif
@@ -1128,6 +1129,13 @@ set_screen_size(int x, int y)
 	doresize = 1;
       else
 	doresize = 0;
+}
+
+
+void
+reset_screen_size(void)
+{
+    set_screen_size(unscaled_size_x, efscrnsz_y);
 }
 
 

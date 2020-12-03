@@ -732,7 +732,7 @@ ega_write(uint32_t addr, uint8_t val, void *p)
     int writemask2 = ega->writemask;
 
     egawrites++;
-    sub_cycles(video_timing_write_b);
+    cycles -= video_timing_write_b;
 
     if (addr >= 0xB0000)	addr &= 0x7fff;
     else			addr &= 0xffff;
@@ -859,7 +859,7 @@ ega_read(uint32_t addr, void *p)
     int readplane = ega->readplane;
 
     egareads++;
-    sub_cycles(video_timing_read_b);
+    cycles -= video_timing_read_b;
     if (addr >= 0xb0000)	addr &= 0x7fff;
     else			addr &= 0xffff;
 

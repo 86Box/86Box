@@ -314,7 +314,8 @@ typedef struct voodoo_t
         volatile int params_read_idx[4], params_write_idx;
 
         uint32_t cmdfifo_base, cmdfifo_end, cmdfifo_size;
-        int cmdfifo_rp;
+        int cmdfifo_rp, cmdfifo_ret_addr;
+        int cmdfifo_in_sub;
         volatile int cmdfifo_depth_rd, cmdfifo_depth_wr;
         volatile int cmdfifo_enabled;
         uint32_t cmdfifo_amin, cmdfifo_amax;
@@ -384,6 +385,8 @@ typedef struct voodoo_t
                 uint32_t dstFormat;
                 uint32_t dstSize;
                 uint32_t dstXY;
+                uint32_t lineStipple;
+                uint32_t lineStyle;
                 uint32_t rop;
                 uint32_t srcBaseAddr;
                 uint32_t srcFormat;
@@ -431,6 +434,9 @@ typedef struct voodoo_t
                 int src_stride_src, src_stride_dest;
                 
                 int src_bpp;
+
+                int line_pix_pos, line_bit_pos;
+                int line_rep_cnt, line_bit_mask_size;
         } banshee_blt;
         
         struct
