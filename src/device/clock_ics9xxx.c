@@ -61,10 +61,10 @@ typedef struct {
     uint8_t	max_reg: 3;
     uint8_t	regs[8];
     struct {
-    	uint8_t	normal_reg: 3;
-    	uint8_t	normal_bit: 3;
-    	uint8_t	inv_reg: 3;
-    	uint8_t	inv_bit: 3;
+	uint8_t	normal_reg: 3;
+	uint8_t	normal_bit: 3;
+	uint8_t	inv_reg: 3;
+	uint8_t	inv_bit: 3;
     } fs_regs[5];
     uint8_t	normal_bits_fixed: 1;
 
@@ -79,10 +79,10 @@ typedef struct {
 
 static const ics9xxx_t ics9xxx_devices[] = {
     [ICS9150_08] = {
-    	.max_reg = 5,
-    	.regs = {0x00, 0xff, 0xff, 0xff, 0x6f, 0xbf},
-    	.fs_regs = {{0, 4, 4, 7}, {0, 5, 4, 4}, {0, 6, 5, 6}, {0, 7, 4, 1}, {-1, -1, -1, -1}},
-    	.frequencies = {
+	.max_reg = 5,
+	.regs = {0x00, 0xff, 0xff, 0xff, 0x6f, 0xbf},
+	.fs_regs = {{0, 4, 4, 7}, {0, 5, 4, 4}, {0, 6, 5, 6}, {0, 7, 4, 1}, {-1, -1, -1, -1}},
+	.frequencies = {
 		{.bus =  5000, .pci_div = 2},
 		{.bus =  7500, .pci_div = 2},
 		{.bus =  8333, .pci_div = 2},
@@ -90,37 +90,37 @@ static const ics9xxx_t ics9xxx_devices[] = {
 		{.bus = 10300, .pci_div = 3},
 		{.bus = 11200, .pci_div = 3},
 		{.bus = 13333, .pci_div = 4},
-	    	{.bus = 10020, .pci_div = 3},
+		{.bus = 10020, .pci_div = 3},
 	}
     },
     [ICS9248_39] = {
-    	.max_reg = 5,
-    	.regs = {0x00, 0x7f, 0xff, 0xbf, 0xf5, 0xff},
-    	.fs_regs = {{0, 4, 3, 6}, {0, 5, 4, 3}, {0, 6, 1, 7}, {0, 7, 4, 1}, {-1, -1, -1, -1}},
-    	.frequencies = {
-    		{.bus = 12400, .pci_div = 3},
-	    	{.bus =  7500, .pci_div = 2},
-	    	{.bus =  8333, .pci_div = 2},
-	    	{.bus =  6680, .pci_div = 2},
-	    	{.bus = 10300, .pci_div = 3},
-	    	{.bus = 11200, .pci_div = 3},
-	    	{.bus = 13300, .pci_div = 3},
-	    	{.bus = 10030, .pci_div = 3},
-	    	{.bus = 12000, .pci_div = 3},
-	    	{.bus = 11500, .pci_div = 3},
-	    	{.bus = 11000, .pci_div = 3},
-	    	{.bus = 10500, .pci_div = 3},
-	    	{.bus = 14000, .pci_div = 4},
-	    	{.bus = 15000, .pci_div = 4},
-	    	{.bus = 12400, .pci_div = 4},
-	    	{.bus = 13300, .pci_div = 4}
-    	}
+	.max_reg = 5,
+	.regs = {0x00, 0x7f, 0xff, 0xbf, 0xf5, 0xff},
+	.fs_regs = {{0, 4, 3, 6}, {0, 5, 4, 3}, {0, 6, 1, 7}, {0, 7, 4, 1}, {-1, -1, -1, -1}},
+	.frequencies = {
+		{.bus = 12400, .pci_div = 3},
+		{.bus =  7500, .pci_div = 2},
+		{.bus =  8333, .pci_div = 2},
+		{.bus =  6680, .pci_div = 2},
+		{.bus = 10300, .pci_div = 3},
+		{.bus = 11200, .pci_div = 3},
+		{.bus = 13300, .pci_div = 3},
+		{.bus = 10030, .pci_div = 3},
+		{.bus = 12000, .pci_div = 3},
+		{.bus = 11500, .pci_div = 3},
+		{.bus = 11000, .pci_div = 3},
+		{.bus = 10500, .pci_div = 3},
+		{.bus = 14000, .pci_div = 4},
+		{.bus = 15000, .pci_div = 4},
+		{.bus = 12400, .pci_div = 4},
+		{.bus = 13300, .pci_div = 4}
+	}
     },
     [ICS9248_98] = {
-    	.max_reg = 6,
-    	.regs = {0x00, 0x7f, 0xff, 0xbf, 0xf5, 0xff, 0x06},
-    	.fs_regs = {{0, 4, 3, 6}, {0, 5, 4, 3}, {0, 6, 1, 7}, {0, 7, 4, 1}, {-1, -1, -1, -1}},
-    	.frequencies = {
+	.max_reg = 6,
+	.regs = {0x00, 0x7f, 0xff, 0xbf, 0xf5, 0xff, 0x06},
+	.fs_regs = {{0, 4, 3, 6}, {0, 5, 4, 3}, {0, 6, 1, 7}, {0, 7, 4, 1}, {-1, -1, -1, -1}},
+	.frequencies = {
 		{.bus =  8000, .pci_div = 2},
 		{.bus =  7500, .pci_div = 2},
 		{.bus =  8331, .pci_div = 2},
@@ -156,16 +156,16 @@ static const ics9xxx_t ics9xxx_devices[] = {
 	}
     },
     [ICS9250_08] = {
-    	.max_reg = 5,
-    	.regs = {0x00, 0xff, 0xff, 0xff, 0x6d, 0xbf},
-    	.fs_regs = {{0, 4, 4, 7}, {0, 5, 4, 4}, {0, 6, 5, 6}, {0, 7, 4, 1}, {-1, -1, -1, -1}},
-    	.frequencies_ref = ICS9248_39
+	.max_reg = 5,
+	.regs = {0x00, 0xff, 0xff, 0xff, 0x6d, 0xbf},
+	.fs_regs = {{0, 4, 4, 7}, {0, 5, 4, 4}, {0, 6, 5, 6}, {0, 7, 4, 1}, {-1, -1, -1, -1}},
+	.frequencies_ref = ICS9248_39
     },
     [ICS9250_10] = {
-    	.max_reg = 5,
-    	.regs = {0x1f, 0xff, 0xfe, 0x00, 0x00, 0x06},
-    	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
-    	.frequencies = {
+	.max_reg = 5,
+	.regs = {0x1f, 0xff, 0xfe, 0x00, 0x00, 0x06},
+	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
+	.frequencies = {
 		{.bus =  6667, .ram_mult = 1.5, .pci_div = 2},
 		{.bus =  7067, .ram_mult = 1.5, .pci_div = 2},
 		{.bus =  7466, .ram_mult = 1.5, .pci_div = 2},
@@ -185,10 +185,10 @@ static const ics9xxx_t ics9xxx_devices[] = {
 	}
     },
     [ICS9250_13] = {
-    	.max_reg = 5,
-    	.regs = {0x82, 0xcf, 0x7f, 0xff, 0xff, 0xf7},
-    	.fs_regs = {{0, 4, 1, 4}, {0, 5, 5, 7}, {0, 6, 1, 5}, {0, 2, 2, 7}, {-1, -1, -1, -1}},
-    	.frequencies = {
+	.max_reg = 5,
+	.regs = {0x82, 0xcf, 0x7f, 0xff, 0xff, 0xf7},
+	.fs_regs = {{0, 4, 1, 4}, {0, 5, 5, 7}, {0, 6, 1, 5}, {0, 2, 2, 7}, {-1, -1, -1, -1}},
+	.frequencies = {
 		{.bus = 9000, .ram_mult = 1, .pci_div = 2},
 		{.bus = 8901, .ram_mult = 1, .pci_div = 2},
 		{.bus = 8800, .ram_mult = 1, .pci_div = 2},
@@ -208,10 +208,10 @@ static const ics9xxx_t ics9xxx_devices[] = {
 	}
     },
     [ICS9250_14] = {
-    	.max_reg = 5,
-    	.regs = {0x02, 0x1f, 0xff, 0xff, 0xeb, 0xff},
-    	.fs_regs = {{0, 4, 1, 6}, {0, 5, 4, 2}, {0, 6, 1, 5}, {0, 7, 1, 7}, {0, 2, 4, 4}},
-    	.frequencies = {
+	.max_reg = 5,
+	.regs = {0x02, 0x1f, 0xff, 0xff, 0xeb, 0xff},
+	.fs_regs = {{0, 4, 1, 6}, {0, 5, 4, 2}, {0, 6, 1, 5}, {0, 7, 1, 7}, {0, 2, 4, 4}},
+	.frequencies = {
 		{.bus =  6781, .ram_mult = 1.5, .pci_div = 2},
 		{.bus =  7000, .ram_mult = 1.5, .pci_div = 2},
 		{.bus =  7201, .ram_mult = 1.5, .pci_div = 2},
@@ -247,10 +247,10 @@ static const ics9xxx_t ics9xxx_devices[] = {
 	}
     },
     [ICS9250_16] = {
-    	.max_reg = 5,
-    	.regs = {0x1f, 0xff, 0xff, 0x00, 0x00, 0x06},
-    	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
-    	.frequencies = {
+	.max_reg = 5,
+	.regs = {0x1f, 0xff, 0xff, 0x00, 0x00, 0x06},
+	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
+	.frequencies = {
 		{.bus =  6667, .ram_mult =  1.5, .pci_div = 2},
 		{.bus =  7000, .ram_mult =  1.5, .pci_div = 2},
 		{.bus =  7267, .ram_mult =  1.5, .pci_div = 2},
@@ -270,10 +270,10 @@ static const ics9xxx_t ics9xxx_devices[] = {
 	}
     },
     [ICS9250_18] = {
-    	.max_reg = 5,
-    	.regs = {0x02, 0xff, 0xff, 0xff, 0x6d, 0xbf},
-    	.fs_regs = {{0, 4, 4, 7}, {0, 5, 4, 4}, {0, 6, 5, 6}, {0, 7, 4, 1}, {-1, -1, -1, -1}},
-    	.frequencies = {
+	.max_reg = 5,
+	.regs = {0x02, 0xff, 0xff, 0xff, 0x6d, 0xbf},
+	.fs_regs = {{0, 4, 4, 7}, {0, 5, 4, 4}, {0, 6, 5, 6}, {0, 7, 4, 1}, {-1, -1, -1, -1}},
+	.frequencies = {
 		{.bus =  8000, .pci_div = 2},
 		{.bus =  7500, .pci_div = 2},
 		{.bus =  8331, .pci_div = 2},
@@ -309,15 +309,15 @@ static const ics9xxx_t ics9xxx_devices[] = {
 	}
     },
     [ICS9250_19] = {
-    	.max_reg = 5,
-    	.regs = {0x02, 0xff, 0xff, 0xff, 0x6d, 0xbf},
-    	.fs_regs = {{0, 4, 4, 7}, {0, 5, 4, 4}, {0, 6, 5, 6}, {0, 7, 4, 1}, {-1, -1, -1, -1}},
-    	.frequencies_ref = ICS9250_08
+	.max_reg = 5,
+	.regs = {0x02, 0xff, 0xff, 0xff, 0x6d, 0xbf},
+	.fs_regs = {{0, 4, 4, 7}, {0, 5, 4, 4}, {0, 6, 5, 6}, {0, 7, 4, 1}, {-1, -1, -1, -1}},
+	.frequencies_ref = ICS9250_08
     },
     [ICS9250_23] = {
-    	.max_reg = 5,
-    	.regs = {0x02, 0x1f, 0xff, 0xff, 0xeb, 0xff},
-    	.fs_regs = {{0, 4, 1, 6}, {0, 5, 4, 2}, {0, 6, 1, 5}, {0, 7, 1, 7}, {0, 2, 4, 4}},
+	.max_reg = 5,
+	.regs = {0x02, 0x1f, 0xff, 0xff, 0xeb, 0xff},
+	.fs_regs = {{0, 4, 1, 6}, {0, 5, 4, 2}, {0, 6, 1, 5}, {0, 7, 1, 7}, {0, 2, 4, 4}},
 	.frequencies = {
 		{.bus =  6900, .ram_mult =  1.5, .pci_div = 2},
 		{.bus =  7000, .ram_mult =  1.5, .pci_div = 2},
@@ -354,9 +354,9 @@ static const ics9xxx_t ics9xxx_devices[] = {
 	}
     },
     [ICS9250_25] = {
-    	.max_reg = 6,
-    	.regs = {0x02, 0x1f, 0xff, 0xff, 0xeb, 0xff, 0x06},
-    	.fs_regs = {{0, 4, 1, 6}, {0, 5, 4, 2}, {0, 6, 1, 5}, {0, 7, 1, 7}, {0, 2, 4, 4}},
+	.max_reg = 6,
+	.regs = {0x02, 0x1f, 0xff, 0xff, 0xeb, 0xff, 0x06},
+	.fs_regs = {{0, 4, 1, 6}, {0, 5, 4, 2}, {0, 6, 1, 5}, {0, 7, 1, 7}, {0, 2, 4, 4}},
 	.frequencies = {
 		{.bus =  5500, .ram_mult =  1.5, .pci_div = 2},
 		{.bus =  6000, .ram_mult =  1.5, .pci_div = 2},
@@ -393,16 +393,16 @@ static const ics9xxx_t ics9xxx_devices[] = {
 	}
     },
     [ICS9250_26] = {
-    	.max_reg = 5,
-    	.regs = {0x1e, 0xff, 0xff, 0x00, 0x00, 0x06},
-    	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
-    	.frequencies_ref = ICS9250_16
+	.max_reg = 5,
+	.regs = {0x1e, 0xff, 0xff, 0x00, 0x00, 0x06},
+	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
+	.frequencies_ref = ICS9250_16
     },
     [ICS9250_27] = {
-    	.max_reg = 5,
-    	.regs = {0x0f, 0xff, 0xfe, 0x00, 0x00, 0x00},
-    	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
-    	.frequencies = {
+	.max_reg = 5,
+	.regs = {0x0f, 0xff, 0xfe, 0x00, 0x00, 0x00},
+	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
+	.frequencies = {
 		{.bus =  6666, .ram_mult =  1.5, .pci_div = 2},
 		{.bus = 13332, .ram_mult =    1, .pci_div = 4},
 		{.bus = 10000, .ram_mult =    1, .pci_div = 3},
@@ -414,22 +414,22 @@ static const ics9xxx_t ics9xxx_devices[] = {
 	}
     },
     [ICS9250_28] = {
-    	.max_reg = 4,
-    	.regs = {0x1e, 0xff, 0xfe, 0x00, 0x00},
-    	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
-    	.frequencies_ref = ICS9250_27
+	.max_reg = 4,
+	.regs = {0x1e, 0xff, 0xfe, 0x00, 0x00},
+	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
+	.frequencies_ref = ICS9250_27
     },
     [ICS9250_29] = {
-    	.max_reg = 5,
-    	.regs = {0x16, 0xff, 0xfe, 0x00, 0x00, 0x00},
-    	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
-    	.frequencies_ref = ICS9250_27
+	.max_reg = 5,
+	.regs = {0x16, 0xff, 0xfe, 0x00, 0x00, 0x00},
+	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
+	.frequencies_ref = ICS9250_27
     },
     [ICS9250_30] = {
-    	.max_reg = 6,
-    	.regs = {0x02, 0x0f, 0xff, 0xff, 0xeb, 0xff, 0x06},
-    	.fs_regs = {{0, 4, 1, 6}, {0, 5, 4, 2}, {0, 6, 1, 5}, {0, 7, 1, 7}, {0, 2, 4, 4}},
-    	.frequencies = {
+	.max_reg = 6,
+	.regs = {0x02, 0x0f, 0xff, 0xff, 0xeb, 0xff, 0x06},
+	.fs_regs = {{0, 4, 1, 6}, {0, 5, 4, 2}, {0, 6, 1, 5}, {0, 7, 1, 7}, {0, 2, 4, 4}},
+	.frequencies = {
 		{.bus =  6667, .ram_mult =  1.5, .pci_div = 2},
 		{.bus =  6000, .ram_mult =  1.5, .pci_div = 2},
 		{.bus =  6680, .ram_mult =  1.5, .pci_div = 2},
@@ -465,36 +465,36 @@ static const ics9xxx_t ics9xxx_devices[] = {
 	}
     },
     [ICS9250_32] = {
-    	.max_reg = 4,
-    	.regs = {0x07, 0xff, 0xff, 0x00, 0x00},
-    	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}}
+	.max_reg = 4,
+	.regs = {0x07, 0xff, 0xff, 0x00, 0x00},
+	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}}
     },
     [ICS9250_38] = {
-    	.max_reg = 6,
-    	.regs = {0x18, 0x07, 0xfe, 0xc7, 0xfc, 0x00, 0x80},
-    	.fs_regs = {{0, 0, -1, -1}, {0, 1, -1, -1}, {0, 2, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
-    	.normal_bits_fixed = 1,
-    	.frequencies = {
-	    	{.bus =  6666, .ram_mult =       1, .pci_div = 1},
-	    	{.bus = 10000, .ram_mult = 2.0/3.0, .pci_div = 3},
-	    	{.bus = 20000, .ram_mult = 1.0/3.0, .pci_div = 6},
-	    	{.bus = 13333, .ram_mult =     0.5, .pci_div = 2},
-	    	{.bus =  6666, .ram_mult =       1, .pci_div = 1},
-	    	{.bus = 10000, .ram_mult = 2.0/3.0, .pci_div = 3},
-	    	{.bus = 20000, .ram_mult = 1.0/3.0, .pci_div = 6},
-	    	{.bus = 13333, .ram_mult =     0.5, .pci_div = 2}
+	.max_reg = 6,
+	.regs = {0x18, 0x07, 0xfe, 0xc7, 0xfc, 0x00, 0x80},
+	.fs_regs = {{0, 0, -1, -1}, {0, 1, -1, -1}, {0, 2, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
+	.normal_bits_fixed = 1,
+	.frequencies = {
+		{.bus =  6666, .ram_mult =       1, .pci_div = 1},
+		{.bus = 10000, .ram_mult = 2.0/3.0, .pci_div = 3},
+		{.bus = 20000, .ram_mult = 1.0/3.0, .pci_div = 6},
+		{.bus = 13333, .ram_mult =     0.5, .pci_div = 2},
+		{.bus =  6666, .ram_mult =       1, .pci_div = 1},
+		{.bus = 10000, .ram_mult = 2.0/3.0, .pci_div = 3},
+		{.bus = 20000, .ram_mult = 1.0/3.0, .pci_div = 6},
+		{.bus = 13333, .ram_mult =     0.5, .pci_div = 2}
 	}
     },
     [ICS9250_50] = {
-    	.max_reg = 6,
-    	.regs = {0x02, 0x6f, 0xff, 0xff, 0xef, 0xff, 0x06},
-    	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {0, 7, 1, 7}, {0, 2, 4, 4}},
-    	.frequencies = {
-    		{.bus =  6667, .ram_mult =  1.5, .pci_div = 2},
-    		{.bus = 10000, .ram_mult =    1, .pci_div = 3},
-    		{.bus = 13333, .ram_mult =    1, .pci_div = 4},
-    		{.bus = 13333, .ram_mult = 0.75, .pci_div = 4}
-    	}
+	.max_reg = 6,
+	.regs = {0x02, 0x6f, 0xff, 0xff, 0xef, 0xff, 0x06},
+	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {0, 7, 1, 7}, {0, 2, 4, 4}},
+	.frequencies = {
+		{.bus =  6667, .ram_mult =  1.5, .pci_div = 2},
+		{.bus = 10000, .ram_mult =    1, .pci_div = 3},
+		{.bus = 13333, .ram_mult =    1, .pci_div = 4},
+		{.bus = 13333, .ram_mult = 0.75, .pci_div = 4}
+	}
     }
 };
 
@@ -539,16 +539,16 @@ ics9xxx_read(void *bus, uint8_t addr, void *priv)
     uint8_t ret = 0xff;
 
     if (dev->addr_register < 0) {
-    	dev->addr_register = -1;
+	dev->addr_register = -1;
 	ret = dev->max_reg + 1;
     } else if ((dev->model == ICS9250_50) && (dev->addr_register == 0))
-    	ret = dev->regs[dev->addr_register] & 0x0b; /* -50 reads back revision ID instead */
+	ret = dev->regs[dev->addr_register] & 0x0b; /* -50 reads back revision ID instead */
     else
 	ret = dev->regs[dev->addr_register];
 
     ics9xxx_log("ICS9xxx: read(%02X) = %02X\n", dev->addr_register, ret);
     if (++dev->addr_register > dev->max_reg)
-    	dev->addr_register = 0; /* roll-over */
+	dev->addr_register = 0; /* roll-over */
 
     return ret;
 }
@@ -559,8 +559,8 @@ ics9xxx_set(ics9xxx_t *dev, uint8_t val)
 {
     /* Add register-defined frequency bits to the static frequency bits we were passed. */
     for (uint8_t i = 0; i < sizeof(dev->fs_regs) / sizeof(dev->fs_regs[0]); i++) {
-    	if ((dev->fs_regs[i].normal_reg < 7) && (dev->regs[dev->fs_regs[i].normal_reg] & (1 << dev->fs_regs[i].normal_bit)))
-    		val |= 1 << i;
+	if ((dev->fs_regs[i].normal_reg < 7) && (dev->regs[dev->fs_regs[i].normal_reg] & (1 << dev->fs_regs[i].normal_bit)))
+		val |= 1 << i;
     }
 
     ics9xxx_log("ICS9xxx: set(%02X) = %d\n", val, ics9xxx_devices[dev->model].frequencies[val].bus);
@@ -575,53 +575,53 @@ ics9xxx_write(void *bus, uint8_t addr, uint8_t data, void *priv)
     ics9xxx_log("ICS9xxx: write(%02X, %02X)\n", dev->addr_register, data);
 
     if (dev->addr_register >= 0) {
-    	/* Preserve fixed bits. */
-    	for (uint8_t i = 0; i < sizeof(dev->fs_regs) / sizeof(dev->fs_regs[0]); i++) {
-    		if (dev->normal_bits_fixed && (dev->fs_regs[i].normal_reg == dev->addr_register))
-    			data = (dev->regs[dev->addr_register] & (1 << dev->fs_regs[i].normal_bit)) | (data & ~(1 << dev->fs_regs[i].normal_bit));
-    		if (dev->fs_regs[i].inv_reg == dev->addr_register)
-    			data = (dev->regs[dev->addr_register] & (1 << dev->fs_regs[i].inv_bit)) | (data & ~(1 << dev->fs_regs[i].inv_bit));
-    	}
+	/* Preserve fixed bits. */
+	for (uint8_t i = 0; i < sizeof(dev->fs_regs) / sizeof(dev->fs_regs[0]); i++) {
+		if (dev->normal_bits_fixed && (dev->fs_regs[i].normal_reg == dev->addr_register))
+			data = (dev->regs[dev->addr_register] & (1 << dev->fs_regs[i].normal_bit)) | (data & ~(1 << dev->fs_regs[i].normal_bit));
+		if (dev->fs_regs[i].inv_reg == dev->addr_register)
+			data = (dev->regs[dev->addr_register] & (1 << dev->fs_regs[i].inv_bit)) | (data & ~(1 << dev->fs_regs[i].inv_bit));
+	}
 
-    	switch (dev->addr_register) {
-    		case 0:
-    			if (dev->model == ICS9250_38)
-    				data = (dev->regs[dev->addr_register] & ~0xef) | (data & 0xef);
-    			else if (dev->model == ICS9250_10)
-    				ics9xxx_set(dev, (cpu_busspeed >= 100000000) * 0x08);
-    			else if ((dev->model == ICS9250_16) || (dev->model == ICS9250_26))
-    				ics9xxx_set(dev, ((cpu_busspeed >= 120000000) * 0x08) | ((((cpu_busspeed >= 100000000) && (cpu_busspeed < 120000000)) || (cpu_busspeed == 150000000) || (cpu_busspeed == 132999999)) * 0x04));
-    			else if ((dev->model == ICS9250_27) || (dev->model == ICS9250_28) || (dev->model == ICS9250_29))
-    				ics9xxx_set(dev, ((cpu_busspeed == 100000000) * 0x02) | ((cpu_busspeed > 100000000) * 0x01));
-    			else
-    				ics9xxx_set(dev, 0x00);
-    			break;
+	switch (dev->addr_register) {
+		case 0:
+			if (dev->model == ICS9250_38)
+				data = (dev->regs[dev->addr_register] & ~0xef) | (data & 0xef);
+			else if (dev->model == ICS9250_10)
+				ics9xxx_set(dev, (cpu_busspeed >= 100000000) * 0x08);
+			else if ((dev->model == ICS9250_16) || (dev->model == ICS9250_26))
+				ics9xxx_set(dev, ((cpu_busspeed >= 120000000) * 0x08) | ((((cpu_busspeed >= 100000000) && (cpu_busspeed < 120000000)) || (cpu_busspeed == 150000000) || (cpu_busspeed == 132999999)) * 0x04));
+			else if ((dev->model == ICS9250_27) || (dev->model == ICS9250_28) || (dev->model == ICS9250_29))
+				ics9xxx_set(dev, ((cpu_busspeed == 100000000) * 0x02) | ((cpu_busspeed > 100000000) * 0x01));
+			else
+				ics9xxx_set(dev, 0x00);
+			break;
 
-    		case 1:
-    			if (dev->model == ICS9250_38)
-    				data = (dev->regs[dev->addr_register] & ~0xfe) | (data & 0xfe);
-    			break;
+		case 1:
+			if (dev->model == ICS9250_38)
+				data = (dev->regs[dev->addr_register] & ~0xfe) | (data & 0xfe);
+			break;
 
-    		case 3:
-    			if (dev->model == ICS9250_32)
-    				data ^= 0x70;
-    			break;
+		case 3:
+			if (dev->model == ICS9250_32)
+				data ^= 0x70;
+			break;
 
-    		case 4:
-    			if (dev->model == ICS9250_38)
-    				data = (dev->regs[dev->addr_register] & ~0xfc) | (data & 0xfc);
-    			break;
+		case 4:
+			if (dev->model == ICS9250_38)
+				data = (dev->regs[dev->addr_register] & ~0xfc) | (data & 0xfc);
+			break;
 
-    		case 6:
-    			if (dev->model == ICS9250_38)
-    				data = dev->regs[dev->addr_register];
-    			break;
-    	}
-    	dev->regs[dev->addr_register] = data;
+		case 6:
+			if (dev->model == ICS9250_38)
+				data = dev->regs[dev->addr_register];
+			break;
+	}
+	dev->regs[dev->addr_register] = data;
     }
     
     if (++dev->addr_register > dev->max_reg)
-    	dev->addr_register = 0; /* roll-over */
+	dev->addr_register = 0; /* roll-over */
 
     return 1;
 }
@@ -660,31 +660,31 @@ ics9xxx_init(const device_t *info)
     dev->model = info->local;
     dev->frequencies_ptr = (ics9xxx_frequency_t *) ics9xxx_devices[dev->frequencies_ref ? dev->frequencies_ref : dev->model].frequencies;
     if (!dev->frequencies_ptr)
-    	fatal("ICS9xxx: NULL frequency table\n");
+	fatal("ICS9xxx: NULL frequency table\n");
 
     /* Determine which frequency bits cannot be strapped (register only). */
     uint8_t register_only_bits = 0x00;
     uint8_t i;
     for (i = 0; i < sizeof(dev->fs_regs) / sizeof(dev->fs_regs[0]); i++) {
-    	if ((dev->fs_regs[i].normal_reg == 7) && (dev->fs_regs[i].inv_reg == 7))
-    		register_only_bits |= 1 << i;
+	if ((dev->fs_regs[i].normal_reg == 7) && (dev->fs_regs[i].inv_reg == 7))
+		register_only_bits |= 1 << i;
     }
 
     /* Find bus speed match and set default register bits accordingly. */
     dev->bus_match = find_bus_match(dev, cpu_busspeed, register_only_bits, 0x00);
     for (i = 0; i < sizeof(dev->fs_regs) / sizeof(dev->fs_regs[0]); i++) {
-    	if (dev->fs_regs[i].normal_reg < 7) {
-    		if (dev->bus_match & (1 << i))
-    			dev->regs[dev->fs_regs[i].normal_reg] |= 1 << dev->fs_regs[i].normal_bit;
-    		else
-    			dev->regs[dev->fs_regs[i].normal_reg] &= ~(1 << dev->fs_regs[i].normal_bit);
-    	}
-    	if (dev->fs_regs[i].inv_reg < 7) {
-    		if (dev->bus_match & (1 << i))
-    			dev->regs[dev->fs_regs[i].inv_reg] &= ~(1 << dev->fs_regs[i].inv_bit);
-    		else
-    			dev->regs[dev->fs_regs[i].inv_reg] |= 1 << dev->fs_regs[i].inv_bit;
-    	}
+	if (dev->fs_regs[i].normal_reg < 7) {
+		if (dev->bus_match & (1 << i))
+			dev->regs[dev->fs_regs[i].normal_reg] |= 1 << dev->fs_regs[i].normal_bit;
+		else
+			dev->regs[dev->fs_regs[i].normal_reg] &= ~(1 << dev->fs_regs[i].normal_bit);
+	}
+	if (dev->fs_regs[i].inv_reg < 7) {
+		if (dev->bus_match & (1 << i))
+			dev->regs[dev->fs_regs[i].inv_reg] &= ~(1 << dev->fs_regs[i].inv_bit);
+		else
+			dev->regs[dev->fs_regs[i].inv_reg] |= 1 << dev->fs_regs[i].inv_bit;
+	}
     }
 
     i2c_sethandler(i2c_smbus, 0x69, 1, ics9xxx_start, ics9xxx_read, ics9xxx_write, NULL, dev);
