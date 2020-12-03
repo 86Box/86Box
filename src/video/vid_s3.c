@@ -44,7 +44,8 @@
 #define ROM_PHOENIX_86C805		L"roms/video/s3/805.vbi"
 #define ROM_PARADISE_BAHAMAS64		L"roms/video/s3/bahamas64.bin"
 #define ROM_PHOENIX_VISION864		L"roms/video/s3/86c864p.bin"
-#define ROM_DIAMOND_STEALTH64_964	L"roms/video/s3/964_107h.rom"
+// #define ROM_DIAMOND_STEALTH64_964	L"roms/video/s3/964_107h.rom"
+#define ROM_DIAMOND_STEALTH64_964	L"roms/video/s3/elsaw20004m.bin"
 #define ROM_PHOENIX_TRIO32		L"roms/video/s3/86c732p.bin"
 #define ROM_NUMBER9_9FX			L"roms/video/s3/s3_764.bin"
 #define ROM_PHOENIX_TRIO64		L"roms/video/s3/86c764x1.bin"
@@ -53,6 +54,7 @@
 #define ROM_PHOENIX_TRIO64VPLUS		L"roms/video/s3/64V1506.ROM"
 #define ROM_DIAMOND_STEALTH_SE		L"roms/video/s3/DiamondStealthSE.VBI"
 #define ROM_ELSAWIN2KPROXPCI8		L"roms/video/s3/elsaw20008m.BIN"
+// #define ROM_ELSAWIN2KPROXPCI8		L"roms/video/s3/spea.BIN"
 
 enum
 {
@@ -1788,7 +1790,12 @@ s3_io_remove(s3_t *s3)
 static void
 s3_io_set_alt(s3_t *s3)
 {
+	svga_t *svga = &s3->svga;
+
 	if (!s3->translate)
+		return;
+
+	if ((s3->chip == S3_VISION968) && (svga->seqregs[0x90] & 0x80))
 		return;
 
 	io_sethandler(0x4148, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
@@ -1832,8 +1839,12 @@ static void
 s3_io_set(s3_t *s3)
 {
 	s3_io_remove(s3);
+	svga_t *svga = &s3->svga;
 
 	io_sethandler(0x03c0, 0x0020, s3_in, NULL, NULL, s3_out, NULL, NULL, s3);
+
+	if ((s3->chip == S3_VISION968) && (svga->seqregs[0x90] & 0x80))
+		return;
 
 	io_sethandler(0x42e8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_sethandler(0x46e8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
@@ -1911,6 +1922,13 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 				svga->write_bank = svga->read_bank = s3->bank << 16;
 			else
 				svga->write_bank = svga->read_bank = s3->bank << 14;
+		} else if (svga->seqaddr == 9) {
+			svga->seqregs[svga->seqaddr] = val & 0x80;
+			s3_io_set(s3);
+			return;
+		} else if (svga->seqaddr == 0xa) {
+			svga->seqregs[svga->seqaddr] = val & 0x80;
+			return;
 		}
 		break;
 		
@@ -1957,6 +1975,8 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 			return;
 		old = svga->crtc[svga->crtcreg];
 		svga->crtc[svga->crtcreg] = val;
+		if (svga->crtcreg == 0x36)
+			pclog("CR36: %02X\n", val);
 		switch (svga->crtcreg)
 		{
 			case 0x31:
@@ -1968,6 +1988,7 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 
 			case 0x40:
 			s3->enable_8514 = !!(svga->crtc[0x40] & 1);
+			// pclog("8514 now %sabled\n", s3->enable_8514 ? "en" : "dis");
 			break;
 
 			case 0x50:
@@ -1979,10 +2000,11 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 				case 0x00: s3->width = (svga->crtc[0x31] & 2) ? 2048 : 1024; break;
 				case 0x01: s3->width = 1152; break;
 				case 0x40: s3->width = 640;  break;
-				case 0x80: s3->width = 800;  break;
+				case 0x80: s3->width = ((s3->chip > S3_86C805) && (s3->accel.advfunc_cntl & 4)) ? 1600 : 800;  break;
 				case 0x81: s3->width = 1600; break;
 				case 0xc0: s3->width = 1280; break;
 			}
+			// pclog("CR50: New width = %i\n", s3->width);
 			s3->bpp = (svga->crtc[0x50] >> 4) & 3;
 			break;
 			case 0x69:
@@ -2095,14 +2117,16 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 			}
 			break;
 			
-			case 0x5c:
-				
-
 			case 0x42:
 			if ((s3->chip == S3_VISION964 || s3->chip == S3_VISION968) || (s3->chip == S3_86C928)) {
 				if (((svga->miscout >> 2) & 3) == 3)
 	        	        	icd2061_write(svga->clock_gen, svga->crtc[0x42] & 0x0f);
 			}
+			break;
+
+			case 0x5c:
+			if ((val & 0xa0) == 0x80)
+				i2c_gpio_set(s3->i2c, !!(val & 0x40), !!(val & 0x10));
 			break;
 
 			case 0x43:
@@ -2189,21 +2213,34 @@ s3_in(uint16_t addr, void *p)
 		case 0x3d5:
 		switch (svga->crtcreg)
 		{
+			case 0x2d: pclog("[%04X:%08X] CR2D: %02X\n", CS, cpu_state.pc, (s3->chip == S3_TRIO64V2) ? 0x89 : 0x88); break;
+			case 0x2e: pclog("[%04X:%08X] CR2E: %02X\n", CS, cpu_state.pc, s3->id_ext); break;
+			case 0x2f: pclog("[%04X:%08X] CR2F: %02X\n", CS, cpu_state.pc, (s3->chip == S3_TRIO64V) ? 0x40 : 0); break;
+			case 0x30: pclog("[%04X:%08X] CR30: %02X\n", CS, cpu_state.pc, s3->id); break;
+		}
+		switch (svga->crtcreg)
+		{
 			case 0x2d: return (s3->chip == S3_TRIO64V2) ? 0x89 : 0x88;       /*Extended chip ID*/
 			case 0x2e: return s3->id_ext; /*New chip ID*/
-			case 0x2f: return (s3->chip == S3_TRIO64V) ? 0x40 : 0;	  /*Revision level*/
+			case 0x2f: return (s3->chip == S3_TRIO64V) ? 0x40 : 0;		/*Revision level*/
 			case 0x30: return s3->id;     /*Chip ID*/
 			case 0x31: return (svga->crtc[0x31] & 0xcf) | ((s3->ma_ext & 3) << 4);
 			case 0x35: return (svga->crtc[0x35] & 0xf0) | (s3->bank & 0xf);
 			case 0x45: s3->hwc_col_stack_pos = 0; break;
 			case 0x51: return (svga->crtc[0x51] & 0xf0) | ((s3->bank >> 2) & 0xc) | ((s3->ma_ext >> 2) & 3);
 			case 0x5c:	/* General Output Port Register */
-				   temp = svga->crtc[svga->crtcreg] & 0xf0;
-				   if (((svga->miscout >> 2) & 3) == 3)
+				temp = svga->crtc[svga->crtcreg] & 0xa0;
+				if (((svga->miscout >> 2) & 3) == 3)
 					temp |= svga->crtc[0x42] & 0x0f;
-				   else
+				else
 					temp |= ((svga->miscout >> 2) & 3);
-				   return temp;
+				if ((temp & 0xa0) == 0xa0) {
+					if ((svga->crtc[0x5c] & 0x40) && i2c_gpio_get_scl(s3->i2c))
+						temp |= 0x40;
+					if ((svga->crtc[0x5c] & 0x10) && i2c_gpio_get_sda(s3->i2c))
+						temp |= 0x10;
+				}
+				return temp;
 			case 0x69: return s3->ma_ext;
 			case 0x6a: return s3->bank;
 			/* Phoenix S3 video BIOS'es seem to expect CRTC registers 6B and 6C
@@ -2267,7 +2304,7 @@ static void s3_recalctimings(svga_t *svga)
 			if ((s3->chip != S3_VISION964) && (s3->chip != S3_86C801)) {
 				if (s3->chip == S3_86C928)
 					svga->hdisp *= 2;
-				else
+				else if (s3->chip != S3_VISION968)
 					svga->hdisp /= 2;
 			}
 			break;
@@ -2276,21 +2313,24 @@ static void s3_recalctimings(svga_t *svga)
 			if ((s3->chip != S3_VISION964) && (s3->chip != S3_86C801)) {
 				if (s3->chip == S3_86C928)
 					svga->hdisp *= 2;
-				else
+				else if (s3->chip != S3_VISION968)
 					svga->hdisp /= 2;
 			}
 			break;
 			case 24:
 			svga->render = svga_render_24bpp_highres;
-			if (s3->chip != S3_86C928 && s3->chip != S3_86C801 && s3->chip != S3_86C805)
+			if (s3->chip != S3_86C928 && s3->chip != S3_86C801 && s3->chip != S3_86C805 && s3->chip != S3_VISION968)
 				svga->hdisp /= 3;
 			else
 				svga->hdisp = (svga->hdisp * 2) / 3;
 			break;
 			case 32:
 			svga->render = svga_render_32bpp_highres; 
-			if ((s3->chip < S3_TRIO32) && (s3->chip != S3_VISION964) && (s3->chip != S3_86C928))
+			if ((s3->chip < S3_TRIO32) && (s3->chip != S3_VISION964) &&
+			    (s3->chip != S3_VISION968) && (s3->chip != S3_86C928))
 				svga->hdisp /= 4;
+			if (s3->width == 1600)
+				svga->hdisp *= 2;
 			break;
 		}
 	}
@@ -2550,6 +2590,10 @@ static void
 s3_accel_out(uint16_t port, uint8_t val, void *p)
 {
 	s3_t *s3 = (s3_t *)p;
+	svga_t *svga = &s3->svga;
+
+	// if ((!s3->enable_8514) && (port = 0x4ae8))
+		// pclog("Attempting to write %02X to 4AE8 while 8514 is disabled\n", val);
 
 	if (!s3->enable_8514)
 		return;
@@ -2579,6 +2623,12 @@ s3_accel_out(uint16_t port, uint8_t val, void *p)
 			break;
 			case 0x4948: case 0x4ae8:
 			s3->accel.advfunc_cntl = val;
+			if ((s3->chip > S3_86C805) && ((svga->crtc[0x50] & 0xc1) == 0x80)) {
+				s3->width = (val & 4) ? 1600 : 800;
+				svga->fullchange = changeframecount;
+				svga_recalctimings(svga);
+			}
+			// pclog("4AE8: New width = %i\n", s3->width);
 			s3_updatemapping(s3);
 			break;
 		}
@@ -3398,7 +3448,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 	if (s3->bpp == 0) compare &=   0xff;
 	if (s3->bpp == 1) compare &= 0xffff;
 
-	pclog("S3 cmd = %i, bus size = %03x\n", cmd, s3->accel.cmd & 0x600);
+	// pclog("S3 cmd = %i, bus size = %03x\n", cmd, s3->accel.cmd & 0x600);
 
 	switch (cmd)
 	{
@@ -4167,7 +4217,11 @@ s3_pci_read(int func, int addr, void *p)
 		case 0x03: return (s3->chip == S3_TRIO64V2) ? 0x89 : 0x88;
 		
 		case PCI_REG_COMMAND:
-		return s3->pci_regs[PCI_REG_COMMAND]; /*Respond to IO and memory accesses*/
+		if (s3->chip == S3_VISION968)
+			return s3->pci_regs[PCI_REG_COMMAND] | 0x80; /*Respond to IO and memory accesses*/
+		else
+			return s3->pci_regs[PCI_REG_COMMAND]; /*Respond to IO and memory accesses*/
+		break;
 
 		case 0x07: return 1 << 1; /*Medium DEVSEL timing*/
 		
@@ -4189,8 +4243,8 @@ s3_pci_read(int func, int addr, void *p)
 		
 		case 0x10: return 0x00; /*Linear frame buffer address*/
 		case 0x11: return 0x00;
-		case 0x12: return (s3->chip >= S3_TRIO64V) ? 0 : (svga->crtc[0x5a] & 0x80);
-		case 0x13: return (s3->chip >= S3_TRIO64V) ? (svga->crtc[0x59] & 0xfc) : svga->crtc[0x59];
+		case 0x12: return 0 /* (s3->chip >= S3_TRIO64V) ? 0 : (svga->crtc[0x5a] & 0x80) */;
+		case 0x13: return svga->crtc[0x59] & 0xfc /*(s3->chip >= S3_TRIO64V) ? (svga->crtc[0x59] & 0xfc) : svga->crtc[0x59]*/;
 			
 		case 0x30: return s3->has_bios ? (s3->pci_regs[0x30] & 0x01) : 0x00; /*BIOS ROM address*/
 		case 0x31: return 0x00;
@@ -4220,14 +4274,16 @@ s3_pci_write(int func, int addr, uint8_t val, void *p)
 		break;
 		
 		case 0x12:
+#if 0
 		if (s3->chip != S3_TRIO64V && s3->chip != S3_TRIO64V2) {
 			svga->crtc[0x5a] = (svga->crtc[0x5a] & 0x7f) | (val & 0x80);
 			s3_updatemapping(s3);
 		}
+#endif
 		break;
 		
 		case 0x13:
-		svga->crtc[0x59] = (s3->chip >= S3_TRIO64V) ? (val & 0xfc) : val;
+		svga->crtc[0x59] = (val & 0xfc) /*(s3->chip >= S3_TRIO64V) ? (val & 0xfc) : val*/;
 		s3_updatemapping(s3);
 		break;
 
@@ -4424,7 +4480,7 @@ static void *s3_init(const device_t *info)
 	else
 		vram_size = 512 << 10;
 	s3->vram_mask = vram_size - 1;
-	pclog("S3 VRAM mask = %08x\n", vram_size - 1);
+	// pclog("S3 VRAM mask = %08x\n", vram_size - 1);
 
 	s3->has_bios = (bios_fn != NULL);
 	if (s3->has_bios) {
@@ -4516,11 +4572,12 @@ static void *s3_init(const device_t *info)
 				svga->vram_max = 8 << 20;
 				break;
 		}
-		pclog("VRAM Max = %08x\n", svga->vram_max);
+		// pclog("VRAM Max = %08x\n", svga->vram_max);
 	}
 
 	if (s3->pci)
-		svga->crtc[0x36] = 2 | (3 << 2) | (1 << 4);
+		svga->crtc[0x36] = 2 | (0 << 2) | (1 << 4);
+		// svga->crtc[0x36] = 2 | (3 << 2) | (1 << 4);
 	else if (s3->vlb)
 		svga->crtc[0x36] = 1 | (3 << 2) | (1 << 4);
 	else
@@ -4650,7 +4707,8 @@ static void *s3_init(const device_t *info)
 			s3->packed_mmio = 1;
 			svga->crtc[0x5a] = 0x0a;
 
-			svga->ramdac = device_add(&bt485_ramdac_device);
+			svga->ramdac = device_add(&ibm_rgb525_ramdac_device);
+			// svga->ramdac = device_add(&bt485_ramdac_device);
 			svga->clock_gen = device_add(&icd2061_device);
 			svga->getclock = icd2061_getclock;
 			break;
@@ -4918,6 +4976,9 @@ static const device_config_t s3_standard_config[] =
 			},
 			{
 				"4 MB", 4
+			},
+			{
+				"8 MB", 8
 			},
 			{
 				""
