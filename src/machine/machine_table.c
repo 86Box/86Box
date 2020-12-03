@@ -339,7 +339,6 @@ const machine_t machines[] = {
     { "[i440BX] ASUS P3B-F",			"p3bf",			MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 150000000, 1800, 3500, 2.0, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  8, 1024,   8, 255,		 machine_at_p3bf_init, NULL			},
     { "[i440BX] ABIT BF6",			"bf6",			MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 133333333, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		  8,  768,   8, 255,		  machine_at_bf6_init, NULL			},
     { "[i440BX] AOpen AX6BC",			"ax6bc",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 112121212, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		  8,  768,   8, 255,		machine_at_ax6bc_init, NULL			},
-    { "[i440BX] A-Trend ATC6310BXII",		"atc6310bxii",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 133333333, 1800, 3500, 3.0, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  8,  768,   8, 255,	  machine_at_atc6310bxii_init, NULL			},
     { "[i440BX] Gigabyte GA-686BX",		"686bx",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 100000000, 1800, 3500, 3.0, 5.5,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	 			  8, 1024,   8, 255,		machine_at_686bx_init, NULL			},
     { "[i440BX] Tyan Tsunami ATX",		"tsunamiatx",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 112121212, 1800, 3500, 3.5, 5.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_SOUND,	 	  8, 1024,   8, 255,	   machine_at_tsunamiatx_init, at_tsunamiatx_get_device	},
     { "[i440BX] SuperMicro Super P6SBA",	"p6sba",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 100000000, 1800, 3500, 3.0, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		  8,  768,   8, 255,	        machine_at_p6sba_init, NULL			},
@@ -350,11 +349,14 @@ const machine_t machines[] = {
     /* 440GX */
     { "[i440GX] Freeway FW-6400GX",		"fw6400gx_s1",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 100000000, 150000000, 1800, 3500, 3.0, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 16, 2032,  16, 511,	     machine_at_fw6400gx_init, NULL			},
 
+    /* SMSC VictoryBX-66 */
+    { "[SMSC VictoryBX-66] A-Trend ATC6310BXII","atc6310bxii",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 133333333, 1800, 3500, 3.0, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  8,  768,   8, 255,	  machine_at_atc6310bxii_init, NULL			},
+
     /* VIA Apollo Pro */
     { "[VIA Apollo Pro] FIC KA-6130",		"ficka6130",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 100000000, 1800, 3500, 3.5, 5.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	 			  8,  512,   8, 255,	    machine_at_ficka6130_init, NULL			},
     { "[VIA Apollo Pro133A] ASUS P3V4X",	"p3v4x",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 150000000, 1800, 3500, 2.0, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			  8, 2048,   8, 255,		machine_at_p3v4x_init, NULL			},
 
-    /* Slot 2 machines(Including Slot 1/2 Hybrids) */
+    /* Slot 2 machines */
     /* 440GX */
     { "[i440GX] Gigabyte GA-6GXU",		"6gxu",			MACHINE_TYPE_SLOT2,		CPU_PKG_SLOT2, 0, 100000000, 133333333, 1800, 3500, 4.0, 6.5,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 16, 2048,  16, 511,	         machine_at_6gxu_init, NULL			},
     { "[i440GX] Freeway FW-6400GX",		"fw6400gx",		MACHINE_TYPE_SLOT2,		CPU_PKG_SLOT2, 0, 100000000, 150000000, 1800, 3500, 3.0, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 16, 2032,  16, 511,	     machine_at_fw6400gx_init, NULL			},
@@ -367,12 +369,14 @@ const machine_t machines[] = {
     /* 440BX */
     { "[i440BX] AEWIN AW-O671R",		"awo671r",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1800, 3500, 0, 0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  8,  512,   8, 255,	      machine_at_awo671r_init, NULL			},
     { "[i440BX] ASUS CUBX",			"cubx",			MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1800, 3500, 2.0, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  8, 1024,   8, 255,		 machine_at_cubx_init, NULL			},
-    { "[i440BX] A-Trend ATC7020BXII",		"atc7020bxii",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1800, 3500, 3.0, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  8, 1024,   8, 255,	  machine_at_atc7020bxii_init, NULL			},
     { "[i440BX] AmazePC AM-BX133",		"ambx133",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1800, 3500, 0, 0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  8,  768,   8, 255,	      machine_at_ambx133_init, NULL			},
     { "[i440BX] Tyan Trinity 371",		"trinity371",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1800, 3500, 3.5, 7.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  8,  768,   8, 255,	   machine_at_trinity371_init, NULL			},
 
     /* 440ZX */
     { "[i440ZX] Soltek SL-63A1",		"63a",			MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 100000000, 1800, 3500, 2.0, 7.5,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  8,  512,   8, 255,		  machine_at_63a_init, NULL			},
+
+    /* SMSC VictoryBX-66 */
+    { "[SMSC VictoryBX-66] A-Trend ATC7020BXII","atc7020bxii",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1800, 3500, 3.0, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		  8, 1024,   8, 255,	  machine_at_atc7020bxii_init, NULL			},
 
     /* VIA Apollo Pro */
     { "[VIA Apollo Pro] PC Partner APAS3",	"apas3",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 100000000, 1800, 3500, 3.0, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			  8,  768,   8, 255,            machine_at_apas3_init, NULL			},
