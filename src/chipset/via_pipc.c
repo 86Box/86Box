@@ -58,7 +58,7 @@
    listings on forums, as VIA's datasheets are not very helpful regarding those. */
 #define VIA_PIPC_586A	0x05862500
 #define VIA_PIPC_586B	0x05864700
-#define VIA_PIPC_596A	0x05961200
+#define VIA_PIPC_596A	0x05960900
 #define VIA_PIPC_596B	0x05962300
 #define VIA_PIPC_686A	0x06861400
 #define VIA_PIPC_686B	0x06864000
