@@ -1808,7 +1808,6 @@ const cpu_legacy_machine_t cpu_legacy_table[] = {
     {"8500tvxa",                cputables_Pentium_WinChip_K56_6x86},
     {"presario4500",            cputables_Pentium_WinChip_K56_6x86},
     {"p55va",                   cputables_Pentium_WinChip_K56_6x86},
-    {"gw2kte",                  cputables_Pentium3V_WinChip_K5_6x863V},
     {"brio80xx",                cputables_Pentium_WinChip_K56_6x86},
     {"pb680",                   cputables_Pentium_WinChip_K56_6x86},
     {"430vx",                   cputables_Pentium_WinChip_K56_6x86},
