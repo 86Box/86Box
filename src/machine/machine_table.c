@@ -292,6 +292,7 @@ const machine_t machines[] = {
     /* 430TX */
     { "[i430TX] ADLink NuPRO-592",		"nupro592",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 66666667, 66666667, 1900, 2800, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  8,  256,   8, 255,	     machine_at_nupro592_init, NULL			},
     { "[i430TX] ASUS TX97",			"tx97",			MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 75000000, 2500, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  8,  256,   8, 255,	         machine_at_tx97_init, NULL			},
+    { "[i430TX] Gateway 2000 Mailman",		"gw2kmm",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 60000000, 66666667, 2800, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  8,  256,   8, 255,	       machine_at_gw2kmm_init, NULL			},
 #if defined(DEV_BRANCH) && defined(NO_SIO)
     { "[i430TX] Intel AN430TX",			"an430tx",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 60000000, 66666667, 2800, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				  8,  256,   8, 255,	      machine_at_an430tx_init, NULL			},
 #endif
