@@ -147,7 +147,7 @@ onesec_timer(void *priv)
 
     if (++nvr->onesec_cnt >= 100) {
 	/* Update the internal clock. */
-	is_at = IS_ARCH(machine, (MACHINE_BUS_ISA16 | MACHINE_BUS_MCA | MACHINE_BUS_PCMCIA));
+	is_at = IS_AT(machine);
 	if (!is_at)
 		rtc_tick();
 

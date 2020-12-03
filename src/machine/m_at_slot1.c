@@ -37,6 +37,7 @@
 #include "cpu.h"
 #include <86box/machine.h>
 #include <86box/sound.h>
+#include <86box/clock.h>
 
 int
 machine_at_p65up5_cpknd_init(const machine_t *model)
@@ -214,6 +215,7 @@ machine_at_p2bls_init(const machine_t *model)
     device_add(&piix4e_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&w83977ef_device);
+    device_add(&ics9150_08_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
     device_add(&w83781d_device); /* fans: Chassis, CPU, Power; temperatures: MB, unused, CPU */
@@ -251,6 +253,7 @@ machine_at_p3bf_init(const machine_t *model)
     device_add(&piix4e_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&w83977ef_device);
+    device_add(&ics9250_08_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
     device_add(&as99127f_device); /* fans: Chassis, CPU, Power; temperatures: MB, JTPWR, CPU */
@@ -363,11 +366,11 @@ machine_at_atc6310bxii_init(const machine_t *model)
 
 
 int
-machine_at_ga686bx_init(const machine_t *model)
+machine_at_686bx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/ga686bx/6BX.F2a",
+    ret = bios_load_linear(L"roms/machines/686bx/6BX.F2a",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -507,8 +510,8 @@ machine_at_ergox365_init(const machine_t *model)
     device_add(&i440bx_device);
     device_add(&piix4e_device);
 	device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&fdc37c665_device); // Placeholder for the SM(S)C FDC37C675
-    device_add(&sst_flash_39sf040_device); // Placeholder for the Intel 28F004 flash chip
+    device_add(&fdc37c665_device); /* Placeholder for the SM(S)C FDC37C675 */
+    device_add(&sst_flash_39sf040_device); /* Placeholder for the Intel 28F004 flash chip */
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
 
     return ret;
@@ -542,6 +545,42 @@ machine_at_ficka6130_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
+    return ret;
+}
+
+
+int
+machine_at_p3v4x_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/p3v4x/1006.004",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x04, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    device_add(&via_apro133a_device);
+    device_add(&via_vt82c596b_device);
+    device_add(&w83977ef_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&ics9250_18_device);
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0xF, 512);
+    device_add(&as99127f_device); /* fans: Chassis, CPU, Power; temperatures: MB, JTPWR, CPU */
 
     return ret;
 }

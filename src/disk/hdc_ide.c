@@ -573,7 +573,8 @@ ide_identify(ide_t *ide)
     ide->buffer[51] = ide_get_timings(ide, TIMINGS_PIO);
     ide->buffer[53] &= 0xfff9;
     ide->buffer[52] = ide->buffer[62] = ide->buffer[63] = ide->buffer[64] = 0x0000;
-    ide->buffer[65] = ide->buffer[66] = ide->buffer[67] = ide->buffer[68] = 0x0000;
+    ide->buffer[65] = ide->buffer[66] = ide_get_timings(ide, TIMINGS_DMA);
+    ide->buffer[67] = ide->buffer[68] = 0x0000;
     ide->buffer[88] = 0x0000;
 
     if (max_pio >= 3) {

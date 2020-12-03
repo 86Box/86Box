@@ -25,6 +25,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/version.h>
 #include "cpu.h"
 #include "x86_ops.h"
 #include "x86.h"
@@ -2558,26 +2559,29 @@ mem_reset(void)
     }
 #endif
     if (mem_size > 2097152)
-	fatal("Attempting to use more than 2 GB of guest RAM\n");
+	fatal("Attempting to use more than 2 GB of emulated RAM\n");
 
 #if (!(defined __amd64__ || defined _M_X64))
     if (mem_size > 1048576) {
 	ram = (uint8_t *)malloc(1 << 30);		/* allocate and clear the RAM block of the first 1 GB */
 	if (ram == NULL) {
-		fatal("X86 > 1 GB: Failed to malloc() ram\n");
+		fatal("Failed to allocate primary RAM block. Make sure you have enough RAM available.\n");
 		return;
 	}
 	memset(ram, 0x00, (1 << 30));
 	ram2 = (uint8_t *)malloc(m - (1 << 30));	/* allocate and clear the RAM block above 1 GB */
 	if (ram2 == NULL) {
-		fatal("X86 > 1 GB: Failed to malloc() ram2\n");
+		if (config_changed == 2)
+			fatal(EMU_NAME " must be restarted for the memory amount change to be applied.\n");
+		else
+			fatal("Failed to allocate secondary RAM block. Make sure you have enough RAM available.\n");
 		return;
 	}
 	memset(ram2, 0x00, m - (1 << 30));
     } else {
 	ram = (uint8_t *)malloc(m);		/* allocate and clear the RAM block */
 	if (ram == NULL) {
-		fatal("X86 <= 1 GB: Failed to malloc() ram\n");
+		fatal("Failed to allocate RAM block. Make sure you have enough RAM available.\n");
 		return;
 	}
 	memset(ram, 0x00, m);
@@ -2585,7 +2589,7 @@ mem_reset(void)
 #else
     ram = (uint8_t *)malloc(m);		/* allocate and clear the RAM block */
     if (ram == NULL) {
-	fatal("X64: Failed to malloc() ram\n");
+	fatal("Failed to allocate RAM block. Make sure you have enough RAM available.\n");
 	return;
     }
     memset(ram, 0x00, m);
