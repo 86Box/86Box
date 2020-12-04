@@ -5008,7 +5008,7 @@ win_settings_confirm(HWND hdlg)
 
     if (win_settings_changed()) {
 	if (confirm_save)
-		i = settings_msgbox_ex(MBX_QUESTION_OK | MBX_WARNING | MBX_DONTASK, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, (wchar_t *) IDS_2123, NULL, NULL);
+		i = settings_msgbox_ex(MBX_QUESTION_OK | MBX_WARNING | MBX_DONTASK, (wchar_t *) IDS_2121, ( !settings_only ? (wchar_t *) IDS_2122 : NULL ), (wchar_t *) IDS_2123, NULL, NULL);
 	else
 		i = 0;
 
