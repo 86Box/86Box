@@ -33,9 +33,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef DEV_BRANCH
   DEV_BRANCH	:= y
  endif
- ifndef 596B
-  596B		:= y
- endif
  ifndef AMD_K5
   AMD_K5	:= y
  endif
@@ -96,12 +93,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef XL24
   XL24		:= y
  endif
- ifndef NO_SIO
-  NO_SIO	:= y
- endif
- ifndef GUSMAX
-  GUSMAX	:= y
- endif
  ifndef USE_VECT486VL
   USE_VECT486VL	:= y
  endif
@@ -114,9 +105,6 @@ else
  endif
  ifndef DEV_BRANCH
   DEV_BRANCH	:= n
- endif
- ifndef 596B
-  596B		:= n
  endif
  ifndef AMD_K5
   AMD_K5	:= n
@@ -177,12 +165,6 @@ else
  endif
  ifndef XL24
   XL24		:= n
- endif
- ifndef NO_SIO
-  NO_SIO	:= n
- endif
- ifndef GUSMAX
-  GUSMAX	:= n
  endif
  ifndef USE_VECT486VL
   USE_VECT486VL	:= n
@@ -513,6 +495,10 @@ ifeq ($(CYRIX_6X86), y)
 OPTS		+= -DUSE_CYRIX_6X86
 endif
 
+ifeq ($(GUSMAX), y)
+OPTS		+= -DUSE_GUSMAX
+endif
+
 ifeq ($(HEDAKA), y)
 OPTS		+= -DUSE_HEDAKA
 endif
@@ -525,6 +511,10 @@ endif
 ifeq ($(MGA), y)
 OPTS		+= -DUSE_MGA
 DEVBROBJ	+= vid_mga.o
+endif
+
+ifeq ($(NO_SIO), y)
+OPTS		+= -DNO_SIO
 endif
 
 ifeq ($(OPEN_AT), y)
@@ -568,24 +558,12 @@ OPTS		+= -DUSE_M6117
 DEVBROBJ	+= ali6117.o
 endif
 
-ifeq ($(596B), y)
-OPTS		+= -DUSE_596B
-endif
-
 ifeq ($(VGAWONDER), y)
 OPTS		+= -DUSE_VGAWONDER
 endif
 
 ifeq ($(XL24), y)
 OPTS		+= -DUSE_XL24
-endif
-
-ifeq ($(NO_SIO), y)
-OPTS		+= -DNO_SIO
-endif
-
-ifeq ($(GUSMAX), y)
-OPTS		+= -DUSE_GUSMAX
 endif
 
 ifeq ($(USE_VECT486VL), y)
