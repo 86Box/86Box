@@ -18,9 +18,12 @@
 # define EMU_CLOCK_H
 
 /* clock_ics9xxx.c */
+extern const device_t	ics9xxx_detect_device;
 extern const device_t	ics9150_08_device;
 extern const device_t	ics9248_39_device;
+extern const device_t	ics9248_81_device;
 extern const device_t	ics9248_98_device;
+extern const device_t	ics9248_101_device;
 extern const device_t	ics9250_08_device;
 extern const device_t	ics9250_10_device;
 extern const device_t	ics9250_13_device;
