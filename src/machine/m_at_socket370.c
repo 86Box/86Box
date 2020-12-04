@@ -431,6 +431,7 @@ machine_at_6via90ap_init(const machine_t *model)
     device_add(&via_vt82c686b_device);
     device_add(&via_vt82c686_sio_device);
     device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&ics9250_18_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
     device_add(&via_vt82c686_hwm_device); /* fans: CPU1, CPU2; temperatures: CPU, System, unused */
