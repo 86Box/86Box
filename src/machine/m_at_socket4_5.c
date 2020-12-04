@@ -121,8 +121,6 @@ machine_at_batman_init(const machine_t *model)
     return ret;
 }
 
-
-#if defined(DEV_BRANCH) && defined(USE_DELLS4)
 int
 machine_at_dellxp60_init(const machine_t *model)
 {
@@ -184,8 +182,6 @@ machine_at_opti560l_init(const machine_t *model)
 
     return ret;
 }
-#endif 
-
 
 int
 machine_at_ambradp60_init(const machine_t *model)
