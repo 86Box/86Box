@@ -190,13 +190,15 @@ typedef struct s3_t
 		uint8_t advfunc_cntl;
 		uint16_t cur_y, cur_y2;
 		uint16_t cur_x, cur_x2;
-		uint16_t x2;
+		uint16_t x2, ropmix;
+		uint16_t pat_x, pat_y;
 		 int16_t desty_axstp, desty_axstp2;
 		 int16_t destx_distp;
 		 int16_t err_term, err_term2;
 		 int16_t maj_axis_pcnt, maj_axis_pcnt2;
-		uint16_t cmd;
+		uint16_t cmd, cmd2;
 		uint16_t short_stroke;
+		uint32_t pat_bg_color, pat_fg_color;
 		uint32_t bkgd_color;
 		uint32_t frgd_color;
 		uint32_t wrt_mask;
@@ -605,6 +607,12 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		s3_accel_start(-1, 0, 0xffffffff, 0, s3);
 		s3->accel.multifunc[0xe] &= ~0x10; /*hack*/
 		break;
+	case 0x994a: case 0x9aea:
+		s3->accel.cmd2 = (s3->accel.cmd2 & 0xff00) | val;
+		break;
+	case 0x994b: case 0x9aeb:
+		s3->accel.cmd2 = (s3->accel.cmd2 & 0xff) | (val << 8);	
+		break;
 
 	case 0x9d48: case 0x9ee8:
 		s3->accel.short_stroke = (s3->accel.short_stroke & 0xff00) | val;
@@ -807,6 +815,49 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 	case 0xbd49: case 0xbee9:
 		s3->accel.multifunc_cntl = (s3->accel.multifunc_cntl & 0xff) | (val << 8);
 		s3->accel.multifunc[s3->accel.multifunc_cntl >> 12] = s3->accel.multifunc_cntl & 0xfff;
+		break;
+
+	case 0xd148: case 0xd2e8:
+		s3->accel.ropmix = (s3->accel.ropmix & 0xff00) | val;
+		break;
+	case 0xd149: case 0xd2e9:
+		s3->accel.ropmix = (s3->accel.ropmix & 0x00ff) | (val << 8);
+		break;
+	case 0xe548: case 0xe6e8:
+		s3->accel.pat_bg_color = (s3->accel.pat_bg_color & 0xffffff00) | val;
+		break;
+	case 0xe549: case 0xe6e9:
+		s3->accel.pat_bg_color = (s3->accel.pat_bg_color & 0xffff00ff) | (val << 8);
+		break;
+	case 0xe54a: case 0xe6ea:
+		s3->accel.pat_bg_color = (s3->accel.pat_bg_color & 0xf00fffff) | (val << 16);
+		break;
+	case 0xe54b: case 0xe6eb:
+		s3->accel.pat_bg_color = (s3->accel.pat_bg_color & 0x00ffffff) | (val << 24);
+		break;
+	case 0xe948: case 0xeae8:
+		s3->accel.pat_y = (s3->accel.pat_y & 0xff00) | val;
+		break;
+	case 0xe949: case 0xeae9:
+		s3->accel.pat_y = (s3->accel.pat_y & 0x00ff) | (val << 8);
+		break;
+	case 0xe94a: case 0xeaea:
+		s3->accel.pat_x = (s3->accel.pat_x & 0xff00) | val;
+		break;
+	case 0xe94b: case 0xeaeb:
+		s3->accel.pat_x = (s3->accel.pat_x & 0x00ff) | (val << 8);
+		break;
+	case 0xed48: case 0xeee8:
+		s3->accel.pat_fg_color = (s3->accel.pat_fg_color & 0xffffff00) | val;
+		break;
+	case 0xed49: case 0xeee9:
+		s3->accel.pat_fg_color = (s3->accel.pat_fg_color & 0xffff00ff) | (val << 8);
+		break;
+	case 0xed4a: case 0xeeea:
+		s3->accel.pat_fg_color = (s3->accel.pat_fg_color & 0xf00fffff) | (val << 16);
+		break;
+	case 0xed4b: case 0xeeeb:
+		s3->accel.pat_fg_color = (s3->accel.pat_fg_color & 0x00ffffff) | (val << 24);
 		break;
 
 	case 0xe148: case 0xe2e8:
@@ -1739,7 +1790,7 @@ s3_io_remove_alt(s3_t *s3)
         io_removehandler(0x8d48, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
         io_removehandler(0x9148, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
         io_removehandler(0x9548, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
-	io_removehandler(0x9948, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
+	io_removehandler(0x9948, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_removehandler(0x9d48, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_removehandler(0xa148, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_removehandler(0xa548, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
@@ -1752,7 +1803,11 @@ s3_io_remove_alt(s3_t *s3)
 	io_removehandler(0xb548, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_removehandler(0xb948, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_removehandler(0xbd48, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
+	io_removehandler(0xd148, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
 	io_removehandler(0xe148, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
+	io_removehandler(0xe548, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
+	io_removehandler(0xe948, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
+	io_removehandler(0xed48, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
 }
 
 static void
@@ -1769,7 +1824,7 @@ s3_io_remove(s3_t *s3)
         io_removehandler(0x8ee8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
         io_removehandler(0x92e8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
         io_removehandler(0x96e8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
-	io_removehandler(0x9ae8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
+	io_removehandler(0x9ae8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_removehandler(0x9ee8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_removehandler(0xa2e8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_removehandler(0xa6e8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
@@ -1782,7 +1837,11 @@ s3_io_remove(s3_t *s3)
 	io_removehandler(0xb6e8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_removehandler(0xbae8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_removehandler(0xbee8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
+	io_removehandler(0xd2e8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
 	io_removehandler(0xe2e8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
+	io_removehandler(0xe6e8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
+	io_removehandler(0xeae8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
+	io_removehandler(0xeee8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
 
 	s3_io_remove_alt(s3);
 }
@@ -1801,7 +1860,7 @@ s3_io_set_alt(s3_t *s3)
 	io_sethandler(0x4148, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_sethandler(0x4548, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_sethandler(0x4948, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
-	if (s3->chip == S3_TRIO64 || s3->chip >= S3_TRIO64V)
+	if (s3->chip == S3_VISION968 || s3->chip == S3_TRIO64 || s3->chip >= S3_TRIO64V)
 	{
 		io_sethandler(0x8148, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 		io_sethandler(0x8548, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
@@ -1819,7 +1878,10 @@ s3_io_set_alt(s3_t *s3)
 		io_sethandler(0x9148, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 		io_sethandler(0x9548, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	}
-	io_sethandler(0x9948, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
+	if (s3->chip == S3_VISION968)
+		io_sethandler(0x9948, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
+	else
+		io_sethandler(0x9948, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_sethandler(0x9d48, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_sethandler(0xa148, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_sethandler(0xa548, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
@@ -1833,6 +1895,12 @@ s3_io_set_alt(s3_t *s3)
 	io_sethandler(0xb948, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_sethandler(0xbd48, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_sethandler(0xe148, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
+	if (s3->chip == S3_VISION968) {
+		io_sethandler(0xd148, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
+		io_sethandler(0xe548, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
+		io_sethandler(0xe948, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
+		io_sethandler(0xed48, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
+	}
 }
 
 static void
@@ -1849,7 +1917,7 @@ s3_io_set(s3_t *s3)
 	io_sethandler(0x42e8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_sethandler(0x46e8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_sethandler(0x4ae8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
-	if (s3->chip == S3_TRIO64 || s3->chip >= S3_TRIO64V)
+	if (s3->chip == S3_VISION968 || s3->chip == S3_TRIO64 || s3->chip >= S3_TRIO64V)
 	{
 		io_sethandler(0x82e8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 		io_sethandler(0x86e8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
@@ -1867,7 +1935,10 @@ s3_io_set(s3_t *s3)
 		io_sethandler(0x92e8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 		io_sethandler(0x96e8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	}
-	io_sethandler(0x9ae8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
+	if (s3->chip == S3_VISION968)
+		io_sethandler(0x9ae8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
+	else
+		io_sethandler(0x9ae8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_sethandler(0x9ee8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_sethandler(0xa2e8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_sethandler(0xa6e8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
@@ -1881,6 +1952,12 @@ s3_io_set(s3_t *s3)
 	io_sethandler(0xbae8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_sethandler(0xbee8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, NULL, NULL,  s3);
 	io_sethandler(0xe2e8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
+	if (s3->chip == S3_VISION968) {
+		io_sethandler(0xd2e8, 0x0002, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
+		io_sethandler(0xe6e8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
+		io_sethandler(0xeae8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
+		io_sethandler(0xeee8, 0x0004, s3_accel_in, NULL, NULL, s3_accel_out, s3_accel_out_w, s3_accel_out_l,  s3);
+	}
 	
 	s3_io_set_alt(s3);
 }
@@ -2935,6 +3012,49 @@ s3_accel_in(uint16_t port, void *p)
 			return 0xff;
 		}
 		break;
+
+		case 0xd148: case 0xd2e8:
+		s3_wait_fifo_idle(s3);
+		return (s3->accel.ropmix & 0xff);
+		case 0xd149: case 0xd2e9:
+		s3_wait_fifo_idle(s3);
+		return ((s3->accel.ropmix >> 8) & 0xff);
+		case 0xe548: case 0xe6e8:
+		s3_wait_fifo_idle(s3);
+		return (s3->accel.pat_bg_color & 0xff);
+		case 0xe549: case 0xe6e9:
+		s3_wait_fifo_idle(s3);
+		return ((s3->accel.pat_bg_color >> 8) & 0xff);
+		case 0xe54a: case 0xe6ea:
+		s3_wait_fifo_idle(s3);
+		return ((s3->accel.pat_bg_color >> 16) & 0xff);
+		case 0xe54b: case 0xe6eb:
+		s3_wait_fifo_idle(s3);
+		return ((s3->accel.pat_bg_color >> 24) & 0xff);
+		case 0xe948: case 0xeae8:
+		s3_wait_fifo_idle(s3);
+		return (s3->accel.pat_y & 0xff);
+		case 0xe949: case 0xeae9:
+		s3_wait_fifo_idle(s3);
+		return ((s3->accel.pat_y >> 8) & 0xff);
+		case 0xe94a: case 0xeaea:
+		s3_wait_fifo_idle(s3);
+		return (s3->accel.pat_x & 0xff);
+		case 0xe94b: case 0xeaeb:
+		s3_wait_fifo_idle(s3);
+		return ((s3->accel.pat_x >> 8) & 0xff);
+		case 0xed48: case 0xeee8:
+		s3_wait_fifo_idle(s3);
+		return (s3->accel.pat_fg_color & 0xff);
+		case 0xed49: case 0xeee9:
+		s3_wait_fifo_idle(s3);
+		return ((s3->accel.pat_fg_color >> 8) & 0xff);
+		case 0xed4a: case 0xeeea:
+		s3_wait_fifo_idle(s3);
+		return ((s3->accel.pat_fg_color >> 16) & 0xff);
+		case 0xed4b: case 0xeeeb:
+		s3_wait_fifo_idle(s3);
+		return ((s3->accel.pat_fg_color >> 24) & 0xff);
 
 		case 0xe148: case 0xe2e8:
 		if (!s3_cpu_dest(s3))
