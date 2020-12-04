@@ -832,7 +832,7 @@ ics9xxx_init(const device_t *info)
     ics9xxx_t *dev = (ics9xxx_t *) malloc(sizeof(ics9xxx_t));
     memcpy(dev, &ics9xxx_devices[info->local], sizeof(ics9xxx_t));
 
-    ics9xxx_log("ICS9xxx: init(%s)\n", dev->name);
+    ics9xxx_log("ICS9xxx: init(%s)\n", ics9xxx_devices[info->local].name);
 
     uint8_t i;
 #ifdef ENABLE_ICS9xxx_DETECT
