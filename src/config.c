@@ -1,4 +1,4 @@
-﻿/*
+/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -715,7 +715,19 @@ load_input_devices(void)
       else
 	mouse_type = 0;
 
-    joystick_type = config_get_int(cat, "joystick_type", JOYSTICK_TYPE_NONE);
+    p = config_get_string(cat, "joystick_type", NULL);
+    if (p != NULL) {
+	joystick_type = joystick_get_from_internal_name(p);
+	if (joystick_type == JOYSTICK_TYPE_NONE) {
+		/* Try to read an integer for backwards compatibility with old configs */
+		c = config_get_int(cat, "joystick_type", JOYSTICK_TYPE_NONE);
+		if ((c >= 0) && (c <= 8))
+			joystick_type = c;
+		else
+			joystick_type = JOYSTICK_TYPE_NONE;
+	}
+    } else
+	joystick_type = JOYSTICK_TYPE_NONE;
 
     for (c=0; c<joystick_get_max_joysticks(joystick_type); c++) {
 	sprintf(temp, "joystick_%i_nr", c);
@@ -1996,7 +2008,7 @@ save_input_devices(void)
 		}
 	}
     } else {
-	config_set_int(cat, "joystick_type", joystick_type);
+	config_set_string(cat, "joystick_type", joystick_get_internal_name(joystick_type));
 
 	for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++) {
 		sprintf(tmp2, "joystick_%i_nr", c);
