@@ -68,11 +68,11 @@ typedef struct _gameport_ {
 } gameport_t;
 
 
-int	joystick_type;
+int	joystick_type = 0;
 
 
 static const joystick_if_t joystick_none = {
-    "No joystick",
+    "None",
     NULL,
     NULL,
     NULL,
@@ -89,6 +89,7 @@ static const struct {
     const char		*internal_name;
     const joystick_if_t	*joystick;
 } joysticks[] = {
+    { "none",			&joystick_none			},
     { "standard_2button",	&joystick_standard		},
     { "standard_4button",	&joystick_standard_4button	},
     { "standard_6button",	&joystick_standard_6button	},
@@ -97,7 +98,6 @@ static const struct {
     { "ch_flighstick_pro",	&joystick_ch_flightstick_pro	},
     { "sidewinder_pad",		&joystick_sw_pad		},
     { "thrustmaster_fcs",	&joystick_tm_fcs		},
-    { "none",			&joystick_none			},
     { "",			NULL				}
 };
 static gameport_t *gameport_global = NULL;
@@ -131,7 +131,7 @@ joystick_get_from_internal_name(char *s)
 	c++;
     }
 
-    return JOYSTICK_TYPE_NONE;
+    return 0;
 }
 
 
@@ -292,7 +292,7 @@ gameport_init(const device_t *info)
 {
     gameport_t *p = NULL;
 
-    if (joystick_type == JOYSTICK_TYPE_NONE) {
+    if (!joystick_type) {
 	p = NULL;
 	return(p);
     }
@@ -311,7 +311,7 @@ gameport_201_init(const device_t *info)
 {
     gameport_t *p;
 
-    if (joystick_type == JOYSTICK_TYPE_NONE) {
+    if (!joystick_type) {
 	p = NULL;
 	return(p);
     }

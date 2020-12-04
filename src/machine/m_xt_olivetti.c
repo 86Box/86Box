@@ -717,7 +717,7 @@ machine_xt_olim24_init(const machine_t *model)
 	/* FIXME: make sure this is correct?? */
     device_add(&at_nvr_device);
 
-    if (joystick_type != JOYSTICK_TYPE_NONE)
+    if (joystick_type)
 		device_add(&gameport_device);
 
     nmi_init();
@@ -760,7 +760,7 @@ machine_xt_olim240_init(const machine_t *model)
 	if (fdc_type == FDC_INTERNAL)	
 		device_add(&fdc_xt_device);
 
-	if (joystick_type != JOYSTICK_TYPE_NONE)
+	if (joystick_type)
 		device_add(&gameport_device);
 
     nmi_init();
@@ -833,7 +833,7 @@ machine_xt_olim15_init(const machine_t *model)
 	if (fdc_type == FDC_INTERNAL)	
 		device_add(&fdc_xt_device);
 
-	if (joystick_type != JOYSTICK_TYPE_NONE)
+	if (joystick_type)
 		device_add(&gameport_device);
 
     nmi_init();

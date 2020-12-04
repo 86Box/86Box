@@ -718,16 +718,17 @@ load_input_devices(void)
     p = config_get_string(cat, "joystick_type", NULL);
     if (p != NULL) {
 	joystick_type = joystick_get_from_internal_name(p);
-	if (joystick_type == JOYSTICK_TYPE_NONE) {
+	if (!joystick_type) {
 		/* Try to read an integer for backwards compatibility with old configs */
-		c = config_get_int(cat, "joystick_type", JOYSTICK_TYPE_NONE);
-		if ((c >= 0) && (c <= 8))
-			joystick_type = c;
+		c = config_get_int(cat, "joystick_type", 8);
+		if ((c >= 0) && (c < 8))
+			/* "None" was type 8 instead of 0 previously, shift the number accordingly */
+			joystick_type = c + 1;
 		else
-			joystick_type = JOYSTICK_TYPE_NONE;
+			joystick_type = 0;
 	}
     } else
-	joystick_type = JOYSTICK_TYPE_NONE;
+	joystick_type = 0;
 
     for (c=0; c<joystick_get_max_joysticks(joystick_type); c++) {
 	sprintf(temp, "joystick_%i_nr", c);
@@ -1684,7 +1685,6 @@ config_load(void)
 	gfxcard = video_get_video_from_internal_name("cga");
 	vid_api = plat_vidapi("default");
 	time_sync = TIME_SYNC_ENABLED;
-	joystick_type = JOYSTICK_TYPE_NONE;
 	hdc_current = hdc_get_from_internal_name("none");
 	serial_enabled[0] = 1;
 	serial_enabled[1] = 1;
@@ -1987,7 +1987,7 @@ save_input_devices(void)
 
     config_set_string(cat, "mouse_type", mouse_get_internal_name(mouse_type));
 
-    if (joystick_type == JOYSTICK_TYPE_NONE) {
+    if (!joystick_type) {
 	config_delete_var(cat, "joystick_type");
 
 	for (c = 0; c < 16; c++) {

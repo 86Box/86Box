@@ -48,7 +48,6 @@
 #define SLIDER 			0x20000000
 
 #define AXIS_NOT_PRESENT	-99999
-#define JOYSTICK_TYPE_NONE 	8
 
 #define JOYSTICK_PRESENT(n)	(joystick_state[n].plat_joystick_nr != 0)
 
