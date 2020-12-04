@@ -85,17 +85,20 @@ static const joystick_if_t joystick_none = {
 };
 
 
-static const joystick_if_t *joystick_list[] = {
-    &joystick_standard,
-    &joystick_standard_4button,
-    &joystick_standard_6button,
-    &joystick_standard_8button,
-    &joystick_4axis_4button,
-    &joystick_ch_flightstick_pro,
-    &joystick_sw_pad,
-    &joystick_tm_fcs,
-    &joystick_none,
-    NULL
+static const struct {
+    const char		*internal_name;
+    const joystick_if_t	*joystick;
+} joysticks[] = {
+    { "standard_2button",	&joystick_standard		},
+    { "standard_4button",	&joystick_standard_4button	},
+    { "standard_6button",	&joystick_standard_6button	},
+    { "standard_8button",	&joystick_standard_8button	},
+    { "4axis_4button",		&joystick_4axis_4button		},
+    { "ch_flighstick_pro",	&joystick_ch_flightstick_pro	},
+    { "sidewinder_pad",		&joystick_sw_pad		},
+    { "thrustmaster_fcs",	&joystick_tm_fcs		},
+    { "none",			&joystick_none			},
+    { "",			NULL				}
 };
 static gameport_t *gameport_global = NULL;
 
@@ -103,58 +106,81 @@ static gameport_t *gameport_global = NULL;
 char *
 joystick_get_name(int js)
 {
-    if (! joystick_list[js])
+    if (! joysticks[js].joystick)
 	return(NULL);
-    return((char *)joystick_list[js]->name);
+    return((char *)joysticks[js].joystick->name);
+}
+
+
+char *
+joystick_get_internal_name(int js)
+{
+    return((char *) joysticks[js].internal_name);
+}
+
+
+int
+joystick_get_from_internal_name(char *s)
+{
+    int c = 0;
+
+    while (strlen((char *) joysticks[c].internal_name))
+    {
+	if (!strcmp((char *) joysticks[c].internal_name, s))
+		return c;
+	c++;
+    }
+
+    return JOYSTICK_TYPE_NONE;
 }
 
 
 int
 joystick_get_max_joysticks(int js)
 {
-    return(joystick_list[js]->max_joysticks);
+    return(joysticks[js].joystick->max_joysticks);
 }
 
 
 int
 joystick_get_axis_count(int js)
 {
-    return(joystick_list[js]->axis_count);
+    return(joysticks[js].joystick->axis_count);
 }
 
 
 int
 joystick_get_button_count(int js)
 {
-    return(joystick_list[js]->button_count);
+    return(joysticks[js].joystick->button_count);
 }
 
 
 int
 joystick_get_pov_count(int js)
 {
-    return(joystick_list[js]->pov_count);
+    return(joysticks[js].joystick->pov_count);
 }
 
 
 char *
 joystick_get_axis_name(int js, int id)
 {
-    return((char *)joystick_list[js]->axis_names[id]);
+    return((char *)joysticks[js].joystick->axis_names[id]);
 }
 
 
 char *
 joystick_get_button_name(int js, int id)
 {
-    return((char *)joystick_list[js]->button_names[id]);
+    return((char *)joysticks[js].joystick->button_names[id]);
 }
 
 
 char *
 joystick_get_pov_name(int js, int id)
 {
-    return (char *)joystick_list[js]->pov_names[id];
+    return (char *)joysticks[js].joystick->pov_names[id];
 }
 
 
@@ -239,7 +265,7 @@ init_common(void)
     timer_add(&p->axis[2].timer, timer_over, &p->axis[2], 0);
     timer_add(&p->axis[3].timer, timer_over, &p->axis[3], 0);
 
-    p->joystick = joystick_list[joystick_type];
+    p->joystick = joysticks[joystick_type].joystick;
     p->joystick_dat = p->joystick->init();
 
     gameport_global = p;
@@ -255,7 +281,7 @@ gameport_update_joystick_type(void)
 
     if (p != NULL) {
 	p->joystick->close(p->joystick_dat);
-	p->joystick = joystick_list[joystick_type];
+	p->joystick = joysticks[joystick_type].joystick;
 	p->joystick_dat = p->joystick->init();
     }
 }
