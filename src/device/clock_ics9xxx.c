@@ -842,10 +842,8 @@ ics9xxx_init(const device_t *info)
 
 	for (i = 0; i < ICS9xxx_MAX; i++) {
 		for (uint8_t j = 0; j < ICS9xxx_MAX; j++) {
-			if (i == j)
-				continue;
-			if (!memcmp(&ics9xxx_devices[i], &ics9xxx_devices[j], sizeof(ics9xxx_devices[i])))
-				pclog("Optimization warning: %d and %d have duplicate tables\n", i, j);
+			if ((i != j) && !memcmp(&ics9xxx_devices[i], &ics9xxx_devices[j], sizeof(ics9xxx_devices[i])))
+				pclog("Optimization warning: %s and %s have duplicate tables\n", ics9xxx_devices[i].name, ics9xxx_devices[j].name);
 		}
 	}
 
