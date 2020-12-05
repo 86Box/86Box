@@ -376,167 +376,176 @@ ncr_bus_update(void *priv, int bus)
     if (bus & BUS_ARB)
 	ncr->state = STATE_IDLE;
 
-    if (ncr->state == STATE_IDLE) {
-	ncr->clear_req = ncr->wait_data = ncr->wait_complete = 0;
-	if ((bus & BUS_SEL) && !(bus & BUS_BSY)) {
-		ncr_log("Selection phase\n");
-		sel_data = BUS_GETDATA(bus);
+    switch (ncr->state) {
+	case STATE_IDLE:
+		ncr->clear_req = ncr->wait_data = ncr->wait_complete = 0;
+		if ((bus & BUS_SEL) && !(bus & BUS_BSY)) {
+			ncr_log("Selection phase\n");
+			sel_data = BUS_GETDATA(bus);
 
-		ncr->target_id = get_dev_id(sel_data);
+			ncr->target_id = get_dev_id(sel_data);
 
-		ncr_log("Select - target ID = %i\n", ncr->target_id);
+			ncr_log("Select - target ID = %i\n", ncr->target_id);
 
-		/*Once the device has been found and selected, mark it as busy*/
-		if ((ncr->target_id != (uint8_t)-1) && scsi_device_present(&scsi_devices[ncr->target_id])) {
-			ncr->cur_bus |= BUS_BSY;
-			ncr->state = STATE_SELECT;
-		} else {
-			ncr_log("Device not found at ID %i, Current Bus BSY=%02x\n", ncr->target_id, ncr->cur_bus);
-			ncr->cur_bus = 0;
-		}
-		}
-	} else if (ncr->state == STATE_SELECT) {
-	if (!(bus & BUS_SEL)) {
-		if (!(bus & BUS_ATN)) {
+			/*Once the device has been found and selected, mark it as busy*/
 			if ((ncr->target_id != (uint8_t)-1) && scsi_device_present(&scsi_devices[ncr->target_id])) {
-				ncr_log("Device found at ID %i, Current Bus BSY=%02x\n", ncr->target_id, ncr->cur_bus);
-				ncr->state = STATE_COMMAND;
-				ncr->cur_bus = BUS_BSY | BUS_REQ;
-				ncr_log("CurBus BSY|REQ=%02x\n", ncr->cur_bus);
-				ncr->command_pos = 0;
-				SET_BUS_STATE(ncr, SCSI_PHASE_COMMAND);
-				picint(1 << ncr_dev->irq);
+				ncr->cur_bus |= BUS_BSY;
+				ncr->state = STATE_SELECT;
 			} else {
-				ncr->state = STATE_IDLE;
+				ncr_log("Device not found at ID %i, Current Bus BSY=%02x\n", ncr->target_id, ncr->cur_bus);
 				ncr->cur_bus = 0;
 			}
-		} else {
-			ncr_log("Set to SCSI Message Out\n");
-			ncr->new_phase = SCSI_PHASE_MESSAGE_OUT;
-			ncr->wait_data = 4;
-			ncr->msgout_pos = 0;
-			ncr->is_msgout = 1;
 		}
-	}
-    } else if (ncr->state == STATE_COMMAND) {
-	if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
-		/*Write command byte to the output data register*/
-		ncr->command[ncr->command_pos++] = BUS_GETDATA(bus);
-		ncr->clear_req = 3;
-		ncr->new_phase = ncr->cur_bus & SCSI_PHASE_MESSAGE_IN;
-		ncr->cur_bus &= ~BUS_REQ;
-
-		ncr_log("Command pos=%i, output data=%02x\n", ncr->command_pos, BUS_GETDATA(bus));
-
-		if (ncr->command_pos == cmd_len[(ncr->command[0] >> 5) & 7]) {
-			if (ncr->is_msgout) {
-				ncr->is_msgout = 0;
-				ncr->command[1] &= ~(0x80 | 0x40 | 0x20);
-				ncr->command[1] |= ncr->msglun << 5;
-			}
-			
-			/*Reset data position to default*/
-			ncr->data_pos = 0;
-
-			dev = &scsi_devices[ncr->target_id];
-
-			ncr_log("SCSI Command 0x%02X for ID %d, status code=%02x\n", ncr->command[0], ncr->target_id, dev->status);
-			dev->buffer_length = -1;
-			scsi_device_command_phase0(dev, ncr->command);
-			ncr_log("SCSI ID %i: Command %02X: Buffer Length %i, SCSI Phase %02X\n", ncr->target_id, ncr->command[0], dev->buffer_length, dev->phase);
-
-			ncr_dev->period = 1.0;	/* 1 us default */
-			ncr->wait_data = 4;
-			ncr->data_wait = 0;
-
-			if (dev->status == SCSI_STATUS_OK) {
-				/*If the SCSI phase is Data In or Data Out, allocate the SCSI buffer based on the transfer length of the command*/
-				if (dev->buffer_length && (dev->phase == SCSI_PHASE_DATA_IN || dev->phase == SCSI_PHASE_DATA_OUT)) {
-					p = scsi_device_get_callback(dev);
-					if (p <= 0.0)
-						ncr_dev->period = 0.2/* * ((double) dev->buffer_length) */;
-					else
-						ncr_dev->period = p / ((double) dev->buffer_length);
-					ncr->data_wait |= 2;
+		break;
+	case STATE_SELECT:
+		if (!(bus & BUS_SEL)) {
+			if (!(bus & BUS_ATN)) {
+				if ((ncr->target_id != (uint8_t)-1) && scsi_device_present(&scsi_devices[ncr->target_id])) {
+					ncr_log("Device found at ID %i, Current Bus BSY=%02x\n", ncr->target_id, ncr->cur_bus);
+					ncr->state = STATE_COMMAND;
+					ncr->cur_bus = BUS_BSY | BUS_REQ;
+					ncr_log("CurBus BSY|REQ=%02x\n", ncr->cur_bus);
+					ncr->command_pos = 0;
+					SET_BUS_STATE(ncr, SCSI_PHASE_COMMAND);
+					picint(1 << ncr_dev->irq);
+				} else {
+					ncr->state = STATE_IDLE;
+					ncr->cur_bus = 0;
 				}
+			} else {
+				ncr_log("Set to SCSI Message Out\n");
+				ncr->new_phase = SCSI_PHASE_MESSAGE_OUT;
+				ncr->wait_data = 4;
+				ncr->msgout_pos = 0;
+				ncr->is_msgout = 1;
 			}
-
-			ncr->new_phase = dev->phase;
 		}
-	}
-    } else if (ncr->state == STATE_DATAIN) {
-	dev = &scsi_devices[ncr->target_id];
-	if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
-		if (ncr->data_pos >= dev->buffer_length) {
+		break;
+	case STATE_COMMAND:
+		if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
+			/*Write command byte to the output data register*/
+			ncr->command[ncr->command_pos++] = BUS_GETDATA(bus);
+			ncr->clear_req = 3;
+			ncr->new_phase = ncr->cur_bus & SCSI_PHASE_MESSAGE_IN;
 			ncr->cur_bus &= ~BUS_REQ;
-			scsi_device_command_phase1(dev);
-			ncr->new_phase = SCSI_PHASE_STATUS;
+
+			ncr_log("Command pos=%i, output data=%02x\n", ncr->command_pos, BUS_GETDATA(bus));
+
+			if (ncr->command_pos == cmd_len[(ncr->command[0] >> 5) & 7]) {
+				if (ncr->is_msgout) {
+					ncr->is_msgout = 0;
+					ncr->command[1] &= ~(0x80 | 0x40 | 0x20);
+					ncr->command[1] |= ncr->msglun << 5;
+				}
+
+				/*Reset data position to default*/
+				ncr->data_pos = 0;
+
+				dev = &scsi_devices[ncr->target_id];
+
+				ncr_log("SCSI Command 0x%02X for ID %d, status code=%02x\n", ncr->command[0], ncr->target_id, dev->status);
+				dev->buffer_length = -1;
+				scsi_device_command_phase0(dev, ncr->command);
+				ncr_log("SCSI ID %i: Command %02X: Buffer Length %i, SCSI Phase %02X\n", ncr->target_id, ncr->command[0], dev->buffer_length, dev->phase);
+
+				ncr_dev->period = 1.0;	/* 1 us default */
+				ncr->wait_data = 4;
+				ncr->data_wait = 0;
+
+				if (dev->status == SCSI_STATUS_OK) {
+					/*If the SCSI phase is Data In or Data Out, allocate the SCSI buffer based on the transfer length of the command*/
+					if (dev->buffer_length && (dev->phase == SCSI_PHASE_DATA_IN || dev->phase == SCSI_PHASE_DATA_OUT)) {
+						p = scsi_device_get_callback(dev);
+						if (p <= 0.0)
+							ncr_dev->period = 0.2/* * ((double) dev->buffer_length) */;
+						else
+							ncr_dev->period = p / ((double) dev->buffer_length);
+						ncr->data_wait |= 2;
+					}
+				}
+
+				ncr->new_phase = dev->phase;
+			}
+		}
+		break;
+	case STATE_DATAIN:
+		dev = &scsi_devices[ncr->target_id];
+		if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
+			if (ncr->data_pos >= dev->buffer_length) {
+				ncr->cur_bus &= ~BUS_REQ;
+				scsi_device_command_phase1(dev);
+				ncr->new_phase = SCSI_PHASE_STATUS;
+				ncr->wait_data = 4;
+				ncr->wait_complete = 8;
+			} else {
+				ncr->tx_data = dev->sc->temp_buffer[ncr->data_pos++];
+				ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(ncr->tx_data) | BUS_DBP | BUS_REQ;
+				if (ncr->data_wait & 2)
+					ncr->data_wait &= ~2;
+				if (ncr->dma_mode == DMA_IDLE) {
+					ncr->data_wait |= 1;
+					wait_timer_on(ncr_dev);
+				} else
+					ncr->clear_req = 3;
+				ncr->cur_bus &= ~BUS_REQ;
+				ncr->new_phase = SCSI_PHASE_DATA_IN;
+			}
+		}
+		break;
+	case STATE_DATAOUT:
+		dev = &scsi_devices[ncr->target_id];
+
+		if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
+			dev->sc->temp_buffer[ncr->data_pos++] = BUS_GETDATA(bus);
+
+			if (ncr->data_pos >= dev->buffer_length) {
+				ncr->cur_bus &= ~BUS_REQ;
+				scsi_device_command_phase1(dev);
+				ncr->new_phase = SCSI_PHASE_STATUS;
+				ncr->wait_data = 4;
+				ncr->wait_complete = 8;
+			} else {
+				/*More data is to be transferred, place a request*/
+				if (ncr->dma_mode == DMA_IDLE) {
+					ncr->data_wait |= 1;
+					wait_timer_on(ncr_dev);
+				} else
+					ncr->clear_req = 3;
+				ncr->cur_bus &= ~BUS_REQ;
+				ncr_log("CurBus ~REQ_DataOut=%02x\n", ncr->cur_bus);
+			}
+		}
+		break;
+	case STATE_STATUS:
+		if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
+			/*All transfers done, wait until next transfer*/
+			ncr->cur_bus &= ~BUS_REQ;
+			ncr->new_phase = SCSI_PHASE_MESSAGE_IN;
 			ncr->wait_data = 4;
-			ncr->wait_complete = 8;
-		} else {
-			ncr->tx_data = dev->sc->temp_buffer[ncr->data_pos++];
-			ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(ncr->tx_data) | BUS_DBP | BUS_REQ;
-			if (ncr->data_wait & 2)
-				ncr->data_wait &= ~2;
-			if (ncr->dma_mode == DMA_IDLE) {
-				ncr->data_wait |= 1;
-				wait_timer_on(ncr_dev);
-			} else
-				ncr->clear_req = 3;
-			ncr->cur_bus &= ~BUS_REQ;
-			ncr->new_phase = SCSI_PHASE_DATA_IN;
+			ncr->wait_complete = 8;	
 		}
-	}
-    } else if (ncr->state == STATE_DATAOUT) {
-	dev = &scsi_devices[ncr->target_id];
-
-	if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
-		dev->sc->temp_buffer[ncr->data_pos++] = BUS_GETDATA(bus);
-
-		if (ncr->data_pos >= dev->buffer_length) {
+		break;
+	case STATE_MESSAGEIN:
+		if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
 			ncr->cur_bus &= ~BUS_REQ;
-			scsi_device_command_phase1(dev);
-			ncr->new_phase = SCSI_PHASE_STATUS;
+			ncr->new_phase = BUS_IDLE;
 			ncr->wait_data = 4;
-			ncr->wait_complete = 8;
-		} else {
-			/*More data is to be transferred, place a request*/
-			if (ncr->dma_mode == DMA_IDLE) {
-				ncr->data_wait |= 1;
-				wait_timer_on(ncr_dev);
-			} else
-				ncr->clear_req = 3;
-			ncr->cur_bus &= ~BUS_REQ;
-			ncr_log("CurBus ~REQ_DataOut=%02x\n", ncr->cur_bus);
 		}
-	}
-    } else if (ncr->state == STATE_STATUS) {
-	if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
-		/*All transfers done, wait until next transfer*/
-		ncr->cur_bus &= ~BUS_REQ;
-		ncr->new_phase = SCSI_PHASE_MESSAGE_IN;
-		ncr->wait_data = 4;
-		ncr->wait_complete = 8;	
-	}
-    } else if (ncr->state == STATE_MESSAGEIN) {
-	if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
-		ncr->cur_bus &= ~BUS_REQ;
-		ncr->new_phase = BUS_IDLE;
-		ncr->wait_data = 4;
-	}
-    } else if (ncr->state == STATE_MESSAGEOUT) {
-	ncr_log("Ack on MSGOUT = %02x\n", (bus & BUS_ACK));
-	if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
-		ncr->msgout[ncr->msgout_pos++] = BUS_GETDATA(bus);
-		msglen = getmsglen(ncr->msgout, ncr->msgout_pos);
-		if (ncr->msgout_pos >= msglen) {
-			if ((ncr->msgout[0] & (0x80 | 0x20)) == 0x80)
+		break;
+	case STATE_MESSAGEOUT:
+		ncr_log("Ack on MSGOUT = %02x\n", (bus & BUS_ACK));
+		if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
+			ncr->msgout[ncr->msgout_pos++] = BUS_GETDATA(bus);
+			msglen = getmsglen(ncr->msgout, ncr->msgout_pos);
+			if (ncr->msgout_pos >= msglen) {
+				if ((ncr->msgout[0] & (0x80 | 0x20)) == 0x80)
 				ncr->msglun = ncr->msgout[0] & 7;			
-			ncr->cur_bus &= ~BUS_REQ;
-			ncr->state = STATE_MESSAGE_ID;
+				ncr->cur_bus &= ~BUS_REQ;
+				ncr->state = STATE_MESSAGE_ID;
+			}
 		}
-	}
-	} else if (ncr->state == STATE_MESSAGE_ID) {
+		break;
+	case STATE_MESSAGE_ID:
 		if ((ncr->target_id != (uint8_t)-1) && scsi_device_present(&scsi_devices[ncr->target_id])) {
 			ncr_log("Device found at ID %i on MSGOUT, Current Bus BSY=%02x\n", ncr->target_id, ncr->cur_bus);
 			ncr->state = STATE_COMMAND;
@@ -545,7 +554,8 @@ ncr_bus_update(void *priv, int bus)
 			ncr->command_pos = 0;
 			SET_BUS_STATE(ncr, SCSI_PHASE_COMMAND);
 		}
-	}
+		break;
+    }
 
     ncr->bus_in = bus;
 }
