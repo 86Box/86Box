@@ -95,7 +95,7 @@
 #define IDS_2119	2119		// "Exit"
 #define IDS_2120	2120		// "No ROMs found"
 #define IDS_2121	2121		// "Do you want to save the settings?"
-#define IDS_2122	2122		// "This will hard reset the virtual..."
+#define IDS_2122	2122		// "This will hard reset the emulated..."
 #define IDS_2123	2123		// "Save"
 #define IDS_2124	2124		// "About 86Box"
 #define IDS_2125	2125		// "86Box v" EMU_VERSION

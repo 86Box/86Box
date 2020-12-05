@@ -91,41 +91,41 @@ i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda)
     i2c_gpio_log(3, "I2C GPIO %s: write scl=%d->%d sda=%d->%d read=%d\n", dev->bus_name, dev->prev_scl, scl, dev->prev_sda, sda, dev->slave_read);
 
     if (dev->prev_scl && scl) {
-    	if (dev->prev_sda && !sda) {
-    		i2c_gpio_log(2, "I2C GPIO %s: Start condition\n", dev->bus_name);
-    		dev->started = 1;
-    		dev->pos = 0;
-    		dev->slave_read = 2; /* start with address transfer */
-    		dev->slave_sda = 1;
-    	} else if (!dev->prev_sda && sda) {
-    		i2c_gpio_log(2, "I2C GPIO %s: Stop condition\n", dev->bus_name);
-    		dev->started = 0;
-    		dev->slave_sda = 1;
-    	}
+	if (dev->prev_sda && !sda) {
+		i2c_gpio_log(2, "I2C GPIO %s: Start condition\n", dev->bus_name);
+		dev->started = 1;
+		dev->pos = 0;
+		dev->slave_read = 2; /* start with address transfer */
+		dev->slave_sda = 1;
+	} else if (!dev->prev_sda && sda) {
+		i2c_gpio_log(2, "I2C GPIO %s: Stop condition\n", dev->bus_name);
+		dev->started = 0;
+		dev->slave_sda = 1;
+	}
     } else if (!dev->prev_scl && scl && dev->started) {
-    	if (dev->pos++ < 8) {
-    		if (dev->slave_read == 1) {
-    			dev->slave_sda = !!(dev->byte & 0x80);
-    			dev->byte <<= 1;
-    		} else {
-    			dev->byte <<= 1;
-    			dev->byte |= sda;
-    		}
+	if (dev->pos++ < 8) {
+		if (dev->slave_read == 1) {
+			dev->slave_sda = !!(dev->byte & 0x80);
+			dev->byte <<= 1;
+		} else {
+			dev->byte <<= 1;
+			dev->byte |= sda;
+		}
 
-    		i2c_gpio_log(2, "I2C GPIO %s: Bit %d = %d\n", dev->bus_name, 8 - dev->pos, (dev->slave_read == 1) ? dev->slave_sda : sda);
-    	}
+		i2c_gpio_log(2, "I2C GPIO %s: Bit %d = %d\n", dev->bus_name, 8 - dev->pos, (dev->slave_read == 1) ? dev->slave_sda : sda);
+	}
 
-    	if (dev->pos == 8) {
-    		i2c_gpio_log(2, "I2C GPIO %s: Byte = %02X\n", dev->bus_name, dev->byte);
+	if (dev->pos == 8) {
+		i2c_gpio_log(2, "I2C GPIO %s: Byte = %02X\n", dev->bus_name, dev->byte);
 
-    		/* (N)ACKing here instead of at the 9th bit may sound odd, but is required by the Matrox Mystique Windows drivers. */
-    		switch (dev->slave_read) {
-    			case 2: /* address transfer */
-    				dev->slave_addr = dev->byte >> 1;
-	    			dev->slave_read = (dev->byte & 1);
+		/* (N)ACKing here instead of at the 9th bit may sound odd, but is required by the Matrox Mystique Windows drivers. */
+		switch (dev->slave_read) {
+			case 2: /* address transfer */
+				dev->slave_addr = dev->byte >> 1;
+				dev->slave_read = dev->byte & 1;
 
-	    			/* slave ACKs? */
-	    			dev->slave_sda = !(i2c_has_device(dev->i2c, dev->slave_addr) && i2c_start(dev->i2c, dev->slave_addr, dev->slave_read));
+				/* slave ACKs? */
+				dev->slave_sda = !(i2c_has_device(dev->i2c, dev->slave_addr) && i2c_start(dev->i2c, dev->slave_addr, dev->slave_read));
 				i2c_gpio_log(2, "I2C GPIO %s: Slave %02X %s %sACK\n", dev->bus_name, dev->slave_addr, dev->slave_read ? "read" : "write", dev->slave_sda ? "N" : "");
 
 				if (!dev->slave_sda && dev->slave_read) /* read first byte on an ACKed read transfer */
@@ -134,22 +134,26 @@ i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda)
 				dev->slave_read |= 0x80; /* slave_read was overwritten; stop the master ACK read logic from running at the 9th bit if we're reading */
 				break;
 
-    			case 0: /* write transfer */
-    				dev->slave_sda = !i2c_write(dev->i2c, dev->slave_addr, dev->byte);
-    				i2c_gpio_log(2, "I2C GPIO %s: Write %02X %sACK\n", dev->bus_name, dev->byte, dev->slave_sda ? "N" : "");
-    				break;
-    		}
-    	} else if (dev->pos == 9) {
-    		if (dev->slave_read == 1) { /* read transfer (unless we're in an address transfer) */
-    			if (!sda) /* master ACKs? */
-    				dev->byte = i2c_read(dev->i2c, dev->slave_addr);
-    			i2c_gpio_log(2, "I2C GPIO %s: Read %02X %sACK\n", dev->bus_name, dev->byte, sda ? "N" : "");
-    		} else
-    			dev->slave_read &= 1; /* if we're in an address transfer, clear it */
-    		dev->pos = 0; /* start over */
-    	}
+			case 0: /* write transfer */
+				dev->slave_sda = !i2c_write(dev->i2c, dev->slave_addr, dev->byte);
+				i2c_gpio_log(2, "I2C GPIO %s: Write %02X %sACK\n", dev->bus_name, dev->byte, dev->slave_sda ? "N" : "");
+				break;
+		}
+	} else if (dev->pos == 9) {
+		switch (dev->slave_read) {
+			case 1: /* read transfer (unless we're in an address transfer) */
+				if (!sda) /* master ACKs? */
+					dev->byte = i2c_read(dev->i2c, dev->slave_addr);
+				i2c_gpio_log(2, "I2C GPIO %s: Read %02X %sACK\n", dev->bus_name, dev->byte, sda ? "N" : "");
+				break;
+
+			default:
+				dev->slave_read &= 1; /* if we're in an address transfer, clear it */
+		}
+		dev->pos = 0; /* start over */
+	}
     } else if (dev->prev_scl && !scl && (dev->pos != 8)) { /* keep (N)ACK computed at the 8th bit when transitioning to the 9th bit */
-    	dev->slave_sda = 1;
+	dev->slave_sda = 1;
     }
 
     dev->prev_scl = scl;

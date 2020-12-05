@@ -241,7 +241,7 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 
 					/* command write */
 					i2c_write(i2c_smbus, smbus_addr, dev->cmd);
-					timer_bytes += 1;
+					timer_bytes++;
 
 					/* fall-through */
 
