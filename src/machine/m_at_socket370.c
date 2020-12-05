@@ -36,6 +36,7 @@
 #include <86box/video.h>
 #include "cpu.h"
 #include <86box/machine.h>
+#include <86box/clock.h>
 
 int
 machine_at_s370slm_init(const machine_t *model)
@@ -162,6 +163,7 @@ machine_at_cubx_init(const machine_t *model)
     device_add(&piix4e_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&w83977ef_device);
+    device_add(&ics9250_08_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
     device_add(&as99127f_device); /* fans: Chassis, CPU, Power; temperatures: MB, JTPWR, CPU */
@@ -367,11 +369,48 @@ machine_at_wcf681_init(const machine_t *model)
 }
 
 int
-machine_at_6via85x_init(const machine_t *model)
+machine_at_cuv4xls_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/6via85x/6VIA85X_ver_1_1.bin",
+    ret = bios_load_linear(L"roms/machines/cuv4xls/1005LS.001",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x04, PCI_CARD_SOUTHBRIDGE, 4, 1, 2, 3);
+    pci_register_slot(0x05, PCI_CARD_SOUND,       3, 0, 0, 0);
+    pci_register_slot(0x06, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x07, PCI_CARD_NORMAL,      2, 3, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x14, PCI_CARD_NORMAL,      4, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    device_add(&via_apro133a_device);
+    device_add(&via_vt82c686b_device);
+    device_add(&via_vt82c686_sio_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&ics9250_18_device);
+    device_add(&sst_flash_39sf020_device);
+    spd_register(SPD_TYPE_SDRAM, 0xF, 512);
+    device_add(&as99127f_device); /* fans: Chassis, CPU, Power; temperatures: MB, JTPWR, CPU */
+
+    return ret;
+}
+
+int
+machine_at_6via90ap_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/6via90ap/90ap10.bin",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -392,6 +431,7 @@ machine_at_6via85x_init(const machine_t *model)
     device_add(&via_vt82c686b_device);
     device_add(&via_vt82c686_sio_device);
     device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&ics9250_18_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 512);
     device_add(&via_vt82c686_hwm_device); /* fans: CPU1, CPU2; temperatures: CPU, System, unused */

@@ -58,7 +58,7 @@
    listings on forums, as VIA's datasheets are not very helpful regarding those. */
 #define VIA_PIPC_586A	0x05862500
 #define VIA_PIPC_586B	0x05864700
-#define VIA_PIPC_596A	0x05961200
+#define VIA_PIPC_596A	0x05960900
 #define VIA_PIPC_596B	0x05962300
 #define VIA_PIPC_686A	0x06861400
 #define VIA_PIPC_686B	0x06864000
@@ -171,7 +171,7 @@ pipc_reset_hard(void *priv)
 
     if (dev->local <= VIA_PIPC_586B)
 	dev->ide_regs[0x40] = 0x04;
-    dev->ide_regs[0x41] = 0x02;
+    dev->ide_regs[0x41] = (dev->local <= VIA_PIPC_686A) ? 0x06 : 0x02;
     dev->ide_regs[0x42] = 0x09;
     dev->ide_regs[0x43] = (dev->local >= VIA_PIPC_686A) ? 0x0a : 0x3a;
     dev->ide_regs[0x44] = 0x68;
@@ -400,7 +400,7 @@ pipc_read(int func, int addr, void *priv)
     if (func > dev->max_func)
 	return ret;
     else if (func == 0) { /* PCI-ISA bridge */
-	if ((addr >= 0x60) && (addr <= 0x6f)) {
+	if ((addr >= 0x60) && (addr <= 0x6f)) { /* DMA shadow registers */
 		c = (addr & 0x0e) >> 1;
 		if (addr & 0x01)
 			ret = (dma[c].ab & 0x0000ff00) >> 8;
@@ -411,19 +411,38 @@ pipc_read(int func, int addr, void *priv)
 	} else
 		ret = dev->pci_isa_regs[addr];
     }
-    else if ((func == 1) && !(dev->pci_isa_regs[0x48] & 0x02)) /* IDE */
+    else if ((func == 1) && !(dev->pci_isa_regs[0x48] & 0x02)) { /* IDE */
 	ret = dev->ide_regs[addr];
+	if ((addr >= 0x50) && (addr <= 0x53)) { /* UDMA timing registers */
+		/* Set or clear bit 5 according to UDMA mode. Documentation is unclear, but a real
+		   686B does set bit 5 when UDMA is enabled through the method specified in bit 7. */
+		c = 0x53 - addr;
+		if (ret & 0x80) /* bit 7 set = use bit 6 */
+			c = ret & 0x40;
+		else if (ide_drives[c]) /* bit 7 clear = use SET FEATURES mode */
+			c = (ide_drives[c]->mdma_mode & 0xf00) == 0x300;
+		else /* no drive here */
+			c = 0;
+		/* 586A/B datasheet claims bit 5 must be clear for UDMA, unlike later models where
+		   it must be set, but the Windows driver doesn't care and always checks if it's set. */
+		if (c)
+			ret |= 0x20;
+		else
+			ret &= ~0x20;
+	}
+    }
     else if ((func < pm_func) && !((func == 2) ? (dev->pci_isa_regs[0x48] & 0x04) : (dev->pci_isa_regs[0x85] & 0x10))) /* USB */
 	ret = dev->usb_regs[func - 2][addr];
     else if (func == pm_func) { /* Power */
 	ret = dev->power_regs[addr];
 	if (addr == 0x42) {
-		ret &= ~0x10;
 		if (dev->nvr->regs[0x0d] & 0x80)
 			ret |= 0x10;
+		else
+			ret &= ~0x10;
 	}
     }
-    else if ((func <= (pm_func + 2)) && !(dev->pci_isa_regs[0x85] & ((func == (pm_func + 1)) ? 0x04 : 0x08)) && 0) /* AC97 / MC97; temporarily disabled while unimplemented */
+    else if ((func <= (pm_func + 2)) && !(dev->pci_isa_regs[0x85] & ((func == (pm_func + 1)) ? 0x04 : 0x08))) /* AC97 / MC97 */
 	ret = dev->ac97_regs[func - pm_func - 1][addr];
 
     pipc_log("PIPC: read(%d, %02X) = %02X\n", func, addr, ret);
@@ -667,31 +686,69 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			break;
 
 		case 0x40:
-			if (dev->local <= VIA_PIPC_586B) {
-				dev->ide_regs[0x40] = val & 0x03;
-				dev->ide_regs[0x40] |= 0x04;
-			} else
+			if (dev->local <= VIA_PIPC_586B)
+				dev->ide_regs[0x40] = (val & 0x03) | 0x04;
+			else
 				dev->ide_regs[0x40] = val & 0x0f;
 			pipc_ide_handlers(dev);
 			break;
 
-		case 0x50: case 0x52:
-			if (dev->local <= VIA_PIPC_586B)
-				dev->ide_regs[addr] = val & 0xe3;
-			else if (dev->local <= VIA_PIPC_596B)
-				dev->ide_regs[addr] = val & 0xeb;
-			else if (dev->local <= VIA_PIPC_686A)
-				dev->ide_regs[addr] = val & 0xef;
+		case 0x41:
+			if (dev->local <= VIA_PIPC_686A)
+				dev->ide_regs[0x41] = val;
 			else
-				dev->ide_regs[addr] = val & 0xf7;
+				dev->ide_regs[0x41] = val & 0xf2;
 			break;
-		case 0x51: case 0x53:
-			if (dev->local <= VIA_PIPC_596B)
-				dev->ide_regs[addr] = val & 0xe3;
-			else if (dev->local <= VIA_PIPC_686A)
-				dev->ide_regs[addr] = val & 0xe7;
+
+		case 0x43:
+			if (dev->local <= VIA_PIPC_586A)
+				dev->ide_regs[0x43] = (val & 0x6f) | 0x10;
+			else if (dev->local <= VIA_PIPC_586B)
+				dev->ide_regs[0x43] = (val & 0xef) | 0x10;
 			else
-				dev->ide_regs[addr] = val & 0xf7;
+				dev->ide_regs[0x43] = val & 0x0f;
+			break;
+
+		case 0x44:
+			if (dev->local <= VIA_PIPC_586A)
+				dev->ide_regs[0x44] = val & 0x78;
+			else if (dev->local <= VIA_PIPC_586B)
+				dev->ide_regs[0x44] = val & 0x7b;
+			else if (dev->local <= VIA_PIPC_596B)
+				dev->ide_regs[0x44] = val & 0x7f;
+			else if (dev->local <= VIA_PIPC_686A)
+				dev->ide_regs[0x44] = val & 0x69;
+			else
+				dev->ide_regs[0x44] = val & 0x7d;
+			break;
+
+		case 0x45:
+			if (dev->local <= VIA_PIPC_586B)
+				dev->ide_regs[0x45] = val & 0x40;
+			else if (dev->local <= VIA_PIPC_596B)
+				dev->ide_regs[0x45] = val & 0x4f;
+			else if (dev->local <= VIA_PIPC_686A)
+				dev->ide_regs[0x45] = val & 0x5f;
+			else
+				dev->ide_regs[0x45] = (val & 0x5c) | 0x20;
+			break;
+
+		case 0x46:
+			if (dev->local <= VIA_PIPC_686A)
+				dev->ide_regs[0x46] = val & 0xf3;
+			else
+				dev->ide_regs[0x46] = val & 0xc0;
+			break;
+
+		case 0x50: case 0x51: case 0x52: case 0x53:
+			if (dev->local <= VIA_PIPC_586B)
+				dev->ide_regs[addr] = val & 0xc3;
+			else if (dev->local <= VIA_PIPC_596B)
+				dev->ide_regs[addr] = val & ((addr & 1) ? 0xc3 : 0xcb);
+			else if (dev->local <= VIA_PIPC_686A)
+				dev->ide_regs[addr] = val & ((addr & 1) ? 0xc7 : 0xcf);
+			else
+				dev->ide_regs[addr] = val & 0xd7;
 			break;
 
 		case 0x61: case 0x69:
@@ -805,9 +862,6 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 	if ((func == (pm_func + 2)) && ((addr == 0x4a) || (addr == 0x4b) || (dev->pci_isa_regs[0x85] & 0x08)))
 		return;
 
-	if (1) /* temporarily disabled while unimplemented */
-		return;
-
 	switch (addr) {
 		default:
 			dev->ac97_regs[func - pm_func - 1][addr] = val;
@@ -879,7 +933,7 @@ pipc_init(const device_t *info)
     if (dev->local >= VIA_PIPC_596A)
 	dev->acpi = device_add(&acpi_via_596b_device);
     else if (dev->local >= VIA_PIPC_586B)
-    	dev->acpi = device_add(&acpi_via_device);
+	dev->acpi = device_add(&acpi_via_device);
 
     dev->usb[0] = device_add_inst(&usb_device, 1);
     if (dev->local >= VIA_PIPC_686A)

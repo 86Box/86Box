@@ -2357,11 +2357,11 @@ static uint8_t banshee_pci_read(int func, int addr, void *p)
                 case 0x1a: ret = 0x00; break;
                 case 0x1b: ret = 0x00; break;
 
-                /*Undocumented, but Voodoo 3 BIOS checks this*/
-                case 0x2c: ret = 0x1a; break;
-                case 0x2d: ret = 0x12; break;
-                case 0x2e: ret = (banshee->type == TYPE_V3_3000) ? 0x3a : 0x30; break;
-                case 0x2f: ret = 0x00; break;
+                /*Subsystem vendor ID*/
+                case 0x2c: ret = banshee->pci_regs[0x2c]; break;
+                case 0x2d: ret = banshee->pci_regs[0x2d]; break;
+                case 0x2e: ret = banshee->pci_regs[0x2e]; break;
+                case 0x2f: ret = banshee->pci_regs[0x2f]; break;
 
                 case 0x30: ret = banshee->pci_regs[0x30] & 0x01; break; /*BIOS ROM address*/
                 case 0x31: ret = 0x00; break;
@@ -2666,6 +2666,37 @@ static void *banshee_init_common(const device_t *info, wchar_t *fn, int has_sgra
         banshee->i2c = i2c_gpio_init("i2c_voodoo_banshee");
         banshee->i2c_ddc = i2c_gpio_init("ddc_voodoo_banshee");
         banshee->ddc = ddc_init(i2c_gpio_get_bus(banshee->i2c_ddc));
+
+        switch (type)
+        {
+                case TYPE_BANSHEE:
+			if (has_sgram) {
+				banshee->pci_regs[0x2c] = 0x1a;
+				banshee->pci_regs[0x2d] = 0x12;
+				banshee->pci_regs[0x2e] = 0x04;
+				banshee->pci_regs[0x2f] = 0x00;
+			} else {
+				banshee->pci_regs[0x2c] = 0x02;
+				banshee->pci_regs[0x2d] = 0x11;
+				banshee->pci_regs[0x2e] = 0x17;
+				banshee->pci_regs[0x2f] = 0x10;
+			}
+			break;
+
+                case TYPE_V3_2000:
+			banshee->pci_regs[0x2c] = 0x1a;
+			banshee->pci_regs[0x2d] = 0x12;
+			banshee->pci_regs[0x2e] = 0x30;
+			banshee->pci_regs[0x2f] = 0x00;
+			break;
+
+                case TYPE_V3_3000:
+			banshee->pci_regs[0x2c] = 0x1a;
+			banshee->pci_regs[0x2d] = 0x12;
+			banshee->pci_regs[0x2e] = 0x3a;
+			banshee->pci_regs[0x2f] = 0x00;
+			break;
+        }
 
 	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_banshee);
 
