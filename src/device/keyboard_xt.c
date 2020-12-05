@@ -13,10 +13,12 @@
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *      EngiNerd, <webmaster.crrc@yahoo.it>
  *
  *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2017-2019 Fred N. van kempen.
+ *      Copyright 2020 EngiNerd.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -551,7 +553,15 @@ kbd_read(uint16_t port, void *priv)
 				ret = ((mem_size-64) / 32) & 0x0f;
 			else
 				ret = ((mem_size-64) / 32) >> 4;
-		} else {
+		} 
+        else if (kbd->type == 8) {
+            /* Olivetti M19 */
+            if (kbd->pb & 0x04)
+				ret = kbd->pd;
+            else 
+                ret = kbd->pd >> 4;
+        } 
+        else {
 			if (kbd->pb & 0x08)
 				ret = kbd->pd >> 4;
 			else {
@@ -623,82 +633,94 @@ kbd_init(const device_t *info)
 
     video_reset(gfxcard);
 
-    if (kbd->type <= 3) {
-	for (i = 0; i < FDD_NUM; i++) {
-		if (fdd_get_flags(i))
-			fdd_count++;
-	}
+    if (kbd->type <= 3 || kbd-> type == 8) {
+        for (i = 0; i < FDD_NUM; i++) {
+            if (fdd_get_flags(i))
+                fdd_count++;
+        }
 
-	/* DIP switch readout: bit set = OFF, clear = ON. */
-	    /* Switches 7, 8 - floppy drives. */
-	    if (!fdd_count)
-		kbd->pd = 0x00;
-	    else
-		kbd->pd = ((fdd_count - 1) << 6) | 0x01;
-	/* Switches 5, 6 - video. */
-	if (video_is_mda())
-		kbd->pd |= 0x30;
-	else if (video_is_cga())
-		kbd->pd |= 0x20;	/* 0x10 would be 40x25 */
-	else
-		kbd->pd |= 0x00;
-	/* Switches 3, 4 - memory size. */
-	if ((kbd->type == 3) || (kbd->type == 4) || (kbd->type == 6)) {
-		switch (mem_size) {
-			case 256:
-				kbd->pd |= 0x00;
-				break;
-			case 512:
-				kbd->pd |= 0x04;
-				break;
-			case 576:
-				kbd->pd |= 0x08;
-				break;
-			case 640:
-			default:
-				kbd->pd |= 0x0c;
-				break;
-		}
-	} else if (kbd->type >= 1) {
-		switch (mem_size) {
-			case 64:
-				kbd->pd |= 0x00;
-				break;
-			case 128:
-				kbd->pd |= 0x04;
-				break;
-			case 192:
-				kbd->pd |= 0x08;
-				break;
-			case 256:
-			default:
-				kbd->pd |= 0x0c;
-				break;
-		}
-	} else {
-		switch (mem_size) {
-			case 16:
-				kbd->pd |= 0x00;
-				break;
-			case 32:
-				kbd->pd |= 0x04;
-				break;
-			case 48:
-				kbd->pd |= 0x08;
-				break;
-			case 64:
-			default:
-				kbd->pd |= 0x0c;
-				break;
-		}
-	}
+        /* DIP switch readout: bit set = OFF, clear = ON. */
+        if (kbd->type != 8)
+            /* Switches 7, 8 - floppy drives. */
+            if (!fdd_count)
+                kbd->pd = 0x00;
+            else
+                kbd->pd = ((fdd_count - 1) << 6) | 0x01;
+        else 
+            /* Jumpers J1, J2 - monitor type. 
+                * 01 - mono (high-res)
+                * 10 - color (low-res, disables 640x400x2 mode)
+                * 00 - autoswitching
+                */
+            kbd->pd |= 0x00;
+        
+        /* Switches 5, 6 - video. */
+        if (video_is_mda())
+            kbd->pd |= 0x30;
+        else if (video_is_cga())
+            kbd->pd |= 0x20;	/* 0x10 would be 40x25 */
+        else
+            kbd->pd |= 0x00;
+        
+        /* Switches 3, 4 - memory size. */
+        // Note to Compaq/Toshiba keyboard maintainers: type 4 and 6 will never be activated in this block
+        // Should the top if be closed right after setting floppy drive count?
+        if ((kbd->type == 3) || (kbd->type == 4) || (kbd->type == 6)) {
+            switch (mem_size) {
+                case 256:
+                    kbd->pd |= 0x00;
+                    break;
+                case 512:
+                    kbd->pd |= 0x04;
+                    break;
+                case 576:
+                    kbd->pd |= 0x08;
+                    break;
+                case 640:
+                default:
+                    kbd->pd |= 0x0c;
+                    break;
+            }
+        } else if (kbd->type >= 1) {
+            switch (mem_size) {
+                case 64:
+                    kbd->pd |= 0x00;
+                    break;
+                case 128:
+                    kbd->pd |= 0x04;
+                    break;
+                case 192:
+                    kbd->pd |= 0x08;
+                    break;
+                case 256:
+                default:
+                    kbd->pd |= 0x0c;
+                    break;
+            }
+        } else {
+            switch (mem_size) {
+                case 16:
+                    kbd->pd |= 0x00;
+                    break;
+                case 32:
+                    kbd->pd |= 0x04;
+                    break;
+                case 48:
+                    kbd->pd |= 0x08;
+                    break;
+                case 64:
+                default:
+                    kbd->pd |= 0x0c;
+                    break;
+            }
+        }
 
-	/* Switch 2 - 8087 FPU. */
-	if (hasfpu)
-		kbd->pd |= 0x02;
+        /* Switch 2 - 8087 FPU. */
+        if (hasfpu)
+            kbd->pd |= 0x02;
 
-	/* Switch 1 - always off. */
-	kbd->pd |= 0x01;
+        /* Switch 1 - always off. */
+        kbd->pd |= 0x01;
     }
 
     timer_add(&kbd->send_delay_timer, kbd_poll, kbd, 1);
@@ -812,3 +834,13 @@ const device_t keyboard_xt_lxt3_device = {
     { NULL }, NULL, NULL
 };
 #endif
+
+const device_t keyboard_xt_olivetti_device = {
+    "Olivetti XT Keyboard",
+    0,
+    8,
+    kbd_init,
+    kbd_close,
+    kbd_reset,
+    { NULL }, NULL, NULL
+};
