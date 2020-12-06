@@ -806,6 +806,9 @@ win_settings_machine_recalc_machine(HWND hdlg)
 	SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_2086));
     }
 
+    settings_enable_window(hdlg, IDC_MEMSPIN, machines[temp_machine].min_ram != machines[temp_machine].max_ram);
+    settings_enable_window(hdlg, IDC_MEMTEXT, machines[temp_machine].min_ram != machines[temp_machine].max_ram);
+
     free(lptsTemp);
 }
 
