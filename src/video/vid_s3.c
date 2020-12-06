@@ -4363,8 +4363,8 @@ s3_pci_read(int func, int addr, void *p)
 		
 		case 0x10: return 0x00; /*Linear frame buffer address*/
 		case 0x11: return 0x00;
-		case 0x12: return 0 /* (s3->chip >= S3_TRIO64V) ? 0 : (svga->crtc[0x5a] & 0x80) */;
-		case 0x13: return svga->crtc[0x59] & 0xfc /*(s3->chip >= S3_TRIO64V) ? (svga->crtc[0x59] & 0xfc) : svga->crtc[0x59]*/;
+		case 0x12: return (s3->chip >= S3_TRIO64V) ? 0 : (svga->crtc[0x5a] & 0x80);
+		case 0x13: return (s3->chip >= S3_TRIO64V) ? (svga->crtc[0x59] & 0xfc) : svga->crtc[0x59];
 			
 		case 0x30: return s3->has_bios ? (s3->pci_regs[0x30] & 0x01) : 0x00; /*BIOS ROM address*/
 		case 0x31: return 0x00;
@@ -4394,16 +4394,14 @@ s3_pci_write(int func, int addr, uint8_t val, void *p)
 		break;
 		
 		case 0x12:
-#if 0
 		if (s3->chip != S3_TRIO64V && s3->chip != S3_TRIO64V2) {
 			svga->crtc[0x5a] = (svga->crtc[0x5a] & 0x7f) | (val & 0x80);
 			s3_updatemapping(s3);
 		}
-#endif
 		break;
 		
 		case 0x13:
-		svga->crtc[0x59] = (val & 0xfc) /*(s3->chip >= S3_TRIO64V) ? (val & 0xfc) : val*/;
+		svga->crtc[0x59] = (s3->chip >= S3_TRIO64V) ? (val & 0xfc) : val;
 		s3_updatemapping(s3);
 		break;
 
