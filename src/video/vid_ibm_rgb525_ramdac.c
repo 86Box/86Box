@@ -81,12 +81,13 @@ ibm_rgb525_render_4bpp(svga_t *svga)
     uint8_t dat;
     uint32_t dat32 = 0x00000000;
     uint64_t dat64 = 0x0000000000000000ULL;
+    uint64_t dat642 = 0x0000000000000000ULL;
     ibm_rgb525_ramdac_t *ramdac = (ibm_rgb525_ramdac_t *) svga->ramdac;
     uint8_t b8_dcol = (ramdac->indexed_data[0x0c] & 0xc0) >> 6;
     uint8_t partition = (ramdac->indexed_data[0x07] & 0x0f) << 4;
     uint8_t swap_word = ramdac->indexed_data[0x72] & 0x10;
     uint8_t swap_nib = ramdac->indexed_data[0x72] & 0x21;
-    uint8_t vram_size = ramdac->indexed_data[0x70] & 0x01;
+    uint8_t vram_size = ramdac->indexed_data[0x70] & 0x03;
 
     if ((svga->displine + svga->y_add) < 0)
 	return;
@@ -100,9 +101,22 @@ ibm_rgb525_render_4bpp(svga_t *svga)
 
 	for (x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
 		if (svga->crtc[0x17] & 0x80) {
-			if (vram_size) {
+			if (vram_size == 3) {
+				if (!(x & 31)) {
+					dat64 = *(uint64_t *)(&svga->vram[svga->ma]);
+					dat642 = *(uint64_t *)(&svga->vram[svga->ma + 8]);
+					if (swap_word) {
+						dat64 = (dat64 << 32ULL) | (dat64 >> 32ULL);
+						dat642 = (dat642 << 32ULL) | (dat642 >> 32ULL);
+					}
+				}
+				if (swap_nib)
+					dat = (((x & 16) ? dat642 : dat64) >> ((x & 15) << 2)) & 0xf;
+				else
+					dat = (((x & 16) ? dat642 : dat64) >> (((x & 15) << 2) ^ 4)) & 0xf;
+			} else if (vram_size == 1) {
 				if (!(x & 15)) {
-					dat64 = *(uint32_t *)(&svga->vram[svga->ma]);
+					dat64 = *(uint64_t *)(&svga->vram[svga->ma]);
 					if (swap_word)
 						dat64 = (dat64 << 32ULL) | (dat64 >> 32ULL);
 				}
@@ -132,7 +146,9 @@ ibm_rgb525_render_4bpp(svga_t *svga)
 		} else
 			p[x] = dat_out.pixel & 0xffffff;
 
-		if (vram_size && ((x & 15) == 15))
+		if ((vram_size == 3) && ((x & 31) == 31))
+			svga->ma = (svga->ma + 16) & svga->vram_display_mask;
+		if ((vram_size == 1) && ((x & 15) == 15))
 			svga->ma = (svga->ma + 8) & svga->vram_display_mask;
 		else if ((!vram_size) && ((x & 7) == 7))
 			svga->ma = (svga->ma + 4) & svga->vram_display_mask;
@@ -150,10 +166,11 @@ ibm_rgb525_render_8bpp(svga_t *svga)
     uint8_t dat;
     uint32_t dat32 = 0x00000000;
     uint64_t dat64 = 0x0000000000000000ULL;
+    uint64_t dat642 = 0x0000000000000000ULL;
     ibm_rgb525_ramdac_t *ramdac = (ibm_rgb525_ramdac_t *) svga->ramdac;
     uint8_t b8_dcol = (ramdac->indexed_data[0x0c] & 0xc0) >> 6;
     uint8_t swap_word = ramdac->indexed_data[0x72] & 0x10;
-    uint8_t vram_size = ramdac->indexed_data[0x70] & 0x01;
+    uint8_t vram_size = ramdac->indexed_data[0x70] & 0x03;
 
     if ((svga->displine + svga->y_add) < 0)
 	return;
@@ -167,9 +184,19 @@ ibm_rgb525_render_8bpp(svga_t *svga)
 
 	for (x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
 		if (svga->crtc[0x17] & 0x80) {
-			if (vram_size) {
+			if (vram_size == 3) {
+				if (!(x & 15)) {
+					dat64 = *(uint64_t *)(&svga->vram[svga->ma]);
+					dat642 = *(uint64_t *)(&svga->vram[svga->ma + 8]);
+					if (swap_word) {
+						dat64 = (dat64 << 32ULL) | (dat64 >> 32ULL);
+						dat642 = (dat642 << 32ULL) | (dat642 >> 32ULL);
+					}
+				}
+				dat = (((x & 8) ? dat642 : dat64) >> ((x & 7) << 3)) & 0xff;
+			} else if (vram_size == 1) {
 				if (!(x & 7)) {
-					dat64 = *(uint32_t *)(&svga->vram[svga->ma]);
+					dat64 = *(uint64_t *)(&svga->vram[svga->ma]);
 					if (swap_word)
 						dat64 = (dat64 << 32ULL) | (dat64 >> 32ULL);
 				}
@@ -193,7 +220,9 @@ ibm_rgb525_render_8bpp(svga_t *svga)
 		} else
 			p[x] = dat_out.pixel & 0xffffff;
 
-		if (vram_size && ((x & 7) == 7))
+		if ((vram_size == 3) && ((x & 15) == 15))
+			svga->ma = (svga->ma + 16) & svga->vram_display_mask;
+		else if ((vram_size == 1) && ((x & 7) == 7))
 			svga->ma = (svga->ma + 8) & svga->vram_display_mask;
 		else if ((!vram_size) && ((x & 3) == 3))
 			svga->ma = (svga->ma + 4) & svga->vram_display_mask;
@@ -212,6 +241,7 @@ ibm_rgb525_render_15_16bpp(svga_t *svga)
     uint16_t dat;
     uint32_t dat32 = 0x00000000;
     uint64_t dat64 = 0x0000000000000000ULL;
+    uint64_t dat642 = 0x0000000000000000ULL;
     ibm_rgb525_ramdac_t *ramdac = (ibm_rgb525_ramdac_t *) svga->ramdac;
     uint8_t b16_dcol = (ramdac->indexed_data[0x0c] & 0xc0) >> 6;
     uint8_t by16_pol = ramdac->indexed_data[0x0c] & 0x20;
@@ -238,9 +268,19 @@ ibm_rgb525_render_15_16bpp(svga_t *svga)
 
 	for (x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
 		if (svga->crtc[0x17] & 0x80) {
-			if (vram_size) {
+			if (vram_size == 2) {
+				if (!(x & 7)) {
+					dat64 = *(uint64_t *)(&svga->vram[svga->ma]);
+					dat642 = *(uint64_t *)(&svga->vram[svga->ma + 8]);
+					if (swap_word) {
+						dat64 = (dat64 << 32ULL) | (dat64 >> 32ULL);
+						dat642 = (dat64 << 32ULL) | (dat642 >> 32ULL);
+					}
+				}
+				dat = (((x & 4) ? dat642 : dat64) >> ((x & 3) << 4)) & 0xffff;
+			} else if (vram_size == 1) {
 				if (!(x & 3)) {
-					dat64 = *(uint32_t *)(&svga->vram[svga->ma]);
+					dat64 = *(uint64_t *)(&svga->vram[svga->ma]);
 					if (swap_word)
 						dat64 = (dat64 << 32ULL) | (dat64 >> 32ULL);
 				}
@@ -309,7 +349,9 @@ ibm_rgb525_render_15_16bpp(svga_t *svga)
 		} else
 			p[x] = dat_out.pixel & 0xffffff;
 
-		if (vram_size && ((x & 3) == 3))
+		if ((vram_size == 3) && ((x & 7) == 7))
+			svga->ma = (svga->ma + 16) & svga->vram_display_mask;
+		else if ((vram_size == 1) && ((x & 3) == 3))
 			svga->ma = (svga->ma + 8) & svga->vram_display_mask;
 		else if (!vram_size && ((x & 1) == 1))
 			svga->ma = (svga->ma + 4) & svga->vram_display_mask;
@@ -325,7 +367,7 @@ ibm_rgb525_render_24bpp(svga_t *svga)
     uint32_t *p;
     ibm_rgb525_pixel32_t *dat_ex;
     uint32_t dat;
-    uint64_t dat64[3];
+    uint64_t dat64[6];
     uint8_t *dat8 = (uint8_t *) dat64;
     ibm_rgb525_ramdac_t *ramdac = (ibm_rgb525_ramdac_t *) svga->ramdac;
     uint8_t b24_dcol = ramdac->indexed_data[0x0d] & 0x01;
@@ -347,11 +389,29 @@ ibm_rgb525_render_24bpp(svga_t *svga)
 	for (x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
 		dat_ex = (ibm_rgb525_pixel32_t *) &dat;
 		if (svga->crtc[0x17] & 0x80) {
-			if (vram_size) {
+			if (vram_size == 3) {
+				if ((x & 15) == 0) {
+					dat64[0] = *(uint64_t *)(&svga->vram[svga->ma & svga->vram_display_mask]);
+					dat64[1] = *(uint64_t *)(&svga->vram[(svga->ma + 8) & svga->vram_display_mask]);
+					dat64[2] = *(uint64_t *)(&svga->vram[(svga->ma + 16) & svga->vram_display_mask]);
+					dat64[3] = *(uint64_t *)(&svga->vram[(svga->ma + 24) & svga->vram_display_mask]);
+					dat64[4] = *(uint64_t *)(&svga->vram[(svga->ma + 32) & svga->vram_display_mask]);
+					dat64[5] = *(uint64_t *)(&svga->vram[(svga->ma + 40) & svga->vram_display_mask]);
+					if (swap_word) {
+						dat64[0] = (dat64[0] << 32ULL) | (dat64[0] >> 32ULL);
+						dat64[1] = (dat64[1] << 32ULL) | (dat64[1] >> 32ULL);
+						dat64[2] = (dat64[2] << 32ULL) | (dat64[2] >> 32ULL);
+						dat64[3] = (dat64[3] << 32ULL) | (dat64[3] >> 32ULL);
+						dat64[4] = (dat64[4] << 32ULL) | (dat64[4] >> 32ULL);
+						dat64[5] = (dat64[5] << 32ULL) | (dat64[5] >> 32ULL);
+					}
+				}
+				dat_ex = (ibm_rgb525_pixel32_t *) &(dat8[((x & 15) * 3)]);
+			} else if (vram_size == 1) {
 				if ((x & 7) == 0) {
-					dat64[0] = *(uint32_t *)(&svga->vram[svga->ma & svga->vram_display_mask]);
-					dat64[1] = *(uint32_t *)(&svga->vram[(svga->ma + 8) & svga->vram_display_mask]);
-					dat64[2] = *(uint32_t *)(&svga->vram[(svga->ma + 16) & svga->vram_display_mask]);
+					dat64[0] = *(uint64_t *)(&svga->vram[svga->ma & svga->vram_display_mask]);
+					dat64[1] = *(uint64_t *)(&svga->vram[(svga->ma + 8) & svga->vram_display_mask]);
+					dat64[2] = *(uint64_t *)(&svga->vram[(svga->ma + 16) & svga->vram_display_mask]);
 					if (swap_word) {
 						dat64[0] = (dat64[0] << 32ULL) | (dat64[0] >> 32ULL);
 						dat64[1] = (dat64[1] << 32ULL) | (dat64[1] >> 32ULL);
@@ -371,8 +431,8 @@ ibm_rgb525_render_24bpp(svga_t *svga)
 		if (b24_dcol == 0x00) {
 			dat_ex->a = 0x00;
 			dat_ex->r = ramdac->palettes[0][dat_ex->r];
-			dat_ex->g = ramdac->palettes[0][dat_ex->g];
-			dat_ex->g = ramdac->palettes[0][dat_ex->b];
+			dat_ex->g = ramdac->palettes[1][dat_ex->g];
+			dat_ex->g = ramdac->palettes[2][dat_ex->b];
 			if ((svga->ramdac_type != RAMDAC_8BIT) && !b6bit_lin) {
 				dat_ex->r |= ((dat_ex->r & 0xc0) >> 6);
 				dat_ex->g |= ((dat_ex->g & 0xc0) >> 6);
@@ -384,7 +444,9 @@ ibm_rgb525_render_24bpp(svga_t *svga)
 		} else
 			p[x] = dat_ex->pixel & 0xffffff;
 
-		if (vram_size && ((x & 7) == 7))
+		if ((vram_size == 3) && ((x & 15) == 15))
+			svga->ma = (svga->ma + 48) & svga->vram_display_mask;
+		else if ((vram_size == 1) && ((x & 7) == 7))
 			svga->ma = (svga->ma + 24) & svga->vram_display_mask;
 	}
     }
@@ -399,6 +461,7 @@ ibm_rgb525_render_32bpp(svga_t *svga)
     ibm_rgb525_pixel32_t *dat_ex;
     uint32_t dat = 0x00000000;
     uint64_t dat64 = 0x0000000000000000ULL;
+    uint64_t dat642 = 0x0000000000000000ULL;
     ibm_rgb525_ramdac_t *ramdac = (ibm_rgb525_ramdac_t *) svga->ramdac;
     uint8_t b32_dcol = ramdac->indexed_data[0x0e] & 0x03;
     uint8_t by32_pol = ramdac->indexed_data[0x0e] & 0x04;
@@ -419,13 +482,23 @@ ibm_rgb525_render_32bpp(svga_t *svga)
 
 	for (x = 0; x <= (svga->hdisp + svga->scrollcache); x++) {
 		if (svga->crtc[0x17] & 0x80) {
-			if (vram_size) {
+			if (vram_size == 3) {
 				if (!(x & 3)) {
-					dat64 = *(uint32_t *)(&svga->vram[svga->ma]);
+					dat64 = *(uint64_t *)(&svga->vram[svga->ma]);
+					dat642 = *(uint64_t *)(&svga->vram[svga->ma + 8]);
+					if (swap_word) {
+						dat64 = (dat64 << 32ULL) | (dat64 >> 32ULL);
+						dat642 = (dat642 << 32ULL) | (dat642 >> 32ULL);
+					}
+				}
+				dat = (((x & 2) ? dat642 : dat64) >> ((x & 1ULL) << 5ULL)) & 0xffffffff;
+			} else if (vram_size == 1) {
+				if (!(x & 1)) {
+					dat64 = *(uint64_t *)(&svga->vram[svga->ma]);
 					if (swap_word)
 						dat64 = (dat64 << 32ULL) | (dat64 >> 32ULL);
 				}
-				dat = (dat64 >> ((x & 1) << 5)) & 0xffffffff;
+				dat = (dat64 >> ((x & 1ULL) << 5ULL)) & 0xffffffff;
 			} else
 				dat = *(uint32_t *)(&svga->vram[svga->ma]);
 		} else
@@ -436,13 +509,13 @@ ibm_rgb525_render_32bpp(svga_t *svga)
 			dat_ex->r = dat_ex->b;
 			dat_ex->b = temp;
 		}
-		if (by32_pol)
+		if ((b32_dcol < 0x03) && (by32_pol))
 			dat ^= 0x01000000;
 		if ((b32_dcol == 0x00) || ((b32_dcol == 0x01) && !(dat & 0x01000000))) {
 			dat_ex->a = 0x00;
 			dat_ex->r = ramdac->palettes[0][dat_ex->r];
-			dat_ex->g = ramdac->palettes[0][dat_ex->g];
-			dat_ex->g = ramdac->palettes[0][dat_ex->b];
+			dat_ex->g = ramdac->palettes[1][dat_ex->g];
+			dat_ex->g = ramdac->palettes[2][dat_ex->b];
 			if ((svga->ramdac_type != RAMDAC_8BIT) && !b6bit_lin) {
 				dat_ex->r |= ((dat_ex->r & 0xc0) >> 6);
 				dat_ex->g |= ((dat_ex->g & 0xc0) >> 6);
@@ -454,7 +527,9 @@ ibm_rgb525_render_32bpp(svga_t *svga)
 		} else
 			p[x] = dat_ex->pixel & 0xffffff;
 
-		if (vram_size && ((x & 1) == 1))
+		if ((vram_size == 3) && ((x & 3) == 3))
+			svga->ma = (svga->ma + 16) & svga->vram_display_mask;
+		else if ((vram_size == 1) && ((x & 1) == 1))
 			svga->ma = (svga->ma + 8) & svga->vram_display_mask;
 		else if (!vram_size)
 			svga->ma = (svga->ma + 4) & svga->vram_display_mask;
@@ -493,6 +568,8 @@ ibm_rgb525_set_bpp(ibm_rgb525_ramdac_t *ramdac, svga_t *svga)
     } else
 	svga->bpp = 8;
 
+    // pclog("svga->bpp = %i\n", svga->bpp);
+
     svga_recalctimings(svga);
 }
 
@@ -507,7 +584,7 @@ ibm_rgb525_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga
     uint8_t updt_cntl = (ramdac->indexed_data[0x30] & 0x08);
     rs |= (!!rs2 << 2);
 
-    //pclog("[W] RS%01X = %02X\n", rs, val);
+    // pclog("[%04X:%08X] [W] RS%01X = %02X\n", CS, cpu_state.pc, rs, val);
 
     switch (rs) {
 	case 0x00:	/* Palette Write Index Register (RS value = 0000) */
@@ -530,16 +607,19 @@ ibm_rgb525_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga
 		svga_out(addr, val, svga);
 		break;
 	case 0x04:
+		// pclog("Index low: %02X\n", val);
 		ramdac->index = (ramdac->index & 0x0700) | val;
 		if ((ramdac->index >= 0x0100) && (ramdac->index <= 0x04ff))
 			ramdac->cursor_array = 1;
 		break;
 	case 0x05:
-		ramdac->index = (ramdac->index & 0x00ff) | ((val & 0x07) < 0x08);
+		// pclog("Index high: %02X\n", val);
+		ramdac->index = (ramdac->index & 0x00ff) | ((val & 0x07) << 0x08);
 		if ((ramdac->index >= 0x0100) && (ramdac->index <= 0x04ff))
 			ramdac->cursor_array = 1;
 		break;
 	case 0x06:
+		// pclog("Indexed data [%03X]: %02X\n", ramdac->index, val);
 		if ((ramdac->index < 0x0100) || (ramdac->index > 0x04ff) || ramdac->cursor_array)
 			ramdac->indexed_data[ramdac->index] = val;
 		switch (ramdac->index) {
@@ -564,11 +644,17 @@ ibm_rgb525_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga
 				svga->dac_hwcursor.addr = ramdac->smlc_part;
 				svga->dac_hwcursor.xsize = svga->dac_hwcursor.ysize = (val & 0x04) ? 64 : 32;
 				svga->dac_hwcursor.ena = ((val & 0x03) != 0x00);
+				/* pclog("%ix%i cursor %sabled at DAC buffer address %02X\n", svga->dac_hwcursor.xsize,
+				      svga->dac_hwcursor.ysize, svga->dac_hwcursor.ena ? "en" : "dis",
+				      svga->dac_hwcursor.addr);
+				pclog("Pixel order %i, mode %i, update %s\n", !!(ramdac->indexed_data[0x30] & 0x20),
+				      ramdac->indexed_data[0x30] & 0x03, (ramdac->indexed_data[0x30] & 0x08) ? "now" : "later"); */
 				break;
 			case 0x031:
 				if (!updt_cntl)
 					break;
 				svga->dac_hwcursor.x = (svga->dac_hwcursor.x & 0xff00) | val;
+				// pclog("Cursor X = %i\n", svga->dac_hwcursor.x);
 				break;
 			case 0x032:
 				/* Sign-extend the sign bit (7) to the remaining bits (6-4). */
@@ -579,11 +665,13 @@ ibm_rgb525_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga
 				if (!updt_cntl)
 					break;
 				svga->dac_hwcursor.x = (svga->dac_hwcursor.x & 0x00ff) | (val << 8);
+				// pclog("Cursor X = %i\n", svga->dac_hwcursor.x);
 				break;
 			case 0x033:
 				if (!updt_cntl)
 					break;
 				svga->dac_hwcursor.y = (svga->dac_hwcursor.y & 0xff00) | val;
+				// pclog("Cursor Y = %i\n", svga->dac_hwcursor.y);
 				break;
 			case 0x034:
 				/* Sign-extend the sign bit (7) to the remaining bits (6-4). */
@@ -592,24 +680,30 @@ ibm_rgb525_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga
 					val |= 0x70;
 				ramdac->indexed_data[ramdac->index] = val;
 				if (updt_cntl) {
+					svga->dac_hwcursor.y = (svga->dac_hwcursor.y & 0x00ff) | (val << 8);
+					// pclog("Cursor Y = %i\n", svga->dac_hwcursor.x);
+				} else {
 					svga->dac_hwcursor.x = ramdac->indexed_data[0x031];
 					svga->dac_hwcursor.x |= (ramdac->indexed_data[0x032] << 8);
+					// pclog("Cursor X = %i\n", svga->dac_hwcursor.x);
 					svga->dac_hwcursor.y = ramdac->indexed_data[0x033];
 					svga->dac_hwcursor.y |= (val << 8);
-				} else
-					svga->dac_hwcursor.y = (svga->dac_hwcursor.y & 0x00ff) | (val << 8);
+					// pclog("Cursor Y = %i\n", svga->dac_hwcursor.y);
+				}
 				break;
 			case 0x035:
 				if (svga->dac_hwcursor.xsize == 64)
 					svga->dac_hwcursor.xoff = (val & 0x1f);
 				else
 					svga->dac_hwcursor.xoff = (val & 0x3f);
+				// pclog("Cursor X offset = %i\n", (int) svga->dac_hwcursor.xoff);
 				break;
 			case 0x036:
 				if (svga->dac_hwcursor.xsize == 64)
 					svga->dac_hwcursor.yoff = (val & 0x1f);
 				else
 					svga->dac_hwcursor.yoff = (val & 0x3f);
+				// pclog("Cursor Y offset = %i\n", (int) svga->dac_hwcursor.yoff);
 				break;
 			case 0x040: case 0x043: case 0x046:
 				ramdac->extra_pal[(ramdac->index - 0x40) / 3].r = val;
@@ -640,6 +734,7 @@ ibm_rgb525_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga
 			if (ramdac->index == 0x00ff)
 				ramdac->cursor_array = 0;
 			ramdac->index = (ramdac->index + 1) & 0x07ff;
+			// pclog("Index now: %03X\n", ramdac->index);
 		}
 		break;
 	case 0x07:
@@ -680,6 +775,12 @@ ibm_rgb525_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
 	case 0x06:
 		temp = ramdac->indexed_data[ramdac->index];
 		switch (ramdac->index) {
+			case 0x0000:	/* Revision */
+				temp = 0xe0;
+				break;
+			case 0x0001:	/* ID */
+				temp = 0x02;
+				break;
 			case 0x0031:
 				if (loc_read)
 					temp = svga->dac_hwcursor.x & 0xff;
@@ -700,13 +801,18 @@ ibm_rgb525_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
 				temp = ramdac->indexed_data[ramdac->index];
 				break;
 		}
+		if (ramdac->indx_cntl) {
+			if (ramdac->index == 0x00ff)
+				ramdac->cursor_array = 0;
+			ramdac->index = (ramdac->index + 1) & 0x07ff;
+		}
 		break;
 	case 0x07:
 		temp = ramdac->indx_cntl;
 		break;
     }
 
-    //pclog("[R] RS%01X = %02X\n", rs, temp);
+    // pclog("[%04X:%08X] [R] RS%01X = %02X\n", CS, cpu_state.pc, rs, temp);
 
     return temp;
 }
@@ -770,8 +876,10 @@ ibm_rgb525_hwcursor_draw(svga_t *svga, int displine)
     p = buffer32->line[y_pos];
 
     for (x = 0; x < svga->dac_hwcursor_latch.xsize; x ++) {
-	if (!(x & 3))
+	if (!(x & 3)) {
 		four_pixels = ramdac->indexed_data[svga->dac_hwcursor_latch.addr];
+		// pclog("Pixels %i to %i: %02X at %08X\n", x, x + 3, four_pixels, svga->dac_hwcursor_latch.addr);
+	}
 	if (pix_ordr)
 		dat = (four_pixels >> (((3 - x) & 3) << 1)) & 0x03;
 	else
@@ -842,6 +950,10 @@ ibm_rgb525_ramdac_init(const device_t *info)
     memset(ramdac, 0, sizeof(ibm_rgb525_ramdac_t));
 
     ramdac->smlc_part = 0x0100;
+
+    ramdac->indexed_data[0x0008] = 0x0001;
+    ramdac->indexed_data[0x0015] = 0x0008;
+    ramdac->indexed_data[0x0016] = 0x0041;
 
     return ramdac;
 }
