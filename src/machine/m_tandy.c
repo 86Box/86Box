@@ -1535,7 +1535,7 @@ machine_tandy1k_init(const machine_t *model, int type)
 		break;
     }
 
-    if (joystick_type != JOYSTICK_TYPE_NONE)
+    if (joystick_type)
 	device_add(&gameport_device);
 
     eep_data_out = 0x0000;
