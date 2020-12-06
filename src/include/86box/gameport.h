@@ -48,7 +48,6 @@
 #define SLIDER 			0x20000000
 
 #define AXIS_NOT_PRESENT	-99999
-#define JOYSTICK_TYPE_NONE 	8
 
 #define JOYSTICK_PRESENT(n)	(joystick_state[n].plat_joystick_nr != 0)
 
@@ -140,6 +139,8 @@ extern void	joystick_close(void);
 extern void	joystick_process(void);
 
 extern char	*joystick_get_name(int js);
+extern char	*joystick_get_internal_name(int js);
+extern int 	joystick_get_from_internal_name(char *s);
 extern int	joystick_get_max_joysticks(int js);
 extern int	joystick_get_axis_count(int js);
 extern int	joystick_get_button_count(int js);

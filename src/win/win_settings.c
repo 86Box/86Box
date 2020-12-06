@@ -806,6 +806,9 @@ win_settings_machine_recalc_machine(HWND hdlg)
 	SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_2086));
     }
 
+    settings_enable_window(hdlg, IDC_MEMSPIN, machines[temp_machine].min_ram != machines[temp_machine].max_ram);
+    settings_enable_window(hdlg, IDC_MEMTEXT, machines[temp_machine].min_ram != machines[temp_machine].max_ram);
+
     free(lptsTemp);
 }
 
@@ -5007,7 +5010,7 @@ win_settings_confirm(HWND hdlg)
     SendMessage(hwndChildDialog, WM_SAVESETTINGS, 0, 0);
 
     if (win_settings_changed()) {
-	if (confirm_save)
+	if (confirm_save && !settings_only)
 		i = settings_msgbox_ex(MBX_QUESTION_OK | MBX_WARNING | MBX_DONTASK, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, (wchar_t *) IDS_2123, NULL, NULL);
 	else
 		i = 0;

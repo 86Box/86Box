@@ -241,6 +241,10 @@ extern const device_t gd5480_pci_device;
 extern const device_t compaq_cga_device;
 extern const device_t compaq_cga_2_device;
 
+/* Olivetti OGC */
+extern const device_t ogc_device;
+extern const device_t ogc_m24_device;
+
 /* Tseng ET4000AX */
 extern const device_t et4000_isa_device;
 extern const device_t et4000k_isa_device;

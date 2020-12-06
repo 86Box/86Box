@@ -79,19 +79,22 @@ const machine_t machines[] = {
     { "[8088] Xi8088",				"xi8088",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2,							   64,  1024, 128,  127,	       machine_xt_xi8088_init, xi8088_get_device	},
     { "[8088] Zenith Data SupersPort",		"zdsupers",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640, 128,    0,	       machine_xt_zenith_init, NULL			},
     
+    { "[8088] Olivetti M19",		"olivetti_m19",			MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,                               MACHINE_PC | MACHINE_VIDEO_FIXED,					 256,  640,  256,   0,		 machine_xt_olim19_init, NULL			},
     /* 8086 Machines */
     { "[8086] Amstrad PC1512",			"pc1512",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 8000000, 8000000, 0, 0, 0, 0,									MACHINE_PC | MACHINE_VIDEO_FIXED | MACHINE_MOUSE,				  512,   640, 128,   63,		  machine_pc1512_init, pc1512_get_device	},
-    { "[8086] Amstrad PC1640",			"pc1640",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO | MACHINE_MOUSE,					  640,   640,   0,   63,		  machine_pc1640_init, pc1640_get_device	},
-    { "[8086] Amstrad PC2086",			"pc2086",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO_FIXED | MACHINE_MOUSE,				  640,   640,   0,   63,		  machine_pc2086_init, pc2086_get_device	},
-    { "[8086] Amstrad PC3086",			"pc3086",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO_FIXED | MACHINE_MOUSE,				  640,   640,   0,   63,		  machine_pc3086_init, pc3086_get_device	},
+    { "[8086] Amstrad PC1640",			"pc1640",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO | MACHINE_MOUSE,					  640,   640, 640,   63,		  machine_pc1640_init, pc1640_get_device	},
+    { "[8086] Amstrad PC2086",			"pc2086",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO_FIXED | MACHINE_MOUSE,				  640,   640, 640,   63,		  machine_pc2086_init, pc2086_get_device	},
+    { "[8086] Amstrad PC3086",			"pc3086",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO_FIXED | MACHINE_MOUSE,				  640,   640, 640,   63,		  machine_pc3086_init, pc3086_get_device	},
     { "[8086] Amstrad PC20(0)",			"pc200",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO | MACHINE_MOUSE | MACHINE_NONMI,			  512,   640, 128,   63,		   machine_pc200_init, pc200_get_device		},
     { "[8086] Amstrad PPC512/640",		"ppc512",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO | MACHINE_MOUSE | MACHINE_NONMI,			  512,   640, 128,   63,		  machine_ppc512_init, ppc512_get_device	},
     { "[8086] Compaq Deskpro",			"deskpro",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640, 128,    0,       machine_xt_compaq_deskpro_init, NULL			},
-    { "[8086] Olivetti M24",			"olivetti_m24",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO_FIXED | MACHINE_MOUSE,				  128,   640, 128,    0,		  machine_olim24_init, m24_get_device		},
+    { "[8086] Olivetti M24",			"olivetti_m24",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO | MACHINE_MOUSE,				  128,   640, 128,    0,		  machine_xt_olim24_init, m24_get_device		},
     { "[8086] Schetmash Iskra-3104",		"iskra3104",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640, 128,    0,	    machine_xt_iskra3104_init, NULL			},
     { "[8086] Tandy 1000 SL/2",			"tandy1000sl2",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO_FIXED,						  512,   768, 128,    0,	    machine_tandy1000sl2_init, tandy1k_sl_get_device	},
     { "[8086] Toshiba T1200",			"t1200",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO,							 1024,  2048,1024,   63,		machine_xt_t1200_init, t1200_get_device		},
 
+    { "[8086] Olivetti M240",			"olivetti_m240",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,                              MACHINE_PC,             	            			128,  640, 128,   0,		  machine_xt_olim240_init, NULL		},
+    
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
     { "[8086] VTech Laser XT3",			"lxt3",			MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  256,   640, 256,    0,		 machine_xt_lxt3_init, NULL			},
 #endif
