@@ -509,8 +509,10 @@ extern int	machine_europc_init(const machine_t *);
 extern const device_t europc_device;
 #endif
 
-/* m_oivetti_m24.c */
-extern int	machine_olim24_init(const machine_t *);
+/* m_xt_olivetti.c */
+extern int	machine_xt_olim24_init(const machine_t *);
+extern int	machine_xt_olim240_init(const machine_t *);
+extern int	machine_xt_olim19_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const 	device_t *m24_get_device(void);
 #endif
