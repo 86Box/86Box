@@ -915,7 +915,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 #ifdef ENABLE_ICS9xxx_DETECT
 static uint16_t	detect_bus = 0;
 static uint8_t	detect_reg = 0;
-static uint8_t	discarded[sizeof(ics9xxx_models) / sizeof(ics9xxx_models[0])] = {0};
+static uint8_t	discarded[ICS9xxx_MAX] = {0};
 
 
 static void
