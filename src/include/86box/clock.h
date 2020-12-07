@@ -18,28 +18,50 @@
 # define EMU_CLOCK_H
 
 /* clock_ics9xxx.c */
-extern const device_t	ics9xxx_detect_device;
-extern const device_t	ics9150_08_device;
-extern const device_t	ics9248_39_device;
-extern const device_t	ics9248_81_device;
-extern const device_t	ics9248_98_device;
-extern const device_t	ics9248_101_device;
-extern const device_t	ics9250_08_device;
-extern const device_t	ics9250_10_device;
-extern const device_t	ics9250_13_device;
-extern const device_t	ics9250_14_device;
-extern const device_t	ics9250_16_device;
-extern const device_t	ics9250_18_device;
-extern const device_t	ics9250_19_device;
-extern const device_t	ics9250_23_device;
-extern const device_t	ics9250_25_device;
-extern const device_t	ics9250_26_device;
-extern const device_t	ics9250_27_device;
-extern const device_t	ics9250_28_device;
-extern const device_t	ics9250_29_device;
-extern const device_t	ics9250_30_device;
-extern const device_t	ics9250_32_device;
-extern const device_t	ics9250_38_device;
-extern const device_t	ics9250_50_device;
+enum {
+    ICS9xxx_xx,
+    ICS9150_08,
+#if 0
+    ICS9248_39,
+    ICS9248_81,
+    ICS9248_95,
+    ICS9248_98,
+    ICS9248_101,
+    ICS9248_103,
+    ICS9248_107,
+    ICS9248_112,
+    ICS9248_138,
+    ICS9248_141,
+    ICS9248_143,
+    ICS9248_151,
+    ICS9248_192,
+#endif
+    ICS9250_08,
+#if 0
+    ICS9250_10,
+    ICS9250_13,
+    ICS9250_14,
+    ICS9250_16,
+#endif
+    ICS9250_18,
+#if 0
+    ICS9250_19,
+    ICS9250_23,
+    ICS9250_25,
+    ICS9250_26,
+    ICS9250_27,
+    ICS9250_28,
+    ICS9250_29,
+    ICS9250_30,
+    ICS9250_32,
+    ICS9250_38,
+    ICS9250_50,
+#endif
+    ICS9xxx_MAX
+};
+
+
+/* clock_ics9xxx.c */
+extern device_t	*ics9xxx_get(uint8_t model);
 
 #endif	/*EMU_CLOCK_H*/
