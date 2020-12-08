@@ -64,4 +64,5 @@ enum {
 /* clock_ics9xxx.c */
 extern device_t	*ics9xxx_get(uint8_t model);
 
+
 #endif	/*EMU_CLOCK_H*/
