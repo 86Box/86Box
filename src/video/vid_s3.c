@@ -2681,7 +2681,6 @@ s3_updatemapping(s3_t *s3)
 					s3->linear_base &= 0xfc000000;
 				else if (s3->chip == S3_VISION968)
 					s3->linear_base &= 0xfe000000;
-				pclog("Linear mapping enabled at %08x, size = %08x\n", s3->linear_base, s3->linear_size);
 				mem_mapping_set_addr(&s3->linear_mapping, s3->linear_base, s3->linear_size);
 			}
 		} else {
@@ -2708,7 +2707,6 @@ s3_updatemapping(s3_t *s3)
 		
 		/* New MMIO. */
 		if (svga->crtc[0x53] & 0x08) {
-			pclog("New MMIO enabled at %08x, CRTC59 = %02x\n", s3->linear_base + 0x1000000, svga->crtc[0x59]);
 			mem_mapping_set_addr(&s3->new_mmio_mapping, s3->linear_base + 0x1000000, 0x20000);
 		} else {
 			pclog("New MMIO disabled\n", s3->linear_base);
