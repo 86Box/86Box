@@ -217,6 +217,11 @@ extern uint8_t	bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, void *p, svga_t 
 extern void	bt48x_recalctimings(void *p, svga_t *svga);
 extern void	bt48x_hwcursor_draw(svga_t *svga, int displine);
 
+extern void	ibm_rgb525_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga);
+extern uint8_t	ibm_rgb525_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga);
+extern void	ibm_rgb525_recalctimings(void *p, svga_t *svga);
+extern void	ibm_rgb525_hwcursor_draw(svga_t *svga, int displine);
+
 extern void	icd2061_write(void *p, int val);
 extern float	icd2061_getclock(int clock, void *p);
 
@@ -259,6 +264,7 @@ extern const device_t bt485_ramdac_device;
 extern const device_t att20c505_ramdac_device;
 extern const device_t bt485a_ramdac_device;
 extern const device_t gendac_ramdac_device;
+extern const device_t ibm_rgb525_ramdac_device;
 extern const device_t ics2494an_305_device;
 extern const device_t ics2595_device;
 extern const device_t icd2061_device;
