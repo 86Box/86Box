@@ -125,7 +125,7 @@ i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda)
 				dev->slave_read = dev->byte & 1;
 
 				/* slave ACKs? */
-				dev->slave_sda = !(i2c_has_device(dev->i2c, dev->slave_addr) && i2c_start(dev->i2c, dev->slave_addr, dev->slave_read));
+				dev->slave_sda = !i2c_start(dev->i2c, dev->slave_addr, dev->slave_read);
 				i2c_gpio_log(2, "I2C GPIO %s: Slave %02X %s %sACK\n", dev->bus_name, dev->slave_addr, dev->slave_read ? "read" : "write", dev->slave_sda ? "N" : "");
 
 				if (!dev->slave_sda && dev->slave_read) /* read first byte on an ACKed read transfer */
