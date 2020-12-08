@@ -128,6 +128,8 @@ video_cards[] = {
     { "stealth3d_3000_pci",	&s3_virge_988_pci_device		},
     { "stealth64d_pci",		&s3_diamond_stealth64_pci_device	},
     { "stealth64v_pci",		&s3_diamond_stealth64_964_pci_device	},
+    { "elsawin2kprox_964_pci",	&s3_elsa_winner2000_pro_x_964_pci_device },
+    { "elsawin2kprox_pci",	&s3_elsa_winner2000_pro_x_pci_device	},
     { "stealthse_pci",		&s3_diamond_stealth_se_pci_device	},
 #if defined(DEV_BRANCH) && defined(USE_MGA)
     { "mystique",		&mystique_device			},
@@ -164,6 +166,8 @@ video_cards[] = {
     { "stealth3d_3000_vlb",	&s3_virge_988_vlb_device		},
     { "stealth64d_vlb",		&s3_diamond_stealth64_vlb_device	},
     { "stealth64v_vlb",		&s3_diamond_stealth64_964_vlb_device	},
+    { "elsawin2kprox_964_vlb",	&s3_elsa_winner2000_pro_x_964_vlb_device },
+    { "elsawin2kprox_vlb",	&s3_elsa_winner2000_pro_x_vlb_device	},
     { "stealthse_vlb",		&s3_diamond_stealth_se_vlb_device	},
     { "metheus928_vlb",		&s3_metheus_86c928_vlb_device		},
     { "n9_9fx_vlb",		&s3_9fx_vlb_device			},
