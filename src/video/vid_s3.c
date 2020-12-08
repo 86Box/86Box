@@ -2333,8 +2333,8 @@ s3_in(uint16_t addr, void *p)
 			case 0x6a: return s3->bank;
 			/* Phoenix S3 video BIOS'es seem to expect CRTC registers 6B and 6C
 			   to be mirrors of 59 and 5A. */
-			case 0x6b: return (s3->chip >= S3_TRIO64V) ? (svga->crtc[0x59] & 0xfc) : svga->crtc[0x59];
-			case 0x6c: return (s3->chip >= S3_TRIO64V) ? 0 : (svga->crtc[0x5a] & 0x80);
+			case 0x6b: return (s3->chip >= S3_TRIO64V) ? (svga->crtc[0x59] & 0xfc) : ((s3->chip >= S3_TRIO64V) ? (svga->crtc[0x59] & 0xfe) : svga->crtc[0x59]);
+			case 0x6c: return ((s3->chip >= S3_TRIO64V) || (s3->chip == S3_VISION968)) ? 0 : (svga->crtc[0x5a] & 0x80);
 		}
 		return svga->crtc[svga->crtcreg];
 	}
@@ -2613,6 +2613,10 @@ s3_updatemapping(s3_t *s3)
 					svga->banked_mask = 0xffff;
 				}
 			} else {
+				if (s3->chip >= S3_TRIO64V)
+					s3->linear_base &= 0xfc000000;
+				else
+					s3->linear_base &= 0xfe000000;
 				mem_mapping_set_addr(&s3->linear_mapping, s3->linear_base, s3->linear_size);
 			}
 		} else {
