@@ -178,6 +178,7 @@ video_cards[] = {
     { "tgui9400cxi_vlb",	&tgui9400cxi_device			},
     { "tgui9440_vlb",		&tgui9440_vlb_device			},
     { "ogc",        		&ogc_device				},
+    { "nga",                &nga_device             },
     { "",			NULL                        		}
 };
 

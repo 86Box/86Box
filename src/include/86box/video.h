@@ -173,6 +173,7 @@ extern uint8_t	video_force_resize_get(void);
 extern void	video_force_resize_set(uint8_t res);
 extern void	video_update_timing(void);
 
+extern void	loadfont_ex(wchar_t *s, int format, int offset);
 extern void	loadfont(wchar_t *s, int format);
 
 extern int	get_actual_size_x(void);
@@ -244,6 +245,9 @@ extern const device_t compaq_cga_2_device;
 /* Olivetti OGC */
 extern const device_t ogc_device;
 extern const device_t ogc_m24_device;
+
+/* NCR NGA */
+extern const device_t nga_device;
 
 /* Tseng ET4000AX */
 extern const device_t et4000_isa_device;
