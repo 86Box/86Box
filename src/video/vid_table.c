@@ -177,6 +177,7 @@ video_cards[] = {
     { "virge375_vbe20_vlb",	&s3_virge_375_4_vlb_device		},
     { "tgui9400cxi_vlb",	&tgui9400cxi_device			},
     { "tgui9440_vlb",		&tgui9440_vlb_device			},
+    { "ogc",        		&ogc_device				},
     { "",			NULL                        		}
 };
 

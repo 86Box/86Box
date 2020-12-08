@@ -86,6 +86,7 @@
 #define KBC_VEN_IBM_PS1		0x18
 #define KBC_VEN_ACER		0x1c
 #define KBC_VEN_INTEL_AMI	0x20
+#define KBC_VEN_OLIVETTI	0x24
 #define KBC_VEN_MASK		0x3c
 
 
@@ -830,6 +831,8 @@ add_data_kbd(uint16_t val)
     int translate = (keyboard_mode & 0x40);
     uint8_t fake_shift[4];
     uint8_t num_lock = 0, shift_states = 0;
+	uint8_t kbc_ven = 0x0;
+	kbc_ven = dev->flags & KBC_VEN_MASK;
 
     if (dev->reset_delay)
 	return;
@@ -855,7 +858,7 @@ add_data_kbd(uint16_t val)
     }
 
     /* Test for T3100E 'Fn' key (Right Alt / Right Ctrl) */
-    if ((dev != NULL) && ((dev->flags & KBC_VEN_MASK) == KBC_VEN_TOSHIBA) &&
+    if ((dev != NULL) && (kbc_ven == KBC_VEN_TOSHIBA) &&
 	(keyboard_recv(0xb8) || keyboard_recv(0x9d))) switch (val) {
 	case 0x4f: t3100e_notify_set(0x01); break; /* End */
 	case 0x50: t3100e_notify_set(0x02); break; /* Down */
@@ -1065,6 +1068,8 @@ static void
 write_cmd(atkbd_t *dev, uint8_t val)
 {
     kbd_log("ATkbc: write command byte: %02X (old: %02X)\n", val, dev->mem[0]);
+	uint8_t kbc_ven = 0x0;
+	kbc_ven = dev->flags & KBC_VEN_MASK;
 
     if ((val & 1) && (dev->status & STAT_OFULL))
 	dev->wantirq = 1;
@@ -1086,7 +1091,7 @@ write_cmd(atkbd_t *dev, uint8_t val)
     /* ISA AT keyboard controllers use bit 5 for keyboard mode (1 = PC/XT, 2 = AT);
        PS/2 (and EISA/PCI) keyboard controllers use it as the PS/2 mouse enable switch.
        The AMIKEY firmware apparently uses this bit for something else. */
-    if (((dev->flags & KBC_VEN_MASK) == KBC_VEN_AMI) ||
+    if ((kbc_ven == KBC_VEN_AMI) ||
         ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF)) {
 	keyboard_mode &= ~CCB_PCMODE;
 
@@ -1138,6 +1143,9 @@ write64_generic(void *priv, uint8_t val)
 {
     atkbd_t *dev = (atkbd_t *)priv;
     uint8_t current_drive, fixed_bits;
+	uint8_t kbc_ven = 0x0;
+	kbc_ven = dev->flags & KBC_VEN_MASK;
+
 
     switch (val) {
 	case 0xa4:	/* check if password installed */
@@ -1181,9 +1189,9 @@ write64_generic(void *priv, uint8_t val)
 		kbd_log("ATkbc: read input port\n");
 		fixed_bits = 4;
 		/* The SMM handlers of Intel AMI Pentium BIOS'es expect bit 6 to be set. */
-		if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_INTEL_AMI)
+		if (kbc_ven == KBC_VEN_INTEL_AMI)
 			fixed_bits |= 0x40;
-		if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_IBM_PS1) {
+		if (kbc_ven == KBC_VEN_IBM_PS1) {
 			current_drive = fdc_get_current_drive();
 			add_to_kbc_queue_front(dev, dev->input_port | fixed_bits | (fdd_is_525(current_drive) ? 0x40 : 0x00));
 			dev->input_port = ((dev->input_port + 1) & 3) |
@@ -1616,8 +1624,11 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
     int i = 0;
     int bad = 1;
     uint8_t mask;
+	uint8_t kbc_ven = 0x0;
+	kbc_ven = dev->flags & KBC_VEN_MASK;
 
-    if (((dev->flags & KBC_VEN_MASK) == KBC_VEN_XI8088) && (port == 0x63))
+
+    if ((kbc_ven == KBC_VEN_XI8088) && (port == 0x63))
 	port = 0x61;
 
     kbd_log((port == 0x61) ? "" : "ATkbc: write(%04X, %02X)\n", port, val);
@@ -1894,7 +1905,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 			was_speaker_enable = 1;
 		pit_ctr_set_gate(&pit->counters[2], val & 1);
 
-                if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_XI8088)
+		if (kbc_ven == KBC_VEN_XI8088)
 			xi8088_turbo_set(!!(val & 0x04));
 		break;
 
@@ -1930,7 +1941,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
 			case 0xaa:	/* self-test */
 				kbd_log("ATkbc: self-test\n");
-				if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_TOSHIBA)
+				if (kbc_ven == KBC_VEN_TOSHIBA)
 					dev->status |= STAT_IFULL;
 				if (! dev->initialized) {
 					kbd_log("ATkbc: self-test reinitialization\n");
@@ -2045,11 +2056,13 @@ kbd_read(uint16_t port, void *priv)
 {
     atkbd_t *dev = (atkbd_t *)priv;
     uint8_t ret = 0xff;
+	uint8_t kbc_ven = 0x0;
+	kbc_ven = dev->flags & KBC_VEN_MASK;
 
     if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF)
 	cycles -= ISA_CYCLES(8);
 
-    if (((dev->flags & KBC_VEN_MASK) == KBC_VEN_XI8088) && (port == 0x63))
+    if ((kbc_ven == KBC_VEN_XI8088) && (port == 0x63))
 	port = 0x61;
 
     switch (port) {
@@ -2078,14 +2091,47 @@ kbd_read(uint16_t port, void *priv)
 			else
 				ret &= ~0x10;
 		}
-                if ((dev->flags & KBC_VEN_MASK) == KBC_VEN_XI8088) {
+		if (kbc_ven == KBC_VEN_XI8088) {
 			if (xi8088_turbo_get())
-                                ret |= 0x04;
-                        else
-                                ret &= ~0x04;
-                }
+					ret |= 0x04;
+				else
+					ret &= ~0x04;
+		}
 		break;
 
+	case 0x62:
+		ret = 0xff;
+		if (kbc_ven == KBC_VEN_OLIVETTI) {
+			/* SWA on Olivetti M240 mainboard (off=1) */
+			ret = 0x00;
+			if (ppi.pb & 0x8) {
+				/* Switches 4, 5 - floppy drives (number) */
+				int i, fdd_count = 0;
+				for (i = 0; i < FDD_NUM; i++) {
+				    if (fdd_get_flags(i))
+				        fdd_count++;
+				}
+				if (!fdd_count)
+					ret |= 0x00;
+				else
+					ret |= ((fdd_count - 1) << 2);
+				/* Switches 6, 7 - monitor type */
+				if (video_is_mda())
+					ret |= 0x3;
+				else if (video_is_cga())
+					ret |= 0x2;	/* 0x10 would be 40x25 */
+				else
+					ret |= 0x0;
+				ret = 0xff;
+			} else {
+				/* bit 2 always on */
+				ret |= 0x4;
+				/* Switch 8 - 8087 FPU. */
+				if (hasfpu)
+	            	ret |= 0x02;
+			}
+		}
+		break;
 	case 0x64:
 		ret = (dev->status & 0xfb);
 		if (dev->mem[0] & STAT_SYSFLAG)
@@ -2094,7 +2140,7 @@ kbd_read(uint16_t port, void *priv)
 		   PS/2 controller, it is the keyboard/mouse output source bit. */
 		dev->status &= ~STAT_RTIMEOUT;
 		if (((dev->flags & KBC_TYPE_MASK) > KBC_TYPE_PS2_NOREF) && 
-		   ((dev->flags & KBC_VEN_MASK) != KBC_VEN_IBM_MCA))
+		   (kbc_ven != KBC_VEN_IBM_MCA))
 			dev->status &= ~STAT_TTIMEOUT;
 		break;
 
@@ -2124,6 +2170,8 @@ kbd_reset(void *priv)
 {
     atkbd_t *dev = (atkbd_t *)priv;
     int i;
+	uint8_t kbc_ven = 0x0;
+	kbc_ven = dev->flags & KBC_VEN_MASK;
 
     dev->initialized = 0;
     dev->first_write = 1;
@@ -2139,10 +2187,10 @@ kbd_reset(void *priv)
     dev->key_wantdata = 0;
 
     /* Set up the correct Video Type bits. */
-    if (((dev->flags & KBC_VEN_MASK) == KBC_VEN_XI8088) || ((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER))
-	dev->input_port = video_is_mda() ? 0xb0 : 0xf0;
+    if ((kbc_ven == KBC_VEN_XI8088) || (kbc_ven == KBC_VEN_ACER))
+		dev->input_port = video_is_mda() ? 0xb0 : 0xf0;
     else
-	dev->input_port = video_is_mda() ? 0xf0 : 0xb0;
+		dev->input_port = video_is_mda() ? 0xf0 : 0xb0;
     kbd_log("ATkbc: input port = %02x\n", dev->input_port);
 
     keyboard_mode = 0x02 | (dev->mem[0] & CCB_TRANSLATE);
@@ -2228,6 +2276,7 @@ kbd_init(const device_t *info)
     switch(dev->flags & KBC_VEN_MASK) {
 	case KBC_VEN_ACER:
 	case KBC_VEN_GENERIC:
+	case KBC_VEN_OLIVETTI:
 	case KBC_VEN_IBM_PS1:
 	case KBC_VEN_XI8088:
 		dev->write64_ven = write64_generic;
@@ -2285,6 +2334,16 @@ const device_t keyboard_at_toshiba_device = {
     "PC/AT Keyboard (Toshiba)",
     0,
     KBC_TYPE_ISA | KBC_VEN_TOSHIBA,
+    kbd_init,
+    kbd_close,
+    kbd_reset,
+    { NULL }, NULL, NULL, NULL
+};
+
+const device_t keyboard_at_olivetti_device = {
+    "PC/AT Keyboard (Olivetti)",
+    0,
+    KBC_TYPE_ISA | KBC_VEN_OLIVETTI,
     kbd_init,
     kbd_close,
     kbd_reset,

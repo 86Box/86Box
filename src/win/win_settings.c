@@ -737,7 +737,7 @@ static void
 win_settings_machine_recalc_machine(HWND hdlg)
 {
     HWND h;
-    int c, i, current_eligible, is_at;
+    int c, i, current_eligible;
     LPTSTR lptsTemp;
     char *stransi;
     UDACCEL accel;
@@ -777,21 +777,37 @@ win_settings_machine_recalc_machine(HWND hdlg)
 
     win_settings_machine_recalc_cpu_m(hdlg);
 
-    h = GetDlgItem(hdlg, IDC_MEMSPIN);
-    SendMessage(h, UDM_SETRANGE, 0, (machines[temp_machine].min_ram << 16) | machines[temp_machine].max_ram);
-    accel.nSec = 0;
-    accel.nInc = machines[temp_machine].ram_granularity;
-    SendMessage(h, UDM_SETACCEL, 1, (LPARAM)&accel);
-    is_at = IS_AT(temp_machine);
-    if (!is_at || (machines[temp_machine].ram_granularity >= 128)) {
+    if ((machines[temp_machine].ram_granularity & 1023)) {
+	/* KB granularity */
+	h = GetDlgItem(hdlg, IDC_MEMSPIN);
+	SendMessage(h, UDM_SETRANGE, 0, (machines[temp_machine].min_ram << 16) | machines[temp_machine].max_ram);
+
+	accel.nSec = 0;
+	accel.nInc = machines[temp_machine].ram_granularity;
+	SendMessage(h, UDM_SETACCEL, 1, (LPARAM)&accel);
+
 	SendMessage(h, UDM_SETPOS, 0, temp_mem_size);
+
 	h = GetDlgItem(hdlg, IDC_TEXT_MB);
 	SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_2088));
     } else {
-	SendMessage(h, UDM_SETPOS, 0, temp_mem_size / 1024);
+	/* MB granularity */
+	h = GetDlgItem(hdlg, IDC_MEMSPIN);
+	SendMessage(h, UDM_SETRANGE, 0, (machines[temp_machine].min_ram << 6) | machines[temp_machine].max_ram >> 10);
+
+	accel.nSec = 0;
+	accel.nInc = machines[temp_machine].ram_granularity >> 10;
+
+	SendMessage(h, UDM_SETACCEL, 1, (LPARAM)&accel);
+
+	SendMessage(h, UDM_SETPOS, 0, temp_mem_size >> 10);
+
 	h = GetDlgItem(hdlg, IDC_TEXT_MB);
 	SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_2086));
     }
+
+    settings_enable_window(hdlg, IDC_MEMSPIN, machines[temp_machine].min_ram != machines[temp_machine].max_ram);
+    settings_enable_window(hdlg, IDC_MEMTEXT, machines[temp_machine].min_ram != machines[temp_machine].max_ram);
 
     free(lptsTemp);
 }
@@ -826,7 +842,7 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HWND h, h2;
     int c, d;
-    int old_machine_type, is_at;
+    int old_machine_type;
     LPTSTR lptsTemp;
     char *stransi;
 
@@ -984,14 +1000,13 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		SendMessage(h, WM_GETTEXT, 255, (LPARAM) lptsTemp);
 		wcstombs(stransi, lptsTemp, 512);
 		sscanf(stransi, "%u", &temp_mem_size);
+		if (!(machines[temp_machine].ram_granularity & 1023))
+			temp_mem_size = temp_mem_size << 10;
 		temp_mem_size &= ~(machines[temp_machine].ram_granularity - 1);
 		if (temp_mem_size < machines[temp_machine].min_ram)
 			temp_mem_size = machines[temp_machine].min_ram;
 		else if (temp_mem_size > machines[temp_machine].max_ram)
 			temp_mem_size = machines[temp_machine].max_ram;
-		is_at = IS_AT(temp_machine);
-		if (is_at && (machines[temp_machine].ram_granularity < 128))
-			temp_mem_size *= 1024;
 		free(stransi);
 		free(lptsTemp);
 
@@ -4995,7 +5010,7 @@ win_settings_confirm(HWND hdlg)
     SendMessage(hwndChildDialog, WM_SAVESETTINGS, 0, 0);
 
     if (win_settings_changed()) {
-	if (confirm_save)
+	if (confirm_save && !settings_only)
 		i = settings_msgbox_ex(MBX_QUESTION_OK | MBX_WARNING | MBX_DONTASK, (wchar_t *) IDS_2121, (wchar_t *) IDS_2122, (wchar_t *) IDS_2123, NULL, NULL);
 	else
 		i = 0;

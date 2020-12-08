@@ -263,7 +263,7 @@ void joystick_process(void)
 {
         int c, d;
 
-	if (joystick_type == JOYSTICK_TYPE_NONE) return;
+	if (!joystick_type) return;
 
         for (c = 0; c < joysticks_present; c++)
         {                
