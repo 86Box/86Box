@@ -95,11 +95,15 @@ i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda)
 		i2c_gpio_log(2, "I2C GPIO %s: Start condition\n", dev->bus_name);
 		dev->started = 1;
 		dev->pos = 0;
+		dev->slave_addr = 0xff;
 		dev->slave_read = 2; /* start with address transfer */
 		dev->slave_sda = 1;
 	} else if (!dev->prev_sda && sda) {
 		i2c_gpio_log(2, "I2C GPIO %s: Stop condition\n", dev->bus_name);
 		dev->started = 0;
+		if (dev->slave_addr != 0xff)
+			i2c_stop(dev->i2c, dev->slave_addr);
+		dev->slave_addr = 0xff;
 		dev->slave_sda = 1;
 	}
     } else if (!dev->prev_scl && scl && dev->started) {
