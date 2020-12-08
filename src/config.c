@@ -1885,7 +1885,7 @@ save_machine(void)
 			continue;
 
 		i = 0;
-		while (cpu_legacy_table[c].tables[legacy_mfg][i].rspeed) {
+		while (cpu_legacy_table[c].tables[legacy_mfg][i].family) {
 			legacy_table_entry = (cpu_legacy_table_t *) &cpu_legacy_table[c].tables[legacy_mfg][i];
 
 			/* Match the family name, speed and multiplier. */
