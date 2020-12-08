@@ -310,6 +310,9 @@ static void s3_accel_out_w(uint16_t port, uint16_t val, void *p);
 static void s3_accel_out_l(uint16_t port, uint32_t val, void *p);
 static uint8_t s3_accel_in(uint16_t port, void *p);
 
+static uint8_t	s3_pci_read(int func, int addr, void *p);
+static void	s3_pci_write(int func, int addr, uint8_t val, void *p);
+
 static __inline void
 wake_fifo_thread(s3_t *s3)
 {
@@ -1001,7 +1004,15 @@ s3_accel_write_fifo(s3_t *s3, uint32_t addr, uint8_t val)
 	
     if (s3->packed_mmio) {
 	int addr_lo = addr & 1;
-	switch (addr & 0xfffe) {
+
+	if (svga->crtc[0x53] & 0x08) {
+		if ((addr >= 0x08000) && (addr <= 0x0803f))
+		 	s3_pci_write(0, addr & 0xff, val, s3);
+		else if ((addr >= 0x083b0) && (addr <= 0x083df))
+			s3_out(addr & 0xfff, val, s3);
+	}
+
+	switch (addr & 0x1fffe) {
 		case 0x8100: addr = 0x82e8; break; /*ALT_CURXY*/
 		case 0x8102: addr = 0x86e8; break;
 			
@@ -3173,7 +3184,12 @@ s3_accel_read(uint32_t addr, void *p)
 	return 0xff;
 
     if (svga->crtc[0x53] & 0x08) {
-	switch (addr & 0xffff) {
+	if ((addr >= 0x08000) && (addr <= 0x0803f))
+		return s3_pci_read(0, addr & 0xff, s3);
+	else if ((addr >= 0x083b0) && (addr <= 0x083df))
+		return s3_in(addr & 0xfff, s3);
+
+	switch (addr & 0x1ffff) {
 	    case 0x83b0: case 0x83b1: case 0x83b2: case 0x83b3:
 	    case 0x83b4: case 0x83b5: case 0x83b6: case 0x83b7:
 	    case 0x83b8: case 0x83b9: case 0x83ba: case 0x83bb:
@@ -3191,6 +3207,9 @@ s3_accel_read(uint32_t addr, void *p)
 		return s3->subsys_stat;
 	    case 0x8505:
 		return s3->subsys_cntl;
+	    /* Video engine status - currently a dummy. */
+	    case 0x1809c: case 0x1809d: case 0x1809e: case 0x1809f:
+		return 0x00;
 	    default:
 		return s3_accel_in(addr & 0xffff, p);
 	}
@@ -3224,7 +3243,7 @@ s3_accel_read_w(uint32_t addr, void *p)
 	return 0xffff;
     
     if (svga->crtc[0x53] & 0x08) {
-	switch (addr & 0xfffe) {
+	switch (addr & 0x001fffe) {
 	    default:
 		return s3_accel_read(addr, p) |
 			s3_accel_read(addr + 1, p) << 8;
@@ -3270,7 +3289,7 @@ s3_accel_read_l(uint32_t addr, void *p)
 	return 0xffffffff;
 
     if (svga->crtc[0x53] & 0x08) {
-	switch (addr & 0xfffc) {
+	switch (addr & 0x001fffc) {
 		case 0x8180:
 		temp = s3->streams.pri_ctrl;
 		break;
