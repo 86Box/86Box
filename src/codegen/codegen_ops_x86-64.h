@@ -124,6 +124,33 @@ static inline void load_param_2_64(codeblock_t *block, uint64_t param)
 #endif
         addquad(param);
 }
+static inline void load_param_2_reg_64(int reg)
+{
+        if (reg & 8)
+        {
+#if WIN64
+                addbyte(0x4c); /*MOVL EDX,reg*/
+                addbyte(0x89);
+                addbyte(0xc0 | REG_EDX | ((reg & 7) << 3));
+#else
+                addbyte(0x4c); /*MOVL ESI,reg*/
+                addbyte(0x89);
+                addbyte(0xc0 | REG_ESI | ((reg & 7) << 3));
+#endif
+        }
+        else
+        {
+#if WIN64
+                addbyte(0x48); /*MOVL EDX,reg*/
+                addbyte(0x89);
+                addbyte(0xc0 | REG_EDX | ((reg & 7) << 3));
+#else
+                addbyte(0x48); /*MOVL ESI,reg*/
+                addbyte(0x89);
+                addbyte(0xc0 | REG_ESI | ((reg & 7) << 3));
+#endif
+        }
+}
 
 static inline void load_param_3_reg_32(int reg)
 {
