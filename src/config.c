@@ -541,6 +541,7 @@ load_machine(void)
     if (machine >= machine_count())
 	machine = machine_count() - 1;
 
+    cpu_override = config_get_int(cat, "cpu_override", 0);
     cpu_f = NULL;
     p = config_get_string(cat, "cpu_family", NULL);
     if (p) {
@@ -627,7 +628,6 @@ load_machine(void)
 	}
     }
     cpu_s = (CPU *) &cpu_f->cpus[cpu];
-    cpu_override = config_get_int(cat, "cpu_override", 0);
 
     cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
 
@@ -1897,7 +1897,7 @@ save_machine(void)
 			continue;
 
 		i = 0;
-		do {
+		while (cpu_legacy_table[c].tables[legacy_mfg][i].family) {
 			legacy_table_entry = (cpu_legacy_table_t *) &cpu_legacy_table[c].tables[legacy_mfg][i];
 
 			/* Match the family name, speed and multiplier. */
@@ -1911,7 +1911,9 @@ save_machine(void)
 					closest_legacy_cpu = i;
 				}
 			}
-		} while (cpu_legacy_table[c].tables[legacy_mfg][++i].family);
+
+			i++;
+		}
 
 		/* Use the closest speed match if no exact match was found. */
 		if ((legacy_cpu == -1) && (closest_legacy_cpu > -1)) {

@@ -48,7 +48,6 @@ extern void	i2c_handler(int set, void *bus_handle, uint8_t base, int size,
 			    void (*stop)(void *bus, uint8_t addr, void *priv),
 			    void *priv);
 
-extern uint8_t	i2c_has_device(void *bus_handle, uint8_t addr);
 extern uint8_t	i2c_start(void *bus_handle, uint8_t addr, uint8_t read);
 extern uint8_t	i2c_read(void *bus_handle, uint8_t addr);
 extern uint8_t	i2c_write(void *bus_handle, uint8_t addr, uint8_t data);
