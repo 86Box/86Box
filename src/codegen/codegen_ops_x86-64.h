@@ -1423,7 +1423,11 @@ static inline void MEM_STORE_ADDR_EA_B(x86seg *seg, int host_reg)
                 addbyte(REG_EDI | (REG_ESI << 3));
         }
         addbyte(0xeb); /*JMP done*/
-        addbyte(2+2+3+12+4+6);
+	if (host_reg & 8) {
+		addbyte(2+2+3+12+4+6);
+	} else {
+		addbyte(2+2+2+12+4+6);
+	}
         /*slowpath:*/
         addbyte(0x01); /*ADD ECX,EAX*/
         addbyte(0xc1);
@@ -1515,7 +1519,11 @@ static inline void MEM_STORE_ADDR_EA_W(x86seg *seg, int host_reg)
                 addbyte(REG_EDI | (REG_ESI << 3));
         }
         addbyte(0xeb); /*JMP done*/
-        addbyte(2+2+3+12+4+6);
+	if (host_reg & 8) {
+		addbyte(2+2+3+12+4+6);
+	} else {
+		addbyte(2+2+2+12+4+6);
+	}
         /*slowpath:*/
         addbyte(0x01); /*ADD ECX,EAX*/
         addbyte(0xc1);
@@ -1605,7 +1613,11 @@ static inline void MEM_STORE_ADDR_EA_L(x86seg *seg, int host_reg)
                 addbyte(REG_EDI | (REG_ESI << 3));
         }
         addbyte(0xeb); /*JMP done*/
-        addbyte(2+2+3+12+4+6);
+	if (host_reg & 8) {
+	        addbyte(2+2+3+12+4+6);
+	} else {
+	        addbyte(2+2+2+12+4+6);
+	}
         /*slowpath:*/
         addbyte(0x01); /*ADD ECX,EAX*/
         addbyte(0xc1);
@@ -6059,12 +6071,16 @@ static inline void MEM_STORE_ADDR_EA_B_NO_ABRT(x86seg *seg, int host_reg)
                 addbyte(REG_EDI | (REG_ESI << 3));
         }
         addbyte(0xeb); /*JMP done*/
-        addbyte(2+2+3+12);
+	if (host_reg & 8) {
+	        addbyte(2+2+3+12);
+	} else {
+	        addbyte(2+2+2+12);
+	}
         /*slowpath:*/
         load_param_2_reg_32(host_reg);
-        addbyte(0x01); /*ADD ECX,EAX*/
-        addbyte(0xc1);
-        load_param_1_reg_32(REG_ECX);
+        addbyte(0x01); /*ADD EBX,EAX*/
+        addbyte(0xc3);
+        load_param_1_reg_32(REG_EBX);
         call_long((uintptr_t)writemembl);
         /*done:*/
 }
@@ -6144,12 +6160,16 @@ static inline void MEM_STORE_ADDR_EA_W_NO_ABRT(x86seg *seg, int host_reg)
                 addbyte(REG_EDI | (REG_ESI << 3));
         }
         addbyte(0xeb); /*JMP done*/
-        addbyte(2+2+3+12);
+ 	if (host_reg & 8) {
+        	addbyte(2+2+3+12);
+	} else {
+        	addbyte(2+2+2+12);
+	}
         /*slowpath:*/
         load_param_2_reg_32(host_reg);
-        addbyte(0x01); /*ADD ECX,EAX*/
-        addbyte(0xc1);
-        load_param_1_reg_32(REG_ECX);
+        addbyte(0x01); /*ADD EBX,EAX*/
+        addbyte(0xc3);
+        load_param_1_reg_32(REG_EBX);
         call_long((uintptr_t)writememwl);
         /*done:*/
 }
@@ -6227,12 +6247,16 @@ static inline void MEM_STORE_ADDR_EA_L_NO_ABRT(x86seg *seg, int host_reg)
                 addbyte(REG_EDI | (REG_ESI << 3));
         }
         addbyte(0xeb); /*JMP done*/
-        addbyte(2+2+3+12);
+ 	if (host_reg & 8) {
+		addbyte(2+2+3+12);
+	} else {
+		addbyte(2+2+2+12);
+	}
         /*slowpath:*/
         load_param_2_reg_32(host_reg);
-        addbyte(0x01); /*ADD ECX,EAX*/
-        addbyte(0xc1);
-        load_param_1_reg_32(REG_ECX);
+        addbyte(0x01); /*ADD EBX,EAX*/
+        addbyte(0xc3);
+        load_param_1_reg_32(REG_EBX);
         call_long((uintptr_t)writememll);
         /*done:*/
 }
