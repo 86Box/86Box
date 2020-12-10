@@ -241,7 +241,7 @@ const machine_t machines[] = {
     { "[i430LX] Packard Bell PB520R",		"pb520r",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO,		 8192, 139264, 2048, 127,	       machine_at_pb520r_init, at_pb520r_get_device	},
 
     /* OPTi 596/597 */
-    { "[OPTi 597] AMI Excalibur VLB",		"excalibur",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, 1.0, 1.0,								MACHINE_VLB | MACHINE_IDE,							 2048,  65536, 2048, 127,	    machine_at_excalibur_init, NULL			},
+    { "[OPTi 597] AMI Excalibur VLB",		"excalibur",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_VLB | MACHINE_IDE,							 2048,  65536, 2048, 127,	    machine_at_excalibur_init, NULL			},
 
     /* Socket 5 machines */
     /* 430NX */
