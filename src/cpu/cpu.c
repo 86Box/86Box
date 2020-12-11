@@ -370,32 +370,47 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 	if (machine_s->cpu_max_voltage && (cpu_s->voltage > (machine_s->cpu_max_voltage + 100))) /* maximum voltage with 0.1V tolerance */
 		return 0;
 
-	/* Account for CPUs that use a different internal multiplier than specified by jumpers. */
+	/* Account for CPUs which use a different internal multiplier than specified by jumpers. */
 	double multi = cpu_s->multi;
 	if (cpu_s->cpu_flags & CPU_FIXED_MULTIPLIER) {
-		multi = machine_s->cpu_min_multi;
+		return 1; /* don't care about multiplier compatibility on fixed multiplier CPUs */
 	} else if (cpu_family->package & CPU_PKG_SOCKET5_7) {
-		if (multi == 1.75) /* K5 */
+		if ((multi == 1.5) && (cpu_s->cpu_type & CPU_5K86) && (machine_s->cpu_min_multi > 1.5)) /* K5 5k86 */
+			multi = 2.0;
+		else if (multi == 1.75) /* K5 5k86 */
 			multi = 2.5;
-		else if ((multi == 2.0) && (cpu_s->cpu_type & CPU_5K86)) /* K5 */
-			multi = 3.0;
-		else if ((multi == 2.0) && (cpu_s->cpu_type & (CPU_K6_2P | CPU_K6_3P))) /* K6-2+ / K6-3+ */
-			multi = 2.5;
-		else if (multi == (7.0 / 3.0)) /* WinChip 2A */
+		else if (multi == 2.0) {
+			if (cpu_s->cpu_type & CPU_5K86) /* K5 5k86 */
+				multi = 3.0;
+			else if (cpu_s->cpu_type & (CPU_K6_2P | CPU_K6_3P)) /* K6-2+ / K6-3+ */
+				multi = 2.5;
+			else if ((cpu_s->cpu_type & (CPU_WINCHIP | CPU_WINCHIP2)) && (machine_s->cpu_min_multi > 2.0)) /* WinChip (2) */
+				multi = 2.5;
+		}
+		else if (multi == (7.0 / 3.0)) /* WinChip 2A - 2.33x */
 			multi = 5.0;
-		else if (multi == (8.0 / 3.0)) /* WinChip 2A */
+		else if (multi == (8.0 / 3.0)) /* WinChip 2A - 2.66x */
 			multi = 5.5;
 		else if ((multi == 3.0) && (cpu_s->cpu_type & (CPU_Cx6x86 | CPU_Cx6x86L))) /* 6x86(L) */
 			multi = 1.5;
-		else if (multi == (10.0 / 3.0)) /* WinChip 2A */
+		else if (multi == (10.0 / 3.0)) /* WinChip 2A - 3.33x */
 			multi = 2.0;
-		else if (multi == 3.5) /* standard set by the Pentium MMX */
+		else if ((multi == 3.5) && (machine_s->cpu_min_multi < 3.5)) /* standard set by the Pentium MMX */
 			multi = 1.5;
-		else if ((multi == 4.0) && (cpu_s->cpu_type & (CPU_WINCHIP | CPU_WINCHIP2))) /* WinChip (2) */
-			multi = 1.5;
-		else if ((multi == 4.0) && (cpu_s->cpu_type & (CPU_Cx6x86 | CPU_Cx6x86L))) /* 6x86(L) */
-			multi = 3.0;
-		else if (multi == 6.0) /* K6-2 */
+		else if (multi == 4.0) {
+			if (cpu_s->cpu_type & (CPU_WINCHIP | CPU_WINCHIP2)) { /* WinChip (2) */
+				if (machine_s->cpu_min_multi >= 1.5)
+					multi = 1.5;
+				else if (machine_s->cpu_min_multi >= 3.5)
+					multi = 3.5;
+				else if (machine_s->cpu_min_multi >= 4.5)
+					multi = 4.5;
+			} else if (cpu_s->cpu_type & (CPU_Cx6x86 | CPU_Cx6x86L)) /* 6x86(L) */
+				multi = 3.0;
+		}
+		else if ((multi == 5.0) && (cpu_s->cpu_type & (CPU_WINCHIP | CPU_WINCHIP2)) && (machine_s->cpu_min_multi > 5.0)) /* WinChip (2) */
+			multi = 5.5;
+		else if ((multi == 6.0) && (machine_s->cpu_max_multi < 6.0)) /* K6-2(+) / K6-3(+) */
 			multi = 2.0;
 	}
 
