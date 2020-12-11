@@ -2182,7 +2182,6 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;
         svga_t *svga = &mach64->svga;
-	int data, clk;
 
         mach64_log("mach64_ext_writeb : addr %08X val %02X\n", addr, val);
 
