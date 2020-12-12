@@ -1,6 +1,6 @@
 static uint32_t ropMOVQ_q_mm(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
-        int host_reg1, host_reg2;
+        int host_reg1, host_reg2 = 0;
 
         MMX_ENTER();
         
