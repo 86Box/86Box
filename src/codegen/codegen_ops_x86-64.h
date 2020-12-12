@@ -297,33 +297,26 @@ static inline void STORE_REG_TARGET_B_RELEASE(int host_reg, int guest_reg)
                         addbyte(0x44);
                         addbyte(0x89);
                         addbyte(0xc0 | ((host_reg & 3) << 3));
-                        if (host_reg & 0x10)
-                        {                        
-                                addbyte(0x66); /*AND AX, 0xff00*/
-                                addbyte(0x25);
-                                addword(0xff00);
-                        }
-                        else
-                        {
-                                addbyte(0x66); /*SHL AX, 8*/
-                                addbyte(0xc1);
-                                addbyte(0xe0);
-                                addbyte(0x08);
-                        }
                 }
-                else
-                {
-                        if (host_reg)
-                        {
-                                addbyte(0x66); /*MOV AX, host_reg*/
-                                addbyte(0x89);
-                                addbyte(0xc0 | ((host_reg & 3) << 3));
-                        }
-                        addbyte(0x66); /*SHL AX, 8*/
-                        addbyte(0xc1);
-                        addbyte(0xe0);
-                        addbyte(0x08);
+                else if (host_reg & 3)
+		{
+			addbyte(0x66); /*MOV AX, host_reg*/
+			addbyte(0x89);
+			addbyte(0xc0 | ((host_reg & 3) << 3));
                 }
+		if (host_reg & 0x10)
+		{                        
+			addbyte(0x66); /*AND AX, 0xff00*/
+			addbyte(0x25);
+			addword(0xff00);
+		}
+		else
+		{
+			addbyte(0x66); /*SHL AX, 8*/
+			addbyte(0xc1);
+			addbyte(0xe0);
+			addbyte(0x08);
+		}
                 addbyte(0x66); /*AND dest_reg, 0x00ff*/
                 addbyte(0x41);
                 addbyte(0x81);
