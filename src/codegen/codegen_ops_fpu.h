@@ -146,7 +146,7 @@ static uint32_t ropFSTs(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint3
 static uint32_t ropFSTd(uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, codeblock_t *block)
 {
         x86seg *target_seg;
-        int host_reg1, host_reg2;
+        int host_reg1, host_reg2 = 0;
         
         FP_ENTER();
         op_pc--;
