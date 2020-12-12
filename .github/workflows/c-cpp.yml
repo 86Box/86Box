@@ -14,6 +14,7 @@ on:
 
 jobs:
   build:
+    name: Build (DEV_BUILD=${{ matrix.dev-build }}, NEW_DYNAREC=${{ matrix.new-dynarec }}, X64=${{ matrix.target-arch.x64 }})
 
     runs-on: windows-latest
 
@@ -25,14 +26,29 @@ jobs:
       matrix:
         dev-build: ['y', 'n']
         new-dynarec: ['y', 'n']
+        target-arch:
+          - x64: 'n'
+            msystem: MINGW32
+            prefix: mingw-w64-i686
+          - x64: 'y'
+            msystem: MINGW64
+            prefix: mingw-w64-x86_64
 
     steps:
     - uses: msys2/setup-msys2@v2
       with:
         update: true
-        msystem: MINGW32
-        install: 'make mingw-w64-i686-toolchain mingw-w64-i686-openal mingw-w64-i686-freetype mingw-w64-i686-SDL2 mingw-w64-i686-zlib mingw-w64-i686-libpng mingw-w64-i686-libvncserver'
+        msystem: ${{ matrix.target-arch.msystem }}
+        install: >-
+          make
+          ${{ matrix.target-arch.prefix }}-toolchain
+          ${{ matrix.target-arch.prefix }}-openal
+          ${{ matrix.target-arch.prefix }}-freetype
+          ${{ matrix.target-arch.prefix }}-SDL2
+          ${{ matrix.target-arch.prefix }}-zlib
+          ${{ matrix.target-arch.prefix }}-libpng
+          ${{ matrix.target-arch.prefix }}-libvncserver
     - uses: actions/checkout@v2
     - name: make
-      run: make -fwin/makefile.mingw -j DEV_BUILD=${{ matrix.dev-build }} NEW_DYNAREC=${{ matrix.new-dynarec }} VNC=n
+      run: make -fwin/makefile.mingw -j DEV_BUILD=${{ matrix.dev-build }} NEW_DYNAREC=${{ matrix.new-dynarec }} X64=${{ matrix.target-arch.x64 }} VNC=n
       working-directory: ./src
