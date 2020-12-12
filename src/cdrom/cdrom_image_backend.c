@@ -425,8 +425,8 @@ int
 cdi_read_sectors(cd_img_t *cdi, uint8_t *buffer, int raw, uint32_t sector, uint32_t num)
 {
     int sector_size, success = 1;
-    uint8_t buf_len, *buf;
-    uint32_t i;
+    uint8_t *buf;
+    uint32_t buf_len, i;
 
     /* TODO: This fails to account for Mode 2. Shouldn't we have a function 
 	     to get sector size? */
