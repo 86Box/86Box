@@ -1741,7 +1741,6 @@ static void mach64_vblank_start(svga_t *svga)
 uint8_t mach64_ext_readb(uint32_t addr, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;
-	uint8_t gpio_state;
 
         uint8_t ret = 0xff;
         if (!(addr & 0x400))
@@ -1878,18 +1877,11 @@ uint8_t mach64_ext_readb(uint32_t addr, void *p)
 		case 0xc7:
                 READ8(addr, mach64->dac_cntl);
                 if (mach64->type == MACH64_VT2) {
-                        gpio_state = 6;
-
-                        if ((ret & (1 << 4)) && !(ret & (1 << 1)))
-                                gpio_state &= ~(1 << 1);
-                        if (!(ret & (1 << 4)) && !i2c_gpio_get_sda(mach64->i2c))
-                                gpio_state &= ~(1 << 1);
-                        if ((ret & (1 << 5)) && !(ret & (1 << 2)))
-                                gpio_state &= ~(1 << 2);
-                        if (!(ret & (1 << 5)) && !i2c_gpio_get_scl(mach64->i2c))
-                                gpio_state &= ~(1 << 2);
-
-                        ret = (ret & ~6) | gpio_state;
+                        ret &= 0xf9;
+                        if (i2c_gpio_get_scl(mach64->i2c))
+                                ret |= 0x04;
+                        if (i2c_gpio_get_sda(mach64->i2c))
+                                ret |= 0x02;
                 }
                 break;
 
@@ -2190,7 +2182,6 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
 {
         mach64_t *mach64 = (mach64_t *)p;
         svga_t *svga = &mach64->svga;
-	int data, clk;
 
         mach64_log("mach64_ext_writeb : addr %08X val %02X\n", addr, val);
 
@@ -2382,9 +2373,7 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
                 WRITE8(addr, mach64->dac_cntl, val);
                 svga_set_ramdac_type(svga, (mach64->dac_cntl & 0x100) ? RAMDAC_8BIT : RAMDAC_6BIT);
                 ati68860_set_ramdac_type(mach64->svga.ramdac, (mach64->dac_cntl & 0x100) ? RAMDAC_8BIT : RAMDAC_6BIT);
-                data = (val & (1 << 4)) ? ((val & (1 << 1)) ? 1 : 0) : 1;
-                clk  = (val & (1 << 5)) ? ((val & (1 << 2)) ? 1 : 0) : 1;
-                i2c_gpio_set(mach64->i2c, clk, data);
+                i2c_gpio_set(mach64->i2c, !(mach64->dac_cntl & 0x20000000) || (mach64->dac_cntl & 0x04000000), !(mach64->dac_cntl & 0x10000000) || (mach64->dac_cntl & 0x02000000));
 		break;
 
                 case 0xd0: case 0xd1: case 0xd2: case 0xd3:
