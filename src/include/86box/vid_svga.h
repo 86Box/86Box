@@ -124,7 +124,7 @@ typedef struct svga_t
     int override;
     void *p;
 
-    uint8_t crtc[256], gdcreg[64], attrregs[32], seqregs[64],
+    uint8_t crtc[256], gdcreg[64], attrregs[32], seqregs[256],
 	    egapal[16],
 	    *vram, *changedvram;
 
