@@ -124,6 +124,33 @@ static inline void load_param_2_64(codeblock_t *block, uint64_t param)
 #endif
         addquad(param);
 }
+static inline void load_param_2_reg_64(int reg)
+{
+        if (reg & 8)
+        {
+#if WIN64
+                addbyte(0x4c); /*MOVL EDX,reg*/
+                addbyte(0x89);
+                addbyte(0xc0 | REG_EDX | ((reg & 7) << 3));
+#else
+                addbyte(0x4c); /*MOVL ESI,reg*/
+                addbyte(0x89);
+                addbyte(0xc0 | REG_ESI | ((reg & 7) << 3));
+#endif
+        }
+        else
+        {
+#if WIN64
+                addbyte(0x48); /*MOVL EDX,reg*/
+                addbyte(0x89);
+                addbyte(0xc0 | REG_EDX | ((reg & 7) << 3));
+#else
+                addbyte(0x48); /*MOVL ESI,reg*/
+                addbyte(0x89);
+                addbyte(0xc0 | REG_ESI | ((reg & 7) << 3));
+#endif
+        }
+}
 
 static inline void load_param_3_reg_32(int reg)
 {
@@ -270,33 +297,26 @@ static inline void STORE_REG_TARGET_B_RELEASE(int host_reg, int guest_reg)
                         addbyte(0x44);
                         addbyte(0x89);
                         addbyte(0xc0 | ((host_reg & 3) << 3));
-                        if (host_reg & 0x10)
-                        {                        
-                                addbyte(0x66); /*AND AX, 0xff00*/
-                                addbyte(0x25);
-                                addword(0xff00);
-                        }
-                        else
-                        {
-                                addbyte(0x66); /*SHL AX, 8*/
-                                addbyte(0xc1);
-                                addbyte(0xe0);
-                                addbyte(0x08);
-                        }
                 }
-                else
-                {
-                        if (host_reg)
-                        {
-                                addbyte(0x66); /*MOV AX, host_reg*/
-                                addbyte(0x89);
-                                addbyte(0xc0 | ((host_reg & 3) << 3));
-                        }
-                        addbyte(0x66); /*SHL AX, 8*/
-                        addbyte(0xc1);
-                        addbyte(0xe0);
-                        addbyte(0x08);
+                else if (host_reg & 3)
+		{
+			addbyte(0x66); /*MOV AX, host_reg*/
+			addbyte(0x89);
+			addbyte(0xc0 | ((host_reg & 3) << 3));
                 }
+		if (host_reg & 0x10)
+		{                        
+			addbyte(0x66); /*AND AX, 0xff00*/
+			addbyte(0x25);
+			addword(0xff00);
+		}
+		else
+		{
+			addbyte(0x66); /*SHL AX, 8*/
+			addbyte(0xc1);
+			addbyte(0xe0);
+			addbyte(0x08);
+		}
                 addbyte(0x66); /*AND dest_reg, 0x00ff*/
                 addbyte(0x41);
                 addbyte(0x81);
@@ -1396,7 +1416,11 @@ static inline void MEM_STORE_ADDR_EA_B(x86seg *seg, int host_reg)
                 addbyte(REG_EDI | (REG_ESI << 3));
         }
         addbyte(0xeb); /*JMP done*/
-        addbyte(2+2+3+12+4+6);
+	if (host_reg & 8) {
+		addbyte(2+2+3+12+4+6);
+	} else {
+		addbyte(2+2+2+12+4+6);
+	}
         /*slowpath:*/
         addbyte(0x01); /*ADD ECX,EAX*/
         addbyte(0xc1);
@@ -1488,7 +1512,11 @@ static inline void MEM_STORE_ADDR_EA_W(x86seg *seg, int host_reg)
                 addbyte(REG_EDI | (REG_ESI << 3));
         }
         addbyte(0xeb); /*JMP done*/
-        addbyte(2+2+3+12+4+6);
+	if (host_reg & 8) {
+		addbyte(2+2+3+12+4+6);
+	} else {
+		addbyte(2+2+2+12+4+6);
+	}
         /*slowpath:*/
         addbyte(0x01); /*ADD ECX,EAX*/
         addbyte(0xc1);
@@ -1578,7 +1606,11 @@ static inline void MEM_STORE_ADDR_EA_L(x86seg *seg, int host_reg)
                 addbyte(REG_EDI | (REG_ESI << 3));
         }
         addbyte(0xeb); /*JMP done*/
-        addbyte(2+2+3+12+4+6);
+	if (host_reg & 8) {
+	        addbyte(2+2+3+12+4+6);
+	} else {
+	        addbyte(2+2+2+12+4+6);
+	}
         /*slowpath:*/
         addbyte(0x01); /*ADD ECX,EAX*/
         addbyte(0xc1);
@@ -6032,12 +6064,16 @@ static inline void MEM_STORE_ADDR_EA_B_NO_ABRT(x86seg *seg, int host_reg)
                 addbyte(REG_EDI | (REG_ESI << 3));
         }
         addbyte(0xeb); /*JMP done*/
-        addbyte(2+2+3+12);
+	if (host_reg & 8) {
+	        addbyte(2+2+3+12);
+	} else {
+	        addbyte(2+2+2+12);
+	}
         /*slowpath:*/
         load_param_2_reg_32(host_reg);
-        addbyte(0x01); /*ADD ECX,EAX*/
-        addbyte(0xc1);
-        load_param_1_reg_32(REG_ECX);
+        addbyte(0x01); /*ADD EBX,EAX*/
+        addbyte(0xc3);
+        load_param_1_reg_32(REG_EBX);
         call_long((uintptr_t)writemembl);
         /*done:*/
 }
@@ -6117,12 +6153,16 @@ static inline void MEM_STORE_ADDR_EA_W_NO_ABRT(x86seg *seg, int host_reg)
                 addbyte(REG_EDI | (REG_ESI << 3));
         }
         addbyte(0xeb); /*JMP done*/
-        addbyte(2+2+3+12);
+ 	if (host_reg & 8) {
+        	addbyte(2+2+3+12);
+	} else {
+        	addbyte(2+2+2+12);
+	}
         /*slowpath:*/
         load_param_2_reg_32(host_reg);
-        addbyte(0x01); /*ADD ECX,EAX*/
-        addbyte(0xc1);
-        load_param_1_reg_32(REG_ECX);
+        addbyte(0x01); /*ADD EBX,EAX*/
+        addbyte(0xc3);
+        load_param_1_reg_32(REG_EBX);
         call_long((uintptr_t)writememwl);
         /*done:*/
 }
@@ -6200,12 +6240,16 @@ static inline void MEM_STORE_ADDR_EA_L_NO_ABRT(x86seg *seg, int host_reg)
                 addbyte(REG_EDI | (REG_ESI << 3));
         }
         addbyte(0xeb); /*JMP done*/
-        addbyte(2+2+3+12);
+ 	if (host_reg & 8) {
+		addbyte(2+2+3+12);
+	} else {
+		addbyte(2+2+2+12);
+	}
         /*slowpath:*/
         load_param_2_reg_32(host_reg);
-        addbyte(0x01); /*ADD ECX,EAX*/
-        addbyte(0xc1);
-        load_param_1_reg_32(REG_ECX);
+        addbyte(0x01); /*ADD EBX,EAX*/
+        addbyte(0xc3);
+        load_param_1_reg_32(REG_EBX);
         call_long((uintptr_t)writememll);
         /*done:*/
 }

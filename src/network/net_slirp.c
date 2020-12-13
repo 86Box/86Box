@@ -150,7 +150,7 @@ net_slirp_notify(void *opaque)
 }
 
 
-int
+ssize_t
 net_slirp_send_packet(const void *qp, size_t pkt_len, void *opaque)
 {
     slirp_t *slirp = (slirp_t *) opaque;

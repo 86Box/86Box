@@ -1,4 +1,4 @@
-﻿/*
+/*
  * 86Box	A hypervisor and IBM PC system emulator that specializes in
  *		running old operating systems and software designed for IBM
  *		PC systems and compatibles from 1981 through fairly recent
@@ -541,6 +541,7 @@ load_machine(void)
     if (machine >= machine_count())
 	machine = machine_count() - 1;
 
+    cpu_override = config_get_int(cat, "cpu_override", 0);
     cpu_f = NULL;
     p = config_get_string(cat, "cpu_family", NULL);
     if (p) {
@@ -627,7 +628,6 @@ load_machine(void)
 	}
     }
     cpu_s = (CPU *) &cpu_f->cpus[cpu];
-    cpu_override = config_get_int(cat, "cpu_override", 0);
 
     cpu_waitstates = config_get_int(cat, "cpu_waitstates", 0);
 
@@ -715,7 +715,20 @@ load_input_devices(void)
       else
 	mouse_type = 0;
 
-    joystick_type = config_get_int(cat, "joystick_type", JOYSTICK_TYPE_NONE);
+    p = config_get_string(cat, "joystick_type", NULL);
+    if (p != NULL) {
+	joystick_type = joystick_get_from_internal_name(p);
+	if (!joystick_type) {
+		/* Try to read an integer for backwards compatibility with old configs */
+		c = config_get_int(cat, "joystick_type", 8);
+		if ((c >= 0) && (c < 8))
+			/* "None" was type 8 instead of 0 previously, shift the number accordingly */
+			joystick_type = c + 1;
+		else
+			joystick_type = 0;
+	}
+    } else
+	joystick_type = 0;
 
     for (c=0; c<joystick_get_max_joysticks(joystick_type); c++) {
 	sprintf(temp, "joystick_%i_nr", c);
@@ -1672,7 +1685,6 @@ config_load(void)
 	gfxcard = video_get_video_from_internal_name("cga");
 	vid_api = plat_vidapi("default");
 	time_sync = TIME_SYNC_ENABLED;
-	joystick_type = JOYSTICK_TYPE_NONE;
 	hdc_current = hdc_get_from_internal_name("none");
 	serial_enabled[0] = 1;
 	serial_enabled[1] = 1;
@@ -1885,7 +1897,7 @@ save_machine(void)
 			continue;
 
 		i = 0;
-		do {
+		while (cpu_legacy_table[c].tables[legacy_mfg][i].family) {
 			legacy_table_entry = (cpu_legacy_table_t *) &cpu_legacy_table[c].tables[legacy_mfg][i];
 
 			/* Match the family name, speed and multiplier. */
@@ -1899,7 +1911,9 @@ save_machine(void)
 					closest_legacy_cpu = i;
 				}
 			}
-		} while (cpu_legacy_table[c].tables[legacy_mfg][++i].family);
+
+			i++;
+		}
 
 		/* Use the closest speed match if no exact match was found. */
 		if ((legacy_cpu == -1) && (closest_legacy_cpu > -1)) {
@@ -1975,7 +1989,7 @@ save_input_devices(void)
 
     config_set_string(cat, "mouse_type", mouse_get_internal_name(mouse_type));
 
-    if (joystick_type == JOYSTICK_TYPE_NONE) {
+    if (!joystick_type) {
 	config_delete_var(cat, "joystick_type");
 
 	for (c = 0; c < 16; c++) {
@@ -1996,7 +2010,7 @@ save_input_devices(void)
 		}
 	}
     } else {
-	config_set_int(cat, "joystick_type", joystick_type);
+	config_set_string(cat, "joystick_type", joystick_get_internal_name(joystick_type));
 
 	for (c = 0; c < joystick_get_max_joysticks(joystick_type); c++) {
 		sprintf(tmp2, "joystick_%i_nr", c);

@@ -202,15 +202,12 @@ pipc_reset_hard(void *priv)
 	switch (dev->local) {
 		case VIA_PIPC_586A:
 		case VIA_PIPC_586B:
+		case VIA_PIPC_596A:
 			dev->usb_regs[i][0x08] = 0x02;
 			break;
 
-		case VIA_PIPC_596A:
-			dev->usb_regs[i][0x08] = 0x08;
-			break;
-
 		case VIA_PIPC_596B:
-			dev->usb_regs[i][0x08] = 0x11;
+			dev->usb_regs[i][0x08] = 0x08;
 			break;
 
 		case VIA_PIPC_686A:
@@ -218,7 +215,7 @@ pipc_reset_hard(void *priv)
 			break;
 
 		case VIA_PIPC_686B:
-			dev->usb_regs[i][0x08] = 0x16;
+			dev->usb_regs[i][0x08] = 0x1a;
 			break;
 	}
 

@@ -91,6 +91,8 @@ video_cards[] = {
     { "mda",			&mda_device				},
     { "genius",			&genius_device				},
     { "metheus928_isa",		&s3_metheus_86c928_isa_device		},
+    { "nga",                &nga_device             },
+    { "ogc",        		&ogc_device				},
     { "oti037c",		&oti037c_device				},
     { "oti067",			&oti067_device				},
     { "oti077",			&oti077_device				},
@@ -177,8 +179,6 @@ video_cards[] = {
     { "virge375_vbe20_vlb",	&s3_virge_375_4_vlb_device		},
     { "tgui9400cxi_vlb",	&tgui9400cxi_device			},
     { "tgui9440_vlb",		&tgui9440_vlb_device			},
-    { "ogc",        		&ogc_device				},
-    { "nga",                &nga_device             },
     { "",			NULL                        		}
 };
 

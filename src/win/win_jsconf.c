@@ -324,7 +324,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
         
         *data++ = 0; /*no menu*/
         *data++ = 0; /*predefined dialog box class*/
-        data += MultiByteToWideChar(CP_ACP, 0, "Device Configuration", -1, data, 50);
+        data += MultiByteToWideChar(CP_ACP, 0, "Joystick Configuration", -1, data, 50);
 
         *data++ = 9; /*Point*/
         data += MultiByteToWideChar(CP_ACP, 0, "Segoe UI", -1, data, 50);
@@ -342,7 +342,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
         item->cx = 140;
         item->cy = 150;
 
-        item->style = WS_CHILD | WS_VISIBLE | CBS_DROPDOWN | WS_VSCROLL;
+        item->style = WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL;
 
         data = (uint16_t *)(item + 1);
         *data++ = 0xFFFF;
@@ -357,7 +357,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
         /*Static text*/
         item = (DLGITEMTEMPLATE *)data;
         item->x = 10;
-        item->y = y;
+        item->y = y + 2;
         item->id = id++;
                 
         item->cx = 60;
@@ -369,7 +369,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
         *data++ = 0xFFFF;
         *data++ = 0x0082;    /* static class */
 
-        data += MultiByteToWideChar(CP_ACP, 0, "Device :", -1, data, 256);
+        data += MultiByteToWideChar(CP_ACP, 0, "Device", -1, data, 256);
         *data++ = 0;              /* no creation data */
                         
         if (((uintptr_t)data) & 2)
@@ -389,7 +389,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 item->cx = 140;
                 item->cy = 150;
 
-                item->style = WS_CHILD | WS_VISIBLE | CBS_DROPDOWN | WS_VSCROLL;
+                item->style = WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL;
 
                 data = (uint16_t *)(item + 1);
                 *data++ = 0xFFFF;
@@ -404,7 +404,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 /*Static text*/
                 item = (DLGITEMTEMPLATE *)data;
                 item->x = 10;
-                item->y = y;
+                item->y = y + 2;
                 item->id = id++;
                 
                 item->cx = 60;
@@ -436,7 +436,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 item->cx = 140;
                 item->cy = 150;
 
-                item->style = WS_CHILD | WS_VISIBLE | CBS_DROPDOWN | WS_VSCROLL;
+                item->style = WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL;
 
                 data = (uint16_t *)(item + 1);
                 *data++ = 0xFFFF;
@@ -451,7 +451,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 /*Static text*/
                 item = (DLGITEMTEMPLATE *)data;
                 item->x = 10;
-                item->y = y;
+                item->y = y + 2;
                 item->id = id++;
                 
                 item->cx = 60;
@@ -483,7 +483,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 item->cx = 140;
                 item->cy = 150;
 
-                item->style = WS_CHILD | WS_VISIBLE | CBS_DROPDOWN | WS_VSCROLL;
+                item->style = WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL;
 
                 data = (uint16_t *)(item + 1);
                 *data++ = 0xFFFF;
@@ -502,7 +502,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 /*Static text*/
                 item = (DLGITEMTEMPLATE *)data;
                 item->x = 10;
-                item->y = y;
+                item->y = y + 2;
                 item->id = id++;
                 
                 item->cx = 60;
@@ -526,8 +526,8 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
         dlg->cdit = (id - IDC_CONFIG_BASE) + 2;
 
         item = (DLGITEMTEMPLATE *)data;
-        item->x = 20;
-        item->y = y;
+        item->x = 100;
+        item->y = y + 5;
         item->cx = 50;
         item->cy = 14;
         item->id = IDOK;  /* OK button identifier */
@@ -544,8 +544,8 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
                 data++;
                 
         item = (DLGITEMTEMPLATE *)data;
-        item->x = 80;
-        item->y = y;
+        item->x = 160;
+        item->y = y + 5;
         item->cx = 50;
         item->cy = 14;
         item->id = IDCANCEL;  /* Cancel button identifier */
@@ -558,7 +558,7 @@ uint8_t joystickconfig_open(HWND hwnd, int joy_nr, int type)
         data += MultiByteToWideChar(CP_ACP, 0, "Cancel", -1, data, 50);
         *data++ = 0;              /* no creation data */
 
-        dlg->cy = y + 20;
+        dlg->cy = y + 25;
 
         DialogBoxIndirect(hinstance, dlg, hwnd, joystickconfig_dlgproc);
 

@@ -215,7 +215,7 @@ machine_at_p2bls_init(const machine_t *model)
     device_add(&piix4e_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&w83977ef_device);
-    device_add(&ics9150_08_device);
+    device_add(ics9xxx_get(ICS9150_08));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
     device_add(&w83781d_device); /* fans: Chassis, CPU, Power; temperatures: MB, unused, CPU */
@@ -253,7 +253,7 @@ machine_at_p3bf_init(const machine_t *model)
     device_add(&piix4e_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&w83977ef_device);
-    device_add(&ics9250_08_device);
+    device_add(ics9xxx_get(ICS9250_08));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 256);
     device_add(&as99127f_device); /* fans: Chassis, CPU, Power; temperatures: MB, JTPWR, CPU */
@@ -577,7 +577,7 @@ machine_at_p3v4x_init(const machine_t *model)
     device_add(&via_vt82c596b_device);
     device_add(&w83977ef_device);
     device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&ics9250_18_device);
+    device_add(ics9xxx_get(ICS9250_18));
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 512);
     device_add(&as99127f_device); /* fans: Chassis, CPU, Power; temperatures: MB, JTPWR, CPU */
