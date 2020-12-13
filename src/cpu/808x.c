@@ -462,9 +462,9 @@ static void
 writemem(uint32_t s, uint16_t v)
 {
     if (opcode & 1)
-	return writememw(s, cpu_state.eaaddr, v);
+	writememw(s, cpu_state.eaaddr, v);
     else
-	return writememb(s, cpu_state.eaaddr, (uint8_t) (v & 0xff));
+	writememb(s, cpu_state.eaaddr, (uint8_t) (v & 0xff));
 }
 
 
