@@ -240,35 +240,22 @@ typedef struct {
     uint64_t	fcr2, fcr3;
 } msr_t;
 
-typedef union {
-    uint32_t l;
-    uint16_t w;
-} cr0_t;
-
-
 typedef struct {
     x86reg	regs[8];
 
     uint8_t	tag[8];
 
-    int8_t	ssegs, ismmx,
-		abrt, pad;
-
-    uint16_t	npxs, npxc, flags, eflags,
-		old_npxc, new_npxc;
-
-    uint16_t	MM_w4[8];
-
-    int		_cycles,
-		flags_op, TOP;
-
-    uint32_t	flags_res,
-		flags_op1, flags_op2,
-		pc, oldpc, eaaddr, op32;
-
-    cr0_t	CR0;
-
     x86seg	*ea_seg;
+    uint32_t	eaaddr;
+
+    int		flags_op;
+    uint32_t	flags_res,
+		flags_op1, flags_op2;
+
+    uint32_t	pc,
+		oldpc, op32;
+
+    int		TOP;
 
     union {
 	struct {
@@ -279,9 +266,20 @@ typedef struct {
 	int32_t		rm_mod_reg_data;
     }		rm_data;
 
+    int8_t	ssegs, ismmx,
+		abrt, pad;
+
+    int		_cycles;
+
+    uint16_t	npxs, npxc;
+
     double	ST[8];
 
+    uint16_t	MM_w4[8];
+
     MMX_REG	MM[8];
+
+    uint16_t	old_npxc, new_npxc;
 
 #ifdef USE_NEW_DYNAREC
     uint32_t	old_fp_control, new_fp_control;
@@ -295,6 +293,13 @@ typedef struct {
 
     x86seg	seg_cs, seg_ds, seg_es, seg_ss,
 		seg_fs, seg_gs;
+
+    union {
+	uint32_t	l;
+	uint16_t	w;
+    }		CR0;
+
+    uint16_t	flags, eflags;
 } cpu_state_t;
 
 /*The cpu_state.flags below must match in both cpu_cur_status and block->status for a block
