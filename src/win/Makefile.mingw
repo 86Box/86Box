@@ -760,7 +760,8 @@ VIDOBJ		:= video.o \
 		    vid_voodoo_fifo.o vid_voodoo_reg.o \
 		    vid_voodoo_render.o vid_voodoo_setup.o \
 		    vid_voodoo_texture.o \
-			vid_ogc.o 
+			vid_ogc.o \
+			vid_nga.o
 
 PLATOBJ		:= win.o \
 		    win_dynld.o win_thread.o \

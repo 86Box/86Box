@@ -91,6 +91,7 @@ video_cards[] = {
     { "mda",			&mda_device				},
     { "genius",			&genius_device				},
     { "metheus928_isa",		&s3_metheus_86c928_isa_device		},
+    { "nga",                &nga_device             },
     { "ogc",        		&ogc_device				},
     { "oti037c",		&oti037c_device				},
     { "oti067",			&oti067_device				},

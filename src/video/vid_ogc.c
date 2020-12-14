@@ -130,10 +130,12 @@ ogc_in(uint16_t addr, void *priv)
 		 * bit 0: high during retrace (CGA standard)
 		 */
 		ret = cga_in(addr, &ogc->cga);
-		ret = ret | 0xe0;
-		if (ogc->mono_display)
-			ret = ret | 0x10;
-		break;
+		if (addr == 0x3da){
+			ret = ret | 0xe0;
+			if (ogc->mono_display)
+				ret = ret | 0x10;
+			break;
+		}
 	}
 
     return(ret);
@@ -425,6 +427,7 @@ ogc_poll(void *priv)
 						ogc->cga.ma = ogc->cga.maback = (ogc->cga.crtc[13] | (ogc->cga.crtc[12] << 8)) & 0x3fff;
 						ogc->cga.sc = 0;
 					}
+				// potrebbe dare problemi con composito
 				} else if (ogc->cga.sc == ogc->cga.crtc[9] || ((ogc->cga.crtc[8] & 3) == 3 && ogc->cga.sc == (ogc->cga.crtc[9] >> 1))) {
 					ogc->cga.maback = ogc->cga.ma;
 					ogc->cga.sc = 0;
