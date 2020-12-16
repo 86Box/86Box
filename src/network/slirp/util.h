@@ -59,11 +59,7 @@
 #endif
 
 #ifndef container_of
-#define container_of(ptr, type, member)              \
-    __extension__({                                  \
-        void *__mptr = (void *)(ptr);                \
-        ((type *)(__mptr - offsetof(type, member))); \
-    })
+#define container_of(ptr, type, member) ((type *)((char *)(ptr) - offsetof(type, member)));
 #endif
 
 #ifndef G_SIZEOF_MEMBER
