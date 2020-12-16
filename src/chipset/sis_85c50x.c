@@ -29,6 +29,7 @@
 #include <86box/mem.h>
 #include <86box/smram.h>
 #include <86box/pci.h>
+#include <86box/port_92.h>
 
 #include <86box/chipset.h>
 
@@ -52,7 +53,7 @@ sis_85c50x_log(const char *fmt, ...)
 
 typedef struct sis_85c50x_t
 {
-	uint8_t pci_conf[256], pci_conf_sb[256];
+	uint8_t pci_conf[256], pci_conf_sb[256], regs[256];
 
 	apm_t *apm;
 	smram_t *smram;
@@ -178,6 +179,26 @@ sis_85c50x_sb_read(int func, int addr, void *priv)
 }
 
 static void
+sis_85c50x_isa_write(uint16_t addr, uint8_t val, void *priv)
+{
+sis_85c50x_t *dev = (sis_85c50x_t *)priv;
+dev->regs[addr] = val;
+
+if(addr == 0x81)
+cpu_update_waitstates();
+
+sis_85c50x_log("85C501-ISA: dev->is[%02x] = %02x", addr, val);
+}
+
+static uint8_t
+sis_85c50x_isa_read(uint16_t addr, void *priv)
+{
+sis_85c50x_t *dev = (sis_85c50x_t *)priv;
+return dev->regs[addr];
+sis_85c50x_log("85C501-ISA: dev->is[%02x] (%02x)", addr, dev->regs[addr]);
+}
+
+static void
 sis_85c50x_reset(void *priv)
 {
 	sis_85c50x_t *dev = (sis_85c50x_t *)priv;
@@ -249,8 +270,10 @@ sis_85c50x_init(const device_t *info)
 
 	pci_add_card(PCI_ADD_NORTHBRIDGE, sis_85c50x_read, sis_85c50x_write, dev);
 	pci_add_card(PCI_ADD_SOUTHBRIDGE, sis_85c50x_sb_read, sis_85c50x_sb_write, dev);
+	io_sethandler(0x0022, 0x0002, sis_85c50x_isa_read, NULL, NULL, sis_85c50x_isa_write, NULL, NULL, dev);
 	dev->apm = device_add(&apm_pci_device);
 	dev->smram = smram_add();
+	device_add(&port_92_device);
 	sis_85c50x_reset(dev);
 
 	return dev;
