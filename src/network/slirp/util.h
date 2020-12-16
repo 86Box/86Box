@@ -30,10 +30,11 @@
 #include <stdio.h>
 #include <assert.h>
 #include <errno.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <inttypes.h>
 
 #ifdef _WIN32
