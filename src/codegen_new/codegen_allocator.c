@@ -112,7 +112,7 @@ uint8_t *codeblock_allocator_get_ptr(mem_block_t *block)
 
 void codegen_allocator_clean_blocks(struct mem_block_t *block)
 {
-#if defined __ARM_EABI__ || defined _ARM_ || defined __aarch64__
+#if defined __ARM_EABI__ || defined _ARM_ || defined __aarch64__ || defined _M_ARM || defined _M_ARM64
         while (1)
         {
 		__clear_cache(&mem_block_alloc[block->offset], &mem_block_alloc[block->offset + MEM_BLOCK_SIZE]);

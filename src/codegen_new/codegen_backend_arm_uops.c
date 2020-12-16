@@ -1,4 +1,4 @@
-#if defined __ARM_EABI__ || defined _ARM_
+#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM
 
 #include <math.h>
 #include <stdint.h>
