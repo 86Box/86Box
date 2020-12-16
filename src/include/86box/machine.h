@@ -469,6 +469,7 @@ extern int	machine_at_p6sba_init(const machine_t *);
 extern int	machine_at_ergox365_init(const machine_t *);
 #endif
 extern int	machine_at_ficka6130_init(const machine_t *);
+extern int	machine_at_p3v133_init(const machine_t *);
 extern int	machine_at_p3v4x_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
