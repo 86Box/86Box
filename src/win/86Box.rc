@@ -395,11 +395,11 @@ DLG_CFG_INPUT DIALOG DISCARDABLE  107, 0, 267, 65
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
-    LTEXT           "Mouse :",IDT_1709,7,9,57,10
+    LTEXT           "Mouse:",IDT_1709,7,9,57,10
     COMBOBOX        IDC_COMBO_MOUSE,71,7,140,120,CBS_DROPDOWNLIST | 
 		    WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Configure",IDC_CONFIGURE_MOUSE,214,7,46,12
-    LTEXT           "Joystick :",IDT_1710,7,27,58,10
+    LTEXT           "Joystick:",IDT_1710,7,27,58,10
     COMBOBOX        IDC_COMBO_JOYSTICK,71,25,189,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Joystick 1...",IDC_JOY1,7,44,50,14
@@ -499,17 +499,17 @@ DLG_CFG_STORAGE DIALOG DISCARDABLE  107, 0, 267, 111
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
-    LTEXT           "SCSI Controller:",IDT_1717,7,9,48,10
+    LTEXT           "SCSI Controller:",IDT_1717,7,9,64,10
     COMBOBOX        IDC_COMBO_SCSI,64,7,155,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Configure",IDC_CONFIGURE_SCSI,222,7,38,12
 
-    LTEXT           "HD Controller:",IDT_1718,7,28,48,10
+    LTEXT           "HD Controller:",IDT_1718,7,28,64,10
     COMBOBOX        IDC_COMBO_HDC,64,26,155,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Configure",IDC_CONFIGURE_HDC,222,26,38,12
 
-    LTEXT           "FD Controller:",IDT_1768,7,47,48,10
+    LTEXT           "FD Controller:",IDT_1768,7,47,64,10
     COMBOBOX        IDC_COMBO_FDC,64,45,155,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Configure",IDC_CONFIGURE_FDC,222,45,38,12
@@ -530,7 +530,7 @@ BEGIN
     CONTROL         "List1",IDC_LIST_HARD_DISKS,"SysListView32",LVS_REPORT | 
                     LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
                     WS_TABSTOP,7,18,253,92
-    LTEXT           "Hard disks:",IDT_1720,7,7,34,8
+    LTEXT           "Hard disks:",IDT_1720,7,7,253,8
     PUSHBUTTON      "&New...",IDC_BUTTON_HDD_ADD_NEW,60,137,62,10
     PUSHBUTTON      "&Existing...",IDC_BUTTON_HDD_ADD,129,137,62,10
     PUSHBUTTON      "&Remove",IDC_BUTTON_HDD_REMOVE,198,137,62,10
@@ -597,7 +597,7 @@ BEGIN
     CONTROL         "List1",IDC_LIST_FLOPPY_DRIVES,"SysListView32",
                     LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
                     WS_TABSTOP,7,18,253,60
-    LTEXT           "Floppy drives:",IDT_1737,7,7,43,8
+    LTEXT           "Floppy drives:",IDT_1737,7,7,253,8
     COMBOBOX        IDC_COMBO_FD_TYPE,33,85,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Type:",IDT_1738,7,87,24,8
@@ -609,7 +609,7 @@ BEGIN
     CONTROL         "List1",IDC_LIST_CDROM_DRIVES,"SysListView32",LVS_REPORT | 
                     LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
                     WS_TABSTOP,7,117,253,60
-    LTEXT           "CD-ROM drives:",IDT_1739,7,107,50,8
+    LTEXT           "CD-ROM drives:",IDT_1739,7,107,253,8
     COMBOBOX        IDC_COMBO_CD_BUS,33,185,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Bus:",IDT_1740,7,187,24,8
@@ -632,7 +632,7 @@ BEGIN
     CONTROL         "List1",IDC_LIST_MO_DRIVES,"SysListView32",LVS_REPORT | 
                     LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
                     WS_TABSTOP,7,17,253,60
-    LTEXT           "MO drives:",IDT_1769,7,7,50,8
+    LTEXT           "MO drives:",IDT_1769,7,7,253,8
     COMBOBOX        IDC_COMBO_MO_BUS,33,85,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Bus:",IDT_1770,7,87,24,8
@@ -649,7 +649,7 @@ BEGIN
     CONTROL         "List1",IDC_LIST_ZIP_DRIVES,"SysListView32",LVS_REPORT | 
                     LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
                     WS_TABSTOP,7,137,253,60
-    LTEXT           "ZIP drives:",IDT_1759,7,127,50,8
+    LTEXT           "ZIP drives:",IDT_1759,7,127,253,8
     COMBOBOX        IDC_COMBO_ZIP_BUS,23,205,90,12,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
     LTEXT           "Bus:",IDT_1753,7,207,14,8
