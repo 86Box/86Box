@@ -43,7 +43,7 @@ static cpu_x86_regs_t get_cpuid_regs(unsigned int index)
 {
   cpu_x86_regs_t retval;
 
-#if defined(_MSC_VER) /* MSVC assembly */
+#if defined(_MSC_VER) && !defined(__clang__) /* MSVC assembly */
   __asm {
     mov eax, [index]
     cpuid
