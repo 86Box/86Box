@@ -563,7 +563,7 @@ const device_t lm78_device = {
 };
 
 
-/* Winbond W83781D (or ASUS AS97127F) on ISA and SMBus. */
+/* Winbond W83781D on ISA and SMBus. */
 const device_t w83781d_device = {
     "Winbond W83781D Hardware Monitor",
     DEVICE_ISA,
