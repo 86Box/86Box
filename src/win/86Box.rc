@@ -15,11 +15,9 @@
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2018,2019 David Hrdlička.
  */
-#include <inttypes.h>
 #define IN_RESOURCE_H
 #include <86box/resource.h>
-#include <86box/86box.h>
-#include <86box/plat.h>
+#include <86box/language.h>
 #include <86box/version.h>
 #undef IN_RESOURCE_H
 
