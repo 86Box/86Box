@@ -29,7 +29,7 @@ enum host_cpu_feature {
 };
 
 /* This code is appropriate for 32-bit and 64-bit x86 CPUs. */
-#if defined(__x86_64__) || defined(__i386__) || defined(_MSC_VER)
+#if defined(__x86_64__) || defined(__i386__) || defined(_M_IX86) || defined(_M_X64)
 
 struct cpu_x86_regs_s {
   unsigned int eax;
