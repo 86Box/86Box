@@ -75,6 +75,9 @@ struct ethhdr {
     unsigned short h_proto; /* packet type ID field */
 };
 
+#if defined(_MSC_VER) && !defined (__clang__)
+#pragma pack(push, 1)
+#endif
 struct slirp_arphdr {
     unsigned short ar_hrd; /* format of hardware address */
     unsigned short ar_pro; /* format of protocol address */
@@ -90,6 +93,9 @@ struct slirp_arphdr {
     unsigned char ar_tha[ETH_ALEN]; /* target hardware address */
     uint32_t ar_tip; /* target IP address       */
 } SLIRP_PACKED;
+#if defined(_MSC_VER) && !defined (__clang__)
+#pragma pack(pop)
+#endif
 
 #define ARP_TABLE_SIZE 16
 

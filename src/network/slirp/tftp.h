@@ -20,6 +20,9 @@
 #define TFTP_FILENAME_MAX 512
 #define TFTP_BLOCKSIZE_MAX 1428
 
+#if defined(_MSC_VER) && !defined (__clang__)
+#pragma pack(push, 1)
+#endif
 struct tftp_t {
     struct udphdr udp;
     uint16_t tp_op;
@@ -35,6 +38,9 @@ struct tftp_t {
         char tp_buf[TFTP_BLOCKSIZE_MAX + 2];
     } x;
 } SLIRP_PACKED;
+#if defined(_MSC_VER) && !defined (__clang__)
+#pragma pack(pop)
+#endif
 
 struct tftp_session {
     Slirp *slirp;
