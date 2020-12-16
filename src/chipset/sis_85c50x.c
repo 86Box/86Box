@@ -181,21 +181,21 @@ sis_85c50x_sb_read(int func, int addr, void *priv)
 static void
 sis_85c50x_isa_write(uint16_t addr, uint8_t val, void *priv)
 {
-sis_85c50x_t *dev = (sis_85c50x_t *)priv;
-dev->regs[addr] = val;
+	sis_85c50x_t *dev = (sis_85c50x_t *)priv;
+	dev->regs[addr] = val;
 
-if(addr == 0x81)
-cpu_update_waitstates();
+	if (addr == 0x81)
+		cpu_update_waitstates();
 
-sis_85c50x_log("85C501-ISA: dev->is[%02x] = %02x", addr, val);
+	sis_85c50x_log("85C501-ISA: dev->regs[%02x] = %02x", addr, val);
 }
 
 static uint8_t
 sis_85c50x_isa_read(uint16_t addr, void *priv)
 {
-sis_85c50x_t *dev = (sis_85c50x_t *)priv;
-return dev->regs[addr];
-sis_85c50x_log("85C501-ISA: dev->is[%02x] (%02x)", addr, dev->regs[addr]);
+	sis_85c50x_t *dev = (sis_85c50x_t *)priv;
+	return dev->regs[addr];
+	sis_85c50x_log("85C501-ISA: dev->regs[%02x] (%02x)", addr, dev->regs[addr]);
 }
 
 static void
