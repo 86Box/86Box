@@ -15,11 +15,13 @@
  *		Copyright 2020 Tiseno100.
  */
 
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
@@ -150,14 +152,14 @@ sis_85c50x_write(int func, int addr, uint8_t val, void *priv)
 		dev->pci_conf[addr] = (val & 0x7f);
 		break;
 	}
-	sis_85c50x_log("85C501: dev->pci_conf[%02x] = %02x", addr, val);
+	sis_85c50x_log("85C501: dev->pci_conf[%02x] = %02x\n", addr, val);
 }
 
 static uint8_t
 sis_85c50x_read(int func, int addr, void *priv)
 {
 	sis_85c50x_t *dev = (sis_85c50x_t *)priv;
-	sis_85c50x_log("85C501: dev->pci_conf[%02x] (%02x)", addr, dev->pci_conf[addr]);
+	sis_85c50x_log("85C501: dev->pci_conf[%02x] (%02x)\n", addr, dev->pci_conf[addr]);
 	return dev->pci_conf[addr];
 }
 
@@ -180,30 +182,34 @@ sis_85c50x_sb_write(int func, int addr, uint8_t val, void *priv)
 		break;
 
 	case 0x41: /* PCI INTA IRQ */
+		sis_85c50x_log("85C503: Remapping Slot %02x to IRQ %02x\n", PCI_INTA, (val & 0x0f));
 		dev->pci_conf_sb[addr] = (val & 0x8f);
 		pci_set_irq_routing(PCI_INTA, !(val & 0x80) ? (val & 0x0f) : PCI_IRQ_DISABLED);
 		break;
 	case 0x42: /* PCI INTB IRQ */
+		sis_85c50x_log("85C503: Remapping Slot %02x to IRQ %02x\n", PCI_INTB, (val & 0x0f));
 		dev->pci_conf_sb[addr] = (val & 0x8f);
 		pci_set_irq_routing(PCI_INTB, !(val & 0x80) ? (val & 0x0f) : PCI_IRQ_DISABLED);
 		break;
 	case 0x43: /* PCI INTC IRQ */
+		sis_85c50x_log("85C503: Remapping Slot %02x to IRQ %02x\n", PCI_INTC, (val & 0x0f));
 		dev->pci_conf_sb[addr] = (val & 0x8f);
 		pci_set_irq_routing(PCI_INTC, !(val & 0x80) ? (val & 0x0f) : PCI_IRQ_DISABLED);
 		break;
 	case 0x44: /* PCI INTD IRQ */
+		sis_85c50x_log("85C503: Remapping Slot %02x to IRQ %02x\n", PCI_INTD, (val & 0x0f));
 		dev->pci_conf_sb[addr] = (val & 0x8f);
 		pci_set_irq_routing(PCI_INTD, !(val & 0x80) ? (val & 0x0f) : PCI_IRQ_DISABLED);
 		break;
 	}
-	sis_85c50x_log("85C503: dev->pci_conf_sb[%02x] = %02x", addr, val);
+	sis_85c50x_log("85C503: dev->pci_conf_sb[%02x] = %02x\n", addr, val);
 }
 
 static uint8_t
 sis_85c50x_sb_read(int func, int addr, void *priv)
 {
 	sis_85c50x_t *dev = (sis_85c50x_t *)priv;
-	sis_85c50x_log("85C503: dev->pci_conf_sb[%02x] (%02x)", addr, dev->pci_conf_sb[addr]);
+	sis_85c50x_log("85C503: dev->pci_conf_sb[%02x] (%02x)\n", addr, dev->pci_conf_sb[addr]);
 	return dev->pci_conf_sb[addr];
 }
 
@@ -228,7 +234,7 @@ sis_85c50x_isa_write(uint16_t addr, uint8_t val, void *priv)
 			break;
 		}
 	}
-	sis_85c50x_log("85C501-ISA: dev->regs[%02x] = %02x", addr, val);
+	sis_85c50x_log("85C501-ISA: dev->regs[%02x] = %02x\n", addr, val);
 }
 
 static uint8_t
@@ -236,7 +242,7 @@ sis_85c50x_isa_read(uint16_t addr, void *priv)
 {
 	sis_85c50x_t *dev = (sis_85c50x_t *)priv;
 	return dev->regs[dev->index];
-	sis_85c50x_log("85C501-ISA: dev->regs[%02x] (%02x)", dev->index, dev->regs[dev->index]);
+	sis_85c50x_log("85C501-ISA: dev->regs[%02x] (%02x)\n", dev->index, dev->regs[dev->index]);
 }
 
 static void
@@ -316,7 +322,6 @@ sis_85c50x_init(const device_t *info)
 	dev->smram = smram_add();
 	device_add(&port_92_device);
 	sis_85c50x_reset(dev);
-
 	return dev;
 }
 

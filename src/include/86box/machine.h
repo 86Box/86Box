@@ -376,6 +376,10 @@ extern int	machine_at_vectra54_init(const machine_t *);
 extern int	machine_at_powermate_v_init(const machine_t *);
 extern int	machine_at_acerv30_init(const machine_t *);
 
+#if defined(DEV_BRANCH) && defined(USE_SIS_85C50X)
+extern int	machine_at_sq588_init(const machine_t *);
+#endif
+
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_endeavor_get_device(void);
 #define at_vectra54_get_device at_endeavor_get_device
