@@ -357,6 +357,7 @@ const machine_t machines[] = {
 
     /* VIA Apollo Pro */
     { "[VIA Apollo Pro] FIC KA-6130",		"ficka6130",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 100000000, 1800, 3500, 3.5, 5.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	 			 8192, 524288, 8192, 255,	    machine_at_ficka6130_init, NULL			},
+    { "[VIA Apollo Pro133] ASUS P3V133",	"p3v133",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 150000000, 1300, 3500, 2.0, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			 8192,1572864, 8192, 255,	       machine_at_p3v133_init, NULL			},
     { "[VIA Apollo Pro133A] ASUS P3V4X",	"p3v4x",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 150000000, 1300, 3500, 2.0, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			 8192,2097152, 8192, 255,		machine_at_p3v4x_init, NULL			},
 
     /* Slot 2 machines */

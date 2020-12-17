@@ -117,7 +117,6 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 		{0}
 	}
     ICS9xxx_MODEL_END()
-#if 0
     ICS9xxx_MODEL(ICS9248_39)
 	.max_reg = 5,
 	.regs = {0x00, 0x7f, 0xff, 0xbf, 0xf5, 0xff},
@@ -125,6 +124,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.hw_select = {0, 3},
 	.frequencies_ref = ICS9250_08
     ICS9xxx_MODEL_END()
+#if 0
     ICS9xxx_MODEL(ICS9248_81)
 	.max_reg = 5,
 	.regs = {0x82, 0xfe, 0x7f, 0xff, 0xff, 0xb7},
