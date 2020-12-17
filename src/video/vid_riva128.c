@@ -516,9 +516,11 @@ riva128_pfifo_interrupt(int num, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
-	riva128->pfifo.intr |= (1 << num);
-
-	riva128_pmc_recompute_intr(1, riva128);
+	if(riva128->pfifo.intr_en & (1 << num))
+	{
+		riva128->pfifo.intr |= (1 << num);
+		riva128_pmc_recompute_intr(1, riva128);
+	}
 }
 
 //Apparently, PFIFO's CACHE1 uses some sort of Gray code... oh well
@@ -770,11 +772,15 @@ riva128_pfifo_write(uint32_t addr, uint32_t val, void *p)
 	}
 	if((addr >= 0x003300) && (addr <= 0x003403))
 	{
-		if(addr & 4) riva128->pfifo.cache1[(addr >> 3) & 0x1f].param = val;
+		if(addr & 4)
+		{
+			riva128->pfifo.cache1[riva128_pfifo_normal2gray((addr >> 3) & 0x1f)].param = val;
+			riva128_do_gpu_work(riva128);
+		}
 		else
 		{
-			riva128->pfifo.cache1[(addr >> 3) & 0x1f].method = val & 0x1ffc;
-			riva128->pfifo.cache1[(addr >> 3) & 0x1f].subchan = val >> 13;
+			riva128->pfifo.cache1[riva128_pfifo_normal2gray((addr >> 3) & 0x1f)].method = val & 0x1ffc;
+			riva128->pfifo.cache1[riva128_pfifo_normal2gray((addr >> 3) & 0x1f)].subchan = val >> 13;
 		}
 	}
 }
@@ -1172,6 +1178,23 @@ riva128_pgraph_to_a1r10g10b10(riva128_pgraph_color_t color)
 	return !!color.a << 30 | color.r << 20 | color.g << 10 | color.b;
 }
 
+uint32_t
+riva128_pgraph_rop(uint8_t rop, uint32_t src, uint32_t dst)
+{
+	switch(rop)
+	{
+		case 0x00: return 0;
+		case 0x66: return src ^ dst;
+		case 0x88: return src & dst;
+		case 0xcc: return src;
+		default:
+		{
+			pclog("Unimplemented ROP %02x!\n", rop);
+			return 0;
+		}
+	}
+}
+
 void
 riva128_pgraph_write_pixel(uint16_t x, uint16_t y, uint32_t color, uint8_t a, void *p)
 {
@@ -1195,14 +1218,26 @@ riva128_pgraph_write_pixel(uint16_t x, uint16_t y, uint32_t color, uint8_t a, vo
 		switch(riva128->pfb.bpp)
 		{
 			case 8:
-				svga->vram[addr & riva128->vram_mask] = color & 0xff;
+			{
+				uint32_t src = color & 0xff;
+				uint32_t dst = svga->vram[addr & riva128->vram_mask];
+				svga->vram[addr & riva128->vram_mask] = riva128_pgraph_rop(riva128->pgraph.rop, src, dst) & 0xff;
 				break;
+			}
 			case 16:
-				vram_w[addr & riva128->vram_mask] = color & 0xffff;
+			{
+				uint32_t src = color & 0xffff;
+				uint32_t dst = vram_w[(addr & riva128->vram_mask) >> 1];
+				vram_w[(addr & riva128->vram_mask) >> 1] = riva128_pgraph_rop(riva128->pgraph.rop, src, dst) & 0xffff;
 				break;
+			}
 			case 32:
-				vram_l[addr & riva128->vram_mask] = color;
+			{
+				uint32_t src = color & 0xffff;
+				uint32_t dst = vram_l[(addr & riva128->vram_mask) >> 2];
+				vram_l[(addr & riva128->vram_mask) >> 2] = riva128_pgraph_rop(riva128->pgraph.rop, src, dst);
 				break;
+			}
 		}
 
 		svga->changedvram[(addr & riva128->vram_mask) >> 12] = changeframecount;
@@ -1281,17 +1316,17 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 				{
 					riva128->pgraph.clipw = param & 0xffff;
 					riva128->pgraph.cliph = (param >> 16) & 0xffff;
-					/*uint16_t startx = riva128->pgraph.clipx_min;
+					uint16_t startx = riva128->pgraph.clipx_min;
 					uint16_t starty = riva128->pgraph.clipy_min;
-					uint16_t endx = riva128->pgraph.clipx_max;
-					uint16_t endy = riva128->pgraph.clipy_max;
+					uint16_t endx = riva128->pgraph.clipx_min + riva128->pgraph.clipw;
+					uint16_t endy = riva128->pgraph.clipy_min + riva128->pgraph.cliph;
 					for(uint16_t y = starty; y <= endy; y++)
 					{
 						for(uint16_t x = startx; x <= endx; x++)
 						{
-							riva128_pgraph_write_pixel(x, y, riva128->pgraph.rop, 0xff, riva128);
+							riva128_pgraph_write_pixel(x, y, riva128->pgraph.chroma, 0xff, riva128);
 						}
-					}*/
+					}
 					break;
 				}
 			}
@@ -1301,6 +1336,11 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 		{
 			switch(method)
 			{
+				case 0x304:
+				{
+					riva128_pgraph_invalid_interrupt(0, riva128);
+					break;
+				}
 				case 0x310:
 				{
 					riva128_pgraph_color_t color = riva128_pgraph_expand_color(graphobj0, param, riva128);
@@ -1510,6 +1550,7 @@ riva128_do_cache0_puller(void *p)
 		else
 		{
 			uint32_t ctx = riva128->pfifo.caches[0].ctx[0];
+			pclog("[RIVA 128] CTX = %08x\n", ctx);
 			if(!(ctx & 0x800000))
 			{
 				pclog("[RIVA 128] Cache error: Software method!\n");
@@ -1523,7 +1564,6 @@ riva128_do_cache0_puller(void *p)
 			{
 				riva128->pfifo.caches[0].get ^= 4;
 				//TODO: forward to PGRAPH.
-				pclog("[RIVA 128] CTX = %08x\n", ctx);
 				riva128_pgraph_command_submit(method, chanid, subchanid, param, ctx, riva128);
 			}
 		}
@@ -1538,6 +1578,12 @@ riva128_do_cache1_puller(void *p)
 	if((riva128->pfifo.caches[1].pull_ctrl & 1) &&
 	(riva128->pfifo.caches[1].put != riva128->pfifo.caches[1].get))
 	{
+		/*for(int i = 0; i <= 0x1f; i++)
+		{
+			int gray_i = riva128_pfifo_normal2gray(i);
+			pclog("RIVA 128 PFIFO CACHE1 method %04x subchannel %02x param %08x\n", riva128->pfifo.cache1[gray_i & 0x1f].method,
+			riva128->pfifo.cache1[gray_i & 0x1f].subchan, riva128->pfifo.cache1[gray_i & 0x1f].param);
+		}*/
 		uint16_t method = riva128->pfifo.cache1[riva128->pfifo.caches[1].get >> 2].method;
 		uint32_t param = riva128->pfifo.cache1[riva128->pfifo.caches[1].get >> 2].param;
 		uint8_t chanid = riva128->pfifo.caches[1].chanid;
@@ -1562,6 +1608,7 @@ riva128_do_cache1_puller(void *p)
 		else
 		{
 			uint32_t ctx = riva128->pfifo.caches[1].ctx[subchanid];
+			pclog("[RIVA 128] CTX = %08x\n", ctx);
 			if(!(ctx & 0x800000))
 			{
 				pclog("[RIVA 128] Cache error: Software method!\n");
@@ -1578,7 +1625,6 @@ riva128_do_cache1_puller(void *p)
 				next_get &= 31;
 				riva128->pfifo.caches[1].get = riva128_pfifo_normal2gray(next_get) << 2;
 				//TODO: forward to PGRAPH.
-				pclog("[RIVA 128] CTX = %08x\n", ctx);
 				riva128_pgraph_command_submit(method, chanid, subchanid, param, ctx, riva128);
 			}
 		}
@@ -1757,7 +1803,7 @@ riva128_mmio_read_l(uint32_t addr, void *p)
 	if ((addr >= 0x1800) && (addr <= 0x18ff))
 		ret = (riva128_pci_read(0,(addr+0) & 0xff,p) << 0) | (riva128_pci_read(0,(addr+1) & 0xff,p) << 8) | (riva128_pci_read(0,(addr+2) & 0xff,p) << 16) | (riva128_pci_read(0,(addr+3) & 0xff,p) << 24);
 
-	/*if(!(addr <= 0x000fff) && !((addr >= 0x009000) && (addr <= 0x009fff)))*/ pclog("[RIVA 128] MMIO read %08x returns value %08x\n", addr, ret);
+	/*if(!(addr <= 0x000fff) && !((addr >= 0x009000) && (addr <= 0x009fff))) pclog("[RIVA 128] MMIO read %08x returns value %08x\n", addr, ret);*/
 
 	riva128_do_gpu_work(riva128);
 
@@ -1824,7 +1870,7 @@ riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 
 	addr &= 0xffffff;
 
-	/*if(!(addr == 0x400100) && !(addr == 0x000140))*/ pclog("[RIVA 128] MMIO write %08x %08x\n", addr, val);
+	/*if(!(addr == 0x400100) && !(addr == 0x000140)) pclog("[RIVA 128] MMIO write %08x %08x\n", addr, val);*/
 
 	if ((addr >= 0x1800) && (addr <= 0x18ff)) {
 	riva128_pci_write(0, addr & 0xff, val & 0xff, p);
