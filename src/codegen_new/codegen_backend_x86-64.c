@@ -22,6 +22,8 @@
 #include <windows.h>
 #endif
 
+#include <xmmintrin.h>
+
 void *codegen_mem_load_byte;
 void *codegen_mem_load_word;
 void *codegen_mem_load_long;
@@ -340,11 +342,7 @@ void codegen_backend_init()
 
         block_write_data = NULL;
 
-        asm(
-                "stmxcsr %0\n"
-                : "=m" (cpu_state.old_fp_control)
-        );
-        cpu_state.trunc_fp_control = cpu_state.old_fp_control | 0x6000;
+        cpu_state.trunc_fp_control = _mm_getcsr() | 0x6000;
 }
 
 void codegen_set_rounding_mode(int mode)
