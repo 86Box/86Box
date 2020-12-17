@@ -53,7 +53,7 @@ sis_85c50x_log(const char *fmt, ...)
 
 typedef struct sis_85c50x_t
 {
-	uint8_t pci_conf[256], pci_conf_sb[256], regs[256];
+	uint8_t pci_conf[256], pci_conf_sb[256], regs[256], index;
 
 	apm_t *apm;
 	smram_t *smram;
@@ -113,24 +113,41 @@ sis_85c50x_write(int func, int addr, uint8_t val, void *priv)
 	dev->pci_conf[addr] = val;
 	switch (addr)
 	{
-	case 0x51:
+	case 0x04: /* Command */
+		dev->pci_conf[addr] = (val & 0xcf);
+		break;
+
+	case 0x07: /* Status */
+		dev->pci_conf[addr] = (val & 0xfe);
+		break;
+
+	case 0x51: /* Cache */
 		cpu_cache_ext_enabled = (val & 0x40);
 		break;
 
-	case 0x53:
+	case 0x53: /* Shadow RAM */
 	case 0x54:
 	case 0x55:
 	case 0x56:
 		sis_85c50x_shadow_recalc(dev);
 		break;
 
-	case 0x60:
-		apm_set_do_smi(dev->apm, (val & 0x02));
+	case 0x5f:
+		dev->pci_conf[addr] = (val & 0xfe);
 		break;
 
-	case 0x64:
+	case 0x60: /* SMI */
+		apm_set_do_smi(dev->apm, ((val & 0x02) && (dev->pci_conf[0x68] & 0x01)));
+		if (val & 0x02)
+			dev->pci_conf[0x69] &= 0x01;
+		break;
+	case 0x64: /* SMM/SMRAM */
 	case 0x65:
 		sis_85c50x_smm_recalc(dev);
+		break;
+
+	case 0x66:
+		dev->pci_conf[addr] = (val & 0x7f);
 		break;
 	}
 	sis_85c50x_log("85C501: dev->pci_conf[%02x] = %02x", addr, val);
@@ -154,17 +171,29 @@ sis_85c50x_sb_write(int func, int addr, uint8_t val, void *priv)
 
 	switch (addr)
 	{
-	case 0x41:
-		pci_set_irq_routing(PCI_INTA, (val & 0x80) ? (val & 0x0f) : PCI_IRQ_DISABLED);
+	case 0x07: /* Status */
+		dev->pci_conf_sb[addr] = (val & 0x36);
 		break;
-	case 0x42:
-		pci_set_irq_routing(PCI_INTB, (val & 0x80) ? (val & 0x0f) : PCI_IRQ_DISABLED);
+
+	case 0x40:
+		dev->pci_conf_sb[addr] = (val & 0x3f);
 		break;
-	case 0x43:
-		pci_set_irq_routing(PCI_INTC, (val & 0x80) ? (val & 0x0f) : PCI_IRQ_DISABLED);
+
+	case 0x41: /* PCI INTA IRQ */
+		dev->pci_conf_sb[addr] = (val & 0x8f);
+		pci_set_irq_routing(PCI_INTA, !(val & 0x80) ? (val & 0x0f) : PCI_IRQ_DISABLED);
 		break;
-	case 0x44:
-		pci_set_irq_routing(PCI_INTD, (val & 0x80) ? (val & 0x0f) : PCI_IRQ_DISABLED);
+	case 0x42: /* PCI INTB IRQ */
+		dev->pci_conf_sb[addr] = (val & 0x8f);
+		pci_set_irq_routing(PCI_INTB, !(val & 0x80) ? (val & 0x0f) : PCI_IRQ_DISABLED);
+		break;
+	case 0x43: /* PCI INTC IRQ */
+		dev->pci_conf_sb[addr] = (val & 0x8f);
+		pci_set_irq_routing(PCI_INTC, !(val & 0x80) ? (val & 0x0f) : PCI_IRQ_DISABLED);
+		break;
+	case 0x44: /* PCI INTD IRQ */
+		dev->pci_conf_sb[addr] = (val & 0x8f);
+		pci_set_irq_routing(PCI_INTD, !(val & 0x80) ? (val & 0x0f) : PCI_IRQ_DISABLED);
 		break;
 	}
 	sis_85c50x_log("85C503: dev->pci_conf_sb[%02x] = %02x", addr, val);
@@ -182,11 +211,23 @@ static void
 sis_85c50x_isa_write(uint16_t addr, uint8_t val, void *priv)
 {
 	sis_85c50x_t *dev = (sis_85c50x_t *)priv;
-	dev->regs[addr] = val;
 
-	if (addr == 0x81)
-		cpu_update_waitstates();
+	switch (addr)
+	{
+	case 0x22:
+		dev->index = val;
+		break;
 
+	case 0x23:
+		dev->regs[dev->index] = val;
+		switch (dev->index)
+		{
+		case 0x81:
+			dev->regs[dev->index] = (val & 0xf4);
+			cpu_update_waitstates();
+			break;
+		}
+	}
 	sis_85c50x_log("85C501-ISA: dev->regs[%02x] = %02x", addr, val);
 }
 
@@ -194,8 +235,8 @@ static uint8_t
 sis_85c50x_isa_read(uint16_t addr, void *priv)
 {
 	sis_85c50x_t *dev = (sis_85c50x_t *)priv;
-	return dev->regs[addr];
-	sis_85c50x_log("85C501-ISA: dev->regs[%02x] (%02x)", addr, dev->regs[addr]);
+	return dev->regs[dev->index];
+	sis_85c50x_log("85C501-ISA: dev->regs[%02x] (%02x)", dev->index, dev->regs[dev->index]);
 }
 
 static void
@@ -203,7 +244,7 @@ sis_85c50x_reset(void *priv)
 {
 	sis_85c50x_t *dev = (sis_85c50x_t *)priv;
 
-	/* North Bridge */
+	/* North Bridge (SiS 85C501/502) */
 	dev->pci_conf[0x00] = 0x39;
 	dev->pci_conf[0x01] = 0x10;
 	dev->pci_conf[0x02] = 0x06;
@@ -230,7 +271,7 @@ sis_85c50x_reset(void *priv)
 	sis_85c50x_write(0, 0x64, 0x00, dev);
 	sis_85c50x_write(0, 0x65, 0x00, dev);
 
-	/* South Bridge */
+	/* South Bridge (SiS 85C503) */
 	dev->pci_conf_sb[0x00] = 0x39;
 	dev->pci_conf_sb[0x01] = 0x10;
 	dev->pci_conf_sb[0x02] = 0x08;
@@ -247,10 +288,10 @@ sis_85c50x_reset(void *priv)
 	dev->pci_conf_sb[0x0d] = 0x00;
 	dev->pci_conf_sb[0x0e] = 0x00;
 	dev->pci_conf_sb[0x0f] = 0x00;
-	sis_85c50x_write(0, 0x41, 0x00, dev);
-	sis_85c50x_write(0, 0x42, 0x00, dev);
-	sis_85c50x_write(0, 0x43, 0x00, dev);
-	sis_85c50x_write(0, 0x44, 0x00, dev);
+	sis_85c50x_write(0, 0x41, 0x80, dev);
+	sis_85c50x_write(0, 0x42, 0x80, dev);
+	sis_85c50x_write(0, 0x43, 0x80, dev);
+	sis_85c50x_write(0, 0x44, 0x80, dev);
 }
 
 static void
