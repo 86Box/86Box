@@ -332,9 +332,13 @@ void codegen_backend_init()
 
 	codegen_allocator_clean_blocks(block->head_mem_block);
 
+#if !defined _MSC_VER || defined __clang__
 	asm("mrs %0, fpcr\n"
                 : "=r" (cpu_state.old_fp_control)
 	);
+#else
+	cpu_state.old_fp_control = _controlfp();
+#endif
 }
 
 void codegen_set_rounding_mode(int mode)
