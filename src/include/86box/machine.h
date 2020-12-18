@@ -377,6 +377,8 @@ extern int	machine_at_powermate_v_init(const machine_t *);
 extern int	machine_at_acerv30_init(const machine_t *);
 
 #if defined(DEV_BRANCH) && defined(USE_SIS_85C50X)
+extern int	machine_at_p5sp4_init(const machine_t *);
+extern int	machine_at_p54sp4_init(const machine_t *);
 extern int	machine_at_sq588_init(const machine_t *);
 #endif
 
