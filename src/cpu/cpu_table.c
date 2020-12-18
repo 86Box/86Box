@@ -69,11 +69,11 @@ FPU fpus_internal[] =
 
 const cpu_family_t cpu_families[] = {
     {
-	.package = CPU_PKG_8088, /* pcjr = only 4.77 */
+	.package = CPU_PKG_8088,
 	.manufacturer = "Intel",
 	.name = "8088",
 	.internal_name = "8088",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"4.77",    CPU_8088, fpus_8088,  4772728,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
 		{"7.16",    CPU_8088, fpus_8088,  7159092,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
 		{"8",       CPU_8088, fpus_8088,  8000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
@@ -87,7 +87,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "8088",
 	.internal_name = "8088_europc",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"4.77",    CPU_8088, fpus_8088,  4772728,    1, 5000, 0, 0, 0, CPU_ALTERNATE_XTAL, 0,0,0,0, 1},
 		{"7.16",    CPU_8088, fpus_8088,  7159092,    1, 5000, 0, 0, 0, CPU_ALTERNATE_XTAL, 0,0,0,0, 1},
 		{"9.54",    CPU_8088, fpus_8088,  9545456,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
@@ -98,7 +98,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "8086",
 	.internal_name = "8086",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"7.16",    CPU_8086, fpus_8088,   7159092,    1, 5000, 0, 0, 0, CPU_ALTERNATE_XTAL, 0,0,0,0, 1},
 		{"8",       CPU_8086, fpus_8088,   8000000,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
 		{"9.54",    CPU_8086, fpus_8088,   9545456,    1, 5000, 0, 0, 0, CPU_ALTERNATE_XTAL, 0,0,0,0, 1},
@@ -112,7 +112,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "80286",
 	.internal_name = "286",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"6",        CPU_286, fpus_80286,    6000000,    1, 5000, 0, 0, 0, 0, 2,2,2,2, 1},
 		{"8",        CPU_286, fpus_80286,    8000000,    1, 5000, 0, 0, 0, 0, 2,2,2,2, 1},
 		{"10",       CPU_286, fpus_80286,   10000000,    1, 5000, 0, 0, 0, 0, 2,2,2,2, 1},
@@ -127,7 +127,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "i386SX",
 	.internal_name = "i386sx",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"16",    CPU_386SX, fpus_80386, 16000000,    1, 5000, 0x2308, 0, 0, 0, 3,3,3,3, 2},
 		{"20",    CPU_386SX, fpus_80386, 20000000,    1, 5000, 0x2308, 0, 0, 0, 4,4,3,3, 3},
 		{"25",    CPU_386SX, fpus_80386, 25000000,    1, 5000, 0x2308, 0, 0, 0, 4,4,3,3, 3},
@@ -140,7 +140,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "AMD",
 	.name = "Am386SX",
 	.internal_name = "am386sx",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"16",   CPU_386SX, fpus_80386,     16000000, 1, 5000, 0x2308, 0, 0, 0, 3,3,3,3, 2},
 		{"20",   CPU_386SX, fpus_80386,     20000000, 1, 5000, 0x2308, 0, 0, 0, 4,4,3,3, 3},
 		{"25",   CPU_386SX, fpus_80386,     25000000, 1, 5000, 0x2308, 0, 0, 0, 4,4,3,3, 3},
@@ -153,7 +153,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "i386DX",
 	.internal_name = "i386dx",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"16",    CPU_386DX,      fpus_80386,  16000000, 1, 5000, 0x0308, 0, 0, 0, 3,3,3,3, 2},
 		{"20",    CPU_386DX,      fpus_80386,  20000000, 1, 5000, 0x0308, 0, 0, 0, 4,4,3,3, 3},
 		{"25",    CPU_386DX,      fpus_80386,  25000000, 1, 5000, 0x0308, 0, 0, 0, 4,4,3,3, 3},
@@ -166,7 +166,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "RapidCAD",
 	.internal_name = "rapidcad",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"25",  CPU_RAPIDCAD, fpus_internal,  25000000, 1, 5000, 0x0340, 0, 0, CPU_SUPPORTS_DYNAREC, 4,4,3,3, 3},
 		{"33",  CPU_RAPIDCAD, fpus_internal,  33333333, 1, 5000, 0x0340, 0, 0, CPU_SUPPORTS_DYNAREC, 6,6,3,3, 4},
 		{"40",  CPU_RAPIDCAD, fpus_internal,  40000000, 1, 5000, 0x0340, 0, 0, CPU_SUPPORTS_DYNAREC, 7,7,3,3, 5},
@@ -177,7 +177,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "AMD",
 	.name = "Am386DX",
 	.internal_name = "am386dx",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"25",   CPU_386DX, fpus_80386,     25000000, 1, 5000, 0x0308, 0, 0, 0, 4,4,3,3, 3},
 		{"33",   CPU_386DX, fpus_80386,     33333333, 1, 5000, 0x0308, 0, 0, 0, 6,6,3,3, 4},
 		{"40",   CPU_386DX, fpus_80386,     40000000, 1, 5000, 0x0308, 0, 0, 0, 7,7,3,3, 5},
@@ -190,7 +190,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "ALi",
 	.name = "M6117",
 	.internal_name = "m6117",
-	.cpus = { /* All timings and edx_reset values assumed. */
+	.cpus = (CPU[]) { /* All timings and edx_reset values assumed. */
 		{"33",    CPU_386DX,      fpus_80386,  33333333, 1, 5000, 0x2308, 0, 0, 0, 6,6,3,3, 4},
 		{"40",    CPU_386DX,      fpus_80386,  40000000, 1, 5000, 0x2308, 0, 0, 0, 7,7,3,3, 5},
 		{"", 0}
@@ -202,7 +202,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "IBM",
 	.name = "386SLC",
 	.internal_name = "ibm386slc",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"16",  CPU_IBM386SLC, fpus_80386, 16000000, 1, 5000, 0xA301, 0, 0, 0, 3,3,3,3, 2},
 		{"20",  CPU_IBM386SLC, fpus_80386, 20000000, 1, 5000, 0xA301, 0, 0, 0, 4,4,3,3, 3},
 		{"25",  CPU_IBM386SLC, fpus_80386, 25000000, 1, 5000, 0xA301, 0, 0, 0, 4,4,3,3, 3},
@@ -213,7 +213,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Cyrix",
 	.name = "Cx486SLC",
 	.internal_name = "cx486slc",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"20",  CPU_486SLC, fpus_80386, 20000000, 1, 5000, 0x400, 0, 0x0000, 0, 4,4,3,3, 3},
 		{"25",  CPU_486SLC, fpus_80386, 25000000, 1, 5000, 0x400, 0, 0x0000, 0, 4,4,3,3, 3},
 		{"33",  CPU_486SLC, fpus_80386, 33333333, 1, 5000, 0x400, 0, 0x0000, 0, 6,6,3,3, 4},
@@ -224,7 +224,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Cyrix",
 	.name = "Cx486SRx2",
 	.internal_name = "cx486srx2",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"32", CPU_486SLC, fpus_80386, 32000000, 2, 5000, 0x406, 0, 0x0006, 0, 6,6,6,6, 4},
 		{"40", CPU_486SLC, fpus_80386, 40000000, 2, 5000, 0x406, 0, 0x0006, 0, 8,8,6,6, 6},
 		{"50", CPU_486SLC, fpus_80386, 50000000, 2, 5000, 0x406, 0, 0x0006, 0, 8,8,6,6, 6},
@@ -235,7 +235,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "IBM",
 	.name = "486SLC",
 	.internal_name = "ibm486slc",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"33",   CPU_IBM486SLC, fpus_80386, 33333333,  1, 5000, 0xA401, 0, 0, 0, 6,6,3,3,    4},
 		{"", 0}
 	}
@@ -244,7 +244,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "IBM",
 	.name = "486SLC2",
 	.internal_name = "ibm486slc2",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"40",  CPU_IBM486SLC, fpus_80386, 40000000,  2, 5000, 0xA421, 0, 0, 0, 7,7,6,6,    5},
 		{"50",  CPU_IBM486SLC, fpus_80386, 50000000,  2, 5000, 0xA421, 0, 0, 0, 8,8,6,6,    6},
 		{"66",  CPU_IBM486SLC, fpus_80386, 66666666,  2, 5000, 0xA421, 0, 0, 0, 12,12,6,6,  8},
@@ -255,7 +255,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "IBM",
 	.name = "486SLC3",
 	.internal_name = "ibm486slc3",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"60",  CPU_IBM486SLC, fpus_80386, 60000000,  3, 5000, 0xA439, 0, 0, 0, 12,12,9,9,  7},
 		{"75",  CPU_IBM486SLC, fpus_80386, 75000000,  3, 5000, 0xA439, 0, 0, 0, 12,12,9,9,  9},
 		{"100", CPU_IBM486SLC, fpus_80386, 100000000, 3, 5000, 0xA439, 0, 0, 0, 18,18,9,9, 12},
@@ -266,7 +266,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "IBM",
 	.name = "486BL2",
 	.internal_name = "ibm486bl2",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"50",  CPU_IBM486BL, fpus_80386, 50000000,  2, 5000, 0xA439, 0, 0, 0, 8,8,6,6,    6},
 		{"66",  CPU_IBM486BL, fpus_80386, 66666666,  2, 5000, 0xA439, 0, 0, 0, 12,12,6,6,  8},
 		{"", 0}
@@ -276,7 +276,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "IBM",
 	.name = "486BL3",
 	.internal_name = "ibm486bl3",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"75",  CPU_IBM486BL, fpus_80386, 75000000,  3, 5000, 0xA439, 0, 0, 0, 12,12,9,9,  9},
 		{"100", CPU_IBM486BL, fpus_80386, 100000000, 3, 5000, 0xA439, 0, 0, 0, 18,18,9,9, 12},
 		{"", 0}
@@ -286,7 +286,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Cyrix",
 	.name = "Cx486DLC",
 	.internal_name = "cx486dlc",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"25",  CPU_486DLC, fpus_80386, 25000000, 1, 5000, 0x401, 0, 0x0001, 0,  4, 4,3,3, 3},
 		{"33",  CPU_486DLC, fpus_80386, 33333333, 1, 5000, 0x401, 0, 0x0001, 0,  6, 6,3,3, 4},
 		{"40",  CPU_486DLC, fpus_80386, 40000000, 1, 5000, 0x401, 0, 0x0001, 0,  7, 7,3,3, 5},
@@ -297,7 +297,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Cyrix",
 	.name = "Cx486DRx2",
 	.internal_name = "cx486drx2",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"32", CPU_486DLC, fpus_80386, 32000000, 2, 5000, 0x407, 0, 0x0007, 0,  6, 6,6,6, 4},
 		{"40", CPU_486DLC, fpus_80386, 40000000, 2, 5000, 0x407, 0, 0x0007, 0,  8, 8,6,6, 6},
 		{"50", CPU_486DLC, fpus_80386, 50000000, 2, 5000, 0x407, 0, 0x0007, 0,  8, 8,6,6, 6},
@@ -309,7 +309,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "i486SX",
 	.internal_name = "i486sx",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"16",            CPU_i486SX,     fpus_486sx,  16000000, 1,  5000, 0x420,        0, 0, CPU_SUPPORTS_DYNAREC,  3, 3,3,3,  2},
 		{"20",            CPU_i486SX,     fpus_486sx,  20000000, 1,  5000, 0x420,        0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
 		{"25",            CPU_i486SX,     fpus_486sx,  25000000, 1,  5000, 0x422,        0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
@@ -321,7 +321,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "i486SX2",
 	.internal_name = "i486sx2",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"50",           CPU_i486SX2,    fpus_486sx,  50000000, 2,  5000, 0x45b,        0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  6},
 		{"66 (Q0569)",   CPU_i486SX2,    fpus_486sx,  66666666, 2,  5000, 0x45b,        0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  8},
 		{"", 0}
@@ -331,7 +331,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "i486DX",
 	.internal_name = "i486dx",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"25",            CPU_i486DX,  fpus_internal,  25000000, 1,  5000, 0x404,        0, 0, CPU_SUPPORTS_DYNAREC,  4, 4,3,3,  3},
 		{"33",            CPU_i486DX,  fpus_internal,  33333333, 1,  5000, 0x414,        0, 0, CPU_SUPPORTS_DYNAREC,  6, 6,3,3,  4},
 		{"50",            CPU_i486DX,  fpus_internal,  50000000, 1,  5000, 0x411,        0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,4,4,  6},
@@ -342,7 +342,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "i486DX2",
 	.internal_name = "i486dx2",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"40",           CPU_i486DX2, fpus_internal,  40000000, 2,  5000, 0x430,    0x430, 0, CPU_SUPPORTS_DYNAREC,  7, 7,6,6,  5},
 		{"50",           CPU_i486DX2, fpus_internal,  50000000, 2,  5000, 0x433,    0x433, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  6},
 		{"66",           CPU_i486DX2, fpus_internal,  66666666, 2,  5000, 0x435,    0x435, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6,  8},
@@ -353,7 +353,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "i486DX2",
 	.internal_name = "i486dx2_pc330",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"50",           CPU_i486DX2, fpus_internal,  50000000, 2,  5000, 0x470,    0x470, 0, CPU_SUPPORTS_DYNAREC,  8, 8,6,6,  6},
 		{"66",           CPU_i486DX2, fpus_internal,  66666666, 2,  5000, 0x470,    0x470, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6,  8},
 		{"", 0}
@@ -363,7 +363,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "iDX4",
 	.internal_name = "idx4",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"75",              CPU_iDX4,    fpus_internal,  75000000, 3.0, 5000,  0x480,  0x480, 0x0000, CPU_SUPPORTS_DYNAREC, 12,12, 9, 9,  9}, /*CPUID available on DX4, >= 75 MHz*/
 		{"100",             CPU_iDX4,    fpus_internal, 100000000, 3.0, 5000,  0x483,  0x483, 0x0000, CPU_SUPPORTS_DYNAREC, 18,18, 9, 9, 12}, /*Is on some real Intel DX2s, limit here is pretty arbitary*/
 		{"", 0}
@@ -373,7 +373,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "iDX4 OverDrive",
 	.internal_name = "idx4_od",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"75",    CPU_iDX4,    fpus_internal,  75000000, 3,  5000, 0x1480,  0x1480, 0, CPU_SUPPORTS_DYNAREC, 12,12,9,9,  9}, /*Only added the DX4 OverDrive as the others would be redundant*/
 		{"100",   CPU_iDX4,    fpus_internal, 100000000, 3,  5000, 0x1480,  0x1480, 0, CPU_SUPPORTS_DYNAREC, 18,18,9,9, 12}, 
 		{"", 0}
@@ -383,7 +383,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "Pentium OverDrive",
 	.internal_name = "pentium_p24t",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"63", CPU_P24T,    fpus_internal,  62500000, 2.5, 5000, 0x1531, 0x1531, 0x0000, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10,7,7, 15/2},
 		{"83", CPU_P24T,    fpus_internal,  83333333, 2.5, 5000, 0x1532, 0x1532, 0x0000, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15,8,8, 10},
 		{"", 0}
@@ -393,7 +393,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "AMD",
 	.name = "Am486SX",
 	.internal_name = "am486sx",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"33",   CPU_Am486SX,     fpus_486sx, 33333333, 1, 5000, 0x42a,     0, 0, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3, 4},
 		{"40",   CPU_Am486SX,     fpus_486sx, 40000000, 1, 5000, 0x42a,     0, 0, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3, 5}, 
 		{"", 0}
@@ -403,7 +403,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "AMD",
 	.name = "Am486SX2",
 	.internal_name = "am486sx2",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"50",  CPU_Am486SX2,    fpus_486sx, 50000000, 2, 5000, 0x45b, 0x45b, 0, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6, 6}, /*CPUID available on SX2, DX2, DX4, 5x86, >= 50 MHz*/
 		{"66",  CPU_Am486SX2,    fpus_486sx, 66666666, 2, 5000, 0x45b, 0x45b, 0, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6, 8}, /*Isn't on all real AMD SX2s and DX2s, availability here is pretty arbitary (and distinguishes them from the Intel chips)*/
 		{"", 0}
@@ -413,7 +413,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "AMD",
 	.name = "Am486DX",
 	.internal_name = "am486dx",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"33",   CPU_Am486DX,  fpus_internal, 33333333, 1, 5000, 0x430,     0, 0, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3, 4},
 		{"40",   CPU_Am486DX,  fpus_internal, 40000000, 1, 5000, 0x430,     0, 0, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3, 5},
 		{"", 0}
@@ -423,7 +423,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "AMD",
 	.name = "Am486DX2",
 	.internal_name = "am486dx2",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"50",  CPU_Am486DX2, fpus_internal, 50000000, 2, 5000, 0x470, 0x470, 0, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6, 6},
 		{"66",  CPU_Am486DX2, fpus_internal, 66666666, 2, 5000, 0x470, 0x470, 0, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6, 8},
 		{"80",  CPU_Am486DX2, fpus_internal, 80000000, 2, 5000, 0x470, 0x470, 0, CPU_SUPPORTS_DYNAREC, 14,14, 6, 6, 10},
@@ -434,7 +434,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "AMD",
 	.name = "Am486DX4",
 	.internal_name = "am486dx4",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"75",  CPU_Am486DX4, fpus_internal,   75000000, 3.0, 5000, 0x482, 0x482, 0, CPU_SUPPORTS_DYNAREC, 12,12, 9, 9, 9},
 		{"90",  CPU_Am486DX4, fpus_internal,   90000000, 3.0, 5000, 0x482, 0x482, 0, CPU_SUPPORTS_DYNAREC, 15,15, 9, 9, 12},
 		{"100", CPU_Am486DX4, fpus_internal,  100000000, 3.0, 5000, 0x482, 0x482, 0, CPU_SUPPORTS_DYNAREC, 15,15, 9, 9, 12},
@@ -446,7 +446,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "AMD",
 	.name = "Am5x86",
 	.internal_name = "am5x86",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"P75",   CPU_Am5x86,   fpus_internal,  133333333, 4.0, 5000, 0x4e0, 0x4e0, 0, CPU_SUPPORTS_DYNAREC, 24,24,12,12, 16},
 		{"P75+",  CPU_Am5x86,   fpus_internal,  150000000, 3.0, 5000, 0x482, 0x482, 0, CPU_SUPPORTS_DYNAREC, 28,28,12,12, 20},/*The rare P75+ was indeed a triple-clocked 150 MHz according to research*/
 		{"P90",   CPU_Am5x86,   fpus_internal,  160000000, 4.0, 5000, 0x4e0, 0x4e0, 0, CPU_SUPPORTS_DYNAREC, 28,28,12,12, 20},/*160 MHz on a 40 MHz bus was a common overclock and "5x86/P90" was used by a number of BIOSes to refer to that configuration*/ 
@@ -457,7 +457,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Cyrix",
 	.name = "Cx486S",
 	.internal_name = "cx486s",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"25",            CPU_Cx486S,    fpus_486sx,   25000000, 1.0, 5000,  0x420,      0, 0x0010, CPU_SUPPORTS_DYNAREC,  4, 4, 3, 3,  3},
 		{"33",            CPU_Cx486S,    fpus_486sx,   33333333, 1.0, 5000,  0x420,      0, 0x0010, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3,  4},
 		{"40",            CPU_Cx486S,    fpus_486sx,   40000000, 1.0, 5000,  0x420,      0, 0x0010, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3,  5},
@@ -467,7 +467,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Cyrix",
 	.name = "Cx486DX",
 	.internal_name = "cx486dx",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"33",          CPU_Cx486DX, fpus_internal,   33333333, 1.0, 5000,  0x430,      0, 0x051a, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3,  4},
 		{"40",          CPU_Cx486DX, fpus_internal,   40000000, 1.0, 5000,  0x430,      0, 0x051a, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3,  5},
 		{"", 0}
@@ -477,7 +477,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Cyrix",
 	.name = "Cx486DX2",
 	.internal_name = "cx486dx2",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"50",        CPU_Cx486DX2, fpus_internal,   50000000, 2.0, 5000,  0x430,      0, 0x081b, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6,  6},
 		{"66",        CPU_Cx486DX2, fpus_internal,   66666666, 2.0, 5000,  0x430,      0, 0x0b1b, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6,  8},
 		{"80",        CPU_Cx486DX2, fpus_internal,   80000000, 2.0, 5000,  0x430,      0, 0x311b, CPU_SUPPORTS_DYNAREC, 14,14, 6, 6, 10},
@@ -488,7 +488,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Cyrix",
 	.name = "Cx486DX4",
 	.internal_name = "cx486dx4",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"75",  CPU_Cx486DX4, fpus_internal,  75000000, 3.0, 5000, 0x480, 0, 0x361f, CPU_SUPPORTS_DYNAREC, 12,12, 9, 9,  9},
 		{"100", CPU_Cx486DX4, fpus_internal, 100000000, 3.0, 5000, 0x480, 0, 0x361f, CPU_SUPPORTS_DYNAREC, 15,15, 9, 9, 12},
 		{"", 0}
@@ -498,7 +498,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Cyrix",
 	.name = "Cx5x86",
 	.internal_name = "cx5x86",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"80",    CPU_Cx5x86,   fpus_internal,  80000000, 2.0, 5000, 0x480, 0, 0x002f, CPU_SUPPORTS_DYNAREC, 14,14, 6, 6, 10}, /*If we're including the Pentium 50, might as well include this*/
 		{"100",   CPU_Cx5x86,   fpus_internal, 100000000, 3.0, 5000, 0x480, 0, 0x002f, CPU_SUPPORTS_DYNAREC, 15,15, 9, 9, 12},
 		{"120",   CPU_Cx5x86,   fpus_internal, 120000000, 3.0, 5000, 0x480, 0, 0x002f, CPU_SUPPORTS_DYNAREC, 21,21, 9, 9, 15},
@@ -512,7 +512,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "ST",
 	.name = "STPC-DX",
 	.internal_name = "stpc_dx",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"66",     CPU_Cx486DX,  fpus_internal,  66666666, 1.0, 3300, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC, 7, 7, 3, 3,  5},
 		{"75",     CPU_Cx486DX,  fpus_internal,  75000000, 1.0, 3300, 0x430, 0, 0x051a, CPU_SUPPORTS_DYNAREC, 7, 7, 3, 3,  5},
 		{"", 0}
@@ -522,7 +522,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "ST",
 	.name = "STPC-DX2",
 	.internal_name = "stpc_dx2",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"133",    CPU_Cx486DX2, fpus_internal, 133333333, 2.0, 3300, 0x430, 0, 0x0b1b, CPU_SUPPORTS_DYNAREC, 14,14, 6, 6, 10},
 		{"", 0}
 	}
@@ -533,7 +533,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "Pentium",
 	.internal_name = "pentium_p5",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"50 (Q0399)",    CPU_PENTIUM, fpus_internal,  50000000, 1, 5000, 0x513, 0x513, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER,  4, 4,3,3,  6},
 		{"60",            CPU_PENTIUM, fpus_internal,  60000000, 1, 5000, 0x517, 0x517, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER,  6, 6,3,3,  7},
 		{"66",            CPU_PENTIUM, fpus_internal,  66666666, 1, 5000, 0x517, 0x517, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER,  6, 6,3,3,  8},
@@ -544,7 +544,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "Pentium OverDrive",
 	.internal_name = "pentium_p54c_od5v",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"100", CPU_PENTIUM, fpus_internal, 100000000, 2, 5000, 0x51A, 0x51A, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER,  8, 8,6,6, 12},
 		{"120", CPU_PENTIUM, fpus_internal, 120000000, 2, 5000, 0x51A, 0x51A, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER, 12,12,6,6, 14},
 		{"133", CPU_PENTIUM, fpus_internal, 133333333, 2, 5000, 0x51A, 0x51A, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER, 12,12,6,6, 16},
@@ -555,7 +555,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "Pentium",
 	.internal_name = "pentium_p54c",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"75",                   CPU_PENTIUM,    fpus_internal,  75000000, 1.5, 3520,  0x522,  0x522, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  7, 7,4,4,  9},
 		{"90",                   CPU_PENTIUM,    fpus_internal,  90000000, 1.5, 3520,  0x524,  0x524, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  9, 9,4,4, 21/2},
 		{"100/50",               CPU_PENTIUM,    fpus_internal, 100000000, 2.0, 3520,  0x524,  0x524, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10,6,6, 12},
@@ -572,7 +572,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "Pentium MMX",
 	.internal_name = "pentium_p55c",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"166",              CPU_PENTIUMMMX, fpus_internal, 166666666, 2.5, 2800,  0x543,  0x543, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
 		{"200",              CPU_PENTIUMMMX, fpus_internal, 200000000, 3.0, 2800,  0x543,  0x543, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 18,18, 9, 9, 24},
 		{"233",              CPU_PENTIUMMMX, fpus_internal, 233333333, 3.5, 2800,  0x543,  0x543, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 21,21,10,10, 28},
@@ -583,7 +583,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "Mobile Pentium MMX",
 	.internal_name = "pentium_tillamook",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"120",       CPU_PENTIUMMMX, fpus_internal, 120000000, 2.0, 2800,  0x543,  0x543, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 14},
 		{"133",       CPU_PENTIUMMMX, fpus_internal, 133333333, 2.0, 2800,  0x543,  0x543, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 16},
 		{"150",       CPU_PENTIUMMMX, fpus_internal, 150000000, 2.5, 2800,  0x544,  0x544, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 35/2},
@@ -599,7 +599,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "Pentium OverDrive",
 	.internal_name = "pentium_p54c_od3v",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"125",        CPU_PENTIUM,    fpus_internal, 125000000, 3.0, 3520,  0x52c,  0x52c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER, 12,12,7,7, 15},
 		{"150",        CPU_PENTIUM,    fpus_internal, 150000000, 2.5, 3520,  0x52c,  0x52c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER, 15,15,7,7, 35/2},
 		{"166",        CPU_PENTIUM,    fpus_internal, 166666666, 2.5, 3520,  0x52c,  0x52c, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER, 15,15,7,7, 20},
@@ -610,7 +610,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "Pentium OverDrive MMX",
 	.internal_name = "pentium_p55c_od",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"75",     CPU_PENTIUMMMX, fpus_internal,  75000000, 1.5, 3520, 0x1542, 0x1542, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER,  7, 7,4,4,  9},
 		{"125",    CPU_PENTIUMMMX, fpus_internal, 125000000, 2.5, 3520, 0x1542, 0x1542, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER, 12,12,7,7, 15},
 		{"150/60", CPU_PENTIUMMMX, fpus_internal, 150000000, 2.5, 3520, 0x1542, 0x1542, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER, 15,15,7,7, 35/2},
@@ -624,7 +624,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "IDT",
 	.name = "WinChip",
 	.internal_name = "winchip",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"75",     CPU_WINCHIP,  fpus_internal,  75000000, 1.5,     3520, 0x540, 0x540, 0, CPU_SUPPORTS_DYNAREC,  8,  8,  4,  4,  9},
 		{"90",     CPU_WINCHIP,  fpus_internal,  90000000, 1.5,     3520, 0x540, 0x540, 0, CPU_SUPPORTS_DYNAREC,  9,  9,  4,  4, 21/2},
 		{"100",    CPU_WINCHIP,  fpus_internal, 100000000, 1.5,     3520, 0x540, 0x540, 0, CPU_SUPPORTS_DYNAREC,  9,  9,  4,  4, 12},
@@ -643,7 +643,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "IDT",
 	.name = "WinChip 2",
 	.internal_name = "winchip2",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"200",  CPU_WINCHIP2, fpus_internal, 200000000, 3.0,     3520, 0x580, 0x580, 0, CPU_SUPPORTS_DYNAREC, 18, 18,  9,  9, 3*8},
 		{"225",  CPU_WINCHIP2, fpus_internal, 225000000, 3.0,     3520, 0x580, 0x580, 0, CPU_SUPPORTS_DYNAREC, 18, 18,  9,  9, 3*9},
 		{"240",  CPU_WINCHIP2, fpus_internal, 240000000, 4.0,     3520, 0x580, 0x580, 0, CPU_SUPPORTS_DYNAREC, 24, 24, 12, 12, 30},
@@ -655,7 +655,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "IDT",
 	.name = "WinChip 2A",
 	.internal_name = "winchip2a",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"200", CPU_WINCHIP2, fpus_internal, 200000000, 3.0,     3520, 0x587, 0x587, 0, CPU_SUPPORTS_DYNAREC, 18, 18,  9,  9, 3*8},
 		{"233", CPU_WINCHIP2, fpus_internal, 233333333, 3.5,     3520, 0x587, 0x587, 0, CPU_SUPPORTS_DYNAREC, 21, 21,  9,  9, (7*8)/2},
 		{"266", CPU_WINCHIP2, fpus_internal, 233333333, 7.0/3.0, 3520, 0x587, 0x587, 0, CPU_SUPPORTS_DYNAREC, 21, 21,  7,  7, 28},
@@ -669,7 +669,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "AMD",
 	.name = "K5 (5k86)",
 	.internal_name = "k5_5k86",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"75 (P75)",      CPU_K5,   fpus_internal,  75000000, 1.5, 3520, 0x500, 0x500, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  7, 7,4,4,  9},
 		{"90 (P90)",      CPU_K5,   fpus_internal,  90000000, 1.5, 3520, 0x500, 0x500, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  9, 9,4,4, 21/2},
 		{"100 (P100)",    CPU_K5,   fpus_internal, 100000000, 1.5, 3520, 0x500, 0x500, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  9, 9,4,4, 12},
@@ -685,7 +685,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "AMD",
 	.name = "K5 (SSA/5)",
 	.internal_name = "k5_ssa5",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"75 (PR75)",    CPU_K5,   fpus_internal,  75000000, 1.5, 3520, 0x501, 0x501, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  7, 7,4,4,  9},
 		{"90 (PR90)",    CPU_K5,   fpus_internal,  90000000, 1.5, 3520, 0x501, 0x501, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  9, 9,4,4, 21/2},
 		{"100 (PR100)",  CPU_K5,   fpus_internal, 100000000, 1.5, 3520, 0x501, 0x501, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  9, 9,4,4, 12},
@@ -698,7 +698,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "AMD",
 	.name = "K6 (Model 6)",
 	.internal_name = "k6_m6",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"166",        CPU_K6,    fpus_internal,  166666666, 2.5, 2900, 0x561, 0x561, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
 		{"200",        CPU_K6,    fpus_internal,  200000000, 3.0, 2900, 0x561, 0x561, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 18,18, 9, 9, 24},
 		{"233",        CPU_K6,    fpus_internal,  233333333, 3.5, 3200, 0x561, 0x561, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 21,21,10,10, 28},
@@ -709,7 +709,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "AMD",
 	.name = "K6 (Model 7)",
 	.internal_name = "k6_m7",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"200",        CPU_K6,    fpus_internal,  200000000, 3.0, 2200, 0x570, 0x570, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 18,18, 9, 9, 24},
 		{"233",        CPU_K6,    fpus_internal,  233333333, 3.5, 2200, 0x570, 0x570, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 21,21,10,10, 28},
 		{"266",        CPU_K6,    fpus_internal,  266666666, 4.0, 2200, 0x570, 0x570, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,12,12, 32},
@@ -721,7 +721,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "AMD",
 	.name = "K6-2",
 	.internal_name = "k6_2",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"233",                CPU_K6_2,  fpus_internal,  233333333, 3.5, 2200, 0x580, 0x580, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    21,   21,  10,  10, 28},
 		{"266",                CPU_K6_2,  fpus_internal,  266666666, 4.0, 2200, 0x580, 0x580, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    24,   24,  12,  12, 32},
 		{"300",                CPU_K6_2,  fpus_internal,  300000000, 3.0, 2200, 0x580, 0x580, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    27,   27,   9,   9, 36},
@@ -743,7 +743,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "AMD",
 	.name = "K6-2+",
 	.internal_name = "k6_2p",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"450",               CPU_K6_2P, fpus_internal,  450000000, 4.5, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    41,   41,  14,  14, 54},
 		{"475",               CPU_K6_2P, fpus_internal,  475000000, 5.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    43,   43,  15,  15, 57},
 		{"500",               CPU_K6_2P, fpus_internal,  500000000, 5.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    45,   45,  15,  15, 60},
@@ -756,7 +756,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "AMD",
 	.name = "K6-III",
 	.internal_name = "k6_3",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"400",              CPU_K6_3,  fpus_internal,  400000000, 4.0, 2200, 0x591, 0x591, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    36,   36,  12,  12, 48},
 		{"450",              CPU_K6_3,  fpus_internal,  450000000, 4.5, 2200, 0x591, 0x591, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    41,   41,  14,  14, 54},
 		{"", 0}
@@ -766,7 +766,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "AMD",
 	.name = "K6-III+",
 	.internal_name = "k6_3p",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"100",             CPU_K6_3P, fpus_internal,  100000000, 1.0, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,     7,    7,   4,   4,  9},
 		{"400",             CPU_K6_3P, fpus_internal,  400000000, 4.0, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    36,   36,  12,  12, 48},
 		{"450",             CPU_K6_3P, fpus_internal,  450000000, 4.5, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    41,   41,  14,  14, 54},
@@ -781,7 +781,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Cyrix",
 	.name = "Cx6x86",
 	.internal_name = "cx6x86",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"P90",     CPU_Cx6x86, fpus_internal,    80000000, 2.0, 3520, 0x520, 0x520, 0x1731, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  8, 8, 6, 6, 10},
 		{"PR120+",  CPU_Cx6x86, fpus_internal,   100000000, 2.0, 3520, 0x520, 0x520, 0x1731, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
 		{"PR133+",  CPU_Cx6x86, fpus_internal,   110000000, 2.0, 3520, 0x520, 0x520, 0x1731, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 14},
@@ -795,7 +795,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Cyrix",
 	.name = "Cx6x86L",
 	.internal_name = "cx6x86l",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"PR133+", CPU_Cx6x86L,  fpus_internal, 110000000, 2.0, 2800, 0x540, 0x540, 0x2231, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 14},
 		{"PR150+", CPU_Cx6x86L,  fpus_internal, 120000000, 2.0, 2800, 0x540, 0x540, 0x2231, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 14},
 		{"PR166+", CPU_Cx6x86L,  fpus_internal, 133333333, 2.0, 2800, 0x540, 0x540, 0x2231, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 16},
@@ -807,7 +807,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Cyrix",
 	.name = "Cx6x86MX",
 	.internal_name = "cx6x86mx",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"PR166", CPU_Cx6x86MX, fpus_internal, 133333333, 2.0, 2900, 0x600, 0x600, 0x0451, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6,   16},
 		{"PR200", CPU_Cx6x86MX, fpus_internal, 166666666, 2.5, 2900, 0x600, 0x600, 0x0452, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7,   20},
 		{"PR233", CPU_Cx6x86MX, fpus_internal, 187500000, 2.5, 2900, 0x600, 0x600, 0x0452, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 45/2},
@@ -819,7 +819,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Cyrix",
 	.name = "MII",
 	.internal_name = "mii",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"PR300",      CPU_Cx6x86MX, fpus_internal, 233333333, 3.5, 2900, 0x601, 0x601, 0x0852, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 21,21,11,11,   28},
 		{"PR333",      CPU_Cx6x86MX, fpus_internal, 250000000, 3.0, 2900, 0x601, 0x601, 0x0853, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 23,23, 9, 9,   30},
 		{"PR366",      CPU_Cx6x86MX, fpus_internal, 250000000, 2.5, 2900, 0x601, 0x601, 0x0853, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 23,23, 7, 7,   30},
@@ -834,7 +834,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "Pentium Pro",
 	.internal_name = "pentiumpro",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"50",              CPU_PENTIUMPRO, fpus_internal,  50000000, 1.0, 3100,  0x612,  0x612, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  4, 4, 3, 3, 6},
 		{"60",              CPU_PENTIUMPRO, fpus_internal,  60000000, 1.0, 3100,  0x612,  0x612, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 7},
 		{"66",              CPU_PENTIUMPRO, fpus_internal,  66666666, 1.0, 3100,  0x612,  0x612, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
@@ -850,7 +850,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "Pentium II OverDrive",
 	.internal_name = "pentium2_od",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"50",     CPU_PENTIUM2D,  fpus_internal,  50000000, 1.0, 3300, 0x1632, 0x1632, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER,  4, 4, 3, 3, 6},
 		{"60",     CPU_PENTIUM2D,  fpus_internal,  60000000, 1.0, 3300, 0x1632, 0x1632, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER,  6, 6, 3, 3, 7},
 		{"66",     CPU_PENTIUM2D,  fpus_internal,  66666666, 1.0, 3300, 0x1632, 0x1632, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER,  6, 6, 3, 3, 8},
@@ -870,7 +870,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "Pentium II (Klamath)",
 	.internal_name = "pentium2_klamath",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"50",        CPU_PENTIUM2,  fpus_internal,  50000000, 1.0, 2800,  0x634,  0x634, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  4, 4, 3, 3, 6},
 		{"60",        CPU_PENTIUM2,  fpus_internal,  60000000, 1.0, 2800,  0x634,  0x634, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 7},
 		{"66",        CPU_PENTIUM2,  fpus_internal,  66666666, 1.0, 2800,  0x634,  0x634, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
@@ -885,7 +885,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "Pentium II (Deschutes)",
 	.internal_name = "pentium2_deschutes",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"50",     CPU_PENTIUM2D,  fpus_internal,  50000000, 1.0, 2050,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  4, 4, 3, 3, 6},
 		{"60",     CPU_PENTIUM2D,  fpus_internal,  60000000, 1.0, 2050,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 7},
 		{"66",     CPU_PENTIUM2D,  fpus_internal,  66666666, 1.0, 2050,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  6, 6, 3, 3, 8},
@@ -903,7 +903,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "Pentium II Xeon",
 	.internal_name = "pentium2_xeon",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"75",     CPU_PENTIUM2D,  fpus_internal,  75000000, 1.5, 2050,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,  7, 7, 4, 4, 9},
 		{"100",    CPU_PENTIUM2D,  fpus_internal, 100000000, 1.5, 2050,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 10,10, 6, 6, 12},
 		{"133",    CPU_PENTIUM2D,  fpus_internal, 133333333, 2.0, 2050,  0x652,  0x652, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 16},
@@ -917,7 +917,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "Intel",
 	.name = "Celeron (Mendocino)",
 	.internal_name = "celeron_mendocino",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"66",	      CPU_PENTIUM2D,  fpus_internal,  66666666, 1.0, 2050,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER,  6, 6, 3, 3, 8},
 		{"100",       CPU_PENTIUM2D,  fpus_internal, 100000000, 1.5, 2050,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER, 10,10, 6, 6, 12},
 		{"133",       CPU_PENTIUM2D,  fpus_internal, 133333333, 2.0, 2050,  0x665,  0x665, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER, 12,12, 6, 6, 16},
@@ -937,7 +937,7 @@ const cpu_family_t cpu_families[] = {
 	.manufacturer = "VIA",
 	.name = "Cyrix III",
 	.internal_name = "c3_samuel",
-	.cpus = {
+	.cpus = (CPU[]) {
 		{"66",      CPU_CYRIX3S, fpus_internal,  66666666, 1.0, 2050,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER,  6,  6,  3,  3,  8}, /* not in multiplier range */
 		{"233",     CPU_CYRIX3S, fpus_internal, 233333333, 3.5, 2050,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 21, 21,  9,  9, 28}, /* not in multiplier range */
 		{"266",     CPU_CYRIX3S, fpus_internal, 266666666, 4.0, 2050,   0x660, 0x660, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 24, 24, 12, 12, 32}, /* not in multiplier range */

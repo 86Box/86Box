@@ -353,8 +353,14 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 
 	const CPU *cpu_s = &cpu_family->cpus[cpu];
 
-	if (machine_s->cpu_block & cpu_s->cpu_type) /* CPU type blocklist */
-		return 0;
+	/* Check CPU blocklist. */
+	if (machine_s->cpu_block) {
+		uint8_t i = 0;
+		while (machine_s->cpu_block[i]) {
+			if (machine_s->cpu_block[i++] == cpu_s->cpu_type)
+				return 0;
+		}
+	}
 
 	uint32_t bus_speed = cpu_s->rspeed / cpu_s->multi;
 
@@ -408,7 +414,7 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 			} else if (cpu_s->cpu_type == CPU_Cx6x86 || cpu_s->cpu_type == CPU_Cx6x86L) /* 6x86(L) */
 				multi = 3.0;
 		}
-		else if ((multi == 5.0) && (cpu_s->cpu_type == CPU_WINCHIP || cpu_s->cpu_type ==  CPU_WINCHIP2) && (machine_s->cpu_min_multi > 5.0)) /* WinChip (2) */
+		else if ((multi == 5.0) && (cpu_s->cpu_type == CPU_WINCHIP || cpu_s->cpu_type == CPU_WINCHIP2) && (machine_s->cpu_min_multi > 5.0)) /* WinChip (2) */
 			multi = 5.5;
 		else if ((multi == 6.0) && (machine_s->cpu_max_multi < 6.0)) /* K6-2(+) / K6-3(+) */
 			multi = 2.0;

@@ -32,7 +32,7 @@ enum {
 };
 
 enum {
-    CPU_8088,		/* 808x class CPUs */
+    CPU_8088 = 1,	/* 808x class CPUs */
     CPU_8086,
 #ifdef USE_NEC_808X
     CPU_V20,		/* NEC 808x class CPUs - future proofing */
@@ -157,7 +157,7 @@ typedef struct {
     const char		*manufacturer;
     const char    	*name;
     const char		*internal_name;
-    const CPU		cpus[32];
+    const CPU		*cpus;
 } cpu_family_t;
 
 typedef struct {
