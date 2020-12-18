@@ -231,10 +231,8 @@ const machine_t machines[] = {
     /* Socket 4 machines */
     /* 430LX */
     { "[i430LX] ASUS P/I-P5MP3",		"p5mp3",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE,		 			 2048, 196608, 2048, 127,	        machine_at_p5mp3_init, NULL			},
-#if defined(DEV_BRANCH) && defined(USE_DELLS4)
     { "[i430LX] Dell Dimension XPS P60",	"dellxp60",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE,					 2048, 131072, 2048, 127,	     machine_at_dellxp60_init, NULL			},
     { "[i430LX] Dell OptiPlex 560/L",		"opti560l",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 2048, 131072, 2048, 127,	     machine_at_opti560l_init, NULL			},
-#endif
     { "[i430LX] IBM Ambra DP60 PCI",		"ambradp60",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 2048, 131072, 2048, 127,	    machine_at_ambradp60_init, NULL			},
     { "[i430LX] IBM PS/ValuePoint P60",		"valuepointp60",	MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 2048, 131072, 2048, 127,	machine_at_valuepointp60_init, NULL			},
     { "[i430LX] Intel Premiere/PCI",		"revenge",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 2048, 131072, 2048, 127,	       machine_at_batman_init, NULL			},
@@ -245,9 +243,7 @@ const machine_t machines[] = {
     { "[OPTi 597] AMI Excalibur VLB",		"excalibur",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_VLB | MACHINE_IDE,							 2048,  65536, 2048, 127,	    machine_at_excalibur_init, NULL			},
 
     /* SiS 85C50x */
-    #if defined(DEV_BRANCH) && defined(USE_SIS_85C50X)
     { "[SiS 85C50x] ASUS PCI/I-P5SP4",		"p5sp4",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 0, 0, MACHINE_MULTIPLIER_FIXED,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	      machine_at_p5sp4_init, NULL			},
-    #endif
 
     /* Socket 5 machines */
     /* 430NX */
@@ -264,10 +260,8 @@ const machine_t machines[] = {
     { "[i430FX] PC Partner MB500N",		"mb500n",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_IDE_DUAL,							 8192, 131072, 8192, 127,	       machine_at_mb500n_init, NULL			},
 
     /* SiS 85C50x */
-    #if defined(DEV_BRANCH) && defined(USE_SIS_85C50X)
     { "[SiS 85C50x] ASUS PCI/I-P54SP4",		"p54sp4",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 2.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	     machine_at_p54sp4_init, NULL			},
     { "[SiS 85C50x] BCM SQ-588",		"sq588",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 2.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	      machine_at_sq588_init, NULL			},
-    #endif
     
     /* Socket 7 machines */
     /* 430FX */

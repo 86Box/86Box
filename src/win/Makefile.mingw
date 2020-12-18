@@ -75,9 +75,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef SIO_DETECT
   SIO_DETECT	:= y
  endif
- ifndef USE_SIS_85C50X
-  USE_SIS_85C50X	:= y
- endif
  ifndef STPC
   STPC		:= y
  endif
@@ -98,9 +95,6 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef USE_VECT486VL
   USE_VECT486VL	:= y
- endif
- ifndef USE_DELLS4
-  USE_DELLS4	:= y
  endif
 else
  ifndef DEBUG
@@ -151,9 +145,6 @@ else
  ifndef SIO_DETECT
   SIO_DETECT	:= n
  endif
- ifndef USE_SIS_85C50X
-  USE_SIS_85C50X	:= n
- endif
  ifndef STPC
   STPC		:= y
  endif
@@ -174,9 +165,6 @@ else
  endif
  ifndef USE_VECT486VL
   USE_VECT486VL	:= n
- endif
- ifndef USE_DELLS4
-  USE_DELLS4	:= n
  endif
 endif
 
@@ -549,11 +537,6 @@ OPTS		+= -DUSE_SIO_DETECT
 DEVBROBJ	+= sio_detect.o
 endif
 
-ifeq ($(USE_SIS_85C50X), y)
-OPTS		+= -DUSE_SIS_85C50X
-DEVBROBJ	+= sis_85c50x.o
-endif
-
 ifeq ($(STPC), y)
 OPTS		+= -DUSE_STPC
 DEVBROBJ	+= stpc.o
@@ -579,10 +562,6 @@ endif
 
 ifeq ($(USE_VECT486VL), y)
 OPTS		+= -DUSE_VECT486VL
-endif
-
-ifeq ($(USE_DELLS4), y)
-OPTS		+= -DUSE_DELLS4
 endif
 
 endif
@@ -617,7 +596,7 @@ CPUOBJ		:= cpu.o cpu_table.o \
 CHIPSETOBJ	:= acc2168.o cs8230.o ali1429.o headland.o intel_82335.o cs4031.o \
 		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
 		    neat.o opti495.o opti895.o opti5x7.o scamp.o scat.o via_vt82c49x.o via_vt82c505.o \
-		    sis_85c310.o sis_85c4xx.o sis_85c496.o opti283.o opti291.o umc491.o \
+		    sis_85c310.o sis_85c4xx.o sis_85c496.o sis_85c50x.o opti283.o opti291.o umc491.o \
 		    via_apollo.o via_pipc.o wd76c10.o vl82c480.o
 
 MCHOBJ		:= machine.o machine_table.o \
