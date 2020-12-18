@@ -1715,8 +1715,13 @@ vid_close_200(void *priv)
 {
     amsvid_t *vid = (amsvid_t *)priv;
 
-    free(vid->cga.vram);
-    free(vid->mda.vram);
+    if (vid->cga.vram != vid->mda.vram) {
+	free(vid->cga.vram);
+	free(vid->mda.vram);
+    } else
+	free(vid->cga.vram);
+
+    vid->cga.vram = vid->mda.vram = NULL;
 
     free(vid);
 }
