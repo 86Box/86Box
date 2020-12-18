@@ -260,8 +260,8 @@ const machine_t machines[] = {
     { "[i430FX] PC Partner MB500N",		"mb500n",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_IDE_DUAL,							 8192, 131072, 8192, 127,	       machine_at_mb500n_init, NULL			},
 
     /* SiS 85C50x */
-    { "[SiS 85C50x] ASUS PCI/I-P54SP4",		"p54sp4",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, (uint8_t[]) {CPU_K5, CPU_5K86}, 40000000, 66666667, 3380, 3520, 1.5, 1.5,			MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	       machine_at_p54sp4_init, NULL			},
-    { "[SiS 85C50x] BCM SQ-588",		"sq588",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, (uint8_t[]) {CPU_PENTIUMMMX}, 50000000, 66666667, 3520, 3520, 1.5, 1.5,			MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,		machine_at_sq588_init, NULL			},
+    { "[SiS 85C50x] ASUS PCI/I-P54SP4",		"p54sp4",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, (const uint8_t[]) {CPU_K5, CPU_5K86}, 40000000, 66666667, 3380, 3520, 1.5, 1.5,			MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,			 8192, 131072, 8192, 127,	       machine_at_p54sp4_init, NULL			},
+    { "[SiS 85C50x] BCM SQ-588",		"sq588",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, (const uint8_t[]) {CPU_PENTIUMMMX}, 50000000, 66666667, 3520, 3520, 1.5, 1.5,			MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,			 8192, 131072, 8192, 127,		machine_at_sq588_init, NULL			},
     
     /* Socket 7 (Single Voltage) machines */
     /* 430FX */
@@ -272,7 +272,7 @@ const machine_t machines[] = {
     { "[i430FX] Intel Advanced/ATX (MR BIOS)",	"mrthor",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO,		 8192, 131072, 8192, 127,	       machine_at_mrthor_init, NULL			},
     { "[i430FX] Intel Advanced/EV",		"endeavor",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO,		 8192, 131072, 8192, 127,	     machine_at_endeavor_init, at_endeavor_get_device	},
     { "[i430FX] Packard Bell PB640",		"pb640",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO, 		 8192, 131072, 8192, 127,		machine_at_pb640_init, at_pb640_get_device	},
-    { "[i430FX] QDI Chariot",			"chariot",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, (uint8_t[]) {CPU_WINCHIP, CPU_WINCHIP2, CPU_Cx6x86, CPU_Cx6x86L, CPU_Cx6x86MX, 0}, 50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PCI | MACHINE_IDE_DUAL,			 8192, 131072, 8192, 127,	      machine_at_chariot_init, NULL			},
+    { "[i430FX] QDI Chariot",			"chariot",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, (const uint8_t[]) {CPU_WINCHIP, CPU_WINCHIP2, CPU_Cx6x86, CPU_Cx6x86L, CPU_Cx6x86MX, 0}, 50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PCI | MACHINE_IDE_DUAL,		 8192, 131072, 8192, 127,	      machine_at_chariot_init, NULL			},
 
     /* 430HX */
     { "[i430HX] Acer M3A",			"acerm3a",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3300, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 196608, 8192, 127,	      machine_at_acerm3a_init, NULL			},
@@ -285,7 +285,7 @@ const machine_t machines[] = {
 
     /* Socket 7 (Dual Voltage) machines */
     /* 430HX */
-    { "[i430HX] Acer V35N",			"acerv35n",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, (uint8_t[]) {CPU_Cx6x86MX, 0}, 50000000, 66666667, 2800, 3520, 1.5, 3.0,				MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,			 8192, 196608, 8192, 127,	     machine_at_acerv35n_init, NULL			},
+    { "[i430HX] Acer V35N",			"acerv35n",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, (const uint8_t[]) {CPU_Cx6x86MX, 0}, 50000000, 66666667, 2800, 3520, 1.5, 3.0,				MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 8192, 196608, 8192, 127,	     machine_at_acerv35n_init, NULL			},
     { "[i430HX] ASUS P/I-P55T2P4",		"p55t2p4",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 83333333, 2500, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 262144, 8192, 127,	      machine_at_p55t2p4_init, NULL			},
     { "[i430HX] Micronics M7S-Hi",		"m7shi",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2800, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 131072, 8192, 511,	        machine_at_m7shi_init, NULL			},
     { "[i430HX] Intel TC430HX",			"tc430hx",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2800, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 131072, 8192, 255,	      machine_at_tc430hx_init, NULL			},
@@ -401,7 +401,7 @@ const machine_t machines[] = {
     { "[VIA Apollo ProMedia] Jetway 603TCF",	"603tcf",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1300, 3500, 2.0, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			 8192,1048576, 8192, 255,	       machine_at_603tcf_init, NULL			},
 
     /* Miscellaneous/Fake/Hypervisor machines */
-    { "[i440BX] Microsoft Virtual PC 2007",	"vpc2007",		MACHINE_TYPE_MISC,		CPU_PKG_SLOT1, (uint8_t[]) {CPU_PENTIUM2, CPU_CYRIX3S}, 0, 0, 0, 0, 0, 0,					MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192,1048576, 8192, 255,	      machine_at_vpc2007_init, NULL			},
+    { "[i440BX] Microsoft Virtual PC 2007",	"vpc2007",		MACHINE_TYPE_MISC,		CPU_PKG_SLOT1, (const uint8_t[]) {CPU_PENTIUM2, CPU_CYRIX3S}, 0, 0, 0, 0, 0, 0,					MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192,1048576, 8192, 255,	      machine_at_vpc2007_init, NULL			},
 
     { NULL,					NULL,			MACHINE_TYPE_NONE,		0, 0, 0, 0, 0, 0, 0, 0,												0,										    0,      0,    0,   0,			         NULL, NULL			}
 };

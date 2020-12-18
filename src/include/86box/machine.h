@@ -145,7 +145,7 @@ typedef struct _machine_ {
     const char	*internal_name;
     const char  type;
     uint32_t	cpu_package;
-    uint8_t	*cpu_block;
+    const uint8_t *cpu_block;
     uint32_t	cpu_min_bus;
     uint32_t	cpu_max_bus;
     uint16_t	cpu_min_voltage;
