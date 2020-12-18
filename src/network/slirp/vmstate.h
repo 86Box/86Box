@@ -39,7 +39,9 @@
 #ifndef VMSTATE_H_
 #define VMSTATE_H_
 
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include <stdint.h>
 #include <stdbool.h>
 #include "slirp.h"

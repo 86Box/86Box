@@ -1023,12 +1023,6 @@ enter_smm(int in_hlt)
     if (!is_am486 && !is_pentium && !is_k5 && !is_k6 && !is_p6 && !is_cx6x86)
 	return;
 
-    if (cpu_iscyrix) {
-	if (!cyrix.smhr & SMHR_VALID)
-		cyrix.smhr = (cyrix.arr[3].base + cyrix.arr[3].size) | SMHR_VALID;
-	smram_state = cyrix.smhr & SMHR_ADDR_MASK;
-    }
-
     x386_common_log("enter_smm(): smbase = %08X\n", smbase);
     x386_common_log("CS : seg = %04X, base = %08X, limit = %08X, limit_low = %08X, limit_high = %08X, access = %02X, ar_high = %02X\n",
 		    cpu_state.seg_cs.seg, cpu_state.seg_cs.base, cpu_state.seg_cs.limit, cpu_state.seg_cs.limit_low,

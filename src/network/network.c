@@ -54,7 +54,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include <sys/time.h>
+#include <time.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
