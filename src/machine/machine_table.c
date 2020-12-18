@@ -34,23 +34,23 @@
 
 
 const machine_type_t machine_types[] = {
-    { "None",		MACHINE_TYPE_NONE	},
-    { "8088",		MACHINE_TYPE_8088	},
-    { "8086",		MACHINE_TYPE_8086	},
-    { "80286",		MACHINE_TYPE_286	},
-    { "i386SX",		MACHINE_TYPE_386SX	},
-    { "i386DX",		MACHINE_TYPE_386DX	},
-    { "i486",		MACHINE_TYPE_486	},
-    { "Socket 4",	MACHINE_TYPE_SOCKET4	},
-    { "Socket 5",	MACHINE_TYPE_SOCKET5	},
-    { "Socket 7-3V",	MACHINE_TYPE_SOCKET7_3V	},
-    { "Socket 7",	MACHINE_TYPE_SOCKET7	},
-    { "Super Socket 7",	MACHINE_TYPE_SOCKETS7	},
-    { "Socket 8",	MACHINE_TYPE_SOCKET8	},
-    { "Slot 1",		MACHINE_TYPE_SLOT1	},
-    { "Slot 2",		MACHINE_TYPE_SLOT2	},
-    { "Socket 370",	MACHINE_TYPE_SOCKET370	},
-    { "Miscellaneous",	MACHINE_TYPE_MISC    	}
+    { "None",				MACHINE_TYPE_NONE	},
+    { "8088",				MACHINE_TYPE_8088	},
+    { "8086",				MACHINE_TYPE_8086	},
+    { "80286",				MACHINE_TYPE_286	},
+    { "i386SX",				MACHINE_TYPE_386SX	},
+    { "i386DX",				MACHINE_TYPE_386DX	},
+    { "i486",				MACHINE_TYPE_486	},
+    { "Socket 4",			MACHINE_TYPE_SOCKET4	},
+    { "Socket 5",			MACHINE_TYPE_SOCKET5	},
+    { "Socket 7 (Single Voltage)",	MACHINE_TYPE_SOCKET7_3V	},
+    { "Socket 7 (Dual Voltage)",	MACHINE_TYPE_SOCKET7	},
+    { "Super Socket 7",			MACHINE_TYPE_SOCKETS7	},
+    { "Socket 8",			MACHINE_TYPE_SOCKET8	},
+    { "Slot 1",				MACHINE_TYPE_SLOT1	},
+    { "Slot 2",				MACHINE_TYPE_SLOT2	},
+    { "Socket 370",			MACHINE_TYPE_SOCKET370	},
+    { "Miscellaneous",			MACHINE_TYPE_MISC    	}
 };
 
 
@@ -67,8 +67,8 @@ const machine_t machines[] = {
     { "[8088] DTK XT clone",			"dtk",			MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   640,  64,    0,		  machine_xt_dtk_init, NULL			},
     { "[8088] Generic XT clone",		"genxt",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   640,  64,    0,		   machine_genxt_init, NULL			},
     { "[8088] Juko XT clone",			"jukopc",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   640,  64,    0,	       machine_xt_jukopc_init, NULL			},
-    { "[8088] NCR PC4i",		    "ncr_pc4i",			MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,                               MACHINE_PC,                        					 256,  640,  256,   0,		 machine_xt_ncrpc4i_init, NULL			},
-    { "[8088] Olivetti M19",			"olivetti_m19",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO_FIXED,						   256,  640,  256,   0,	       machine_xt_olim19_init, NULL			},
+    { "[8088] NCR PC4i",			"ncr_pc4i",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  256,   640, 256,    0,	      machine_xt_ncrpc4i_init, NULL			},
+    { "[8088] Olivetti M19",			"olivetti_m19",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO_FIXED,						  256,   640, 256,    0,	       machine_xt_olim19_init, NULL			},
     { "[8088] OpenXT",				"open_xt",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   640,  64,    0,	      machine_xt_open_xt_init, NULL			},
     { "[8088] Phoenix XT clone",		"pxxt",			MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   640,  64,    0,		 machine_xt_pxxt_init, NULL			},
     { "[8088] Schneider EuroPC",		"europc",		MACHINE_TYPE_8088,		CPU_PKG_8088_EUROPC, 0, 0, 0, 0, 0, 0, 0,									MACHINE_PC | MACHINE_XTA | MACHINE_MOUSE,					  512,   640, 128,   15,		  machine_europc_init, NULL			},
