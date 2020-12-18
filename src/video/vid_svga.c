@@ -445,7 +445,7 @@ svga_recalctimings(svga_t *svga)
 
     svga->interlace = 0;
 
-    svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+    svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]);
     svga->ca_adj = 0;
     
     svga->rowcount = svga->crtc[9] & 31;    
@@ -459,6 +459,8 @@ svga_recalctimings(svga_t *svga)
 			svga->hdisp *= (svga->seqregs[1] & 1) ? 16 : 18;
 		} else {
 			svga->render = svga_render_text_80;
+			if (!(svga->adv_flags & FLAG_NOSKEW))
+				svga->ma_latch += ((svga->crtc[8] & 0x60) >> 5);
 			svga->hdisp *= (svga->seqregs[1] & 1) ? 8 : 9;
 		}
 		svga->hdisp_old = svga->hdisp;
