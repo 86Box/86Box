@@ -33,10 +33,9 @@
 
 
 typedef struct {
-    uint8_t config_enable, cur_reg, regs[32],
-	    fdc_dma, fdc_irq, uart_irq[2], lpt_dma, lpt_irq;
-    fdc_t *fdc;
-    serial_t *uart[2];
+    uint8_t	cur_reg, regs[32], fdc_dma, fdc_irq, uart_irq[2], lpt_dma, lpt_irq;
+    fdc_t	*fdc;
+    serial_t	*uart[2];
 } vt82c686_t;
 
 
@@ -100,9 +99,6 @@ static void
 vt82c686_write(uint16_t port, uint8_t val, void *priv)
 {
     vt82c686_t *dev = (vt82c686_t *) priv;
-    
-    if (!dev->config_enable)
-	return;
 
     if (!(port & 1)) {
 	dev->cur_reg = val;
@@ -196,13 +192,9 @@ vt82c686_sio_write(uint8_t addr, uint8_t val, void *priv)
 		break;
 
 	case 0x85:
-		io_removehandler(0x3f0, 0x0002,
-			     vt82c686_read, NULL, NULL, vt82c686_write, NULL, NULL, dev);
-		if (val & 0x01)
-			io_sethandler(0x3f0, 0x0002,
-				      vt82c686_read, NULL, NULL, vt82c686_write, NULL, NULL, dev);
-
-		dev->config_enable = val & 0x02;
+		io_removehandler(0x3f0, 2, vt82c686_read, NULL, NULL, vt82c686_write, NULL, NULL, dev);
+		if (val & 0x02)
+			io_sethandler(0x3f0, 2, vt82c686_read, NULL, NULL, vt82c686_write, NULL, NULL, dev);
 		break;
     }
 }

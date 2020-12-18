@@ -75,6 +75,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef SIO_DETECT
   SIO_DETECT	:= y
  endif
+ ifndef USE_SIS_85C50X
+  USE_SIS_85C50X	:= y
+ endif
  ifndef STPC
   STPC		:= y
  endif
@@ -147,6 +150,9 @@ else
  endif
  ifndef SIO_DETECT
   SIO_DETECT	:= n
+ endif
+ ifndef USE_SIS_85C50X
+  USE_SIS_85C50X	:= n
  endif
  ifndef STPC
   STPC		:= y
@@ -543,6 +549,11 @@ OPTS		+= -DUSE_SIO_DETECT
 DEVBROBJ	+= sio_detect.o
 endif
 
+ifeq ($(USE_SIS_85C50X), y)
+OPTS		+= -DUSE_SIS_85C50X
+DEVBROBJ	+= sis_85c50x.o
+endif
+
 ifeq ($(STPC), y)
 OPTS		+= -DUSE_STPC
 DEVBROBJ	+= stpc.o
@@ -760,7 +771,8 @@ VIDOBJ		:= video.o \
 		    vid_voodoo_fifo.o vid_voodoo_reg.o \
 		    vid_voodoo_render.o vid_voodoo_setup.o \
 		    vid_voodoo_texture.o \
-			vid_ogc.o 
+			vid_ogc.o \
+			vid_nga.o
 
 PLATOBJ		:= win.o \
 		    win_dynld.o win_thread.o \

@@ -646,3 +646,95 @@ machine_at_acerv30_init(const machine_t *model)
 
     return ret;
 }
+
+
+#if defined(DEV_BRANCH) && defined(USE_SIS_85C50X)
+static void
+machine_at_sp4_common_init(const machine_t *model)
+{
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    /* Excluded: 02, 03, 04, 05, 06, 07, 08, 09, 0A, 0B, 0C, 0D, 0E, 0F, 10, 11, 12, 13, 14 */
+    pci_register_slot(0x0D, PCI_CARD_IDE, 1, 2, 3, 4);
+    /* Excluded: 02, 03*, 04*, 05*, 06*, 07*, 08* */
+    /* Slots: 09 (04), 0A (03), 0B (02), 0C (07) */
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    device_add(&sis_85c50x_device);
+    device_add(&ide_cmd640_pci_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&fdc37c665_device);
+    device_add(&intel_flash_bxt_device);
+}
+
+
+int
+machine_at_p5sp4_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/p5sp4/0106.001",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_sp4_common_init(model);
+
+    return ret;
+}
+
+
+int
+machine_at_p54sp4_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/p54sp4/SI5I0204.AWD",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_sp4_common_init(model);
+
+    return ret;
+}
+
+
+int
+machine_at_sq588_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/sq588/sq588b03.rom",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    /* Correct: 0D (01), 0F (02), 11 (03), 13 (04) */
+    pci_register_slot(0x02, PCI_CARD_IDE, 1, 2, 3, 4);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    device_add(&sis_85c50x_device);
+    device_add(&ide_cmd640_pci_single_channel_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&fdc37c665_ide_device);
+    device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
+#endif

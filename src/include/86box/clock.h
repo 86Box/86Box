@@ -21,8 +21,8 @@
 enum {
     ICS9xxx_xx,
     ICS9150_08,
-#if 0
     ICS9248_39,
+#if 0
     ICS9248_81,
     ICS9248_95,
     ICS9248_98,

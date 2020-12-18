@@ -29,7 +29,7 @@ enum host_cpu_feature {
 };
 
 /* This code is appropriate for 32-bit and 64-bit x86 CPUs. */
-#if defined(__x86_64__) || defined(__i386__) || defined(_MSC_VER)
+#if defined(__x86_64__) || defined(__i386__) || defined(_M_IX86) || (defined(_M_X64) && !(defined(_MSC_VER) && !defined(__clang__)))
 
 struct cpu_x86_regs_s {
   unsigned int eax;
@@ -43,7 +43,7 @@ static cpu_x86_regs_t get_cpuid_regs(unsigned int index)
 {
   cpu_x86_regs_t retval;
 
-#if defined(_MSC_VER) /* MSVC assembly */
+#if defined(_MSC_VER) && !defined(__clang__) /* MSVC assembly */
   __asm {
     mov eax, [index]
     cpuid

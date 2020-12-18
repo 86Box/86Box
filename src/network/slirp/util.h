@@ -30,10 +30,11 @@
 #include <stdio.h>
 #include <assert.h>
 #include <errno.h>
+#ifndef _WIN32
 #include <unistd.h>
+#endif
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <inttypes.h>
 
 #ifdef _WIN32
@@ -45,8 +46,10 @@
 #include <netinet/in.h>
 #endif
 
-#if defined(_WIN32) && (defined(__x86_64__) || defined(__i386__))
-#define SLIRP_PACKED __attribute__((gcc_struct, packed))
+#if defined(_MSC_VER) && !defined(__clang__)
+#define SLIRP_PACKED
+#elif defined(_WIN32) && (defined(__x86_64__) || defined(__i386__))
+#define SLIRP_PACKED  __attribute__((gcc_struct, packed))
 #else
 #define SLIRP_PACKED __attribute__((packed))
 #endif
@@ -56,11 +59,7 @@
 #endif
 
 #ifndef container_of
-#define container_of(ptr, type, member)              \
-    __extension__({                                  \
-        void *__mptr = (void *)(ptr);                \
-        ((type *)(__mptr - offsetof(type, member))); \
-    })
+#define container_of(ptr, type, member) ((type *)((char *)(ptr) - offsetof(type, member)));
 #endif
 
 #ifndef G_SIZEOF_MEMBER

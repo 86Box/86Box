@@ -376,6 +376,12 @@ extern int	machine_at_vectra54_init(const machine_t *);
 extern int	machine_at_powermate_v_init(const machine_t *);
 extern int	machine_at_acerv30_init(const machine_t *);
 
+#if defined(DEV_BRANCH) && defined(USE_SIS_85C50X)
+extern int	machine_at_p5sp4_init(const machine_t *);
+extern int	machine_at_p54sp4_init(const machine_t *);
+extern int	machine_at_sq588_init(const machine_t *);
+#endif
+
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_endeavor_get_device(void);
 #define at_vectra54_get_device at_endeavor_get_device
@@ -469,6 +475,7 @@ extern int	machine_at_p6sba_init(const machine_t *);
 extern int	machine_at_ergox365_init(const machine_t *);
 #endif
 extern int	machine_at_ficka6130_init(const machine_t *);
+extern int	machine_at_p3v133_init(const machine_t *);
 extern int	machine_at_p3v4x_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
@@ -578,6 +585,7 @@ extern int	machine_xt_dtk_init(const machine_t *);
 extern int	machine_xt_jukopc_init(const machine_t *);
 extern int	machine_xt_open_xt_init(const machine_t *);
 extern int	machine_xt_pxxt_init(const machine_t *);
+extern int	machine_xt_ncrpc4i_init(const machine_t *);
 
 extern int	machine_xt_iskra3104_init(const machine_t *);
 

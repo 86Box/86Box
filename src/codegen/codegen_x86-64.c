@@ -1,4 +1,4 @@
-#ifdef __amd64__
+#if defined __amd64__ || defined _M_X64
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -24,7 +24,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
-#if WIN64
+#if _WIN64
 #include <windows.h>
 #endif
 
@@ -70,7 +70,7 @@ void codegen_init()
 	long pagemask = ~(pagesize - 1);
 #endif
         
-#if WIN64
+#if _WIN64
         codeblock = VirtualAlloc(NULL, BLOCK_SIZE * sizeof(codeblock_t), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
 #else
         codeblock = malloc(BLOCK_SIZE * sizeof(codeblock_t));
@@ -295,7 +295,7 @@ void codegen_block_start_recompile(codeblock_t *block)
         
         block_pos = BLOCK_GPF_OFFSET;
 #ifdef OLD_GPF
-#if WIN64
+#if _WIN64
         addbyte(0x48); /*XOR RCX, RCX*/
         addbyte(0x31);
         addbyte(0xc9);

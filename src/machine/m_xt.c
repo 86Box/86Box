@@ -322,3 +322,22 @@ machine_xt_iskra3104_init(const machine_t *model)
 
     return ret;
 }
+
+int
+machine_xt_ncrpc4i_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/ncr_pc4i/NCR_PC4i_BIOSROM_1985.bin",
+			   0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_xt_clone_init(model);
+
+    return ret;
+}
+
+
+

@@ -519,7 +519,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 			item->id = id++;
 
 			item->cx = 60;
-			item->cy = 15;
+			item->cy = 20;
 
 			item->style = WS_CHILD | WS_VISIBLE;
 
@@ -566,7 +566,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 			item->id = id++;
 
 			item->cx = 60;
-			item->cy = 15;
+			item->cy = 20;
 
 			item->style = WS_CHILD | WS_VISIBLE;
 
@@ -633,7 +633,7 @@ deviceconfig_inst_open(HWND hwnd, const device_t *device, int inst)
 			item->id = id++;
 
 			item->cx = 60;
-			item->cy = 15;
+			item->cy = 20;
 
 			item->style = WS_CHILD | WS_VISIBLE;
 

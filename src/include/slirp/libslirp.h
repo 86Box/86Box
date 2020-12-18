@@ -16,6 +16,17 @@
 
 #include "libslirp-version.h"
 
+/* Windows does not define ssize_t, so we need to define it here. */
+#ifndef _SSIZE_T_DEFINED
+# define _SSIZE_T_DEFINED
+# undef ssize_t
+# ifdef _WIN64
+#  define ssize_t int64_t
+# else
+#  define ssize_t int32_t
+# endif
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
