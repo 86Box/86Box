@@ -378,6 +378,7 @@ cmd640_init(const device_t *info)
 	dev->regs[0x01] = 0x10;
 	dev->regs[0x02] = 0x40;		/* PCI-0640B */
 	dev->regs[0x03] = 0x06;
+	dev->regs[0x04] = 0x01;		/* Apparently required by the ASUS PCI/I-P5SP4 AND PCI/I-P54SP4 */
 	dev->regs[0x07] = 0x02;		/* DEVSEL timing: 01 medium */
 	dev->regs[0x08] = 0x02;		/* Revision 02 */
 	dev->regs[0x09] = info->local;	/* Programming interface */
@@ -395,7 +396,7 @@ cmd640_init(const device_t *info)
 	dev->regs[0x3c] = 0x14;		/* IRQ 14 */
 	dev->regs[0x3d] = 0x01;		/* INTA */
 
-	device_add(&ide_vlb_2ch_device);
+	device_add(&ide_pci_2ch_device);
 
 	dev->slot = pci_add_card(PCI_ADD_IDE, cmd640_pci_read, cmd640_pci_write, dev);
 	dev->irq_mode[0] = dev->irq_mode[1] = 0;
@@ -410,7 +411,7 @@ cmd640_init(const device_t *info)
 	ide_board_set_force_ata3(0, 1);
 	ide_board_set_force_ata3(1, 1);
 
-	ide_pri_disable();
+	// ide_pri_disable();
     } else if (info->flags & DEVICE_VLB) {
 	if ((info->local & 0xffff) == 0x0078)
 		dev->regs[0x50] |= 0x20;	/* 0 = 178h, 17Ch; 1 = 078h, 07Ch */
@@ -418,9 +419,9 @@ cmd640_init(const device_t *info)
 	   accessing the configuration registers */
 	dev->in_cfg = 1;			/* Configuration register are accessible */
 
-	device_add(&ide_pci_2ch_device);
+	device_add(&ide_vlb_2ch_device);
 
-	io_sethandler(0x0078, 0x0008,
+	io_sethandler(info->local & 0xffff, 0x0008,
 		      cmd640_vlb_read, cmd640_vlb_readw, cmd640_vlb_readl,
 		      cmd640_vlb_write, cmd640_vlb_writew, cmd640_vlb_writel,
 		      dev);

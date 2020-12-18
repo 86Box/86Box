@@ -6,405 +6,365 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the SiS 85c501/85c503 chip.
+ *		Implementation of the SiS 85C50x Chipset.
  *
  *
  *
- * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
- *		Miran Grca, <mgrca8@gmail.com>
+ *	    Authors: Tiseno100,
  *
- *		Copyright 2019 Miran Grca.
+ *		Copyright 2020 Tiseno100.
  */
+
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
-#include <86box/mem.h>
-#include <86box/io.h>
-#include <86box/rom.h>
-#include <86box/pci.h>
 #include <86box/device.h>
-#include <86box/keyboard.h>
+#include <86box/io.h>
+#include <86box/timer.h>
+
+#include <86box/apm.h>
+#include <86box/mem.h>
+#include <86box/smram.h>
+#include <86box/pci.h>
 #include <86box/port_92.h>
+
 #include <86box/chipset.h>
 
 
-typedef struct sis_85c501_t
+#ifdef ENABLE_SIS_85C50X_LOG
+int sis_85c50x_do_log = ENABLE_SIS_85C50X_LOG;
+static void
+sis_85c50x_log(const char *fmt, ...)
 {
-    /* 85c501 */
-    uint8_t turbo_reg;
+    va_list ap;
 
-    /* 85c503 */
+    if (sis_85c50x_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+}
+#else
+#define sis_85c50x_log(fmt, ...)
+#endif
 
-    /* Registers */
-    uint8_t pci_conf[2][256];
 
-    /* 85c50x ISA */
-    uint8_t cur_reg,
-	    regs[39];
+typedef struct sis_85c50x_t
+{
+    uint8_t	index,
+		pci_conf[256], pci_conf_sb[256],
+		regs[256];
+
+    smram_t *	smram;
+    port_92_t *	port_92;
 } sis_85c50x_t;
 
 
 static void
-sis_85c501_recalcmapping(sis_85c50x_t *dev)
+sis_85c50x_shadow_recalc(sis_85c50x_t *dev)
 {
-    int c, d;
-    uint32_t base;
+    uint32_t base, i, can_read, can_write;
 
-    for (c = 0; c < 1; c++) {
-	for (d = 0; d < 4; d++) {
-		base = 0xe0000 + (d << 14);
-		if (dev->pci_conf[0][0x54 + c] & (1 << (d + 4))) {
-			switch (dev->pci_conf[0][0x53] & 0x60) {
-				case 0x00:
-					mem_set_mem_state(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-					break;
-				case 0x20:
-					mem_set_mem_state(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-					break;
-				case 0x40:
-					mem_set_mem_state(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-					break;
-				case 0x60:
-					mem_set_mem_state(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
-					break;
-			}
-		} else
-			mem_set_mem_state(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-	}
+    can_read = (dev->pci_conf[0x53] & 0x40) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+    can_write = (dev->pci_conf[0x53] & 0x20) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL;
+    if (!can_read)
+	can_write = MEM_WRITE_EXTANY;
+
+    mem_set_mem_state_both(0xf0000, 0x10000, can_read | can_write);
+    shadowbios = 1;
+    shadowbios_write = 1;
+
+    for (i = 0; i < 4; i++) {
+	base = 0xe0000 + (i << 14);
+	mem_set_mem_state_both(base, 0x4000, (dev->pci_conf[0x54] & (1 << (7 - i))) ? (can_read | can_write) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
+	base = 0xd0000 + (i << 14);
+	mem_set_mem_state_both(base, 0x4000, (dev->pci_conf[0x55] & (1 << (7 - i))) ? (can_read | can_write) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
+	base = 0xc0000 + (i << 14);
+	mem_set_mem_state_both(base, 0x4000, (dev->pci_conf[0x56] & (1 << (7 - i))) ? (can_read | can_write) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
     }
 
     flushmmucache();
-    shadowbios = 1;
 }
 
 
 static void
-sis_85c501_write(int func, int addr, uint8_t val, void *priv)
+sis_85c50x_smm_recalc(sis_85c50x_t *dev)
 {
-    sis_85c50x_t *dev = (sis_85c50x_t *) priv;
+    /* NOTE: Naming mismatch - what the datasheet calls "host address" is what we call ram_base. */
+    uint32_t ram_base = (dev->pci_conf[0x64] << 20) |
+			 ((dev->pci_conf[0x65] & 0x07) << 28);
 
-    if (func)
+    smram_disable(dev->smram);
+
+    if ((((dev->pci_conf[0x65] & 0xe0) >> 5) != 0x00) && (ram_base == 0x00000000))
 	return;
 
-    if ((addr >= 0x10) && (addr < 0x4f))
-	return;
+    switch ((dev->pci_conf[0x65] & 0xe0) >> 5) {
+	case 0x00:
+		if (!(dev->pci_conf[0x54] & 0xc0))
+			smram_enable(dev->smram, 0xe0000, 0xe0000, 0x8000, (dev->pci_conf[0x65] & 0x10), 1);
+		break;
+	case 0x01:
+		smram_enable(dev->smram, 0xb0000, ram_base, 0x10000, (dev->pci_conf[0x65] & 0x10), 1);
+		break;
+	case 0x02:
+		smram_enable(dev->smram, 0xa0000, ram_base, 0x10000, (dev->pci_conf[0x65] & 0x10), 1);
+		break;
+	case 0x04:
+		smram_enable(dev->smram, 0xa0000, ram_base, 0x8000, (dev->pci_conf[0x65] & 0x10), 1);
+		break;
+	case 0x06:
+		smram_enable(dev->smram, 0xb0000, ram_base, 0x8000, (dev->pci_conf[0x65] & 0x10), 1);
+		break;
+    }
+}
+
+
+static void
+sis_85c50x_write(int func, int addr, uint8_t val, void *priv)
+{
+    sis_85c50x_t *dev = (sis_85c50x_t *)priv;
+    uint8_t valxor = (val ^ dev->pci_conf[addr]);
 
     switch (addr) {
-	case 0x00: case 0x01: case 0x02: case 0x03:
-	case 0x08: case 0x09: case 0x0a: case 0x0b:
-	case 0x0c: case 0x0e:
-		return;
+	case 0x04:	/* Command - low byte */
+		dev->pci_conf[addr] = (dev->pci_conf[addr] & 0xb4) | (val & 0x4b);
+		break;
+	case 0x07:	/* Status - high byte */
+		dev->pci_conf[addr] = ((dev->pci_conf[addr] & 0xf9) & ~(val & 0xf8)) | (val & 0x06);
+		break;
+	case 0x50:
+		dev->pci_conf[addr] = val;
+		break;
+	case 0x51: /* Cache */
+		dev->pci_conf[addr] = val;
+		cpu_cache_ext_enabled = (val & 0x40);
+		cpu_update_waitstates();
+		break;
+	case 0x52:
+		dev->pci_conf[addr] = val;
+		break;
+	case 0x53: /* Shadow RAM */
+	case 0x54:
+	case 0x55:
+	case 0x56:
+		dev->pci_conf[addr] = val;
+		sis_85c50x_shadow_recalc(dev);
+		if (addr == 0x54)
+			sis_85c50x_smm_recalc(dev);
+		break;
+	case 0x57: case 0x58: case 0x59: case 0x5a:
+	case 0x5c: case 0x5d: case 0x5e: case 0x61:
+	case 0x62: case 0x63: case 0x67: case 0x68:
+	case 0x6a: case 0x6b: case 0x6c: case 0x6d:
+	case 0x6e: case 0x6f:
+		dev->pci_conf[addr] = val;
+		break;
+	case 0x5f:
+		dev->pci_conf[addr] = val & 0xfe;
+		break;
+	case 0x5b:
+		dev->pci_conf[addr] = val;
+		if (valxor & 0xc0)
+			port_92_set_features(dev->port_92, !!(val & 0x40), !!(val & 0x80));
+		break;
+	case 0x60:	/* SMI */
+		if ((dev->pci_conf[0x68] & 0x01) && !(dev->pci_conf[addr] & 0x02) && (val & 0x02)) {
+			dev->pci_conf[0x69] |= 0x01;
+			smi_line = 1;
+		}
+		dev->pci_conf[addr] = val & 0x3e;
+		break;
+	case 0x64:	/* SMRAM */
+	case 0x65:
+		dev->pci_conf[addr] = val;
+		sis_85c50x_smm_recalc(dev);
+		break;
+	case 0x66:
+		dev->pci_conf[addr] = (val & 0x7f);
+		break;
+	case 0x69:
+		dev->pci_conf[addr] &= ~(val);
+		break;
+    }
 
-	case 0x04: /*Command register*/
-		val &= 0x42;
-		val |= 0x04;
+    sis_85c50x_log("85C501: dev->pci_conf[%02x] = %02x\n", addr, val);
+}
+
+
+static uint8_t
+sis_85c50x_read(int func, int addr, void *priv)
+{
+    sis_85c50x_t *dev = (sis_85c50x_t *)priv;
+
+    sis_85c50x_log("85C501: dev->pci_conf[%02x] (%02x)\n", addr, dev->pci_conf[addr]);
+
+    return dev->pci_conf[addr];
+}
+
+
+static void
+sis_85c50x_sb_write(int func, int addr, uint8_t val, void *priv)
+{
+    sis_85c50x_t *dev = (sis_85c50x_t *)priv;
+
+    switch (addr) {
+	case 0x04:	/* Command */
+		dev->pci_conf_sb[addr] = val & 0x0f;
 		break;
-	case 0x05:
-		val &= 0x01;
+	case 0x07:	/* Status */
+		dev->pci_conf_sb[addr] &= ~(val & 0x30);
+		break;
+	case 0x40:	/* BIOS Control Register */
+		dev->pci_conf_sb[addr] = val & 0x3f;
+		break;
+	case 0x41: case 0x42: case 0x43: case 0x44:
+		/* INTA/B/C/D# Remapping Control Register */
+		dev->pci_conf_sb[addr] = val & 0x8f;
+		if (val & 0x80)
+			pci_set_irq_routing(PCI_INTA + (addr - 0x41), PCI_IRQ_DISABLED);
+		else
+			pci_set_irq_routing(PCI_INTA + (addr - 0x41), val & 0xf);
+		break;
+	case 0x48:	/* ISA Master/DMA Memory Cycle Control Register 1 */
+	case 0x49:	/* ISA Master/DMA Memory Cycle Control Register 2 */
+	case 0x4a:	/* ISA Master/DMA Memory Cycle Control Register 3 */
+	case 0x4b:	/* ISA Master/DMA Memory Cycle Control Register 4 */
+		dev->pci_conf_sb[addr] = val;
+		break;
+    }
+
+    sis_85c50x_log("85C503: dev->pci_conf_sb[%02x] = %02x\n", addr, val);
+}
+
+
+static uint8_t
+sis_85c50x_sb_read(int func, int addr, void *priv)
+{
+    sis_85c50x_t *dev = (sis_85c50x_t *)priv;
+    sis_85c50x_log("85C503: dev->pci_conf_sb[%02x] (%02x)\n", addr, dev->pci_conf_sb[addr]);
+
+    return dev->pci_conf_sb[addr];
+}
+
+
+static void
+sis_85c50x_isa_write(uint16_t addr, uint8_t val, void *priv)
+{
+    sis_85c50x_t *dev = (sis_85c50x_t *)priv;
+
+    switch (addr) {
+	case 0x22:
+		dev->index = val;
 		break;
 
-	case 0x06: /*Status*/
-		val = 0;
-		break;
-	case 0x07:
-		val = 0x02;
-		break;
-
-	case 0x54: /*Shadow configure*/
-		if ((dev->pci_conf[0][0x54] & val) ^ 0xf0) {
-			dev->pci_conf[0][0x54] = val;
-			sis_85c501_recalcmapping(dev);
+	case 0x23:
+		switch (dev->index) {
+			case 0x80:
+				dev->regs[dev->index] = val & 0xe7;
+				break;
+			case 0x81:
+				dev->regs[dev->index] = val & 0xf4;
+				break;
+			case 0x84: case 0x88: case 0x9: case 0x8a:
+			case 0x8b:
+				dev->regs[dev->index] = val;
+				break;
+			case 0x85:
+				outb(0x70, val);
+				break;
 		}
 		break;
     }
 
-    dev->pci_conf[0][addr] = val;
+    sis_85c50x_log("85C501-ISA: dev->regs[%02x] = %02x\n", addr, val);
 }
 
 
-static void
-sis_85c503_write(int func, int addr, uint8_t val, void *priv)
+static uint8_t
+sis_85c50x_isa_read(uint16_t addr, void *priv)
 {
-    sis_85c50x_t *dev = (sis_85c50x_t *) priv;
+    sis_85c50x_t *dev = (sis_85c50x_t *)priv;
+    uint8_t ret = 0xff;
 
-    if (func > 0)
-	return;
-
-    if (addr >= 0x0f && addr < 0x41)
-	return;
-
-    switch(addr) {
-	case 0x00: case 0x01: case 0x02: case 0x03:
-	case 0x08: case 0x09: case 0x0a: case 0x0b:
-	case 0x0e:
-		return;
-
-	case 0x04: /*Command register*/
-		val &= 0x08;
-		val |= 0x07;
-		break;
-	case 0x05:
-		val = 0;
+    switch (addr) {
+	case 0x22:
+		ret = dev->index;
 		break;
 
-	case 0x06: /*Status*/
-		val = 0;
-		break;
-	case 0x07:
-		val = 0x02;
-		break;
-
-	case 0x41:
-		if (val & 0x80)
-			pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
+	case 0x23:
+		if (dev->index == 0x85)
+			ret = inb(0x70);
 		else
-			pci_set_irq_routing(PCI_INTA, val & 0xf);
-		break;
-	case 0x42:
-		if (val & 0x80)
-			pci_set_irq_routing(PCI_INTC, PCI_IRQ_DISABLED);
-		else
-			pci_set_irq_routing(PCI_INTC, val & 0xf);
-		break;
-	case 0x43:
-		if (val & 0x80)
-			pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
-		else
-			pci_set_irq_routing(PCI_INTB, val & 0xf);
-		break;
-	case 0x44:
-		if (val & 0x80)
-			pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
-		else
-			pci_set_irq_routing(PCI_INTD, val & 0xf);
+			ret = dev->regs[dev->index];
 		break;
     }
+    
+    sis_85c50x_log("85C501-ISA: dev->regs[%02x] (%02x)\n", dev->index, ret);
 
-    dev->pci_conf[1][addr] = val;
-}
-
-
-static void
-sis_85c50x_isa_write(uint16_t port, uint8_t val, void *priv)
-{
-    sis_85c50x_t *dev = (sis_85c50x_t *) priv;
-
-    if (port & 1) {
-	if (dev->cur_reg <= 0x1a) 
-		dev->regs[dev->cur_reg] = val;
-    } else
-	dev->cur_reg = val;
-}
-
-
-static uint8_t
-sis_85c501_read(int func, int addr, void *priv)
-{
-    sis_85c50x_t *dev = (sis_85c50x_t *) priv;
-
-    if (func)
-	return 0xff;
-
-    return dev->pci_conf[0][addr];
-}
-
-
-static uint8_t
-sis_85c503_read(int func, int addr, void *priv)
-{
-    sis_85c50x_t *dev = (sis_85c50x_t *) priv;
-
-    if (func > 0)
-	return 0xff;
-
-    return dev->pci_conf[1][addr];
-}
-
-
-static uint8_t
-sis_85c50x_isa_read(uint16_t port, void *priv)
-{
-    sis_85c50x_t *dev = (sis_85c50x_t *) priv;
-
-    if (port & 1) {
-	if (dev->cur_reg <= 0x1a)
-		return dev->regs[dev->cur_reg];
-	else
-		return 0xff;
-    } else
-	return dev->cur_reg;
-}
-
-
-static void
-sis_85c50x_isa_reset(sis_85c50x_t *dev)
-{
-    int mem_size_mb, i = 0;
-
-    memset(dev->regs, 0, sizeof(dev->regs));
-
-    dev->cur_reg = 0;
-    for (i = 0; i < 0x27; i++)
-	dev->regs[i] = 0x00;
-
-    dev->regs[9] = 0x40;
-
-    mem_size_mb = mem_size >> 10;
-    switch (mem_size_mb) {
-	case 0: case 1:
-		dev->regs[9] |= 0;
-		break;
-	case 2: case 3:
-		dev->regs[9] |= 1;
-		break;
-	case 4:
-		dev->regs[9] |= 2;
-		break;
-	case 5:
-		dev->regs[9] |= 0x20;
-		break;
-	case 6: case 7:
-		dev->regs[9] |= 9;
-		break;
-	case 8: case 9:
-		dev->regs[9] |= 4;
-		break;
-	case 10: case 11:
-		dev->regs[9] |= 5;
-		break;
-	case 12: case 13: case 14: case 15:
-		dev->regs[9] |= 0xB;
-		break;
-	case 16:
-		dev->regs[9] |= 0x13;
-		break;
-	case 17:
-		dev->regs[9] |= 0x21;
-		break;
-	case 18: case 19:
-		dev->regs[9] |= 6;
-		break;
-	case 20: case 21: case 22: case 23:
-		dev->regs[9] |= 0xD;
-		break;
-	case 24: case 25: case 26: case 27:
-	case 28: case 29: case 30: case 31:
-		dev->regs[9] |= 0xE;
-		break;
-	case 32: case 33: case 34: case 35:
-		dev->regs[9] |= 0x1B;
-		break;
-	case 36: case 37: case 38: case 39:
-		dev->regs[9] |= 0xF;
-		break;
-	case 40: case 41: case 42: case 43:
-	case 44: case 45: case 46: case 47:
-		dev->regs[9] |= 0x17;
-		break;
-	case 48:
-		dev->regs[9] |= 0x1E;
-		break;
-	default:
-		if (mem_size_mb < 64)
-			dev->regs[9] |= 0x1E;
-		else if ((mem_size_mb >= 65) && (mem_size_mb < 68))
-			dev->regs[9] |= 0x22;
-		else
-			dev->regs[9] |= 0x24;
-		break;
-    }
-
-    dev->regs[0x11] = 9;
-    dev->regs[0x12] = 0xFF;
-    dev->regs[0x23] = 0xF0;
-    dev->regs[0x26] = 1;
-
-    io_removehandler(0x22, 0x0002,
-		     sis_85c50x_isa_read, NULL, NULL, sis_85c50x_isa_write, NULL, NULL, dev);
-    io_sethandler(0x22, 0x0002,
-		  sis_85c50x_isa_read, NULL, NULL, sis_85c50x_isa_write, NULL, NULL, dev);
+    return ret;
 }
 
 
 static void
 sis_85c50x_reset(void *priv)
 {
-    sis_85c50x_t *dev = (sis_85c50x_t *) priv;
+    sis_85c50x_t *dev = (sis_85c50x_t *)priv;
 
-    uint8_t val = 0;
+    /* North Bridge (SiS 85C501/502) */
+    dev->pci_conf[0x00] = 0x39;
+    dev->pci_conf[0x01] = 0x10;
+    dev->pci_conf[0x02] = 0x06;
+    dev->pci_conf[0x03] = 0x04;
+    dev->pci_conf[0x04] = 0x04;
+    dev->pci_conf[0x07] = 0x04;
+    dev->pci_conf[0x09] = 0x00;
+    dev->pci_conf[0x0a] = 0x00;
+    dev->pci_conf[0x0b] = 0x06;
 
-    val = sis_85c501_read(0, 0x54, priv);	/* Read current value of 0x44. */
-    sis_85c501_write(0, 0x54, val & 0xf, priv);	/* Turn off shadow BIOS but keep the lower 4 bits. */
+    sis_85c50x_write(0, 0x51, 0x00, dev);
+    sis_85c50x_write(0, 0x53, 0x00, dev);
+    sis_85c50x_write(0, 0x54, 0x00, dev);
+    sis_85c50x_write(0, 0x55, 0x00, dev);
+    sis_85c50x_write(0, 0x56, 0x00, dev);
+    sis_85c50x_write(0, 0x5b, 0x00, dev);
+    sis_85c50x_write(0, 0x60, 0x00, dev);
+    sis_85c50x_write(0, 0x64, 0x00, dev);
+    sis_85c50x_write(0, 0x65, 0x00, dev);
+    sis_85c50x_write(0, 0x68, 0x00, dev);
+    sis_85c50x_write(0, 0x69, 0xff, dev);
 
-    sis_85c50x_isa_reset(dev);
-}
-
-
-static void
-sis_85c50x_setup(sis_85c50x_t *dev)
-{
-    memset(dev, 0, sizeof(sis_85c50x_t));
-
-    /* 85c501 */
-    dev->pci_conf[0][0x00] = 0x39; /*SiS*/
-    dev->pci_conf[0][0x01] = 0x10; 
-    dev->pci_conf[0][0x02] = 0x06; /*501/502*/
-    dev->pci_conf[0][0x03] = 0x04; 
-
-    dev->pci_conf[0][0x04] = 7;
-    dev->pci_conf[0][0x05] = 0;
-
-    dev->pci_conf[0][0x06] = 0x80;
-    dev->pci_conf[0][0x07] = 0x02;
-
-    dev->pci_conf[0][0x08] = 0; /*Device revision*/
-
-    dev->pci_conf[0][0x09] = 0x00; /*Device class (PCI bridge)*/
-    dev->pci_conf[0][0x0a] = 0x00;
-    dev->pci_conf[0][0x0b] = 0x06;
-
-    dev->pci_conf[0][0x0e] = 0x00; /*Single function device*/
-
-    dev->pci_conf[0][0x50] = 0xbc;
-    dev->pci_conf[0][0x51] = 0xfb;
-    dev->pci_conf[0][0x52] = 0xad;
-    dev->pci_conf[0][0x53] = 0xfe;
-
-    shadowbios = 1;
-
-    /* 85c503 */
-    dev->pci_conf[1][0x00] = 0x39; /*SiS*/
-    dev->pci_conf[1][0x01] = 0x10; 
-    dev->pci_conf[1][0x02] = 0x08; /*503*/
-    dev->pci_conf[1][0x03] = 0x00; 
-
-    dev->pci_conf[1][0x04] = 7;
-    dev->pci_conf[1][0x05] = 0;
-
-    dev->pci_conf[1][0x06] = 0x80;
-    dev->pci_conf[1][0x07] = 0x02;
-
-    dev->pci_conf[1][0x08] = 0; /*Device revision*/
-
-    dev->pci_conf[1][0x09] = 0x00; /*Device class (PCI bridge)*/
-    dev->pci_conf[1][0x0a] = 0x01;
-    dev->pci_conf[1][0x0b] = 0x06;
-
-    dev->pci_conf[1][0x0e] = 0x00; /*Single function device*/
-
-    dev->pci_conf[1][0x41] = dev->pci_conf[1][0x42] =
-    dev->pci_conf[1][0x43] = dev->pci_conf[1][0x44] = 0x80;
+    /* South Bridge (SiS 85C503) */
+    dev->pci_conf_sb[0x00] = 0x39;
+    dev->pci_conf_sb[0x01] = 0x10;
+    dev->pci_conf_sb[0x02] = 0x08;
+    dev->pci_conf_sb[0x03] = 0x00;
+    dev->pci_conf_sb[0x04] = 0x07;
+    dev->pci_conf_sb[0x05] = 0x00;
+    dev->pci_conf_sb[0x06] = 0x00;
+    dev->pci_conf_sb[0x07] = 0x02;
+    dev->pci_conf_sb[0x08] = 0x00;
+    dev->pci_conf_sb[0x09] = 0x00;
+    dev->pci_conf_sb[0x0a] = 0x01;
+    dev->pci_conf_sb[0x0b] = 0x06;
+    sis_85c50x_write(0, 0x41, 0x80, dev);
+    sis_85c50x_write(0, 0x42, 0x80, dev);
+    sis_85c50x_write(0, 0x43, 0x80, dev);
+    sis_85c50x_write(0, 0x44, 0x80, dev);
 }
 
 
 static void
 sis_85c50x_close(void *priv)
 {
-    sis_85c50x_t *dev = (sis_85c50x_t *) priv;
+    sis_85c50x_t *dev = (sis_85c50x_t *)priv;
 
+    smram_del(dev->smram);
     free(dev);
 }
 
@@ -412,30 +372,31 @@ sis_85c50x_close(void *priv)
 static void *
 sis_85c50x_init(const device_t *info)
 {
-    sis_85c50x_t *dev = (sis_85c50x_t *) malloc(sizeof(sis_85c50x_t));
+    sis_85c50x_t *dev = (sis_85c50x_t *)malloc(sizeof(sis_85c50x_t));
+    memset(dev, 0x00, sizeof(sis_85c50x_t));
 
-    pci_add_card(0, sis_85c501_read, sis_85c501_write, dev);
-    pci_add_card(5, sis_85c503_read, sis_85c503_write, dev);
+    /* 501/502 (Northbridge) */
+    pci_add_card(PCI_ADD_NORTHBRIDGE, sis_85c50x_read, sis_85c50x_write, dev);
 
-    sis_85c50x_setup(dev);
-    sis_85c50x_isa_reset(dev);
+    /* 503 (Southbridge) */
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, sis_85c50x_sb_read, sis_85c50x_sb_write, dev);
+    io_sethandler(0x0022, 0x0002, sis_85c50x_isa_read, NULL, NULL, sis_85c50x_isa_write, NULL, NULL, dev);
 
-    device_add(&port_92_pci_device);
+    dev->smram = smram_add();
+    dev->port_92 = device_add(&port_92_device);
+
+    sis_85c50x_reset(dev);
 
     return dev;
 }
 
 
-const device_t sis_85c50x_device =
-{
-    "SiS 85c501/85c503",
+const device_t sis_85c50x_device = {
+    "SiS 85C50x",
     DEVICE_PCI,
     0,
-    sis_85c50x_init, 
-    sis_85c50x_close, 
-    sis_85c50x_reset,
-    { NULL },
-    NULL,
-    NULL,
+    sis_85c50x_init, sis_85c50x_close,
+    sis_85c50x_reset, { NULL },
+    NULL, NULL,
     NULL
 };

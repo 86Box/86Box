@@ -38,7 +38,7 @@
 
 typedef struct {
     uint8_t chip_id, tries,
-	    regs[16];
+	    has_ide, regs[16];
     int cur_reg,
 	com3_addr, com4_addr;
     fdc_t *fdc;
@@ -131,6 +131,18 @@ fdc_handler(fdc37c66x_t *dev)
 }
 
 
+
+static void
+ide_handler(fdc37c66x_t *dev)
+{
+    ide_sec_disable();
+    ide_set_base(1, (dev->regs[0x05] & 0x02) ? 0x170 : 0x1f0);
+    ide_set_side(1, (dev->regs[0x05] & 0x02) ? 0x376 : 0x3f6);
+    if (dev->regs[0x00] & 0x01)
+	ide_sec_enable();
+}
+
+
 static void
 fdc37c66x_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -152,6 +164,8 @@ fdc37c66x_write(uint16_t port, uint8_t val, void *priv)
 
 		switch(dev->cur_reg) {
 			case 0:
+				if (dev->has_ide && (valxor & 0x01))
+					ide_handler(dev);
 				if (valxor & 0x10)
 					fdc_handler(dev);
 				break;
@@ -183,6 +197,8 @@ fdc37c66x_write(uint16_t port, uint8_t val, void *priv)
 			case 5:
 				if (valxor & 0x01)
 					fdc_handler(dev);
+				if (dev->has_ide && (valxor & 0x02))
+					ide_handler(dev);
 				if (valxor & 0x18)
 					fdc_update_densel_force(dev->fdc, (dev->regs[5] & 0x18) >> 3);
 				if (valxor & 0x20)
@@ -237,6 +253,9 @@ fdc37c66x_reset(fdc37c66x_t *dev)
     dev->regs[0x6] = 0xff;
     dev->regs[0xd] = dev->chip_id;
     dev->regs[0xe] = 0x01;
+
+    if (dev->has_ide)
+	ide_handler(dev);
 }
 
 
@@ -260,7 +279,10 @@ fdc37c66x_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
-    dev->chip_id = info->local;
+    dev->chip_id = info->local & 0xff;
+    dev->has_ide = !!(info->local & 0x100);
+
+    if (dev->has_ide)
 
     io_sethandler(0x03f0, 0x0002,
 		  fdc37c66x_read, NULL, NULL, fdc37c66x_write, NULL, NULL, dev);
@@ -286,6 +308,15 @@ const device_t fdc37c665_device = {
     "SMC FDC37C665 Super I/O",
     0,
     0x65,
+    fdc37c66x_init, fdc37c66x_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+const device_t fdc37c665_ide_device = {
+    "SMC FDC37C665 Super I/O",
+    0,
+    0x165,
     fdc37c66x_init, fdc37c66x_close, NULL,
     { NULL }, NULL, NULL,
     NULL
