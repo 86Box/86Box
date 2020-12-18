@@ -330,7 +330,8 @@ const scancode scancode_xt[512] = {
 static uint8_t	key_queue[16];
 static int	key_queue_start = 0,
 		key_queue_end = 0;
-static int	is_t1x00 = 0;
+static int	is_tandy = 0, is_t1x00 = 0,
+		is_amstrad = 0;
 
 
 #ifdef ENABLE_KEYBOARD_XT_LOG
@@ -425,8 +426,16 @@ kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
     if (!adddata)
 	return;
 
+    if (is_tandy) {
+	adddata(val);
+	return;
+    }
+
     keyboard_get_states(NULL, &num_lock, NULL);
     shift_states = keyboard_get_shift() & STATE_SHIFT_MASK;
+
+    if (is_amstrad)
+	num_lock = !num_lock;
 
     switch(val) {
 	case FAKE_LSHIFT_ON:
@@ -553,15 +562,13 @@ kbd_read(uint16_t port, void *priv)
 				ret = ((mem_size-64) / 32) & 0x0f;
 			else
 				ret = ((mem_size-64) / 32) >> 4;
-		} 
-        else if (kbd->type == 8) {
-            /* Olivetti M19 */
-            if (kbd->pb & 0x04)
+		}  else if (kbd->type == 8) {
+			/* Olivetti M19 */
+			if (kbd->pb & 0x04)
 				ret = kbd->pd;
-            else 
-                ret = kbd->pd >> 4;
-        } 
-        else {
+			else 
+				ret = kbd->pd >> 4;
+		} else {
 			if (kbd->pb & 0x08)
 				ret = kbd->pd >> 4;
 			else {
@@ -610,6 +617,13 @@ kbd_reset(void *priv)
 
     key_queue_start = 0,
     key_queue_end = 0;
+}
+
+
+void
+keyboard_set_is_amstrad(int ams)
+{
+    is_amstrad = ams;
 }
 
 
@@ -727,7 +741,10 @@ kbd_init(const device_t *info)
 
     keyboard_set_table(scancode_xt);
 
+    is_tandy = (kbd->type == 5);
     is_t1x00 = (kbd->type == 6);
+
+    is_amstrad = 0;
 
     return(kbd);
 }

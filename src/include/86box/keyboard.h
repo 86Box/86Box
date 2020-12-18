@@ -102,6 +102,7 @@ extern void	keyboard_set_states(uint8_t cl, uint8_t nl, uint8_t sl);
 extern int	keyboard_recv(uint16_t key);
 extern int	keyboard_isfsexit(void);
 extern int	keyboard_ismsexit(void);
+extern void	keyboard_set_is_amstrad(int ams);
 
 extern void	keyboard_at_adddata_keyboard_raw(uint8_t val);
 extern void	keyboard_at_adddata_mouse(uint8_t val);

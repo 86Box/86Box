@@ -22,6 +22,7 @@
 #define	FLAG_ADDR_BY8		2
 #define FLAG_EXT_WRITE		4
 #define FLAG_LATCH8		8
+#define FLAG_NOSKEW		16
 
 
 typedef struct {

@@ -122,7 +122,6 @@ machine_at_batman_init(const machine_t *model)
 }
 
 
-#if defined(DEV_BRANCH) && defined(USE_DELLS4)
 int
 machine_at_dellxp60_init(const machine_t *model)
 {
@@ -184,7 +183,6 @@ machine_at_opti560l_init(const machine_t *model)
 
     return ret;
 }
-#endif 
 
 
 int
@@ -648,7 +646,6 @@ machine_at_acerv30_init(const machine_t *model)
 }
 
 
-#if defined(DEV_BRANCH) && defined(USE_SIS_85C50X)
 static void
 machine_at_sp4_common_init(const machine_t *model)
 {
@@ -737,4 +734,3 @@ machine_at_sq588_init(const machine_t *model)
 
     return ret;
 }
-#endif
