@@ -95,9 +95,7 @@ extern const device_t	sis_85c461_device;
 extern const device_t	sis_85c471_device;
 extern const device_t	sis_85c496_device;
 extern const device_t	sis_85c496_ls486e_device;
-#if defined(DEV_BRANCH) && defined(USE_SIS_85C50X)
 extern const device_t	sis_85c50x_device;
-#endif
 
 /* ST */
 #if defined(DEV_BRANCH) && defined(USE_STPC)
