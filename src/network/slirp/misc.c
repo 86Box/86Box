@@ -8,7 +8,7 @@
 #include <sys/un.h>
 #endif
 
-inline void insque(void *a, void *b)
+extern inline void insque(void *a, void *b)
 {
     register struct quehead *element = (struct quehead *)a;
     register struct quehead *head = (struct quehead *)b;
@@ -19,7 +19,7 @@ inline void insque(void *a, void *b)
         (struct quehead *)element;
 }
 
-inline void remque(void *a)
+extern inline void remque(void *a)
 {
     register struct quehead *element = (struct quehead *)a;
     ((struct quehead *)(element->qh_link))->qh_rlink = element->qh_rlink;

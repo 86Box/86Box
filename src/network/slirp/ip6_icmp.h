@@ -115,6 +115,9 @@ G_STATIC_ASSERT(sizeof(struct icmp6) == 40);
 /*
  * NDP Options
  */
+#if defined(_MSC_VER) && !defined (__clang__)
+#pragma pack(push, 1)
+#endif
 struct ndpopt {
     uint8_t ndpopt_type; /* Option type */
     uint8_t ndpopt_len; /* /!\ In units of 8 octets */
@@ -142,6 +145,9 @@ struct ndpopt {
 #define ndpopt_rdnss ndpopt_body.rdnss
     } ndpopt_body;
 } SLIRP_PACKED;
+#if defined(_MSC_VER) && !defined (__clang__)
+#pragma pack(pop)
+#endif
 
 /* NDP options type */
 #define NDPOPT_LINKLAYER_SOURCE 1 /* Source Link-Layer Address */

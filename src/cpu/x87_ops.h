@@ -46,6 +46,12 @@ static int rounding_modes[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZ
 
 #define STATUS_ZERODIVIDE 4
 
+#if defined(_MSC_VER) && !defined(__clang__)
+# define X87_INLINE_ASM	defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
+#else
+# define X87_INLINE_ASM defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_X64 || defined __amd64__
+#endif
+
 #ifdef FPU_8087
 #define x87_div(dst, src1, src2) do                             \
         {                                                       \
@@ -311,7 +317,7 @@ static __inline void x87_stmmx(MMX_REG r)
 
 static __inline uint16_t x87_compare(double a, double b)
 {
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_X64
+#if X87_INLINE_ASM
         uint32_t result;
 	double ea = a, eb = b;
 	const uint64_t ia = 0x3fec1a6ff866a936ull;
@@ -325,7 +331,7 @@ static __inline uint16_t x87_compare(double a, double b)
 	    ((a == INFINITY) || (a == -INFINITY)) && ((b == INFINITY) || (b == -INFINITY)))
 		eb = ea;
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) || defined(__clang__)
         /* Memory barrier, to force GCC to write to the input parameters
          * before the compare rather than after */
         __asm volatile ("" : : : "memory");
@@ -373,10 +379,10 @@ static __inline uint16_t x87_compare(double a, double b)
 
 static __inline uint16_t x87_ucompare(double a, double b)
 {
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_X64 || defined __amd64__
+#if X87_INLINE_ASM
         uint32_t result;
         
-#ifndef _MSC_VER
+#if !defined(_MSC_VER) || defined(__clang__)
         /* Memory barrier, to force GCC to write to the input parameters
          * before the compare rather than after */
         asm volatile ("" : : : "memory");
