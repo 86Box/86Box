@@ -425,6 +425,11 @@ kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
     if (!adddata)
 	return;
 
+    if (is_t1x00) {
+	adddata(val);
+	return;
+    }
+
     keyboard_get_states(NULL, &num_lock, NULL);
     shift_states = keyboard_get_shift() & STATE_SHIFT_MASK;
 
