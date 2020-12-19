@@ -380,3 +380,77 @@ machine_xt_eaglepcspirit_init(const machine_t *model)
 
     return ret;
 }
+
+int
+machine_xt_multitechpc700_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/multitech_pc700/multitech pc-700 3.1.bin",
+			   0x000fe000, 8192, 0);
+    
+    if (bios_only || !ret)
+	    return ret;
+
+    device_add(&keyboard_pc_device);
+
+    machine_xt_common_init(model);
+
+    return ret;
+}
+
+
+/*
+ * Current bugs and limitations:
+ * - 640-768 conventional memory not usable (should be mapped at address d0000-effff)
+ */
+int
+machine_xt_p3105_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/philips_p3105/philipsnms9100.bin",
+			   0x000fc000, 16384, 0);
+    
+    if (bios_only || !ret)
+	    return ret;
+
+    device_add(&keyboard_pc_device);
+
+    machine_xt_common_init(model);
+
+    return ret;
+}
+
+/*
+ * Current bugs and limitations:
+ * - 640-768 conventional memory not usable (should be mapped at address d0000-effff)
+ * - BIOS detects 4 fdds, so hdd letter is E instead of C
+ */
+int
+machine_xt_p3120_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/philips_p3120/philips_p3120.bin",
+			   0x000f8000, 32768, 0);
+    
+    if (bios_only || !ret)
+	    return ret;
+
+    device_add(&keyboard_pc_device);
+
+    machine_common_init(model);
+
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+
+    if (fdc_type == FDC_INTERNAL)	
+	    device_add(&fdc_at_device);
+    
+    nmi_init();
+
+    if (joystick_type)
+	    device_add(&gameport_device);
+
+    return ret;
+}
