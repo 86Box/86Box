@@ -25,28 +25,33 @@
 typedef struct {
     uint16_t	fans[4];
     uint8_t	temperatures[4];
-    uint16_t	voltages[10];
+    uint16_t	voltages[13];
 } hwm_values_t;
 
 typedef struct {
-    uint32_t	 local;
+    uint32_t	local;
     hwm_values_t *values;
+    void	*as99127f;
 
-    uint8_t	 regs[8];
-    uint8_t	 addr_register;
-    uint8_t	 temp_idx;
-    uint8_t	 i2c_addr, i2c_state;
-
-    uint8_t	 as99127f_i2c_addr;
+    uint8_t	regs[8];
+    uint8_t	addr_register;
+    uint8_t	i2c_addr: 7, i2c_state: 2;
 } lm75_t;
 
 
+/* hwm.c */
 extern uint16_t		hwm_get_vcore();
 
+/* hwm_lm75.c */
 extern void		lm75_remap(lm75_t *dev, uint8_t addr);
 extern uint8_t		lm75_read(lm75_t *dev, uint8_t reg);
 extern uint8_t		lm75_write(lm75_t *dev, uint8_t reg, uint8_t val);
 
+/* hwm_lm78.c */
+extern uint8_t		lm78_as99127f_read(void *priv, uint8_t reg);
+extern uint8_t		lm78_as99127f_write(void *priv, uint8_t reg, uint8_t val);
+
+/* hwm_vt82c686.c */
 extern void		vt82c686_hwm_write(uint8_t addr, uint8_t val, void *priv);
 
 

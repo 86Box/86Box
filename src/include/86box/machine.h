@@ -85,6 +85,7 @@
 #define IS_ARCH(m, a)		(machines[m].flags & (a)) ? 1 : 0;
 #define IS_AT(m)		((machines[m].flags & 0x00000FC8) && !(machines[m].flags & MACHINE_PC98)) ? 1 : 0;
 
+#define CPU_BLOCK(...)		(const uint8_t[]) {__VA_ARGS__, 0}
 #define MACHINE_MULTIPLIER_FIXED -1, -1
 
 
@@ -145,7 +146,7 @@ typedef struct _machine_ {
     const char	*internal_name;
     const char  type;
     uint32_t	cpu_package;
-    uint64_t	cpu_block;
+    const uint8_t *cpu_block;
     uint32_t	cpu_min_bus;
     uint32_t	cpu_max_bus;
     uint16_t	cpu_min_voltage;

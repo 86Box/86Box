@@ -39,9 +39,9 @@ typedef struct {
     hwm_values_t  *values;
 
     uint16_t regs[32];
-    uint8_t addr_register;
+    uint8_t addr_register: 5;
 
-    uint8_t i2c_addr, i2c_state;
+    uint8_t i2c_addr: 7, i2c_state: 2;
 } gl518sm_t;
 
 
