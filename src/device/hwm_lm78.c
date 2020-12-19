@@ -25,6 +25,8 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/timer.h>
+#include <86box/machine.h>
+#include <86box/nvr.h>
 #include "cpu.h"
 #include <86box/i2c.h>
 #include <86box/hwm.h>
@@ -48,28 +50,33 @@
 
 
 typedef struct {
-    uint32_t	  local;
-    hwm_values_t  *values;
-    device_t      *lm75[2];
-    pc_timer_t	  hard_reset_timer;
+    uint32_t	local;
+    hwm_values_t *values;
+    device_t    *lm75[2];
+    pc_timer_t	reset_timer;
 
-    uint8_t regs[256];
-    uint8_t regs_782d[2][16];
-    uint8_t addr_register;
-    uint8_t data_register;
+    uint8_t	regs[256];
+    union {
+	struct {
+		uint8_t	regs[2][16];
+	} w83782d;
+	struct {
+		uint8_t regs[3][128];
 
-    uint8_t i2c_addr, i2c_state;
+		uint8_t	nvram[1024], nvram_i2c_state: 2, nvram_updated: 1;
+		uint16_t nvram_addr_register: 10;
+		int8_t	nvram_block_len: 6;
+
+		uint8_t	security_i2c_state: 1, security_addr_register: 7;
+	} as99127f;
+    };
+    uint8_t	addr_register, data_register;
+
+    uint8_t	i2c_addr: 7, i2c_state: 1;
 } lm78_t;
 
 
-static uint8_t	lm78_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv);
-static uint8_t	lm78_isa_read(uint16_t port, void *priv);
-static uint8_t	lm78_i2c_read(void *bus, uint8_t addr, void *priv);
-static uint8_t	lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank);
-static void	lm78_isa_write(uint16_t port, uint8_t val, void *priv);
-static uint8_t	lm78_i2c_write(void *bus, uint8_t addr, uint8_t data, void *priv);
-static uint8_t	lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank);
-static void	lm78_reset(lm78_t *dev, uint8_t initialization);
+static void	lm78_remap(lm78_t *dev, uint8_t addr);
 
 
 #ifdef ENABLE_LM78_LOG
@@ -92,31 +99,223 @@ lm78_log(const char *fmt, ...)
 #endif
 
 
-static void
-lm78_remap(lm78_t *dev, uint8_t addr)
+void
+lm78_nvram(lm78_t *dev, uint8_t save)
 {
-    lm75_t *lm75;
+    size_t l = strlen(machine_get_internal_name_ex(machine)) + 1;
+    wchar_t *machine_name = (wchar_t *) malloc(l * sizeof(wchar_t));
+    mbstowcs(machine_name, machine_get_internal_name_ex(machine), l);
+    l = wcslen(machine_name) + 14;
+    wchar_t *nvr_path = (wchar_t *) malloc(l * sizeof(wchar_t));
+    swprintf(nvr_path, l, L"%ls_as99127f.nvr", machine_name);
 
-    if (!(dev->local & LM78_I2C)) return;
-
-    lm78_log("LM78: remapping to SMBus %02Xh\n", addr);
-
-    i2c_removehandler(i2c_smbus, dev->i2c_addr, 1, lm78_i2c_start, lm78_i2c_read, lm78_i2c_write, NULL, dev);
-
-    if (addr < 0x80)
-	i2c_sethandler(i2c_smbus, addr, 1, lm78_i2c_start, lm78_i2c_read, lm78_i2c_write, NULL, dev);
-
-    dev->i2c_addr = addr;
-
-    if (dev->local & LM78_AS99127F) {
-	/* Store the main I2C address on the LM75 devices to ensure reads/writes
-	   to the AS99127F's proprietary registers are passed through to this side. */
-	for (uint8_t i = 0; i <= 1; i++) {
-		lm75 = device_get_priv(dev->lm75[i]);
-		if (lm75)
-			lm75->as99127f_i2c_addr = dev->i2c_addr;
-	}
+    FILE *f = nvr_fopen(nvr_path, save ? L"wb": L"rb");
+    if (f) {
+	if (save)
+		fwrite(&dev->as99127f.nvram, sizeof(dev->as99127f.nvram), 1, f);
+	else
+		fread(&dev->as99127f.nvram, sizeof(dev->as99127f.nvram), 1, f);
+	fclose(f);
     }
+    
+    free(machine_name);
+    free(nvr_path);
+}
+
+
+static uint8_t
+lm78_nvram_start(void *bus, uint8_t addr, uint8_t read, void *priv)
+{
+    lm78_t *dev = (lm78_t *) priv;
+
+    dev->as99127f.nvram_i2c_state = 0;
+
+    return 1;
+}
+
+
+static uint8_t
+lm78_nvram_read(void *bus, uint8_t addr, void *priv)
+{
+    lm78_t *dev = (lm78_t *) priv;
+    uint8_t ret = 0xff;
+
+    switch (dev->as99127f.nvram_i2c_state) {
+	case 0:
+		dev->as99127f.nvram_i2c_state = 1;
+		/* fall-through */
+
+	case 1:
+		ret = dev->as99127f.regs[0][0x0b] & 0x3f;
+		lm78_log("LM78: nvram_read(blocklen) = %02X\n", ret);
+		break;
+
+	case 2:
+		ret = dev->as99127f.nvram[dev->as99127f.nvram_addr_register];
+		lm78_log("LM78: nvram_read(%03X) = %02X\n", dev->as99127f.nvram_addr_register, ret);
+
+		dev->as99127f.nvram_addr_register++;
+		break;
+
+	default:
+		lm78_log("LM78: nvram_read(unknown) = %02X\n", ret);
+		break;
+    }
+
+    if (dev->as99127f.nvram_i2c_state < 2)
+	dev->as99127f.nvram_i2c_state++;
+
+    return ret;
+}
+
+
+static uint8_t
+lm78_nvram_write(void *bus, uint8_t addr, uint8_t val, void *priv)
+{
+    lm78_t *dev = (lm78_t *) priv;
+
+    switch (dev->as99127f.nvram_i2c_state) {
+	case 0:
+		lm78_log("LM78: nvram_write(address, %02X)\n", val);
+		dev->as99127f.nvram_addr_register = (addr << 8) | val;
+		break;
+
+	case 1:
+		lm78_log("LM78: nvram_write(blocklen, %02X)\n", val);
+		dev->as99127f.nvram_block_len = val & 0x3f;
+		if (dev->as99127f.nvram_block_len <= 0)
+			dev->as99127f.nvram_i2c_state = 3;
+		break;
+
+	case 2:
+		lm78_log("LM78: nvram_write(%03X, %02X)\n", dev->as99127f.nvram_addr_register, val);
+		dev->as99127f.nvram[dev->as99127f.nvram_addr_register++] = val;
+		dev->as99127f.nvram_updated = 1;
+		if (--dev->as99127f.nvram_block_len <= 0)
+			dev->as99127f.nvram_i2c_state = 3;
+		break;
+
+	default:
+		lm78_log("LM78: nvram_write(unknown, %02X)\n", val);
+		break;
+    }
+
+    if (dev->as99127f.nvram_i2c_state < 2)
+	dev->as99127f.nvram_i2c_state++;
+
+    return dev->as99127f.nvram_i2c_state < 3;
+}
+
+
+static uint8_t
+lm78_security_start(void *bus, uint8_t addr, uint8_t read, void *priv)
+{
+    lm78_t *dev = (lm78_t *) priv;
+
+    dev->as99127f.security_i2c_state = 0;
+
+    return 1;
+}
+
+
+static uint8_t
+lm78_security_read(void *bus, uint8_t addr, void *priv)
+{
+    lm78_t *dev = (lm78_t *) priv;
+
+    return dev->as99127f.regs[2][dev->as99127f.security_addr_register++];
+}
+
+
+static uint8_t
+lm78_security_write(void *bus, uint8_t addr, uint8_t val, void *priv)
+{
+    lm78_t *dev = (lm78_t *) priv;
+
+    if (dev->as99127f.security_i2c_state == 0) {
+	dev->as99127f.security_i2c_state = 1;
+	dev->as99127f.security_addr_register = val;
+    } else {
+	switch (dev->as99127f.security_addr_register) {
+		case 0xe0: case 0xe4: case 0xe5: case 0xe6: case 0xe7:
+			/* read-only registers */
+			return 1;
+	}
+
+	dev->as99127f.regs[2][dev->as99127f.security_addr_register++] = val;
+    }
+
+    return 1;
+}
+
+
+static void
+lm78_reset(lm78_t *dev, uint8_t initialization)
+{
+    memset(dev->regs, 0, 256);
+    memset(dev->regs + 0xc0, 0xff, 32); /* C0-DF are 0xFF on a real AS99127F */
+
+    dev->regs[0x40] = 0x08;
+    dev->regs[0x46] = 0x40;
+    dev->regs[0x47] = 0x50;
+    if (dev->local & LM78_I2C) {
+	if (!initialization) /* don't reset main I2C address if the reset was triggered by the INITIALIZATION bit */
+		dev->i2c_addr = 0x2d;
+	dev->regs[0x48] = dev->i2c_addr;
+	if (dev->local & LM78_WINBOND)
+		dev->regs[0x4a] = 0x01;
+    } else {
+	dev->regs[0x48] = 0x00;
+	if (dev->local & LM78_WINBOND)
+		dev->regs[0x4a] = 0x88;
+    }
+    if (dev->local & LM78_WINBOND) {
+	dev->regs[0x49] = 0x02;
+	dev->regs[0x4b] = 0x44;
+	dev->regs[0x4c] = 0x01;
+	dev->regs[0x4d] = 0x15;
+	dev->regs[0x4e] = 0x80;
+	dev->regs[0x4f] = LM78_WINBOND_VENDOR_ID >> 8;
+	dev->regs[0x57] = 0x80;
+
+	if (dev->local & LM78_AS99127F) {
+		dev->regs[0x49] = 0x20;
+		dev->regs[0x4c] = 0x00;
+		dev->regs[0x56] = 0xff;
+		dev->regs[0x57] = 0xff;
+		dev->regs[0x58] = 0x31;
+		dev->regs[0x59] = 0x8f;
+		dev->regs[0x5a] = 0x8f;
+		dev->regs[0x5b] = 0x2a;
+		dev->regs[0x5c] = 0xe0;
+		dev->regs[0x5d] = 0x48;
+		dev->regs[0x5e] = 0xe2;
+		dev->regs[0x5f] = 0x1f;
+
+		dev->as99127f.regs[0][0x02] = 0xff;
+		dev->as99127f.regs[0][0x03] = 0xff;
+		dev->as99127f.regs[0][0x08] = 0xff;
+		dev->as99127f.regs[0][0x09] = 0xff;
+		dev->as99127f.regs[0][0x0b] = 0x01;
+
+		/* regs[1] and regs[2] start at 0x80 */
+		dev->as99127f.regs[1][0x00] = 0x88;
+		dev->as99127f.regs[1][0x01] = 0x10;
+		dev->as99127f.regs[1][0x04] = 0x01;
+		dev->as99127f.regs[1][0x05] = 0x1f;
+		lm78_as99127f_write(dev, 0x06, 0x2f);
+
+		dev->as99127f.regs[2][0x60] = 0xf0;
+	} else if (dev->local & LM78_W83781D) {
+		dev->regs[0x58] = 0x10;
+	} else if (dev->local & LM78_W83782D) {
+		dev->regs[0x58] = 0x30;
+	}
+    } else {
+	dev->regs[0x49] = 0x40;
+    }
+
+    lm78_remap(dev, dev->i2c_addr);
 }
 
 
@@ -132,6 +331,53 @@ lm78_i2c_start(void *bus, uint8_t addr, uint8_t read, void *priv)
 
 
 static uint8_t
+lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank)
+{
+    uint8_t ret = 0, masked_reg = reg, bankswitched = ((reg & 0xf8) == 0x50);
+    lm75_t *lm75;
+
+    if ((dev->local & LM78_AS99127F) && (bank == 3) && (reg != 0x4e)) {
+	/* AS99127F additional registers */
+	if (!((dev->local & LM78_AS99127F_REV2) && ((reg == 0x80) || (reg == 0x81))))
+		ret = dev->as99127f.regs[0][reg & 0x7f];
+    } else if (bankswitched && ((bank == 1) || (bank == 2))) {
+	/* LM75 registers */
+	lm75 = device_get_priv(dev->lm75[bank - 1]);
+	if (lm75)
+		ret = lm75_read(lm75, reg);
+    } else if (bankswitched && ((bank == 4) || (bank == 5) || (bank == 6))) {
+	/* W83782D additional registers */
+	if (dev->local & LM78_W83782D) {
+		if ((bank == 5) && ((reg == 0x50) || (reg == 0x51))) /* voltages */
+			ret = LM78_VOLTAGE_TO_REG(dev->values->voltages[7 + (reg & 1)]);
+		else if (bank < 6)
+			ret = dev->w83782d.regs[bank - 4][reg & 0x0f];
+	}
+    } else {
+	/* regular registers */
+	if ((reg >= 0x60) && (reg <= 0x94)) /* read auto-increment value RAM registers from their non-auto-increment locations */
+		masked_reg = reg & 0x3f;
+	if ((masked_reg >= 0x20) && (masked_reg <= 0x26)) /* voltages */
+		ret = LM78_VOLTAGE_TO_REG(dev->values->voltages[reg & 7]);
+	else if ((dev->local & LM78_AS99127F) && (masked_reg <= 0x05)) /* AS99127F additional voltages */
+		ret = LM78_VOLTAGE_TO_REG(dev->values->voltages[7 + masked_reg]);
+	else if (masked_reg == 0x27) /* temperature */
+		ret = dev->values->temperatures[0];
+	else if ((masked_reg >= 0x28) && (masked_reg <= 0x2a)) /* fan speeds */
+		ret = LM78_RPM_TO_REG(dev->values->fans[reg & 3], 1 << ((dev->regs[((reg & 3) == 2) ? 0x4b : 0x47] >> ((reg & 3) ? 6 : 4)) & 0x3));
+	else if ((reg == 0x4f) && (dev->local & LM78_WINBOND)) /* two-byte vendor ID register */
+		ret = (dev->regs[0x4e] & 0x80) ? (LM78_WINBOND_VENDOR_ID >> 8) : LM78_WINBOND_VENDOR_ID;
+	else
+		ret = dev->regs[masked_reg];
+    }
+
+    lm78_log("LM78: read(%02X, %d) = %02X\n", reg, bank, ret);
+
+    return ret;
+}
+
+
+static uint8_t
 lm78_isa_read(uint16_t port, void *priv)
 {
     lm78_t *dev = (lm78_t *) priv;
@@ -139,7 +385,7 @@ lm78_isa_read(uint16_t port, void *priv)
 
     switch (port & 0x7) {
 	case 0x5:
-		ret = (dev->addr_register & 0x7f);
+		ret = dev->addr_register & 0x7f;
 		break;
 
 	case 0x6:
@@ -147,7 +393,7 @@ lm78_isa_read(uint16_t port, void *priv)
 
 		if (((LM78_WINBOND_BANK == 0) &&
 		    ((dev->addr_register == 0x41) || (dev->addr_register == 0x43) || (dev->addr_register == 0x45) || (dev->addr_register == 0x56) ||
-		     ((dev->addr_register >= 0x60) && (dev->addr_register < 0x7f)))) ||
+		     ((dev->addr_register >= 0x60) && (dev->addr_register < 0x94)))) ||
 		    ((dev->local & LM78_W83782D) && (LM78_WINBOND_BANK == 5) && (dev->addr_register >= 0x50) && (dev->addr_register < 0x58))) {
 			/* auto-increment registers */
 			dev->addr_register++;
@@ -172,100 +418,15 @@ lm78_i2c_read(void *bus, uint8_t addr, void *priv)
 }
 
 
-static uint8_t
-lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank)
+uint8_t
+lm78_as99127f_read(void *priv, uint8_t reg)
 {
-    uint8_t ret = 0, masked_reg = reg, bankswitched = ((reg & 0xf8) == 0x50);
-    lm75_t *lm75;
+    lm78_t *dev = (lm78_t *) priv;
+    uint8_t ret = dev->as99127f.regs[1][reg & 0x7f];
 
-    if (bankswitched && ((bank == 1) || (bank == 2))) {
-	/* LM75 registers */
-	lm75 = device_get_priv(dev->lm75[bank - 1]);
-	if (lm75)
-		ret = lm75_read(lm75, reg);
-    } else if (bankswitched && ((bank == 4) || (bank == 5) || (bank == 6))) {
-	/* W83782D additional registers */
-	if (dev->local & LM78_W83782D) {
-		if ((bank == 5) && ((reg == 0x50) || (reg == 0x51))) /* voltages */
-			ret = LM78_VOLTAGE_TO_REG(dev->values->voltages[7 + (reg & 1)]);
-		else if (bank < 6)
-			ret = dev->regs_782d[bank - 4][reg & 0x0f];
-	}
-    } else {
-	/* regular registers */
-	ret = dev->regs[reg];
-	if (reg >= 0x40)
-		masked_reg = reg & 0x3f; /* match both non-auto-increment and auto-increment locations */
-	if ((masked_reg >= 0x20) && (masked_reg <= 0x26)) /* voltages */
-		ret = LM78_VOLTAGE_TO_REG(dev->values->voltages[reg & 7]);
-	else if (masked_reg == 0x27) /* temperature */
-		ret = dev->values->temperatures[0];
-	else if ((masked_reg >= 0x28) && (masked_reg <= 0x2a)) /* fan speeds */
-		ret = LM78_RPM_TO_REG(dev->values->fans[reg & 3], 1 << ((dev->regs[((reg & 3) == 2) ? 0x4b : 0x47] >> ((reg & 3) ? 6 : 4)) & 0x3));
-	else if ((reg == 0x4f) && (dev->local & LM78_WINBOND)) /* two-byte vendor ID register */
-		ret = ((dev->regs[0x4e] & 0x80) ? (LM78_WINBOND_VENDOR_ID >> 8) : LM78_WINBOND_VENDOR_ID);
-	else if ((reg >= 0x60) && (reg <= 0x7f)) /* read auto-increment value RAM registers from their non-auto-increment locations */
-		ret = dev->regs[reg & 0x3f];
-	else if (dev->local & LM78_AS99127F) { /* AS99127F mirrored registers */
-		masked_reg = reg & 0x7f;
-		if (masked_reg == 0x00) /* IN2 Low Limit */
-			ret = dev->regs[0x30];
-		else if ((masked_reg == 0x01) || (masked_reg == 0x04)) /* IN3 */
-			ret = LM78_VOLTAGE_TO_REG(dev->values->voltages[3]);
-		else if (masked_reg == 0x05) /* IN2 */
-			ret = LM78_VOLTAGE_TO_REG(dev->values->voltages[2]);
-		else if (masked_reg == 0x08) /* IN3 Low Limit */
-			ret = dev->regs[0x32];
-		else if ((reg >= 0x80) && (reg <= 0x92)) /* mirror [0x00:0x12] to [0x80:0x92] */
-			ret = dev->regs[masked_reg];
-	}
-    }
-
-    lm78_log("LM78: read(%02X, %d) = %02X\n", reg, bank, ret);
+    lm78_log("LM78: read(%02X, AS99127F) = %02X\n", reg, ret);
 
     return ret;
-}
-
-
-static void
-lm78_isa_write(uint16_t port, uint8_t val, void *priv)
-{
-    lm78_t *dev = (lm78_t *) priv;
-
-    switch (port & 0x7) {
-	case 0x5:
-		dev->addr_register = (val & 0x7f);
-		break;
-	case 0x6:
-		lm78_write(dev, dev->addr_register, val, LM78_WINBOND_BANK);
-
-		if (((LM78_WINBOND_BANK == 0) &&
-		    ((dev->addr_register == 0x41) || (dev->addr_register == 0x43) || (dev->addr_register == 0x45) || (dev->addr_register == 0x56) ||
-		     ((dev->addr_register >= 0x60) && (dev->addr_register < 0x7f)))) ||
-		    ((dev->local & LM78_W83782D) && (LM78_WINBOND_BANK == 5) && (dev->addr_register >= 0x50) && (dev->addr_register < 0x58))) {
-			/* auto-increment registers */
-			dev->addr_register++;
-		}
-		break;
-	default:
-		lm78_log("LM78: Write %02X to unknown ISA port %d\n", val, port & 0x7);
-		break;
-    }
-}
-
-
-static uint8_t
-lm78_i2c_write(void *bus, uint8_t addr, uint8_t val, void *priv)
-{
-    lm78_t *dev = (lm78_t *) priv;
-
-    if (dev->i2c_state == 0) {
-	dev->i2c_state = 1;
-	dev->addr_register = val;
-    } else
-	lm78_write(dev, dev->addr_register++, val, LM78_WINBOND_BANK);
-
-    return 1;
 }
 
 
@@ -276,12 +437,27 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 
     lm78_log("LM78: write(%02X, %d, %02X)\n", reg, bank, val);
 
-    if ((reg & 0xf8) == 0x50) {
+    if ((dev->local & LM78_AS99127F) && (bank == 3) && (reg != 0x4e)) {
+	/* AS99127F additional registers */
+	reg &= 0x7f;
+	switch (reg) {
+		case 0x00: case 0x01: case 0x04: case 0x05: case 0x06: case 0x07:
+			/* read-only registers */
+			return 0;
+
+		case 0x20:
+			val &= 0x7f;
+			break;
+	}
+
+	dev->as99127f.regs[0][reg] = val;
+	return 1;
+    } else if ((reg & 0xf8) == 0x50) {
 	if ((bank == 1) || (bank == 2)) {
 		/* LM75 registers */
 		lm75 = device_get_priv(dev->lm75[bank - 1]);
 		if (lm75)
-			lm75_write(lm75, reg, val);
+			return lm75_write(lm75, reg, val);
 		return 1;
 	} else if (dev->local & LM78_W83782D) {
 		/* W83782D additional registers */
@@ -293,7 +469,7 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 					return 0;
 			}
 
-			dev->regs_782d[0][reg & 0x0f] = val;
+			dev->w83782d.regs[0][reg & 0x0f] = val;
 			return 1;
 		} else if (bank == 5) {
 			switch (reg) {
@@ -303,19 +479,21 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 					return 0;
 			}
 
-			dev->regs_782d[1][reg & 0x0f] = val;
+			dev->w83782d.regs[1][reg & 0x0f] = val;
 			return 1;
 		} else if (bank == 6) {
 			return 0;
 		}
 	}
-    }
+    } 
 
     /* regular registers */
     switch (reg) {
 	case 0x41: case 0x42: case 0x4f: case 0x58:
 	case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25: case 0x26: case 0x27: case 0x28: case 0x29: case 0x2a:
 	case 0x60: case 0x61: case 0x62: case 0x63: case 0x64: case 0x65: case 0x66: case 0x67: case 0x68: case 0x69: case 0x6a:
+	case 0x00: case 0x01: case 0x02: case 0x03: case 0x04: case 0x05:
+	case 0x80: case 0x81: case 0x82: case 0x83: case 0x84: case 0x85:
 		/* read-only registers */
 		return 0;
 
@@ -326,12 +504,10 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 		break;
     }
 
-    if ((reg >= 0x60) && (reg <= 0x7f)) /* write auto-increment value RAM registers to their non-auto-increment locations */
-	dev->regs[reg & 0x3f] = val;
-    else if ((reg >= 0x80) && (reg <= 0x92)) /* AS99127F mirrors [0x00:0x12] to [0x80:0x92] */
-	dev->regs[reg & 0x7f] = val;
-    else
-	dev->regs[reg] = val;
+    if ((reg >= 0x60) && (reg <= 0x94)) /* write auto-increment value RAM registers to their non-auto-increment locations */
+	reg &= 0x3f;
+    uint8_t prev = dev->regs[reg];
+    dev->regs[reg] = val;
 
     switch (reg) {
 	case 0x40:
@@ -363,26 +539,107 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 				lm75 = device_get_priv(dev->lm75[i]);
 				if (!lm75)
 					continue;
-				if (dev->regs[0x4a] & (0x08 * (0x10 * i))) /* DIS_T2 and DIS_T3 bit disable those interfaces */
+				if (val & (0x08 * (0x10 * i))) /* DIS_T2 and DIS_T3 bit disable those interfaces */
 					lm75_remap(lm75, 0x80);
 				else
-					lm75_remap(lm75, 0x48 + ((dev->regs[0x4a] >> (i * 4)) & 0x7));
+					lm75_remap(lm75, 0x48 + ((val >> (i * 4)) & 0x7));
 			}
 		}
 		break;
 
-	case 0x81:
-		/* CUV4X-LS performs a hard reset through this register. */
-		if ((dev->local & LM78_AS99127F) && (val == 0xa9)) {
-			lm78_log("LM78: Hard reset requested through AS99127F\n");
-			timer_set_delay_u64(&dev->hard_reset_timer, 1); /* hard reset on a timer to avoid issues caused by invalidation of the I2C bus */
+	case 0x5c:
+		/* enable/disable AS99127F NVRAM */
+		if (dev->local & LM78_AS99127F) {
+			if (prev & 0x01)
+				i2c_removehandler(i2c_smbus, (prev & 0xf8) >> 1, 4, lm78_nvram_start, lm78_nvram_read, lm78_nvram_write, NULL, dev);
+			if (val & 0x01)
+				i2c_sethandler(i2c_smbus, (val & 0xf8) >> 1, 4, lm78_nvram_start, lm78_nvram_read, lm78_nvram_write, NULL, dev);
+		}
+		break;
+    }
+
+    return 1;
+}
+
+
+static void
+lm78_isa_write(uint16_t port, uint8_t val, void *priv)
+{
+    lm78_t *dev = (lm78_t *) priv;
+
+    switch (port & 0x7) {
+	case 0x5:
+		dev->addr_register = val & 0x7f;
+		break;
+
+	case 0x6:
+		lm78_write(dev, dev->addr_register, val, LM78_WINBOND_BANK);
+
+		if (((LM78_WINBOND_BANK == 0) &&
+		    ((dev->addr_register == 0x41) || (dev->addr_register == 0x43) || (dev->addr_register == 0x45) || (dev->addr_register == 0x56) ||
+		     ((dev->addr_register >= 0x60) && (dev->addr_register < 0x94)))) ||
+		    ((dev->local & LM78_W83782D) && (LM78_WINBOND_BANK == 5) && (dev->addr_register >= 0x50) && (dev->addr_register < 0x58))) {
+			/* auto-increment registers */
+			dev->addr_register++;
 		}
 		break;
 
-	case 0x87:
-		/* Other AS99127F boards perform a soft reset through this register. */
-		if ((dev->local & LM78_AS99127F) && (val == 0x01)) {
-			lm78_log("LM78: Soft reset requested through AS99127F\n");
+	default:
+		lm78_log("LM78: Write %02X to unknown ISA port %d\n", val, port & 0x7);
+		break;
+    }
+}
+
+
+static uint8_t
+lm78_i2c_write(void *bus, uint8_t addr, uint8_t val, void *priv)
+{
+    lm78_t *dev = (lm78_t *) priv;
+
+    if (dev->i2c_state == 0) {
+	dev->i2c_state = 1;
+	dev->addr_register = val;
+    } else
+	lm78_write(dev, dev->addr_register++, val, LM78_WINBOND_BANK);
+
+    return 1;
+}
+
+
+uint8_t
+lm78_as99127f_write(void *priv, uint8_t reg, uint8_t val)
+{
+    lm78_t *dev = (lm78_t *) priv;
+
+    lm78_log("LM78: write(%02X, AS99127F, %02X)\n", reg, val);
+
+    reg &= 0x7f;
+    uint8_t prev = dev->as99127f.regs[1][reg];
+    dev->as99127f.regs[1][reg] = val;
+
+    switch (reg) {
+	case 0x01:
+		if (val & 0x40) {
+			dev->as99127f.regs[1][0x00]  = 0x88;
+			dev->as99127f.regs[1][0x01] &= 0xe0;
+			dev->as99127f.regs[1][0x03] &= 0xf7;
+			dev->as99127f.regs[1][0x07] &= 0xfe;
+		}
+		if (!(val & 0x10)) { /* CUV4X-LS */
+			lm78_log("LM78: Reset requested through AS99127F CLKRST\n");
+			timer_set_delay_u64(&dev->reset_timer, 300000 * TIMER_USEC);
+		}
+		break;
+
+	case 0x06:
+		/* security device I2C address */
+		i2c_removehandler(i2c_smbus, prev & 0x7f, 1, lm78_security_start, lm78_security_read, lm78_security_write, NULL, dev);
+		i2c_sethandler(i2c_smbus, val & 0x7f, 1, lm78_security_start, lm78_security_read, lm78_security_write, NULL, dev);
+		break;
+
+	case 0x07:
+		if (val & 0x01) { /* other AS99127F boards */
+			lm78_log("LM78: Reset requested through AS99127F GPO15\n");
 			resetx86();
 		}
 		break;
@@ -393,79 +650,34 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 
 
 static void
-lm78_hard_reset_timer(void *priv)
+lm78_reset_timer(void *priv)
 {
     pc_reset_hard();
 }
 
 
 static void
-lm78_reset(lm78_t *dev, uint8_t initialization)
+lm78_remap(lm78_t *dev, uint8_t addr)
 {
-    memset(dev->regs, 0, 256);
-    memset(dev->regs + 0xc0, 0xff, 32); /* C0-DF are 0xFF at least on the AS99127F */
+    lm75_t *lm75;
 
-    dev->regs[0x40] = 0x08;
-    dev->regs[0x46] = 0x40;
-    dev->regs[0x47] = 0x50;
-    if (dev->local & LM78_I2C) {
-	if (!initialization) /* don't reset main I2C address if the reset was triggered by the INITIALIZATION bit */
-		dev->i2c_addr = 0x2d;
-	dev->regs[0x48] = dev->i2c_addr;
-	if (dev->local & LM78_WINBOND)
-		dev->regs[0x4a] = 0x01;
-    } else {
-	dev->regs[0x48] = 0x00;
-	if (dev->local & LM78_WINBOND)
-		dev->regs[0x4a] = 0x88;
+    if (!(dev->local & LM78_I2C)) return;
+
+    lm78_log("LM78: remapping to SMBus %02Xh\n", addr);
+
+    i2c_removehandler(i2c_smbus, dev->i2c_addr, 1, lm78_i2c_start, lm78_i2c_read, lm78_i2c_write, NULL, dev);
+
+    if (addr < 0x80)
+	i2c_sethandler(i2c_smbus, addr, 1, lm78_i2c_start, lm78_i2c_read, lm78_i2c_write, NULL, dev);
+
+    dev->i2c_addr = addr;
+
+    if (dev->local & LM78_AS99127F) {
+	/* Store our handle on the primary LM75 device to ensure reads/writes
+	   to the AS99127F's proprietary registers are passed through to this side. */
+	if ((lm75 = device_get_priv(dev->lm75[0])))
+		lm75->as99127f = dev;
     }
-    if (dev->local & LM78_WINBOND) {
-	dev->regs[0x49] = 0x02;
-	dev->regs[0x4b] = 0x44;
-	dev->regs[0x4c] = 0x01;
-	dev->regs[0x4d] = 0x15;
-	dev->regs[0x4e] = 0x80;
-	dev->regs[0x4f] = (LM78_WINBOND_VENDOR_ID >> 8);
-	dev->regs[0x57] = 0x80;
-
-	/* Initialize proprietary registers on the AS99127F. The BIOS accesses some
-	   of these on boot through read_byte_cmd on the TEMP2 address, hanging on
-	   POST code C1 if they're defaulted to 0. There's no documentation on what
-	   these are for. The following values were dumped from a live, initialized
-	   AS99127F Rev. 2 on a P4B motherboard, and they seem to work well enough. */
-	if (dev->local & LM78_AS99127F) {
-		/* 0x00 appears to mirror IN2 Low Limit */
-		/* 0x01 appears to mirror IN3 */
-		dev->regs[0x02] = LM78_VOLTAGE_TO_REG(2800); /* appears to be a "maximum VCORE" of some kind; must read 2.8V on P3 boards */
-		dev->regs[0x03] = 0x60;
-		/* 0x04 appears to mirror IN3 */
-		/* 0x05 appears to mirror IN2 */
-		dev->regs[0x07] = 0xcd;
-		/* 0x08 appears to mirror IN3 Low Limit */
-		dev->regs[0x09] = dev->regs[0x0f] = dev->regs[0x11] = 0xf8; /* three instances of */
-		dev->regs[0x0a] = dev->regs[0x10] = dev->regs[0x12] = 0xa5; /* the same word      */
-		dev->regs[0x0b] = 0xac;
-		dev->regs[0x0c] = 0x8c;
-		dev->regs[0x0d] = 0x68;
-		dev->regs[0x0e] = 0x54;
-
-		dev->regs[0x53] = dev->regs[0x54] = dev->regs[0x55] = 0xff;
-		dev->regs[0x58] = 0x31;
-		dev->regs[0x59] = dev->regs[0x5a] = 0x8f;
-		dev->regs[0x5c] = 0xe0;
-		dev->regs[0x5d] = 0x48;
-		dev->regs[0x5e] = 0xe2;
-		dev->regs[0x5f] = 0x3f;
-	} else if (dev->local & LM78_W83781D) {
-		dev->regs[0x58] = 0x10;
-	} else if (dev->local & LM78_W83782D) {
-		dev->regs[0x58] = 0x30;
-	}
-    } else {
-	dev->regs[0x49] = 0x40;
-    }
-
-    lm78_remap(dev, dev->i2c_addr);
 }
 
 
@@ -477,6 +689,9 @@ lm78_close(void *priv)
     uint16_t isa_io = dev->local & 0xffff;
     if (isa_io)
 	io_removehandler(isa_io, 8, lm78_isa_read, NULL, NULL, lm78_isa_write, NULL, NULL, dev);
+
+    if (dev->as99127f.nvram_updated)
+	lm78_nvram(dev, 1);
 
     free(dev);
 }
@@ -508,17 +723,23 @@ lm78_init(const device_t *info)
 		RESISTOR_DIVIDER(12000, 28, 10), /* +12V (28K/10K divider suggested in the W83781D datasheet) */
 		LM78_NEG_VOLTAGE(12000, 2100),	 /* -12V */
 		LM78_NEG_VOLTAGE(5000,  909),	 /* -5V */
-		RESISTOR_DIVIDER(5000,  51, 75), /* W83782D only: +5VSB (5.1K/7.5K divider suggested in the datasheet) */
-		3000				 /* W83782D only: Vbat */
+		RESISTOR_DIVIDER(5000,  51, 75), /* W83782D/AS99127F only: +5VSB (5.1K/7.5K divider suggested in the datasheet) */
+		3000,				 /* W83782D/AS99127F only: Vbat */
+		2500,				 /* AS99127F only: +2.5V */
+		1500,				 /* AS99127F only: +1.5V */
+		3000,				 /* AS99127F only: NVRAM */
+		3300				 /* AS99127F only: +3.3VSB */
 	}
     };
 
     /* Set chip-specific default values. */
     if (dev->local & LM78_AS99127F) {
-	/* AS99127: different -12V Rin value (bruteforced) */
+	/* AS99127F: different -12V Rin value (bruteforced) */
 	defaults.voltages[5] = LM78_NEG_VOLTAGE(12000, 2400);
 
-	timer_add(&dev->hard_reset_timer, lm78_hard_reset_timer, dev, 0);
+	timer_add(&dev->reset_timer, lm78_reset_timer, dev, 0);
+
+	lm78_nvram(dev, 0);
     } else if (dev->local & LM78_W83782D) {
 	/* W83782D: different negative voltage formula */
 	defaults.voltages[5] = LM78_NEG_VOLTAGE2(12000, 232);
@@ -574,8 +795,8 @@ const device_t w83781d_device = {
 };
 
 
-/* The ASUS AS99127F is a customized W83781D with no ISA interface (I2C
-   only), added proprietary registers and different chip/vendor IDs. */
+/* The AS99127F is an ASIC manufactured by Holtek for ASUS, containing an
+   I2C-only W83781D clone with additional voltages, GPIOs and fan control. */
 const device_t as99127f_device = {
     "ASUS AS99127F Rev. 1 Hardware Monitor",
     DEVICE_ISA,
@@ -586,7 +807,7 @@ const device_t as99127f_device = {
 };
 
 
-/* Rev. 2 changes the vendor ID back to Winbond's and brings some other changes. */
+/* Rev. 2 is manufactured by Winbond and differs only in GPI registers. */
 const device_t as99127f_rev2_device = {
     "ASUS AS99127F Rev. 2 Hardware Monitor",
     DEVICE_ISA,
