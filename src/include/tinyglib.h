@@ -58,16 +58,17 @@
 
 #define G_SPAWN_SEARCH_PATH 0
 
-#if defined(__LP64__) || defined(__LLP64__)
+#if defined(__LP64__) || defined(__LLP64__) || defined(_WIN64)
 # define GLIB_SIZEOF_VOID_P 8
-#else
-# define GLIB_SIZEOF_VOID_P 4
-#endif
-#ifdef __LP64__
-# define GLIB_SIZEOF_LONG 8
+# if defined(__LLP64__) || defined(_WIN64)
+#  define GLIB_SIZEOF_LONG 4
+# else
+#  define GLIB_SIZEOF_LONG 8
+# endif
 # define GLIB_SIZEOF_SIZE_T 8
 # define GLIB_SIZEOF_SSIZE_T 8
 #else
+# define GLIB_SIZEOF_VOID_P 4
 # define GLIB_SIZEOF_LONG 4
 # define GLIB_SIZEOF_SIZE_T 4
 # define GLIB_SIZEOF_SSIZE_T 4
@@ -75,6 +76,17 @@
 
 
 /* Types */
+
+/* Windows does not define ssize_t, so we need to define it here. */
+#ifndef _SSIZE_T_DEFINED
+# define _SSIZE_T_DEFINED
+# undef ssize_t
+# ifdef _WIN64
+#  define ssize_t int64_t
+# else
+#  define ssize_t int32_t
+# endif
+#endif
 
 #define gboolean int
 #define gchar char

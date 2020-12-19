@@ -118,6 +118,7 @@ m24_log(const char *fmt, ...)
 #define m24_log(fmt, ...)
 #endif
 
+
 static void
 m24_kbd_poll(void *priv)
 {
@@ -171,9 +172,8 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
 #endif
 
 #if 0
-    if (ram[8] == 0xc3) {
+    if (ram[8] == 0xc3)
 	output = 3;
-    }
 #endif
     switch (port) {
 	case 0x60:
@@ -242,6 +242,7 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
     }
 }
 
+
 static uint8_t
 m24_kbd_read(uint16_t port, void *priv)
 {
@@ -279,11 +280,13 @@ m24_kbd_read(uint16_t port, void *priv)
     return(ret);
 }
 
+
 static void
 m24_kbd_close(void *priv)
 {
-	olim24_kbd_t *kbd = (olim24_kbd_t *)priv;
-	/* Stop the timer. */
+    olim24_kbd_t *kbd = (olim24_kbd_t *)priv;
+
+    /* Stop the timer. */
     timer_disable(&kbd->send_delay_timer);
  
     /* Disable scanning. */
@@ -293,11 +296,12 @@ m24_kbd_close(void *priv)
 
     io_removehandler(0x0060, 2,
 		     m24_kbd_read, NULL, NULL, m24_kbd_write, NULL, NULL, kbd);
-	io_removehandler(0x0064, 1,
+    io_removehandler(0x0064, 1,
 		     m24_kbd_read, NULL, NULL, m24_kbd_write, NULL, NULL, kbd);
 
     free(kbd);
 }
+
 
 static void
 m24_kbd_reset(void *priv)
@@ -318,6 +322,7 @@ m24_kbd_reset(void *priv)
     m24_kbd->scan[5] = 0x48;
     m24_kbd->scan[6] = 0x50;   
 }
+
 
 static int
 ms_poll(int x, int y, int z, int b, void *priv)
@@ -401,10 +406,12 @@ ms_poll(int x, int y, int z, int b, void *priv)
     return(0);
 }
 
+
 static void
-m24_kbd_init(olim24_kbd_t *kbd){
+m24_kbd_init(olim24_kbd_t *kbd)
+{
 	
-	/* Initialize the keyboard. */
+    /* Initialize the keyboard. */
     io_sethandler(0x0060, 2,
 		  m24_kbd_read, NULL, NULL, m24_kbd_write, NULL, NULL, kbd);
     io_sethandler(0x0064, 1,
@@ -418,151 +425,159 @@ m24_kbd_init(olim24_kbd_t *kbd){
     mouse_set_poll(ms_poll, kbd);
 
     keyboard_set_table(scancode_xt);
-
+    keyboard_set_is_amstrad(0);
 }
+
 
 static void
 m19_vid_out(uint16_t addr, uint8_t val, void *priv)
 {
-	olim19_vid_t *vid = (olim19_vid_t *)priv;
-	int oldmode = vid->mode;
-	
-	/* activating plantronics mode */
-	if (addr == 0x3dd){	
-		/* already in graphics mode */
-		if ((val & 0x30) && (vid->ogc.cga.cgamode & 0x2)) {
-			vid->mode = PLANTRONICS_MODE;
-		} else { 
-			vid->mode = OLIVETTI_OGC_MODE;
-}
-	/* setting graphics mode */
-	} else if (addr == 0x3d8) {
-		if ((val & 0x2) && (vid->colorplus.control & 0x30)){
-			vid->mode = PLANTRONICS_MODE;
-		} else {
-			vid->mode = OLIVETTI_OGC_MODE;
-		}
+    olim19_vid_t *vid = (olim19_vid_t *)priv;
+    int oldmode = vid->mode;
+
+    /* activating plantronics mode */
+    if (addr == 0x3dd) {
+	/* already in graphics mode */
+	if ((val & 0x30) && (vid->ogc.cga.cgamode & 0x2))
+		vid->mode = PLANTRONICS_MODE;
+	else
+		vid->mode = OLIVETTI_OGC_MODE;
+    /* setting graphics mode */
+    } else if (addr == 0x3d8) {
+	if ((val & 0x2) && (vid->colorplus.control & 0x30))
+		vid->mode = PLANTRONICS_MODE;
+	else
+		vid->mode = OLIVETTI_OGC_MODE;
+    }
+    /* video mode changed */
+    if (oldmode != vid->mode) {
+	/* activate Plantronics emulation */
+	if (vid->mode == PLANTRONICS_MODE){
+		timer_disable(&vid->ogc.cga.timer);
+		timer_set_delay_u64(&vid->colorplus.cga.timer, 0);
+	/* return to OGC mode */
+	} else {
+		timer_disable(&vid->colorplus.cga.timer);
+		timer_set_delay_u64(&vid->ogc.cga.timer, 0);
 	}
-	/* video mode changed */
-	if(oldmode != vid->mode){
-		/* activate Plantronics emulation */
-		if (vid->mode == PLANTRONICS_MODE){
-			timer_disable(&vid->ogc.cga.timer);
-			timer_set_delay_u64(&vid->colorplus.cga.timer, 0);
-		/* return to OGC mode */
-		} else {
-			timer_disable(&vid->colorplus.cga.timer);
-			timer_set_delay_u64(&vid->ogc.cga.timer, 0);
-		}
-		colorplus_recalctimings(&vid->colorplus);
-		ogc_recalctimings(&vid->ogc);
-	}
-	colorplus_out(addr, val, &vid->colorplus);
-	ogc_out(addr, val, &vid->ogc);
+
+	colorplus_recalctimings(&vid->colorplus);
+	ogc_recalctimings(&vid->ogc);
+    }
+
+    colorplus_out(addr, val, &vid->colorplus);
+    ogc_out(addr, val, &vid->ogc);
 }
+
 
 static uint8_t
 m19_vid_in(uint16_t addr, void *priv)
 {
-	olim19_vid_t *vid = (olim19_vid_t *)priv;
-	if ( vid->mode == PLANTRONICS_MODE ) {
-		return colorplus_in(addr, &vid->colorplus);
-	} else {
-		return ogc_in(addr, &vid->ogc);
+    olim19_vid_t *vid = (olim19_vid_t *)priv;
+
+    if (vid->mode == PLANTRONICS_MODE)
+	return colorplus_in(addr, &vid->colorplus);
+    else
+	return ogc_in(addr, &vid->ogc);
 }
 
-}
 
 static uint8_t
 m19_vid_read(uint32_t addr, void *priv)
 {
-	olim19_vid_t *vid = (olim19_vid_t *)priv;
-	vid->colorplus.cga.mapping = vid->ogc.cga.mapping;
-	if ( vid->mode == PLANTRONICS_MODE ) {
-		return colorplus_read(addr, &vid->colorplus);
-	} else {
-		return ogc_read(addr, &vid->ogc);
+    olim19_vid_t *vid = (olim19_vid_t *)priv;
+
+    vid->colorplus.cga.mapping = vid->ogc.cga.mapping;
+    if (vid->mode == PLANTRONICS_MODE)
+	return colorplus_read(addr, &vid->colorplus);
+    else
+	return ogc_read(addr, &vid->ogc);
 }
-}
+
 
 static void
 m19_vid_write(uint32_t addr, uint8_t val, void *priv)
 {
-	olim19_vid_t *vid = (olim19_vid_t *)priv;
-	colorplus_write(addr, val, &vid->colorplus);
-	ogc_write(addr, val, &vid->ogc);
+    olim19_vid_t *vid = (olim19_vid_t *)priv;
+
+    colorplus_write(addr, val, &vid->colorplus);
+    ogc_write(addr, val, &vid->ogc);
 }
 
 
 static void
 m19_vid_close(void *priv)
 {
-	olim19_vid_t *vid = (olim19_vid_t *)priv;
-	free(vid->ogc.cga.vram);
+    olim19_vid_t *vid = (olim19_vid_t *)priv;
+
+    free(vid->ogc.cga.vram);
     free(vid->colorplus.cga.vram);
-	free(vid);
+    free(vid);
 }
+
 
 static void
 m19_vid_speed_changed(void *priv)
 {
-	olim19_vid_t *vid = (olim19_vid_t *)priv;
-	colorplus_recalctimings(&vid->colorplus);
-	ogc_recalctimings(&vid->ogc);
+    olim19_vid_t *vid = (olim19_vid_t *)priv;
+
+    colorplus_recalctimings(&vid->colorplus);
+    ogc_recalctimings(&vid->ogc);
 }
+
 
 static void
-m19_vid_init(olim19_vid_t *vid){
+m19_vid_init(olim19_vid_t *vid)
+{
+    /* int display_type; */
+    vid->mode = OLIVETTI_OGC_MODE;
 
-	//int display_type;
-	vid->mode = OLIVETTI_OGC_MODE;
+    video_inform(VIDEO_FLAG_TYPE_CGA, &timing_m19_vid);
 
-	video_inform(VIDEO_FLAG_TYPE_CGA, &timing_m19_vid);
+    /* display_type = device_get_config_int("display_type"); */
 
-	//display_type = device_get_config_int("display_type");
-    
-	/* OGC emulation part begin */
-	loadfont_ex(L"roms/machines/olivetti_m19/BIOS.BIN", 1, 90);
-	/* composite is not working yet */
-	vid->ogc.cga.composite = 0; // (display_type != CGA_RGB);
-    //vid->ogc.cga.snow_enabled = device_get_config_int("snow_enabled");
-	
-	vid->ogc.cga.vram = malloc(0x8000);
+    /* OGC emulation part begin */
+    loadfont_ex(L"roms/machines/olivetti_m19/BIOS.BIN", 1, 90);
+    /* composite is not working yet */
+    vid->ogc.cga.composite = 0; // (display_type != CGA_RGB);
+    /* vid->ogc.cga.snow_enabled = device_get_config_int("snow_enabled"); */
 
-	//cga_comp_init(vid->ogc.cga.revision);
-    
-	//vid->ogc.cga.rgb_type = device_get_config_int("rgb_type");
-    //cga_palette = (vid->ogc.cga.rgb_type << 1);
+    vid->ogc.cga.vram = malloc(0x8000);
+
+    /* cga_comp_init(vid->ogc.cga.revision); */
+
+    /* vid->ogc.cga.rgb_type = device_get_config_int("rgb_type"); */
+    /* cga_palette = (vid->ogc.cga.rgb_type << 1); */
     cga_palette = 0;
-	cgapal_rebuild();
-	ogc_mdaattr_rebuild();
+    cgapal_rebuild();
+    ogc_mdaattr_rebuild();
 
-	/* color display */
-	// if (device_get_config_int("rgb_type")==0 || device_get_config_int("rgb_type") == 4) 
-	vid->ogc.mono_display = 1;
-	// else
-	// 	vid->ogc.mono_display = 1;    
-	/* OGC emulation part end */
-	
-	/* Plantronics emulation part begin*/
-	/* composite is not working yet */
-	vid->colorplus.cga.composite = 0; //(display_type != CGA_RGB);
-    // vid->colorplus.cga.snow_enabled = device_get_config_int("snow_enabled");
+    /* color display */
+    /* if (device_get_config_int("rgb_type")==0 || device_get_config_int("rgb_type") == 4)  */
+    vid->ogc.mono_display = 1;
+    /* else */
+    /* 	vid->ogc.mono_display = 1;     */
+    /* OGC emulation part end */
+
+    /* Plantronics emulation part begin*/
+    /* composite is not working yet */
+    vid->colorplus.cga.composite = 0; //(display_type != CGA_RGB);
+    /* vid->colorplus.cga.snow_enabled = device_get_config_int("snow_enabled"); */
 
     vid->colorplus.cga.vram = malloc(0x8000);
-                
-	//vid->colorplus.cga.cgamode = 0x1;
-	/* Plantronics emulation part end*/
 
-	timer_add(&vid->ogc.cga.timer, ogc_poll, &vid->ogc, 1);
-	timer_add(&vid->colorplus.cga.timer, colorplus_poll, &vid->colorplus, 1);
-	timer_disable(&vid->colorplus.cga.timer);
-	mem_mapping_add(&vid->ogc.cga.mapping, 0xb8000, 0x08000, m19_vid_read, NULL, NULL, m19_vid_write, NULL, NULL,  NULL, MEM_MAPPING_EXTERNAL, vid);
-	io_sethandler(0x03d0, 0x0010, m19_vid_in, NULL, NULL, m19_vid_out, NULL, NULL, vid);
-	
-	vid->mode = OLIVETTI_OGC_MODE;
-	
+    /* vid->colorplus.cga.cgamode = 0x1; */
+    /* Plantronics emulation part end*/
+
+    timer_add(&vid->ogc.cga.timer, ogc_poll, &vid->ogc, 1);
+    timer_add(&vid->colorplus.cga.timer, colorplus_poll, &vid->colorplus, 1);
+    timer_disable(&vid->colorplus.cga.timer);
+    mem_mapping_add(&vid->ogc.cga.mapping, 0xb8000, 0x08000, m19_vid_read, NULL, NULL, m19_vid_write, NULL, NULL,  NULL, MEM_MAPPING_EXTERNAL, vid);
+    io_sethandler(0x03d0, 0x0010, m19_vid_in, NULL, NULL, m19_vid_out, NULL, NULL, vid);
+
+    vid->mode = OLIVETTI_OGC_MODE;
 }
+
 
 const device_t m24_kbd_device = {
     "Olivetti M24 keyboard and mouse",
@@ -590,11 +605,13 @@ m19_get_device(void)
     return &m19_vid_device;
 }
 
+
 static uint8_t
 m24_read(uint16_t port, void *priv)
 {
-	uint8_t ret = 0x00;
-	int i, fdd_count = 0; 
+    uint8_t ret = 0x00;
+    int i, fdd_count = 0; 
+
     switch (port) {
 	/* 
 	 * port 66:
@@ -610,7 +627,7 @@ m24_read(uint16_t port, void *priv)
 		/* Switch 5 - 8087 present */
 		if (hasfpu)
 			ret |= 0x10;
-	/* 
+		/* 
 		 * Switches 1, 2, 3, 4 - installed memory 
 		 * Switch 8 - Use memory bank 1
 		 */
@@ -650,10 +667,9 @@ m24_read(uint16_t port, void *priv)
 	 */
 	case 0x67:
 		for (i = 0; i < FDD_NUM; i++) {
-            if (fdd_get_flags(i)) {
+			if (fdd_get_flags(i))
 				fdd_count++;
 		}
-    }
 
 		/* Switches 7, 8 - floppy drives. */
 		if (!fdd_count)
@@ -674,16 +690,18 @@ m24_read(uint16_t port, void *priv)
 		
 		/* Switch 2 - Set fast startup */
 		ret |= 0x2;
-}
+    }
 
     return(ret);
 }
+
 
 const device_t *
 m24_get_device(void)
 {
     return &ogc_m24_device;
 }
+
 
 int
 machine_xt_olim24_init(const machine_t *model)
@@ -708,22 +726,21 @@ machine_xt_olim24_init(const machine_t *model)
     machine_common_init(model);
     device_add(&fdc_xt_device);
 
-	//address 66-67 = mainboard dip-switch settings
-	io_sethandler(0x0066, 2, m24_read, NULL, NULL, NULL, NULL, NULL, NULL);
+    /* Address 66-67 = mainboard dip-switch settings */
+    io_sethandler(0x0066, 2, m24_read, NULL, NULL, NULL, NULL, NULL, NULL);
 
-	m24_kbd_init(m24_kbd);
-	device_add_ex(&m24_kbd_device, m24_kbd);
+    m24_kbd_init(m24_kbd);
+    device_add_ex(&m24_kbd_device, m24_kbd);
 
-	/* FIXME: make sure this is correct?? */
+    /* FIXME: make sure this is correct?? */
     device_add(&at_nvr_device);
 
     if (joystick_type)
-		device_add(&gameport_device);
+	device_add(&gameport_device);
 
     nmi_init();
 
-    
-	return ret;
+    return ret;
 }
 
 /*
@@ -746,10 +763,10 @@ machine_xt_olim240_init(const machine_t *model)
 
 	pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
 
-	/* 
-	 * port 60: should return jumper settings only under unknown conditions
-	 * SWB on mainboard (off=1)
-	 * bit 7 - use BIOS HD on mainboard (on) / on controller (off)
+    /* 
+     * port 60: should return jumper settings only under unknown conditions
+     * SWB on mainboard (off=1)
+     * bit 7 - use BIOS HD on mainboard (on) / on controller (off)
      * bit 6 - use OCG/CGA display adapter (on) / other display adapter (off)
      */
     device_add(&keyboard_at_olivetti_device);
@@ -757,11 +774,11 @@ machine_xt_olim240_init(const machine_t *model)
     /* FIXME: make sure this is correct?? */
     device_add(&at_nvr_device);
 
-	if (fdc_type == FDC_INTERNAL)	
-		device_add(&fdc_xt_device);
+    if (fdc_type == FDC_INTERNAL)	
+	device_add(&fdc_xt_device);
 
-	if (joystick_type)
-		device_add(&gameport_device);
+    if (joystick_type)
+	device_add(&gameport_device);
 
     nmi_init();
 
@@ -787,19 +804,19 @@ machine_xt_olim19_init(const machine_t *model)
 
     olim19_vid_t *vid;
 
-	/* do not move memory allocation elsewhere */
-	vid = (olim19_vid_t *)malloc(sizeof(olim19_vid_t));
-	memset(vid, 0x00, sizeof(olim19_vid_t));
+    /* Do not move memory allocation elsewhere. */
+    vid = (olim19_vid_t *)malloc(sizeof(olim19_vid_t));
+    memset(vid, 0x00, sizeof(olim19_vid_t));
 	
     machine_common_init(model);
     device_add(&fdc_xt_device);
 
-	m19_vid_init(vid);
-	device_add_ex(&m19_vid_device, vid);
+    m19_vid_init(vid);
+    device_add_ex(&m19_vid_device, vid);
 
-	device_add(&keyboard_xt_olivetti_device);
-	
-	nmi_init();
+    device_add(&keyboard_xt_olivetti_device);
+
+    nmi_init();
 
     return ret;
 

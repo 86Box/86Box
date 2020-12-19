@@ -1715,8 +1715,13 @@ vid_close_200(void *priv)
 {
     amsvid_t *vid = (amsvid_t *)priv;
 
-    free(vid->cga.vram);
-    free(vid->mda.vram);
+    if (vid->cga.vram != vid->mda.vram) {
+	free(vid->cga.vram);
+	free(vid->mda.vram);
+    } else
+	free(vid->cga.vram);
+
+    vid->cga.vram = vid->mda.vram = NULL;
 
     free(vid);
 }
@@ -2111,8 +2116,7 @@ kbd_adddata(uint16_t val)
 static void
 kbd_adddata_ex(uint16_t val)
 {
-    kbd_adddata(val);
-    // kbd_adddata_process(val, kbd_adddata);
+    kbd_adddata_process(val, kbd_adddata);
 }
 
 
@@ -2495,6 +2499,7 @@ machine_amstrad_init(const machine_t *model, int type)
     keyboard_set_table(scancode_xt);
     keyboard_send = kbd_adddata_ex;
     keyboard_scan = 1;
+    keyboard_set_is_amstrad(((type == AMS_PC1512) || (type == AMS_PC1640)) ? 0 : 1);
 
     io_sethandler(0x0078, 2,
 		  ms_read, NULL, NULL, ms_write, NULL, NULL, ams);

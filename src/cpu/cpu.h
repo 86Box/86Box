@@ -32,58 +32,58 @@ enum {
 };
 
 enum {
-    CPU_8088 = (1ULL << 0),		/* 808x class CPUs */
-    CPU_8086 = (1ULL << 1),
+    CPU_8088 = 1,	/* 808x class CPUs */
+    CPU_8086,
 #ifdef USE_NEC_808X
-    CPU_V20 = (1ULL << 2),		/* NEC 808x class CPUs - future proofing */
-    CPU_V30 = (1ULL << 3),
+    CPU_V20,		/* NEC 808x class CPUs - future proofing */
+    CPU_V30,
 #endif
-    CPU_286 = (1ULL << 4),		/* 286 class CPUs */
-    CPU_386SX = (1ULL << 5),		/* 386 class CPUs */
-    CPU_386DX = (1ULL << 6),
-    CPU_IBM386SLC = (1ULL << 7),
-    CPU_IBM486SLC = (1ULL << 8),
-    CPU_IBM486BL = (1ULL << 9),
-    CPU_RAPIDCAD = (1ULL << 10),
-    CPU_486SLC = (1ULL << 11),
-    CPU_486DLC = (1ULL << 12),
-    CPU_i486SX = (1ULL << 13),		/* 486 class CPUs */
-    CPU_Am486SX = (1ULL << 14),
-    CPU_Cx486S = (1ULL << 15),
-    CPU_i486SX2 = (1ULL << 16),
-    CPU_Am486SX2 = (1ULL << 17),
-    CPU_i486DX = (1ULL << 18),
-    CPU_i486DX2 = (1ULL << 19),
-    CPU_Am486DX = (1ULL << 20),
-    CPU_Am486DX2 = (1ULL << 21),
-    CPU_Cx486DX = (1ULL << 22),
-    CPU_Cx486DX2 = (1ULL << 23),
-    CPU_iDX4 = (1ULL << 24),
-    CPU_Am486DX4 = (1ULL << 25),
-    CPU_Cx486DX4 = (1ULL << 26),
-    CPU_Am5x86 = (1ULL << 27),
-    CPU_Cx5x86 = (1ULL << 28),
-    CPU_P24T = (1ULL << 29),
-    CPU_WINCHIP = (1ULL << 30),	/* 586 class CPUs */
-    CPU_WINCHIP2 = (1ULL << 31),
-    CPU_PENTIUM = (1ULL << 32),
-    CPU_PENTIUMMMX = (1ULL << 33),
-    CPU_Cx6x86 = (1ULL << 34),
-    CPU_Cx6x86MX = (1ULL << 35),
-    CPU_Cx6x86L = (1ULL << 36),
-    CPU_CxGX1 = (1ULL << 37),
-    CPU_K5 = (1ULL << 38),
-    CPU_5K86 = (1ULL << 39),
-    CPU_K6 = (1ULL << 40),
-    CPU_K6_2 = (1ULL << 41),
-    CPU_K6_2C = (1ULL << 42),
-    CPU_K6_3 = (1ULL << 43),
-    CPU_K6_2P = (1ULL << 44),
-    CPU_K6_3P = (1ULL << 45),
-    CPU_CYRIX3S = (1ULL << 46),
-    CPU_PENTIUMPRO = (1ULL << 47),	/* 686 class CPUs */
-    CPU_PENTIUM2 = (1ULL << 48),
-    CPU_PENTIUM2D = (1ULL << 49)
+    CPU_286,		/* 286 class CPUs */
+    CPU_386SX,		/* 386 class CPUs */
+    CPU_386DX,
+    CPU_IBM386SLC,
+    CPU_IBM486SLC,
+    CPU_IBM486BL,
+    CPU_RAPIDCAD,
+    CPU_486SLC,
+    CPU_486DLC,
+    CPU_i486SX,		/* 486 class CPUs */
+    CPU_Am486SX,
+    CPU_Cx486S,
+    CPU_i486SX2,
+    CPU_Am486SX2,
+    CPU_i486DX,
+    CPU_i486DX2,
+    CPU_Am486DX,
+    CPU_Am486DX2,
+    CPU_Cx486DX,
+    CPU_Cx486DX2,
+    CPU_iDX4,
+    CPU_Am486DX4,
+    CPU_Cx486DX4,
+    CPU_Am5x86,
+    CPU_Cx5x86,
+    CPU_P24T,
+    CPU_WINCHIP,	/* 586 class CPUs */
+    CPU_WINCHIP2,
+    CPU_PENTIUM,
+    CPU_PENTIUMMMX,
+    CPU_Cx6x86,
+    CPU_Cx6x86MX,
+    CPU_Cx6x86L,
+    CPU_CxGX1,
+    CPU_K5,
+    CPU_5K86,
+    CPU_K6,
+    CPU_K6_2,
+    CPU_K6_2C,
+    CPU_K6_3,
+    CPU_K6_2P,
+    CPU_K6_3P,
+    CPU_CYRIX3S,
+    CPU_PENTIUMPRO,	/* 686 class CPUs */
+    CPU_PENTIUM2,
+    CPU_PENTIUM2D
 };
 
 enum {
@@ -157,7 +157,7 @@ typedef struct {
     const char		*manufacturer;
     const char    	*name;
     const char		*internal_name;
-    const CPU		cpus[32];
+    const CPU		*cpus;
 } cpu_family_t;
 
 typedef struct {

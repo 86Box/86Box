@@ -78,7 +78,7 @@ typedef struct {
     } hw_select;
 
     uint8_t	frequencies_ref; /* which other model to use the frequency table from (or 0) */
-    ics9xxx_frequency_t *frequencies; /* frequency table, if not using another model's table */
+    const ics9xxx_frequency_t *frequencies; /* frequency table, if not using another model's table */
 } ics9xxx_model_t;
 
 typedef struct {
@@ -105,7 +105,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x00, 0xff, 0xff, 0xff, 0x6f, 0xbf},
 	.fs_regs = {{0, 4, 4, 7}, {0, 5, 4, 4}, {0, 6, 5, 6}, {0, 7, 4, 1}, {-1, -1, -1, -1}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus =  5000, .pci_div = 2},
 		{.bus =  7500, .pci_div = 2},
 		{.bus =  8333, .pci_div = 2},
@@ -117,7 +117,6 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 		{0}
 	}
     ICS9xxx_MODEL_END()
-#if 0
     ICS9xxx_MODEL(ICS9248_39)
 	.max_reg = 5,
 	.regs = {0x00, 0x7f, 0xff, 0xbf, 0xf5, 0xff},
@@ -125,12 +124,13 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.hw_select = {0, 3},
 	.frequencies_ref = ICS9250_08
     ICS9xxx_MODEL_END()
+#if 0
     ICS9xxx_MODEL(ICS9248_81)
 	.max_reg = 5,
 	.regs = {0x82, 0xfe, 0x7f, 0xff, 0xff, 0xb7},
 	.fs_regs = {{0, 4, 1, 0}, {0, 5, 2, 7}, {0, 6, 5, 6}, {0, 2, 5, 3}, {-1, -1, -1, -1}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus =  9000, .ram_mult =       1, .pci_div = 3},
 		{.bus =  6670, .ram_mult =     1.5, .pci_div = 2},
 		{.bus =  9500, .ram_mult = 2.0/3.0, .pci_div = 3},
@@ -155,7 +155,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x82, 0xff, 0xff, 0xff, 0xd5, 0xff}, 
 	.fs_regs = {{0, 4, -1, -1}, {0, 5, 4, 3}, {0, 6, -1, -1}, {0, 2, 4, 1}, {-1, -1, -1, -1}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus =  6667, .pci_div = 2},
 		{.bus = 10000, .pci_div = 3},
 		{.bus = 10030, .pci_div = 3},
@@ -180,7 +180,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x00, 0x7f, 0xff, 0xbf, 0xf5, 0xff, 0x06},
 	.fs_regs = {{0, 4, 3, 6}, {0, 5, 4, 3}, {0, 6, 1, 7}, {0, 7, 4, 1}, {0, 2, -1, -1}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus =  8000, .pci_div = 2},
 		{.bus =  7500, .pci_div = 2},
 		{.bus =  8331, .pci_div = 2},
@@ -221,7 +221,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x82, 0xff, 0xff, 0xff, 0xf5, 0xff},
 	.fs_regs = {{0, 4, -1, -1}, {0, 5, 4, 3}, {0, 6, -1, -1}, {0, 2, 4, 1}, {-1, -1, -1, -1}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus = 12400, .pci_div = 3},
 		{.bus = 12000, .pci_div = 3},
 		{.bus = 11499, .pci_div = 3},
@@ -253,7 +253,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x02, 0xff, 0xff, 0xec, 0xde, 0xff, 0x06},
 	.fs_regs = {{0, 4, 4, 5}, {0, 5, 3, 4}, {0, 6, 3, 0}, {0, 7, 3, 1}, {0, 2, 4, 0}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus = 10300, .pci_div = 3},
 		{.bus = 10000, .pci_div = 3},
 		{.bus = 10045, .pci_div = 3},
@@ -294,7 +294,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x02, 0x1f, 0xff, 0xff, 0xfb, 0xff, 0x06},
 	.fs_regs = {{0, 4, 1, 6}, {0, 5, 4, 2}, {0, 6, 1, 5}, {0, 7, 1, 7}, {0, 2, -1, -1}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus =  6680, .ram_mult =  1.5, .pci_div = 2},
 		{.bus =  6800, .ram_mult =  1.5, .pci_div = 2},
 		{.bus = 10030, .ram_mult =    1, .pci_div = 3},
@@ -335,7 +335,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x02, 0x3f, 0x7f, 0x6f, 0xff, 0xff, 0x06},
 	.fs_regs = {{0, 4, 2, 7}, {0, 5, 1, 6}, {0, 6, 1, 7}, {0, 7, 3, 4}, {0, 2, 3, 7}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus =  6667, .ram_mult =  1.5, .pci_div = 2},
 		{.bus =  6687, .ram_mult =  1.5, .pci_div = 2},
 		{.bus =  6867, .ram_mult =  1.5, .pci_div = 2},
@@ -376,7 +376,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x02, 0x6b, 0x7f, 0xff, 0xff, 0xe7, 0x06},
 	.fs_regs = {{0, 4, 2, 7}, {0, 5, 5, 3}, {0, 6, 1, 7}, {0, 7, 1, 4}, {0, 2, -1, -1}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus =  9000, .pci_div = 3},
 		{.bus =  9500, .pci_div = 2},
 		{.bus = 10100, .pci_div = 2},
@@ -416,7 +416,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.max_reg = 5,
 	.regs = {0x82, 0xff, 0xff, 0xff, 0xd5, 0xff},
 	.fs_regs = {{0, 4, -1, -1}, {0, 5, 4, 3}, {0, 6, -1, -1}, {0, 2, 4, 1}, {-1, -1, -1, -1}},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus =  6667, .pci_div = 2},
 		{.bus = 10000, .pci_div = 3},
 		{.bus = 10030, .pci_div = 3},
@@ -441,7 +441,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x80, 0x4f, 0xff, 0x3f, 0xff, 0xff, 0x06},
 	.fs_regs = {{0, 4, -1, -1}, {0, 5, -1, -1}, {0, 6, 3, 7}, {0, 1, 1, 4}, {0, 2, 1, 5}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus = 20000, .pci_div = 5, .agp_div = 2.5},
 		{.bus = 19000, .pci_div = 5, .agp_div = 2.5},
 		{.bus = 18000, .pci_div = 5, .agp_div = 2.5},
@@ -482,7 +482,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 	.fs_regs = {{0, 4, -1, -1}, {0, 5, 4, 3}, {0, 6, -1, -1}, {0, 7, -1, -1}, {0, 2, -1, -1}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus = 6000, .pci_div = 2},
 		{.bus = 6000, .pci_div = 2},
 		{.bus = 6000, .pci_div = 2},
@@ -524,7 +524,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x00, 0xff, 0xff, 0xff, 0x6d, 0xbf},
 	.fs_regs = {{0, 4, 4, 7}, {0, 5, 4, 4}, {0, 6, 5, 6}, {0, 7, 4, 1}, {-1, -1, -1, -1}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus = 12400, .pci_div = 3},
 		{.bus =  7500, .pci_div = 2},
 		{.bus =  8333, .pci_div = 2},
@@ -550,7 +550,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x1f, 0xff, 0xfe, 0x00, 0x00, 0x06},
 	.fs_regs = {{5, 0, -1, -1}, {5, 3, -1, -1}, {5, 4, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
 	.hw_select = {-1, -1},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus =  6667, .ram_mult = 1.5, .pci_div = 2},
 		{.bus =  7067, .ram_mult = 1.5, .pci_div = 2},
 		{.bus =  7466, .ram_mult = 1.5, .pci_div = 2},
@@ -575,7 +575,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x82, 0xcf, 0x7f, 0xff, 0xff, 0xf7},
 	.fs_regs = {{0, 4, 1, 4}, {0, 5, 5, 7}, {0, 6, 1, 5}, {0, 2, 2, 7}, {-1, -1, -1, -1}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus = 9000, .ram_mult = 1, .pci_div = 2},
 		{.bus = 8901, .ram_mult = 1, .pci_div = 2},
 		{.bus = 8800, .ram_mult = 1, .pci_div = 2},
@@ -600,7 +600,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x02, 0x1f, 0xff, 0xff, 0xeb, 0xff},
 	.fs_regs = {{0, 4, 1, 6}, {0, 5, 4, 2}, {0, 6, 1, 5}, {0, 7, 1, 7}, {0, 2, 4, 4}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus =  6781, .ram_mult = 1.5, .pci_div = 2},
 		{.bus =  7000, .ram_mult = 1.5, .pci_div = 2},
 		{.bus =  7201, .ram_mult = 1.5, .pci_div = 2},
@@ -641,7 +641,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x1f, 0xff, 0xff, 0x00, 0x00, 0x06},
 	.fs_regs = {{5, 0, -1, -1}, {5, 3, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
 	.hw_select = {-1, -1},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus =  6667, .ram_mult =  1.5, .pci_div = 2},
 		{.bus =  7000, .ram_mult =  1.5, .pci_div = 2},
 		{.bus =  7267, .ram_mult =  1.5, .pci_div = 2},
@@ -667,7 +667,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x02, 0xff, 0xff, 0xff, 0x6d, 0xbf},
 	.fs_regs = {{0, 4, 4, 7}, {0, 5, 4, 4}, {0, 6, 5, 6}, {0, 7, 4, 1}, {-1, -1, -1, -1}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus =  8000, .pci_div = 2},
 		{.bus =  7500, .pci_div = 2},
 		{.bus =  8331, .pci_div = 2},
@@ -716,7 +716,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x02, 0x1f, 0xff, 0xff, 0xeb, 0xff},
 	.fs_regs = {{0, 4, 1, 6}, {0, 5, 4, 2}, {0, 6, 1, 5}, {0, 7, 1, 7}, {0, 2, 4, 4}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus =  6900, .ram_mult =  1.5, .pci_div = 2},
 		{.bus =  7000, .ram_mult =  1.5, .pci_div = 2},
 		{.bus =  7100, .ram_mult =  1.5, .pci_div = 2},
@@ -757,7 +757,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x02, 0x1f, 0xff, 0xff, 0xeb, 0xff, 0x06},
 	.fs_regs = {{0, 4, 1, 6}, {0, 5, 4, 2}, {0, 6, 1, 5}, {0, 7, 1, 7}, {0, 2, 4, 4}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus =  5500, .ram_mult =  1.5, .pci_div = 2},
 		{.bus =  6000, .ram_mult =  1.5, .pci_div = 2},
 		{.bus =  6680, .ram_mult =  1.5, .pci_div = 2},
@@ -805,7 +805,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x0f, 0xff, 0xfe, 0x00, 0x00, 0x00},
 	.fs_regs = {{-1, -1, -1, -1}, {-1, -1, -1, -1}, {3, 0, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
 	.hw_select = {-1, -1},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus =  6666, .ram_mult =  1.5, .pci_div = 2},
 		{.bus = 13332, .ram_mult =    1, .pci_div = 4},
 		{.bus = 10000, .ram_mult =    1, .pci_div = 3},
@@ -836,7 +836,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x02, 0x0f, 0xff, 0xff, 0xeb, 0xff, 0x06},
 	.fs_regs = {{0, 4, 1, 6}, {0, 5, 4, 2}, {0, 6, 1, 5}, {0, 7, 1, 7}, {0, 2, 4, 4}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus =  6667, .ram_mult =  1.5, .pci_div = 2},
 		{.bus =  6000, .ram_mult =  1.5, .pci_div = 2},
 		{.bus =  6680, .ram_mult =  1.5, .pci_div = 2},
@@ -882,7 +882,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x18, 0x07, 0xfe, 0xc7, 0xfc, 0x00, 0x80},
 	.fs_regs = {{0, 0, -1, -1}, {0, 1, -1, -1}, {0, 2, -1, -1}, {-1, -1, -1, -1}, {-1, -1, -1, -1}},
 	.normal_bits_fixed = 1,
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus =  6666, .ram_mult =       1, .pci_div = 1},
 		{.bus = 10000, .ram_mult = 2.0/3.0, .pci_div = 3},
 		{.bus = 20000, .ram_mult = 1.0/3.0, .pci_div = 6},
@@ -899,7 +899,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.regs = {0x02, 0x6f, 0xff, 0xff, 0xef, 0xff, 0x06},
 	.fs_regs = {{-1, -1, 1, 6}, {-1, -1, 4, 2}, {-1, -1, 1, 5}, {0, 7, 1, 7}, {0, 2, 4, 4}},
 	.hw_select = {0, 3},
-	.frequencies = (ics9xxx_frequency_t[]) {
+	.frequencies = (const ics9xxx_frequency_t[]) {
 		[0 ... 7]   = {.bus =  6667, .ram_mult =  1.5, .pci_div = 2},
 		[8 ... 15]  = {.bus = 10000, .ram_mult =    1, .pci_div = 3},
 		[16 ... 23] = {.bus = 13333, .ram_mult =    1, .pci_div = 4},

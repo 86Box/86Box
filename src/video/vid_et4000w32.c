@@ -1312,6 +1312,7 @@ void *et4000w32p_init(const device_t *info)
 
 			et4000->svga.clock_gen = et4000->svga.ramdac;
 			et4000->svga.getclock = stg_getclock;
+			et4000->svga.adv_flags |= FLAG_NOSKEW;
 			break;
 
 		case ET4000W32_DIAMOND:

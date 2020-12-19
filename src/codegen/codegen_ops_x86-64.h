@@ -57,7 +57,7 @@ static inline void call_long(uintptr_t func)
 
 static inline void load_param_1_32(codeblock_t *block, uint32_t param)
 {
-#if WIN64
+#if _WIN64
         addbyte(0xb9); /*MOVL $fetchdat,%ecx*/
 #else
         addbyte(0xbf); /*MOVL $fetchdat,%edi*/
@@ -66,7 +66,7 @@ static inline void load_param_1_32(codeblock_t *block, uint32_t param)
 }
 static inline void load_param_1_reg_32(int reg)
 {
-#if WIN64
+#if _WIN64
         if (reg & 8)
                 addbyte(0x44);
         addbyte(0x89); /*MOV ECX, EAX*/
@@ -82,7 +82,7 @@ static inline void load_param_1_reg_32(int reg)
 static inline void load_param_1_64(codeblock_t *block, uint64_t param)
 {
 	addbyte(0x48);
-#if WIN64
+#if _WIN64
         addbyte(0xb9); /*MOVL $fetchdat,%ecx*/
 #else
         addbyte(0xbf); /*MOVL $fetchdat,%edi*/
@@ -93,7 +93,7 @@ static inline void load_param_1_64(codeblock_t *block, uint64_t param)
 
 static inline void load_param_2_32(codeblock_t *block, uint32_t param)
 {
-#if WIN64
+#if _WIN64
         addbyte(0xba); /*MOVL $fetchdat,%edx*/
 #else
         addbyte(0xbe); /*MOVL $fetchdat,%esi*/
@@ -102,7 +102,7 @@ static inline void load_param_2_32(codeblock_t *block, uint32_t param)
 }
 static inline void load_param_2_reg_32(int reg)
 {
-#if WIN64
+#if _WIN64
         if (reg & 8)
                 addbyte(0x44);
         addbyte(0x89); /*MOV EDX, EAX*/
@@ -117,7 +117,7 @@ static inline void load_param_2_reg_32(int reg)
 static inline void load_param_2_64(codeblock_t *block, uint64_t param)
 {
 	addbyte(0x48);
-#if WIN64
+#if _WIN64
         addbyte(0xba); /*MOVL $fetchdat,%edx*/
 #else
         addbyte(0xbe); /*MOVL $fetchdat,%esi*/
@@ -128,7 +128,7 @@ static inline void load_param_2_reg_64(int reg)
 {
         if (reg & 8)
         {
-#if WIN64
+#if _WIN64
                 addbyte(0x4c); /*MOVL EDX,reg*/
                 addbyte(0x89);
                 addbyte(0xc0 | REG_EDX | ((reg & 7) << 3));
@@ -140,7 +140,7 @@ static inline void load_param_2_reg_64(int reg)
         }
         else
         {
-#if WIN64
+#if _WIN64
                 addbyte(0x48); /*MOVL EDX,reg*/
                 addbyte(0x89);
                 addbyte(0xc0 | REG_EDX | ((reg & 7) << 3));
@@ -156,7 +156,7 @@ static inline void load_param_3_reg_32(int reg)
 {
         if (reg & 8)
         {
-#if WIN64
+#if _WIN64
                 addbyte(0x45); /*MOVL R8,reg*/
                 addbyte(0x89);
                 addbyte(0xc0 | ((reg & 7) << 3));
@@ -168,7 +168,7 @@ static inline void load_param_3_reg_32(int reg)
         }
         else
         {
-#if WIN64
+#if _WIN64
                 addbyte(0x41); /*MOVL R8,reg*/
                 addbyte(0x89);
                 addbyte(0xc0 | ((reg & 7) << 3));
@@ -183,7 +183,7 @@ static inline void load_param_3_reg_64(int reg)
 {
         if (reg & 8)
         {
-#if WIN64
+#if _WIN64
                 addbyte(0x4d); /*MOVL R8,reg*/
                 addbyte(0x89);
                 addbyte(0xc0 | ((reg & 7) << 3));
@@ -195,7 +195,7 @@ static inline void load_param_3_reg_64(int reg)
         }
         else
         {
-#if WIN64
+#if _WIN64
                 addbyte(0x49); /*MOVL R8,reg*/
                 addbyte(0x89);
                 addbyte(0xc0 | ((reg & 7) << 3));

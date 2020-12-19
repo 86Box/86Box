@@ -102,6 +102,27 @@ machine_at_sis401_init(const machine_t *model)
     return ret;
 }
 
+
+int
+machine_at_av4_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/av4/amibios_486dx_isa_bios_aa4025963.bin",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_ide_init(model);
+    device_add(&sis_85c460_device);
+    device_add(&keyboard_at_ami_device);
+    device_add(&fdc_at_device);
+
+    return ret;
+}
+
+
 int
 machine_at_valuepoint433_init(const machine_t *model)	// hangs without the PS/2 mouse
 {
@@ -120,6 +141,7 @@ machine_at_valuepoint433_init(const machine_t *model)	// hangs without the PS/2 
 
     return ret;
 }
+
 
 int
 machine_at_ecs386_init(const machine_t *model)

@@ -85,6 +85,7 @@
 #define IS_ARCH(m, a)		(machines[m].flags & (a)) ? 1 : 0;
 #define IS_AT(m)		((machines[m].flags & 0x00000FC8) && !(machines[m].flags & MACHINE_PC98)) ? 1 : 0;
 
+#define CPU_BLOCK(...)		(const uint8_t[]) {__VA_ARGS__, 0}
 #define MACHINE_MULTIPLIER_FIXED -1, -1
 
 
@@ -145,7 +146,7 @@ typedef struct _machine_ {
     const char	*internal_name;
     const char  type;
     uint32_t	cpu_package;
-    uint64_t	cpu_block;
+    const uint8_t *cpu_block;
     uint32_t	cpu_min_bus;
     uint32_t	cpu_max_bus;
     uint16_t	cpu_min_voltage;
@@ -301,6 +302,7 @@ extern int	machine_at_403tg_init(const machine_t *);
 extern int	machine_at_pc330_6571_init(const machine_t *);
 
 extern int	machine_at_sis401_init(const machine_t *);
+extern int	machine_at_av4_init(const machine_t *);
 extern int	machine_at_valuepoint433_init(const machine_t *);
 
 extern int	machine_at_vli486sv2g_init(const machine_t *);
@@ -354,10 +356,8 @@ extern int	machine_at_excalibur_init(const machine_t *);
 
 extern int	machine_at_batman_init(const machine_t *);
 extern int	machine_at_ambradp60_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_DELLS4)
 extern int	machine_at_dellxp60_init(const machine_t *);
 extern int	machine_at_opti560l_init(const machine_t *);
-#endif
 extern int	machine_at_valuepointp60_init(const machine_t *);
 extern int	machine_at_p5mp3_init(const machine_t *);
 extern int	machine_at_pb520r_init(const machine_t *);
@@ -375,6 +375,10 @@ extern int	machine_at_apollo_init(const machine_t *);
 extern int	machine_at_vectra54_init(const machine_t *);
 extern int	machine_at_powermate_v_init(const machine_t *);
 extern int	machine_at_acerv30_init(const machine_t *);
+
+extern int	machine_at_p5sp4_init(const machine_t *);
+extern int	machine_at_p54sp4_init(const machine_t *);
+extern int	machine_at_sq588_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_endeavor_get_device(void);
@@ -469,6 +473,7 @@ extern int	machine_at_p6sba_init(const machine_t *);
 extern int	machine_at_ergox365_init(const machine_t *);
 #endif
 extern int	machine_at_ficka6130_init(const machine_t *);
+extern int	machine_at_p3v133_init(const machine_t *);
 extern int	machine_at_p3v4x_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H

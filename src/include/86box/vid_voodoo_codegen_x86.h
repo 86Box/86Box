@@ -15,7 +15,11 @@
 #undef BITMAP
 #endif
 
+#ifdef _MSC_VER
+#include <intrin.h>
+#else
 #include <xmmintrin.h>
+#endif
 
 #define BLOCK_NUM 8
 #define BLOCK_MASK (BLOCK_NUM-1)

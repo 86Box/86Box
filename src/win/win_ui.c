@@ -70,8 +70,11 @@ extern WCHAR	wopenfilestring[512];
 
 /* Local data. */
 static wchar_t	wTitle[512];
+#ifndef NO_KEYBOARD_HOOK
 static HHOOK	hKeyboardHook;
-static int	hook_enabled = 0, manager_wm = 0;
+static int	hook_enabled = 0;
+#endif
+static int	manager_wm = 0;
 static int	save_window_pos = 0, pause_state = 0;
 static int  dpi = 96;
 static int  padded_frame = 0;
@@ -295,6 +298,7 @@ ResetAllMenus(void)
 }
 
 
+#ifndef NO_KEYBOARD_HOOK
 static LRESULT CALLBACK
 LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
@@ -326,6 +330,7 @@ LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
     return(CallNextHookEx(hKeyboardHook, nCode, wParam, lParam));
 }
+#endif
 
 
 void
@@ -360,7 +365,9 @@ plat_power_off(void)
        run before the main thread is terminated */
     cycles -= 99999999;
 
+#ifndef NO_KEYBOARD_HOOK
     UnhookWindowsHookEx(hKeyboardHook);
+#endif
 
     KillTimer(hwndMain, TIMER_1SEC);
     PostQuitMessage(0);

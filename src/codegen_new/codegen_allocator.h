@@ -13,7 +13,7 @@
   Due to the chaining, the total memory size is limited by the range of a jump
   instruction. ARMv7 is restricted to +/- 32 MB, ARMv8 to +/- 128 MB, x86 to
   +/- 2GB. As a result, total memory size is limited to 32 MB on ARMv7*/
-#if defined __ARM_EABI__ || _ARM_
+#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM
 #define MEM_BLOCK_NR 32768
 #else
 #define MEM_BLOCK_NR 131072

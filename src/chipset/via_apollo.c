@@ -134,7 +134,7 @@ via_apollo_setup(via_apollo_t *dev)
 	dev->pci_conf[0x57] = 0x01;
     }
 
-    if (dev->id >= VIA_693A)
+    if (dev->id >= VIA_694)
 	dev->pci_conf[0x58] = 0x40;
     else if (dev->id >= VIA_585)
 	dev->pci_conf[0x58] = 0x05;
@@ -211,7 +211,7 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 	return;
     if (((addr == 0x78) || (addr >= 0xad)) && (dev->id == VIA_597))
 	return;
-    if (((addr == 0x67) || ((addr >= 0xf0) && (addr < 0xfc))) && (dev->id != VIA_691))
+    if (((addr == 0x67) || ((addr >= 0xf0) && (addr < 0xfc))) && (dev->id < VIA_691))
 	return;
 
     switch(addr) {
@@ -298,9 +298,9 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 			dev->pci_conf[0x53] = (dev->pci_conf[0x53] & ~0xf0) | (val & 0xf0);
 		break;
 	case 0x54:
-			if(dev->id == VIA_585)
+		if (dev->id == VIA_585)
 			dev->pci_conf[0x54] = val;
-			else
+		else
 			dev->pci_conf[0x54] = (dev->pci_conf[0x54] & ~0x07) | (val & 0x07);
 		break;
 

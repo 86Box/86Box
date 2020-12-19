@@ -36,7 +36,7 @@
  *   Boston, MA 02111-1307
  *   USA.
  */
-#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_X64
+#if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
 
 #include <stdio.h>
 #include <stdint.h>
