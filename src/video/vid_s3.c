@@ -2681,7 +2681,8 @@ s3_updatemapping(s3_t *s3)
 					s3->linear_base &= 0xfc000000;
 				else if (s3->chip == S3_VISION968)
 					s3->linear_base &= 0xfe000000;
-				mem_mapping_set_addr(&s3->linear_mapping, s3->linear_base, s3->linear_size);
+				pclog("Linear mapping enabled at %08x, size = %08x\n", s3->linear_base, s3->linear_size);
+					mem_mapping_set_addr(&s3->linear_mapping, s3->linear_base, s3->linear_size);
 			}
 		} else {
 			pclog("Linear mapping disabled\n");
