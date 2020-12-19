@@ -432,44 +432,30 @@ kbd_adddata_process(uint16_t val, void (*adddata)(uint16_t val))
     }
 
     keyboard_get_states(NULL, &num_lock, NULL);
-    shift_states = keyboard_get_shift() & STATE_SHIFT_MASK;
+    shift_states = keyboard_get_shift() & STATE_LSHIFT;
 
     if (is_amstrad)
 	num_lock = !num_lock;
 
+    /* If NumLock is on, invert the left shift state so we can always check for
+       the the same way flag being set (and with NumLock on that then means it
+       is actually *NOT* set). */
+    if (num_lock)
+	shift_states ^= STATE_LSHIFT;
+
     switch(val) {
 	case FAKE_LSHIFT_ON:
-		if (num_lock) {
-			if (!shift_states) {
-				/* Num lock on and no shifts are pressed, send non-inverted fake shift. */
-				adddata(0x2a);
-			}
-		} else {
-			if (shift_states & STATE_LSHIFT) {
-				/* Num lock off and left shift pressed. */
-				adddata(0xaa);
-			}
-			if (shift_states & STATE_RSHIFT) {
-				/* Num lock off and right shift pressed. */
-				adddata(0xb6);
-			}
+		/* If NumLock is on, fake shifts are sent when shift is *NOT* presed,
+		   if NumLock is off, fake shifts are sent when shift is pressed. */
+		if (shift_states) {
+			/* Send fake shift. */
+			adddata(num_lock ? 0x2a : 0xaa);
 		}
 		break;
 	case FAKE_LSHIFT_OFF:
-		if (num_lock) {
-			if (!shift_states) {
-				/* Num lock on and no shifts are pressed, send non-inverted fake shift. */
-				adddata(0xaa);
-			}
-		} else {
-			if (shift_states & STATE_LSHIFT) {
-				/* Num lock off and left shift pressed. */
-				adddata(0x2a);
-			}
-			if (shift_states & STATE_RSHIFT) {
-				/* Num lock off and right shift pressed. */
-				adddata(0x36);
-			}
+		if (shift_states) {
+			/* Send fake shift. */
+			adddata(num_lock ? 0xaa : 0x2a);
 		}
 		break;
 	default:
@@ -521,13 +507,13 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
 #ifdef ENABLE_KEYBOARD_XT_LOG
 		if (kbd->type <= 1)
-			kbd_log("Casette motor is %s\n", !(val & 0x08) ? "ON" : "OFF");
+			kbd_log("Cassette motor is %s\n", !(val & 0x08) ? "ON" : "OFF");
 #endif
 		break;
 #ifdef ENABLE_KEYBOARD_XT_LOG
 	case 0x62:
 		if (kbd->type <= 1)
-			kbd_log("Casette IN is %i\n", !!(val & 0x10));
+			kbd_log("Cassette IN is %i\n", !!(val & 0x10));
 		break;
 #endif
     }
