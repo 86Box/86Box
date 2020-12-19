@@ -69,6 +69,7 @@ extern const device_t	keyboard_tandy_device;
 extern const device_t	keyboard_xt_lxt3_device;
 #endif
 extern const device_t	keyboard_xt_olivetti_device;
+extern const device_t	keyboard_xt_zenith_device;
 extern const device_t	keyboard_at_device;
 extern const device_t	keyboard_at_ami_device;
 extern const device_t	keyboard_at_toshiba_device;

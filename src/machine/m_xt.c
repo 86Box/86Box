@@ -26,11 +26,11 @@ machine_xt_common_init(const machine_t *model)
     pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
 
     if (fdc_type == FDC_INTERNAL)	
-	device_add(&fdc_xt_device);
+	    device_add(&fdc_xt_device);
     
     nmi_init();
     if (joystick_type)
-	device_add(&gameport_device);
+	    device_add(&gameport_device);
 }
 
 
@@ -332,12 +332,51 @@ machine_xt_ncrpc4i_init(const machine_t *model)
 			   0x000fc000, 16384, 0);
 
     if (bios_only || !ret)
-	return ret;
+	    return ret;
 
     machine_xt_clone_init(model);
 
     return ret;
 }
 
+int
+machine_xt_mpc1600_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/mpc1600/mpc4.34_merged.bin",
+			   0x000fc000, 16384, 0);
+    
+    if (bios_only || !ret)
+	    return ret;
+
+    device_add(&keyboard_pc82_device);
+
+    machine_xt_common_init(model);
+
+    return ret;
+}
 
 
+int
+machine_xt_eaglepcspirit_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/eagle_pcspirit/u1101.bin",
+			   0x000fe000, 16384, 0);
+    
+    if (ret) {
+        bios_load_aux_linear(L"roms/machines/eagle_pcspirit/u1103.bin",
+			     0x000fc000, 8192, 0);
+    }
+
+    if (bios_only || !ret)
+	    return ret;
+
+    device_add(&keyboard_pc82_device);
+
+    machine_xt_common_init(model);
+
+    return ret;
+}

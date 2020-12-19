@@ -56,6 +56,8 @@ const machine_type_t machine_types[] = {
 
 const machine_t machines[] = {
     /* 8088 Machines */
+    { "[8088] Columbia Data Products MPC-1600",			"mpc1600",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   128,    512,  64,    0,		      machine_xt_mpc1600_init, NULL			},
+    { "[8088] Eagle PC Spirit",			"eagle_pcspirit",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   128,    640,  64,    0,		      machine_xt_eaglepcspirit_init, NULL			},
     { "[8088] IBM PC (1981)",			"ibmpc",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   16,    64,  16,    0,		      machine_pc_init, NULL			},
     { "[8088] IBM PC (1982)",			"ibmpc82",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  256,   256, 256,    0,		    machine_pc82_init, NULL			},
     { "[8088] IBM PCjr",			"ibmpcjr",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO_FIXED,						  128,   640, 128,    0,		    machine_pcjr_init, pcjr_get_device		},
@@ -79,7 +81,9 @@ const machine_t machines[] = {
     { "[8088] VTech Laser Turbo XT",		"ltxt",			MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  256,   640, 256,    0,	      machine_xt_laserxt_init, NULL			},
 #endif
     { "[8088] Xi8088",				"xi8088",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2,							   64,  1024, 128,  127,	       machine_xt_xi8088_init, xi8088_get_device	},
-    { "[8088] Zenith Data SupersPort",		"zdsupers",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640, 128,    0,	       machine_xt_zenith_init, NULL			},
+    { "[8088] Zenith Data Systems Z-151/152/161",		"zdsz151",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640, 64,    0,	       machine_xt_z151_init, NULL			},
+    { "[8088] Zenith Data Systems Z-159",		"zdsz159",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640, 64,    0,	       machine_xt_z159_init, NULL			},
+    { "[8088] Zenith Data Systems SupersPort (Z-184)",		"zdsupers",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,					MACHINE_PC|MACHINE_VIDEO_FIXED,					  128,   640, 128,    0,	       machine_xt_z184_init, z184_get_device	},
     
     /* 8086 Machines */
     { "[8086] Amstrad PC1512",			"pc1512",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 8000000, 8000000, 0, 0, 0, 0,									MACHINE_PC | MACHINE_VIDEO_FIXED | MACHINE_MOUSE,				  512,   640, 128,   63,		  machine_pc1512_init, pc1512_get_device	},
