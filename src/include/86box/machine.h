@@ -516,10 +516,13 @@ extern const device_t europc_device;
 
 /* m_xt_olivetti.c */
 extern int	machine_xt_olim24_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const 	device_t *m24_get_device(void);
+#endif
 extern int	machine_xt_olim240_init(const machine_t *);
 extern int	machine_xt_olim19_init(const machine_t *);
 #ifdef EMU_DEVICE_H
-extern const 	device_t *m24_get_device(void);
+extern const 	device_t *m19_get_device(void);
 #endif
 
 /* m_pcjr.c */
@@ -584,6 +587,11 @@ extern int	machine_xt_jukopc_init(const machine_t *);
 extern int	machine_xt_open_xt_init(const machine_t *);
 extern int	machine_xt_pxxt_init(const machine_t *);
 extern int	machine_xt_ncrpc4i_init(const machine_t *);
+extern int	machine_xt_mpc1600_init(const machine_t *);
+extern int	machine_xt_eaglepcspirit_init(const machine_t *);
+extern int	machine_xt_multitechpc700_init(const machine_t *);
+extern int	machine_xt_p3105_init(const machine_t *);
+extern int	machine_xt_p3120_init(const machine_t *);
 
 extern int	machine_xt_iskra3104_init(const machine_t *);
 
@@ -611,7 +619,12 @@ extern const device_t	*t1200_get_device(void);
 #endif
 
 /* m_xt_zenith.c */
-extern int	machine_xt_zenith_init(const machine_t *);
+extern int	machine_xt_z184_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const 	device_t *z184_get_device(void);
+#endif
+extern int	machine_xt_z151_init(const machine_t *);
+extern int	machine_xt_z159_init(const machine_t *);
 
 /* m_xt_xi8088.c */
 extern int	machine_xt_xi8088_init(const machine_t *);

@@ -353,6 +353,34 @@ kbd_log(const char *fmt, ...)
 #define kbd_log(fmt, ...)
 #endif
 
+static uint8_t
+get_fdd_switch_settings(){
+    
+    int i, fdd_count = 0;
+    
+    for (i = 0; i < FDD_NUM; i++) {
+                if (fdd_get_flags(i))
+                    fdd_count++;
+    }
+
+    if (!fdd_count)
+        return 0x00;
+    else
+        return ((fdd_count - 1) << 6) | 0x01;    
+
+}
+
+static uint8_t
+get_videomode_switch_settings(){
+    
+    if (video_is_mda())
+        return 0x30;
+    else if (video_is_cga())
+        return 0x20;	/* 0x10 would be 40x25 */
+    else
+        return 0x00;    
+
+}
 
 static void
 kbd_poll(void *priv)
@@ -525,6 +553,7 @@ kbd_read(uint16_t port, void *priv)
 {
     xtkbd_t *kbd = (xtkbd_t *)priv;
     uint8_t ret = 0xff;
+    
 
     switch (port) {
 	case 0x60:
@@ -532,9 +561,28 @@ kbd_read(uint16_t port, void *priv)
 			ret = (kbd->pd & ~0x02) | (hasfpu ? 0x02 : 0x00);
 		else if (((kbd->type == 2) || (kbd->type == 3)) && (kbd->pb & 0x80))
 			ret = 0xff;	/* According to Ruud on the PCem forum, this is supposed to return 0xFF on the XT. */
-		else
-			ret = kbd->pa;
-		break;
+		else if ((kbd->type == 9) && (kbd->pb & 0x80)) {
+            /* Zenith Data Systems Z-151
+             * SW1 switch settings:
+             * bits 6-7: floppy drive number
+             * bits 4-5: video mode
+             * bit 2-3: base memory size
+             * bit 1: fpu enable
+             * bit 0: fdc enable
+             */
+            ret = get_fdd_switch_settings();
+
+            ret |= get_videomode_switch_settings();
+        
+            /* base memory size should always be 64k */
+            ret |= 0x0c;
+
+            if (hasfpu)
+                ret |= 0x02;
+
+        } else
+            ret = kbd->pa;
+        break;
 
 	case 0x61:
 		ret = kbd->pb;
@@ -543,18 +591,20 @@ kbd_read(uint16_t port, void *priv)
 	case 0x62:
 		if (kbd->type == 0)
 			ret = 0x00;
-		else if (kbd->type == 1) {
+        else if (kbd->type == 1) {
 			if (kbd->pb & 0x04)
 				ret = ((mem_size-64) / 32) & 0x0f;
 			else
 				ret = ((mem_size-64) / 32) >> 4;
-		}  else if (kbd->type == 8) {
-			/* Olivetti M19 */
-			if (kbd->pb & 0x04)
-				ret = kbd->pd;
-			else 
-				ret = kbd->pd >> 4;
-		} else {
+		} 
+        else if (kbd->type == 8 || kbd->type == 9) {
+            /* Olivetti M19 or Zenith Data Systems Z-151*/
+            if (kbd->pb & 0x04)
+				ret = kbd->pd & 0xbf;
+            else 
+                ret = kbd->pd >> 4;
+        } 
+        else {
 			if (kbd->pb & 0x08)
 				ret = kbd->pd >> 4;
 			else {
@@ -582,6 +632,7 @@ kbd_read(uint16_t port, void *priv)
 	case 0x63:
 		if ((kbd->type == 2) || (kbd->type == 3) || (kbd->type == 4) || (kbd->type == 6))
 			ret = kbd->pd;
+        
 		break;
     }
 
@@ -616,8 +667,6 @@ keyboard_set_is_amstrad(int ams)
 static void *
 kbd_init(const device_t *info)
 {
-    int i, fdd_count = 0;
-
     xtkbd_t *kbd;
 
     kbd = (xtkbd_t *)malloc(sizeof(xtkbd_t));
@@ -634,33 +683,21 @@ kbd_init(const device_t *info)
     video_reset(gfxcard);
 
     if (kbd->type <= 3 || kbd-> type == 8) {
-        for (i = 0; i < FDD_NUM; i++) {
-            if (fdd_get_flags(i))
-                fdd_count++;
-        }
-
+        
         /* DIP switch readout: bit set = OFF, clear = ON. */
         if (kbd->type != 8)
             /* Switches 7, 8 - floppy drives. */
-            if (!fdd_count)
-                kbd->pd = 0x00;
-            else
-                kbd->pd = ((fdd_count - 1) << 6) | 0x01;
+            kbd->pd = get_fdd_switch_settings();
         else 
-            /* Jumpers J1, J2 - monitor type. 
-                * 01 - mono (high-res)
-                * 10 - color (low-res, disables 640x400x2 mode)
-                * 00 - autoswitching
-                */
+            /* Olivetti M19
+             * Jumpers J1, J2 - monitor type. 
+             * 01 - mono (high-res)
+             * 10 - color (low-res, disables 640x400x2 mode)
+             * 00 - autoswitching
+             */
             kbd->pd |= 0x00;
         
-        /* Switches 5, 6 - video. */
-        if (video_is_mda())
-            kbd->pd |= 0x30;
-        else if (video_is_cga())
-            kbd->pd |= 0x20;	/* 0x10 would be 40x25 */
-        else
-            kbd->pd |= 0x00;
+        kbd->pd |= get_videomode_switch_settings();
         
         /* Switches 3, 4 - memory size. */
         // Note to Compaq/Toshiba keyboard maintainers: type 4 and 6 will never be activated in this block
@@ -721,6 +758,44 @@ kbd_init(const device_t *info)
 
         /* Switch 1 - always off. */
         kbd->pd |= 0x01;
+    } else if (kbd-> type == 9) {
+        /* Zenith Data Systems Z-151
+         * SW2 switch settings:
+         * bit 7: monitor frequency
+         * bits 5-6: autoboot (00-11 resident monitor, 10 hdd, 01 fdd)
+         * bits 0-4: installed memory
+         */
+        kbd->pd = 0x20;
+        switch (mem_size) {
+            case 128:
+                kbd->pd |= 0x02;
+                break;
+            case 192:
+                kbd->pd |= 0x04;
+                break;
+            case 256:
+                kbd->pd |= 0x02|0x04;
+                break;
+            case 320:
+                kbd->pd |= 0x08;
+                break;
+            case 384:
+                kbd->pd |= 0x02|0x08;
+                break;
+            case 448:
+                kbd->pd |= 0x04|0x08;
+                break;
+            case 512:
+                kbd->pd |= 0x02|0x04|0x08;
+                break;
+            case 576:
+                kbd->pd |= 0x10;
+                break;
+            case 640:
+            default:
+                kbd->pd |= 0x02|0x10;
+                break;
+        }
     }
 
     timer_add(&kbd->send_delay_timer, kbd_poll, kbd, 1);
@@ -842,6 +917,16 @@ const device_t keyboard_xt_olivetti_device = {
     "Olivetti XT Keyboard",
     0,
     8,
+    kbd_init,
+    kbd_close,
+    kbd_reset,
+    { NULL }, NULL, NULL
+};
+
+const device_t keyboard_xt_zenith_device = {
+    "Zenith XT Keyboard",
+    0,
+    9,
     kbd_init,
     kbd_close,
     kbd_reset,
