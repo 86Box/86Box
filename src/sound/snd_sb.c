@@ -1506,8 +1506,11 @@ static const device_config_t sb_config[] =
                                 "0x240", 0x240
                         },
                         {
-                                ""
-                        }
+                                "0x260", 0x260
+                        },
+	                {
+				""
+			}
                 }
         },
         {
