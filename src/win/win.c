@@ -719,7 +719,6 @@ plat_setvid(int api)
 
     win_log("Initializing VIDAPI: api=%d\n", api);
     startblit();
-    video_wait_for_blit();
 
     /* Close the (old) API. */
     vid_apis[vid_api].close();
@@ -750,7 +749,6 @@ plat_vidsize(int x, int y)
     if (!vid_api_inited || !vid_apis[vid_api].resize) return;
 
     startblit();
-    video_wait_for_blit();
     vid_apis[vid_api].resize(x, y);
     endblit();
 }
@@ -764,7 +762,6 @@ plat_vidapi_enable(int enable)
     if (!vid_api_inited || !vid_apis[vid_api].enable)
 	return;
 
-    video_wait_for_blit();
     vid_apis[vid_api].enable(enable != 0);
 
     if (! i)
@@ -803,7 +800,6 @@ plat_setfullscreen(int on)
     }
 
     /* OK, claim the video. */
-    video_wait_for_blit();
     win_mouse_close();
 
     /* Close the current mode, and open the new one. */
