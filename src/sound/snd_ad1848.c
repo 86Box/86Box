@@ -299,6 +299,6 @@ void ad1848_init(ad1848_t *ad1848, int type)
 	
 	timer_add(&ad1848->timer_count, ad1848_poll, ad1848, 0);
 
-	if (ad1848->type != AD1848_TYPE_DEFAULT)
+	if (ad1848->type != AD1848_TYPE_DEFAULT && ad1848->type != AD1848_TYPE_CS4248)
 		sound_set_cd_audio_filter(ad1848_filter_cd_audio, ad1848);
 }
