@@ -1428,7 +1428,6 @@ s3_accel_write_fifo_l(s3_t *s3, uint32_t addr, uint32_t val)
 
 			case 0x18080:
 			s3->videoengine.nop = 1;
-			//pclog("Video Engine NOP\n");
 			break;
 
 			case 0x18088:
@@ -1439,7 +1438,6 @@ s3_accel_write_fifo_l(s3_t *s3, uint32_t addr, uint32_t val)
 			s3->videoengine.idf = (val >> 20) & 7;
 			s3->videoengine.dither = !!(val & (1 << 29));
 			s3->videoengine.dm_index = (val >> 23) & 7;
-			//pclog("Video Engine cntl write = %08x, dda init acc = %08x, ODF = %i, IDF = %i, Key Mask = %i, OTT = %i\n", val, s3->videoengine.dda_init_accumulator, s3->videoengine.odf, s3->videoengine.idf, !!(val & (1 << 26)), !!(val & (1 << 28)));
 			break;
 
 			case 0x1808c:
@@ -1448,14 +1446,12 @@ s3_accel_write_fifo_l(s3_t *s3, uint32_t addr, uint32_t val)
 			s3->videoengine.k1 = (val >> 16) & 0x7ff;
 			s3->videoengine.host_data = !!(val & (1 << 30));
 			s3->videoengine.scale_down = !!(val & (1 << 31));
-			//pclog("Video Engine stretch/filter constants write = %08x, k2 = %08x, k1 = %08x, host data = %i, down = %i, sense = %i\n", val, s3->videoengine.k2, s3->videoengine.k1, !!(val & (1 << 30)), !!(val & (1 << 31)), !!(val & (1 << 29)));
 			break;
 			
 			case 0x18090:
 			s3->videoengine.src_dst_step = val;
 			s3->videoengine.dst_step = val & 0x1fff;
 			s3->videoengine.src_step = (val >> 16) & 0x1fff;
-			//pclog("Video Engine SRC/DST Step val = %08x, SRCStep = %i, DSTStep = %i\n", val, s3->videoengine.src_step, s3->videoengine.dst_step);
 			break;
 			
 			case 0x18094:
@@ -1463,7 +1459,6 @@ s3_accel_write_fifo_l(s3_t *s3, uint32_t addr, uint32_t val)
 			s3->videoengine.len = val & 0xfff;
 			s3->videoengine.start = (val >> 16) & 0xfff;
 			s3->videoengine.input = 1;
-			//pclog("Video Engine Crop val = %08x, Length = %i, Start = %i\n", val, s3->videoengine.len, s3->videoengine.start);
 			break;
 			
 			case 0x18098:
@@ -2187,7 +2182,7 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 				rs3 = 0;				
 			bt48x_ramdac_out(addr, rs2, rs3, val, svga->ramdac, svga);
 		} else if ((s3->chip == S3_VISION964 && s3->card_type == S3_ELSAWIN2KPROX_964) || s3->chip == S3_VISION968)
-			ibm_rgb525_ramdac_out(addr, rs2, val, svga->ramdac, svga);
+			ibm_rgb528_ramdac_out(addr, rs2, val, svga->ramdac, svga);
 		else if ((s3->chip == S3_86C801) || (s3->chip == S3_86C805))
 			att49x_ramdac_out(addr, val, svga->ramdac, svga);
 		else if (s3->chip < S3_86C928)
@@ -2436,7 +2431,7 @@ s3_in(uint16_t addr, void *p)
 			rs3 = !!(svga->crtc[0x55] & 0x02);
 			return bt48x_ramdac_in(addr, rs2, rs3, svga->ramdac, svga);
 		} else if ((s3->chip == S3_VISION964 && s3->card_type == S3_ELSAWIN2KPROX_964) || s3->chip == S3_VISION968)
-			return ibm_rgb525_ramdac_in(addr, rs2, svga->ramdac, svga);
+			return ibm_rgb528_ramdac_in(addr, rs2, svga->ramdac, svga);
 		else if ((s3->chip == S3_86C801) || (s3->chip == S3_86C805))
 			return att49x_ramdac_in(addr, svga->ramdac, svga);
 		else if (s3->chip <= S3_86C924)
@@ -2507,11 +2502,11 @@ static void s3_recalctimings(svga_t *svga)
 
 	if ((s3->chip == S3_VISION964) || (s3->chip == S3_86C928)) {
 		if (s3->card_type == S3_ELSAWIN2KPROX_964)
-			ibm_rgb525_recalctimings(svga->ramdac, svga);
+			ibm_rgb528_recalctimings(svga->ramdac, svga);
 		else
 			bt48x_recalctimings(svga->ramdac, svga);
 	} else if (s3->chip == S3_VISION968)
-		ibm_rgb525_recalctimings(svga->ramdac, svga);
+		ibm_rgb528_recalctimings(svga->ramdac, svga);
 	else
 		svga->interlace = svga->crtc[0x42] & 0x20;
 
@@ -3535,7 +3530,6 @@ s3_accel_read_l(uint32_t addr, void *p)
 		break;
 		case 0x18088:
 		temp = s3->videoengine.cntl;
-		//pclog("Video Engine control temp = %08x\n", temp);
 		if (s3->bpp == 1) { /*The actual bpp is decided by the guest when idf is the same as odf*/
 			if (s3->videoengine.idf == 0 && s3->videoengine.odf == 0) {
 				if (svga->bpp == 15)
@@ -4220,9 +4214,7 @@ s3_visionx68_video_engine_op(uint32_t cpu_dat, s3_t *s3)
 		s3->videoengine.cx = 0.0d;
 		s3->videoengine.dx = 0.0d;
 	}
-	
-	//pclog("S3 video: host data = %i, shrink = %i, scale increment = %lf, idf = %i, odf = %i, dither = %i, width = %i, dest_base = %08x, sx = %i, cpu data = %08x\n", s3->videoengine.host_data, s3->videoengine.scale_down, s3->videoengine.sx_scale_inc, s3->videoengine.idf, s3->videoengine.odf, s3->videoengine.dither, s3->width, s3->videoengine.dest_base, s3->videoengine.sx, cpu_dat);
-	
+
 	while (count) {
 		if (host) { /*Source data is CPU*/
 			src = cpu_dat;
@@ -5772,7 +5764,7 @@ static void *s3_init(const device_t *info)
 	if (chip == S3_VISION964 && info->local != S3_ELSAWIN2KPROX_964)
 		svga->dac_hwcursor_draw = bt48x_hwcursor_draw;
 	else if ((chip == S3_VISION964 && info->local == S3_ELSAWIN2KPROX_964) || chip == S3_VISION968)
-		svga->dac_hwcursor_draw = ibm_rgb525_hwcursor_draw;
+		svga->dac_hwcursor_draw = ibm_rgb528_hwcursor_draw;
 
 	if (chip >= S3_VISION964) {
 		switch (vram) {
@@ -5939,7 +5931,7 @@ static void *s3_init(const device_t *info)
 			s3->packed_mmio = 1;
 			svga->crtc[0x5a] = 0x0a;
 
-			svga->ramdac = (info->local == S3_ELSAWIN2KPROX_964) ? device_add(&ibm_rgb525_ramdac_device) : device_add(&bt485_ramdac_device);
+			svga->ramdac = (info->local == S3_ELSAWIN2KPROX_964) ? device_add(&ibm_rgb528_ramdac_device) : device_add(&bt485_ramdac_device);
 			svga->clock_gen = device_add(&icd2061_device);
 			svga->getclock = icd2061_getclock;
 			break;	
@@ -5961,7 +5953,7 @@ static void *s3_init(const device_t *info)
 				svga->crtc[0x5a] = 0x0a;
 			}
 			
-			svga->ramdac = device_add(&ibm_rgb525_ramdac_device);
+			svga->ramdac = device_add(&ibm_rgb528_ramdac_device);
 			svga->clock_gen = device_add(&icd2061_device);
 			svga->getclock = icd2061_getclock;
 			break;
