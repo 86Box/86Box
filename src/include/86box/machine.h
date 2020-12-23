@@ -259,6 +259,10 @@ extern int	machine_at_adi386sx_init(const machine_t *);
 extern int	machine_at_commodore_sl386sx_init(const machine_t *);
 extern int	machine_at_wd76c10_init(const machine_t *);
 
+extern int	machine_at_olim290_init(const machine_t *);
+extern int	machine_at_ncrpc8_init(const machine_t *);
+extern int	machine_at_ncr3302_init(const machine_t *);
+
 extern int	machine_at_awardsx_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_M6117)
 extern int	machine_at_arb1375_init(const machine_t *);

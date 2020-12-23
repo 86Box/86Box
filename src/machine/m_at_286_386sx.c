@@ -12,9 +12,11 @@
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *      EngiNerd <webmaster.crrc@yahoo.it>
  *
  *		Copyright 2010-2019 Sarah Walker.
  *		Copyright 2016-2019 Miran Grca.
+ *      Copyright 2020 EngiNerd.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -553,3 +555,98 @@ machine_at_pja511m_init(const machine_t *model)
     return ret;
 }
 #endif
+
+
+
+static uint8_t
+m290_read(uint16_t port, void *priv)
+{
+    uint8_t ret = 0x0;
+    switch (port) {
+    /* 
+	 * port 69:
+	 * dip-switch bank on mainboard (off=1)
+	 * bit 3 - use OCG/CGA display adapter (off) / other display adapter (on)
+     */
+    case 0x69:
+        if(video_is_cga())
+            ret |= 0x8|0x4;
+        ret |= 0x1|0x2;
+    }
+    return (ret);
+}
+
+int
+machine_at_olim290_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/olivetti_m290/m290_pep3_1.25.bin",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	    return ret;
+
+    machine_at_common_init(model);
+    device_add(&keyboard_at_device);
+    device_add(&fdc_at_device);
+    
+    io_sethandler(0x069, 1, m290_read, NULL, NULL, NULL, NULL, NULL, NULL);
+
+    return ret;
+}
+
+
+/*
+ * Current bugs: 
+ * - ctrl-alt-del produces an 8042 error
+ */
+int
+machine_at_ncrpc8_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/ncr_pc8/ncr_35117_u127_vers.4-2.bin",
+                L"roms/machines/ncr_pc8/ncr_35116_u113_vers.4-2.bin",
+	    		0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	    return ret;
+
+    machine_at_common_init(model);
+    device_add(&keyboard_at_ncr_device);
+    device_add(&fdc_at_device);
+    
+    return ret;
+}
+
+/*
+ * Current bugs: 
+ * - ctrl-alt-del produces an 8042 error
+ */
+int
+machine_at_ncr3302_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/ncr_3302/f000-flex_drive_test.bin",
+				0x000f0000, 65536, 0);
+
+    if (ret) {
+        bios_load_aux_linear(L"roms/machines/ncr_3302/f800-setup_ncr3.5-013190.bin",
+			     0x000f8000, 32768, 0);
+    }
+
+    if (bios_only || !ret)
+	    return ret;
+
+    machine_at_common_ide_init(model);
+    device_add(&neat_device);
+    device_add(&keyboard_at_ncr_device);
+    device_add(&fdc_at_device);
+
+    if (gfxcard == VID_INTERNAL)
+    	device_add(&paradise_pvga1a_device);
+    
+    return ret;
+}
