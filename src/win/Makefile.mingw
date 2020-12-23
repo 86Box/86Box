@@ -158,7 +158,7 @@ else
   M6117		:= n
  endif
  ifndef SIS_5571
-  SIS_5571	:= y
+  SIS_5571	:= n
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
