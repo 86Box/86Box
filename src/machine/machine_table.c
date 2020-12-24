@@ -121,7 +121,9 @@ const machine_t machines[] = {
     { "[ISA] Compaq Portable II",		"portableii",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  640, 16384, 128,  127,	   machine_at_portableii_init, NULL			},
     { "[ISA] Compaq Portable III",		"portableiii",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_VIDEO,							  640, 16384, 128,  127,	  machine_at_portableiii_init, at_cpqiii_get_device	},
     { "[ISA] MR 286 clone",			"mr286",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							  512, 16384, 128,  127,	        machine_at_mr286_init, NULL			},
-#if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
+    { "[ISA] NCR PC8/810/710/3390/3392",	"ncr_pc8",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,                                   					MACHINE_AT,									  512, 16384, 128,  127,		machine_at_ncrpc8_init, NULL			},
+    { "[ISA] Olivetti M290",			"olivetti_m290",	MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,                                   					MACHINE_AT,									  640, 16384, 128, 127,			machine_at_olim290_init, NULL			},
+    #if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
     { "[ISA] OpenAT",				"open_at",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  256, 15872, 128,   63,	      machine_at_open_at_init, NULL			},
 #endif
     { "[ISA] Phoenix IBM AT",			"ibmatpx",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 6000000, 8000000, 0, 0, 0, 0,									MACHINE_AT,									  256, 15872, 128,   63,	      machine_at_ibmatpx_init, NULL			},
@@ -131,6 +133,7 @@ const machine_t machines[] = {
     { "[GC103] Quadtel 286 clone",		"quadt286",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512, 16384, 128,  127,	     machine_at_quadt286_init, NULL			},
     { "[GC103] Trigem 286M",			"tg286m",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							  512,  8192, 128,  127,	       machine_at_tg286m_init, NULL			},
     { "[NEAT] AMI 286 clone",			"ami286",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192, 128,  127,	     machine_at_neat_ami_init, NULL			},
+    { "[NEAT] NCR 3302",			"ncr_3302",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,                                   					MACHINE_AT | MACHINE_VIDEO,							  512, 16384, 128,  127,		machine_at_ncr3302_init, NULL			},
     { "[NEAT] Phoenix 286 clone",		"px286",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512, 16384, 128,  127,	        machine_at_px286_init, NULL			},
     { "[SCAT] Award 286 clone",			"award286",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512, 16384, 128,  127,	     machine_at_award286_init, NULL			},
     { "[SCAT] GW-286CT GEAR",			"gw286ct",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512, 16384, 128,  127,	      machine_at_gw286ct_init, NULL			},
@@ -365,7 +368,7 @@ const machine_t machines[] = {
 #if defined(DEV_BRANCH) && defined(NO_SIO)
     { "[i440BX] Fujitsu ErgoPro x365",		"ergox365",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 100000000, 1800, 3500, 3.5, 5.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 393216, 8192, 511,	     machine_at_ergox365_init, NULL			},
 #endif
-
+    
     /* 440GX */
     { "[i440GX] Freeway FW-6400GX",		"fw6400gx_s1",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 100000000, 150000000, 1800, 3500, 3.0, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				16384,2080768,16384, 511,	     machine_at_fw6400gx_init, NULL			},
 
