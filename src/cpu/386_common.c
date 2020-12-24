@@ -1760,7 +1760,7 @@ sysexit(uint32_t fetchdat)
 
 
 int
-syscall(uint32_t fetchdat)
+syscall_op(uint32_t fetchdat)
 {
 #ifdef ENABLE_386_COMMON_LOG
     x386_common_log("SYSCALL called\n");
