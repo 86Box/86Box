@@ -121,7 +121,7 @@ sis_5571_smm_recalc(sis_5571_t *dev)
 }
 
 static void
-sis_5571_ide_handle(void *priv)
+sis_5571_ide_handler(void *priv)
 {
 	sis_5571_t *dev = (sis_5571_t *)priv;
 	uint32_t base, side;
@@ -184,7 +184,7 @@ sis_5571_ide_handle(void *priv)
 }
 
 static void
-sis_5571_usb_handle(void *priv)
+sis_5571_usb_handler(void *priv)
 {
 	sis_5571_t *dev = (sis_5571_t *)priv;
 
@@ -354,7 +354,7 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 
 		case 0x63: /* IDE IRQ Remap */
 			dev->pci_conf_sb[0][addr] = val & 0x8f;
-			sis_5571_ide_handle(dev);
+			sis_5571_ide_handler(dev);
 			break;
 
 		case 0x64:
@@ -367,6 +367,7 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 
 		case 0x68: /* USB IRQ Remap */
 			dev->pci_conf_sb[0][addr] = val & 0x1b;
+			sis_5571_usb_handler(dev);
 			break;
 
 		case 0x6a:
@@ -413,7 +414,9 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 			break;
 		}
 		sis_5571_log("IDE Controller: dev->pci_conf[%02x] = %02x\n", addr, val);
-		sis_5571_ide_handle(dev);
+
+		if ((addr == 0x09) || ((addr >= 0x10) && (addr <= 0x23)) || (addr == 0x4a))
+			sis_5571_ide_handler(dev);
 		break;
 
 	case 2: /* USB Controller */
@@ -432,7 +435,9 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 			break;
 		}
 		sis_5571_log("USB Controller: dev->pci_conf[%02x] = %02x\n", addr, val);
-		sis_5571_usb_handle(dev);
+
+		if ((addr >= 0x11) && (addr <= 0x17))
+			sis_5571_usb_handler(dev);
 		break;
 	}
 }
@@ -546,7 +551,7 @@ sis_5571_reset(void *priv)
 	sff_set_slot(dev->bm[1], dev->sb_pci_slot);
 	sff_set_irq_pin(dev->bm[1], PCI_INTA);
 
-	sis_5571_ide_handle(dev);
+	sis_5571_ide_handler(dev);
 
 	/* USB Controller */
 	dev->pci_conf_sb[2][0x00] = 0x39;
@@ -568,7 +573,7 @@ sis_5571_reset(void *priv)
 	dev->pci_conf_sb[2][0x14] = 0x01;
 	dev->pci_conf_sb[2][0x3d] = 0x01;
 
-	sis_5571_usb_handle(dev);
+	sis_5571_usb_handler(dev);
 }
 
 static void
