@@ -84,6 +84,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef M6117
   M6117		:= y
  endif
+ ifndef SIS_5571
+  SIS_5571	:= y
+ endif
  ifndef VGAWONDER
   VGAWONDER	:= y
  endif
@@ -153,6 +156,9 @@ else
  endif
  ifndef M6117
   M6117		:= n
+ endif
+ ifndef SIS_5571
+  SIS_5571	:= n
  endif
  ifndef VGAWONDER
   VGAWONDER	:= n
@@ -550,6 +556,11 @@ endif
 ifeq ($(M6117), y)
 OPTS		+= -DUSE_M6117
 DEVBROBJ	+= ali6117.o
+endif
+
+ifeq ($(SIS_5571), y)
+OPTS		+= -DUSE_SIS_5571
+DEVBROBJ	+= sis_5571.o
 endif
 
 ifeq ($(VGAWONDER), y)

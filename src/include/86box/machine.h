@@ -429,6 +429,11 @@ extern int	machine_at_an430tx_init(const machine_t *);
 extern int	machine_at_mb540n_init(const machine_t *);
 extern int	machine_at_p5mms98_init(const machine_t *);
 
+#if defined(DEV_BRANCH) && defined(USE_SIS_5571)
+extern int	machine_at_r534f_init(const machine_t *);
+extern int	machine_at_ms5146_init(const machine_t *);
+#endif
+
 extern int	machine_at_ficva502_init(const machine_t *);
 
 extern int	machine_at_ficpa2012_init(const machine_t *);
