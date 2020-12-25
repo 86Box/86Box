@@ -268,14 +268,17 @@ sector_to_buffer(int drive, int track, int side, uint8_t *buffer, int sector, in
 {
     imd_t *dev = imd[drive];
     int type = dev->buffer[dev->tracks[track][side].sector_data_offs[sector]];
+    uint8_t fill_char;
 
     if (type == 0)
 	memset(buffer, 0x00, len);
       else {
 	if (type & 1)
 		memcpy(buffer, &(dev->buffer[dev->tracks[track][side].sector_data_offs[sector] + 1]), len);
-	  else
-		memset(buffer, dev->buffer[dev->tracks[track][side].sector_data_offs[sector] + 1], len);
+	else {
+		fill_char = dev->buffer[dev->tracks[track][side].sector_data_offs[sector] + 1];
+		memset(buffer, fill_char, len);
+	}
     }
 }
 
@@ -398,6 +401,7 @@ imd_seek(int drive, int track)
 				ssize = 128 << ((uint32_t) id[3]);
 
 			sector_to_buffer(drive, track, side, data, actual_sector, ssize);
+
 			current_pos = d86f_prepare_sector(drive, side, current_pos, id, data, ssize, 22, track_gap3, flags);
 			track_buf_pos[side] += ssize;
 
@@ -551,9 +555,12 @@ poll_read_data(int drive, int side, uint16_t pos)
     imd_t *dev = imd[drive];
     int type = dev->current_data[side][0];
 
-    if (! (type & 1)) return(0xf6);		/* Should never happen. */
+    if ((type == 0) || (type > 8)) return(0xf6);		/* Should never happen. */
 
-    return(dev->current_data[side][pos + 1]);
+    if (type & 1)
+    	return(dev->current_data[side][pos + 1]);
+    else
+    	return(dev->current_data[side][1]);
 }
 
 
@@ -565,7 +572,7 @@ poll_write_data(int drive, int side, uint16_t pos, uint8_t data)
 
     if (writeprot[drive]) return;
 
-    if (! (type & 1)) return;		/* Should never happen. */
+    if ((type & 1) || (type == 0) || (type > 8)) return;	/* Should never happen. */
 
     dev->current_data[side][pos + 1] = data;
 }
@@ -720,7 +727,6 @@ imd_load(int drive, wchar_t *fn)
 
 	track_spt = buffer2[3];
 	sector_size = buffer2[4];
-	pclog("%02X %02X %02X %02X\n", buffer2[1], buffer2[2], buffer2[3], buffer2[4]);
 	if ((track_spt == 15) && (sector_size == 2))
 		dev->tracks[track][side].side_flags |= 0x20;
 	if ((track_spt == 16) && (sector_size == 2))
@@ -737,7 +743,7 @@ imd_load(int drive, wchar_t *fn)
 		dev->tracks[track][side].max_sector_size = 5;
 	if (!mfm)
 		dev->tracks[track][side].max_sector_size--;
-	/* imd_log("Side flags for (%02i)(%01i): %02X\n", track, side, dev->tracks[track][side].side_flags); */
+	imd_log("Side flags for (%02i)(%01i): %02X\n", track, side, dev->tracks[track][side].side_flags);
 	dev->tracks[track][side].is_present = 1;
 	dev->tracks[track][side].file_offs = (buffer2 - buffer);
 	memcpy(dev->tracks[track][side].params, buffer2, 5);
