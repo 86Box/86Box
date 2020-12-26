@@ -1077,6 +1077,7 @@ scsi_disk_phase_data_out(scsi_common_t *sc)
     uint32_t last_sector = hdd_image_get_last_sector(dev->id);
     uint32_t c, h, s, last_to_write = 0;
     uint16_t block_desc_len, pos;
+    uint16_t param_list_len;
     uint8_t hdr_len, val, old_val, ch, error = 0;
     uint8_t page, page_len;
 
@@ -1133,10 +1134,15 @@ scsi_disk_phase_data_out(scsi_common_t *sc)
 		break;
 	case GPCMD_MODE_SELECT_6:
 	case GPCMD_MODE_SELECT_10:
-		if (dev->current_cdb[0] == GPCMD_MODE_SELECT_10)
+		if (dev->current_cdb[0] == GPCMD_MODE_SELECT_10) {
 			hdr_len = 8;
-		else
+			param_list_len = dev->current_cdb[7];
+			param_list_len <<= 8;
+			param_list_len |= dev->current_cdb[8];
+		} else {
 			hdr_len = 4;
+			param_list_len = dev->current_cdb[4];
+		}
 
 		if (dev->current_cdb[0] == GPCMD_MODE_SELECT_6) {
 			block_desc_len = dev->temp_buffer[2];
@@ -1151,7 +1157,7 @@ scsi_disk_phase_data_out(scsi_common_t *sc)
 		pos = hdr_len + block_desc_len;
 
 		while(1) {
-			if (pos >= dev->current_cdb[4]) {
+			if (pos >= param_list_len) {
 				scsi_disk_log("SCSI HD %i: Buffer has only block descriptor\n", dev->id);
 				break;
 			}

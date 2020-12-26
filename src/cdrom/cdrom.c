@@ -733,11 +733,6 @@ track_type_is_valid(uint8_t id, int type, int flags, int audio, int mode2)
     }
 
     if ((type != 1) && !audio) {
-	if (!(flags & 0x70)) {		/* 0x00/0x08/0x80/0x88 are illegal modes */
-		cdrom_log("CD-ROM %i: [Any Data Mode] 0x00/0x08/0x80/0x88 are illegal modes\n", id);
-		return 0;
-	}
-
 	if ((flags & 0x06) == 0x06) {
 		cdrom_log("CD-ROM %i: [Any Data Mode] Invalid error flags\n", id);
 		return 0;
