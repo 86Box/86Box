@@ -4195,7 +4195,7 @@ s3_visionx68_video_engine_op(uint32_t cpu_dat, s3_t *s3)
 			s3->videoengine.sx_scale = (double)(s3->videoengine.k1 - 2);
 			s3->videoengine.sx_scale_dec = (s3->videoengine.sx_scale / (double)(s3->videoengine.len - s3->videoengine.start - 2));
 
-			if (s3->videoengine.sx_scale_dec >= 0.5d) {
+			if (s3->videoengine.sx_scale_dec >= 0.5) {
 				s3->videoengine.sx_scale++;
 			}
 		}
@@ -4211,8 +4211,8 @@ s3_visionx68_video_engine_op(uint32_t cpu_dat, s3_t *s3)
 			s3->videoengine.src = (s3->videoengine.src_base >> 2) + s3->width;
 		}
 		s3->videoengine.input = 2;
-		s3->videoengine.cx = 0.0d;
-		s3->videoengine.dx = 0.0d;
+		s3->videoengine.cx = 0.0;
+		s3->videoengine.dx = 0.0;
 	}
 
 	while (count) {
@@ -4255,8 +4255,8 @@ s3_visionx68_video_engine_op(uint32_t cpu_dat, s3_t *s3)
 				s3->videoengine.sx_scale_inc = (double)((s3->videoengine.sx_backup >> 1));
 				s3->videoengine.sx_scale_inc = s3->videoengine.sx_scale_inc / (double)((s3->videoengine.sx >> 1));
 				
-				s3->videoengine.cx = 0.0d;
-				s3->videoengine.dx = 0.0d;
+				s3->videoengine.cx = 0.0;
+				s3->videoengine.dx = 0.0;
 
 				if (s3->bpp == 0) {
 					s3->videoengine.dest = s3->videoengine.dest_base + s3->width;
@@ -4299,12 +4299,12 @@ s3_visionx68_video_engine_op(uint32_t cpu_dat, s3_t *s3)
 				s3->videoengine.sx_scale = (double)(s3->videoengine.k1 - 2);
 				s3->videoengine.sx_scale_dec = (s3->videoengine.sx_scale / (double)(s3->videoengine.len - s3->videoengine.start - 2));
 				
-				if (s3->videoengine.sx_scale_dec >= 0.5d) {
+				if (s3->videoengine.sx_scale_dec >= 0.5) {
 					s3->videoengine.sx_scale++;
 				}
 				
-				s3->videoengine.cx = 0.0d;
-				s3->videoengine.dx = 0.0d;
+				s3->videoengine.cx = 0.0;
+				s3->videoengine.dx = 0.0;
 
 				if (s3->bpp == 0) {
 					s3->videoengine.dest = s3->videoengine.dest_base + s3->width;
