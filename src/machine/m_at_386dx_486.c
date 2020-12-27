@@ -912,7 +912,6 @@ machine_at_abpb4_init(const machine_t *model)
     pci_register_slot(0x05, PCI_CARD_NORMAL, 3, 4, 1, 2);
 
     device_add(&ali1489_device);
-    device_add(&ide_pci_2ch_device);
     device_add(&w83787f_device);
     device_add(&keyboard_at_device);
 
