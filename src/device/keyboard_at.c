@@ -1749,7 +1749,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 						add_data_kbd_direct(dev, 0xfa);
 						if (val == 0) {
 							kbd_log("Get scan code set: %02X\n", keyboard_mode & 3);
-							add_data_kbd(keyboard_mode & 3);
+							add_data_kbd_direct(dev, keyboard_mode & 3);
 						} else {
 							if ((val <= 3) && (val != 1)) {
 								keyboard_mode &= 0xfc;
