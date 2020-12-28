@@ -89,7 +89,8 @@
 #define KBC_VEN_ACER		0x1c
 #define KBC_VEN_INTEL_AMI	0x20
 #define KBC_VEN_OLIVETTI	0x24
-#define KBC_VEN_NCR			0x28
+#define KBC_VEN_NCR		0x28
+#define KBC_VEN_SAMSUNG		0x2c
 #define KBC_VEN_MASK		0x3c
 
 
@@ -1955,7 +1956,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
 			case 0xaa:	/* self-test */
 				kbd_log("ATkbc: self-test\n");
-				if (kbc_ven == KBC_VEN_TOSHIBA)
+				if ((kbc_ven == KBC_VEN_TOSHIBA) || (kbc_ven == KBC_VEN_SAMSUNG))
 					dev->status |= STAT_IFULL;
 				if (! dev->initialized) {
 					kbd_log("ATkbc: self-test reinitialization\n");
@@ -2299,6 +2300,7 @@ kbd_init(const device_t *info)
 
 	case KBC_VEN_AMI:
 	case KBC_VEN_INTEL_AMI:
+	case KBC_VEN_SAMSUNG:
 		dev->write60_ven = write60_ami;
 		dev->write64_ven = write64_ami;
 		break;
@@ -2339,6 +2341,16 @@ const device_t keyboard_at_ami_device = {
     "PC/AT Keyboard (AMI)",
     0,
     KBC_TYPE_ISA | KBC_VEN_AMI,
+    kbd_init,
+    kbd_close,
+    kbd_reset,
+    { NULL }, NULL, NULL, NULL
+};
+
+const device_t keyboard_at_samsung_device = {
+    "PC/AT Keyboard (Samsung)",
+    0,
+    KBC_TYPE_ISA | KBC_VEN_SAMSUNG,
     kbd_init,
     kbd_close,
     kbd_reset,

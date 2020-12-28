@@ -157,11 +157,33 @@ machine_at_ecs386_init(const machine_t *model)
 
     machine_at_common_init(model);
     device_add(&cs8230_device);
-    device_add(&keyboard_at_ami_device);
     device_add(&fdc_at_device);
+    device_add(&keyboard_at_ami_device);
 
     return ret;
 }
+
+
+int
+machine_at_spc6000a_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/spc6000a/3c80.u27",
+				L"roms/machines/spc6000a/9f80.u26",
+				0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 1);
+    device_add(&cs8230_device);
+    device_add(&fdc_at_device);
+    device_add(&keyboard_at_samsung_device);
+
+    return ret;
+}
+
 
 int
 machine_at_ustechnologies386_init(const machine_t *model)
@@ -182,6 +204,7 @@ machine_at_ustechnologies386_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_rycleopardlx_init(const machine_t *model)
@@ -224,6 +247,7 @@ machine_at_486vchd_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_cs4031_init(const machine_t *model)
 {
@@ -242,6 +266,7 @@ machine_at_cs4031_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_pb410a_init(const machine_t *model)
@@ -269,6 +294,7 @@ machine_at_pb410a_init(const machine_t *model)
     return ret;
 }
 
+
 #if defined(DEV_BRANCH) && defined(USE_VECT486VL)
 int
 machine_at_vect486vl_init(const machine_t *model)	// has HDC problems
@@ -294,12 +320,14 @@ machine_at_vect486vl_init(const machine_t *model)	// has HDC problems
     return ret;
 }
 
+
 const device_t *
 at_vect486vl_get_device(void)
 {
     return &gd5428_onboard_device;
 }
 #endif
+
 
 int
 machine_at_acera1g_init(const machine_t *model)
@@ -324,6 +352,7 @@ machine_at_acera1g_init(const machine_t *model)
 
     return ret;
 }
+
 
 const device_t *
 at_acera1g_get_device(void)
@@ -445,6 +474,7 @@ machine_at_opti495_mr_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_403tg_init(const machine_t *model)
 {
@@ -465,6 +495,7 @@ machine_at_403tg_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_pc330_6571_init(const machine_t *model)	// doesn't like every CPU other than the iDX4 and the Intel OverDrive, hangs without a PS/2 mouse
@@ -516,6 +547,7 @@ machine_at_ami471_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_vli486sv2g_init(const machine_t *model)
 {
@@ -533,6 +565,7 @@ machine_at_vli486sv2g_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_dtk486_init(const machine_t *model)
@@ -891,6 +924,7 @@ machine_at_486vipio2_init(const machine_t *model)
 }
 #endif
 
+
 #if defined(DEV_BRANCH) && defined(USE_M1489)
 int
 machine_at_abpb4_init(const machine_t *model)
@@ -918,6 +952,7 @@ machine_at_abpb4_init(const machine_t *model)
     return ret;
 }
 #endif
+
 
 #if defined(DEV_BRANCH) && defined(USE_STPC)
 int
