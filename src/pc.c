@@ -648,14 +648,14 @@ pc_init_modules(void)
 
 
 void
-pc_send_ca(uint8_t sc)
+pc_send_ca(uint16_t sc)
 {
-    keyboard_input(1, 29);	/* Ctrl key pressed */
-    keyboard_input(1, 56);	/* Alt key pressed */
+    keyboard_input(1, 0x1D);	/* Ctrl key pressed */
+    keyboard_input(1, 0x38);	/* Alt key pressed */
     keyboard_input(1, sc);
     keyboard_input(0, sc);
-    keyboard_input(0, 56);	/* Alt key released */
-    keyboard_input(0, 29);	/* Ctrl key released */
+    keyboard_input(0, 0x38);	/* Alt key released */
+    keyboard_input(0, 0x1D);	/* Ctrl key released */
 }
 
 
@@ -663,7 +663,7 @@ pc_send_ca(uint8_t sc)
 void
 pc_send_cad(void)
 {
-    pc_send_ca(83);
+    pc_send_ca(0xE053);
 }
 
 
