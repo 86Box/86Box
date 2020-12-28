@@ -647,26 +647,15 @@ pc_init_modules(void)
 }
 
 
-/* Insert keystrokes into the machine's keyboard buffer. */
-static void
-pc_keyboard_send(uint8_t val)
-{
-    if (AT)
-	keyboard_at_adddata_keyboard_raw(val);
-    else
-	keyboard_send(val);
-}
-
-
 void
 pc_send_ca(uint8_t sc)
 {
-    pc_keyboard_send(29);	/* Ctrl key pressed */
-    pc_keyboard_send(56);	/* Alt key pressed */
-    pc_keyboard_send(sc);
-    pc_keyboard_send(sc | 0x80);
-    pc_keyboard_send(184);	/* Alt key released */
-    pc_keyboard_send(157);	/* Ctrl key released */
+    keyboard_input(1, 29);	/* Ctrl key pressed */
+    keyboard_input(1, 56);	/* Alt key pressed */
+    keyboard_input(1, sc);
+    keyboard_input(0, sc);
+    keyboard_input(0, 56);	/* Alt key released */
+    keyboard_input(0, 29);	/* Ctrl key released */
 }
 
 
