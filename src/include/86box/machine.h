@@ -419,6 +419,7 @@ extern int	machine_at_p65up5_cp55t2d_init(const machine_t *);
 extern int	machine_at_p55tvp4_init(const machine_t *);
 extern int	machine_at_p55va_init(const machine_t *);
 extern int	machine_at_i430vx_init(const machine_t *);
+extern int	machine_at_5ivg_init(const machine_t *);
 extern int	machine_at_brio80xx_init(const machine_t *);
 extern int	machine_at_8500tvxa_init(const machine_t *);
 extern int	machine_at_presario4500_init(const machine_t *);
