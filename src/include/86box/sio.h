@@ -32,6 +32,8 @@ extern const device_t	fdc37c931apm_compaq_device;
 extern const device_t	fdc37c932fr_device;
 extern const device_t	fdc37c932qf_device;
 extern const device_t	fdc37c935_device;
+extern const device_t   fdc37m60x_device;
+extern const device_t   fdc37m60x_370_device;
 extern const device_t	i82091aa_device;
 extern const device_t	i82091aa_398_device;
 extern const device_t	i82091aa_ide_device;

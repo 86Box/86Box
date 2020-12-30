@@ -197,7 +197,7 @@ prime3c_read(uint16_t addr, void *priv)
 {
     prime3c_t *dev = (prime3c_t *)priv;
 
-    return dev->regs[addr];
+    return dev->regs[dev->index];
 }
 
 void prime3c_fdc_handler(prime3c_t *dev)
