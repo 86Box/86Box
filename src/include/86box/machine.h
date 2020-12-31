@@ -309,6 +309,7 @@ extern int	machine_at_vect486vl_init(const machine_t *);
 
 extern int	machine_at_403tg_init(const machine_t *);
 extern int	machine_at_pc330_6571_init(const machine_t *);
+extern int	machine_at_mvi486_init(const machine_t *);
 
 extern int	machine_at_sis401_init(const machine_t *);
 extern int	machine_at_av4_init(const machine_t *);
@@ -419,6 +420,7 @@ extern int	machine_at_p65up5_cp55t2d_init(const machine_t *);
 extern int	machine_at_p55tvp4_init(const machine_t *);
 extern int	machine_at_p55va_init(const machine_t *);
 extern int	machine_at_i430vx_init(const machine_t *);
+extern int	machine_at_5ivg_init(const machine_t *);
 extern int	machine_at_brio80xx_init(const machine_t *);
 extern int	machine_at_8500tvxa_init(const machine_t *);
 extern int	machine_at_presario4500_init(const machine_t *);
@@ -489,6 +491,7 @@ extern int	machine_at_ergox365_init(const machine_t *);
 extern int	machine_at_ficka6130_init(const machine_t *);
 extern int	machine_at_p3v133_init(const machine_t *);
 extern int	machine_at_p3v4x_init(const machine_t *);
+extern int	machine_at_vei8_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_tsunamiatx_get_device(void);

@@ -474,7 +474,6 @@ machine_at_opti495_mr_init(const machine_t *model)
     return ret;
 }
 
-
 int
 machine_at_403tg_init(const machine_t *model)
 {
@@ -515,6 +514,27 @@ machine_at_pc330_6571_init(const machine_t *model)	// doesn't like every CPU oth
     device_add(&fdc37c665_device);
     device_add(&ide_opti611_vlb_device);
     device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+int
+machine_at_mvi486_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/mvi486/MVI627.BIN",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&opti895_device);
+
+    device_add(&keyboard_at_device);
+    device_add(&pc87311_ide_device);
 
     return ret;
 }
