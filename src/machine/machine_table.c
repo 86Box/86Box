@@ -200,6 +200,7 @@ const machine_t machines[] = {
     { "[OPTi 495] MR 486 clone",		"mr486",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	   machine_at_opti495_mr_init, NULL			},
     { "[OPTi 802G] IBM PC 330 (type 6571)",	"pc330_6571",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3_PC330, 0, 25000000, 33333333, 0, 0, 2.0, 3.0,							MACHINE_VLB | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024, 65536, 1024, 127,	   machine_at_pc330_6571_init, NULL			},
     { "[OPTi 895] Jetway J-403TG",		"403tg",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,									 1024, 65536, 1024, 127,	        machine_at_403tg_init, NULL			},
+    { "[OPTi 895] Mylex MVI486",		"mvi486",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE_DUAL,									 1024, 65536, 1024, 127,	        machine_at_mvi486_init, NULL			},
     { "[SiS 401] AMI 486 Clone",		"sis401",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							 1024, 65536, 1024, 127,	       machine_at_sis401_init, NULL			},
     { "[SiS 460] ABIT AV4",			"av4",			MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 65536, 1024, 127,		  machine_at_av4_init, NULL			},
     { "[SiS 461] IBM PS/ValuePoint 433DX/Si",	"valuepoint433",	MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024, 65536, 1024, 127,	machine_at_valuepoint433_init, NULL			},
