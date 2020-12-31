@@ -155,7 +155,7 @@ typedef struct {
 typedef struct {
     const uint32_t	package;
     const char		*manufacturer;
-    const char    	*name;
+    const char		*name;
     const char		*internal_name;
     const CPU		*cpus;
 } cpu_family_t;
