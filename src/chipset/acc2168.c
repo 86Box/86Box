@@ -38,6 +38,8 @@
 #define SHADOW_SIZE ((i <= 1) ? 0x8000 : 0x10000)
 #define SHADOW_RECALC ((dev->regs[0x02] & (1 << i)) ? ENABLED_SHADOW : DISABLED_SHADOW)
 
+#define ENABLE_ACC2168_LOG 1
+
 #ifdef ENABLE_ACC2168_LOG
 int acc2168_do_log = ENABLE_ACC2168_LOG;
 static void
@@ -154,6 +156,11 @@ acc2168_write(uint16_t addr, uint8_t val, void *p)
         case 0x1b:
             dev->regs[dev->reg_idx] = val & 0xef;
             break;
+
+        default: /* ACC 2168 has way more registers which we haven't documented */
+        dev->regs[dev->reg_idx] = val;
+        break;
+
         }
         break;
     }
