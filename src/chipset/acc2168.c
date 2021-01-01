@@ -16,11 +16,13 @@
  *		Copyright 2019 Sarah Walker.
  *      Copyright 2021 Tiseno100.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/timer.h>
@@ -35,6 +37,23 @@
 #define SHADOW_ADDR ((i <= 1) ? (0xc0000 + (i << 15)) : (0xd0000 + ((i - 2) << 16)))
 #define SHADOW_SIZE ((i <= 1) ? 0x8000 : 0x10000)
 #define SHADOW_RECALC ((dev->regs[0x02] & (1 << i)) ? ENABLED_SHADOW : DISABLED_SHADOW)
+
+#ifdef ENABLE_ACC2168_LOG
+int ali1429_do_log = ENABLE_ACC2168_LOG;
+static void
+acc2168_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (acc2168_do_log) {
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
+    }
+}
+#else
+#define acc2168_log(fmt, ...)
+#endif
 
 typedef struct acc2168_t
 {
@@ -59,7 +78,7 @@ acc2168_write(uint16_t addr, uint8_t val, void *p)
         dev->reg_idx = val;
         break;
     case 0xf3:
-        pclog("dev->regs[%02x] = %02x\n", dev->reg_idx, val);
+        acc2168_log("ACC2168: dev->regs[%02x] = %02x\n", dev->reg_idx, val);
         switch (dev->reg_idx)
         {
         case 0x00:
