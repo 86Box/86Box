@@ -39,7 +39,7 @@
 #define SHADOW_RECALC ((dev->regs[0x02] & (1 << i)) ? ENABLED_SHADOW : DISABLED_SHADOW)
 
 #ifdef ENABLE_ACC2168_LOG
-int ali1429_do_log = ENABLE_ACC2168_LOG;
+int acc2168_do_log = ENABLE_ACC2168_LOG;
 static void
 acc2168_log(const char *fmt, ...)
 {
