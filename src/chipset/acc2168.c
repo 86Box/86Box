@@ -38,8 +38,6 @@
 #define SHADOW_SIZE ((i <= 1) ? 0x8000 : 0x10000)
 #define SHADOW_RECALC ((dev->regs[0x02] & (1 << i)) ? ENABLED_SHADOW : DISABLED_SHADOW)
 
-#define ENABLE_ACC2168_LOG 1
-
 #ifdef ENABLE_ACC2168_LOG
 int acc2168_do_log = ENABLE_ACC2168_LOG;
 static void
