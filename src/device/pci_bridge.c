@@ -39,7 +39,7 @@
 #define AGP_BRIDGE_VIA_597	0x11068597
 #define AGP_BRIDGE_VIA_598	0x11068598
 #define AGP_BRIDGE_VIA_691	0x11068691
-#define AGP_BRIDGE_VIA_8601 0x11068601
+#define AGP_BRIDGE_VIA_8601	0x11068601
 
 #define AGP_BRIDGE_INTEL(x)	(((x) >> 16) == 0x8086)
 #define AGP_BRIDGE_VIA(x)	(((x) >> 16) == 0x1106)
@@ -90,10 +90,12 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
     switch (addr) {
 	case 0x00: case 0x01: case 0x02: case 0x03:
 	case 0x06: case 0x08: case 0x09: case 0x0a:
-	case 0x0b: case 0x0e: case 0x1e: case 0x34:
-	case 0x3d: case 0x67: case 0xdc: case 0xdd:
-	case 0xde: case 0xdf: case 0xe0: case 0xe1:
-	case 0xe2: case 0xe3:
+	case 0x0b: case 0x0e: case 0x0f: case 0x10:
+	case 0x11: case 0x12: case 0x13: case 0x14:
+	case 0x15: case 0x16: case 0x17: case 0x1e:
+	case 0x34: case 0x3d: case 0x67: case 0xdc:
+	case 0xdd: case 0xde: case 0xdf: case 0xe0:
+	case 0xe1: case 0xe2: case 0xe3:
 		return;
 
 	case 0x04:
@@ -116,15 +118,17 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 			dev->regs[addr] &= ~(val & 0x40);
 		return;
 
-	case 0x0d:
-		if (AGP_BRIDGE_INTEL(dev->local))
-			val &= 0xf8;
-		break;
-
-	case 0x18:
-		/* Parent bus number is always 0 on AGP bridges. */
+	case 0x0c: case 0x18:
+		/* Parent bus number (0x18) is always 0 on AGP bridges. */
 		if (AGP_BRIDGE(dev->local))
 			return;
+		break;
+
+	case 0x0d:
+		if (AGP_BRIDGE_VIA(dev->local))
+			return;
+		else if (AGP_BRIDGE_INTEL(dev->local))
+			val &= 0xf8;
 		break;
 
 	case 0x19:
