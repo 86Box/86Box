@@ -1059,7 +1059,7 @@ write_output(atkbd_t *dev, uint8_t val)
     if ((dev->output_port ^ val) & 0x01) { /*Reset*/
 	if (! (val & 0x01)) {
 		/* Pin 0 selected. */
-		softresetx86(); /*Pulse reset!*/
+		resetx86(); /*Pulse reset!*/
 		cpu_set_edx();
 	}
     }
