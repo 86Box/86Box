@@ -2081,8 +2081,8 @@ zip_phase_data_out(scsi_common_t *sc)
 {
     zip_t *dev = (zip_t *) sc;
 
-    uint16_t block_desc_len;
-    uint16_t pos;
+    uint16_t block_desc_len, pos;
+    uint16_t param_list_len;
 
     uint8_t error = 0;
     uint8_t page, page_len;
@@ -2143,10 +2143,15 @@ zip_phase_data_out(scsi_common_t *sc)
 		break;
 	case GPCMD_MODE_SELECT_6:
 	case GPCMD_MODE_SELECT_10:
-		if (dev->current_cdb[0] == GPCMD_MODE_SELECT_10)
+		if (dev->current_cdb[0] == GPCMD_MODE_SELECT_10) {
 			hdr_len = 8;
-		else
+			param_list_len = dev->current_cdb[7];
+			param_list_len <<= 8;
+			param_list_len |= dev->current_cdb[8];
+		} else {
 			hdr_len = 4;
+			param_list_len = dev->current_cdb[4];
+		}
 
 		if (dev->drv->bus_type == ZIP_BUS_SCSI) {
 			if (dev->current_cdb[0] == GPCMD_MODE_SELECT_6) {
@@ -2164,7 +2169,7 @@ zip_phase_data_out(scsi_common_t *sc)
 		pos = hdr_len + block_desc_len;
 
 		while(1) {
-			if (pos >= dev->current_cdb[4]) {
+			if (pos >= param_list_len) {
 				zip_log("ZIP %i: Buffer has only block descriptor\n", dev->id);
 				break;
 			}

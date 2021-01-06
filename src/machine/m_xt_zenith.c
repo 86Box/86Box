@@ -14,9 +14,11 @@
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		TheCollector1995, <mariogplayer@gmail.com>
+ *      EngiNerd <webmaster.crrc@yahoo.it>
  *
  *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2016-2019 Miran Grca.
+ *      Copyright 2020 EngiNerd.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -42,6 +44,8 @@
 #include <86box/lpt.h>
 #include <86box/serial.h>
 #include <86box/machine.h>
+#include <86box/io.h>
+#include <86box/vid_cga.h>
 
 
 typedef struct {
@@ -105,8 +109,36 @@ static const device_t zenith_scratchpad_device = {
 };
 
 
+void
+machine_zenith_init(const machine_t *model){
+    
+    machine_common_init(model);
+ 
+    if (fdc_type == FDC_INTERNAL)
+	    device_add(&fdc_xt_device);
+
+    device_add(&zenith_scratchpad_device);
+    
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+    
+    device_add(&keyboard_xt_zenith_device);
+
+    nmi_init();
+
+}
+
+const device_t *
+z184_get_device(void)
+{
+    return &cga_device;
+}
+
+/*
+ * Current bugs and limitations:
+ * - missing NVRAM implementation
+ */
 int
-machine_xt_zenith_init(const machine_t *model)
+machine_xt_z184_init(const machine_t *model)
 {		
     int ret;
 
@@ -114,22 +146,61 @@ machine_xt_zenith_init(const machine_t *model)
 			   0x000f8000, 32768, 0);
 
     if (bios_only || !ret)
-	return ret;
+	    return ret;
 
-    machine_common_init(model);
- 
-    if (fdc_type == FDC_INTERNAL)
-	device_add(&fdc_xt_device);
+    machine_zenith_init(model);
     
     lpt1_remove();	/* only one parallel port */
     lpt2_remove();
     lpt1_init(0x278);
     device_add(&i8250_device);
     serial_set_next_inst(2);	/* So that serial_standalone_init() won't do anything. */
-    device_add(&zenith_scratchpad_device);
-    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
-    device_add(&keyboard_xt_compaq_device);
-    nmi_init();
+        
+    device_add(&cga_device);
+    
+    return ret;
+}
+
+int
+machine_xt_z151_init(const machine_t *model)
+{
+    int ret;
+    ret = bios_load_linear(L"roms/machines/zdsz151/444-229-18.bin",
+			   0x000fc000, 32768, 0);
+    if (ret) {
+        bios_load_aux_linear(L"roms/machines/zdsz151/444-260-18.bin",
+			     0x000f8000, 16384, 0);
+    }
+
+    if (bios_only || !ret)
+	    return ret;
+
+    machine_zenith_init(model);
+    
+    return ret;
+}
+
+/*
+ * Current bugs and limitations:
+ * - Memory board support for EMS currently missing
+ */
+int
+machine_xt_z159_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/zdsz159/z159m v2.9e.10d",
+			   0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+	    return ret;
+
+    machine_zenith_init(model);
+    
+    /* parallel port is on the memory board */
+    lpt1_remove();	/* only one parallel port */
+    lpt2_remove();
+    lpt1_init(0x278);
 
     return ret;
 }

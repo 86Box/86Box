@@ -719,7 +719,6 @@ plat_setvid(int api)
 
     win_log("Initializing VIDAPI: api=%d\n", api);
     startblit();
-    video_wait_for_blit();
 
     /* Close the (old) API. */
     vid_apis[vid_api].close();
@@ -750,7 +749,6 @@ plat_vidsize(int x, int y)
     if (!vid_api_inited || !vid_apis[vid_api].resize) return;
 
     startblit();
-    video_wait_for_blit();
     vid_apis[vid_api].resize(x, y);
     endblit();
 }
@@ -764,7 +762,6 @@ plat_vidapi_enable(int enable)
     if (!vid_api_inited || !vid_apis[vid_api].enable)
 	return;
 
-    video_wait_for_blit();
     vid_apis[vid_api].enable(enable != 0);
 
     if (! i)
@@ -803,7 +800,6 @@ plat_setfullscreen(int on)
     }
 
     /* OK, claim the video. */
-    video_wait_for_blit();
     win_mouse_close();
 
     /* Close the current mode, and open the new one. */
@@ -814,15 +810,24 @@ plat_setfullscreen(int on)
 	plat_resize(scrnsz_x, scrnsz_y);
 	if (vid_resize) {
 		/* scale the screen base on DPI */
-		if (dpi_scale) {
-			temp_x = MulDiv(unscaled_size_x, dpi, 96);
-			temp_y = MulDiv(unscaled_size_y, dpi, 96);
+		if (window_remember) {
+			MoveWindow(hwndMain, window_x, window_y, window_w, window_h, TRUE);
+			GetClientRect(hwndMain, &rect);
+
+			temp_x = rect.right - rect.left + 1;
+			temp_y = rect.bottom - rect.top + 1 - sbar_height;
 		} else {
-			temp_x = unscaled_size_x;
-			temp_y = unscaled_size_y;
+			if (dpi_scale) {
+				temp_x = MulDiv(unscaled_size_x, dpi, 96);
+				temp_y = MulDiv(unscaled_size_y, dpi, 96);
+			} else {
+				temp_x = unscaled_size_x;
+				temp_y = unscaled_size_y;
+			}
+
+			/* Main Window. */				
+			ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
 		}
-		/* Main Window. */				
-		ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
 
 		/* Render window. */
 		MoveWindow(hwndRender, 0, 0, temp_x, temp_y, TRUE);

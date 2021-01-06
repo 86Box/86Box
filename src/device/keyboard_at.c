@@ -13,10 +13,12 @@
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *      EngiNerd <webmaster.crrc@yahoo.it>
  *
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2017-2020 Fred N. van Kempen.
+ *      Copyright 2020 EngiNerd.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -87,6 +89,8 @@
 #define KBC_VEN_ACER		0x1c
 #define KBC_VEN_INTEL_AMI	0x20
 #define KBC_VEN_OLIVETTI	0x24
+#define KBC_VEN_NCR		0x28
+#define KBC_VEN_SAMSUNG		0x2c
 #define KBC_VEN_MASK		0x3c
 
 
@@ -1055,7 +1059,7 @@ write_output(atkbd_t *dev, uint8_t val)
     if ((dev->output_port ^ val) & 0x01) { /*Reset*/
 	if (! (val & 0x01)) {
 		/* Pin 0 selected. */
-		softresetx86(); /*Pulse reset!*/
+		resetx86(); /*Pulse reset!*/
 		cpu_set_edx();
 	}
     }
@@ -1197,6 +1201,17 @@ write64_generic(void *priv, uint8_t val)
 			dev->input_port = ((dev->input_port + 1) & 3) |
 					   (dev->input_port & 0xfc) |
 					   (fdd_is_525(current_drive) ? 0x40 : 0x00);
+		} else if (kbc_ven == KBC_VEN_NCR) {
+			/* switch settings
+			 * bit 7: keyboard disable
+			 * bit 6: display type (0 color, 1 mono)
+			 * bit 5: power-on default speed (0 high, 1 low)
+			 * bit 4: sense RAM size (0 unsupported, 1 512k on system board)
+			 * bits 0-3: unused
+			 */
+			add_to_kbc_queue_front(dev, (dev->input_port | fixed_bits | (video_is_mda() ? 0x40 : 0x00)) & 0xdf);
+			dev->input_port = ((dev->input_port + 1) & 3) |
+					   (dev->input_port & 0xfc);
 		} else {
 			if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) &&
 			    ((dev->flags & KBC_VEN_MASK) != KBC_VEN_INTEL_AMI))
@@ -1735,7 +1750,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 						add_data_kbd_direct(dev, 0xfa);
 						if (val == 0) {
 							kbd_log("Get scan code set: %02X\n", keyboard_mode & 3);
-							add_data_kbd(keyboard_mode & 3);
+							add_data_kbd_direct(dev, keyboard_mode & 3);
 						} else {
 							if ((val <= 3) && (val != 1)) {
 								keyboard_mode &= 0xfc;
@@ -1941,7 +1956,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
 			case 0xaa:	/* self-test */
 				kbd_log("ATkbc: self-test\n");
-				if (kbc_ven == KBC_VEN_TOSHIBA)
+				if ((kbc_ven == KBC_VEN_TOSHIBA) || (kbc_ven == KBC_VEN_SAMSUNG))
 					dev->status |= STAT_IFULL;
 				if (! dev->initialized) {
 					kbd_log("ATkbc: self-test reinitialization\n");
@@ -2277,6 +2292,7 @@ kbd_init(const device_t *info)
 	case KBC_VEN_ACER:
 	case KBC_VEN_GENERIC:
 	case KBC_VEN_OLIVETTI:
+	case KBC_VEN_NCR:
 	case KBC_VEN_IBM_PS1:
 	case KBC_VEN_XI8088:
 		dev->write64_ven = write64_generic;
@@ -2284,6 +2300,7 @@ kbd_init(const device_t *info)
 
 	case KBC_VEN_AMI:
 	case KBC_VEN_INTEL_AMI:
+	case KBC_VEN_SAMSUNG:
 		dev->write60_ven = write60_ami;
 		dev->write64_ven = write64_ami;
 		break;
@@ -2330,6 +2347,16 @@ const device_t keyboard_at_ami_device = {
     { NULL }, NULL, NULL, NULL
 };
 
+const device_t keyboard_at_samsung_device = {
+    "PC/AT Keyboard (Samsung)",
+    0,
+    KBC_TYPE_ISA | KBC_VEN_SAMSUNG,
+    kbd_init,
+    kbd_close,
+    kbd_reset,
+    { NULL }, NULL, NULL, NULL
+};
+
 const device_t keyboard_at_toshiba_device = {
     "PC/AT Keyboard (Toshiba)",
     0,
@@ -2344,6 +2371,16 @@ const device_t keyboard_at_olivetti_device = {
     "PC/AT Keyboard (Olivetti)",
     0,
     KBC_TYPE_ISA | KBC_VEN_OLIVETTI,
+    kbd_init,
+    kbd_close,
+    kbd_reset,
+    { NULL }, NULL, NULL, NULL
+};
+
+const device_t keyboard_at_ncr_device = {
+    "PC/AT Keyboard (NCR)",
+    0,
+    KBC_TYPE_ISA | KBC_VEN_NCR,
     kbd_init,
     kbd_close,
     kbd_reset,

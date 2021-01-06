@@ -931,7 +931,7 @@ BEGIN
     IDS_2060	"On"
     IDS_2061	"Off"
     IDS_2062	"All images (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Basic sector images (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Surface images (*.86F)\0*.86F\0"
-    IDS_2063	"Machine ""%S"" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+    IDS_2063	"Machine ""%s"" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 END
 
 STRINGTABLE DISCARDABLE 

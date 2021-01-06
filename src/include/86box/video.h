@@ -205,6 +205,8 @@ extern const device_t ati18800_device;
 /* ATi 28800 */
 extern const device_t ati28800_device;
 extern const device_t ati28800k_device;
+extern const device_t ati28800k_spc4620p_device;
+extern const device_t ati28800k_spc6033p_device;
 extern const device_t compaq_ati28800_device;
 #if defined(DEV_BRANCH) && defined(USE_XL24)
 extern const device_t ati28800_wonderxl24_device;
@@ -324,10 +326,16 @@ extern const device_t s3_phoenix_trio64vplus_pci_device;
 extern const device_t s3_phoenix_trio64vplus_onboard_pci_device;
 extern const device_t s3_phoenix_vision864_pci_device;
 extern const device_t s3_phoenix_vision864_vlb_device;
+extern const device_t s3_phoenix_vision868_pci_device;
+extern const device_t s3_phoenix_vision868_vlb_device;
 extern const device_t s3_diamond_stealth64_pci_device;
 extern const device_t s3_diamond_stealth64_vlb_device;
 extern const device_t s3_diamond_stealth64_964_pci_device;
 extern const device_t s3_diamond_stealth64_964_vlb_device;
+extern const device_t s3_elsa_winner2000_pro_x_964_pci_device;
+extern const device_t s3_elsa_winner2000_pro_x_964_vlb_device;
+extern const device_t s3_elsa_winner2000_pro_x_pci_device;
+extern const device_t s3_elsa_winner2000_pro_x_vlb_device;
 extern const device_t s3_trio64v2_dx_pci_device;
 
 /* S3 ViRGE */

@@ -355,6 +355,17 @@ void et4000w32p_recalctimings(svga_t *svga)
         
 	svga->clock = (cpuclock * (double)(1ull << 32)) / svga->getclock((svga->miscout >> 2) & 3, svga->clock_gen);
 
+	if (svga->adv_flags & FLAG_NOSKEW) {
+		/* On the Cardex ET4000/W32p, adjust text mode clocks by 1. */
+        	if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) {	/*Text mode*/
+			svga->ma_latch--;
+        	        if ((svga->seqregs[1] & 8)) /*40 column*/
+                	        svga->hdisp += (svga->seqregs[1] & 1) ? 16 : 18;
+	                else
+        	                svga->hdisp += (svga->seqregs[1] & 1) ? 8 : 9;
+        	}
+	}
+
         switch (svga->bpp)
         {
                 case 15: case 16:

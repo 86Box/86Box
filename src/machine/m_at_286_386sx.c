@@ -12,9 +12,11 @@
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
+ *      EngiNerd <webmaster.crrc@yahoo.it>
  *
  *		Copyright 2010-2019 Sarah Walker.
  *		Copyright 2016-2019 Miran Grca.
+ *      Copyright 2020 EngiNerd.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -35,6 +37,7 @@
 #include <86box/fdc.h>
 #include <86box/hdc.h>
 #include <86box/sio.h>
+#include <86box/serial.h>
 #include <86box/video.h>
 #include <86box/flash.h>
 #include <86box/machine.h>
@@ -353,6 +356,34 @@ machine_at_spc4216p_init(const machine_t *model)
 }
 
 
+const device_t *
+at_spc4620p_get_device(void)
+{
+    return &ati28800k_spc4620p_device;
+}
+
+
+int
+machine_at_spc4620p_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/spc4620p/31005h.u8",
+				L"roms/machines/spc4620p/31005h.u10",
+				0x000f0000, 131072, 0x8000);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_scat_init(model, 1);
+
+    if (gfxcard == VID_INTERNAL)
+	device_add(&ati28800k_spc4620p_device);
+
+    return ret;
+}
+
+
 int
 machine_at_kmxc02_init(const machine_t *model)
 {
@@ -456,20 +487,13 @@ machine_at_wd76c10_init(const machine_t *model)
 }
 
 
-const device_t *
-at_commodore_sl386sx_get_device(void)
-{
-    return &gd5402_onboard_device;
-}
-
-
 int
-machine_at_commodore_sl386sx_init(const machine_t *model)
+machine_at_commodore_sl386sx16_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/cbm_sl386sx25/cbm-sl386sx-bios-lo-v1.04-390914-04.bin",
-				L"roms/machines/cbm_sl386sx25/cbm-sl386sx-bios-hi-v1.04-390915-04.bin",
+    ret = bios_load_interleaved(L"roms/machines/cbm_sl386sx16/cbm-sl386sx-bios-lo-v1.04-390914-04.bin",
+				L"roms/machines/cbm_sl386sx16/cbm-sl386sx-bios-hi-v1.04-390915-04.bin",
 				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -479,10 +503,75 @@ machine_at_commodore_sl386sx_init(const machine_t *model)
 
     device_add(&keyboard_at_device);
     device_add(&fdc_at_device);
+    device_add(&neat_device);
+    /* Two serial ports - on the real hardware SL386SX-16, they are on the single UMC UM82C452. */
+    device_add_inst(&ns16450_device, 1);
+    device_add_inst(&ns16450_device, 2);
+
+    return ret;
+}
+
+
+static void
+machine_at_scamp_common_init(const machine_t *model)
+{
+    machine_at_common_ide_init(model);
+
+    device_add(&keyboard_ps2_ami_device);
+    device_add(&fdc_at_device);
     device_add(&vlsi_scamp_device);
+}
+
+
+const device_t *
+at_commodore_sl386sx25_get_device(void)
+{
+    return &gd5402_onboard_device;
+}
+
+
+int
+machine_at_commodore_sl386sx25_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/cbm_sl386sx25/f000.rom",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_scamp_common_init(model);
 
     if (gfxcard == VID_INTERNAL)
 	device_add(&gd5402_onboard_device);
+
+    return ret;
+}
+
+
+const device_t *
+at_spc6033p_get_device(void)
+{
+    return &ati28800k_spc6033p_device;
+}
+
+
+int
+machine_at_spc6033p_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/spc6033p/phoenix.bin",
+			   0x000f0000, 65536, 0x10000);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_scamp_common_init(model);
+
+    if (gfxcard == VID_INTERNAL)
+	device_add(&ati28800k_spc6033p_device);
 
     return ret;
 }
@@ -553,3 +642,98 @@ machine_at_pja511m_init(const machine_t *model)
     return ret;
 }
 #endif
+
+
+
+static uint8_t
+m290_read(uint16_t port, void *priv)
+{
+    uint8_t ret = 0x0;
+    switch (port) {
+    /* 
+	 * port 69:
+	 * dip-switch bank on mainboard (off=1)
+	 * bit 3 - use OCG/CGA display adapter (off) / other display adapter (on)
+     */
+    case 0x69:
+        if(video_is_cga())
+            ret |= 0x8|0x4;
+        ret |= 0x1|0x2;
+    }
+    return (ret);
+}
+
+int
+machine_at_olim290_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/olivetti_m290/m290_pep3_1.25.bin",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	    return ret;
+
+    machine_at_common_init(model);
+    device_add(&keyboard_at_device);
+    device_add(&fdc_at_device);
+    
+    io_sethandler(0x069, 1, m290_read, NULL, NULL, NULL, NULL, NULL, NULL);
+
+    return ret;
+}
+
+
+/*
+ * Current bugs: 
+ * - ctrl-alt-del produces an 8042 error
+ */
+int
+machine_at_ncrpc8_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/ncr_pc8/ncr_35117_u127_vers.4-2.bin",
+                L"roms/machines/ncr_pc8/ncr_35116_u113_vers.4-2.bin",
+	    		0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	    return ret;
+
+    machine_at_common_init(model);
+    device_add(&keyboard_at_ncr_device);
+    device_add(&fdc_at_device);
+    
+    return ret;
+}
+
+/*
+ * Current bugs: 
+ * - ctrl-alt-del produces an 8042 error
+ */
+int
+machine_at_ncr3302_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/ncr_3302/f000-flex_drive_test.bin",
+				0x000f0000, 65536, 0);
+
+    if (ret) {
+        bios_load_aux_linear(L"roms/machines/ncr_3302/f800-setup_ncr3.5-013190.bin",
+			     0x000f8000, 32768, 0);
+    }
+
+    if (bios_only || !ret)
+	    return ret;
+
+    machine_at_common_ide_init(model);
+    device_add(&neat_device);
+    device_add(&keyboard_at_ncr_device);
+    device_add(&fdc_at_device);
+
+    if (gfxcard == VID_INTERNAL)
+    	device_add(&paradise_pvga1a_device);
+    
+    return ret;
+}

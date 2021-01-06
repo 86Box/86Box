@@ -70,8 +70,11 @@ extern WCHAR	wopenfilestring[512];
 
 /* Local data. */
 static wchar_t	wTitle[512];
+#ifndef NO_KEYBOARD_HOOK
 static HHOOK	hKeyboardHook;
-static int	hook_enabled = 0, manager_wm = 0;
+static int	hook_enabled = 0;
+#endif
+static int	manager_wm = 0;
 static int	save_window_pos = 0, pause_state = 0;
 static int  dpi = 96;
 static int  padded_frame = 0;
@@ -163,7 +166,6 @@ static void
 video_toggle_option(HMENU h, int *val, int id)
 {
     startblit();
-    video_wait_for_blit();
     *val ^= 1;
     CheckMenuItem(h, id, *val ? MF_CHECKED : MF_UNCHECKED);
     endblit();
@@ -295,6 +297,7 @@ ResetAllMenus(void)
 }
 
 
+#ifndef NO_KEYBOARD_HOOK
 static LRESULT CALLBACK
 LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 {
@@ -326,6 +329,7 @@ LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
     return(CallNextHookEx(hKeyboardHook, nCode, wParam, lParam));
 }
+#endif
 
 
 void
@@ -360,7 +364,9 @@ plat_power_off(void)
        run before the main thread is terminated */
     cycles -= 99999999;
 
+#ifndef NO_KEYBOARD_HOOK
     UnhookWindowsHookEx(hKeyboardHook);
+#endif
 
     KillTimer(hwndMain, TIMER_1SEC);
     PostQuitMessage(0);
@@ -656,6 +662,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				reset_screen_size();
 				device_force_redraw();
 				video_force_resize_set(1);
+				doresize = 1;
 				config_save();
 				break;
 
@@ -1460,8 +1467,6 @@ plat_resize(int x, int y)
 
     /* First, see if we should resize the UI window. */
     if (!vid_resize) {
-	video_wait_for_blit();
-
 
 	/* scale the screen base on DPI */
 	if (dpi_scale) {

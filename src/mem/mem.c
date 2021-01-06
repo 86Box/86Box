@@ -122,6 +122,7 @@ static mem_mapping_t	*write_mapping[MEM_MAPPINGS_NO];
 static uint8_t		ff_pccache[4] = { 0xff, 0xff, 0xff, 0xff };
 static uint8_t		*_mem_exec[MEM_MAPPINGS_NO];
 static uint32_t		_mem_state[MEM_MAPPINGS_NO];
+static uint32_t		remap_start_addr;
 
 
 #ifdef ENABLE_MEM_LOG
@@ -1976,8 +1977,7 @@ mem_write_raml(uint32_t addr, uint32_t val, void *priv)
 static uint8_t
 mem_read_remapped(uint32_t addr, void *priv)
 {
-    if ((addr >= (mem_size * 1024)) && (addr < ((mem_size + 384) * 1024)))
-	addr = 0xA0000 + (addr - (mem_size * 1024));
+    addr = 0xA0000 + (addr - remap_start_addr);
     if (AT)
 	addreadlookup(mem_logical_addr, addr);
     return ram[addr];
@@ -1987,8 +1987,7 @@ mem_read_remapped(uint32_t addr, void *priv)
 static uint16_t
 mem_read_remappedw(uint32_t addr, void *priv)
 {
-    if ((addr >= (mem_size * 1024)) && (addr < ((mem_size + 384) * 1024)))
-	addr = 0xA0000 + (addr - (mem_size * 1024));
+    addr = 0xA0000 + (addr - remap_start_addr);
     if (AT)
 	addreadlookup(mem_logical_addr, addr);
     return *(uint16_t *)&ram[addr];
@@ -1998,8 +1997,7 @@ mem_read_remappedw(uint32_t addr, void *priv)
 static uint32_t
 mem_read_remappedl(uint32_t addr, void *priv)
 {
-    if ((addr >= (mem_size * 1024)) && (addr < ((mem_size + 384) * 1024)))
-	addr = 0xA0000 + (addr - (mem_size * 1024));
+    addr = 0xA0000 + (addr - remap_start_addr);
     if (AT)
 	addreadlookup(mem_logical_addr, addr);
     return *(uint32_t *)&ram[addr];
@@ -2010,8 +2008,7 @@ static void
 mem_write_remapped(uint32_t addr, uint8_t val, void *priv)
 {
     uint32_t oldaddr = addr;
-    if ((addr >= (mem_size * 1024)) && (addr < ((mem_size + 384) * 1024)))
-	addr = 0xA0000 + (addr - (mem_size * 1024));
+    addr = 0xA0000 + (addr - remap_start_addr);
     if (AT) {
 	addwritelookup(mem_logical_addr, addr);
 	mem_write_ramb_page(addr, val, &pages[oldaddr >> 12]);
@@ -2024,8 +2021,7 @@ static void
 mem_write_remappedw(uint32_t addr, uint16_t val, void *priv)
 {
     uint32_t oldaddr = addr;
-    if ((addr >= (mem_size * 1024)) && (addr < ((mem_size + 384) * 1024)))
-	addr = 0xA0000 + (addr - (mem_size * 1024));
+    addr = 0xA0000 + (addr - remap_start_addr);
     if (AT) {
 	addwritelookup(mem_logical_addr, addr);
 	mem_write_ramw_page(addr, val, &pages[oldaddr >> 12]);
@@ -2038,8 +2034,7 @@ static void
 mem_write_remappedl(uint32_t addr, uint32_t val, void *priv)
 {
     uint32_t oldaddr = addr;
-    if ((addr >= (mem_size * 1024)) && (addr < ((mem_size + 384) * 1024)))
-	addr = 0xA0000 + (addr - (mem_size * 1024));
+    addr = 0xA0000 + (addr - remap_start_addr);
     if (AT) {
 	addwritelookup(mem_logical_addr, addr);
 	mem_write_raml_page(addr, val, &pages[oldaddr >> 12]);
@@ -2693,14 +2688,12 @@ mem_reset(void)
 
     base_mapping = last_mapping = NULL;
 
-    memset(_mem_state, 0x00, sizeof(_mem_state));
+    /* Set the entire memory space as external. */
+    memset(_mem_state, 0x02, sizeof(_mem_state));
 
+    /* Set the low RAM space as internal. */
     mem_set_mem_state_both(0x000000, (mem_size > 640) ? 0xa0000 : mem_size * 1024,
 			   MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-    mem_set_mem_state_both(0x0a0000, 0x60000,
-			   MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
-    mem_set_mem_state_both((mem_size << 10), (uint32_t) (0x100000000ULL - (mem_size << 10)),
-			   MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
 
     mem_mapping_add(&ram_low_mapping, 0x00000,
 		    (mem_size > 640) ? 0xa0000 : mem_size * 1024,
@@ -2801,6 +2794,8 @@ mem_remap_top(int kb)
 	
     if (size > kb)
 	size = kb;
+
+    remap_start_addr = start << 10;
 
     for (c = ((start * 1024) >> 12); c < (((start + size) * 1024) >> 12); c++) {
 	offset = c - ((start * 1024) >> 12);

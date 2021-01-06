@@ -282,8 +282,6 @@ fdc37c66x_init(const device_t *info)
     dev->chip_id = info->local & 0xff;
     dev->has_ide = !!(info->local & 0x100);
 
-    if (dev->has_ide)
-
     io_sethandler(0x03f0, 0x0002,
 		  fdc37c66x_read, NULL, NULL, fdc37c66x_write, NULL, NULL, dev);
 

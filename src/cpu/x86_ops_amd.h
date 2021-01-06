@@ -20,7 +20,7 @@ opSYSCALL(uint32_t fetchdat)
 
     ILLEGAL_ON(!(amd_efer & 0x0000000000000001));
 
-    ret = syscall(fetchdat);
+    ret = syscall_op(fetchdat);
 
     if (ret <= 1) {
 	CLOCK_CYCLES(20);
