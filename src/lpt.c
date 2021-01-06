@@ -108,7 +108,7 @@ lpt_write(uint16_t port, uint8_t val, void *priv)
 
     switch (port & 3) {
 	case 0:
-		if (dev->dt && dev->dt->write_data)
+		if (dev->dt && dev->dt->write_data && dev->priv)
 			dev->dt->write_data(val, dev->priv);
 		dev->dat = val;
 		break;
@@ -117,7 +117,7 @@ lpt_write(uint16_t port, uint8_t val, void *priv)
 		break;
 
 	case 2:
-		if (dev->dt && dev->dt->write_ctrl)
+		if (dev->dt && dev->dt->write_ctrl && dev->priv)
 			dev->dt->write_ctrl(val, dev->priv);
 		dev->ctrl = val;
 		dev->enable_irq = val & 0x10;
@@ -134,21 +134,21 @@ lpt_read(uint16_t port, void *priv)
 
     switch (port & 3) {
 	case 0:
-		if (dev->dt && dev->dt->read_data)
+		if (dev->dt && dev->dt->read_data && dev->priv)
 			ret = dev->dt->read_data(dev->priv);
 		else
 			ret = dev->dat;
 		break;
 
 	case 1:
-		if (dev->dt && dev->dt->read_status)
+		if (dev->dt && dev->dt->read_status && dev->priv)
 			ret = dev->dt->read_status(dev->priv) | 0x07;
 		else
 			ret = 0xdf;
 		break;
 
 	case 2:
-		if (dev->dt && dev->dt->read_ctrl)
+		if (dev->dt && dev->dt->read_ctrl && dev->priv)
 			ret = (dev->dt->read_ctrl(dev->priv) & 0xef) | dev->enable_irq;
 		else
 			ret = 0xe0 | dev->ctrl | dev->enable_irq;
