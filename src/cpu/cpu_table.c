@@ -191,8 +191,8 @@ const cpu_family_t cpu_families[] = {
 	.name = "M6117",
 	.internal_name = "m6117",
 	.cpus = (const CPU[]) { /* All timings and edx_reset values assumed. */
-		{"33",    CPU_386DX,      fpus_80386,  33333333, 1, 5000, 0x2308, 0, 0, 0, 6,6,3,3, 4},
-		{"40",    CPU_386DX,      fpus_80386,  40000000, 1, 5000, 0x2308, 0, 0, 0, 7,7,3,3, 5},
+		{"33",    CPU_386SX,      fpus_none,  33333333, 1, 5000, 0x2308, 0, 0, 0, 6,6,3,3, 4},
+		{"40",    CPU_386SX,      fpus_none,  40000000, 1, 5000, 0x2308, 0, 0, 0, 7,7,3,3, 5},
 		{"", 0}
 	}
     },

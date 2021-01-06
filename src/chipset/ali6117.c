@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the ALi M6117D SoC.
+ *		Implementation of the ALi M6117 SoC.
  *
  *
  *
@@ -34,6 +34,7 @@
 #include <86box/port_92.h>
 #include <86box/usb.h>
 #include <86box/hdc.h>
+#include <86box/hdc_ide.h>
 #include <86box/chipset.h>
 
 
@@ -47,7 +48,7 @@ typedef struct ali6117_t
     uint8_t	regs[256];
 } ali6117_t;
 
-
+#define ENABLE_ALI6117_LOG 1
 #ifdef ENABLE_ALI6117_LOG
 int ali6117_do_log = ENABLE_ALI6117_LOG;
 
@@ -77,7 +78,7 @@ ali6117_recalcmapping(ali6117_t *dev)
     shadowbios = 0;
     shadowbios_write = 0;
 
-    ali6117_log("ALI6117: Shadowing for a0000-bffff (reg 12) = %s\n", (dev->regs[0x12] & 0x02) ? "on" : "off");
+    ali6117_log("ALI6117: Shadowing for A0000-BFFFF (reg 12 bit 1) = %s\n", (dev->regs[0x12] & 0x02) ? "on" : "off");
     mem_set_mem_state(0xa0000, 0x20000, (dev->regs[0x12] & 0x02) ? (MEM_WRITE_INTERNAL | MEM_READ_INTERNAL) : (MEM_WRITE_EXTANY | MEM_READ_EXTANY));
 
     for (reg = 0; reg <= 1; reg++) {
@@ -149,7 +150,7 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 
 		case 0x20:
 			val &= 0xbf;
-			refresh_at_enable = (val & 0x02);
+			refresh_at_enable = !!(val & 0x80);
 			break;
 
 		case 0x31:
@@ -175,8 +176,11 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 			break;
 
 		case 0x3c:
-			/* TODO: IDE channel selection (bit 0, secondary if set) */
 			val &= 0x8f;
+			ide_pri_disable();
+			ide_set_base(1, (val & 0x01) ? 0x170 : 0x1f0);
+			ide_set_side(1, (val & 0x01) ? 0x376 : 0x3f6);
+			ide_pri_enable();
 			break;
 
 		case 0x44: case 0x45:
