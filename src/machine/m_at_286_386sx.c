@@ -557,25 +557,6 @@ machine_at_pja511m_init(const machine_t *model)
 #endif
 
 
-
-static uint8_t
-m290_read(uint16_t port, void *priv)
-{
-    uint8_t ret = 0x0;
-    switch (port) {
-    /* 
-	 * port 69:
-	 * dip-switch bank on mainboard (off=1)
-	 * bit 3 - use OCG/CGA display adapter (off) / other display adapter (on)
-     */
-    case 0x69:
-        if(video_is_cga())
-            ret |= 0x8|0x4;
-        ret |= 0x1|0x2;
-    }
-    return (ret);
-}
-
 int
 machine_at_olim290_init(const machine_t *model)
 {
@@ -588,10 +569,10 @@ machine_at_olim290_init(const machine_t *model)
 	    return ret;
 
     machine_at_common_init(model);
-    device_add(&keyboard_at_device);
+    device_add(&keyboard_at_olivetti_device);
     device_add(&fdc_at_device);
     
-    io_sethandler(0x069, 1, m290_read, NULL, NULL, NULL, NULL, NULL, NULL);
+    device_add(&olivetti_m290_registers_device);
 
     return ret;
 }

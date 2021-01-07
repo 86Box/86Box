@@ -2136,7 +2136,6 @@ kbd_read(uint16_t port, void *priv)
 					ret |= 0x2;	/* 0x10 would be 40x25 */
 				else
 					ret |= 0x0;
-				ret = 0xff;
 			} else {
 				/* bit 2 always on */
 				ret |= 0x4;
