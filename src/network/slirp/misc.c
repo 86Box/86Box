@@ -4,6 +4,7 @@
  */
 
 #include "slirp.h"
+#include <stdbool.h>
 #ifdef G_OS_UNIX
 #include <sys/un.h>
 #endif
@@ -366,7 +367,7 @@ char *slirp_connection_info(Slirp *slirp)
                                so->so_rcv.sb_cc, so->so_snd.sb_cc);
     }
 
-    return g_string_free(str, FALSE);
+    return g_string_free(str, false);
 }
 
 int slirp_bind_outbound(struct socket *so, unsigned short af)

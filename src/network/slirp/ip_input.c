@@ -38,6 +38,7 @@
 
 #include "slirp.h"
 #include "ip_icmp.h"
+#include <stddef.h>
 
 static struct ip *ip_reass(Slirp *slirp, struct ip *ip, struct ipq *fp);
 static void ip_freef(Slirp *slirp, struct ipq *fp);
