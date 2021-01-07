@@ -184,6 +184,17 @@ ncr_log(const char *fmt, ...)
 static void
 ncr_callback(void *priv);
 
+static void
+ncr_irq(ncr5380_t *ncr_dev, ncr_t *ncr, int set_irq)
+{
+    if (set_irq) {
+	ncr->isr |= STATUS_INT;
+	picint(1 << ncr_dev->irq);
+    } else {
+	ncr->isr &= ~STATUS_INT;
+	picintc(1 << ncr_dev->irq);
+    }
+}
 
 static int
 get_dev_id(uint8_t data)
@@ -211,10 +222,17 @@ getmsglen(uint8_t *msgp, int len)
 }
 
 static void
-ncr_reset(ncr_t *ncr)
+ncr_reset(ncr5380_t *ncr_dev, ncr_t *ncr)
 {
     memset(ncr, 0x00, sizeof(ncr_t));
     ncr_log("NCR reset\n");
+    
+    timer_stop(&ncr_dev->timer);
+    
+    for (int i = 0; i < 8; i++)
+	scsi_device_reset(&scsi_devices[i]);
+
+    ncr_irq(ncr_dev, ncr, 0);
 }
 
 
@@ -222,14 +240,17 @@ static void
 dma_timer_on(ncr5380_t *ncr_dev)
 {
     ncr_t *ncr = &ncr_dev->ncr;
+    scsi_device_t *dev = &scsi_devices[ncr->target_id];
     double period = ncr_dev->period;
 
-    /* DMA Timer on: 1 wait period + 64 byte periods + 64 byte periods if first time. */
     if (ncr->data_wait & 2) {
 	ncr->data_wait &= ~2;
+    }
+
+    /* DMA Timer on: 1 wait period + 128 byte periods. Hard disk timings are not emulated at the moment */
+    if (dev->type & 5) {
 	period *= 128.0;
-    } else
-	period *= 64.0;
+    }
 
     /* This is the 1 us wait period. */
     period += 1.0;
@@ -407,7 +428,6 @@ ncr_bus_update(void *priv, int bus)
 					ncr_log("CurBus BSY|REQ=%02x\n", ncr->cur_bus);
 					ncr->command_pos = 0;
 					SET_BUS_STATE(ncr, SCSI_PHASE_COMMAND);
-					picint(1 << ncr_dev->irq);
 				} else {
 					ncr->state = STATE_IDLE;
 					ncr->cur_bus = 0;
@@ -580,7 +600,7 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 		ncr_log("Write: Initiator command register\n");
 		if ((val & 0x80) && !(ncr->icr & 0x80)) {
 			ncr_log("Resetting the 5380\n");
-			ncr_reset(&ncr_dev->ncr);
+			ncr_reset(ncr_dev, &ncr_dev->ncr);
 		}
 		ncr->icr = val;
 		break;
@@ -667,7 +687,6 @@ ncr_read(uint16_t port, void *priv)
 
 	case 1:		/* Initiator Command Register */
 		ncr_log("Read: Initiator Command register, NCR ICR Read=%02x\n", ncr->icr);
-
 		ret = ncr->icr;
 		break;
 
@@ -700,8 +719,7 @@ ncr_read(uint16_t port, void *priv)
 		if ((bus & SCSI_PHASE_MESSAGE_IN) == (ncr->cur_bus & SCSI_PHASE_MESSAGE_IN)) {
 			ncr_log("Phase match\n");
 			ret |= STATUS_PHASE_MATCH;
-		} else
-			picint(1 << ncr_dev->irq);
+		}
 
 		ncr_bus_read(ncr_dev);
 		bus = ncr->cur_bus;
@@ -722,7 +740,7 @@ ncr_read(uint16_t port, void *priv)
 			if (bus & BUS_MSG)
 				bus_state |= TCR_MSG;
 			if ((ncr->tcr & 7) != bus_state)
-				ncr->isr |= STATUS_INT;
+				ncr_irq(ncr_dev, ncr, 1);
 		}
 		if (!(bus & BUS_BSY) && (ncr->mode & MODE_MONITOR_BUSY)) {
 			ncr_log("Busy error\n");
@@ -731,10 +749,13 @@ ncr_read(uint16_t port, void *priv)
 		ret |= (ncr->isr & (STATUS_INT | STATUS_END_OF_DMA));
 		break;
 
+	case 6:
+		ret = ncr->tx_data;
+		break;
+
 	case 7:		/* reset Parity/Interrupt */
-		ncr->isr &= ~STATUS_INT;
-		picintc(1 << ncr_dev->irq);
-		ncr_log("Reset IRQ\n");
+		ncr->isr &= ~(STATUS_BUSY_ERROR | 0x20);
+		ncr_irq(ncr_dev, ncr, 0);
 		break;
 
 	default:
@@ -976,7 +997,7 @@ ncr_callback(void *priv)
 {
     ncr5380_t *ncr_dev = (ncr5380_t *)priv;
     ncr_t *ncr = &ncr_dev->ncr;
-    int bus, bt = 0, c = 0;
+    int bus, c = 0;
     uint8_t temp, data;
 
     ncr_log("DMA mode=%d\n", ncr->dma_mode);
@@ -1010,7 +1031,8 @@ ncr_callback(void *priv)
 		if (!ncr_dev->block_count_loaded)
 			break;
 
-		while (bt < 64) {
+write_start:
+		{
 			for (c = 0; c < 10; c++) {
 				ncr_bus_read(ncr_dev);
 				if (ncr->cur_bus & BUS_REQ)
@@ -1028,7 +1050,6 @@ ncr_callback(void *priv)
 			ncr_bus_update(priv, bus | BUS_ACK);
 			ncr_bus_update(priv, bus & ~BUS_ACK);
 
-			bt++;
 			ncr_dev->buffer_pos++;
 			ncr_log("Buffer pos for writing = %d\n", ncr_dev->buffer_pos);
 			
@@ -1048,12 +1069,12 @@ ncr_callback(void *priv)
 					ncr->isr |= STATUS_END_OF_DMA;
 					if (ncr->mode & MODE_ENA_EOP_INT) {
 						ncr_log("NCR write irq\n");
-						ncr->isr |= STATUS_INT;
-						picint(1 << ncr_dev->irq);
+						ncr_irq(ncr_dev, ncr, 1);
 					}
 				}
 				break;
 			}
+			goto write_start;
 		}
 		break;
 
@@ -1071,7 +1092,8 @@ ncr_callback(void *priv)
 		if (!ncr_dev->block_count_loaded)
 			break;
 
-		while (bt < 64) {
+read_start:
+		{
 			for (c = 0; c < 10; c++) {
 				ncr_bus_read(ncr_dev);
 				if (ncr->cur_bus & BUS_REQ)
@@ -1091,7 +1113,6 @@ ncr_callback(void *priv)
 			ncr_bus_update(priv, bus & ~BUS_ACK);
 
 			ncr_dev->buffer[ncr_dev->buffer_pos++] = temp;
-			bt++;
 
 			if (ncr_dev->buffer_pos == 128) {					
 				ncr_dev->buffer_pos = 0;
@@ -1109,12 +1130,12 @@ ncr_callback(void *priv)
 					ncr->isr |= STATUS_END_OF_DMA;
 					if (ncr->mode & MODE_ENA_EOP_INT) {
 						ncr_log("NCR read irq\n");
-						ncr->isr |= STATUS_INT;
-						picint(1 << ncr_dev->irq);
+						ncr_irq(ncr_dev, ncr, 1);
 					}
 				}
 				break;
 			}
+			goto read_start;
 		}		
 		break;
     }
@@ -1201,7 +1222,7 @@ ncr_init(const device_t *info)
 	sprintf(&temp[strlen(temp)], " IRQ=%d", ncr_dev->irq);
     ncr_log("%s\n", temp);
 
-    ncr_reset(&ncr_dev->ncr);
+    ncr_reset(ncr_dev, &ncr_dev->ncr);
     ncr_dev->status_ctrl = STATUS_BUFFER_NOT_READY;
     ncr_dev->buffer_host_pos = 128;
 
@@ -1278,6 +1299,9 @@ static const device_config_t ncr5380_mmio_config[] = {
                                 "IRQ 5", 5
                         },
                         {
+                                "IRQ 7", 7
+                        },
+                        {
                                 ""
                         }
                 },
@@ -1317,6 +1341,9 @@ static const device_config_t rancho_config[] = {
                         },
                         {
                                 "IRQ 5", 5
+                        },
+                        {
+                                "IRQ 7", 7
                         },
                         {
                                 ""
