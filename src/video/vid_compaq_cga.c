@@ -324,10 +324,10 @@ compaq_cga_poll(void *p)
 				ys_temp = (self->cga.lastline - self->cga.firstline);
 
 				if ((xs_temp > 0) && (ys_temp > 0)) {
-					if (xsize < 64) xs_temp = 656;
-					if (ysize < 32) ys_temp = 400;
+					if (xs_temp < 64) xs_temp = 656;
+					if (ys_temp < 32) ys_temp = 400;
 					if (!enable_overscan)
-						xsize -= 16;
+						xs_temp -= 16;
 
 					if ((self->cga.cgamode & 8) && ((xs_temp != xsize) || (ys_temp != ysize) || video_force_resize_get())) {
 						xsize = xs_temp;
@@ -340,14 +340,14 @@ compaq_cga_poll(void *p)
 
 					if (enable_overscan) {
 	                                        if (self->cga.composite) 
-       		                                   video_blit_memtoscreen(0, self->cga.firstline - 8, 0, ysize + 16, xsize + 16, ysize + 16);
+       		                                   video_blit_memtoscreen(0, self->cga.firstline - 8, 0, (self->cga.lastline - self->cga.firstline) + 16, xsize, (self->cga.lastline - self->cga.firstline) + 16);
                		                        else          
-                       		                   video_blit_memtoscreen_8(0, self->cga.firstline - 8, 0, ysize + 16, xsize + 16, ysize + 16);
+                       		                   video_blit_memtoscreen_8(0, self->cga.firstline - 8, 0, (self->cga.lastline - self->cga.firstline) + 16, xsize, (self->cga.lastline - self->cga.firstline) + 16);
 					} else {
 	                                        if (self->cga.composite) 
-       		                                   video_blit_memtoscreen(8, self->cga.firstline, 0, ysize, xsize, ysize);
+       		                                   video_blit_memtoscreen(8, self->cga.firstline, 0, self->cga.lastline - self->cga.firstline, xsize, self->cga.lastline - self->cga.firstline);
                		                        else          
-                       		                   video_blit_memtoscreen_8(8, self->cga.firstline, 0, ysize, xsize, ysize);
+                       		                   video_blit_memtoscreen_8(8, self->cga.firstline, 0, self->cga.lastline - self->cga.firstline, xsize, self->cga.lastline - self->cga.firstline);
 					}
 				}
 
