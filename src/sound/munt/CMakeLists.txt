@@ -1,3 +1,18 @@
+#
+# 86Box		A hypervisor and IBM PC system emulator that specializes in
+#		running old operating systems and software designed for IBM
+#		PC systems and compatibles from 1981 through fairly recent
+#		system designs based on the PCI bus.
+#
+#		This file is part of the 86Box distribution.
+#
+#		CMake build script.
+#
+# Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
+#
+#		Copyright 2020,2021 David Hrdlička.
+#
+
 add_library(mt32emu STATIC Analog.cpp BReverbModel.cpp File.cpp FileStream.cpp
 	LA32Ramp.cpp LA32FloatWaveGenerator.cpp LA32WaveGenerator.cpp
 	MidiStreamParser.cpp Part.cpp Partial.cpp PartialManager.cpp

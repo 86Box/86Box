@@ -1,3 +1,18 @@
+#
+# 86Box		A hypervisor and IBM PC system emulator that specializes in
+#		running old operating systems and software designed for IBM
+#		PC systems and compatibles from 1981 through fairly recent
+#		system designs based on the PCI bus.
+#
+#		This file is part of the 86Box distribution.
+#
+#		CMake build script.
+#
+# Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
+#
+#		Copyright 2020,2021 David Hrdlička.
+#
+
 add_library(vid OBJECT video.c vid_table.c vid_cga.c vid_cga_comp.c
 	vid_compaq_cga.c vid_mda.c vid_hercules.c vid_herculesplus.c
 	vid_incolor.c vid_colorplus.c vid_genius.c vid_pgc.c vid_im1024.c
