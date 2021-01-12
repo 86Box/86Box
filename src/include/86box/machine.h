@@ -440,6 +440,10 @@ extern int	machine_at_p5mms98_init(const machine_t *);
 extern int	machine_at_r534f_init(const machine_t *);
 extern int	machine_at_ms5146_init(const machine_t *);
 #endif
+#if defined(DEV_BRANCH) && defined(USE_M154X)
+extern int	machine_at_m560_init(const machine_t *);
+extern int	machine_at_ms5164_init(const machine_t *);
+#endif
 
 extern int	machine_at_ficva502_init(const machine_t *);
 

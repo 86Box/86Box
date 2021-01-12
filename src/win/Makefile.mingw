@@ -81,6 +81,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef M1489
   M1489		:= y
  endif
+ ifndef M154X
+  M154X		:= y
+ endif
  ifndef M6117
   M6117		:= y
  endif
@@ -153,6 +156,9 @@ else
  endif
  ifndef M1489
   M1489		:= n
+ endif
+ ifndef M154X
+  M154X		:= n
  endif
  ifndef M6117
   M6117		:= n
@@ -551,6 +557,11 @@ endif
 ifeq ($(M1489), y)
 OPTS		+= -DUSE_M1489
 DEVBROBJ	+= ali1489.o
+endif
+
+ifeq ($(M1489), y)
+OPTS		+= -DUSE_M154X
+DEVBROBJ	+= ali1531.o ali1543.o
 endif
 
 ifeq ($(M6117), y)

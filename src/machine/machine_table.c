@@ -340,6 +340,12 @@ const machine_t machines[] = {
     { "[SiS 5571] MSI MS-5146",	"ms5146",	MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2500, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 393216, 8192, 127,	machine_at_ms5146_init, NULL			},
 #endif
 
+    /* ALi ALADDiN IV */
+#if defined(DEV_BRANCH) && defined(USE_M154X)
+    { "[ALi ALADDiN IV] PC Chips M560",			"m560",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 60000000, 66666667, 2800, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 262144, 8192, 255,	      machine_at_m560_init, NULL			},
+    { "[ALi ALADDiN IV] MSI MS-5164",			"ms5164",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 60000000, 66666667, 2800, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 262144, 8192, 255,	      machine_at_ms5164_init, NULL			},
+#endif
+
     /* Super Socket 7 machines */
     /* Apollo MVP3 */
     { "[VIA MVP3] AOpen AX59 Pro",		"ax59pro",		MACHINE_TYPE_SOCKETS7,		CPU_PKG_SOCKET5_7, 0, 66666667, 124242424, 1300, 3520, 1.5, 5.5,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192,1048576, 8192, 255,	      machine_at_ax59pro_init, NULL			},

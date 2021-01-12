@@ -28,6 +28,11 @@ if(M1489)
 	target_sources(chipset PRIVATE ali1489.c)
 endif()
 
+if(M154X)
+	target_sources(chipset PRIVATE ali1531.c)
+	target_sources(chipset PRIVATE ali1543.c)
+endif()
+
 if(M6117)
 	target_sources(chipset PRIVATE ali6117.c)
 endif()
