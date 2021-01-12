@@ -1,0 +1,1 @@
+add_library(print OBJECT png.c prt_cpmap.c prt_escp.c prt_text.c prt_ps.c)

@@ -1,0 +1,17 @@
+add_library(cpu OBJECT cpu.c cpu_table.c 808x.c 386.c 386_common.c 386_dynarec.c
+	386_dynarec_ops.c x86seg.c x87.c x87_timings.c)
+
+if(AMD_K5)
+	target_compile_definitions(cpu PRIVATE USE_AMD_K5)
+endif()
+
+if(CYRIX_6X86)
+	target_compile_definitions(cpu PRIVATE USE_CYRIX_6X86)
+endif()
+
+if(DYNAREC)
+	add_library(cgt OBJECT codegen_timing_486.c codegen_timing_686.c
+		codegen_timing_common.c codegen_timing_k6.c
+		codegen_timing_pentium.c codegen_timing_p6.c
+		codegen_timing_winchip.c codegen_timing_winchip2.c)
+endif()

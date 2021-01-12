@@ -1,0 +1,1 @@
+add_library(cdrom OBJECT cdrom.c cdrom_image_backend.c cdrom_image.c)
