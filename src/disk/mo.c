@@ -15,14 +15,15 @@
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2020 Miran Grca.
+ *		Copyright 2020,2021 Natalia Portillo.
+ *		Copyright 2020,2021 Miran Grca.
+ *		Copyright 2020,2021 Fred N. van Kempen
  */
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdarg.h>
-#include <unistd.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -43,7 +44,7 @@
 #include <windows.h>
 #include <io.h>
 #else
-#include <errno.h>
+#include <unistd.h>
 #endif
 
 mo_drive_t	mo_drives[MO_NUM];
@@ -1040,46 +1041,69 @@ mo_insert(mo_t *dev)
 void
 mo_format(mo_t *dev)
 {
-    unsigned long size;
+    long size;
     int ret;
-    int fd = fileno(dev->drv->f);
-    int64_t liSize = 0;
+    int fd;
 
     mo_log("MO %i: Formatting media...\n", dev->id);
 
-    if (fd == -1) {
-        mo_log("MO %i: Failed to get file descriptor.\n", dev->id);
-        return;
-    }
-
     fseek(dev->drv->f, 0, SEEK_END);
-    size = (uint32_t) ftello64(dev->drv->f);
+    size = ftell(dev->drv->f);
 
-    errno = 0;
-    rewind(dev->drv->f);
+#ifdef _WIN32
+    HANDLE fh;
+    LARGE_INTEGER liSize;
 
-    if (errno) {
+    fd = _fileno(dev->drv->f);
+    fh = (HANDLE)_get_osfhandle(fd);
+
+    liSize.QuadPart = 0;
+
+    ret = (int)SetFilePointerEx(fh, liSize, NULL, FILE_BEGIN);
+
+    if(!ret) {
 	mo_log("MO %i: Failed seek to start of image file\n", dev->id);
 	return;
     }
 
-    ret = ftruncate(fd, 0);
-    if (ret == -1) {
+    ret = (int)SetEndOfFile(fh);
+
+    if(!ret) {
 	mo_log("MO %i: Failed to truncate image file to 0\n", dev->id);
 	return;
     }
 
-    liSize = size;
-    ret = fseek(dev->drv->f, 0, SEEK_END);
-    if (ret == -1) {
+    liSize.QuadPart = size;
+    ret = (int)SetFilePointerEx(fh, liSize, NULL, FILE_BEGIN);
+
+    if(!ret) {
 	mo_log("MO %i: Failed seek to end of image file\n", dev->id);
 	return;
     }
-    ret = ftruncate(fd, liSize);
-    if (ret == -1) {
+
+    ret = (int)SetEndOfFile(fh);
+
+    if(!ret) {
 	mo_log("MO %i: Failed to truncate image file to %llu\n", dev->id, size);
 	return;
     }
+#else
+    fd = fileno(dev->drv->f);
+
+    ret = ftruncate(fd, 0);
+
+    if(ret) {
+	mo_log("MO %i: Failed to truncate image file to 0\n", dev->id);
+	return;
+    }
+
+    ret = ftruncate(fd, size);
+
+    if(ret) {
+	mo_log("MO %i: Failed to truncate image file to %llu", dev->id, size);
+	return;
+    }
+#endif
 }
 
 static int
