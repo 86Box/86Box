@@ -122,7 +122,7 @@ typedef struct {
     int8_t	irq;
     int8_t	type;
 	int8_t  bios_ver;
-    uint8_t	block_count;
+    uint16_t	block_count, block_count_num;
     uint8_t	status_ctrl;
     uint8_t	pad[2];
 
@@ -182,6 +182,12 @@ ncr_log(const char *fmt, ...)
 #define SET_BUS_STATE(ncr, state) ncr->cur_bus = (ncr->cur_bus & ~(SCSI_PHASE_MESSAGE_IN)) | (state & (SCSI_PHASE_MESSAGE_IN))
 
 static void
+ncr_dma_send(ncr5380_t *ncr_dev, ncr_t *ncr);
+
+static void
+ncr_dma_initiator_receive(ncr5380_t *ncr_dev, ncr_t *ncr);
+
+static void
 ncr_callback(void *priv);
 
 static void
@@ -235,55 +241,22 @@ ncr_reset(ncr5380_t *ncr_dev, ncr_t *ncr)
     ncr_irq(ncr_dev, ncr, 0);
 }
 
-
 static void
-dma_timer_on(ncr5380_t *ncr_dev)
+ncr_timer_on(ncr5380_t *ncr_dev, ncr_t *ncr, int callback)
 {
-    ncr_t *ncr = &ncr_dev->ncr;
-    scsi_device_t *dev = &scsi_devices[ncr->target_id];
-    double period = ncr_dev->period;
-
-    if (ncr->data_wait & 2) {
+    double p = ncr_dev->period;
+	
+    if (ncr->data_wait & 2)
 	ncr->data_wait &= ~2;
+
+    if (callback) {
+	p *= 128.0;
     }
+    
+    p += 1.0;
 
-    /* DMA Timer on: 1 wait period + 128 byte periods. Hard disk timings are not emulated at the moment */
-    if (dev->type & 5) {
-	period *= 128.0;
-    }
-
-    /* This is the 1 us wait period. */
-    period += 1.0;
-
-    timer_on_auto(&ncr_dev->timer, period);
-}
-
-
-static void
-wait_timer_on(ncr5380_t *ncr_dev)
-{
-    /* PIO Wait Timer On: 1 period. */
-    timer_on_auto(&ncr_dev->timer, ncr_dev->period);
-}
-
-
-static void
-set_dma_enable(ncr5380_t *dev, int enable)
-{
-    if (enable) {
-	if (!timer_is_enabled(&dev->timer))
-		dma_timer_on(dev);
-    } else
-	timer_stop(&dev->timer);
-}
-
-
-static void
-dma_changed(ncr5380_t *dev, int mode, int enable)
-{
-    dev->dma_enabled = (mode && enable);
-
-    set_dma_enable(dev, dev->dma_enabled && dev->block_count_loaded);
+    ncr_log("P = %lf\n", p);
+    timer_on_auto(&ncr_dev->timer, p);
 }
 
 
@@ -397,6 +370,8 @@ ncr_bus_update(void *priv, int bus)
     if (bus & BUS_ARB)
 	ncr->state = STATE_IDLE;
 
+    ncr_log("State = %i\n", ncr->state);
+
     switch (ncr->state) {
 	case STATE_IDLE:
 		ncr->clear_req = ncr->wait_data = ncr->wait_complete = 0;
@@ -468,7 +443,7 @@ ncr_bus_update(void *priv, int bus)
 				scsi_device_command_phase0(dev, ncr->command);
 				ncr_log("SCSI ID %i: Command %02X: Buffer Length %i, SCSI Phase %02X\n", ncr->target_id, ncr->command[0], dev->buffer_length, dev->phase);
 
-				ncr_dev->period = 1.0;	/* 1 us default */
+				ncr_dev->period = 1.0;
 				ncr->wait_data = 4;
 				ncr->data_wait = 0;
 
@@ -476,14 +451,14 @@ ncr_bus_update(void *priv, int bus)
 					/*If the SCSI phase is Data In or Data Out, allocate the SCSI buffer based on the transfer length of the command*/
 					if (dev->buffer_length && (dev->phase == SCSI_PHASE_DATA_IN || dev->phase == SCSI_PHASE_DATA_OUT)) {
 						p = scsi_device_get_callback(dev);
-						if (p <= 0.0)
-							ncr_dev->period = 0.2/* * ((double) dev->buffer_length) */;
-						else
+						if (p <= 0.0) {
+							ncr_dev->period = 0.2;
+						} else
 							ncr_dev->period = p / ((double) dev->buffer_length);
 						ncr->data_wait |= 2;
+						ncr_log("SCSI ID %i: command 0x%02x for p = %lf, update = %lf, len = %i\n", ncr->target_id, ncr->command[0], p, ncr_dev->period, dev->buffer_length);
 					}
 				}
-
 				ncr->new_phase = dev->phase;
 			}
 		}
@@ -502,9 +477,10 @@ ncr_bus_update(void *priv, int bus)
 				ncr->cur_bus = (ncr->cur_bus & ~BUS_DATAMASK) | BUS_SETDATA(ncr->tx_data) | BUS_DBP | BUS_REQ;
 				if (ncr->data_wait & 2)
 					ncr->data_wait &= ~2;
-				if (ncr->dma_mode == DMA_IDLE) {
+				if (ncr->dma_mode == DMA_IDLE) { /*If a data in command that is not read 6/10 has been issued*/
 					ncr->data_wait |= 1;
-					wait_timer_on(ncr_dev);
+					ncr_log("DMA mode idle in\n");
+					timer_on_auto(&ncr_dev->timer, ncr_dev->period);
 				} else
 					ncr->clear_req = 3;
 				ncr->cur_bus &= ~BUS_REQ;
@@ -514,7 +490,6 @@ ncr_bus_update(void *priv, int bus)
 		break;
 	case STATE_DATAOUT:
 		dev = &scsi_devices[ncr->target_id];
-
 		if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
 			dev->sc->temp_buffer[ncr->data_pos++] = BUS_GETDATA(bus);
 
@@ -526,11 +501,13 @@ ncr_bus_update(void *priv, int bus)
 				ncr->wait_complete = 8;
 			} else {
 				/*More data is to be transferred, place a request*/
-				if (ncr->dma_mode == DMA_IDLE) {
+				if (ncr->dma_mode == DMA_IDLE) { /*If a data out command that is not write 6/10 has been issued*/
 					ncr->data_wait |= 1;
-					wait_timer_on(ncr_dev);
-				} else
+					ncr_log("DMA mode idle out\n");
+					timer_on_auto(&ncr_dev->timer, ncr_dev->period);
+				} else {
 					ncr->clear_req = 3;
+				}
 				ncr->cur_bus &= ~BUS_REQ;
 				ncr_log("CurBus ~REQ_DataOut=%02x\n", ncr->cur_bus);
 			}
@@ -615,9 +592,11 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 		ncr->mode = val;
 		
 		/*Don't stop the timer until it finishes the transfer*/
-		if (ncr_dev->block_count_loaded && (ncr->mode & MODE_DMA))	
-			dma_changed(ncr_dev, ncr->dma_mode, ncr->mode & MODE_DMA);
-
+		if (ncr_dev->block_count_loaded && (ncr->mode & MODE_DMA) && !timer_is_enabled(&ncr_dev->timer)) {
+			ncr_log("Continuing DMA mode\n");
+			ncr_timer_on(ncr_dev, ncr, 0);
+		}
+		
 		/*When a pseudo-DMA transfer has completed (Send or Initiator Receive), mark it as complete and idle the status*/
 		if (!ncr_dev->block_count_loaded && !(ncr->mode & MODE_DMA)) {
 			ncr_log("No DMA mode\n");
@@ -638,18 +617,20 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 		
 	case 5:		/* start DMA Send */
 		ncr_log("Write: start DMA send register\n");
-		ncr_log("Write 6 or 10, block count loaded=%d\n", ncr_dev->block_count_loaded);
 		/*a Write 6/10 has occurred, start the timer when the block count is loaded*/
 		ncr->dma_mode = DMA_SEND;
-		dma_changed(ncr_dev, ncr->dma_mode, ncr->mode & MODE_DMA);
+		if (ncr_dev->block_count_loaded && (ncr->mode & MODE_DMA) && !timer_is_enabled(&ncr_dev->timer)) {
+			ncr_timer_on(ncr_dev, ncr, 0);
+		}
 		break;
 
 	case 7:		/* start DMA Initiator Receive */
-		ncr_log("Write: start DMA initiator receive register\n");
-		ncr_log("Read 6 or 10, block count loaded=%d\n", ncr_dev->block_count_loaded);
+		ncr_log("Write: start DMA initiator receive register, dma? = %02x\n", ncr->mode & MODE_DMA);
 		/*a Read 6/10 has occurred, start the timer when the block count is loaded*/
 		ncr->dma_mode = DMA_INITIATOR_RECEIVE;
-		dma_changed(ncr_dev, ncr->dma_mode, ncr->mode & MODE_DMA);
+		if (ncr_dev->block_count_loaded && (ncr->mode & MODE_DMA) && !timer_is_enabled(&ncr_dev->timer)) {
+			ncr_timer_on(ncr_dev, ncr, 0);
+		}
 		break;
 
 	default:
@@ -657,8 +638,10 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 		break;
     }
 
-    bus_host = get_bus_host(ncr);
-    ncr_bus_update(priv, bus_host);
+    if (ncr->dma_mode == DMA_IDLE) {
+	bus_host = get_bus_host(ncr);
+	ncr_bus_update(priv, bus_host);
+    }
 }
 
 
@@ -710,7 +693,7 @@ ncr_read(uint16_t port, void *priv)
 
 	case 5:		/* Bus and Status register */
 		ncr_log("Read: Bus and Status register\n");
-		ret = 0;		
+		ret = 0;	
 
 		bus = get_bus_host(ncr);
 		ncr_log("Get host from Interrupt\n");
@@ -726,6 +709,8 @@ ncr_read(uint16_t port, void *priv)
 
 		if (bus & BUS_ACK)
 			ret |= STATUS_ACK;
+		if (bus & BUS_ATN)
+			ret |= 0x02;
 		
 		if ((bus & BUS_REQ) && (ncr->mode & MODE_DMA)) {
 			ncr_log("Entering DMA mode\n");
@@ -739,8 +724,10 @@ ncr_read(uint16_t port, void *priv)
 				bus_state |= TCR_CD;
 			if (bus & BUS_MSG)
 				bus_state |= TCR_MSG;
-			if ((ncr->tcr & 7) != bus_state)
+			if ((ncr->tcr & 7) != bus_state) {
 				ncr_irq(ncr_dev, ncr, 1);
+				ncr_log("IRQ issued\n");
+			}
 		}
 		if (!(bus & BUS_BSY) && (ncr->mode & MODE_MONITOR_BUSY)) {
 			ncr_log("Busy error\n");
@@ -756,6 +743,7 @@ ncr_read(uint16_t port, void *priv)
 	case 7:		/* reset Parity/Interrupt */
 		ncr->isr &= ~(STATUS_BUSY_ERROR | 0x20);
 		ncr_irq(ncr_dev, ncr, 0);
+		ncr_log("Reset Interrupt\n");
 		break;
 
 	default:
@@ -800,10 +788,11 @@ memio_read(uint32_t addr, void *priv)
 		break;
 		
 	case 0x3900:
-		if (ncr_dev->buffer_host_pos >= 128 || !(ncr_dev->status_ctrl & CTRL_DATA_DIR))
+		if (ncr_dev->buffer_host_pos >= 128 || !(ncr_dev->status_ctrl & CTRL_DATA_DIR)) {
 			ret = 0xff;
-		else {
+		} else {
 			ret = ncr_dev->buffer[ncr_dev->buffer_host_pos++];
+			ncr_log("Read Host pos = %i\n", ncr_dev->buffer_host_pos);
 			
 			if (ncr_dev->buffer_host_pos == 128) {	
 				ncr_log("Not ready\n");
@@ -850,6 +839,7 @@ static void
 memio_write(uint32_t addr, uint8_t val, void *priv)
 {
     ncr5380_t *ncr_dev = (ncr5380_t *)priv;
+    ncr_t *ncr = &ncr_dev->ncr;
 	
     addr &= 0x3fff;
 
@@ -869,6 +859,8 @@ memio_write(uint32_t addr, uint8_t val, void *priv)
 	case 0x3900:
 		if (!(ncr_dev->status_ctrl & CTRL_DATA_DIR) && ncr_dev->buffer_host_pos < 128) {
 			ncr_dev->buffer[ncr_dev->buffer_host_pos++] = val;
+
+			ncr_log("Write host pos = %i\n", ncr_dev->buffer_host_pos);
 
 			if (ncr_dev->buffer_host_pos == 128) {
 				ncr_dev->status_ctrl |= STATUS_BUFFER_NOT_READY;
@@ -892,11 +884,15 @@ memio_write(uint32_t addr, uint8_t val, void *priv)
 				break;
 
 			case 0x3981:	/* block counter register */
-				ncr_log("Write block counter register: val=%d\n", val);
+				ncr_log("Write block counter register: val=%d, dma mode = %i, period = %lf\n", val, ncr->dma_mode, ncr_dev->period);
 				ncr_dev->block_count = val;
 				ncr_dev->block_count_loaded = 1;
-				set_dma_enable(ncr_dev, ncr_dev->dma_enabled && ncr_dev->block_count_loaded);
 
+				if (ncr->mode & MODE_DMA) {
+					ncr_log("Start timer, buffer not ready = %02x\n", !(ncr_dev->status_ctrl & STATUS_BUFFER_NOT_READY));
+					ncr_timer_on(ncr_dev, ncr, 0);
+				}
+				
 				if (ncr_dev->status_ctrl & CTRL_DATA_DIR) {
 					ncr_dev->buffer_host_pos = 128;
 					ncr_dev->status_ctrl |= STATUS_BUFFER_NOT_READY;
@@ -991,27 +987,131 @@ t130b_out(uint16_t port, uint8_t val, void *priv)
     }
 }
 
+static void
+ncr_dma_send(ncr5380_t *ncr_dev, ncr_t *ncr)
+{
+    scsi_device_t *dev = &scsi_devices[ncr->target_id];	
+	
+    int bus, c = 0;
+    uint8_t data;
+    
+    if (scsi_device_get_callback(dev) > 0.0)	
+	ncr_timer_on(ncr_dev, ncr, 1);
+
+    for (c = 0; c < 10; c++) {
+	ncr_bus_read(ncr_dev);
+	if (ncr->cur_bus & BUS_REQ)
+	    break;
+    }
+
+    if (c == 10)
+	return;
+
+    /* Data ready. */
+    data = ncr_dev->buffer[ncr_dev->buffer_pos];
+    bus = get_bus_host(ncr) & ~BUS_DATAMASK;
+    bus |= BUS_SETDATA(data);
+
+    ncr_bus_update(ncr_dev, bus | BUS_ACK);
+    ncr_bus_update(ncr_dev, bus & ~BUS_ACK);
+
+    ncr_dev->buffer_pos++;
+    ncr_log("Buffer pos for writing = %d\n", ncr_dev->buffer_pos);
+
+    if (ncr_dev->buffer_pos == 128) {
+	ncr_dev->buffer_pos = 0;
+	ncr_dev->buffer_host_pos = 0;
+	ncr_dev->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
+	ncr_dev->ncr_busy = 0;
+	ncr_dev->block_count = (ncr_dev->block_count - 1) & 0xff;
+	ncr_log("Remaining blocks to be written=%d\n", ncr_dev->block_count);
+	if (!ncr_dev->block_count) {
+	    ncr_dev->block_count_loaded = 0;
+	    ncr_log("IO End of write transfer\n");
+	    ncr->tcr |= TCR_LAST_BYTE_SENT;
+	    ncr->isr |= STATUS_END_OF_DMA;
+	    timer_stop(&ncr_dev->timer);
+	    if (ncr->mode & MODE_ENA_EOP_INT) {
+		ncr_log("NCR write irq\n");
+		ncr_irq(ncr_dev, ncr, 1);
+	    }
+	}
+	return;
+     }
+     ncr_dma_send(ncr_dev, ncr);
+}
+
+static void
+ncr_dma_initiator_receive(ncr5380_t *ncr_dev, ncr_t *ncr)
+{
+    scsi_device_t *dev = &scsi_devices[ncr->target_id];	
+	
+    int bus, c = 0;
+    uint8_t temp;
+
+    if (scsi_device_get_callback(dev) > 0.0)	
+	ncr_timer_on(ncr_dev, ncr, 1);
+
+    for (c = 0; c < 10; c++) {
+	ncr_bus_read(ncr_dev);
+	if (ncr->cur_bus & BUS_REQ)
+	    break;
+    }
+
+    if (c == 10)
+	return;
+
+    /* Data ready. */
+    ncr_bus_read(ncr_dev);
+    temp = BUS_GETDATA(ncr->cur_bus);
+
+    bus = get_bus_host(ncr);
+
+    ncr_bus_update(ncr_dev, bus | BUS_ACK);
+    ncr_bus_update(ncr_dev, bus & ~BUS_ACK);
+
+    ncr_dev->buffer[ncr_dev->buffer_pos++] = temp;    
+    ncr_log("Buffer pos for reading = %d\n", ncr_dev->buffer_pos);
+	
+    if (ncr_dev->buffer_pos == 128) {					
+	ncr_dev->buffer_pos = 0;
+	ncr_dev->buffer_host_pos = 0;
+	ncr_dev->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
+	ncr_dev->block_count = (ncr_dev->block_count - 1) & 0xff;
+	ncr_log("Remaining blocks to be read=%d\n", ncr_dev->block_count);
+	if (!ncr_dev->block_count) {
+	    ncr_dev->block_count_loaded = 0;
+	    ncr_log("IO End of read transfer\n");
+	    ncr->isr |= STATUS_END_OF_DMA;
+	    timer_stop(&ncr_dev->timer);
+	    if (ncr->mode & MODE_ENA_EOP_INT) {
+		ncr_log("NCR read irq\n");
+		ncr_irq(ncr_dev, ncr, 1);
+	    }
+	}    
+	return;
+    }
+    ncr_dma_initiator_receive(ncr_dev, ncr);
+}
 
 static void
 ncr_callback(void *priv)
 {
     ncr5380_t *ncr_dev = (ncr5380_t *)priv;
     ncr_t *ncr = &ncr_dev->ncr;
-    int bus, c = 0;
-    uint8_t temp, data;
+    scsi_device_t *dev = &scsi_devices[ncr->target_id];
 
-    ncr_log("DMA mode=%d\n", ncr->dma_mode);
+    ncr_log("DMA mode=%d, status ctrl = %02x\n", ncr->dma_mode, ncr_dev->status_ctrl);
 
-    if (ncr->data_wait & 1)
-	ncr->clear_req = 3;
-
-    if (ncr->dma_mode != DMA_IDLE)
-	dma_timer_on(ncr_dev);
+    if (ncr->dma_mode != DMA_IDLE && (ncr->mode & MODE_DMA) && ncr_dev->block_count_loaded && scsi_device_get_callback(dev) <= 0.0)
+	timer_on_auto(&ncr_dev->timer, 10.0);
 
     if (ncr->data_wait & 1) {
+	ncr->clear_req = 3;
 	ncr->data_wait &= ~1;
-	if (ncr->dma_mode == DMA_IDLE)
+	if (ncr->dma_mode == DMA_IDLE) {
 		return;
+	}
     }
 
     switch(ncr->dma_mode) {
@@ -1020,62 +1120,16 @@ ncr_callback(void *priv)
 			ncr_log("DMA_SEND with DMA direction set wrong\n");
 			break;
 		}
-
-		ncr_log("Status for writing=%02x\n", ncr_dev->status_ctrl);
-
+		
 		if (!(ncr_dev->status_ctrl & STATUS_BUFFER_NOT_READY)) {
-			ncr_log("Buffer ready\n");
+			ncr_log("Write buffer status ready\n");
 			break;
 		}
 
 		if (!ncr_dev->block_count_loaded)
 			break;
 
-write_start:
-		{
-			for (c = 0; c < 10; c++) {
-				ncr_bus_read(ncr_dev);
-				if (ncr->cur_bus & BUS_REQ)
-					break;
-			}
-			
-			if (c == 10)
-				break;			
-			
-			/* Data ready. */
-			data = ncr_dev->buffer[ncr_dev->buffer_pos];
-			bus = get_bus_host(ncr) & ~BUS_DATAMASK;
-			bus |= BUS_SETDATA(data);
-
-			ncr_bus_update(priv, bus | BUS_ACK);
-			ncr_bus_update(priv, bus & ~BUS_ACK);
-
-			ncr_dev->buffer_pos++;
-			ncr_log("Buffer pos for writing = %d\n", ncr_dev->buffer_pos);
-			
-			if (ncr_dev->buffer_pos == 128) {
-				ncr_dev->buffer_pos = 0;
-				ncr_dev->buffer_host_pos = 0;
-				ncr_dev->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
-				ncr_dev->ncr_busy = 0;
-				ncr_dev->block_count = (ncr_dev->block_count - 1) & 255;
-				ncr_log("Remaining blocks to be written=%d\n", ncr_dev->block_count);
-				if (!ncr_dev->block_count) {
-					ncr_dev->block_count_loaded = 0;
-					set_dma_enable(ncr_dev, 0);
-					ncr_log("IO End of write transfer\n");
-
-					ncr->tcr |= TCR_LAST_BYTE_SENT;
-					ncr->isr |= STATUS_END_OF_DMA;
-					if (ncr->mode & MODE_ENA_EOP_INT) {
-						ncr_log("NCR write irq\n");
-						ncr_irq(ncr_dev, ncr, 1);
-					}
-				}
-				break;
-			}
-			goto write_start;
-		}
+		ncr_dma_send(ncr_dev, ncr);
 		break;
 
 	case DMA_INITIATOR_RECEIVE:
@@ -1084,59 +1138,15 @@ write_start:
 			break;
 		}
 
-		ncr_log("Status for reading=%02x\n", ncr_dev->status_ctrl);
-
-		if (!(ncr_dev->status_ctrl & STATUS_BUFFER_NOT_READY))
+		if (!(ncr_dev->status_ctrl & STATUS_BUFFER_NOT_READY)) {
+			ncr_log("Read buffer status ready\n");
 			break;
+		}
 
 		if (!ncr_dev->block_count_loaded)
 			break;
 
-read_start:
-		{
-			for (c = 0; c < 10; c++) {
-				ncr_bus_read(ncr_dev);
-				if (ncr->cur_bus & BUS_REQ)
-					break;
-			}
-			
-			if (c == 10)
-				break;
-
-			/* Data ready. */
-			ncr_bus_read(ncr_dev);
-			temp = BUS_GETDATA(ncr->cur_bus);
-
-			bus = get_bus_host(ncr);
-
-			ncr_bus_update(priv, bus | BUS_ACK);
-			ncr_bus_update(priv, bus & ~BUS_ACK);
-
-			ncr_dev->buffer[ncr_dev->buffer_pos++] = temp;
-
-			if (ncr_dev->buffer_pos == 128) {					
-				ncr_dev->buffer_pos = 0;
-				ncr_dev->buffer_host_pos = 0;
-				ncr_dev->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
-				ncr_dev->block_count = (ncr_dev->block_count - 1) & 255;
-
-				ncr_log("Remaining blocks to be read=%d\n", ncr_dev->block_count);
-
-				if (!ncr_dev->block_count) {
-					ncr_dev->block_count_loaded = 0;
-					set_dma_enable(ncr_dev, 0);
-					ncr_log("IO End of read transfer\n");
-
-					ncr->isr |= STATUS_END_OF_DMA;
-					if (ncr->mode & MODE_ENA_EOP_INT) {
-						ncr_log("NCR read irq\n");
-						ncr_irq(ncr_dev, ncr, 1);
-					}
-				}
-				break;
-			}
-			goto read_start;
-		}		
+		ncr_dma_initiator_receive(ncr_dev, ncr);
 		break;
     }
 
@@ -1146,7 +1156,7 @@ read_start:
 	ncr_log("Updating DMA\n");
 	ncr->mode &= ~MODE_DMA;
 	ncr->dma_mode = DMA_IDLE;
-	dma_changed(ncr_dev, ncr->dma_mode, ncr->mode & MODE_DMA);
+	timer_on_auto(&ncr_dev->timer, 10.0);
     }
 }
 
