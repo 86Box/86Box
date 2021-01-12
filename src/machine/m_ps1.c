@@ -326,25 +326,31 @@ ps1_write(uint16_t port, uint8_t val, void *priv)
 		break;
 
 	case 0x0102:
-		lpt1_remove();
-		if (val & 0x04)
-			serial_setup(ps->uart, SERIAL1_ADDR, SERIAL1_IRQ);
-		else
+		if (!(ps->ps1_94 & 0x80)) {
+			lpt1_remove();
 			serial_remove(ps->uart);
-		if (val & 0x10) {
-			switch ((val >> 5) & 3) {
-				case 0:
-					lpt1_init(0x03bc);
-					break;
-				case 1:
-					lpt1_init(0x0378);
-					break;
-				case 2:
-					lpt1_init(0x0278);
-					break;
+			if (val & 0x04) {
+				if (val & 0x08)
+					serial_setup(ps->uart, SERIAL1_ADDR, SERIAL1_IRQ);
+				else
+					serial_setup(ps->uart, SERIAL2_ADDR, SERIAL2_IRQ);
 			}
+			if (val & 0x10) {
+				switch ((val >> 5) & 3)
+				{
+					case 0:
+					lpt1_init(0x3bc);
+					break;
+					case 1:
+					lpt1_init(0x378);
+					break;
+					case 2:
+					lpt1_init(0x278);
+					break;
+				}
+			}
+			ps->ps1_102 = val;
 		}
-		ps->ps1_102 = val;
 		break;
 
 	case 0x0103:
@@ -469,17 +475,16 @@ ps1_setup(int model)
 
 		ps1_hdc_inform(priv, &ps->ps1_91);
 	}
-    }
-
-    if (model == 2121) {
+	
+	/* Enable the PS/1 VGA controller. */
+	device_add(&ps1vga_device);
+    } else if (model == 2121) {
 	io_sethandler(0x00e0, 2,
 		      ps1_read, NULL, NULL, ps1_write, NULL, NULL, ps);
 
-#if 0
 	rom_init(&ps->high_rom,
 		 L"roms/machines/ibmps1_2121/fc0000.bin",
 		 0xfc0000, 0x20000, 0x1ffff, 0, MEM_MAPPING_EXTERNAL);
-#endif
 
 	/* Initialize the video controller. */
 	if (gfxcard == VID_INTERNAL)
@@ -491,12 +496,6 @@ ps1_setup(int model)
 
 	device_add(&snd_device);
     }
-
-    /* Enable the PS/1 VGA controller. */
-    if (model == 2011)
-	device_add(&ps1vga_device);
-    else if (model == 2021)
-	device_add(&ibm_ps1_2121_device);
 }
 
 static void
