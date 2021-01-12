@@ -193,7 +193,14 @@ acpi_reg_read_ali(int size, uint16_t addr, void *p)
 		/* GPE1_EN - General Purpose Event1 Enable Register */
 	ret = (dev->regs.gpen1 >> shift16) & 0xff;
 	break;
-	case 0x20 ... 0x27:
+	case 0x20:
+	case 0x21:
+	case 0x22:
+	case 0x23:
+	case 0x24:
+	case 0x25:
+	case 0x26:
+	case 0x27:
 		/* GPE1_CTL - General Purpose Event1 Control Register */
 	ret = (dev->regs.gpcntrl >> shift32) & 0xff;
 	break;
@@ -620,7 +627,14 @@ acpi_reg_write_ali(int size, uint16_t addr, uint8_t val, void *p)
 		/* GPE1_EN - General Purpose Event1 Enable Register */
 	dev->regs.gpen = ((dev->regs.gpen & ~(0xff << shift16)) | (val << shift16)) & 0x0c01;
 	break;
-	case 0x20 ... 0x27:
+	case 0x20:
+	case 0x21:
+	case 0x22:
+	case 0x23:
+	case 0x24:
+	case 0x25:
+	case 0x26:
+	case 0x27:
 		/* GPE1_CTL - General Purpose Event1 Control Register */
 	dev->regs.gpcntrl = ((dev->regs.gpcntrl & ~(0xff << shift32)) | (val << shift32)) & 0x00000001;
 	break;
