@@ -1,0 +1,102 @@
+name: CMake
+
+on:
+
+  push:
+    paths:
+    - src/**
+    - .github/workflows/**
+    - vcpkg.json
+
+  pull_request:
+    paths:
+    - src/**
+    - .github/workflows/**
+    - vcpkg.json
+
+env:
+  BUILD_TYPE: Release
+
+jobs:
+  mingw:
+    name: ${{ matrix.target-arch.msystem }} build (DEV_BUILD=${{ matrix.dev-build }}, NEW_DYNAREC=${{ matrix.new-dynarec }})
+
+    runs-on: windows-latest
+
+    defaults:
+      run:
+        shell: msys2 {0}
+
+    strategy:
+      matrix:
+        dev-build: ['ON', 'OFF']
+        new-dynarec: ['ON', 'OFF']
+        target-arch:
+          - msystem: MINGW32
+            prefix: mingw-w64-i686
+          - msystem: MINGW64
+            prefix: mingw-w64-x86_64
+
+    steps:
+    - uses: msys2/setup-msys2@v2
+      with:
+        path-type: inherit
+        update: true
+        msystem: ${{ matrix.target-arch.msystem }}
+        install: >-
+          ${{ matrix.target-arch.prefix }}-toolchain
+          ${{ matrix.target-arch.prefix }}-openal
+          ${{ matrix.target-arch.prefix }}-freetype
+          ${{ matrix.target-arch.prefix }}-SDL2
+          ${{ matrix.target-arch.prefix }}-zlib
+          ${{ matrix.target-arch.prefix }}-libpng
+          ${{ matrix.target-arch.prefix }}-libvncserver
+    - uses: actions/checkout@v2
+    - name: Configure CMake
+      run: >-
+        cmake -S . -B build
+        -G "MSYS Makefiles"
+        -D CMAKE_BUILD_TYPE=$BUILD_TYPE
+        -D DEV_BRANCH=${{ matrix.dev-build }}
+        -D NEW_DYNAREC=${{ matrix.new-dynarec }}
+        -D VNC=OFF
+    - name: Build
+      run: cmake --build build --config $BUILD_TYPE
+
+  clang:
+    name: VS2019 ${{ matrix.toolset }} ${{ matrix.target-arch }} build (DEV_BUILD=${{ matrix.dev-build }}, NEW_DYNAREC=${{ matrix.new-dynarec }})
+
+    runs-on: windows-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        dev-build: ['ON', 'OFF']
+        new-dynarec: ['ON', 'OFF']
+        target-arch: ['Win32', 'x64', 'ARM', 'ARM64']
+        toolset: ['clangcl', 'v141']
+        exclude:
+          - target-arch: 'ARM'
+            new-dynarec: 'OFF'
+          - target-arch: 'ARM64'
+            new-dynarec: 'OFF'
+          - target-arch: 'ARM'
+            toolset: 'clangcl'
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      with:
+        path: build/vcpkg_installed
+        key: vcpkg-${{ hashFiles('vcpkg.json') }}-${{ matrix.target-arch }}
+    - name: Configure CMake
+      run: >-
+        cmake -S . -B build
+        -G "Visual Studio 16 2019" -A ${{ matrix.target-arch }} -T ${{ matrix.toolset }}
+        -D CMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
+        -D CMAKE_BUILD_TYPE=$BUILD_TYPE
+        -D DEV_BRANCH=${{ matrix.dev-build }}
+        -D NEW_DYNAREC=${{ matrix.new-dynarec }}
+        -D VNC=OFF
+    - name: Build
+      run: cmake --build build --config $BUILD_TYPE

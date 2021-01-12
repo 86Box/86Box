@@ -1,0 +1,13 @@
+{
+	"name": "86box",
+	"version-string": "3.0",
+	"homepage": "https://86box.net/",
+	"documentation": "http://86box.readthedocs.io/",
+	"license": "GPL-2.0-or-later",
+	"dependencies": [
+		"freetype",
+		"libpng",
+		"openal-soft",
+		"sdl2"
+	]
+}

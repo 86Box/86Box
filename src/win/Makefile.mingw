@@ -318,7 +318,7 @@ DEPFILE		:= win/.depends
 
 # Set up the correct toolchain flags.
 OPTS		:= $(EXTRAS) $(STUFF)
-OPTS		+= -Iinclude \
+OPTS		+= -Iinclude -Iinclude_make \
 		   -iquote $(CODEGEN) -iquote cpu
 ifdef EXFLAGS
 OPTS		+= $(EXFLAGS)
@@ -369,7 +369,7 @@ ifeq ($(ARM64), y)
  AOPTIM		:=
  AFLAGS		:= -mfloat-abi=hard
 endif
-RFLAGS		:= --input-format=rc -O coff -Iinclude
+RFLAGS		:= --input-format=rc -O coff -Iinclude -Iinclude_make
 ifeq ($(RELEASE), y)
 OPTS		+= -DRELEASE_BUILD
 RFLAGS		+= -DRELEASE_BUILD
