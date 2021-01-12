@@ -2264,6 +2264,26 @@ pcnet_word_write(nic_t *dev, uint32_t addr, uint16_t val)
     }
 }
 
+static uint8_t
+pcnet_byte_read(nic_t *dev, uint32_t addr)
+{
+    uint8_t val = 0xff;
+
+    if (!BCR_DWIO(dev)) {
+	switch (addr & 0x0f) {
+		case 0x04:
+			pcnetSoftReset(dev);
+			val = 0;
+			break;
+	}
+    }
+
+    pcnetUpdateIrq(dev);
+
+    pcnetlog(3, "%s: pcnet_word_read: addr = %04x, val = %04x, DWIO not set = %04x\n", dev->name, addr & 0x0f, val, !BCR_DWIO(dev));
+
+    return(val);
+}
 
 static uint16_t
 pcnet_word_read(nic_t *dev, uint32_t addr)
@@ -2449,7 +2469,9 @@ pcnet_read(nic_t *dev, uint32_t addr, int len)
 				(pcnet_aprom_readb(dev, addr + 2) << 16) | (pcnet_aprom_readb(dev, addr + 3) << 24);
 	}
     } else {
-	if (len == 2)
+	if (len == 1)
+		retval = pcnet_byte_read(dev, addr);
+	else if (len == 2)
 		retval = pcnet_word_read(dev, addr);
 	else if (len == 4)
 		retval = pcnet_dword_read(dev, addr);
