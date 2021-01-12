@@ -122,7 +122,7 @@ typedef struct {
     int8_t	irq;
     int8_t	type;
 	int8_t  bios_ver;
-    uint16_t	block_count, block_count_num;
+    uint8_t	block_count, block_count_num;
     uint8_t	status_ctrl;
     uint8_t	pad[2];
 
@@ -638,7 +638,7 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 		break;
     }
 
-    if (ncr->dma_mode == DMA_IDLE) {
+    if (ncr->dma_mode == DMA_IDLE || ncr_dev->type == 0) {
 	bus_host = get_bus_host(ncr);
 	ncr_bus_update(priv, bus_host);
     }
