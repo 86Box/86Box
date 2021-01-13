@@ -84,28 +84,33 @@ static void ps2_write(uint16_t port, uint8_t val, void *p)
                 ps2_94 = val;
                 break;
                 case 0x102:
-                lpt1_remove();
-                if (val & 0x04)
-                        serial_setup(ps2_uart, SERIAL1_ADDR, SERIAL1_IRQ);
-                else
-                        serial_remove(ps2_uart);
-                if (val & 0x10)
-                {
-                        switch ((val >> 5) & 3)
-                        {
-                                case 0:
-                                lpt1_init(0x3bc);
-                                break;
-                                case 1:
-                                lpt1_init(0x378);
-                                break;
-                                case 2:
-                                lpt1_init(0x278);
-                                break;
-                        }
-                }
-                ps2_102 = val;
-                break;
+				if (!(ps2_94 & 0x80)) {
+					lpt1_remove();
+					serial_remove(ps2_uart);
+					if (val & 0x04) {
+						if (val & 0x08)
+							serial_setup(ps2_uart, SERIAL1_ADDR, SERIAL1_IRQ);
+						else
+							serial_setup(ps2_uart, SERIAL2_ADDR, SERIAL2_IRQ);
+					}
+					if (val & 0x10) {
+						switch ((val >> 5) & 3)
+						{
+							case 0:
+							lpt1_init(0x3bc);
+							break;
+							case 1:
+							lpt1_init(0x378);
+							break;
+							case 2:
+							lpt1_init(0x278);
+							break;
+						}
+					}
+					ps2_102 = val;
+				}
+				break;
+
                 case 0x103:
                 ps2_103 = val;
                 break;

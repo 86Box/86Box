@@ -15,7 +15,9 @@
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *
- *		Copyright 2020 Miran Grca.
+ *		Copyright 2020,2021 Natalia Portillo.
+ *		Copyright 2020,2021 Miran Grca.
+ *		Copyright 2020,2021 Fred N. van Kempen
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -1039,15 +1041,16 @@ mo_insert(mo_t *dev)
 void
 mo_format(mo_t *dev)
 {
-    unsigned long size;
+    long size;
     int ret;
     int fd;
 
     mo_log("MO %i: Formatting media...\n", dev->id);
 
     fseek(dev->drv->f, 0, SEEK_END);
-    size = (uint32_t) ftello64(dev->drv->f);
+    size = ftell(dev->drv->f);
 
+#ifdef _WIN32
     HANDLE fh;
     LARGE_INTEGER liSize;
 
@@ -1058,14 +1061,14 @@ mo_format(mo_t *dev)
 
     ret = (int)SetFilePointerEx(fh, liSize, NULL, FILE_BEGIN);
 
-    if (!ret) {
+    if(!ret) {
 	mo_log("MO %i: Failed seek to start of image file\n", dev->id);
 	return;
     }
 
     ret = (int)SetEndOfFile(fh);
 
-    if (!ret) {
+    if(!ret) {
 	mo_log("MO %i: Failed to truncate image file to 0\n", dev->id);
 	return;
     }
@@ -1073,17 +1076,34 @@ mo_format(mo_t *dev)
     liSize.QuadPart = size;
     ret = (int)SetFilePointerEx(fh, liSize, NULL, FILE_BEGIN);
 
-    if (!ret) {
+    if(!ret) {
 	mo_log("MO %i: Failed seek to end of image file\n", dev->id);
 	return;
     }
 
     ret = (int)SetEndOfFile(fh);
 
-    if (!ret) {
+    if(!ret) {
 	mo_log("MO %i: Failed to truncate image file to %llu\n", dev->id, size);
 	return;
     }
+#else
+    fd = fileno(dev->drv->f);
+
+    ret = ftruncate(fd, 0);
+
+    if(ret) {
+	mo_log("MO %i: Failed to truncate image file to 0\n", dev->id);
+	return;
+    }
+
+    ret = ftruncate(fd, size);
+
+    if(ret) {
+	mo_log("MO %i: Failed to truncate image file to %llu", dev->id, size);
+	return;
+    }
+#endif
 }
 
 static int

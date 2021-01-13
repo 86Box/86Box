@@ -14,18 +14,18 @@
  */
 
 /* Version info. */
-#define EMU_NAME	"86Box"
-#define EMU_NAME_W	L"86Box"
+#define EMU_NAME	"@CMAKE_PROJECT_NAME@"
+#define EMU_NAME_W	L"@CMAKE_PROJECT_NAME@"
 
-#define EMU_VERSION	"3.0"
-#define EMU_VERSION_W	L"3.0"
-#define EMU_VERSION_EX	"3.00"
-#define EMU_VERSION_MAJ	3
-#define EMU_VERSION_MIN	0
+#define EMU_VERSION	"@CMAKE_PROJECT_VERSION@"
+#define EMU_VERSION_W	L"@CMAKE_PROJECT_VERSION@"
+#define EMU_VERSION_EX	"@CMAKE_PROJECT_VERSION_MAJOR@.@CMAKE_PROJECT_VERSION_MINOR@0"
+#define EMU_VERSION_MAJ	@CMAKE_PROJECT_VERSION_MAJOR@
+#define EMU_VERSION_MIN	@CMAKE_PROJECT_VERSION_MINOR@
 
 #define COPYRIGHT_YEAR	"2020"
 
 /* Web URL info. */
-#define EMU_SITE	L"86box.net"
+#define EMU_SITE	L"@CMAKE_PROJECT_HOMEPAGE_URL@"
 #define EMU_ROMS_URL	L"https://github.com/86Box/roms/releases/latest"
 #define EMU_DOCS_URL	L"https://86box.readthedocs.io"
