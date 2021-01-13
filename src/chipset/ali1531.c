@@ -48,6 +48,11 @@ void ali1531_shadow_recalc(ali1531_t *dev)
         mem_set_mem_state_both(0xc0000 + (i << 14), 0x4000, (((dev->pci_conf[0x4c] >> i) & 1) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | (((dev->pci_conf[0x4e] >> i) & 1) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
         mem_set_mem_state_both(0xe0000 + (i << 14), 0x4000, (((dev->pci_conf[0x4d] >> i) & 1) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | (((dev->pci_conf[0x4f] >> i) & 1) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
     }
+
+    shadowbios = !!(dev->pci_conf[0x4d] & 0xf0);
+    shadowbios_write = !!(dev->pci_conf[0x4f] & 0xf0);
+
+    flushmmucache();
 }
 
 void ali1531_smm_recalc(uint8_t smm_state, ali1531_t *dev)

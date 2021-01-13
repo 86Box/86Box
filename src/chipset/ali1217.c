@@ -62,6 +62,11 @@ static void ali1217_shadow_recalc(ali1217_t *dev)
         mem_set_mem_state_both(0xc0000 + (i << 15), 0x8000, ((dev->regs[0x14] & (1 << (i * 2))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x14] & (1 << ((i * 2) + 1))) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
         mem_set_mem_state_both(0xe0000 + (i << 15), 0x8000, ((dev->regs[0x15] & (1 << (i * 2))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x15] & (1 << ((i * 2) + 1))) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
     }
+
+    shadowbios = !!(dev->regs[0x15] & 5);
+    shadowbios_write = !!(dev->regs[0x15] & 0x0a);
+    
+    flushmmucache();
 }
 
 static void
