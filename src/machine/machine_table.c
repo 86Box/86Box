@@ -154,6 +154,7 @@ const machine_t machines[] = {
     { "[ALi M6117D] Acrosser AR-B1375",		"arb1375",		MACHINE_TYPE_386SX,		CPU_PKG_M6117, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024, 32768,1024,  127,	      machine_at_arb1375_init, NULL			},
     { "[ALi M6117D] Acrosser PJ-A511M",		"pja511m",		MACHINE_TYPE_386SX,		CPU_PKG_M6117, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024, 32768,1024,  127,	      machine_at_pja511m_init, NULL			},
 #endif
+    { "[ALi M1217] Flytech 386",		"flytech386",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE | MACHINE_BUS_PS2 | MACHINE_VIDEO,									 1024, 16384, 1024, 127,	      machine_at_flytech386_init, at_flytech386_get_device			},
     { "[HT18] AMA-932J",			"ama932j",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE | MACHINE_VIDEO,					  512,  8192,  128, 127,	      machine_at_ama932j_init, at_ama932j_get_device 	},
     { "[Intel 82335] ADI 386SX",		"adi386sx",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,	     machine_at_adi386sx_init, NULL			},
     { "[Intel 82335] Shuttle 386SX",		"shuttle386sx",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,	 machine_at_shuttle386sx_init, NULL			},
@@ -175,7 +176,6 @@ const machine_t machines[] = {
     { "[ISA] Compaq Portable III (386)",	"portableiii386",       MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE | MACHINE_VIDEO,					 1024, 14336, 1024, 127,       machine_at_portableiii386_init, at_cpqiii_get_device	},
     { "[ISA] Micronics 386 clone",		"micronics386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,	 machine_at_micronics386_init, NULL			},
     { "[SiS 310] ASUS ISA-386C",		"asus386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512, 16384,  128, 127,	      machine_at_asus386_init, NULL			},
-    { "[UMC 491] US Technologies 386",		"ustechnologies386",	MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 16384, 1024, 127,    machine_at_ustechnologies386_init, NULL			},
 
     /* 386DX machines which utilize the VLB bus */
     { "[OPTi 495] Award 386DX clone",		"award386dx",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	      machine_at_opti495_init, NULL			},
