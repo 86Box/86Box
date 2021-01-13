@@ -49,3 +49,8 @@ endif()
 if(XL24)
 	target_compile_definitions(vid PRIVATE USE_XL24)
 endif()
+
+if(RIVA128)
+	target_compile_definitions(vid PRIVATE USE_RIVA128)
+	target_sources(vid PRIVATE vid_riva128.c)
+endif()
