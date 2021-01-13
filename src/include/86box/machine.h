@@ -261,6 +261,7 @@ extern int	machine_at_commodore_sl386sx16_init(const machine_t *);
 extern int	machine_at_commodore_sl386sx25_init(const machine_t *);
 extern int	machine_at_spc6033p_init(const machine_t *);
 extern int	machine_at_wd76c10_init(const machine_t *);
+extern int	machine_at_flytech386_init(const machine_t *);
 
 extern int	machine_at_olim290_init(const machine_t *);
 extern int	machine_at_ncrpc8_init(const machine_t *);
@@ -274,6 +275,7 @@ extern int	machine_at_pja511m_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_ama932j_get_device(void);
+extern const device_t	*at_flytech386_get_device(void);
 extern const device_t	*at_commodore_sl386sx25_get_device(void);
 extern const device_t	*at_spc4620p_get_device(void);
 extern const device_t	*at_spc6033p_get_device(void);
@@ -284,7 +286,6 @@ extern int	machine_at_acc386_init(const machine_t *);
 extern int	machine_at_asus386_init(const machine_t *);
 extern int	machine_at_ecs386_init(const machine_t *);
 extern int	machine_at_spc6000a_init(const machine_t *);
-extern int	machine_at_ustechnologies386_init(const machine_t *);
 extern int	machine_at_micronics386_init(const machine_t *);
 
 extern int	machine_at_rycleopardlx_init(const machine_t *);
