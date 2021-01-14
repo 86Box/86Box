@@ -645,7 +645,16 @@ skip_draw:
         {
                 if (voodoo->line == voodoo->v_disp)
                 {
-                        if (voodoo->dirty_line_high > voodoo->dirty_line_low)
+                        int force_blit = 0;
+                        thread_wait_light_mutex(voodoo->force_blit_mutex);
+                        if(voodoo->force_blit_count) {
+                            force_blit = 1;
+                            if(--voodoo->force_blit_count < 0)
+                                voodoo->force_blit_count = 0;
+                        }
+                        thread_release_light_mutex(voodoo->force_blit_mutex);
+
+                        if (voodoo->dirty_line_high > voodoo->dirty_line_low || force_blit)
                                 svga_doblit(0, voodoo->v_disp, voodoo->h_disp, voodoo->v_disp-1, voodoo->svga);
                         if (voodoo->clutData_dirty)
                         {
