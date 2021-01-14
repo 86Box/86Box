@@ -696,68 +696,76 @@ BEGIN
 END
 
 
+#ifndef NO_INCLUDE_MANIFEST
 /////////////////////////////////////////////////////////////////////////////
 //
 // 24
 //
 
 1                       24      MOVEABLE PURE   "86Box.manifest"
+#endif
 
 /////////////////////////////////////////////////////////////////////////////
 //
 // Icon
 //
 
+#ifdef CMAKE
+#define ICON_PATH
+#else
+#define ICON_PATH "win/"
+#endif
+
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
 #ifdef RELEASE_BUILD
 /* Icon by Devcore - https://commons.wikimedia.org/wiki/File:Icon_PC_256x256.png */
- 10                     ICON    DISCARDABLE     "win/icons/86Box-RB.ico"
+ 10                     ICON    DISCARDABLE     ICON_PATH "icons/86Box-RB.ico"
 #else
 /* Icon by Devcore - https://commons.wikimedia.org/wiki/File:Icon_PC2_256x256.png */
- 10                     ICON    DISCARDABLE     "win/icons/86Box.ico"
+ 10                     ICON    DISCARDABLE     ICON_PATH "icons/86Box.ico"
 #endif
- 16                     ICON    DISCARDABLE     "win/icons/floppy_525.ico"
- 17                     ICON    DISCARDABLE     "win/icons/floppy_525_active.ico"
- 24                     ICON    DISCARDABLE     "win/icons/floppy_35.ico"
- 25                     ICON    DISCARDABLE     "win/icons/floppy_35_active.ico"
- 32                     ICON    DISCARDABLE     "win/icons/cdrom.ico"
- 33                     ICON    DISCARDABLE     "win/icons/cdrom_active.ico"
- 48                     ICON    DISCARDABLE     "win/icons/zip.ico"
- 49                     ICON    DISCARDABLE     "win/icons/zip_active.ico"
- 56                     ICON    DISCARDABLE     "win/icons/mo.ico"
- 57                     ICON    DISCARDABLE     "win/icons/mo_active.ico"
- 64                     ICON    DISCARDABLE     "win/icons/cassette.ico"
- 65                     ICON    DISCARDABLE     "win/icons/cassette_active.ico"
- 80                     ICON    DISCARDABLE     "win/icons/hard_disk.ico"
- 81                     ICON    DISCARDABLE     "win/icons/hard_disk_active.ico"
- 96                     ICON    DISCARDABLE     "win/icons/network.ico"
- 97                     ICON    DISCARDABLE     "win/icons/network_active.ico"
-144                     ICON    DISCARDABLE     "win/icons/floppy_525_empty.ico"
-145                     ICON    DISCARDABLE     "win/icons/floppy_525_empty_active.ico"
-152                     ICON    DISCARDABLE     "win/icons/floppy_35_empty.ico"
-153                     ICON    DISCARDABLE     "win/icons/floppy_35_empty_active.ico"
-160                     ICON    DISCARDABLE     "win/icons/cdrom_empty.ico"
-161                     ICON    DISCARDABLE     "win/icons/cdrom_empty_active.ico"
-176                     ICON    DISCARDABLE     "win/icons/zip_empty.ico"
-177                     ICON    DISCARDABLE     "win/icons/zip_empty_active.ico"
-184                     ICON    DISCARDABLE     "win/icons/mo_empty.ico"
-185                     ICON    DISCARDABLE     "win/icons/mo_empty_active.ico"
-192                     ICON    DISCARDABLE     "win/icons/cassette_empty.ico"
-193                     ICON    DISCARDABLE     "win/icons/cassette_empty_active.ico"
-240                     ICON    DISCARDABLE     "win/icons/machine.ico"
-241                     ICON    DISCARDABLE     "win/icons/display.ico"
-242                     ICON    DISCARDABLE     "win/icons/input_devices.ico"
-243                     ICON    DISCARDABLE     "win/icons/sound.ico"
-244                     ICON    DISCARDABLE     "win/icons/ports.ico"
-245                     ICON    DISCARDABLE     "win/icons/other_peripherals.ico"
-246                     ICON    DISCARDABLE     "win/icons/floppy_and_cdrom_drives.ico"
-247                     ICON    DISCARDABLE     "win/icons/other_removable_devices.ico"
-248                     ICON    DISCARDABLE     "win/icons/floppy_disabled.ico"
-249                     ICON    DISCARDABLE     "win/icons/cdrom_disabled.ico"
-250                     ICON    DISCARDABLE     "win/icons/zip_disabled.ico"
-251                     ICON    DISCARDABLE     "win/icons/mo_disabled.ico"
-252                     ICON    DISCARDABLE     "win/icons/storage_controllers.ico"
+ 16                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_525.ico"
+ 17                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_525_active.ico"
+ 24                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_35.ico"
+ 25                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_35_active.ico"
+ 32                     ICON    DISCARDABLE     ICON_PATH "icons/cdrom.ico"
+ 33                     ICON    DISCARDABLE     ICON_PATH "icons/cdrom_active.ico"
+ 48                     ICON    DISCARDABLE     ICON_PATH "icons/zip.ico"
+ 49                     ICON    DISCARDABLE     ICON_PATH "icons/zip_active.ico"
+ 56                     ICON    DISCARDABLE     ICON_PATH "icons/mo.ico"
+ 57                     ICON    DISCARDABLE     ICON_PATH "icons/mo_active.ico"
+ 64                     ICON    DISCARDABLE     ICON_PATH "icons/cassette.ico"
+ 65                     ICON    DISCARDABLE     ICON_PATH "icons/cassette_active.ico"
+ 80                     ICON    DISCARDABLE     ICON_PATH "icons/hard_disk.ico"
+ 81                     ICON    DISCARDABLE     ICON_PATH "icons/hard_disk_active.ico"
+ 96                     ICON    DISCARDABLE     ICON_PATH "icons/network.ico"
+ 97                     ICON    DISCARDABLE     ICON_PATH "icons/network_active.ico"
+144                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_525_empty.ico"
+145                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_525_empty_active.ico"
+152                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_35_empty.ico"
+153                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_35_empty_active.ico"
+160                     ICON    DISCARDABLE     ICON_PATH "icons/cdrom_empty.ico"
+161                     ICON    DISCARDABLE     ICON_PATH "icons/cdrom_empty_active.ico"
+176                     ICON    DISCARDABLE     ICON_PATH "icons/zip_empty.ico"
+177                     ICON    DISCARDABLE     ICON_PATH "icons/zip_empty_active.ico"
+184                     ICON    DISCARDABLE     ICON_PATH "icons/mo_empty.ico"
+185                     ICON    DISCARDABLE     ICON_PATH "icons/mo_empty_active.ico"
+192                     ICON    DISCARDABLE     ICON_PATH "icons/cassette_empty.ico"
+193                     ICON    DISCARDABLE     ICON_PATH "icons/cassette_empty_active.ico"
+240                     ICON    DISCARDABLE     ICON_PATH "icons/machine.ico"
+241                     ICON    DISCARDABLE     ICON_PATH "icons/display.ico"
+242                     ICON    DISCARDABLE     ICON_PATH "icons/input_devices.ico"
+243                     ICON    DISCARDABLE     ICON_PATH "icons/sound.ico"
+244                     ICON    DISCARDABLE     ICON_PATH "icons/ports.ico"
+245                     ICON    DISCARDABLE     ICON_PATH "icons/other_peripherals.ico"
+246                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_and_cdrom_drives.ico"
+247                     ICON    DISCARDABLE     ICON_PATH "icons/other_removable_devices.ico"
+248                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_disabled.ico"
+249                     ICON    DISCARDABLE     ICON_PATH "icons/cdrom_disabled.ico"
+250                     ICON    DISCARDABLE     ICON_PATH "icons/zip_disabled.ico"
+251                     ICON    DISCARDABLE     ICON_PATH "icons/mo_disabled.ico"
+252                     ICON    DISCARDABLE     ICON_PATH "icons/storage_controllers.ico"
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
@@ -931,7 +939,7 @@ BEGIN
     IDS_2060	"On"
     IDS_2061	"Off"
     IDS_2062	"All images (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Basic sector images (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Surface images (*.86F)\0*.86F\0"
-    IDS_2063	"Machine ""%S"" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+    IDS_2063	"Machine ""%s"" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 END
 
 STRINGTABLE DISCARDABLE 

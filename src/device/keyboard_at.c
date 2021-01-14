@@ -89,7 +89,8 @@
 #define KBC_VEN_ACER		0x1c
 #define KBC_VEN_INTEL_AMI	0x20
 #define KBC_VEN_OLIVETTI	0x24
-#define KBC_VEN_NCR			0x28
+#define KBC_VEN_NCR		0x28
+#define KBC_VEN_SAMSUNG		0x2c
 #define KBC_VEN_MASK		0x3c
 
 
@@ -1058,7 +1059,7 @@ write_output(atkbd_t *dev, uint8_t val)
     if ((dev->output_port ^ val) & 0x01) { /*Reset*/
 	if (! (val & 0x01)) {
 		/* Pin 0 selected. */
-		softresetx86(); /*Pulse reset!*/
+		resetx86(); /*Pulse reset!*/
 		cpu_set_edx();
 	}
     }
@@ -1749,7 +1750,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 						add_data_kbd_direct(dev, 0xfa);
 						if (val == 0) {
 							kbd_log("Get scan code set: %02X\n", keyboard_mode & 3);
-							add_data_kbd(keyboard_mode & 3);
+							add_data_kbd_direct(dev, keyboard_mode & 3);
 						} else {
 							if ((val <= 3) && (val != 1)) {
 								keyboard_mode &= 0xfc;
@@ -1955,7 +1956,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
 			case 0xaa:	/* self-test */
 				kbd_log("ATkbc: self-test\n");
-				if (kbc_ven == KBC_VEN_TOSHIBA)
+				if ((kbc_ven == KBC_VEN_TOSHIBA) || (kbc_ven == KBC_VEN_SAMSUNG))
 					dev->status |= STAT_IFULL;
 				if (! dev->initialized) {
 					kbd_log("ATkbc: self-test reinitialization\n");
@@ -2298,6 +2299,7 @@ kbd_init(const device_t *info)
 
 	case KBC_VEN_AMI:
 	case KBC_VEN_INTEL_AMI:
+	case KBC_VEN_SAMSUNG:
 		dev->write60_ven = write60_ami;
 		dev->write64_ven = write64_ami;
 		break;
@@ -2338,6 +2340,16 @@ const device_t keyboard_at_ami_device = {
     "PC/AT Keyboard (AMI)",
     0,
     KBC_TYPE_ISA | KBC_VEN_AMI,
+    kbd_init,
+    kbd_close,
+    kbd_reset,
+    { NULL }, NULL, NULL, NULL
+};
+
+const device_t keyboard_at_samsung_device = {
+    "PC/AT Keyboard (Samsung)",
+    0,
+    KBC_TYPE_ISA | KBC_VEN_SAMSUNG,
     kbd_init,
     kbd_close,
     kbd_reset,

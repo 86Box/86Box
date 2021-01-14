@@ -155,7 +155,7 @@ typedef struct {
 typedef struct {
     const uint32_t	package;
     const char		*manufacturer;
-    const char    	*name;
+    const char		*name;
     const char		*internal_name;
     const CPU		*cpus;
 } cpu_family_t;
@@ -578,7 +578,7 @@ extern void	update_tsc(void);
 
 extern int	sysenter(uint32_t fetchdat);
 extern int	sysexit(uint32_t fetchdat);
-extern int	syscall(uint32_t fetchdat);
+extern int	syscall_op(uint32_t fetchdat);
 extern int	sysret(uint32_t fetchdat);
 
 extern cpu_family_t *cpu_get_family(const char *internal_name);

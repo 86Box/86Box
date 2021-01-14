@@ -14,6 +14,7 @@
  */
 
 #include "slirp.h"
+#include <stddef.h>
 
 #define MBUF_THRESH 30
 

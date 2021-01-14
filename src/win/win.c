@@ -810,15 +810,24 @@ plat_setfullscreen(int on)
 	plat_resize(scrnsz_x, scrnsz_y);
 	if (vid_resize) {
 		/* scale the screen base on DPI */
-		if (dpi_scale) {
-			temp_x = MulDiv(unscaled_size_x, dpi, 96);
-			temp_y = MulDiv(unscaled_size_y, dpi, 96);
+		if (window_remember) {
+			MoveWindow(hwndMain, window_x, window_y, window_w, window_h, TRUE);
+			GetClientRect(hwndMain, &rect);
+
+			temp_x = rect.right - rect.left + 1;
+			temp_y = rect.bottom - rect.top + 1 - sbar_height;
 		} else {
-			temp_x = unscaled_size_x;
-			temp_y = unscaled_size_y;
+			if (dpi_scale) {
+				temp_x = MulDiv(unscaled_size_x, dpi, 96);
+				temp_y = MulDiv(unscaled_size_y, dpi, 96);
+			} else {
+				temp_x = unscaled_size_x;
+				temp_y = unscaled_size_y;
+			}
+
+			/* Main Window. */				
+			ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
 		}
-		/* Main Window. */				
-		ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
 
 		/* Render window. */
 		MoveWindow(hwndRender, 0, 0, temp_x, temp_y, TRUE);

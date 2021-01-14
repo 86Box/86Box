@@ -71,7 +71,7 @@ port_92_readw(uint16_t port, void *priv)
 static void
 port_92_pulse(void *priv)
 {
-    softresetx86();
+    resetx86();
     cpu_set_edx();
 }
 

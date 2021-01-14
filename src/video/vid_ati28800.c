@@ -43,7 +43,12 @@
 #endif
 
 #define BIOS_ATIKOR_PATH	L"roms/video/ati28800/atikorvga.bin"
+#define BIOS_ATIKOR_4620P_PATH_L	L"roms/machines/spc4620p/31005h.u8"
+#define BIOS_ATIKOR_4620P_PATH_H	L"roms/machines/spc4620p/31005h.u10"
+#define BIOS_ATIKOR_6033P_PATH	L"roms/machines/spc6033p/phoenix.bin"
 #define FONT_ATIKOR_PATH	L"roms/video/ati28800/ati_ksc5601.rom"
+#define FONT_ATIKOR_4620P_PATH	L"roms/machines/spc4620p/svb6120a_font.rom"
+#define FONT_ATIKOR_6033P_PATH	L"roms/machines/spc6033p/svb6120a_font.rom"
 
 #define BIOS_VGAXL_EVEN_PATH	L"roms/video/ati28800/xleven.bin"
 #define BIOS_VGAXL_ODD_PATH	L"roms/video/ati28800/xlodd.bin"
@@ -80,7 +85,8 @@ typedef struct ati28800_t
 } ati28800_t;
 
 
-static video_timings_t timing_ati28800 = {VIDEO_ISA, 3,  3,  6,   5,  5, 10};
+static video_timings_t timing_ati28800		= {VIDEO_ISA, 3,  3,  6,   5,  5, 10};
+static video_timings_t timing_ati28800_spc	= {VIDEO_ISA, 2,  2,  4,   4,  4, 8};
 
 
 #ifdef ENABLE_ATI28800_LOG
@@ -459,9 +465,13 @@ ati28800k_init(const device_t *info)
     ati28800_t *ati28800 = (ati28800_t *) malloc(sizeof(ati28800_t));
     memset(ati28800, 0, sizeof(ati28800_t));
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati28800);
-
-    ati28800->memory = device_get_config_int("memory");
+    if (info->local == 0) {
+	ati28800->memory = device_get_config_int("memory");
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati28800);
+    } else {
+	ati28800->memory = 512;
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_ati28800_spc);
+    }
 
     ati28800->port_03dd_val = 0;
     ati28800->get_korean_font_base = 0;
@@ -471,8 +481,22 @@ ati28800k_init(const device_t *info)
     ati28800->in_get_korean_font_kind_set = 0;
     ati28800->ksc5601_mode_enabled = 0;
 
-    rom_init(&ati28800->bios_rom, BIOS_ATIKOR_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-    loadfont(FONT_ATIKOR_PATH, 6);
+    switch(info->local) {
+	case 0:
+	default:
+		rom_init(&ati28800->bios_rom, BIOS_ATIKOR_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		loadfont(FONT_ATIKOR_PATH, 6);
+		break;
+	case 1:
+		rom_init_interleaved(&ati28800->bios_rom, BIOS_ATIKOR_4620P_PATH_L, BIOS_ATIKOR_4620P_PATH_H, 0xc0000,
+				     0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		loadfont(FONT_ATIKOR_4620P_PATH, 6);
+		break;
+	case 2:
+		rom_init(&ati28800->bios_rom, BIOS_ATIKOR_6033P_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		loadfont(FONT_ATIKOR_6033P_PATH, 6);
+		break;
+    }
 
     svga_init(info, &ati28800->svga, ati28800, ati28800->memory << 10, /*Memory size, default 512KB*/
 	     ati28800k_recalctimings,
@@ -707,6 +731,28 @@ const device_t ati28800k_device =
         ati28800_speed_changed,
         ati28800_force_redraw,
 	ati28800_config
+};
+
+const device_t ati28800k_spc4620p_device =
+{
+        "ATI Korean VGA On-Board SPC-4620P",
+        DEVICE_ISA,
+	1,
+        ati28800k_init, ati28800_close, NULL,
+        { NULL },
+        ati28800_speed_changed,
+        ati28800_force_redraw
+};
+
+const device_t ati28800k_spc6033p_device =
+{
+        "ATI Korean VGA On-Board SPC-6033P",
+        DEVICE_ISA,
+	2,
+        ati28800k_init, ati28800_close, NULL,
+        { NULL },
+        ati28800_speed_changed,
+        ati28800_force_redraw
 };
 
 const device_t compaq_ati28800_device =
