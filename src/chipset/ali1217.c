@@ -53,6 +53,7 @@ ali1217_log(const char *fmt, ...)
 typedef struct
 {
     uint8_t index, regs[256];
+    int cfg_locked;
 } ali1217_t;
 
 static void ali1217_shadow_recalc(ali1217_t *dev)
@@ -65,7 +66,7 @@ static void ali1217_shadow_recalc(ali1217_t *dev)
 
     shadowbios = !!(dev->regs[0x15] & 5);
     shadowbios_write = !!(dev->regs[0x15] & 0x0a);
-    
+
     flushmmucache();
 }
 
@@ -80,15 +81,22 @@ ali1217_write(uint16_t addr, uint8_t val, void *priv)
         dev->index = val;
         break;
     case 0x23:
-        ali1217_log("ALi M1217: dev->regs[%02x] = %02x\n", dev->index, val);
-        dev->regs[dev->index] = val;
+        if (dev->index != 0x13)
+            ali1217_log("ALi M1217: dev->regs[%02x] = %02x\n", dev->index, val);
 
-        switch (dev->index)
+        if(dev->index == 0x13)
+        dev->cfg_locked = !(val == 0xc5);
+
+        if (!dev->cfg_locked)
         {
-        case 0x14:
-        case 0x15:
-            ali1217_shadow_recalc(dev);
-            break;
+            dev->regs[dev->index] = val;
+            switch (dev->index)
+            {
+            case 0x14:
+            case 0x15:
+                ali1217_shadow_recalc(dev);
+                break;
+            }
         }
         break;
     }
@@ -117,6 +125,8 @@ ali1217_init(const device_t *info)
     memset(dev, 0, sizeof(ali1217_t));
 
     device_add(&port_92_device);
+
+    dev->cfg_locked = 1;
 
 /*
 

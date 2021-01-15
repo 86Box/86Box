@@ -101,17 +101,16 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
 
         /* Don't log register unlock patterns */
         if(dev->index != 0x03)
-        {
         ali1429_log("M1429: dev->regs[%02x] = %02x\n", dev->index, val);
-        }
-        
-		dev->regs[dev->index] = val;
 
         /* Unlock/Lock Registers */
-        dev->cfg_locked = !(dev->regs[0x03] && 0xc5);
+        if(dev->index == 0x03)
+        dev->cfg_locked = !(val == 0xc5);
 
-        if(dev->cfg_locked == 0)
+        if(!dev->cfg_locked)
         {
+        dev->regs[dev->index] = val;
+
         switch(dev->index){
             /* Shadow RAM */
             case 0x13:
