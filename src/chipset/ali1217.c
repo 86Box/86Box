@@ -8,7 +8,8 @@
  *
  *		Implementation of the ALi M1217 chipset.
  *
- *
+ *      Note: This chipset has no datasheet, everything were done via
+ *      reverse engineering the BIOS of various machines using it.
  *
  *      Authors: Tiseno100
  *
@@ -84,19 +85,15 @@ ali1217_write(uint16_t addr, uint8_t val, void *priv)
         if (dev->index != 0x13)
             ali1217_log("ALi M1217: dev->regs[%02x] = %02x\n", dev->index, val);
 
-        if(dev->index == 0x13)
-        dev->cfg_locked = !(val == 0xc5);
+        if (dev->index == 0x13)
+            dev->cfg_locked = !(val == 0xc5);
 
         if (!dev->cfg_locked)
         {
             dev->regs[dev->index] = val;
-            switch (dev->index)
-            {
-            case 0x14:
-            case 0x15:
+
+            if ((dev->index == 0x14) || (dev->index == 0x15))
                 ali1217_shadow_recalc(dev);
-                break;
-            }
         }
         break;
     }
@@ -128,14 +125,14 @@ ali1217_init(const device_t *info)
 
     dev->cfg_locked = 1;
 
-/*
+    /*
 
-ALi M1217 Ports
+        ALi M1217 Ports
 
-22h Index Port
-23h Data Port
+        22h Index Port
+        23h Data Port
 
-*/
+    */
     io_sethandler(0x0022, 0x0002, ali1217_read, NULL, NULL, ali1217_write, NULL, NULL, dev);
     ali1217_shadow_recalc(dev);
 
