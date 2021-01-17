@@ -643,31 +643,10 @@ machine_at_pja511m_init(const machine_t *model)
 }
 #endif
 
-
-int
-machine_at_olim290_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear(L"roms/machines/olivetti_m290/m290_pep3_1.25.bin",
-				0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-	    return ret;
-
-    machine_at_common_init(model);
-    device_add(&keyboard_at_olivetti_device);
-    device_add(&fdc_at_device);
-    
-    device_add(&olivetti_m290_registers_device);
-
-    return ret;
-}
-
-
 /*
  * Current bugs: 
- * - ctrl-alt-del produces an 8042 error
+ * - Automatic soft-reboot after saving CMOS settings produces an 8042 error
+ * - no EMS management due to missing chipset implementation
  */
 int
 machine_at_ncrpc8_init(const machine_t *model)
@@ -690,7 +669,7 @@ machine_at_ncrpc8_init(const machine_t *model)
 
 /*
  * Current bugs: 
- * - ctrl-alt-del produces an 8042 error
+ * - Automatic soft-reboot after saving CMOS settings produces an 8042 error
  */
 int
 machine_at_ncr3302_init(const machine_t *model)
@@ -718,3 +697,202 @@ machine_at_ncr3302_init(const machine_t *model)
     
     return ret;
 }
+
+
+/*
+ * Current bugs: 
+ * - Automatic soft-reboot after saving CMOS settings produces an 8042 error
+ * - no EMS management due to missing chipset implementation (TACT82300)
+ */
+int
+machine_at_ncrpc916sx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/ncr_pc916sx/ncr_386sx_u46-17_7.3.bin",
+                L"roms/machines/ncr_pc916sx/ncr_386sx_u12-19_7.3.bin",
+	    		0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	    return ret;
+
+    machine_at_common_init(model);
+    
+    device_add(&keyboard_at_ncr_device);
+    device_add(&fdc_at_device);
+    
+    return ret;
+}
+
+/*
+ * Current bugs: 
+ * - no EMS management due to missing chipset implementation (custom ASIC)
+ */
+int
+machine_at_olim290_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/olivetti_m290/m290_pep3_1.25.bin",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	    return ret;
+
+    machine_at_common_init(model);
+    device_add(&keyboard_at_olivetti_device);
+    device_add(&fdc_at_device);
+    
+    device_add(&olivetti_m290_registers_device);
+    
+    return ret;
+}
+
+
+/*
+ * Current bugs: 
+ * - no EMS management due to missing chipset implementation (TACT82300)
+ */
+int
+machine_at_olim290s_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved(L"roms/machines/olivetti_m290s/286-olivetti-m203-low.bin",
+				L"roms/machines/olivetti_m290s/286-olivetti-m203-high.bin",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	    return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add(&keyboard_ps2_olivetti_device);
+    device_add(&fdc_at_device);
+
+    if (gfxcard == VID_INTERNAL)
+        /* should use custom BIOS */
+	    device_add(&paradise_pvga1a_device);
+    
+    return ret;
+}
+
+const device_t *
+at_m300_08_get_device(void)
+{
+    return &oti067_m300_device;
+}
+
+int
+machine_at_olim300_08_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/olivetti_m300_08/BIOS.ROM",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&opti283_device);
+    device_add(&keyboard_ps2_olivetti_device);
+    device_add(&pc87310_ide_device);
+    
+    if (gfxcard == VID_INTERNAL)
+	    device_add(&oti067_m300_device);
+
+    return ret;
+}
+
+/* Almost identical to M300-08, save for CPU speed, VRAM, and BIOS identification string */
+int
+machine_at_olim300_15_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/olivetti_m300_15/BIOS.ROM",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&opti283_device);
+    device_add(&keyboard_ps2_olivetti_device);
+    device_add(&pc87310_ide_device);
+    
+    if (gfxcard == VID_INTERNAL)
+        /* Stock VRAM is maxed out, so no need to expose video card config */
+	    device_add(&oti067_m300_device);
+
+    return ret;
+}
+
+
+/*
+ * Current bugs: 
+ * - BIOS complains about FPU if not installed, pressing F1 allows to continue booting.
+ * - BIOS throws a cache memory error (since L2 cache is not implemented yet), pressing F1 allows to continue booting.
+ * - no EMS management due to missing chipset implementation (custom ASIC)
+ */
+int
+machine_at_olim300_10_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/olivetti_m300_10/BIOS.ROM",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_ide_init(model);
+    
+    device_add(&neat_device);
+    device_add(&keyboard_ps2_olivetti_device);
+    /* fdc should be dp8473, however it does not work. Instead, standard AT fdc works. */
+    device_add(&fdc_at_device);
+    
+    if (gfxcard == VID_INTERNAL)
+        /* should be a PVGA1B/WD90C00 with custom BIOS */
+	    device_add(&paradise_pvga1a_device);
+
+
+    return ret;
+}
+
+/*
+ * Current bugs: 
+ * - BIOS complains about FPU if not installed, pressing F1 allows to continue booting.
+ * - no EMS management due to missing chipset implementation (custom ASIC)
+ */
+int
+machine_at_olim300_05_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/olivetti_m300_05/BIOS.ROM",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add(&neat_device);
+    device_add(&keyboard_ps2_olivetti_device);
+    /* fdc should be dp8473, however it does not work. Instead, standard AT fdc works. */
+    device_add(&fdc_at_device);
+    
+    if (gfxcard == VID_INTERNAL)
+        /* should be a PVGA1B/WD90C00 with custom BIOS */
+	    device_add(&paradise_pvga1a_device);
+
+
+    return ret;
+}
+
+

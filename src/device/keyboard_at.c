@@ -1207,9 +1207,12 @@ write64_generic(void *priv, uint8_t val)
 			 * bit 6: display type (0 color, 1 mono)
 			 * bit 5: power-on default speed (0 high, 1 low)
 			 * bit 4: sense RAM size (0 unsupported, 1 512k on system board)
-			 * bits 0-3: unused
+			 * bit 3: coprocessor detect
+			 * bit 2: unused
+			 * bit 1: high/auto speed
+			 * bit 0: dma mode
 			 */
-			add_to_kbc_queue_front(dev, (dev->input_port | fixed_bits | (video_is_mda() ? 0x40 : 0x00)) & 0xdf);
+			add_to_kbc_queue_front(dev, (dev->input_port | fixed_bits | (video_is_mda() ? 0x40 : 0x00) | (hasfpu ? 0x08 : 0x00)) & 0xdf);
 			dev->input_port = ((dev->input_port + 1) & 3) |
 					   (dev->input_port & 0xfc);
 		} else {
@@ -1505,6 +1508,29 @@ write60_quadtel(void *priv, uint8_t val)
     }
 
     return 1;
+}
+
+static uint8_t
+write64_olivetti(void *priv, uint8_t val)
+{
+    atkbd_t *dev = (atkbd_t *)priv;
+
+    switch (val) {
+	case 0x80:	/* Olivetti-specific command */
+		/*
+		* bit 7: bus expansion board present (M300) / keyboard unlocked (M290)
+		* bits 4-6: ???
+		* bit 3: fast ram check (if inactive keyboard works erratically)
+		* bit 2: keyboard fuse present
+		* bits 0-1: ???
+		*/
+		add_to_kbc_queue_front(dev, (0x0c | ((is386) ? 0x00 : 0x80)) & 0xdf);
+		dev->input_port = ((dev->input_port + 1) & 3) |
+					   (dev->input_port & 0xfc);
+		return 0;
+	}
+
+    return write64_generic(dev, val);
 }
 
 
@@ -2290,11 +2316,14 @@ kbd_init(const device_t *info)
     switch(dev->flags & KBC_VEN_MASK) {
 	case KBC_VEN_ACER:
 	case KBC_VEN_GENERIC:
-	case KBC_VEN_OLIVETTI:
 	case KBC_VEN_NCR:
 	case KBC_VEN_IBM_PS1:
 	case KBC_VEN_XI8088:
 		dev->write64_ven = write64_generic;
+		break;
+
+	case KBC_VEN_OLIVETTI:
+		dev->write64_ven = write64_olivetti;
 		break;
 
 	case KBC_VEN_AMI:
@@ -2440,6 +2469,16 @@ const device_t keyboard_ps2_ami_device = {
     "PS/2 Keyboard (AMI)",
     0,
     KBC_TYPE_PS2_NOREF | KBC_VEN_AMI,
+    kbd_init,
+    kbd_close,
+    kbd_reset,
+    { NULL }, NULL, NULL, NULL
+};
+
+const device_t keyboard_ps2_olivetti_device = {
+    "PS/2 Keyboard (Olivetti)",
+    0,
+    KBC_TYPE_PS2_NOREF | KBC_VEN_OLIVETTI,
     kbd_init,
     kbd_close,
     kbd_reset,

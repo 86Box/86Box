@@ -82,6 +82,7 @@ extern const device_t	keyboard_ps2_ps1_pci_device;
 extern const device_t	keyboard_ps2_ps2_device;
 extern const device_t	keyboard_ps2_xi8088_device;
 extern const device_t	keyboard_ps2_ami_device;
+extern const device_t	keyboard_ps2_olivetti_device;
 extern const device_t	keyboard_ps2_mca_device;
 extern const device_t	keyboard_ps2_mca_2_device;
 extern const device_t	keyboard_ps2_quadtel_device;

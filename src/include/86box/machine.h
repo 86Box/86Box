@@ -244,6 +244,11 @@ extern int	machine_at_mr286_init(const machine_t *);
 
 extern int	machine_at_neat_init(const machine_t *);
 extern int	machine_at_neat_ami_init(const machine_t *);
+extern int  machine_at_olim300_05_init(const machine_t *);
+extern int  machine_at_olim300_10_init(const machine_t *);
+extern int  machine_at_olim300_08_init(const machine_t *);
+extern int  machine_at_olim300_15_init(const machine_t *);
+extern int  machine_at_ncrpc916sx_init(const machine_t *);
 
 extern int	machine_at_award286_init(const machine_t *);
 extern int	machine_at_gdc212m_init(const machine_t *);
@@ -263,6 +268,8 @@ extern int	machine_at_spc6033p_init(const machine_t *);
 extern int	machine_at_wd76c10_init(const machine_t *);
 
 extern int	machine_at_olim290_init(const machine_t *);
+extern int	machine_at_olim290s_init(const machine_t *);
+
 extern int	machine_at_ncrpc8_init(const machine_t *);
 extern int	machine_at_ncr3302_init(const machine_t *);
 
@@ -277,6 +284,7 @@ extern const device_t	*at_ama932j_get_device(void);
 extern const device_t	*at_commodore_sl386sx25_get_device(void);
 extern const device_t	*at_spc4620p_get_device(void);
 extern const device_t	*at_spc6033p_get_device(void);
+extern const device_t	*at_m300_08_get_device(void);
 #endif
 
 /* m_at_386dx_486.c */
