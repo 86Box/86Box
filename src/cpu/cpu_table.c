@@ -971,6 +971,20 @@ const cpu_family_t cpu_families[] = {
 		{"", 0}
 	}
     }, {
+        .package = CPU_PKG_SOCKET370,
+        .manufacturer = "VIA",
+        .name = "C3"
+        .internal_name = "c3_ezra"
+        .cpus = (const CPU[]) {
+            {"800/100", CPU_CYRIX3S, fpus_internal, 800000000, 8.0, 2050,   0x678, 0x678, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 54, 54, 18, 18, 72},
+		    {"800/133", CPU_CYRIX3S, fpus_internal, 800000000, 6.0, 2050,   0x678, 0x678, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 54, 54, 13, 13, 72},
+            {"850",     CPU_CYRIX3S, fpus_internal, 850000000, 8.5, 2050,   0x678, 0x678, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 54, 54, 18, 18, 72},
+            {"866",     CPU_CYRIX3S, fpus_internal, 866666667, 6.5, 2050,   0x678, 0x678, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 54, 54, 18, 18, 72},
+            {"900",     CPU_CYRIX3S, fpus_internal, 900000000, 9.0, 2050,   0x678, 0x678, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 54, 54, 18, 18, 72},
+            {"933",     CPU_CYRIX3S, fpus_internal, 933333333, 7.0, 2050,   0x678, 0x678, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 54, 54, 18, 18, 72},
+            {"1000",    CPU_CYRIX3S, fpus_internal, 1000000000,7.5, 2050,   0x678, 0x678, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 54, 54, 18, 18, 72},
+        }
+    }, {
 	.package = 0,
     }
 };
