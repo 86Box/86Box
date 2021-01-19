@@ -81,6 +81,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef M1489
   M1489		:= y
  endif
+ ifndef M154X
+  M154X		:= y
+ endif
  ifndef M6117
   M6117		:= y
  endif
@@ -153,6 +156,9 @@ else
  endif
  ifndef M1489
   M1489		:= n
+ endif
+ ifndef M154X
+  M154X		:= n
  endif
  ifndef M6117
   M6117		:= n
@@ -553,6 +559,11 @@ OPTS		+= -DUSE_M1489
 DEVBROBJ	+= ali1489.o
 endif
 
+ifeq ($(M1489), y)
+OPTS		+= -DUSE_M154X
+DEVBROBJ	+= ali1531.o ali1543.o
+endif
+
 ifeq ($(M6117), y)
 OPTS		+= -DUSE_M6117
 DEVBROBJ	+= ali6117.o
@@ -604,10 +615,10 @@ CPUOBJ		:= cpu.o cpu_table.o \
 		    x86seg.o x87.o x87_timings.o \
 		    $(DYNARECOBJ)
 
-CHIPSETOBJ	:= acc2168.o cs8230.o ali1429.o headland.o intel_82335.o cs4031.o \
+CHIPSETOBJ	:= acc2168.o cs8230.o ali1217.o ali1429.o headland.o intel_82335.o cs4031.o \
 		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
 		    neat.o opti495.o opti895.o opti5x7.o scamp.o scat.o via_vt82c49x.o via_vt82c505.o \
-		    sis_85c310.o sis_85c4xx.o sis_85c496.o sis_85c50x.o opti283.o opti291.o umc491.o \
+		    sis_85c310.o sis_85c4xx.o sis_85c496.o sis_85c50x.o opti283.o opti291.o \
 		    via_apollo.o via_pipc.o wd76c10.o vl82c480.o
 
 MCHOBJ		:= machine.o machine_table.o \

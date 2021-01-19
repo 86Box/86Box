@@ -42,6 +42,7 @@ extern "C" {
 #define ACPI_ENABLE	0xf1
 #define	ACPI_DISABLE	0xf0
 
+#define VEN_ALI		0x010b9
 #define VEN_INTEL	0x08086
 #define VEN_SMC		0x01055
 #define VEN_VIA		0x01106
@@ -56,8 +57,9 @@ typedef struct
 			timer32,
 			gpireg[3], gporeg[4];
     uint16_t		pmsts, pmen,
-			pmcntrl, gpsts,
-			gpen, gpscien,
+			pmcntrl, gpsts, gpsts1,
+			gpen, gpen1, gpscien,
+			gpcntrl,
 			gpsmien, pscntrl,
 			gpscists;
     int			smi_lock, smi_active;
@@ -91,13 +93,14 @@ typedef struct
 /* Global variables. */
 extern int		acpi_rtc_status;
 
+extern const device_t	acpi_ali_device;
 extern const device_t	acpi_intel_device;
 extern const device_t	acpi_smc_device;
 extern const device_t	acpi_via_device;
 extern const device_t	acpi_via_596b_device;
 
 
-/* Functions. */
+/* Functions */
 extern void		acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en);
 extern void		acpi_update_aux_io_mapping(acpi_t *dev, uint32_t base, int chipset_en);
 extern void		acpi_init_gporeg(acpi_t *dev, uint8_t val0, uint8_t val1, uint8_t val2, uint8_t val3);

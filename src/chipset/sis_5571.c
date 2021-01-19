@@ -88,8 +88,8 @@ sis_5571_shadow_recalc(sis_5571_t *dev)
 
 	can_read = (dev->pci_conf[0x76] & 0x80) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
 	can_write = (dev->pci_conf[0x76] & 0x20) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
-	shadowbios = (dev->pci_conf[0x76] & 0x80);
-	shadowbios_write = (dev->pci_conf[0x76] & 0x20);
+	shadowbios = !!(dev->pci_conf[0x76] & 0x80);
+	shadowbios_write = !!(dev->pci_conf[0x76] & 0x20);
 	mem_set_mem_state_both(0xf0000, 0x10000, can_read | can_write);
 
 	flushmmucache();
@@ -212,7 +212,7 @@ memory_pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 
 	case 0x51: /* Cache */
 		dev->pci_conf[addr] = val;
-		cpu_cache_ext_enabled = (val & 0x40);
+		cpu_cache_ext_enabled = !!(val & 0x40);
 		cpu_update_waitstates();
 		break;
 
