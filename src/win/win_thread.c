@@ -167,3 +167,60 @@ thread_release_mutex(mutex_t *mutex)
 
     return(!!ReleaseMutex((HANDLE)mutex));
 }
+
+
+lightmutex_t *
+thread_create_light_mutex()
+{
+    return thread_create_light_mutex_and_spin_count(LIGHT_MUTEX_DEFAULT_SPIN_COUNT);
+}
+
+
+lightmutex_t *
+thread_create_light_mutex_and_spin_count(unsigned int spin_count)
+{
+    lightmutex_t *lightmutex = malloc(sizeof(CRITICAL_SECTION));
+
+    InitializeCriticalSectionAndSpinCount(lightmutex, spin_count);
+
+    return lightmutex;
+}
+
+
+int
+thread_wait_light_mutex(lightmutex_t *lightmutex)
+{
+    if (lightmutex == NULL) return(0);
+
+    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)lightmutex;
+
+    EnterCriticalSection(critsec);
+
+    return 1;
+}
+
+
+int
+thread_release_light_mutex(lightmutex_t *lightmutex)
+{
+    if (lightmutex == NULL) return(0);
+
+    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)lightmutex;
+
+    LeaveCriticalSection(critsec);
+
+    return 1;
+}
+
+
+void
+thread_close_light_mutex(lightmutex_t *lightmutex)
+{
+    if (lightmutex == NULL) return;
+
+    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)lightmutex;
+
+    DeleteCriticalSection(critsec);
+
+    free(critsec);
+}
