@@ -48,6 +48,8 @@ extern const device_t   pc87311_ide_device;
 extern const device_t	pc87332_device;
 extern const device_t	pc87332_ps1_device;
 extern const device_t	pc97307_device;
+extern const device_t   prime3b_device;
+extern const device_t   prime3b_ide_device;
 extern const device_t   prime3c_device;
 extern const device_t   prime3c_ide_device;
 extern const device_t 	ps1_m2133_sio;

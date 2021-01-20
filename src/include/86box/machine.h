@@ -336,6 +336,7 @@ extern int	machine_at_486vipio2_init(const machine_t *);
 #endif
 #if defined(DEV_BRANCH) && defined(USE_M1489)
 extern int	machine_at_abpb4_init(const machine_t *);
+extern int	machine_at_win486pci_init(const machine_t *);
 #endif
 #if defined(DEV_BRANCH) && defined(USE_STPC)
 extern int	machine_at_itoxstar_init(const machine_t *);
