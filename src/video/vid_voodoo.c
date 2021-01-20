@@ -514,11 +514,11 @@ static void voodoo_writel(uint32_t addr, uint32_t val, void *p)
                 if (voodoo->initEnable & 0x01)
                 {
                         voodoo->fbiInit0 = val;
-                        thread_wait_light_mutex(voodoo->force_blit_mutex);
+                        thread_wait_mutex(voodoo->force_blit_mutex);
                         voodoo->can_blit = (voodoo->fbiInit0 & FBIINIT0_VGA_PASS) ? 1 : 0;
                         if (!voodoo->can_blit)
                             voodoo->force_blit_count = 0;
-                        thread_release_light_mutex(voodoo->force_blit_mutex);
+                        thread_release_mutex(voodoo->force_blit_mutex);
 
                         if (voodoo->set->nr_cards == 2)
                                 svga_set_override(voodoo->svga, (voodoo->set->voodoos[0]->fbiInit0 | voodoo->set->voodoos[1]->fbiInit0) & 1);
@@ -887,17 +887,17 @@ static void voodoo_force_blit(void *p)
 {
         voodoo_set_t *voodoo_set = (voodoo_set_t *)p;
 
-        thread_wait_light_mutex(voodoo_set->voodoos[0]->force_blit_mutex);
+        thread_wait_mutex(voodoo_set->voodoos[0]->force_blit_mutex);
         if(voodoo_set->voodoos[0]->can_blit) {
             voodoo_set->voodoos[0]->force_blit_count++;
         }
-        thread_release_light_mutex(voodoo_set->voodoos[0]->force_blit_mutex);
+        thread_release_mutex(voodoo_set->voodoos[0]->force_blit_mutex);
         if(voodoo_set->nr_cards == 2) {
-            thread_wait_light_mutex(voodoo_set->voodoos[1]->force_blit_mutex);
+            thread_wait_mutex(voodoo_set->voodoos[1]->force_blit_mutex);
             if(voodoo_set->voodoos[1]->can_blit) {
                 voodoo_set->voodoos[1]->force_blit_count++;
             }
-            thread_release_light_mutex(voodoo_set->voodoos[1]->force_blit_mutex);
+            thread_release_mutex(voodoo_set->voodoos[1]->force_blit_mutex);
         }
 }
 
@@ -1041,7 +1041,7 @@ void *voodoo_card_init()
 
         voodoo->force_blit_count = 0;
         voodoo->can_blit = 0;
-        voodoo->force_blit_mutex = thread_create_light_mutex();
+        voodoo->force_blit_mutex = thread_create_mutex_with_spin_count(MUTEX_DEFAULT_SPIN_COUNT);
         
         return voodoo;
 }
@@ -1158,7 +1158,7 @@ void *voodoo_2d3d_card_init(int type)
 
         voodoo->force_blit_count = 0;
         voodoo->can_blit = 0;
-        voodoo->force_blit_mutex = thread_create_light_mutex();
+        voodoo->force_blit_mutex = thread_create_mutex_with_spin_count(MUTEX_DEFAULT_SPIN_COUNT);
 
         return voodoo;
 }
@@ -1274,7 +1274,7 @@ void voodoo_card_close(voodoo_t *voodoo)
                 free(voodoo->tex_mem[0]);
         }
 
-        thread_close_light_mutex(voodoo->force_blit_mutex);
+        thread_close_mutex(voodoo->force_blit_mutex);
 
         free(voodoo);
 }
