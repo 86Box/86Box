@@ -1095,10 +1095,7 @@ ncr_callback(void *priv)
     ncr_log("DMA mode=%d, status ctrl = %02x\n", ncr->dma_mode, ncr_dev->status_ctrl);
 
     if (ncr->dma_mode != DMA_IDLE && (ncr->mode & MODE_DMA) && ncr_dev->block_count_loaded) {
-	if (scsi_device_get_callback(dev) <= 0.0)
-		timer_on_auto(&ncr_dev->timer, 10.0);
-	else
-		ncr_timer_on(ncr_dev, ncr, 0);
+	ncr_timer_on(ncr_dev, ncr, 0);
     }
 
     if (ncr->data_wait & 1) {
