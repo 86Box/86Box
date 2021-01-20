@@ -491,7 +491,7 @@ typedef struct voodoo_t
 
         int force_blit_count;
         int can_blit;
-        lightmutex_t* force_blit_mutex;
+        mutex_t* force_blit_mutex;
 
         int use_recompiler;
         void *codegen_data;

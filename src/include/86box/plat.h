@@ -142,7 +142,6 @@ extern void     ioctl_close(uint8_t id);
 typedef void thread_t;
 typedef void event_t;
 typedef void mutex_t;
-typedef void lightmutex_t;
 
 extern thread_t	*thread_create(void (*thread_func)(void *param), void *param);
 extern void	thread_kill(thread_t *arg);
@@ -153,18 +152,13 @@ extern void	thread_reset_event(event_t *arg);
 extern int	thread_wait_event(event_t *arg, int timeout);
 extern void	thread_destroy_event(event_t *arg);
 
+#define MUTEX_DEFAULT_SPIN_COUNT 1024
+
 extern mutex_t	*thread_create_mutex(void);
+extern mutex_t	*thread_create_mutex_with_spin_count(unsigned int spin_count);
 extern void	thread_close_mutex(mutex_t *arg);
 extern int	thread_wait_mutex(mutex_t *arg);
 extern int	thread_release_mutex(mutex_t *mutex);
-
-#define LIGHT_MUTEX_DEFAULT_SPIN_COUNT 1024
-
-lightmutex_t *thread_create_light_mutex();
-lightmutex_t *thread_create_light_mutex_and_spin_count(unsigned int spin_count);
-int thread_wait_light_mutex(lightmutex_t *lightmutex);
-int thread_release_light_mutex(lightmutex_t *lightmutex);
-void thread_close_light_mutex(lightmutex_t *lightmutex);
 
 /* Other stuff. */
 extern void	startblit(void);

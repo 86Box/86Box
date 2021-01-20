@@ -133,17 +133,23 @@ thread_destroy_event(event_t *arg)
 
 mutex_t *
 thread_create_mutex(void)
-{
-    return((mutex_t*)CreateMutex(NULL, FALSE, NULL));
+{    
+    mutex_t *mutex = malloc(sizeof(CRITICAL_SECTION));
+
+    InitializeCriticalSection(mutex);
+
+    return mutex;
 }
 
 
-void
-thread_close_mutex(mutex_t *mutex)
+mutex_t *
+thread_create_mutex_with_spin_count(unsigned int spin_count)
 {
-    if (mutex == NULL) return;
+    mutex_t *mutex = malloc(sizeof(CRITICAL_SECTION));
 
-    CloseHandle((HANDLE)mutex);
+    InitializeCriticalSectionAndSpinCount(mutex, spin_count);
+
+    return mutex;
 }
 
 
@@ -152,47 +158,7 @@ thread_wait_mutex(mutex_t *mutex)
 {
     if (mutex == NULL) return(0);
 
-    DWORD dwres = WaitForSingleObject((HANDLE)mutex, INFINITE);
-
-    if (dwres == WAIT_OBJECT_0) return(1);
-
-    return(0);
-}
-
-
-int
-thread_release_mutex(mutex_t *mutex)
-{
-    if (mutex == NULL) return(0);
-
-    return(!!ReleaseMutex((HANDLE)mutex));
-}
-
-
-lightmutex_t *
-thread_create_light_mutex()
-{
-    return thread_create_light_mutex_and_spin_count(LIGHT_MUTEX_DEFAULT_SPIN_COUNT);
-}
-
-
-lightmutex_t *
-thread_create_light_mutex_and_spin_count(unsigned int spin_count)
-{
-    lightmutex_t *lightmutex = malloc(sizeof(CRITICAL_SECTION));
-
-    InitializeCriticalSectionAndSpinCount(lightmutex, spin_count);
-
-    return lightmutex;
-}
-
-
-int
-thread_wait_light_mutex(lightmutex_t *lightmutex)
-{
-    if (lightmutex == NULL) return(0);
-
-    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)lightmutex;
+    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)mutex;
 
     EnterCriticalSection(critsec);
 
@@ -201,11 +167,11 @@ thread_wait_light_mutex(lightmutex_t *lightmutex)
 
 
 int
-thread_release_light_mutex(lightmutex_t *lightmutex)
+thread_release_mutex(mutex_t *mutex)
 {
-    if (lightmutex == NULL) return(0);
+    if (mutex == NULL) return(0);
 
-    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)lightmutex;
+    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)mutex;
 
     LeaveCriticalSection(critsec);
 
@@ -214,11 +180,11 @@ thread_release_light_mutex(lightmutex_t *lightmutex)
 
 
 void
-thread_close_light_mutex(lightmutex_t *lightmutex)
+thread_close_mutex(mutex_t *mutex)
 {
-    if (lightmutex == NULL) return;
+    if (mutex == NULL) return;
 
-    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)lightmutex;
+    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)mutex;
 
     DeleteCriticalSection(critsec);
 
