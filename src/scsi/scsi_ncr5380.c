@@ -182,10 +182,10 @@ ncr_log(const char *fmt, ...)
 #define SET_BUS_STATE(ncr, state) ncr->cur_bus = (ncr->cur_bus & ~(SCSI_PHASE_MESSAGE_IN)) | (state & (SCSI_PHASE_MESSAGE_IN))
 
 static void
-ncr_dma_send(ncr5380_t *ncr_dev, ncr_t *ncr);
+ncr_dma_send(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev);
 
 static void
-ncr_dma_initiator_receive(ncr5380_t *ncr_dev, ncr_t *ncr);
+ncr_dma_initiator_receive(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev);
 
 static void
 ncr_callback(void *priv);
@@ -249,9 +249,8 @@ ncr_timer_on(ncr5380_t *ncr_dev, ncr_t *ncr, int callback)
     if (ncr->data_wait & 2)
 	ncr->data_wait &= ~2;
 
-    if (callback) {
+    if (callback)
 	p *= 128.0;
-    }
     
     p += 1.0;
 
@@ -619,7 +618,7 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 		ncr_log("Write: start DMA send register\n");
 		/*a Write 6/10 has occurred, start the timer when the block count is loaded*/
 		ncr->dma_mode = DMA_SEND;
-		if (ncr_dev->block_count_loaded && (ncr->mode & MODE_DMA) && !timer_is_enabled(&ncr_dev->timer)) {
+		if ((ncr->mode & MODE_DMA) && !timer_is_enabled(&ncr_dev->timer)) {
 			ncr_timer_on(ncr_dev, ncr, 0);
 		}
 		break;
@@ -628,7 +627,7 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 		ncr_log("Write: start DMA initiator receive register, dma? = %02x\n", ncr->mode & MODE_DMA);
 		/*a Read 6/10 has occurred, start the timer when the block count is loaded*/
 		ncr->dma_mode = DMA_INITIATOR_RECEIVE;
-		if (ncr_dev->block_count_loaded && (ncr->mode & MODE_DMA) && !timer_is_enabled(&ncr_dev->timer)) {
+		if ((ncr->mode & MODE_DMA) && !timer_is_enabled(&ncr_dev->timer)) {
 			ncr_timer_on(ncr_dev, ncr, 0);
 		}
 		break;
@@ -888,10 +887,8 @@ memio_write(uint32_t addr, uint8_t val, void *priv)
 				ncr_dev->block_count = val;
 				ncr_dev->block_count_loaded = 1;
 
-				if (ncr->mode & MODE_DMA) {
-					ncr_log("Start timer, buffer not ready = %02x\n", !(ncr_dev->status_ctrl & STATUS_BUFFER_NOT_READY));
+				if (ncr->mode & MODE_DMA)
 					ncr_timer_on(ncr_dev, ncr, 0);
-				}
 				
 				if (ncr_dev->status_ctrl & CTRL_DATA_DIR) {
 					ncr_dev->buffer_host_pos = 128;
@@ -988,24 +985,21 @@ t130b_out(uint16_t port, uint8_t val, void *priv)
 }
 
 static void
-ncr_dma_send(ncr5380_t *ncr_dev, ncr_t *ncr)
+ncr_dma_send(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev)
 {
-    scsi_device_t *dev = &scsi_devices[ncr->target_id];	
-	
     int bus, c = 0;
     uint8_t data;
     
     if (scsi_device_get_callback(dev) > 0.0)	
 	ncr_timer_on(ncr_dev, ncr, 1);
+    else
+	ncr_timer_on(ncr_dev, ncr, 0);
 
     for (c = 0; c < 10; c++) {
 	ncr_bus_read(ncr_dev);
 	if (ncr->cur_bus & BUS_REQ)
 	    break;
     }
-
-    if (c == 10)
-	return;
 
     /* Data ready. */
     data = ncr_dev->buffer[ncr_dev->buffer_pos];
@@ -1038,28 +1032,25 @@ ncr_dma_send(ncr5380_t *ncr_dev, ncr_t *ncr)
 	}
 	return;
      }
-     ncr_dma_send(ncr_dev, ncr);
+     ncr_dma_send(ncr_dev, ncr, dev);
 }
 
 static void
-ncr_dma_initiator_receive(ncr5380_t *ncr_dev, ncr_t *ncr)
+ncr_dma_initiator_receive(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev)
 {
-    scsi_device_t *dev = &scsi_devices[ncr->target_id];	
-	
     int bus, c = 0;
     uint8_t temp;
 
     if (scsi_device_get_callback(dev) > 0.0)	
 	ncr_timer_on(ncr_dev, ncr, 1);
+    else
+	ncr_timer_on(ncr_dev, ncr, 0);
 
     for (c = 0; c < 10; c++) {
 	ncr_bus_read(ncr_dev);
 	if (ncr->cur_bus & BUS_REQ)
 	    break;
     }
-
-    if (c == 10)
-	return;
 
     /* Data ready. */
     ncr_bus_read(ncr_dev);
@@ -1091,7 +1082,7 @@ ncr_dma_initiator_receive(ncr5380_t *ncr_dev, ncr_t *ncr)
 	}    
 	return;
     }
-    ncr_dma_initiator_receive(ncr_dev, ncr);
+    ncr_dma_initiator_receive(ncr_dev, ncr, dev);
 }
 
 static void
@@ -1103,8 +1094,9 @@ ncr_callback(void *priv)
 
     ncr_log("DMA mode=%d, status ctrl = %02x\n", ncr->dma_mode, ncr_dev->status_ctrl);
 
-    if (ncr->dma_mode != DMA_IDLE && (ncr->mode & MODE_DMA) && ncr_dev->block_count_loaded && scsi_device_get_callback(dev) <= 0.0)
-	timer_on_auto(&ncr_dev->timer, 10.0);
+    if (ncr->dma_mode != DMA_IDLE && (ncr->mode & MODE_DMA) && ncr_dev->block_count_loaded) {
+	ncr_timer_on(ncr_dev, ncr, 0);
+    }
 
     if (ncr->data_wait & 1) {
 	ncr->clear_req = 3;
@@ -1129,7 +1121,7 @@ ncr_callback(void *priv)
 		if (!ncr_dev->block_count_loaded)
 			break;
 
-		ncr_dma_send(ncr_dev, ncr);
+		ncr_dma_send(ncr_dev, ncr, dev);
 		break;
 
 	case DMA_INITIATOR_RECEIVE:
@@ -1146,7 +1138,7 @@ ncr_callback(void *priv)
 		if (!ncr_dev->block_count_loaded)
 			break;
 
-		ncr_dma_initiator_receive(ncr_dev, ncr);
+		ncr_dma_initiator_receive(ncr_dev, ncr, dev);
 		break;
     }
 

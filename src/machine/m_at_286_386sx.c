@@ -597,6 +597,34 @@ machine_at_awardsx_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_flytech386_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/flytech386/FLYTECH.BIO",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&ali1217_device);
+    device_add(&w83787f_ide_device);
+    device_add(&keyboard_ps2_device);
+
+    if (gfxcard == VID_INTERNAL)
+	device_add(&tvga8900d_device);
+
+    return ret;
+}
+
+const device_t *
+at_flytech386_get_device(void)
+{
+    return &tvga8900d_device;
+}
 
 #if defined(DEV_BRANCH) && defined(USE_M6117)
 int

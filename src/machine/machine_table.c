@@ -157,6 +157,7 @@ const machine_t machines[] = {
     { "[ALi M6117D] Acrosser AR-B1375",		"arb1375",		MACHINE_TYPE_386SX,		CPU_PKG_M6117, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024, 32768,1024,  127,	      machine_at_arb1375_init, NULL			},
     { "[ALi M6117D] Acrosser PJ-A511M",		"pja511m",		MACHINE_TYPE_386SX,		CPU_PKG_M6117, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024, 32768,1024,  127,	      machine_at_pja511m_init, NULL			},
 #endif
+    { "[ALi M1217] Flytech 386",		"flytech386",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE | MACHINE_BUS_PS2 | MACHINE_VIDEO,									 1024, 16384, 1024, 127,	      machine_at_flytech386_init, at_flytech386_get_device			},
     { "[HT18] AMA-932J",			"ama932j",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE | MACHINE_VIDEO,					  512,  8192,  128, 127,	      machine_at_ama932j_init, at_ama932j_get_device 	},
     { "[Intel 82335] ADI 386SX",		"adi386sx",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,	     machine_at_adi386sx_init, NULL			},
     { "[Intel 82335] Shuttle 386SX",		"shuttle386sx",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,	 machine_at_shuttle386sx_init, NULL			},
@@ -181,7 +182,6 @@ const machine_t machines[] = {
     { "[ISA] Compaq Portable III (386)",	"portableiii386",       MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE | MACHINE_VIDEO,					 1024, 14336, 1024, 127,       machine_at_portableiii386_init, at_cpqiii_get_device	},
     { "[ISA] Micronics 386 clone",		"micronics386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,	 machine_at_micronics386_init, NULL			},
     { "[SiS 310] ASUS ISA-386C",		"asus386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512, 16384,  128, 127,	      machine_at_asus386_init, NULL			},
-    { "[UMC 491] US Technologies 386",		"ustechnologies386",	MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 16384, 1024, 127,    machine_at_ustechnologies386_init, NULL			},
 
     /* 386DX machines which utilize the VLB bus */
     { "[OPTi 495] Award 386DX clone",		"award386dx",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	      machine_at_opti495_init, NULL			},
@@ -230,6 +230,7 @@ const machine_t machines[] = {
     /* 486 machines which utilize the PCI bus */
 #if defined(DEV_BRANCH) && defined(USE_M1489)
     { "[ALi M1489] ABIT AB-PB4",		"abpb4",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024,  65536, 1024, 255,		machine_at_abpb4_init, NULL			},
+    { "[ALi M1489] AMI WinBIOS 486 PCI",		"win486pci",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024,  65536, 1024, 255,		machine_at_win486pci_init, NULL			},
 #endif
     { "[i420EX] ASUS PVI-486AP4",		"486ap4",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_IDE_DUAL,						 1024, 131072, 1024, 127,	       machine_at_486ap4_init, NULL			},
     { "[i420ZX] ASUS PCI/I-486SP3G",		"486sp3g",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 131072, 1024, 127,	      machine_at_486sp3g_init, NULL			},
@@ -344,6 +345,12 @@ const machine_t machines[] = {
 #if defined(DEV_BRANCH) && defined(USE_SIS_5571)
     { "[SiS 5571] Rise R534F",	"r534f",	MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2500, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 393216, 8192, 127,	machine_at_r534f_init, NULL			},
     { "[SiS 5571] MSI MS-5146",	"ms5146",	MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2500, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 393216, 8192, 127,	machine_at_ms5146_init, NULL			},
+#endif
+
+    /* ALi ALADDiN IV */
+#if defined(DEV_BRANCH) && defined(USE_M154X)
+    { "[ALi ALADDiN IV] PC Chips M560",			"m560",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 60000000, 66666667, 2800, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 262144, 8192, 255,	      machine_at_m560_init, NULL			},
+    { "[ALi ALADDiN IV] MSI MS-5164",			"ms5164",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 60000000, 66666667, 2800, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 262144, 8192, 255,	      machine_at_ms5164_init, NULL			},
 #endif
 
     /* Super Socket 7 machines */

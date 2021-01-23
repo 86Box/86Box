@@ -152,11 +152,13 @@ extern void	thread_reset_event(event_t *arg);
 extern int	thread_wait_event(event_t *arg, int timeout);
 extern void	thread_destroy_event(event_t *arg);
 
+#define MUTEX_DEFAULT_SPIN_COUNT 1024
+
 extern mutex_t	*thread_create_mutex(void);
+extern mutex_t	*thread_create_mutex_with_spin_count(unsigned int spin_count);
 extern void	thread_close_mutex(mutex_t *arg);
 extern int	thread_wait_mutex(mutex_t *arg);
 extern int	thread_release_mutex(mutex_t *mutex);
-
 
 /* Other stuff. */
 extern void	startblit(void);

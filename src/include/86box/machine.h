@@ -267,6 +267,7 @@ extern int	machine_at_commodore_sl386sx16_init(const machine_t *);
 extern int	machine_at_commodore_sl386sx25_init(const machine_t *);
 extern int	machine_at_spc6033p_init(const machine_t *);
 extern int	machine_at_wd76c10_init(const machine_t *);
+extern int	machine_at_flytech386_init(const machine_t *);
 
 extern int  machine_at_olim300_05_init(const machine_t *);
 extern int  machine_at_olim300_10_init(const machine_t *);
@@ -286,6 +287,7 @@ extern int	machine_at_pja511m_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_ama932j_get_device(void);
+extern const device_t	*at_flytech386_get_device(void);
 extern const device_t	*at_commodore_sl386sx25_get_device(void);
 extern const device_t	*at_spc4620p_get_device(void);
 extern const device_t	*at_spc6033p_get_device(void);
@@ -298,7 +300,6 @@ extern int	machine_at_acc386_init(const machine_t *);
 extern int	machine_at_asus386_init(const machine_t *);
 extern int	machine_at_ecs386_init(const machine_t *);
 extern int	machine_at_spc6000a_init(const machine_t *);
-extern int	machine_at_ustechnologies386_init(const machine_t *);
 extern int	machine_at_micronics386_init(const machine_t *);
 
 extern int	machine_at_rycleopardlx_init(const machine_t *);
@@ -349,6 +350,7 @@ extern int	machine_at_486vipio2_init(const machine_t *);
 #endif
 #if defined(DEV_BRANCH) && defined(USE_M1489)
 extern int	machine_at_abpb4_init(const machine_t *);
+extern int	machine_at_win486pci_init(const machine_t *);
 #endif
 #if defined(DEV_BRANCH) && defined(USE_STPC)
 extern int	machine_at_itoxstar_init(const machine_t *);
@@ -453,6 +455,10 @@ extern int	machine_at_p5mms98_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_SIS_5571)
 extern int	machine_at_r534f_init(const machine_t *);
 extern int	machine_at_ms5146_init(const machine_t *);
+#endif
+#if defined(DEV_BRANCH) && defined(USE_M154X)
+extern int	machine_at_m560_init(const machine_t *);
+extern int	machine_at_ms5164_init(const machine_t *);
 #endif
 
 extern int	machine_at_ficva502_init(const machine_t *);

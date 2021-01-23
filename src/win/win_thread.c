@@ -133,17 +133,23 @@ thread_destroy_event(event_t *arg)
 
 mutex_t *
 thread_create_mutex(void)
-{
-    return((mutex_t*)CreateMutex(NULL, FALSE, NULL));
+{    
+    mutex_t *mutex = malloc(sizeof(CRITICAL_SECTION));
+
+    InitializeCriticalSection(mutex);
+
+    return mutex;
 }
 
 
-void
-thread_close_mutex(mutex_t *mutex)
+mutex_t *
+thread_create_mutex_with_spin_count(unsigned int spin_count)
 {
-    if (mutex == NULL) return;
+    mutex_t *mutex = malloc(sizeof(CRITICAL_SECTION));
 
-    CloseHandle((HANDLE)mutex);
+    InitializeCriticalSectionAndSpinCount(mutex, spin_count);
+
+    return mutex;
 }
 
 
@@ -152,11 +158,11 @@ thread_wait_mutex(mutex_t *mutex)
 {
     if (mutex == NULL) return(0);
 
-    DWORD dwres = WaitForSingleObject((HANDLE)mutex, INFINITE);
+    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)mutex;
 
-    if (dwres == WAIT_OBJECT_0) return(1);
+    EnterCriticalSection(critsec);
 
-    return(0);
+    return 1;
 }
 
 
@@ -165,5 +171,22 @@ thread_release_mutex(mutex_t *mutex)
 {
     if (mutex == NULL) return(0);
 
-    return(!!ReleaseMutex((HANDLE)mutex));
+    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)mutex;
+
+    LeaveCriticalSection(critsec);
+
+    return 1;
+}
+
+
+void
+thread_close_mutex(mutex_t *mutex)
+{
+    if (mutex == NULL) return;
+
+    LPCRITICAL_SECTION critsec = (LPCRITICAL_SECTION)mutex;
+
+    DeleteCriticalSection(critsec);
+
+    free(critsec);
 }
