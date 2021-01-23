@@ -35,6 +35,7 @@
 #include <86box/rom.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/hdc.h>
 #include <86box/sio.h>
 #include <86box/serial.h>
@@ -645,8 +646,7 @@ machine_at_pja511m_init(const machine_t *model)
 
 /*
  * Current bugs: 
- * - Automatic soft-reboot after saving CMOS settings produces an 8042 error
- * - no EMS management due to missing chipset implementation
+ * - soft-reboot after saving CMOS settings/pressing ctrl-alt-del produces an 8042 error
  */
 int
 machine_at_ncrpc8_init(const machine_t *model)
@@ -662,14 +662,23 @@ machine_at_ncrpc8_init(const machine_t *model)
 
     machine_at_common_init(model);
     device_add(&keyboard_at_ncr_device);
-    device_add(&fdc_at_device);
+    mem_remap_top(384);
+
+    if (fdc_type == FDC_INTERNAL)	
+	    device_add(&fdc_at_device);
     
     return ret;
 }
 
+const device_t *
+at_ncr3302_get_device(void)
+{
+    return &paradise_pvga1a_ncr3302_device;
+}
+
 /*
  * Current bugs: 
- * - Automatic soft-reboot after saving CMOS settings produces an 8042 error
+ * - soft-reboot after saving CMOS settings/pressing ctrl-alt-del produces an 8042 error
  */
 int
 machine_at_ncr3302_init(const machine_t *model)
@@ -690,10 +699,12 @@ machine_at_ncr3302_init(const machine_t *model)
     machine_at_common_ide_init(model);
     device_add(&neat_device);
     device_add(&keyboard_at_ncr_device);
-    device_add(&fdc_at_device);
+    
+    if (fdc_type == FDC_INTERNAL)	
+	    device_add(&fdc_at_device);
 
     if (gfxcard == VID_INTERNAL)
-    	device_add(&paradise_pvga1a_device);
+    	device_add(&paradise_pvga1a_ncr3302_device);
     
     return ret;
 }
@@ -701,8 +712,7 @@ machine_at_ncr3302_init(const machine_t *model)
 
 /*
  * Current bugs: 
- * - Automatic soft-reboot after saving CMOS settings produces an 8042 error
- * - no EMS management due to missing chipset implementation (TACT82300)
+ * - soft-reboot after saving CMOS settings/pressing ctrl-alt-del produces an 8042 error
  */
 int
 machine_at_ncrpc916sx_init(const machine_t *model)
@@ -719,7 +729,11 @@ machine_at_ncrpc916sx_init(const machine_t *model)
     machine_at_common_init(model);
     
     device_add(&keyboard_at_ncr_device);
-    device_add(&fdc_at_device);
+    mem_remap_top(384);
+
+    if (fdc_type == FDC_INTERNAL)	
+	    device_add(&fdc_at_device);
+    
     
     return ret;
 }
@@ -741,7 +755,9 @@ machine_at_olim290_init(const machine_t *model)
 
     machine_at_common_init(model);
     device_add(&keyboard_at_olivetti_device);
-    device_add(&fdc_at_device);
+    
+    if (fdc_type == FDC_INTERNAL)	
+	    device_add(&fdc_at_device);
     
     device_add(&olivetti_m290_registers_device);
     
@@ -751,7 +767,7 @@ machine_at_olim290_init(const machine_t *model)
 
 /*
  * Current bugs: 
- * - no EMS management due to missing chipset implementation (TACT82300)
+ * - no EMS management due to missing chipset implementation (unidentified chip)
  */
 int
 machine_at_olim290s_init(const machine_t *model)
@@ -767,12 +783,15 @@ machine_at_olim290s_init(const machine_t *model)
 
     machine_at_common_ide_init(model);
 
-    device_add(&keyboard_ps2_olivetti_device);
-    device_add(&fdc_at_device);
+    /* replace with correct chipset implementation */
+    mem_remap_top(384);
 
-    if (gfxcard == VID_INTERNAL)
-        /* should use custom BIOS */
-	    device_add(&paradise_pvga1a_device);
+    device_add(&keyboard_ps2_olivetti_device);
+    device_add(&fdc_at_device);  
+
+    /* should use custom BIOS */
+	if (gfxcard == VID_INTERNAL)
+        device_add(&paradise_pvga1a_device);
     
     return ret;
 }
@@ -824,9 +843,9 @@ machine_at_olim300_15_init(const machine_t *model)
     device_add(&keyboard_ps2_olivetti_device);
     device_add(&pc87310_ide_device);
     
-    if (gfxcard == VID_INTERNAL)
-        /* Stock VRAM is maxed out, so no need to expose video card config */
-	    device_add(&oti067_m300_device);
+    /* Stock VRAM is maxed out, so no need to expose video card config */
+	if (gfxcard == VID_INTERNAL)
+        device_add(&oti067_m300_device);
 
     return ret;
 }
@@ -834,10 +853,12 @@ machine_at_olim300_15_init(const machine_t *model)
 
 /*
  * Current bugs: 
+ * - soft-reboot causes a fatal error
  * - BIOS complains about FPU if not installed, pressing F1 allows to continue booting.
  * - BIOS throws a cache memory error (since L2 cache is not implemented yet), pressing F1 allows to continue booting.
- * - no EMS management due to missing chipset implementation (custom ASIC)
+ * - no shadow memory due to missing chipset implementation (custom ASIC)
  */
+//todo: check if fdc can be disabled
 int
 machine_at_olim300_10_init(const machine_t *model)
 {
@@ -851,14 +872,16 @@ machine_at_olim300_10_init(const machine_t *model)
 
     machine_at_common_ide_init(model);
     
-    device_add(&neat_device);
+    /* replace with correct chipset implementation */
+    mem_remap_top(384);
+
     device_add(&keyboard_ps2_olivetti_device);
     /* fdc should be dp8473, however it does not work. Instead, standard AT fdc works. */
     device_add(&fdc_at_device);
     
-    if (gfxcard == VID_INTERNAL)
-        /* should be a PVGA1B/WD90C00 with custom BIOS */
-	    device_add(&paradise_pvga1a_device);
+    /* should be a PVGA1B/WD90C00 with custom BIOS */
+	if (gfxcard == VID_INTERNAL)
+        device_add(&paradise_wd90c11_device);
 
 
     return ret;
@@ -866,8 +889,9 @@ machine_at_olim300_10_init(const machine_t *model)
 
 /*
  * Current bugs: 
+ * - soft-reboot causes a fatal error
  * - BIOS complains about FPU if not installed, pressing F1 allows to continue booting.
- * - no EMS management due to missing chipset implementation (custom ASIC)
+ * - no shadow memory due to missing chipset implementation (custom ASIC)
  */
 int
 machine_at_olim300_05_init(const machine_t *model)
@@ -881,15 +905,17 @@ machine_at_olim300_05_init(const machine_t *model)
 	return ret;
 
     machine_at_common_ide_init(model);
+    
+    /* replace with correct chipset implementation */
+    mem_remap_top(384);
 
-    device_add(&neat_device);
     device_add(&keyboard_ps2_olivetti_device);
     /* fdc should be dp8473, however it does not work. Instead, standard AT fdc works. */
     device_add(&fdc_at_device);
     
-    if (gfxcard == VID_INTERNAL)
-        /* should be a PVGA1B/WD90C00 with custom BIOS */
-	    device_add(&paradise_pvga1a_device);
+    /* should be a PVGA1B/WD90C00 with custom BIOS */
+	if (gfxcard == VID_INTERNAL)
+        device_add(&paradise_wd90c11_device);
 
 
     return ret;
