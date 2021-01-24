@@ -2165,20 +2165,26 @@ fdc_set_base(fdc_t *fdc, int base)
 {
     int super_io = (fdc->flags & FDC_FLAG_SUPERIO);
 
-    if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
-	io_sethandler(base + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
-	io_sethandler(base + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
-    } else {
-	if (fdc->flags & FDC_FLAG_PCJR)
-		io_sethandler(base, 0x0010, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
-	else {
-		io_sethandler(base + 0x0002, 0x0001, NULL, NULL, NULL, fdc_write, NULL, NULL, fdc);
-		io_sethandler(base + 0x0004, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
-		io_sethandler(base + 0x0005, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
-		if (fdc->flags & FDC_FLAG_TOSHIBA)
-			io_sethandler(base + 0x0007, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+	if (fdc->flags & FDC_FLAG_NSC) {
+		io_sethandler(base + 2, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+		io_sethandler(base + 4, 0x0002, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+		io_sethandler(base + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+	} else {
+    	if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
+			io_sethandler(base + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+			io_sethandler(base + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+    	} else {
+			if (fdc->flags & FDC_FLAG_PCJR)
+				io_sethandler(base, 0x0010, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+			else {
+				io_sethandler(base + 0x0002, 0x0001, NULL, NULL, NULL, fdc_write, NULL, NULL, fdc);
+				io_sethandler(base + 0x0004, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
+				io_sethandler(base + 0x0005, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+				if (fdc->flags & FDC_FLAG_TOSHIBA)
+					io_sethandler(base + 0x0007, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+			}
+    	}
 	}
-    }
     fdc->base_address = base;
     fdc_log("FDC Base address set%s (%04X)\n", super_io ? " for Super I/O" : "", fdc->base_address);
 }
@@ -2190,20 +2196,26 @@ fdc_remove(fdc_t *fdc)
     int super_io = (fdc->flags & FDC_FLAG_SUPERIO);
 
     fdc_log("FDC Removed (%04X)\n", fdc->base_address);
-    if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
-	io_removehandler(fdc->base_address + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
-	io_removehandler(fdc->base_address + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
-    } else {
-	if (fdc->flags & FDC_FLAG_PCJR)
-		io_removehandler(fdc->base_address, 0x0010, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
-	else {
-		io_removehandler(fdc->base_address + 0x0002, 0x0001, NULL, NULL, NULL, fdc_write, NULL, NULL, fdc);
-		io_removehandler(fdc->base_address + 0x0004, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
-		io_removehandler(fdc->base_address + 0x0005, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
-		if (fdc->flags & FDC_FLAG_TOSHIBA)
-			io_removehandler(fdc->base_address + 0x0007, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+	if (fdc->flags & FDC_FLAG_NSC) {
+		io_removehandler(fdc->base_address + 2, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+		io_removehandler(fdc->base_address + 4, 0x0002, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+		io_removehandler(fdc->base_address + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+	} else {
+		if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
+			io_removehandler(fdc->base_address + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+			io_removehandler(fdc->base_address + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+		} else {
+			if (fdc->flags & FDC_FLAG_PCJR)
+				io_removehandler(fdc->base_address, 0x0010, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+			else {
+				io_removehandler(fdc->base_address + 0x0002, 0x0001, NULL, NULL, NULL, fdc_write, NULL, NULL, fdc);
+				io_removehandler(fdc->base_address + 0x0004, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
+				io_removehandler(fdc->base_address + 0x0005, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+				if (fdc->flags & FDC_FLAG_TOSHIBA)
+					io_removehandler(fdc->base_address + 0x0007, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+			}
+		}
 	}
-    }
 }
 
 

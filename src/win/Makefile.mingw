@@ -646,12 +646,12 @@ DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_vt82c686.o ibm
 		   mouse.o \
 		    mouse_bus.o \
 		    mouse_serial.o mouse_ps2.o \
-			phoenix_486_jumper.o
+			phoenix_486_jumper.o olivetti_m290_registers.o
 
 SIOOBJ		:= sio_acc3221.o \
 		    sio_f82c710.o sio_82091aa.o \
 		    sio_fdc37c661.o sio_fdc37c66x.o sio_fdc37c669.o sio_fdc37c93x.o sio_fdc37m60x.o \
-		    sio_pc87306.o sio_pc87307.o sio_pc87309.o sio_pc87311.o sio_pc87332.o \
+		    sio_pc87306.o sio_pc87307.o sio_pc87309.o sio_pc87310.o sio_pc87311.o sio_pc87332.o \
 			sio_prime3b.o sio_prime3c.o \
 		    sio_w83787f.o \
 		    sio_w83877f.o sio_w83977f.o \

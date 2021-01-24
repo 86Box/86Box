@@ -255,6 +255,12 @@ extern int	machine_at_spc4620p_init(const machine_t *);
 extern int	machine_at_kmxc02_init(const machine_t *);
 extern int	machine_at_deskmaster286_init(const machine_t *);
 
+extern int	machine_at_olim290_init(const machine_t *);
+extern int	machine_at_olim290s_init(const machine_t *);
+
+extern int	machine_at_ncrpc8_init(const machine_t *);
+extern int	machine_at_ncr3302_init(const machine_t *);
+
 extern int	machine_at_shuttle386sx_init(const machine_t *);
 extern int	machine_at_adi386sx_init(const machine_t *);
 extern int	machine_at_commodore_sl386sx16_init(const machine_t *);
@@ -263,9 +269,12 @@ extern int	machine_at_spc6033p_init(const machine_t *);
 extern int	machine_at_wd76c10_init(const machine_t *);
 extern int	machine_at_flytech386_init(const machine_t *);
 
-extern int	machine_at_olim290_init(const machine_t *);
-extern int	machine_at_ncrpc8_init(const machine_t *);
-extern int	machine_at_ncr3302_init(const machine_t *);
+extern int  machine_at_olim300_05_init(const machine_t *);
+extern int  machine_at_olim300_10_init(const machine_t *);
+extern int  machine_at_olim300_08_init(const machine_t *);
+extern int  machine_at_olim300_15_init(const machine_t *);
+
+extern int  machine_at_ncrpc916sx_init(const machine_t *);
 
 extern int	machine_at_awardsx_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_M6117)
@@ -279,6 +288,8 @@ extern const device_t	*at_flytech386_get_device(void);
 extern const device_t	*at_commodore_sl386sx25_get_device(void);
 extern const device_t	*at_spc4620p_get_device(void);
 extern const device_t	*at_spc6033p_get_device(void);
+extern const device_t	*at_ncr3302_get_device(void);
+extern const device_t	*at_m300_08_get_device(void);
 #endif
 
 /* m_at_386dx_486.c */
