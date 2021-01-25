@@ -30,9 +30,7 @@
 #include <86box/vid_svga.h>
 
 #define BIOS_037C_PATH			L"roms/video/oti/bios.bin"
-#define BIOS_067_AMA932J_PATH	L"roms/machines/ama932j/oti067.bin"
-#define BIOS_067_M300_08_PATH	L"roms/machines/olivetti_m300_08/EVC_BIOS.ROM"
-#define BIOS_067_M300_15_PATH	L"roms/machines/olivetti_m300_15/EVC_BIOS.ROM"
+#define BIOS_067_AMA932J_PATH		L"roms/machines/ama932j/oti067.bin"
 #define BIOS_077_PATH			L"roms/video/oti/oti077.vbi"
 
 
@@ -40,7 +38,6 @@ enum {
     OTI_037C,
     OTI_067 = 2,
     OTI_067_AMA932J,
-	OTI_067_M300 = 4,
     OTI_077 = 5
 };
 
@@ -365,16 +362,6 @@ oti_init(const device_t *info)
 		io_sethandler(0x46e8, 1, oti_pos_in, NULL, NULL, oti_pos_out, NULL, NULL, oti);
 		break;
 
-	case OTI_067_M300:
-		if (rom_present(BIOS_067_M300_15_PATH))
-			romfn = BIOS_067_M300_15_PATH;
-		else
-			romfn = BIOS_067_M300_08_PATH;
-		oti->vram_size = device_get_config_int("memory");
-		oti->pos = 0x08;	/* Tell the BIOS the I/O ports are already enabled to avoid a double I/O handler mess. */
-		io_sethandler(0x46e8, 1, oti_pos_in, NULL, NULL, oti_pos_out, NULL, NULL, oti);
-		break;
-
 	case OTI_067:
 	case OTI_077:
 		romfn = BIOS_077_PATH;
@@ -450,15 +437,6 @@ static int
 oti067_077_available(void)
 {
     return(rom_present(BIOS_077_PATH));
-}
-
-static int
-oti067_m300_available(void)
-{
-    if (rom_present(BIOS_067_M300_15_PATH))
-		return(rom_present(BIOS_067_M300_15_PATH));
-	else
-		return(rom_present(BIOS_067_M300_08_PATH));
 }
 
 
@@ -548,18 +526,6 @@ const device_t oti067_device =
 	2,
 	oti_init, oti_close, NULL,
 	{ oti067_077_available },
-	oti_speed_changed,
-	oti_force_redraw,
-	oti067_config
-};
-
-const device_t oti067_m300_device =
-{
-	"Oak OTI-067 (Olivetti M300-08/15)",
-	DEVICE_ISA,
-	4,
-	oti_init, oti_close, NULL,
-	{ oti067_m300_available },
 	oti_speed_changed,
 	oti_force_redraw,
 	oti067_config

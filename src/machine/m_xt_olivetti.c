@@ -790,7 +790,6 @@ machine_xt_olim240_init(const machine_t *model)
  * Current bugs: 
  * - 640x400x2 graphics mode not supported (bit 0 of register 0x3de cannot be set)
  * - optional mouse emulation missing
- * - setting CPU speed at 4.77MHz sometimes throws a timer error. If the machine is hard-resetted, the error disappears.
  */
 int
 machine_xt_olim19_init(const machine_t *model)
