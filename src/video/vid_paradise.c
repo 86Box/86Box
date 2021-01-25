@@ -352,16 +352,6 @@ void *paradise_init(const device_t *info, uint32_t memsize)
         return paradise;
 }
 
-static void *paradise_pvga1a_ncr3302_init(const device_t *info)
-{
-        paradise_t *paradise = paradise_init(info, 1 << 18);
-        
-        if (paradise)
-                rom_init(&paradise->bios_rom, L"roms/machines/ncr_3302/c000-wd_1987-1989-740011-003058-019c.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-                
-        return paradise;
-}
-
 static void *paradise_pvga1a_pc2086_init(const device_t *info)
 {
         paradise_t *paradise = paradise_init(info, 1 << 18);
@@ -371,7 +361,6 @@ static void *paradise_pvga1a_pc2086_init(const device_t *info)
                 
         return paradise;
 }
-
 static void *paradise_pvga1a_pc3086_init(const device_t *info)
 {
         paradise_t *paradise = paradise_init(info, 1 << 18);
@@ -475,6 +464,7 @@ void paradise_force_redraw(void *p)
         paradise->svga.fullchange = changeframecount;
 }
 
+
 const device_t paradise_pvga1a_pc2086_device =
 {
         "Paradise PVGA1A (Amstrad PC2086)",
@@ -488,7 +478,6 @@ const device_t paradise_pvga1a_pc2086_device =
         paradise_force_redraw,
 	NULL
 };
-
 const device_t paradise_pvga1a_pc3086_device =
 {
         "Paradise PVGA1A (Amstrad PC3086)",
@@ -525,20 +514,6 @@ static const device_config_t paradise_pvga1a_config[] =
         {
                 "", "", -1
         }
-};
-
-const device_t paradise_pvga1a_ncr3302_device =
-{
-        "Paradise PVGA1A (NCR 3302)",
-        0,
-	PVGA1A,
-        paradise_pvga1a_ncr3302_init,
-        paradise_close,
-        NULL,
-	{ NULL },
-        paradise_speed_changed,
-        paradise_force_redraw,
-	paradise_pvga1a_config
 };
 
 const device_t paradise_pvga1a_device =

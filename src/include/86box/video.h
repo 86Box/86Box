@@ -292,11 +292,9 @@ extern const device_t oti037c_device;
 extern const device_t oti067_device;
 extern const device_t oti067_acer386_device;
 extern const device_t oti067_ama932j_device;
-extern const device_t oti067_m300_device;
 extern const device_t oti077_device;
 
 /* Paradise/WD (S)VGA */
-extern const device_t paradise_pvga1a_ncr3302_device;
 extern const device_t paradise_pvga1a_pc2086_device;
 extern const device_t paradise_pvga1a_pc3086_device;
 extern const device_t paradise_pvga1a_device;
