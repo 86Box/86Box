@@ -52,7 +52,6 @@ typedef struct ht216_t
     uint32_t		read_banks[2], write_banks[2];
         
     uint8_t		bg_latch[8];
-    uint8_t		mw_state, mw_cnt, mw_cpu;
         
     uint8_t		ht_regs[256];
 } ht216_t;
@@ -358,7 +357,6 @@ ht216_remap(ht216_t *ht216)
 		/*Split bank: two banks used*/
 		/*Windows 3.1 always touches the misc register when split banks are enabled.*/
 		if (!(ht216->misc & HT_MISC_PAGE_SEL)) {
-			//pclog("No page sel\n");
 			ht216->read_banks[0] = ht216->ht_regs[0xe8] << 12;
 			ht216->write_banks[0] = ht216->ht_regs[0xe8] << 12;
 			ht216->read_banks[1] = ht216->ht_regs[0xe9] << 12;
@@ -624,12 +622,10 @@ ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_u
 			if (addr & 4) {
 				for (i = 0; i < count; i++) {
 					fg_data[i] = (cpu_dat_unexpanded & (1 << (((addr + i + 4) & 7) ^ 7))) ? ht216->ht_regs[0xfa] : ht216->ht_regs[0xfb];
-					pclog("FBRC source select = %02x, frgd = %02x, bkgd = %02x\n", (cpu_dat_unexpanded & (1 << (((addr + i + 4) & 7) ^ 7))), ht216->ht_regs[0xf0], ht216->ht_regs[0xf2]);
 				}
 			} else {
 				for (i = 0; i < count; i++) {
 					fg_data[i] = (cpu_dat_unexpanded & (1 << (((addr + i) & 7) ^ 7))) ? ht216->ht_regs[0xfa] : ht216->ht_regs[0xfb];
-					pclog("FBRC source select = %02x, frgd = %02x, bkgd = %02x\n", (cpu_dat_unexpanded & (1 << (((addr + i) & 7) ^ 7))), ht216->ht_regs[0xf0], ht216->ht_regs[0xf2]);
 				}
 			}
 		} else {
@@ -819,8 +815,6 @@ ht216_dm_masked_write(ht216_t *ht216, uint32_t addr, uint8_t val, uint8_t bit_ma
     svga_t *svga = &ht216->svga;
     int writemask2 = svga->writemask;
     uint8_t count, i;
-    uint8_t mask1 = 0;
-    uint8_t mask2 = 0;
 
     if (svga->adv_flags & FLAG_ADDR_BY8)
 	writemask2 = svga->seqregs[2];
@@ -856,62 +850,24 @@ ht216_dm_masked_write(ht216_t *ht216, uint32_t addr, uint8_t val, uint8_t bit_ma
 
     count = 4;
 
-    if (ht216->mw_cnt == 0) {
-	mask1 = bit_mask;
-	ht216->mw_cnt = 1;
-    } else if (ht216->mw_cnt == 1) {
-	mask2 = bit_mask;
-	ht216->mw_cnt = 0;
-    }
-    
-
-    switch (svga->writemode) {
-	case 0:
-		if ((bit_mask == 0xff) && !(svga->gdcreg[3] & 0x18) && (!svga->gdcreg[1] || svga->set_reset_disabled)) {
-			for (i = 0; i < count; i++) {
-				if (svga->adv_flags & FLAG_ADDR_BY8) {
-					if (writemask2 & (0x80 >> i))
-						svga->vram[addr | i] = val;
-				} else {
-					if (writemask2 & (1 << i)) {
-						svga->vram[addr | i] = val;
-						pclog("BitMask = ff, vram dat = %02x, val = %02x\n", svga->vram[addr | i], val);
-					}
-				}		
-			}
-			return;
+    if (bit_mask == 0xff) {
+	for (i = 0; i < count; i++) {
+		if (writemask2 & (1 << i)) {
+			svga->vram[addr | i] = val;
 		}
-		break;
-	case 2:
-		if (!(svga->gdcreg[3] & 0x18) && (!svga->gdcreg[1] || svga->set_reset_disabled)) {
-			for (i = 0; i < count; i++) {
-				if (svga->adv_flags & FLAG_ADDR_BY8) {
-					if (writemask2 & (0x80 >> i))
-						svga->vram[addr | i] = (val & bit_mask) | (svga->vram[addr | i] & ~bit_mask);				
-				} else {
-					if (writemask2 & (1 << i))
-						svga->vram[addr | i] = (val & bit_mask) | (svga->vram[addr | i] & ~bit_mask);
-				}
-			}
-			return;
-		}
-		break;
-    }
-
-    switch (svga->gdcreg[3] & 0x18) {
-	case 0x00:	/* Set */
+	}
+    } else {
+	if (writemask2 == 0x0f) {
 		for (i = 0; i < count; i++) {
-			if (svga->adv_flags & FLAG_ADDR_BY8) {
-				if (writemask2 & (0x80 >> i))
-					svga->vram[addr | i] = (val & bit_mask) | (svga->vram[addr | i] & ~bit_mask);
-			} else {
-				if (writemask2 & (1 << i)) {
-					svga->vram[addr | i] = (val & bit_mask) | (svga->vram[addr | i] & ~bit_mask);
-					pclog("BitMask = %02x, vram dat = %02x, actual val = %02x, addr = %05x, first = %02x, second = %02x\n", bit_mask, svga->vram[addr | i], val, addr | i, mask1, mask2);
-				}
+			svga->vram[addr | i] = (svga->latch.b[i] & bit_mask) | (svga->vram[addr | i] & ~bit_mask);
+		}
+	} else {
+		for (i = 0; i < count; i++) {
+			if (writemask2 & (1 << i)) {
+				svga->vram[addr | i] = (val & bit_mask) | (svga->vram[addr | i] & ~bit_mask);
 			}
 		}
-		break;
+	}
     }
 }
 
@@ -978,13 +934,7 @@ ht216_write_common(ht216_t *ht216, uint32_t addr, uint8_t val)
 	}
     } else if (ht216->ht_regs[0xf3]) {
 	if (ht216->ht_regs[0xf3] & 2) {
-		if (ht216->mw_state == 0) {
-			ht216->mw_cpu = val;
-			ht216->mw_state = 1;
-		} else if (ht216->mw_state == 1) {
-			ht216_dm_masked_write(ht216, addr, val, ht216->mw_cpu);
-			ht216->mw_state = 0;
-		}
+		ht216_dm_masked_write(ht216, addr, val, val);
 	} else
 		ht216_dm_masked_write(ht216, addr, val, ht216->ht_regs[0xf4]);
     } else {
@@ -992,8 +942,9 @@ ht216_write_common(ht216_t *ht216, uint32_t addr, uint8_t val)
 		addr = (addr << 3) & 0xfffff;
 		for (i = 0; i < 8; i++)
 			ht216_dm_write(ht216, addr + i, (val & (0x80 >> i)) ? 0xff : 0, val);
-	} else
+	} else {
 		ht216_dm_write(ht216, addr, val, val);
+	}
     }
 }
 
@@ -1023,7 +974,7 @@ ht216_writew(uint32_t addr, uint16_t val, void *p)
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + ht216->write_banks[(addr >> 15) & 1];
 
-    if (!ht216->ht_regs[0xcd] && !ht216->ht_regs[0xfe])
+    if (!ht216->ht_regs[0xcd] && !ht216->ht_regs[0xfe] && !ht216->ht_regs[0xf3])
 	svga_writew_linear(addr, val, svga);
     else {
 	ht216_write_common(ht216, addr, val);
@@ -1041,7 +992,7 @@ ht216_writel(uint32_t addr, uint32_t val, void *p)
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + ht216->write_banks[(addr >> 15) & 1];	
 
-    if (!ht216->ht_regs[0xcd] && !ht216->ht_regs[0xfe])
+    if (!ht216->ht_regs[0xcd] && !ht216->ht_regs[0xfe] && !ht216->ht_regs[0xf3])
 	svga_writel_linear(addr, val, svga);
     else {
 	ht216_write_common(ht216, addr, val);
