@@ -16,24 +16,43 @@
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *		Copyright 2020 Miran Grca.
  */
-#include <stdio.h>
+#include <stdarg.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/timer.h>
-#include <86box/pci.h>
 #include <86box/mem.h>
-#include <86box/rom.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/hdc.h>
+#include <86box/hdc_ide.h>
 #include <86box/sio.h>
 
+#ifdef ENABLE_W83787_LOG
+int w83787_do_log = ENABLE_W83787_LOG;
+static void
+w83787_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (w83787_do_log)
+    {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#define w83787_log(fmt, ...)
+#endif
 
 #define FDDA_TYPE	(dev->regs[7] & 3)
 #define FDDB_TYPE	((dev->regs[7] >> 2) & 3)
@@ -52,13 +71,14 @@
 
 #define HEFERE		((dev->regs[0xC] >> 5) & 1)
 
+#define HAS_IDE_FUNCTIONALITY dev->ide_function
 
 typedef struct {
     uint8_t tries, regs[42];
     uint16_t reg_init;
     int locked, rw_locked,
 	cur_reg,
-	key;
+	key, ide_function;
     fdc_t *fdc;
     serial_t *uart[2];
 } w83787f_t;
@@ -187,6 +207,17 @@ w83787f_fdc_handler(w83787f_t *dev)
 	fdc_set_base(dev->fdc, (dev->regs[0] & 0x10) ? 0x03f0 : 0x0370);
 }
 
+static void
+w83787f_ide_handler(w83787f_t *dev)
+{
+ide_pri_disable();
+if(dev->regs[0] & 0x80)
+{
+	ide_set_base(0, (dev->regs[0] & 0x40) ? 0x1f0 : 0x170);
+	ide_set_side(0, (dev->regs[0] & 0x40) ? 0x3f6 : 0x376);
+	ide_pri_enable();
+}
+}
 
 static void
 w83787f_write(uint16_t port, uint8_t val, void *priv)
@@ -219,6 +250,8 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
 
     switch (dev->cur_reg) {
 	case 0:
+		if ((valxor & 0xc0) && (HAS_IDE_FUNCTIONALITY))
+			w83787f_ide_handler(dev);
 		if (valxor & 0x30)
 			w83787f_fdc_handler(dev);
 		if (valxor & 0x0c)
@@ -281,7 +314,7 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
 			w83787f_lpt_handler(dev);
 		break;
 	case 0xB:
-		pclog("Writing %02X to CRB\n", val);
+		w83787_log("Writing %02X to CRB\n", val);
 		break;
 	case 0xC:
 		if (valxor & 0x20)
@@ -318,6 +351,14 @@ w83787f_reset(w83787f_t *dev)
     lpt1_remove();
     lpt1_init(0x378);
     lpt1_irq(7);
+
+	if(HAS_IDE_FUNCTIONALITY)
+	{
+	ide_pri_disable();
+	ide_set_base(0, 0x1f0);
+	ide_set_side(0, 0x3f6);
+	ide_pri_enable();
+	}
 
     fdc_reset(dev->fdc);
 
@@ -358,13 +399,17 @@ w83787f_init(const device_t *info)
     w83787f_t *dev = (w83787f_t *) malloc(sizeof(w83787f_t));
     memset(dev, 0, sizeof(w83787f_t));
 
+	HAS_IDE_FUNCTIONALITY = !!(info->local & 0x10);
+
     dev->fdc = device_add(&fdc_at_winbond_device);
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
+	
+	if(HAS_IDE_FUNCTIONALITY)
+	device_add(&ide_isa_device);
 
-    dev->reg_init = info->local;
-
+    dev->reg_init = info->local & 0x0f;
     w83787f_reset(dev);
 
     return dev;
@@ -375,6 +420,15 @@ const device_t w83787f_device = {
     "Winbond W83787F/IF Super I/O",
     0,
     0x09,
+    w83787f_init, w83787f_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+const device_t w83787f_ide_device = {
+    "Winbond W83787F/IF Super I/O with IDE functionality",
+    0,
+    0x19,
     w83787f_init, w83787f_close, NULL,
     { NULL }, NULL, NULL,
     NULL

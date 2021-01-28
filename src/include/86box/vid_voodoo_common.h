@@ -489,6 +489,10 @@ typedef struct voodoo_t
         uint64_t time;
         int render_time[4];
 
+        int force_blit_count;
+        int can_blit;
+        mutex_t* force_blit_mutex;
+
         int use_recompiler;
         void *codegen_data;
 

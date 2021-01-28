@@ -36,11 +36,11 @@
 #include <86box/chipset.h>
 #include <86box/spd.h>
 
-#define VIA_585  0x05850000
+#define VIA_585  0x05851000
 #define VIA_595  0x05950000
 #define VIA_597  0x05970100
 #define VIA_598  0x05980000
-#define VIA_691  0x06910000
+#define VIA_691  0x06910600
 #define VIA_693A 0x06914400
 #define VIA_694  0x0691c200
 #define VIA_8601 0x86010500
