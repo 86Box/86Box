@@ -154,14 +154,17 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 			switch (svga->seqaddr & 0xff) {
 				case 0x83:
 					svga->attraddr = val & 0x1f;
-					svga->attrff = (val & 0x80) ? 1 : 0;
+					svga->attrff = !!(val & 0x80);
 					break;
 
 				case 0x94:
-					svga->hwcursor.addr = ((val << 6) | (3 << 14) | ((ht216->ht_regs[0xff] & 0x60) << 11)) << 2;
+				case 0xff:
+					svga->hwcursor.addr = ((ht216->ht_regs[0x94] << 6) | (3 << 14) | ((ht216->ht_regs[0xff] & 0x60) << 11)) << 2;
 					break;
 				case 0x9c: case 0x9d:
 					svga->hwcursor.x = ht216->ht_regs[0x9d] | ((ht216->ht_regs[0x9c] & 7) << 8);
+					if (ht216->ht_regs[0xff] & 0x10)
+						svga->hwcursor.x >>= 1;
 					break;
 				case 0x9e: case 0x9f:
 					svga->hwcursor.y = ht216->ht_regs[0x9f] | ((ht216->ht_regs[0x9e] & 3) << 8);
@@ -220,10 +223,6 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 				case 0xfc:
 					svga->fullchange = changeframecount;
 					svga_recalctimings(svga);					
-					break;
-					
-				case 0xff:
-					svga->hwcursor.addr = ((ht216->ht_regs[0x94] << 6) | (3 << 14) | ((val & 0x60) << 11)) << 2;
 					break;
 			}
 			switch (svga->seqaddr & 0xff) {
@@ -487,6 +486,7 @@ void
 ht216_recalctimings(svga_t *svga)
 {
     ht216_t *ht216 = (ht216_t *)svga->p;
+    int high_res_256 = 0;
 
     switch (ht216->clk_sel) {
 	case 5:  svga->clock = (cpuclock * (double)(1ull << 32)) / 65000000.0; break;
@@ -499,7 +499,14 @@ ht216_recalctimings(svga_t *svga)
 
     svga->interlace = ht216->ht_regs[0xe0] & 1;
 
-    if ((svga->bpp == 8) && !svga->lowres) {
+    if (svga->interlace)
+	high_res_256 = (svga->htotal * 8) > (svga->vtotal * 4);
+    else
+	high_res_256 = (svga->htotal * 8) > (svga->vtotal * 2);	
+
+    if ((svga->bpp == 8) && (!svga->lowres || high_res_256)) {
+	if (high_res_256)
+		svga->hdisp /= 2;
 	svga->render = svga_render_8bpp_highres;
     }
 }
@@ -619,22 +626,18 @@ ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_u
 		break;
 	case 0x04:
 		if (ht216->ht_regs[0xfe] & HT_REG_FE_FBRC) {
-			if (addr & 4) {
-				for (i = 0; i < count; i++) {
-					fg_data[i] = (cpu_dat_unexpanded & (1 << (((addr + i + 4) & 7) ^ 7))) ? ht216->ht_regs[0xfa] : ht216->ht_regs[0xfb];
-				}
-			} else {
-				for (i = 0; i < count; i++) {
-					fg_data[i] = (cpu_dat_unexpanded & (1 << (((addr + i) & 7) ^ 7))) ? ht216->ht_regs[0xfa] : ht216->ht_regs[0xfb];
-				}
+			for (i = 0; i < count; i++) {
+				if (ht216->ht_regs[0xfa] & (1 << i))
+					fg_data[i] = cpu_dat_unexpanded;
+				else if (ht216->ht_regs[0xfb] & (1 << i))
+					fg_data[i] = 0xff - cpu_dat_unexpanded;
 			}
 		} else {
-			if (addr & 4) {
-				for (i = 0; i < count; i++)
-					fg_data[i] = (ht216->ht_regs[0xf5] & (1 << (((addr + i + 4) & 7) ^ 7))) ? ht216->ht_regs[0xfa] : ht216->ht_regs[0xfb];
-			} else {
-				for (i = 0; i < count; i++)
-					fg_data[i] = (ht216->ht_regs[0xf5] & (1 << (((addr + i) & 7) ^ 7))) ? ht216->ht_regs[0xfa] : ht216->ht_regs[0xfb];
+			for (i = 0; i < count; i++) {
+				if (ht216->ht_regs[0xfa] & (1 << i))
+					fg_data[i] = ht216->ht_regs[0xf5];
+				else if (ht216->ht_regs[0xfb] & (1 << i))
+					fg_data[i] = 0xff - ht216->ht_regs[0xf5];
 			}
 		}
 		break;
