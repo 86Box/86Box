@@ -43,6 +43,7 @@ typedef struct ht216_t
     rom_t		bios_rom;
 
     uint32_t		vram_mask;
+    uint8_t		adjust_cursor;
 
     int			ext_reg_enable;
     int			clk_sel;
@@ -163,8 +164,6 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 					break;
 				case 0x9c: case 0x9d:
 					svga->hwcursor.x = ht216->ht_regs[0x9d] | ((ht216->ht_regs[0x9c] & 7) << 8);
-					if (ht216->ht_regs[0xff] & 0x10)
-						svga->hwcursor.x >>= 1;
 					break;
 				case 0x9e: case 0x9f:
 					svga->hwcursor.y = ht216->ht_regs[0x9f] | ((ht216->ht_regs[0x9e] & 3) << 8);
@@ -504,9 +503,12 @@ ht216_recalctimings(svga_t *svga)
     else
 	high_res_256 = (svga->htotal * 8) > (svga->vtotal * 2);	
 
+    ht216->adjust_cursor = 0;
     if ((svga->bpp == 8) && (!svga->lowres || high_res_256)) {
-	if (high_res_256)
+	if (high_res_256) {
 		svga->hdisp /= 2;
+		ht216->adjust_cursor = 1;
+	}
 	svga->render = svga_render_8bpp_highres;
     }
 }
@@ -515,9 +517,14 @@ ht216_recalctimings(svga_t *svga)
 static void
 ht216_hwcursor_draw(svga_t *svga, int displine)
 {
-    int x;
+    ht216_t *ht216 = (ht216_t *)svga->p;
+    int x, shift = (ht216->adjust_cursor ? 2 : 1);
     uint32_t dat[2];
     int offset = svga->hwcursor_latch.x + svga->hwcursor_latch.xoff;
+    int width = (ht216->adjust_cursor ? 16 : 32);
+
+    if (ht216->adjust_cursor)
+	offset >>= 1;
 
     if (svga->interlace && svga->hwcursor_oddeven)
 	svga->hwcursor_latch.addr += 4;
@@ -531,14 +538,14 @@ ht216_hwcursor_draw(svga_t *svga, int displine)
 	     (svga->vram[svga->hwcursor_latch.addr+128+2] <<  8) |
 	      svga->vram[svga->hwcursor_latch.addr+128+3];
 
-    for (x = 0; x < 32; x++) {
+    for (x = 0; x < width; x++) {
 	if (!(dat[0] & 0x80000000))
 		((uint32_t *)buffer32->line[displine])[svga->x_add + offset + x]  = 0;
 	if (dat[1] & 0x80000000)
 		((uint32_t *)buffer32->line[displine])[svga->x_add + offset + x] ^= 0xffffff;
 
-	dat[0] <<= 1;
-	dat[1] <<= 1;
+	dat[0] <<= shift;
+	dat[1] <<= shift;
     }
 
     svga->hwcursor_latch.addr += 4;
