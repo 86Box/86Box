@@ -21,7 +21,7 @@
  *		or  without modification, are permitted  provided that the
  *		following conditions are met:
  *
- *		1. Redistributions of  source  code must retain the entire
+ *		1. Redistributions of source code must retain the entire
  *		   above notice, this list of conditions and the following
  *		   disclaimer.
  *
@@ -47,9 +47,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-#define _LARGEFILE_SOURCE
-#define _LARGEFILE64_SOURCE
-#define _GNU_SOURCE
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -61,57 +58,45 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/mem.h>
-#include <86box/pic.h>
 #include <86box/rom.h>
 #include <86box/machine.h>
 #include <86box/timer.h>
-#include <86box/plat.h>
-#include <86box/ui.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 
-#define ROM_PII_151B	L"roms/floppy/dtk/pii-151b.rom"
-#define ROM_PII_158B	L"roms/floppy/dtk/pii-158b.rom"
+#define ROM_PII_151B L"roms/floppy/dtk/pii-151b.rom"
+#define ROM_PII_158B L"roms/floppy/dtk/pii-158b.rom"
 
-typedef struct {
-    const char	*name;
-    int		type;
+#ifdef ENABLE_PII15XB_LOG
+int pii15xb_do_log = ENABLE_PII15XB_LOG;
 
-    uint32_t	bios_addr,
-		bios_size;
-    rom_t	bios_rom;
-    
-    fdc_t 	*fdc;
-} pii_t;
-
-
-/* Load and enable a BIOS ROM if we have one, and is enabled. */
 static void
-set_bios(pii_t *dev, wchar_t *fn)
+pii15xb_log(const char *fmt, ...)
 {
-    uint32_t temp;
-    FILE *fp;
+    va_list ap;
 
-    /* Only do this if needed. */
-    if ((fn == NULL) || (dev->bios_addr == 0)) return;
-
-    if ((fp = rom_fopen(fn, L"rb")) == NULL) return;
-
-    (void)fseek(fp, 0L, SEEK_END);
-    temp = ftell(fp);
-    (void)fclose(fp);
-
-    /* Assume 128K, then go down. */
-    dev->bios_size = 0x020000;
-    while (temp < dev->bios_size)
-	dev->bios_size >>= 1;
-
-    /* Create a memory mapping for the space. */
-    rom_init(&dev->bios_rom, fn, dev->bios_addr,
-	     dev->bios_size, dev->bios_size-1, 0, MEM_MAPPING_EXTERNAL);
+    if (fdc_do_log)
+    {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
 }
+#else
+#define pii15xb_log(fmt, ...)
+#endif
 
+typedef struct
+{
+    const char *name;
+    int type;
+
+    uint32_t bios_addr;
+    rom_t bios_rom;
+
+    fdc_t *fdc;
+} pii_t;
 
 static void
 pii_close(void *priv)
@@ -120,7 +105,6 @@ pii_close(void *priv)
 
     free(dev);
 }
-
 
 static void *
 pii_init(const device_t *info)
@@ -133,24 +117,14 @@ pii_init(const device_t *info)
 
     dev->bios_addr = device_get_config_hex20("bios_addr");
 
-    if (dev->bios_addr != 0x000000) {
-	switch (dev->type) {
-	    case 151:
-		set_bios(dev, ROM_PII_151B);
-		break;
-	    case 158:
-		set_bios(dev, ROM_PII_158B);
-		break;
-	}
-    }
+    if (dev->bios_addr != 0)
+        rom_init(&dev->bios_rom, (dev->type == 0x158) ? ROM_PII_158B : ROM_PII_151B, dev->bios_addr, 0x2000, 0x1ffff, 0, MEM_MAPPING_EXTERNAL);
 
-    /* Attach the DP8473 chip. */
-    dev->fdc = device_add(&fdc_at_device);
+    dev->fdc = device_add(&fdc_at_device); //Our DP8473 emulation is broken. If fixed this has to be changed!
 
-    //pclog("FDC: %s (I/O=%04X, flags=%08x)\n",
-    //	info->name, dev->fdc->base_address, dev->fdc->flags);
+    pii15xb_log("PII15XB: %s (I/O=%04X, flags=%08x)\n", info->name, dev->fdc->base_address, dev->fdc->flags);
 
-    return(dev);
+    return (dev);
 }
 
 static int pii_151b_available(void)
@@ -162,6 +136,7 @@ static int pii_158_available(void)
 {
     return rom_present(ROM_PII_158B);
 }
+
 
 static const device_config_t pii_config[] = {
     {
@@ -193,16 +168,22 @@ const device_t fdc_pii151b_device = {
     "DTK PII-151B (MiniMicro) Floppy Drive Controller",
     DEVICE_ISA,
     151,
-    pii_init, pii_close, NULL,
-    { pii_151b_available }, NULL, NULL,
-    pii_config
-};
+    pii_init,
+    pii_close,
+    NULL,
+    {pii_151b_available},
+    NULL,
+    NULL,
+    pii_config};
 
 const device_t fdc_pii158b_device = {
     "DTK PII-158B (MiniMicro4) Floppy Drive Controller",
     DEVICE_ISA,
     158,
-    pii_init, pii_close, NULL,
-    { pii_158_available }, NULL, NULL,
-    pii_config
-};
+    pii_init,
+    pii_close,
+    NULL,
+    {pii_158_available},
+    NULL,
+    NULL,
+    pii_config};
