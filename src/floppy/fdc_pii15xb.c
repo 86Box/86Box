@@ -65,37 +65,14 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 
+#define DTK_VARIANT ((info->local == 158) ? ROM_PII_158B : ROM_PII_151B)
+#define BIOS_ADDR (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
 #define ROM_PII_151B L"roms/floppy/dtk/pii-151b.rom"
 #define ROM_PII_158B L"roms/floppy/dtk/pii-158b.rom"
 
-#ifdef ENABLE_PII15XB_LOG
-int pii15xb_do_log = ENABLE_PII15XB_LOG;
-
-static void
-pii15xb_log(const char *fmt, ...)
-{
-    va_list ap;
-
-    if (fdc_do_log)
-    {
-        va_start(ap, fmt);
-        pclog_ex(fmt, ap);
-        va_end(ap);
-    }
-}
-#else
-#define pii15xb_log(fmt, ...)
-#endif
-
 typedef struct
 {
-    const char *name;
-    int type;
-
-    uint32_t bios_addr;
     rom_t bios_rom;
-
-    fdc_t *fdc;
 } pii_t;
 
 static void
@@ -112,17 +89,12 @@ pii_init(const device_t *info)
     pii_t *dev;
 
     dev = (pii_t *)malloc(sizeof(pii_t));
-    memset(dev, 0x00, sizeof(pii_t));
-    dev->type = info->local;
+    memset(dev, 0, sizeof(pii_t));
 
-    dev->bios_addr = device_get_config_hex20("bios_addr");
+    if (BIOS_ADDR != 0)
+        rom_init(&dev->bios_rom, DTK_VARIANT, BIOS_ADDR, 0x2000, 0x1ffff, 0, MEM_MAPPING_EXTERNAL);
 
-    if (dev->bios_addr != 0)
-        rom_init(&dev->bios_rom, (dev->type == 0x158) ? ROM_PII_158B : ROM_PII_151B, dev->bios_addr, 0x2000, 0x1ffff, 0, MEM_MAPPING_EXTERNAL);
-
-    dev->fdc = device_add(&fdc_at_device); //Our DP8473 emulation is broken. If fixed this has to be changed!
-
-    pii15xb_log("PII15XB: %s (I/O=%04X, flags=%08x)\n", info->name, dev->fdc->base_address, dev->fdc->flags);
+    device_add(&fdc_at_device); /* Our DP8473 emulation is broken. If fixed this has to be changed! */
 
     return (dev);
 }
@@ -137,22 +109,21 @@ static int pii_158_available(void)
     return rom_present(ROM_PII_158B);
 }
 
-
 static const device_config_t pii_config[] = {
     {
-	"bios_addr", "BIOS address", CONFIG_HEX20, "", 0x0ce000, "", { 0 },
+	"bios_addr", "BIOS Address:", CONFIG_HEX20, "", 0xce000, "", { 0 },
 	{
 		{
 			"Disabled", 0
 		},
 		{
-			"CA00H", 0x0ca000
+			"CA00H", 0xca000
 		},
 		{
-			"CC00H", 0x0cc000
+			"CC00H", 0xcc000
 		},
 		{
-			"CE00H", 0x0ce000
+			"CE00H", 0xce000
 		},
 		{
 			""
