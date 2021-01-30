@@ -163,6 +163,9 @@ typedef struct riva128_t
 	{
 		uint32_t debug_0;
 
+		int notify_impending;
+		uint32_t notifier_obj;
+
 		uint32_t intr_0, intr_1;
 		uint32_t intr_en_0, intr_en_1;
 
@@ -536,12 +539,8 @@ void
 riva128_pfifo_interrupt(int num, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
-
-	if(riva128->pfifo.intr_en & (1 << num))
-	{
-		riva128->pfifo.intr |= (1 << num);
-		riva128_pmc_recompute_intr(1, riva128);
-	}
+	riva128->pfifo.intr |= (1 << num);
+	riva128_pmc_recompute_intr(1, riva128);
 }
 
 //Apparently, PFIFO's CACHE1 uses some sort of Gray code... oh well
@@ -842,7 +841,7 @@ riva128_ptimer_interrupt(int num, void *p)
 	//nv_riva_log("RIVA 128 PTIMER interrupt #%d fired!\n", num);
 	riva128_t *riva128 = (riva128_t *)p;
 
-	if((riva128->pmc.intr_en & 1) && (riva128->pmc.enable & 0x10000)) riva128->ptimer.intr |= (1 << num);
+	riva128->ptimer.intr |= (1 << num);
 
 	riva128_pmc_recompute_intr(1, riva128);
 }
@@ -963,8 +962,8 @@ riva128_pgraph_interrupt(int num, void *p)
 	riva128_t *riva128 = (riva128_t *)p;
 
 	riva128->pgraph.intr_0 |= (1u << num);
-
-	if(riva128->pgraph.intr_en_0 & (1u << num)) riva128_pmc_recompute_intr(1, riva128);
+	
+	riva128_pmc_recompute_intr(1, riva128);
 }
 
 void
@@ -975,7 +974,7 @@ riva128_pgraph_invalid_interrupt(int num, void *p)
 	riva128->pgraph.intr_1 |= (1 << num);
 	if(riva128->pgraph.intr_en_0 & 1) riva128->pgraph.intr_0 |= (1 << 0);
 
-	if(riva128->pgraph.intr_en_0 & (1u << num)) riva128_pmc_recompute_intr(1, riva128);
+	if(riva128->pgraph.intr_en_1 & (1u << num)) riva128_pmc_recompute_intr(1, riva128);
 }
 
 uint32_t
@@ -1367,7 +1366,7 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 				{
 					riva128->pgraph.clipw = param & 0xffff;
 					riva128->pgraph.cliph = (param >> 16) & 0xffff;
-					uint16_t startx = riva128->pgraph.clipx_min;
+					/*uint16_t startx = riva128->pgraph.clipx_min;
 					uint16_t starty = riva128->pgraph.clipy_min;
 					uint16_t endx = riva128->pgraph.clipx_min + riva128->pgraph.clipw;
 					uint16_t endy = riva128->pgraph.clipy_min + riva128->pgraph.cliph;
@@ -1377,7 +1376,7 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 						{
 							riva128_pgraph_write_pixel(x, y, riva128->pgraph.chroma, 0xff, riva128);
 						}
-					}
+					}*/
 					break;
 				}
 			}
@@ -1436,7 +1435,13 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 			{
 				case 0x104:
 				{
-					riva128_pgraph_interrupt(28, riva128);
+					if(riva128->pgraph.notify_impending)
+					{
+						riva128_pgraph_invalid_interrupt(12, riva128);
+						break;
+					}
+					riva128->pgraph.notify_impending = 1;
+					riva128->pgraph.notifier_obj = param;
 					break;
 				}
 				case 0x3fc:
@@ -1464,7 +1469,13 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 			{
 				case 0x104:
 				{
-					riva128_pgraph_interrupt(28, riva128);
+					if(riva128->pgraph.notify_impending)
+					{
+						riva128_pgraph_invalid_interrupt(12, riva128);
+						break;
+					}
+					riva128->pgraph.notify_impending = 1;
+					riva128->pgraph.notifier_obj = param;
 					break;
 				}
 				case 0x308:
@@ -1487,7 +1498,7 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 				case 0x314:
 				{
 					riva128->pgraph.itm_offset = param;
-					uint16_t startx = riva128->pgraph.itm_vtx_x;
+					/*uint16_t startx = riva128->pgraph.itm_vtx_x;
 					uint16_t endx = startx + riva128->pgraph.itm_rect_w;
 					uint16_t starty = riva128->pgraph.itm_vtx_y;
 					uint16_t endy = starty + riva128->pgraph.itm_rect_h;
@@ -1499,7 +1510,7 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 							uint8_t itm_val = svga_readb_linear(offset, svga);
 							riva128_pgraph_write_pixel(x, y, itm_val, 0xff, riva128);
 						}
-					}
+					}*/
 					break;
 				}
 			}
@@ -1540,6 +1551,16 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 			}
 			break;
 		}
+	}
+
+	if(method != 0x104 && riva128->pgraph.notify_impending)
+	{
+		riva128->pgraph.notify_impending = 0;
+		uint64_t *vram_q = (uint64_t *)svga->vram;
+		uint32_t addr = riva128->pgraph.notifier_obj << 4;
+		vram_q[addr] = riva128->ptimer.time;
+		vram_q[addr + 8] = 0;
+		if(riva128->pgraph.notifier_obj == 1) riva128_pgraph_interrupt(28, riva128);
 	}
 }
 
@@ -1590,7 +1611,7 @@ riva128_do_cache0_puller(void *p)
 		method, param, chanid, subchanid);
 		if(method == 0)
 		{
-			int error = riva128_ramht_lookup(param, 0, chanid, 0, riva128);
+			int error = riva128_ramht_lookup(param, 0, chanid, subchanid, riva128);
 			if(error) return;
 
 			riva128->pfifo.caches[0].get ^= 4;
@@ -2239,7 +2260,7 @@ riva128_vblank_start(svga_t *svga)
 
 	riva128->pgraph.intr_0 |= (1u << 8);
 
-	if((riva128->pgraph.intr_en_0 & (1u << 8)) && (riva128->pmc.enable & (1u << 20))) riva128_pmc_recompute_intr(1, riva128);
+	riva128_pmc_recompute_intr(1, riva128);
 }
 
 static void
