@@ -96,8 +96,15 @@ jobs:
         cmake -S . -B build
         -G "Visual Studio 16 2019" -A ${{ matrix.target-arch }} -T ${{ matrix.toolset }}
         -D CMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
+        -D CPACK_GENERATOR=ZIP
         -D DEV_BRANCH=${{ matrix.dev-build }}
         -D NEW_DYNAREC=${{ matrix.new-dynarec }}
         -D VNC=OFF
     - name: Build
       run: cmake --build build --config ${{ env.BUILD_TYPE }}
+    - name: Package
+      run: cmake --build build --config ${{ env.BUILD_TYPE }} --target package
+    - uses: actions/upload-artifact@v2
+      with:
+        name: '86Box-VS2019-${{ matrix.toolset }}-${{ matrix.target-arch}}-${{ matrix.dev-build }}-${{ matrix.new-dynarec }}-${{ github.run_number }}'
+        path: build/*.zip
