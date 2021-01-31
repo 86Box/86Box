@@ -215,24 +215,6 @@ g_strv_length(gchar **str_array)
 }
 
 
-/* Implementation borrowed from GLib itself. */
-static gchar*
-g_strdup(const gchar *str)
-{
-    gchar *new_str;
-    gsize length;
-
-    if (str) {
-	length = strlen(str) + 1;
-	new_str = malloc(sizeof(char) * length);
-	memcpy(new_str, str, length);
-    } else
-	new_str = NULL;
-
-    return new_str;
-}
-
-
 /* Macros */
 
 #define tinyglib_pclog(f, s, ...) pclog("TinyGLib " f "(): " s "\n", ##__VA_ARGS__)
@@ -289,6 +271,7 @@ g_strdup(const gchar *str)
 #define g_rand_free free
 #define g_realloc realloc
 #define g_snprintf snprintf
+#define g_strdup(str) str ? strdup(str) : NULL
 #define g_strerror strerror
 #define g_strfreev free
 #define g_string_append_printf sprintf /* unimplemented */
