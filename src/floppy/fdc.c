@@ -2426,7 +2426,7 @@ const device_t fdc_at_nsc_device = {
 const device_t fdc_dp8473_device = {
     "NS DP8473 Floppy Drive Controller",
     0,
-    FDC_FLAG_NSDP,
+    FDC_FLAG_AT | FDC_FLAG_NSC,
     fdc_init,
     fdc_close, 
     fdc_reset,

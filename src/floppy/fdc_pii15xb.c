@@ -1,52 +1,63 @@
 /*
  * VARCem	Virtual ARchaeological Computer EMulator.
  *		An emulator of (mostly) x86-based PC systems and devices,
- *		using the ISA,EISA,VLB,MCA  and PCI system buses, roughly
+ *		using the ISA,EISA,VLB,MCA and PCI system buses, roughly
  *		spanning the era between 1981 and 1995.
  *
  *		This file is part of the VARCem Project.
  *
- *		Implementation of the DTK PII-151B and PII-158B cards.
+ *	  Implementation of the DTK MiniMicro series of Floppy Disk Controllers.
+ *    Original code from VARCem. Fully rewritten, fixed and improved for 86Box.
  *
- *		These are DP8473-based floppy controller ISA cards for XT
- *		class systems, and allow usage of standard and high-density
- *		drives on them. They have their own BIOS which takes over
- *		from the standard system BIOS.
- *
- * Author:	Fred N. van Kempen, <decwiz@yahoo.com>
+ * Author:	Fred N. van Kempen, <decwiz@yahoo.com>, 
+ *          Tiseno100
  *
  *		Copyright 2019 Fred N. van Kempen.
+ *      Copyright 2021 Tiseno100
  *
- *		Redistribution and  use  in source  and binary forms, with
- *		or  without modification, are permitted  provided that the
+ *		Redistribution and use in source and binary forms, with
+ *		or without modification, are permitted provided that the
  *		following conditions are met:
  *
  *		1. Redistributions of source code must retain the entire
- *		   above notice, this list of conditions and the following
- *		   disclaimer.
+ *		  above notice, this list of conditions and the following
+ *		  disclaimer.
  *
  *		2. Redistributions in binary form must reproduce the above
- *		   copyright  notice,  this list  of  conditions  and  the
- *		   following disclaimer in  the documentation and/or other
- *		   materials provided with the distribution.
+ *		  copyright notice, this list of conditions and the
+ *		  following disclaimer in the documentation and/or other
+ *		  materials provided with the distribution.
  *
- *		3. Neither the  name of the copyright holder nor the names
- *		   of  its  contributors may be used to endorse or promote
- *		   products  derived from  this  software without specific
- *		   prior written permission.
+ *		3. Neither the name of the copyright holder nor the names
+ *		  of its contributors may be used to endorse or promote
+ *		  products derived from this software without specific
+ *		  prior written permission.
  *
- * THIS SOFTWARE  IS  PROVIDED BY THE  COPYRIGHT  HOLDERS AND CONTRIBUTORS
- * "AS IS" AND  ANY EXPRESS  OR  IMPLIED  WARRANTIES,  INCLUDING, BUT  NOT
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+ * "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
  * LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
- * PARTICULAR PURPOSE  ARE  DISCLAIMED. IN  NO  EVENT  SHALL THE COPYRIGHT
- * HOLDER OR  CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
- * SPECIAL,  EXEMPLARY,  OR  CONSEQUENTIAL  DAMAGES  (INCLUDING,  BUT  NOT
- * LIMITED TO, PROCUREMENT OF SUBSTITUTE  GOODS OR SERVICES;  LOSS OF USE,
- * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED  AND ON  ANY
- * THEORY OF  LIABILITY, WHETHER IN  CONTRACT, STRICT  LIABILITY, OR  TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING  IN ANY  WAY OUT OF THE USE
+ * PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+ * HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+ * LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+ * DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+ * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
+/*
+Notes:
+VARCem uses the DP8473 for both floppy disk controllers. The statement though is wrong.
+
+MiniMicro 4 uses a Zilog Z0765A08PSC(Clone of the NEC 765)
+MiniMicro 1 uses a National Semiconductor DP8473(Clone of the NEC 765 with additional NSC commands)
+
+Issues:
+MiniMicro 4 WON'T WORK with XT machines. This statement has to be confirmed by someone with the real card itself.
+MiniMicro 4 also won't work with the XT FDC which the Zilog claims to be.
+*/
+
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -66,6 +77,7 @@
 #include <86box/fdc_ext.h>
 
 #define DTK_VARIANT ((info->local == 158) ? ROM_PII_158B : ROM_PII_151B)
+#define DTK_CHIP ((info->local == 158) ? &fdc_at_device : &fdc_dp8473_device)
 #define BIOS_ADDR (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
 #define ROM_PII_151B L"roms/floppy/dtk/pii-151b.rom"
 #define ROM_PII_158B L"roms/floppy/dtk/pii-158b.rom"
@@ -94,9 +106,9 @@ pii_init(const device_t *info)
     if (BIOS_ADDR != 0)
         rom_init(&dev->bios_rom, DTK_VARIANT, BIOS_ADDR, 0x2000, 0x1ffff, 0, MEM_MAPPING_EXTERNAL);
 
-    device_add(&fdc_at_device); /* Our DP8473 emulation is broken. If fixed this has to be changed! */
+    device_add(DTK_CHIP);
 
-    return (dev);
+    return dev;
 }
 
 static int pii_151b_available(void)

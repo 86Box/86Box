@@ -34,7 +34,6 @@ extern int fdc_type;
 #define FDC_FLAG_NSC		0x80	/* PC87306, PC87309 */
 #define FDC_FLAG_TOSHIBA	0x100	/* T1000, T1200 */
 #define FDC_FLAG_AMSTRAD	0x200	/* Non-AT Amstrad machines */
-#define FDC_FLAG_NSDP		0x400   /* DP8473N, DP8473V */
 
 
 typedef struct {
