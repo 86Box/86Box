@@ -94,6 +94,11 @@ else()
 	add_subdirectory(codegen)
 endif()
 
+install(TARGETS 86Box)
+if(VCPKG_TOOLCHAIN)
+	x_vcpkg_install_local_dependencies(TARGETS 86Box DESTINATION "bin")
+endif()
+
 add_subdirectory(device)
 add_subdirectory(disk)
 add_subdirectory(floppy)

@@ -28,6 +28,8 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(TargetArch)
 target_architecture(CMAKE_TARGET_ARCHITECTURES)
 
+include(CPack)
+
 include(CMakeDependentOption)
 
 add_compile_definitions(CMAKE)
