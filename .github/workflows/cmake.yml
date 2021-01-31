@@ -5,17 +5,19 @@ on:
   push:
     paths:
     - src/**
+    - "**/CMakeLists.txt"
     - .github/workflows/**
     - vcpkg.json
 
   pull_request:
     paths:
     - src/**
+    - "**/CMakeLists.txt"
     - .github/workflows/**
     - vcpkg.json
 
 env:
-  BUILD_TYPE: Release
+  BUILD_TYPE: RelWithDebInfo
 
 jobs:
   mingw:
@@ -56,14 +58,14 @@ jobs:
       run: >-
         cmake -S . -B build
         -G "MSYS Makefiles"
-        -D CMAKE_BUILD_TYPE=$BUILD_TYPE
+        -D CMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
         -D DEV_BRANCH=${{ matrix.dev-build }}
         -D NEW_DYNAREC=${{ matrix.new-dynarec }}
         -D VNC=OFF
     - name: Build
-      run: cmake --build build --config $BUILD_TYPE
+      run: cmake --build build
 
-  clang:
+  vs2019:
     name: VS2019 ${{ matrix.toolset }} ${{ matrix.target-arch }} build (DEV_BUILD=${{ matrix.dev-build }}, NEW_DYNAREC=${{ matrix.new-dynarec }})
 
     runs-on: windows-latest
@@ -74,7 +76,7 @@ jobs:
         dev-build: ['ON', 'OFF']
         new-dynarec: ['ON', 'OFF']
         target-arch: ['Win32', 'x64', 'ARM', 'ARM64']
-        toolset: ['clangcl', 'v141']
+        toolset: ['clangcl', 'v142']
         exclude:
           - target-arch: 'ARM'
             new-dynarec: 'OFF'
@@ -94,9 +96,8 @@ jobs:
         cmake -S . -B build
         -G "Visual Studio 16 2019" -A ${{ matrix.target-arch }} -T ${{ matrix.toolset }}
         -D CMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
-        -D CMAKE_BUILD_TYPE=$BUILD_TYPE
         -D DEV_BRANCH=${{ matrix.dev-build }}
         -D NEW_DYNAREC=${{ matrix.new-dynarec }}
         -D VNC=OFF
     - name: Build
-      run: cmake --build build --config $BUILD_TYPE
+      run: cmake --build build --config ${{ env.BUILD_TYPE }}
