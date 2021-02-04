@@ -15,8 +15,11 @@
 
 cmake_minimum_required(VERSION 3.16)
 
+cmake_policy(SET CMP0091 NEW)
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+
 project(86Box
-	VERSION 2.10
+	VERSION 3.0
 	DESCRIPTION "Emulator of x86-based systems"
 	HOMEPAGE_URL "https://86box.github.io/"
 	LANGUAGES C CXX)
@@ -24,6 +27,8 @@ project(86Box
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(TargetArch)
 target_architecture(CMAKE_TARGET_ARCHITECTURES)
+
+include(CPack)
 
 include(CMakeDependentOption)
 
