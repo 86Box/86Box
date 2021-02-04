@@ -2653,9 +2653,11 @@ void cpu_RDMSR()
                 {
                         case 0x1000:
                         EAX = ibm_por_msr & 0xfeff;
+                        break;
 			
                         case 0x1001:
                         EAX = ibm_crcr_msr & 0xffffffffff;			
+                        break;
                 }
                 break;
 		
@@ -2666,13 +2668,16 @@ void cpu_RDMSR()
                 {
                         case 0x1000:
                         EAX = ibm_por_msr & 0xffeff;
+                        break;
 			
                         case 0x1001:
                         EAX = ibm_crcr_msr & 0xffffffffff;
+                        break;
 			
                         if (cpu_s->multi) {
                         case 0x1002:
                         EAX = ibm_por2_msr & 0x3f000000;
+                        break;
                         }
                 }	
                 break;
