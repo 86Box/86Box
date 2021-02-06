@@ -278,8 +278,6 @@ extern const device_t	*at_flytech386_get_device(void);
 extern const device_t	*at_commodore_sl386sx25_get_device(void);
 extern const device_t	*at_spc4620p_get_device(void);
 extern const device_t	*at_spc6033p_get_device(void);
-extern const device_t	*at_ncr3302_get_device(void);
-extern const device_t	*at_m300_08_get_device(void);
 #endif
 
 /* m_at_386dx_486.c */

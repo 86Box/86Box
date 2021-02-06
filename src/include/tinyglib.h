@@ -271,7 +271,7 @@ g_strv_length(gchar **str_array)
 #define g_rand_free free
 #define g_realloc realloc
 #define g_snprintf snprintf
-#define g_strdup strdup
+#define g_strdup(str) str ? strdup(str) : NULL
 #define g_strerror strerror
 #define g_strfreev free
 #define g_string_append_printf sprintf /* unimplemented */

@@ -35,7 +35,6 @@
 #include <86box/rom.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
-#include <86box/fdc_ext.h>
 #include <86box/hdc.h>
 #include <86box/sio.h>
 #include <86box/serial.h>
@@ -476,7 +475,7 @@ machine_at_wd76c10_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
 
     device_add(&keyboard_ps2_quadtel_device);
 
@@ -673,9 +672,50 @@ machine_at_pja511m_init(const machine_t *model)
 }
 #endif
 
+
+
+static uint8_t
+m290_read(uint16_t port, void *priv)
+{
+    uint8_t ret = 0x0;
+    switch (port) {
+    /* 
+	 * port 69:
+	 * dip-switch bank on mainboard (off=1)
+	 * bit 3 - use OCG/CGA display adapter (off) / other display adapter (on)
+     */
+    case 0x69:
+        if(video_is_cga())
+            ret |= 0x8|0x4;
+        ret |= 0x1|0x2;
+    }
+    return (ret);
+}
+
+int
+machine_at_olim290_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear(L"roms/machines/olivetti_m290/m290_pep3_1.25.bin",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	    return ret;
+
+    machine_at_common_init(model);
+    device_add(&keyboard_at_device);
+    device_add(&fdc_at_device);
+    
+    io_sethandler(0x069, 1, m290_read, NULL, NULL, NULL, NULL, NULL, NULL);
+
+    return ret;
+}
+
+
 /*
  * Current bugs: 
- * - soft-reboot after saving CMOS settings/pressing ctrl-alt-del produces an 8042 error
+ * - ctrl-alt-del produces an 8042 error
  */
 int
 machine_at_ncrpc8_init(const machine_t *model)
@@ -691,23 +731,14 @@ machine_at_ncrpc8_init(const machine_t *model)
 
     machine_at_common_init(model);
     device_add(&keyboard_at_ncr_device);
-    mem_remap_top(384);
-
-    if (fdc_type == FDC_INTERNAL)	
-	    device_add(&fdc_at_device);
-
+    device_add(&fdc_at_device);
+    
     return ret;
-}
-
-const device_t *
-at_ncr3302_get_device(void)
-{
-    return &paradise_pvga1a_ncr3302_device;
 }
 
 /*
  * Current bugs: 
- * - soft-reboot after saving CMOS settings/pressing ctrl-alt-del produces an 8042 error
+ * - ctrl-alt-del produces an 8042 error
  */
 int
 machine_at_ncr3302_init(const machine_t *model)
@@ -728,12 +759,10 @@ machine_at_ncr3302_init(const machine_t *model)
     machine_at_common_ide_init(model);
     device_add(&neat_device);
     device_add(&keyboard_at_ncr_device);
-    
-    if (fdc_type == FDC_INTERNAL)	
-	    device_add(&fdc_at_device);
+    device_add(&fdc_at_device);
 
     if (gfxcard == VID_INTERNAL)
-    	device_add(&paradise_pvga1a_ncr3302_device);
+    	device_add(&paradise_pvga1a_device);
     
     return ret;
 }

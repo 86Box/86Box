@@ -29,11 +29,13 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
-#include <86box/keyboard.h>
+
+#include <86box/apm.h>
 #include <86box/mem.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/port_92.h>
+#include <86box/smram.h>
 #include <86box/chipset.h>
 
 #define disabled_shadow (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
@@ -45,122 +47,108 @@ ali1429_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (ali1429_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+    if (ali1429_do_log)
+    {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
     }
 }
 #else
 #define ali1429_log(fmt, ...)
 #endif
 
-
 typedef struct
 {
-    uint8_t	index, cfg_locked,
-	regs[256];
+    uint8_t index, cfg_locked,
+        regs[256];
+
+    smram_t *smram;
 } ali1429_t;
 
 static void ali1429_shadow_recalc(ali1429_t *dev)
 {
 
-uint32_t base, i, can_write, can_read;
+    uint32_t base, i, can_write, can_read;
 
-shadowbios = (dev->regs[0x13] & 0x40) && (dev->regs[0x14] & 0x01);
-shadowbios_write = (dev->regs[0x13] & 0x40) && (dev->regs[0x14] & 0x02);
+    shadowbios = (dev->regs[0x13] & 0x40) && (dev->regs[0x14] & 0x01);
+    shadowbios_write = (dev->regs[0x13] & 0x40) && (dev->regs[0x14] & 0x02);
 
-can_write = (dev->regs[0x14] & 0x02) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
-can_read = (dev->regs[0x14] & 0x01) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+    can_write = (dev->regs[0x14] & 0x02) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+    can_read = (dev->regs[0x14] & 0x01) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
 
-for(i = 0; i < 8; i++)
-{
-base = 0xc0000 + (i << 15);
+    for (i = 0; i < 8; i++)
+    {
+        base = 0xc0000 + (i << 15);
 
-if(dev->regs[0x13] & (1 << i))
-mem_set_mem_state_both(base, 0x8000, can_read | can_write);
-else
-mem_set_mem_state_both(base, 0x8000, disabled_shadow);
+        if (dev->regs[0x13] & (1 << i))
+            mem_set_mem_state_both(base, 0x8000, can_read | can_write);
+        else
+            mem_set_mem_state_both(base, 0x8000, disabled_shadow);
+    }
 
-}
-
-flushmmucache();
+    flushmmucache();
 }
 
 static void
 ali1429_write(uint16_t addr, uint8_t val, void *priv)
 {
-    ali1429_t *dev = (ali1429_t *) priv;
+    ali1429_t *dev = (ali1429_t *)priv;
 
-    switch (addr) {
-	case 0x22:
-		dev->index = val;
-		break;
-    
-	case 0x23:
+    switch (addr)
+    {
+    case 0x22:
+        dev->index = val;
+        break;
 
-        /* Don't log register unlock patterns */
-        if(dev->index != 0x03)
-        ali1429_log("M1429: dev->regs[%02x] = %02x\n", dev->index, val);
+    case 0x23:
+        if (dev->index != 0x03)
+            ali1429_log("M1429: dev->regs[%02x] = %02x\n", dev->index, val);
 
-        /* Unlock/Lock Registers */
-        if(dev->index == 0x03)
-        dev->cfg_locked = !(val == 0xc5);
+        if (dev->index == 0x03)
+            dev->cfg_locked = !(val == 0xc5);
 
-        if(!dev->cfg_locked)
+        if (!dev->cfg_locked)
         {
-        dev->regs[dev->index] = val;
+            dev->regs[dev->index] = val;
 
-        switch(dev->index){
-            /* Shadow RAM */
+            switch (dev->index)
+            {
             case 0x13:
             case 0x14:
-            ali1429_shadow_recalc(dev);
-            break;
+                ali1429_shadow_recalc(dev);
+                break;
 
-            /* Cache */
             case 0x18:
-            cpu_cache_ext_enabled = (val & 0x80);
-            break;
-        }
+                cpu_cache_ext_enabled = !!(val & 2);
+                cpu_update_waitstates();
+                break;
+            }
         }
 
-		break;
+        break;
     }
 }
-
 
 static uint8_t
 ali1429_read(uint16_t addr, void *priv)
 {
-    uint8_t ret = 0xff;
-    ali1429_t *dev = (ali1429_t *) priv;
-
-    switch (addr) {
-	case 0x23:
-        /* Do not conflict with Cyrix configuration registers */
-        if(!(((dev->index >= 0xc0) || (dev->index == 0x20)) && cpu_iscyrix))
-        ret = dev->regs[dev->index];
-        break;
-    }
-
-    return ret;
+    ali1429_t *dev = (ali1429_t *)priv;
+    return (addr == 0x23) ? dev->regs[dev->index] : 0xff;
 }
-
 
 static void
 ali1429_close(void *priv)
 {
-    ali1429_t *dev = (ali1429_t *) priv;
+    ali1429_t *dev = (ali1429_t *)priv;
 
     free(dev);
 }
 
-
 static void *
 ali1429_init(const device_t *info)
 {
-    ali1429_t *dev = (ali1429_t *) malloc(sizeof(ali1429_t));
+    ali1429_t *dev = (ali1429_t *)malloc(sizeof(ali1429_t));
     memset(dev, 0, sizeof(ali1429_t));
 
     /*
@@ -168,26 +156,25 @@ ali1429_init(const device_t *info)
     22h Index Port
     23h Data Port
     */
-    io_sethandler(0x022, 0x0001, ali1429_read, NULL, NULL, ali1429_write, NULL, NULL, dev);
-    io_sethandler(0x023, 0x0001, ali1429_read, NULL, NULL, ali1429_write, NULL, NULL, dev);
-    
+    io_sethandler(0x0022, 0x0002, ali1429_read, NULL, NULL, ali1429_write, NULL, NULL, dev);
+
     dev->cfg_locked = 1;
 
+    device_add(&apm_device);
     device_add(&port_92_device);
-
-    dev->regs[0x13] = 0x00;
-    dev->regs[0x14] = 0x00;
-    ali1429_shadow_recalc(dev);
+    /* dev->smram = smram_add(); */
 
     return dev;
 }
-
 
 const device_t ali1429_device = {
     "ALi M1429",
     0,
     0,
-    ali1429_init, ali1429_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
-};
+    ali1429_init,
+    ali1429_close,
+    NULL,
+    {NULL},
+    NULL,
+    NULL,
+    NULL};

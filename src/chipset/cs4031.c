@@ -12,7 +12,7 @@
  *
  *      Authors: Tiseno100
  *
- *		Copyright 2020 Tiseno100
+ *		Copyright 2021 Tiseno100
  *
  */
 
@@ -28,19 +28,15 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
-#include <86box/keyboard.h>
 #include <86box/mem.h>
-#include <86box/fdd.h>
-#include <86box/fdc.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
-
 typedef struct
 {
-    uint8_t	index,
-	regs[256];
-    port_92_t * port_92;
+    uint8_t index,
+        regs[256];
+    port_92_t *port_92;
 } cs4031_t;
 
 #ifdef ENABLE_CS4031_LOG
@@ -50,10 +46,11 @@ cs4031_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (cs4031_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+    if (cs4031_do_log)
+    {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
     }
 }
 #else
@@ -62,139 +59,130 @@ cs4031_log(const char *fmt, ...)
 
 static void cs4031_shadow_recalc(cs4031_t *dev)
 {
+    mem_set_mem_state_both(0xa0000, 0x10000, (dev->regs[0x18] & 0x01) ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
+    mem_set_mem_state_both(0xb0000, 0x10000, (dev->regs[0x18] & 0x02) ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
 
-uint32_t romc0000, romc4000, romc8000, romcc000, romd0000, rome0000, romf0000;
-
-/* Register 18h */
-if(dev->regs[0x18] & 0x01)
-mem_set_mem_state_both(0xa0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-else
-mem_set_mem_state_both(0xa0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-
-if(dev->regs[0x18] & 0x02)
-mem_set_mem_state_both(0xb0000, 0x10000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-else
-mem_set_mem_state_both(0xb0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-
-
-/* Register 19h-1ah-1bh*/
-
-shadowbios = (dev->regs[0x19] & 0x40);
-shadowbios_write = (dev->regs[0x1a] & 0x40);
-
-/* ROMCS only functions if shadow write is disabled */
-romc0000 = ((dev->regs[0x1b] & 0x80) && (dev->regs[0x1b] & 0x01)) ? MEM_WRITE_DISABLED : MEM_WRITE_EXTANY;
-romc4000 = ((dev->regs[0x1b] & 0x80) && (dev->regs[0x1b] & 0x02)) ? MEM_WRITE_DISABLED : MEM_WRITE_EXTANY;
-romc8000 = ((dev->regs[0x1b] & 0x80) && (dev->regs[0x1b] & 0x04)) ? MEM_WRITE_DISABLED : MEM_WRITE_EXTANY;
-romcc000 = ((dev->regs[0x1b] & 0x80) && (dev->regs[0x1b] & 0x08)) ? MEM_WRITE_DISABLED : MEM_WRITE_EXTANY;
-romd0000 = ((dev->regs[0x1b] & 0x80) && (dev->regs[0x1b] & 0x10)) ? MEM_WRITE_DISABLED : MEM_WRITE_EXTANY;
-rome0000 = ((dev->regs[0x1b] & 0x80) && (dev->regs[0x1b] & 0x20)) ? MEM_WRITE_DISABLED : MEM_WRITE_EXTANY;
-romf0000 = ((dev->regs[0x1b] & 0x80) && (dev->regs[0x1b] & 0x40)) ? MEM_WRITE_DISABLED : MEM_WRITE_EXTANY;
-
-
-mem_set_mem_state_both(0xc0000, 0x4000, ((dev->regs[0x19] & 0x01) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x1a] & 0x01) ? MEM_WRITE_INTERNAL : romc0000));
-mem_set_mem_state_both(0xc4000, 0x4000, ((dev->regs[0x19] & 0x02) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x1a] & 0x02) ? MEM_WRITE_INTERNAL : romc4000));
-mem_set_mem_state_both(0xc8000, 0x4000, ((dev->regs[0x19] & 0x04) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x1a] & 0x04) ? MEM_WRITE_INTERNAL : romc8000));
-mem_set_mem_state_both(0xcc000, 0x4000, ((dev->regs[0x19] & 0x08) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x1a] & 0x08) ? MEM_WRITE_INTERNAL : romcc000));
-mem_set_mem_state_both(0xd0000, 0x10000, ((dev->regs[0x19] & 0x10) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x1a] & 0x10) ? MEM_WRITE_INTERNAL : romd0000));
-mem_set_mem_state_both(0xe0000, 0x10000, ((dev->regs[0x19] & 0x20) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x1a] & 0x20) ? MEM_WRITE_INTERNAL : rome0000));
-mem_set_mem_state_both(0xf0000, 0x10000, ((dev->regs[0x19] & 0x40) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x1a] & 0x40) ? MEM_WRITE_INTERNAL : romf0000));
-
-
+    for (uint32_t i = 0; i < 7; i++)
+    {
+        if (i < 4)
+            mem_set_mem_state_both(0xc0000 + (i << 14), 0x4000, ((dev->regs[0x19] & (1 << i)) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x1a] & (1 << i)) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
+        else
+            mem_set_mem_state_both(0xd0000 + ((i - 4) << 16), 0x10000, ((dev->regs[0x19] & (1 << i)) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x1a] & (1 << i)) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
+    }
+    shadowbios = !!(dev->regs[0x19] & 0x40);
+    shadowbios_write = !!(dev->regs[0x1a] & 0x40);
 }
 
 static void
 cs4031_write(uint16_t addr, uint8_t val, void *priv)
 {
-    cs4031_t *dev = (cs4031_t *) priv;
+    cs4031_t *dev = (cs4031_t *)priv;
 
-    switch (addr) {
-	case 0x22:
-		dev->index = val;
-		break;
-	case 0x23:
+    switch (addr)
+    {
+    case 0x22:
+        dev->index = val;
+        break;
+    case 0x23:
         cs4031_log("CS4031: dev->regs[%02x] = %02x\n", dev->index, val);
-		dev->regs[dev->index] = val;
-
-        switch(dev->index){
-            case 0x06:
-            cpu_update_waitstates();
+        switch (dev->index)
+        {
+        case 0x05:
+            dev->regs[dev->index] = val & 0x3f;
             break;
 
-            case 0x18:
-            case 0x19:
-            case 0x1a:
-            case 0x1b:
+        case 0x06:
+            dev->regs[dev->index] = val & 0xbc;
+            break;
+
+        case 0x07:
+            dev->regs[dev->index] = val & 0x0f;
+            break;
+
+        case 0x10:
+            dev->regs[dev->index] = val & 0x3d;
+            break;
+
+        case 0x11:
+            dev->regs[dev->index] = val & 0x8d;
+            break;
+
+        case 0x12:
+        case 0x13:
+            dev->regs[dev->index] = val & 0x8d;
+            break;
+
+        case 0x14:
+        case 0x15:
+        case 0x16:
+        case 0x17:
+            dev->regs[dev->index] = val & 0x7f;
+            break;
+
+        case 0x18:
+            dev->regs[dev->index] = val & 0xf3;
             cs4031_shadow_recalc(dev);
             break;
 
-            case 0x1c:
-
-            if(dev->regs[0x1c] & 0x20)
-            port_92_add(dev->port_92);
-            else
-            port_92_remove(dev->port_92);
-
+        case 0x19:
+        case 0x1a:
+            dev->regs[dev->index] = val & 0x7f;
+            cs4031_shadow_recalc(dev);
             break;
-            
+
+        case 0x1b:
+            dev->regs[dev->index] = val;
+            break;
+
+        case 0x1c:
+            dev->regs[dev->index] = val & 0xb3;
+            port_92_set_features(dev->port_92, val & 0x10, val & 0x20);
+            break;
         }
-		break;
+        break;
     }
 }
-
 
 static uint8_t
 cs4031_read(uint16_t addr, void *priv)
 {
-    uint8_t ret = 0xff;
-    cs4031_t *dev = (cs4031_t *) priv;
+    cs4031_t *dev = (cs4031_t *)priv;
 
-    switch (addr) {
-	case 0x23:
-		ret = dev->regs[dev->index];
-		break;
-    }
-
-    return ret;
+    return (addr == 0x23) ? dev->regs[dev->index] : 0xff;
 }
-
 
 static void
 cs4031_close(void *priv)
 {
-    cs4031_t *dev = (cs4031_t *) priv;
+    cs4031_t *dev = (cs4031_t *)priv;
 
     free(dev);
 }
 
-
 static void *
 cs4031_init(const device_t *info)
 {
-    cs4031_t *dev = (cs4031_t *) malloc(sizeof(cs4031_t));
+    cs4031_t *dev = (cs4031_t *)malloc(sizeof(cs4031_t));
     memset(dev, 0, sizeof(cs4031_t));
 
     dev->port_92 = device_add(&port_92_device);
 
-    io_sethandler(0x022, 0x0001, cs4031_read, NULL, NULL, cs4031_write, NULL, NULL, dev);
-    io_sethandler(0x023, 0x0001, cs4031_read, NULL, NULL, cs4031_write, NULL, NULL, dev);
-
     dev->regs[0x05] = 0x05;
-    dev->regs[0x18] = 0x00;
-    dev->regs[0x19] = 0x00;
-    dev->regs[0x1a] = 0x00;
     dev->regs[0x1b] = 0x60;
-    cs4031_shadow_recalc(dev);
-    
+
+    io_sethandler(0x0022, 0x0002, cs4031_read, NULL, NULL, cs4031_write, NULL, NULL, dev);
+
     return dev;
 }
-
 
 const device_t cs4031_device = {
     "Chips & Technogies CS4031",
     0,
     0,
-    cs4031_init, cs4031_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
-};
+    cs4031_init,
+    cs4031_close,
+    NULL,
+    {NULL},
+    NULL,
+    NULL,
+    NULL};

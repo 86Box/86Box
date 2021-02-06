@@ -5,17 +5,19 @@ on:
   push:
     paths:
     - src/**
+    - "**/CMakeLists.txt"
     - .github/workflows/**
     - vcpkg.json
 
   pull_request:
     paths:
     - src/**
+    - "**/CMakeLists.txt"
     - .github/workflows/**
     - vcpkg.json
 
 env:
-  BUILD_TYPE: Release
+  BUILD_TYPE: RelWithDebInfo
 
 jobs:
   mingw:
@@ -56,30 +58,39 @@ jobs:
       run: >-
         cmake -S . -B build
         -G "MSYS Makefiles"
-        -D CMAKE_BUILD_TYPE=$BUILD_TYPE
+        -D CMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
         -D DEV_BRANCH=${{ matrix.dev-build }}
         -D NEW_DYNAREC=${{ matrix.new-dynarec }}
         -D VNC=OFF
     - name: Build
-      run: cmake --build build --config $BUILD_TYPE
+      run: cmake --build build
 
-  clang:
-    name: VS2019 ${{ matrix.toolset }} ${{ matrix.target-arch }} build (DEV_BUILD=${{ matrix.dev-build }}, NEW_DYNAREC=${{ matrix.new-dynarec }})
+  vs2019:
+    name: VS2019 ${{ matrix.build.name }} ${{ matrix.target-arch }} build (${{ matrix.toolset }})
 
     runs-on: windows-latest
 
     strategy:
       fail-fast: false
       matrix:
-        dev-build: ['ON', 'OFF']
-        new-dynarec: ['ON', 'OFF']
+        build:
+        - name: Regular
+          dev-build: off
+          new-dynarec: off
+          type: Debug
+        - name: Dev
+          dev-build: on
+          new-dynarec: on
+          type: Debug
         target-arch: ['Win32', 'x64', 'ARM', 'ARM64']
-        toolset: ['clangcl', 'v141']
+        toolset: ['clangcl', 'v142']
         exclude:
           - target-arch: 'ARM'
-            new-dynarec: 'OFF'
+            build:
+              new-dynarec: off
           - target-arch: 'ARM64'
-            new-dynarec: 'OFF'
+            build:
+              new-dynarec: off
           - target-arch: 'ARM'
             toolset: 'clangcl'
 
@@ -94,9 +105,13 @@ jobs:
         cmake -S . -B build
         -G "Visual Studio 16 2019" -A ${{ matrix.target-arch }} -T ${{ matrix.toolset }}
         -D CMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
-        -D CMAKE_BUILD_TYPE=$BUILD_TYPE
-        -D DEV_BRANCH=${{ matrix.dev-build }}
-        -D NEW_DYNAREC=${{ matrix.new-dynarec }}
+        -D CMAKE_INSTALL_PREFIX=${{ github.workspace }}/build/artifacts
+        -D DEV_BRANCH=${{ matrix.build.dev-build }}
+        -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
         -D VNC=OFF
     - name: Build
-      run: cmake --build build --config $BUILD_TYPE
+      run: cmake --build build --config ${{ matrix.build.type }} --target install
+    - uses: actions/upload-artifact@v2
+      with:
+        name: '86Box-VS2019-${{ matrix.build.name }}-${{ matrix.target-arch }}-${{ matrix.toolset }}-${{ github.sha }}'
+        path: build/artifacts/bin/**

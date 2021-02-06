@@ -210,7 +210,7 @@ memory_pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 		dev->pci_conf[addr] = val & 0xec;
 		break;
 
-	case 0x51: /* Cache */
+	case 0x51: /* L2 Cache */
 		dev->pci_conf[addr] = val;
 		cpu_cache_ext_enabled = !!(val & 0x40);
 		cpu_update_waitstates();
@@ -263,7 +263,7 @@ memory_pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 
 	case 0x83:
 		dev->pci_conf[addr] = val;
-		port_92_set_features(dev->port_92, (val & 0x40), (val & 0x80));
+		port_92_set_features(dev->port_92, !!(val & 0x40), !!(val & 0x80));
 		break;
 
 	case 0x87:
@@ -272,7 +272,9 @@ memory_pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 
 	case 0x93: /* APM SMI */
 		dev->pci_conf[addr] = val;
-		apm_set_do_smi(dev->apm, ((dev->pci_conf[0x9b] & 0x01) && (val & 0x02)));
+		apm_set_do_smi(dev->apm, !!((dev->pci_conf[0x9b] & 0x01) && (val & 0x02)));
+		if (val & 0x02)
+			dev->pci_conf[0x9d] |= 1;
 		break;
 
 	case 0x94:
@@ -326,7 +328,7 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 		case 0x43:
 		case 0x44:
 			dev->pci_conf_sb[0][addr] = val & 0x8f;
-			pci_set_irq_routing(PCI_INTA + (val & 0x07), !(val & 0x80) ? (val & 0x0f) : PCI_IRQ_DISABLED);
+			pci_set_irq_routing((addr & 0x07), !(val & 0x80) ? (val & 0x0f) : PCI_IRQ_DISABLED);
 			break;
 
 		case 0x45:
@@ -415,7 +417,7 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 		}
 		sis_5571_log("IDE Controller: dev->pci_conf[%02x] = %02x\n", addr, val);
 
-		if ((addr == 0x09) || ((addr >= 0x10) && (addr <= 0x23)) || (addr == 0x4a))
+		if (((addr >= 0x09) && (addr <= 0x23)) || (addr == 0x4a))
 			sis_5571_ide_handler(dev);
 		break;
 
@@ -593,7 +595,6 @@ sis_5571_init(const device_t *info)
 
 	pci_add_card(PCI_ADD_NORTHBRIDGE, memory_pci_bridge_read, memory_pci_bridge_write, dev);
 	dev->sb_pci_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, pci_isa_bridge_read, pci_isa_bridge_write, dev);
-	pci_enable_mirq(1);
 
 	/* APM */
 	dev->apm = device_add(&apm_pci_device);
@@ -601,15 +602,18 @@ sis_5571_init(const device_t *info)
 	/* DMA */
 	dma_alias_set();
 
+	/* MIRQ */
+	pci_enable_mirq(0);
+
+	/* Port 92 & SMRAM */
+	dev->port_92 = device_add(&port_92_pci_device);
+	dev->smram = smram_add();
+
 	/* SFF IDE */
 	dev->bm[0] = device_add_inst(&sff8038i_device, 1);
 	dev->bm[1] = device_add_inst(&sff8038i_device, 2);
 	dev->program_status_pri = 0;
 	dev->program_status_sec = 0;
-
-	/* Port 92 & SMRAM */
-	dev->port_92 = device_add(&port_92_pci_device);
-	dev->smram = smram_add();
 
 	/* USB */
 	dev->usb = device_add(&usb_device);
