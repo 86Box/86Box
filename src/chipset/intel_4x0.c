@@ -939,6 +939,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				regs[0x7c] = val & 0x1f;
 				break;
 		}
+		break;
 	case 0x7d:
 		switch (dev->type) {
 			case INTEL_420TX: case INTEL_420ZX:
@@ -946,6 +947,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				regs[0x7d] = val & 0x32;
 				break;
 		}
+		break;
 	case 0x7e: case 0x7f:
 		switch (dev->type) {
 			case INTEL_420TX: case INTEL_420ZX:
@@ -953,6 +955,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				regs[addr] = val;
 				break;
 		}
+		break;
 	case 0x80:
 		switch (dev->type) {
 			case INTEL_440BX: case INTEL_440ZX:

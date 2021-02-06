@@ -767,6 +767,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 						svga->seqregs[svga->seqaddr] &= 0x0f;
 					if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5429)
 						svga->set_reset_disabled = svga->seqregs[7] & 1;
+					break;
 				case 0x17:
 					if (gd54xx_is_5422(svga))
 						gd543x_recalc_mapping(gd54xx);
