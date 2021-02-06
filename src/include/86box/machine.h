@@ -255,9 +255,6 @@ extern int	machine_at_spc4620p_init(const machine_t *);
 extern int	machine_at_kmxc02_init(const machine_t *);
 extern int	machine_at_deskmaster286_init(const machine_t *);
 
-extern int	machine_at_olim290_init(const machine_t *);
-extern int	machine_at_olim290s_init(const machine_t *);
-
 extern int	machine_at_ncrpc8_init(const machine_t *);
 extern int	machine_at_ncr3302_init(const machine_t *);
 
@@ -268,13 +265,6 @@ extern int	machine_at_commodore_sl386sx25_init(const machine_t *);
 extern int	machine_at_spc6033p_init(const machine_t *);
 extern int	machine_at_wd76c10_init(const machine_t *);
 extern int	machine_at_flytech386_init(const machine_t *);
-
-extern int  machine_at_olim300_05_init(const machine_t *);
-extern int  machine_at_olim300_10_init(const machine_t *);
-extern int  machine_at_olim300_08_init(const machine_t *);
-extern int  machine_at_olim300_15_init(const machine_t *);
-
-extern int  machine_at_ncrpc916sx_init(const machine_t *);
 
 extern int	machine_at_awardsx_init(const machine_t *);
 #if defined(DEV_BRANCH) && defined(USE_M6117)
@@ -643,6 +633,9 @@ extern int	machine_xt_laserxt_init(const machine_t *);
 extern int	machine_xt_lxt3_init(const machine_t *);
 #endif
 
+/* m_xt_philips.c */
+extern int	machine_xt_p3105_init(const machine_t *);
+extern int	machine_xt_p3120_init(const machine_t *);
 /* m_xt_t1000.c */
 extern int	machine_xt_t1000_init(const machine_t *);
 extern int	machine_xt_t1200_init(const machine_t *);
