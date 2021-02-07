@@ -56,7 +56,7 @@ b215_init(const device_t *info)
 
     rom_init(&dev->rom, ROM_B215, ROM_ADDR, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 
-    device_add(&fdc_at_device);
+    device_add(&fdc_xt_device);
 
     return dev;
 }

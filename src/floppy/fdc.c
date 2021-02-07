@@ -2326,7 +2326,7 @@ fdc_3f1_enable(fdc_t *fdc, int enable)
 const device_t fdc_xt_device = {
     "PC/XT Floppy Drive Controller",
     0,
-    0,
+    FDC_FLAG_AT,
     fdc_init,
     fdc_close,
     fdc_reset,

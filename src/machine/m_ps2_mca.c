@@ -57,6 +57,7 @@
 #include <86box/device.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/nvr.h>
 #include <86box/nvr_ps2.h>
 #include <86box/keyboard.h>
@@ -1259,6 +1260,8 @@ static void
 machine_ps2_common_init(const machine_t *model)
 {
         machine_common_init(model);
+
+        if (fdc_type == FDC_INTERNAL)
 	device_add(&fdc_at_device);
 
         dma16_init();

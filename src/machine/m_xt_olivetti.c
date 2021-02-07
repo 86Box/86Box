@@ -724,6 +724,8 @@ machine_xt_olim24_init(const machine_t *model)
     memset(m24_kbd, 0x00, sizeof(olim24_kbd_t));
 
     machine_common_init(model);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_xt_device);
 
     /* Address 66-67 = mainboard dip-switch settings */
@@ -809,6 +811,8 @@ machine_xt_olim19_init(const machine_t *model)
     memset(vid, 0x00, sizeof(olim19_vid_t));
 	
     machine_common_init(model);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_xt_device);
 
     m19_vid_init(vid);

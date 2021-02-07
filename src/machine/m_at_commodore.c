@@ -45,6 +45,7 @@
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/mem.h>
+#include <86box/fdc_ext.h>
 #include <86box/lpt.h>
 #include <86box/rom.h>
 #include <86box/serial.h>
@@ -108,7 +109,9 @@ machine_at_cmdpc_init(const machine_t *model)
 
     mem_remap_top(384);
 
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
+
     cmd_uart = device_add(&i8250_device);
 
     cbm_io_init();
