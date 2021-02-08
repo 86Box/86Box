@@ -2212,7 +2212,7 @@ fdc_remove(fdc_t *fdc)
 		io_removehandler(fdc->base_address + 0x0002, 0x0001, NULL, NULL, NULL, fdc_write, NULL, NULL, fdc);
 		io_removehandler(fdc->base_address + 0x0004, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
 		io_removehandler(fdc->base_address + 0x0005, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
-		if (fdc->flags & FDC_FLAG_TOSHIBA)
+		if ((fdc->flags & FDC_FLAG_TOSHIBA) || (fdc->flags & FDC_FLAG_UMC))
 			io_removehandler(fdc->base_address + 0x0007, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
 	}
     }
