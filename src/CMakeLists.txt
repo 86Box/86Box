@@ -44,10 +44,6 @@ if(VNC)
 	target_link_libraries(86Box vnc vncserver ws2_32)
 endif()
 
-if(STPC)
-	add_compile_definitions(USE_STPC)
-endif()
-
 target_link_libraries(86Box cpu chipset mch dev mem fdd game cdrom zip mo hdd
 	net print scsi sio snd vid plat ui)
 

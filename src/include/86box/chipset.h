@@ -106,14 +106,12 @@ extern const device_t	sis_5571_device;
 #endif
 
 /* ST */
-#if defined(DEV_BRANCH) && defined(USE_STPC)
 extern const device_t	stpc_client_device;
 extern const device_t	stpc_consumer2_device;
 extern const device_t	stpc_elite_device;
 extern const device_t	stpc_atlas_device;
 extern const device_t	stpc_serial_device;
 extern const device_t	stpc_lpt_device;
-#endif
 
 /* VIA */
 extern const device_t   via_vt82c49x_device;

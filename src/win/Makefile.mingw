@@ -75,9 +75,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef SIO_DETECT
   SIO_DETECT	:= y
  endif
- ifndef STPC
-  STPC		:= y
- endif
  ifndef M1489
   M1489		:= y
  endif
@@ -150,9 +147,6 @@ else
  endif
  ifndef SIO_DETECT
   SIO_DETECT	:= n
- endif
- ifndef STPC
-  STPC		:= y
  endif
  ifndef M1489
   M1489		:= n
@@ -547,11 +541,6 @@ endif
 ifeq ($(SIO_DETECT), y)
 OPTS		+= -DUSE_SIO_DETECT
 DEVBROBJ	+= sio_detect.o
-endif
-
-ifeq ($(STPC), y)
-OPTS		+= -DUSE_STPC
-DEVBROBJ	+= stpc.o
 endif
 
 ifeq ($(M1489), y)
