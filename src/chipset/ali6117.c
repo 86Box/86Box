@@ -48,7 +48,7 @@ typedef struct ali6117_t
     uint8_t	regs[256];
 } ali6117_t;
 
-#define ENABLE_ALI6117_LOG 1
+
 #ifdef ENABLE_ALI6117_LOG
 int ali6117_do_log = ENABLE_ALI6117_LOG;
 
