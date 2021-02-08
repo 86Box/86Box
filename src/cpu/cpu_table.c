@@ -461,6 +461,7 @@ const cpu_family_t cpu_families[] = {
 		{"25",            CPU_Cx486S,    fpus_486sx,   25000000, 1.0, 5000,  0x420,      0, 0x0010, CPU_SUPPORTS_DYNAREC,  4, 4, 3, 3,  3},
 		{"33",            CPU_Cx486S,    fpus_486sx,   33333333, 1.0, 5000,  0x420,      0, 0x0010, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3,  4},
 		{"40",            CPU_Cx486S,    fpus_486sx,   40000000, 1.0, 5000,  0x420,      0, 0x0010, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3,  5},
+		{"", 0}
 	}
     }, {
 	.package = CPU_PKG_SOCKET1,
