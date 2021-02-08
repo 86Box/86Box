@@ -522,8 +522,6 @@ load_machine(void)
 		machine = machine_get_machine_from_internal_name("pcspirit");
 	else if (! strcmp(p, "multitech_pc700")) /*migrate legacy name */
 		machine = machine_get_machine_from_internal_name("pc700");
-	else if (! strcmp(p, "eagle_pcspirit")) /* migrate legacy name */
-		machine = machine_get_machine_from_internal_name("pcspirit");
 	else if (! strcmp(p, "ncr_pc4i")) /* migrate legacy name */
 		machine = machine_get_machine_from_internal_name("pc4i");
 	else if (! strcmp(p, "olivetti_m19")) /* migrate legacy name */
