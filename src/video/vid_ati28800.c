@@ -265,6 +265,7 @@ ati28800k_out(uint16_t addr, uint8_t val, void *p)
 			}
 			break;
 		}
+		break;
 	default:
 		ati28800_out(oldaddr, val, p);
 		break;

@@ -70,4 +70,16 @@ CMAKE_DEPENDENT_OPTION(XL24 "ATI VGA Wonder XL24 (ATI-28800-6)" ON "DEV_BRANCH" 
 CMAKE_DEPENDENT_OPTION(VECT486VL "HP Vectra 486VL" ON "DEV_BRANCH" OFF)
 CMAKE_DEPENDENT_OPTION(DELLS4 "Dell Dimension XPS P60; Dell OptiPlex 560/L" ON "DEV_BRANCH" OFF)
 
+# HACK: Avoid a MSVC2019 compiler bug on ARM64 Debug builds
+if(MSVC_TOOLSET_VERSION GREATER_EQUAL 142 AND CMAKE_TARGET_ARCHITECTURES STREQUAL "armv8")
+	# Define a cache option in case somebody wants to disable this workaround
+	set(AVOID_LNK1322 ON CACHE BOOL "Prevent LNK1322 on MSVC2019 ARM64 debug builds")
+
+	if(AVOID_LNK1322)
+		message(STATUS "Working around LNK1322 (#1268)")
+		set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /Gy")
+		set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Gy")
+	endif()
+endif()
+
 add_subdirectory(src)

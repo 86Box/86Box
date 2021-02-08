@@ -1071,6 +1071,7 @@ void voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
                         }
                         break;
                 }
+                break;
                 case SST_nccTable0_I2:
                 if (!(val & (1 << 31)))
                 {
@@ -1086,6 +1087,7 @@ void voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
                         }
                         break;
                 }
+                break;
                 case SST_nccTable0_Q0:
                 if (!(val & (1 << 31)))
                 {
@@ -1101,6 +1103,7 @@ void voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
                         }
                         break;
                 }
+                break;
                 case SST_nccTable0_Q2:
                 if (!(val & (1 << 31)))
                 {
@@ -1147,6 +1150,7 @@ void voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
                         }
                         break;
                 }
+                break;
                 case SST_nccTable0_I3:
                 if (!(val & (1 << 31)))
                 {
@@ -1162,6 +1166,7 @@ void voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
                         }
                         break;
                 }
+                break;
                 case SST_nccTable0_Q1:
                 if (!(val & (1 << 31)))
                 {
@@ -1177,6 +1182,7 @@ void voodoo_reg_writel(uint32_t addr, uint32_t val, void *p)
                         }
                         break;
                 }
+                break;
                 case SST_nccTable0_Q3:
                 if (!(val & (1 << 31)))
                 {
