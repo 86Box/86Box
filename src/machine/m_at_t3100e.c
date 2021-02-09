@@ -163,6 +163,7 @@
 #include "cpu.h"
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/machine.h>
 #include <86box/m_at_t3100e.h>
 
@@ -761,8 +762,12 @@ int machine_at_t3100e_init(const machine_t *model)
         machine_at_common_ide_init(model);
 
 	device_add(&keyboard_at_toshiba_device);
-	device_add(&fdc_at_device);
 
+    if (fdc_type == FDC_INTERNAL)
+	{
+	device_add(&fdc_at_device);
+	}
+	
 	/* Hook up system control port */
 	io_sethandler(0x8084, 0x0001, 
 			t3100e_sys_in, NULL, NULL,
