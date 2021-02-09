@@ -1016,7 +1016,6 @@ machine_at_win486pci_init(const machine_t *model)
 #endif
 
 
-#if defined(DEV_BRANCH) && defined(USE_STPC)
 int
 machine_at_itoxstar_init(const machine_t *model)
 {
@@ -1131,4 +1130,3 @@ machine_at_pcm5330_init(const machine_t *model)
 
     return ret;
 }
-#endif

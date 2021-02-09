@@ -518,6 +518,32 @@ load_machine(void)
     if (p != NULL) {
 	if (! strcmp(p, "8500ttc")) /* fix typo */
 		machine = machine_get_machine_from_internal_name("8600ttc");
+	else if (! strcmp(p, "eagle_pcspirit")) /* migrate legacy name */
+		machine = machine_get_machine_from_internal_name("pcspirit");
+	else if (! strcmp(p, "multitech_pc700")) /*migrate legacy name */
+		machine = machine_get_machine_from_internal_name("pc700");
+	else if (! strcmp(p, "ncr_pc4i")) /* migrate legacy name */
+		machine = machine_get_machine_from_internal_name("pc4i");
+	else if (! strcmp(p, "olivetti_m19")) /* migrate legacy name */
+		machine = machine_get_machine_from_internal_name("m19");
+	else if (! strcmp(p, "open_xt")) /* migrate legacy name */
+		machine = machine_get_machine_from_internal_name("openxt");
+	else if (! strcmp(p, "philips_p3105")) /* migrate legacy name */
+		machine = machine_get_machine_from_internal_name("p3105");
+	else if (! strcmp(p, "philips_p3120")) /* migrate legacy name */
+		machine = machine_get_machine_from_internal_name("p3120");
+	else if (! strcmp(p, "olivetti_m24")) /* migrate legacy name */
+		machine = machine_get_machine_from_internal_name("m24");
+	else if (! strcmp(p, "olivetti_m240")) /* migrate legacy name */
+		machine = machine_get_machine_from_internal_name("m240");
+	else if (! strcmp(p, "ncr_pc8")) /* migrate legacy name */
+		machine = machine_get_machine_from_internal_name("pc8");
+	else if (! strcmp(p, "olivetti_m290")) /* migrate legacy name */
+		machine = machine_get_machine_from_internal_name("m290");
+	else if (! strcmp(p, "cbm_sl386sx16")) /* migrate legacy name */
+		machine = machine_get_machine_from_internal_name("cmdsl386sx16");
+	else if (! strcmp(p, "cbm_sl386sx25")) /* migrate legacy name */
+		machine = machine_get_machine_from_internal_name("cmdsl386sx25");
 	else if (! strcmp(p, "president")) /* migrate removed machine */
 		machine = machine_get_machine_from_internal_name("mb500n");
 	else if (! strcmp(p, "j656vxd")) /* migrate removed machine */
