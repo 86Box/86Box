@@ -90,6 +90,12 @@ else()
 	add_subdirectory(codegen)
 endif()
 
+if(MINITRACE)
+    add_compile_definitions(MTR_ENABLED)
+    add_library(minitrace OBJECT minitrace/minitrace.c)
+    target_link_libraries(86Box minitrace)
+endif()
+
 install(TARGETS 86Box)
 if(VCPKG_TOOLCHAIN)
 	x_vcpkg_install_local_dependencies(TARGETS 86Box DESTINATION "bin")
