@@ -167,6 +167,7 @@ machine_xt_philips_common_init(const machine_t *model)
 
 }
 
+int
 machine_xt_p3105_init(const machine_t *model)
 {
     int ret;
