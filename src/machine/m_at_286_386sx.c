@@ -58,6 +58,8 @@ machine_at_mr286_init(const machine_t *model)
 
     machine_at_common_ide_init(model);
     device_add(&keyboard_at_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     return ret;
@@ -68,6 +70,8 @@ static void
 machine_at_headland_common_init(int ht386)
 {
     device_add(&keyboard_at_ami_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     if (ht386)
@@ -138,7 +142,10 @@ machine_at_quadt286_init(const machine_t *model)
 
     machine_at_common_init(model);
     device_add(&keyboard_at_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
+
     device_add(&headland_gc10x_device);
 
     return ret;
@@ -159,6 +166,8 @@ machine_at_neat_init(const machine_t *model)
     machine_at_init(model);
 
     device_add(&neat_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     return ret;
@@ -179,6 +188,8 @@ machine_at_neat_ami_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&neat_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     device_add(&keyboard_at_ami_device);
@@ -200,7 +211,10 @@ machine_at_px286_init(const machine_t *model)
 
     machine_at_common_init(model);
     device_add(&keyboard_at_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
+
     device_add(&neat_device);
 
     return ret;
@@ -221,6 +235,8 @@ machine_at_micronics386_init(const machine_t *model)
     machine_at_init(model);
 
     device_add(&neat_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     return ret;
@@ -232,6 +248,8 @@ machine_at_scat_init(const machine_t *model, int is_v4)
 {
     machine_at_common_init(model);
     device_add(&keyboard_at_ami_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     if (is_v4)
@@ -247,6 +265,8 @@ machine_at_scatsx_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&keyboard_at_ami_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     device_add(&scat_sx_device);
@@ -436,6 +456,8 @@ machine_at_shuttle386sx_init(const machine_t *model)
 
     device_add(&intel_82335_device);
     device_add(&keyboard_at_ami_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     return ret;
@@ -458,6 +480,8 @@ machine_at_adi386sx_init(const machine_t *model)
 
     device_add(&intel_82335_device);
     device_add(&keyboard_at_ami_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     return ret;
@@ -504,7 +528,10 @@ machine_at_commodore_sl386sx16_init(const machine_t *model)
     machine_at_common_ide_init(model);
 
     device_add(&keyboard_at_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
+
     device_add(&neat_device);
     /* Two serial ports - on the real hardware SL386SX-16, they are on the single UMC UM82C452. */
     device_add_inst(&ns16450_device, 1);
@@ -520,7 +547,10 @@ machine_at_scamp_common_init(const machine_t *model)
     machine_at_common_ide_init(model);
 
     device_add(&keyboard_ps2_ami_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
+
     device_add(&vlsi_scamp_device);
 }
 
@@ -593,6 +623,8 @@ machine_at_awardsx_init(const machine_t *model)
     machine_at_init(model);
 
     device_add(&opti291_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     return ret;
@@ -691,6 +723,8 @@ machine_at_ncrpc8_init(const machine_t *model)
 
     machine_at_common_init(model);
     device_add(&keyboard_at_ncr_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
     
     return ret;
@@ -719,10 +753,12 @@ machine_at_ncr3302_init(const machine_t *model)
     machine_at_common_ide_init(model);
     device_add(&neat_device);
     device_add(&keyboard_at_ncr_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     if (gfxcard == VID_INTERNAL)
-    	device_add(&paradise_pvga1a_device);
+    device_add(&paradise_pvga1a_ncr3302_device);
     
     return ret;
 }
@@ -748,6 +784,7 @@ machine_at_ncrpc916sx_init(const machine_t *model)
     device_add(&keyboard_at_ncr_device);
     mem_remap_top(384);
 
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
     
     return ret;
@@ -769,7 +806,7 @@ machine_at_olim290_init(const machine_t *model)
     device_add(&keyboard_at_olivetti_device);
     
     if (fdc_type == FDC_INTERNAL)	
-	    device_add(&fdc_at_device);
+	device_add(&fdc_at_device);
     
     device_add(&olivetti_eva_device);
     
@@ -801,7 +838,7 @@ machine_at_olim300_08_init(const machine_t *model)
     device_add(&pc87310_ide_device);
     
     if (gfxcard == VID_INTERNAL)
-	    device_add(&oti067_m300_device);
+	device_add(&oti067_m300_device);
 
     return ret;
 }
@@ -826,7 +863,7 @@ machine_at_olim300_15_init(const machine_t *model)
     
     /* Stock VRAM is maxed out, so no need to expose video card config */
 	if (gfxcard == VID_INTERNAL)
-        device_add(&oti067_m300_device);
+    device_add(&oti067_m300_device);
 
     return ret;
 }

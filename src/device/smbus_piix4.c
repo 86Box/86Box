@@ -127,7 +127,7 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 			smbus_addr = (dev->addr >> 1);
 			read = dev->addr & 0x01;
 
-			cmd = (val >> 2) & 0xf;
+			cmd = (dev->ctl >> 2) & 0xf;
 			smbus_piix4_log("SMBus PIIX4: addr=%02X read=%d protocol=%X cmd=%02X data0=%02X data1=%02X\n", smbus_addr, read, cmd, dev->cmd, dev->data0, dev->data1);
 
 			/* Raise DEV_ERR if no device is at this address, or if the device returned NAK when starting the transfer. */
@@ -264,7 +264,7 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 					/* block write [data0] bytes */
 					for (i = 0; i < dev->data0; i++) {
 						if (!i2c_write(i2c_smbus, smbus_addr, dev->data[i & SMBUS_PIIX4_BLOCK_DATA_MASK]))
-							break;
+							break; /* write NAK behavior is unknown */
 					}
 					timer_bytes += i;
 

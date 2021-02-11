@@ -347,12 +347,10 @@ extern int	machine_at_486vipio2_init(const machine_t *);
 extern int	machine_at_abpb4_init(const machine_t *);
 extern int	machine_at_win486pci_init(const machine_t *);
 #endif
-#if defined(DEV_BRANCH) && defined(USE_STPC)
 extern int	machine_at_itoxstar_init(const machine_t *);
 extern int	machine_at_arb1479_init(const machine_t *);
 extern int	machine_at_pcm9340_init(const machine_t *);
 extern int	machine_at_pcm5330_init(const machine_t *);
-#endif
 
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_acera1g_get_device(void);

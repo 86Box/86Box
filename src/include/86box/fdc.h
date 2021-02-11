@@ -34,6 +34,7 @@ extern int fdc_type;
 #define FDC_FLAG_NSC		0x80	/* PC87306, PC87309 */
 #define FDC_FLAG_TOSHIBA	0x100	/* T1000, T1200 */
 #define FDC_FLAG_AMSTRAD	0x200	/* Non-AT Amstrad machines */
+#define FDC_FLAG_UMC	0x400	/* UMC UM8398 */
 
 
 typedef struct {
@@ -179,6 +180,7 @@ extern const device_t	fdc_at_smc_device;
 extern const device_t	fdc_at_winbond_device;
 extern const device_t	fdc_at_nsc_device;
 extern const device_t   fdc_dp8473_device;
+extern const device_t   fdc_um8398_device;
 #endif
 
 #endif	/*EMU_FDC_H*/

@@ -191,8 +191,8 @@ const cpu_family_t cpu_families[] = {
 	.name = "M6117",
 	.internal_name = "m6117",
 	.cpus = (const CPU[]) { /* All timings and edx_reset values assumed. */
-		{"33",    CPU_386DX,      fpus_80386,  33333333, 1, 5000, 0x2308, 0, 0, 0, 6,6,3,3, 4},
-		{"40",    CPU_386DX,      fpus_80386,  40000000, 1, 5000, 0x2308, 0, 0, 0, 7,7,3,3, 5},
+		{"33",    CPU_386SX,      fpus_none,  33333333, 1, 5000, 0x2308, 0, 0, 0, 6,6,3,3, 4},
+		{"40",    CPU_386SX,      fpus_none,  40000000, 1, 5000, 0x2308, 0, 0, 0, 7,7,3,3, 5},
 		{"", 0}
 	}
     },
@@ -461,6 +461,7 @@ const cpu_family_t cpu_families[] = {
 		{"25",            CPU_Cx486S,    fpus_486sx,   25000000, 1.0, 5000,  0x420,      0, 0x0010, CPU_SUPPORTS_DYNAREC,  4, 4, 3, 3,  3},
 		{"33",            CPU_Cx486S,    fpus_486sx,   33333333, 1.0, 5000,  0x420,      0, 0x0010, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3,  4},
 		{"40",            CPU_Cx486S,    fpus_486sx,   40000000, 1.0, 5000,  0x420,      0, 0x0010, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3,  5},
+		{"", 0}
 	}
     }, {
 	.package = CPU_PKG_SOCKET1,
@@ -505,9 +506,7 @@ const cpu_family_t cpu_families[] = {
 		{"133",   CPU_Cx5x86,   fpus_internal, 133333333, 4.0, 5000, 0x480, 0, 0x002f, CPU_SUPPORTS_DYNAREC, 24,24,12,12, 16},
 		{"", 0}
 	}
-    },
-#if defined(DEV_BRANCH) && defined(USE_STPC)
-    {
+    }, {
 	.package = CPU_PKG_STPC,
 	.manufacturer = "ST",
 	.name = "STPC-DX",
@@ -526,9 +525,7 @@ const cpu_family_t cpu_families[] = {
 		{"133",    CPU_Cx486DX2, fpus_internal, 133333333, 2.0, 3300, 0x430, 0, 0x0b1b, CPU_SUPPORTS_DYNAREC, 14,14, 6, 6, 10},
 		{"", 0}
 	}
-    },
-#endif
-    {
+    }, {
 	.package = CPU_PKG_SOCKET4,
 	.manufacturer = "Intel",
 	.name = "Pentium",

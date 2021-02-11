@@ -34,6 +34,7 @@
 #include <86box/pci.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/rom.h>
 #include <86box/sio.h>
 #include <86box/hdc.h>
@@ -57,6 +58,8 @@ machine_at_acc386_init(const machine_t *model)
     machine_at_common_init(model);
     device_add(&acc2168_device);
     device_add(&keyboard_at_ami_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     return ret;
@@ -77,6 +80,8 @@ machine_at_asus386_init(const machine_t *model)
     machine_at_common_init(model);
     device_add(&rabbit_device);
     device_add(&keyboard_at_ami_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     return ret;
@@ -97,6 +102,8 @@ machine_at_sis401_init(const machine_t *model)
     machine_at_common_ide_init(model);
     device_add(&sis_85c401_device);
     device_add(&keyboard_at_ami_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     return ret;
@@ -117,6 +124,8 @@ machine_at_av4_init(const machine_t *model)
     machine_at_common_ide_init(model);
     device_add(&sis_85c460_device);
     device_add(&keyboard_at_ami_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     return ret;
@@ -137,6 +146,8 @@ machine_at_valuepoint433_init(const machine_t *model)	// hangs without the PS/2 
     machine_at_common_ide_init(model);
     device_add(&sis_85c461_device);
     device_add(&keyboard_ps2_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     return ret;
@@ -157,7 +168,10 @@ machine_at_ecs386_init(const machine_t *model)
 
     machine_at_common_init(model);
     device_add(&cs8230_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
+
     device_add(&keyboard_at_ami_device);
 
     return ret;
@@ -178,7 +192,10 @@ machine_at_spc6000a_init(const machine_t *model)
 
     machine_at_common_init_ex(model, 1);
     device_add(&cs8230_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
+
     device_add(&keyboard_at_samsung_device);
 
     return ret;
@@ -200,6 +217,8 @@ machine_at_rycleopardlx_init(const machine_t *model)
 
     device_add(&opti283_device);
     device_add(&keyboard_at_ami_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     return ret;
@@ -221,6 +240,8 @@ machine_at_486vchd_init(const machine_t *model)
 
     device_add(&via_vt82c49x_device);
     device_add(&keyboard_at_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     return ret;
@@ -241,6 +262,8 @@ machine_at_cs4031_init(const machine_t *model)
     machine_at_common_init(model);
     device_add(&cs4031_device);
     device_add(&keyboard_at_ami_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     return ret;
@@ -326,8 +349,10 @@ machine_at_acera1g_init(const machine_t *model)
 
     device_add(&ali1429_device);
     device_add(&keyboard_ps2_acer_pci_device);
-    device_add(&fdc_at_device);
     device_add(&ide_isa_2ch_device);
+
+    if (fdc_type == FDC_INTERNAL)
+    device_add(&fdc_at_device);
 
     return ret;
 }
@@ -348,6 +373,8 @@ machine_at_ali1429_common_init(const machine_t *model)
     device_add(&ali1429_device);
 
     device_add(&keyboard_at_ami_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 }
 
@@ -402,6 +429,8 @@ machine_at_opti495_init(const machine_t *model)
     device_add(&opti495_device);
 
     device_add(&keyboard_at_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     return ret;
@@ -416,6 +445,8 @@ machine_at_opti495_ami_common_init(const machine_t *model)
     device_add(&opti495_device);
 
     device_add(&keyboard_at_ami_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 }
 
@@ -469,6 +500,8 @@ machine_at_403tg_init(const machine_t *model)
     device_add(&opti895_device);
 
     device_add(&keyboard_at_device);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     return ret;
@@ -522,6 +555,8 @@ static void
 machine_at_sis_85c471_common_init(const machine_t *model)
 {
     machine_at_common_init(model);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     device_add(&sis_85c471_device);
@@ -884,6 +919,8 @@ machine_at_486ap4_init(const machine_t *model)
     pci_register_slot(0x0b, PCI_CARD_NORMAL, 3, 4, 1, 2);	/* 0b = Slot 3 */
     pci_register_slot(0x0c, PCI_CARD_NORMAL, 4, 1, 2, 3);	/* 0c = Slot 4 */
     device_add(&keyboard_ps2_ami_pci_device); /* Uses the AMIKEY KBC */
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
     device_add(&i420ex_device);
@@ -979,7 +1016,6 @@ machine_at_win486pci_init(const machine_t *model)
 #endif
 
 
-#if defined(DEV_BRANCH) && defined(USE_STPC)
 int
 machine_at_itoxstar_init(const machine_t *model)
 {
@@ -1094,4 +1130,3 @@ machine_at_pcm5330_init(const machine_t *model)
 
     return ret;
 }
-#endif

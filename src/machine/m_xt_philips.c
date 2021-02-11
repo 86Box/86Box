@@ -72,7 +72,7 @@ philips_write(uint16_t port, uint8_t val, void *priv)
     {
     /* port 0xc0
      * bit 7: turbo
-     * bits 4-5: rtc read/set
+     * bits 4-5: rtc read/set (I2C Bus SDA/SCL?)
      * bit 2: parity disabled
      */    
     case 0xc0:
@@ -151,13 +151,13 @@ machine_xt_philips_common_init(const machine_t *model)
 
     pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
 
-    if (fdc_type == FDC_INTERNAL)	
-	    device_add(&fdc_xt_device);
+    /* On-board FDC cannot be disabled */
+	device_add(&fdc_xt_device);
     
     nmi_init();
 
     if (joystick_type)
-	    device_add(&gameport_device);
+	device_add(&gameport_device);
 
     device_add(&keyboard_pc_device);
 
