@@ -122,6 +122,9 @@ const machine_t machines[] = {
     { "[ISA] Compaq Portable III",		"portableiii",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_VIDEO,							  640, 16384, 128,  127,	  machine_at_portableiii_init, at_cpqiii_get_device	},
     { "[ISA] MR 286 clone",			"mr286",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							  512, 16384, 128,  127,	        machine_at_mr286_init, NULL			},
     { "[ISA] NCR PC8/810/710/3390/3392",	"ncr_pc8",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,									MACHINE_AT,									  512, 16384, 128,  127,		machine_at_ncrpc8_init, NULL		},
+#if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
+    { "[ISA] Olivetti M290",		    "olivetti_m290",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,									MACHINE_AT,									  640, 16384, 128, 127,			machine_at_olim290_init, NULL		},
+#endif
     #if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
     { "[ISA] OpenAT",				"open_at",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  256, 15872, 128,   63,	      machine_at_open_at_init, NULL			},
 #endif
@@ -149,6 +152,7 @@ const machine_t machines[] = {
     /* 386SX machines */
     { "[ISA] IBM PS/1 model 2121",		"ibmps1_2121",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO_FIXED,		 2048,  6144,1024,   63,	       machine_ps1_m2121_init, NULL			},
     { "[ISA] IBM PS/1 m.2121+ISA",		"ibmps1_2121_isa",	MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 2048,  6144,1024,   63,	       machine_ps1_m2121_init, NULL			},
+    { "[ISA] NCR PC916SX",		"ncr_pc916sx",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0, 									MACHINE_AT,			1024, 16384, 128, 127,		 machine_at_ncrpc916sx_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_M6117)
     { "[ALi M6117D] Acrosser AR-B1375",		"arb1375",		MACHINE_TYPE_386SX,		CPU_PKG_M6117, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024, 32768,1024,  127,	      machine_at_arb1375_init, NULL			},
     { "[ALi M6117D] Acrosser PJ-A511M",		"pja511m",		MACHINE_TYPE_386SX,		CPU_PKG_M6117, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024, 32768,1024,  127,	      machine_at_pja511m_init, NULL			},
@@ -159,6 +163,8 @@ const machine_t machines[] = {
     { "[Intel 82335] Shuttle 386SX",		"shuttle386sx",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,	 machine_at_shuttle386sx_init, NULL			},
     { "[NEAT] Commodore SL386SX-16",		"cbm_sl386sx16",	MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024,  8192,  512, 127,    machine_at_commodore_sl386sx16_init, NULL			},
     { "[NEAT] DTK 386SX clone",			"dtk386",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,		 machine_at_neat_init, NULL			},
+    { "[OPTi 283] Olivetti M300-08",		"olivetti_m300_08",	    MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 20000000, 20000000, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,		2048, 16384, 2048, 127,			 machine_at_olim300_08_init, at_m300_08_get_device	},
+    { "[OPTi 283] Olivetti M300-15",		"olivetti_m300_15",	    MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 25000000, 25000000, 0, 0, 0, 0,                    				    MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,		2048, 16384, 2048, 127,			 machine_at_olim300_15_init, NULL	    },
     { "[OPTi 291] DTK PPM-3333P",		"awardsx",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 16384, 1024, 127,	      machine_at_awardsx_init, NULL			},
     { "[SCAMP] Commodore SL386SX-25",		"cbm_sl386sx25",	MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 1024,  8192,  512, 127,    machine_at_commodore_sl386sx25_init, at_commodore_sl386sx25_get_device	},
     { "[SCAMP] Samsung SPC-6033P",		"spc6033p",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 2048, 12288, 2048, 127,	     machine_at_spc6033p_init, at_spc6033p_get_device	},

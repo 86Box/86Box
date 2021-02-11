@@ -147,4 +147,7 @@ extern const device_t	wd76c10_device;
 extern const device_t   phoenix_486_jumper_device;
 extern const device_t	vpc2007_device;
 
+#if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
+extern const device_t   olivetti_eva_device;
+#endif
 #endif	/*EMU_CHIPSET_H*/
