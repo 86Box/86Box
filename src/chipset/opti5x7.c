@@ -33,7 +33,7 @@
 #include <86box/chipset.h>
 
 /* Shadow RAM */
-#define SHADOW_RECALC (((dev->regs[(i < 4) ? 4 : 5] & (1 << ((i < 4) ? i : i - 4) * 2)) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[(i < 4) ? 4 : 5] & (1 << (((i < 4) ? i : i - 4) * 2 + 1))) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY))
+#define SHADOW_RECALC (((dev->regs[4 + !!(i & 4)] & (1 << (i - (4 * !!(i & 4))) * 2)) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[4 + !!(i & 4)] & (1 << ((i - (4 * !!(i & 4))) * 2 + 1))) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY))
 #define SHADOW_E_RECALC (((dev->regs[0x06] & 1) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x06] & 2) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY))
 #define SHADOW_F_RECALC (((dev->regs[0x06] & 4) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x06] & 8) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY))
 
