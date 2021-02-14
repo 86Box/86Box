@@ -74,7 +74,7 @@ jobs:
       fail-fast: false
       matrix:
         build:
-        - name: Regular
+        - name: Debug
           dev-build: off
           new-dynarec: off
           type: Debug
@@ -82,17 +82,12 @@ jobs:
           dev-build: on
           new-dynarec: on
           type: Debug
-        target-arch: ['Win32', 'x64', 'ARM', 'ARM64']
+        target-arch: ['Win32', 'x64', 'ARM64']
         toolset: ['clangcl', 'v142']
         exclude:
-          - target-arch: 'ARM'
-            build:
-              new-dynarec: off
           - target-arch: 'ARM64'
             build:
               new-dynarec: off
-          - target-arch: 'ARM'
-            toolset: 'clangcl'
 
     steps:
     - uses: actions/checkout@v2
