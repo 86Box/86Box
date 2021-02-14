@@ -33,8 +33,31 @@
 #include <86box/chipset.h>
 
 /* Shadow RAM */
-#define SHADOW_RECALC (((dev->regs[4 + !!(i & 4)] & (1 << (i - (4 * !!(i & 4))) * 2)) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[4 + !!(i & 4)] & (1 << ((i - (4 * !!(i & 4))) * 2 + 1))) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY))
+
+/* Register 4h: C0000-CFFFF range | Register 5h: D0000-DFFFF range */
+#define CURRENT_REGISTER dev->regs[4 + !!(i & 4)]
+
+/*
+Bits 7-6: xC000-xFFFF
+Bits 5-4: x8000-xBFFF
+Bits 3-2: x4000-x7FFF
+Bits 0-1: x0000-x3FFF
+
+     x-y
+     0 0 Read/Write AT bus
+     1 0 Read from AT - Write to DRAM
+     1 1 Read from DRAM - Write to DRAM
+     0 1 Read from DRAM (write protected)
+*/
+#define CAN_READ (1 << (i - (4 * !!(i & 4))) * 2)
+#define CAN_WRITE (1 << ((i - (4 * !!(i & 4))) * 2 + 1))
+
+#define SHADOW_RECALC (((CURRENT_REGISTER & CAN_READ) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((CURRENT_REGISTER & CAN_WRITE) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY))
+
+/* Recalc the E Segment */
 #define SHADOW_E_RECALC (((dev->regs[0x06] & 1) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x06] & 2) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY))
+
+/* Recalc the F Segment */
 #define SHADOW_F_RECALC (((dev->regs[0x06] & 4) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x06] & 8) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY))
 
 typedef struct
