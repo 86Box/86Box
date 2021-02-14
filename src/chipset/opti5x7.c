@@ -52,13 +52,11 @@ Bits 0-1: x0000-x3FFF
 #define CAN_READ (1 << (i - (4 * !!(i & 4))) * 2)
 #define CAN_WRITE (1 << ((i - (4 * !!(i & 4))) * 2 + 1))
 
+/* Shadow Recalc for the C/D segments */
 #define SHADOW_RECALC (((CURRENT_REGISTER & CAN_READ) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((CURRENT_REGISTER & CAN_WRITE) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY))
 
-/* Recalc the E Segment */
-#define SHADOW_E_RECALC (((dev->regs[0x06] & 1) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x06] & 2) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY))
-
-/* Recalc the F Segment */
-#define SHADOW_F_RECALC (((dev->regs[0x06] & 4) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x06] & 8) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY))
+/* Shadow Recalc for the E/F segments */
+#define SHADOW_EF_RECALC (((dev->regs[6] & CAN_READ) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x06] & CAN_WRITE) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY))
 
 typedef struct
 {
@@ -88,12 +86,13 @@ static void
 shadow_map(opti5x7_t *dev)
 {
     for (int i = 0; i < 8; i++)
+    {
         mem_set_mem_state_both(0xc0000 + (i << 14), 0x4000, SHADOW_RECALC);
-
-    mem_set_mem_state_both(0xe0000, 0x10000, SHADOW_E_RECALC);
+        if (i < 2)
+            mem_set_mem_state_both(0xe0000 + (i << 16), 0x10000, SHADOW_EF_RECALC);
+    }
     shadowbios = !!(dev->regs[0x06] & 5);
     shadowbios_write = !!(dev->regs[0x06] & 0x0a);
-    mem_set_mem_state_both(0xf0000, 0x10000, SHADOW_F_RECALC);
     flushmmucache();
 }
 
