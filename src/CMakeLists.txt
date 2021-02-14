@@ -95,6 +95,12 @@ if(VCPKG_TOOLCHAIN)
 	x_vcpkg_install_local_dependencies(TARGETS 86Box DESTINATION "bin")
 endif()
 
+if(MSVC)
+	install(FILES $<TARGET_PDB_FILE:86Box>
+		CONFIGURATIONS Debug RelWithDebInfo
+		DESTINATION "bin")
+endif()
+
 add_subdirectory(device)
 add_subdirectory(disk)
 add_subdirectory(floppy)
