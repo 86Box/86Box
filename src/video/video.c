@@ -70,6 +70,7 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 
+#include <minitrace/minitrace.h>
 
 volatile int	screenshots = 0;
 bitmap_t	*buffer32 = NULL;
@@ -285,6 +286,7 @@ void blit_thread(void *param)
     while (1) {
 	thread_wait_event(blit_data.wake_blit_thread, -1);
 	thread_reset_event(blit_data.wake_blit_thread);
+    MTR_BEGIN("video", "blit_thread");
 
 	if (blit_func)
 		blit_func(blit_data.x, blit_data.y,
@@ -292,6 +294,7 @@ void blit_thread(void *param)
 			  blit_data.w, blit_data.h);
 
 	blit_data.busy = 0;
+    MTR_END("video", "blit_thread");
 	thread_set_event(blit_data.blit_complete);
     }
 }
@@ -448,6 +451,7 @@ void
 video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
     int yy;
+    MTR_BEGIN("video", "video_blit_memtoscreen");
 
     if (y2 > 0) {
 	for (yy = y1; yy < y2; yy++) {
@@ -482,6 +486,7 @@ video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
     blit_data.h = h;
 
     thread_set_event(blit_data.wake_blit_thread);
+    MTR_END("video", "video_blit_memtoscreen");
 }
 
 

@@ -290,7 +290,7 @@ endif
 #########################################################################
 #		Nothing should need changing from here on..		#
 #########################################################################
-VPATH		:= $(EXPATH) . $(CODEGEN) cpu \
+VPATH		:= $(EXPATH) . $(CODEGEN) minitrace cpu \
 		   cdrom chipset device disk disk/minivhd floppy \
 		   game machine mem printer \
 		   sio sound \
@@ -486,6 +486,12 @@ ifeq ($(DISCORD), y)
 OPTS		+= -DUSE_DISCORD
 RFLAGS		+= -DUSE_DISCORD
 DISCORDOBJ	:= win_discord.o
+endif
+
+ifeq ($(MINITRACE), y)
+OPTS		+= -DMTR_ENABLED
+RFLAGS		+= -DMTR_ENABLED
+MINITRACEOBJ	:= minitrace.o
 endif
 
 # Options for the DEV branch.
@@ -794,7 +800,7 @@ OBJ		:= $(MAINOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
 		   $(FDDOBJ) $(GAMEOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) $(MINIVHDOBJ) \
 		   $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SIOOBJ) $(SNDOBJ) $(VIDOBJ) \
 		   $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) $(DEVBROBJ) \
-		   $(DISCORDOBJ)
+		   $(DISCORDOBJ) $(MINITRACEOBJ)
 ifdef EXOBJ
 OBJ		+= $(EXOBJ)
 endif

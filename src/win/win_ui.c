@@ -48,6 +48,9 @@
 # include <86box/win_discord.h>
 #endif
 
+#ifdef MTR_ENABLED
+#include <minitrace/minitrace.h>
+#endif
 
 #define TIMER_1SEC	1		/* ID of the one-second timer */
 
@@ -294,6 +297,9 @@ ResetAllMenus(void)
     else
 	EnableMenuItem(menuMain, IDM_DISCORD, MF_DISABLED);
 #endif
+#ifdef MTR_ENABLED
+    EnableMenuItem(menuMain, IDM_ACTION_END_TRACE, MF_DISABLED);
+#endif
 }
 
 
@@ -378,6 +384,19 @@ plat_power_off(void)
     exit(-1);
 }
 
+#ifdef MTR_ENABLED
+static void
+handle_trace(HMENU hmenu, int trace)
+{
+    EnableMenuItem(hmenu, IDM_ACTION_BEGIN_TRACE, trace? MF_GRAYED : MF_ENABLED);
+    EnableMenuItem(hmenu, IDM_ACTION_END_TRACE, trace? MF_ENABLED : MF_GRAYED);
+    if (trace) {
+        init_trace();
+    } else {
+        shutdown_trace();
+    }
+}
+#endif
 
 /* Catch WM_INPUT messages for 'current focus' window. */
 #if defined(__amd64__) || defined(__aarch64__)
@@ -488,6 +507,15 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_ACTION_SCREENSHOT:
 				take_screenshot();
 				break;
+
+#ifdef MTR_ENABLED
+            case IDM_ACTION_BEGIN_TRACE:
+            case IDM_ACTION_END_TRACE:
+            case IDM_ACTION_TRACE:
+                tracing_on = !tracing_on;
+                handle_trace(hmenu, tracing_on);
+                break;
+#endif
 
 			case IDM_ACTION_HRESET:
 				win_notify_dlg_open();

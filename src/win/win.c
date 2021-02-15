@@ -49,7 +49,9 @@
 #include <86box/win_sdl.h>
 #include <86box/win.h>
 #include <86box/version.h>
-
+#ifdef MTR_ENABLED
+#include <minitrace/minitrace.h>
+#endif
 
 typedef struct {
     WCHAR str[512];
@@ -217,6 +219,21 @@ plat_get_string(int i)
     return((wchar_t *)str);
 }
 
+#ifdef MTR_ENABLED
+void
+init_trace(void)
+{
+    mtr_init("trace.json");
+    mtr_start();
+}
+
+void
+shutdown_trace(void)
+{
+    mtr_stop();
+    mtr_shutdown();
+}
+#endif
 
 /* Create a console if we don't already have one. */
 static void

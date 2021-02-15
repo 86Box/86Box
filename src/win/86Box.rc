@@ -122,6 +122,11 @@ BEGIN
 # endif
         MENUITEM SEPARATOR
         MENUITEM "Take s&creenshot\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+#ifdef MTR_ENABLED
+        MENUITEM SEPARATOR
+        MENUITEM "Begin trace\tCtrl+T",         IDM_ACTION_BEGIN_TRACE
+        MENUITEM "End trace\tCtrl+T",           IDM_ACTION_END_TRACE
+#endif
     END
 #if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
     POPUP "&Logging"
@@ -262,6 +267,9 @@ BEGIN
 #endif
 #ifdef ENABLE_LOG_BREAKPOINT
     VK_F10,  IDM_LOG_BREAKPOINT,     CONTROL, VIRTKEY
+#endif
+#ifdef MTR_ENABLED
+    "T",     IDM_ACTION_TRACE,       CONTROL, VIRTKEY
 #endif
     VK_PRIOR,IDM_VID_FULLSCREEN,     VIRTKEY, CONTROL , ALT
     VK_F11,  IDM_ACTION_SCREENSHOT,  VIRTKEY, CONTROL

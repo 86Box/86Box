@@ -89,6 +89,9 @@ int		dopause,			/* system is paused */
 uint64_t	timer_freq;
 char		emu_version[200];		/* version ID string */
 
+#ifdef MTR_ENABLED
+int     tracing_on = 0;
+#endif
 
 /* Commandline options. */
 int	dump_on_exit = 0;			/* (O) dump regs on exit */

@@ -45,6 +45,8 @@ option(DISCORD "Discord integration" ON)
 
 option(NEW_DYNAREC "Use the PCem v15 (\"new\") dynamic recompiler" OFF)
 
+option(MINITRACE "Enable Chrome tracing using the modified minitrace library" OFF)
+
 option(DEV_BRANCH "Development branch" OFF)
 CMAKE_DEPENDENT_OPTION(AMD_K5 "AMD K5" ON "DEV_BRANCH" OFF)
 CMAKE_DEPENDENT_OPTION(CL5422 "Cirrus Logic CL-GD 5402/5420/5422" ON "DEV_BRANCH" OFF)
