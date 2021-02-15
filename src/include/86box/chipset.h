@@ -46,6 +46,10 @@ extern const device_t	scat_sx_device;
 extern const device_t	cs8230_device;
 extern const device_t   cs4031_device;
 
+/* G2 */
+extern const device_t   gc100_device;
+extern const device_t   gc100a_device;
+
 /* Headland */
 extern const device_t	headland_gc10x_device;
 extern const device_t	headland_ht18a_device;
@@ -141,4 +145,7 @@ extern const device_t	wd76c10_device;
 extern const device_t   phoenix_486_jumper_device;
 extern const device_t	vpc2007_device;
 
+#if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
+extern const device_t   olivetti_eva_device;
+#endif
 #endif	/*EMU_CHIPSET_H*/
