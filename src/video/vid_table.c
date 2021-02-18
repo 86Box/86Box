@@ -108,6 +108,7 @@ video_cards[] = {
     { "tvga8900d",		&tvga8900d_device			},
     { "tvga9000b",		&tvga9000b_device			},
     { "tgkorvga",		&et4000k_isa_device			},
+    { "et2000",			&et2000_device				},
     { "et4000ax",		&et4000_isa_device			},
     { "vga",			&vga_device				},
     { "v7_vga_1024i",		&v7_vga_1024i_device			},

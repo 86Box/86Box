@@ -904,8 +904,6 @@ ht216_write_common(ht216_t *ht216, uint32_t addr, uint8_t val)
 
     cycles -= video_timing_write_b;
 
-    egawrites++;
-
     addr &= 0xfffff;
 
     val = ((val >> (svga->gdcreg[3] & 7)) | (val << (8 - (svga->gdcreg[3] & 7))));
@@ -1084,8 +1082,6 @@ ht216_read_common(ht216_t *ht216, uint32_t addr)
 
     cycles -= video_timing_read_b;
 
-    egareads++;
-    
     addr &= 0xfffff;
 
     count = 2;

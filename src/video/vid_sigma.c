@@ -343,7 +343,6 @@ sigma_write(uint32_t addr, uint8_t val, void *p)
     sigma_t *sigma = (sigma_t *)p;
 
     sigma->vram[sigma->plane * 0x8000 + (addr & 0x7fff)] = val;
-    egawrites++;
     cycles -= 4;
 }
 
@@ -354,7 +353,6 @@ sigma_read(uint32_t addr, void *p)
     sigma_t *sigma = (sigma_t *)p;
 
     cycles -= 4;
-    egareads++;
     return sigma->vram[sigma->plane * 0x8000 + (addr & 0x7fff)];
 }
 

@@ -92,9 +92,7 @@ uint32_t	*video_6to8 = NULL,
 		*video_8to32 = NULL,
 		*video_15to32 = NULL,
 		*video_16to32 = NULL;
-int		egareads = 0,
-		egawrites = 0,
-		changeframecount = 2;
+int		changeframecount = 2;
 int		frames = 0;
 int		fullchange = 0;
 uint8_t		edatlookup[4][4];

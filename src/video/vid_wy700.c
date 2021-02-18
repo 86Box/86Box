@@ -459,7 +459,6 @@ void wy700_checkchanges(wy700_t *wy700)
 void wy700_write(uint32_t addr, uint8_t val, void *p)
 {
         wy700_t *wy700 = (wy700_t *)p;
-        egawrites++;
 
 	if (wy700->wy700_mode & 0x80) /* High-res mode. */
 	{
@@ -483,7 +482,6 @@ void wy700_write(uint32_t addr, uint8_t val, void *p)
 uint8_t wy700_read(uint32_t addr, void *p)
 {
         wy700_t *wy700 = (wy700_t *)p;
-        egareads++;
 	if (wy700->wy700_mode & 0x80) /* High-res mode. */
 	{
 		addr &= 0xFFFF;

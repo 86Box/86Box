@@ -2130,8 +2130,6 @@ mystique_readb_linear(uint32_t addr, void *p)
 {
         svga_t *svga = (svga_t *)p;
 
-        egareads++;
-
         cycles -= video_timing_read_b;
 
         addr &= svga->decode_mask;
@@ -2146,8 +2144,6 @@ static uint16_t
 mystique_readw_linear(uint32_t addr, void *p)
 {
         svga_t *svga = (svga_t *)p;
-
-        egareads += 2;
 
         cycles -= video_timing_read_w;
 
@@ -2164,8 +2160,6 @@ mystique_readl_linear(uint32_t addr, void *p)
 {
         svga_t *svga = (svga_t *)p;
 
-        egareads += 4;
-
         cycles -= video_timing_read_l;
 
         addr &= svga->decode_mask;
@@ -2180,8 +2174,6 @@ static void
 mystique_writeb_linear(uint32_t addr, uint8_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
-
-        egawrites++;
 
         cycles -= video_timing_write_b;
 
@@ -2199,8 +2191,6 @@ mystique_writew_linear(uint32_t addr, uint16_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
 
-        egawrites += 2;
-
         cycles -= video_timing_write_w;
 
         addr &= svga->decode_mask;
@@ -2216,8 +2206,6 @@ static void
 mystique_writel_linear(uint32_t addr, uint32_t val, void *p)
 {
         svga_t *svga = (svga_t *)p;
-
-        egawrites += 4;
 
         cycles -= video_timing_write_l;
 
