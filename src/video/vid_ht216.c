@@ -1303,7 +1303,7 @@ v7_vga_1024i_init(const device_t *info)
 static void *
 ht216_pb410a_init(const device_t *info)
 {
-    ht216_t *ht216 = ht216_init(info, device_get_config_int("memory") << 10, 0);
+    ht216_t *ht216 = ht216_init(info, 1 << 20, 0);
 
     return ht216;
 }
