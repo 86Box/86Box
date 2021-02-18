@@ -1016,11 +1016,10 @@ ht216_write(uint32_t addr, uint8_t val, void *p)
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + ht216->write_banks[(addr >> 15) & 1];
 
-    if (!ht216->ht_regs[0xcd] && !ht216->ht_regs[0xfe] && !ht216->ht_regs[0xf3]) {
+    if (!ht216->ht_regs[0xcd] && !ht216->ht_regs[0xfe] && !ht216->ht_regs[0xf3])
 	svga_write_linear(addr, val, svga);
-    } else {
+    else
 	ht216_write_common(ht216, addr, val);
-    }
 }
 
 
