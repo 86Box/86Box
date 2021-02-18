@@ -53,8 +53,12 @@ typedef struct ht216_t
     uint32_t		read_banks[2], write_banks[2];
         
     uint8_t		bg_latch[8];
+    uint8_t 		fg_latch[4];
+    uint8_t		bg_plane_sel, fg_plane_sel;
         
     uint8_t		ht_regs[256];
+    
+    uint8_t		pos_regs[8];
 } ht216_t;
 
 
@@ -94,7 +98,7 @@ uint8_t ht216_in(uint16_t addr, void *p);
 #define BIOS_VIDEO7_VGA_1024I_PATH		L"roms/video/video7/Video Seven VGA 1024i - BIOS - v2.19 - 435-0062-05 - U17 - 27C256.BIN"
 
 static video_timings_t	timing_v7vga_isa = {VIDEO_ISA, 3,  3,  6,   5,  5, 10};
-static video_timings_t	timing_v7vga_vlb = {VIDEO_ISA, 5,  5,  9,  20, 20, 30};
+static video_timings_t	timing_v7vga_vlb = {VIDEO_BUS, 5,  5,  9,  20, 20, 30};
 
 
 #ifdef ENABLE_HT216_LOG
@@ -203,6 +207,34 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 				case 0xe9:
 					ht216_remap(ht216);
 					break;
+				
+				case 0xec:
+					ht216->fg_latch[0] = val;
+					break;
+				case 0xed:
+					ht216->fg_latch[1] = val;
+					break;
+				case 0xee:
+					ht216->fg_latch[2] = val;
+					break;
+				case 0xef:
+					ht216->fg_latch[3] = val;
+					break;
+
+				case 0xf0:
+					ht216->fg_latch[ht216->fg_plane_sel] = val;
+					ht216->fg_plane_sel = (ht216->fg_plane_sel + 1) & 3;
+					break;					
+				
+				case 0xf1:
+					ht216->bg_plane_sel = val & 3;
+					ht216->fg_plane_sel = (val & 0x30) >> 4;
+					break;
+				
+				case 0xf2:
+					svga->latch.b[ht216->bg_plane_sel] = val;
+					ht216->bg_plane_sel = (ht216->bg_plane_sel + 1) & 3;
+					break;
 
 				case 0xf6:
 					svga->vram_display_mask = (val & 0x40) ? ht216->vram_mask : 0x3ffff;
@@ -289,6 +321,7 @@ ht216_in(uint16_t addr, void *p)
 {
     ht216_t *ht216 = (ht216_t *)p;
     svga_t *svga = &ht216->svga;
+    uint8_t ret = 0xff;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
 	addr ^= 0x60;
@@ -319,6 +352,16 @@ ht216_in(uint16_t addr, void *p)
 						return svga->latch.b[2];
 					case 0xa3:
 						return svga->latch.b[3];
+					
+					case 0xf0:
+						ret = ht216->fg_latch[ht216->fg_plane_sel];
+						ht216->fg_plane_sel = 0;
+						return ret;
+						
+					case 0xf2:
+						ret = svga->latch.b[ht216->bg_plane_sel];
+						ht216->bg_plane_sel = 0;
+						return ret;
 				}
 				return ht216->ht_regs[svga->seqaddr & 0xff];
 			} else
@@ -463,6 +506,11 @@ ht216_remap(ht216_t *ht216)
 			ht216->write_bank_reg[0] &= ~0x30;
 		}
 		
+		if (svga->chain4) {
+			ht216->read_bank_reg[0] |= ht216->ht_regs[0xe8];
+			ht216->write_bank_reg[0] |= ht216->ht_regs[0xe8];
+		}
+		
 		ht216->read_banks[0] = ht216->read_bank_reg[0] << 12;
 		ht216->write_banks[0] = ht216->write_bank_reg[0] << 12;	
 		ht216->read_banks[1] = ht216->read_banks[0] + (svga->chain4 ? 0x8000 : 0x20000);
@@ -473,7 +521,7 @@ ht216_remap(ht216_t *ht216)
 			ht216->read_banks[1] >>= 2;
 			ht216->write_banks[0] >>= 2;
 			ht216->write_banks[1] >>= 2;
-		} 
+		}
 	}
 	
 	ht216_log("ReadBank0 = %06x, ReadBank1 = %06x, Misc Page Sel = %02x, F6 reg = %02x, F9 Sel = %02x, FC = %02x, E0 split = %02x, E8 = %02x, E9 = %02x, chain4 = %02x, banked mask = %04x\n", ht216->read_banks[0], ht216->read_banks[1], ht216->misc & HT_MISC_PAGE_SEL, bank, ht216->ht_regs[0xf9] & HT_REG_F9_XPSEL, ht216->ht_regs[0xfc] & (HT_REG_FC_ECOLRE | 2), ht216->ht_regs[0xe0] & HT_REG_E0_SBAE, ht216->ht_regs[0xe8], ht216->ht_regs[0xe9], svga->chain4, svga->banked_mask);
@@ -651,7 +699,7 @@ ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_u
 	case 0x08:
 	case 0x0c:
 		for (i = 0; i < count; i++)
-			fg_data[i] = ht216->ht_regs[0xec + i];
+			fg_data[i] = ht216->fg_latch[i];
 		break;
     }
 
@@ -805,7 +853,7 @@ ht216_dm_extalu_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t bi
 			input_a = (ht216->ht_regs[0xf5] & (1 << ((addr & 7) ^ 7))) ? ht216->ht_regs[0xfa] : ht216->ht_regs[0xfb];
 		break;
 	case 0x08:
-		input_a = ht216->ht_regs[0xec + (addr & 3)];
+		input_a = ht216->fg_latch[addr & 3];
 		break;
 	case 0x0c:
 		input_a = ht216->bg_latch[addr & 7];
@@ -968,10 +1016,11 @@ ht216_write(uint32_t addr, uint8_t val, void *p)
     addr &= svga->banked_mask;
     addr = (addr & 0x7fff) + ht216->write_banks[(addr >> 15) & 1];
 
-    if (!ht216->ht_regs[0xcd] && !ht216->ht_regs[0xfe] && !ht216->ht_regs[0xf3])
+    if (!ht216->ht_regs[0xcd] && !ht216->ht_regs[0xfe] && !ht216->ht_regs[0xf3]) {
 	svga_write_linear(addr, val, svga);
-    else
+    } else {
 	ht216_write_common(ht216, addr, val);
+    }
 }
 
 
@@ -1132,6 +1181,7 @@ ht216_read_common(ht216_t *ht216, uint32_t addr)
     or = addr & 4;
     svga->latch.d[0] = ht216->bg_latch[0 | or] | (ht216->bg_latch[1 | or] << 8) |
 		       (ht216->bg_latch[2 | or] << 16) | (ht216->bg_latch[3 | or] << 24);
+    
     if (svga->readmode) {
 	temp = 0xff;
 	
@@ -1176,7 +1226,6 @@ ht216_read_linear(uint32_t addr, void *p)
     else
 	return ht216_read_common(ht216, (addr & 0xffff) | ((addr & 0xc0000) >> 2));
 }
-
 
 void
 *ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
@@ -1254,7 +1303,7 @@ v7_vga_1024i_init(const device_t *info)
 static void *
 ht216_pb410a_init(const device_t *info)
 {
-    ht216_t *ht216 = ht216_init(info, 1 << 20, 0);
+    ht216_t *ht216 = ht216_init(info, device_get_config_int("memory") << 10, 0);
 
     return ht216;
 }
@@ -1358,7 +1407,7 @@ const device_t g2_gc205_device =
 
 const device_t v7_vga_1024i_device =
 {
-    "Video 7 VGA 1024i",
+    "Video 7 VGA 1024i (HT208)",
     DEVICE_ISA,
     0x7140,
     v7_vga_1024i_init,
