@@ -968,7 +968,7 @@ const cpu_family_t cpu_families[] = {
 		{"", 0}
 	}
     }, {
-	.package = CPU_PKG_SOCKET370,
+	.package = CPU_PKG_EBGA368,
 	.manufacturer = "VIA",
 	.name = "Eden(Model 7)",
 	.internal_name = "c3_eden",
