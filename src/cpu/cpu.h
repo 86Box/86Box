@@ -81,6 +81,7 @@ enum {
     CPU_K6_2P,
     CPU_K6_3P,
     CPU_CYRIX3S,
+    CPU_EDEN,
     CPU_PENTIUMPRO,	/* 686 class CPUs */
     CPU_PENTIUM2,
     CPU_PENTIUM2D
@@ -108,7 +109,8 @@ enum {
     CPU_PKG_SOCKET8 = (1 << 18),
     CPU_PKG_SLOT1 = (1 << 19),
     CPU_PKG_SLOT2 = (1 << 20),
-    CPU_PKG_SOCKET370 = (1 << 21)
+    CPU_PKG_SOCKET370 = (1 << 21),
+    CPU_PKG_EBGA368 = (1 << 22)
 };
 
 
