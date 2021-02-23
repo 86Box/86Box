@@ -965,6 +965,9 @@ const cpu_family_t cpu_families[] = {
 		{"667",     CPU_CYRIX3S, fpus_internal, 666666667, 5.0, 2050,   0x663, 0x663, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 60, 60, 16, 16, 80},
 		{"700",     CPU_CYRIX3S, fpus_internal, 700000000, 7.0, 2050,   0x663, 0x663, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 63, 63, 21, 21, 84},
 		{"733",     CPU_CYRIX3S, fpus_internal, 733333333, 5.5, 2050,   0x663, 0x663, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 66, 66, 18, 18, 88},
+		{"750",     CPU_CYRIX3S, fpus_internal, 750000000, 7.5, 2050,   0x663, 0x663, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 68, 68, 22, 22, 90},
+		{"800/100", CPU_CYRIX3S, fpus_internal, 750000000, 8.0, 2050,   0x663, 0x663, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 72, 72, 20, 20, 96},
+		{"800/133", CPU_CYRIX3S, fpus_internal, 750000000, 6.0, 2050,   0x663, 0x663, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 72, 72, 20, 20, 96},
 		{"", 0}
 	}
     }, {
@@ -973,8 +976,12 @@ const cpu_family_t cpu_families[] = {
 	.name = "Eden(Model 7)",
 	.internal_name = "c3_eden",
 	.cpus = (const CPU[]) {
+		{"66",      CPU_EDEN, fpus_internal,  66666666, 1.0, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER,  6,  6,  3,  3,  8}, /* out of spec */
 		{"100",     CPU_EDEN, fpus_internal, 100000000, 1.5, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER,  9,  9,  4,  4, 12}, /* out of spec */
+		{"133",     CPU_EDEN, fpus_internal, 133333333, 2.0, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 12, 12,  6,  6, 16}, /* out of spec */
+		{"300",     CPU_EDEN, fpus_internal, 300000000, 4.5, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 27, 27, 13, 13, 36},
 		{"400",     CPU_EDEN, fpus_internal, 400000000, 6.0, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 36, 36, 17, 17, 48},
+		{"533",     CPU_EDEN, fpus_internal, 533333333, 8.0, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 48, 48, 15, 15, 64},
 		{"600",     CPU_EDEN, fpus_internal, 600000000, 6.0, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 54, 54, 18, 18, 72},
 	}
     }, {
