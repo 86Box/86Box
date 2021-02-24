@@ -611,15 +611,8 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 					temp_x = unscaled_size_x;
 					temp_y = unscaled_size_y;
 				}
-				/* Main Window. */				
+
 				ResizeWindowByClientArea(hwnd, temp_x, temp_y + sbar_height);
-
-				/* Render window. */
-				MoveWindow(hwndRender, 0, 0, temp_x, temp_y, TRUE);
-				GetWindowRect(hwndRender, &rect);
-
-				/* Status bar. */
-				MoveWindow(hwndSBAR, 0, rect.bottom, temp_x, 17, TRUE);
 
 				if (mouse_capture) {
 					ClipCursor(&rect);
@@ -1478,8 +1471,6 @@ plat_pause(int p)
 void
 plat_resize(int x, int y)
 {
-    RECT r;
-
     /* First, see if we should resize the UI window. */
     if (!vid_resize) {
 
@@ -1489,15 +1480,6 @@ plat_resize(int x, int y)
 		y = MulDiv(y, dpi, 96);
 	}
 	ResizeWindowByClientArea(hwndMain, x, y + sbar_height);
-
-	MoveWindow(hwndRender, 0, 0, x, y, TRUE);
-	GetWindowRect(hwndRender, &r);
-
-	MoveWindow(hwndSBAR, 0, y, x, 17, TRUE);
-
-	if (mouse_capture) {
-		ClipCursor(&r);
-	}
     }
 }
 
