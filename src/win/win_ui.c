@@ -485,6 +485,8 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     int i;
     RECT rect, *rect_p;
 
+    WINDOWPOS *pos;
+
     int temp_x, temp_y;
 
     if (input_proc(hwnd, message, wParam, lParam) == 0)
@@ -840,70 +842,53 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			doresize = 1;
 		break;
 
-	case WM_SIZE:
-		if (user_resize && !vid_resize)
-			break;
+	case WM_WINDOWPOSCHANGED:
+		pos = (WINDOWPOS*)lParam;
+		GetClientRect(hwndMain, &rect);
 
-		temp_x = (lParam & 0xFFFF);
-		temp_y = (lParam >> 16);
-
-		if ((temp_x <= 0) || (temp_y <= 0)) {
+		if (IsIconic(hwndMain)) {
 			plat_vidapi_enable(0);
 			minimized = 1;
-			break;
-		} else if (minimized == 1) {
+			return(0);
+		} else if (minimized) {
 			minimized = 0;
 			video_force_resize_set(1);
 		}
 
-		plat_vidapi_enable(0);
-		temp_y -= sbar_height;
-		if (temp_y < 1)
-			temp_y = 1;
-
-		if (vid_resize && ((temp_x != scrnsz_x) || (temp_y != scrnsz_y))) {
-			scrnsz_x = temp_x;
-			scrnsz_y = temp_y;
-			doresize = 1;
-		}
-
-		MoveWindow(hwndRender, 0, 0, temp_x, temp_y, TRUE);
-
-		GetWindowRect(hwndRender, &rect);
-
-		/* Status bar. */
-		MoveWindow(hwndSBAR, 0, rect.bottom, temp_x, 17, TRUE);
-
-		plat_vidsize(temp_x, temp_y);
-
-		if (mouse_capture) {
-			ClipCursor(&rect);
-		}
-
 		if (window_remember) {
-			GetWindowRect(hwnd, &rect);
-			window_x = rect.left;
-			window_y = rect.top;
-			window_w = rect.right - rect.left;
-			window_h = rect.bottom - rect.top;
+			window_x = pos->x;
+			window_y = pos->y;
+			window_w = pos->cx;
+			window_h = pos->cy;
 			save_window_pos = 1;
+			config_save();
 		}
-		plat_vidapi_enable(2);
 
-		config_save();
-		break;
+		if (!(pos->flags & SWP_NOSIZE)) {
+			plat_vidapi_enable(0);
 
-	case WM_MOVE:
-		if (window_remember) {
-			GetWindowRect(hwnd, &rect);
-			window_x = rect.left;
-			window_y = rect.top;
-			window_w = rect.right - rect.left;
-			window_h = rect.bottom - rect.top;
-			save_window_pos = 1;
+			MoveWindow(hwndSBAR, 0, rect.bottom - sbar_height, sbar_height, rect.right, TRUE);
+			MoveWindow(hwndRender, 0, 0, rect.right, rect.bottom - sbar_height, TRUE);
+
+			GetClientRect(hwndRender, &rect);
+			if (rect.right != scrnsz_x || rect.bottom != scrnsz_y) {
+				scrnsz_x = rect.right;
+				scrnsz_y = rect.bottom;
+				doresize = 1;
+			}
+
+			plat_vidsize(rect.right, rect.bottom);
+
+			if (mouse_capture) {
+				GetWindowRect(hwndRender, &rect);
+				ClipCursor(&rect);
+			}
+
+			plat_vidapi_enable(2);
 		}
-		break;
-                
+
+		return(0);
+
 	case WM_TIMER:
 		if (wParam == TIMER_1SEC)
 			pc_onesec();
