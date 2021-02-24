@@ -1244,6 +1244,13 @@ ui_init(int nCmdShow)
 	SetWindowLongPtr(hwnd, GWL_STYLE,
 			(WS_OVERLAPPEDWINDOW&~WS_SIZEBOX&~WS_THICKFRAME&~WS_MAXIMIZEBOX));
 
+    /* Create the Machine Rendering window. */
+    hwndRender = CreateWindow(/*L"STATIC"*/ SUB_CLASS_NAME, NULL, WS_CHILD|SS_BITMAP,
+			      0, 0, 1, 1, hwnd, NULL, hinstance, NULL);
+
+    /* Initiate a resize in order to properly arrange all controls. */
+    ResizeWindowByClientArea(hwndMain, scrnsz_x, scrnsz_y + sbar_height);
+
     /* Move to the last-saved position if needed. */
     if (window_remember)
 	MoveWindow(hwnd, window_x, window_y, window_w, window_h, TRUE);
@@ -1286,11 +1293,6 @@ ui_init(int nCmdShow)
      * to prepare some other things that it depends on.
      */
     ghMutex = CreateMutex(NULL, FALSE, NULL);
-
-    /* Create the Machine Rendering window. */
-    hwndRender = CreateWindow(/*L"STATIC"*/ SUB_CLASS_NAME, NULL, WS_CHILD|SS_BITMAP,
-			      0, 0, 1, 1, hwnd, NULL, hinstance, NULL);
-    MoveWindow(hwndRender, 0, 0, scrnsz_x, scrnsz_y, TRUE);
 
     /* All done, fire up the actual emulated machine. */
     if (! pc_init_modules()) {
