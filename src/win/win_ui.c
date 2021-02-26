@@ -1241,12 +1241,12 @@ ui_init(int nCmdShow)
     hwndRender = CreateWindow(/*L"STATIC"*/ SUB_CLASS_NAME, NULL, WS_CHILD|SS_BITMAP,
 			      0, 0, 1, 1, hwnd, NULL, hinstance, NULL);
 
-    /* Initiate a resize in order to properly arrange all controls. */
-    ResizeWindowByClientArea(hwndMain, scrnsz_x, scrnsz_y + sbar_height);
-
-    /* Move to the last-saved position if needed. */
+    /* Initiate a resize in order to properly arrange all controls.
+       Move to the last-saved position if needed. */
     if (window_remember)
 	MoveWindow(hwnd, window_x, window_y, window_w, window_h, TRUE);
+    else
+	ResizeWindowByClientArea(hwndMain, scrnsz_x, scrnsz_y + sbar_height);
 
     /* Reset all menus to their defaults. */
     ResetAllMenus();
