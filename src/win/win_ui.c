@@ -485,6 +485,8 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     int i;
     RECT rect, *rect_p;
 
+    WINDOWPOS *pos;
+
     int temp_x, temp_y;
 
     if (input_proc(hwnd, message, wParam, lParam) == 0)
@@ -609,15 +611,8 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 					temp_x = unscaled_size_x;
 					temp_y = unscaled_size_y;
 				}
-				/* Main Window. */				
+
 				ResizeWindowByClientArea(hwnd, temp_x, temp_y + sbar_height);
-
-				/* Render window. */
-				MoveWindow(hwndRender, 0, 0, temp_x, temp_y, TRUE);
-				GetWindowRect(hwndRender, &rect);
-
-				/* Status bar. */
-				MoveWindow(hwndSBAR, 0, rect.bottom, temp_x, 17, TRUE);
 
 				if (mouse_capture) {
 					ClipCursor(&rect);
@@ -840,70 +835,53 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			doresize = 1;
 		break;
 
-	case WM_SIZE:
-		if (user_resize && !vid_resize)
-			break;
+	case WM_WINDOWPOSCHANGED:
+		pos = (WINDOWPOS*)lParam;
+		GetClientRect(hwndMain, &rect);
 
-		temp_x = (lParam & 0xFFFF);
-		temp_y = (lParam >> 16);
-
-		if ((temp_x <= 0) || (temp_y <= 0)) {
+		if (IsIconic(hwndMain)) {
 			plat_vidapi_enable(0);
 			minimized = 1;
-			break;
-		} else if (minimized == 1) {
+			return(0);
+		} else if (minimized) {
 			minimized = 0;
 			video_force_resize_set(1);
 		}
 
-		plat_vidapi_enable(0);
-		temp_y -= sbar_height;
-		if (temp_y < 1)
-			temp_y = 1;
-
-		if (vid_resize && ((temp_x != scrnsz_x) || (temp_y != scrnsz_y))) {
-			scrnsz_x = temp_x;
-			scrnsz_y = temp_y;
-			doresize = 1;
-		}
-
-		MoveWindow(hwndRender, 0, 0, temp_x, temp_y, TRUE);
-
-		GetWindowRect(hwndRender, &rect);
-
-		/* Status bar. */
-		MoveWindow(hwndSBAR, 0, rect.bottom, temp_x, 17, TRUE);
-
-		plat_vidsize(temp_x, temp_y);
-
-		if (mouse_capture) {
-			ClipCursor(&rect);
-		}
-
 		if (window_remember) {
-			GetWindowRect(hwnd, &rect);
-			window_x = rect.left;
-			window_y = rect.top;
-			window_w = rect.right - rect.left;
-			window_h = rect.bottom - rect.top;
+			window_x = pos->x;
+			window_y = pos->y;
+			window_w = pos->cx;
+			window_h = pos->cy;
 			save_window_pos = 1;
+			config_save();
 		}
-		plat_vidapi_enable(2);
 
-		config_save();
-		break;
+		if (!(pos->flags & SWP_NOSIZE)) {
+			plat_vidapi_enable(0);
 
-	case WM_MOVE:
-		if (window_remember) {
-			GetWindowRect(hwnd, &rect);
-			window_x = rect.left;
-			window_y = rect.top;
-			window_w = rect.right - rect.left;
-			window_h = rect.bottom - rect.top;
-			save_window_pos = 1;
+			MoveWindow(hwndSBAR, 0, rect.bottom - sbar_height, sbar_height, rect.right, TRUE);
+			MoveWindow(hwndRender, 0, 0, rect.right, rect.bottom - sbar_height, TRUE);
+
+			GetClientRect(hwndRender, &rect);
+			if (rect.right != scrnsz_x || rect.bottom != scrnsz_y) {
+				scrnsz_x = rect.right;
+				scrnsz_y = rect.bottom;
+				doresize = 1;
+			}
+
+			plat_vidsize(rect.right, rect.bottom);
+
+			if (mouse_capture) {
+				GetWindowRect(hwndRender, &rect);
+				ClipCursor(&rect);
+			}
+
+			plat_vidapi_enable(2);
 		}
-		break;
-                
+
+		return(0);
+
 	case WM_TIMER:
 		if (wParam == TIMER_1SEC)
 			pc_onesec();
@@ -1259,9 +1237,16 @@ ui_init(int nCmdShow)
 	SetWindowLongPtr(hwnd, GWL_STYLE,
 			(WS_OVERLAPPEDWINDOW&~WS_SIZEBOX&~WS_THICKFRAME&~WS_MAXIMIZEBOX));
 
-    /* Move to the last-saved position if needed. */
+    /* Create the Machine Rendering window. */
+    hwndRender = CreateWindow(/*L"STATIC"*/ SUB_CLASS_NAME, NULL, WS_CHILD|SS_BITMAP,
+			      0, 0, 1, 1, hwnd, NULL, hinstance, NULL);
+
+    /* Initiate a resize in order to properly arrange all controls.
+       Move to the last-saved position if needed. */
     if (window_remember)
 	MoveWindow(hwnd, window_x, window_y, window_w, window_h, TRUE);
+    else
+	ResizeWindowByClientArea(hwndMain, scrnsz_x, scrnsz_y + sbar_height);
 
     /* Reset all menus to their defaults. */
     ResetAllMenus();
@@ -1301,11 +1286,6 @@ ui_init(int nCmdShow)
      * to prepare some other things that it depends on.
      */
     ghMutex = CreateMutex(NULL, FALSE, NULL);
-
-    /* Create the Machine Rendering window. */
-    hwndRender = CreateWindow(/*L"STATIC"*/ SUB_CLASS_NAME, NULL, WS_CHILD|SS_BITMAP,
-			      0, 0, 1, 1, hwnd, NULL, hinstance, NULL);
-    MoveWindow(hwndRender, 0, 0, scrnsz_x, scrnsz_y, TRUE);
 
     /* All done, fire up the actual emulated machine. */
     if (! pc_init_modules()) {
@@ -1491,8 +1471,6 @@ plat_pause(int p)
 void
 plat_resize(int x, int y)
 {
-    RECT r;
-
     /* First, see if we should resize the UI window. */
     if (!vid_resize) {
 
@@ -1502,15 +1480,6 @@ plat_resize(int x, int y)
 		y = MulDiv(y, dpi, 96);
 	}
 	ResizeWindowByClientArea(hwndMain, x, y + sbar_height);
-
-	MoveWindow(hwndRender, 0, 0, x, y, TRUE);
-	GetWindowRect(hwndRender, &r);
-
-	MoveWindow(hwndSBAR, 0, y, x, 17, TRUE);
-
-	if (mouse_capture) {
-		ClipCursor(&r);
-	}
     }
 }
 
