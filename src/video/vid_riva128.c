@@ -26,6 +26,7 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include "../cpu/cpu.h"
+#include <86box/dma.h>
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
@@ -200,6 +201,8 @@ typedef struct riva128_t
 		uint16_t itm_rect_h;
 		uint16_t itm_pitch;
 		uint32_t itm_offset;
+
+		int m2mf_pending;
 	} pgraph;
 	
 
@@ -1440,7 +1443,7 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 						riva128_pgraph_invalid_interrupt(12, riva128);
 						break;
 					}
-					riva128->pgraph.notify_impending = 1;
+					riva128->pgraph.notify_impending = 2;
 					riva128->pgraph.notifier_obj = param;
 					break;
 				}
@@ -1474,7 +1477,7 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 						riva128_pgraph_invalid_interrupt(12, riva128);
 						break;
 					}
-					riva128->pgraph.notify_impending = 1;
+					riva128->pgraph.notify_impending = 2;
 					riva128->pgraph.notifier_obj = param;
 					break;
 				}
@@ -1498,6 +1501,7 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 				case 0x314:
 				{
 					riva128->pgraph.itm_offset = param;
+					riva128->pgraph.m2mf_pending = 1;
 					/*uint16_t startx = riva128->pgraph.itm_vtx_x;
 					uint16_t endx = startx + riva128->pgraph.itm_rect_w;
 					uint16_t starty = riva128->pgraph.itm_vtx_y;
@@ -1553,14 +1557,24 @@ uint32_t graphobj0, uint32_t graphobj1, uint32_t graphobj2, uint32_t graphobj3, 
 		}
 	}
 
-	if(method != 0x104 && riva128->pgraph.notify_impending)
+	if(riva128->pgraph.notify_impending)
 	{
-		riva128->pgraph.notify_impending = 0;
-		uint64_t *vram_q = (uint64_t *)svga->vram;
-		uint32_t addr = riva128->pgraph.notifier_obj << 4;
-		vram_q[addr] = riva128->ptimer.time;
-		vram_q[addr + 8] = 0;
-		if(riva128->pgraph.notifier_obj == 1) riva128_pgraph_interrupt(28, riva128);
+		riva128->pgraph.notify_impending--;
+		if(riva128->pgraph.notify_impending == 0)
+		{
+			uint64_t *vram_q = (uint64_t *)svga->vram;
+			uint32_t notify_obj_addr = (graphobj1 >> 16) << 4;
+			uint32_t flags = riva128_ramin_read_l(notify_obj_addr, riva128);
+			uint32_t limit = riva128_ramin_read_l(notify_obj_addr + 4, riva128);
+			uint32_t pte = riva128_ramin_read_l(notify_obj_addr + 8, riva128);
+			uint32_t pte_frame = pte & 0xfffff000;
+			uint32_t notifier[4];
+			notifier[0] = riva128->ptimer.time & 0xffffffffull;
+			notifier[1] = riva128->ptimer.time >> 32;
+			notifier[2] = notifier[3] = 0;
+			dma_bm_write(pte_frame, notifier, 4, 4);
+			if(riva128->pgraph.notifier_obj == 1) riva128_pgraph_interrupt(28, riva128);
+		}
 	}
 }
 
