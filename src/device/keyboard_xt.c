@@ -24,6 +24,8 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
+#define HAVE_STDARG_H
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -598,7 +600,7 @@ kbd_read(uint16_t port, void *priv)
 				ret = ((mem_size-64) / 32) >> 4;
 		} 
         else if (kbd->type == 8 || kbd->type == 9) {
-            /* Olivetti M19 or Zenith Data Systems Z-151*/
+            /* Olivetti M19 or Zenith Data Systems Z-151 */
             if (kbd->pb & 0x04)
 				ret = kbd->pd & 0xbf;
             else 

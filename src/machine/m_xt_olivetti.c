@@ -724,6 +724,9 @@ machine_xt_olim24_init(const machine_t *model)
     memset(m24_kbd, 0x00, sizeof(olim24_kbd_t));
 
     machine_common_init(model);
+
+	/* On-board FDC can be disabled only on M24SP */
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_xt_device);
 
     /* Address 66-67 = mainboard dip-switch settings */
@@ -771,7 +774,7 @@ machine_xt_olim240_init(const machine_t *model)
      */
     device_add(&keyboard_at_olivetti_device);
 
-    /* FIXME: make sure this is correct?? */
+	/* FIXME: make sure this is correct?? */
     device_add(&at_nvr_device);
 
     if (fdc_type == FDC_INTERNAL)	
@@ -790,6 +793,7 @@ machine_xt_olim240_init(const machine_t *model)
  * Current bugs: 
  * - 640x400x2 graphics mode not supported (bit 0 of register 0x3de cannot be set)
  * - optional mouse emulation missing
+ * - setting CPU speed at 4.77MHz sometimes throws a timer error. If the machine is hard-resetted, the error disappears.
  */
 int
 machine_xt_olim19_init(const machine_t *model)
@@ -809,6 +813,8 @@ machine_xt_olim19_init(const machine_t *model)
     memset(vid, 0x00, sizeof(olim19_vid_t));
 	
     machine_common_init(model);
+
+    /* On-board FDC cannot be disabled */
     device_add(&fdc_xt_device);
 
     m19_vid_init(vid);
@@ -820,40 +826,4 @@ machine_xt_olim19_init(const machine_t *model)
 
     return ret;
 
-}
-
-
-/* not working, returns timer error */
-/* it appears to be a rebadged Hitachi HL 320 laptop */
-int
-machine_xt_olim15_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear(L"roms/machines/olivetti_m15/oliv_m15.bin",
-			   0x000fc000, 16384, 0);
-
-    if (bios_only || !ret)
-    return ret;
-
-	machine_common_init(model);
-
-	pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
-
-	device_add(&keyboard_xt_olivetti_device);
-	
-	device_add(&cga_device);
-	
-    /* FIXME: make sure this is correct?? */
-    //device_add(&at_nvr_device);
-
-	if (fdc_type == FDC_INTERNAL)	
-		device_add(&fdc_xt_device);
-
-	if (joystick_type)
-		device_add(&gameport_device);
-
-    nmi_init();
-
-    return ret;
 }

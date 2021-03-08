@@ -484,14 +484,16 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 		}
 		break;
 	case 5:
-		dev->lsr = val;
-		if (dev->lsr & 0x01)
-			dev->int_status |= SERIAL_INT_RECEIVE;
-		if (dev->lsr & 0x1e)
-			dev->int_status |= SERIAL_INT_LSR;
-		if (dev->lsr & 0x20)
-			dev->int_status |= SERIAL_INT_TRANSMIT;
-		serial_update_ints(dev);
+		if (dev->mctrl & 0x10) {
+			dev->lsr = (dev->lsr & 0xe3) | (val & 0x1c);
+			if (dev->lsr & 0x01)
+				dev->int_status |= SERIAL_INT_RECEIVE;
+			if (dev->lsr & 0x1e)
+				dev->int_status |= SERIAL_INT_LSR;
+			if (dev->lsr & 0x20)
+				dev->int_status |= SERIAL_INT_TRANSMIT;
+			serial_update_ints(dev);
+		}
 		break;
 	case 6:
 		dev->msr = val;

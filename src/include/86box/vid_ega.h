@@ -77,6 +77,7 @@ extern const device_t cpqega_device;
 extern const device_t sega_device;
 extern const device_t atiega_device;
 extern const device_t iskra_ega_device;
+extern const device_t et2000_device;
 #endif
 
 extern int update_overscan;

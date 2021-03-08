@@ -54,7 +54,7 @@ MiniMicro 4 uses a Zilog Z0765A08PSC(Clone of the NEC 765)
 MiniMicro 1 uses a National Semiconductor DP8473(Clone of the NEC 765 with additional NSC commands)
 
 Issues:
-MiniMicro 4 WON'T WORK with XT machines. This statement has to be confirmed by someone with the real card itself.
+MiniMicro 4 works only with a few XT machines. This statement has to be confirmed by someone with the real card itself.
 MiniMicro 4 also won't work with the XT FDC which the Zilog claims to be.
 */
 
@@ -77,7 +77,7 @@ MiniMicro 4 also won't work with the XT FDC which the Zilog claims to be.
 #include <86box/fdc_ext.h>
 
 #define DTK_VARIANT ((info->local == 158) ? ROM_PII_158B : ROM_PII_151B)
-#define DTK_CHIP ((info->local == 158) ? &fdc_at_device : &fdc_dp8473_device)
+#define DTK_CHIP ((info->local == 158) ? &fdc_xt_device : &fdc_dp8473_device)
 #define BIOS_ADDR (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
 #define ROM_PII_151B L"roms/floppy/dtk/pii-151b.rom"
 #define ROM_PII_158B L"roms/floppy/dtk/pii-158b.rom"

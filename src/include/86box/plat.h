@@ -66,6 +66,11 @@ extern int	dopause,			/* system is paused */
 		doresize,			/* screen resize requested */
 		quited,				/* system exit requested */
 		mouse_capture;			/* mouse is captured in app */
+
+#ifdef MTR_ENABLED
+extern int tracing_on;
+#endif
+
 extern uint64_t	timer_freq;
 extern int	infocus;
 extern char	emu_version[200];		/* version ID string */
@@ -164,6 +169,11 @@ extern int	thread_release_mutex(mutex_t *mutex);
 extern void	startblit(void);
 extern void	endblit(void);
 extern void	take_screenshot(void);
+
+#ifdef MTR_ENABLED
+extern void init_trace(void);
+extern void shutdown_trace(void);
+#endif
 
 #ifdef __cplusplus
 }

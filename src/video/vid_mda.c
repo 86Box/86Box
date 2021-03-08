@@ -79,14 +79,12 @@ uint8_t mda_in(uint16_t addr, void *p)
 void mda_write(uint32_t addr, uint8_t val, void *p)
 {
         mda_t *mda = (mda_t *)p;
-        egawrites++;
         mda->vram[addr & 0xfff] = val;
 }
 
 uint8_t mda_read(uint32_t addr, void *p)
 {
         mda_t *mda = (mda_t *)p;
-        egareads++;
         return mda->vram[addr & 0xfff];
 }
 

@@ -99,6 +99,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef USE_VECT486VL
   USE_VECT486VL	:= y
  endif
+ ifndef OLIVETTI
+  OLIVETTI	:= y
+ endif
 else
  ifndef DEBUG
   DEBUG		:= n
@@ -171,6 +174,9 @@ else
  endif
  ifndef USE_VECT486VL
   USE_VECT486VL	:= n
+ endif
+ ifndef OLIVETTI
+  OLIVETTI	:= n
  endif
 endif
 
@@ -284,7 +290,7 @@ endif
 #########################################################################
 #		Nothing should need changing from here on..		#
 #########################################################################
-VPATH		:= $(EXPATH) . $(CODEGEN) cpu \
+VPATH		:= $(EXPATH) . $(CODEGEN) minitrace cpu \
 		   cdrom chipset device disk disk/minivhd floppy \
 		   game machine mem printer \
 		   sio sound \
@@ -482,6 +488,12 @@ RFLAGS		+= -DUSE_DISCORD
 DISCORDOBJ	:= win_discord.o
 endif
 
+ifeq ($(MINITRACE), y)
+OPTS		+= -DMTR_ENABLED
+RFLAGS		+= -DMTR_ENABLED
+MINITRACEOBJ	:= minitrace.o
+endif
+
 # Options for the DEV branch.
 ifeq ($(DEV_BRANCH), y)
 OPTS		+= -DDEV_BRANCH
@@ -575,6 +587,11 @@ ifeq ($(USE_VECT486VL), y)
 OPTS		+= -DUSE_VECT486VL
 endif
 
+ifeq ($(OLIVETTI), y)
+OPTS		+= -DUSE_OLIVETTI
+endif
+
+
 endif
 
 
@@ -607,11 +624,13 @@ CPUOBJ		:= cpu.o cpu_table.o \
 CHIPSETOBJ	:= acc2168.o cs8230.o ali1217.o ali1429.o headland.o intel_82335.o cs4031.o \
 		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
 		    neat.o opti495.o opti895.o opti5x7.o scamp.o scat.o via_vt82c49x.o via_vt82c505.o \
+		    gc100.o olivetti_eva.o \
 		    sis_85c310.o sis_85c4xx.o sis_85c496.o sis_85c50x.o stpc.o opti283.o opti291.o \
 		    via_apollo.o via_pipc.o wd76c10.o vl82c480.o
 
 MCHOBJ		:= machine.o machine_table.o \
 		    m_xt.o m_xt_compaq.o \
+			m_xt_philips.o \
 		    m_xt_t1000.o m_xt_t1000_vid.o \
 		    m_xt_xi8088.o m_xt_zenith.o \
 		    m_pcjr.o \
@@ -625,6 +644,7 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_at_286_386sx.o m_at_386dx_486.o \
 		    m_at_socket4_5.o m_at_socket7.o m_at_sockets7.o \
 		    m_at_socket8.o m_at_slot1.o m_at_slot2.o m_at_socket370.o \
+			m_at_ebga368.o \
 			m_at_misc.o
 
 DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_vt82c686.o ibm_5161.o isamem.o isartc.o \
@@ -633,14 +653,14 @@ DEVOBJ		:= bugger.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_vt82c686.o ibm
 		   keyboard.o \
 		    keyboard_xt.o keyboard_at.o \
 		   mouse.o \
-		    mouse_bus.o \
+			mouse_bus.o \
 		    mouse_serial.o mouse_ps2.o \
 			phoenix_486_jumper.o
 
 SIOOBJ		:= sio_acc3221.o \
 		    sio_f82c710.o sio_82091aa.o \
 		    sio_fdc37c661.o sio_fdc37c66x.o sio_fdc37c669.o sio_fdc37c93x.o sio_fdc37m60x.o \
-		    sio_pc87306.o sio_pc87307.o sio_pc87309.o sio_pc87311.o sio_pc87332.o \
+		    sio_pc87306.o sio_pc87307.o sio_pc87309.o sio_pc87310.o sio_pc87311.o sio_pc87332.o \
 			sio_prime3b.o sio_prime3c.o \
 		    sio_w83787f.o \
 		    sio_w83877f.o sio_w83977f.o \
@@ -781,7 +801,7 @@ OBJ		:= $(MAINOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
 		   $(FDDOBJ) $(GAMEOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) $(MINIVHDOBJ) \
 		   $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SIOOBJ) $(SNDOBJ) $(VIDOBJ) \
 		   $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) $(DEVBROBJ) \
-		   $(DISCORDOBJ)
+		   $(DISCORDOBJ) $(MINITRACEOBJ)
 ifdef EXOBJ
 OBJ		+= $(EXOBJ)
 endif

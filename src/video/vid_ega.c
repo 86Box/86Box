@@ -43,6 +43,7 @@ void ega_doblit(int y1, int y2, int wx, int wy, ega_t *ega);
 #define BIOS_SEGA_PATH		L"roms/video/ega/lega.vbi"
 #define BIOS_ATIEGA_PATH	L"roms/video/ega/ATI EGA Wonder 800+ N1.00.BIN"
 #define BIOS_ISKRA_PATH		L"roms/video/ega/143-02.bin", L"roms/video/ega/143-03.bin"
+#define BIOS_TSENG_PATH		L"roms/video/ega/EGA ET2000.BIN"
 
 
 enum {
@@ -50,14 +51,15 @@ enum {
     EGA_COMPAQ,
     EGA_SUPEREGA,
     EGA_ATI,
-	EGA_ISKRA
+    EGA_ISKRA,
+    EGA_TSENG
 };
 
 
 static video_timings_t	timing_ega	= {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 static uint8_t		ega_rotate[8][256];
 static uint32_t		pallook16[256], pallook64[256];
-static int		old_overscan_color = 0;
+static int		ega_type = 0, old_overscan_color = 0;
 
 extern uint8_t		edatlookup[4][4];
 
@@ -256,38 +258,48 @@ uint8_t ega_in(uint16_t addr, void *p)
 		break;
 
 	case 0x3c0: 
-		ret = ega->attraddr | ega->attr_palette_enable;
+		if (ega_type)
+			ret = ega->attraddr | ega->attr_palette_enable;
 		break;
 	case 0x3c1: 
-		ret = ega->attrregs[ega->attraddr];
+		if (ega_type)
+			ret = ega->attrregs[ega->attraddr];
 		break;
 	case 0x3c2:
 		ret = (egaswitches & (8 >> egaswitchread)) ? 0x10 : 0x00;
 		break;
 	case 0x3c4: 
-		ret = ega->seqaddr;
+		if (ega_type)
+			ret = ega->seqaddr;
 		break;
 	case 0x3c5:
-		ret = ega->seqregs[ega->seqaddr & 0xf];
+		if (ega_type)
+			ret = ega->seqregs[ega->seqaddr & 0xf];
 		break;
 	case 0x3c8:
-		ret = 2;
+		if (ega_type)
+			ret = 2;
 		break;
 	case 0x3cc: 
-		ret = ega->miscout;
+		if (ega_type)
+			ret = ega->miscout;
 		break;
 	case 0x3ce: 
-		ret = ega->gdcaddr;
+		if (ega_type)
+			ret = ega->gdcaddr;
 		break;
 	case 0x3cf:
-		ret = ega->gdcreg[ega->gdcaddr & 0xf];
+		if (ega_type)
+			ret = ega->gdcreg[ega->gdcaddr & 0xf];
 		break;
 	case 0x3d0: case 0x3d4:
-		ret = ega->crtcreg;
+		if (ega_type)
+			ret = ega->crtcreg;
 		break;
 	case 0x3d1:
 	case 0x3d5:
-		ret = ega->crtc[ega->crtcreg];
+		if (ega_type)
+			ret = ega->crtc[ega->crtcreg];
 		break;
 	case 0x3da:
 		ega->attrff = 0;
@@ -731,7 +743,6 @@ ega_write(uint32_t addr, uint8_t val, void *p)
     uint8_t vala, valb, valc, vald;
     int writemask2 = ega->writemask;
 
-    egawrites++;
     cycles -= video_timing_write_b;
 
     if (addr >= 0xB0000)	addr &= 0x7fff;
@@ -858,7 +869,6 @@ ega_read(uint32_t addr, void *p)
     uint8_t temp, temp2, temp3, temp4;
     int readplane = ega->readplane;
 
-    egareads++;
     cycles -= video_timing_read_b;
     if (addr >= 0xb0000)	addr &= 0x7fff;
     else			addr &= 0xffff;
@@ -1021,6 +1031,12 @@ ega_standalone_init(const device_t *info)
     ega->x_add = 8;
     ega->y_add = 14;
 
+    if ((info->local == EGA_IBM) || (info->local == EGA_ISKRA) ||
+	(info->local == EGA_TSENG))
+	ega_type = 0;
+    else
+	ega_type = 1;
+
     switch(info->local) {
 	case EGA_IBM:
 	default:
@@ -1041,6 +1057,10 @@ ega_standalone_init(const device_t *info)
 		break;
 	case EGA_ISKRA:
 		rom_init_interleaved(&ega->bios_rom, BIOS_ISKRA_PATH,
+			 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		break;
+	case EGA_TSENG:
+		rom_init(&ega->bios_rom, BIOS_TSENG_PATH,
 			 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 		break;
     }
@@ -1098,6 +1118,20 @@ static int
 atiega_standalone_available(void)
 {
     return rom_present(BIOS_ATIEGA_PATH);
+}
+
+
+static int
+iskra_ega_standalone_available(void)
+{
+    return rom_present(L"roms/video/ega/143-02.bin") && rom_present(L"roms/video/ega/143-03.bin");
+}
+
+
+static int
+et2000_standalone_available(void)
+{
+    return rom_present(BIOS_TSENG_PATH);
 }
 
 
@@ -1250,7 +1284,19 @@ const device_t iskra_ega_device =
         DEVICE_ISA,
 	EGA_ISKRA,
         ega_standalone_init, ega_close, NULL,
-        { ega_standalone_available },
+        { iskra_ega_standalone_available },
+        ega_speed_changed,
+        NULL,
+        ega_config
+};
+
+const device_t et2000_device =
+{
+        "Tseng Labs ET2000",
+        DEVICE_ISA,
+	EGA_TSENG,
+        ega_standalone_init, ega_close, NULL,
+        { et2000_standalone_available },
         ega_speed_changed,
         NULL,
         ega_config

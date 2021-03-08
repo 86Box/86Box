@@ -70,6 +70,7 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 
+#include <minitrace/minitrace.h>
 
 volatile int	screenshots = 0;
 bitmap_t	*buffer32 = NULL;
@@ -84,6 +85,7 @@ dbcs_font_t	*fontdatksc5601_user = NULL;	/* Korean KSC-5601 user defined font */
 uint32_t	pal_lookup[256];
 int		xsize = 1,
 		ysize = 1;
+int		egareads = 0, egawrites = 0;
 int		cga_palette = 0,
 		herc_blend = 0;
 uint32_t	*video_6to8 = NULL,
@@ -91,9 +93,7 @@ uint32_t	*video_6to8 = NULL,
 		*video_8to32 = NULL,
 		*video_15to32 = NULL,
 		*video_16to32 = NULL;
-int		egareads = 0,
-		egawrites = 0,
-		changeframecount = 2;
+int		changeframecount = 2;
 int		frames = 0;
 int		fullchange = 0;
 uint8_t		edatlookup[4][4];
@@ -285,6 +285,7 @@ void blit_thread(void *param)
     while (1) {
 	thread_wait_event(blit_data.wake_blit_thread, -1);
 	thread_reset_event(blit_data.wake_blit_thread);
+    MTR_BEGIN("video", "blit_thread");
 
 	if (blit_func)
 		blit_func(blit_data.x, blit_data.y,
@@ -292,6 +293,7 @@ void blit_thread(void *param)
 			  blit_data.w, blit_data.h);
 
 	blit_data.busy = 0;
+    MTR_END("video", "blit_thread");
 	thread_set_event(blit_data.blit_complete);
     }
 }
@@ -448,6 +450,7 @@ void
 video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
 {
     int yy;
+    MTR_BEGIN("video", "video_blit_memtoscreen");
 
     if (y2 > 0) {
 	for (yy = y1; yy < y2; yy++) {
@@ -482,6 +485,7 @@ video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
     blit_data.h = h;
 
     thread_set_event(blit_data.wake_blit_thread);
+    MTR_END("video", "video_blit_memtoscreen");
 }
 
 

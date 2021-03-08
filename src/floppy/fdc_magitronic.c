@@ -34,11 +34,55 @@
 #define ROM_B215 L"roms/floppy/magitronic/Magitronic B215 - BIOS ROM.bin"
 #define ROM_ADDR (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
 
+#define DRIVE_SELECT (int)(real_drive(dev->fdc_controller, i))
 typedef struct
 {
     fdc_t *fdc_controller;
     rom_t rom;
 } b215_t;
+
+static uint8_t
+b215_read(uint16_t addr, void *priv)
+{
+    b215_t *dev = (b215_t *)priv;
+
+    /*
+    Register 3F0h
+
+    Bit (3-2) for Drive B:
+    Bit (1-0) for Drive A:
+    0: 360KB
+    1: 1.2MB
+    2: 720KB
+    3: 1.44MB
+    4:
+*/
+    int drive_spec[2];
+
+    for (int i = 0; i <= 1; i++)
+    {
+        if (fdd_is_525(DRIVE_SELECT))
+        {
+            if (!fdd_is_dd(DRIVE_SELECT))
+                drive_spec[i] = 1;
+            else if (fdd_doublestep_40(DRIVE_SELECT))
+                drive_spec[i] = 2;
+            else
+                drive_spec[i] = 0;
+        }
+        else
+        {
+            if (fdd_is_dd(DRIVE_SELECT) && !fdd_is_double_sided(DRIVE_SELECT))
+                drive_spec[i] = 0;
+            else if (fdd_is_dd(DRIVE_SELECT) && fdd_is_double_sided(DRIVE_SELECT))
+                drive_spec[i] = 2;
+            else
+                drive_spec[i] = 3;
+        }
+    }
+
+    return ((drive_spec[1] << 2) | drive_spec[0]) & 0x0f;
+}
 
 static void
 b215_close(void *priv)
@@ -56,7 +100,8 @@ b215_init(const device_t *info)
 
     rom_init(&dev->rom, ROM_B215, ROM_ADDR, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
 
-    device_add(&fdc_at_device);
+    dev->fdc_controller = device_add(&fdc_um8398_device);
+    io_sethandler(0x03f0, 1, b215_read, NULL, NULL, NULL, NULL, NULL, dev);
 
     return dev;
 }

@@ -138,7 +138,6 @@ cga_write(uint32_t addr, uint8_t val, void *p)
 		cga->charbuffer[offset] = cga->vram[addr & 0x3fff];
 		cga->charbuffer[offset | 1] = cga->vram[addr & 0x3fff];
     }
-    egawrites++;
     cga_waitstates(cga);
 }
 
@@ -154,7 +153,6 @@ cga_read(uint32_t addr, void *p)
 		cga->charbuffer[offset] = cga->vram[addr & 0x3fff];
 		cga->charbuffer[offset | 1] = cga->vram[addr & 0x3fff];
     }
-    egareads++;
     return cga->vram[addr & 0x3fff];
 }
 

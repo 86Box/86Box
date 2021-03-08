@@ -1245,7 +1245,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
 		}
 		return;
 	case 7:
-		if (!(fdc->flags & FDC_FLAG_TOSHIBA) && !(fdc->flags & FDC_FLAG_AT))
+		if (!(fdc->flags & FDC_FLAG_TOSHIBA) && !(fdc->flags & FDC_FLAG_AT) && !(fdc->flags & FDC_FLAG_UMC))
 			return;
 		fdc->rate = val & 0x03;
 		if (fdc->flags & FDC_FLAG_PS1)
@@ -1294,7 +1294,7 @@ fdc_read(uint16_t addr, void *priv)
 			ret = 0x00;
 			/* -Drive 2 Installed */
 			if (!fdd_get_type(1))
-				ret |= 80;
+				ret |= 0x80;
 			/* -Drive Select 1,0 */
 			switch (drive) {
 				case 0:
@@ -1313,6 +1313,12 @@ fdc_read(uint16_t addr, void *priv)
 		} else {
 			if (is486 || !fdc->enable_3f1)
 				ret = 0xff;
+				else{
+					if(fdc->flags & FDC_FLAG_UMC)
+					{
+						drive = real_drive(fdc, fdc->dor & 1);
+						ret = !fdd_is_dd(drive) ? ((fdc->dor & 1) ? 2 : 1) : 0;
+					}
 			else {
 				ret = 0x70;
 
@@ -1327,6 +1333,7 @@ fdc_read(uint16_t addr, void *priv)
 					ret |= 1;
 				if (fdc->dor & 0x20)
 					ret |= 2;
+			}
 			}
 		}
 		break;
@@ -2166,6 +2173,11 @@ fdc_set_base(fdc_t *fdc, int base)
 {
     int super_io = (fdc->flags & FDC_FLAG_SUPERIO);
 
+	if (fdc->flags & FDC_FLAG_NSC) {
+		io_sethandler(base + 2, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+		io_sethandler(base + 4, 0x0002, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+		io_sethandler(base + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+	} else {
     if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
 	io_sethandler(base + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
 	io_sethandler(base + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
@@ -2173,13 +2185,16 @@ fdc_set_base(fdc_t *fdc, int base)
 	if (fdc->flags & FDC_FLAG_PCJR)
 		io_sethandler(base, 0x0010, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
 	else {
+		if(fdc->flags & FDC_FLAG_UMC)
+		io_sethandler(base + 0x0001, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
 		io_sethandler(base + 0x0002, 0x0001, NULL, NULL, NULL, fdc_write, NULL, NULL, fdc);
 		io_sethandler(base + 0x0004, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
 		io_sethandler(base + 0x0005, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
-		if (fdc->flags & FDC_FLAG_TOSHIBA)
+		if ((fdc->flags & FDC_FLAG_TOSHIBA) || (fdc->flags & FDC_FLAG_UMC))
 			io_sethandler(base + 0x0007, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
 	}
     }
+	}
     fdc->base_address = base;
     fdc_log("FDC Base address set%s (%04X)\n", super_io ? " for Super I/O" : "", fdc->base_address);
 }
@@ -2191,6 +2206,11 @@ fdc_remove(fdc_t *fdc)
     int super_io = (fdc->flags & FDC_FLAG_SUPERIO);
 
     fdc_log("FDC Removed (%04X)\n", fdc->base_address);
+	if (fdc->flags & FDC_FLAG_NSC) {
+		io_removehandler(fdc->base_address + 2, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+		io_removehandler(fdc->base_address + 4, 0x0002, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+		io_removehandler(fdc->base_address + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+	} else {
     if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
 	io_removehandler(fdc->base_address + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
 	io_removehandler(fdc->base_address + 7, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
@@ -2198,13 +2218,16 @@ fdc_remove(fdc_t *fdc)
 	if (fdc->flags & FDC_FLAG_PCJR)
 		io_removehandler(fdc->base_address, 0x0010, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
 	else {
+		if(fdc->flags & FDC_FLAG_UMC)
+		io_removehandler(fdc->base_address + 0x0001, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
 		io_removehandler(fdc->base_address + 0x0002, 0x0001, NULL, NULL, NULL, fdc_write, NULL, NULL, fdc);
 		io_removehandler(fdc->base_address + 0x0004, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
 		io_removehandler(fdc->base_address + 0x0005, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
-		if (fdc->flags & FDC_FLAG_TOSHIBA)
+		if ((fdc->flags & FDC_FLAG_TOSHIBA) || (fdc->flags & FDC_FLAG_UMC))
 			io_removehandler(fdc->base_address + 0x0007, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
 	}
     }
+}
 }
 
 
@@ -2428,6 +2451,16 @@ const device_t fdc_dp8473_device = {
     "NS DP8473 Floppy Drive Controller",
     0,
     FDC_FLAG_AT | FDC_FLAG_NSC,
+    fdc_init,
+    fdc_close, 
+    fdc_reset,
+    { NULL }, NULL, NULL
+};
+
+const device_t fdc_um8398_device = {
+    "UMC UM8398 Floppy Drive Controller",
+    0,
+    FDC_FLAG_UMC,
     fdc_init,
     fdc_close, 
     fdc_reset,

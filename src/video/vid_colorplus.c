@@ -99,7 +99,6 @@ void colorplus_write(uint32_t addr, uint8_t val, void *p)
 				colorplus->cga.charbuffer[offset] = colorplus->cga.vram[addr & 0x7fff];
 				colorplus->cga.charbuffer[offset | 1] = colorplus->cga.vram[addr & 0x7fff];
         }
-        egawrites++;
         cycles -= 4;
 }
 
@@ -124,7 +123,6 @@ uint8_t colorplus_read(uint32_t addr, void *p)
 				colorplus->cga.charbuffer[offset] = colorplus->cga.vram[addr & 0x7fff];
 				colorplus->cga.charbuffer[offset | 1] = colorplus->cga.vram[addr & 0x7fff];
         }
-        egareads++;
         return colorplus->cga.vram[addr & 0x7fff];
 }
 

@@ -11,6 +11,7 @@
 #include <86box/device.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/fdc_ext.h>
 #include <86box/nmi.h>
 #include <86box/nvr.h>
 #include <86box/gameport.h>
@@ -172,7 +173,10 @@ machine_xt_xi8088_init(const machine_t *model)
 
     /* TODO: set UMBs? See if PCem always sets when we have > 640KB ram and avoids conflicts when a peripheral uses the same memory space */
     machine_common_init(model);
+
+    if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
+
     device_add(&keyboard_ps2_xi8088_device);
     nmi_init();
     device_add(&ibmat_nvr_device);

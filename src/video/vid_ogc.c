@@ -166,7 +166,6 @@ ogc_write(uint32_t addr, uint8_t val, void *priv)
 		ogc->cga.charbuffer[offset] = ogc->cga.vram[addr & 0x7fff];
 		ogc->cga.charbuffer[offset | 1] = ogc->cga.vram[addr & 0x7fff];
 	}
-	egawrites++;
     ogc_waitstates(&ogc->cga);
 }
 
@@ -186,7 +185,6 @@ ogc_read(uint32_t addr, void *priv)
 		ogc->cga.charbuffer[offset | 1] = ogc->cga.vram[addr & 0x7fff];
 	}
 	
-	egareads++;
     return(ogc->cga.vram[addr & 0x7FFF]);
 }
 

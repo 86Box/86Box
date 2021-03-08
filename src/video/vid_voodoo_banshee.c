@@ -1424,7 +1424,6 @@ static uint8_t banshee_read_linear(uint32_t addr, void *p)
         if (addr >= svga->vram_max)
                 return 0xff;
 
-        egareads++;
         cycles -= video_timing_read_b;
         
 //        banshee_log("read_linear: addr=%08x val=%02x\n", addr, svga->vram[addr & svga->vram_mask]);
@@ -1457,7 +1456,6 @@ static uint16_t banshee_read_linear_w(uint32_t addr, void *p)
         if (addr >= svga->vram_max)
                 return 0xff;
 
-        egareads++;
         cycles -= video_timing_read_w;
 	
 //        banshee_log("read_linear: addr=%08x val=%02x\n", addr, svga->vram[addr & svga->vram_mask]);
@@ -1491,7 +1489,6 @@ static uint32_t banshee_read_linear_l(uint32_t addr, void *p)
         if (addr >= svga->vram_max)
                 return 0xff;
 
-        egareads++;
 	cycles -= video_timing_read_l;
 
 //        banshee_log("read_linear: addr=%08x val=%02x\n", addr, svga->vram[addr & svga->vram_mask]);
@@ -1523,8 +1520,6 @@ static void banshee_write_linear(uint32_t addr, uint8_t val, void *p)
         if (addr >= svga->vram_max)
                 return;
 
-        egawrites++;
-	
 	cycles -= video_timing_write_b;
 
         svga->changedvram[addr >> 12] = changeframecount;
@@ -1560,8 +1555,6 @@ static void banshee_write_linear_w(uint32_t addr, uint16_t val, void *p)
         }
         if (addr >= svga->vram_max)
                 return;
-
-        egawrites++;
 
         cycles -= video_timing_write_w;
 
@@ -1606,8 +1599,6 @@ static void banshee_write_linear_l(uint32_t addr, uint32_t val, void *p)
 
         if (addr >= svga->vram_max)
                 return;
-
-        egawrites += 4;
 
         cycles -= video_timing_write_l;
 

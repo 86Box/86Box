@@ -261,7 +261,6 @@ void
 genius_write(uint32_t addr, uint8_t val, void *p)
 {
     genius_t *genius = (genius_t *)p;
-    egawrites++;
     genius_waitstates();
 
     if (genius->genius_control & 1) {
@@ -288,7 +287,6 @@ genius_read(uint32_t addr, void *p)
 {
     genius_t *genius = (genius_t *)p;
     uint8_t ret;
-    egareads++;
     genius_waitstates();
 
     if (genius->genius_control & 1) {

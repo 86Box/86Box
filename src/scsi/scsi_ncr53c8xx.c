@@ -56,6 +56,7 @@
 #define SYM53C860_SDMS4_ROM	L"roms/scsi/ncr53c8xx/860/8XX_64.ROM"
 #define NCR53C875_SDMS3_ROM	L"roms/scsi/ncr53c8xx/875/NCR307.BIN"
 #define SYM53C875_SDMS4_ROM	L"roms/scsi/ncr53c8xx/875/8XX_64.ROM"
+// #define SYM53C875_SDMS4_ROM	L"roms/scsi/ncr53c8xx/875/8xx_64.rom.419"
 
 #define HA_ID		  7
 
@@ -217,7 +218,7 @@ typedef enum
 typedef struct {
     wchar_t	*nvr_path;
     uint8_t	pci_slot;
-    uint8_t	chip;
+    uint8_t	chip, wide;
     int		has_bios;
     int		BIOSBase;
     rom_t	bios;
@@ -313,6 +314,8 @@ typedef struct {
 
     uint8_t regop;
     uint32_t adder;
+
+    uint32_t bios_mask;
 
     pc_timer_t timer;
 
@@ -412,7 +415,7 @@ ncr53c8xx_soft_reset(ncr53c8xx_t *dev)
     dev->scntl0 = 0xc0;
     dev->scntl1 = 0;
     dev->scntl2 = 0;
-    if (dev->chip >= CHIP_825)
+    if (dev->wide)
 	dev->scntl3 = 8;
     else
 	dev->scntl3 = 0;
@@ -439,7 +442,7 @@ ncr53c8xx_soft_reset(ncr53c8xx_t *dev)
     dev->sstop = 1;
     dev->gpcntl = 0x03;
 
-    if (dev->chip >= CHIP_825) {
+    if (dev->wide) {
 	/* This *IS* a wide SCSI controller, so reset all SCSI
 	   devices. */
 	for (i = 0; i < 16; i++) {
@@ -1671,7 +1674,7 @@ ncr53c8xx_reg_writeb(ncr53c8xx_t *dev, uint32_t offset, uint8_t val)
 		dev->respid0 = val;
 		break;
 	case 0x4b: /* RESPID1 */
-		if (dev->chip >= CHIP_825)
+		if (dev->wide)
 			dev->respid1 = val;
 		break;
 	case 0x4d: /* STEST1 */
@@ -1723,19 +1726,19 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
     case addr + 3: return (dev->name >> 24) & 0xff;
 
 #define CASE_GET_REG32_COND(name, addr) \
-    case addr: if (dev->chip >= CHIP_825) \
+    case addr: if (dev->wide) \
 			return dev->name & 0xff; \
 		else \
 			return 0x00; \
-    case addr + 1: if (dev->chip >= CHIP_825) \
+    case addr + 1: if (dev->wide) \
 			return (dev->name >> 8) & 0xff; \
 		else \
 			return 0x00; \
-    case addr + 2: if (dev->chip >= CHIP_825) \
+    case addr + 2: if (dev->wide) \
 			return (dev->name >> 16) & 0xff; \
 		else \
 			return 0x00; \
-    case addr + 3: if (dev->chip >= CHIP_825) \
+    case addr + 3: if (dev->wide) \
 			return (dev->name >> 24) & 0xff; \
 		else \
 			return 0x00;
@@ -1819,12 +1822,12 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
 		tmp = dev->istat;
 		return tmp;
 	case 0x16: /* MBOX0 */
-		if (dev->chip >= CHIP_825)
+		if (dev->wide)
 			return 0x00;
 		ncr53c8xx_log("NCR 810: Read MBOX0 %02X\n", dev->mbox0);
 		return dev->mbox0;
 	case 0x17: /* MBOX1 */
-		if (dev->chip >= CHIP_825)
+		if (dev->wide)
 			return 0x00;
 		ncr53c8xx_log("NCR 810: Read MBOX1 %02X\n", dev->mbox1);
 		return dev->mbox1;
@@ -1899,12 +1902,12 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
 		ncr53c8xx_log("NCR 810: Read SIST1 %02X\n", tmp);
 		return tmp;
 	case 0x44: /* SLPAR */
-		if (dev->chip < CHIP_825)
+		if (!dev->wide)
 			return 0x00;
 		ncr53c8xx_log("NCR 810: Read SLPAR %02X\n", dev->stime0);
 		return dev->slpar;
 	case 0x45: /* SWIDE */
-		if (dev->chip < CHIP_825)
+		if (!dev->wide)
 			return 0x00;
 		ncr53c8xx_log("NCR 810: Read SWIDE %02X\n", dev->stime0);
 		return dev->swide;
@@ -1918,13 +1921,14 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
 		ncr53c8xx_log("NCR 810: Read STIME0 %02X\n", dev->stime0);
 		return dev->stime0;
 	case 0x4a: /* RESPID0 */
-		if (dev->chip >= CHIP_825)
+		if (dev->wide) {
 			ncr53c8xx_log("NCR 810: Read RESPID0 %02X\n", dev->respid0);
-		else
+		} else {
 			ncr53c8xx_log("NCR 810: Read RESPID %02X\n", dev->respid0);
+		}
 		return dev->respid0;
 	case 0x4b: /* RESPID1 */
-		if (dev->chip < CHIP_825)
+		if (!dev->wide)
 			return 0x00;
 		ncr53c8xx_log("NCR 810: Read RESPID1 %02X\n", dev->respid1);
 		return dev->respid1;
@@ -1943,13 +1947,14 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
 	case 0x50: /* SIDL0 */
 		/* This is needed by the linux drivers.  We currently only update it
 		   during the MSG IN phase.  */
-		if (dev->chip >= CHIP_825)
+		if (dev->wide) {
 			ncr53c8xx_log("NCR 810: Read SIDL0 %02X\n", dev->sidl0);
-		else
+		} else {
 			ncr53c8xx_log("NCR 810: Read SIDL %02X\n", dev->sidl0);
+		}
 		return dev->sidl0;
 	case 0x51: /* SIDL1 */
-		if (dev->chip < CHIP_825)
+		if (!dev->wide)
 			return 0x00;
 		ncr53c8xx_log("NCR 810: Read SIDL1 %02X\n", dev->sidl1);
 		return dev->sidl1;
@@ -2241,7 +2246,10 @@ ncr53c8xx_ram_set_addr(ncr53c8xx_t *dev, uint32_t base)
 static void
 ncr53c8xx_bios_set_addr(ncr53c8xx_t *dev, uint32_t base)
 {
-    mem_mapping_set_addr(&dev->bios.mapping, base, 0x10000);
+    if (dev->has_bios == 2)
+	mem_mapping_set_addr(&dev->bios.mapping, base, 0x10000);
+    else if (dev->has_bios == 1)
+	mem_mapping_set_addr(&dev->bios.mapping, base, 0x04000);
 }
 
 
@@ -2327,25 +2335,25 @@ ncr53c8xx_pci_read(int func, int addr, void *p)
 	case 0x18:
 		return 0;			/*Memory space*/
 	case 0x19:
-		if (dev->chip == CHIP_815 || dev->chip < CHIP_825)
+		if (!dev->wide)
 			return 0;
 		return ncr53c8xx_pci_bar[2].addr_regs[1];
 	case 0x1A:
-		if (dev->chip == CHIP_815 || dev->chip < CHIP_825)
+		if (!dev->wide)
 			return 0;
 		return ncr53c8xx_pci_bar[2].addr_regs[2];
 	case 0x1B:
-		if (dev->chip == CHIP_815 || dev->chip < CHIP_825)
+		if (!dev->wide)
 			return 0;
 		return ncr53c8xx_pci_bar[2].addr_regs[3];
 	case 0x2C:
 		return 0x00;
 	case 0x2D:
-		if (dev->chip >= CHIP_825 || dev->chip != CHIP_815)
+		if (dev->wide)
 			return 0;
 		return 0x10;
 	case 0x2E:
-		if (dev->chip >= CHIP_825 || dev->chip != CHIP_815)
+		if (dev->wide)
 			return 0;
 		return 0x01;
 	case 0x2F:
@@ -2398,7 +2406,7 @@ ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
 			ncr53c8xx_mem_disable(dev);
 			if ((dev->MMIOBase != 0) && (val & PCI_COMMAND_MEM))
 				ncr53c8xx_mem_set_addr(dev, dev->MMIOBase);
-			if (dev->chip != CHIP_815 || dev->chip >= CHIP_825) {
+			if (dev->wide) {
 				ncr53c8xx_ram_disable(dev);
 				if ((dev->RAMBase != 0) && (val & PCI_COMMAND_MEM))
 					ncr53c8xx_ram_set_addr(dev, dev->RAMBase);
@@ -2442,8 +2450,8 @@ ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
 		/* Then let's set the PCI regs. */
 		ncr53c8xx_pci_bar[1].addr_regs[addr & 3] = val;
 		/* Then let's calculate the new I/O base. */
-		ncr53c8xx_pci_bar[1].addr &= 0xfffcf000;
-		dev->MMIOBase = ncr53c8xx_pci_bar[1].addr & 0xfffcf000;
+		ncr53c8xx_pci_bar[1].addr &= 0xffffc000;
+		dev->MMIOBase = ncr53c8xx_pci_bar[1].addr & 0xffffc000;
 		/* Log the new base. */
 		ncr53c8xx_log("NCR53c8xx: New MMIO base is %08X\n" , dev->MMIOBase);
 		/* We're done, so get out of the here. */
@@ -2454,7 +2462,7 @@ ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
 		return;	
 
 	case 0x19: case 0x1A: case 0x1B:
-		if (dev->chip == CHIP_815 || dev->chip < CHIP_825)
+		if (!dev->wide)
 			return;
 		/* RAM Base set. */
 		/* First, remove the old I/O. */
@@ -2462,8 +2470,8 @@ ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
 		/* Then let's set the PCI regs. */
 		ncr53c8xx_pci_bar[2].addr_regs[addr & 3] = val;
 		/* Then let's calculate the new I/O base. */
-		ncr53c8xx_pci_bar[2].addr &= 0xfffcf000;
-		dev->RAMBase = ncr53c8xx_pci_bar[2].addr & 0xfffcf000;
+		ncr53c8xx_pci_bar[2].addr &= 0xfffff000;
+		dev->RAMBase = ncr53c8xx_pci_bar[2].addr & 0xfffff000;
 		/* Log the new base. */
 		ncr53c8xx_log("NCR53c8xx: New RAM base is %08X\n" , dev->RAMBase);
 		/* We're done, so get out of the here. */
@@ -2482,14 +2490,14 @@ ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
 		/* Then let's set the PCI regs. */
 		ncr53c8xx_pci_bar[3].addr_regs[addr & 3] = val;
 		/* Then let's calculate the new I/O base. */
-		ncr53c8xx_pci_bar[3].addr &= 0xfffcf001;
-		dev->BIOSBase = ncr53c8xx_pci_bar[3].addr & 0xfffcf000;
+		ncr53c8xx_pci_bar[3].addr &= (dev->bios_mask | 0x00000001);
+		dev->BIOSBase = ncr53c8xx_pci_bar[3].addr & dev->bios_mask;
+		pclog("BIOS BAR: %08X\n", dev->BIOSBase | ncr53c8xx_pci_bar[3].addr_regs[0]);
 		/* Log the new base. */
 		ncr53c8xx_log("NCR53c8xx: New BIOS base is %08X\n" , dev->BIOSBase);
 		/* We're done, so get out of the here. */
-		if (ncr53c8xx_pci_bar[3].addr_regs[0] & 0x01) {
+		if (ncr53c8xx_pci_bar[3].addr_regs[0] & 0x01)
 			ncr53c8xx_bios_set_addr(dev, dev->BIOSBase);
-		}
 		return;
 
 	case 0x3C:
@@ -2513,54 +2521,63 @@ ncr53c8xx_init(const device_t *info)
 
     dev->chip = info->local & 0xff;
 
-    if (info->local & 0x8000)
-	dev->has_bios = 0;
-    else
+    if ((dev->chip != CHIP_810) && (dev->chip != CHIP_820) && !(info->local & 0x8000))
 	dev->has_bios = device_get_config_int("bios");
+    else
+	dev->has_bios = 0;
     if (dev->chip == CHIP_875) {
 	if (dev->has_bios == 2)
-	    rom_init(&dev->bios, SYM53C875_SDMS4_ROM, 0xc8000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+	    rom_init(&dev->bios, SYM53C875_SDMS4_ROM, 0xd0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
 	else if (dev->has_bios == 1)
 	    rom_init(&dev->bios, NCR53C875_SDMS3_ROM, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 	dev->chip_rev = 0x04;
 	dev->nvr_path = L"ncr53c875.nvr";
+	dev->wide = 1;
     } else if (dev->chip == CHIP_860) {
 	if (dev->has_bios == 2)
-	    rom_init(&dev->bios, SYM53C860_SDMS4_ROM, 0xc8000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+	    rom_init(&dev->bios, SYM53C860_SDMS4_ROM, 0xd0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
 	else if (dev->has_bios == 1)
 	    rom_init(&dev->bios, NCR53C860_SDMS3_ROM, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 	dev->chip_rev = 0x04;
 	dev->nvr_path = L"ncr53c860.nvr";
+	dev->wide = 1;
+    } else if (dev->chip == CHIP_820) {
+	dev->nvr_path = L"ncr53c820.nvr";
+	dev->wide = 1;
     } else if (dev->chip == CHIP_825) {
 	if (dev->has_bios == 2)
-	    rom_init(&dev->bios, SYM53C825A_SDMS4_ROM, 0xc8000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+	    rom_init(&dev->bios, SYM53C825A_SDMS4_ROM, 0xd0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
 	else if (dev->has_bios == 1)
 	    rom_init(&dev->bios, NCR53C825A_SDMS3_ROM, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 	dev->chip_rev = 0x26;
 	dev->nvr_path = L"ncr53c825a.nvr";
+	dev->wide = 1;
     } else if (dev->chip == CHIP_810) {
-	if (dev->has_bios == 2)
-	    rom_init(&dev->bios, SYM53C810_SDMS4_ROM, 0xc8000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
-	else if (dev->has_bios == 1)
-	    rom_init(&dev->bios, NCR53C810_SDMS3_ROM, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 	dev->nvr_path = L"ncr53c810.nvr";
+	dev->wide = 0;
     } else if (dev->chip == CHIP_815) {
 	if (dev->has_bios == 2)
-	    rom_init(&dev->bios, SYM53C815_SDMS4_ROM, 0xc8000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+	    rom_init(&dev->bios, SYM53C815_SDMS4_ROM, 0xd0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
 	else if (dev->has_bios == 1)
 	    rom_init(&dev->bios, NCR53C815_SDMS3_ROM, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 	dev->chip_rev = 0x04;
 	dev->nvr_path = L"ncr53c815.nvr";	
+	dev->wide = 0;
     }
     
     ncr53c8xx_pci_bar[0].addr_regs[0] = 1;
     ncr53c8xx_pci_bar[1].addr_regs[0] = 0;    
     ncr53c8xx_pci_regs[0x04] = 3;	
 
-    if (dev->has_bios) {
+    if (dev->has_bios == 2) {
+	ncr53c8xx_pci_bar[3].addr = 0xffff0000;
+	dev->bios_mask = 0xffff0000;
+    } else if (dev->has_bios == 1) {
 	ncr53c8xx_pci_bar[3].addr = 0xffffc000;
+	dev->bios_mask = 0xffffc000;
     } else {
-	ncr53c8xx_pci_bar[3].addr = 0;
+	ncr53c8xx_pci_bar[3].addr = 0x00000000;
+	dev->bios_mask = 0x00000000;
     }
 
     ncr53c8xx_mem_init(dev, 0x0fffff00);
@@ -2568,10 +2585,8 @@ ncr53c8xx_init(const device_t *info)
 
     ncr53c8xx_pci_bar[2].addr_regs[0] = 0;
 
-    if (dev->chip >= CHIP_825 || (dev->chip != CHIP_815)) {
-	/* Need to make it align on a 16k boundary as that's this emulator's
-	   memory mapping granularity. */
-	ncr53c8xx_ram_init(dev, 0x0fffc000);
+    if (dev->wide) {
+	ncr53c8xx_ram_init(dev, 0x0ffff000);
 	ncr53c8xx_ram_disable(dev);
     }
     
@@ -2643,7 +2658,7 @@ const device_t ncr53c810_pci_device =
     CHIP_810,
     ncr53c8xx_init, ncr53c8xx_close, NULL,
     { NULL }, NULL, NULL,
-    ncr53c8xx_pci_config
+    NULL
 };
 
 const device_t ncr53c810_onboard_pci_device =
@@ -2664,6 +2679,16 @@ const device_t ncr53c815_pci_device =
     ncr53c8xx_init, ncr53c8xx_close, NULL,
     { NULL }, NULL, NULL,
     ncr53c8xx_pci_config
+};
+
+const device_t ncr53c820_pci_device =
+{
+    "NCR 53c820",
+    DEVICE_PCI,
+    CHIP_820,
+    ncr53c8xx_init, ncr53c8xx_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
 };
 
 const device_t ncr53c825a_pci_device =

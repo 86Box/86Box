@@ -118,7 +118,6 @@ nga_write(uint32_t addr, uint8_t val, void *priv)
 		nga->cga.charbuffer[offset] = nga->cga.vram[addr & 0x7fff];
 		nga->cga.charbuffer[offset | 1] = nga->cga.vram[addr & 0x7fff];
 	}
-	egawrites++;
 	nga_waitstates(&nga->cga);
 }
 
@@ -144,7 +143,6 @@ nga_read(uint32_t addr, void *priv)
 		nga->cga.charbuffer[offset | 1] = nga->cga.vram[addr & 0x7fff];
 	}
 	
-	egareads++;
     return(ret);
 }
 

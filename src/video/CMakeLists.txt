@@ -33,10 +33,6 @@ if(NOT MSVC)
 	target_compile_options(vid PRIVATE "-msse2")
 endif()
 
-if(CL5422)
-	target_compile_definitions(vid PRIVATE USE_CL5422)
-endif()
-
 if(MGA)
 	target_compile_definitions(vid PRIVATE USE_MGA)
 	target_sources(vid PRIVATE vid_mga.c)
