@@ -70,6 +70,8 @@
 #include "cpu.h"
 #include <86box/plat.h>
 #include <86box/video.h>
+#include <86box/i2c.h>
+#include <86box/vid_ddc.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
@@ -208,6 +210,8 @@ typedef struct tgui_t
         uint64_t status_time;
         
         volatile int write_blitter;
+
+        void *i2c, *ddc;
 } tgui_t;
 
 video_timings_t timing_tgui_vlb = {VIDEO_BUS, 4,  8, 16,   4,  8, 16};
@@ -381,6 +385,10 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
                         }
 			break;
 
+			case 0x37:
+			i2c_gpio_set(tgui->i2c, (val & 0x02) || !(val & 0x04), (val & 0x01) || !(val & 0x08));
+			break;
+
 			case 0x40: case 0x41: case 0x42: case 0x43:
 			case 0x44: case 0x45: case 0x46: case 0x47:
                         if (tgui->type >= TGUI_9440)
@@ -434,6 +442,7 @@ uint8_t tgui_in(uint16_t addr, void *p)
 {
         tgui_t *tgui = (tgui_t *)p;
         svga_t *svga = &tgui->svga;
+        uint8_t temp;
 
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout & 1)) addr ^= 0x60;
         
@@ -482,7 +491,20 @@ uint8_t tgui_in(uint16_t addr, void *p)
                 case 0x3D4:
                 return svga->crtcreg;
                 case 0x3D5:
-                return svga->crtc[svga->crtcreg];
+                temp = svga->crtc[svga->crtcreg];
+                if (svga->crtcreg == 0x37) {
+                        if (!(svga->crtc[0x37] & 0x04)) {
+                                temp &= 0xfd;
+                                if (i2c_gpio_get_scl(tgui->i2c))
+                                        temp |= 0x02;
+                        }
+                        if (!(svga->crtc[0x37] & 0x08)) {
+                                temp &= 0xfe;
+                                if (i2c_gpio_get_sda(tgui->i2c))
+                                        temp |= 0x01;
+                        }
+                }
+                return temp;
                 case 0x3d8:
 		return tgui->tgui_3d8;
 		case 0x3d9:
@@ -1715,6 +1737,9 @@ static void *tgui_init(const device_t *info)
         if ((info->flags & DEVICE_PCI) && (tgui->type >= TGUI_9440))
                 pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
 
+        tgui->i2c = i2c_gpio_init("ddc_tgui9440");
+        tgui->ddc = ddc_init(i2c_gpio_get_bus(tgui->i2c));
+
         tgui->wake_fifo_thread = thread_create_event();
         tgui->fifo_not_full_event = thread_create_event();
         tgui->fifo_thread = thread_create(fifo_thread, tgui);
@@ -1737,7 +1762,10 @@ void tgui_close(void *p)
         tgui_t *tgui = (tgui_t *)p;
         
         svga_close(&tgui->svga);
-        
+
+        ddc_close(tgui->ddc);
+        i2c_gpio_close(tgui->i2c);
+
         thread_kill(tgui->fifo_thread);
         thread_destroy_event(tgui->wake_fifo_thread);
         thread_destroy_event(tgui->fifo_not_full_event);
