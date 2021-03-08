@@ -826,10 +826,17 @@ machine_type_get_internal_name(int id)
 int
 machine_type_available(int id)
 {
-    if ((id > 0) && (id < MACHINE_TYPE_MAX))
-	return 1;
-    else
-	return 0;
+    int c = 0;
+
+    if ((id > 0) && (id < MACHINE_TYPE_MAX)) {
+	while (machine_get_internal_name_ex(c) != NULL) {
+		if (machine_available(c) && (machines[c].type == id))
+			return 1;
+		c++;
+	}
+    }
+
+    return 0;
 }
 
 
