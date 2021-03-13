@@ -348,6 +348,10 @@ extern int	machine_at_486vipio2_init(const machine_t *);
 extern int	machine_at_abpb4_init(const machine_t *);
 extern int	machine_at_win486pci_init(const machine_t *);
 #endif
+
+extern int	machine_at_atc1415_init(const machine_t *);
+extern int	machine_at_hot433_init(const machine_t *);
+
 extern int	machine_at_itoxstar_init(const machine_t *);
 extern int	machine_at_arb1479_init(const machine_t *);
 extern int	machine_at_pcm9340_init(const machine_t *);
