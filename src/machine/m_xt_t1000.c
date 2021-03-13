@@ -239,7 +239,7 @@ tc8521_time_get(uint8_t *regs, struct tm *tm)
       else
 	tm->tm_hour = ((nibbles(TC8521_HOUR) % 12) +
 		      (regs[TC8521_HOUR10] & 0x02) ? 12 : 0);
-    tm->tm_wday = TC8521_WEEKDAY;
+    tm->tm_wday = regs[TC8521_WEEKDAY];
     tm->tm_mday = nibbles(TC8521_DAY);
     tm->tm_mon = (nibbles(TC8521_MONTH) - 1);
     tm->tm_year = (nibbles(TC8521_YEAR) + 1980);
