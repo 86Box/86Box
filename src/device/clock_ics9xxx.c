@@ -1050,10 +1050,11 @@ ics9xxx_set(ics9xxx_t *dev, uint8_t val)
 	}
     }
 
-#ifdef ENABLE_ICS9xxx_LOG
     uint16_t bus = dev->frequencies_ptr[val].bus;
-    ics9xxx_log("ICS9xxx: set(%d) = hw=%d bus=%d ram=%d pci=%d\n", val, hw_select, bus, bus * dev->frequencies_ptr[val].ram_mult, bus / dev->frequencies_ptr[val].pci_div);
-#endif
+    uint32_t pci = bus / dev->frequencies_ptr[val].pci_div;
+    cpu_set_pci_speed(pci * 10000);
+
+    ics9xxx_log("ICS9xxx: set(%d) = hw=%d bus=%d ram=%d pci=%d\n", val, hw_select, bus, bus * dev->frequencies_ptr[val].ram_mult, pci);
 }
 
 
