@@ -1540,6 +1540,15 @@ static void
 	cpu_update_waitstates();
     }
 
+    /* Out-of-spec PCI and AGP clocks with overclocked bus. */
+    if ((dev->type <= INTEL_440FX) && (cpu_busspeed >= 66666666))
+	cpu_set_pci_speed(cpu_busspeed / 2);
+
+    if ((dev->type >= INTEL_440BX) && (cpu_busspeed >= 100000000))
+	cpu_set_agp_speed(cpu_busspeed / 1.5);
+    else if (dev->type >= INTEL_440LX)
+	cpu_set_agp_speed(cpu_busspeed);
+
     i4x0_write(regs[0x59], 0x59, 0x00, dev);
     i4x0_write(regs[0x5a], 0x5a, 0x00, dev);
     i4x0_write(regs[0x5b], 0x5b, 0x00, dev);
