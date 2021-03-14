@@ -49,7 +49,7 @@ typedef struct PIT {
 extern pit_t	*pit,
 		*pit2;
 
-extern double	SYSCLK, PCICLK;
+extern double	SYSCLK, PCICLK, AGPCLK;
 
 extern uint64_t	PITCONST, ISACONST,
 		CGACONST,

@@ -167,7 +167,7 @@ int		cpu_prefetch_cycles, cpu_prefetch_width,
 		cpu_mem_prefetch_cycles, cpu_rom_prefetch_cycles;
 int		cpu_waitstates;
 int		cpu_cache_int_enabled, cpu_cache_ext_enabled;
-int		cpu_pci_speed, cpu_alt_reset;
+int		cpu_isa_speed, cpu_pci_speed, cpu_isa_pci_div, cpu_agp_speed, cpu_alt_reset;
 uint16_t	cpu_fast_off_count, cpu_fast_off_val;
 uint32_t	cpu_fast_off_flags;
 int		is_vpc;
@@ -564,22 +564,16 @@ cpu_set(void)
 
         cpu_update_waitstates();
 
-	isa_cycles = cpu_s->atclk_div;
+        isa_cycles = cpu_s->atclk_div;
 
         if (cpu_s->rspeed <= 8000000)
                 cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
         else
                 cpu_rom_prefetch_cycles = cpu_s->rspeed / 1000000;
 
-	if (cpu_busspeed < 42500000)
-		cpu_pci_speed = cpu_busspeed;
-	else if ((cpu_busspeed > 42500000) && (cpu_busspeed < 84000000))
-		cpu_pci_speed = cpu_busspeed / 2;
-	else
-		cpu_pci_speed = cpu_busspeed / 3;
-
-	pci_burst_time = cpu_s->rspeed / cpu_pci_speed;
-	pci_nonburst_time = 4 * pci_burst_time;
+        cpu_set_isa_pci_div(0);
+        cpu_set_pci_speed(0);
+        cpu_set_agp_speed(0);
 
         if (cpu_iscyrix)
 		io_sethandler(0x0022, 0x0002, cpu_read, NULL, NULL, cpu_write, NULL, NULL, NULL);
@@ -710,34 +704,34 @@ cpu_set(void)
 		if (fpu_type == FPU_287)
 		{
 #ifdef USE_DYNAREC
-            	x86_dynarec_opcodes_d9_a16 = dynarec_ops_fpu_287_d9_a16;
-    	        x86_dynarec_opcodes_d9_a32 = dynarec_ops_fpu_287_d9_a32;
-            	x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_287_da_a16;
-    	        x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_287_da_a32;
+        	x86_dynarec_opcodes_d9_a16 = dynarec_ops_fpu_287_d9_a16;
+	        x86_dynarec_opcodes_d9_a32 = dynarec_ops_fpu_287_d9_a32;
+        	x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_287_da_a16;
+	        x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_287_da_a32;
 	                x86_dynarec_opcodes_db_a16 = dynarec_ops_fpu_287_db_a16;
-    	        x86_dynarec_opcodes_db_a32 = dynarec_ops_fpu_287_db_a32;
+	        x86_dynarec_opcodes_db_a32 = dynarec_ops_fpu_287_db_a32;
 	                x86_dynarec_opcodes_dc_a16 = dynarec_ops_fpu_287_dc_a16;
-    	        x86_dynarec_opcodes_dc_a32 = dynarec_ops_fpu_287_dc_a32;
+	        x86_dynarec_opcodes_dc_a32 = dynarec_ops_fpu_287_dc_a32;
 	                x86_dynarec_opcodes_dd_a16 = dynarec_ops_fpu_287_dd_a16;
-    	        x86_dynarec_opcodes_dd_a32 = dynarec_ops_fpu_287_dd_a32;
+	        x86_dynarec_opcodes_dd_a32 = dynarec_ops_fpu_287_dd_a32;
 	                x86_dynarec_opcodes_de_a16 = dynarec_ops_fpu_287_de_a16;
-    	        x86_dynarec_opcodes_de_a32 = dynarec_ops_fpu_287_de_a32;
+	        x86_dynarec_opcodes_de_a32 = dynarec_ops_fpu_287_de_a32;
 	                x86_dynarec_opcodes_df_a16 = dynarec_ops_fpu_287_df_a16;
-    	        x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_287_df_a32;
+	        x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_287_df_a32;
 #endif
 	                x86_opcodes_d9_a16 = ops_fpu_287_d9_a16;
 	                x86_opcodes_d9_a32 = ops_fpu_287_d9_a32;
 	                x86_opcodes_da_a16 = ops_fpu_287_da_a16;
 	                x86_opcodes_da_a32 = ops_fpu_287_da_a32;
-    	        x86_opcodes_db_a16 = ops_fpu_287_db_a16;
+	        x86_opcodes_db_a16 = ops_fpu_287_db_a16;
 	                x86_opcodes_db_a32 = ops_fpu_287_db_a32;
-    	        x86_opcodes_dc_a16 = ops_fpu_287_dc_a16;
+	        x86_opcodes_dc_a16 = ops_fpu_287_dc_a16;
 	                x86_opcodes_dc_a32 = ops_fpu_287_dc_a32;
-    	        x86_opcodes_dd_a16 = ops_fpu_287_dd_a16;
+	        x86_opcodes_dd_a16 = ops_fpu_287_dd_a16;
 	                x86_opcodes_dd_a32 = ops_fpu_287_dd_a32;
-    	        x86_opcodes_de_a16 = ops_fpu_287_de_a16;
+	        x86_opcodes_de_a16 = ops_fpu_287_de_a16;
 	                x86_opcodes_de_a32 = ops_fpu_287_de_a32;
-    	        x86_opcodes_df_a16 = ops_fpu_287_df_a16;
+	        x86_opcodes_df_a16 = ops_fpu_287_df_a16;
 	                x86_opcodes_df_a32 = ops_fpu_287_df_a32;
 		}
                 timing_rr  = 2;   /*register dest - register src*/
@@ -820,34 +814,34 @@ cpu_set(void)
                 if (fpu_type == FPU_287) /*In case we get Deskpro 386 emulation*/
                 {
 #ifdef USE_DYNAREC
-            	x86_dynarec_opcodes_d9_a16 = dynarec_ops_fpu_287_d9_a16;
-    	        x86_dynarec_opcodes_d9_a32 = dynarec_ops_fpu_287_d9_a32;
-            	x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_287_da_a16;
-    	        x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_287_da_a32;
+        	x86_dynarec_opcodes_d9_a16 = dynarec_ops_fpu_287_d9_a16;
+	        x86_dynarec_opcodes_d9_a32 = dynarec_ops_fpu_287_d9_a32;
+        	x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_287_da_a16;
+	        x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_287_da_a32;
 	                x86_dynarec_opcodes_db_a16 = dynarec_ops_fpu_287_db_a16;
-    	        x86_dynarec_opcodes_db_a32 = dynarec_ops_fpu_287_db_a32;
+	        x86_dynarec_opcodes_db_a32 = dynarec_ops_fpu_287_db_a32;
 	                x86_dynarec_opcodes_dc_a16 = dynarec_ops_fpu_287_dc_a16;
-    	        x86_dynarec_opcodes_dc_a32 = dynarec_ops_fpu_287_dc_a32;
+	        x86_dynarec_opcodes_dc_a32 = dynarec_ops_fpu_287_dc_a32;
 	                x86_dynarec_opcodes_dd_a16 = dynarec_ops_fpu_287_dd_a16;
-    	        x86_dynarec_opcodes_dd_a32 = dynarec_ops_fpu_287_dd_a32;
+	        x86_dynarec_opcodes_dd_a32 = dynarec_ops_fpu_287_dd_a32;
 	                x86_dynarec_opcodes_de_a16 = dynarec_ops_fpu_287_de_a16;
-    	        x86_dynarec_opcodes_de_a32 = dynarec_ops_fpu_287_de_a32;
+	        x86_dynarec_opcodes_de_a32 = dynarec_ops_fpu_287_de_a32;
 	                x86_dynarec_opcodes_df_a16 = dynarec_ops_fpu_287_df_a16;
-    	        x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_287_df_a32;
+	        x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_287_df_a32;
 #endif
 	                x86_opcodes_d9_a16 = ops_fpu_287_d9_a16;
 	                x86_opcodes_d9_a32 = ops_fpu_287_d9_a32;
 	                x86_opcodes_da_a16 = ops_fpu_287_da_a16;
 	                x86_opcodes_da_a32 = ops_fpu_287_da_a32;
-    	        x86_opcodes_db_a16 = ops_fpu_287_db_a16;
+	        x86_opcodes_db_a16 = ops_fpu_287_db_a16;
 	                x86_opcodes_db_a32 = ops_fpu_287_db_a32;
-    	        x86_opcodes_dc_a16 = ops_fpu_287_dc_a16;
+	        x86_opcodes_dc_a16 = ops_fpu_287_dc_a16;
 	                x86_opcodes_dc_a32 = ops_fpu_287_dc_a32;
-    	        x86_opcodes_dd_a16 = ops_fpu_287_dd_a16;
+	        x86_opcodes_dd_a16 = ops_fpu_287_dd_a16;
 	                x86_opcodes_dd_a32 = ops_fpu_287_dd_a32;
-    	        x86_opcodes_de_a16 = ops_fpu_287_de_a16;
+	        x86_opcodes_de_a16 = ops_fpu_287_de_a16;
 	                x86_opcodes_de_a32 = ops_fpu_287_de_a32;
-    	        x86_opcodes_df_a16 = ops_fpu_287_df_a16;
+	        x86_opcodes_df_a16 = ops_fpu_287_df_a16;
 	                x86_opcodes_df_a32 = ops_fpu_287_df_a32;
 		}		
                 timing_rr  = 2; /*register dest - register src*/
@@ -1416,9 +1410,9 @@ cpu_set(void)
                 cpu_features = CPU_FEATURE_RDTSC;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
 #ifdef USE_DYNAREC
-     	codegen_timing_set(&codegen_timing_686);
+ 	codegen_timing_set(&codegen_timing_686);
 #endif
-     	ccr4 = 0x80;
+ 	ccr4 = 0x80;
                 break;
 
 
@@ -1443,7 +1437,7 @@ cpu_set(void)
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_PCE;
 #ifdef USE_DYNAREC
-     	codegen_timing_set(&codegen_timing_686);
+ 	codegen_timing_set(&codegen_timing_686);
 #endif
                 break;
 
@@ -1499,9 +1493,9 @@ cpu_set(void)
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_PCE;
 #ifdef USE_DYNAREC
-     	codegen_timing_set(&codegen_timing_686);
+ 	codegen_timing_set(&codegen_timing_686);
 #endif
-     	ccr4 = 0x80;
+ 	ccr4 = 0x80;
                 break;
 #endif
 
@@ -1692,7 +1686,7 @@ cpu_set(void)
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_PAE | CR4_MCE | CR4_PCE;
 #ifdef USE_DYNAREC
-     	codegen_timing_set(&codegen_timing_p6);
+ 	codegen_timing_set(&codegen_timing_p6);
 #endif
                 break;
 
@@ -1747,7 +1741,7 @@ cpu_set(void)
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_PAE | CR4_MCE | CR4_PCE;
 #ifdef USE_DYNAREC
-     	codegen_timing_set(&codegen_timing_p6);
+ 	codegen_timing_set(&codegen_timing_p6);
 #endif
                 break;
 
@@ -1802,7 +1796,7 @@ cpu_set(void)
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
                 cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PAE | CR4_PCE | CR4_OSFXSR;
 #ifdef USE_DYNAREC
-     	codegen_timing_set(&codegen_timing_p6);
+ 	codegen_timing_set(&codegen_timing_p6);
 #endif
                 break;
 
@@ -1879,6 +1873,82 @@ cpu_set(void)
 		x87_timings = x87_timings_486;
 	}
 }
+
+
+void
+cpu_set_isa_speed(int speed)
+{
+    if (speed) {
+	cpu_isa_speed = speed;
+	pc_speed_changed();
+    } else
+	cpu_isa_speed = 8000000;
+
+    cpu_log("cpu_set_isa_speed(%d) = %d\n", speed, cpu_isa_speed);
+}
+
+
+void
+cpu_set_pci_speed(int speed)
+{
+    if (speed)
+	cpu_pci_speed = speed;
+    else if (cpu_busspeed < 42500000)
+	cpu_pci_speed = cpu_busspeed;
+    else if (cpu_busspeed < 84000000)
+	cpu_pci_speed = cpu_busspeed / 2;
+    else if (cpu_busspeed < 120000000)
+	cpu_pci_speed = cpu_busspeed / 3;
+    else
+	cpu_pci_speed = cpu_busspeed / 4;
+
+    if (cpu_isa_pci_div)
+	cpu_set_isa_pci_div(cpu_isa_pci_div);
+    else if (speed)
+	pc_speed_changed();
+
+    pci_burst_time = cpu_s->rspeed / cpu_pci_speed;
+    pci_nonburst_time = 4 * pci_burst_time;
+
+    cpu_log("cpu_set_pci_speed(%d) = %d\n", speed, cpu_pci_speed);
+}
+
+
+void
+cpu_set_isa_pci_div(int div)
+{
+    cpu_isa_pci_div = div;
+
+    cpu_log("cpu_set_isa_pci_div(%d)\n", cpu_isa_pci_div);
+
+    if (cpu_isa_pci_div)
+	cpu_set_isa_speed(cpu_pci_speed / cpu_isa_pci_div);
+    else
+	cpu_set_isa_speed(0);
+}
+
+
+void
+cpu_set_agp_speed(int speed)
+{
+    if (speed) {
+	cpu_agp_speed = speed;
+	pc_speed_changed();
+    }
+    else if (cpu_busspeed < 84000000)
+	cpu_agp_speed = cpu_busspeed;
+    else if (cpu_busspeed < 120000000)
+	cpu_agp_speed = cpu_busspeed / 1.5;
+    else
+	cpu_agp_speed = cpu_busspeed / 2;
+
+    agp_burst_time = cpu_s->rspeed / cpu_agp_speed;
+    agp_nonburst_time = 4 * agp_burst_time;
+
+    cpu_log("cpu_set_agp_speed(%d) = %d\n", speed, cpu_agp_speed);
+}
+
+
 char *
 cpu_current_pc(char *bufp)
 {
@@ -3209,12 +3279,12 @@ void cpu_RDMSR()
 			case 0x208: case 0x209: case 0x20A: case 0x20B: case 0x20C: case 0x20D: case 0x20E: case 0x20F:
 			if (ECX & 1)
 			{
-                    	EAX = mtrr_physmask_msr[(ECX - 0x200) >> 1] & 0xffffffff;
+                	EAX = mtrr_physmask_msr[(ECX - 0x200) >> 1] & 0xffffffff;
 	                        EDX = mtrr_physmask_msr[(ECX - 0x200) >> 1] >> 32;
 			}
 			else
 			{
-                    	EAX = mtrr_physbase_msr[(ECX - 0x200) >> 1] & 0xffffffff;
+                	EAX = mtrr_physbase_msr[(ECX - 0x200) >> 1] & 0xffffffff;
 	                        EDX = mtrr_physbase_msr[(ECX - 0x200) >> 1] >> 32;
 			}
 			break;
