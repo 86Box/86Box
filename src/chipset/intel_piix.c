@@ -1237,9 +1237,10 @@ static void
 piix_speed_changed(void *priv)
 {
     piix_t *dev = (piix_t *) priv;
-    int te;
+    if (!dev)
+	return;
 
-    te = timer_is_enabled(&dev->fast_off_timer);
+    int te = timer_is_enabled(&dev->fast_off_timer);
 
     timer_stop(&dev->fast_off_timer);
     if (te)
@@ -1305,6 +1306,8 @@ static void
     }
 
     dev->port_92 = device_add(&port_92_pci_device);
+
+    cpu_set_isa_pci_div(4);
 
     dma_alias_set();
 

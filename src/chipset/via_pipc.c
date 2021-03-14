@@ -503,6 +503,52 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			dev->pci_isa_regs[0x07] &= ~(val & 0xb0);
 			break;
 
+		case 0x42:
+			dev->pci_isa_regs[0x42] = val & 0xcf;
+
+			switch (val & 0xf) {
+				/* Divisors on the PCI clock. */
+				case 0x8:
+					cpu_set_isa_pci_div(3);
+					break;
+
+				case 0x9:
+					cpu_set_isa_pci_div(2);
+					break;
+
+				case 0xa:
+					cpu_set_isa_pci_div(4);
+					break;
+
+				case 0xb:
+					cpu_set_isa_pci_div(6);
+					break;
+
+				case 0xc:
+					cpu_set_isa_pci_div(5);
+					break;
+
+				case 0xd:
+					cpu_set_isa_pci_div(10);
+					break;
+
+				case 0xe:
+					cpu_set_isa_pci_div(12);
+					break;
+
+				/* Half PIT clock. */
+				case 0xf:
+					cpu_set_isa_speed(7159091);
+					break;
+
+				/* Divisor 4 on the PCI clock whenever bit 3 is clear. */
+				default:
+					cpu_set_isa_pci_div(4);
+					break;
+			}
+
+			break;
+
 		case 0x47:
 			if (val & 0x01)
 				trc_write(0x0047, (val & 0x80) ? 0x06 : 0x04, NULL);
@@ -939,6 +985,8 @@ pipc_init(const device_t *info)
     pipc_reset_hard(dev);
 
     device_add(&port_92_pci_device);
+
+    cpu_set_isa_pci_div(4);
 
     dma_alias_set();
 
