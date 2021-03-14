@@ -1688,7 +1688,7 @@ sb_16_pnp_init(const device_t *info)
 static int
 sb_awe32_available()
 {
-    return rom_present(L"roms/sound/awe32.raw");
+    return rom_present("roms/sound/awe32.raw");
 }
 
 

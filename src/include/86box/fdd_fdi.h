@@ -24,7 +24,7 @@
 
 
 extern void	fdi_seek(int drive, int track);
-extern void	fdi_load(int drive, wchar_t *fn);
+extern void	fdi_load(int drive, char *fn);
 extern void	fdi_close(int drive);
 
 

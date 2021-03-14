@@ -43,7 +43,7 @@ machine_at_p6rp4_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p6rp4/OR6I0106.SMC",
+    ret = bios_load_linear("roms/machines/p6rp4/OR6I0106.SMC",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -76,7 +76,7 @@ machine_at_686nx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/686nx/6nx.140",
+    ret = bios_load_linear("roms/machines/686nx/6nx.140",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -106,7 +106,7 @@ machine_at_mb600n_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/mb600n/60915cs.rom",
+    ret = bios_load_linear("roms/machines/mb600n/60915cs.rom",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -135,7 +135,7 @@ machine_at_v60n_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/v60n/V60NE5.BIN",
+    ret = bios_load_linear("roms/machines/v60n/V60NE5.BIN",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -165,11 +165,11 @@ machine_at_vs440fx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined2(L"roms/machines/vs440fx/1018CS1_.bio",
-				     L"roms/machines/vs440fx/1018CS1_.bi1",
-				     L"roms/machines/vs440fx/1018CS1_.bi2",
-				     L"roms/machines/vs440fx/1018CS1_.bi3",
-				     L"roms/machines/vs440fx/1018CS1_.rcv",
+    ret = bios_load_linear_combined2("roms/machines/vs440fx/1018CS1_.bio",
+				     "roms/machines/vs440fx/1018CS1_.bi1",
+				     "roms/machines/vs440fx/1018CS1_.bi2",
+				     "roms/machines/vs440fx/1018CS1_.bi3",
+				     "roms/machines/vs440fx/1018CS1_.rcv",
 				     0x3a000, 128);
 
     if (bios_only || !ret)
@@ -199,11 +199,11 @@ machine_at_ap440fx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined2(L"roms/machines/ap440fx/1011CT1_.bio",
-				     L"roms/machines/ap440fx/1011CT1_.bi1",
-				     L"roms/machines/ap440fx/1011CT1_.bi2",
-				     L"roms/machines/ap440fx/1011CT1_.bi3",
-				     L"roms/machines/ap440fx/1011CT1_.rcv",
+    ret = bios_load_linear_combined2("roms/machines/ap440fx/1011CT1_.bio",
+				     "roms/machines/ap440fx/1011CT1_.bi1",
+				     "roms/machines/ap440fx/1011CT1_.bi2",
+				     "roms/machines/ap440fx/1011CT1_.bi3",
+				     "roms/machines/ap440fx/1011CT1_.rcv",
 				     0x3a000, 128);
 
     if (bios_only || !ret)
@@ -232,7 +232,7 @@ machine_at_8500ttc_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/8500ttc/TTC0715B.ROM",
+    ret = bios_load_linear("roms/machines/8500ttc/TTC0715B.ROM",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -261,7 +261,7 @@ machine_at_m6mi_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/m6mi/M6MI05.ROM",
+    ret = bios_load_linear("roms/machines/m6mi/M6MI05.ROM",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -311,7 +311,7 @@ machine_at_p65up5_cp6nd_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p65up5/nd6i0218.awd",
+    ret = bios_load_linear("roms/machines/p65up5/nd6i0218.awd",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)

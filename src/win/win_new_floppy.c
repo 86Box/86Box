@@ -71,7 +71,7 @@ static unsigned char	*empty;
 
 
 static int
-create_86f(WCHAR *file_name, disk_size_t disk_size, uint8_t rpm_mode)
+create_86f(char *file_name, disk_size_t disk_size, uint8_t rpm_mode)
 {
     FILE *f;
 
@@ -139,7 +139,7 @@ create_86f(WCHAR *file_name, disk_size_t disk_size, uint8_t rpm_mode)
     memset(tarray, 0, 2048);
     memset(empty, 0, array_size);
 
-    f = plat_fopen(file_name, L"wb");
+    f = plat_fopen(file_name, "wb");
     if (!f)
 	return 0;
 
@@ -178,7 +178,7 @@ static int	is_mo;
 
 
 static int
-create_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_fdi)
+create_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_fdi)
 {
     FILE *f;
     uint32_t total_size = 0;
@@ -191,7 +191,7 @@ create_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_fdi)
     uint32_t zero_bytes = 0;
     uint16_t base = 0x1000;
     
-    f = plat_fopen(file_name, L"wb");
+    f = plat_fopen(file_name, "wb");
     if (!f)
 	return 0;
 
@@ -284,7 +284,7 @@ create_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_fdi)
 
 
 static int
-create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi, HWND hwnd)
+create_zip_sector_image(char *file_name, disk_size_t disk_size, uint8_t is_zdi, HWND hwnd)
 {
     HWND h;
     FILE *f;
@@ -301,7 +301,7 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
     uint32_t i;
     MSG msg;
     
-    f = plat_fopen(file_name, L"wb");
+    f = plat_fopen(file_name, "wb");
     if (!f)
 	return 0;
 
@@ -521,7 +521,7 @@ create_zip_sector_image(WCHAR *file_name, disk_size_t disk_size, uint8_t is_zdi,
 
 
 static int
-create_mo_sector_image(WCHAR *file_name, int8_t disk_size, uint8_t is_mdi, HWND hwnd)
+create_mo_sector_image(char *file_name, int8_t disk_size, uint8_t is_mdi, HWND hwnd)
 {
     HWND h;
     FILE *f;
@@ -535,7 +535,7 @@ create_mo_sector_image(WCHAR *file_name, int8_t disk_size, uint8_t is_mdi, HWND 
     uint32_t i, j;
     MSG msg;
     
-    f = plat_fopen(file_name, L"wb");
+    f = plat_fopen(file_name, "wb");
     if (!f)
 	return 0;
 
@@ -646,7 +646,7 @@ create_mo_sector_image(WCHAR *file_name, int8_t disk_size, uint8_t is_mdi, HWND 
 static int	fdd_id, sb_part;
 
 static int	file_type = 0;		/* 0 = IMG, 1 = Japanese FDI, 2 = 86F */
-static wchar_t	fd_file_name[1024];
+static char	fd_file_name[1024];
 
 
 /* Show a MessageBox dialog.  This is nasty, I know.  --FvK */
@@ -704,7 +704,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message) {
 	case WM_INITDIALOG:
 		plat_pause(1);
-		memset(fd_file_name, 0, 1024 * sizeof(wchar_t));
+		memset(fd_file_name, 0, 1024);
 		h = GetDlgItem(hdlg, IDC_COMBO_DISK_SIZE);
 		if (is_zip) {
 			zip_types = zip_drives[fdd_id].is_250 ? 2 : 1;
@@ -802,7 +802,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					}
 					SendMessage(h, WM_SETTEXT, 0, (LPARAM) wopenfilestring);
 					memset(fd_file_name, 0, sizeof(fd_file_name));
-					wcscpy(fd_file_name, wopenfilestring);
+					c16stombs(fd_file_name, wopenfilestring, sizeof(fd_file_name));
 					h = GetDlgItem(hdlg, IDC_COMBO_DISK_SIZE);
 					if (!is_zip || zip_drives[fdd_id].is_250)
 						EnableWindow(h, TRUE);

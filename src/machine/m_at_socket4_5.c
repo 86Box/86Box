@@ -47,7 +47,7 @@ machine_at_excalibur_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_inverted(L"roms/machines/excalibur/S75P.ROM",
+    ret = bios_load_linear_inverted("roms/machines/excalibur/S75P.ROM",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -112,8 +112,8 @@ machine_at_batman_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined(L"roms/machines/revenge/1009af2_.bio",
-				    L"roms/machines/revenge/1009af2_.bi1", 0x1c000, 128);
+    ret = bios_load_linear_combined("roms/machines/revenge/1009af2_.bio",
+				    "roms/machines/revenge/1009af2_.bi1", 0x1c000, 128);
 
     if (bios_only || !ret)
 	return ret;
@@ -131,7 +131,7 @@ machine_at_dellxp60_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_inverted(L"roms/machines/dellxp60/XP60-A08.ROM",
+    ret = bios_load_linear_inverted("roms/machines/dellxp60/XP60-A08.ROM",
 				    0x000e0000, 131072, 0);
 			   
     if (bios_only || !ret)
@@ -164,7 +164,7 @@ machine_at_opti560l_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_inverted(L"roms/machines/opti560l/560L_A06.ROM",
+    ret = bios_load_linear_inverted("roms/machines/opti560l/560L_A06.ROM",
 				    0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -194,8 +194,8 @@ machine_at_ambradp60_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined(L"roms/machines/ambradp60/1004AF1P.BIO",
-				    L"roms/machines/ambradp60/1004AF1P.BI1", 0x1c000, 128);
+    ret = bios_load_linear_combined("roms/machines/ambradp60/1004AF1P.BIO",
+				    "roms/machines/ambradp60/1004AF1P.BI1", 0x1c000, 128);
 
     if (bios_only || !ret)
 	return ret;
@@ -213,8 +213,8 @@ machine_at_valuepointp60_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined(L"roms/machines/valuepointp60/1006AV0M.BIO",
-				    L"roms/machines/valuepointp60/1006AV0M.BI1", 0x1d000, 128);
+    ret = bios_load_linear_combined("roms/machines/valuepointp60/1006AV0M.BIO",
+				    "roms/machines/valuepointp60/1006AV0M.BI1", 0x1d000, 128);
 
     if (bios_only || !ret)
 	return ret;
@@ -245,8 +245,8 @@ machine_at_pb520r_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined(L"roms/machines/pb520r/1009bc0r.bio",
-				    L"roms/machines/pb520r/1009bc0r.bi1", 0x1c000, 128);
+    ret = bios_load_linear_combined("roms/machines/pb520r/1009bc0r.bio",
+				    "roms/machines/pb520r/1009bc0r.bi1", 0x1c000, 128);
 
     if (bios_only || !ret)
 	return ret;
@@ -287,7 +287,7 @@ machine_at_p5mp3_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p5mp3/0205.bin",
+    ret = bios_load_linear("roms/machines/p5mp3/0205.bin",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -318,7 +318,7 @@ machine_at_586mc1_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/586mc1/IS.34",
+    ret = bios_load_linear("roms/machines/586mc1/IS.34",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -339,8 +339,8 @@ machine_at_plato_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined(L"roms/machines/plato/1016ax1_.bio",
-				    L"roms/machines/plato/1016ax1_.bi1", 0x1d000, 128);
+    ret = bios_load_linear_combined("roms/machines/plato/1016ax1_.bio",
+				    "roms/machines/plato/1016ax1_.bi1", 0x1d000, 128);
 
     if (bios_only || !ret)
 	return ret;
@@ -358,8 +358,8 @@ machine_at_ambradp90_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined(L"roms/machines/ambradp90/1002AX1P.BIO",
-				    L"roms/machines/ambradp90/1002AX1P.BI1", 0x1d000, 128);
+    ret = bios_load_linear_combined("roms/machines/ambradp90/1002AX1P.BIO",
+				    "roms/machines/ambradp90/1002AX1P.BI1", 0x1d000, 128);
 
     if (bios_only || !ret)
 	return ret;
@@ -377,7 +377,7 @@ machine_at_430nx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/430nx/IP.20",
+    ret = bios_load_linear("roms/machines/430nx/IP.20",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -398,7 +398,7 @@ machine_at_p54tp4xe_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p54tp4xe/t15i0302.awd",
+    ret = bios_load_linear("roms/machines/p54tp4xe/t15i0302.awd",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -429,8 +429,8 @@ machine_at_endeavor_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined(L"roms/machines/endeavor/1006cb0_.bio",
-				    L"roms/machines/endeavor/1006cb0_.bi1", 0x1d000, 128);
+    ret = bios_load_linear_combined("roms/machines/endeavor/1006cb0_.bio",
+				    "roms/machines/endeavor/1006cb0_.bi1", 0x1d000, 128);
 
     if (bios_only || !ret)
 	return ret;
@@ -471,8 +471,8 @@ machine_at_zappa_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined(L"roms/machines/zappa/1006bs0_.bio",
-				    L"roms/machines/zappa/1006bs0_.bi1", 0x20000, 128);
+    ret = bios_load_linear_combined("roms/machines/zappa/1006bs0_.bio",
+				    "roms/machines/zappa/1006bs0_.bi1", 0x20000, 128);
 
     if (bios_only || !ret)
 	return ret;
@@ -500,7 +500,7 @@ machine_at_mb500n_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/mb500n/031396s.bin",
+    ret = bios_load_linear("roms/machines/mb500n/031396s.bin",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -530,7 +530,7 @@ machine_at_apollo_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/apollo/S728P.ROM",
+    ret = bios_load_linear("roms/machines/apollo/S728P.ROM",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -561,7 +561,7 @@ machine_at_vectra54_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/vectra54/GT0724.22",
+    ret = bios_load_linear("roms/machines/vectra54/GT0724.22",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -595,7 +595,7 @@ machine_at_powermate_v_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/powermate_v/BIOS.ROM",
+    ret = bios_load_linear("roms/machines/powermate_v/BIOS.ROM",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -624,7 +624,7 @@ machine_at_acerv30_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/acerv30/V30R01N9.BIN",
+    ret = bios_load_linear("roms/machines/acerv30/V30R01N9.BIN",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -679,7 +679,7 @@ machine_at_p5sp4_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p5sp4/0106.001",
+    ret = bios_load_linear("roms/machines/p5sp4/0106.001",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -696,7 +696,7 @@ machine_at_p54sp4_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p54sp4/SI5I0204.AWD",
+    ret = bios_load_linear("roms/machines/p54sp4/SI5I0204.AWD",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -713,7 +713,7 @@ machine_at_sq588_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/sq588/sq588b03.rom",
+    ret = bios_load_linear("roms/machines/sq588/sq588b03.rom",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -744,7 +744,7 @@ machine_at_hot539_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/hot539/539_R17.ROM",
+    ret = bios_load_linear("roms/machines/hot539/539_R17.ROM",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)

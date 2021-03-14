@@ -44,7 +44,7 @@ machine_at_arb9673_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/arb9673/W9673.v12",
+    ret = bios_load_linear("roms/machines/arb9673/W9673.v12",
 			   0x00080000, 524288, 0);
 
     if (bios_only || !ret)

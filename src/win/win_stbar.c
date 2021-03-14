@@ -180,17 +180,19 @@ StatusBarCreateFloppyTip(int part)
 {
     WCHAR wtext[512];
     WCHAR tempTip[512];
+    WCHAR fn[512];
 
     int drive = sb_part_meanings[part] & 0xf;
 
-    mbstowcs(wtext, fdd_getname(fdd_get_type(drive)),
+    mbstoc16s(wtext, fdd_getname(fdd_get_type(drive)),
 	     strlen(fdd_getname(fdd_get_type(drive))) + 1);
-    if (wcslen(floppyfns[drive]) == 0) {
+    if (strlen(floppyfns[drive]) == 0) {
 	_swprintf(tempTip, plat_get_string(IDS_2108),
 		  drive+1, wtext, plat_get_string(IDS_2057));
     } else {
+	mbstoc16s(fn, floppyfns[drive], sizeof_w(fn));
 	_swprintf(tempTip, plat_get_string(IDS_2108),
-		  drive+1, wtext, floppyfns[drive]);
+		  drive+1, wtext, fn);
     }
 
     if (sbTips[part] != NULL) {
@@ -207,6 +209,7 @@ StatusBarCreateCdromTip(int part)
 {
     WCHAR tempTip[512];
     WCHAR *szText;
+    WCHAR fn[512];
     int id;
     int drive = sb_part_meanings[part] & 0xf;
     int bus = cdrom[drive].bus_type;
@@ -215,10 +218,14 @@ StatusBarCreateCdromTip(int part)
     szText = plat_get_string(id);
 
     if (cdrom[drive].host_drive == 200) {
-	if (wcslen(cdrom[drive].image_path) == 0)
-		_swprintf(tempTip, plat_get_string(IDS_5120), drive+1, szText, plat_get_string(IDS_2057));
-	else
-		_swprintf(tempTip, plat_get_string(IDS_5120), drive+1, szText, cdrom[drive].image_path);
+	if (strlen(cdrom[drive].image_path) == 0) {
+		_swprintf(tempTip, plat_get_string(IDS_5120),
+			  drive+1, szText, plat_get_string(IDS_2057));
+	} else {
+		mbstoc16s(fn, cdrom[drive].image_path, sizeof_w(fn));
+		_swprintf(tempTip, plat_get_string(IDS_5120),
+			  drive+1, szText, fn);
+	}
     } else
 	_swprintf(tempTip, plat_get_string(IDS_5120), drive+1, szText, plat_get_string(IDS_2057));
 
@@ -236,6 +243,7 @@ StatusBarCreateZIPTip(int part)
 {
     WCHAR tempTip[512];
     WCHAR *szText;
+    WCHAR fn[512];
     int id;
     int drive = sb_part_meanings[part] & 0xf;
     int bus = zip_drives[drive].bus_type;
@@ -245,12 +253,13 @@ StatusBarCreateZIPTip(int part)
 
     int type = zip_drives[drive].is_250 ? 250 : 100;
 
-    if (wcslen(zip_drives[drive].image_path) == 0) {
+    if (strlen(zip_drives[drive].image_path) == 0) {
 	_swprintf(tempTip, plat_get_string(IDS_2054),
 		  type, drive+1, szText, plat_get_string(IDS_2057));
     } else {
+	mbstoc16s(fn, zip_drives[drive].image_path, sizeof_w(fn));
 	_swprintf(tempTip, plat_get_string(IDS_2054),
-		  type, drive+1, szText, zip_drives[drive].image_path);
+		  type, drive+1, szText, fn);
     }
 
     if (sbTips[part] != NULL) {
@@ -267,6 +276,7 @@ StatusBarCreateMOTip(int part)
 {
     WCHAR tempTip[512];
     WCHAR *szText;
+    WCHAR fn[512];
     int id;
     int drive = sb_part_meanings[part] & 0xf;
     int bus = mo_drives[drive].bus_type;
@@ -274,10 +284,11 @@ StatusBarCreateMOTip(int part)
     id = IDS_5377 + (bus - 1);
     szText = plat_get_string(id);
 
-    if (wcslen(mo_drives[drive].image_path) == 0) {
+    if (strlen(mo_drives[drive].image_path) == 0) {
 	_swprintf(tempTip, plat_get_string(IDS_2115),
 		  drive+1, szText, plat_get_string(IDS_2057));
     } else {
+	mbstoc16s(fn, mo_drives[drive].image_path, sizeof_w(fn));
 	_swprintf(tempTip, plat_get_string(IDS_2115),
 		  drive+1, szText, mo_drives[drive].image_path);
     }
@@ -652,7 +663,7 @@ ui_sb_update_panes(void)
     for (i=0; i<sb_parts; i++) {
 	switch (sb_part_meanings[i] & 0xf0) {
 		case SB_FLOPPY:		/* Floppy */
-			sb_part_icons[i] = (wcslen(floppyfns[sb_part_meanings[i] & 0xf]) == 0) ? 128 : 0;
+			sb_part_icons[i] = (strlen(floppyfns[sb_part_meanings[i] & 0xf]) == 0) ? 128 : 0;
 			sb_part_icons[i] |= fdd_type_to_icon(fdd_get_type(sb_part_meanings[i] & 0xf));
 			StatusBarCreateFloppyTip(i);
 			break;
@@ -660,7 +671,7 @@ ui_sb_update_panes(void)
 		case SB_CDROM:		/* CD-ROM */
 			id = sb_part_meanings[i] & 0xf;
 			if (cdrom[id].host_drive == 200)
-				sb_part_icons[i] = (wcslen(cdrom[id].image_path) == 0) ? 128 : 0;
+				sb_part_icons[i] = (strlen(cdrom[id].image_path) == 0) ? 128 : 0;
 			else
 				sb_part_icons[i] = 128;
 			sb_part_icons[i] |= 32;
@@ -668,13 +679,13 @@ ui_sb_update_panes(void)
 			break;
 
 		case SB_ZIP:		/* Iomega ZIP */
-			sb_part_icons[i] = (wcslen(zip_drives[sb_part_meanings[i] & 0xf].image_path) == 0) ? 128 : 0;
+			sb_part_icons[i] = (strlen(zip_drives[sb_part_meanings[i] & 0xf].image_path) == 0) ? 128 : 0;
 			sb_part_icons[i] |= 48;
 			StatusBarCreateZIPTip(i);
 			break;
 			
 		case SB_MO:		/* Magneto-Optical disk */	
-			sb_part_icons[i] = (wcslen(mo_drives[sb_part_meanings[i] & 0xf].image_path) == 0) ? 128 : 0;
+			sb_part_icons[i] = (strlen(mo_drives[sb_part_meanings[i] & 0xf].image_path) == 0) ? 128 : 0;
 			sb_part_icons[i] |= 56;
 			StatusBarCreateMOTip(i);
 			break;

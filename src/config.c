@@ -262,7 +262,7 @@ config_free(void)
 
 /* Read and parse the configuration file into memory. */
 static int
-config_read(wchar_t *fn)
+config_read(char *fn)
 {
     char sname[128], ename[128];
     wchar_t buff[1024];
@@ -272,9 +272,9 @@ config_read(wchar_t *fn)
     FILE *f;
 
 #if defined(ANSI_CFG) || !defined(_WIN32)
-    f = plat_fopen(fn, L"rt");
+    f = plat_fopen(fn, "rt");
 #else
-    f = plat_fopen(fn, L"rt, ccs=UNICODE");
+    f = plat_fopen(fn, "rt, ccs=UTF-8");
 #endif
     if (f == NULL) return(0);
 	
@@ -351,7 +351,11 @@ config_read(wchar_t *fn)
 	memcpy(ne->name, ename, 128);
 	wcsncpy(ne->wdata, &buff[d], sizeof_w(ne->wdata)-1);
 	ne->wdata[sizeof_w(ne->wdata)-1] = L'\0';
+#ifdef _WIN32	/* Make sure the string is converted to UTF-8 rather than a legacy codepage */
+	c16stombs(ne->data, ne->wdata, sizeof(ne->data));
+#else
 	wcstombs(ne->data, ne->wdata, sizeof(ne->data));
+#endif
 	ne->data[sizeof(ne->data)-1] = '\0';
 
 	/* .. and insert it. */
@@ -374,7 +378,7 @@ config_read(wchar_t *fn)
  * has changed it.
  */
 void
-config_write(wchar_t *fn)
+config_write(char *fn)
 {
     wchar_t wtemp[512];
     section_t *sec;
@@ -382,9 +386,9 @@ config_write(wchar_t *fn)
     int fl = 0;
 
 #if defined(ANSI_CFG) || !defined(_WIN32)
-    f = plat_fopen(fn, L"wt");
+    f = plat_fopen(fn, "wt");
 #else
-    f = plat_fopen(fn, L"wt, ccs=UNICODE");
+    f = plat_fopen(fn, "wt, ccs=UTF-8");
 #endif
     if (f == NULL) return;
 
@@ -429,7 +433,7 @@ config_new(void)
 #if defined(ANSI_CFG) || !defined(_WIN32)
     FILE *f = _wfopen(config_file, L"wt");
 #else
-    FILE *f = _wfopen(config_file, L"wt, ccs=UNICODE");
+    FILE *f = _wfopen(config_file, L"wt, ccs=UTF-8");
 #endif
 
     if (file != NULL)
@@ -825,10 +829,7 @@ load_sound(void)
     
     memset(temp, '\0', sizeof(temp));
     p = config_get_string(cat, "sound_type", "float");
-    if (strlen(p) <= 511)
-	strcpy(temp, p);
-    else
-	strncpy(temp, p, 511);
+    strncpy(temp, p, sizeof(temp) - 1);
     if (!strcmp(temp, "float") || !strcmp(temp, "1"))
 	sound_is_float = 1;
       else
@@ -872,10 +873,7 @@ load_network(void)
 
 		strcpy(network_host, "none");
 	} else {
-		if (strlen(p) <= 522)
-			strcpy(network_host, p);
-		else
-			strncpy(network_host, p, 522);
+		strncpy(network_host, p, sizeof(network_host) - 1);
 	}
     } else
 	strcpy(network_host, "none");
@@ -983,7 +981,6 @@ load_hard_disks(void)
     char s[512];
     int c;
     char *p;
-    wchar_t *wp;
     uint32_t max_spt, max_hpc, max_tracks;
     uint32_t board = 0, dev = 0;
 
@@ -1089,7 +1086,7 @@ load_hard_disks(void)
 	memset(hdd[c].fn, 0x00, sizeof(hdd[c].fn));
 	memset(hdd[c].prev_fn, 0x00, sizeof(hdd[c].prev_fn));
 	sprintf(temp, "hdd_%02i_fn", c+1);
-	wp = config_get_wstring(cat, temp, L"");
+	p = config_get_string(cat, temp, "");
 
 #if 0
 	/*
@@ -1113,11 +1110,10 @@ load_hard_disks(void)
 		wcsncpy(hdd[c].fn, &wp[wcslen(usr_path)], sizeof_w(hdd[c].fn));
 	} else
 #endif
-	if (plat_path_abs(wp)) {
-		wcsncpy(hdd[c].fn, wp, sizeof_w(hdd[c].fn));
+	if (plat_path_abs(p)) {
+		strncpy(hdd[c].fn, p, sizeof(hdd[c].fn) - 1);
 	} else {
-		wcsncpy(hdd[c].fn, usr_path, sizeof_w(hdd[c].fn));
-		wcsncat(hdd[c].fn, wp, sizeof_w(hdd[c].fn)-wcslen(usr_path));
+		plat_append_filename(hdd[c].fn, usr_path, p);
 	}
 
 	/* If disk is empty or invalid, mark it for deletion. */
@@ -1154,7 +1150,6 @@ load_floppy_drives(void)
 {
     char *cat = "Floppy drives";
     char temp[512], *p;
-    wchar_t *wp;
     int c;
 
     if (!backwards_compat)
@@ -1169,7 +1164,7 @@ load_floppy_drives(void)
 	config_delete_var(cat, temp);
 
 	sprintf(temp, "fdd_%02i_fn", c + 1);
-	wp = config_get_wstring(cat, temp, L"");
+	p = config_get_string(cat, temp, "");
 	config_delete_var(cat, temp);
 
 #if 0
@@ -1189,7 +1184,7 @@ load_floppy_drives(void)
 		wcsncpy(floppyfns[c], &wp[wcslen(usr_path)], sizeof_w(floppyfns[c]));
 	} else
 #endif
-	wcsncpy(floppyfns[c], wp, sizeof_w(floppyfns[c]));
+	strncpy(floppyfns[c], p, sizeof(floppyfns[c]) - 1);
 
 	/* if (*wp != L'\0')
 		config_log("Floppy%d: %ls\n", c, floppyfns[c]); */
@@ -1216,7 +1211,6 @@ load_floppy_and_cdrom_drives(void)
     char temp[512], tmp2[512], *p;
     char s[512];
     unsigned int board = 0, dev = 0;
-    wchar_t *wp;
     int c, d = 0;
 
     /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
@@ -1231,7 +1225,7 @@ load_floppy_and_cdrom_drives(void)
 		fdd_set_type(c, 13);
 
 	sprintf(temp, "fdd_%02i_fn", c + 1);
-	wp = config_get_wstring(cat, temp, L"");
+	p = config_get_string(cat, temp, "");
 
 #if 0
 	/*
@@ -1250,7 +1244,7 @@ load_floppy_and_cdrom_drives(void)
 		wcsncpy(floppyfns[c], &wp[wcslen(usr_path)], sizeof_w(floppyfns[c]));
 	} else
 #endif
-	wcsncpy(floppyfns[c], wp, sizeof_w(floppyfns[c]));
+	strncpy(floppyfns[c], p, sizeof(floppyfns[c]) - 1);
 
 	/* if (*wp != L'\0')
 		config_log("Floppy%d: %ls\n", c, floppyfns[c]); */
@@ -1266,7 +1260,7 @@ load_floppy_and_cdrom_drives(void)
 		sprintf(temp, "fdd_%02i_type", c+1);
 		config_delete_var(cat, temp);
 	}
-	if (wcslen(floppyfns[c]) == 0) {
+	if (strlen(floppyfns[c]) == 0) {
 		sprintf(temp, "fdd_%02i_fn", c+1);
 		config_delete_var(cat, temp);
 	}
@@ -1331,7 +1325,7 @@ load_floppy_and_cdrom_drives(void)
 	}
 
 	sprintf(temp, "cdrom_%02i_image_path", c+1);
-	wp = config_get_wstring(cat, temp, L"");
+	p = config_get_string(cat, temp, "");
 
 #if 0
 	/*
@@ -1350,13 +1344,13 @@ load_floppy_and_cdrom_drives(void)
 		wcsncpy(cdrom[c].image_path, &wp[wcslen(usr_path)], sizeof_w(cdrom[c].image_path));
 	} else
 #endif
-	wcsncpy(cdrom[c].image_path, wp, sizeof_w(cdrom[c].image_path));
+	strncpy(cdrom[c].image_path, p, sizeof(cdrom[c].image_path) - 1);
 
 	if (cdrom[c].host_drive && (cdrom[c].host_drive != 200))
 		cdrom[c].host_drive = 0;
 
 	if ((cdrom[c].host_drive == 0x200) &&
-	    (wcslen(cdrom[c].image_path) == 0))
+	    (strlen(cdrom[c].image_path) == 0))
 		cdrom[c].host_drive = 0;
 
 	/* If the CD-ROM is disabled, delete all its variables. */
@@ -1391,7 +1385,6 @@ load_other_removable_devices(void)
     char temp[512], tmp2[512], *p;
     char s[512];
     unsigned int board = 0, dev = 0;
-    wchar_t *wp;
     int c, d = 0;
 
     /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
@@ -1445,7 +1438,7 @@ load_other_removable_devices(void)
 		config_delete_var(cat, temp);
 
 		sprintf(temp, "cdrom_%02i_image_path", c+1);
-		wp = config_get_wstring(cat, temp, L"");
+		p = config_get_string(cat, temp, "");
 		config_delete_var(cat, temp);
 
 #if 0
@@ -1465,13 +1458,13 @@ load_other_removable_devices(void)
 			wcsncpy(cdrom[c].image_path, &wp[wcslen(usr_path)], sizeof_w(cdrom[c].image_path));
 		} else
 #endif
-		wcsncpy(cdrom[c].image_path, wp, sizeof_w(cdrom[c].image_path));
+		strncpy(cdrom[c].image_path, p, sizeof(cdrom[c].image_path) - 1);
 
 		if (cdrom[c].host_drive && (cdrom[c].host_drive != 200))
 			cdrom[c].host_drive = 0;
 
 		if ((cdrom[c].host_drive == 0x200) &&
-		    (wcslen(cdrom[c].image_path) == 0))
+		    (strlen(cdrom[c].image_path) == 0))
 			cdrom[c].host_drive = 0;
 	}
     }
@@ -1513,7 +1506,7 @@ load_other_removable_devices(void)
 	}
 
 	sprintf(temp, "zip_%02i_image_path", c+1);
-	wp = config_get_wstring(cat, temp, L"");
+	p = config_get_string(cat, temp, "");
 
 #if 0
 	/*
@@ -1532,7 +1525,7 @@ load_other_removable_devices(void)
 		wcsncpy(zip_drives[c].image_path, &wp[wcslen(usr_path)], sizeof_w(zip_drives[c].image_path));
 	} else
 #endif
-	wcsncpy(zip_drives[c].image_path, wp, sizeof_w(zip_drives[c].image_path));
+	strncpy(zip_drives[c].image_path, p, sizeof(zip_drives[c].image_path) - 1);
 
 	/* If the CD-ROM is disabled, delete all its variables. */
 	if (zip_drives[c].bus_type == ZIP_BUS_DISABLED) {
@@ -1592,9 +1585,9 @@ load_other_removable_devices(void)
 	}
 
 	sprintf(temp, "mo_%02i_image_path", c+1);
-	wp = config_get_wstring(cat, temp, L"");
+	p = config_get_string(cat, temp, "");
 
-	wcsncpy(mo_drives[c].image_path, wp, sizeof_w(mo_drives[c].image_path));
+	strncpy(mo_drives[c].image_path, p, sizeof(mo_drives[c].image_path) - 1);
 
 	/* If the CD-ROM is disabled, delete all its variables. */
 	if (mo_drives[c].bus_type == MO_BUS_DISABLED) {
@@ -1698,7 +1691,7 @@ config_load(void)
 {
     int i;
 
-    config_log("Loading config file '%ls'..\n", cfg_path);
+    config_log("Loading config file '%s'..\n", cfg_path);
 
     memset(hdd, 0, sizeof(hard_disk_t));
     memset(cdrom, 0, sizeof(cdrom_t) * CDROM_NUM);
@@ -2316,11 +2309,11 @@ save_hard_disks(void)
 		config_delete_var(cat, temp);
 
 	sprintf(temp, "hdd_%02i_fn", c+1);
-	if (hdd_is_valid(c) && (wcslen(hdd[c].fn) != 0))
-		if (!wcsnicmp(hdd[c].fn, usr_path, wcslen(usr_path)))
-			config_set_wstring(cat, temp, &hdd[c].fn[wcslen(usr_path)]);
+	if (hdd_is_valid(c) && (strlen(hdd[c].fn) != 0))
+		if (!strnicmp(hdd[c].fn, usr_path, strlen(usr_path)))
+			config_set_string(cat, temp, &hdd[c].fn[strlen(usr_path)]);
 		else
-			config_set_wstring(cat, temp, hdd[c].fn);
+			config_set_string(cat, temp, hdd[c].fn);
 	else
 		config_delete_var(cat, temp);
     }
@@ -2346,7 +2339,7 @@ save_floppy_and_cdrom_drives(void)
 				  fdd_get_internal_name(fdd_get_type(c)));
 
 	sprintf(temp, "fdd_%02i_fn", c+1);
-	if (wcslen(floppyfns[c]) == 0) {
+	if (strlen(floppyfns[c]) == 0) {
 		config_delete_var(cat, temp);
 
 		ui_writeprot[c] = 0;
@@ -2354,7 +2347,7 @@ save_floppy_and_cdrom_drives(void)
 		sprintf(temp, "fdd_%02i_writeprot", c+1);
 		config_delete_var(cat, temp);
 	} else {
-		config_set_wstring(cat, temp, floppyfns[c]);
+		config_set_string(cat, temp, floppyfns[c]);
 	}
 
 	sprintf(temp, "fdd_%02i_writeprot", c+1);
@@ -2418,10 +2411,10 @@ save_floppy_and_cdrom_drives(void)
 
 	sprintf(temp, "cdrom_%02i_image_path", c + 1);
 	if ((cdrom[c].bus_type == 0) ||
-	    (wcslen(cdrom[c].image_path) == 0)) {
+	    (strlen(cdrom[c].image_path) == 0)) {
 		config_delete_var(cat, temp);
 	} else {
-		config_set_wstring(cat, temp, cdrom[c].image_path);
+		config_set_string(cat, temp, cdrom[c].image_path);
 	}
     }
 
@@ -2465,10 +2458,10 @@ save_other_removable_devices(void)
 
 	sprintf(temp, "zip_%02i_image_path", c + 1);
 	if ((zip_drives[c].bus_type == 0) ||
-	    (wcslen(zip_drives[c].image_path) == 0)) {
+	    (strlen(zip_drives[c].image_path) == 0)) {
 		config_delete_var(cat, temp);
 	} else {
-		config_set_wstring(cat, temp, zip_drives[c].image_path);
+		config_set_string(cat, temp, zip_drives[c].image_path);
 	}
     }
 
@@ -2500,10 +2493,10 @@ save_other_removable_devices(void)
 
 	sprintf(temp, "mo_%02i_image_path", c + 1);
 	if ((mo_drives[c].bus_type == 0) ||
-	    (wcslen(mo_drives[c].image_path) == 0)) {
+	    (strlen(mo_drives[c].image_path) == 0)) {
 		config_delete_var(cat, temp);
 	} else {
-		config_set_wstring(cat, temp, mo_drives[c].image_path);
+		config_set_string(cat, temp, mo_drives[c].image_path);
 	}
     }
 
@@ -2545,7 +2538,7 @@ config_dump(void)
 	
 	ent = (entry_t *)sec->entry_head.next;
 	while (ent != NULL) {
-		config_log("%s = %ls\n", ent->name, ent->wdata);
+		config_log("%s = %s\n", ent->name, ent->data);
 
 		ent = (entry_t *)ent->list.next;
 	}
@@ -2827,7 +2820,11 @@ config_set_string(char *head, char *name, char *val)
 	memcpy(ent->data, val, strlen(val) + 1);
     else
 	memcpy(ent->data, val, sizeof(ent->data));
+#ifdef _WIN32	/* Make sure the string is converted from UTF-8 rather than a legacy codepage */
+    mbstoc16s(ent->wdata, ent->data, sizeof_w(ent->wdata));
+#else
     mbstowcs(ent->wdata, ent->data, sizeof_w(ent->wdata));
+#endif
 }
 
 
@@ -2846,5 +2843,9 @@ config_set_wstring(char *head, char *name, wchar_t *val)
 	ent = create_entry(section, name);
 
     memcpy(ent->wdata, val, sizeof_w(ent->wdata));
+#ifdef _WIN32	/* Make sure the string is converted to UTF-8 rather than a legacy codepage */
+    c16stombs(ent->data, ent->wdata, sizeof(ent->data));
+#else
     wcstombs(ent->data, ent->wdata, sizeof(ent->data));
+#endif
 }

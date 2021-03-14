@@ -35,9 +35,9 @@
 #define TVGA9000B_ID		0x23
 #define TVGA8900CLD_ID		0x33
 
-#define ROM_TVGA_8900B		L"roms/video/tvga/tvga8900B.VBI"
-#define ROM_TVGA_8900CLD	L"roms/video/tvga/trident.bin"
-#define ROM_TVGA_9000B		L"roms/video/tvga/tvga9000b.bin"
+#define ROM_TVGA_8900B		"roms/video/tvga/tvga8900B.VBI"
+#define ROM_TVGA_8900CLD	"roms/video/tvga/trident.bin"
+#define ROM_TVGA_9000B		"roms/video/tvga/tvga9000b.bin"
 
 typedef struct tvga_t
 {
@@ -351,7 +351,7 @@ void tvga_recalctimings(svga_t *svga)
 
 static void *tvga_init(const device_t *info)
 {
-	const wchar_t *bios_fn;
+	const char *bios_fn;
         tvga_t *tvga = malloc(sizeof(tvga_t));
         memset(tvga, 0, sizeof(tvga_t));
         
@@ -383,7 +383,7 @@ static void *tvga_init(const device_t *info)
 			return NULL;
 	}
 	
-        rom_init(&tvga->bios_rom, (wchar_t *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&tvga->bios_rom, (char *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         
         svga_init(info, &tvga->svga, tvga, tvga->vram_size,
                    tvga_recalctimings,

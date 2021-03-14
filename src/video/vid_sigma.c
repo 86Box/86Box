@@ -31,8 +31,8 @@
 #include <86box/video.h>
 
 
-#define ROM_SIGMA_FONT		L"roms/video/sigma/sigma400_font.rom"
-#define ROM_SIGMA_BIOS		L"roms/video/sigma/sigma400_bios.rom"
+#define ROM_SIGMA_FONT		"roms/video/sigma/sigma400_font.rom"
+#define ROM_SIGMA_BIOS		"roms/video/sigma/sigma400_bios.rom"
 
 /* The Sigma Designs Color 400 is a video card from 1985, presumably intended
  * as an EGA competitor.

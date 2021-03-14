@@ -139,7 +139,7 @@ bin_close(void *p)
 
 
 static track_file_t *
-bin_init(const wchar_t *filename, int *error)
+bin_init(const char *filename, int *error)
 {
     track_file_t *tf = (track_file_t *) malloc(sizeof(track_file_t));
 
@@ -149,12 +149,9 @@ bin_init(const wchar_t *filename, int *error)
     }
 
     memset(tf->fn, 0x00, sizeof(tf->fn));
-    if (wcslen(filename) <= 260)
-	wcscpy(tf->fn, filename);
-    else
-	wcsncpy(tf->fn, filename, 260);
-    tf->file = plat_fopen64(tf->fn, L"rb");
-    cdrom_image_backend_log("CDROM: binary_open(%ls) = %08lx\n", tf->fn, tf->file);
+    strncpy(tf->fn, filename, sizeof(tf->fn) - 1);
+    tf->file = plat_fopen64(tf->fn, "rb");
+    cdrom_image_backend_log("CDROM: binary_open(%s) = %08lx\n", tf->fn, tf->file);
 
     *error = (tf->file == NULL);
 
@@ -173,7 +170,7 @@ bin_init(const wchar_t *filename, int *error)
 
 
 static track_file_t *
-track_file_init(const wchar_t *filename, int *error)
+track_file_init(const char *filename, int *error)
 {
     /* Current we only support .BIN files, either combined or one per
        track. In the future, more is planned. */
@@ -238,7 +235,7 @@ cdi_close(cd_img_t *cdi)
 
 
 int
-cdi_set_device(cd_img_t *cdi, const wchar_t *path)
+cdi_set_device(cd_img_t *cdi, const char *path)
 {
     if (cdi_load_cue(cdi, path))
 	return 1;
@@ -548,7 +545,7 @@ cdi_track_push_back(cd_img_t *cdi, track_t *trk)
 
 
 int
-cdi_load_iso(cd_img_t *cdi, const wchar_t *filename)
+cdi_load_iso(cd_img_t *cdi, const char *filename)
 {
     int error;
     track_t trk;
@@ -779,11 +776,11 @@ cdi_add_track(cd_img_t *cdi, track_t *cur, uint64_t *shift, uint64_t prestart, u
 
 
 int
-cdi_load_cue(cd_img_t *cdi, const wchar_t *cuefile)
+cdi_load_cue(cd_img_t *cdi, const char *cuefile)
 {
     track_t trk;
-    wchar_t pathname[MAX_FILENAME_LENGTH], filename[MAX_FILENAME_LENGTH];
-    wchar_t temp[MAX_FILENAME_LENGTH];
+    char pathname[MAX_FILENAME_LENGTH], filename[MAX_FILENAME_LENGTH];
+    char temp[MAX_FILENAME_LENGTH];
     uint64_t shift = 0ULL, prestart = 0ULL;
     uint64_t cur_pregap = 0ULL, total_pregap = 0ULL;
     uint64_t frame = 0ULL, index;
@@ -800,11 +797,11 @@ cdi_load_cue(cd_img_t *cdi, const wchar_t *cuefile)
     memset(&trk, 0, sizeof(track_t));
 
     /* Get a copy of the filename into pathname, we need it later. */
-    memset(pathname, 0, MAX_FILENAME_LENGTH * sizeof(wchar_t));
+    memset(pathname, 0, MAX_FILENAME_LENGTH * sizeof(char));
     plat_get_dirname(pathname, cuefile);
 
     /* Open the file. */
-    fp = plat_fopen((wchar_t *) cuefile, L"r");
+    fp = plat_fopen(cuefile, "r");
     if (fp == NULL)
 	return 0;
 
@@ -936,7 +933,7 @@ cdi_load_cue(cd_img_t *cdi, const wchar_t *cuefile)
 		can_add_track = 0;
 
 		memset(ansi, 0, MAX_FILENAME_LENGTH * sizeof(char));
-		memset(filename, 0, MAX_FILENAME_LENGTH * sizeof(wchar_t));
+		memset(filename, 0, MAX_FILENAME_LENGTH * sizeof(char));
 
 		success = cdi_cue_get_buffer(ansi, &line, 0);
 		if (!success)
@@ -949,14 +946,13 @@ cdi_load_cue(cd_img_t *cdi, const wchar_t *cuefile)
 		error = 1;
 
 		if (!strcmp(type, "BINARY")) {
-			memset(temp, 0, MAX_FILENAME_LENGTH * sizeof(wchar_t));
-			mbstowcs(temp, ansi, sizeof_w(temp));
-			plat_append_filename(filename, pathname, temp);
+			memset(temp, 0, MAX_FILENAME_LENGTH * sizeof(char));
+			plat_append_filename(filename, pathname, ansi);
 			trk.file = track_file_init(filename, &error);
 		}
 		if (error) {
 #ifdef ENABLE_CDROM_IMAGE_BACKEND_LOG
-			cdrom_image_backend_log("CUE: cannot open fille '%ls' in cue sheet!\n",
+			cdrom_image_backend_log("CUE: cannot open fille '%s' in cue sheet!\n",
 					 filename);
 #endif
 			if (trk.file != NULL) {

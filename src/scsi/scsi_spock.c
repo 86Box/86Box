@@ -40,11 +40,11 @@
 #include <86box/scsi_device.h>
 #include <86box/scsi_spock.h>
 
-#define SPOCK_U68_1990_ROM		L"roms/scsi/ibm/64f4376.bin"
-#define SPOCK_U69_1990_ROM		L"roms/scsi/ibm/64f4377.bin"
+#define SPOCK_U68_1990_ROM		"roms/scsi/ibm/64f4376.bin"
+#define SPOCK_U69_1990_ROM		"roms/scsi/ibm/64f4377.bin"
 
-#define SPOCK_U68_1991_ROM		L"roms/scsi/ibm/92F2244.U68"
-#define SPOCK_U69_1991_ROM		L"roms/scsi/ibm/92F2245.U69"
+#define SPOCK_U68_1991_ROM		"roms/scsi/ibm/92F2244.U68"
+#define SPOCK_U69_1991_ROM		"roms/scsi/ibm/92F2245.U69"
 
 #define SPOCK_TIME (20)
 

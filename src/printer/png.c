@@ -105,7 +105,7 @@ warning_handler(png_structp arg, const char *str)
 
 /* Write the given image as an 8-bit GrayScale PNG image file. */
 int
-png_write_gray(wchar_t *fn, int inv, uint8_t *pix, int16_t w, int16_t h)
+png_write_gray(char *fn, int inv, uint8_t *pix, int16_t w, int16_t h)
 {
     png_structp png = NULL;
     png_infop info = NULL;
@@ -114,11 +114,11 @@ png_write_gray(wchar_t *fn, int inv, uint8_t *pix, int16_t w, int16_t h)
     FILE *fp;
 
     /* Create the image file. */
-    fp = plat_fopen(fn, L"wb");
+    fp = plat_fopen(fn, "wb");
     if (fp == NULL) {
 	/* Yes, this looks weird. */
 	if (fp == NULL)
-		png_log("PNG: file %ls could not be opened for writing!\n", fn);
+		png_log("PNG: file %s could not be opened for writing!\n", fn);
 	else
 error:
 		png_log("PNG: fatal error, bailing out, error = %i\n", errno);
@@ -185,7 +185,7 @@ error:
 
 /* Write the given BITMAP-format image as an 8-bit RGBA PNG image file. */
 void
-png_write_rgb(wchar_t *fn, uint8_t *pix, int16_t w, int16_t h, uint16_t pitch, PALETTE palcol)
+png_write_rgb(char *fn, uint8_t *pix, int16_t w, int16_t h, uint16_t pitch, PALETTE palcol)
 {
     png_structp png = NULL;
     png_infop info = NULL;
@@ -195,9 +195,9 @@ png_write_rgb(wchar_t *fn, uint8_t *pix, int16_t w, int16_t h, uint16_t pitch, P
     int i;
 
     /* Create the image file. */
-    fp = plat_fopen(fn, L"wb");
+    fp = plat_fopen(fn, "wb");
     if (fp == NULL) {
-	png_log("PNG: File %ls could not be opened for writing!\n", fn);
+	png_log("PNG: File %s could not be opened for writing!\n", fn);
 error:
 	if (png != NULL)
 		PNGFUNC(destroy_write_struct)(&png, &info);

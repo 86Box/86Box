@@ -81,24 +81,24 @@ extern int	unscaled_size_x,		/* current unscaled size X */
 		unscaled_size_y;		/* current unscaled size Y */
 
 /* System-related functions. */
-extern wchar_t	*fix_exe_path(wchar_t *str);
-extern FILE	*plat_fopen(wchar_t *path, wchar_t *mode);
-extern FILE	*plat_fopen64(const wchar_t *path, const wchar_t *mode);
-extern void	plat_remove(wchar_t *path);
-extern int	plat_getcwd(wchar_t *bufp, int max);
-extern int	plat_chdir(wchar_t *path);
-extern void	plat_tempfile(wchar_t *bufp, wchar_t *prefix, wchar_t *suffix);
-extern void	plat_get_exe_name(wchar_t *s, int size);
-extern wchar_t	*plat_get_basename(const wchar_t *path);
-extern void	plat_get_dirname(wchar_t *dest, const wchar_t *path);
-extern wchar_t	*plat_get_filename(wchar_t *s);
-extern wchar_t	*plat_get_extension(wchar_t *s);
-extern void	plat_append_filename(wchar_t *dest, wchar_t *s1, wchar_t *s2);
-extern void	plat_put_backslash(wchar_t *s);
-extern void	plat_path_slash(wchar_t *path);
-extern int	plat_path_abs(wchar_t *path);
-extern int	plat_dir_check(wchar_t *path);
-extern int	plat_dir_create(wchar_t *path);
+extern char	*fix_exe_path(char *str);
+extern FILE	*plat_fopen(const char *path, const char *mode);
+extern FILE	*plat_fopen64(const char *path, const char *mode);
+extern void	plat_remove(char *path);
+extern int	plat_getcwd(char *bufp, int max);
+extern int	plat_chdir(char *path);
+extern void	plat_tempfile(char *bufp, char *prefix, char *suffix);
+extern void	plat_get_exe_name(char *s, int size);
+extern char	*plat_get_basename(const char *path);
+extern void	plat_get_dirname(char *dest, const char *path);
+extern char	*plat_get_filename(char *s);
+extern char	*plat_get_extension(char *s);
+extern void	plat_append_filename(char *dest, char *s1, char *s2);
+extern void	plat_put_backslash(char *s);
+extern void	plat_path_slash(char *path);
+extern int	plat_path_abs(char *path);
+extern int	plat_dir_check(char *path);
+extern int	plat_dir_create(char *path);
 extern uint64_t	plat_timer_read(void);
 extern uint32_t	plat_get_ticks(void);
 extern void	plat_delay_ms(uint32_t count);
@@ -128,15 +128,15 @@ extern void	plat_power_off(void);
 
 
 /* Platform-specific device support. */
-extern void	floppy_mount(uint8_t id, wchar_t *fn, uint8_t wp);
+extern void	floppy_mount(uint8_t id, char *fn, uint8_t wp);
 extern void	floppy_eject(uint8_t id);
-extern void	cdrom_mount(uint8_t id, wchar_t *fn);
+extern void	cdrom_mount(uint8_t id, char *fn);
 extern void	plat_cdrom_ui_update(uint8_t id, uint8_t reload);
 extern void	zip_eject(uint8_t id);
-extern void	zip_mount(uint8_t id, wchar_t *fn, uint8_t wp);
+extern void	zip_mount(uint8_t id, char *fn, uint8_t wp);
 extern void	zip_reload(uint8_t id);
 extern void	mo_eject(uint8_t id);
-extern void	mo_mount(uint8_t id, wchar_t *fn, uint8_t wp);
+extern void	mo_mount(uint8_t id, char *fn, uint8_t wp);
 extern void	mo_reload(uint8_t id);
 extern int      ioctl_open(uint8_t id, char d);
 extern void     ioctl_reset(uint8_t id);
@@ -169,6 +169,10 @@ extern int	thread_release_mutex(mutex_t *mutex);
 extern void	startblit(void);
 extern void	endblit(void);
 extern void	take_screenshot(void);
+
+/* Conversion between UTF-8 and UTF-16. */
+extern size_t	mbstoc16s(uint16_t dst[], const char src[], int len);
+extern size_t	c16stombs(char dst[], const uint16_t src[], int len);
 
 #ifdef MTR_ENABLED
 extern void init_trace(void);

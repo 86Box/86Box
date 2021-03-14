@@ -91,15 +91,15 @@
 #include <86box/hdd.h>
 
 
-#define XEBEC_BIOS_FILE		L"roms/hdd/st506/ibm_xebec_62x0822_1985.bin"
-#define DTC_BIOS_FILE		L"roms/hdd/st506/dtc_cxd21a.bin"
-#define ST11_BIOS_FILE_OLD	L"roms/hdd/st506/st11_bios_vers_1.7.bin"
-#define ST11_BIOS_FILE_NEW	L"roms/hdd/st506/st11_bios_vers_2.0.bin"
-#define WD1002A_WX1_BIOS_FILE	L"roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
+#define XEBEC_BIOS_FILE		"roms/hdd/st506/ibm_xebec_62x0822_1985.bin"
+#define DTC_BIOS_FILE		"roms/hdd/st506/dtc_cxd21a.bin"
+#define ST11_BIOS_FILE_OLD	"roms/hdd/st506/st11_bios_vers_1.7.bin"
+#define ST11_BIOS_FILE_NEW	"roms/hdd/st506/st11_bios_vers_2.0.bin"
+#define WD1002A_WX1_BIOS_FILE	"roms/hdd/st506/wd1002a_wx1-62-000094-032.bin"
 /* SuperBIOS was for both the WX1 and 27X, users jumpers readout to determine
    if to use 26 sectors per track, 26 -> 17 sectors per track translation, or
    17 sectors per track. */
-#define WD1002A_27X_BIOS_FILE	L"roms/hdd/st506/wd1002a_27x-62-000094-032.bin"
+#define WD1002A_27X_BIOS_FILE	"roms/hdd/st506/wd1002a_27x-62-000094-032.bin"
 
 
 #define ST506_TIME		(250 * TIMER_USEC)
@@ -1305,7 +1305,7 @@ mem_read(uint32_t addr, void *priv)
  * standard 'rom_init' function here.
  */
 static void
-loadrom(hdc_t *dev, const wchar_t *fn)
+loadrom(hdc_t *dev, const char *fn)
 {
     uint32_t size;
     FILE *fp;
@@ -1317,8 +1317,8 @@ loadrom(hdc_t *dev, const wchar_t *fn)
 	return;
     }
 
-    if ((fp = rom_fopen((wchar_t *) fn, L"rb")) == NULL) {
-	st506_xt_log("ST506: BIOS ROM '%ls' not found!\n", fn);
+    if ((fp = rom_fopen((char *) fn, "rb")) == NULL) {
+	st506_xt_log("ST506: BIOS ROM '%s' not found!\n", fn);
 	return;
     }
 
@@ -1349,7 +1349,7 @@ loadrom(hdc_t *dev, const wchar_t *fn)
 
 
 static void
-loadhd(hdc_t *dev, int c, int d, const wchar_t *fn)
+loadhd(hdc_t *dev, int c, int d, const char *fn)
 {
     drive_t *drive = &dev->drives[c];
 
@@ -1423,7 +1423,7 @@ set_switches(hdc_t *dev)
 static void *
 st506_init(const device_t *info)
 {
-    wchar_t *fn = NULL;
+    char *fn = NULL;
     hdc_t *dev;
     int i, c;
 
@@ -1531,7 +1531,7 @@ st506_init(const device_t *info)
 #endif
     for (c = 0, i = 0; i < HDD_NUM; i++) {
 	if ((hdd[i].bus == HDD_BUS_MFM) && (hdd[i].mfm_channel < MFM_NUM)) {
-		st506_xt_log("ST506: disk '%ls' on channel %i\n",
+		st506_xt_log("ST506: disk '%s' on channel %i\n",
 			     hdd[i].fn, hdd[i].mfm_channel);
 		loadhd(dev, hdd[i].mfm_channel, i, hdd[i].fn);
 

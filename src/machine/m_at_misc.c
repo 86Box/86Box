@@ -43,7 +43,7 @@ machine_at_vpc2007_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/vpc2007/13500.bin",
+    ret = bios_load_linear("roms/machines/vpc2007/13500.bin",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)

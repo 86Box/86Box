@@ -537,7 +537,7 @@ m19_vid_init(olim19_vid_t *vid)
     /* display_type = device_get_config_int("display_type"); */
 
     /* OGC emulation part begin */
-    loadfont_ex(L"roms/machines/olivetti_m19/BIOS.BIN", 1, 90);
+    loadfont_ex("roms/machines/olivetti_m19/BIOS.BIN", 1, 90);
     /* composite is not working yet */
     vid->ogc.cga.composite = 0; // (display_type != CGA_RGB);
     /* vid->ogc.cga.snow_enabled = device_get_config_int("snow_enabled"); */
@@ -708,8 +708,8 @@ machine_xt_olim24_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/olivetti_m24/olivetti_m24_version_1.43_low.bin",
-				L"roms/machines/olivetti_m24/olivetti_m24_version_1.43_high.bin",
+    ret = bios_load_interleaved("roms/machines/olivetti_m24/olivetti_m24_version_1.43_low.bin",
+				"roms/machines/olivetti_m24/olivetti_m24_version_1.43_high.bin",
 				0x000fc000, 16384, 0);
 
     if (bios_only || !ret)
@@ -755,8 +755,8 @@ machine_xt_olim240_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/olivetti_m240/olivetti_m240_pch6_2.04_low.bin",
-				L"roms/machines/olivetti_m240/olivetti_m240_pch5_2.04_high.bin",
+    ret = bios_load_interleaved("roms/machines/olivetti_m240/olivetti_m240_pch6_2.04_low.bin",
+				"roms/machines/olivetti_m240/olivetti_m240_pch5_2.04_high.bin",
 				0x000f8000, 32768, 0);
 
     if (bios_only || !ret)
@@ -800,7 +800,7 @@ machine_xt_olim19_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/olivetti_m19/BIOS.BIN",
+    ret = bios_load_linear("roms/machines/olivetti_m19/BIOS.BIN",
 			   0x000fc000, 16384, 0);
 
     if (bios_only || !ret)

@@ -172,8 +172,8 @@ extern uint8_t	video_force_resize_get(void);
 extern void	video_force_resize_set(uint8_t res);
 extern void	video_update_timing(void);
 
-extern void	loadfont_ex(wchar_t *s, int format, int offset);
-extern void	loadfont(wchar_t *s, int format);
+extern void	loadfont_ex(char *s, int format, int offset);
+extern void	loadfont(char *s, int format);
 
 extern int	get_actual_size_x(void);
 extern int	get_actual_size_y(void);

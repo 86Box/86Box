@@ -45,7 +45,7 @@
 #include <86box/scsi_pcscsi.h>
 #include <86box/vid_ati_eeprom.h>
 
-#define DC390_ROM	L"roms/scsi/esp_pci/INT13.BIN"
+#define DC390_ROM	"roms/scsi/esp_pci/INT13.BIN"
 
 #define ESP_REGS 16
 #define TI_BUFSZ 32
@@ -148,7 +148,7 @@
 
 typedef struct {
     mem_mapping_t mmio_mapping;
-    wchar_t	*nvr_path;
+    char	*nvr_path;
     uint8_t	pci_slot;
     int		has_bios;
     int		BIOSBase;
@@ -1098,7 +1098,7 @@ esp_bios_disable(esp_t *dev)
 static void
 dc390_save_eeprom(esp_t *dev)
 {
-        FILE *f = nvr_fopen(dev->nvr_path, L"wb");
+        FILE *f = nvr_fopen(dev->nvr_path, "wb");
         if (!f) return;
         fwrite(dev->eeprom.data, 1, 128, f);
         fclose(f);
@@ -1234,7 +1234,7 @@ dc390_load_eeprom(esp_t *dev)
 
     eeprom->out = 1;
 
-    f = nvr_fopen(dev->nvr_path, L"rb");
+    f = nvr_fopen(dev->nvr_path, "rb");
     if (f) {
 	esp_log("EEPROM Load\n");
 	if (fread(nvr, 1, 128, f) != 128)
@@ -1452,7 +1452,7 @@ dc390_init(const device_t *info)
     if (dev->has_bios)
 	esp_bios_disable(dev);
 
-    dev->nvr_path = L"dc390.nvr";
+    dev->nvr_path = "dc390.nvr";
 
     /* Load the serial EEPROM. */
     dc390_load_eeprom(dev);

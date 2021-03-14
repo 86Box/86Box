@@ -46,8 +46,8 @@
 #include <86box/scsi_ncr53c8xx.h>
 
 
-#define NCR53C8XX_SDMS3_ROM	L"roms/scsi/ncr53c8xx/NCR307.BIN"
-#define SYM53C8XX_SDMS4_ROM	L"roms/scsi/ncr53c8xx/8xx_64.ROM"
+#define NCR53C8XX_SDMS3_ROM	"roms/scsi/ncr53c8xx/NCR307.BIN"
+#define SYM53C8XX_SDMS4_ROM	"roms/scsi/ncr53c8xx/8xx_64.ROM"
 
 #define HA_ID		  7
 
@@ -207,7 +207,7 @@ typedef enum
 } scsi_state_t;
 
 typedef struct {
-    wchar_t	*nvr_path;
+    char	*nvr_path;
     uint8_t	pci_slot;
     uint8_t	chip, wide;
     int		has_bios;
@@ -1457,7 +1457,7 @@ ncr53c8xx_eeprom(ncr53c8xx_t *dev, uint8_t save)
 {
     FILE *f;
 
-    f = nvr_fopen(dev->nvr_path, save ? L"wb": L"rb");
+    f = nvr_fopen(dev->nvr_path, save ? "wb": "rb");
     if (f) {
 	if (save)
 		fwrite(&dev->nvram, sizeof(dev->nvram), 1, f);
@@ -2542,25 +2542,25 @@ ncr53c8xx_init(const device_t *info)
 
     if (dev->chip == CHIP_875) {
 	dev->chip_rev = 0x04;
-	dev->nvr_path = L"ncr53c875.nvr";
+	dev->nvr_path = "ncr53c875.nvr";
 	dev->wide = 1;
     } else if (dev->chip == CHIP_860) {
 	dev->chip_rev = 0x04;
-	dev->nvr_path = L"ncr53c860.nvr";
+	dev->nvr_path = "ncr53c860.nvr";
 	dev->wide = 1;
     } else if (dev->chip == CHIP_820) {
-	dev->nvr_path = L"ncr53c820.nvr";
+	dev->nvr_path = "ncr53c820.nvr";
 	dev->wide = 1;
     } else if (dev->chip == CHIP_825) {
 	dev->chip_rev = 0x26;
-	dev->nvr_path = L"ncr53c825a.nvr";
+	dev->nvr_path = "ncr53c825a.nvr";
 	dev->wide = 1;
     } else if (dev->chip == CHIP_810) {
-	dev->nvr_path = L"ncr53c810.nvr";
+	dev->nvr_path = "ncr53c810.nvr";
 	dev->wide = 0;
     } else if (dev->chip == CHIP_815) {
 	dev->chip_rev = 0x04;
-	dev->nvr_path = L"ncr53c815.nvr";	
+	dev->nvr_path = "ncr53c815.nvr";	
 	dev->wide = 0;
     }
 

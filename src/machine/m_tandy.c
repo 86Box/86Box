@@ -105,7 +105,7 @@ typedef struct {
 } t1kvid_t;
 
 typedef struct {
-    wchar_t		*path;
+    char		*path;
 
     int			state;
     int			count;
@@ -1286,16 +1286,16 @@ eep_init(const device_t *info)
 
     switch (info->local) {
 	case TYPE_TANDY1000HX:
-		eep->path = L"tandy1000hx.bin";
+		eep->path = "tandy1000hx.bin";
 		break;
 
 	case TYPE_TANDY1000SL2:
-		eep->path = L"tandy1000sl2.bin";
+		eep->path = "tandy1000sl2.bin";
 		break;
 
     }
 
-    f = nvr_fopen(eep->path, L"rb");
+    f = nvr_fopen(eep->path, "rb");
     if (f != NULL) {
 	if (fread(eep->store, 1, 128, f) != 128)
 		fatal("eep_init(): Error reading Tandy EEPROM\n");
@@ -1315,7 +1315,7 @@ eep_close(void *priv)
     t1keep_t *eep = (t1keep_t *)priv;
     FILE *f = NULL;
 
-    f = nvr_fopen(eep->path, L"wb");
+    f = nvr_fopen(eep->path, "wb");
     if (f != NULL) {
 	(void)fwrite(eep->store, 128, 1, f);
 	(void)fclose(f);
@@ -1452,8 +1452,8 @@ init_rom(tandy_t *dev)
     dev->rom = (uint8_t *)malloc(0x80000);
 
 #if 1
-    if (! rom_load_interleaved(L"roms/machines/tandy1000sl2/8079047.hu1",
-			       L"roms/machines/tandy1000sl2/8079048.hu2",
+    if (! rom_load_interleaved("roms/machines/tandy1000sl2/8079047.hu1",
+			       "roms/machines/tandy1000sl2/8079048.hu2",
 			       0x000000, 0x80000, 0, dev->rom)) {
 	tandy_log("TANDY: unable to load BIOS for 1000/SL2 !\n");
 	free(dev->rom);
@@ -1461,8 +1461,8 @@ init_rom(tandy_t *dev)
 	return;
     }
 #else
-    f  = rom_fopen(L"roms/machines/tandy1000sl2/8079047.hu1", L"rb");
-    ff = rom_fopen(L"roms/machines/tandy1000sl2/8079048.hu2", L"rb");
+    f  = rom_fopen("roms/machines/tandy1000sl2/8079047.hu1", "rb");
+    ff = rom_fopen("roms/machines/tandy1000sl2/8079048.hu2", "rb");
     for (c = 0x0000; c < 0x80000; c += 2) {
 	dev->rom[c] = getc(f);
 	dev->rom[c + 1] = getc(ff);
@@ -1554,7 +1554,7 @@ machine_tandy_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linearr(L"roms/machines/tandy/tandy1t1.020",
+    ret = bios_load_linearr("roms/machines/tandy/tandy1t1.020",
 			    0x000f0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -1571,7 +1571,7 @@ machine_tandy1000hx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/tandy1000hx/v020000.u12",
+    ret = bios_load_linear("roms/machines/tandy1000hx/v020000.u12",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -1588,8 +1588,8 @@ machine_tandy1000sl2_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/tandy1000sl2/8079047.hu1",
-				L"roms/machines/tandy1000sl2/8079048.hu2",
+    ret = bios_load_interleaved("roms/machines/tandy1000sl2/8079047.hu1",
+				"roms/machines/tandy1000sl2/8079048.hu2",
 				0x000f0000, 65536, 0x18000);
 
     if (bios_only || !ret)

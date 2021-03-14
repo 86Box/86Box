@@ -109,7 +109,7 @@ typedef struct {
     FILE	*f;
     void	*priv;
 
-    wchar_t	image_path[1024],
+    char	image_path[1024],
 		prev_image_path[1024];
 
     uint32_t	type, medium_size,
@@ -170,7 +170,7 @@ extern void	mo_global_init(void);
 extern void	mo_hard_reset(void);
 
 extern void	mo_reset(scsi_common_t *sc);
-extern int	mo_load(mo_t *dev, wchar_t *fn);
+extern int	mo_load(mo_t *dev, char *fn);
 extern void	mo_close();
 
 #ifdef __cplusplus
