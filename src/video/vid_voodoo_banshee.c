@@ -44,7 +44,8 @@
 #include <86box/vid_voodoo_render.h>
 
 
-static video_timings_t timing_banshee		= {VIDEO_BUS, 2,  2,  1,  20, 20, 21};
+static video_timings_t timing_banshee		= {VIDEO_PCI, 2,  2,  1,  20, 20, 21};
+static video_timings_t timing_banshee_agp	= {VIDEO_AGP, 2,  2,  1,  20, 20, 21};
 
 
 #ifdef CLAMP
@@ -116,7 +117,7 @@ typedef struct banshee_t
         int desktop_y;
         uint32_t desktop_stride_tiled;
 
-        int type, card;
+        int type, card, agp;
 	int vblank_irq;
 
         void *i2c, *i2c_ddc, *ddc;
@@ -617,9 +618,9 @@ static void banshee_ext_outl(uint16_t addr, uint32_t val, void *p)
         {
                 case Init_pciInit0:
                 banshee->pciInit0 = val;
-                voodoo->read_time = pci_nonburst_time + pci_burst_time * ((val & 0x100) ? 2 : 1);
-                voodoo->burst_time = pci_burst_time * ((val & 0x200) ? 1 : 0);
-                voodoo->write_time = pci_nonburst_time + voodoo->burst_time;
+                voodoo->read_time = (banshee->agp ? agp_nonburst_time : pci_nonburst_time) + (banshee->agp ? agp_burst_time : pci_burst_time) * ((val & 0x100) ? 2 : 1);
+                voodoo->burst_time = (banshee->agp ? agp_burst_time : pci_burst_time) * ((val & 0x200) ? 1 : 0);
+                voodoo->write_time = (banshee->agp ? agp_nonburst_time : pci_nonburst_time) + voodoo->burst_time;
                 break;
                         
                 case Init_lfbMemoryConfig:
@@ -2426,13 +2427,39 @@ static uint8_t banshee_pci_read(int func, int addr, void *p)
                 case 0x32: ret = banshee->pci_regs[0x32]; break;
                 case 0x33: ret = banshee->pci_regs[0x33]; break;
 
+                case 0x34: ret = banshee->agp ? 0x54 : 0x60; break;
+
                 case 0x3c: ret = banshee->pci_regs[0x3c]; break;
                                 
                 case 0x3d: ret = 0x01; break; /*INTA*/
                 
                 case 0x3e: ret = 0x04; break;
                 case 0x3f: ret = 0xff; break;
-                
+
+                case 0x40: ret = 0x01; break;
+
+                case 0x50: ret = banshee->pci_regs[0x50]; break;
+
+                case 0x54: ret = 0x02; break;
+                case 0x55: ret = 0x60; break;
+                case 0x56: ret = 0x10; break; /* assumed AGP 1.0 */
+
+                case 0x58: ret = (banshee->type == TYPE_BANSHEE) ? 0x21 : 0x23; break;
+                case 0x59: ret = 0x02; break;
+                case 0x5b: ret = 0x07; break;
+
+                case 0x5c: ret = banshee->pci_regs[0x5c]; break;
+                case 0x5d: ret = banshee->pci_regs[0x5d]; break;
+                case 0x5e: ret = banshee->pci_regs[0x5e]; break;
+                case 0x5f: ret = banshee->pci_regs[0x5f]; break;
+
+                case 0x60: ret = 0x01; break;
+                case 0x62: ret = 0x21; break;
+
+                case 0x64: ret = banshee->pci_regs[0x64]; break;
+                case 0x65: ret = banshee->pci_regs[0x65]; break;
+                case 0x66: ret = banshee->pci_regs[0x66]; break;
+                case 0x67: ret = banshee->pci_regs[0x67]; break;
         }
 //        banshee_log("%02X\n", ret);
         return ret;
@@ -2524,8 +2551,28 @@ static void banshee_pci_write(int func, int addr, uint8_t val, void *p)
                         mem_mapping_disable(&banshee->bios_rom.mapping);
                 }
                 return;
-                case 0x3c: 
-                banshee->pci_regs[0x3c] = val;
+                case 0x3c: case 0x50: case 0x65: case 0x67:
+                banshee->pci_regs[addr] = val;
+                return;
+
+                case 0x5c:
+                banshee->pci_regs[0x5c] = val & 0x27;
+                return;
+
+                case 0x5d:
+                banshee->pci_regs[0x5d] = val & 0x03;
+                return;
+
+                case 0x5f:
+                banshee->pci_regs[0x5e] = val;
+                return;
+
+                case 0x64:
+                banshee->pci_regs[0x64] = val & 0x03;
+                return;
+
+                case 0x66:
+                banshee->pci_regs[0x66] = val & 0xc0;
                 return;
         }
 }
@@ -2652,13 +2699,14 @@ static const device_config_t banshee_sdram_config[] =
         }
 };
 
-static void *banshee_init_common(const device_t *info, wchar_t *fn, int has_sgram, int type, int voodoo_type)
+static void *banshee_init_common(const device_t *info, wchar_t *fn, int has_sgram, int type, int voodoo_type, int agp)
 {
         int mem_size;
         banshee_t *banshee = malloc(sizeof(banshee_t));
         memset(banshee, 0, sizeof(banshee_t));
         
         banshee->type = type;
+        banshee->agp = agp;
 
         rom_init(&banshee->bios_rom, fn, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
         mem_mapping_disable(&banshee->bios_rom.mapping);
@@ -2717,7 +2765,7 @@ static void *banshee_init_common(const device_t *info, wchar_t *fn, int has_sgra
                 banshee->dramInit1 = 1 << 30; /*SDRAM*/
         banshee->svga.decode_mask = 0x1ffffff;
 
-        banshee->card = pci_add_card(PCI_ADD_VIDEO, banshee_pci_read, banshee_pci_write, banshee);
+        banshee->card = pci_add_card(banshee->agp ? PCI_ADD_AGP : PCI_ADD_VIDEO, banshee_pci_read, banshee_pci_write, banshee);
         
         banshee->voodoo = voodoo_2d3d_card_init(voodoo_type);
         banshee->voodoo->p = banshee;
@@ -2769,26 +2817,34 @@ static void *banshee_init_common(const device_t *info, wchar_t *fn, int has_sgra
 			break;
         }
 
-	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_banshee);
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, banshee->agp ? &timing_banshee_agp : &timing_banshee);
 
         return banshee;
 }
 
 static void *banshee_init(const device_t *info)
 {
-        return banshee_init_common(info, L"roms/video/voodoo/Pci_sg.rom", 1, TYPE_BANSHEE, VOODOO_BANSHEE);
+        return banshee_init_common(info, L"roms/video/voodoo/Pci_sg.rom", 1, TYPE_BANSHEE, VOODOO_BANSHEE, 1);
 }
 static void *creative_banshee_init(const device_t *info)
 {
-        return banshee_init_common(info, L"roms/video/voodoo/BlasterPCI.rom", 0, TYPE_BANSHEE, VOODOO_BANSHEE);
+        return banshee_init_common(info, L"roms/video/voodoo/BlasterPCI.rom", 0, TYPE_BANSHEE, VOODOO_BANSHEE, 0);
 }
 static void *v3_2000_init(const device_t *info)
 {
-        return banshee_init_common(info, L"roms/video/voodoo/2k11sd.rom", 0, TYPE_V3_2000, VOODOO_3);
+        return banshee_init_common(info, L"roms/video/voodoo/2k11sd.rom", 0, TYPE_V3_2000, VOODOO_3, 0);
+}
+static void *v3_2000_agp_init(const device_t *info)
+{
+        return banshee_init_common(info, L"roms/video/voodoo/2k11sd.rom", 0, TYPE_V3_2000, VOODOO_3, 1);
 }
 static void *v3_3000_init(const device_t *info)
 {
-        return banshee_init_common(info, L"roms/video/voodoo/3k12sd.rom", 0, TYPE_V3_3000, VOODOO_3);
+        return banshee_init_common(info, L"roms/video/voodoo/3k12sd.rom", 0, TYPE_V3_3000, VOODOO_3, 0);
+}
+static void *v3_3000_agp_init(const device_t *info)
+{
+        return banshee_init_common(info, L"roms/video/voodoo/3k12sd.rom", 0, TYPE_V3_3000, VOODOO_3, 1);
 }
 
 static int banshee_available(void)
@@ -2803,10 +2859,12 @@ static int v3_2000_available(void)
 {
         return rom_present(L"roms/video/voodoo/2k11sd.rom");
 }
+#define v3_2000_agp_available v3_2000_available
 static int v3_3000_available(void)
 {
         return rom_present(L"roms/video/voodoo/3k12sd.rom");
 }
+#define v3_3000_agp_available v3_3000_available
 
 static void banshee_close(void *p)
 {
@@ -2878,6 +2936,20 @@ const device_t voodoo_3_2000_device =
         banshee_sdram_config
 };
 
+const device_t voodoo_3_2000_agp_device =
+{
+        "3dfx Voodoo3 2000",
+        DEVICE_AGP,
+        0,
+	v3_2000_agp_init,
+        banshee_close,
+	NULL,
+        { v3_2000_agp_available },
+        banshee_speed_changed,
+        banshee_force_redraw,
+        banshee_sdram_config
+};
+
 const device_t voodoo_3_3000_device =
 {
         "3dfx Voodoo3 3000",
@@ -2887,6 +2959,20 @@ const device_t voodoo_3_3000_device =
         banshee_close,
 	NULL,
         { v3_3000_available },
+        banshee_speed_changed,
+        banshee_force_redraw,
+        banshee_sdram_config
+};
+
+const device_t voodoo_3_3000_agp_device =
+{
+        "3dfx Voodoo3 3000",
+        DEVICE_AGP,
+	0,
+        v3_3000_agp_init,
+        banshee_close,
+	NULL,
+        { v3_3000_agp_available },
         banshee_speed_changed,
         banshee_force_redraw,
         banshee_sdram_config

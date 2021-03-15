@@ -51,8 +51,8 @@ typedef struct {
 } pci_mirq_t;
 
 
-int			pci_burst_time,
-			pci_nonburst_time;
+int			pci_burst_time, agp_burst_time,
+			pci_nonburst_time, agp_nonburst_time;
 
 static pci_card_t	pci_cards[32];
 static uint8_t		pci_pmc = 0, last_pci_card = 0, last_normal_pci_card = 0, last_pci_bus = 1;
@@ -860,8 +860,7 @@ pci_find_slot(uint8_t add_type, uint8_t ignore_slot)
 
 	if (!dev->read && !dev->write && ((ignore_slot == 0xff) || (i != ignore_slot))) {
 		if (((dev->type == PCI_CARD_NORMAL) && (add_type >= PCI_ADD_NORMAL)) ||
-		    (dev->type == add_type) ||
-		    ((dev->type == PCI_CARD_NORMAL_NOBRIDGE) && (add_type >= PCI_ADD_NORMAL) && (add_type != PCI_ADD_BRIDGE))) {
+		    (dev->type == add_type)) {
 			ret = i;
 			break;
 		}
@@ -878,16 +877,16 @@ pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), 
     pci_card_t *dev;
     uint8_t i, j;
 
-    if (add_type < PCI_ADD_NORMAL)
+    if (add_type < PCI_ADD_AGP)
 	pci_log("pci_add_card(): Adding PCI CARD at specific slot %02X [SPECIFIC]\n", add_type);
 
     if (! PCI) {
-	pci_log("pci_add_card(): Adding PCI CARD failed (non-PCI machine) [%s]\n", (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC"))));
+	pci_log("pci_add_card(): Adding PCI CARD failed (non-PCI machine) [%s]\n", (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_AGP) ? "AGP" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC")))));
 	return 0xff;
     }
 
     if (! last_pci_card) {
-	pci_log("pci_add_card(): Adding PCI CARD failed (no PCI slots) [%s]\n", (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC"))));
+	pci_log("pci_add_card(): Adding PCI CARD failed (no PCI slots) [%s]\n", (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_AGP) ? "AGP" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC")))));
 	return 0xff;
     }
 
@@ -908,7 +907,7 @@ pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), 
 	dev->read = read;
 	dev->write = write;
 	dev->priv = priv;
-	pci_log("pci_add_card(): Adding PCI CARD to pci_cards[%i] (bus %02X slot %02X) [%s]\n", i, dev->bus, dev->id, (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC"))));
+	pci_log("pci_add_card(): Adding PCI CARD to pci_cards[%i] (bus %02X slot %02X) [%s]\n", i, dev->bus, dev->id, (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_AGP) ? "AGP" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC")))));
 	return i;
     }
 

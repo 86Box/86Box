@@ -48,7 +48,8 @@ enum {
     VIDEO_ISA = 0,
     VIDEO_MCA,
     VIDEO_BUS,
-    VIDEO_PCI
+    VIDEO_PCI,
+    VIDEO_AGP
 };
 
 #define VIDEO_FLAG_TYPE_CGA     0
@@ -381,7 +382,9 @@ extern const device_t voodoo_device;
 extern const device_t voodoo_banshee_device;
 extern const device_t creative_voodoo_banshee_device;
 extern const device_t voodoo_3_2000_device;
+extern const device_t voodoo_3_2000_agp_device;
 extern const device_t voodoo_3_3000_device;
+extern const device_t voodoo_3_3000_agp_device;
 
 /* Wyse 700 */
 extern const device_t wy700_device;
