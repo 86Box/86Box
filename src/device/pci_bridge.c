@@ -335,8 +335,7 @@ pci_bridge_init(const device_t *info)
     for (i = 0; i < slot_count; i++) {
 	/* Interrupts for bridge slots are assigned in round-robin: ABCD, BCDA, CDAB and so on. */
 	pci_bridge_log("PCI Bridge %d: downstream slot %02X interrupts %02X %02X %02X %02X\n", dev->bus_index, i, interrupts[i & interrupt_mask], interrupts[(i + 1) & interrupt_mask], interrupts[(i + 2) & interrupt_mask], interrupts[(i + 3) & interrupt_mask]);
-	/* Use _NOBRIDGE for VIA AGP bridges, as they don't like PCI bridges under them. */
-	pci_register_bus_slot(dev->bus_index, i, AGP_BRIDGE_VIA(dev->local) ? PCI_CARD_NORMAL_NOBRIDGE : PCI_CARD_NORMAL,
+	pci_register_bus_slot(dev->bus_index, i, AGP_BRIDGE(dev->local) ? PCI_CARD_AGP : PCI_CARD_NORMAL,
 			      interrupts[i & interrupt_mask],
 			      interrupts[(i + 1) & interrupt_mask],
 			      interrupts[(i + 2) & interrupt_mask],

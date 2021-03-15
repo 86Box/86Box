@@ -51,8 +51,8 @@ enum {
     PCI_CARD_NORTHBRIDGE = 0,
     PCI_CARD_AGPBRIDGE,
     PCI_CARD_SOUTHBRIDGE,
+    PCI_CARD_AGP = 0x0f,
     PCI_CARD_NORMAL = 0x10,
-    PCI_CARD_NORMAL_NOBRIDGE,
     PCI_CARD_VIDEO,
     PCI_CARD_SCSI,
     PCI_CARD_SOUND,
@@ -65,8 +65,8 @@ enum {
     PCI_ADD_NORTHBRIDGE = 0,
     PCI_ADD_AGPBRIDGE,
     PCI_ADD_SOUTHBRIDGE,
+    PCI_ADD_AGP = 0x0f,
     PCI_ADD_NORMAL = 0x10,
-    PCI_ADD_NORMAL_NOBRIDGE,
     PCI_ADD_VIDEO,
     PCI_ADD_SCSI,
     PCI_ADD_SOUND,
@@ -81,8 +81,8 @@ typedef union {
 } bar_t;
 
 
-extern int	pci_burst_time,
-		pci_nonburst_time;
+extern int	pci_burst_time, agp_burst_time,
+		pci_nonburst_time, agp_nonburst_time;
 
 
 extern void	pci_set_irq_routing(int pci_int, int irq);

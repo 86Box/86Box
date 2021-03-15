@@ -157,19 +157,33 @@ via_apollo_setup(via_apollo_t *dev)
     if (dev->id >= VIA_691)
 	dev->pci_conf[0x67] = 0xec;	/* DRAM Timing for Banks 6, 7 */
     if (dev->id >= VIA_693A) {
-	if (cpu_busspeed < 95000000)
-		dev->pci_conf[0x68] |= 0x00; /* 66 MHz */
-	else if (cpu_busspeed < 124000000)
-		dev->pci_conf[0x68] |= 0x01; /* 100 MHz */
-	else
-		dev->pci_conf[0x68] |= (dev->id == VIA_8601) ? 0x03 : 0x02; /* 133 MHz */
+	if (cpu_busspeed < 95000000) { /* 66 MHz */
+		cpu_set_pci_speed(cpu_busspeed / 2);
+		cpu_set_agp_speed(cpu_busspeed);
+		dev->pci_conf[0x68] |= 0x00;
+	} else if (cpu_busspeed < 124000000) { /* 100 MHz */
+		cpu_set_pci_speed(cpu_busspeed / 3);
+		cpu_set_agp_speed(cpu_busspeed / 1.5);
+		dev->pci_conf[0x68] |= 0x01;
+	} else { /* 133 MHz */
+		cpu_set_pci_speed(cpu_busspeed / 4);
+		cpu_set_agp_speed(cpu_busspeed / 2);
+		dev->pci_conf[0x68] |= (dev->id == VIA_8601) ? 0x03 : 0x02;
+	}
     } else if (dev->id >= VIA_598) {
-	if (cpu_busspeed < 75000000)
-		dev->pci_conf[0x68] |= 0x00; /* 66 MHz */
-	else if (cpu_busspeed < 100000000)
-		dev->pci_conf[0x68] |= (dev->id >= VIA_691) ? 0x00 : 0x03; /* 75/83 MHz (66 MHz on 691) */
-	else
-		dev->pci_conf[0x68] |= 0x01; /* 100 MHz */
+	if (cpu_busspeed < ((dev->id >= VIA_691) ? 100000000 : 75000000)) { /* 66 MHz */
+		cpu_set_pci_speed(cpu_busspeed / 2);
+		cpu_set_agp_speed(cpu_busspeed);
+		dev->pci_conf[0x68] |= 0x00;
+	} else if (cpu_busspeed < 100000000) { /* 75/83 MHz (not available on 691) */
+		cpu_set_pci_speed(cpu_busspeed / 2.5);
+		cpu_set_agp_speed(cpu_busspeed / 1.25);
+		dev->pci_conf[0x68] |= 0x03;
+	} else { /* 100 MHz */
+		cpu_set_pci_speed(cpu_busspeed / 3);
+		cpu_set_agp_speed(cpu_busspeed / 1.5);
+		dev->pci_conf[0x68] |= 0x01;
+	}
     }
     dev->pci_conf[0x6b] = 0x01;
 

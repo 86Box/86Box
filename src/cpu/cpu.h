@@ -433,7 +433,7 @@ extern uint32_t		oldds,oldss,olddslimit,oldsslimit,olddslimitw,oldsslimitw;
 extern uint32_t		pccache;
 extern uint8_t		*pccache2;
 
-extern double		bus_timing, pci_timing;
+extern double		bus_timing, isa_timing, pci_timing, agp_timing;
 extern uint64_t		pmc[2];
 extern uint16_t		temp_seg_data[4];
 extern uint16_t		cs_msr;
@@ -477,7 +477,7 @@ extern int	cpu_cycles_read, cpu_cycles_read_l, cpu_cycles_write, cpu_cycles_writ
 extern int	cpu_prefetch_cycles, cpu_prefetch_width, cpu_mem_prefetch_cycles, cpu_rom_prefetch_cycles;
 extern int	cpu_waitstates;
 extern int	cpu_cache_int_enabled, cpu_cache_ext_enabled;
-extern int	cpu_pci_speed;
+extern int	cpu_isa_speed, cpu_pci_speed, cpu_agp_speed;
 
 extern int	timing_rr;
 extern int	timing_mr, timing_mrl;
@@ -523,6 +523,10 @@ extern char	*cpu_current_pc(char *bufp);
 
 extern void	cpu_update_waitstates(void);
 extern void	cpu_set(void);
+extern void	cpu_set_isa_speed(int speed);
+extern void	cpu_set_pci_speed(int speed);
+extern void	cpu_set_isa_pci_div(int div);
+extern void	cpu_set_agp_speed(int speed);
 
 extern void	cpu_CPUID(void);
 extern void	cpu_RDMSR(void);

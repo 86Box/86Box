@@ -146,6 +146,42 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 
 		case 0x1e:
 			val &= 0x07;
+
+			switch (val) {
+				/* Half PIT clock. */
+				case 0x0:
+					cpu_set_isa_speed(7159091);
+					break;
+
+				/* Divisors on the input clock PCLK2, which is double the CPU clock. */
+				case 0x1:
+					cpu_set_isa_speed(cpu_busspeed / 1.5);
+					break;
+
+				case 0x2:
+					cpu_set_isa_speed(cpu_busspeed / 2);
+					break;
+
+				case 0x3:
+					cpu_set_isa_speed(cpu_busspeed / 2.5);
+					break;
+
+				case 0x4:
+					cpu_set_isa_speed(cpu_busspeed / 3);
+					break;
+
+				case 0x5:
+					cpu_set_isa_speed(cpu_busspeed / 4);
+					break;
+
+				case 0x6:
+					cpu_set_isa_speed(cpu_busspeed / 5);
+					break;
+
+				case 0x7:
+					cpu_set_isa_speed(cpu_busspeed / 6);
+					break;
+			}
 			break;
 
 		case 0x20:
@@ -282,6 +318,8 @@ ali6117_reset(void *priv)
     dev->regs[0x34] = 0x04; /* enable internal RTC */
     dev->regs[0x35] = 0x20; /* enable internal KBC */
     dev->regs[0x36] = dev->local & 0x4; /* M6117D ID */
+
+    cpu_set_isa_speed(7159091);
 }
 
 

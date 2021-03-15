@@ -653,6 +653,13 @@ video_update_timing(void)
 	video_timing_write_b = (int)(pci_timing * vid_timings->write_b);
 	video_timing_write_w = (int)(pci_timing * vid_timings->write_w);
 	video_timing_write_l = (int)(pci_timing * vid_timings->write_l);
+    } else if (vid_timings->type == VIDEO_AGP) {
+	video_timing_read_b = (int)(agp_timing * vid_timings->read_b);
+	video_timing_read_w = (int)(agp_timing * vid_timings->read_w);
+	video_timing_read_l = (int)(agp_timing * vid_timings->read_l);
+	video_timing_write_b = (int)(agp_timing * vid_timings->write_b);
+	video_timing_write_w = (int)(agp_timing * vid_timings->write_w);
+	video_timing_write_l = (int)(agp_timing * vid_timings->write_l);
     } else {
 	video_timing_read_b = (int)(bus_timing * vid_timings->read_b);
 	video_timing_read_w = (int)(bus_timing * vid_timings->read_w);

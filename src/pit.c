@@ -44,8 +44,8 @@ pit_t		*pit, *pit2;
 double		cpuclock, PITCONSTD,
 		SYSCLK,
 		isa_timing,
-		bus_timing, pci_timing,
-		PCICLK;
+		bus_timing, pci_timing, agp_timing,
+		PCICLK, AGPCLK;
 
 uint64_t	PITCONST, ISACONST,
 		CGACONST,
@@ -961,17 +961,18 @@ pit_set_clock(int clock)
 {
     /* Set default CPU/crystal clock and xt_cpu_multi. */
     if (cpu_s->cpu_type >= CPU_286) {
-	if (clock == 66666666)
-		cpuclock = 200000000.0 / 3.0;
-	else if (clock == 33333333)
-		cpuclock = 100000000.0 / 3.0;
+	int remainder = (clock % 100000000);
+	if (remainder == 66666666)
+		cpuclock = (double) (clock - remainder) + (200000000.0 / 3.0);
+	else if (remainder == 33333333)
+		cpuclock = (double) (clock - remainder) + (100000000.0 / 3.0);
 	else
 		cpuclock = (double) clock;
 
 	PITCONSTD = (cpuclock / 1193182.0);
 	PITCONST = (uint64_t) (PITCONSTD * (double)(1ull << 32));
 	CGACONST = (uint64_t) ((cpuclock / (19687503.0/11.0)) * (double)(1ull << 32));
-	ISACONST = (uint64_t) ((cpuclock / 8000000.0) * (double)(1ull << 32));
+	ISACONST = (uint64_t) ((cpuclock / (double)cpu_isa_speed) * (double)(1ull << 32));
 	xt_cpu_multi = 1ULL;
     } else {
 	cpuclock = 14318184.0;
@@ -1039,15 +1040,17 @@ pit_set_clock(int clock)
 
     TIMER_USEC = (uint64_t)((cpuclock / 1000000.0) * (double)(1ull << 32));
 
-    isa_timing = (cpuclock / (double)8000000.0);
+    isa_timing = (cpuclock / (double)cpu_isa_speed);
     if (cpu_64bitbus)
 	bus_timing = (cpuclock / ((double)cpu_busspeed / 2));
     else
 	bus_timing = (cpuclock / (double)cpu_busspeed);	    
     pci_timing = (cpuclock / (double)cpu_pci_speed);
+    agp_timing = (cpuclock / (double)cpu_agp_speed);
 
     /* PCICLK in us for use with timer_on_auto(). */
     PCICLK = pci_timing / (cpuclock / 1000000.0);
+    AGPCLK = agp_timing / (cpuclock / 1000000.0);
 
     if (cpu_busspeed >= 30000000)
 	SYSCLK = bus_timing * 4.0;
