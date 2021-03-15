@@ -229,10 +229,12 @@ enum
 #define PIX_FORMAT_RGB24  2
 #define PIX_FORMAT_RGB32  3
 
+#define VIDSERIAL_DDC_EN (1 << 18)
 #define VIDSERIAL_DDC_DCK_W (1 << 19)
 #define VIDSERIAL_DDC_DDA_W (1 << 20)
 #define VIDSERIAL_DDC_DCK_R (1 << 21)
 #define VIDSERIAL_DDC_DDA_R (1 << 22)
+#define VIDSERIAL_I2C_EN (1 << 23)
 #define VIDSERIAL_I2C_SCK_W (1 << 24)
 #define VIDSERIAL_I2C_SDA_W (1 << 25)
 #define VIDSERIAL_I2C_SCK_R (1 << 26)
@@ -966,16 +968,19 @@ static uint32_t banshee_ext_inl(uint16_t addr, void *p)
                 break;
 
                 case Video_vidSerialParallelPort:
-                ret = banshee->vidSerialParallelPort & ~(VIDSERIAL_DDC_DCK_R | VIDSERIAL_DDC_DDA_R);
-                if (!(banshee->vidSerialParallelPort & VIDSERIAL_DDC_DCK_W) || i2c_gpio_get_scl(banshee->i2c_ddc))
-                        ret |= VIDSERIAL_DDC_DCK_R;
-                if (!(banshee->vidSerialParallelPort & VIDSERIAL_DDC_DDA_W) || i2c_gpio_get_sda(banshee->i2c_ddc))
-                        ret |= VIDSERIAL_DDC_DDA_R;
-                ret = ret & ~(VIDSERIAL_I2C_SCK_R | VIDSERIAL_I2C_SDA_R);
-                if (!(banshee->vidSerialParallelPort & VIDSERIAL_I2C_SCK_W) || i2c_gpio_get_scl(banshee->i2c))
-                        ret |= VIDSERIAL_I2C_SCK_R;
-                if (!(banshee->vidSerialParallelPort & VIDSERIAL_I2C_SDA_W) || i2c_gpio_get_sda(banshee->i2c))
-                        ret |= VIDSERIAL_I2C_SDA_R;
+                ret = banshee->vidSerialParallelPort& ~(VIDSERIAL_DDC_DCK_R | VIDSERIAL_DDC_DDA_R | VIDSERIAL_I2C_SCK_R | VIDSERIAL_I2C_SDA_R);
+                if (banshee->vidSerialParallelPort & VIDSERIAL_DDC_EN) {
+                        if (i2c_gpio_get_scl(banshee->i2c_ddc))
+                                ret |= VIDSERIAL_DDC_DCK_R;
+                        if (i2c_gpio_get_sda(banshee->i2c_ddc))
+                                ret |= VIDSERIAL_DDC_DDA_R;
+                }
+                if (banshee->vidSerialParallelPort & VIDSERIAL_I2C_EN) {
+                        if (i2c_gpio_get_scl(banshee->i2c))
+                                ret |= VIDSERIAL_I2C_SCK_R;
+                        if (i2c_gpio_get_sda(banshee->i2c))
+                                ret |= VIDSERIAL_I2C_SDA_R;
+                }
 //                banshee_log("vidSerialParallelPort: read %08x %08x  %04x(%08x):%08x\n", ret, ret & (VIDSERIAL_DDC_DCK_R | VIDSERIAL_DDC_DDA_R), CS,cs,cpu_state.pc);
                 break;
 
