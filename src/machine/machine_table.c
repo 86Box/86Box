@@ -136,7 +136,7 @@ const machine_t machines[] = {
     { "[GC103] Quadtel 286 clone",		"quadt286",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512, 16384, 128,  127,	     machine_at_quadt286_init, NULL			},
     { "[GC103] Trigem 286M",			"tg286m",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							  512,  8192, 128,  127,	       machine_at_tg286m_init, NULL			},
     { "[NEAT] AMI 286 clone",			"ami286",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192, 128,  127,	     machine_at_neat_ami_init, NULL			},
-    { "[NEAT] NCR 3302",			"ncr_3302",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,                                   						MACHINE_AT | MACHINE_VIDEO,							  512, 16384, 128,  127,	      machine_at_ncr3302_init, NULL			},
+    { "[NEAT] NCR 3302",			"3302",			MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,                                   						MACHINE_AT | MACHINE_VIDEO,							  512, 16384, 128,  127,	      machine_at_ncr3302_init, NULL			},
     { "[NEAT] Phoenix 286 clone",		"px286",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512, 16384, 128,  127,	        machine_at_px286_init, NULL			},
     { "[SCAT] Award 286 clone",			"award286",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512, 16384, 128,  127,	     machine_at_award286_init, NULL			},
     { "[SCAT] GW-286CT GEAR",			"gw286ct",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512, 16384, 128,  127,	      machine_at_gw286ct_init, NULL			},
@@ -153,19 +153,19 @@ const machine_t machines[] = {
     /* 386SX machines */
     { "[ISA] IBM PS/1 model 2121",		"ibmps1_2121",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO_FIXED,		 2048,  6144,1024,   63,	       machine_ps1_m2121_init, NULL			},
     { "[ISA] IBM PS/1 m.2121+ISA",		"ibmps1_2121_isa",	MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 2048,  6144,1024,   63,	       machine_ps1_m2121_init, NULL			},
-    { "[ISA] NCR PC916SX",		"ncr_pc916sx",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0, 									MACHINE_AT,			1024, 16384, 128, 127,		 machine_at_ncrpc916sx_init, NULL			},
+    { "[ISA] NCR PC916SX",			"pc916sx",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0, 										MACHINE_AT,									 1024, 16384, 128, 127,		   machine_at_ncrpc916sx_init, NULL			},
 #if defined(DEV_BRANCH) && defined(USE_M6117)
-    { "[ALi M6117D] Acrosser AR-B1375",		"arb1375",		MACHINE_TYPE_386SX,		CPU_PKG_M6117, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024, 32768,1024,  127,	      machine_at_arb1375_init, NULL			},
-    { "[ALi M6117D] Acrosser PJ-A511M",		"pja511m",		MACHINE_TYPE_386SX,		CPU_PKG_M6117, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024, 32768,1024,  127,	      machine_at_pja511m_init, NULL			},
+    { "[ALi M6117] Acrosser AR-B1375",		"arb1375",		MACHINE_TYPE_386SX,		CPU_PKG_M6117, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024, 32768,1024,  127,	      machine_at_arb1375_init, NULL			},
+    { "[ALi M6117] Acrosser PJ-A511M",		"pja511m",		MACHINE_TYPE_386SX,		CPU_PKG_M6117, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024, 32768,1024,  127,	      machine_at_pja511m_init, NULL			},
 #endif
     { "[ALi M1217] Flytech 386",		"flytech386",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE | MACHINE_BUS_PS2 | MACHINE_VIDEO,			 1024, 16384, 1024, 127,	   machine_at_flytech386_init, at_flytech386_get_device	},
     { "[HT18] AMA-932J",			"ama932j",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE | MACHINE_VIDEO,					  512,  8192,  128, 127,	      machine_at_ama932j_init, at_ama932j_get_device 	},
     { "[Intel 82335] ADI 386SX",		"adi386sx",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,	     machine_at_adi386sx_init, NULL			},
     { "[Intel 82335] Shuttle 386SX",		"shuttle386sx",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,	 machine_at_shuttle386sx_init, NULL			},
-    { "[NEAT] Commodore SL386SX-16",		"cmdsl386sx16",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024,  8192,  512, 127,    machine_at_commodore_sl386sx16_init, NULL			},
+    { "[NEAT] Commodore SL386SX-16",		"cmdsl386sx16",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024,  8192,  512, 127,  machine_at_commodore_sl386sx16_init, NULL			},
     { "[NEAT] DTK 386SX clone",			"dtk386",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,		 machine_at_neat_init, NULL			},
-    { "[OPTi 283] Olivetti M300-08",		"olivetti_m300_08",	    MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 20000000, 20000000, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,		2048, 16384, 2048, 127,			 machine_at_olim300_08_init, at_m300_08_get_device	},
-    { "[OPTi 283] Olivetti M300-15",		"olivetti_m300_15",	    MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 25000000, 25000000, 0, 0, 0, 0,                    				    MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,		2048, 16384, 2048, 127,			 machine_at_olim300_15_init, NULL	    },
+    { "[OPTi 283] Olivetti M300-08",		"m30008",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 20000000, 20000000, 0, 0, 0, 0,								MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 2048, 16384, 2048, 127,	   machine_at_olim300_08_init, at_m300_08_get_device	},
+    { "[OPTi 283] Olivetti M300-15",		"m30015",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 25000000, 25000000, 0, 0, 0, 0,                    				 		MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 2048, 16384, 2048, 127,	   machine_at_olim300_15_init, NULL			},
     { "[OPTi 291] DTK PPM-3333P",		"awardsx",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 16384, 1024, 127,	      machine_at_awardsx_init, NULL			},
     { "[SCAMP] Commodore SL386SX-25",		"cmdsl386sx16",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 1024,  8192,  512, 127,  machine_at_commodore_sl386sx25_init, at_commodore_sl386sx25_get_device },
     { "[SCAMP] Samsung SPC-6033P",		"spc6033p",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 2048, 12288, 2048, 127,	     machine_at_spc6033p_init, at_spc6033p_get_device	},
@@ -436,7 +436,7 @@ const machine_t machines[] = {
 
     /* EBGA368 machines */
     /* VIA Apollo Pro */
-    { "[VIA Apollo ProMedia] Acrosser AR-B9673",	"arb9673",		MACHINE_TYPE_EBGA368,		CPU_PKG_EBGA368, 0, 66666667, 150000000, 1300, 3500, 2.0, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			 131072,131072, 0, 31,	       machine_at_arb9673_init, NULL			},
+    { "[VIA Apollo ProMedia] Acrosser AR-B9673","arb9673",		MACHINE_TYPE_EBGA368,		CPU_PKG_EBGA368, 0, 66666667, 150000000, 1300, 3500, 2.0, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  		       131072, 131072,    0,  31,	      machine_at_arb9673_init, NULL			},
 
     /* Miscellaneous/Fake/Hypervisor machines */
     { "[i440BX] Microsoft Virtual PC 2007",	"vpc2007",		MACHINE_TYPE_MISC,		CPU_PKG_SLOT1, CPU_BLOCK(CPU_PENTIUM2, CPU_CYRIX3S), 0, 0, 0, 0, 0, 0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192,1048576, 8192, 255,	      machine_at_vpc2007_init, NULL			},

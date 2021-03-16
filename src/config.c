@@ -540,8 +540,16 @@ load_machine(void)
 		machine = machine_get_machine_from_internal_name("pc8");
 	else if (! strcmp(p, "olivetti_m290")) /* migrate legacy name */
 		machine = machine_get_machine_from_internal_name("m290");
+	else if (! strcmp(p, "ncr_3302")) /* migrate legacy name */
+		machine = machine_get_machine_from_internal_name("3302");
+	else if (! strcmp(p, "ncr_pc916sx")) /* migrate legacy name */
+		machine = machine_get_machine_from_internal_name("pc916sx");
 	else if (! strcmp(p, "cbm_sl386sx16")) /* migrate legacy name */
 		machine = machine_get_machine_from_internal_name("cmdsl386sx16");
+	else if (! strcmp(p, "olivetti_m300_08")) /* migrate legacy name */
+		machine = machine_get_machine_from_internal_name("m30008");
+	else if (! strcmp(p, "olivetti_m300_15")) /* migrate legacy name */
+		machine = machine_get_machine_from_internal_name("m30015");
 	else if (! strcmp(p, "cbm_sl386sx25")) /* migrate legacy name */
 		machine = machine_get_machine_from_internal_name("cmdsl386sx25");
 	else if (! strcmp(p, "president")) /* migrate removed machine */
