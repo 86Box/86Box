@@ -93,7 +93,7 @@ Bits 7-4 PCI IRQ for INTD
 Bits 3-0 PCI IRQ for INTC
 
 Function 0 Register 46:
-Bit 7: Generate SMI for IRQ (1: IRQ15/0: IRQ10)
+Bit 7: Replace SMI request for non-SMM CPU's (1: IRQ15/0: IRQ10)
 
 Function 0 Register 51:
 Bit 2: VGA Power Down (0: Standard/1: VESA DPMS)
@@ -295,8 +295,10 @@ um8886_write(int func, int addr, uint8_t val, void *priv)
             break;
         case 1: /* IDE Controller */
             if ((addr == 4) && HAS_IDE)
+            {
                 dev->pci_conf_sb[func][addr] = val;
-            ide_handler(val & 1);
+                ide_handler(val & 1);
+            }
             break;
         }
 }
