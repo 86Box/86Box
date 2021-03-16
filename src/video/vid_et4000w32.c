@@ -334,10 +334,17 @@ uint8_t et4000w32p_in(uint16_t addr, void *p)
 						return (et4000->regs[0xec] & 0xf) | 0x30; /*ET4000/W32i rev B*/
 					else if (et4000->type == ET4000W32)
 						return (et4000->regs[0xec] & 0xf); 		  /*ET4000/W32*/
-					else if (et4000->type == ET4000W32P || et4000->type == ET4000W32_DIAMOND)
-						return (et4000->regs[0xec] & 0xf) | 0x60; /*ET4000/W32p rev D*/
-					else
-						return (et4000->regs[0xec] & 0xf) | 0x70; /*ET4000/W32p rev C*/
+					else if (et4000->type == ET4000W32P || et4000->type == ET4000W32_DIAMOND) {
+						if (et4000->pci)
+							return (et4000->regs[0xec] & 0xf) | 0xe0; /*ET4000/W32p rev D*/
+						else	
+							return (et4000->regs[0xec] & 0xf) | 0x60; /*ET4000/W32p rev D*/
+					} else {
+						if (et4000->pci)
+							return (et4000->regs[0xec] & 0xf) | 0xf0; /*ET4000/W32p rev C*/
+						else
+							return (et4000->regs[0xec] & 0xf) | 0x70; /*ET4000/W32p rev C*/
+					}
 				}
 		if (et4000->index == 0xee) /*Preliminary implementation*/
 		{
@@ -354,10 +361,17 @@ uint8_t et4000w32p_in(uint16_t addr, void *p)
 						return et4000->regs[0xef] | 0x30; /*ET4000/W32i rev B*/
 					else if (et4000->type == ET4000W32)
 						return et4000->regs[0xef]; 		  /*ET4000/W32*/
-					else if (et4000->type == ET4000W32P || et4000->type == ET4000W32_DIAMOND)
-						return et4000->regs[0xef] | 0x60; /*ET4000/W32p rev D*/
-					else
-						return et4000->regs[0xec] | 0x70; /*ET4000/W32p rev C*/
+					else if (et4000->type == ET4000W32P || et4000->type == ET4000W32_DIAMOND) {
+						if (et4000->pci)
+							return et4000->regs[0xef] | 0xe0; /*ET4000/W32p rev D*/
+						else	
+							return et4000->regs[0xef] | 0x60; /*ET4000/W32p rev D*/
+					} else {
+						if (et4000->pci)
+							return et4000->regs[0xec] | 0xf0; /*ET4000/W32p rev C*/
+						else
+							return et4000->regs[0xec] | 0x70; /*ET4000/W32p rev C*/
+					}
                 }
                 return et4000->regs[et4000->index];
         }
