@@ -2517,10 +2517,7 @@ static void s3_recalctimings(svga_t *svga)
 	
 	switch (svga->crtc[0x67] >> 4) {
 		case 3: case 5: case 7:
-		if (s3->chip != S3_VISION868)
-			svga->clock /= 2;
-		else
-			svga->clock *= 2;
+		svga->clock /= 2;
 		break;
 	}
 
@@ -2530,8 +2527,13 @@ static void s3_recalctimings(svga_t *svga)
 			case 8:
 			svga->render = svga_render_8bpp_highres;
 			if (s3->chip != S3_VISION868) {
-				if (s3->width == 1280 || s3->width == 1600)
-					svga->hdisp *= 2;
+				if (s3->chip == S3_86C928) {
+					if (s3->width == 2048 || s3->width == 1280 || s3->width == 1600)
+						svga->hdisp *= 2;
+				} else {
+					if (s3->width == 1280 || s3->width == 1600)
+						svga->hdisp *= 2;					
+				}
 			}
 			break;
 			case 15:
