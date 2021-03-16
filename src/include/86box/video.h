@@ -387,6 +387,7 @@ extern const device_t voodoo_banshee_device;
 extern const device_t creative_voodoo_banshee_device;
 extern const device_t voodoo_3_2000_device;
 extern const device_t voodoo_3_2000_agp_device;
+extern const device_t voodoo_3_2000_agp_onboard_8m_device;
 extern const device_t voodoo_3_3000_device;
 extern const device_t voodoo_3_3000_agp_device;
 
