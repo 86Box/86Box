@@ -117,7 +117,7 @@ typedef struct banshee_t
         int desktop_y;
         uint32_t desktop_stride_tiled;
 
-        int type, card, agp;
+        int type, card, agp, has_bios;
 	int vblank_irq;
 
         void *i2c, *i2c_ddc, *ddc;
@@ -968,7 +968,7 @@ static uint32_t banshee_ext_inl(uint16_t addr, void *p)
                 break;
 
                 case Video_vidSerialParallelPort:
-                ret = banshee->vidSerialParallelPort& ~(VIDSERIAL_DDC_DCK_R | VIDSERIAL_DDC_DDA_R | VIDSERIAL_I2C_SCK_R | VIDSERIAL_I2C_SDA_R);
+                ret = banshee->vidSerialParallelPort & ~(VIDSERIAL_DDC_DCK_R | VIDSERIAL_DDC_DDA_R | VIDSERIAL_I2C_SCK_R | VIDSERIAL_I2C_SDA_R);
                 if (banshee->vidSerialParallelPort & VIDSERIAL_DDC_EN) {
                         if (i2c_gpio_get_scl(banshee->i2c_ddc))
                                 ret |= VIDSERIAL_DDC_DCK_R;
@@ -2542,6 +2542,8 @@ static void banshee_pci_write(int func, int addr, uint8_t val, void *p)
 		break;
 
                 case 0x30: case 0x32: case 0x33:
+                if (!banshee->has_bios)
+                        return;
                 banshee->pci_regs[addr] = val;
                 if (banshee->pci_regs[0x30] & 0x01)
                 {
@@ -2712,14 +2714,19 @@ static void *banshee_init_common(const device_t *info, wchar_t *fn, int has_sgra
         
         banshee->type = type;
         banshee->agp = agp;
+        banshee->has_bios = !!fn;
 
-        rom_init(&banshee->bios_rom, fn, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
-        mem_mapping_disable(&banshee->bios_rom.mapping);
+        if (banshee->has_bios) {
+                rom_init(&banshee->bios_rom, fn, 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+                mem_mapping_disable(&banshee->bios_rom.mapping);
+        }
 
-        if (has_sgram)
+        if (!banshee->has_bios)
+                mem_size = info->local; /* fixed size for on-board chips */
+        else if (has_sgram)
                 mem_size = device_get_config_int("memory");
         else
-                mem_size = 16; /*SDRAM Banshee only supports 16 MB*/
+                mem_size = 16; /* SDRAM Banshee only supports 16 MB */
 
         svga_init(info, &banshee->svga, banshee, mem_size << 20,
                    banshee_recalctimings,
@@ -2843,6 +2850,10 @@ static void *v3_2000_agp_init(const device_t *info)
 {
         return banshee_init_common(info, L"roms/video/voodoo/2k11sd.rom", 0, TYPE_V3_2000, VOODOO_3, 1);
 }
+static void *v3_2000_agp_onboard_init(const device_t *info)
+{
+        return banshee_init_common(info, NULL, 0, TYPE_V3_2000, VOODOO_3, 1);
+}
 static void *v3_3000_init(const device_t *info)
 {
         return banshee_init_common(info, L"roms/video/voodoo/3k12sd.rom", 0, TYPE_V3_3000, VOODOO_3, 0);
@@ -2950,6 +2961,20 @@ const device_t voodoo_3_2000_agp_device =
         banshee_close,
 	NULL,
         { v3_2000_agp_available },
+        banshee_speed_changed,
+        banshee_force_redraw,
+        banshee_sdram_config
+};
+
+const device_t voodoo_3_2000_agp_onboard_8m_device =
+{
+        "3dfx Voodoo3 2000 (On-Board 8MB SGRAM)",
+        DEVICE_AGP,
+        8,
+	v3_2000_agp_onboard_init,
+        banshee_close,
+	NULL,
+        { NULL },
         banshee_speed_changed,
         banshee_force_redraw,
         banshee_sdram_config
