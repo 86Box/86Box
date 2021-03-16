@@ -29,7 +29,6 @@ Basic Reverse engineering effort was done personally by me
 TODO:
 - APM, SMM, SMRAM registers(Did some early work. Still quite incomplete)
 - More Appropriate Bitmasking(If it's even possible)
-- Shuttle HOT-433 freezes if cache is enabled! Proper checking must be done.
 
 Warning: Register documentation may be inaccurate!
 
@@ -46,6 +45,7 @@ Bit 5-4 Cache Speed
     1 1 Read 2-1-1-1 Write 2T
 
 Bit 3 Cache Banks (0: 1 Bank / 1: 2 Banks)
+
 Bit 2-1-0 Cache Size
     0 0 0 0KB
     0 0 1 64KB
@@ -203,8 +203,8 @@ um8881_write(int func, int addr, uint8_t val, void *priv)
         switch (addr)
         {
         case 0x50:
-            dev->pci_conf[addr] = val;
-            cpu_cache_ext_enabled = !!(val & 0x80);
+            dev->pci_conf[addr] = ((val & 0xf8) | 4); /* Hardcode Cache Size to 512KB */
+            cpu_cache_ext_enabled = !!(val & 0x80);   /* Fixes freezing issues on the HOT-433A*/
             cpu_update_waitstates();
             break;
 
