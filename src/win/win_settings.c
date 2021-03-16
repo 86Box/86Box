@@ -2720,6 +2720,8 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 					img_format = settings_get_cur_sel(hdlg, IDC_COMBO_HD_IMG_FORMAT);
 					if (img_format < 3) {
 						f = _wfopen(hd_file_name, L"wb");
+					} else {
+						f = (FILE *) 0;
 					}
 
 					if (img_format == 1) { /* HDI file */
@@ -2801,13 +2803,17 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 					h = GetDlgItem(hdlg, IDC_PBAR_IMG_CREATE);
 
 					if (size) {
-						fwrite(big_buf, 1, size, f);
+						if (f) {
+							fwrite(big_buf, 1, size, f);
+						}
 						SendMessage(h, PBM_SETPOS, (WPARAM) 1, (LPARAM) 0);
 					}
 
 					if (r) {
 						for (i = 0; i < r; i++) {
-							fwrite(big_buf, 1, 1048576, f);
+							if (f) {
+								fwrite(big_buf, 1, 1048576, f);
+							}
 							SendMessage(h, PBM_SETPOS, (WPARAM) (i + 1), (LPARAM) 0);
 
 							settings_process_messages();
@@ -2816,7 +2822,9 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 
 					free(big_buf);
 
-					fclose(f);
+					if (f) {
+						fclose(f);
+					}
 					settings_msgbox_header(MBX_INFO, (wchar_t *) IDS_4113, (wchar_t *) IDS_4117);
 				}
 
