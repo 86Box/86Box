@@ -260,8 +260,12 @@ extern const device_t et4000_kasan_isa_device;
 extern const device_t et4000_mca_device;
 
 /* Tseng ET4000-W32p */
+extern const device_t et4000w32_device;
+extern const device_t et4000w32i_device;
 extern const device_t et4000w32p_vlb_device;
 extern const device_t et4000w32p_pci_device;
+extern const device_t et4000w32p_noncardex_vlb_device;
+extern const device_t et4000w32p_noncardex_pci_device;
 extern const device_t et4000w32p_cardex_vlb_device;
 extern const device_t et4000w32p_cardex_pci_device;
 

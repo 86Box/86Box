@@ -33,6 +33,7 @@ include(CPack)
 include(CMakeDependentOption)
 
 add_compile_definitions(CMAKE)
+add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 
 option(RELEASE "Release build" OFF)
 option(USB "USB support" OFF)
