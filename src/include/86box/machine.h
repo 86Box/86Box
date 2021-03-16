@@ -350,6 +350,7 @@ extern int	machine_at_win486pci_init(const machine_t *);
 #endif
 
 extern int	machine_at_atc1415_init(const machine_t *);
+extern int	machine_at_ecs486_init(const machine_t *);
 extern int	machine_at_hot433_init(const machine_t *);
 
 extern int	machine_at_itoxstar_init(const machine_t *);

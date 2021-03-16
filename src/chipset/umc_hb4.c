@@ -29,7 +29,6 @@ Basic Reverse engineering effort was done personally by me
 TODO:
 - APM, SMM, SMRAM registers(Did some early work. Still quite incomplete)
 - More Appropriate Bitmasking(If it's even possible)
-- Shuttle HOT-433 freezes if cache is enabled! Proper checking must be done.
 
 Warning: Register documentation may be inaccurate!
 
@@ -46,6 +45,7 @@ Bit 5-4 Cache Speed
     1 1 Read 2-1-1-1 Write 2T
 
 Bit 3 Cache Banks (0: 1 Bank / 1: 2 Banks)
+
 Bit 2-1-0 Cache Size
     0 0 0 0KB
     0 0 1 64KB
@@ -93,7 +93,7 @@ Bits 7-4 PCI IRQ for INTD
 Bits 3-0 PCI IRQ for INTC
 
 Function 0 Register 46:
-Bit 7: Generate SMI for IRQ (1: IRQ15/0: IRQ10)
+Bit 7: Replace SMI request for non-SMM CPU's (1: IRQ15/0: IRQ10)
 
 Function 0 Register 51:
 Bit 2: VGA Power Down (0: Standard/1: VESA DPMS)
@@ -203,8 +203,8 @@ um8881_write(int func, int addr, uint8_t val, void *priv)
         switch (addr)
         {
         case 0x50:
-            dev->pci_conf[addr] = val;
-            cpu_cache_ext_enabled = !!(val & 0x80);
+            dev->pci_conf[addr] = ((val & 0xf8) | 4); /* Hardcode Cache Size to 512KB */
+            cpu_cache_ext_enabled = !!(val & 0x80);   /* Fixes freezing issues on the HOT-433A*/
             cpu_update_waitstates();
             break;
 
@@ -295,8 +295,10 @@ um8886_write(int func, int addr, uint8_t val, void *priv)
             break;
         case 1: /* IDE Controller */
             if ((addr == 4) && HAS_IDE)
+            {
                 dev->pci_conf_sb[func][addr] = val;
-            ide_handler(val & 1);
+                ide_handler(val & 1);
+            }
             break;
         }
 }
