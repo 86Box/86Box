@@ -615,7 +615,6 @@ vid_write(uint32_t addr, uint8_t val, void *priv)
 
     if (vid->memctrl == -1) return;
 
-    egawrites++;
     if (dev->is_sl2) {
 	if (vid->array[5] & 1)
 		vid->b8000[addr & 0xffff] = val;
@@ -637,7 +636,6 @@ vid_read(uint32_t addr, void *priv)
 
     if (vid->memctrl == -1) return(0xff);
 
-    egareads++;
     if (dev->is_sl2) {
 	if (vid->array[5] & 1)
 		return(vid->b8000[addr & 0xffff]);
@@ -1302,7 +1300,8 @@ eep_init(const device_t *info)
 	if (fread(eep->store, 1, 128, f) != 128)
 		fatal("eep_init(): Error reading Tandy EEPROM\n");
 	(void)fclose(f);
-    }
+    } else
+	memset(eep->store, 0x00, 128);
 
     io_sethandler(0x037c, 1, NULL,NULL,NULL, eep_write,NULL,NULL, eep);
 
@@ -1500,13 +1499,13 @@ machine_tandy1k_init(const machine_t *model, int type)
     mem_mapping_set_addr(&ram_low_mapping, 0, dev->base);
 
     device_add(&keyboard_tandy_device);
-    keyboard_set_table(scancode_tandy);
 
     if (fdc_type == FDC_INTERNAL)	
 	device_add(&fdc_xt_device);
 
     switch(type) {
 	case TYPE_TANDY:
+		keyboard_set_table(scancode_tandy);
 		io_sethandler(0x00a0, 1,
 			      tandy_read,NULL,NULL,tandy_write,NULL,NULL,dev);
 		vid_init(dev);
@@ -1515,6 +1514,7 @@ machine_tandy1k_init(const machine_t *model, int type)
 		break;
 
 	case TYPE_TANDY1000HX:
+		keyboard_set_table(scancode_tandy);
 		io_sethandler(0x00a0, 1,
 			      tandy_read,NULL,NULL,tandy_write,NULL,NULL,dev);
 		vid_init(dev);
