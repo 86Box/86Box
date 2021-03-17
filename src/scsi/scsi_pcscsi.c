@@ -1401,8 +1401,8 @@ esp_pci_write(int func, int addr, uint8_t val, void *p)
 		/* Then let's set the PCI regs. */
 		esp_pci_bar[1].addr_regs[addr & 3] = val;
 		/* Then let's calculate the new I/O base. */
-		esp_pci_bar[1].addr &= 0xfffec001;
-		dev->BIOSBase = esp_pci_bar[1].addr & 0xfffec000;
+		esp_pci_bar[1].addr &= 0xfff80001;
+		dev->BIOSBase = esp_pci_bar[1].addr & 0xfff80000;
 		/* Log the new base. */
 		esp_log("ESP PCI: New BIOS base is %08X\n" , dev->BIOSBase);
 		/* We're done, so get out of the here. */
@@ -1440,7 +1440,7 @@ dc390_init(const device_t *info)
 
     /* Enable our BIOS space in PCI, if needed. */
     if (dev->has_bios) {
- 	esp_pci_bar[1].addr = 0xfffec000;
+ 	esp_pci_bar[1].addr = 0xfff80000;
     } else {
 	esp_pci_bar[1].addr = 0;
     }
