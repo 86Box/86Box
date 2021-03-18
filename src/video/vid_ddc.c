@@ -181,18 +181,18 @@ ddc_init(void *i2c)
     memset(&edid->descriptors[1].established_timings3.timings, 0xff, sizeof(edid->descriptors[1].established_timings3.timings)); /* all enabled */
     edid->descriptors[1].established_timings3.timings[5] &= 0xf0; /* reserved bits */
 
-    edid->descriptors[2].tag = 0xfc; /* display name */
-    memcpy(&edid->descriptors[2].ascii, "86Box Monitor", 13); /* exactly 13 characters (would otherwise require LF termination and space padding) */
+    edid->descriptors[2].tag = 0xfd; /* range limits */
+    edid->descriptors[2].range_limits.min_v_field = 45;
+    edid->descriptors[2].range_limits.max_v_field = 125;
+    edid->descriptors[2].range_limits.min_h_line = 30; /* 640x480 = ~31.5 KHz */
+    edid->descriptors[2].range_limits.max_h_line = 115; /* 1920x1440 = 112.5 KHz */
+    edid->descriptors[2].range_limits.max_pixel_clock = 30; /* 1920x1440 = 297 MHz */
+    edid->descriptors[2].range_limits.timing_type = 0x00; /* default GTF */
+    edid->descriptors[2].range_limits.padding[0] = 0x0a;
+    memset(&edid->descriptors[2].range_limits.padding[1], 0x20, sizeof(edid->descriptors[2].range_limits.padding) - 1);
 
-    edid->descriptors[3].tag = 0xfd; /* range limits */
-    edid->descriptors[3].range_limits.min_v_field = 1;
-    edid->descriptors[3].range_limits.max_v_field = -1;
-    edid->descriptors[3].range_limits.min_h_line = 1;
-    edid->descriptors[3].range_limits.max_h_line = -1;
-    edid->descriptors[3].range_limits.max_pixel_clock = -1;
-    edid->descriptors[3].range_limits.timing_type = 0x00; /* default GTF */
-    edid->descriptors[3].range_limits.padding[0] = 0x0a;
-    memset(&edid->descriptors[3].range_limits.padding[1], 0x20, sizeof(edid->descriptors[3].range_limits.padding) - 1);
+    edid->descriptors[3].tag = 0xfc; /* display name */
+    memcpy(&edid->descriptors[3].ascii, "86Box Monitor", 13); /* exactly 13 characters (would otherwise require LF termination and space padding) */
 
     edid->extensions = 1;
     for (uint8_t c = 0; c < 127; c++)
