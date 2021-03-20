@@ -114,28 +114,28 @@ um8669f_pnp_write(uint16_t port, uint8_t val, void *priv)
 
 		switch (dev->cur_device) {
 			case DEV_FDC:
-				if ((dev->cur_reg == REG_ENABLE) && valxor) {
+				if (valxor) {
 					fdc_remove(dev->fdc);
 					if (dev->dev[DEV_FDC].enable & 1)
-						fdc_set_base(dev->fdc, 0x03f0);
+						fdc_set_base(dev->fdc, dev->dev[DEV_FDC].addr);
 				}
 				break;
 			case DEV_COM1:
-				if ((dev->cur_reg == REG_ENABLE) && valxor) {
+				if (valxor) {
 	                                serial_remove(dev->uart[0]);
 					if (dev->dev[DEV_COM1].enable & 1)
 						serial_setup(dev->uart[0], dev->dev[DEV_COM1].addr, dev->dev[DEV_COM1].irq);
 				}
 				break;
 			case DEV_COM2:
-				if ((dev->cur_reg == REG_ENABLE) && valxor) {
+				if (valxor) {
 					serial_remove(dev->uart[1]);
 					if (dev->dev[DEV_COM2].enable & 1)
 						serial_setup(dev->uart[1], dev->dev[DEV_COM2].addr, dev->dev[DEV_COM2].irq);
 				}
 				break;
 			case DEV_LPT1:
-				if ((dev->cur_reg == REG_ENABLE) && valxor) {
+				if (valxor) {
 					lpt1_remove();
 					if (dev->dev[DEV_LPT1].enable & 1)
 						lpt1_init(dev->dev[DEV_LPT1].addr);
@@ -202,6 +202,13 @@ um8669f_write(uint16_t port, uint8_t val, void *priv)
 		if (dev->cur_reg_108 == 0xc1) {
 			new_pnp_active = !!(dev->regs_108[0xc1] & 0x80);
 			if (new_pnp_active != dev->pnp_active) {
+				io_removehandler(0x0279, 0x0001,
+						 NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, dev);
+				io_removehandler(0x0a79, 0x0001,
+						 NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, dev);
+				io_removehandler(0x03e3, 0x0001,
+						 um8669f_pnp_read, NULL, NULL, NULL, NULL, NULL, dev);
+
 				if (new_pnp_active) {
 					io_sethandler(0x0279, 0x0001,
 						      NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, dev);
@@ -209,14 +216,8 @@ um8669f_write(uint16_t port, uint8_t val, void *priv)
 						      NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, dev);
 					io_sethandler(0x03e3, 0x0001,
 						      um8669f_pnp_read, NULL, NULL, NULL, NULL, NULL, dev);
-				} else {
-					io_removehandler(0x0279, 0x0001,
-							 NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, dev);
-					io_removehandler(0x0a79, 0x0001,
-							 NULL, NULL, NULL, um8669f_pnp_write, NULL, NULL, dev);
-					io_removehandler(0x03e3, 0x0001,
-							 um8669f_pnp_read, NULL, NULL, NULL, NULL, NULL, dev);
 				}
+
 				dev->pnp_active = new_pnp_active;
 			}
 		}
