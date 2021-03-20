@@ -65,6 +65,7 @@
 #include <86box/net_dp8390.h>
 #include <86box/net_ne2000.h>
 #include <86box/bswap.h>
+#include <86box/isapnp.h>
 
 
 enum {
@@ -88,12 +89,6 @@ enum {
 #define PCI_REGSIZE		256		/* size of PCI space */
 
 
-uint8_t pnp_init_key[32] = { 0x6A, 0xB5, 0xDA, 0xED, 0xF6, 0xFB, 0x7D, 0xBE,
-			     0xDF, 0x6F, 0x37, 0x1B, 0x0D, 0x86, 0xC3, 0x61,
-			     0xB0, 0x58, 0x2C, 0x16, 0x8B, 0x45, 0xA2, 0xD1,
-			     0xE8, 0x74, 0x3A, 0x9D, 0xCE, 0xE7, 0x73, 0x39 };
-
-
 typedef struct {
     dp8390_t	*dp8390;
     const char	*name;
@@ -106,27 +101,15 @@ typedef struct {
 		bios_mask;
     int		card;			/* PCI card slot */
     int		has_bios, pad;
-    uint8_t	pnp_regs[256];
-    uint8_t	pnp_res_data[256];
     bar_t	pci_bar[2];
     uint8_t	pci_regs[PCI_REGSIZE];
     uint8_t	eeprom[128];		/* for RTL8029AS */
     rom_t	bios_rom;
-    uint8_t	pnp_phase;
-    uint8_t	pnp_magic_count;
-    uint8_t	pnp_address;
-    uint8_t	pnp_res_pos;
-    uint8_t	pnp_csn;
+    void	*pnp_card;
     uint8_t	pnp_activate;
-    uint8_t	pnp_io_check;
     uint8_t	pnp_csnsav;
-    uint8_t	pnp_id_checksum;
-    uint8_t	pnp_serial_read_pos;
-    uint8_t	pnp_serial_read_pair;
-    uint8_t	pnp_serial_read;
-    uint8_t	maclocal[6];		/* configured MAC (local) address */
-    uint16_t	pnp_read;
     uint64_t	pnp_id;
+    uint8_t	maclocal[6];		/* configured MAC (local) address */
 
     /* RTL8019AS/RTL8029AS registers */
     uint8_t	config0, config2, config3;
@@ -508,324 +491,75 @@ nic_writel(uint16_t addr, uint32_t val, void *priv)
 }
 
 
-static void	nic_iocheckset(nic_t *dev, uint16_t addr);
-static void	nic_iocheckremove(nic_t *dev, uint16_t addr);
 static void	nic_ioset(nic_t *dev, uint16_t addr);
 static void	nic_ioremove(nic_t *dev, uint16_t addr);
 
 
+static void
+nic_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
+{
+    if (ld != 0)
+	return;
+
+    nic_t *dev = (nic_t *) priv;
+
+    if (dev->pnp_activate)
+	nic_ioremove(dev, dev->base_address);
+
+    dev->base_address = config->io[0].base;
+    dev->base_irq = config->irq[0].irq;
+    dev->pnp_activate = config->activate;
+
+    if (dev->pnp_activate && (dev->base_address != ISAPNP_IO_DISABLED) && (dev->base_irq != ISAPNP_IRQ_DISABLED))
+	nic_ioset(dev, dev->base_address);
+}
+
+
+static void
+nic_pnp_csn_changed(uint8_t csn, void *priv)
+{
+    nic_t *dev = (nic_t *) priv;
+
+    dev->pnp_csnsav = csn;
+}
+
+
 static uint8_t
-nic_pnp_io_check_readb(uint16_t addr, void *priv)
+nic_pnp_read_vendor_reg(uint8_t ld, uint8_t reg, void *priv)
 {
+    if (ld != 0)
+	return 0x00;
+
     nic_t *dev = (nic_t *) priv;
 
-    return((dev->pnp_io_check & 0x01) ? 0x55 : 0xAA);
-}
+    switch (reg) {
+	case 0xF0:
+		return dev->config0;
 
+	case 0xF2:
+		return dev->config2;
 
-static uint8_t
-nic_pnp_readb(uint16_t addr, void *priv)
-{
-    nic_t *dev = (nic_t *) priv;
-    uint8_t bit, next_shift;
-    uint8_t ret = 0xFF;
+	case 0xF3:
+		return dev->config3;
 
-    /* Plug and Play Registers */
-    switch(dev->pnp_address) {
-	/* Card Control Registers */
-	case 0x01:	/* Serial Isolation */
-		if (dev->pnp_phase != PNP_PHASE_ISOLATION) {
-			ret = 0x00;
-			break;
-		}
-		if (dev->pnp_serial_read_pair) {
-			dev->pnp_serial_read <<= 1;
-			/* TODO: Support for multiple PnP devices.
-			if (pnp_get_bus_data() != dev->pnp_serial_read)
-				dev->pnp_phase = PNP_PHASE_SLEEP;
-			} else {
-			*/
-			if (!dev->pnp_serial_read_pos) {
-				dev->pnp_res_pos = 0x1B;
-				dev->pnp_phase = PNP_PHASE_CONFIG;
-				nelog(1, "\nASSIGN CSN phase\n");
-			}
-		} else {
-			if (dev->pnp_serial_read_pos < 64) {
-				bit = (dev->pnp_id >> dev->pnp_serial_read_pos) & 0x01;
-				next_shift = (!!(dev->pnp_id_checksum & 0x02) ^ !!(dev->pnp_id_checksum & 0x01) ^ bit) & 0x01;
-				dev->pnp_id_checksum >>= 1;
-				dev->pnp_id_checksum |= (next_shift << 7);
-			} else {
-				if (dev->pnp_serial_read_pos == 64)
-					dev->eeprom[0x1A] = dev->pnp_id_checksum;
-				bit = (dev->pnp_id_checksum >> (dev->pnp_serial_read_pos & 0x07)) & 0x01;
-			}
-			dev->pnp_serial_read = bit ? 0x55 : 0x00;
-			dev->pnp_serial_read_pos = (dev->pnp_serial_read_pos + 1) % 72;
-		}
-		dev->pnp_serial_read_pair ^= 1;
-		ret = dev->pnp_serial_read;
-		break;
-	case 0x04:	/* Resource Data */
-		ret = dev->eeprom[dev->pnp_res_pos];
-		dev->pnp_res_pos++;
-		break;
-	case 0x05:	/* Status */
-		ret = 0x01;
-		break;
-	case 0x06:	/* Card Select Number (CSN) */
-		nelog(1, "Card Select Number (CSN)\n");
-		ret = dev->pnp_csn;
-		break;
-	case 0x07:	/* Logical Device Number */
-		nelog(1, "Logical Device Number\n");
-		ret = 0x00;
-		break;
-	case 0x30:	/* Activate */
-		nelog(1, "Activate\n");
-		ret = dev->pnp_activate;
-		break;
-	case 0x31:	/* I/O Range Check */
-		nelog(1, "I/O Range Check\n");
-		ret = dev->pnp_io_check;
-		break;
-
-	/* Logical Device Configuration Registers */
-	/* Memory Configuration Registers
-	   We currently force them to stay 0x00 because we currently do not
-	   support a RTL8019AS BIOS. */
-	case 0x40:	/* BROM base address bits[23:16] */
-	case 0x41:	/* BROM base address bits[15:0] */
-	case 0x42:	/* Memory Control */
-		ret = 0x00;
-		break;
-
-	/* I/O Configuration Registers */
-	case 0x60:	/* I/O base address bits[15:8] */
-		ret = (dev->base_address >> 8);
-		break;
-	case 0x61:	/* I/O base address bits[7:0] */
-		ret = (dev->base_address & 0xFF);
-		break;
-
-	/* Interrupt Configuration Registers */
-	case 0x70:	/* IRQ level */
-		ret = dev->base_irq;
-		break;
-	case 0x71:	/* IRQ type */
-		ret = 0x02;	/* high, edge */
-		break;
-
-	/* DMA Configuration Registers */
-	case 0x74:	/* DMA channel select 0 */
-	case 0x75:	/* DMA channel select 1 */
-		ret = 0x04;	/* indicating no DMA channel is needed */
-		break;
-
-	/* Vendor Defined Registers */
-	case 0xF0:	/* CONFIG0 */
-	case 0xF1:	/* CONFIG1 */
-		ret = 0x00;
-		break;
-	case 0xF2:	/* CONFIG2 */
-		ret = (dev->config2 & 0xe0);
-		break;
-	case 0xF3:	/* CONFIG3 */
-		ret = (dev->config3 & 0x46);
-		break;
-	case 0xF5:	/* CSNSAV */
-		ret = (dev->pnp_csnsav);
-		break;
+	case 0xF5:
+		return dev->pnp_csnsav;
     }
 
-    nelog(1, "nic_pnp_readb(%04X) = %02X\n", addr, ret);
-    return(ret);
-}
-
-
-static void	nic_pnp_io_set(nic_t *dev, uint16_t read_addr);
-static void	nic_pnp_io_remove(nic_t *dev);
-
-
-static void
-nic_pnp_writeb(uint16_t addr, uint8_t val, void *priv)
-{
-    nic_t *dev = (nic_t *) priv;
-    uint16_t new_addr = 0;
-
-    nelog(1, "nic_pnp_writeb(%04X, %02X)\n", addr, val);
-
-    /* Plug and Play Registers */
-    switch(dev->pnp_address) {
-	/* Card Control Registers */
-	case 0x00:	/* Set RD_DATA port */
-		new_addr = val;
-		new_addr <<= 2;
-		new_addr |= 3;
-		nic_pnp_io_remove(dev);
-		nic_pnp_io_set(dev, new_addr);
-		nelog(1, "PnP read data address now: %04X\n", new_addr);
-		break;
-	case 0x02:	/* Config Control */
-		if (val & 0x01) {
-			/* Reset command */
-			nic_pnp_io_remove(dev);
-			memset(dev->pnp_regs, 0, 256);
-			nelog(1, "All logical devices reset\n");
-		}
-		if (val & 0x02) {
-			/* Wait for Key command */
-			dev->pnp_phase = PNP_PHASE_WAIT_FOR_KEY;
-			nelog(1, "WAIT FOR KEY phase\n");
-		}
-		if (val & 0x04) {
-			/* PnP Reset CSN command */
-			dev->pnp_csn = dev->pnp_csnsav = 0;
-			nelog(1, "CSN reset\n");
-		}
-		break;
-	case 0x03:	/* Wake[CSN] */
-		nelog(1, "Wake[%02X]\n", val);
-		if (val == dev->pnp_csn) {
-			dev->pnp_res_pos = 0x12;
-			dev->pnp_id_checksum = 0x6A;
-			if (dev->pnp_phase == PNP_PHASE_SLEEP) {
-				dev->pnp_phase = val ? PNP_PHASE_CONFIG : PNP_PHASE_ISOLATION;
-			}
-		} else {
-			if ((dev->pnp_phase == PNP_PHASE_CONFIG) || (dev->pnp_phase == PNP_PHASE_ISOLATION))
-				dev->pnp_phase = PNP_PHASE_SLEEP;
-		}
-		break;
-	case 0x06:	/* Card Select Number (CSN) */
-	    	dev->pnp_csn = dev->pnp_csnsav = val;
-		dev->pnp_phase = PNP_PHASE_CONFIG;
-		nelog(1, "CSN set to %02X\n", dev->pnp_csn);
-		break;
-	case 0x30:	/* Activate */
-		if ((dev->pnp_activate ^ val) & 0x01) {
-			nic_ioremove(dev, dev->base_address);
-			if (val & 0x01)
-				nic_ioset(dev, dev->base_address);
-
-			nelog(1, "I/O range %sabled\n", val & 0x02 ? "en" : "dis");
-		}
-		dev->pnp_activate = val;
-		break;
-	case 0x31:	/* I/O Range Check */
-		if ((dev->pnp_io_check ^ val) & 0x02) {
-			nic_iocheckremove(dev, dev->base_address);
-			if (val & 0x02)
-				nic_iocheckset(dev, dev->base_address);
-
-			nelog(1, "I/O range check %sabled\n", val & 0x02 ? "en" : "dis");
-		}
-		dev->pnp_io_check = val;
-		break;
-
-	/* Logical Device Configuration Registers */
-	/* Memory Configuration Registers
-	   We currently force them to stay 0x00 because we currently do not
-	   support a RTL8019AS BIOS. */
-
-	/* I/O Configuration Registers */
-	case 0x60:	/* I/O base address bits[15:8] */
-		if ((dev->pnp_activate & 0x01) || (dev->pnp_io_check & 0x02))
-			nic_ioremove(dev, dev->base_address);
-		dev->base_address &= 0x00ff;
-		dev->base_address |= (((uint16_t) val) << 8);
-		if ((dev->pnp_activate & 0x01) || (dev->pnp_io_check & 0x02))
-			nic_ioset(dev, dev->base_address);
-		nelog(1, "Base address now: %04X\n", dev->base_address);
-		break;
-	case 0x61:	/* I/O base address bits[7:0] */
-		if ((dev->pnp_activate & 0x01) || (dev->pnp_io_check & 0x02))
-			nic_ioremove(dev, dev->base_address);
-		dev->base_address &= 0xff00;
-		dev->base_address |= val;
-		if ((dev->pnp_activate & 0x01) || (dev->pnp_io_check & 0x02))
-			nic_ioset(dev, dev->base_address);
-		nelog(1, "Base address now: %04X\n", dev->base_address);
-		break;
-
-	/* Interrupt Configuration Registers */
-	case 0x70:	/* IRQ level */
-		dev->base_irq = val;
-		nelog(1, "IRQ now: %02i\n", dev->base_irq);
-		break;
-
-	/* Vendor Defined Registers */
-	case 0xF6:	/* Vendor Control */
-		dev->pnp_csn = 0;
-		break;
-    }
-    return;
+    return 0x00;
 }
 
 
 static void
-nic_pnp_io_set(nic_t *dev, uint16_t read_addr)
-{
-	if ((read_addr >= 0x0200) && (read_addr <= 0x03FF)) {
-		io_sethandler(read_addr, 1,
-			      nic_pnp_readb, NULL, NULL,
-			      NULL, NULL, NULL, dev);
-	}
-	dev->pnp_read = read_addr;
-}
-
-
-static void
-nic_pnp_io_remove(nic_t *dev)
-{
-	if ((dev->pnp_read >= 0x0200) && (dev->pnp_read <= 0x03FF)) {
-		io_removehandler(dev->pnp_read, 1,
-			      nic_pnp_readb, NULL, NULL,
-			      NULL, NULL, NULL, dev);
-	}
-}
-
-
-static void
-nic_pnp_address_writeb(uint16_t addr, uint8_t val, void *priv)
+nic_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
 {
     nic_t *dev = (nic_t *) priv;
 
-    /* nelog(1, "nic_pnp_address_writeb(%04X, %02X)\n", addr, val); */
-
-    switch(dev->pnp_phase) {
-	case PNP_PHASE_WAIT_FOR_KEY:
-		if (val == pnp_init_key[dev->pnp_magic_count]) {
-			dev->pnp_magic_count = (dev->pnp_magic_count + 1) & 0x1f;
-			if (!dev->pnp_magic_count)
-				dev->pnp_phase = PNP_PHASE_SLEEP;
-		} else
-			dev->pnp_magic_count = 0;
-		break;
-	default:
-		dev->pnp_address = val;
-		break;
+    if ((ld == 0) && (reg == 0xf6) && (val & 0x04)) {
+	uint8_t csn = dev->pnp_csnsav;
+	isapnp_set_csn(dev->pnp_card, 0);
+	dev->pnp_csnsav = csn;
     }
-    return;
-}
-
-
-static void
-nic_iocheckset(nic_t *dev, uint16_t addr)
-{
-    io_sethandler(addr, 32,
-		  nic_pnp_io_check_readb, NULL, NULL,
-		  NULL, NULL, NULL, dev);
-}
-
-
-static void
-nic_iocheckremove(nic_t *dev, uint16_t addr)
-{
-    io_removehandler(addr, 32,
-		     nic_pnp_io_check_readb, NULL, NULL,
-		     NULL, NULL, NULL, dev);
 }
 
 
@@ -1199,7 +933,6 @@ nic_init(const device_t *info)
 #ifdef ENABLE_NIC_LOG
     int i;
 #endif
-    int c;
     char *ansi_id = "REALTEK PLUG & PLAY ETHERNET CARD";
     uint64_t *eeprom_pnp_id;
 
@@ -1379,14 +1112,9 @@ nic_init(const device_t *info)
 		dev->card = pci_add_card(PCI_ADD_NORMAL,
 					 nic_pci_read, nic_pci_write, dev);
 	} else {
-		io_sethandler(0x0279, 1,
-			      NULL, NULL, NULL,
-			      nic_pnp_address_writeb, NULL, NULL, dev);
-
 		dev->pnp_id = PNP_DEVID;
 		dev->pnp_id <<= 32LL;
 		dev->pnp_id |= PNP_VENDID;
-		dev->pnp_phase = PNP_PHASE_WAIT_FOR_KEY;
 	}
 
 	/* Initialize the RTL8029 EEPROM. */
@@ -1454,13 +1182,9 @@ nic_init(const device_t *info)
 
 		/* TAG: END Tag */
 		dev->eeprom[0x5B] = 0x79;	/* Item byte */
-		for (c = 0x1b; c < 0x5c; c++)	/* Checksum (2's compl) */
-			dev->eeprom[0x5C] += dev->eeprom[c];
-		dev->eeprom[0x5C] = -dev->eeprom[0x5C];
+		/* Checksum is filled in by isapnp_add_card */
 
-		io_sethandler(0x0A79, 1,
-			      NULL, NULL, NULL,
-			      nic_pnp_writeb, NULL, NULL, dev);
+		dev->pnp_card = isapnp_add_card(&dev->eeprom[0x12], 75, nic_pnp_config_changed, nic_pnp_csn_changed, nic_pnp_read_vendor_reg, nic_pnp_write_vendor_reg, dev);
 	}
     }
 
