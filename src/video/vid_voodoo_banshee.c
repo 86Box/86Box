@@ -2836,7 +2836,7 @@ static void *banshee_init_common(const device_t *info, wchar_t *fn, int has_sgra
 
 static void *banshee_init(const device_t *info)
 {
-        return banshee_init_common(info, L"roms/video/voodoo/Pci_sg.rom", 1, TYPE_BANSHEE, VOODOO_BANSHEE, 1);
+        return banshee_init_common(info, L"roms/video/voodoo/Pci_sg.rom", 1, TYPE_BANSHEE, VOODOO_BANSHEE, 0);
 }
 static void *creative_banshee_init(const device_t *info)
 {
