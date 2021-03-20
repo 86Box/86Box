@@ -86,6 +86,7 @@ static uint8_t sb_16_pnp_rom[] = {
 		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
 		0x47, 0x01, 0x88, 0x03, 0x88, 0x03, 0x01, 0x04, /* I/O 0x388, decodes 16-bit, 1-byte alignment, 4 addresses */
 	0x38, /* end dependent functions */
+
     0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
 };
 static uint8_t sb_awe32_pnp_rom[] = {
@@ -1131,10 +1132,15 @@ sb_16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 				       opl3_write,   NULL, NULL, &sb->opl);
     io_removehandler(addr + 8, 0x0002, opl3_read,    NULL, NULL,
 				       opl3_write,   NULL, NULL, &sb->opl);
-    io_removehandler(0x0388,   0x0004, opl3_read,    NULL, NULL,
-				       opl3_write,   NULL, NULL, &sb->opl);
     io_removehandler(addr + 4, 0x0002, sb_ct1745_mixer_read,  NULL, NULL,
 				       sb_ct1745_mixer_write, NULL, NULL, sb);
+
+    addr = sb->opl_pnp_addr;
+    if (addr) {
+	sb->opl_pnp_addr = 0;
+	io_removehandler(addr,     0x0004, opl3_read,    NULL, NULL,
+					   opl3_write,   NULL, NULL, &sb->opl);
+    }
 
     sb_dsp_setaddr(&sb->dsp, 0);
     sb_dsp_setirq(&sb->dsp, 0);
@@ -1161,9 +1167,11 @@ sb_16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 		mpu401_change_addr(sb->mpu, addr);
 
 	addr = config->io[2].base;
-	if (addr != ISAPNP_IO_DISABLED)
-		io_sethandler(0x0388,   0x0004, opl3_read,    NULL, NULL,
+	if (addr != ISAPNP_IO_DISABLED) {
+		sb->opl_pnp_addr = addr;
+		io_sethandler(addr,	0x0004, opl3_read,    NULL, NULL,
 						opl3_write,   NULL, NULL, &sb->opl);
+	}
 
 	val = config->irq[0].irq;
 	if (val != ISAPNP_IRQ_DISABLED)
