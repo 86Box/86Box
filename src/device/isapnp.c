@@ -157,6 +157,16 @@ isapnp_device_config_changed(isapnp_t *dev)
 }
 
 
+static void
+isapnp_reset_ld_regs(isapnp_device_t *ld)
+{
+    memset(ld->regs, 0, sizeof(ld->regs));
+
+    /* DMA disable uses a non-zero value. */
+    ld->regs[0x74] = ld->regs[0x75] = ISAPNP_DMA_DISABLED;
+}
+
+
 static uint8_t
 isapnp_read_rangecheck(uint16_t addr, void *priv)
 {
@@ -356,9 +366,9 @@ isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
 			while (card) {
 				ld = card->first_ld;
 				while (ld) {
-					memset(ld->regs, 0, sizeof(ld->regs));
 					dev->current_ld = ld;
 					dev->current_ld_card = card;
+					isapnp_reset_ld_regs(ld);
 					isapnp_device_config_changed(dev);
 					ld = ld->next;
 				}
@@ -443,6 +453,8 @@ isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
 
 			dev->current_ld_card = card;
 			dev->current_ld = ld;
+			isapnp_reset_ld_regs(ld);
+			/* Logical device just created, no need to signal a change. */
 
 			if (!card->first_ld) {
 				card->first_ld = ld;
