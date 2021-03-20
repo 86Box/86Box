@@ -2134,6 +2134,24 @@ I've recopilated these sentences to get an idea of how to loop
         
         emu8k->pos = new_pos;
 }
+
+void
+emu8k_change_addr(emu8k_t *emu8k, uint16_t emu_addr)
+{
+        if (emu8k->addr) {
+                io_removehandler(emu8k->addr,       0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
+                io_removehandler(emu8k->addr+0x400, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
+                io_removehandler(emu8k->addr+0x800, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
+                emu8k->addr = 0;
+        }
+        if (emu_addr) {
+                emu8k->addr = emu_addr;
+                io_sethandler(emu8k->addr,       0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
+                io_sethandler(emu8k->addr+0x400, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
+                io_sethandler(emu8k->addr+0x800, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
+        }
+}
+
 /* onboard_ram in kilobytes */
 void emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
 {
@@ -2196,9 +2214,7 @@ void emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
                 
         }
 
-        io_sethandler(emu_addr,       0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
-        io_sethandler(emu_addr+0x400, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
-        io_sethandler(emu_addr+0x800, 0x0004, emu8k_inb, emu8k_inw, NULL, emu8k_outb, emu8k_outw, NULL, emu8k);
+        emu8k_change_addr(emu8k, emu_addr);
 
         /*Create frequency table. (Convert initial pitch register value to a linear speed change)
          * The input is encoded such as 0xe000 is center note (no pitch shift)

@@ -377,10 +377,13 @@ typedef struct emu8k_t
         
         int pos;
         int32_t buffer[SOUNDBUFLEN * 2];
+
+        uint16_t addr;
 } emu8k_t;
 
 
 
+void emu8k_change_addr(emu8k_t *emu8k, uint16_t emu_addr);
 void emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram);
 void emu8k_close(emu8k_t *emu8k);
 

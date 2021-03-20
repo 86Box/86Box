@@ -35,6 +35,7 @@
 #include <86box/sound.h>
 #include <86box/midi.h>
 #include <86box/filters.h>
+#include <86box/isapnp.h>
 #include <86box/snd_sb.h>
 
 
@@ -68,6 +69,91 @@ static const double sb_att_7dbstep_2bits[]=
 
 static const uint16_t sb_mcv_addr[8] = {0x200, 0x210, 0x220, 0x230, 0x240, 0x250, 0x260, 0x270};
 static const int sb_pro_mcv_irqs[4] = {7, 5, 3, 3};
+
+
+static uint8_t sb_16_pnp_rom[] = {
+    0x0e, 0x8c, 0x00, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, /* CTL0028, dummy checksum (filled in by isapnp_add_card) */
+    0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
+    0x82, 0x11, 0x00, 0x43, 0x72, 0x65, 0x61, 0x74, 0x69, 0x76, 0x65, 0x20, 0x53, 0x42, 0x31, 0x36, 0x20, 0x50, 0x6e, 0x50, /* ANSI identifier "Creative SB16 PnP" */
+
+    0x15, 0x0e, 0x8c, 0x00, 0x31, 0x00, /* logical device CTL0031 */
+	0x82, 0x05, 0x00, 0x41, 0x75, 0x64, 0x69, 0x6f, /* ANSI identifier "Audio" */
+	0x30, /* start dependent functions, acceptable */
+		0x22, 0xa0, 0x04, /* IRQ 5/7/10 */
+		0x2a, 0x0b, 0x08, /* DMA 0/1/3, compatibility, no count by word, count by byte, not bus master, 8-bit only */
+		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
+		0x47, 0x01, 0x88, 0x03, 0x88, 0x03, 0x01, 0x04, /* I/O 0x388, decodes 16-bit, 1-byte alignment, 4 addresses */
+	0x38, /* end dependent functions */
+    0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
+};
+static uint8_t sb_awe32_pnp_rom[] = {
+    0x0e, 0x8c, 0x00, 0x9c, 0x00, 0x00, 0x00, 0x00, 0x00, /* CTL009C, dummy checksum (filled in by isapnp_add_card) */
+    0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
+    0x82, 0x11, 0x00, 0x43, 0x72, 0x65, 0x61, 0x74, 0x69, 0x76, 0x65, 0x20, 0x53, 0x42, 0x33, 0x32, 0x20, 0x50, 0x6e, 0x50, /* ANSI identifier "Creative SB32 PnP" */
+
+    0x16, 0x0e, 0x8c, 0x00, 0x41, 0x00, 0xa9, /* logical device CTL0041, supports vendor-specific registers 0x38/0x3a/0x3c/0x3f */
+	0x82, 0x05, 0x00, 0x41, 0x75, 0x64, 0x69, 0x6f, /* ANSI identifier "Audio" */
+	0x31, 0x00, /* start dependent functions, preferred */
+		0x22, 0x20, 0x00, /* IRQ 5 */
+		0x2a, 0x01, 0x0c, /* DMA 1, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+		0x2a, 0x20, 0x16, /* DMA 5, compatibility, count by word, no count by byte, is bus master, 16-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x20, 0x02, 0x01, 0x10, /* I/O 0x220, decodes 16-bit, 1-byte alignment, 16 addresses */
+		0x47, 0x01, 0x30, 0x03, 0x30, 0x03, 0x01, 0x02, /* I/O 0x330, decodes 16-bit, 1-byte alignment, 2 addresses */
+		0x47, 0x01, 0x88, 0x03, 0x88, 0x03, 0x01, 0x04, /* I/O 0x388, decodes 16-bit, 1-byte alignment, 4 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
+		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
+		0x47, 0x01, 0x88, 0x03, 0x88, 0x03, 0x01, 0x04, /* I/O 0x388, decodes 16-bit, 1-byte alignment, 4 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
+		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
+		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
+		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
+		0x47, 0x01, 0x88, 0x03, 0x88, 0x03, 0x01, 0x04, /* I/O 0x388, decodes 16-bit, 1-byte alignment, 4 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
+		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
+		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
+		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
+		0x47, 0x01, 0x88, 0x03, 0x94, 0x03, 0x04, 0x04, /* I/O 0x388-0x394, decodes 16-bit, 4-byte alignment, 4 addresses */
+	0x38, /* end dependent functions */
+
+    0x16, 0x0e, 0x8c, 0x00, 0x21, 0x00, 0xa9, /* logical device CTL0021, supports vendor-specific registers 0x38/0x3a/0x3c/0x3f */
+	0x82, 0x09, 0x00, 0x57, 0x61, 0x76, 0x65, 0x54, 0x61, 0x62, 0x6c, 0x65, /* ANSI identifier "WaveTable" */
+	0x31, 0x00, /* start dependent functions, preferred */
+		0x47, 0x01, 0x20, 0x06, 0x20, 0x06, 0x01, 0x04, /* I/O 0x620, decodes 16-bit, 1-byte alignment, 4 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x47, 0x01, 0x20, 0x06, 0x20, 0x06, 0x20, 0x04, /* I/O 0x620-0x680, decodes 16-bit, 32-byte alignment, 4 addresses */
+	0x38, /* end dependent functions */
+
+    0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
+};
 
 
 #ifdef ENABLE_SB_LOG
@@ -1031,6 +1117,93 @@ sb_pro_mcv_write(int port, uint8_t val, void *p)
 }
 
 
+static void
+sb_16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
+{
+    if (ld != 0)
+	return;
+
+    sb_t *sb = (sb_t *) priv;
+    uint16_t addr = sb->dsp.sb_addr;
+    uint8_t val;
+
+    io_removehandler(addr,     0x0004, opl3_read,    NULL, NULL,
+				       opl3_write,   NULL, NULL, &sb->opl);
+    io_removehandler(addr + 8, 0x0002, opl3_read,    NULL, NULL,
+				       opl3_write,   NULL, NULL, &sb->opl);
+    io_removehandler(0x0388,   0x0004, opl3_read,    NULL, NULL,
+				       opl3_write,   NULL, NULL, &sb->opl);
+    io_removehandler(addr + 4, 0x0002, sb_ct1745_mixer_read,  NULL, NULL,
+				       sb_ct1745_mixer_write, NULL, NULL, sb);
+
+    sb_dsp_setaddr(&sb->dsp, 0);
+    sb_dsp_setirq(&sb->dsp, 0);
+    sb_dsp_setdma8(&sb->dsp, 0);
+    sb_dsp_setdma16(&sb->dsp, 0);
+
+    mpu401_change_addr(sb->mpu, 0);
+
+    if (config->activate) {
+	addr = config->io[0].base;
+	if (addr != ISAPNP_IO_DISABLED) {
+		io_sethandler(addr,     0x0004, opl3_read,    NULL, NULL,
+						opl3_write,   NULL, NULL, &sb->opl);
+		io_sethandler(addr + 8, 0x0002, opl3_read,    NULL, NULL,
+						opl3_write,   NULL, NULL, &sb->opl);
+		io_sethandler(addr + 4, 0x0002, sb_ct1745_mixer_read,  NULL, NULL,
+						sb_ct1745_mixer_write, NULL, NULL, sb);
+
+		sb_dsp_setaddr(&sb->dsp, addr);
+	}
+
+	addr = config->io[1].base;
+	if (addr != ISAPNP_IO_DISABLED)
+		mpu401_change_addr(sb->mpu, addr);
+
+	addr = config->io[2].base;
+	if (addr != ISAPNP_IO_DISABLED)
+		io_sethandler(0x0388,   0x0004, opl3_read,    NULL, NULL,
+						opl3_write,   NULL, NULL, &sb->opl);
+
+	val = config->irq[0].irq;
+	if (val != ISAPNP_IRQ_DISABLED)
+		sb_dsp_setirq(&sb->dsp, val);
+
+	val = config->dma[0].dma;
+	if (val != ISAPNP_DMA_DISABLED)
+		sb_dsp_setdma8(&sb->dsp, val);
+
+	val = config->dma[1].dma;
+	if (val != ISAPNP_DMA_DISABLED)
+		sb_dsp_setdma16(&sb->dsp, val);
+    }
+}
+
+
+static void
+sb_awe32_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
+{
+    sb_t *sb = (sb_t *) priv;
+    uint16_t addr;
+
+    switch (ld) {
+	case 0:
+		sb_16_pnp_config_changed(0, config, sb);
+		break;
+
+	case 1:
+		emu8k_change_addr(&sb->emu8k, 0);
+
+		if (config->activate) {
+			addr = config->io[0].base;
+			if (addr != ISAPNP_IO_DISABLED)
+				emu8k_change_addr(&sb->emu8k, addr);
+		}
+		break;
+    }
+}
+
+
 void *
 sb_1_init(const device_t *info)
 {
@@ -1404,6 +1577,36 @@ sb_16_init(const device_t *info)
 }
 
 
+static void *
+sb_16_pnp_init(const device_t *info)
+{
+    sb_t *sb = malloc(sizeof(sb_t));
+    memset(sb, 0x00, sizeof(sb_t));
+
+    sb->opl_enabled = 1;
+    opl3_init(&sb->opl);
+
+    sb_dsp_init(&sb->dsp, SB16, SB_SUBTYPE_DEFAULT, sb);
+    sb_ct1745_mixer_reset(sb);
+
+    sb->mixer_enabled = 1;
+    sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
+
+    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
+    memset(sb->mpu, 0, sizeof(mpu_t));
+    mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
+    sb_dsp_set_mpu(&sb->dsp, sb->mpu);
+
+    if (device_get_config_int("receive_input"))
+	midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+
+    isapnp_add_card(sb_16_pnp_rom, sizeof(sb_16_pnp_rom), sb_16_pnp_config_changed, NULL, NULL, NULL, sb);
+
+    return sb;
+}
+
+
 static int
 sb_awe32_available()
 {
@@ -1460,6 +1663,40 @@ sb_awe32_init(const device_t *info)
 
     if (device_get_config_int("receive_input"))
 	midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+
+    return sb;
+}
+
+
+static void *
+sb_awe32_pnp_init(const device_t *info)
+{
+    sb_t *sb = malloc(sizeof(sb_t));
+    int onboard_ram = device_get_config_int("onboard_ram");
+
+    memset(sb, 0x00, sizeof(sb_t));
+
+    sb->opl_enabled = 1;
+    opl3_init(&sb->opl);
+
+    sb_dsp_init(&sb->dsp, SB16 + 1, SB_SUBTYPE_DEFAULT, sb);
+    sb_ct1745_mixer_reset(sb);
+
+    sb->mixer_enabled = 1;
+    sound_add_handler(sb_get_buffer_sb16_awe32, sb);
+    sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, sb);
+
+    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
+    memset(sb->mpu, 0, sizeof(mpu_t));
+    mpu401_init(sb->mpu, 0, 0, M_UART, device_get_config_int("receive_input401"));
+    sb_dsp_set_mpu(&sb->dsp, sb->mpu);
+
+    emu8k_init(&sb->emu8k, 0, onboard_ram);
+
+    if (device_get_config_int("receive_input"))
+	midi_in_handler(1, sb_dsp_input_msg, sb_dsp_input_sysex, &sb->dsp);
+
+    isapnp_add_card(sb_awe32_pnp_rom, sizeof(sb_awe32_pnp_rom), sb_awe32_pnp_config_changed, NULL, NULL, NULL, sb);
 
     return sb;
 }
@@ -1856,6 +2093,19 @@ static const device_config_t sb_16_config[] =
         }
 };
 
+static const device_config_t sb_16_pnp_config[] =
+{
+	{
+		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+	},
+	{
+		"receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
+	},
+        {
+                "", "", -1
+        }
+};
+
 static const device_config_t sb_awe32_config[] =
 {
         {
@@ -2006,6 +2256,42 @@ static const device_config_t sb_awe32_config[] =
         }
 };
 
+static const device_config_t sb_awe32_pnp_config[] =
+{
+        {
+                "onboard_ram", "Onboard RAM", CONFIG_SELECTION, "", 512, "", { 0 },
+                {
+                        {
+                                "None", 0
+                        },
+                        {
+                                "512 KB", 512
+                        },
+                        {
+                                "2 MB", 2048
+                        },
+                        {
+                                "8 MB", 8192
+                        },
+                        {
+                                "28 MB", 28*1024
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+	{
+		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+	},
+	{
+		"receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
+	},
+        {
+                "", "", -1
+        }
+};
+
 const device_t sb_1_device =
 {
         "Sound Blaster v1.0",
@@ -2094,6 +2380,17 @@ const device_t sb_16_device =
         sb_16_config
 };
 
+const device_t sb_16_pnp_device =
+{
+        "Sound Blaster 16 PnP",
+        DEVICE_ISA | DEVICE_AT,
+	0,
+        sb_16_pnp_init, sb_close, NULL, { NULL },
+        sb_speed_changed,
+        NULL,
+        sb_16_pnp_config
+};
+
 const device_t sb_awe32_device =
 {
         "Sound Blaster AWE32",
@@ -2104,4 +2401,16 @@ const device_t sb_awe32_device =
         sb_speed_changed,
         NULL,
         sb_awe32_config
+};
+
+const device_t sb_awe32_pnp_device =
+{
+        "Sound Blaster AWE32 PnP",
+        DEVICE_ISA | DEVICE_AT,
+	0,
+        sb_awe32_pnp_init, sb_awe32_close, NULL,
+        { sb_awe32_available },
+        sb_speed_changed,
+        NULL,
+        sb_awe32_pnp_config
 };
