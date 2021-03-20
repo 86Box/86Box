@@ -61,6 +61,7 @@ static SCSI_CARD scsi_cards[] = {
     { "aha154xb",	&aha154xb_device,	},
     { "aha154xc",	&aha154xc_device,	},
     { "aha154xcf",	&aha154xcf_device,	},
+    { "aha154xcp",	&aha154xcp_device,	},
     { "bt542b",		&buslogic_542b_1991_device,	},
     { "bt542bh",	&buslogic_device,	},
     { "bt545s",		&buslogic_545s_device,	},

@@ -367,6 +367,7 @@ typedef struct {
 #define		X54X_LBA_BIOS		 4
 #define		X54X_INT_GEOM_WRITABLE	 8
 #define		X54X_MBX_24BIT		16
+#define		X54X_ISAPNP		32
 
 typedef struct {
     /* 32 bytes */

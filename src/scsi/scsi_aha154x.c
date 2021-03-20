@@ -38,6 +38,7 @@
 #include <86box/plat.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/isapnp.h>
 #include <86box/scsi.h>
 #include <86box/scsi_aha154x.h>
 #include <86box/scsi_x54x.h>
@@ -68,6 +69,45 @@ enum {
 uint16_t	aha_ports[] = {
     0x0330, 0x0334, 0x0230, 0x0234,
     0x0130, 0x0134, 0x0000, 0x0000
+};
+
+static uint8_t aha1542cp_pnp_rom[] = {
+    0x04, 0x90, 0x15, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00, /* ADP1542, dummy checksum (filled in by isapnp_add_card) */
+    0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
+    0x82, 0x12, 0x00, 'A', 'd', 'a', 'p', 't', 'e', 'c', ' ', 'A', 'H', 'A', '-', '1', '5', '4', '2', 'C', 'P', /* ANSI identifier */
+
+    0x15, 0x04, 0x90, 0x15, 0x42, 0x01, /* logical device ADP1542, can participate in boot */
+	0x82, 0x11, 0x00, 'S', 'C', 'S', 'I', ' ', 'H', 'o', 's', 't', ' ', 'A', 'd', 'a', 'p', 't', 'e', 'r', /* ANSI identifier */
+	0x1c, 0x41, 0xd0, 0x00, 0xa0, /* compatible device PNP00A0 */
+	0x22, 0x00, 0xde, /* IRQ 9/10/11/12/14/15 */
+	0x2a, 0xe1, 0x3a, /* DMA 0/5/6/7, type A, count by word, count by byte, not bus master, 16-bit only */
+	0x31, 0x00, /* start dependent functions, preferred */
+		0x47, 0x01, 0x30, 0x03, 0x30, 0x03, 0x04, 0x04, /* I/O 0x330, decodes 16-bit, 4-byte alignment, 4 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x47, 0x01, 0x34, 0x03, 0x34, 0x03, 0x04, 0x04, /* I/O 0x334, decodes 16-bit, 4-byte alignment, 4 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x47, 0x01, 0x34, 0x02, 0x34, 0x02, 0x04, 0x04, /* I/O 0x234, decodes 16-bit, 4-byte alignment, 4 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x47, 0x01, 0x30, 0x02, 0x30, 0x02, 0x04, 0x04, /* I/O 0x230, decodes 16-bit, 4-byte alignment, 4 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x47, 0x01, 0x34, 0x01, 0x34, 0x01, 0x04, 0x04, /* I/O 0x134, decodes 16-bit, 4-byte alignment, 4 addresses */
+	0x31, 0x02, /* start dependent functions, functional */
+		0x47, 0x01, 0x30, 0x01, 0x30, 0x01, 0x04, 0x04, /* I/O 0x130, decodes 16-bit, 4-byte alignment, 4 addresses */
+	0x38, /* end dependent functions */
+	0x81, 0x09, 0x00, 0x66, 0x80, 0x0c, 0xc0, 0x0d, 0x40, 0xff, 0x40, 0x00, /* memory 0xC8000-0xDC000, expansion ROM, shadowable, 8-bit, supports high address, read-cacheable write-through, non-writeable, alignment 0xff4000, 16384 bytes */
+
+    0x15, 0x04, 0x90, 0x15, 0x4f, 0x01, /* logical device ADP154F, can participate in boot */
+	0x82, 0x11, 0x00, 'F', 'l', 'o', 'p', 'p', 'y', ' ', 'C', 'o', 'n', 't', 'r', 'o', 'l', 'l', 'e', 'r', /* ANSI identifier */
+	0x1c, 0x41, 0xd0, 0x00, 0x07, /* compatible device PNP0007 */
+	0x31, 0x00, /* start dependent functions, preferred */
+		0x4b, 0xf0, 0x03, 0x06, /* fixed I/O 0x3F0, 6 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x4b, 0x70, 0x03, 0x06, /* fixed I/O 0x370, 6 addresses */
+	0x38, /* end dependent functions */
+	0x22, 0x40, 0x00, /* IRQ 6 */
+	0x2a, 0x04, 0x28, /* DMA 2, type A, no count by word, count by byte, not bus master, 8-bit only */
+
+    0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
 };
 
 
@@ -189,7 +229,7 @@ aha154x_eeprom(x54x_t *dev, uint8_t cmd,uint8_t arg,uint8_t len,uint8_t off,uint
 	r = 0;
 
 	aha_eeprom_save(dev);
-		
+
 	if (dev->type == AHA_154xCF) {
 		if (dev->fdc_address > 0) {
 			fdc_remove(dev->fdc);
@@ -597,6 +637,64 @@ aha_mca_feedb(void *priv)
 }
 
 
+static void
+aha_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
+{
+    x54x_t *dev = (x54x_t *) priv;
+
+    switch (ld) {
+	case 0:
+		if (dev->Base) {
+			x54x_io_remove(dev, dev->Base, 4);
+			dev->Base = 0;
+		}
+
+		dev->Irq = 0;
+		dev->DmaChannel = ISAPNP_DMA_DISABLED;
+		dev->rom_addr = 0;
+
+		mem_mapping_disable(&dev->bios.mapping);
+
+		if (config->activate) {
+			dev->Base = config->io[0].base;
+			if (dev->Base != ISAPNP_IO_DISABLED)
+				x54x_io_set(dev, dev->Base, 4);
+
+			dev->Irq = config->irq[0].irq;
+			dev->DmaChannel = config->dma[0].dma;
+
+			dev->rom_addr = config->mem[0].base;
+			if (dev->rom_addr) {
+				mem_mapping_enable(&dev->bios.mapping);
+				mem_mapping_set_addr(&dev->bios.mapping, dev->rom_addr, config->mem[0].size);
+			}
+		}
+
+		break;
+
+	case 1:
+		if (dev->fdc_address) {
+			fdc_remove(dev->fdc);
+			dev->fdc_address = 0;
+		}
+
+		fdc_set_irq(dev->fdc, 0);
+		fdc_set_dma_ch(dev->fdc, ISAPNP_DMA_DISABLED);
+
+		if (config->activate) {
+			dev->fdc_address = config->io[0].base;
+			if (dev->fdc_address != ISAPNP_IO_DISABLED)
+				fdc_set_base(dev->fdc, dev->fdc_address);
+
+			fdc_set_irq(dev->fdc, config->irq[0].irq);
+			fdc_set_dma_ch(dev->fdc, config->dma[0].dma);
+		}
+
+		break;
+    }
+}
+
+
 /* Initialize the board's ROM BIOS. */
 static void
 aha_setbios(x54x_t *dev)
@@ -851,7 +949,7 @@ aha_init(const device_t *info)
 		dev->rom_shramsz = 128;		/* size of shadow RAM */
 		dev->rom_ioaddr = 0x3F7E;	/* [2:0] idx into addr table */
 		dev->rom_fwhigh = 0x0022;	/* firmware version (hi/lo) */
-    		dev->flags |= X54X_CDROM_BOOT;
+		dev->flags |= X54X_CDROM_BOOT;
 		dev->ven_get_host_id = aha_get_host_id;	/* function to return host ID from EEPROM */
 		dev->ven_get_irq = aha_get_irq;		/* function to return IRQ from EEPROM */
 		dev->ven_get_dma = aha_get_dma;		/* function to return DMA channel from EEPROM */
@@ -863,16 +961,19 @@ aha_init(const device_t *info)
 	case AHA_154xCP:
 		strcpy(dev->name, "AHA-154xCP");
 		dev->bios_path = L"roms/scsi/adaptec/aha1542cp102.bin";
-		dev->nvr_path = L"aha1540cp.nvr";
+		dev->nvr_path = L"aha1542cp.nvr";
 		dev->fw_rev = "F001";
 		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
 		dev->rom_shramsz = 128;		/* size of shadow RAM */
 		dev->rom_ioaddr = 0x3F7E;	/* [2:0] idx into addr table */
 		dev->rom_fwhigh = 0x0055;	/* firmware version (hi/lo) */
+		dev->flags |= X54X_ISAPNP;
 		dev->ven_get_host_id = aha_get_host_id;	/* function to return host ID from EEPROM */
 		dev->ven_get_irq = aha_get_irq;		/* function to return IRQ from EEPROM */
 		dev->ven_get_dma = aha_get_dma;		/* function to return DMA channel from EEPROM */
+		isapnp_add_card(aha1542cp_pnp_rom, sizeof(aha1542cp_pnp_rom), aha_pnp_config_changed, NULL, NULL, NULL, dev);
 		dev->ha_bps = 10000000.0;	/* fast SCSI */
+		dev->fdc = device_add(&fdc_at_device);
 		break;
 
 	case AHA_1640:
@@ -900,7 +1001,7 @@ aha_init(const device_t *info)
 	/* Initialize the device. */
 	x54x_device_reset(dev);
 
-        if (!(dev->bus & DEVICE_MCA)) {
+        if (!(dev->bus & DEVICE_MCA) && !(dev->flags & X54X_ISAPNP)) {
 		/* Register our address space. */
 	        x54x_io_set(dev, dev->Base, 4);
 
@@ -1295,6 +1396,15 @@ const device_t aha154xcf_device = {
     aha_init, x54x_close, NULL,
     { NULL }, NULL, NULL,
     aha_154xcf_config
+};
+
+const device_t aha154xcp_device = {
+    "Adaptec AHA-154xCP",
+    DEVICE_ISA | DEVICE_AT,
+    AHA_154xCP,
+    aha_init, x54x_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
 };
 
 const device_t aha1640_device = {

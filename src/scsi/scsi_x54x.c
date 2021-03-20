@@ -961,7 +961,7 @@ x54x_scsi_cmd(x54x_t *dev)
     else
 	dev->callback_sub_phase = 2;
 
-    x54x_log("scsi_devices[%02i].Status = %02X\n", id, sd->status);
+    x54x_log("scsi_devices[%02i].Status = %02X\n", i, sd->status);
 }
 
 
