@@ -130,12 +130,18 @@ isapnp_device_config_changed(isapnp_t *dev)
     for (i = 0; i < 4; i++) {
 	reg_base = 0x40 + (8 * i);
 	card->config.mem[i].base = (ld->regs[reg_base] << 16) | (ld->regs[reg_base + 1] << 8);
-	card->config.mem[i].size = (ld->regs[reg_base + 3] << 16) | (ld->regs[reg_base + 4] << 8);
+	if (ld->regs[reg_base + 2] & 0x01) /* upper limit */
+		card->config.mem[i].size = ((ld->regs[reg_base + 3] << 16) | (ld->regs[reg_base + 4] << 8)) - card->config.mem[i].base - 1;
+	else /* range length */
+		card->config.mem[i].size = (ld->regs[reg_base + 3] << 16) | (ld->regs[reg_base + 4] << 8);
     }
     for (i = 0; i < 4; i++) {
 	reg_base = (i == 0) ? 0x76 : (0x80 + (16 * i));
 	card->config.mem32[i].base = (ld->regs[reg_base] << 24) | (ld->regs[reg_base + 1] << 16) | (ld->regs[reg_base + 2] << 8) | ld->regs[reg_base + 3];
-	card->config.mem32[i].size = (ld->regs[reg_base + 5] << 24) | (ld->regs[reg_base + 6] << 16) | (ld->regs[reg_base + 7] << 8) | ld->regs[reg_base + 8];
+	if (ld->regs[reg_base + 4] & 0x01) /* upper limit */
+		card->config.mem32[i].size = ((ld->regs[reg_base + 5] << 24) | (ld->regs[reg_base + 6] << 16) | (ld->regs[reg_base + 7] << 8) | ld->regs[reg_base + 8]) - card->config.mem32[i].base - 1;
+	else
+		card->config.mem32[i].size = (ld->regs[reg_base + 5] << 24) | (ld->regs[reg_base + 6] << 16) | (ld->regs[reg_base + 7] << 8) | ld->regs[reg_base + 8];
     }
     for (i = 0; i < 8; i++) {
 	reg_base = 0x60 + (2 * i);
