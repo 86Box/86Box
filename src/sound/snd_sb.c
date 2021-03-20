@@ -94,7 +94,7 @@ static uint8_t sb_awe32_pnp_rom[] = {
     0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
     0x82, 0x11, 0x00, 'C', 'r', 'e', 'a', 't', 'i', 'v', 'e', ' ', 'S', 'B', '3', '2', ' ', 'P', 'n', 'P', /* ANSI identifier */
 
-    0x16, 0x0e, 0x8c, 0x00, 0x41, 0x00, 0xa9, /* logical device CTL0041, supports vendor-specific registers 0x38/0x3a/0x3c/0x3f */
+    0x16, 0x0e, 0x8c, 0x00, 0x41, 0x00, 0xa9, /* logical device CTL0041, supports vendor-specific registers 0x38/0x3A/0x3C/0x3F */
 	0x82, 0x05, 0x00, 'A', 'u', 'd', 'i', 'o', /* ANSI identifier */
 	0x31, 0x00, /* start dependent functions, preferred */
 		0x22, 0x20, 0x00, /* IRQ 5 */
@@ -145,7 +145,7 @@ static uint8_t sb_awe32_pnp_rom[] = {
 		0x47, 0x01, 0x88, 0x03, 0x94, 0x03, 0x04, 0x04, /* I/O 0x388-0x394, decodes 16-bit, 4-byte alignment, 4 addresses */
 	0x38, /* end dependent functions */
 
-    0x16, 0x0e, 0x8c, 0x00, 0x21, 0x00, 0xa9, /* logical device CTL0021, supports vendor-specific registers 0x38/0x3a/0x3c/0x3f */
+    0x16, 0x0e, 0x8c, 0x00, 0x21, 0x00, 0xa9, /* logical device CTL0021, supports vendor-specific registers 0x38/0x3A/0x3C/0x3F */
 	0x82, 0x09, 0x00, 'W', 'a', 'v', 'e', 'T', 'a', 'b', 'l', 'e', /* ANSI identifier */
 	0x31, 0x00, /* start dependent functions, preferred */
 		0x47, 0x01, 0x20, 0x06, 0x20, 0x06, 0x01, 0x04, /* I/O 0x620, decodes 16-bit, 1-byte alignment, 4 addresses */
@@ -1144,8 +1144,8 @@ sb_16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 
     sb_dsp_setaddr(&sb->dsp, 0);
     sb_dsp_setirq(&sb->dsp, 0);
-    sb_dsp_setdma8(&sb->dsp, 0);
-    sb_dsp_setdma16(&sb->dsp, 0);
+    sb_dsp_setdma8(&sb->dsp, ISAPNP_DMA_DISABLED);
+    sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
 
     mpu401_change_addr(sb->mpu, 0);
 
