@@ -193,7 +193,7 @@ aha154x_eeprom(x54x_t *dev, uint8_t cmd,uint8_t arg,uint8_t len,uint8_t off,uint
 	if (dev->type == AHA_154xCF) {
 		if (dev->fdc_address > 0) {
 			fdc_remove(dev->fdc);
-			fdc_set_base(dev->fdc, dev->fdc_address);
+			fdc_set_base(dev->fdc, (dev->nvr[0] & EE0_ALTFLOP) ? 0x370 : 0x3f0);
 		}
 	}
     }
@@ -745,6 +745,13 @@ aha_setnvr(x54x_t *dev)
 	f = NULL;
     } else
 	aha_initnvr(dev);
+
+    if (dev->type == AHA_154xCF) {
+	if (dev->fdc_address > 0) {
+		fdc_remove(dev->fdc);
+		fdc_set_base(dev->fdc, (dev->nvr[0] & EE0_ALTFLOP) ? 0x370 : 0x3f0);
+	}
+    }
 }
 
 
