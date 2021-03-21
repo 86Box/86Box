@@ -1997,11 +1997,6 @@ pcnet_csr_readw(nic_t *dev, uint16_t rap)
 	     return pcnet_bcr_readw(dev,BCR_SWS);
 	case 68: /* Custom register to pass link speed to driver */
 	     return pcnetLinkSpd(dev->u32LinkSpeed);
-	case 88:
-	     val = dev->aCSR[89];
-	     val <<= 16;
-	     val |= dev->aCSR[88];
-	     break;
 	default:
 	     val = dev->aCSR[rap];
 	     break;

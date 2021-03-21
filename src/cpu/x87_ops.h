@@ -47,9 +47,13 @@ static int rounding_modes[4] = {FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZ
 #define STATUS_ZERODIVIDE 4
 
 #if defined(_MSC_VER) && !defined(__clang__)
-# define X87_INLINE_ASM	defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
+# if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
+#  define X87_INLINE_ASM
+# endif
 #else
-# define X87_INLINE_ASM defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_X64 || defined __amd64__
+# if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined _M_X64 || defined __amd64__
+#  define X87_INLINE_ASM
+# endif
 #endif
 
 #ifdef FPU_8087
@@ -317,7 +321,7 @@ static __inline void x87_stmmx(MMX_REG r)
 
 static __inline uint16_t x87_compare(double a, double b)
 {
-#if X87_INLINE_ASM
+#ifdef X87_INLINE_ASM
         uint32_t result;
 	double ea = a, eb = b;
 	const uint64_t ia = 0x3fec1a6ff866a936ull;
@@ -379,7 +383,7 @@ static __inline uint16_t x87_compare(double a, double b)
 
 static __inline uint16_t x87_ucompare(double a, double b)
 {
-#if X87_INLINE_ASM
+#ifdef X87_INLINE_ASM
         uint32_t result;
         
 #if !defined(_MSC_VER) || defined(__clang__)

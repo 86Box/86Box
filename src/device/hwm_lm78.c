@@ -366,7 +366,7 @@ lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank)
 	else if ((masked_reg >= 0x28) && (masked_reg <= 0x2a)) /* fan speeds */
 		ret = LM78_RPM_TO_REG(dev->values->fans[reg & 3], 1 << ((dev->regs[((reg & 3) == 2) ? 0x4b : 0x47] >> ((reg & 3) ? 6 : 4)) & 0x3));
 	else if ((reg == 0x4f) && (dev->local & LM78_WINBOND)) /* two-byte vendor ID register */
-		ret = (dev->regs[0x4e] & 0x80) ? (LM78_WINBOND_VENDOR_ID >> 8) : LM78_WINBOND_VENDOR_ID;
+		ret = (dev->regs[0x4e] & 0x80) ? (uint8_t) (LM78_WINBOND_VENDOR_ID >> 8) : (uint8_t) LM78_WINBOND_VENDOR_ID;
 	else
 		ret = dev->regs[masked_reg];
     }

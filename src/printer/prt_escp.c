@@ -520,7 +520,7 @@ reset_printer(escp_t *dev)
     for (i = 0; i < 32; i++)
 	dev->horizontal_tabs[i] = i * 8.0 * (1.0 / dev->cpi);
     dev->num_horizontal_tabs = 32;
-    dev->num_vertical_tabs = 255;    
+    dev->num_vertical_tabs = -1;
     
     if (dev->page != NULL)
 	dev->page->dirty = 0;    
@@ -885,7 +885,7 @@ process_char(escp_t *dev, uint8_t ch)
 	    (dev->num_vertical_tabs > 0 && dev->vertical_tabs[dev->num_vertical_tabs - 1] > (double)ch * dev->linespacing)) {
 		dev->esc_pending = 0;
 	} else {
-		if (dev->num_vertical_tabs < 16)
+		if (dev->num_vertical_tabs >= 0 && dev->num_vertical_tabs < 16)
 			dev->vertical_tabs[dev->num_vertical_tabs++] = (double)ch * dev->linespacing;
 	}
     }

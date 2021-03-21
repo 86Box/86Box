@@ -1060,7 +1060,7 @@ enter_smm(int in_hlt)
     smram_recalc_all(0);
 
     if (cpu_iscyrix) {
-	if (!cyrix.smhr & SMHR_VALID)
+	if (!(cyrix.smhr & SMHR_VALID))
 		cyrix.smhr = (cyrix.arr[3].base + cyrix.arr[3].size) | SMHR_VALID;
 	smram_state = cyrix.smhr & SMHR_ADDR_MASK;
     }

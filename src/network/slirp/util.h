@@ -48,7 +48,7 @@
 
 #if defined(_MSC_VER) && !defined(__clang__)
 #define SLIRP_PACKED
-#elif defined(_WIN32) && (defined(__x86_64__) || defined(__i386__))
+#elif defined(_WIN32) && (defined(__x86_64__) || defined(__i386__)) && !defined(__clang__)
 #define SLIRP_PACKED  __attribute__((gcc_struct, packed))
 #else
 #define SLIRP_PACKED __attribute__((packed))

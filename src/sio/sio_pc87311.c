@@ -161,7 +161,7 @@ void pc87311_uart_handler(uint8_t num, pc87311_t *dev)
 {
     serial_remove(dev->uart[num & 1]);
 
-    switch ((!num & 1) ? UART1_BA : UART2_BA)
+    switch (!(num & 1) ? UART1_BA : UART2_BA)
     {
     case 0:
         dev->base = 0x03f8;

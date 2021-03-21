@@ -35,7 +35,7 @@
 
 
 
-#define STRING_OR_RESOURCE(s) ((!(s)) ? (NULL) : ((((uintptr_t)s) < ((uintptr_t)65636)) ? (MAKEINTRESOURCE(s)) : (s)))
+#define STRING_OR_RESOURCE(s) ((!(s)) ? (NULL) : ((((uintptr_t)s) < ((uintptr_t)65636)) ? (MAKEINTRESOURCE((uintptr_t)s)) : (s)))
 
 
 WCHAR	wopenfilestring[512];

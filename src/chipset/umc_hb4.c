@@ -366,7 +366,7 @@ hb4_init(const device_t *info)
     hb4_t *dev = (hb4_t *)malloc(sizeof(hb4_t));
     memset(dev, 0, sizeof(hb4_t));
 
-    dev->has_ide = (info->local && 0x886a);
+    dev->has_ide = (info->local & 0x886a);
     pci_add_card(PCI_ADD_NORTHBRIDGE, um8881_read, um8881_write, dev); /* Device 10: UMC 8881x */
     pci_add_card(PCI_ADD_SOUTHBRIDGE, um8886_read, um8886_write, dev); /* Device 12: UMC 8886xx */
 
