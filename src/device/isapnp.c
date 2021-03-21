@@ -618,14 +618,6 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
 
     card->rom = rom;
     card->rom_size = rom_size;
-
-    /* Populate descriptor checksum in ROM. */
-    uint16_t checksum_offset = card->rom_size - 1;
-    card->rom[checksum_offset] = 0x00;
-    for (uint16_t i = 9; i < checksum_offset; i++)
-	card->rom[checksum_offset] += card->rom[i];
-    card->rom[checksum_offset] = -card->rom[checksum_offset];
-
     card->priv = priv;
     card->config_changed = config_changed;
     card->csn_changed = csn_changed;
@@ -647,7 +639,7 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
     uint16_t vendor = (card->rom[0] << 8) | card->rom[1];
     isapnp_log("ISAPnP: Parsing ROM resources for card %c%c%c%02X%02X (serial %08X)\n", '@' + ((vendor >> 10) & 0x1f), '@' + ((vendor >> 5) & 0x1f), '@' + (vendor & 0x1f), card->rom[2], card->rom[3], (card->rom[7] << 24) | (card->rom[6] << 16) | (card->rom[5] << 8) | card->rom[4]);
 #endif
-    uint16_t i = 9;
+    uint16_t i = 9, j;
     uint8_t ldn = 0, res, in_df = 0;
     uint8_t mem_range = 0, mem_range_32 = 0, mem_range_df = 0, mem_range_32_df = 0;
     uint32_t len;
@@ -768,11 +760,17 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
 				in_df = 0;
 				break;
 
-#ifdef ENABLE_ISAPNP_LOG
 			case 0x0f: /* end tag */
-				isapnp_log("ISAPnP: End card resources\n");
+				/* Calculate checksum. */
+				res = 0x00;
+				for (j = 9; j <= i; j++)
+					res += card->rom[j];
+				card->rom[i + 1] = -res;
+
+				isapnp_log("ISAPnP: End card resources (checksum %02X)\n", card->rom[i + 1]);
 				break;
 
+#ifdef ENABLE_ISAPNP_LOG
 			default:
 				isapnp_log("ISAPnP: >%s%s Small resource %02X (length %d)\n", ldn ? ">" : "", in_df ? ">" : "", res, card->rom[i] & 0x07);
 				break;
