@@ -108,7 +108,6 @@ typedef struct {
     void	*pnp_card;
     uint8_t	pnp_activate;
     uint8_t	pnp_csnsav;
-    uint64_t	pnp_id;
     uint8_t	maclocal[6];		/* configured MAC (local) address */
 
     /* RTL8019AS/RTL8029AS registers */
@@ -934,7 +933,6 @@ nic_init(const device_t *info)
     int i;
 #endif
     char *ansi_id = "REALTEK PLUG & PLAY ETHERNET CARD";
-    uint64_t *eeprom_pnp_id;
 
     /* Get the desired debug level. */
 #ifdef ENABLE_NIC_LOG
@@ -1111,10 +1109,6 @@ nic_init(const device_t *info)
 		/* Add device to the PCI bus, keep its slot number. */
 		dev->card = pci_add_card(PCI_ADD_NORMAL,
 					 nic_pci_read, nic_pci_write, dev);
-	} else {
-		dev->pnp_id = PNP_DEVID;
-		dev->pnp_id <<= 32LL;
-		dev->pnp_id |= PNP_VENDID;
 	}
 
 	/* Initialize the RTL8029 EEPROM. */
@@ -1134,8 +1128,10 @@ nic_init(const device_t *info)
         	dev->eeprom[0x79] =
 		 dev->eeprom[0x7D] = (PCI_VENDID>>8);
 	} else {
-		eeprom_pnp_id = (uint64_t *) &dev->eeprom[0x12];
-		*eeprom_pnp_id = dev->pnp_id;
+		dev->eeprom[0x12] = PNP_VENDID >> 8;
+		dev->eeprom[0x13] = PNP_VENDID & 0xff;
+		dev->eeprom[0x14] = PNP_DEVID >> 8;
+		dev->eeprom[0x15] = PNP_DEVID & 0xff;
 
 		/* TAG: Plug and Play Version Number. */
 		dev->eeprom[0x1B] = 0x0A;	/* Item byte */
