@@ -675,7 +675,7 @@ nvr_read(uint16_t addr, void *priv)
 
     cycles -= ISA_CYCLES(8);
 
-    if (/* (addr & 1) && */(local->bank[addr_id] == 0xff))
+    if (local->bank[addr_id] == 0xff)
 	return 0xff;
 
     if (addr & 1)  switch(local->addr[addr_id]) {

@@ -268,7 +268,7 @@ typedef struct {
 	int32_t		rm_mod_reg_data;
     }		rm_data;
 
-    int8_t	ssegs, ismmx,
+    uint8_t	ssegs, ismmx,
 		abrt, pad;
 
     int		_cycles;

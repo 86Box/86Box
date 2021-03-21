@@ -332,7 +332,7 @@ wd76c10_write(uint16_t addr, uint16_t val, void *priv)
 
     case 0xf073:
         dev->lock_reg = val & 0x00ff;
-        LOCK = !(val && 0x00da);
+        LOCK = !(val & 0x00da);
         break;
     }
 }

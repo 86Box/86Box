@@ -32,6 +32,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include <wchar.h>
+#include <io.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/config.h>

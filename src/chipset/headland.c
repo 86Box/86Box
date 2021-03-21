@@ -132,7 +132,7 @@ get_addr(headland_t *dev, uint32_t addr, headland_mr_t *mr)
     if (mr && mr->valid && (dev->cr[0] & 2) && (mr->mr & 0x200)) {
 	addr = (addr & 0x3fff) | ((mr->mr & 0x1F) << 14);
 
-	bank = (mr->mr >> 7) && 3;
+	bank = (mr->mr >> 7) & 3;
 
 	if (bank_shift[bank] >= 21)
 		addr |= (mr->mr & 0x060) << 14;

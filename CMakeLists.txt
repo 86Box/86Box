@@ -33,7 +33,17 @@ include(CPack)
 include(CMakeDependentOption)
 
 add_compile_definitions(CMAKE)
-add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+
+if(WIN32)
+	# Disables *_s function warnings
+	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+
+	# Disables POSIX name warnings
+	add_compile_definitions(_CRT_NONSTDC_NO_WARNINGS)
+
+	# Disables WinSock deprecation warnings
+	add_compile_definitions(_WINSOCK_DEPRECATED_NO_WARNINGS)
+endif()
 
 option(RELEASE "Release build" OFF)
 option(USB "USB support" OFF)

@@ -190,20 +190,12 @@ w83877f_serial_handler(w83877f_t *dev, int uart)
     if (!(dev->regs[4] & reg_mask) && (dev->regs[reg_id] & 0xc0))
 	serial_setup(dev->uart[uart], make_port(dev, reg_id), (dev->regs[0x28] & irq_mask) >> irq_shift);
 
-    switch (!!(dev->regs[0x19] & (0x02 >> uart))) {
-	case 0:
-		switch (!!(dev->regs[0x03] & (0x02 >> uart))) {
-			case 0:
-				clock_src = 24000000.0 / 13.0;
-				break;
-			case 1:	
-				clock_src = 24000000.0 / 12.0;
-				break;
-		}
-		break;
-	case 1:
-		clock_src = 14769000.0;
-		break;
+    if (dev->regs[0x19] & (0x02 >> uart)) {
+	clock_src = 14769000.0;
+    } else if (dev->regs[0x03] & (0x02 >> uart)) { 
+	clock_src = 24000000.0 / 12.0;
+    } else {
+	clock_src = 24000000.0 / 13.0;
     }
 
     serial_set_clock_src(dev->uart[uart], clock_src);
