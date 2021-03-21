@@ -746,8 +746,8 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
 				break;
 #endif
 
-			case 0x06: /* start dependent functions */
-				isapnp_log("ISAPnP: >> Start dependent functions: %s\n", (((len == 0) || (card->rom[i + 1] == 1)) ? "acceptable" : ((card->rom[i + 1] == 0) ? "good" : ((card->rom[i + 1] == 2) ? "sub-optimal" : "unknown priority"))));
+			case 0x06: /* start dependent function */
+				isapnp_log("ISAPnP: >> Start dependent function: %s\n", (((len == 0) || (card->rom[i + 1] == 1)) ? "acceptable" : ((card->rom[i + 1] == 0) ? "good" : ((card->rom[i + 1] == 2) ? "sub-optimal" : "unknown priority"))));
 
 				if (in_df) {
 					/* We're in a dependent function and this is the next one starting.
@@ -763,8 +763,8 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
 
 				break;
 
-			case 0x07: /* end dependent functions */
-				isapnp_log("ISAPnP: >> End dependent functions\n");
+			case 0x07: /* end dependent function */
+				isapnp_log("ISAPnP: >> End dependent function\n");
 				in_df = 0;
 				break;
 
