@@ -92,6 +92,8 @@ x54x_irq(x54x_t *dev, int set)
 	else
        	        pci_clear_irq(dev->pci_slot, PCI_INTA);
     } else {
+	x54x_log("%sing IRQ %i\n", set ? "Rais" : "Lower", irq);
+
 	if (set) {
 		if (dev->interrupt_type)
 			int_type = dev->interrupt_type(dev);
@@ -961,7 +963,7 @@ x54x_scsi_cmd(x54x_t *dev)
     else
 	dev->callback_sub_phase = 2;
 
-    x54x_log("scsi_devices[%02i].Status = %02X\n", i, sd->status);
+    x54x_log("scsi_devices[%02i].Status = %02X\n", req->TargetID, sd->status);
 }
 
 
@@ -1310,7 +1312,7 @@ x54x_cmd_callback(void *priv)
 
     period = (1000000.0 / dev->ha_bps) * ((double) dev->temp_period);
     timer_on(&dev->timer, dev->media_period + period + 10.0, 0);
-    x54x_log("Temporary period: %lf us (%" PRIi64 " periods)\n", dev->timer.period, dev->temp_period);
+    // x54x_log("Temporary period: %lf us (%" PRIi64 " periods)\n", dev->timer.period, dev->temp_period);
 }
 
 
@@ -1370,6 +1372,13 @@ x54x_in(uint16_t port, void *priv)
 		}
 		break;
     }
+
+#ifdef ENABLE_X54X_LOG
+    if (port == 0x0332)
+	x54x_log("x54x_in(): %04X, %02X, %08X\n", port, ret, dev->DataReplyLeft);
+    else
+	x54x_log("x54x_in(): %04X, %02X\n", port, ret);
+#endif
 
     return(ret);
 }

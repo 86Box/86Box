@@ -402,7 +402,8 @@ typedef struct {
 		CmdBuf[128],
 		DataBuf[65536],
 		shadow_ram[128],
-		dma_buffer[128];
+		dma_buffer[128],
+		cmd_33_buf[4096];
 
     /* 16 bytes */
     char	*fw_rev;			/* The 4 bytes of the revision command information + 2 extra bytes for BusLogic */
@@ -416,7 +417,11 @@ typedef struct {
 		rom_ioaddr,			/* offset in BIOS of I/O addr */
 		rom_shram,			/* index to shared RAM */
 		rom_shramsz,			/* size of shared RAM */
-		rom_fwhigh;			/* offset in BIOS of ver ID */
+		rom_fwhigh,			/* offset in BIOS of ver ID */
+		pnp_len,			/* length of the PnP ROM */
+		pnp_offset,			/* offset in the microcode ROM of the PnP ROM */
+		cmd_33_len,			/* length of the SCSISelect code decompressor program */
+		cmd_33_offset;			/* offset in the microcode ROM of the SCSISelect code decompressor program */
 
     /* 16 + 20 + 52 = 88 bytes */
     volatile int
@@ -446,6 +451,7 @@ typedef struct {
 
     /* 8 bytes */
     wchar_t	*bios_path,			/* path to BIOS image file */
+		*mcode_path,			/* path to microcode image file, needed by the AHA-1542CP */
 		*nvr_path;			/* path to NVR image file */
 
     /* 56 bytes */

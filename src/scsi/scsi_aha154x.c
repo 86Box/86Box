@@ -71,44 +71,7 @@ uint16_t	aha_ports[] = {
     0x0130, 0x0134, 0x0000, 0x0000
 };
 
-static uint8_t aha1542cp_pnp_rom[] = {
-    0x04, 0x90, 0x15, 0x42, 0x00, 0x00, 0x00, 0x00, 0x00, /* ADP1542, dummy checksum (filled in by isapnp_add_card) */
-    0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
-    0x82, 0x12, 0x00, 'A', 'd', 'a', 'p', 't', 'e', 'c', ' ', 'A', 'H', 'A', '-', '1', '5', '4', '2', 'C', 'P', /* ANSI identifier */
-
-    0x15, 0x04, 0x90, 0x15, 0x42, 0x01, /* logical device ADP1542, can participate in boot */
-	0x82, 0x11, 0x00, 'S', 'C', 'S', 'I', ' ', 'H', 'o', 's', 't', ' ', 'A', 'd', 'a', 'p', 't', 'e', 'r', /* ANSI identifier */
-	0x1c, 0x41, 0xd0, 0x00, 0xa0, /* compatible device PNP00A0 */
-	0x22, 0x00, 0xde, /* IRQ 9/10/11/12/14/15 */
-	0x2a, 0xe1, 0x3a, /* DMA 0/5/6/7, type A, count by word, count by byte, not bus master, 16-bit only */
-	0x31, 0x00, /* start dependent functions, preferred */
-		0x47, 0x01, 0x30, 0x03, 0x30, 0x03, 0x04, 0x04, /* I/O 0x330, decodes 16-bit, 4-byte alignment, 4 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x47, 0x01, 0x34, 0x03, 0x34, 0x03, 0x04, 0x04, /* I/O 0x334, decodes 16-bit, 4-byte alignment, 4 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x47, 0x01, 0x34, 0x02, 0x34, 0x02, 0x04, 0x04, /* I/O 0x234, decodes 16-bit, 4-byte alignment, 4 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x47, 0x01, 0x30, 0x02, 0x30, 0x02, 0x04, 0x04, /* I/O 0x230, decodes 16-bit, 4-byte alignment, 4 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x47, 0x01, 0x34, 0x01, 0x34, 0x01, 0x04, 0x04, /* I/O 0x134, decodes 16-bit, 4-byte alignment, 4 addresses */
-	0x31, 0x02, /* start dependent functions, functional */
-		0x47, 0x01, 0x30, 0x01, 0x30, 0x01, 0x04, 0x04, /* I/O 0x130, decodes 16-bit, 4-byte alignment, 4 addresses */
-	0x38, /* end dependent functions */
-	0x81, 0x09, 0x00, 0x66, 0x80, 0x0c, 0xc0, 0x0d, 0x40, 0xff, 0x40, 0x00, /* memory 0xC8000-0xDC000, expansion ROM, shadowable, 8-bit, supports high address, read-cacheable write-through, non-writeable, alignment 0xff4000, 16384 bytes */
-
-    0x15, 0x04, 0x90, 0x15, 0x4f, 0x01, /* logical device ADP154F, can participate in boot */
-	0x82, 0x11, 0x00, 'F', 'l', 'o', 'p', 'p', 'y', ' ', 'C', 'o', 'n', 't', 'r', 'o', 'l', 'l', 'e', 'r', /* ANSI identifier */
-	0x1c, 0x41, 0xd0, 0x00, 0x07, /* compatible device PNP0007 */
-	0x31, 0x00, /* start dependent functions, preferred */
-		0x4b, 0xf0, 0x03, 0x06, /* fixed I/O 0x3F0, 6 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x4b, 0x70, 0x03, 0x06, /* fixed I/O 0x370, 6 addresses */
-	0x38, /* end dependent functions */
-	0x22, 0x40, 0x00, /* IRQ 6 */
-	0x2a, 0x04, 0x28, /* DMA 2, type A, no count by word, count by byte, not bus master, 8-bit only */
-
-    0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
-};
+static uint8_t *aha1542cp_pnp_rom = NULL;
 
 
 #pragma pack(push,1)
@@ -349,6 +312,12 @@ aha_param_len(void *p)
 	case CMD_MBENABLE:
 		return 2;
 
+	case 0x39:
+		return 3;
+
+	case 0x40:
+		return 2;
+
 	default:
 		return 0;
     }
@@ -449,17 +418,47 @@ aha_cmds(void *p)
 			}
 			break;
 
-		case 0x2C:	/* AHA-1542CP sends this */
-			dev->DataBuf[0] = 0x00;
+		case 0x2C:	/* Detect termination status */
+			/* Bits 7,6 are termination status and must be 1,0 for the BIOS to work. */
+			dev->DataBuf[0] = 0x40;
 			dev->DataReplyLeft = 1;
 			break;
 
-		case 0x33:	/* AHA-1542CP sends this */
+		case 0x2D:	/* ???? - Returns two bytes according to the microcode */
 			dev->DataBuf[0] = 0x00;
-			dev->DataBuf[1] = 0x00;
-			dev->DataBuf[2] = 0x00;
-			dev->DataBuf[3] = 0x00;
-			dev->DataReplyLeft = 256;
+			dev->DataBuf[0] = 0x00;
+			dev->DataReplyLeft = 2;
+			break;
+
+		case 0x33:	/* Send the SCSISelect code decompressor program */
+			if (dev->cmd_33_len == 0x0000) {
+				/* If we are on a controller without this command, return invalid command. */
+				dev->DataReplyLeft = 0;
+				dev->Status |= STAT_INVCMD;
+				break;
+			}
+
+			/* We have to send (decompressor program length + 2 bytes of little endian size). */
+			dev->DataReplyLeft = dev->cmd_33_len + 2;
+			memset(dev->DataBuf, 0x00, dev->DataReplyLeft);
+			dev->DataBuf[0] = dev->cmd_33_len & 0xff;
+			dev->DataBuf[1] = (dev->cmd_33_len >> 8) & 0xff;
+			memcpy(&(dev->DataBuf[2]), dev->cmd_33_buf, dev->cmd_33_len);
+			break;
+
+		case 0x39:	/* Receive 3 bytes: address high, address low, byte to write to that address. */
+			/* Since we are not running the actual microcode, just log the received values
+			   (if logging is enabled) and break. */
+			aha_log("aha_cmds(): Command 0x39: %02X -> %02X%02X\n",
+				dev->CmdBuf[2], dev->CmdBuf[0], dev->CmdBuf[1]);
+			break;
+
+		case 0x40:	/* Receive 2 bytes: address high, address low, then return one byte from that
+				   address. */
+			aha_log("aha_cmds(): Command 0x40: %02X%02X\n",
+				dev->CmdBuf[0], dev->CmdBuf[1]);
+			dev->DataReplyLeft = 1;
+			dev->DataBuf[0] = 0xff;
 			break;
 
 		default:
@@ -641,6 +640,7 @@ static void
 aha_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
     x54x_t *dev = (x54x_t *) priv;
+    int i;
 
     switch (ld) {
 	case 0:
@@ -660,18 +660,46 @@ aha_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 			if (dev->Base != ISAPNP_IO_DISABLED)
 				x54x_io_set(dev, dev->Base, 4);
 
+			/*
+			 * Patch the ROM BIOS image for stuff Adaptec deliberately
+			 * made hard to understand. Well, maybe not, maybe it was
+			 * their way of handling issues like these at the time..
+			 *
+			 * Patch 1: emulate the I/O ADDR SW setting by patching a
+			 *	    byte in the BIOS that indicates the I/O ADDR
+			 *	    switch setting on the board.
+			 */
+			if (dev->rom_ioaddr != 0x0000) {
+				/* Look up the I/O address in the table. */
+					for (i=0; i<8; i++)
+					if (aha_ports[i] == dev->Base) break;
+				if (i == 8) {
+					aha_log("%s: invalid I/O address %04x selected!\n",
+								dev->name, dev->Base);
+					return;
+				}
+				dev->bios.rom[dev->rom_ioaddr] = (uint8_t)i;
+				/* Negation of the DIP switches to satify the checksum. */
+				dev->bios.rom[dev->rom_ioaddr + 1] = (uint8_t)((i ^ 0xff) + 1);
+			}
+
 			dev->Irq = config->irq[0].irq;
 			dev->DmaChannel = config->dma[0].dma;
+
+			dev->nvr[1] = (dev->Irq - 9) | (dev->DmaChannel << 4);
+			aha_eeprom_save(dev);
 
 			dev->rom_addr = config->mem[0].base;
 			if (dev->rom_addr) {
 				mem_mapping_enable(&dev->bios.mapping);
+				aha_log("SCSI BIOS set to: %08X-%08X\n", dev->rom_addr, dev->rom_addr + config->mem[0].size - 1);
 				mem_mapping_set_addr(&dev->bios.mapping, dev->rom_addr, config->mem[0].size);
 			}
 		}
 
 		break;
 
+#ifdef AHA1542CP_FDC
 	case 1:
 		if (dev->fdc_address) {
 			fdc_remove(dev->fdc);
@@ -691,6 +719,7 @@ aha_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 		}
 
 		break;
+#endif
     }
 }
 
@@ -803,6 +832,68 @@ aha_setbios(x54x_t *dev)
 }
 
 
+/* Get the SCSISelect code decompressor program from the microcode rom for the
+   AHA-1542CP. */
+static void
+aha_setmcode(x54x_t *dev)
+{
+    uint32_t temp;
+    FILE *f;
+
+    /* Only if this device has a BIOS ROM. */
+    if (dev->mcode_path == NULL) return;
+
+    /* Open the microcode image file and make sure it exists. */
+    aha_log("%s: loading microcode from '%ls'\n", dev->name, dev->bios_path);
+    if ((f = rom_fopen(dev->mcode_path, L"rb")) == NULL) {
+	aha_log("%s: microcode ROM not found!\n", dev->name);
+	return;
+    }
+
+    /*
+     * Manually load and process the ROM image.
+     *
+     * We *could* use the system "rom_init" function here, but for
+     * this special case, we can't: we may need WRITE access to the
+     * memory later on.
+     */
+    (void)fseek(f, 0L, SEEK_END);
+    temp = ftell(f);
+    (void)fseek(f, 0L, SEEK_SET);
+
+    if (temp < (dev->cmd_33_offset + dev->cmd_33_len - 1)) {
+	aha_log("%s: microcode ROM size invalid!\n", dev->name);
+	(void)fclose(f);
+	return;
+    }
+
+    /* Allocate the buffer and then read the real PnP ROM into it. */
+    if (aha1542cp_pnp_rom != NULL) {
+	free(aha1542cp_pnp_rom);
+	aha1542cp_pnp_rom = NULL;
+    }
+    aha1542cp_pnp_rom = (uint8_t *) malloc(dev->pnp_len + 7);
+    fseek(f, dev->pnp_offset, SEEK_SET);
+    (void)fread(aha1542cp_pnp_rom, dev->pnp_len, 1, f);
+    memset(&(aha1542cp_pnp_rom[4]), 0x00, 5);
+    fseek(f, dev->pnp_offset + 4, SEEK_SET);
+    (void)fread(&(aha1542cp_pnp_rom[9]), dev->pnp_len - 4, 1, f);
+    /* Even the real AHA-1542CP microcode seem to be flipping bit
+       4 to not erroneously indicate there is a range length. */
+    aha1542cp_pnp_rom[0x87] |= 0x04;
+    /* Insert the terminator and the checksum byte that will later
+       be filled in by the isapnp code. */
+    aha1542cp_pnp_rom[dev->pnp_len + 5] = 0x79;
+    aha1542cp_pnp_rom[dev->pnp_len + 6] = 0x00;
+
+    /* Load the SCSISelect decompression code. */
+    fseek(f, dev->cmd_33_offset, SEEK_SET);
+    (void)fread(dev->cmd_33_buf, dev->cmd_33_len, 1, f);
+
+    (void)fclose(f);
+}
+
+
 static void
 aha_initnvr(x54x_t *dev)
 {
@@ -853,6 +944,18 @@ aha_setnvr(x54x_t *dev)
 }
 
 
+void
+aha1542cp_close(void *priv)
+{
+    if (aha1542cp_pnp_rom != NULL) {
+	free(aha1542cp_pnp_rom);
+	aha1542cp_pnp_rom = NULL;
+    }
+
+    x54x_close(priv);
+}
+
+
 /* General initialization routine for all boards. */
 static void *
 aha_init(const device_t *info)
@@ -888,6 +991,11 @@ aha_init(const device_t *info)
     dev->get_ven_param_len = aha_param_len;
     dev->ven_cmds = aha_cmds;
     dev->get_ven_data = aha_setup_data;
+
+    dev->mcode_path = NULL;
+    dev->cmd_33_len = 0x0000;
+    dev->cmd_33_offset = 0x0000;
+    memset(dev->cmd_33_buf, 0x00, 4096);
 
     strcpy(dev->vendor, "Adaptec");
 
@@ -961,19 +1069,30 @@ aha_init(const device_t *info)
 	case AHA_154xCP:
 		strcpy(dev->name, "AHA-154xCP");
 		dev->bios_path = L"roms/scsi/adaptec/aha1542cp102.bin";
+		dev->mcode_path = L"roms/scsi/adaptec/908301-00_f_mcode_17c9.u12";
 		dev->nvr_path = L"aha1542cp.nvr";
 		dev->fw_rev = "F001";
 		dev->rom_shram = 0x3F80;	/* shadow RAM address base */
 		dev->rom_shramsz = 128;		/* size of shadow RAM */
 		dev->rom_ioaddr = 0x3F7E;	/* [2:0] idx into addr table */
 		dev->rom_fwhigh = 0x0055;	/* firmware version (hi/lo) */
+		dev->flags |= X54X_CDROM_BOOT;
 		dev->flags |= X54X_ISAPNP;
 		dev->ven_get_host_id = aha_get_host_id;	/* function to return host ID from EEPROM */
 		dev->ven_get_irq = aha_get_irq;		/* function to return IRQ from EEPROM */
 		dev->ven_get_dma = aha_get_dma;		/* function to return DMA channel from EEPROM */
-		isapnp_add_card(aha1542cp_pnp_rom, sizeof(aha1542cp_pnp_rom), aha_pnp_config_changed, NULL, NULL, NULL, dev);
-		dev->ha_bps = 10000000.0;	/* fast SCSI */
+		dev->ha_bps = 10000000.0;		/* fast SCSI */
+		dev->pnp_len = 0x00be;			/* length of the PnP ROM */
+		dev->pnp_offset = 0x533d;		/* offset of the PnP ROM in the microcode ROM */
+		dev->cmd_33_len = 0x06dc;		/* length of the SCSISelect code expansion routine returned by
+							   SCSI controller command 0x33 */
+		dev->cmd_33_offset = 0x7000;		/* offset of the SCSISelect code expansion routine in the
+							   microcode ROM */
+		aha_setmcode(dev);
+		isapnp_add_card(aha1542cp_pnp_rom, dev->pnp_len + 7, aha_pnp_config_changed, NULL, NULL, NULL, dev);
+#ifdef AHA1542CP_FDC
 		dev->fdc = device_add(&fdc_at_device);
+#endif
 		break;
 
 	case AHA_1640:
@@ -1402,7 +1521,7 @@ const device_t aha154xcp_device = {
     "Adaptec AHA-154xCP",
     DEVICE_ISA | DEVICE_AT,
     AHA_154xCP,
-    aha_init, x54x_close, NULL,
+    aha_init, aha1542cp_close, NULL,
     { NULL }, NULL, NULL,
     NULL
 };
