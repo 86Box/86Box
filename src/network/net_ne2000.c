@@ -68,13 +68,6 @@
 #include <86box/isapnp.h>
 
 
-enum {
-	PNP_PHASE_WAIT_FOR_KEY = 0,
-	PNP_PHASE_CONFIG,
-	PNP_PHASE_ISOLATION,
-	PNP_PHASE_SLEEP
-};
-
 /* ROM BIOS file paths. */
 #define ROM_PATH_NE1000		L"roms/network/ne1000/ne1000.rom"
 #define ROM_PATH_NE2000		L"roms/network/ne2000/ne2000.rom"
@@ -82,11 +75,23 @@ enum {
 #define ROM_PATH_RTL8029	L"roms/network/rtl8029as/rtl8029as.rom"
 
 /* PCI info. */
-#define PNP_VENDID		0x4a8c		/* Realtek, Inc */
 #define PCI_VENDID		0x10ec		/* Realtek, Inc */
-#define PNP_DEVID		0x8019		/* RTL8029AS */
 #define PCI_DEVID		0x8029		/* RTL8029AS */
 #define PCI_REGSIZE		256		/* size of PCI space */
+
+
+static uint8_t rtl8019as_pnp_rom[] = {
+    0x4a, 0x8c, 0x80, 0x19, 0x00, 0x00, 0x00, 0x00, 0x00, /* RTL8019, dummy checksum (filled in by isapnp_add_card) */
+    0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
+    0x82, 0x22, 0x00, 'R', 'E', 'A', 'L', 'T', 'E', 'K', ' ', 'P', 'L', 'U', 'G', ' ', '&', ' ', 'P', 'L', 'A', 'Y', ' ', 'E', 'T', 'H', 'E', 'R', 'N', 'E', 'T', ' ', 'C', 'A', 'R', 'D', 0x00, /* ANSI identifier */
+	
+    0x16, 0x4a, 0x8c, 0x80, 0x19, 0x02, 0x00, /* logical device RTL8019 */
+	0x1c, 0x41, 0xd0, 0x80, 0xd6, /* compatible device PNP80D6 */
+	0x47, 0x00, 0x20, 0x02, 0x80, 0x03, 0x20, 0x20, /* I/O 0x220-0x380, decodes 10-bit, 32-byte alignment, 32 addresses */
+	0x23, 0x38, 0x9e, 0x01, /* IRQ 3/4/5/9/10/11/12/15, high true edge sensitive */
+
+    0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
+};
 
 
 typedef struct {
@@ -932,7 +937,6 @@ nic_init(const device_t *info)
 #ifdef ENABLE_NIC_LOG
     int i;
 #endif
-    char *ansi_id = "REALTEK PLUG & PLAY ETHERNET CARD";
 
     /* Get the desired debug level. */
 #ifdef ENABLE_NIC_LOG
@@ -1122,65 +1126,15 @@ nic_init(const device_t *info)
 		 dev->eeprom[0x7E] = (PCI_DEVID&0xff);
 	        dev->eeprom[0x77] =
 		 dev->eeprom[0x7B] =
-		 dev->eeprom[0x7F] = (dev->board == NE2K_RTL8019AS) ? (PNP_DEVID>>8) : (PCI_DEVID>>8);
+		 dev->eeprom[0x7F] = (PCI_DEVID>>8);
         	dev->eeprom[0x78] =
 		 dev->eeprom[0x7C] = (PCI_VENDID&0xff);
         	dev->eeprom[0x79] =
 		 dev->eeprom[0x7D] = (PCI_VENDID>>8);
 	} else {
-		dev->eeprom[0x12] = PNP_VENDID >> 8;
-		dev->eeprom[0x13] = PNP_VENDID & 0xff;
-		dev->eeprom[0x14] = PNP_DEVID >> 8;
-		dev->eeprom[0x15] = PNP_DEVID & 0xff;
+		memcpy(&dev->eeprom[0x12], rtl8019as_pnp_rom, sizeof(rtl8019as_pnp_rom));
 
-		/* TAG: Plug and Play Version Number. */
-		dev->eeprom[0x1B] = 0x0A;	/* Item byte */
-		dev->eeprom[0x1C] = 0x10;	/* PnP version */
-		dev->eeprom[0x1D] = 0x10;	/* Vendor version */
-
-		/* TAG: ANSI Identifier String. */
-		dev->eeprom[0x1E] = 0x82;	/* Item byte */
-		dev->eeprom[0x1F] = 0x22;	/* Length bits 7-0 */
-		dev->eeprom[0x20] = 0x00;	/* Length bits 15-8 */
-		memcpy(&dev->eeprom[0x21], ansi_id, 0x22);
-
-		/* TAG: Logical Device ID. */
-		dev->eeprom[0x43] = 0x16;	/* Item byte */
-		dev->eeprom[0x44] = 0x4A;	/* Logical device ID0 */
-		dev->eeprom[0x45] = 0x8C;	/* Logical device ID1 */
-		dev->eeprom[0x46] = 0x80;	/* Logical device ID2 */
-		dev->eeprom[0x47] = 0x19;	/* Logical device ID3 */
-		dev->eeprom[0x48] = 0x02;	/* Flag0 (02=BROM/disabled) */
-		dev->eeprom[0x49] = 0x00;	/* Flag 1 */
-
-		/* TAG: Compatible Device ID (NE2000) */
-		dev->eeprom[0x4A] = 0x1C;	/* Item byte			*/
-		dev->eeprom[0x4B] = 0x41;	/* Compatible ID0 */
-		dev->eeprom[0x4C] = 0xD0;	/* Compatible ID1 */
-		dev->eeprom[0x4D] = 0x80;	/* Compatible ID2 */
-		dev->eeprom[0x4E] = 0xD6;	/* Compatible ID3 */
-
-		/* TAG: I/O Format */
-		dev->eeprom[0x4F] = 0x47;	/* Item byte */
-		dev->eeprom[0x50] = 0x00;	/* I/O information */
-		dev->eeprom[0x51] = 0x20;	/* Min. I/O base bits 7-0 */
-		dev->eeprom[0x52] = 0x02;	/* Min. I/O base bits 15-8 */
-		dev->eeprom[0x53] = 0x80;	/* Max. I/O base bits 7-0 */
-		dev->eeprom[0x54] = 0x03;	/* Max. I/O base bits 15-8 */
-		dev->eeprom[0x55] = 0x20;	/* Base alignment */
-		dev->eeprom[0x56] = 0x20;	/* Range length */
-
-		/* TAG: IRQ Format. */
-		dev->eeprom[0x57] = 0x23;	/* Item byte */
-		dev->eeprom[0x58] = 0x38;	/* IRQ mask bits 7-0 */
-		dev->eeprom[0x59] = 0x9E;	/* IRQ mask bits 15-8 */
-		dev->eeprom[0x5A] = 0x01;	/* IRQ information */
-
-		/* TAG: END Tag */
-		dev->eeprom[0x5B] = 0x79;	/* Item byte */
-		/* Checksum is filled in by isapnp_add_card */
-
-		dev->pnp_card = isapnp_add_card(&dev->eeprom[0x12], 75, nic_pnp_config_changed, nic_pnp_csn_changed, nic_pnp_read_vendor_reg, nic_pnp_write_vendor_reg, dev);
+		dev->pnp_card = isapnp_add_card(&dev->eeprom[0x12], sizeof(rtl8019as_pnp_rom), nic_pnp_config_changed, nic_pnp_csn_changed, nic_pnp_read_vendor_reg, nic_pnp_write_vendor_reg, dev);
 	}
     }
 
