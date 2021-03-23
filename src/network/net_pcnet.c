@@ -40,6 +40,7 @@
 #include <86box/pic.h>
 #include <86box/random.h>
 #include <86box/device.h>
+#include <86box/isapnp.h>
 #include <86box/network.h>
 #include <86box/net_pcnet.h>
 #include <86box/bswap.h>
@@ -80,7 +81,7 @@ typedef struct RTNETETHERHDR
 #define BCR_LED1        5
 #define BCR_LED2        6
 #define BCR_LED3        7
-#define BCR_RESERVED8   8
+#define BCR_SWCONFIG    8
 #define BCR_FDC         9
 /* 10 - 15 = reserved */
 #define BCR_IOBASEL     16  /* Reserved */
@@ -189,6 +190,21 @@ typedef struct RTNETETHERHDR
 #define PHYSADDR(S,A) ((A) | (S)->GCUpperPhys)
 
 
+static const uint8_t am79c961_pnp_rom[] = {
+    0x04, 0x96, 0x55, 0xaa, 0x00, 0x00, 0x00, 0x00, 0x00, /* ADV55AA, dummy checksum (filled in by isapnp_add_card) */
+    0x0a, 0x10, 0x00, /* PnP version 1.0, vendor version 0.0 */
+    0x82, 0x1c, 0x00, 'A', 'M', 'D', ' ', 'E', 't', 'h', 'e', 'r', 'n', 'e', 't', ' ', 'N', 'e', 't', 'w', 'o', 'r', 'k', ' ', 'A', 'd', 'a', 'p', 't', 'e', 'r', /* ANSI identifier */
+
+    0x16, 0x04, 0x96, 0x55, 0xaa, 0x00, 0xbd, /* logical device ADV55AA, supports vendor-specific registers 0x38/0x3A/0x3B/0x3C/0x3D/0x3F */
+	0x1c, 0x41, 0xd0, 0x82, 0x8c, /* compatible device PNP828C */
+	0x47, 0x00, 0x00, 0x02, 0xe0, 0x03, 0x20, 0x18, /* I/O 0x200-0x3E0, decodes 10-bit, 32-byte alignment, 24 addresses */
+	0x2a, 0xe8, 0x02, /* DMA 3/5/6/7, compatibility, no count by word, no count by byte, not bus master, 16-bit only */
+	0x23, 0x38, 0x9e, 0x09, /* IRQ 3/4/5/9/10/11/12/15, low true level sensitive, high true edge sensitive */
+
+    0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
+};
+
+
 typedef struct {
 	mem_mapping_t mmio_mapping;
     const char	*name;
@@ -211,7 +227,7 @@ typedef struct {
     uint32_t GCRDRA;
     /** Address of the TX descriptor table (ring). Loaded at init. */
     uint32_t GCTDRA;
-    uint8_t  aPROM[16];
+    uint8_t  aPROM[256];
     uint16_t aCSR[CSR_MAX_REG];
     uint16_t aBCR[BCR_MAX_RAP];
     uint16_t aMII[MII_MAX_REG];
@@ -885,6 +901,7 @@ pcnetSoftReset(nic_t *dev)
 	case DEV_AM79C960:
 	case DEV_AM79C960_EB:
 	case DEV_AM79C960_VLB:
+	case DEV_AM79C961:
 		dev->aCSR[88] = 0x3003;
 		dev->aCSR[89] = 0x0262;
 		break;
@@ -1750,10 +1767,6 @@ pcnetHardReset(nic_t *dev)
     dev->aBCR[BCR_LED1] = 0x0084;
     dev->aBCR[BCR_LED2] = 0x0088;
     dev->aBCR[BCR_LED3] = 0x0090;
-	
-    /* For ISA PnP cards, BCR8 reports IRQ/DMA (e.g. 0x0035 means IRQ 3, DMA 5). */
-    if (dev->is_isa)
-       dev->aBCR[8] = dev->dma_channel | (dev->base_irq << 4);
 
     dev->aBCR[BCR_FDC] = 0x0000;
     dev->aBCR[BCR_BSBC] = 0x9001;
@@ -2227,6 +2240,14 @@ pcnet_bcr_readw(nic_t *dev, uint16_t rap)
 		} else
 		    val = 0xffff;
 		break;
+
+	case BCR_SWCONFIG:
+		if (dev->board == DEV_AM79C961)
+		    val = ((dev->base_irq & 0x0f) << 4) | (dev->dma_channel & 0x07);
+		else
+		    val = 0xffff;
+		break;
+
 	default:
 		val = rap < BCR_MAX_RAP ? dev->aBCR[rap] : 0;
 		break;
@@ -2745,6 +2766,65 @@ pcnet_pci_read(int func, int addr, void *p)
     return(0);
 }
 
+static void
+pcnet_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
+{
+    if (ld)
+	return;
+
+    nic_t *dev = (nic_t *) priv;
+
+    dev->base_address = 0;
+    dev->base_irq = 0;
+    dev->dma_channel = -1;
+
+    if (dev->base_address) {
+	pcnet_ioremove(dev, dev->base_address, 0x20);
+	dev->base_address = 0;
+    }
+
+    if (config->activate) {
+	dev->base_address = config->io[0].base;
+	if (dev->base_address != ISAPNP_IO_DISABLED)
+		pcnet_ioset(dev, dev->base_address, 0x20);
+
+	dev->base_irq = config->irq[0].irq;
+	dev->dma_channel = config->dma[0].dma;
+	if (dev->dma_channel == ISAPNP_DMA_DISABLED)
+		dev->dma_channel = -1;
+
+	/* Update PnP register mirrors in ROM. */
+	dev->aPROM[32] = dev->base_address >> 8;
+	dev->aPROM[33] = dev->base_address;
+	dev->aPROM[34] = dev->base_irq;
+	dev->aPROM[35] = (config->irq[0].level << 1) | config->irq[0].type;
+	dev->aPROM[36] = (dev->dma_channel == -1) ? ISAPNP_DMA_DISABLED : dev->dma_channel;
+    }
+}
+
+static uint8_t
+pcnet_pnp_read_vendor_reg(uint8_t ld, uint8_t reg, void *priv)
+{
+    nic_t *dev = (nic_t *) priv;
+
+    if (!ld && (reg == 0xf0))
+	return dev->aPROM[50];
+    else
+	return 0x00;
+}
+
+static void
+pcnet_pnp_write_vendor_reg(uint8_t ld, uint8_t reg, uint8_t val, void *priv)
+{
+    if (ld)
+	return;
+
+    nic_t *dev = (nic_t *) priv;
+
+    if (reg == 0xf0)
+	dev->aPROM[50] = val & 0x1f;
+}
+
 /**
  * Takes down the link temporarily if it's current status is up.
  *
@@ -2942,6 +3022,8 @@ pcnet_init(const device_t *info)
 	dev->aPROM[9] = 0x11;
     else if (dev->is_vlb)
 	dev->aPROM[9] = 0x10;
+    else if (dev->board == DEV_AM79C961)
+	dev->aPROM[9] = 0x01;
     else
 	dev->aPROM[9] = 0x00;
 
@@ -2981,6 +3063,18 @@ pcnet_init(const device_t *info)
 	/* Add device to the PCI bus, keep its slot number. */
 	dev->card = pci_add_card(PCI_ADD_NORMAL,
 				 pcnet_pci_read, pcnet_pci_write, dev);
+    } else if (dev->board == DEV_AM79C961) {
+	dev->dma_channel = -1;
+
+	/* Weird secondary checksum. The datasheet isn't clear on what
+	   role it might play with the PnP register mirrors before it. */
+	for (c = 0, checksum = 0; c < 54; c++)
+		checksum += dev->aPROM[c];
+
+	dev->aPROM[51] = checksum;
+
+	memcpy(&dev->aPROM[0x40], am79c961_pnp_rom, sizeof(am79c961_pnp_rom));
+	isapnp_add_card(&dev->aPROM[0x40], sizeof(am79c961_pnp_rom), pcnet_pnp_config_changed, NULL, pcnet_pnp_read_vendor_reg, pcnet_pnp_write_vendor_reg, dev);
     } else {
 	dev->base_address = device_get_config_hex16("base");
 	dev->base_irq = device_get_config_int("irq");
@@ -3164,7 +3258,7 @@ static const device_config_t pcnet_vlb_config[] =
 };
 
 const device_t pcnet_am79c960_device = {
-    "AMD Am79c960 (PCnet-ISA) ",
+    "AMD PCnet-ISA ",
     DEVICE_AT | DEVICE_ISA,
     DEV_AM79C960,
     pcnet_init, pcnet_close, NULL,
@@ -3173,7 +3267,7 @@ const device_t pcnet_am79c960_device = {
 };
 
 const device_t pcnet_am79c960_eb_device = {
-    "AMD Am79c960EB (PCnet-ISA) ",
+    "Racal Interlan EtherBlaster",
     DEVICE_AT | DEVICE_ISA,
     DEV_AM79C960_EB,
     pcnet_init, pcnet_close, NULL,
@@ -3182,7 +3276,7 @@ const device_t pcnet_am79c960_eb_device = {
 };
 
 const device_t pcnet_am79c960_vlb_device = {
-    "AMD Am79c960 (PCnet-VL) ",
+    "AMD PCnet-VL",
     DEVICE_VLB,
     DEV_AM79C960_VLB,
     pcnet_init, pcnet_close, NULL,
@@ -3190,8 +3284,17 @@ const device_t pcnet_am79c960_vlb_device = {
     pcnet_vlb_config
 };
 
+const device_t pcnet_am79c961_device = {
+    "AMD PCnet-ISA+",
+    DEVICE_AT | DEVICE_ISA,
+    DEV_AM79C961,
+    pcnet_init, pcnet_close, NULL,
+    { NULL }, NULL, NULL,
+    pcnet_pci_config
+};
+
 const device_t pcnet_am79c970a_device = {
-    "AMD Am79c970a (PCnet-PCI II)",
+    "AMD PCnet-PCI II",
     DEVICE_PCI,
     DEV_AM79C970A,
     pcnet_init, pcnet_close, NULL,
@@ -3200,7 +3303,7 @@ const device_t pcnet_am79c970a_device = {
 };
 
 const device_t pcnet_am79c973_device = {
-    "AMD Am79c973 (PCnet-FAST)",
+    "AMD PCnet-FAST III",
     DEVICE_PCI,
     DEV_AM79C973,
     pcnet_init, pcnet_close, NULL,

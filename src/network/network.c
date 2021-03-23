@@ -73,6 +73,7 @@ static netcard_t net_cards[] = {
     { "none",		NULL,				NULL	},
     { "3c503",		&threec503_device,		NULL	},
     { "pcnetisa",	&pcnet_am79c960_device, 	NULL	},
+    { "pcnetisaplus",	&pcnet_am79c961_device, 	NULL	},
     { "ne1k",		&ne1000_device,			NULL	},
     { "ne2k",		&ne2000_device,			NULL	},
     { "pcnetracal",	&pcnet_am79c960_eb_device,	NULL	},
