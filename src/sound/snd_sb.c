@@ -74,10 +74,10 @@ static const int sb_pro_mcv_irqs[4] = {7, 5, 3, 3};
 static uint8_t sb_16_pnp_rom[] = {
     0x0e, 0x8c, 0x00, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, /* CTL0028, dummy checksum (filled in by isapnp_add_card) */
     0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
-    0x82, 0x11, 0x00, 0x43, 0x72, 0x65, 0x61, 0x74, 0x69, 0x76, 0x65, 0x20, 0x53, 0x42, 0x31, 0x36, 0x20, 0x50, 0x6e, 0x50, /* ANSI identifier "Creative SB16 PnP" */
+    0x82, 0x11, 0x00, 'C', 'r', 'e', 'a', 't', 'i', 'v', 'e', ' ', 'S', 'B', '1', '6', ' ', 'P', 'n', 'P', /* ANSI identifier */
 
     0x15, 0x0e, 0x8c, 0x00, 0x31, 0x00, /* logical device CTL0031 */
-	0x82, 0x05, 0x00, 0x41, 0x75, 0x64, 0x69, 0x6f, /* ANSI identifier "Audio" */
+	0x82, 0x05, 0x00, 'A', 'u', 'd', 'i', 'o', /* ANSI identifier */
 	0x30, /* start dependent functions, acceptable */
 		0x22, 0xa0, 0x04, /* IRQ 5/7/10 */
 		0x2a, 0x0b, 0x08, /* DMA 0/1/3, compatibility, no count by word, count by byte, not bus master, 8-bit only */
@@ -86,18 +86,19 @@ static uint8_t sb_16_pnp_rom[] = {
 		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
 		0x47, 0x01, 0x88, 0x03, 0x88, 0x03, 0x01, 0x04, /* I/O 0x388, decodes 16-bit, 1-byte alignment, 4 addresses */
 	0x38, /* end dependent functions */
+
     0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
 };
 static uint8_t sb_awe32_pnp_rom[] = {
     0x0e, 0x8c, 0x00, 0x9c, 0x00, 0x00, 0x00, 0x00, 0x00, /* CTL009C, dummy checksum (filled in by isapnp_add_card) */
     0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
-    0x82, 0x11, 0x00, 0x43, 0x72, 0x65, 0x61, 0x74, 0x69, 0x76, 0x65, 0x20, 0x53, 0x42, 0x33, 0x32, 0x20, 0x50, 0x6e, 0x50, /* ANSI identifier "Creative SB32 PnP" */
+    0x82, 0x11, 0x00, 'C', 'r', 'e', 'a', 't', 'i', 'v', 'e', ' ', 'S', 'B', '3', '2', ' ', 'P', 'n', 'P', /* ANSI identifier */
 
-    0x16, 0x0e, 0x8c, 0x00, 0x41, 0x00, 0xa9, /* logical device CTL0041, supports vendor-specific registers 0x38/0x3a/0x3c/0x3f */
-	0x82, 0x05, 0x00, 0x41, 0x75, 0x64, 0x69, 0x6f, /* ANSI identifier "Audio" */
+    0x16, 0x0e, 0x8c, 0x00, 0x41, 0x00, 0xa9, /* logical device CTL0041, supports vendor-specific registers 0x38/0x3A/0x3C/0x3F */
+	0x82, 0x05, 0x00, 'A', 'u', 'd', 'i', 'o', /* ANSI identifier */
 	0x31, 0x00, /* start dependent functions, preferred */
 		0x22, 0x20, 0x00, /* IRQ 5 */
-		0x2a, 0x01, 0x0c, /* DMA 1, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+		0x2a, 0x02, 0x0c, /* DMA 1, compatibility, no count by word, count by byte, is bus master, 8-bit only */
 		0x2a, 0x20, 0x16, /* DMA 5, compatibility, count by word, no count by byte, is bus master, 16-bit only */
 		0x47, 0x01, 0x20, 0x02, 0x20, 0x02, 0x01, 0x10, /* I/O 0x220, decodes 16-bit, 1-byte alignment, 16 addresses */
 		0x47, 0x01, 0x30, 0x03, 0x30, 0x03, 0x01, 0x02, /* I/O 0x330, decodes 16-bit, 1-byte alignment, 2 addresses */
@@ -144,8 +145,8 @@ static uint8_t sb_awe32_pnp_rom[] = {
 		0x47, 0x01, 0x88, 0x03, 0x94, 0x03, 0x04, 0x04, /* I/O 0x388-0x394, decodes 16-bit, 4-byte alignment, 4 addresses */
 	0x38, /* end dependent functions */
 
-    0x16, 0x0e, 0x8c, 0x00, 0x21, 0x00, 0xa9, /* logical device CTL0021, supports vendor-specific registers 0x38/0x3a/0x3c/0x3f */
-	0x82, 0x09, 0x00, 0x57, 0x61, 0x76, 0x65, 0x54, 0x61, 0x62, 0x6c, 0x65, /* ANSI identifier "WaveTable" */
+    0x16, 0x0e, 0x8c, 0x00, 0x21, 0x00, 0xa9, /* logical device CTL0021, supports vendor-specific registers 0x38/0x3A/0x3C/0x3F */
+	0x82, 0x09, 0x00, 'W', 'a', 'v', 'e', 'T', 'a', 'b', 'l', 'e', /* ANSI identifier */
 	0x31, 0x00, /* start dependent functions, preferred */
 		0x47, 0x01, 0x20, 0x06, 0x20, 0x06, 0x01, 0x04, /* I/O 0x620, decodes 16-bit, 1-byte alignment, 4 addresses */
 	0x30, /* start dependent functions, acceptable */
@@ -1131,15 +1132,20 @@ sb_16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 				       opl3_write,   NULL, NULL, &sb->opl);
     io_removehandler(addr + 8, 0x0002, opl3_read,    NULL, NULL,
 				       opl3_write,   NULL, NULL, &sb->opl);
-    io_removehandler(0x0388,   0x0004, opl3_read,    NULL, NULL,
-				       opl3_write,   NULL, NULL, &sb->opl);
     io_removehandler(addr + 4, 0x0002, sb_ct1745_mixer_read,  NULL, NULL,
 				       sb_ct1745_mixer_write, NULL, NULL, sb);
 
+    addr = sb->opl_pnp_addr;
+    if (addr) {
+	sb->opl_pnp_addr = 0;
+	io_removehandler(addr,     0x0004, opl3_read,    NULL, NULL,
+					   opl3_write,   NULL, NULL, &sb->opl);
+    }
+
     sb_dsp_setaddr(&sb->dsp, 0);
     sb_dsp_setirq(&sb->dsp, 0);
-    sb_dsp_setdma8(&sb->dsp, 0);
-    sb_dsp_setdma16(&sb->dsp, 0);
+    sb_dsp_setdma8(&sb->dsp, ISAPNP_DMA_DISABLED);
+    sb_dsp_setdma16(&sb->dsp, ISAPNP_DMA_DISABLED);
 
     mpu401_change_addr(sb->mpu, 0);
 
@@ -1161,9 +1167,11 @@ sb_16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 		mpu401_change_addr(sb->mpu, addr);
 
 	addr = config->io[2].base;
-	if (addr != ISAPNP_IO_DISABLED)
-		io_sethandler(0x0388,   0x0004, opl3_read,    NULL, NULL,
+	if (addr != ISAPNP_IO_DISABLED) {
+		sb->opl_pnp_addr = addr;
+		io_sethandler(addr,	0x0004, opl3_read,    NULL, NULL,
 						opl3_write,   NULL, NULL, &sb->opl);
+	}
 
 	val = config->irq[0].irq;
 	if (val != ISAPNP_IRQ_DISABLED)

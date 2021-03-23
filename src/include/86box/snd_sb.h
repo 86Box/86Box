@@ -126,6 +126,8 @@ typedef struct sb_t
         int pos;
         
         uint8_t pos_regs[8];
+
+        uint16_t opl_pnp_addr;
 } sb_t;
 
 extern void sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *p);
