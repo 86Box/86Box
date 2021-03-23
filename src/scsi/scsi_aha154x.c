@@ -1089,7 +1089,8 @@ aha_init(const device_t *info)
 		dev->cmd_33_offset = 0x7000;		/* offset of the SCSISelect code expansion routine in the
 							   microcode ROM */
 		aha_setmcode(dev);
-		isapnp_add_card(aha1542cp_pnp_rom, dev->pnp_len + 7, aha_pnp_config_changed, NULL, NULL, NULL, dev);
+		if (aha1542cp_pnp_rom)
+			isapnp_add_card(aha1542cp_pnp_rom, dev->pnp_len + 7, aha_pnp_config_changed, NULL, NULL, NULL, dev);
 #ifdef AHA1542CP_FDC
 		dev->fdc = device_add(&fdc_at_device);
 #endif
