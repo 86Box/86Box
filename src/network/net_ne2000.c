@@ -111,7 +111,6 @@ typedef struct {
     uint8_t	eeprom[128];		/* for RTL8029AS */
     rom_t	bios_rom;
     void	*pnp_card;
-    uint8_t	pnp_activate;
     uint8_t	pnp_csnsav;
     uint8_t	maclocal[6];		/* configured MAC (local) address */
 
@@ -502,19 +501,20 @@ static void	nic_ioremove(nic_t *dev, uint16_t addr);
 static void
 nic_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
-    if (ld != 0)
+    if (ld)
 	return;
 
     nic_t *dev = (nic_t *) priv;
 
-    if (dev->pnp_activate)
+    if (dev->base_address) {
 	nic_ioremove(dev, dev->base_address);
+	dev->base_address = 0;
+    }
 
     dev->base_address = config->io[0].base;
     dev->base_irq = config->irq[0].irq;
-    dev->pnp_activate = config->activate;
 
-    if (dev->pnp_activate && (dev->base_address != ISAPNP_IO_DISABLED) && (dev->base_irq != ISAPNP_IRQ_DISABLED))
+    if (config->activate && (dev->base_address != ISAPNP_IO_DISABLED))
 	nic_ioset(dev, dev->base_address);
 }
 
