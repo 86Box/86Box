@@ -436,7 +436,7 @@ scsi_disk_data_phase_error(scsi_disk_t *dev)
 static int
 scsi_disk_pre_execution_check(scsi_disk_t *dev, uint8_t *cdb)
 {
-    if ((cdb[0] != GPCMD_REQUEST_SENSE) && (cdb[1] & 0xe0)) {
+    if ((cdb[0] != GPCMD_REQUEST_SENSE) && (dev->cur_lun == SCSI_LUN_USE_CDB) && (cdb[1] & 0xe0)) {
 	scsi_disk_log("SCSI HD %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n",
 		    dev->id, ((dev->request_length >> 5) & 7));
 	scsi_disk_invalid_lun(dev);
@@ -488,6 +488,7 @@ scsi_disk_reset(scsi_common_t *sc)
     dev->status = 0;
     dev->callback = 0.0;
     dev->packet_status = PHASE_NONE;
+    dev->cur_lun = SCSI_LUN_USE_CDB;
 }
 
 
@@ -1251,6 +1252,8 @@ scsi_disk_hard_reset(void)
 
 		dev->id = c;
 		dev->drv = &hdd[c];
+
+		dev->cur_lun = SCSI_LUN_USE_CDB;
 
 		scsi_disk_mode_sense_load(dev);
 

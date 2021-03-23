@@ -1160,7 +1160,7 @@ mo_pre_execution_check(mo_t *dev, uint8_t *cdb)
     int ready = 0;
 
     if (dev->drv->bus_type == MO_BUS_SCSI) {
-	if ((cdb[0] != GPCMD_REQUEST_SENSE) && (cdb[1] & 0xe0)) {
+	if ((cdb[0] != GPCMD_REQUEST_SENSE) && (dev->cur_lun == SCSI_LUN_USE_CDB) && (cdb[1] & 0xe0)) {
 		mo_log("MO %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n", dev->id, ((dev->request_length >> 5) & 7));
 		mo_invalid_lun(dev);
 		return 0;
@@ -1260,6 +1260,7 @@ mo_reset(scsi_common_t *sc)
     dev->request_length = 0xEB14;
     dev->packet_status = PHASE_NONE;
     dev->unit_attention = 0;
+    dev->cur_lun = SCSI_LUN_USE_CDB;
 }
 
 
@@ -2121,6 +2122,7 @@ mo_drive_reset(int c)
     dev = (mo_t *) mo_drives[c].priv;
 
     dev->id = c;
+    dev->cur_lun = SCSI_LUN_USE_CDB;
 
     if (mo_drives[c].bus_type == MO_BUS_SCSI) {
 	/* SCSI MO, attach to the SCSI bus. */

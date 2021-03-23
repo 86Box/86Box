@@ -77,6 +77,8 @@ static SCSI_CARD scsi_cards[] = {
     { "spock",		&spock_device,		},
     { "bt958d",		&buslogic_pci_device,	},
     { "ncr53c810",	&ncr53c810_pci_device,	},
+    { "ncr53c815",	&ncr53c815_pci_device,	},
+    { "ncr53c820",	&ncr53c820_pci_device,	},
     { "ncr53c825a",	&ncr53c825a_pci_device,	},
     { "ncr53c860",	&ncr53c860_pci_device,	},
     { "ncr53c875",	&ncr53c875_pci_device,	},

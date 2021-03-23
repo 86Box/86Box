@@ -439,6 +439,8 @@ x54x_bios_command(x54x_t *x54x, uint8_t max_id, BIOSCMD *cmd, int8_t islba)
 		x54x_log("BIOS Target ID %i has no device attached\n", cmd->id);
 		ret = 0x80;
 	} else {
+		scsi_device_identify(dev, 0xff);
+
 		if ((dev->type == SCSI_REMOVABLE_CDROM) && !(x54x->flags & X54X_CDROM_BOOT)) {
 			x54x_log("BIOS Target ID %i is CD-ROM on unsupported BIOS\n", cmd->id);
 			return(0x80);
@@ -1051,12 +1053,21 @@ x54x_mbo_free(x54x_t *dev)
 static void
 x54x_notify(x54x_t *dev)
 {
+    Req_t *req = &dev->Req;
+    scsi_device_t *sd;
+
+    sd = &scsi_devices[req->TargetID];
+
     x54x_mbo_free(dev);
 
     if (dev->MailboxIsBIOS)
 	x54x_ccb(dev);
     else
 	x54x_mbi(dev);
+
+    /* Make sure to restore device to non-IDENTIFY'd state as we disconnect. */
+    if (sd->type != SCSI_NONE)
+	scsi_device_identify(sd, SCSI_LUN_USE_CDB);
 }
 
 
@@ -1091,14 +1102,14 @@ x54x_req_setup(x54x_t *dev, uint32_t CCBPointer, Mailbox32_t *Mailbox32)
 
     sd->status = SCSI_STATUS_OK;
 
-    /* If there is no device at ID:0, timeout the selection - the LUN is then checked later. */
-    if (! scsi_device_present(sd)) {
+    if (!scsi_device_present(sd) || (lun > 0)) {
 	x54x_log("SCSI Target ID %i and LUN %i have no device attached\n",id,lun);
 	x54x_mbi_setup(dev, CCBPointer, &req->CmdBlock,
 		       CCB_SELECTION_TIMEOUT, SCSI_STATUS_OK, MBI_ERROR);
 	dev->callback_sub_phase = 4;
     } else {
 	x54x_log("SCSI Target ID %i detected and working\n", id);
+	scsi_device_identify(sd, lun);
 
 	x54x_log("Transfer Control %02X\n", req->CmdBlock.common.ControlByte);
 	x54x_log("CDB Length %i\n", req->CmdBlock.common.CdbLength);	

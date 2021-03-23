@@ -289,7 +289,7 @@ esp_get_cmd(esp_t *dev, uint8_t *buf, uint8_t buflen)
     dev->ti_rptr = 0;
     dev->ti_wptr = 0;
     
-    if (scsi_device_present(&scsi_devices[dev->id]) && (dev->lun >= 1 && dev->lun <= 7)) {
+    if (scsi_device_present(&scsi_devices[dev->id]) && (dev->lun > 0)) {
         /* We only support LUN 0 */
         dev->rregs[ESP_RSTAT] = 0;
         dev->rregs[ESP_RINTR] = INTR_DC;
@@ -297,7 +297,9 @@ esp_get_cmd(esp_t *dev, uint8_t *buf, uint8_t buflen)
 	esp_raise_irq(dev);
 	return 0;
     }
-    
+
+    scsi_device_identify(&scsi_devices[dev->id], dev->lun);
+
     return dmalen;
 }
 
@@ -340,6 +342,8 @@ esp_do_busid_cmd(esp_t *dev, uint8_t *buf, uint8_t busid)
 	esp_log("ESP SCSI Command with no length\n");
 	esp_pci_command_complete(dev, sd->status);
     }
+
+    scsi_device_identify(sd, SCSI_LUN_USE_CDB);
 
     dev->rregs[ESP_RINTR] = INTR_BS | INTR_FC;
     dev->rregs[ESP_RSEQ] = SEQ_CD;

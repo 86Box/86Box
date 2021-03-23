@@ -26,8 +26,8 @@ typedef struct {
 
     uint8_t status, phase,
 	    error, id,
-	    pad0, pad1,
-	    pad2, pad3;
+	    pad0, cur_lun,
+	    pad1, pad2;
 
     uint16_t request_length, pad4;
 

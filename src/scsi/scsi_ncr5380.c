@@ -428,8 +428,7 @@ ncr_bus_update(void *priv, int bus)
 			if (ncr->command_pos == cmd_len[(ncr->command[0] >> 5) & 7]) {
 				if (ncr->is_msgout) {
 					ncr->is_msgout = 0;
-					ncr->command[1] &= ~(0x80 | 0x40 | 0x20);
-					ncr->command[1] |= ncr->msglun << 5;
+					// ncr->command[1] = (ncr->command[1] & 0x1f) | (ncr->msglun << 5);
 				}
 
 				/*Reset data position to default*/
@@ -515,6 +514,7 @@ ncr_bus_update(void *priv, int bus)
 	case STATE_STATUS:
 		if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
 			/*All transfers done, wait until next transfer*/
+			scsi_device_identify(&scsi_devices[ncr->target_id], SCSI_LUN_USE_CDB);
 			ncr->cur_bus &= ~BUS_REQ;
 			ncr->new_phase = SCSI_PHASE_MESSAGE_IN;
 			ncr->wait_data = 4;
@@ -535,7 +535,7 @@ ncr_bus_update(void *priv, int bus)
 			msglen = getmsglen(ncr->msgout, ncr->msgout_pos);
 			if (ncr->msgout_pos >= msglen) {
 				if ((ncr->msgout[0] & (0x80 | 0x20)) == 0x80)
-				ncr->msglun = ncr->msgout[0] & 7;			
+					ncr->msglun = ncr->msgout[0] & 7;
 				ncr->cur_bus &= ~BUS_REQ;
 				ncr->state = STATE_MESSAGE_ID;
 			}
@@ -544,6 +544,7 @@ ncr_bus_update(void *priv, int bus)
 	case STATE_MESSAGE_ID:
 		if ((ncr->target_id != (uint8_t)-1) && scsi_device_present(&scsi_devices[ncr->target_id])) {
 			ncr_log("Device found at ID %i on MSGOUT, Current Bus BSY=%02x\n", ncr->target_id, ncr->cur_bus);
+			scsi_device_identify(&scsi_devices[ncr->target_id], ncr->msglun);
 			ncr->state = STATE_COMMAND;
 			ncr->cur_bus = BUS_BSY | BUS_REQ;
 			ncr_log("CurBus BSY|REQ=%02x\n", ncr->cur_bus);

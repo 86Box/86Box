@@ -158,6 +158,21 @@ scsi_device_command_phase1(scsi_device_t *dev)
 }
 
 
+/* When LUN is FF, there has been no IDENTIFY message, otherwise
+   there has been one. */
+void
+scsi_device_identify(scsi_device_t *dev, uint8_t lun)
+{
+    if ((dev == NULL) || (dev->type == SCSI_NONE) || !dev->sc)
+	return;
+
+    dev->sc->cur_lun = lun;
+
+    /* TODO: This should return a value, should IDENTIFY fail due to a
+	     a LUN not supported by the target. */
+}
+
+
 void
 scsi_device_close_all(void)
 {

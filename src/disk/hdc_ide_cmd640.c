@@ -133,6 +133,9 @@ cmd640_common_write(int addr, uint8_t val, cmd640_t *dev)
 	case 0x57:
 		dev->regs[addr] = val & 0xdc;
 		break;
+	case 0x5b:	/* Undocumented register that Linux attempts to use! */
+		dev->regs[addr] = val;
+		break;
     }
 }
 

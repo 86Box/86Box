@@ -46,17 +46,8 @@
 #include <86box/scsi_ncr53c8xx.h>
 
 
-#define NCR53C810_SDMS3_ROM	L"roms/scsi/ncr53c8xx/810/NCR307.BIN"
-#define SYM53C810_SDMS4_ROM	L"roms/scsi/ncr53c8xx/810/8XX_64.ROM"
-#define NCR53C815_SDMS3_ROM	L"roms/scsi/ncr53c8xx/815/NCR307.BIN"
-#define SYM53C815_SDMS4_ROM	L"roms/scsi/ncr53c8xx/815/8XX_64.ROM"
-#define NCR53C825A_SDMS3_ROM	L"roms/scsi/ncr53c8xx/825A/NCR307.BIN"
-#define SYM53C825A_SDMS4_ROM	L"roms/scsi/ncr53c8xx/825A/8XX_64.ROM"
-#define NCR53C860_SDMS3_ROM	L"roms/scsi/ncr53c8xx/860/NCR307.BIN"
-#define SYM53C860_SDMS4_ROM	L"roms/scsi/ncr53c8xx/860/8XX_64.ROM"
-#define NCR53C875_SDMS3_ROM	L"roms/scsi/ncr53c8xx/875/NCR307.BIN"
-#define SYM53C875_SDMS4_ROM	L"roms/scsi/ncr53c8xx/875/8XX_64.ROM"
-// #define SYM53C875_SDMS4_ROM	L"roms/scsi/ncr53c8xx/875/8xx_64.rom.419"
+#define NCR53C8XX_SDMS3_ROM	L"roms/scsi/ncr53c8xx/NCR307.BIN"
+#define SYM53C8XX_SDMS4_ROM	L"roms/scsi/ncr53c8xx/8xx_64.ROM"
 
 #define HA_ID		  7
 
@@ -620,10 +611,15 @@ ncr53c8xx_bad_phase(ncr53c8xx_t *dev, int out, int new_phase)
 static void
 ncr53c8xx_disconnect(ncr53c8xx_t *dev)
 {
+    scsi_device_t *sd;
+
+    sd = &scsi_devices[dev->sdid];
+
     dev->scntl1 &= ~NCR_SCNTL1_CON;
     dev->sstat1 &= ~PHASE_MASK;
     if (dev->dcmd & 0x01)		/* Select with ATN */
 	dev->sstat1 |= 0x07;
+    scsi_device_identify(sd, SCSI_LUN_USE_CDB);
 }
 
 
@@ -755,7 +751,7 @@ ncr53c8xx_do_command(ncr53c8xx_t *dev, uint8_t id)
     dev->command_complete = 0;
 
     sd = &scsi_devices[id];
-    if (!scsi_device_present(sd)) {
+    if (!scsi_device_present(sd) || (dev->current_lun > 0)) {
 	ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: Bad Selection\n", id, dev->current_lun, buf[0]);
 	ncr53c8xx_bad_selection(dev, id);
 	return 0;
@@ -1006,6 +1002,7 @@ ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
 				/* 0x80 to 0xff are IDENTIFY messages. */
 				ncr53c8xx_log("MSG: Identify\n");
 				dev->current_lun = msg & 7;
+				scsi_device_identify(sd, msg & 7);
 				ncr53c8xx_log("Select LUN %d\n", dev->current_lun);
 #ifdef USE_WDTR
 				if ((dev->chip == CHIP_875) && !dev->tr_set[dev->sdid])
@@ -2492,7 +2489,7 @@ ncr53c8xx_pci_write(int func, int addr, uint8_t val, void *p)
 		/* Then let's calculate the new I/O base. */
 		ncr53c8xx_pci_bar[3].addr &= (dev->bios_mask | 0x00000001);
 		dev->BIOSBase = ncr53c8xx_pci_bar[3].addr & dev->bios_mask;
-		pclog("BIOS BAR: %08X\n", dev->BIOSBase | ncr53c8xx_pci_bar[3].addr_regs[0]);
+		ncr53c8xx_log("BIOS BAR: %08X\n", dev->BIOSBase | ncr53c8xx_pci_bar[3].addr_regs[0]);
 		/* Log the new base. */
 		ncr53c8xx_log("NCR53c8xx: New BIOS base is %08X\n" , dev->BIOSBase);
 		/* We're done, so get out of the here. */
@@ -2521,23 +2518,33 @@ ncr53c8xx_init(const device_t *info)
 
     dev->chip = info->local & 0xff;
 
-    if ((dev->chip != CHIP_810) && (dev->chip != CHIP_820) && !(info->local & 0x8000))
+    if ((dev->chip != CHIP_810) && (dev->chip != CHIP_820) && !(info->local & 0x8000)) {
 	dev->has_bios = device_get_config_int("bios");
-    else
+
+	/* We have to auto-patch the BIOS to have the correct PCI Device ID, because for some reason, they all ship with
+	   the PCI Device ID set to that of the NCR 53c825, but for a machine BIOS to load the SCSI BIOS correctly, the
+	   PCI Device ID in the BIOS' PCIR block must match the one returned in the PCI registers. */
+	if (dev->has_bios == 2) {
+	    rom_init(&dev->bios, SYM53C8XX_SDMS4_ROM, 0xd0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+	    ncr53c8xx_log("BIOS v4.19: Old BIOS CHIP ID: %02X, old BIOS checksum: %02X\n", dev->bios.rom[0x0022], dev->bios.rom[0xffff]);
+	    dev->bios.rom[0xffff] += (dev->bios.rom[0x0022] - dev->chip);
+	    dev->bios.rom[0x0022] = dev->chip;
+	    ncr53c8xx_log("BIOS v4.19: New BIOS CHIP ID: %02X, old BIOS checksum: %02X\n", dev->bios.rom[0x0022], dev->bios.rom[0xffff]);
+	} else if (dev->has_bios == 1) {
+	    rom_init(&dev->bios, NCR53C8XX_SDMS3_ROM, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+	    ncr53c8xx_log("BIOS v3.07: Old BIOS CHIP ID: %02X, old BIOS checksum: %02X\n", dev->bios.rom[0x3fcb], dev->bios.rom[0x3fff]);
+	    dev->bios.rom[0x3fff] += (dev->bios.rom[0x3fcb] - dev->chip);
+	    dev->bios.rom[0x3fcb] = dev->chip;
+	    ncr53c8xx_log("BIOS v3.07: New BIOS CHIP ID: %02X, old BIOS checksum: %02X\n", dev->bios.rom[0x3fcb], dev->bios.rom[0x3fff]);
+	}
+    } else
 	dev->has_bios = 0;
+
     if (dev->chip == CHIP_875) {
-	if (dev->has_bios == 2)
-	    rom_init(&dev->bios, SYM53C875_SDMS4_ROM, 0xd0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
-	else if (dev->has_bios == 1)
-	    rom_init(&dev->bios, NCR53C875_SDMS3_ROM, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 	dev->chip_rev = 0x04;
 	dev->nvr_path = L"ncr53c875.nvr";
 	dev->wide = 1;
     } else if (dev->chip == CHIP_860) {
-	if (dev->has_bios == 2)
-	    rom_init(&dev->bios, SYM53C860_SDMS4_ROM, 0xd0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
-	else if (dev->has_bios == 1)
-	    rom_init(&dev->bios, NCR53C860_SDMS3_ROM, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 	dev->chip_rev = 0x04;
 	dev->nvr_path = L"ncr53c860.nvr";
 	dev->wide = 1;
@@ -2545,10 +2552,6 @@ ncr53c8xx_init(const device_t *info)
 	dev->nvr_path = L"ncr53c820.nvr";
 	dev->wide = 1;
     } else if (dev->chip == CHIP_825) {
-	if (dev->has_bios == 2)
-	    rom_init(&dev->bios, SYM53C825A_SDMS4_ROM, 0xd0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
-	else if (dev->has_bios == 1)
-	    rom_init(&dev->bios, NCR53C825A_SDMS3_ROM, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 	dev->chip_rev = 0x26;
 	dev->nvr_path = L"ncr53c825a.nvr";
 	dev->wide = 1;
@@ -2556,15 +2559,11 @@ ncr53c8xx_init(const device_t *info)
 	dev->nvr_path = L"ncr53c810.nvr";
 	dev->wide = 0;
     } else if (dev->chip == CHIP_815) {
-	if (dev->has_bios == 2)
-	    rom_init(&dev->bios, SYM53C815_SDMS4_ROM, 0xd0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
-	else if (dev->has_bios == 1)
-	    rom_init(&dev->bios, NCR53C815_SDMS3_ROM, 0xc8000, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 	dev->chip_rev = 0x04;
 	dev->nvr_path = L"ncr53c815.nvr";	
 	dev->wide = 0;
     }
-    
+
     ncr53c8xx_pci_bar[0].addr_regs[0] = 1;
     ncr53c8xx_pci_bar[1].addr_regs[0] = 0;    
     ncr53c8xx_pci_regs[0x04] = 3;	

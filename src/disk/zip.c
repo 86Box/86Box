@@ -1227,7 +1227,7 @@ zip_pre_execution_check(zip_t *dev, uint8_t *cdb)
     int ready = 0;
 
     if (dev->drv->bus_type == ZIP_BUS_SCSI) {
-	if ((cdb[0] != GPCMD_REQUEST_SENSE) && (cdb[1] & 0xe0)) {
+	if ((cdb[0] != GPCMD_REQUEST_SENSE) && (dev->cur_lun == SCSI_LUN_USE_CDB) && (cdb[1] & 0xe0)) {
 		zip_log("ZIP %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n", dev->id, ((dev->request_length >> 5) & 7));
 		zip_invalid_lun(dev);
 		return 0;
@@ -1327,6 +1327,7 @@ zip_reset(scsi_common_t *sc)
     dev->request_length = 0xEB14;
     dev->packet_status = PHASE_NONE;
     dev->unit_attention = 0;
+    dev->cur_lun = SCSI_LUN_USE_CDB;
 }
 
 
@@ -2338,6 +2339,7 @@ zip_drive_reset(int c)
     dev = (zip_t *) zip_drives[c].priv;
 
     dev->id = c;
+    dev->cur_lun = SCSI_LUN_USE_CDB;
 
     if (zip_drives[c].bus_type == ZIP_BUS_SCSI) {
 	/* SCSI ZIP, attach to the SCSI bus. */

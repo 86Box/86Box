@@ -24,6 +24,8 @@
 #define SCSI_ID_MAX		16		/* 16 on wide buses */
 #define SCSI_LUN_MAX		8		/* always 8 */
 
+#define SCSI_LUN_USE_CDB	0xff
+
 #ifdef WALTJE
 #define SCSI_TIME	50.0
 #else
@@ -320,7 +322,7 @@ typedef struct scsi_common_s {
 
     uint8_t status, phase,
 	    error, id,
-	    features, pad,
+	    features, cur_lun,
 	    pad0, pad1;
 
     uint16_t request_length, max_transfer_len;
@@ -378,6 +380,7 @@ extern int	scsi_device_cdb_length(scsi_device_t *dev);
 extern void	scsi_device_command_phase0(scsi_device_t *dev, uint8_t *cdb);
 extern void	scsi_device_command_phase1(scsi_device_t *dev);
 extern void	scsi_device_command_stop(scsi_device_t *dev);
+extern void	scsi_device_identify(scsi_device_t *dev, uint8_t lun);
 extern void	scsi_device_close_all(void);
 extern void	scsi_device_init(void);
 

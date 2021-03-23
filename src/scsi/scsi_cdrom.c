@@ -1203,7 +1203,7 @@ scsi_cdrom_pre_execution_check(scsi_cdrom_t *dev, uint8_t *cdb)
     int ready = 0;
 
     if (dev->drv->bus_type == CDROM_BUS_SCSI) {
-	if ((cdb[0] != GPCMD_REQUEST_SENSE) && (cdb[1] & 0xe0)) {
+	if ((cdb[0] != GPCMD_REQUEST_SENSE) && (dev->cur_lun == SCSI_LUN_USE_CDB) && (cdb[1] & 0xe0)) {
 		scsi_cdrom_log("CD-ROM %i: Attempting to execute a unknown command targeted at SCSI LUN %i\n",
 			  dev->id, ((dev->request_length >> 5) & 7));
 		scsi_cdrom_invalid_lun(dev);
@@ -1314,6 +1314,7 @@ scsi_cdrom_reset(scsi_common_t *sc)
     dev->request_length = 0xEB14;
     dev->packet_status = PHASE_NONE;
     dev->unit_attention = 0xff;
+    dev->cur_lun = SCSI_LUN_USE_CDB;
 }
 
 
@@ -2704,6 +2705,9 @@ scsi_cdrom_drive_reset(int c)
 
     dev->id = c;
     dev->drv = drv;
+
+    dev->cur_lun = SCSI_LUN_USE_CDB;
+
     drv->insert = scsi_cdrom_insert;
     drv->get_volume = scsi_cdrom_get_volume;
     drv->get_channel = scsi_cdrom_get_channel;
