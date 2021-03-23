@@ -85,7 +85,7 @@ enum {
 typedef struct _isapnp_device_ {
     uint8_t	number;
     uint8_t	regs[256];
-    uint8_t	upperlimit;
+    uint8_t	mem_upperlimit, irq_types, io_16bit;
 
     struct _isapnp_device_ *next;
 } isapnp_device_t;
@@ -171,10 +171,22 @@ isapnp_reset_ld_regs(isapnp_device_t *ld)
     /* Set the upper limit bit on memory ranges which require it. */
     uint8_t i;
     for (i = 0; i < 4; i++)
-	ld->regs[0x42 + (8 * i)] |= !!(ld->upperlimit & (1 << i));
-    ld->regs[0x7a] |= !!(ld->upperlimit & (1 << 4));
+	ld->regs[0x42 + (8 * i)] |= !!(ld->mem_upperlimit & (1 << i));
+    ld->regs[0x7a] |= !!(ld->mem_upperlimit & (1 << 4));
     for (i = 1; i < 4; i++)
-	ld->regs[0x84 + (16 * i)] |= !!(ld->upperlimit & (1 << (4 + i)));
+	ld->regs[0x84 + (16 * i)] |= !!(ld->mem_upperlimit & (1 << (4 + i)));
+
+    /* Set the default IRQ type bits. */
+    for (i = 0; i < 2; i++) {
+	if (ld->irq_types & (0x1 << (4 * i)))
+		ld->regs[0x70 + (2 * i)] = 0x02;
+	else if (ld->irq_types & (0x2 << (4 * i)))
+		ld->regs[0x70 + (2 * i)] = 0x00;
+	else if (ld->irq_types & (0x4 << (4 * i)))
+		ld->regs[0x70 + (2 * i)] = 0x03;
+	else if (ld->irq_types & (0x8 << (4 * i)))
+		ld->regs[0x70 + (2 * i)] = 0x01;
+    }
 }
 
 
@@ -382,7 +394,7 @@ isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
     isapnp_t *dev = (isapnp_t *) priv;
     isapnp_card_t *card;
     isapnp_device_t *ld;
-    uint16_t io_addr;
+    uint16_t io_addr, reset_cards = 0;
 
     isapnp_log("ISAPnP: write_data(%02X)\n", val);
 
@@ -401,16 +413,21 @@ isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
 			while (card) {
 				ld = card->first_ld;
 				while (ld) {
-					isapnp_reset_ld_regs(ld);
-					isapnp_device_config_changed(card, ld);
+					if (card->state != PNP_STATE_WAIT_FOR_KEY) {
+						isapnp_reset_ld_regs(ld);
+						isapnp_device_config_changed(card, ld);
+						reset_cards++;
+					}
 					ld = ld->next;
 				}
 				card = card->next;
 			}
 
-			dev->current_ld = NULL;
-			dev->current_ld_card = NULL;
-			dev->isolated_card = NULL;
+			if (reset_cards != 0) {
+				dev->current_ld = NULL;
+				dev->current_ld_card = NULL;
+				dev->isolated_card = NULL;
+			}
 		}
 		if (val & 0x02) {
 			isapnp_log("ISAPnP: Return to WAIT_FOR_KEY\n");
@@ -551,6 +568,26 @@ isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
 					/* read-only memory range length / upper limit bit */
 					val = (val & 0xfe) | (dev->current_ld->regs[dev->reg] & 0x01);
 					break;
+
+				case 0x60: case 0x62: case 0x64: case 0x66: case 0x68: case 0x6a: case 0x6c: case 0x6e:
+					/* discard upper address bits if this I/O range can only decode 10-bit */
+					if (!(dev->current_ld->io_16bit & (1 << ((dev->reg >> 1) & 0x07))))
+						val &= 0x07;
+					break;
+
+				case 0x71: case 0x73:
+					/* limit IRQ types to supported ones */
+					if ((val & 0x01) && !(dev->current_ld->irq_types & ((dev->reg == 0x71) ? 0x0c : 0xc0))) /* level, not supported = force edge */
+						val &= ~0x01;
+					else if (!(val & 0x01) && !(dev->current_ld->irq_types & ((dev->reg == 0x71) ? 0x03 : 0x30))) /* edge, not supported = force level */
+						val |= 0x01;
+
+					if ((val & 0x02) && !(dev->current_ld->irq_types & ((dev->reg == 0x71) ? 0x05 : 0x50))) /* high, not supported = force low */
+						val &= ~0x02;
+					else if (!(val & 0x02) && !(dev->current_ld->irq_types & ((dev->reg == 0x71) ? 0x0a : 0xa0))) /* low, not supported = force high */
+						val |= 0x02;
+
+					break;
 			}
 
 			dev->current_ld->regs[dev->reg] = val;
@@ -633,15 +670,15 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
 	prev_card->next = card;
     }
 
-    /* Parse resources in ROM to allocate logical devices, and determine
-       which memory ranges use upper limit or range length addressing. */
+    /* Parse resources in ROM to allocate logical devices,
+       and determine the state of read-only register bits. */
 #ifdef ENABLE_ISAPNP_LOG
     uint16_t vendor = (card->rom[0] << 8) | card->rom[1];
     isapnp_log("ISAPnP: Parsing ROM resources for card %c%c%c%02X%02X (serial %08X)\n", '@' + ((vendor >> 10) & 0x1f), '@' + ((vendor >> 5) & 0x1f), '@' + (vendor & 0x1f), card->rom[2], card->rom[3], (card->rom[7] << 24) | (card->rom[6] << 16) | (card->rom[5] << 8) | card->rom[4]);
 #endif
     uint16_t i = 9, j;
     uint8_t ldn = 0, res, in_df = 0;
-    uint8_t mem_range = 0, mem_range_32 = 0, mem_range_df = 0, mem_range_32_df = 0;
+    uint8_t irq = 0, io = 0, mem_range = 0, mem_range_32 = 0, irq_df = 0, io_df = 0, mem_range_df = 0, mem_range_32_df = 0;
     uint32_t len;
     isapnp_device_t *ld = NULL, *prev_ld = NULL;
 
@@ -660,8 +697,6 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
 					isapnp_log("ISAPnP: >>%s Memory range %d uses upper limit = ", in_df ? ">" : "", mem_range);
 					res = 1 << mem_range;
 					mem_range++;
-					if (!in_df)
-						mem_range_df++;
 				} else {
 					if (mem_range_32 > 3)
 						fatal("ISAPnP: 32-bit memory descriptor overflow (%d)\n", mem_range_32);
@@ -669,16 +704,14 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
 					isapnp_log("ISAPnP: >>%s 32-bit memory range %d uses upper limit = ", in_df ? ">" : "", mem_range_32);
 					res = 1 << (4 + mem_range_32);
 					mem_range_32++;
-					if (!in_df)
-						mem_range_32_df++;
 				}
 
 				if (card->rom[i + 3] & 0x4) {
 					isapnp_log("yes\n");
-					ld->upperlimit |= res;
+					ld->mem_upperlimit |= res;
 				} else {
 					isapnp_log("no\n");
-					ld->upperlimit &= ~res;
+					ld->mem_upperlimit &= ~res;
 				}
 
 				break;
@@ -727,7 +760,7 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
 					card->first_ld = ld;
 
 				/* Start the position counts over. */
-				mem_range = mem_range_32 = mem_range_df = mem_range_32_df = 0;
+				irq = io = mem_range = mem_range_32 = irq_df = io_df = mem_range_df = mem_range_32_df = 0;
 
 				break;
 
@@ -738,16 +771,38 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
 				break;
 #endif
 
+			case 0x04: /* IRQ */
+				if (irq > 1)
+					fatal("ISAPnP: IRQ descriptor overflow (%d)\n", irq);
+
+				if (len == 2) /* default */
+					res = 0x01; /* high true edge sensitive */
+				else /* specific */
+					res = card->rom[i + 3] & 0x0f;
+
+				isapnp_log("ISAPnP: >>%s IRQ index %d interrupt types = %01X\n", in_df ? ">" : "", irq, res);
+
+				ld->irq_types &= ~(0x0f << (4 * irq));
+				ld->irq_types |= res << (4 * irq);
+
+				irq++;
+
+				break;
+
 			case 0x06: /* start dependent function */
 				isapnp_log("ISAPnP: >> Start dependent function: %s\n", (((len == 0) || (card->rom[i + 1] == 1)) ? "acceptable" : ((card->rom[i + 1] == 0) ? "good" : ((card->rom[i + 1] == 2) ? "sub-optimal" : "unknown priority"))));
 
 				if (in_df) {
 					/* We're in a dependent function and this is the next one starting.
 					   Walk positions back to the saved values. */
+					irq = irq_df;
+					io = io_df;
 					mem_range = mem_range_df;
 					mem_range_32 = mem_range_32_df;
 				} else {
 					/* Save current positions to restore at the next DF. */
+					irq_df = irq;
+					io_df = io;
 					mem_range_df = mem_range;
 					mem_range_32_df = mem_range_32;
 					in_df = 1;
@@ -758,6 +813,21 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
 			case 0x07: /* end dependent function */
 				isapnp_log("ISAPnP: >> End dependent function\n");
 				in_df = 0;
+				break;
+
+			case 0x08: /* I/O port */
+				if (io > 7)
+					fatal("ISAPnP: I/O descriptor overflow (%d)\n", io);
+
+				isapnp_log("ISAPnP: >>%s I/O range %d %d-bit decode\n", in_df ? ">" : "", io, (card->rom[i + 1] & 0x01) ? 16 : 10);
+
+				if (card->rom[i + 1] & 0x01)
+					ld->io_16bit |= 1 << io;
+				else
+					ld->io_16bit &= ~(1 << io);
+
+				io++;
+
 				break;
 
 			case 0x0f: /* end tag */
