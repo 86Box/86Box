@@ -39,6 +39,7 @@
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/scsi_device.h>
+#include <86box/isapnp.h>
 #include <86box/cdrom.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
@@ -54,8 +55,8 @@
 #define IDX_STAT			0x02 /* Index */
 #define CORR_STAT			0x04 /* Corrected data */
 #define DRQ_STAT			0x08 /* Data request */
-#define DSC_STAT                	0x10 /* Drive seek complete */
-#define SERVICE_STAT            	0x10 /* ATAPI service */
+#define DSC_STAT			0x10 /* Drive seek complete */
+#define SERVICE_STAT			0x10 /* ATAPI service */
 #define DWF_STAT			0x20 /* Drive write fault */
 #define DRDY_STAT			0x40 /* Ready */
 #define BSY_STAT			0x80 /* Busy */
@@ -75,24 +76,24 @@
 #define WIN_SRST			0x08 /* ATAPI Device Reset */
 #define WIN_RECAL			0x10
 #define WIN_READ			0x20 /* 28-Bit Read */
-#define WIN_READ_NORETRY                0x21 /* 28-Bit Read - no retry */
+#define WIN_READ_NORETRY		0x21 /* 28-Bit Read - no retry */
 #define WIN_WRITE			0x30 /* 28-Bit Write */
 #define WIN_WRITE_NORETRY		0x31 /* 28-Bit Write - no retry */
 #define WIN_VERIFY			0x40 /* 28-Bit Verify */
 #define WIN_VERIFY_ONCE			0x41 /* Added by OBattler - deprected older ATA command, according to the specification I found, it is identical to 0x40 */
 #define WIN_FORMAT			0x50
 #define WIN_SEEK			0x70
-#define WIN_DRIVE_DIAGNOSTICS           0x90 /* Execute Drive Diagnostics */
+#define WIN_DRIVE_DIAGNOSTICS		0x90 /* Execute Drive Diagnostics */
 #define WIN_SPECIFY			0x91 /* Initialize Drive Parameters */
 #define WIN_PACKETCMD			0xA0 /* Send a packet command. */
 #define WIN_PIDENTIFY			0xA1 /* Identify ATAPI device */
-#define WIN_READ_MULTIPLE               0xC4
-#define WIN_WRITE_MULTIPLE              0xC5
-#define WIN_SET_MULTIPLE_MODE           0xC6
-#define WIN_READ_DMA                    0xC8
-#define WIN_READ_DMA_ALT                0xC9
-#define WIN_WRITE_DMA                   0xCA
-#define WIN_WRITE_DMA_ALT               0xCB
+#define WIN_READ_MULTIPLE		0xC4
+#define WIN_WRITE_MULTIPLE		0xC5
+#define WIN_SET_MULTIPLE_MODE		0xC6
+#define WIN_READ_DMA			0xC8
+#define WIN_READ_DMA_ALT		0xC9
+#define WIN_WRITE_DMA			0xCA
+#define WIN_WRITE_DMA_ALT		0xCB
 #define WIN_STANDBYNOW1			0xE0
 #define WIN_IDLENOW1			0xE1
 #define WIN_SETIDLE1			0xE3
@@ -130,6 +131,29 @@ typedef struct {
 
 static ide_board_t	*ide_boards[4] = { NULL, NULL, NULL, NULL };
 static ide_bm_t		*ide_bm[4] = { NULL, NULL, NULL, NULL };
+
+static uint8_t ide_ter_pnp_rom[] = {
+    0x09, 0xf8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, /* BOX0001, serial 0, dummy checksum (filled in by isapnp_add_card) */
+    0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
+
+    0x15, 0x41, 0xd0, 0x06, 0x00, 0x00, /* logical device PNP0600 */
+	0x22, 0xb8, 0x1e, /* IRQ 3/4/5/7/9/10/11/12 */
+	0x47, 0x00, 0x68, 0x01, 0x68, 0x01, 0x01, 0x08, /* I/O 0x168, decodes 10-bit, 1-byte alignment, 8 addresses */
+	0x47, 0x00, 0x6e, 0x03, 0x6e, 0x03, 0x01, 0x01, /* I/O 0x36E, decodes 10-bit, 1-byte alignment, 1 address */
+
+    0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
+};
+static uint8_t ide_qua_pnp_rom[] = {
+    0x09, 0xf8, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, /* BOX0001, serial 1, dummy checksum (filled in by isapnp_add_card) */
+    0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
+
+    0x15, 0x41, 0xd0, 0x06, 0x00, 0x00, /* logical device PNP0600 */
+	0x22, 0xb8, 0x1e, /* IRQ 3/4/5/7/9/10/11/12 */
+	0x47, 0x00, 0xe8, 0x01, 0xe8, 0x01, 0x01, 0x08, /* I/O 0x1E8, decodes 10-bit, 1-byte alignment, 8 addresses */
+	0x47, 0x00, 0xee, 0x03, 0xee, 0x03, 0x01, 0x01, /* I/O 0x3EE, decodes 10-bit, 1-byte alignment, 1 address */
+
+    0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
+};
 
 ide_t	*ide_drives[IDE_NUM];
 int	ide_ter_enabled = 0, ide_qua_enabled = 0;
@@ -878,7 +902,7 @@ ide_set_callback(ide_t *ide, double callback)
     if (callback == 0.0)
 	timer_stop(&ide->timer);
     else
-    	timer_on_auto(&ide->timer, callback);
+	timer_on_auto(&ide->timer, callback);
 }
 
 
@@ -897,7 +921,7 @@ ide_set_board_callback(uint8_t board, double callback)
     if (callback == 0.0)
 	timer_stop(&dev->timer);
     else
-    	timer_on_auto(&dev->timer, callback);
+	timer_on_auto(&dev->timer, callback);
 }
 
 
@@ -974,7 +998,7 @@ ide_atapi_callback(ide_t *ide)
 		}
 
 		if (ret == 0) {
-	        	if (ide->bus_master_error)
+		if (ide->bus_master_error)
 				ide->bus_master_error(ide->sc);
 		} else if (ret == 1) {
 			if (out && ide->phase_data_out)
@@ -2691,10 +2715,43 @@ ide_board_init(int board, int irq, int base_main, int side_main, int type)
 }
 
 
+static void
+ide_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
+{
+    if (ld)
+	return;
+
+    int board = (int) priv;
+
+    if (ide_boards[board]->base_main || ide_boards[board]->side_main) {
+	ide_remove_handlers(board);
+	ide_boards[board]->base_main = ide_boards[board]->side_main = 0;
+    }
+
+    ide_boards[board]->irq = -1;
+
+    if (config->activate) {
+	ide_boards[board]->base_main = config->io[0].base;
+	ide_boards[board]->side_main = config->io[1].base;
+
+	if ((ide_boards[board]->base_main != ISAPNP_IO_DISABLED) && (ide_boards[board]->side_main != ISAPNP_IO_DISABLED))
+		ide_set_handlers(board);
+
+	if (config->irq[0].irq != ISAPNP_IRQ_DISABLED)
+		ide_boards[board]->irq = config->irq[0].irq;
+    }
+}
+
+
 static void *
 ide_ter_init(const device_t *info)
 {
-    ide_board_init(2, device_get_config_int("irq"), 0x168, 0x36e, info->local);
+    int irq = device_get_config_int("irq");
+    if (irq == -1) {
+	ide_board_init(2, -1, 0, 0, info->local);
+	isapnp_add_card(ide_ter_pnp_rom, sizeof(ide_ter_pnp_rom), ide_pnp_config_changed, NULL, NULL, NULL, (void *) 2);
+    } else
+	ide_board_init(2, irq, 0x168, 0x36e, info->local);
 
     return(ide_boards[2]);
 }
@@ -2711,7 +2768,12 @@ ide_ter_close(void *priv)
 static void *
 ide_qua_init(const device_t *info)
 {
-    ide_board_init(3, device_get_config_int("irq"), 0x1e8, 0x3ee, info->local);
+    int irq = device_get_config_int("irq");
+    if (irq == -1) {
+	ide_board_init(3, -1, 0, 0, info->local);
+	isapnp_add_card(ide_qua_pnp_rom, sizeof(ide_qua_pnp_rom), ide_pnp_config_changed, NULL, NULL, NULL, (void *) 3);
+    } else
+	ide_board_init(3, irq, 0x1e8, 0x3ee, info->local);
 
     return(ide_boards[3]);
 }
@@ -2898,6 +2960,9 @@ static const device_config_t ide_ter_config[] =
                 "irq", "IRQ", CONFIG_SELECTION, "", 10, "", { 0 },
                 {
                         {
+                                "Plug and Play", -1
+                        },
+                        {
                                 "IRQ 2", 2
                         },
                         {
@@ -2939,6 +3004,9 @@ static const device_config_t ide_qua_config[] =
         {
                 "irq", "IRQ", CONFIG_SELECTION, "", 11, "", { 0 },
                 {
+                        {
+                                "Plug and Play", -1
+                        },
                         {
                                 "IRQ 2", 2
                         },

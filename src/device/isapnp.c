@@ -34,7 +34,7 @@
 					break; \
 				}
 
-#define CHECK_CURRENT_CARD()	do { \
+#define CHECK_CURRENT_CARD()	if (1) { \
 					card = dev->first_card; \
 					while (card) { \
 						if (card->state == PNP_STATE_CONFIG) \
@@ -45,7 +45,7 @@
 						isapnp_log("ISAPnP: No card in CONFIG state\n"); \
 						break; \
 					} \
-				} while (0);
+				}
 
 
 static const uint8_t pnp_init_key[32] = { 0x6A, 0xB5, 0xDA, 0xED, 0xF6, 0xFB, 0x7D, 0xBE,
@@ -119,7 +119,7 @@ typedef struct {
 static void
 isapnp_device_config_changed(isapnp_card_t *card, isapnp_device_t *ld)
 {
-    /* Ignore device if it hasn't signed up for configuration changes. */
+    /* Ignore card if it hasn't signed up for configuration changes. */
     if (!card->config_changed)
 	return;
 
@@ -244,11 +244,6 @@ isapnp_read_data(uint16_t addr, void *priv)
 	case 0x04: /* Resource Data */
 		CHECK_CURRENT_CARD();
 
-		/* The break; inside CHECK_CURRENT_CARD(); only breaks out of the do { ... } while (0);
-		   so make sure to break again here. */
-		if (!card)
-			break;
-
 		isapnp_log("ISAPnP: Read resource data index %02X (%02X) from CSN %02X\n", card->rom_pos, card->rom[card->rom_pos], card->csn);
 		if (card->rom_pos >= card->rom_size)
 			ret = 0xff;
@@ -261,11 +256,6 @@ isapnp_read_data(uint16_t addr, void *priv)
 		ret = 0x00;
 		CHECK_CURRENT_CARD();
 
-		/* The break; inside CHECK_CURRENT_CARD(); only breaks out of the do { ... } while (0);
-		   so make sure to break again here. */
-		if (!card)
-			break;
-
 		isapnp_log("ISAPnP: Query status for CSN %02X\n", card->csn);
 		ret = 0x01;
 
@@ -274,11 +264,6 @@ isapnp_read_data(uint16_t addr, void *priv)
 	case 0x06: /* Card Select Number */
 		ret = 0x00;
 		CHECK_CURRENT_CARD();
-
-		/* The break; inside CHECK_CURRENT_CARD(); only breaks out of the do { ... } while (0);
-		   so make sure to break again here. */
-		if (!card)
-			break;
 
 		isapnp_log("ISAPnP: Query CSN %02X\n", card->csn);
 		ret = card->csn;
@@ -299,11 +284,6 @@ isapnp_read_data(uint16_t addr, void *priv)
 	case 0x28: case 0x29: case 0x2a: case 0x2b:
 	case 0x2c: case 0x2d: case 0x2e: case 0x2f:
 		CHECK_CURRENT_CARD();
-
-		/* The break; inside CHECK_CURRENT_CARD(); only breaks out of the do { ... } while (0);
-		   so make sure to break again here. */
-		if (!card)
-			break;
 
 		isapnp_log("ISAPnP: Read vendor-defined register %02X from CSN %02X\n", dev->reg, card->csn);
 
@@ -482,11 +462,6 @@ isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
 	case 0x07: /* Logical Device Number */
 		CHECK_CURRENT_CARD();
 
-		/* The break; inside CHECK_CURRENT_CARD(); only breaks out of the do { ... } while (0);
-		   so make sure to break again here. */
-		if (!card)
-			break;
-
 		ld = card->first_ld;
 		while (ld) {
 			if (ld->number == val) {
@@ -533,11 +508,6 @@ isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
 	case 0x28: case 0x29: case 0x2a: case 0x2b:
 	case 0x2c: case 0x2d: case 0x2e: case 0x2f:
 		CHECK_CURRENT_CARD();
-
-		/* The break; inside CHECK_CURRENT_CARD(); only breaks out of the do { ... } while (0);
-		   so make sure to break again here. */
-		if (!card)
-			break;
 
 		isapnp_log("ISAPnP: Write %02X to vendor-defined register %02X on CSN %02X\n", val, dev->reg, card->csn);
 
