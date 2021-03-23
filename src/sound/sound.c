@@ -95,6 +95,7 @@ static const SOUND_CARD sound_cards[] =
     { "sbprov2",	&sb_pro_v2_device		},
     { "sb16",		&sb_16_device			},
     { "sb16_pnp",	&sb_16_pnp_device		},
+    { "sb32_pnp",	&sb_32_pnp_device		},
     { "sbawe32",	&sb_awe32_device		},
     { "sbawe32_pnp",	&sb_awe32_pnp_device		},
 #if defined(DEV_BRANCH) && defined(USE_PAS16)
