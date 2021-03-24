@@ -262,6 +262,10 @@ int		timing_retf_rm, timing_retf_pm, timing_retf_pm_outer;
 int		timing_jmp_rm, timing_jmp_pm, timing_jmp_pm_gate;
 int		timing_misaligned;
 
+uint8_t		do_translate = 0, do_translate2 = 0;
+
+void		(*cpu_exec)(int cycs);
+
 
 static uint8_t	ccr0, ccr1, ccr2, ccr3, ccr4, ccr5, ccr6;
 
@@ -1872,6 +1876,18 @@ cpu_set(void)
 		default:
 		x87_timings = x87_timings_486;
 	}
+
+	if (is386) {
+#ifdef USE_DYNAREC
+		if (cpu_use_dynarec)
+			cpu_exec = exec386_dynarec;
+		else
+#endif
+			cpu_exec = exec386;
+	} else if (cpu_s->cpu_type >= CPU_286)
+		cpu_exec = exec386;
+	else
+		cpu_exec = execx86;
 }
 
 

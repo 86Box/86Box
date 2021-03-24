@@ -1661,4 +1661,6 @@ dma_bm_write(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize,
 	memcpy(bytes, (void *) &(DataWrite[n]), n2);
 	mem_write_phys((void *) bytes, PhysAddress + n, TransferSize);
     }
+
+    mem_invalidate_range(PhysAddress, PhysAddress + TotalSize - 1);
 }

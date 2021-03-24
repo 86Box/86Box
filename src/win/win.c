@@ -39,6 +39,8 @@
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
+#include <86box/timer.h>
+#include <86box/nvr.h>
 #include <86box/video.h>
 #define GLOBAL
 #include <86box/plat.h>
@@ -80,6 +82,9 @@ static rc_str_t	*lpRCstr2048,
 		*lpRCstr7168;
 static int	vid_api_inited = 0;
 static wchar_t	*argbuf;
+static int	first_use = 1;
+static LARGE_INTEGER	StartingTime;
+static LARGE_INTEGER	Frequency;
 
 
 static const struct {
@@ -99,6 +104,9 @@ static const struct {
  ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL, NULL				}
 #endif
 };
+
+
+extern int title_update;
 
 
 #ifdef ENABLE_WIN_LOG
@@ -414,6 +422,47 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 }
 
 
+void
+main_thread(void *param)
+{
+    uint32_t old_time, new_time;
+    int drawits, frames;
+
+    title_update = 1;
+    old_time = GetTickCount();
+    drawits = frames = 0;
+    while (!quited) {
+	/* See if it is time to run a frame of code. */
+	new_time = GetTickCount();
+	drawits += (new_time - old_time);
+	old_time = new_time;
+	if (drawits > 0 && !dopause) {
+		/* Yes, so do one frame now. */
+		drawits -= 10;
+		if (drawits > 50)
+			drawits = 0;
+
+		/* Run a block of code. */
+		pc_run();
+
+		/* Every 200 frames we save the machine status. */
+		if (++frames >= 200 && nvr_dosave) {
+			nvr_save();
+			nvr_dosave = 0;
+			frames = 0;
+		}
+	} else	/* Just so we dont overload the host OS. */
+		Sleep(1);
+
+	/* If needed, handle a screen resize. */
+	if (doresize && !video_fullscreen) {
+		plat_resize(scrnsz_x, scrnsz_y);
+		doresize = 0;
+	}
+    }
+}
+
+
 /*
  * We do this here since there is platform-specific stuff
  * going on here, and we do it in a function separate from
@@ -434,7 +483,7 @@ do_start(void)
     win_log("Main timer precision: %llu\n", timer_freq);
 
     /* Start the emulator, really. */
-    thMain = thread_create(pc_thread, &quited);
+    thMain = thread_create(main_thread, &quited);
     SetThreadPriority(thMain, THREAD_PRIORITY_HIGHEST);
 }
 
@@ -667,7 +716,26 @@ plat_timer_read(void)
 uint32_t
 plat_get_ticks(void)
 {
-    return(GetTickCount());
+    LARGE_INTEGER EndingTime, ElapsedMicroseconds;
+
+    if (first_use) {
+	QueryPerformanceFrequency(&Frequency); 
+	QueryPerformanceCounter(&StartingTime);
+	first_use = 0;
+    }
+
+    QueryPerformanceCounter(&EndingTime);
+    ElapsedMicroseconds.QuadPart = EndingTime.QuadPart - StartingTime.QuadPart;
+
+    /* We now have the elapsed number of ticks, along with the
+       number of ticks-per-second. We use these values
+       to convert to the number of elapsed microseconds.
+       To guard against loss-of-precision, we convert
+       to microseconds *before* dividing by ticks-per-second. */
+    ElapsedMicroseconds.QuadPart *= 1000000;
+    ElapsedMicroseconds.QuadPart /= Frequency.QuadPart;
+
+    return (uint32_t) (ElapsedMicroseconds.QuadPart / 1000);
 }
 
 

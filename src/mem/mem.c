@@ -112,8 +112,6 @@ uint64_t		*byte_code_present_mask;
 uint32_t		purgable_page_list_head = 0;
 int			purgeable_page_count = 0;
 
-int			use_phys_exec = 0;
-
 
 /* FIXME: re-do this with a 'mem_ops' struct. */
 static mem_mapping_t	*base_mapping, *last_mapping;
@@ -275,6 +273,7 @@ mem_flush_write_page(uint32_t addr, uint32_t virt)
 #define rammap(x)	((uint32_t *)(_mem_exec[(x) >> MEM_GRANULARITY_BITS]))[((x) >> 2) & MEM_GRANULARITY_QMASK]
 #define rammap64(x)	((uint64_t *)(_mem_exec[(x) >> MEM_GRANULARITY_BITS]))[((x) >> 3) & MEM_GRANULARITY_PMASK]
 
+
 static __inline uint64_t
 mmutranslatereal_normal(uint32_t addr, int rw)
 {
@@ -415,6 +414,10 @@ mmutranslatereal_pae(uint32_t addr, int rw)
 uint64_t
 mmutranslatereal(uint32_t addr, int rw)
 {
+    /* Fast path to return invalid without any call if an exception has occurred beforehand. */
+    if (cpu_state.abrt) 
+	return 0xffffffffffffffffULL;
+
     if (cr4 & CR4_PAE)
 	return mmutranslatereal_pae(addr, rw);
     else
@@ -426,6 +429,10 @@ mmutranslatereal(uint32_t addr, int rw)
 uint32_t
 mmutranslatereal32(uint32_t addr, int rw)
 {
+    /* Fast path to return invalid without any call if an exception has occurred beforehand. */
+    if (cpu_state.abrt) 
+	return (uint32_t) 0xffffffffffffffffULL;
+
     return (uint32_t) mmutranslatereal(addr, rw);
 }
 
@@ -507,6 +514,10 @@ mmutranslate_noabrt_pae(uint32_t addr, int rw)
 uint64_t
 mmutranslate_noabrt(uint32_t addr, int rw)
 {
+    /* Fast path to return invalid without any call if an exception has occurred beforehand. */
+    if (cpu_state.abrt) 
+	return 0xffffffffffffffffULL;
+
     if (cr4 & CR4_PAE)
 	return mmutranslate_noabrt_pae(addr, rw);
     else
@@ -764,8 +775,6 @@ readmembl(uint32_t addr)
 
     if (cr0 >> 31) {
 	addr64 = mmutranslate_read(addr);
-	if (addr64 == 0xffffffffffffffffULL)
-		return 0xff;
 	if (addr64 > 0xffffffffULL)
 		return 0xff;
     }
@@ -793,8 +802,6 @@ writemembl(uint32_t addr, uint8_t val)
 
     if (cr0 >> 31) {
 	addr64 = mmutranslate_write(addr);
-	if (addr64 == 0xffffffffffffffffULL)
-		return;
 	if (addr64 > 0xffffffffULL)
 		return;
     }
@@ -806,95 +813,117 @@ writemembl(uint32_t addr, uint8_t val)
 }
 
 
-void
-rwmembl(uint32_t raddr, uint32_t waddr, uint8_t val)
+/* Read a byte from memory without MMU translation - result of previous MMU translation passed as value. */
+uint8_t
+readmembl_no_mmut(uint32_t addr, uint64_t addr64)
 {
-    uint64_t raddr64 = (uint64_t) raddr;
-    uint64_t waddr64 = (uint64_t) waddr;
-    mem_mapping_t *rmap, *wmap;
-    uint8_t temp = 0xff;
-
-    mem_logical_addr = raddr;
-
-    if (cr0 >> 31) {
-	raddr64 = mmutranslate_read(raddr);
-	if (raddr64 == 0xffffffffffffffffULL)
-		goto do_writebl;
-	if (raddr64 > 0xffffffffULL)
-		goto do_writebl;
-    }
-    raddr = (uint32_t) (raddr64 & rammask);
-
-    rmap = read_mapping[raddr >> MEM_GRANULARITY_BITS];
-    if (rmap && rmap->read_b)
-	temp = rmap->read_b(raddr, rmap->p);
-
-do_writebl:
-    if (cpu_state.abrt)
-	return;
-
-    mem_logical_addr = waddr;
-
-    if (page_lookup[waddr >> 12] && page_lookup[waddr >> 12]->write_b) {
-	page_lookup[waddr >> 12]->write_b(waddr, temp, page_lookup[waddr >> 12]);
-	return;
-    }
-
-    if (cr0 >> 31) {
-	waddr64 = mmutranslate_write(waddr);
-	if (waddr64 == 0xffffffffffffffffULL)
-		return;
-	if (waddr64 > 0xffffffffULL)
-		return;
-    }
-    waddr = (uint32_t) (waddr64 & rammask);
-
-    wmap = write_mapping[waddr >> MEM_GRANULARITY_BITS];
-    if (wmap && wmap->write_b)
-	wmap->write_b(waddr, temp, wmap->p);
-}
-
-
-#ifdef USE_NEW_DYNAREC
-uint16_t
-readmemwl(uint32_t addr)
-{
-    uint64_t addr64 = (uint64_t) addr;
     mem_mapping_t *map;
 
     mem_logical_addr = addr;
 
-    if (addr64 & 1) {
-	if (!cpu_cyrix_alignment || (addr64 & 7) == 7)
-		cycles -= timing_misaligned;
-	if ((addr64 & 0xfff) > 0xffe) {
-		if (cr0 >> 31) {
-			if (mmutranslate_read(addr)   == 0xffffffffffffffffULL)
-				return 0xffff;
-			if (mmutranslate_read(addr+1) == 0xffffffffffffffffULL)
-				return 0xffff;
-		}
-		return readmembl(addr)|(readmembl(addr+1)<<8);
-	} else if (readlookup2[addr >> 12] != LOOKUP_INV)
-		return *(uint16_t *)(readlookup2[addr >> 12] + addr);
-    }
-    if (cr0>>31) {
-	addr64 = mmutranslate_read(addr);
-	if (addr64 == 0xffffffffffffffffULL)
-		return 0xffff;
+    if (cr0 >> 31) {
 	if (addr64 > 0xffffffffULL)
-		return 0xffff;
+		return 0xff;
+
+	addr = (uint32_t) (addr64 & rammask);
+    } else
+	addr &= rammask;
+
+    map = read_mapping[addr >> MEM_GRANULARITY_BITS];
+    if (map && map->read_b)
+	return map->read_b(addr, map->p);
+
+    return 0xff;
+}
+
+
+/* Write a byte to memory without MMU translation - result of previous MMU translation passed as value. */
+void
+writemembl_no_mmut(uint32_t addr, uint64_t addr64, uint8_t val)
+{
+    mem_mapping_t *map;
+    mem_logical_addr = addr;
+
+    if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_b) {
+	page_lookup[addr >> 12]->write_b(addr, val, page_lookup[addr >> 12]);
+	return;
     }
 
-    addr = (uint32_t) (addr64 & rammask);
+    if (cr0 >> 31) {
+	if (addr64 > 0xffffffffULL)
+		return;
+
+	addr = (uint32_t) (addr64 & rammask);
+    } else
+	addr &= rammask;
+
+    map = write_mapping[addr >> MEM_GRANULARITY_BITS];
+    if (map && map->write_b)
+	map->write_b(addr, val, map->p);
+}
+
+
+uint16_t
+readmemwl(uint32_t addr)
+{
+    uint64_t addr64[2];
+    mem_mapping_t *map;
+    int i;
+    uint16_t ret = 0x0000;
+    uint32_t prev_page = 0xffffffff;
+
+    addr64[0] = (uint64_t) addr;
+    addr64[1] = (uint64_t) (addr + 1);
+
+    mem_logical_addr = addr;
+
+    if (addr & 1) {
+	if (!cpu_cyrix_alignment || (addr & 7) == 7)
+		cycles -= timing_misaligned;
+	if ((addr & 0xfff) > 0xffe) {
+		if (cr0 >> 31) {
+			for (i = 0; i < 2; i++) {
+				/* If we are on the same page, there is no need to translate again, as we can just
+				   reuse the previous result. */
+				if ((i > 0) && (((addr + i) & ~0xfff) == prev_page))
+					addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
+				else
+					addr64[i] = mmutranslate_read(addr + i);
+
+				prev_page = ((addr + i) & ~0xfff);
+
+				if (addr64[i] > 0xffffffffULL)
+					return 0xffff;
+			}
+		}
+		/* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
+		   their result as a parameter to be used if needed. */
+		for (i = 0; i < 2; i++)
+			ret |= (readmembl_no_mmut(addr + i, addr64[i]) << (i << 3));
+
+		return ret;
+	} else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
+		return *(uint16_t *)(readlookup2[addr >> 12] + addr);
+    }
+
+    if (cr0 >> 31) {
+	addr64[0] = mmutranslate_read(addr);
+	if (addr64[0] > 0xffffffffULL)
+		return 0xffff;
+    } else
+	addr64[0] = (uint64_t) addr;
+
+    addr = (uint32_t) (addr64[0] & rammask);
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (map && map->read_w)
 	return map->read_w(addr, map->p);
 
-    if (map && map->read_b)
-	return map->read_b(addr, map->p) | (map->read_b(addr + 1, map->p) << 8);
+    if (map && map->read_b) {
+	return map->read_b(addr, map->p) |
+	       ((uint16_t) (map->read_b(addr + 1, map->p)) << 8);
+    }
 
     return 0xffff;
 }
@@ -903,52 +932,181 @@ readmemwl(uint32_t addr)
 void
 writememwl(uint32_t addr, uint16_t val)
 {
-    uint64_t addr64 = (uint64_t) addr;
+    uint64_t addr64[2];
     mem_mapping_t *map;
+    int i;
+    uint32_t prev_page = 0xffffffff;
+
+    addr64[0] = (uint64_t) addr;
+    addr64[1] = (uint64_t) (addr + 1);
 
     mem_logical_addr = addr;
 
     if (addr & 1) {
 	if (!cpu_cyrix_alignment || (addr & 7) == 7)
 		cycles -= timing_misaligned;
-	if ((addr & 0xFFF) > 0xFFE) {
+	if ((addr & 0xfff) > 0xffe) {
 		if (cr0 >> 31) {
-			if (mmutranslate_write(addr)   == 0xffffffff)
-				return;
-			if (mmutranslate_write(addr+1) == 0xffffffff)
-				return;
+			for (i = 0; i < 2; i++) {
+				/* Do not translate a page that has a valid lookup, as that is by definition valid
+				   and the whole purpose of the lookup is to avoid repeat identical translations. */
+				if (!page_lookup[(addr + i) >> 12] || !page_lookup[(addr + i) >> 12]->write_b) {
+					/* If we are on the same page, there is no need to translate again, as we can just
+					   reuse the previous result. */
+					if ((i > 0) && (((addr + i) & ~0xfff) == prev_page))
+						addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
+					else
+						addr64[i] = mmutranslate_write(addr + i);
+
+					prev_page = ((addr + i) & ~0xfff);
+
+					if (addr64[i] > 0xffffffffULL)
+						return;
+				} else
+					prev_page = 0xffffffff;
+			}
 		}
-		writemembl(addr,val);
-		writemembl(addr+1,val>>8);
+		/* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
+		   their result as a parameter to be used if needed. */
+		for (i = 0; i < 2; i++)
+			writemembl_no_mmut(addr + i, addr64[i], val >> (i << 3));
+
 		return;
-	} else if (writelookup2[addr >> 12] != LOOKUP_INV) {
+	} else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
 		*(uint16_t *)(writelookup2[addr >> 12] + addr) = val;
 		return;
 	}
     }
 
-    if (page_lookup[addr>>12] && page_lookup[addr>>12]->write_w) {
-	page_lookup[addr>>12]->write_w(addr, val, page_lookup[addr>>12]);
+    if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_w) {
+	page_lookup[addr >> 12]->write_w(addr, val, page_lookup[addr >> 12]);
 	return;
     }
-    if (cr0>>31) {
-	addr64 = mmutranslate_write(addr);
-	if (addr64 == 0xffffffffffffffffULL)
-		return;
-	if (addr64 > 0xffffffffULL)
-		return;
-    }
 
-    addr = (uint32_t) (addr64 & rammask);
+    if (cr0 >> 31) {
+	addr64[0] = mmutranslate_write(addr);
+	if (addr64[0] > 0xffffffffULL)
+		return;
+    } else
+	addr64[0] = (uint64_t) addr;
+
+    addr = (uint32_t) (addr64[0] & rammask);
 
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
-    if (map) {
-	if (map->write_w)
-		map->write_w(addr, val, map->p);
-	else if (map->write_b) {
-		map->write_b(addr, val, map->p);
-		map->write_b(addr + 1, val >> 8, map->p);
+
+    if (map && map->write_w) {
+	map->write_w(addr, val, map->p);
+	return;
+    }
+
+    if (map && map->write_b) {
+	map->write_b(addr, val, map->p);
+	map->write_b(addr + 1, val >> 8, map->p);
+	return;
+    }
+}
+
+
+/* Read a word from memory without MMU translation - results of previous MMU translation passed as array. */
+uint16_t
+readmemwl_no_mmut(uint32_t addr, uint64_t *addr64)
+{
+    mem_mapping_t *map;
+    int i;
+    uint16_t ret = 0x0000;
+
+    mem_logical_addr = addr;
+
+    if (addr & 1) {
+	if (!cpu_cyrix_alignment || (addr & 7) == 7)
+		cycles -= timing_misaligned;
+	if ((addr & 0xfff) > 0xffe) {
+		for (i = 0; i < 2; i++) {
+			if ((cr0 >> 31) && (addr64[i] > 0xffffffffULL))
+				return 0xffff;
+
+			ret |= (readmembl_no_mmut(addr + i, addr64[i]) << (i << 3));
+		}
+
+		return ret;
+	} else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
+		return *(uint16_t *)(readlookup2[addr >> 12] + addr);
+    }
+
+    if (cr0 >> 31) {
+	if (addr64[0] > 0xffffffffULL)
+		return 0xffff;
+
+	addr = (uint32_t) (addr64[0] & rammask);
+    } else
+	addr &= rammask;
+
+    map = read_mapping[addr >> MEM_GRANULARITY_BITS];
+
+    if (map && map->read_w)
+	return map->read_w(addr, map->p);
+
+    if (map && map->read_b) {
+	return map->read_b(addr, map->p) |
+	       ((uint16_t) (map->read_b(addr + 1, map->p)) << 8);
+    }
+
+    return 0xffff;
+}
+
+
+/* Write a word to memory without MMU translation - results of previous MMU translation passed as array. */
+void
+writememwl_no_mmut(uint32_t addr, uint64_t *addr64, uint16_t val)
+{
+    mem_mapping_t *map;
+    int i;
+
+    mem_logical_addr = addr;
+
+    if (addr & 1) {
+	if (!cpu_cyrix_alignment || (addr & 7) == 7)
+		cycles -= timing_misaligned;
+	if ((addr & 0xfff) > 0xffe) {
+		for (i = 0; i < 2; i++) {
+			if ((cr0 >> 31) && (addr64[i] > 0xffffffffULL))
+				return;
+
+			writemembl_no_mmut(addr + i, addr64[i], val >> (i << 3));
+		}
+
+		return;
+	} else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
+		*(uint16_t *)(writelookup2[addr >> 12] + addr) = val;
+		return;
 	}
+    } else
+	addr &= rammask;
+
+    if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_w) {
+	page_lookup[addr >> 12]->write_w(addr, val, page_lookup[addr >> 12]);
+	return;
+    }
+
+    if (cr0 >> 31) {
+	if (addr64[0] > 0xffffffffULL)
+		return;
+
+	addr = (uint32_t) (addr64[0] & rammask);
+    } else
+	addr &= rammask;
+
+    map = write_mapping[addr >> MEM_GRANULARITY_BITS];
+
+    if (map && map->write_w) {
+	map->write_w(addr, val, map->p);
+	return;
+    }
+
+    if (map && map->write_b) {
+	map->write_b(addr, val, map->p);
+	map->write_b(addr + 1, val >> 8, map->p);
+	return;
     }
 }
 
@@ -956,8 +1114,14 @@ writememwl(uint32_t addr, uint16_t val)
 uint32_t
 readmemll(uint32_t addr)
 {
-    uint64_t addr64 = (uint64_t) addr;
+    uint64_t addr64[4];
     mem_mapping_t *map;
+    int i;
+    uint32_t ret = 0x00000000;
+    uint32_t prev_page = 0xffffffff;
+
+    for (i = 0; i < 4; i++)
+	addr64[i] = (uint64_t) (addr + i);
 
     mem_logical_addr = addr;
 
@@ -965,39 +1129,54 @@ readmemll(uint32_t addr)
 	if (!cpu_cyrix_alignment || (addr & 7) > 4)
 		cycles -= timing_misaligned;
 	if ((addr & 0xfff) > 0xffc) {
-		if (cr0>>31) {
-			if (mmutranslate_read(addr)   == 0xffffffffffffffffULL)
-				return 0xffffffff;
-			if (mmutranslate_read(addr+3) == 0xffffffffffffffffULL)
-				return 0xffffffff;
+		if (cr0 >> 31) {
+			for (i = 0; i < 4; i++) {
+				/* If we are on the same page, there is no need to translate again, as we can just
+				   reuse the previous result. */
+				if ((i > 0) && (((addr + i) & ~0xfff) == prev_page))
+					addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
+				else
+					addr64[i] = mmutranslate_read(addr + i);
+
+				prev_page = ((addr + i) & ~0xfff);
+
+				if (addr64[i] > 0xffffffffULL)
+					return 0xffff;
+			}
 		}
-		return readmemwl(addr)|(readmemwl(addr+2)<<16);
-	} else if (readlookup2[addr >> 12] != LOOKUP_INV)
+		/* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
+		   their result as a parameter to be used if needed. */
+		for (i = 0; i < 4; i += 2)
+			ret |= (readmemwl_no_mmut(addr + i, &(addr64[i])) << (i << 3));
+
+		return ret;
+	} else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
 		return *(uint32_t *)(readlookup2[addr >> 12] + addr);
     }
 
     if (cr0 >> 31) {
-	addr64 = mmutranslate_read(addr);
-	if (addr64 == 0xffffffffffffffffULL)
+	addr64[0] = mmutranslate_read(addr);
+	if (addr64[0] > 0xffffffffULL)
 		return 0xffffffff;
-	if (addr64 > 0xffffffffULL)
-		return 0xffffffff;
-    }
+    } else
+	addr64[0] = (uint64_t) addr;
 
-    addr = (uint32_t) (addr64 & rammask);
+    addr = (uint32_t) (addr64[0] & rammask);
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
-    if (map) {
-	if (map->read_l)
-		return map->read_l(addr, map->p);
 
-	if (map->read_w)
-		return map->read_w(addr, map->p) | (map->read_w(addr + 2, map->p) << 16);
+    if (map && map->read_l)
+	return map->read_l(addr, map->p);
 
-	if (map->read_b)
-		return map->read_b(addr, map->p) | (map->read_b(addr + 1, map->p) << 8) |
-		       (map->read_b(addr + 2, map->p) << 16) | (map->read_b(addr + 3, map->p) << 24);
-    }
+    if (map && map->read_w)
+	return map->read_w(addr, map->p) |
+	       ((uint32_t) (map->read_w(addr + 2, map->p)) << 16);
+
+    if (map && map->read_b)
+	return map->read_b(addr, map->p) |
+	       ((uint32_t) (map->read_b(addr + 1, map->p)) << 8) |
+	       ((uint32_t) (map->read_b(addr + 2, map->p)) << 16) |
+	       ((uint32_t) (map->read_b(addr + 3, map->p)) << 24);
 
     return 0xffffffff;
 }
@@ -1006,371 +1185,196 @@ readmemll(uint32_t addr)
 void
 writememll(uint32_t addr, uint32_t val)
 {
-    uint64_t addr64 = (uint64_t) addr;
+    uint64_t addr64[4];
     mem_mapping_t *map;
+    int i;
+    uint32_t prev_page = 0xffffffff;
+
+    for (i = 0; i < 4; i++)
+	addr64[i] = (uint64_t) (addr + i);
 
     mem_logical_addr = addr;
 
     if (addr & 3) {
 	if (!cpu_cyrix_alignment || (addr & 7) > 4)
 		cycles -= timing_misaligned;
-	if ((addr & 0xFFF) > 0xFFC) {
-		if (cr0>>31) {
-			if (mmutranslate_write(addr)   == 0xffffffffffffffffULL)
-				return;
-			if (mmutranslate_write(addr+3) == 0xffffffffffffffffULL)
-				return;
+	if ((addr & 0xfff) > 0xffc) {
+		if (cr0 >> 31) {
+			for (i = 0; i < 4; i++) {
+				/* Do not translate a page that has a valid lookup, as that is by definition valid
+				   and the whole purpose of the lookup is to avoid repeat identical translations. */
+				if (!page_lookup[(addr + i) >> 12] || !page_lookup[(addr + i) >> 12]->write_b) {
+					/* If we are on the same page, there is no need to translate again, as we can just
+					   reuse the previous result. */
+					if ((i > 0) && (((addr + i) & ~0xfff) == prev_page))
+						addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
+					else
+						addr64[i] = mmutranslate_write(addr + i);
+
+					prev_page = ((addr + i) & ~0xfff);
+
+					if (addr64[i] > 0xffffffffULL)
+						return;
+				} else
+					prev_page = 0xffffffff;
+			}
 		}
-		writememwl(addr,val);
-		writememwl(addr+2,val>>16);
+		/* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
+		   their result as a parameter to be used if needed. */
+		for (i = 0; i < 4; i += 2)
+			writememwl_no_mmut(addr + i, &(addr64[i]), val >> (i << 3));
+
 		return;
-	} else if (writelookup2[addr >> 12] != LOOKUP_INV) {
+	} else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
 		*(uint32_t *)(writelookup2[addr >> 12] + addr) = val;
 		return;
 	}
     }
-    if (page_lookup[addr>>12] && page_lookup[addr>>12]->write_l) {
-	page_lookup[addr>>12]->write_l(addr, val, page_lookup[addr>>12]);
+
+    if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_l) {
+	page_lookup[addr >> 12]->write_l(addr, val, page_lookup[addr >> 12]);
 	return;
     }
-    if (cr0>>31) {
-	addr64 = mmutranslate_write(addr);
-	if (addr64 == 0xffffffffffffffffULL)
-		return;
-	if (addr64 > 0xffffffffULL)
-		return;
-    }
 
-    addr = (uint32_t) (addr64 & rammask);
+    if (cr0 >> 31) {
+	addr64[0] = mmutranslate_write(addr);
+	if (addr64[0] > 0xffffffffULL)
+		return;
+    } else
+	addr64[0] = (uint64_t) addr;
+
+    addr = (uint32_t) (addr64[0] & rammask);
 
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
-    if (map) {
-	if (map->write_l)
-		map->write_l(addr, val, map->p);
-	else if (map->write_w) {
-		map->write_w(addr, val, map->p);
-		map->write_w(addr + 2, val >> 16, map->p);
-	} else if (map->write_b) {
-		map->write_b(addr, val, map->p);
-		map->write_b(addr + 1, val >> 8, map->p);
-		map->write_b(addr + 2, val >> 16, map->p);
-		map->write_b(addr + 3, val >> 24, map->p);
-	}
+
+    if (map && map->write_l) {
+	map->write_l(addr, val,	   map->p);
+	return;
+    }
+    if (map && map->write_w) {
+	map->write_w(addr,     val,       map->p);
+	map->write_w(addr + 2, val >> 16, map->p);
+	return;
+    }
+    if (map && map->write_b) {
+	map->write_b(addr,     val,       map->p);
+	map->write_b(addr + 1, val >> 8,  map->p);
+	map->write_b(addr + 2, val >> 16, map->p);
+	map->write_b(addr + 3, val >> 24, map->p);
+	return;
     }
 }
 
 
-uint64_t
-readmemql(uint32_t addr)
+/* Read a long from memory without MMU translation - results of previous MMU translation passed as array. */
+uint32_t
+readmemll_no_mmut(uint32_t addr, uint64_t *addr64)
 {
-    uint64_t addr64 = (uint64_t) addr;
     mem_mapping_t *map;
+    int i;
+    uint32_t ret = 0x00000000;
 
     mem_logical_addr = addr;
 
-    if (addr & 7) {
-	cycles -= timing_misaligned;
-	if ((addr & 0xFFF) > 0xFF8) {
-		if (cr0>>31) {
-			if (mmutranslate_read(addr)   == 0xffffffffffffffffULL)
-				return 0xffffffffffffffffULL;
-			if (mmutranslate_read(addr+7) == 0xffffffffffffffffULL)
-				return 0xffffffffffffffffULL;
+    if (addr & 3) {
+	if (!cpu_cyrix_alignment || (addr & 7) > 4)
+		cycles -= timing_misaligned;
+	if ((addr & 0xfff) > 0xffc) {
+		for (i = 0; i < 4; i += 2) {
+			if ((cr0 >> 31) && (addr64[i] > 0xffffffffULL))
+				return 0xffffffff;
+
+			ret |= (readmemwl_no_mmut(addr + i, &(addr64[i])) << (i << 3));
 		}
-		return readmemll(addr)|((uint64_t)readmemll(addr+4)<<32);
-	} else if (readlookup2[addr >> 12] != LOOKUP_INV)
-		return *(uint64_t *)(readlookup2[addr >> 12] + addr);
+
+		return ret;
+	} else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
+		return *(uint32_t *)(readlookup2[addr >> 12] + addr);
     }
 
-    if (cr0>>31) {
-	addr64 = mmutranslate_read(addr);
-	if (addr64 == 0xffffffffffffffffULL)
-		return 0xffffffffffffffffULL;
-	if (addr64 > 0xffffffffULL)
-		return 0xffffffffffffffffULL;
-    }
+    if (cr0 >> 31) {
+	if (addr64[0] > 0xffffffffULL)
+		return 0xffffffff;
 
-    addr  = (uint32_t) (addr64 & rammask);
+	addr = (uint32_t) (addr64[0] & rammask);
+    } else
+	addr &= rammask;
 
     map = read_mapping[addr >> MEM_GRANULARITY_BITS];
-    if (map && map->read_l)
-	return map->read_l(addr, map->p) | ((uint64_t)map->read_l(addr + 4, map->p) << 32);
-
-    return readmemll(addr) | ((uint64_t)readmemll(addr+4)<<32);
-}
-
-
-void
-writememql(uint32_t addr, uint64_t val)
-{
-    uint64_t addr64 = (uint64_t) addr;
-    mem_mapping_t *map;
-
-    mem_logical_addr = addr;
-
-    if (addr & 7) {
-	cycles -= timing_misaligned;
-	if ((addr & 0xFFF) > 0xFF8) {
-		if (cr0>>31) {
-			if (mmutranslate_write(addr)   == 0xffffffffffffffffULL)
-				return;
-			if (mmutranslate_write(addr+7) == 0xffffffffffffffffULL)
-				return;
-		}
-		writememll(addr, val);
-		writememll(addr+4, val >> 32);
-		return;
-	} else if (writelookup2[addr >> 12] != LOOKUP_INV) {
-		*(uint64_t *)(writelookup2[addr >> 12] + addr) = val;
-		return;
-	}
-    }
-    if (page_lookup[addr>>12] && page_lookup[addr>>12]->write_l) {
-	page_lookup[addr>>12]->write_l(addr, val, page_lookup[addr>>12]);
-	page_lookup[addr>>12]->write_l(addr + 4, val >> 32, page_lookup[addr>>12]);
-	return;
-    }
-    if (cr0>>31) {
-	addr64 = mmutranslate_write(addr);
-	if (addr64 == 0xffffffffffffffffULL)
-		return;
-	if (addr64 > 0xffffffffULL)
-		return;
-    }
-
-    addr = (uint32_t) (addr64 & rammask);
-
-    map = write_mapping[addr >> MEM_GRANULARITY_BITS];
-    if (map) {
-	if (map->write_l) {
-		map->write_l(addr, val, map->p);
-		map->write_l(addr + 4, val >> 32, map->p);
-	} else if (map->write_w) {
-		map->write_w(addr, val, map->p);
-		map->write_w(addr + 2, val >> 16, map->p);
-		map->write_w(addr + 4, val >> 32, map->p);
-		map->write_w(addr + 6, val >> 48, map->p);
-	} else if (map->write_b) {
-		map->write_b(addr, val, map->p);
-		map->write_b(addr + 1, val >> 8, map->p);
-		map->write_b(addr + 2, val >> 16, map->p);
-		map->write_b(addr + 3, val >> 24, map->p);
-		map->write_b(addr + 4, val >> 32, map->p);
-		map->write_b(addr + 5, val >> 40, map->p);
-		map->write_b(addr + 6, val >> 48, map->p);
-		map->write_b(addr + 7, val >> 56, map->p);
-	}
-    }
-}
-#else
-uint16_t
-readmemwl(uint32_t addr)
-{
-    uint64_t addr64 = (uint64_t) addr;
-    mem_mapping_t *map;
-    uint32_t addr2 = mem_logical_addr = addr;
-
-    if (addr2 & 1) {
-	if (!cpu_cyrix_alignment || (addr2 & 7) == 7)
-		cycles -= timing_misaligned;
-	if ((addr2 & 0xfff) > 0xffe) {
-		if (cr0 >> 31) {
-			if (mmutranslate_read(addr2)   == 0xffffffffffffffffULL)
-				return 0xffff;
-			if (mmutranslate_read(addr2+1) == 0xffffffffffffffffULL)
-				return 0xffff;
-		}
-		return readmembl(addr)|(((uint16_t) readmembl(addr+1))<<8);
-	} else if (readlookup2[addr2 >> 12] != (uintptr_t) LOOKUP_INV)
-		return *(uint16_t *)(readlookup2[addr2 >> 12] + addr2);
-    }
-
-    if (cr0 >> 31) {
-	addr64 = mmutranslate_read(addr2);
-	if (addr64 == 0xffffffffffffffffULL)
-		return 0xffff;
-	if (addr64 > 0xffffffffULL)
-		return 0xffff;
-    } else
-	addr64 = (uint64_t) addr2;
-
-    addr2 = (uint32_t) (addr64 & rammask);
-
-    map = read_mapping[addr2 >> MEM_GRANULARITY_BITS];
-
-    if (map && map->read_w)
-	return map->read_w(addr2, map->p);
-
-    if (map && map->read_b) {
-	return map->read_b(addr2, map->p) |
-	       ((uint16_t) (map->read_b(addr2 + 1, map->p)) << 8);
-    }
-
-    return 0xffff;
-}
-
-
-void
-writememwl(uint32_t addr, uint16_t val)
-{
-    uint64_t addr64 = (uint64_t) addr;
-    mem_mapping_t *map;
-    uint32_t addr2 = mem_logical_addr = addr;
-
-    if (addr2 & 1) {
-	if (!cpu_cyrix_alignment || (addr2 & 7) == 7)
-		cycles -= timing_misaligned;
-	if ((addr2 & 0xFFF) > 0xffe) {
-		if (cr0 >> 31) {
-			if (mmutranslate_write(addr2)   == 0xffffffffffffffffULL) return;
-			if (mmutranslate_write(addr2+1) == 0xffffffffffffffffULL) return;
-		}
-		writemembl(addr,val);
-		writemembl(addr+1,val>>8);
-		return;
-	} else if (writelookup2[addr2 >> 12] != (uintptr_t) LOOKUP_INV) {
-		*(uint16_t *)(writelookup2[addr2 >> 12] + addr2) = val;
-		return;
-	}
-    }
-
-    if (page_lookup[addr2>>12] && page_lookup[addr2>>12]->write_w) {
-	page_lookup[addr2>>12]->write_w(addr2, val, page_lookup[addr2>>12]);
-	return;
-    }
-
-    if (cr0 >> 31) {
-	addr64 = mmutranslate_write(addr2);
-	if (addr64 == 0xffffffffffffffffULL)
-		return;
-	if (addr64 > 0xffffffffULL)
-		return;
-    } else
-	addr64 = (uint64_t) addr2;
-
-    addr2 = (uint32_t) (addr64 & rammask);
-
-    map = write_mapping[addr2 >> MEM_GRANULARITY_BITS];
-
-    if (map && map->write_w) {
-	map->write_w(addr2, val, map->p);
-	return;
-    }
-
-    if (map && map->write_b) {
-	map->write_b(addr2, val, map->p);
-	map->write_b(addr2 + 1, val >> 8, map->p);
-	return;
-    }
-}
-
-
-uint32_t
-readmemll(uint32_t addr)
-{
-    uint64_t addr64 = (uint64_t) addr;
-    mem_mapping_t *map;
-    uint32_t addr2 = mem_logical_addr = addr;
-
-    if (addr2 & 3) {
-	if (!cpu_cyrix_alignment || (addr2 & 7) > 4)
-		cycles -= timing_misaligned;
-	if ((addr2 & 0xfff) > 0xffc) {
-		if (cr0 >> 31) {
-			if (mmutranslate_read(addr2)   == 0xffffffffffffffffULL) return 0xffffffff;
-			if (mmutranslate_read(addr2+3) == 0xffffffffffffffffULL) return 0xffffffff;
-		}
-		return readmemwl(addr)|(readmemwl(addr+2)<<16);
-	} else if (readlookup2[addr2 >> 12] != (uintptr_t) LOOKUP_INV)
-		return *(uint32_t *)(readlookup2[addr2 >> 12] + addr2);
-    }
-
-    if (cr0 >> 31) {
-	addr64 = mmutranslate_read(addr2);
-	if (addr64 == 0xffffffffffffffffULL)
-		return 0xffffffff;
-	if (addr64 > 0xffffffffULL)
-		return 0xffffffff;
-    } else
-	addr64 = (uint64_t) addr2;
-
-    addr2 = (uint32_t) (addr64 & rammask);
-
-    map = read_mapping[addr2 >> MEM_GRANULARITY_BITS];
 
     if (map && map->read_l)
-	return map->read_l(addr2, map->p);
+	return map->read_l(addr, map->p);
 
     if (map && map->read_w)
-	return map->read_w(addr2, map->p) |
-	       ((uint32_t) (map->read_w(addr2 + 2, map->p)) << 16);
+	return map->read_w(addr, map->p) |
+	       ((uint32_t) (map->read_w(addr + 2, map->p)) << 16);
 
     if (map && map->read_b)
-	return map->read_b(addr2, map->p) |
-	       ((uint32_t) (map->read_b(addr2 + 1, map->p)) << 8) |
-	       ((uint32_t) (map->read_b(addr2 + 2, map->p)) << 16) |
-	       ((uint32_t) (map->read_b(addr2 + 3, map->p)) << 24);
+	return map->read_b(addr, map->p) |
+	       ((uint32_t) (map->read_b(addr + 1, map->p)) << 8) |
+	       ((uint32_t) (map->read_b(addr + 2, map->p)) << 16) |
+	       ((uint32_t) (map->read_b(addr + 3, map->p)) << 24);
 
     return 0xffffffff;
 }
 
 
+/* Write a long to memory without MMU translation - results of previous MMU translation passed as array. */
 void
-writememll(uint32_t addr, uint32_t val)
+writememll_no_mmut(uint32_t addr, uint64_t *addr64, uint32_t val)
 {
-    uint64_t addr64 = (uint64_t) addr;
     mem_mapping_t *map;
-    uint32_t addr2 = mem_logical_addr = addr;
+    int i;
 
-    if (addr2 & 3) {
-	if (!cpu_cyrix_alignment || (addr2 & 7) > 4)
+    mem_logical_addr = addr;
+
+    if (addr & 3) {
+	if (!cpu_cyrix_alignment || (addr & 7) > 4)
 		cycles -= timing_misaligned;
-	if ((addr2 & 0xfff) > 0xffc) {
-		if (cr0 >> 31) {
-			if (mmutranslate_write(addr2)   == 0xffffffffffffffffULL) return;
-			if (mmutranslate_write(addr2+3) == 0xffffffffffffffffULL) return;
+	if ((addr & 0xfff) > 0xffc) {
+		for (i = 0; i < 4; i += 2) {
+			if ((cr0 >> 31) && (addr64[i] > 0xffffffffULL))
+				return;
+
+			writememwl_no_mmut(addr + i, &(addr64[i]), val >> (i << 3));
 		}
-		writememwl(addr,val);
-		writememwl(addr+2,val>>16);
+
 		return;
-	} else if (writelookup2[addr2 >> 12] != (uintptr_t) LOOKUP_INV) {
-		*(uint32_t *)(writelookup2[addr2 >> 12] + addr2) = val;
+	} else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
+		*(uint32_t *)(writelookup2[addr >> 12] + addr) = val;
 		return;
 	}
     }
 
-    if (page_lookup[addr2>>12] && page_lookup[addr2>>12]->write_l) {
-	page_lookup[addr2>>12]->write_l(addr2, val, page_lookup[addr2>>12]);
+    if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_l) {
+	page_lookup[addr >> 12]->write_l(addr, val, page_lookup[addr >> 12]);
 	return;
     }
 
     if (cr0 >> 31) {
-	addr64 = mmutranslate_write(addr2);
-	if (addr64 == 0xffffffffffffffffULL)
+	if (addr64[0] > 0xffffffffULL)
 		return;
-	if (addr64 > 0xffffffffULL)
-		return;
+
+	addr = (uint32_t) (addr64[0] & rammask);
     } else
-	addr64 = (uint32_t) addr2;
+	addr &= rammask;
 
-    addr2 = (uint32_t) (addr64 & rammask);
-
-    map = write_mapping[addr2 >> MEM_GRANULARITY_BITS];
+    map = write_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (map && map->write_l) {
-	map->write_l(addr2, val,	   map->p);
+	map->write_l(addr, val,	   map->p);
 	return;
     }
     if (map && map->write_w) {
-	map->write_w(addr2,     val,       map->p);
-	map->write_w(addr2 + 2, val >> 16, map->p);
+	map->write_w(addr,     val,       map->p);
+	map->write_w(addr + 2, val >> 16, map->p);
 	return;
     }
     if (map && map->write_b) {
-	map->write_b(addr2,     val,       map->p);
-	map->write_b(addr2 + 1, val >> 8,  map->p);
-	map->write_b(addr2 + 2, val >> 16, map->p);
-	map->write_b(addr2 + 3, val >> 24, map->p);
+	map->write_b(addr,     val,       map->p);
+	map->write_b(addr + 1, val >> 8,  map->p);
+	map->write_b(addr + 2, val >> 16, map->p);
+	map->write_b(addr + 3, val >> 24, map->p);
 	return;
     }
 }
@@ -1379,108 +1383,189 @@ writememll(uint32_t addr, uint32_t val)
 uint64_t
 readmemql(uint32_t addr)
 {
-    uint64_t addr64 = (uint64_t) addr;
+    uint64_t addr64[8];
     mem_mapping_t *map;
-    uint32_t addr2 = mem_logical_addr = addr;
+    int i;
+    uint64_t ret = 0x0000000000000000ULL;
+    uint32_t prev_page = 0xffffffff;
 
-    if (addr2 & 7) {
+    for (i = 0; i < 8; i++)
+	addr64[i] = (uint64_t) (addr + i);
+
+    mem_logical_addr = addr;
+
+    if (addr & 7) {
 	cycles -= timing_misaligned;
-	if ((addr2 & 0xfff) > 0xff8) {
+	if ((addr & 0xfff) > 0xff8) {
 		if (cr0 >> 31) {
-			if (mmutranslate_read(addr2)   == 0xffffffffffffffffULL) return 0xffffffffffffffffULL;
-			if (mmutranslate_read(addr2+7) == 0xffffffffffffffffULL) return 0xffffffffffffffffULL;
+			for (i = 0; i < 8; i++) {
+				/* If we are on the same page, there is no need to translate again, as we can just
+				   reuse the previous result. */
+				if ((i > 0) && (((addr + i) & ~0xfff) == prev_page))
+					addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
+				else
+					addr64[i] = mmutranslate_read(addr + i);
+
+				prev_page = ((addr + i) & ~0xfff);
+
+				if (addr64[i] > 0xffffffffULL)
+					return 0xffff;
+			}
 		}
-		return readmemll(addr)|((uint64_t)readmemll(addr+4)<<32);
-	} else if (readlookup2[addr2 >> 12] != (uintptr_t) LOOKUP_INV)
-		return *(uint64_t *)(readlookup2[addr2 >> 12] + addr2);
+		/* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
+		   their result as a parameter to be used if needed. */
+		for (i = 0; i < 8; i += 4)
+			ret |= (readmemll_no_mmut(addr + i, &(addr64[i])) << (i << 3));
+
+		return ret;
+	} else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
+		return *(uint64_t *)(readlookup2[addr >> 12] + addr);
     }
 
     if (cr0 >> 31) {
-	addr64 = mmutranslate_read(addr2);
-	if (addr64 == 0xffffffffffffffffULL)
-		return 0xffffffffffffffffULL;
-	if (addr64 > 0xffffffffULL)
+	addr64[0] = mmutranslate_read(addr);
+	if (addr64[0] > 0xffffffffULL)
 		return 0xffffffffffffffffULL;
     } else
-	addr64 = (uint64_t) addr2;
+	addr64[0] = (uint64_t) addr;
 
-    addr2 = (uint32_t) (addr64 & rammask);
+    addr = (uint32_t) (addr64[0] & rammask);
 
-    map = read_mapping[addr2 >> MEM_GRANULARITY_BITS];
+    map = read_mapping[addr >> MEM_GRANULARITY_BITS];
     if (map && map->read_l)
-	return map->read_l(addr2, map->p) | ((uint64_t)map->read_l(addr2 + 4, map->p) << 32);
+	return map->read_l(addr, map->p) | ((uint64_t)map->read_l(addr + 4, map->p) << 32);
 
-    return readmemll(addr) | ((uint64_t)readmemll(addr+4)<<32);
+    return readmemll(addr) | ((uint64_t) readmemll(addr + 4) << 32);
 }
 
 
 void
 writememql(uint32_t addr, uint64_t val)
 {
-    uint64_t addr64 = (uint64_t) addr;
+    uint64_t addr64[8];
     mem_mapping_t *map;
-    uint32_t addr2 = mem_logical_addr = addr;
+    int i;
+    uint32_t prev_page = 0xffffffff;
 
-    if (addr2 & 7) {
+    for (i = 0; i < 8; i++)
+	addr64[i] = (uint64_t) (addr + i);
+
+    mem_logical_addr = addr;
+
+    if (addr & 7) {
 	cycles -= timing_misaligned;
-	if ((addr2 & 0xfff) > 0xff8) {
+	if ((addr & 0xfff) > 0xff8) {
 		if (cr0 >> 31) {
-			if (mmutranslate_write(addr2)   == 0xffffffffffffffffULL) return;
-			if (mmutranslate_write(addr2+7) == 0xffffffffffffffffULL) return;
+			for (i = 0; i < 8; i++) {
+				/* Do not translate a page that has a valid lookup, as that is by definition valid
+				   and the whole purpose of the lookup is to avoid repeat identical translations. */
+				if (!page_lookup[(addr + i) >> 12] || !page_lookup[(addr + i) >> 12]->write_b) {
+					/* If we are on the same page, there is no need to translate again, as we can just
+					   reuse the previous result. */
+					if ((i > 0) && (((addr + i) & ~0xfff) == prev_page))
+						addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
+					else
+						addr64[i] = mmutranslate_write(addr + i);
+
+					prev_page = ((addr + i) & ~0xfff);
+
+					if (addr64[i] > 0xffffffffULL)
+						return;
+				} else
+					prev_page = 0xffffffff;
+			}
 		}
-		writememll(addr, val);
-		writememll(addr+4, val >> 32);
+		/* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
+		   their result as a parameter to be used if needed. */
+		for (i = 0; i < 8; i += 4)
+			writememll_no_mmut(addr + i, &(addr64[i]), val >> (i << 3));
+
 		return;
-	} else if (writelookup2[addr2 >> 12] != (uintptr_t) LOOKUP_INV) {
-		*(uint64_t *)(writelookup2[addr2 >> 12] + addr2) = val;
+	} else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
+		*(uint64_t *)(writelookup2[addr >> 12] + addr) = val;
 		return;
 	}
     }
 
-    if (page_lookup[addr2>>12] && page_lookup[addr2>>12]->write_l) {
-	page_lookup[addr2>>12]->write_l(addr2, val, page_lookup[addr2>>12]);
-	page_lookup[addr2>>12]->write_l(addr2 + 4, val >> 32, page_lookup[addr2>>12]);
+    if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_l) {
+	page_lookup[addr >> 12]->write_l(addr, val, page_lookup[addr >> 12]);
+	page_lookup[addr >> 12]->write_l(addr + 4, val >> 32, page_lookup[addr >> 12]);
 	return;
     }
 
     if (cr0 >> 31) {
-	addr64 = mmutranslate_write(addr2);
-	if (addr64 == 0xffffffffffffffffULL)
-		return;
-	if (addr64 > 0xffffffffULL)
+	addr64[0] = mmutranslate_write(addr);
+	if (addr64[0] > 0xffffffffULL)
 		return;
     } else
-	addr64 = (uint64_t) addr2;
+	addr64[0] = (uint64_t) addr;
 
-    addr2 = (uint32_t) (addr64 & rammask);
+    addr = (uint32_t) (addr64[0] & rammask);
 
-    map = write_mapping[addr2 >> MEM_GRANULARITY_BITS];
+    map = write_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (map && map->write_l) {
-	map->write_l(addr2,   val,       map->p);
-	map->write_l(addr2+4, val >> 32, map->p);
+	map->write_l(addr,     val,       map->p);
+	map->write_l(addr + 4, val >> 32, map->p);
 	return;
     }
     if (map && map->write_w) {
-	map->write_w(addr2,     val,       map->p);
-	map->write_w(addr2 + 2, val >> 16, map->p);
-	map->write_w(addr2 + 4, val >> 32, map->p);
-	map->write_w(addr2 + 6, val >> 48, map->p);
+	map->write_w(addr,     val,       map->p);
+	map->write_w(addr + 2, val >> 16, map->p);
+	map->write_w(addr + 4, val >> 32, map->p);
+	map->write_w(addr + 6, val >> 48, map->p);
 	return;
     }
     if (map && map->write_b) {
-	map->write_b(addr2,     val,       map->p);
-	map->write_b(addr2 + 1, val >> 8,  map->p);
-	map->write_b(addr2 + 2, val >> 16, map->p);
-	map->write_b(addr2 + 3, val >> 24, map->p);
-	map->write_b(addr2 + 4, val >> 32, map->p);
-	map->write_b(addr2 + 5, val >> 40, map->p);
-	map->write_b(addr2 + 6, val >> 48, map->p);
-	map->write_b(addr2 + 7, val >> 56, map->p);
+	map->write_b(addr,     val,       map->p);
+	map->write_b(addr + 1, val >> 8,  map->p);
+	map->write_b(addr + 2, val >> 16, map->p);
+	map->write_b(addr + 3, val >> 24, map->p);
+	map->write_b(addr + 4, val >> 32, map->p);
+	map->write_b(addr + 5, val >> 40, map->p);
+	map->write_b(addr + 6, val >> 48, map->p);
+	map->write_b(addr + 7, val >> 56, map->p);
 	return;
     }
 }
-#endif
+
+
+void
+do_mmutranslate(uint32_t addr, uint64_t *addr64, int num, int write)
+{
+    int i, cond = 1;
+    uint32_t prev_page = 0xffffffff;
+
+    for (i = 0; i < num; i++) {
+	addr64[i] = (uint64_t) (addr + i);
+
+    	if (cr0 >> 31) {
+		/* Do not translate a page that has a valid lookup, as that is by definition valid
+		   and the whole purpose of the lookup is to avoid repeat identical translations. */
+		if (write)
+		    cond = (!page_lookup[(addr + i) >> 12] || !page_lookup[(addr + i) >> 12]->write_b);
+
+		if (cond) {
+			/* If we are on the same page, there is no need to translate again, as we can just
+			   reuse the previous result. */
+			if ((i > 0) && (((addr + i) & ~0xfff) == prev_page))
+				addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
+			else
+				addr64[i] = mmutranslatereal(addr + i, write);
+
+			prev_page = ((addr + i) & ~0xfff);
+
+			if (addr64[i] == 0xffffffffffffffffULL)
+				return;
+			if (addr64[i] > 0xffffffffULL)
+				return;
+			if (cpu_state.abrt)
+				return;
+		} else
+			prev_page = 0xffffffff;
+	}
+    }
+}
 
 
 int
@@ -1507,7 +1592,7 @@ mem_readb_phys(uint32_t addr)
 
     mem_logical_addr = 0xffffffff;
 
-    if (use_phys_exec && _mem_exec[addr >> MEM_GRANULARITY_BITS])
+    if (_mem_exec[addr >> MEM_GRANULARITY_BITS])
 	return _mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK];
     else if (map && map->read_b)
        	return map->read_b(addr, map->p);
@@ -1524,7 +1609,7 @@ mem_readw_phys(uint32_t addr)
 
     mem_logical_addr = 0xffffffff;
 
-    if (use_phys_exec && ((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
+    if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
 	p = (uint16_t *) &(_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK]);
 	return *p;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->read_w))
@@ -1546,7 +1631,7 @@ mem_readl_phys(uint32_t addr)
 
     mem_logical_addr = 0xffffffff;
 
-    if (use_phys_exec && ((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
+    if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
 	p = (uint32_t *) &(_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK]);
 	return *p;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->read_l))
@@ -1587,7 +1672,7 @@ mem_writeb_phys(uint32_t addr, uint8_t val)
 
     mem_logical_addr = 0xffffffff;
 
-    if (use_phys_exec && _mem_exec[addr >> MEM_GRANULARITY_BITS])
+    if (_mem_exec[addr >> MEM_GRANULARITY_BITS])
 	_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK] = val;
     else if (map && map->write_b)
        	map->write_b(addr, val, map->p);
@@ -1602,7 +1687,7 @@ mem_writew_phys(uint32_t addr, uint16_t val)
 
     mem_logical_addr = 0xffffffff;
 
-    if (use_phys_exec && ((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
+    if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
 	p = (uint16_t *) &(_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK]);
 	*p = val;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->write_w))
@@ -1622,7 +1707,7 @@ mem_writel_phys(uint32_t addr, uint32_t val)
 
     mem_logical_addr = 0xffffffff;
 
-    if (use_phys_exec && ((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
+    if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
 	p = (uint32_t *) &(_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK]);
 	*p = val;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->write_l))
@@ -2066,6 +2151,9 @@ mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
 {
     uint64_t mask;
 #ifdef USE_NEW_DYNAREC
+    int byte_offset;
+    uint64_t byte_mask;
+    uint32_t i;
     page_t *p;
 
     start_addr &= ~PAGE_MASK_MASK;
@@ -2078,10 +2166,18 @@ mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
 	mask = (uint64_t)1 << ((start_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
 
 	p = &pages[start_addr >> 12];
-
 	p->dirty_mask |= mask;
 	if ((p->code_present_mask & mask) && !page_in_evict_list(p))
 		page_add_to_evict_list(p);
+
+	for (i = start_addr; (i <= end_addr) && (i < (start_addr + (1 << PAGE_MASK_SHIFT))); i++) {
+		byte_offset = (i >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
+		byte_mask = (uint64_t)1 << (i & PAGE_BYTE_MASK_MASK);
+
+		p->byte_dirty_mask[byte_offset] |= byte_mask;
+		if ((p->byte_code_present_mask[byte_offset] & byte_mask) && !page_in_evict_list(p))
+			page_add_to_evict_list(p);
+	}
     }
 #else
     uint32_t cur_addr;

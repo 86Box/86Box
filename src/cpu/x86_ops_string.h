@@ -1,11 +1,17 @@
 static int opMOVSB_a16(uint32_t fetchdat)
 {
         uint8_t temp;
+        uint64_t addr64r;
+        uint64_t addr64w;
 
         SEG_CHECK_READ(cpu_state.ea_seg);
+        do_mmut_rb(cpu_state.ea_seg->base, SI, &addr64r);
+        if (cpu_state.abrt) return 1;
         SEG_CHECK_WRITE(&cpu_state.seg_es);
-        temp = readmemb(cpu_state.ea_seg->base, SI); if (cpu_state.abrt) return 1;
-        writememb(es, DI, temp);                if (cpu_state.abrt) return 1;
+        do_mmut_wb(es, DI, &addr64w);
+        if (cpu_state.abrt) return 1;
+        temp = readmemb_n(cpu_state.ea_seg->base, SI, addr64r); if (cpu_state.abrt) return 1;
+        writememb_n(es, DI, addr64w, temp);                if (cpu_state.abrt) return 1;
         if (cpu_state.flags & D_FLAG) { DI--; SI--; }
         else                          { DI++; SI++; }
         CLOCK_CYCLES(7);
@@ -15,11 +21,17 @@ static int opMOVSB_a16(uint32_t fetchdat)
 static int opMOVSB_a32(uint32_t fetchdat)
 {
         uint8_t temp;
+        uint64_t addr64r;
+        uint64_t addr64w;
 
         SEG_CHECK_READ(cpu_state.ea_seg);
+        do_mmut_rb(cpu_state.ea_seg->base, ESI, &addr64r);
+        if (cpu_state.abrt) return 1;
         SEG_CHECK_WRITE(&cpu_state.seg_es);
-        temp = readmemb(cpu_state.ea_seg->base, ESI); if (cpu_state.abrt) return 1;
-        writememb(es, EDI, temp);               if (cpu_state.abrt) return 1;
+        do_mmut_wb(es, EDI, &addr64w);
+        if (cpu_state.abrt) return 1;
+        temp = readmemb_n(cpu_state.ea_seg->base, ESI, addr64r); if (cpu_state.abrt) return 1;
+        writememb_n(es, EDI, addr64w, temp);               if (cpu_state.abrt) return 1;
         if (cpu_state.flags & D_FLAG) { EDI--; ESI--; }
         else                          { EDI++; ESI++; }
         CLOCK_CYCLES(7);
@@ -30,11 +42,17 @@ static int opMOVSB_a32(uint32_t fetchdat)
 static int opMOVSW_a16(uint32_t fetchdat)
 {
         uint16_t temp;
+        uint64_t addr64r[2];
+        uint64_t addr64w[2];
 
         SEG_CHECK_READ(cpu_state.ea_seg);
+        do_mmut_rw(cpu_state.ea_seg->base, SI, addr64r);
+        if (cpu_state.abrt) return 1;
         SEG_CHECK_WRITE(&cpu_state.seg_es);
-        temp = readmemw(cpu_state.ea_seg->base, SI); if (cpu_state.abrt) return 1;
-        writememw(es, DI, temp);                if (cpu_state.abrt) return 1;
+        do_mmut_ww(es, DI, addr64w);
+        if (cpu_state.abrt) return 1;
+        temp = readmemw_n(cpu_state.ea_seg->base, SI, addr64r); if (cpu_state.abrt) return 1;
+        writememw_n(es, DI, addr64w, temp);                if (cpu_state.abrt) return 1;
         if (cpu_state.flags & D_FLAG) { DI -= 2; SI -= 2; }
         else                          { DI += 2; SI += 2; }
         CLOCK_CYCLES(7);
@@ -44,11 +62,17 @@ static int opMOVSW_a16(uint32_t fetchdat)
 static int opMOVSW_a32(uint32_t fetchdat)
 {
         uint16_t temp;
+        uint64_t addr64r[2];
+        uint64_t addr64w[2];
 
         SEG_CHECK_READ(cpu_state.ea_seg);
+        do_mmut_rw(cpu_state.ea_seg->base, ESI, addr64r);
+        if (cpu_state.abrt) return 1;
         SEG_CHECK_WRITE(&cpu_state.seg_es);
-        temp = readmemw(cpu_state.ea_seg->base, ESI); if (cpu_state.abrt) return 1;
-        writememw(es, EDI, temp);               if (cpu_state.abrt) return 1;
+        do_mmut_ww(es, EDI, addr64w);
+        if (cpu_state.abrt) return 1;
+        temp = readmemw_n(cpu_state.ea_seg->base, ESI, addr64r); if (cpu_state.abrt) return 1;
+        writememw_n(es, EDI, addr64w, temp);               if (cpu_state.abrt) return 1;
         if (cpu_state.flags & D_FLAG) { EDI -= 2; ESI -= 2; }
         else                          { EDI += 2; ESI += 2; }
         CLOCK_CYCLES(7);
@@ -59,11 +83,17 @@ static int opMOVSW_a32(uint32_t fetchdat)
 static int opMOVSL_a16(uint32_t fetchdat)
 {
         uint32_t temp;
+        uint64_t addr64r[4];
+        uint64_t addr64w[4];
 
         SEG_CHECK_READ(cpu_state.ea_seg);
+        do_mmut_rl(cpu_state.ea_seg->base, SI, addr64r);
+        if (cpu_state.abrt) return 1;
         SEG_CHECK_WRITE(&cpu_state.seg_es);
-        temp = readmeml(cpu_state.ea_seg->base, SI); if (cpu_state.abrt) return 1;
-        writememl(es, DI, temp);                if (cpu_state.abrt) return 1;
+        do_mmut_wl(es, DI, addr64w);
+        if (cpu_state.abrt) return 1;
+        temp = readmeml_n(cpu_state.ea_seg->base, SI, addr64r); if (cpu_state.abrt) return 1;
+        writememl_n(es, DI, addr64w, temp);                if (cpu_state.abrt) return 1;
         if (cpu_state.flags & D_FLAG) { DI -= 4; SI -= 4; }
         else                          { DI += 4; SI += 4; }
         CLOCK_CYCLES(7);
@@ -73,11 +103,17 @@ static int opMOVSL_a16(uint32_t fetchdat)
 static int opMOVSL_a32(uint32_t fetchdat)
 {
         uint32_t temp;
+        uint64_t addr64r[4];
+        uint64_t addr64w[4];
 
         SEG_CHECK_READ(cpu_state.ea_seg);
+        do_mmut_rl(cpu_state.ea_seg->base, ESI, addr64r);
+        if (cpu_state.abrt) return 1;
         SEG_CHECK_WRITE(&cpu_state.seg_es);
-        temp = readmeml(cpu_state.ea_seg->base, ESI); if (cpu_state.abrt) return 1;
-        writememl(es, EDI, temp);               if (cpu_state.abrt) return 1;
+        do_mmut_wl(es, EDI, addr64w);
+        if (cpu_state.abrt) return 1;
+        temp = readmeml_n(cpu_state.ea_seg->base, ESI, addr64r); if (cpu_state.abrt) return 1;
+        writememl_n(es, EDI, addr64w, temp);               if (cpu_state.abrt) return 1;
         if (cpu_state.flags & D_FLAG) { EDI -= 4; ESI -= 4; }
         else                          { EDI += 4; ESI += 4; }
         CLOCK_CYCLES(7);
@@ -89,11 +125,17 @@ static int opMOVSL_a32(uint32_t fetchdat)
 static int opCMPSB_a16(uint32_t fetchdat)
 {
         uint8_t src, dst;
+        uint64_t addr64;
+        uint64_t addr642;
 
         SEG_CHECK_READ(cpu_state.ea_seg);
+        do_mmut_rb(cpu_state.ea_seg->base, SI, &addr64);
+        if (cpu_state.abrt) return 1;
         SEG_CHECK_READ(&cpu_state.seg_es);
-        src = readmemb(cpu_state.ea_seg->base, SI);
-        dst = readmemb(es, DI);         if (cpu_state.abrt) return 1;
+        do_mmut_rb(es, DI, &addr642);
+        if (cpu_state.abrt) return 1;
+        src = readmemb_n(cpu_state.ea_seg->base, SI, addr64);
+        dst = readmemb_n(es, DI, addr642);         if (cpu_state.abrt) return 1;
         setsub8(src, dst);
         if (cpu_state.flags & D_FLAG) { DI--; SI--; }
         else                          { DI++; SI++; }
@@ -104,11 +146,17 @@ static int opCMPSB_a16(uint32_t fetchdat)
 static int opCMPSB_a32(uint32_t fetchdat)
 {
         uint8_t src, dst;
+        uint64_t addr64;
+        uint64_t addr642;
 
         SEG_CHECK_READ(cpu_state.ea_seg);
+        do_mmut_rb(cpu_state.ea_seg->base, ESI, &addr64);
+        if (cpu_state.abrt) return 1;
         SEG_CHECK_READ(&cpu_state.seg_es);
-        src = readmemb(cpu_state.ea_seg->base, ESI);
-        dst = readmemb(es, EDI);        if (cpu_state.abrt) return 1;
+        do_mmut_rb(es, EDI, &addr642);
+        if (cpu_state.abrt) return 1;
+        src = readmemb_n(cpu_state.ea_seg->base, ESI, addr64);
+        dst = readmemb_n(es, EDI, addr642);        if (cpu_state.abrt) return 1;
         setsub8(src, dst);
         if (cpu_state.flags & D_FLAG) { EDI--; ESI--; }
         else                          { EDI++; ESI++; }
@@ -120,11 +168,17 @@ static int opCMPSB_a32(uint32_t fetchdat)
 static int opCMPSW_a16(uint32_t fetchdat)
 {
         uint16_t src, dst;
+        uint64_t addr64[2];
+        uint64_t addr642[2];
 
         SEG_CHECK_READ(cpu_state.ea_seg);
+        do_mmut_rw(cpu_state.ea_seg->base, SI, addr64);
+        if (cpu_state.abrt) return 1;
         SEG_CHECK_READ(&cpu_state.seg_es);
-        src = readmemw(cpu_state.ea_seg->base, SI);
-        dst = readmemw(es, DI);        if (cpu_state.abrt) return 1;
+        do_mmut_rw(es, DI, addr642);
+        if (cpu_state.abrt) return 1;
+        src = readmemw_n(cpu_state.ea_seg->base, SI, addr64);
+        dst = readmemw_n(es, DI, addr642);        if (cpu_state.abrt) return 1;
         setsub16(src, dst);
         if (cpu_state.flags & D_FLAG) { DI -= 2; SI -= 2; }
         else                          { DI += 2; SI += 2; }
@@ -135,11 +189,17 @@ static int opCMPSW_a16(uint32_t fetchdat)
 static int opCMPSW_a32(uint32_t fetchdat)
 {
         uint16_t src, dst;
+        uint64_t addr64[2];
+        uint64_t addr642[2];
 
         SEG_CHECK_READ(cpu_state.ea_seg);
+        do_mmut_rw(cpu_state.ea_seg->base, ESI, addr64);
+        if (cpu_state.abrt) return 1;
         SEG_CHECK_READ(&cpu_state.seg_es);
-        src = readmemw(cpu_state.ea_seg->base, ESI);
-        dst = readmemw(es, EDI);        if (cpu_state.abrt) return 1;
+        do_mmut_rw(es, EDI, addr642);
+        if (cpu_state.abrt) return 1;
+        src = readmemw_n(cpu_state.ea_seg->base, ESI, addr64);
+        dst = readmemw_n(es, EDI, addr642);        if (cpu_state.abrt) return 1;
         setsub16(src, dst);
         if (cpu_state.flags & D_FLAG) { EDI -= 2; ESI -= 2; }
         else                          { EDI += 2; ESI += 2; }
@@ -151,11 +211,17 @@ static int opCMPSW_a32(uint32_t fetchdat)
 static int opCMPSL_a16(uint32_t fetchdat)
 {
         uint32_t src, dst;
+        uint64_t addr64[4];
+        uint64_t addr642[4];
 
         SEG_CHECK_READ(cpu_state.ea_seg);
+        do_mmut_rl(cpu_state.ea_seg->base, SI, addr64);
+        if (cpu_state.abrt) return 1;
         SEG_CHECK_READ(&cpu_state.seg_es);
-        src = readmeml(cpu_state.ea_seg->base, SI);
-        dst = readmeml(es, DI);        if (cpu_state.abrt) return 1;
+        do_mmut_rl(es, DI, addr642);
+        if (cpu_state.abrt) return 1;
+        src = readmeml_n(cpu_state.ea_seg->base, SI, addr64);
+        dst = readmeml_n(es, DI, addr642);        if (cpu_state.abrt) return 1;
         setsub32(src, dst);
         if (cpu_state.flags & D_FLAG) { DI -= 4; SI -= 4; }
         else                          { DI += 4; SI += 4; }
@@ -166,11 +232,17 @@ static int opCMPSL_a16(uint32_t fetchdat)
 static int opCMPSL_a32(uint32_t fetchdat)
 {
         uint32_t src, dst;
+        uint64_t addr64[4];
+        uint64_t addr642[4];
 
         SEG_CHECK_READ(cpu_state.ea_seg);
+        do_mmut_rl(cpu_state.ea_seg->base, ESI, addr64);
+        if (cpu_state.abrt) return 1;
         SEG_CHECK_READ(&cpu_state.seg_es);
-        src = readmeml(cpu_state.ea_seg->base, ESI);
-        dst = readmeml(es, EDI);        if (cpu_state.abrt) return 1;
+        do_mmut_rl(es, EDI, addr642);
+        if (cpu_state.abrt) return 1;
+        src = readmeml_n(cpu_state.ea_seg->base, ESI, addr64);
+        dst = readmeml_n(es, EDI, addr642);        if (cpu_state.abrt) return 1;
         setsub32(src, dst);
         if (cpu_state.flags & D_FLAG) { EDI -= 4; ESI -= 4; }
         else                          { EDI += 4; ESI += 4; }
@@ -409,11 +481,13 @@ static int opSCASL_a32(uint32_t fetchdat)
 static int opINSB_a16(uint32_t fetchdat)
 {
         uint8_t temp;
+        uint64_t addr64 = 0x0000000000000000ULL;
 
         SEG_CHECK_WRITE(&cpu_state.seg_es);
         check_io_perm(DX);
+	do_mmut_wb(es, DI, &addr64);                      if (cpu_state.abrt) return 1;
         temp = inb(DX);
-        writememb(es, DI, temp);                if (cpu_state.abrt) return 1;
+        writememb_n(es, DI, addr64, temp);                if (cpu_state.abrt) return 1;
         if (cpu_state.flags & D_FLAG) DI--;
         else                          DI++;
         CLOCK_CYCLES(15);
@@ -423,11 +497,13 @@ static int opINSB_a16(uint32_t fetchdat)
 static int opINSB_a32(uint32_t fetchdat)
 {
         uint8_t temp;
+        uint64_t addr64 = 0x0000000000000000ULL;
 
         SEG_CHECK_WRITE(&cpu_state.seg_es);
         check_io_perm(DX);
+	do_mmut_wb(es, EDI, &addr64);                     if (cpu_state.abrt) return 1;
         temp = inb(DX);
-        writememb(es, EDI, temp);               if (cpu_state.abrt) return 1;
+        writememb_n(es, EDI, addr64, temp);               if (cpu_state.abrt) return 1;
         if (cpu_state.flags & D_FLAG) EDI--;
         else                          EDI++;
         CLOCK_CYCLES(15);
@@ -438,12 +514,14 @@ static int opINSB_a32(uint32_t fetchdat)
 static int opINSW_a16(uint32_t fetchdat)
 {
         uint16_t temp;
+        uint64_t addr64[2];
 
         SEG_CHECK_WRITE(&cpu_state.seg_es);
         check_io_perm(DX);
         check_io_perm(DX + 1);
+	do_mmut_ww(es, DI, addr64);                       if (cpu_state.abrt) return 1;
         temp = inw(DX);
-        writememw(es, DI, temp);                if (cpu_state.abrt) return 1;
+        writememw_n(es, DI, addr64, temp);                if (cpu_state.abrt) return 1;
         if (cpu_state.flags & D_FLAG) DI -= 2;
         else                          DI += 2;
         CLOCK_CYCLES(15);
@@ -453,12 +531,14 @@ static int opINSW_a16(uint32_t fetchdat)
 static int opINSW_a32(uint32_t fetchdat)
 {
         uint16_t temp;
+        uint64_t addr64[2];
 
         SEG_CHECK_WRITE(&cpu_state.seg_es);
         check_io_perm(DX);
         check_io_perm(DX + 1);
+	do_mmut_ww(es, EDI, addr64);                      if (cpu_state.abrt) return 1;
         temp = inw(DX);
-        writememw(es, EDI, temp);               if (cpu_state.abrt) return 1;
+        writememw_n(es, EDI, addr64, temp);               if (cpu_state.abrt) return 1;
         if (cpu_state.flags & D_FLAG) EDI -= 2;
         else                          EDI += 2;
         CLOCK_CYCLES(15);
@@ -469,14 +549,16 @@ static int opINSW_a32(uint32_t fetchdat)
 static int opINSL_a16(uint32_t fetchdat)
 {
         uint32_t temp;
+        uint64_t addr64[4];
 
         SEG_CHECK_WRITE(&cpu_state.seg_es);
         check_io_perm(DX);
         check_io_perm(DX + 1);
         check_io_perm(DX + 2);
         check_io_perm(DX + 3);
+	do_mmut_wl(es, DI, addr64);                       if (cpu_state.abrt) return 1;
         temp = inl(DX);
-        writememl(es, DI, temp);                if (cpu_state.abrt) return 1;
+        writememl_n(es, DI, addr64, temp);                if (cpu_state.abrt) return 1;
         if (cpu_state.flags & D_FLAG) DI -= 4;
         else                          DI += 4;
         CLOCK_CYCLES(15);
@@ -486,14 +568,16 @@ static int opINSL_a16(uint32_t fetchdat)
 static int opINSL_a32(uint32_t fetchdat)
 {
         uint32_t temp;
+        uint64_t addr64[4];
 
         SEG_CHECK_WRITE(&cpu_state.seg_es);
         check_io_perm(DX);
         check_io_perm(DX + 1);
         check_io_perm(DX + 2);
         check_io_perm(DX + 3);
+	do_mmut_wl(es, DI, addr64);                       if (cpu_state.abrt) return 1;
         temp = inl(DX);
-        writememl(es, EDI, temp);               if (cpu_state.abrt) return 1;
+        writememl_n(es, EDI, addr64, temp);               if (cpu_state.abrt) return 1;
         if (cpu_state.flags & D_FLAG) EDI -= 4;
         else                          EDI += 4;
         CLOCK_CYCLES(15);

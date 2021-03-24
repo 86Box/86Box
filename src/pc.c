@@ -162,7 +162,6 @@ int	fps, framecount;			/* emulator % */
 extern int	CPUID;
 extern int	output;
 int	atfullspeed;
-int	clockrate;
 
 wchar_t	exe_path[2048];				/* path (dir) of executable */
 wchar_t	usr_path[1024];				/* path (dir) of user data */
@@ -172,12 +171,15 @@ int	scrnsz_x = SCREEN_RES_X,		/* current screen size, X */
 	scrnsz_y = SCREEN_RES_Y;		/* current screen size, Y */
 int	config_changed;				/* config has changed */
 int	title_update;
-int64_t	main_time;
+int	framecountx = 0;
 
 
 int	unscaled_size_x = SCREEN_RES_X,	/* current unscaled size X */
 	unscaled_size_y = SCREEN_RES_Y,	/* current unscaled size Y */
 	efscrnsz_y = SCREEN_RES_Y;
+
+
+static wchar_t	mouse_msg[2][200];
 
 
 #ifndef RELEASE_BUILD
@@ -729,6 +731,8 @@ pc_reset_hard_close(void)
 void
 pc_reset_hard_init(void)
 {
+    wchar_t wcpufamily[2048], wcpu[2048], wmachine[2048], *wcp;
+
     /*
      * First, we reset the modules that are not part of
      * the actual machine, but which support some of the
@@ -829,6 +833,20 @@ pc_reset_hard_init(void)
     pc_full_speed();
 
     cycles = cycles_main = 0;
+
+    mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
+    mbstowcs(wcpufamily, cpu_f->name,
+	     strlen(cpu_f->name)+1);
+    wcp = wcschr(wcpufamily, L'(');
+    if (wcp) /* remove parentheses */
+	*(wcp - 1) = L'\0';
+    mbstowcs(wcpu, cpu_s->name, strlen(cpu_s->name)+1);
+    swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
+	     EMU_NAME_W, EMU_VERSION_W, wmachine, wcpufamily, wcpu,
+	     plat_get_string(IDS_2077));
+    swprintf(mouse_msg[1], sizeof_w(mouse_msg[1]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
+	     EMU_NAME_W, EMU_VERSION_W, wmachine, wcpufamily, wcpu,
+	     (mouse_get_buttons() > 2) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079));
 }
 
 
@@ -910,123 +928,28 @@ pc_close(thread_t *ptr)
 }
 
 
-/*
- * The main thread runs the actual emulator code.
- *
- * We basically run until the upper layers terminate us, by
- * setting the variable 'quited' there to 1. We get a pointer
- * to that variable as our function argument.
- */
 void
-pc_thread(void *param)
+pc_run(void)
 {
-    wchar_t temp[200], wcpufamily[2048], wcpu[2048];
-    wchar_t wmachine[2048], *wcp;
-    uint64_t start_time, end_time;
-    uint32_t old_time, new_time;
-    int done, drawits, frames;
-    int *quitp = (int *)param;
-    int framecountx;
+    wchar_t temp[200];
 
-    pc_log("PC: starting main thread...\n");
+    /* Run a block of code. */
+    cpu_exec(cpu_s->rspeed / 100);
+    mouse_process();
+    joystick_process();
 
-    main_time = 0;
-    framecountx = 0;
-    title_update = 1;
-    old_time = plat_get_ticks();
-    done = drawits = frames = 0;
-    while (! *quitp) {
-	/* See if it is time to run a frame of code. */
-	new_time = plat_get_ticks();
-	drawits += (new_time - old_time);
-	old_time = new_time;
-	if (drawits > 0 && !dopause) {
-		/* Yes, so do one frame now. */
-		start_time = plat_timer_read();
-		drawits -= 10;
-		if (drawits > 50)
-			drawits = 0;
-
-		/* Run a block of code. */
-		startblit();
-		clockrate = cpu_s->rspeed;
-
-		if (is386) {
-#ifdef USE_DYNAREC
-			if (cpu_use_dynarec)
-				exec386_dynarec(clockrate/100);
-			  else
-#endif
-				exec386(clockrate/100);
-		} else if (cpu_s->cpu_type >= CPU_286) {
-			exec386(clockrate/100);
-		} else {
-			execx86(clockrate/100);
-		}
-
-		mouse_process();
-
-		joystick_process();
-
-		endblit();
-
-		/* Done with this frame, update statistics. */
-		framecount++;
-		if (++framecountx >= 100) {
-			framecountx = 0;
-
-			readlnum = writelnum = 0;
-			egareads = egawrites = 0;
-			mmuflush = 0;
-			frames = 0;
-		}
-
-		if (title_update) {
-			mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
-			mbstowcs(wcpufamily, cpu_f->name,
-				 strlen(cpu_f->name)+1);
-			wcp = wcschr(wcpufamily, L'(');
-			if (wcp) /* remove parentheses */
-				*(wcp - 1) = L'\0';
-			mbstowcs(wcpu, cpu_s->name,
-				 strlen(cpu_s->name)+1);
-			swprintf(temp, sizeof_w(temp),
-				 L"%ls v%ls - %i%% - %ls - %ls/%ls - %ls",
-				 EMU_NAME_W,EMU_VERSION_W,fps,wmachine,wcpufamily,wcpu,
-				 (!mouse_capture) ? plat_get_string(IDS_2077)
-				  : (mouse_get_buttons() > 2) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079));
-
-			ui_window_title(temp);
-
-			title_update = 0;
-		}
-
-		/* One more frame done! */
-		done++;
-
-		/* Every 200 frames we save the machine status. */
-		if (++frames >= 200 && nvr_dosave) {
-			nvr_save();
-			nvr_dosave = 0;
-			frames = 0;
-		}
-
-		end_time = plat_timer_read();
-		main_time += (end_time - start_time);
-	} else {
-		/* Just so we dont overload the host OS. */
-		plat_delay_ms(1);
-	}
-
-	/* If needed, handle a screen resize. */
-	if (doresize && !video_fullscreen) {
-		plat_resize(scrnsz_x, scrnsz_y);
-
-		doresize = 0;
-	}
+    /* Done with this frame, update statistics. */
+    framecount++;
+    if (++framecountx >= 100) {
+	framecountx = 0;
+	frames = 0;
     }
 
-    pc_log("PC: main thread done.\n");
+    if (title_update) {
+	swprintf(temp, sizeof_w(temp), mouse_msg[!!mouse_capture], fps);
+	ui_window_title(temp);
+	title_update = 0;
+    }
 }
 
 
@@ -1090,9 +1013,8 @@ set_screen_size(int x, int y)
 		}
 	}
 	unscaled_size_y = (int)dy;
-    } else {
+    } else
 	unscaled_size_y = efscrnsz_y;
-    }
 
     switch(scale) {
 	case 0:		/* 50% */

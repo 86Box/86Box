@@ -614,4 +614,7 @@ typedef struct
 
 extern cyrix_t	cyrix;
 
+extern void	(*cpu_exec)(int cycs);
+extern uint8_t	do_translate, do_translate2;
+
 #endif	/*EMU_CPU_H*/
