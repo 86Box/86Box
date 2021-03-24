@@ -1341,7 +1341,7 @@ void et4000w32p_hwcursor_draw(svga_t *svga, int displine)
         int xx2, width = (svga->hwcursor_latch.xsize - svga->hwcursor_latch.xoff);
         int pitch = (svga->hwcursor_latch.xsize == 128) ? 32 : 16;
         uint8_t dat;
-        offset = svga->hwcursor_latch.xoff / shift;
+        offset = svga->hwcursor_latch.xoff;
 
         for (x = 0; x < width; x += 4) {
                 dat = svga->vram[svga->hwcursor_latch.addr + (offset >> 2)];
