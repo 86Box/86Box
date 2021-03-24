@@ -92,12 +92,12 @@ typedef struct et4000w32p_t
 	uint32_t vram_mask;
 
         uint8_t banking, banking2;
+        uint8_t adjust_cursor;
 
         uint8_t pci_regs[256];
         
         int interleaved;
-		int bank;
-		int adjust_cursor;
+        int bank;
 
         /*Accelerator*/
         struct
@@ -408,39 +408,45 @@ void et4000w32p_recalctimings(svga_t *svga)
 	if (svga->adv_flags & FLAG_NOSKEW) {
 		/* On the Cardex ET4000/W32p-based cards, adjust text mode clocks by 1. */
         	if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) {	/*Text mode*/
-				svga->ma_latch--;
-				
-				if ((svga->seqregs[1] & 8)) /*40 column*/
-					svga->hdisp += (svga->seqregs[1] & 1) ? 16 : 18;
-				else
-					svga->hdisp += (svga->seqregs[1] & 1) ? 8 : 9;
+			svga->ma_latch--;
+
+			if ((svga->seqregs[1] & 8)) /*40 column*/
+				svga->hdisp += (svga->seqregs[1] & 1) ? 16 : 18;
+			else
+				svga->hdisp += (svga->seqregs[1] & 1) ? 8 : 9;
         	} else {
-				switch (svga->gdcreg[5] & 0x60) {
-					case 0x40: case 0x60:	/*256+ colours*/
-						switch (svga->bpp) {
-							case 8:
-							case 24:
-								svga->hdisp += 8;
-								break;
-							case 15:
-							case 16:
-								svga->hdisp += 16;
-								break;
-							case 32:
-								break;
-						}
-						break;
-				}
+			switch (svga->gdcreg[5] & 0x60) {
+				case 0x40: case 0x60:	/*256+ colours*/
+					switch (svga->bpp) {
+						case 8:
+						case 24:
+							svga->hdisp += 8;
+							break;
+						case 15:
+						case 16:
+							svga->hdisp += 16;
+							break;
+						case 32:
+							break;
+					}
+					break;
 			}
+		}
 	}
+
+	et4000->adjust_cursor = 0;
 
         switch (svga->bpp)
         {
                 case 15: case 16:
                 svga->hdisp >>= 1;
+		if (et4000->type <= ET4000W32I)
+			et4000->adjust_cursor = 1;
                 break;
                 case 24:
                 svga->hdisp /= 3;
+		if (et4000->type <= ET4000W32I)
+			et4000->adjust_cursor = 2;
                 break;
         }
 
@@ -1329,31 +1335,49 @@ void et4000w32p_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et40
 
 void et4000w32p_hwcursor_draw(svga_t *svga, int displine)
 {
+        et4000w32p_t *et4000 = (et4000w32p_t *)svga->p;
         int x, offset;
+        int xx, shift = (et4000->adjust_cursor + 1);
+        int xx2, width = (svga->hwcursor_latch.xsize - svga->hwcursor_latch.xoff);
+        int pitch = (svga->hwcursor_latch.xsize == 128) ? 32 : 16;
         uint8_t dat;
-		int width = (svga->hwcursor_latch.xsize - svga->hwcursor_latch.xoff);
-		int pitch = (svga->hwcursor_latch.xsize == 128) ? 32 : 16;
-        offset = svga->hwcursor_latch.xoff;
+        offset = svga->hwcursor_latch.xoff / shift;
 
-		for (x = 0; x < width; x += 4)
-		{
-			dat = svga->vram[svga->hwcursor_latch.addr + (offset >> 2)];
+        for (x = 0; x < width; x += 4) {
+                dat = svga->vram[svga->hwcursor_latch.addr + (offset >> 2)];
 
-			if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + svga->x_add + x]  = (dat & 1) ? 0xFFFFFF : 0;
-			else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + svga->x_add + x] ^= 0xFFFFFF;
-			dat >>= 2;
-			if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + svga->x_add + x + 1]  = (dat & 1) ? 0xFFFFFF : 0;
-			else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + svga->x_add + x + 1] ^= 0xFFFFFF;
-			dat >>= 2;
-			if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + svga->x_add + x + 2]  = (dat & 1) ? 0xFFFFFF : 0;
-			else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + svga->x_add + x + 2] ^= 0xFFFFFF;
-			dat >>= 2;
-			if (!(dat & 2))          buffer32->line[displine][svga->hwcursor_latch.x + svga->x_add + x + 3]  = (dat & 1) ? 0xFFFFFF : 0;
-			else if ((dat & 3) == 3) buffer32->line[displine][svga->hwcursor_latch.x + svga->x_add + x + 3] ^= 0xFFFFFF;
-			dat >>= 2;
-			
-			offset += 4;
-		}
+                xx = svga->hwcursor_latch.x + svga->x_add + x;
+                if (!(xx % shift)) {
+                        xx2 = xx / shift;
+                        if (!(dat & 2))          buffer32->line[displine][xx2]  = (dat & 1) ? 0xFFFFFF : 0;
+                        else if ((dat & 3) == 3) buffer32->line[displine][xx2] ^= 0xFFFFFF;
+                }
+                dat >>= 2;
+                xx++;
+                if (!(xx % shift)) {
+                        xx2 = xx / shift;
+                        if (!(dat & 2))          buffer32->line[displine][xx2]  = (dat & 1) ? 0xFFFFFF : 0;
+                        else if ((dat & 3) == 3) buffer32->line[displine][xx2] ^= 0xFFFFFF;
+                }
+                dat >>= 2;
+                xx++;
+                if (!(xx % shift)) {
+                        xx2 = xx / shift;
+                        if (!(dat & 2))          buffer32->line[displine][xx2]  = (dat & 1) ? 0xFFFFFF : 0;
+                        else if ((dat & 3) == 3) buffer32->line[displine][xx2] ^= 0xFFFFFF;
+                }
+                dat >>= 2;
+                xx++;
+                if (!(xx % shift)) {
+                        xx2 = xx / shift;
+                        if (!(dat & 2))          buffer32->line[displine][xx2]  = (dat & 1) ? 0xFFFFFF : 0;
+                        else if ((dat & 3) == 3) buffer32->line[displine][xx2] ^= 0xFFFFFF;
+                }
+                dat >>= 2;
+
+                offset += 4;
+        }
+
         svga->hwcursor_latch.addr += pitch;
 }
 
