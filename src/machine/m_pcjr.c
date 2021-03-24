@@ -221,7 +221,6 @@ vid_write(uint32_t addr, uint8_t val, void *p)
 
     if (pcjr->memctrl == -1) return;
 
-    egawrites++;
     pcjr->b8000[addr & 0x3fff] = val;
 }
 
@@ -233,7 +232,6 @@ vid_read(uint32_t addr, void *p)
 
     if (pcjr->memctrl == -1) return(0xff);
 		
-    egareads++;
     return(pcjr->b8000[addr & 0x3fff]);
 }
 

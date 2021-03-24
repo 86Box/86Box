@@ -300,7 +300,6 @@ vid_write_1512(uint32_t addr, uint8_t val, void *priv)
 {
     amsvid_t *vid = (amsvid_t *)priv;
 
-    egawrites++;
     cycles -= 12;
     addr &= 0x3fff;
 
@@ -319,7 +318,6 @@ vid_read_1512(uint32_t addr, void *priv)
 {
     amsvid_t *vid = (amsvid_t *)priv;
 
-    egareads++;
     cycles -= 12;
     addr &= 0x3fff;
 

@@ -81,8 +81,6 @@ typedef struct {
 typedef rgb_t PALETTE[256];
 
 
-extern int	egareads,
-		egawrites;
 extern int	changeframecount;
 
 extern volatile int screenshots;

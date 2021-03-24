@@ -191,7 +191,6 @@ static uint8_t t1000_in(uint16_t addr, void *p)
 static void t1000_write(uint32_t addr, uint8_t val, void *p)
 {
         t1000_t *t1000 = (t1000_t *)p;
-        egawrites++;
 
         t1000->vram[addr & 0x3fff] = val;
         cycles -= 4;
@@ -200,7 +199,6 @@ static void t1000_write(uint32_t addr, uint8_t val, void *p)
 static uint8_t t1000_read(uint32_t addr, void *p)
 {
         t1000_t *t1000 = (t1000_t *)p;
-        egareads++;
 	cycles -= 4;
 
         return t1000->vram[addr & 0x3fff];
