@@ -87,7 +87,7 @@ sdac_control_write(sdac_ramdac_t *ramdac, svga_t *svga, uint8_t val)
 			case 0x0a:
 				svga->bpp = 16;
 				break;
-			case 0xc0:
+			case 0x0c:
 				svga->bpp = 24;
 				break;
 			case 0x02:
