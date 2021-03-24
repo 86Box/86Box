@@ -503,6 +503,12 @@ svga_recalctimings(svga_t *svga)
 						else
 							svga->render = svga_render_16bpp_highres;
 						break;
+					case 17:
+						if (svga->lowres)
+							svga->render = svga_render_15bpp_mix_lowres;
+						else
+							svga->render = svga_render_15bpp_mix_highres;
+						break;
 					case 24:
 						if (svga->lowres)
 							svga->render = svga_render_24bpp_lowres;
@@ -1003,7 +1009,7 @@ svga_decode_addr(svga_t *svga, uint32_t addr, int write)
 }
 
 
-void
+static __inline void
 svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
 {
     svga_t *svga = (svga_t *)p;
@@ -1015,8 +1021,6 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
 
     if (svga->adv_flags & FLAG_ADDR_BY8)
 	writemask2 = svga->seqregs[2];
-
-    egawrites++;
 
     cycles -= video_timing_write_b;
 
@@ -1182,7 +1186,7 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
 }
 
 
-uint8_t
+static __inline uint8_t
 svga_read_common(uint32_t addr, uint8_t linear, void *p)
 {
     svga_t *svga = (svga_t *)p;
@@ -1196,8 +1200,6 @@ svga_read_common(uint32_t addr, uint8_t linear, void *p)
 	readplane = svga->gdcreg[4] & 7;
 
     cycles -= video_timing_read_b;
-
-    egareads++;
 
     if (!linear) {
 	addr = svga_decode_addr(svga, addr, 0);
@@ -1399,8 +1401,6 @@ svga_writeb_linear(uint32_t addr, uint8_t val, void *p)
 	return;
     }
 
-    egawrites++;
-
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
 	return;
@@ -1420,8 +1420,6 @@ svga_writew_common(uint32_t addr, uint16_t val, uint8_t linear, void *p)
 	svga_write_common(addr + 1, val >> 8, linear, p);
 	return;
     }
-
-    egawrites += 2;
 
     cycles -= video_timing_write_w;
 
@@ -1481,8 +1479,6 @@ svga_writel_common(uint32_t addr, uint32_t val, uint8_t linear, void *p)
 	svga_write_common(addr + 3, val >> 24, linear, p);
 	return;
     }
-
-    egawrites += 4;
 
     cycles -= video_timing_write_l;
 
@@ -1548,8 +1544,6 @@ svga_readb_linear(uint32_t addr, void *p)
     if (!svga->fast)
 	return svga_read_linear(addr, p);
 
-    egareads++;
-
     addr &= svga->decode_mask;
     if (addr >= svga->vram_max)
 	return 0xff;
@@ -1565,8 +1559,6 @@ svga_readw_common(uint32_t addr, uint8_t linear, void *p)
 
     if (!svga->fast)
 	return svga_read_common(addr, linear, p) | (svga_read_common(addr + 1, linear, p) << 8);
-
-    egareads += 2;
 
     cycles -= video_timing_read_w;
 
@@ -1618,8 +1610,6 @@ svga_readl_common(uint32_t addr, uint8_t linear, void *p)
 	return svga_read_common(addr, linear, p) | (svga_read_common(addr + 1, linear, p) << 8) |
 	       (svga_read_common(addr + 2, linear, p) << 16) | (svga_read_common(addr + 3, linear, p) << 24);
     }
-
-    egareads += 4;
 
     cycles -= video_timing_read_l;
 

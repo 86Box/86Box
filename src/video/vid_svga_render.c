@@ -667,10 +667,21 @@ svga_render_8bpp_lowres(svga_t *svga)
 	for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += 8) {
 		if (svga->crtc[0x17] & 0x80) {
 			dat = *(uint32_t *)(&svga->vram[svga->ma & svga->vram_display_mask]);
+			if (svga->attrregs[0x10] & 0x80)
+				dat = (dat & ~0xf0) | ((svga->attrregs[0x14] & 0x0f) << 4);
 			p[0] = p[1] = svga->map8[dat & 0xff];
-			p[2] = p[3] = svga->map8[(dat >> 8) & 0xff];
-			p[4] = p[5] = svga->map8[(dat >> 16) & 0xff];
-			p[6] = p[7] = svga->map8[(dat >> 24) & 0xff];
+			dat >>= 8;
+			if (svga->attrregs[0x10] & 0x80)
+				dat = (dat & ~0xf0) | ((svga->attrregs[0x14] & 0x0f) << 4);
+			p[2] = p[3] = svga->map8[dat & 0xff];
+			dat >>= 8;
+			if (svga->attrregs[0x10] & 0x80)
+				dat = (dat & ~0xf0) | ((svga->attrregs[0x14] & 0x0f) << 4);
+			p[4] = p[5] = svga->map8[dat & 0xff];
+			dat >>= 8;
+			if (svga->attrregs[0x10] & 0x80)
+				dat = (dat & ~0xf0) | ((svga->attrregs[0x14] & 0x0f) << 4);
+			p[6] = p[7] = svga->map8[dat & 0xff];
 		} else
 			memset(p, 0x00, 8 * sizeof(uint32_t));
 
@@ -702,16 +713,38 @@ svga_render_8bpp_highres(svga_t *svga)
 	for (x = 0; x <= (svga->hdisp/* + svga->scrollcache*/); x += 8) {
 		if (svga->crtc[0x17] & 0x80) {
 			dat = *(uint32_t *)(&svga->vram[svga->ma & svga->vram_display_mask]);
+			if (svga->attrregs[0x10] & 0x80)
+				dat = (dat & ~0xf0) | ((svga->attrregs[0x14] & 0x0f) << 4);
 			p[0] = svga->map8[dat & 0xff];
-			p[1] = svga->map8[(dat >> 8) & 0xff];
-			p[2] = svga->map8[(dat >> 16) & 0xff];
-			p[3] = svga->map8[(dat >> 24) & 0xff];
+			dat >>= 8;
+			if (svga->attrregs[0x10] & 0x80)
+				dat = (dat & ~0xf0) | ((svga->attrregs[0x14] & 0x0f) << 4);
+			p[1] = svga->map8[dat & 0xff];
+			dat >>= 8;
+			if (svga->attrregs[0x10] & 0x80)
+				dat = (dat & ~0xf0) | ((svga->attrregs[0x14] & 0x0f) << 4);
+			p[2] = svga->map8[dat & 0xff];
+			dat >>= 8;
+			if (svga->attrregs[0x10] & 0x80)
+				dat = (dat & ~0xf0) | ((svga->attrregs[0x14] & 0x0f) << 4);
+			p[3] = svga->map8[dat & 0xff];
 
 			dat = *(uint32_t *)(&svga->vram[(svga->ma + 4) & svga->vram_display_mask]);
+			if (svga->attrregs[0x10] & 0x80)
+				dat = (dat & ~0xf0) | ((svga->attrregs[0x14] & 0x0f) << 4);
 			p[4] = svga->map8[dat & 0xff];
-			p[5] = svga->map8[(dat >> 8) & 0xff];
-			p[6] = svga->map8[(dat >> 16) & 0xff];
-			p[7] = svga->map8[(dat >> 24) & 0xff];
+			dat >>= 8;
+			if (svga->attrregs[0x10] & 0x80)
+				dat = (dat & ~0xf0) | ((svga->attrregs[0x14] & 0x0f) << 4);
+			p[5] = svga->map8[dat & 0xff];
+			dat >>= 8;
+			if (svga->attrregs[0x10] & 0x80)
+				dat = (dat & ~0xf0) | ((svga->attrregs[0x14] & 0x0f) << 4);
+			p[6] = svga->map8[dat & 0xff];
+			dat >>= 8;
+			if (svga->attrregs[0x10] & 0x80)
+				dat = (dat & ~0xf0) | ((svga->attrregs[0x14] & 0x0f) << 4);
+			p[7] = svga->map8[dat & 0xff];
 		} else
 			memset(p, 0x00, 8 * sizeof(uint32_t));
 

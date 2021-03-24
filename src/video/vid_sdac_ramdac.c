@@ -44,7 +44,7 @@ sdac_control_write(sdac_ramdac_t *ramdac, svga_t *svga, uint8_t val)
 {
     ramdac->command = val;
 	
-	if (ramdac->type == 1 || ramdac->type == 2) {
+	if (ramdac->type == 1) {
 		switch (val) {
 			case 0xa0:
 				svga->bpp = 15;
@@ -67,32 +67,61 @@ sdac_control_write(sdac_ramdac_t *ramdac, svga_t *svga, uint8_t val)
 				svga->bpp = 8;
 				break;	
 		}
+	} else if (ramdac->type == 2) {
+		switch (val >> 4) {
+			case 0x00:
+			default:
+				svga->bpp = 8;
+				break;
+			case 0x01:
+			case 0x04:
+			case 0x05:
+			case 0x09:
+				svga->bpp = 15;
+				break;
+			case 0x08:
+				svga->bpp = 17;		/* 15bpp_mix */
+				break;
+			case 0x03:
+			case 0x06:
+			case 0x0a:
+				svga->bpp = 16;
+				break;
+			case 0xc0:
+				svga->bpp = 24;
+				break;
+			case 0x02:
+			case 0x07:
+			case 0x0b:
+				svga->bpp = 32;
+				break;
+		}
 	} else {
 		switch (val >> 4) {
-		case 0x2:
-		case 0x3:
-		case 0xa:
-		case 0x8:
-			svga->bpp = 15;
-			break;
-		case 0x4:
-		case 0x9:
-		case 0xe:
-			svga->bpp = 24;
-			break;
-		case 0x5:
-		case 0x6:
-		case 0xc:
-			svga->bpp = 16;
-			break;
-		case 0x7:
-			svga->bpp = 32;
-			break;
-		case 0x0:
-		case 0x1:
-		default:
-			svga->bpp = 8;
-			break;
+			case 0x2:
+			case 0x3:
+			case 0xa:
+			case 0x8:
+				svga->bpp = 15;
+				break;
+			case 0x4:
+			case 0x9:
+			case 0xe:
+				svga->bpp = 24;
+				break;
+			case 0x5:
+			case 0x6:
+			case 0xc:
+				svga->bpp = 16;
+				break;
+			case 0x7:
+				svga->bpp = 32;
+				break;
+			case 0x0:
+			case 0x1:
+			default:
+				svga->bpp = 8;
+				break;
 		}	
 	}
 }

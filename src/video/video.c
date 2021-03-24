@@ -85,7 +85,6 @@ dbcs_font_t	*fontdatksc5601_user = NULL;	/* Korean KSC-5601 user defined font */
 uint32_t	pal_lookup[256];
 int		xsize = 1,
 		ysize = 1;
-int		egareads = 0, egawrites = 0;
 int		cga_palette = 0,
 		herc_blend = 0;
 uint32_t	*video_6to8 = NULL,
