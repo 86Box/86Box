@@ -24,10 +24,8 @@
 #include <86box/mem.h>
 #include <86box/smram.h>
 #include <86box/io.h>
-#include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/pci.h>
-#include <86box/keyboard.h>
 #include <86box/chipset.h>
 #include <86box/spd.h>
 #include <86box/machine.h>

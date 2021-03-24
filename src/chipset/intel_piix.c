@@ -25,10 +25,7 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
-#include <86box/cdrom.h>
 #include "cpu.h"
-#include <86box/scsi_device.h>
-#include <86box/scsi_cdrom.h>
 #include <86box/dma.h>
 #include <86box/io.h>
 #include <86box/device.h>
@@ -44,11 +41,9 @@
 #include <86box/pic.h>
 #include <86box/pit.h>
 #include <86box/port_92.h>
-#include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/usb.h>
-#include <86box/zip.h>
 #include <86box/machine.h>
 #include <86box/smbus_piix4.h>
 #include <86box/chipset.h>

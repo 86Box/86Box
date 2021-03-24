@@ -25,13 +25,9 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
-#include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
-#include <86box/keyboard.h>
 #include <86box/mem.h>
-#include <86box/fdd.h>
-#include <86box/fdc.h>
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 

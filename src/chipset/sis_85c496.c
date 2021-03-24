@@ -26,10 +26,8 @@
 #include <86box/mem.h>
 #include <86box/smram.h>
 #include <86box/io.h>
-#include <86box/rom.h>
 #include <86box/pci.h>
 #include <86box/device.h>
-#include <86box/keyboard.h>
 #include <86box/timer.h>
 #include <86box/dma.h>
 #include <86box/nvr.h>
@@ -234,6 +232,8 @@ sis_85c49x_pci_write(int func, int addr, uint8_t val, void *priv)
 			sis_85c496_recalcmapping(dev);
 			if (((old & 0xf0) == 0xf0) && ((val & 0xf0) == 0x30))
 				flushmmucache_nopc();
+			else if (((old & 0xf0) == 0xf0) && ((val & 0xf0) == 0x00))
+				flushmmucache_nopc();
 			else
 				flushmmucache();
 		}
@@ -242,7 +242,10 @@ sis_85c49x_pci_write(int func, int addr, uint8_t val, void *priv)
 		dev->pci_conf[addr] = val & 0x0f;
 		if (valxor & 0x03) {
 			sis_85c496_recalcmapping(dev);
-			flushmmucache();
+			if ((old == 0x0a) && (val == 0x09))
+				flushmmucache_nopc();
+			else
+				flushmmucache();
 		}
 		break;
 	case 0x46:	/* Cacheable Control */

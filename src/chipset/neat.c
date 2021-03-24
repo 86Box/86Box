@@ -26,13 +26,8 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/device.h>
-#include <86box/timer.h>
-#include <86box/fdd.h>
-#include <86box/fdc.h>
-#include <86box/keyboard.h>
 #include <86box/io.h>
 #include <86box/mem.h>
-#include <86box/nmi.h>
 #include <86box/chipset.h>
 
 #define NEAT_DEBUG	0

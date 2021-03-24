@@ -25,13 +25,11 @@
 #include <86box/mem.h>
 #include <86box/smram.h>
 #include <86box/io.h>
-#include <86box/rom.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
 #include <86box/timer.h>
 #include <86box/pit.h>
 #include <86box/device.h>
-#include <86box/keyboard.h>
 #include <86box/port_92.h>
 #include <86box/usb.h>
 #include <86box/hdc_ide.h>
