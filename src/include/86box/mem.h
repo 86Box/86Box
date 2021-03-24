@@ -223,8 +223,7 @@ extern int		readlnum,
 
 extern int		memspeed[11];
 
-extern int		mmu_perm,
-			use_phys_exec;
+extern int		mmu_perm;
 
 extern int		mem_a20_state,
 			mem_a20_alt,
@@ -238,14 +237,21 @@ extern void	write_mem_w(uint32_t addr, uint16_t val);
 
 extern uint8_t	readmembl(uint32_t addr);
 extern void	writemembl(uint32_t addr, uint8_t val);
-extern void	rwmembl(uint32_t raddr, uint32_t waddr, uint8_t val);
-
 extern uint16_t	readmemwl(uint32_t addr);
 extern void	writememwl(uint32_t addr, uint16_t val);
 extern uint32_t	readmemll(uint32_t addr);
 extern void	writememll(uint32_t addr, uint32_t val);
 extern uint64_t	readmemql(uint32_t addr);
 extern void	writememql(uint32_t addr, uint64_t val);
+
+extern uint8_t	readmembl_no_mmut(uint32_t addr, uint64_t addr64);
+extern void	writemembl_no_mmut(uint32_t addr, uint64_t addr64, uint8_t val);
+extern uint16_t	readmemwl_no_mmut(uint32_t addr, uint64_t *addr64);
+extern void	writememwl_no_mmut(uint32_t addr, uint64_t *addr64, uint16_t val);
+extern uint32_t	readmemll_no_mmut(uint32_t addr, uint64_t *addr64);
+extern void	writememll_no_mmut(uint32_t addr, uint64_t *addr64, uint32_t val);
+
+extern void	do_mmutranslate(uint32_t addr, uint64_t *addr64, int num, int write);
 
 extern uint8_t	*getpccache(uint32_t a);
 extern uint64_t	mmutranslatereal(uint32_t addr, int rw);

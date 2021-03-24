@@ -168,7 +168,7 @@ extern void	pc_speed_changed(void);
 extern void	pc_send_cad(void);
 extern void	pc_send_cae(void);
 extern void	pc_send_cab(void);
-extern void	pc_thread(void *param);
+extern void	pc_run(void);
 extern void	pc_start(void);
 extern void	pc_onesec(void);
 
@@ -181,7 +181,7 @@ extern void	sub_cycles(int c);
 extern void	resub_cycles(int old_cycles);
 
 extern double	isa_timing;
-extern int	io_delay;
+extern int	io_delay, framecountx;
 
 #ifdef __cplusplus
 }
