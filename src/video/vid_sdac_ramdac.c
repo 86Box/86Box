@@ -46,22 +46,47 @@ sdac_control_write(sdac_ramdac_t *ramdac, svga_t *svga, uint8_t val)
     switch (val >> 4) {
 	case 0x2:
 	case 0x3:
+		svga->bpp = 15;
+		break;
 	case 0xa:
+		if (ramdac->type == 2)
+			svga->bpp = 16;
+		else
+			svga->bpp = 15;
+		break;
 	case 0x8:
 		svga->bpp = 15;
 		break;
 	case 0x4:
 	case 0x9:
-	case 0xe:
 		svga->bpp = 24;
 		break;
+	case 0xe:
+		if (ramdac->type == 1)
+			svga->bpp = 16;
+		else
+			svga->bpp = 24;
+		break;
 	case 0x5:
-	case 0x6:
-	case 0xc:
 		svga->bpp = 16;
 		break;
+	case 0x6:
+		if (ramdac->type == 1)
+			svga->bpp = 24;
+		else
+			svga->bpp = 16;
+		break;
+	case 0xc:
+		if (ramdac->type == 1)
+			svga->bpp = 15;
+		else
+			svga->bpp = 16;
+		break;
 	case 0x7:
-		svga->bpp = 32;
+		if (ramdac->type == 1)
+			svga->bpp = 24;
+		else
+			svga->bpp = 32;
 		break;
 	case 0x0:
 	case 0x1:
@@ -69,6 +94,8 @@ sdac_control_write(sdac_ramdac_t *ramdac, svga_t *svga, uint8_t val)
 		svga->bpp = 8;
 		break;
     }
+	
+	pclog("BPP = %i, val = %x, type = %i\n", svga->bpp, val >> 4, ramdac->type);
 }
 
 
@@ -111,7 +138,7 @@ sdac_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
     uint8_t rs = (addr & 0x03);
     rs |= (!!rs2 << 8);
 
-    if ((rs >= 0x04) || (ramdac->type == 7))  switch (rs) {
+    if ((rs >= 0x04) || (ramdac->type == 7) || (ramdac->type == 1) || (ramdac->type == 2))  switch (rs) {
 	case 0x02:
 		if (ramdac->magic_count == 4)
 			sdac_control_write(ramdac, svga, val);
@@ -149,19 +176,19 @@ sdac_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
     uint8_t rs = (addr & 0x03);
     rs |= (!!rs2 << 8);
 
-    if ((rs < 0x04) && (ramdac->type != 7))
+    if ((rs < 0x04) && (ramdac->type != 7) && (ramdac->type != 1) && (ramdac->type != 2))
 	temp = svga_in(addr, svga);
     else switch (rs) {
 	case 0x02:
-		if (ramdac->magic_count < 5)
-			ramdac->magic_count++;
-		if (ramdac->magic_count == 4)
-			temp = 0x70; /*SDAC ID*/
-		else if (ramdac->magic_count == 5) {
-			temp = ramdac->command;
-			ramdac->magic_count = 0;
-		} else
-			temp = svga_in(addr, svga);
+			if (ramdac->magic_count < 5)
+				ramdac->magic_count++;
+			if ((ramdac->magic_count == 4) && (ramdac->type != 1) && (ramdac->type != 2))
+				temp = 0x70; /*SDAC ID*/
+			else if (ramdac->magic_count == 5) {
+				temp = ramdac->command;
+				ramdac->magic_count = 0;
+			} else
+				temp = svga_in(addr, svga);
 		break;
 	case 0x00:
 	case 0x01:
@@ -247,6 +274,21 @@ const device_t gendac_ramdac_device =
     NULL, { NULL }, NULL, NULL
 };
 
+const device_t tseng_ics5301_ramdac_device =
+{
+    "Tseng ICS5301 GENDAC RAMDAC",
+    0, 1,
+    sdac_ramdac_init, sdac_ramdac_close,
+    NULL, { NULL }, NULL, NULL
+};
+
+const device_t tseng_ics5341_ramdac_device =
+{
+    "Tseng ICS5341 GENDAC RAMDAC",
+    0, 2,
+    sdac_ramdac_init, sdac_ramdac_close,
+    NULL, { NULL }, NULL, NULL
+};
 
 const device_t sdac_ramdac_device =
 {

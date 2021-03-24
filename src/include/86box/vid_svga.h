@@ -275,4 +275,6 @@ extern const device_t sc1502x_ramdac_device;
 extern const device_t sdac_ramdac_device;
 extern const device_t stg_ramdac_device;
 extern const device_t tkd8001_ramdac_device;
+extern const device_t tseng_ics5301_ramdac_device;
+extern const device_t tseng_ics5341_ramdac_device;
 #endif
