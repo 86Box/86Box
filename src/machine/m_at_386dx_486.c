@@ -1036,6 +1036,7 @@ machine_at_atc1415_init(const machine_t *model)
     pci_register_slot(0x14, PCI_CARD_NORMAL, 3, 4, 1, 2);
 
     device_add(&umc_hb4_device);
+    device_add(&umc_8886af_device);
     device_add(&keyboard_at_ami_device);
 
     if (fdc_type == FDC_INTERNAL)
@@ -1065,7 +1066,8 @@ machine_at_ecs486_init(const machine_t *model)
     pci_register_slot(0x0e, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x0f, PCI_CARD_IDE, 0, 0, 0, 0);
 
-    device_add(&umc_hb4_early_device);
+    device_add(&umc_hb4_device);
+    device_add(&umc_8886f_device);
     device_add(&ide_cmd640_pci_legacy_only_device);
     device_add(&fdc37c665_device);
     device_add(&keyboard_at_ami_device);
@@ -1095,7 +1097,7 @@ machine_at_hot433_init(const machine_t *model)
     pci_register_slot(0x0f, PCI_CARD_NORMAL, 2, 3, 4, 1);
 
     device_add(&umc_hb4_device);
-    device_add(&um8669f_device);
+    device_add(&umc_8886af_device);
     device_add(&intel_flash_bxt_device);
     device_add(&keyboard_at_ami_device);
 
