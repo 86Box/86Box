@@ -402,7 +402,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 	free(argw);
 	return(1);
     }
-	
+
     /* Enable crash dump services. */
     if (enable_crashdump)
 	InitCrashDump();
@@ -431,7 +431,7 @@ main_thread(void *param)
     title_update = 1;
     old_time = GetTickCount();
     drawits = frames = 0;
-    while (!quited) {
+    while (!is_quit) {
 	/* See if it is time to run a frame of code. */
 	new_time = GetTickCount();
 	drawits += (new_time - old_time);
@@ -474,7 +474,7 @@ do_start(void)
     LARGE_INTEGER qpc;
 
     /* We have not stopped yet. */
-    quited = 0;
+    is_quit = 0;
 
     /* Initialize the high-precision timer. */
     timeBeginPeriod(1);
@@ -483,7 +483,7 @@ do_start(void)
     win_log("Main timer precision: %llu\n", timer_freq);
 
     /* Start the emulator, really. */
-    thMain = thread_create(main_thread, &quited);
+    thMain = thread_create(main_thread, &is_quit);
     SetThreadPriority(thMain, THREAD_PRIORITY_HIGHEST);
 }
 
@@ -492,7 +492,7 @@ do_start(void)
 void
 do_stop(void)
 {
-    quited = 1;
+    is_quit = 1;
 
     plat_delay_ms(100);
 
@@ -719,7 +719,7 @@ plat_get_ticks(void)
     LARGE_INTEGER EndingTime, ElapsedMicroseconds;
 
     if (first_use) {
-	QueryPerformanceFrequency(&Frequency); 
+	QueryPerformanceFrequency(&Frequency);
 	QueryPerformanceCounter(&StartingTime);
 	first_use = 0;
     }
@@ -911,7 +911,7 @@ plat_setfullscreen(int on)
 				temp_y = unscaled_size_y;
 			}
 
-			/* Main Window. */				
+			/* Main Window. */
 			ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
 		}
 

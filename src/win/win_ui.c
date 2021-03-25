@@ -118,7 +118,7 @@ int win_get_system_metrics(int index, int dpi) {
         if (pAreDpiAwarenessContextsEqual(c, DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2))
             return pGetSystemMetricsForDpi(index, dpi);
     }
-    
+
     return GetSystemMetrics(index);
 }
 
@@ -312,7 +312,7 @@ LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
 
     if (nCode < 0 || nCode != HC_ACTION || (!mouse_capture && !video_fullscreen))
 	return(CallNextHookEx(hKeyboardHook, nCode, wParam, lParam));
-	
+
     p = (KBDLLHOOKSTRUCT*)lParam;
 
     /* disable alt-tab */
@@ -666,7 +666,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_VID_FS_FULL:
 			case IDM_VID_FS_43:
-			case IDM_VID_FS_KEEPRATIO:                              
+			case IDM_VID_FS_KEEPRATIO:
 			case IDM_VID_FS_INT:
 				CheckMenuItem(hmenu, IDM_VID_FS_FULL+video_fullscreen_scale, MF_UNCHECKED);
 				video_fullscreen_scale = LOWORD(wParam) - IDM_VID_FS_FULL;
@@ -888,7 +888,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		else if ((wParam >= 0x8000) && (wParam <= 0x80ff))
 			ui_sb_timer_callback(wParam & 0xff);
 		break;
-		
+
 	case WM_LEAVEFULLSCREEN:
 		plat_setfullscreen(0);
 		config_save();
@@ -1332,16 +1332,16 @@ ui_init(int nCmdShow)
     do_start();
 
     /* Run the message loop. It will run until GetMessage() returns 0 */
-    while (! quited) {
+    while (! is_quit) {
 	bRet = GetMessage(&messages, NULL, 0, 0);
-	if ((bRet == 0) || quited) break;
+	if ((bRet == 0) || is_quit) break;
 
 	if (bRet == -1) {
 		fatal("bRet is -1\n");
 	}
 
 	if (messages.message == WM_QUIT) {
-		quited = 1;
+		is_quit = 1;
 		break;
 	}
 
