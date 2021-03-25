@@ -316,9 +316,9 @@ pc_log(const char *fmt, ...)
 	va_list ap;
 
 	if (pc_do_log) {
-	va_start(ap, fmt);
-	pclog_ex(fmt, ap);
-	va_end(ap);
+		va_start(ap, fmt);
+		pclog_ex(fmt, ap);
+		va_end(ap);
 	}
 }
 #else
@@ -337,7 +337,7 @@ int
 pc_init(int argc, wchar_t *argv[])
 {
 	wchar_t path[2048];
-    wchar_t *cfg = NULL, *p;
+	wchar_t *cfg = NULL, *p;
 	char temp[128];
 	struct tm *info;
 	time_t now;
@@ -361,83 +361,83 @@ pc_init(int argc, wchar_t *argv[])
 	memset(path, 0x00, sizeof(path));
 
 	for (c=1; c<argc; c++) {
-	if (argv[c][0] != L'-') break;
+		if (argv[c][0] != L'-') break;
 
-	if (!wcscasecmp(argv[c], L"--help") || !wcscasecmp(argv[c], L"-?")) {
+		if (!wcscasecmp(argv[c], L"--help") || !wcscasecmp(argv[c], L"-?")) {
 usage:
-		printf("\nUsage: 86box [options] [cfg-file]\n\n");
-		printf("Valid options are:\n\n");
-		printf("-? or --help         - show this information\n");
-		printf("-C or --dumpcfg      - dump config file after loading\n");
+			printf("\nUsage: 86box [options] [cfg-file]\n\n");
+			printf("Valid options are:\n\n");
+			printf("-? or --help         - show this information\n");
+			printf("-C or --dumpcfg      - dump config file after loading\n");
 #ifdef _WIN32
-		printf("-D or --debug        - force debug output logging\n");
+			printf("-D or --debug        - force debug output logging\n");
 #endif
-		printf("-F or --fullscreen   - start in fullscreen mode\n");
-		printf("-L or --logfile path - set 'path' to be the logfile\n");
-		printf("-P or --vmpath path  - set 'path' to be root for vm\n");
-		printf("-S or --settings     - show only the settings dialog\n");
-		printf("-N or --noconfirm    - do not ask for confirmation on quit\n");
+			printf("-F or --fullscreen   - start in fullscreen mode\n");
+			printf("-L or --logfile path - set 'path' to be the logfile\n");
+			printf("-P or --vmpath path  - set 'path' to be root for vm\n");
+			printf("-S or --settings     - show only the settings dialog\n");
+			printf("-N or --noconfirm    - do not ask for confirmation on quit\n");
 #ifdef _WIN32
-		printf("-H or --hwnd id,hwnd - sends back the main dialog's hwnd\n");
+			printf("-H or --hwnd id,hwnd - sends back the main dialog's hwnd\n");
 #endif
-		printf("-R or --crashdump    - enables crashdump on exception\n");
-		printf("\nA config file can be specified. If none is, the default file will be used.\n");
-		return(0);
-	} else if (!wcscasecmp(argv[c], L"--dumpcfg") ||
-		   !wcscasecmp(argv[c], L"-C")) {
-		do_dump_config = 1;
+			printf("-R or --crashdump    - enables crashdump on exception\n");
+			printf("\nA config file can be specified. If none is, the default file will be used.\n");
+			return(0);
+		} else if (!wcscasecmp(argv[c], L"--dumpcfg") ||
+			   !wcscasecmp(argv[c], L"-C")) {
+			do_dump_config = 1;
 #ifdef _WIN32
-	} else if (!wcscasecmp(argv[c], L"--debug") ||
-		   !wcscasecmp(argv[c], L"-D")) {
-		force_debug = 1;
+		} else if (!wcscasecmp(argv[c], L"--debug") ||
+			   !wcscasecmp(argv[c], L"-D")) {
+			force_debug = 1;
 #endif
-	} else if (!wcscasecmp(argv[c], L"--fullscreen") ||
-		   !wcscasecmp(argv[c], L"-F")) {
-		start_in_fullscreen = 1;
-	} else if (!wcscasecmp(argv[c], L"--logfile") ||
-		   !wcscasecmp(argv[c], L"-L")) {
-		if ((c+1) == argc) goto usage;
+		} else if (!wcscasecmp(argv[c], L"--fullscreen") ||
+			   !wcscasecmp(argv[c], L"-F")) {
+			start_in_fullscreen = 1;
+		} else if (!wcscasecmp(argv[c], L"--logfile") ||
+			   !wcscasecmp(argv[c], L"-L")) {
+			if ((c+1) == argc) goto usage;
 
-		wcscpy(log_path, argv[++c]);
-	} else if (!wcscasecmp(argv[c], L"--vmpath") ||
-		   !wcscasecmp(argv[c], L"-P")) {
-		if ((c+1) == argc) goto usage;
+			wcscpy(log_path, argv[++c]);
+		} else if (!wcscasecmp(argv[c], L"--vmpath") ||
+			   !wcscasecmp(argv[c], L"-P")) {
+			if ((c+1) == argc) goto usage;
 
-		wcscpy(path, argv[++c]);
-	} else if (!wcscasecmp(argv[c], L"--settings") ||
-		   !wcscasecmp(argv[c], L"-S")) {
-		settings_only = 1;
-	} else if (!wcscasecmp(argv[c], L"--noconfirm") ||
-		   !wcscasecmp(argv[c], L"-N")) {
-		confirm_exit_cmdl = 0;
-	} else if (!wcscasecmp(argv[c], L"--crashdump") ||
-		   !wcscasecmp(argv[c], L"-R")) {
-		enable_crashdump = 1;
+			wcscpy(path, argv[++c]);
+		} else if (!wcscasecmp(argv[c], L"--settings") ||
+			   !wcscasecmp(argv[c], L"-S")) {
+			settings_only = 1;
+		} else if (!wcscasecmp(argv[c], L"--noconfirm") ||
+			   !wcscasecmp(argv[c], L"-N")) {
+			confirm_exit_cmdl = 0;
+		} else if (!wcscasecmp(argv[c], L"--crashdump") ||
+			   !wcscasecmp(argv[c], L"-R")) {
+			enable_crashdump = 1;
 #ifdef _WIN32
-	} else if (!wcscasecmp(argv[c], L"--hwnd") ||
+		} else if (!wcscasecmp(argv[c], L"--hwnd") ||
 		   !wcscasecmp(argv[c], L"-H")) {
+			if ((c+1) == argc) goto usage;
 
-		if ((c+1) == argc) goto usage;
-
-		wcstombs(temp, argv[++c], 128);
-		uid = (uint32_t *) &unique_id;
-		shwnd = (uint32_t *) &source_hwnd;
-		sscanf(temp, "%08X%08X,%08X%08X", uid + 1, uid, shwnd + 1, shwnd);
+			wcstombs(temp, argv[++c], 128);
+			uid = (uint32_t *) &unique_id;
+			shwnd = (uint32_t *) &source_hwnd;
+			sscanf(temp, "%08X%08X,%08X%08X", uid + 1, uid, shwnd + 1, shwnd);
 #endif
-	} else if (!wcscasecmp(argv[c], L"--test")) {
-		/* some (undocumented) test function here.. */
+		} else if (!wcscasecmp(argv[c], L"--test")) {
+			/* some (undocumented) test function here.. */
 
-		/* .. and then exit. */
-		return(0);
-	}
+			/* .. and then exit. */
+			return(0);
+		}
 
-	/* Uhm... out of options here.. */
-	else goto usage;
+		/* Uhm... out of options here.. */
+		else goto usage;
 	}
 
 	/* One argument (config file) allowed. */
 	if (c < argc)
-	cfg = argv[c++];
+		cfg = argv[c++];
+
 	if (c != argc) goto usage;
 
 	/*
@@ -447,32 +447,32 @@ usage:
 	 * make it absolute.
 	 */
 	if (path[0] != L'\0') {
-	if (! plat_path_abs(path)) {
-		/*
-		 * This looks like a relative path.
-		 *
-		 * Add it to the current working directory
-		 * to convert it (back) to an absolute path.
-		 */
-		plat_path_slash(usr_path);
-		wcscat(usr_path, path);
-	} else {
-		/*
-		 * The user-provided path seems like an
-		 * absolute path, so just use that.
-		 */
-		wcscpy(usr_path, path);
+		if (! plat_path_abs(path)) {
+			/*
+			 * This looks like a relative path.
+			 *
+			 * Add it to the current working directory
+			 * to convert it (back) to an absolute path.
+			 */
+			plat_path_slash(usr_path);
+			wcscat(usr_path, path);
+		} else {
+			/*
+			 * The user-provided path seems like an
+			 * absolute path, so just use that.
+			 */
+			wcscpy(usr_path, path);
+		}
+
+		/* If the specified path does not yet exist,
+		   create it. */
+		if (! plat_dir_check(usr_path))
+			plat_dir_create(usr_path);
 	}
 
-	/* If the specified path does not yet exist,
-	   create it. */
-	if (! plat_dir_check(usr_path))
-		plat_dir_create(usr_path);
-	}
-
-    /* Grab the name of the configuration file. */
-    if (cfg == NULL)
-	cfg = CONFIG_FILE;
+	/* Grab the name of the configuration file. */
+	if (cfg == NULL)
+		cfg = CONFIG_FILE;
 
     	/*
 	 * If the configuration file name has (part of)
@@ -484,23 +484,23 @@ usage:
 	 */
 	p = plat_get_filename(cfg);
 	if (cfg != p) {
-	/*
-	 * OK, the configuration file name has a
-	 * path component. Separate the two, and
-	 * add the path component to the cfg path.
-	 */
-	*(p-1) = L'\0';
+		/*
+		 * OK, the configuration file name has a
+		 * path component. Separate the two, and
+		 * add the path component to the cfg path.
+		 */
+		*(p-1) = L'\0';
 
-	/*
-	 * If this is an absolute path, keep it, as
-	 * there is probably have a reason to do so.
-	 * Otherwise, assume the pathname given is
-	 * relative to whatever the usr_path is.
-	 */
-	if (plat_path_abs(cfg))
-		wcscpy(usr_path, cfg);
-	  else
-		wcscat(usr_path, cfg);
+		/*
+		 * If this is an absolute path, keep it, as
+		 * there is probably have a reason to do so.
+		 * Otherwise, assume the pathname given is
+		 * relative to whatever the usr_path is.
+		 */
+		if (plat_path_abs(cfg))
+			wcscpy(usr_path, cfg);
+		else
+			wcscat(usr_path, cfg);
 	}
 
 	/* Make sure we have a trailing backslash. */
