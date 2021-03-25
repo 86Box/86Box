@@ -4153,8 +4153,8 @@ s3_visionx68_video_engine_op(uint32_t cpu_dat, s3_t *s3)
 	svga_t *svga = &s3->svga;
 	int idf, odf, host;
 	int is_yuv;
-	uint32_t src, dest;
-	uint8_t r, g, b, r2, g2, b2;
+	uint32_t src, dest = 0x00000000;
+	uint8_t r = 0x00, g = 0x00, b = 0x00, r2 = 0x00, g2 = 0x00, b2 = 0x00;
 	uint16_t *vram_w = (uint16_t *)svga->vram;
 	uint32_t *vram_l = (uint32_t *)svga->vram;
 	uint32_t k2 = 0, dda = 0, diff = 0;
