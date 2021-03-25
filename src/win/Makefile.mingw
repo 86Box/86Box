@@ -41,7 +41,7 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef CYRIX_6X86
   CYRIX_6X86	:= y
- endif 
+ endif
  ifndef GUSMAX
   GUSMAX	:= y
  endif
@@ -336,7 +336,7 @@ ifeq ($(X64), y)
  ifeq ($(OPTIM), y)
   DFLAGS	:= -march=native
  else
-  DFLAGS	:= 
+  DFLAGS	:=
  endif
 else
  ifeq ($(OPTIM), y)
@@ -609,7 +609,7 @@ CXXFLAGS	:= $(CFLAGS)
 #########################################################################
 #		Create the (final) list of objects to build.		#
 #########################################################################
-MAINOBJ		:= pc.o config.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
+MAINOBJ		:= 86box.o config.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
 		   nmi.o pic.o pit.o port_92.o ppi.o pci.o mca.o \
 		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o \
 		   $(VNCOBJ)
@@ -687,10 +687,10 @@ HDDOBJ		:= hdd.o \
 		    hdc_xtide.o hdc_ide.o \
 		    hdc_ide_opti611.o \
 		    hdc_ide_cmd640.o hdc_ide_sff8038i.o
-            
+
 MINIVHDOBJ  := cwalk.o libxml2_encoding.o minivhd_convert.o \
 		    minivhd_create.o minivhd_io.o minivhd_manage.o \
-            minivhd_struct_rw.o minivhd_util.o		                
+            minivhd_struct_rw.o minivhd_util.o
 
 CDROMOBJ	:= cdrom.o \
 		    cdrom_image_backend.o cdrom_image.o
@@ -719,7 +719,7 @@ NETOBJ		:= network.o \
 
 PRINTOBJ	:= png.o prt_cpmap.o \
 		    prt_escp.o prt_text.o prt_ps.o
-			
+
 SNDOBJ		:= sound.o \
 		    openal.o \
 		    snd_opl.o snd_opl_nuked.o \
