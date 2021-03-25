@@ -210,7 +210,7 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *p)
 		break;
 
 	case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
-		if (et4000->type <= ET4000W32I)
+		if (et4000->type <= ET4000W32P_REVC)
 			sdac_ramdac_out(addr, 0, val, svga->ramdac, svga);
 		else
 			stg_ramdac_out(addr, val, svga->ramdac, svga);
@@ -324,7 +324,7 @@ et4000w32p_in(uint16_t addr, void *p)
 		break;
 
 	case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
-		if (et4000->type <= ET4000W32I)
+		if (et4000->type <= ET4000W32P_REVC)
 			return sdac_ramdac_in(addr, 0, svga->ramdac, svga);
 		else
 			return stg_ramdac_in(addr, svga->ramdac, svga);
@@ -409,12 +409,12 @@ et4000w32p_recalctimings(svga_t *svga)
     switch (svga->bpp) {
 	case 15: case 16:
 		svga->hdisp >>= 1;
-		if (et4000->type <= ET4000W32I)
+		if (et4000->type <= ET4000W32P_REVC)
 			et4000->adjust_cursor = 1;
 		break;
 	case 24:
 		svga->hdisp /= 3;
-		if (et4000->type <= ET4000W32I)
+		if (et4000->type <= ET4000W32P_REVC)
 			et4000->adjust_cursor = 2;
 		break;
     }

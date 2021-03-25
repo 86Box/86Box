@@ -117,6 +117,8 @@ sdac_control_write(sdac_ramdac_t *ramdac, svga_t *svga, uint8_t val)
 		}
 		break;
     }
+
+    svga_recalctimings(svga);
 }
 
 
