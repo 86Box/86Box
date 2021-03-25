@@ -1704,6 +1704,17 @@ const device_t et4000w32_device =
         et4000w32p_config
 };
 
+const device_t et4000w32_onboard_device =
+{
+        "Tseng Labs ET4000/w32 (On-board)",
+        DEVICE_ISA | DEVICE_AT, ET4000W32,
+        et4000w32p_init, et4000w32p_close, NULL,
+        { et4000w32_available },
+        et4000w32p_speed_changed,
+        et4000w32p_force_redraw,
+        et4000w32p_config
+};
+
 const device_t et4000w32i_isa_device =
 {
         "Tseng Labs ET4000/w32i ISA",

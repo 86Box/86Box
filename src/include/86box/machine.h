@@ -363,6 +363,7 @@ extern const device_t 	*at_acera1g_get_device(void);
 #if defined(DEV_BRANCH) && defined(USE_VECT486VL)
 extern const device_t 	*at_vect486vl_get_device(void);
 #endif
+extern const device_t 	*at_valuepoint433_get_device(void);
 #endif
 
 /* m_at_commodore.c */

@@ -150,9 +150,17 @@ machine_at_valuepoint433_init(const machine_t *model)	// hangs without the PS/2 
     if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
+    if (gfxcard == VID_INTERNAL)
+	device_add(&et4000w32_onboard_device);
+
     return ret;
 }
 
+const device_t *
+at_valuepoint433_get_device(void)
+{
+    return &et4000w32_onboard_device;
+}
 
 int
 machine_at_ecs386_init(const machine_t *model)
