@@ -628,6 +628,9 @@ ht216_recalctimings(svga_t *svga)
     ht216_t *ht216 = (ht216_t *)svga->p;
     int high_res_256 = 0;
 
+	if (svga->attrregs[0x10] & 0x80)
+		svga->attrregs[0x10] &= ~0x80; /*Otherwise 8-bit color in graphics mode is a bit busted*/
+
     switch (ht216->clk_sel) {
 	case 5:  svga->clock = (cpuclock * (double)(1ull << 32)) / 65000000.0; break;
 	case 6:  svga->clock = (cpuclock * (double)(1ull << 32)) / 40000000.0; break;

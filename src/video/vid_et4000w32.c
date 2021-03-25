@@ -396,10 +396,10 @@ et4000w32p_recalctimings(svga_t *svga)
 	} else {
 		/* Also adjust the graphics mode clocks in some cases. */
 		if ((svga->gdcreg[5] & 0x40) && (svga->bpp != 32)) {
-			if ((svga->bpp == 15) || (svga->bpp == 16))
-				svga->hdisp += 16;
+			if ((svga->bpp == 15) || (svga->bpp == 16) || (svga->bpp == 24))
+				svga->hdisp += (svga->seqregs[1] & 1) ? 16 : 18;
 			else
-				svga->hdisp += 8;
+				svga->hdisp += (svga->seqregs[1] & 1) ? 8 : 9;
 		}
 	}
     }
