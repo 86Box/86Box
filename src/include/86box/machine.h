@@ -405,6 +405,8 @@ extern int	machine_at_p5sp4_init(const machine_t *);
 extern int	machine_at_p54sp4_init(const machine_t *);
 extern int	machine_at_sq588_init(const machine_t *);
 
+extern int	machine_at_hot539_init(const machine_t *);
+
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_endeavor_get_device(void);
 #define at_vectra54_get_device at_endeavor_get_device
