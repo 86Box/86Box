@@ -14,7 +14,7 @@
 #
 
 # WIN32 marks us as a GUI app on Windows
-add_executable(86Box WIN32 pc.c config.c random.c timer.c io.c acpi.c apm.c
+add_executable(86Box WIN32 86box.c config.c random.c timer.c io.c acpi.c apm.c
 	dma.c ddma.c nmi.c pic.c pit.c port_92.c ppi.c pci.c mca.c usb.c
 	device.c nvr.c nvr_at.c nvr_ps2.c)
 

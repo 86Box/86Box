@@ -38,7 +38,7 @@ else()
 endif()
 
 if(DISCORD)
-	# PUBLIC due to config.c and pc.c
+	# PUBLIC due to config.c and 86box.c
 	target_compile_definitions(ui PUBLIC USE_DISCORD)
 
 	target_sources(ui PRIVATE win_discord.c)
