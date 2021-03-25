@@ -83,11 +83,11 @@
 
 /* Stuff that used to be globally declared in plat.h but is now extern there
    and declared here instead. */
-int		dopause,			/* system is paused */
-		doresize,			/* screen resize requested */
-		quited;				/* system exit requested */
+int		dopause;		/* system is paused */
+int		doresize;			/* screen resize requested */
+int		is_quit;				/* system exit requested */
 uint64_t	timer_freq;
-char		emu_version[200];		/* version ID string */
+char        emu_version[200];		/* version ID string */
 
 #ifdef MTR_ENABLED
 int     tracing_on = 0;
@@ -112,52 +112,55 @@ uint64_t	source_hwnd = 0;
 wchar_t log_path[1024] = { L'\0'};		/* (O) full path of logfile */
 
 /* Configuration values. */
-int	window_w, window_h,			/* (C) window size and */
-	window_x, window_y,			/*     position info */
-	window_remember,
-	vid_resize,				/* (C) allow resizing */
-	invert_display = 0,			/* (C) invert the display */
-	suppress_overscan = 0;			/* (C) suppress overscans */
+int	window_w;   /* (C) window size and */
+int window_h;   /*     position info */
+int	window_x;
+int window_y;
+int window_remember;
+int vid_resize;			/* (C) allow resizing */
+int invert_display = 0;		/* (C) invert the display */
+int suppress_overscan = 0;			/* (C) suppress overscans */
 int	scale = 0;				/* (C) screen scale factor */
 int dpi_scale = 0;             /* (C) DPI scaling of the emulated screen */
 int	vid_api = 0;				/* (C) video renderer */
-int	vid_cga_contrast = 0,			/* (C) video */
-	video_fullscreen = 0,			/* (C) video */
-	video_fullscreen_scale = 0,		/* (C) video */
-	video_fullscreen_first = 0,		/* (C) video */
-	enable_overscan = 0,			/* (C) video */
-	force_43 = 0;				/* (C) video */
-int	serial_enabled[SERIAL_MAX] = {0,0},	/* (C) enable serial ports */
-	bugger_enabled = 0,			/* (C) enable ISAbugger */
-	postcard_enabled = 0,			/* (C) enable POST card */
-	isamem_type[ISAMEM_MAX] = { 0,0,0,0 },	/* (C) enable ISA mem cards */
-	isartc_type = 0;			/* (C) enable ISA RTC card */
+int	vid_cga_contrast = 0;			/* (C) video */
+int video_fullscreen = 0;			/* (C) video */
+int video_fullscreen_scale = 0;		/* (C) video */
+int video_fullscreen_first = 0;		/* (C) video */
+int enable_overscan = 0;			/* (C) video */
+int force_43 = 0;				/* (C) video */
+int	serial_enabled[SERIAL_MAX] = {0,0};	/* (C) enable serial ports */
+int bugger_enabled = 0;			/* (C) enable ISAbugger */
+int postcard_enabled = 0;			/* (C) enable POST card */
+int isamem_type[ISAMEM_MAX] = { 0,0,0,0 };	/* (C) enable ISA mem cards */
+int isartc_type = 0;			/* (C) enable ISA RTC card */
 int	gfxcard = 0;				/* (C) graphics/video card */
-int	sound_is_float = 1,			/* (C) sound uses FP values */
-	GAMEBLASTER = 0,			/* (C) sound option */
-	GUS = 0,				/* (C) sound option */
-	SSI2001 = 0,				/* (C) sound option */
-	voodoo_enabled = 0;			/* (C) video option */
+int	sound_is_float = 1;			/* (C) sound uses FP values */
+int GAMEBLASTER = 0;			/* (C) sound option */
+int GUS = 0;				/* (C) sound option */
+int SSI2001 = 0;				/* (C) sound option */
+int voodoo_enabled = 0;			/* (C) video option */
 uint32_t mem_size = 0;				/* (C) memory size */
-int	cpu_use_dynarec = 0,			/* (C) cpu uses/needs Dyna */
-	cpu = 0,				/* (C) cpu type */
-	fpu_type = 0;				/* (C) fpu type */
+int	cpu_use_dynarec = 0;			/* (C) cpu uses/needs Dyna */
+int cpu = 0;				/* (C) cpu type */
+int fpu_type = 0;				/* (C) fpu type */
 int	time_sync = 0;				/* (C) enable time sync */
-int	confirm_reset = 1,			/* (C) enable reset confirmation */
-	confirm_exit = 1,			/* (C) enable exit confirmation */
-	confirm_save = 1;			/* (C) enable save confirmation */
+int	confirm_reset = 1;			/* (C) enable reset confirmation */
+int confirm_exit = 1;			/* (C) enable exit confirmation */
+int confirm_save = 1;			/* (C) enable save confirmation */
 #ifdef USE_DISCORD
 int	enable_discord = 0;			/* (C) enable Discord integration */
 #endif
 int	enable_crashdump = 0;			/* (C) enable crash dump */
 
 /* Statistics. */
-extern int
-	mmuflush,
-	readlnum,
-	writelnum;
+extern int mmuflush;
+extern int readlnum;
+extern int writelnum;
 
-int	fps, framecount;			/* emulator % */
+/* emulator % */
+int	fps;
+int framecount;
 
 extern int	CPUID;
 extern int	output;
@@ -167,16 +170,16 @@ wchar_t	exe_path[2048];				/* path (dir) of executable */
 wchar_t	usr_path[1024];				/* path (dir) of user data */
 wchar_t	cfg_path[1024];				/* full path of config file */
 FILE	*stdlog = NULL;				/* file to log output to */
-int	scrnsz_x = SCREEN_RES_X,		/* current screen size, X */
-	scrnsz_y = SCREEN_RES_Y;		/* current screen size, Y */
+int	scrnsz_x = SCREEN_RES_X;		/* current screen size, X */
+int scrnsz_y = SCREEN_RES_Y;		/* current screen size, Y */
 int	config_changed;				/* config has changed */
 int	title_update;
 int	framecountx = 0;
 
 
-int	unscaled_size_x = SCREEN_RES_X,	/* current unscaled size X */
-	unscaled_size_y = SCREEN_RES_Y,	/* current unscaled size Y */
-	efscrnsz_y = SCREEN_RES_Y;
+int	unscaled_size_x = SCREEN_RES_X;	/* current unscaled size X */
+int unscaled_size_y = SCREEN_RES_Y;	/* current unscaled size Y */
+int efscrnsz_y = SCREEN_RES_Y;
 
 
 static wchar_t	mouse_msg[2][200];
@@ -200,12 +203,12 @@ void
 pclog_ex(const char *fmt, va_list ap)
 {
 #ifndef RELEASE_BUILD
-    char temp[1024];
+	char temp[1024];
 
-    if (strcmp(fmt, "") == 0)
+	if (strcmp(fmt, "") == 0)
 	return;
 
-    if (stdlog == NULL) {
+	if (stdlog == NULL) {
 	if (log_path[0] != L'\0') {
 		stdlog = plat_fopen(log_path, L"w");
 		if (stdlog == NULL)
@@ -213,21 +216,21 @@ pclog_ex(const char *fmt, va_list ap)
 	} else {
 		stdlog = stdout;
 	}
-    }
+	}
 
-    vsprintf(temp, fmt, ap);
-    if (suppr_seen && ! strcmp(buff, temp)) {
+	vsprintf(temp, fmt, ap);
+	if (suppr_seen && ! strcmp(buff, temp)) {
 	seen++;
-    } else {
+	} else {
 	if (suppr_seen && seen) {
 		fprintf(stdlog, "*** %d repeats ***\n", seen);
 	}
 	seen = 0;
 	strcpy(buff, temp);
 	fprintf(stdlog, temp, ap);
-    }
+	}
 
-    fflush(stdlog);
+	fflush(stdlog);
 #endif
 }
 
@@ -236,7 +239,7 @@ void
 pclog_toggle_suppr(void)
 {
 #ifndef RELEASE_BUILD
-    suppr_seen ^= 1;
+	suppr_seen ^= 1;
 #endif
 }
 
@@ -246,11 +249,11 @@ void
 pclog(const char *fmt, ...)
 {
 #ifndef RELEASE_BUILD
-    va_list ap;
+	va_list ap;
 
-    va_start(ap, fmt);
-    pclog_ex(fmt, ap);
-    va_end(ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
 #endif
 }
 
@@ -259,13 +262,13 @@ pclog(const char *fmt, ...)
 void
 fatal(const char *fmt, ...)
 {
-    char temp[1024];
-    va_list ap;
-    char *sp;
+	char temp[1024];
+	va_list ap;
+	char *sp;
 
-    va_start(ap, fmt);
+	va_start(ap, fmt);
 
-    if (stdlog == NULL) {
+	if (stdlog == NULL) {
 	if (log_path[0] != L'\0') {
 		stdlog = plat_fopen(log_path, L"w");
 		if (stdlog == NULL)
@@ -273,33 +276,33 @@ fatal(const char *fmt, ...)
 	} else {
 		stdlog = stdout;
 	}
-    }
+	}
 
-    vsprintf(temp, fmt, ap);
-    fprintf(stdlog, "%s", temp);
-    fflush(stdlog);
-    va_end(ap);
+	vsprintf(temp, fmt, ap);
+	fprintf(stdlog, "%s", temp);
+	fflush(stdlog);
+	va_end(ap);
 
-    nvr_save();
+	nvr_save();
 
-    config_save();
+	config_save();
 
 #ifdef ENABLE_808X_LOG
-    dumpregs(1);
+	dumpregs(1);
 #endif
 
-    /* Make sure the message does not have a trailing newline. */
-    if ((sp = strchr(temp, '\n')) != NULL) *sp = '\0';
+	/* Make sure the message does not have a trailing newline. */
+	if ((sp = strchr(temp, '\n')) != NULL) *sp = '\0';
 
-    /* Cleanly terminate all of the emulator's components so as
-       to avoid things like threads getting stuck. */
-    do_stop();
+	/* Cleanly terminate all of the emulator's components so as
+	   to avoid things like threads getting stuck. */
+	do_stop();
 
-    ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
+	ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
 
-    fflush(stdlog);
+	fflush(stdlog);
 
-    exit(-1);
+	exit(-1);
 }
 
 
@@ -310,13 +313,13 @@ int pc_do_log = ENABLE_PC_LOG;
 static void
 pc_log(const char *fmt, ...)
 {
-    va_list ap;
+	va_list ap;
 
-    if (pc_do_log) {
+	if (pc_do_log) {
 	va_start(ap, fmt);
 	pclog_ex(fmt, ap);
 	va_end(ap);
-    }
+	}
 }
 #else
 #define pc_log(fmt, ...)
@@ -333,31 +336,31 @@ pc_log(const char *fmt, ...)
 int
 pc_init(int argc, wchar_t *argv[])
 {
-    wchar_t path[2048];
+	wchar_t path[2048];
     wchar_t *cfg = NULL, *p;
-    char temp[128];
-    struct tm *info;
-    time_t now;
-    int c;
-    uint32_t *uid, *shwnd;
+	char temp[128];
+	struct tm *info;
+	time_t now;
+	int c;
+	uint32_t *uid, *shwnd;
 
-    /* Grab the executable's full path. */
-    plat_get_exe_name(exe_path, sizeof_w(exe_path)-1);
-    p = plat_get_filename(exe_path);
-    *p = L'\0';
+	/* Grab the executable's full path. */
+	plat_get_exe_name(exe_path, sizeof_w(exe_path)-1);
+	p = plat_get_filename(exe_path);
+	*p = L'\0';
 
-    /*
-     * Get the current working directory.
-     *
-     * This is normally the directory from where the
-     * program was run. If we have been started via
-     * a shortcut (desktop icon), however, the CWD
-     * could have been set to something else.
-     */
-    plat_getcwd(usr_path, sizeof_w(usr_path)-1);
-    memset(path, 0x00, sizeof(path));
+	/*
+	 * Get the current working directory.
+	 *
+	 * This is normally the directory from where the
+	 * program was run. If we have been started via
+	 * a shortcut (desktop icon), however, the CWD
+	 * could have been set to something else.
+	 */
+	plat_getcwd(usr_path, sizeof_w(usr_path)-1);
+	memset(path, 0x00, sizeof(path));
 
-    for (c=1; c<argc; c++) {
+	for (c=1; c<argc; c++) {
 	if (argv[c][0] != L'-') break;
 
 	if (!wcscasecmp(argv[c], L"--help") || !wcscasecmp(argv[c], L"-?")) {
@@ -430,20 +433,20 @@ usage:
 
 	/* Uhm... out of options here.. */
 	else goto usage;
-    }
+	}
 
-    /* One argument (config file) allowed. */
-    if (c < argc)
+	/* One argument (config file) allowed. */
+	if (c < argc)
 	cfg = argv[c++];
-    if (c != argc) goto usage;
+	if (c != argc) goto usage;
 
-    /*
-     * If the user provided a path for files, use that
-     * instead of the current working directory. We do
-     * make sure that if that was a relative path, we
-     * make it absolute.
-     */
-    if (path[0] != L'\0') {
+	/*
+	 * If the user provided a path for files, use that
+	 * instead of the current working directory. We do
+	 * make sure that if that was a relative path, we
+	 * make it absolute.
+	 */
+	if (path[0] != L'\0') {
 	if (! plat_path_abs(path)) {
 		/*
 		 * This looks like a relative path.
@@ -465,22 +468,22 @@ usage:
 	   create it. */
 	if (! plat_dir_check(usr_path))
 		plat_dir_create(usr_path);
-    }
+	}
 
     /* Grab the name of the configuration file. */
     if (cfg == NULL)
 	cfg = CONFIG_FILE;
 
-    /*
-     * If the configuration file name has (part of)
-     * a pathname, consider that to be part of the
-     * actual working directory.
-     *
-     * This can happen when people load a config 
-     * file using the UI, for example.
-     */
-    p = plat_get_filename(cfg);
-    if (cfg != p) {
+    	/*
+	 * If the configuration file name has (part of)
+	 * a pathname, consider that to be part of the
+	 * actual working directory.
+	 *
+	 * This can happen when people load a config
+	 * file using the UI, for example.
+	 */
+	p = plat_get_filename(cfg);
+	if (cfg != p) {
 	/*
 	 * OK, the configuration file name has a
 	 * path component. Separate the two, and
@@ -498,54 +501,54 @@ usage:
 		wcscpy(usr_path, cfg);
 	  else
 		wcscat(usr_path, cfg);
-    }
+	}
 
-    /* Make sure we have a trailing backslash. */
-    plat_path_slash(usr_path);
+	/* Make sure we have a trailing backslash. */
+	plat_path_slash(usr_path);
 
-    /* At this point, we can safely create the full path name. */
-    plat_append_filename(cfg_path, usr_path, p);
+	/* At this point, we can safely create the full path name. */
+	plat_append_filename(cfg_path, usr_path, p);
 
-    /*
-     * This is where we start outputting to the log file,
-     * if there is one. Create a little info header first.
-     */
-    (void)time(&now);
-    info = localtime(&now);
-    strftime(temp, sizeof(temp), "%Y/%m/%d %H:%M:%S", info);
-    pclog("#\n# %ls v%ls logfile, created %s\n#\n",
+	/*
+	 * This is where we start outputting to the log file,
+	 * if there is one. Create a little info header first.
+	 */
+	(void)time(&now);
+	info = localtime(&now);
+	strftime(temp, sizeof(temp), "%Y/%m/%d %H:%M:%S", info);
+	pclog("#\n# %ls v%ls logfile, created %s\n#\n",
 		EMU_NAME_W, EMU_VERSION_W, temp);
-    pclog("# Emulator path: %ls\n", exe_path);
-    pclog("# Userfiles path: %ls\n", usr_path);
-    pclog("# Configuration file: %ls\n#\n\n", cfg_path);
+	pclog("# Emulator path: %ls\n", exe_path);
+	pclog("# Userfiles path: %ls\n", usr_path);
+	pclog("# Configuration file: %ls\n#\n\n", cfg_path);
 
-    /*
-     * We are about to read the configuration file, which MAY
-     * put data into global variables (the hard- and floppy
-     * disks are an example) so we have to initialize those
-     * modules before we load the config..
-     */
-    hdd_init();
-    network_init();
-    mouse_init();
-    cdrom_global_init();
-    zip_global_init();
-    mo_global_init();
+	/*
+	 * We are about to read the configuration file, which MAY
+	 * put data into global variables (the hard- and floppy
+	 * disks are an example) so we have to initialize those
+	 * modules before we load the config..
+	 */
+	hdd_init();
+	network_init();
+	mouse_init();
+	cdrom_global_init();
+	zip_global_init();
+	mo_global_init();
 
-    /* Load the configuration file. */
-    config_load();
+	/* Load the configuration file. */
+	config_load();
 
-    /* All good! */
-    return(1);
+	/* All good! */
+	return(1);
 }
 
 
 void
 pc_speed_changed(void)
 {
-    if (cpu_s->cpu_type >= CPU_286)
+	if (cpu_s->cpu_type >= CPU_286)
 	pit_set_clock(cpu_s->rspeed);
-    else
+	else
 	pit_set_clock(14318184.0);
 }
 
@@ -553,11 +556,11 @@ pc_speed_changed(void)
 void
 pc_full_speed(void)
 {
-    if (! atfullspeed) {
+	if (! atfullspeed) {
 	pc_log("Set fullspeed - %i %i\n", is386, AT);
 	pc_speed_changed();
-    }
-    atfullspeed = 1;
+	}
+	atfullspeed = 1;
 }
 
 
@@ -565,25 +568,25 @@ pc_full_speed(void)
 int
 pc_init_modules(void)
 {
-    int c, m;
-    wchar_t temp[512];
-    char tempc[512];
+	int c, m;
+	wchar_t temp[512];
+	char tempc[512];
 
-    pc_log("Scanning for ROM images:\n");
-    c = m = 0;
-    while (machine_get_internal_name_ex(m) != NULL) {
+	pc_log("Scanning for ROM images:\n");
+	c = m = 0;
+	while (machine_get_internal_name_ex(m) != NULL) {
 	c += machine_available(m);
 	m++;
-    }
-    if (c == 0) {
+	}
+	if (c == 0) {
 	/* No usable ROMs found, aborting. */
 	return(0);
-    }
-    pc_log("A total of %d ROM sets have been loaded.\n", c);
+	}
+	pc_log("A total of %d ROM sets have been loaded.\n", c);
 
-    /* Load the ROMs for the selected machine. */
-    if (! machine_available(machine)) {
-    	swprintf(temp, sizeof(temp), plat_get_string(IDS_2063), machine_getname());
+	/* Load the ROMs for the selected machine. */
+	if (! machine_available(machine)) {
+		swprintf(temp, sizeof(temp), plat_get_string(IDS_2063), machine_getname());
 	c = 0;
 	machine = -1;
 	while (machine_get_internal_name_ex(c) != NULL) {
@@ -600,13 +603,13 @@ pc_init_modules(void)
 		exit(-1);
 		return(0);
 	}
-    }
+	}
 
-    /* Make sure we have a usable video card. */
-    if (! video_card_available(gfxcard)) {
+	/* Make sure we have a usable video card. */
+	if (! video_card_available(gfxcard)) {
 	memset(tempc, 0, sizeof(tempc));
 	device_get_name(video_card_getdevice(gfxcard), 0, tempc);
-    	swprintf(temp, sizeof(temp), plat_get_string(IDS_2064), tempc);
+		swprintf(temp, sizeof(temp), plat_get_string(IDS_2064), tempc);
 	c = 0;
 	while (video_get_internal_name(c) != NULL) {
 		gfxcard = -1;
@@ -623,44 +626,44 @@ pc_init_modules(void)
 		exit(-1);
 		return(0);
 	}
-    }
+	}
 
-    atfullspeed = 0;
+	atfullspeed = 0;
 
-    random_init();
+	random_init();
 
-    mem_init();
+	mem_init();
 
 #ifdef USE_DYNAREC
-    codegen_init();
+	codegen_init();
 #endif
 
-    keyboard_init();
-    joystick_init();
+	keyboard_init();
+	joystick_init();
 
-    video_init();
+	video_init();
 
-    fdd_init();
+	fdd_init();
 
-    sound_init();
+	sound_init();
 
-    hdc_init();
+	hdc_init();
 
-    video_reset_close();
+	video_reset_close();
 
-    return(1);
+	return(1);
 }
 
 
 void
 pc_send_ca(uint16_t sc)
 {
-    keyboard_input(1, 0x1D);	/* Ctrl key pressed */
-    keyboard_input(1, 0x38);	/* Alt key pressed */
-    keyboard_input(1, sc);
-    keyboard_input(0, sc);
-    keyboard_input(0, 0x38);	/* Alt key released */
-    keyboard_input(0, 0x1D);	/* Ctrl key released */
+	keyboard_input(1, 0x1D);	/* Ctrl key pressed */
+	keyboard_input(1, 0x38);	/* Alt key pressed */
+	keyboard_input(1, sc);
+	keyboard_input(0, sc);
+	keyboard_input(0, 0x38);	/* Alt key released */
+	keyboard_input(0, 0x1D);	/* Ctrl key released */
 }
 
 
@@ -668,7 +671,7 @@ pc_send_ca(uint16_t sc)
 void
 pc_send_cad(void)
 {
-    pc_send_ca(0xE053);
+	pc_send_ca(0xE053);
 }
 
 
@@ -676,49 +679,49 @@ pc_send_cad(void)
 void
 pc_send_cae(void)
 {
-    pc_send_ca(1);
+	pc_send_ca(1);
 }
 
 
 void
 pc_reset_hard_close(void)
 {
-    ui_sb_set_ready(0);
+	ui_sb_set_ready(0);
 
-    /* Close all the memory mappings. */
-    mem_close();
+	/* Close all the memory mappings. */
+	mem_close();
 
-    network_timer_stop();
+	network_timer_stop();
 
-    /* Turn off timer processing to avoid potential segmentation faults. */
-    timer_close();
+	/* Turn off timer processing to avoid potential segmentation faults. */
+	timer_close();
 
-    suppress_overscan = 0;
+	suppress_overscan = 0;
 
-    nvr_save();
-    nvr_close();
+	nvr_save();
+	nvr_close();
 
-    mouse_close();
+	mouse_close();
 
-    lpt_devices_close();
+	lpt_devices_close();
 
-    device_close_all();
+	device_close_all();
 
-    scsi_device_close_all();
+	scsi_device_close_all();
 
-    midi_close();
+	midi_close();
 
-    cdrom_close();
+	cdrom_close();
 
-    zip_close();
+	zip_close();
 
-    mo_close();
+	mo_close();
 
-    scsi_disk_close();
+	scsi_disk_close();
 
-    closeal();
+	closeal();
 
-    video_reset_close();
+	video_reset_close();
 }
 
 
@@ -731,110 +734,110 @@ pc_reset_hard_close(void)
 void
 pc_reset_hard_init(void)
 {
-    wchar_t wcpufamily[2048], wcpu[2048], wmachine[2048], *wcp;
+	wchar_t wcpufamily[2048], wcpu[2048], wmachine[2048], *wcp;
 
-    /*
-     * First, we reset the modules that are not part of
-     * the actual machine, but which support some of the
-     * modules that are.
-     */
+	/*
+	 * First, we reset the modules that are not part of
+	 * the actual machine, but which support some of the
+	 * modules that are.
+	 */
 
-    /* Reset the general machine support modules. */
-    io_init();
+	/* Reset the general machine support modules. */
+	io_init();
 
-    /* Turn on and (re)initialize timer processing. */
-    timer_init();
+	/* Turn on and (re)initialize timer processing. */
+	timer_init();
 
-    device_init();
+	device_init();
 
-    sound_reset();
+	sound_reset();
 
-    scsi_device_init();
+	scsi_device_init();
 
-    /* Initialize the actual machine and its basic modules. */
-    machine_init();
+	/* Initialize the actual machine and its basic modules. */
+	machine_init();
 
-    /* Reset and reconfigure the serial ports. */
-    serial_standalone_init();
+	/* Reset and reconfigure the serial ports. */
+	serial_standalone_init();
 
-    /* Reset and reconfigure the Sound Card layer. */
-    sound_card_reset();
+	/* Reset and reconfigure the Sound Card layer. */
+	sound_card_reset();
 
-    /* Reset any ISA memory cards. */
-    isamem_reset();	
-	
-    /* Reset any ISA RTC cards. */
-    isartc_reset();	
+	/* Reset any ISA memory cards. */
+	isamem_reset();
 
-    fdc_card_init();	
-	
-    fdd_reset();
+	/* Reset any ISA RTC cards. */
+	isartc_reset();
 
-    /*
-     * Once the machine has been initialized, all that remains
-     * should be resetting all devices set up for it, to their
-     * current configurations !
-     *
-     * For now, we will call their reset functions here, but
-     * that will be a call to device_reset_all() later !
-     */
+	fdc_card_init();
 
-    /* Reset some basic devices. */
-    speaker_init();
-    lpt_devices_init();
-    shadowbios = 0;
+	fdd_reset();
 
-    /*
-     * Reset the mouse, this will attach it to any port needed.
-     */
-    mouse_reset();
+	/*
+	 * Once the machine has been initialized, all that remains
+	 * should be resetting all devices set up for it, to their
+	 * current configurations !
+	 *
+	 * For now, we will call their reset functions here, but
+	 * that will be a call to device_reset_all() later !
+	 */
 
-    /* Reset the Hard Disk Controller module. */
-    hdc_reset();
-    /* Reset and reconfigure the SCSI layer. */
-    scsi_card_init();
+	/* Reset some basic devices. */
+	speaker_init();
+	lpt_devices_init();
+	shadowbios = 0;
 
-    cdrom_hard_reset();
+	/*
+	 * Reset the mouse, this will attach it to any port needed.
+	 */
+	mouse_reset();
 
-    zip_hard_reset();
+	/* Reset the Hard Disk Controller module. */
+	hdc_reset();
+	/* Reset and reconfigure the SCSI layer. */
+	scsi_card_init();
 
-    mo_hard_reset();
+	cdrom_hard_reset();
 
-    scsi_disk_hard_reset();
+	zip_hard_reset();
 
-    /* Reset and reconfigure the Network Card layer. */
-    network_reset();
+	mo_hard_reset();
 
-    if (joystick_type)
+	scsi_disk_hard_reset();
+
+	/* Reset and reconfigure the Network Card layer. */
+	network_reset();
+
+	if (joystick_type)
 	gameport_update_joystick_type();
 
-    ui_sb_update_panes();
+	ui_sb_update_panes();
 
-    if (config_changed) {
-        config_save();
+	if (config_changed) {
+		config_save();
 
 	config_changed = 0;
-    } else
+	} else
 	ui_sb_set_ready(1);
 
-    /* Needs the status bar... */
-    if (bugger_enabled)
-    	device_add(&bugger_device);
-    if (postcard_enabled)
-    	device_add(&postcard_device);
+	/* Needs the status bar... */
+	if (bugger_enabled)
+		device_add(&bugger_device);
+	if (postcard_enabled)
+		device_add(&postcard_device);
 
-    /* Reset the CPU module. */
-    resetx86();
-    dma_reset();
-    pic_reset();
-    cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
+	/* Reset the CPU module. */
+	resetx86();
+	dma_reset();
+	pic_reset();
+	cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
 
-    atfullspeed = 0;
-    pc_full_speed();
+	atfullspeed = 0;
+	pc_full_speed();
 
-    cycles = cycles_main = 0;
+	cycles = cycles_main = 0;
 
-    mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
+	mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
     mbstowcs(wcpufamily, cpu_f->name,
 	     strlen(cpu_f->name)+1);
     wcp = wcschr(wcpufamily, L'(');
@@ -853,103 +856,103 @@ pc_reset_hard_init(void)
 void
 pc_reset_hard(void)
 {
-    pc_reset_hard_close();
+	pc_reset_hard_close();
 
-    pc_reset_hard_init();
+	pc_reset_hard_init();
 }
 
 
 void
 pc_close(thread_t *ptr)
 {
-    int i;
+	int i;
 
-    /* Wait a while so things can shut down. */
-    plat_delay_ms(200);
+	/* Wait a while so things can shut down. */
+	plat_delay_ms(200);
 
-    /* Claim the video blitter. */
-    startblit();
+	/* Claim the video blitter. */
+	startblit();
 
-    /* Terminate the main thread. */
-    if (ptr != NULL) {
+	/* Terminate the main thread. */
+	if (ptr != NULL) {
 	thread_kill(ptr);
 
 	/* Wait some more. */
 	plat_delay_ms(200);
-    }
+	}
 
 #if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
-    codegen_close();
+	codegen_close();
 #endif
 
-    nvr_save();
+	nvr_save();
 
-    config_save();
+	config_save();
 
-    plat_mouse_capture(0);
+	plat_mouse_capture(0);
 
-    /* Close all the memory mappings. */
-    mem_close();
+	/* Close all the memory mappings. */
+	mem_close();
 
-    network_timer_stop();
+	network_timer_stop();
 
-    /* Turn off timer processing to avoid potential segmentation faults. */
-    timer_close();
+	/* Turn off timer processing to avoid potential segmentation faults. */
+	timer_close();
 
-    lpt_devices_close();
+	lpt_devices_close();
 
-    for (i=0; i<FDD_NUM; i++)
-       fdd_close(i);
+	for (i=0; i<FDD_NUM; i++)
+	   fdd_close(i);
 
 #ifdef ENABLE_808X_LOG
-    if (dump_on_exit)
+	if (dump_on_exit)
 	dumpregs(0);
 #endif
 
-    video_close();
+	video_close();
 
-    device_close_all();
+	device_close_all();
 
-    scsi_device_close_all();
+	scsi_device_close_all();
 
-    midi_close();
+	midi_close();
 
-    network_close();
+	network_close();
 
-    sound_cd_thread_end();
+	sound_cd_thread_end();
 
-    cdrom_close();
+	cdrom_close();
 
-    zip_close();
+	zip_close();
 
-    mo_close();
+	mo_close();
 
-    scsi_disk_close();
+	scsi_disk_close();
 }
 
 
 void
 pc_run(void)
 {
-    wchar_t temp[200];
+	wchar_t temp[200];
 
-    /* Run a block of code. */
-    cpu_exec(cpu_s->rspeed / 100);
-    mouse_process();
-    joystick_process();
+	/* Run a block of code. */
+	cpu_exec(cpu_s->rspeed / 100);
+	mouse_process();
+	joystick_process();
 
-    /* Done with this frame, update statistics. */
-    framecount++;
-    if (++framecountx >= 100) {
-	framecountx = 0;
-	frames = 0;
-    }
+	/* Done with this frame, update statistics. */
+	framecount++;
+	if (++framecountx >= 100) {
+		framecountx = 0;
+		frames = 0;
+	}
 
-    if (title_update) {
-	swprintf(temp, sizeof_w(temp), mouse_msg[!!mouse_capture], fps);
-	ui_window_title(temp);
-	title_update = 0;
-    }
+	if (title_update) {
+		swprintf(temp, sizeof_w(temp), mouse_msg[!!mouse_capture], fps);
+		ui_window_title(temp);
+		title_update = 0;
+	}
 }
 
 
@@ -957,66 +960,66 @@ pc_run(void)
 void
 pc_onesec(void)
 {
-    fps = framecount;
-    framecount = 0;
+	fps = framecount;
+	framecount = 0;
 
-    title_update = 1;
+	title_update = 1;
 }
 
 
 void
 set_screen_size(int x, int y)
 {
-    int owsx = scrnsz_x;
-    int owsy = scrnsz_y;
-    int temp_overscan_x = overscan_x;
-    int temp_overscan_y = overscan_y;
-    double dx, dy, dtx, dty;
+	int owsx = scrnsz_x;
+	int owsy = scrnsz_y;
+	int temp_overscan_x = overscan_x;
+	int temp_overscan_y = overscan_y;
+	double dx, dy, dtx, dty;
 
-    /* Make sure we keep usable values. */
+	/* Make sure we keep usable values. */
 #if 0
-    pc_log("SetScreenSize(%d, %d) resize=%d\n", x, y, vid_resize);
+	pc_log("SetScreenSize(%d, %d) resize=%d\n", x, y, vid_resize);
 #endif
-    if (x < 320) x = 320;
-    if (y < 200) y = 200;
-    if (x > 2048) x = 2048;
-    if (y > 2048) y = 2048;
+	if (x < 320) x = 320;
+	if (y < 200) y = 200;
+	if (x > 2048) x = 2048;
+	if (y > 2048) y = 2048;
 
-    /* Save the new values as "real" (unscaled) resolution. */
-    unscaled_size_x = x;
-    efscrnsz_y = y;
+	/* Save the new values as "real" (unscaled) resolution. */
+	unscaled_size_x = x;
+	efscrnsz_y = y;
 
-    if (suppress_overscan)
-	temp_overscan_x = temp_overscan_y = 0;
+	if (suppress_overscan)
+		temp_overscan_x = temp_overscan_y = 0;
 
-    if (force_43) {
-	dx = (double)x;
-	dtx = (double)temp_overscan_x;
+	if (force_43) {
+    dx = (double)x;
+    dtx = (double)temp_overscan_x;
 
-	dy = (double)y;
-	dty = (double)temp_overscan_y;
+    dy = (double)y;
+    dty = (double)temp_overscan_y;
 
-	/* Account for possible overscan. */
-	if (!(video_is_ega_vga()) && (temp_overscan_y == 16)) {
-		/* CGA */
-		dy = (((dx - dtx) / 4.0) * 3.0) + dty;
-	} else if (!(video_is_ega_vga()) && (temp_overscan_y < 16)) {
-		/* MDA/Hercules */
-		dy = (x / 4.0) * 3.0;
-	} else {
-		if (enable_overscan) {
-			/* EGA/(S)VGA with overscan */
-			dy = (((dx - dtx) / 4.0) * 3.0) + dty;
-		} else {
-			/* EGA/(S)VGA without overscan */
-			dy = (x / 4.0) * 3.0;
-		}
-	}
-	unscaled_size_y = (int)dy;
-    } else
+    /* Account for possible overscan. */
+    if (!(video_is_ega_vga()) && (temp_overscan_y == 16)) {
+        /* CGA */
+        dy = (((dx - dtx) / 4.0) * 3.0) + dty;
+    } else if (!(video_is_ega_vga()) && (temp_overscan_y < 16)) {
+        /* MDA/Hercules */
+        dy = (x / 4.0) * 3.0;
+    } else {
+        if (enable_overscan) {
+            /* EGA/(S)VGA with overscan */
+            dy = (((dx - dtx) / 4.0) * 3.0) + dty;
+        } else {
+            /* EGA/(S)VGA without overscan */
+            dy = (x / 4.0) * 3.0;
+        }
+    }
+    unscaled_size_y = (int)dy;
+	} else
 	unscaled_size_y = efscrnsz_y;
 
-    switch(scale) {
+	switch(scale) {
 	case 0:		/* 50% */
 		scrnsz_x = (unscaled_size_x>>1);
 		scrnsz_y = (unscaled_size_y>>1);
@@ -1036,12 +1039,12 @@ set_screen_size(int x, int y)
 		scrnsz_x = (unscaled_size_x<<1);
 		scrnsz_y = (unscaled_size_y<<1);
 		break;
-    }
+	}
 
-    /* If the resolution has changed, let the main thread handle it. */
-    if ((owsx != scrnsz_x) || (owsy != scrnsz_y))
+	/* If the resolution has changed, let the main thread handle it. */
+	if ((owsx != scrnsz_x) || (owsy != scrnsz_y))
 	doresize = 1;
-      else
+	  else
 	doresize = 0;
 }
 
@@ -1049,26 +1052,26 @@ set_screen_size(int x, int y)
 void
 reset_screen_size(void)
 {
-    set_screen_size(unscaled_size_x, efscrnsz_y);
+	set_screen_size(unscaled_size_x, efscrnsz_y);
 }
 
 
 void
 set_screen_size_natural(void)
 {
-    set_screen_size(unscaled_size_x, unscaled_size_y);
+	set_screen_size(unscaled_size_x, unscaled_size_y);
 }
 
 
 int
 get_actual_size_x(void)
 {
-    return(unscaled_size_x);
+	return(unscaled_size_x);
 }
 
 
 int
 get_actual_size_y(void)
 {
-    return(efscrnsz_y);
+	return(efscrnsz_y);
 }
