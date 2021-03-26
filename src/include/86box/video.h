@@ -283,6 +283,7 @@ extern const device_t incolor_device;
 extern const device_t g2_gc205_device;
 extern const device_t v7_vga_1024i_device;
 extern const device_t ht216_32_pb410a_device;
+extern const device_t ht216_32_standalone_device;
 
 /* Professional Graphics Controller */
 extern const device_t im1024_device;

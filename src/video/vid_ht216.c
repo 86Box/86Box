@@ -96,6 +96,7 @@ uint8_t ht216_in(uint16_t addr, void *p);
 
 #define BIOS_G2_GC205_PATH			L"roms/video/video7/BIOS.BIN"
 #define BIOS_VIDEO7_VGA_1024I_PATH		L"roms/video/video7/Video Seven VGA 1024i - BIOS - v2.19 - 435-0062-05 - U17 - 27C256.BIN"
+#define BIOS_HT216_32_PATH			L"roms/video/video7/HT21632.BIN"
 
 static video_timings_t	timing_v7vga_isa = {VIDEO_ISA, 3,  3,  6,   5,  5, 10};
 static video_timings_t	timing_v7vga_vlb = {VIDEO_BUS, 5,  5,  9,  20, 20, 30};
@@ -169,7 +170,8 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 
 				case 0x94:
 				case 0xff:
-					svga->hwcursor.addr = ((ht216->ht_regs[0x94] << 6) | (3 << 14) | ((ht216->ht_regs[0xff] & 0x60) << 11)) << 2;
+					svga->hwcursor.addr = ((ht216->ht_regs[0x94] << 6) | 0xc000 | ((ht216->ht_regs[0xff] & 0x60) << 11)) << 2;
+					svga->hwcursor.addr &= svga->vram_mask;
 					if (svga->crtc[0x17] == 0xeb) /*Looks like that 1024x768 mono mode expects 512K of video memory*/
 						svga->hwcursor.addr += 0x40000;
 					break;
@@ -246,9 +248,9 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 				case 0xf6:
 					/*Bits 18 and 19 of the display memory address*/
 					ht216_log("HT216 reg 0xf6 write = %02x, vram mask = %08x, cr17 = %02x\n", val & 0x40, svga->vram_display_mask, svga->crtc[0x17]);
-					ht216_remap(ht216);	
+					ht216_remap(ht216);
 					svga->fullchange = changeframecount;
-					svga_recalctimings(svga);				
+					svga_recalctimings(svga);
 					break;
 				
 				case 0xf9:
@@ -670,7 +672,7 @@ ht216_recalctimings(svga_t *svga)
 		}
 	}
     }
-    
+
     if (svga->crtc[0x17] == 0xeb) /*Looks like that 1024x768 mono mode expects 512K of video memory*/
 	svga->vram_display_mask = 0x7ffff;
     else
@@ -1365,10 +1367,22 @@ void
     io_sethandler(0x03c0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
     io_sethandler(0x46e8, 0x0001, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
 
+    switch (has_rom) {
+	case 1:
+		rom_init(&ht216->bios_rom, BIOS_G2_GC205_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		break;
+	case 2:
+		rom_init(&ht216->bios_rom, BIOS_VIDEO7_VGA_1024I_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		break;
+	case 3:
+		rom_init(&ht216->bios_rom, BIOS_HT216_32_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		break;
+    }
+
     if (has_rom == 1)
-	rom_init(&ht216->bios_rom, BIOS_VIDEO7_VGA_1024I_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-    else if (has_rom == 2)
 	rom_init(&ht216->bios_rom, BIOS_G2_GC205_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+    else if (has_rom == 2)
+	rom_init(&ht216->bios_rom, BIOS_VIDEO7_VGA_1024I_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     if (info->flags & DEVICE_VLB)
 	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_v7vga_vlb);
@@ -1411,7 +1425,7 @@ void
 static void *
 g2_gc205_init(const device_t *info)
 {
-    ht216_t *ht216 = ht216_init(info, 1 << 19, 2);
+    ht216_t *ht216 = ht216_init(info, 1 << 19, 1);
 
     return ht216;
 }
@@ -1420,7 +1434,7 @@ g2_gc205_init(const device_t *info)
 static void *
 v7_vga_1024i_init(const device_t *info)
 {
-    ht216_t *ht216 = ht216_init(info, device_get_config_int("memory") << 10, 1);
+    ht216_t *ht216 = ht216_init(info, device_get_config_int("memory") << 10, 2);
 
     return ht216;
 }
@@ -1434,6 +1448,16 @@ ht216_pb410a_init(const device_t *info)
     return ht216;
 }
 
+
+static void *
+ht216_standalone_init(const device_t *info)
+{
+    ht216_t *ht216 = ht216_init(info, 1 << 20, 3);
+
+    return ht216;
+}
+
+
 static int
 g2_gc205_available(void)
 {
@@ -1446,6 +1470,14 @@ v7_vga_1024i_available(void)
 {
     return rom_present(BIOS_VIDEO7_VGA_1024I_PATH);
 }
+
+
+static int
+ht216_standalone_available(void)
+{
+    return rom_present(BIOS_HT216_32_PATH);
+}
+
 
 void
 ht216_close(void *p)
@@ -1497,27 +1529,6 @@ static const device_config_t v7_vga_1024i_config[] =
         }
 };
 
-static const device_config_t ht216_config[] =
-{
-        {
-                "memory", "Memory size", CONFIG_SELECTION, "", 1024, "", { 0 },
-                {
-                        {
-                                "512 kB", 512
-                        },
-                        {
-                                "1 MB", 1024
-                        },
-			{
-				""
-			}
-                }
-        },
-        {
-                "", "", -1
-        }
-};
-
 const device_t g2_gc205_device =
 {
     "G2 GC205",
@@ -1555,6 +1566,18 @@ const device_t ht216_32_pb410a_device =
     NULL,
     { NULL },
     ht216_speed_changed,
-    ht216_force_redraw,
-    ht216_config
+    ht216_force_redraw
+};
+
+const device_t ht216_32_standalone_device =
+{
+    "Headland HT216-32",
+    DEVICE_VLB,
+    0x7861,	/*HT216-32*/
+    ht216_standalone_init,
+    ht216_close,
+    NULL,
+    { ht216_standalone_available },
+    ht216_speed_changed,
+    ht216_force_redraw
 };
