@@ -278,26 +278,6 @@ video_log(const char *fmt, ...)
 #endif
 
 
-static
-void blit_thread(void *param)
-{
-    while (1) {
-	thread_wait_event(blit_data.wake_blit_thread, -1);
-	thread_reset_event(blit_data.wake_blit_thread);
-    MTR_BEGIN("video", "blit_thread");
-
-	if (blit_func)
-		blit_func(blit_data.x, blit_data.y,
-			  blit_data.y1, blit_data.y2,
-			  blit_data.w, blit_data.h);
-
-	blit_data.busy = 0;
-    MTR_END("video", "blit_thread");
-	thread_set_event(blit_data.blit_complete);
-    }
-}
-
-
 void
 video_setblit(void(*blit)(int,int,int,int,int,int))
 {
@@ -445,29 +425,51 @@ video_transform_copy(uint32_t *dst, uint32_t *src, int len)
 }
 
 
-void
-video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
+static
+void blit_thread(void *param)
 {
     int yy;
-    MTR_BEGIN("video", "video_blit_memtoscreen");
 
-    if (y2 > 0) {
-	for (yy = y1; yy < y2; yy++) {
-		if (((y + yy) >= 0) && ((y + yy) < buffer32->h)) {
+    while (1) {
+	thread_wait_event(blit_data.wake_blit_thread, -1);
+	thread_reset_event(blit_data.wake_blit_thread);
+    MTR_BEGIN("video", "blit_thread");
+
+    if (blit_data.y2 > 0) {
+	for (yy = blit_data.y1; yy < blit_data.y2; yy++) {
+		if (((blit_data.y + yy) >= 0) && ((blit_data.y + yy) < buffer32->h)) {
 			if (video_grayscale || invert_display)
-				video_transform_copy(&(render_buffer->dat)[yy * w], &(buffer32->line[y + yy][x]), w);
+				video_transform_copy(&(render_buffer->dat)[yy * blit_data.w], &(buffer32->line[blit_data.y + yy][blit_data.x]), blit_data.w);
 			else
-				memcpy(&(render_buffer->dat)[yy * w], &(buffer32->line[y + yy][x]), w << 2);
+				memcpy(&(render_buffer->dat)[yy * blit_data.w], &(buffer32->line[blit_data.y + yy][blit_data.x]), blit_data.w << 2);
 		}
 	}
     }
 
     if (screenshots) {
 	if (render_buffer != NULL)
-		video_screenshot(x, y, y1, y2, w, h);
+		video_screenshot(blit_data.x, blit_data.y, blit_data.y1, blit_data.y2, blit_data.w, blit_data.h);
 	screenshots--;
 	video_log("screenshot taken, %i left\n", screenshots);
     }
+
+    if (blit_func)
+	blit_func(blit_data.x, blit_data.y,
+		  blit_data.y1, blit_data.y2,
+		  blit_data.w, blit_data.h);
+
+    blit_data.busy = 0;
+
+    MTR_END("video", "blit_thread");
+	thread_set_event(blit_data.blit_complete);
+    }
+}
+
+
+void
+video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
+{
+    MTR_BEGIN("video", "video_blit_memtoscreen");
 
     if ((w <= 0) || (h <= 0))
 	return;
