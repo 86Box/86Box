@@ -42,6 +42,15 @@ Bit 7: Replace SMI request for non-SMM CPU's (1: IRQ15/0: IRQ10)
 Function 0 Register 51:
 Bit 2: VGA Power Down (0: Standard/1: VESA DPMS)
 
+Function 0 Register 56:
+Bit 1-0 ISA Bus Speed
+    0 0 PCICLK/3
+    0 1 PCICLK/4
+    1 0 PCICLK/2
+
+Function 0 Register A4:
+Bit 0: Host to PCI Clock (1: 1 by 1/0: 1 by half)
+
 Function 1 Register 4:
 Bit 0: Enable Internal IDE
 */
@@ -144,6 +153,22 @@ um8886_write(int func, int addr, uint8_t val, void *priv)
                 dev->pci_conf_sb[func][addr] = val & 0x4f;
                 break;
 
+            case 0x56:
+                dev->pci_conf_sb[func][addr] = val;
+                switch (val & 2)
+                {
+                case 0:
+                    cpu_set_isa_pci_div(3);
+                    break;
+                case 1:
+                    cpu_set_isa_pci_div(4);
+                    break;
+                case 2:
+                    cpu_set_isa_pci_div(2);
+                    break;
+                }
+                break;
+
             case 0x57:
                 dev->pci_conf_sb[func][addr] = val & 0x38;
                 break;
@@ -165,7 +190,8 @@ um8886_write(int func, int addr, uint8_t val, void *priv)
                 break;
 
             case 0xa4:
-                dev->pci_conf_sb[func][addr] = val & 0x88;
+                dev->pci_conf_sb[func][addr] = val & 0x89;
+                cpu_set_pci_speed(cpu_busspeed / ((val & 1) ? 1 : 2));
                 break;
 
             default:
