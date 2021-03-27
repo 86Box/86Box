@@ -43,7 +43,7 @@ typedef struct ht216_t
     rom_t		bios_rom;
 
     uint32_t		vram_mask;
-    uint8_t		adjust_cursor;
+    uint8_t		adjust_cursor, monitor_type;
 
     int			ext_reg_enable;
     int			clk_sel;
@@ -1372,7 +1372,34 @@ void
 		rom_init(&ht216->bios_rom, BIOS_VIDEO7_VGA_1024I_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 		break;
 	case 3:
+		ht216->monitor_type = device_get_config_int("monitor_type");
 		rom_init(&ht216->bios_rom, BIOS_HT216_32_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		/* Patch the BIOS for monitor type. */
+		if (ht216->monitor_type & 0x10) {
+			/* Color */
+			ht216->bios_rom.rom[0x0526] = 0x0c;
+			ht216->bios_rom.rom[0x0528] = 0xeb;
+			ht216->bios_rom.rom[0x7fff] += 0x26;
+		} else {
+			/* Mono */
+			ht216->bios_rom.rom[0x0526] = 0x24;
+			ht216->bios_rom.rom[0x0527] = 0xef;
+			ht216->bios_rom.rom[0x0528] = ht216->bios_rom.rom[0x0529] = 0x90;
+			ht216->bios_rom.rom[0x7fff] += 0xfe;
+		}
+		/* Patch bios for interlaced/non-interlaced. */
+		if (ht216->monitor_type & 0x08) {
+			/* Non-Interlaced */
+			ht216->bios_rom.rom[0x170b] = 0x0c;
+			ht216->bios_rom.rom[0x170d] = ht216->bios_rom.rom[0x170e] = 0x90;
+			ht216->bios_rom.rom[0x7fff] += 0xf4;
+		} else {
+			/* Interlaced */
+			ht216->bios_rom.rom[0x170b] = 0x24;
+			ht216->bios_rom.rom[0x170c] = 0xf7;
+			ht216->bios_rom.rom[0x170d] = 0xeb;
+			ht216->bios_rom.rom[0x7fff] += 0x1e;
+		}
 		break;
     }
 
@@ -1526,6 +1553,33 @@ static const device_config_t v7_vga_1024i_config[] =
         }
 };
 
+static const device_config_t ht216_32_standalone_config[] =
+{
+        {
+                "monitor_type", "Monitor type", CONFIG_SELECTION, "", 0x18, "", { 0 },
+                {
+                        {
+                                "Mono Interlaced", 0x00
+                        },
+                        {
+                                "Mono Non-Interlaced", 0x08
+                        },
+                        {
+                                "Color Interlaced", 0x10
+                        },
+                        {
+                                "Color Non-Interlaced", 0x18
+                        },
+			{
+				""
+			}
+                }
+        },
+        {
+                "", "", -1
+        }
+};
+
 const device_t g2_gc205_device =
 {
     "G2 GC205",
@@ -1576,5 +1630,6 @@ const device_t ht216_32_standalone_device =
     NULL,
     { ht216_standalone_available },
     ht216_speed_changed,
-    ht216_force_redraw
+    ht216_force_redraw,
+    ht216_32_standalone_config
 };
