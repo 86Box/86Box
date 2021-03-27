@@ -335,9 +335,6 @@ ht216_in(uint16_t addr, void *p)
 	addr ^= 0x60;
 
     switch (addr) {
-	case 0x3c2:
-		break;
-		
 	case 0x3c4:
 		return svga->seqaddr;
 
