@@ -444,7 +444,7 @@ et4000w32p_recalctimings(svga_t *svga)
 					svga->render = svga_render_2bpp_highres;
 				break;
 			case 0x40: case 0x60:			/* 256+ colours */
-				if (et4000->type <= ET4000W32I)
+				if (et4000->type <= ET4000W32P_REVC)
 					svga->clock /= 2;
 
 				switch (svga->bpp) {
@@ -871,7 +871,7 @@ et4000w32p_mmu_read(uint32_t addr, void *p)
 						temp |= ACL_RDST;
 					if (FIFO_FULL)
 						temp |= ACL_WRST;
-					if (temp == ACL_XYST && (et4000->acl.internal.ctrl_routing & 3))
+					if (temp == ACL_XYST && (et4000->acl.internal.ctrl_routing == 1 || et4000->acl.internal.ctrl_routing == 2))
 						temp |= ACL_RDST;
 				} else {
 					et4000->acl.status &= ~(ACL_XYST | ACL_SSO);
@@ -1470,6 +1470,9 @@ et4000w32p_init(const device_t *info)
 
     et4000->type = info->local;
 
+    et4000->pci = (info->flags & DEVICE_PCI) ? 0x80 : 0x00;
+    et4000->vlb = (info->flags & DEVICE_VLB) ? 0x40 : 0x00;
+
     switch(et4000->type) {
 	case ET4000W32:
 		/* ET4000/W32 */
@@ -1548,8 +1551,6 @@ et4000w32p_init(const device_t *info)
 		et4000->svga.getclock = icd2061_getclock;
 		break;
     }
-    et4000->pci = (info->flags & DEVICE_PCI) ? 0x80 : 0x00;
-    et4000->vlb = (info->flags & DEVICE_VLB) ? 0x40 : 0x00;
     if (info->flags & DEVICE_PCI)
 	mem_mapping_disable(&et4000->bios_rom.mapping);
 
