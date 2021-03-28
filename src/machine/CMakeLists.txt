@@ -27,6 +27,10 @@ if(HEDAKA)
 	target_compile_definitions(mch PRIVATE USE_HEDAKA)
 endif()
 
+if(I450KX)
+	target_compile_definitions(mch PRIVATE USE_I450KX)
+endif()
+
 if(LASERXT)
 	target_sources(mch PRIVATE m_xt_laserxt.c)
 	target_compile_definitions(mch PRIVATE USE_LASERXT)
