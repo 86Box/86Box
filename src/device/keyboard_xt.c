@@ -400,11 +400,11 @@ kbd_poll(void *priv)
 	kbd->blocked = 1;
 	picint(2);
 #ifdef ENABLE_KEYBOARD_XT_LOG
-	kbd_log("keyboard_xt : take IRQ\n");
+	kbd_log("kbd_poll(): keyboard_xt : take IRQ\n");
 #endif
     }
 
-    if (key_queue_start != key_queue_end && !kbd->blocked) {
+    if ((key_queue_start != key_queue_end) && !kbd->blocked) {
 	kbd->key_waiting = key_queue[key_queue_start];
 	kbd_log("XTkbd: reading %02X from the key queue at %i\n",
 		kbd->key_waiting, key_queue_start);
@@ -513,6 +513,8 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 		kbd->pb = val;
 		ppi.pb = val;
 
+                timer_process();
+
 		speaker_update();
 		if ((kbd->type <= 1) && !(kbd->pb & 0x08))
 			speaker_gated = speaker_enable = 1;
@@ -554,32 +556,33 @@ kbd_read(uint16_t port, void *priv)
 
     switch (port) {
 	case 0x60:
-		if ((kbd->type <= 1) && (kbd->pb & 0x80))
-			ret = (kbd->pd & ~0x02) | (hasfpu ? 0x02 : 0x00);
-		else if (((kbd->type == 2) || (kbd->type == 3)) && (kbd->pb & 0x80))
-			ret = 0xff;	/* According to Ruud on the PCem forum, this is supposed to return 0xFF on the XT. */
-		else if ((kbd->type == 9) && (kbd->pb & 0x80)) {
-            /* Zenith Data Systems Z-151
-             * SW1 switch settings:
-             * bits 6-7: floppy drive number
-             * bits 4-5: video mode
-             * bit 2-3: base memory size
-             * bit 1: fpu enable
-             * bit 0: fdc enable
-             */
-            ret = get_fdd_switch_settings();
+		if ((kbd->pb & 0x80) && ((kbd->type <= 3) || (kbd->type == 9))) {
+			if (kbd->type <= 1)
+				ret = (kbd->pd & ~0x02) | (hasfpu ? 0x02 : 0x00);
+			else if ((kbd->type == 2) || (kbd->type == 3))
+				ret = 0xff;	/* According to Ruud on the PCem forum, this is supposed to return 0xFF on the XT. */
+			else if (kbd->type == 9) {
+				/* Zenith Data Systems Z-151
+				 * SW1 switch settings:
+				 * bits 6-7: floppy drive number
+				 * bits 4-5: video mode
+				 * bit 2-3: base memory size
+				 * bit 1: fpu enable
+				 * bit 0: fdc enable
+				 */
+				ret = get_fdd_switch_settings();
 
-            ret |= get_videomode_switch_settings();
-        
-            /* base memory size should always be 64k */
-            ret |= 0x0c;
+				ret |= get_videomode_switch_settings();
 
-            if (hasfpu)
-                ret |= 0x02;
+				/* Base memory size should always be 64k */
+				ret |= 0x0c;
 
-        } else
-            ret = kbd->pa;
-        break;
+				if (hasfpu)
+					ret |= 0x02;
+			}
+		} else
+			ret = kbd->pa;
+		break;
 
 	case 0x61:
 		ret = kbd->pb;
