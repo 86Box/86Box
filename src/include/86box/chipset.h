@@ -75,6 +75,10 @@ extern const device_t	i440bx_device;
 extern const device_t	i440gx_device;
 extern const device_t	i440zx_device;
 
+#if defined(DEV_BRANCH) && defined(USE_I450KX)
+extern const device_t	i450kx_device;
+#endif
+
 extern const device_t	sio_device;
 extern const device_t	sio_zb_device;
 

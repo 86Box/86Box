@@ -478,6 +478,10 @@ extern int	machine_at_mvp3_init(const machine_t *);
 extern int	machine_at_ficva503a_init(const machine_t *);
 
 /* m_at_socket8.c */
+#if defined(DEV_BRANCH) && defined(USE_I450KX)
+extern int	machine_at_p6rp4_init(const machine_t *);
+#endif
+
 extern int	machine_at_686nx_init(const machine_t *);
 extern int	machine_at_v60n_init(const machine_t *);
 extern int	machine_at_vs440fx_init(const machine_t *);

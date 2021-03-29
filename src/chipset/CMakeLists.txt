@@ -23,6 +23,10 @@ add_library(chipset OBJECT acc2168.c cs8230.c ali1217.c ali1429.c headland.c int
 	via_apollo.c via_pipc.c wd76c10.c
 	vl82c480.c)
 
+if(I450KX)
+	target_sources(chipset PRIVATE intel_i450kx.c)
+endif()
+
 if(M1489)
 	target_sources(chipset PRIVATE ali1489.c)
 endif()
