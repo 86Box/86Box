@@ -55,6 +55,10 @@ static int	shadow = 0, elcr_enabled = 0,
 		tmr_inited = 0, latched = 0;
 
 
+static void	(*update_pending)(void);
+
+
+
 #ifdef ENABLE_PIC_LOG
 int pic_do_log = ENABLE_PIC_LOG;
 
@@ -160,8 +164,18 @@ static __inline int
 find_best_interrupt(pic_t *dev)
 {
     uint8_t b, s;
+    uint8_t intr;
     int i, j;
-    int is_at, ret = -1;
+    int ret = -1;
+
+#ifdef READ_LATCH
+    if (dev->interrupt != 0x17) {
+	/* We have an IRQ already latched, do not update status until it is unlatched in order to
+	   avoid IRQ loss. */
+	ret = dev->interrupt;
+	return ret;
+    }
+#endif
 
     for (i = 0; i < 8; i++) {
 	j = (i + dev->priority) & 7;
@@ -178,40 +192,43 @@ find_best_interrupt(pic_t *dev)
 		break;
     }
 
-    dev->interrupt = (ret == -1) ? 7 : ret;
+    intr = dev->interrupt = (ret == -1) ? 0x17 : ret;
 
-    is_at = IS_AT(machine);
-    if (is_at && (ret != -1) && (cpu_fast_off_flags & (1 << dev->interrupt)))
-	cpu_fast_off_count = cpu_fast_off_val + 1;
+    if (dev->at && (ret != 1)) {
+	if (dev == &pic2)
+		intr += 8;
+
+	if (cpu_fast_off_flags & (1 << intr))
+		cpu_fast_off_count = cpu_fast_off_val + 1;
+    }
 
     return ret;
 }
 
 
 static __inline void
-pic_update_pending(void)
+pic_update_pending_xt(void)
 {
-    int is_at = IS_AT(machine);
-
-    if (is_at) {
-	pic2.int_pending = (find_best_interrupt(&pic2) != -1);
-
-	if (pic2.int_pending)
-		pic.irr |= (1 << pic2.icw3);
-	else
-		pic.irr &= ~(1 << pic2.icw3);
-
-	pic.int_pending = (find_best_interrupt(&pic) != -1);
-	return;
-    }
-
     if (find_best_interrupt(&pic) != -1) {
 	latched++;
 	if (latched == 1)
-		timer_on_auto(&pic_timer, is_at ? 0.3 : 0.35);
-		/* 300 ms on AT+, 350 ns on PC/PCjr/XT */
+		timer_on_auto(&pic_timer, 0.35);
     } else if (latched == 0)
 	pic.int_pending = 0;
+}
+
+
+static __inline void
+pic_update_pending_at(void)
+{
+    pic2.int_pending = (find_best_interrupt(&pic2) != -1);
+
+    if (pic2.int_pending)
+	pic.irr |= (1 << pic2.icw3);
+    else
+	pic.irr &= ~(1 << pic2.icw3);
+
+    pic.int_pending = (find_best_interrupt(&pic) != -1);
 }
 
 
@@ -237,6 +254,7 @@ pic_reset()
     memset(&pic2, 0, sizeof(pic_t));
 
     pic.is_master = 1;
+    pic.interrupt = pic2.interrupt = 0x17;
 
     if (is_at)
 	pic.slaves[2] = &pic2;
@@ -246,6 +264,9 @@ pic_reset()
     memset(&pic_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&pic_timer, pic_callback, &pic, 0);
     tmr_inited = 1;
+
+    update_pending = is_at ? pic_update_pending_at : pic_update_pending_xt;
+    pic.at = pic2.at = is_at;
 }
 
 
@@ -276,7 +297,7 @@ picint_is_level(int irq)
 static void
 pic_acknowledge(pic_t *dev)
 {
-    int pic_int = dev->interrupt;
+    int pic_int = dev->interrupt & 7;
     int pic_int_num = 1 << pic_int;
 
     dev->isr |= pic_int_num;
@@ -319,7 +340,7 @@ pic_action(pic_t *dev, uint8_t irq, uint8_t eoi, uint8_t rotate)
 	if (rotate)
 		dev->priority = (irq + 1) & 7;
 
-	pic_update_pending();
+	update_pending();
     }
 }
 
@@ -374,12 +395,16 @@ pic_read(uint16_t addr, void *priv)
 	}
     } else {
 	/* Standard 8259 PIC read */
+#ifndef UNDEFINED_READ
+	/* Put the IRR on to the data bus by default until the real PIC is probed. */
+	dev->data_bus = dev->irr;
+#endif
 	if (dev->ocw3 & 0x04) {
 		if (dev->int_pending) {
 			dev->data_bus = 0x80 | (dev->interrupt & 7);
 			pic_acknowledge(dev);
 			dev->int_pending = 0;
-			pic_update_pending();
+			update_pending();
 		} else
 			dev->data_bus = 0x00;
 		dev->ocw3 &= ~0x04;
@@ -388,8 +413,10 @@ pic_read(uint16_t addr, void *priv)
 	else if (dev->ocw3 & 0x02) {
 		if (dev->ocw3 & 0x01)
 			dev->data_bus = dev->isr;
+#ifdef UNDEFINED_READ
 		else
 			dev->data_bus = dev->irr;
+#endif
 	}
 	/* If A0 = 0, VIA shadow is disabled, and poll mode is disabled,
 	   simply read whatever is currently on the data bus. */
@@ -429,7 +456,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 			break;
 		case STATE_NONE:
 			dev->imr = val;
-			pic_update_pending();
+			update_pending();
 			break;
 	}
     } else {
@@ -447,9 +474,10 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 		dev->imr = dev->isr = 0x00;
 		dev->ack_bytes = dev->priority = 0x00;
 		dev->auto_eoi_rotate = dev->special_mask_mode = 0x00;
-		dev->interrupt = dev->int_pending = 0x00;
+		dev->interrupt = 0x17;
+		dev->int_pending = 0x00;
 		dev->state = STATE_ICW2;
-		pic_update_pending();
+		update_pending();
 	} else if (val & 0x08) {
 		dev->ocw3 = val;
 		if (dev->ocw3 & 0x40)
@@ -494,10 +522,7 @@ void
 picint_common(uint16_t num, int level, int set)
 {
     int i, raise;
-    int is_at;
     uint8_t b, slaves = 0;
-
-    is_at = IS_AT(machine);
 
     /* Make sure to ignore all slave IRQ's, and in case of AT+,
        translate IRQ 2 to IRQ 9. */
@@ -510,7 +535,7 @@ picint_common(uint16_t num, int level, int set)
 
 		if (raise) {
 			num &= ~b;
-			if (is_at && (i == 2))
+			if (pic.at && (i == 2))
 				num |= (1 << 9);
 		}
 	}
@@ -553,7 +578,7 @@ picint_common(uint16_t num, int level, int set)
 	}
     }
 
-    pic_update_pending();
+    update_pending();
 }
 
 
@@ -588,33 +613,34 @@ pic_i86_mode(pic_t *dev)
 static uint8_t
 pic_irq_ack_read(pic_t *dev, int phase)
 {
+    uint8_t intr = dev->interrupt & 7;
     pic_log("    pic_irq_ack_read(%08X, %i)\n", dev, phase);
 
     if (dev != NULL) {
 	if (phase == 0) {
 		pic_acknowledge(dev);
-		if (pic_slave_on(dev, dev->interrupt))
-			dev->data_bus = pic_irq_ack_read(dev->slaves[dev->interrupt], phase);
+		if (pic_slave_on(dev, intr))
+			dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
 		else
 			dev->data_bus = pic_i86_mode(dev) ? 0xff : 0xcd;
 	} else if (pic_i86_mode(dev)) {
 		dev->int_pending = 0;
-		if (pic_slave_on(dev, dev->interrupt))
-			dev->data_bus = pic_irq_ack_read(dev->slaves[dev->interrupt], phase);
+		if (pic_slave_on(dev, intr))
+			dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
 		else
-			dev->data_bus = dev->interrupt + (dev->icw2 & 0xf8);
+			dev->data_bus = intr + (dev->icw2 & 0xf8);
 		pic_auto_non_specific_eoi(dev);
 	} else if (phase == 1) {
-		if (pic_slave_on(dev, dev->interrupt))
-			dev->data_bus = pic_irq_ack_read(dev->slaves[dev->interrupt], phase);
+		if (pic_slave_on(dev, intr))
+			dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
 		else if (dev->icw1 & 0x04)
-			dev->data_bus = (dev->interrupt << 2) + (dev->icw1 & 0xe0);
+			dev->data_bus = (intr << 2) + (dev->icw1 & 0xe0);
 		else
-			dev->data_bus = (dev->interrupt << 3) + (dev->icw1 & 0xc0);
+			dev->data_bus = (intr << 3) + (dev->icw1 & 0xc0);
 	} else if (phase == 2) {
 		dev->int_pending = 0;
-		if (pic_slave_on(dev, dev->interrupt))
-			dev->data_bus = pic_irq_ack_read(dev->slaves[dev->interrupt], phase);
+		if (pic_slave_on(dev, intr))
+			dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
 		else
 			dev->data_bus = dev->icw2;
 		pic_auto_non_specific_eoi(dev);
@@ -633,8 +659,10 @@ pic_irq_ack(void)
     ret = pic_irq_ack_read(&pic, pic.ack_bytes);
     pic.ack_bytes = (pic.ack_bytes + 1) % (pic_i86_mode(&pic) ? 2 : 3);
 
-    if (pic.ack_bytes == 0)
-	pic_update_pending();
+    if (pic.ack_bytes == 0) {
+	pic.interrupt = 0x17;
+	update_pending();
+    }
 
     return ret;
 }
@@ -661,8 +689,10 @@ picinterrupt()
 		ret = pic_irq_ack_read(&pic, pic.ack_bytes);
 		pic.ack_bytes = (pic.ack_bytes + 1) % (pic_i86_mode(&pic) ? 2 : 3);
 
-		if (pic.ack_bytes == 0)
-			pic_update_pending();
+		if (pic.ack_bytes == 0) {
+			pic.interrupt = pic2.interrupt = 0x17;
+			update_pending();
+		}
 	}
     }
 

@@ -25,6 +25,7 @@ typedef struct pic {
 		ocw3, int_pending, is_master, elcr,
 		state, ack_bytes, priority, special_mask_mode,
 		auto_eoi_rotate, interrupt, lines, data_bus;
+    uint32_t	at;
     struct pic	*slaves[8];
 } pic_t;
 
