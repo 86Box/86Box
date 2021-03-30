@@ -1589,15 +1589,16 @@ uint8_t
 mem_readb_phys(uint32_t addr)
 {
     mem_mapping_t *map = read_mapping[addr >> MEM_GRANULARITY_BITS];
+    uint8_t ret = 0xff;
 
     mem_logical_addr = 0xffffffff;
 
     if (_mem_exec[addr >> MEM_GRANULARITY_BITS])
-	return _mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK];
+	ret = _mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK];
     else if (map && map->read_b)
-       	return map->read_b(addr, map->p);
-    else
-	return 0xff;
+       	ret = map->read_b(addr, map->p);
+
+    return ret;
 }
 
 
@@ -1605,21 +1606,21 @@ uint16_t
 mem_readw_phys(uint32_t addr)
 {
     mem_mapping_t *map = read_mapping[addr >> MEM_GRANULARITY_BITS];
-    uint16_t temp, *p;
+    uint16_t ret, *p;
 
     mem_logical_addr = 0xffffffff;
 
     if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
 	p = (uint16_t *) &(_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK]);
-	return *p;
+	ret = *p;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->read_w))
-       	return map->read_w(addr, map->p);
+       	ret = map->read_w(addr, map->p);
     else {
-	temp = mem_readb_phys(addr + 1) << 8;
-	temp |=  mem_readb_phys(addr);
+	ret = mem_readb_phys(addr + 1) << 8;
+	ret |=  mem_readb_phys(addr);
     }
 
-    return temp;
+    return ret;
 }
 
 
@@ -1627,21 +1628,21 @@ uint32_t
 mem_readl_phys(uint32_t addr)
 {
     mem_mapping_t *map = read_mapping[addr >> MEM_GRANULARITY_BITS];
-    uint32_t temp, *p;
+    uint32_t ret, *p;
 
     mem_logical_addr = 0xffffffff;
 
     if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
 	p = (uint32_t *) &(_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK]);
-	return *p;
+	ret = *p;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->read_l))
-       	return map->read_l(addr, map->p);
+       	ret = map->read_l(addr, map->p);
     else {
-	temp = mem_readw_phys(addr + 2) << 16;
-	temp |=  mem_readw_phys(addr);
+	ret = mem_readw_phys(addr + 2) << 16;
+	ret |=  mem_readw_phys(addr);
     }
 
-    return temp;
+    return ret;
 }
 
 
@@ -1672,7 +1673,7 @@ mem_writeb_phys(uint32_t addr, uint8_t val)
 
     mem_logical_addr = 0xffffffff;
 
-    if (_mem_exec[addr >> MEM_GRANULARITY_BITS])
+    if ((_mem_exec[addr >> MEM_GRANULARITY_BITS]) && (map && map->write_b))
 	_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK] = val;
     else if (map && map->write_b)
        	map->write_b(addr, val, map->p);
@@ -1687,7 +1688,8 @@ mem_writew_phys(uint32_t addr, uint16_t val)
 
     mem_logical_addr = 0xffffffff;
 
-    if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
+    if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS]) &&
+	(map && map->write_w)) {
 	p = (uint16_t *) &(_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK]);
 	*p = val;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (map && map->write_w))
@@ -1707,7 +1709,8 @@ mem_writel_phys(uint32_t addr, uint32_t val)
 
     mem_logical_addr = 0xffffffff;
 
-    if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS])) {
+    if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (_mem_exec[addr >> MEM_GRANULARITY_BITS]) &&
+	(map && map->write_l)) {
 	p = (uint32_t *) &(_mem_exec[addr >> MEM_GRANULARITY_BITS][addr & MEM_GRANULARITY_MASK]);
 	*p = val;
     } else if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (map && map->write_l))
@@ -2125,24 +2128,6 @@ mem_write_remappedl(uint32_t addr, uint32_t val, void *priv)
 	mem_write_raml_page(addr, val, &pages[oldaddr >> 12]);
     } else
 	*(uint32_t *)&ram[addr] = val;
-}
-
-
-void
-mem_write_null(uint32_t addr, uint8_t val, void *p)
-{
-}
-
-
-void
-mem_write_nullw(uint32_t addr, uint16_t val, void *p)
-{
-}
-
-
-void
-mem_write_nulll(uint32_t addr, uint32_t val, void *p)
-{
 }
 
 

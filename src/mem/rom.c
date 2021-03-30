@@ -409,7 +409,7 @@ bios_add(void)
 	/* 256k+ BIOS'es only have low mappings at E0000-FFFFF. */
 	mem_mapping_add(&bios_mapping, 0xe0000, 0x20000,
 			bios_read,bios_readw,bios_readl,
-			mem_write_null,mem_write_nullw,mem_write_nulll,
+			NULL,NULL,NULL,
 			&rom[0x20000], MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
 
 	mem_set_mem_state_both(0x0e0000, 0x20000,
@@ -417,7 +417,7 @@ bios_add(void)
     } else {
 	mem_mapping_add(&bios_mapping, biosaddr, biosmask + 1,
 			bios_read,bios_readw,bios_readl,
-			mem_write_null,mem_write_nullw,mem_write_nulll,
+			NULL,NULL,NULL,
 			rom, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
 
 	mem_set_mem_state_both(biosaddr, biosmask + 1,
@@ -427,7 +427,7 @@ bios_add(void)
     if (AT) {
 	mem_mapping_add(&bios_high_mapping, biosaddr | (temp_cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
 			bios_read,bios_readw,bios_readl,
-			mem_write_null,mem_write_nullw,mem_write_nulll,
+			NULL,NULL,NULL,
 			rom, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, 0);
 
 	mem_set_mem_state_both(biosaddr | (temp_cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
@@ -536,7 +536,7 @@ rom_init(rom_t *rom, wchar_t *fn, uint32_t addr, int sz, int mask, int off, uint
     mem_mapping_add(&rom->mapping,
 		    addr, sz,
 		    rom_read, rom_readw, rom_readl,
-		    mem_write_null, mem_write_nullw, mem_write_nulll,
+		    NULL, NULL, NULL,
 		    rom->rom, flags | MEM_MAPPING_ROM, rom);
 
     return(0);
@@ -566,7 +566,7 @@ rom_init_oddeven(rom_t *rom, wchar_t *fn, uint32_t addr, int sz, int mask, int o
     mem_mapping_add(&rom->mapping,
 		    addr, sz,
 		    rom_read, rom_readw, rom_readl,
-		    mem_write_null, mem_write_nullw, mem_write_nulll,
+		    NULL, NULL, NULL,
 		    rom->rom, flags | MEM_MAPPING_ROM, rom);
 
     return(0);
@@ -594,7 +594,7 @@ rom_init_interleaved(rom_t *rom, wchar_t *fnl, wchar_t *fnh, uint32_t addr, int 
     mem_mapping_add(&rom->mapping,
 		    addr, sz,
 		    rom_read, rom_readw, rom_readl,
-		    mem_write_null, mem_write_nullw, mem_write_nulll,
+		    NULL, NULL, NULL,
 		    rom->rom, flags | MEM_MAPPING_ROM, rom);
 
     return(0);

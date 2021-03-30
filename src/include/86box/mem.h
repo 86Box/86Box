@@ -318,10 +318,6 @@ extern void	mem_write_ram_2gb(uint32_t addr, uint8_t val, void *priv);
 extern void	mem_write_ram_2gbw(uint32_t addr, uint16_t val, void *priv);
 extern void	mem_write_ram_2gbl(uint32_t addr, uint32_t val, void *priv);
 
-extern void	mem_write_null(uint32_t addr, uint8_t val, void *p);
-extern void	mem_write_nullw(uint32_t addr, uint16_t val, void *p);
-extern void	mem_write_nulll(uint32_t addr, uint32_t val, void *p);
-
 extern int	mem_addr_is_ram(uint32_t addr);
 
 extern uint64_t	mmutranslate_noabrt(uint32_t addr, int rw);

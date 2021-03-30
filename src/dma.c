@@ -1284,7 +1284,8 @@ _dma_write(uint32_t addr, uint8_t val, dma_t *dma_c)
 		dma_bm_write(addr, &val, 1, dma_transfer_size(dma_c));
     } else {
 	mem_writeb_phys(addr, val);
-	mem_invalidate_range(addr, addr);
+	if (AT)
+		mem_invalidate_range(addr, addr);
     }
 }
 
@@ -1662,5 +1663,6 @@ dma_bm_write(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize,
 	mem_write_phys((void *) bytes, PhysAddress + n, TransferSize);
     }
 
-    mem_invalidate_range(PhysAddress, PhysAddress + TotalSize - 1);
+    if (AT)
+	mem_invalidate_range(PhysAddress, PhysAddress + TotalSize - 1);
 }
