@@ -428,6 +428,7 @@ main_thread(void *param)
     uint32_t old_time, new_time;
     int drawits, frames;
 
+    framecountx = 0;
     title_update = 1;
     old_time = GetTickCount();
     drawits = frames = 0;

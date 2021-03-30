@@ -937,9 +937,11 @@ pc_run(void)
 	wchar_t temp[200];
 
 	/* Run a block of code. */
+	startblit();
 	cpu_exec(cpu_s->rspeed / 100);
 	mouse_process();
 	joystick_process();
+	endblit();
 
 	/* Done with this frame, update statistics. */
 	framecount++;
