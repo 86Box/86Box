@@ -394,6 +394,21 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 			break;
 
 		case 0x45:
+			dev->pci_conf_sb[0][addr] = val & 0xec;
+			switch ((val & 0xc0) >> 6)
+			{
+			case 0:
+				cpu_set_isa_speed(7.159);
+				break;
+			case 1:
+				cpu_set_isa_pci_div(4);
+				break;
+			case 2:
+				cpu_set_isa_pci_div(3);
+				break;
+			}
+			break;
+
 		case 0x46:
 			dev->pci_conf_sb[0][addr] = val & 0xec;
 			break;
