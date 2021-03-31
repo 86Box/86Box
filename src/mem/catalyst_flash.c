@@ -198,7 +198,6 @@ static void *
 catalyst_flash_init(const device_t *info)
 {
     FILE *f;
-    int l;
     flash_t *dev;
 
     dev = malloc(sizeof(flash_t));

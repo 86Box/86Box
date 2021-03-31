@@ -353,7 +353,6 @@ static void *
 intel_flash_init(const device_t *info)
 {
     FILE *f;
-    int l;
     flash_t *dev;
     uint8_t type = info->local & 0xff;
 

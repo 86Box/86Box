@@ -2100,7 +2100,7 @@ win_settings_hard_disks_update_item(HWND hdlg, int i, int column)
 {
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_HARD_DISKS);
     LVITEM lvI;
-    WCHAR szText[256], usr_path_w[1024];
+    WCHAR szText[256];
 
     lvI.mask = LVIF_TEXT | LVIF_IMAGE | LVIF_STATE;
     lvI.stateMask = lvI.iSubItem = lvI.state = 0;

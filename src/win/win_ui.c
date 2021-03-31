@@ -1418,7 +1418,7 @@ void
 plat_pause(int p)
 {
     static wchar_t oldtitle[512];
-    wchar_t title[512], *t;
+    wchar_t title[512];
 
     /* If un-pausing, as the renderer if that's OK. */
     if (p == 0)
@@ -1434,7 +1434,6 @@ plat_pause(int p)
     }
 
     if (p) {
-	t = ui_window_title(NULL);
 	wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
 	wcscpy(title, oldtitle);
 	wcscat(title, L" - PAUSED -");

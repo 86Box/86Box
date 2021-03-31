@@ -88,7 +88,6 @@ image_is_hdi(const char *s)
 int
 image_is_hdx(const char *s, int check_signature)
 {
-	int len;
 	FILE *f;
 	uint64_t filelen;
 	uint64_t signature;
@@ -125,7 +124,6 @@ image_is_hdx(const char *s, int check_signature)
 int
 image_is_vhd(const char *s, int check_signature)
 {
-	int len;
 	FILE* f;
 
 	if (! strcasecmp(plat_get_extension((char *) s), "VHD")) {

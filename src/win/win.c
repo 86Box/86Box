@@ -568,7 +568,6 @@ void
 plat_tempfile(char *bufp, char *prefix, char *suffix)
 {
     SYSTEMTIME SystemTime;
-    char temp[1024];
 
     if (prefix != NULL)
 	sprintf(bufp, "%s-", prefix);
