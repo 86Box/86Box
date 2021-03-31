@@ -50,7 +50,7 @@
 #define PRI_SIDE ((dev->pci_conf_sb[1][0x17]) | (dev->pci_conf_sb[1][0x16] << 4) | (dev->pci_conf_sb[1][0x15] << 8) | (dev->pci_conf_sb[1][0x14] << 12))
 #define SEC_BASE ((dev->pci_conf_sb[1][0x1b]) | (dev->pci_conf_sb[1][0x1a] << 4) | (dev->pci_conf_sb[1][0x19] << 8) | (dev->pci_conf_sb[1][0x18] << 12))
 #define SEC_SIDE ((dev->pci_conf_sb[1][0x1f]) | (dev->pci_conf_sb[1][0x1e] << 4) | (dev->pci_conf_sb[1][0x1d] << 8) | (dev->pci_conf_sb[1][0x1c] << 12))
-#define BUS_MASTER_BASE ((dev->pci_conf_sb[1][0x23]) | (dev->pci_conf_sb[1][0x22] << 4) | (dev->pci_conf_sb[1][0x21] << 8) | (dev->pci_conf_sb[1][0x20] << 12))
+#define BUS_MASTER_BASE ((dev->pci_conf_sb[1][0x20] & 0xf0) | (dev->pci_conf_sb[1][0x21] << 8))
 
 #ifdef ENABLE_SIS_5571_LOG
 int sis_5571_do_log = ENABLE_SIS_5571_LOG;
@@ -80,7 +80,7 @@ typedef struct sis_5571_t
 	apm_t *apm;
 	port_92_t *port_92;
 	sff8038i_t *bm[2];
-	uint32_t bus_master_base, program_status_pri, program_status_sec;
+	uint32_t program_status_pri, program_status_sec;
 	smram_t *smram;
 	usb_t *usb;
 
@@ -731,14 +731,10 @@ sis_5571_reset(void *priv)
 	dev->pci_conf_sb[1][0x0f] = 0x00;
 	dev->pci_conf_sb[1][0x4a] = 0x06;
 
+	sff_set_slot(dev->bm[0], dev->sb_pci_slot);
+	sff_set_slot(dev->bm[1], dev->sb_pci_slot);
 	sff_bus_master_reset(dev->bm[0], BUS_MASTER_BASE);
 	sff_bus_master_reset(dev->bm[1], BUS_MASTER_BASE + 8);
-
-	sff_set_slot(dev->bm[0], dev->sb_pci_slot);
-	sff_set_irq_pin(dev->bm[0], PCI_INTA);
-
-	sff_set_slot(dev->bm[1], dev->sb_pci_slot);
-	sff_set_irq_pin(dev->bm[1], PCI_INTA);
 
 	sis_5571_ide_handler(dev);
 
