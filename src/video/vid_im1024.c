@@ -66,7 +66,7 @@
 #include <86box/vid_pgc.h>
 
 
-#define BIOS_ROM_PATH	L"roms/video/im1024/im1024font.bin"
+#define BIOS_ROM_PATH	"roms/video/im1024/im1024font.bin"
 
 
 typedef struct {

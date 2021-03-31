@@ -21,7 +21,7 @@
 
 
 extern void td0_init(void);
-extern void td0_load(int drive, wchar_t *fn);
+extern void td0_load(int drive, char *fn);
 extern void td0_close(int drive);
 
 

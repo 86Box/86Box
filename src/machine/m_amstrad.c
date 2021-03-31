@@ -842,7 +842,7 @@ vid_init_1640(amstrad_t *ams)
     vid = (amsvid_t *)malloc(sizeof(amsvid_t));
     memset(vid, 0x00, sizeof(amsvid_t));
 
-    rom_init(&vid->bios_rom, L"roms/machines/pc1640/40100",
+    rom_init(&vid->bios_rom, "roms/machines/pc1640/40100",
 	     0xc0000, 0x8000, 0x7fff, 0, 0);
 
     ega_init(&vid->ega, 9, 0);
@@ -2437,7 +2437,7 @@ machine_amstrad_init(const machine_t *model, int type)
 
     if (gfxcard == VID_INTERNAL) switch(type) {
 	case AMS_PC1512:
-		loadfont(L"roms/machines/pc1512/40078", 8);
+		loadfont("roms/machines/pc1512/40078", 8);
 		device_context(&vid_1512_device);
 		ams->language = device_get_config_int("language");
 		vid_init_1512(ams);
@@ -2446,7 +2446,7 @@ machine_amstrad_init(const machine_t *model, int type)
 		break;
 	
 	case AMS_PPC512:
-		loadfont(L"roms/machines/ppc512/40109", 1);
+		loadfont("roms/machines/ppc512/40109", 1);
 		device_context(&vid_ppc512_device);
 		ams->language = device_get_config_int("language");
 		vid_init_200(ams);
@@ -2455,7 +2455,7 @@ machine_amstrad_init(const machine_t *model, int type)
 		break;
 	
 	case AMS_PC1640:
-		loadfont(L"roms/video/mda/mda.rom", 0);
+		loadfont("roms/video/mda/mda.rom", 0);
 		device_context(&vid_1640_device);
 		ams->language = device_get_config_int("language");
 		vid_init_1640(ams);
@@ -2464,7 +2464,7 @@ machine_amstrad_init(const machine_t *model, int type)
 		break;
 
 	case AMS_PC200:
-		loadfont(L"roms/machines/pc200/40109", 1);
+		loadfont("roms/machines/pc200/40109", 1);
 		device_context(&vid_200_device);
 		ams->language = device_get_config_int("language");
 		vid_init_200(ams);
@@ -2520,10 +2520,10 @@ machine_pc1512_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/pc1512/40044",
-				L"roms/machines/pc1512/40043",
+    ret = bios_load_interleaved("roms/machines/pc1512/40044",
+				"roms/machines/pc1512/40043",
 				0x000fc000, 16384, 0);
-    ret &= rom_present(L"roms/machines/pc1512/40078");
+    ret &= rom_present("roms/machines/pc1512/40078");
 
     if (bios_only || !ret)
 	return ret;
@@ -2539,10 +2539,10 @@ machine_pc1640_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/pc1640/40044.v3",
-				L"roms/machines/pc1640/40043.v3",
+    ret = bios_load_interleaved("roms/machines/pc1640/40044.v3",
+				"roms/machines/pc1640/40043.v3",
 				0x000fc000, 16384, 0);
-    ret &= rom_present(L"roms/machines/pc1640/40100");
+    ret &= rom_present("roms/machines/pc1640/40100");
 
     if (bios_only || !ret)
 	return ret;
@@ -2558,10 +2558,10 @@ machine_pc200_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/pc200/pc20v2.1",
-				L"roms/machines/pc200/pc20v2.0",
+    ret = bios_load_interleaved("roms/machines/pc200/pc20v2.1",
+				"roms/machines/pc200/pc20v2.0",
 				0x000fc000, 16384, 0);
-    ret &= rom_present(L"roms/machines/pc200/40109");
+    ret &= rom_present("roms/machines/pc200/40109");
 
     if (bios_only || !ret)
 	return ret;
@@ -2577,10 +2577,10 @@ machine_ppc512_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved(L"roms/machines/ppc512/40107.v2",
-				L"roms/machines/ppc512/40108.v2",
+    ret = bios_load_interleaved("roms/machines/ppc512/40107.v2",
+				"roms/machines/ppc512/40108.v2",
 				0x000fc000, 16384, 0);
-    ret &= rom_present(L"roms/machines/ppc512/40109");
+    ret &= rom_present("roms/machines/ppc512/40109");
 
     if (bios_only || !ret)
 	return ret;
@@ -2596,10 +2596,10 @@ machine_pc2086_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleavedr(L"roms/machines/pc2086/40179.ic129",
-				 L"roms/machines/pc2086/40180.ic132",
+    ret = bios_load_interleavedr("roms/machines/pc2086/40179.ic129",
+				 "roms/machines/pc2086/40180.ic132",
 				 0x000fc000, 65536, 0);
-    ret &= rom_present(L"roms/machines/pc2086/40186.ic171");
+    ret &= rom_present("roms/machines/pc2086/40186.ic171");
 
     if (bios_only || !ret)
 	return ret;
@@ -2615,9 +2615,9 @@ machine_pc3086_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linearr(L"roms/machines/pc3086/fc00.bin",
+    ret = bios_load_linearr("roms/machines/pc3086/fc00.bin",
 			    0x000fc000, 65536, 0);
-    ret &= rom_present(L"roms/machines/pc3086/c000.bin");
+    ret &= rom_present("roms/machines/pc3086/c000.bin");
 
     if (bios_only || !ret)
 	return ret;

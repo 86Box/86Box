@@ -142,7 +142,7 @@ machine_xt_z184_init(const machine_t *model)
 {		
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/zdsupers/z184m v3.1d.10d",
+    ret = bios_load_linear("roms/machines/zdsupers/z184m v3.1d.10d",
 			   0x000f8000, 32768, 0);
 
     if (bios_only || !ret)
@@ -165,10 +165,10 @@ int
 machine_xt_z151_init(const machine_t *model)
 {
     int ret;
-    ret = bios_load_linear(L"roms/machines/zdsz151/444-229-18.bin",
+    ret = bios_load_linear("roms/machines/zdsz151/444-229-18.bin",
 			   0x000fc000, 32768, 0);
     if (ret) {
-        bios_load_aux_linear(L"roms/machines/zdsz151/444-260-18.bin",
+        bios_load_aux_linear("roms/machines/zdsz151/444-260-18.bin",
 			     0x000f8000, 16384, 0);
     }
 
@@ -189,7 +189,7 @@ machine_xt_z159_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/zdsz159/z159m v2.9e.10d",
+    ret = bios_load_linear("roms/machines/zdsz159/z159m v2.9e.10d",
 			   0x000f8000, 32768, 0);
 
     if (bios_only || !ret)

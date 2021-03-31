@@ -86,8 +86,8 @@
 #define ESDI_IOADDR_SEC	0x3518
 #define ESDI_IRQCHAN	14
 
-#define BIOS_FILE_L	L"roms/hdd/esdi/90x8969.bin"
-#define BIOS_FILE_H	L"roms/hdd/esdi/90x8970.bin"
+#define BIOS_FILE_L	"roms/hdd/esdi/90x8969.bin"
+#define BIOS_FILE_H	"roms/hdd/esdi/90x8970.bin"
 
 
 #define ESDI_TIME	(200*TIMER_USEC)

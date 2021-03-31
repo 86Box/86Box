@@ -52,10 +52,10 @@
 extern "C" {
 #endif
 
-extern int	png_write_gray(wchar_t *path, int invert,
+extern int	png_write_gray(char *path, int invert,
 			       uint8_t *pix, int16_t w, int16_t h);
 
-extern void	png_write_rgb(wchar_t *fn,
+extern void	png_write_rgb(char *fn,
 			      uint8_t *pix, int16_t w, int16_t h, uint16_t pitch, PALETTE palcol);
 
 #ifdef __cplusplus

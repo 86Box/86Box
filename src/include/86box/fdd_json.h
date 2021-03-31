@@ -49,7 +49,7 @@
 
 
 extern void	json_init(void);
-extern void	json_load(int drive, wchar_t *fn);
+extern void	json_load(int drive, char *fn);
 extern void	json_close(int drive);
 
 

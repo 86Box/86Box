@@ -42,12 +42,12 @@
 
 
 void
-floppy_mount(uint8_t id, wchar_t *fn, uint8_t wp)
+floppy_mount(uint8_t id, char *fn, uint8_t wp)
 {
     fdd_close(id);
     ui_writeprot[id] = wp;
     fdd_load(id, fn);
-    ui_sb_update_icon_state(SB_FLOPPY | id, wcslen(floppyfns[id]) ? 0 : 1);
+    ui_sb_update_icon_state(SB_FLOPPY | id, strlen(floppyfns[id]) ? 0 : 1);
     media_menu_update_floppy(id);
     ui_sb_update_tip(SB_FLOPPY | id);
     config_save();
@@ -80,10 +80,10 @@ plat_cdrom_ui_update(uint8_t id, uint8_t reload)
 }
 
 void
-cdrom_mount(uint8_t id, wchar_t *fn)
+cdrom_mount(uint8_t id, char *fn)
 {
     cdrom[id].prev_host_drive = cdrom[id].host_drive;
-    wcscpy(cdrom[id].prev_image_path, cdrom[id].image_path);
+    strcpy(cdrom[id].prev_image_path, cdrom[id].image_path);
     if (cdrom[id].ops && cdrom[id].ops->exit)
 	cdrom[id].ops->exit(&(cdrom[id]));
     cdrom[id].ops = NULL;
@@ -92,7 +92,7 @@ cdrom_mount(uint8_t id, wchar_t *fn)
     /* Signal media change to the emulated machine. */
     if (cdrom[id].insert)
 	cdrom[id].insert(cdrom[id].priv);
-    cdrom[id].host_drive = (wcslen(cdrom[id].image_path) == 0) ? 0 : 200;
+    cdrom[id].host_drive = (strlen(cdrom[id].image_path) == 0) ? 0 : 200;
     if (cdrom[id].host_drive == 200) {
 	ui_sb_update_icon_state(SB_CDROM | id, 0);
     } else {
@@ -122,7 +122,7 @@ mo_eject(uint8_t id)
 
 
 void
-mo_mount(uint8_t id, wchar_t *fn, uint8_t wp)
+mo_mount(uint8_t id, char *fn, uint8_t wp)
 {
     mo_t *dev = (mo_t *) mo_drives[id].priv;
 
@@ -131,7 +131,7 @@ mo_mount(uint8_t id, wchar_t *fn, uint8_t wp)
     mo_load(dev, fn);
     mo_insert(dev);
 
-    ui_sb_update_icon_state(SB_MO | id, wcslen(mo_drives[id].image_path) ? 0 : 1);
+    ui_sb_update_icon_state(SB_MO | id, strlen(mo_drives[id].image_path) ? 0 : 1);
     media_menu_update_mo(id);
     ui_sb_update_tip(SB_MO | id);
 
@@ -145,7 +145,7 @@ mo_reload(uint8_t id)
     mo_t *dev = (mo_t *) mo_drives[id].priv;
 
     mo_disk_reload(dev);
-    if (wcslen(mo_drives[id].image_path) == 0) {
+    if (strlen(mo_drives[id].image_path) == 0) {
 	ui_sb_update_icon_state(SB_MO|id, 1);
     } else {
 	ui_sb_update_icon_state(SB_MO|id, 0);
@@ -176,7 +176,7 @@ zip_eject(uint8_t id)
 
 
 void
-zip_mount(uint8_t id, wchar_t *fn, uint8_t wp)
+zip_mount(uint8_t id, char *fn, uint8_t wp)
 {
     zip_t *dev = (zip_t *) zip_drives[id].priv;
 
@@ -185,7 +185,7 @@ zip_mount(uint8_t id, wchar_t *fn, uint8_t wp)
     zip_load(dev, fn);
     zip_insert(dev);
 
-    ui_sb_update_icon_state(SB_ZIP | id, wcslen(zip_drives[id].image_path) ? 0 : 1);
+    ui_sb_update_icon_state(SB_ZIP | id, strlen(zip_drives[id].image_path) ? 0 : 1);
     media_menu_update_zip(id);
     ui_sb_update_tip(SB_ZIP | id);
 
@@ -199,7 +199,7 @@ zip_reload(uint8_t id)
     zip_t *dev = (zip_t *) zip_drives[id].priv;
 
     zip_disk_reload(dev);
-    if (wcslen(zip_drives[id].image_path) == 0) {
+    if (strlen(zip_drives[id].image_path) == 0) {
 	ui_sb_update_icon_state(SB_ZIP|id, 1);
     } else {
 	ui_sb_update_icon_state(SB_ZIP|id, 0);

@@ -66,13 +66,13 @@ static int dither[4][4] =
 #define FIFO_TYPE 0xff000000
 #define FIFO_ADDR 0x00ffffff
 
-#define ROM_VIRGE_325			L"roms/video/s3virge/86c325.bin"
-#define ROM_DIAMOND_STEALTH3D_2000	L"roms/video/s3virge/s3virge.bin"
-#define ROM_DIAMOND_STEALTH3D_3000	L"roms/video/s3virge/diamondstealth3000.vbi"
-#define ROM_VIRGE_DX			L"roms/video/s3virge/86c375_1.bin"
-#define ROM_VIRGE_DX_VBE20		L"roms/video/s3virge/86c375_4.bin"
+#define ROM_VIRGE_325			"roms/video/s3virge/86c325.bin"
+#define ROM_DIAMOND_STEALTH3D_2000	"roms/video/s3virge/s3virge.bin"
+#define ROM_DIAMOND_STEALTH3D_3000	"roms/video/s3virge/diamondstealth3000.vbi"
+#define ROM_VIRGE_DX			"roms/video/s3virge/86c375_1.bin"
+#define ROM_VIRGE_DX_VBE20		"roms/video/s3virge/86c375_4.bin"
 #if defined(DEV_BRANCH) && defined(USE_S3TRIO3D2X)
-#define ROM_TRIO3D_2X			L"roms/video/s3virge/TRIO3D2X_8mbsdr.VBI"
+#define ROM_TRIO3D_2X			"roms/video/s3virge/TRIO3D2X_8mbsdr.VBI"
 #endif
 
 enum
@@ -3684,7 +3684,7 @@ static void s3_virge_pci_write(int func, int addr, uint8_t val, void *p)
 
 static void *s3_virge_init(const device_t *info)
 {
-	const wchar_t *bios_fn;
+	const char *bios_fn;
         virge_t *virge = malloc(sizeof(virge_t));
 
         memset(virge, 0, sizeof(virge_t));
@@ -3728,7 +3728,7 @@ static void *s3_virge_init(const device_t *info)
 
 	virge->pci = !!(info->flags & DEVICE_PCI);
 
-        rom_init(&virge->bios_rom, (wchar_t *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&virge->bios_rom, (char *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         if (info->flags & DEVICE_PCI)
                 mem_mapping_disable(&virge->bios_rom.mapping);
 

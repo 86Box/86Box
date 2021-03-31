@@ -52,7 +52,7 @@ typedef struct {
     uint64_t		(*get_length)(void *p);
     void		(*close)(void *p);
 
-    wchar_t		fn[260];
+    char		fn[260];
     FILE		*file;
 } track_file_t;
 
@@ -72,7 +72,7 @@ typedef struct {
 
 /* Binary file functions. */
 extern void	cdi_close(cd_img_t *cdi);
-extern int	cdi_set_device(cd_img_t *cdi, const wchar_t *path);
+extern int	cdi_set_device(cd_img_t *cdi, const char *path);
 extern int	cdi_get_audio_tracks(cd_img_t *cdi, int *st_track, int *end, TMSF *lead_out);
 extern int	cdi_get_audio_tracks_lba(cd_img_t *cdi, int *st_track, int *end, uint32_t *lead_out);
 extern int	cdi_get_audio_track_info(cd_img_t *cdi, int end, int track, int *track_num, TMSF *start, uint8_t *attr);
@@ -85,8 +85,8 @@ extern int	cdi_read_sector_sub(cd_img_t *cdi, uint8_t *buffer, uint32_t sector);
 extern int	cdi_get_sector_size(cd_img_t *cdi, uint32_t sector);
 extern int	cdi_is_mode2(cd_img_t *cdi, uint32_t sector);
 extern int	cdi_get_mode2_form(cd_img_t *cdi, uint32_t sector);
-extern int	cdi_load_iso(cd_img_t *cdi, const wchar_t *filename);
-extern int	cdi_load_cue(cd_img_t *cdi, const wchar_t *cuefile);
+extern int	cdi_load_iso(cd_img_t *cdi, const char *filename);
+extern int	cdi_load_cue(cd_img_t *cdi, const char *cuefile);
 extern int	cdi_has_data_track(cd_img_t *cdi);
 extern int	cdi_has_audio_track(cd_img_t *cdi);
 

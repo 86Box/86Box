@@ -888,7 +888,7 @@ static void *
 azt_init(const device_t *info)
 {
 	FILE *f;
-	wchar_t *fn = NULL;
+	char *fn = NULL;
         int i;
         int loaded_from_eeprom = 0;
 	uint16_t addr_setting;
@@ -899,13 +899,13 @@ azt_init(const device_t *info)
 	azt2316a->type = info->local;
 	
 	if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
-		fn = L"azt1605.nvr";
+		fn = "azt1605.nvr";
 	} else if (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11) {
-		fn = L"azt2316a.nvr";
+		fn = "azt2316a.nvr";
 	}
 
         /* config */
-        f = nvr_fopen(fn, L"rb");
+        f = nvr_fopen(fn, "rb");
         if (f) {
                 uint8_t checksum = 0x7f;
                 uint8_t saved_checksum;
@@ -1191,19 +1191,19 @@ static void
 azt_close(void *p)
 {
 	azt2316a_t *azt2316a = (azt2316a_t *)p;
-	wchar_t *fn = NULL;
+	char *fn = NULL;
 	FILE *f;
 	uint8_t checksum = 0x7f;
 	int i;
 
 	if (azt2316a->type == SB_SUBTYPE_CLONE_AZT1605_0X0C) {
-		fn = L"azt1605.nvr";
+		fn = "azt1605.nvr";
 	} else if (azt2316a->type == SB_SUBTYPE_CLONE_AZT2316A_0X11) {
-		fn = L"azt2316a.nvr";
+		fn = "azt2316a.nvr";
 	}
 
 	/* always save to eeprom (recover from bad values) */
-	f = nvr_fopen(fn, L"wb");
+	f = nvr_fopen(fn, "wb");
 	if (f) {
 		for (i = 0; i < AZTECH_EEPROM_SIZE; i++)
 			checksum += azt2316a->sb->dsp.azt_eeprom[i];

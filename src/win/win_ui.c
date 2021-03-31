@@ -1399,10 +1399,7 @@ ui_window_title(wchar_t *s)
 {
     if (! video_fullscreen) {
 	if (s != NULL) {
-		if (wcslen(s) <= 512)
-			wcscpy(wTitle, s);
-		else
-			wcsncpy(wTitle, s, 512);
+		wcsncpy(wTitle, s, sizeof_w(wTitle) - 1);
 	} else
 		s = wTitle;
 
@@ -1438,10 +1435,7 @@ plat_pause(int p)
 
     if (p) {
 	t = ui_window_title(NULL);
-	if (wcslen(t) <= 511)
-		wcscpy(oldtitle, ui_window_title(NULL));
-	else
-		wcsncpy(oldtitle, ui_window_title(NULL), 511);
+	wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
 	wcscpy(title, oldtitle);
 	wcscat(title, L" - PAUSED -");
 	ui_window_title(title);

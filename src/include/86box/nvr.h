@@ -65,7 +65,7 @@
 
 /* Define a generic RTC/NVRAM device. */
 typedef struct _nvr_ {
-    wchar_t	*fn;			/* pathname of image file */
+    char	*fn;			/* pathname of image file */
     uint16_t	size;			/* device configuration */
     int8_t	irq;
 
@@ -101,8 +101,8 @@ extern const device_t via_nvr_device;
 extern void	rtc_tick(void);
 
 extern void	nvr_init(nvr_t *);
-extern wchar_t	*nvr_path(wchar_t *str);
-extern FILE	*nvr_fopen(wchar_t *str, wchar_t *mode);
+extern char	*nvr_path(char *str);
+extern FILE	*nvr_fopen(char *str, char *mode);
 extern int	nvr_load(void);
 extern void	nvr_close(void);
 extern void	nvr_set_ven_save(void (*ven_save)(void));

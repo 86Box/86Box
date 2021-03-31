@@ -33,7 +33,7 @@
 #include <86box/video.h>
 
 
-#define BIOS_ROM_PATH	L"roms/video/genius/8x12.bin"
+#define BIOS_ROM_PATH	"roms/video/genius/8x12.bin"
 
 
 #define GENIUS_XSIZE 728

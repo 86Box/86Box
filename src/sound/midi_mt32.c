@@ -69,14 +69,14 @@ mt32emu_return_code mt32_check(const char* func, mt32emu_return_code ret, mt32em
 int mt32_available()
 {
         if (roms_present[0] < 0)
-                roms_present[0] = (rom_present(L"roms/sound/mt32/mt32_control.rom") && rom_present(L"roms/sound/mt32/mt32_pcm.rom"));
+                roms_present[0] = (rom_present("roms/sound/mt32/mt32_control.rom") && rom_present("roms/sound/mt32/mt32_pcm.rom"));
         return roms_present[0];
 }
 
 int cm32l_available()
 {
         if (roms_present[1] < 0)
-                roms_present[1] = (rom_present(L"roms/sound/cm32l/cm32l_control.rom") && rom_present(L"roms/sound/cm32l/cm32l_pcm.rom"));
+                roms_present[1] = (rom_present("roms/sound/cm32l/cm32l_control.rom") && rom_present("roms/sound/cm32l/cm32l_pcm.rom"));
         return roms_present[1];
 }
 
@@ -165,19 +165,16 @@ void mt32_sysex(uint8_t* data, unsigned int len)
         if (context) mt32_check("mt32emu_play_sysex", mt32emu_play_sysex(context, data, len), MT32EMU_RC_OK);
 }
 
-void* mt32emu_init(wchar_t *control_rom, wchar_t *pcm_rom)
+void* mt32emu_init(char *control_rom, char *pcm_rom)
 {
 	midi_device_t* dev;
-        wchar_t s[512];
         char fn[512];
 
         context = mt32emu_create_context(handler, NULL);
 
-        if (!rom_getfile(control_rom, s, 512)) return 0;
-	wcstombs(fn, s, (wcslen(s) << 1) + 2);
+        if (!rom_getfile(control_rom, fn, 512)) return 0;
         if (!mt32_check("mt32emu_add_rom_file", mt32emu_add_rom_file(context, fn), MT32EMU_RC_ADDED_CONTROL_ROM)) return 0;
-        if (!rom_getfile(pcm_rom, s, 512)) return 0;
-	wcstombs(fn, s, (wcslen(s) << 1) + 2);
+        if (!rom_getfile(pcm_rom, fn, 512)) return 0;
         if (!mt32_check("mt32emu_add_rom_file", mt32emu_add_rom_file(context, fn), MT32EMU_RC_ADDED_PCM_ROM)) return 0;
 
         if (!mt32_check("mt32emu_open_synth", mt32emu_open_synth(context), MT32EMU_RC_OK)) return 0;
@@ -229,12 +226,12 @@ void* mt32emu_init(wchar_t *control_rom, wchar_t *pcm_rom)
 
 void *mt32_init(const device_t *info)
 {
-	return mt32emu_init(L"roms/sound/mt32/mt32_control.rom", L"roms/sound/mt32/mt32_pcm.rom");
+	return mt32emu_init("roms/sound/mt32/mt32_control.rom", "roms/sound/mt32/mt32_pcm.rom");
 }
 
 void *cm32l_init(const device_t *info)
 {
-	return mt32emu_init(L"roms/sound/cm32l/cm32l_control.rom", L"roms/sound/cm32l/cm32l_pcm.rom");
+	return mt32emu_init("roms/sound/cm32l/cm32l_control.rom", "roms/sound/cm32l/cm32l_pcm.rom");
 }
 
 void mt32_close(void* p)

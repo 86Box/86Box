@@ -38,13 +38,13 @@
 #include <86box/vid_svga_render.h>
 
 
-#define BIOS_ROM_PATH_DIAMOND	L"roms/video/et4000w32/et4000w32.bin"
-#define BIOS_ROM_PATH_CARDEX	L"roms/video/et4000w32/cardex.vbi"
-#define BIOS_ROM_PATH_W32	L"roms/video/et4000w32/ET4000W32VLB_bios_MX27C512.BIN"
-#define BIOS_ROM_PATH_W32I_ISA	L"roms/video/et4000w32/ET4KW32I.VBI"
-#define BIOS_ROM_PATH_W32I_VLB	L"roms/video/et4000w32/tseng.u41.bin"
-#define BIOS_ROM_PATH_W32P	L"roms/video/et4000w32/ET4K_W32.BIN"
-#define BIOS_ROM_PATH_W32P_REVC	L"roms/video/et4000w32/et4000w32pcardex.BIN"
+#define BIOS_ROM_PATH_DIAMOND	"roms/video/et4000w32/et4000w32.bin"
+#define BIOS_ROM_PATH_CARDEX	"roms/video/et4000w32/cardex.vbi"
+#define BIOS_ROM_PATH_W32	"roms/video/et4000w32/ET4000W32VLB_bios_MX27C512.BIN"
+#define BIOS_ROM_PATH_W32I_ISA	"roms/video/et4000w32/ET4KW32I.VBI"
+#define BIOS_ROM_PATH_W32I_VLB	"roms/video/et4000w32/tseng.u41.bin"
+#define BIOS_ROM_PATH_W32P	"roms/video/et4000w32/ET4K_W32.BIN"
+#define BIOS_ROM_PATH_W32P_REVC	"roms/video/et4000w32/et4000w32pcardex.BIN"
 
 #define FIFO_SIZE		65536
 #define FIFO_MASK		(FIFO_SIZE - 1)

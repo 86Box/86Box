@@ -45,10 +45,10 @@
 #include <86box/hdc_ide.h>
 
 
-#define ROM_PATH_XT	L"roms/hdd/xtide/ide_xt.bin"
-#define ROM_PATH_AT	L"roms/hdd/xtide/ide_at.bin"
-#define ROM_PATH_PS2	L"roms/hdd/xtide/SIDE1V12.BIN"
-#define ROM_PATH_PS2AT	L"roms/hdd/xtide/ide_at_1_1_5.bin"
+#define ROM_PATH_XT	"roms/hdd/xtide/ide_xt.bin"
+#define ROM_PATH_AT	"roms/hdd/xtide/ide_at.bin"
+#define ROM_PATH_PS2	"roms/hdd/xtide/SIDE1V12.BIN"
+#define ROM_PATH_PS2AT	"roms/hdd/xtide/ide_at_1_1_5.bin"
 
 
 typedef struct {

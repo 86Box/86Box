@@ -806,7 +806,7 @@ machine_pcjr_init(const machine_t *model)
 
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/ibmpcjr/bios.rom",
+    ret = bios_load_linear("roms/machines/ibmpcjr/bios.rom",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -824,7 +824,7 @@ machine_pcjr_init(const machine_t *model)
     cpu_set();
 
     /* Initialize the video controller. */
-    loadfont(L"roms/video/mda/mda.rom", 0);
+    loadfont("roms/video/mda/mda.rom", 0);
     mem_mapping_add(&pcjr->mapping, 0xb8000, 0x08000,
 		    vid_read, NULL, NULL,
 		    vid_write, NULL, NULL,  NULL, 0, pcjr);

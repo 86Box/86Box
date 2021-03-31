@@ -24,7 +24,7 @@
 
 
 extern void	img_init(void);
-extern void	img_load(int drive, wchar_t *fn);
+extern void	img_load(int drive, char *fn);
 extern void	img_close(int drive);
 
 

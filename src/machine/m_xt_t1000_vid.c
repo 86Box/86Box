@@ -676,7 +676,7 @@ static void *t1000_init(const device_t *info)
 {
         t1000_t *t1000 = malloc(sizeof(t1000_t));
         memset(t1000, 0, sizeof(t1000_t));
-	loadfont(L"roms/machines/t1000/t1000font.bin", 8);
+	loadfont("roms/machines/t1000/t1000font.bin", 8);
 	cga_init(&t1000->cga);
 	video_inform(VIDEO_FLAG_TYPE_CGA, &timing_t1000);
 

@@ -77,7 +77,7 @@ typedef struct {
 
 fdd_t		fdd[FDD_NUM];
 
-wchar_t		floppyfns[FDD_NUM][512];
+char		floppyfns[FDD_NUM][512];
 
 pc_timer_t	fdd_poll_time[FDD_NUM];
 
@@ -99,44 +99,44 @@ d86f_handler_t   d86f_handler[FDD_NUM];
 
 static const struct
 {
-    wchar_t *ext;
-    void (*load)(int drive, wchar_t *fn);
+    char *ext;
+    void (*load)(int drive, char *fn);
     void (*close)(int drive);
     int size;
 } loaders[]=
 {
-    {L"001",	 img_load,	 img_close, -1},
-    {L"002",	 img_load,	 img_close, -1},
-    {L"003",	 img_load,	 img_close, -1},
-    {L"004",	 img_load,	 img_close, -1},
-    {L"005",	 img_load,	 img_close, -1},
-    {L"006",	 img_load,	 img_close, -1},
-    {L"007",	 img_load,	 img_close, -1},
-    {L"008",	 img_load,	 img_close, -1},
-    {L"009",	 img_load,	 img_close, -1},
-    {L"010",	 img_load,	 img_close, -1},
-    {L"12",	 img_load,	 img_close, -1},
-    {L"144",	 img_load,	 img_close, -1},
-    {L"360",	 img_load,	 img_close, -1},
-    {L"720",	 img_load,	 img_close, -1},
-    {L"86F",	d86f_load,	d86f_close, -1},
-    {L"BIN",	 img_load,	 img_close, -1},
-    {L"CQ",	 img_load,	 img_close, -1},
-    {L"CQM",	 img_load,	 img_close, -1},
-    {L"DDI",	 img_load,	 img_close, -1},
-    {L"DSK",	 img_load,	 img_close, -1},
-    {L"FDI",	 fdi_load,	 fdi_close, -1},
-    {L"FDF",	 img_load,	 img_close, -1},
-    {L"FLP",	 img_load,	 img_close, -1},
-    {L"HDM",	 img_load,	 img_close, -1},
-    {L"IMA",	 img_load,	 img_close, -1},
-    {L"IMD",	 imd_load,	 imd_close, -1},
-    {L"IMG",	 img_load,	 img_close, -1},
-    {L"JSON",	json_load,	json_close, -1},
-    {L"MFM",	 mfm_load,	 mfm_close, -1},
-    {L"TD0",	 td0_load,	 td0_close, -1},
-    {L"VFD",	 img_load,	 img_close, -1},
-    {L"XDF",	 img_load,	 img_close, -1},
+    {"001",	 img_load,	 img_close, -1},
+    {"002",	 img_load,	 img_close, -1},
+    {"003",	 img_load,	 img_close, -1},
+    {"004",	 img_load,	 img_close, -1},
+    {"005",	 img_load,	 img_close, -1},
+    {"006",	 img_load,	 img_close, -1},
+    {"007",	 img_load,	 img_close, -1},
+    {"008",	 img_load,	 img_close, -1},
+    {"009",	 img_load,	 img_close, -1},
+    {"010",	 img_load,	 img_close, -1},
+    {"12",	 img_load,	 img_close, -1},
+    {"144",	 img_load,	 img_close, -1},
+    {"360",	 img_load,	 img_close, -1},
+    {"720",	 img_load,	 img_close, -1},
+    {"86F",	d86f_load,	d86f_close, -1},
+    {"BIN",	 img_load,	 img_close, -1},
+    {"CQ",	 img_load,	 img_close, -1},
+    {"CQM",	 img_load,	 img_close, -1},
+    {"DDI",	 img_load,	 img_close, -1},
+    {"DSK",	 img_load,	 img_close, -1},
+    {"FDI",	 fdi_load,	 fdi_close, -1},
+    {"FDF",	 img_load,	 img_close, -1},
+    {"FLP",	 img_load,	 img_close, -1},
+    {"HDM",	 img_load,	 img_close, -1},
+    {"IMA",	 img_load,	 img_close, -1},
+    {"IMD",	 imd_load,	 imd_close, -1},
+    {"IMG",	 img_load,	 img_close, -1},
+    {"JSON",	json_load,	json_close, -1},
+    {"MFM",	 mfm_load,	 mfm_close, -1},
+    {"TD0",	 td0_load,	 td0_close, -1},
+    {"VFD",	 img_load,	 img_close, -1},
+    {"XDF",	 img_load,	 img_close, -1},
     {0,		 0,		 0,	     0}
 };
 
@@ -475,20 +475,20 @@ fdd_get_densel(int drive)
 
 
 void
-fdd_load(int drive, wchar_t *fn)
+fdd_load(int drive, char *fn)
 {
     int c = 0, size;
-    wchar_t *p;
+    char *p;
     FILE *f;
 
-    fdd_log("FDD: loading drive %d with '%ls'\n", drive, fn);
+    fdd_log("FDD: loading drive %d with '%s'\n", drive, fn);
 
     if (!fn)
 	return;
     p = plat_get_extension(fn);
     if (!p)
 	return;
-    f = plat_fopen(fn, L"rb");
+    f = plat_fopen(fn, "rb");
     if (!f)
 	return;
     if (fseek(f, -1, SEEK_END) == -1)
@@ -496,9 +496,9 @@ fdd_load(int drive, wchar_t *fn)
     size = ftell(f) + 1;
     fclose(f);        
     while (loaders[c].ext) {
-	if (!wcscasecmp(p, (wchar_t *) loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1)) {
+	if (!strcasecmp(p, (char *) loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1)) {
 		driveloaders[drive] = c;
-		memcpy(floppyfns[drive], fn, (wcslen(fn) << 1) + 2);
+		strcpy(floppyfns[drive], fn);
 		d86f_setup(drive);
 		loaders[c].load(drive, floppyfns[drive]);
 		drive_empty[drive] = 0;
@@ -508,7 +508,7 @@ fdd_load(int drive, wchar_t *fn)
 	}
 	c++;
     }
-    fdd_log("FDD: could not load '%ls' %s\n",fn,p);
+    fdd_log("FDD: could not load '%s' %s\n",fn,p);
     drive_empty[drive] = 1;
     fdd_set_head(drive, 0);
     memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
