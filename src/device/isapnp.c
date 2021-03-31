@@ -85,7 +85,7 @@ enum {
 typedef struct _isapnp_device_ {
     uint8_t	number;
     uint8_t	regs[256];
-    uint8_t	mem_upperlimit, irq_types, io_16bit;
+    uint8_t	mem_upperlimit, irq_types, io_16bit, io_len[8];
 
     struct _isapnp_device_ *next;
 } isapnp_device_t;
@@ -142,7 +142,10 @@ isapnp_device_config_changed(isapnp_card_t *card, isapnp_device_t *ld)
     }
     for (i = 0; i < 8; i++) {
 	reg_base = 0x60 + (2 * i);
-	card->config.io[i].base = (ld->regs[reg_base] << 8) | ld->regs[reg_base + 1];
+	if (ld->regs[0x31] & 0x02)
+		card->config.io[i].base = 0; /* let us handle I/O range check reads */
+	else
+		card->config.io[i].base = (ld->regs[reg_base] << 8) | ld->regs[reg_base + 1];
     }
     for (i = 0; i < 2; i++) {
 	reg_base = 0x70 + (2 * i);
@@ -387,8 +390,7 @@ isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
 	case 0x02: /* Config Control */
 		if (val & 0x01) {
 			isapnp_log("ISAPnP: Reset\n");
-			isapnp_set_read_data(0, dev);
-			
+
 			card = dev->first_card;
 			while (card) {
 				ld = card->first_ld;
@@ -491,15 +493,19 @@ isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
 	case 0x31: /* I/O Range Check */
 		CHECK_CURRENT_LD();
 
-		for (uint8_t reg = 0x60; reg <= 0x6e; reg += 2) {
-			io_addr = (dev->current_ld->regs[reg] << 8) | dev->current_ld->regs[reg + 1];
+		for (uint8_t i = 0; i < 8; i++) {
+			if (!dev->current_ld->io_len[i])
+				continue;
+
+			io_addr = (dev->current_ld->regs[0x60 + (2 * i)] << 8) | dev->current_ld->regs[0x61 + (2 * i)];
 			if (dev->current_ld->regs[dev->reg] & 0x02)
-				io_removehandler(io_addr, 1, isapnp_read_rangecheck, NULL, NULL, NULL, NULL, NULL, dev->current_ld);
+				io_removehandler(io_addr, dev->current_ld->io_len[i], isapnp_read_rangecheck, NULL, NULL, NULL, NULL, NULL, dev->current_ld);
 			if (val & 0x02)
-				io_sethandler(io_addr, 1, isapnp_read_rangecheck, NULL, NULL, NULL, NULL, NULL, dev->current_ld);
+				io_sethandler(io_addr, dev->current_ld->io_len[i], isapnp_read_rangecheck, NULL, NULL, NULL, NULL, NULL, dev->current_ld);
 		}
 
 		dev->current_ld->regs[dev->reg] = val & 0x03;
+		isapnp_device_config_changed(dev->current_ld_card, dev->current_ld);
 
 		break;
 
@@ -789,12 +795,15 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
 				if (io > 7)
 					fatal("ISAPnP: I/O descriptor overflow (%d)\n", io);
 
-				isapnp_log("ISAPnP: >>%s I/O range %d %d-bit decode\n", in_df ? ">" : "", io, (card->rom[i + 1] & 0x01) ? 16 : 10);
+				isapnp_log("ISAPnP: >>%s I/O range %d %d-bit decode, %d ports\n", in_df ? ">" : "", io, (card->rom[i + 1] & 0x01) ? 16 : 10, card->rom[i + 7]);
 
 				if (card->rom[i + 1] & 0x01)
 					ld->io_16bit |= 1 << io;
 				else
 					ld->io_16bit &= ~(1 << io);
+
+				if (card->rom[i + 7] > ld->io_len[io])
+					ld->io_len[io] = card->rom[i + 7];
 
 				io++;
 
