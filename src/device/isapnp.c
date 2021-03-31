@@ -387,8 +387,7 @@ isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
 	case 0x02: /* Config Control */
 		if (val & 0x01) {
 			isapnp_log("ISAPnP: Reset\n");
-			isapnp_set_read_data(0, dev);
-			
+
 			card = dev->first_card;
 			while (card) {
 				ld = card->first_ld;
