@@ -168,7 +168,7 @@ find_best_interrupt(pic_t *dev)
     int i, j;
     int ret = -1;
 
-#ifdef READ_LATCH
+#ifndef READ_LATCH
     if (dev->interrupt != 0x17) {
 	/* We have an IRQ already latched, do not update status until it is unlatched in order to
 	   avoid IRQ loss. */
@@ -415,7 +415,7 @@ pic_read(uint16_t addr, void *priv)
 			dev->data_bus = dev->isr;
 #ifdef UNDEFINED_READ
 		else
-			dev->data_bus = dev->irr;
+			dev->data_bus = 0x00;
 #endif
 	}
 	/* If A0 = 0, VIA shadow is disabled, and poll mode is disabled,
