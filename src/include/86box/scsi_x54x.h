@@ -450,7 +450,7 @@ typedef struct {
     double	media_period, ha_bps;		/* bytes per second */
 
     /* 8 bytes */
-    wchar_t	*bios_path,			/* path to BIOS image file */
+    char	*bios_path,			/* path to BIOS image file */
 		*mcode_path,			/* path to microcode image file, needed by the AHA-1542CP */
 		*nvr_path;			/* path to NVR image file */
 

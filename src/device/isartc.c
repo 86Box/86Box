@@ -559,7 +559,7 @@ isartc_init(const device_t *info)
 		  dev->f_rd,NULL,NULL, dev->f_wr,NULL,NULL, dev);
 
     /* Hook into the NVR backend. */
-    dev->nvr.fn = (wchar_t *)isartc_get_internal_name(isartc_type);
+    dev->nvr.fn = isartc_get_internal_name(isartc_type);
     dev->nvr.irq = dev->irq;
     nvr_init(&dev->nvr);
 
@@ -578,7 +578,7 @@ isartc_close(void *priv)
 		     dev->f_rd,NULL,NULL, dev->f_wr,NULL,NULL, dev);
 
     if (dev->nvr.fn != NULL)
-	free((wchar_t *)dev->nvr.fn);
+	free(dev->nvr.fn);
 
     free(dev);
 }

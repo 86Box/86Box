@@ -776,7 +776,7 @@ void *adgold_init(const device_t *info)
         for (; c >= 0; c--)
                 attenuation[c] = 0;
 
-        f = nvr_fopen(L"adgold.bin", L"rb");
+        f = nvr_fopen("adgold.bin", "rb");
         if (f)
         {
                 if (fread(adgold->adgold_eeprom, 1, 0x1a, f) != 0x1a)
@@ -817,7 +817,7 @@ void adgold_close(void *p)
         FILE *f;
         adgold_t *adgold = (adgold_t *)p;
         
-        f = nvr_fopen(L"adgold.bin", L"wb");
+        f = nvr_fopen("adgold.bin", "wb");
         if (f)
         {
                 fwrite(adgold->adgold_eeprom, 0x1a, 1, f);

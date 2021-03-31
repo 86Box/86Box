@@ -53,7 +53,7 @@ typedef struct sst_t
 } sst_t;
 
 
-static wchar_t	flash_path[1024];
+static char	flash_path[1024];
 
 
 #define SST_CHIP_ERASE    	0x10	/* Both 29 and 39, 6th cycle */
@@ -354,17 +354,7 @@ sst_init(const device_t *info)
     sst_t *dev = malloc(sizeof(sst_t));
     memset(dev, 0, sizeof(sst_t));
 
-    size_t l = strlen(machine_get_internal_name_ex(machine))+1;
-    wchar_t *machine_name = (wchar_t *) malloc(l * sizeof(wchar_t));
-    mbstowcs(machine_name, machine_get_internal_name_ex(machine), l);
-    l = wcslen(machine_name)+5;
-    wchar_t *flash_name = (wchar_t *)malloc(l*sizeof(wchar_t));
-    swprintf(flash_name, l, L"%ls.bin", machine_name);
-
-    if (wcslen(flash_name) <= 1024)
-	wcscpy(flash_path, flash_name);
-    else
-	wcsncpy(flash_path, flash_name, 1024);
+    sprintf(flash_path, "%s.bin", machine_get_internal_name_ex(machine));
 
     mem_mapping_disable(&bios_mapping);
     mem_mapping_disable(&bios_high_mapping);
@@ -389,16 +379,13 @@ sst_init(const device_t *info)
 
     sst_add_mappings(dev);
 
-    f = nvr_fopen(flash_path, L"rb");
+    f = nvr_fopen(flash_path, "rb");
     if (f) {
 	if (fread(&(dev->array[0x00000]), 1, dev->size, f) != dev->size)
 		fatal("Less than %i bytes read from the SST Flash ROM file\n", dev->size);
 	fclose(f);
     } else
 	dev->dirty = 1;		/* It is by definition dirty on creation. */
-
-    free(flash_name);
-    free(machine_name);
 
     if (!dev->is_39)
 	timer_add(&dev->page_write_timer, sst_page_write, dev, 0);
@@ -414,7 +401,7 @@ sst_close(void *p)
     sst_t *dev = (sst_t *)p;
 
     if (dev->dirty) {
-	f = nvr_fopen(flash_path, L"wb");
+	f = nvr_fopen(flash_path, "wb");
 	fwrite(&(dev->array[0x00000]), dev->size, 1, f);
 	fclose(f);
     }

@@ -1237,7 +1237,7 @@ cdrom_eject(uint8_t id)
     }
 
     if (dev->host_drive == 200)
-	wcscpy(dev->prev_image_path, dev->image_path);
+	strcpy(dev->prev_image_path, dev->image_path);
 
     dev->prev_host_drive = dev->host_drive;
     dev->host_drive = 0;
@@ -1273,12 +1273,12 @@ cdrom_reload(uint8_t id)
 
     if (dev->prev_host_drive == 200) {
 	/* Reload a previous image. */
-	wcscpy(dev->image_path, dev->prev_image_path);
+	strcpy(dev->image_path, dev->prev_image_path);
 	cdrom_image_open(dev, dev->image_path);
 
 	cdrom_insert(id);
 
-	if (wcslen(dev->image_path) == 0)
+	if (strlen(dev->image_path) == 0)
 		dev->host_drive = 0;
 	  else
 		dev->host_drive = 200;

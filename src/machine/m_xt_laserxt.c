@@ -140,7 +140,7 @@ machine_xt_laserxt_init(const machine_t *model)
 {
 	int ret;
 
-	ret = bios_load_linear(L"roms/machines/ltxt/27c64.bin",
+	ret = bios_load_linear("roms/machines/ltxt/27c64.bin",
 			       0x000fe000, 8192, 0);
 
 	if (bios_only || !ret)
@@ -159,7 +159,7 @@ machine_xt_lxt3_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/lxt3/27c64d.bin",
+    ret = bios_load_linear("roms/machines/lxt3/27c64d.bin",
 			   0x000fe000, 8192, 0);
 
     if (bios_only || !ret)

@@ -566,7 +566,7 @@ nga_init(const device_t *info)
 
     charset = device_get_config_int("charset");
 
-	loadfont_ex(L"roms/video/nga/ncr_nga_35122.bin", 1, 4096 * charset);
+	loadfont_ex("roms/video/nga/ncr_nga_35122.bin", 1, 4096 * charset);
     
 	nga->cga.composite = 0; 
     nga->cga.snow_enabled = device_get_config_int("snow_enabled");

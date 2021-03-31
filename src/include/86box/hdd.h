@@ -92,7 +92,7 @@ typedef struct {
 
     void	*priv;
 
-    wchar_t	fn[1024],		/* Name of current image file */
+    char	fn[1024],		/* Name of current image file */
 		prev_fn[1024];		/* Name of previous image file */
 
     uint32_t	res0, pad1,
@@ -127,9 +127,9 @@ extern void	hdd_image_unload(uint8_t id, int fn_preserve);
 extern void	hdd_image_close(uint8_t id);
 extern void	hdd_image_calc_chs(uint32_t *c, uint32_t *h, uint32_t *s, uint32_t size);
 
-extern int	image_is_hdi(const wchar_t *s);
-extern int	image_is_hdx(const wchar_t *s, int check_signature);
-extern int	image_is_vhd(const wchar_t *s, int check_signature);
+extern int	image_is_hdi(const char *s);
+extern int	image_is_hdx(const char *s, int check_signature);
+extern int	image_is_vhd(const char *s, int check_signature);
 
 
 #endif	/*EMU_HDD_H*/

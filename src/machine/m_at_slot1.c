@@ -44,7 +44,7 @@ machine_at_p65up5_cpknd_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p65up5/ndkn0218.awd",
+    ret = bios_load_linear("roms/machines/p65up5/ndkn0218.awd",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -61,7 +61,7 @@ machine_at_kn97_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/kn97/0116I.001",
+    ret = bios_load_linear("roms/machines/kn97/0116I.001",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -95,7 +95,7 @@ machine_at_lx6_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/lx6/LX6C_PZ.B00",
+    ret = bios_load_linear("roms/machines/lx6/LX6C_PZ.B00",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -127,7 +127,7 @@ machine_at_spitfire_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/spitfire/SPIHM.02",
+    ret = bios_load_linear("roms/machines/spitfire/SPIHM.02",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -160,7 +160,7 @@ machine_at_p6i440e2_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p6i440e2/E2_v14sl.bin",
+    ret = bios_load_linear("roms/machines/p6i440e2/E2_v14sl.bin",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -193,7 +193,7 @@ machine_at_p2bls_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p2bls/1014ls.003",
+    ret = bios_load_linear("roms/machines/p2bls/1014ls.003",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -231,7 +231,7 @@ machine_at_p3bf_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p3bf/1008f.004",
+    ret = bios_load_linear("roms/machines/p3bf/1008f.004",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -268,7 +268,7 @@ machine_at_bf6_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/bf6/Beh_70.bin",
+    ret = bios_load_linear("roms/machines/bf6/Beh_70.bin",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -303,7 +303,7 @@ machine_at_ax6bc_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/ax6bc/AX6BC_R2.59.bin",
+    ret = bios_load_linear("roms/machines/ax6bc/AX6BC_R2.59.bin",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -337,7 +337,7 @@ machine_at_atc6310bxii_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/atc6310bxii/6310s102.bin",
+    ret = bios_load_linear("roms/machines/atc6310bxii/6310s102.bin",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -370,7 +370,7 @@ machine_at_686bx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/686bx/6BX.F2a",
+    ret = bios_load_linear("roms/machines/686bx/6BX.F2a",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -408,7 +408,7 @@ machine_at_p6sba_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p6sba/SBAB21.ROM",
+    ret = bios_load_linear("roms/machines/p6sba/SBAB21.ROM",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -447,7 +447,7 @@ machine_at_tsunamiatx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/tsunamiatx/bx46200f.rom",
+    ret = bios_load_linear("roms/machines/tsunamiatx/bx46200f.rom",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -492,7 +492,7 @@ machine_at_ergox365_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/ergox365/M63v115.rom",
+    ret = bios_load_linear("roms/machines/ergox365/M63v115.rom",
 			   0x00080000, 524288, 0);
 
     if (bios_only || !ret)
@@ -523,7 +523,7 @@ machine_at_ficka6130_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/ficka6130/qa4163.bin",
+    ret = bios_load_linear("roms/machines/ficka6130/qa4163.bin",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -555,7 +555,7 @@ machine_at_p3v133_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p3v133/1003.002",
+    ret = bios_load_linear("roms/machines/p3v133/1003.002",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -593,7 +593,7 @@ machine_at_p3v4x_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/p3v4x/1006.004",
+    ret = bios_load_linear("roms/machines/p3v4x/1006.004",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -628,7 +628,7 @@ machine_at_vei8_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/vei8/QHW1001.BIN",
+    ret = bios_load_linear("roms/machines/vei8/QHW1001.BIN",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)

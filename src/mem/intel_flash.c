@@ -78,7 +78,7 @@ typedef struct flash_t
 } flash_t;
 
 
-static wchar_t	flash_path[1024];
+static char	flash_path[1024];
 
 
 static uint8_t
@@ -355,23 +355,12 @@ intel_flash_init(const device_t *info)
     FILE *f;
     int l;
     flash_t *dev;
-    wchar_t *machine_name, *flash_name;
     uint8_t type = info->local & 0xff;
 
     dev = malloc(sizeof(flash_t));
     memset(dev, 0, sizeof(flash_t));
 
-    l = strlen(machine_get_internal_name_ex(machine))+1;
-    machine_name = (wchar_t *) malloc(l * sizeof(wchar_t));
-    mbstowcs(machine_name, machine_get_internal_name_ex(machine), l);
-    l = wcslen(machine_name)+5;
-    flash_name = (wchar_t *)malloc(l*sizeof(wchar_t));
-    swprintf(flash_name, l, L"%ls.bin", machine_name);
-
-    if (wcslen(flash_name) <= 1024)
-	wcscpy(flash_path, flash_name);
-    else
-	wcsncpy(flash_path, flash_name, 1024);
+    sprintf(flash_path, "%s.bin", machine_get_internal_name_ex(machine));
 
     dev->flags = info->local & 0xff;
 
@@ -529,7 +518,7 @@ intel_flash_init(const device_t *info)
     dev->command = CMD_READ_ARRAY;
     dev->status = 0;
 
-    f = nvr_fopen(flash_path, L"rb");
+    f = nvr_fopen(flash_path, "rb");
     if (f) {
 	fread(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, f);
 	if (dev->block_len[BLOCK_MAIN2])
@@ -544,9 +533,6 @@ intel_flash_init(const device_t *info)
 	fclose(f);
     }
 
-    free(flash_name);
-    free(machine_name);
-
     return dev;
 }
 
@@ -557,7 +543,7 @@ intel_flash_close(void *p)
     FILE *f;
     flash_t *dev = (flash_t *)p;
 
-    f = nvr_fopen(flash_path, L"wb");
+    f = nvr_fopen(flash_path, "wb");
     fwrite(&(dev->array[dev->block_start[BLOCK_MAIN1]]), dev->block_len[BLOCK_MAIN1], 1, f);
     if (dev->block_len[BLOCK_MAIN2])
 	fwrite(&(dev->array[dev->block_start[BLOCK_MAIN2]]), dev->block_len[BLOCK_MAIN2], 1, f);

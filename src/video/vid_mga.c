@@ -34,8 +34,8 @@
 #include <86box/vid_svga_render.h>
 
 
-#define ROM_MYSTIQUE			L"roms/video/matrox/MYSTIQUE.VBI"
-#define ROM_MYSTIQUE_220		L"roms/video/matrox/Myst220_66-99mhz.vbi"
+#define ROM_MYSTIQUE			"roms/video/matrox/MYSTIQUE.VBI"
+#define ROM_MYSTIQUE_220		"roms/video/matrox/Myst220_66-99mhz.vbi"
 
 #define FIFO_SIZE 65536
 #define FIFO_MASK (FIFO_SIZE - 1)
@@ -4917,7 +4917,7 @@ mystique_init(const device_t *info)
 {
     int c;
     mystique_t *mystique = malloc(sizeof(mystique_t));
-    wchar_t *romfn;
+    char *romfn;
 
     memset(mystique, 0, sizeof(mystique_t));
 

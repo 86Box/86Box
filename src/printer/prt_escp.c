@@ -205,7 +205,7 @@ typedef struct {
     pc_timer_t	pulse_timer;
     pc_timer_t	timeout_timer;
 
-    wchar_t	page_fn[260];
+    char	page_fn[260];
     uint8_t 	color;
     
     /* page data (TODO: make configurable) */
@@ -257,8 +257,8 @@ typedef struct {
     uint8_t	esc_parms[20];		/* 20 should be enough for everybody */
 
     /* internal page data */
-    wchar_t	fontpath[1024];
-    wchar_t	pagepath[1024];
+    char	fontpath[1024];
+    char	pagepath[1024];
     psurface_t	*page;
     double	curr_x, curr_y;		/* print head position (inch) */
     uint16_t	current_font;
@@ -398,10 +398,10 @@ escp_log(const char *fmt, ...)
 static void 
 dump_page(escp_t *dev)
 {
-    wchar_t path[1024];
+    char path[1024];
 
-    wcscpy(path, dev->pagepath);
-    wcscat(path, dev->page_fn);
+    strcpy(path, dev->pagepath);
+    strcat(path, dev->page_fn);
     png_write_rgb(path, dev->page->pixels, dev->page->w, dev->page->h, dev->page->pitch, dev->palcol);
 }
 
@@ -423,7 +423,7 @@ new_page(escp_t *dev, int8_t save, int8_t resetx)
     }
 
     /* Make the page's file name. */
-    plat_tempfile(dev->page_fn, NULL, L".png");
+    plat_tempfile(dev->page_fn, NULL, ".png");
 }
 
 
@@ -553,9 +553,8 @@ init_codepage(escp_t *dev, uint16_t num)
 static void
 update_font(escp_t *dev)
 {
-    wchar_t path[1024];
-    wchar_t *fn;
-    char temp[1024];
+    char path[1024];
+    char *fn;
     FT_Matrix matrix;
     double hpoints = 10.5;
     double vpoints = 10.5;
@@ -594,18 +593,15 @@ update_font(escp_t *dev)
     }
 
     /* Create a full pathname for the ROM file. */
-    wcscpy(path, dev->fontpath);
+    strcpy(path, dev->fontpath);
     plat_path_slash(path);
-    wcscat(path, fn);
+    strcpy(path, fn);
 
-    /* Convert (back) to ANSI for the FreeType API. */
-    wcstombs(temp, path, sizeof(temp));
-
-    escp_log("Temp file=%s\n", temp);
+    escp_log("Temp file=%s\n", path);
 
     /* Load the new font. */
-    if (ft_New_Face(ft_lib, temp, 0, &dev->fontface)) {
-	escp_log("ESC/P: unable to load font '%s'\n", temp);
+    if (ft_New_Face(ft_lib, path, 0, &dev->fontface)) {
+	escp_log("ESC/P: unable to load font '%s'\n", path);
 	dev->fontface = NULL;
     }
 
@@ -689,7 +685,7 @@ process_char(escp_t *dev, uint8_t ch)
 	dev->esc_seen = dev->fss_seen = 0;
 	dev->esc_parms_curr = 0;
 
-	escp_log("Command pending=%02x, font path=%ls\n", dev->esc_pending, dev->fontpath);
+	escp_log("Command pending=%02x, font path=%s\n", dev->esc_pending, dev->fontpath);
 	switch (dev->esc_pending) {
 		case 0x02: // Undocumented
 		case 0x0a: // Reverse line feed
@@ -834,7 +830,7 @@ process_char(escp_t *dev, uint8_t ch)
     if (dev->esc_pending == '(') {
 	dev->esc_pending = 0x0200 + ch;
 
-	escp_log("Two-byte command pending=%03x, font path=%ls\n", dev->esc_pending, dev->fontpath);
+	escp_log("Two-byte command pending=%03x, font path=%s\n", dev->esc_pending, dev->fontpath);
 	switch (dev->esc_pending) {
 		case 0x0242: // Bar code setup and print (ESC (B)
 		case 0x025e: // Print data as characters (ESC (^)
@@ -2058,17 +2054,17 @@ escp_init(void *lpt)
     dev->lpt = lpt;
 
     /* Create a full pathname for the font files. */
-    if(wcslen(exe_path) >= sizeof_w(dev->fontpath)) {
+    if(strlen(exe_path) >= sizeof(dev->fontpath)) {
 	free(dev);
 	return(NULL);
     }
 
-    wcscpy(dev->fontpath, exe_path);
+    strcpy(dev->fontpath, exe_path);
     plat_path_slash(dev->fontpath);
-    wcscat(dev->fontpath, L"roms/printer/fonts/");
+    strcat(dev->fontpath, "roms/printer/fonts/");
 
     /* Create the full path for the page images. */
-    plat_append_filename(dev->pagepath, usr_path, L"printer");
+    plat_append_filename(dev->pagepath, usr_path, "printer");
     if (! plat_dir_check(dev->pagepath))
         plat_dir_create(dev->pagepath);
     plat_path_slash(dev->pagepath);

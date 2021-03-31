@@ -94,9 +94,9 @@ void ht216_out(uint16_t addr, uint8_t val, void *p);
 uint8_t ht216_in(uint16_t addr, void *p);
 
 
-#define BIOS_G2_GC205_PATH			L"roms/video/video7/BIOS.BIN"
-#define BIOS_VIDEO7_VGA_1024I_PATH		L"roms/video/video7/Video Seven VGA 1024i - BIOS - v2.19 - 435-0062-05 - U17 - 27C256.BIN"
-#define BIOS_HT216_32_PATH			L"roms/video/video7/HT21632.BIN"
+#define BIOS_G2_GC205_PATH			"roms/video/video7/BIOS.BIN"
+#define BIOS_VIDEO7_VGA_1024I_PATH		"roms/video/video7/Video Seven VGA 1024i - BIOS - v2.19 - 435-0062-05 - U17 - 27C256.BIN"
+#define BIOS_HT216_32_PATH			"roms/video/video7/HT21632.BIN"
 
 static video_timings_t	timing_v7vga_isa = {VIDEO_ISA, 3,  3,  6,   5,  5, 10};
 static video_timings_t	timing_v7vga_vlb = {VIDEO_BUS, 5,  5,  9,  20, 20, 30};

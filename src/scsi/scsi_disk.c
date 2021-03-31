@@ -146,14 +146,14 @@ void
 scsi_disk_mode_sense_load(scsi_disk_t *dev)
 {
     FILE *f;
-    wchar_t file_name[512];
+    char file_name[512];
 
     memset(&dev->ms_pages_saved, 0, sizeof(mode_sense_pages_t));
     memcpy(&dev->ms_pages_saved, &scsi_disk_mode_sense_pages_default, sizeof(mode_sense_pages_t));
 
-    memset(file_name, 0, 512 * sizeof(wchar_t));
-    swprintf(file_name, 512, L"scsi_disk_%02i_mode_sense.bin", dev->id);
-    f = plat_fopen(nvr_path(file_name), L"rb");
+    memset(file_name, 0, 512);
+    sprintf(file_name, "scsi_disk_%02i_mode_sense.bin", dev->id);
+    f = plat_fopen(nvr_path(file_name), "rb");
     if (f) {
 	if (fread(dev->ms_pages_saved.pages[0x30], 1, 0x18, f) != 0x18)
 		fatal("scsi_disk_mode_sense_load(): Error reading data\n");
@@ -166,11 +166,11 @@ void
 scsi_disk_mode_sense_save(scsi_disk_t *dev)
 {
     FILE *f;
-    wchar_t file_name[512];
+    char file_name[512];
 
-    memset(file_name, 0, 512 * sizeof(wchar_t));
-    swprintf(file_name, 512, L"scsi_disk_%02i_mode_sense.bin", dev->id);
-    f = plat_fopen(nvr_path(file_name), L"wb");
+    memset(file_name, 0, 512);
+    sprintf(file_name, "scsi_disk_%02i_mode_sense.bin", dev->id);
+    f = plat_fopen(nvr_path(file_name), "wb");
     if (f) {
 	fwrite(dev->ms_pages_saved.pages[0x30], 1, 0x18, f);
 	fclose(f);
@@ -1225,7 +1225,7 @@ scsi_disk_hard_reset(void)
 			continue;
 
 		/* Make sure to ignore any SCSI disk whose image file name is empty. */
-		if (wcslen(hdd[c].fn) == 0)
+		if (strlen(hdd[c].fn) == 0)
 			continue;
 
 		/* Make sure to ignore any SCSI disk whose image fails to load. */

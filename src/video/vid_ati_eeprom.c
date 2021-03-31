@@ -28,16 +28,13 @@
 #include <86box/vid_ati_eeprom.h>
 
 
-void ati_eeprom_load(ati_eeprom_t *eeprom, wchar_t *fn, int type)
+void ati_eeprom_load(ati_eeprom_t *eeprom, char *fn, int type)
 {
         FILE *f;
 	int size;
         eeprom->type = type;
-	if (wcslen(fn) <= 256)
-	        wcscpy(eeprom->fn, fn);
-	else
-	        wcsncpy(eeprom->fn, fn, 256);
-        f = nvr_fopen(eeprom->fn, L"rb");
+	strncpy(eeprom->fn, fn, sizeof(eeprom->fn) - 1);
+        f = nvr_fopen(eeprom->fn, "rb");
 	size = eeprom->type ? 512 : 128;
         if (!f) {
                 memset(eeprom->data, 0xff, size);
@@ -50,7 +47,7 @@ void ati_eeprom_load(ati_eeprom_t *eeprom, wchar_t *fn, int type)
 
 void ati_eeprom_save(ati_eeprom_t *eeprom)
 {
-        FILE *f = nvr_fopen(eeprom->fn, L"wb");
+        FILE *f = nvr_fopen(eeprom->fn, "wb");
         if (!f) return;
         fwrite(eeprom->data, 1, eeprom->type ? 512 : 128, f);
         fclose(f);

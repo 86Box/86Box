@@ -116,7 +116,7 @@ static void *vga_init(const device_t *info)
         vga_t *vga = malloc(sizeof(vga_t));
         memset(vga, 0, sizeof(vga_t));
 
-        rom_init(&vga->bios_rom, L"roms/video/vga/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
+        rom_init(&vga->bios_rom, "roms/video/vga/ibm_vga.bin", 0xc0000, 0x8000, 0x7fff, 0x2000, MEM_MAPPING_EXTERNAL);
 
 	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_vga);
 
@@ -162,7 +162,7 @@ void *ps1vga_init(const device_t *info)
 
 static int vga_available(void)
 {
-        return rom_present(L"roms/video/vga/ibm_vga.bin");
+        return rom_present("roms/video/vga/ibm_vga.bin");
 }
 
 void vga_close(void *p)

@@ -102,14 +102,11 @@ lm78_log(const char *fmt, ...)
 void
 lm78_nvram(lm78_t *dev, uint8_t save)
 {
-    size_t l = strlen(machine_get_internal_name_ex(machine)) + 1;
-    wchar_t *machine_name = (wchar_t *) malloc(l * sizeof(wchar_t));
-    mbstowcs(machine_name, machine_get_internal_name_ex(machine), l);
-    l = wcslen(machine_name) + 14;
-    wchar_t *nvr_path = (wchar_t *) malloc(l * sizeof(wchar_t));
-    swprintf(nvr_path, l, L"%ls_as99127f.nvr", machine_name);
+    size_t l = strlen(machine_get_internal_name_ex(machine)) + 14;
+    char *nvr_path = (char *) malloc(l);
+    sprintf(nvr_path, "%s_as99127f.nvr", machine_get_internal_name_ex(machine));
 
-    FILE *f = nvr_fopen(nvr_path, save ? L"wb": L"rb");
+    FILE *f = nvr_fopen(nvr_path, save ? "wb" : "rb");
     if (f) {
 	if (save)
 		fwrite(&dev->as99127f.nvram, sizeof(dev->as99127f.nvram), 1, f);
@@ -118,7 +115,6 @@ lm78_nvram(lm78_t *dev, uint8_t save)
 	fclose(f);
     }
     
-    free(machine_name);
     free(nvr_path);
 }
 

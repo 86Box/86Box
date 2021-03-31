@@ -204,7 +204,7 @@ typedef struct {
     find_t	data_find;
     crc_t	calc_crc;
     crc_t	track_crc;
-    wchar_t	original_file_name[2048];
+    char	original_file_name[2048];
     uint8_t	*filebuf, *outbuf;
     sector_t	*last_side_sector[2];
 } d86f_t;
@@ -3425,7 +3425,7 @@ d86f_common_handlers(int drive)
 
 
 int
-d86f_export(int drive, wchar_t *fn)
+d86f_export(int drive, char *fn)
 {
     uint32_t tt[512];
     d86f_t *dev = d86f[drive];
@@ -3440,7 +3440,7 @@ d86f_export(int drive, wchar_t *fn)
 
     memset(tt, 0, 512 * sizeof(uint32_t));
 
-    f = plat_fopen(fn, L"wb");
+    f = plat_fopen(fn, "wb");
     if (!f)
 	return 0;
 
@@ -3470,7 +3470,7 @@ d86f_export(int drive, wchar_t *fn)
 
     fclose(f);
 
-    f = plat_fopen(fn, L"rb+");
+    f = plat_fopen(fn, "rb+");
 
     fseek(f, 8, SEEK_SET);
     fwrite(tt, 1, ((d86f_get_sides(drive) == 2) ? 2048 : 1024), f);
@@ -3488,14 +3488,14 @@ d86f_export(int drive, wchar_t *fn)
 
 
 void
-d86f_load(int drive, wchar_t *fn)
+d86f_load(int drive, char *fn)
 {
     d86f_t *dev = d86f[drive];
     uint32_t magic = 0;
     uint32_t len = 0;
     int i = 0, j = 0;
 #ifdef D86F_COMPRESS
-    wchar_t temp_file_name[2048];
+    char temp_file_name[2048];
     uint16_t temp = 0;
     FILE *tf;
 #endif
@@ -3504,9 +3504,9 @@ d86f_load(int drive, wchar_t *fn)
 
     writeprot[drive] = 0;
 
-    dev->f = plat_fopen(fn, L"rb+");
+    dev->f = plat_fopen(fn, "rb+");
     if (! dev->f) {
-	dev->f = plat_fopen(fn, L"rb");
+	dev->f = plat_fopen(fn, "rb");
 	if (! dev->f) {
 		memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
 		free(dev);
@@ -3617,13 +3617,13 @@ d86f_load(int drive, wchar_t *fn)
 
 #ifdef D86F_COMPRESS
     if (dev->is_compressed) {
-	memcpy(temp_file_name, drive ? nvr_path(L"TEMP$$$1.$$$") : nvr_path(L"TEMP$$$0.$$$"), 256);
-	memcpy(dev->original_file_name, fn, (wcslen(fn) << 1) + 2);
+	memcpy(temp_file_name, drive ? nvr_path("TEMP$$$1.$$$") : nvr_path("TEMP$$$0.$$$"), 256);
+	memcpy(dev->original_file_name, fn, strlen(fn) + 1);
 
 	fclose(dev->f);
 	dev->f = NULL;
 
-	dev->f = plat_fopen(temp_file_name, L"wb");
+	dev->f = plat_fopen(temp_file_name, "wb");
 	if (! dev->f) {
 		d86f_log("86F: Unable to create temporary decompressed file\n");
 		memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
@@ -3631,7 +3631,7 @@ d86f_load(int drive, wchar_t *fn)
 		return;
 	}
 
-	tf = plat_fopen(fn, L"rb");
+	tf = plat_fopen(fn, "rb");
 
 	for (i = 0; i < 8; i++) {
 		fread(&temp, 1, 2, tf);
@@ -3660,7 +3660,7 @@ d86f_load(int drive, wchar_t *fn)
 		return;
 	}
 
-	dev->f = plat_fopen(temp_file_name, L"rb+");
+	dev->f = plat_fopen(temp_file_name, "rb+");
     }
 #endif
 
@@ -3703,10 +3703,10 @@ d86f_load(int drive, wchar_t *fn)
 
 #ifdef D86F_COMPRESS
 	if (dev->is_compressed)
-		dev->f = plat_fopen(temp_file_name, L"rb");
+		dev->f = plat_fopen(temp_file_name, "rb");
 	else
 #endif
-		dev->f = plat_fopen(fn, L"rb");
+		dev->f = plat_fopen(fn, "rb");
     }
 
     /* OK, set the drive data, other code needs it. */
@@ -3835,13 +3835,13 @@ d86f_close(int drive)
 {
     int i, j;
 
-    wchar_t temp_file_name[2048];
+    char temp_file_name[2048];
     d86f_t *dev = d86f[drive];
 
     /* Make sure the drive is alive. */
     if (dev == NULL) return;
 
-    memcpy(temp_file_name, drive ? nvr_path(L"TEMP$$$1.$$$") : nvr_path(L"TEMP$$$0.$$$"), 26);
+    memcpy(temp_file_name, drive ? nvr_path("TEMP$$$1.$$$") : nvr_path("TEMP$$$0.$$$"), 26);
 
     if (d86f_has_surface_desc(drive)) {
 	for (i = 0; i < 2; i++) {

@@ -172,7 +172,7 @@ machine_xt_p3105_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/philips_p3105/philipsnms9100.bin",
+    ret = bios_load_linear("roms/machines/philips_p3105/philipsnms9100.bin",
 			   0x000fc000, 16384, 0);
     
     if (bios_only || !ret)
@@ -188,7 +188,7 @@ machine_xt_p3120_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/philips_p3120/philips_p3120.bin",
+    ret = bios_load_linear("roms/machines/philips_p3120/philips_p3120.bin",
 			   0x000f8000, 32768, 0);
     
     if (bios_only || !ret)

@@ -108,7 +108,7 @@ typedef struct cdrom {
     FILE* img_fp;
     void *priv;
 
-    wchar_t image_path[1024],
+    char image_path[1024],
 	    prev_image_path[1024];
 
     uint32_t sound_on, cdrom_capacity,
@@ -156,7 +156,7 @@ extern void	cdrom_insert(uint8_t id);
 extern void	cdrom_eject(uint8_t id);
 extern void	cdrom_reload(uint8_t id);
 
-extern int	cdrom_image_open(cdrom_t *dev, const wchar_t *fn);
+extern int	cdrom_image_open(cdrom_t *dev, const char *fn);
 extern void	cdrom_image_close(cdrom_t *dev);
 extern void	cdrom_image_reset(cdrom_t *dev);
 

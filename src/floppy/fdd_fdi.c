@@ -320,7 +320,7 @@ fdi_seek(int drive, int track)
 
 
 void
-fdi_load(int drive, wchar_t *fn)
+fdi_load(int drive, char *fn)
 {
     char header[26];
     fdi_t *dev;
@@ -339,7 +339,7 @@ fdi_load(int drive, wchar_t *fn)
 
     d86f_unregister(drive);
 
-    dev->f = plat_fopen(fn, L"rb");
+    dev->f = plat_fopen(fn, "rb");
     if (fread(header, 1, 25, dev->f) != 25)
 	fatal("fdi_load(): Error reading header\n");
     if (fseek(dev->f, 0, SEEK_SET) == -1)

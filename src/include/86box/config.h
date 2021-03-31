@@ -139,7 +139,7 @@ typedef struct {
 
 extern void	config_load(void);
 extern void	config_save(void);
-extern void	config_write(wchar_t *fn);
+extern void	config_write(char *fn);
 extern void	config_dump(void);
 
 extern void	config_delete_var(char *head, char *name);

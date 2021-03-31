@@ -29,11 +29,11 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 
-#define BIOS_037C_PATH			L"roms/video/oti/bios.bin"
-#define BIOS_067_AMA932J_PATH	L"roms/machines/ama932j/oti067.bin"
-#define BIOS_067_M300_08_PATH	L"roms/machines/olivetti_m300_08/EVC_BIOS.ROM"
-#define BIOS_067_M300_15_PATH	L"roms/machines/olivetti_m300_15/EVC_BIOS.ROM"
-#define BIOS_077_PATH			L"roms/video/oti/oti077.vbi"
+#define BIOS_037C_PATH			"roms/video/oti/bios.bin"
+#define BIOS_067_AMA932J_PATH	"roms/machines/ama932j/oti067.bin"
+#define BIOS_067_M300_08_PATH	"roms/machines/olivetti_m300_08/EVC_BIOS.ROM"
+#define BIOS_067_M300_15_PATH	"roms/machines/olivetti_m300_15/EVC_BIOS.ROM"
+#define BIOS_077_PATH			"roms/video/oti/oti077.vbi"
 
 
 enum {
@@ -340,7 +340,7 @@ static void *
 oti_init(const device_t *info)
 {
     oti_t *oti = malloc(sizeof(oti_t));
-    wchar_t *romfn = NULL;
+    char *romfn = NULL;
 
     memset(oti, 0x00, sizeof(oti_t));
     oti->chip_id = info->local;

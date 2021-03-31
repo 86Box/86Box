@@ -54,11 +54,11 @@
 #include <86box/vid_svga_render.h>
 
 
-#define BIOS_ROM_PATH		L"roms/video/et4000/et4000.bin"
-#define KOREAN_BIOS_ROM_PATH 	L"roms/video/et4000/tgkorvga.bin"
-#define KOREAN_FONT_ROM_PATH 	L"roms/video/et4000/tg_ksc5601.rom"
-#define KASAN_BIOS_ROM_PATH 	L"roms/video/et4000/et4000_kasan16.bin"
-#define KASAN_FONT_ROM_PATH 	L"roms/video/et4000/kasan_ksc5601.rom"
+#define BIOS_ROM_PATH		"roms/video/et4000/et4000.bin"
+#define KOREAN_BIOS_ROM_PATH 	"roms/video/et4000/tgkorvga.bin"
+#define KOREAN_FONT_ROM_PATH 	"roms/video/et4000/tg_ksc5601.rom"
+#define KASAN_BIOS_ROM_PATH 	"roms/video/et4000/et4000_kasan16.bin"
+#define KASAN_FONT_ROM_PATH 	"roms/video/et4000/kasan_ksc5601.rom"
 
 typedef struct {
     const char		*name;
@@ -638,7 +638,7 @@ et4000_mca_feedb(void *priv)
 static void *
 et4000_init(const device_t *info)
 {
-    const wchar_t *fn;
+    const char *fn;
     et4000_t *dev;
     int i;
 
@@ -737,7 +737,7 @@ et4000_init(const device_t *info)
 
     dev->vram_mask = dev->vram_size - 1;
 
-    rom_init(&dev->bios_rom, (wchar_t *) fn,
+    rom_init(&dev->bios_rom, (char *) fn,
 	     0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
     dev->svga.translate_address = get_et4000_addr;

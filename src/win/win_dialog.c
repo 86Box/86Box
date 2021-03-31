@@ -124,7 +124,7 @@ ui_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn2, voi
     /* If the message is an ANSI string, convert it. */
     tdconfig.pszContent = (WCHAR *) STRING_OR_RESOURCE(message);
     if (flags & MBX_ANSI) {
-	mbstowcs(temp, (char *)message, strlen((char *)message)+1);
+	mbstoc16s(temp, (char *)message, strlen((char *)message)+1);
 	tdconfig.pszContent = temp;
     }
 
@@ -194,7 +194,7 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, WCHAR *title, int save)
     plat_chdir(usr_path);
 
     if (r) {
-	wcstombs(openfilestring, wopenfilestring, sizeof(openfilestring));
+	c16stombs(openfilestring, wopenfilestring, sizeof(openfilestring));
 	filterindex = ofn.nFilterIndex;
 
 	return(0);
@@ -209,9 +209,9 @@ file_dlg(HWND hwnd, WCHAR *f, char *fn, char *title, int save)
 {
     WCHAR ufn[512], title_buf[512];
 
-    mbstowcs(ufn, fn, strlen(fn) + 1);
+    mbstoc16s(ufn, fn, strlen(fn) + 1);
     if (title)
-        mbstowcs(title_buf, title, sizeof title_buf);
+        mbstoc16s(title_buf, title, sizeof title_buf);
 
     return(file_dlg_w(hwnd, f, ufn, title ? title_buf : NULL, save));
 }
@@ -222,10 +222,10 @@ file_dlg_mb(HWND hwnd, char *f, char *fn, char *title, int save)
 {
     WCHAR uf[512], ufn[512], title_buf[512];
 
-    mbstowcs(uf, f, strlen(fn) + 1);
-    mbstowcs(ufn, fn, strlen(fn) + 1);
+    mbstoc16s(uf, f, strlen(fn) + 1);
+    mbstoc16s(ufn, fn, strlen(fn) + 1);
     if (title)
-        mbstowcs(title_buf, title, sizeof title_buf);
+        mbstoc16s(title_buf, title, sizeof title_buf);
 
     return(file_dlg_w(hwnd, uf, ufn, title ? title_buf : NULL, save));
 }
@@ -236,7 +236,7 @@ file_dlg_w_st(HWND hwnd, int id, WCHAR *fn, char *title, int save)
 {
     WCHAR title_buf[512];
     if (title)
-        mbstowcs(title_buf, title, sizeof title_buf);
+        mbstoc16s(title_buf, title, sizeof title_buf);
     return(file_dlg_w(hwnd, plat_get_string(id), fn, title ? title_buf : NULL, save));
 }
 

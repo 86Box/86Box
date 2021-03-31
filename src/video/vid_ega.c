@@ -38,12 +38,12 @@
 void ega_doblit(int y1, int y2, int wx, int wy, ega_t *ega);
 
 
-#define BIOS_IBM_PATH		L"roms/video/ega/ibm_6277356_ega_card_u44_27128.bin"
-#define BIOS_CPQ_PATH		L"roms/video/ega/108281-001.bin"
-#define BIOS_SEGA_PATH		L"roms/video/ega/lega.vbi"
-#define BIOS_ATIEGA_PATH	L"roms/video/ega/ATI EGA Wonder 800+ N1.00.BIN"
-#define BIOS_ISKRA_PATH		L"roms/video/ega/143-02.bin", L"roms/video/ega/143-03.bin"
-#define BIOS_TSENG_PATH		L"roms/video/ega/EGA ET2000.BIN"
+#define BIOS_IBM_PATH		"roms/video/ega/ibm_6277356_ega_card_u44_27128.bin"
+#define BIOS_CPQ_PATH		"roms/video/ega/108281-001.bin"
+#define BIOS_SEGA_PATH		"roms/video/ega/lega.vbi"
+#define BIOS_ATIEGA_PATH	"roms/video/ega/ATI EGA Wonder 800+ N1.00.BIN"
+#define BIOS_ISKRA_PATH		"roms/video/ega/143-02.bin", "roms/video/ega/143-03.bin"
+#define BIOS_TSENG_PATH		"roms/video/ega/EGA ET2000.BIN"
 
 
 enum {
@@ -1086,7 +1086,7 @@ ega_standalone_init(const device_t *info)
 	io_sethandler(0x01ce, 0x0002, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
 	ega->eeprom = malloc(sizeof(ati_eeprom_t));
 	memset(ega->eeprom, 0, sizeof(ati_eeprom_t));
-	ati_eeprom_load((ati_eeprom_t *) ega->eeprom, L"egawonder800.nvr", 0);
+	ati_eeprom_load((ati_eeprom_t *) ega->eeprom, "egawonder800.nvr", 0);
     }
 
     return ega;
@@ -1124,7 +1124,7 @@ atiega_standalone_available(void)
 static int
 iskra_ega_standalone_available(void)
 {
-    return rom_present(L"roms/video/ega/143-02.bin") && rom_present(L"roms/video/ega/143-03.bin");
+    return rom_present("roms/video/ega/143-02.bin") && rom_present("roms/video/ega/143-03.bin");
 }
 
 

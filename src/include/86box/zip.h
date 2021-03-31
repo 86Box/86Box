@@ -57,7 +57,7 @@ typedef struct {
     FILE *f;
     void *priv;
 
-    wchar_t image_path[1024],
+    char image_path[1024],
 	    prev_image_path[1024];
 
     uint32_t is_250, medium_size,
@@ -116,7 +116,7 @@ extern void	zip_global_init(void);
 extern void	zip_hard_reset(void);
 
 extern void	zip_reset(scsi_common_t *sc);
-extern int	zip_load(zip_t *dev, wchar_t *fn);
+extern int	zip_load(zip_t *dev, char *fn);
 extern void	zip_close();
 
 #ifdef __cplusplus
