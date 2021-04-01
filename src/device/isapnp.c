@@ -541,18 +541,18 @@ isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
 			switch (dev->reg) {
 				case 0x42: case 0x4a: case 0x52: case 0x5a:
 				case 0x7a: case 0x84: case 0x94: case 0xa4:
-					/* read-only memory range length / upper limit bit */
+					/* Read-only memory range length / upper limit bit. */
 					val = (val & 0xfe) | (dev->current_ld->regs[dev->reg] & 0x01);
 					break;
 
 				case 0x60: case 0x62: case 0x64: case 0x66: case 0x68: case 0x6a: case 0x6c: case 0x6e:
-					/* discard upper address bits if this I/O range can only decode 10-bit */
+					/* Discard upper address bits if this I/O range can only decode 10-bit. */
 					if (!(dev->current_ld->io_16bit & (1 << ((dev->reg >> 1) & 0x07))))
-						val &= 0x07;
+						val &= 0x03;
 					break;
 
 				case 0x71: case 0x73:
-					/* limit IRQ types to supported ones */
+					/* Limit IRQ types to supported ones. */
 					if ((val & 0x01) && !(dev->current_ld->irq_types & ((dev->reg == 0x71) ? 0x0c : 0xc0))) /* level, not supported = force edge */
 						val &= ~0x01;
 					else if (!(val & 0x01) && !(dev->current_ld->irq_types & ((dev->reg == 0x71) ? 0x03 : 0x30))) /* edge, not supported = force level */
