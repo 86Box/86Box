@@ -168,28 +168,29 @@ find_best_interrupt(pic_t *dev)
     int i, j;
     int ret = -1;
 
-#ifndef READ_LATCH
-    if (dev->interrupt != 0x17) {
-	/* We have an IRQ already latched, do not update status until it is unlatched in order to
-	   avoid IRQ loss. */
-	ret = dev->interrupt;
-	return ret;
-    }
-#endif
-
     for (i = 0; i < 8; i++) {
 	j = (i + dev->priority) & 7;
 	b = 1 << j;
+#ifdef OLD_CODE
 	s = (dev->icw4 & 0x10) && pic_slave_on(dev, j);
 
 	if ((dev->isr & b) && !dev->special_mask_mode && !s)
 		break;
-	if ((dev->state == 0) && ((dev->irr & ~dev->imr) & b) && (((dev->isr & b) == 0x00) || s)) {
+	if ((dev->state == 0) && ((dev->irr & ~dev->imr) & b) && (!(dev->isr & b) || s)) {
 		ret = j;
 		break;
 	}
 	if ((dev->isr & b) && !dev->special_mask_mode && s)
 		break;
+#else
+
+	if (dev->isr & b)
+		break;
+	else if ((dev->state == 0) && ((dev->irr & ~dev->imr) & b)) {
+		ret = j;
+		break;
+	}
+#endif
     }
 
     intr = dev->interrupt = (ret == -1) ? 0x17 : ret;
@@ -578,7 +579,8 @@ picint_common(uint16_t num, int level, int set)
 	}
     }
 
-    update_pending();
+    if (!(pic.interrupt & 0x20) && !(pic2.interrupt & 0x20))
+	update_pending();
 }
 
 
@@ -618,6 +620,8 @@ pic_irq_ack_read(pic_t *dev, int phase)
 
     if (dev != NULL) {
 	if (phase == 0) {
+		dev->interrupt |= 0x20;		/* Freeze it so it still takes interrupts but they do not
+						   override the one currently being processed. */
 		pic_acknowledge(dev);
 		if (pic_slave_on(dev, intr))
 			dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
@@ -674,11 +678,15 @@ picinterrupt()
     int i, ret = -1;
 
     if (pic.int_pending) {
-	if (pic_slave_on(&pic, pic.interrupt) && !pic.slaves[pic.interrupt]->int_pending) {
-		/* If we are on AT, IRQ 2 is pending, and we cannot find a pending IRQ on PIC 2, fatal out. */
-		fatal("IRQ %i pending on AT without a pending IRQ on PIC %i (normal)\n", pic.interrupt, pic.interrupt);
-		exit(-1);
-		return -1;
+	if (pic_slave_on(&pic, pic.interrupt)) {
+		if (!pic.slaves[pic.interrupt]->int_pending) {
+			/* If we are on AT, IRQ 2 is pending, and we cannot find a pending IRQ on PIC 2, fatal out. */
+			fatal("IRQ %i pending on AT without a pending IRQ on PIC %i (normal)\n", pic.interrupt, pic.interrupt);
+			exit(-1);
+			return -1;
+		}
+
+		pic.interrupt |= 0x40;		/* Mark slave pending. */
 	}
 
 	if ((pic.interrupt == 0) && (pit2 != NULL))
@@ -690,7 +698,9 @@ picinterrupt()
 		pic.ack_bytes = (pic.ack_bytes + 1) % (pic_i86_mode(&pic) ? 2 : 3);
 
 		if (pic.ack_bytes == 0) {
-			pic.interrupt = pic2.interrupt = 0x17;
+			if (pic.interrupt & 0x40)
+				pic2.interrupt = 0x17;
+			pic.interrupt = 0x17;
 			update_pending();
 		}
 	}
