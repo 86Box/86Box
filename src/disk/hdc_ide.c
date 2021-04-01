@@ -704,7 +704,7 @@ ide_next_sector(ide_t *ide)
 
 
 static void
-loadhd(ide_t *ide, int d, const wchar_t *fn)
+loadhd(ide_t *ide, int d, const char *fn)
 {
     if (! hdd_image_load(d)) {
 	ide->type = IDE_NONE;

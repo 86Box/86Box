@@ -2132,10 +2132,11 @@ win_settings_hard_disks_update_item(HWND hdlg, int i, int column)
 	lvI.pszText = szText;
 	lvI.iImage = 0;
     } else if (column == 1) {
-	if (!wcsnicmp(temp_hdd[i].fn, usr_path, wcslen(usr_path)))
-		lvI.pszText = temp_hdd[i].fn + wcslen(usr_path);
+	if (!strnicmp(temp_hdd[i].fn, usr_path, strlen(usr_path)))
+		mbstoc16s(szText, temp_hdd[i].fn + strlen(usr_path), sizeof_w(szText));
 	else
-		lvI.pszText = temp_hdd[i].fn;
+		mbstoc16s(szText, temp_hdd[i].fn, sizeof_w(szText));
+	lvI.pszText = szText;
 	lvI.iImage = 0;
     } else if (column == 2) {
 	wsprintf(szText, plat_get_string(IDS_4098), temp_hdd[i].tracks);
@@ -2165,8 +2166,10 @@ win_settings_hard_disks_recalc_list(HWND hdlg)
 {
     LVITEM lvI;
     int i, j = 0;
-    WCHAR szText[256];
+    WCHAR szText[256], usr_path_w[1024];
     HWND hwndList = GetDlgItem(hdlg, IDC_LIST_HARD_DISKS);
+
+    mbstoc16s(usr_path_w, usr_path, sizeof_w(usr_path_w));
 
     hd_listview_items = 0;
     lv1_current_sel = -1;
@@ -2208,10 +2211,11 @@ win_settings_hard_disks_recalc_list(HWND hdlg)
 			return FALSE;
 
 		lvI.iSubItem = 1;
-		if (!wcsnicmp(temp_hdd[i].fn, usr_path, wcslen(usr_path)))
-			lvI.pszText = temp_hdd[i].fn + wcslen(usr_path);
+		if (!strnicmp(temp_hdd[i].fn, usr_path, strlen(usr_path)))
+			mbstoc16s(szText, temp_hdd[i].fn + strlen(usr_path), sizeof_w(szText));
 		else
-			lvI.pszText = temp_hdd[i].fn;
+			mbstoc16s(szText, temp_hdd[i].fn, sizeof_w(szText));
+		lvI.pszText = szText;
 
 		if (ListView_SetItem(hwndList, &lvI) == -1)
 			return FALSE;
@@ -2706,8 +2710,8 @@ win_settings_hard_disks_add_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 				}
 
 				memset(hdd_ptr->fn, 0, sizeof(hdd_ptr->fn));
-				wcscpy(hdd_ptr->fn, hd_file_name);
-				wcstombs(hd_file_name_multibyte, hd_file_name, sizeof hd_file_name_multibyte);
+				c16stombs(hdd_ptr->fn, hd_file_name, sizeof(hdd_ptr->fn));
+				strcpy(hd_file_name_multibyte, hdd_ptr->fn);
 
 				sector_size = 512;
 
@@ -2867,7 +2871,7 @@ hdd_add_file_open_error:
 						return TRUE;
 					}
 					if (existing & 1) {
-						if (image_is_hdi(wopenfilestring) || image_is_hdx(wopenfilestring, 1)) {
+						if (image_is_hdi(openfilestring) || image_is_hdx(openfilestring, 1)) {
 							fseeko64(f, 0x10, SEEK_SET);
 							fread(&sector_size, 1, 4, f);
 							if (sector_size != 512) {
@@ -2879,10 +2883,9 @@ hdd_add_file_open_error:
 							fread(&spt, 1, 4, f);
 							fread(&hpc, 1, 4, f);
 							fread(&tracks, 1, 4, f);
-						} else if (image_is_vhd(wopenfilestring, 1)) {
+						} else if (image_is_vhd(openfilestring, 1)) {
 							fclose(f);
-							wcstombs(hd_file_name_multibyte, wopenfilestring, sizeof hd_file_name_multibyte);
-							MVHDMeta* vhd = mvhd_open(hd_file_name_multibyte, 0, &vhd_error);
+							MVHDMeta* vhd = mvhd_open(openfilestring, 0, &vhd_error);
 							if (vhd == NULL) {
 								settings_msgbox_header(MBX_ERROR, (existing & 1) ? (wchar_t *) IDS_4114 : (wchar_t *) IDS_4115, (existing & 1) ? (wchar_t *) IDS_4107 : (wchar_t *) IDS_4108);
 								return TRUE;
@@ -3453,7 +3456,7 @@ win_settings_hard_disks_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPar
 				return FALSE;
 
 			case IDC_BUTTON_HDD_REMOVE:
-				memcpy(temp_hdd[lv1_current_sel].fn, L"", sizeof(L""));
+				temp_hdd[lv1_current_sel].fn[0] = '\0';
 				hard_disk_untrack(lv1_current_sel);
 				temp_hdd[lv1_current_sel].bus = HDD_BUS_DISABLED;	/* Only set the bus to zero, the list normalize code below will take care of turning this entire entry to a complete zero. */
 				normalize_hd_list();			/* Normalize the hard disks so that non-disabled hard disks start from index 0, and so they are contiguous. */
@@ -3513,10 +3516,7 @@ win_settings_floppy_drives_recalc_list(HWND hdlg)
 	lvI.iSubItem = 0;
 	if (temp_fdd_types[i] > 0) {
 		t = fdd_getname(temp_fdd_types[i]);
-		if (strlen(t) <= 256)
-			strcpy(s, t);
-		else
-			strncpy(s, t, 256);
+		strncpy(s, t, sizeof(s) - 1);
 		mbstowcs(szText, s, strlen(s) + 1);
 		lvI.pszText = szText;
 	} else
@@ -3950,10 +3950,7 @@ win_settings_floppy_drives_update_item(HWND hdlg, int i)
 
     if (temp_fdd_types[i] > 0) {
 	t = fdd_getname(temp_fdd_types[i]);
-	if (strlen(t) <= 256)
-		strcpy(s, t);
-	else
-		strncpy(s, t, 256);
+	strncpy(s, t, sizeof(s) - 1);
 	mbstowcs(szText, s, strlen(s) + 1);
 	lvI.pszText = szText;
     } else

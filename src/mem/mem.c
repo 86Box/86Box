@@ -2156,12 +2156,20 @@ mem_invalidate_range(uint32_t start_addr, uint32_t end_addr)
 		page_add_to_evict_list(p);
 
 	for (i = start_addr; (i <= end_addr) && (i < (start_addr + (1 << PAGE_MASK_SHIFT))); i++) {
-		byte_offset = (i >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
-		byte_mask = (uint64_t)1 << (i & PAGE_BYTE_MASK_MASK);
+		/* Do not look at the byte stuff if start_addr >= (mem_size * 1024), as we do not allocate the
+		   byte dirty and code present mask arrays beyond the end of RAM. */
+		if (i < (mem_size << 10)) {
+			byte_offset = (i >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
+			byte_mask = (uint64_t)1 << (i & PAGE_BYTE_MASK_MASK);
 
-		p->byte_dirty_mask[byte_offset] |= byte_mask;
-		if ((p->byte_code_present_mask[byte_offset] & byte_mask) && !page_in_evict_list(p))
-			page_add_to_evict_list(p);
+			if (p) {
+				if (p->byte_dirty_mask)
+					p->byte_dirty_mask[byte_offset] |= byte_mask;
+				if (p->byte_code_present_mask && (p->byte_code_present_mask[byte_offset] & byte_mask) &&
+				    !page_in_evict_list(p))
+					page_add_to_evict_list(p);
+			}
+		}
 	}
     }
 #else

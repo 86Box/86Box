@@ -40,7 +40,7 @@
 #endif
 
 
-#define GS_ARG_ENCODING_UTF16LE	2
+#define GS_ARG_ENCODING_UTF8	1
 #define gs_error_Quit		-101 
 
 #define PATH_GHOSTSCRIPT_DLL		"gsdll32.dll"
@@ -67,9 +67,9 @@ typedef struct
     bool	autofeed;
     uint8_t	ctrl;
 
-    wchar_t	printer_path[260];
+    char	printer_path[260];
 
-    wchar_t	filename[260];
+    char	filename[260];
 
     char	buffer[POSTSCRIPT_BUFFER_LENGTH];
     size_t	buffer_pos;
@@ -138,23 +138,22 @@ convert_to_pdf(ps_t *dev)
 {
     volatile int code;
     void *instance = NULL;
-    wchar_t input_fn[1024], output_fn[1024], *gsargv[9];
+    char input_fn[1024], output_fn[1024], *gsargv[9];
 
-    input_fn[0] = 0;
-    wcscat(input_fn, dev->printer_path);
-    wcscat(input_fn, dev->filename);
+    strcpy(input_fn, dev->printer_path);
+    plat_path_slash(input_fn);
+    strcat(input_fn, dev->filename);
 
-    output_fn[0] = 0;
-    wcscat(output_fn, input_fn);
-    wcscpy(output_fn + wcslen(output_fn) - 3, L".pdf");
+    strcpy(output_fn, input_fn);
+    strcat(output_fn + strlen(output_fn) - 3, ".pdf");
 
-    gsargv[0] = L"";
-    gsargv[1] = L"-dNOPAUSE";
-    gsargv[2] = L"-dBATCH";
-    gsargv[3] = L"-dSAFER";
-    gsargv[4] = L"-sDEVICE=pdfwrite";
-    gsargv[5] = L"-q";
-    gsargv[6] = L"-o";
+    gsargv[0] = "";
+    gsargv[1] = "-dNOPAUSE";
+    gsargv[2] = "-dBATCH";
+    gsargv[3] = "-dSAFER";
+    gsargv[4] = "-sDEVICE=pdfwrite";
+    gsargv[5] = "-q";
+    gsargv[6] = "-o";
     gsargv[7] = output_fn;
     gsargv[8] = input_fn;
 
@@ -162,10 +161,10 @@ convert_to_pdf(ps_t *dev)
     if (code < 0)
 	return code;
 
-    code = gsapi_set_arg_encoding(instance, GS_ARG_ENCODING_UTF16LE);
+    code = gsapi_set_arg_encoding(instance, GS_ARG_ENCODING_UTF8);
 
     if (code == 0)
-	code = gsapi_init_with_args(instance, 9, (char **) gsargv);
+	code = gsapi_init_with_args(instance, 9, gsargv);
 
     if (code == 0 || code == gs_error_Quit)
 	code = gsapi_exit(instance);
@@ -186,20 +185,20 @@ convert_to_pdf(ps_t *dev)
 static void
 write_buffer(ps_t *dev, bool finish)
 {
-    wchar_t path[1024];
+    char path[1024];
     FILE *fp;
 
     if (dev->buffer[0] == 0)
 	return;
 
     if (dev->filename[0] == 0)
-	plat_tempfile(dev->filename, NULL, L".ps");
+	plat_tempfile(dev->filename, NULL, ".ps");
 
-    path[0] = 0;
-    wcscat(path, dev->printer_path);
-    wcscat(path, dev->filename);
+    strcpy(path, dev->printer_path);
+    plat_path_slash(path);
+    strcat(path, dev->filename);
 
-    fp = plat_fopen(path, L"a");
+    fp = plat_fopen(path, "a");
     if (fp == NULL)
 	return;
 
@@ -357,7 +356,7 @@ ps_init(void *lpt)
 
     /* Cache print folder path. */
     memset(dev->printer_path, 0x00, sizeof(dev->printer_path));
-    plat_append_filename(dev->printer_path, usr_path, L"printer");
+    plat_append_filename(dev->printer_path, usr_path, "printer");
     if (!plat_dir_check(dev->printer_path))
 	plat_dir_create(dev->printer_path);
     plat_path_slash(dev->printer_path);

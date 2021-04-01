@@ -37,25 +37,25 @@
 #include <86box/vid_svga_render.h>
 #include "cpu.h"
 
-#define ROM_ORCHID_86C911		L"roms/video/s3/BIOS.BIN"
-#define ROM_DIAMOND_STEALTH_VRAM	L"roms/video/s3/Diamond Stealth VRAM BIOS v2.31 U14.BIN"
-#define ROM_AMI_86C924			L"roms/video/s3/S3924AMI.BIN"
-#define ROM_METHEUS_86C928		L"roms/video/s3/928.vbi"
-#define ROM_V7MIRAGE_86C801		L"roms/video/s3/v7mirage.vbi"
-#define ROM_PHOENIX_86C805		L"roms/video/s3/805.vbi"
-#define ROM_PARADISE_BAHAMAS64		L"roms/video/s3/bahamas64.bin"
-#define ROM_PHOENIX_VISION864		L"roms/video/s3/86c864p.bin"
-#define ROM_DIAMOND_STEALTH64_964	L"roms/video/s3/964_107h.rom"
-#define ROM_PHOENIX_TRIO32		L"roms/video/s3/86c732p.bin"
-#define ROM_NUMBER9_9FX			L"roms/video/s3/s3_764.bin"
-#define ROM_PHOENIX_TRIO64		L"roms/video/s3/86c764x1.bin"
-#define ROM_DIAMOND_STEALTH64_764	L"roms/video/s3/stealt64.bin"
-#define ROM_TRIO64V2_DX_VBE20		L"roms/video/s3/86c775_2.bin"
-#define ROM_PHOENIX_TRIO64VPLUS		L"roms/video/s3/64V1506.ROM"
-#define ROM_DIAMOND_STEALTH_SE		L"roms/video/s3/DiamondStealthSE.VBI"
-#define ROM_ELSAWIN2KPROX_964		L"roms/video/s3/elsaw20004m.BIN"
-#define ROM_ELSAWIN2KPROX		L"roms/video/s3/elsaw20008m.BIN"
-#define ROM_PHOENIX_VISION868		L"roms/video/s3/1-DSV3868.BIN"
+#define ROM_ORCHID_86C911		"roms/video/s3/BIOS.BIN"
+#define ROM_DIAMOND_STEALTH_VRAM	"roms/video/s3/Diamond Stealth VRAM BIOS v2.31 U14.BIN"
+#define ROM_AMI_86C924			"roms/video/s3/S3924AMI.BIN"
+#define ROM_METHEUS_86C928		"roms/video/s3/928.vbi"
+#define ROM_V7MIRAGE_86C801		"roms/video/s3/v7mirage.vbi"
+#define ROM_PHOENIX_86C805		"roms/video/s3/805.vbi"
+#define ROM_PARADISE_BAHAMAS64		"roms/video/s3/bahamas64.bin"
+#define ROM_PHOENIX_VISION864		"roms/video/s3/86c864p.bin"
+#define ROM_DIAMOND_STEALTH64_964	"roms/video/s3/964_107h.rom"
+#define ROM_PHOENIX_TRIO32		"roms/video/s3/86c732p.bin"
+#define ROM_NUMBER9_9FX			"roms/video/s3/s3_764.bin"
+#define ROM_PHOENIX_TRIO64		"roms/video/s3/86c764x1.bin"
+#define ROM_DIAMOND_STEALTH64_764	"roms/video/s3/stealt64.bin"
+#define ROM_TRIO64V2_DX_VBE20		"roms/video/s3/86c775_2.bin"
+#define ROM_PHOENIX_TRIO64VPLUS		"roms/video/s3/64V1506.ROM"
+#define ROM_DIAMOND_STEALTH_SE		"roms/video/s3/DiamondStealthSE.VBI"
+#define ROM_ELSAWIN2KPROX_964		"roms/video/s3/elsaw20004m.BIN"
+#define ROM_ELSAWIN2KPROX		"roms/video/s3/elsaw20008m.BIN"
+#define ROM_PHOENIX_VISION868		"roms/video/s3/1-DSV3868.BIN"
 
 enum
 {
@@ -5577,7 +5577,7 @@ static int vram_sizes[] =
 
 static void *s3_init(const device_t *info)
 {
-	const wchar_t *bios_fn;
+	const char *bios_fn;
 	int chip, stepping;
 	s3_t *s3 = malloc(sizeof(s3_t));
 	svga_t *svga = &s3->svga;
@@ -5752,7 +5752,7 @@ static void *s3_init(const device_t *info)
 
 	s3->has_bios = (bios_fn != NULL);
 	if (s3->has_bios) {
-		rom_init(&s3->bios_rom, (wchar_t *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+		rom_init(&s3->bios_rom, (char *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 		if (info->flags & DEVICE_PCI)
 			mem_mapping_disable(&s3->bios_rom.mapping);
 	}

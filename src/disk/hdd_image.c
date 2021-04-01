@@ -76,16 +76,9 @@ hdd_image_log(const char *fmt, ...)
 #endif
 
 int
-image_is_hdi(const wchar_t *s)
+image_is_hdi(const char *s)
 {
-	int len;
-	wchar_t ext[5] = { 0, 0, 0, 0, 0 };
-	char *ws = (char *) s;
-	len = wcslen(s);
-	if ((len < 4) || (s[0] == L'.'))
-		return 0;
-	memcpy(ext, ws + ((len - 4) << 1), 8);
-	if (! wcscasecmp(ext, L".HDI"))
+	if (! strcasecmp(plat_get_extension((char *) s), "HDI"))
 		return 1;
 	else
 		return 0;
@@ -93,21 +86,15 @@ image_is_hdi(const wchar_t *s)
 
 
 int
-image_is_hdx(const wchar_t *s, int check_signature)
+image_is_hdx(const char *s, int check_signature)
 {
-	int len;
 	FILE *f;
 	uint64_t filelen;
 	uint64_t signature;
-	char *ws = (char *) s;
-	wchar_t ext[5] = { 0, 0, 0, 0, 0 };
-	len = wcslen(s);
-	if ((len < 4) || (s[0] == L'.'))
-		return 0;
-	memcpy(ext, ws + ((len - 4) << 1), 8);
-	if (wcscasecmp(ext, L".HDX") == 0) {
+
+	if (! strcasecmp(plat_get_extension((char *) s), "HDX")) {
 		if (check_signature) {
-			f = plat_fopen((wchar_t *)s, L"rb");
+			f = plat_fopen(s, "rb");
 			if (!f)
 				return 0;
 			if (fseeko64(f, 0, SEEK_END))
@@ -135,19 +122,13 @@ image_is_hdx(const wchar_t *s, int check_signature)
 
 
 int
-image_is_vhd(const wchar_t *s, int check_signature)
+image_is_vhd(const char *s, int check_signature)
 {
-	int len;
 	FILE* f;
-	char *ws = (char *) s;
-	wchar_t ext[5] = { 0, 0, 0, 0, 0 };
-	len = wcslen(s);
-	if ((len < 4) || (s[0] == L'.'))
-		return 0;
-	memcpy(ext, ws + ((len - 4) << 1), 8);
-	if (wcscasecmp(ext, L".VHD") == 0) {
+
+	if (! strcasecmp(plat_get_extension((char *) s), "VHD")) {
 		if (check_signature) {
-			f = plat_fopen((wchar_t*)s, L"rb");
+			f = plat_fopen(s, "rb");
 			if (!f)
 				return 0;
 
@@ -265,8 +246,7 @@ hdd_image_load(int id)
 	uint64_t spt = 0, hpc = 0, tracks = 0;
 	int c, ret;
 	uint64_t s = 0;
-	wchar_t *fn = hdd[id].fn;
-	char fn_multibyte_buf[1200];
+	char *fn = hdd[id].fn;
 	int is_hdx[2] = { 0, 0 };
 	int is_vhd[2] = { 0, 0 };   
 	int vhd_error = 0; 
@@ -301,7 +281,7 @@ hdd_image_load(int id)
 		memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
 		return 0;
 	}
-	hdd_images[id].file = plat_fopen(fn, L"rb+");
+	hdd_images[id].file = plat_fopen(fn, "rb+");
 	if (hdd_images[id].file == NULL) {
 		/* Failed to open existing hard disk image */
 		if (errno == ENOENT) {
@@ -313,7 +293,7 @@ hdd_image_load(int id)
 				return 0;
 			}
 
-			hdd_images[id].file = plat_fopen(fn, L"wb+");
+			hdd_images[id].file = plat_fopen(fn, "wb+");
 			if (hdd_images[id].file == NULL) {
 				hdd_image_log("Unable to open image\n");
 				memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
@@ -360,8 +340,7 @@ hdd_image_load(int id)
 					            ((uint64_t) hdd[id].tracks) << 9LL;
 					hdd_images[id].last_sector = (full_size >> 9LL) - 1;
 
-					wcstombs(fn_multibyte_buf, fn, sizeof fn_multibyte_buf);
-					hdd_images[id].vhd = mvhd_create_fixed(fn_multibyte_buf, geometry, &vhd_error, NULL);
+					hdd_images[id].vhd = mvhd_create_fixed(fn, geometry, &vhd_error, NULL);
 					if (hdd_images[id].vhd == NULL)
 						fatal("hdd_image_load(): VHD: Could not create VHD : %s\n", mvhd_strerr(vhd_error));
 
@@ -449,16 +428,15 @@ hdd_image_load(int id)
 		} else if (is_vhd[1]) {
 			fclose(hdd_images[id].file);
 			hdd_images[id].file = NULL;
-			wcstombs(fn_multibyte_buf, fn, sizeof fn_multibyte_buf);
-			hdd_images[id].vhd = mvhd_open(fn_multibyte_buf, (bool)0, &vhd_error);
+			hdd_images[id].vhd = mvhd_open(fn, (bool)0, &vhd_error);
 			if (hdd_images[id].vhd == NULL) {
 				if (vhd_error == MVHD_ERR_FILE)
-					fatal("hdd_image_load(): VHD: Error opening VHD file '%s': %s\n", fn_multibyte_buf, strerror(mvhd_errno));
+					fatal("hdd_image_load(): VHD: Error opening VHD file '%s': %s\n", fn, strerror(mvhd_errno));
 				else
-					fatal("hdd_image_load(): VHD: Error opening VHD file '%s': %s\n", fn_multibyte_buf, mvhd_strerr(vhd_error));
+					fatal("hdd_image_load(): VHD: Error opening VHD file '%s': %s\n", fn, mvhd_strerr(vhd_error));
 			}
 			else if (vhd_error == MVHD_ERR_TIMESTAMP) {
-				fatal("hdd_image_load(): VHD: Parent/child timestamp mismatch for VHD file '%s'\n", fn_multibyte_buf);
+				fatal("hdd_image_load(): VHD: Parent/child timestamp mismatch for VHD file '%s'\n", fn);
 			}
 
 			hdd[id].tracks = hdd_images[id].vhd->footer.geom.cyl;
@@ -670,7 +648,7 @@ hdd_image_get_type(uint8_t id)
 void
 hdd_image_unload(uint8_t id, int fn_preserve)
 {
-	if (wcslen(hdd[id].fn) == 0)
+	if (strlen(hdd[id].fn) == 0)
 		return;
 
 	if (hdd_images[id].loaded) {
@@ -688,7 +666,7 @@ hdd_image_unload(uint8_t id, int fn_preserve)
 
 	memset(hdd[id].prev_fn, 0, sizeof(hdd[id].prev_fn));
 	if (fn_preserve)
-		wcscpy(hdd[id].prev_fn, hdd[id].fn);
+		strcpy(hdd[id].prev_fn, hdd[id].fn);
 	memset(hdd[id].fn, 0, sizeof(hdd[id].fn));
 }
 

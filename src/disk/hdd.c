@@ -142,7 +142,7 @@ hdd_is_valid(int c)
     if (hdd[c].bus == HDD_BUS_DISABLED)
 	return(0);
 
-    if (wcslen(hdd[c].fn) == 0)
+    if (strlen(hdd[c].fn) == 0)
 	return(0);
 
     if ((hdd[c].tracks==0) || (hdd[c].hpc==0) || (hdd[c].spt==0))

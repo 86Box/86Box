@@ -43,7 +43,7 @@ machine_at_6gxu_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/6gxu/6gxu.f1c",
+    ret = bios_load_linear("roms/machines/6gxu/6gxu.f1c",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -82,7 +82,7 @@ machine_at_s2dge_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/s2dge/2gu7301.rom",
+    ret = bios_load_linear("roms/machines/s2dge/2gu7301.rom",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -120,7 +120,7 @@ machine_at_fw6400gx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/fw6400gx/fwgx1211.rom",
+    ret = bios_load_linear("roms/machines/fw6400gx/fwgx1211.rom",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)

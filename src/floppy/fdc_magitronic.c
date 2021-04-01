@@ -31,7 +31,7 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 
-#define ROM_B215 L"roms/floppy/magitronic/Magitronic B215 - BIOS ROM.bin"
+#define ROM_B215 "roms/floppy/magitronic/Magitronic B215 - BIOS ROM.bin"
 #define ROM_ADDR (uint32_t)(device_get_config_hex20("bios_addr") & 0x000fffff)
 
 #define DRIVE_SELECT (int)(real_drive(dev->fdc_controller, i))

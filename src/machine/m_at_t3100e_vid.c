@@ -713,7 +713,7 @@ void *t3100e_init(const device_t *info)
 {
         t3100e_t *t3100e = malloc(sizeof(t3100e_t));
         memset(t3100e, 0, sizeof(t3100e_t));
-	loadfont(L"roms/machines/t3100e/t3100e_font.bin", 5);
+	loadfont("roms/machines/t3100e/t3100e_font.bin", 5);
 	cga_init(&t3100e->cga);
 	video_inform(VIDEO_FLAG_TYPE_CGA, &timing_t3100e);
 

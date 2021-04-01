@@ -55,7 +55,7 @@ typedef struct {
 
     uint8_t	ram[8192];
 
-    wchar_t	*fn;
+    char	*fn;
 } ps2_nvr_t;
 
 
@@ -116,15 +116,14 @@ ps2_nvr_init(const device_t *info)
     memset(nvr, 0x00, sizeof(ps2_nvr_t));
 
     /* Set up the NVR file's name. */
-    sprintf(temp, "%s_sec.nvr", machine_get_internal_name());
-    c = strlen(temp);
-    nvr->fn = (wchar_t *)malloc((c + 1) * sizeof(wchar_t));
-    mbstowcs(nvr->fn, temp, c + 1);
+    c = strlen(machine_get_internal_name()) + 9;
+    nvr->fn = (char *)malloc(c + 1);
+    sprintf(nvr->fn, "%s_sec.nvr", machine_get_internal_name());
 
     io_sethandler(0x0074, 3,
 		  ps2_nvr_read,NULL,NULL, ps2_nvr_write,NULL,NULL, nvr);
 
-    f = nvr_fopen(nvr->fn, L"rb");
+    f = nvr_fopen(nvr->fn, "rb");
 
     memset(nvr->ram, 0xff, 8192);
     if (f != NULL) {
@@ -143,7 +142,7 @@ ps2_nvr_close(void *priv)
     ps2_nvr_t *nvr = (ps2_nvr_t *)priv;
     FILE *f = NULL;
 
-    f = nvr_fopen(nvr->fn, L"wb");
+    f = nvr_fopen(nvr->fn, "wb");
 
     if (f != NULL) {
 	(void)fwrite(nvr->ram, 8192, 1, f);

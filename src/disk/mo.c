@@ -330,16 +330,9 @@ mo_load_abort(mo_t *dev)
 
 
 int
-image_is_mdi(const wchar_t *s)
+image_is_mdi(const char *s)
 {
-    int len;
-    wchar_t ext[5] = { 0, 0, 0, 0, 0 };
-    char *ws = (char *) s;
-    len = wcslen(s);
-    if ((len < 4) || (s[0] == L'.'))
-	return 0;
-    memcpy(ext, ws + ((len - 4) << 1), 8);
-    if (! wcscasecmp(ext, L".MDI"))
+    if (! strcasecmp(plat_get_extension((char *) s), "MDI"))
 	return 1;
     else
 	return 0;
@@ -347,7 +340,7 @@ image_is_mdi(const wchar_t *s)
 
 
 int
-mo_load(mo_t *dev, wchar_t *fn)
+mo_load(mo_t *dev, char *fn)
 {
     int is_mdi;
     uint32_t size = 0;
@@ -355,10 +348,10 @@ mo_load(mo_t *dev, wchar_t *fn)
 
     is_mdi = image_is_mdi(fn);
 
-    dev->drv->f = plat_fopen(fn, dev->drv->read_only ? L"rb" : L"rb+");
+    dev->drv->f = plat_fopen(fn, dev->drv->read_only ? "rb" : "rb+");
     if (!dev->drv->f) {
 	if (!dev->drv->read_only) {
-		dev->drv->f = plat_fopen(fn, L"rb");
+		dev->drv->f = plat_fopen(fn, "rb");
 		if (dev->drv->f)
 			dev->drv->read_only = 1;
 		else
@@ -391,7 +384,7 @@ mo_load(mo_t *dev, wchar_t *fn)
     if (fseek(dev->drv->f, dev->drv->base, SEEK_SET) == -1)
 	fatal("mo_load(): Error seeking to the beginning of the file\n");
 
-    wcsncpy(dev->drv->image_path, fn, sizeof_w(dev->drv->image_path));
+    strncpy(dev->drv->image_path, fn, sizeof(dev->drv->image_path) - 1);
 
     return 1;
 }
@@ -402,7 +395,7 @@ mo_disk_reload(mo_t *dev)
 {
     int ret = 0;
 
-    if (wcslen(dev->drv->prev_image_path) == 0)
+    if (strlen(dev->drv->prev_image_path) == 0)
 	return;
     else
 	ret = mo_load(dev, dev->drv->prev_image_path);
@@ -535,7 +528,7 @@ static void
 mo_mode_sense_load(mo_t *dev)
 {
     FILE *f;
-    wchar_t file_name[512];
+    char file_name[512];
 
     memset(&dev->ms_pages_saved, 0, sizeof(mode_sense_pages_t));
     if (mo_drives[dev->id].bus_type == MO_BUS_SCSI)
@@ -543,12 +536,12 @@ mo_mode_sense_load(mo_t *dev)
     else
 	memcpy(&dev->ms_pages_saved, &mo_mode_sense_pages_default, sizeof(mode_sense_pages_t));
 
-    memset(file_name, 0, 512 * sizeof(wchar_t));
+    memset(file_name, 0, 512);
     if (dev->drv->bus_type == MO_BUS_SCSI)
-	swprintf(file_name, 512, L"scsi_mo_%02i_mode_sense_bin", dev->id);
+	sprintf(file_name, "scsi_mo_%02i_mode_sense_bin", dev->id);
     else
-	swprintf(file_name, 512, L"mo_%02i_mode_sense_bin", dev->id);
-    f = plat_fopen(nvr_path(file_name), L"rb");
+	sprintf(file_name, "mo_%02i_mode_sense_bin", dev->id);
+    f = plat_fopen(nvr_path(file_name), "rb");
     if (f) {
 	/* Nothing to read, not used by MO. */
 	fclose(f);
@@ -560,14 +553,14 @@ static void
 mo_mode_sense_save(mo_t *dev)
 {
     FILE *f;
-    wchar_t file_name[512];
+    char file_name[512];
 
-    memset(file_name, 0, 512 * sizeof(wchar_t));
+    memset(file_name, 0, 512);
     if (dev->drv->bus_type == MO_BUS_SCSI)
-	swprintf(file_name, 512, L"scsi_mo_%02i_mode_sense_bin", dev->id);
+	sprintf(file_name, "scsi_mo_%02i_mode_sense_bin", dev->id);
     else
-	swprintf(file_name, 512, L"mo_%02i_mode_sense_bin", dev->id);
-    f = plat_fopen(nvr_path(file_name), L"wb");
+	sprintf(file_name, "mo_%02i_mode_sense_bin", dev->id);
+    f = plat_fopen(nvr_path(file_name), "wb");
     if (f) {
 	/* Nothing to write, not used by MO. */
 	fclose(f);
@@ -2187,7 +2180,7 @@ mo_hard_reset(void)
 
 		mo_init(dev);
 
-		if (wcslen(mo_drives[c].image_path))
+		if (strlen(mo_drives[c].image_path))
 			mo_load(dev, mo_drives[c].image_path);
 
 		mo_mode_sense_load(dev);

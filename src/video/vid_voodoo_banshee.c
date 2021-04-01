@@ -2706,7 +2706,7 @@ static const device_config_t banshee_sdram_config[] =
         }
 };
 
-static void *banshee_init_common(const device_t *info, wchar_t *fn, int has_sgram, int type, int voodoo_type, int agp)
+static void *banshee_init_common(const device_t *info, char *fn, int has_sgram, int type, int voodoo_type, int agp)
 {
         int mem_size;
         banshee_t *banshee = malloc(sizeof(banshee_t));
@@ -2836,19 +2836,19 @@ static void *banshee_init_common(const device_t *info, wchar_t *fn, int has_sgra
 
 static void *banshee_init(const device_t *info)
 {
-        return banshee_init_common(info, L"roms/video/voodoo/Pci_sg.rom", 1, TYPE_BANSHEE, VOODOO_BANSHEE, 0);
+        return banshee_init_common(info, "roms/video/voodoo/Pci_sg.rom", 1, TYPE_BANSHEE, VOODOO_BANSHEE, 0);
 }
 static void *creative_banshee_init(const device_t *info)
 {
-        return banshee_init_common(info, L"roms/video/voodoo/BlasterPCI.rom", 0, TYPE_BANSHEE, VOODOO_BANSHEE, 0);
+        return banshee_init_common(info, "roms/video/voodoo/BlasterPCI.rom", 0, TYPE_BANSHEE, VOODOO_BANSHEE, 0);
 }
 static void *v3_2000_init(const device_t *info)
 {
-        return banshee_init_common(info, L"roms/video/voodoo/2k11sd.rom", 0, TYPE_V3_2000, VOODOO_3, 0);
+        return banshee_init_common(info, "roms/video/voodoo/2k11sd.rom", 0, TYPE_V3_2000, VOODOO_3, 0);
 }
 static void *v3_2000_agp_init(const device_t *info)
 {
-        return banshee_init_common(info, L"roms/video/voodoo/2k11sd.rom", 0, TYPE_V3_2000, VOODOO_3, 1);
+        return banshee_init_common(info, "roms/video/voodoo/2k11sd.rom", 0, TYPE_V3_2000, VOODOO_3, 1);
 }
 static void *v3_2000_agp_onboard_init(const device_t *info)
 {
@@ -2856,29 +2856,29 @@ static void *v3_2000_agp_onboard_init(const device_t *info)
 }
 static void *v3_3000_init(const device_t *info)
 {
-        return banshee_init_common(info, L"roms/video/voodoo/3k12sd.rom", 0, TYPE_V3_3000, VOODOO_3, 0);
+        return banshee_init_common(info, "roms/video/voodoo/3k12sd.rom", 0, TYPE_V3_3000, VOODOO_3, 0);
 }
 static void *v3_3000_agp_init(const device_t *info)
 {
-        return banshee_init_common(info, L"roms/video/voodoo/3k12sd.rom", 0, TYPE_V3_3000, VOODOO_3, 1);
+        return banshee_init_common(info, "roms/video/voodoo/3k12sd.rom", 0, TYPE_V3_3000, VOODOO_3, 1);
 }
 
 static int banshee_available(void)
 {
-        return rom_present(L"roms/video/voodoo/Pci_sg.rom");
+        return rom_present("roms/video/voodoo/Pci_sg.rom");
 }
 static int creative_banshee_available(void)
 {
-        return rom_present(L"roms/video/voodoo/BlasterPCI.rom");
+        return rom_present("roms/video/voodoo/BlasterPCI.rom");
 }
 static int v3_2000_available(void)
 {
-        return rom_present(L"roms/video/voodoo/2k11sd.rom");
+        return rom_present("roms/video/voodoo/2k11sd.rom");
 }
 #define v3_2000_agp_available v3_2000_available
 static int v3_3000_available(void)
 {
-        return rom_present(L"roms/video/voodoo/3k12sd.rom");
+        return rom_present("roms/video/voodoo/3k12sd.rom");
 }
 #define v3_3000_agp_available v3_3000_available
 

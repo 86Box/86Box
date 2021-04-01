@@ -2160,7 +2160,7 @@ void emu8k_init(emu8k_t *emu8k, uint16_t emu_addr, int onboard_ram)
         int c;
         double out;
  
-        f = rom_fopen(L"roms/sound/awe32.raw", L"rb");
+        f = rom_fopen("roms/sound/awe32.raw", "rb");
         if (!f)
                 fatal("AWE32.RAW not found\n");
         

@@ -40,23 +40,23 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
-#define BIOS_GD5401_PATH		L"roms/video/cirruslogic/avga1.rom"
-#define BIOS_GD5402_PATH		L"roms/video/cirruslogic/avga2.rom"
-#define BIOS_GD5402_ONBOARD_PATH	L"roms/machines/cbm_sl386sx25/c000.rom"
-#define BIOS_GD5420_PATH		L"roms/video/cirruslogic/5420.vbi"
-#define BIOS_GD5422_PATH		L"roms/video/cirruslogic/cl5422.bin"
-#define BIOS_GD5426_PATH		L"roms/video/cirruslogic/Diamond SpeedStar PRO VLB v3.04.bin"
-#define BIOS_GD5428_ISA_PATH		L"roms/video/cirruslogic/5428.bin"
-#define BIOS_GD5428_PATH		L"roms/video/cirruslogic/vlbusjapan.BIN"
-#define BIOS_GD5429_PATH		L"roms/video/cirruslogic/5429.vbi"
-#define BIOS_GD5430_VLB_PATH		L"roms/video/cirruslogic/diamondvlbus.bin"
-#define BIOS_GD5430_PCI_PATH		L"roms/video/cirruslogic/pci.bin"
-#define BIOS_GD5434_PATH		L"roms/video/cirruslogic/gd5434.bin"
-#define BIOS_GD5436_PATH		L"roms/video/cirruslogic/5436.vbi"
-#define BIOS_GD5440_PATH		L"roms/video/cirruslogic/BIOS.BIN"
-#define BIOS_GD5446_PATH		L"roms/video/cirruslogic/5446BV.VBI"
-#define BIOS_GD5446_STB_PATH		L"roms/video/cirruslogic/stb nitro64v.BIN"
-#define BIOS_GD5480_PATH		L"roms/video/cirruslogic/clgd5480.rom"
+#define BIOS_GD5401_PATH		"roms/video/cirruslogic/avga1.rom"
+#define BIOS_GD5402_PATH		"roms/video/cirruslogic/avga2.rom"
+#define BIOS_GD5402_ONBOARD_PATH	"roms/machines/cbm_sl386sx25/c000.rom"
+#define BIOS_GD5420_PATH		"roms/video/cirruslogic/5420.vbi"
+#define BIOS_GD5422_PATH		"roms/video/cirruslogic/cl5422.bin"
+#define BIOS_GD5426_PATH		"roms/video/cirruslogic/Diamond SpeedStar PRO VLB v3.04.bin"
+#define BIOS_GD5428_ISA_PATH		"roms/video/cirruslogic/5428.bin"
+#define BIOS_GD5428_PATH		"roms/video/cirruslogic/vlbusjapan.BIN"
+#define BIOS_GD5429_PATH		"roms/video/cirruslogic/5429.vbi"
+#define BIOS_GD5430_VLB_PATH		"roms/video/cirruslogic/diamondvlbus.bin"
+#define BIOS_GD5430_PCI_PATH		"roms/video/cirruslogic/pci.bin"
+#define BIOS_GD5434_PATH		"roms/video/cirruslogic/gd5434.bin"
+#define BIOS_GD5436_PATH		"roms/video/cirruslogic/5436.vbi"
+#define BIOS_GD5440_PATH		"roms/video/cirruslogic/BIOS.BIN"
+#define BIOS_GD5446_PATH		"roms/video/cirruslogic/5446BV.VBI"
+#define BIOS_GD5446_STB_PATH		"roms/video/cirruslogic/stb nitro64v.BIN"
+#define BIOS_GD5480_PATH		"roms/video/cirruslogic/clgd5480.rom"
 
 #define CIRRUS_ID_CLGD5401	  	0x88
 #define CIRRUS_ID_CLGD5402	  	0x89
@@ -3711,7 +3711,7 @@ static void
     svga_t *svga = &gd54xx->svga;
     int id = info->local & 0xff;
     int vram;
-    wchar_t *romfn = NULL;
+    char *romfn = NULL;
     memset(gd54xx, 0, sizeof(gd54xx_t));
 
     gd54xx->pci = !!(info->flags & DEVICE_PCI);	

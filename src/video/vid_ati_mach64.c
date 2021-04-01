@@ -42,10 +42,10 @@
 #undef CLAMP
 #endif
 
-#define BIOS_ROM_PATH		L"roms/video/mach64/bios.bin"
-#define BIOS_ISA_ROM_PATH	L"roms/video/mach64/M64-1994.VBI"
-#define BIOS_VLB_ROM_PATH	L"roms/video/mach64/mach64_vlb_vram.bin"
-#define BIOS_ROMVT2_PATH	L"roms/video/mach64/atimach64vt2pci.bin"
+#define BIOS_ROM_PATH		"roms/video/mach64/bios.bin"
+#define BIOS_ISA_ROM_PATH	"roms/video/mach64/M64-1994.VBI"
+#define BIOS_VLB_ROM_PATH	"roms/video/mach64/mach64_vlb_vram.bin"
+#define BIOS_ROMVT2_PATH	"roms/video/mach64/atimach64vt2pci.bin"
 
 
 #define FIFO_SIZE 65536
@@ -3388,7 +3388,7 @@ static void *mach64gx_init(const device_t *info)
         else if ((info->flags & DEVICE_VLB) || (info->flags & DEVICE_ISA))
                 mach64->config_stat0 |= 1; /*VLB, 256Kx16 DRAM*/
 
-        ati_eeprom_load(&mach64->eeprom, L"mach64.nvr", 1);
+        ati_eeprom_load(&mach64->eeprom, "mach64.nvr", 1);
 
         if (info->flags & DEVICE_PCI)
 	        rom_init(&mach64->bios_rom, BIOS_ROM_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
@@ -3417,7 +3417,7 @@ static void *mach64vt2_init(const device_t *info)
         mach64->config_stat0 = 4;
         mach64->use_block_decoded_io = 4;
         
-        ati_eeprom_load(&mach64->eeprom, L"mach64vt.nvr", 1);
+        ati_eeprom_load(&mach64->eeprom, "mach64vt.nvr", 1);
 
         rom_init(&mach64->bios_rom, BIOS_ROMVT2_PATH, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         

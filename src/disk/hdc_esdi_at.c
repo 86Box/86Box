@@ -44,7 +44,7 @@
 
 
 #define HDC_TIME		(TIMER_USEC*10LL)
-#define BIOS_FILE		L"roms/hdd/esdi_at/62-000279-061.bin"
+#define BIOS_FILE		"roms/hdd/esdi_at/62-000279-061.bin"
 
 #define STAT_ERR		0x01
 #define STAT_INDEX		0x02
@@ -744,7 +744,7 @@ esdi_callback(void *priv)
 
 
 static void
-loadhd(esdi_t *esdi, int hdd_num, int d, const wchar_t *fn)
+loadhd(esdi_t *esdi, int hdd_num, int d, const char *fn)
 {
     drive_t *drive = &esdi->drives[hdd_num];
 

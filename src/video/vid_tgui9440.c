@@ -106,8 +106,8 @@
   writes out 16 bytes. I don't think the access size or host data has any affect,
   but the Windows 3.1 driver always reads bytes and write words of 0xffff.*/  
 
-#define ROM_TGUI_9400CXI	L"roms/video/tgui9440/9400CXI.vbi"
-#define ROM_TGUI_9440		L"roms/video/tgui9440/9440.vbi"
+#define ROM_TGUI_9400CXI	"roms/video/tgui9440/9400CXI.vbi"
+#define ROM_TGUI_9440		"roms/video/tgui9440/9440.vbi"
 
 #define EXT_CTRL_16BIT            0x01
 #define EXT_CTRL_MONO_EXPANSION   0x02
@@ -1685,7 +1685,7 @@ void tgui_accel_write_fb_l(uint32_t addr, uint32_t val, void *p)
 
 static void *tgui_init(const device_t *info)
 {
-	const wchar_t *bios_fn;
+	const char *bios_fn;
 	int type = info->local;
 
         tgui_t *tgui = malloc(sizeof(tgui_t));
@@ -1710,7 +1710,7 @@ static void *tgui_init(const device_t *info)
 			return NULL;
 	}
 
-        rom_init(&tgui->bios_rom, (wchar_t *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+        rom_init(&tgui->bios_rom, (char *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
 	if (info->flags & DEVICE_PCI)
 		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tgui_pci);
@@ -1749,12 +1749,12 @@ static void *tgui_init(const device_t *info)
 
 static int tgui9400cxi_available()
 {
-        return rom_present(L"roms/video/tgui9440/9400CXI.vbi");
+        return rom_present("roms/video/tgui9440/9400CXI.vbi");
 }
 
 static int tgui9440_available()
 {
-        return rom_present(L"roms/video/tgui9440/9440.vbi");
+        return rom_present("roms/video/tgui9440/9440.vbi");
 }
 
 void tgui_close(void *p)

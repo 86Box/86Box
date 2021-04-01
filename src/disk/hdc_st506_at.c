@@ -692,7 +692,7 @@ do_callback(void *priv)
 
 
 static void
-loadhd(mfm_t *mfm, int c, int d, const wchar_t *fn)
+loadhd(mfm_t *mfm, int c, int d, const char *fn)
 {
     drive_t *drive = &mfm->drives[c];
 
@@ -725,7 +725,7 @@ mfm_init(const device_t *info)
 	if ((hdd[d].bus == HDD_BUS_MFM) && (hdd[d].mfm_channel < MFM_NUM)) {
 		loadhd(mfm, hdd[d].mfm_channel, d, hdd[d].fn);
 
-		st506_at_log("WD1003(%d): (%ls) geometry %d/%d/%d\n", c, hdd[d].fn,
+		st506_at_log("WD1003(%d): (%s) geometry %d/%d/%d\n", c, hdd[d].fn,
 			     (int)hdd[d].tracks, (int)hdd[d].hpc, (int)hdd[d].spt);
 
 		if (++c >= MFM_NUM) break;

@@ -215,7 +215,7 @@ image_exit(cdrom_t *dev)
 {
     cd_img_t *img = (cd_img_t *)dev->image;
 
-cdrom_image_log("CDROM: image_exit(%ls)\n", dev->image_path);
+cdrom_image_log("CDROM: image_exit(%s)\n", dev->image_path);
     dev->cd_status = CD_STATUS_EMPTY;
 
     if (img) {
@@ -249,11 +249,11 @@ image_open_abort(cdrom_t *dev)
 
 
 int
-cdrom_image_open(cdrom_t *dev, const wchar_t *fn)
+cdrom_image_open(cdrom_t *dev, const char *fn)
 {
     cd_img_t *img;
 
-    wcscpy(dev->image_path, fn);
+    strcpy(dev->image_path, fn);
 
     /* Create new instance of the CDROM_Image class. */
     img = (cd_img_t *) malloc(sizeof(cd_img_t));
@@ -271,7 +271,7 @@ cdrom_image_open(cdrom_t *dev, const wchar_t *fn)
 	return image_open_abort(dev);
 
     /* All good, reset state. */
-    if (! wcscasecmp(plat_get_extension((wchar_t *) fn), L"ISO"))
+    if (! strcasecmp(plat_get_extension((char *) fn), "ISO"))
 	dev->cd_status = CD_STATUS_DATA_ONLY;
     else
 	dev->cd_status = CD_STATUS_STOPPED;
@@ -290,7 +290,7 @@ cdrom_image_open(cdrom_t *dev, const wchar_t *fn)
 void
 cdrom_image_close(cdrom_t *dev)
 {
-    cdrom_image_log("CDROM: image_close(%ls)\n", dev->image_path);
+    cdrom_image_log("CDROM: image_close(%s)\n", dev->image_path);
 
     if (dev && dev->ops && dev->ops->exit)
 	dev->ops->exit(dev);

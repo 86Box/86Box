@@ -110,7 +110,7 @@
 
 #define HDC_TIME	(50*TIMER_USEC)
 
-#define WD_BIOS_FILE	L"roms/hdd/xta/idexywd2.bin"
+#define WD_BIOS_FILE	"roms/hdd/xta/idexywd2.bin"
 
 
 enum {
@@ -995,7 +995,7 @@ static void *
 xta_init(const device_t *info)
 {
     drive_t *drive;
-    wchar_t *fn = NULL;
+    char *fn = NULL;
     hdc_t *dev;
     int c, i;
     int max = XTA_NUM;

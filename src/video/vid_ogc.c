@@ -603,7 +603,7 @@ ogc_init(const device_t *info)
     memset(ogc, 0x00, sizeof(ogc_t));
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_ogc);
 
-    loadfont(L"roms/video/ogc/ogc graphics board go380 258 pqbq.bin", 1);
+    loadfont("roms/video/ogc/ogc graphics board go380 258 pqbq.bin", 1);
     
 	/* composite is not working yet */
 	// display_type = device_get_config_int("display_type");

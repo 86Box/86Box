@@ -42,7 +42,7 @@ machine_xt_compaq_deskpro_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/deskpro/Compaq - BIOS - Revision J - 106265-002.bin",
+    ret = bios_load_linear("roms/machines/deskpro/Compaq - BIOS - Revision J - 106265-002.bin",
 			   0x000fe000, 8192, 0);
 
     if (bios_only || !ret)
@@ -71,7 +71,7 @@ machine_xt_compaq_portable_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear(L"roms/machines/portable/compaq portable plus 100666-001 rev c u47.bin",
+    ret = bios_load_linear("roms/machines/portable/compaq portable plus 100666-001 rev c u47.bin",
 			   0x000fe000, 8192, 0);
 
     if (bios_only || !ret)

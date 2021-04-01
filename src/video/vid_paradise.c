@@ -357,7 +357,7 @@ static void *paradise_pvga1a_ncr3302_init(const device_t *info)
         paradise_t *paradise = paradise_init(info, 1 << 18);
         
         if (paradise)
-                rom_init(&paradise->bios_rom, L"roms/machines/ncr_3302/c000-wd_1987-1989-740011-003058-019c.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+                rom_init(&paradise->bios_rom, "roms/machines/ncr_3302/c000-wd_1987-1989-740011-003058-019c.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
                 
         return paradise;
 }
@@ -367,7 +367,7 @@ static void *paradise_pvga1a_pc2086_init(const device_t *info)
         paradise_t *paradise = paradise_init(info, 1 << 18);
         
         if (paradise)
-                rom_init(&paradise->bios_rom, L"roms/machines/pc2086/40186.ic171", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+                rom_init(&paradise->bios_rom, "roms/machines/pc2086/40186.ic171", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
                 
         return paradise;
 }
@@ -377,7 +377,7 @@ static void *paradise_pvga1a_pc3086_init(const device_t *info)
         paradise_t *paradise = paradise_init(info, 1 << 18);
 
         if (paradise)
-                rom_init(&paradise->bios_rom, L"roms/machines/pc3086/c000.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+                rom_init(&paradise->bios_rom, "roms/machines/pc3086/c000.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
                 
         return paradise;
 }
@@ -393,14 +393,14 @@ static void *paradise_pvga1a_standalone_init(const device_t *info)
         paradise = paradise_init(info, memory);
         
         if (paradise)
-                rom_init(&paradise->bios_rom, L"roms/video/pvga1a/BIOS.BIN", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+                rom_init(&paradise->bios_rom, "roms/video/pvga1a/BIOS.BIN", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         
         return paradise;
 }
 
 static int paradise_pvga1a_standalone_available(void)
 {
-        return rom_present(L"roms/video/pvga1a/BIOS.BIN");
+        return rom_present("roms/video/pvga1a/BIOS.BIN");
 }
 
 static void *paradise_wd90c11_megapc_init(const device_t *info)
@@ -409,8 +409,8 @@ static void *paradise_wd90c11_megapc_init(const device_t *info)
         
         if (paradise)
                 rom_init_interleaved(&paradise->bios_rom,
-                                     L"roms/machines/megapc/41651-bios lo.u18",
-                                     L"roms/machines/megapc/211253-bios hi.u19",
+                                     "roms/machines/megapc/41651-bios lo.u18",
+                                     "roms/machines/megapc/211253-bios hi.u19",
                                      0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         
         return paradise;
@@ -421,14 +421,14 @@ static void *paradise_wd90c11_standalone_init(const device_t *info)
         paradise_t *paradise = paradise_init(info, 0);
         
         if (paradise)
-                rom_init(&paradise->bios_rom, L"roms/video/wd90c11/WD90C11.VBI", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+                rom_init(&paradise->bios_rom, "roms/video/wd90c11/WD90C11.VBI", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         
         return paradise;
 }
 
 static int paradise_wd90c11_standalone_available(void)
 {
-        return rom_present(L"roms/video/wd90c11/WD90C11.VBI");
+        return rom_present("roms/video/wd90c11/WD90C11.VBI");
 }
 
 static void *paradise_wd90c30_standalone_init(const device_t *info)
@@ -442,14 +442,14 @@ static void *paradise_wd90c30_standalone_init(const device_t *info)
         paradise = paradise_init(info, memory);
         
         if (paradise)
-                rom_init(&paradise->bios_rom, L"roms/video/wd90c30/90C30-LR.VBI", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+                rom_init(&paradise->bios_rom, "roms/video/wd90c30/90C30-LR.VBI", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
         return paradise;
 }
 
 static int paradise_wd90c30_standalone_available(void)
 {
-        return rom_present(L"roms/video/wd90c30/90C30-LR.VBI");
+        return rom_present("roms/video/wd90c30/90C30-LR.VBI");
 }
 
 void paradise_close(void *p)

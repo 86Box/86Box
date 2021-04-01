@@ -89,6 +89,7 @@ sdac_control_write(sdac_ramdac_t *ramdac, svga_t *svga, uint8_t val)
 	case ICS_5342:
 		switch (val >> 4) {
 			case 0x00:
+			case 0x01:			/* This is actually 8bpp with two pixels read at a time. */
 			default:
 				svga->bpp = 8;
 				break;
@@ -97,9 +98,6 @@ sdac_control_write(sdac_ramdac_t *ramdac, svga_t *svga, uint8_t val)
 			case 0x08:
 			case 0x0a:
 				svga->bpp = 15;
-				break;
-			case 0x01:
-				svga->bpp = 17;		/* 15bpp_mix */
 				break;
 			case 0x05:
 			case 0x06:
