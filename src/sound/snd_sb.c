@@ -858,10 +858,7 @@ sb_ct1745_mixer_write(uint16_t addr, uint8_t val, void *p)
 
 		case 0x83:
 			/* Interrupt mask. */
-			sb->dsp.sb_irqm8 = !(val & 0x01);
-			sb->dsp.sb_irqm16 = !(val & 0x02);
-			sb->dsp.sb_irqm401 = !(val & 0x04);
-			sb_update_irq(&sb->dsp);
+			sb_update_mask(&sb->dsp, !(val & 0x01), !(val & 0x02), !(val & 0x04));
 			break;
 
 		case 0x84:

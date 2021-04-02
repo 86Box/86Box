@@ -178,17 +178,21 @@ recalc_sb16_filter(int c, int playback_freq)
 
 
 void
-sb_update_irq(sb_dsp_t *dsp)
+sb_update_mask(sb_dsp_t *dsp, int irqm8, int irqm16, int irqm401)
 {
-    int irq_pending;
+    int clear = 0;
 
-    irq_pending = (dsp->sb_irq8 && !dsp->sb_irqm8) ||
-		  (dsp->sb_irq16 && !dsp->sb_irqm16) ||
-		  (dsp->sb_irq401 && !dsp->sb_irqm401);
+    if (!dsp->sb_irqm8 && irqm8)
+	clear |= 1;
+    dsp->sb_irqm8 = irqm8;
+    if (!dsp->sb_irqm16 && irqm16)
+	clear |= 1;
+    dsp->sb_irqm16 = irqm16;
+    if (!dsp->sb_irqm401 && irqm401)
+	clear |= 1;
+    dsp->sb_irqm401 = irqm401;
 
-    if (irq_pending)
-	picint(1 << dsp->sb_irqnum);
-    else
+    if (clear)
 	picintc(1 << dsp->sb_irqnum);
 }
 
@@ -196,20 +200,28 @@ sb_update_irq(sb_dsp_t *dsp)
 void
 sb_update_status(sb_dsp_t *dsp, int bit, int set)
 {
+    int masked = 0;
+
     switch (bit) {
 	case 0:
 	default:
 		dsp->sb_irq8  = set;
+		masked = dsp->sb_irqm8;
 		break;
 	case 1:
 		dsp->sb_irq16  = set;
+		masked = dsp->sb_irqm16;
 		break;
 	case 2:
 		dsp->sb_irq401 = set;
+		masked = dsp->sb_irqm401;
 		break;
     }
 
-    sb_update_irq(dsp);
+    if (set && !masked)
+	picint(1 << dsp->sb_irqnum);
+    else if (!set)
+	picintc(1 << dsp->sb_irqnum);
 }
 
 
@@ -258,8 +270,8 @@ sb_dsp_set_mpu(sb_dsp_t *dsp, mpu_t *mpu)
 void
 sb_dsp_reset(sb_dsp_t *dsp)
 {
-	midi_clear_buffer();
-	
+    midi_clear_buffer();
+
     timer_disable(&dsp->output_timer);
     timer_disable(&dsp->input_timer);
 
@@ -271,9 +283,8 @@ sb_dsp_reset(sb_dsp_t *dsp)
     dsp->sb_irq8 = 0;
     dsp->sb_irq16 = 0;
     dsp->sb_irq401 = 0;
-    sb_update_irq(dsp);
     dsp->sb_16_pause = 0;
-	dsp->sb_read_wp = dsp->sb_read_rp = 0;
+    dsp->sb_read_wp = dsp->sb_read_rp = 0;
     dsp->sb_data_stat = -1;
     dsp->sb_speaker = 0;
     dsp->sb_pausetime = -1LL;
