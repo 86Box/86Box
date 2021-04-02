@@ -33,6 +33,7 @@
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
+#define ENABLE_ALI1217_LOG 1
 #ifdef ENABLE_ALI1217_LOG
 int ali1217_do_log = ENABLE_ALI1217_LOG;
 static void
@@ -57,18 +58,12 @@ typedef struct
     int cfg_locked;
 } ali1217_t;
 
-static void ali1217_shadow_recalc(ali1217_t *dev)
+static void ali1217_shadow_recalc(int reg_15, ali1217_t *dev)
 {
     for (uint8_t i = 0; i < 4; i++)
-    {
-        mem_set_mem_state_both(0xc0000 + (i << 15), 0x8000, ((dev->regs[0x14] & (1 << (i * 2))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x14] & (1 << ((i * 2) + 1))) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
-        mem_set_mem_state_both(0xe0000 + (i << 15), 0x8000, ((dev->regs[0x15] & (1 << (i * 2))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x15] & (1 << ((i * 2) + 1))) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
-    }
+    mem_set_mem_state_both((reg_15 ? 0xe0000 : 0xc0000) + (i << 15), 0x8000, ((dev->regs[0x14 + reg_15] & (1 << (i * 2))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[0x14 + reg_15] & (1 << ((i * 2) + 1))) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
 
-    shadowbios = !!(dev->regs[0x15] & 5);
-    shadowbios_write = !!(dev->regs[0x15] & 0x0a);
-
-    flushmmucache();
+    flushmmucache_nopc();
 }
 
 static void
@@ -84,8 +79,7 @@ ali1217_write(uint16_t addr, uint8_t val, void *priv)
     case 0x23:
         if (dev->index != 0x13)
             ali1217_log("ALi M1217: dev->regs[%02x] = %02x\n", dev->index, val);
-
-        if (dev->index == 0x13)
+        else
             dev->cfg_locked = !(val == 0xc5);
 
         if (!dev->cfg_locked)
@@ -93,7 +87,7 @@ ali1217_write(uint16_t addr, uint8_t val, void *priv)
             dev->regs[dev->index] = val;
 
             if ((dev->index == 0x14) || (dev->index == 0x15))
-                ali1217_shadow_recalc(dev);
+                ali1217_shadow_recalc(dev->index & 1, dev);
         }
         break;
     }
@@ -104,7 +98,7 @@ ali1217_read(uint16_t addr, void *priv)
 {
     ali1217_t *dev = (ali1217_t *)priv;
 
-    return !(addr == 0x22) ? dev->regs[dev->index] : dev->index;
+    return (addr == 0x23) ? dev->regs[dev->index] : 0xff;
 }
 
 static void
@@ -134,7 +128,6 @@ ali1217_init(const device_t *info)
 
     */
     io_sethandler(0x0022, 0x0002, ali1217_read, NULL, NULL, ali1217_write, NULL, NULL, dev);
-    ali1217_shadow_recalc(dev);
 
     return dev;
 }
