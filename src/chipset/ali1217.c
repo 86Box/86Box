@@ -33,7 +33,7 @@
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
-#define ENABLE_ALI1217_LOG 1
+
 #ifdef ENABLE_ALI1217_LOG
 int ali1217_do_log = ENABLE_ALI1217_LOG;
 static void
