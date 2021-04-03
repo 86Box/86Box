@@ -51,8 +51,11 @@ void	*isapnp_add_card(uint8_t *rom, uint16_t rom_size,
 			 uint8_t (*read_vendor_reg)(uint8_t ld, uint8_t reg, void *priv),
 			 void (*write_vendor_reg)(uint8_t ld, uint8_t reg, uint8_t val, void *priv),
 			 void *priv);
+void	isapnp_enable_card(void *priv, uint8_t enable);
 void	isapnp_set_csn(void *priv, uint8_t csn);
-uint8_t	isapnp_get_rom_checksum(void *priv);
+void	isapnp_set_device_defaults(void *priv, uint8_t ldn, const isapnp_device_config_t *config);
+void	isapnp_reset_card(void *priv);
+void	isapnp_reset_device(void *priv, uint8_t ld);
 
 
 #endif	/*EMU_ISAPNP_H*/
