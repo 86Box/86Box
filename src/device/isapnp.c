@@ -915,8 +915,10 @@ isapnp_enable_card(void *priv, uint8_t enable)
 		/* Invalidate other references if we're disabling this card. */
 		if (dev->isolated_card == card)
 			dev->isolated_card = NULL;
-		if (dev->current_ld_card == card)
-			dev->current_ld = dev->current_ld_card = NULL;
+		if (dev->current_ld_card == card) {
+			dev->current_ld = NULL;
+			dev->current_ld_card = NULL;
+		}
 
 		break;
 	}
