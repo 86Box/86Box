@@ -13,12 +13,12 @@
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
- *      EngiNerd <webmaster.crrc@yahoo.it>
+ *		EngiNerd <webmaster.crrc@yahoo.it>
  *
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2017-2020 Fred N. van Kempen.
- *      Copyright 2020 EngiNerd.
+ *		Copyright 2020 EngiNerd.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -1059,7 +1059,7 @@ write_output(atkbd_t *dev, uint8_t val)
     if ((dev->output_port ^ val) & 0x01) { /*Reset*/
 	if (! (val & 0x01)) {
 		/* Pin 0 selected. */
-		resetx86(); /*Pulse reset!*/
+		softresetx86(); /*Pulse reset!*/
 		cpu_set_edx();
 	}
     }
@@ -1327,6 +1327,7 @@ write64_ami(void *priv, uint8_t val)
 
 	case 0xa1:	/* get controller version */
 		kbd_log("ATkbc: AMI - get controller version\n");
+		add_data(dev, 'H');
 		return 0;
 
 	case 0xa2:	/* clear keyboard controller lines P22/P23 */
