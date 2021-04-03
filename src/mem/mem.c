@@ -993,7 +993,6 @@ uint16_t
 readmemwl_no_mmut(uint32_t addr, uint64_t *addr64)
 {
     mem_mapping_t *map;
-    int i;
 
     mem_logical_addr = addr;
 
@@ -1002,10 +1001,8 @@ readmemwl_no_mmut(uint32_t addr, uint64_t *addr64)
 		cycles -= timing_misaligned;
 	if ((addr & 0xfff) > 0xffe) {
 		if (cr0 >> 31) {
-			for (i = 0; i < 2; i++) {
-				if (addr64[i] > 0xffffffffULL)
-					return 0xffff;
-			}
+			if ((addr64[0] > 0xffffffffULL) || (addr64[1] > 0xffffffffULL))
+				return 0xffff;
 		}
 
 		return readmembl_no_mmut(addr, addr64[0]) |
@@ -1041,7 +1038,6 @@ void
 writememwl_no_mmut(uint32_t addr, uint64_t *addr64, uint16_t val)
 {
     mem_mapping_t *map;
-    int i;
 
     mem_logical_addr = addr;
 
@@ -1050,10 +1046,8 @@ writememwl_no_mmut(uint32_t addr, uint64_t *addr64, uint16_t val)
 		cycles -= timing_misaligned;
 	if ((addr & 0xfff) > 0xffe) {
 		if (cr0 >> 31) {
-			for (i = 0; i < 2; i++) {
-				if (addr64[i] > 0xffffffffULL)
-					return;
-			}
+			if ((addr64[0] > 0xffffffffULL) || (addr64[1] > 0xffffffffULL))
+				return;
 		}
 
 		writemembl_no_mmut(addr, addr64[0], val);
@@ -1099,7 +1093,7 @@ readmemll(uint32_t addr)
 {
     uint64_t addr64[4];
     mem_mapping_t *map;
-    int i, wrap_i = 1;
+    int i;
 
     for (i = 0; i < 4; i++)
 	addr64[i] = (uint64_t) (addr + i);
@@ -1111,24 +1105,14 @@ readmemll(uint32_t addr)
 		cycles -= timing_misaligned;
 	if ((addr & 0xfff) > 0xffc) {
 		if (cr0 >> 31) {
-			wrap_i = 4 - (addr & 0x3);
+			for (i = 0; i < 4; i++) {
+				if ((i == 0) || !((addr + i) & 0xfff))
+					addr64[i] = mmutranslate_read(addr + i);
+				else
+					addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
 
-			addr64[0] = mmutranslate_read(addr);
-
-			if (addr64[0] > 0xffffffffULL)
-				return 0xffffffff;
-
-			for (i = 1; i < wrap_i; i++)
-				addr64[i] = (addr64[0] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
-
-			addr64[wrap_i] = mmutranslate_read(addr + wrap_i);
-
-			if (addr64[wrap_i] > 0xffffffffULL)
-				return 0xffffffff;
-
-			if (wrap_i != 3) {
-				for (i = (wrap_i) + 1; i <= 3; i++)
-					addr64[i] = (addr64[wrap_i] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
+				if (addr64[i] > 0xffffffffULL)
+					return 0xffff;
 			}
 		}
 
@@ -1173,7 +1157,7 @@ writememll(uint32_t addr, uint32_t val)
 {
     uint64_t addr64[4];
     mem_mapping_t *map;
-    int i, wrap_i = 1;
+    int i;
 
     for (i = 0; i < 4; i++)
 	addr64[i] = (uint64_t) (addr + i);
@@ -1185,30 +1169,18 @@ writememll(uint32_t addr, uint32_t val)
 		cycles -= timing_misaligned;
 	if ((addr & 0xfff) > 0xffc) {
 		if (cr0 >> 31) {
-			wrap_i = 4 - (addr & 0x3);
+			for (i = 0; i < 4; i++) {
+				/* Do not translate a page that has a valid lookup, as that is by definition valid
+				   and the whole purpose of the lookup is to avoid repeat identical translations. */
+				if (!page_lookup[(addr + i) >> 12] || !page_lookup[(addr + i) >> 12]->write_b) {
+					if ((i == 0) || !((addr + i) & 0xfff))
+						addr64[i] = mmutranslate_write(addr + i);
+					else
+						addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
 
-			if (!page_lookup[(addr + 0) >> 12] || !page_lookup[(addr + 0) >> 12]->write_b)
-				addr64[0] = mmutranslate_write(addr);
-			else
-				addr64[0] = 0xffffffff;
-
-			if (addr64[0] > 0xffffffffULL)
-				return;
-
-			for (i = 1; i < wrap_i; i++)
-				addr64[i] = (addr64[0] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
-
-			if (!page_lookup[(addr + wrap_i) >> 12] || !page_lookup[(addr + wrap_i) >> 12]->write_b)
-				addr64[wrap_i] = mmutranslate_write(addr + wrap_i);
-			else
-				addr64[wrap_i] = 0xffffffff;
-
-			if (addr64[wrap_i] > 0xffffffffULL)
-				return;
-
-			if (wrap_i != 3) {
-				for (i = (wrap_i) + 1; i <= 3; i++)
-					addr64[i] = (addr64[wrap_i] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
+					if (addr64[i] > 0xffffffffULL)
+						return;
+				}
 			}
 		}
 
@@ -1263,7 +1235,6 @@ uint32_t
 readmemll_no_mmut(uint32_t addr, uint64_t *addr64)
 {
     mem_mapping_t *map;
-    int i;
 
     mem_logical_addr = addr;
 
@@ -1272,10 +1243,8 @@ readmemll_no_mmut(uint32_t addr, uint64_t *addr64)
 		cycles -= timing_misaligned;
 	if ((addr & 0xfff) > 0xffc) {
 		if (cr0 >> 31) {
-			for (i = 0; i < 4; i += 2) {
-				if (addr64[i] > 0xffffffffULL)
-					return 0xffffffff;
-			}
+			if ((addr64[0] > 0xffffffffULL) || (addr64[3] > 0xffffffffULL))
+				return 0xffffffff;
 		}
 
 		return readmemwl_no_mmut(addr, addr64) |
@@ -1316,7 +1285,6 @@ void
 writememll_no_mmut(uint32_t addr, uint64_t *addr64, uint32_t val)
 {
     mem_mapping_t *map;
-    int i;
 
     mem_logical_addr = addr;
 
@@ -1325,10 +1293,8 @@ writememll_no_mmut(uint32_t addr, uint64_t *addr64, uint32_t val)
 		cycles -= timing_misaligned;
 	if ((addr & 0xfff) > 0xffc) {
 		if (cr0 >> 31) {
-			for (i = 0; i < 4; i += 2) {
-				if (addr64[i] > 0xffffffffULL)
-					return;
-			}
+			if ((addr64[0] > 0xffffffffULL) || (addr64[3] > 0xffffffffULL))
+				return;
 		}
 
 		writememwl_no_mmut(addr, &(addr64[0]), val);
@@ -1390,26 +1356,17 @@ readmemql(uint32_t addr)
 	cycles -= timing_misaligned;
 	if ((addr & 0xfff) > 0xff8) {
 		if (cr0 >> 31) {
-			wrap_i = 8 - (addr & 0x7);
-
-			addr64[0] = mmutranslate_read(addr);
-
-			if (addr64[0] > 0xffffffffULL)
-				return 0xffffffffffffffffULL;
-
-			for (i = 1; i < wrap_i; i++)
-				addr64[i] = (addr64[0] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
-
-			addr64[wrap_i] = mmutranslate_read(addr + wrap_i);
-
-			if (addr64[wrap_i] > 0xffffffffULL)
-				return 0xffffffffffffffffULL;
-
-			if (wrap_i != 7) {
-				for (i = (wrap_i) + 1; i <= 7; i++)
+			for (i = 0; i < 8; i++) {
+				if ((i == 0) || !((addr + i) & 0xfff))
+					addr64[i] = mmutranslate_read(addr + i);
+				else
 					addr64[i] = (addr64[wrap_i] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
+
+				if (addr64[i] > 0xffffffffULL)
+					return 0xffff;
 			}
 		}
+
 		/* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
 		   their result as a parameter to be used if needed. */
 		return readmemll_no_mmut(addr, addr64) |
@@ -1440,7 +1397,7 @@ writememql(uint32_t addr, uint64_t val)
 {
     uint64_t addr64[8];
     mem_mapping_t *map;
-    int i, wrap_i;
+    int i;
 
     for (i = 0; i < 8; i++)
 	addr64[i] = (uint64_t) (addr + i);
@@ -1451,30 +1408,18 @@ writememql(uint32_t addr, uint64_t val)
 	cycles -= timing_misaligned;
 	if ((addr & 0xfff) > 0xff8) {
 		if (cr0 >> 31) {
-			wrap_i = 8 - (addr & 0x7);
+			for (i = 0; i < 8; i++) {
+				/* Do not translate a page that has a valid lookup, as that is by definition valid
+				   and the whole purpose of the lookup is to avoid repeat identical translations. */
+				if (!page_lookup[(addr + i) >> 12] || !page_lookup[(addr + i) >> 12]->write_b) {
+					if ((i == 0) || !((addr + i) & 0xfff))
+						addr64[i] = mmutranslate_write(addr + i);
+					else
+						addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
 
-			if (!page_lookup[(addr + 0) >> 12] || !page_lookup[(addr + 0) >> 12]->write_b)
-				addr64[0] = mmutranslate_write(addr);
-			else
-				addr64[0] = 0xffffffff;
-
-			if (addr64[0] > 0xffffffffULL)
-				return;
-
-			for (i = 1; i < wrap_i; i++)
-				addr64[i] = (addr64[wrap_i] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
-
-			if (!page_lookup[(addr + wrap_i) >> 12] || !page_lookup[(addr + wrap_i) >> 12]->write_b)
-				addr64[wrap_i] = mmutranslate_write(addr + wrap_i);
-			else
-				addr64[wrap_i] = 0xffffffff;
-
-			if (addr64[wrap_i] > 0xffffffffULL)
-				return;
-
-			if (wrap_i != 7) {
-				for (i = (wrap_i) + 1; i <= 7; i++)
-					addr64[i] = (addr64[wrap_i] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
+					if (addr64[i] > 0xffffffffULL)
+						return;
+				}
 			}
 		}
 
@@ -1535,20 +1480,19 @@ writememql(uint32_t addr, uint64_t val)
 void
 do_mmutranslate(uint32_t addr, uint64_t *addr64, int num, int write)
 {
-    int i, wrap_i;
-    int cond = 1;
+    int i, cond = 1;
 
-    if (cr0 >> 31) {
-	wrap_i = (num - (addr & (num - 1))) & (num - 1);
+    for (i = 0; i < num; i++) {
+	addr64[i] = (uint64_t) addr;
 
-	for (i = 0; i < num; i++) {
-		if (write && ((i == 0) || (wrap_i && (i == wrap_i))))
+    	if (cr0 >> 31) {
+		if (write && ((i == 0) || !(addr & 0xfff)))
 		    cond = (!page_lookup[addr >> 12] || !page_lookup[addr >> 12]->write_b);
 
 		if (cond) {
 			/* If we are on the same page, there is no need to translate again, as we can just
 			   reuse the previous result. */
-			if (((i == 0) || (wrap_i && (i == wrap_i)))) {
+			if ((i == 0) || !(addr & 0xfff)) {
 				addr64[i] = mmutranslatereal(addr, write);
 
 				if (addr64[i] > 0xffffffffULL)
@@ -1556,9 +1500,9 @@ do_mmutranslate(uint32_t addr, uint64_t *addr64, int num, int write)
 			} else
 				addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) (addr & 0xfff));
 		}
-
-		addr++;
 	}
+
+	addr++;
     }
 }
 
