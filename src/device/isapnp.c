@@ -16,7 +16,6 @@
  *		Copyright 2016-2018 Miran Grca.
  *		Copyright 2021 RichardG.
  */
-
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -37,7 +36,7 @@
 #define CHECK_CURRENT_CARD()	if (1) { \
 					card = dev->first_card; \
 					while (card) { \
-						if (card->state == PNP_STATE_CONFIG) \
+						if (card->enable && (card->state == PNP_STATE_CONFIG)) \
 							break; \
 						card = card->next; \
 					} \
@@ -86,12 +85,13 @@ typedef struct _isapnp_device_ {
     uint8_t	number;
     uint8_t	regs[256];
     uint8_t	mem_upperlimit, irq_types, io_16bit, io_len[8];
+    const isapnp_device_config_t *defaults;
 
     struct _isapnp_device_ *next;
 } isapnp_device_t;
 
 typedef struct _isapnp_card_ {
-    uint8_t	state, csn, id_checksum, serial_read, serial_read_pair, serial_read_pos, *rom;
+    uint8_t	enable, state, csn, id_checksum, serial_read, serial_read_pair, serial_read_pos, *rom;
     uint16_t	rom_pos, rom_size;
     void	*priv;
 
@@ -164,6 +164,59 @@ isapnp_device_config_changed(isapnp_card_t *card, isapnp_device_t *ld)
 
 
 static void
+isapnp_reset_ld_config(isapnp_device_t *ld)
+{
+    /* Do nothing if there's no default configuration for this device. */
+    const isapnp_device_config_t *config = ld->defaults;
+    if (!config)
+	return;
+
+    /* Populate configuration registers. */
+    ld->regs[0x30] = !!config->activate;
+    uint8_t i, reg_base;
+    uint32_t size;
+    for (i = 0; i < 4; i++) {
+	reg_base = 0x40 + (8 * i);
+	ld->regs[reg_base] = config->mem[i].base >> 16;
+	ld->regs[reg_base + 1] = config->mem[i].base >> 8;
+	size = config->mem[i].size;
+	if (ld->regs[reg_base + 2] & 0x01) /* upper limit */
+		size += config->mem[i].base;
+	ld->regs[reg_base + 3] = size >> 16;
+	ld->regs[reg_base + 4] = size >> 8;
+    }
+    for (i = 0; i < 4; i++) {
+	reg_base = (i == 0) ? 0x76 : (0x80 + (16 * i));
+	ld->regs[reg_base] = config->mem32[i].base >> 24;
+	ld->regs[reg_base + 1] = config->mem32[i].base >> 16;
+	ld->regs[reg_base + 2] = config->mem32[i].base >> 8;
+	ld->regs[reg_base + 3] = config->mem32[i].base;
+	size = config->mem32[i].size;
+	if (ld->regs[reg_base + 4] & 0x01) /* upper limit */
+		size += config->mem32[i].base;
+	ld->regs[reg_base + 5] = size >> 24;
+	ld->regs[reg_base + 6] = size >> 16;
+	ld->regs[reg_base + 7] = size >> 8;
+	ld->regs[reg_base + 8] = size;
+    }
+    for (i = 0; i < 8; i++) {
+	reg_base = 0x60 + (2 * i);
+	ld->regs[reg_base] = config->io[i].base >> 8;
+	ld->regs[reg_base + 1] = config->io[i].base;
+    }
+    for (i = 0; i < 2; i++) {
+	reg_base = 0x70 + (2 * i);
+	ld->regs[reg_base] = config->irq[i].irq;
+	ld->regs[reg_base + 1] = (!!config->irq[i].level << 1) | !!config->irq[i].type;
+    }
+    for (i = 0; i < 2; i++) {
+	reg_base = 0x74 + i;
+	ld->regs[reg_base] = config->dma[i].dma;
+    }
+}
+
+
+static void
 isapnp_reset_ld_regs(isapnp_device_t *ld)
 {
     memset(ld->regs, 0, sizeof(ld->regs));
@@ -190,6 +243,9 @@ isapnp_reset_ld_regs(isapnp_device_t *ld)
 	else if (ld->irq_types & (0x8 << (4 * i)))
 		ld->regs[0x70 + (2 * i)] = 0x01;
     }
+
+    /* Reset configuration registers to match the default configuration. */
+    isapnp_reset_ld_config(ld);
 }
 
 
@@ -212,7 +268,7 @@ isapnp_read_data(uint16_t addr, void *priv)
 	case 0x01: /* Serial Isolation */
 		card = dev->first_card;
 		while (card) {
-			if (card->state == PNP_STATE_ISOLATION)
+			if (card->enable && (card->state == PNP_STATE_ISOLATION))
 				break;
 			card = card->next;
 		}
@@ -349,6 +405,8 @@ isapnp_write_addr(uint16_t addr, uint8_t val, void *priv)
     if (!card) /* don't do anything if we have no PnP cards */
 	return;
 
+    dev->reg = val;
+
     if (card->state == PNP_STATE_WAIT_FOR_KEY) { /* checking only the first card should be fine */
 	/* Check written value against LFSR key. */
 	if (val == pnp_init_key[dev->key_pos]) {
@@ -356,7 +414,7 @@ isapnp_write_addr(uint16_t addr, uint8_t val, void *priv)
 		if (!dev->key_pos) {
 			isapnp_log("ISAPnP: Key unlocked, putting cards to SLEEP\n");
 			while (card) {
-				if (card->state == PNP_STATE_WAIT_FOR_KEY)
+				if (card->enable && (card->state == PNP_STATE_WAIT_FOR_KEY))
 					card->state = PNP_STATE_SLEEP;
 				card = card->next;
 			}
@@ -364,9 +422,6 @@ isapnp_write_addr(uint16_t addr, uint8_t val, void *priv)
 	} else {
 		dev->key_pos = 0;
 	}
-    } else {
-	/* Nobody waiting for key, set register address. */
-	dev->reg = val;
     }
 }
 
@@ -483,7 +538,7 @@ isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
 	case 0x30: /* Activate */
 		CHECK_CURRENT_LD();
 
-		isapnp_log("ISAPnP: Activate CSN %02X device %02X\n", dev->current_ld_card->csn, dev->current_ld->number);
+		isapnp_log("ISAPnP: %sctivate CSN %02X device %02X\n", (val & 0x01) ? "A" : "Dea", dev->current_ld_card->csn, dev->current_ld->number);
 
 		dev->current_ld->regs[dev->reg] = val & 0x01;
 		isapnp_device_config_changed(dev->current_ld_card, dev->current_ld);
@@ -629,6 +684,7 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
     isapnp_card_t *card = (isapnp_card_t *) malloc(sizeof(isapnp_card_t));
     memset(card, 0, sizeof(isapnp_card_t));
 
+    card->enable = 1;
     card->rom = rom;
     card->rom_size = rom_size;
     card->priv = priv;
@@ -840,6 +896,37 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
 
 
 void
+isapnp_enable_card(void *priv, uint8_t enable)
+{
+    isapnp_t *dev = (isapnp_t *) device_get_priv(&isapnp_device);
+    if (!dev)
+	return;
+
+    /* Look for a matching card. */
+    isapnp_card_t *card = dev->first_card;
+    while (card) {
+	if (card == priv) {
+		/* Enable or disable the card. */
+		card->enable = !!enable;
+
+		/* enable=2 is a cheat code to jump straight into CONFIG state. */
+		card->state = (enable == 2) ? PNP_STATE_CONFIG : PNP_STATE_WAIT_FOR_KEY;
+
+		/* Invalidate other references if we're disabling this card. */
+		if (dev->isolated_card == card)
+			dev->isolated_card = NULL;
+		if (dev->current_ld_card == card)
+			dev->current_ld = dev->current_ld_card = NULL;
+
+		break;
+	}
+
+	card = card->next;
+    }
+}
+
+
+void
 isapnp_set_csn(void *priv, uint8_t csn)
 {
     isapnp_card_t *card = (isapnp_card_t *) priv;
@@ -850,9 +937,62 @@ isapnp_set_csn(void *priv, uint8_t csn)
 }
 
 
+void
+isapnp_set_device_defaults(void *priv, uint8_t ldn, const isapnp_device_config_t *config)
+{
+    isapnp_card_t *card = (isapnp_card_t *) priv;
+    isapnp_device_t *ld = card->first_ld;
+
+    /* Look for a logical device with this number. */
+    while (ld && (ld->number != ldn))
+	ld = ld->next;
+
+    if (!ld) /* none found */
+	return;
+
+    ld->defaults = config;
+}
+
+
+void
+isapnp_reset_card(void *priv)
+{
+    isapnp_card_t *card = (isapnp_card_t *) priv;
+    isapnp_device_t *ld = card->first_ld;
+
+    /* Reset all logical devices. */
+    while (ld) {
+	/* Reset the logical device's configuration. */
+	isapnp_reset_ld_config(ld);
+	isapnp_device_config_changed(card, ld);
+
+	ld = ld->next;
+    }
+}
+
+
+void
+isapnp_reset_device(void *priv, uint8_t ldn)
+{
+    isapnp_card_t *card = (isapnp_card_t *) priv;
+    isapnp_device_t *ld = card->first_ld;
+
+    /* Look for a logical device with this number. */
+    while (ld && (ld->number != ldn))
+	ld = ld->next;
+
+    if (!ld) /* none found */
+	return;
+
+    /* Reset the logical device's configuration. */
+    isapnp_reset_ld_config(ld);
+    isapnp_device_config_changed(card, ld);
+}
+
+
 static const device_t isapnp_device = {
     "ISA Plug and Play",
-    DEVICE_ISA,
+    0,
     0,
     isapnp_init, isapnp_close, NULL,
     { NULL }, NULL, NULL,
