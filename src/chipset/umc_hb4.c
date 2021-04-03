@@ -141,6 +141,8 @@ void hb4_shadow(int cur_addr, hb4_t *dev)
         mem_set_mem_state_both(0xc8000 + ((i - 2) << 14), 0x4000, (dev->pci_conf[0x54] & (1 << i)) ? (CAN_READ | CAN_WRITE) : DISABLE);
 
     mem_set_mem_state_both(0xe0000, 0x20000, CAN_READ | CAN_WRITE);
+	
+	flushmmucache_nopc();
 }
 
 static void

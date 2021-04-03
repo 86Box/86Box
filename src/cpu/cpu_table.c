@@ -970,7 +970,7 @@ const cpu_family_t cpu_families[] = {
     }, {
 	.package = CPU_PKG_EBGA368,
 	.manufacturer = "VIA",
-	.name = "Eden(Model 7)",
+	.name = "Eden Model 7",
 	.internal_name = "c3_eden",
 	.cpus = (const CPU[]) {
 		{"100",     CPU_EDEN, fpus_internal, 100000000, 1.5, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER,  9,  9,  4,  4, 12}, /* out of spec */
