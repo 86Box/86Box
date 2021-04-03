@@ -793,6 +793,7 @@ writemembl(uint32_t addr, uint8_t val)
 {
     uint64_t addr64 = (uint64_t) addr;
     mem_mapping_t *map;
+
     mem_logical_addr = addr;
 
     if (page_lookup[addr>>12] && page_lookup[addr>>12]->write_b) {
@@ -842,6 +843,7 @@ void
 writemembl_no_mmut(uint32_t addr, uint64_t addr64, uint8_t val)
 {
     mem_mapping_t *map;
+
     mem_logical_addr = addr;
 
     if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_b) {
@@ -869,8 +871,6 @@ readmemwl(uint32_t addr)
     uint64_t addr64[2];
     mem_mapping_t *map;
     int i;
-    uint16_t ret = 0x0000;
-    uint32_t prev_page = 0xffffffff;
 
     addr64[0] = (uint64_t) addr;
     addr64[1] = (uint64_t) (addr + 1);
@@ -883,25 +883,15 @@ readmemwl(uint32_t addr)
 	if ((addr & 0xfff) > 0xffe) {
 		if (cr0 >> 31) {
 			for (i = 0; i < 2; i++) {
-				/* If we are on the same page, there is no need to translate again, as we can just
-				   reuse the previous result. */
-				if ((i > 0) && (((addr + i) & ~0xfff) == prev_page))
-					addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
-				else
-					addr64[i] = mmutranslate_read(addr + i);
-
-				prev_page = ((addr + i) & ~0xfff);
+				addr64[i] = mmutranslate_read(addr + i);
 
 				if (addr64[i] > 0xffffffffULL)
 					return 0xffff;
 			}
 		}
-		/* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
-		   their result as a parameter to be used if needed. */
-		for (i = 0; i < 2; i++)
-			ret |= (readmembl_no_mmut(addr + i, addr64[i]) << (i << 3));
 
-		return ret;
+		return readmembl_no_mmut(addr, addr64[0]) |
+		       (((uint16_t) readmembl_no_mmut(addr + 1, addr64[1])) << 8);
 	} else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
 		return *(uint16_t *)(readlookup2[addr >> 12] + addr);
     }
@@ -935,7 +925,6 @@ writememwl(uint32_t addr, uint16_t val)
     uint64_t addr64[2];
     mem_mapping_t *map;
     int i;
-    uint32_t prev_page = 0xffffffff;
 
     addr64[0] = (uint64_t) addr;
     addr64[1] = (uint64_t) (addr + 1);
@@ -951,26 +940,18 @@ writememwl(uint32_t addr, uint16_t val)
 				/* Do not translate a page that has a valid lookup, as that is by definition valid
 				   and the whole purpose of the lookup is to avoid repeat identical translations. */
 				if (!page_lookup[(addr + i) >> 12] || !page_lookup[(addr + i) >> 12]->write_b) {
-					/* If we are on the same page, there is no need to translate again, as we can just
-					   reuse the previous result. */
-					if ((i > 0) && (((addr + i) & ~0xfff) == prev_page))
-						addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
-					else
-						addr64[i] = mmutranslate_write(addr + i);
-
-					prev_page = ((addr + i) & ~0xfff);
+					addr64[i] = mmutranslate_write(addr + i);
 
 					if (addr64[i] > 0xffffffffULL)
 						return;
-				} else
-					prev_page = 0xffffffff;
+				}
 			}
 		}
+
 		/* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
 		   their result as a parameter to be used if needed. */
-		for (i = 0; i < 2; i++)
-			writemembl_no_mmut(addr + i, addr64[i], val >> (i << 3));
-
+		writemembl_no_mmut(addr, addr64[0], val);
+		writemembl_no_mmut(addr + 1, addr64[1], val >> 8);
 		return;
 	} else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
 		*(uint16_t *)(writelookup2[addr >> 12] + addr) = val;
@@ -1013,7 +994,6 @@ readmemwl_no_mmut(uint32_t addr, uint64_t *addr64)
 {
     mem_mapping_t *map;
     int i;
-    uint16_t ret = 0x0000;
 
     mem_logical_addr = addr;
 
@@ -1021,14 +1001,15 @@ readmemwl_no_mmut(uint32_t addr, uint64_t *addr64)
 	if (!cpu_cyrix_alignment || (addr & 7) == 7)
 		cycles -= timing_misaligned;
 	if ((addr & 0xfff) > 0xffe) {
-		for (i = 0; i < 2; i++) {
-			if ((cr0 >> 31) && (addr64[i] > 0xffffffffULL))
-				return 0xffff;
-
-			ret |= (readmembl_no_mmut(addr + i, addr64[i]) << (i << 3));
+		if (cr0 >> 31) {
+			for (i = 0; i < 2; i++) {
+				if (addr64[i] > 0xffffffffULL)
+					return 0xffff;
+			}
 		}
 
-		return ret;
+		return readmembl_no_mmut(addr, addr64[0]) |
+		       (((uint16_t) readmembl_no_mmut(addr + 1, addr64[1])) << 8);
 	} else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
 		return *(uint16_t *)(readlookup2[addr >> 12] + addr);
     }
@@ -1068,13 +1049,15 @@ writememwl_no_mmut(uint32_t addr, uint64_t *addr64, uint16_t val)
 	if (!cpu_cyrix_alignment || (addr & 7) == 7)
 		cycles -= timing_misaligned;
 	if ((addr & 0xfff) > 0xffe) {
-		for (i = 0; i < 2; i++) {
-			if ((cr0 >> 31) && (addr64[i] > 0xffffffffULL))
-				return;
-
-			writemembl_no_mmut(addr + i, addr64[i], val >> (i << 3));
+		if (cr0 >> 31) {
+			for (i = 0; i < 2; i++) {
+				if (addr64[i] > 0xffffffffULL)
+					return;
+			}
 		}
 
+		writemembl_no_mmut(addr, addr64[0], val);
+		writemembl_no_mmut(addr + 1, addr64[1], val >> 8);
 		return;
 	} else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
 		*(uint16_t *)(writelookup2[addr >> 12] + addr) = val;
@@ -1116,9 +1099,7 @@ readmemll(uint32_t addr)
 {
     uint64_t addr64[4];
     mem_mapping_t *map;
-    int i;
-    uint32_t ret = 0x00000000;
-    uint32_t prev_page = 0xffffffff;
+    int i, wrap_i = 1;
 
     for (i = 0; i < 4; i++)
 	addr64[i] = (uint64_t) (addr + i);
@@ -1130,26 +1111,31 @@ readmemll(uint32_t addr)
 		cycles -= timing_misaligned;
 	if ((addr & 0xfff) > 0xffc) {
 		if (cr0 >> 31) {
-			for (i = 0; i < 4; i++) {
-				/* If we are on the same page, there is no need to translate again, as we can just
-				   reuse the previous result. */
-				if ((i > 0) && (((addr + i) & ~0xfff) == prev_page))
-					addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
-				else
-					addr64[i] = mmutranslate_read(addr + i);
+			wrap_i = 4 - (addr & 0x3);
 
-				prev_page = ((addr + i) & ~0xfff);
+			addr64[0] = mmutranslate_read(addr);
 
-				if (addr64[i] > 0xffffffffULL)
-					return 0xffff;
+			if (addr64[0] > 0xffffffffULL)
+				return 0xffffffff;
+
+			for (i = 1; i < wrap_i; i++)
+				addr64[i] = (addr64[0] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
+
+			addr64[wrap_i] = mmutranslate_read(addr + wrap_i);
+
+			if (addr64[wrap_i] > 0xffffffffULL)
+				return 0xffffffff;
+
+			if (wrap_i != 3) {
+				for (i = (wrap_i) + 1; i <= 3; i++)
+					addr64[i] = (addr64[wrap_i] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
 			}
 		}
+
 		/* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
 		   their result as a parameter to be used if needed. */
-		for (i = 0; i < 4; i += 2)
-			ret |= (readmemwl_no_mmut(addr + i, &(addr64[i])) << (i << 3));
-
-		return ret;
+		return readmemwl_no_mmut(addr, addr64) |
+		       (((uint32_t) readmemwl_no_mmut(addr + 2, &(addr64[2]))) << 16);
 	} else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
 		return *(uint32_t *)(readlookup2[addr >> 12] + addr);
     }
@@ -1187,8 +1173,7 @@ writememll(uint32_t addr, uint32_t val)
 {
     uint64_t addr64[4];
     mem_mapping_t *map;
-    int i;
-    uint32_t prev_page = 0xffffffff;
+    int i, wrap_i = 1;
 
     for (i = 0; i < 4; i++)
 	addr64[i] = (uint64_t) (addr + i);
@@ -1200,30 +1185,37 @@ writememll(uint32_t addr, uint32_t val)
 		cycles -= timing_misaligned;
 	if ((addr & 0xfff) > 0xffc) {
 		if (cr0 >> 31) {
-			for (i = 0; i < 4; i++) {
-				/* Do not translate a page that has a valid lookup, as that is by definition valid
-				   and the whole purpose of the lookup is to avoid repeat identical translations. */
-				if (!page_lookup[(addr + i) >> 12] || !page_lookup[(addr + i) >> 12]->write_b) {
-					/* If we are on the same page, there is no need to translate again, as we can just
-					   reuse the previous result. */
-					if ((i > 0) && (((addr + i) & ~0xfff) == prev_page))
-						addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
-					else
-						addr64[i] = mmutranslate_write(addr + i);
+			wrap_i = 4 - (addr & 0x3);
 
-					prev_page = ((addr + i) & ~0xfff);
+			if (!page_lookup[(addr + 0) >> 12] || !page_lookup[(addr + 0) >> 12]->write_b)
+				addr64[0] = mmutranslate_write(addr);
+			else
+				addr64[0] = 0xffffffff;
 
-					if (addr64[i] > 0xffffffffULL)
-						return;
-				} else
-					prev_page = 0xffffffff;
+			if (addr64[0] > 0xffffffffULL)
+				return;
+
+			for (i = 1; i < wrap_i; i++)
+				addr64[i] = (addr64[0] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
+
+			if (!page_lookup[(addr + wrap_i) >> 12] || !page_lookup[(addr + wrap_i) >> 12]->write_b)
+				addr64[wrap_i] = mmutranslate_write(addr + wrap_i);
+			else
+				addr64[wrap_i] = 0xffffffff;
+
+			if (addr64[wrap_i] > 0xffffffffULL)
+				return;
+
+			if (wrap_i != 3) {
+				for (i = (wrap_i) + 1; i <= 3; i++)
+					addr64[i] = (addr64[wrap_i] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
 			}
 		}
+
 		/* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
 		   their result as a parameter to be used if needed. */
-		for (i = 0; i < 4; i += 2)
-			writememwl_no_mmut(addr + i, &(addr64[i]), val >> (i << 3));
-
+		writememwl_no_mmut(addr, &(addr64[0]), val);
+		writememwl_no_mmut(addr + 2, &(addr64[2]), val >> 16);
 		return;
 	} else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
 		*(uint32_t *)(writelookup2[addr >> 12] + addr) = val;
@@ -1272,7 +1264,6 @@ readmemll_no_mmut(uint32_t addr, uint64_t *addr64)
 {
     mem_mapping_t *map;
     int i;
-    uint32_t ret = 0x00000000;
 
     mem_logical_addr = addr;
 
@@ -1280,14 +1271,15 @@ readmemll_no_mmut(uint32_t addr, uint64_t *addr64)
 	if (!cpu_cyrix_alignment || (addr & 7) > 4)
 		cycles -= timing_misaligned;
 	if ((addr & 0xfff) > 0xffc) {
-		for (i = 0; i < 4; i += 2) {
-			if ((cr0 >> 31) && (addr64[i] > 0xffffffffULL))
-				return 0xffffffff;
-
-			ret |= (readmemwl_no_mmut(addr + i, &(addr64[i])) << (i << 3));
+		if (cr0 >> 31) {
+			for (i = 0; i < 4; i += 2) {
+				if (addr64[i] > 0xffffffffULL)
+					return 0xffffffff;
+			}
 		}
 
-		return ret;
+		return readmemwl_no_mmut(addr, addr64) |
+		       (((uint32_t) readmemwl_no_mmut(addr + 2, &(addr64[2]))) << 16);
 	} else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
 		return *(uint32_t *)(readlookup2[addr >> 12] + addr);
     }
@@ -1332,13 +1324,15 @@ writememll_no_mmut(uint32_t addr, uint64_t *addr64, uint32_t val)
 	if (!cpu_cyrix_alignment || (addr & 7) > 4)
 		cycles -= timing_misaligned;
 	if ((addr & 0xfff) > 0xffc) {
-		for (i = 0; i < 4; i += 2) {
-			if ((cr0 >> 31) && (addr64[i] > 0xffffffffULL))
-				return;
-
-			writememwl_no_mmut(addr + i, &(addr64[i]), val >> (i << 3));
+		if (cr0 >> 31) {
+			for (i = 0; i < 4; i += 2) {
+				if (addr64[i] > 0xffffffffULL)
+					return;
+			}
 		}
 
+		writememwl_no_mmut(addr, &(addr64[0]), val);
+		writememwl_no_mmut(addr + 2, &(addr64[2]), val >> 16);
 		return;
 	} else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
 		*(uint32_t *)(writelookup2[addr >> 12] + addr) = val;
@@ -1385,9 +1379,7 @@ readmemql(uint32_t addr)
 {
     uint64_t addr64[8];
     mem_mapping_t *map;
-    int i;
-    uint64_t ret = 0x0000000000000000ULL;
-    uint32_t prev_page = 0xffffffff;
+    int i, wrap_i = 1;
 
     for (i = 0; i < 8; i++)
 	addr64[i] = (uint64_t) (addr + i);
@@ -1398,26 +1390,30 @@ readmemql(uint32_t addr)
 	cycles -= timing_misaligned;
 	if ((addr & 0xfff) > 0xff8) {
 		if (cr0 >> 31) {
-			for (i = 0; i < 8; i++) {
-				/* If we are on the same page, there is no need to translate again, as we can just
-				   reuse the previous result. */
-				if ((i > 0) && (((addr + i) & ~0xfff) == prev_page))
-					addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
-				else
-					addr64[i] = mmutranslate_read(addr + i);
+			wrap_i = 8 - (addr & 0x7);
 
-				prev_page = ((addr + i) & ~0xfff);
+			addr64[0] = mmutranslate_read(addr);
 
-				if (addr64[i] > 0xffffffffULL)
-					return 0xffff;
+			if (addr64[0] > 0xffffffffULL)
+				return 0xffffffffffffffffULL;
+
+			for (i = 1; i < wrap_i; i++)
+				addr64[i] = (addr64[0] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
+
+			addr64[wrap_i] = mmutranslate_read(addr + wrap_i);
+
+			if (addr64[wrap_i] > 0xffffffffULL)
+				return 0xffffffffffffffffULL;
+
+			if (wrap_i != 7) {
+				for (i = (wrap_i) + 1; i <= 7; i++)
+					addr64[i] = (addr64[wrap_i] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
 			}
 		}
 		/* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
 		   their result as a parameter to be used if needed. */
-		for (i = 0; i < 8; i += 4)
-			ret |= (readmemll_no_mmut(addr + i, &(addr64[i])) << (i << 3));
-
-		return ret;
+		return readmemll_no_mmut(addr, addr64) |
+		       (((uint64_t) readmemll_no_mmut(addr + 4, &(addr64[4]))) << 32);
 	} else if (readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
 		return *(uint64_t *)(readlookup2[addr >> 12] + addr);
     }
@@ -1444,8 +1440,7 @@ writememql(uint32_t addr, uint64_t val)
 {
     uint64_t addr64[8];
     mem_mapping_t *map;
-    int i;
-    uint32_t prev_page = 0xffffffff;
+    int i, wrap_i;
 
     for (i = 0; i < 8; i++)
 	addr64[i] = (uint64_t) (addr + i);
@@ -1456,30 +1451,37 @@ writememql(uint32_t addr, uint64_t val)
 	cycles -= timing_misaligned;
 	if ((addr & 0xfff) > 0xff8) {
 		if (cr0 >> 31) {
-			for (i = 0; i < 8; i++) {
-				/* Do not translate a page that has a valid lookup, as that is by definition valid
-				   and the whole purpose of the lookup is to avoid repeat identical translations. */
-				if (!page_lookup[(addr + i) >> 12] || !page_lookup[(addr + i) >> 12]->write_b) {
-					/* If we are on the same page, there is no need to translate again, as we can just
-					   reuse the previous result. */
-					if ((i > 0) && (((addr + i) & ~0xfff) == prev_page))
-						addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
-					else
-						addr64[i] = mmutranslate_write(addr + i);
+			wrap_i = 8 - (addr & 0x7);
 
-					prev_page = ((addr + i) & ~0xfff);
+			if (!page_lookup[(addr + 0) >> 12] || !page_lookup[(addr + 0) >> 12]->write_b)
+				addr64[0] = mmutranslate_write(addr);
+			else
+				addr64[0] = 0xffffffff;
 
-					if (addr64[i] > 0xffffffffULL)
-						return;
-				} else
-					prev_page = 0xffffffff;
+			if (addr64[0] > 0xffffffffULL)
+				return;
+
+			for (i = 1; i < wrap_i; i++)
+				addr64[i] = (addr64[wrap_i] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
+
+			if (!page_lookup[(addr + wrap_i) >> 12] || !page_lookup[(addr + wrap_i) >> 12]->write_b)
+				addr64[wrap_i] = mmutranslate_write(addr + wrap_i);
+			else
+				addr64[wrap_i] = 0xffffffff;
+
+			if (addr64[wrap_i] > 0xffffffffULL)
+				return;
+
+			if (wrap_i != 7) {
+				for (i = (wrap_i) + 1; i <= 7; i++)
+					addr64[i] = (addr64[wrap_i] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
 			}
 		}
+
 		/* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
 		   their result as a parameter to be used if needed. */
-		for (i = 0; i < 8; i += 4)
-			writememll_no_mmut(addr + i, &(addr64[i]), val >> (i << 3));
-
+		writememll_no_mmut(addr, &(addr64[0]), val);
+		writememll_no_mmut(addr + 4, &(addr64[4]), val >> 32);
 		return;
 	} else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
 		*(uint64_t *)(writelookup2[addr >> 12] + addr) = val;
@@ -1533,36 +1535,29 @@ writememql(uint32_t addr, uint64_t val)
 void
 do_mmutranslate(uint32_t addr, uint64_t *addr64, int num, int write)
 {
-    int i, cond = 1;
-    uint32_t prev_page = 0xffffffff;
+    int i, wrap_i;
+    int cond = 1;
 
-    for (i = 0; i < num; i++) {
-	addr64[i] = (uint64_t) (addr + i);
+    if (cr0 >> 31) {
+	wrap_i = (num - (addr & (num - 1))) & (num - 1);
 
-    	if (cr0 >> 31) {
-		/* Do not translate a page that has a valid lookup, as that is by definition valid
-		   and the whole purpose of the lookup is to avoid repeat identical translations. */
-		if (write)
-		    cond = (!page_lookup[(addr + i) >> 12] || !page_lookup[(addr + i) >> 12]->write_b);
+	for (i = 0; i < num; i++) {
+		if (write && ((i == 0) || (wrap_i && (i == wrap_i))))
+		    cond = (!page_lookup[addr >> 12] || !page_lookup[addr >> 12]->write_b);
 
 		if (cond) {
 			/* If we are on the same page, there is no need to translate again, as we can just
 			   reuse the previous result. */
-			if ((i > 0) && (((addr + i) & ~0xfff) == prev_page))
-				addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) ((addr + i) & 0xfff));
-			else
-				addr64[i] = mmutranslatereal(addr + i, write);
+			if (((i == 0) || (wrap_i && (i == wrap_i)))) {
+				addr64[i] = mmutranslatereal(addr, write);
 
-			prev_page = ((addr + i) & ~0xfff);
+				if (addr64[i] > 0xffffffffULL)
+					return;
+			} else
+				addr64[i] = (addr64[i - 1] & ~0xfffLL) | ((uint64_t) (addr & 0xfff));
+		}
 
-			if (addr64[i] == 0xffffffffffffffffULL)
-				return;
-			if (addr64[i] > 0xffffffffULL)
-				return;
-			if (cpu_state.abrt)
-				return;
-		} else
-			prev_page = 0xffffffff;
+		addr++;
 	}
     }
 }

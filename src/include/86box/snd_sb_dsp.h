@@ -117,6 +117,6 @@ void sb_dsp_poll(sb_dsp_t *dsp, int16_t *l, int16_t *r);
 void sb_dsp_set_stereo(sb_dsp_t *dsp, int stereo);
 
 void sb_dsp_update(sb_dsp_t *dsp);
-void sb_update_irq(sb_dsp_t *dsp);
+void sb_update_mask(sb_dsp_t *dsp, int irqm8, int irqm16, int irqm401);
 
 #endif /* SOUND_SND_SB_DSP_H */
