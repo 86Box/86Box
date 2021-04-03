@@ -135,6 +135,7 @@ static ide_bm_t		*ide_bm[4] = { NULL, NULL, NULL, NULL };
 static uint8_t ide_ter_pnp_rom[] = {
     0x09, 0xf8, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, /* BOX0001, serial 0, dummy checksum (filled in by isapnp_add_card) */
     0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
+    0x82, 0x0e, 0x00, 'I', 'D', 'E', ' ', 'C', 'o', 'n', 't', 'r', 'o', 'l', 'l', 'e', 'r', /* ANSI identifier */
 
     0x15, 0x09, 0xf8, 0x00, 0x01, 0x00, /* logical device BOX0001 */
 	0x1c, 0x41, 0xd0, 0x06, 0x00, /* compatible device PNP0600 */
@@ -157,6 +158,7 @@ static uint8_t ide_ter_pnp_rom[] = {
 static uint8_t ide_qua_pnp_rom[] = {
     0x09, 0xf8, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, /* BOX0001, serial 1, dummy checksum (filled in by isapnp_add_card) */
     0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
+    0x82, 0x0e, 0x00, 'I', 'D', 'E', ' ', 'C', 'o', 'n', 't', 'r', 'o', 'l', 'l', 'e', 'r', /* ANSI identifier */
 
     0x15, 0x09, 0xf8, 0x00, 0x01, 0x00, /* logical device BOX0001 */
 	0x1c, 0x41, 0xd0, 0x06, 0x00, /* compatible device PNP0600 */
