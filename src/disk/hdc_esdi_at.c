@@ -328,7 +328,7 @@ esdi_write(uint16_t port, uint8_t val, void *priv)
 						esdi->command &= ~0x03;
 						if (val & 0x02)
 							fatal("Write with ECC\n");
-						esdi->status = STAT_DRQ | STAT_DSC;
+						esdi->status = STAT_READY | STAT_DRQ | STAT_DSC;
 						esdi->pos = 0;
 						break;
 

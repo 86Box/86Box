@@ -125,7 +125,7 @@ static void		mfm_write(uint16_t port, uint8_t val, void *priv);
 
 
 #ifdef ENABLE_ST506_AT_LOG
-int mfm_at_do_log = ENABLE_ST506_AT_LOG;
+int st506_at_do_log = ENABLE_ST506_AT_LOG;
 
 
 static void
@@ -305,7 +305,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
 				mfm->command &= 0xfc;
 				if (val & 2)
 					fatal("WD1003: WRITE with ECC\n");
-				mfm->status = STAT_DRQ|STAT_DSC;
+				mfm->status = STAT_READY|STAT_DRQ|STAT_DSC;
 				mfm->pos = 0;
 				break;
 
