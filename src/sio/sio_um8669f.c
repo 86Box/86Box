@@ -39,7 +39,7 @@
 #include <86box/isapnp.h>
 
 
-/* This ROM is reconstructed out of the several assumptions, some of which based on the IT8671F. */
+/* This ROM is reconstructed out of the several assumptions, some of which are based on the IT8671F. */
 static uint8_t um8669f_pnp_rom[] = {
     0x55, 0xa3, 0x86, 0x69, 0x00, 0x00, 0x00, 0x00, 0x00, /* UMC8669, dummy checksum (filled in by isapnp_add_card) */
     0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
