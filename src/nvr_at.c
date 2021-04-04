@@ -1010,13 +1010,15 @@ nvr_at_close(void *priv)
     timer_disable(&local->update_timer);
     timer_disable(&nvr->onesec_time);
 
-    if (nvr->fn != NULL)
-	free(nvr->fn);
+    if (nvr != NULL) {
+	if (nvr->fn != NULL)
+		free(nvr->fn);
 
-    if (nvr->data != NULL)
-	free(nvr->data);
+	if (nvr->data != NULL)
+		free(nvr->data);
 
-    free(nvr);
+	free(nvr);
+    }
 
     if (nvr_at_inited == 1)
 	nvr_at_inited = 0;
