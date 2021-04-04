@@ -150,6 +150,7 @@ extern char	*joystick_get_button_name(int js, int id);
 extern char	*joystick_get_pov_name(int js, int id);
 
 extern void	gameport_update_joystick_type(void);
+extern void	gameport_remap(uint16_t address);
 
 #ifdef __cplusplus
 }

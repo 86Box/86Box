@@ -60,6 +60,7 @@ typedef struct {
 
 typedef struct _gameport_ {
     uint8_t	state;
+    uint16_t	addr;
 
     g_axis_t	axis[4];
 
@@ -243,10 +244,49 @@ timer_over(void *priv)
 }
 
 
-static void *
-init_common(void)
+void
+gameport_update_joystick_type(void)
 {
-    gameport_t *p = malloc(sizeof(gameport_t));
+    gameport_t *p = gameport_global;
+
+    if (p != NULL) {
+	p->joystick->close(p->joystick_dat);
+	p->joystick = joysticks[joystick_type].joystick;
+	p->joystick_dat = p->joystick->init();
+    }
+}
+
+
+void
+gameport_remap(uint16_t address)
+{
+    gameport_t *p = gameport_global;
+    if (!p)
+	return;
+
+    if (p->addr)
+	io_removehandler(p->addr, (p->addr & 1) ? 1 : 8,
+			 gameport_read, NULL, NULL, gameport_write, NULL, NULL, p);
+
+    p->addr = address;
+
+    if (p->addr)
+	io_sethandler(p->addr, (p->addr & 1) ? 1 : 8,
+		      gameport_read, NULL, NULL, gameport_write, NULL, NULL, p);
+}
+
+
+static void *
+gameport_init(const device_t *info)
+{
+    gameport_t *p = NULL;
+
+    if (!joystick_type) {
+	gameport_global = p = NULL;
+	return(p);
+    }
+
+    p = malloc(sizeof(gameport_t));
 
     memset(p, 0x00, sizeof(gameport_t));
 
@@ -270,56 +310,7 @@ init_common(void)
 
     gameport_global = p;
 
-    return(p);
-}
-
-
-void
-gameport_update_joystick_type(void)
-{
-    gameport_t *p = gameport_global;
-
-    if (p != NULL) {
-	p->joystick->close(p->joystick_dat);
-	p->joystick = joysticks[joystick_type].joystick;
-	p->joystick_dat = p->joystick->init();
-    }
-}
-
-
-static void *
-gameport_init(const device_t *info)
-{
-    gameport_t *p = NULL;
-
-    if (!joystick_type) {
-	p = NULL;
-	return(p);
-    }
-
-    p = init_common();
-
-    io_sethandler(0x0200, 8,
-		  gameport_read,NULL,NULL, gameport_write,NULL,NULL, p);
-
-    return(p);
-}
-
-
-static void *
-gameport_201_init(const device_t *info)
-{
-    gameport_t *p;
-
-    if (!joystick_type) {
-	p = NULL;
-	return(p);
-    }
-
-    p = init_common();
-
-    io_sethandler(0x0201, 1,
-		  gameport_read,NULL,NULL, gameport_write,NULL,NULL, p);
+    gameport_remap(info->local);
 
     return(p);
 }
@@ -342,7 +333,7 @@ gameport_close(void *priv)
 
 const device_t gameport_device = {
     "Game port",
-    0, 0,
+    0, 0x200,
     gameport_init,
     gameport_close,
     NULL, { NULL }, NULL,
@@ -351,8 +342,8 @@ const device_t gameport_device = {
 
 const device_t gameport_201_device = {
     "Game port (port 201h only)",
-    0, 0,
-    gameport_201_init,
+    0, 0x201,
+    gameport_init,
     gameport_close,
     NULL, { NULL }, NULL,
     NULL

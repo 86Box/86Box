@@ -11,6 +11,7 @@
  *
  *
  * Author:	RichardG, <richardg867@gmail.com>
+ *
  *		Copyright 2020 RichardG.
  */
 #include <stdio.h>
@@ -149,7 +150,7 @@ vt82c686_read(uint16_t port, void *priv)
 {
     vt82c686_t *dev = (vt82c686_t *) priv;
     uint8_t ret = 0xff;
-    
+
     /* NOTE: Registers are [0xE0:0xFF] but we store them as [0x00:0x1F]. */
     if (!(port & 1))
 	ret = dev->cur_reg;
