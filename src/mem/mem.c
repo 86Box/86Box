@@ -2861,9 +2861,11 @@ mem_reset_page_blocks(void)
 #ifdef USE_NEW_DYNAREC
 	pages[c].block = BLOCK_INVALID;
 	pages[c].block_2 = BLOCK_INVALID;
+	pages[c].head = BLOCK_INVALID;
 #else
 	pages[c].block[0] = pages[c].block[1] = pages[c].block[2] = pages[c].block[3] = NULL;
 	pages[c].block_2[0] = pages[c].block_2[1] = pages[c].block_2[2] = pages[c].block_2[3] = NULL;
+	pages[c].head = NULL;
 #endif
     }
 }
