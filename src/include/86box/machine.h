@@ -380,6 +380,9 @@ extern const device_t 	*at_cpqiii_get_device(void);
 /* m_at_socket4_5.c */
 extern int	machine_at_excalibur_init(const machine_t *);
 
+extern int	machine_at_hot543_init(const machine_t *);
+extern int	machine_at_p54vl_init(const machine_t *);
+
 extern int	machine_at_batman_init(const machine_t *);
 extern int	machine_at_ambradp60_init(const machine_t *);
 extern int	machine_at_dellxp60_init(const machine_t *);

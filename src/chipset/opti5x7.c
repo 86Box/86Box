@@ -32,32 +32,6 @@
 #include <86box/port_92.h>
 #include <86box/chipset.h>
 
-/* Shadow RAM */
-
-/* Register 4h: C0000-CFFFF range | Register 5h: D0000-DFFFF range */
-#define CURRENT_REGISTER dev->regs[4 + !!(i & 4)]
-
-/*
-Bits 7-6: xC000-xFFFF
-Bits 5-4: x8000-xBFFF
-Bits 3-2: x4000-x7FFF
-Bits 0-1: x0000-x3FFF
-
-     x-y
-     0 0 Read/Write AT bus
-     1 0 Read from AT - Write to DRAM
-     1 1 Read from DRAM - Write to DRAM
-     0 1 Read from DRAM (write protected)
-*/
-#define CAN_READ (1 << (i - (4 * !!(i & 4))) * 2)
-#define CAN_WRITE (1 << ((i - (4 * !!(i & 4))) * 2 + 1))
-
-/* Shadow Recalc for the C/D segments */
-#define SHADOW_RECALC (((CURRENT_REGISTER & CAN_READ) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((CURRENT_REGISTER & CAN_WRITE) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY))
-
-/* Shadow Recalc for the E/F segments */
-#define SHADOW_EF_RECALC (((dev->regs[6] & CAN_READ) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[6] & CAN_WRITE) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY))
-
 typedef struct
 {
     uint8_t idx, regs[16];
@@ -83,17 +57,36 @@ opti5x7_log(const char *fmt, ...)
 #endif
 
 static void
-shadow_map(opti5x7_t *dev)
+opti5x7_shadow_map(int cur_reg, opti5x7_t *dev)
 {
-    for (int i = 0; i < 8; i++)
+
+/*
+Register 4h: Cxxxx Segment
+Register 5h: Dxxxx Segment
+
+Bits 7-6: xC000-xFFFF
+Bits 5-4: x8000-xBFFF
+Bits 3-2: x4000-x7FFF
+Bits 0-1: x0000-x3FFF
+
+     x-y
+     0 0 Read/Write AT bus
+     1 0 Read from AT - Write to DRAM
+     1 1 Read from DRAM - Write to DRAM
+     0 1 Read from DRAM (write protected)
+*/
+    if (cur_reg == 0x06)
     {
-        mem_set_mem_state_both(0xc0000 + (i << 14), 0x4000, SHADOW_RECALC);
-        if (i < 2)
-            mem_set_mem_state_both(0xe0000 + (i << 16), 0x10000, SHADOW_EF_RECALC);
+        mem_set_mem_state_both(0xe0000, 0x10000, ((dev->regs[6] & 1) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[6] & 2) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
+        mem_set_mem_state_both(0xf0000, 0x10000, ((dev->regs[6] & 4) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[6] & 8) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
     }
-    shadowbios = !!(dev->regs[0x06] & 5);
-    shadowbios_write = !!(dev->regs[0x06] & 0x0a);
-    flushmmucache();
+    else
+    {
+        for (int i = 0; i < 4; i++)
+            mem_set_mem_state_both(0xc0000 + ((cur_reg & 1) << 16) + (i << 14), 0x4000, ((dev->regs[cur_reg] & (1 << (2 * i))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->regs[cur_reg] & (2 << (2 * i))) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
+    }
+
+    flushmmucache_nopc();
 }
 
 static void
@@ -107,7 +100,6 @@ opti5x7_write(uint16_t addr, uint8_t val, void *priv)
         dev->idx = val;
         break;
     case 0x24:
-        opti5x7_log("OPTi 5x7: dev->regs[%02x] = %02x\n", dev->idx, val);
         switch (dev->idx)
         {
         case 0x00: /* DRAM Configuration Register #1 */
@@ -116,7 +108,7 @@ opti5x7_write(uint16_t addr, uint8_t val, void *priv)
         case 0x01: /* DRAM Control Register #1 */
             dev->regs[dev->idx] = val;
             break;
-        case 0x02: /* Cache Control Register #1 */
+        case 0x02:  /* Cache Control Register #1 */
             dev->regs[dev->idx] = val;
             cpu_cache_ext_enabled = !!(dev->regs[0x02] & 0x0c);
             cpu_update_waitstates();
@@ -128,7 +120,7 @@ opti5x7_write(uint16_t addr, uint8_t val, void *priv)
         case 0x05: /* Shadow RAM Control Register #2 */
         case 0x06: /* Shadow RAM Control Register #3 */
             dev->regs[dev->idx] = val;
-            shadow_map(dev);
+            opti5x7_shadow_map(dev->idx, dev);
             break;
         case 0x07: /* Tag Test Register */
         case 0x08: /* CPU Cache Control Register #1 */
@@ -148,6 +140,7 @@ opti5x7_write(uint16_t addr, uint8_t val, void *priv)
             dev->regs[dev->idx] = val;
             break;
         }
+        opti5x7_log("OPTi 5x7: dev->regs[%02x] = %02x\n", dev->idx, dev->regs[dev->idx]);
         break;
     }
 }
