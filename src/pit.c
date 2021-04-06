@@ -106,47 +106,26 @@ ctr_set_out(ctr_t *ctr, int out)
 static void
 ctr_decrease_count(ctr_t *ctr)
 {
-    uint8_t units, tens, hundreds, thousands, myriads;
-    int dec_cnt = 1;
-
-    if (ctr->ctrl & 0x01) {
-	units = ctr->count & 0x0f;
-	tens = (ctr->count >> 4) & 0x0f;
-	hundreds = (ctr->count >> 8) & 0x0f;
-	thousands = (ctr->count >> 12) & 0x0f;
-	myriads = (ctr->count >> 16) & 0x0f;
-
-	dec_cnt -= units;	
-	units = (10 - dec_cnt % 10) % 10;
-
-	dec_cnt = (dec_cnt + 9) / 10;	/* The +9 is so we get a carry if dec_cnt % 10 was not a 0. */
-	if (dec_cnt <= tens)
-		tens -= dec_cnt;
-	else {
-		dec_cnt -= tens;
-		tens = (10 - dec_cnt % 10) % 10;
-
-		dec_cnt = (dec_cnt + 9) / 10;
-		if (dec_cnt <= hundreds)
-			hundreds -= dec_cnt;
-		else {
-			dec_cnt -= hundreds;
-			hundreds = (10 - dec_cnt % 10) % 10;
-
-			dec_cnt = (dec_cnt + 9) / 10;
-			if (dec_cnt <= thousands)
-				thousands -= dec_cnt;
-			else {
-				dec_cnt -= thousands;
-				thousands = (10 - dec_cnt % 10) % 10;
-
-				dec_cnt = (dec_cnt + 9) / 10;
-				myriads = (10 + myriads - dec_cnt % 10) % 10;
+    if (ctr->bcd) {
+	ctr->units--;
+	if (ctr->units == 0xff) {
+		ctr->units = 9;
+		ctr->tens--;
+		if (ctr->tens == 0xff) {
+			ctr->tens = 9;
+			ctr->hundreds--;
+			if (ctr->hundreds == 0xff) {
+				ctr->hundreds = 9;
+				ctr->thousands--;
+				if (ctr->thousands == 0xff) {
+					ctr->thousands = 9;
+					ctr->myriads--;
+					if (ctr->myriads == 0xff)
+						ctr->myriads = 0;	/* 0 - 1 should wrap around to 9999. */
+				}
 			}
 		}
 	}
-
-	ctr->count = (myriads << 16) | (thousands << 12) | (hundreds << 8) | (tens << 4) | units;
     } else
 	ctr->count = (ctr->count - 1) & 0xffff;
 }
@@ -167,14 +146,19 @@ ctr_load_count(ctr_t *ctr)
 static void
 ctr_tick(ctr_t *ctr)
 {
+    uint8_t state = ctr->state;
+
+    if (state == 1) {
+	/* This is true for all modes */
+	ctr_load_count(ctr);
+	ctr->state = 2;
+	return;
+    }
+
     switch(ctr->m & 0x07) {
 	case 0:
-		/*Interrupt on terminal count*/
-		switch (ctr->state) {
-			case 1:
-				ctr_load_count(ctr);
-				ctr->state = 2;
-				break;
+		/* Interrupt on terminal count */
+		switch (state) {
 			case 2:
 				if (ctr->gate && (ctr->count >= 1)) {
 					ctr_decrease_count(ctr);
@@ -190,8 +174,8 @@ ctr_tick(ctr_t *ctr)
 		}
 		break;
 	case 1:
-		/*Hardware retriggerable one-shot*/
-		switch (ctr->state) {
+		/* Hardware retriggerable one-shot */
+		switch (state) {
 			case 1:
 				ctr_load_count(ctr);
 				ctr->state = 2;
@@ -212,13 +196,12 @@ ctr_tick(ctr_t *ctr)
 		}
 		break;
 	case 2: case 6:
-		/*Rate generator*/
-		switch (ctr->state) {
-			case 1: case 3:
+		/* Rate generator */
+		switch (state) {
+			case 3:
 				ctr_load_count(ctr);
-				if (ctr->state == 3)
-					ctr_set_out(ctr, 1);
 				ctr->state = 2;
+				ctr_set_out(ctr, 1);
 				break;
 			case 2:
 				if (ctr->gate == 0)
@@ -234,17 +217,18 @@ ctr_tick(ctr_t *ctr)
 		}
 		break;
 	case 3: case 7:
-		/*Square wave mode*/
-		switch (ctr->state) {
-			case 1:
-				ctr_load_count(ctr);
-				ctr->state = 2;
-				break;
+		/* Square wave mode */
+		switch (state) {
 			case 2:
 				if (ctr->gate == 0)
 					break;
 				else if (ctr->count >= 0) {
-					ctr->count -= (ctr->newcount ? 1 : 2);
+					if (ctr->bcd) {
+						ctr_decrease_count(ctr);
+						if (!ctr->newcount)
+							ctr_decrease_count(ctr);
+					} else
+						ctr->count -= (ctr->newcount ? 1 : 2);
 					if (ctr->count < 0) {
 						ctr_load_count(ctr);
 						ctr->state = 3;
@@ -257,7 +241,13 @@ ctr_tick(ctr_t *ctr)
 				if (ctr->gate == 0)
 					break;
 				else if (ctr->count >= 0) {
-					ctr->count -= (ctr->newcount ? 3 : 2);
+					if (ctr->bcd) {
+						ctr_decrease_count(ctr);
+						ctr_decrease_count(ctr);
+						if (ctr->newcount)
+							ctr_decrease_count(ctr);
+					} else
+						ctr->count -= (ctr->newcount ? 3 : 2);
 					if (ctr->count < 0) {
 						ctr_load_count(ctr);
 						ctr->state = 2;
@@ -269,16 +259,12 @@ ctr_tick(ctr_t *ctr)
 		}
 		break;
 	case 4: case 5:
-		/*Software triggered strobe*/
-		/*Hardware triggered strobe*/
+		/* Software triggered strobe */
+		/* Hardware triggered strobe */
 		if ((ctr->gate != 0) || (ctr->m != 4)) {
-			switch(ctr->state) {
+			switch(state) {
 				case 0:
 					ctr_decrease_count(ctr);
-					break;
-				case 1:
-					ctr_load_count(ctr);
-					ctr->state = 2;
 					break;
 				case 2:
 					if (ctr->count >= 1) {
@@ -319,18 +305,10 @@ ctr_clock(ctr_t *ctr)
 static void
 ctr_set_state_1(ctr_t *ctr)
 {
-    switch (ctr->m) {
-	case 0: case 4:
-		/*Interrupt on terminal count*/
-		ctr->state = 1;
-		break;
-	case 2: case 3:
-		/*Rate generator*/
-		/*Square wave mode*/
-		if (ctr->state == 0)
-			ctr->state = 1;
-		break;
-    }
+    uint8_t mode = (ctr->m & 0x03);
+
+    if ((mode == 0) || ((mode > 1) && (ctr->state == 0)))
+	ctr->state = 1;
 }
 
 
@@ -427,32 +405,24 @@ void
 pit_ctr_set_gate(ctr_t *ctr, int gate)
 {
     int old = ctr->gate;
+    uint8_t mode = ctr->m & 3;
 
     ctr->gate = gate;
 
-    switch (ctr->m & 0x07) {
+    switch (mode) {
 	case 1: case 2: case 3: case 5: case 6: case 7:
 		if (!old && gate) {
 			/* Here we handle the rising edges. */
-			switch (ctr->m) {
-				case 1:
-					ctr->state = 1;
-					break;
-				case 2: case 6:
-					ctr->state = 3;
-					break;
-				case 3: case 5: case 7:
+			if (mode & 1) {
+				if (mode != 1)
 					ctr_set_out(ctr, 1);
-					ctr->state = 1;
-					break;
-			}
+				ctr->state = 1;
+			} else if (mode == 2)
+				ctr->state = 3;
 		} else if (old && !gate) {
 			/* Here we handle the lowering edges. */
-			switch (ctr->m) {
-				case 2: case 3: case 6: case 7:
-					ctr_set_out(ctr, 1);
-					break;
-			}
+			if (mode & 2)
+				ctr_set_out(ctr, 1);
 		}
 		break;
    }
@@ -477,13 +447,10 @@ pit_ctr_set_clock_common(ctr_t *ctr, int clock)
 			ctr->s1_det = 1;	/* Rising edge. */
 		else if (old && !ctr->clock) {
 			ctr->s1_det++;		/* Falling edge. */
-			if (ctr->s1_det != 2)
+			if (ctr->s1_det >= 2) {
 				ctr->s1_det = 0;
-		}
-
-		if (ctr->s1_det == 2) {
-			ctr->s1_det = 0;
-			ctr_tick(ctr);
+				ctr_tick(ctr);
+			}
 		}
 	} else if (old && !ctr->clock)
 		ctr_tick(ctr);
@@ -536,26 +503,25 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
 		t = val >> 6;
 
 		if (t == 3) {
-			if (!(dev->flags & PIT_8254))
-				break;
-
-			/* This is 8254-only. */
-			if (!(val & 0x20)) {
-				if (val & 2)
-					ctr_latch_count(&dev->counters[0]);
-				if (val & 4)
-					ctr_latch_count(&dev->counters[1]);
-				if (val & 8)
-					ctr_latch_count(&dev->counters[2]);
-				pit_log("PIT %i: Initiated readback command\n", t);
-			}
-			if (!(val & 0x10)) {
-				if (val & 2)
-					ctr_latch_status(&dev->counters[0]);
-				if (val & 4)
-					ctr_latch_status(&dev->counters[1]);
-				if (val & 8)
-					ctr_latch_status(&dev->counters[2]);
+			if (dev->flags & PIT_8254) {
+				/* This is 8254-only. */
+				if (!(val & 0x20)) {
+					if (val & 2)
+						ctr_latch_count(&dev->counters[0]);
+					if (val & 4)
+						ctr_latch_count(&dev->counters[1]);
+					if (val & 8)
+						ctr_latch_count(&dev->counters[2]);
+					pit_log("PIT %i: Initiated readback command\n", t);
+				}
+				if (!(val & 0x10)) {
+					if (val & 2)
+						ctr_latch_status(&dev->counters[0]);
+					if (val & 4)
+						ctr_latch_status(&dev->counters[1]);
+					if (val & 8)
+						ctr_latch_status(&dev->counters[2]);
+				}
 			}
 		} else {
 			dev->ctrl = val;
@@ -572,6 +538,7 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
 				if (ctr->m > 5)
 					ctr->m &= 3;
 				ctr->null_count = 1;
+				ctr->bcd = (ctr->ctrl & 0x01);
 				ctr_set_out(ctr, !!ctr->m);
 				ctr->state = 0;
 				if (ctr->latched) {

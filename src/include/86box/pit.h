@@ -21,13 +21,25 @@
 typedef struct {
     uint8_t	m, ctrl,
 		read_status, latch,
-		s1_det, l_det;
+		s1_det, l_det,
+		bcd, pad;
 
     uint16_t	rl;
 
     int		rm, wm, gate, out,
-		newcount, count, using_timer, latched,
-		state, null_count, do_read_status, clock;
+		newcount, clock, using_timer, latched,
+		state, null_count, do_read_status;
+
+    union {
+		int	count;
+		struct {
+			int	units		:4;
+			int	tens		:4;
+			int	hundreds	:4;
+			int	thousands	:4;
+			int	myriads		:4;
+		};
+    };
 
     uint32_t	l;
 
