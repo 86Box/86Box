@@ -205,7 +205,6 @@ const machine_t machines[] = {
     { "[OPTi 495] Award 486 clone",		"award486",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	      machine_at_opti495_init, NULL			},
     { "[OPTi 495] Dataexpert SX495 (486)",	"ami486",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	  machine_at_opti495_ami_init, NULL			},
     { "[OPTi 495] MR 486 clone",		"mr486",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	   machine_at_opti495_mr_init, NULL			},
-    { "[OPTi 802G] IBM PC 330 (type 6571)",	"pc330_6571",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3_PC330, 0, 25000000, 33333333, 0, 0, 2.0, 3.0,							MACHINE_VLB | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024, 65536, 1024, 127,	   machine_at_pc330_6571_init, NULL			},
     { "[OPTi 895] Jetway J-403TG",		"403tg",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,									 1024, 65536, 1024, 127,		machine_at_403tg_init, NULL			},
     { "[OPTi 895] Mylex MVI486",		"mvi486",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE_DUAL,							 1024, 65536, 1024, 127,	       machine_at_mvi486_init, NULL			},
     { "[SiS 401] AMI 486 Clone",		"sis401",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							 1024, 65536, 1024, 127,	       machine_at_sis401_init, NULL			},
@@ -232,6 +231,7 @@ const machine_t machines[] = {
     /* 486 machines which utilize the PCI bus */
     { "[ALi M1489] ABIT AB-PB4",		"abpb4",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024,  65536, 1024, 255,		machine_at_abpb4_init, NULL			},
     { "[ALi M1489] AMI WinBIOS 486 PCI",	"win486pci",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024,  65536, 1024, 255,	    machine_at_win486pci_init, NULL			},
+    { "[OPTi 802G] IBM PC 330 (type 6573)",	"pc330_6573",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3_PC330, 0, 25000000, 33333333, 0, 0, 2.0, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024, 65536, 1024, 127,	   machine_at_pc330_6573_init, NULL			},
     { "[i420EX] ASUS PVI-486AP4",		"486ap4",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_IDE_DUAL,						 1024, 131072, 1024, 127,	       machine_at_486ap4_init, NULL			},
     { "[i420ZX] ASUS PCI/I-486SP3G",		"486sp3g",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 131072, 1024, 127,	      machine_at_486sp3g_init, NULL			},
     { "[i420TX] ASUS PCI/I-486SP3",		"486sp3",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 131072, 1024, 127,	       machine_at_486sp3_init, NULL			},
