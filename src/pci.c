@@ -188,6 +188,35 @@ static void	pci_type2_write(uint16_t port, uint8_t val, void *priv);
 static uint8_t	pci_type2_read(uint16_t port, void *priv);
 
 
+void
+pci_set_pmc(uint8_t pmc)
+{
+    pci_reset_regs();
+
+    if (!pci_pmc && (pmc & 0x01)) {
+	io_removehandler(0x0cf8, 1,
+			 pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+	io_removehandler(0x0cfa, 1,
+			 pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+	io_sethandler(0x0cf8, 1,
+		      NULL,NULL,pci_cf8_read, NULL,NULL,pci_cf8_write, NULL);
+	io_sethandler(0x0cfc, 4,
+		      pci_read,NULL,NULL, pci_write,NULL,NULL, NULL);
+    } else if (pci_pmc && !(pmc & 0x01)) {
+	io_removehandler(0x0cf8, 1,
+			 NULL,NULL,pci_cf8_read, NULL,NULL,pci_cf8_write, NULL);
+	io_removehandler(0x0cfc, 4,
+			 pci_read,NULL,NULL, pci_write,NULL,NULL, NULL);
+	io_sethandler(0x0cf8, 1,
+		      pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+	io_sethandler(0x0cfa, 1,
+		      pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+    }
+
+    pci_pmc = (pmc & 0x01);
+}
+
+
 static void
 pci_type2_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -209,29 +238,8 @@ pci_type2_write(uint16_t port, uint8_t val, void *priv)
     } else if (port == 0xcfa)
 	pci_bus = val;
     else if (port == 0xcfb) {
-	pci_reset_regs();
-
-	if (!pci_pmc && (val & 0x01)) {
-		io_removehandler(0x0cf8, 1,
-				 pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
-		io_removehandler(0x0cfa, 1,
-				 pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
-		io_sethandler(0x0cf8, 1,
-			      NULL,NULL,pci_cf8_read, NULL,NULL,pci_cf8_write, NULL);
-		io_sethandler(0x0cfc, 4,
-			      pci_read,NULL,NULL, pci_write,NULL,NULL, NULL);
-	} else if (pci_pmc && !(val & 0x01)) {
-		io_removehandler(0x0cf8, 1,
-				 NULL,NULL,pci_cf8_read, NULL,NULL,pci_cf8_write, NULL);
-		io_removehandler(0x0cfc, 4,
-				 pci_read,NULL,NULL, pci_write,NULL,NULL, NULL);
-		io_sethandler(0x0cf8, 1,
-			      pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
-		io_sethandler(0x0cfa, 1,
-			      pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
-	}
-
-	pci_pmc = (val & 0x01);
+	pci_log("Write %02X to port 0CFB\n", val);
+	pci_set_pmc(val);
     } else {
 	pci_card = (port >> 8) & 0xf;
 	pci_index = port & 0xff;
@@ -249,6 +257,20 @@ pci_type2_write(uint16_t port, uint8_t val, void *priv)
 	else
 		pci_log("Writing to unassigned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index);
 #endif
+    }
+}
+
+
+static void
+pci_type2_writel(uint16_t port, uint32_t val, void *priv)
+{
+    int i;
+
+    for (i = 0; i < 4; i++) {
+	/* Make sure to have the DWORD write not pass through to PMC if mechanism 1 is in use,
+	   as otherwise, the PCI enable bits clobber it. */
+	if (!pci_pmc || ((port + i) != 0x0cfb))
+		pci_type2_write(port + i, val >> 8, priv);
     }
 }
 
@@ -761,7 +783,7 @@ pci_init(int type)
 	pci_pmc = 0x00;
 
 	io_sethandler(0x0cfb, 1,
-		      pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+		      pci_type2_read,NULL,NULL, pci_type2_write,NULL,pci_type2_writel, NULL);
     }
 
     if (type & PCI_NO_IRQ_STEERING) {
@@ -777,11 +799,13 @@ pci_init(int type)
 		      NULL,NULL,pci_cf8_read, NULL,NULL,pci_cf8_write, NULL);
 	io_sethandler(0x0cfc, 4,
 		      pci_read,NULL,NULL, pci_write,NULL,NULL, NULL);
+	pci_pmc = 1;
     } else {
 	io_sethandler(0x0cf8, 1,
 		      pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
 	io_sethandler(0x0cfa, 1,
 		      pci_type2_read,NULL,NULL, pci_type2_write,NULL,NULL, NULL);
+	pci_pmc = 0;
     }
 
     for (c = 0; c < 4; c++) {
