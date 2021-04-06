@@ -835,7 +835,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			doresize = 1;
 		break;
 
-    case WM_WINDOWPOSCHANGED:
+	case WM_WINDOWPOSCHANGED:
 		pos = (WINDOWPOS*)lParam;
 		GetClientRect(hwndMain, &rect);
 
@@ -858,7 +858,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 
 		if (!(pos->flags & SWP_NOSIZE) || !user_resize) {
-            plat_vidapi_enable(0);
+			plat_vidapi_enable(0);
 
 			MoveWindow(hwndSBAR, 0, rect.bottom - sbar_height, sbar_height, rect.right, TRUE);
 			MoveWindow(hwndRender, 0, 0, rect.right, rect.bottom - sbar_height, TRUE);
