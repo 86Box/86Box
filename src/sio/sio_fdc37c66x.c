@@ -135,11 +135,20 @@ fdc_handler(fdc37c66x_t *dev)
 static void
 ide_handler(fdc37c66x_t *dev)
 {
-    ide_sec_disable();
-    ide_set_base(1, (dev->regs[0x05] & 0x02) ? 0x170 : 0x1f0);
-    ide_set_side(1, (dev->regs[0x05] & 0x02) ? 0x376 : 0x3f6);
-    if (dev->regs[0x00] & 0x01)
-	ide_sec_enable();
+    /* TODO: Make an ide_disable(channel) and ide_enable(channel) so we can simplify this. */
+    if (dev->has_ide == 2) {
+	ide_sec_disable();
+	ide_set_base(1, (dev->regs[0x05] & 0x02) ? 0x170 : 0x1f0);
+	ide_set_side(1, (dev->regs[0x05] & 0x02) ? 0x376 : 0x3f6);
+	if (dev->regs[0x00] & 0x01)
+		ide_sec_enable();
+    } else if (dev->has_ide == 1) {
+	ide_pri_disable();
+	ide_set_base(0, (dev->regs[0x05] & 0x02) ? 0x170 : 0x1f0);
+	ide_set_side(0, (dev->regs[0x05] & 0x02) ? 0x376 : 0x3f6);
+	if (dev->regs[0x00] & 0x01)
+		ide_pri_enable();
+    }
 }
 
 
@@ -242,11 +251,12 @@ fdc37c66x_reset(fdc37c66x_t *dev)
     lpt1_init(0x378);
 
     fdc_reset(dev->fdc);
+    fdc_remove(dev->fdc);
 
     dev->tries = 0;
     memset(dev->regs, 0, 16);
 
-    dev->regs[0x0] = 0x3a;
+    dev->regs[0x0] = 0x2a;
     dev->regs[0x1] = 0x9f;
     dev->regs[0x2] = 0xdc;
     dev->regs[0x3] = 0x78;
@@ -280,7 +290,7 @@ fdc37c66x_init(const device_t *info)
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
     dev->chip_id = info->local & 0xff;
-    dev->has_ide = !!(info->local & 0x100);
+    dev->has_ide = (info->local >> 8) & 0xff;
 
     io_sethandler(0x03f0, 0x0002,
 		  fdc37c66x_read, NULL, NULL, fdc37c66x_write, NULL, NULL, dev);
@@ -302,6 +312,15 @@ const device_t fdc37c663_device = {
     NULL
 };
 
+const device_t fdc37c663_ide_device = {
+    "SMC FDC37C663 Super I/O (With IDE)",
+    0,
+    0x163,
+    fdc37c66x_init, fdc37c66x_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
 const device_t fdc37c665_device = {
     "SMC FDC37C665 Super I/O",
     0,
@@ -312,9 +331,9 @@ const device_t fdc37c665_device = {
 };
 
 const device_t fdc37c665_ide_device = {
-    "SMC FDC37C665 Super I/O",
+    "SMC FDC37C665 Super I/O (With IDE)",
     0,
-    0x165,
+    0x265,
     fdc37c66x_init, fdc37c66x_close, NULL,
     { NULL }, NULL, NULL,
     NULL

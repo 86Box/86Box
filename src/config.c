@@ -829,7 +829,10 @@ load_sound(void)
     
     memset(temp, '\0', sizeof(temp));
     p = config_get_string(cat, "sound_type", "float");
-    strncpy(temp, p, sizeof(temp) - 1);
+    if (strlen(p) > 511)
+	fatal("load_sound(): strlen(p) > 511\n");
+    else
+	strncpy(temp, p, strlen(p) + 1);
     if (!strcmp(temp, "float") || !strcmp(temp, "1"))
 	sound_is_float = 1;
       else
@@ -1184,7 +1187,10 @@ load_floppy_drives(void)
 		wcsncpy(floppyfns[c], &wp[wcslen(usr_path)], sizeof_w(floppyfns[c]));
 	} else
 #endif
-	strncpy(floppyfns[c], p, sizeof(floppyfns[c]) - 1);
+	if (strlen(p) > 511)
+		fatal("load_floppy_drives(): strlen(p) > 511\n");
+	else
+		strncpy(floppyfns[c], p, strlen(p) + 1);
 
 	/* if (*wp != L'\0')
 		config_log("Floppy%d: %ls\n", c, floppyfns[c]); */
@@ -1244,7 +1250,10 @@ load_floppy_and_cdrom_drives(void)
 		wcsncpy(floppyfns[c], &wp[wcslen(usr_path)], sizeof_w(floppyfns[c]));
 	} else
 #endif
-	strncpy(floppyfns[c], p, sizeof(floppyfns[c]) - 1);
+	if (strlen(p) > 511)
+		fatal("load_floppy_and_cdrom_drives(): strlen(p) > 511\n");
+	else
+		strncpy(floppyfns[c], p, strlen(p) + 1);
 
 	/* if (*wp != L'\0')
 		config_log("Floppy%d: %ls\n", c, floppyfns[c]); */

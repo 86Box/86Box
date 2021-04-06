@@ -166,7 +166,6 @@ onesec_timer(void *priv)
 void
 nvr_init(nvr_t *nvr)
 {
-    char temp[64];
     struct tm *tm;
     time_t now;
     int c;

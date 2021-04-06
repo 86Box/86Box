@@ -38,6 +38,7 @@
 #include <86box/machine.h>
 #include <86box/clock.h>
 
+
 int
 machine_at_s370slm_init(const machine_t *model)
 {
@@ -72,6 +73,7 @@ machine_at_s370slm_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_trinity371_init(const machine_t *model)
 {
@@ -104,6 +106,7 @@ machine_at_trinity371_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_p6bap_init(const machine_t *model)
 {
@@ -134,6 +137,7 @@ machine_at_p6bap_init(const machine_t *model)
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
     return ret;
 }
+
 
 int
 machine_at_cubx_init(const machine_t *model)
@@ -171,6 +175,7 @@ machine_at_cubx_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_atc7020bxii_init(const machine_t *model)
 {
@@ -203,6 +208,7 @@ machine_at_atc7020bxii_init(const machine_t *model)
     return ret;	
 }
 
+
 int
 machine_at_ambx133_init(const machine_t *model)
 {
@@ -234,6 +240,7 @@ machine_at_ambx133_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_awo671r_init(const machine_t *model)
@@ -268,6 +275,7 @@ machine_at_awo671r_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_63a_init(const machine_t *model)
 {
@@ -300,6 +308,7 @@ machine_at_63a_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_apas3_init(const machine_t *model)
 {
@@ -330,6 +339,7 @@ machine_at_apas3_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_wcf681_init(const machine_t *model)
@@ -368,6 +378,7 @@ machine_at_wcf681_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_cuv4xls_init(const machine_t *model)
 {
@@ -405,6 +416,7 @@ machine_at_cuv4xls_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_6via90ap_init(const machine_t *model)
 {
@@ -441,6 +453,7 @@ machine_at_6via90ap_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_603tcf_init(const machine_t *model)

@@ -88,6 +88,18 @@ machine_at_asus386_init(const machine_t *model)
 }
 
 
+static void
+machine_at_sis401_common_init(const machine_t *model)
+{
+    machine_at_common_ide_init(model);
+    device_add(&sis_85c401_device);
+    device_add(&keyboard_at_ami_device);
+
+    if (fdc_type == FDC_INTERNAL)
+    device_add(&fdc_at_device);
+}
+
+
 int
 machine_at_sis401_init(const machine_t *model)
 {
@@ -99,12 +111,24 @@ machine_at_sis401_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_ide_init(model);
-    device_add(&sis_85c401_device);
-    device_add(&keyboard_at_ami_device);
+    machine_at_sis401_common_init(model);
 
-    if (fdc_type == FDC_INTERNAL)
-    device_add(&fdc_at_device);
+    return ret;
+}
+
+
+int
+machine_at_isa486_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/isa486/ISA-486.BIN",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_sis401_common_init(model);
 
     return ret;
 }
@@ -538,6 +562,7 @@ machine_at_pc330_6571_init(const machine_t *model)	// doesn't like every CPU oth
     return ret;
 }
 
+
 int
 machine_at_mvi486_init(const machine_t *model)
 {
@@ -811,6 +836,34 @@ machine_at_4dps_init(const machine_t *model)
 
 
 int
+machine_at_486sp3c_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/486sp3c/SI4I0306.AWD",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    machine_at_sis_85c496_common_init(model);
+    device_add(&sis_85c496_device);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+
+    device_add(&fdc37c665_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+
+int
 machine_at_4sa2_init(const machine_t *model)
 {
     int ret;
@@ -872,6 +925,40 @@ machine_at_alfredo_init(const machine_t *model)
 
 
 int
+machine_at_486sp3_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/486sp3/awsi2737.bin",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+    device_add(&ide_isa_device);
+
+    pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SCSI, 1, 2, 3, 4);		/* 01 = SCSI */
+    pci_register_slot(0x03, PCI_CARD_NORMAL, 1, 2, 3, 4);	/* 03 = Slot 1 */
+    pci_register_slot(0x04, PCI_CARD_NORMAL, 2, 3, 4, 1);	/* 04 = Slot 2 */
+    pci_register_slot(0x05, PCI_CARD_NORMAL, 3, 4, 1, 2);	/* 05 = Slot 3 */
+    pci_register_slot(0x06, PCI_CARD_NORMAL, 4, 1, 2, 3);	/* 06 = Slot 4 */
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&keyboard_ps2_ami_pci_device); /* Uses the AMIKEY KBC */
+    device_add(&sio_device);
+    device_add(&fdc37c663_ide_device);
+    device_add(&sst_flash_29ee010_device);
+
+    device_add(&i420tx_device);
+    device_add(&ncr53c810_onboard_pci_device);
+
+    return ret;
+}
+
+
+int
 machine_at_486sp3g_init(const machine_t *model)
 {
     int ret;
@@ -883,20 +970,18 @@ machine_at_486sp3g_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init(model);
-    device_add(&ide_pci_2ch_device);
+    device_add(&ide_isa_device);
 
-    pci_init(PCI_CONFIG_TYPE_2 | PCI_NO_IRQ_STEERING);
+    pci_init(PCI_CONFIG_TYPE_2);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x01, PCI_CARD_IDE, 0, 0, 0, 0);
-    pci_register_slot(0x03, PCI_CARD_NORMAL, 1, 2, 3, 4);	/* 03 = Slot 1 */
-    pci_register_slot(0x04, PCI_CARD_NORMAL, 2, 3, 4, 1);	/* 04 = Slot 2 */
-    pci_register_slot(0x05, PCI_CARD_NORMAL, 3, 4, 1, 2);	/* 05 = Slot 3 */
-    pci_register_slot(0x06, PCI_CARD_NORMAL, 4, 1, 2, 3);	/* 06 = Slot 4 */
-    pci_register_slot(0x07, PCI_CARD_SCSI, 1, 2, 3, 4);		/* 07 = SCSI */
+    pci_register_slot(0x01, PCI_CARD_SCSI, 1, 2, 3, 4);		/* 01 = SCSI */
+    pci_register_slot(0x06, PCI_CARD_NORMAL, 1, 2, 3, 4);	/* 06 = Slot 1 */
+    pci_register_slot(0x05, PCI_CARD_NORMAL, 2, 3, 4, 1);	/* 05 = Slot 2 */
+    pci_register_slot(0x04, PCI_CARD_NORMAL, 3, 4, 1, 2);	/* 04 = Slot 3 */
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     device_add(&keyboard_ps2_ami_pci_device); /* Uses the AMIKEY KBC */
-    device_add(&sio_device);	/* Site says it has a ZB, but the BIOS is designed for an IB. */
-    device_add(&pc87332_device);
+    device_add(&sio_zb_device);
+    device_add(&pc87332_398_ide_device);
     device_add(&sst_flash_29ee010_device);
 
     device_add(&i420zx_device);
@@ -958,18 +1043,17 @@ machine_at_486vipio2_init(const machine_t *model)
     pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
 
-    device_add(&via_vt82c49x_device);
+    device_add(&via_vt82c49x_pci_ide_device);
     device_add(&via_vt82c505_device);
-    device_add(&ide_vlb_2ch_device);
     device_add(&w83787f_device);
-    device_add(&keyboard_at_device);
+    device_add(&keyboard_ps2_ami_device);
+    device_add(&sst_flash_29ee010_device);
 
     return ret;
 }
 #endif
 
 
-#if defined(DEV_BRANCH) && defined(USE_M1489)
 int
 machine_at_abpb4_init(const machine_t *model)
 {
@@ -983,7 +1067,7 @@ machine_at_abpb4_init(const machine_t *model)
 
     machine_at_common_init(model);
     
-    pci_init(PCI_CONFIG_TYPE_1);
+    pci_init(PCI_CAN_SWITCH_TYPE);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x03, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x04, PCI_CARD_NORMAL, 2, 3, 4, 1);
@@ -992,9 +1076,12 @@ machine_at_abpb4_init(const machine_t *model)
     device_add(&ali1489_device);
     device_add(&w83787f_device);
     device_add(&keyboard_at_device);
+    // device_add(&intel_flash_bxt_device);
+    device_add(&sst_flash_29ee010_device);
 
     return ret;
 }
+
 
 int
 machine_at_win486pci_init(const machine_t *model)
@@ -1021,7 +1108,7 @@ machine_at_win486pci_init(const machine_t *model)
 
     return ret;
 }
-#endif
+
 
 int
 machine_at_atc1415_init(const machine_t *model)
@@ -1053,6 +1140,7 @@ machine_at_atc1415_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_ecs486_init(const machine_t *model)
 {
@@ -1083,6 +1171,7 @@ machine_at_ecs486_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_at_hot433_init(const machine_t *model)
 {
@@ -1112,6 +1201,7 @@ machine_at_hot433_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_itoxstar_init(const machine_t *model)

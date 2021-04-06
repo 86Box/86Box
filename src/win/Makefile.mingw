@@ -78,9 +78,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef SIO_DETECT
   SIO_DETECT	:= y
  endif
- ifndef M1489
-  M1489		:= y
- endif
  ifndef M154X
   M154X		:= y
  endif
@@ -156,9 +153,6 @@ else
  endif
  ifndef SIO_DETECT
   SIO_DETECT	:= n
- endif
- ifndef M1489
-  M1489		:= n
  endif
  ifndef M154X
   M154X		:= n
@@ -484,7 +478,7 @@ RFLAGS		+= -DUSE_VNC
   OPTS		+= -I$(VNC_PATH)\INCLUDE
   VNCLIB	:= -L$(VNC_PATH)\LIB
  endif
-VNCLIB		+= -lvncserver
+VNCLIB		+=  -lvncserver
 VNCOBJ		:= vnc.o vnc_keymap.o
 endif
 
@@ -566,11 +560,6 @@ OPTS		+= -DUSE_SIO_DETECT
 DEVBROBJ	+= sio_detect.o
 endif
 
-ifeq ($(M1489), y)
-OPTS		+= -DUSE_M1489
-DEVBROBJ	+= ali1489.o
-endif
-
 ifeq ($(M145X), y)
 OPTS		+= -DUSE_M154X
 DEVBROBJ	+= ali1531.o ali1543.o
@@ -608,7 +597,7 @@ endif
 
 # Final versions of the toolchain flags.
 CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
-		   $(AFLAGS) -mstackrealign -Wall \
+		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall \
 		   -fno-strict-aliasing
 
 # Add freetyp2 references through pkgconfig
@@ -632,7 +621,7 @@ CPUOBJ		:= cpu.o cpu_table.o \
 		    x86seg.o x87.o x87_timings.o \
 		    $(DYNARECOBJ)
 
-CHIPSETOBJ	:= acc2168.o cs8230.o ali1217.o ali1429.o headland.o intel_82335.o cs4031.o \
+CHIPSETOBJ	:= acc2168.o cs8230.o ali1217.o ali1429.o ali1489.o headland.o intel_82335.o cs4031.o \
 		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
 		    neat.o opti495.o opti822.o opti895.o opti5x7.o scamp.o scat.o via_vt82c49x.o via_vt82c505.o \
 		    gc100.o olivetti_eva.o \
@@ -775,6 +764,7 @@ VIDOBJ		:= video.o \
 		    vid_bt48x_ramdac.o \
 		    vid_av9194.o vid_icd2061.o vid_ics2494.o vid_ics2595.o \
 		    vid_cl54xx.o \
+		    vid_et3000.o \
 		    vid_et4000.o vid_sc1148x_ramdac.o \
 		    vid_sc1502x_ramdac.o \
 		    vid_et4000w32.o vid_stg_ramdac.o \
@@ -887,9 +877,9 @@ all:		$(PROG).exe
 $(PROG).exe:	$(OBJ) 86Box.res
 		@echo Linking $(PROG).exe ..
 		@$(CC) $(LDFLAGS) -o $(PROG).exe $(OBJ) 86Box.res $(LIBS) -pipe
-ifneq ($(DEBUG), y)
-		@$(STRIP) $(PROG).exe
-endif
+#ifneq ($(DEBUG), y)
+#		@$(STRIP) $(PROG).exe
+#endif
 
 pcap_if.res:	pcap_if.rc
 		@echo Processing $<

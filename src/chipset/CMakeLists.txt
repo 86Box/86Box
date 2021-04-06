@@ -13,8 +13,8 @@
 #		Copyright 2020,2021 David Hrdlička.
 #
 
-add_library(chipset OBJECT acc2168.c cs8230.c ali1217.c ali1429.c headland.c intel_82335.c
-	cs4031.c intel_420ex.c intel_4x0.c intel_sio.c intel_piix.c ../ioapic.c
+add_library(chipset OBJECT acc2168.c cs8230.c ali1217.c ali1429.c ali1489.c headland.c
+	intel_82335.c cs4031.c intel_420ex.c intel_4x0.c intel_sio.c intel_piix.c ../ioapic.c
 	neat.c opti283.c opti291.c opti495.c opti822.c opti895.c opti5x7.c scamp.c scat.c
 	sis_85c310.c sis_85c4xx.c sis_85c496.c sis_85c50x.c
 	umc_8886.c umc_8890.c umc_hb4.c
@@ -25,10 +25,6 @@ add_library(chipset OBJECT acc2168.c cs8230.c ali1217.c ali1429.c headland.c int
 
 if(I450KX)
 	target_sources(chipset PRIVATE intel_i450kx.c)
-endif()
-
-if(M1489)
-	target_sources(chipset PRIVATE ali1489.c)
 endif()
 
 if(M154X)

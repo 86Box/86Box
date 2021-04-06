@@ -2376,6 +2376,16 @@ const device_t fdc_xt_amstrad_device = {
     { NULL }, NULL, NULL
 };
 
+const device_t fdc_xt_tandy_device = {
+    "PC/XT Floppy Drive Controller (Tandy)",
+    0,
+    FDC_FLAG_AMSTRAD,
+    fdc_init,
+    fdc_close,
+    fdc_reset,
+    { NULL }, NULL, NULL
+};
+
 
 const device_t fdc_pcjr_device = {
     "PCjr Floppy Drive Controller",

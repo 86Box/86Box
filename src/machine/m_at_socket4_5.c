@@ -604,7 +604,7 @@ machine_at_apollo_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&i430fx_device);
     device_add(&piix_device);
-    device_add(&pc87332_ps1_device);
+    device_add(&pc87332_398_device);
     device_add(&intel_flash_bxt_device);
 
     return ret;

@@ -270,6 +270,27 @@ machine_xt_open_xt_init(const machine_t *model)
 }
 
 
+int
+machine_xt_pcxt_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pcxt/u18.rom",
+			   0x000f8000, 65536, 0);
+    if (ret) {
+	bios_load_aux_linear("roms/machines/pcxt/u19.rom",
+			     0x000f0000, 32768, 0);
+    }
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_xt_clone_init(model);
+
+    return ret;
+}
+
+
 #if defined(DEV_BRANCH) && defined(USE_HEDAKA)
 int
 machine_xt_hed919_init(const machine_t *model)
@@ -291,6 +312,7 @@ machine_xt_hed919_init(const machine_t *model)
 }
 #endif
 
+
 int
 machine_xt_pxxt_init(const machine_t *model)
 {
@@ -306,6 +328,7 @@ machine_xt_pxxt_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_xt_iskra3104_init(const machine_t *model)
@@ -324,6 +347,7 @@ machine_xt_iskra3104_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_xt_ncrpc4i_init(const machine_t *model)
 {
@@ -339,6 +363,7 @@ machine_xt_ncrpc4i_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_xt_mpc1600_init(const machine_t *model)
@@ -382,6 +407,7 @@ machine_xt_eaglepcspirit_init(const machine_t *model)
     return ret;
 }
 
+
 int
 machine_xt_multitechpc700_init(const machine_t *model)
 {
@@ -399,4 +425,3 @@ machine_xt_multitechpc700_init(const machine_t *model)
 
     return ret;
 }
-
