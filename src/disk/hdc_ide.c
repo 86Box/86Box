@@ -1365,16 +1365,18 @@ ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
 
 	/* We must set set the status to busy in reset mode or
 	   some 286 and 386 machines error out. */
-	if (ide->type != IDE_NONE) {
-		ide->atastat = BSY_STAT;
-		if (ide->type == IDE_ATAPI)
-			ide->sc->status = BSY_STAT;
-	}
+	if (ide_boards[ide->board]->force_ata3 || ide_bm[ide->board]) {
+		if (ide->type != IDE_NONE) {
+			ide->atastat = BSY_STAT;
+			if (ide->type == IDE_ATAPI)
+				ide->sc->status = BSY_STAT;
+		}
 
-	if (ide_other->type != IDE_NONE) {
-		ide_other->atastat = BSY_STAT;
-		if (ide_other->type == IDE_ATAPI)
-			ide_other->sc->status = BSY_STAT;
+		if (ide_other->type != IDE_NONE) {
+			ide_other->atastat = BSY_STAT;
+			if (ide_other->type == IDE_ATAPI)
+				ide_other->sc->status = BSY_STAT;
+		}
 	}
     } else if (!(val & 4) && (ide->fdisk & 4)) {
 	/* Reset toggled from 1 to 0. */
