@@ -1501,7 +1501,7 @@ machine_tandy1k_init(const machine_t *model, int type)
     device_add(&keyboard_tandy_device);
 
     if (fdc_type == FDC_INTERNAL)	
-	device_add(&fdc_xt_device);
+	device_add(&fdc_xt_tandy_device);
 
     switch(type) {
 	case TYPE_TANDY:

@@ -171,6 +171,7 @@ extern uint8_t	fdc_get_current_drive(void);
 #ifdef EMU_DEVICE_H
 extern const device_t	fdc_xt_device;
 extern const device_t	fdc_xt_t1x00_device;
+extern const device_t	fdc_xt_tandy_device;
 extern const device_t	fdc_xt_amstrad_device;
 extern const device_t	fdc_pcjr_device;
 extern const device_t	fdc_at_device;
