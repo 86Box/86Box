@@ -27,14 +27,14 @@
 #include <86box/chipset.h>
 
 /*
-Bit 7 = Super I/O
-Bit 6 = ???
-Bit 5 = ???
-Bit 4 = ???
-Bit 3 = ???
-Bit 2 = ???
-Bit 1 = ???
-Bit 0 = ???
+    Bit 7 = Super I/O chip: 1 = enabled, 0 = disabled;
+    Bit 6 = Graphics card: 1 = standalone, 0 = on-board;
+    Bit 5 = ???? (if 1, siren and hangs);
+    Bit 4 = ????;
+    Bit 3 = ????;
+    Bit 2 = ????;
+    Bit 1 = ????;
+    Bit 0 = ????.
 */
 
 typedef struct
@@ -90,7 +90,9 @@ phoenix_486_jumper_init(const device_t *info)
     phoenix_486_jumper_t *dev = (phoenix_486_jumper_t *) malloc(sizeof(phoenix_486_jumper_t));
     memset(dev, 0, sizeof(phoenix_486_jumper_t));
 
-    dev->jumper = info->local;
+    dev->jumper = 0x9f;
+    if (gfxcard != 0x01)
+	dev->jumper |= 0x40;
 
     io_sethandler(0x0078, 0x0001, phoenix_486_jumper_read, NULL, NULL, phoenix_486_jumper_write, NULL, NULL, dev);
 
