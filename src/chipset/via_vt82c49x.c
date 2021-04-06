@@ -25,14 +25,10 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
-#include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
-#include <86box/keyboard.h>
 #include <86box/mem.h>
 #include <86box/smram.h>
-#include <86box/fdd.h>
-#include <86box/fdc.h>
 #include <86box/pic.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
@@ -237,6 +233,8 @@ vt82c49x_write(uint16_t addr, uint8_t val, void *priv)
 					ide_set_side(0, (val & 0x40) ? 0x376 : 0x3f6);
 					if (val & 0x01)
 						ide_pri_enable();
+					pclog("VT82C496 IDE now %sabled as %sary\n", (val & 0x01) ? "en": "dis",
+					      (val & 0x40) ? "second" : "prim");
 				}
 				break;
 		}
@@ -257,12 +255,22 @@ vt82c49x_read(uint16_t addr, void *priv)
 			ret = pic_elcr_read(dev->index, &pic2) | (dev->regs[dev->index] & 0x01);
 		else if (dev->index == 0x62)
 			ret = pic_elcr_read(dev->index, &pic) | (dev->regs[dev->index] & 0x07);
-		else
+		else if (dev->index < 0x80)
 			ret = dev->regs[dev->index];
 		break;
     }
 
     return ret;
+}
+
+
+static void
+vt82c49x_reset(void *priv)
+{
+    uint8_t i;
+
+    for (i = 0; i < 256; i++)
+	vt82c49x_write(i, 0x00, priv);
 }
 
 
@@ -316,11 +324,31 @@ const device_t via_vt82c49x_device = {
 };
 
 
+const device_t via_vt82c49x_pci_device = {
+    "VIA VT82C49X PCI",
+    DEVICE_PCI,
+    0,
+    vt82c49x_init, vt82c49x_close, vt82c49x_reset,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+
 const device_t via_vt82c49x_ide_device = {
     "VIA VT82C49X (With IDE)",
     0,
     1,
     vt82c49x_init, vt82c49x_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+
+const device_t via_vt82c49x_pci_ide_device = {
+    "VIA VT82C49X PCI (With IDE)",
+    DEVICE_PCI,
+    1,
+    vt82c49x_init, vt82c49x_close, vt82c49x_reset,
     { NULL }, NULL, NULL,
     NULL
 };

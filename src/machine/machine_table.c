@@ -77,6 +77,7 @@ const machine_t machines[] = {
     { "[8088] Philips P3105/NMS9100",		"p3105",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_XTA,							  256,   768, 256,    0,		machine_xt_p3105_init, NULL			},
     { "[8088] Phoenix XT clone",		"pxxt",			MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   640,  64,    0,		 machine_xt_pxxt_init, NULL			},
     { "[8088] Schneider EuroPC",		"europc",		MACHINE_TYPE_8088,		CPU_PKG_8088_EUROPC, 0, 0, 0, 0, 0, 0, 0,									MACHINE_PC | MACHINE_XTA | MACHINE_MOUSE,					  512,   640, 128,   15,		  machine_europc_init, NULL			},
+    { "[8088] Super PC/Turbo XT",		"pcxt",			MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   640,  64,    0,		 machine_xt_pcxt_init, NULL			},
     { "[8088] Tandy 1000",			"tandy",		MACHINE_TYPE_8088,		CPU_PKG_8088_EUROPC, 0, 0, 0, 0, 0, 0, 0,									MACHINE_PC | MACHINE_VIDEO_FIXED,						  128,   640, 128,    0,		   machine_tandy_init, tandy1k_get_device	},
     { "[8088] Tandy 1000 HX",			"tandy1000hx",		MACHINE_TYPE_8088,		CPU_PKG_8088_EUROPC, 0, 0, 0, 0, 0, 0, 0,									MACHINE_PC | MACHINE_VIDEO_FIXED,						  256,   640, 128,    0,	     machine_tandy1000hx_init, tandy1k_hx_get_device	},
     { "[8088] Toshiba T1000",			"t1000",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO,							  512,  1280, 768,   63,		machine_xt_t1000_init, t1000_get_device		},
@@ -208,6 +209,7 @@ const machine_t machines[] = {
     { "[OPTi 895] Jetway J-403TG",		"403tg",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,									 1024, 65536, 1024, 127,		machine_at_403tg_init, NULL			},
     { "[OPTi 895] Mylex MVI486",		"mvi486",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE_DUAL,							 1024, 65536, 1024, 127,	       machine_at_mvi486_init, NULL			},
     { "[SiS 401] AMI 486 Clone",		"sis401",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							 1024, 65536, 1024, 127,	       machine_at_sis401_init, NULL			},
+    { "[SiS 401] ASUS ISA-486",			"sis401",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							 1024, 65536, 1024, 127,	       machine_at_isa486_init, NULL			},
     { "[SiS 460] ABIT AV4",			"av4",			MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 65536, 1024, 127,		  machine_at_av4_init, NULL			},
     { "[SiS 461] IBM PS/ValuePoint 433DX/Si",	"valuepoint433",	MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,					 1024, 65536, 1024, 127,	machine_at_valuepoint433_init, NULL			},
     { "[SiS 471] AMI 486 Clone",		"ami471",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 65536, 1024, 127,	       machine_at_ami471_init, NULL			},
@@ -228,13 +230,13 @@ const machine_t machines[] = {
 #endif
 
     /* 486 machines which utilize the PCI bus */
-#if defined(DEV_BRANCH) && defined(USE_M1489)
     { "[ALi M1489] ABIT AB-PB4",		"abpb4",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024,  65536, 1024, 255,		machine_at_abpb4_init, NULL			},
     { "[ALi M1489] AMI WinBIOS 486 PCI",	"win486pci",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024,  65536, 1024, 255,	    machine_at_win486pci_init, NULL			},
-#endif
     { "[i420EX] ASUS PVI-486AP4",		"486ap4",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_IDE_DUAL,						 1024, 131072, 1024, 127,	       machine_at_486ap4_init, NULL			},
     { "[i420ZX] ASUS PCI/I-486SP3G",		"486sp3g",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 131072, 1024, 127,	      machine_at_486sp3g_init, NULL			},
+    { "[i420TX] ASUS PCI/I-486SP3",		"486sp3",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 131072, 1024, 127,	       machine_at_486sp3_init, NULL			},
     { "[i420TX] Intel Classic/PCI",		"alfredo",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 2048, 131072, 2048, 127,	      machine_at_alfredo_init, NULL			},
+    { "[SiS 496] ASUS PVI-486SP3C",		"486sp3c",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_IDE_DUAL,						 1024, 261120, 1024, 255,	      machine_at_486sp3c_init, NULL			},
     { "[SiS 496] Lucky Star LS-486E",		"ls486e",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 131072, 1024, 255,	       machine_at_ls486e_init, NULL			},
     { "[SiS 496] Micronics M4Li",		"m4li",			MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024, 131072, 1024, 127,		 machine_at_m4li_init, NULL			},
     { "[SiS 496] Rise Computer R418",		"r418",			MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 261120, 1024, 255,		 machine_at_r418_init, NULL			},
@@ -327,6 +329,7 @@ const machine_t machines[] = {
     { "[i430VX] Epox P55-VA",			"p55va",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2500, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 131072, 8192, 127,		machine_at_p55va_init, NULL			},
     { "[i430VX] HP Brio 80xx",			"brio80xx",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 66666667, 66666667, 2200, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 131072, 8192, 127,	     machine_at_brio80xx_init, NULL			},
     { "[i430VX] Packard Bell PB680",		"pb680",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2800, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 131072, 8192, 127,		machine_at_pb680_init, NULL			},
+    { "[i430VX] PC Partner MB520N",		"mb520n",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2600, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 131072, 8192, 127,	       machine_at_mb520n_init, NULL			},
     { "[i430VX] Shuttle HOT-557",		"430vx",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2500, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	       machine_at_i430vx_init, NULL			},
 
     /* 430TX */
@@ -407,6 +410,10 @@ const machine_t machines[] = {
     /* 440GX */
     { "[i440GX] Freeway FW-6400GX",		"fw6400gx_s1",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 100000000, 150000000, 1800, 3500, 3.0, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				16384,2080768,16384, 511,	     machine_at_fw6400gx_init, NULL			},
 
+    /* 440ZX */
+    { "[i440ZX] MSI MS-6168",			"ms6168",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 100000000, 150000000, 1800, 3500, 3.0, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND,8192, 524288, 8192, 255,	       machine_at_ms6168_init, NULL			},
+    { "[i440ZX] Packard Bell Bora Pro",		"borapro",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667,  66666667, 1800, 3500, 3.0, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND,8192, 524288, 8192, 255,	      machine_at_borapro_init, NULL			},
+
     /* SMSC VictoryBX-66 */
     { "[SMSC VictoryBX-66] A-Trend ATC6310BXII","atc6310bxii",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 133333333, 1300, 3500, 3.0, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 786432, 8192, 255,	  machine_at_atc6310bxii_init, NULL			},
 
@@ -443,6 +450,7 @@ const machine_t machines[] = {
     { "[VIA Apollo Pro133A] AEWIN WCF-681",	"wcf681",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 2.0, 8.0, /* limits assumed */				MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			 8192,1048576, 8192, 255,	       machine_at_wcf681_init, NULL			},
     { "[VIA Apollo Pro133A] ASUS CUV4X-LS",	"cuv4xls",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1300, 3500, 2.0, 8.0,						(MACHINE_AGP & ~MACHINE_AT) | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		16384,1572864, 8192, 255,	      machine_at_cuv4xls_init, NULL			},
     { "[VIA Apollo Pro133A] Acorp 6VIA90AP",	"6via90ap",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1300, 3500, MACHINE_MULTIPLIER_FIXED,				MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			 8192,1572864, 8192, 255,	     machine_at_6via90ap_init, NULL			},
+    { "[VIA Apollo Pro133A] MSI MS-6198",	"ms6198",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1300, 3500, 2.0, 8.0,						(MACHINE_AGP & ~MACHINE_AT) | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		16384,1572864, 8192, 255,	       machine_at_ms6198_init, NULL			},
     { "[VIA Apollo ProMedia] Jetway 603TCF",	"603tcf",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1300, 3500, 2.0, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			 8192,1048576, 8192, 255,	       machine_at_603tcf_init, NULL			},
 
     /* EBGA368 machines */

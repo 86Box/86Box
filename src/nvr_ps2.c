@@ -107,7 +107,6 @@ ps2_nvr_write(uint16_t port, uint8_t val, void *priv)
 static void *
 ps2_nvr_init(const device_t *info)
 {
-    char temp[64];
     ps2_nvr_t *nvr;
     FILE *f = NULL;
     int c;

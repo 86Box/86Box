@@ -24,9 +24,7 @@ extern const device_t	acc2168_device;
 /* ALi */
 extern const device_t	ali1217_device;
 extern const device_t	ali1429_device;
-#if defined(DEV_BRANCH) && defined(USE_M1489)
 extern const device_t	ali1489_device;
-#endif
 #if defined(DEV_BRANCH) && defined(USE_M154X)
 extern const device_t	ali1531_device;
 extern const device_t	ali1543_device;
@@ -129,9 +127,10 @@ extern const device_t	umc_8886f_device;
 extern const device_t	umc_8886af_device;
 
 /* VIA */
-extern const device_t	via_vt82c49x_device;
-extern const device_t	via_vt82c49x_ide_device;
-extern const device_t	via_vt82c505_device;
+extern const device_t   via_vt82c49x_device;
+extern const device_t   via_vt82c49x_pci_device;
+extern const device_t   via_vt82c49x_pci_ide_device;
+extern const device_t   via_vt82c505_device;
 extern const device_t	via_vpx_device;
 extern const device_t	via_vp3_device;
 extern const device_t	via_mvp3_device;

@@ -36,7 +36,7 @@
 
 
 typedef struct {
-    uint8_t tries,
+    uint8_t tries, has_ide,
 	    regs[15];
     int cur_reg;
     fdc_t *fdc;
@@ -130,6 +130,26 @@ serial_handler(pc87332_t *dev, int uart)
 
 
 static void
+ide_handler(pc87332_t *dev)
+{
+    /* TODO: Make an ide_disable(channel) and ide_enable(channel) so we can simplify this. */
+    if (dev->has_ide == 2) {
+	ide_sec_disable();
+	ide_set_base(1, (dev->regs[0x00] & 0x80) ? 0x170 : 0x1f0);
+	ide_set_side(1, (dev->regs[0x00] & 0x80) ? 0x376 : 0x3f6);
+	if (dev->regs[0x00] & 0x40)
+		ide_sec_enable();
+    } else if (dev->has_ide == 1) {
+	ide_pri_disable();
+	ide_set_base(0, (dev->regs[0x00] & 0x80) ? 0x170 : 0x1f0);
+	ide_set_side(0, (dev->regs[0x00] & 0x80) ? 0x376 : 0x3f6);
+	if (dev->regs[0x00] & 0x40)
+		ide_pri_enable();
+    }
+}
+
+
+static void
 pc87332_write(uint16_t port, uint8_t val, void *priv)
 {
     pc87332_t *dev = (pc87332_t *) priv;
@@ -177,6 +197,8 @@ pc87332_write(uint16_t port, uint8_t val, void *priv)
 			if ((val & 8) && !(dev->regs[2] & 1))
 				fdc_set_base(dev->fdc, (val & 0x20) ? 0x370 : 0x3f0);
 		}
+		if (dev->has_ide && (valxor & 0xc0))
+			ide_handler(dev);
 		break;
 	case 1:
 		if (valxor & 3) {
@@ -251,7 +273,9 @@ pc87332_reset(pc87332_t *dev)
 {
     memset(dev->regs, 0, 15);
 
-    dev->regs[0x00] = 0x0F;
+    dev->regs[0x00] = 0x07;
+    if (dev->has_ide == 2)
+	dev->regs[0x00] = 0x87;
     dev->regs[0x01] = 0x10;
     dev->regs[0x03] = 0x01;
     dev->regs[0x05] = 0x0D;
@@ -268,6 +292,10 @@ pc87332_reset(pc87332_t *dev)
     serial_handler(dev, 0);
     serial_handler(dev, 1);
     fdc_reset(dev->fdc);
+    fdc_remove(dev->fdc);
+
+    if (dev->has_ide)
+	ide_handler(dev);
 }
 
 
@@ -291,9 +319,10 @@ pc87332_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
+    dev->has_ide = (info->local >> 8) & 0xff;
     pc87332_reset(dev);
 
-    if (info->local == 1) {
+    if ((info->local & 0xff) == (0x01)) {
 	io_sethandler(0x398, 0x0002,
 		      pc87332_read, NULL, NULL, pc87332_write, NULL, NULL, dev);
     } else {
@@ -308,17 +337,27 @@ pc87332_init(const device_t *info)
 const device_t pc87332_device = {
     "National Semiconductor PC87332 Super I/O",
     0,
-    0,
+    0x00,
     pc87332_init, pc87332_close, NULL,
     { NULL }, NULL, NULL,
     NULL
 };
 
 
-const device_t pc87332_ps1_device = {
-    "National Semiconductor PC87332 Super I/O (IBM PS/1 Model 2133 EMEA 451)",
+const device_t pc87332_398_device = {
+    "National Semiconductor PC87332 Super I/O (Port 398h)",
     0,
-    1,
+    0x01,
+    pc87332_init, pc87332_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+
+const device_t pc87332_398_ide_device = {
+    "National Semiconductor PC87332 Super I/O (Port 398h) (With IDE)",
+    0,
+    0x101,
     pc87332_init, pc87332_close, NULL,
     { NULL }, NULL, NULL,
     NULL

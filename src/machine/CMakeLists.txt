@@ -52,10 +52,6 @@ if(PS2M70T4)
 	target_compile_definitions(mch PRIVATE USE_PS2M70T4)
 endif()
 
-if(M1489)
-	target_compile_definitions(mch PRIVATE USE_M1489)
-endif()
-
 if(M154X)
 	target_compile_definitions(mch PRIVATE USE_M154X)
 endif()
@@ -66,8 +62,4 @@ endif()
 
 if(VECT486VL)
 	target_compile_definitions(mch PRIVATE USE_VECT486VL)
-endif()
-
-if(DELLS4)
-	target_compile_definitions(mch PRIVATE USE_DELLS4)
 endif()
