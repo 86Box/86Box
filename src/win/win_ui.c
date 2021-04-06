@@ -857,7 +857,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			config_save();
 		}
 
-		if (!(pos->flags & SWP_NOSIZE)) {
+		if (!(pos->flags & SWP_NOSIZE) || !user_resize) {
 			plat_vidapi_enable(0);
 
 			MoveWindow(hwndSBAR, 0, rect.bottom - sbar_height, sbar_height, rect.right, TRUE);
