@@ -163,7 +163,7 @@ pic_slave_on(pic_t *dev, int channel)
 static __inline int
 find_best_interrupt(pic_t *dev)
 {
-    uint8_t b, s;
+    uint8_t b;
     uint8_t intr;
     int i, j;
     int ret = -1;
@@ -171,18 +171,6 @@ find_best_interrupt(pic_t *dev)
     for (i = 0; i < 8; i++) {
 	j = (i + dev->priority) & 7;
 	b = 1 << j;
-#ifdef OLD_CODE
-	s = (dev->icw4 & 0x10) && pic_slave_on(dev, j);
-
-	if ((dev->isr & b) && !dev->special_mask_mode && !s)
-		break;
-	if ((dev->state == 0) && ((dev->irr & ~dev->imr) & b) && (!(dev->isr & b) || s)) {
-		ret = j;
-		break;
-	}
-	if ((dev->isr & b) && !dev->special_mask_mode && s)
-		break;
-#else
 
 	if (dev->isr & b)
 		break;
@@ -190,7 +178,6 @@ find_best_interrupt(pic_t *dev)
 		ret = j;
 		break;
 	}
-#endif
     }
 
     intr = dev->interrupt = (ret == -1) ? 0x17 : ret;
@@ -615,7 +602,9 @@ pic_i86_mode(pic_t *dev)
 static uint8_t
 pic_irq_ack_read(pic_t *dev, int phase)
 {
-    uint8_t intr = dev->interrupt & 7;
+    uint8_t intr = dev->interrupt & 0x47;
+    uint8_t slave = intr & 0x40;
+    intr &= 0x07;
     pic_log("    pic_irq_ack_read(%08X, %i)\n", dev, phase);
 
     if (dev != NULL) {
@@ -623,19 +612,19 @@ pic_irq_ack_read(pic_t *dev, int phase)
 		dev->interrupt |= 0x20;		/* Freeze it so it still takes interrupts but they do not
 						   override the one currently being processed. */
 		pic_acknowledge(dev);
-		if (pic_slave_on(dev, intr))
+		if (slave)
 			dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
 		else
 			dev->data_bus = pic_i86_mode(dev) ? 0xff : 0xcd;
 	} else if (pic_i86_mode(dev)) {
 		dev->int_pending = 0;
-		if (pic_slave_on(dev, intr))
+		if (slave)
 			dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
 		else
 			dev->data_bus = intr + (dev->icw2 & 0xf8);
 		pic_auto_non_specific_eoi(dev);
 	} else if (phase == 1) {
-		if (pic_slave_on(dev, intr))
+		if (slave)
 			dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
 		else if (dev->icw1 & 0x04)
 			dev->data_bus = (intr << 2) + (dev->icw1 & 0xe0);
@@ -643,7 +632,7 @@ pic_irq_ack_read(pic_t *dev, int phase)
 			dev->data_bus = (intr << 3) + (dev->icw1 & 0xc0);
 	} else if (phase == 2) {
 		dev->int_pending = 0;
-		if (pic_slave_on(dev, intr))
+		if (slave)
 			dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
 		else
 			dev->data_bus = dev->icw2;
