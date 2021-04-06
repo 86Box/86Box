@@ -541,19 +541,24 @@ machine_at_403tg_init(const machine_t *model)
 
 
 int
-machine_at_pc330_6571_init(const machine_t *model)	// doesn't like every CPU other than the iDX4 and the Intel OverDrive, hangs without a PS/2 mouse
+machine_at_pc330_6573_init(const machine_t *model)	// doesn't like every CPU other than the iDX4 and the Intel OverDrive, hangs without a PS/2 mouse
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/pc330_6571/$IMAGES.USF",
+    ret = bios_load_linear("roms/machines/pc330_6573/$IMAGES.USF",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
 	return ret;
 
     machine_at_common_init(model);
-
+    pci_register_slot(0x10, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0); 
+    pci_register_slot(0x11, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x12, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
+	
     device_add(&opti802g_device);
+	device_add(&opti822_device);
     device_add(&keyboard_ps2_device);
     device_add(&fdc37c665_device);
     device_add(&ide_opti611_vlb_device);
@@ -577,7 +582,6 @@ machine_at_mvi486_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&opti895_device);
-
     device_add(&keyboard_at_device);
     device_add(&pc87311_ide_device);
 

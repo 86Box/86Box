@@ -319,7 +319,7 @@ extern int	machine_at_vect486vl_init(const machine_t *);
 #endif
 
 extern int	machine_at_403tg_init(const machine_t *);
-extern int	machine_at_pc330_6571_init(const machine_t *);
+extern int	machine_at_pc330_6573_init(const machine_t *);
 extern int	machine_at_mvi486_init(const machine_t *);
 
 extern int	machine_at_sis401_init(const machine_t *);
