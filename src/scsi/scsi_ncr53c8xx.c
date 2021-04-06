@@ -2514,8 +2514,6 @@ ncr53c8xx_init(const device_t *info)
     memset(dev, 0x00, sizeof(ncr53c8xx_t));
 
     dev->chip_rev = 0;
-    dev->pci_slot = pci_add_card(PCI_ADD_NORMAL, ncr53c8xx_pci_read, ncr53c8xx_pci_write, dev);
-
     dev->chip = info->local & 0xff;
 
     if ((dev->chip != CHIP_810) && (dev->chip != CHIP_820) && !(info->local & 0x8000)) {
@@ -2539,6 +2537,11 @@ ncr53c8xx_init(const device_t *info)
 	}
     } else
 	dev->has_bios = 0;
+
+    if (info->local & 0x8000)
+	dev->pci_slot = pci_add_card(PCI_ADD_SCSI, ncr53c8xx_pci_read, ncr53c8xx_pci_write, dev);
+    else
+	dev->pci_slot = pci_add_card(PCI_ADD_NORMAL, ncr53c8xx_pci_read, ncr53c8xx_pci_write, dev);
 
     if (dev->chip == CHIP_875) {
 	dev->chip_rev = 0x04;
