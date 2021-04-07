@@ -755,6 +755,36 @@ machine_at_8500tvxa_init(const machine_t *model)
     return ret;
 }
 
+
+int
+machine_at_presario2240_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/presario2240/B0184008.ROM",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x14, PCI_CARD_SOUND, 3, 0, 0, 0);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 1, 2, 3, 4);
+
+    device_add(&i430vx_device);
+    device_add(&piix3_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&fdc37c932qf_device);
+    device_add(&sst_flash_29ee020_device);
+
+    return ret;
+}
+
+
 int
 machine_at_presario4500_init(const machine_t *model)
 {
@@ -782,6 +812,7 @@ machine_at_presario4500_init(const machine_t *model)
 
     return ret;
 }
+
 
 int
 machine_at_pb680_init(const machine_t *model)
