@@ -1833,7 +1833,7 @@ static const device_config_t wd_rll_config[] = {
 
 
 const device_t st506_xt_xebec_device = {
-    "IBM PC Fixed Disk Adapter",
+    "IBM PC Fixed Disk Adapter (MFM)",
     DEVICE_ISA,
     (HDD_BUS_MFM << 8) | 0,
     st506_init, st506_close, NULL,
@@ -1843,7 +1843,7 @@ const device_t st506_xt_xebec_device = {
 };
 
 const device_t st506_xt_dtc5150x_device = {
-    "DTC 5150X Fixed Disk Adapter",
+    "DTC 5150X MFM Fixed Disk Adapter",
     DEVICE_ISA,
     (HDD_BUS_MFM << 8) | 1,
     st506_init, st506_close, NULL,
@@ -1853,7 +1853,7 @@ const device_t st506_xt_dtc5150x_device = {
 };
 
 const device_t st506_xt_st11_m_device = {
-    "ST-11M Fixed Disk Adapter",
+    "ST-11M MFM Fixed Disk Adapter",
     DEVICE_ISA,
     (HDD_BUS_MFM << 8) | 11,
     st506_init, st506_close, NULL,
@@ -1873,7 +1873,7 @@ const device_t st506_xt_st11_r_device = {
 };
 
 const device_t st506_xt_wd1002a_wx1_device = {
-    "WD1002A-WX1 Fixed Disk Adapter",
+    "WD1002A-WX1 MFM Fixed Disk Adapter",
     DEVICE_ISA,
     (HDD_BUS_MFM << 8) | 21,
     st506_init, st506_close, NULL,

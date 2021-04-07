@@ -1152,7 +1152,7 @@ static const device_config_t wdxt150_config[] = {
 
 
 const device_t xta_wdxt150_device = {
-    "WDXT-150 Fixed Disk Controller",
+    "WDXT-150 XTA Fixed Disk Controller",
     DEVICE_ISA,
     0,
     xta_init, xta_close, NULL,
