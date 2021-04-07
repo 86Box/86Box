@@ -323,9 +323,10 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
 							case 0x30:
 								picint(1 << 10);
 								break;
-							}
+						}
 						dev->regs[0x35] |= 0x0e;
-					}
+					} else if (!(val & 0x10))
+						dev->regs[0x35] &= ~0x0f;
 					break;
 
 				case 0x31:	/* Mode Timer Monitoring Events Selection Register I */
