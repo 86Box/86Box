@@ -1365,17 +1365,23 @@ ide_write_devctl(uint16_t addr, uint8_t val, void *priv)
 
 	/* We must set set the status to busy in reset mode or
 	   some 286 and 386 machines error out. */
-	if (ide_boards[ide->board]->force_ata3 || !ide_bm[ide->board]) {
+	if (!(ch & 1)) {
 		if (ide->type != IDE_NONE) {
 			ide->atastat = BSY_STAT;
-			if (ide->type == IDE_ATAPI)
+			ide->error = 1;
+			if (ide->type == IDE_ATAPI) {
 				ide->sc->status = BSY_STAT;
+				ide->sc->error = 1;
+			}
 		}
 
 		if (ide_other->type != IDE_NONE) {
 			ide_other->atastat = BSY_STAT;
-			if (ide_other->type == IDE_ATAPI)
+			ide_other->error = 1;
+			if (ide_other->type == IDE_ATAPI) {
 				ide_other->sc->status = BSY_STAT;
+				ide_other->sc->error = 1;
+			}
 		}
 	}
     } else if (!(val & 4) && (ide->fdisk & 4)) {
@@ -1747,7 +1753,7 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
 				ide->reset = 1;
 				ide_set_callback(ide, 0.0);
 				ide_set_callback(ide_other, 0.0);
-				ide_set_board_callback(ide->board, 200 * IDE_TIME);
+				ide_set_board_callback(ide->board, 200.0 * IDE_TIME);
 				return;
 
 			case WIN_PIDENTIFY: /* Identify Packet Device */
