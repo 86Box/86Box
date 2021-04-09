@@ -20,7 +20,7 @@ add_library(plat OBJECT win.c win_dynld.c win_thread.c win_cdrom.c
 
 add_library(ui OBJECT win_ui.c win_stbar.c win_sdl.c win_dialog.c win_about.c
 	win_settings.c win_devconf.c win_snd_gain.c win_new_floppy.c
-	win_jsconf.c win_media_menu.c 86Box.rc)
+	win_jsconf.c win_media_menu.c 86Box.rc glad.c win_opengl.c)
 
 if(MSVC)
 	# MSVC complains when we include the manifest from 86Box.rc...
