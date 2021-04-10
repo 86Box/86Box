@@ -65,10 +65,17 @@ uint32_t old_rammask = 0xffffffff;
 
 int soft_reset_mask = 0;
 
+int in_smm = 0, smi_line = 0, smi_latched = 0, smm_in_hlt = 0;
+int smi_block = 0;
+uint32_t smbase = 0x30000;
 
-#define AMD_SYSCALL_EIP	(star & 0xFFFFFFFF)
-#define AMD_SYSCALL_SB	((star >> 32) & 0xFFFF)
-#define AMD_SYSRET_SB	((star >> 48) & 0xFFFF)
+uint32_t addr64, addr64_2;
+uint32_t addr64a[8], addr64a_2[8];
+
+
+#define AMD_SYSCALL_EIP	(msr.star & 0xFFFFFFFF)
+#define AMD_SYSCALL_SB	((msr.star >> 32) & 0xFFFF)
+#define AMD_SYSRET_SB	((msr.star >> 48) & 0xFFFF)
 
 
 /* These #define's and enum have been borrowed from Bochs. */
@@ -1312,7 +1319,7 @@ x86_int(int num)
     else {
 	addr = (num << 2) + idt.base;
 
-	if ((num << 2) + 3 > idt.limit) {
+	if ((num << 2UL) + 3UL > idt.limit) {
 		if (idt.limit < 35) {
 			cpu_state.abrt = 0;
 			softresetx86();
@@ -1363,7 +1370,7 @@ x86_int_sw(int num)
     else {
 	addr = (num << 2) + idt.base;
 
-	if ((num << 2) + 3 > idt.limit)
+	if ((num << 2UL) + 3UL > idt.limit)
 		x86_int(0x0d);
 	else {
 		if (stack32) {
@@ -1447,7 +1454,7 @@ x86illegal()
 
 
 int
-checkio(int port)
+checkio(uint32_t port)
 {
     uint16_t t;
     uint8_t d;
@@ -1459,7 +1466,7 @@ checkio(int port)
     if (cpu_state.abrt)
 	return 0;
 
-    if ((t + (port >> 3)) > tr.limit)
+    if ((t + (port >> 3UL)) > tr.limit)
 	return 1;
 
     cpl_override = 1;
@@ -1599,7 +1606,7 @@ sysenter(uint32_t fetchdat)
 	return cpu_state.abrt;
     }
 
-    if (!(cs_msr & 0xFFF8)) {
+    if (!(msr.sysenter_cs & 0xFFF8)) {
 #ifdef ENABLE_386_COMMON_LOG
 	x386_common_log("SYSENTER: CS MSR is zero");
 #endif
@@ -1611,7 +1618,7 @@ sysenter(uint32_t fetchdat)
     x386_common_log("SYSENTER started:\n");
     x386_common_log("    CS %04X/%i: b=%08X l=%08X (%08X-%08X) a=%02X%02X; EIP=%08X\n", cpu_state.seg_cs.seg, !!cpu_state.seg_cs.checked, cpu_state.seg_cs.base, cpu_state.seg_cs.limit, cpu_state.seg_cs.limit_low, cpu_state.seg_cs.limit_high, cpu_state.seg_cs.ar_high, cpu_state.seg_cs.access, cpu_state.pc);
     x386_common_log("    SS %04X/%i: b=%08X l=%08X (%08X-%08X) a=%02X%02X; ESP=%08X\n", cpu_state.seg_ss.seg, !!cpu_state.seg_ss.checked, cpu_state.seg_ss.base, cpu_state.seg_ss.limit, cpu_state.seg_ss.limit_low, cpu_state.seg_ss.limit_high, cpu_state.seg_ss.ar_high, cpu_state.seg_ss.access, ESP);
-    x386_common_log("    Misc.  : MSR (CS/ESP/EIP)=%04X/%08X/%08X pccache=%08X/%08X\n", cs_msr, esp_msr, eip_msr, pccache, pccache2);
+    x386_common_log("    Misc.  : MSR (CS/ESP/EIP)=%04X/%08X/%08X pccache=%08X/%08X\n", msr.sysenter_cs, msr.sysenter_esp, msr.sysenter_eip, pccache, pccache2);
     x386_common_log("             EFLAGS=%04X%04X/%i 32=%i/%i ECX=%08X EDX=%08X abrt=%02X\n", cpu_state.eflags, cpu_state.flags, !!trap, !!use32, !!stack32, ECX, EDX, cpu_state.abrt);
 #endif
 
@@ -1623,10 +1630,10 @@ sysenter(uint32_t fetchdat)
     oldcs = CS;
 #endif
     cpu_state.oldpc = cpu_state.pc;
-    ESP = esp_msr;
-    cpu_state.pc = eip_msr;
+    ESP = msr.sysenter_esp;
+    cpu_state.pc = msr.sysenter_eip;
 
-    cpu_state.seg_cs.seg = (cs_msr & 0xfffc);
+    cpu_state.seg_cs.seg = (msr.sysenter_cs & 0xfffc);
     cpu_state.seg_cs.base = 0;
     cpu_state.seg_cs.limit_low = 0;
     cpu_state.seg_cs.limit = 0xffffffff;
@@ -1637,7 +1644,7 @@ sysenter(uint32_t fetchdat)
     cpu_state.seg_cs.checked = 1;
     oldcpl = 0;
 
-    cpu_state.seg_ss.seg = ((cs_msr + 8) & 0xfffc);
+    cpu_state.seg_ss.seg = ((msr.sysenter_cs + 8) & 0xfffc);
     cpu_state.seg_ss.base = 0;
     cpu_state.seg_ss.limit_low = 0;
     cpu_state.seg_ss.limit = 0xffffffff;
@@ -1661,7 +1668,7 @@ sysenter(uint32_t fetchdat)
     x386_common_log("SYSENTER completed:\n");
     x386_common_log("    CS %04X/%i: b=%08X l=%08X (%08X-%08X) a=%02X%02X; EIP=%08X\n", cpu_state.seg_cs.seg, !!cpu_state.seg_cs.checked, cpu_state.seg_cs.base, cpu_state.seg_cs.limit, cpu_state.seg_cs.limit_low, cpu_state.seg_cs.limit_high, cpu_state.seg_cs.ar_high, cpu_state.seg_cs.access, cpu_state.pc);
     x386_common_log("    SS %04X/%i: b=%08X l=%08X (%08X-%08X) a=%02X%02X; ESP=%08X\n", cpu_state.seg_ss.seg, !!cpu_state.seg_ss.checked, cpu_state.seg_ss.base, cpu_state.seg_ss.limit, cpu_state.seg_ss.limit_low, cpu_state.seg_ss.limit_high, cpu_state.seg_ss.ar_high, cpu_state.seg_ss.access, ESP);
-    x386_common_log("    Misc.  : MSR (CS/ESP/EIP)=%04X/%08X/%08X pccache=%08X/%08X\n", cs_msr, esp_msr, eip_msr, pccache, pccache2);
+    x386_common_log("    Misc.  : MSR (CS/ESP/EIP)=%04X/%08X/%08X pccache=%08X/%08X\n", msr.sysenter_cs, msr.sysenter_esp, msr.sysenter_eip, pccache, pccache2);
     x386_common_log("             EFLAGS=%04X%04X/%i 32=%i/%i ECX=%08X EDX=%08X abrt=%02X\n", cpu_state.eflags, cpu_state.flags, !!trap, !!use32, !!stack32, ECX, EDX, cpu_state.abrt);
 #endif
 
@@ -1676,7 +1683,7 @@ sysexit(uint32_t fetchdat)
     x386_common_log("SYSEXIT called\n");
 #endif
 
-    if (!(cs_msr & 0xFFF8)) {
+    if (!(msr.sysenter_cs & 0xFFF8)) {
 #ifdef ENABLE_386_COMMON_LOG
 	x386_common_log("SYSEXIT: CS MSR is zero");
 #endif
@@ -1704,7 +1711,7 @@ sysexit(uint32_t fetchdat)
     x386_common_log("SYSEXIT start:\n");
     x386_common_log("    CS %04X/%i: b=%08X l=%08X (%08X-%08X) a=%02X%02X; EIP=%08X\n", cpu_state.seg_cs.seg, !!cpu_state.seg_cs.checked, cpu_state.seg_cs.base, cpu_state.seg_cs.limit, cpu_state.seg_cs.limit_low, cpu_state.seg_cs.limit_high, cpu_state.seg_cs.ar_high, cpu_state.seg_cs.access, cpu_state.pc);
     x386_common_log("    SS %04X/%i: b=%08X l=%08X (%08X-%08X) a=%02X%02X; ESP=%08X\n", cpu_state.seg_ss.seg, !!cpu_state.seg_ss.checked, cpu_state.seg_ss.base, cpu_state.seg_ss.limit, cpu_state.seg_ss.limit_low, cpu_state.seg_ss.limit_high, cpu_state.seg_ss.ar_high, cpu_state.seg_ss.access, ESP);
-    x386_common_log("    Misc.  : MSR (CS/ESP/EIP)=%04X/%08X/%08X pccache=%08X/%08X\n", cs_msr, esp_msr, eip_msr, pccache, pccache2);
+    x386_common_log("    Misc.  : MSR (CS/ESP/EIP)=%04X/%08X/%08X pccache=%08X/%08X\n", msr.sysenter_cs, msr.sysenter_esp, msr.sysenter_eip, pccache, pccache2);
     x386_common_log("             EFLAGS=%04X%04X/%i 32=%i/%i ECX=%08X EDX=%08X abrt=%02X\n", cpu_state.eflags, cpu_state.flags, !!trap, !!use32, !!stack32, ECX, EDX, cpu_state.abrt);
 #endif
 
@@ -1715,7 +1722,7 @@ sysexit(uint32_t fetchdat)
     ESP = ECX;
     cpu_state.pc = EDX;
 
-    cpu_state.seg_cs.seg = (((cs_msr + 16) & 0xfffc) | 3);
+    cpu_state.seg_cs.seg = (((msr.sysenter_cs + 16) & 0xfffc) | 3);
     cpu_state.seg_cs.base = 0;
     cpu_state.seg_cs.limit_low = 0;
     cpu_state.seg_cs.limit = 0xffffffff;
@@ -1726,7 +1733,7 @@ sysexit(uint32_t fetchdat)
     cpu_state.seg_cs.checked = 1;
     oldcpl = 3;
 
-    cpu_state.seg_ss.seg = (((cs_msr + 24) & 0xfffc) | 3);
+    cpu_state.seg_ss.seg = (((msr.sysenter_cs + 24) & 0xfffc) | 3);
     cpu_state.seg_ss.base = 0;
     cpu_state.seg_ss.limit_low = 0;
     cpu_state.seg_ss.limit = 0xffffffff;
@@ -1751,7 +1758,7 @@ sysexit(uint32_t fetchdat)
     x386_common_log("SYSEXIT completed:\n");
     x386_common_log("    CS %04X/%i: b=%08X l=%08X (%08X-%08X) a=%02X%02X; EIP=%08X\n", cpu_state.seg_cs.seg, !!cpu_state.seg_cs.checked, cpu_state.seg_cs.base, cpu_state.seg_cs.limit, cpu_state.seg_cs.limit_low, cpu_state.seg_cs.limit_high, cpu_state.seg_cs.ar_high, cpu_state.seg_cs.access, cpu_state.pc);
     x386_common_log("    SS %04X/%i: b=%08X l=%08X (%08X-%08X) a=%02X%02X; ESP=%08X\n", cpu_state.seg_ss.seg, !!cpu_state.seg_ss.checked, cpu_state.seg_ss.base, cpu_state.seg_ss.limit, cpu_state.seg_ss.limit_low, cpu_state.seg_ss.limit_high, cpu_state.seg_ss.ar_high, cpu_state.seg_ss.access, ESP);
-    x386_common_log("    Misc.  : MSR (CS/ESP/EIP)=%04X/%08X/%08X pccache=%08X/%08X\n", cs_msr, esp_msr, eip_msr, pccache, pccache2);
+    x386_common_log("    Misc.  : MSR (CS/ESP/EIP)=%04X/%08X/%08X pccache=%08X/%08X\n", msr.sysenter_cs, msr.sysenter_esp, msr.sysenter_eip, pccache, pccache2);
     x386_common_log("             EFLAGS=%04X%04X/%i 32=%i/%i ECX=%08X EDX=%08X abrt=%02X\n", cpu_state.eflags, cpu_state.flags, !!trap, !!use32, !!stack32, ECX, EDX, cpu_state.abrt);
 #endif
 

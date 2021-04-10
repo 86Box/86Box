@@ -134,9 +134,9 @@ static inline void fetch_ea_32_long(uint32_t rmdat)
         if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC)
         {
 		uint32_t addr = easeg + cpu_state.eaaddr;
-                if ( readlookup2[addr >> 12] != -1)
+                if ( readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
                 	eal_r = (uint32_t *)(readlookup2[addr >> 12] + addr);
-                if (writelookup2[addr >> 12] != -1)
+                if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
                 	eal_w = (uint32_t *)(writelookup2[addr >> 12] + addr);
         }
 }
@@ -174,9 +174,9 @@ static inline void fetch_ea_16_long(uint32_t rmdat)
         if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC)
         {
 		uint32_t addr = easeg + cpu_state.eaaddr;
-                if ( readlookup2[addr >> 12] != -1)
+                if ( readlookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
                 	eal_r = (uint32_t *)(readlookup2[addr >> 12] + addr);
-                if (writelookup2[addr >> 12] != -1)
+                if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV)
                 	eal_w = (uint32_t *)(writelookup2[addr >> 12] + addr);
         }
 }
@@ -271,7 +271,7 @@ exec386(int cycs)
 				CS = oldcs;
 #endif
 				cpu_state.pc = cpu_state.oldpc;
-				x386_log("Double fault %i\n", ins);
+				x386_log("Double fault\n");
 				pmodeint(8, 0);
 				if (cpu_state.abrt) {
 					cpu_state.abrt = 0;

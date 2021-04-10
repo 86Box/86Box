@@ -245,8 +245,8 @@ static int opPOPW_a16(uint32_t fetchdat)
                 else         SP -= 2;
         }
                         
-        if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 6);
-        else       CLOCK_CYCLES((cpu_mod == 3) ? 4 : 5);
+        if (is486) { CLOCK_CYCLES((cpu_mod == 3) ? 1 : 6); }
+        else       { CLOCK_CYCLES((cpu_mod == 3) ? 4 : 5); }
         PREFETCH_RUN((cpu_mod == 3) ? 4 : 5, 2, rmdat, 1,0,(cpu_mod == 3) ? 0:1,0, 0);
         return cpu_state.abrt;
 }
@@ -266,8 +266,8 @@ static int opPOPW_a32(uint32_t fetchdat)
                 else         SP -= 2;
         }
                         
-        if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 6);
-        else       CLOCK_CYCLES((cpu_mod == 3) ? 4 : 5);
+        if (is486) { CLOCK_CYCLES((cpu_mod == 3) ? 1 : 6); }
+        else       { CLOCK_CYCLES((cpu_mod == 3) ? 4 : 5); }
         PREFETCH_RUN((cpu_mod == 3) ? 4 : 5, 2, rmdat, 1,0,(cpu_mod == 3) ? 0:1,0, 1);
         return cpu_state.abrt;
 }
@@ -288,8 +288,8 @@ static int opPOPL_a16(uint32_t fetchdat)
                 else         SP -= 4;
         }
                         
-        if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 6);
-        else       CLOCK_CYCLES((cpu_mod == 3) ? 4 : 5);
+        if (is486) { CLOCK_CYCLES((cpu_mod == 3) ? 1 : 6); }
+        else       { CLOCK_CYCLES((cpu_mod == 3) ? 4 : 5); }
         PREFETCH_RUN((cpu_mod == 3) ? 4 : 5, 2, rmdat, 0,1,0,(cpu_mod == 3) ? 0:1, 0);
         return cpu_state.abrt;
 }
@@ -309,8 +309,8 @@ static int opPOPL_a32(uint32_t fetchdat)
                 else         SP -= 4;
         }
 
-        if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 6);
-        else       CLOCK_CYCLES((cpu_mod == 3) ? 4 : 5);
+        if (is486) { CLOCK_CYCLES((cpu_mod == 3) ? 1 : 6); }
+        else       { CLOCK_CYCLES((cpu_mod == 3) ? 4 : 5); }
         PREFETCH_RUN((cpu_mod == 3) ? 4 : 5, 2, rmdat, 0,1,0,(cpu_mod == 3) ? 0:1, 1);
         return cpu_state.abrt;
 }
@@ -470,17 +470,16 @@ static int opLEAVE_l(uint32_t fetchdat)
         }
 
                 
-PUSH_SEG_OPS(CS);
-PUSH_SEG_OPS(DS);
-PUSH_SEG_OPS(ES);
-PUSH_SEG_OPS(FS);
-PUSH_SEG_OPS(GS);
-PUSH_SEG_OPS(SS);
-
-POP_SEG_OPS(DS, &cpu_state.seg_ds);
-POP_SEG_OPS(ES, &cpu_state.seg_es);
-POP_SEG_OPS(FS, &cpu_state.seg_fs);
-POP_SEG_OPS(GS, &cpu_state.seg_gs);
+PUSH_SEG_OPS(CS)
+PUSH_SEG_OPS(DS)
+PUSH_SEG_OPS(ES)
+PUSH_SEG_OPS(FS)
+PUSH_SEG_OPS(GS)
+PUSH_SEG_OPS(SS)
+POP_SEG_OPS(DS, &cpu_state.seg_ds)
+POP_SEG_OPS(ES, &cpu_state.seg_es)
+POP_SEG_OPS(FS, &cpu_state.seg_fs)
+POP_SEG_OPS(GS, &cpu_state.seg_gs)
 
 
 static int opPOP_SS_w(uint32_t fetchdat)

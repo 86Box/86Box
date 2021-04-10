@@ -63,8 +63,8 @@ static int opF6_a16(uint32_t fetchdat)
 		case 0x08:
                 src = readmemb(cs, cpu_state.pc); cpu_state.pc++;           if (cpu_state.abrt) return 1;
                 setznp8(src & dst);
-                if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
-                else       CLOCK_CYCLES((cpu_mod == 3) ? 2 : 5);
+                if (is486) { CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2); }
+                else       { CLOCK_CYCLES((cpu_mod == 3) ? 2 : 5); }
                 PREFETCH_RUN((cpu_mod == 3) ? 2 : 5, 3, rmdat, (cpu_mod == 3) ? 0:1,0,0,0, 0);
                 break;
                 case 0x10: /*NOT b*/
@@ -167,8 +167,8 @@ static int opF6_a32(uint32_t fetchdat)
                 case 0x08:
                 src = readmemb(cs, cpu_state.pc); cpu_state.pc++;           if (cpu_state.abrt) return 1;
                 setznp8(src & dst);
-                if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
-                else       CLOCK_CYCLES((cpu_mod == 3) ? 2 : 5);
+                if (is486) { CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2); }
+                else       { CLOCK_CYCLES((cpu_mod == 3) ? 2 : 5); }
                 PREFETCH_RUN((cpu_mod == 3) ? 2 : 5, 3, rmdat, (cpu_mod == 3) ? 0:1,0,0,0, 1);
                 break;
                 case 0x10: /*NOT b*/
@@ -274,8 +274,8 @@ static int opF7_w_a16(uint32_t fetchdat)
                 case 0x08:
                 src = getword();        if (cpu_state.abrt) return 1;
                 setznp16(src & dst);
-                if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
-                else       CLOCK_CYCLES((cpu_mod == 3) ? 2 : 5);
+                if (is486) { CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2); }
+                else       { CLOCK_CYCLES((cpu_mod == 3) ? 2 : 5); }
                 PREFETCH_RUN((cpu_mod == 3) ? 2 : 5, 4, rmdat, (cpu_mod == 3) ? 0:1,0,0,0, 0);
                 break;
                 case 0x10: /*NOT w*/
@@ -371,8 +371,8 @@ static int opF7_w_a32(uint32_t fetchdat)
                 case 0x08:
                 src = getword();        if (cpu_state.abrt) return 1;
                 setznp16(src & dst);
-                if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
-                else       CLOCK_CYCLES((cpu_mod == 3) ? 2 : 5);
+                if (is486) { CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2); }
+                else       { CLOCK_CYCLES((cpu_mod == 3) ? 2 : 5); }
                 PREFETCH_RUN((cpu_mod == 3) ? 2 : 5, 4, rmdat, (cpu_mod == 3) ? 0:1,0,0,0, 1);
                 break;
                 case 0x10: /*NOT w*/
@@ -469,8 +469,8 @@ static int opF7_l_a16(uint32_t fetchdat)
                 case 0x08:
                 src = getlong();        if (cpu_state.abrt) return 1;
                 setznp32(src & dst);
-                if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
-                else       CLOCK_CYCLES((cpu_mod == 3) ? 2 : 5);
+                if (is486) { CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2); }
+                else       { CLOCK_CYCLES((cpu_mod == 3) ? 2 : 5); }
                 PREFETCH_RUN((cpu_mod == 3) ? 2 : 5, 5, rmdat, 0,(cpu_mod == 3) ? 0:1,0,0, 0);
                 break;
                 case 0x10: /*NOT l*/
@@ -544,8 +544,8 @@ static int opF7_l_a32(uint32_t fetchdat)
                 case 0x08:
                 src = getlong();        if (cpu_state.abrt) return 1;
                 setznp32(src & dst);
-                if (is486) CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2);
-                else       CLOCK_CYCLES((cpu_mod == 3) ? 2 : 5);
+                if (is486) { CLOCK_CYCLES((cpu_mod == 3) ? 1 : 2); }
+                else       { CLOCK_CYCLES((cpu_mod == 3) ? 2 : 5); }
                 PREFETCH_RUN((cpu_mod == 3) ? 2 : 5, 5, rmdat, 0,(cpu_mod == 3) ? 0:1,0,0, 1);
                 break;
                 case 0x10: /*NOT l*/
@@ -620,8 +620,9 @@ static int opHLT(uint32_t fetchdat)
 		if (!((cpu_state.flags & I_FLAG) && pic.int_pending))
                 	cpu_state.pc--;
         }
-        else
+        else {
                 CLOCK_CYCLES(5);
+	}
 
         CPU_BLOCK_END();
         PREFETCH_RUN(100, 1, -1, 0,0,0,0, 0);
