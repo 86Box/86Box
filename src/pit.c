@@ -647,7 +647,7 @@ pit_read(uint16_t addr, void *priv)
 				break;
 
 			case 3: case 0x83:
-				if (ctr->wm & 0x80)
+				if (ctr->rm & 0x80)
 					ret = ~(ctr->l & 0xff);
 				else
 					ret = count >> ((ctr->rm & 0x80) ? 8 : 0);
