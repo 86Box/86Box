@@ -1325,6 +1325,11 @@ write64_ami(void *priv, uint8_t val)
 		dev->want60 = 1;
 		return 0;
 
+	case 0xa0:	/* copyright message */
+		add_data(dev, 0x28);
+		add_data(dev, 0x00);
+		break;
+		
 	case 0xa1:	/* get controller version */
 		kbd_log("ATkbc: AMI - get controller version\n");
 		add_data(dev, 'H');
