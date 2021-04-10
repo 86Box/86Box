@@ -81,7 +81,7 @@ machine_init_ex(int m)
 
 	/* Reset the memory state. */
 	mem_reset();
-	smbase = is_am486 ? 0x00060000 : 0x00030000;
+	smbase = 0x00030000;
 
 	lpt_init();
     }
