@@ -647,6 +647,8 @@ pit_read(uint16_t addr, void *priv)
 				break;
 
 			case 3: case 0x83:
+				/* Yes, wm is correct here - this is to ensure correct readout while the
+				   count is being written. */
 				if (ctr->wm & 0x80)
 					ret = ~(ctr->l & 0xff);
 				else
