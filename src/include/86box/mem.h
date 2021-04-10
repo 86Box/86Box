@@ -189,12 +189,10 @@ extern uint32_t		rammask;
 extern uint8_t		*rom;
 extern uint32_t		biosmask, biosaddr;
 
-extern int		readlookup[256],
-			readlookupp[256];
+extern int		readlookup[256];
 extern uintptr_t *	readlookup2;
 extern int		readlnext;
-extern int		writelookup[256],
-			writelookupp[256];
+extern int		writelookup[256];
 extern uintptr_t *	writelookup2;
 extern int		writelnext;
 extern uint32_t		ram_mapped_addr[64];
@@ -224,6 +222,7 @@ extern int		readlnum,
 extern int		memspeed[11];
 
 extern int		mmu_perm;
+extern uint8_t		high_page;		/* if a high (> 4 gb) page was detected */
 
 extern int		mem_a20_state,
 			mem_a20_alt,
@@ -244,14 +243,14 @@ extern void	writememll(uint32_t addr, uint32_t val);
 extern uint64_t	readmemql(uint32_t addr);
 extern void	writememql(uint32_t addr, uint64_t val);
 
-extern uint8_t	readmembl_no_mmut(uint32_t addr, uint64_t addr64);
-extern void	writemembl_no_mmut(uint32_t addr, uint64_t addr64, uint8_t val);
-extern uint16_t	readmemwl_no_mmut(uint32_t addr, uint64_t *addr64);
-extern void	writememwl_no_mmut(uint32_t addr, uint64_t *addr64, uint16_t val);
-extern uint32_t	readmemll_no_mmut(uint32_t addr, uint64_t *addr64);
-extern void	writememll_no_mmut(uint32_t addr, uint64_t *addr64, uint32_t val);
+extern uint8_t	readmembl_no_mmut(uint32_t addr, uint32_t a64);
+extern void	writemembl_no_mmut(uint32_t addr, uint32_t a64, uint8_t val);
+extern uint16_t	readmemwl_no_mmut(uint32_t addr, uint32_t *a64);
+extern void	writememwl_no_mmut(uint32_t addr, uint32_t *a64, uint16_t val);
+extern uint32_t	readmemll_no_mmut(uint32_t addr, uint32_t *a64);
+extern void	writememll_no_mmut(uint32_t addr, uint32_t *a64, uint32_t val);
 
-extern void	do_mmutranslate(uint32_t addr, uint64_t *addr64, int num, int write);
+extern void	do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write);
 
 extern uint8_t	*getpccache(uint32_t a);
 extern uint64_t	mmutranslatereal(uint32_t addr, int rw);

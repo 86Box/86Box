@@ -40,9 +40,9 @@ enum {
 #endif
     CPU_286,		/* 286 class CPUs */
     CPU_386SX,		/* 386 class CPUs */
-    CPU_386DX,
     CPU_IBM386SLC,
     CPU_IBM486SLC,
+    CPU_386DX,
     CPU_IBM486BL,
     CPU_RAPIDCAD,
     CPU_486SLC,
@@ -53,10 +53,10 @@ enum {
     CPU_i486SX2,
     CPU_Am486SX2,
     CPU_i486DX,
-    CPU_i486DX2,
     CPU_Am486DX,
-    CPU_Am486DX2,
     CPU_Cx486DX,
+    CPU_i486DX2,
+    CPU_Am486DX2,
     CPU_Cx486DX2,
     CPU_iDX4,
     CPU_Am486DX4,
@@ -236,10 +236,99 @@ typedef union {
 } MMX_REG;
 
 typedef struct {
-    uint32_t	tr1, tr12;
-    uint32_t	cesr;
-    uint32_t	fcr;
-    uint64_t	fcr2, fcr3;
+    /* IDT WinChip and WinChip 2 MSR's */
+    uint32_t	tr1, tr12;		/* 0x00000002, 0x0000000e */
+    uint32_t	cesr;			/* 0x00000011 */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	ecx17;			/* 0x00000017 - Only on Pentium II Deschutes */
+    uint64_t	apic_base;		/* 0x0000001b - Should the Pentium not also have this? */
+    uint64_t	ecx79;			/* 0x00000079 */
+
+    /* AMD K5, 5k86, K6, K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
+    uint64_t	ecx83;			/* 0x00000083 - AMD K5 and K6 MSR's. */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	ecx8x[4];		/* 0x00000088 - 0x0000008b */
+    uint64_t	ia32_pmc[8];		/* 0x000000c1 - 0x000000c8 */
+    uint64_t	mtrr_cap;		/* 0x000000fe */
+
+    /* IDT WinChip and WinChip 2 MSR's that are also on the VIA Cyrix III and Eden */
+    uint32_t	fcr;			/* 0x00000107 (IDT), 0x00001107 (VIA) */
+    uint64_t	fcr2, fcr3;		/* 0x00000108 (IDT), 0x00001108 (VIA) */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	ecx116;			/* 0x00000116 */
+    uint64_t	ecx11x[4];		/* 0x00000118 - 0x0000011b */
+    uint64_t	ecx11e;			/* 0x0000011e */
+
+    /* Pentium II Klamath and Pentium II Deschutes MSR's */
+    uint16_t	sysenter_cs;		/* 0x00000174 - SYSENTER/SYSEXIT MSR's */
+    uint32_t	sysenter_esp;		/* 0x00000175 - SYSENTER/SYSEXIT MSR's */
+    uint32_t	sysenter_eip;		/* 0x00000176 - SYSENTER/SYSEXIT MSR's */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	ecx186, ecx187;		/* 0x00000186, 0x00000187 */
+    uint64_t	ecx1e0;			/* 0x000001e0 */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's that are also
+       on the VIA Cyrix III and Eden */
+    uint64_t	mtrr_physbase[8];	/* 0x00000200 - 0x0000020f */
+    uint64_t	mtrr_physmask[8];	/* 0x00000200 - 0x0000020f (ECX & 1) */
+    uint64_t	mtrr_fix64k_8000;	/* 0x00000250 */
+    uint64_t	mtrr_fix16k_8000;	/* 0x00000258 */
+    uint64_t	mtrr_fix16k_a000;	/* 0x00000259 */
+    uint64_t	mtrr_fix4k[8];		/* 0x00000268 - 0x0000026f */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	pat;			/* 0x00000277 */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's that are also
+       on the VIA Cyrix III and Eden */
+    uint64_t	mtrr_deftype;		/* 0x000002ff */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	ecx404;			/* 0x00000404 - Model Identification MSR's used by some Acer BIOSes */
+    uint64_t	ecx408;			/* 0x00000408 */
+    uint64_t	ecx40c;			/* 0x0000040c */
+    uint64_t	ecx410;			/* 0x00000410 */
+    uint64_t	ecx570;			/* 0x00000570 */
+
+    /* IBM 386SLC, 486SLC, and 486BL MSR's */
+    uint64_t	ibm_por;		/* 0x00001000 - Processor Operation Register */
+    uint64_t	ibm_crcr;		/* 0x00001001 - Cache Region Control Register */
+
+    /* IBM 486SLC and 486BL MSR's */
+    uint64_t	ibm_por2;		/* 0x00001002 - Processor Operation Register */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	ecx1002ff;		/* 0x001002ff - MSR used by some Intel AMI boards */
+
+    /* AMD K5, 5k86, K6, K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
+    uint64_t	amd_efer;		/* 0xc0000080 */
+
+    /* AMD K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
+    uint64_t	star;			/* 0xc0000081 */
+
+    /* AMD K5, 5k86, K6, K6-2, K6-2C, K6-3, K6-2P, and K6-3P MSR's */
+    uint64_t	amd_whcr;		/* 0xc0000082 */
+
+    /* AMD K6-2C, K6-3, K6-2P, and K6-3P MSR's */
+   uint64_t	amd_uwccr;		/* 0xc0000085 */
+
+    /* AMD K6-2P and K6-3P MSR's */
+    uint64_t	amd_epmr;		/* 0xc0000086 */
+
+    /* AMD K6-2C, K6-3, K6-2P, and K6-3P MSR's */
+   uint64_t	amd_psor, amd_pfir;	/* 0xc0000087, 0xc0000088 */
+
+    /* K6-3, K6-2P, and K6-3P MSR's */
+    uint64_t	amd_l2aar;		/* 0xc0000089 */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	ecxf0f00250;		/* 0xf0f00250 - Some weird long MSR's used by i686 AMI & some Phoenix BIOSes */
+    uint64_t	ecxf0f00258;		/* 0xf0f00258 */
+    uint64_t	ecxf0f00259;		/* 0xf0f00259 */
 } msr_t;
 
 typedef struct {
@@ -532,7 +621,7 @@ extern void	cpu_CPUID(void);
 extern void	cpu_RDMSR(void);
 extern void	cpu_WRMSR(void);
 
-extern int      checkio(int port);
+extern int      checkio(uint32_t port);
 extern void	codegen_block_end(void);
 extern void	codegen_reset(void);
 extern void	cpu_set_edx(void);
@@ -612,9 +701,14 @@ typedef struct
 } cyrix_t;
 
 
+extern uint32_t	addr64, addr64_2;
+extern uint32_t	addr64a[8], addr64a_2[8];
+
 extern cyrix_t	cyrix;
 
 extern void	(*cpu_exec)(int cycs);
 extern uint8_t	do_translate, do_translate2;
+
+extern void	reset_808x(int hard);
 
 #endif	/*EMU_CPU_H*/

@@ -35,42 +35,8 @@
 #include <86box/ppi.h>
 #include <86box/timer.h>
 
-/* The opcode of the instruction currently being executed. */
-uint8_t opcode;
-
-/* The tables to speed up the setting of the Z, N, and P cpu_state.flags. */
-uint8_t znptable8[256];
-uint16_t znptable16[65536];
-
-/* A 16-bit zero, needed because some speed-up arrays contain pointers to it. */
-uint16_t zero = 0;
-
-/* MOD and R/M stuff. */
-uint16_t *mod1add[2][8];
-uint32_t *mod1seg[8];
-uint32_t rmdat;
-
-/* XT CPU multiplier. */
-uint64_t xt_cpu_multi;
-
 /* Is the CPU 8088 or 8086. */
 int is8086 = 0;
-
-/* Variables for handling the non-maskable interrupts. */
-int nmi = 0, nmi_auto_clear = 0;
-
-/* Was the CPU ever reset? */
-int x86_was_reset = 0;
-
-/* Amount of instructions executed - used to calculate the % shown in the title bar. */
-int ins = 0;
-
-/* Is the TRAP flag on? */
-int trap = 0;
-
-/* The current effective address's segment. */
-uint32_t easeg;
-
 
 /* The prefetch queue (4 bytes for 8088, 6 bytes for 8086). */
 static uint8_t pfq[6];
@@ -147,50 +113,6 @@ x808x_log(const char *fmt, ...)
 	pclog_ex(fmt, ap);
 	va_end(ap);
     }
-}
-
-
-void
-dumpregs(int force)
-{
-    int c;
-    char *seg_names[4] = { "ES", "CS", "SS", "DS" };
-
-    /* Only dump when needed, and only once.. */
-    if (indump || (!force && !dump_on_exit))
-	return;
-
-    x808x_log("EIP=%08X CS=%04X DS=%04X ES=%04X SS=%04X FLAGS=%04X\n",
-	      cpu_state.pc, CS, DS, ES, SS, cpu_state.flags);
-    x808x_log("Old CS:EIP: %04X:%08X; %i ins\n", oldcs, cpu_state.oldpc, ins);
-    for (c = 0; c < 4; c++) {
-	x808x_log("%s : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",
-		  seg_names[c], _opseg[c]->base, _opseg[c]->limit,
-		  _opseg[c]->access, _opseg[c]->limit_low, _opseg[c]->limit_high);
-    }
-    if (is386) {
-	x808x_log("FS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",
-		  seg_fs, cpu_state.seg_fs.limit, cpu_state.seg_fs.access, cpu_state.seg_fs.limit_low, cpu_state.seg_fs.limit_high);
-	x808x_log("GS : base=%06X limit=%08X access=%02X  limit_low=%08X limit_high=%08X\n",
-		  gs, cpu_state.seg_gs.limit, cpu_state.seg_gs.access, cpu_state.seg_gs.limit_low, cpu_state.seg_gs.limit_high);
-	x808x_log("GDT : base=%06X limit=%04X\n", gdt.base, gdt.limit);
-	x808x_log("LDT : base=%06X limit=%04X\n", ldt.base, ldt.limit);
-	x808x_log("IDT : base=%06X limit=%04X\n", idt.base, idt.limit);
-	x808x_log("TR  : base=%06X limit=%04X\n", tr.base, tr.limit);
-	x808x_log("386 in %s mode: %i-bit data, %-i-bit stack\n",
-		  (msw & 1) ? ((cpu_state.eflags & VM_FLAG) ? "V86" : "protected") : "real",
-		  (use32) ? 32 : 16, (stack32) ? 32 : 16);
-	x808x_log("CR0=%08X CR2=%08X CR3=%08X CR4=%08x\n", cr0, cr2, cr3, cr4);
-	x808x_log("EAX=%08X EBX=%08X ECX=%08X EDX=%08X\nEDI=%08X ESI=%08X EBP=%08X ESP=%08X\n",
-		  EAX, EBX, ECX, EDX, EDI, ESI, EBP, ESP);
-    } else {
-	x808x_log("808x/286 in %s mode\n", (msw & 1) ? "protected" : "real");
-	x808x_log("AX=%04X BX=%04X CX=%04X DX=%04X DI=%04X SI=%04X BP=%04X SP=%04X\n",
-		  AX, BX, CX, DX, DI, SI, BP, SP);
-    }
-    x808x_log("Entries in readlookup : %i    writelookup : %i\n", readlnum, writelnum);
-    x87_dumpregs();
-    indump = 0;
 }
 #else
 #define x808x_log(fmt, ...)
@@ -603,6 +525,63 @@ pfq_clear()
 
 
 static void
+load_cs(uint16_t seg)
+{
+    cpu_state.seg_cs.base = seg << 4;
+    cpu_state.seg_cs.seg = seg & 0xffff;
+}
+
+
+static void
+load_seg(uint16_t seg, x86seg *s)
+{
+    s->base = seg << 4;
+    s->seg = seg & 0xffff;
+}
+
+
+void
+reset_808x(int hard)
+{
+    biu_cycles = 0;
+    in_rep = 0;
+    in_lock = 0;
+    completed = 1;
+    repeating = 0;
+    clear_lock = 0;
+    refresh = 0;
+    ovr_seg = NULL;
+
+    if (hard) {
+	opseg[0] = &es;
+	opseg[1] = &cs;
+	opseg[2] = &ss;
+	opseg[3] = &ds;
+	_opseg[0] = &cpu_state.seg_es;
+	_opseg[1] = &cpu_state.seg_cs;
+	_opseg[2] = &cpu_state.seg_ss;
+	_opseg[3] = &cpu_state.seg_ds;
+
+	pfq_size = (is8086) ? 6 : 4;
+	pfq_clear();
+    }
+
+    if (AT) {
+	load_cs(0xF000);
+	cpu_state.pc = 0xFFF0;
+	rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+    } else {
+	load_cs(0xFFFF);
+	cpu_state.pc = 0;
+	rammask = 0xfffff;
+    }
+
+    prefetching = 1;
+    cpu_alu_op = 0;
+}
+
+
+static void
 set_ip(uint16_t new_ip) {
     pfq_ip = cpu_state.pc = new_ip;
     prefetching = 1;
@@ -613,45 +592,6 @@ set_ip(uint16_t new_ip) {
 void
 refreshread(void) {
     refresh++;
-}
-
-
-/* Preparation of the various arrays needed to speed up the MOD and R/M work. */
-static void
-makemod1table(void)
-{
-    mod1add[0][0] = &BX;
-    mod1add[0][1] = &BX;
-    mod1add[0][2] = &BP;
-    mod1add[0][3] = &BP;
-    mod1add[0][4] = &SI;
-    mod1add[0][5] = &DI;
-    mod1add[0][6] = &BP;
-    mod1add[0][7] = &BX;
-    mod1add[1][0] = &SI;
-    mod1add[1][1] = &DI;
-    mod1add[1][2] = &SI;
-    mod1add[1][3] = &DI;
-    mod1add[1][4] = &zero;
-    mod1add[1][5] = &zero;
-    mod1add[1][6] = &zero;
-    mod1add[1][7] = &zero;
-    mod1seg[0] = &ds;
-    mod1seg[1] = &ds;
-    mod1seg[2] = &ss;
-    mod1seg[3] = &ss;
-    mod1seg[4] = &ds;
-    mod1seg[5] = &ds;
-    mod1seg[6] = &ss;
-    mod1seg[7] = &ds;
-    opseg[0] = &es;
-    opseg[1] = &cs;
-    opseg[2] = &ss;
-    opseg[3] = &ds;
-    _opseg[0] = &cpu_state.seg_es;
-    _opseg[1] = &cpu_state.seg_cs;
-    _opseg[2] = &cpu_state.seg_ss;
-    _opseg[3] = &cpu_state.seg_ds;
 }
 
 
@@ -863,176 +803,6 @@ seteaq(uint64_t val)
 #include "x87_ops.h"
 #undef tempc
 #undef FPU_8087
-
-
-/* Prepare the ZNP table needed to speed up the setting of the Z, N, and P cpu_state.flags. */
-static void
-makeznptable(void)
-{
-    int c, d, e;
-    for (c = 0; c < 256; c++) {
-	d = 0;
-	for (e = 0; e < 8; e++) {
-		if (c & (1 << e))
-			d++;
-	}
-	if (d & 1)
-		znptable8[c] = 0;
-	else
-		znptable8[c] = P_FLAG;
-#ifdef ENABLE_808X_LOG
-	if (c == 0xb1)
-		x808x_log("znp8 b1 = %i %02X\n", d, znptable8[c]);
-#endif
-	if (!c)
-		znptable8[c] |= Z_FLAG;
-	if (c & 0x80)
-		znptable8[c] |= N_FLAG;
-    }
-
-    for (c = 0; c < 65536; c++) {
-	d = 0;
-	for (e = 0; e < 8; e++) {
-		if (c & (1 << e))
-			d++;
-	}
-	if (d & 1)
-		znptable16[c] = 0;
-	else
-		znptable16[c] = P_FLAG;
-#ifdef ENABLE_808X_LOG
-	if (c == 0xb1)
-		x808x_log("znp16 b1 = %i %02X\n", d, znptable16[c]);
-	if (c == 0x65b1)
-		x808x_log("znp16 65b1 = %i %02X\n", d, znptable16[c]);
-#endif
-	if (!c)
-		znptable16[c] |= Z_FLAG;
-	if (c & 0x8000)
-		znptable16[c] |= N_FLAG;
-    }
-}
-
-
-static void load_cs(uint16_t seg)
-{
-    cpu_state.seg_cs.base = seg << 4;
-    CS = seg & 0xffff;
-}
-
-
-/* Common reset function. */
-static void
-reset_common(int hard)
-{
-    /* Make sure to gracefully leave SMM. */
-    if (in_smm)
-	leave_smm();
-
-    biu_cycles = 0;
-    in_rep = 0;
-    in_lock = 0;
-    completed = 1;
-    repeating = 0;
-    clear_lock = 0;
-    refresh = 0;
-
-    if (hard) {
-#ifdef ENABLE_808X_LOG
-	x808x_log("x86 reset\n");
-#endif
-	ins = 0;
-    }
-    use32 = 0;
-    cpu_cur_status = 0;
-    stack32 = 0;
-    msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-    msw = 0;
-    if (hascache)
-	cr0 = 1 << 30;
-    else
-	cr0 = 0;
-    cpu_cache_int_enabled = 0;
-    cpu_update_waitstates();
-    cr4 = 0;
-    cpu_state.eflags = 0;
-    cgate32 = 0;
-    if (AT) {
-	load_cs(0xF000);
-	cpu_state.pc = 0xFFF0;
-	rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
-    } else {
-	load_cs(0xFFFF);
-	cpu_state.pc = 0;
-	rammask = 0xfffff;
-    }
-    idt.base = 0;
-    idt.limit = is386 ? 0x03FF : 0xFFFF;
-    cpu_state.flags = 2;
-    trap = 0;
-    ovr_seg = NULL;
-
-    EAX = EBX = ECX = EDX = ESI = EDI = EBP = ESP = 0;
-
-    if (hard) {
-	makeznptable();
-	resetreadlookup();
-	makemod1table();
-	pfq_clear();
-	cpu_set_edx();
-	mmu_perm = 4;
-	pfq_size = (is8086) ? 6 : 4;
-    }
-    x86seg_reset();
-#ifdef USE_DYNAREC
-    if (hard)
-	codegen_reset();
-#endif
-    if (!hard)
-	flushmmucache();
-    x86_was_reset = 1;
-    cpu_alt_reset = 0;
-
-    prefetching = 1;
-
-    cpu_ven_reset();
-
-    cpu_alu_op = 0;
-
-    in_smm = smi_latched = 0;
-    smi_line = smm_in_hlt = 0;
-    smi_block = 0;
-
-    if (hard) {
-	smbase = is_am486 ? 0x00060000 : 0x00030000;
-	ppi_reset();
-    }
-    in_sys = 0;
-
-    shadowbios = shadowbios_write = 0;
-    alt_access = cpu_end_block_after_ins = 0;
-}
-
-
-/* Hard reset. */
-void
-resetx86(void)
-{
-    reset_common(1);
-
-    soft_reset_mask = 0;
-}
-
-
-/* Soft reset. */
-void
-softresetx86(void)
-{
-    if (soft_reset_mask)
-	return;
-
-    reset_common(0);
-}
 
 
 /* Pushes a word to the stack. */
@@ -1867,7 +1637,7 @@ execx86(int cycs)
 				load_cs(pop());
 				pfq_pos = 0;
 			} else
-				loadseg(pop(), _opseg[(opcode >> 3) & 0x03]);
+				load_seg(pop(), _opseg[(opcode >> 3) & 0x03]);
 			wait(1, 0);
 			/* All POP segment instructions suppress interrupts for one instruction. */
 			noint = 1;
@@ -2201,7 +1971,7 @@ execx86(int cycs)
 				load_cs(tempw);
 				pfq_pos = 0;
 			} else
-				loadseg(tempw, _opseg[(rmdat & 0x18) >> 3]);
+				load_seg(tempw, _opseg[(rmdat & 0x18) >> 3]);
 			wait(1, 0);
 			if (cpu_mod != 3)
 				wait(2, 0);
@@ -2482,7 +2252,7 @@ execx86(int cycs)
 			cpu_state.regs[cpu_reg].w = cpu_data;
 			access(57, bits);
 			read_ea2(bits);
-			loadseg(cpu_data, (opcode & 0x01) ? &cpu_state.seg_ds : &cpu_state.seg_es);
+			load_seg(cpu_data, (opcode & 0x01) ? &cpu_state.seg_ds : &cpu_state.seg_es);
 			wait(1, 0);
 			break;
 
@@ -2985,7 +2755,5 @@ execx86(int cycs)
 
 		cpu_alu_op = 0;
 	}
-
-	ins++;
     }
 }

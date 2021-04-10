@@ -121,9 +121,9 @@ static __inline void fetch_ea_32_long(uint32_t rmdat)
 	if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC)
 	{
 		uint32_t addr = easeg + cpu_state.eaaddr;
-		if ( readlookup2[addr >> 12] != -1)
+		if ( readlookup2[addr >> 12] != (uintptr_t) -1)
 		   eal_r = (uint32_t *)(readlookup2[addr >> 12] + addr);
-		if (writelookup2[addr >> 12] != -1)
+		if (writelookup2[addr >> 12] != (uintptr_t) -1)
 		   eal_w = (uint32_t *)(writelookup2[addr >> 12] + addr);
 	}
 }
@@ -161,9 +161,9 @@ static __inline void fetch_ea_16_long(uint32_t rmdat)
 	if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC)
 	{
 		uint32_t addr = easeg + cpu_state.eaaddr;
-		if ( readlookup2[addr >> 12] != -1)
+		if (readlookup2[addr >> 12] != (uintptr_t) -1)
 		   eal_r = (uint32_t *)(readlookup2[addr >> 12] + addr);
-		if (writelookup2[addr >> 12] != -1)
+		if (writelookup2[addr >> 12] != (uintptr_t) -1)
 		   eal_w = (uint32_t *)(writelookup2[addr >> 12] + addr);
 	}
 }

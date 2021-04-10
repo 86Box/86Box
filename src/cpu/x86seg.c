@@ -281,7 +281,7 @@ check_seg_valid(x86seg *s)
     int valid = 1;
     x86seg *dt = (s->seg & 0x0004) ? &ldt : &gdt;
 
-    if (((s->seg & 0xfff8) + 7) > dt->limit)
+    if (((s->seg & 0xfff8UL) + 7UL) > dt->limit)
 	valid = 0;
 
     switch (s->access & 0x1f) {
