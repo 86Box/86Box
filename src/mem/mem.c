@@ -82,6 +82,8 @@ uint8_t			*pccache2;
 int			readlnext;
 int			readlookup[256];
 uintptr_t		*readlookup2;
+uintptr_t		old_rl2;
+uint8_t			uncached = 0;
 int			writelnext;
 int			writelookup[256];
 uintptr_t		*writelookup2;
@@ -584,8 +586,11 @@ addreadlookup(uint32_t virt, uint32_t phys)
 
     if (readlookup2[virt>>12] != (uintptr_t) LOOKUP_INV) return;
 
-    if (readlookup[readlnext] != (int) 0xffffffff)
+    if (readlookup[readlnext] != (int) 0xffffffff) {
+	if ((readlookup[readlnext] == ((es + DI) >> 12)) || (readlookup[readlnext] == ((es + EDI) >> 12)))
+		uncached = 1;
 	readlookup2[readlookup[readlnext]] = LOOKUP_INV;
+    }
 
 #if (defined __amd64__ || defined _M_X64)
     a = ((uint64_t)(phys & ~0xfff) - (uint64_t)(virt & ~0xfff));
@@ -1596,9 +1601,9 @@ void
 do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
 {
     int i, cond = 1;
-    uint32_t old_addr = addr;
+    uint32_t last_addr = addr + (num - 1);
     uint64_t a = 0x0000000000000000ULL;
- 
+
     for (i = 0; i < num; i++)
 	a64[i] = (uint64_t) addr;
 
@@ -1619,11 +1624,8 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
 				a64[i] = (uint32_t) a;
 
 				high_page = high_page || (!cpu_state.abrt && (a > 0xffffffffULL));
-
-				if ((a <= 0xffffffffULL) && pages[addr >> 12].write_b)
-					write ? addwritelookup(addr, a64[i]) : addreadlookup(addr, a64[i]);
 			} else if (!(addr & 0xfff)) {
-				a = mmutranslatereal(old_addr + (num - 1), write);
+				a = mmutranslatereal(last_addr, write);
 				a64[i] = (uint32_t) a;
 
 				high_page = high_page || (!cpu_state.abrt && (a64[i] > 0xffffffffULL));
@@ -1632,9 +1634,6 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
 					a = (a & 0xfffffffffffff000ULL) | ((uint64_t) (addr & 0xfff));
 					a64[i] = (uint32_t) a;
 				}
-
-				if ((a <= 0xffffffffULL) && pages[addr >> 12].write_b)
-					write ? addwritelookup(addr, a64[i]) : addreadlookup(addr, a64[i]);
 			} else {
 				a = (a & 0xfffffffffffff000ULL) | ((uint64_t) (addr & 0xfff));
 				a64[i] = (uint32_t) a;

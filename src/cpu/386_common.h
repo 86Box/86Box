@@ -39,6 +39,9 @@
 #define do_mmut_rb(s,a,b) if (readlookup2[(uint32_t)((s)+(a))>>12]==(uintptr_t)LOOKUP_INV || (s)==0xFFFFFFFF) do_mmutranslate((s)+(a), b, 1, 0)
 #define do_mmut_rw(s,a,b) if (readlookup2[(uint32_t)((s)+(a))>>12]==(uintptr_t)LOOKUP_INV || (s)==0xFFFFFFFF || (((s)+(a)) & 1)) do_mmutranslate((s)+(a), b, 2, 0)
 #define do_mmut_rl(s,a,b) if (readlookup2[(uint32_t)((s)+(a))>>12]==(uintptr_t)LOOKUP_INV || (s)==0xFFFFFFFF || (((s)+(a)) & 3)) do_mmutranslate((s)+(a), b, 4, 0)
+#define do_mmut_rb2(s,a,b) old_rl2 = readlookup2[(uint32_t)((s)+(a))>>12]; if (old_rl2==(uintptr_t)LOOKUP_INV || (s)==0xFFFFFFFF) do_mmutranslate((s)+(a), b, 1, 0)
+#define do_mmut_rw2(s,a,b) old_rl2 = readlookup2[(uint32_t)((s)+(a))>>12]; if (old_rl2==(uintptr_t)LOOKUP_INV || (s)==0xFFFFFFFF || (((s)+(a)) & 1)) do_mmutranslate((s)+(a), b, 2, 0)
+#define do_mmut_rl2(s,a,b) old_rl2 = readlookup2[(uint32_t)((s)+(a))>>12]; if (old_rl2==(uintptr_t)LOOKUP_INV || (s)==0xFFFFFFFF || (((s)+(a)) & 3)) do_mmutranslate((s)+(a), b, 4, 0)
 
 #define do_mmut_wb(s,a,b) if (writelookup2[(uint32_t)((s)+(a))>>12]==(uintptr_t)LOOKUP_INV || (s)==0xFFFFFFFF) do_mmutranslate((s)+(a), b, 1, 1)
 #define do_mmut_ww(s,a,b) if (writelookup2[(uint32_t)((s)+(a))>>12]==(uintptr_t)LOOKUP_INV || (s)==0xFFFFFFFF || (((s)+(a)) & 1)) do_mmutranslate((s)+(a), b, 2, 1)

@@ -191,6 +191,8 @@ extern uint32_t		biosmask, biosaddr;
 
 extern int		readlookup[256];
 extern uintptr_t *	readlookup2;
+extern uintptr_t	old_rl2;
+extern uint8_t		uncached;
 extern int		readlnext;
 extern int		writelookup[256];
 extern uintptr_t *	writelookup2;

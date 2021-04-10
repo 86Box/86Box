@@ -139,14 +139,18 @@ static int opCMPSB_a16(uint32_t fetchdat)
         addr64 = addr64_2 = 0x00000000;
 
         SEG_CHECK_READ(cpu_state.ea_seg);
-        high_page = 0;
+        high_page = uncached = 0;
         do_mmut_rb(cpu_state.ea_seg->base, SI, &addr64);
         if (cpu_state.abrt) return 1;
         SEG_CHECK_READ(&cpu_state.seg_es);
-        do_mmut_rb(es, DI, &addr64_2);
+        do_mmut_rb2(es, DI, &addr64_2);
         if (cpu_state.abrt) return 1;
         src = readmemb_n(cpu_state.ea_seg->base, SI, addr64);        if (cpu_state.abrt) return 1;
+        if (uncached)
+                readlookup2[(uint32_t)(es+DI)>>12] = old_rl2;
         dst = readmemb_n(es, DI, addr64_2);         if (cpu_state.abrt) return 1;
+        if (uncached)
+                readlookup2[(uint32_t)(es+DI)>>12] = (uintptr_t) LOOKUP_INV;
         setsub8(src, dst);
         if (cpu_state.flags & D_FLAG) { DI--; SI--; }
         else                          { DI++; SI++; }
@@ -161,14 +165,18 @@ static int opCMPSB_a32(uint32_t fetchdat)
         addr64 = addr64_2 = 0x00000000;
 
         SEG_CHECK_READ(cpu_state.ea_seg);
-        high_page = 0;
+        high_page = uncached = 0;
         do_mmut_rb(cpu_state.ea_seg->base, ESI, &addr64);
         if (cpu_state.abrt) return 1;
         SEG_CHECK_READ(&cpu_state.seg_es);
-        do_mmut_rb(es, EDI, &addr64_2);
+        do_mmut_rb2(es, EDI, &addr64_2);
         if (cpu_state.abrt) return 1;
         src = readmemb_n(cpu_state.ea_seg->base, ESI, addr64);        if (cpu_state.abrt) return 1;
+        if (uncached)
+                readlookup2[(uint32_t)(es+EDI)>>12] = old_rl2;
         dst = readmemb_n(es, EDI, addr64_2);        if (cpu_state.abrt) return 1;
+        if (uncached)
+                readlookup2[(uint32_t)(es+EDI)>>12] = (uintptr_t) LOOKUP_INV;
         setsub8(src, dst);
         if (cpu_state.flags & D_FLAG) { EDI--; ESI--; }
         else                          { EDI++; ESI++; }
@@ -185,14 +193,18 @@ static int opCMPSW_a16(uint32_t fetchdat)
         addr64a_2[0] = addr64a_2[1] = 0x00000000;
 
         SEG_CHECK_READ(cpu_state.ea_seg);
-        high_page = 0;
+        high_page = uncached = 0;
         do_mmut_rw(cpu_state.ea_seg->base, SI, addr64a);
         if (cpu_state.abrt) return 1;
         SEG_CHECK_READ(&cpu_state.seg_es);
-        do_mmut_rw(es, DI, addr64a_2);
+        do_mmut_rw2(es, DI, addr64a_2);
         if (cpu_state.abrt) return 1;
         src = readmemw_n(cpu_state.ea_seg->base, SI, addr64a);        if (cpu_state.abrt) return 1;
+        if (uncached)
+                readlookup2[(uint32_t)(es+DI)>>12] = old_rl2;
         dst = readmemw_n(es, DI, addr64a_2);        if (cpu_state.abrt) return 1;
+        if (uncached)
+                readlookup2[(uint32_t)(es+DI)>>12] = (uintptr_t) LOOKUP_INV;
         setsub16(src, dst);
         if (cpu_state.flags & D_FLAG) { DI -= 2; SI -= 2; }
         else                          { DI += 2; SI += 2; }
@@ -208,14 +220,18 @@ static int opCMPSW_a32(uint32_t fetchdat)
         addr64a_2[0] = addr64a_2[1] = 0x00000000;
 
         SEG_CHECK_READ(cpu_state.ea_seg);
-        high_page = 0;
+        high_page = uncached = 0;
         do_mmut_rw(cpu_state.ea_seg->base, ESI, addr64a);
         if (cpu_state.abrt) return 1;
         SEG_CHECK_READ(&cpu_state.seg_es);
-        do_mmut_rw(es, EDI, addr64a_2);
+        do_mmut_rw2(es, EDI, addr64a_2);
         if (cpu_state.abrt) return 1;
         src = readmemw_n(cpu_state.ea_seg->base, ESI, addr64a);        if (cpu_state.abrt) return 1;
+        if (uncached)
+                readlookup2[(uint32_t)(es+EDI)>>12] = old_rl2;
         dst = readmemw_n(es, EDI, addr64a_2);        if (cpu_state.abrt) return 1;
+        if (uncached)
+                readlookup2[(uint32_t)(es+EDI)>>12] = (uintptr_t) LOOKUP_INV;
         setsub16(src, dst);
         if (cpu_state.flags & D_FLAG) { EDI -= 2; ESI -= 2; }
         else                          { EDI += 2; ESI += 2; }
@@ -232,14 +248,18 @@ static int opCMPSL_a16(uint32_t fetchdat)
         addr64a_2[0] = addr64a_2[1] = addr64a_2[2] = addr64a_2[3] = 0x00000000;
 
         SEG_CHECK_READ(cpu_state.ea_seg);
-        high_page = 0;
+        high_page = uncached = 0;
         do_mmut_rl(cpu_state.ea_seg->base, SI, addr64a);
         if (cpu_state.abrt) return 1;
         SEG_CHECK_READ(&cpu_state.seg_es);
-        do_mmut_rl(es, DI, addr64a_2);
+        do_mmut_rl2(es, DI, addr64a_2);
         if (cpu_state.abrt) return 1;
         src = readmeml_n(cpu_state.ea_seg->base, SI, addr64a);        if (cpu_state.abrt) return 1;
+        if (uncached)
+                readlookup2[(uint32_t)(es+DI)>>12] = old_rl2;
         dst = readmeml_n(es, DI, addr64a_2);        if (cpu_state.abrt) return 1;
+        if (uncached)
+                readlookup2[(uint32_t)(es+DI)>>12] = (uintptr_t) LOOKUP_INV;
         setsub32(src, dst);
         if (cpu_state.flags & D_FLAG) { DI -= 4; SI -= 4; }
         else                          { DI += 4; SI += 4; }
@@ -255,14 +275,18 @@ static int opCMPSL_a32(uint32_t fetchdat)
         addr64a_2[0] = addr64a_2[1] = addr64a_2[2] = addr64a_2[3] = 0x00000000;
 
         SEG_CHECK_READ(cpu_state.ea_seg);
-        high_page = 0;
+        high_page = uncached = 0;
         do_mmut_rl(cpu_state.ea_seg->base, ESI, addr64a);
         if (cpu_state.abrt) return 1;
         SEG_CHECK_READ(&cpu_state.seg_es);
-        do_mmut_rl(es, EDI, addr64a_2);
+        do_mmut_rl2(es, EDI, addr64a_2);
         if (cpu_state.abrt) return 1;
         src = readmeml_n(cpu_state.ea_seg->base, ESI, addr64a);        if (cpu_state.abrt) return 1;
+        if (uncached)
+                readlookup2[(uint32_t)(es+EDI)>>12] = old_rl2;
         dst = readmeml_n(es, EDI, addr64a_2);        if (cpu_state.abrt) return 1;
+        if (uncached)
+                readlookup2[(uint32_t)(es+EDI)>>12] = (uintptr_t) LOOKUP_INV;
         setsub32(src, dst);
         if (cpu_state.flags & D_FLAG) { EDI -= 4; ESI -= 4; }
         else                          { EDI += 4; ESI += 4; }

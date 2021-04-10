@@ -519,14 +519,18 @@ static int opREP_CMPSB_ ## size(uint32_t fetchdat)                              
                 SEG_CHECK_READ(cpu_state.ea_seg);                               \
                 SEG_CHECK_READ(&cpu_state.seg_es);                              \
                 CHECK_READ(cpu_state.ea_seg, SRC_REG, SRC_REG);                 \
-                high_page = 0;                                                  \
+                high_page = uncached = 0;                                       \
                 do_mmut_rb(cpu_state.ea_seg->base, SRC_REG, &addr64);           \
                 if (cpu_state.abrt) return 1;                                   \
                 CHECK_READ(&cpu_state.seg_es, DEST_REG, DEST_REG);              \
-                do_mmut_rb(es, DEST_REG, &addr64_2);                            \
+                do_mmut_rb2(es, DEST_REG, &addr64_2);                           \
                 if (cpu_state.abrt) return 1;                                   \
                 temp = readmemb_n(cpu_state.ea_seg->base, SRC_REG, addr64); if (cpu_state.abrt) return 1;   \
+                if (uncached)                                                   \
+                        readlookup2[(uint32_t)(es+DEST_REG)>>12] = old_rl2;     \
                 temp2 = readmemb_n(es, DEST_REG, addr64_2); if (cpu_state.abrt) return 1;   \
+                if (uncached)                                                   \
+                        readlookup2[(uint32_t)(es+DEST_REG)>>12] = (uintptr_t) LOOKUP_INV; \
                                                                                 \
                 if (cpu_state.flags & D_FLAG) { DEST_REG--; SRC_REG--; }        \
                 else                { DEST_REG++; SRC_REG++; }                  \
@@ -559,14 +563,18 @@ static int opREP_CMPSW_ ## size(uint32_t fetchdat)                              
                 SEG_CHECK_READ(cpu_state.ea_seg);                               \
                 SEG_CHECK_READ(&cpu_state.seg_es);                              \
                 CHECK_READ(cpu_state.ea_seg, SRC_REG, SRC_REG + 1UL);           \
-                high_page = 0;                                                  \
+                high_page = uncached = 0;                                       \
                 do_mmut_rw(cpu_state.ea_seg->base, SRC_REG, addr64a);           \
                 if (cpu_state.abrt) return 1;                                   \
                 CHECK_READ(&cpu_state.seg_es, DEST_REG, DEST_REG + 1UL);        \
-                do_mmut_rw(es, DEST_REG, addr64a_2);                            \
+                do_mmut_rw2(es, DEST_REG, addr64a_2);                           \
                 if (cpu_state.abrt) return 1;                                   \
                 temp = readmemw_n(cpu_state.ea_seg->base, SRC_REG, addr64a); if (cpu_state.abrt) return 1;   \
+                if (uncached)                                                   \
+                        readlookup2[(uint32_t)(es+DEST_REG)>>12] = old_rl2;     \
                 temp2 = readmemw_n(es, DEST_REG, addr64a_2); if (cpu_state.abrt) return 1;   \
+                if (uncached)                                                   \
+                        readlookup2[(uint32_t)(es+DEST_REG)>>12] = (uintptr_t) LOOKUP_INV; \
                                                                                 \
                 if (cpu_state.flags & D_FLAG) { DEST_REG -= 2; SRC_REG -= 2; }            \
                 else                { DEST_REG += 2; SRC_REG += 2; }            \
@@ -599,14 +607,18 @@ static int opREP_CMPSL_ ## size(uint32_t fetchdat)                              
                 SEG_CHECK_READ(cpu_state.ea_seg);                               \
                 SEG_CHECK_READ(&cpu_state.seg_es);                              \
                 CHECK_READ(cpu_state.ea_seg, SRC_REG, SRC_REG + 3UL);           \
-                high_page = 0;                                                  \
+                high_page = uncached = 0;                                       \
                 do_mmut_rl(cpu_state.ea_seg->base, SRC_REG, addr64a);           \
                 if (cpu_state.abrt) return 1;                                   \
                 CHECK_READ(&cpu_state.seg_es, DEST_REG, DEST_REG + 3UL);        \
-                do_mmut_rl(es, DEST_REG, addr64a_2);                            \
+                do_mmut_rl2(es, DEST_REG, addr64a_2);                           \
                 if (cpu_state.abrt) return 1;                                   \
                 temp = readmeml_n(cpu_state.ea_seg->base, SRC_REG, addr64a); if (cpu_state.abrt) return 1;   \
+                if (uncached)                                                   \
+                        readlookup2[(uint32_t)(es+DEST_REG)>>12] = old_rl2;     \
                 temp2 = readmeml_n(es, DEST_REG, addr64a_2); if (cpu_state.abrt) return 1;   \
+                if (uncached)                                                   \
+                        readlookup2[(uint32_t)(es+DEST_REG)>>12] = (uintptr_t) LOOKUP_INV; \
                                                                                 \
                 if (cpu_state.flags & D_FLAG) { DEST_REG -= 4; SRC_REG -= 4; }  \
                 else                { DEST_REG += 4; SRC_REG += 4; }            \
