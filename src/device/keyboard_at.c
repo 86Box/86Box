@@ -1059,8 +1059,9 @@ write_output(atkbd_t *dev, uint8_t val)
     if ((dev->output_port ^ val) & 0x01) { /*Reset*/
 	if (! (val & 0x01)) {
 		/* Pin 0 selected. */
-		resetx86(); /*Pulse reset!*/
+		softresetx86(); /*Pulse reset!*/
 		cpu_set_edx();
+		smbase = is_am486 ? 0x00060000 : 0x00030000;
 	}
     }
     /* Mask off the A20 stuff because we use mem_a20_key directly for that. */
