@@ -11,6 +11,14 @@
  * NOTE:	This is very much still a work-in-progress.
  *		Expect missing functionality, hangs and bugs.
  * 
+ * TODO:	Input events routing
+ *		Full screen mode
+ *		Loader for glsl files.
+ *			libretro has a sizeable library that could
+ *			be a good target for compatibility.
+ *		(UI) options
+ *		...
+ * 
  * Authors:	Teemu Korhonen
  * 
  *		Copyright 2021 Teemu Korhonen
@@ -42,14 +50,35 @@
 #include <86box/video.h>
 #include <86box/win_opengl.h>
 
+/**
+ * @brief A dedicated OpenGL thread.
+ * OpenGL context's don't handle multiple threads well.
+*/
 static thread_t* thread = NULL;
 
+/**
+ * @brief A window usable with an OpenGL context
+*/
 static SDL_Window* window = NULL;
+
+/**
+ * @brief Window info to modify window style.
+*/
 static SDL_SysWMinfo wmi = {};
 
+/**
+ * @brief Parent window (hwndRender from win_ui)
+*/
 static HWND parent = NULL;
+
+/**
+ * @brief Keeps track of parent window size.
+*/
 static RECT last_rect = {};
 
+/**
+ * @brief Events listened in OpenGL thread.
+*/
 static union
 {
 	struct
@@ -61,13 +90,22 @@ static union
 	HANDLE asArray[3];
 } sync_objects = {};
 
+/**
+ * @brief Signal from OpenGL thread that it's done with video buffer.
+*/
 static HANDLE blit_done = NULL;
 
+/**
+ * @brief Blit event parameters.
+*/
 static volatile struct
 {
 	int x, y, y1, y2, w, h, resized;
 } blit_info = {};
 
+/**
+ * @brief Identifiers to OpenGL object used.
+ */
 typedef struct
 {
 	GLuint vertexArrayID;
@@ -76,6 +114,9 @@ typedef struct
 	GLuint shader_progID;
 } gl_objects;
 
+/**
+ * @brief Default vertex shader.
+*/
 static const GLchar* v_shader = "#version 330 core\n\
 layout(location = 0) in vec2 pos;\n\
 layout(location = 1) in vec2 tex_in;\n\
@@ -85,6 +126,11 @@ void main(){\n\
 	tex = tex_in;\n\
 }\n";
 
+/**
+ * @brief Default fragment shader.
+ * 
+ * Note: Last two lines in main make it a very simple 50% scanline filter.
+ */
 static const GLchar* f_shader = "#version 330 core\n\
 in vec2 tex;\n\
 out vec4 color;\n\
@@ -95,6 +141,10 @@ void main() {\n\
 		color = color * vec4(0.5,0.5,0.5,1.0);\n\
 }\n";
 
+/**
+ * @brief Load and compile default shaders into a program.
+ * @return Shader program identifier.
+*/
 static GLuint LoadShaders()
 {
 	GLuint vs_id = glCreateShader(GL_VERTEX_SHADER);
@@ -136,6 +186,11 @@ static GLuint LoadShaders()
 	return prog_id;
 }
 
+/**
+ * @brief Set or unset OpenGL context window as a child window.
+ * 
+ * Modifies the window style and sets the parent window. 
+ */
 static void SetParentBinding(int enable)
 {
 	if (wmi.subsystem != SDL_SYSWM_WINDOWS)
@@ -153,8 +208,13 @@ static void SetParentBinding(int enable)
 	SetParent(wmi.info.win.window, enable ? parent : NULL);
 }
 
+/**
+ * @brief Initialize OpenGL context
+ * @return Object identifiers
+*/
 static gl_objects initialize_glcontext()
 {
+	/* Vertex and texture 2d coordinates making a quad as triangle strip */
 	static const GLfloat surface[] = {
 		-1.f, 1.f, 0.f, 0.f,
 		1.f, 1.f, 1.f, 0.f,
@@ -176,7 +236,7 @@ static gl_objects initialize_glcontext()
 	glBindTexture(GL_TEXTURE_2D, obj.textureID);
 
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
@@ -197,6 +257,10 @@ static gl_objects initialize_glcontext()
 	return obj;
 }
 
+/**
+ * @brief Clean up OpenGL context * 
+ * @param Object identifiers from initialize 
+*/
 static void finalize_glcontext(gl_objects obj)
 {
 	glDeleteProgram(obj.shader_progID);
@@ -205,6 +269,12 @@ static void finalize_glcontext(gl_objects obj)
 	glDeleteVertexArrays(1, &obj.vertexArrayID);
 }
 
+/**
+ * @brief Main OpenGL thread proc.
+ * 
+ * OpenGL context should be accessed only from this single thread.
+ * Events are used to synchronize communication.
+*/
 static void opengl_main()
 {
 	RECT rect;
@@ -238,18 +308,21 @@ static void opengl_main()
 
 		do
 		{
-			/* SDL_Window event handlers */
 			SDL_Event event;
 
+			/* Handle SDL_Window events */
 			while (SDL_PollEvent(&event))
 			{
+				/* Main window should be active to receive input */
 				if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
 					SetForegroundWindow(GetParent(parent));
+				
+				/* Start mouse capture on button down */
 				else if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT)
 					plat_mouse_capture(1);
 			}
 
-			/* Wait for sync events */
+			/* Wait for synchronized events for 1ms before going back to window events */
 			wait_result = WaitForMultipleObjects(sizeof(sync_objects) / sizeof(HANDLE), sync_objects.asArray, FALSE, 1);
 
 		} while (wait_result == WAIT_TIMEOUT);
@@ -262,15 +335,19 @@ static void opengl_main()
 		}
 		else if (sync_event == sync_objects.blit_waiting)
 		{
+			/* Resize the texture if  */
 			if (blit_info.resized)
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, blit_info.w, blit_info.h, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
 
+			/* Transfer video buffer to texture */
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, blit_info.y1, blit_info.w, blit_info.y2 - blit_info.y1, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, &(render_buffer->dat)[blit_info.y1 * blit_info.w]);
 
+			/* Signal that we're done with the video buffer */
 			SetEvent(blit_done);
 		}
 		else if (sync_event == sync_objects.resize)
 		{
+			/* Detach from parent while resizing */
 			SetParentBinding(0);
 			
 			GetWindowRect(parent, &rect);
@@ -369,6 +446,7 @@ void opengl_set_fs(int fs)
 {
 	if (window != NULL)
 	{
+		/* Can't full screen as child window */
 		SetParentBinding(fs ? 0 : 1);
 
 		SDL_SetWindowFullscreen(window, fs ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
@@ -383,6 +461,8 @@ void opengl_enable(int enable)
 	RECT rect;
 	GetWindowRect(parent, &rect);
 	
+	/* Resizing window is a common cause for enable */
+	/* TODO: route the resizing event explicitly form win_ui. */
 	if (!EqualRect(&rect, &last_rect))
 	{
 		CopyRect(&last_rect, &rect);
