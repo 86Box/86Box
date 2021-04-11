@@ -2424,6 +2424,4 @@ cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg)
 		codegen_flat_ss = 0;
 	}
     }
-
-    pclog("clsd(): NEW CS:IP = %04X:%08X (%08X)\n", CS, cpu_state.pc, cs + cpu_state.pc);
 }

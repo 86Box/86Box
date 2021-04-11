@@ -29,7 +29,6 @@ static void opSVDC_common(uint32_t fetchdat)
                 writememw(0, easeg+cpu_state.eaaddr+8, GS);
                 break;
                 default:
-                pclog("opSVDC: unknown rmdat %02x\n", rmdat);
                 x86illegal();
         }
 }
@@ -80,7 +79,6 @@ static void opRSDC_common(uint32_t fetchdat)
                 cyrix_load_seg_descriptor(easeg+cpu_state.eaaddr, &cpu_state.seg_gs);
                 break;
                 default:
-                pclog("opRSDC: unknown rmdat %02x\n", rmdat);
                 x86illegal();
         }
 }
