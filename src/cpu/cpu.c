@@ -2937,27 +2937,23 @@ cpu_write(uint16_t addr, uint8_t val, void *priv)
 		ccr2 = val;
 		break;
 	case 0xc3:	/* CCR3 */
-		pclog("CC3     WRITE: %02X\n", val);
 		if ((ccr3 & CCR3_SMI_LOCK) && !in_smm)
 			val = (val & ~(CCR3_NMI_EN)) | (ccr3 & CCR3_NMI_EN) | CCR3_SMI_LOCK;
 		ccr3 = val;
 		break;
 	case 0xcd:
-		pclog("ARR3_24 WRITE: %02X\n", val);
 		if (!(ccr3 & CCR3_SMI_LOCK) || in_smm) {
 			cyrix.arr[3].base = (cyrix.arr[3].base & ~0xff000000) | (val << 24);
 			cyrix.smhr &= ~SMHR_VALID;
 		}
 		break;
 	case 0xce:
-		pclog("ARR3_16 WRITE: %02X\n", val);
 		if (!(ccr3 & CCR3_SMI_LOCK) || in_smm) {
 			cyrix.arr[3].base = (cyrix.arr[3].base & ~0x00ff0000) | (val << 16);
 			cyrix.smhr &= ~SMHR_VALID;
 		}
 		break;
 	case 0xcf:
-		pclog("ARR3_08 WRITE: %02X\n", val);
 		if (!(ccr3 & CCR3_SMI_LOCK) || in_smm) {
 			cyrix.arr[3].base = (cyrix.arr[3].base & ~0x0000f000) | ((val & 0xf0) << 8);
 			if ((val & 0xf) == 0xf)
