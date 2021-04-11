@@ -72,11 +72,6 @@ static SDL_SysWMinfo wmi = {};
 static HWND parent = NULL;
 
 /**
- * @brief Keeps track of parent window size.
-*/
-static RECT last_rect = {};
-
-/**
  * @brief Events listened in OpenGL thread.
 */
 static union
@@ -102,6 +97,14 @@ static volatile struct
 {
 	int x, y, y1, y2, w, h, resized;
 } blit_info = {};
+
+/**
+ * @brief Resize event parameters.
+*/
+static volatile struct
+{
+	int width, height;
+} resize_info = {};
 
 /**
  * @brief Identifiers to OpenGL object used.
@@ -189,7 +192,8 @@ static GLuint LoadShaders()
 /**
  * @brief Set or unset OpenGL context window as a child window.
  * 
- * Modifies the window style and sets the parent window. 
+ * Modifies the window style and sets the parent window.
+ * WS_EX_NOACTIVATE keeps the window from stealing input focus.
  */
 static void SetParentBinding(int enable)
 {
@@ -197,13 +201,21 @@ static void SetParentBinding(int enable)
 		return;
 
 	long style = GetWindowLong(wmi.info.win.window, GWL_STYLE);
-	
+	long ex_style = GetWindowLong(wmi.info.win.window, GWL_EXSTYLE);
+
 	if (enable)
+	{
 		style |= WS_CHILD;
+		ex_style |= WS_EX_NOACTIVATE;
+	}
 	else
+	{
 		style &= ~WS_CHILD;
+		ex_style &= ~WS_EX_NOACTIVATE;
+	}
 
 	SetWindowLong(wmi.info.win.window, GWL_STYLE, style);
+	SetWindowLong(wmi.info.win.window, GWL_EXSTYLE, ex_style);
 
 	SetParent(wmi.info.win.window, enable ? parent : NULL);
 }
@@ -277,13 +289,9 @@ static void finalize_glcontext(gl_objects obj)
 */
 static void opengl_main()
 {
-	RECT rect;
-	GetWindowRect(parent, &rect);
-	CopyRect(&last_rect, &rect);
+	SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1"); /* Is this actually doing anything...? */
 
-	SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1");
-
-	window = SDL_CreateWindow("86Box OpenGL Renderer", 0, 0, rect.right - rect.left, rect.bottom - rect.top, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
+	window = SDL_CreateWindow("86Box OpenGL Renderer", 0, 0, resize_info.width, resize_info.height, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
 	
 	SDL_VERSION(&wmi.version);
 	SDL_GetWindowWMInfo(window, &wmi);
@@ -313,13 +321,11 @@ static void opengl_main()
 			/* Handle SDL_Window events */
 			while (SDL_PollEvent(&event))
 			{
-				/* Main window should be active to receive input */
-				if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_FOCUS_GAINED)
-					SetForegroundWindow(GetParent(parent));
-				
 				/* Start mouse capture on button down */
-				else if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT)
+				if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT)
+				{
 					plat_mouse_capture(1);
+				}
 			}
 
 			/* Wait for synchronized events for 1ms before going back to window events */
@@ -350,11 +356,9 @@ static void opengl_main()
 			/* Detach from parent while resizing */
 			SetParentBinding(0);
 			
-			GetWindowRect(parent, &rect);
+			SDL_SetWindowSize(window, resize_info.width, resize_info.height);
 			
-			SDL_SetWindowSize(window, rect.right - rect.left, rect.bottom - rect.top);			
-			
-			glViewport(0, 0, rect.right - rect.left, rect.bottom - rect.top);
+			glViewport(0, 0, resize_info.width, resize_info.height);
 			
 			SetParentBinding(1);
 
@@ -403,6 +407,13 @@ int opengl_init(HWND hwnd)
 	blit_done = CreateEvent(NULL, FALSE, FALSE, NULL);
 
 	parent = hwnd;
+	
+	RECT parent_size;
+
+	GetWindowRect(parent, &parent_size);
+
+	resize_info.width = parent_size.right - parent_size.left;
+	resize_info.height = parent_size.bottom - parent_size.top;
 
 	thread = thread_create(opengl_main, (void*)NULL);
 
@@ -440,6 +451,8 @@ void opengl_close()
 		CloseHandle(sync_objects.asArray[i]);
 		sync_objects.asArray[i] = (HANDLE)NULL;
 	}
+
+	parent = NULL;
 }
 
 void opengl_set_fs(int fs)
@@ -453,20 +466,10 @@ void opengl_set_fs(int fs)
 	}
 }
 
-void opengl_enable(int enable)
+void opengl_resize(int w, int h)
 {
-	if (enable == 0 || parent == NULL)
-		return;
+	resize_info.width = w;
+	resize_info.height = h;
 
-	RECT rect;
-	GetWindowRect(parent, &rect);
-	
-	/* Resizing window is a common cause for enable */
-	/* TODO: route the resizing event explicitly form win_ui. */
-	if (!EqualRect(&rect, &last_rect))
-	{
-		CopyRect(&last_rect, &rect);
-
-		SetEvent(sync_objects.resize);
-	}
+	SetEvent(sync_objects.resize);
 }

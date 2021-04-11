@@ -22,6 +22,6 @@ extern int opengl_init(HWND hwnd);
 extern int opengl_pause();
 extern void opengl_close();
 extern void opengl_set_fs(int fs);
-extern void opengl_enable(int enable);
+extern void opengl_resize(int w, int h);
 
 #endif /*!WIN_OPENGL_H*/

@@ -102,7 +102,7 @@ static const struct {
 } vid_apis[RENDERERS_NUM] = {
   {	"SDL_Software", 1, (int(*)(void*))sdl_inits, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs		},
   {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs		},
-  {	"SDL_OpenGL", 1, (int(*)(void*))opengl_init, opengl_close, NULL, opengl_pause, opengl_enable, opengl_set_fs	}
+  {	"SDL_OpenGL", 1, (int(*)(void*))opengl_init, opengl_close, opengl_resize, opengl_pause, NULL, opengl_set_fs	}
 #ifdef USE_VNC
  ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL, NULL					}
 #endif
