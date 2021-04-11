@@ -148,7 +148,7 @@ void main() {\n\
  * @brief Load and compile default shaders into a program.
  * @return Shader program identifier.
 */
-static GLuint LoadShaders()
+static GLuint load_shaders()
 {
 	GLuint vs_id = glCreateShader(GL_VERTEX_SHADER);
 	GLuint fs_id = glCreateShader(GL_FRAGMENT_SHADER);
@@ -195,7 +195,7 @@ static GLuint LoadShaders()
  * Modifies the window style and sets the parent window.
  * WS_EX_NOACTIVATE keeps the window from stealing input focus.
  */
-static void SetParentBinding(int enable)
+static void set_parent_binding(int enable)
 {
 	if (wmi.subsystem != SDL_SYSWM_WINDOWS)
 		return;
@@ -218,6 +218,33 @@ static void SetParentBinding(int enable)
 	SetWindowLong(wmi.info.win.window, GWL_EXSTYLE, ex_style);
 
 	SetParent(wmi.info.win.window, enable ? parent : NULL);
+}
+
+/**
+ * @brief Windows message handler for SDL Windows.
+ * @param userdata SDL_Window's HWND
+ * @param hWnd
+ * @param message
+ * @param wParam
+ * @param lParam 
+*/
+static void winmessage_hook(void* userdata, void* hWnd, unsigned int message, Uint64 wParam, Sint64 lParam)
+{
+	/* Process only our window */
+	if (userdata != hWnd || parent == NULL)
+		return;
+
+	switch (message)
+	{
+	case WM_LBUTTONUP:
+	case WM_MBUTTONUP:
+		/* Mouse events that enter and exit capture. */
+		PostMessage(parent, message, wParam, lParam);
+		break;
+	case WM_INPUT:
+		/* TODO: Use in full screen. */
+		break;
+	}
 }
 
 /**
@@ -256,7 +283,7 @@ static gl_objects initialize_glcontext()
 
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 
-	obj.shader_progID = LoadShaders();
+	obj.shader_progID = load_shaders();
 
 	glUseProgram(obj.shader_progID);
 
@@ -292,11 +319,14 @@ static void opengl_main()
 	SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1"); /* Is this actually doing anything...? */
 
 	window = SDL_CreateWindow("86Box OpenGL Renderer", 0, 0, resize_info.width, resize_info.height, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
-	
+
 	SDL_VERSION(&wmi.version);
 	SDL_GetWindowWMInfo(window, &wmi);
 
-	SetParentBinding(1);
+	if (wmi.subsystem == SDL_SYSWM_WINDOWS)
+		SDL_SetWindowsMessageHook(winmessage_hook, wmi.info.win.window);
+
+	set_parent_binding(1);
 
 	SDL_GLContext context = SDL_GL_CreateContext(window);
 
@@ -319,14 +349,10 @@ static void opengl_main()
 			SDL_Event event;
 
 			/* Handle SDL_Window events */
-			while (SDL_PollEvent(&event))
-			{
-				/* Start mouse capture on button down */
-				if (event.type == SDL_MOUSEBUTTONUP && event.button.button == SDL_BUTTON_LEFT)
-				{
-					plat_mouse_capture(1);
-				}
-			}
+			while (SDL_PollEvent(&event)) { /* No need for actual handlers, but message queue must be processed. */ }
+
+			if (SDL_ShowCursor(-1) == !!mouse_capture)
+				SDL_ShowCursor(!mouse_capture);
 
 			/* Wait for synchronized events for 1ms before going back to window events */
 			wait_result = WaitForMultipleObjects(sizeof(sync_objects) / sizeof(HANDLE), sync_objects.asArray, FALSE, 1);
@@ -354,13 +380,13 @@ static void opengl_main()
 		else if (sync_event == sync_objects.resize)
 		{
 			/* Detach from parent while resizing */
-			SetParentBinding(0);
+			set_parent_binding(0);
 			
 			SDL_SetWindowSize(window, resize_info.width, resize_info.height);
 			
 			glViewport(0, 0, resize_info.width, resize_info.height);
 			
-			SetParentBinding(1);
+			set_parent_binding(1);
 
 			//SetForegroundWindow(GetParent(parent));
 		}
@@ -370,15 +396,16 @@ static void opengl_main()
 
 	SDL_GL_DeleteContext(context);
 
-	SetParentBinding(0);
+	set_parent_binding(0);
+
+	SDL_SetWindowsMessageHook(NULL, NULL);
 
 	SDL_DestroyWindow(window);
 
 	window = NULL;
 }
 
-static void
-opengl_blit(int x, int y, int y1, int y2, int w, int h)
+static void opengl_blit(int x, int y, int y1, int y2, int w, int h)
 {
 	if (y1 == y2 || h <= 0 || render_buffer == NULL)
 	{
@@ -460,7 +487,7 @@ void opengl_set_fs(int fs)
 	if (window != NULL)
 	{
 		/* Can't full screen as child window */
-		SetParentBinding(fs ? 0 : 1);
+		set_parent_binding(fs ? 0 : 1);
 
 		SDL_SetWindowFullscreen(window, fs ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 	}
@@ -468,6 +495,9 @@ void opengl_set_fs(int fs)
 
 void opengl_resize(int w, int h)
 {
+	if (thread == NULL)
+		return;
+
 	resize_info.width = w;
 	resize_info.height = h;
 
