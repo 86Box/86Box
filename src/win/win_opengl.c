@@ -379,16 +379,12 @@ static void opengl_main()
 		}
 		else if (sync_event == sync_objects.resize)
 		{
-			/* Detach from parent while resizing */
-			set_parent_binding(0);
-			
 			SDL_SetWindowSize(window, resize_info.width, resize_info.height);
 			
-			glViewport(0, 0, resize_info.width, resize_info.height);
+			/* SWP_NOZORDER is needed for child window and SDL doesn't enable it. */
+			SetWindowPos(wmi.info.win.window, parent, 0, 0, resize_info.width, resize_info.height, SWP_NOZORDER | SWP_NOCOPYBITS | SWP_NOMOVE | SWP_NOACTIVATE);
 			
-			set_parent_binding(1);
-
-			//SetForegroundWindow(GetParent(parent));
+			glViewport(0, 0, resize_info.width, resize_info.height);
 		}
 	}
 
