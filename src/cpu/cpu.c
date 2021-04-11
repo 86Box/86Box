@@ -110,7 +110,7 @@ int		isa_cycles,
 
  		is286, is386, is486 = 1, is486sx, is486dx, is486sx2, is486dx2, isdx4,
 		cpu_isintel, cpu_iscyrix, hascache, isibm486, israpidcad, is_vpc,
-		is_am486, is_pentium, is_k5, is_k6, is_p6, is_cx6x86, hasfpu,
+		is_am486, is_486_org, is_pentium, is_k5, is_k6, is_p6, is_cxsmm, hasfpu,
 
 		timing_rr, timing_mr, timing_mrl, timing_rm, timing_rml,
 		timing_mm, timing_mml, timing_bt, timing_bnt,
@@ -373,6 +373,8 @@ cpu_set(void)
     is486dx      = (cpu_s->cpu_type >= CPU_i486DX) && (cpu_s->cpu_type < CPU_i486DX2);
     is486dx2     = (cpu_s->cpu_type >= CPU_i486DX2) && (cpu_s->cpu_type < CPU_iDX4);	
     isdx4        = (cpu_s->cpu_type >= CPU_iDX4) && (cpu_s->cpu_type < CPU_WINCHIP);
+    is_486_org   = (cpu_s->cpu_type == CPU_i486SX) || (cpu_s->cpu_type == CPU_i486DX) ||
+		   (cpu_s->cpu_type == CPU_Am486SX) || (cpu_s->cpu_type == CPU_Am486DX);
     is_am486     = !strcmp(cpu_f->manufacturer, "AMD") && (cpu_s->cpu_type >= CPU_Am486SX) && (cpu_s->cpu_type <= CPU_Am5x86);
 
     cpu_isintel = !strcmp(cpu_f->manufacturer, "Intel");
@@ -380,13 +382,13 @@ cpu_set(void)
 
     /* The 486DX2 and iDX4 have the same SMM save state table layout as Pentiums,
        and the WinChip datasheet claims those are Pentium-compatible as well. */
-    is_pentium   = (cpu_isintel && (cpu_s->cpu_type >= CPU_i486DX2) && (cpu_s->cpu_type < CPU_PENTIUMPRO)) ||
+    is_pentium   = (cpu_isintel && (cpu_s->cpu_type >= CPU_i486SX) && (cpu_s->cpu_type < CPU_PENTIUMPRO)) ||
 		   !strcmp(cpu_f->manufacturer, "IDT");
     is_k5        = !strcmp(cpu_f->manufacturer, "AMD") && (cpu_s->cpu_type > CPU_Am5x86);
     is_k6        = (cpu_s->cpu_type >= CPU_K6) && !strcmp(cpu_f->manufacturer, "AMD");
     /* The Samuel 2 datasheet claims it's Celeron-compatible. */
     is_p6        = (cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUMPRO)) || !strcmp(cpu_f->manufacturer, "VIA");
-    is_cx6x86    = !strcmp(cpu_f->manufacturer, "Cyrix") && (cpu_s->cpu_type > CPU_Cx5x86);
+    is_cxsmm     = !strcmp(cpu_f->manufacturer, "Cyrix") && (cpu_s->cpu_type >= CPU_Cx486S);
 
     hasfpu       = (fpu_type != FPU_NONE);
     hascache     = (cpu_s->cpu_type >= CPU_486SLC) || (cpu_s->cpu_type == CPU_IBM386SLC) ||
@@ -816,9 +818,9 @@ cpu_set(void)
 	case CPU_Cx486DX2:
 	case CPU_Cx486DX4:
 #ifdef USE_DYNAREC
-		x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
+		x86_setopcodes(ops_386, ops_c486_0f, dynarec_ops_386, dynarec_ops_c486_0f);
 #else
-		x86_setopcodes(ops_386, ops_486_0f);
+		x86_setopcodes(ops_386, ops_c486_0f);
 #endif
 
                 timing_rr			=   1;	/* register dest - register src */
@@ -856,9 +858,9 @@ cpu_set(void)
 
 	case CPU_Cx5x86:
 #ifdef USE_DYNAREC
-		x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
+		x86_setopcodes(ops_386, ops_c486_0f, dynarec_ops_386, dynarec_ops_c486_0f);
 #else
-		x86_setopcodes(ops_386, ops_486_0f);
+		x86_setopcodes(ops_386, ops_c486_0f);
 #endif
 
 		timing_rr			=   1;	/* register dest - register src */
@@ -1027,7 +1029,6 @@ cpu_set(void)
   	case CPU_Cx6x86MX:
 		if (cpu_s->cpu_type == CPU_Cx6x86MX) {
 #ifdef USE_DYNAREC
-			x86_setopcodes(ops_386, ops_c6x86mx_0f, dynarec_ops_386, dynarec_ops_c6x86mx_0f);
 			x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_686_da_a16;
 			x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_686_da_a32;
 			x86_dynarec_opcodes_db_a16 = dynarec_ops_fpu_686_db_a16;
@@ -1049,7 +1050,8 @@ cpu_set(void)
 		else if (cpu_s->cpu_type == CPU_Cx6x86L)
 			x86_setopcodes(ops_386, ops_pentium_0f, dynarec_ops_386, dynarec_ops_pentium_0f);
 		else
-			x86_setopcodes(ops_386, ops_c6x86_0f, dynarec_ops_386, dynarec_ops_c6x86_0f);
+			x86_setopcodes(ops_386, ops_c6x86mx_0f, dynarec_ops_386, dynarec_ops_c6x86mx_0f);
+			// x86_setopcodes(ops_386, ops_c6x86_0f, dynarec_ops_386, dynarec_ops_c6x86_0f);
 #else
 		if (cpu_s->cpu_type == CPU_Cx6x86MX)
 			x86_setopcodes(ops_386, ops_c6x86mx_0f);
@@ -2935,23 +2937,27 @@ cpu_write(uint16_t addr, uint8_t val, void *priv)
 		ccr2 = val;
 		break;
 	case 0xc3:	/* CCR3 */
+		pclog("CC3     WRITE: %02X\n", val);
 		if ((ccr3 & CCR3_SMI_LOCK) && !in_smm)
 			val = (val & ~(CCR3_NMI_EN)) | (ccr3 & CCR3_NMI_EN) | CCR3_SMI_LOCK;
 		ccr3 = val;
 		break;
 	case 0xcd:
+		pclog("ARR3_24 WRITE: %02X\n", val);
 		if (!(ccr3 & CCR3_SMI_LOCK) || in_smm) {
 			cyrix.arr[3].base = (cyrix.arr[3].base & ~0xff000000) | (val << 24);
 			cyrix.smhr &= ~SMHR_VALID;
 		}
 		break;
 	case 0xce:
+		pclog("ARR3_16 WRITE: %02X\n", val);
 		if (!(ccr3 & CCR3_SMI_LOCK) || in_smm) {
 			cyrix.arr[3].base = (cyrix.arr[3].base & ~0x00ff0000) | (val << 16);
 			cyrix.smhr &= ~SMHR_VALID;
 		}
 		break;
 	case 0xcf:
+		pclog("ARR3_08 WRITE: %02X\n", val);
 		if (!(ccr3 & CCR3_SMI_LOCK) || in_smm) {
 			cyrix.arr[3].base = (cyrix.arr[3].base & ~0x0000f000) | ((val & 0xf0) << 8);
 			if ((val & 0xf) == 0xf)

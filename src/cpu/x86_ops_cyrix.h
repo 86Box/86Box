@@ -35,7 +35,7 @@ static void opSVDC_common(uint32_t fetchdat)
 }
 static int opSVDC_a16(uint32_t fetchdat)
 {
-        if (cpu_cur_status & CPU_STATUS_SMM)
+        if (in_smm)
         {
                 fetch_ea_16(fetchdat);
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -48,7 +48,7 @@ static int opSVDC_a16(uint32_t fetchdat)
 }
 static int opSVDC_a32(uint32_t fetchdat)
 {
-        if (cpu_cur_status & CPU_STATUS_SMM)
+        if (in_smm)
         {
                 fetch_ea_32(fetchdat);
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -86,7 +86,7 @@ static void opRSDC_common(uint32_t fetchdat)
 }
 static int opRSDC_a16(uint32_t fetchdat)
 {
-        if (cpu_cur_status & CPU_STATUS_SMM)
+        if (in_smm)
         {
                 fetch_ea_16(fetchdat);
                 SEG_CHECK_READ(cpu_state.ea_seg);
@@ -99,7 +99,7 @@ static int opRSDC_a16(uint32_t fetchdat)
 }
 static int opRSDC_a32(uint32_t fetchdat)
 {
-        if (cpu_cur_status & CPU_STATUS_SMM)
+        if (in_smm)
         {
                 fetch_ea_32(fetchdat);
                 SEG_CHECK_READ(cpu_state.ea_seg);
@@ -113,7 +113,7 @@ static int opRSDC_a32(uint32_t fetchdat)
 
 static int opSVLDT_a16(uint32_t fetchdat)
 {
-        if (cpu_cur_status & CPU_STATUS_SMM)
+        if (in_smm)
         {
                 fetch_ea_16(fetchdat);
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -127,7 +127,7 @@ static int opSVLDT_a16(uint32_t fetchdat)
 }
 static int opSVLDT_a32(uint32_t fetchdat)
 {
-        if (cpu_cur_status & CPU_STATUS_SMM)
+        if (in_smm)
         {
                 fetch_ea_32(fetchdat);
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -142,7 +142,7 @@ static int opSVLDT_a32(uint32_t fetchdat)
 
 static int opRSLDT_a16(uint32_t fetchdat)
 {
-        if (cpu_cur_status & CPU_STATUS_SMM)
+        if (in_smm)
         {
                 fetch_ea_16(fetchdat);
                 SEG_CHECK_READ(cpu_state.ea_seg);
@@ -155,7 +155,7 @@ static int opRSLDT_a16(uint32_t fetchdat)
 }
 static int opRSLDT_a32(uint32_t fetchdat)
 {
-        if (cpu_cur_status & CPU_STATUS_SMM)
+        if (in_smm)
         {
                 fetch_ea_32(fetchdat);
                 SEG_CHECK_READ(cpu_state.ea_seg);
@@ -169,7 +169,7 @@ static int opRSLDT_a32(uint32_t fetchdat)
 
 static int opSVTS_a16(uint32_t fetchdat)
 {
-        if (cpu_cur_status & CPU_STATUS_SMM)
+        if (in_smm)
         {
                 fetch_ea_16(fetchdat);
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -183,7 +183,7 @@ static int opSVTS_a16(uint32_t fetchdat)
 }
 static int opSVTS_a32(uint32_t fetchdat)
 {
-        if (cpu_cur_status & CPU_STATUS_SMM)
+        if (in_smm)
         {
                 fetch_ea_32(fetchdat);
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -198,7 +198,7 @@ static int opSVTS_a32(uint32_t fetchdat)
 
 static int opRSTS_a16(uint32_t fetchdat)
 {
-        if (cpu_cur_status & CPU_STATUS_SMM)
+        if (in_smm)
         {
                 fetch_ea_16(fetchdat);
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -212,7 +212,7 @@ static int opRSTS_a16(uint32_t fetchdat)
 }
 static int opRSTS_a32(uint32_t fetchdat)
 {
-        if (cpu_cur_status & CPU_STATUS_SMM)
+        if (in_smm)
         {
                 fetch_ea_32(fetchdat);
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -227,7 +227,7 @@ static int opRSTS_a32(uint32_t fetchdat)
 
 static int opSMINT(uint32_t fetchdat)
 {
-        if (cpu_cur_status & CPU_STATUS_SMM)
+        if (in_smm)
                 fatal("opSMINT\n");
         else
                 x86illegal();
@@ -237,7 +237,7 @@ static int opSMINT(uint32_t fetchdat)
 
 static int opRDSHR_a16(uint32_t fetchdat)
 {
-        if (cpu_cur_status & CPU_STATUS_SMM)
+        if (in_smm)
                 fatal("opRDSHR_a16\n");
         else
                 x86illegal();
@@ -246,7 +246,7 @@ static int opRDSHR_a16(uint32_t fetchdat)
 }
 static int opRDSHR_a32(uint32_t fetchdat)
 {
-        if (cpu_cur_status & CPU_STATUS_SMM)
+        if (in_smm)
                 fatal("opRDSHR_a32\n");
         else
                 x86illegal();
@@ -256,7 +256,7 @@ static int opRDSHR_a32(uint32_t fetchdat)
 
 static int opWRSHR_a16(uint32_t fetchdat)
 {
-        if (cpu_cur_status & CPU_STATUS_SMM)
+        if (in_smm)
                 fatal("opWRSHR_a16\n");
         else
                 x86illegal();
@@ -265,7 +265,7 @@ static int opWRSHR_a16(uint32_t fetchdat)
 }
 static int opWRSHR_a32(uint32_t fetchdat)
 {
-        if (cpu_cur_status & CPU_STATUS_SMM)
+        if (in_smm)
                 fatal("opWRSHR_a32\n");
         else
                 x86illegal();

@@ -218,8 +218,7 @@ typedef struct {
     uint8_t	access, ar_high;
     int8_t	checked; /*Non-zero if selector is known to be valid*/
     uint16_t	seg;
-    uint32_t	base,
-		limit, limit_raw,
+    uint32_t	base, limit,
 		limit_low, limit_high;
 } x86seg;
 
@@ -484,7 +483,7 @@ extern int	cpu_cyrix_alignment;	/*Cyrix 5x86/6x86 only has data misalignment
 					  penalties when crossing 8-byte boundaries*/
 
 extern int	is8086,	is286, is386, is486, is486sx, is486dx, is486sx2, is486dx2, isdx4;
-extern int	is_am486, is_pentium, is_k5, is_k6, is_p6, is_cx6x86;
+extern int	is_am486, is_486_org, is_pentium, is_k5, is_k6, is_p6, is_cxsmm;
 extern int	hascache;
 extern int	isibm486;
 extern int	is_rapidcad;
