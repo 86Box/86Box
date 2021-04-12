@@ -1027,7 +1027,7 @@ enter_smm(int in_hlt)
     uint32_t smram_state = smbase + 0x10000;
 
     /* If it's a CPU on which SMM is not supported, do nothing. */
-    if (!is_am486 && !is_pentium && !is_k5 && !is_k6 && !is_p6 && !is_cx6x86)
+    if (!is_am486 && !is_pentium && !is_k5 && !is_k6 && !is_p6 && !is_cxsmm)
 	return;
 
     x386_common_log("enter_smm(): smbase = %08X\n", smbase);
@@ -1066,7 +1066,7 @@ enter_smm(int in_hlt)
     smram_backup_all();
     smram_recalc_all(0);
 
-    if (cpu_iscyrix) {
+    if (is_cxsmm) {
 	if (!(cyrix.smhr & SMHR_VALID))
 		cyrix.smhr = (cyrix.arr[3].base + cyrix.arr[3].size) | SMHR_VALID;
 	smram_state = cyrix.smhr & SMHR_ADDR_MASK;
@@ -1074,11 +1074,11 @@ enter_smm(int in_hlt)
 
     memset(saved_state, 0x00, SMM_SAVE_STATE_MAP_SIZE * sizeof(uint32_t));
 
-    if (cpu_iscyrix)			/* Cx6x86 */
+    if (is_cxsmm)			/* Cx6x86 */
 	smram_save_state_cyrix(saved_state, in_hlt);
-    if (is_pentium || is_am486)		/* Am486 / 5x86 / Intel P5 (Pentium) */
+    else if (is_pentium || is_am486)	/* Am486 / 5x86 / Intel P5 (Pentium) */
 	smram_save_state_p5(saved_state, in_hlt);
-    else if (is_k5 || is_k6)	/* AMD K5 and K6 */
+    else if (is_k5 || is_k6)		/* AMD K5 and K6 */
 	smram_save_state_amd_k(saved_state, in_hlt);
     else if (is_p6)			/* Intel P6 (Pentium Pro, Pentium II, Celeron) */
 	smram_save_state_p6(saved_state, in_hlt);
@@ -1091,8 +1091,11 @@ enter_smm(int in_hlt)
 
     dr[7] = 0x400;
 
-    if (cpu_iscyrix) {
+    if (is_cxsmm) {
 	cpu_state.pc = 0x0000;
+	cpl_override = 1;
+	cyrix_write_seg_descriptor(smram_state - 0x20, &cpu_state.seg_cs);
+	cpl_override = 0;
 	cpu_state.seg_cs.seg = (cyrix.arr[3].base >> 4);
 	cpu_state.seg_cs.base = cyrix.arr[3].base;
 	cpu_state.seg_cs.limit = 0xffffffff;
@@ -1137,15 +1140,14 @@ enter_smm(int in_hlt)
     cpu_state.op32 = use32;
 
     cpl_override = 1;
-    if (cpu_iscyrix) {
+    if (is_cxsmm) {
 	writememl(0, smram_state - 0x04, saved_state[0]);
 	writememl(0, smram_state - 0x08, saved_state[1]);
 	writememl(0, smram_state - 0x0c, saved_state[2]);
 	writememl(0, smram_state - 0x10, saved_state[3]);
 	writememl(0, smram_state - 0x14, saved_state[4]);
 	writememl(0, smram_state - 0x18, saved_state[5]);
-	cyrix_write_seg_descriptor(smram_state - 0x20, &cpu_state.seg_cs);
-	writememl(0, smram_state - 0x18, saved_state[6]);
+	writememl(0, smram_state - 0x24, saved_state[6]);
     } else {
 	for (n = 0; n < SMM_SAVE_STATE_MAP_SIZE; n++) {
 		smram_state -= 4;
@@ -1214,13 +1216,13 @@ leave_smm(void)
     uint32_t smram_state = smbase + 0x10000;
 
     /* If it's a CPU on which SMM is not supported (or not implemented in 86Box), do nothing. */
-    if (!is_am486 && !is_pentium && !is_k5 && !is_k6 && !is_p6 && !is_cx6x86)
+    if (!is_am486 && !is_pentium && !is_k5 && !is_k6 && !is_p6 && !is_cxsmm)
 	return;
 
     memset(saved_state, 0x00, SMM_SAVE_STATE_MAP_SIZE * sizeof(uint32_t));
 
     cpl_override = 1;
-    if (cpu_iscyrix) {
+    if (is_cxsmm) {
 	smram_state = cyrix.smhr & SMHR_ADDR_MASK;
 	saved_state[0] = readmeml(0, smram_state - 0x04);
 	saved_state[1] = readmeml(0, smram_state - 0x08);
@@ -1246,13 +1248,13 @@ leave_smm(void)
     }
 
     x386_common_log("New SMBASE: %08X (%08X)\n", saved_state[SMRAM_FIELD_P5_SMBASE_OFFSET], saved_state[66]);
-    if (cpu_iscyrix)		/* Cx6x86 */
+    if (is_cxsmm)			/* Cx6x86 */
 	smram_restore_state_cyrix(saved_state);
-    else if (is_pentium)	/* Intel P5 (Pentium) */
+    else if (is_pentium || is_am486)	/* Am486 / 5x86 / Intel P5 (Pentium) */
 	smram_restore_state_p5(saved_state);
-    else if (is_k5 || is_k6)	/* AMD K5 and K6 */
+    else if (is_k5 || is_k6)		/* AMD K5 and K6 */
 	smram_restore_state_amd_k(saved_state);
-    else if (is_p6)		/* Intel P6 (Pentium Pro, Pentium II, Celeron) */
+    else if (is_p6)			/* Intel P6 (Pentium Pro, Pentium II, Celeron) */
 	smram_restore_state_p6(saved_state);
 
     in_smm = 0;
@@ -1637,7 +1639,6 @@ sysenter(uint32_t fetchdat)
     cpu_state.seg_cs.base = 0;
     cpu_state.seg_cs.limit_low = 0;
     cpu_state.seg_cs.limit = 0xffffffff;
-    cpu_state.seg_cs.limit_raw = 0x000fffff;
     cpu_state.seg_cs.limit_high = 0xffffffff;
     cpu_state.seg_cs.access = 0x9b;
     cpu_state.seg_cs.ar_high = 0xcf;
@@ -1648,7 +1649,6 @@ sysenter(uint32_t fetchdat)
     cpu_state.seg_ss.base = 0;
     cpu_state.seg_ss.limit_low = 0;
     cpu_state.seg_ss.limit = 0xffffffff;
-    cpu_state.seg_ss.limit_raw = 0x000fffff;
     cpu_state.seg_ss.limit_high = 0xffffffff;
     cpu_state.seg_ss.access = 0x93;
     cpu_state.seg_ss.ar_high = 0xcf;
@@ -1726,7 +1726,6 @@ sysexit(uint32_t fetchdat)
     cpu_state.seg_cs.base = 0;
     cpu_state.seg_cs.limit_low = 0;
     cpu_state.seg_cs.limit = 0xffffffff;
-    cpu_state.seg_cs.limit_raw = 0x000fffff;
     cpu_state.seg_cs.limit_high = 0xffffffff;
     cpu_state.seg_cs.access = 0xfb;
     cpu_state.seg_cs.ar_high = 0xcf;
@@ -1737,7 +1736,6 @@ sysexit(uint32_t fetchdat)
     cpu_state.seg_ss.base = 0;
     cpu_state.seg_ss.limit_low = 0;
     cpu_state.seg_ss.limit = 0xffffffff;
-    cpu_state.seg_ss.limit_raw = 0x000fffff;
     cpu_state.seg_ss.limit_high = 0xffffffff;
     cpu_state.seg_ss.access = 0xf3;
     cpu_state.seg_ss.ar_high = 0xcf;
@@ -1789,7 +1787,6 @@ syscall_op(uint32_t fetchdat)
     cpu_state.seg_cs.base = 0;
     cpu_state.seg_cs.limit_low = 0;
     cpu_state.seg_cs.limit = 0xffffffff;
-    cpu_state.seg_cs.limit_raw = 0x000fffff;
     cpu_state.seg_cs.limit_high = 0xffffffff;
     cpu_state.seg_cs.access = 0x9b;
     cpu_state.seg_cs.ar_high = 0xcf;
@@ -1801,7 +1798,6 @@ syscall_op(uint32_t fetchdat)
     cpu_state.seg_ss.base = 0;
     cpu_state.seg_ss.limit_low = 0;
     cpu_state.seg_ss.limit = 0xffffffff;
-    cpu_state.seg_ss.limit_raw = 0x000fffff;
     cpu_state.seg_ss.limit_high = 0xffffffff;
     cpu_state.seg_ss.access = 0x93;
     cpu_state.seg_ss.ar_high = 0xcf;
@@ -1852,7 +1848,6 @@ sysret(uint32_t fetchdat)
     cpu_state.seg_cs.base = 0;
     cpu_state.seg_cs.limit_low = 0;
     cpu_state.seg_cs.limit = 0xffffffff;
-    cpu_state.seg_cs.limit_raw = 0x000fffff;
     cpu_state.seg_cs.limit_high = 0xffffffff;
     cpu_state.seg_cs.access = 0xfb;
     cpu_state.seg_cs.ar_high = 0xcf;
@@ -1864,7 +1859,6 @@ sysret(uint32_t fetchdat)
     cpu_state.seg_ss.base = 0;
     cpu_state.seg_ss.limit_low = 0;
     cpu_state.seg_ss.limit = 0xffffffff;
-    cpu_state.seg_ss.limit_raw = 0x000fffff;
     cpu_state.seg_ss.limit_high = 0xffffffff;
     cpu_state.seg_ss.access = 0xf3;
     cpu_state.seg_cs.ar_high = 0xcf;

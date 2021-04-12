@@ -61,11 +61,12 @@ HWND		hwndMain,		/* application main window */
 HMENU		menuMain;		/* application main menu */
 HICON		hIcon[256];		/* icon data loaded from resources */
 RECT		oldclip;		/* mouse rect */
-int		sbar_height = 23;     /* statusbar height */
+int		sbar_height = 23;	/* statusbar height */
 int		minimized = 0;
-int		infocus = 1;
+int		infocus = 1, button_down = 0;
 int		rctrl_is_lalt = 0;
 int		user_resize = 0;
+int		fixed_size_x = 0, fixed_size_y = 0;
 
 extern char	openfilestring[512];
 extern WCHAR	wopenfilestring[512];
@@ -125,7 +126,7 @@ int win_get_system_metrics(int index, int dpi) {
 void
 ResizeWindowByClientArea(HWND hwnd, int width, int height)
 {
-	if (vid_resize || padded_frame) {
+	if ((vid_resize == 1) || padded_frame) {
 		int padding = win_get_system_metrics(SM_CXPADDEDBORDER, dpi);
 		width  += (win_get_system_metrics(SM_CXFRAME, dpi) + padding) * 2;
 		height += (win_get_system_metrics(SM_CYFRAME, dpi) + padding) * 2;
@@ -279,13 +280,13 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_OVERSCAN, enable_overscan?MF_CHECKED:MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_INVERT, invert_display ? MF_CHECKED : MF_UNCHECKED);
 
-    if (vid_resize)
+    if (vid_resize == 1)
 	CheckMenuItem(menuMain, IDM_VID_RESIZE, MF_CHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_SW+vid_api, MF_CHECKED);
     CheckMenuItem(menuMain, IDM_VID_FS_FULL+video_fullscreen_scale, MF_CHECKED);
     CheckMenuItem(menuMain, IDM_VID_REMEMBER, window_remember?MF_CHECKED:MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SCALE_1X+scale, MF_CHECKED);
-	CheckMenuItem(menuMain, IDM_VID_HIDPI, dpi_scale?MF_CHECKED:MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_HIDPI, dpi_scale?MF_CHECKED:MF_UNCHECKED);
 
     CheckMenuItem(menuMain, IDM_VID_CGACON, vid_cga_contrast?MF_CHECKED:MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_GRAYCT_601+video_graytype, MF_CHECKED);
@@ -300,6 +301,20 @@ ResetAllMenus(void)
 #ifdef MTR_ENABLED
     EnableMenuItem(menuMain, IDM_ACTION_END_TRACE, MF_DISABLED);
 #endif
+
+    if (vid_resize) {
+	if (vid_resize >= 2) {
+		CheckMenuItem(menuMain, IDM_VID_RESIZE, MF_UNCHECKED);
+		EnableMenuItem(menuMain, IDM_VID_RESIZE, MF_GRAYED);
+	}
+
+	CheckMenuItem(menuMain, IDM_VID_SCALE_1X + scale, MF_UNCHECKED);
+	CheckMenuItem(menuMain, IDM_VID_SCALE_2X, MF_CHECKED);
+	EnableMenuItem(menuMain, IDM_VID_SCALE_1X, MF_GRAYED);
+	EnableMenuItem(menuMain, IDM_VID_SCALE_2X, MF_GRAYED);
+	EnableMenuItem(menuMain, IDM_VID_SCALE_3X, MF_GRAYED);
+	EnableMenuItem(menuMain, IDM_VID_SCALE_4X, MF_GRAYED);
+    }
 }
 
 
@@ -456,10 +471,14 @@ input_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 #endif
 		break;
 
+	case WM_LBUTTONDOWN:
+		button_down |= 1;
+		break;
+
 	case WM_LBUTTONUP:
-		pclog("video_fullscreen = %i\n", video_fullscreen);
-		if (! video_fullscreen)
+		if ((button_down & 1) && !video_fullscreen)
 			plat_mouse_capture(1);
+		button_down &= ~1;
 		break;
 
 	case WM_MBUTTONUP:
@@ -511,12 +530,12 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 #ifdef MTR_ENABLED
-            case IDM_ACTION_BEGIN_TRACE:
-            case IDM_ACTION_END_TRACE:
-            case IDM_ACTION_TRACE:
-                tracing_on = !tracing_on;
-                handle_trace(hmenu, tracing_on);
-                break;
+		case IDM_ACTION_BEGIN_TRACE:
+		case IDM_ACTION_END_TRACE:
+		case IDM_ACTION_TRACE:
+			tracing_on = !tracing_on;
+			handle_trace(hmenu, tracing_on);
+			break;
 #endif
 
 			case IDM_ACTION_HRESET:
@@ -595,10 +614,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDM_VID_RESIZE:
-				vid_resize = !vid_resize;
-				CheckMenuItem(hmenu, IDM_VID_RESIZE, (vid_resize)? MF_CHECKED : MF_UNCHECKED);
+				vid_resize ^= 1;
+				CheckMenuItem(hmenu, IDM_VID_RESIZE, (vid_resize & 1) ? MF_CHECKED : MF_UNCHECKED);
 
-				if (vid_resize)
+				if (vid_resize == 1)
 					SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW) | WS_VISIBLE);
 				else
 					SetWindowLongPtr(hwnd, GWL_STYLE, (WS_OVERLAPPEDWINDOW & ~WS_SIZEBOX & ~WS_MAXIMIZEBOX) | WS_VISIBLE);
@@ -638,7 +657,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				window_remember = !window_remember;
 				CheckMenuItem(hmenu, IDM_VID_REMEMBER, window_remember ? MF_CHECKED : MF_UNCHECKED);
 				GetWindowRect(hwnd, &rect);
-				if (window_remember) {
+				if (!(vid_resize & 2) && window_remember) {
 					window_x = rect.left;
 					window_y = rect.top;
 					window_w = rect.right - rect.left;
@@ -694,6 +713,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				CheckMenuItem(hmenu, IDM_VID_HIDPI, dpi_scale ? MF_CHECKED : MF_UNCHECKED);
 				doresize = 1;
 				config_save();
+				break;
+
+			case IDM_VID_SPECIFY_DIM:
+				SpecifyDimensionsDialogCreate(hwnd);
 				break;
 
 			case IDM_VID_FORCE43:
@@ -829,9 +852,19 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		GetWindowRect(hwndSBAR, &rect);
 		sbar_height = rect.bottom - rect.top;
 		rect_p = (RECT*)lParam;
-		if (vid_resize)
+		if (vid_resize == 1)
 			MoveWindow(hwnd, rect_p->left, rect_p->top, rect_p->right - rect_p->left, rect_p->bottom - rect_p->top, TRUE);
-		else if (!user_resize)
+		else if (vid_resize >= 2) {
+			temp_x = fixed_size_x;
+			temp_y = fixed_size_y;
+			if (dpi_scale) {
+				temp_x = MulDiv(temp_x, dpi, 96);
+				temp_y = MulDiv(temp_y, dpi, 96);
+			}
+
+			/* Main Window. */
+			ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
+		} else if (!user_resize)
 			doresize = 1;
 		break;
 
@@ -1063,9 +1096,14 @@ static LRESULT CALLBACK
 SubWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message) {
+	case WM_LBUTTONDOWN:
+		button_down |= 2;
+		break;
+
 	case WM_LBUTTONUP:
-		if (! video_fullscreen)
+		if ((button_down & 2) && !video_fullscreen)
 			plat_mouse_capture(1);
+		button_down &= ~2;
 		break;
 
 	case WM_MBUTTONUP:
@@ -1230,10 +1268,10 @@ ui_init(int nCmdShow)
     sbar_height = sbar_rect.bottom - sbar_rect.top;
 
     /* Set up main window for resizing if configured. */
-    if (vid_resize)
+    if (vid_resize == 1)
 	SetWindowLongPtr(hwnd, GWL_STYLE,
 			(WS_OVERLAPPEDWINDOW));
-      else
+    else
 	SetWindowLongPtr(hwnd, GWL_STYLE,
 			(WS_OVERLAPPEDWINDOW&~WS_SIZEBOX&~WS_THICKFRAME&~WS_MAXIMIZEBOX));
 
@@ -1243,10 +1281,15 @@ ui_init(int nCmdShow)
 
     /* Initiate a resize in order to properly arrange all controls.
        Move to the last-saved position if needed. */
-    if (window_remember)
+    if ((vid_resize < 2) && window_remember)
 	MoveWindow(hwnd, window_x, window_y, window_w, window_h, TRUE);
-    else
+    else {
+	if (vid_resize >= 2) {
+		scrnsz_x = fixed_size_x;
+		scrnsz_y = fixed_size_y;
+	}
 	ResizeWindowByClientArea(hwndMain, scrnsz_x, scrnsz_y + sbar_height);
+    }
 
     /* Reset all menus to their defaults. */
     ResetAllMenus();
@@ -1466,7 +1509,6 @@ plat_resize(int x, int y)
 {
     /* First, see if we should resize the UI window. */
     if (!vid_resize) {
-
 	/* scale the screen base on DPI */
 	if (dpi_scale) {
 		x = MulDiv(x, dpi, 96);

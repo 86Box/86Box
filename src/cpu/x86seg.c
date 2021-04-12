@@ -227,7 +227,6 @@ void
 do_seg_load(x86seg *s, uint16_t *segdat)
 {
     s->limit = segdat[0] | ((segdat[3] & 0x000f) << 16);
-    s->limit_raw = s->limit;
     if (segdat[3] & 0x0080)
 	s->limit = (s->limit << 12) | 0xfff;
     s->base = segdat[1] | ((segdat[2] & 0x00ff) << 16);
@@ -2382,9 +2381,14 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
 void
 cyrix_write_seg_descriptor(uint32_t addr, x86seg *seg)
 {
-    writememl(0, addr, (seg->limit_raw & 0xffff) | (seg->base << 16));
+    uint32_t limit_raw = seg->limit;
+
+    if (seg->ar_high & 0x80)
+	limit_raw >>= 12;
+
+    writememl(0, addr, (limit_raw & 0xffff) | (seg->base << 16));
     writememl(0, addr + 4, ((seg->base >> 16) & 0xff) | (seg->access << 8) |
-	      (seg->limit_raw & 0xf0000) | (seg->ar_high << 16) |
+	      (limit_raw & 0xf0000) | (seg->ar_high << 16) |
 	      (seg->base & 0xff000000));
 }
 

@@ -71,6 +71,7 @@ BEGIN
 #endif
         END
         MENUITEM SEPARATOR
+        MENUITEM "Specify dimensions",          IDM_VID_SPECIFY_DIM
         MENUITEM "F&orce 4:3 display ratio",    IDM_VID_FORCE43
         POPUP "&Window scale factor"
         BEGIN
@@ -340,6 +341,27 @@ BEGIN
     COMBOBOX        IDC_COMBO_LANG,48,236,108,120,CBS_DROPDOWN | WS_VSCROLL | 
                     WS_TABSTOP
 #endif
+END
+
+DLG_SPECIFY_DIM DIALOG DISCARDABLE  0, 0, 175, 66
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Specify Main Window Dimensions"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT           "Width:",IDT_1709,7,9,24,12
+    EDITTEXT        IDC_EDIT_WIDTH,33,7,45,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_WIDTHSPIN,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_ARROWKEYS | UDS_NOTHOUSANDS,76,6,
+                    12,12
+    LTEXT           "Height:",IDT_1710,97,9,24,12
+    EDITTEXT        IDC_EDIT_HEIGHT,123,7,45,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_HEIGHTSPIN,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_ARROWKEYS | UDS_NOTHOUSANDS,166,6,
+                    12,12
+    CONTROL         "Lock to this size",IDC_CHECK_LOCK_SIZE,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,26,94,10
+    DEFPUSHBUTTON   "OK",IDOK,30,45,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,99,45,50,14
 END
 
 DLG_CFG_MACHINE DIALOG DISCARDABLE  107, 0, 305, 200

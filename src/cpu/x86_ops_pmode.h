@@ -198,7 +198,6 @@ static int op0F00_common(uint32_t fetchdat, int ea32)
                 granularity = readmemb(0, addr + 6) & 0x80;
                 if (cpu_state.abrt) return 1;
                 ldt.limit = limit;
-                ldt.limit_raw = limit;
                 ldt.access = access;
                 ldt.ar_high = ar_high;
                 if (granularity)
@@ -232,7 +231,6 @@ static int op0F00_common(uint32_t fetchdat, int ea32)
                 if (cpu_state.abrt) return 1;
                 tr.seg = sel;
                 tr.limit = limit;
-                tr.limit_raw = limit;
                 tr.access = access;
                 tr.ar_high = ar_high;
                 if (granularity)
