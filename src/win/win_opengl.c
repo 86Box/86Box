@@ -249,8 +249,18 @@ static void winmessage_hook(void* userdata, void* hWnd, unsigned int message, Ui
 	{
 	case WM_LBUTTONUP:
 	case WM_MBUTTONUP:
-		/* Mouse events that enter and exit capture. */
-		PostMessage(parent, message, wParam, lParam);
+		if (!*msg_data->fullscreen)
+		{
+			/* Mouse events that enter and exit capture. */
+			PostMessage(parent, message, wParam, lParam);
+		}
+		break;
+	case WM_KEYDOWN:
+	case WM_KEYUP:
+	case WM_SYSKEYDOWN:
+	case WM_SYSKEYUP:
+		if (*msg_data->fullscreen)
+			PostMessage(parent, message, wParam, lParam);
 		break;
 	case WM_INPUT:
 		if (*msg_data->fullscreen)
@@ -396,8 +406,10 @@ static void opengl_main()
 			/* Handle SDL_Window events */
 			while (SDL_PollEvent(&event)) { /* No need for actual handlers, but message queue must be processed. */ }
 
-			if (!fullscreen && SDL_ShowCursor(-1) == !!mouse_capture)
-				SDL_ShowCursor(!mouse_capture);
+			/* Keep cursor hidden in full screen and mouse capture */
+			int show_cursor = !(fullscreen || !!mouse_capture);
+			if (SDL_ShowCursor(-1) != show_cursor)
+				SDL_ShowCursor(show_cursor);
 
 			/* Wait for synchronized events for 1ms before going back to window events */
 			wait_result = WaitForMultipleObjects(sizeof(sync_objects) / sizeof(HANDLE), sync_objects.asArray, FALSE, 1);
@@ -434,8 +446,6 @@ static void opengl_main()
 
 				if (fullscreen)
 					SDL_RaiseWindow(window);
-
-				SDL_ShowCursor(!fullscreen);
 			}
 
 			if (fullscreen)
