@@ -62,12 +62,12 @@ static thread_t* thread = NULL;
 static SDL_Window* window = NULL;
 
 /**
- * @brief Window info to modify window style.
+ * @brief SDL window handle
 */
-static SDL_SysWMinfo wmi = {};
+static HWND window_hwnd = NULL;
 
 /**
- * @brief Parent window (hwndRender from win_ui)
+ * @brief Parent window handle (hwndRender from win_ui)
 */
 static HWND parent = NULL;
 
@@ -206,11 +206,8 @@ static GLuint load_shaders()
  */
 static void set_parent_binding(int enable)
 {
-	if (wmi.subsystem != SDL_SYSWM_WINDOWS)
-		return;
-
-	long style = GetWindowLong(wmi.info.win.window, GWL_STYLE);
-	long ex_style = GetWindowLong(wmi.info.win.window, GWL_EXSTYLE);
+	long style = GetWindowLong(window_hwnd, GWL_STYLE);
+	long ex_style = GetWindowLong(window_hwnd, GWL_EXSTYLE);
 
 	if (enable)
 	{
@@ -223,10 +220,10 @@ static void set_parent_binding(int enable)
 		ex_style &= ~WS_EX_NOACTIVATE;
 	}
 
-	SetWindowLong(wmi.info.win.window, GWL_STYLE, style);
-	SetWindowLong(wmi.info.win.window, GWL_EXSTYLE, ex_style);
+	SetWindowLong(window_hwnd, GWL_STYLE, style);
+	SetWindowLong(window_hwnd, GWL_EXSTYLE, ex_style);
 
-	SetParent(wmi.info.win.window, enable ? parent : NULL);
+	SetParent(window_hwnd, enable ? parent : NULL);
 }
 
 /**
@@ -260,7 +257,9 @@ static void winmessage_hook(void* userdata, void* hWnd, unsigned int message, Ui
 	case WM_SYSKEYDOWN:
 	case WM_SYSKEYUP:
 		if (*msg_data->fullscreen)
+		{
 			PostMessage(parent, message, wParam, lParam);
+		}
 		break;
 	case WM_INPUT:
 		if (*msg_data->fullscreen)
@@ -369,14 +368,17 @@ static void opengl_main()
 	/* Keeps track of full screen, but only changed in this thread. */
 	int fullscreen = resize_info.fullscreen;
 
+	SDL_SysWMinfo wmi;
 	SDL_VERSION(&wmi.version);
 	SDL_GetWindowWMInfo(window, &wmi);
 
-	/* Pass window handle and full screen mode to windows message hook */
-	winmessage_data msg_data = (winmessage_data){ wmi.info.win.window, &fullscreen };
-
 	if (wmi.subsystem == SDL_SYSWM_WINDOWS)
-		SDL_SetWindowsMessageHook(winmessage_hook, &msg_data);
+		window_hwnd = wmi.info.win.window;
+
+	/* Pass window handle and full screen mode to windows message hook */
+	winmessage_data msg_data = (winmessage_data){ window_hwnd, &fullscreen };
+	
+	SDL_SetWindowsMessageHook(winmessage_hook, &msg_data);
 
 	if (!fullscreen)
 		set_parent_binding(1);
@@ -445,7 +447,10 @@ static void opengl_main()
 				SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
 
 				if (fullscreen)
-					SDL_RaiseWindow(window);
+				{
+					SetForegroundWindow(window_hwnd);
+					SetFocus(window_hwnd);
+				}
 			}
 
 			if (fullscreen)
@@ -461,7 +466,7 @@ static void opengl_main()
 				SDL_SetWindowSize(window, resize_info.width, resize_info.height);
 
 				/* SWP_NOZORDER is needed for child window and SDL doesn't enable it. */
-				SetWindowPos(wmi.info.win.window, parent, 0, 0, resize_info.width, resize_info.height, SWP_NOZORDER | SWP_NOCOPYBITS | SWP_NOMOVE | SWP_NOACTIVATE);
+				SetWindowPos(window_hwnd, parent, 0, 0, resize_info.width, resize_info.height, SWP_NOZORDER | SWP_NOCOPYBITS | SWP_NOMOVE | SWP_NOACTIVATE);
 
 				glViewport(0, 0, resize_info.width, resize_info.height);
 			}
@@ -483,7 +488,7 @@ static void opengl_main()
 
 static void opengl_blit(int x, int y, int y1, int y2, int w, int h)
 {
-	if (y1 == y2 || h <= 0 || render_buffer == NULL)
+	if (y1 == y2 || h <= 0 || render_buffer == NULL || thread == NULL)
 	{
 		video_blit_complete();
 		return;
