@@ -61,9 +61,9 @@ HWND		hwndMain,		/* application main window */
 HMENU		menuMain;		/* application main menu */
 HICON		hIcon[256];		/* icon data loaded from resources */
 RECT		oldclip;		/* mouse rect */
-int		sbar_height = 23;     /* statusbar height */
+int		sbar_height = 23;	/* statusbar height */
 int		minimized = 0;
-int		infocus = 1;
+int		infocus = 1, button_down = 0;
 int		rctrl_is_lalt = 0;
 int		user_resize = 0;
 
@@ -456,10 +456,14 @@ input_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 #endif
 		break;
 
+	case WM_LBUTTONDOWN:
+		button_down |= 1;
+		break;
+
 	case WM_LBUTTONUP:
-		pclog("video_fullscreen = %i\n", video_fullscreen);
-		if (! video_fullscreen)
+		if ((button_down & 1) && !video_fullscreen)
 			plat_mouse_capture(1);
+		button_down &= ~1;
 		break;
 
 	case WM_MBUTTONUP:
@@ -511,12 +515,12 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 #ifdef MTR_ENABLED
-            case IDM_ACTION_BEGIN_TRACE:
-            case IDM_ACTION_END_TRACE:
-            case IDM_ACTION_TRACE:
-                tracing_on = !tracing_on;
-                handle_trace(hmenu, tracing_on);
-                break;
+		case IDM_ACTION_BEGIN_TRACE:
+		case IDM_ACTION_END_TRACE:
+		case IDM_ACTION_TRACE:
+			tracing_on = !tracing_on;
+			handle_trace(hmenu, tracing_on);
+			break;
 #endif
 
 			case IDM_ACTION_HRESET:
@@ -694,6 +698,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				CheckMenuItem(hmenu, IDM_VID_HIDPI, dpi_scale ? MF_CHECKED : MF_UNCHECKED);
 				doresize = 1;
 				config_save();
+				break;
+
+			case IDM_VID_SPECIFY_DIM:
+				SpecifyDimensionsDialogCreate(hwnd);
 				break;
 
 			case IDM_VID_FORCE43:
@@ -1063,9 +1071,14 @@ static LRESULT CALLBACK
 SubWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message) {
+	case WM_LBUTTONDOWN:
+		button_down |= 2;
+		break;
+
 	case WM_LBUTTONUP:
-		if (! video_fullscreen)
+		if ((button_down & 2) && !video_fullscreen)
 			plat_mouse_capture(1);
+		button_down &= ~2;
 		break;
 
 	case WM_MBUTTONUP:

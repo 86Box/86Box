@@ -28,6 +28,7 @@
 #define DLG_STATUS		102	/* top-level dialog */
 #define DLG_SND_GAIN		103	/* top-level dialog */
 #define DLG_NEW_FLOPPY		104	/* top-level dialog */
+#define DLG_SPECIFY_DIM		105	/* top-level dialog */
 #define DLG_CONFIG		110	/* top-level dialog */
 #define  DLG_CFG_MACHINE	111	/* sub-dialog of config */
 #define  DLG_CFG_VIDEO		112	/* sub-dialog of config */
@@ -256,7 +257,6 @@
 #define IDC_COMBO_DISK_SIZE	1201
 #define IDC_COMBO_RPM_MODE	1202
 
-
 /* For the DeviceConfig code, re-do later. */
 #define IDC_CONFIG_BASE		1300
 #define  IDC_CONFIGURE_VID	1300
@@ -277,6 +277,10 @@
 #define IDC_RENDER		1381
 #define IDC_STATUS		1382
 
+#define IDC_EDIT_WIDTH		1400	/* specify main window dimensions dialog */
+#define IDC_WIDTHSPIN		1401
+#define IDC_EDIT_HEIGHT		1402
+#define IDC_HEIGHTSPIN		1403
 
 #define IDM_ABOUT		40001
 #define IDC_ABOUT_ICON		65535
@@ -308,12 +312,13 @@
 #define IDM_VID_SCALE_2X	40056
 #define IDM_VID_SCALE_3X	40057
 #define IDM_VID_SCALE_4X	40058
-#define IDM_VID_HIDPI       40059
+#define IDM_VID_HIDPI		40059
 #define IDM_VID_FULLSCREEN	40060
 #define IDM_VID_FS_FULL		40061
 #define IDM_VID_FS_43		40062
 #define IDM_VID_FS_KEEPRATIO	40063
 #define IDM_VID_FS_INT		40064
+#define IDM_VID_SPECIFY_DIM	40065
 #define IDM_VID_FORCE43		40066
 #define IDM_VID_OVERSCAN	40067
 #define IDM_VID_INVERT		40069

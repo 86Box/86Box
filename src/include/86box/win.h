@@ -174,6 +174,10 @@ extern void	SoundGainDialogCreate(HWND hwnd);
 extern void	NewFloppyDialogCreate(HWND hwnd, int id, int part);
 
 
+/* Functions in win_specify_dim.c: */
+extern void	SpecifyDimensionsDialogCreate(HWND hwnd);
+
+
 /* Functions in win_settings.c: */
 #define SETTINGS_PAGE_MACHINE			0
 #define SETTINGS_PAGE_VIDEO			1
