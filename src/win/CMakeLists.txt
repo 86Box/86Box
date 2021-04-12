@@ -19,7 +19,7 @@ add_library(plat OBJECT win.c win_dynld.c win_thread.c win_cdrom.c
 	win_keyboard.c win_crashdump.c win_midi.c win_mouse.c)
 
 add_library(ui OBJECT win_ui.c win_stbar.c win_sdl.c win_dialog.c win_about.c
-	win_settings.c win_devconf.c win_snd_gain.c win_specify_dim.o win_new_floppy.c
+	win_settings.c win_devconf.c win_snd_gain.c win_specify_dim.c win_new_floppy.c
 	win_jsconf.c win_media_menu.c 86Box.rc)
 
 if(MSVC)
