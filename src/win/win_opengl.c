@@ -11,8 +11,7 @@
  * NOTE:	This is very much still a work-in-progress.
  *		Expect missing functionality, hangs and bugs.
  * 
- * TODO:	Input events routing
- *		Full screen mode
+ * TODO:	Full screen stretch options
  *		Loader for glsl files.
  *			libretro has a sizeable library that could
  *			be a good target for compatibility.
@@ -48,6 +47,7 @@
 
 #include <86box/plat.h>
 #include <86box/video.h>
+#include <86box/win.h>
 #include <86box/win_opengl.h>
 
 /**
@@ -103,7 +103,7 @@ static volatile struct
 */
 static volatile struct
 {
-	int width, height;
+	int width, height, fullscreen;
 } resize_info = {};
 
 /**
@@ -116,6 +116,15 @@ typedef struct
 	GLuint textureID;
 	GLuint shader_progID;
 } gl_objects;
+
+/**
+ * @brief Userdata to pass onto windows message hook
+*/
+typedef struct
+{
+	HWND window;
+	int* fullscreen;
+} winmessage_data;
 
 /**
  * @brief Default vertex shader.
@@ -222,7 +231,7 @@ static void set_parent_binding(int enable)
 
 /**
  * @brief Windows message handler for SDL Windows.
- * @param userdata SDL_Window's HWND
+ * @param userdata winmessage_data
  * @param hWnd
  * @param message
  * @param wParam
@@ -230,8 +239,10 @@ static void set_parent_binding(int enable)
 */
 static void winmessage_hook(void* userdata, void* hWnd, unsigned int message, Uint64 wParam, Sint64 lParam)
 {
+	winmessage_data* msg_data = (winmessage_data*)userdata;
+
 	/* Process only our window */
-	if (userdata != hWnd || parent == NULL)
+	if (msg_data->window != hWnd || parent == NULL)
 		return;
 
 	switch (message)
@@ -242,7 +253,32 @@ static void winmessage_hook(void* userdata, void* hWnd, unsigned int message, Ui
 		PostMessage(parent, message, wParam, lParam);
 		break;
 	case WM_INPUT:
-		/* TODO: Use in full screen. */
+		if (*msg_data->fullscreen)
+		{
+			/* Raw input handler from win_ui.c : input_proc */
+
+			UINT size = 0;
+			PRAWINPUT raw = NULL;
+
+			/* Here we read the raw input data */
+			GetRawInputData((HRAWINPUT)(LPARAM)lParam, RID_INPUT, NULL, &size, sizeof(RAWINPUTHEADER));
+			raw = (PRAWINPUT)malloc(size);
+			if (GetRawInputData((HRAWINPUT)(LPARAM)lParam, RID_INPUT, raw, &size, sizeof(RAWINPUTHEADER)) == size) {
+				switch (raw->header.dwType)
+				{
+				case RIM_TYPEKEYBOARD:
+					keyboard_handle(raw);
+					break;
+				case RIM_TYPEMOUSE:
+					win_mouse_handle(raw);
+					break;
+				case RIM_TYPEHID:
+					win_joystick_handle(raw);
+					break;
+				}
+			}
+			free(raw);
+		}
 		break;
 	}
 }
@@ -297,7 +333,7 @@ static gl_objects initialize_glcontext()
 }
 
 /**
- * @brief Clean up OpenGL context * 
+ * @brief Clean up OpenGL context 
  * @param Object identifiers from initialize 
 */
 static void finalize_glcontext(gl_objects obj)
@@ -320,13 +356,22 @@ static void opengl_main()
 
 	window = SDL_CreateWindow("86Box OpenGL Renderer", 0, 0, resize_info.width, resize_info.height, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
 
+	/* Keeps track of full screen, but only changed in this thread. */
+	int fullscreen = resize_info.fullscreen;
+
 	SDL_VERSION(&wmi.version);
 	SDL_GetWindowWMInfo(window, &wmi);
 
-	if (wmi.subsystem == SDL_SYSWM_WINDOWS)
-		SDL_SetWindowsMessageHook(winmessage_hook, wmi.info.win.window);
+	/* Pass window handle and full screen mode to windows message hook */
+	winmessage_data msg_data = (winmessage_data){ wmi.info.win.window, &fullscreen };
 
-	set_parent_binding(1);
+	if (wmi.subsystem == SDL_SYSWM_WINDOWS)
+		SDL_SetWindowsMessageHook(winmessage_hook, &msg_data);
+
+	if (!fullscreen)
+		set_parent_binding(1);
+	else
+		SDL_SetWindowFullscreen(window, SDL_WINDOW_FULLSCREEN_DESKTOP);
 
 	SDL_GLContext context = SDL_GL_CreateContext(window);
 
@@ -351,7 +396,7 @@ static void opengl_main()
 			/* Handle SDL_Window events */
 			while (SDL_PollEvent(&event)) { /* No need for actual handlers, but message queue must be processed. */ }
 
-			if (SDL_ShowCursor(-1) == !!mouse_capture)
+			if (!fullscreen && SDL_ShowCursor(-1) == !!mouse_capture)
 				SDL_ShowCursor(!mouse_capture);
 
 			/* Wait for synchronized events for 1ms before going back to window events */
@@ -379,12 +424,37 @@ static void opengl_main()
 		}
 		else if (sync_event == sync_objects.resize)
 		{
-			SDL_SetWindowSize(window, resize_info.width, resize_info.height);
-			
-			/* SWP_NOZORDER is needed for child window and SDL doesn't enable it. */
-			SetWindowPos(wmi.info.win.window, parent, 0, 0, resize_info.width, resize_info.height, SWP_NOZORDER | SWP_NOCOPYBITS | SWP_NOMOVE | SWP_NOACTIVATE);
-			
-			glViewport(0, 0, resize_info.width, resize_info.height);
+			if (fullscreen != resize_info.fullscreen)
+			{
+				fullscreen = resize_info.fullscreen;
+
+				set_parent_binding(!fullscreen);
+
+				SDL_SetWindowFullscreen(window, fullscreen ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+
+				if (fullscreen)
+					SDL_RaiseWindow(window);
+
+				SDL_ShowCursor(!fullscreen);
+			}
+
+			if (fullscreen)
+			{
+				int width, height;
+				
+				SDL_GetWindowSize(window, &width, &height);
+
+				glViewport(0, 0, width, height);
+			}
+			else
+			{
+				SDL_SetWindowSize(window, resize_info.width, resize_info.height);
+
+				/* SWP_NOZORDER is needed for child window and SDL doesn't enable it. */
+				SetWindowPos(wmi.info.win.window, parent, 0, 0, resize_info.width, resize_info.height, SWP_NOZORDER | SWP_NOCOPYBITS | SWP_NOMOVE | SWP_NOACTIVATE);
+
+				glViewport(0, 0, resize_info.width, resize_info.height);
+			}
 		}
 	}
 
@@ -437,6 +507,7 @@ int opengl_init(HWND hwnd)
 
 	resize_info.width = parent_size.right - parent_size.left;
 	resize_info.height = parent_size.bottom - parent_size.top;
+	resize_info.fullscreen = video_fullscreen & 1;
 
 	thread = thread_create(opengl_main, (void*)NULL);
 
@@ -480,13 +551,12 @@ void opengl_close()
 
 void opengl_set_fs(int fs)
 {
-	if (window != NULL)
-	{
-		/* Can't full screen as child window */
-		set_parent_binding(fs ? 0 : 1);
+	if (thread == NULL)
+		return;
 
-		SDL_SetWindowFullscreen(window, fs ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
-	}
+	resize_info.fullscreen = fs;
+
+	SetEvent(sync_objects.resize);
 }
 
 void opengl_resize(int w, int h)
