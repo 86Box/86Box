@@ -1032,7 +1032,7 @@ plat_setfullscreen(int on)
 	plat_resize(scrnsz_x, scrnsz_y);
 	if (vid_resize) {
 		/* scale the screen base on DPI */
-		if (window_remember) {
+		if (!(vid_resize & 2) && window_remember) {
 			MoveWindow(hwndMain, window_x, window_y, window_w, window_h, TRUE);
 			GetClientRect(hwndMain, &rect);
 
@@ -1040,11 +1040,11 @@ plat_setfullscreen(int on)
 			temp_y = rect.bottom - rect.top + 1 - sbar_height;
 		} else {
 			if (dpi_scale) {
-				temp_x = MulDiv(unscaled_size_x, dpi, 96);
-				temp_y = MulDiv(unscaled_size_y, dpi, 96);
+				temp_x = MulDiv((vid_resize & 2) ? fixed_size_x : unscaled_size_x, dpi, 96);
+				temp_y = MulDiv((vid_resize & 2) ? fixed_size_y : unscaled_size_y, dpi, 96);
 			} else {
-				temp_x = unscaled_size_x;
-				temp_y = unscaled_size_y;
+				temp_x = (vid_resize & 2) ? fixed_size_x : unscaled_size_x;
+				temp_y = (vid_resize & 2) ? fixed_size_y : unscaled_size_y;
 			}
 
 			/* Main Window. */
@@ -1061,8 +1061,8 @@ plat_setfullscreen(int on)
 		if (mouse_capture)
 			ClipCursor(&rect);
 
-		scrnsz_x = unscaled_size_x;
-		scrnsz_y = unscaled_size_y;
+		scrnsz_x = (vid_resize & 2) ? fixed_size_x : unscaled_size_x;
+		scrnsz_y = (vid_resize & 2) ? fixed_size_y : unscaled_size_y;
 	}
     }
     video_fullscreen &= 1;

@@ -450,7 +450,9 @@ load_general(void)
     char temp[512];
     char *p;
 
-    vid_resize = !!config_get_int(cat, "vid_resize", 0);
+    vid_resize = config_get_int(cat, "vid_resize", 0);
+    if (vid_resize & ~3)
+	vid_resize &= 3;
 
     memset(temp, '\0', sizeof(temp));
     p = config_get_string(cat, "vid_renderer", "default");
@@ -486,6 +488,25 @@ load_general(void)
 	config_delete_var(cat, "window_coordinates");
 
 	window_w = window_h = window_x = window_y = 0;
+    }
+
+    if (vid_resize & 2) {
+	p = config_get_string(cat, "window_fixed_res", NULL);
+	if (p == NULL)
+		p = "120x120";
+	sscanf(p, "%ix%i", &fixed_size_x, &fixed_size_y);
+	if (fixed_size_x < 120)
+		fixed_size_x = 120;
+	if (fixed_size_x > 2048)
+		fixed_size_x = 2048;
+	if (fixed_size_y < 120)
+		fixed_size_y = 120;
+	if (fixed_size_y > 2048)
+		fixed_size_y = 2048;
+    } else {
+	config_delete_var(cat, "window_fixed_res");
+
+	fixed_size_x = fixed_size_y = 120;
     }
 
     sound_gain = config_get_int(cat, "sound_gain", 0);
@@ -1720,6 +1741,7 @@ config_load(void)
 	fpu_type = fpu_get_type(cpu_f, cpu, "none");
 	gfxcard = video_get_video_from_internal_name("cga");
 	vid_api = plat_vidapi("default");
+	vid_resize = 0;
 	time_sync = TIME_SYNC_ENABLED;
 	hdc_current = hdc_get_from_internal_name("none");
 	serial_enabled[0] = 1;
@@ -1856,6 +1878,12 @@ save_general(void)
 	config_delete_var(cat, "window_remember");
 	config_delete_var(cat, "window_coordinates");
     }
+
+    if (vid_resize & 2) {
+	sprintf(temp, "%ix%i", fixed_size_x, fixed_size_y);
+	config_set_string(cat, "window_fixed_res", temp);
+    } else
+	config_delete_var(cat, "window_fixed_res");
 
     if (sound_gain != 0)
 	config_set_int(cat, "sound_gain", sound_gain);

@@ -44,7 +44,7 @@ SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
     UDACCEL accel, accel2;
     RECT r;
     uint32_t temp_x = 0, temp_y = 0;
-    int dpi = 96;
+    int dpi = 96, lock;
     LPTSTR lptsTemp;
     char *stransi;
 
@@ -69,6 +69,9 @@ SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 		accel2.nInc = 8;
 		SendMessage(h, UDM_SETACCEL, 1, (LPARAM)&accel2);
 		SendMessage(h, UDM_SETPOS, 0, r.bottom - r.top);
+
+		h = GetDlgItem(hdlg, IDC_CHECK_LOCK_SIZE);
+		SendMessage(h, BM_SETCHECK, !!(vid_resize & 2), 0);
 		break;
 
 	case WM_COMMAND:
@@ -81,18 +84,33 @@ SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 				SendMessage(h, WM_GETTEXT, 255, (LPARAM) lptsTemp);
 				wcstombs(stransi, lptsTemp, 512);
 				sscanf(stransi, "%u", &temp_x);
+				fixed_size_x = temp_x;
 
 				h = GetDlgItem(hdlg, IDC_EDIT_HEIGHT);
 				SendMessage(h, WM_GETTEXT, 255, (LPARAM) lptsTemp);
 				wcstombs(stransi, lptsTemp, 512);
 				sscanf(stransi, "%u", &temp_y);
+				fixed_size_y = temp_y;
 
-				window_remember = 1;
-				vid_resize = 1;
+				h = GetDlgItem(hdlg, IDC_CHECK_LOCK_SIZE);
+				lock = SendMessage(h, BM_GETCHECK, 0, 0);
+
+				if (lock) {
+					vid_resize = 2;
+					window_remember = 0;
+				} else {
+					vid_resize = 1;
+					window_remember = 1;
+				}
 				hmenu = GetMenu(hwndMain);
-				CheckMenuItem(hmenu, IDM_VID_RESIZE, MF_CHECKED);
+				CheckMenuItem(hmenu, IDM_VID_REMEMBER, (window_remember == 1) ? MF_CHECKED : MF_UNCHECKED);
+				CheckMenuItem(hmenu, IDM_VID_RESIZE, (vid_resize == 1) ? MF_CHECKED : MF_UNCHECKED);
+				EnableMenuItem(hmenu, IDM_VID_RESIZE, (vid_resize & 2) ? MF_GRAYED : MF_ENABLED);
 
-				SetWindowLongPtr(hwndMain, GWL_STYLE, (WS_OVERLAPPEDWINDOW) | WS_VISIBLE);
+				if (vid_resize == 1)
+					SetWindowLongPtr(hwndMain, GWL_STYLE, (WS_OVERLAPPEDWINDOW) | WS_VISIBLE);
+				else
+					SetWindowLongPtr(hwndMain, GWL_STYLE, (WS_OVERLAPPEDWINDOW & ~WS_SIZEBOX & ~WS_MAXIMIZEBOX) | WS_VISIBLE);
 
 				/* scale the screen base on DPI */
 				if (dpi_scale) {
@@ -106,27 +124,31 @@ SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 
 				ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
 
+				if (vid_resize) {
+					CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_UNCHECKED);
+					CheckMenuItem(hmenu, IDM_VID_SCALE_2X, MF_CHECKED);
+					scale = 1;
+				}
+				EnableMenuItem(hmenu, IDM_VID_SCALE_1X, vid_resize ? MF_GRAYED : MF_ENABLED);
+				EnableMenuItem(hmenu, IDM_VID_SCALE_2X, vid_resize ? MF_GRAYED : MF_ENABLED);
+				EnableMenuItem(hmenu, IDM_VID_SCALE_3X, vid_resize ? MF_GRAYED : MF_ENABLED);
+				EnableMenuItem(hmenu, IDM_VID_SCALE_4X, vid_resize ? MF_GRAYED : MF_ENABLED);
+
+				scrnsz_x = fixed_size_x;
+				scrnsz_y = fixed_size_y;
+				doresize = 1;
+
+				GetWindowRect(hwndMain, &r);
+
 				if (mouse_capture)
 					ClipCursor(&r);
 
-				CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_UNCHECKED);
-				CheckMenuItem(hmenu, IDM_VID_SCALE_2X, MF_CHECKED);
-				scale = 1;
-				EnableMenuItem(hmenu, IDM_VID_SCALE_1X, MF_GRAYED);
-				EnableMenuItem(hmenu, IDM_VID_SCALE_2X, MF_GRAYED);
-				EnableMenuItem(hmenu, IDM_VID_SCALE_3X, MF_GRAYED);
-				EnableMenuItem(hmenu, IDM_VID_SCALE_4X, MF_GRAYED);
-
-				scrnsz_x = temp_x;
-				scrnsz_y = temp_y;
-				doresize = 1;
-
-				CheckMenuItem(hmenu, IDM_VID_REMEMBER, MF_CHECKED);
-				GetWindowRect(hwndMain, &r);
-				window_x = r.left;
-				window_y = r.top;
-				window_w = r.right - r.left;
-				window_h = r.bottom - r.top;
+				if (!(vid_resize & 2) && window_remember) {
+					window_x = r.left;
+					window_y = r.top;
+					window_w = r.right - r.left;
+					window_h = r.bottom - r.top;
+				}
 
 				config_save();
 

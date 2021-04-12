@@ -343,7 +343,7 @@ BEGIN
 #endif
 END
 
-DLG_SPECIFY_DIM DIALOG DISCARDABLE  0, 0, 175, 47
+DLG_SPECIFY_DIM DIALOG DISCARDABLE  0, 0, 175, 66
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Specify Main Window Dimensions"
 FONT 9, "Segoe UI"
@@ -358,8 +358,10 @@ BEGIN
     CONTROL         "",IDC_HEIGHTSPIN,"msctls_updown32",UDS_SETBUDDYINT | 
                     UDS_ALIGNRIGHT | UDS_ARROWKEYS | UDS_NOTHOUSANDS,166,6,
                     12,12
-    DEFPUSHBUTTON   "OK",IDOK,30,26,50,14
-    PUSHBUTTON      "Cancel",IDCANCEL,99,26,50,14
+    CONTROL         "Lock to this size",IDC_CHECK_LOCK_SIZE,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,26,94,10
+    DEFPUSHBUTTON   "OK",IDOK,30,45,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,99,45,50,14
 END
 
 DLG_CFG_MACHINE DIALOG DISCARDABLE  107, 0, 305, 200
@@ -1038,7 +1040,7 @@ BEGIN
     IDS_2123	"Save"
     IDS_2124	"About 86Box"
     IDS_2125	"86Box v" EMU_VERSION
-    IDS_2126	"An emulator of old computers\n\nAuthors: Miran Grca (OBattler), Sarah Walker, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information."
+    IDS_2126	"An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information."
     IDS_2127	"OK"
     IDS_2128	"Hardware not available"
 #ifdef _WIN32
