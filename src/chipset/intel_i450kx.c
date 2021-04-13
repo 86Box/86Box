@@ -66,9 +66,9 @@ i450kx_log(const char *fmt, ...)
 
 /* SMRAM */
 #define SMRAM_ADDR (((dev->pb_pci_conf[0xb9] << 8) | dev->pb_pci_conf[0xb8]) << 17)
-#define SMRAM_SIZE (1 << (((dev->pb_pci_conf[0xbb] >> 4) + 1) * 16))
 #define SMRAM_ADDR_MC (((dev->mc_pci_conf[0xb9] << 8) | dev->mc_pci_conf[0xb8]) << 16)
-#define SMRAM_SIZE_MC (1 << (((dev->mc_pci_conf[0xbb] >> 4) + 1) * 16))
+#define SMRAM_SIZE (((dev->pb_pci_conf[0xbb] >> 4) + 1) * 64)
+#define SMRAM_SIZE_MC (((dev->mc_pci_conf[0xbb] >> 4) + 1) * 64)
 
 /* Miscellaneous */
 #define ENABLE_SEGMENT (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
@@ -101,10 +101,7 @@ void i450kx_smm(uint32_t smram_addr, uint32_t smram_size, i450kx_t *dev)
     smram_disable_all();
 
     if ((smram_addr != 0) && !!(dev->mc_pci_conf[0x57] & 8))
-    {
         smram_enable(dev->smram, smram_addr, smram_addr, smram_size, !!(dev->pb_pci_conf[0x57] & 8), 1);
-        mem_set_mem_state_smram_ex(1, smram_addr, smram_size, 0x03);
-    }
 
     flushmmucache();
 }
@@ -263,11 +260,7 @@ pb_write(int func, int addr, uint8_t val, void *priv)
     case 0xb8:
     case 0xb9:
     case 0xbb:
-        if (addr == 0xbb)
-            dev->pb_pci_conf[addr] = val & 0xf0;
-        else
-            dev->pb_pci_conf[addr] = val;
-
+        dev->pb_pci_conf[addr] = !(addr == 0xbb) ? val : (val & 0xf0);
         i450kx_smm(SMRAM_ADDR, SMRAM_SIZE, dev);
         break;
 
@@ -324,7 +317,6 @@ mc_write(int func, int addr, uint8_t val, void *priv)
 
     case 0x58:
         dev->mc_pci_conf[addr] = val & 2;
-        mem_set_mem_state_both(0xa0000, 0x20000, (val & 2) ? ENABLE_SEGMENT : DISABLE_SEGMENT);
         break;
 
     case 0x59:
@@ -354,8 +346,8 @@ mc_write(int func, int addr, uint8_t val, void *priv)
     case 0x6d:
     case 0x6e:
     case 0x6f:
-        dev->mc_pci_conf[addr] = ((addr & 0x0f) % 2) ? val : (val & 7);
-        spd_write_drbs(dev->mc_pci_conf, 0x60, 0x6f, 1);
+        dev->mc_pci_conf[addr] = ((addr & 0x0f) % 2) ? 0 : (val & 0x7f);
+        spd_write_drbs(dev->mc_pci_conf, 0x60, 0x6f, 4);
         break;
 
     case 0x74:
@@ -447,10 +439,7 @@ mc_write(int func, int addr, uint8_t val, void *priv)
     case 0xb8:
     case 0xb9:
     case 0xbb:
-        if (addr == 0xbb)
-            dev->mc_pci_conf[addr] = val & 0xf0;
-        else
-            dev->mc_pci_conf[addr] = val;
+        dev->mc_pci_conf[addr] = !(addr == 0xbb) ? val : (val & 0xf0);
 
         i450kx_smm(SMRAM_ADDR_MC, SMRAM_SIZE_MC, dev);
         break;
@@ -500,7 +489,7 @@ i450kx_reset(void *priv)
     dev->pb_pci_conf[0x05] = 4;
     dev->pb_pci_conf[0x06] = 0x40;
     dev->pb_pci_conf[0x07] = 2;
-    dev->pb_pci_conf[0x08] = 1;
+    dev->pb_pci_conf[0x08] = 2;
     dev->pb_pci_conf[0x0b] = 6;
     dev->pb_pci_conf[0x0c] = 8;
     dev->pb_pci_conf[0x0d] = 0x20;
@@ -526,7 +515,7 @@ i450kx_reset(void *priv)
     dev->mc_pci_conf[0x02] = 0xc5;
     dev->mc_pci_conf[0x03] = 0x84;
     dev->mc_pci_conf[0x06] = 0x80;
-    dev->mc_pci_conf[0x08] = 1;
+    dev->mc_pci_conf[0x08] = 4;
     dev->mc_pci_conf[0x0b] = 5;
     dev->mc_pci_conf[0x49] = 0x14;
     dev->mc_pci_conf[0x4c] = 0x0b;

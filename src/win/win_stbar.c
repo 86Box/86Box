@@ -434,7 +434,8 @@ ui_sb_set_ready(int ready)
 void
 ui_sb_update_panes(void)
 {
-    int i, id, hdint;
+    int i, id;
+    int mfm_int, xta_int, esdi_int, ide_int, scsi_int;
     int edge = 0;
     int c_mfm, c_esdi, c_xta;
     int c_ide, c_scsi;
@@ -448,7 +449,12 @@ ui_sb_update_panes(void)
 	sb_ready = 0;
     }
 
-    hdint = (machines[machine].flags & MACHINE_HDC) ? 1 : 0;
+    mfm_int = (machines[machine].flags & MACHINE_MFM) ? 1 : 0;
+    xta_int = (machines[machine].flags & MACHINE_XTA) ? 1 : 0;
+    esdi_int = (machines[machine].flags & MACHINE_ESDI) ? 1 : 0;
+    ide_int = (machines[machine].flags & MACHINE_IDE_QUAD) ? 1 : 0;
+    scsi_int = (machines[machine].flags & MACHINE_SCSI_DUAL) ? 1 : 0;
+
     c_mfm = hdd_count(HDD_BUS_MFM);
     c_esdi = hdd_count(HDD_BUS_ESDI);
     c_xta = hdd_count(HDD_BUS_XTA);
@@ -489,11 +495,11 @@ ui_sb_update_panes(void)
     for (i=0; i<CDROM_NUM; i++) {
 	/* Could be Internal or External IDE.. */
 	if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) &&
-	    !(hdint || !memcmp(hdc_name, "ide", 3)))
+	    !ide_int && memcmp(hdc_name, "ide", 3))
 		continue;
 
 	if ((cdrom[i].bus_type == CDROM_BUS_SCSI) &&
-	    (scsi_card_current == 0))
+	    !scsi_int && (scsi_card_current == 0))
 		continue;
 	if (cdrom[i].bus_type != 0)
 		sb_parts++;
@@ -501,40 +507,40 @@ ui_sb_update_panes(void)
     for (i=0; i<ZIP_NUM; i++) {
 	/* Could be Internal or External IDE.. */
 	if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) &&
-	    !(hdint || !memcmp(hdc_name, "ide", 3)))
+	    !ide_int && memcmp(hdc_name, "ide", 3))
 		continue;
 
 	if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) &&
-	    (scsi_card_current == 0))
+	    !scsi_int && (scsi_card_current == 0))
 		continue;
 	if (zip_drives[i].bus_type != 0)
 		sb_parts++;
     }
-	for (i=0; i<MO_NUM; i++) {
+    for (i=0; i<MO_NUM; i++) {
 	/* Could be Internal or External IDE.. */
 	if ((mo_drives[i].bus_type == MO_BUS_ATAPI) &&
-	    !(hdint || !memcmp(hdc_name, "ide", 3)))
+	    !ide_int && memcmp(hdc_name, "ide", 3))
 		continue;
 
 	if ((mo_drives[i].bus_type == MO_BUS_SCSI) &&
-	    (scsi_card_current == 0))
+	    !scsi_int && (scsi_card_current == 0))
 		continue;
 	if (mo_drives[i].bus_type != 0)
 		sb_parts++;
     }
-    if (c_mfm && (hdint || !memcmp(hdc_name, "st506", 5))) {
+    if (c_mfm && (mfm_int || !memcmp(hdc_name, "st506", 5))) {
 	/* MFM drives, and MFM or Internal controller. */
 	sb_parts++;
     }
-    if (c_esdi && (hdint || !memcmp(hdc_name, "esdi", 4))) {
+    if (c_esdi && (esdi_int || !memcmp(hdc_name, "esdi", 4))) {
 	/* ESDI drives, and ESDI or Internal controller. */
 	sb_parts++;
     }
-    if (c_xta && (hdint || !memcmp(hdc_name, "xta", 3)))
+    if (c_xta && (xta_int || !memcmp(hdc_name, "xta", 3)))
 	sb_parts++;
-    if (c_ide && (hdint || !memcmp(hdc_name, "xtide", 5) || !memcmp(hdc_name, "ide", 3)))
+    if (c_ide && (ide_int || !memcmp(hdc_name, "xtide", 5) || !memcmp(hdc_name, "ide", 3)))
 	sb_parts++;
-    if (c_scsi && (scsi_card_current != 0))
+    if (c_scsi && (scsi_int || (scsi_card_current != 0)))
 	sb_parts++;
     if (do_net)
 	sb_parts++;
@@ -562,10 +568,10 @@ ui_sb_update_panes(void)
     for (i=0; i<CDROM_NUM; i++) {
 	/* Could be Internal or External IDE.. */
 	if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) &&
-	    !(hdint || !memcmp(hdc_name, "ide", 3))) {
+	    !ide_int && memcmp(hdc_name, "ide", 3))
 		continue;
-	}
-	if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && (scsi_card_current == 0))
+	if ((cdrom[i].bus_type == CDROM_BUS_SCSI) &&
+	    !scsi_int && (scsi_card_current == 0))
 		continue;
 	if (cdrom[i].bus_type != 0) {
 		edge += icon_width;
@@ -578,9 +584,10 @@ ui_sb_update_panes(void)
     for (i=0; i<ZIP_NUM; i++) {
 	/* Could be Internal or External IDE.. */
 	if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) &&
-	    !(hdint || !memcmp(hdc_name, "ide", 3)))
+	    !ide_int && memcmp(hdc_name, "ide", 3))
 		continue;
-	if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && (scsi_card_current == 0))
+	if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) &&
+	    !scsi_int && (scsi_card_current == 0))
 		continue;
 	if (zip_drives[i].bus_type != 0) {
 		edge += icon_width;
@@ -593,9 +600,10 @@ ui_sb_update_panes(void)
     for (i=0; i<MO_NUM; i++) {
 	/* Could be Internal or External IDE.. */
 	if ((mo_drives[i].bus_type == MO_BUS_ATAPI) &&
-	    !(hdint || !memcmp(hdc_name, "ide", 3)))
+	    !ide_int && memcmp(hdc_name, "ide", 3))
 		continue;
-	if ((mo_drives[i].bus_type == MO_BUS_SCSI) && (scsi_card_current == 0))
+	if ((mo_drives[i].bus_type == MO_BUS_SCSI) &&
+	    !scsi_int && (scsi_card_current == 0))
 		continue;
 	if (mo_drives[i].bus_type != 0) {
 		edge += icon_width;
@@ -605,28 +613,28 @@ ui_sb_update_panes(void)
 		sb_parts++;
 	}
     }    
-    if (c_mfm && (hdint || !memcmp(hdc_name, "st506", 5))) {
+    if (c_mfm && (mfm_int || !memcmp(hdc_name, "st506", 5))) {
 	edge += icon_width;
 	iStatusWidths[sb_parts] = edge;
 	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_MFM;
 	sb_map[SB_HDD | HDD_BUS_MFM] = sb_parts;
 	sb_parts++;
     }
-    if (c_esdi && (hdint || !memcmp(hdc_name, "esdi", 4))) {
+    if (c_esdi && (esdi_int || !memcmp(hdc_name, "esdi", 4))) {
 	edge += icon_width;
 	iStatusWidths[sb_parts] = edge;
 	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_ESDI;
 	sb_map[SB_HDD | HDD_BUS_ESDI] = sb_parts;
 	sb_parts++;
     }
-    if (c_xta && (hdint || !memcmp(hdc_name, "xta", 3))) {
+    if (c_xta && (xta_int || !memcmp(hdc_name, "xta", 3))) {
 	edge += icon_width;
 	iStatusWidths[sb_parts] = edge;
 	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_XTA;
 	sb_map[SB_HDD | HDD_BUS_XTA] = sb_parts;
 	sb_parts++;
     }
-    if (c_ide && (hdint || !memcmp(hdc_name, "xtide", 5) || !memcmp(hdc_name, "ide", 3))) {
+    if (c_ide && (ide_int || !memcmp(hdc_name, "xtide", 5) || !memcmp(hdc_name, "ide", 3))) {
 	edge += icon_width;
 	iStatusWidths[sb_parts] = edge;
 	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_IDE;

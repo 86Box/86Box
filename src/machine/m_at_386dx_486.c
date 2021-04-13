@@ -887,7 +887,7 @@ machine_at_4sa2_init(const machine_t *model)
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x11, PCI_CARD_NORMAL, 4, 1, 2, 3);
 
-    device_add(&pc87332_device);
+    device_add(&w83787f_device);
     device_add(&keyboard_ps2_pci_device);
 
     device_add(&intel_flash_bxt_device);

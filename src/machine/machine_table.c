@@ -233,8 +233,8 @@ const machine_t machines[] = {
     { "[ALi M1489] AMI WinBIOS 486 PCI",	"win486pci",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024,  65536, 1024, 255,	    machine_at_win486pci_init, NULL			},
     { "[OPTi 802G] IBM PC 330 (type 6573)",	"pc330_6573",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3_PC330, 0, 25000000, 33333333, 0, 0, 2.0, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024, 65536, 1024, 127,	   machine_at_pc330_6573_init, NULL			},
     { "[i420EX] ASUS PVI-486AP4",		"486ap4",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_IDE_DUAL,						 1024, 131072, 1024, 127,	       machine_at_486ap4_init, NULL			},
-    { "[i420ZX] ASUS PCI/I-486SP3G",		"486sp3g",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 131072, 1024, 127,	      machine_at_486sp3g_init, NULL			},
-    { "[i420TX] ASUS PCI/I-486SP3",		"486sp3",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 131072, 1024, 127,	       machine_at_486sp3_init, NULL			},
+    { "[i420ZX] ASUS PCI/I-486SP3G",		"486sp3g",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL | MACHINE_SCSI,					 1024, 131072, 1024, 127,	      machine_at_486sp3g_init, NULL			},
+    { "[i420TX] ASUS PCI/I-486SP3",		"486sp3",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL | MACHINE_SCSI,					 1024, 131072, 1024, 127,	       machine_at_486sp3_init, NULL			},
     { "[i420TX] Intel Classic/PCI",		"alfredo",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 2048, 131072, 2048, 127,	      machine_at_alfredo_init, NULL			},
     { "[SiS 496] ASUS PVI-486SP3C",		"486sp3c",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_IDE_DUAL,						 1024, 261120, 1024, 255,	      machine_at_486sp3c_init, NULL			},
     { "[SiS 496] Lucky Star LS-486E",		"ls486e",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 131072, 1024, 255,	       machine_at_ls486e_init, NULL			},
@@ -284,6 +284,9 @@ const machine_t machines[] = {
     { "[i430FX] NEC PowerMate V",  		"powermate_v",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 2.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	  machine_at_powermate_v_init, NULL			},
     { "[i430FX] PC Partner MB500N",		"mb500n",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_IDE_DUAL,							 8192, 131072, 8192, 127,	       machine_at_mb500n_init, NULL			},
 
+    /* OPTi 596/597 */
+    { "[OPTi 597] TMC PAT54PV",		"pat54pv",			MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, CPU_BLOCK(CPU_K5, CPU_5K86), 50000000, 66666667, 3520, 3520, 1.5, 1.5,				MACHINE_VLB,									 2048,  65536, 2048, 127,	      machine_at_pat54pv_init, NULL			},
+    
     /* OPTi 596/597/822 */
     { "[OPTi 597] Shuttle HOT-543",		"hot543",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 60000000, 66666667, 3520, 3520, 1.5, 1.5,							MACHINE_PCI | MACHINE_VLB,				 8192, 131072, 8192, 127,		machine_at_hot543_init, NULL			},
     { "[OPTi 597] Supermicro P54VL-PCI",		"p54vl",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 60000000, 66666667, 3520, 3520, 1.5, 1.5,							MACHINE_PCI | MACHINE_VLB,				 8192, 131072, 8192, 127,		machine_at_p54vl_init, NULL			},

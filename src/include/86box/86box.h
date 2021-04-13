@@ -120,6 +120,7 @@ extern int	enable_crashdump;		/* (C) enable crash dump */
 
 extern int	is_pentium;			/* TODO: Move back to cpu/cpu.h when it's figured out,
 							 how to remove that hack from the ET4000/W32p. */
+extern int	fixed_size_x, fixed_size_y;
 
 
 #ifdef ENABLE_LOG_TOGGLES

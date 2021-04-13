@@ -447,7 +447,7 @@ else
  UIOBJ		:= win_ui.o win_stbar.o \
 		   win_sdl.o \
 		   win_dialog.o win_about.o \
-		   win_settings.o win_devconf.o win_snd_gain.o \
+		   win_settings.o win_devconf.o win_snd_gain.o win_specify_dim.o \
 		   win_new_floppy.o win_jsconf.o win_media_menu.o
 endif
 
@@ -616,7 +616,7 @@ MAINOBJ		:= 86box.o config.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
 
 MEMOBJ		:= catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o smram.o spd.o sst_flash.o
 
-CPUOBJ		:= cpu.o cpu_table.o \
+CPUOBJ		:= cpu.o cpu_table.o fpu.o x86.o \
 		    808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o $(CGTOBJ) \
 		    x86seg.o x87.o x87_timings.o \
 		    $(DYNARECOBJ)
@@ -876,9 +876,9 @@ all:		$(PROG).exe
 $(PROG).exe:	$(OBJ) 86Box.res
 		@echo Linking $(PROG).exe ..
 		@$(CC) $(LDFLAGS) -o $(PROG).exe $(OBJ) 86Box.res $(LIBS) -pipe
-#ifneq ($(DEBUG), y)
-#		@$(STRIP) $(PROG).exe
-#endif
+ifneq ($(DEBUG), y)
+		@$(STRIP) $(PROG).exe
+endif
 
 pcap_if.res:	pcap_if.rc
 		@echo Processing $<

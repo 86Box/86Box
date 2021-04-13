@@ -218,7 +218,6 @@ sio_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x60: case 0x61: case 0x62: case 0x63:
 		if (dev->id == 0x03) {
-			pclog("Set IRQ routing: INT %c -> %02X\n", 0x41 + (addr & 0x03), val);
 			sio_log("Set IRQ routing: INT %c -> %02X\n", 0x41 + (addr & 0x03), val);
 			dev->regs[addr] = val & 0x8f;
 			if (val & 0x80)
@@ -539,6 +538,8 @@ sio_init(const device_t *info)
 		  sio_config_read, NULL, NULL, sio_config_write, NULL, NULL, dev);
 
     timer_add(&dev->timer, NULL, NULL, 0);
+
+    device_add(&i8254_sec_device);
 
     return dev;
 }

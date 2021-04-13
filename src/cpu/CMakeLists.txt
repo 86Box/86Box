@@ -13,7 +13,7 @@
 #		Copyright 2020,2021 David Hrdlička.
 #
 
-add_library(cpu OBJECT cpu.c cpu_table.c 808x.c 386.c 386_common.c 386_dynarec.c
+add_library(cpu OBJECT cpu.c cpu_table.c fpu.c x86.c 808x.c 386.c 386_common.c 386_dynarec.c
 	386_dynarec_ops.c x86seg.c x87.c x87_timings.c)
 
 if(AMD_K5)

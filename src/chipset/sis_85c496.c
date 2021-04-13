@@ -299,7 +299,7 @@ sis_85c49x_pci_write(int func, int addr, uint8_t val, void *priv)
 
 			smram_disable_all();
 
-			if (val & 0x06) {
+			if (val & 0x02) {
 				host_base = 0x00060000;
 				ram_base = 0x000a0000;
 				size = 0x00010000;
@@ -453,6 +453,12 @@ sis_85c49x_pci_read(int func, int addr, void *priv)
     uint8_t ret = dev->pci_conf[addr];
 
     switch (addr) {
+	case 0xa0:
+		ret &= 0x10;
+		break;
+	case 0xa1:
+		ret = 0x00;
+		break;
 	case 0x82: /*Port 22h Mirror*/
 		ret = dev->cur_reg;
 		break;
@@ -517,6 +523,7 @@ sis_85c496_reset(void *priv)
     sis_85c49x_pci_write(0, 0x58, 0x00, dev);
     sis_85c49x_pci_write(0, 0x59, 0x00, dev);
     sis_85c49x_pci_write(0, 0x5a, 0x00, dev);
+    // sis_85c49x_pci_write(0, 0x5a, 0x06, dev);
 
     for (i = 0; i < 8; i++)
 	sis_85c49x_pci_write(0, 0x48 + i, 0x00, dev);
@@ -589,7 +596,7 @@ static void
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, sis_85c49x_pci_read, sis_85c49x_pci_write, dev);
 
-    sis_85c497_isa_reset(dev);
+    // sis_85c497_isa_reset(dev);
 
     dev->port_92 = device_add(&port_92_device);
     port_92_set_period(dev->port_92, 2ULL * TIMER_USEC);
@@ -608,6 +615,8 @@ static void
     dma_high_page_init();
 
     timer_add(&dev->rmsmiblk_timer, sis_85c496_rmsmiblk_count, dev, 0);
+
+    sis_85c496_reset(dev);
 
     return dev;
 }

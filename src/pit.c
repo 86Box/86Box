@@ -63,6 +63,7 @@ int64_t		firsttime = 1;
 #define PIT_PS2			16	/* The PIT is the PS/2's second PIT. */
 #define PIT_EXT_IO		32	/* The PIT has externally specified port I/O. */
 #define PIT_CUSTOM_CLOCK	64	/* The PIT uses custom clock inputs provided by another provider. */
+#define PIT_SECONDARY		128	/* The PIT is secondary (ports 0048-004B). */
 
 
 enum {
@@ -647,6 +648,8 @@ pit_read(uint16_t addr, void *priv)
 				break;
 
 			case 3: case 0x83:
+				/* Yes, wm is correct here - this is to ensure correct readout while the
+				   count is being written. */
 				if (ctr->wm & 0x80)
 					ret = ~(ctr->l & 0xff);
 				else
@@ -824,8 +827,10 @@ pit_init(const device_t *info)
 
     dev->flags = info->local;
 
-    if (!(dev->flags & PIT_EXT_IO))
-	io_sethandler(0x0040, 0x0004, pit_read, NULL, NULL, pit_write, NULL, NULL, dev);
+    if (!(dev->flags & PIT_EXT_IO)) {
+	io_sethandler((dev->flags & PIT_SECONDARY) ? 0x0048 : 0x0040, 0x0004,
+		      pit_read, NULL, NULL, pit_write, NULL, NULL, dev);
+    }
 
     return dev;
 }
@@ -847,6 +852,17 @@ const device_t i8254_device =
         "Intel 8254 Programmable Interval Timer",
         DEVICE_ISA,
 	PIT_8254,
+        pit_init, pit_close, NULL,
+        { NULL }, NULL, NULL,
+	NULL
+};
+
+
+const device_t i8254_sec_device =
+{
+        "Intel 8254 Programmable Interval Timer (Secondary)",
+        DEVICE_ISA,
+	PIT_8254 | PIT_SECONDARY,
         pit_init, pit_close, NULL,
         { NULL }, NULL, NULL,
 	NULL

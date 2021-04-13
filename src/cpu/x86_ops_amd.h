@@ -18,7 +18,7 @@ opSYSCALL(uint32_t fetchdat)
 {
     int ret;
 
-    ILLEGAL_ON(!(amd_efer & 0x0000000000000001));
+    ILLEGAL_ON(!(msr.amd_efer & 0x0000000000000001));
 
     ret = syscall_op(fetchdat);
 
@@ -38,7 +38,7 @@ opSYSRET(uint32_t fetchdat)
 {
     int ret;
 
-    ILLEGAL_ON(!(amd_efer & 0x0000000000000001));
+    ILLEGAL_ON(!(msr.amd_efer & 0x0000000000000001));
 
     ret = sysret(fetchdat);
 

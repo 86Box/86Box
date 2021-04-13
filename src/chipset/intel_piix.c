@@ -1374,6 +1374,8 @@ static void
     else
 	dev->board_config[1] |= 0x00;
 
+    device_add(&i8254_sec_device);
+
     return dev;
 }
 

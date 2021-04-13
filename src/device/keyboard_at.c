@@ -1059,8 +1059,9 @@ write_output(atkbd_t *dev, uint8_t val)
     if ((dev->output_port ^ val) & 0x01) { /*Reset*/
 	if (! (val & 0x01)) {
 		/* Pin 0 selected. */
-		resetx86(); /*Pulse reset!*/
+		softresetx86(); /*Pulse reset!*/
 		cpu_set_edx();
+		smbase = is_486_org ? 0x00060000 : 0x00030000;
 	}
     }
     /* Mask off the A20 stuff because we use mem_a20_key directly for that. */
@@ -1325,6 +1326,11 @@ write64_ami(void *priv, uint8_t val)
 		dev->want60 = 1;
 		return 0;
 
+	case 0xa0:	/* copyright message */
+		add_data(dev, 0x28);
+		add_data(dev, 0x00);
+		break;
+		
 	case 0xa1:	/* get controller version */
 		kbd_log("ATkbc: AMI - get controller version\n");
 		add_data(dev, 'H');
