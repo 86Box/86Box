@@ -72,6 +72,8 @@ static int	sb_ready = 0;
 static uint8_t	sb_map[256];
 static int  dpi = 96;
 static int  icon_width = 24;
+static wchar_t	sb_text[512] = L"\0";
+static wchar_t	sb_bugtext[512] = L"\0";
 
 /* Also used by win_settings.c */
 intptr_t
@@ -933,9 +935,8 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
 }
 
 
-/* API */
-void
-ui_sb_set_text_w(wchar_t *wstr)
+static void
+ui_sb_update_text()
 {
     uint8_t part = 0xff;
 
@@ -945,7 +946,19 @@ ui_sb_set_text_w(wchar_t *wstr)
     part = sb_map[SB_TEXT];
 
     if (part != 0xff)
-	SendMessage(hwndSBAR, SB_SETTEXT, part | SBT_NOBORDERS, (LPARAM)wstr);
+	SendMessage(hwndSBAR, SB_SETTEXT, part | SBT_NOBORDERS, (LPARAM)((sb_text[0] != L'\0') ? sb_text : sb_bugtext));
+}
+
+
+/* API */
+void
+ui_sb_set_text_w(wchar_t *wstr)
+{
+    if (wstr)
+	wcscpy(sb_text, wstr);
+    else
+	memset(sb_text, 0x00, sizeof(sb_text));
+    ui_sb_update_text();
 }
 
 
@@ -953,11 +966,11 @@ ui_sb_set_text_w(wchar_t *wstr)
 void
 ui_sb_set_text(char *str)
 {
-    static wchar_t wstr[512];
-
-    memset(wstr, 0x00, sizeof(wstr));
-    mbstowcs(wstr, str, strlen(str) + 1);
-    ui_sb_set_text_w(wstr);
+    if (str)
+	mbstowcs(sb_text, str, strlen(str) + 1);
+    else
+	memset(sb_text, 0x00, sizeof(sb_text));
+    ui_sb_update_text();
 }
 
 
@@ -965,9 +978,9 @@ ui_sb_set_text(char *str)
 void
 ui_sb_bugui(char *str)
 {
-    static wchar_t wstr[512];
-
-    memset(wstr, 0x00, sizeof(wstr));
-    mbstowcs(wstr, str, strlen(str) + 1);
-    ui_sb_set_text_w(wstr);
+    if (str)
+	mbstowcs(sb_bugtext, str, strlen(str) + 1);
+    else
+	memset(sb_bugtext, 0x00, sizeof(sb_bugtext));
+    ui_sb_update_text();
 }

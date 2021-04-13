@@ -1054,6 +1054,7 @@ BEGIN
     IDS_2139	"MO images (*.IM?;*.MDI)\0*.IM?;*.MDI\0All files (*.*)\0*.*\0"
     IDS_2140	"CD-ROM images (*.ISO;*.CUE)\0*.ISO;*.CUE\0All files (*.*)\0*.*\0"
     IDS_2141	"%hs Device Configuration"
+    IDS_2142    "Monitor in sleep mode"
 END
 
 STRINGTABLE DISCARDABLE 
