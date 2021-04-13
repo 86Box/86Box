@@ -11,8 +11,7 @@
  * NOTE:	This is very much still a work-in-progress.
  *		Expect missing functionality, hangs and bugs.
  * 
- * TODO:	Full screen stretch options
- *		Loader for glsl files.
+ * TODO:	Loader for glsl files.
  *			libretro has a sizeable library that could
  *			be a good target for compatibility.
  *		(UI) options
@@ -49,6 +48,9 @@
 #include <86box/video.h>
 #include <86box/win.h>
 #include <86box/win_opengl.h>
+
+static const int INIT_WIDTH = 640;
+static const int INIT_HEIGHT = 400;
 
 /**
  * @brief A dedicated OpenGL thread.
@@ -103,7 +105,7 @@ static volatile struct
 */
 static volatile struct
 {
-	int width, height, fullscreen;
+	int width, height, fullscreen, scaling_mode;
 } resize_info = {};
 
 /**
@@ -324,7 +326,7 @@ static gl_objects initialize_glcontext()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 0, 640, 400, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 0, INIT_WIDTH, INIT_HEIGHT, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
 
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 
@@ -365,8 +367,8 @@ static void opengl_main()
 
 	window = SDL_CreateWindow("86Box OpenGL Renderer", 0, 0, resize_info.width, resize_info.height, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
 
-	/* Keeps track of full screen, but only changed in this thread. */
-	int fullscreen = resize_info.fullscreen;
+	/* Keep track of certain parameters, only changed in this thread to avoid race conditions */
+	int fullscreen = resize_info.fullscreen, video_width = INIT_WIDTH, video_height = INIT_HEIGHT;
 
 	SDL_SysWMinfo wmi;
 	SDL_VERSION(&wmi.version);
@@ -428,7 +430,15 @@ static void opengl_main()
 		{
 			/* Resize the texture if  */
 			if (blit_info.resized)
+			{
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, blit_info.w, blit_info.h, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+				
+				video_width = blit_info.w;
+				video_height = blit_info.h;
+
+				if (fullscreen)
+					SetEvent(sync_objects.resize);
+			}
 
 			/* Transfer video buffer to texture */
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, blit_info.y1, blit_info.w, blit_info.y2 - blit_info.y1, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, &(render_buffer->dat)[blit_info.y1 * blit_info.w]);
@@ -455,11 +465,41 @@ static void opengl_main()
 
 			if (fullscreen)
 			{
-				int width, height;
+				int width, height, pad_x = 0, pad_y = 0, px_size = 1;
+				float ratio = 0;
+				const float ratio43 = 4.f / 3.f;
 				
 				SDL_GetWindowSize(window, &width, &height);
 
-				glViewport(0, 0, width, height);
+				if (video_width > 0 && video_height > 0)
+				{
+					switch (resize_info.scaling_mode)
+					{
+					case FULLSCR_SCALE_INT:
+						px_size = max(min(width / video_width, height / video_height), 1);
+
+						pad_x = width - (video_width * px_size);
+						pad_y = height - (video_height * px_size);
+						break;
+
+					case FULLSCR_SCALE_KEEPRATIO:
+						ratio = (float)video_width / (float)video_height;
+					case FULLSCR_SCALE_43:
+						if (ratio == 0)
+							ratio = ratio43;
+						if (ratio < ((float)width / (float)height))
+							pad_x = width - (int)roundf((float)height * ratio);
+						else
+							pad_y = height - (int)roundf((float)width / ratio);
+						break;
+
+					case FULLSCR_SCALE_FULL:
+					default:
+						break;
+					}
+				}
+
+				glViewport(pad_x / 2, pad_y / 2, width - pad_x, height - pad_y);
 			}
 			else
 			{
@@ -523,6 +563,7 @@ int opengl_init(HWND hwnd)
 	resize_info.width = parent_size.right - parent_size.left;
 	resize_info.height = parent_size.bottom - parent_size.top;
 	resize_info.fullscreen = video_fullscreen & 1;
+	resize_info.scaling_mode = video_fullscreen_scale;
 
 	thread = thread_create(opengl_main, (void*)NULL);
 
@@ -570,6 +611,7 @@ void opengl_set_fs(int fs)
 		return;
 
 	resize_info.fullscreen = fs;
+	resize_info.scaling_mode = video_fullscreen_scale;
 
 	SetEvent(sync_objects.resize);
 }
@@ -581,6 +623,7 @@ void opengl_resize(int w, int h)
 
 	resize_info.width = w;
 	resize_info.height = h;
+	resize_info.scaling_mode = video_fullscreen_scale;
 
 	SetEvent(sync_objects.resize);
 }
