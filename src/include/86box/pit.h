@@ -109,6 +109,7 @@ extern void	pit_handler(int set, uint16_t base, int size, void *priv);
 #ifdef EMU_DEVICE_H
 extern const device_t	i8253_device;
 extern const device_t	i8254_device;
+extern const device_t	i8254_sec_device;
 extern const device_t	i8254_ext_io_device;
 extern const device_t	i8254_ps2_device;
 #endif
