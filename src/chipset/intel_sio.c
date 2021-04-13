@@ -218,7 +218,6 @@ sio_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x60: case 0x61: case 0x62: case 0x63:
 		if (dev->id == 0x03) {
-			pclog("Set IRQ routing: INT %c -> %02X\n", 0x41 + (addr & 0x03), val);
 			sio_log("Set IRQ routing: INT %c -> %02X\n", 0x41 + (addr & 0x03), val);
 			dev->regs[addr] = val & 0x8f;
 			if (val & 0x80)
