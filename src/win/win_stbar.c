@@ -639,7 +639,7 @@ ui_sb_update_panes(void)
 	sb_map[SB_HDD | HDD_BUS_IDE] = sb_parts;
 	sb_parts++;
     }
-    if (c_scsi && (scsi_card_current != 0)) {
+    if (c_scsi && (scsi_int || (scsi_card_current != 0))) {
 	edge += icon_width;
 	iStatusWidths[sb_parts] = edge;
 	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_SCSI;
