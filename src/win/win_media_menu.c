@@ -23,6 +23,7 @@
 #include <86box/win.h>
 
 #define MACHINE_HAS_IDE	(machines[machine].flags & MACHINE_IDE_QUAD)
+#define MACHINE_HAS_SCSI	(machines[machine].flags & MACHINE_SCSI_DUAL)
 
 #define FDD_FIRST	0
 #define CDROM_FIRST	FDD_FIRST + FDD_NUM
@@ -294,7 +295,7 @@ is_valid_cdrom(int i)
 {
     if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && !MACHINE_HAS_IDE)
 	return 0;
-    if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && (scsi_card_current == 0))
+    if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !MACHINE_HAS_SCSI && (scsi_card_current == 0))
 	return 0;
     return cdrom[i].bus_type != 0;
 }
@@ -304,7 +305,7 @@ is_valid_zip(int i)
 {
     if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && !MACHINE_HAS_IDE)
 	return 0;
-    if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && (scsi_card_current == 0))
+    if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && !MACHINE_HAS_SCSI && (scsi_card_current == 0))
 	return 0;
     return zip_drives[i].bus_type != 0;
 }
@@ -314,7 +315,7 @@ is_valid_mo(int i)
 {
     if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && !MACHINE_HAS_IDE)
 	return 0;
-    if ((mo_drives[i].bus_type == MO_BUS_SCSI) && (scsi_card_current == 0))
+    if ((mo_drives[i].bus_type == MO_BUS_SCSI) && !MACHINE_HAS_SCSI && (scsi_card_current == 0))
 	return 0;
     return mo_drives[i].bus_type != 0;
 }
