@@ -247,7 +247,9 @@ static void winmessage_hook(void* userdata, void* hWnd, unsigned int message, Ui
 	switch (message)
 	{
 	case WM_LBUTTONUP:
+	case WM_LBUTTONDOWN:
 	case WM_MBUTTONUP:
+	case WM_MBUTTONDOWN:
 		if (!*msg_data->fullscreen)
 		{
 			/* Mouse events that enter and exit capture. */
