@@ -120,20 +120,22 @@ i4x0_smram_handler_phase0(i4x0_t *dev)
 static void
 i4x0_smram_handler_phase1(i4x0_t *dev)
 {
+
     uint8_t *regs = (uint8_t *) dev->regs;
     uint32_t tom = (mem_size << 10);
+    uint8_t *reg = (dev->type >= INTEL_430LX) ? &(regs[0x72]) : &(regs[0x57]);
     uint8_t *ext_reg = (dev->type >= INTEL_440BX) ? &(regs[0x73]) : &(regs[0x71]);
 
     uint32_t s, base[2] = { 0x000a0000, 0x00000000 };
     uint32_t size[2] = { 0x00010000, 0x00000000 };
 
-    if (dev->type >= INTEL_430FX) {
+    if ((dev->type <= INTEL_420ZX) || (dev->type >= INTEL_430FX)) {
 	/* Set temporary bases and sizes. */
 	if (((dev->type == INTEL_430TX) || (dev->type >= INTEL_440BX)) &&
 	    (*ext_reg & 0x80)) {
 		base[0] = 0x100a0000;
 		size[0] = 0x00060000;
-	} else if (((dev->type == INTEL_440LX) || (dev->type == INTEL_440EX)) && ((regs[0x72] & 0x07) == 0x04)) {
+	} else if (((dev->type == INTEL_440LX) || (dev->type == INTEL_440EX)) && ((*reg & 0x07) == 0x04)) {
 		base[0] = 0x000c0000;
 		size[0] = 0x00010000;
 	} else {
@@ -141,11 +143,11 @@ i4x0_smram_handler_phase1(i4x0_t *dev)
 		size[0] = 0x00020000;
 	}
 
-	if (regs[0x72] & 0x08)
+	if (*reg & 0x08)
 		smram_enable(dev->smram_low, base[0], base[0] & 0x000f0000, size[0],
-			     ((regs[0x72] & 0x78) == 0x48), (regs[0x72] & 0x08));
+			     ((*reg & 0x78) == 0x48), (*reg & 0x08));
 
-	if ((regs[0x72] & 0x28) == 0x28) {
+	if ((*reg & 0x28) == 0x28) {
 		/* If SMRAM is enabled and DCLS is set, then data goes to PCI, but
 		   code still goes to DRAM. */
 		mem_set_mem_state_smram_ex(1, base[0], size[0], 0x02);
@@ -153,7 +155,7 @@ i4x0_smram_handler_phase1(i4x0_t *dev)
 
 	/* TSEG mapping. */
 	if ((dev->type == INTEL_430TX) || (dev->type >= INTEL_440BX)) {
-		if ((regs[0x72] & 0x08) && (*ext_reg & 0x01)) {
+		if ((*reg & 0x08) && (*ext_reg & 0x01)) {
 			size[1] = (1 << (17 + ((*ext_reg >> 1) & 0x03)));
 			tom -= size[1];
 			base[1] = tom;
@@ -169,7 +171,7 @@ i4x0_smram_handler_phase1(i4x0_t *dev)
 	}
     } else {
 	size[0] = 0x00010000;
-	switch (regs[0x72] & 0x03) {
+	switch (*reg & 0x03) {
 		case 0:
 		default:
 			base[0] = (mem_size << 10) - size[0];
@@ -191,9 +193,9 @@ i4x0_smram_handler_phase1(i4x0_t *dev)
 
 	if (size[0] != 0x00000000) {
 		smram_enable(dev->smram_low, base[0], base[0], size[0],
-			     (((regs[0x72] & 0x38) == 0x20) || s), 1);
+			     (((*reg & 0x38) == 0x20) || s), 1);
 
-		if (regs[0x72] & 0x10) {
+		if (*reg & 0x10) {
 			/* If SMRAM is enabled and DCLS is set, then data goes to PCI, but
 			   code still goes to DRAM. */
 			mem_set_mem_state_smram_ex(1, base[0], size[0], 0x02);
@@ -517,7 +519,19 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x57:
 		switch (dev->type) {
+			/* On the 420TX and 420ZX, this is the SMRAM space register. */
 			case INTEL_420TX: case INTEL_420ZX:
+				i4x0_smram_handler_phase0(dev);
+				if (dev->smram_locked)
+					regs[0x57] = (regs[0x57] & 0xdf) | (val & 0x20);
+				else {
+					regs[0x57] = (regs[0x57] & 0x87) | (val & 0x78);
+					dev->smram_locked = (val & 0x10);
+					if (dev->smram_locked)
+						regs[0x57] &= 0xbf;
+				}
+				i4x0_smram_handler_phase1(dev);
+				break;
 			case INTEL_430LX: default:
 				regs[0x57] = val & 0x3f;
 				break;
@@ -824,6 +838,9 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		}
 		break;
 	case 0x72:	/* SMRAM */
+		if (dev->type <= INTEL_420ZX)
+			break;
+
 		i4x0_smram_handler_phase0(dev);
 		if (dev->type >= INTEL_430FX) {
 			if (dev->smram_locked)
@@ -1215,6 +1232,10 @@ i4x0_reset(void *priv)
     i4x0_t *dev = (i4x0_t *)priv;
     int i;
 
+    if ((dev->type == INTEL_440LX) || (dev->type == INTEL_440BX) ||
+	(dev->type == INTEL_440ZX))
+	memset(dev->regs_locked, 0x00, 256 * sizeof(uint8_t));
+
     if (dev->type >= INTEL_430FX)
 	i4x0_write(0, 0x59, 0x00, priv);
     else
@@ -1229,14 +1250,18 @@ i4x0_reset(void *priv)
     if (dev->type >= INTEL_430FX) {
 	dev->regs[0x72] &= 0xef;	/* Forcibly unlock the SMRAM register. */
 	i4x0_write(0, 0x72, 0x02, priv);
-    } else {
+    } else if (dev->type >= INTEL_430LX) {
 	dev->regs[0x72] &= 0xf7;	/* Forcibly unlock the SMRAM register. */
 	i4x0_write(0, 0x72, 0x00, priv);
+    } else {
+	dev->regs[0x57] &= 0xef;	/* Forcibly unlock the SMRAM register. */
+	i4x0_write(0, 0x57, 0x02, priv);
     }
 
-    if ((dev->type == INTEL_440LX) || (dev->type == INTEL_440BX) ||
-	(dev->type == INTEL_440ZX))
-	memset(dev->regs_locked, 0x00, 256 * sizeof(uint8_t));
+    if ((dev->type == INTEL_430TX) || (dev->type >= INTEL_440BX)) {
+	i4x0_write(0, (dev->type >= INTEL_440BX) ? 0x73 : 0x71,
+		   (dev->type >= INTEL_440BX) ? 0x38 : 0x00, priv);
+    }
 }
 
 
@@ -1554,7 +1579,18 @@ static void
     i4x0_write(regs[0x5d], 0x5d, 0x00, dev);
     i4x0_write(regs[0x5e], 0x5e, 0x00, dev);
     i4x0_write(regs[0x5f], 0x5f, 0x00, dev);
-    i4x0_write(regs[0x72], 0x72, 0x00, dev);
+
+    if (dev->type >= INTEL_430FX)
+	i4x0_write(0, 0x72, 0x02, dev);
+    else if (dev->type >= INTEL_430LX)
+	i4x0_write(0, 0x72, 0x00, dev);
+    else
+	i4x0_write(0, 0x57, 0x02, dev);
+
+    if ((dev->type == INTEL_430TX) || (dev->type >= INTEL_440BX)) {
+	i4x0_write(0, (dev->type >= INTEL_440BX) ? 0x73 : 0x71,
+		   (dev->type >= INTEL_440BX) ? 0x38 : 0x00, dev);
+    }
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, i4x0_read, i4x0_write, dev);
 

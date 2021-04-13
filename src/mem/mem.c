@@ -691,7 +691,7 @@ getpccache(uint32_t a)
 	return &_mem_exec[a64 >> MEM_GRANULARITY_BITS][(uintptr_t)(a64 & MEM_GRANULARITY_PAGE) - (uintptr_t)(a2 & ~0xfff)];
     }
 
-    mem_log("Bad getpccache %08X%08X\n", (uint32_t) (a >> 32), (uint32_t) (a & 0xffffffff));
+    mem_log("Bad getpccache %08X%08X\n", (uint32_t) (a64 >> 32), (uint32_t) (a64 & 0xffffffffULL));
 
     return (uint8_t *)&ff_pccache;
 }
