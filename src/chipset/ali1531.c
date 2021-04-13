@@ -41,23 +41,20 @@ typedef struct ali1531_t
     smram_t *smram;
 } ali1531_t;
 
-void ali1531_shadow_recalc(ali1531_t *dev)
+void ali1531_shadow_recalc(int cur_reg, ali1531_t *dev)
 {
     for (uint32_t i = 0; i < 8; i++)
-    {
-        mem_set_mem_state_both(0xc0000 + (i << 14), 0x4000, (((dev->pci_conf[0x4c] >> i) & 1) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | (((dev->pci_conf[0x4e] >> i) & 1) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
-        mem_set_mem_state_both(0xe0000 + (i << 14), 0x4000, (((dev->pci_conf[0x4d] >> i) & 1) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | (((dev->pci_conf[0x4f] >> i) & 1) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
-    }
+        mem_set_mem_state_both(0xc0000 + ((cur_reg & 1) << 17) + (i << 14), 0x4000, (((dev->pci_conf[0x4c + (cur_reg & 1)] >> i) & 1) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | (((dev->pci_conf[0x4e + (cur_reg & 1)] >> i) & 1) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
 
-    shadowbios = !!(dev->pci_conf[0x4d] & 0xf0);
-    shadowbios_write = !!(dev->pci_conf[0x4f] & 0xf0);
-
-    flushmmucache();
+    flushmmucache_nopc();
 }
 
 void ali1531_smm_recalc(uint8_t smm_state, ali1531_t *dev)
 {
-    if (!!(dev->pci_conf[0x48] & 1))
+
+    smram_disable_all();
+
+    if (dev->pci_conf[0x48] & 1)
     {
         switch (smm_state)
         {
@@ -86,12 +83,9 @@ void ali1531_smm_recalc(uint8_t smm_state, ali1531_t *dev)
             smram_map(1, 0x30000, 0x10000, 1);
             break;
         }
-        
     }
-    else
-        smram_disable_all();
 
-    flushmmucache();
+    flushmmucache_nopc();
 }
 
 static void
@@ -160,7 +154,7 @@ ali1531_write(int func, int addr, uint8_t val, void *priv)
     case 0x4e:
     case 0x4f:
         dev->pci_conf[addr] = val;
-        ali1531_shadow_recalc(dev);
+        ali1531_shadow_recalc(addr, dev);
         break;
 
     case 0x57: /* H2PO */
@@ -202,7 +196,7 @@ ali1531_write(int func, int addr, uint8_t val, void *priv)
 	case 0x6e:
 	case 0x6f:
         dev->pci_conf[addr] = val;
-        spd_write_drbs(dev->pci_conf, 0x60, 0x6f, 2);
+        spd_write_drbs(dev->pci_conf, 0x60, 0x6f, 1);
         break;
 
     case 0x72:
@@ -274,7 +268,6 @@ ali1531_reset(void *priv)
     ali1531_write(0, 0x42, 0x00, dev);
     ali1531_write(0, 0x43, 0x00, dev);
     ali1531_write(0, 0x47, 0x00, dev);
-    ali1531_shadow_recalc(dev);
     ali1531_write(0, 0x60, 0x08, dev);
     ali1531_write(0, 0x61, 0x40, dev);
 }
