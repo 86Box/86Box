@@ -691,6 +691,8 @@ mystique_out(uint16_t addr, uint8_t val, void *p)
 	case 0x3df:
 		if (mystique->crtcext_idx < 6)
 			mystique->crtcext_regs[mystique->crtcext_idx] = val;
+		if (mystique->crtcext_idx == 1)
+			svga->dpms = !!(val & 0x30);
 		if (mystique->crtcext_idx < 4) {
 			svga->fullchange = changeframecount;
 			svga_recalctimings(svga);
