@@ -433,7 +433,7 @@ static void s3_virge_out(uint16_t addr, uint8_t val, void *p)
 			return;
 		} else if ((svga->seqaddr == 0x0d) && (svga->seqregs[0x08] == 0x06)) {
 			svga->seqregs[svga->seqaddr] = val;
-			svga->dpms = (svga->seqregs[0x0d] & 0xf0) || (svga->crtc[0x56] & 0x06);
+			svga->dpms = (svga->seqregs[0x0d] & 0x50) || (svga->crtc[0x56] & 0x06);
 			svga_recalctimings(svga);
 			return;
 		}
@@ -553,7 +553,7 @@ static void s3_virge_out(uint16_t addr, uint8_t val, void *p)
                         break;
 
                         case 0x56:
-                        svga->dpms = (svga->seqregs[0x0d] & 0xf0) || (svga->crtc[0x56] & 0x06);
+                        svga->dpms = (svga->seqregs[0x0d] & 0x50) || (svga->crtc[0x56] & 0x06);
                         old = ~val; /* force recalc */
                         break;
                         
