@@ -96,6 +96,8 @@ typedef struct ali1543_t
 
 */
 
+int ali1533_irq_routing[15] = {9, 3, 0x0a, 4, 5, 7, 6, 1, 0x0b, 0, 0x0c, 0, 0x0e, 0, 0x0f};
+
 void ali1533_ddma_handler(ali1543_t *dev)
 {
     for (uint8_t i = 0; i < 8; i++)
@@ -131,8 +133,23 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
         dev->pci_conf[addr] = val & 0x7f;
         break;
 
-    case 0x42:
+    case 0x42: /* ISA Bus Speed */
         dev->pci_conf[addr] = val & 0xcf;
+        switch(val & 7)
+        {
+            case 0:
+            cpu_set_isa_speed(7.16);
+            break;
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+            cpu_set_isa_pci_div(val & 7);
+            break;
+        }
+
         break;
 
     case 0x43:
@@ -146,7 +163,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
     case 0x44: /* Set IRQ Line for Primary IDE if it's on native mode */
         dev->pci_conf[addr] = 0xdf;
         if (dev->ide_conf[0x09] & 1)
-            sff_set_irq_line(dev->ide_controller[0], val & 0x0f);
+            sff_set_irq_line(dev->ide_controller[0], ((val & 0x0f) == 0) ? ali1533_irq_routing[(val & 0x0f) - 1] : PCI_IRQ_DISABLED);
         break;
 
     case 0x45: /* DDMA Enable */
@@ -157,8 +174,8 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
     case 0x48: /* PCI IRQ Routing */
     case 0x49:
         dev->pci_conf[addr] = val;
-        pci_set_irq_routing(((addr & 1) * 2) + 2, ((val & 0xf0) == 0) ? (val & 0xf0) : PCI_IRQ_DISABLED);
-        pci_set_irq_routing(((addr & 1) * 2) + 1, ((val & 0x0f) == 0) ? (val & 0x0f) : PCI_IRQ_DISABLED);
+        pci_set_irq_routing(((addr & 1) * 2) + 2, (((val >> 4) & 0x0f) == 0) ? ali1533_irq_routing[((val >> 4) & 0x0f) - 1] : PCI_IRQ_DISABLED);
+        pci_set_irq_routing(((addr & 1) * 2) + 1, ((val & 0x0f) == 0) ? ali1533_irq_routing[(val & 0x0f) - 1] : PCI_IRQ_DISABLED);
         break;
 
     case 0x53: /* USB Enable */
@@ -222,13 +239,12 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
 
     case 0x74: /* USB IRQ Routing */
         dev->pci_conf[addr] = val & 0xdf;
-        pci_set_irq_routing(dev->usb_slot, ((val & 0x0f) == 0) ? (val & 0x0f) : PCI_IRQ_DISABLED);
         break;
 
     case 0x75: /* Set IRQ Line for Secondary IDE if it's on native mode */
         dev->pci_conf[addr] = val & 0x1f;
         if (dev->ide_conf[0x09] & 8)
-            sff_set_irq_line(dev->ide_controller[1], val & 0x0f);
+            sff_set_irq_line(dev->ide_controller[1], ((val & 0x0f) == 0) ? ali1533_irq_routing[(val & 0x0f) - 1] : PCI_IRQ_DISABLED);
         break;
 
     case 0x76: /* PMU IRQ Routing */
@@ -319,28 +335,28 @@ void ali5229_ide_handler(ali1543_t *dev)
         /* Primary Channel Setup */
         if (dev->ide_conf[0x09] & 0x10)
         {
+            ide_pri_enable();
             if (!(dev->ide_conf[0x09] & 1))
-                sff_set_irq_line(dev->ide_controller[0], dev->ide_conf[0x3c] & 0xf);
+                sff_set_irq_line(dev->ide_controller[0], (dev->ide_conf[0x3c] != 0) ? ali1533_irq_routing[(dev->ide_conf[0x3c] & 0x0f) - 1] : PCI_IRQ_DISABLED);
 
             ide_set_base(0, current_pri_base);
             ide_set_side(0, current_pri_side);
 
             sff_bus_master_handler(dev->ide_controller[0], dev->ide_conf[0x09] & 0x80, (dev->ide_conf[0x20] & 0xf0) | (dev->ide_conf[0x21] << 8));
-            ide_pri_enable();
             ali1543_log("M5229 PRI: BASE %04x SIDE %04x\n", current_pri_base, current_pri_side);
         }
 
         /* Secondary Channel Setup */
         if (dev->ide_conf[0x09] & 8)
         {
+            ide_sec_enable();
             if (!(dev->ide_conf[0x09] & 4))
-                sff_set_irq_line(dev->ide_controller[1], dev->ide_conf[0x3c] & 0xf);
+                sff_set_irq_line(dev->ide_controller[1], (dev->ide_conf[0x3c] != 0) ? ali1533_irq_routing[(dev->ide_conf[0x3c] & 0x0f) - 1] : PCI_IRQ_DISABLED);
 
             ide_set_base(1, current_sec_base);
             ide_set_side(1, current_sec_side);
 
             sff_bus_master_handler(dev->ide_controller[1], dev->ide_conf[0x09] & 0x80, ((dev->ide_conf[0x20] & 0xf0) | (dev->ide_conf[0x21] << 8)) + 8);
-            ide_sec_enable();
             ali1543_log("M5229 SEC: BASE %04x SIDE %04x\n", current_sec_base, current_sec_side);
         }
     }
