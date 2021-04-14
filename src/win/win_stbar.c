@@ -426,6 +426,11 @@ StatusBarDestroyTips(void)
 void
 ui_sb_set_ready(int ready)
 {
+    if (ready == 0) {
+	ui_sb_bugui(NULL);
+	ui_sb_set_text(NULL);
+    }
+
     sb_ready = ready;
 }
 
