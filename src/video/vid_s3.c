@@ -2172,6 +2172,16 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 		} else if (svga->seqaddr == 0xa) {
 			svga->seqregs[svga->seqaddr] = val & 0x80;
 			return;
+		} else if (s3->chip >= S3_VISION964) {
+			if (svga->seqaddr == 0x08) {
+				svga->seqregs[svga->seqaddr] = val & 0x0f;
+				return;
+			} else if ((svga->seqaddr == 0x0d) && (svga->seqregs[0x08] == 0x06)) {
+				svga->seqregs[svga->seqaddr] = val;
+				svga->dpms = ((s3->chip >= S3_VISION964) && (svga->seqregs[0x0d] & 0x50)) || (svga->crtc[0x56] & ((s3->chip >= S3_TRIO32) ? 0x06 : 0x20));
+				svga_recalctimings(svga);
+				return;
+			}
 		}
 		break;
 		
@@ -2375,6 +2385,11 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 				s3_io_set_alt(s3);
 			}
 			break;
+
+                        case 0x56:
+                        svga->dpms = ((s3->chip >= S3_VISION964) && (svga->seqregs[0x0d] & 0x50)) || (svga->crtc[0x56] & ((s3->chip >= S3_TRIO32) ? 0x06 : 0x20));
+                        old = ~val; /* force recalc */
+                        break;
 
 			case 0x67:
 			if (s3->chip >= S3_TRIO32) {

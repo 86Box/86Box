@@ -910,6 +910,13 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 					gd54xx_update_overlay(gd54xx);
 					break;
 
+				case 0x0e:
+					if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5429) {
+						svga->dpms = (val & 0x06) && ((svga->miscout & ((val & 0x06) << 5)) != 0xc0);
+						svga_recalctimings(svga);
+					}
+					break;
+
 				case 0x10:
 					gd543x_mmio_write(0xb8001, val, gd54xx);
 					break;

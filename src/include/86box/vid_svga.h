@@ -135,6 +135,7 @@ typedef struct svga_t
 	    plane_mask, writemask,
 	    colourcompare, colournocare,
 	    dac_mask, dac_status,
+	    dpms, dpms_ui,
 	    ksc5601_sbyte_mask, ksc5601_udc_area_msb[2];
 
     int ksc5601_swap_mode;

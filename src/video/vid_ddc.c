@@ -148,7 +148,7 @@ ddc_init(void *i2c)
     edid->input_params = 0x0e; /* analog input; separate sync; composite sync; sync on green */
     edid->horiz_size = horiz_mm / 10;
     edid->vert_size = vert_mm / 10;
-    edid->features = 0x0b; /* RGB color; first timing is preferred; GTF/CVT */
+    edid->features = 0xeb; /* DPMS standby/suspend/active-off; RGB color; first timing is preferred; GTF/CVT */
 
     edid->red_green_lsb = 0x81;
     edid->blue_white_lsb = 0xf1;
