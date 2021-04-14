@@ -982,6 +982,9 @@ svga_close(svga_t *svga)
     free(svga->changedvram);
     free(svga->vram);
 
+    if (svga->dpms_ui)
+	ui_sb_set_text_w(NULL);
+
     svga_pri = NULL;
 }
 
