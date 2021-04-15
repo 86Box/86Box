@@ -2560,7 +2560,7 @@ static void s3_recalctimings(svga_t *svga)
 				if (s3->chip == S3_86C928) {
 					if (s3->width == 2048 || s3->width == 1280 || s3->width == 1600)
 						svga->hdisp *= 2;
-				} else {
+				} else if ((s3->chip != S3_86C801) && (s3->chip != S3_86C805)) {
 					if (s3->width == 1280 || s3->width == 1600)
 						svga->hdisp *= 2;					
 				}
