@@ -1006,17 +1006,21 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 						s3_accel_start(1, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), s3);
 						break;
 					case 0x200:
-						if (s3->accel.cmd & 0x1000)
-							s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[1] | (s3->accel.pix_trans[0] << 8), s3);
-						else
-							s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), s3);
+						if (s3->chip == S3_86C928) /*Windows 95's built-in driver expects this to be loaded regardless of the byte swap bit (0xE2E9)*/
+							s3_accel_out_pixtrans_w(s3, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8));
+						else {
+							if (s3->accel.cmd & 0x1000)
+								s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[1] | (s3->accel.pix_trans[0] << 8), s3);
+							else
+								s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), s3);
+						}
 						break;
 					case 0x400:
 						if (svga->crtc[0x53] & 0x08)
 							s3_accel_start(4, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8), s3);
 						break;
 				}
-			}			
+			}
 		}
 		break;
 	case 0xe14a: case 0xe2ea:
@@ -1052,7 +1056,7 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 						}
 						break;
 				}
-			}		
+			}
 		} else {
 			if (s3->accel.cmd & 0x100) {
 				switch (s3->accel.cmd & 0x600) {
@@ -1060,11 +1064,15 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 						s3_accel_start(1, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8) | (s3->accel.pix_trans[2] << 16) | (s3->accel.pix_trans[3] << 24), s3);
 						break;	
 					case 0x200:
-						if (s3->accel.cmd & 0x1000) 
-							s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[3] | (s3->accel.pix_trans[2] << 8) | (s3->accel.pix_trans[1] << 16) | (s3->accel.pix_trans[0] << 24), s3);
-						else
-							s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8) | (s3->accel.pix_trans[2] << 16) | (s3->accel.pix_trans[3] << 24), s3);
-						break;						
+						if (s3->chip == S3_86C928) /*Windows 95's built-in S3 928 driver expects the upper 16 bits to be loaded instead of the whole 32-bit one, regardless of the byte swap bit (0xE2EB)*/
+							s3_accel_out_pixtrans_w(s3, s3->accel.pix_trans[2] | (s3->accel.pix_trans[3] << 8));
+						else {
+							if (s3->accel.cmd & 0x1000) 
+								s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[3] | (s3->accel.pix_trans[2] << 8) | (s3->accel.pix_trans[1] << 16) | (s3->accel.pix_trans[0] << 24), s3);
+							else
+								s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8) | (s3->accel.pix_trans[2] << 16) | (s3->accel.pix_trans[3] << 24), s3);
+						}
+						break;
 					case 0x400:
 						s3_accel_start(4, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[1] << 8) | (s3->accel.pix_trans[2] << 16) | (s3->accel.pix_trans[3] << 24), s3);
 						break;
@@ -2710,7 +2718,7 @@ s3_updatemapping(s3_t *s3)
 {
 	svga_t *svga = &s3->svga;
 
-	if (!(s3->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM))
+	if (s3->pci && !(s3->pci_regs[PCI_REG_COMMAND] & PCI_COMMAND_MEM))
 	{
 		mem_mapping_disable(&svga->mapping);
 		mem_mapping_disable(&s3->linear_mapping);
@@ -2787,7 +2795,6 @@ s3_updatemapping(s3_t *s3)
 				}
 				break;
 			}
-
 			s3->linear_base &= ~(s3->linear_size - 1);
 			if (s3->linear_base == 0xa0000) {
 				mem_mapping_disable(&s3->linear_mapping);
@@ -2803,9 +2810,8 @@ s3_updatemapping(s3_t *s3)
 					s3->linear_base &= 0xfe000000;
 				mem_mapping_set_addr(&s3->linear_mapping, s3->linear_base, s3->linear_size);
 			}
-		} else {
+		} else
 			mem_mapping_disable(&s3->linear_mapping);
-		}
 
 		/* Memory mapped I/O. */
 		if ((svga->crtc[0x53] & 0x10) || (s3->accel.advfunc_cntl & 0x20)) {
@@ -2818,9 +2824,8 @@ s3_updatemapping(s3_t *s3)
 			} else {
 				mem_mapping_enable(&s3->mmio_mapping);
 			}
-		} else {
+		} else
 			mem_mapping_disable(&s3->mmio_mapping);
-		}
 		
 		/* New MMIO. */
 		if (svga->crtc[0x53] & 0x08) {
@@ -5862,7 +5867,7 @@ static void *s3_init(const device_t *info)
 	else if (s3->vlb)
 		svga->crtc[0x36] = 1 | (3 << 2) | (1 << 4);
 	else
-		svga->crtc[0x36] = 3 | (3 << 2) | (1 << 4);
+		svga->crtc[0x36] = 3;
 	
 	if (chip >= S3_86C928)
 		svga->crtc[0x36] |= (vram_sizes[vram] << 5);
@@ -6021,8 +6026,7 @@ static void *s3_init(const device_t *info)
 		case S3_PHOENIX_VISION868:
 			svga->decode_mask = (4 << 20) - 1;
 			s3->id = 0xe1; /*Vision868*/
-			s3->id_ext = 0x90; 
-			s3->id_ext_pci = 0x80;
+			s3->id_ext = s3->id_ext_pci = 0x80;
 			s3->packed_mmio = 1;
 			if (s3->pci) {
 				svga->crtc[0x53] = 0x18;
@@ -6045,8 +6049,7 @@ static void *s3_init(const device_t *info)
 		case S3_DIAMOND_STEALTH_SE:
 			svga->decode_mask = (4 << 20) - 1;
 			s3->id = 0xe1; /*Trio32*/
-			s3->id_ext = 0x10;
-			s3->id_ext_pci = 0x11;
+			s3->id_ext = s3->id_ext_pci = 0x10;
 			s3->packed_mmio = 1;
 
 			svga->clock_gen = s3;
