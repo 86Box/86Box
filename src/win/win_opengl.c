@@ -15,6 +15,7 @@
  *			libretro has a sizeable library that could
  *			be a good target for compatibility.
  *		(UI) options
+ *		More error handling
  *		...
  * 
  * Authors:	Teemu Korhonen
@@ -42,8 +43,9 @@
 #include <SDL2/SDL_syswm.h>
 #include <glad/glad.h>
 
-#include <stdatomic.h>
+#include <stdio.h>
 
+#include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/video.h>
 #include <86box/win.h>
@@ -109,7 +111,7 @@ static volatile struct
 } resize_info = {};
 
 /**
- * @brief Identifiers to OpenGL object used.
+ * @brief Identifiers to OpenGL objects and uniforms.
  */
 typedef struct
 {
@@ -117,7 +119,14 @@ typedef struct
 	GLuint vertexBufferID;
 	GLuint textureID;
 	GLuint shader_progID;
-} gl_objects;
+
+	/* Uniforms */
+
+	GLint input_size;
+	GLint output_size;
+	GLint texture_size;
+	GLint frame_count;
+} gl_identifiers;
 
 /**
  * @brief Userdata to pass onto windows message hook
@@ -131,71 +140,183 @@ typedef struct
 /**
  * @brief Default vertex shader.
 */
-static const GLchar* v_shader = "#version 330 core\n\
-layout(location = 0) in vec2 pos;\n\
-layout(location = 1) in vec2 tex_in;\n\
+static const GLchar* vertex_shader = "#version 330 core\n\
+in vec2 VertexCoord;\n\
+in vec2 TexCoord;\n\
 out vec2 tex;\n\
 void main(){\n\
-	gl_Position = vec4(pos, 0.0, 1.0);\n\
-	tex = tex_in;\n\
+	gl_Position = vec4(VertexCoord, 0.0, 1.0);\n\
+	tex = TexCoord;\n\
 }\n";
 
 /**
  * @brief Default fragment shader.
- * 
- * Note: Last two lines in main make it a very simple 50% scanline filter.
  */
-static const GLchar* f_shader = "#version 330 core\n\
+static const GLchar* fragment_shader = "#version 330 core\n\
 in vec2 tex;\n\
-out vec4 color;\n\
-uniform sampler2D texs;\n\
+uniform sampler2D texsampler;\n\
 void main() {\n\
-	color = texture(texs, tex);\n\
-	if (int(gl_FragCoord.y) % 2 == 0)\n\
-		color = color * vec4(0.5,0.5,0.5,1.0);\n\
+	gl_FragColor = texture(texsampler, tex);\n\
 }\n";
 
 /**
- * @brief Load and compile default shaders into a program.
+ * @brief Reads a whole file into a null terminated string.
+ * @param Path Path to the file relative to executable path.
+ * @return Pointer to the string or NULL on error. Remember to free() after use.
+*/
+static char* read_file_to_string(const char* path)
+{
+	char* full_path = (char*)malloc(sizeof(char) * (strlen(path) + strlen(exe_path) + 1));
+	
+	plat_append_filename(full_path, exe_path, path);
+
+	FILE* file_handle = plat_fopen(full_path, "rb");
+	
+	free(full_path);
+
+	if (file_handle != NULL)
+	{
+		/* get file size */
+		fseek(file_handle, 0, SEEK_END);
+		long file_size = ftell(file_handle);
+		fseek(file_handle, 0, SEEK_SET);
+
+		/* read to buffer and close */
+		char* content = (char*)malloc(sizeof(char) * (file_size + 1));
+		size_t length = fread(content, sizeof(char), file_size, file_handle);		
+		fclose(file_handle);
+		content[length] = 0;
+
+		return content;
+	}
+	return NULL;
+}
+
+/**
+ * @brief Compile custom shaders into a program.
  * @return Shader program identifier.
 */
-static GLuint load_shaders()
+static GLuint load_custom_shaders()
 {
-	GLuint vs_id = glCreateShader(GL_VERTEX_SHADER);
-	GLuint fs_id = glCreateShader(GL_FRAGMENT_SHADER);
-
-	GLint compile_status = GL_FALSE;
+	GLint status = GL_FALSE;
 	int info_log_length;
-	char info_log_text[200];
 
-	glShaderSource(vs_id, 1, &v_shader, NULL);
-	glCompileShader(vs_id);
+	/* TODO: get path from config */
+	char* shader = read_file_to_string("shaders/shader.glsl");
 
-	glGetShaderiv(vs_id, GL_COMPILE_STATUS, &compile_status);
-	glGetShaderiv(vs_id, GL_INFO_LOG_LENGTH, &info_log_length);
+	if (shader != NULL)
+	{
+		int success = 1;
 
-	glGetShaderInfoLog(vs_id, info_log_length, NULL, info_log_text);
+		const char* vertex_sources[2] = { "#define VERTEX\n", shader };
+		const char* fragment_sources[2] = { "#define FRAGMENT\n", shader };
 
-	glShaderSource(fs_id, 1, &f_shader, NULL);
-	glCompileShader(fs_id);
+		GLuint vertex_id = glCreateShader(GL_VERTEX_SHADER);
+		GLuint fragment_id = glCreateShader(GL_FRAGMENT_SHADER);
 
-	glGetShaderiv(fs_id, GL_COMPILE_STATUS, &compile_status);
-	glGetShaderiv(fs_id, GL_INFO_LOG_LENGTH, &info_log_length);
+		glShaderSource(vertex_id, 2, vertex_sources, NULL);
+		glCompileShader(vertex_id);
+		glGetShaderiv(vertex_id, GL_COMPILE_STATUS, &status);
 
-	glGetShaderInfoLog(fs_id, info_log_length, NULL, info_log_text);
+		if (status == GL_FALSE)
+		{
+			glGetShaderiv(vertex_id, GL_INFO_LOG_LENGTH, &info_log_length);
+
+			GLchar* info_log_text = (GLchar*)malloc(sizeof(GLchar) * info_log_length);
+
+			glGetShaderInfoLog(vertex_id, info_log_length, NULL, info_log_text);
+
+			/* TODO: error logging */
+
+			free(info_log_text);
+
+			success = 0;
+		}
+
+		glShaderSource(fragment_id, 2, fragment_sources, NULL);
+		glCompileShader(fragment_id);
+		glGetShaderiv(fragment_id, GL_COMPILE_STATUS, &status);
+
+		if (status == GL_FALSE)
+		{
+			glGetShaderiv(fragment_id, GL_INFO_LOG_LENGTH, &info_log_length);
+
+			GLchar* info_log_text = (GLchar*)malloc(sizeof(GLchar) * info_log_length);
+
+			glGetShaderInfoLog(fragment_id, info_log_length, NULL, info_log_text);
+
+			/* TODO: error logging */
+
+			free(info_log_text);
+
+			success = 0;
+		}
+
+		free(shader);
+
+		GLuint prog_id = 0;
+
+		if (success)
+		{
+			prog_id = glCreateProgram();
+
+			glAttachShader(prog_id, vertex_id);
+			glAttachShader(prog_id, fragment_id);
+			glLinkProgram(prog_id);
+			glGetProgramiv(prog_id, GL_LINK_STATUS, &status);
+
+			if (status == GL_FALSE)
+			{
+				glGetProgramiv(prog_id, GL_INFO_LOG_LENGTH, &info_log_length);
+
+				GLchar* info_log_text = (GLchar*)malloc(sizeof(GLchar) * info_log_length);
+
+				glGetProgramInfoLog(prog_id, info_log_length, NULL, info_log_text);
+
+				/* TODO: error logging */
+
+				free(info_log_text);
+			}
+
+			glDetachShader(prog_id, vertex_id);
+			glDetachShader(prog_id, fragment_id);
+		}
+
+		glDeleteShader(vertex_id);
+		glDeleteShader(fragment_id);
+
+		return prog_id;
+	}
+	return 0;
+}
+
+/**
+ * @brief Compile default shaders into a program.
+ * @return Shader program identifier.
+*/
+static GLuint load_default_shaders()
+{
+	GLuint vertex_id = glCreateShader(GL_VERTEX_SHADER);
+	GLuint fragment_id = glCreateShader(GL_FRAGMENT_SHADER);
+
+	glShaderSource(vertex_id, 1, &vertex_shader, NULL);
+	glCompileShader(vertex_id);
+
+	glShaderSource(fragment_id, 1, &fragment_shader, NULL);
+	glCompileShader(fragment_id);
 
 	GLuint prog_id = glCreateProgram();
 
-	glAttachShader(prog_id, vs_id);
-	glAttachShader(prog_id, fs_id);
+	glAttachShader(prog_id, vertex_id);
+	glAttachShader(prog_id, fragment_id);
 
 	glLinkProgram(prog_id);
 
-	glDetachShader(prog_id, vs_id);
-	glDetachShader(prog_id, fs_id);
+	glDetachShader(prog_id, vertex_id);
+	glDetachShader(prog_id, fragment_id);
 
-	glDeleteShader(vs_id);
-	glDeleteShader(fs_id);
+	glDeleteShader(vertex_id);
+	glDeleteShader(fragment_id);
 
 	return prog_id;
 }
@@ -300,56 +421,93 @@ static void winmessage_hook(void* userdata, void* hWnd, unsigned int message, Ui
  * @brief Initialize OpenGL context
  * @return Object identifiers
 */
-static gl_objects initialize_glcontext()
+static gl_identifiers initialize_glcontext()
 {
-	/* Vertex and texture 2d coordinates making a quad as triangle strip */
+	/* Vertex, texture 2d coordinates and color (white) making a quad as triangle strip */
 	static const GLfloat surface[] = {
-		-1.f, 1.f, 0.f, 0.f,
-		1.f, 1.f, 1.f, 0.f,
-		-1.f, -1.f, 0.f, 1.f,
-		1.f, -1.f, 1.f, 1.f
+		-1.f, 1.f, 0.f, 0.f, 1.f, 1.f, 1.f, 1.f,
+		1.f, 1.f, 1.f, 0.f, 1.f, 1.f, 1.f, 1.f,
+		-1.f, -1.f, 0.f, 1.f, 1.f, 1.f, 1.f, 1.f,
+		1.f, -1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f
 	};
 
-	gl_objects obj = {};
+	gl_identifiers gl = {};
 
-	glGenVertexArrays(1, &obj.vertexArrayID);
+	glGenVertexArrays(1, &gl.vertexArrayID);
 
-	glBindVertexArray(obj.vertexArrayID);
+	glBindVertexArray(gl.vertexArrayID);
 
-	glGenBuffers(1, &obj.vertexBufferID);
-	glBindBuffer(GL_ARRAY_BUFFER, obj.vertexBufferID);
+	glGenBuffers(1, &gl.vertexBufferID);
+	glBindBuffer(GL_ARRAY_BUFFER, gl.vertexBufferID);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(surface), surface, GL_STATIC_DRAW);
 
-	glGenTextures(1, &obj.textureID);
-	glBindTexture(GL_TEXTURE_2D, obj.textureID);
+	glGenTextures(1, &gl.textureID);
+	glBindTexture(GL_TEXTURE_2D, gl.textureID);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	GLfloat border_color[] = { 0.f, 0.f, 0.f, 1.f };
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 0, INIT_WIDTH, INIT_HEIGHT, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 0, 0, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
 
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 
-	obj.shader_progID = load_shaders();
+	gl.shader_progID = load_custom_shaders();
 
-	glUseProgram(obj.shader_progID);
+	if (gl.shader_progID == 0)
+		gl.shader_progID = load_default_shaders();
 
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), 0);
+	glUseProgram(gl.shader_progID);
 
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+	GLint vertex_coord = glGetAttribLocation(gl.shader_progID, "VertexCoord");
+	if (vertex_coord != -1)
+	{
+		glEnableVertexAttribArray(vertex_coord);
+		glVertexAttribPointer(vertex_coord, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), 0);
+	}
 
-	return obj;
+	GLint tex_coord = glGetAttribLocation(gl.shader_progID, "TexCoord");
+	if (tex_coord != -1)
+	{
+		glEnableVertexAttribArray(tex_coord);
+		glVertexAttribPointer(tex_coord, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+	}
+
+	GLint color = glGetAttribLocation(gl.shader_progID, "Color");
+	if (color != -1)
+	{
+		glEnableVertexAttribArray(color);
+		glVertexAttribPointer(color, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
+	}
+
+	GLint mvp_matrix = glGetUniformLocation(gl.shader_progID, "MVPMatrix");
+	if (mvp_matrix != -1)
+	{
+		static const GLfloat mvp[] = {
+			1.f, 0.f, 0.f, 0.f,
+			0.f, 1.f, 0.f, 0.f,
+			0.f, 0.f, 1.f, 0.f,
+			0.f, 0.f, 0.f, 1.f
+		};
+		glUniformMatrix4fv(mvp_matrix, 1, GL_FALSE, mvp);
+	}
+
+	gl.input_size = glGetUniformLocation(gl.shader_progID, "InputSize");
+	gl.output_size = glGetUniformLocation(gl.shader_progID, "OutputSize");
+	gl.texture_size = glGetUniformLocation(gl.shader_progID, "TextureSize");
+	gl.frame_count = glGetUniformLocation(gl.shader_progID, "FrameCount");
+
+	return gl;
 }
 
 /**
  * @brief Clean up OpenGL context 
  * @param Object identifiers from initialize 
 */
-static void finalize_glcontext(gl_objects obj)
+static void finalize_glcontext(gl_identifiers obj)
 {
 	glDeleteProgram(obj.shader_progID);
 	glDeleteTextures(1, &obj.textureID);
@@ -393,14 +551,22 @@ static void opengl_main()
 
 	gladLoadGLLoader(SDL_GL_GetProcAddress);
 
-	gl_objects obj = initialize_glcontext();
+	gl_identifiers gl = initialize_glcontext();
+
+	int frame_counter = 0;
+
+	if (gl.frame_count != -1)
+		glUniform1i(gl.frame_count, 0);
 
 	/* Render loop */
 	int closing = 0;
 	while (!closing)
 	{
+		/* Now redrawing only after a blit. For some shaders to work properly redraw should be in sync with (emulated) display refresh rate. */
+
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+		
 		SDL_GL_SwapWindow(window);
 
 		DWORD wait_result = WAIT_TIMEOUT;
@@ -430,11 +596,11 @@ static void opengl_main()
 		}
 		else if (sync_event == sync_objects.blit_waiting)
 		{
-			/* Resize the texture if  */
+			/* Resize the texture */
 			if (blit_info.resized)
 			{
 				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, blit_info.w, blit_info.h, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
-				
+
 				video_width = blit_info.w;
 				video_height = blit_info.h;
 
@@ -447,6 +613,14 @@ static void opengl_main()
 
 			/* Signal that we're done with the video buffer */
 			SetEvent(blit_done);
+
+			/* Update uniforms */
+			if (gl.input_size != -1)
+				glUniform2f(gl.input_size, video_width, video_height);
+			if (gl.texture_size != -1)
+				glUniform2f(gl.texture_size, video_width, video_height);
+			if (gl.frame_count != -1)
+				glUniform1i(gl.frame_count, frame_counter = (frame_counter + 1) & 1023);
 		}
 		else if (sync_event == sync_objects.resize)
 		{
@@ -502,6 +676,9 @@ static void opengl_main()
 				}
 
 				glViewport(pad_x / 2, pad_y / 2, width - pad_x, height - pad_y);
+
+				if (gl.output_size != -1)
+					glUniform2f(gl.output_size, width - pad_x, height - pad_y);
 			}
 			else
 			{
@@ -511,11 +688,14 @@ static void opengl_main()
 				SetWindowPos(window_hwnd, parent, 0, 0, resize_info.width, resize_info.height, SWP_NOZORDER | SWP_NOCOPYBITS | SWP_NOMOVE | SWP_NOACTIVATE);
 
 				glViewport(0, 0, resize_info.width, resize_info.height);
+
+				if (gl.output_size != -1)
+					glUniform2f(gl.output_size, resize_info.width, resize_info.height);
 			}
 		}
 	}
 
-	finalize_glcontext(obj);
+	finalize_glcontext(gl);
 
 	SDL_GL_DeleteContext(context);
 

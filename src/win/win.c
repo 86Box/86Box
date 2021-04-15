@@ -775,7 +775,7 @@ plat_get_extension(char *s)
 
 
 void
-plat_append_filename(char *dest, char *s1, char *s2)
+plat_append_filename(char *dest, const char *s1, const char *s2)
 {
     strcpy(dest, s1);
     plat_path_slash(dest);
