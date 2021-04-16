@@ -375,7 +375,7 @@ cpu_set(void)
 
     /* SL-Enhanced Intel 486s have the same SMM save state table layout as Pentiums,
        and the WinChip datasheet claims those are Pentium-compatible as well. */
-    is_pentium   = (cpu_isintel && (((cpu_s->cpu_type >= CPU_i486SX_SLENH)) && (cpu_s->cpu_type < CPU_PENTIUMPRO))) ||
+    is_pentium   = (cpu_isintel && (cpu_s->cpu_type >= CPU_i486SX_SLENH) && (cpu_s->cpu_type < CPU_PENTIUMPRO)) ||
 		   !strcmp(cpu_f->manufacturer, "IDT");
     is_k5        = !strcmp(cpu_f->manufacturer, "AMD") && (cpu_s->cpu_type > CPU_ENH_Am486DX);
     is_k6        = (cpu_s->cpu_type >= CPU_K6) && !strcmp(cpu_f->manufacturer, "AMD");
