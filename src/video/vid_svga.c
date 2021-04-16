@@ -34,6 +34,8 @@
 #include <86box/pit.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
+#include <86box/plat.h>
+#include <86box/ui.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
@@ -574,12 +576,29 @@ svga_recalctimings(svga_t *svga)
 	svga->dispontime = TIMER_USEC;
     if (svga->dispofftime < TIMER_USEC)
 	svga->dispofftime = TIMER_USEC;
+
+    /* Inform the user interface of any DPMS mode changes. */
+    if (svga->dpms) {
+	if (!svga->dpms_ui) {
+		svga->dpms_ui = 1;
+		ui_sb_set_text_w(plat_get_string(IDS_2142));
+	}
+    } else if (svga->dpms_ui) {
+	svga->dpms_ui = 0;
+	ui_sb_set_text_w(NULL);
+    }
 }
 
 
 static void
 svga_do_render(svga_t *svga)
 {
+    /* Always render a blank screen and nothing else while in DPMS mode. */
+    if (svga->dpms) {
+	svga_render_blank(svga);
+	return;
+    }
+
     if (!svga->override) {
 	svga->render(svga);
 
@@ -962,6 +981,9 @@ svga_close(svga_t *svga)
 {
     free(svga->changedvram);
     free(svga->vram);
+
+    if (svga->dpms_ui)
+	ui_sb_set_text_w(NULL);
 
     svga_pri = NULL;
 }
@@ -1361,7 +1383,10 @@ svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 	} else
 		suppress_overscan = 0;
 
-	set_screen_size(xsize + x_add, ysize + y_add);
+	/* Block resolution changes while in DPMS mode to avoid getting a bogus
+	   screen width (320). We're already rendering a blank screen anyway. */
+	if (!svga->dpms)
+		set_screen_size(xsize + x_add, ysize + y_add);
 
 	if (video_force_resize_get())
 		video_force_resize_set(0);

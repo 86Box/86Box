@@ -51,6 +51,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef I450KX
   I450KX		:= y
  endif
+ ifndef M154X
+  M145X		:= y
+ endif
  ifndef LASERXT
   LASERXT	:= y
  endif
@@ -129,6 +132,9 @@ else
  endif
  ifndef LASERXT
   LASERXT	:= n
+ endif
+ ifndef M154X
+  M145X		:= n
  endif
  ifndef MGA
   MGA		:= n

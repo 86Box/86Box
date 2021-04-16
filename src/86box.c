@@ -175,6 +175,7 @@ int scrnsz_y = SCREEN_RES_Y;		/* current screen size, Y */
 int	config_changed;				/* config has changed */
 int	title_update;
 int	framecountx = 0;
+int	hard_reset_pending = 0;
 
 
 int	unscaled_size_x = SCREEN_RES_X;	/* current unscaled size X */
@@ -856,9 +857,7 @@ pc_reset_hard_init(void)
 void
 pc_reset_hard(void)
 {
-	pc_reset_hard_close();
-
-	pc_reset_hard_init();
+	hard_reset_pending = 1;
 }
 
 
@@ -935,6 +934,13 @@ void
 pc_run(void)
 {
 	wchar_t temp[200];
+
+	/* Trigger a hard reset if one is pending. */
+	if (hard_reset_pending) {
+		hard_reset_pending = 0;
+		pc_reset_hard_close();
+		pc_reset_hard_init();
+	}
 
 	/* Run a block of code. */
 	startblit();

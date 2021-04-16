@@ -834,7 +834,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 	}
     } else if (func == pm_func) { /* Power */
 	/* Read-only addresses */
-	if ((addr < 0xd) || ((addr >= 0xe) && (addr < 0x40)) || (addr == 0x43) ||
+	if ((addr < 0xd) || ((addr >= 0xe) && (addr < 0x40)) || (addr == 0x43) || (addr == 0x4a) || (addr == 0x4b) ||
 	    (addr == 0x4e) || (addr == 0x4f) || (addr == 0x56) || (addr == 0x57) || ((addr >= 0x5c) && (addr < 0x61)) ||
 	    ((addr >= 0x64) && (addr < 0x70)) || (addr == 0x72) || (addr == 0x73) || ((addr >= 0x75) && (addr < 0x80)) ||
 	    (addr == 0x83) || ((addr >= 0x85) && (addr < 0x90)) || ((addr >= 0x92) && (addr < 0xd2)) || (addr >= 0xd7))
@@ -848,10 +848,20 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 
 	switch (addr) {
 		case 0x41: case 0x48: case 0x49:
+			if (addr == 0x48) {
+				if (dev->local >= VIA_PIPC_596A)
+					val = (val & 0x80) | 0x01;
+				else
+					val = 0x01;
+			}
+
 			dev->power_regs[addr] = val;
 			c = (dev->power_regs[0x49] << 8);
 			if (dev->local >= VIA_PIPC_596A)
 				c |= (dev->power_regs[0x48] & 0x80);
+			/* Workaround for P3V133 BIOS in 596B mode mapping ACPI to E800 (same as SMBus) instead of E400. */
+			if ((dev->local == VIA_PIPC_596B) && (c == ((dev->power_regs[0x91] << 8) | (dev->power_regs[0x90] & 0xf0))) && (dev->power_regs[0xd2] & 0x01))
+				c -= 0x400;
 			acpi_set_timer32(dev->acpi, dev->power_regs[0x41] & 0x08);
 			acpi_update_io_mapping(dev->acpi, c, dev->power_regs[0x41] & 0x80);
 			break;

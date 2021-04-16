@@ -678,6 +678,8 @@ static void banshee_ext_outl(uint16_t addr, uint32_t val, void *p)
 
                 case DAC_dacMode:
                 banshee->dacMode = val;
+               	svga->dpms = !!(val & 0x0a);
+               	svga_recalctimings(svga);
                 break;
                 case DAC_dacAddr:
                 banshee->dacAddr = val & 0x1ff;

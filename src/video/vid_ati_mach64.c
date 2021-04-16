@@ -2282,6 +2282,7 @@ void mach64_ext_writeb(uint32_t addr, uint8_t val, void *p)
                         svga->fb_only = 1;
                 else
                         svga->fb_only = 0;
+                svga->dpms = !!(mach64->crtc_gen_cntl & 0x0c);
                 svga_recalctimings(&mach64->svga);
                 break;
 
