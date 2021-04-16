@@ -39,6 +39,9 @@
 #include <SDL2/SDL_syswm.h>
 #include <glad/glad.h>
 
+#include <stdlib.h>
+#include <stdint.h>
+
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/video.h>
@@ -51,8 +54,7 @@ static const int INIT_HEIGHT = 400;
 
 /* Option; Target framerate: Sync with emulation / 25 fps / 30 fps / 50 fps / 60 fps / 75 fps */
 static const int SYNC_WITH_BLITTER = 1;
-static const int TARGET_FRAMERATE = 75;
-static const int TARGET_FRAMETIME = 1000 / TARGET_FRAMERATE;
+static const int TARGET_FRAMETIME = 13;
 
 /* Option; Vsync: Off / On */
 static const int VSYNC = 0;
@@ -90,7 +92,7 @@ static union
 		HANDLE blit_waiting;
 	};
 	HANDLE asArray[3];
-} sync_objects = {};
+} sync_objects = { 0 };
 
 /**
  * @brief Signal from OpenGL thread that it's done with video buffer.
@@ -103,7 +105,7 @@ static HANDLE blit_done = NULL;
 static volatile struct
 {
 	int x, y, y1, y2, w, h, resized;
-} blit_info = {};
+} blit_info = { 0 };
 
 /**
  * @brief Resize event parameters.
@@ -111,7 +113,7 @@ static volatile struct
 static volatile struct
 {
 	int width, height, fullscreen, scaling_mode;
-} resize_info = {};
+} resize_info = { 0 };
 
 /**
  * @brief Identifiers to OpenGL objects and uniforms.
@@ -250,7 +252,7 @@ static gl_identifiers initialize_glcontext()
 		1.f, -1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f
 	};
 
-	gl_identifiers gl = {};
+	gl_identifiers gl = { 0 };
 
 	glGenVertexArrays(1, &gl.vertexArrayID);
 
@@ -361,7 +363,7 @@ static void render_and_swap(gl_identifiers gl)
  * OpenGL context should be accessed only from this single thread.
  * Events are used to synchronize communication.
 */
-static void opengl_main()
+static void opengl_main(void* param)
 {
 	SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1"); /* Is this actually doing anything...? */
 
@@ -372,7 +374,7 @@ static void opengl_main()
 	/* Keep track of certain parameters, only changed in this thread to avoid race conditions */
 	int fullscreen = resize_info.fullscreen, video_width = INIT_WIDTH, video_height = INIT_HEIGHT;
 
-	SDL_SysWMinfo wmi;
+	SDL_SysWMinfo wmi = { 0 };
 	SDL_VERSION(&wmi.version);
 	SDL_GetWindowWMInfo(window, &wmi);
 
@@ -602,12 +604,12 @@ int opengl_init(HWND hwnd)
 	return 1;
 }
 
-int opengl_pause()
+int opengl_pause(void)
 {
 	return 0;
 }
 
-void opengl_close()
+void opengl_close(void)
 {
 	if (thread == NULL)
 		return;

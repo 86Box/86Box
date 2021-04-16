@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 
 #include <86box/86box.h>
 #include <86box/plat.h>
@@ -80,13 +81,21 @@ static char* read_file_to_string(const char* path)
 	{
 		/* get file size */
 		fseek(file_handle, 0, SEEK_END);
-		long file_size = ftell(file_handle);
+		
+		size_t file_size = (size_t)ftell(file_handle);
+		
 		fseek(file_handle, 0, SEEK_SET);
 
 		/* read to buffer and close */
 		char* content = (char*)malloc(sizeof(char) * (file_size + 1));
+
+		if (!content)
+			return NULL;
+
 		size_t length = fread(content, sizeof(char), file_size, file_handle);
+
 		fclose(file_handle);
+
 		content[length] = 0;
 
 		return content;
