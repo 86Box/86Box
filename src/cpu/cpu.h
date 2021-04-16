@@ -52,6 +52,7 @@ enum {
     CPU_Cx486S,
     CPU_i486DX,
     CPU_Am486DX,
+    CPU_Am486DXL,
     CPU_Cx486DX,
     CPU_i486SX_SLENH,
     CPU_i486DX_SLENH,

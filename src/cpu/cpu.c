@@ -110,7 +110,7 @@ int		isa_cycles,
 
  		is286, is386, is486 = 1,
 		cpu_isintel, cpu_iscyrix, hascache, isibm486, israpidcad, is_vpc,
-		is_am486, is_pentium, is_k5, is_k6, is_p6, is_cxsmm, hasfpu,
+		is_am486, is_am486dxl, is_pentium, is_k5, is_k6, is_p6, is_cxsmm, hasfpu,
 
 		timing_rr, timing_mr, timing_mrl, timing_rm, timing_rml,
 		timing_mm, timing_mml, timing_bt, timing_bnt,
@@ -369,14 +369,15 @@ cpu_set(void)
 		   (cpu_s->cpu_type == CPU_IBM486BL);
     is486        = (cpu_s->cpu_type >= CPU_RAPIDCAD);
     is_am486     = (cpu_s->cpu_type == CPU_ENH_Am486DX);
+    is_am486dxl  = (cpu_s->cpu_type == CPU_Am486DXL);
 
     cpu_isintel = !strcmp(cpu_f->manufacturer, "Intel");
     cpu_iscyrix = !strcmp(cpu_f->manufacturer, "Cyrix");
 
     /* SL-Enhanced Intel 486s have the same SMM save state table layout as Pentiums,
-       and the WinChip datasheet claims those are Pentium-compatible as well. */
+       and the WinChip datasheet claims those are Pentium-compatible as well. AMD Am486DXL/DXL2 also has compatible SMM, or would if not for it's different SMBase*/
     is_pentium   = (cpu_isintel && (cpu_s->cpu_type >= CPU_i486SX_SLENH) && (cpu_s->cpu_type < CPU_PENTIUMPRO)) ||
-		   !strcmp(cpu_f->manufacturer, "IDT");
+		   !strcmp(cpu_f->manufacturer, "IDT") || (cpu_s->cpu_type == CPU_Am486DXL);
     is_k5        = !strcmp(cpu_f->manufacturer, "AMD") && (cpu_s->cpu_type > CPU_ENH_Am486DX);
     is_k6        = (cpu_s->cpu_type >= CPU_K6) && !strcmp(cpu_f->manufacturer, "AMD");
     /* The Samuel 2 datasheet claims it's Celeron-compatible. */

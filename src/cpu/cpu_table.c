@@ -454,7 +454,29 @@ const cpu_family_t cpu_families[] = {
 		{"80",  CPU_Am486DX, fpus_internal, 80000000, 2, 5000, 0x432,     0, 0, CPU_SUPPORTS_DYNAREC, 14,14, 6, 6, 10},
 		{"", 0}
 	}
+    }, 
+ {
+	.package = CPU_PKG_SOCKET1,
+	.manufacturer = "AMD",
+	.name = "Am486DXL",
+	.internal_name = "am486dxl",
+	.cpus = (const CPU[]) {
+		{"33",   CPU_Am486DXL,  fpus_internal, 33333333, 1, 5000, 0x422,     0, 0, CPU_SUPPORTS_DYNAREC,  6, 6, 3, 3, 4},
+		{"40",   CPU_Am486DXL,  fpus_internal, 40000000, 1, 5000, 0x422,     0, 0, CPU_SUPPORTS_DYNAREC,  7, 7, 3, 3, 5},
+		{"", 0}
+	}
     }, {
+	.package = CPU_PKG_SOCKET1,
+	.manufacturer = "AMD",
+	.name = "Am486DXL2",
+	.internal_name = "am486dxl2",
+	.cpus = (const CPU[]) {
+		{"50",  CPU_Am486DXL, fpus_internal, 50000000, 2, 5000, 0x432,     0, 0, CPU_SUPPORTS_DYNAREC,  8, 8, 6, 6, 6},
+		{"66",  CPU_Am486DXL, fpus_internal, 66666666, 2, 5000, 0x432,     0, 0, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6, 8},
+		{"80",  CPU_Am486DXL, fpus_internal, 80000000, 2, 5000, 0x432,     0, 0, CPU_SUPPORTS_DYNAREC, 14,14, 6, 6, 10},
+		{"", 0}
+	}
+    },     {
 	.package = CPU_PKG_SOCKET3,
 	.manufacturer = "AMD",
 	.name = "Am486DX4",
