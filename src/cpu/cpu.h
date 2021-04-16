@@ -478,7 +478,7 @@ extern int	cpu_cyrix_alignment;	/*Cyrix 5x86/6x86 only has data misalignment
 					  penalties when crossing 8-byte boundaries*/
 
 extern int	is8086,	is286, is386, is486;
-extern int	is_am486, is_pentium, is_k5, is_k6, is_p6, is_cxsmm;
+extern int	is_am486, is_am486dxl, is_pentium, is_k5, is_k6, is_p6, is_cxsmm;
 extern int	hascache;
 extern int	isibm486;
 extern int	is_rapidcad;
