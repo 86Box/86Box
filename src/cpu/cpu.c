@@ -108,9 +108,9 @@ int		isa_cycles,
 		cpu_override, cpu_effective, cpu_multi, cpu_16bitbus, cpu_64bitbus, cpu_busspeed,
 		cpu_cyrix_alignment, CPUID,
 
- 		is286, is386, is486 = 1, is486sx, is486dx, is486sx2, is486dx2, isdx4,
+ 		is286, is386, is486 = 1,
 		cpu_isintel, cpu_iscyrix, hascache, isibm486, israpidcad, is_vpc,
-		is_am486, is_486_org, is_pentium, is_k5, is_k6, is_p6, is_cxsmm, hasfpu,
+		is_am486, is_pentium, is_k5, is_k6, is_p6, is_cxsmm, hasfpu,
 
 		timing_rr, timing_mr, timing_mrl, timing_rm, timing_rml,
 		timing_mm, timing_mml, timing_bt, timing_bnt,
@@ -368,23 +368,16 @@ cpu_set(void)
     isibm486     = (cpu_s->cpu_type == CPU_IBM386SLC) || (cpu_s->cpu_type == CPU_IBM486SLC) ||
 		   (cpu_s->cpu_type == CPU_IBM486BL);
     is486        = (cpu_s->cpu_type >= CPU_RAPIDCAD);
-    is486sx      = (cpu_s->cpu_type >= CPU_i486SX) && (cpu_s->cpu_type < CPU_i486SX2);
-    is486sx2     = (cpu_s->cpu_type >= CPU_i486SX2) && (cpu_s->cpu_type < CPU_i486DX);
-    is486dx      = (cpu_s->cpu_type >= CPU_i486DX) && (cpu_s->cpu_type < CPU_i486DX2);
-    is486dx2     = (cpu_s->cpu_type >= CPU_i486DX2) && (cpu_s->cpu_type < CPU_iDX4);	
-    isdx4        = (cpu_s->cpu_type >= CPU_iDX4) && (cpu_s->cpu_type < CPU_WINCHIP);
-    is_486_org   = (cpu_s->cpu_type == CPU_i486SX) || (cpu_s->cpu_type == CPU_i486DX) ||
-		   (cpu_s->cpu_type == CPU_Am486SX) || (cpu_s->cpu_type == CPU_Am486DX);
-    is_am486     = !strcmp(cpu_f->manufacturer, "AMD") && (cpu_s->cpu_type >= CPU_Am486SX) && (cpu_s->cpu_type <= CPU_Am5x86);
+    is_am486     = (cpu_s->cpu_type == CPU_ENH_Am486DX);
 
     cpu_isintel = !strcmp(cpu_f->manufacturer, "Intel");
     cpu_iscyrix = !strcmp(cpu_f->manufacturer, "Cyrix");
 
-    /* The 486DX2 and iDX4 have the same SMM save state table layout as Pentiums,
+    /* SL-Enhanced Intel 486s have the same SMM save state table layout as Pentiums,
        and the WinChip datasheet claims those are Pentium-compatible as well. */
-    is_pentium   = (cpu_isintel && (cpu_s->cpu_type >= CPU_i486SX) && (cpu_s->cpu_type < CPU_PENTIUMPRO)) ||
+    is_pentium   = (cpu_isintel && (((cpu_s->cpu_type >= CPU_i486SX_SLENH)) && (cpu_s->cpu_type < CPU_PENTIUMPRO))) ||
 		   !strcmp(cpu_f->manufacturer, "IDT");
-    is_k5        = !strcmp(cpu_f->manufacturer, "AMD") && (cpu_s->cpu_type > CPU_Am5x86);
+    is_k5        = !strcmp(cpu_f->manufacturer, "AMD") && (cpu_s->cpu_type > CPU_ENH_Am486DX);
     is_k6        = (cpu_s->cpu_type >= CPU_K6) && !strcmp(cpu_f->manufacturer, "AMD");
     /* The Samuel 2 datasheet claims it's Celeron-compatible. */
     is_p6        = (cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUMPRO)) || !strcmp(cpu_f->manufacturer, "VIA");
@@ -758,21 +751,17 @@ cpu_set(void)
 		timing_misaligned		=   3;
 		break;
 
-	case CPU_iDX4:
+	case CPU_i486SX_SLENH:
+	case CPU_i486DX_SLENH:
 		cpu_features = CPU_FEATURE_CR4 | CPU_FEATURE_VME;
 		cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_VME;
 		/* FALLTHROUGH */
 	case CPU_RAPIDCAD:
 	case CPU_i486SX:
-	case CPU_i486SX2:
 	case CPU_i486DX:
-	case CPU_i486DX2:
 	case CPU_Am486SX:
-	case CPU_Am486SX2:
 	case CPU_Am486DX:
-	case CPU_Am486DX2:
-	case CPU_Am486DX4:
-	case CPU_Am5x86:
+	case CPU_ENH_Am486DX:
 		/*AMD timing identical to Intel*/
 #ifdef USE_DYNAREC
 		x86_setopcodes(ops_386, ops_486_0f, dynarec_ops_386, dynarec_ops_486_0f);
@@ -815,8 +804,6 @@ cpu_set(void)
 
 	case CPU_Cx486S:
 	case CPU_Cx486DX:
-	case CPU_Cx486DX2:
-	case CPU_Cx486DX4:
 #ifdef USE_DYNAREC
 		x86_setopcodes(ops_386, ops_c486_0f, dynarec_ops_386, dynarec_ops_c486_0f);
 #else
@@ -1468,9 +1455,7 @@ void
 cpu_CPUID(void)
 {
     switch (cpu_s->cpu_type) {
-	case CPU_RAPIDCAD:
-	case CPU_i486DX:
-	case CPU_i486DX2:
+	case CPU_i486SX_SLENH:
 		if (!EAX) {
 			EAX = 0x00000001;
 			EBX = 0x756e6547;
@@ -1479,12 +1464,12 @@ cpu_CPUID(void)
 		} else if (EAX == 1) {
 			EAX = CPUID;
 			EBX = ECX = 0;
-			EDX = CPUID_FPU;	/*FPU*/
+			EDX = CPUID_VME;
 		} else
 			EAX = EBX = ECX = EDX = 0;
 		break;
 
-	case CPU_iDX4:
+	case CPU_i486DX_SLENH:
 		if (!EAX) {
 			EAX = 0x00000001;
 			EBX = 0x756e6547;
@@ -1497,25 +1482,8 @@ cpu_CPUID(void)
 		} else
 			EAX = EBX = ECX = EDX = 0;
 		break;
-
-	case CPU_Am486SX:
-	case CPU_Am486SX2:
-		if (!EAX) {
-			EAX = 1;
-			EBX = 0x68747541;
-			ECX = 0x444D4163;
-			EDX = 0x69746E65;
-		} else if (EAX == 1) {
-			EAX = CPUID;
-			EBX = ECX = EDX = 0;	/*No FPU*/
-		} else
-			EAX = EBX = ECX = EDX = 0;
-		break;
-
-	case CPU_Am486DX:
-	case CPU_Am486DX2:
-	case CPU_Am486DX4:
-	case CPU_Am5x86:
+		
+	case CPU_ENH_Am486DX:
 		if (!EAX) {
 			EAX = 1;
 			EBX = 0x68747541;

@@ -50,18 +50,12 @@ enum {
     CPU_i486SX,		/* 486 class CPUs */
     CPU_Am486SX,
     CPU_Cx486S,
-    CPU_i486SX2,
-    CPU_Am486SX2,
     CPU_i486DX,
     CPU_Am486DX,
     CPU_Cx486DX,
-    CPU_i486DX2,
-    CPU_Am486DX2,
-    CPU_Cx486DX2,
-    CPU_iDX4,
-    CPU_Am486DX4,
-    CPU_Cx486DX4,
-    CPU_Am5x86,
+    CPU_i486SX_SLENH,
+    CPU_i486DX_SLENH,
+    CPU_ENH_Am486DX,
     CPU_Cx5x86,
     CPU_P24T,
     CPU_WINCHIP,	/* 586 class CPUs */
@@ -482,8 +476,8 @@ extern double   fpu_multi;
 extern int	cpu_cyrix_alignment;	/*Cyrix 5x86/6x86 only has data misalignment
 					  penalties when crossing 8-byte boundaries*/
 
-extern int	is8086,	is286, is386, is486, is486sx, is486dx, is486sx2, is486dx2, isdx4;
-extern int	is_am486, is_486_org, is_pentium, is_k5, is_k6, is_p6, is_cxsmm;
+extern int	is8086,	is286, is386, is486;
+extern int	is_am486, is_pentium, is_k5, is_k6, is_p6, is_cxsmm;
 extern int	hascache;
 extern int	isibm486;
 extern int	is_rapidcad;
