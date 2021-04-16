@@ -85,9 +85,9 @@ const machine_t machines[] = {
     { "[8088] VTech Laser Turbo XT",		"ltxt",			MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  256,   640, 256,    0,	      machine_xt_laserxt_init, NULL			},
 #endif
     { "[8088] Xi8088",				"xi8088",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2,							   64,  1024, 128,  127,	       machine_xt_xi8088_init, xi8088_get_device	},
-    { "[8088] Zenith Data Systems Z-151/152/161", "zdsz151",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640,  64,    0,		 machine_xt_z151_init, NULL			},
+    { "[8088] Zenith Data Systems Z-151/152/161","zdsz151",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640,  64,    0,		 machine_xt_z151_init, NULL			},
     { "[8088] Zenith Data Systems Z-159",	"zdsz159",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640,  64,    0,		 machine_xt_z159_init, NULL			},
-    { "[8088] Zenith Data Systems SupersPort (Z-184)", "zdsupers",	MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO_FIXED,						  128,   640, 128,    0,		 machine_xt_z184_init, z184_get_device		},
+    { "[8088] Zenith Data Systems SupersPort (Z-184)","zdsupers",	MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO_FIXED,						  128,   640, 128,    0,		 machine_xt_z184_init, z184_get_device		},
     { "[GC100A] Philips P3120",			"p3120",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_XTA,							  256,   768, 256,    0,		machine_xt_p3120_init, NULL			},
     
     /* 8086 Machines */
@@ -285,11 +285,11 @@ const machine_t machines[] = {
     { "[i430FX] PC Partner MB500N",		"mb500n",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_IDE_DUAL,							 8192, 131072, 8192, 127,	       machine_at_mb500n_init, NULL			},
 
     /* OPTi 596/597 */
-    { "[OPTi 597] TMC PAT54PV",		"pat54pv",			MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, CPU_BLOCK(CPU_K5, CPU_5K86), 50000000, 66666667, 3520, 3520, 1.5, 1.5,				MACHINE_VLB,									 2048,  65536, 2048, 127,	      machine_at_pat54pv_init, NULL			},
+    { "[OPTi 597] TMC PAT54PV",			"pat54pv",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, CPU_BLOCK(CPU_K5, CPU_5K86), 50000000, 66666667, 3520, 3520, 1.5, 1.5,			MACHINE_VLB,									 2048,  65536, 2048, 127,	      machine_at_pat54pv_init, NULL			},
     
     /* OPTi 596/597/822 */
-    { "[OPTi 597] Shuttle HOT-543",		"hot543",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 60000000, 66666667, 3520, 3520, 1.5, 1.5,							MACHINE_PCI | MACHINE_VLB,				 8192, 131072, 8192, 127,		machine_at_hot543_init, NULL			},
-    { "[OPTi 597] Supermicro P54VL-PCI",		"p54vl",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 60000000, 66666667, 3520, 3520, 1.5, 1.5,							MACHINE_PCI | MACHINE_VLB,				 8192, 131072, 8192, 127,		machine_at_p54vl_init, NULL			},
+    { "[OPTi 597] Shuttle HOT-543",		"hot543",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 60000000, 66666667, 3520, 3520, 1.5, 1.5,							MACHINE_PCI | MACHINE_VLB,							 8192, 131072, 8192, 127,	       machine_at_hot543_init, NULL			},
+    { "[OPTi 597] Supermicro P54VL-PCI",	"p54vl",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 60000000, 66666667, 3520, 3520, 1.5, 1.5,							MACHINE_PCI | MACHINE_VLB,							 8192, 131072, 8192, 127,		machine_at_p54vl_init, NULL			},
 
     /* SiS 85C50x */
     { "[SiS 85C50x] ASUS PCI/I-P54SP4",		"p54sp4",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, CPU_BLOCK(CPU_K5, CPU_5K86), 40000000, 66666667, 3380, 3520, 1.5, 1.5,			MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	       machine_at_p54sp4_init, NULL			},
@@ -377,7 +377,7 @@ const machine_t machines[] = {
     /* Socket 8 machines */
     /* 450KX */
 #if defined(DEV_BRANCH) && defined(USE_I450KX)
-    { "[i450KX] ASUS P/I-P6RP4",	"p6rp4",		MACHINE_TYPE_SOCKET8,		CPU_PKG_SOCKET8, 0, 60000000, 66666667, 2100, 3500, 2.0, 4.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192,524288, 8192, 127,	 machine_at_p6rp4_init, NULL			},
+    { "[i450KX] ASUS P/I-P6RP4",		"p6rp4",		MACHINE_TYPE_SOCKET8,		CPU_PKG_SOCKET8, 0, 60000000, 66666667, 2100, 3500, 2.0, 4.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 524288, 8192, 127,	        machine_at_p6rp4_init, NULL			},
 #endif
 
     /* 440FX */
