@@ -11,9 +11,10 @@
  * NOTE:	This is very much still a work-in-progress.
  *		Expect missing functionality, hangs and bugs.
  * 
- * TODO:	Loader for glsl files.
- *			libretro has a sizeable library that could
- *			be a good target for compatibility.
+ * TODO:	More shader features
+ *			- scaling
+ *			- multipass
+ *			- previous frames 
  *		(UI) options
  *		More error handling
  *		...
@@ -53,6 +54,14 @@
 
 static const int INIT_WIDTH = 640;
 static const int INIT_HEIGHT = 400;
+
+/* Option; Target framerate: Sync with emulation / 25 fps / 30 fps / 50 fps / 60 fps / 75 fps */
+static const int SYNC_WITH_BLITTER = 1;
+static const int TARGET_FRAMERATE = 75;
+static const int TARGET_FRAMETIME = 1000 / TARGET_FRAMERATE;
+
+/* Option; Vsync: Off / On */
+static const int VSYNC = 0;
 
 /**
  * @brief A dedicated OpenGL thread.
@@ -419,7 +428,7 @@ static void winmessage_hook(void* userdata, void* hWnd, unsigned int message, Ui
 
 /**
  * @brief Initialize OpenGL context
- * @return Object identifiers
+ * @return Identifiers
 */
 static gl_identifiers initialize_glcontext()
 {
@@ -495,6 +504,10 @@ static gl_identifiers initialize_glcontext()
 		glUniformMatrix4fv(mvp_matrix, 1, GL_FALSE, mvp);
 	}
 
+	GLint frame_direction = glGetUniformLocation(gl.shader_progID, "FrameDirection");
+	if (frame_direction != -1)
+		glUniform1i(frame_direction, 1); /* always forward */
+
 	gl.input_size = glGetUniformLocation(gl.shader_progID, "InputSize");
 	gl.output_size = glGetUniformLocation(gl.shader_progID, "OutputSize");
 	gl.texture_size = glGetUniformLocation(gl.shader_progID, "TextureSize");
@@ -505,14 +518,31 @@ static gl_identifiers initialize_glcontext()
 
 /**
  * @brief Clean up OpenGL context 
- * @param Object identifiers from initialize 
+ * @param Identifiers from initialize 
 */
-static void finalize_glcontext(gl_identifiers obj)
+static void finalize_glcontext(gl_identifiers gl)
 {
-	glDeleteProgram(obj.shader_progID);
-	glDeleteTextures(1, &obj.textureID);
-	glDeleteBuffers(1, &obj.vertexBufferID);
-	glDeleteVertexArrays(1, &obj.vertexArrayID);
+	glDeleteProgram(gl.shader_progID);
+	glDeleteTextures(1, &gl.textureID);
+	glDeleteBuffers(1, &gl.vertexBufferID);
+	glDeleteVertexArrays(1, &gl.vertexArrayID);
+}
+
+/**
+ * @brief Renders a frame and swaps the buffer
+ * @param gl Identifiers from initialize
+*/
+static void render_and_swap(gl_identifiers gl)
+{
+	static int frame_counter = 0;
+
+	glClear(GL_COLOR_BUFFER_BIT);
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+	SDL_GL_SwapWindow(window);
+
+	if (gl.frame_count != -1)
+		glUniform1i(gl.frame_count, frame_counter = (frame_counter + 1) & 1023);
 }
 
 /**
@@ -526,6 +556,8 @@ static void opengl_main()
 	SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1"); /* Is this actually doing anything...? */
 
 	window = SDL_CreateWindow("86Box OpenGL Renderer", 0, 0, resize_info.width, resize_info.height, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
+
+	SDL_GL_SetSwapInterval(VSYNC);
 
 	/* Keep track of certain parameters, only changed in this thread to avoid race conditions */
 	int fullscreen = resize_info.fullscreen, video_width = INIT_WIDTH, video_height = INIT_HEIGHT;
@@ -553,26 +585,32 @@ static void opengl_main()
 
 	gl_identifiers gl = initialize_glcontext();
 
-	int frame_counter = 0;
-
 	if (gl.frame_count != -1)
 		glUniform1i(gl.frame_count, 0);
+
+	uint32_t last_swap = -TARGET_FRAMETIME;
 
 	/* Render loop */
 	int closing = 0;
 	while (!closing)
 	{
-		/* Now redrawing only after a blit. For some shaders to work properly redraw should be in sync with (emulated) display refresh rate. */
-
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-		glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-		
-		SDL_GL_SwapWindow(window);
+		if (SYNC_WITH_BLITTER)
+			render_and_swap(gl);
 
 		DWORD wait_result = WAIT_TIMEOUT;
 
 		do
 		{
+			if (!SYNC_WITH_BLITTER)
+			{
+				uint32_t ticks = plat_get_ticks();
+				if (ticks - last_swap > TARGET_FRAMETIME)
+				{
+					render_and_swap(gl);
+					last_swap = ticks;
+				}
+			}
+
 			SDL_Event event;
 
 			/* Handle SDL_Window events */
@@ -619,8 +657,6 @@ static void opengl_main()
 				glUniform2f(gl.input_size, video_width, video_height);
 			if (gl.texture_size != -1)
 				glUniform2f(gl.texture_size, video_width, video_height);
-			if (gl.frame_count != -1)
-				glUniform1i(gl.frame_count, frame_counter = (frame_counter + 1) & 1023);
 		}
 		else if (sync_event == sync_objects.resize)
 		{
