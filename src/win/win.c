@@ -102,7 +102,12 @@ static const struct {
 } vid_apis[RENDERERS_NUM] = {
   {	"SDL_Software", 1, (int(*)(void*))sdl_inits, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs		},
   {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs		},
-  {	"SDL_OpenGL", 1, (int(*)(void*))opengl_init, opengl_close, opengl_resize, opengl_pause, NULL, opengl_set_fs	}
+  {	"SDL_OpenGL", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs	}
+#ifdef DEV_BRANCH
+ ,{	"OpenGL_Core", 1, (int(*)(void*))opengl_init, opengl_close, opengl_resize, opengl_pause, NULL, opengl_set_fs}
+#else
+ ,{	"OpenGL_Core", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs	} /* fall back to SDL_OpenGL */
+#endif
 #ifdef USE_VNC
  ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL, NULL					}
 #endif
@@ -920,9 +925,17 @@ plat_vidapi_name(int api)
 	case 2:
 		name = "sdl_opengl";
 		break;
-
-#ifdef USE_VNC
+#ifdef DEV_BRANCH
 	case 3:
+		name = "opengl_core";
+		break;
+#else
+	case 3:
+		name = "sdl_opengl"; /* fall back to SDL_OpenGL */
+		break;
+#endif
+#ifdef USE_VNC
+	case 4:
 		name = "vnc";
 		break;
 #endif

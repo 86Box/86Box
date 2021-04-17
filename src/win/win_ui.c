@@ -223,6 +223,9 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_SDL_SW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_HW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_OPENGL, MF_UNCHECKED);
+#ifdef DEV_BRANCH
+    CheckMenuItem(menuMain, IDM_VID_OPENGL_CORE, MF_UNCHECKED);
+#endif
 #ifdef USE_VNC
     CheckMenuItem(menuMain, IDM_VID_VNC, MF_UNCHECKED);
 #endif
@@ -669,6 +672,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_SDL_SW:
 			case IDM_VID_SDL_HW:
 			case IDM_VID_SDL_OPENGL:
+#ifdef DEV_BRANCH
+			case IDM_VID_OPENGL_CORE:
+#endif
 #ifdef USE_VNC
 			case IDM_VID_VNC:
 #endif
