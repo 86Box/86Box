@@ -514,12 +514,12 @@ machine_at_wd76c10_init(const machine_t *model)
 
 
 int
-machine_at_commodore_sl386sx16_init(const machine_t *model)
+machine_at_cmdsl386sx16_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved("roms/machines/cbm_sl386sx16/cbm-sl386sx-bios-lo-v1.04-390914-04.bin",
-				"roms/machines/cbm_sl386sx16/cbm-sl386sx-bios-hi-v1.04-390915-04.bin",
+    ret = bios_load_interleaved("roms/machines/cmdsl386sx16/cbm-sl386sx-bios-lo-v1.04-390914-04.bin",
+				"roms/machines/cmdsl386sx16/cbm-sl386sx-bios-hi-v1.04-390915-04.bin",
 				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -556,18 +556,18 @@ machine_at_scamp_common_init(const machine_t *model)
 
 
 const device_t *
-at_commodore_sl386sx25_get_device(void)
+at_cmdsl386sx25_get_device(void)
 {
     return &gd5402_onboard_device;
 }
 
 
 int
-machine_at_commodore_sl386sx25_init(const machine_t *model)
+machine_at_cmdsl386sx25_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/cbm_sl386sx25/f000.rom",
+    ret = bios_load_linear("roms/machines/cmdsl386sx25/f000.rom",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -710,22 +710,22 @@ machine_at_pja511m_init(const machine_t *model)
  * - ctrl-alt-del produces an 8042 error
  */
 int
-machine_at_ncrpc8_init(const machine_t *model)
+machine_at_pc8_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved("roms/machines/ncr_pc8/ncr_35117_u127_vers.4-2.bin",
-                "roms/machines/ncr_pc8/ncr_35116_u113_vers.4-2.bin",
-	    		0x000f0000, 65536, 0);
+    ret = bios_load_interleaved("roms/machines/pc8/ncr_35117_u127_vers.4-2.bin",
+				"roms/machines/pc8/ncr_35116_u113_vers.4-2.bin",
+				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
-	    return ret;
+	return ret;
 
     machine_at_common_init(model);
     device_add(&keyboard_at_ncr_device);
 
     if (fdc_type == FDC_INTERNAL)
-    device_add(&fdc_at_device);
+	device_add(&fdc_at_device);
     
     return ret;
 }
@@ -735,30 +735,30 @@ machine_at_ncrpc8_init(const machine_t *model)
  * - ctrl-alt-del produces an 8042 error
  */
 int
-machine_at_ncr3302_init(const machine_t *model)
+machine_at_3302_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/ncr_3302/f000-flex_drive_test.bin",
+    ret = bios_load_linear("roms/machines/3302/f000-flex_drive_test.bin",
 				0x000f0000, 65536, 0);
 
     if (ret) {
-        bios_load_aux_linear("roms/machines/ncr_3302/f800-setup_ncr3.5-013190.bin",
+	bios_load_aux_linear("roms/machines/3302/f800-setup_ncr3.5-013190.bin",
 			     0x000f8000, 32768, 0);
     }
 
     if (bios_only || !ret)
-	    return ret;
+	return ret;
 
     machine_at_common_ide_init(model);
     device_add(&neat_device);
     device_add(&keyboard_at_ncr_device);
 
     if (fdc_type == FDC_INTERNAL)
-    device_add(&fdc_at_device);
+	device_add(&fdc_at_device);
 
     if (gfxcard == VID_INTERNAL)
-    device_add(&paradise_pvga1a_ncr3302_device);
+	device_add(&paradise_pvga1a_ncr3302_device);
     
     return ret;
 }
@@ -768,16 +768,16 @@ machine_at_ncr3302_init(const machine_t *model)
  * - soft-reboot after saving CMOS settings/pressing ctrl-alt-del produces an 8042 error
  */
 int
-machine_at_ncrpc916sx_init(const machine_t *model)
+machine_at_pc916sx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved("roms/machines/ncr_pc916sx/ncr_386sx_u46-17_7.3.bin",
-                "roms/machines/ncr_pc916sx/ncr_386sx_u12-19_7.3.bin",
-	    		0x000f0000, 65536, 0);
+    ret = bios_load_interleaved("roms/machines/pc916sx/ncr_386sx_u46-17_7.3.bin",
+				"roms/machines/pc916sx/ncr_386sx_u12-19_7.3.bin",
+				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
-	    return ret;
+	return ret;
 
     machine_at_common_init(model);
     
@@ -785,14 +785,14 @@ machine_at_ncrpc916sx_init(const machine_t *model)
     mem_remap_top(384);
 
     if (fdc_type == FDC_INTERNAL)
-    device_add(&fdc_at_device);
+	device_add(&fdc_at_device);
     
     return ret;
 }
 
 #if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
 int
-machine_at_olim290_init(const machine_t *model)
+machine_at_m290_init(const machine_t *model)
 {
     int ret;
 
@@ -800,12 +800,12 @@ machine_at_olim290_init(const machine_t *model)
 				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
-	    return ret;
+	return ret;
 
     machine_at_common_init(model);
     device_add(&keyboard_at_olivetti_device);
     
-    if (fdc_type == FDC_INTERNAL)	
+    if (fdc_type == FDC_INTERNAL)
 	device_add(&fdc_at_device);
     
     device_add(&olivetti_eva_device);
@@ -815,17 +815,17 @@ machine_at_olim290_init(const machine_t *model)
 #endif
 
 const device_t *
-at_m300_08_get_device(void)
+at_m30008_get_device(void)
 {
     return &oti067_m300_device;
 }
 
 int
-machine_at_olim300_08_init(const machine_t *model)
+machine_at_m30008_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/olivetti_m300_08/BIOS.ROM",
+    ret = bios_load_linear("roms/machines/m30008/BIOS.ROM",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -845,11 +845,11 @@ machine_at_olim300_08_init(const machine_t *model)
 
 /* Almost identical to M300-08, save for CPU speed, VRAM, and BIOS identification string */
 int
-machine_at_olim300_15_init(const machine_t *model)
+machine_at_m30015_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/olivetti_m300_15/BIOS.ROM",
+    ret = bios_load_linear("roms/machines/m30015/BIOS.ROM",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -862,8 +862,8 @@ machine_at_olim300_15_init(const machine_t *model)
     device_add(&pc87310_ide_device);
     
     /* Stock VRAM is maxed out, so no need to expose video card config */
-	if (gfxcard == VID_INTERNAL)
-    device_add(&oti067_m300_device);
+    if (gfxcard == VID_INTERNAL)
+	device_add(&oti067_m300_device);
 
     return ret;
 }

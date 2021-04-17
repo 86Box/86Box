@@ -84,13 +84,13 @@ typedef struct {
     int		mouse_mode;
     int		x, y, b;
 	pc_timer_t send_delay_timer;
-} olim24_kbd_t;
+} m24_kbd_t;
 
 typedef struct {
 	ogc_t ogc;
 	colorplus_t colorplus;
 	int mode;
-} olim19_vid_t;
+} m19_vid_t;
 
 static uint8_t	key_queue[16];
 static int	key_queue_start = 0,
@@ -122,7 +122,7 @@ m24_log(const char *fmt, ...)
 static void
 m24_kbd_poll(void *priv)
 {
-    olim24_kbd_t *m24_kbd = (olim24_kbd_t *)priv;
+    m24_kbd_t *m24_kbd = (m24_kbd_t *)priv;
 
     timer_advance_u64(&m24_kbd->send_delay_timer, 1000 * TIMER_USEC);
     if (m24_kbd->wantirq) {
@@ -165,7 +165,7 @@ m24_kbd_adddata_ex(uint16_t val)
 static void
 m24_kbd_write(uint16_t port, uint8_t val, void *priv)
 {
-    olim24_kbd_t *m24_kbd = (olim24_kbd_t *)priv;
+    m24_kbd_t *m24_kbd = (m24_kbd_t *)priv;
 
 #if ENABLE_KEYBOARD_LOG
     m24_log("M24: write %04X %02X\n", port, val);
@@ -246,7 +246,7 @@ m24_kbd_write(uint16_t port, uint8_t val, void *priv)
 static uint8_t
 m24_kbd_read(uint16_t port, void *priv)
 {
-    olim24_kbd_t *m24_kbd = (olim24_kbd_t *)priv;
+    m24_kbd_t *m24_kbd = (m24_kbd_t *)priv;
     uint8_t ret = 0xff;
 
     switch (port) {
@@ -284,7 +284,7 @@ m24_kbd_read(uint16_t port, void *priv)
 static void
 m24_kbd_close(void *priv)
 {
-    olim24_kbd_t *kbd = (olim24_kbd_t *)priv;
+    m24_kbd_t *kbd = (m24_kbd_t *)priv;
 
     /* Stop the timer. */
     timer_disable(&kbd->send_delay_timer);
@@ -306,7 +306,7 @@ m24_kbd_close(void *priv)
 static void
 m24_kbd_reset(void *priv)
 {
-    olim24_kbd_t *m24_kbd = (olim24_kbd_t *)priv;
+    m24_kbd_t *m24_kbd = (m24_kbd_t *)priv;
  
     /* Initialize the keyboard. */
     m24_kbd->status = STAT_LOCK | STAT_CD;
@@ -327,7 +327,7 @@ m24_kbd_reset(void *priv)
 static int
 ms_poll(int x, int y, int z, int b, void *priv)
 {
-    olim24_kbd_t *m24_kbd = (olim24_kbd_t *)priv;
+    m24_kbd_t *m24_kbd = (m24_kbd_t *)priv;
 
     m24_kbd->x += x;
     m24_kbd->y += y;
@@ -408,7 +408,7 @@ ms_poll(int x, int y, int z, int b, void *priv)
 
 
 static void
-m24_kbd_init(olim24_kbd_t *kbd)
+m24_kbd_init(m24_kbd_t *kbd)
 {
 	
     /* Initialize the keyboard. */
@@ -432,7 +432,7 @@ m24_kbd_init(olim24_kbd_t *kbd)
 static void
 m19_vid_out(uint16_t addr, uint8_t val, void *priv)
 {
-    olim19_vid_t *vid = (olim19_vid_t *)priv;
+    m19_vid_t *vid = (m19_vid_t *)priv;
     int oldmode = vid->mode;
 
     /* activating plantronics mode */
@@ -473,7 +473,7 @@ m19_vid_out(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 m19_vid_in(uint16_t addr, void *priv)
 {
-    olim19_vid_t *vid = (olim19_vid_t *)priv;
+    m19_vid_t *vid = (m19_vid_t *)priv;
 
     if (vid->mode == PLANTRONICS_MODE)
 	return colorplus_in(addr, &vid->colorplus);
@@ -485,7 +485,7 @@ m19_vid_in(uint16_t addr, void *priv)
 static uint8_t
 m19_vid_read(uint32_t addr, void *priv)
 {
-    olim19_vid_t *vid = (olim19_vid_t *)priv;
+    m19_vid_t *vid = (m19_vid_t *)priv;
 
     vid->colorplus.cga.mapping = vid->ogc.cga.mapping;
     if (vid->mode == PLANTRONICS_MODE)
@@ -498,7 +498,7 @@ m19_vid_read(uint32_t addr, void *priv)
 static void
 m19_vid_write(uint32_t addr, uint8_t val, void *priv)
 {
-    olim19_vid_t *vid = (olim19_vid_t *)priv;
+    m19_vid_t *vid = (m19_vid_t *)priv;
 
     colorplus_write(addr, val, &vid->colorplus);
     ogc_write(addr, val, &vid->ogc);
@@ -508,7 +508,7 @@ m19_vid_write(uint32_t addr, uint8_t val, void *priv)
 static void
 m19_vid_close(void *priv)
 {
-    olim19_vid_t *vid = (olim19_vid_t *)priv;
+    m19_vid_t *vid = (m19_vid_t *)priv;
 
     free(vid->ogc.cga.vram);
     free(vid->colorplus.cga.vram);
@@ -519,7 +519,7 @@ m19_vid_close(void *priv)
 static void
 m19_vid_speed_changed(void *priv)
 {
-    olim19_vid_t *vid = (olim19_vid_t *)priv;
+    m19_vid_t *vid = (m19_vid_t *)priv;
 
     colorplus_recalctimings(&vid->colorplus);
     ogc_recalctimings(&vid->ogc);
@@ -527,7 +527,7 @@ m19_vid_speed_changed(void *priv)
 
 
 static void
-m19_vid_init(olim19_vid_t *vid)
+m19_vid_init(m19_vid_t *vid)
 {
     /* int display_type; */
     vid->mode = OLIVETTI_OGC_MODE;
@@ -537,7 +537,7 @@ m19_vid_init(olim19_vid_t *vid)
     /* display_type = device_get_config_int("display_type"); */
 
     /* OGC emulation part begin */
-    loadfont_ex("roms/machines/olivetti_m19/BIOS.BIN", 1, 90);
+    loadfont_ex("roms/machines/m19/BIOS.BIN", 1, 90);
     /* composite is not working yet */
     vid->ogc.cga.composite = 0; // (display_type != CGA_RGB);
     /* vid->ogc.cga.snow_enabled = device_get_config_int("snow_enabled"); */
@@ -704,30 +704,30 @@ m24_get_device(void)
 
 
 int
-machine_xt_olim24_init(const machine_t *model)
+machine_xt_m24_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved("roms/machines/olivetti_m24/olivetti_m24_version_1.43_low.bin",
-				"roms/machines/olivetti_m24/olivetti_m24_version_1.43_high.bin",
+    ret = bios_load_interleaved("roms/machines/m24/olivetti_m24_version_1.43_low.bin",
+				"roms/machines/m24/olivetti_m24_version_1.43_high.bin",
 				0x000fc000, 16384, 0);
 
     if (bios_only || !ret)
-		return ret;
+	return ret;
 
-	if (gfxcard == VID_INTERNAL)
+    if (gfxcard == VID_INTERNAL)
     	device_add(&ogc_m24_device);
 
-	olim24_kbd_t *m24_kbd;
+    m24_kbd_t *m24_kbd;
 
-    m24_kbd = (olim24_kbd_t *)malloc(sizeof(olim24_kbd_t));
-    memset(m24_kbd, 0x00, sizeof(olim24_kbd_t));
+    m24_kbd = (m24_kbd_t *) malloc(sizeof(m24_kbd_t));
+    memset(m24_kbd, 0x00, sizeof(m24_kbd_t));
 
     machine_common_init(model);
 
-	/* On-board FDC can be disabled only on M24SP */
+    /* On-board FDC can be disabled only on M24SP */
     if (fdc_type == FDC_INTERNAL)
-    device_add(&fdc_xt_device);
+	device_add(&fdc_xt_device);
 
     /* Address 66-67 = mainboard dip-switch settings */
     io_sethandler(0x0066, 2, m24_read, NULL, NULL, NULL, NULL, NULL, NULL);
@@ -751,20 +751,20 @@ machine_xt_olim24_init(const machine_t *model)
  * - handles only 360kb floppy drives (drive type and capacity selectable with jumpers mapped to unknown memory locations)
  */
 int
-machine_xt_olim240_init(const machine_t *model)
+machine_xt_m240_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved("roms/machines/olivetti_m240/olivetti_m240_pch6_2.04_low.bin",
-				"roms/machines/olivetti_m240/olivetti_m240_pch5_2.04_high.bin",
+    ret = bios_load_interleaved("roms/machines/m240/olivetti_m240_pch6_2.04_low.bin",
+				"roms/machines/m240/olivetti_m240_pch5_2.04_high.bin",
 				0x000f8000, 32768, 0);
 
     if (bios_only || !ret)
-		return ret;
+	return ret;
 
-	machine_common_init(model);
+    machine_common_init(model);
 
-	pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
 
     /* 
      * port 60: should return jumper settings only under unknown conditions
@@ -774,10 +774,10 @@ machine_xt_olim240_init(const machine_t *model)
      */
     device_add(&keyboard_at_olivetti_device);
 
-	/* FIXME: make sure this is correct?? */
+    /* FIXME: make sure this is correct?? */
     device_add(&at_nvr_device);
 
-    if (fdc_type == FDC_INTERNAL)	
+    if (fdc_type == FDC_INTERNAL)
 	device_add(&fdc_xt_device);
 
     if (joystick_type)
@@ -796,22 +796,22 @@ machine_xt_olim240_init(const machine_t *model)
  * - setting CPU speed at 4.77MHz sometimes throws a timer error. If the machine is hard-resetted, the error disappears.
  */
 int
-machine_xt_olim19_init(const machine_t *model)
+machine_xt_m19_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/olivetti_m19/BIOS.BIN",
+    ret = bios_load_linear("roms/machines/m19/BIOS.BIN",
 			   0x000fc000, 16384, 0);
 
     if (bios_only || !ret)
 	return ret;
 
-    olim19_vid_t *vid;
+    m19_vid_t *vid;
 
     /* Do not move memory allocation elsewhere. */
-    vid = (olim19_vid_t *)malloc(sizeof(olim19_vid_t));
-    memset(vid, 0x00, sizeof(olim19_vid_t));
-	
+    vid = (m19_vid_t *) malloc(sizeof(m19_vid_t));
+    memset(vid, 0x00, sizeof(m19_vid_t));
+
     machine_common_init(model);
 
     /* On-board FDC cannot be disabled */
