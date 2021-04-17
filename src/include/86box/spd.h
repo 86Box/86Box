@@ -48,16 +48,6 @@
 
 
 typedef struct {
-    uint8_t	slot;
-    uint16_t	size;
-    uint16_t	row1;
-    uint16_t	row2;
-
-    uint8_t	data[SPD_DATA_SIZE];
-    void	*eeprom;
-} spd_t;
-
-typedef struct {
     uint8_t	bytes_used, spd_size, mem_type,
     		row_bits, col_bits, banks,
     		data_width_lsb, data_width_msb,
@@ -98,6 +88,20 @@ typedef struct {
     		other_data[127],
     		checksum2;
 } spd_sdram_t;
+
+typedef struct {
+    uint8_t	slot;
+    uint16_t	size;
+    uint16_t	row1;
+    uint16_t	row2;
+
+    union {
+	uint8_t	data[SPD_DATA_SIZE];
+	spd_edo_t edo_data;
+	spd_sdram_t sdram_data;
+    };
+    void	*eeprom;
+} spd_t;
 
 
 extern void spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size);
