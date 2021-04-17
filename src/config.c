@@ -555,6 +555,8 @@ load_machine(void)
 		machine = machine_get_machine_from_internal_name("m19");
 	else if (! strcmp(p, "open_xt"))
 		machine = machine_get_machine_from_internal_name("openxt");
+	else if (! strcmp(p, "open_at"))
+		machine = machine_get_machine_from_internal_name("openat");
 	else if (! strcmp(p, "philips_p3105"))
 		machine = machine_get_machine_from_internal_name("p3105");
 	else if (! strcmp(p, "philips_p3120"))
