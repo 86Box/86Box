@@ -93,7 +93,7 @@ extern char	*plat_get_basename(const char *path);
 extern void	plat_get_dirname(char *dest, const char *path);
 extern char	*plat_get_filename(char *s);
 extern char	*plat_get_extension(char *s);
-extern void	plat_append_filename(char *dest, char *s1, char *s2);
+extern void	plat_append_filename(char *dest, const char *s1, const char *s2);
 extern void	plat_put_backslash(char *s);
 extern void	plat_path_slash(char *path);
 extern int	plat_path_abs(char *path);

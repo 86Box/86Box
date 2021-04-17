@@ -85,9 +85,9 @@ DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
 #define WM_HAS_SHUTDOWN		0x8897
 
 #ifdef USE_VNC
-#define RENDERERS_NUM		4
+#define RENDERERS_NUM		5
 #else
-#define RENDERERS_NUM		3
+#define RENDERERS_NUM		4
 #endif
 
 
