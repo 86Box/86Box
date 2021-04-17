@@ -83,15 +83,6 @@ const cpu_family_t cpu_families[] = {
 		{"", 0}
 	}
     }, {
-	.package = CPU_PKG_8088_PCJR,
-	.manufacturer = "Intel",
-	.name = "8088",
-	.internal_name = "8088",
-	.cpus = (const CPU[]) {
-		{"4.77",    CPU_8088, fpus_8088,  4772728,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
-		{"", 0}
-	}
-    }, {
 	.package = CPU_PKG_8088_EUROPC,
 	.manufacturer = "Intel",
 	.name = "8088",
