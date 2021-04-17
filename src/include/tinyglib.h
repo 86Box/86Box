@@ -259,6 +259,7 @@ g_strv_length(gchar **str_array)
 #define g_rand_new() calloc(1, sizeof(GRand))
 #define g_return_val_if_fail(e, v) if (!(e)) return (v)
 #define g_shell_parse_argv(a, b, c, d) !!(sizeof(b)) /* unimplemented */
+#define g_strdup(str) ((str) ? strdup(str) : NULL)
 #define g_warn_if_fail(e) do { if (!(e)) pclog("TinyGLib g_warn_if_fail(" #e ")\n"); } while (0)
 #define g_warn_if_reached() pclog("TinyGLib g_warn_if_reached()\n")
 #define g_warning(s, ...) tinyglib_pclog("g_warning", s, ##__VA_ARGS__)
@@ -271,7 +272,6 @@ g_strv_length(gchar **str_array)
 #define g_rand_free free
 #define g_realloc realloc
 #define g_snprintf snprintf
-#define g_strdup(str) str ? strdup(str) : NULL
 #define g_strerror strerror
 #define g_strfreev free
 #define g_string_append_printf sprintf /* unimplemented */
