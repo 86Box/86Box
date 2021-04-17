@@ -233,7 +233,7 @@ extern int	machine_at_ibmxt286_init(const machine_t *);
 extern int	machine_at_siemens_init(const machine_t *); //Siemens PCD-2L. N82330 discrete machine. It segfaults in some places
 
 #if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
-extern int	machine_at_open_at_init(const machine_t *);
+extern int	machine_at_openat_init(const machine_t *);
 #endif
 
 /* m_at_286_386sx.c */
@@ -405,7 +405,7 @@ extern int	machine_at_zappa_init(const machine_t *);
 extern int	machine_at_mb500n_init(const machine_t *);
 extern int	machine_at_apollo_init(const machine_t *);
 extern int	machine_at_vectra54_init(const machine_t *);
-extern int	machine_at_powermate_v_init(const machine_t *);
+extern int	machine_at_powermatev_init(const machine_t *);
 extern int	machine_at_acerv30_init(const machine_t *);
 
 extern int	machine_at_p5sp4_init(const machine_t *);
@@ -642,7 +642,7 @@ extern int	machine_xt_americxt_init(const machine_t *);
 extern int	machine_xt_amixt_init(const machine_t *);
 extern int	machine_xt_dtk_init(const machine_t *);
 extern int	machine_xt_jukopc_init(const machine_t *);
-extern int	machine_xt_open_xt_init(const machine_t *);
+extern int	machine_xt_openxt_init(const machine_t *);
 extern int	machine_xt_pcxt_init(const machine_t *);
 extern int	machine_xt_pxxt_init(const machine_t *);
 extern int	machine_xt_pc4i_init(const machine_t *);

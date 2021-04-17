@@ -254,11 +254,11 @@ machine_xt_jukopc_init(const machine_t *model)
 
 
 int
-machine_xt_open_xt_init(const machine_t *model)
+machine_xt_openxt_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/open_xt/pcxt31.bin",
+    ret = bios_load_linear("roms/machines/openxt/pcxt31.bin",
 			   0x000fe000, 8192, 0);
 
     if (bios_only || !ret)
