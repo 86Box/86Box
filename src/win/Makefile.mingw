@@ -503,6 +503,7 @@ endif
 # Options for the DEV branch.
 ifeq ($(DEV_BRANCH), y)
 OPTS		+= -DDEV_BRANCH
+RFLAGS		+= -DDEV_BRANCH
 DEVBROBJ	:=
 
 ifeq ($(AMD_K5), y)
