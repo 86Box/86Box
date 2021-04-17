@@ -32,7 +32,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#include <dirent.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
@@ -64,6 +63,7 @@
 #include <86box/video.h>
 #include <86box/plat.h>
 #include <86box/plat_midi.h>
+#include <86box/plat_dir.h>
 #include <86box/ui.h>
 
 
