@@ -762,6 +762,7 @@ cpu_set(void)
 	case CPU_i486DX:
 	case CPU_Am486SX:
 	case CPU_Am486DX:
+	case CPU_Am486DXL:
 	case CPU_ENH_Am486DX:
 		/*AMD timing identical to Intel*/
 #ifdef USE_DYNAREC
