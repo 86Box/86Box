@@ -32,6 +32,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <dirent.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
@@ -535,70 +536,118 @@ static void
 load_machine(void)
 {
     char *cat = "Machine";
-    char *p;
-    int c, i, speed, legacy_mfg, legacy_cpu;
+    char *p, *migrate_from = NULL;
+    int c, i, j, speed, legacy_mfg, legacy_cpu;
     double multi;
 
     p = config_get_string(cat, "machine", NULL);
     if (p != NULL) {
-	if (! strcmp(p, "8500ttc")) /* fix typo */
+    	migrate_from = p;
+	if (! strcmp(p, "8500ttc")) /* migrate typo... */
 		machine = machine_get_machine_from_internal_name("8600ttc");
-	else if (! strcmp(p, "eagle_pcspirit")) /* migrate legacy name */
+	else if (! strcmp(p, "eagle_pcspirit")) /* ...legacy names... */
 		machine = machine_get_machine_from_internal_name("pcspirit");
-	else if (! strcmp(p, "multitech_pc700")) /*migrate legacy name */
+	else if (! strcmp(p, "multitech_pc700"))
 		machine = machine_get_machine_from_internal_name("pc700");
-	else if (! strcmp(p, "ncr_pc4i")) /* migrate legacy name */
+	else if (! strcmp(p, "ncr_pc4i"))
 		machine = machine_get_machine_from_internal_name("pc4i");
-	else if (! strcmp(p, "olivetti_m19")) /* migrate legacy name */
+	else if (! strcmp(p, "olivetti_m19"))
 		machine = machine_get_machine_from_internal_name("m19");
-	else if (! strcmp(p, "open_xt")) /* migrate legacy name */
+	else if (! strcmp(p, "open_xt"))
 		machine = machine_get_machine_from_internal_name("openxt");
-	else if (! strcmp(p, "philips_p3105")) /* migrate legacy name */
+	else if (! strcmp(p, "open_at"))
+		machine = machine_get_machine_from_internal_name("openat");
+	else if (! strcmp(p, "philips_p3105"))
 		machine = machine_get_machine_from_internal_name("p3105");
-	else if (! strcmp(p, "philips_p3120")) /* migrate legacy name */
+	else if (! strcmp(p, "philips_p3120"))
 		machine = machine_get_machine_from_internal_name("p3120");
-	else if (! strcmp(p, "olivetti_m24")) /* migrate legacy name */
+	else if (! strcmp(p, "olivetti_m24"))
 		machine = machine_get_machine_from_internal_name("m24");
-	else if (! strcmp(p, "olivetti_m240")) /* migrate legacy name */
+	else if (! strcmp(p, "olivetti_m240"))
 		machine = machine_get_machine_from_internal_name("m240");
-	else if (! strcmp(p, "ncr_pc8")) /* migrate legacy name */
+	else if (! strcmp(p, "ncr_pc8"))
 		machine = machine_get_machine_from_internal_name("pc8");
-	else if (! strcmp(p, "olivetti_m290")) /* migrate legacy name */
+	else if (! strcmp(p, "olivetti_m290"))
 		machine = machine_get_machine_from_internal_name("m290");
-	else if (! strcmp(p, "ncr_3302")) /* migrate legacy name */
+	else if (! strcmp(p, "ncr_3302"))
 		machine = machine_get_machine_from_internal_name("3302");
-	else if (! strcmp(p, "ncr_pc916sx")) /* migrate legacy name */
+	else if (! strcmp(p, "ncr_pc916sx"))
 		machine = machine_get_machine_from_internal_name("pc916sx");
-	else if (! strcmp(p, "cbm_sl386sx16")) /* migrate legacy name */
+	else if (! strcmp(p, "cbm_sl386sx16"))
 		machine = machine_get_machine_from_internal_name("cmdsl386sx16");
-	else if (! strcmp(p, "olivetti_m300_08")) /* migrate legacy name */
+	else if (! strcmp(p, "olivetti_m300_08"))
 		machine = machine_get_machine_from_internal_name("m30008");
-	else if (! strcmp(p, "olivetti_m300_15")) /* migrate legacy name */
+	else if (! strcmp(p, "olivetti_m300_15"))
 		machine = machine_get_machine_from_internal_name("m30015");
-	else if (! strcmp(p, "cbm_sl386sx25")) /* migrate legacy name */
+	else if (! strcmp(p, "cbm_sl386sx25"))
 		machine = machine_get_machine_from_internal_name("cmdsl386sx25");
-	else if (! strcmp(p, "president")) /* migrate removed machine */
+	else if (! strcmp(p, "president")) { /* ...and removed machines */
 		machine = machine_get_machine_from_internal_name("mb500n");
-	else if (! strcmp(p, "j656vxd")) /* migrate removed machine */
+		migrate_from = NULL;
+	} else if (! strcmp(p, "j656vxd")) {
 		machine = machine_get_machine_from_internal_name("p55va");
-	else
+		migrate_from = NULL;
+	} else {
 		machine = machine_get_machine_from_internal_name(p);
+		migrate_from = NULL;
+	}
     } else 
 	machine = 0;
-    if (machine >= machine_count())
-	machine = machine_count() - 1;
 
     /* This is for backwards compatibility. */
     p = config_get_string(cat, "model", NULL);
     if (p != NULL) {
-	if (! strcmp(p, "p55r2p4")) /* fix typo */
+    	migrate_from = p;
+	if (! strcmp(p, "p55r2p4")) /* migrate typo */
 		machine = machine_get_machine_from_internal_name("p55t2p4");
-	else
+	else {
 		machine = machine_get_machine_from_internal_name(p);
+		migrate_from = NULL;
+	}
 	config_delete_var(cat, "model");
     }
     if (machine >= machine_count())
 	machine = machine_count() - 1;
+
+    /* Copy NVR files when migrating a machine to a new internal name. */
+    if (migrate_from) {
+    	char old_fn[256];
+	strcpy(old_fn, migrate_from);
+	strcat(old_fn, ".");
+	c = strlen(old_fn);
+	char new_fn[256];
+	strcpy(new_fn, machines[machine].internal_name);
+	strcat(new_fn, ".");
+	i = strlen(new_fn);
+
+	/* Iterate through NVR files. */
+	DIR *dirp = opendir(nvr_path("."));
+	if (dirp) {
+		struct dirent *entry;
+		while ((entry = readdir(dirp))) {
+			/* Check if this file corresponds to the old name. */
+			if (strncmp(entry->d_name, old_fn, c))
+				continue;
+
+			/* Add extension to the new name. */
+			strcpy(&new_fn[i], &entry->d_name[c]);
+
+			/* Only copy if a file with the new name doesn't already exist. */
+			FILE *g = nvr_fopen(new_fn, "rb");
+			if (!g) {
+				FILE *f = nvr_fopen(entry->d_name, "rb");
+				g = nvr_fopen(new_fn, "wb");
+
+				uint8_t buf[4096];
+				while ((j = fread(buf, 1, sizeof(buf), f)))
+					fwrite(buf, 1, j, g);
+
+				fclose(f);
+			}
+			fclose(g);
+		}
+	}
+    }
 
     cpu_override = config_get_int(cat, "cpu_override", 0);
     cpu_f = NULL;

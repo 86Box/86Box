@@ -83,15 +83,6 @@ const cpu_family_t cpu_families[] = {
 		{"", 0}
 	}
     }, {
-	.package = CPU_PKG_8088_PCJR,
-	.manufacturer = "Intel",
-	.name = "8088",
-	.internal_name = "8088",
-	.cpus = (const CPU[]) {
-		{"4.77",    CPU_8088, fpus_8088,  4772728,    1, 5000, 0, 0, 0, 0, 0,0,0,0, 1},
-		{"", 0}
-	}
-    }, {
 	.package = CPU_PKG_8088_EUROPC,
 	.manufacturer = "Intel",
 	.name = "8088",
@@ -1051,7 +1042,8 @@ const cpu_family_t cpu_families[] = {
 	.name = "Eden Model 7",
 	.internal_name = "c3_eden",
 	.cpus = (const CPU[]) {
-		{"100",     CPU_EDEN, fpus_internal, 100000000, 1.5, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER,  9,  9,  4,  4, 12}, /* out of spec */
+		{"66",      CPU_EDEN, fpus_internal,  66666666, 1.0, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER,  6,  6,  3,  3, 8}, /* out of spec */
+		{"100",     CPU_EDEN, fpus_internal, 100000000, 1.0, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER,  9,  9,  4,  4, 12}, /* out of spec */
 		{"400",     CPU_EDEN, fpus_internal, 400000000, 6.0, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 36, 36, 17, 17, 48},
 		{"600",     CPU_EDEN, fpus_internal, 600000000, 6.0, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 54, 54, 18, 18, 72},
 	}
@@ -1771,7 +1763,7 @@ const cpu_legacy_machine_t cpu_legacy_table[] = {
     {"pc200",                   cputables_8086},
     {"ppc512",                  cputables_8086},
     {"deskpro",                 cputables_8086},
-    {"olivetti_m24",            cputables_8086},
+    {"m24",                     cputables_8086},
     {"iskra3104",               cputables_8086},
     {"tandy1000sl2",            cputables_8086},
     {"t1200",                   cputables_8086},
@@ -1938,7 +1930,7 @@ const cpu_legacy_machine_t cpu_legacy_table[] = {
     {"bf6",                     cputables_PentiumII_Celeron_Cyrix3},
     {"ax6bc",                   cputables_PentiumII_Celeron_Cyrix3},
     {"atc6310bxii",             cputables_PentiumII_Celeron_Cyrix3},
-    {"ga686bx",                 cputables_PentiumII_Celeron_Cyrix3},
+    {"686bx",                   cputables_PentiumII_Celeron_Cyrix3},
     {"tsunamiatx",              cputables_PentiumII_Celeron_Cyrix3},
     {"p6sba",                   cputables_PentiumII_Celeron_Cyrix3},
     {"ergox365",                cputables_PentiumII_Celeron_Cyrix3},

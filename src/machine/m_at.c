@@ -263,11 +263,11 @@ machine_at_siemens_init(const machine_t *model)
 
 #if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
 int
-machine_at_open_at_init(const machine_t *model)
+machine_at_openat_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/open_at/bios.bin",
+    ret = bios_load_linear("roms/machines/openat/bios.bin",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)

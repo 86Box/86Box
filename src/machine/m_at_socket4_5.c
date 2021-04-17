@@ -666,11 +666,11 @@ machine_at_vectra54_init(const machine_t *model)
 
 
 int
-machine_at_powermate_v_init(const machine_t *model)
+machine_at_powermatev_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/powermate_v/BIOS.ROM",
+    ret = bios_load_linear("roms/machines/powermatev/BIOS.ROM",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)

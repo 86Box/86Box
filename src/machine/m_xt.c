@@ -254,11 +254,11 @@ machine_xt_jukopc_init(const machine_t *model)
 
 
 int
-machine_xt_open_xt_init(const machine_t *model)
+machine_xt_openxt_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/open_xt/pcxt31.bin",
+    ret = bios_load_linear("roms/machines/openxt/pcxt31.bin",
 			   0x000fe000, 8192, 0);
 
     if (bios_only || !ret)
@@ -336,8 +336,8 @@ machine_xt_iskra3104_init(const machine_t *model)
     int ret;
 
     ret = bios_load_interleaved("roms/machines/iskra3104/198.bin",
-    "roms/machines/iskra3104/199.bin",
-			   0x000fc000, 16384, 0);
+				"roms/machines/iskra3104/199.bin",
+				0x000fc000, 16384, 0);
 
     if (bios_only || !ret)
 	return ret;
@@ -349,15 +349,15 @@ machine_xt_iskra3104_init(const machine_t *model)
 
 
 int
-machine_xt_ncrpc4i_init(const machine_t *model)
+machine_xt_pc4i_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/ncr_pc4i/NCR_PC4i_BIOSROM_1985.bin",
+    ret = bios_load_linear("roms/machines/pc4i/NCR_PC4i_BIOSROM_1985.bin",
 			   0x000fc000, 16384, 0);
 
     if (bios_only || !ret)
-	    return ret;
+	return ret;
 
     machine_xt_clone_init(model);
 
@@ -374,7 +374,7 @@ machine_xt_mpc1600_init(const machine_t *model)
 			   0x000fc000, 16384, 0);
     
     if (bios_only || !ret)
-	    return ret;
+	return ret;
 
     device_add(&keyboard_pc82_device);
 
@@ -385,20 +385,20 @@ machine_xt_mpc1600_init(const machine_t *model)
 
 
 int
-machine_xt_eaglepcspirit_init(const machine_t *model)
+machine_xt_pcspirit_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/eagle_pcspirit/u1101.bin",
+    ret = bios_load_linear("roms/machines/pcspirit/u1101.bin",
 			   0x000fe000, 16384, 0);
     
     if (ret) {
-        bios_load_aux_linear("roms/machines/eagle_pcspirit/u1103.bin",
+	bios_load_aux_linear("roms/machines/pcspirit/u1103.bin",
 			     0x000fc000, 8192, 0);
     }
 
     if (bios_only || !ret)
-	    return ret;
+	return ret;
 
     device_add(&keyboard_pc82_device);
 
@@ -409,15 +409,15 @@ machine_xt_eaglepcspirit_init(const machine_t *model)
 
 
 int
-machine_xt_multitechpc700_init(const machine_t *model)
+machine_xt_pc700_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/multitech_pc700/multitech pc-700 3.1.bin",
+    ret = bios_load_linear("roms/machines/pc700/multitech pc-700 3.1.bin",
 			   0x000fe000, 8192, 0);
-    
+
     if (bios_only || !ret)
-	    return ret;
+	return ret;
 
     device_add(&keyboard_pc_device);
 

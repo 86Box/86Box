@@ -53,7 +53,7 @@ machine_at_p6rp4_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x19, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x12, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x12, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x07, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x06, PCI_CARD_NORMAL, 2, 3, 4, 1);

@@ -226,8 +226,7 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 	switch (ram_type) {
 		case SPD_TYPE_FPM:
 		case SPD_TYPE_EDO:
-			edo_data = (spd_edo_t *) &spd_modules[slot]->data;
-			memset(edo_data, 0, sizeof(spd_edo_t));
+			edo_data = &spd_modules[slot]->edo_data;
 
 			/* EDO SPD is specified by JEDEC and present in some modules, but
 			   most utilities cannot interpret it correctly. SIV32 at least gets
@@ -265,8 +264,7 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 			break;
 
 		case SPD_TYPE_SDRAM:
-			sdram_data = (spd_sdram_t *) &spd_modules[slot]->data;
-			memset(sdram_data, 0, sizeof(spd_sdram_t));
+			sdram_data = &spd_modules[slot]->sdram_data;
 
 			sdram_data->bytes_used = 0x80;
 			sdram_data->spd_size = 0x08;

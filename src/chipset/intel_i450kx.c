@@ -32,13 +32,12 @@ i450GX is way more popular of an option but needs more stuff.
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
-
 #include <86box/mem.h>
 #include <86box/pci.h>
 #include <86box/smram.h>
 #include <86box/spd.h>
-
 #include <86box/chipset.h>
+
 
 #ifdef ENABLE_450KX_LOG
 int i450kx_do_log = ENABLE_450KX_LOG;
@@ -49,14 +48,15 @@ i450kx_log(const char *fmt, ...)
 
     if (i450kx_do_log)
     {
-        va_start(ap, fmt);
-        pclog_ex(fmt, ap);
-        va_end(ap);
+	va_start(ap, fmt);
+	pclog_ex(fmt, ap);
+	va_end(ap);
     }
 }
 #else
 #define i450kx_log(fmt, ...)
 #endif
+
 
 /* Shadow RAM Flags */
 #define LSB_DECISION (((shadow_value & 1) ? MEM_READ_EXTANY : MEM_READ_INTERNAL) | ((shadow_value & 2) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL))
@@ -74,219 +74,221 @@ i450kx_log(const char *fmt, ...)
 #define ENABLE_SEGMENT (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
 #define DISABLE_SEGMENT (MEM_READ_DISABLED | MEM_WRITE_DISABLED)
 
-typedef struct i450kx_t
-{
+
+typedef struct i450kx_t {
     smram_t *smram;
 
     uint8_t pb_pci_conf[256], mc_pci_conf[256];
 } i450kx_t;
 
-void i450kx_shadow(int is_mc, int cur_reg, uint8_t shadow_value, i450kx_t *dev)
+
+static void
+i450kx_shadow(int is_mc, int cur_reg, uint8_t shadow_value, i450kx_t *dev)
 {
-    if (cur_reg == 0x59)
-    {
-        mem_set_mem_state_both(0x80000, 0x20000, (is_mc) ? LSB_DECISION_MC : LSB_DECISION);
-        mem_set_mem_state_both(0xf0000, 0x10000, (is_mc) ? MSB_DECISION_MC : MSB_DECISION);
-    }
-    else
-    {
-        mem_set_mem_state_both(0xc0000 + (((cur_reg & 7) - 2) * 0x8000), 0x4000, (is_mc) ? LSB_DECISION_MC : LSB_DECISION);
-        mem_set_mem_state_both(0xc4000 + (((cur_reg & 7) - 2) * 0x8000), 0x4000, (is_mc) ? MSB_DECISION_MC : MSB_DECISION);
+    if (cur_reg == 0x59) {
+	mem_set_mem_state_both(0x80000, 0x20000, (is_mc) ? LSB_DECISION_MC : LSB_DECISION);
+	mem_set_mem_state_both(0xf0000, 0x10000, (is_mc) ? MSB_DECISION_MC : MSB_DECISION);
+    } else {
+	mem_set_mem_state_both(0xc0000 + (((cur_reg & 7) - 2) * 0x8000), 0x4000, (is_mc) ? LSB_DECISION_MC : LSB_DECISION);
+	mem_set_mem_state_both(0xc4000 + (((cur_reg & 7) - 2) * 0x8000), 0x4000, (is_mc) ? MSB_DECISION_MC : MSB_DECISION);
     }
     flushmmucache_nopc();
 }
 
-void i450kx_smm(uint32_t smram_addr, uint32_t smram_size, i450kx_t *dev)
+
+static void
+i450kx_smm(uint32_t smram_addr, uint32_t smram_size, i450kx_t *dev)
 {
     smram_disable_all();
 
     if ((smram_addr != 0) && !!(dev->mc_pci_conf[0x57] & 8))
-        smram_enable(dev->smram, smram_addr, smram_addr, smram_size, !!(dev->pb_pci_conf[0x57] & 8), 1);
+	smram_enable(dev->smram, smram_addr, smram_addr, smram_size, !!(dev->pb_pci_conf[0x57] & 8), 1);
 
     flushmmucache();
 }
+
 
 static void
 pb_write(int func, int addr, uint8_t val, void *priv)
 {
     i450kx_t *dev = (i450kx_t *)priv;
 
-    switch (addr)
-    {
-    case 0x04:
-        dev->pb_pci_conf[addr] &= val & 0xd7;
-        break;
+    switch (addr) {
+	case 0x04:
+		dev->pb_pci_conf[addr] &= val & 0xd7;
+		break;
 
-    case 0x06:
-        dev->pb_pci_conf[addr] = val & 0x80;
-        break;
+	case 0x06:
+		dev->pb_pci_conf[addr] = val & 0x80;
+		break;
 
-    case 0x07:
-    case 0x0d:
-        dev->pb_pci_conf[addr] = val;
-        break;
+	case 0x07:
+	case 0x0d:
+		dev->pb_pci_conf[addr] = val;
+		break;
 
-    case 0x0f:
-        dev->pb_pci_conf[addr] = val & 0xcf;
-        break;
+	case 0x0f:
+		dev->pb_pci_conf[addr] = val & 0xcf;
+		break;
 
-    case 0x40:
-    case 0x41:
-        dev->pb_pci_conf[addr] = val;
-        break;
+	case 0x40:
+	case 0x41:
+		dev->pb_pci_conf[addr] = val;
+		break;
 
-    case 0x43:
-        dev->pb_pci_conf[addr] = val & 0x80;
-        break;
+	case 0x43:
+		dev->pb_pci_conf[addr] = val & 0x80;
+		break;
 
-    case 0x48:
-        dev->pb_pci_conf[addr] = val & 6;
-        break;
+	case 0x48:
+		dev->pb_pci_conf[addr] = val & 6;
+		break;
 
-    case 0x4a:
-    case 0x4b:
-        dev->pb_pci_conf[addr] = val;
-        break;
+	case 0x4a:
+	case 0x4b:
+		dev->pb_pci_conf[addr] = val;
+		break;
 
-    case 0x4c:
-        dev->pb_pci_conf[addr] = val & 0xd8;
-        break;
+	case 0x4c:
+		dev->pb_pci_conf[addr] = val & 0xd8;
+		break;
 
-    case 0x53:
-        dev->pb_pci_conf[addr] = val & 2;
-        break;
+	case 0x53:
+		dev->pb_pci_conf[addr] = val & 2;
+		break;
 
-    case 0x54:
-        dev->pb_pci_conf[addr] = val & 0x7b;
-        break;
+	case 0x54:
+		dev->pb_pci_conf[addr] = val & 0x7b;
+		break;
 
-    case 0x55:
-        dev->pb_pci_conf[addr] = val & 2;
-        break;
+	case 0x55:
+		dev->pb_pci_conf[addr] = val & 2;
+		break;
 
-    case 0x57:
-        dev->pb_pci_conf[addr] = val & 8;
-        i450kx_smm(SMRAM_ADDR, SMRAM_SIZE, dev);
-        break;
+	case 0x57:
+		dev->pb_pci_conf[addr] = val & 8;
+		i450kx_smm(SMRAM_ADDR, SMRAM_SIZE, dev);
+		break;
 
-    case 0x58:
-        dev->pb_pci_conf[addr] = val & 2;
-        mem_set_mem_state_both(0xa0000, 0x20000, (val & 2) ? ENABLE_SEGMENT : DISABLE_SEGMENT);
-        break;
+	case 0x58:
+		dev->pb_pci_conf[addr] = val & 2;
+		mem_set_mem_state_both(0xa0000, 0x20000, (val & 2) ? ENABLE_SEGMENT : DISABLE_SEGMENT);
+		break;
 
-    case 0x59:
-    case 0x5a:
-    case 0x5b:
-    case 0x5c:
-    case 0x5d:
-    case 0x5e:
-    case 0x5f:
-        dev->pb_pci_conf[addr] = val & 0x33;
-        i450kx_shadow(0, addr, val, dev);
-        break;
+	case 0x59:
+	case 0x5a:
+	case 0x5b:
+	case 0x5c:
+	case 0x5d:
+	case 0x5e:
+	case 0x5f:
+		dev->pb_pci_conf[addr] = val & 0x33;
+		i450kx_shadow(0, addr, val, dev);
+		break;
 
-    case 0x70:
-        dev->pb_pci_conf[addr] = val & 0xfc;
-        break;
+	case 0x70:
+		dev->pb_pci_conf[addr] = val & 0xfc;
+		break;
 
-    case 0x71:
-        dev->pb_pci_conf[addr] = val & 0x71;
-        break;
+	case 0x71:
+		dev->pb_pci_conf[addr] = val & 0x71;
+		break;
 
-    case 0x78:
-        dev->pb_pci_conf[addr] = val & 0xf0;
-        break;
+	case 0x78:
+		dev->pb_pci_conf[addr] = val & 0xf0;
+		break;
 
-    case 0x79:
-        dev->pb_pci_conf[addr] = val & 0xfc;
-        break;
+	case 0x79:
+		dev->pb_pci_conf[addr] = val & 0xfc;
+		break;
 
-    case 0x7c:
-        dev->pb_pci_conf[addr] = val & 0x5f;
-        break;
+	case 0x7c:
+		dev->pb_pci_conf[addr] = val & 0x5f;
+		break;
 
-    case 0x7d:
-        dev->pb_pci_conf[addr] = val & 0x1a;
-        break;
+	case 0x7d:
+		dev->pb_pci_conf[addr] = val & 0x1a;
+		break;
 
-    case 0x7e:
-        dev->pb_pci_conf[addr] = val & 0xf0;
-        break;
+	case 0x7e:
+		dev->pb_pci_conf[addr] = val & 0xf0;
+		break;
 
-    case 0x7f:
-    case 0x88:
-    case 0x89:
-    case 0x8a:
-        dev->pb_pci_conf[addr] = val;
-        break;
+	case 0x7f:
+	case 0x88:
+	case 0x89:
+	case 0x8a:
+		dev->pb_pci_conf[addr] = val;
+		break;
 
-    case 0x8b:
-        dev->pb_pci_conf[addr] = val & 0x80;
-        break;
+	case 0x8b:
+		dev->pb_pci_conf[addr] = val & 0x80;
+		break;
 
-    case 0x9c:
-        dev->pb_pci_conf[addr] = val & 1;
-        break;
+	case 0x9c:
+		dev->pb_pci_conf[addr] = val & 1;
+		break;
 
-    case 0xa4:
-        dev->pb_pci_conf[addr] = val & 0xf9;
-        break;
+	case 0xa4:
+		dev->pb_pci_conf[addr] = val & 0xf9;
+		break;
 
-    case 0xa5:
-    case 0xa6:
-        dev->pb_pci_conf[addr] = val;
-        break;
+	case 0xa5:
+	case 0xa6:
+		dev->pb_pci_conf[addr] = val;
+		break;
 
-    case 0xa7:
-        dev->pb_pci_conf[addr] = val & 0x0f;
-        break;
+	case 0xa7:
+		dev->pb_pci_conf[addr] = val & 0x0f;
+		break;
 
-    case 0xb0:
-        dev->pb_pci_conf[addr] = val & 0xe0;
-        break;
+	case 0xb0:
+		dev->pb_pci_conf[addr] = val & 0xe0;
+		break;
 
-    case 0xb1:
-        dev->pb_pci_conf[addr] = val & 0x1f;
-        break;
+	case 0xb1:
+		dev->pb_pci_conf[addr] = val & 0x1f;
+		break;
 
-    case 0xb4:
-        dev->pb_pci_conf[addr] = val & 0xe8;
-        break;
+	case 0xb4:
+		dev->pb_pci_conf[addr] = val & 0xe8;
+		break;
 
-    case 0xb5:
-        dev->pb_pci_conf[addr] = val & 0x1f;
-        break;
+	case 0xb5:
+		dev->pb_pci_conf[addr] = val & 0x1f;
+		break;
 
-    case 0xb8:
-    case 0xb9:
-    case 0xbb:
-        dev->pb_pci_conf[addr] = !(addr == 0xbb) ? val : (val & 0xf0);
-        i450kx_smm(SMRAM_ADDR, SMRAM_SIZE, dev);
-        break;
+	case 0xb8:
+	case 0xb9:
+	case 0xbb:
+		dev->pb_pci_conf[addr] = !(addr == 0xbb) ? val : (val & 0xf0);
+		i450kx_smm(SMRAM_ADDR, SMRAM_SIZE, dev);
+		break;
 
-    case 0xc4:
-        dev->pb_pci_conf[addr] = val & 5;
-        break;
+	case 0xc4:
+		dev->pb_pci_conf[addr] = val & 5;
+		break;
 
-    case 0xc5:
-        dev->pb_pci_conf[addr] = val & 0x0a;
-        break;
+	case 0xc5:
+		dev->pb_pci_conf[addr] = val & 0x0a;
+		break;
 
-    case 0xc6:
-        dev->pb_pci_conf[addr] = val & 0x1d;
-        break;
+	case 0xc6:
+		dev->pb_pci_conf[addr] = val & 0x1d;
+		break;
 
-    case 0xc8:
-        dev->pb_pci_conf[addr] = val & 0x1f;
-        break;
+	case 0xc8:
+		dev->pb_pci_conf[addr] = val & 0x1f;
+		break;
 
-    case 0xca:
-    case 0xcb:
-        dev->pb_pci_conf[addr] = val;
-        break;
+	case 0xca:
+	case 0xcb:
+		dev->pb_pci_conf[addr] = val;
+		break;
     }
     i450kx_log("i450KX-PB: dev->regs[%02x] = %02x POST: %02x\n", addr, dev->pb_pci_conf[addr], inb(0x80));
 }
+
 
 static uint8_t
 pb_read(int func, int addr, void *priv)
@@ -295,6 +297,7 @@ pb_read(int func, int addr, void *priv)
     return dev->pb_pci_conf[addr];
 }
 
+
 static void
 mc_write(int func, int addr, uint8_t val, void *priv)
 {
@@ -302,170 +305,171 @@ mc_write(int func, int addr, uint8_t val, void *priv)
 
     switch (addr)
     {
-    case 0x4c:
-        dev->mc_pci_conf[addr] = val & 0xdf;
-        break;
+	case 0x4c:
+		dev->mc_pci_conf[addr] = val & 0xdf;
+		break;
 
-    case 0x4d:
-        dev->mc_pci_conf[addr] = val & 0xdf;
-        break;
+	case 0x4d:
+		dev->mc_pci_conf[addr] = val & 0xdf;
+		break;
 
-    case 0x57:
-        dev->mc_pci_conf[addr] = val & 8;
-        i450kx_smm(SMRAM_ADDR, SMRAM_SIZE, dev);
-        break;
+	case 0x57:
+		dev->mc_pci_conf[addr] = val & 8;
+		i450kx_smm(SMRAM_ADDR, SMRAM_SIZE, dev);
+		break;
 
-    case 0x58:
-        dev->mc_pci_conf[addr] = val & 2;
-        break;
+	case 0x58:
+		dev->mc_pci_conf[addr] = val & 2;
+		break;
 
-    case 0x59:
-    case 0x5a:
-    case 0x5b:
-    case 0x5c:
-    case 0x5d:
-    case 0x5e:
-    case 0x5f:
-        dev->mc_pci_conf[addr] = val & 0x33;
-        i450kx_shadow(1, addr, val, dev);
-        break;
+	case 0x59:
+	case 0x5a:
+	case 0x5b:
+	case 0x5c:
+	case 0x5d:
+	case 0x5e:
+	case 0x5f:
+		dev->mc_pci_conf[addr] = val & 0x33;
+		i450kx_shadow(1, addr, val, dev);
+		break;
 
-    case 0x60:
-    case 0x61:
-    case 0x62:
-    case 0x63:
-    case 0x64:
-    case 0x65:
-    case 0x66:
-    case 0x67:
-    case 0x68:
-    case 0x69:
-    case 0x6a:
-    case 0x6b:
-    case 0x6c:
-    case 0x6d:
-    case 0x6e:
-    case 0x6f:
-        dev->mc_pci_conf[addr] = ((addr & 0x0f) % 2) ? 0 : (val & 0x7f);
-        spd_write_drbs(dev->mc_pci_conf, 0x60, 0x6f, 4);
-        break;
+	case 0x60:
+	case 0x61:
+	case 0x62:
+	case 0x63:
+	case 0x64:
+	case 0x65:
+	case 0x66:
+	case 0x67:
+	case 0x68:
+	case 0x69:
+	case 0x6a:
+	case 0x6b:
+	case 0x6c:
+	case 0x6d:
+	case 0x6e:
+	case 0x6f:
+		dev->mc_pci_conf[addr] = ((addr & 0x0f) % 2) ? 0 : (val & 0x7f);
+		spd_write_drbs(dev->mc_pci_conf, 0x60, 0x6f, 4);
+		break;
 
-    case 0x74:
-    case 0x75:
-    case 0x76:
-    case 0x77:
-        dev->mc_pci_conf[addr] = val;
-        break;
+	case 0x74:
+	case 0x75:
+	case 0x76:
+	case 0x77:
+		dev->mc_pci_conf[addr] = val;
+		break;
 
-    case 0x78:
-        dev->mc_pci_conf[addr] = val & 0xf0;
-        break;
+	case 0x78:
+		dev->mc_pci_conf[addr] = val & 0xf0;
+		break;
 
-    case 0x79:
-        dev->mc_pci_conf[addr] = val & 0xfe;
-        break;
+	case 0x79:
+		dev->mc_pci_conf[addr] = val & 0xfe;
+		break;
 
-    case 0x7a:
-        dev->mc_pci_conf[addr] = val;
-        break;
+	case 0x7a:
+		dev->mc_pci_conf[addr] = val;
+		break;
 
-    case 0x7b:
-        dev->mc_pci_conf[addr] = val & 0x0f;
-        break;
+	case 0x7b:
+		dev->mc_pci_conf[addr] = val & 0x0f;
+		break;
 
-    case 0x7c:
-        dev->mc_pci_conf[addr] = val & 0x1f;
-        break;
+	case 0x7c:
+		dev->mc_pci_conf[addr] = val & 0x1f;
+		break;
 
-    case 0x7d:
-        dev->mc_pci_conf[addr] = val & 0x0c;
-        break;
+	case 0x7d:
+		dev->mc_pci_conf[addr] = val & 0x0c;
+		break;
 
-    case 0x7e:
-        dev->mc_pci_conf[addr] = val & 0xf0;
-        break;
+	case 0x7e:
+		dev->mc_pci_conf[addr] = val & 0xf0;
+		break;
 
-    case 0x7f:
-        dev->mc_pci_conf[addr] = val;
-        break;
+	case 0x7f:
+		dev->mc_pci_conf[addr] = val;
+		break;
 
-    case 0x88:
-    case 0x89:
-        dev->mc_pci_conf[addr] = val;
-        break;
+	case 0x88:
+	case 0x89:
+		dev->mc_pci_conf[addr] = val;
+		break;
 
-    case 0x8b:
-        dev->mc_pci_conf[addr] = val & 0x80;
-        break;
+	case 0x8b:
+		dev->mc_pci_conf[addr] = val & 0x80;
+		break;
 
-    case 0x8c:
-    case 0x8d:
-        dev->mc_pci_conf[addr] = val;
-        break;
+	case 0x8c:
+	case 0x8d:
+		dev->mc_pci_conf[addr] = val;
+		break;
 
-    case 0xa4:
-        dev->mc_pci_conf[addr] = val & 1;
-        break;
+	case 0xa4:
+		dev->mc_pci_conf[addr] = val & 1;
+		break;
 
-    case 0xa5:
-        dev->pb_pci_conf[addr] = val & 0xf0;
-        break;
+	case 0xa5:
+		dev->pb_pci_conf[addr] = val & 0xf0;
+		break;
 
-    case 0xa6:
-        dev->mc_pci_conf[addr] = val;
-        break;
+	case 0xa6:
+		dev->mc_pci_conf[addr] = val;
+		break;
 
-    case 0xa7:
-        dev->mc_pci_conf[addr] = val & 0x0f;
-        break;
+	case 0xa7:
+		dev->mc_pci_conf[addr] = val & 0x0f;
+		break;
 
-    case 0xa8:
-        dev->mc_pci_conf[addr] = val & 0xfe;
-        break;
+	case 0xa8:
+		dev->mc_pci_conf[addr] = val & 0xfe;
+		break;
 
-    case 0xa9:
-    case 0xaa:
-    case 0xab:
-    case 0xac:
-    case 0xad:
-    case 0xae:
-        dev->mc_pci_conf[addr] = val;
-        break;
+	case 0xa9:
+	case 0xaa:
+	case 0xab:
+	case 0xac:
+	case 0xad:
+	case 0xae:
+		dev->mc_pci_conf[addr] = val;
+		break;
 
-    case 0xaf:
-        dev->mc_pci_conf[addr] = val & 0x7f;
-        break;
+	case 0xaf:
+		dev->mc_pci_conf[addr] = val & 0x7f;
+		break;
 
-    case 0xb8:
-    case 0xb9:
-    case 0xbb:
-        dev->mc_pci_conf[addr] = !(addr == 0xbb) ? val : (val & 0xf0);
+	case 0xb8:
+	case 0xb9:
+	case 0xbb:
+		dev->mc_pci_conf[addr] = !(addr == 0xbb) ? val : (val & 0xf0);
 
-        i450kx_smm(SMRAM_ADDR_MC, SMRAM_SIZE_MC, dev);
-        break;
+		i450kx_smm(SMRAM_ADDR_MC, SMRAM_SIZE_MC, dev);
+		break;
 
-    case 0xbc:
-        dev->mc_pci_conf[addr] = val & 1;
-        break;
+	case 0xbc:
+		dev->mc_pci_conf[addr] = val & 1;
+		break;
 
-    case 0xc0:
-        dev->mc_pci_conf[addr] = val & 7;
-        break;
+	case 0xc0:
+		dev->mc_pci_conf[addr] = val & 7;
+		break;
 
-    case 0xc2:
-        dev->mc_pci_conf[addr] = val & 3;
-        break;
+	case 0xc2:
+		dev->mc_pci_conf[addr] = val & 3;
+		break;
 
-    case 0xc4:
-        dev->mc_pci_conf[addr] = val & 0x3f;
-        break;
+	case 0xc4:
+		dev->mc_pci_conf[addr] = val & 0x3f;
+		break;
 
-    case 0xc6:
-        dev->mc_pci_conf[addr] = val & 0x19;
-        break;
+	case 0xc6:
+		dev->mc_pci_conf[addr] = val & 0x19;
+		break;
     }
     i450kx_log("i450KX-MC: dev->regs[%02x] = %02x POST: %02x\n", addr, dev->mc_pci_conf[addr], inb(0x80));
 }
+
 
 static uint8_t
 mc_read(int func, int addr, void *priv)
@@ -473,6 +477,7 @@ mc_read(int func, int addr, void *priv)
     i450kx_t *dev = (i450kx_t *)priv;
     return dev->mc_pci_conf[addr];
 }
+
 
 static void
 i450kx_reset(void *priv)
@@ -531,6 +536,7 @@ i450kx_reset(void *priv)
     dev->mc_pci_conf[0xbc] = 1;
 }
 
+
 static void
 i450kx_close(void *priv)
 {
@@ -540,13 +546,14 @@ i450kx_close(void *priv)
     free(dev);
 }
 
+
 static void *
 i450kx_init(const device_t *info)
 {
     i450kx_t *dev = (i450kx_t *)malloc(sizeof(i450kx_t));
     memset(dev, 0, sizeof(i450kx_t));
     pci_add_card(PCI_ADD_NORTHBRIDGE, pb_read, pb_write, dev); /* Device 19: Intel 450KX PCI Bridge PB */
-    pci_add_card(PCI_ADD_SOUTHBRIDGE, mc_read, mc_write, dev); /* Device 14: Intel 450KX Memory Controller MC */
+    pci_add_card(PCI_ADD_NORTHBRIDGE, mc_read, mc_write, dev); /* Device 14: Intel 450KX Memory Controller MC */
 
     dev->smram = smram_add();
 
@@ -559,6 +566,7 @@ i450kx_init(const device_t *info)
     return dev;
 }
 
+
 const device_t i450kx_device = {
     "Intel 450KX (Mars)",
     DEVICE_PCI,
@@ -566,7 +574,8 @@ const device_t i450kx_device = {
     i450kx_init,
     i450kx_close,
     i450kx_reset,
-    {NULL},
+    { NULL },
     NULL,
     NULL,
-    NULL};
+    NULL
+};

@@ -322,6 +322,11 @@ void tgui_out(uint16_t addr, uint8_t val, void *p)
 		break;
 
                 case 0x3CF:
+                if (svga->gdcaddr == 0x23)
+                {
+                        svga->dpms = !!(val & 0x03);
+                        svga_recalctimings(svga);
+                }
                 if (tgui->type == TGUI_9400CXI && svga->gdcaddr >= 16 && svga->gdcaddr < 32)
                 {
                         old = tgui->ext_gdc_regs[svga->gdcaddr & 15];

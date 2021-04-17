@@ -233,7 +233,7 @@ extern int	machine_at_ibmxt286_init(const machine_t *);
 extern int	machine_at_siemens_init(const machine_t *); //Siemens PCD-2L. N82330 discrete machine. It segfaults in some places
 
 #if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
-extern int	machine_at_open_at_init(const machine_t *);
+extern int	machine_at_openat_init(const machine_t *);
 #endif
 
 /* m_at_286_386sx.c */
@@ -256,17 +256,17 @@ extern int	machine_at_spc4620p_init(const machine_t *);
 extern int	machine_at_kmxc02_init(const machine_t *);
 extern int	machine_at_deskmaster286_init(const machine_t *);
 
-extern int	machine_at_ncrpc8_init(const machine_t *);
-extern int	machine_at_ncr3302_init(const machine_t *);
+extern int	machine_at_pc8_init(const machine_t *);
+extern int	machine_at_3302_init(const machine_t *);
 
 #if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
-extern int	machine_at_olim290_init(const machine_t *);
+extern int	machine_at_m290_init(const machine_t *);
 #endif
 
 extern int	machine_at_shuttle386sx_init(const machine_t *);
 extern int	machine_at_adi386sx_init(const machine_t *);
-extern int	machine_at_commodore_sl386sx16_init(const machine_t *);
-extern int	machine_at_commodore_sl386sx25_init(const machine_t *);
+extern int	machine_at_cmdsl386sx16_init(const machine_t *);
+extern int	machine_at_cmdsl386sx25_init(const machine_t *);
 extern int	machine_at_spc6033p_init(const machine_t *);
 extern int	machine_at_wd76c10_init(const machine_t *);
 extern int	machine_at_flytech386_init(const machine_t *);
@@ -277,18 +277,18 @@ extern int	machine_at_arb1375_init(const machine_t *);
 extern int	machine_at_pja511m_init(const machine_t *);
 #endif
 
-extern int  machine_at_ncrpc916sx_init(const machine_t *);
+extern int  machine_at_pc916sx_init(const machine_t *);
 
-extern int  machine_at_olim300_08_init(const machine_t *);
-extern int  machine_at_olim300_15_init(const machine_t *);
+extern int  machine_at_m30008_init(const machine_t *);
+extern int  machine_at_m30015_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_ama932j_get_device(void);
 extern const device_t	*at_flytech386_get_device(void);
-extern const device_t	*at_commodore_sl386sx25_get_device(void);
+extern const device_t	*at_cmdsl386sx25_get_device(void);
 extern const device_t	*at_spc4620p_get_device(void);
 extern const device_t	*at_spc6033p_get_device(void);
-extern const device_t	*at_m300_08_get_device(void);
+extern const device_t	*at_m30008_get_device(void);
 #endif
 
 /* m_at_386dx_486.c */
@@ -405,7 +405,7 @@ extern int	machine_at_zappa_init(const machine_t *);
 extern int	machine_at_mb500n_init(const machine_t *);
 extern int	machine_at_apollo_init(const machine_t *);
 extern int	machine_at_vectra54_init(const machine_t *);
-extern int	machine_at_powermate_v_init(const machine_t *);
+extern int	machine_at_powermatev_init(const machine_t *);
 extern int	machine_at_acerv30_init(const machine_t *);
 
 extern int	machine_at_p5sp4_init(const machine_t *);
@@ -573,12 +573,12 @@ extern const device_t europc_device;
 #endif
 
 /* m_xt_olivetti.c */
-extern int	machine_xt_olim24_init(const machine_t *);
+extern int	machine_xt_m24_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const 	device_t *m24_get_device(void);
 #endif
-extern int	machine_xt_olim240_init(const machine_t *);
-extern int	machine_xt_olim19_init(const machine_t *);
+extern int	machine_xt_m240_init(const machine_t *);
+extern int	machine_xt_m19_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const 	device_t *m19_get_device(void);
 #endif
@@ -642,13 +642,13 @@ extern int	machine_xt_americxt_init(const machine_t *);
 extern int	machine_xt_amixt_init(const machine_t *);
 extern int	machine_xt_dtk_init(const machine_t *);
 extern int	machine_xt_jukopc_init(const machine_t *);
-extern int	machine_xt_open_xt_init(const machine_t *);
+extern int	machine_xt_openxt_init(const machine_t *);
 extern int	machine_xt_pcxt_init(const machine_t *);
 extern int	machine_xt_pxxt_init(const machine_t *);
-extern int	machine_xt_ncrpc4i_init(const machine_t *);
+extern int	machine_xt_pc4i_init(const machine_t *);
 extern int	machine_xt_mpc1600_init(const machine_t *);
-extern int	machine_xt_eaglepcspirit_init(const machine_t *);
-extern int	machine_xt_multitechpc700_init(const machine_t *);
+extern int	machine_xt_pcspirit_init(const machine_t *);
+extern int	machine_xt_pc700_init(const machine_t *);
 
 extern int	machine_xt_iskra3104_init(const machine_t *);
 
