@@ -499,7 +499,10 @@ main_thread(void *param)
 
 	/* If needed, handle a screen resize. */
 	if (doresize && !video_fullscreen) {
-		plat_resize(scrnsz_x, scrnsz_y);
+		if (vid_resize & 2)
+			plat_resize(fixed_size_x, fixed_size_y);
+		else
+			plat_resize(scrnsz_x, scrnsz_y);
 		doresize = 0;
 	}
     }

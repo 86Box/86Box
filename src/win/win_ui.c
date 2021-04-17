@@ -1347,7 +1347,10 @@ ui_init(int nCmdShow)
     }
 
     /* Set up the current window size. */
-    plat_resize(scrnsz_x, scrnsz_y);
+    if (vid_resize & 2)
+	plat_resize(fixed_size_x, fixed_size_y);
+    else
+	plat_resize(scrnsz_x, scrnsz_y);
 
     /* Fire up the machine. */
     pc_reset_hard_init();
