@@ -316,7 +316,7 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
 	} else if ((multi == 5.0) && ((cpu_s->cpu_type == CPU_WINCHIP) || (cpu_s->cpu_type == CPU_WINCHIP2)) &&
 		   (machine_s->cpu_min_multi > 5.0))	/* WinChip (2) */
 		multi = 5.5;
-	else if ((multi == 6.0) && (machine_s->cpu_max_multi < 6.0))	/* K6-2(+) / K6-3(+) */
+	else if (multi == 6.0)	/* K6-2(+) / K6-3(+) */
 		multi = 2.0;
     }
 
