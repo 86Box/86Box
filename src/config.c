@@ -32,11 +32,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
-#ifdef _WIN32
-# include <windows.h>
-#else
-# include <dirent.h>
-#endif
+#include <dirent.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
@@ -625,32 +621,21 @@ load_machine(void)
 	i = strlen(new_fn);
 
 	/* Iterate through NVR files. */
-#ifdef _WIN32
-	WIN32_FIND_DATA find_data;
-	strcat(old_fn, "*");
-	HANDLE search = FindFirstFile(nvr_path(old_fn), &find_data);
-	if (search != INVALID_HANDLE_VALUE) {
-		do {
-			p = find_data.cFileName;
-#else
 	DIR *dirp = opendir(nvr_path("."));
 	if (dirp) {
 		struct dirent *entry;
 		while ((entry = readdir(dirp))) {
-			p = entry->d_name;
-
 			/* Check if this file corresponds to the old name. */
-			if (strncmp(p, old_fn, c))
+			if (strncmp(entry->d_name, old_fn, c))
 				continue;
-#endif
 
 			/* Add extension to the new name. */
-			strcpy(&new_fn[i], &p[c]);
+			strcpy(&new_fn[i], &entry->d_name[c]);
 
 			/* Only copy if a file with the new name doesn't already exist. */
 			FILE *g = nvr_fopen(new_fn, "rb");
 			if (!g) {
-				FILE *f = nvr_fopen(p, "rb");
+				FILE *f = nvr_fopen(entry->d_name, "rb");
 				g = nvr_fopen(new_fn, "wb");
 
 				uint8_t buf[4096];
@@ -660,11 +645,7 @@ load_machine(void)
 				fclose(f);
 			}
 			fclose(g);
-#ifdef _WIN32
-		} while (FindNextFile(search, &find_data));
-#else
 		}
-#endif
 	}
     }
 
