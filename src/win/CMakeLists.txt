@@ -28,6 +28,8 @@ if(MSVC)
 	# file when using MSVC, so we might just as well do that!
 	target_compile_definitions(ui PRIVATE NO_INCLUDE_MANIFEST)
 	target_sources(86Box PRIVATE 86Box.manifest)
+
+	target_sources(plat PRIVATE win_opendir.c)
 endif()
 
 if(DINPUT)
