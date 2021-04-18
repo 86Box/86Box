@@ -171,28 +171,21 @@ static void set_parent_binding(int enable)
 }
 
 /**
- * @brief Windows message handler for SDL Windows.
- * @param userdata winmessage_data
- * @param hWnd
+ * @brief Windows message handler for our window.
  * @param message
  * @param wParam
  * @param lParam 
+ * @param fullscreen
 */
-static void winmessage_hook(void* userdata, void* hWnd, unsigned int message, Uint64 wParam, Sint64 lParam)
+static void handle_window_messages(UINT message, WPARAM wParam, LPARAM lParam, int fullscreen)
 {
-	winmessage_data* msg_data = (winmessage_data*)userdata;
-
-	/* Process only our window */
-	if (msg_data->window != hWnd || parent == NULL)
-		return;
-
 	switch (message)
 	{
 	case WM_LBUTTONUP:
 	case WM_LBUTTONDOWN:
 	case WM_MBUTTONUP:
 	case WM_MBUTTONDOWN:
-		if (!*msg_data->fullscreen)
+		if (!fullscreen)
 		{
 			/* Mouse events that enter and exit capture. */
 			PostMessage(parent, message, wParam, lParam);
@@ -202,13 +195,13 @@ static void winmessage_hook(void* userdata, void* hWnd, unsigned int message, Ui
 	case WM_KEYUP:
 	case WM_SYSKEYDOWN:
 	case WM_SYSKEYUP:
-		if (*msg_data->fullscreen)
+		if (fullscreen)
 		{
 			PostMessage(parent, message, wParam, lParam);
 		}
 		break;
 	case WM_INPUT:
-		if (*msg_data->fullscreen)
+		if (fullscreen)
 		{
 			/* Raw input handler from win_ui.c : input_proc */
 
@@ -383,8 +376,6 @@ static void opengl_main(void* param)
 
 	/* Pass window handle and full screen mode to windows message hook */
 	winmessage_data msg_data = (winmessage_data){ window_hwnd, &fullscreen };
-	
-	SDL_SetWindowsMessageHook(winmessage_hook, &msg_data);
 
 	if (!fullscreen)
 		set_parent_binding(1);
@@ -423,10 +414,15 @@ static void opengl_main(void* param)
 				}
 			}
 
-			SDL_Event event;
-
-			/* Handle SDL_Window events */
-			while (SDL_PollEvent(&event)) { /* No need for actual handlers, but message queue must be processed. */ }
+			/* Handle window messages */
+			MSG msg;
+			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+			{
+				if (msg.hwnd == window_hwnd)
+					handle_window_messages(msg.message, msg.wParam, msg.lParam, fullscreen);
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
 
 			/* Keep cursor hidden in full screen and mouse capture */
 			int show_cursor = !(fullscreen || !!mouse_capture);
