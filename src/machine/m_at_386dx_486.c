@@ -44,6 +44,7 @@
 #include <86box/hwm.h>
 #include <86box/machine.h>
 
+
 int
 machine_at_acc386_init(const machine_t *model)
 {
@@ -1026,7 +1027,6 @@ machine_at_486ap4_init(const machine_t *model)
 }
 
 
-#if defined(DEV_BRANCH) && defined(NO_SIO)
 int
 machine_at_486vipio2_init(const machine_t *model)
 {
@@ -1049,13 +1049,12 @@ machine_at_486vipio2_init(const machine_t *model)
 
     device_add(&via_vt82c49x_pci_ide_device);
     device_add(&via_vt82c505_device);
-    device_add(&w83787f_device);
-    device_add(&keyboard_ps2_ami_device);
+    device_add(&w83787f_ide_sec_device);
+    device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee010_device);
 
     return ret;
 }
-#endif
 
 
 int

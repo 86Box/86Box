@@ -919,7 +919,7 @@ nvr_at_init(const device_t *info)
     nvr->size = machines[machine].nvrmask + 1;
     local->lock = (uint8_t *) malloc(nvr->size);
     memset(local->lock, 0x00, nvr->size);
-    local->def = 0x00;
+    local->def = 0xff /*0x00*/;
     local->flags = 0x00;
     switch(info->local & 7) {
 	case 0:		/* standard AT, no century register */

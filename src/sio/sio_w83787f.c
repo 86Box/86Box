@@ -71,7 +71,7 @@ w83787_log(const char *fmt, ...)
 
 #define HEFERE		((dev->regs[0xC] >> 5) & 1)
 
-#define HAS_IDE_FUNCTIONALITY dev->ide_function
+#define HAS_IDE_FUNCTIONALITY	dev->ide_function
 
 typedef struct {
     uint8_t tries, regs[42];
@@ -91,9 +91,9 @@ static uint8_t	w83787f_read(uint16_t port, void *priv);
 static void
 w83787f_remap(w83787f_t *dev)
 {
-    io_removehandler(0x250, 0x0003,
+    io_removehandler(0x250, 0x0004,
 		     w83787f_read, NULL, NULL, w83787f_write, NULL, NULL, dev);
-    io_sethandler(0x250, 0x0003,
+    io_sethandler(0x250, 0x0004,
 		  w83787f_read, NULL, NULL, w83787f_write, NULL, NULL, dev);
     dev->key = 0x88 | HEFERE;
 }
@@ -207,17 +207,27 @@ w83787f_fdc_handler(w83787f_t *dev)
 	fdc_set_base(dev->fdc, (dev->regs[0] & 0x10) ? 0x03f0 : 0x0370);
 }
 
+
 static void
 w83787f_ide_handler(w83787f_t *dev)
 {
-ide_pri_disable();
-if(dev->regs[0] & 0x80)
-{
-	ide_set_base(0, (dev->regs[0] & 0x40) ? 0x1f0 : 0x170);
-	ide_set_side(0, (dev->regs[0] & 0x40) ? 0x3f6 : 0x376);
-	ide_pri_enable();
+    if (dev->ide_function & 0x20) {
+	ide_sec_disable();
+	if (!(dev->regs[0] & 0x80)) {
+		ide_set_base(1, (dev->regs[0] & 0x40) ? 0x1f0 : 0x170);
+		ide_set_side(1, (dev->regs[0] & 0x40) ? 0x3f6 : 0x376);
+		ide_sec_enable();
+	}
+    } else {
+	ide_pri_disable();
+	if (!(dev->regs[0] & 0x80)) {
+		ide_set_base(0, (dev->regs[0] & 0x40) ? 0x1f0 : 0x170);
+		ide_set_side(0, (dev->regs[0] & 0x40) ? 0x3f6 : 0x376);
+		ide_pri_enable();
+	}
+    }
 }
-}
+
 
 static void
 w83787f_write(uint16_t port, uint8_t val, void *priv)
@@ -352,18 +362,25 @@ w83787f_reset(w83787f_t *dev)
     lpt1_init(0x378);
     lpt1_irq(7);
 
-	if(HAS_IDE_FUNCTIONALITY)
-	{
-	ide_pri_disable();
-	ide_set_base(0, 0x1f0);
-	ide_set_side(0, 0x3f6);
-	ide_pri_enable();
+    memset(dev->regs, 0, 0x2A);
+
+    if (HAS_IDE_FUNCTIONALITY) {
+	if (dev->ide_function & 0x20) {
+		dev->regs[0x00] = 0x90;
+		ide_sec_disable();
+		ide_set_base(1, 0x170);
+		ide_set_side(1, 0x376);
+	} else {
+		dev->regs[0x00] = 0xd0;
+		ide_pri_disable();
+		ide_set_base(0, 0x1f0);
+		ide_set_side(0, 0x3f6);
 	}
+    } else
+	dev->regs[0x00] = 0xd0;
 
     fdc_reset(dev->fdc);
 
-    memset(dev->regs, 0, 0x2A);
-    dev->regs[0x00] = 0x50;
     dev->regs[0x01] = 0x2C;
     dev->regs[0x03] = 0x30;
     dev->regs[0x07] = 0xF5;
@@ -399,14 +416,14 @@ w83787f_init(const device_t *info)
     w83787f_t *dev = (w83787f_t *) malloc(sizeof(w83787f_t));
     memset(dev, 0, sizeof(w83787f_t));
 
-	HAS_IDE_FUNCTIONALITY = !!(info->local & 0x10);
+    HAS_IDE_FUNCTIONALITY = (info->local & 0x30);
 
     dev->fdc = device_add(&fdc_at_winbond_device);
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 	
-	if(HAS_IDE_FUNCTIONALITY)
+    if ((dev->ide_function & 0x30) == 0x10)
 	device_add(&ide_isa_device);
 
     dev->reg_init = info->local & 0x0f;
@@ -426,9 +443,18 @@ const device_t w83787f_device = {
 };
 
 const device_t w83787f_ide_device = {
-    "Winbond W83787F/IF Super I/O with IDE functionality",
+    "Winbond W83787F/IF Super I/O (With IDE)",
     0,
     0x19,
+    w83787f_init, w83787f_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+const device_t w83787f_ide_sec_device = {
+    "Winbond W83787F/IF Super I/O (With Secondary IDE)",
+    0,
+    0x39,
     w83787f_init, w83787f_close, NULL,
     { NULL }, NULL, NULL,
     NULL

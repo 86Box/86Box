@@ -44,8 +44,6 @@ vt82c505_write(int func, int addr, uint8_t val, void *priv)
     uint8_t irq;
     const uint8_t irq_array[8] = { 0, 5, 9, 10, 11, 14, 15, 0 };
 
-    pclog("vt82c505_write(%02X, %02X, %02X)\n", func, addr, val);
-
     if (func != 0)
 	return;
 
@@ -126,8 +124,6 @@ vt82c505_read(int func, int addr, void *priv)
 
     ret = dev->pci_conf[addr];
 
-    pclog("vt82c505_read(%02X, %02X) = %02X\n", func, addr, ret);
-
     return ret;
 }
 
@@ -136,8 +132,6 @@ static void
 vt82c505_out(uint16_t addr, uint8_t val, void *priv)
 {
     vt82c505_t *dev = (vt82c505_t *) priv;
-
-    pclog("vt82c505_out(%04X, %02X)\n", addr, val);
 
     if (addr == 0xa8)
 	dev->index = val;
@@ -154,8 +148,6 @@ vt82c505_in(uint16_t addr, void *priv)
 
     if ((addr == 0xa9) && (dev->index >= 0x80) && (dev->index <= 0x9f))
 	ret = vt82c505_read(0, dev->index, priv);
-
-    pclog("vt82c505_in(%04X) = %02X\n", addr, ret);
 
     return ret;
 }

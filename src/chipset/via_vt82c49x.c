@@ -44,6 +44,7 @@ typedef struct
 		*smram_high;
 } vt82c49x_t;
 
+
 #ifdef ENABLE_VT82C49X_LOG
 int vt82c49x_do_log = ENABLE_VT82C49X_LOG;
 static void
@@ -65,86 +66,125 @@ vt82c49x_log(const char *fmt, ...)
 static void
 vt82c49x_recalc(vt82c49x_t *dev)
 {
-    int i, state;
-    int relocate;
-    int wr_c0, wr_c8, wr_e8, wr_e0;
-    int rr_c0, rr_c8, rr_e8, rr_e0;
-    int wp_c0, wp_e0, wp_e8, wp_f;
-    uint32_t base;
+    int i, relocate;
+    uint8_t reg, bit;
+    uint32_t base, state;
+    uint32_t shadow_bitmap = 0x00000000;
 
-    /* Register 33h */
-    wr_c8 = (dev->regs[0x33] & 0x80) ? MEM_WRITE_EXTANY : MEM_WRITE_EXTERNAL;
-    wr_c0 = (dev->regs[0x33] & 0x40) ? MEM_WRITE_EXTANY : MEM_WRITE_EXTERNAL;
-    wr_e8 = (dev->regs[0x33] & 0x20) ? MEM_WRITE_EXTANY : MEM_WRITE_EXTERNAL;
-    wr_e0 = (dev->regs[0x33] & 0x10) ? MEM_WRITE_EXTANY : MEM_WRITE_EXTERNAL;
-    rr_c8 = (dev->regs[0x33] & 0x80) ? MEM_READ_EXTANY : MEM_READ_EXTERNAL;
-    rr_c0 = (dev->regs[0x33] & 0x40) ? MEM_READ_EXTANY : MEM_READ_EXTERNAL;
-    rr_e8 = (dev->regs[0x33] & 0x20) ? MEM_READ_EXTANY : MEM_READ_EXTERNAL;
-    rr_e0 = (dev->regs[0x33] & 0x10) ? MEM_READ_EXTANY : MEM_READ_EXTERNAL;
     relocate = (dev->regs[0x33] >> 2) & 0x03;
 
-    /* Register 40h */
-    wp_c0 = (dev->regs[0x40] & 0x80) ? wr_c0 : MEM_WRITE_INTERNAL;
-    wp_f = (dev->regs[0x40] & 0x40) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL;
-    wp_e8 = (dev->regs[0x40] & 0x20) ? wr_e8 : MEM_WRITE_INTERNAL;
-    wp_e0 = (dev->regs[0x40] & 0x20) ? wr_e0 : MEM_WRITE_INTERNAL;
+    shadowbios = 0;
+    shadowbios_write = 0;
 
-    /* Registers 30h-32h */
-    if (relocate >= 2) {
-	mem_set_mem_state_both(0xc8000, 0x8000, wr_c8 | rr_c8);
-	mem_set_mem_state_both(0xc0000, 0x8000, wr_c0 | rr_c0);
+    for (i = 0; i < 8; i++) {
+	base = 0xc0000 + (i << 14);
+	reg = 0x30 + (i >> 2);
+	bit = (i & 3) << 1;
 
-	mem_set_mem_state_both(0xd0000, 0x10000, MEM_WRITE_EXTERNAL | MEM_READ_EXTERNAL);
-    } else  for (i = 0; i < 8; i += 2) {
-	base = 0xc0000 + (i << 13);
-	if (base >= 0xc8000) {
-		state = (dev->regs[0x30] & i) ? MEM_WRITE_INTERNAL : wr_c8;
-		state |= (dev->regs[0x30] & (i + 1)) ? MEM_READ_INTERNAL : rr_c8;
+	if ((base >= 0xc0000) && (base <= 0xc7fff)) {
+		if (dev->regs[0x40] & 0x80)
+			state = MEM_WRITE_DISABLED;
+		else if ((dev->regs[reg]) & (1 << bit))
+			state = MEM_WRITE_INTERNAL;
+		else
+			state = (dev->regs[0x33] & 0x40) ? MEM_WRITE_ROMCS : MEM_WRITE_EXTERNAL;
+
+		if ((dev->regs[reg]) & (1 << (bit + 1)))
+			state |= MEM_READ_INTERNAL;
+		else
+			state |= (dev->regs[0x33] & 0x40) ? MEM_READ_ROMCS : MEM_READ_EXTERNAL;
+	}  if ((base >= 0xc8000) && (base <= 0xcffff)) {
+		if ((dev->regs[reg]) & (1 << bit))
+			state = MEM_WRITE_INTERNAL;
+		else
+			state = (dev->regs[0x33] & 0x80) ? MEM_WRITE_ROMCS : MEM_WRITE_EXTERNAL;
+
+		if ((dev->regs[reg]) & (1 << (bit + 1)))
+			state |= MEM_READ_INTERNAL;
+		else
+			state |= (dev->regs[0x33] & 0x80) ? MEM_READ_ROMCS : MEM_READ_EXTERNAL;
 	} else {
-		state = (dev->regs[0x30] & i) ? wp_c0 : wr_c0;
-		state |= (dev->regs[0x30] & (i + 1)) ? MEM_READ_INTERNAL : rr_c0;
+		state = ((dev->regs[reg]) & (1 << bit)) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+		state |= ((dev->regs[reg]) & (1 << (bit + 1))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
 	}
-	mem_set_mem_state_both(base, 0x4000, state);
 
-	base = 0xd0000 + (i << 13);
-	state = (dev->regs[0x31] & i) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTERNAL;
-	state |= (dev->regs[0x31] & (i + 1)) ? MEM_READ_INTERNAL : MEM_READ_EXTERNAL;
+	vt82c49x_log("(%02X=%02X, %i) Setting %08X-%08X to: write %sabled, read %sabled\n",
+	       reg, dev->regs[reg], bit, base, base + 0x3fff,
+	       ((dev->regs[reg]) & (1 << bit)) ? "en" : "dis", ((dev->regs[reg]) & (1 << (bit + 1))) ? "en" : "dis");
+
+	if ((dev->regs[reg]) & (1 << bit))
+		shadow_bitmap |= (1 << i);
+	if ((dev->regs[reg]) & (1 << (bit + 1)))
+		shadow_bitmap |= (1 << (i + 16));
+
 	mem_set_mem_state_both(base, 0x4000, state);
     }
 
-    state = (dev->regs[0x32] & 0x10) ? wp_f : MEM_WRITE_EXTANY;
-    state |= (dev->regs[0x32] & 0x20) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
-    shadowbios_write = (dev->regs[0x32] & 0x10) ? ((wp_f == MEM_WRITE_INTERNAL) ? 1 : 0) : 0;
-    shadowbios = (dev->regs[0x32] & 0x20) ? 1 : 0;
-    mem_set_mem_state_both(0xf0000, 0x10000, state);
+    for (i = 0; i < 4; i++) {
+	base = 0xe0000 + (i << 15);
+	bit = 6 - (i & 2);
 
-    if (relocate == 3) {
-	mem_set_mem_state_both(0xe8000, 0x8000, wr_e8 | rr_e8);
-	mem_set_mem_state_both(0xe0000, 0x8000, wr_e0 | rr_e0);
-    } else {
-	state = (dev->regs[0x32] & 0x40) ? wp_e8 : wr_e8;
-	state |= (dev->regs[0x32] & 0x80) ? MEM_READ_INTERNAL : rr_e8;
-	shadowbios_write |= (dev->regs[0x32] & 0x40) ? ((wp_e8 == MEM_WRITE_INTERNAL) ? 1 : 0) : 0;
-	shadowbios |= (dev->regs[0x32] & 0x80) ? 1 : 0;
-	mem_set_mem_state_both(0xe8000, 0x8000, state);
+	if ((base >= 0xe0000) && (base <= 0xe7fff)) {
+		if (dev->regs[0x40] & 0x20)
+			state = MEM_WRITE_DISABLED;
+		else if ((dev->regs[0x32]) & (1 << bit))
+			state = MEM_WRITE_INTERNAL;
+		else
+			state = (dev->regs[0x33] & 0x10) ? MEM_WRITE_ROMCS : MEM_WRITE_EXTERNAL;
 
-	state = (dev->regs[0x32] & 0x40) ? wp_e0 : wr_e0;
-	state |= (dev->regs[0x32] & 0x80) ? MEM_READ_INTERNAL : rr_e0;
-	shadowbios_write |= (dev->regs[0x32] & 0x40) ? ((wp_e0 == MEM_WRITE_INTERNAL) ? 1 : 0) : 0;
-	shadowbios |= (dev->regs[0x32] & 0x80) ? 1 : 0;
-	mem_set_mem_state_both(0xe0000, 0x8000, state);
+		if ((dev->regs[0x32]) & (1 << (bit + 1)))
+			state = MEM_READ_INTERNAL;
+		else
+			state = (dev->regs[0x33] & 0x10) ? MEM_READ_ROMCS : MEM_READ_EXTERNAL;
+	} else if ((base >= 0xe8000) && (base <= 0xeffff)) {
+		if (dev->regs[0x40] & 0x20)
+			state = MEM_WRITE_DISABLED;
+		else if ((dev->regs[0x32]) & (1 << bit))
+			state = MEM_WRITE_INTERNAL;
+		else
+			state = (dev->regs[0x33] & 0x20) ? MEM_WRITE_ROMCS : MEM_WRITE_EXTERNAL;
+
+		if ((dev->regs[0x32]) & (1 << (bit + 1)))
+			state |= MEM_READ_INTERNAL;
+		else
+			state |= (dev->regs[0x33] & 0x20) ? MEM_READ_ROMCS : MEM_READ_EXTERNAL;
+	} else {
+		if (dev->regs[0x40] & 0x40)
+			state = MEM_WRITE_DISABLED;
+		else if ((dev->regs[0x32]) & (1 << bit))
+			state = ((dev->regs[0x32]) & (1 << bit)) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+
+		state |= ((dev->regs[0x32]) & (1 << (bit + 1))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+	}
+
+	vt82c49x_log("(32=%02X, %i) Setting %08X-%08X to: write %sabled, read %sabled\n",
+	       dev->regs[0x32], bit, base, base + 0x7fff,
+	       ((dev->regs[0x32]) & (1 << bit)) ? "en" : "dis", ((dev->regs[0x32]) & (1 << (bit + 1))) ? "en" : "dis");
+
+	if ((dev->regs[0x32]) & (1 << bit)) {
+		shadow_bitmap |= (0xf << ((i << 2) + 8));
+		shadowbios_write |= 1;
+	}
+	if ((dev->regs[0x32]) & (1 << (bit + 1))) {
+		shadow_bitmap |= (0xf << ((i << 2) + 24));
+		shadowbios |= 1;
+	}
+
+	mem_set_mem_state_both(base, 0x8000, state);
     }
+
+    vt82c49x_log("Shadow bitmap: %08X\n", shadow_bitmap);
+
+    mem_remap_top(0);
 
     switch (relocate) {
-	case 0x00:
-	default:
-		mem_remap_top(0);
-		break;
 	case 0x02:
-		mem_remap_top(256);
+		if (!(shadow_bitmap & 0xfff0fff0))
+			mem_remap_top(256);
 		break;
 	case 0x03:
-		mem_remap_top(384);
+		if (!shadow_bitmap)
+			mem_remap_top(384);
 		break;
     }
 }
@@ -233,8 +273,8 @@ vt82c49x_write(uint16_t addr, uint8_t val, void *priv)
 					ide_set_side(0, (val & 0x40) ? 0x376 : 0x3f6);
 					if (val & 0x01)
 						ide_pri_enable();
-					pclog("VT82C496 IDE now %sabled as %sary\n", (val & 0x01) ? "en": "dis",
-					      (val & 0x40) ? "second" : "prim");
+					vt82c49x_log("VT82C496 IDE now %sabled as %sary\n", (val & 0x01) ? "en": "dis",
+						     (val & 0x40) ? "second" : "prim");
 				}
 				break;
 		}
@@ -251,7 +291,10 @@ vt82c49x_read(uint16_t addr, void *priv)
 
     switch (addr) {
 	case 0xa9:
-		if (dev->index == 0x63)
+		/* Register 64h is jumper readout. */
+		if (dev->index == 0x64)
+			ret = 0xff;
+		else if (dev->index == 0x63)
 			ret = pic_elcr_read(dev->index, &pic2) | (dev->regs[dev->index] & 0x01);
 		else if (dev->index == 0x62)
 			ret = pic_elcr_read(dev->index, &pic) | (dev->regs[dev->index] & 0x07);
@@ -298,8 +341,10 @@ vt82c49x_init(const device_t *info)
     dev->smram_high = smram_add();
 
     dev->has_ide = info->local & 1;
-    if (dev->has_ide)
-	device_add(&ide_vlb_device);
+    if (dev->has_ide) {
+	device_add(&ide_vlb_2ch_device);
+	ide_sec_disable();
+    }
 
     device_add(&port_92_device);
 

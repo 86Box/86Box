@@ -344,9 +344,7 @@ extern int	machine_at_486sp3_init(const machine_t *);
 extern int	machine_at_486sp3c_init(const machine_t *);
 extern int	machine_at_486sp3g_init(const machine_t *);
 extern int	machine_at_486ap4_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(NO_SIO)
 extern int	machine_at_486vipio2_init(const machine_t *);
-#endif
 extern int	machine_at_abpb4_init(const machine_t *);
 extern int	machine_at_win486pci_init(const machine_t *);
 
