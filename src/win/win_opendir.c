@@ -124,7 +124,7 @@ closedir(DIR *p)
  * standard "." and ".." entries.  Many applications do assume
  * this anyway, so we simply fake these entries.
  */
-struct direct *
+struct dirent *
 readdir(DIR *p)
 {
     FINDATA *ffp;

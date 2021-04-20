@@ -25,7 +25,7 @@
 # define MAXDIRLEN	127
 
 
-struct direct {
+struct dirent {
     long		d_ino;
     unsigned short 	d_reclen;
     unsigned short	d_off;
@@ -49,7 +49,7 @@ typedef struct {
 #else
     char	dir[MAXDIRLEN+1];	/* open dir			*/
 #endif
-    struct direct dent;			/* actual directory entry	*/
+    struct dirent dent;			/* actual directory entry	*/
 } DIR;
 
 
@@ -65,7 +65,7 @@ extern DIR		*opendirw(const wchar_t *);
 #else
 extern DIR		*opendir(const char *);
 #endif
-extern struct direct	*readdir(DIR *);
+extern struct dirent	*readdir(DIR *);
 extern long		telldir(DIR *);
 extern void		seekdir(DIR *, long);
 extern int		closedir(DIR *);
