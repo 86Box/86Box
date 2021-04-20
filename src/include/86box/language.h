@@ -116,6 +116,7 @@
 #define IDS_2140	2140		// "CD-ROM images (*.ISO;*.CU.."
 #define IDS_2141	2141		// "%hs Device Configuration"
 #define IDS_2142	2142		// "Monitor in sleep mode"
+#define IDS_2143	2143		// "OpenGL Shaders (*.GLSL)..."
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
@@ -223,7 +224,7 @@
 
 #define IDS_LANG_ENUS	IDS_7168
 
-#define STR_NUM_2048	95
+#define STR_NUM_2048	96
 #define STR_NUM_3072	11
 #define STR_NUM_4096	39
 #define STR_NUM_4352	6

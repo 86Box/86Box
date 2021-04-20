@@ -223,7 +223,7 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_SDL_SW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_HW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_OPENGL, MF_UNCHECKED);
-#ifdef DEV_BRANCH
+#ifdef DEV_BRANCH /* feature-opengl */
     CheckMenuItem(menuMain, IDM_VID_OPENGL_CORE, MF_UNCHECKED);
 #endif
 #ifdef USE_VNC
@@ -672,7 +672,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_SDL_SW:
 			case IDM_VID_SDL_HW:
 			case IDM_VID_SDL_OPENGL:
-#ifdef DEV_BRANCH
+#ifdef DEV_BRANCH /* feature-opengl */
 			case IDM_VID_OPENGL_CORE:
 #endif
 #ifdef USE_VNC
@@ -683,6 +683,21 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				CheckMenuItem(hmenu, IDM_VID_SDL_SW + vid_api, MF_CHECKED);
 				config_save();
 				break;
+
+#ifdef DEV_BRANCH /* feature-opengl */
+			case IDM_VID_GL_VSYNC:
+				video_vsync = !video_vsync;
+				CheckMenuItem(hmenu, IDM_VID_GL_VSYNC, video_vsync ? MF_CHECKED : MF_UNCHECKED);
+				//plat_reload_config
+				config_save();
+				break;
+			case IDM_VID_GL_SHADER:
+				win_notify_dlg_open();
+				if (file_dlg_st(hwnd, IDS_2143, video_shader, NULL, 0) == 0)
+					strcpy_s(video_shader, sizeof(video_shader), openfilestring);
+				win_notify_dlg_closed();
+				break;
+#endif
 
 			case IDM_VID_FULLSCREEN:
 				plat_setfullscreen(1);

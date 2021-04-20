@@ -107,13 +107,13 @@ static char* read_file_to_string(const char* path)
  * @brief Compile custom shaders into a program.
  * @return Shader program identifier.
 */
-GLuint load_custom_shaders()
+GLuint load_custom_shaders(const char* path)
 {
 	GLint status = GL_FALSE;
 	int info_log_length;
 
 	/* TODO: get path from config */
-	char* shader = read_file_to_string("shaders/shader.glsl");
+	char* shader = read_file_to_string(path);
 
 	if (shader != NULL)
 	{

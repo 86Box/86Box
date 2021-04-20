@@ -66,13 +66,29 @@ BEGIN
             MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
             MENUITEM "SDL (&Hardware)",         IDM_VID_SDL_HW
             MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
-#ifdef DEV_BRANCH
+#ifdef DEV_BRANCH /* feature-opengl */
             MENUITEM "Open&GL (3.3 Core)",      IDM_VID_OPENGL_CORE
 #endif
 #ifdef USE_VNC
             MENUITEM "&VNC",                    IDM_VID_VNC
 #endif
         END
+#ifdef DEV_BRANCH /* feature-opengl */
+        POPUP "Renderer o&ptions"
+        BEGIN
+            POPUP "Target &framerate"
+            BEGIN
+                MENUITEM "&Sync with video",    IDM_VID_GL_FPS_BLITTER
+                MENUITEM "&25 fps",             IDM_VID_GL_FPS_25
+                MENUITEM "&30 fps",             IDM_VID_GL_FPS_30
+                MENUITEM "&50 fps",             IDM_VID_GL_FPS_50
+                MENUITEM "&60 fps",             IDM_VID_GL_FPS_60
+                MENUITEM "&75 fps",             IDM_VID_GL_FPS_75
+            END
+            MENUITEM "&VSync",                  IDM_VID_GL_VSYNC
+            MENUITEM "&Select shader...",       IDM_VID_GL_SHADER
+        END
+#endif
         MENUITEM SEPARATOR
         MENUITEM "Specify dimensions",          IDM_VID_SPECIFY_DIM
         MENUITEM "F&orce 4:3 display ratio",    IDM_VID_FORCE43
@@ -1080,6 +1096,7 @@ BEGIN
     IDS_2140	"CD-ROM images (*.ISO;*.CUE)\0*.ISO;*.CUE\0All files (*.*)\0*.*\0"
     IDS_2141	"%hs Device Configuration"
     IDS_2142    "Monitor in sleep mode"
+    IDS_2143	"OpenGL Shaders (*.GLSL)\0*.GLSL\0All files (*.*)\0*.*\0"
 END
 
 STRINGTABLE DISCARDABLE 

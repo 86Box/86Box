@@ -41,6 +41,7 @@
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <86box/86box.h>
 #include <86box/plat.h>
@@ -51,13 +52,6 @@
 
 static const int INIT_WIDTH = 640;
 static const int INIT_HEIGHT = 400;
-
-/* Option; Target framerate: Sync with emulation / 25 fps / 30 fps / 50 fps / 60 fps / 75 fps */
-static const int SYNC_WITH_BLITTER = 1;
-static const int TARGET_FRAMETIME = 13;
-
-/* Option; Vsync: Off / On */
-static const int VSYNC = 0;
 
 /**
  * @brief A dedicated OpenGL thread.
@@ -89,9 +83,10 @@ static union
 	{
 		HANDLE closing;
 		HANDLE resize;
+		HANDLE reload;
 		HANDLE blit_waiting;
 	};
-	HANDLE asArray[3];
+	HANDLE asArray[4];
 } sync_objects = { 0 };
 
 /**
@@ -116,6 +111,16 @@ static volatile struct
 } resize_info = { 0 };
 
 /**
+ * @brief Renderer options
+*/
+static volatile struct
+{
+	int vsync;		/* Vertical sync; 0 = off, 1 = on */
+	int frametime;		/* Frametime in ms, or -1 to sync with blitter */
+	char shaderfile[512];	/* Shader file path. Match the length of openfilestring in win_dialog.c */
+} options = { 0 };
+
+/**
  * @brief Identifiers to OpenGL objects and uniforms.
  */
 typedef struct
@@ -132,15 +137,6 @@ typedef struct
 	GLint texture_size;
 	GLint frame_count;
 } gl_identifiers;
-
-/**
- * @brief Userdata to pass onto windows message hook
-*/
-typedef struct
-{
-	HWND window;
-	int* fullscreen;
-} winmessage_data;
 
 /**
  * @brief Set or unset OpenGL context window as a child window.
@@ -269,7 +265,7 @@ static gl_identifiers initialize_glcontext()
 
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 
-	gl.shader_progID = load_custom_shaders();
+	gl.shader_progID = load_custom_shaders(options.shaderfile);
 
 	if (gl.shader_progID == 0)
 		gl.shader_progID = load_default_shaders();
@@ -362,7 +358,7 @@ static void opengl_main(void* param)
 
 	window = SDL_CreateWindow("86Box OpenGL Renderer", 0, 0, resize_info.width, resize_info.height, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
 
-	SDL_GL_SetSwapInterval(VSYNC);
+	SDL_GL_SetSwapInterval(options.vsync);
 
 	/* Keep track of certain parameters, only changed in this thread to avoid race conditions */
 	int fullscreen = resize_info.fullscreen, video_width = INIT_WIDTH, video_height = INIT_HEIGHT;
@@ -373,9 +369,6 @@ static void opengl_main(void* param)
 
 	if (wmi.subsystem == SDL_SYSWM_WINDOWS)
 		window_hwnd = wmi.info.win.window;
-
-	/* Pass window handle and full screen mode to windows message hook */
-	winmessage_data msg_data = (winmessage_data){ window_hwnd, &fullscreen };
 
 	if (!fullscreen)
 		set_parent_binding(1);
@@ -391,23 +384,23 @@ static void opengl_main(void* param)
 	if (gl.frame_count != -1)
 		glUniform1i(gl.frame_count, 0);
 
-	uint32_t last_swap = -TARGET_FRAMETIME;
+	uint32_t last_swap = -options.frametime;
 
 	/* Render loop */
 	int closing = 0;
 	while (!closing)
 	{
-		if (SYNC_WITH_BLITTER)
+		if (options.frametime < 0)
 			render_and_swap(gl);
 
 		DWORD wait_result = WAIT_TIMEOUT;
 
 		do
 		{
-			if (!SYNC_WITH_BLITTER)
+			if (options.frametime >= 0)
 			{
 				uint32_t ticks = plat_get_ticks();
-				if (ticks - last_swap > TARGET_FRAMETIME)
+				if (ticks - last_swap >= options.frametime)
 				{
 					render_and_swap(gl);
 					last_swap = ticks;
@@ -591,6 +584,10 @@ int opengl_init(HWND hwnd)
 	resize_info.fullscreen = video_fullscreen & 1;
 	resize_info.scaling_mode = video_fullscreen_scale;
 
+	options.vsync = video_vsync;
+	options.frametime = -1;
+	strcpy_s(options.shaderfile, sizeof(options.shaderfile), "shaders/shader.glsl");
+
 	thread = thread_create(opengl_main, (void*)NULL);
 
 	atexit(opengl_close);
@@ -652,4 +649,12 @@ void opengl_resize(int w, int h)
 	resize_info.scaling_mode = video_fullscreen_scale;
 
 	SetEvent(sync_objects.resize);
+}
+
+void opengl_reload(void)
+{
+	if (thread == NULL)
+		return;
+
+	SetEvent(sync_objects.reload);
 }
