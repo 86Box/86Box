@@ -222,7 +222,7 @@ file_dlg_mb(HWND hwnd, char *f, char *fn, char *title, int save)
 {
     WCHAR uf[512], ufn[512], title_buf[512];
 
-    mbstoc16s(uf, f, strlen(fn) + 1);
+    mbstoc16s(uf, f, strlen(f) + 1);
     mbstoc16s(ufn, fn, strlen(fn) + 1);
     if (title)
         mbstoc16s(title_buf, title, sizeof title_buf);
