@@ -1062,6 +1062,7 @@ enter_smm(int in_hlt)
     x386_common_log("EAX = %08X, EBX = %08X, ECX = %08X, EDX = %08X, ESI = %08X, EDI = %08X, ESP = %08X, EBP = %08X\n",
 		    EAX, EBX, ECX, EDX, ESI, EDI, ESP, EBP);
 
+    flags_rebuild();
     in_smm = 1;
     smram_backup_all();
     smram_recalc_all(0);
