@@ -5060,7 +5060,7 @@ static BOOL
 win_settings_categories_init_columns(HWND hdlg)
 {
     LVCOLUMN lvc;
-    int iCol;
+    int iCol = 0;
     HWND hwndList = GetDlgItem(hdlg, IDC_SETTINGSCATLIST);
 
     lvc.mask = LVCF_FMT | LVCF_WIDTH | LVCF_TEXT | LVCF_SUBITEM;
