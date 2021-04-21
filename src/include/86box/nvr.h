@@ -81,6 +81,7 @@ typedef struct _nvr_ {
     void	(*ven_save)(void);
 
     uint8_t	regs[NVR_MAXSIZE];	/* these are the registers */
+    uint8_t apc_regs[4];	/* AND THIS! IS THE APC MADAFAKA :b */
 } nvr_t;
 
 
@@ -92,6 +93,7 @@ extern const device_t ps_nvr_device;
 extern const device_t amstrad_nvr_device;
 extern const device_t ibmat_nvr_device;
 extern const device_t piix4_nvr_device;
+extern const device_t sis_nvr_device;
 extern const device_t ls486e_nvr_device;
 extern const device_t ami_apollo_nvr_device;
 extern const device_t via_nvr_device;
@@ -100,6 +102,7 @@ extern const device_t via_nvr_device;
 
 extern void	rtc_tick(void);
 
+void apc_handler(int enable, nvr_t *nvr);
 extern void	nvr_init(nvr_t *);
 extern char	*nvr_path(char *str);
 extern FILE	*nvr_fopen(char *str, char *mode);

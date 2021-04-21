@@ -44,6 +44,7 @@ extern "C" {
 
 #define VEN_ALI		0x010b9
 #define VEN_INTEL	0x08086
+#define VEN_SIS		0x01039
 #define VEN_SMC		0x01055
 #define VEN_VIA		0x01106
 #define VEN_VIA_596B	0x11106
@@ -51,23 +52,23 @@ extern "C" {
 
 typedef struct
 {
-    uint8_t		plvl2, plvl3,
+    uint8_t		acpitst, auxen, auxsts, plvl2, plvl3,
 			smicmd, gpio_dir,
-			gpio_val, pad,
-			timer32,
+			gpio_val, muxcntrl, pad,
+			timer32, smireg,
 			gpireg[3], gporeg[4];
     uint16_t		pmsts, pmen,
 			pmcntrl, gpsts, gpsts1,
 			gpen, gpen1, gpscien,
-			gpcntrl,
-			gpsmien, pscntrl,
+			gpcntrl, gplvl, gpmux,
+			gpsel, gpsmien, pscntrl,
 			gpscists;
     int			smi_lock, smi_active;
-    uint32_t		pcntrl, glbsts,
+    uint32_t		pcntrl, p2cntrl, glbsts,
 			devsts, glben,
 			glbctl, devctl,
 			padsts, paden,
-			gptren, timer_val,
+			gptren, gptimer, timer_val,
 			gpo_val, gpi_val,
 			extsmi_val, pad0;
     uint64_t		tmr_overflow_time;
@@ -95,6 +96,7 @@ extern int		acpi_rtc_status;
 
 extern const device_t	acpi_ali_device;
 extern const device_t	acpi_intel_device;
+extern const device_t	acpi_sis_device;
 extern const device_t	acpi_smc_device;
 extern const device_t	acpi_via_device;
 extern const device_t	acpi_via_596b_device;

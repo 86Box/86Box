@@ -284,6 +284,10 @@
 #define RTC_ALDAY	0x7D		/* VIA VT82C586B - alarm day */
 #define RTC_ALMONTH	0x7E		/* VIA VT82C586B - alarm month */
 #define RTC_CENTURY_VIA	0x7F		/* century register for VIA VT82C586B */
+
+#define RTC_ALDAY_SIS 0x7E		/* Day of Month Alarm for SiS */
+#define RTC_ALMONT_SIS 0x7F		/* Month Alarm for SiS */
+
 #define RTC_REGS	14		/* number of registers */
 
 #define FLAG_LS_HACK		0x01
@@ -452,7 +456,9 @@ timer_update(void *priv)
 	    check_alarm(nvr, RTC_MINUTES) &&
 	    check_alarm(nvr, RTC_HOURS) &&
 	    check_alarm_via(nvr, RTC_DOM, RTC_ALDAY) &&
-	    check_alarm_via(nvr, RTC_MONTH, RTC_ALMONTH)) {
+	    check_alarm_via(nvr, RTC_MONTH, RTC_ALMONTH) &&
+		check_alarm_via(nvr, RTC_DOM, RTC_ALDAY_SIS) &&
+		check_alarm_via(nvr, RTC_MONTH, RTC_ALMONT_SIS)) {
 		nvr->regs[RTC_REGC] |= REGC_AF;
 		if (nvr->regs[RTC_REGB] & REGB_AIE) {
 			nvr->regs[RTC_REGC] |= REGC_IRQF;
@@ -759,7 +765,6 @@ nvr_read(uint16_t addr, void *priv)
     return(ret);
 }
 
-
 /* Secondary NVR write - used by SMC. */
 static void
 nvr_sec_write(uint16_t addr, uint8_t val, void *priv)
@@ -775,7 +780,6 @@ nvr_sec_read(uint16_t addr, void *priv)
     return nvr_read(0x72 + (addr & 1), priv);
 }
 
-
 /* Reset the RTC state to 1980/01/01 00:00. */
 static void
 nvr_reset(nvr_t *nvr)
@@ -790,7 +794,6 @@ nvr_reset(nvr_t *nvr)
     if (local->cent != 0xFF)
 	nvr->regs[local->cent] = RTC_BCD(19);
 }
-
 
 /* Process after loading from file. */
 static void
@@ -861,7 +864,6 @@ nvr_at_sec_handler(int set, uint16_t base, nvr_t *nvr)
 	       nvr_sec_read,NULL,NULL, nvr_sec_write,NULL,NULL, nvr);
 }
 
-
 void
 nvr_read_addr_set(int set, nvr_t *nvr)
 {
@@ -919,7 +921,7 @@ nvr_at_init(const device_t *info)
     nvr->size = machines[machine].nvrmask + 1;
     local->lock = (uint8_t *) malloc(nvr->size);
     memset(local->lock, 0x00, nvr->size);
-    local->def = 0xff /*0x00*/;
+    local->def = 0x00;
     local->flags = 0x00;
     switch(info->local & 7) {
 	case 0:		/* standard AT, no century register */
@@ -930,7 +932,7 @@ nvr_at_init(const device_t *info)
 	case 1:		/* standard AT */
 	case 5:		/* Lucky Star LS-486E */
 	case 6:		/* AMI Apollo */
-		if (info->local == 9)
+		if ((info->local == 9) || (info->local == 16))
 			local->flags |= FLAG_PIIX4;
 		else {
 			if ((info->local & 7) == 5)
@@ -986,10 +988,8 @@ nvr_at_init(const device_t *info)
 	/* Set up the I/O handler for this device. */
 	io_sethandler(0x0070, 2,
 		      nvr_read,NULL,NULL, nvr_write,NULL,NULL, nvr);
-	if (info->local & 8) {
 		io_sethandler(0x0072, 2,
 			      nvr_read,NULL,NULL, nvr_write,NULL,NULL, nvr);
-	}
 
 	nvr_at_inited = 1;
     }
@@ -1074,6 +1074,15 @@ const device_t piix4_nvr_device = {
     "Intel PIIX4 PC/AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
     9,
+    nvr_at_init, nvr_at_close, NULL,
+    { NULL }, nvr_at_speed_changed,
+    NULL
+};
+
+const device_t sis_nvr_device = {
+    "SiS PC/AT NVRAM",
+    DEVICE_ISA | DEVICE_AT,
+    11,
     nvr_at_init, nvr_at_close, NULL,
     { NULL }, nvr_at_speed_changed,
     NULL
