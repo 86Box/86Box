@@ -930,7 +930,7 @@ sis_5598_init(const device_t *info)
 
     /* ACPI */
     dev->acpi = device_add(&acpi_sis_device);
-    dev->nvr = device_add(&sis_nvr_device);
+    dev->nvr = device_add(&at_nvr_device);
 
     /* DDMA */
     dev->ddma = device_add(&ddma_device);

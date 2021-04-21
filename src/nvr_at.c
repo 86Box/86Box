@@ -932,7 +932,7 @@ nvr_at_init(const device_t *info)
 	case 1:		/* standard AT */
 	case 5:		/* Lucky Star LS-486E */
 	case 6:		/* AMI Apollo */
-		if ((info->local == 9) || (info->local == 16))
+		if (info->local == 9)
 			local->flags |= FLAG_PIIX4;
 		else {
 			if ((info->local & 7) == 5)
@@ -1074,15 +1074,6 @@ const device_t piix4_nvr_device = {
     "Intel PIIX4 PC/AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
     9,
-    nvr_at_init, nvr_at_close, NULL,
-    { NULL }, nvr_at_speed_changed,
-    NULL
-};
-
-const device_t sis_nvr_device = {
-    "SiS PC/AT NVRAM",
-    DEVICE_ISA | DEVICE_AT,
-    11,
     nvr_at_init, nvr_at_close, NULL,
     { NULL }, nvr_at_speed_changed,
     NULL
