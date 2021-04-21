@@ -301,7 +301,7 @@ acpi_reg_read_sis(int size, uint16_t addr, void *p)
     uint32_t ret = 0x00000000;
     int shift16, shift32;
 
-    addr &= 0x3f;
+    addr &= 0x2f;
     shift16 = (addr & 1) << 3;
     shift32 = (addr & 3) << 3;
 
@@ -820,11 +820,7 @@ acpi_reg_write_sis(int size, uint16_t addr, uint8_t val, void *p)
     acpi_t *dev = (acpi_t *) p;
     int shift16, shift32;
 
-    addr &= 0x3f;
-#ifdef ENABLE_ACPI_LOG
-    if (size != 1)
-	acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
-#endif
+    addr &= 0x2f;
     shift16 = (addr & 1) << 3;
     shift32 = (addr & 3) << 3;
 
@@ -899,6 +895,11 @@ switch(addr)
 	acpi_reg_write_common_regs(size, addr, val, p);
 	break;
 }
+
+#ifdef ENABLE_ACPI_LOG
+    if (size != 1)
+	acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
+#endif
 }
 
 static void
