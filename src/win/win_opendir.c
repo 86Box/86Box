@@ -17,8 +17,6 @@
  *		Copyright 1998-2007 MicroWalt Corporation
  *		Copyright 2017 Fred N. van Kempen
  */
-#define UNICODE
-#include <windows.h>
 #include <io.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -158,10 +156,11 @@ readdir(DIR *p)
 	default:	/* regular entry. */
 #ifdef UNICODE
 		wcsncpy(p->dent.d_name, ffp->name, MAXNAMLEN+1);
+		p->dent.d_reclen = (char)wcslen(p->dent.d_name);
 #else
 		strncpy(p->dent.d_name, ffp->name, MAXNAMLEN+1);
+		p->dent.d_reclen = (char)strlen(p->dent.d_name);
 #endif
-		p->dent.d_reclen = (char) wcslen(p->dent.d_name);
     }
 
     /* Read next entry. */
