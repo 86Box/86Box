@@ -105,9 +105,10 @@ static volatile struct
 /**
  * @brief Resize event parameters.
 */
-static volatile struct
+static struct
 {
 	int width, height, fullscreen, scaling_mode;
+	mutex_t* mutex;
 } resize_info = { 0 };
 
 /**
@@ -461,6 +462,8 @@ static void opengl_main(void* param)
 		}
 		else if (sync_event == sync_objects.resize)
 		{
+			thread_wait_mutex(resize_info.mutex);
+
 			if (fullscreen != resize_info.fullscreen)
 			{
 				fullscreen = resize_info.fullscreen;
@@ -529,6 +532,8 @@ static void opengl_main(void* param)
 				if (gl.output_size != -1)
 					glUniform2f(gl.output_size, resize_info.width, resize_info.height);
 			}
+
+			thread_release_mutex(resize_info.mutex);
 		}
 	}
 
@@ -568,6 +573,9 @@ static void opengl_blit(int x, int y, int y1, int y2, int w, int h)
 
 int opengl_init(HWND hwnd)
 {
+	if (thread != NULL)
+		return 0;
+
 	for (int i = 0; i < sizeof(sync_objects) / sizeof(HANDLE); i++)
 		sync_objects.asArray[i] = CreateEvent(NULL, FALSE, FALSE, NULL);
 
@@ -583,6 +591,7 @@ int opengl_init(HWND hwnd)
 	resize_info.height = parent_size.bottom - parent_size.top;
 	resize_info.fullscreen = video_fullscreen & 1;
 	resize_info.scaling_mode = video_fullscreen_scale;
+	resize_info.mutex = thread_create_mutex();
 
 	options.vsync = video_vsync;
 	options.frametime = -1;
@@ -613,6 +622,8 @@ void opengl_close(void)
 
 	memset((void*)&blit_info, 0, sizeof(blit_info));
 
+	thread_close_mutex(resize_info.mutex);
+
 	SetEvent(blit_done);
 
 	thread = NULL;
@@ -633,8 +644,12 @@ void opengl_set_fs(int fs)
 	if (thread == NULL)
 		return;
 
+	thread_wait_mutex(resize_info.mutex);
+	
 	resize_info.fullscreen = fs;
 	resize_info.scaling_mode = video_fullscreen_scale;
+
+	thread_release_mutex(resize_info.mutex);
 
 	SetEvent(sync_objects.resize);
 }
@@ -644,9 +659,13 @@ void opengl_resize(int w, int h)
 	if (thread == NULL)
 		return;
 
+	thread_wait_mutex(resize_info.mutex);
+
 	resize_info.width = w;
 	resize_info.height = h;
 	resize_info.scaling_mode = video_fullscreen_scale;
+
+	thread_release_mutex(resize_info.mutex);
 
 	SetEvent(sync_objects.resize);
 }
