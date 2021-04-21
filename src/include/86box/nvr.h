@@ -102,7 +102,6 @@ extern const device_t via_nvr_device;
 
 extern void	rtc_tick(void);
 
-void apc_handler(int enable, nvr_t *nvr);
 extern void	nvr_init(nvr_t *);
 extern char	*nvr_path(char *str);
 extern FILE	*nvr_fopen(char *str, char *mode);
