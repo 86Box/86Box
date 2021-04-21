@@ -30,6 +30,9 @@ if(MSVC)
 	target_sources(86Box PRIVATE 86Box.manifest)
 
 	target_sources(plat PRIVATE win_opendir.c)
+
+	# Append null to resource strings (fixes file dialogs)
+	set_property(SOURCE 86Box.rc PROPERTY COMPILE_FLAGS -n)
 endif()
 
 if(DINPUT)
