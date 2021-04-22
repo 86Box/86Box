@@ -22,66 +22,93 @@
 # define EMU_MEM_H
 
 
-#define MEM_MAPPING_EXTERNAL	1	/* on external bus (ISA/PCI) */
-#define MEM_MAPPING_INTERNAL	2	/* on internal bus (RAM) */
-#define MEM_MAPPING_ROM		4	/* Executing from ROM may involve
-					 * additional wait states. */
-#define MEM_MAPPING_ROMCS	8	/* respond to ROMCS* */
-#define MEM_MAPPING_SMRAM	16	/* on internal bus (RAM) but SMRAM */
-
 #define MEM_MAP_TO_SHADOW_RAM_MASK 1
 #define MEM_MAP_TO_RAM_ADDR_MASK   2
 
-/* _mem_state layout:
-	Bits  0 - 7:	Normal write
-	Bits  8 -15:	Normal read
-	Bits 16 -23:	SMM write
-	Bits 24 -31:	SMM read
-*/
+#define STATE_CPU		 0
+#define STATE_BUS		 2
 
-#define MEM_READ_DISABLED	0x0000
-#define MEM_READ_INTERNAL	0x0100
-#define MEM_READ_EXTERNAL	0x0200
-#define MEM_READ_ANY		0x0300
-#define MEM_READ_NORMAL		0x0400	/* SMM only - means use the non-SMM state */
-#define MEM_READ_EXTERNAL_EX	0x0500	/* External but with internal exec - needed by the VIA Apollo Pro */
-#define MEM_READ_ROMCS		0x0600	/* EXTERNAL type + ROMC flag */
-#define MEM_READ_EXTANY		0x0700	/* Any EXTERNAL type */
-#define MEM_READ_SMRAM		0x1000
-#define MEM_READ_SMRAM_EX	0x2000
-#define MEM_READ_DISABLED_EX	0x4000
-#define MEM_READ_MASK		0xff00
+#define ACCESS_CPU		    1	/* Update CPU non-SMM access. */
+#define ACCESS_CPU_SMM		    2	/* Update CPU SMM access. */
+#define ACCESS_BUS		    4	/* Update bus access. */
+#define ACCESS_BUS_SMM		    8	/* Update bus SMM access. */
+#define ACCESS_NORMAL		    5	/* Update CPU and bus non-SMM accesses. */
+#define ACCESS_SMM		   10	/* Update CPU and bus SMM accesses. */
+#define ACCESS_CPU_BOTH		    3	/* Update CPU non-SMM and SMM accesses. */
+#define ACCESS_BUS_BOTH		   12	/* Update bus non-SMM and SMM accesses. */
+#define ACCESS_ALL		   15	/* Update all accesses. */
 
-#define MEM_WRITE_DISABLED	0x0000
-#define MEM_WRITE_INTERNAL	0x0001
-#define MEM_WRITE_EXTERNAL	0x0002
-#define MEM_WRITE_ANY		0x0003
-#define MEM_WRITE_NORMAL	0x0004	/* SMM only - means use the non-SMM state */
-#define MEM_WRITE_EXTERNAL_EX	0x0005
-#define MEM_WRITE_ROMCS		0x0006	/* EXTERNAL type + ROMC flag */
-#define MEM_WRITE_EXTANY	0x0007	/* Any EXTERNAL type */
-#define MEM_WRITE_SMRAM		0x0010
-#define MEM_WRITE_SMRAM_EX	0x0020
-#define MEM_WRITE_DISABLED_EX	0x0040
-#define MEM_WRITE_MASK		0x00ff
+#define ACCESS_INTERNAL		    1
+#define ACCESS_ROMCS		    2
+#define ACCESS_SMRAM		    4
+#define ACCESS_CACHE		    8
+#define ACCESS_DISABLED		   16
 
-#define MEM_STATE_SMM_SHIFT	16
+#define ACCESS_X_INTERNAL	    1
+#define ACCESS_X_ROMCS		    2
+#define ACCESS_X_SMRAM		    4
+#define ACCESS_X_CACHE		    8
+#define ACCESS_X_DISABLED	   16
+#define ACCESS_W_INTERNAL	   32
+#define ACCESS_W_ROMCS		   64
+#define ACCESS_W_SMRAM		  128
+#define ACCESS_W_CACHE		  256
+#define ACCESS_W_DISABLED	  512
+#define ACCESS_R_INTERNAL	 1024
+#define ACCESS_R_ROMCS		 2048
+#define ACCESS_R_SMRAM		 4096
+#define ACCESS_R_CACHE		 8192
+#define ACCESS_R_DISABLED	16384
 
-/* #define's for memory granularity, currently 16k, but may
-   change in the future - 4k works, less does not because of
-   internal 4k pages. */
-#ifdef DEFAULT_GRANULARITY
-#define MEM_GRANULARITY_BITS	14
-#define MEM_GRANULARITY_SIZE	(1 << MEM_GRANULARITY_BITS)
-#define MEM_GRANULARITY_HBOUND	(MEM_GRANULARITY_SIZE - 2)
-#define MEM_GRANULARITY_QBOUND	(MEM_GRANULARITY_SIZE - 4)
-#define MEM_GRANULARITY_MASK	(MEM_GRANULARITY_SIZE - 1)
-#define MEM_GRANULARITY_HMASK	((1 << (MEM_GRANULARITY_BITS - 1)) - 1)
-#define MEM_GRANULARITY_QMASK	((1 << (MEM_GRANULARITY_BITS - 2)) - 1)
-#define MEM_GRANULARITY_PMASK	((1 << (MEM_GRANULARITY_BITS - 3)) - 1)
-#define MEM_MAPPINGS_NO		((0x100000 >> MEM_GRANULARITY_BITS) << 12)
-#define MEM_GRANULARITY_PAGE	(MEM_GRANULARITY_MASK & ~0xfff)
-#else
+#define ACCESS_EXECUTE		    0
+#define ACCESS_READ		    1
+#define ACCESS_WRITE		    2
+
+/* Conversion #define's - we need these to seamlessly convert the old mem_set_mem_state() calls to
+   the new stuff in order to make this a drop in replacement.
+
+   Read here includes execute access since the old code also used read access for execute access,
+   with some exceptions. */
+
+#define MEM_READ_DISABLED	(ACCESS_X_DISABLED | ACCESS_R_DISABLED)
+#define MEM_READ_INTERNAL	(ACCESS_X_INTERNAL | ACCESS_R_INTERNAL)
+#define MEM_READ_EXTERNAL	0
+/* These two are going to be identical - on real hardware, chips that don't care about ROMCS#,
+   are not magically disabled. */
+#define MEM_READ_ROMCS		(ACCESS_X_ROMCS | ACCESS_R_ROMCS)
+#define MEM_READ_EXTANY		MEM_READ_ROMCS
+/* Internal execute access, external read access. */
+#define MEM_READ_EXTERNAL_EX	0
+#define MEM_READ_SMRAM		(ACCESS_X_SMRAM | ACCESS_R_SMRAM)
+#define MEM_READ_SMRAM_EX	(ACCESS_X_SMRAM)
+/* Theese two are going to be identical. */
+#define MEM_READ_DISABLED_EX	MEM_READ_DISABLED
+#define MEM_READ_MASK		0x7c1f
+
+#define MEM_WRITE_DISABLED	(ACCESS_W_DISABLED)
+#define MEM_WRITE_INTERNAL	(ACCESS_W_INTERNAL)
+#define MEM_WRITE_EXTERNAL	0
+/* These two are going to be identical - on real hardware, chips that don't care about ROMCS#,
+   are not magically disabled. */
+#define MEM_WRITE_ROMCS		(ACCESS_W_ROMCS)
+#define MEM_WRITE_EXTANY	(ACCESS_W_ROMCS)
+#define MEM_WRITE_SMRAM		(ACCESS_W_SMRAM)
+/* Theese two are going to be identical. */
+#define MEM_WRITE_DISABLED_EX	MEM_READ_DISABLED
+#define MEM_WRITE_MASK		0x03e0
+
+#define MEM_MAPPING_EXTERNAL	 1	/* On external bus (ISA/PCI). */
+#define MEM_MAPPING_INTERNAL	 2	/* On internal bus (RAM). */
+#define MEM_MAPPING_ROM_WS	 4	/* Executing from ROM may involve additional wait states. */
+#define MEM_MAPPING_IS_ROM	 8	/* Responds to ROMCS#. */
+#define MEM_MAPPING_ROM		(MEM_MAPPING_ROM_WS | MEM_MAPPING_IS_ROM)
+#define MEM_MAPPING_ROMCS	16	/* If it responds to ROMCS#, it requires ROMCS# asserted. */
+#define MEM_MAPPING_SMRAM	32	/* On internal bus (RAM) but SMRAM. */
+#define MEM_MAPPING_CACHE	64	/* Cache or MTRR - please avoid such mappings unless
+					   stricly necessary (eg. for CoreBoot). */
+
+/* #define's for memory granularity, currently 4k, less does
+   not work because of internal 4k pages. */
 #define MEM_GRANULARITY_BITS	12
 #define MEM_GRANULARITY_SIZE	(1 << MEM_GRANULARITY_BITS)
 #define MEM_GRANULARITY_HBOUND	(MEM_GRANULARITY_SIZE - 2)
@@ -92,15 +119,38 @@
 #define MEM_GRANULARITY_PMASK	((1 << (MEM_GRANULARITY_BITS - 3)) - 1)
 #define MEM_MAPPINGS_NO		((0x100000 >> MEM_GRANULARITY_BITS) << 12)
 #define MEM_GRANULARITY_PAGE	(MEM_GRANULARITY_MASK & ~0xfff)
-#endif
+#define MEM_GRANULARITY_BASE	(~MEM_GRANULARITY_MASK)
 
-#define mem_set_mem_state_common(smm, base, size, state) mem_set_state(!!smm, 0, base, size, state)
-#define mem_set_mem_state(base, size, state) mem_set_state(0, 0, base, size, state)
-#define mem_set_mem_state_smm(base, size, state) mem_set_state(1, 0, base, size, state)
-#define mem_set_mem_state_both(base, size, state) mem_set_state(2, 0, base, size, state)
-#define mem_set_mem_state_smram(smm, base, size, is_smram) mem_set_state(!!smm, 1, base, size, is_smram)
-#define mem_set_mem_state_smram_ex(smm, base, size, is_smram) mem_set_state(!!smm, 2, base, size, is_smram)
+/* Compatibility #defines. */
+#define mem_set_state(smm, mode, base, size, access) \
+	mem_set_access((smm ? ACCESS_SMM : ACCESS_NORMAL), mode, base, size, access)
+#define mem_set_mem_state_common(smm, base, size, access) \
+	mem_set_access((smm ? ACCESS_SMM : ACCESS_NORMAL), 0, base, size, access)
+#define mem_set_mem_state(base, size, access) \
+	mem_set_access(ACCESS_NORMAL, 0, base, size, access)
+#define mem_set_mem_state_smm(base, size, access) \
+	mem_set_access(ACCESS_SMM, 0, base, size, access)
+#define mem_set_mem_state_both(base, size, access) \
+	mem_set_access(ACCESS_ALL, 0, base, size, access)
+#define mem_set_mem_state_smram(smm, base, size, is_smram) \
+	mem_set_access((smm ? ACCESS_SMM : ACCESS_NORMAL), 1, base, size, is_smram)
+#define mem_set_mem_state_smram_ex(smm, base, size, is_smram) \
+	mem_set_access((smm ? ACCESS_SMM : ACCESS_NORMAL), 2, base, size, is_smram)
+#define flushmmucache_cr3 \
+	flushmmucache_nopc
 
+
+typedef struct {
+    uint16_t	x	:5,
+		w	:5,
+		r	:5,
+		pad	:1;
+} state_t;
+
+typedef union {
+    uint16_t	vals[4];
+    state_t	states[4];
+} mem_state_t;
 
 typedef struct _mem_mapping_ {
     struct _mem_mapping_ *prev, *next;
@@ -121,9 +171,9 @@ typedef struct _mem_mapping_ {
 
     uint32_t	flags;
 
-    void	*p;		/* backpointer to mapping or device */
-
-    void	*dev;		/* backpointer to memory device */
+    /* There is never a needed to pass a pointer to the mapping itself, it is much preferable to
+       prepare a structure with the requires data (usually, the base address and mask) instead. */
+    void	*p;		/* backpointer to device */
 } mem_mapping_t;
 
 #ifdef USE_NEW_DYNAREC
@@ -260,8 +310,18 @@ extern uint32_t	mmutranslatereal32(uint32_t addr, int rw);
 extern void	addreadlookup(uint32_t virt, uint32_t phys);
 extern void	addwritelookup(uint32_t virt, uint32_t phys);
 
-extern void	mem_mapping_del(mem_mapping_t *);
-
+extern void	mem_mapping_set(mem_mapping_t *,
+                    uint32_t base, 
+                    uint32_t size, 
+                    uint8_t  (*read_b)(uint32_t addr, void *p),
+                    uint16_t (*read_w)(uint32_t addr, void *p),
+                    uint32_t (*read_l)(uint32_t addr, void *p),
+                    void (*write_b)(uint32_t addr, uint8_t  val, void *p),
+                    void (*write_w)(uint32_t addr, uint16_t val, void *p),
+                    void (*write_l)(uint32_t addr, uint32_t val, void *p),
+                    uint8_t *exec,
+                    uint32_t flags,
+                    void *p);
 extern void	mem_mapping_add(mem_mapping_t *,
                     uint32_t base, 
                     uint32_t size, 
@@ -285,8 +345,6 @@ extern void	mem_mapping_set_handler(mem_mapping_t *,
 
 extern void	mem_mapping_set_p(mem_mapping_t *, void *p);
 
-extern void	mem_mapping_set_dev(mem_mapping_t *, void *dev);
-
 extern void	mem_mapping_set_addr(mem_mapping_t *,
 				     uint32_t base, uint32_t size);
 extern void	mem_mapping_set_exec(mem_mapping_t *, uint8_t *exec);
@@ -294,7 +352,7 @@ extern void	mem_mapping_disable(mem_mapping_t *);
 extern void	mem_mapping_enable(mem_mapping_t *);
 extern void	mem_mapping_recalc(uint64_t base, uint64_t size);
 
-extern void	mem_set_state(int smm, int mode, uint32_t base, uint32_t size, uint32_t state);
+extern void	mem_set_access(uint8_t bitmap, int mode, uint32_t base, uint32_t size, uint16_t access);
 
 extern uint8_t	mem_readb_phys(uint32_t addr);
 extern uint16_t	mem_readw_phys(uint32_t addr);
@@ -333,7 +391,6 @@ extern void	mem_flush_write_page(uint32_t addr, uint32_t virt);
 extern void	mem_reset_page_blocks(void);
 
 extern void     flushmmucache(void);
-extern void     flushmmucache_cr3(void);
 extern void	flushmmucache_nopc(void);
 extern void     mmu_invalidate(uint32_t addr);
 

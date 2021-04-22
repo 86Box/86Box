@@ -723,6 +723,8 @@ pc_reset_hard_close(void)
 	closeal();
 
 	video_reset_close();
+
+	cpu_close();
 }
 
 
@@ -978,56 +980,56 @@ pc_onesec(void)
 void
 set_screen_size(int x, int y)
 {
-	int owsx = scrnsz_x;
-	int owsy = scrnsz_y;
-	int temp_overscan_x = overscan_x;
-	int temp_overscan_y = overscan_y;
-	double dx, dy, dtx, dty;
+    int owsx = scrnsz_x;
+    int owsy = scrnsz_y;
+    int temp_overscan_x = overscan_x;
+    int temp_overscan_y = overscan_y;
+    double dx, dy, dtx, dty;
 
-	/* Make sure we keep usable values. */
+    /* Make sure we keep usable values. */
 #if 0
-	pc_log("SetScreenSize(%d, %d) resize=%d\n", x, y, vid_resize);
+    pc_log("SetScreenSize(%d, %d) resize=%d\n", x, y, vid_resize);
 #endif
-	if (x < 320) x = 320;
-	if (y < 200) y = 200;
-	if (x > 2048) x = 2048;
-	if (y > 2048) y = 2048;
+    if (x < 320) x = 320;
+    if (y < 200) y = 200;
+    if (x > 2048) x = 2048;
+    if (y > 2048) y = 2048;
 
-	/* Save the new values as "real" (unscaled) resolution. */
-	unscaled_size_x = x;
-	efscrnsz_y = y;
+    /* Save the new values as "real" (unscaled) resolution. */
+    unscaled_size_x = x;
+    efscrnsz_y = y;
 
-	if (suppress_overscan)
-		temp_overscan_x = temp_overscan_y = 0;
+    if (suppress_overscan)
+	temp_overscan_x = temp_overscan_y = 0;
 
-	if (force_43) {
-    dx = (double)x;
-    dtx = (double)temp_overscan_x;
+    if (force_43) {
+	dx = (double)x;
+	dtx = (double)temp_overscan_x;
 
-    dy = (double)y;
-    dty = (double)temp_overscan_y;
+	dy = (double)y;
+	dty = (double)temp_overscan_y;
 
-    /* Account for possible overscan. */
-    if (!(video_is_ega_vga()) && (temp_overscan_y == 16)) {
-        /* CGA */
-        dy = (((dx - dtx) / 4.0) * 3.0) + dty;
-    } else if (!(video_is_ega_vga()) && (temp_overscan_y < 16)) {
-        /* MDA/Hercules */
-        dy = (x / 4.0) * 3.0;
-    } else {
-        if (enable_overscan) {
-            /* EGA/(S)VGA with overscan */
-            dy = (((dx - dtx) / 4.0) * 3.0) + dty;
-        } else {
-            /* EGA/(S)VGA without overscan */
-            dy = (x / 4.0) * 3.0;
-        }
-    }
-    unscaled_size_y = (int)dy;
-	} else
+	/* Account for possible overscan. */
+	if (!(video_is_ega_vga()) && (temp_overscan_y == 16)) {
+		/* CGA */
+		dy = (((dx - dtx) / 4.0) * 3.0) + dty;
+	} else if (!(video_is_ega_vga()) && (temp_overscan_y < 16)) {
+		/* MDA/Hercules */
+		dy = (x / 4.0) * 3.0;
+	} else {
+		if (enable_overscan) {
+			/* EGA/(S)VGA with overscan */
+			dy = (((dx - dtx) / 4.0) * 3.0) + dty;
+		} else {
+			/* EGA/(S)VGA without overscan */
+			dy = (x / 4.0) * 3.0;
+		}
+	}
+	unscaled_size_y = (int)dy;
+    } else
 	unscaled_size_y = efscrnsz_y;
 
-	switch(scale) {
+    switch(scale) {
 	case 0:		/* 50% */
 		scrnsz_x = (unscaled_size_x>>1);
 		scrnsz_y = (unscaled_size_y>>1);
@@ -1047,12 +1049,12 @@ set_screen_size(int x, int y)
 		scrnsz_x = (unscaled_size_x<<1);
 		scrnsz_y = (unscaled_size_y<<1);
 		break;
-	}
+    }
 
-	/* If the resolution has changed, let the main thread handle it. */
-	if ((owsx != scrnsz_x) || (owsy != scrnsz_y))
+    /* If the resolution has changed, let the main thread handle it. */
+    if ((owsx != scrnsz_x) || (owsy != scrnsz_y))
 	doresize = 1;
-	  else
+    else
 	doresize = 0;
 }
 
