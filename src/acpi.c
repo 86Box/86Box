@@ -124,6 +124,8 @@ acpi_reg_read_common_regs(int size, uint16_t addr, void *p)
 		ret = (dev->regs.pmsts >> shift16) & 0xff;
 		if (addr == 0x01)
 			ret |= (acpi_rtc_status << 2);
+		else
+			ret |= 0x10;
 		break;
 	case 0x02: case 0x03:
 		/* PMEN - Power Management Resume Enable Register (IO) */
@@ -133,7 +135,7 @@ acpi_reg_read_common_regs(int size, uint16_t addr, void *p)
 		/* PMCNTRL - Power Management Control Register (IO) */
 		ret = (dev->regs.pmcntrl >> shift16) & 0xff;
 		if (addr == 0x05)
-			ret = (ret & 0xdf) | 0x02;	/* Bit 5 is write-only. */
+			ret = (ret & 0xdf);	/* Bit 5 is write-only. */
 		break;
 	case 0x08: case 0x09: case 0x0a: case 0x0b:
 		/* PMTMR - Power Management Timer Register (IO) */
@@ -151,6 +153,7 @@ acpi_reg_read_common_regs(int size, uint16_t addr, void *p)
 #endif
     return ret;
 }
+
 
 static uint32_t
 acpi_reg_read_ali(int size, uint16_t addr, void *p)
@@ -219,6 +222,7 @@ acpi_reg_read_ali(int size, uint16_t addr, void *p)
     return ret;
 }
 
+
 static uint32_t
 acpi_reg_read_intel(int size, uint16_t addr, void *p)
 {
@@ -247,7 +251,7 @@ acpi_reg_read_intel(int size, uint16_t addr, void *p)
 		/* GLBSTS - Global Status Register (IO) */
 		ret = (dev->regs.glbsts >> shift16) & 0xff;
 		if (addr == 0x18) {
-			ret &= 0x25;
+			ret &= 0x27;
 			if (dev->regs.gpsts != 0x0000)
 				ret |= 0x80;
 			if (dev->regs.pmsts != 0x0000)
@@ -288,8 +292,8 @@ acpi_reg_read_intel(int size, uint16_t addr, void *p)
     }
 
 #ifdef ENABLE_ACPI_LOG
-    if (size != 1)
-		acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
+    // if (size != 1)
+		// acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
 #endif
     return ret;
 }
@@ -635,8 +639,8 @@ acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
 		break;
 	case 0x04: case 0x05:
 		/* PMCNTRL - Power Management Control Register (IO) */
-		if ((addr == 0x05) && (dev->regs.pmcntrl & 0x2000)) {
-			sus_typ = (dev->regs.pmcntrl >> 10) & 7;
+		if ((addr == 0x05) && (val & 0x20)) {
+			sus_typ = (val >> 2) & 7;
 			switch (sus_typ) {
 				case 0:
 					/* Soft power off. */
@@ -662,14 +666,15 @@ acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
 					resetx86();
 					break;
 				default:
-					dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c07;
+					dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3f07 /* 0x3c07 */;
 					break;
 			}
 		} else
-			dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c07;
+			dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3f07 /* 0x3c07 */;
 		break;
     }
 }
+
 
 static void
 acpi_reg_write_ali(int size, uint16_t addr, uint8_t val, void *p)
@@ -742,6 +747,7 @@ acpi_reg_write_ali(int size, uint16_t addr, uint8_t val, void *p)
 	}
 }
 
+
 static void
 acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *p)
 {
@@ -765,13 +771,17 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *p)
 		/* GPEN - General Purpose Enable Register (IO) */
 		dev->regs.gpen = ((dev->regs.gpen & ~(0xff << shift16)) | (val << shift16)) & 0x0f01;
 		break;
-	case 0x10: case 0x11: case 0x12: case 0x13:
+	case 0x10: case 0x11: case 0x13:
 		/* PCNTRL - Processor Control Register (IO) */
 		dev->regs.pcntrl = ((dev->regs.pcntrl & ~(0xff << shift32)) | (val << shift32)) & 0x00023e1e;
 		break;
+	case 0x12:
+		/* PCNTRL - Processor Control Register (IO) */
+		dev->regs.pcntrl = ((dev->regs.pcntrl & ~(0xfd << shift32)) | (val << shift32)) & 0x00023e1e;
+		break;
 	case 0x18: case 0x19:
 		/* GLBSTS - Global Status Register (IO) */
-		dev->regs.glbsts &= ~((val << shift16) & 0x0df7);
+		dev->regs.glbsts &= ~((val << shift16) & 0x0dd7);
 		break;
 	case 0x1c: case 0x1d: case 0x1e: case 0x1f:
 		/* DEVSTS - Device Status Register (IO) */
