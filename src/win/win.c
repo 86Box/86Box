@@ -105,7 +105,7 @@ static const struct {
   {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, NULL		},
   {	"SDL_OpenGL", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, NULL		}
 #ifdef DEV_BRANCH /* feature-opengl */
- ,{	"OpenGL_Core", 1, (int(*)(void*))opengl_init, opengl_close, opengl_resize, opengl_pause, NULL, opengl_set_fs, NULL}
+ ,{	"OpenGL_Core", 1, (int(*)(void*))opengl_init, opengl_close, opengl_resize, opengl_pause, NULL, opengl_set_fs, opengl_reload}
 #else
  ,{	"OpenGL_Core", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, NULL		} /* fall back to SDL_OpenGL */
 #endif
@@ -858,9 +858,8 @@ plat_timer_read(void)
     return(li.QuadPart);
 }
 
-
-uint32_t
-plat_get_ticks(void)
+static LARGE_INTEGER
+plat_get_ticks_common(void)
 {
     LARGE_INTEGER EndingTime, ElapsedMicroseconds;
 
@@ -881,9 +880,20 @@ plat_get_ticks(void)
     ElapsedMicroseconds.QuadPart *= 1000000;
     ElapsedMicroseconds.QuadPart /= Frequency.QuadPart;
 
-    return (uint32_t) (ElapsedMicroseconds.QuadPart / 1000);
+    return ElapsedMicroseconds;
 }
 
+uint32_t
+plat_get_ticks(void)
+{
+	return (uint32_t)(plat_get_ticks_common().QuadPart / 1000);
+}
+
+uint32_t
+plat_get_micro_ticks(void)
+{
+	return (uint32_t)plat_get_ticks_common().QuadPart;
+}
 
 void
 plat_delay_ms(uint32_t count)
@@ -1103,6 +1113,15 @@ plat_setfullscreen(int on)
     /* This is needed for OpenGL. */
     plat_vidapi_enable(0);
     plat_vidapi_enable(1);
+}
+
+void
+plat_vid_reload_options(void)
+{
+	if (!vid_api_inited || !vid_apis[vid_api].reload)
+		return;
+
+	vid_apis[vid_api].reload();
 }
 
 

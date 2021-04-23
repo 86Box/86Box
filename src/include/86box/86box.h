@@ -91,7 +91,7 @@ extern int	vid_cga_contrast,		/* (C) video */
 		enable_overscan,		/* (C) video */
 		force_43,			/* (C) video */
 		video_vsync,			/* (C) video */
-		video_frametime,		/* (C) video */
+		video_framerate,		/* (C) video */
 		gfxcard;			/* (C) graphics/video card */
 extern char	video_shader[512];		/* (C) video */
 extern int	serial_enabled[],		/* (C) enable serial ports */

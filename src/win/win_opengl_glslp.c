@@ -69,13 +69,7 @@ void main() {\n\
 */
 static char* read_file_to_string(const char* path)
 {
-	char* full_path = (char*)malloc(sizeof(char) * (strlen(path) + strlen(exe_path) + 1));
-
-	plat_append_filename(full_path, exe_path, path);
-
-	FILE* file_handle = plat_fopen(full_path, "rb");
-
-	free(full_path);
+	FILE* file_handle = plat_fopen(path, "rb");
 
 	if (file_handle != NULL)
 	{
