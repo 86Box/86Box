@@ -35,6 +35,7 @@
  */
 #define UNICODE
 #include <Windows.h>
+#include <process.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
 #include <glad/glad.h>
@@ -371,6 +372,34 @@ static void render_and_swap(gl_identifiers gl)
 }
 
 /**
+ * @brief Handle failure in OpenGL thread.
+ * Acts like a renderer until closing.
+*/
+static void opengl_fail()
+{
+	if (window != NULL)
+	{
+		SDL_DestroyWindow(window);
+		window = NULL;
+	}
+
+	/* TODO: Notify user. */
+
+	HANDLE handles[] = { sync_objects.closing, sync_objects.blit_waiting };
+	
+	while (1)
+	{
+		switch (WaitForMultipleObjects(2, handles, FALSE, INFINITE))
+		{
+		case WAIT_OBJECT_0:		/* Close requested. End thread. */
+			_endthread();
+		case WAIT_OBJECT_0 + 1:		/* Blitter is waiting, signal it to continue. */
+			SetEvent(blit_done);
+		}
+	}
+}
+
+/**
  * @brief Main OpenGL thread proc.
  * 
  * OpenGL context should be accessed only from this single thread.
@@ -382,6 +411,9 @@ static void opengl_main(void* param)
 
 	window = SDL_CreateWindow("86Box OpenGL Renderer", 0, 0, resize_info.width, resize_info.height, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
 
+	if (window == NULL)
+		opengl_fail();
+
 	/* Keep track of certain parameters, only changed in this thread to avoid race conditions */
 	int fullscreen = resize_info.fullscreen, video_width = INIT_WIDTH, video_height = INIT_HEIGHT,
 		output_width = resize_info.width, output_height = resize_info.height, frametime = options.frametime;
@@ -390,8 +422,10 @@ static void opengl_main(void* param)
 	SDL_VERSION(&wmi.version);
 	SDL_GetWindowWMInfo(window, &wmi);
 
-	if (wmi.subsystem == SDL_SYSWM_WINDOWS)
-		window_hwnd = wmi.info.win.window;
+	if (wmi.subsystem != SDL_SYSWM_WINDOWS)
+		opengl_fail();
+	
+	window_hwnd = wmi.info.win.window;
 
 	if (!fullscreen)
 		set_parent_binding(1);
@@ -400,9 +434,16 @@ static void opengl_main(void* param)
 
 	SDL_GLContext context = SDL_GL_CreateContext(window);
 
+	if (context == NULL)
+		opengl_fail();
+
 	SDL_GL_SetSwapInterval(options.vsync);
 
-	gladLoadGLLoader(SDL_GL_GetProcAddress);
+	if (!gladLoadGLLoader(SDL_GL_GetProcAddress))
+	{
+		SDL_GL_DeleteContext(context);
+		opengl_fail();
+	}
 
 	gl_identifiers gl = initialize_glcontext();
 
