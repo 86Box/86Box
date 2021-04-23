@@ -511,7 +511,7 @@ extern int		cgate16;
 extern int		cpl_override;
 extern int		CPUID;
 extern uint64_t		xt_cpu_multi;
-extern int		isa_cycles;
+extern int		isa_cycles, cpu_inited;
 extern uint32_t		oldds,oldss,olddslimit,oldsslimit,olddslimitw,oldsslimitw;
 extern uint32_t		pccache;
 extern uint8_t		*pccache2;
@@ -606,6 +606,7 @@ extern char	*cpu_current_pc(char *bufp);
 
 extern void	cpu_update_waitstates(void);
 extern void	cpu_set(void);
+extern void	cpu_close(void);
 extern void	cpu_set_isa_speed(int speed);
 extern void	cpu_set_pci_speed(int speed);
 extern void	cpu_set_isa_pci_div(int div);

@@ -507,6 +507,22 @@ bios_load_linear_combined2(char *fn1, char *fn2, char *fn3, char *fn4, char *fn5
 
 
 int
+bios_load_linear_combined2_ex(char *fn1, char *fn2, char *fn3, char *fn4, char *fn5, int sz, int off)
+{
+    uint8_t ret = 0;
+
+    ret = bios_load_linear(fn3, 0x000e0000, 262144, off);
+    ret &= bios_load_aux_linear(fn1, 0x000c0000, 65536, off);
+    ret &= bios_load_aux_linear(fn2, 0x000d0000, 65536, off);
+    ret &= bios_load_aux_linear(fn4, 0x000f0000, sz - 196608, off);
+    if (fn5 != NULL)
+	ret &= bios_load_aux_linear(fn5, 0x000fc000, 16384, 0);
+
+    return ret;
+}
+
+
+int
 rom_init(rom_t *rom, char *fn, uint32_t addr, int sz, int mask, int off, uint32_t flags)
 {
     rom_log("rom_init(%08X, %08X, %08X, %08X, %08X, %08X, %08X)\n", rom, fn, addr, sz, mask, off, flags);
@@ -530,7 +546,7 @@ rom_init(rom_t *rom, char *fn, uint32_t addr, int sz, int mask, int off, uint32_
 		    addr, sz,
 		    rom_read, rom_readw, rom_readl,
 		    NULL, NULL, NULL,
-		    rom->rom, flags | MEM_MAPPING_ROM, rom);
+		    rom->rom, flags | MEM_MAPPING_ROM_WS, rom);
 
     return(0);
 }

@@ -250,16 +250,11 @@ neat_log(const char *fmt, ...)
 static uint8_t
 ems_readb(uint32_t addr, void *priv)
 {
-    mem_mapping_t *map = (mem_mapping_t *)priv;
-    neat_t *dev = (neat_t *)map->dev;
+    neat_t *dev = (neat_t *)priv;
     uint8_t ret = 0xff;
-    int vpage;
-
-    /* Get the viewport page number. */
-    vpage = ((addr & 0xffff) / EMS_PGSIZE);
 
     /* Grab the data. */
-    ret = *(uint8_t *)(dev->ems[vpage].addr + (addr - map->base));
+    ret = *(uint8_t *)(dev->ems[((addr & 0xffff) >> 14)].addr + (addr & 0x3fff));
 
     return(ret);
 }
@@ -268,16 +263,11 @@ ems_readb(uint32_t addr, void *priv)
 static uint16_t
 ems_readw(uint32_t addr, void *priv)
 {
-    mem_mapping_t *map = (mem_mapping_t *)priv;
-    neat_t *dev = (neat_t *)map->dev;
+    neat_t *dev = (neat_t *)priv;
     uint16_t ret = 0xffff;
-    int vpage;
-
-    /* Get the viewport page number. */
-    vpage = ((addr & 0xffff) / EMS_PGSIZE);
 
     /* Grab the data. */
-    ret = *(uint16_t *)(dev->ems[vpage].addr + (addr - map->base));
+    ret = *(uint16_t *)(dev->ems[((addr & 0xffff) >> 14)].addr + (addr & 0x3fff));
 
     return(ret);
 }
@@ -286,30 +276,20 @@ ems_readw(uint32_t addr, void *priv)
 static void
 ems_writeb(uint32_t addr, uint8_t val, void *priv)
 {
-    mem_mapping_t *map = (mem_mapping_t *)priv;
-    neat_t *dev = (neat_t *)map->dev;
-    int vpage;
-
-    /* Get the viewport page number. */
-    vpage = ((addr & 0xffff) / EMS_PGSIZE);
+    neat_t *dev = (neat_t *)priv;
 
     /* Write the data. */
-    *(uint8_t *)(dev->ems[vpage].addr + (addr - map->base)) = val;
+    *(uint8_t *)(dev->ems[((addr & 0xffff) >> 14)].addr + (addr & 0x3fff)) = val;
 }
 
 /* Write one word to paged RAM. */
 static void
 ems_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    mem_mapping_t *map = (mem_mapping_t *)priv;
-    neat_t *dev = (neat_t *)map->dev;
-    int vpage;
-
-    /* Get the viewport page number. */
-    vpage = ((addr & 0xffff) / EMS_PGSIZE);
+    neat_t *dev = (neat_t *)priv;
 
     /* Write the data. */
-    *(uint16_t *)(dev->ems[vpage].addr + (addr - map->base)) = val;
+    *(uint16_t *)(dev->ems[((addr & 0xffff) >> 14)].addr + (addr & 0x3fff)) = val;
 }
 
 /* Re-calculate the active-page physical address. */
@@ -436,8 +416,7 @@ ems_init(neat_t *dev, int en)
 			ems_readb, ems_readw, NULL,
 			ems_writeb, ems_writew, NULL,
 			ram, MEM_MAPPING_EXTERNAL,
-			&dev->ems[i].mapping);
-	mem_mapping_set_dev(&dev->ems[i].mapping, dev);
+			dev);
 
 	/* Disable for now. */
 	mem_mapping_disable(&dev->ems[i].mapping);

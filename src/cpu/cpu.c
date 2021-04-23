@@ -98,7 +98,7 @@ const OpFn	*x86_opcodes, *x86_opcodes_0f,
 uint16_t	cpu_fast_off_count, cpu_fast_off_val;
 uint16_t	temp_seg_data[4] = {0, 0, 0, 0};
 
-int		isa_cycles,
+int		isa_cycles, cpu_inited,
 
 		cpu_cycles_read, cpu_cycles_read_l, cpu_cycles_write, cpu_cycles_write_l,
 		cpu_prefetch_cycles, cpu_prefetch_width, cpu_mem_prefetch_cycles, cpu_rom_prefetch_cycles,
@@ -350,6 +350,8 @@ cpu_family_is_eligible(const cpu_family_t *cpu_family, int machine)
 void
 cpu_set(void)
 {
+    cpu_inited = 1;
+
     cpu_effective = cpu;
     cpu_s = (CPU *) &cpu_f->cpus[cpu_effective];
 
@@ -1362,6 +1364,13 @@ cpu_set(void)
 	cpu_exec = exec386;
     else
 	cpu_exec = execx86;
+}
+
+
+void
+cpu_close(void)
+{
+    cpu_inited = 0;
 }
 
 

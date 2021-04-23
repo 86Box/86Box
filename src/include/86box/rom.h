@@ -67,6 +67,9 @@ extern int	bios_load_linear_combined(char *fn1, char *fn2,
 extern int	bios_load_linear_combined2(char *fn1, char *fn2,
 					   char *fn3, char *fn4, char *fn5,
 					   int sz, int off);
+extern int	bios_load_linear_combined2_ex(char *fn1, char *fn2,
+					      char *fn3, char *fn4, char *fn5,
+					      int sz, int off);
 
 extern int	rom_init(rom_t *rom, char *fn, uint32_t address, int size,
 			 int mask, int file_offset, uint32_t flags);

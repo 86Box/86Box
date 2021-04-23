@@ -104,6 +104,11 @@ typedef struct {
 } emsreg_t;
 
 typedef struct {
+    uint32_t	base;
+    uint8_t	*ptr;
+} ext_ram_t;
+
+typedef struct {
     const char	*name;
     uint8_t	board    : 6,			/* board type */
 		reserved : 2;
@@ -124,6 +129,8 @@ typedef struct {
     uint32_t	ems_start;			/* start of EMS in RAM */
 
     uint8_t	*ram;				/* allocated RAM buffer */
+
+    ext_ram_t	  ext_ram[3];			/* structures for the mappings */
 
     mem_mapping_t low_mapping;			/* mapping for low mem */
     mem_mapping_t high_mapping;			/* mapping for high mem */
@@ -151,16 +158,17 @@ isamem_log(const char *fmt, ...)
 #endif
 
 
+/* Why this convoluted setup with the mem_dev stuff when it's much simpler
+   to just pass the exec pointer as p as well, and then just use that. */
 /* Read one byte from onboard RAM. */
 static uint8_t
 ram_readb(uint32_t addr, void *priv)
 {
-    mem_mapping_t *map = (mem_mapping_t *)priv;
-    memdev_t *dev = (memdev_t *)map->dev;
+    ext_ram_t *dev = (ext_ram_t *)priv;
     uint8_t ret = 0xff;
 
     /* Grab the data. */
-    ret = *(uint8_t *)(dev->ram + (addr - map->base));
+    ret = *(uint8_t *)(dev->ptr + (addr - dev->base));
 
     return(ret);
 }
@@ -170,12 +178,11 @@ ram_readb(uint32_t addr, void *priv)
 static uint16_t
 ram_readw(uint32_t addr, void *priv)
 {
-    mem_mapping_t *map = (mem_mapping_t *)priv;
-    memdev_t *dev = (memdev_t *)map->dev;
+    ext_ram_t *dev = (ext_ram_t *)priv;
     uint16_t ret = 0xffff;
 
     /* Grab the data. */
-    ret = *(uint16_t *)(dev->ram + (addr - map->base));
+    ret = *(uint16_t *)(dev->ptr + (addr - dev->base));
 
     return(ret);
 }
@@ -185,11 +192,10 @@ ram_readw(uint32_t addr, void *priv)
 static void
 ram_writeb(uint32_t addr, uint8_t val, void *priv)
 {
-    mem_mapping_t *map = (mem_mapping_t *)priv;
-    memdev_t *dev = (memdev_t *)map->dev;
+    ext_ram_t *dev = (ext_ram_t *)priv;
 
     /* Write the data. */
-    *(uint8_t *)(dev->ram + (addr - map->base)) = val;
+    *(uint8_t *)(dev->ptr + (addr - dev->base)) = val;
 }
 
 
@@ -197,11 +203,10 @@ ram_writeb(uint32_t addr, uint8_t val, void *priv)
 static void
 ram_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    mem_mapping_t *map = (mem_mapping_t *)priv;
-    memdev_t *dev = (memdev_t *)map->dev;
+    ext_ram_t *dev = (ext_ram_t *)priv;
 
     /* Write the data. */
-    *(uint16_t *)(dev->ram + (addr - map->base)) = val;
+    *(uint16_t *)(dev->ptr + (addr - dev->base)) = val;
 }
 
 
@@ -209,18 +214,13 @@ ram_writew(uint32_t addr, uint16_t val, void *priv)
 static uint8_t
 ems_readb(uint32_t addr, void *priv)
 {
-    mem_mapping_t *map = (mem_mapping_t *)priv;
-    memdev_t *dev = (memdev_t *)map->dev;
+    memdev_t *dev = (memdev_t *)priv;
     uint8_t ret = 0xff;
-    int vpage;
-
-    /* Get the viewport page number. */
-    vpage = ((addr & 0xffff) / EMS_PGSIZE);
 
     /* Grab the data. */
-    ret = *(uint8_t *)(dev->ems[vpage].addr + (addr - map->base));
+    ret = *(uint8_t *)(dev->ems[((addr & 0xffff) >> 14)].addr + (addr & 0x3fff));
 #if ISAMEM_DEBUG
-    if ((addr % 4096)==0) isamem_log("EMS readb(%06x) = %02x\n",addr-map->base,ret);
+    if ((addr % 4096)==0) isamem_log("EMS readb(%06x) = %02x\n",addr-dev&0x3fff,ret);
 #endif
 
     return(ret);
@@ -231,18 +231,13 @@ ems_readb(uint32_t addr, void *priv)
 static uint16_t
 ems_readw(uint32_t addr, void *priv)
 {
-    mem_mapping_t *map = (mem_mapping_t *)priv;
-    memdev_t *dev = (memdev_t *)map->dev;
+    memdev_t *dev = (memdev_t *)priv;
     uint16_t ret = 0xffff;
-    int vpage;
-
-    /* Get the viewport page number. */
-    vpage = ((addr & 0xffff) / EMS_PGSIZE);
 
     /* Grab the data. */
-    ret = *(uint16_t *)(dev->ems[vpage].addr + (addr - map->base));
+    ret = *(uint16_t *)(dev->ems[((addr & 0xffff) >> 14)].addr + (addr & 0x3fff));
 #if ISAMEM_DEBUG
-    if ((addr % 4096)==0) isamem_log("EMS readw(%06x) = %04x\n",addr-map->base,ret);
+    if ((addr % 4096)==0) isamem_log("EMS readw(%06x) = %04x\n",addr-dev&0x3fff,ret);
 #endif
 
     return(ret);
@@ -253,18 +248,13 @@ ems_readw(uint32_t addr, void *priv)
 static void
 ems_writeb(uint32_t addr, uint8_t val, void *priv)
 {
-    mem_mapping_t *map = (mem_mapping_t *)priv;
-    memdev_t *dev = (memdev_t *)map->dev;
-    int vpage;
-
-    /* Get the viewport page number. */
-    vpage = ((addr & 0xffff) / EMS_PGSIZE);
+    memdev_t *dev = (memdev_t *)priv;
 
     /* Write the data. */
 #if ISAMEM_DEBUG
-    if ((addr % 4096)==0) isamem_log("EMS writeb(%06x, %02x)\n",addr-map->base,val);
+    if ((addr % 4096)==0) isamem_log("EMS writeb(%06x, %02x)\n",addr-dev&0x3fff,val);
 #endif
-    *(uint8_t *)(dev->ems[vpage].addr + (addr - map->base)) = val;
+    *(uint8_t *)(dev->ems[((addr & 0xffff) >> 14)].addr + (addr & 0x3fff)) = val;
 }
 
 
@@ -272,18 +262,13 @@ ems_writeb(uint32_t addr, uint8_t val, void *priv)
 static void
 ems_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    mem_mapping_t *map = (mem_mapping_t *)priv;
-    memdev_t *dev = (memdev_t *)map->dev;
-    int vpage;
-
-    /* Get the viewport page number. */
-    vpage = ((addr & 0xffff) / EMS_PGSIZE);
+    memdev_t *dev = (memdev_t *)priv;
 
     /* Write the data. */
 #if ISAMEM_DEBUG
-    if ((addr % 4096)==0) isamem_log("EMS writew(%06x, %04x)\n",addr-map->base,val);
+    if ((addr % 4096)==0) isamem_log("EMS writew(%06x, %04x)\n",addr&0x3fff,val);
 #endif
-    *(uint16_t *)(dev->ems[vpage].addr + (addr - map->base)) = val;
+    *(uint16_t *)(dev->ems[((addr & 0xffff) >> 14)].addr + (addr & 0x3fff)) = val;
 }
 
 
@@ -509,6 +494,9 @@ dev->frame_addr = 0xE0000;
 			t = tot;
 		isamem_log("ISAMEM: RAM at %05iKB (%iKB)\n", addr>>10, t>>10);
 
+		dev->ext_ram[0].ptr = ptr;
+		dev->ext_ram[0].base = addr;
+
 		/* Create, initialize and enable the low-memory mapping. */
 		mem_mapping_add(&dev->low_mapping, addr, t,
 				ram_readb,
@@ -517,8 +505,7 @@ dev->frame_addr = 0xE0000;
 				ram_writeb, 
 				(dev->flags&FLAG_WIDE) ? ram_writew : NULL,
 				NULL,
-				ptr, MEM_MAPPING_EXTERNAL, &dev->low_mapping);
-		mem_mapping_set_dev(&dev->low_mapping, dev);
+				ptr, MEM_MAPPING_EXTERNAL, &dev->ext_ram[0]);
 
 		/* Tell the memory system this is external RAM. */
 		mem_set_mem_state(addr, t,
@@ -542,16 +529,16 @@ dev->frame_addr = 0xE0000;
 
 		isamem_log("ISAMEM: RAM at %05iKB (%iKB)\n", addr>>10, t>>10);
 
+		dev->ext_ram[1].ptr = ptr;
+		dev->ext_ram[1].base = addr + tot;
+
 		/* Update and enable the remap. */
-		mem_mapping_del(&ram_remapped_mapping);
-		mem_mapping_add(&ram_remapped_mapping,
+		mem_mapping_set(&ram_remapped_mapping,
 				addr + tot, t,
 				ram_readb, ram_readw, NULL,
 				ram_writeb, ram_writew, NULL,
 				ptr, MEM_MAPPING_EXTERNAL,
-				&ram_remapped_mapping);
-       		mem_mapping_set_exec(&ram_remapped_mapping, ptr);
-		mem_mapping_set_dev(&ram_remapped_mapping, dev);
+				&dev->ext_ram[1]);
 		mem_mapping_disable(&ram_remapped_mapping);
 
 		/* Tell the memory system this is external RAM. */
@@ -576,12 +563,14 @@ dev->frame_addr = 0xE0000;
 	t = tot;
 	isamem_log("ISAMEM: RAM at %05iKB (%iKB)\n", addr>>10, t>>10);
 
+	dev->ext_ram[2].ptr = ptr;
+	dev->ext_ram[2].base = addr;
+
 	/* Create, initialize and enable the high-memory mapping. */
 	mem_mapping_add(&dev->high_mapping, addr, t,
 			ram_readb, ram_readw, NULL,
 			ram_writeb, ram_writew, NULL,
-			ptr, MEM_MAPPING_EXTERNAL, &dev->high_mapping);
-	mem_mapping_set_dev(&dev->high_mapping, dev);
+			ptr, MEM_MAPPING_EXTERNAL, &dev->ext_ram[2]);
 
 	/* Tell the memory system this is external RAM. */
 	mem_set_mem_state(addr, t, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
@@ -625,8 +614,7 @@ dev->frame_addr = 0xE0000;
 				(dev->flags&FLAG_WIDE) ? ems_writew : NULL,
 				NULL,
 				ptr, MEM_MAPPING_EXTERNAL,
-				&dev->ems[i].mapping);
-		mem_mapping_set_dev(&dev->ems[i].mapping, dev);
+				dev);
 
 		/* For now, disable it. */
 		mem_mapping_disable(&dev->ems[i].mapping);
