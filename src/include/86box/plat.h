@@ -101,6 +101,7 @@ extern int	plat_dir_check(char *path);
 extern int	plat_dir_create(char *path);
 extern uint64_t	plat_timer_read(void);
 extern uint32_t	plat_get_ticks(void);
+extern uint32_t	plat_get_micro_ticks(void);
 extern void	plat_delay_ms(uint32_t count);
 extern void	plat_pause(int p);
 extern void	plat_mouse_capture(int on);
@@ -111,7 +112,7 @@ extern void	plat_vidsize(int x, int y);
 extern void	plat_setfullscreen(int on);
 extern void	plat_resize(int x, int y);
 extern void	plat_vidapi_enable(int enabled);
-
+extern void	plat_vid_reload_options(void);
 
 /* Resource management. */
 extern void	set_language(int id);

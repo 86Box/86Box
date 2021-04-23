@@ -35,12 +35,14 @@
  */
 #define UNICODE
 #include <Windows.h>
+#include <process.h>
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
 #include <glad/glad.h>
 
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 #include <86box/86box.h>
 #include <86box/plat.h>
@@ -51,13 +53,6 @@
 
 static const int INIT_WIDTH = 640;
 static const int INIT_HEIGHT = 400;
-
-/* Option; Target framerate: Sync with emulation / 25 fps / 30 fps / 50 fps / 60 fps / 75 fps */
-static const int SYNC_WITH_BLITTER = 1;
-static const int TARGET_FRAMETIME = 13;
-
-/* Option; Vsync: Off / On */
-static const int VSYNC = 0;
 
 /**
  * @brief A dedicated OpenGL thread.
@@ -89,9 +84,10 @@ static union
 	{
 		HANDLE closing;
 		HANDLE resize;
+		HANDLE reload;
 		HANDLE blit_waiting;
 	};
-	HANDLE asArray[3];
+	HANDLE asArray[4];
 } sync_objects = { 0 };
 
 /**
@@ -110,10 +106,23 @@ static volatile struct
 /**
  * @brief Resize event parameters.
 */
-static volatile struct
+static struct
 {
 	int width, height, fullscreen, scaling_mode;
+	mutex_t* mutex;
 } resize_info = { 0 };
+
+/**
+ * @brief Renderer options
+*/
+static struct
+{
+	int vsync;		/* Vertical sync; 0 = off, 1 = on */
+	int frametime;		/* Frametime in microseconds, or -1 to sync with blitter */
+	char shaderfile[512];	/* Shader file path. Match the length of openfilestring in win_dialog.c */
+	int shaderfile_changed; /* Has shader file path changed. To prevent unnecessary shader recompilation. */
+	mutex_t* mutex;
+} options = { 0 };
 
 /**
  * @brief Identifiers to OpenGL objects and uniforms.
@@ -132,15 +141,6 @@ typedef struct
 	GLint texture_size;
 	GLint frame_count;
 } gl_identifiers;
-
-/**
- * @brief Userdata to pass onto windows message hook
-*/
-typedef struct
-{
-	HWND window;
-	int* fullscreen;
-} winmessage_data;
 
 /**
  * @brief Set or unset OpenGL context window as a child window.
@@ -171,28 +171,21 @@ static void set_parent_binding(int enable)
 }
 
 /**
- * @brief Windows message handler for SDL Windows.
- * @param userdata winmessage_data
- * @param hWnd
+ * @brief Windows message handler for our window.
  * @param message
  * @param wParam
  * @param lParam 
+ * @param fullscreen
 */
-static void winmessage_hook(void* userdata, void* hWnd, unsigned int message, Uint64 wParam, Sint64 lParam)
+static void handle_window_messages(UINT message, WPARAM wParam, LPARAM lParam, int fullscreen)
 {
-	winmessage_data* msg_data = (winmessage_data*)userdata;
-
-	/* Process only our window */
-	if (msg_data->window != hWnd || parent == NULL)
-		return;
-
 	switch (message)
 	{
 	case WM_LBUTTONUP:
 	case WM_LBUTTONDOWN:
 	case WM_MBUTTONUP:
 	case WM_MBUTTONDOWN:
-		if (!*msg_data->fullscreen)
+		if (!fullscreen)
 		{
 			/* Mouse events that enter and exit capture. */
 			PostMessage(parent, message, wParam, lParam);
@@ -202,13 +195,13 @@ static void winmessage_hook(void* userdata, void* hWnd, unsigned int message, Ui
 	case WM_KEYUP:
 	case WM_SYSKEYDOWN:
 	case WM_SYSKEYUP:
-		if (*msg_data->fullscreen)
+		if (fullscreen)
 		{
 			PostMessage(parent, message, wParam, lParam);
 		}
 		break;
 	case WM_INPUT:
-		if (*msg_data->fullscreen)
+		if (fullscreen)
 		{
 			/* Raw input handler from win_ui.c : input_proc */
 
@@ -239,6 +232,74 @@ static void winmessage_hook(void* userdata, void* hWnd, unsigned int message, Ui
 }
 
 /**
+ * @brief (Re-)apply shaders to OpenGL context.
+ * @param gl Identifiers from initialize
+*/
+static void apply_shaders(gl_identifiers* gl)
+{
+	GLuint old_shader_ID = 0;
+
+	if (gl->shader_progID != 0)
+		old_shader_ID = gl->shader_progID;
+
+	if (strlen(options.shaderfile) > 0)
+		gl->shader_progID = load_custom_shaders(options.shaderfile);
+	else
+		gl->shader_progID = 0;
+
+	if (gl->shader_progID == 0)
+		gl->shader_progID = load_default_shaders();
+
+	glUseProgram(gl->shader_progID);
+
+	/* Delete old shader if one exists (changing shader) */
+	if (old_shader_ID != 0)
+		glDeleteProgram(old_shader_ID);
+
+	GLint vertex_coord = glGetAttribLocation(gl->shader_progID, "VertexCoord");
+	if (vertex_coord != -1)
+	{
+		glEnableVertexAttribArray(vertex_coord);
+		glVertexAttribPointer(vertex_coord, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), 0);
+	}
+
+	GLint tex_coord = glGetAttribLocation(gl->shader_progID, "TexCoord");
+	if (tex_coord != -1)
+	{
+		glEnableVertexAttribArray(tex_coord);
+		glVertexAttribPointer(tex_coord, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
+	}
+
+	GLint color = glGetAttribLocation(gl->shader_progID, "Color");
+	if (color != -1)
+	{
+		glEnableVertexAttribArray(color);
+		glVertexAttribPointer(color, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
+	}
+
+	GLint mvp_matrix = glGetUniformLocation(gl->shader_progID, "MVPMatrix");
+	if (mvp_matrix != -1)
+	{
+		static const GLfloat mvp[] = {
+			1.f, 0.f, 0.f, 0.f,
+			0.f, 1.f, 0.f, 0.f,
+			0.f, 0.f, 1.f, 0.f,
+			0.f, 0.f, 0.f, 1.f
+		};
+		glUniformMatrix4fv(mvp_matrix, 1, GL_FALSE, mvp);
+	}
+
+	GLint frame_direction = glGetUniformLocation(gl->shader_progID, "FrameDirection");
+	if (frame_direction != -1)
+		glUniform1i(frame_direction, 1); /* always forward */
+
+	gl->input_size = glGetUniformLocation(gl->shader_progID, "InputSize");
+	gl->output_size = glGetUniformLocation(gl->shader_progID, "OutputSize");
+	gl->texture_size = glGetUniformLocation(gl->shader_progID, "TextureSize");
+	gl->frame_count = glGetUniformLocation(gl->shader_progID, "FrameCount");
+}
+
+/**
  * @brief Initialize OpenGL context
  * @return Identifiers
 */
@@ -265,7 +326,7 @@ static gl_identifiers initialize_glcontext()
 	glGenTextures(1, &gl.textureID);
 	glBindTexture(GL_TEXTURE_2D, gl.textureID);
 
-	GLfloat border_color[] = { 0.f, 0.f, 0.f, 1.f };
+	static const GLfloat border_color[] = { 0.f, 0.f, 0.f, 1.f };
 	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
@@ -276,61 +337,14 @@ static gl_identifiers initialize_glcontext()
 
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 
-	gl.shader_progID = load_custom_shaders();
-
-	if (gl.shader_progID == 0)
-		gl.shader_progID = load_default_shaders();
-
-	glUseProgram(gl.shader_progID);
-
-	GLint vertex_coord = glGetAttribLocation(gl.shader_progID, "VertexCoord");
-	if (vertex_coord != -1)
-	{
-		glEnableVertexAttribArray(vertex_coord);
-		glVertexAttribPointer(vertex_coord, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), 0);
-	}
-
-	GLint tex_coord = glGetAttribLocation(gl.shader_progID, "TexCoord");
-	if (tex_coord != -1)
-	{
-		glEnableVertexAttribArray(tex_coord);
-		glVertexAttribPointer(tex_coord, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(2 * sizeof(GLfloat)));
-	}
-
-	GLint color = glGetAttribLocation(gl.shader_progID, "Color");
-	if (color != -1)
-	{
-		glEnableVertexAttribArray(color);
-		glVertexAttribPointer(color, 4, GL_FLOAT, GL_FALSE, 8 * sizeof(GLfloat), (void*)(4 * sizeof(GLfloat)));
-	}
-
-	GLint mvp_matrix = glGetUniformLocation(gl.shader_progID, "MVPMatrix");
-	if (mvp_matrix != -1)
-	{
-		static const GLfloat mvp[] = {
-			1.f, 0.f, 0.f, 0.f,
-			0.f, 1.f, 0.f, 0.f,
-			0.f, 0.f, 1.f, 0.f,
-			0.f, 0.f, 0.f, 1.f
-		};
-		glUniformMatrix4fv(mvp_matrix, 1, GL_FALSE, mvp);
-	}
-
-	GLint frame_direction = glGetUniformLocation(gl.shader_progID, "FrameDirection");
-	if (frame_direction != -1)
-		glUniform1i(frame_direction, 1); /* always forward */
-
-	gl.input_size = glGetUniformLocation(gl.shader_progID, "InputSize");
-	gl.output_size = glGetUniformLocation(gl.shader_progID, "OutputSize");
-	gl.texture_size = glGetUniformLocation(gl.shader_progID, "TextureSize");
-	gl.frame_count = glGetUniformLocation(gl.shader_progID, "FrameCount");
+	apply_shaders(&gl);
 
 	return gl;
 }
 
 /**
  * @brief Clean up OpenGL context 
- * @param Identifiers from initialize 
+ * @param gl Identifiers from initialize 
 */
 static void finalize_glcontext(gl_identifiers gl)
 {
@@ -358,6 +372,34 @@ static void render_and_swap(gl_identifiers gl)
 }
 
 /**
+ * @brief Handle failure in OpenGL thread.
+ * Acts like a renderer until closing.
+*/
+static void opengl_fail()
+{
+	if (window != NULL)
+	{
+		SDL_DestroyWindow(window);
+		window = NULL;
+	}
+
+	/* TODO: Notify user. */
+
+	HANDLE handles[] = { sync_objects.closing, sync_objects.blit_waiting };
+	
+	while (1)
+	{
+		switch (WaitForMultipleObjects(2, handles, FALSE, INFINITE))
+		{
+		case WAIT_OBJECT_0:		/* Close requested. End thread. */
+			_endthread();
+		case WAIT_OBJECT_0 + 1:		/* Blitter is waiting, signal it to continue. */
+			SetEvent(blit_done);
+		}
+	}
+}
+
+/**
  * @brief Main OpenGL thread proc.
  * 
  * OpenGL context should be accessed only from this single thread.
@@ -369,22 +411,21 @@ static void opengl_main(void* param)
 
 	window = SDL_CreateWindow("86Box OpenGL Renderer", 0, 0, resize_info.width, resize_info.height, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
 
-	SDL_GL_SetSwapInterval(VSYNC);
+	if (window == NULL)
+		opengl_fail();
 
 	/* Keep track of certain parameters, only changed in this thread to avoid race conditions */
-	int fullscreen = resize_info.fullscreen, video_width = INIT_WIDTH, video_height = INIT_HEIGHT;
+	int fullscreen = resize_info.fullscreen, video_width = INIT_WIDTH, video_height = INIT_HEIGHT,
+		output_width = resize_info.width, output_height = resize_info.height, frametime = options.frametime;
 
 	SDL_SysWMinfo wmi = { 0 };
 	SDL_VERSION(&wmi.version);
 	SDL_GetWindowWMInfo(window, &wmi);
 
-	if (wmi.subsystem == SDL_SYSWM_WINDOWS)
-		window_hwnd = wmi.info.win.window;
-
-	/* Pass window handle and full screen mode to windows message hook */
-	winmessage_data msg_data = (winmessage_data){ window_hwnd, &fullscreen };
+	if (wmi.subsystem != SDL_SYSWM_WINDOWS)
+		opengl_fail();
 	
-	SDL_SetWindowsMessageHook(winmessage_hook, &msg_data);
+	window_hwnd = wmi.info.win.window;
 
 	if (!fullscreen)
 		set_parent_binding(1);
@@ -393,45 +434,69 @@ static void opengl_main(void* param)
 
 	SDL_GLContext context = SDL_GL_CreateContext(window);
 
-	gladLoadGLLoader(SDL_GL_GetProcAddress);
+	if (context == NULL)
+		opengl_fail();
+
+	SDL_GL_SetSwapInterval(options.vsync);
+
+	if (!gladLoadGLLoader(SDL_GL_GetProcAddress))
+	{
+		SDL_GL_DeleteContext(context);
+		opengl_fail();
+	}
 
 	gl_identifiers gl = initialize_glcontext();
 
 	if (gl.frame_count != -1)
 		glUniform1i(gl.frame_count, 0);
+	if (gl.output_size != -1)
+		glUniform2f(gl.output_size, output_width, output_height);
 
-	uint32_t last_swap = -TARGET_FRAMETIME;
+	uint32_t last_swap = plat_get_micro_ticks() - frametime;
 
 	/* Render loop */
 	int closing = 0;
 	while (!closing)
 	{
-		if (SYNC_WITH_BLITTER)
+		/* Rendering is done right after handling an event. */
+		if (frametime < 0)
 			render_and_swap(gl);
 
 		DWORD wait_result = WAIT_TIMEOUT;
 
 		do
 		{
-			if (!SYNC_WITH_BLITTER)
+			/* Rendering is timed by frame capping. */
+			if (frametime >= 0)
 			{
-				uint32_t ticks = plat_get_ticks();
-				if (ticks - last_swap > TARGET_FRAMETIME)
+				uint32_t ticks = plat_get_micro_ticks();
+
+				uint32_t elapsed = ticks - last_swap;
+				
+				if (elapsed + 1000 > frametime)
 				{
+					/* Spin the remaining time (< 1ms) to next frame */
+					while (elapsed < frametime)
+					{
+						Sleep(0); /* Yield processor time */
+						ticks = plat_get_micro_ticks();
+						elapsed = ticks - last_swap;
+					}
+
 					render_and_swap(gl);
 					last_swap = ticks;
 				}
 			}
 
-			SDL_Event event;
-
-			/* Handle SDL_Window events */
-			while (SDL_PollEvent(&event)) { /* No need for actual handlers, but message queue must be processed. */ }
-
-			/* Keep cursor hidden in full screen and mouse capture */
-			int show_cursor = !(fullscreen || !!mouse_capture);
-			if (SDL_ShowCursor(-1) != show_cursor)
-				SDL_ShowCursor(show_cursor);
+			/* Handle window messages */
+			MSG msg;
+			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+			{
+				if (msg.hwnd == window_hwnd)
+					handle_window_messages(msg.message, msg.wParam, msg.lParam, fullscreen);
+				TranslateMessage(&msg);
+				DispatchMessage(&msg);
+			}
 
 			/* Wait for synchronized events for 1ms before going back to window events */
 			wait_result = WaitForMultipleObjects(sizeof(sync_objects) / sizeof(HANDLE), sync_objects.asArray, FALSE, 1);
@@ -472,6 +537,8 @@ static void opengl_main(void* param)
 		}
 		else if (sync_event == sync_objects.resize)
 		{
+			thread_wait_mutex(resize_info.mutex);
+
 			if (fullscreen != resize_info.fullscreen)
 			{
 				fullscreen = resize_info.fullscreen;
@@ -523,10 +590,13 @@ static void opengl_main(void* param)
 					}
 				}
 
-				glViewport(pad_x / 2, pad_y / 2, width - pad_x, height - pad_y);
+				output_width = width - pad_x;
+				output_height = height - pad_y;
+
+				glViewport(pad_x / 2, pad_y / 2, output_width, output_height);
 
 				if (gl.output_size != -1)
-					glUniform2f(gl.output_size, width - pad_x, height - pad_y);
+					glUniform2f(gl.output_size, output_width, output_height);
 			}
 			else
 			{
@@ -535,12 +605,50 @@ static void opengl_main(void* param)
 				/* SWP_NOZORDER is needed for child window and SDL doesn't enable it. */
 				SetWindowPos(window_hwnd, parent, 0, 0, resize_info.width, resize_info.height, SWP_NOZORDER | SWP_NOCOPYBITS | SWP_NOMOVE | SWP_NOACTIVATE);
 
+				output_width = resize_info.width;
+				output_height = resize_info.height;
+
 				glViewport(0, 0, resize_info.width, resize_info.height);
 
 				if (gl.output_size != -1)
 					glUniform2f(gl.output_size, resize_info.width, resize_info.height);
 			}
+
+			thread_release_mutex(resize_info.mutex);
 		}
+		else if (sync_event == sync_objects.reload)
+		{
+			thread_wait_mutex(options.mutex);
+
+			frametime = options.frametime;
+
+			SDL_GL_SetSwapInterval(options.vsync);
+
+			if (options.shaderfile_changed)
+			{
+				/* Change shader program. */
+				apply_shaders(&gl);
+
+				/* Uniforms need to be updated after proram change. */
+				if (gl.input_size != -1)
+					glUniform2f(gl.input_size, video_width, video_height);
+				if (gl.output_size != -1)
+					glUniform2f(gl.output_size, output_width, output_height);
+				if (gl.texture_size != -1)
+					glUniform2f(gl.texture_size, video_width, video_height);
+				if (gl.frame_count != -1)
+					glUniform1i(gl.frame_count, 0);
+
+				options.shaderfile_changed = 0;
+			}
+
+			thread_release_mutex(options.mutex);
+		}
+
+		/* Keep cursor hidden in full screen and mouse capture */
+		int show_cursor = !(fullscreen || !!mouse_capture);
+		if (SDL_ShowCursor(-1) != show_cursor)
+				SDL_ShowCursor(show_cursor);
 	}
 
 	finalize_glcontext(gl);
@@ -548,8 +656,6 @@ static void opengl_main(void* param)
 	SDL_GL_DeleteContext(context);
 
 	set_parent_binding(0);
-
-	SDL_SetWindowsMessageHook(NULL, NULL);
 
 	SDL_DestroyWindow(window);
 
@@ -577,8 +683,19 @@ static void opengl_blit(int x, int y, int y1, int y2, int w, int h)
 	video_blit_complete();
 }
 
+static int framerate_to_frametime(int framerate)
+{
+	if (framerate < 0)
+		return -1;
+
+	return (int)ceilf(1.e6f / (float)framerate);
+}
+
 int opengl_init(HWND hwnd)
 {
+	if (thread != NULL)
+		return 0;
+
 	for (int i = 0; i < sizeof(sync_objects) / sizeof(HANDLE); i++)
 		sync_objects.asArray[i] = CreateEvent(NULL, FALSE, FALSE, NULL);
 
@@ -594,6 +711,12 @@ int opengl_init(HWND hwnd)
 	resize_info.height = parent_size.bottom - parent_size.top;
 	resize_info.fullscreen = video_fullscreen & 1;
 	resize_info.scaling_mode = video_fullscreen_scale;
+	resize_info.mutex = thread_create_mutex();
+
+	options.vsync = video_vsync;
+	options.frametime = framerate_to_frametime(video_framerate);
+	strcpy_s(options.shaderfile, sizeof(options.shaderfile), video_shader);
+	options.mutex = thread_create_mutex();
 
 	thread = thread_create(opengl_main, (void*)NULL);
 
@@ -620,6 +743,9 @@ void opengl_close(void)
 
 	memset((void*)&blit_info, 0, sizeof(blit_info));
 
+	thread_close_mutex(resize_info.mutex);
+	thread_close_mutex(options.mutex);
+
 	SetEvent(blit_done);
 
 	thread = NULL;
@@ -640,8 +766,12 @@ void opengl_set_fs(int fs)
 	if (thread == NULL)
 		return;
 
+	thread_wait_mutex(resize_info.mutex);
+	
 	resize_info.fullscreen = fs;
 	resize_info.scaling_mode = video_fullscreen_scale;
+
+	thread_release_mutex(resize_info.mutex);
 
 	SetEvent(sync_objects.resize);
 }
@@ -651,9 +781,34 @@ void opengl_resize(int w, int h)
 	if (thread == NULL)
 		return;
 
+	thread_wait_mutex(resize_info.mutex);
+
 	resize_info.width = w;
 	resize_info.height = h;
 	resize_info.scaling_mode = video_fullscreen_scale;
 
+	thread_release_mutex(resize_info.mutex);
+
 	SetEvent(sync_objects.resize);
+}
+
+void opengl_reload(void)
+{
+	if (thread == NULL)
+		return;
+
+	thread_wait_mutex(options.mutex);
+
+	options.vsync = video_vsync;
+	options.frametime = framerate_to_frametime(video_framerate);
+	
+	if (strcmp(video_shader, options.shaderfile) != 0)
+	{
+		strcpy_s(options.shaderfile, sizeof(options.shaderfile), video_shader);
+		options.shaderfile_changed = 1;
+	}
+
+	thread_release_mutex(options.mutex);
+
+	SetEvent(sync_objects.reload);
 }

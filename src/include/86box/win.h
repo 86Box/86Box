@@ -63,6 +63,10 @@ DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
 #define ZIP_SUBMENU_NAME	L"ZIPSubmenu"
 #define MO_SUBMENU_NAME		L"MOSubmenu"
 
+#ifdef DEV_BRANCH /* feature-opengl */
+#define VID_GL_SUBMENU		L"VidGLSubMenu"
+#endif
+
 /* Application-specific window messages.
 
    A dialog sends 0x8895 with WPARAM = 1 followed by 0x8896 with WPARAM = 1 on open,

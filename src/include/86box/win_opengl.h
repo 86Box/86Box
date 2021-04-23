@@ -23,5 +23,6 @@ extern int opengl_pause(void);
 extern void opengl_close(void);
 extern void opengl_set_fs(int fs);
 extern void opengl_resize(int w, int h);
+extern void opengl_reload(void);
 
 #endif /*!WIN_OPENGL_H*/

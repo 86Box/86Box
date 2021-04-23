@@ -341,6 +341,17 @@
 #define IDM_DISCORD		40090
 #endif
 
+#ifdef DEV_BRANCH /* feature-opengl */
+#define IDM_VID_GL_FPS_BLITTER	40100
+#define IDM_VID_GL_FPS_25	40101
+#define IDM_VID_GL_FPS_30	40102
+#define IDM_VID_GL_FPS_50	40103
+#define IDM_VID_GL_FPS_60	40104
+#define IDM_VID_GL_FPS_75	40105
+#define IDM_VID_GL_VSYNC	40106
+#define IDM_VID_GL_SHADER	40107
+#endif
+
 #define IDM_LOG_BREAKPOINT	51201
 #define IDM_DUMP_VRAM		51202	// should be an Action
 
