@@ -572,7 +572,7 @@ sis_5513_isa_write(uint16_t addr, uint8_t val, void *priv)
 			switch (val >> 6)
 			{
 			case 0:
-				cpu_set_isa_speed(7.159);
+				cpu_set_isa_speed(7159091);
 				break;
 			case 1:
 				cpu_set_isa_pci_div(4);

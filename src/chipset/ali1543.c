@@ -138,7 +138,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
         switch(val & 7)
         {
             case 0:
-            cpu_set_isa_speed(7.16);
+            cpu_set_isa_speed(7159091);
             break;
             case 1:
             case 2:

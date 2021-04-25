@@ -373,7 +373,7 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 			switch ((val & 0xc0) >> 6)
 			{
 			case 0:
-				cpu_set_isa_speed(7.159);
+				cpu_set_isa_speed(7159091);
 				break;
 			case 1:
 				cpu_set_isa_pci_div(4);
