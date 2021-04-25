@@ -50,8 +50,9 @@ if(DISCORD)
 endif()
 
 if(OPENGL)
-	# PUBLIC due to config.c
 	target_compile_definitions(ui PUBLIC USE_OPENGL)
+	target_compile_definitions(plat PRIVATE USE_OPENGL)
+
 	target_sources(ui PRIVATE glad.c win_opengl.c win_opengl_glslp.c)
 endif()
 
