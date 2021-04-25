@@ -422,6 +422,8 @@ extern const device_t	*at_thor_get_device(void);
 #endif
 
 /* m_at_socket7_s7.c */
+extern int	machine_at_ap5s_init(const machine_t *);
+
 extern int	machine_at_chariot_init(const machine_t *);
 extern int	machine_at_mr586_init(const machine_t *);
 extern int	machine_at_thor_init(const machine_t *);
@@ -462,10 +464,9 @@ extern int	machine_at_an430tx_init(const machine_t *);
 extern int	machine_at_mb540n_init(const machine_t *);
 extern int	machine_at_p5mms98_init(const machine_t *);
 
-#if defined(DEV_BRANCH) && defined(USE_SIS_5571)
 extern int	machine_at_r534f_init(const machine_t *);
 extern int	machine_at_ms5146_init(const machine_t *);
-#endif
+
 #if defined(DEV_BRANCH) && defined(USE_M154X)
 extern int	machine_at_m560_init(const machine_t *);
 extern int	machine_at_ms5164_init(const machine_t *);
