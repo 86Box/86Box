@@ -318,6 +318,9 @@ const machine_t machines[] = {
     /* 430VX */
     { "[i430VX] Gateway 2000 Tigereye",		"gw2kte",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 131072, 8192, 127,	       machine_at_gw2kte_init, NULL			},
 
+    /* SiS 5511 */
+    { "[SiS 5511] AOpen AP5S",		"ap5s",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 524288, 8192, 127,	       machine_at_ap5s_init, NULL			},
+
     /* Socket 7 (Dual Voltage) machines */
     /* 430HX */
     { "[i430HX] Acer V35N",			"acerv35n",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, CPU_BLOCK(CPU_Cx6x86MX), 50000000, 66666667, 2800, 3520, 1.5, 3.0,				MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 196608, 8192, 127,	     machine_at_acerv35n_init, NULL			},
@@ -357,10 +360,8 @@ const machine_t machines[] = {
     { "[VIA VP3] FIC PA-2012",			"ficpa2012",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 55000000, 75000000, 2100, 3520, 1.5, 5.5,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192,1048576, 8192, 127,	    machine_at_ficpa2012_init, NULL			},
 
     /* SiS 5571 */
-#if defined(DEV_BRANCH) && defined(USE_SIS_5571)
     { "[SiS 5571] Rise R534F",			"r534f",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2500, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 393216, 8192, 127,		machine_at_r534f_init, NULL			},
-    { "[SiS 5571] MSI MS-5146",			"ms5146",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2500, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 393216, 8192, 127,	       machine_at_ms5146_init, NULL			},
-#endif
+    { "[SiS 5571] MSI MS-5146",			"ms5146",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2500, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 262144, 8192, 127,	       machine_at_ms5146_init, NULL			},
 
     /* SiS 5598 */
     { "[SiS 5598] ASUS SP97-XV",		"sp97xv",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 60000000, 66666667, 2100, 3200, 1.5, 2.5,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 262144, 8192, 255,	     machine_at_sp97xv_init, NULL			},

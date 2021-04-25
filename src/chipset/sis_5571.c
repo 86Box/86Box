@@ -25,7 +25,6 @@
 #include <86box/io.h>
 #include <86box/timer.h>
 
-#include <86box/apm.h>
 #include <86box/dma.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
@@ -45,11 +44,13 @@
 #define SYSTEM_READ ((dev->pci_conf[0x76] & 0x80) ? MEM_READ_INTERNAL : MEM_READ_EXTANY)
 #define SYSTEM_WRITE ((dev->pci_conf[0x76] & 0x20) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY)
 
-/* IDE Controller */
-#define PRI_BASE ((dev->pci_conf_sb[1][0x13]) | (dev->pci_conf_sb[1][0x12] << 4) | (dev->pci_conf_sb[1][0x11] << 8) | (dev->pci_conf_sb[1][0x10] << 12))
-#define PRI_SIDE ((dev->pci_conf_sb[1][0x17]) | (dev->pci_conf_sb[1][0x16] << 4) | (dev->pci_conf_sb[1][0x15] << 8) | (dev->pci_conf_sb[1][0x14] << 12))
-#define SEC_BASE ((dev->pci_conf_sb[1][0x1b]) | (dev->pci_conf_sb[1][0x1a] << 4) | (dev->pci_conf_sb[1][0x19] << 8) | (dev->pci_conf_sb[1][0x18] << 12))
-#define SEC_SIDE ((dev->pci_conf_sb[1][0x1f]) | (dev->pci_conf_sb[1][0x1e] << 4) | (dev->pci_conf_sb[1][0x1d] << 8) | (dev->pci_conf_sb[1][0x1c] << 12))
+/* IDE Flags (1 Native / 0 Compatibility)*/
+#define PRIMARY_COMP_NAT_SWITCH (dev->pci_conf_sb[1][9] & 1)
+#define SECONDARY_COMP_NAT_SWITCH (dev->pci_conf_sb[1][9] & 4)
+#define PRIMARY_NATIVE_BASE (dev->pci_conf_sb[1][0x11] << 8) | (dev->pci_conf_sb[1][0x10] & 0xf8)
+#define PRIMARY_NATIVE_SIDE (((dev->pci_conf_sb[1][0x15] << 8) | (dev->pci_conf_sb[1][0x14] & 0xfc)) + 2)
+#define SECONDARY_NATIVE_BASE (dev->pci_conf_sb[1][0x19] << 8) | (dev->pci_conf_sb[1][0x18] & 0xf8)
+#define SECONDARY_NATIVE_SIDE (((dev->pci_conf_sb[1][0x1d] << 8) | (dev->pci_conf_sb[1][0x1c] & 0xfc)) + 2)
 #define BUS_MASTER_BASE ((dev->pci_conf_sb[1][0x20] & 0xf0) | (dev->pci_conf_sb[1][0x21] << 8))
 
 #ifdef ENABLE_SIS_5571_LOG
@@ -72,15 +73,12 @@ sis_5571_log(const char *fmt, ...)
 
 typedef struct sis_5571_t
 {
-	uint8_t pci_conf[256], pci_conf_sb[3][256],
-		sb_pci_slot;
+	uint8_t pci_conf[256], pci_conf_sb[3][256];
 
-	int old_smi_value;
+	int nb_pci_slot, sb_pci_slot;
 
-	apm_t *apm;
 	port_92_t *port_92;
-	sff8038i_t *bm[2];
-	uint32_t program_status_pri, program_status_sec;
+	sff8038i_t *ide_drive[2];
 	smram_t *smram;
 	usb_t *usb;
 
@@ -108,16 +106,13 @@ sis_5571_smm_recalc(sis_5571_t *dev)
 	switch ((dev->pci_conf[0xa3] & 0xc0) >> 6)
 	{
 	case 0x00:
-		if (dev->pci_conf[0x74] == 0)
-			smram_enable(dev->smram, 0xe0000, 0xe0000, 0x8000, (dev->pci_conf[0xa3] & 0x10), 1);
+		smram_enable(dev->smram, 0xe0000, 0xe0000, 0x8000, (dev->pci_conf[0xa3] & 0x10), 1);
 		break;
 	case 0x01:
-		if (dev->pci_conf[0x74] == 0)
-			smram_enable(dev->smram, 0xe0000, 0xa0000, 0x8000, (dev->pci_conf[0xa3] & 0x10), 1);
+		smram_enable(dev->smram, 0xe0000, 0xa0000, 0x8000, (dev->pci_conf[0xa3] & 0x10), 1);
 		break;
 	case 0x02:
-		if (dev->pci_conf[0x74] == 0)
-			smram_enable(dev->smram, 0xe0000, 0xb0000, 0x8000, (dev->pci_conf[0xa3] & 0x10), 1);
+		smram_enable(dev->smram, 0xe0000, 0xb0000, 0x8000, (dev->pci_conf[0xa3] & 0x10), 1);
 		break;
 	case 0x03:
 		smram_enable(dev->smram, 0xa0000, 0xa0000, 0x10000, (dev->pci_conf[0xa3] & 0x10), 1);
@@ -127,57 +122,31 @@ sis_5571_smm_recalc(sis_5571_t *dev)
 	flushmmucache();
 }
 
-static void
-sis_5571_ide_handler(void *priv)
+void sis_5571_ide_handler(sis_5571_t *dev)
 {
-	sis_5571_t *dev = (sis_5571_t *)priv;
-
-	/* IDE IRQ remap */
-	if (!(dev->pci_conf_sb[0][0x63] & 0x80))
-	{
-		sff_set_irq_line(dev->bm[0], dev->pci_conf_sb[0][0x63] & 0x0f);
-		sff_set_irq_line(dev->bm[1], dev->pci_conf_sb[0][0x63] & 0x0f);
-	}
-
-	/* Compatibility(0)/Native(1) Mode Status Programming */
-	if (dev->pci_conf_sb[1][0x08])
-		dev->program_status_sec = dev->pci_conf_sb[1][0x09] & 0x04;
-
-	if (dev->pci_conf_sb[1][0x02])
-		dev->program_status_pri = dev->pci_conf_sb[1][0x09] & 0x01;
-
-	/* Setting Base/Side */
-	ide_set_base(0, dev->program_status_pri ? PRI_BASE : 0x1f0);
-	ide_set_side(0, dev->program_status_pri ? PRI_SIDE : 0x3f6);
-
-	ide_set_base(1, dev->program_status_sec ? SEC_BASE : 0x170);
-	ide_set_side(1, dev->program_status_sec ? SEC_SIDE : 0x376);
-
-	/* Enable/Disable(Default is Enabled) */
 	ide_pri_disable();
 	ide_sec_disable();
-
-	if (dev->pci_conf_sb[1][0x4a] & 0x02)
-		ide_pri_enable();
-
-	if (dev->pci_conf_sb[1][0x4a] & 0x04)
-		ide_sec_enable();
-
-	/* Bus Mastering */
-	sff_bus_master_handler(dev->bm[0], dev->pci_conf_sb[1][0x09] & 0x80, BUS_MASTER_BASE);
-	sff_bus_master_handler(dev->bm[1], dev->pci_conf_sb[1][0x09] & 0x80, BUS_MASTER_BASE + 8);
+	if (dev->pci_conf_sb[1][4] & 1)
+	{
+		if (dev->pci_conf_sb[1][0x4a] & 4)
+		{
+			ide_set_base(0, PRIMARY_COMP_NAT_SWITCH ? PRIMARY_NATIVE_BASE : 0x1f0);
+			ide_set_side(0, PRIMARY_COMP_NAT_SWITCH ? PRIMARY_NATIVE_SIDE : 0x3f6);
+			ide_pri_enable();
+		}
+		if (dev->pci_conf_sb[1][0x4a] & 2)
+		{
+			ide_set_base(1, SECONDARY_COMP_NAT_SWITCH ? SECONDARY_NATIVE_BASE : 0x170);
+			ide_set_side(1, SECONDARY_COMP_NAT_SWITCH ? SECONDARY_NATIVE_SIDE : 0x376);
+			ide_sec_enable();
+		}
+	}
 }
 
-static void
-sis_5571_usb_handler(void *priv)
+void sis_5571_bm_handler(sis_5571_t *dev)
 {
-	sis_5571_t *dev = (sis_5571_t *)priv;
-
-	/* USB Memory Base */
-	ohci_update_mem_mapping(dev->usb, dev->pci_conf_sb[2][0x11], dev->pci_conf_sb[2][0x12], dev->pci_conf_sb[2][0x13], dev->pci_conf_sb[0][0x68] & 0x40);
-
-	/* USB I/O Base*/
-	uhci_update_io_mapping(dev->usb, dev->pci_conf_sb[2][0x14], dev->pci_conf_sb[2][0x17], dev->pci_conf_sb[0][0x68] & 0x40);
+	sff_bus_master_handler(dev->ide_drive[0], dev->pci_conf_sb[1][4] & 4, BUS_MASTER_BASE);
+	sff_bus_master_handler(dev->ide_drive[1], dev->pci_conf_sb[1][4] & 4, BUS_MASTER_BASE + 8);
 }
 
 static void
@@ -193,11 +162,11 @@ memory_pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 		break;
 
 	case 0x06: /* Status - Low Byte */
-		dev->pci_conf[addr] = val;
+		dev->pci_conf[addr] &= val;
 		break;
 
 	case 0x07: /* Status - High Byte */
-		dev->pci_conf[addr] = val & 0xbe;
+		dev->pci_conf[addr] &= val & 0xbe;
 		break;
 
 	case 0x0d: /* Master latency timer */
@@ -339,7 +308,13 @@ memory_pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 	case 0x9a:
 	case 0x9b:
 	case 0x9c:
+		dev->pci_conf[addr] = val;
+		break;
+
 	case 0x9d:
+		dev->pci_conf[addr] &= val;
+		break;
+
 	case 0x9e: /* STPCLK# Assertion Timer */
 	case 0x9f: /* STPCLK# De-assertion Timer */
 	case 0xa0:
@@ -378,7 +353,7 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 			break;
 
 		case 0x06: /* Status */
-			dev->pci_conf_sb[0][addr] = val;
+			dev->pci_conf_sb[0][addr] &= val;
 			break;
 
 		case 0x40: /* BIOS Control Register */
@@ -466,7 +441,11 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 
 		case 0x63: /* IDEIRQ Remapping Control Register */
 			dev->pci_conf_sb[0][addr] = val & 0x8f;
-			sis_5571_ide_handler(dev);
+			if (val & 0x80)
+			{
+				sff_set_irq_line(dev->ide_drive[0], val & 0x0f);
+				sff_set_irq_line(dev->ide_drive[1], val & 0x0f);
+			}
 			break;
 
 		case 0x64: /* GPIO Control Register */
@@ -482,9 +461,8 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 			dev->pci_conf_sb[0][addr] = val;
 			break;
 
-		case 0x68: /* USBIRQ Remapping Control Registe */
+		case 0x68: /* USBIRQ Remapping Control Register */
 			dev->pci_conf_sb[0][addr] = val & 0x1b;
-			sis_5571_usb_handler(dev);
 			break;
 
 		case 0x69:
@@ -536,14 +514,17 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 		{
 		case 0x04: /* Command low byte */
 			dev->pci_conf_sb[1][addr] = val & 0x05;
+			sis_5571_ide_handler(dev);
+			sis_5571_bm_handler(dev);
 			break;
 
 		case 0x07: /* Status high byte */
-			dev->pci_conf_sb[1][addr] = val;
+			dev->pci_conf_sb[1][addr] &= val;
 			break;
 
 		case 0x09: /* Programming Interface Byte */
 			dev->pci_conf_sb[1][addr] = val & 0xcf;
+			sis_5571_ide_handler(dev);
 			break;
 
 		case 0x0d: /* Latency Time */
@@ -563,10 +544,18 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 		case 0x1d: /* Secondary Channel Base Address Register */
 		case 0x1e: /* Secondary Channel Base Address Register */
 		case 0x1f: /* Secondary Channel Base Address Register */
+			dev->pci_conf_sb[1][addr] = val;
+			sis_5571_ide_handler(dev);
+			break;
+
 		case 0x20: /* Bus Master IDE Control Register Base Address */
 		case 0x21: /* Bus Master IDE Control Register Base Address */
 		case 0x22: /* Bus Master IDE Control Register Base Address */
 		case 0x23: /* Bus Master IDE Control Register Base Address */
+			dev->pci_conf_sb[1][addr] = val;
+			sis_5571_bm_handler(dev);
+			break;
+
 		case 0x30: /* Expansion ROM Base Address */
 		case 0x31: /* Expansion ROM Base Address */
 		case 0x32: /* Expansion ROM Base Address */
@@ -586,6 +575,7 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 
 		case 0x4a: /* IDE General Control Register 0 */
 			dev->pci_conf_sb[1][addr] = val & 0xaf;
+			sis_5571_ide_handler(dev);
 			break;
 
 		case 0x4b: /* IDE General Control register 1 */
@@ -597,29 +587,36 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 			break;
 		}
 		sis_5571_log("SiS5571-IDE: dev->pci_conf[%02x] = %02x\n", addr, val);
-
-		if (((addr >= 0x09) && (addr <= 0x23)) || (addr == 0x4a))
-			sis_5571_ide_handler(dev);
 		break;
 
 	case 2: /* USB Controller */
 		switch (addr)
 		{
 		case 0x04: /* Command - Low Byte */
-			dev->pci_conf_sb[2][addr] |= val;
+			dev->pci_conf_sb[2][addr] = val;
+			ohci_update_mem_mapping(dev->usb, dev->pci_conf_sb[2][0x11], dev->pci_conf_sb[2][0x12], dev->pci_conf_sb[2][0x13], dev->pci_conf_sb[2][4] & 1);
+			break;
+
 		case 0x05: /* Command - High Byte */
-			dev->pci_conf_sb[2][addr] |= val & 0x03;
+			dev->pci_conf_sb[2][addr] = val & 0x03;
 			break;
 
 		case 0x06: /* Status - Low Byte */
-			dev->pci_conf_sb[2][addr] = val & 0xc0;
+			dev->pci_conf_sb[2][addr] &= val & 0xc0;
 			break;
 
 		case 0x07: /* Status - High Byte */
+			dev->pci_conf_sb[2][addr] &= val;
+			break;
+
 		case 0x10: /* Memory Space Base Address Register */
 		case 0x11: /* Memory Space Base Address Register */
 		case 0x12: /* Memory Space Base Address Register */
 		case 0x13: /* Memory Space Base Address Register */
+			dev->pci_conf_sb[2][addr] = val & ((addr == 0x11) ? 0x0f : 0xff);
+			ohci_update_mem_mapping(dev->usb, dev->pci_conf_sb[2][0x11], dev->pci_conf_sb[2][0x12], dev->pci_conf_sb[2][0x13], dev->pci_conf_sb[2][4] & 1);
+			break;
+
 		case 0x14: /* IO Space Base Address Register */
 		case 0x15: /* IO Space Base Address Register */
 		case 0x16: /* IO Space Base Address Register */
@@ -629,10 +626,6 @@ pci_isa_bridge_write(int func, int addr, uint8_t val, void *priv)
 			break;
 		}
 		sis_5571_log("SiS5571-USB: dev->pci_conf[%02x] = %02x\n", addr, val);
-
-		if ((addr >= 0x11) && (addr <= 0x17))
-			sis_5571_usb_handler(dev);
-		break;
 	}
 }
 
@@ -668,97 +661,47 @@ sis_5571_reset(void *priv)
 	dev->pci_conf[0x02] = 0x71;
 	dev->pci_conf[0x03] = 0x55;
 	dev->pci_conf[0x04] = 0xfd;
-	dev->pci_conf[0x05] = 0x00;
-	dev->pci_conf[0x06] = 0x00;
-	dev->pci_conf[0x07] = 0x00;
-	dev->pci_conf[0x08] = 0x00;
-	dev->pci_conf[0x09] = 0x00;
-	dev->pci_conf[0x0a] = 0x00;
 	dev->pci_conf[0x0b] = 0x06;
-	dev->pci_conf[0x0c] = 0x00;
-	dev->pci_conf[0x0d] = 0x00;
-	dev->pci_conf[0x0e] = 0x00;
-	dev->pci_conf[0x0f] = 0x00;
-
-	memory_pci_bridge_write(0, 0x51, 0x00, dev);
 	dev->pci_conf[0x9e] = 0xff;
 	dev->pci_conf[0x9f] = 0xff;
 	dev->pci_conf[0xa2] = 0xff;
-	memory_pci_bridge_write(0, 0xa3, 0x00, dev);
 
 	/* PCI to ISA bridge */
 	dev->pci_conf_sb[0][0x00] = 0x39;
 	dev->pci_conf_sb[0][0x01] = 0x10;
 	dev->pci_conf_sb[0][0x02] = 0x08;
-	dev->pci_conf_sb[0][0x03] = 0x00;
 	dev->pci_conf_sb[0][0x04] = 0xfd;
-	dev->pci_conf_sb[0][0x05] = 0x00;
-	dev->pci_conf_sb[0][0x06] = 0x00;
-	dev->pci_conf_sb[0][0x07] = 0x00;
 	dev->pci_conf_sb[0][0x08] = 0x01;
-	dev->pci_conf_sb[0][0x09] = 0x00;
 	dev->pci_conf_sb[0][0x0a] = 0x01;
 	dev->pci_conf_sb[0][0x0b] = 0x06;
-	dev->pci_conf_sb[0][0x0c] = 0x00;
-	dev->pci_conf_sb[0][0x0d] = 0x00;
-	dev->pci_conf_sb[0][0x0e] = 0x00;
-	dev->pci_conf_sb[0][0x0f] = 0x00;
-
-	pci_isa_bridge_write(0, 0x41, 0x80, dev);
-	pci_isa_bridge_write(0, 0x42, 0x80, dev);
-	pci_isa_bridge_write(0, 0x43, 0x80, dev);
-	pci_isa_bridge_write(0, 0x44, 0x80, dev);
-	pci_isa_bridge_write(0, 0x61, 0x80, dev);
-	pci_isa_bridge_write(0, 0x62, 0x80, dev);
-	dev->pci_conf_sb[0][0x63] = 0x80;
 
 	/* IDE Controller */
 	dev->pci_conf_sb[1][0x00] = 0x39;
 	dev->pci_conf_sb[1][0x01] = 0x10;
 	dev->pci_conf_sb[1][0x02] = 0x13;
 	dev->pci_conf_sb[1][0x03] = 0x55;
-	dev->pci_conf_sb[1][0x04] = 0x00;
-	dev->pci_conf_sb[1][0x05] = 0x00;
-	dev->pci_conf_sb[1][0x06] = 0x00;
-	dev->pci_conf_sb[1][0x07] = 0x00;
 	dev->pci_conf_sb[1][0x08] = 0xc0;
-	dev->pci_conf_sb[1][0x09] = 0x00;
 	dev->pci_conf_sb[1][0x0a] = 0x01;
 	dev->pci_conf_sb[1][0x0b] = 0x01;
-	dev->pci_conf_sb[1][0x0c] = 0x00;
-	dev->pci_conf_sb[1][0x0d] = 0x00;
 	dev->pci_conf_sb[1][0x0e] = 0x80;
-	dev->pci_conf_sb[1][0x0f] = 0x00;
 	dev->pci_conf_sb[1][0x4a] = 0x06;
-
-	sff_set_slot(dev->bm[0], dev->sb_pci_slot);
-	sff_set_slot(dev->bm[1], dev->sb_pci_slot);
-	sff_bus_master_reset(dev->bm[0], BUS_MASTER_BASE);
-	sff_bus_master_reset(dev->bm[1], BUS_MASTER_BASE + 8);
-
-	sis_5571_ide_handler(dev);
+	sff_set_slot(dev->ide_drive[0], dev->sb_pci_slot);
+	sff_set_slot(dev->ide_drive[1], dev->sb_pci_slot);
+	sff_bus_master_reset(dev->ide_drive[0], BUS_MASTER_BASE);
+	sff_bus_master_reset(dev->ide_drive[1], BUS_MASTER_BASE + 8);
 
 	/* USB Controller */
 	dev->pci_conf_sb[2][0x00] = 0x39;
 	dev->pci_conf_sb[2][0x01] = 0x10;
 	dev->pci_conf_sb[2][0x02] = 0x01;
 	dev->pci_conf_sb[2][0x03] = 0x70;
-	dev->pci_conf_sb[2][0x04] = 0x00;
-	dev->pci_conf_sb[2][0x05] = 0x00;
-	dev->pci_conf_sb[2][0x06] = 0x00;
-	dev->pci_conf_sb[2][0x07] = 0x00;
 	dev->pci_conf_sb[2][0x08] = 0xb0;
 	dev->pci_conf_sb[2][0x09] = 0x10;
 	dev->pci_conf_sb[2][0x0a] = 0x03;
 	dev->pci_conf_sb[2][0x0b] = 0xc0;
-	dev->pci_conf_sb[2][0x0c] = 0x00;
-	dev->pci_conf_sb[2][0x0d] = 0x00;
 	dev->pci_conf_sb[2][0x0e] = 0x80;
-	dev->pci_conf_sb[2][0x0f] = 0x00;
 	dev->pci_conf_sb[2][0x14] = 0x01;
 	dev->pci_conf_sb[2][0x3d] = 0x01;
-
-	sis_5571_usb_handler(dev);
 }
 
 static void
@@ -776,14 +719,8 @@ sis_5571_init(const device_t *info)
 	sis_5571_t *dev = (sis_5571_t *)malloc(sizeof(sis_5571_t));
 	memset(dev, 0x00, sizeof(sis_5571_t));
 
-	pci_add_card(PCI_ADD_NORTHBRIDGE, memory_pci_bridge_read, memory_pci_bridge_write, dev);
+	dev->nb_pci_slot = pci_add_card(PCI_ADD_NORTHBRIDGE, memory_pci_bridge_read, memory_pci_bridge_write, dev);
 	dev->sb_pci_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, pci_isa_bridge_read, pci_isa_bridge_write, dev);
-
-	/* APM */
-	dev->apm = device_add(&apm_pci_device);
-
-	/* DMA */
-	dma_alias_set();
 
 	/* MIRQ */
 	pci_enable_mirq(0);
@@ -793,10 +730,8 @@ sis_5571_init(const device_t *info)
 	dev->smram = smram_add();
 
 	/* SFF IDE */
-	dev->bm[0] = device_add_inst(&sff8038i_device, 1);
-	dev->bm[1] = device_add_inst(&sff8038i_device, 2);
-	dev->program_status_pri = 0;
-	dev->program_status_sec = 0;
+	dev->ide_drive[0] = device_add_inst(&sff8038i_device, 1);
+	dev->ide_drive[1] = device_add_inst(&sff8038i_device, 2);
 
 	/* USB */
 	dev->usb = device_add(&usb_device);
