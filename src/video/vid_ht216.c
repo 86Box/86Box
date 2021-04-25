@@ -42,7 +42,7 @@ typedef struct ht216_t
 
     rom_t		bios_rom;
 
-    uint32_t		vram_mask;
+    uint32_t		vram_mask, linear_base;
     uint8_t		adjust_cursor, monitor_type;
 
     int			ext_reg_enable;
@@ -69,6 +69,7 @@ typedef struct ht216_t
 #define HT_REG_C8_E256  (1 << 4)
 #define HT_REG_C8_XLAM  (1 << 6)
 
+#define HT_REG_CD_P8PCEXP  (1 << 0)
 #define HT_REG_CD_FP8PCEXP (1 << 1)
 #define HT_REG_CD_BMSKSL   (3 << 2)
 #define HT_REG_CD_RMWMDE   (1 << 5)
@@ -151,6 +152,7 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 
 	case 0x3c5:
 		if (svga->seqaddr == 4) {
+			svga->chain2_write = !(val & 4);
 			svga->chain4 = val & 8;
 			ht216_remap(ht216);
 		} else if (svga->seqaddr == 6) {
@@ -209,8 +211,11 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 						svga->fullchange = changeframecount;
 						svga_recalctimings(svga);
 					}
+					ht216_remap(ht216);
 					break;
 
+				case 0xc9: case 0xcf:
+				case 0xe0:
 				/*Bank registers*/
 				case 0xe8:
 				case 0xe9:
@@ -264,23 +269,15 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 					svga_recalctimings(svga);		
 					break;
 			}
-			switch (svga->seqaddr & 0xff) {
-				case 0xc8: case 0xc9: case 0xcf: case 0xe0:
-					if ((svga->seqaddr & 0xff) == 0xc8) {
-						svga->adv_flags = 0;
-						if (val & HT_REG_C8_MOVSB) {
-							svga->adv_flags = FLAG_ADDR_BY8;
-						}
-					}
-					ht216_remap(ht216);
-					break;
-			}
 			return;
 		}
 		break;
 
 		case 0x3cf:
-			if (svga->gdcaddr == 6) {
+			if (svga->gdcaddr == 5) {
+				svga->chain2_read = val & 0x10;
+				ht216_remap(ht216);
+			} else if (svga->gdcaddr == 6) {
 				if (val & 8)
 					svga->banked_mask = 0x7fff;
 				else
@@ -397,154 +394,61 @@ ht216_remap(ht216_t *ht216)
 {
     svga_t *svga = &ht216->svga;
     uint8_t bank = ht216->ht_regs[0xf6] & 0x0f;
+    uint32_t e8 = ht216->ht_regs[0xe8];
+    uint32_t e9 = ht216->ht_regs[0xe9];
 
     mem_mapping_disable(&ht216->linear_mapping);
     if (ht216->ht_regs[0xc8] & HT_REG_C8_XLAM) {
 	/*Linear mapping enabled*/
-	uint32_t linear_base = ((ht216->ht_regs[0xc9] & 0xf) << 20) | (ht216->ht_regs[0xcf] << 24);
+	ht216->linear_base = ((ht216->ht_regs[0xc9] & 0xf) << 20) | (ht216->ht_regs[0xcf] << 24);
 	mem_mapping_disable(&svga->mapping);
-	mem_mapping_set_addr(&ht216->linear_mapping, linear_base, 0x100000);
+	mem_mapping_set_addr(&ht216->linear_mapping, ht216->linear_base, 0x100000);
     } else {
-	if (ht216->ht_regs[0xe0] & HT_REG_E0_SBAE) {
-		/*Split bank: two banks used*/
-		/*Windows 3.1 always touches the misc register when split banks are enabled.*/
-		if (!(ht216->misc & HT_MISC_PAGE_SEL)) {
-			ht216->read_banks[0] = ht216->ht_regs[0xe8] << 12;
-			ht216->write_banks[0] = ht216->ht_regs[0xe8] << 12;
-			ht216->read_banks[1] = ht216->ht_regs[0xe9] << 12;
-			ht216->write_banks[1] = ht216->ht_regs[0xe9] << 12;
-			
-			if (!svga->chain4) {
-				if (ht216->ht_regs[0xe8] == 0x40) {
-					ht216->read_banks[0] = 0x10000;
-					ht216->write_banks[0] = 0x10000;
-				}
-				if (ht216->ht_regs[0xe9] == 0x40) {
-					ht216->read_banks[1] = 0x10000;
-					ht216->write_banks[1] = 0x10000;
-				}
-	
-				if (ht216->ht_regs[0xe8] == 0x48) {
-					ht216->read_banks[0] = 0x18000;
-					ht216->write_banks[0] = 0x18000;
-				}
-				if (ht216->ht_regs[0xe9] == 0x48) {
-					ht216->read_banks[1] = 0x18000;
-					ht216->write_banks[1] = 0x18000;
-				}
-				
-				if (ht216->ht_regs[0xe8] == 0x80) {
-					ht216->read_banks[0] = 0x20000;
-					ht216->write_banks[0] = 0x20000;
-				}
-				if (ht216->ht_regs[0xe9] == 0x80) {
-					ht216->read_banks[1] = 0x20000;
-					ht216->write_banks[1] = 0x20000;
-				}
-				
-				if (ht216->ht_regs[0xe8] == 0x88) {
-					ht216->read_banks[0] = 0x28000;
-					ht216->write_banks[0] = 0x28000;
-				}
-				if (ht216->ht_regs[0xe9] == 0x88) {
-					ht216->read_banks[1] = 0x28000;
-					ht216->write_banks[1] = 0x28000;
-				}
-				
-				if (ht216->ht_regs[0xe9] == 0xc0) {
-					ht216->read_banks[1] = 0x30000;
-					ht216->write_banks[1] = 0x30000;
-				}
-			}
-		}
-	} else {
-		/*One bank used*/
-		/*Bit 17 of the video memory address*/
-		if ((ht216->misc & HT_MISC_PAGE_SEL)) {
-			ht216_log("MISC = %02x, lowres = %02x, CR17 = %02x\n", ht216->misc, svga->lowres, svga->crtc[0x17]);
-			if ((ht216->misc == 0x63 && svga->crtc[0x17] != 0xa3 && ((svga->crtc[0x17] != 0xe3 && !(ht216->ht_regs[0xfc] & HT_REG_FC_ECOLRE)) || 
-			    (ht216->ht_regs[0xfc] & HT_REG_FC_ECOLRE))) || (ht216->misc != 0x63)) {
-				ht216->read_bank_reg[0] |= 0x20;
-				ht216->write_bank_reg[0] |= 0x20;
-			} else {
-				ht216->read_bank_reg[0] &= ~0x20;
-				ht216->write_bank_reg[0] &= ~0x20;		
-			}
-		} else {
-			ht216->read_bank_reg[0] &= ~0x20;
-			ht216->write_bank_reg[0] &= ~0x20;
-		}
+	ht216->read_banks[0] = ht216->read_banks[1] = ((uint32_t) (bank & 0x0c)) << 16;
+	ht216->write_banks[0] = ht216->write_banks[1] = ((uint32_t) (bank & 0x03)) << 18;
 
-		if (!(ht216->ht_regs[0xfc] & HT_REG_FC_ECOLRE)) {
-			if (bank & 2) {
-				bank &= ~2;
-				bank |= 1;
-			}
-			if (bank & 8) {
-				bank &= ~8;
-				bank |= 4;
-			}
-		}
+	if (svga->chain4) {
+		ht216->read_banks[0] |= ((uint32_t) (ht216->misc & 0x20)) << 12;
+		ht216->read_banks[1] |= ((uint32_t) (ht216->misc & 0x20)) << 12;
+		ht216->write_banks[0] |= ((uint32_t) (ht216->misc & 0x20)) << 12;
+		ht216->write_banks[1] |= ((uint32_t) (ht216->misc & 0x20)) << 12;
 
-		/*Bit 18 and 19 of the video memory address*/		
-		if (bank & 1)
-			ht216->write_bank_reg[0] |= 0x40;
-		else
-			ht216->write_bank_reg[0] &= ~0x40;
-		
-		if (bank & 2)
-			ht216->write_bank_reg[0] |= 0x80;
-		else
-			ht216->write_bank_reg[0] &= ~0x80;
-		
-		if (bank & 4)
-			ht216->read_bank_reg[0] |= 0x40;
-		else
-			ht216->read_bank_reg[0] &= ~0x40;
-		
-		if (bank & 8)
-			ht216->read_bank_reg[0] |= 0x80;
-		else
-			ht216->read_bank_reg[0] &= ~0x80;
-
-		if (svga->chain4) {
-			/*Bit 16 of the video memory address*/
-			if (ht216->ht_regs[0xf9] & HT_REG_F9_XPSEL) {
-				ht216->read_bank_reg[0] |= 0x10;
-				ht216->write_bank_reg[0] |= 0x10;
-			} else {
-				ht216->read_bank_reg[0] &= ~0x10;
-				ht216->write_bank_reg[0] &= ~0x10;
-			}
-		}
-
-		if (!svga->chain4) {			
-			/*In linear modes, bits 4 and 5 are ignored*/
-			ht216->read_bank_reg[0] &= ~0x30;
-			ht216->write_bank_reg[0] &= ~0x30;
-		}
-		
-		if (svga->chain4) {
-			ht216->read_bank_reg[0] |= ht216->ht_regs[0xe8];
-			ht216->write_bank_reg[0] |= ht216->ht_regs[0xe8];
-		}
-
-		ht216->read_banks[0] = ht216->read_bank_reg[0] << 12;
-		ht216->write_banks[0] = ht216->write_bank_reg[0] << 12;
-		ht216->read_banks[1] = ht216->read_banks[0] + (svga->chain4 ? 0x8000 : 0x20000);
-		ht216->write_banks[1] = ht216->write_banks[0] + (svga->chain4 ? 0x8000 : 0x20000);
-		
-		if (!svga->chain4) {
-			ht216->read_banks[0] >>= 2;
-			ht216->read_banks[1] >>= 2;
-			ht216->write_banks[0] >>= 2;
-			ht216->write_banks[1] >>= 2;
-		}
+		ht216->read_banks[0] |= ((uint32_t) (ht216->ht_regs[0xf9] & 0x01)) << 16;
+		ht216->read_banks[1] |= ((uint32_t) (ht216->ht_regs[0xf9] & 0x01)) << 16;
+		ht216->write_banks[0] |= ((uint32_t) (ht216->ht_regs[0xf9] & 0x01)) << 16;
+		ht216->write_banks[1] |= ((uint32_t) (ht216->ht_regs[0xf9] & 0x01)) << 16;
 	}
-	
-	ht216_log("ReadBank0 = %06x, ReadBank1 = %06x, Misc Page Sel = %02x, FF DRAM/VRAM = %02x, F6 reg = %02x, F9 Sel = %02x, FC = %02x, E0 split = %02x, E8 = %02x, E9 = %02x, chain4 = %02x, lowres = %02x, banked mask = %04x\n", ht216->read_banks[0], ht216->read_banks[1], ht216->misc & HT_MISC_PAGE_SEL, ht216->ht_regs[0xff] & 0x10, bank, ht216->ht_regs[0xf9] & HT_REG_F9_XPSEL, ht216->ht_regs[0xfc] & (HT_REG_FC_ECOLRE | 2), ht216->ht_regs[0xe0] & HT_REG_E0_SBAE, ht216->ht_regs[0xe8], ht216->ht_regs[0xe9], svga->chain4, svga->lowres, svga->banked_mask);
+
+	ht216->read_banks[0] += (e8 << 12);
+	ht216->write_banks[0] += (e8 << 12);
+
+	/* Split bank: two banks used */
+	if (ht216->ht_regs[0xe0] & HT_REG_E0_SBAE) {
+		ht216->read_banks[1] += (e9 << 12);
+		ht216->write_banks[1] += (e9 << 12);
+	}
+
+	if (!svga->chain4) {
+		ht216->read_banks[0] = ((ht216->read_banks[0] & 0xc0000) >> 2) | (ht216->read_banks[0] & 0xffff);
+		ht216->read_banks[1] = ((ht216->read_banks[1] & 0xc0000) >> 2) | (ht216->read_banks[1] & 0xffff);
+		ht216->write_banks[0] = ((ht216->write_banks[0] & 0xc0000) >> 2) | (ht216->write_banks[0] & 0xffff);
+		ht216->write_banks[1] = ((ht216->write_banks[1] & 0xc0000) >> 2) | (ht216->write_banks[1] & 0xffff);
+	}
+
+	if (!(ht216->ht_regs[0xe0] & HT_REG_E0_SBAE)) {
+		ht216->read_banks[1] = ht216->read_banks[0] + 0x8000;
+		ht216->write_banks[1] = ht216->write_banks[0] + 0x8000;
+	}
+
+#ifdef ENABLE_HT216_LOG
+	ht216_log("Rgisters: %02X, %02X, %02X, %02X, %02X\n", ht216->misc, ht216->ht_regs[0xe8], ht216->ht_regs[0xe9],
+		  ht216->ht_regs[0xf6], ht216->ht_regs[0xf9]);
+	ht216_log("Banks: %08X, %08X, %08X, %08X\n", ht216->read_banks[0], ht216->read_banks[1],
+		  ht216->write_banks[0], ht216->write_banks[1]);
+#endif
     }
 }
+
 
 void
 ht216_1_2bpp_highres(svga_t *svga)
@@ -670,6 +574,7 @@ ht216_recalctimings(svga_t *svga)
 	}
     }
 
+
     if (svga->crtc[0x17] == 0xeb) /*Looks like that 1024x768 mono mode expects 512K of video memory*/
 	svga->vram_display_mask = 0x7ffff;
     else
@@ -744,25 +649,23 @@ extalu(int op, uint8_t input_a, uint8_t input_b)
     return val;
 }
 
+
 static void
 ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_unexpanded)
 {
     svga_t *svga = &ht216->svga;
     int writemask2 = svga->writemask, reset_wm = 0;
     latch_t vall;
-    uint8_t wm = svga->writemask;
-    uint8_t count, i;
-    uint8_t fg_data[4] = {0, 0, 0, 0};
+    uint8_t i, wm = svga->writemask;
+    uint8_t count = 4, fg_data[8] = {0, 0, 0, 0, 0, 0, 0, 0};
 
-    if (svga->adv_flags & FLAG_ADDR_BY8)
+    if (ht216->ht_regs[0xcd] & HT_REG_CD_P8PCEXP)
 	writemask2 = svga->seqregs[2];
 
     if (!(svga->gdcreg[6] & 1))
 	svga->fullchange = 2;
 
-    if ((svga->adv_flags & FLAG_ADDR_BY8) && (svga->writemode < 4))
-	addr <<= 3;
-    else if ((svga->chain4 || svga->fb_only) && (svga->writemode < 4)) {
+    if (svga->chain4 || svga->fb_only) {
 	writemask2 = 1 << (addr & 3);
 	addr &= ~3;
     } else if (svga->chain2_write && (svga->crtc[0x17] != 0xeb)) {
@@ -777,16 +680,10 @@ ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_u
     if (addr >= svga->vram_max)
 	return;
 
-    addr &= svga->decode_mask;
-
-    if (addr >= svga->vram_max)
-	return;
-
-    addr &= svga->vram_mask;
-
     svga->changedvram[addr >> 12] = changeframecount;
 
-    count = 4;
+    if (ht216->ht_regs[0xcd] & HT_REG_CD_P8PCEXP)
+	count = 8;
 
     switch (ht216->ht_regs[0xfe] & HT_REG_FE_FBMC) {
 	case 0x00:
@@ -821,13 +718,12 @@ ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_u
 	case 0:
 		if ((svga->gdcreg[8] == 0xff) && !(svga->gdcreg[3] & 0x18) && (!svga->gdcreg[1] || svga->set_reset_disabled)) {
 			for (i = 0; i < count; i++) {
-				if (svga->adv_flags & FLAG_ADDR_BY8) {
+				if (ht216->ht_regs[0xcd] & HT_REG_CD_P8PCEXP) {
 					if (writemask2 & (0x80 >> i))
 						svga->vram[addr | i] = fg_data[i];
 				} else {
-					if (writemask2 & (1 << i)) {
+					if (writemask2 & (1 << i))
 						svga->vram[addr | i] = fg_data[i];
-					}
 				}		
 			}
 			return;
@@ -842,7 +738,7 @@ ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_u
 		break;
 	case 1:
 		for (i = 0; i < count; i++) {
-			if (svga->adv_flags & FLAG_ADDR_BY8) {
+			if (ht216->ht_regs[0xcd] & HT_REG_CD_P8PCEXP) {
 				if (writemask2 & (0x80 >> i))
 					svga->vram[addr | i] = svga->latch.b[i];
 			} else {
@@ -857,7 +753,7 @@ ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_u
 
 		if (!(svga->gdcreg[3] & 0x18) && (!svga->gdcreg[1] || svga->set_reset_disabled)) {
 			for (i = 0; i < count; i++) {
-				if (svga->adv_flags & FLAG_ADDR_BY8) {
+				if (ht216->ht_regs[0xcd] & HT_REG_CD_P8PCEXP) {
 					if (writemask2 & (0x80 >> i))
 						svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | (svga->latch.b[i] & ~svga->gdcreg[8]);				
 				} else {
@@ -882,7 +778,7 @@ ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_u
     switch (svga->gdcreg[3] & 0x18) {
 	case 0x00:	/* Set */
 		for (i = 0; i < count; i++) {
-			if (svga->adv_flags & FLAG_ADDR_BY8) {
+			if (ht216->ht_regs[0xcd] & HT_REG_CD_P8PCEXP) {
 				if (writemask2 & (0x80 >> i))
 					svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | (svga->latch.b[i] & ~svga->gdcreg[8]);
 			} else {
@@ -893,7 +789,7 @@ ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_u
 		break;
 	case 0x08:	/* AND */
 		for (i = 0; i < count; i++) {
-			if (svga->adv_flags & FLAG_ADDR_BY8) {
+			if (ht216->ht_regs[0xcd] & HT_REG_CD_P8PCEXP) {
 				if (writemask2 & (0x80 >> i))
 					svga->vram[addr | i] = (vall.b[i] | ~svga->gdcreg[8]) & svga->latch.b[i];
 			} else {
@@ -904,7 +800,7 @@ ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_u
 		break;
 	case 0x10:	/* OR */
 		for (i = 0; i < count; i++) {
-			if (svga->adv_flags & FLAG_ADDR_BY8) {
+			if (ht216->ht_regs[0xcd] & HT_REG_CD_P8PCEXP) {
 				if (writemask2 & (0x80 >> i))
 					svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) | svga->latch.b[i];
 			} else {
@@ -915,7 +811,7 @@ ht216_dm_write(ht216_t *ht216, uint32_t addr, uint8_t cpu_dat, uint8_t cpu_dat_u
 		break;
 	case 0x18:	/* XOR */
 		for (i = 0; i < count; i++) {
-			if (svga->adv_flags & FLAG_ADDR_BY8) {
+			if (ht216->ht_regs[0xcd] & HT_REG_CD_P8PCEXP) {
 				if (writemask2 & (0x80 >> i))
 					svga->vram[addr | i] = (vall.b[i] & svga->gdcreg[8]) ^ svga->latch.b[i];
 			} else {
@@ -986,17 +882,16 @@ ht216_dm_masked_write(ht216_t *ht216, uint32_t addr, uint8_t val, uint8_t bit_ma
 {    
     svga_t *svga = &ht216->svga;
     int writemask2 = svga->writemask;
-    uint8_t count, i;
+    uint8_t count = 4, i;
+    uint8_t full_mask = 0x0f;
 
-    if (svga->adv_flags & FLAG_ADDR_BY8)
+    if (ht216->ht_regs[0xcd] & HT_REG_CD_P8PCEXP)
 	writemask2 = svga->seqregs[2];
 
     if (!(svga->gdcreg[6] & 1))
 	svga->fullchange = 2;
 
-    if ((svga->adv_flags & FLAG_ADDR_BY8) && (svga->writemode < 4))
-	addr <<= 3;
-    else if ((svga->chain4 || svga->fb_only) && (svga->writemode < 4)) {
+    if ((svga->chain4 || svga->fb_only) && (svga->writemode < 4)) {
 	writemask2 = 1 << (addr & 3);
 	addr &= ~3;
     } else if (svga->chain2_write) {
@@ -1020,24 +915,24 @@ ht216_dm_masked_write(ht216_t *ht216, uint32_t addr, uint8_t val, uint8_t bit_ma
 
     svga->changedvram[addr >> 12] = changeframecount;
 
-    count = 4;
+    if (ht216->ht_regs[0xcd] & HT_REG_CD_P8PCEXP) {
+	count = 8;
+	full_mask = 0xff;
+    }
 
     if (bit_mask == 0xff) {
 	for (i = 0; i < count; i++) {
-		if (writemask2 & (1 << i)) {
+		if (writemask2 & (1 << i))
 			svga->vram[addr | i] = val;
-		}
 	}
     } else {
-	if (writemask2 == 0x0f) {
-		for (i = 0; i < count; i++) {
+	if (writemask2 == full_mask) {
+		for (i = 0; i < count; i++)
 			svga->vram[addr | i] = (svga->latch.b[i] & bit_mask) | (svga->vram[addr | i] & ~bit_mask);
-		}
 	} else {
 		for (i = 0; i < count; i++) {
-			if (writemask2 & (1 << i)) {
+			if (writemask2 & (1 << i))
 				svga->vram[addr | i] = (val & bit_mask) | (svga->vram[addr | i] & ~bit_mask);
-			}
 		}
 	}
     }
@@ -1066,7 +961,7 @@ ht216_write_common(ht216_t *ht216, uint32_t addr, uint8_t val)
 
     cycles -= video_timing_write_b;
 
-    addr &= 0xfffff;
+    addr &= svga->vram_mask;
 
     val = ((val >> (svga->gdcreg[3] & 7)) | (val << (8 - (svga->gdcreg[3] & 7))));
 
@@ -1191,7 +1086,9 @@ ht216_write_linear(uint32_t addr, uint8_t val, void *p)
     ht216_t *ht216 = (ht216_t *)p;
     svga_t *svga = &ht216->svga;
 
-    if (!svga->chain4) /*Bits 16 and 17 of linear address seem to be unused in planar modes*/
+    addr = (addr - ht216->linear_base) | ((ht216->ht_regs[0xf6] & 0x03) << 18) |
+	   ((ht216->ht_regs[0xf9] & 0x01) << 16) | ((ht216->misc & 0x20) << 12);
+    if (!svga->chain4)		/*Bits 16 and 17 of linear address are unused in planar modes*/
 	addr = (addr & 0xffff) | ((addr & 0xc0000) >> 2);
 
     if (!ht216->ht_regs[0xcd] && !ht216->ht_regs[0xfe])
@@ -1207,7 +1104,9 @@ ht216_writew_linear(uint32_t addr, uint16_t val, void *p)
     ht216_t *ht216 = (ht216_t *)p;
     svga_t *svga = &ht216->svga;
 
-    if (!svga->chain4)
+    addr = (addr - ht216->linear_base) | ((ht216->ht_regs[0xf6] & 0x03) << 18) |
+	   ((ht216->ht_regs[0xf9] & 0x01) << 16) | ((ht216->misc & 0x20) << 12);
+    if (!svga->chain4)		/*Bits 16 and 17 of linear address are unused in planar modes*/
 	addr = (addr & 0xffff) | ((addr & 0xc0000) >> 2);
 
     if (!ht216->ht_regs[0xcd] && !ht216->ht_regs[0xfe])
@@ -1225,7 +1124,9 @@ ht216_writel_linear(uint32_t addr, uint32_t val, void *p)
     ht216_t *ht216 = (ht216_t *)p;
     svga_t *svga = &ht216->svga;
 
-    if (!svga->chain4)
+    addr = (addr - ht216->linear_base) | ((ht216->ht_regs[0xf6] & 0x03) << 18) |
+	   ((ht216->ht_regs[0xf9] & 0x01) << 16) | ((ht216->misc & 0x20) << 12);
+    if (!svga->chain4)		/*Bits 16 and 17 of linear address are unused in planar modes*/
 	addr = (addr & 0xffff) | ((addr & 0xc0000) >> 2);
 
     if (!ht216->ht_regs[0xcd] && !ht216->ht_regs[0xfe])
@@ -1244,28 +1145,22 @@ ht216_read_common(ht216_t *ht216, uint32_t addr)
 {
     svga_t *svga = &ht216->svga;
     uint32_t latch_addr = 0;
-    int readplane = svga->readplane;
-    uint8_t or, count, i;
+    int offset, readplane = svga->readplane;
+    uint8_t or, i;
+    uint8_t count = 2;
     uint8_t plane, pixel;
     uint8_t temp, ret;
-    int offset;
 
-    if (svga->adv_flags & FLAG_ADDR_BY8) {
-	readplane = svga->gdcreg[4] & 7;
-    }
+    if (ht216->ht_regs[0xc8] & HT_REG_C8_MOVSB)
+	addr <<= 3;
+
+    addr &= svga->vram_mask;
 
     cycles -= video_timing_read_b;
 
-    addr &= 0xfffff;
-
-    count = 2;
-
-    latch_addr = (addr << count) & svga->decode_mask;
     count = (1 << count);
 
-    if (svga->adv_flags & FLAG_ADDR_BY8)
-	addr <<= 3;
-    else if (svga->chain4 || svga->fb_only) {
+    if (svga->chain4 || svga->fb_only) {
 	addr &= svga->decode_mask;
 	if (addr >= svga->vram_max)
 		return 0xff;
@@ -1273,7 +1168,7 @@ ht216_read_common(ht216_t *ht216, uint32_t addr)
 	if (ht216->ht_regs[0xcd] & HT_REG_CD_ASTODE)
 		latch_addr += (svga->gdcreg[3] & 7);
 	for (i = 0; i < 8; i++)
-		ht216->bg_latch[i] = svga->vram[latch_addr | i];
+		ht216->bg_latch[i] = svga->vram[latch_addr + i];
 	return svga->vram[addr & svga->vram_mask];
     } else if (svga->chain2_read && (svga->crtc[0x17] != 0xeb)) {
 	readplane = (readplane & 2) | (addr & 1);
@@ -1300,14 +1195,14 @@ ht216_read_common(ht216_t *ht216, uint32_t addr)
     }
     
     or = addr & 4;
-    svga->latch.d[0] = ht216->bg_latch[0 | or] | (ht216->bg_latch[1 | or] << 8) |
-		       (ht216->bg_latch[2 | or] << 16) | (ht216->bg_latch[3 | or] << 24);
+    for (i = 0; i < 4; i++)
+	svga->latch.b[i] = ht216->bg_latch[i | or];
     
     if (svga->readmode) {
 	temp = 0xff;
 
 	for (pixel = 0; pixel < 8; pixel++) {
-		for (plane = 0; plane < 4; plane++) {
+		for (plane = 0; plane < (1 << count); plane++) {
 			if (svga->colournocare & (1 << plane)) {
 				/* If we care about a plane, and the pixel has a mismatch on it, clear its bit. */
 				if (((svga->latch.b[plane] >> pixel) & 1) != ((svga->colourcompare >> plane) & 1))
@@ -1346,11 +1241,14 @@ ht216_read_linear(uint32_t addr, void *p)
     ht216_t *ht216 = (ht216_t *)p;
     svga_t *svga = &ht216->svga;
 
-    if (svga->chain4)
-	return ht216_read_common(ht216, addr);
-    else
-	return ht216_read_common(ht216, (addr & 0xffff) | ((addr & 0xc0000) >> 2));
+    addr = (addr - ht216->linear_base) | ((ht216->ht_regs[0xf6] & 0x0c) << 16) |
+	   ((ht216->ht_regs[0xf9] & 0x01) << 16) | ((ht216->misc & 0x20) << 12);
+    if (!svga->chain4)		/*Bits 16 and 17 of linear address are unused in planar modes*/
+	addr = (addr & 0xffff) | ((addr & 0xc0000) >> 2);
+
+    return ht216_read_common(ht216, addr);
 }
+
 
 void
 *ht216_init(const device_t *info, uint32_t mem_size, int has_rom)
