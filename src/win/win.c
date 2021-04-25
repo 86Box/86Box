@@ -99,17 +99,18 @@ static const struct {
     int		(*pause)(void);
     void	(*enable)(int enable);
     void	(*set_fs)(int fs);
+    void	(*reload)(void);
 } vid_apis[RENDERERS_NUM] = {
-  {	"SDL_Software", 1, (int(*)(void*))sdl_inits, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs		},
-  {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs		},
-  {	"SDL_OpenGL", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs	}
-#ifdef DEV_BRANCH
- ,{	"OpenGL_Core", 1, (int(*)(void*))opengl_init, opengl_close, opengl_resize, opengl_pause, NULL, opengl_set_fs}
+  {	"SDL_Software", 1, (int(*)(void*))sdl_inits, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, NULL		},
+  {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, NULL		},
+  {	"SDL_OpenGL", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, NULL		}
+#ifdef DEV_BRANCH /* feature-opengl */
+ ,{	"OpenGL_Core", 1, (int(*)(void*))opengl_init, opengl_close, opengl_resize, opengl_pause, NULL, opengl_set_fs, opengl_reload}
 #else
- ,{	"OpenGL_Core", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs	} /* fall back to SDL_OpenGL */
+ ,{	"OpenGL_Core", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, NULL		} /* fall back to SDL_OpenGL */
 #endif
 #ifdef USE_VNC
- ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL, NULL					}
+ ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL, NULL						}
 #endif
 };
 
@@ -857,9 +858,8 @@ plat_timer_read(void)
     return(li.QuadPart);
 }
 
-
-uint32_t
-plat_get_ticks(void)
+static LARGE_INTEGER
+plat_get_ticks_common(void)
 {
     LARGE_INTEGER EndingTime, ElapsedMicroseconds;
 
@@ -880,9 +880,20 @@ plat_get_ticks(void)
     ElapsedMicroseconds.QuadPart *= 1000000;
     ElapsedMicroseconds.QuadPart /= Frequency.QuadPart;
 
-    return (uint32_t) (ElapsedMicroseconds.QuadPart / 1000);
+    return ElapsedMicroseconds;
 }
 
+uint32_t
+plat_get_ticks(void)
+{
+	return (uint32_t)(plat_get_ticks_common().QuadPart / 1000);
+}
+
+uint32_t
+plat_get_micro_ticks(void)
+{
+	return (uint32_t)plat_get_ticks_common().QuadPart;
+}
 
 void
 plat_delay_ms(uint32_t count)
@@ -928,7 +939,7 @@ plat_vidapi_name(int api)
 	case 2:
 		name = "sdl_opengl";
 		break;
-#ifdef DEV_BRANCH
+#ifdef DEV_BRANCH /* feature-opengl */
 	case 3:
 		name = "opengl_core";
 		break;
@@ -1102,6 +1113,15 @@ plat_setfullscreen(int on)
     /* This is needed for OpenGL. */
     plat_vidapi_enable(0);
     plat_vidapi_enable(1);
+}
+
+void
+plat_vid_reload_options(void)
+{
+	if (!vid_api_inited || !vid_apis[vid_api].reload)
+		return;
+
+	vid_apis[vid_api].reload();
 }
 
 

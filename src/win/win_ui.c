@@ -177,6 +177,71 @@ video_toggle_option(HMENU h, int *val, int id)
     device_force_redraw();
 }
 
+/* Recursively finds and deletes target submenu */
+int delete_submenu(HMENU parent, HMENU target)
+{
+	for (int i = 0; i < GetMenuItemCount(parent); i++)
+	{
+		MENUITEMINFO mii;
+		mii.cbSize = sizeof(mii);
+		mii.fMask = MIIM_SUBMENU;
+
+		if (GetMenuItemInfo(parent, i, TRUE, &mii) != 0)
+		{
+			if (mii.hSubMenu == target)
+			{
+				DeleteMenu(parent, i, MF_BYPOSITION);
+				return 1;
+			}
+			else if (mii.hSubMenu != NULL)
+			{
+				if (delete_submenu(mii.hSubMenu, target))
+					return 1;
+			}
+		}
+	}
+
+	return 0;
+}
+
+static void
+show_render_options_menu()
+{
+#ifdef DEV_BRANCH /* feature-opengl */
+	static int menu_vidapi = -1;
+	static HMENU cur_menu = NULL;
+	
+	if (vid_api == menu_vidapi)
+		return;
+
+	if (cur_menu != NULL)
+	{
+		if (delete_submenu(menuMain, cur_menu))
+			cur_menu = NULL;
+	}
+
+	if (cur_menu == NULL)
+	{
+		switch (IDM_VID_SDL_SW + vid_api)
+		{
+		case IDM_VID_OPENGL_CORE:
+			cur_menu = LoadMenu(hinstance, VID_GL_SUBMENU);
+			InsertMenu(GetSubMenu(menuMain, 1), 4, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)cur_menu, plat_get_string(IDS_2144));
+			CheckMenuItem(menuMain, IDM_VID_GL_FPS_BLITTER, video_framerate == -1 ? MF_CHECKED : MF_UNCHECKED);
+			CheckMenuItem(menuMain, IDM_VID_GL_FPS_25, video_framerate == 25 ? MF_CHECKED : MF_UNCHECKED);
+			CheckMenuItem(menuMain, IDM_VID_GL_FPS_30, video_framerate == 30 ? MF_CHECKED : MF_UNCHECKED);
+			CheckMenuItem(menuMain, IDM_VID_GL_FPS_50, video_framerate == 50 ? MF_CHECKED : MF_UNCHECKED);
+			CheckMenuItem(menuMain, IDM_VID_GL_FPS_60, video_framerate == 60 ? MF_CHECKED : MF_UNCHECKED);
+			CheckMenuItem(menuMain, IDM_VID_GL_FPS_75, video_framerate == 75 ? MF_CHECKED : MF_UNCHECKED);
+			CheckMenuItem(menuMain, IDM_VID_GL_VSYNC, video_vsync ? MF_CHECKED : MF_UNCHECKED);
+			break;
+		}
+	}
+
+	menu_vidapi = vid_api;
+#endif
+}
+
 
 static void
 ResetAllMenus(void)
@@ -223,8 +288,9 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_SDL_SW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_HW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_OPENGL, MF_UNCHECKED);
-#ifdef DEV_BRANCH
+#ifdef DEV_BRANCH /* feature-opengl */
     CheckMenuItem(menuMain, IDM_VID_OPENGL_CORE, MF_UNCHECKED);
+    show_render_options_menu();
 #endif
 #ifdef USE_VNC
     CheckMenuItem(menuMain, IDM_VID_VNC, MF_UNCHECKED);
@@ -672,7 +738,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_SDL_SW:
 			case IDM_VID_SDL_HW:
 			case IDM_VID_SDL_OPENGL:
-#ifdef DEV_BRANCH
+#ifdef DEV_BRANCH /* feature-opengl */
 			case IDM_VID_OPENGL_CORE:
 #endif
 #ifdef USE_VNC
@@ -682,7 +748,41 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				plat_setvid(LOWORD(wParam) - IDM_VID_SDL_SW);
 				CheckMenuItem(hmenu, IDM_VID_SDL_SW + vid_api, MF_CHECKED);
 				config_save();
+				show_render_options_menu();
 				break;
+
+#ifdef DEV_BRANCH /* feature-opengl */
+			case IDM_VID_GL_FPS_BLITTER:
+			case IDM_VID_GL_FPS_25:
+			case IDM_VID_GL_FPS_30:
+			case IDM_VID_GL_FPS_50:
+			case IDM_VID_GL_FPS_60:
+			case IDM_VID_GL_FPS_75:
+			{
+				static const int fps[] = { -1, 25, 30, 50, 60, 75 };
+				int idx = 0;
+				for (; fps[idx] != video_framerate; idx++);
+				CheckMenuItem(hmenu, IDM_VID_GL_FPS_BLITTER + idx, MF_UNCHECKED);
+				video_framerate = fps[LOWORD(wParam) - IDM_VID_GL_FPS_BLITTER];
+				CheckMenuItem(hmenu, LOWORD(wParam), MF_CHECKED);
+				plat_vid_reload_options();
+				config_save();
+				break;
+			}
+			case IDM_VID_GL_VSYNC:
+				video_vsync = !video_vsync;
+				CheckMenuItem(hmenu, IDM_VID_GL_VSYNC, video_vsync ? MF_CHECKED : MF_UNCHECKED);
+				plat_vid_reload_options();
+				config_save();
+				break;
+			case IDM_VID_GL_SHADER:
+				win_notify_dlg_open();
+				if (file_dlg_st(hwnd, IDS_2143, video_shader, NULL, 0) == 0)
+					strcpy_s(video_shader, sizeof(video_shader), openfilestring);
+				win_notify_dlg_closed();
+				plat_vid_reload_options();
+				break;
+#endif
 
 			case IDM_VID_FULLSCREEN:
 				plat_setfullscreen(1);

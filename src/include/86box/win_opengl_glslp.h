@@ -17,7 +17,7 @@
 
 #include <glad/glad.h>
 
-GLuint load_custom_shaders();
+GLuint load_custom_shaders(const char* path);
 GLuint load_default_shaders();
 
 #endif /*!WIN_OPENGL_GLSLP_H*/
