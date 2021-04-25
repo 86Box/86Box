@@ -207,7 +207,7 @@ int delete_submenu(HMENU parent, HMENU target)
 static void
 show_render_options_menu()
 {
-#ifdef DEV_BRANCH /* feature-opengl */
+#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 	static int menu_vidapi = -1;
 	static HMENU cur_menu = NULL;
 	
@@ -288,7 +288,7 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_SDL_SW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_HW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_OPENGL, MF_UNCHECKED);
-#ifdef DEV_BRANCH /* feature-opengl */
+#if defined(DEV_BRANCH) && defined(USE_OPENGL)
     CheckMenuItem(menuMain, IDM_VID_OPENGL_CORE, MF_UNCHECKED);
     show_render_options_menu();
 #endif
@@ -738,7 +738,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_SDL_SW:
 			case IDM_VID_SDL_HW:
 			case IDM_VID_SDL_OPENGL:
-#ifdef DEV_BRANCH /* feature-opengl */
+#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 			case IDM_VID_OPENGL_CORE:
 #endif
 #ifdef USE_VNC
@@ -751,7 +751,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				show_render_options_menu();
 				break;
 
-#ifdef DEV_BRANCH /* feature-opengl */
+#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 			case IDM_VID_GL_FPS_BLITTER:
 			case IDM_VID_GL_FPS_25:
 			case IDM_VID_GL_FPS_30:

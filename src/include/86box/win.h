@@ -63,7 +63,7 @@ DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
 #define ZIP_SUBMENU_NAME	L"ZIPSubmenu"
 #define MO_SUBMENU_NAME		L"MOSubmenu"
 
-#ifdef DEV_BRANCH /* feature-opengl */
+#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 #define VID_GL_SUBMENU		L"VidGLSubMenu"
 #endif
 

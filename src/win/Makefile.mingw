@@ -36,9 +36,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef AMD_K5
   AMD_K5	:= y
  endif
- ifndef CL5422
-  CL5422	:= y
- endif
  ifndef CYRIX_6X86
   CYRIX_6X86	:= y
  endif
@@ -52,7 +49,7 @@ ifeq ($(DEV_BUILD), y)
   I450KX		:= y
  endif
  ifndef M154X
-  M145X		:= y
+  M154X		:= y
  endif
  ifndef LASERXT
   LASERXT	:= y
@@ -66,11 +63,11 @@ ifeq ($(DEV_BUILD), y)
  ifndef OPEN_AT
   OPEN_AT	:= y
  endif
+ ifndef OPENGL
+  OPENGL	:= y
+ endif
  ifndef PAS16
   PAS16		:= n
- endif
- ifndef PS1M2133
-  PS1M2133	:= y
  endif
  ifndef PS2M70T4
   PS2M70T4	:= y
@@ -96,8 +93,8 @@ ifeq ($(DEV_BUILD), y)
  ifndef XL24
   XL24		:= y
  endif
- ifndef USE_VECT486VL
-  USE_VECT486VL	:= y
+ ifndef VECT486VL
+  VECT486VL	:= y
  endif
  ifndef OLIVETTI
   OLIVETTI	:= y
@@ -111,9 +108,6 @@ else
  endif
  ifndef AMD_K5
   AMD_K5	:= n
- endif
- ifndef CL5422
-  CL5422	:= n
  endif
  ifndef CYRIX_6X86
   CYRIX_6X86	:= n
@@ -131,7 +125,7 @@ else
   LASERXT	:= n
  endif
  ifndef M154X
-  M145X		:= n
+  M154X		:= n
  endif
  ifndef MGA
   MGA		:= n
@@ -142,11 +136,11 @@ else
  ifndef OPEN_AT
   OPEN_AT	:= n
  endif
+ ifndef OPENGL
+  OPENGL	:= n
+ endif
  ifndef PAS16
   PAS16		:= n
- endif
- ifndef PS1M2133
-  PS1M2133	:= n
  endif
  ifndef PS2M70T4
   PS2M70T4	:= n
@@ -172,8 +166,8 @@ else
  ifndef XL24
   XL24		:= n
  endif
- ifndef USE_VECT486VL
-  USE_VECT486VL	:= n
+ ifndef VECT486VL
+  VECT486VL	:= n
  endif
  ifndef OLIVETTI
   OLIVETTI	:= n
@@ -445,7 +439,7 @@ ifeq ($(WX), y)
  UIOBJ		:= wx_main.o wx_ui.o wx_stbar.o wx_render.o
 else
  UIOBJ		:= win_ui.o win_stbar.o \
-		   win_sdl.o win_opengl.o win_opengl_glslp.o glad.o \
+		   win_sdl.o \
 		   win_dialog.o win_about.o \
 		   win_settings.o win_devconf.o win_snd_gain.o win_specify_dim.o \
 		   win_new_floppy.o win_jsconf.o win_media_menu.o
@@ -539,13 +533,15 @@ ifeq ($(OPEN_AT), y)
 OPTS		+= -DUSE_OPEN_AT
 endif
 
+ifeq ($(OPENGL), y)
+OPTS		+= -DUSE_OPENGL
+RFLAGS		+= -DUSE_OPENGL
+DEVBROBJ	+= win_opengl.o win_opengl_glslp.o glad.o
+endif
+
 ifeq ($(PAS16), y)
 OPTS		+= -DUSE_PAS16
 DEVBROBJ	+= snd_pas16.o
-endif
-
-ifeq ($(PS1M2133), y)
-OPTS		+= -DUSE_PS1M2133
 endif
 
 ifeq ($(PS2M70T4), y)
@@ -561,7 +557,7 @@ OPTS		+= -DUSE_SIO_DETECT
 DEVBROBJ	+= sio_detect.o
 endif
 
-ifeq ($(M145X), y)
+ifeq ($(M154X), y)
 OPTS		+= -DUSE_M154X
 DEVBROBJ	+= ali1531.o ali1543.o
 endif
@@ -579,12 +575,13 @@ ifeq ($(XL24), y)
 OPTS		+= -DUSE_XL24
 endif
 
-ifeq ($(USE_VECT486VL), y)
+ifeq ($(VECT486VL), y)
 OPTS		+= -DUSE_VECT486VL
 endif
 
 ifeq ($(OLIVETTI), y)
 OPTS		+= -DUSE_OLIVETTI
+DEVBROBJ	+= olivetti_eva.o
 endif
 
 
@@ -620,7 +617,7 @@ CPUOBJ		:= cpu.o cpu_table.o fpu.o x86.o \
 CHIPSETOBJ	:= acc2168.o cs8230.o ali1217.o ali1429.o ali1489.o headland.o intel_82335.o cs4031.o \
 		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
 		    neat.o opti495.o opti822.o opti895.o opti5x7.o scamp.o scat.o via_vt82c49x.o via_vt82c505.o \
-		    gc100.o olivetti_eva.o \
+		    gc100.o \
 		    sis_85c310.o sis_85c4xx.o sis_85c496.o sis_85c50x.o sis_5511.o sis_5571.o sis_5598.o stpc.o opti283.o opti291.o \
 		    umc_8886.o umc_8890.o umc_hb4.o \
 		    via_apollo.o via_pipc.o wd76c10.o vl82c480.o

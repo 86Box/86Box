@@ -341,7 +341,7 @@
 #define IDM_DISCORD		40090
 #endif
 
-#ifdef DEV_BRANCH /* feature-opengl */
+#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 #define IDM_VID_GL_FPS_BLITTER	40100
 #define IDM_VID_GL_FPS_25	40101
 #define IDM_VID_GL_FPS_30	40102

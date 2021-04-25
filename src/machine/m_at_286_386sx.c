@@ -796,7 +796,7 @@ machine_at_m290_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/olivetti_m290/m290_pep3_1.25.bin",
+    ret = bios_load_linear("roms/machines/m290/m290_pep3_1.25.bin",
 				0x000f0000, 65536, 0);
 
     if (bios_only || !ret)

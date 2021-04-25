@@ -249,9 +249,7 @@ const machine_t machines[] = {
     { "[STPC Consumer-II] Acrosser AR-B1479",	"arb1479",		MACHINE_TYPE_486,		CPU_PKG_STPC, 0, 66666667, 66666667, 0, 0, 2.0, 2.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				32768, 163840, 8192, 255,	      machine_at_arb1479_init, NULL			},
     { "[STPC Elite] Advantech PCM-9340",	"pcm9340",		MACHINE_TYPE_486,		CPU_PKG_STPC, 0, 66666667, 66666667, 0, 0, 2.0, 2.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				32768,  98304, 8192, 255,	      machine_at_pcm9340_init, NULL			},
     { "[STPC Atlas] AAEON PCM-5330",		"pcm5330",		MACHINE_TYPE_486,		CPU_PKG_STPC, 0, 66666667, 66666667, 0, 0, 2.0, 2.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				32768, 131072,32768, 255,	      machine_at_pcm5330_init, NULL			},
-#if defined(DEV_BRANCH) && defined(NO_SIO)
     { "[VIA VT82C496G] FIC VIP-IO2",		"486vipio2",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_IDE_DUAL,						 1024, 131072, 1024, 255,	    machine_at_486vipio2_init, NULL			},
-#endif
 
     /* Socket 4 machines */
     /* 430LX */
