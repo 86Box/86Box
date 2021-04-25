@@ -99,104 +99,104 @@ void sis_5598_dimm_programming(sis_5598_t *dev)
 Based completely off the PC Chips M571 Manual
 Configurations are forced and don't work as intended
 */
-switch(mem_size >> 10)
-{
-case 8:
-DIMM_BANK_ENABLE = 1;
-DIMM_BANK0 = 0xc0;
-break;
-case 16:
-DIMM_BANK_ENABLE = 1;
-DIMM_BANK0 = 0xc0;
-DIMM_BANK1 = 0xc0;
-break;
-case 24:
-DIMM_BANK_ENABLE = 1;
-DIMM_BANK0 = 0xc2;
-DIMM_BANK1 = 0xc0;
-break;
-case 32:
-DIMM_BANK_ENABLE = 1;
-DIMM_BANK0 = 0xc2;
-DIMM_BANK1 = 0xc2;
-break;
-case 40:
-DIMM_BANK_ENABLE = 1;
-DIMM_BANK0 = 0xc8;
-DIMM_BANK1 = 0xc0;
-break;
-case 48:
-DIMM_BANK_ENABLE = 1;
-DIMM_BANK0 = 0xc8;
-DIMM_BANK1 = 0xc2;
-break;
-case 56: /* Unintended */
-case 64:
-DIMM_BANK_ENABLE = 1;
-DIMM_BANK0 = 0xc8;
-DIMM_BANK1 = 0xc8;
-break;
-case 72:
-DIMM_BANK_ENABLE = 1;
-DIMM_BANK0 = 0xc6;
-DIMM_BANK1 = 0xc0;
-break;
-case 80:
-DIMM_BANK_ENABLE = 1;
-DIMM_BANK0 = 0xc6;
-DIMM_BANK1 = 0xc2;
-break;
-case 88: /* Unintended */
-case 96:
-DIMM_BANK_ENABLE = 1;
-DIMM_BANK0 = 0xc6;
-DIMM_BANK1 = 0xc8;
-break;
-case 104: /* Unintended */
-case 112: /* Unintended */
-case 120: /* Unintended */
-case 128:
-DIMM_BANK_ENABLE = 1;
-DIMM_BANK0 = 0xc6;
-DIMM_BANK1 = 0xc6;
-break;
-case 136:
-DIMM_BANK_ENABLE = 1;
-DIMM_BANK0 = 10 | 0xca;
-DIMM_BANK1 = 0xc0;
-break;
-case 144:
-DIMM_BANK_ENABLE = 1;
-DIMM_BANK0 = 10 | 0xca;
-DIMM_BANK1 = 2 | 0xc2;
-break;
-case 152: /* Unintended */
-case 160:
-DIMM_BANK_ENABLE = 1;
-DIMM_BANK0 = 10 | 0xca;
-DIMM_BANK1 = 8 | 0xc8;
-break;
-case 168: /* Unintended */
-case 176: /* Unintended */
-case 184: /* Unintended */
-case 192:
-DIMM_BANK_ENABLE = 1;
-DIMM_BANK0 = 10 | 0xca;
-DIMM_BANK1 = 6 | 0xc6;
-break;
-case 200: /* Unintended */
-case 208: /* Unintended */
-case 216: /* Unintended */
-case 224: /* Unintended */
-case 232: /* Unintended */
-case 240: /* Unintended */
-case 248: /* Unintended */
-case 256:
-DIMM_BANK_ENABLE = 1;
-DIMM_BANK0 = 10 | 0xca;
-DIMM_BANK1 = 10 | 0xca;
-break;
-}
+    switch (mem_size >> 10)
+    {
+    case 8:
+        DIMM_BANK_ENABLE = 1;
+        DIMM_BANK0 = 0xc0;
+        break;
+    case 16:
+        DIMM_BANK_ENABLE = 1;
+        DIMM_BANK0 = 0xc0;
+        DIMM_BANK1 = 0xc0;
+        break;
+    case 24:
+        DIMM_BANK_ENABLE = 1;
+        DIMM_BANK0 = 0xc2;
+        DIMM_BANK1 = 0xc0;
+        break;
+    case 32:
+        DIMM_BANK_ENABLE = 1;
+        DIMM_BANK0 = 0xc2;
+        DIMM_BANK1 = 0xc2;
+        break;
+    case 40:
+        DIMM_BANK_ENABLE = 1;
+        DIMM_BANK0 = 0xc8;
+        DIMM_BANK1 = 0xc0;
+        break;
+    case 48:
+        DIMM_BANK_ENABLE = 1;
+        DIMM_BANK0 = 0xc8;
+        DIMM_BANK1 = 0xc2;
+        break;
+    case 56: /* Unintended */
+    case 64:
+        DIMM_BANK_ENABLE = 1;
+        DIMM_BANK0 = 0xc8;
+        DIMM_BANK1 = 0xc8;
+        break;
+    case 72:
+        DIMM_BANK_ENABLE = 1;
+        DIMM_BANK0 = 0xc6;
+        DIMM_BANK1 = 0xc0;
+        break;
+    case 80:
+        DIMM_BANK_ENABLE = 1;
+        DIMM_BANK0 = 0xc6;
+        DIMM_BANK1 = 0xc2;
+        break;
+    case 88: /* Unintended */
+    case 96:
+        DIMM_BANK_ENABLE = 1;
+        DIMM_BANK0 = 0xc6;
+        DIMM_BANK1 = 0xc8;
+        break;
+    case 104: /* Unintended */
+    case 112: /* Unintended */
+    case 120: /* Unintended */
+    case 128:
+        DIMM_BANK_ENABLE = 1;
+        DIMM_BANK0 = 0xc6;
+        DIMM_BANK1 = 0xc6;
+        break;
+    case 136:
+        DIMM_BANK_ENABLE = 1;
+        DIMM_BANK0 = 10 | 0xca;
+        DIMM_BANK1 = 0xc0;
+        break;
+    case 144:
+        DIMM_BANK_ENABLE = 1;
+        DIMM_BANK0 = 10 | 0xca;
+        DIMM_BANK1 = 2 | 0xc2;
+        break;
+    case 152: /* Unintended */
+    case 160:
+        DIMM_BANK_ENABLE = 1;
+        DIMM_BANK0 = 10 | 0xca;
+        DIMM_BANK1 = 8 | 0xc8;
+        break;
+    case 168: /* Unintended */
+    case 176: /* Unintended */
+    case 184: /* Unintended */
+    case 192:
+        DIMM_BANK_ENABLE = 1;
+        DIMM_BANK0 = 10 | 0xca;
+        DIMM_BANK1 = 6 | 0xc6;
+        break;
+    case 200: /* Unintended */
+    case 208: /* Unintended */
+    case 216: /* Unintended */
+    case 224: /* Unintended */
+    case 232: /* Unintended */
+    case 240: /* Unintended */
+    case 248: /* Unintended */
+    case 256:
+        DIMM_BANK_ENABLE = 1;
+        DIMM_BANK0 = 10 | 0xca;
+        DIMM_BANK1 = 10 | 0xca;
+        break;
+    }
 }
 
 void sis_5598_shadow(int cur_reg, sis_5598_t *dev)
@@ -236,7 +236,7 @@ void sis_5598_smram(sis_5598_t *dev)
         break;
     }
 
-    flushmmucache_nopc();
+    flushmmucache();
 }
 
 void sis_5598_ddma_update(sis_5598_t *dev)
@@ -248,18 +248,18 @@ void sis_5598_ddma_update(sis_5598_t *dev)
 
 void sis_5598_ide_handler(sis_5598_t *dev)
 {
+    ide_pri_disable();
+    ide_sec_disable();
     if (dev->pci_conf_sb[1][4] & 1)
     {
         if (dev->pci_conf_sb[1][0x4a] & 4)
         {
-            ide_pri_disable();
             ide_set_base(0, PRIMARY_COMP_NAT_SWITCH ? PRIMARY_NATIVE_BASE : 0x1f0);
             ide_set_side(0, PRIMARY_COMP_NAT_SWITCH ? PRIMARY_NATIVE_SIDE : 0x3f6);
             ide_pri_enable();
         }
         if (dev->pci_conf_sb[1][0x4a] & 2)
         {
-            ide_sec_disable();
             ide_set_base(1, SECONDARY_COMP_NAT_SWITCH ? SECONDARY_NATIVE_BASE : 0x170);
             ide_set_side(1, SECONDARY_COMP_NAT_SWITCH ? SECONDARY_NATIVE_SIDE : 0x376);
             ide_sec_enable();
