@@ -497,7 +497,7 @@ void sis_5598_pcitoisa_write(int addr, uint8_t val, sis_5598_t *dev)
         switch ((val & 0xc0) >> 6)
         {
         case 0:
-            cpu_set_isa_speed(7.159);
+            cpu_set_isa_speed(7159091);
             break;
         case 1:
             cpu_set_isa_pci_div(4);
