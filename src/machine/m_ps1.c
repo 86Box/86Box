@@ -467,7 +467,7 @@ ps1_setup(int model)
 
 	device_add(&snd_device);
 
-	device_add(&fdc_at_actlow_device);
+	device_add(&fdc_at_ps1_device);
 
  	/* Enable the builtin HDC. */
 	if (hdc_current == 1) {
@@ -484,7 +484,7 @@ ps1_setup(int model)
 
 	rom_init(&ps->high_rom,
 		 "roms/machines/ibmps1_2121/fc0000.bin",
-		 0xfc0000, 0x20000, 0x1ffff, 0, MEM_MAPPING_EXTERNAL);
+		 0xfc0000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
 
 	/* Initialize the video controller. */
 	if (gfxcard == VID_INTERNAL)

@@ -954,6 +954,7 @@ nvr_at_init(const device_t *info)
 	case 2:		/* PS/1 or PS/2 */
 		nvr->irq = 8;
 		local->cent = RTC_CENTURY_PS;
+		local->def = 0x00;
 		break;
 
 	case 3:		/* Amstrad PC's */
