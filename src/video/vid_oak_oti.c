@@ -29,7 +29,6 @@
 #include <86box/video.h>
 #include <86box/vid_svga.h>
 
-
 #define BIOS_037C_PATH			"roms/video/oti/bios.bin"
 #define BIOS_067_AMA932J_PATH	"roms/machines/ama932j/oti067.bin"
 #define BIOS_067_M300_08_PATH	"roms/machines/olivetti_m300_08/EVC_BIOS.ROM"
@@ -138,7 +137,7 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 					else
 						mem_mapping_enable(&svga->mapping);
 				} else if (oti->chip_id == OTI_077) {
-					svga->vram_display_mask = (val & 0x1c) ? oti->vram_mask : 0x3ffff;
+					svga->vram_display_mask = (val & 0x0c) ? oti->vram_mask : 0x3ffff;
 
 					switch ((val & 0xc0) >> 6) {
 						case 0x00:	/* 256 kB of memory */
