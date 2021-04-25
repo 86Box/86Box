@@ -262,13 +262,15 @@ nvr_load(void)
 	path = nvr_path(saved_nvr->fn);
 	nvr_log("NVR: loading from '%s'\n", path);
 	fp = plat_fopen(path, "rb");
+	saved_nvr->new = (fp == NULL);
 	if (fp != NULL) {
 		/* Read NVR contents from file. */
 		if (fread(saved_nvr->regs, 1, saved_nvr->size, fp) != saved_nvr->size)
 			fatal("nvr_load(): Error reading data\n");
 		(void)fclose(fp);
 	}
-    }
+    } else
+	saved_nvr->new = 1;
 
     /* Get the local RTC running! */
     if (saved_nvr->start != NULL)

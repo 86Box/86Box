@@ -610,6 +610,10 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
 		/*FALLTHROUGH*/
 
 	default:		/* non-RTC registers are just NVRAM */
+		if ((reg == 0x2c) && (local->flags & FLAG_LS_HACK))
+			nvr->new = 0;
+		if ((reg == 0x52) && (local->flags & FLAG_APOLLO_HACK))
+			nvr->new = 0;
 		if ((reg >= 0x38) && (reg <= 0x3f) && local->wp[0])
 			break;
 		if ((reg >= 0xb8) && (reg <= 0xbf) && local->wp[1])
@@ -701,7 +705,7 @@ nvr_read(uint16_t addr, void *priv)
 		break;
 
 	case 0x2c:
-		if (local->flags & FLAG_LS_HACK)
+		if (!nvr->new && (local->flags & FLAG_LS_HACK))
 			ret = nvr->regs[local->addr[addr_id]] & 0x7f;
 		else
 			ret = nvr->regs[local->addr[addr_id]];
@@ -709,7 +713,7 @@ nvr_read(uint16_t addr, void *priv)
 
 	case 0x2e:
 	case 0x2f:
-		if (local->flags & FLAG_LS_HACK) {
+		if (!nvr->new && (local->flags & FLAG_LS_HACK)) {
 			for (i = 0x10; i <= 0x2d; i++) {
 				if (i == 0x2c)
 					checksum += (nvr->regs[i] & 0x7f);
@@ -726,7 +730,7 @@ nvr_read(uint16_t addr, void *priv)
 
 	case 0x3e:
 	case 0x3f:
-		if (local->flags & FLAG_APOLLO_HACK) {
+		if (!nvr->new && (local->flags & FLAG_APOLLO_HACK)) {
 			/* The checksum at 3E-3F is for 37-3D and 40-7F. */
 			for (i = 0x37; i <= 0x3d; i++)
 				checksum += nvr->regs[i];
@@ -745,7 +749,7 @@ nvr_read(uint16_t addr, void *priv)
 		break;
 
 	case 0x52:
-		if (local->flags & FLAG_APOLLO_HACK)
+		if (!nvr->new && (local->flags & FLAG_APOLLO_HACK))
 			ret = nvr->regs[local->addr[addr_id]] & 0xf3;
 		else
 			ret = nvr->regs[local->addr[addr_id]];
@@ -935,10 +939,13 @@ nvr_at_init(const device_t *info)
 		if (info->local == 9)
 			local->flags |= FLAG_PIIX4;
 		else {
+			local->def = 0x00;
 			if ((info->local & 7) == 5)
 				local->flags |= FLAG_LS_HACK;
 			else if ((info->local & 7) == 6)
 				local->flags |= FLAG_APOLLO_HACK;
+			else
+				local->def = 0xff;
 		}
 		nvr->irq = 8;
 		local->cent = RTC_CENTURY_AT;
