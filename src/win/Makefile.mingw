@@ -569,6 +569,7 @@ endif
 
 ifeq ($(OLIVETTI), y)
 OPTS		+= -DUSE_OLIVETTI
+DEVBROBJ	+= olivetti_eva.o
 endif
 
 
@@ -604,7 +605,7 @@ CPUOBJ		:= cpu.o cpu_table.o fpu.o x86.o \
 CHIPSETOBJ	:= acc2168.o cs8230.o ali1217.o ali1429.o ali1489.o headland.o intel_82335.o cs4031.o \
 		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
 		    neat.o opti495.o opti822.o opti895.o opti5x7.o scamp.o scat.o via_vt82c49x.o via_vt82c505.o \
-		    gc100.o olivetti_eva.o \
+		    gc100.o \
 		    sis_85c310.o sis_85c4xx.o sis_85c496.o sis_85c50x.o sis_5511.o sis_5571.o sis_5598.o stpc.o opti283.o opti291.o \
 		    umc_8886.o umc_8890.o umc_hb4.o \
 		    via_apollo.o via_pipc.o wd76c10.o vl82c480.o
