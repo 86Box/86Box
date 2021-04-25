@@ -141,6 +141,10 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 		/*Bit 17 of the display memory address, only active on odd/even modes, has no effect on graphics modes.*/
                 ht216->misc = val;
 		ht216_log("HT216 misc val = %02x\n", val);
+		ht216->read_bank_reg[0]  = (ht216->read_bank_reg[0] & ~0x20) | ((val & HT_MISC_PAGE_SEL) ? 0x20 : 0);
+		ht216->read_bank_reg[1]  = (ht216->read_bank_reg[1] & ~0x20) | ((val & HT_MISC_PAGE_SEL) ? 0x20 : 0);
+		ht216->write_bank_reg[0] = (ht216->write_bank_reg[0] & ~0x20) | ((val & HT_MISC_PAGE_SEL) ? 0x20 : 0);
+		ht216->write_bank_reg[1] = (ht216->write_bank_reg[1] & ~0x20) | ((val & HT_MISC_PAGE_SEL) ? 0x20 : 0);
 		ht216_remap(ht216);
 		svga->fullchange = changeframecount;
 		svga_recalctimings(svga);
@@ -216,9 +220,17 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 
 				case 0xc9: case 0xcf:
 				case 0xe0:
+					ht216_remap(ht216);
+					break;
 				/*Bank registers*/
 				case 0xe8:
+					ht216->read_bank_reg[0] = val;
+					ht216->write_bank_reg[0] = val;
+					ht216_remap(ht216);
+					break;
 				case 0xe9:
+					ht216->read_bank_reg[1] = val;
+					ht216->write_bank_reg[1] = val;
 					ht216_remap(ht216);
 					break;
 				
@@ -253,6 +265,10 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 				case 0xf6:
 					/*Bits 18 and 19 of the display memory address*/
 					ht216_log("HT216 reg 0xf6 write = %02x, vram mask = %08x, cr17 = %02x\n", val & 0x40, svga->vram_display_mask, svga->crtc[0x17]);
+					ht216->read_bank_reg[0]  = (ht216->read_bank_reg[0] & ~0xc0) | ((val & 0xc) << 4);
+					ht216->read_bank_reg[1]  = (ht216->read_bank_reg[1] & ~0xc0) | ((val & 0xc) << 4);
+					ht216->write_bank_reg[0] = (ht216->write_bank_reg[0] & ~0xc0) | ((val & 0x3) << 6);
+					ht216->write_bank_reg[1] = (ht216->write_bank_reg[1] & ~0xc0) | ((val & 0x3) << 6);
 					ht216_remap(ht216);
 					svga->fullchange = changeframecount;
 					svga_recalctimings(svga);
@@ -261,6 +277,10 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 				case 0xf9:
 					/*Bit 16 of the display memory address, only active when in chain4 mode and 256 color mode.*/
 					ht216_log("HT216 reg 0xf9 write = %02x\n", val & HT_REG_F9_XPSEL);				
+					ht216->read_bank_reg[0]  = (ht216->read_bank_reg[0] & ~0x10) | ((val & 1) ? 0x10 : 0);
+					ht216->read_bank_reg[1]  = (ht216->read_bank_reg[1] & ~0x10) | ((val & 1) ? 0x10 : 0);
+					ht216->write_bank_reg[0] = (ht216->write_bank_reg[0] & ~0x10) | ((val & 1) ? 0x10 : 0);
+					ht216->write_bank_reg[1] = (ht216->write_bank_reg[1] & ~0x10) | ((val & 1) ? 0x10 : 0);
 					ht216_remap(ht216);
 					break;
 				
@@ -393,9 +413,6 @@ void
 ht216_remap(ht216_t *ht216)
 {
     svga_t *svga = &ht216->svga;
-    uint8_t bank = ht216->ht_regs[0xf6] & 0x0f;
-    uint32_t e8 = ht216->ht_regs[0xe8];
-    uint32_t e9 = ht216->ht_regs[0xe9];
 
     mem_mapping_disable(&ht216->linear_mapping);
     if (ht216->ht_regs[0xc8] & HT_REG_C8_XLAM) {
@@ -403,50 +420,35 @@ ht216_remap(ht216_t *ht216)
 	ht216->linear_base = ((ht216->ht_regs[0xc9] & 0xf) << 20) | (ht216->ht_regs[0xcf] << 24);
 	mem_mapping_disable(&svga->mapping);
 	mem_mapping_set_addr(&ht216->linear_mapping, ht216->linear_base, 0x100000);
-    } else {
-	ht216->read_banks[0] = ht216->read_banks[1] = ((uint32_t) (bank & 0x0c)) << 16;
-	ht216->write_banks[0] = ht216->write_banks[1] = ((uint32_t) (bank & 0x03)) << 18;
+    }
 
-	if (svga->chain4) {
-		ht216->read_banks[0] |= ((uint32_t) (ht216->misc & 0x20)) << 12;
-		ht216->read_banks[1] |= ((uint32_t) (ht216->misc & 0x20)) << 12;
-		ht216->write_banks[0] |= ((uint32_t) (ht216->misc & 0x20)) << 12;
-		ht216->write_banks[1] |= ((uint32_t) (ht216->misc & 0x20)) << 12;
+    ht216->read_banks[0] = ht216->read_bank_reg[0] << 12;
+    ht216->write_banks[0] = ht216->write_bank_reg[0] << 12;
 
-		ht216->read_banks[0] |= ((uint32_t) (ht216->ht_regs[0xf9] & 0x01)) << 16;
-		ht216->read_banks[1] |= ((uint32_t) (ht216->ht_regs[0xf9] & 0x01)) << 16;
-		ht216->write_banks[0] |= ((uint32_t) (ht216->ht_regs[0xf9] & 0x01)) << 16;
-		ht216->write_banks[1] |= ((uint32_t) (ht216->ht_regs[0xf9] & 0x01)) << 16;
-	}
+    /* Split bank: two banks used */
+    if (ht216->ht_regs[0xe0] & HT_REG_E0_SBAE) {
+	ht216->read_banks[1] = ht216->read_bank_reg[1] << 12;
+	ht216->write_banks[1] = ht216->write_bank_reg[1] << 12;
+    }
 
-	ht216->read_banks[0] += (e8 << 12);
-	ht216->write_banks[0] += (e8 << 12);
+    if (!svga->chain4) {
+	ht216->read_banks[0] = ((ht216->read_banks[0] & 0xc0000) >> 2) | (ht216->read_banks[0] & 0xffff);
+	ht216->read_banks[1] = ((ht216->read_banks[1] & 0xc0000) >> 2) | (ht216->read_banks[1] & 0xffff);
+	ht216->write_banks[0] = ((ht216->write_banks[0] & 0xc0000) >> 2) | (ht216->write_banks[0] & 0xffff);
+	ht216->write_banks[1] = ((ht216->write_banks[1] & 0xc0000) >> 2) | (ht216->write_banks[1] & 0xffff);
+    }
 
-	/* Split bank: two banks used */
-	if (ht216->ht_regs[0xe0] & HT_REG_E0_SBAE) {
-		ht216->read_banks[1] += (e9 << 12);
-		ht216->write_banks[1] += (e9 << 12);
-	}
-
-	if (!svga->chain4) {
-		ht216->read_banks[0] = ((ht216->read_banks[0] & 0xc0000) >> 2) | (ht216->read_banks[0] & 0xffff);
-		ht216->read_banks[1] = ((ht216->read_banks[1] & 0xc0000) >> 2) | (ht216->read_banks[1] & 0xffff);
-		ht216->write_banks[0] = ((ht216->write_banks[0] & 0xc0000) >> 2) | (ht216->write_banks[0] & 0xffff);
-		ht216->write_banks[1] = ((ht216->write_banks[1] & 0xc0000) >> 2) | (ht216->write_banks[1] & 0xffff);
-	}
-
-	if (!(ht216->ht_regs[0xe0] & HT_REG_E0_SBAE)) {
-		ht216->read_banks[1] = ht216->read_banks[0] + 0x8000;
-		ht216->write_banks[1] = ht216->write_banks[0] + 0x8000;
-	}
+    if (!(ht216->ht_regs[0xe0] & HT_REG_E0_SBAE)) {
+	ht216->read_banks[1] = ht216->read_banks[0] + 0x8000;
+	ht216->write_banks[1] = ht216->write_banks[0] + 0x8000;
+    }
 
 #ifdef ENABLE_HT216_LOG
-	ht216_log("Rgisters: %02X, %02X, %02X, %02X, %02X\n", ht216->misc, ht216->ht_regs[0xe8], ht216->ht_regs[0xe9],
-		  ht216->ht_regs[0xf6], ht216->ht_regs[0xf9]);
-	ht216_log("Banks: %08X, %08X, %08X, %08X\n", ht216->read_banks[0], ht216->read_banks[1],
-		  ht216->write_banks[0], ht216->write_banks[1]);
+    ht216_log("Rgisters: %02X, %02X, %02X, %02X, %02X\n", ht216->misc, ht216->ht_regs[0xe8], ht216->ht_regs[0xe9],
+	      ht216->ht_regs[0xf6], ht216->ht_regs[0xf9]);
+    ht216_log("Banks: %08X, %08X, %08X, %08X\n", ht216->read_banks[0], ht216->read_banks[1],
+	      ht216->write_banks[0], ht216->write_banks[1]);
 #endif
-    }
 }
 
 
@@ -524,6 +526,7 @@ ht216_1_2bpp_highres(svga_t *svga)
 	}
     }
 }
+
 
 void
 ht216_recalctimings(svga_t *svga)
@@ -1026,6 +1029,8 @@ ht216_write(uint32_t addr, uint8_t val, void *p)
 
     if (svga->crtc[0x17] == 0xeb && !(svga->gdcreg[6] & 0xc) && prev_addr >= 0xb0000)
 	addr += 0x10000;
+    else if (svga->chain4 && ((ht216->ht_regs[0xfc] & 0x06) == 0x06))
+	addr = (addr & 0xfffeffff) | (prev_addr & 0x10000);
 
     if (!ht216->ht_regs[0xcd] && !ht216->ht_regs[0xfe] && !ht216->ht_regs[0xf3] && svga->crtc[0x17] != 0xeb) {
 	svga_write_linear(addr, val, svga); 
@@ -1046,6 +1051,8 @@ ht216_writew(uint32_t addr, uint16_t val, void *p)
 
     if (svga->crtc[0x17] == 0xeb && !(svga->gdcreg[6] & 0xc) && prev_addr >= 0xb0000)
 	addr += 0x10000;
+    else if (svga->chain4 && ((ht216->ht_regs[0xfc] & 0x06) == 0x06))
+	addr = (addr & 0xfffeffff) | (prev_addr & 0x10000);
 
     if (!ht216->ht_regs[0xcd] && !ht216->ht_regs[0xfe] && !ht216->ht_regs[0xf3] && svga->crtc[0x17] != 0xeb)
 	svga_writew_linear(addr, val, svga);
@@ -1068,6 +1075,8 @@ ht216_writel(uint32_t addr, uint32_t val, void *p)
 
     if (svga->crtc[0x17] == 0xeb && !(svga->gdcreg[6] & 0xc) && prev_addr >= 0xb0000)
 	addr += 0x10000;
+    else if (svga->chain4 && ((ht216->ht_regs[0xfc] & 0x06) == 0x06))
+	addr = (addr & 0xfffeffff) | (prev_addr & 0x10000);
 
     if (!ht216->ht_regs[0xcd] && !ht216->ht_regs[0xfe] && !ht216->ht_regs[0xf3] && svga->crtc[0x17] != 0xeb)
 	svga_writel_linear(addr, val, svga);
@@ -1086,10 +1095,10 @@ ht216_write_linear(uint32_t addr, uint8_t val, void *p)
     ht216_t *ht216 = (ht216_t *)p;
     svga_t *svga = &ht216->svga;
 
-    addr = (addr - ht216->linear_base) | ((ht216->ht_regs[0xf6] & 0x03) << 18) |
-	   ((ht216->ht_regs[0xf9] & 0x01) << 16) | ((ht216->misc & 0x20) << 12);
+    addr -= ht216->linear_base;
     if (!svga->chain4)		/*Bits 16 and 17 of linear address are unused in planar modes*/
 	addr = (addr & 0xffff) | ((addr & 0xc0000) >> 2);
+    addr += ht216->write_banks[0];
 
     if (!ht216->ht_regs[0xcd] && !ht216->ht_regs[0xfe])
 	svga_write_linear(addr, val, svga);
@@ -1104,10 +1113,10 @@ ht216_writew_linear(uint32_t addr, uint16_t val, void *p)
     ht216_t *ht216 = (ht216_t *)p;
     svga_t *svga = &ht216->svga;
 
-    addr = (addr - ht216->linear_base) | ((ht216->ht_regs[0xf6] & 0x03) << 18) |
-	   ((ht216->ht_regs[0xf9] & 0x01) << 16) | ((ht216->misc & 0x20) << 12);
+    addr -= ht216->linear_base;
     if (!svga->chain4)		/*Bits 16 and 17 of linear address are unused in planar modes*/
 	addr = (addr & 0xffff) | ((addr & 0xc0000) >> 2);
+    addr += ht216->write_banks[0];
 
     if (!ht216->ht_regs[0xcd] && !ht216->ht_regs[0xfe])
 	svga_writew_linear(addr, val, svga);
@@ -1124,10 +1133,10 @@ ht216_writel_linear(uint32_t addr, uint32_t val, void *p)
     ht216_t *ht216 = (ht216_t *)p;
     svga_t *svga = &ht216->svga;
 
-    addr = (addr - ht216->linear_base) | ((ht216->ht_regs[0xf6] & 0x03) << 18) |
-	   ((ht216->ht_regs[0xf9] & 0x01) << 16) | ((ht216->misc & 0x20) << 12);
+    addr -= ht216->linear_base;
     if (!svga->chain4)		/*Bits 16 and 17 of linear address are unused in planar modes*/
 	addr = (addr & 0xffff) | ((addr & 0xc0000) >> 2);
+    addr += ht216->write_banks[0];
 
     if (!ht216->ht_regs[0xcd] && !ht216->ht_regs[0xfe])
 	svga_writel_linear(addr, val, svga);
@@ -1231,7 +1240,9 @@ ht216_read(uint32_t addr, void *p)
     
     if (svga->crtc[0x17] == 0xeb && !(svga->gdcreg[6] & 0xc) && prev_addr >= 0xb0000)
 	addr += 0x10000;    
-    
+    else if (svga->chain4 && ((ht216->ht_regs[0xfc] & 0x06) == 0x06))
+	addr = (addr & 0xfffeffff) | (prev_addr & 0x10000);
+
     return ht216_read_common(ht216, addr);
 }
 
@@ -1241,10 +1252,10 @@ ht216_read_linear(uint32_t addr, void *p)
     ht216_t *ht216 = (ht216_t *)p;
     svga_t *svga = &ht216->svga;
 
-    addr = (addr - ht216->linear_base) | ((ht216->ht_regs[0xf6] & 0x0c) << 16) |
-	   ((ht216->ht_regs[0xf9] & 0x01) << 16) | ((ht216->misc & 0x20) << 12);
+    addr -= ht216->linear_base;
     if (!svga->chain4)		/*Bits 16 and 17 of linear address are unused in planar modes*/
 	addr = (addr & 0xffff) | ((addr & 0xc0000) >> 2);
+    addr += ht216->read_banks[0];
 
     return ht216_read_common(ht216, addr);
 }
