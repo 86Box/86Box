@@ -36,9 +36,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef AMD_K5
   AMD_K5	:= y
  endif
- ifndef CL5422
-  CL5422	:= y
- endif
  ifndef CYRIX_6X86
   CYRIX_6X86	:= y
  endif
@@ -68,9 +65,6 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef PAS16
   PAS16		:= n
- endif
- ifndef PS1M2133
-  PS1M2133	:= y
  endif
  ifndef PS2M70T4
   PS2M70T4	:= y
@@ -112,9 +106,6 @@ else
  ifndef AMD_K5
   AMD_K5	:= n
  endif
- ifndef CL5422
-  CL5422	:= n
- endif
  ifndef CYRIX_6X86
   CYRIX_6X86	:= n
  endif
@@ -144,9 +135,6 @@ else
  endif
  ifndef PAS16
   PAS16		:= n
- endif
- ifndef PS1M2133
-  PS1M2133	:= n
  endif
  ifndef PS2M70T4
   PS2M70T4	:= n
@@ -542,10 +530,6 @@ endif
 ifeq ($(PAS16), y)
 OPTS		+= -DUSE_PAS16
 DEVBROBJ	+= snd_pas16.o
-endif
-
-ifeq ($(PS1M2133), y)
-OPTS		+= -DUSE_PS1M2133
 endif
 
 ifeq ($(PS2M70T4), y)

@@ -44,10 +44,6 @@ if(OPEN_AT)
 	target_compile_definitions(mch PRIVATE USE_OPEN_AT)
 endif()
 
-if(PS1M2133)
-	target_compile_definitions(mch PRIVATE USE_PS1M2133)
-endif()
-
 if(PS2M70T4)
 	target_compile_definitions(mch PRIVATE USE_PS2M70T4)
 endif()
