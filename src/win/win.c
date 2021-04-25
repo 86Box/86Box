@@ -104,7 +104,7 @@ static const struct {
   {	"SDL_Software", 1, (int(*)(void*))sdl_inits, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, NULL		},
   {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, NULL		},
   {	"SDL_OpenGL", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, NULL		}
-#ifdef DEV_BRANCH /* feature-opengl */
+#if defined(DEV_BRANCH) && defined(USE_OPENGL)
  ,{	"OpenGL_Core", 1, (int(*)(void*))opengl_init, opengl_close, opengl_resize, opengl_pause, NULL, opengl_set_fs, opengl_reload}
 #else
  ,{	"OpenGL_Core", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, NULL		} /* fall back to SDL_OpenGL */
@@ -939,7 +939,7 @@ plat_vidapi_name(int api)
 	case 2:
 		name = "sdl_opengl";
 		break;
-#ifdef DEV_BRANCH /* feature-opengl */
+#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 	case 3:
 		name = "opengl_core";
 		break;

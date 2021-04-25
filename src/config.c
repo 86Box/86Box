@@ -529,7 +529,7 @@ load_general(void)
     enable_discord = !!config_get_int(cat, "enable_discord", 0);
 #endif
 
-#ifdef DEV_BRANCH /* feature-opengl */
+#if defined(DEV_BRANCH) && defined(USE_OPENGL)
     video_framerate = config_get_int(cat, "video_gl_framerate", -1);
     video_vsync = config_get_int(cat, "video_gl_vsync", 0);
     strcpy_s(video_shader, sizeof(video_shader), config_get_string(cat, "video_gl_shader", ""));
@@ -1974,7 +1974,7 @@ save_general(void)
 	config_delete_var(cat, "enable_discord");
 #endif
 
-#ifdef DEV_BRANCH /* feature-opengl */
+#if defined(DEV_BRANCH) && defined(USE_OPENGL)
     if (video_framerate != -1)
 	    config_set_int(cat, "video_gl_framerate", video_framerate);
     else
