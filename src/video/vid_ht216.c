@@ -141,10 +141,10 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 		/*Bit 17 of the display memory address, only active on odd/even modes, has no effect on graphics modes.*/
                 ht216->misc = val;
 		ht216_log("HT216 misc val = %02x\n", val);
-		ht216->read_bank_reg[0]  = (ht216->read_bank_reg[0] & ~0x20) | ((val & HT_MISC_PAGE_SEL) ? 0x20 : 0);
-		ht216->read_bank_reg[1]  = (ht216->read_bank_reg[1] & ~0x20) | ((val & HT_MISC_PAGE_SEL) ? 0x20 : 0);
-		ht216->write_bank_reg[0] = (ht216->write_bank_reg[0] & ~0x20) | ((val & HT_MISC_PAGE_SEL) ? 0x20 : 0);
-		ht216->write_bank_reg[1] = (ht216->write_bank_reg[1] & ~0x20) | ((val & HT_MISC_PAGE_SEL) ? 0x20 : 0);
+		ht216->read_bank_reg[0]  = ((ht216->ht_regs[0xf6] & 0xc) << 4) | ((ht216->ht_regs[0xf9] & 1) << 4) | (ht216->misc & 0x20);
+		ht216->read_bank_reg[1]  = ((ht216->ht_regs[0xf6] & 0xc) << 4) | ((ht216->ht_regs[0xf9] & 1) << 4) | (ht216->misc & 0x20);
+		ht216->write_bank_reg[0] = ((ht216->ht_regs[0xf6] & 0x3) << 6) | ((ht216->ht_regs[0xf9] & 1) << 4) | (ht216->misc & 0x20);
+		ht216->write_bank_reg[1] = ((ht216->ht_regs[0xf6] & 0x3) << 6) | ((ht216->ht_regs[0xf9] & 1) << 4) | (ht216->misc & 0x20);
 		ht216_remap(ht216);
 		svga->fullchange = changeframecount;
 		svga_recalctimings(svga);
@@ -224,13 +224,17 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 					break;
 				/*Bank registers*/
 				case 0xe8:
-					ht216->read_bank_reg[0] = val;
-					ht216->write_bank_reg[0] = val;
+					ht216->read_bank_reg[0] = ht216->ht_regs[0xe8];
+					ht216->write_bank_reg[0] = ht216->ht_regs[0xe8];
+					ht216->read_bank_reg[1] = ht216->ht_regs[0xe9];
+					ht216->write_bank_reg[1] = ht216->ht_regs[0xe9];
 					ht216_remap(ht216);
 					break;
 				case 0xe9:
-					ht216->read_bank_reg[1] = val;
-					ht216->write_bank_reg[1] = val;
+					ht216->read_bank_reg[0] = ht216->ht_regs[0xe8];
+					ht216->write_bank_reg[0] = ht216->ht_regs[0xe8];
+					ht216->read_bank_reg[1] = ht216->ht_regs[0xe9];
+					ht216->write_bank_reg[1] = ht216->ht_regs[0xe9];
 					ht216_remap(ht216);
 					break;
 				
@@ -265,10 +269,10 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 				case 0xf6:
 					/*Bits 18 and 19 of the display memory address*/
 					ht216_log("HT216 reg 0xf6 write = %02x, vram mask = %08x, cr17 = %02x\n", val & 0x40, svga->vram_display_mask, svga->crtc[0x17]);
-					ht216->read_bank_reg[0]  = (ht216->read_bank_reg[0] & ~0xc0) | ((val & 0xc) << 4);
-					ht216->read_bank_reg[1]  = (ht216->read_bank_reg[1] & ~0xc0) | ((val & 0xc) << 4);
-					ht216->write_bank_reg[0] = (ht216->write_bank_reg[0] & ~0xc0) | ((val & 0x3) << 6);
-					ht216->write_bank_reg[1] = (ht216->write_bank_reg[1] & ~0xc0) | ((val & 0x3) << 6);
+					ht216->read_bank_reg[0]  = ((ht216->ht_regs[0xf6] & 0xc) << 4) | ((ht216->ht_regs[0xf9] & 1) << 4) | (ht216->misc & 0x20);
+					ht216->read_bank_reg[1]  = ((ht216->ht_regs[0xf6] & 0xc) << 4) | ((ht216->ht_regs[0xf9] & 1) << 4) | (ht216->misc & 0x20);
+					ht216->write_bank_reg[0] = ((ht216->ht_regs[0xf6] & 0x3) << 6) | ((ht216->ht_regs[0xf9] & 1) << 4) | (ht216->misc & 0x20);
+					ht216->write_bank_reg[1] = ((ht216->ht_regs[0xf6] & 0x3) << 6) | ((ht216->ht_regs[0xf9] & 1) << 4) | (ht216->misc & 0x20);
 					ht216_remap(ht216);
 					svga->fullchange = changeframecount;
 					svga_recalctimings(svga);
@@ -277,10 +281,10 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 				case 0xf9:
 					/*Bit 16 of the display memory address, only active when in chain4 mode and 256 color mode.*/
 					ht216_log("HT216 reg 0xf9 write = %02x\n", val & HT_REG_F9_XPSEL);				
-					ht216->read_bank_reg[0]  = (ht216->read_bank_reg[0] & ~0x10) | ((val & 1) ? 0x10 : 0);
-					ht216->read_bank_reg[1]  = (ht216->read_bank_reg[1] & ~0x10) | ((val & 1) ? 0x10 : 0);
-					ht216->write_bank_reg[0] = (ht216->write_bank_reg[0] & ~0x10) | ((val & 1) ? 0x10 : 0);
-					ht216->write_bank_reg[1] = (ht216->write_bank_reg[1] & ~0x10) | ((val & 1) ? 0x10 : 0);
+					ht216->read_bank_reg[0]  = ((ht216->ht_regs[0xf6] & 0xc) << 4) | ((ht216->ht_regs[0xf9] & 1) << 4) | (ht216->misc & 0x20);
+					ht216->read_bank_reg[1]  = ((ht216->ht_regs[0xf6] & 0xc) << 4) | ((ht216->ht_regs[0xf9] & 1) << 4) | (ht216->misc & 0x20);
+					ht216->write_bank_reg[0] = ((ht216->ht_regs[0xf6] & 0x3) << 6) | ((ht216->ht_regs[0xf9] & 1) << 4) | (ht216->misc & 0x20);
+					ht216->write_bank_reg[1] = ((ht216->ht_regs[0xf6] & 0x3) << 6) | ((ht216->ht_regs[0xf9] & 1) << 4) | (ht216->misc & 0x20);
 					ht216_remap(ht216);
 					break;
 				
