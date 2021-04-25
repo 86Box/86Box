@@ -246,8 +246,11 @@ lm78_security_write(void *bus, uint8_t addr, uint8_t val, void *priv)
 
 
 static void
-lm78_reset(lm78_t *dev, uint8_t initialization)
+lm78_reset(void *priv)
 {
+    lm78_t *dev = (lm78_t *) priv;
+    uint8_t initialization = dev->regs[0x40] & 0x80;
+
     memset(dev->regs, 0, 256);
     memset(dev->regs + 0xc0, 0xff, 32); /* C0-DF are 0xFF on a real AS99127F */
 
@@ -297,6 +300,7 @@ lm78_reset(lm78_t *dev, uint8_t initialization)
 		/* regs[1] and regs[2] start at 0x80 */
 		dev->as99127f.regs[1][0x00] = 0x88;
 		dev->as99127f.regs[1][0x01] = 0x10;
+		dev->as99127f.regs[1][0x03] = 0x02; /* GPO, but things break if GPO16 isn't set */
 		dev->as99127f.regs[1][0x04] = 0x01;
 		dev->as99127f.regs[1][0x05] = 0x1f;
 		lm78_as99127f_write(dev, 0x06, 0x2f);
@@ -508,7 +512,7 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
     switch (reg) {
 	case 0x40:
 		if (val & 0x80) /* INITIALIZATION bit resets all registers except main I2C address */
-			lm78_reset(dev, 1);
+			lm78_reset(dev);
 		break;
 
 	case 0x48:
@@ -520,7 +524,7 @@ lm78_write(lm78_t *dev, uint8_t reg, uint8_t val, uint8_t bank)
 	case 0x49:
 		if (!(dev->local & LM78_WINBOND)) {
 			if (val & 0x20) /* Chip Reset bit (LM78 only) resets all registers */
-				lm78_reset(dev, 0);
+				lm78_reset(dev);
 			else
 				dev->regs[0x49] = 0x40;
 		} else {
@@ -759,7 +763,7 @@ lm78_init(const device_t *info)
 	}
     }
 
-    lm78_reset(dev, 0);
+    lm78_reset(dev);
 
     uint16_t isa_io = dev->local & 0xffff;
     if (isa_io)
@@ -772,9 +776,9 @@ lm78_init(const device_t *info)
 /* National Semiconductor LM78 on ISA and SMBus. */
 const device_t lm78_device = {
     "National Semiconductor LM78 Hardware Monitor",
-    DEVICE_ISA,
+    DEVICE_ISA | DEVICE_PCI,
     0x290 | LM78_I2C,
-    lm78_init, lm78_close, NULL,
+    lm78_init, lm78_close, lm78_reset,
     { NULL }, NULL, NULL,
     NULL
 };
@@ -783,9 +787,9 @@ const device_t lm78_device = {
 /* Winbond W83781D on ISA and SMBus. */
 const device_t w83781d_device = {
     "Winbond W83781D Hardware Monitor",
-    DEVICE_ISA,
+    DEVICE_ISA | DEVICE_PCI,
     0x290 | LM78_I2C | LM78_W83781D,
-    lm78_init, lm78_close, NULL,
+    lm78_init, lm78_close, lm78_reset,
     { NULL }, NULL, NULL,
     NULL
 };
@@ -795,9 +799,9 @@ const device_t w83781d_device = {
    I2C-only W83781D clone with additional voltages, GPIOs and fan control. */
 const device_t as99127f_device = {
     "ASUS AS99127F Rev. 1 Hardware Monitor",
-    DEVICE_ISA,
+    DEVICE_ISA | DEVICE_PCI,
     LM78_I2C | LM78_AS99127F_REV1,
-    lm78_init, lm78_close, NULL,
+    lm78_init, lm78_close, lm78_reset,
     { NULL }, NULL, NULL,
     NULL
 };
@@ -806,9 +810,9 @@ const device_t as99127f_device = {
 /* Rev. 2 is manufactured by Winbond and differs only in GPI registers. */
 const device_t as99127f_rev2_device = {
     "ASUS AS99127F Rev. 2 Hardware Monitor",
-    DEVICE_ISA,
+    DEVICE_ISA | DEVICE_PCI,
     LM78_I2C | LM78_AS99127F_REV2,
-    lm78_init, lm78_close, NULL,
+    lm78_init, lm78_close, lm78_reset,
     { NULL }, NULL, NULL,
     NULL
 };
@@ -817,9 +821,9 @@ const device_t as99127f_rev2_device = {
 /* Winbond W83782D on ISA and SMBus. */
 const device_t w83782d_device = {
     "Winbond W83782D Hardware Monitor",
-    DEVICE_ISA,
+    DEVICE_ISA | DEVICE_PCI,
     0x290 | LM78_I2C | LM78_W83782D,
-    lm78_init, lm78_close, NULL,
+    lm78_init, lm78_close, lm78_reset,
     { NULL }, NULL, NULL,
     NULL
 };
