@@ -675,7 +675,7 @@ pc_send_ca(uint16_t sc)
 void
 pc_send_cad(void)
 {
-	pc_send_ca(0xE053);
+	pc_send_ca(0x153);
 }
 
 
