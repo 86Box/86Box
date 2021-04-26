@@ -119,6 +119,8 @@ shadow_state_update(scat_t *dev)
 
     uint32_t base, bit, romcs, wp, shflags = 0;
 
+    shadowbios = shadowbios_write = 0;
+
     for (i = 0; i < 24; i++) {
 	val = (dev->regs[SCAT_SHADOW_RAM_ENABLE_1 + (i >> 3)] >> (i & 7)) & 1;
 
@@ -133,12 +135,17 @@ shadow_state_update(scat_t *dev)
 		wp = dev->regs[SCAT_RAM_WRITE_PROTECT] & (1 << bit);
 	}
 
-	shflags = val ? MEM_READ_INTERNAL : (romcs ? MEM_READ_ROMCS : MEM_READ_EXTERNAL);
+	if (base >= 0xe0000) {
+		shadowbios |= val;
+		shadowbios_write |= val;
+	}
+
+	shflags = val ? MEM_READ_INTERNAL : (romcs ? MEM_READ_EXTANY : MEM_READ_EXTERNAL);
 
 	if (wp)
 		shflags |= MEM_WRITE_DISABLED;
 	else
-		shflags |= (val ? MEM_WRITE_INTERNAL : (romcs ? MEM_WRITE_ROMCS : MEM_WRITE_EXTERNAL));
+		shflags |= (val ? MEM_WRITE_INTERNAL : (romcs ? MEM_WRITE_EXTANY : MEM_WRITE_EXTERNAL));
 
 	mem_set_mem_state(base, 0x4000, shflags);
     }
@@ -230,7 +237,7 @@ set_xms_bound(scat_t *dev, uint8_t val)
 
 	if (dev->xms_bound < 0x160000)
 		mem_set_mem_state(dev->xms_bound, 0x160000 - dev->xms_bound,
-				  MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+				  MEM_READ_EXTANY | MEM_WRITE_EXTANY);
     } else {
 	if (dev->xms_bound > xms_max)
 		dev->xms_bound = xms_max;
@@ -241,7 +248,7 @@ set_xms_bound(scat_t *dev, uint8_t val)
 
 	if (dev->xms_bound < ((uint32_t)mem_size << 10))
 		mem_set_mem_state(dev->xms_bound, (mem_size << 10) - dev->xms_bound,
-				  MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+				  MEM_READ_EXTANY | MEM_WRITE_EXTANY);
     }
 
     mem_mapping_set_addr(&dev->low_mapping[31], 0xf80000,
@@ -1090,7 +1097,7 @@ scat_out(uint16_t port, uint8_t val, void *priv)
 				} else
 					set_xms_bound(dev, val & 0x1f);
 
-				mem_set_mem_state(0x40000, 0x60000, (val & 0x20) ? MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL :
+				mem_set_mem_state(0x40000, 0x60000, (val & 0x20) ? MEM_READ_EXTANY | MEM_WRITE_EXTANY :
 										   MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 				if ((val ^ dev->regs[SCAT_EXTENDED_BOUNDARY]) & 0xc0)
 					map_update = 1;
