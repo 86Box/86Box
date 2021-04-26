@@ -149,12 +149,13 @@ ui_sb_update_icon(int tag, int active)
     if ((found != 0xff) && ((sb_part_icons[found] ^ active) & 1) && active) {
 	sb_part_icons[found] |= 1;
 
-	SendMessage(hwndSBAR, SB_SETICON, found,
+	PostMessage(hwndSBAR, SB_SETICON, found,
 		    (LPARAM)hIcon[sb_part_icons[found]]);
 
 	SetTimer(hwndMain, 0x8000 | found, 75, NULL);
     }
 }
+
 
 
 /* API: This is for the drive state indicator. */
