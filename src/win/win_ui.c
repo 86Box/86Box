@@ -234,6 +234,7 @@ show_render_options_menu()
 			CheckMenuItem(menuMain, IDM_VID_GL_FPS_60, video_framerate == 60 ? MF_CHECKED : MF_UNCHECKED);
 			CheckMenuItem(menuMain, IDM_VID_GL_FPS_75, video_framerate == 75 ? MF_CHECKED : MF_UNCHECKED);
 			CheckMenuItem(menuMain, IDM_VID_GL_VSYNC, video_vsync ? MF_CHECKED : MF_UNCHECKED);
+			EnableMenuItem(menuMain, IDM_VID_GL_NOSHADER, strlen(video_shader) > 0 ? MF_ENABLED : MF_DISABLED);
 			break;
 		}
 	}
@@ -778,8 +779,16 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_GL_SHADER:
 				win_notify_dlg_open();
 				if (file_dlg_st(hwnd, IDS_2143, video_shader, NULL, 0) == 0)
+				{
 					strcpy_s(video_shader, sizeof(video_shader), openfilestring);
+					EnableMenuItem(menuMain, IDM_VID_GL_NOSHADER, strlen(video_shader) > 0 ? MF_ENABLED : MF_DISABLED);
+				}
 				win_notify_dlg_closed();
+				plat_vid_reload_options();
+				break;
+			case IDM_VID_GL_NOSHADER:
+				video_shader[0] = '\0';
+				EnableMenuItem(menuMain, IDM_VID_GL_NOSHADER, MF_DISABLED);
 				plat_vid_reload_options();
 				break;
 #endif
