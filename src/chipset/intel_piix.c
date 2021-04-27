@@ -230,7 +230,7 @@ kbc_alias_update_io_mapping(piix_t *dev)
 static void
 smbus_update_io_mapping(piix_t *dev)
 {
-    smbus_piix4_remap(dev->smbus, (dev->regs[3][0x91] << 8) | (dev->regs[3][0x90] & 0xf0), (dev->regs[3][PCI_REG_COMMAND] & PCI_COMMAND_IO) && (dev->regs[3][0xd2] & 0x01));
+    smbus_piix4_remap(dev->smbus, ((uint16_t) (dev->regs[3][0x91] << 8)) | (dev->regs[3][0x90] & 0xf0), (dev->regs[3][PCI_REG_COMMAND] & PCI_COMMAND_IO) && (dev->regs[3][0xd2] & 0x01));
 }
 
 
@@ -890,6 +890,8 @@ piix_read(int func, int addr, void *priv)
 	ret = fregs[addr];
 	if ((func == 0) && (addr == 0x4e))
 		ret |= keyboard_at_get_mouse_scan();
+	else if ((func == 2) && (addr == 0xff))
+		ret |= 0xef;
 
 	piix_log("PIIX function %i read: %02X from %02X\n", func, ret, addr);
     }
@@ -919,7 +921,8 @@ board_read(uint16_t port, void *priv)
     uint8_t ret = 0x64;
 
     if (port == 0x0078)
-	ret = dev->board_config[0];
+	ret = 0x00;
+	// ret = dev->board_config[0];
     else if (port == 0x0079)
 	ret = dev->board_config[1];
     else if (port == 0x00e0)
@@ -1278,7 +1281,7 @@ static void
 	dev->acpi = device_add(&acpi_intel_device);
 	acpi_set_slot(dev->acpi, dev->pci_slot);
 	acpi_set_nvr(dev->acpi, dev->nvr);
-	acpi_set_gpireg2_default(dev->acpi, (dev->type > 4) ? 0xf1 : 0xfd);
+	acpi_set_gpireg2_default(dev->acpi, (dev->type > 4) ? 0xf1 : 0xdd);
 
 	dev->ddma = device_add(&ddma_device);
     } else
