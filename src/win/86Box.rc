@@ -251,6 +251,7 @@ BEGIN
     END
     MENUITEM "&VSync", IDM_VID_GL_VSYNC
     MENUITEM "&Select shader...", IDM_VID_GL_SHADER
+    MENUITEM "&Remove shader", IDM_VID_GL_NOSHADER
 END
 #endif
 

@@ -185,8 +185,13 @@ static void handle_window_messages(UINT message, WPARAM wParam, LPARAM lParam, i
 	case WM_LBUTTONDOWN:
 	case WM_MBUTTONUP:
 	case WM_MBUTTONDOWN:
+	case WM_RBUTTONUP:
+	case WM_RBUTTONDOWN:
 		if (!fullscreen)
 		{
+			/* Bring main window to front. */
+			SetForegroundWindow(GetAncestor(parent, GA_ROOT));
+
 			/* Mouse events that enter and exit capture. */
 			PostMessage(parent, message, wParam, lParam);
 		}
