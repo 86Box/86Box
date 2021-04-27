@@ -251,11 +251,12 @@ reset_common(int hard)
 	}
     }
     idt.base = 0;
-    idt.limit = is386 ? 0x03FF : 0xFFFF;
     cpu_state.flags = 2;
     trap = 0;
 
-    EAX = EBX = ECX = EDX = ESI = EDI = EBP = ESP = 0;
+    idt.limit = is386 ? 0x03ff : 0xffff;
+    if (is386 || hard)
+	EAX = EBX = ECX = EDX = ESI = EDI = EBP = ESP = 0;
 
     if (hard) {
 	makeznptable();

@@ -97,8 +97,8 @@
 typedef struct {
     uint8_t	command, status, old_status, out, old_out, secr_phase,
 		mem_addr, input_port, output_port, old_output_port,
-		key_command, output_locked, ami_stat, initialized,
-		want60, wantirq, key_wantdata, refresh, first_write;
+		key_command, output_locked, ami_stat,  want60,
+		wantirq, key_wantdata, refresh, first_write;
 
     uint8_t	mem[0x100];
 
@@ -1031,7 +1031,11 @@ add_data_kbd(uint16_t val)
 static void
 write_output(atkbd_t *dev, uint8_t val)
 {
+    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
     kbd_log("ATkbc: write output port: %02X (old: %02X)\n", val, dev->output_port);
+
+    if ((kbc_ven == KBC_VEN_AMI) || ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF))
+	val |= ((dev->mem[0] << 4) & 0x30);
 
     if ((dev->output_port ^ val) & 0x20) { /*IRQ 12*/
 	if (val & 0x20)
@@ -1066,9 +1070,8 @@ write_output(atkbd_t *dev, uint8_t val)
 static void
 write_cmd(atkbd_t *dev, uint8_t val)
 {
+    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
     kbd_log("ATkbc: write command byte: %02X (old: %02X)\n", val, dev->mem[0]);
-	uint8_t kbc_ven = 0x0;
-	kbc_ven = dev->flags & KBC_VEN_MASK;
 
     if ((val & 1) && (dev->status & STAT_OFULL))
 	dev->wantirq = 1;
@@ -1093,11 +1096,15 @@ write_cmd(atkbd_t *dev, uint8_t val)
     if ((kbc_ven == KBC_VEN_AMI) ||
         ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF)) {
 	keyboard_mode &= ~CCB_PCMODE;
+	/* Update the output port to mirror the KBD DIS and AUX DIS bits, if active. */
+	write_output(dev, dev->output_port);
 
 	kbd_log("ATkbc: mouse interrupt is now %s\n",  (val & 0x02) ? "enabled" : "disabled");
     }
 
     kbd_log("Command byte now: %02X (%02X)\n", dev->mem[0], val);
+
+    dev->status = (dev->status & ~STAT_SYSFLAG) | (val & STAT_SYSFLAG);
 }
 
 
@@ -1665,12 +1672,9 @@ static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
     atkbd_t *dev = (atkbd_t *)priv;
-    int i = 0;
-    int bad = 1;
-    uint8_t mask;
-	uint8_t kbc_ven = 0x0;
-	kbc_ven = dev->flags & KBC_VEN_MASK;
-
+    int i = 0, bad = 1;
+    uint8_t mask, kbc_ven = 0x0;
+    kbc_ven = dev->flags & KBC_VEN_MASK;
 
     if ((kbc_ven == KBC_VEN_XI8088) && (port == 0x63))
 	port = 0x61;
@@ -1986,23 +1990,22 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 				kbd_log("ATkbc: self-test\n");
 				if ((kbc_ven == KBC_VEN_TOSHIBA) || (kbc_ven == KBC_VEN_SAMSUNG))
 					dev->status |= STAT_IFULL;
-				if (! dev->initialized) {
-					kbd_log("ATkbc: self-test reinitialization\n");
-					dev->initialized = 1;
-					dev->out_new = dev->out_delayed = -1;
-					for (i = 0; i < 3; i++)
-						kbc_queue_reset(i);
-					kbd_last_scan_code = 0x00;
-					dev->status &= ~STAT_OFULL;
-					dev->last_irq = dev->old_last_irq = 0;
-				}
-				dev->status |= STAT_SYSFLAG;
-				dev->mem[0] |= 0x04;
-				keyboard_mode |= 0x04;
-				set_enable_kbd(dev, 1);
+				write_output(dev, ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) ? 0x4b : 0xcf);
+
+				/* Always reinitialize all queues - the real hardware pulls keyboard and mouse
+				   clocks high, which stops keyboard scanning. */
+				kbd_log("ATkbc: self-test reinitialization\n");
+				dev->out_new = dev->out_delayed = -1;
+				for (i = 0; i < 3; i++)
+					kbc_queue_reset(i);
+				kbd_last_scan_code = 0x00;
+				dev->status &= ~STAT_OFULL;
+				dev->last_irq = dev->old_last_irq = 0;
+
 				if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF)
-					set_enable_mouse(dev, 1);
-				write_output(dev, 0xcf);
+					write_cmd(dev, 0x30 | STAT_SYSFLAG);
+				else
+					write_cmd(dev, 0x10 | STAT_SYSFLAG);
 				add_data(dev, 0x55);
 				break;
 
@@ -2206,7 +2209,6 @@ kbd_reset(void *priv)
 	uint8_t kbc_ven = 0x0;
 	kbc_ven = dev->flags & KBC_VEN_MASK;
 
-    dev->initialized = 0;
     dev->first_write = 1;
     // dev->status = STAT_UNLOCKED | STAT_CD;
     dev->status = STAT_UNLOCKED;
