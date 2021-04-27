@@ -6026,7 +6026,8 @@ static void *s3_init(const device_t *info)
 		case S3_PHOENIX_VISION868:
 			svga->decode_mask = (4 << 20) - 1;
 			s3->id = 0xe1; /*Vision868*/
-			s3->id_ext = s3->id_ext_pci = 0x80;
+			s3->id_ext = 0x90;
+			s3->id_ext_pci = 0x80;
 			s3->packed_mmio = 1;
 			if (s3->pci) {
 				svga->crtc[0x53] = 0x18;
