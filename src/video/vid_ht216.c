@@ -152,7 +152,7 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 		ht216->write_bank_reg[1] = ((ht216->ht_regs[0xf6] & 0x3) << 6) | ((ht216->ht_regs[0xf9] & 1) << 4) | (ht216->misc & 0x20);
 		ht216_remap(ht216);
 		svga->fullchange = changeframecount;
-		svga_recalctimings(svga);
+		svga_recalctimings(svga);	
 		break;
 
 	case 0x3c4:
@@ -570,7 +570,6 @@ ht216_recalctimings(svga_t *svga)
 {
     ht216_t *ht216 = (ht216_t *)svga->p;
     int high_res_256 = 0;
-	int hdisp = svga->hdisp;
 
     switch (ht216->clk_sel) {
 	case 5:  svga->clock = (cpuclock * (double)(1ull << 32)) / 65000000.0; break;
@@ -598,25 +597,26 @@ ht216_recalctimings(svga_t *svga)
     }
 
     if (svga->bpp == 8) {
-	if (((ht216->ht_regs[0xc8] & HT_REG_C8_E256) || (svga->gdcreg[5] & 0x40) || (ht216->ht_regs[0xfc] & HT_REG_FC_ECOLRE)) && (!svga->lowres || (ht216->ht_regs[0xf6] & 0x80))) {
+	ht216_log("regC8 = %02x, gdcreg5 bit 6 = %02x, no lowres = %02x, regf8 bit 7 = %02x, regfc = %02x\n", ht216->ht_regs[0xc8] & HT_REG_C8_E256, svga->gdcreg[5] & 0x40, !svga->lowres, ht216->ht_regs[0xf6] & 0x80, ht216->ht_regs[0xfc] & HT_REG_FC_ECOLRE);
+	if (((ht216->ht_regs[0xc8] & HT_REG_C8_E256) || (svga->gdcreg[5] & 0x40)) && (!svga->lowres || (ht216->ht_regs[0xf6] & 0x80))) {
 		if (high_res_256) {
 			svga->hdisp >>= 1;
 			ht216->adjust_cursor = 1;
 		}
-		
-		if (ht216->id == 0x7152) {
-			svga->rowoffset <<= 1;
-			svga->render = svga_render_8bpp_highres;
-		} else
-			svga->render = svga_render_8bpp_highres;
+		svga->render = svga_render_8bpp_highres;
 	} else if (svga->lowres) {
 		if (high_res_256) {
 			svga->hdisp >>= 1;
 			ht216->adjust_cursor = 1;
 			svga->render = svga_render_8bpp_highres;
 		} else {
+			ht216_log("8bpp low\n");
 			svga->render = svga_render_8bpp_lowres;
 		}
+	} else if (ht216->ht_regs[0xfc] & HT_REG_FC_ECOLRE) {
+		if (ht216->id == 0x7152)
+			svga->rowoffset <<= 1;
+		svga->render = svga_render_8bpp_highres;
 	}
     } else if (svga->bpp == 15) {
 		svga->rowoffset <<= 1;
