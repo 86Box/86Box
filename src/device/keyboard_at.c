@@ -667,21 +667,29 @@ kbc_queue_add(atkbd_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
 
 
 static void
-add_to_kbc_queue_front(atkbd_t *dev, uint8_t val)
+add_to_kbc_queue_front(atkbd_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
 {
-    uint8_t stat_hi, kbc_ven = dev->flags & KBC_VEN_MASK;
+    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
 
     if ((kbc_ven == KBC_VEN_AMI) || ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF))
-	stat_hi = ((dev->input_port & 0x80) ? 0x10 : 0x00);
+	stat_hi |= ((dev->input_port & 0x80) ? 0x10 : 0x00);
     else
-	stat_hi = 0x10;
+	stat_hi |= 0x10;
 
     kbd_log("ATkbc: Adding %02X to front...\n", val);
     dev->wantirq = 0;
-    if (dev->mem[0] & 0x01)
-	picint(2);
+    if (channel == 2) {
+	if (dev->mem[0] & 0x02)
+		picint(0x1000);
+    } else {
+	if (dev->mem[0] & 0x01)
+		picint(2);
+    }
     dev->out = val;
-    dev->status = (dev->status & ~(STAT_IFULL | STAT_MFULL)) | STAT_OFULL | stat_hi;
+    if (channel == 2)
+	dev->status = (dev->status & ~STAT_IFULL) | (STAT_OFULL | STAT_MFULL) | stat_hi;
+    else
+	dev->status = (dev->status & ~(STAT_IFULL | STAT_MFULL)) | STAT_OFULL | stat_hi;
     dev->last_irq = 0x0000;
 }
 
@@ -1214,7 +1222,8 @@ write64_generic(void *priv, uint8_t val)
 			fixed_bits |= 0x40;
 		if (kbc_ven == KBC_VEN_IBM_PS1) {
 			current_drive = fdc_get_current_drive();
-			add_to_kbc_queue_front(dev, dev->input_port | fixed_bits | (fdd_is_525(current_drive) ? 0x40 : 0x00));
+			add_to_kbc_queue_front(dev, dev->input_port | fixed_bits | (fdd_is_525(current_drive) ? 0x40 : 0x00),
+					       0, 0x00);
 			dev->input_port = ((dev->input_port + 1) & 3) |
 					   (dev->input_port & 0xfc) |
 					   (fdd_is_525(current_drive) ? 0x40 : 0x00);
@@ -1229,15 +1238,17 @@ write64_generic(void *priv, uint8_t val)
 			 * bit 1: high/auto speed
 			 * bit 0: dma mode
 			 */
-			add_to_kbc_queue_front(dev, (dev->input_port | fixed_bits | (video_is_mda() ? 0x40 : 0x00) | (hasfpu ? 0x08 : 0x00)) & 0xdf);
+			add_to_kbc_queue_front(dev, (dev->input_port | fixed_bits | (video_is_mda() ? 0x40 : 0x00) | (hasfpu ? 0x08 : 0x00)) & 0xdf,
+					       0, 0x00);
 			dev->input_port = ((dev->input_port + 1) & 3) |
 					   (dev->input_port & 0xfc);
 		} else {
 			if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) &&
 			    ((dev->flags & KBC_VEN_MASK) != KBC_VEN_INTEL_AMI))
-				add_to_kbc_queue_front(dev, (dev->input_port | fixed_bits) & (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0xeb : 0xef));
+				add_to_kbc_queue_front(dev, (dev->input_port | fixed_bits) &
+						       (((dev->flags & KBC_VEN_MASK) == KBC_VEN_ACER) ? 0xeb : 0xef), 0, 0x00);
 			else
-				add_to_kbc_queue_front(dev, dev->input_port | fixed_bits);
+				add_to_kbc_queue_front(dev, dev->input_port | fixed_bits, 0, 0x00);
 			dev->input_port = ((dev->input_port + 1) & 3) |
 					   (dev->input_port & 0xfc);
 		}
@@ -1547,7 +1558,7 @@ write64_olivetti(void *priv, uint8_t val)
 		* bit 2: keyboard fuse present
 		* bits 0-1: ???
 		*/
-		add_to_kbc_queue_front(dev, (0x0c | ((is386) ? 0x00 : 0x80)) & 0xdf);
+		add_to_kbc_queue_front(dev, (0x0c | ((is386) ? 0x00 : 0x80)) & 0xdf, 0, 0x00);
 		dev->input_port = ((dev->input_port + 1) & 3) |
 					   (dev->input_port & 0xfc);
 		return 0;
@@ -1748,7 +1759,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 						if (mouse_write)
 							mouse_write(val, mouse_p);
 						else
-							kbc_queue_add(dev, 0xfe, 2, 0x40);
+							add_to_kbc_queue_front(dev, 0xfe, 2, 0x40);
 					}
 					break;
 
@@ -2063,7 +2074,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 					mask &= 0xbf;
 				if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) && (dev->mem[0] & 0x20))
 					mask &= 0xf7;
-				add_to_kbc_queue_front(dev, dev->output_port & mask);
+				add_to_kbc_queue_front(dev, dev->output_port & mask, 0, 0x00);
 				break;
 
 			case 0xd1:	/* write output port */
