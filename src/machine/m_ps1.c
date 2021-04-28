@@ -458,6 +458,8 @@ ps1_setup(int model)
     lpt1_remove();
     lpt1_init(0x3bc);
 
+    mem_remap_top(384);
+
     if (model == 2011) {
 	rom_init(&ps->high_rom,
 		 "roms/machines/ibmps1es/f80000.bin",
@@ -502,8 +504,6 @@ static void
 ps1_common_init(const machine_t *model)
 {
     machine_common_init(model);
-
-    mem_remap_top(384);
 
     refresh_at_enable = 1;
     pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_at);
