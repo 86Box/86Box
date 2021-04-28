@@ -639,8 +639,17 @@ kbc_queue_reset(uint8_t channel)
 
 
 static void
-kbc_queue_add(uint8_t val, uint8_t channel)
+kbc_queue_add(atkbd_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
 {
+    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
+
+    if ((kbc_ven == KBC_VEN_AMI) || ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF))
+	stat_hi |= ((dev->input_port & 0x80) ? 0x10 : 0x00);
+    else
+	stat_hi |= 0x10;
+
+    dev->status = (dev->status & 0x0f) | stat_hi;
+
     if (channel == 2) {
 	kbd_log("ATkbc: mouse_queue[%02X] = %02X;\n", mouse_queue_end, val);
 	mouse_queue[mouse_queue_end] = val;
@@ -660,12 +669,19 @@ kbc_queue_add(uint8_t val, uint8_t channel)
 static void
 add_to_kbc_queue_front(atkbd_t *dev, uint8_t val)
 {
+    uint8_t stat_hi, kbc_ven = dev->flags & KBC_VEN_MASK;
+
+    if ((kbc_ven == KBC_VEN_AMI) || ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF))
+	stat_hi = ((dev->input_port & 0x80) ? 0x10 : 0x00);
+    else
+	stat_hi = 0x10;
+
     kbd_log("ATkbc: Adding %02X to front...\n", val);
     dev->wantirq = 0;
     if (dev->mem[0] & 0x01)
 	picint(2);
     dev->out = val;
-    dev->status = (dev->status & ~(STAT_IFULL | STAT_MFULL)) | STAT_OFULL;
+    dev->status = (dev->status & ~(STAT_IFULL | STAT_MFULL)) | STAT_OFULL | stat_hi;
     dev->last_irq = 0x0000;
 }
 
@@ -678,8 +694,7 @@ add_data_kbd_queue(atkbd_t *dev, int direct, uint8_t val)
 	return;
     }
      kbd_log("ATkbc: key_queue[%02X] = %02X;\n", key_queue_end, val);
-    key_queue[key_queue_end] = val;
-    key_queue_end = (key_queue_end + 1) & 0xf;
+    kbc_queue_add(dev, val, 1, 0x00);
     kbd_last_scan_code = val;
 }
 
@@ -779,8 +794,7 @@ add_data(atkbd_t *dev, uint8_t val)
     kbd_log("ATkbc: add to queue\n");
 
     kbd_log("ATkbc: key_ctrl_queue[%02X] = %02X;\n", key_ctrl_queue_end, val);
-    key_ctrl_queue[key_ctrl_queue_end] = val;
-    key_ctrl_queue_end = (key_ctrl_queue_end + 1) & 0xf;
+    kbc_queue_add(dev, val, 0, 0x00);
 
     if (!(dev->out_new & 0x300)) {
 	dev->out_delayed = dev->out_new;
@@ -829,8 +843,7 @@ add_data_kbd(uint16_t val)
     int translate = (keyboard_mode & 0x40);
     uint8_t fake_shift[4];
     uint8_t num_lock = 0, shift_states = 0;
-	uint8_t kbc_ven = 0x0;
-	kbc_ven = dev->flags & KBC_VEN_MASK;
+    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
 
     if (dev->reset_delay)
 	return;
@@ -1735,7 +1748,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 						if (mouse_write)
 							mouse_write(val, mouse_p);
 						else
-							keyboard_at_adddata_mouse(0xfe);
+							kbc_queue_add(dev, 0xfe, 2, 0x40);
 					}
 					break;
 
@@ -2174,7 +2187,7 @@ kbd_read(uint16_t port, void *priv)
 			ret |= STAT_SYSFLAG;
 		/* Only clear the transmit timeout flag on non-PS/2 controllers, as on
 		   PS/2 controller, it is the keyboard/mouse output source bit. */
-		dev->status &= ~STAT_RTIMEOUT;
+		// dev->status &= ~STAT_RTIMEOUT;
 		if (((dev->flags & KBC_TYPE_MASK) > KBC_TYPE_PS2_NOREF) && 
 		   (kbc_ven != KBC_VEN_IBM_MCA))
 			dev->status &= ~STAT_TTIMEOUT;
@@ -2569,7 +2582,9 @@ keyboard_at_adddata_keyboard_raw(uint8_t val)
 void
 keyboard_at_adddata_mouse(uint8_t val)
 {
-    kbc_queue_add(val, 2);
+    atkbd_t *dev = SavedKbd;
+
+    kbc_queue_add(dev, val, 2, 0x00);
 }
 
 
