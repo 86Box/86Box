@@ -55,7 +55,3 @@ endif()
 if(M6117)
 	target_compile_definitions(mch PRIVATE USE_M6117)
 endif()
-
-if(VECT486VL)
-	target_compile_definitions(mch PRIVATE USE_VECT486VL)
-endif()

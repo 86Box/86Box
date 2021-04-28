@@ -219,9 +219,7 @@ const machine_t machines[] = {
     { "[SiS 471] Phoenix SiS 471",		"px471",		MACHINE_TYPE_486,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024,131072, 1024, 127,		machine_at_px471_init, NULL			},
     { "[VIA VT82C495] FIC 486-VC-HD",		"486vchd",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 64512, 1024, 127,	      machine_at_486vchd_init, NULL			},
     { "[VLSI 82C480] IBM PS/1 model 2133",	"ibmps1_2133",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_NONMI | MACHINE_VIDEO,	 2048, 32768, 1024, 127,	       machine_ps1_m2133_init, ps1_m2133_get_device	},
-#if defined(DEV_BRANCH) && defined(USE_VECT486VL)
     { "[VLSI 82C480] HP Vectra 486VL",		"vect486vl",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 2048, 65536, 1024, 127,	    machine_at_vect486vl_init, at_vect486vl_get_device	},
-#endif
 
     /* 486 machines with utilize the MCA bus */
 #if defined(DEV_BRANCH) && defined(USE_PS2M70T4)

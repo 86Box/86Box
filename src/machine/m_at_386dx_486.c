@@ -330,7 +330,6 @@ machine_at_pb410a_init(const machine_t *model)
 }
 
 
-#if defined(DEV_BRANCH) && defined(USE_VECT486VL)
 int
 machine_at_vect486vl_init(const machine_t *model)	// has HDC problems
 {
@@ -361,7 +360,6 @@ at_vect486vl_get_device(void)
 {
     return &gd5428_onboard_device;
 }
-#endif
 
 
 int

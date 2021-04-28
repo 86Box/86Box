@@ -68,10 +68,10 @@ vl82c480_recalc(vl82c480_t *dev)
     shadowbios = 0;
     shadowbios_write = 0;
 
-    for (i = 0; i < 8; i += 2) {
-	for (j = 0; j < 6; j++) {
-		base = 0x000a0000 + (i << 13) + (j << 16);
-		access = dev->regs[0x0d + j] & (3 << i);
+    for (i = 0; i < 6; i++) {
+        for (j = 0; j < 8; j += 2) {
+		base = 0x000a0000 + (i << 16) + (j << 13);
+		access = (dev->regs[0x0d + i] >> j) & 3;
 		mem_set_mem_state(base, 0x4000, vl82c480_shflags(access));
 		shadowbios |= ((base >= 0xe0000) && (access & 0x02));
 		shadowbios_write |= ((base >= 0xe0000) && (access & 0x01));

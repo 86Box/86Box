@@ -314,9 +314,7 @@ extern int	machine_at_opti495_init(const machine_t *);
 extern int	machine_at_opti495_ami_init(const machine_t *);
 extern int	machine_at_opti495_mr_init(const machine_t *);
 
-#if defined(DEV_BRANCH) && defined(USE_VECT486VL)
 extern int	machine_at_vect486vl_init(const machine_t *);
-#endif
 
 extern int	machine_at_403tg_init(const machine_t *);
 extern int	machine_at_pc330_6573_init(const machine_t *);
@@ -359,9 +357,7 @@ extern int	machine_at_pcm5330_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_acera1g_get_device(void);
-#if defined(DEV_BRANCH) && defined(USE_VECT486VL)
 extern const device_t 	*at_vect486vl_get_device(void);
-#endif
 extern const device_t 	*at_valuepoint433_get_device(void);
 #endif
 

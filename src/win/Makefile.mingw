@@ -575,10 +575,6 @@ ifeq ($(XL24), y)
 OPTS		+= -DUSE_XL24
 endif
 
-ifeq ($(VECT486VL), y)
-OPTS		+= -DUSE_VECT486VL
-endif
-
 ifeq ($(OLIVETTI), y)
 OPTS		+= -DUSE_OLIVETTI
 DEVBROBJ	+= olivetti_eva.o
