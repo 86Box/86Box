@@ -250,6 +250,7 @@ umc_8886_close(void *priv)
     free(dev);
 }
 
+
 static void *
 umc_8886_init(const device_t *info)
 {
@@ -271,6 +272,7 @@ umc_8886_init(const device_t *info)
     return dev;
 }
 
+
 const device_t umc_8886f_device = {
     "UMC 8886F",
     DEVICE_PCI,
@@ -278,10 +280,11 @@ const device_t umc_8886f_device = {
     umc_8886_init,
     umc_8886_close,
     umc_8886_reset,
-    {NULL},
+    { NULL },
     NULL,
     NULL,
-    NULL};
+    NULL
+};
 
 const device_t umc_8886af_device = {
     "UMC 8886AF",
@@ -290,7 +293,8 @@ const device_t umc_8886af_device = {
     umc_8886_init,
     umc_8886_close,
     umc_8886_reset,
-    {NULL},
+    { NULL },
     NULL,
     NULL,
-    NULL};
+    NULL
+};
