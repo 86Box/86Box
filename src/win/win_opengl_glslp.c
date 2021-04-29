@@ -58,8 +58,9 @@ void main(){\n\
 static const GLchar* fragment_shader = "#version 330 core\n\
 in vec2 tex;\n\
 uniform sampler2D texsampler;\n\
+out vec4 color;\n\
 void main() {\n\
-	gl_FragColor = texture(texsampler, tex);\n\
+	color = texture(texsampler, tex);\n\
 }\n";
 
 /**
@@ -97,65 +98,66 @@ static char* read_file_to_string(const char* path)
 	return NULL;
 }
 
+static int check_status(GLuint id, int is_shader)
+{
+	GLint status = GL_FALSE;
+
+	if (is_shader)
+		glGetShaderiv(id, GL_COMPILE_STATUS, &status);
+	else
+		glGetProgramiv(id, GL_LINK_STATUS, &status);
+
+	if (status == GL_FALSE)
+	{
+		int info_log_length;
+
+		if (is_shader)
+			glGetShaderiv(id, GL_INFO_LOG_LENGTH, &info_log_length);
+		else
+			glGetProgramiv(id, GL_INFO_LOG_LENGTH, &info_log_length);
+
+		GLchar* info_log_text = (GLchar*)malloc(sizeof(GLchar) * info_log_length);
+
+		if (is_shader)
+			glGetShaderInfoLog(id, info_log_length, NULL, info_log_text);
+		else
+			glGetProgramInfoLog(id, info_log_length, NULL, info_log_text);
+
+		/* TODO: error logging */
+
+		free(info_log_text);
+
+		return 0;
+	}
+
+	return 1;
+}
+
 /**
  * @brief Compile custom shaders into a program.
  * @return Shader program identifier.
 */
 GLuint load_custom_shaders(const char* path)
 {
-	GLint status = GL_FALSE;
-	int info_log_length;
-
-	/* TODO: get path from config */
 	char* shader = read_file_to_string(path);
 
 	if (shader != NULL)
 	{
 		int success = 1;
 
-		const char* vertex_sources[2] = { "#define VERTEX\n", shader };
-		const char* fragment_sources[2] = { "#define FRAGMENT\n", shader };
+		const char* vertex_sources[2] = { "#version 330 core\n#define VERTEX\n", shader };
+		const char* fragment_sources[2] = { "#version 330 core\n#define FRAGMENT\n", shader };
 
 		GLuint vertex_id = glCreateShader(GL_VERTEX_SHADER);
 		GLuint fragment_id = glCreateShader(GL_FRAGMENT_SHADER);
 
 		glShaderSource(vertex_id, 2, vertex_sources, NULL);
 		glCompileShader(vertex_id);
-		glGetShaderiv(vertex_id, GL_COMPILE_STATUS, &status);
-
-		if (status == GL_FALSE)
-		{
-			glGetShaderiv(vertex_id, GL_INFO_LOG_LENGTH, &info_log_length);
-
-			GLchar* info_log_text = (GLchar*)malloc(sizeof(GLchar) * info_log_length);
-
-			glGetShaderInfoLog(vertex_id, info_log_length, NULL, info_log_text);
-
-			/* TODO: error logging */
-
-			free(info_log_text);
-
-			success = 0;
-		}
+		success *= check_status(vertex_id, 1);
 
 		glShaderSource(fragment_id, 2, fragment_sources, NULL);
 		glCompileShader(fragment_id);
-		glGetShaderiv(fragment_id, GL_COMPILE_STATUS, &status);
-
-		if (status == GL_FALSE)
-		{
-			glGetShaderiv(fragment_id, GL_INFO_LOG_LENGTH, &info_log_length);
-
-			GLchar* info_log_text = (GLchar*)malloc(sizeof(GLchar) * info_log_length);
-
-			glGetShaderInfoLog(fragment_id, info_log_length, NULL, info_log_text);
-
-			/* TODO: error logging */
-
-			free(info_log_text);
-
-			success = 0;
-		}
+		success *= check_status(fragment_id, 1);
 
 		free(shader);
 
@@ -168,20 +170,7 @@ GLuint load_custom_shaders(const char* path)
 			glAttachShader(prog_id, vertex_id);
 			glAttachShader(prog_id, fragment_id);
 			glLinkProgram(prog_id);
-			glGetProgramiv(prog_id, GL_LINK_STATUS, &status);
-
-			if (status == GL_FALSE)
-			{
-				glGetProgramiv(prog_id, GL_INFO_LOG_LENGTH, &info_log_length);
-
-				GLchar* info_log_text = (GLchar*)malloc(sizeof(GLchar) * info_log_length);
-
-				glGetProgramInfoLog(prog_id, info_log_length, NULL, info_log_text);
-
-				/* TODO: error logging */
-
-				free(info_log_text);
-			}
+			check_status(prog_id, 0);
 
 			glDetachShader(prog_id, vertex_id);
 			glDetachShader(prog_id, fragment_id);
