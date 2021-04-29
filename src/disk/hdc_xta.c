@@ -1068,12 +1068,13 @@ xta_init(const device_t *info)
 		  hdc_read,NULL,NULL, hdc_write,NULL,NULL, dev);
 
     /* Load BIOS if it has one. */
-    if (dev->rom_addr != 0x000000)
+    if (dev->rom_addr != 0x000000) {
 	rom_init(&dev->bios_rom, fn,
 		 dev->rom_addr, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+   }
 		
     /* Create a timer for command delays. */
-	timer_add(&dev->timer, hdc_callback, dev, 0);
+    timer_add(&dev->timer, hdc_callback, dev, 0);
 
     return(dev);
 }
