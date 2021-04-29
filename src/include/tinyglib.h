@@ -123,8 +123,6 @@ typedef struct _GRand {
 
 
 /* Functions */
-
-#ifdef __GNUC__
 extern gboolean	g_spawn_async_with_fds(const gchar *working_directory, gchar **argv,
                                        gchar **envp, GSpawnFlags flags,
                                        GSpawnChildSetupFunc child_setup,
@@ -134,11 +132,9 @@ extern GString	*g_string_new(gchar *base) __attribute__((__unused__));
 extern gchar	*g_string_free(GString *string, gboolean free_segment) __attribute__((__unused__));
 extern gchar	*g_strstr_len(const gchar *haystack, gssize haystack_len, const gchar *needle) __attribute__((__unused__));
 extern guint	g_strv_length(gchar **str_array) __attribute__((__unused__));
-#endif
 
 
 /* Macros */
-
 #define tinyglib_pclog(f, s, ...) pclog("TinyGLib " f "(): " s "\n", ##__VA_ARGS__)
 
 #define GLIB_CHECK_VERSION(a, b, c) 1
