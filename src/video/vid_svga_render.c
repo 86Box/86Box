@@ -665,6 +665,77 @@ svga_render_8bpp_lowres(svga_t *svga)
 	svga->lastline_draw = svga->displine;
 
 	for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += 8) {
+		dat = *(uint32_t *)(&svga->vram[svga->ma & svga->vram_display_mask]);
+
+		p[0] = p[1] = svga->map8[dat & 0xff];
+		p[2] = p[3] = svga->map8[(dat >> 8) & 0xff];
+		p[4] = p[5] = svga->map8[(dat >> 16) & 0xff];
+		p[6] = p[7] = svga->map8[(dat >> 24) & 0xff];
+
+		svga->ma += 4;
+		p += 8;
+	}
+	svga->ma &= svga->vram_display_mask;
+    }
+}
+
+
+void
+svga_render_8bpp_highres(svga_t *svga)
+{
+    int x;
+    uint32_t *p;
+    uint32_t dat;
+
+    if ((svga->displine + svga->y_add) < 0)
+	return;
+
+    if (svga->changedvram[svga->ma >> 12] || svga->changedvram[(svga->ma >> 12) + 1] || svga->fullchange) {
+	p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+
+	if (svga->firstline_draw == 2000) 
+		svga->firstline_draw = svga->displine;
+	svga->lastline_draw = svga->displine;
+
+	for (x = 0; x <= (svga->hdisp/* + svga->scrollcache*/); x += 8) {
+		dat = *(uint32_t *)(&svga->vram[svga->ma & svga->vram_display_mask]);
+		p[0] = svga->map8[dat & 0xff];
+		p[1] = svga->map8[(dat >> 8) & 0xff];
+		p[2] = svga->map8[(dat >> 16) & 0xff];
+		p[3] = svga->map8[(dat >> 24) & 0xff];
+
+		dat = *(uint32_t *)(&svga->vram[(svga->ma + 4) & svga->vram_display_mask]);
+		p[4] = svga->map8[dat & 0xff];
+		p[5] = svga->map8[(dat >> 8) & 0xff];
+		p[6] = svga->map8[(dat >> 16) & 0xff];
+		p[7] = svga->map8[(dat >> 24) & 0xff];
+
+		svga->ma += 8;
+		p += 8;
+	}
+	svga->ma &= svga->vram_display_mask;
+    }
+}
+
+
+void
+svga_render_8bpp_tseng_lowres(svga_t *svga)
+{
+    int x;
+    uint32_t *p;
+    uint32_t dat;
+
+    if ((svga->displine + svga->y_add) < 0)
+	return;
+
+    if (svga->changedvram[svga->ma >> 12] || svga->changedvram[(svga->ma >> 12) + 1] || svga->fullchange) {
+	p = &buffer32->line[svga->displine + svga->y_add][svga->x_add];
+
+	if (svga->firstline_draw == 2000) 
+		svga->firstline_draw = svga->displine;
+	svga->lastline_draw = svga->displine;
+
+	for (x = 0; x <= (svga->hdisp + svga->scrollcache); x += 8) {
 		if (svga->crtc[0x17] & 0x80) {
 			dat = *(uint32_t *)(&svga->vram[svga->ma & svga->vram_display_mask]);
 			if (svga->attrregs[0x10] & 0x80)
@@ -694,7 +765,7 @@ svga_render_8bpp_lowres(svga_t *svga)
 
 
 void
-svga_render_8bpp_highres(svga_t *svga)
+svga_render_8bpp_tseng_highres(svga_t *svga)
 {
     int x;
     uint32_t *p;
