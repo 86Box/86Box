@@ -539,7 +539,7 @@ sio_init(const device_t *info)
 
     timer_add(&dev->timer, NULL, NULL, 0);
 
-    device_add(&i8254_sec_device);
+    // device_add(&i8254_sec_device);
 
     return dev;
 }
