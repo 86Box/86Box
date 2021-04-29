@@ -185,7 +185,7 @@ static uint16_t voodoo_readw(uint32_t addr, void *p)
 static uint32_t voodoo_readl(uint32_t addr, void *p)
 {
         voodoo_t *voodoo = (voodoo_t *)p;
-        uint32_t temp;
+        uint32_t temp = 0xffffffff;
         int fifo_size;
         voodoo->rd_count++;
         addr &= 0xffffff;
