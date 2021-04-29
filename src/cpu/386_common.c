@@ -1555,45 +1555,6 @@ cpu_386_flags_rebuild()
 }
 
 
-/*	0 = Limit 0-15
-	1 = Base 0-15
-	2 = Base 16-23 (bits 0-7), Access rights
-		8-11	Type
-		12	S
-		13, 14	DPL
-		15	P
-	3 = Limit 16-19 (bits 0-3), Base 24-31 (bits 8-15), granularity, etc.
-		4	A
-		6	DB
-		7	G	*/
-static __inline void
-read_seg_data(uint16_t *seg_data, uint16_t seg, x86seg *s)
-{
-    uint32_t addr;
-
-    if (seg & 0x0004)
-	addr = (seg & 0xfff8) + ldt.base;
-    else
-	addr = (seg & 0xfff8) + gdt.base;
-
-    cpl_override = 1;
-    x386_common_log("read_seg_data(abrt = %02X): Begin (descriptor at %08X)\n", cpu_state.abrt, addr);
-    seg_data[0]=readmemw(0, addr);
-    x386_common_log("read_seg_data(abrt = %02X): seg_data[0] = %04X\n", cpu_state.abrt, seg_data[0]);
-    seg_data[1]=readmemw(0, addr + 2);
-    x386_common_log("read_seg_data(abrt = %02X): seg_data[1] = %04X\n", cpu_state.abrt, seg_data[1]);
-    seg_data[2]=readmemw(0, addr + 4);
-    x386_common_log("read_seg_data(abrt = %02X): seg_data[2] = %04X\n", cpu_state.abrt, seg_data[2]);
-    seg_data[3]=readmemw(0, addr + 6);
-    x386_common_log("read_seg_data(abrt = %02X): seg_data[3] = %04X\n", cpu_state.abrt, seg_data[3]);
-    if (s != &cpu_state.seg_cs) {
-	writememw(0, addr + 4, seg_data[2] | 0x100); /*Set accessed bit*/
-	x386_common_log("read_seg_data(abrt = %02X): accessed bit set\n", cpu_state.abrt);
-    }
-    cpl_override = 0;
-}
-
-
 int
 sysenter(uint32_t fetchdat)
 {
