@@ -117,9 +117,6 @@ SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 					dpi = win_get_dpi(hwndMain);
 					temp_x = MulDiv(temp_x, dpi, 96);
 					temp_y = MulDiv(temp_y, dpi, 96);
-				} else {
-					temp_x = temp_x;
-					temp_y = temp_y;
 				}
 
 				ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);

@@ -316,7 +316,7 @@ poll_thread(void *arg)
     struct in_addr dhcp = { .s_addr = htonl(0x0a00020f) }; /* 10.0.2.15 */
     struct in_addr dns  = { .s_addr = htonl(0x0a000203) }; /* 10.0.2.3 */
     struct in_addr bind = { .s_addr = htonl(0x00000000) }; /* 0.0.0.0 */
-    struct in6_addr ipv6_dummy; /* contents don't matter; we're not using IPv6 */
+    struct in6_addr ipv6_dummy = { 0 }; /* contents don't matter; we're not using IPv6 */
 
     /* Initialize SLiRP. */
     slirp->slirp = slirp_init(0, 1, net, mask, host, 0, ipv6_dummy, 0, ipv6_dummy, NULL, NULL, NULL, NULL, dhcp, dns, ipv6_dummy, NULL, NULL, &slirp_cb, arg);
