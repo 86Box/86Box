@@ -44,6 +44,14 @@
 #include <stdint.h>
 #include <string.h>
 
+#if !defined(_MSC_VER) || defined(__clang__)
+#include <stdatomic.h>
+#else
+typedef LONG atomic_flag;
+#define atomic_flag_clear(OBJ) InterlockedExchange(OBJ, 0)
+#define atomic_flag_test_and_set(OBJ) InterlockedExchange(OBJ, 1)
+#endif
+
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/video.h>
@@ -53,6 +61,9 @@
 
 static const int INIT_WIDTH = 640;
 static const int INIT_HEIGHT = 400;
+static const int BUFFERPIXELS = 4460544;	/* Same size as render_buffer, pow(2048+64,2). */
+static const int BUFFERBYTES = 17842176;	/* Pixel is 4 bytes. */
+static const int BUFFERCOUNT = 3;		/* How many buffers to use for pixel transfer (2-3 is commonly recommended). */
 
 /**
  * @brief A dedicated OpenGL thread.
@@ -91,17 +102,25 @@ static union
 } sync_objects = { 0 };
 
 /**
- * @brief Signal from OpenGL thread that it's done with video buffer.
-*/
-static HANDLE blit_done = NULL;
-
-/**
  * @brief Blit event parameters.
 */
-static volatile struct
+typedef struct
 {
-	int x, y, y1, y2, w, h, resized;
-} blit_info = { 0 };
+	int y1, y2, w, h;
+	void* buffer;			/* Buffer for pixel transfer, allocated by gpu driver. */
+	volatile atomic_flag in_use;	/* Is buffer currently in use. */
+	GLsync sync;			/* Fence sync object used by opengl thread to track pixel transfer completion. */
+} blit_info_t;
+
+/**
+ * @brief Array of blit_infos, one for each buffer.
+*/
+static blit_info_t* blit_info = NULL;
+
+/**
+ * @brief Buffer index of next write operation.
+*/
+static int write_pos = 0;
 
 /**
  * @brief Resize event parameters.
@@ -132,6 +151,7 @@ typedef struct
 	GLuint vertexArrayID;
 	GLuint vertexBufferID;
 	GLuint textureID;
+	GLuint unpackBufferID;
 	GLuint shader_progID;
 
 	/* Uniforms */
@@ -308,7 +328,7 @@ static void apply_shaders(gl_identifiers* gl)
  * @brief Initialize OpenGL context
  * @return Identifiers
 */
-static gl_identifiers initialize_glcontext()
+static int initialize_glcontext(gl_identifiers* gl)
 {
 	/* Vertex, texture 2d coordinates and color (white) making a quad as triangle strip */
 	static const GLfloat surface[] = {
@@ -318,18 +338,16 @@ static gl_identifiers initialize_glcontext()
 		1.f, -1.f, 1.f, 1.f, 1.f, 1.f, 1.f, 1.f
 	};
 
-	gl_identifiers gl = { 0 };
+	glGenVertexArrays(1, &gl->vertexArrayID);
 
-	glGenVertexArrays(1, &gl.vertexArrayID);
+	glBindVertexArray(gl->vertexArrayID);
 
-	glBindVertexArray(gl.vertexArrayID);
-
-	glGenBuffers(1, &gl.vertexBufferID);
-	glBindBuffer(GL_ARRAY_BUFFER, gl.vertexBufferID);
+	glGenBuffers(1, &gl->vertexBufferID);
+	glBindBuffer(GL_ARRAY_BUFFER, gl->vertexBufferID);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(surface), surface, GL_STATIC_DRAW);
 
-	glGenTextures(1, &gl.textureID);
-	glBindTexture(GL_TEXTURE_2D, gl.textureID);
+	glGenTextures(1, &gl->textureID);
+	glBindTexture(GL_TEXTURE_2D, gl->textureID);
 
 	static const GLfloat border_color[] = { 0.f, 0.f, 0.f, 1.f };
 	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color);
@@ -338,32 +356,52 @@ static gl_identifiers initialize_glcontext()
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 0, 0, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, INIT_WIDTH, INIT_HEIGHT, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+
+	glGenBuffers(1, &gl->unpackBufferID);
+	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, gl->unpackBufferID);
+
+	/* Create persistent buffer for pixel transfer. */
+	glBufferStorage(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * BUFFERCOUNT, NULL, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+	
+	void* buf_ptr = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, BUFFERBYTES * BUFFERCOUNT, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+
+	if (buf_ptr == NULL)
+		return 0;
+	
+	/* Split the buffer area for each blit_info and set them available for use. */
+	for (int i = 0; i < BUFFERCOUNT; i++)
+	{
+		blit_info[i].buffer = (byte*)buf_ptr + BUFFERBYTES * i;
+		atomic_flag_clear(&blit_info[i].in_use);
+	}
 
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 
-	apply_shaders(&gl);
+	apply_shaders(gl);
 
-	return gl;
+	return 1;
 }
 
 /**
  * @brief Clean up OpenGL context 
  * @param gl Identifiers from initialize 
 */
-static void finalize_glcontext(gl_identifiers gl)
+static void finalize_glcontext(gl_identifiers* gl)
 {
-	glDeleteProgram(gl.shader_progID);
-	glDeleteTextures(1, &gl.textureID);
-	glDeleteBuffers(1, &gl.vertexBufferID);
-	glDeleteVertexArrays(1, &gl.vertexArrayID);
+	glDeleteProgram(gl->shader_progID);
+	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+	glDeleteBuffers(1, &gl->unpackBufferID);
+	glDeleteTextures(1, &gl->textureID);
+	glDeleteBuffers(1, &gl->vertexBufferID);
+	glDeleteVertexArrays(1, &gl->vertexArrayID);
 }
 
 /**
  * @brief Renders a frame and swaps the buffer
  * @param gl Identifiers from initialize
 */
-static void render_and_swap(gl_identifiers gl)
+static void render_and_swap(gl_identifiers* gl)
 {
 	static int frame_counter = 0;
 
@@ -372,13 +410,13 @@ static void render_and_swap(gl_identifiers gl)
 
 	SDL_GL_SwapWindow(window);
 
-	if (gl.frame_count != -1)
-		glUniform1i(gl.frame_count, frame_counter = (frame_counter + 1) & 1023);
+	if (gl->frame_count != -1)
+		glUniform1i(gl->frame_count, frame_counter = (frame_counter + 1) & 1023);
 }
 
 /**
  * @brief Handle failure in OpenGL thread.
- * Acts like a renderer until closing.
+ * Keeps the thread sleeping until closing.
 */
 static void opengl_fail()
 {
@@ -390,19 +428,20 @@ static void opengl_fail()
 
 	/* TODO: Notify user. */
 
-	HANDLE handles[] = { sync_objects.closing, sync_objects.blit_waiting };
-	
-	while (1)
-	{
-		switch (WaitForMultipleObjects(2, handles, FALSE, INFINITE))
-		{
-		case WAIT_OBJECT_0:		/* Close requested. End thread. */
-			_endthread();
-		case WAIT_OBJECT_0 + 1:		/* Blitter is waiting, signal it to continue. */
-			SetEvent(blit_done);
-		}
-	}
+	WaitForSingleObject(sync_objects.closing, INFINITE);
+
+	_endthread();
 }
+
+/*
+static void __stdcall opengl_debugmsg_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
+{
+	OutputDebugStringA("OpenGL: ");
+	OutputDebugStringA(message);
+	OutputDebugStringA("\n");
+}
+#endif
+*/
 
 /**
  * @brief Main OpenGL thread proc.
@@ -412,7 +451,15 @@ static void opengl_fail()
 */
 static void opengl_main(void* param)
 {
+	SDL_InitSubSystem(SDL_INIT_VIDEO);
+
 	SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1"); /* Is this actually doing anything...? */
+
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+	//SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG | SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
 
 	window = SDL_CreateWindow("86Box OpenGL Renderer", 0, 0, resize_info.width, resize_info.height, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
 
@@ -444,13 +491,29 @@ static void opengl_main(void* param)
 
 	SDL_GL_SetSwapInterval(options.vsync);
 
-	if (!gladLoadGLLoader(SDL_GL_GetProcAddress))
+	if (!gladLoadGLLoader(SDL_GL_GetProcAddress) || !GLAD_GL_ARB_buffer_storage)
 	{
 		SDL_GL_DeleteContext(context);
 		opengl_fail();
 	}
 
-	gl_identifiers gl = initialize_glcontext();
+	/*
+	if (GLAD_GL_ARB_debug_output)
+	{
+		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
+		glDebugMessageControlARB(GL_DONT_CARE, GL_DEBUG_TYPE_PERFORMANCE_ARB, GL_DONT_CARE, 0, 0, GL_FALSE);
+		glDebugMessageCallbackARB(opengl_debugmsg_callback, NULL);
+	}
+	*/
+
+	gl_identifiers gl = { 0 };
+	
+	if (!initialize_glcontext(&gl))
+	{
+		finalize_glcontext(&gl);
+		SDL_GL_DeleteContext(context);
+		opengl_fail();
+	}
 
 	if (gl.frame_count != -1)
 		glUniform1i(gl.frame_count, 0);
@@ -459,13 +522,15 @@ static void opengl_main(void* param)
 
 	uint32_t last_swap = plat_get_micro_ticks() - frametime;
 
+	int read_pos = 0; /* Buffer index of next read operation. */
+
 	/* Render loop */
 	int closing = 0;
 	while (!closing)
 	{
 		/* Rendering is done right after handling an event. */
 		if (frametime < 0)
-			render_and_swap(gl);
+			render_and_swap(&gl);
 
 		DWORD wait_result = WAIT_TIMEOUT;
 
@@ -488,8 +553,19 @@ static void opengl_main(void* param)
 						elapsed = ticks - last_swap;
 					}
 
-					render_and_swap(gl);
+					render_and_swap(&gl);
 					last_swap = ticks;
+				}
+			}
+
+			/* Check if commands that use buffers have been completed. */
+			for (int i = 0; i < BUFFERCOUNT; i++)
+			{
+				if (blit_info[i].sync != NULL && glClientWaitSync(blit_info[i].sync, GL_SYNC_FLUSH_COMMANDS_BIT, 0) != GL_TIMEOUT_EXPIRED)
+				{
+					glDeleteSync(blit_info[i].sync);
+					blit_info[i].sync = NULL;
+					atomic_flag_clear(&blit_info[i].in_use);
 				}
 			}
 
@@ -516,23 +592,30 @@ static void opengl_main(void* param)
 		}
 		else if (sync_event == sync_objects.blit_waiting)
 		{
-			/* Resize the texture */
-			if (blit_info.resized)
-			{
-				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, blit_info.w, blit_info.h, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+			blit_info_t* info = &blit_info[read_pos];
 
-				video_width = blit_info.w;
-				video_height = blit_info.h;
+			if (video_width != info->w || video_height != info->h)
+			{
+				video_width = info->w;
+				video_height = info->h;
+
+				/* Resize the texture */
+				glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+				glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, video_width, video_height, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+				glBindBuffer(GL_PIXEL_UNPACK_BUFFER, gl.unpackBufferID);
 
 				if (fullscreen)
 					SetEvent(sync_objects.resize);
 			}
 
-			/* Transfer video buffer to texture */
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, blit_info.y1, blit_info.w, blit_info.y2 - blit_info.y1, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, &(render_buffer->dat)[blit_info.y1 * blit_info.w]);
+			/* Update texture from pixel buffer. */
+			glPixelStorei(GL_UNPACK_SKIP_PIXELS, BUFFERPIXELS * read_pos);
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, info->y1, info->w, info->y2 - info->y1, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
 
-			/* Signal that we're done with the video buffer */
-			SetEvent(blit_done);
+			/* Add fence to track when above gl commands are complete. */
+			info->sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+
+			read_pos = (read_pos + 1) % BUFFERCOUNT;
 
 			/* Update uniforms */
 			if (gl.input_size != -1)
@@ -656,7 +739,13 @@ static void opengl_main(void* param)
 				SDL_ShowCursor(show_cursor);
 	}
 
-	finalize_glcontext(gl);
+	for (int i = 0; i < BUFFERCOUNT; i++)
+	{
+		if (blit_info[i].sync != NULL)
+			glDeleteSync(blit_info[i].sync);
+	}
+
+	finalize_glcontext(&gl);
 
 	SDL_GL_DeleteContext(context);
 
@@ -669,23 +758,25 @@ static void opengl_main(void* param)
 
 static void opengl_blit(int x, int y, int y1, int y2, int w, int h)
 {
-	if (y1 == y2 || h <= 0 || render_buffer == NULL || thread == NULL)
+	if (y1 == y2 || h <= 0 || render_buffer == NULL || thread == NULL ||
+		atomic_flag_test_and_set(&blit_info[write_pos].in_use))
 	{
 		video_blit_complete();
 		return;
 	}
 
-	blit_info.resized = (w != blit_info.w || h != blit_info.h);
-	blit_info.x = x;
-	blit_info.y = y;
-	blit_info.y1 = y1;
-	blit_info.y2 = y2;
-	blit_info.w = w;
-	blit_info.h = h;
-
-	SignalObjectAndWait(sync_objects.blit_waiting, blit_done, INFINITE, FALSE);
+	memcpy(blit_info[write_pos].buffer, &(render_buffer->dat)[y1 * w], w * (y2 - y1) * 4);
 
 	video_blit_complete();
+
+	blit_info[write_pos].y1 = y1;
+	blit_info[write_pos].y2 = y2;
+	blit_info[write_pos].w = w;
+	blit_info[write_pos].h = h;
+
+	write_pos = (write_pos + 1) % BUFFERCOUNT;
+
+	ReleaseSemaphore(sync_objects.blit_waiting, 1, NULL);
 }
 
 static int framerate_to_frametime(int framerate)
@@ -704,7 +795,10 @@ int opengl_init(HWND hwnd)
 	for (int i = 0; i < sizeof(sync_objects) / sizeof(HANDLE); i++)
 		sync_objects.asArray[i] = CreateEvent(NULL, FALSE, FALSE, NULL);
 
-	blit_done = CreateEvent(NULL, FALSE, FALSE, NULL);
+	sync_objects.closing = CreateEvent(NULL, FALSE, FALSE, NULL);
+	sync_objects.resize = CreateEvent(NULL, FALSE, FALSE, NULL);
+	sync_objects.reload = CreateEvent(NULL, FALSE, FALSE, NULL);
+	sync_objects.blit_waiting = CreateSemaphore(NULL, 0, BUFFERCOUNT * 2, NULL);
 
 	parent = hwnd;
 	
@@ -722,6 +816,15 @@ int opengl_init(HWND hwnd)
 	options.frametime = framerate_to_frametime(video_framerate);
 	strcpy_s(options.shaderfile, sizeof(options.shaderfile), video_shader);
 	options.mutex = thread_create_mutex();
+
+	blit_info = (blit_info_t*)malloc(BUFFERCOUNT * sizeof(blit_info_t));
+	memset(blit_info, 0, BUFFERCOUNT * sizeof(blit_info_t));
+
+	/* Buffers are not yet allocated, set them as in use. */
+	for (int i = 0; i < BUFFERCOUNT; i++)
+		atomic_flag_test_and_set(&blit_info[i].in_use);
+
+	write_pos = 0;
 
 	thread = thread_create(opengl_main, (void*)NULL);
 
@@ -746,16 +849,12 @@ void opengl_close(void)
 
 	thread_wait(thread, -1);
 
-	memset((void*)&blit_info, 0, sizeof(blit_info));
-
 	thread_close_mutex(resize_info.mutex);
 	thread_close_mutex(options.mutex);
 
-	SetEvent(blit_done);
-
 	thread = NULL;
 
-	CloseHandle(blit_done);
+	free(blit_info);
 
 	for (int i = 0; i < sizeof(sync_objects) / sizeof(HANDLE); i++)
 	{
