@@ -125,94 +125,16 @@ typedef struct _GRand {
 /* Functions */
 
 #ifdef __GNUC__
-static gboolean	g_spawn_async_with_fds(const gchar *working_directory, gchar **argv,
+extern gboolean	g_spawn_async_with_fds(const gchar *working_directory, gchar **argv,
                                        gchar **envp, GSpawnFlags flags,
                                        GSpawnChildSetupFunc child_setup,
                                        gpointer user_data, GPid *child_pid, gint stdin_fd,
                                        gint stdout_fd, gint stderr_fd, GError **error) __attribute__((__unused__));
-static GString	*g_string_new(gchar *base) __attribute__((__unused__));
-static gchar	*g_string_free(GString *string, gboolean free_segment) __attribute__((__unused__));
-static gchar	*g_strstr_len(const gchar *haystack, gssize haystack_len, const gchar *needle) __attribute__((__unused__));
-static guint	g_strv_length(gchar **str_array) __attribute__((__unused__));
+extern GString	*g_string_new(gchar *base) __attribute__((__unused__));
+extern gchar	*g_string_free(GString *string, gboolean free_segment) __attribute__((__unused__));
+extern gchar	*g_strstr_len(const gchar *haystack, gssize haystack_len, const gchar *needle) __attribute__((__unused__));
+extern guint	g_strv_length(gchar **str_array) __attribute__((__unused__));
 #endif
-
-/* Must be a function, as libslirp redefines it as a macro. */
-static gboolean
-g_spawn_async_with_fds(const gchar *working_directory, gchar **argv,
-                       gchar **envp, GSpawnFlags flags,
-                       GSpawnChildSetupFunc child_setup,
-                       gpointer user_data, GPid *child_pid, gint stdin_fd,
-                       gint stdout_fd, gint stderr_fd, GError **error)
-{
-    return 0;
-}
-
-
-/* Needs bounds checking, but not really used by libslirp. */
-static GString *
-g_string_new(gchar *base)
-{
-    char *ret = malloc(4096);
-    if (base)
-	strcpy(ret, base);
-    return ret;
-}
-
-
-/* Unimplemented, as with anything related to GString. */
-static gchar *
-g_string_free(GString *string, gboolean free_segment)
-{
-    return (free_segment ? NULL : string);
-}
-
-
-/* Implementation borrowed from GLib itself. */
-static gchar *
-g_strstr_len(const gchar *haystack, gssize haystack_len, const gchar *needle)
-{
-    if (haystack_len < 0)
-	return strstr(haystack, needle);
-    else {
-	const gchar *p = haystack;
-	gsize needle_len = strlen(needle);
-	gsize haystack_len_unsigned = haystack_len;
-	const gchar *end;
-	gsize i;
-	
-	if (needle_len == 0)
-		return (gchar *) haystack;
-	
-	if (haystack_len_unsigned < needle_len)
-		return NULL;
-	
-	end = haystack + haystack_len - needle_len;
-	
-	while (p <= end && *p) {
-		for (i = 0; i < needle_len; i++)
-			if (p[i] != needle[i])
-				goto next;
-	
-		return (gchar *)p;
-	
-next:
-		p++;
-	}
-
-	return NULL;
-    }
-}
-
-
-/* Implementation borrowed from GLib itself. */
-static guint
-g_strv_length(gchar **str_array)
-{
-    guint i = 0;
-    while (str_array[i] != NULL)
-    	++i;
-    return i;
-}
 
 
 /* Macros */
