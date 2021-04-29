@@ -1271,7 +1271,7 @@ ui_init(int nCmdShow)
     WCHAR title[200];
     WNDCLASSEX wincl;			/* buffer for main window's class */
     RAWINPUTDEVICE ridev;		/* RawInput device */
-    MSG messages;			/* received-messages buffer */
+    MSG messages = {0};			/* received-messages buffer */
     HWND hwnd = NULL;			/* handle for our window */
     HACCEL haccel;			/* handle to accelerator table */
     RECT sbar_rect;			/* RECT of the status bar */
