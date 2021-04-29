@@ -587,7 +587,7 @@ static void *
 headland_init(const device_t *info)
 {
     headland_t *dev;
-    int ht386;
+    int ht386 = 0;
     uint32_t i;
 
     dev = (headland_t *) malloc(sizeof(headland_t));
