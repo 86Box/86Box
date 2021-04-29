@@ -1081,9 +1081,9 @@ static void mem_encoding_write_cached(uint16_t addr, uint8_t val, void *p)
 #if 1
  // FIXME: Look into this!!!
                 if (val & 0x01)
-                        ram_mid_mapping.flags |= MEM_MAPPING_ROM;
+                        ram_mid_mapping.flags |= MEM_MAPPING_ROM_WS;
                 else
-                        ram_mid_mapping.flags &= ~MEM_MAPPING_ROM;
+                        ram_mid_mapping.flags &= ~MEM_MAPPING_ROM_WS;
 #endif
                 break;
         }
