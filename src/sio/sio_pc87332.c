@@ -37,7 +37,7 @@
 
 typedef struct {
     uint8_t tries, has_ide,
-	    regs[15];
+	    fdc_on, regs[15];
     int cur_reg;
     fdc_t *fdc;
     serial_t *uart[2];
@@ -273,9 +273,9 @@ pc87332_reset(pc87332_t *dev)
 {
     memset(dev->regs, 0, 15);
 
-    dev->regs[0x00] = 0x07;
+    dev->regs[0x00] = dev->fdc_on ? 0x4f : 0x07;
     if (dev->has_ide == 2)
-	dev->regs[0x00] = 0x87;
+	dev->regs[0x00] |= 0x80;
     dev->regs[0x01] = 0x10;
     dev->regs[0x03] = 0x01;
     dev->regs[0x05] = 0x0D;
@@ -292,7 +292,8 @@ pc87332_reset(pc87332_t *dev)
     serial_handler(dev, 0);
     serial_handler(dev, 1);
     fdc_reset(dev->fdc);
-    fdc_remove(dev->fdc);
+    if (!dev->fdc_on)
+	fdc_remove(dev->fdc);
 
     if (dev->has_ide)
 	ide_handler(dev);
@@ -320,6 +321,7 @@ pc87332_init(const device_t *info)
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
     dev->has_ide = (info->local >> 8) & 0xff;
+    dev->fdc_on = (info->local >> 16) & 0xff;
     pc87332_reset(dev);
 
     if ((info->local & 0xff) == (0x01)) {
@@ -358,6 +360,16 @@ const device_t pc87332_398_ide_device = {
     "National Semiconductor PC87332 Super I/O (Port 398h) (With IDE)",
     0,
     0x101,
+    pc87332_init, pc87332_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+
+const device_t pc87332_398_ide_fdcon_device = {
+    "National Semiconductor PC87332 Super I/O (Port 398h) (With IDE and FDC on)",
+    0,
+    0x10101,
     pc87332_init, pc87332_close, NULL,
     { NULL }, NULL, NULL,
     NULL

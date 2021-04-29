@@ -460,6 +460,8 @@ ps1_setup(int model)
 
     mem_remap_top(384);
 
+    device_add(&ps_nvr_device);
+
     if (model == 2011) {
 	rom_init(&ps->high_rom,
 		 "roms/machines/ibmps1es/f80000.bin",
@@ -510,8 +512,6 @@ ps1_common_init(const machine_t *model)
 
     dma16_init();
     pic2_init();
-
-    device_add(&ps_nvr_device);
 
     device_add(&keyboard_ps2_ps1_device);
 
@@ -571,9 +571,11 @@ machine_ps1_m2133_init(const machine_t *model)
 	return ret;
 
     ps1_common_init(model);
+    /* The PS/1 model 2133 expects a NVR without the century register. */
     device_add(&ide_isa_device);
+    device_add(&at_nvr_old_device);
+    device_add(&pc87332_398_ide_fdcon_device);
     device_add(&vl82c480_device);
-    device_add(&pc87332_398_device);
 
     nmi_mask = 0x80;
 
