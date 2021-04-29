@@ -310,7 +310,7 @@ vt82c49x_read(uint16_t addr, void *priv)
 static void
 vt82c49x_reset(void *priv)
 {
-    uint8_t i;
+    uint16_t i;
 
     for (i = 0; i < 256; i++)
 	vt82c49x_write(i, 0x00, priv);
