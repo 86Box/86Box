@@ -308,7 +308,7 @@ void voodoo_fb_writew(uint32_t addr, uint16_t val, void *p)
                                 *(uint16_t *)(&voodoo->fb_mem[write_addr_aux & voodoo->fb_mask]) = new_depth;
 
 skip_pixel:
-                        x = x;
+                        return;
                 }
         }
         else
