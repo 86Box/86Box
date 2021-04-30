@@ -302,7 +302,7 @@ extern int	machine_at_rycleopardlx_init(const machine_t *);
 
 extern int	machine_at_486vchd_init(const machine_t *);
 
-extern int	machine_at_cs4031_init(const machine_t *);
+extern int	machine_at_pcs46c_init(const machine_t *);
 
 extern int	machine_at_pb410a_init(const machine_t *);
 
@@ -357,6 +357,7 @@ extern int	machine_at_pcm5330_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_acera1g_get_device(void);
+extern const device_t 	*at_pcs46c_get_device(void);
 extern const device_t 	*at_vect486vl_get_device(void);
 extern const device_t 	*at_valuepoint433_get_device(void);
 #endif

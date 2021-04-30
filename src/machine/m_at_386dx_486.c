@@ -282,26 +282,35 @@ machine_at_486vchd_init(const machine_t *model)
 
 
 int
-machine_at_cs4031_init(const machine_t *model)
+machine_at_pcs46c_init(const machine_t *model)
 {
     int ret;
 
-	ret = bios_load_linear("roms/machines/cs4031/CHIPS_1.AMI",
-				0x000f0000, 65536, 0);
+	ret = bios_load_linear("roms/machines/pcs46c/OLIVETTI.BIN",
+				0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_init(model);
-    device_add(&cs4031_device);
-    device_add(&keyboard_at_ami_device);
+    machine_at_common_ide_init(model);
+    device_add(&et6000_device);
+    device_add(&keyboard_ps2_olivetti_device);
 
     if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
+    if (gfxcard == VID_INTERNAL)
+	device_add(&gd5428_onboard_device);
+
     return ret;
 }
 
+
+const device_t *
+at_pcs46c_get_device(void)
+{
+    return &gd5428_onboard_device;
+}
 
 int
 machine_at_pb410a_init(const machine_t *model)

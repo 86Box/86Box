@@ -610,7 +610,7 @@ CPUOBJ		:= cpu.o cpu_table.o fpu.o x86.o \
 		    x86seg.o x87.o x87_timings.o \
 		    $(DYNARECOBJ)
 
-CHIPSETOBJ	:= acc2168.o cs8230.o ali1217.o ali1429.o ali1489.o headland.o intel_82335.o cs4031.o \
+CHIPSETOBJ	:= acc2168.o cs8230.o ali1217.o ali1429.o ali1489.o et6000.o headland.o intel_82335.o \
 		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
 		    neat.o opti495.o opti822.o opti895.o opti5x7.o scamp.o scat.o via_vt82c49x.o via_vt82c505.o \
 		    gc100.o \
