@@ -2767,7 +2767,7 @@ ide_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
     if (ld)
 	return;
 
-    int board = (int) priv;
+    intptr_t board = (intptr_t) priv;
 
     if (ide_boards[board]->base_main || ide_boards[board]->side_main) {
 	ide_remove_handlers(board);
