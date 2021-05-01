@@ -140,6 +140,8 @@ static struct
 	int frametime;		/* Frametime in microseconds, or -1 to sync with blitter */
 	char shaderfile[512];	/* Shader file path. Match the length of openfilestring in win_dialog.c */
 	int shaderfile_changed; /* Has shader file path changed. To prevent unnecessary shader recompilation. */
+	int filter;		/* 0 = Nearest, 1 = Linear */
+	int filter_changed;	/* Has filter changed. */
 	mutex_t* mutex;
 } options = { 0 };
 
@@ -353,8 +355,8 @@ static int initialize_glcontext(gl_identifiers* gl)
 	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, border_color);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, options.filter ? GL_LINEAR : GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, options.filter ? GL_LINEAR : GL_NEAREST);
 
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, INIT_WIDTH, INIT_HEIGHT, 0, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
 
@@ -751,6 +753,14 @@ static void opengl_main(void* param)
 				options.shaderfile_changed = 0;
 			}
 
+			if (options.filter_changed)
+			{
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, options.filter ? GL_LINEAR : GL_NEAREST);
+				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, options.filter ? GL_LINEAR : GL_NEAREST);
+
+				options.filter_changed = 0;
+			}
+
 			thread_release_mutex(options.mutex);
 		}
 
@@ -836,6 +846,9 @@ int opengl_init(HWND hwnd)
 	options.vsync = video_vsync;
 	options.frametime = framerate_to_frametime(video_framerate);
 	strcpy_s(options.shaderfile, sizeof(options.shaderfile), video_shader);
+	options.shaderfile_changed = 0;
+	options.filter = video_filter_method;
+	options.filter_changed = 0;
 	options.mutex = thread_create_mutex();
 
 	blit_info = (blit_info_t*)malloc(BUFFERCOUNT * sizeof(blit_info_t));
@@ -931,6 +944,12 @@ void opengl_reload(void)
 	{
 		strcpy_s(options.shaderfile, sizeof(options.shaderfile), video_shader);
 		options.shaderfile_changed = 1;
+	}
+
+	if (video_filter_method != options.filter)
+	{
+		options.filter = video_filter_method;
+		options.filter_changed = 1;
 	}
 
 	thread_release_mutex(options.mutex);

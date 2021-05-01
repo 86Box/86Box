@@ -83,6 +83,11 @@ BEGIN
             MENUITEM "1.&5x",                   IDM_VID_SCALE_3X
             MENUITEM "&2x",                     IDM_VID_SCALE_4X
         END
+        POPUP "Filter method"
+        BEGIN
+            MENUITEM "&Nearest",                 IDM_VID_FILTER_NEAREST
+            MENUITEM "&Linear",                  IDM_VID_FILTER_LINEAR
+        END
         MENUITEM "Hi&DPI scaling",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
         MENUITEM "&Fullscreen\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN

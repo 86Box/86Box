@@ -178,7 +178,8 @@ video_toggle_option(HMENU h, int *val, int id)
 }
 
 /* Recursively finds and deletes target submenu */
-int delete_submenu(HMENU parent, HMENU target)
+static int
+delete_submenu(HMENU parent, HMENU target)
 {
 	for (int i = 0; i < GetMenuItemCount(parent); i++)
 	{
@@ -243,6 +244,14 @@ show_render_options_menu()
 #endif
 }
 
+static void
+video_set_filter_menu(HMENU menu) 
+{
+	CheckMenuItem(menu, IDM_VID_FILTER_NEAREST, vid_api == 0 || video_filter_method == 0 ? MF_CHECKED : MF_UNCHECKED);
+	CheckMenuItem(menu, IDM_VID_FILTER_LINEAR, vid_api != 0 && video_filter_method == 1 ? MF_CHECKED : MF_UNCHECKED);
+	EnableMenuItem(menu, IDM_VID_FILTER_NEAREST, vid_api == 0 ? MF_GRAYED : MF_ENABLED);
+	EnableMenuItem(menu, IDM_VID_FILTER_LINEAR, vid_api == 0 ? MF_GRAYED : MF_ENABLED);
+}
 
 static void
 ResetAllMenus(void)
@@ -361,6 +370,8 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_CGACON, vid_cga_contrast?MF_CHECKED:MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_GRAYCT_601+video_graytype, MF_CHECKED);
     CheckMenuItem(menuMain, IDM_VID_GRAY_RGB+video_grayscale, MF_CHECKED);
+
+    video_set_filter_menu(menuMain);
 
 #ifdef USE_DISCORD
     if (discord_loaded)
@@ -748,6 +759,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				CheckMenuItem(hmenu, IDM_VID_SDL_SW + vid_api, MF_UNCHECKED);
 				plat_setvid(LOWORD(wParam) - IDM_VID_SDL_SW);
 				CheckMenuItem(hmenu, IDM_VID_SDL_SW + vid_api, MF_CHECKED);
+				video_set_filter_menu(hmenu);
 				config_save();
 				show_render_options_menu();
 				break;
@@ -820,6 +832,14 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				device_force_redraw();
 				video_force_resize_set(1);
 				doresize = 1;
+				config_save();
+				break;
+
+			case IDM_VID_FILTER_NEAREST:
+			case IDM_VID_FILTER_LINEAR:				
+				video_filter_method = LOWORD(wParam) - IDM_VID_FILTER_NEAREST;
+				video_set_filter_menu(hmenu);
+				plat_vid_reload_options();
 				config_save();
 				break;
 

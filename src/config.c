@@ -464,6 +464,8 @@ load_general(void)
 
     video_fullscreen_first = config_get_int(cat, "video_fullscreen_first", 1);
 
+    video_filter_method = config_get_int(cat, "video_filter_method", 1);
+
     force_43 = !!config_get_int(cat, "force_43", 0);
     scale = config_get_int(cat, "scale", 1);
     if (scale > 3)
@@ -1878,6 +1880,11 @@ save_general(void)
 	config_delete_var(cat, "video_fullscreen_first");
       else
 	config_set_int(cat, "video_fullscreen_first", video_fullscreen_first);
+
+    if (video_filter_method == 1)
+	config_delete_var(cat, "video_filter_method");
+      else
+	config_set_int(cat, "video_filter_method", video_filter_method);
 
     if (force_43 == 0)
 	config_delete_var(cat, "force_43");

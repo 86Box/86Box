@@ -101,9 +101,9 @@ static const struct {
     void	(*set_fs)(int fs);
     void	(*reload)(void);
 } vid_apis[RENDERERS_NUM] = {
-  {	"SDL_Software", 1, (int(*)(void*))sdl_inits, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, NULL		},
-  {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, NULL		},
-  {	"SDL_OpenGL", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, NULL		}
+  {	"SDL_Software", 1, (int(*)(void*))sdl_inits, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload	},
+  {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload	},
+  {	"SDL_OpenGL", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload	}
 #if defined(DEV_BRANCH) && defined(USE_OPENGL)
  ,{	"OpenGL_Core", 1, (int(*)(void*))opengl_init, opengl_close, opengl_resize, opengl_pause, NULL, opengl_set_fs, opengl_reload}
 #else
