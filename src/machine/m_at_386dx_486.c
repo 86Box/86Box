@@ -557,7 +557,7 @@ machine_at_pc330_6573_init(const machine_t *model)	// doesn't like every CPU oth
     pci_register_slot(0x13, PCI_CARD_NORMAL, 3, 4, 1, 2);
 	
     device_add(&opti802g_device);
-	device_add(&opti822_device);
+    device_add(&opti822_device);
     device_add(&keyboard_ps2_device);
     device_add(&fdc37c665_device);
     device_add(&ide_opti611_vlb_device);
