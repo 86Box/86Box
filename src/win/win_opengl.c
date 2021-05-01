@@ -361,14 +361,26 @@ static int initialize_glcontext(gl_identifiers* gl)
 	glGenBuffers(1, &gl->unpackBufferID);
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, gl->unpackBufferID);
 
-	/* Create persistent buffer for pixel transfer. */
-	glBufferStorage(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * BUFFERCOUNT, NULL, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
-	
-	void* buf_ptr = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, BUFFERBYTES * BUFFERCOUNT, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+	void* buf_ptr = NULL;
+
+	if (GLAD_GL_ARB_buffer_storage)
+	{
+		/* Create persistent buffer for pixel transfer. */
+		glBufferStorage(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * BUFFERCOUNT, NULL, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);
+
+		buf_ptr = glMapBufferRange(GL_PIXEL_UNPACK_BUFFER, 0, BUFFERBYTES * BUFFERCOUNT, GL_MAP_WRITE_BIT | GL_MAP_PERSISTENT_BIT | GL_MAP_COHERENT_BIT);		
+	}
+	else
+	{
+		/* Fallback; create our own buffer. */
+		buf_ptr = malloc(BUFFERBYTES * BUFFERCOUNT);
+
+		glBufferData(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * BUFFERCOUNT, NULL, GL_STREAM_DRAW);
+	}
 
 	if (buf_ptr == NULL)
-		return 0;
-	
+		return 0; /* Most likely out of memory. */
+
 	/* Split the buffer area for each blit_info and set them available for use. */
 	for (int i = 0; i < BUFFERCOUNT; i++)
 	{
@@ -389,8 +401,12 @@ static int initialize_glcontext(gl_identifiers* gl)
 */
 static void finalize_glcontext(gl_identifiers* gl)
 {
+	if (GLAD_GL_ARB_buffer_storage)
+		glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
+	else
+		free(blit_info[0].buffer);
+
 	glDeleteProgram(gl->shader_progID);
-	glUnmapBuffer(GL_PIXEL_UNPACK_BUFFER);
 	glDeleteBuffers(1, &gl->unpackBufferID);
 	glDeleteTextures(1, &gl->textureID);
 	glDeleteBuffers(1, &gl->vertexBufferID);
@@ -440,7 +456,6 @@ static void __stdcall opengl_debugmsg_callback(GLenum source, GLenum type, GLuin
 	OutputDebugStringA(message);
 	OutputDebugStringA("\n");
 }
-#endif
 */
 
 /**
@@ -491,7 +506,7 @@ static void opengl_main(void* param)
 
 	SDL_GL_SetSwapInterval(options.vsync);
 
-	if (!gladLoadGLLoader(SDL_GL_GetProcAddress) || !GLAD_GL_ARB_buffer_storage)
+	if (!gladLoadGLLoader(SDL_GL_GetProcAddress))
 	{
 		SDL_GL_DeleteContext(context);
 		opengl_fail();
@@ -606,6 +621,12 @@ static void opengl_main(void* param)
 
 				if (fullscreen)
 					SetEvent(sync_objects.resize);
+			}
+
+			if (!GLAD_GL_ARB_buffer_storage)
+			{
+				/* Fallback method, copy data to pixel buffer. */
+				glBufferSubData(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * read_pos, info->w * (info->y2 - info->y1) * sizeof(uint32_t), info->buffer);
 			}
 
 			/* Update texture from pixel buffer. */
@@ -765,7 +786,7 @@ static void opengl_blit(int x, int y, int y1, int y2, int w, int h)
 		return;
 	}
 
-	memcpy(blit_info[write_pos].buffer, &(render_buffer->dat)[y1 * w], w * (y2 - y1) * 4);
+	memcpy(blit_info[write_pos].buffer, &(render_buffer->dat)[y1 * w], w * (y2 - y1) * sizeof(uint32_t));
 
 	video_blit_complete();
 
