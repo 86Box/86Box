@@ -67,6 +67,7 @@ extern const device_t	xta_hd20_device;		/* EuroPC internal */
 
 extern const device_t	xtide_device;			/* xtide_xt */
 extern const device_t	xtide_at_device;		/* xtide_at */
+extern const device_t	xtide_at_386_device;		/* xtide_at_386 */
 extern const device_t	xtide_acculogic_device;		/* xtide_ps2 */
 extern const device_t	xtide_at_ps2_device;		/* xtide_at_ps2 */
 

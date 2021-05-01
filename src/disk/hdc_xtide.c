@@ -49,6 +49,7 @@
 #define ROM_PATH_AT	"roms/hdd/xtide/ide_at.bin"
 #define ROM_PATH_PS2	"roms/hdd/xtide/SIDE1V12.BIN"
 #define ROM_PATH_PS2AT	"roms/hdd/xtide/ide_at_1_1_5.bin"
+#define ROM_PATH_AT_386	"roms/hdd/xtide/ide_386.bin"
 
 
 typedef struct {
@@ -161,8 +162,13 @@ xtide_at_init(const device_t *info)
 
     memset(xtide, 0x00, sizeof(xtide_t));
 
-    rom_init(&xtide->bios_rom, ROM_PATH_AT,
-	     0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+    if (info->local == 1) {
+	rom_init(&xtide->bios_rom, ROM_PATH_AT_386,
+		 0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+    } else {
+	rom_init(&xtide->bios_rom, ROM_PATH_AT,
+		 0xc8000, 0x2000, 0x1fff, 0, MEM_MAPPING_EXTERNAL);
+    }
 
     device_add(&ide_isa_2ch_device);
 
@@ -174,6 +180,13 @@ static int
 xtide_at_available(void)
 {
     return(rom_present(ROM_PATH_AT));
+}
+
+
+static int
+xtide_at_386_available(void)
+{
+    return(rom_present(ROM_PATH_AT_386));
 }
 
 
@@ -262,6 +275,15 @@ const device_t xtide_at_device = {
     0,
     xtide_at_init, xtide_at_close, NULL,
     { xtide_at_available }, NULL, NULL,
+    NULL
+};
+
+const device_t xtide_at_386_device = {
+    "PC/AT XTIDE (386)",
+    DEVICE_ISA | DEVICE_AT,
+    1,
+    xtide_at_init, xtide_at_close, NULL,
+    { xtide_at_386_available }, NULL, NULL,
     NULL
 };
 
