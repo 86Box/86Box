@@ -6,10 +6,10 @@
  *
  *		This file is part of the 86Box distribution.
  *
- * Emulation of the SMC FDC37C651 Super I/O
+ * Emulation of the LG fdc37c651 Super I/O
  *
  * Authors:	Tiseno100
- * Copyright 2021 Tiseno100
+ * Copyright 2020 Tiseno100
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -152,8 +152,8 @@ fdc37c651_init(const device_t *info)
     memset(dev, 0, sizeof(fdc37c651_t));
 
     dev->fdc_controller = device_add(&fdc_at_smc_device);
-    dev->uart[0] = device_add_inst(&ns16550_device, 1);
-    dev->uart[1] = device_add_inst(&ns16550_device, 2);
+    dev->uart[0] = device_add_inst(&ns16450_device, 1);
+    dev->uart[1] = device_add_inst(&ns16450_device, 2);
     device_add(&ide_isa_device);
 
     /* Program Defaults */
