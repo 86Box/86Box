@@ -345,8 +345,7 @@ machine_at_vect486vl_init(const machine_t *model)	// has HDC problems
 
     device_add(&vl82c480_device);
     device_add(&keyboard_ps2_ami_device);
-    device_add(&fdc37c661_device); // presumably SMC FDC37C651
-    device_add(&ide_isa_2ch_device);
+    device_add(&fdc37c651_device);
 
     if (gfxcard == VID_INTERNAL)
 	device_add(&gd5428_onboard_device);
@@ -354,13 +353,40 @@ machine_at_vect486vl_init(const machine_t *model)	// has HDC problems
     return ret;
 }
 
-
 const device_t *
 at_vect486vl_get_device(void)
 {
     return &gd5428_onboard_device;
 }
 
+int
+machine_at_d824_init(const machine_t *model)
+{
+    int ret;
+
+   ret = bios_load_linear("roms/machines/d824/fts-biosupdated824noflashbiosepromv320-320334-160.bin",
+			  0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&vl82c480_device);
+    device_add(&keyboard_ps2_device);
+    device_add(&fdc37c651_device);
+
+    if (gfxcard == VID_INTERNAL)
+	device_add(&gd5428_onboard_device);
+
+    return ret;
+}
+
+const device_t *
+at_d824_get_device(void)
+{
+    return &gd5428_onboard_device;
+}
 
 int
 machine_at_acera1g_init(const machine_t *model)
