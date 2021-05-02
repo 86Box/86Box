@@ -90,6 +90,7 @@ extern int	vid_cga_contrast,		/* (C) video */
 		video_fullscreen_scale,		/* (C) video */
 		enable_overscan,		/* (C) video */
 		force_43,			/* (C) video */
+		video_filter_method,		/* (C) video */
 		video_vsync,			/* (C) video */
 		video_framerate,		/* (C) video */
 		gfxcard;			/* (C) graphics/video card */

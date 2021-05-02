@@ -347,7 +347,7 @@ sdl_reinit_texture(void)
 
     if (sdl_flags & RENDERER_HARDWARE) {
 	sdl_render = SDL_CreateRenderer(sdl_win, -1, SDL_RENDERER_ACCELERATED);
-	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "2");
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, video_filter_method ? "1" : "0");
     } else
 	sdl_render = SDL_CreateRenderer(sdl_win, -1, SDL_RENDERER_SOFTWARE);
 
@@ -551,4 +551,18 @@ sdl_enable(int enable)
     }
 
     SDL_UnlockMutex(sdl_mutex);
+}
+
+void
+sdl_reload(void)
+{
+	if (sdl_flags & RENDERER_HARDWARE)
+	{
+		SDL_LockMutex(sdl_mutex);
+
+		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, video_filter_method ? "1" : "0");
+		sdl_reinit_texture();
+
+		SDL_UnlockMutex(sdl_mutex);
+	}
 }
