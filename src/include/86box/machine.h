@@ -319,6 +319,7 @@ extern int	machine_at_opti495_ami_init(const machine_t *);
 extern int	machine_at_opti495_mr_init(const machine_t *);
 
 extern int	machine_at_vect486vl_init(const machine_t *);
+extern int	machine_at_d824_init(const machine_t *);
 
 extern int	machine_at_403tg_init(const machine_t *);
 extern int	machine_at_pc330_6573_init(const machine_t *);
@@ -362,6 +363,7 @@ extern int	machine_at_pcm5330_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_acera1g_get_device(void);
 extern const device_t 	*at_vect486vl_get_device(void);
+extern const device_t 	*at_d824_get_device(void);
 extern const device_t 	*at_valuepoint433_get_device(void);
 #endif
 
@@ -595,11 +597,6 @@ extern const device_t	*pcjr_get_device(void);
 /* m_ps1.c */
 extern int	machine_ps1_m2011_init(const machine_t *);
 extern int	machine_ps1_m2121_init(const machine_t *);
-extern int	machine_ps1_m2133_init(const machine_t *);
-
-#ifdef EMU_DEVICE_H
-extern const device_t	*ps1_m2133_get_device(void);
-#endif
 
 /* m_ps1_hdc.c */
 #ifdef EMU_DEVICE_H

@@ -202,8 +202,8 @@ const machine_t machines[] = {
     { "[CS4031] AMI 486 CS4031",		"cs4031",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,									 1024, 65536, 1024, 127,	       machine_at_cs4031_init, NULL			},
     { "[OPTi 895] Mylex MVI486",		"mvi486",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE_DUAL,							 1024, 65536, 1024, 127,	       machine_at_mvi486_init, NULL			},
     { "[VIA VT82C495] FIC 486-VC-HD",		"486vchd",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 64512, 1024, 127,	      machine_at_486vchd_init, NULL			},
-    { "[VLSI 82C480] IBM PS/1 model 2133",	"ibmps1_2133",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_NONMI | MACHINE_VIDEO,	 2048, 32768, 1024, 127,	       machine_ps1_m2133_init, ps1_m2133_get_device	},
-    { "[VLSI 82C480] HP Vectra 486VL",		"vect486vl",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 2048, 65536, 1024, 127,	    machine_at_vect486vl_init, at_vect486vl_get_device	},
+    { "[VLSI 82C480] HP Vectra 486VL",		"vect486vl",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 4096, 32768, 4096, 127,	    machine_at_vect486vl_init, at_vect486vl_get_device	},
+    { "[VLSI 82C481] Siemens Nixdorf System Board D824",		"d824",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 4096, 32768, 4096, 127,	    machine_at_d824_init, at_d824_get_device	},
 
     /* 486 machines with utilize the MCA bus */
 #if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
