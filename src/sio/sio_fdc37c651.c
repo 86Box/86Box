@@ -6,10 +6,10 @@
  *
  *		This file is part of the 86Box distribution.
  *
- * Emulation of the LG fdc37c651 Super I/O
+ * Emulation of the SMC FDC37C651 Super I/O
  *
  * Authors:	Tiseno100
- * Copyright 2020 Tiseno100
+ * Copyright 2021 Tiseno100
  */
 #include <stdarg.h>
 #include <stdio.h>
