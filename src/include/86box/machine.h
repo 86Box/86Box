@@ -321,6 +321,8 @@ extern int	machine_at_opti495_mr_init(const machine_t *);
 extern int	machine_at_vect486vl_init(const machine_t *);
 extern int	machine_at_d824_init(const machine_t *);
 
+extern int	machine_at_pcs46c_init(const machine_t *);
+
 extern int	machine_at_403tg_init(const machine_t *);
 extern int	machine_at_pc330_6573_init(const machine_t *);
 extern int	machine_at_mvi486_init(const machine_t *);
@@ -364,6 +366,7 @@ extern int	machine_at_pcm5330_init(const machine_t *);
 extern const device_t 	*at_acera1g_get_device(void);
 extern const device_t 	*at_vect486vl_get_device(void);
 extern const device_t 	*at_d824_get_device(void);
+extern const device_t 	*at_pcs46c_get_device(void);
 extern const device_t 	*at_valuepoint433_get_device(void);
 #endif
 
@@ -611,9 +614,6 @@ extern int	machine_ps2_m30_286_init(const machine_t *);
 extern int	machine_ps2_model_50_init(const machine_t *);
 extern int	machine_ps2_model_55sx_init(const machine_t *);
 extern int	machine_ps2_model_70_type3_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
-extern int	machine_ps2_model_70_type4_init(const machine_t *);
-#endif
 extern int	machine_ps2_model_80_init(const machine_t *);
 
 /* m_tandy.c */

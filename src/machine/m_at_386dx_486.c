@@ -389,6 +389,34 @@ at_d824_get_device(void)
 }
 
 int
+machine_at_pcs46c_init(const machine_t *model)
+{
+    int ret;
+
+   ret = bios_load_linear("roms/machines/pcs46c/OLIVETTI.BIN",
+			  0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_ide_init(model);
+
+    device_add(&et6000_device);
+    device_add(&keyboard_ps2_device);
+
+    if (gfxcard == VID_INTERNAL)
+	device_add(&gd5428_onboard_device);
+
+    return ret;
+}
+
+const device_t *
+at_pcs46c_get_device(void)
+{
+    return &gd5428_onboard_device;
+}
+
+int
 machine_at_acera1g_init(const machine_t *model)
 {
     int ret;
