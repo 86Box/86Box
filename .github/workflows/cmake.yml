@@ -83,7 +83,7 @@ jobs:
           new-dynarec: on
           type: Debug
         target-arch: ['Win32', 'x64', 'ARM64']
-        toolset: ['clangcl', 'v142']
+        toolset: ['clangcl']
         exclude:
           - target-arch: 'ARM64'
             build:
