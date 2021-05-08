@@ -626,7 +626,7 @@ static void opengl_main(void* param)
 			}
 
 			/* Clip to height. y2 can be out-of-bounds. */
-			int sub_height = MIN(info->y2 - info->y1, info->h - info->y1);
+			int sub_height = MIN(info->y2, info->h) - info->y1;
 
 			if (!GLAD_GL_ARB_buffer_storage)
 			{
