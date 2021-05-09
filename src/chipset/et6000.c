@@ -138,7 +138,7 @@ et6000_init(const device_t *info)
     device_add(&port_92_device);
 
     /* Defaults */
-    dev->regs[0x13] = 1;
+    dev->regs[3] = 1;
 
     /* Shadow Programming */
     et6000_shadow_control(0xf0000, 0x10000, 0, 1);
