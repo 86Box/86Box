@@ -200,7 +200,7 @@ const machine_t machines[] = {
     /* 486 machines - Socket 1 */
     { "[ALi M1429] Olystar LIL1429",		"ali1429",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	      machine_at_ali1429_init, NULL			},
     { "[CS4031] AMI 486 CS4031",		"cs4031",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,									 1024, 65536, 1024, 127,	       machine_at_cs4031_init, NULL			},
-    { "[ETEQ ET6000] Olivetti PCS-46C",		"pcs46c",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE | MACHINE_VIDEO,							 4096, 32768, 4096, 127,	      machine_at_pcs46c_init, at_pcs46c_get_device			},
+    { "[ETEQ ET6000] Olivetti PCS-46C",		"pcs46c",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,							 4096, 32768, 4096, 127,	      machine_at_pcs46c_init, at_pcs46c_get_device			},
     { "[OPTi 895] Mylex MVI486",		"mvi486",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE_DUAL,							 1024, 65536, 1024, 127,	       machine_at_mvi486_init, NULL			},
     { "[VIA VT82C495] FIC 486-VC-HD",		"486vchd",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 64512, 1024, 127,	      machine_at_486vchd_init, NULL			},
     { "[VLSI 82C480] HP Vectra 486VL",		"vect486vl",		MACHINE_TYPE_486,		CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 2048, 32768, 2048, 127,	    machine_at_vect486vl_init, at_vect486vl_get_device	},
