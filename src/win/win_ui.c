@@ -1339,6 +1339,11 @@ ui_init(int nCmdShow)
     }
 #endif
 
+    /* Warn the user about unsupported configs. */
+    if (cpu_override && ui_msgbox_ex(MBX_WARNING | MBX_QUESTION_OK, (void *) IDS_2145, (void *) IDS_2146, (void *) IDS_2147, (void *) IDS_2119, NULL)) {
+	return(0);
+    }
+
     /* Create our main window's class and register it. */
     wincl.hInstance = hinstance;
     wincl.lpszClassName = CLASS_NAME;

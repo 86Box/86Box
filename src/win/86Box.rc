@@ -1104,6 +1104,9 @@ BEGIN
     IDS_2142    "Monitor in sleep mode"
     IDS_2143	"OpenGL Shaders (*.GLSL)\0*.GLSL\0All files (*.*)\0*.*\0"
     IDS_2144	"OpenGL options"
+    IDS_2145	"You are loading an unsupported configuration"
+    IDS_2146	"CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
+    IDS_2147	"Continue"
 END
 
 STRINGTABLE DISCARDABLE 
