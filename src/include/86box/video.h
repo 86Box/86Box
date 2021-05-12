@@ -316,6 +316,9 @@ extern const device_t paradise_wd90c11_megapc_device;
 extern const device_t paradise_wd90c11_device;
 extern const device_t paradise_wd90c30_device;
 
+/* Realtek (S)VGA */
+extern const device_t realtek_rtg3106_device;
+
 /* S3 9XX/8XX/Vision/Trio */
 extern const device_t s3_orchid_86c911_isa_device;
 extern const device_t s3_diamond_stealth_vram_isa_device;

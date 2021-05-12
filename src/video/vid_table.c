@@ -103,6 +103,7 @@ video_cards[] = {
     { "plantronics",		&colorplus_device			},
     { "pgc",			&pgc_device				},
 	{ "radius_isa",		&radius_svga_multiview_isa_device			},
+	{ "rtg3106",		&realtek_rtg3106_device			},
     { "sigma400",		&sigma_device				},
     { "px_s3_v7_801_isa",	&s3_v7mirage_86c801_isa_device		},
     { "tvga8900b",		&tvga8900b_device			},
