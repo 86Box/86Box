@@ -234,8 +234,6 @@ extern int	machine_at_ibmatquadtel_init(const machine_t *); // IBM AT with Quadt
 
 extern int	machine_at_ibmxt286_init(const machine_t *);
 
-extern int	machine_at_siemens_init(const machine_t *); //Siemens PCD-2L. N82330 discrete machine. It segfaults in some places
-
 #if defined(DEV_BRANCH) && defined(USE_OPEN_AT)
 extern int	machine_at_openat_init(const machine_t *);
 #endif
@@ -253,6 +251,7 @@ extern int	machine_at_neat_ami_init(const machine_t *);
 extern int	machine_at_award286_init(const machine_t *);
 extern int	machine_at_gdc212m_init(const machine_t *);
 extern int	machine_at_gw286ct_init(const machine_t *);
+extern int	machine_at_siemens_init(const machine_t *);
 extern int	machine_at_super286tr_init(const machine_t *);
 extern int	machine_at_spc4200p_init(const machine_t *);
 extern int	machine_at_spc4216p_init(const machine_t *);
@@ -298,9 +297,12 @@ extern const device_t	*at_m30008_get_device(void);
 /* m_at_386dx_486.c */
 extern int	machine_at_acc386_init(const machine_t *);
 extern int	machine_at_asus386_init(const machine_t *);
+extern int	machine_at_babygemini_init(const machine_t *);
 extern int	machine_at_ecs386_init(const machine_t *);
-extern int	machine_at_spc6000a_init(const machine_t *);
 extern int	machine_at_micronics386_init(const machine_t *);
+extern int	machine_at_mxic386_init(const machine_t *);
+extern int	machine_at_mxic386mr_init(const machine_t *);
+extern int	machine_at_spc6000a_init(const machine_t *);
 
 extern int	machine_at_rycleopardlx_init(const machine_t *);
 

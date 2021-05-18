@@ -182,11 +182,14 @@ const machine_t machines[] = {
 
     /* 386DX machines */
     { "[ACC 2168] AMI 386DX clone",		"acc386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 16384, 1024, 127,	       machine_at_acc386_init, NULL			},
-    { "[C&T 386] ECS 386/32",			"ecs386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 16384, 1024, 127,	       machine_at_ecs386_init, NULL			},
+    { "[C&T 386] ECS 386/32",			"ecs386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 8096, 1024, 127,	       machine_at_ecs386_init, NULL			},
     { "[C&T 386] Samsung SPC-6000A",		"spc6000a",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							 1024, 32768, 1024, 127,	     machine_at_spc6000a_init, NULL			},
     { "[ISA] Compaq Portable III (386)",	"portableiii386",       MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE | MACHINE_VIDEO,					 1024, 14336, 1024, 127,       machine_at_portableiii386_init, at_cpqiii_get_device	},
-    { "[ISA] Micronics 386 clone",		"micronics386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,	 machine_at_micronics386_init, NULL			},
-    { "[SiS 310] ASUS ISA-386C",		"asus386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512, 16384,  128, 127,	      machine_at_asus386_init, NULL			},
+    { "[ISA] Micronics i-Cache",		"micronics386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,	 machine_at_micronics386_init, NULL			},
+    { "[MXIC 306] Mitac MBA-032Q",		"mba032q",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 32768, 1024, 127,	       machine_at_mba032q_init, NULL			},
+    { "[MXIC 306] Octek Jaguar V",		"jaguarv",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 32768, 1024, 127,	       machine_at_jaguarv_init, NULL			},
+    { "[Micronics MCM2] Micronics Baby Gemini",		"babygemini",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 32768, 1024, 127,	       machine_at_babygemini_init, NULL			},
+    { "[SiS 310] ASUS ISA-386C",		"asus386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  1024, 16384,  1024, 127,	      machine_at_asus386_init, NULL			},
 
     /* 386DX machines which utilize the MCA bus */
     { "[MCA] IBM PS/2 model 70 (type 3)",	"ibmps2_m70_type3",	MACHINE_TYPE_386DX,		CPU_PKG_386DX | CPU_PKG_486BL, 0, 0, 0, 0, 0, 0, 0,								MACHINE_MCA | MACHINE_BUS_PS2 | MACHINE_VIDEO,					 2048, 16384, 2048,  63,      machine_ps2_model_70_type3_init, NULL			},

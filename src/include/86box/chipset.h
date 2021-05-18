@@ -92,6 +92,9 @@ extern const device_t	slc90e66_device;
 
 extern const device_t	ioapic_device;
 
+/* Macronix */
+extern const device_t	mxic306_device;
+
 /* OPTi */
 extern const device_t	opti283_device;
 extern const device_t	opti291_device;
