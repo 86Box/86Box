@@ -62,13 +62,10 @@ typedef struct
 static void
 mxic306_shadow_recalc(uint8_t val, mxic306_t *dev)
 {
-
     /* System is shadowed globally if a segment or itself are enabled */
     mem_set_mem_state_both(0xf0000, 0x10000, ENABLED);
 
-    mem_set_mem_state_both(0xe0000, 0x10000, (val & 0x20) ? ENABLED : DISABLED);
-
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < 6; i++)
         mem_set_mem_state_both(0xc0000 + (i << 15), 0x8000, (val & (1 << i) ? ENABLED : DISABLED));
 
     flushmmucache_nopc();
@@ -103,9 +100,8 @@ mxic306_write(uint16_t addr, uint8_t val, void *priv)
         dev->index = val;
         break;
     case 0x23:
-        if ((dev->index >= 0x30) || (dev->index <= 0x3f))
+        if ((dev->index >= 0x30) && (dev->index <= 0x3f))
         {
-            mxic306_log("MXIC 306: dev->regs[%02x] = %02x\n", dev->index, val);
             dev->regs[dev->index - 0x30] = val;
 
             switch (dev->index)
@@ -123,6 +119,7 @@ mxic306_write(uint16_t addr, uint8_t val, void *priv)
                 cpu_update_waitstates();
                 break;
             }
+            mxic306_log("MXIC 306: dev->regs[%02x] = %02x\n", dev->index, dev->regs[dev->index - 0x30]);
         }
         break;
     }
@@ -133,7 +130,10 @@ mxic306_read(uint16_t addr, void *priv)
 {
     mxic306_t *dev = (mxic306_t *)priv;
 
+    if ((dev->index >= 0x30) && (dev->index <= 0x3f))
     return (addr == 0x23) ? (((dev->index >= 0x30) || (dev->index <= 0x3f)) ? dev->regs[dev->index - 0x30] : 0) : dev->index;
+    else
+    return 0xff;
 }
 
 static void
