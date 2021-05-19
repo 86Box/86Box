@@ -1603,6 +1603,31 @@ sb_pro_mcv_init(const device_t *info)
 
 
 static void *
+sb_pro_cs423x_init(const device_t *info)
+{
+    sb_t *sb = malloc(sizeof(sb_t));
+    memset(sb, 0, sizeof(sb_t));
+
+    sb->opl_enabled = 1;
+    opl3_init(&sb->opl);
+
+    sb_dsp_init(&sb->dsp, SBPRO2, SB_SUBTYPE_DEFAULT, sb);
+    sb_ct1345_mixer_reset(sb);
+ 
+    sb->mixer_enabled = 1;
+    sound_add_handler(sb_get_buffer_sbpro, sb);
+    sound_set_cd_audio_filter(sbpro_filter_cd_audio, sb);
+
+    sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
+    memset(sb->mpu, 0, sizeof(mpu_t));
+    mpu401_init(sb->mpu, 0, 0, M_UART, 1);
+    sb_dsp_set_mpu(&sb->dsp, sb->mpu);
+
+    return sb;
+}
+
+
+static void *
 sb_16_init(const device_t *info)
 {
     sb_t *sb = malloc(sizeof(sb_t));
@@ -2478,6 +2503,17 @@ const device_t sb_pro_mcv_device =
         DEVICE_MCA,
 	0,
         sb_pro_mcv_init, sb_close, NULL, { NULL },
+        sb_speed_changed,
+        NULL,
+        NULL
+};
+
+const device_t sb_pro_cs423x_device =
+{
+        "Crystal CS423x Sound Blaster Pro compatibility",
+        DEVICE_ISA | DEVICE_AT,
+	0,
+        sb_pro_cs423x_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
         NULL

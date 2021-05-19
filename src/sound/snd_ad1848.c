@@ -14,6 +14,7 @@
 #include <86box/snd_ad1848.h>
 
 #define CS4231	  		0x80
+#define CS4236	  		0x03
 
 static int ad1848_vols_6bits[64];
 static double ad1848_vols_5bits_aux_gain[32];
@@ -59,7 +60,7 @@ void ad1848_write(uint16_t addr, uint8_t val, void *p)
         switch (addr & 3)
         {
                 case 0: /*Index*/
-                if ((ad1848->regs[12] & 0x40) && (ad1848->type == AD1848_TYPE_CS4231))
+                if ((ad1848->regs[12] & 0x40) && (ad1848->type >= AD1848_TYPE_CS4231))
                         ad1848->index = val & 0x1f; /* cs4231a extended mode enabled */
                 else
                         ad1848->index = val & 0x0f; /* ad1848/cs4248 mode TODO: some variants/clones DO NOT mirror, just ignore the writes? */
@@ -247,15 +248,14 @@ void ad1848_init(ad1848_t *ad1848, int type)
         ad1848->regs[8] = 0;
         ad1848->regs[9] = 0x08;
         ad1848->regs[10] = ad1848->regs[11] = 0;
-        if ((type == AD1848_TYPE_CS4248) || (type == AD1848_TYPE_CS4231))
+        if ((type == AD1848_TYPE_CS4248) || (type == AD1848_TYPE_CS4231) || (type == AD1848_TYPE_CS4236))
                 ad1848->regs[12] = 0x8a;
         else
                 ad1848->regs[12] = 0xa;
         ad1848->regs[13] = 0;
         ad1848->regs[14] = ad1848->regs[15] = 0;
         
-        if (type == AD1848_TYPE_CS4231)
-        {
+        if (type == AD1848_TYPE_CS4231) {
                 ad1848->regs[16] = ad1848->regs[17] = 0;
                 ad1848->regs[18] = ad1848->regs[19] = 0x88;
                 ad1848->regs[22] = 0x80;
@@ -263,7 +263,17 @@ void ad1848_init(ad1848_t *ad1848, int type)
                 ad1848->regs[25] = CS4231;
                 ad1848->regs[26] = 0x80;
                 ad1848->regs[29] = 0x80;
-        }	
+        } else if (type == AD1848_TYPE_CS4236) {
+        	ad1848->regs[16] = ad1848->regs[17] = 0;
+        	ad1848->regs[18] = ad1848->regs[19] = 0;
+        	ad1848->regs[20] = ad1848->regs[21] = 0;
+        	ad1848->regs[22] = ad1848->regs[23] = 0;
+        	ad1848->regs[24] = 0;
+        	ad1848->regs[25] = CS4236;
+        	ad1848->regs[26] = 0xa0;
+        	ad1848->regs[27] = ad1848->regs[29] = 0;
+        	ad1848->regs[30] = ad1848->regs[31] = 0;
+        }
 	
         ad1848->out_l = 0;
         ad1848->out_r = 0;

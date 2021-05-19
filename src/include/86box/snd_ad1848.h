@@ -1,6 +1,7 @@
 #define AD1848_TYPE_DEFAULT 0
 #define AD1848_TYPE_CS4248 1
 #define AD1848_TYPE_CS4231 2
+#define AD1848_TYPE_CS4236 3
 
 typedef struct ad1848_t
 {

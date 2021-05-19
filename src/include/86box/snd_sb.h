@@ -134,6 +134,9 @@ extern void sb_ct1345_mixer_write(uint16_t addr, uint8_t val, void *p);
 extern uint8_t sb_ct1345_mixer_read(uint16_t addr, void *p);
 extern void sb_ct1345_mixer_reset(sb_t* sb);
 
+extern uint8_t sb_pro_v1_opl_read(uint16_t port, void *priv);
+extern void sb_pro_v1_opl_write(uint16_t port, uint8_t val, void *priv);
+
 extern void sb_get_buffer_sbpro(int32_t *buffer, int len, void *p);
 extern void sbpro_filter_cd_audio(int channel, double *buffer, void *p);
 extern void sb_close(void *p);

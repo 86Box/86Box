@@ -99,7 +99,7 @@ extern const device_t gus_device;
 extern const device_t pas16_device;
 #endif
 
-/* PSSJ - What is this device? */
+/* Tandy PSSJ */
 extern const device_t pssj_device;
 
 /* Creative Labs Sound Blaster */
@@ -110,6 +110,7 @@ extern const device_t sb_2_device;
 extern const device_t sb_pro_v1_device;
 extern const device_t sb_pro_v2_device;
 extern const device_t sb_pro_mcv_device;
+extern const device_t sb_pro_cs423x_device;
 extern const device_t sb_16_device;
 extern const device_t sb_16_pnp_device;
 extern const device_t sb_32_pnp_device;
@@ -122,6 +123,9 @@ extern const device_t ssi2001_device;
 /* Windows Sound System */
 extern const device_t wss_device;
 extern const device_t ncr_business_audio_device;
+
+/* Crystal CS423x */
+extern const device_t cs4237b_device;
 #endif
 
 #endif	/*EMU_SOUND_H*/
