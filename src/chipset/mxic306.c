@@ -87,7 +87,7 @@ mxic306_bus_speed_recalc(uint8_t val, mxic306_t *dev)
     case 1: /* AT Clock 1/2 */
     case 2: /* AT Clock 1/3 */
     case 3: /* AT Clock 1/4 */
-        cpu_set_isa_speed(cpu_busspeed / (2 + val));
+        cpu_set_isa_speed(cpu_busspeed / (1 + val));
         break;
     }
 }
