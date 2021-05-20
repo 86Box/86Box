@@ -845,18 +845,22 @@ pc_reset_hard_init(void)
 	cycles = cycles_main = 0;
 
 	mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
-    mbstowcs(wcpufamily, cpu_f->name,
-	     strlen(cpu_f->name)+1);
-    wcp = wcschr(wcpufamily, L'(');
-    if (wcp) /* remove parentheses */
-	*(wcp - 1) = L'\0';
-    mbstowcs(wcpu, cpu_s->name, strlen(cpu_s->name)+1);
-    swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
-	     EMU_NAME_W, EMU_VERSION_W, wmachine, wcpufamily, wcpu,
-	     plat_get_string(IDS_2077));
-    swprintf(mouse_msg[1], sizeof_w(mouse_msg[1]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
-	     EMU_NAME_W, EMU_VERSION_W, wmachine, wcpufamily, wcpu,
-	     (mouse_get_buttons() > 2) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079));
+
+	if (!cpu_override)
+		mbstowcs(wcpufamily, cpu_f->name, strlen(cpu_f->name)+1);
+	else
+		swprintf(wcpufamily, sizeof_w(wcpufamily), L"[U] %hs", cpu_f->name);
+
+	wcp = wcschr(wcpufamily, L'(');
+	if (wcp) /* remove parentheses */
+		*(wcp - 1) = L'\0';
+	mbstowcs(wcpu, cpu_s->name, strlen(cpu_s->name)+1);
+	swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
+		EMU_NAME_W, EMU_VERSION_W, wmachine, wcpufamily, wcpu,
+		plat_get_string(IDS_2077));
+	swprintf(mouse_msg[1], sizeof_w(mouse_msg[1]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
+		EMU_NAME_W, EMU_VERSION_W, wmachine, wcpufamily, wcpu,
+		(mouse_get_buttons() > 2) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079));
 }
 
 

@@ -2209,9 +2209,9 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 		} else if ((s3->chip == S3_VISION964 && s3->card_type == S3_ELSAWIN2KPROX_964) || s3->chip == S3_VISION968)
 			ibm_rgb528_ramdac_out(addr, rs2, val, svga->ramdac, svga);
 		else if ((s3->chip == S3_86C801) || (s3->chip == S3_86C805))
-			att49x_ramdac_out(addr, val, svga->ramdac, svga);
+			att49x_ramdac_out(addr, rs2, val, svga->ramdac, svga);
 		else if (s3->chip < S3_86C928)
-			sc1148x_ramdac_out(addr, val, svga->ramdac, svga);
+			sc1148x_ramdac_out(addr, rs2, val, svga->ramdac, svga);
 		else
 			sdac_ramdac_out(addr, rs2, val, svga->ramdac, svga);
 		return;
@@ -2463,9 +2463,9 @@ s3_in(uint16_t addr, void *p)
 		} else if ((s3->chip == S3_VISION964 && s3->card_type == S3_ELSAWIN2KPROX_964) || s3->chip == S3_VISION968)
 			return ibm_rgb528_ramdac_in(addr, rs2, svga->ramdac, svga);
 		else if ((s3->chip == S3_86C801) || (s3->chip == S3_86C805))
-			return att49x_ramdac_in(addr, svga->ramdac, svga);
+			return att49x_ramdac_in(addr, rs2, svga->ramdac, svga);
 		else if (s3->chip <= S3_86C924)
-			return sc1148x_ramdac_in(addr, svga->ramdac, svga);
+			return sc1148x_ramdac_in(addr, rs2, svga->ramdac, svga);
 		else
 			return sdac_ramdac_in(addr, rs2, svga->ramdac, svga);			
 		break;
@@ -5938,7 +5938,7 @@ static void *s3_init(const device_t *info)
 			s3->packed_mmio = 0;
 			svga->crtc[0x5a] = 0x0a;
 			
-			svga->ramdac = device_add(&att490_ramdac_device);
+			svga->ramdac = device_add(&att491_ramdac_device);
 			svga->clock_gen = device_add(&av9194_device);
 			svga->getclock = av9194_getclock;
 			break;

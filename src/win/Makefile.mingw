@@ -760,6 +760,7 @@ VIDOBJ		:= video.o \
 		    vid_ht216.o \
 		    vid_oak_oti.o \
 		    vid_paradise.o \
+			vid_rtg310x.o \
 		    vid_ti_cf62011.o \
 		    vid_tvga.o \
 		    vid_tgui9440.o vid_tkd8001_ramdac.o \

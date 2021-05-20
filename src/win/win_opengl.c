@@ -625,15 +625,18 @@ static void opengl_main(void* param)
 					SetEvent(sync_objects.resize);
 			}
 
+			/* Clip to height. y2 can be out-of-bounds. */
+			int sub_height = MIN(info->y2, info->h) - info->y1;
+
 			if (!GLAD_GL_ARB_buffer_storage)
 			{
 				/* Fallback method, copy data to pixel buffer. */
-				glBufferSubData(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * read_pos, info->w * (info->y2 - info->y1) * sizeof(uint32_t), info->buffer);
+				glBufferSubData(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * read_pos, info->w * sub_height * sizeof(uint32_t), info->buffer);
 			}
 
 			/* Update texture from pixel buffer. */
 			glPixelStorei(GL_UNPACK_SKIP_PIXELS, BUFFERPIXELS * read_pos);
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, info->y1, info->w, info->y2 - info->y1, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, info->y1, info->w, sub_height, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
 
 			/* Add fence to track when above gl commands are complete. */
 			info->sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);

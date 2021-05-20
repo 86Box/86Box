@@ -38,12 +38,24 @@ typedef struct
 
 
 void
-sc1148x_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
+sc1148x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
 {
     sc1148x_ramdac_t *ramdac = (sc1148x_ramdac_t *) p;
+    uint8_t rs = (addr & 0x03);
+    rs |= ((!!rs2) << 2);
 
-    switch (addr) {
-	case 0x3C6:
+    switch (rs) {
+	case 0x00:
+	case 0x01:
+	case 0x02:
+	case 0x03:
+	case 0x04:
+	case 0x05:
+	case 0x07:
+		svga_out(addr, val, svga);
+		ramdac->state = 0;
+		break;
+	case 0x06:
 		if (ramdac->state == 4) {
 			ramdac->state = 0;
 			ramdac->ctrl = val;
@@ -60,44 +72,41 @@ sc1148x_ramdac_out(uint16_t addr, uint8_t val, void *p, svga_t *svga)
 		}
 		ramdac->state = 0;
 		break;
-	case 0x3C7:
-	case 0x3C8:
-	case 0x3C9:
-		ramdac->state = 0;
-		break;
     }
-
-    svga_out(addr, val, svga);
 }
 
 
 uint8_t
-sc1148x_ramdac_in(uint16_t addr, void *p, svga_t *svga)
+sc1148x_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
 {
     sc1148x_ramdac_t *ramdac = (sc1148x_ramdac_t *) p;
-    uint8_t temp = svga_in(addr, svga);
+    uint8_t temp = 0xff;
+    uint8_t rs = (addr & 0x03);
+    rs |= ((!!rs2) << 2);
 
-    switch (addr) {
-	case 0x3C6:
+    switch (rs) {
+	case 0x00:
+	case 0x01:
+	case 0x02:
+	case 0x03:
+	case 0x04:
+	case 0x05:
+	case 0x07:
+		temp = svga_in(addr, svga);
+		ramdac->state = 0;
+		break;
+	case 0x06:
 		if (ramdac->state == 4) {
 			ramdac->state = 0;
 			temp = ramdac->ctrl;
-			
 			if (ramdac->type == 1) {
-				if (ramdac->ctrl & 0x80)
+				if (((ramdac->ctrl >> 4) == 1) || ((ramdac->ctrl >> 4) == 3))
 					temp |= 1;
 				else
 					temp &= ~1;
 			}
-			break;
 		}
-		
 		ramdac->state++;
-		break;
-	case 0x3C7:
-	case 0x3C8:
-	case 0x3C9:
-		ramdac->state = 0;
 		break;
     }
 
@@ -138,6 +147,14 @@ const device_t sc11487_ramdac_device =
 {
         "Sierra SC11487 RAMDAC",
         0, 1,
+        sc1148x_ramdac_init, sc1148x_ramdac_close,
+	NULL, { NULL }, NULL, NULL
+};
+
+const device_t sc11484_ramdac_device =
+{
+        "Sierra SC11484 RAMDAC",
+        0, 2,
         sc1148x_ramdac_init, sc1148x_ramdac_close,
 	NULL, { NULL }, NULL, NULL
 };

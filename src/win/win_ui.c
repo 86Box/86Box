@@ -1433,6 +1433,13 @@ ui_init(int nCmdShow)
     /* Make the window visible on the screen. */
     ShowWindow(hwnd, nCmdShow);
 
+    /* Warn the user about unsupported configs. */
+    if (cpu_override && ui_msgbox_ex(MBX_WARNING | MBX_QUESTION_OK, (void*)IDS_2145, (void*)IDS_2146, (void*)IDS_2147, (void*)IDS_2119, NULL))
+    {
+	    DestroyWindow(hwnd);
+	    return(0);
+    }
+
     GetClipCursor(&oldclip);
 
     /* Initialize the RawInput (keyboard) module. */
