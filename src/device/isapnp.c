@@ -478,9 +478,7 @@ isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
 			isapnp_log("ISAPnP: Reset CSN\n");
 			card = dev->first_card;
 			while (card) {
-				card->csn = 0;
-				if (card->csn_changed)
-					card->csn_changed(card->csn, card->priv);
+				isapnp_set_csn(card, 0);
 				card = card->next;
 			}
 		}
@@ -506,9 +504,7 @@ isapnp_write_data(uint16_t addr, uint8_t val, void *priv)
 	case 0x06: /* Card Select Number */
 		if (dev->isolated_card) {
 			isapnp_log("ISAPnP: Set CSN %02X\n", val);
-			dev->isolated_card->csn = val;
-			if (dev->isolated_card->csn_changed)
-				dev->isolated_card->csn_changed(dev->isolated_card->csn, dev->isolated_card->priv);
+			isapnp_set_csn(dev->isolated_card, val);
 			dev->isolated_card->state = PNP_STATE_CONFIG;
 			dev->isolated_card = NULL;
 		} else {
@@ -685,8 +681,6 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
     memset(card, 0, sizeof(isapnp_card_t));
 
     card->enable = 1;
-    card->rom = rom;
-    card->rom_size = rom_size;
     card->priv = priv;
     card->config_changed = config_changed;
     card->csn_changed = csn_changed;
@@ -702,6 +696,18 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
 	prev_card->next = card;
     }
 
+    isapnp_update_card_rom(card, rom, rom_size);
+    return card;
+}
+
+
+void
+isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
+{
+    isapnp_card_t *card = (isapnp_card_t *) priv;
+    card->rom = rom;
+    card->rom_size = rom_size;
+
     /* Parse resources in ROM to allocate logical devices,
        and determine the state of read-only register bits. */
 #ifdef ENABLE_ISAPNP_LOG
@@ -712,8 +718,16 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
     uint8_t ldn = 0, res, in_df = 0;
     uint8_t irq = 0, io = 0, mem_range = 0, mem_range_32 = 0, irq_df = 0, io_df = 0, mem_range_df = 0, mem_range_32_df = 0;
     uint32_t len;
-    isapnp_device_t *ld = NULL, *prev_ld = NULL;
+    isapnp_device_t *ld = card->first_ld, *prev_ld = NULL;
 
+    /* Clear any existing logical devices. */
+    while (ld) {
+	prev_ld = ld->next;
+	free(ld);
+	ld = prev_ld;
+    }
+
+    /* Iterate through ROM resources. */
     while (i < card->rom_size) {
 	if (card->rom[i] & 0x80) { /* large resource */
 		res = card->rom[i] & 0x7f;
@@ -890,8 +904,6 @@ isapnp_add_card(uint8_t *rom, uint16_t rom_size,
     /* We're done with the last logical device. */
     if (ld)
 	isapnp_reset_ld_regs(ld);
-
-    return card;
 }
 
 
@@ -907,10 +919,8 @@ isapnp_enable_card(void *priv, uint8_t enable)
     while (card) {
 	if (card == priv) {
 		/* Enable or disable the card. */
-		card->enable = !!enable;
-
-		/* enable=2 is a cheat code to jump straight into CONFIG state. */
-		card->state = (enable == 2) ? PNP_STATE_CONFIG : PNP_STATE_WAIT_FOR_KEY;
+		card->enable = (enable >= ISAPNP_CARD_ENABLE);
+		card->state = (enable == ISAPNP_CARD_FORCE_CONFIG) ? PNP_STATE_CONFIG : PNP_STATE_WAIT_FOR_KEY;
 
 		/* Invalidate other references if we're disabling this card. */
 		if (!card->enable) {

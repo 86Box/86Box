@@ -25,6 +25,13 @@
 #define ISAPNP_DMA_DISABLED	4
 
 
+enum {
+    ISAPNP_CARD_DISABLE = 0,
+    ISAPNP_CARD_ENABLE = 1,
+    ISAPNP_CARD_FORCE_CONFIG /* cheat code for UMC UM8669F */
+};
+
+
 typedef struct {
     uint8_t	activate;
     struct {
@@ -51,6 +58,7 @@ void	*isapnp_add_card(uint8_t *rom, uint16_t rom_size,
 			 uint8_t (*read_vendor_reg)(uint8_t ld, uint8_t reg, void *priv),
 			 void (*write_vendor_reg)(uint8_t ld, uint8_t reg, uint8_t val, void *priv),
 			 void *priv);
+void	isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size);
 void	isapnp_enable_card(void *priv, uint8_t enable);
 void	isapnp_set_csn(void *priv, uint8_t csn);
 void	isapnp_set_device_defaults(void *priv, uint8_t ldn, const isapnp_device_config_t *config);

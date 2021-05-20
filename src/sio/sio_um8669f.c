@@ -39,7 +39,7 @@
 #include <86box/isapnp.h>
 
 
-/* This ROM is reconstructed out of the several assumptions, some of which are based on the IT8671F. */
+/* This ROM is reconstructed out of several assumptions, some of which are based on the IT8671F. */
 static uint8_t um8669f_pnp_rom[] = {
     0x55, 0xa3, 0x86, 0x69, 0x00, 0x00, 0x00, 0x00, 0x00, /* UMC8669, dummy checksum (filled in by isapnp_add_card) */
     0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
@@ -211,7 +211,7 @@ um8669f_write(uint16_t port, uint8_t val, void *priv)
 
 		if (dev->cur_reg_108 == 0xc1) {
 			um8669f_log("UM8669F: ISAPnP %sabled\n", (val & 0x80) ? "en" : "dis");
-			isapnp_enable_card(dev->pnp_card, (val & 0x80) ? 2 : 0);
+			isapnp_enable_card(dev->pnp_card, (val & 0x80) ? ISAPNP_CARD_FORCE_CONFIG : ISAPNP_CARD_DISABLE);
 		}
 	}
     }
