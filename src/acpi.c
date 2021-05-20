@@ -124,8 +124,6 @@ acpi_reg_read_common_regs(int size, uint16_t addr, void *p)
 		ret = (dev->regs.pmsts >> shift16) & 0xff;
 		if (addr == 0x01)
 			ret |= (acpi_rtc_status << 2);
-		else
-			ret |= 0x10;
 		break;
 	case 0x02: case 0x03:
 		/* PMEN - Power Management Resume Enable Register (IO) */
@@ -781,7 +779,7 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *p)
 		break;
 	case 0x18: case 0x19:
 		/* GLBSTS - Global Status Register (IO) */
-		dev->regs.glbsts &= ~((val << shift16) & 0x0dd7);
+		dev->regs.glbsts &= ~((val << shift16) & 0x0d27);
 		break;
 	case 0x1c: case 0x1d: case 0x1e: case 0x1f:
 		/* DEVSTS - Device Status Register (IO) */
