@@ -40,14 +40,14 @@ static double	ad1848_vols_5bits_aux_gain[32];
 void
 ad1848_setirq(ad1848_t *ad1848, int irq)
 {
-	ad1848->irq = irq;
+    ad1848->irq = irq;
 }
 
 
 void
 ad1848_setdma(ad1848_t *ad1848, int dma)
 {
-	ad1848->dma = dma;
+    ad1848->dma = dma;
 }
 
 
@@ -90,8 +90,8 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 			ad1848->index = val & 0x1f; /* cs4231a extended mode enabled */
 		else
 			ad1848->index = val & 0x0f; /* ad1848/cs4248 mode TODO: some variants/clones DO NOT mirror, just ignore the writes? */
-		ad1848->trd   = val & 0x20;
-		ad1848->mce   = val & 0x40;
+		ad1848->trd = val & 0x20;
+		ad1848->mce = val & 0x40;
 	break;
 
 	case 1:
@@ -109,7 +109,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 					case 7: freq /= 2560; break;
 				}
 				ad1848->freq = freq;
-				ad1848->timer_latch = (uint64_t)((double)TIMER_USEC * (1000000.0 / (double)ad1848->freq));
+				ad1848->timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) ad1848->freq));
 				break;
 			
 			case 9:

@@ -24,32 +24,22 @@
 
 
 typedef struct {
-    int index;
-    uint8_t regs[32]; /* 16 original + 16 CS4231A extensions */
-    uint8_t status;
+    int		index;
+    uint8_t	regs[32], status; /* 16 original registers + 16 CS4231A extensions */
     
-    int trd;
-    int mce;
+    int		trd, mce, count;
     
-    int count;
-    
-    int16_t out_l, out_r;
+    int16_t	out_l, out_r;
 
-    double cd_vol_l, cd_vol_r;
+    double	cd_vol_l, cd_vol_r;
 
-    int enable;
+    int		enable, irq, dma, freq;
 
-    int irq, dma;
-    
-    int freq;
-    
-    pc_timer_t timer_count;
-    uint64_t timer_latch;
+    pc_timer_t	timer_count;
+    uint64_t	timer_latch;
 
-    int16_t buffer[SOUNDBUFLEN * 2];
-    int pos;
-    
-    int type;
+    int16_t	buffer[SOUNDBUFLEN * 2];
+    int		pos, type;
 } ad1848_t;
 
 
