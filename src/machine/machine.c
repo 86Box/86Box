@@ -34,6 +34,7 @@
 #include <86box/rom.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
+#include <86box/gameport.h>
 #include "cpu.h"
 #include <86box/video.h>
 #include <86box/machine.h>
@@ -74,6 +75,7 @@ machine_init_ex(int m)
 	machine_log("Initializing as \"%s\"\n", machine_getname());
 
 	is_vpc = 0;
+	standalone_gameport_type = NULL;
 
 	/* Set up the architecture flags. */
 	AT = IS_AT(machine);

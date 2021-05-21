@@ -30,8 +30,7 @@ machine_xt_common_init(const machine_t *model)
 	    device_add(&fdc_xt_device);
     
     nmi_init();
-    if (joystick_type)
-	    device_add(&gameport_device);
+    standalone_gameport_type = &gameport_device;
 }
 
 

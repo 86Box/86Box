@@ -738,8 +738,7 @@ machine_xt_m24_init(const machine_t *model)
     /* FIXME: make sure this is correct?? */
     device_add(&at_nvr_device);
 
-    if (joystick_type)
-	device_add(&gameport_device);
+    standalone_gameport_type = &gameport_device;
 
     nmi_init();
 
