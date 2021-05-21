@@ -26,6 +26,7 @@
 #include <86box/pic.h>
 #include <86box/dma.h>
 #include <86box/device.h>
+#include <86box/gameport.h>
 #include <86box/i2c.h>
 #include <86box/isapnp.h>
 #include <86box/sound.h>
@@ -92,15 +93,15 @@ static const uint8_t cs4237b_eeprom[] = {
 		0x47, 0x01, 0x88, 0x03, 0xf8, 0x03, 0x08, 0x04, /* I/O 0x388-0x3F8, decodes 16-bit, 8-byte alignment, 4 addresses */
 		0x47, 0x01, 0x20, 0x02, 0x00, 0x03, 0x20, 0x10, /* I/O 0x220-0x300, decodes 16-bit, 32-byte alignment, 16 addresses */
 	0x38, /* end dependent functions */
-#if 0
+
     0x15, 0x0e, 0x63, 0x00, 0x01, 0x00, /* logical device CSC0001 */
 	0x82, 0x05, 0x00, 'G', 'A', 'M', 'E', 0x00, /* ANSI identifier */
 	0x31, 0x00, /* start dependent functions, preferred */
 		0x47, 0x01, 0x00, 0x02, 0x00, 0x02, 0x08, 0x08, /* I/O 0x200, decodes 16-bit, 8-byte alignment, 8 addresses */
 	0x31, 0x01, /* start dependent functions, acceptable */
-		0x47, 0x01, 0x00, 0x02, 0x00, 0x02, 0x08, 0x08, /* I/O 0x208, decodes 16-bit, 8-byte alignment, 8 addresses */
+		0x47, 0x01, 0x08, 0x02, 0x08, 0x02, 0x08, 0x08, /* I/O 0x208, decodes 16-bit, 8-byte alignment, 8 addresses */
 	0x38, /* end dependent functions */
-#endif
+
     0x15, 0x0e, 0x63, 0x00, 0x10, 0x00, /* logical device CSC0010 */
 	0x82, 0x05, 0x00, 'C', 'T', 'R', 'L', 0x00, /* ANSI identifier */
 	0x47, 0x01, 0x20, 0x01, 0xf8, 0x0f, 0x08, 0x08, /* I/O 0x120-0xFF8, decodes 16-bit, 8-byte alignment, 8 addresses */
@@ -126,6 +127,7 @@ typedef struct cs423x_t
     void	*pnp_card;
     ad1848_t	ad1848;
     sb_t	*sb;
+    void	*gameport;
     void	*i2c, *eeprom;
 
     uint16_t	wss_base, opl_base, sb_base, ctrl_base, ram_addr, eeprom_size: 11;
@@ -452,7 +454,7 @@ cs423x_ctxswitch_write(uint16_t addr, uint8_t val, void *priv)
     /* Fire the context switch interrupt if enabled. */
     if (switched && (dev->regs[0] & 0x20) && (dev->ad1848.irq > 0)) {
 	dev->regs[7] |= 0x40; /* set interrupt flag */
-	picint(1 << dev->ad1848.irq); /* control device shares its IRQ with WSS and SBPro */
+	picint(1 << dev->ad1848.irq); /* control device shares IRQ with WSS and SBPro */
     }
 }
 
@@ -542,17 +544,11 @@ cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
 
 		break;
 
-#if 0
 	case 1: /* Game Port */
-		gameport_remap(0);
-
-		if (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED))
-			gameport_remap(config->io[0].base);
-
+		gameport_remap(dev->gameport, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
 		break;
-#endif
 
-	case 1: /* Control Registers */
+	case 2: /* Control Registers */
 		if (dev->ctrl_base) {
 			io_removehandler(dev->ctrl_base, 8, cs423x_read, NULL, NULL, cs423x_write, NULL, NULL, dev);
 			dev->ctrl_base = 0;
@@ -565,7 +561,7 @@ cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
 
 		break;
 
-	case 2: /* MPU-401 */
+	case 3: /* MPU-401 */
 		mpu401_change_addr(dev->sb->mpu, 0);
 		mpu401_setirq(dev->sb->mpu, 0);
 
@@ -616,8 +612,11 @@ cs423x_init(const device_t *info)
 
     /* Initialize codecs. */
     dev->sb = (sb_t *) device_add(&sb_pro_cs423x_device);
-    ad1848_init(&dev->ad1848, AD1848_TYPE_CS4236);
+    ad1848_init(&dev->ad1848, AD1848_TYPE_DEFAULT);
     sound_add_handler(cs423x_get_buffer, dev);
+
+    /* Initialize game port. */
+    dev->gameport = gameport_add(&gameport_pnp_device);
 
     /* Initialize I2C bus for the EEPROM. */
     dev->i2c = i2c_gpio_init("nvr_cs423x");
