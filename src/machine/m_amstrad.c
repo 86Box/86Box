@@ -228,6 +228,9 @@ vid_out_1512(uint16_t addr, uint8_t val, void *priv)
     amsvid_t *vid = (amsvid_t *)priv;
     uint8_t old;
 
+    if ((addr >= 0x3d0) && (addr <= 0x3d7))
+	addr = (addr & 0xff9) | 0x004;
+
     switch (addr) {
 	case 0x03d4:
 		vid->crtcreg = val & 31;
@@ -276,6 +279,9 @@ vid_in_1512(uint16_t addr, void *priv)
 {
     amsvid_t *vid = (amsvid_t *)priv;
     uint8_t ret = 0xff;
+
+    if ((addr >= 0x3d0) && (addr <= 0x3d7))
+	addr = (addr & 0xff9) | 0x004;
 
     switch (addr) {
 	case 0x03d4:

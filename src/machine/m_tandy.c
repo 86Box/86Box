@@ -520,6 +520,9 @@ vid_out(uint16_t addr, uint8_t val, void *priv)
     t1kvid_t *vid = dev->vid;
     uint8_t old;
 
+    if ((addr >= 0x3d0) && (addr <= 0x3d7))
+	addr = (addr & 0xff9) | 0x004;
+
     switch (addr) {
 	case 0x03d4:
 		vid->crtcreg = val & 0x1f;
@@ -588,6 +591,9 @@ vid_in(uint16_t addr, void *priv)
     tandy_t *dev = (tandy_t *)priv;
     t1kvid_t *vid = dev->vid;
     uint8_t ret = 0xff;
+
+    if ((addr >= 0x3d0) && (addr <= 0x3d7))
+	addr = (addr & 0xff9) | 0x004;
 
     switch (addr) {
 	case 0x03d4:
