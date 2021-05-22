@@ -2210,8 +2210,8 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 			ibm_rgb528_ramdac_out(addr, rs2, val, svga->ramdac, svga);
 		else if ((s3->chip == S3_86C801) || (s3->chip == S3_86C805))
 			att49x_ramdac_out(addr, rs2, val, svga->ramdac, svga);
-		else if (s3->chip < S3_86C928)
-			sc1148x_ramdac_out(addr, rs2, val, svga->ramdac, svga);
+		else if (s3->chip <= S3_86C924)
+			sc1148x_ramdac_out(addr, 0, val, svga->ramdac, svga);
 		else
 			sdac_ramdac_out(addr, rs2, val, svga->ramdac, svga);
 		return;
@@ -2242,7 +2242,10 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 			s3->ma_ext = (s3->ma_ext & 0x1c) | ((val & 0x30) >> 4);
 			break;
 			case 0x32:
-			svga->vram_display_mask = (val & 0x40) ? 0x3ffff : s3->vram_mask;
+			if (svga->crtc[0x31] & 0x30)
+				svga->vram_display_mask = (val & 0x40) ? 0x3ffff : s3->vram_mask;
+			else
+				svga->vram_display_mask = s3->vram_mask;
 			break;
 
 			case 0x40:
@@ -2465,7 +2468,7 @@ s3_in(uint16_t addr, void *p)
 		else if ((s3->chip == S3_86C801) || (s3->chip == S3_86C805))
 			return att49x_ramdac_in(addr, rs2, svga->ramdac, svga);
 		else if (s3->chip <= S3_86C924)
-			return sc1148x_ramdac_in(addr, rs2, svga->ramdac, svga);
+			return sc1148x_ramdac_in(addr, 0, svga->ramdac, svga);
 		else
 			return sdac_ramdac_in(addr, rs2, svga->ramdac, svga);			
 		break;
@@ -2513,21 +2516,23 @@ static void s3_recalctimings(svga_t *svga)
 	s3_t *s3 = (s3_t *)svga->p;
 	int clk_sel = (svga->miscout >> 2) & 3;
 
-	svga->hdisp = svga->hdisp_old;
-
 	svga->ma_latch |= (s3->ma_ext << 16);
-	if (svga->crtc[0x5d] & 0x01) svga->htotal     += 0x100;
-	if (svga->crtc[0x5d] & 0x02) {
-		svga->hdisp_time += 0x100;
-		svga->hdisp += 0x100 * ((svga->seqregs[1] & 8) ? 16 : 8);
+	if (s3->chip >= S3_86C928) {
+		svga->hdisp = svga->hdisp_old;
+
+		if (svga->crtc[0x5d] & 0x01) svga->htotal     |= 0x100;
+		if (svga->crtc[0x5d] & 0x02) {
+			svga->hdisp_time |= 0x100;
+			svga->hdisp |= 0x100 * ((svga->seqregs[1] & 8) ? 16 : 8);
+		}
+		if (svga->crtc[0x5e] & 0x01) svga->vtotal      |= 0x400;
+		if (svga->crtc[0x5e] & 0x02) svga->dispend     |= 0x400;
+		if (svga->crtc[0x5e] & 0x04) svga->vblankstart |= 0x400;
+		if (svga->crtc[0x5e] & 0x10) svga->vsyncstart  |= 0x400;
+		if (svga->crtc[0x5e] & 0x40) svga->split       |= 0x400;
+		if (svga->crtc[0x51] & 0x30)      svga->rowoffset  |= (svga->crtc[0x51] & 0x30) << 4;
+		else if (svga->crtc[0x43] & 0x04) svga->rowoffset  |= 0x100;
 	}
-	if (svga->crtc[0x5e] & 0x01) svga->vtotal      += 0x400;
-	if (svga->crtc[0x5e] & 0x02) svga->dispend     += 0x400;
-	if (svga->crtc[0x5e] & 0x04) svga->vblankstart += 0x400;
-	if (svga->crtc[0x5e] & 0x10) svga->vsyncstart  += 0x400;
-	if (svga->crtc[0x5e] & 0x40) svga->split       += 0x400;
-	if (svga->crtc[0x51] & 0x30)      svga->rowoffset  += (svga->crtc[0x51] & 0x30) << 4;
-	else if (svga->crtc[0x43] & 0x04) svga->rowoffset  += 0x100;
 	if (!svga->rowoffset) svga->rowoffset = 256;
 
 	if ((s3->chip == S3_VISION964) || (s3->chip == S3_86C928)) {
@@ -2550,7 +2555,7 @@ static void s3_recalctimings(svga_t *svga)
 		svga->clock /= 2;
 		break;
 	}
-
+	
 	svga->lowres = !((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10));
 	if ((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10)) {
 		switch (svga->bpp) {
@@ -2562,12 +2567,14 @@ static void s3_recalctimings(svga_t *svga)
 						svga->hdisp *= 2;
 				} else if ((s3->chip != S3_86C801) && (s3->chip != S3_86C805)) {
 					if (s3->width == 1280 || s3->width == 1600)
-						svga->hdisp *= 2;					
+						svga->hdisp *= 2;
 				}
 			}
 			break;
 			case 15:
 			svga->render = svga_render_15bpp_highres;
+			if (s3->chip <= S3_86C924)
+				svga->rowoffset >>= 1;
 			if ((s3->chip != S3_VISION964) && (s3->chip != S3_86C801)) {
 				if (s3->chip == S3_86C928)
 					svga->hdisp *= 2;
@@ -2579,8 +2586,10 @@ static void s3_recalctimings(svga_t *svga)
 					svga->hdisp *= 2;
 			}
 			break;
-			case 16: 
+			case 16:
 			svga->render = svga_render_16bpp_highres;
+			if (s3->chip <= S3_86C924)
+				svga->rowoffset >>= 1;
 			if ((s3->chip != S3_VISION964) && (s3->chip != S3_86C801)) {
 				if (s3->chip == S3_86C928)
 					svga->hdisp *= 2;
@@ -2612,6 +2621,11 @@ static void s3_recalctimings(svga_t *svga)
 				svga->hdisp *= 2;
 			break;
 		}
+	} else {
+		if (svga->gdcreg[5] & 0x40) {
+			if (!svga->lowres)
+				svga->rowoffset <<= 1;
+		}
 	}
 }
 
@@ -2622,16 +2636,16 @@ static void s3_trio64v_recalctimings(svga_t *svga)
 
 	svga->hdisp = svga->hdisp_old;
 
-	if (svga->crtc[0x5d] & 0x01) svga->htotal     += 0x100;
+	if (svga->crtc[0x5d] & 0x01) svga->htotal     |= 0x100;
 	if (svga->crtc[0x5d] & 0x02) {
-		svga->hdisp_time += 0x100;
-		svga->hdisp += 0x100 * ((svga->seqregs[1] & 8) ? 16 : 8);
+		svga->hdisp_time |= 0x100;
+		svga->hdisp |= 0x100 * ((svga->seqregs[1] & 8) ? 16 : 8);
 	}
-	if (svga->crtc[0x5e] & 0x01) svga->vtotal      += 0x400;
-	if (svga->crtc[0x5e] & 0x02) svga->dispend     += 0x400;
-	if (svga->crtc[0x5e] & 0x04) svga->vblankstart += 0x400;
-	if (svga->crtc[0x5e] & 0x10) svga->vsyncstart  += 0x400;
-	if (svga->crtc[0x5e] & 0x40) svga->split       += 0x400;
+	if (svga->crtc[0x5e] & 0x01) svga->vtotal      |= 0x400;
+	if (svga->crtc[0x5e] & 0x02) svga->dispend     |= 0x400;
+	if (svga->crtc[0x5e] & 0x04) svga->vblankstart |= 0x400;
+	if (svga->crtc[0x5e] & 0x10) svga->vsyncstart  |= 0x400;
+	if (svga->crtc[0x5e] & 0x40) svga->split       |= 0x400;
 	svga->interlace = svga->crtc[0x42] & 0x20;
 	
 	svga->clock = (cpuclock * (double)(1ull << 32)) / svga->getclock(clk_sel, svga->clock_gen);
@@ -2639,8 +2653,8 @@ static void s3_trio64v_recalctimings(svga_t *svga)
 	if ((svga->crtc[0x67] & 0xc) != 0xc) /*VGA mode*/
 	{
 		svga->ma_latch |= (s3->ma_ext << 16);
-		if (svga->crtc[0x51] & 0x30)      svga->rowoffset  += (svga->crtc[0x51] & 0x30) << 4;
-		else if (svga->crtc[0x43] & 0x04) svga->rowoffset  += 0x100;
+		if (svga->crtc[0x51] & 0x30)      svga->rowoffset  |= (svga->crtc[0x51] & 0x30) << 4;
+		else if (svga->crtc[0x43] & 0x04) svga->rowoffset  |= 0x100;
 		if (!svga->rowoffset) svga->rowoffset = 256;
 
 		if ((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10)) {

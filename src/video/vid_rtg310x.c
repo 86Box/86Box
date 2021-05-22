@@ -234,18 +234,42 @@ rtg_recalctimings(svga_t *svga)
 			break;
 	}
 
-	if (svga->bpp == 8) {
-		if (svga->crtc[0x19] & 2) {
-			svga->render = svga_render_8bpp_highres;
-			
-			svga->hdisp = svga->crtc[1] - ((svga->crtc[5] & 0x60) >> 5);
-			svga->hdisp++;
-			svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
-			
-			if (svga->hdisp == 1280) {
-				svga->hdisp >>= 1;
-			} else
-				svga->rowoffset <<= 1;
+	if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
+		switch (svga->gdcreg[5] & 0x60) {
+			case 0x00: 
+				if (svga->seqregs[1] & 8) /*Low res (320)*/
+					svga->render = svga_render_4bpp_lowres;
+				else {
+					svga->hdisp = svga->crtc[1] - ((svga->crtc[5] & 0x60) >> 5);
+					svga->hdisp++;
+					svga->hdisp *= 8;
+
+					if (svga->hdisp == 1280)
+						svga->rowoffset >>= 1;	
+
+					svga->render = svga_render_4bpp_highres;
+				}
+				break;
+			case 0x20:		/*4 colours*/
+				if (svga->seqregs[1] & 8) /*Low res (320)*/
+					svga->render = svga_render_2bpp_lowres;
+				else
+					svga->render = svga_render_2bpp_highres;
+				break;
+			case 0x40: case 0x60:
+				if (svga->crtc[0x19] & 2) {
+					svga->hdisp = svga->crtc[1] - ((svga->crtc[5] & 0x60) >> 5);
+					svga->hdisp++;
+					svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
+
+					if (svga->hdisp == 1280) {
+						svga->hdisp >>= 1;
+					} else
+						svga->rowoffset <<= 1;
+					
+					svga->render = svga_render_8bpp_highres;
+				}
+				break;
 		}
 	}
 }

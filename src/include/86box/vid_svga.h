@@ -274,6 +274,7 @@ extern const device_t ics9161_device;
 extern const device_t sc11483_ramdac_device;
 extern const device_t sc11487_ramdac_device;
 extern const device_t sc11484_ramdac_device;
+extern const device_t sc11484_nors2_ramdac_device;
 extern const device_t sc1502x_ramdac_device;
 extern const device_t sdac_ramdac_device;
 extern const device_t stg_ramdac_device;

@@ -119,7 +119,7 @@ video_cards[] = {
     { "wy700",			&wy700_device				},
     { "ibm1mbsvga",		&gd5428_mca_device			},
     { "et4000mca",		&et4000_mca_device			},
-    { "radius_mc",		&radius_svga_multiview_mc_device			},
+    { "radius_mc",		&radius_svga_multiview_mca_device			},
     { "mach64gx_pci",		&mach64gx_pci_device			},
     { "mach64vt2",		&mach64vt2_device			},
     { "et4000w32p_pci",		&et4000w32p_cardex_pci_device		},

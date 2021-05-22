@@ -285,7 +285,7 @@ extern const device_t incolor_device;
 extern const device_t g2_gc205_device;
 extern const device_t v7_vga_1024i_device;
 extern const device_t radius_svga_multiview_isa_device;
-extern const device_t radius_svga_multiview_mc_device;
+extern const device_t radius_svga_multiview_mca_device;
 extern const device_t ht216_32_pb410a_device;
 extern const device_t ht216_32_standalone_device;
 
