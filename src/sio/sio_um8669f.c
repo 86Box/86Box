@@ -251,7 +251,7 @@ um8669f_reset(um8669f_t *dev)
 
     lpt1_remove();
 
-    isapnp_enable_card(dev->pnp_card, 0);
+    isapnp_enable_card(dev->pnp_card, ISAPNP_CARD_DISABLE);
 
     dev->locked = 1;
 
