@@ -88,7 +88,7 @@ static const SOUND_CARD sound_cards[] =
     { "adlibgold",	&adgold_device			},
     { "azt2316a",	&azt2316a_device		},
     { "azt1605",	&azt1605_device			},
-    { "cs4237b",	&cs4237b_device			},
+    { "cs4236b",	&cs4236b_device			},
     { "sb",		&sb_1_device			},
     { "sb1.5",		&sb_15_device			},
     { "sb2.0",		&sb_2_device			},

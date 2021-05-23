@@ -37,7 +37,9 @@
 
 
 enum {
-    CRYSTAL_CS4237B = 0xc8
+    CRYSTAL_CS4236B = 0xcb,
+    CRYSTAL_CS4237B = 0xc8,
+    CRYSTAL_CS4238B = 0xc9
 };
 enum {
     CRYSTAL_SLAM_NONE = 0,
@@ -51,8 +53,8 @@ static const uint8_t slam_init_key[32] = { 0x96, 0x35, 0x9A, 0xCD, 0xE6, 0xF3, 0
 					   0x5E, 0xAF, 0x57, 0x2B, 0x15, 0x8A, 0xC5, 0xE2,
 					   0xF1, 0xF8, 0x7C, 0x3E, 0x9F, 0x4F, 0x27, 0x13,
 					   0x09, 0x84, 0x42, 0xA1, 0xD0, 0x68, 0x34, 0x1A };
-static const uint8_t cs4237b_eeprom[] = {
-    /* CS4237B configuration */
+static const uint8_t cs4236b_eeprom[] = {
+    /* Chip configuration */
     0x55, 0xbb, /* magic */
     0x00, 0x00, /* length */
     0x00, 0x03, /* CD-ROM and modem decode */
@@ -66,7 +68,7 @@ static const uint8_t cs4237b_eeprom[] = {
     0x10, 0x03, /* DMA routing */
 
     /* PnP resources */
-    0x0e, 0x63, 0x42, 0x37, 0x00, 0x00, 0x00, 0x00, 0x00, /* CSC4237, dummy checksum (filled in by isapnp_add_card) */
+    0x0e, 0x63, 0x42, 0x36, 0x00, 0x00, 0x00, 0x00, 0x00, /* CSC4236, dummy checksum (filled in by isapnp_add_card) */
     0x0a, 0x10, 0x01, /* PnP version 1.0, vendor version 0.1 */
     0x82, 0x0e, 0x00, 'C', 'r', 'y', 's', 't', 'a', 'l', ' ', 'C', 'o', 'd', 'e' ,'c', 0x00, /* ANSI identifier */
 
@@ -131,14 +133,16 @@ typedef struct cs423x_t
     void	*i2c, *eeprom;
 
     uint16_t	wss_base, opl_base, sb_base, ctrl_base, ram_addr, eeprom_size: 11;
-    uint8_t	type, regs[8], indirect_regs[16], eeprom_data[2048], ram_dl;
+    uint8_t	type, pnp_offset, regs[8], indirect_regs[16], eeprom_data[2048], ram_data[384], ram_dl;
+    int		ad1848_type;
 
-    uint8_t	key_pos: 5, enable_slam: 1, slam_state: 2, slam_ld, slam_reg;
+    uint8_t	pnp_enable: 1, key_pos: 5, slam_enable: 1, slam_state: 2, slam_ld, slam_reg;
     isapnp_device_config_t *slam_config;
 } cs423x_t;
 
 
-static void	cs423x_slam_remap(cs423x_t *dev, uint8_t enable);
+static void	cs423x_slam_enable(cs423x_t *dev, uint8_t enable);
+static void	cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom);
 static void	cs423x_ctxswitch_write(uint16_t addr, uint8_t val, void *priv);
 static void	cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv);
 
@@ -183,7 +187,6 @@ cs423x_write(uint16_t port, uint8_t val, void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
     uint8_t reg = port & 7;
-    uint16_t eeprom_addr;
 
     switch (reg) {
 	case 1: /* EEPROM Interface */
@@ -199,7 +202,7 @@ cs423x_write(uint16_t port, uint8_t val, void *priv)
 		switch (dev->regs[3] & 15) {
 			case 0: /* WSS Master Control */
 				if (val & 0x80)
-					ad1848_init(&dev->ad1848, AD1848_TYPE_DEFAULT);
+					ad1848_init(&dev->ad1848, dev->ad1848_type);
 				val = 0x00;
 				break;
 
@@ -221,10 +224,15 @@ cs423x_write(uint16_t port, uint8_t val, void *priv)
 				break;
 
 			case 8: /* CS9236 Wavetable Control */
-				val &= 0xf0;
+				val &= 0x0f;
 				break;
 		}
 		dev->indirect_regs[dev->regs[3]] = val;
+
+		if (dev->ad1848.wten ^ !!(dev->indirect_regs[8] & 0x08)) {
+			dev->ad1848.wten ^= 1;
+			ad1848_updatevolmask(&dev->ad1848);
+		}
 		break;
 
 	case 5: /* Control/RAM Access */
@@ -232,18 +240,18 @@ cs423x_write(uint16_t port, uint8_t val, void *priv)
 			case 0: /* commands */
 				switch (val) {
 					case 0x55: /* Disable PnP Key */
-						isapnp_enable_card(dev->pnp_card, 0);
+						dev->pnp_enable = 0;
+						/* fall-through */
+
+					case 0x5a: /* Update Hardware Configuration Data */
+						cs423x_pnp_enable(dev, 0);
 						break;
 
 					case 0x56: /* Disable Crystal Key */
-						cs423x_slam_remap(dev, 0);
+						cs423x_slam_enable(dev, 0);
 						break;
 
 					case 0x57: /* Jump to ROM */
-						break;
-
-					case 0x5a: /* Update Hardware Configuration Data */
-						isapnp_update_card_rom(dev->pnp_card, dev->eeprom_data + 23, dev->eeprom_size - 23);
 						break;
 
 					case 0xaa: /* Download RAM */
@@ -264,21 +272,21 @@ cs423x_write(uint16_t port, uint8_t val, void *priv)
 
 			case 3: /* data */
 				/* The only documented RAM region is 0x4000 (384 bytes in size), for
-				   loading the chip's configuration and PnP ROM without an EEPROM. */
-				if ((dev->ram_addr >= 0x4000) && (dev->ram_addr < 0x4180)) {
-					eeprom_addr = dev->ram_addr - 0x3ffc; /* skip first 4 bytes (header on real EEPROM) */
-					dev->eeprom_data[eeprom_addr] = val;
-					if (dev->eeprom_size < ++eeprom_addr) /* update EEPROM size if required */
-						dev->eeprom_size = eeprom_addr;
-				}
+				   loading chip configuration and PnP resources without an EEPROM. */
+				if ((dev->ram_addr >= 0x4000) && (dev->ram_addr < 0x4180))
+					dev->ram_data[dev->ram_addr & 0x01ff] = val;
 				dev->ram_addr++;
 				break;
 		}
 		break;
 
 	case 6: /* RAM Access End */
-		if (!val)
+		if (!val) {
 			dev->ram_dl = 0;
+
+			/* Update PnP resource data and state. */
+			cs423x_pnp_enable(dev, 1);
+		}
 		break;
 
 	case 7: /* Global Status */
@@ -412,17 +420,18 @@ cs423x_slam_write(uint16_t addr, uint8_t val, void *priv)
 
 
 static void
-cs423x_slam_remap(cs423x_t *dev, uint8_t enable)
+cs423x_slam_enable(cs423x_t *dev, uint8_t enable)
 {
     /* Disable SLAM. */
-    if (dev->enable_slam) {
-	dev->enable_slam = 0;
+    if (dev->slam_enable) {
+    	dev->slam_state = CRYSTAL_SLAM_NONE;
+	dev->slam_enable = 0;
 	io_removehandler(0x279, 1, NULL, NULL, NULL, cs423x_slam_write, NULL, NULL, dev);
     }
 
-    /* Enable SLAM if not blocked by EEPROM configuration. */
-    if (enable && !(dev->eeprom_data[7] & 0x10)) {
-	dev->enable_slam = 1;
+    /* Enable SLAM if the CKD bit is not set. */
+    if (enable && !(dev->ram_data[2] & 0x10)) {
+	dev->slam_enable = 1;
 	io_sethandler(0x279, 1, NULL, NULL, NULL, cs423x_slam_write, NULL, NULL, dev);
     }
 }
@@ -440,21 +449,26 @@ static void
 cs423x_ctxswitch_write(uint16_t addr, uint8_t val, void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
-    uint8_t prev_context = dev->regs[7] & 0x80, switched = 0;
 
-    /* Determine the active context (WSS or SBPro) through the address being read/written. */
-    if ((prev_context == 0x80) && ((addr & 0xfff0) == dev->sb_base)) {
-	dev->regs[7] &= ~0x80;
-	switched = 1;
-    } else if ((prev_context == 0x00) && ((addr & 0xfffc) == dev->wss_base)) {
-	dev->regs[7] |= 0x80;
-	switched = 1;
-    }
+    /* Check if a context switch (WSS=1 <-> SBPro=0) occurred through the address being read/written. */
+    if ((dev->regs[7] & 0x80) ? ((addr & 0xfff0) == dev->sb_base) : ((addr & 0xfffc) == dev->wss_base)) {
+	/* Flip context bit. */
+	dev->regs[7] ^= 0x80;
 
-    /* Fire the context switch interrupt if enabled. */
-    if (switched && (dev->regs[0] & 0x20) && (dev->ad1848.irq > 0)) {
-	dev->regs[7] |= 0x40; /* set interrupt flag */
-	picint(1 << dev->ad1848.irq); /* control device shares IRQ with WSS and SBPro */
+	/* Switch the CD audio filter and OPL ownership.
+	   FIXME: not thread-safe: filter function TOCTTOU in sound_cd_thread! */
+	sound_set_cd_audio_filter(NULL, NULL);
+	dev->sb->opl_enabled = !(dev->regs[7] & 0x80);
+	if (dev->sb->opl_enabled) /* SBPro */
+		sound_set_cd_audio_filter(sbpro_filter_cd_audio, dev->sb);
+	else /* WSS */
+		sound_set_cd_audio_filter(ad1848_filter_cd_audio, &dev->ad1848);
+
+	/* Fire a context switch interrupt if enabled. */
+	if ((dev->regs[0] & 0x20) && (dev->ad1848.irq > 0)) {
+		dev->regs[7] |= 0x40; /* set interrupt flag */
+		picint(1 << dev->ad1848.irq); /* control device shares IRQ with WSS and SBPro */
+	}
     }
 }
 
@@ -463,17 +477,44 @@ static void
 cs423x_get_buffer(int32_t *buffer, int len, void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
-    int c;
+    int c, opl_wss = !dev->sb->opl_enabled;
 
-    /* Output audio from the WSS codec. SBPro and OPL3 are
-       already handled by the Sound Blaster emulation. */
+    /* Output audio from the WSS codec, and also the OPL if we're in WSS mode. */
     ad1848_update(&dev->ad1848);
+    if (opl_wss)
+	opl3_update(&dev->sb->opl);
 
-    for (c = 0; c < len * 2; c++) {
-	buffer[c] += (dev->ad1848.buffer[c] / 2);
+    for (c = 0; c < len * 2; c += 2) {
+	if (opl_wss) {
+		buffer[c]     += (dev->sb->opl.buffer[c]     * dev->ad1848.fm_vol_l) >> 16;
+		buffer[c + 1] += (dev->sb->opl.buffer[c + 1] * dev->ad1848.fm_vol_r) >> 16;
+	}
+
+	buffer[c]     += dev->ad1848.buffer[c]     / 2;
+	buffer[c + 1] += dev->ad1848.buffer[c + 1] / 2;
     }
 
     dev->ad1848.pos = 0;
+    if (opl_wss)
+    	dev->sb->opl.pos = 0;
+}
+
+
+static void
+cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom)
+{
+    uint8_t enable = ISAPNP_CARD_ENABLE;
+
+    /* Hide PnP card if the PKD bit is set, or if PnP was disabled by command 0x55. */
+    if ((dev->ram_data[2] & 0x20) || !dev->pnp_enable)
+	enable = ISAPNP_CARD_DISABLE;
+
+    /* Update PnP resource data if requested. */
+    if (update_rom)
+	isapnp_update_card_rom(dev->pnp_card, &dev->ram_data[dev->pnp_offset], sizeof(dev->ram_data) - dev->pnp_offset);
+
+    /* Update PnP state. */
+    isapnp_enable_card(dev->pnp_card, enable);
 }
 
 
@@ -541,7 +582,6 @@ cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
 				sb_dsp_setdma8(&dev->sb->dsp, config->dma[0].dma);
 			}
 		}
-
 		break;
 
 	case 1: /* Game Port */
@@ -583,16 +623,28 @@ cs423x_reset(void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
 
+    /* Load EEPROM data to RAM, or just clear RAM if there's no EEPROM. */
+    if (dev->eeprom)
+	memcpy(dev->ram_data, &dev->eeprom_data[4], MIN(sizeof(dev->ram_data), sizeof(dev->eeprom_data) - 4));
+    else
+	memset(dev->ram_data, 0, sizeof(dev->ram_data));
+
     /* Reset registers. */
     memset(dev->indirect_regs, 0, sizeof(dev->indirect_regs));
     dev->indirect_regs[1] = dev->type;
 
-    /* Reset logical devices. */
-    for (uint8_t i = 0; i < 6; i++)
-	isapnp_reset_device(dev->pnp_card, i);
+    /* Reset WSS codec. */
+    ad1848_init(&dev->ad1848, dev->ad1848_type);
 
-    /* Enable SLAM. */
-    cs423x_slam_remap(dev, 1);
+    /* Reset PnP resource data, state and logical devices. */
+    dev->pnp_enable = 1;
+    if (dev->pnp_card) {
+	cs423x_pnp_enable(dev, 1);
+	isapnp_reset_card(dev->pnp_card);
+    }
+
+    /* Reset SLAM. */
+    cs423x_slam_enable(dev, 1);
 }
 
 
@@ -602,17 +654,46 @@ cs423x_init(const device_t *info)
     cs423x_t *dev = malloc(sizeof(cs423x_t));
     memset(dev, 0, sizeof(cs423x_t));
 
+    /* Initialize model-specific data. */
     dev->type = info->local;
     switch (dev->type) {
+	case CRYSTAL_CS4236B:
 	case CRYSTAL_CS4237B:
-		dev->eeprom_size = sizeof(cs4237b_eeprom);
-		memcpy(dev->eeprom_data, cs4237b_eeprom, dev->eeprom_size);
+	case CRYSTAL_CS4238B:
+		/* Same WSS codec and EEPROM structure. */
+		dev->ad1848_type = AD1848_TYPE_CS4236;
+		dev->pnp_offset = 19;
+
+		/* Different Chip Version and ID registers, which shouldn't be reset by ad1848_init */
+		dev->ad1848.xregs[25] = dev->type;
+
+		/* Load EEPROM contents from template. */
+		memcpy(dev->eeprom_data, cs4236b_eeprom, sizeof(cs4236b_eeprom));
+
+		/* Set content size. */
+		dev->eeprom_data[2] = sizeof(cs4236b_eeprom) >> 8;
+		dev->eeprom_data[3] = sizeof(cs4236b_eeprom) & 0xff;
+
+		/* Set PnP card ID. */
+		switch (dev->type) {
+			case CRYSTAL_CS4237B:
+				dev->eeprom_data[26] = 0x37;
+				break;
+
+			case CRYSTAL_CS4238B:
+				dev->eeprom_data[26] = 0x38;
+				break;
+		}
+
 		break;
     }
 
-    /* Initialize codecs. */
+    /* Initialize SBPro codec first to get the correct CD audio filter for the default
+       context, which is SBPro. The WSS codec is initialized later by cs423x_reset */
     dev->sb = (sb_t *) device_add(&sb_pro_cs423x_device);
-    ad1848_init(&dev->ad1848, AD1848_TYPE_DEFAULT);
+
+    /* Initialize RAM, registers and WSS codec. */
+    cs423x_reset(dev);
     sound_add_handler(cs423x_get_buffer, dev);
 
     /* Initialize game port. */
@@ -621,22 +702,13 @@ cs423x_init(const device_t *info)
     /* Initialize I2C bus for the EEPROM. */
     dev->i2c = i2c_gpio_init("nvr_cs423x");
 
-    if (dev->eeprom_size) {
-	/* Set EEPROM length. */
-	dev->eeprom_data[2] = dev->eeprom_size >> 8;
-	dev->eeprom_data[3] = dev->eeprom_size & 0xff;
-
-	/* Initialize I2C EEPROM. */
+    /* Initialize I2C EEPROM if the contents are valid. */
+    if ((dev->eeprom_data[0] == 0x55) && (dev->eeprom_data[1] == 0xbb))
 	dev->eeprom = i2c_eeprom_init(i2c_gpio_get_bus(dev->i2c), 0x50, dev->eeprom_data, sizeof(dev->eeprom_data), 1);
-    }
 
     /* Initialize ISAPnP. */
-    dev->pnp_card = isapnp_add_card(&dev->eeprom_data[23], dev->eeprom_size - 23, cs423x_pnp_config_changed, NULL, NULL, NULL, dev);
-    if (dev->eeprom_data[7] & 0x20) /* hide PnP card if PKD is set */
-	isapnp_enable_card(dev->pnp_card, 0);
-
-    /* Initialize registers. */
-    cs423x_reset(dev);
+    dev->pnp_card = isapnp_add_card(NULL, 0, cs423x_pnp_config_changed, NULL, NULL, NULL, dev);
+    cs423x_pnp_enable(dev, 1);
 
     return dev;
 }
@@ -665,11 +737,11 @@ cs423x_speed_changed(void *priv)
 }
 
 
-const device_t cs4237b_device =
+const device_t cs4236b_device =
 {
-    "Crystal CS4237B",
+    "Crystal CS4236B",
     DEVICE_ISA | DEVICE_AT,
-    CRYSTAL_CS4237B,
+    CRYSTAL_CS4236B,
     cs423x_init, cs423x_close, cs423x_reset,
     { NULL },
     cs423x_speed_changed,

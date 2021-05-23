@@ -24,14 +24,15 @@
 
 
 typedef struct {
-    int		index;
-    uint8_t	regs[32], status; /* 16 original registers + 16 CS4231A extensions */
+    int		index, xindex;
+    uint8_t	regs[32], xregs[32], status; /* 16 original registers + 16 CS4231A extensions + 32 CS4236 extensions */
     
-    int		trd, mce, count;
+    int		trd, mce, count, wten;
     
     int16_t	out_l, out_r;
-
     double	cd_vol_l, cd_vol_r;
+    int		fm_vol_l, fm_vol_r;
+    uint8_t	fmt_mask, wave_vol_mask;
 
     int		enable, irq, dma, freq;
 
@@ -45,11 +46,13 @@ typedef struct {
 
 extern void	ad1848_setirq(ad1848_t *ad1848, int irq);
 extern void	ad1848_setdma(ad1848_t *ad1848, int dma);
+extern void	ad1848_updatevolmask(ad1848_t *ad1848);
 
-extern uint8_t	ad1848_read(uint16_t addr, void *p);
-extern void	ad1848_write(uint16_t addr, uint8_t val, void *p);
+extern uint8_t	ad1848_read(uint16_t addr, void *priv);
+extern void	ad1848_write(uint16_t addr, uint8_t val, void *priv);
 
 extern void	ad1848_update(ad1848_t *ad1848);
 extern void	ad1848_speed_changed(ad1848_t *ad1848);
+extern void	ad1848_filter_cd_audio(int channel, double *buffer, void *priv);
 
 extern void	ad1848_init(ad1848_t *ad1848, int type);
