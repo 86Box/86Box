@@ -89,7 +89,7 @@ wss_get_buffer(int32_t *buffer, int len, void *priv)
     ad1848_update(&wss->ad1848);
     for (c = 0; c < len * 2; c++) {
 	buffer[c] += wss->opl.buffer[c];
-	buffer[c] += (wss->ad1848.buffer[c] / 2);
+	buffer[c] += wss->ad1848.buffer[c] / 2;
     }
 
     wss->opl.pos = 0;

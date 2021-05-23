@@ -1630,7 +1630,7 @@ sb_pro_cs423x_init(const device_t *info)
     sb_t *sb = malloc(sizeof(sb_t));
     memset(sb, 0, sizeof(sb_t));
 
-    sb->opl_enabled = 1;
+    sb->opl_enabled = 1; /* WSS can disable this to take ownership of the OPL */
     opl3_init(&sb->opl);
 
     sb_dsp_init(&sb->dsp, SBPRO2, SB_SUBTYPE_DEFAULT, sb);
