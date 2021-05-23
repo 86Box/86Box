@@ -448,6 +448,7 @@ extern int	machine_at_equium5200_init(const machine_t *);
 extern int	machine_at_pcv240_init(const machine_t *);
 extern int	machine_at_p65up5_cp55t2d_init(const machine_t *);
 
+extern int	machine_at_g586ipv_init(const machine_t *);
 extern int	machine_at_mb520n_init(const machine_t *);
 extern int	machine_at_p55tvp4_init(const machine_t *);
 extern int	machine_at_p55va_init(const machine_t *);
