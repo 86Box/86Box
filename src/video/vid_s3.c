@@ -2565,7 +2565,8 @@ static void s3_recalctimings(svga_t *svga)
 				if (s3->chip == S3_86C928) {
 					if (s3->width == 2048 || s3->width == 1280 || s3->width == 1600)
 						svga->hdisp *= 2;
-				} else if ((s3->chip != S3_86C801) && (s3->chip != S3_86C805)) {
+				} else if ((s3->chip != S3_86C801) && (s3->chip != S3_86C805) && (s3->chip != S3_TRIO32) &&
+							(s3->chip != S3_TRIO64) && (s3->chip != S3_TRIO64V)) {
 					if (s3->width == 1280 || s3->width == 1600)
 						svga->hdisp *= 2;
 				}
@@ -2581,7 +2582,8 @@ static void s3_recalctimings(svga_t *svga)
 				else if (s3->chip != S3_VISION968)
 					svga->hdisp /= 2;
 			}
-			if (s3->chip != S3_VISION868) {
+			if ((s3->chip != S3_VISION868) && (s3->chip != S3_TRIO32) &&
+				(s3->chip != S3_TRIO64) && (s3->chip != S3_TRIO64V)) {
 				if (s3->width == 1280 || s3->width == 1600)
 					svga->hdisp *= 2;
 			}
@@ -2596,7 +2598,8 @@ static void s3_recalctimings(svga_t *svga)
 				else if (s3->chip != S3_VISION968)
 					svga->hdisp /= 2;
 			}
-			if (s3->chip != S3_VISION868) {
+			if ((s3->chip != S3_VISION868) && (s3->chip != S3_TRIO32) &&
+				(s3->chip != S3_TRIO64) && (s3->chip != S3_TRIO64V)) {
 				if (s3->width == 1280 || s3->width == 1600)
 					svga->hdisp *= 2;
 			}
