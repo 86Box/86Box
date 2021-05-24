@@ -12,35 +12,40 @@
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		TheCollector1995, <mariogplayer@gmail.com>
+ *		RichardG, <richardg867@gmail.com>
  *
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2018-2020 TheCollector1995.
+ *		Copyright 2021 RichardG.
  */
 
-#define AD1848_TYPE_DEFAULT 0
-#define AD1848_TYPE_CS4248 1
-#define AD1848_TYPE_CS4231 2
-#define AD1848_TYPE_CS4236 3
+enum {
+    AD1848_TYPE_DEFAULT = 0,
+    AD1848_TYPE_CS4248,
+    AD1848_TYPE_CS4231,
+    AD1848_TYPE_CS4236
+};
 
 
 typedef struct {
-    int		index, xindex;
-    uint8_t	regs[32], xregs[32], status; /* 16 original registers + 16 CS4231A extensions + 32 CS4236 extensions */
-    
-    int		trd, mce, count, wten;
+    uint8_t	type, index, xindex, regs[32], xregs[32], status; /* 16 original registers + 16 CS4231A extensions + 32 CS4236 extensions */
+
+    int		count;
+    uint8_t	trd, mce, wten: 1;
     
     int16_t	out_l, out_r;
     double	cd_vol_l, cd_vol_r;
     int		fm_vol_l, fm_vol_r;
     uint8_t	fmt_mask, wave_vol_mask;
 
-    int		enable, irq, dma, freq;
+    uint8_t	enable: 1, irq: 4, dma: 3;
+    int		freq;
 
     pc_timer_t	timer_count;
     uint64_t	timer_latch;
 
     int16_t	buffer[SOUNDBUFLEN * 2];
-    int		pos, type;
+    int		pos;
 } ad1848_t;
 
 
@@ -55,4 +60,4 @@ extern void	ad1848_update(ad1848_t *ad1848);
 extern void	ad1848_speed_changed(ad1848_t *ad1848);
 extern void	ad1848_filter_cd_audio(int channel, double *buffer, void *priv);
 
-extern void	ad1848_init(ad1848_t *ad1848, int type);
+extern void	ad1848_init(ad1848_t *ad1848, uint8_t type);

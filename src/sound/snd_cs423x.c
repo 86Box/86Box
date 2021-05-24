@@ -42,10 +42,10 @@ enum {
     CRYSTAL_CS4238B = 0xc9
 };
 enum {
-    CRYSTAL_SLAM_NONE = 0,
-    CRYSTAL_SLAM_INDEX,
-    CRYSTAL_SLAM_BYTE1,
-    CRYSTAL_SLAM_BYTE2
+    CRYSTAL_SLAM_NONE  = 0,
+    CRYSTAL_SLAM_INDEX = 1,
+    CRYSTAL_SLAM_BYTE1 = 2,
+    CRYSTAL_SLAM_BYTE2 = 3
 };
 
 
@@ -133,8 +133,7 @@ typedef struct cs423x_t
     void	*i2c, *eeprom;
 
     uint16_t	wss_base, opl_base, sb_base, ctrl_base, ram_addr, eeprom_size: 11;
-    uint8_t	type, pnp_offset, regs[8], indirect_regs[16], eeprom_data[2048], ram_data[384], ram_dl;
-    int		ad1848_type;
+    uint8_t	type, ad1848_type, pnp_offset, regs[8], indirect_regs[16], eeprom_data[2048], ram_data[384], ram_dl;
 
     uint8_t	pnp_enable: 1, key_pos: 5, slam_enable: 1, slam_state: 2, slam_ld, slam_reg;
     isapnp_device_config_t *slam_config;
@@ -148,10 +147,10 @@ static void	cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config
 
 
 static uint8_t
-cs423x_read(uint16_t port, void *priv)
+cs423x_read(uint16_t addr, void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
-    uint8_t reg = port & 7;
+    uint8_t reg = addr & 7;
     uint8_t ret = dev->regs[reg];
 
     switch (reg) {
@@ -165,6 +164,17 @@ cs423x_read(uint16_t port, void *priv)
 		ret = dev->indirect_regs[dev->regs[3]];
 		break;
 
+	case 5: /* Control/RAM Access */
+		/* Reading RAM is undocumented; the WDM driver does so. */
+		if (dev->ram_dl) {
+			if ((dev->ram_addr >= 0x4000) && (dev->ram_addr < 0x4180)) /* chip configuration and PnP resources */
+				ret = dev->ram_data[dev->ram_addr & 0x01ff];
+			else
+				ret = 0xff;
+			dev->ram_addr++;
+		}
+		break;
+
 	case 7: /* Global Status */
 		/* Context switching: take active context and interrupt flag, then clear interrupt flag. */
 		ret &= 0xc0;
@@ -172,10 +182,12 @@ cs423x_read(uint16_t port, void *priv)
 
 		if (dev->sb->mpu->state.irq_pending) /* MPU interrupt */
 			ret |= 0x08;
-		if (dev->ad1848.regs[10] & 2) /* WSS interrupt */
+		if (dev->ad1848.status & 0x01) /* WSS interrupt */
 			ret |= 0x10;
 		if (dev->sb->dsp.sb_irq8 || dev->sb->dsp.sb_irq16 || dev->sb->dsp.sb_irq401) /* SBPro interrupt */
 			ret |= 0x20;
+
+		break;
     }
 
     return ret;
@@ -183,10 +195,10 @@ cs423x_read(uint16_t port, void *priv)
 
 
 static void
-cs423x_write(uint16_t port, uint8_t val, void *priv)
+cs423x_write(uint16_t addr, uint8_t val, void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
-    uint8_t reg = port & 7;
+    uint8_t reg = addr & 0x07;
 
     switch (reg) {
 	case 1: /* EEPROM Interface */
@@ -199,7 +211,7 @@ cs423x_write(uint16_t port, uint8_t val, void *priv)
 		break;
 
 	case 4: /* Control Indirect Data Register */
-		switch (dev->regs[3] & 15) {
+		switch (dev->regs[3] & 0x0f) {
 			case 0: /* WSS Master Control */
 				if (val & 0x80)
 					ad1848_init(&dev->ad1848, dev->ad1848_type);
@@ -211,28 +223,36 @@ cs423x_write(uint16_t port, uint8_t val, void *priv)
 			case 9 ... 15: /* unspecified */
 				return;
 
+			case 2: /* 3D Space and {Center|Volume} */
+			case 6: /* Upper Channel Status */
+				if (dev->type < CRYSTAL_CS4237B)
+					return;
+				break;
+
 			case 3: /* 3D Enable */
+				if (dev->type < CRYSTAL_CS4237B)
+					return;
 				val &= 0xe0;
 				break;
 
 			case 4: /* Consumer Serial Port Enable */
+				if (dev->type < CRYSTAL_CS4237B)
+					return;
 				val &= 0xf0;
 				break;
 
 			case 5: /* Lower Channel Status */
+				if (dev->type < CRYSTAL_CS4237B)
+					return;
 				val &= 0xfe;
 				break;
 
 			case 8: /* CS9236 Wavetable Control */
 				val &= 0x0f;
+				cs423x_pnp_enable(dev, 0); /* update WTEN bit */
 				break;
 		}
 		dev->indirect_regs[dev->regs[3]] = val;
-
-		if (dev->ad1848.wten ^ !!(dev->indirect_regs[8] & 0x08)) {
-			dev->ad1848.wten ^= 1;
-			ad1848_updatevolmask(&dev->ad1848);
-		}
 		break;
 
 	case 5: /* Control/RAM Access */
@@ -271,9 +291,7 @@ cs423x_write(uint16_t port, uint8_t val, void *priv)
 				break;
 
 			case 3: /* data */
-				/* The only documented RAM region is 0x4000 (384 bytes in size), for
-				   loading chip configuration and PnP resources without an EEPROM. */
-				if ((dev->ram_addr >= 0x4000) && (dev->ram_addr < 0x4180))
+				if ((dev->ram_addr >= 0x4000) && (dev->ram_addr < 0x4180)) /* chip configuration and PnP resources */
 					dev->ram_data[dev->ram_addr & 0x01ff] = val;
 				dev->ram_addr++;
 				break;
@@ -424,7 +442,7 @@ cs423x_slam_enable(cs423x_t *dev, uint8_t enable)
 {
     /* Disable SLAM. */
     if (dev->slam_enable) {
-    	dev->slam_state = CRYSTAL_SLAM_NONE;
+	dev->slam_state = CRYSTAL_SLAM_NONE;
 	dev->slam_enable = 0;
 	io_removehandler(0x279, 1, NULL, NULL, NULL, cs423x_slam_write, NULL, NULL, dev);
     }
@@ -455,10 +473,10 @@ cs423x_ctxswitch_write(uint16_t addr, uint8_t val, void *priv)
 	/* Flip context bit. */
 	dev->regs[7] ^= 0x80;
 
-	/* Switch the CD audio filter and OPL ownership.
+	/* Switch OPL ownership and CD audio filter.
 	   FIXME: not thread-safe: filter function TOCTTOU in sound_cd_thread! */
-	sound_set_cd_audio_filter(NULL, NULL);
 	dev->sb->opl_enabled = !(dev->regs[7] & 0x80);
+	sound_set_cd_audio_filter(NULL, NULL);
 	if (dev->sb->opl_enabled) /* SBPro */
 		sound_set_cd_audio_filter(sbpro_filter_cd_audio, dev->sb);
 	else /* WSS */
@@ -496,7 +514,7 @@ cs423x_get_buffer(int32_t *buffer, int len, void *priv)
 
     dev->ad1848.pos = 0;
     if (opl_wss)
-    	dev->sb->opl.pos = 0;
+	dev->sb->opl.pos = 0;
 }
 
 
@@ -515,6 +533,21 @@ cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom)
 
     /* Update PnP state. */
     isapnp_enable_card(dev->pnp_card, enable);
+
+    /* While we're here, update FM and wavetable enable bits based on the config data in RAM. */
+    if (dev->ram_data[3] & 0x08) {
+	dev->indirect_regs[8] |= 0x08;
+	dev->ad1848.wten = 1;
+    } else {
+	dev->indirect_regs[8] &= ~0x08;
+	dev->ad1848.wten = 0;
+    }
+    if (dev->ram_data[3] & 0x80)
+	dev->ad1848.xregs[4] |= 0x10;
+    else
+	dev->ad1848.xregs[4] &= ~0x10;
+
+    ad1848_updatevolmask(&dev->ad1848);
 }
 
 
@@ -632,6 +665,8 @@ cs423x_reset(void *priv)
     /* Reset registers. */
     memset(dev->indirect_regs, 0, sizeof(dev->indirect_regs));
     dev->indirect_regs[1] = dev->type;
+    if (dev->type == CRYSTAL_CS4238B)
+	dev->indirect_regs[2] = 0x20;
 
     /* Reset WSS codec. */
     ad1848_init(&dev->ad1848, dev->ad1848_type);

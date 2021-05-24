@@ -12,9 +12,11 @@
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		TheCollector1995, <mariogplayer@gmail.com>
+ *		RichardG, <richardg867@gmail.com>
  *
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2018-2020 TheCollector1995.
+ *		Copyright 2021 RichardG.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -35,8 +37,6 @@
 
 static int	ad1848_vols_7bits[128];
 static double	ad1848_vols_5bits_aux_gain[32];
-static double	ad1848_vols_7bits_debug[128];
-static double	ad1848_vols_5bits_debug[32];
 
 
 void
@@ -136,9 +136,9 @@ ad1848_read(uint16_t addr, void *priv)
 			case 18: case 19:
 				if (ad1848->type == AD1848_TYPE_CS4236) {
 					if (ad1848->xregs[4] & 0x04) /* FM remapping */
-						return ad1848->xregs[ad1848->index - 12]; /* real FM volume on registers 6 and 7 */
+						ret = ad1848->xregs[ad1848->index - 12]; /* real FM volume on registers 6 and 7 */
 					else if (ad1848->xregs[4] & 0x08) /* wavetable remapping */
-						return ad1848->xregs[ad1848->index - 2]; /* real wavetable volume on registers 16 and 17 */
+						ret = ad1848->xregs[ad1848->index - 2]; /* real wavetable volume on registers 16 and 17 */
 				}
 				break;
 
@@ -166,7 +166,7 @@ void
 ad1848_write(uint16_t addr, uint8_t val, void *priv)
 {
     ad1848_t *ad1848 = (ad1848_t *) priv;
-    uint8_t temp, updatefreq = 0;
+    uint8_t temp = 0, updatefreq = 0;
 
     switch (addr & 3) {
 	case 0: /* Index */
@@ -224,14 +224,43 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
 			case 18: case 19:
 				if (ad1848->type == AD1848_TYPE_CS4236) {
-					if (ad1848->xregs[4] & 0x04) { /* FM remapping */
-						temp = val;
-						val = ad1848->xregs[ad1848->index - 18]; /* real line volume on registers 0 and 1 */
-						ad1848->xregs[ad1848->index - 12] = temp; /* real FM volume on registers 6 and 7 */
-					} else if (ad1848->xregs[4] & 0x08) { /* wavetable remapping */
-						temp = val;
-						val = ad1848->xregs[ad1848->index - 18]; /* real line volume on registers 0 and 1 */
-						ad1848->xregs[ad1848->index - 2] = temp; /* real wavetable volume on registers 16 and 17 */
+					if ((ad1848->xregs[4] & 0x14) == 0x14) { /* FM remapping */
+						ad1848->xregs[ad1848->index - 12] = val; /* real FM volume on extended registers 6 and 7 */
+						temp = 1;
+
+						if (ad1848->index == 18) {
+							if (val & 0x80)
+								ad1848->fm_vol_l = 0;
+							else
+								ad1848->fm_vol_l = ad1848_vols_7bits[val & 0x3f];
+						} else {
+							if (val & 0x80)
+								ad1848->fm_vol_r = 0;
+							else
+								ad1848->fm_vol_r = ad1848_vols_7bits[val & 0x3f];
+						}
+					}
+					if (ad1848->wten && !(ad1848->xregs[4] & 0x08)) { /* wavetable remapping */
+						ad1848->xregs[ad1848->index - 2] = val; /* real wavetable volume on extended registers 16 and 17 */
+						temp = 1;
+					}
+
+					/* Stop here if any remapping is enabled. */
+					if (temp)
+						return;
+
+					/* HACK: the Windows 9x driver's "Synth" control writes to this
+					   register with no remapping, even if internal FM is enabled. */
+					if (ad1848->index == 18) {
+						if (val & 0x80)
+							ad1848->fm_vol_l = 0;
+						else
+							ad1848->fm_vol_l = (int) ad1848_vols_5bits_aux_gain[val & 0x1f];
+					} else {
+						if (val & 0x80)
+							ad1848->fm_vol_r = 0;
+						else
+							ad1848->fm_vol_r = (int) ad1848_vols_5bits_aux_gain[val & 0x1f];
 					}
 				}
 				break;
@@ -243,9 +272,10 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 			case 23:
 				if ((ad1848->type == AD1848_TYPE_CS4236) && ((ad1848->regs[12] & 0x60) == 0x60)) {
 					if (!(ad1848->regs[23] & 0x08)) { /* existing (not new) XRAE is clear */
-						ad1848->xindex = (((val & 0x04) << 2) | (val >> 4)) & 0x1f;
+						ad1848->xindex = ((val & 0x04) << 2) | (val >> 4);
 						break;
 					}
+
 					switch (ad1848->xindex) {
 						case 0: case 1: /* remapped line volume */
 							ad1848->regs[18 + ad1848->xindex] = val;
@@ -282,8 +312,11 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 				break;
 
 			case 24:
-				if (!(val & 0x70))
+				val = ad1848->regs[24] & ((val & 0x70) | 0x0f);
+				if (!(val & 0x70)) {
 					ad1848->status &= 0xfe;
+					picintc(1 << ad1848->irq);
+				}
 				break;
 
 			case 25:
@@ -310,6 +343,7 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
 
 	case 2:
 		ad1848->status &= 0xfe;
+		ad1848->regs[24] &= 0x0f;
 		break;
     }
 }
@@ -391,14 +425,15 @@ ad1848_poll(void *priv)
 		ad1848->out_r = 0;
 	else
 		ad1848->out_r = (ad1848->out_r * ad1848_vols_7bits[ad1848->regs[7] & ad1848->wave_vol_mask]) >> 16;
-	
+
 	if (ad1848->count < 0) {
 		ad1848->count = ad1848->regs[15] | (ad1848->regs[14] << 8);
 		if (!(ad1848->status & 0x01)) {
 			ad1848->status |= 0x01;
+			ad1848->regs[24] |= 0x10;
 			if (ad1848->regs[10] & 2)
 				picint(1 << ad1848->irq);
-		}				
+		}
 	}
 
 	ad1848->count--;
@@ -422,11 +457,11 @@ ad1848_filter_cd_audio(int channel, double *buffer, void *priv)
 
 
 void
-ad1848_init(ad1848_t *ad1848, int type)
+ad1848_init(ad1848_t *ad1848, uint8_t type)
 {
-    int c;
+    uint8_t c;
     double attenuation;
-			
+
     ad1848->status = 0xcc;
     ad1848->index = ad1848->trd = 0;
     ad1848->mce = 0x40;
@@ -477,8 +512,10 @@ ad1848_init(ad1848_t *ad1848, int type)
 	ad1848->xregs[16] = ad1848->xregs[17] = 0;
     }
 
+    ad1848_updatefreq(ad1848);
+
     ad1848->out_l = ad1848->out_r = 0;
-    ad1848->fm_vol_l = ad1848->fm_vol_r = 1;
+    ad1848->fm_vol_l = ad1848->fm_vol_r = 65536;
     ad1848_updatevolmask(ad1848);
     ad1848->fmt_mask = 0x70;
 
@@ -494,7 +531,7 @@ ad1848_init(ad1848_t *ad1848, int type)
 		if (c & 0x10) attenuation -= 24.0;
 		if (c & 0x20) attenuation -= 48.0;
 	}
-ad1848_vols_7bits_debug[c] = attenuation;
+
 	attenuation = pow(10, attenuation / 10);
 
 	ad1848_vols_7bits[c] = (int) (attenuation * 65536);
@@ -507,7 +544,7 @@ ad1848_vols_7bits_debug[c] = attenuation;
 	if (c & 0x04) attenuation -= 6.0;
 	if (c & 0x08) attenuation -= 12.0;
 	if (c & 0x10) attenuation -= 24.0;
-ad1848_vols_5bits_debug[c] = attenuation;
+
 	attenuation = pow(10, attenuation / 10);
 
 	ad1848_vols_5bits_aux_gain[c] = (attenuation * 65536);

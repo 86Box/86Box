@@ -53,7 +53,7 @@ static const int wss_irq[8] = {5, 7, 9, 10, 11, 12, 14, 15}; /* W95 only uses 7-
 typedef struct wss_t {
     uint8_t	config;
 
-    ad1848_t	ad1848;        
+    ad1848_t	ad1848;
     opl_t	opl;
 
     int		opl_enabled;
