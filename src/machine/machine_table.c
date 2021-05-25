@@ -181,7 +181,7 @@ const machine_t machines[] = {
     { "[MCA] IBM PS/2 model 55SX",		"ibmps2_m55sx",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_MCA | MACHINE_BUS_PS2 | MACHINE_VIDEO,					 1024,  8192, 1024,  63,	  machine_ps2_model_55sx_init, NULL			},
 
     /* 386DX machines */
-    { "[ACC 2168] AMI 386DX clone",		"acc386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 16384, 1024, 127,	       machine_at_acc386_init, NULL			},
+    { "[ACC 2168] Juko AT046DX3",		"acc386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 16384, 1024, 127,	       machine_at_acc386_init, NULL			},
     { "[C&T 386] ECS 386/32",			"ecs386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 8096, 1024, 127,	       machine_at_ecs386_init, NULL			},
     { "[C&T 386] Samsung SPC-6000A",		"spc6000a",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							 1024, 32768, 1024, 127,	     machine_at_spc6000a_init, NULL			},
     { "[ISA] Compaq Portable III (386)",	"portableiii386",       MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE | MACHINE_VIDEO,					 1024, 14336, 1024, 127,       machine_at_portableiii386_init, at_cpqiii_get_device	},
