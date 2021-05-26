@@ -595,7 +595,7 @@ update_font(escp_t *dev)
     /* Create a full pathname for the ROM file. */
     strcpy(path, dev->fontpath);
     plat_path_slash(path);
-    strcpy(path, fn);
+    strcat(path, fn);
 
     escp_log("Temp file=%s\n", path);
 

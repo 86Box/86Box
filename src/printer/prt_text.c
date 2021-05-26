@@ -154,7 +154,7 @@ dump_page(prnt_t *dev)
     if (! plat_dir_check(path))
         plat_dir_create(path);
     plat_path_slash(path);
-    strcpy(path, dev->filename);
+    strcat(path, dev->filename);
 
     /* Create the file. */
     fp = plat_fopen(path, "a");
