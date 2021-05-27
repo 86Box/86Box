@@ -1040,6 +1040,10 @@ load_storage_controllers(void)
 	hdc_current = hdc_get_from_internal_name("st506_xt_dtc5150x");
     else if (!strcmp(p, "mfm_at"))
 	hdc_current = hdc_get_from_internal_name("st506_at");
+    else if (!strcmp(p, "vlb_isa"))
+	hdc_current = hdc_get_from_internal_name("ide_vlb");
+    else if (!strcmp(p, "vlb_isa_2ch"))
+	hdc_current = hdc_get_from_internal_name("ide_vlb_2ch");
     else
 	hdc_current = hdc_get_from_internal_name(p);
 
@@ -1741,6 +1745,10 @@ load_other_peripherals(void)
 		hdc_current = hdc_get_from_internal_name("st506_xt_dtc5150x");
 	else if (!strcmp(p, "mfm_at"))
 		hdc_current = hdc_get_from_internal_name("st506_at");
+	else if (!strcmp(p, "vlb_isa"))
+		hdc_current = hdc_get_from_internal_name("ide_vlb");
+	else if (!strcmp(p, "vlb_isa_2ch"))
+		hdc_current = hdc_get_from_internal_name("ide_vlb_2ch");
 	else
 		hdc_current = hdc_get_from_internal_name(p);
 	config_delete_var(cat, "hdc");
