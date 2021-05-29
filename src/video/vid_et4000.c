@@ -742,6 +742,8 @@ et4000_init(const device_t *info)
 
     dev->svga.translate_address = get_et4000_addr;
 
+	dev->svga.packed_chain4 = 1;
+
     return(dev);
 }
 
