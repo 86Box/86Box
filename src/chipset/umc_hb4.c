@@ -26,10 +26,6 @@ Sources & Notes:
 Cache registers were found at Vogons: https://www.vogons.org/viewtopic.php?f=46&t=68829&start=20
 Basic Reverse engineering effort was done personally by me
 
-TODO:
-- APM, SMM, SMRAM registers(Did some early work. Still quite incomplete)
-- More Appropriate Bitmasking(If it's even possible)
-
 Warning: Register documentation may be inaccurate!
 
 UMC 8881x:
@@ -95,11 +91,9 @@ Bit 6: Write Protect Enable
 #include <86box/io.h>
 #include <86box/device.h>
 
-#include <86box/apm.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
 #include <86box/port_92.h>
-#include <86box/smram.h>
 
 #include <86box/chipset.h>
 
@@ -128,10 +122,7 @@ hb4_log(const char *fmt, ...)
 
 typedef struct hb4_t
 {
-    apm_t *apm;
-    smram_t *smram;
-
-    uint8_t pci_conf[256]; /* PCI Registers */
+    uint8_t pci_conf[98]; /* PCI Registers */
 } hb4_t;
 
 void hb4_shadow(int cur_addr, hb4_t *dev)
@@ -141,48 +132,73 @@ void hb4_shadow(int cur_addr, hb4_t *dev)
         mem_set_mem_state_both(0xc8000 + ((i - 2) << 14), 0x4000, (dev->pci_conf[0x54] & (1 << i)) ? (CAN_READ | CAN_WRITE) : DISABLE);
 
     mem_set_mem_state_both(0xe0000, 0x20000, CAN_READ | CAN_WRITE);
-	
-	flushmmucache_nopc();
+
+    flushmmucache_nopc();
 }
 
 static void
-um8881_write(int func, int addr, uint8_t val, void *priv)
+hb4_write(int func, int addr, uint8_t val, void *priv)
 {
     hb4_t *dev = (hb4_t *)priv;
-    hb4_log("UM8881: dev->regs[%02x] = %02x\n", addr, val);
 
-    if (addr > 3) /* We don't know the RW status of registers but Phoenix writes on some RO registers too*/
+    hb4_log("UM8881F: dev->regs[%02x] = %02x\n", addr, val);
 
-        switch (addr)
-        {
-        case 0x50:
-            dev->pci_conf[addr] = ((val & 0xf8) | 4); /* Hardcode Cache Size to 512KB */
-            cpu_cache_ext_enabled = !!(val & 0x80);   /* Fixes freezing issues on the HOT-433A*/
-            cpu_update_waitstates();
-            break;
+    switch (addr)
+    {
+    case 0x04:
+    case 0x05:
+        dev->pci_conf[addr] = val;
+        break;
 
-        case 0x54:
-        case 0x55:
-            dev->pci_conf[addr] = val & (!(addr & 1) ? 0xfe : 0xff);
-            hb4_shadow(addr, dev);
-            break;
+    case 0x07:
+        dev->pci_conf[addr] &= val;
+        break;
 
-        case 0x60:
-            dev->pci_conf[addr] = val & 0x3f;
-            break;
+    case 0x0c:
+    case 0x0d:
+        dev->pci_conf[addr] = val;
+        break;
 
-        case 0x61:
-            dev->pci_conf[addr] = val & 0x0f;
-            break;
+    case 0x50:
+        dev->pci_conf[addr] = ((val & 0xf8) | 4); /* Hardcode Cache Size to 512KB */
+        cpu_cache_ext_enabled = !!(val & 0x80);   /* Fixes freezing issues on the HOT-433A*/
+        cpu_update_waitstates();
+        break;
 
-        default:
-            dev->pci_conf[addr] = val;
-            break;
-        }
+    case 0x51:
+    case 0x52:
+    case 0x53:
+        dev->pci_conf[addr] = val;
+        break;
+
+    case 0x54:
+    case 0x55:
+        dev->pci_conf[addr] = val & (!(addr & 1) ? 0xfe : 0xff);
+        hb4_shadow(addr, dev);
+        break;
+
+    case 0x56:
+    case 0x57:
+    case 0x58:
+    case 0x59:
+    case 0x5a:
+    case 0x5b:
+    case 0x5c:
+    case 0x5d:
+    case 0x5e:
+    case 0x5f:
+        dev->pci_conf[addr] = val;
+        break;
+
+    case 0x60:
+    case 0x61:
+        dev->pci_conf[addr] = val;
+        break;
+    }
 }
 
 static uint8_t
-um8881_read(int func, int addr, void *priv)
+hb4_read(int func, int addr, void *priv)
 {
     hb4_t *dev = (hb4_t *)priv;
     return dev->pci_conf[addr];
@@ -197,7 +213,7 @@ hb4_reset(void *priv)
     dev->pci_conf[0] = 0x60; /* UMC */
     dev->pci_conf[1] = 0x10;
 
-    dev->pci_conf[2] = 0x81; /* 8881x */
+    dev->pci_conf[2] = 0x81; /* 8881F */
     dev->pci_conf[3] = 0x88;
 
     dev->pci_conf[8] = 1;
@@ -212,7 +228,6 @@ hb4_close(void *priv)
 {
     hb4_t *dev = (hb4_t *)priv;
 
-    //smram_del(dev->smram);
     free(dev);
 }
 
@@ -222,13 +237,7 @@ hb4_init(const device_t *info)
     hb4_t *dev = (hb4_t *)malloc(sizeof(hb4_t));
     memset(dev, 0, sizeof(hb4_t));
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, um8881_read, um8881_write, dev); /* Device 10: UMC 8881x */
-
-    /* APM */
-    dev->apm = device_add(&apm_pci_device);
-
-    /* SMRAM(Needs excessive documentation before we begin SMM implementation) */
-    //dev->smram = smram_add();
+    pci_add_card(PCI_ADD_NORTHBRIDGE, hb4_read, hb4_write, dev); /* Device 10: UMC 8881x */
 
     /* Port 92 */
     device_add(&port_92_pci_device);
@@ -239,7 +248,7 @@ hb4_init(const device_t *info)
 }
 
 const device_t umc_hb4_device = {
-    "UMC HB4(8881F)",
+    "UMC HB4(UM8881F)",
     DEVICE_PCI,
     0x886a,
     hb4_init,

@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the UMC 8886xx PCI to ISA Bridge .
+ *		Implementation of the UMC 8886xx PCI to ISA Bridge.
  *
  *		Note: This chipset has no datasheet, everything were done via
  *		reverse engineering the BIOS of various machines using it.
@@ -16,10 +16,8 @@
  *		Copyright 2021 Tiseno100.
  */
 
-/* UMC 8886 Configuration Registers
-
-   TODO:
-   - More Appropriate Bitmasking(If it's even possible)
+/*
+UMC 8886 Configuration Registers
 
    Warning: Register documentation may be inaccurate!
 
@@ -36,9 +34,6 @@
 
    Function 0 Register 46:
    Bit 7: Replace SMI request for non-SMM CPU's (1: IRQ15/0: IRQ10)
-
-   Function 0 Register 51:
-   Bit 2: VGA Power Down (0: Standard/1: VESA DPMS)
 
    Function 0 Register 56:
    Bit 1-0 ISA Bus Speed
@@ -70,9 +65,9 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/pci.h>
+#include <86box/pic.h>
 
 #include <86box/chipset.h>
-
 
 #ifdef ENABLE_UMC_8886_LOG
 int umc_8886_do_log = ENABLE_UMC_8886_LOG;
@@ -92,7 +87,6 @@ umc_8886_log(const char *fmt, ...)
 #define umc_8886_log(fmt, ...)
 #endif
 
-
 /* PCI IRQ Flags */
 #define INTA (PCI_INTA + (2 * !(addr & 1)))
 #define INTB (PCI_INTB + (2 * !(addr & 1)))
@@ -105,14 +99,13 @@ umc_8886_log(const char *fmt, ...)
 /* Southbridge Revision */
 #define SB_ID dev->sb_id
 
-
 typedef struct umc_8886_t
 {
-    uint8_t pci_conf_sb[2][256]; /* PCI Registers */
+    uint8_t pci_conf_sb[2][169], /* PCI Registers */
+        pmu_reg;                 /* PMU Register */
     uint16_t sb_id;              /* Southbridge Revision */
     int has_ide;                 /* Check if Southbridge Revision is AF or F */
 } umc_8886_t;
-
 
 static void
 umc_8886_ide_handler(int status)
@@ -120,99 +113,149 @@ umc_8886_ide_handler(int status)
     ide_pri_disable();
     ide_sec_disable();
 
-    if (status) {
+    if (status)
+    {
         ide_pri_enable();
         ide_sec_enable();
     }
 }
 
-
 static void
-um8886_write(int func, int addr, uint8_t val, void *priv)
+umc_8886_write(int func, int addr, uint8_t val, void *priv)
 {
     umc_8886_t *dev = (umc_8886_t *)priv;
-    umc_8886_log("UM8886: dev->regs[%02x] = %02x (%02x)\n", addr, val, func);
 
-    /* We don't know the RW status of registers but Phoenix writes on some RO registers too*/
-    if (addr > 3)  switch (func) {
-	case 0: /* Southbridge */
-		switch (addr) {
-			case 0x43:
-			case 0x44:
-				dev->pci_conf_sb[func][addr] = val;
-				pci_set_irq_routing(INTA, IRQRECALCA);
-				pci_set_irq_routing(INTB, IRQRECALCB);
-				break;
+    switch (func)
+    {
+    case 0: /* PCI to ISA Bridge */
+        umc_8886_log("umc_8886: dev->regs[%02x] = %02x\n", addr, val);
 
-			case 0x46:
-				dev->pci_conf_sb[func][addr] = val & 0xaf;
-				break;
+        switch (addr)
+        {
+        case 0x04:
+        case 0x05:
+            dev->pci_conf_sb[func][addr] = val;
+            break;
 
-			case 0x47:
-				dev->pci_conf_sb[func][addr] = val & 0x4f;
-				break;
+        case 0x07:
+            dev->pci_conf_sb[func][addr] &= val;
+            break;
 
-			case 0x56:
-				dev->pci_conf_sb[func][addr] = val;
-				switch (val & 2) {
-					case 0:
-						cpu_set_isa_pci_div(3);
-						break;
-					case 1:
-						cpu_set_isa_pci_div(4);
-						break;
-					case 2:
-						cpu_set_isa_pci_div(2);
-						break;
-				}
-				break;
+        case 0x0c:
+        case 0x0d:
+            dev->pci_conf_sb[func][addr] = val;
+            break;
 
-			case 0x57:
-				dev->pci_conf_sb[func][addr] = val & 0x38;
-				break;
+        case 0x40:
+        case 0x41:
+        case 0x42:
+            dev->pci_conf_sb[func][addr] = val;
+            break;
 
-			case 0x71:
-				dev->pci_conf_sb[func][addr] = val & 1;
-				break;
+        case 0x43:
+        case 0x44:
+        case 0x45:
+            dev->pci_conf_sb[func][addr] = val;
+            pci_set_irq_routing(INTA, IRQRECALCA);
+            pci_set_irq_routing(INTB, IRQRECALCB);
+            break;
 
-			case 0x90:
-				dev->pci_conf_sb[func][addr] = val & 2;
-				break;
+        case 0x46:
+            dev->pci_conf_sb[func][addr] = val;
+            picint((val & 0x80) ? 15 : 10);
+            break;
 
-			case 0x92:
-				dev->pci_conf_sb[func][addr] = val & 0x1f;
-				break;
+        case 0x47:
+            dev->pci_conf_sb[func][addr] = val;
+            break;
 
-			case 0xa0:
-				dev->pci_conf_sb[func][addr] = val & 0xfc;
-				break;
+        case 0x50:
+        case 0x51:
+        case 0x52:
+        case 0x53:
+        case 0x54:
+        case 0x55:
+            dev->pci_conf_sb[func][addr] = val;
+            break;
 
-			case 0xa4:
-				dev->pci_conf_sb[func][addr] = val & 0x89;
-				cpu_set_pci_speed(cpu_busspeed / ((val & 1) ? 1 : 2));
-				break;
+        case 0x56:
+            dev->pci_conf_sb[func][addr] = val;
+            switch (val & 2)
+            {
+            case 0:
+                cpu_set_isa_pci_div(3);
+                break;
+            case 1:
+                cpu_set_isa_pci_div(4);
+                break;
+            case 2:
+                cpu_set_isa_pci_div(2);
+                break;
+            }
+            break;
 
-			default:
-				dev->pci_conf_sb[func][addr] = val;
-				break;
-		}
-		break;
-	case 1:	/* IDE Controller */
-		dev->pci_conf_sb[func][addr] = val;
-		if ((addr == 4) && HAS_IDE)
-			umc_8886_ide_handler(val & 1);
-		break;
+        case 0x57:
+        case 0x70:
+        case 0x71:
+        case 0x72:
+        case 0x73:
+        case 0x74:
+        case 0x75:
+        case 0x76:
+        case 0x80:
+        case 0x81:
+        case 0x90:
+        case 0x91:
+        case 0x92:
+        case 0xa0:
+        case 0xa1:
+        case 0xa2:
+        case 0xa3:
+            dev->pci_conf_sb[func][addr] = val;
+            break;
+
+        case 0xa4:
+            dev->pci_conf_sb[func][addr] = val & 0x89;
+            cpu_set_pci_speed(cpu_busspeed / ((val & 1) ? 1 : 2));
+            break;
+
+        case 0xa5:
+        case 0xa6:
+        case 0xa7:
+        case 0xa8:
+            dev->pci_conf_sb[func][addr] = val;
+            break;
+        }
+        break;
+
+    case 1: /* IDE Controller */
+        if (HAS_IDE)
+        {
+            umc_8886_log("umc_8886-IDE: dev->regs[%02x] = %02x\n", addr, val);
+            switch (addr)
+            {
+            case 0x04:
+                dev->pci_conf_sb[func][addr] = val;
+                umc_8886_ide_handler(val & 1);
+                break;
+
+            case 0x3c:
+            case 0x41:
+            case 0x42:
+                dev->pci_conf_sb[func][addr] = val;
+                break;
+            }
+            break;
+        }
     }
 }
 
-
 static uint8_t
-um8886_read(int func, int addr, void *priv)
+umc_8886_read(int func, int addr, void *priv)
 {
     umc_8886_t *dev = (umc_8886_t *)priv;
     return dev->pci_conf_sb[func][addr];
 }
-
 
 static void
 umc_8886_reset(void *priv)
@@ -233,14 +276,14 @@ umc_8886_reset(void *priv)
     dev->pci_conf_sb[0][0x0b] = 0x06;
 
     for (int i = 1; i < 5; i++) /* Disable all IRQ interrupts */
-	pci_set_irq_routing(i, PCI_IRQ_DISABLED);
+        pci_set_irq_routing(i, PCI_IRQ_DISABLED);
 
-    if (HAS_IDE) {
-	dev->pci_conf_sb[1][4] = 1; /* Start with Internal IDE Enabled */
-	umc_8886_ide_handler(1);
+    if (HAS_IDE)
+    {
+        dev->pci_conf_sb[1][4] = 1; /* Start with Internal IDE Enabled */
+        umc_8886_ide_handler(1);
     }
 }
-
 
 static void
 umc_8886_close(void *priv)
@@ -250,7 +293,6 @@ umc_8886_close(void *priv)
     free(dev);
 }
 
-
 static void *
 umc_8886_init(const device_t *info)
 {
@@ -258,7 +300,7 @@ umc_8886_init(const device_t *info)
     memset(dev, 0, sizeof(umc_8886_t));
 
     dev->has_ide = (info->local == 0x886a);
-    pci_add_card(PCI_ADD_SOUTHBRIDGE, um8886_read, um8886_write, dev); /* Device 12: UMC 8886xx */
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, umc_8886_read, umc_8886_write, dev); /* Device 12: UMC 8886xx */
 
     /* Add IDE if UM8886AF variant */
     if (HAS_IDE)
@@ -272,19 +314,17 @@ umc_8886_init(const device_t *info)
     return dev;
 }
 
-
 const device_t umc_8886f_device = {
-    "UMC 8886F",
+    "UMC UM8886F",
     DEVICE_PCI,
     0x8886,
     umc_8886_init,
     umc_8886_close,
     umc_8886_reset,
-    { NULL },
+    {NULL},
     NULL,
     NULL,
-    NULL
-};
+    NULL};
 
 const device_t umc_8886af_device = {
     "UMC 8886AF",
@@ -293,8 +333,7 @@ const device_t umc_8886af_device = {
     umc_8886_init,
     umc_8886_close,
     umc_8886_reset,
-    { NULL },
+    {NULL},
     NULL,
     NULL,
-    NULL
-};
+    NULL};
