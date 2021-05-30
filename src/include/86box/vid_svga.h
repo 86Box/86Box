@@ -146,6 +146,16 @@ typedef struct svga_t
     /*Used to implement CRTC[0x17] bit 2 hsync divisor*/
     int hsync_divisor;
 
+	/*Tseng-style chain4 mode - CRTC dword mode is the same as byte mode, chain4
+	  addresses are shifted to match*/
+	int packed_chain4;
+
+	/*Force CRTC to dword mode, regardless of CR14/CR17. Required for S3 enhanced mode*/
+	int force_dword_mode;
+
+	int remap_required;
+	uint32_t (*remap_func)(struct svga_t *svga, uint32_t in_addr);
+
     void *ramdac, *clock_gen;
 } svga_t;
 

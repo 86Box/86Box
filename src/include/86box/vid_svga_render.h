@@ -27,6 +27,8 @@ extern int scrollcache;
 
 extern uint8_t edatlookup[4][4];
 
+void svga_recalc_remap_func(svga_t *svga);
+
 void svga_render_null(svga_t *svga);
 void svga_render_blank(svga_t *svga);
 void svga_render_overscan_left(svga_t *svga);
@@ -37,6 +39,7 @@ void svga_render_text_80_ksc5601(svga_t *svga);
 
 void svga_render_2bpp_lowres(svga_t *svga);
 void svga_render_2bpp_highres(svga_t *svga);
+void svga_render_2bpp_headland_highres(svga_t *svga);
 void svga_render_4bpp_lowres(svga_t *svga);
 void svga_render_4bpp_highres(svga_t *svga);
 void svga_render_8bpp_lowres(svga_t *svga);
