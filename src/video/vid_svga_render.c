@@ -906,8 +906,8 @@ svga_render_15bpp_lowres(svga_t *svga)
 				*p++ = video_15to32[dat >> 16];
 			} else
 				memset(&(p[x]), 0x00, 2 * sizeof(uint32_t));
+			svga->ma += 4;
 		}
-		svga->ma += 4;
 	}
 	svga->ma &= svga->vram_display_mask;
     }
@@ -966,8 +966,8 @@ svga_render_15bpp_highres(svga_t *svga)
 				*p++ = video_15to32[dat >> 16];
 			} else
 				memset(&(p[x]), 0x00, 2 * sizeof(uint32_t));
+			svga->ma += 4;
 		}
-		svga->ma += 4;
 	}
 	svga->ma &= svga->vram_display_mask;
     }

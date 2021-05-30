@@ -901,6 +901,8 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 						svga->adv_flags |= FLAG_EXT_WRITE;
 					if (svga->gdcreg[0xb] & 0x08)
 						svga->adv_flags |= FLAG_LATCH8;
+					if (svga->gdcreg[0xb] & 0x10)
+						svga->adv_flags |= FLAG_ADDR_BY16;
 					gd54xx_recalc_banking(gd54xx);
 					break;
 
@@ -1994,7 +1996,7 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
 
     switch (svga->writemode) {
 	case 4:
-		if (svga->gdcreg[0xb] & 0x10) {
+		if (svga->adv_flags & FLAG_ADDR_BY16) {
 			addr <<= 2;
 			addr &= svga->decode_mask;
 
@@ -2016,7 +2018,7 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
 		break;
 
 	case 5:
-		if (svga->gdcreg[0xb] & 0x10) {
+		if (svga->adv_flags & FLAG_ADDR_BY16) {
 			addr <<= 2;
 			addr &= svga->decode_mask;
 
