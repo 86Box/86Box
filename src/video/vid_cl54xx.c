@@ -151,7 +151,7 @@ typedef struct gd54xx_t
     mem_mapping_t 	aperture2_mapping;
     mem_mapping_t	vgablt_mapping;
 
-    svga_t		svga, *mb_vga;
+    svga_t		svga;
 
     int			has_bios, rev,
 			bit32;
@@ -215,7 +215,6 @@ typedef struct gd54xx_t
     int			card;
     
     uint8_t		pos_regs[8];
-	int			vidsys_ena;
 
     uint32_t		lfb_base, vgablt_base;
 
@@ -1024,11 +1023,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 			}
 		}
 		return;
-		
-	case 0x46e8:
-		pclog("port 46e8 = %02x\n", val & 0x18);
-		break;
-		
+
 	case 0x3d4:
 		svga->crtcreg = val & gd54xx->crtcreg_mask;
 		return;
@@ -2001,7 +1996,7 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
 
     switch (svga->writemode) {
 	case 4:
-		if (svga->adv_flags & FLAG_ADDR_BY16) {
+		if (svga->gdcreg[0xb] & 0x10) {
 			addr <<= 2;
 			addr &= svga->decode_mask;
 
@@ -2023,7 +2018,7 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
 		break;
 
 	case 5:
-		if (svga->adv_flags & FLAG_ADDR_BY16) {
+		if (svga->gdcreg[0xb] & 0x10) {
 			addr <<= 2;
 			addr &= svga->decode_mask;
 
