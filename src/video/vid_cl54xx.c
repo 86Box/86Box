@@ -1997,7 +1997,6 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
     switch (svga->writemode) {
 	case 4:
 		if (svga->adv_flags & FLAG_ADDR_BY16) {
-			addr <<= 2;
 			addr &= svga->decode_mask;
 
 			for (i = 0; i < 8; i++) {
@@ -2019,7 +2018,6 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
 
 	case 5:
 		if (svga->adv_flags & FLAG_ADDR_BY16) {
-			addr <<= 2;
 			addr &= svga->decode_mask;
 
 			for (i = 0; i < 8; i++) {
