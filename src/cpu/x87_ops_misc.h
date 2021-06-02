@@ -679,7 +679,8 @@ static int opFSCALE(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         temp64 = (int64_t)ST(1);
-        ST(0) = ST(0) * pow(2.0, (double)temp64);
+        if(ST(0) != 0.0)
+                ST(0) = ST(0) * pow(2.0, (double)temp64);
         FP_TAG_VALID;
         CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fscale) : (x87_timings.fscale * cpu_multi));
         return 0;
