@@ -1056,9 +1056,11 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
     }
 
     if (!(svga->gdcreg[6] & 1))
-	svga->fullchange = 2;
+		svga->fullchange = 2;
 
-    if ((svga->adv_flags & FLAG_ADDR_BY8) && (svga->writemode < 4))
+	if ((svga->adv_flags & FLAG_ADDR_BY16) && (svga->writemode == 4 || svga->writemode == 5))
+	addr <<= 4;
+    else if ((svga->adv_flags & FLAG_ADDR_BY8) && (svga->writemode < 4))
 	addr <<= 3;
     else if (((svga->chain4 && svga->packed_chain4) || svga->fb_only) && (svga->writemode < 4)) {
 	writemask2 = 1 << (addr & 3);
@@ -1244,7 +1246,9 @@ svga_read_common(uint32_t addr, uint8_t linear, void *p)
     latch_addr = (addr << count) & svga->decode_mask;
     count = (1 << count);
 
-    if (svga->adv_flags & FLAG_ADDR_BY8)
+	if (svga->adv_flags & FLAG_ADDR_BY16)
+	addr <<= 4;
+    else if (svga->adv_flags & FLAG_ADDR_BY8)
 	addr <<= 3;
     else if ((svga->chain4 && svga->packed_chain4) || svga->fb_only) {
 	addr &= svga->decode_mask;
