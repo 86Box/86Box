@@ -43,6 +43,7 @@
 #include <86box/vid_cga.h>
 #include <86box/flash.h>
 #include <86box/machine.h>
+#include <86box/nvr.h>
 
 int
 machine_at_mr286_init(const machine_t *model)
@@ -831,7 +832,8 @@ machine_at_m30008_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    device_add(&ps_nvr_device);
 
     device_add(&opti283_device);
     device_add(&keyboard_ps2_olivetti_device);
@@ -855,8 +857,9 @@ machine_at_m30015_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_init(model);
-
+    machine_at_common_init_ex(model, 2);
+    device_add(&ps_nvr_device);
+    
     device_add(&opti283_device);
     device_add(&keyboard_ps2_olivetti_device);
     device_add(&pc87310_ide_device);

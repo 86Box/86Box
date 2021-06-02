@@ -944,6 +944,8 @@ nvr_at_init(const device_t *info)
 				local->flags |= FLAG_LS_HACK;
 			else if ((info->local & 7) == 6)
 				local->flags |= FLAG_APOLLO_HACK;
+			else
+				local->def = 0xff;
 		}
 		nvr->irq = 8;
 		local->cent = RTC_CENTURY_AT;
