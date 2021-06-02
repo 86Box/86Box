@@ -938,6 +938,8 @@ nvr_at_init(const device_t *info)
 	case 6:		/* AMI Apollo */
 		if (info->local == 9)
 			local->flags |= FLAG_PIIX4;
+		else if (info->local == 6)
+			local->def = 0x00;
 		else {
 			local->def = 0x00;
 			if ((info->local & 7) == 5)
@@ -1073,6 +1075,15 @@ const device_t ibmat_nvr_device = {
     "IBM AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
     4,
+    nvr_at_init, nvr_at_close, NULL,
+    { NULL }, nvr_at_speed_changed,
+    NULL
+};
+
+const device_t olivetti_nvr_device = {
+    "Olivetti NVRAM",
+    DEVICE_ISA | DEVICE_AT,
+    6,
     nvr_at_init, nvr_at_close, NULL,
     { NULL }, nvr_at_speed_changed,
     NULL

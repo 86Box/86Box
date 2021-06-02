@@ -833,7 +833,7 @@ machine_at_m30008_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init_ex(model, 2);
-    device_add(&ps_nvr_device);
+    device_add(&olivetti_nvr_device);
 
     device_add(&opti283_device);
     device_add(&keyboard_ps2_olivetti_device);
@@ -858,7 +858,7 @@ machine_at_m30015_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init_ex(model, 2);
-    device_add(&ps_nvr_device);
+    device_add(&olivetti_nvr_device);
     
     device_add(&opti283_device);
     device_add(&keyboard_ps2_olivetti_device);
