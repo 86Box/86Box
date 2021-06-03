@@ -664,6 +664,7 @@ static void banshee_ext_outl(uint16_t addr, uint32_t val, void *p)
                 banshee->vgaInit1 = val;
                 svga->write_bank = (val & 0x3ff) << 15;
                 svga->read_bank = ((val >> 10) & 0x3ff) << 15;
+		svga->packed_chain4 = !!(svga->chain4 && 0x00100000);
                 break;
 
                 case PLL_pllCtrl0:
