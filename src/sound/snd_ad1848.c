@@ -135,9 +135,9 @@ ad1848_read(uint16_t addr, void *priv)
 
 			case 18: case 19:
 				if (ad1848->type == AD1848_TYPE_CS4236) {
-					if (ad1848->xregs[4] & 0x04) /* FM remapping */
+					if ((ad1848->xregs[4] & 0x14) == 0x14) /* FM remapping */
 						ret = ad1848->xregs[ad1848->index - 12]; /* real FM volume on registers 6 and 7 */
-					else if (ad1848->xregs[4] & 0x08) /* wavetable remapping */
+					else if (ad1848->wten && !(ad1848->xregs[4] & 0x08)) /* wavetable remapping */
 						ret = ad1848->xregs[ad1848->index - 2]; /* real wavetable volume on registers 16 and 17 */
 				}
 				break;
