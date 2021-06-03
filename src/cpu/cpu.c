@@ -142,8 +142,7 @@ void		(*cpu_exec)(int cycs);
 
 static uint8_t	ccr0, ccr1, ccr2, ccr3, ccr4, ccr5, ccr6;
 
-static int	cyrix_addr, cpu_rom_read_cycles = 4;
-static uint64_t	rom_read_timing_ns = 150;
+static int	cyrix_addr;
 
 
 static void	cpu_write(uint16_t addr, uint8_t val, void *priv);
@@ -407,7 +406,10 @@ cpu_set(void)
 
     isa_cycles = cpu_s->atclk_div;
 
-    cpu_rom_prefetch_cycles = (cpu_rom_read_cycles * cpu_s->rspeed * rom_read_timing_ns + 999999999ULL) / 1000000000ULL;
+    if (cpu_s->rspeed <= 8000000)
+	cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
+    else
+	cpu_rom_prefetch_cycles = cpu_s->rspeed / 1000000;
 
     cpu_set_isa_pci_div(0);
     cpu_set_pci_speed(0);
@@ -1377,8 +1379,10 @@ cpu_set_isa_speed(int speed)
     if (speed) {
 	cpu_isa_speed = speed;
 	pc_speed_changed();
-    } else
+    } else if (cpu_busspeed >= 8000000)
 	cpu_isa_speed = 8000000;
+    else
+	cpu_isa_speed = cpu_busspeed;
 
     cpu_log("cpu_set_isa_speed(%d) = %d\n", speed, cpu_isa_speed);
 }
@@ -3069,5 +3073,6 @@ cpu_update_waitstates(void)
 
     cpu_mem_prefetch_cycles = cpu_prefetch_cycles;
 
-    cpu_rom_prefetch_cycles = (cpu_rom_read_cycles * cpu_s->rspeed * rom_read_timing_ns + 999999999ULL) / 1000000000ULL;
+    if (cpu_s->rspeed <= 8000000)
+	cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
 }
