@@ -644,7 +644,7 @@ machine_at_flytech386_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&ali1217_device);
-    device_add(&w83787f_ide_device);
+    device_add(&w83787f_ide_en_device);
     device_add(&keyboard_ps2_device);
 
     if (gfxcard == VID_INTERNAL)

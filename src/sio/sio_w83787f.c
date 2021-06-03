@@ -78,7 +78,8 @@ typedef struct {
     uint16_t reg_init;
     int locked, rw_locked,
 	cur_reg,
-	key, ide_function;
+	key, ide_function,
+	ide_start;
     fdc_t *fdc;
     serial_t *uart[2];
 } w83787f_t;
@@ -260,6 +261,7 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
 
     switch (dev->cur_reg) {
 	case 0:
+		pclog("REG 00: %02X\n", val);
 		if ((valxor & 0xc0) && (HAS_IDE_FUNCTIONALITY))
 			w83787f_ide_handler(dev);
 		if (valxor & 0x30)
@@ -376,6 +378,14 @@ w83787f_reset(w83787f_t *dev)
 		ide_set_base(0, 0x1f0);
 		ide_set_side(0, 0x3f6);
 	}
+
+	if (dev->ide_start) {
+		dev->regs[0x00] &= 0x7f;
+		if (dev->ide_function & 0x20)
+			ide_sec_enable();
+		else
+			ide_pri_enable();
+	}
     } else
 	dev->regs[0x00] = 0xd0;
 
@@ -426,6 +436,8 @@ w83787f_init(const device_t *info)
     if ((dev->ide_function & 0x30) == 0x10)
 	device_add(&ide_isa_device);
 
+    dev->ide_start = !!(info->local & 0x40);
+
     dev->reg_init = info->local & 0x0f;
     w83787f_reset(dev);
 
@@ -446,6 +458,15 @@ const device_t w83787f_ide_device = {
     "Winbond W83787F/IF Super I/O (With IDE)",
     0,
     0x19,
+    w83787f_init, w83787f_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+const device_t w83787f_ide_en_device = {
+    "Winbond W83787F/IF Super I/O (With IDE Enabled)",
+    0,
+    0x59,
     w83787f_init, w83787f_close, NULL,
     { NULL }, NULL, NULL,
     NULL
