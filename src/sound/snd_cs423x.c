@@ -618,7 +618,8 @@ cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
 		break;
 
 	case 1: /* Game Port */
-		gameport_remap(dev->gameport, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
+		if (dev->gameport)
+			gameport_remap(dev->gameport, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
 		break;
 
 	case 2: /* Control Registers */
