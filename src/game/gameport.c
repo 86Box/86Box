@@ -272,6 +272,7 @@ timer_over(void *priv)
 
     axis->joystick->state &= ~(1 << axis->axis_nr);
 
+    /* Notify the joystick when the first axis' period is finished. */
     if (axis == &axis->joystick->axis[0])
 	axis->joystick->intf->a0_over(axis->joystick->dat);
 }
