@@ -45,6 +45,7 @@ typedef struct {
 
 typedef struct _gameport_ {
     uint16_t	addr;
+    uint8_t	len;
     struct _joystick_instance_ *joystick;
     struct _gameport_ *next;
 } gameport_t;
@@ -314,7 +315,7 @@ gameport_remap(void *priv, uint16_t address)
 		}
 	}
 
-	io_removehandler(dev->addr, (dev->addr & 1) ? 1 : 8,
+	io_removehandler(dev->addr, dev->len,
 			 gameport_read, NULL, NULL, gameport_write, NULL, NULL, dev);
     }
 
@@ -334,7 +335,7 @@ gameport_remap(void *priv, uint16_t address)
 		other_dev->next = dev;
 	}
 
-	io_sethandler(dev->addr, (dev->addr & 1) ? 1 : 8,
+	io_sethandler(dev->addr, dev->len,
 		      gameport_read, NULL, NULL, gameport_write, NULL, NULL, dev);
     }
 }
@@ -358,7 +359,7 @@ gameport_add(const device_t *gameport_type)
 {
     /* Prevent a standalone game port from being added later on, unless this
        is an unused Super I/O game port (no MACHINE_GAMEPORT machine flag). */
-    if (!(gameport_type->local & 0x10000) || (machines[machine].flags & MACHINE_GAMEPORT))
+    if (!(gameport_type->local & 0x1000000) || (machines[machine].flags & MACHINE_GAMEPORT))
 	standalone_gameport_type = NULL;
 
     /* Add game port device. */
@@ -401,6 +402,7 @@ gameport_init(const device_t *info)
     dev->joystick = joystick_instance;
 
     /* Map game port to the default address. Not applicable on PnP-only ports. */
+    dev->len = (info->local >> 16) & 0xff;
     gameport_remap(dev, info->local & 0xffff);
 
     /* Register ISAPnP if this is a standard game port card. */
@@ -433,7 +435,7 @@ gameport_close(void *priv)
 
 const device_t gameport_device = {
     "Game port",
-    0, 0x200,
+    0, 0x080200,
     gameport_init,
     gameport_close,
     NULL, { NULL }, NULL,
@@ -442,7 +444,7 @@ const device_t gameport_device = {
 
 const device_t gameport_201_device = {
     "Game port (port 201h only)",
-    0, 0x201,
+    0, 0x010201,
     gameport_init,
     gameport_close,
     NULL, { NULL }, NULL,
@@ -451,7 +453,16 @@ const device_t gameport_201_device = {
 
 const device_t gameport_pnp_device = {
     "Game port (Plug and Play only)",
-    0, 0,
+    0, 0x080000,
+    gameport_init,
+    gameport_close,
+    NULL, { NULL }, NULL,
+    NULL
+};
+
+const device_t gameport_pnp_6io_device = {
+    "Game port (Plug and Play only, 6 I/O ports)",
+    0, 0x060000,
     gameport_init,
     gameport_close,
     NULL, { NULL }, NULL,
@@ -460,7 +471,7 @@ const device_t gameport_pnp_device = {
 
 const device_t gameport_sio_device = {
     "Game port (Super I/O)",
-    0, 0x10000,
+    0, 0x1080000,
     gameport_init,
     gameport_close,
     NULL, { NULL }, NULL,

@@ -720,6 +720,10 @@ cs423x_init(const device_t *info)
 				break;
 		}
 
+		/* Initialize game port. The '7B and '8B game port only responds to 6 I/O ports; the remaining
+		   2 ports are reserved on those chips, and probably connected to the Digital Assist feature. */
+		dev->gameport = gameport_add((dev->type == CRYSTAL_CS4236B) ? &gameport_pnp_device : &gameport_pnp_6io_device);
+
 		break;
     }
 
@@ -730,9 +734,6 @@ cs423x_init(const device_t *info)
     /* Initialize RAM, registers and WSS codec. */
     cs423x_reset(dev);
     sound_add_handler(cs423x_get_buffer, dev);
-
-    /* Initialize game port. */
-    dev->gameport = gameport_add(&gameport_pnp_device);
 
     /* Initialize I2C bus for the EEPROM. */
     dev->i2c = i2c_gpio_init("nvr_cs423x");
