@@ -302,7 +302,7 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
 		if (!val) {
 			dev->ram_dl = 0;
 
-			/* Update PnP resource data and state. */
+			/* Update PnP state and resource data. */
 			cs423x_pnp_enable(dev, 1);
 		}
 		break;
@@ -728,14 +728,6 @@ cs423x_init(const device_t *info)
 		break;
     }
 
-    /* Initialize SBPro codec first to get the correct CD audio filter for the default
-       context, which is SBPro. The WSS codec is initialized later by cs423x_reset */
-    dev->sb = (sb_t *) device_add(&sb_pro_cs423x_device);
-
-    /* Initialize RAM, registers and WSS codec. */
-    cs423x_reset(dev);
-    sound_add_handler(cs423x_get_buffer, dev);
-
     /* Initialize I2C bus for the EEPROM. */
     dev->i2c = i2c_gpio_init("nvr_cs423x");
 
@@ -745,7 +737,14 @@ cs423x_init(const device_t *info)
 
     /* Initialize ISAPnP. */
     dev->pnp_card = isapnp_add_card(NULL, 0, cs423x_pnp_config_changed, NULL, NULL, NULL, dev);
-    cs423x_pnp_enable(dev, 1);
+
+    /* Initialize SBPro codec first to get the correct CD audio filter for the default
+       context, which is SBPro. The WSS codec is initialized later by cs423x_reset */
+    dev->sb = (sb_t *) device_add(&sb_pro_cs423x_device);
+
+    /* Initialize RAM, registers and WSS codec. */
+    cs423x_reset(dev);
+    sound_add_handler(cs423x_get_buffer, dev);
 
     return dev;
 }

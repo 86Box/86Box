@@ -53,7 +53,7 @@ static const uint8_t pnp_init_key[32] = { 0x6A, 0xB5, 0xDA, 0xED, 0xF6, 0xFB, 0x
 					  0xE8, 0x74, 0x3A, 0x9D, 0xCE, 0xE7, 0x73, 0x39 };
 static const device_t isapnp_device;
 
-
+#define ENABLE_ISAPNP_LOG 1
 #ifdef ENABLE_ISAPNP_LOG
 int isapnp_do_log = ENABLE_ISAPNP_LOG;
 
@@ -717,17 +717,15 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
     isapnp_log("ISAPnP: Parsing ROM resources for card %c%c%c%02X%02X (serial %08X)\n", '@' + ((vendor >> 10) & 0x1f), '@' + ((vendor >> 5) & 0x1f), '@' + (vendor & 0x1f), card->rom[2], card->rom[3], (card->rom[7] << 24) | (card->rom[6] << 16) | (card->rom[5] << 8) | card->rom[4]);
 #endif
     uint16_t i = 9, j;
-    uint8_t ldn = 0, res, in_df = 0;
+    uint8_t existing = 0, ldn = 0, res, in_df = 0;
     uint8_t irq = 0, io = 0, mem_range = 0, mem_range_32 = 0, irq_df = 0, io_df = 0, mem_range_df = 0, mem_range_32_df = 0;
     uint32_t len;
-    isapnp_device_t *ld = card->first_ld, *prev_ld = NULL;
+    isapnp_device_t *ld = NULL, *prev_ld = NULL;
 
-    /* Clear any existing logical devices. */
-    while (ld) {
-	prev_ld = ld->next;
-	free(ld);
-	ld = prev_ld;
-    }
+    /* Check if this is an existing card which already has logical devices.
+       Any new logical devices will be added to the list after existing ones.
+       Removed LDs are not flushed as we may end up with an invalid ROM. */
+    existing = !!card->first_ld;
 
     /* Iterate through ROM resources. */
     while (i < card->rom_size) {
@@ -805,21 +803,38 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
 #endif
 
 				/* We're done with the previous logical device. */
-				if (ld) {
-					prev_ld = ld;
+				if (ld && !existing)
 					isapnp_reset_ld_regs(ld);
+
+				/* Look for an existing logical device with this number,
+				   and create one if none exist. */
+				if (existing) {
+					ld = card->first_ld;
+					while (ld && (ld->number != ldn))
+						ld = ld->next;
+				}
+				if (ld) {
+					/* Reset some logical device state. */
+					ld->mem_upperlimit = ld->io_16bit = ld->irq_types = 0;
+					memset(ld->io_len, 0, sizeof(ld->io_len));
+				} else {
+					/* Create logical device. */
+					ld = (isapnp_device_t *) malloc(sizeof(isapnp_device_t));
+					memset(ld, 0, sizeof(isapnp_device_t));
+
+					/* Add to end of list. */
+					prev_ld = card->first_ld;
+					if (prev_ld) {
+						while (prev_ld->next)
+							prev_ld = prev_ld->next;
+						prev_ld->next = ld;
+					} else {
+						card->first_ld = ld;
+					}
 				}
 
-				/* Create logical device. */
-				ld = (isapnp_device_t *) malloc(sizeof(isapnp_device_t));
-				memset(ld, 0, sizeof(isapnp_device_t));
-
+				/* Set and increment logical device number. */
 				ld->number = ldn++;
-
-				if (prev_ld)
-					prev_ld->next = ld;
-				else
-					card->first_ld = ld;
 
 				/* Start the position counts over. */
 				irq = io = mem_range = mem_range_32 = irq_df = io_df = mem_range_df = mem_range_32_df = 0;
