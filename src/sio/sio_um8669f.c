@@ -89,7 +89,7 @@ static const isapnp_device_config_t um8669f_pnp_defaults[] = {
     }, {
 	.activate = 0
     }, {
-	.activate = 1,
+	.activate = 0,
 	.io = { { .base = 0x200 }, }
     }
 };
@@ -287,7 +287,7 @@ um8669f_init(const device_t *info)
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
-    dev->gameport = gameport_add(&gameport_pnp_device);
+    dev->gameport = gameport_add(&gameport_sio_device);
 
     io_sethandler(0x0108, 0x0002,
 		  um8669f_read, NULL, NULL, um8669f_write, NULL, NULL, dev);

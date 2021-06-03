@@ -76,6 +76,7 @@ machine_init_ex(int m)
 
 	is_vpc = 0;
 	standalone_gameport_type = NULL;
+	gameport_instance_id = 0;
 
 	/* Set up the architecture flags. */
 	AT = IS_AT(machine);

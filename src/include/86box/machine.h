@@ -61,6 +61,7 @@
 #define MACHINE_SOUND		0x00008000	/* sys has int sound */
 #define MACHINE_FDC		0x00010000	/* sys has int FDC */
 #define MACHINE_NIC		0x00020000	/* sys has int NIC */
+#define MACHINE_GAMEPORT	0x00040000	/* sys has int game port */
 /* Combined flags. */
 #define MACHINE_VIDEO_FIXED	0x00003000	/* sys has fixed int video */
 /* Feature flags for internal storage controllers. */

@@ -108,9 +108,11 @@ extern "C" {
 extern const device_t	gameport_device;
 extern const device_t	gameport_201_device;
 extern const device_t	gameport_pnp_device;
+extern const device_t	gameport_sio_device;
 
 extern const device_t	*standalone_gameport_type;
 #endif
+extern int		gameport_instance_id;
 extern plat_joystick_t	plat_joystick_state[MAX_PLAT_JOYSTICKS];
 extern joystick_t	joystick_state[MAX_JOYSTICKS];
 extern int		joysticks_present;

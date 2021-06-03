@@ -119,7 +119,7 @@ static const isapnp_device_config_t gameport_pnp_defaults[] = {
 
 
 const device_t		*standalone_gameport_type;
-static int		gameport_instance_id = 0;
+int			gameport_instance_id = 0;
 /* Linked list of active game ports. Only the top port responds to reads
    or writes, and ports at the standard 200h location are prioritized. */
 static gameport_t	*active_gameports = NULL;
@@ -356,8 +356,10 @@ gameport_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pr
 void *
 gameport_add(const device_t *gameport_type)
 {
-    /* Prevent a standalone game port from being added later on. */
-    standalone_gameport_type = NULL;
+    /* Prevent a standalone game port from being added later on, unless this
+       is an unused Super I/O game port (no MACHINE_GAMEPORT machine flag). */
+    if (!(gameport_type->local & 0x10000) || (machines[machine].flags & MACHINE_GAMEPORT))
+	standalone_gameport_type = NULL;
 
     /* Add game port device. */
     return device_add_inst(gameport_type, gameport_instance_id++);
@@ -399,7 +401,7 @@ gameport_init(const device_t *info)
     dev->joystick = joystick_instance;
 
     /* Map game port to the default address. Not applicable on PnP-only ports. */
-    gameport_remap(dev, info->local);
+    gameport_remap(dev, info->local & 0xffff);
 
     /* Register ISAPnP if this is a standard game port card. */
     if (info->local == 0x200)
@@ -450,6 +452,15 @@ const device_t gameport_201_device = {
 const device_t gameport_pnp_device = {
     "Game port (Plug and Play only)",
     0, 0,
+    gameport_init,
+    gameport_close,
+    NULL, { NULL }, NULL,
+    NULL
+};
+
+const device_t gameport_sio_device = {
+    "Game port (Super I/O)",
+    0, 0x10000,
     gameport_init,
     gameport_close,
     NULL, { NULL }, NULL,
