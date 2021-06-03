@@ -784,3 +784,27 @@ const device_t cs4236b_device =
     NULL,
     NULL
 };
+
+const device_t cs4237b_device =
+{
+    "Crystal CS4237B",
+    DEVICE_ISA | DEVICE_AT,
+    CRYSTAL_CS4237B,
+    cs423x_init, cs423x_close, cs423x_reset,
+    { NULL },
+    cs423x_speed_changed,
+    NULL,
+    NULL
+};
+
+const device_t cs4238b_device =
+{
+    "Crystal CS4238B",
+    DEVICE_ISA | DEVICE_AT,
+    CRYSTAL_CS4238B,
+    cs423x_init, cs423x_close, cs423x_reset,
+    { NULL },
+    cs423x_speed_changed,
+    NULL,
+    NULL
+};
