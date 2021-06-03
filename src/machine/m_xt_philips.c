@@ -155,8 +155,7 @@ machine_xt_philips_common_init(const machine_t *model)
     
     nmi_init();
 
-    if (joystick_type)
-	device_add(&gameport_device);
+    standalone_gameport_type = &gameport_device;
 
     device_add(&keyboard_pc_device);
 

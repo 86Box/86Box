@@ -76,7 +76,6 @@ enum {
     CPU_K6_2P,
     CPU_K6_3P,
     CPU_CYRIX3S,
-    CPU_EDEN,
     CPU_PENTIUMPRO,	/* 686 class CPUs */
     CPU_PENTIUM2,
     CPU_PENTIUM2D
@@ -247,7 +246,7 @@ typedef struct {
     uint64_t	ia32_pmc[8];		/* 0x000000c1 - 0x000000c8 */
     uint64_t	mtrr_cap;		/* 0x000000fe */
 
-    /* IDT WinChip and WinChip 2 MSR's that are also on the VIA Cyrix III and Eden */
+    /* IDT WinChip and WinChip 2 MSR's that are also on the VIA Cyrix III */
     uint32_t	fcr;			/* 0x00000107 (IDT), 0x00001107 (VIA) */
     uint64_t	fcr2, fcr3;		/* 0x00000108 (IDT), 0x00001108 (VIA) */
 
@@ -266,7 +265,7 @@ typedef struct {
     uint64_t	ecx1e0;			/* 0x000001e0 */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's that are also
-       on the VIA Cyrix III and Eden */
+       on the VIA Cyrix III */
     uint64_t	mtrr_physbase[8];	/* 0x00000200 - 0x0000020f */
     uint64_t	mtrr_physmask[8];	/* 0x00000200 - 0x0000020f (ECX & 1) */
     uint64_t	mtrr_fix64k_8000;	/* 0x00000250 */
@@ -278,7 +277,7 @@ typedef struct {
     uint64_t	pat;			/* 0x00000277 */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's that are also
-       on the VIA Cyrix III and Eden */
+       on the VIA Cyrix III */
     uint64_t	mtrr_deftype;		/* 0x000002ff */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */

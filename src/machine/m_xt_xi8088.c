@@ -181,8 +181,7 @@ machine_xt_xi8088_init(const machine_t *model)
     nmi_init();
     device_add(&ibmat_nvr_device);
     pic2_init();
-    if (joystick_type)
-	device_add(&gameport_device);
+    standalone_gameport_type = &gameport_device;
 
     return ret;
 }
