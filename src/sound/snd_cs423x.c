@@ -133,7 +133,8 @@ typedef struct cs423x_t
     void	*i2c, *eeprom;
 
     uint16_t	wss_base, opl_base, sb_base, ctrl_base, ram_addr, eeprom_size: 11;
-    uint8_t	type, ad1848_type, pnp_offset, regs[8], indirect_regs[16], eeprom_data[2048], ram_data[384], ram_dl;
+    uint8_t	type, ad1848_type, pnp_offset, regs[8], indirect_regs[16],
+		eeprom_data[2048], ram_data[384], ram_dl: 2, opl_wss: 1;
 
     uint8_t	pnp_enable: 1, key_pos: 5, slam_enable: 1, slam_state: 2, slam_ld, slam_reg;
     isapnp_device_config_t *slam_config;
@@ -141,8 +142,7 @@ typedef struct cs423x_t
 
 
 static void	cs423x_slam_enable(cs423x_t *dev, uint8_t enable);
-static void	cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom);
-static void	cs423x_ctxswitch_write(uint16_t addr, uint8_t val, void *priv);
+static void	cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig);
 static void	cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv);
 
 
@@ -166,7 +166,7 @@ cs423x_read(uint16_t addr, void *priv)
 
 	case 5: /* Control/RAM Access */
 		/* Reading RAM is undocumented; the WDM driver does so. */
-		if (dev->ram_dl) {
+		if (dev->ram_dl == 3) {
 			if ((dev->ram_addr >= 0x4000) && (dev->ram_addr < 0x4180)) /* chip configuration and PnP resources */
 				ret = dev->ram_data[dev->ram_addr & 0x01ff];
 			else
@@ -249,7 +249,11 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
 
 			case 8: /* CS9236 Wavetable Control */
 				val &= 0x0f;
-				cs423x_pnp_enable(dev, 0); /* update WTEN bit */
+				cs423x_pnp_enable(dev, 0, 0);
+
+				/* Update WTEN state on the WSS codec. */
+				dev->ad1848.wten = !!(val & 0x08);
+				ad1848_updatevolmask(&dev->ad1848);
 				break;
 		}
 		dev->indirect_regs[dev->regs[3]] = val;
@@ -264,7 +268,7 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
 						/* fall-through */
 
 					case 0x5a: /* Update Hardware Configuration Data */
-						cs423x_pnp_enable(dev, 0);
+						cs423x_pnp_enable(dev, 0, 1);
 						break;
 
 					case 0x56: /* Disable Crystal Key */
@@ -303,7 +307,7 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
 			dev->ram_dl = 0;
 
 			/* Update PnP state and resource data. */
-			cs423x_pnp_enable(dev, 1);
+			cs423x_pnp_enable(dev, 1, 0);
 		}
 		break;
 
@@ -455,32 +459,26 @@ cs423x_slam_enable(cs423x_t *dev, uint8_t enable)
 }
 
 
-static uint8_t
-cs423x_ctxswitch_read(uint16_t addr, void *priv)
-{
-    cs423x_ctxswitch_write(addr, 0, priv);
-    return 0xff; /* don't interfere with the actual handlers */
-}
-
-
 static void
 cs423x_ctxswitch_write(uint16_t addr, uint8_t val, void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
+    uint8_t ctx = (dev->regs[7] & 0x80),
+	    enable_opl = (dev->ad1848.xregs[4] & 0x10) && !(dev->indirect_regs[2] & 0x85);
 
-    /* Check if a context switch (WSS=1 <-> SBPro=0) occurred through the address being read/written. */
+    /* Check if a context switch (WSS=1 <-> SBPro=0) occurred through the address being written. */
     if ((dev->regs[7] & 0x80) ? ((addr & 0xfff0) == dev->sb_base) : ((addr & 0xfffc) == dev->wss_base)) {
 	/* Flip context bit. */
 	dev->regs[7] ^= 0x80;
+	ctx ^= 0x80;
 
-	/* Switch OPL ownership and CD audio filter.
+	/* Update CD audio filter.
 	   FIXME: not thread-safe: filter function TOCTTOU in sound_cd_thread! */
-	dev->sb->opl_enabled = !(dev->regs[7] & 0x80);
 	sound_set_cd_audio_filter(NULL, NULL);
-	if (dev->sb->opl_enabled) /* SBPro */
-		sound_set_cd_audio_filter(sbpro_filter_cd_audio, dev->sb);
-	else /* WSS */
+	if (ctx) /* WSS */
 		sound_set_cd_audio_filter(ad1848_filter_cd_audio, &dev->ad1848);
+	else /* SBPro */
+		sound_set_cd_audio_filter(sbpro_filter_cd_audio, dev->sb);
 
 	/* Fire a context switch interrupt if enabled. */
 	if ((dev->regs[0] & 0x20) && (dev->ad1848.irq > 0)) {
@@ -488,6 +486,11 @@ cs423x_ctxswitch_write(uint16_t addr, uint8_t val, void *priv)
 		picint(1 << dev->ad1848.irq); /* control device shares IRQ with WSS and SBPro */
 	}
     }
+
+    /* Update OPL ownership and state regardless of context switch,
+       to trap writes to other registers which may disable the OPL. */
+    dev->sb->opl_enabled = !ctx && enable_opl;
+    dev->opl_wss = ctx && enable_opl;
 }
 
 
@@ -495,21 +498,24 @@ static void
 cs423x_get_buffer(int32_t *buffer, int len, void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
-    int c, opl_wss = !dev->sb->opl_enabled;
+    int c, opl_wss = dev->opl_wss;
 
-    /* Output audio from the WSS codec, and also the OPL if we're in WSS mode. */
+    /* Output audio from the WSS codec, and also the OPL if we're in charge of it. */
     ad1848_update(&dev->ad1848);
     if (opl_wss)
 	opl3_update(&dev->sb->opl);
 
-    for (c = 0; c < len * 2; c += 2) {
-	if (opl_wss) {
-		buffer[c]     += (dev->sb->opl.buffer[c]     * dev->ad1848.fm_vol_l) >> 16;
-		buffer[c + 1] += (dev->sb->opl.buffer[c + 1] * dev->ad1848.fm_vol_r) >> 16;
-	}
+    /* Don't output anything if the analog section is powered down. */
+    if (!(dev->indirect_regs[2] & 0xa4)) {
+	for (c = 0; c < len * 2; c += 2) {
+		if (opl_wss) {
+			buffer[c]     += (dev->sb->opl.buffer[c]     * dev->ad1848.fm_vol_l) >> 16;
+			buffer[c + 1] += (dev->sb->opl.buffer[c + 1] * dev->ad1848.fm_vol_r) >> 16;
+		}
 
-	buffer[c]     += dev->ad1848.buffer[c]     / 2;
-	buffer[c + 1] += dev->ad1848.buffer[c + 1] / 2;
+		buffer[c]     += dev->ad1848.buffer[c]     / 2;
+		buffer[c + 1] += dev->ad1848.buffer[c + 1] / 2;
+	}
     }
 
     dev->ad1848.pos = 0;
@@ -519,35 +525,49 @@ cs423x_get_buffer(int32_t *buffer, int len, void *priv)
 
 
 static void
-cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom)
+cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig)
 {
     uint8_t enable = ISAPNP_CARD_ENABLE;
 
-    /* Hide PnP card if the PKD bit is set, or if PnP was disabled by command 0x55. */
-    if ((dev->ram_data[2] & 0x20) || !dev->pnp_enable)
-	enable = ISAPNP_CARD_DISABLE;
+    if (dev->pnp_card) {
+	/* Hide PnP card if the PKD bit is set, or if PnP was disabled by command 0x55. */
+	if ((dev->ram_data[2] & 0x20) || !dev->pnp_enable)
+		enable = ISAPNP_CARD_DISABLE;
 
-    /* Update PnP resource data if requested. */
-    if (update_rom)
-	isapnp_update_card_rom(dev->pnp_card, &dev->ram_data[dev->pnp_offset], sizeof(dev->ram_data) - dev->pnp_offset);
+	/* Update PnP resource data if requested. */
+	if (update_rom)
+		isapnp_update_card_rom(dev->pnp_card, &dev->ram_data[dev->pnp_offset], sizeof(dev->ram_data) - dev->pnp_offset);
 
-    /* Update PnP state. */
-    isapnp_enable_card(dev->pnp_card, enable);
-
-    /* While we're here, update FM and wavetable enable bits based on the config data in RAM. */
-    if (dev->ram_data[3] & 0x08) {
-	dev->indirect_regs[8] |= 0x08;
-	dev->ad1848.wten = 1;
-    } else {
-	dev->indirect_regs[8] &= ~0x08;
-	dev->ad1848.wten = 0;
+	/* Update PnP state. */
+	isapnp_enable_card(dev->pnp_card, enable);
     }
-    if (dev->ram_data[3] & 0x80)
-	dev->ad1848.xregs[4] |= 0x10;
-    else
-	dev->ad1848.xregs[4] &= ~0x10;
 
-    ad1848_updatevolmask(&dev->ad1848);
+    /* Update some register bits based on the config data in RAM if requested. */
+    if (update_hwconfig) {
+	/* Update WTEN. */
+	if (dev->ram_data[3] & 0x08) {
+		dev->indirect_regs[8] |= 0x08;
+		dev->ad1848.wten = 1;
+	} else {
+		dev->indirect_regs[8] &= ~0x08;
+		dev->ad1848.wten = 0;
+	}
+
+	/* Update SPS. */
+	if (dev->ram_data[3] & 0x04)
+		dev->indirect_regs[8] |= 0x04;
+	else
+		dev->indirect_regs[8] &= ~0x04;
+
+	/* Update IFM. */
+	if (dev->ram_data[3] & 0x80)
+		dev->ad1848.xregs[4] |= 0x10;
+	else
+		dev->ad1848.xregs[4] &= ~0x10;
+
+	/* Inform WSS codec of the changes. */
+	ad1848_updatevolmask(&dev->ad1848);
+    }
 }
 
 
@@ -560,7 +580,7 @@ cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
 	case 0: /* WSS, OPL3 and SBPro */
 		if (dev->wss_base) {
 			io_removehandler(dev->wss_base, 4, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &dev->ad1848);
-			io_removehandler(dev->wss_base, 4, cs423x_ctxswitch_read, NULL, NULL, cs423x_ctxswitch_write, NULL, NULL, dev);
+			io_removehandler(dev->wss_base, 4, NULL, NULL, NULL, cs423x_ctxswitch_write, NULL, NULL, dev);
 			dev->wss_base = 0;
 		}
 
@@ -574,7 +594,7 @@ cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
 			io_removehandler(dev->sb_base,     4, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
 			io_removehandler(dev->sb_base + 8, 2, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
 			io_removehandler(dev->sb_base + 4, 2, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, dev->sb);
-			io_removehandler(dev->sb_base,    16, cs423x_ctxswitch_read, NULL, NULL, cs423x_ctxswitch_write, NULL, NULL, dev);
+			io_removehandler(dev->sb_base,    16, NULL, NULL, NULL, cs423x_ctxswitch_write, NULL, NULL, dev);
 			dev->sb_base = 0;
 		}
 
@@ -588,7 +608,7 @@ cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
 			if (config->io[0].base != ISAPNP_IO_DISABLED) {
 				dev->wss_base = config->io[0].base;
 				io_sethandler(dev->wss_base, 4, ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &dev->ad1848);
-				io_sethandler(dev->wss_base, 4, cs423x_ctxswitch_read, NULL, NULL, cs423x_ctxswitch_write, NULL, NULL, dev);
+				io_sethandler(dev->wss_base, 4, NULL, NULL, NULL, cs423x_ctxswitch_write, NULL, NULL, dev);
 			}
 
 			if (config->io[1].base != ISAPNP_IO_DISABLED) {
@@ -602,7 +622,7 @@ cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv
 				io_sethandler(dev->sb_base,     4, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
 				io_sethandler(dev->sb_base + 8, 2, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
 				io_sethandler(dev->sb_base + 4, 2, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, dev->sb);
-				io_sethandler(dev->sb_base,    16, cs423x_ctxswitch_read, NULL, NULL, cs423x_ctxswitch_write, NULL, NULL, dev);
+				io_sethandler(dev->sb_base,    16, NULL, NULL, NULL, cs423x_ctxswitch_write, NULL, NULL, dev);
 			}
 
 			if (config->irq[0].irq != ISAPNP_IRQ_DISABLED) {
@@ -674,10 +694,9 @@ cs423x_reset(void *priv)
 
     /* Reset PnP resource data, state and logical devices. */
     dev->pnp_enable = 1;
-    if (dev->pnp_card) {
-	cs423x_pnp_enable(dev, 1);
+    cs423x_pnp_enable(dev, 1, 1);
+    if (dev->pnp_card)
 	isapnp_reset_card(dev->pnp_card);
-    }
 
     /* Reset SLAM. */
     cs423x_slam_enable(dev, 1);
