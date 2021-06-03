@@ -813,7 +813,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
 					while (ld && (ld->number != ldn))
 						ld = ld->next;
 				}
-				if (ld) {
+				if (ld && (ld->number == ldn)) {
 					/* Reset some logical device state. */
 					ld->mem_upperlimit = ld->io_16bit = ld->irq_types = 0;
 					memset(ld->io_len, 0, sizeof(ld->io_len));
@@ -960,7 +960,7 @@ isapnp_update_card_rom(void *priv, uint8_t *rom, uint16_t rom_size)
     }
 
     /* We're done with the last logical device. */
-    if (ld)
+    if (ld && !existing)
 	isapnp_reset_ld_regs(ld);
 }
 
