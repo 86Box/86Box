@@ -589,6 +589,14 @@ load_machine(void)
 		machine = machine_get_machine_from_internal_name("m30015");
 	else if (! strcmp(p, "cbm_sl386sx25"))
 		machine = machine_get_machine_from_internal_name("cmdsl386sx25");
+	else if (! strcmp(p, "award386dx")) /* ...merged machines... */
+		machine = machine_get_machine_from_internal_name("award486");
+	else if (! strcmp(p, "ami386dx"))
+		machine = machine_get_machine_from_internal_name("ami486");
+	else if (! strcmp(p, "mr386dx"))
+		machine = machine_get_machine_from_internal_name("mr486");
+	else if (! strcmp(p, "fw6400gx_s1"))
+		machine = machine_get_machine_from_internal_name("fw6400gx");
 	else if (! strcmp(p, "president")) { /* ...and removed machines */
 		machine = machine_get_machine_from_internal_name("mb500n");
 		migrate_from = NULL;
@@ -1040,6 +1048,10 @@ load_storage_controllers(void)
 	hdc_current = hdc_get_from_internal_name("st506_xt_dtc5150x");
     else if (!strcmp(p, "mfm_at"))
 	hdc_current = hdc_get_from_internal_name("st506_at");
+    else if (!strcmp(p, "vlb_isa"))
+	hdc_current = hdc_get_from_internal_name("ide_vlb");
+    else if (!strcmp(p, "vlb_isa_2ch"))
+	hdc_current = hdc_get_from_internal_name("ide_vlb_2ch");
     else
 	hdc_current = hdc_get_from_internal_name(p);
 
@@ -1741,6 +1753,10 @@ load_other_peripherals(void)
 		hdc_current = hdc_get_from_internal_name("st506_xt_dtc5150x");
 	else if (!strcmp(p, "mfm_at"))
 		hdc_current = hdc_get_from_internal_name("st506_at");
+	else if (!strcmp(p, "vlb_isa"))
+		hdc_current = hdc_get_from_internal_name("ide_vlb");
+	else if (!strcmp(p, "vlb_isa_2ch"))
+		hdc_current = hdc_get_from_internal_name("ide_vlb_2ch");
 	else
 		hdc_current = hdc_get_from_internal_name(p);
 	config_delete_var(cat, "hdc");

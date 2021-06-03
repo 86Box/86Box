@@ -3886,6 +3886,8 @@ static void *s3_virge_init(const device_t *info)
         virge->i2c = i2c_gpio_init("ddc_s3_virge");
         virge->ddc = ddc_init(i2c_gpio_get_bus(virge->i2c));
  
+		virge->svga.packed_chain4 = 1;
+ 
         return virge;
 }
 

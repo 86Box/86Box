@@ -491,7 +491,8 @@ spock_process_imm_cmd(spock_t *scsi)
 					scsi_device_reset(&scsi_devices[i]);
 				spock_log("Adapter Reset\n");
 				
-				if (!scsi->adapter_reset)
+				if (!scsi->adapter_reset && scsi->bios_ver) /*The early 1990 bios must have its boot drive
+															 set to ID 6 according https://www.ardent-tool.com/IBM_SCSI/SCSI-A.html */
 					scsi->adapter_reset = 1;
 				else
 					scsi->adapter_reset = 0;
@@ -1101,12 +1102,16 @@ spock_init(const device_t *info)
 	
 	scsi->bios_ver = device_get_config_int("bios_ver");
 	
-	if (scsi->bios_ver)
-		rom_init_interleaved(&scsi->bios_rom, SPOCK_U68_1991_ROM, SPOCK_U69_1991_ROM,
+	switch (scsi->bios_ver) {
+		case 1:
+			rom_init_interleaved(&scsi->bios_rom, SPOCK_U68_1991_ROM, SPOCK_U69_1991_ROM,
 				0xc8000, 0x8000, 0x7fff, 0x4000, MEM_MAPPING_EXTERNAL);
-	else
-		rom_init_interleaved(&scsi->bios_rom, SPOCK_U68_1990_ROM, SPOCK_U69_1990_ROM,
+			break;
+		case 0:
+			rom_init_interleaved(&scsi->bios_rom, SPOCK_U68_1990_ROM, SPOCK_U69_1990_ROM,
 				0xc8000, 0x8000, 0x7fff, 0x4000, MEM_MAPPING_EXTERNAL);
+			break;
+	}
 
 	mem_mapping_disable(&scsi->bios_rom.mapping);
 
@@ -1146,7 +1151,7 @@ static int
 spock_available(void)
 {
         return rom_present(SPOCK_U68_1991_ROM) && rom_present(SPOCK_U69_1991_ROM) &&
-		rom_present(SPOCK_U68_1990_ROM) && rom_present(SPOCK_U69_1990_ROM);
+			rom_present(SPOCK_U68_1990_ROM) && rom_present(SPOCK_U69_1990_ROM);
 }
 
 static const device_config_t spock_rom_config[] = {

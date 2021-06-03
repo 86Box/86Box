@@ -47,6 +47,7 @@
 #define BIOS_GD5422_PATH		"roms/video/cirruslogic/cl5422.bin"
 #define BIOS_GD5426_PATH		"roms/video/cirruslogic/Diamond SpeedStar PRO VLB v3.04.bin"
 #define BIOS_GD5428_ISA_PATH		"roms/video/cirruslogic/5428.bin"
+#define BIOS_GD5428_MCA_PATH		"roms/video/cirruslogic/SVGA141.ROM"
 #define BIOS_GD5428_PATH		"roms/video/cirruslogic/vlbusjapan.BIN"
 #define BIOS_GD5429_PATH		"roms/video/cirruslogic/5429.vbi"
 #define BIOS_GD5430_VLB_PATH		"roms/video/cirruslogic/diamondvlbus.bin"
@@ -214,7 +215,6 @@ typedef struct gd54xx_t
     int			card;
     
     uint8_t		pos_regs[8];
-    svga_t		*mb_vga;
 
     uint32_t		lfb_base, vgablt_base;
 
@@ -691,7 +691,8 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 			}
 		}
 		svga->attrff ^= 1;
-                return;
+                return;				
+				
 	case 0x3c4:
 		svga->seqaddr = val;
 		break;
@@ -761,6 +762,8 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 						svga->hwcursor.addr = ((gd54xx->vram_size - 0x4000) + ((val & 0x3f) * 256));
 					break;
 				case 0x07:
+					svga->packed_chain4 = svga->seqregs[7] & 1;
+					svga_recalctimings(svga);
 					if (gd54xx_is_5422(svga))
 						gd543x_recalc_mapping(gd54xx);
 					else
@@ -878,7 +881,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 			}
 
 			svga->fast = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) &&
-				     !svga->gdcreg[1]) && svga->chain4;
+				     !svga->gdcreg[1]) && ((svga->chain4 && svga->packed_chain4) || svga->fb_only);
 			if (((svga->gdcaddr == 5) && ((val ^ o) & 0x70)) ||
 			    ((svga->gdcaddr == 6) && ((val ^ o) & 1)))
 				svga_recalctimings(svga);
@@ -898,6 +901,8 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 						svga->adv_flags |= FLAG_EXT_WRITE;
 					if (svga->gdcreg[0xb] & 0x08)
 						svga->adv_flags |= FLAG_LATCH8;
+					if (svga->gdcreg[0xb] & 0x10)
+						svga->adv_flags |= FLAG_ADDR_BY16;
 					gd54xx_recalc_banking(gd54xx);
 					break;
 
@@ -1018,6 +1023,7 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 			}
 		}
 		return;
+
 	case 0x3d4:
 		svga->crtcreg = val & gd54xx->crtcreg_mask;
 		return;
@@ -1595,8 +1601,11 @@ gd54xx_recalctimings(svga_t *svga)
     if (svga->seqregs[7] & CIRRUS_SR7_BPP_SVGA) {
 	if (linedbl)
 		svga->render = svga_render_8bpp_lowres;
-	else
+	else {
 		svga->render = svga_render_8bpp_highres;
+		if ((svga->dispend == 512) && !svga->interlace && gd54xx_is_5434(svga))
+			svga->hdisp <<= 1;
+	}
     } else if (svga->gdcreg[5] & 0x40)
 	svga->render = svga_render_8bpp_lowres;
 
@@ -1642,8 +1651,9 @@ gd54xx_recalctimings(svga_t *svga)
 						svga->render = svga_render_32bpp_lowres;
 					else
 						svga->render = svga_render_32bpp_highres;
-					if (svga->crtc[0x27] < CIRRUS_ID_CLGD5436)
+					if (svga->crtc[0x27] < CIRRUS_ID_CLGD5436) {
 						svga->rowoffset *= 2;
+					}
 				} else {
 					svga->bpp = 24;
 					if (linedbl)
@@ -1986,8 +1996,7 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
 
     switch (svga->writemode) {
 	case 4:
-		if (svga->gdcreg[0xb] & 0x10) {
-			addr <<= 2;
+		if (svga->adv_flags & FLAG_ADDR_BY16) {
 			addr &= svga->decode_mask;
 
 			for (i = 0; i < 8; i++) {
@@ -2008,8 +2017,7 @@ gd54xx_write_modes45(svga_t *svga, uint8_t val, uint32_t addr)
 		break;
 
 	case 5:
-		if (svga->gdcreg[0xb] & 0x10) {
-			addr <<= 2;
+		if (svga->adv_flags & FLAG_ADDR_BY16) {
 			addr &= svga->decode_mask;
 
 			for (i = 0; i < 8; i++) {
@@ -3686,9 +3694,9 @@ cl_pci_write(int func, int addr, uint8_t val, void *p)
 static uint8_t 
 gd5428_mca_read(int port, void *p)
 {
-        gd54xx_t *gd54xx = (gd54xx_t *)p;
-
-        return gd54xx->pos_regs[port & 7];
+    gd54xx_t *gd54xx = (gd54xx_t *)p;
+	
+	return gd54xx->pos_regs[port & 7];
 }
 
 static void 
@@ -3698,17 +3706,15 @@ gd5428_mca_write(int port, uint8_t val, void *p)
 
         if (port < 0x102)
 		return;
-
-        gd54xx->pos_regs[port & 7] = val;
+	
+	gd54xx->pos_regs[port & 7] = val;
 	gd543x_recalc_mapping(gd54xx);
 }
 
 static uint8_t 
 gd5428_mca_feedb(void *p)
 {
-        gd54xx_t *gd54xx = (gd54xx_t *)p;
-
-        return gd54xx->pos_regs[2] & 1;
+    return 1;
 }
 
 static void
@@ -3761,6 +3767,8 @@ static void
 	case CIRRUS_ID_CLGD5428:
 		if (gd54xx->vlb)
 			romfn = BIOS_GD5428_PATH;
+		else if (gd54xx->mca)
+			romfn = BIOS_GD5428_MCA_PATH;
 		else
 			romfn = BIOS_GD5428_ISA_PATH;
 		break;
@@ -3953,7 +3961,8 @@ static void
     if (gd54xx->mca) {
 	gd54xx->pos_regs[0] = 0x7b;
 	gd54xx->pos_regs[1] = 0x91;
-	mca_add(gd5428_mca_read, gd5428_mca_write, gd5428_mca_feedb, NULL, gd54xx);
+	mca_add(gd5428_mca_read, gd5428_mca_write, gd5428_mca_feedb, NULL, gd54xx);		
+	io_sethandler(0x46e8, 0x0001, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
     }
 
     if (gd54xx_is_5434(svga)) {
@@ -4011,6 +4020,12 @@ static int
 gd5428_isa_available(void)
 {
     return rom_present(BIOS_GD5428_ISA_PATH);
+}
+
+static int
+gd5428_mca_available(void)
+{
+    return rom_present(BIOS_GD5428_MCA_PATH);
 }
 
 static int
@@ -4369,7 +4384,7 @@ const device_t gd5428_mca_device =
     gd54xx_init, 
     gd54xx_close, 
     NULL,
-    { gd5428_available },
+    { gd5428_mca_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
     NULL

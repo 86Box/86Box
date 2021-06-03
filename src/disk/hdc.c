@@ -118,8 +118,8 @@ static const struct {
     { "esdi_mca",		&esdi_ps2_device		},
     { "ide_pci",		&ide_pci_device			},
     { "ide_pci_2ch",		&ide_pci_2ch_device		},
-    { "vlb_isa",		&ide_vlb_device			},
-    { "vlb_isa_2ch",		&ide_vlb_2ch_device		},
+    { "ide_vlb",		&ide_vlb_device			},
+    { "ide_vlb_2ch",		&ide_vlb_2ch_device		},
     { "",			NULL				}
 };
 

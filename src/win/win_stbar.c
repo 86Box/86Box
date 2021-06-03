@@ -51,7 +51,6 @@
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/win.h>
-#include <86box/mo.h>
 
 #ifndef GWL_WNDPROC
 #define GWL_WNDPROC GWLP_WNDPROC

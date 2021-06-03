@@ -178,7 +178,7 @@ svga_out(uint16_t addr, uint8_t val, void *p)
 				svga->chain2_write = !(val & 4);
 				svga->chain4 = val & 8;
 				svga->fast = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) &&
-					      !svga->gdcreg[1]) && svga->chain4 && !(svga->adv_flags & FLAG_ADDR_BY8);
+					      !svga->gdcreg[1]) && ((svga->chain4 && svga->packed_chain4) || svga->fb_only) && !(svga->adv_flags & FLAG_ADDR_BY8);
 				break;
 		}
 		break;
@@ -261,7 +261,7 @@ svga_out(uint16_t addr, uint8_t val, void *p)
 		}
 		svga->gdcreg[svga->gdcaddr & 15] = val;                
 		svga->fast = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) &&
-			     !svga->gdcreg[1]) && svga->chain4;
+			     !svga->gdcreg[1]) && ((svga->chain4 && svga->packed_chain4) || svga->fb_only);
 		if (((svga->gdcaddr & 15) == 5  && (val ^ o) & 0x70) ||
 		    ((svga->gdcaddr & 15) == 6 && (val ^ o) & 1))
 			svga_recalctimings(svga);
@@ -575,7 +575,9 @@ svga_recalctimings(svga_t *svga)
     if (svga->dispontime < TIMER_USEC)
 	svga->dispontime = TIMER_USEC;
     if (svga->dispofftime < TIMER_USEC)
-	svga->dispofftime = TIMER_USEC;
+		svga->dispofftime = TIMER_USEC;
+
+	svga_recalc_remap_func(svga);
 
     /* Inform the user interface of any DPMS mode changes. */
     if (svga->dpms) {
@@ -1054,13 +1056,20 @@ svga_write_common(uint32_t addr, uint8_t val, uint8_t linear, void *p)
     }
 
     if (!(svga->gdcreg[6] & 1))
-	svga->fullchange = 2;
+		svga->fullchange = 2;
 
-    if ((svga->adv_flags & FLAG_ADDR_BY8) && (svga->writemode < 4))
+	if ((svga->adv_flags & FLAG_ADDR_BY16) && (svga->writemode == 4 || svga->writemode == 5))
+	addr <<= 4;
+    else if ((svga->adv_flags & FLAG_ADDR_BY8) && (svga->writemode < 4))
 	addr <<= 3;
-    else if ((svga->chain4 || svga->fb_only) && (svga->writemode < 4)) {
+    else if (((svga->chain4 && svga->packed_chain4) || svga->fb_only) && (svga->writemode < 4)) {
 	writemask2 = 1 << (addr & 3);
 	addr &= ~3;
+	} else if (svga->chain4 && (svga->writemode < 4)) {
+	writemask2 = 1 << (addr & 3);
+	if (!linear)
+		addr &= ~3;
+	addr = ((addr & 0xfffc) << 2) | ((addr & 0x30000) >> 14) | (addr & ~0x3ffff);
     } else if (svga->chain2_write) {
 	writemask2 &= ~0xa;
 	if (addr & 1)
@@ -1237,9 +1246,11 @@ svga_read_common(uint32_t addr, uint8_t linear, void *p)
     latch_addr = (addr << count) & svga->decode_mask;
     count = (1 << count);
 
-    if (svga->adv_flags & FLAG_ADDR_BY8)
+	if (svga->adv_flags & FLAG_ADDR_BY16)
+	addr <<= 4;
+    else if (svga->adv_flags & FLAG_ADDR_BY8)
 	addr <<= 3;
-    else if (svga->chain4 || svga->fb_only) {
+    else if ((svga->chain4 && svga->packed_chain4) || svga->fb_only) {
 	addr &= svga->decode_mask;
 	if (svga->translate_address)
 		addr = svga->translate_address(addr, p);
@@ -1249,6 +1260,9 @@ svga_read_common(uint32_t addr, uint8_t linear, void *p)
 	for (i = 0; i < count; i++)
 		svga->latch.b[i] = svga->vram[latch_addr | i];
 	return svga->vram[addr & svga->vram_mask];
+	} else if (svga->chain4) {
+	readplane = addr & 3;
+	addr = ((addr & 0xfffc) << 2) | ((addr & 0x30000) >> 14) | (addr & ~0x3ffff);
     } else if (svga->chain2_read) {
 	readplane = (readplane & 2) | (addr & 1);
 	addr &= ~1;
