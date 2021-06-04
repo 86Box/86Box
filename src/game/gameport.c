@@ -331,9 +331,10 @@ gameport_remap(void *priv, uint16_t address)
 	} else {
 		/* Port at other addresses: add to bottom. */
 		other_dev = active_gameports;
-		while (other_dev->next)
+		while (other_dev && other_dev->next)
 			other_dev = other_dev->next;
-		other_dev->next = dev;
+		if (other_dev)
+			other_dev->next = dev;
 	}
 
 	io_sethandler(dev->addr, dev->len,
