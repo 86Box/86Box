@@ -102,14 +102,14 @@ int hb4_do_log = ENABLE_HB4_LOG;
 static void
 hb4_log(const char *fmt, ...)
 {
-    va_list ap;
+	va_list ap;
 
-    if (hb4_do_log)
-    {
-        va_start(ap, fmt);
-        pclog_ex(fmt, ap);
-        va_end(ap);
-    }
+	if (hb4_do_log)
+	{
+		va_start(ap, fmt);
+		pclog_ex(fmt, ap);
+		va_end(ap);
+	}
 }
 #else
 #define hb4_log(fmt, ...)
@@ -122,129 +122,129 @@ hb4_log(const char *fmt, ...)
 
 typedef struct hb4_t
 {
-    uint8_t pci_conf[98]; /* PCI Registers */
+	uint8_t pci_conf[98]; /* PCI Registers */
 } hb4_t;
 
 void hb4_shadow(int cur_addr, hb4_t *dev)
 {
-    mem_set_mem_state_both(0xc0000, 0x8000, (dev->pci_conf[0x54] & 2) ? (CAN_READ | CAN_WRITE) : DISABLE);
-    for (int i = 2; i < 8; i++)
-        mem_set_mem_state_both(0xc8000 + ((i - 2) << 14), 0x4000, (dev->pci_conf[0x54] & (1 << i)) ? (CAN_READ | CAN_WRITE) : DISABLE);
+	mem_set_mem_state_both(0xc0000, 0x8000, (dev->pci_conf[0x54] & 2) ? (CAN_READ | CAN_WRITE) : DISABLE);
+	for (int i = 2; i < 8; i++)
+		mem_set_mem_state_both(0xc8000 + ((i - 2) << 14), 0x4000, (dev->pci_conf[0x54] & (1 << i)) ? (CAN_READ | CAN_WRITE) : DISABLE);
 
-    mem_set_mem_state_both(0xe0000, 0x20000, CAN_READ | CAN_WRITE);
+	mem_set_mem_state_both(0xe0000, 0x20000, CAN_READ | CAN_WRITE);
 
-    flushmmucache_nopc();
+	flushmmucache_nopc();
 }
 
 static void
 hb4_write(int func, int addr, uint8_t val, void *priv)
 {
-    hb4_t *dev = (hb4_t *)priv;
+	hb4_t *dev = (hb4_t *)priv;
 
-    hb4_log("UM8881F: dev->regs[%02x] = %02x\n", addr, val);
+	hb4_log("UM8881F: dev->regs[%02x] = %02x\n", addr, val);
 
-    switch (addr)
-    {
-    case 0x04:
-    case 0x05:
-        dev->pci_conf[addr] = val;
-        break;
+	switch (addr)
+	{
+	case 0x04:
+	case 0x05:
+		dev->pci_conf[addr] = val;
+		break;
 
-    case 0x07:
-        dev->pci_conf[addr] &= val;
-        break;
+	case 0x07:
+		dev->pci_conf[addr] &= val;
+		break;
 
-    case 0x0c:
-    case 0x0d:
-        dev->pci_conf[addr] = val;
-        break;
+	case 0x0c:
+	case 0x0d:
+		dev->pci_conf[addr] = val;
+		break;
 
-    case 0x50:
-        dev->pci_conf[addr] = ((val & 0xf8) | 4); /* Hardcode Cache Size to 512KB */
-        cpu_cache_ext_enabled = !!(val & 0x80);   /* Fixes freezing issues on the HOT-433A*/
-        cpu_update_waitstates();
-        break;
+	case 0x50:
+		dev->pci_conf[addr] = ((val & 0xf8) | 4); /* Hardcode Cache Size to 512KB */
+		cpu_cache_ext_enabled = !!(val & 0x80);	  /* Fixes freezing issues on the HOT-433A*/
+		cpu_update_waitstates();
+		break;
 
-    case 0x51:
-    case 0x52:
-    case 0x53:
-        dev->pci_conf[addr] = val;
-        break;
+	case 0x51:
+	case 0x52:
+	case 0x53:
+		dev->pci_conf[addr] = val;
+		break;
 
-    case 0x54:
-    case 0x55:
-        dev->pci_conf[addr] = val & (!(addr & 1) ? 0xfe : 0xff);
-        hb4_shadow(addr, dev);
-        break;
+	case 0x54:
+	case 0x55:
+		dev->pci_conf[addr] = val & (!(addr & 1) ? 0xfe : 0xff);
+		hb4_shadow(addr, dev);
+		break;
 
-    case 0x56:
-    case 0x57:
-    case 0x58:
-    case 0x59:
-    case 0x5a:
-    case 0x5b:
-    case 0x5c:
-    case 0x5d:
-    case 0x5e:
-    case 0x5f:
-        dev->pci_conf[addr] = val;
-        break;
+	case 0x56:
+	case 0x57:
+	case 0x58:
+	case 0x59:
+	case 0x5a:
+	case 0x5b:
+	case 0x5c:
+	case 0x5d:
+	case 0x5e:
+	case 0x5f:
+		dev->pci_conf[addr] = val;
+		break;
 
-    case 0x60:
-    case 0x61:
-        dev->pci_conf[addr] = val;
-        break;
-    }
+	case 0x60:
+	case 0x61:
+		dev->pci_conf[addr] = val;
+		break;
+	}
 }
 
 static uint8_t
 hb4_read(int func, int addr, void *priv)
 {
-    hb4_t *dev = (hb4_t *)priv;
-    return dev->pci_conf[addr];
+	hb4_t *dev = (hb4_t *)priv;
+	return dev->pci_conf[addr];
 }
 
 static void
 hb4_reset(void *priv)
 {
-    hb4_t *dev = (hb4_t *)priv;
+	hb4_t *dev = (hb4_t *)priv;
 
-    /* Defaults */
-    dev->pci_conf[0] = 0x60; /* UMC */
-    dev->pci_conf[1] = 0x10;
+	/* Defaults */
+	dev->pci_conf[0] = 0x60; /* UMC */
+	dev->pci_conf[1] = 0x10;
 
-    dev->pci_conf[2] = 0x81; /* 8881F */
-    dev->pci_conf[3] = 0x88;
+	dev->pci_conf[2] = 0x81; /* 8881F */
+	dev->pci_conf[3] = 0x88;
 
-    dev->pci_conf[8] = 1;
+	dev->pci_conf[8] = 1;
 
-    dev->pci_conf[0x09] = 0x00;
-    dev->pci_conf[0x0a] = 0x00;
-    dev->pci_conf[0x0b] = 0x06;
+	dev->pci_conf[0x09] = 0x00;
+	dev->pci_conf[0x0a] = 0x00;
+	dev->pci_conf[0x0b] = 0x06;
 }
 
 static void
 hb4_close(void *priv)
 {
-    hb4_t *dev = (hb4_t *)priv;
+	hb4_t *dev = (hb4_t *)priv;
 
-    free(dev);
+	free(dev);
 }
 
 static void *
 hb4_init(const device_t *info)
 {
-    hb4_t *dev = (hb4_t *)malloc(sizeof(hb4_t));
-    memset(dev, 0, sizeof(hb4_t));
+	hb4_t *dev = (hb4_t *)malloc(sizeof(hb4_t));
+	memset(dev, 0, sizeof(hb4_t));
 
-    pci_add_card(PCI_ADD_NORTHBRIDGE, hb4_read, hb4_write, dev); /* Device 10: UMC 8881x */
+	pci_add_card(PCI_ADD_NORTHBRIDGE, hb4_read, hb4_write, dev); /* Device 10: UMC 8881x */
 
-    /* Port 92 */
-    device_add(&port_92_pci_device);
+	/* Port 92 */
+	device_add(&port_92_pci_device);
 
-    hb4_reset(dev);
+	hb4_reset(dev);
 
-    return dev;
+	return dev;
 }
 
 const device_t umc_hb4_device = {

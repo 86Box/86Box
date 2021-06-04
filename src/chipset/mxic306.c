@@ -41,14 +41,14 @@ int mxic306_do_log = ENABLE_MXIC306_LOG;
 static void
 mxic306_log(const char *fmt, ...)
 {
-    va_list ap;
+	va_list ap;
 
-    if (mxic306_do_log)
-    {
-        va_start(ap, fmt);
-        pclog_ex(fmt, ap);
-        va_end(ap);
-    }
+	if (mxic306_do_log)
+	{
+		va_start(ap, fmt);
+		pclog_ex(fmt, ap);
+		va_end(ap);
+	}
 }
 #else
 #define mxic306_log(fmt, ...)
@@ -56,103 +56,103 @@ mxic306_log(const char *fmt, ...)
 
 typedef struct
 {
-    uint8_t index, regs[16];
+	uint8_t index, regs[16];
 } mxic306_t;
 
 static void
 mxic306_shadow_recalc(uint8_t val, mxic306_t *dev)
 {
-    /* System is shadowed globally if a segment or itself are enabled */
-    mem_set_mem_state_both(0xf0000, 0x10000, ENABLED);
+	/* System is shadowed globally if a segment or itself are enabled */
+	mem_set_mem_state_both(0xf0000, 0x10000, ENABLED);
 
-    for (int i = 0; i < 6; i++)
-        mem_set_mem_state_both(0xc0000 + (i << 15), 0x8000, (val & (1 << i) ? ENABLED : DISABLED));
+	for (int i = 0; i < 6; i++)
+		mem_set_mem_state_both(0xc0000 + (i << 15), 0x8000, (val & (1 << i) ? ENABLED : DISABLED));
 
-    flushmmucache_nopc();
+	flushmmucache_nopc();
 }
 
 static void
 mxic306_bus_speed_recalc(uint8_t val, mxic306_t *dev)
 {
-    /* May be wrong */
-    switch (val)
-    {
-    case 0: /* AT Clock 1/5 */
-        cpu_set_isa_speed(cpu_busspeed / 5);
-        break;
+	/* May be wrong */
+	switch (val)
+	{
+	case 0: /* AT Clock 1/5 */
+		cpu_set_isa_speed(cpu_busspeed / 5);
+		break;
 
-    case 1: /* AT Clock 1/2 */
-    case 2: /* AT Clock 1/3 */
-    case 3: /* AT Clock 1/4 */
-        cpu_set_isa_speed(cpu_busspeed / (1 + val));
-        break;
-    }
+	case 1: /* AT Clock 1/2 */
+	case 2: /* AT Clock 1/3 */
+	case 3: /* AT Clock 1/4 */
+		cpu_set_isa_speed(cpu_busspeed / (1 + val));
+		break;
+	}
 }
 
 static void
 mxic306_write(uint16_t addr, uint8_t val, void *priv)
 {
-    mxic306_t *dev = (mxic306_t *)priv;
+	mxic306_t *dev = (mxic306_t *)priv;
 
-    switch (addr)
-    {
-    case 0x22:
-        dev->index = val;
-        break;
-    case 0x23:
-        if ((dev->index >= 0x30) && (dev->index <= 0x3f))
-        {
-            dev->regs[dev->index - 0x30] = val;
+	switch (addr)
+	{
+	case 0x22:
+		dev->index = val;
+		break;
+	case 0x23:
+		if ((dev->index >= 0x30) && (dev->index <= 0x3f))
+		{
+			dev->regs[dev->index - 0x30] = val;
 
-            switch (dev->index)
-            {
-            case 0x3a:
-                mxic306_shadow_recalc(val, dev);
-                break;
+			switch (dev->index)
+			{
+			case 0x3a:
+				mxic306_shadow_recalc(val, dev);
+				break;
 
-            case 0x3d:
-                mxic306_bus_speed_recalc(val & 3, dev);
-                break;
+			case 0x3d:
+				mxic306_bus_speed_recalc(val & 3, dev);
+				break;
 
-            case 0x3e:
-                cpu_cache_ext_enabled = !!(val & 0x10);
-                cpu_update_waitstates();
-                break;
-            }
-            mxic306_log("MXIC 306: dev->regs[%02x] = %02x\n", dev->index, dev->regs[dev->index - 0x30]);
-        }
-        break;
-    }
+			case 0x3e:
+				cpu_cache_ext_enabled = !!(val & 0x10);
+				cpu_update_waitstates();
+				break;
+			}
+			mxic306_log("MXIC 306: dev->regs[%02x] = %02x\n", dev->index, dev->regs[dev->index - 0x30]);
+		}
+		break;
+	}
 }
 
 static uint8_t
 mxic306_read(uint16_t addr, void *priv)
 {
-    mxic306_t *dev = (mxic306_t *)priv;
+	mxic306_t *dev = (mxic306_t *)priv;
 
-    if ((dev->index >= 0x30) && (dev->index <= 0x3f))
-    return (addr == 0x23) ? (((dev->index >= 0x30) || (dev->index <= 0x3f)) ? dev->regs[dev->index - 0x30] : 0) : dev->index;
-    else
-    return 0xff;
+	if ((dev->index >= 0x30) && (dev->index <= 0x3f))
+		return (addr == 0x23) ? (((dev->index >= 0x30) || (dev->index <= 0x3f)) ? dev->regs[dev->index - 0x30] : 0) : dev->index;
+	else
+		return 0xff;
 }
 
 static void
 mxic306_close(void *priv)
 {
-    mxic306_t *dev = (mxic306_t *)priv;
+	mxic306_t *dev = (mxic306_t *)priv;
 
-    free(dev);
+	free(dev);
 }
 
 static void *
 mxic306_init(const device_t *info)
 {
-    mxic306_t *dev = (mxic306_t *)malloc(sizeof(mxic306_t));
-    memset(dev, 0, sizeof(mxic306_t));
+	mxic306_t *dev = (mxic306_t *)malloc(sizeof(mxic306_t));
+	memset(dev, 0, sizeof(mxic306_t));
 
-    io_sethandler(0x0022, 2, mxic306_read, NULL, NULL, mxic306_write, NULL, NULL, dev);
+	io_sethandler(0x0022, 2, mxic306_read, NULL, NULL, mxic306_write, NULL, NULL, dev);
 
-    return dev;
+	return dev;
 }
 
 const device_t mxic306_device = {
