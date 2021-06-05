@@ -2232,8 +2232,6 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 			rs2 = !!(svga->crtc[0x43] & 0x02);
 		else
 			rs2 = (svga->crtc[0x55] & 0x01);
-
-		pclog("Write RS2 enabled: crtc43 bit 1 = %02x, crtc55 bits 0-1 = %02x\n", svga->crtc[0x43] & 0x02, svga->crtc[0x55] & 0x03);
 		if (s3->chip >= S3_TRIO32)
 			svga_out(addr, val, svga);
 		else if ((s3->chip == S3_VISION964 && s3->card_type != S3_ELSAWIN2KPROX_964) || (s3->chip == S3_86C928)) {
