@@ -405,6 +405,7 @@ oti_init(const device_t *info)
 		  oti_in, NULL, NULL, oti_out, NULL, NULL, oti);
 
     oti->svga.miscout = 1;
+	oti->svga.packed_chain4 = 1;
 
     return(oti);
 }
