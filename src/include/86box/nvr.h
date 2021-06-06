@@ -81,7 +81,6 @@ typedef struct _nvr_ {
     void	(*ven_save)(void);
 
     uint8_t	regs[NVR_MAXSIZE];	/* these are the registers */
-    uint8_t apc_regs[4];	/* AND THIS! IS THE APC MADAFAKA :b */
 } nvr_t;
 
 
