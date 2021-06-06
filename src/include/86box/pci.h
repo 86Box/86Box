@@ -44,6 +44,7 @@
 #define PCI_MIRQ0 0
 #define PCI_MIRQ1 1
 #define PCI_MIRQ2 2
+#define PCI_MIRQ3 3
 
 #define PCI_IRQ_DISABLED -1
 
