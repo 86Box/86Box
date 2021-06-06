@@ -127,7 +127,8 @@ prime3c_write(uint16_t addr, uint8_t val, void *priv)
 
             case 0xc5:
                 IDE_SIDE_ADDRESS = (val & 0xfc) | 0x02;
-                prime3c_ide_handler(dev);
+                if (HAS_IDE_FUNCTIONALITY)
+                    prime3c_ide_handler(dev);
                 break;
 
             case 0xc6:
