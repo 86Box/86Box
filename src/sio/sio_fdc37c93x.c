@@ -478,17 +478,17 @@ fdc37c93x_write(uint16_t port, uint8_t val, void *priv)
 				break;
 			case 0xF1:
 				if (valxor & 0xC)
-					fdc_update_densel_force(dev->fdc, (val & 0xC) >> 2);
+					fdc_update_densel_force(dev->fdc, (val & 0xc) >> 2);
 				break;
 			case 0xF2:
 				if (valxor & 0xC0)
-					fdc_update_rwc(dev->fdc, 3, (valxor & 0xC0) >> 6);
+					fdc_update_rwc(dev->fdc, 3, (val & 0xc0) >> 6);
 				if (valxor & 0x30)
-					fdc_update_rwc(dev->fdc, 2, (valxor & 0x30) >> 4);
+					fdc_update_rwc(dev->fdc, 2, (val & 0x30) >> 4);
 				if (valxor & 0x0C)
-					fdc_update_rwc(dev->fdc, 1, (valxor & 0x0C) >> 2);
+					fdc_update_rwc(dev->fdc, 1, (val & 0x0c) >> 2);
 				if (valxor & 0x03)
-					fdc_update_rwc(dev->fdc, 0, (valxor & 0x03));
+					fdc_update_rwc(dev->fdc, 0, (val & 0x03));
 				break;
 			case 0xF4:
 				if (valxor & 0x18)
