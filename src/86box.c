@@ -208,34 +208,32 @@ void
 pclog_ex(const char *fmt, va_list ap)
 {
 #ifndef RELEASE_BUILD
-	char temp[1024];
+    char temp[1024];
 
-	if (strcmp(fmt, "") == 0)
+    if (strcmp(fmt, "") == 0)
 	return;
 
-	if (stdlog == NULL) {
+    if (stdlog == NULL) {
 	if (log_path[0] != '\0') {
 		stdlog = plat_fopen(log_path, "w");
 		if (stdlog == NULL)
 			stdlog = stdout;
-	} else {
+	} else
 		stdlog = stdout;
-	}
-	}
+    }
 
-	vsprintf(temp, fmt, ap);
-	if (suppr_seen && ! strcmp(buff, temp)) {
+    vsprintf(temp, fmt, ap);
+    if (suppr_seen && ! strcmp(buff, temp))
 	seen++;
-	} else {
-	if (suppr_seen && seen) {
+    else {
+	if (suppr_seen && seen)
 		fprintf(stdlog, "*** %d repeats ***\n", seen);
-	}
 	seen = 0;
 	strcpy(buff, temp);
-	fprintf(stdlog, temp, ap);
-	}
+	fprintf(stdlog, "%s", temp);
+    }
 
-	fflush(stdlog);
+    fflush(stdlog);
 #endif
 }
 
@@ -267,47 +265,86 @@ pclog(const char *fmt, ...)
 void
 fatal(const char *fmt, ...)
 {
-	char temp[1024];
-	va_list ap;
-	char *sp;
+    char temp[1024];
+    va_list ap;
+    char *sp;
 
-	va_start(ap, fmt);
+    va_start(ap, fmt);
 
-	if (stdlog == NULL) {
+    if (stdlog == NULL) {
 	if (log_path[0] != '\0') {
 		stdlog = plat_fopen(log_path, "w");
 		if (stdlog == NULL)
 			stdlog = stdout;
-	} else {
+	} else
 		stdlog = stdout;
-	}
-	}
+    }
 
-	vsprintf(temp, fmt, ap);
-	fprintf(stdlog, "%s", temp);
-	fflush(stdlog);
-	va_end(ap);
+    vsprintf(temp, fmt, ap);
+    fprintf(stdlog, "%s", temp);
+    fflush(stdlog);
+    va_end(ap);
 
-	nvr_save();
+    nvr_save();
 
-	config_save();
+    config_save();
 
 #ifdef ENABLE_808X_LOG
-	dumpregs(1);
+    dumpregs(1);
 #endif
 
-	/* Make sure the message does not have a trailing newline. */
-	if ((sp = strchr(temp, '\n')) != NULL) *sp = '\0';
+    /* Make sure the message does not have a trailing newline. */
+    if ((sp = strchr(temp, '\n')) != NULL) *sp = '\0';
 
-	/* Cleanly terminate all of the emulator's components so as
-	   to avoid things like threads getting stuck. */
-	do_stop();
+    /* Cleanly terminate all of the emulator's components so as
+       to avoid things like threads getting stuck. */
+    do_stop();
 
-	ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
+    ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
 
-	fflush(stdlog);
+    fflush(stdlog);
 
-	exit(-1);
+    exit(-1);
+}
+
+
+void
+fatal_ex(const char *fmt, va_list ap)
+{
+    char temp[1024];
+    char *sp;
+
+    if (stdlog == NULL) {
+	if (log_path[0] != '\0') {
+		stdlog = plat_fopen(log_path, "w");
+		if (stdlog == NULL)
+			stdlog = stdout;
+	} else
+		stdlog = stdout;
+    }
+
+    vsprintf(temp, fmt, ap);
+    fprintf(stdlog, "%s", temp);
+    fflush(stdlog);
+
+    nvr_save();
+
+    config_save();
+
+#ifdef ENABLE_808X_LOG
+    dumpregs(1);
+#endif
+
+    /* Make sure the message does not have a trailing newline. */
+    if ((sp = strchr(temp, '\n')) != NULL) *sp = '\0';
+
+    /* Cleanly terminate all of the emulator's components so as
+       to avoid things like threads getting stuck. */
+    do_stop();
+
+    ui_msgbox(MBX_ERROR | MBX_FATAL | MBX_ANSI, temp);
+
+    fflush(stdlog);
 }
 
 
