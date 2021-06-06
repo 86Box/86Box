@@ -921,8 +921,7 @@ board_read(uint16_t port, void *priv)
     uint8_t ret = 0x64;
 
     if (port == 0x0078)
-	ret = 0x00;
-	// ret = dev->board_config[0];
+	ret = dev->board_config[0];
     else if (port == 0x0079)
 	ret = dev->board_config[1];
     else if (port == 0x00e0)
