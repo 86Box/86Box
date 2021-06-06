@@ -104,19 +104,19 @@ io_init(void)
 
 
 void
-io_sethandler(uint16_t base, int size, 
+io_sethandler_common(uint16_t base, int size,
 	      uint8_t (*inb)(uint16_t addr, void *priv),
 	      uint16_t (*inw)(uint16_t addr, void *priv),
 	      uint32_t (*inl)(uint16_t addr, void *priv),
 	      void (*outb)(uint16_t addr, uint8_t val, void *priv),
 	      void (*outw)(uint16_t addr, uint16_t val, void *priv),
 	      void (*outl)(uint16_t addr, uint32_t val, void *priv),
-	      void *priv)
+	      void *priv, int step)
 {
     int c;
     io_t *p, *q = NULL;
 
-    for (c = 0; c < size; c++) {
+    for (c = 0; c < size; c += step) {
 	p = io_last[base + c];
 	q = (io_t *) malloc(sizeof(io_t));
 	memset(q, 0, sizeof(io_t));
@@ -145,19 +145,19 @@ io_sethandler(uint16_t base, int size,
 
 
 void
-io_removehandler(uint16_t base, int size,
-	uint8_t (*inb)(uint16_t addr, void *priv),
-	uint16_t (*inw)(uint16_t addr, void *priv),
-	uint32_t (*inl)(uint16_t addr, void *priv),
-	void (*outb)(uint16_t addr, uint8_t val, void *priv),
-	void (*outw)(uint16_t addr, uint16_t val, void *priv),
-	void (*outl)(uint16_t addr, uint32_t val, void *priv),
-	void *priv)
+io_removehandler_common(uint16_t base, int size,
+			uint8_t (*inb)(uint16_t addr, void *priv),
+			uint16_t (*inw)(uint16_t addr, void *priv),
+			uint32_t (*inl)(uint16_t addr, void *priv),
+			void (*outb)(uint16_t addr, uint8_t val, void *priv),
+			void (*outw)(uint16_t addr, uint16_t val, void *priv),
+			void (*outl)(uint16_t addr, uint32_t val, void *priv),
+			void *priv, int step)
 {
     int c;
     io_t *p, *q;
 
-    for (c = 0; c < size; c++) {
+    for (c = 0; c < size; c += step) {
 	p = io[base + c];
 	if (!p)
 		continue;
@@ -186,6 +186,51 @@ io_removehandler(uint16_t base, int size,
 
 
 void
+io_handler_common(int set, uint16_t base, int size, 
+		  uint8_t (*inb)(uint16_t addr, void *priv),
+		  uint16_t (*inw)(uint16_t addr, void *priv),
+		  uint32_t (*inl)(uint16_t addr, void *priv),
+		  void (*outb)(uint16_t addr, uint8_t val, void *priv),
+		  void (*outw)(uint16_t addr, uint16_t val, void *priv),
+		  void (*outl)(uint16_t addr, uint32_t val, void *priv),
+		  void *priv, int step)
+{
+    if (set)
+	io_sethandler_common(base, size, inb, inw, inl, outb, outw, outl, priv, step);
+    else
+	io_removehandler_common(base, size, inb, inw, inl, outb, outw, outl, priv, step);
+}
+
+
+void
+io_sethandler(uint16_t base, int size, 
+	      uint8_t (*inb)(uint16_t addr, void *priv),
+	      uint16_t (*inw)(uint16_t addr, void *priv),
+	      uint32_t (*inl)(uint16_t addr, void *priv),
+	      void (*outb)(uint16_t addr, uint8_t val, void *priv),
+	      void (*outw)(uint16_t addr, uint16_t val, void *priv),
+	      void (*outl)(uint16_t addr, uint32_t val, void *priv),
+	      void *priv)
+{
+    io_sethandler_common(base, size, inb, inw, inl, outb, outw, outl, priv, 1);
+}
+
+
+void
+io_removehandler(uint16_t base, int size,
+	uint8_t (*inb)(uint16_t addr, void *priv),
+	uint16_t (*inw)(uint16_t addr, void *priv),
+	uint32_t (*inl)(uint16_t addr, void *priv),
+	void (*outb)(uint16_t addr, uint8_t val, void *priv),
+	void (*outw)(uint16_t addr, uint16_t val, void *priv),
+	void (*outl)(uint16_t addr, uint32_t val, void *priv),
+	void *priv)
+{
+    io_removehandler_common(base, size, inb, inw, inl, outb, outw, outl, priv, 1);
+}
+
+
+void
 io_handler(int set, uint16_t base, int size, 
 	   uint8_t (*inb)(uint16_t addr, void *priv),
 	   uint16_t (*inw)(uint16_t addr, void *priv),
@@ -195,89 +240,50 @@ io_handler(int set, uint16_t base, int size,
 	   void (*outl)(uint16_t addr, uint32_t val, void *priv),
 	   void *priv)
 {
-    if (set)
-	io_sethandler(base, size, inb, inw, inl, outb, outw, outl, priv);
-    else
-	io_removehandler(base, size, inb, inw, inl, outb, outw, outl, priv);
+    io_handler_common(set, base, size, inb, inw, inl, outb, outw, outl, priv, 1);
 }
 
 
-#ifdef PC98
 void
-io_sethandler_interleaved(uint16_t base, int size,
-	uint8_t (*inb)(uint16_t addr, void *priv),
-	uint16_t (*inw)(uint16_t addr, void *priv),
-	uint32_t (*inl)(uint16_t addr, void *priv),
-	void (*outb)(uint16_t addr, uint8_t val, void *priv),
-	void (*outw)(uint16_t addr, uint16_t val, void *priv),
-	void (*outl)(uint16_t addr, uint32_t val, void *priv),
-	void *priv)
+io_sethandler_interleaved(uint16_t base, int size, 
+			  uint8_t (*inb)(uint16_t addr, void *priv),
+			  uint16_t (*inw)(uint16_t addr, void *priv),
+			  uint32_t (*inl)(uint16_t addr, void *priv),
+			  void (*outb)(uint16_t addr, uint8_t val, void *priv),
+			  void (*outw)(uint16_t addr, uint16_t val, void *priv),
+			  void (*outl)(uint16_t addr, uint32_t val, void *priv),
+			  void *priv)
 {
-    int c;
-    io_t *p, *q;
-
-    size <<= 2;
-    for (c=0; c<size; c+=2) {
-	p = last_handler(base + c);
-	q = (io_t *) malloc(sizeof(io_t));
-	memset(q, 0, sizeof(io_t));
-	if (p) {
-		p->next = q;
-		q->prev = p;
-	} else {
-		io[base + c] = q;
-		q->prev = NULL;
-	}
-
-	q->inb = inb;
-	q->inw = inw;
-	q->inl = inl;
-
-	q->outb = outb;
-	q->outw = outw;
-	q->outl = outl;
-
-	q->priv = priv;
-    }
+    io_sethandler_common(base, size, inb, inw, inl, outb, outw, outl, priv, 2);
 }
 
 
 void
 io_removehandler_interleaved(uint16_t base, int size,
-	uint8_t (*inb)(uint16_t addr, void *priv),
-	uint16_t (*inw)(uint16_t addr, void *priv),
-	uint32_t (*inl)(uint16_t addr, void *priv),
-	void (*outb)(uint16_t addr, uint8_t val, void *priv),
-	void (*outw)(uint16_t addr, uint16_t val, void *priv),
-	void (*outl)(uint16_t addr, uint32_t val, void *priv),
-	void *priv)
+			     uint8_t (*inb)(uint16_t addr, void *priv),
+			     uint16_t (*inw)(uint16_t addr, void *priv),
+			     uint32_t (*inl)(uint16_t addr, void *priv),
+			     void (*outb)(uint16_t addr, uint8_t val, void *priv),
+			     void (*outw)(uint16_t addr, uint16_t val, void *priv),
+			     void (*outl)(uint16_t addr, uint32_t val, void *priv),
+			     void *priv)
 {
-    int c;
-    io_t *p, *q;
-
-    size <<= 2;
-    for (c = 0; c < size; c += 2) {
-	p = io[base + c];
-	if (!p)
-		return;
-	while(p) {
-		q = p->next;
-		if ((p->inb == inb) && (p->inw == inw) &&
-		    (p->inl == inl) && (p->outb == outb) &&
-		    (p->outw == outw) && (p->outl == outl) &&
-		    (p->priv == priv)) {
-			if (p->prev)
-				p->prev->next = p->next;
-			if (p->next)
-				p->next->prev = p->prev;
-			free(p);
-			break;
-		}
-		p = q;
-	}
-    }
+    io_removehandler_common(base, size, inb, inw, inl, outb, outw, outl, priv, 2);
 }
-#endif
+
+
+void
+io_handler_interleaved(int set, uint16_t base, int size, 
+		       uint8_t (*inb)(uint16_t addr, void *priv),
+		       uint16_t (*inw)(uint16_t addr, void *priv),
+		       uint32_t (*inl)(uint16_t addr, void *priv),
+		       void (*outb)(uint16_t addr, uint8_t val, void *priv),
+		       void (*outw)(uint16_t addr, uint16_t val, void *priv),
+		       void (*outl)(uint16_t addr, uint32_t val, void *priv),
+		       void *priv)
+{
+    io_handler_common(set, base, size, inb, inw, inl, outb, outw, outl, priv, 2);
+}
 
 
 uint8_t
