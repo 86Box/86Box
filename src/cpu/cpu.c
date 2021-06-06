@@ -358,6 +358,8 @@ cpu_set(void)
     acycs = 0;
 #endif
 
+    soft_reset_pci = 0;
+
     cpu_alt_reset = 0;
     unmask_a20_in_smm = 0;
 

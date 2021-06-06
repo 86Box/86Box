@@ -31,6 +31,7 @@
 #include <86box/rom.h>
 #include <86box/nmi.h>
 #include <86box/pic.h>
+#include <86box/pci.h>
 #include <86box/ppi.h>
 #include <86box/timer.h>
 
@@ -56,13 +57,16 @@ uint64_t xt_cpu_multi;
 int nmi = 0, nmi_auto_clear = 0;
 
 /* Was the CPU ever reset? */
-int x86_was_reset = 0;
+int x86_was_reset = 0, soft_reset_pci = 0;
 
 /* Is the TRAP flag on? */
 int trap = 0;
 
 /* The current effective address's segment. */
 uint32_t easeg;
+
+/* This is for the OPTI 283 special reset handling mode. */
+int reset_on_hlt, hlt_reset_pending;
 
 
 #ifdef ENABLE_X86_LOG
@@ -216,14 +220,27 @@ makeznptable(void)
 static void
 reset_common(int hard)
 {
-    /* Make sure to gracefully leave SMM. */
-    if (in_smm)
-	leave_smm();
-
 #ifdef ENABLE_808X_LOG
     if (hard)
 	x808x_log("x86 reset\n");
 #endif
+
+    if (!hard && reset_on_hlt) {
+	hlt_reset_pending++;
+	pclog("hlt_reset_pending = %i\n", hlt_reset_pending);
+	if (hlt_reset_pending == 2)
+		hlt_reset_pending = 0;
+	else
+		return;
+    }
+
+    /* Make sure to gracefully leave SMM. */
+    if (in_smm)
+	leave_smm();
+
+    /* Needed for the ALi M1533. */
+    if (soft_reset_pci && !hard)
+	pci_reset();
 
     use32 = 0;
     cpu_cur_status = 0;
@@ -289,6 +306,9 @@ reset_common(int hard)
 
     shadowbios = shadowbios_write = 0;
     alt_access = cpu_end_block_after_ins = 0;
+
+    if (hard)
+    	reset_on_hlt = hlt_reset_pending = 0;
 
     if (!is286)
 	reset_808x(hard);
