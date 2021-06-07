@@ -247,7 +247,7 @@ const machine_t machines[] = {
 
     /* 486 machines - Miscellaneous */
     /* 486 machines with just the ISA slot */
-    { "[OPTi 283] RYC Leopard LX",		"rycleopardlx",		MACHINE_TYPE_486_MISC,		CPU_PKG_486SLC_IBM, 0, 0, 0, 0, 0, 0, 0,									MACHINE_AT | MACHINE_IDE,							 1024, 16384, 1024, 127,	 machine_at_rycleopardlx_init, NULL			},
+    { "[OPTi 283] RYC Leopard LX",		"rycleopardlx",		MACHINE_TYPE_486_MISC,		CPU_PKG_486SLC_IBM, 0, 0, 0, 0, 0, 0, 0,									MACHINE_AT,							  		 1024, 16384, 1024, 127,	 machine_at_rycleopardlx_init, NULL			},
 
     /* 486 machines which utilize the PCI bus */
     { "[STPC Client] ITOX STAR",		"itoxstar",		MACHINE_TYPE_486_MISC,		CPU_PKG_STPC, 0, 66666667, 75000000, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 255,	     machine_at_itoxstar_init, NULL			},
