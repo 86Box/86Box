@@ -31,7 +31,6 @@
 #include <86box/mem.h>
 #include <86box/chipset.h>
 
-#define ENABLE_OPTI283_LOG 1
 #ifdef ENABLE_OPTI283_LOG
 int opti283_do_log = ENABLE_OPTI283_LOG;
 static void
