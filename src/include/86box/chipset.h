@@ -126,7 +126,6 @@ extern const device_t	stpc_lpt_device;
 
 /* UMC */
 extern const device_t	umc_hb4_device;
-extern const device_t	umc_8890_device;
 
 extern const device_t	umc_8886f_device;
 extern const device_t	umc_8886af_device;
