@@ -218,6 +218,8 @@ hb4_reset(void *priv)
 	dev->pci_conf[2] = 0x81; /* 8881x */
 	dev->pci_conf[3] = 0x88;
 
+	dev->pci_conf[7] = 2;
+
 	dev->pci_conf[8] = 1;
 
 	dev->pci_conf[0x09] = 0x00;

@@ -264,6 +264,8 @@ umc_8886_reset(void *priv)
 	dev->pci_conf_sb[0][2] = (SB_ID & 0xff); /* 8886xx */
 	dev->pci_conf_sb[0][3] = ((SB_ID >> 8) & 0xff);
 
+	dev->pci_conf_sb[0][7] = 2;
+
 	dev->pci_conf_sb[0][8] = 1;
 
 	dev->pci_conf_sb[0][0x09] = 0x00;
