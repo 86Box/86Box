@@ -93,7 +93,7 @@ umc_8886_log(const char *fmt, ...)
 #define IRQRECALCA (((val & 0xf0) != 0) ? ((val & 0xf0) >> 4) : PCI_IRQ_DISABLED)
 #define IRQRECALCB (((val & 0x0f) != 0) ? (val & 0x0f) : PCI_IRQ_DISABLED)
 
-/* Disable Internal IDE Flag needed for the BF Southbridge variant */
+/* Disable Internal IDE Flag needed for the AF or BF Southbridge variant */
 #define HAS_IDE dev->has_ide
 
 /* Southbridge Revision */
@@ -235,6 +235,10 @@ um8886_write(int func, int addr, uint8_t val, void *priv)
 			umc_8886_ide_handler(val & 1);
 			break;
 
+		case 0x07:
+			dev->pci_conf_sb[1][7] &= 0;
+			break;
+
 		case 0x3c:
 		case 0x40:
 		case 0x41:
@@ -266,7 +270,7 @@ umc_8886_reset(void *priv)
 
 	dev->pci_conf_sb[0][7] = 2;
 
-	dev->pci_conf_sb[0][8] = 1;
+	dev->pci_conf_sb[0][8] = 0x0e;
 
 	dev->pci_conf_sb[0][0x09] = 0x00;
 	dev->pci_conf_sb[0][0x0a] = 0x01;
@@ -277,7 +281,20 @@ umc_8886_reset(void *priv)
 
 	if (HAS_IDE)
 	{
+		dev->pci_conf_sb[1][0] = 0x60; /* UMC */
+		dev->pci_conf_sb[1][1] = 0x10;
+
+		dev->pci_conf_sb[1][2] = 0x3a; /* 8886BF IDE */
+		dev->pci_conf_sb[1][3] = 0x67;
+
 		dev->pci_conf_sb[1][4] = 1; /* Start with Internal IDE Enabled */
+
+		dev->pci_conf_sb[1][8] = 0x10;
+
+		dev->pci_conf_sb[1][0x09] = 0x0f;
+		dev->pci_conf_sb[1][0x0a] = 1;
+		dev->pci_conf_sb[1][0x0b] = 1;
+
 		umc_8886_ide_handler(1);
 	}
 }

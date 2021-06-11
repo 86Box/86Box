@@ -220,7 +220,7 @@ hb4_reset(void *priv)
 
 	dev->pci_conf[7] = 2;
 
-	dev->pci_conf[8] = 1;
+	dev->pci_conf[8] = 4;
 
 	dev->pci_conf[0x09] = 0x00;
 	dev->pci_conf[0x0a] = 0x00;
