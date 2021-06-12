@@ -137,7 +137,7 @@ um8886_write(int func, int addr, uint8_t val, void *priv)
 			break;
 
 		case 0x07:
-			dev->pci_conf_sb[func][addr] &= val;
+			dev->pci_conf_sb[func][addr] &= ~(val & 0xf9);
 			break;
 
 		case 0x0c:
