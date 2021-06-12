@@ -1170,7 +1170,7 @@ machine_at_m919_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/m919/M919 V1.5 29F010.bin",
+    ret = bios_load_linear("roms/machines/m919/9190914s.rom",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
