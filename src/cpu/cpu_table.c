@@ -1037,17 +1037,6 @@ const cpu_family_t cpu_families[] = {
 		{"", 0}
 	}
     }, {
-	.package = CPU_PKG_EBGA368,
-	.manufacturer = "VIA",
-	.name = "Eden Model 7",
-	.internal_name = "c3_eden",
-	.cpus = (const CPU[]) {
-		{"66",      CPU_EDEN, fpus_internal,  66666666, 1.0, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER,  6,  6,  3,  3, 8}, /* out of spec */
-		{"100",     CPU_EDEN, fpus_internal, 100000000, 1.0, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER,  9,  9,  4,  4, 12}, /* out of spec */
-		{"400",     CPU_EDEN, fpus_internal, 400000000, 6.0, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 36, 36, 17, 17, 48},
-		{"600",     CPU_EDEN, fpus_internal, 600000000, 6.0, 2050,   0x673, 0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_FIXED_MULTIPLIER, 54, 54, 18, 18, 72},
-	}
-    }, {
 	.package = 0,
     }
 };

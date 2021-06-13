@@ -485,9 +485,11 @@ static void banshee_recalctimings(svga_t *svga)
 //        banshee_log("svga->hdisp=%i\n", svga->hdisp);
 
 	svga->interlace = 0;
+	svga->force_legacy_mode = 0;
 
         if (banshee->vgaInit0 & VGAINIT0_EXTENDED_SHIFT_OUT)
         {
+		svga->force_legacy_mode = 1;
                 switch (VIDPROCCFG_DESKTOP_PIX_FORMAT)
                 {
                         case PIX_FORMAT_8:
@@ -664,6 +666,7 @@ static void banshee_ext_outl(uint16_t addr, uint32_t val, void *p)
                 banshee->vgaInit1 = val;
                 svga->write_bank = (val & 0x3ff) << 15;
                 svga->read_bank = ((val >> 10) & 0x3ff) << 15;
+		svga->packed_chain4 = !!(val & 0x00100000);
                 break;
 
                 case PLL_pllCtrl0:

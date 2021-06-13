@@ -122,6 +122,7 @@ typedef struct sb_t
         };
         mpu_t		*mpu;
         emu8k_t         emu8k;
+        void		*gameport;
 
         int pos;
         

@@ -427,7 +427,7 @@ check_alarm_via(nvr_t *nvr, int8_t addr, int8_t addr_2)
 	return((nvr->regs[addr_2] == nvr->regs[addr]) ||
 	       ((nvr->regs[addr_2] & AL_DONTCARE) == AL_DONTCARE));
     } else
-	return 0;
+	return 1;
 }
 
 
@@ -456,9 +456,9 @@ timer_update(void *priv)
 	    check_alarm(nvr, RTC_MINUTES) &&
 	    check_alarm(nvr, RTC_HOURS) &&
 	    check_alarm_via(nvr, RTC_DOM, RTC_ALDAY) &&
-	    check_alarm_via(nvr, RTC_MONTH, RTC_ALMONTH) &&
+	    check_alarm_via(nvr, RTC_MONTH, RTC_ALMONTH)/* &&
 		check_alarm_via(nvr, RTC_DOM, RTC_ALDAY_SIS) &&
-		check_alarm_via(nvr, RTC_MONTH, RTC_ALMONT_SIS)) {
+		check_alarm_via(nvr, RTC_MONTH, RTC_ALMONT_SIS)*/) {
 		nvr->regs[RTC_REGC] |= REGC_AF;
 		if (nvr->regs[RTC_REGB] & REGB_AIE) {
 			nvr->regs[RTC_REGC] |= REGC_IRQF;
@@ -996,8 +996,10 @@ nvr_at_init(const device_t *info)
 	/* Set up the I/O handler for this device. */
 	io_sethandler(0x0070, 2,
 		      nvr_read,NULL,NULL, nvr_write,NULL,NULL, nvr);
+	if (info->local & 8) {
 		io_sethandler(0x0072, 2,
 			      nvr_read,NULL,NULL, nvr_write,NULL,NULL, nvr);
+	}
 
 	nvr_at_inited = 1;
     }

@@ -167,10 +167,6 @@ sdac_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
 		switch (ramdac->magic_count) {
 			case 4:
 				sdac_control_write(ramdac, svga, val);
-				if (!(ramdac->type & ICS_S3))
-					ramdac->magic_count = 0;
-				break;
-			case 5:
 				ramdac->magic_count = 0;
 				break;
 			default:
@@ -215,21 +211,15 @@ sdac_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
     switch (rs) {
 	case 0x02:
 		switch (ramdac->magic_count) {
-			case 1:
-			case 2: case 3:
+			case 1: case 2:
 				temp = 0x00;
 				ramdac->magic_count++;
 				break;
-			case 4:
-				if (ramdac->type & ICS_S3) {
-					temp = 0x70;	/* SDAC ID */
-					ramdac->magic_count++;
-				} else {
-					temp = ramdac->command;
-					ramdac->magic_count = 0;
-				}
+			case 3:
+				temp = (ramdac->type & ICS_S3) ? 0x70 : 0x00;
+				ramdac->magic_count++;
 				break;
-			case 5:
+			case 4:
 				temp = ramdac->command;
 				ramdac->magic_count = 0;
 				break;

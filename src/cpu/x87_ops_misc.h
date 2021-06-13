@@ -679,7 +679,8 @@ static int opFSCALE(uint32_t fetchdat)
         FP_ENTER();
         cpu_state.pc++;
         temp64 = (int64_t)ST(1);
-        ST(0) = ST(0) * pow(2.0, (double)temp64);
+        if(ST(0) != 0.0)
+                ST(0) = ST(0) * pow(2.0, (double)temp64);
         FP_TAG_VALID;
         CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fscale) : (x87_timings.fscale * cpu_multi));
         return 0;
@@ -787,6 +788,8 @@ static int opFLDCW_a32(uint32_t fetchdat)
 static int FSTENV()
 {
         FP_ENTER();
+		cpu_state.npxs = (cpu_state.npxs & ~(7 << 11)) | ((cpu_state.TOP & 7) << 11);
+		
         switch ((cr0 & 1) | (cpu_state.op32 & 0x100))
         {
                 case 0x000: /*16-bit real mode*/

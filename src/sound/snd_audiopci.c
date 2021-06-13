@@ -8,6 +8,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
+#include <86box/gameport.h>
 #include <86box/io.h>
 #include <86box/nmi.h>
 #include <86box/mem.h>
@@ -1352,13 +1353,16 @@ static void *es1371_init(const device_t *info)
 	sound_add_handler(es1371_get_buffer, es1371);
 	sound_set_cd_audio_filter(es1371_filter_cd_audio, es1371);
 
+	/* Add our own always-present game port to override the standalone ISAPnP one. */
+	gameport_remap(gameport_add(&gameport_pnp_device), 0x200);
+
 	es1371->card = pci_add_card(info->local ? PCI_ADD_SOUND : PCI_ADD_NORMAL, es1371_pci_read, es1371_pci_write, es1371);
 	
 	timer_add(&es1371->dac[1].timer, es1371_poll, es1371, 1); 
         
         generate_es1371_filter();
 
-	/* Return a CS4297A like VMWare does. */
+	/* Return a CS4297A like VMware does. */
 	es1371->codec_regs[0x7c] = 0x4352;
 	es1371->codec_regs[0x7e] = 0x5910;
 

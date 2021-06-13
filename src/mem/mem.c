@@ -2585,7 +2585,24 @@ mem_reset(void)
 
     memset(page_ff, 0xff, sizeof(page_ff));
 
-    m = 1024UL * mem_size;
+#ifdef USE_NEW_DYNAREC
+    if (byte_dirty_mask) {
+	free(byte_dirty_mask);
+	byte_dirty_mask = NULL;
+    }
+
+    if (byte_code_present_mask) {
+	free(byte_code_present_mask);
+	byte_code_present_mask = NULL;
+    }
+#endif
+
+    /* Free the old pages array, if necessary. */
+    if (pages) {
+	free(pages);
+	pages = NULL;
+    }
+
     if (ram != NULL) {
 	free(ram);
 	ram = NULL;
@@ -2596,8 +2613,11 @@ mem_reset(void)
 	ram2 = NULL;
     }
 #endif
+
     if (mem_size > 2097152)
 	fatal("Attempting to use more than 2 GB of emulated RAM\n");
+
+    m = 1024UL * mem_size;
 
 #if (!(defined __amd64__ || defined _M_X64))
     if (mem_size > 1048576) {
@@ -2655,16 +2675,9 @@ mem_reset(void)
 
     /*
      * Allocate and initialize the (new) page table.
-     * We only do this if the size of the page table has changed.
      */
-    if (pages_sz != m) {
-	pages_sz = m;
-	if (pages) {
-		free(pages);
-		pages = NULL;
-	}
-	pages = (page_t *)malloc(m*sizeof(page_t));
-    }
+    pages_sz = m;
+    pages = (page_t *)malloc(m*sizeof(page_t));
 
     memset(page_lookup, 0x00, (1 << 20) * sizeof(page_t *));
     memset(page_lookupp, 0x04, (1 << 20) * sizeof(uint8_t));
@@ -2672,17 +2685,9 @@ mem_reset(void)
     memset(pages, 0x00, pages_sz*sizeof(page_t));
 
 #ifdef USE_NEW_DYNAREC
-    if (byte_dirty_mask) {
-	free(byte_dirty_mask);
-	byte_dirty_mask = NULL;
-    }
     byte_dirty_mask = malloc((mem_size * 1024) / 8);
     memset(byte_dirty_mask, 0, (mem_size * 1024) / 8);
 
-    if (byte_code_present_mask) {
-	free(byte_code_present_mask);
-	byte_code_present_mask = NULL;
-    }
     byte_code_present_mask = malloc((mem_size * 1024) / 8);
     memset(byte_code_present_mask, 0, (mem_size * 1024) / 8);
 #endif

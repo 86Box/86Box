@@ -39,7 +39,7 @@
 #include <86box/isapnp.h>
 
 
-/* This ROM is reconstructed out of the several assumptions, some of which are based on the IT8671F. */
+/* This ROM is reconstructed out of several assumptions, some of which are based on the IT8671F. */
 static uint8_t um8669f_pnp_rom[] = {
     0x55, 0xa3, 0x86, 0x69, 0x00, 0x00, 0x00, 0x00, 0x00, /* UMC8669, dummy checksum (filled in by isapnp_add_card) */
     0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
@@ -89,7 +89,7 @@ static const isapnp_device_config_t um8669f_pnp_defaults[] = {
     }, {
 	.activate = 0
     }, {
-	.activate = 1,
+	.activate = 0,
 	.io = { { .base = 0x200 }, }
     }
 };
@@ -117,14 +117,15 @@ um8669f_log(const char *fmt, ...)
 
 typedef struct um8669f_t
 {
-    int locked, cur_reg_108;
-    void *pnp_card;
+    int		locked, cur_reg_108;
+    void	*pnp_card;
     isapnp_device_config_t *pnp_config[5];
 
-    uint8_t regs_108[256];
+    uint8_t	regs_108[256];
 
-    fdc_t *fdc;
-    serial_t *uart[2];
+    fdc_t	*fdc;
+    serial_t	*uart[2];
+    void	*gameport;
 } um8669f_t;
 
 
@@ -179,13 +180,13 @@ um8669f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
 		break;
 
 	case 5:
-		gameport_remap(0);
-
 		if (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) {
 			um8669f_log("UM8669F: Game port enabled at port %04X\n", config->io[0].base);
-			gameport_remap(config->io[0].base);
-		} else
+			gameport_remap(dev->gameport, config->io[0].base);
+		} else {
 			um8669f_log("UM8669F: Game port disabled\n");
+			gameport_remap(dev->gameport, 0);
+		}
     }
 }
 
@@ -211,7 +212,7 @@ um8669f_write(uint16_t port, uint8_t val, void *priv)
 
 		if (dev->cur_reg_108 == 0xc1) {
 			um8669f_log("UM8669F: ISAPnP %sabled\n", (val & 0x80) ? "en" : "dis");
-			isapnp_enable_card(dev->pnp_card, (val & 0x80) ? 2 : 0);
+			isapnp_enable_card(dev->pnp_card, (val & 0x80) ? ISAPNP_CARD_FORCE_CONFIG : ISAPNP_CARD_DISABLE);
 		}
 	}
     }
@@ -250,7 +251,7 @@ um8669f_reset(um8669f_t *dev)
 
     lpt1_remove();
 
-    isapnp_enable_card(dev->pnp_card, 0);
+    isapnp_enable_card(dev->pnp_card, ISAPNP_CARD_DISABLE);
 
     dev->locked = 1;
 
@@ -285,6 +286,8 @@ um8669f_init(const device_t *info)
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);
+
+    dev->gameport = gameport_add(&gameport_sio_device);
 
     io_sethandler(0x0108, 0x0002,
 		  um8669f_read, NULL, NULL, um8669f_write, NULL, NULL, dev);

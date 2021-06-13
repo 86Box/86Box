@@ -142,8 +142,7 @@ void		(*cpu_exec)(int cycs);
 
 static uint8_t	ccr0, ccr1, ccr2, ccr3, ccr4, ccr5, ccr6;
 
-static int	cyrix_addr, cpu_rom_read_cycles = 4;
-static uint64_t	rom_read_timing_ns = 150;
+static int	cyrix_addr;
 
 
 static void	cpu_write(uint16_t addr, uint8_t val, void *priv);
@@ -359,6 +358,8 @@ cpu_set(void)
     acycs = 0;
 #endif
 
+    soft_reset_pci = 0;
+
     cpu_alt_reset = 0;
     unmask_a20_in_smm = 0;
 
@@ -407,7 +408,10 @@ cpu_set(void)
 
     isa_cycles = cpu_s->atclk_div;
 
-    cpu_rom_prefetch_cycles = (cpu_rom_read_cycles * cpu_s->rspeed * rom_read_timing_ns + 999999999ULL) / 1000000000ULL;
+    if (cpu_s->rspeed <= 8000000)
+	cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
+    else
+	cpu_rom_prefetch_cycles = cpu_s->rspeed / 1000000;
 
     cpu_set_isa_pci_div(0);
     cpu_set_pci_speed(0);
@@ -1276,7 +1280,6 @@ cpu_set(void)
                 break;
 
 	case CPU_CYRIX3S:
-	case CPU_EDEN:		/* This until proper timings get discovered */
 #ifdef USE_DYNAREC
 		x86_setopcodes(ops_386, ops_winchip2_0f, dynarec_ops_386, dynarec_ops_winchip2_0f);
 #else
@@ -1377,8 +1380,10 @@ cpu_set_isa_speed(int speed)
     if (speed) {
 	cpu_isa_speed = speed;
 	pc_speed_changed();
-    } else
+    } else if (cpu_busspeed >= 8000000)
 	cpu_isa_speed = 8000000;
+    else
+	cpu_isa_speed = cpu_busspeed;
 
     cpu_log("cpu_set_isa_speed(%d) = %d\n", speed, cpu_isa_speed);
 }
@@ -2011,58 +2016,6 @@ cpu_CPUID(void)
 				break;
 		}
 		break;
-
-	case CPU_EDEN:
-		switch (EAX) {
-			case 0:
-				EAX = 1;
-				if (msr.fcr2 & (1 << 14)) {
-					EBX = msr.fcr3 >> 32;
-					ECX = msr.fcr3 & 0xffffffff;
-					EDX = msr.fcr2 >> 32;
-				} else {
-					EBX = 0x746e6543;	/* CentaurHauls */
-					ECX = 0x736c7561;                        
-					EDX = 0x48727561;
-				}
-				break;
-			case 1:
-				EAX = CPUID;
-				EBX = ECX = 0;
-				EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MMX | CPUID_MTRR;
-				if (cpu_has_feature(CPU_FEATURE_CX8))
-					EDX |= CPUID_CMPXCHG8B;							
-				break;
-			case 0x80000000:
-				EAX = 0x80000006;
-				break;
-			case 0x80000001:
-				EAX = CPUID;
-				EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MMX | CPUID_MTRR | CPUID_3DNOW;
-				if (cpu_has_feature(CPU_FEATURE_CX8))
-					EDX |= CPUID_CMPXCHG8B;
-				break;                                
-			case 0x80000002:	/* Processor name string */
-			case 0x80000003:
-			case 0x80000004:
-				EAX = 0x20414956;	/* VIA Samuel 2 */
-				EBX = 0x756d6153;
-				ECX = 0x32206c65;
-				EDX = 0x00000000;
-				break;
-			case 0x80000005:	/* Cache information */
-				EBX = 0x08800880;	/* TLBs */
-				ECX = 0x40040120;	/* L1 data cache */
-				EDX = 0x40020120;	/* L1 instruction cache */
-				break;
-			case 0x80000006:
-				ECX = 0x40040120;	/* L2 data cache */
-				break;
-			default:
-				EAX = EBX = ECX = EDX = 0;
-				break;
-		}
-		break;
     }
 }
 
@@ -2153,7 +2106,6 @@ cpu_RDMSR(void)
 		break;
 
 	case CPU_CYRIX3S:
-	case CPU_EDEN:
 		EAX = EDX = 0;
 		switch (ECX) {
 			case 0x10:
@@ -2605,7 +2557,6 @@ cpu_WRMSR(void)
 		break;	
 
 	case CPU_CYRIX3S:
-	case CPU_EDEN:
 		switch (ECX) {
 			case 0x10:
 				tsc = EAX | ((uint64_t)EDX << 32);
@@ -3069,5 +3020,6 @@ cpu_update_waitstates(void)
 
     cpu_mem_prefetch_cycles = cpu_prefetch_cycles;
 
-    cpu_rom_prefetch_cycles = (cpu_rom_read_cycles * cpu_s->rspeed * rom_read_timing_ns + 999999999ULL) / 1000000000ULL;
+    if (cpu_s->rspeed <= 8000000)
+	cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
 }

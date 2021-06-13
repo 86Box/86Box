@@ -74,7 +74,7 @@ typedef struct flash_t
 			block_start[BLOCKS_NUM], block_end[BLOCKS_NUM],
 			block_len[BLOCKS_NUM];
 
-    mem_mapping_t	mapping[4], mapping_h[8];
+    mem_mapping_t	mapping[4], mapping_h[16];
 } flash_t;
 
 
@@ -298,14 +298,13 @@ intel_flash_add_mappings(flash_t *dev)
     uint32_t base, fbase;
     uint32_t sub = 0x20000;
 
-	if (biosmask == 0x7ffff) {
+    if (biosmask == 0x7ffff) {
 	sub = 0x80000;
 	max = 8;
-    }
-    else if (biosmask == 0x3ffff) {
+    } else if (biosmask == 0x3ffff) {
 	sub = 0x40000;
 	max = 4;
-	}
+    }
 
     for (i = 0; i < max; i++) {
 	if (biosmask == 0x7ffff)
@@ -331,7 +330,7 @@ intel_flash_add_mappings(flash_t *dev)
 			flash_read, flash_readw, flash_readl,
 			flash_write, flash_writew, flash_writel,
 			dev->array + fbase, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, (void *) dev);
-	mem_mapping_add(&(dev->mapping_h[i + 4]), (base | 0xfff00000), 0x10000,
+	mem_mapping_add(&(dev->mapping_h[i + max]), (base | 0xfff00000), 0x10000,
 			flash_read, flash_readw, flash_readl,
 			flash_write, flash_writew, flash_writel,
 			dev->array + fbase, MEM_MAPPING_EXTERNAL|MEM_MAPPING_ROM|MEM_MAPPING_ROMCS, (void *) dev);
@@ -415,101 +414,101 @@ intel_flash_init(const device_t *info)
 			dev->block_end[BLOCK_DATA2] = 0x7bfff;
 			dev->block_start[BLOCK_BOOT] = 0x7c000;		/* BOOT BLOCK */
 			dev->block_end[BLOCK_BOOT] = 0x7ffff;
-	}
-	break;
+		}
+		break;
 
-    case 0x3ffff:
-	if (dev->flags & FLAG_WORD)
-		dev->flash_id = (dev->flags & FLAG_BXB) ? 0x2275 : 0x2274;
-	else
-		dev->flash_id = (dev->flags & FLAG_BXB) ? 0x7D : 0x7C;
+	case 0x3ffff:
+		if (dev->flags & FLAG_WORD)
+			dev->flash_id = (dev->flags & FLAG_BXB) ? 0x2275 : 0x2274;
+		else
+			dev->flash_id = (dev->flags & FLAG_BXB) ? 0x7D : 0x7C;
 
-	/* The block lengths are the same both flash types. */
-	dev->block_len[BLOCK_MAIN1] = 0x20000;
-	dev->block_len[BLOCK_MAIN2] = 0x18000;
-	dev->block_len[BLOCK_MAIN3] = 0x00000;
-	dev->block_len[BLOCK_MAIN4] = 0x00000;
-	dev->block_len[BLOCK_DATA1] = 0x02000;
-	dev->block_len[BLOCK_DATA2] = 0x02000;
-	dev->block_len[BLOCK_BOOT] = 0x04000;
+		/* The block lengths are the same both flash types. */
+		dev->block_len[BLOCK_MAIN1] = 0x20000;
+		dev->block_len[BLOCK_MAIN2] = 0x18000;
+		dev->block_len[BLOCK_MAIN3] = 0x00000;
+		dev->block_len[BLOCK_MAIN4] = 0x00000;
+		dev->block_len[BLOCK_DATA1] = 0x02000;
+		dev->block_len[BLOCK_DATA2] = 0x02000;
+		dev->block_len[BLOCK_BOOT] = 0x04000;
 
-	if (dev->flags & FLAG_BXB) {		/* 28F002BX-B/28F200BX-B */
-		dev->block_start[BLOCK_MAIN1] = 0x20000;	/* MAIN BLOCK 1 */
-		dev->block_end[BLOCK_MAIN1] = 0x3ffff;
-		dev->block_start[BLOCK_MAIN2] = 0x08000;	/* MAIN BLOCK 2 */
-		dev->block_end[BLOCK_MAIN2] = 0x1ffff;
-		dev->block_start[BLOCK_MAIN3] = 0xfffff;	/* MAIN BLOCK 3 */
-		dev->block_end[BLOCK_MAIN3] = 0xfffff;
-		dev->block_start[BLOCK_MAIN4] = 0xfffff;	/* MAIN BLOCK 4 */
-		dev->block_end[BLOCK_MAIN4] = 0xfffff;
-		dev->block_start[BLOCK_DATA1] = 0x06000;	/* DATA AREA 1 BLOCK */
-		dev->block_end[BLOCK_DATA1] = 0x07fff;
-		dev->block_start[BLOCK_DATA2] = 0x04000;	/* DATA AREA 2 BLOCK */
-		dev->block_end[BLOCK_DATA2] = 0x05fff;
-		dev->block_start[BLOCK_BOOT] = 0x00000;		/* BOOT BLOCK */
-		dev->block_end[BLOCK_BOOT] = 0x03fff;
-	} else {					/* 28F002BX-T/28F200BX-T */
-		dev->block_start[BLOCK_MAIN1] = 0x00000;	/* MAIN BLOCK 1 */
-		dev->block_end[BLOCK_MAIN1] = 0x1ffff;
-		dev->block_start[BLOCK_MAIN2] = 0x20000;	/* MAIN BLOCK 2 */
-		dev->block_end[BLOCK_MAIN2] = 0x37fff;
-		dev->block_start[BLOCK_MAIN3] = 0xfffff;	/* MAIN BLOCK 3 */
-		dev->block_end[BLOCK_MAIN3] = 0xfffff;
-		dev->block_start[BLOCK_MAIN4] = 0xfffff;	/* MAIN BLOCK 4 */
-		dev->block_end[BLOCK_MAIN4] = 0xfffff;
-		dev->block_start[BLOCK_DATA1] = 0x38000;	/* DATA AREA 1 BLOCK */
-		dev->block_end[BLOCK_DATA1] = 0x39fff;
-		dev->block_start[BLOCK_DATA2] = 0x3a000;	/* DATA AREA 2 BLOCK */
-		dev->block_end[BLOCK_DATA2] = 0x3bfff;
-		dev->block_start[BLOCK_BOOT] = 0x3c000;		/* BOOT BLOCK */
-		dev->block_end[BLOCK_BOOT] = 0x3ffff;
-	}
-	break;
+		if (dev->flags & FLAG_BXB) {		/* 28F002BX-B/28F200BX-B */
+			dev->block_start[BLOCK_MAIN1] = 0x20000;	/* MAIN BLOCK 1 */
+			dev->block_end[BLOCK_MAIN1] = 0x3ffff;
+			dev->block_start[BLOCK_MAIN2] = 0x08000;	/* MAIN BLOCK 2 */
+			dev->block_end[BLOCK_MAIN2] = 0x1ffff;
+			dev->block_start[BLOCK_MAIN3] = 0xfffff;	/* MAIN BLOCK 3 */
+			dev->block_end[BLOCK_MAIN3] = 0xfffff;
+			dev->block_start[BLOCK_MAIN4] = 0xfffff;	/* MAIN BLOCK 4 */
+			dev->block_end[BLOCK_MAIN4] = 0xfffff;
+			dev->block_start[BLOCK_DATA1] = 0x06000;	/* DATA AREA 1 BLOCK */
+			dev->block_end[BLOCK_DATA1] = 0x07fff;
+			dev->block_start[BLOCK_DATA2] = 0x04000;	/* DATA AREA 2 BLOCK */
+			dev->block_end[BLOCK_DATA2] = 0x05fff;
+			dev->block_start[BLOCK_BOOT] = 0x00000;		/* BOOT BLOCK */
+			dev->block_end[BLOCK_BOOT] = 0x03fff;
+		} else {					/* 28F002BX-T/28F200BX-T */
+			dev->block_start[BLOCK_MAIN1] = 0x00000;	/* MAIN BLOCK 1 */
+			dev->block_end[BLOCK_MAIN1] = 0x1ffff;
+			dev->block_start[BLOCK_MAIN2] = 0x20000;	/* MAIN BLOCK 2 */
+			dev->block_end[BLOCK_MAIN2] = 0x37fff;
+			dev->block_start[BLOCK_MAIN3] = 0xfffff;	/* MAIN BLOCK 3 */
+			dev->block_end[BLOCK_MAIN3] = 0xfffff;
+			dev->block_start[BLOCK_MAIN4] = 0xfffff;	/* MAIN BLOCK 4 */
+			dev->block_end[BLOCK_MAIN4] = 0xfffff;
+			dev->block_start[BLOCK_DATA1] = 0x38000;	/* DATA AREA 1 BLOCK */
+			dev->block_end[BLOCK_DATA1] = 0x39fff;
+			dev->block_start[BLOCK_DATA2] = 0x3a000;	/* DATA AREA 2 BLOCK */
+			dev->block_end[BLOCK_DATA2] = 0x3bfff;
+			dev->block_start[BLOCK_BOOT] = 0x3c000;		/* BOOT BLOCK */
+			dev->block_end[BLOCK_BOOT] = 0x3ffff;
+		}
+		break;
 
-    default:
-	dev->flash_id = (type & FLAG_BXB) ? 0x95 : 0x94;
+	default:
+		dev->flash_id = (type & FLAG_BXB) ? 0x95 : 0x94;
 
-	/* The block lengths are the same both flash types. */
-	dev->block_len[BLOCK_MAIN1] = 0x1c000;
-	dev->block_len[BLOCK_MAIN2] = 0x00000;
-	dev->block_len[BLOCK_MAIN3] = 0x00000;
-	dev->block_len[BLOCK_MAIN4] = 0x00000;
-	dev->block_len[BLOCK_DATA1] = 0x01000;
-	dev->block_len[BLOCK_DATA2] = 0x01000;
-	dev->block_len[BLOCK_BOOT] = 0x02000;
+		/* The block lengths are the same both flash types. */
+		dev->block_len[BLOCK_MAIN1] = 0x1c000;
+		dev->block_len[BLOCK_MAIN2] = 0x00000;
+		dev->block_len[BLOCK_MAIN3] = 0x00000;
+		dev->block_len[BLOCK_MAIN4] = 0x00000;
+		dev->block_len[BLOCK_DATA1] = 0x01000;
+		dev->block_len[BLOCK_DATA2] = 0x01000;
+		dev->block_len[BLOCK_BOOT] = 0x02000;
 
-	if (dev->flags & FLAG_BXB) {		/* 28F001BX-B/28F100BX-B */
-		dev->block_start[BLOCK_MAIN1] = 0x04000;	/* MAIN BLOCK 1 */
-		dev->block_end[BLOCK_MAIN1] = 0x1ffff;
-		dev->block_start[BLOCK_MAIN2] = 0xfffff;	/* MAIN BLOCK 2 */
-		dev->block_end[BLOCK_MAIN2] = 0xfffff;
-		dev->block_start[BLOCK_MAIN3] = 0xfffff;	/* MAIN BLOCK 3 */
-		dev->block_end[BLOCK_MAIN3] = 0xfffff;
-		dev->block_start[BLOCK_MAIN4] = 0xfffff;	/* MAIN BLOCK 4 */
-		dev->block_end[BLOCK_MAIN4] = 0xfffff;
-		dev->block_start[BLOCK_DATA1] = 0x02000;	/* DATA AREA 1 BLOCK */
-		dev->block_end[BLOCK_DATA1] = 0x02fff;
-		dev->block_start[BLOCK_DATA2] = 0x03000;	/* DATA AREA 2 BLOCK */
-		dev->block_end[BLOCK_DATA2] = 0x03fff;
-		dev->block_start[BLOCK_BOOT] = 0x00000;		/* BOOT BLOCK */
-		dev->block_end[BLOCK_BOOT] = 0x01fff;
-	} else {					/* 28F001BX-T/28F100BX-T */
-		dev->block_start[BLOCK_MAIN1] = 0x00000;	/* MAIN BLOCK 1 */
-		dev->block_end[BLOCK_MAIN1] = 0x1bfff;
-		dev->block_start[BLOCK_MAIN2] = 0xfffff;	/* MAIN BLOCK 2 */
-		dev->block_end[BLOCK_MAIN2] = 0xfffff;
-		dev->block_start[BLOCK_MAIN3] = 0xfffff;	/* MAIN BLOCK 3 */
-		dev->block_end[BLOCK_MAIN3] = 0xfffff;
-		dev->block_start[BLOCK_MAIN4] = 0xfffff;	/* MAIN BLOCK 4 */
-		dev->block_end[BLOCK_MAIN4] = 0xfffff;
-		dev->block_start[BLOCK_DATA1] = 0x1c000;	/* DATA AREA 1 BLOCK */
-		dev->block_end[BLOCK_DATA1] = 0x1cfff;
-		dev->block_start[BLOCK_DATA2] = 0x1d000;	/* DATA AREA 2 BLOCK */
-		dev->block_end[BLOCK_DATA2] = 0x1dfff;
-		dev->block_start[BLOCK_BOOT] = 0x1e000;		/* BOOT BLOCK */
-		dev->block_end[BLOCK_BOOT] = 0x1ffff;
-	}
-	break;		
+		if (dev->flags & FLAG_BXB) {		/* 28F001BX-B/28F100BX-B */
+			dev->block_start[BLOCK_MAIN1] = 0x04000;	/* MAIN BLOCK 1 */
+			dev->block_end[BLOCK_MAIN1] = 0x1ffff;
+			dev->block_start[BLOCK_MAIN2] = 0xfffff;	/* MAIN BLOCK 2 */
+			dev->block_end[BLOCK_MAIN2] = 0xfffff;
+			dev->block_start[BLOCK_MAIN3] = 0xfffff;	/* MAIN BLOCK 3 */
+			dev->block_end[BLOCK_MAIN3] = 0xfffff;
+			dev->block_start[BLOCK_MAIN4] = 0xfffff;	/* MAIN BLOCK 4 */
+			dev->block_end[BLOCK_MAIN4] = 0xfffff;
+			dev->block_start[BLOCK_DATA1] = 0x02000;	/* DATA AREA 1 BLOCK */
+			dev->block_end[BLOCK_DATA1] = 0x02fff;
+			dev->block_start[BLOCK_DATA2] = 0x03000;	/* DATA AREA 2 BLOCK */
+			dev->block_end[BLOCK_DATA2] = 0x03fff;
+			dev->block_start[BLOCK_BOOT] = 0x00000;		/* BOOT BLOCK */
+			dev->block_end[BLOCK_BOOT] = 0x01fff;
+		} else {					/* 28F001BX-T/28F100BX-T */
+			dev->block_start[BLOCK_MAIN1] = 0x00000;	/* MAIN BLOCK 1 */
+			dev->block_end[BLOCK_MAIN1] = 0x1bfff;
+			dev->block_start[BLOCK_MAIN2] = 0xfffff;	/* MAIN BLOCK 2 */
+			dev->block_end[BLOCK_MAIN2] = 0xfffff;
+			dev->block_start[BLOCK_MAIN3] = 0xfffff;	/* MAIN BLOCK 3 */
+			dev->block_end[BLOCK_MAIN3] = 0xfffff;
+			dev->block_start[BLOCK_MAIN4] = 0xfffff;	/* MAIN BLOCK 4 */
+			dev->block_end[BLOCK_MAIN4] = 0xfffff;
+			dev->block_start[BLOCK_DATA1] = 0x1c000;	/* DATA AREA 1 BLOCK */
+			dev->block_end[BLOCK_DATA1] = 0x1cfff;
+			dev->block_start[BLOCK_DATA2] = 0x1d000;	/* DATA AREA 2 BLOCK */
+			dev->block_end[BLOCK_DATA2] = 0x1dfff;
+			dev->block_start[BLOCK_BOOT] = 0x1e000;		/* BOOT BLOCK */
+			dev->block_end[BLOCK_BOOT] = 0x1ffff;
+		}
+		break;		
     }
 
     intel_flash_add_mappings(dev);

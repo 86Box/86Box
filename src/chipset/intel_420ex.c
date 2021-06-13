@@ -43,7 +43,7 @@
 
 typedef struct
 {
-    uint8_t	id, smram_locked,
+    uint8_t	has_ide, smram_locked,
 		regs[256];
 
     uint16_t	timer_base,
@@ -165,10 +165,6 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
     if (((addr >= 0x0f) && (addr < 0x4c)) && (addr != 0x40))
 	return;
 
-    /* The IB (original) variant of the I420EX has no PCI IRQ steering. */
-    if ((addr >= 0x60) && (addr <= 0x63) && (dev->id < 0x03))
-	return;
-
     switch (addr) {
 	case 0x05:
 		dev->regs[addr] = (val & 0x01);
@@ -186,21 +182,21 @@ i420ex_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x48:
 		dev->regs[addr] = (val & 0x3f);
-#ifdef USE_420EX_IDE
-		ide_pri_disable();
-		switch (val & 0x03) {
-			case 0x01:
-				ide_set_base(0, 0x01f0);
-				ide_set_side(0, 0x03f6);
-				ide_pri_enable();
-				break;
-			case 0x02:
-				ide_set_base(0, 0x0170);
-				ide_set_side(0, 0x0376);
-				ide_pri_enable();
-				break;
+		if (dev->has_ide) {
+			ide_pri_disable();
+			switch (val & 0x03) {
+				case 0x01:
+					ide_set_base(0, 0x01f0);
+					ide_set_side(0, 0x03f6);
+					ide_pri_enable();
+					break;
+				case 0x02:
+					ide_set_base(0, 0x0170);
+					ide_set_side(0, 0x0376);
+					ide_pri_enable();
+					break;
+			}
 		}
-#endif
 		break;
 	case 0x49: case 0x53:
 		dev->regs[addr] = (val & 0x1f);
@@ -385,7 +381,6 @@ i420ex_reset_hard(void *priv)
     dev->regs[0x02] = 0x86; dev->regs[0x03] = 0x04; /*82378IB (I420EX)*/
     dev->regs[0x04] = 0x07;
     dev->regs[0x07] = 0x02;
-    dev->regs[0x08] = dev->id;
 
     dev->regs[0x4c] = 0x4d;
     dev->regs[0x4e] = 0x03;
@@ -404,8 +399,9 @@ i420ex_reset_hard(void *priv)
 
     pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
     pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
-    pci_set_irq_routing(PCI_INTC, PCI_IRQ_DISABLED);
-    pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
+
+    if (dev->has_ide)
+	ide_pri_disable();
 }
 
 
@@ -441,6 +437,8 @@ i420ex_reset(void *p)
 {
     i420ex_t *dev = (i420ex_t *) p;
     int i;
+
+    i420ex_write(0, 0x48, 0x00, p);
 
     for (i = 0; i < 7; i++)
 	i420ex_write(0, 0x59 + i, 0x00, p);
@@ -488,13 +486,11 @@ i420ex_speed_changed(void *priv)
     if (te)
 	timer_set_delay_u64(&dev->timer, ((uint64_t) dev->timer_latch) * TIMER_USEC);
 
-    if (dev->id == 0x03) {
-	te = timer_is_enabled(&dev->fast_off_timer);
+    te = timer_is_enabled(&dev->fast_off_timer);
 
-	timer_stop(&dev->fast_off_timer);
-	if (te)
-		timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
-    }
+    timer_stop(&dev->fast_off_timer);
+    if (te)
+	timer_on_auto(&dev->fast_off_timer, dev->fast_off_period);
 }
 
 
@@ -508,11 +504,9 @@ i420ex_init(const device_t *info)
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, i420ex_read, i420ex_write, dev);
 
-    dev->id = info->local;
+    dev->has_ide = info->local;
 
     timer_add(&dev->fast_off_timer, i420ex_fast_off_count, dev, 0);
-
-    i420ex_reset_hard(dev);
 
     cpu_fast_off_flags = 0x00000000;
 
@@ -527,12 +521,9 @@ i420ex_init(const device_t *info)
 
     dma_alias_set();
 
-#ifdef USE_420EX_IDE
-    device_add(&ide_pci_device);
-    ide_pri_disable();
-#else
     device_add(&ide_pci_2ch_device);
-#endif
+
+    i420ex_reset_hard(dev);
 
     return dev;
 }
@@ -543,6 +534,21 @@ const device_t i420ex_device =
     "Intel 82420EX",
     DEVICE_PCI,
     0x00,
+    i420ex_init,
+    i420ex_close,
+    i420ex_reset,
+    { NULL },
+    i420ex_speed_changed,
+    NULL,
+    NULL
+};
+
+
+const device_t i420ex_ide_device =
+{
+    "Intel 82420EX (With IDE)",
+    DEVICE_PCI,
+    0x01,
     i420ex_init,
     i420ex_close,
     i420ex_reset,
