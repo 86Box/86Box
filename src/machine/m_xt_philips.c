@@ -150,9 +150,6 @@ machine_xt_philips_common_init(const machine_t *model)
 
     pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
 
-    /* On-board FDC cannot be disabled */
-    device_add(&fdc_xt_device);
-    
     nmi_init();
 
     standalone_gameport_type = &gameport_device;
@@ -178,6 +175,9 @@ machine_xt_p3105_init(const machine_t *model)
 
     machine_xt_philips_common_init(model);
 
+    /* On-board FDC cannot be disabled */
+	device_add(&fdc_xt_device);
+
     return ret;
 }
 
@@ -195,6 +195,8 @@ machine_xt_p3120_init(const machine_t *model)
     machine_xt_philips_common_init(model);
     
     device_add(&gc100a_device);
+
+    device_add(&fdc_at_device);
     
     return ret;
 }
