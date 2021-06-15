@@ -154,9 +154,6 @@ typedef struct svga_t
 	/*Force CRTC to dword mode, regardless of CR14/CR17. Required for S3 enhanced mode*/
 	int force_dword_mode;
 
-	/*Force CRTC to legacy mode. Required for Voodoo Banshee/3 until there's a proper fix*/
-	int force_legacy_mode;
-
 	int remap_required;
 	uint32_t (*remap_func)(struct svga_t *svga, uint32_t in_addr);
 

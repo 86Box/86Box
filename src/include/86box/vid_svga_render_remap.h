@@ -101,7 +101,7 @@ void svga_recalc_remap_func(svga_t *svga)
 {
         int func_nr;
         
-        if (svga->fb_only || svga->force_legacy_mode)
+        if (svga->fb_only)
                 func_nr = 0;
         else {
                 if (svga->force_dword_mode)

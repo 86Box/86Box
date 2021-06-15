@@ -180,6 +180,7 @@ enum
 
 #define VGAINIT0_EXTENDED_SHIFT_OUT (1 << 12)
 
+#define VIDPROCCFG_VIDPROC_ENABLE (1 << 0)
 #define VIDPROCCFG_CURSOR_MODE (1 << 1)
 #define VIDPROCCFG_INTERLACE (1 << 3)
 #define VIDPROCCFG_HALF_MODE (1 << 4)
@@ -239,6 +240,9 @@ enum
 #define VIDSERIAL_I2C_SDA_W (1 << 25)
 #define VIDSERIAL_I2C_SCK_R (1 << 26)
 #define VIDSERIAL_I2C_SDA_R (1 << 27)
+
+#define MISCINIT0_Y_ORIGIN_SWAP_SHIFT (18)
+#define MISCINIT0_Y_ORIGIN_SWAP_MASK (0xfff << MISCINIT0_Y_ORIGIN_SWAP_SHIFT)
 
 #ifdef ENABLE_BANSHEE_LOG
 int banshee_do_log = ENABLE_BANSHEE_LOG;
@@ -485,11 +489,9 @@ static void banshee_recalctimings(svga_t *svga)
 //        banshee_log("svga->hdisp=%i\n", svga->hdisp);
 
 	svga->interlace = 0;
-	svga->force_legacy_mode = 0;
 
         if (banshee->vgaInit0 & VGAINIT0_EXTENDED_SHIFT_OUT)
         {
-		svga->force_legacy_mode = 1;
                 switch (VIDPROCCFG_DESKTOP_PIX_FORMAT)
                 {
                         case PIX_FORMAT_8:
@@ -568,6 +570,8 @@ static void banshee_recalctimings(svga_t *svga)
                 svga->bpp = 8;
         }
 
+		svga->fb_only = (banshee->vidProcCfg & VIDPROCCFG_VIDPROC_ENABLE);
+
         if (((svga->miscout >> 2) & 3) == 3)
         {
                 int k = banshee->pllCtrl0 & 3;
@@ -639,6 +643,7 @@ static void banshee_ext_outl(uint16_t addr, uint32_t val, void *p)
 
                 case Init_miscInit0:
                 banshee->miscInit0 = val;
+				voodoo->y_origin_swap = (val & MISCINIT0_Y_ORIGIN_SWAP_MASK) >> MISCINIT0_Y_ORIGIN_SWAP_SHIFT;
                 break;
                 case Init_miscInit1:
                 banshee->miscInit1 = val;

@@ -469,6 +469,8 @@ typedef struct voodoo_t
         uint32_t tile_base, tile_stride;
         int tile_stride_shift, tile_x, tile_x_real;
 
+        int y_origin_swap;
+
         int read_time, write_time, burst_time;
 
         pc_timer_t wake_timer;
