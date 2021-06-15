@@ -1533,7 +1533,15 @@ ui_init(int nCmdShow)
 		break;
 	}
 
-	if (! TranslateAccelerator(hwnd, haccel, &messages)) {
+	if (! TranslateAccelerator(hwnd, haccel, &messages))
+	{
+		/* Don't process other keypresses. */
+		if (messages.message == WM_SYSKEYDOWN ||
+			messages.message == WM_SYSKEYUP ||
+			messages.message == WM_KEYDOWN ||
+			messages.message == WM_KEYUP)
+			continue;
+
                 TranslateMessage(&messages);
                 DispatchMessage(&messages);
 	}
