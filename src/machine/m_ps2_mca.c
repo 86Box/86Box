@@ -79,8 +79,9 @@ static struct
         uint8_t subaddr_lo, subaddr_hi;
         
         uint8_t memory_bank[8];
-        
+ 
         uint8_t io_id;
+		uint16_t planar_id;
         
         mem_mapping_t shadow_mapping;
         mem_mapping_t split_mapping;
@@ -331,9 +332,9 @@ static uint8_t model_70_type3_read(uint16_t port)
         switch (port)
         {
                 case 0x100:
-                return 0xff;
+                return ps2.planar_id & 0xff;
                 case 0x101:
-                return 0xf9;
+                return ps2.planar_id >> 8;
                 case 0x102:
                 return ps2.option[0];
                 case 0x103:
@@ -538,6 +539,14 @@ static void model_70_type3_write(uint16_t port, uint8_t val)
                 }
                 ps2.option[0] = val;
                 break;
+                case 0x103:
+				if (ps2.planar_id == 0xfff9)
+					ps2.option[1] = (ps2.option[1] & 0x0f) | (val & 0xf0);
+                break;
+                case 0x104:
+				if (ps2.planar_id == 0xfff9)
+					ps2.option[2] = val;
+                break;
                 case 0x105:
                 ps2.option[3] = val;
                 break;
@@ -653,7 +662,7 @@ uint8_t ps2_mca_read(uint16_t port, void *p)
                         temp = ps2.planar_read(port);
                 else if (!(ps2.setup & PS2_SETUP_VGA))
                         temp = ps2.pos_vga;
-                else if (ps2.adapter_setup & PS2_ADAPTER_SETUP)
+				else if (ps2.adapter_setup & PS2_ADAPTER_SETUP)
                         temp = mca_read(port);
                 else
                         temp = 0xff;
@@ -1103,12 +1112,12 @@ static void mem_encoding_write_cached(uint16_t addr, uint8_t val, void *p)
         }
 }
 
-static void ps2_mca_board_model_70_type34_init(int is_type4)
+static void ps2_mca_board_model_70_type34_init(int is_type4, int slots)
 {        
         ps2_mca_board_common_init();
 
         ps2.split_addr = mem_size * 1024;
-        mca_init(4);
+        mca_init(slots);
 	device_add(&keyboard_ps2_mca_device);
 
         ps2.planar_read = model_70_type3_read;
@@ -1160,7 +1169,7 @@ static void ps2_mca_board_model_70_type34_init(int is_type4)
 
         mem_mapping_add(&ps2.cache_mapping,
                     0, 
-                    is_type4 ? (8 * 1024) : (64 * 1024),
+                    (is_type4) ? (8 * 1024) : (64 * 1024),
                     ps2_read_cache_ram,
                     ps2_read_cache_ramw,
                     ps2_read_cache_raml,
@@ -1171,12 +1180,20 @@ static void ps2_mca_board_model_70_type34_init(int is_type4)
                     MEM_MAPPING_INTERNAL,
                     NULL);
         mem_mapping_disable(&ps2.cache_mapping);
-
-        if (mem_size > 8192)
-        {
-                /* Only 8 MB supported on planar, create a memory expansion card for the rest */
-		ps2_mca_mem_fffc_init(8);
-        }
+		
+		if (ps2.planar_id == 0xfff9) {
+			if (mem_size > 4096)
+			{
+					/* Only 4 MB supported on planar, create a memory expansion card for the rest */
+			ps2_mca_mem_fffc_init(4);
+			}		
+		} else {
+			if (mem_size > 8192)
+			{
+					/* Only 8 MB supported on planar, create a memory expansion card for the rest */
+			ps2_mca_mem_fffc_init(8);
+			}
+		}
 
 	if (gfxcard == VID_INTERNAL)	
 		device_add(&ps1vga_mca_device);
@@ -1333,8 +1350,10 @@ machine_ps2_model_70_type3_init(const machine_t *model)
 		return ret;
 
         machine_ps2_common_init(model);
+		
+		ps2.planar_id = 0xf9ff;
 
-        ps2_mca_board_model_70_type34_init(0);
+        ps2_mca_board_model_70_type34_init(0, 4);
 
 	return ret;
 }
@@ -1354,8 +1373,10 @@ machine_ps2_model_70_type4_init(const machine_t *model)
 		return ret;
 
         machine_ps2_common_init(model);
+		
+		ps2.planar_id = 0xfcff;
 
-        ps2_mca_board_model_70_type34_init(1);
+        ps2_mca_board_model_70_type34_init(1, 4);
 
 	return ret;
 }
@@ -1377,6 +1398,27 @@ machine_ps2_model_80_init(const machine_t *model)
         machine_ps2_common_init(model);
 
         ps2_mca_board_model_80_type2_init(0);
+
+	return ret;
+}
+
+int
+machine_ps2_model_80_axx_init(const machine_t *model)
+{
+	int ret;
+
+	ret = bios_load_interleaved("roms/machines/ibmps2_m80/64f4356.bin",
+				    "roms/machines/ibmps2_m80/64f4355.bin",
+				    0x000e0000, 131072, 0);
+
+	if (bios_only || !ret)
+		return ret;
+
+        machine_ps2_common_init(model);
+
+		ps2.planar_id = 0xfff9;
+
+        ps2_mca_board_model_70_type34_init(0, 8);
 
 	return ret;
 }
