@@ -456,8 +456,10 @@ void voodoo_fastfill(voodoo_t *voodoo, voodoo_params_t *params)
 
         if (params->fbzMode & (1 << 17))
         {
-                high_y = voodoo->v_disp - params->clipLowY;
-                low_y = voodoo->v_disp - params->clipHighY;
+                int y_origin = (voodoo->type >= VOODOO_BANSHEE) ? (voodoo->y_origin_swap+1) : voodoo->v_disp;
+
+                high_y = y_origin - params->clipLowY;
+                low_y = y_origin - params->clipHighY;
         }
         else
         {
