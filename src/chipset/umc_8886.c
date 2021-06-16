@@ -41,6 +41,10 @@
        0 1 PCICLK/4
        1 0 PCICLK/2
 
+   Function 0 Register A3:
+   Bit 7: Unlock SMM
+   Bit 6: Software SMI trigger
+
    Function 0 Register A4:
    Bit 0: Host to PCI Clock (1: 1 by 1/0: 1 by half)
 
@@ -101,9 +105,11 @@ umc_8886_log(const char *fmt, ...)
 
 typedef struct umc_8886_t
 {
+
 	uint8_t pci_conf_sb[2][256]; /* PCI Registers */
 	uint16_t sb_id;		     /* Southbridge Revision */
 	int has_ide;		     /* Check if Southbridge Revision is AF or F */
+
 } umc_8886_t;
 
 static void
@@ -125,7 +131,6 @@ um8886_write(int func, int addr, uint8_t val, void *priv)
 	umc_8886_t *dev = (umc_8886_t *)priv;
 	umc_8886_log("UM8886: dev->regs[%02x] = %02x (%02x)\n", addr, val, func);
 
-	/* We don't know the RW status of registers but Phoenix writes on some RO registers too*/
 	switch (func)
 	{
 	case 0: /* Southbridge */
@@ -164,10 +169,12 @@ um8886_write(int func, int addr, uint8_t val, void *priv)
 
 		case 0x46:
 			dev->pci_conf_sb[func][addr] = val;
-			picint((val & 0x40) ? 10 : 15);
 			break;
 
 		case 0x47:
+			dev->pci_conf_sb[func][addr] = val;
+			break;
+
 		case 0x50:
 		case 0x51:
 		case 0x52:
@@ -209,8 +216,14 @@ um8886_write(int func, int addr, uint8_t val, void *priv)
 		case 0xa0:
 		case 0xa1:
 		case 0xa2:
+			dev->pci_conf_sb[func][addr] = val;
+			break;
+
 		case 0xa3:
 			dev->pci_conf_sb[func][addr] = val;
+			if(dev->pci_conf_sb[0][0xa3] & 0x80)
+			if((dev->pci_conf_sb[0][0xa3] & 0x40) && !in_smm)
+			smi_line = 1;
 			break;
 
 		case 0xa4:
@@ -236,7 +249,7 @@ um8886_write(int func, int addr, uint8_t val, void *priv)
 			break;
 
 		case 0x07:
-			dev->pci_conf_sb[1][7] &= val;
+			dev->pci_conf_sb[func][addr] &= ~(val & 0xf9);
 			break;
 
 		case 0x3c:

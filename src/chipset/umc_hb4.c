@@ -20,65 +20,72 @@
  */
 
 /*
-UMC HB4 Configuration Registers
+   UMC HB4 Configuration Registers
 
-Sources & Notes:
-Cache registers were found at Vogons: https://www.vogons.org/viewtopic.php?f=46&t=68829&start=20
-Basic Reverse engineering effort was done personally by me
+   Sources & Notes:
+   Cache registers were found at Vogons: https://www.vogons.org/viewtopic.php?f=46&t=68829&start=20
+   Basic Reverse engineering effort was done personally by me
 
-TODO:
-- APM, SMM, SMRAM registers(Did some early work. Still quite incomplete)
+   TODO:
+   - APM, SMM, SMRAM registers(Did some early work. Still quite incomplete)
 
-Warning: Register documentation may be inaccurate!
+   Warning: Register documentation may be inaccurate!
 
-UMC 8881x:
+   UMC 8881x:
 
-Register 50:
-Bit 7: Enable L2 Cache
-Bit 6: Cache Policy (0: Write Thru / 1: Write Back)
+   Register 50:
+   Bit 7: Enable L2 Cache
+   Bit 6: Cache Policy (0: Write Thru / 1: Write Back)
 
-Bit 5-4 Cache Speed
-    0 0 Read 3-2-2-2 Write 3T
-    0 1 Read 3-1-1-1 Write 3T
-    1 0 Read 2-2-2-2 Write 2T
-    1 1 Read 2-1-1-1 Write 2T
+   Bit 5-4 Cache Speed
+       0 0 Read 3-2-2-2 Write 3T
+       0 1 Read 3-1-1-1 Write 3T
+       1 0 Read 2-2-2-2 Write 2T
+       1 1 Read 2-1-1-1 Write 2T
 
-Bit 3 Cache Banks (0: 1 Bank / 1: 2 Banks)
+   Bit 3 Cache Banks (0: 1 Bank / 1: 2 Banks)
 
-Bit 2-1-0 Cache Size
-    0 0 0 0KB
-    0 0 1 64KB
-    x-x-x Multiplications of 2(64*2 for 0 1 0) till 2MB
+   Bit 2-1-0 Cache Size
+       0 0 0 0KB
+       0 0 1 64KB
+       x-x-x Multiplications of 2(64*2 for 0 1 0) till 2MB
 
-Register 51:
-Bit 7-6 DRAM Read Speed
-    5-4 DRAM Write Speed
-    0 0 1 Waits
-    0 1 1 Waits
-    1 0 1 Wait
-    1 1 0 Waits
+   Register 51:
+   Bit 7-6 DRAM Read Speed
+       5-4 DRAM Write Speed
+       0 0 1 Waits
+       0 1 1 Waits
+       1 0 1 Wait
+       1 1 0 Waits
 
-Bit 3 Resource Lock Enable
-Bit 2 Graphics Adapter (0: VL Bus / 1: PCI Bus)
-Bit 1 L1 WB Policy (0: WT / 1: WB)
-Bit 0 L2 Cache Tag Lenght (0: 7 Bits / 1: 8 Bits)
+   Bit 3 Resource Lock Enable
+   Bit 2 Graphics Adapter (0: VL Bus / 1: PCI Bus)
+   Bit 1 L1 WB Policy (0: WT / 1: WB)
+   Bit 0 L2 Cache Tag Lenght (0: 7 Bits / 1: 8 Bits)
 
-Register 52:
-Bit 7: Host-to-PCI Post Write (0: 1 Wait State / 1: 0 Wait States)
+   Register 52:
+   Bit 7: Host-to-PCI Post Write (0: 1 Wait State / 1: 0 Wait States)
 
-Register 54:
-Bit 7: DC000-DFFFF
-Bit 6: D8000-DBFFF
-Bit 5: D4000-D7FFF
-Bit 4: D0000-D3FFF
-Bit 3: CC000-CFFFF
-Bit 2: C8000-CBFFF
-Bit 1: C0000-C7FFF
-Bit 0: ??? (Supposedly E segment but doesn't seem to work)
+   Register 54:
+   Bit 7: DC000-DFFFF
+   Bit 6: D8000-DBFFF
+   Bit 5: D4000-D7FFF
+   Bit 4: D0000-D3FFF
+   Bit 3: CC000-CFFFF
+   Bit 2: C8000-CBFFF
+   Bit 1: C0000-C7FFF
+   Bit 0: ??? (Supposedly E segment but doesn't seem to work)
 
-Register 55:
-Bit 7: Enable Shadow Reads For System & Selected Segments
-Bit 6: Write Protect Enable
+   Register 55:
+   Bit 7: Enable Shadow Reads For System & Selected Segments
+   Bit 6: Write Protect Enable
+
+   Register 60:
+   Bit 5-4: SMRAM Position(Lot's of uncertainty to those bits)
+       1 0  A0000 segment
+       0 0  E0000 segment
+
+   Bit 0: SMRAM Local Access Enable
 */
 
 #include <stdarg.h>
@@ -97,6 +104,7 @@ Bit 6: Write Protect Enable
 #include <86box/mem.h>
 #include <86box/pci.h>
 #include <86box/port_92.h>
+#include <86box/smram.h>
 
 #include <86box/chipset.h>
 
@@ -121,6 +129,7 @@ hb4_log(const char *fmt, ...)
 typedef struct hb4_t
 {
 	uint8_t pci_conf[128]; /* PCI Registers */
+	smram_t *smram;	       /* SMRAM Handler */
 } hb4_t;
 
 uint16_t hb4_shadow_recalc(int enabled, hb4_t *dev)
@@ -140,6 +149,30 @@ void hb4_shadow(hb4_t *dev)
 		mem_set_mem_state_both(0xc8000 + (i << 14), 0x4000, hb4_shadow_recalc(dev->pci_conf[0x54] & (4 << i), dev));
 
 	flushmmucache_nopc();
+}
+
+void hb4_smram(int smram_space, int local_access, hb4_t *dev)
+{
+	smram_disable_all();
+
+	uint32_t h_base, r_base;
+
+	switch (smram_space)
+	{
+	case 0:
+	default:
+		h_base = 0x000a0000;
+		r_base = 0x000e0000;
+		break;
+
+	case 2:
+		h_base = 0x000a0000;
+		r_base = 0x000a0000;
+		break;
+	}
+
+	smram_enable(dev->smram, h_base, r_base, 0x10000, local_access, 1);
+	hb4_log("UM8881-SMRAM: Host Base: 0x%05x, RAM Base: 0x%05x, Local Access: %01x\n", h_base, r_base, local_access);
 }
 
 static void
@@ -192,7 +225,14 @@ um8881_write(int func, int addr, uint8_t val, void *priv)
 	case 0x5d:
 	case 0x5e:
 	case 0x5f:
+		dev->pci_conf[addr] = val;
+		break;
+
 	case 0x60:
+		dev->pci_conf[addr] = val;
+		hb4_smram((val >> 4) & 3, val & 1, dev);
+		break;
+
 	case 0x61:
 		dev->pci_conf[addr] = val;
 		break;
@@ -225,6 +265,8 @@ hb4_reset(void *priv)
 	dev->pci_conf[0x09] = 0x00;
 	dev->pci_conf[0x0a] = 0x00;
 	dev->pci_conf[0x0b] = 0x06;
+
+	dev->pci_conf[0x55] = 0x40; /* Openbios Default */
 }
 
 static void
@@ -245,6 +287,9 @@ hb4_init(const device_t *info)
 
 	/* Port 92 */
 	device_add(&port_92_pci_device);
+
+	/* SMRAM */
+	dev->smram = smram_add();
 
 	hb4_reset(dev);
 
