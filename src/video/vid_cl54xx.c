@@ -880,8 +880,12 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 					break;
 			}
 
-			svga->fast = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) &&
-				     !svga->gdcreg[1]) && ((svga->chain4 && svga->packed_chain4) || svga->fb_only);
+			if ((svga->crtc[0x27] == CIRRUS_ID_CLGD5422) || (svga->crtc[0x27] == CIRRUS_ID_CLGD5424))
+				svga->fast = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) &&
+					     !svga->gdcreg[1]) && ((svga->chain4 && svga->packed_chain4) || svga->fb_only) && !(svga->adv_flags & FLAG_ADDR_BY8); /*TODO: needs verification on other Cirrus chips*/
+			else
+				svga->fast = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) &&
+						 !svga->gdcreg[1]) && ((svga->chain4 && svga->packed_chain4) || svga->fb_only);
 			if (((svga->gdcaddr == 5) && ((val ^ o) & 0x70)) ||
 			    ((svga->gdcaddr == 6) && ((val ^ o) & 1)))
 				svga_recalctimings(svga);
