@@ -126,7 +126,7 @@ umc_8886_ide_handler(int status)
 }
 
 static void
-um8886_write(int func, int addr, uint8_t val, void *priv)
+umc_8886_write(int func, int addr, uint8_t val, void *priv)
 {
 	umc_8886_t *dev = (umc_8886_t *)priv;
 	umc_8886_log("UM8886: dev->regs[%02x] = %02x (%02x)\n", addr, val, func);
@@ -263,7 +263,7 @@ um8886_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-um8886_read(int func, int addr, void *priv)
+umc_8886_read(int func, int addr, void *priv)
 {
 	umc_8886_t *dev = (umc_8886_t *)priv;
 	return dev->pci_conf_sb[func][addr];
@@ -327,7 +327,7 @@ umc_8886_init(const device_t *info)
 	memset(dev, 0, sizeof(umc_8886_t));
 
 	dev->has_ide = !!(info->local == 0x886a);
-	pci_add_card(PCI_ADD_SOUTHBRIDGE, um8886_read, um8886_write, dev); /* Device 12: UMC 8886xx */
+	pci_add_card(PCI_ADD_SOUTHBRIDGE, umc_8886_read, umc_8886_write, dev); /* Device 12: UMC 8886xx */
 
 	/* Add IDE if UM8886AF variant */
 	if (HAS_IDE)

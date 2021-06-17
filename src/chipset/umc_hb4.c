@@ -176,7 +176,7 @@ void hb4_smram(int smram_space, int local_access, hb4_t *dev)
 }
 
 static void
-um8881_write(int func, int addr, uint8_t val, void *priv)
+hb4_write(int func, int addr, uint8_t val, void *priv)
 {
 	hb4_t *dev = (hb4_t *)priv;
 	hb4_log("UM8881: dev->regs[%02x] = %02x\n", addr, val);
@@ -240,7 +240,7 @@ um8881_write(int func, int addr, uint8_t val, void *priv)
 }
 
 static uint8_t
-um8881_read(int func, int addr, void *priv)
+hb4_read(int func, int addr, void *priv)
 {
 	hb4_t *dev = (hb4_t *)priv;
 	return dev->pci_conf[addr];
@@ -283,7 +283,7 @@ hb4_init(const device_t *info)
 	hb4_t *dev = (hb4_t *)malloc(sizeof(hb4_t));
 	memset(dev, 0, sizeof(hb4_t));
 
-	pci_add_card(PCI_ADD_NORTHBRIDGE, um8881_read, um8881_write, dev); /* Device 10: UMC 8881x */
+	pci_add_card(PCI_ADD_NORTHBRIDGE, hb4_read, hb4_write, dev); /* Device 10: UMC 8881x */
 
 	/* Port 92 */
 	device_add(&port_92_pci_device);
