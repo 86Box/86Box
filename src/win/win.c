@@ -417,6 +417,9 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 
     SetCurrentProcessExplicitAppUserModelID(AppID);
 
+    /* Initialize the COM library for the main thread. */
+    CoInitializeEx(NULL, COINIT_MULTITHREADED);
+
     /* Check if Windows supports UTF-8 */
     if (GetACP() == CP_UTF8)
 	acp_utf8 = 1;
@@ -464,6 +467,9 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 
     /* Handle our GUI. */
     i = ui_init(nCmdShow);
+
+    /* Uninitialize COM before exit. */
+    CoUninitialize();
 
     free(argbuf);
     free(argv);
