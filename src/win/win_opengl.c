@@ -468,6 +468,9 @@ static void __stdcall opengl_debugmsg_callback(GLenum source, GLenum type, GLuin
 */
 static void opengl_main(void* param)
 {
+	/* Initialize COM library for this thread before SDL does so. */
+	CoInitializeEx(NULL, COINIT_MULTITHREADED);
+
 	SDL_InitSubSystem(SDL_INIT_VIDEO);
 
 	SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1"); /* Is this actually doing anything...? */
@@ -788,6 +791,8 @@ static void opengl_main(void* param)
 	SDL_DestroyWindow(window);
 
 	window = NULL;
+
+	CoUninitialize();
 }
 
 static void opengl_blit(int x, int y, int y1, int y2, int w, int h)
