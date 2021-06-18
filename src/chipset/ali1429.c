@@ -6,14 +6,14 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the ALi M1429 chipset.
+ *		Implementation of the ALi M1429 & M1429G chipset.
  *
  *      Note: This chipset has no datasheet, everything were done via
  *      reverse engineering the BIOS of various machines using it.
  *
  *      Authors: Tiseno100
  *
- *		Copyright 2020 Tiseno100
+ *		Copyright 2021 Tiseno100
  *
  */
 

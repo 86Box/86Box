@@ -130,7 +130,6 @@ extern const device_t	umc_hb4_device;
 
 extern const device_t	umc_8886f_device;
 extern const device_t	umc_8886af_device;
-extern const device_t	umc_889x_device;
 
 /* VIA */
 extern const device_t   via_vt82c49x_device;
