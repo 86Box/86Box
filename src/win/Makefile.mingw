@@ -766,15 +766,16 @@ VIDOBJ		:= video.o \
 		    vid_att20c49x_ramdac.o \
 		    vid_s3.o vid_s3_virge.o \
 		    vid_ibm_rgb528_ramdac.o vid_sdac_ramdac.o \
-		    vid_voodoo.o vid_voodoo_banshee.o \
+			vid_ogc.o \
+			vid_nga.o
+
+VOODOOOBJ	:= vid_voodoo.o vid_voodoo_banshee.o \
 		    vid_voodoo_banshee_blitter.o \
 		    vid_voodoo_blitter.o \
 		    vid_voodoo_display.o vid_voodoo_fb.o \
 		    vid_voodoo_fifo.o vid_voodoo_reg.o \
 		    vid_voodoo_render.o vid_voodoo_setup.o \
-		    vid_voodoo_texture.o \
-			vid_ogc.o \
-			vid_nga.o
+		    vid_voodoo_texture.o
 
 PLATOBJ		:= win.o \
 		    win_dynld.o win_thread.o \
@@ -790,7 +791,7 @@ endif
 
 OBJ		:= $(MAINOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
 		   $(FDDOBJ) $(GAMEOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) $(MINIVHDOBJ) \
-		   $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SIOOBJ) $(SNDOBJ) $(VIDOBJ) \
+		   $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SIOOBJ) $(SNDOBJ) $(VIDOBJ) $(VOODOOOBJ) \
 		   $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) $(DEVBROBJ) \
 		   $(DISCORDOBJ) $(MINITRACEOBJ)
 ifdef EXOBJ
@@ -855,6 +856,9 @@ else
 		@$(CPP) $(CXXFLAGS) $(DEPS) -E $< >/dev/null
 endif
 
+# Suppress false positive warnings in vid_voodoo_codegen_x86[-64].h
+# that cause ~3000 lines to be output into the logs each time.
+$(VOODOOOBJ): CFLAGS += -Wstringop-overflow=0
 
 all:		$(PROG).exe
 
