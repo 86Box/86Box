@@ -408,7 +408,7 @@ gameport_init(const device_t *info)
     gameport_remap(dev, info->local & 0xffff);
 
     /* Register ISAPnP if this is a standard game port card. */
-    if (info->local == 0x200)
+    if ((info->local & 0xffff) == 0x200)
 	isapnp_set_device_defaults(isapnp_add_card(gameport_pnp_rom, sizeof(gameport_pnp_rom), gameport_pnp_config_changed, NULL, NULL, NULL, dev), 0, gameport_pnp_defaults);
 
     return dev;
