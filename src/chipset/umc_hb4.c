@@ -173,6 +173,8 @@ void hb4_smram(int smram_space, int local_access, hb4_t *dev)
 
 	smram_enable(dev->smram, h_base, r_base, 0x10000, local_access, 1);
 	hb4_log("UM8881-SMRAM: Host Base: 0x%05x, RAM Base: 0x%05x, Local Access: %01x\n", h_base, r_base, local_access);
+
+	flushmmucache();
 }
 
 static void

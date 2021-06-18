@@ -209,7 +209,7 @@ const machine_t machines[] = {
     /* 486 machines with just the ISA slot */
     { "[ACC 2168] Packard Bell PB410A",		"pb410a",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 4096, 36864, 1024, 127,	       machine_at_pb410a_init, NULL			},
     { "[ALi M1429G] Acer A1G",			"acera1g",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO,		 4096, 36864, 1024, 127,	      machine_at_acera1g_init, at_acera1g_get_device	},
-    { "[ALi M1429] AMI WinBIOS 486",		"win486",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	  machine_at_winbios1429_init, NULL			},
+    { "[ALi M1429G] Kaimei 486",		"win486",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	  machine_at_winbios1429_init, NULL			},
     { "[OPTi 895] Jetway J-403TG",		"403tg",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,									 1024, 65536, 1024, 127,		machine_at_403tg_init, NULL			},
     { "[SiS 401] AMI 486 Clone",		"sis401",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							 1024, 65536, 1024, 127,	       machine_at_sis401_init, NULL			},
     { "[SiS 401] ASUS ISA-486",			"isa486",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							 1024, 65536, 1024, 127,	       machine_at_isa486_init, NULL			},

@@ -432,7 +432,7 @@ machine_at_acera1g_init(const machine_t *model)
     if (gfxcard == VID_INTERNAL)
 	device_add(&gd5428_onboard_device);
 
-    device_add(&ali1429_device);
+    device_add(&ali1429g_device);
     device_add(&keyboard_ps2_acer_pci_device);
     device_add(&ide_isa_2ch_device);
 
@@ -451,10 +451,13 @@ at_acera1g_get_device(void)
 
 
 static void
-machine_at_ali1429_common_init(const machine_t *model)
+machine_at_ali1429_common_init(int is_green, const machine_t *model)
 {
     machine_at_common_ide_init(model);
 
+    if(is_green)
+    device_add(&ali1429g_device);
+    else
     device_add(&ali1429_device);
 
     device_add(&keyboard_at_ami_device);
@@ -475,7 +478,7 @@ machine_at_ali1429_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_ali1429_common_init(model);
+    machine_at_ali1429_common_init(0, model);
 
     return ret;
 }
@@ -492,7 +495,7 @@ machine_at_winbios1429_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_ali1429_common_init(model);
+    machine_at_ali1429_common_init(1, model);
 
     return ret;
 }
