@@ -292,7 +292,7 @@ StatusBarCreateMOTip(int part)
     } else {
 	mbstoc16s(fn, mo_drives[drive].image_path, sizeof_w(fn));
 	_swprintf(tempTip, plat_get_string(IDS_2115),
-		  drive+1, szText, mo_drives[drive].image_path);
+		  drive+1, szText, fn);
     }
 
     if (sbTips[part] != NULL) {

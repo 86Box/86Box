@@ -140,7 +140,7 @@ media_menu_set_name_zip(int drive)
     } else {
 	mbstoc16s(fn, zip_drives[drive].image_path, sizeof_w(fn));
 	_swprintf(name, plat_get_string(IDS_2054),
-		  type, drive+1, temp, zip_drives[drive].image_path);
+		  type, drive+1, temp, fn);
     }
 
     mii.cbSize = sizeof(mii);
