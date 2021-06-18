@@ -45,7 +45,7 @@ if(VNC)
 endif()
 
 target_link_libraries(86Box cpu chipset mch dev mem fdd game cdrom zip mo hdd
-	net print scsi sio snd vid plat ui)
+	net print scsi sio snd vid voodoo plat ui)
 
 find_package(Freetype REQUIRED)
 include_directories(${FREETYPE_INCLUDE_DIRS})
