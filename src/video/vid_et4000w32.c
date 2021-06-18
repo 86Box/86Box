@@ -379,7 +379,8 @@ et4000w32p_recalctimings(svga_t *svga)
 					svga->hdisp += (svga->seqregs[1] & 1) ? 16 : 18;
 				else
 					svga->hdisp += (svga->seqregs[1] & 1) ? 8 : 9;
-			}
+			} else if ((svga->gdcreg[5] & 0x40) == 0)
+				svga->hdisp += (svga->seqregs[1] & 1) ? 8 : 9;
 		}
     }
 
