@@ -193,9 +193,12 @@ rtg_out(uint16_t addr, uint8_t val, void *priv)
 static void
 rtg_recalctimings(svga_t *svga)
 {
-	svga->ma_latch = ((svga->crtc[0x19] & 0x10) << 16) | ((svga->crtc[0x19] & 0x40) << 17);
+	svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+	svga->ma_latch |= ((svga->crtc[0x19] & 0x10) << 16) | ((svga->crtc[0x19] & 0x40) << 17);
 
 	svga->interlace = (svga->crtc[0x19] & 1);
+	
+	svga->lowres = svga->attrregs[0x10] & 0x40;
 
 	/*Clock table not available, currently a guesswork*/
 	switch (((svga->miscout >> 2) & 3) | ((svga->gdcreg[0x0c] & 0x20) >> 3)) {
@@ -257,17 +260,21 @@ rtg_recalctimings(svga_t *svga)
 					svga->render = svga_render_2bpp_highres;
 				break;
 			case 0x40: case 0x60:
+				svga->hdisp = svga->crtc[1] - ((svga->crtc[5] & 0x60) >> 5);
+				svga->hdisp++;
+				svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
 				if (svga->crtc[0x19] & 2) {
-					svga->hdisp = svga->crtc[1] - ((svga->crtc[5] & 0x60) >> 5);
-					svga->hdisp++;
-					svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
-
 					if (svga->hdisp == 1280) {
 						svga->hdisp >>= 1;
 					} else
 						svga->rowoffset <<= 1;
 					
 					svga->render = svga_render_8bpp_highres;
+				} else {
+					if (svga->lowres)
+						svga->render = svga_render_8bpp_lowres;
+					else
+						svga->render = svga_render_8bpp_highres;
 				}
 				break;
 		}
