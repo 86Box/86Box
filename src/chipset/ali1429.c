@@ -40,7 +40,6 @@
 #define DISABLED_SHADOW (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
 #define GREEN dev->is_g
 
-#define ENABLE_ALI1429_LOG 1
 #ifdef ENABLE_ALI1429_LOG
 int ali1429_do_log = ENABLE_ALI1429_LOG;
 static void
