@@ -37,8 +37,8 @@
 #include <86box/smram.h>
 #include <86box/chipset.h>
 
-#define DISABLED_SHADOW (MEM_READ_EXTANY | MEM_WRITE_EXTANY)
-#define GREEN dev->is_g
+#define GREEN dev->is_g /* Is G Variant */
+#define UNLOCKED !dev->cfg_locked /* Is Unlocked (Write C5h on register 03h) */
 
 #ifdef ENABLE_ALI1429_LOG
 int ali1429_do_log = ENABLE_ALI1429_LOG;
@@ -76,7 +76,7 @@ static void ali1429_shadow(ali1429_t *dev)
 		if (dev->regs[0x13] & (1 << i))
 			mem_set_mem_state_both(0xc0000 + (i << 15), 0x8000, can_read | can_write);
 		else
-			mem_set_mem_state_both(0xc0000 + (i << 15), 0x8000, DISABLED_SHADOW);
+			mem_set_mem_state_both(0xc0000 + (i << 15), 0x8000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 	}
 
 	flushmmucache_nopc();
@@ -102,7 +102,6 @@ static void ali1429_smram(int base, int local_access, ali1429_t *dev)
 	}
 
 	smram_enable(dev->smram, hbase, rbase, 0x10000, local_access, 1);
-	ali1429_log("M1429-SMRAM: Host Base: 0x%05x, RAM Base: 0x%05x, Local Access: %01x\n", hbase, rbase, local_access);
 
 	flushmmucache();
 }
@@ -119,7 +118,6 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 
 	case 0x23:
-
 		if (dev->index == 0x03)
 			dev->cfg_locked = !(val == 0xc5);
 		else
