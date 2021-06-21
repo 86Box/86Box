@@ -1472,7 +1472,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 		case TGUI_BRESENHAMLINE:
 		{
 			if (count == -1) {
-				tgui->accel.cx = tgui->accel.src_x - tgui->accel.src_y;
+				tgui->accel.cx = tgui->accel.src_y - tgui->accel.src_x;
 				tgui->accel.cy = tgui->accel.src_y;
 				tgui->accel.dx = tgui->accel.dst_x;
 				tgui->accel.dy = tgui->accel.dst_y;
@@ -1497,7 +1497,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 					} else {
 						tgui->accel.dy += ydir;
 					}
-					tgui->accel.err_term += (tgui->accel.src_x - tgui->accel.src_y);
+					tgui->accel.err_term += (tgui->accel.src_y - tgui->accel.src_x);
 				} else {
 					tgui->accel.err_term += tgui->accel.src_y;
 				}
