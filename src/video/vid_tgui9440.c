@@ -851,14 +851,14 @@ uint8_t tgui_pci_read(int func, int addr, void *p)
                 case 0x02: return 0x40; /*TGUI9440 (9682)*/
                 case 0x03: return 0x94;
                 
-                case PCI_REG_COMMAND: return tgui->pci_regs[PCI_REG_COMMAND]; /*Respond to IO and memory accesses*/
+                case PCI_REG_COMMAND: return tgui->pci_regs[PCI_REG_COMMAND] & 0x27; /*Respond to IO and memory accesses*/
 
                 case 0x07: return 1 << 1; /*Medium DEVSEL timing*/
                 
                 case 0x08: return 0; /*Revision ID*/
                 case 0x09: return 0; /*Programming interface*/
                 
-                case 0x0a: return 0x00; /*Supports VGA interface*/
+                case 0x0a: return 0x01; /*Supports VGA interface, XGA compatible*/
                 case 0x0b: return 0x03;
                 
                 case 0x10: return 0x00; /*Linear frame buffer address*/
@@ -1472,7 +1472,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 		case TGUI_BRESENHAMLINE:
 		{
 			if (count == -1) {
-				tgui->accel.cx = tgui->accel.src_x;
+				tgui->accel.cx = tgui->accel.src_x - tgui->accel.src_y;
 				tgui->accel.cy = tgui->accel.src_y;
 				tgui->accel.dx = tgui->accel.dst_x;
 				tgui->accel.dy = tgui->accel.dst_y;
@@ -1484,11 +1484,9 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 				READ(tgui->accel.dx + (tgui->accel.dy * tgui->accel.pitch), dst_dat);
 				pat_dat = tgui->accel.fg_col;
 
-				if (!(tgui->accel.flags & TGUI_TRANSENA) || src_dat != trans_col) {	
-					MIX();
+				MIX();
 
-					WRITE(tgui->accel.dx + (tgui->accel.dy * tgui->accel.pitch), out);
-				}
+				WRITE(tgui->accel.dx + (tgui->accel.dy * tgui->accel.pitch), out);
 				
 				if (tgui->accel.y == tgui->accel.size_y)
 					return;
@@ -1499,10 +1497,9 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 					} else {
 						tgui->accel.dy += ydir;
 					}
-
-					tgui->accel.err_term += tgui->accel.cx;
+					tgui->accel.err_term += (tgui->accel.src_x - tgui->accel.src_y);
 				} else {
-					tgui->accel.err_term += tgui->accel.cy;
+					tgui->accel.err_term += tgui->accel.src_y;
 				}
 
 				if (tgui->accel.flags & 0x400) {
@@ -2237,7 +2234,7 @@ static void *tgui_init(const device_t *info)
         if ((info->flags & DEVICE_PCI) && (tgui->type >= TGUI_9440))
 			pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
 
-		tgui->pci_regs[PCI_REG_COMMAND] = 7;
+		tgui->pci_regs[PCI_REG_COMMAND] = 3;
 
 		tgui->pci_regs[0x30] = 0x00;
 		tgui->pci_regs[0x32] = 0x0c;
