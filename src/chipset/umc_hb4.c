@@ -164,7 +164,7 @@ void hb4_smram(int smram_space, int local_access, hb4_t *dev)
 
 	case 1:
 		h_base = 0x000a0000; /* Read Notes */
-		r_base = 0x000e0000;
+		r_base = 0x00030000;
 		break;
 	}
 
