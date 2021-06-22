@@ -19,6 +19,9 @@
 /* 
    UMC 8886 Configuration Registers
 
+   Note: PMU functionality is quite basic. There may be Enable/Disable bits, IRQ/SMI picks and it also
+   required for 386_common.c to get patched in order to function properly.
+
    Warning: Register documentation may be inaccurate!
 
    UMC 8886xx:
@@ -33,7 +36,7 @@
    Bits 3-0 PCI IRQ for INTC
 
    Function 0 Register 46:
-   Bit 6: IRQ SMI Request (1: IRQ 10 /0: IRQ 15)
+   Bit 6: IRQ SMI Request (1: IRQ 10) (Supposedly 0 according to Phoenix is IRQ 15 but doesn't seem to make sense)
 
    Function 0 Register 56:
    Bit 1-0 ISA Bus Speed
@@ -129,135 +132,141 @@ static void
 umc_8886_write(int func, int addr, uint8_t val, void *priv)
 {
 	umc_8886_t *dev = (umc_8886_t *)priv;
-	umc_8886_log("UM8886: dev->regs[%02x] = %02x (%02x)\n", addr, val, func);
 
 	switch (func)
 	{
-	case 0: /* Southbridge */
+		case 0: /* Southbridge */
+		umc_8886_log("UM8886: dev->regs[%02x] = %02x POST %02x\n", addr, val, inb(0x80));
 		switch (addr)
 		{
-		case 0x04:
-		case 0x05:
-			dev->pci_conf_sb[func][addr] = val;
-			break;
-
-		case 0x07:
-			dev->pci_conf_sb[func][addr] &= ~(val & 0xf9);
-			break;
-
-		case 0x0c:
-		case 0x0d:
-			dev->pci_conf_sb[func][addr] = val;
-			break;
-
-		case 0x40:
-		case 0x41:
-		case 0x42:
-			dev->pci_conf_sb[func][addr] = val;
-			break;
-
-		case 0x43:
-		case 0x44:
-			dev->pci_conf_sb[func][addr] = val;
-			pci_set_irq_routing(INTA, IRQRECALCA);
-			pci_set_irq_routing(INTB, IRQRECALCB);
-			break;
-
-		case 0x45:
-			dev->pci_conf_sb[func][addr] = val;
-			break;
-
-		case 0x46:
-			dev->pci_conf_sb[func][addr] = val;
-			break;
-
-		case 0x47:
-			dev->pci_conf_sb[func][addr] = val;
-			break;
-
-		case 0x50:
-		case 0x51:
-		case 0x52:
-		case 0x53:
-		case 0x54:
-		case 0x55:
-			dev->pci_conf_sb[func][addr] = val;
-			break;
-
-		case 0x56:
-			dev->pci_conf_sb[func][addr] = val;
-			switch (val & 2)
-			{
-			case 0:
-				cpu_set_isa_pci_div(3);
+			case 0x04:
+			case 0x05:
+				dev->pci_conf_sb[func][addr] = val;
 				break;
-			case 1:
-				cpu_set_isa_pci_div(4);
+
+			case 0x07:
+				dev->pci_conf_sb[func][addr] &= ~(val & 0xf9);
 				break;
-			case 2:
-				cpu_set_isa_pci_div(2);
+
+			case 0x0c:
+			case 0x0d:
+				dev->pci_conf_sb[func][addr] = val;
 				break;
+
+			case 0x40:
+			case 0x41:
+			case 0x42:
+				dev->pci_conf_sb[func][addr] = val;
+				break;
+
+			case 0x43:
+			case 0x44:
+				dev->pci_conf_sb[func][addr] = val;
+				pci_set_irq_routing(INTA, IRQRECALCA);
+				pci_set_irq_routing(INTB, IRQRECALCB);
+				break;
+
+			case 0x45:
+				dev->pci_conf_sb[func][addr] = val;
+				break;
+
+			case 0x46:
+				dev->pci_conf_sb[func][addr] = val;
+
+				if(val & 0x40)
+				picint(1 << 10);
+
+				break;
+
+			case 0x47:
+				dev->pci_conf_sb[func][addr] = val;
+				break;
+
+			case 0x50:
+			case 0x51:
+			case 0x52:
+			case 0x53:
+			case 0x54:
+			case 0x55:
+				dev->pci_conf_sb[func][addr] = val;
+				break;
+
+			case 0x56:
+				dev->pci_conf_sb[func][addr] = val;
+				switch (val & 2)
+				{
+					case 0:
+					cpu_set_isa_pci_div(3);
+					break;
+					case 1:
+					cpu_set_isa_pci_div(4);
+					break;
+					case 2:
+					cpu_set_isa_pci_div(2);
+					break;
+				}
+				break;
+
+			case 0x57:
+			case 0x70:
+			case 0x71:
+			case 0x72:
+			case 0x73:
+			case 0x74:
+			case 0x75:
+			case 0x76:
+			case 0x80:
+			case 0x81:
+			case 0x90:
+			case 0x91:
+			case 0x92:
+			case 0xa0:
+			case 0xa1:
+			case 0xa2:
+				dev->pci_conf_sb[func][addr] = val;
+				break;
+
+			case 0xa3:
+				dev->pci_conf_sb[func][addr] = val;
+
+				if(((dev->pci_conf_sb[0][0xa3] >> 6) == 3))
+				smi_line = 1;
+
+				break;
+
+			case 0xa4:
+				dev->pci_conf_sb[func][addr] = val;
+				cpu_set_pci_speed(cpu_busspeed / ((val & 1) ? 1 : 2));
+				break;
+
+			case 0xa5:
+			case 0xa6:
+			case 0xa7:
+			case 0xa8:
+				dev->pci_conf_sb[func][addr] = val;
+			break;
 			}
-			break;
-
-		case 0x57:
-		case 0x70:
-		case 0x71:
-		case 0x72:
-		case 0x73:
-		case 0x74:
-		case 0x75:
-		case 0x76:
-		case 0x80:
-		case 0x81:
-		case 0x90:
-		case 0x91:
-		case 0x92:
-		case 0xa0:
-		case 0xa1:
-		case 0xa2:
-			dev->pci_conf_sb[func][addr] = val;
-			break;
-
-		case 0xa3:
-			dev->pci_conf_sb[func][addr] = val;
-			if(dev->pci_conf_sb[0][0xa3] & 0x80)
-			if((dev->pci_conf_sb[0][0xa3] & 0x40) && !in_smm)
-			smi_line = 1;
-			break;
-
-		case 0xa4:
-			dev->pci_conf_sb[func][addr] = val;
-			cpu_set_pci_speed(cpu_busspeed / ((val & 1) ? 1 : 2));
-			break;
-
-		case 0xa5:
-		case 0xa6:
-		case 0xa7:
-		case 0xa8:
-			dev->pci_conf_sb[func][addr] = val;
-			break;
-		}
 		break;
 
-	case 1: /* IDE Controller */
-		switch (addr)
-		{
-		case 0x04:
-			dev->pci_conf_sb[func][addr] = val;
-			umc_8886_ide_handler(val & 1);
-			break;
+		case 1: /* IDE Controller */
+			umc_8886_log("UM8886-IDE: dev->regs[%02x] = %02x POST: %02x\n", addr, val, inb(0x80));
+			switch (addr)
+			{
+				case 0x04:
+				dev->pci_conf_sb[func][addr] = val;
+				umc_8886_ide_handler(val & 1);
+				break;
 
-		case 0x07:
-			dev->pci_conf_sb[func][addr] &= ~(val & 0xf9);
-			break;
+			case 0x07:
+				dev->pci_conf_sb[func][addr] &= ~(val & 0xf9);
+				break;
 
-		case 0x3c:
-		case 0x40:
-		case 0x41:
-			dev->pci_conf_sb[func][addr] = val;
-			break;
-		}
+			case 0x3c:
+			case 0x40:
+			case 0x41:
+				dev->pci_conf_sb[func][addr] = val;
+				break;
+			}
 		break;
 	}
 }
@@ -354,7 +363,7 @@ const device_t umc_8886f_device = {
     NULL};
 
 const device_t umc_8886af_device = {
-    "UMC 8886AF",
+    "UMC 8886AF/8886BF",
     DEVICE_PCI,
     0x886a,
     umc_8886_init,

@@ -17,6 +17,50 @@
  *
  */
 
+/*
+    ALi M1429/M1429G Configuration Registers
+
+    Note: SMI Provocation on that chipset may not be handled by a register.
+    Note 2: SMRAM needs more research.
+
+    Warning: Register documentation may be inaccurate!
+
+    Register 13h:
+    Bit 7: Shadow RAM Enable for F8000-FFFFF
+    Bit 6: Shadow RAM Enable for F0000-F7FFF
+    Bit 5: Shadow RAM Enable for E8000-FFFFF
+    Bit 4: Shadow RAM Enable for E0000-F7FFF
+    Bit 3: Shadow RAM Enable for D8000-FFFFF
+    Bit 2: Shadow RAM Enable for D0000-F7FFF
+    Bit 1: Shadow RAM Enable for C8000-FFFFF
+    Bit 0: Shadow RAM Enable for C0000-F7FFF
+
+    Register 14h:
+    Bit 1: Shadow RAM Write for Enabled Segments
+    Bit 0: Shadow RAM REAM for Enabled Segments
+
+    Register 18h:
+    Bit 1: L2 Cache Enable
+
+    Register 20h:
+    Bits 2-1-0: Bus Clock Speed
+         0 0 0: 7.1519Mhz
+	 0 0 1: CLK2IN/4
+	 0 1 0: CLK2IN/5
+	 0 1 1: CLK2IN/6
+	 1 0 0: CLK2IN/8
+	 1 0 1: CLK2IN/10
+	 1 1 0: CLK2IN/12
+
+    Register 30h: (1429G Only and probably inaccurate!)
+    Bit 7: SMRAM Local Access
+    Bits 5-4: SMRAM Location
+         0 0 A0000 to A0000
+	 0 1 ????? to ?????
+	 1 0 E0000 to E0000
+	 1 1 ????? to ?????
+*/
+
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>

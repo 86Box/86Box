@@ -26,9 +26,6 @@
    Cache registers were found at Vogons: https://www.vogons.org/viewtopic.php?f=46&t=68829&start=20
    Basic Reverse engineering effort was done personally by me
 
-   TODO:
-   - APM, SMM, SMRAM registers(Did some early work. Still quite incomplete)
-
    Warning: Register documentation may be inaccurate!
 
    UMC 8881x:
@@ -81,9 +78,9 @@
    Bit 6: Write Protect Enable
 
    Register 60:
-   Bit 5-4: SMRAM Position(Lot's of uncertainty to those bits)
-       1 0  A0000 segment
-       0 0  E0000 segment
+   Bit 3-2: SMRAM Position(Lot's of uncertainty to those bits)
+       1 0  A0000 to E0000
+       0 0  A0000 to ????? (Phoenix uses it. Works only with 0x30000 but makes no sense)
 
    Bit 0: SMRAM Local Access Enable
 */
@@ -165,9 +162,9 @@ void hb4_smram(int smram_space, int local_access, hb4_t *dev)
 		r_base = 0x000e0000;
 		break;
 
-	case 2:
-		h_base = 0x000a0000;
-		r_base = 0x000a0000;
+	case 1:
+		h_base = 0x000a0000; /* Read Notes */
+		r_base = 0x000e0000;
 		break;
 	}
 
@@ -181,63 +178,63 @@ static void
 hb4_write(int func, int addr, uint8_t val, void *priv)
 {
 	hb4_t *dev = (hb4_t *)priv;
-	hb4_log("UM8881: dev->regs[%02x] = %02x\n", addr, val);
+	hb4_log("UM8881: dev->regs[%02x] = %02x POST: %02x \n", addr, val, inb(0x80));
 
 	switch (addr)
 	{
-	case 0x04:
-	case 0x05:
-		dev->pci_conf[addr] = val;
-		break;
+		case 0x04:
+		case 0x05:
+			dev->pci_conf[addr] = val;
+			break;
 
-	case 0x07:
-		dev->pci_conf[addr] &= ~(val & 0xf9);
-		break;
+		case 0x07:
+			dev->pci_conf[addr] &= ~(val & 0xf9);
+			break;
 
-	case 0x0c:
-	case 0x0d:
-		dev->pci_conf[addr] = val;
-		break;
+		case 0x0c:
+		case 0x0d:
+			dev->pci_conf[addr] = val;
+			break;
 
-	case 0x50:
-		dev->pci_conf[addr] = ((val & 0xf8) | 4); /* Hardcode Cache Size to 512KB */
-		cpu_cache_ext_enabled = !!(val & 0x80);	  /* Fixes freezing issues on the HOT-433A*/
-		cpu_update_waitstates();
-		break;
+		case 0x50:
+			dev->pci_conf[addr] = ((val & 0xf8) | 4); /* Hardcode Cache Size to 512KB */
+			cpu_cache_ext_enabled = !!(val & 0x80);	  /* Fixes freezing issues on the HOT-433A*/
+			cpu_update_waitstates();
+			break;
 
-	case 0x51:
-	case 0x52:
-	case 0x53:
-		dev->pci_conf[addr] = val;
-		break;
+		case 0x51:
+		case 0x52:
+		case 0x53:
+			dev->pci_conf[addr] = val;
+			break;
 
-	case 0x54:
-	case 0x55:
-		dev->pci_conf[addr] = val;
-		hb4_shadow(dev);
-		break;
+		case 0x54:
+		case 0x55:
+			dev->pci_conf[addr] = val;
+			hb4_shadow(dev);
+			break;
 
-	case 0x56:
-	case 0x57:
-	case 0x58:
-	case 0x59:
-	case 0x5a:
-	case 0x5b:
-	case 0x5c:
-	case 0x5d:
-	case 0x5e:
-	case 0x5f:
-		dev->pci_conf[addr] = val;
-		break;
+		case 0x56:
+		case 0x57:
+		case 0x58:
+		case 0x59:
+		case 0x5a:
+		case 0x5b:
+		case 0x5c:
+		case 0x5d:
+		case 0x5e:
+		case 0x5f:
+			dev->pci_conf[addr] = val;
+			break;
 
-	case 0x60:
-		dev->pci_conf[addr] = val;
-		hb4_smram((val >> 4) & 3, val & 1, dev);
-		break;
+		case 0x60:
+			dev->pci_conf[addr] = val;
+			hb4_smram((val >> 2) & 3, val & 1, dev);
+			break;
 
-	case 0x61:
-		dev->pci_conf[addr] = val;
-		break;
+		case 0x61:
+			dev->pci_conf[addr] = val;
+			break;
 	}
 }
 
