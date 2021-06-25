@@ -324,17 +324,16 @@ gameport_remap(void *priv, uint16_t address)
 
     if (dev->addr) {
 	/* Add this port to the active ports list. */
-	if ((dev->addr & 0xfff8) == 0x200) {
-		/* Port within 200-207h: add to top. */
+	if ( !active_gameports || ((dev->addr & 0xfff8) == 0x200)) {
+		/* No ports have been added yet, or port within 200-207h: add to top. */
 		dev->next = active_gameports;
 		active_gameports = dev;
 	} else {
 		/* Port at other addresses: add to bottom. */
 		other_dev = active_gameports;
-		while (other_dev && other_dev->next)
+		while (other_dev->next)
 			other_dev = other_dev->next;
-		if (other_dev)
-			other_dev->next = dev;
+		other_dev->next = dev;
 	}
 
 	io_sethandler(dev->addr, dev->len,
