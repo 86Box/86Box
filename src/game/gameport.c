@@ -59,7 +59,7 @@ typedef struct _joystick_instance_ {
 } joystick_instance_t;
 
 
-int		joystick_type = 1;
+int		joystick_type = 0;
 
 
 static const joystick_if_t joystick_none = {
