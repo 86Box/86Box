@@ -33,6 +33,7 @@
 
 #define JOYSTICK_PRESENT(n)	(joystick_state[n].plat_joystick_nr != 0)
 
+#define GAMEPORT_SIO		0x1000000
 
 typedef struct {
     char	name[260];
