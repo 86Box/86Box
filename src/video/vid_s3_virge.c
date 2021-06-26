@@ -150,6 +150,8 @@ typedef struct s3d_t
         uint32_t txs;
         uint32_t tys;
         int ty01, ty12, tlr;
+
+        uint8_t fog_r, fog_g, fog_b;
 } s3d_t;
         
 typedef struct virge_t
@@ -347,6 +349,7 @@ enum
         CMD_SET_COMMAND_MASK = (15 << 27)
 };
 
+#define CMD_SET_FE         (1 << 17)
 #define CMD_SET_ABC_SRC    (1 << 18)
 #define CMD_SET_ABC_ENABLE (1 << 19)
 #define CMD_SET_TWE        (1 << 26)
@@ -1550,6 +1553,11 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 				s3_virge_bitblt(virge, -1, 0);
 			break;
 			
+			case 0xb0f4: case 0xb4f4:
+			virge->s3d_tri.fog_b = val & 0xff;
+			virge->s3d_tri.fog_g = (val >> 8) & 0xff;
+			virge->s3d_tri.fog_r = (val >> 16) & 0xff;
+			break;
 			case 0xb4d4:
 			virge->s3d_tri.z_base = val & 0x3ffff8;
 			break;
@@ -2968,6 +2976,13 @@ static void tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int3
 
                                         dest_pixel(state);
 
+                                        if (s3d_tri->cmd_set & CMD_SET_FE)
+                                        {
+                                                int a = state->a >> 7;
+                                                state->dest_rgba.r = ((state->dest_rgba.r * a) + (s3d_tri->fog_r * (255 - a))) / 255;
+                                                state->dest_rgba.g = ((state->dest_rgba.g * a) + (s3d_tri->fog_g * (255 - a))) / 255;
+                                                state->dest_rgba.b = ((state->dest_rgba.b * a) + (s3d_tri->fog_b * (255 - a))) / 255;
+                                        }
                                         if (s3d_tri->cmd_set & CMD_SET_ABC_ENABLE)
                                         {
                                                 switch (bpp)
