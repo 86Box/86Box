@@ -571,13 +571,7 @@ static void
 nic_ioset(nic_t *dev, uint16_t addr)
 {	
     if (dev->is_pci) {
-	io_sethandler(addr, 16,
-			 nic_readb, nic_readw, nic_readl,
-			 nic_writeb, nic_writew, nic_writel, dev);
-	io_sethandler(addr+16, 16,
-			 nic_readb, nic_readw, nic_readl,
-			 nic_writeb, nic_writew, nic_writel, dev);
-	io_sethandler(addr+0x1f, 1,
+	io_sethandler(addr, 32,
 			 nic_readb, nic_readw, nic_readl,
 			 nic_writeb, nic_writew, nic_writel, dev);
     } else {
@@ -593,9 +587,6 @@ nic_ioset(nic_t *dev, uint16_t addr)
 				 nic_readb, nic_readw, NULL,
 				 nic_writeb, nic_writew, NULL, dev);
 	}
-	io_sethandler(addr+0x1f, 1,
-			 nic_readb, NULL, NULL,
-			 nic_writeb, NULL, NULL, dev);	
     }
 }
 
@@ -604,13 +595,7 @@ static void
 nic_ioremove(nic_t *dev, uint16_t addr)
 {
     if (dev->is_pci) {
-	io_removehandler(addr, 16,
-			 nic_readb, nic_readw, nic_readl,
-			 nic_writeb, nic_writew, nic_writel, dev);
-	io_removehandler(addr+16, 16,
-			 nic_readb, nic_readw, nic_readl,
-			 nic_writeb, nic_writew, nic_writel, dev);
-	io_removehandler(addr+0x1f, 1,
+	io_removehandler(addr, 32,
 			 nic_readb, nic_readw, nic_readl,
 			 nic_writeb, nic_writew, nic_writel, dev);
     } else {
@@ -626,9 +611,6 @@ nic_ioremove(nic_t *dev, uint16_t addr)
 				 nic_readb, nic_readw, NULL,
 				 nic_writeb, nic_writew, NULL, dev);
 	}
-	io_removehandler(addr+0x1f, 1,
-			 nic_readb, NULL, NULL,
-			 nic_writeb, NULL, NULL, dev);	
     }
 }
 
