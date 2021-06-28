@@ -334,10 +334,14 @@ page3_read(nic_t *dev, uint32_t off, unsigned int len)
 		return((dev->board == NE2K_RTL8019AS) ? dev->pnp_csnsav : 0x00);
 
 	case 0xe:	/* 8029ASID0 */
-		return(0x29);
+		if (dev->board == NE2K_RTL8029AS)
+			return(0x29);
+		break;
 
 	case 0xf:	/* 8029ASID1 */
-		return(0x08);
+		if (dev->board == NE2K_RTL8029AS)
+			return(0x80);
+		break;
 
 	default:
 		break;
