@@ -115,7 +115,7 @@ typedef struct umc_8886_t
 
 } umc_8886_t;
 
-static void
+void
 umc_8886_ide_handler(int status)
 {
 	ide_pri_disable();
@@ -125,6 +125,54 @@ umc_8886_ide_handler(int status)
 	{
 		ide_pri_enable();
 		ide_sec_enable();
+	}
+}
+
+void umc_8886_defaults(umc_8886_t *dev)
+{
+	dev->pci_conf_sb[0][0] = 0x60; /* UMC */
+	dev->pci_conf_sb[0][1] = 0x10;
+
+	dev->pci_conf_sb[0][2] = (SB_ID & 0xff); /* 8886xx */
+	dev->pci_conf_sb[0][3] = ((SB_ID >> 8) & 0xff);
+
+	dev->pci_conf_sb[0][4] = 0x0f;
+	dev->pci_conf_sb[0][7] = 2;
+
+	dev->pci_conf_sb[0][8] = 0x0e;
+
+	dev->pci_conf_sb[0][0x09] = 0x00;
+	dev->pci_conf_sb[0][0x0a] = 0x01;
+	dev->pci_conf_sb[0][0x0b] = 0x06;
+
+	dev->pci_conf_sb[0][0x40] = 1;
+	dev->pci_conf_sb[0][0x41] = 6;
+	dev->pci_conf_sb[0][0x42] = 8;
+	dev->pci_conf_sb[0][0x43] = 0x9a;
+	dev->pci_conf_sb[0][0x44] = 0xbc;
+	dev->pci_conf_sb[0][0x45] = 4;
+	dev->pci_conf_sb[0][0x47] = 0x40;
+	dev->pci_conf_sb[0][0x50] = 1;
+	dev->pci_conf_sb[0][0x51] = 3;
+	dev->pci_conf_sb[0][0xa8] = 0x20;
+
+	if (HAS_IDE)
+	{
+		dev->pci_conf_sb[1][0] = 0x60; /* UMC */
+		dev->pci_conf_sb[1][1] = 0x10;
+
+		dev->pci_conf_sb[1][2] = 0x3a; /* 8886BF IDE */
+		dev->pci_conf_sb[1][3] = 0x67;
+
+		dev->pci_conf_sb[1][4] = 1; /* Start with Internal IDE Enabled */
+
+		dev->pci_conf_sb[1][8] = 0x10;
+
+		dev->pci_conf_sb[1][0x09] = 0x0f;
+		dev->pci_conf_sb[1][0x0a] = 1;
+		dev->pci_conf_sb[1][0x0b] = 1;
+
+		umc_8886_ide_handler(1);
 	}
 }
 
@@ -174,7 +222,7 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
 					dev->pci_conf_sb[func][addr] = val;
 
 					if(val & 0x40)
-					picint(1 << 10);
+					picint(1 << ((val & 0x10) ? 15 : 10));
 
 					break;
 
@@ -231,7 +279,7 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
 				case 0xa3:
 					dev->pci_conf_sb[func][addr] = val;
 
-					if(((dev->pci_conf_sb[0][0xa3] >> 6) == 3)) /* SMI Provocation (Bit 7 Enable SMM + Bit 6 Software SMI */
+					if(((dev->pci_conf_sb[0][0xa3] >> 6) == 3) && !in_smm) /* SMI Provocation (Bit 7 Enable SMM + Bit 6 Software SMI */
 					smi_line = 1;
 
 					break;
@@ -285,42 +333,10 @@ umc_8886_reset(void *priv)
 {
 	umc_8886_t *dev = (umc_8886_t *)priv;
 
-	/* Defaults */
-	dev->pci_conf_sb[0][0] = 0x60; /* UMC */
-	dev->pci_conf_sb[0][1] = 0x10;
-
-	dev->pci_conf_sb[0][2] = (SB_ID & 0xff); /* 8886xx */
-	dev->pci_conf_sb[0][3] = ((SB_ID >> 8) & 0xff);
-
-	dev->pci_conf_sb[0][7] = 2;
-
-	dev->pci_conf_sb[0][8] = 0x0e;
-
-	dev->pci_conf_sb[0][0x09] = 0x00;
-	dev->pci_conf_sb[0][0x0a] = 0x01;
-	dev->pci_conf_sb[0][0x0b] = 0x06;
+	umc_8886_defaults(dev);
 
 	for (int i = 1; i < 5; i++) /* Disable all IRQ interrupts */
 		pci_set_irq_routing(i, PCI_IRQ_DISABLED);
-
-	if (HAS_IDE)
-	{
-		dev->pci_conf_sb[1][0] = 0x60; /* UMC */
-		dev->pci_conf_sb[1][1] = 0x10;
-
-		dev->pci_conf_sb[1][2] = 0x3a; /* 8886BF IDE */
-		dev->pci_conf_sb[1][3] = 0x67;
-
-		dev->pci_conf_sb[1][4] = 1; /* Start with Internal IDE Enabled */
-
-		dev->pci_conf_sb[1][8] = 0x10;
-
-		dev->pci_conf_sb[1][0x09] = 0x0f;
-		dev->pci_conf_sb[1][0x0a] = 1;
-		dev->pci_conf_sb[1][0x0b] = 1;
-
-		umc_8886_ide_handler(1);
-	}
 }
 
 static void

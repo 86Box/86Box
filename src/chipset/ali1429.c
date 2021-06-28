@@ -20,10 +20,13 @@
 /*
     ALi M1429/M1429G Configuration Registers
 
-    Note: SMI Provocation on that chipset may not be handled by a register.
-    Note 2: SMRAM needs more research.
+    Note: SMM in it's entirety needs more research
 
     Warning: Register documentation may be inaccurate!
+
+    Register 03h: Write C5h to unlock the configuration registers
+
+    Register 10h & 11h: DRAM Bank Configuration
 
     Register 13h:
     Bit 7: Shadow RAM Enable for F8000-FFFFF
@@ -59,6 +62,10 @@
 	 0 1 ????? to ?????
 	 1 0 E0000 to E0000
 	 1 1 ????? to ?????
+
+    Register 43h:
+    Bit 6: Software SMI
+
 */
 
 #include <stdarg.h>
@@ -109,6 +116,33 @@ typedef struct
 	int is_g;	/* Is G Variant */
 	smram_t *smram;
 } ali1429_t;
+
+static void ali1429_defaults(ali1429_t *dev)
+{
+/* M1429 Defaults */
+dev->regs[0x10] = 0xf0;
+dev->regs[0x11] = 0xff;
+dev->regs[0x12] = 0x10;
+dev->regs[0x14] = 0x48;
+dev->regs[0x15] = 0x40;
+dev->regs[0x17] = 0x7a;
+dev->regs[0x1a] = 0x80;
+dev->regs[0x22] = 0x80;
+dev->regs[0x23] = 0x57;
+dev->regs[0x25] = 0xc0;
+dev->regs[0x27] = 0x30;
+
+/* M1429G Default Registers */
+if(GREEN)
+{
+dev->regs[0x31] = 0x88;
+dev->regs[0x32] = 0xc0;
+dev->regs[0x38] = 0xe5;
+dev->regs[0x40] = 0xe3;
+dev->regs[0x41] = 2;
+dev->regs[0x45] = 0x80;
+}
+}
 
 static void ali1429_shadow(ali1429_t *dev)
 {
@@ -165,7 +199,7 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
 		if (dev->index == 0x03)
 			dev->cfg_locked = !(val == 0xc5);
 		else
-			ali1429_log("M1429: dev->regs[%02x] = %02x POST: %02x\n", dev->index, val, inb(0x80));
+			ali1429_log("M1429%s: dev->regs[%02x] = %02x POST: %02x\n", GREEN ? "G" : "", dev->index, val, inb(0x80));
 
 		if (!dev->cfg_locked)
 		{
@@ -276,7 +310,13 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
 					case 0x3f:
 					case 0x40:
 					case 0x41:
+						dev->regs[dev->index] = val;
+						break;
+
 					case 0x43:
+						dev->regs[dev->index] = val;
+						break;
+
 					case 0x45:
 					case 0x4a:
 					case 0x57:
@@ -328,6 +368,8 @@ ali1429_init(const device_t *info)
 
 	if (GREEN)
 		dev->smram = smram_add();
+
+	ali1429_defaults(dev);
 
 	return dev;
 }

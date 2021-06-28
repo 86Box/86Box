@@ -77,6 +77,9 @@
    Bit 7: Enable Shadow Reads For System & Selected Segments
    Bit 6: Write Protect Enable
 
+   Register 56h & 57h: DRAM Bank 0 Configuration
+   Register 58h & 59h: DRAM Bank 1 Configuration
+  
    Register 60:
    Bit 3-2: SMRAM Position(Lot's of uncertainty to those bits)
        1 0  A0000 to E0000
@@ -135,6 +138,36 @@ uint16_t hb4_shadow_recalc(int enabled, hb4_t *dev)
 		return ((dev->pci_conf[0x55] & 0x80) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->pci_conf[0x55] & 0x40) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL);
 	else
 		return (MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+}
+
+void hb4_defaults(hb4_t *dev)
+{
+	dev->pci_conf[0] = 0x60; /* UMC */
+	dev->pci_conf[1] = 0x10;
+
+	dev->pci_conf[2] = 0x81; /* 8881x */
+	dev->pci_conf[3] = 0x88;
+
+	dev->pci_conf[7] = 2;
+
+	dev->pci_conf[8] = 4;
+
+	dev->pci_conf[0x09] = 0x00;
+	dev->pci_conf[0x0a] = 0x00;
+	dev->pci_conf[0x0b] = 0x06;
+
+	dev->pci_conf[0x51] = 1;
+	dev->pci_conf[0x52] = 1;
+	dev->pci_conf[0x55] = 0x40; /* Not exactly datasheet default */
+	dev->pci_conf[0x56] = 0xff;
+	dev->pci_conf[0x57] = 0x0f;
+	dev->pci_conf[0x58] = 0xff;
+	dev->pci_conf[0x59] = 0x0f;
+	dev->pci_conf[0x5a] = 4;
+	dev->pci_conf[0x5c] = 0xc0;
+	dev->pci_conf[0x5d] = 0x20;
+	dev->pci_conf[0x5f] = 0xff;
+	dev->pci_conf[0x60] = 0x20;
 }
 
 void hb4_shadow(hb4_t *dev)
@@ -250,22 +283,7 @@ hb4_reset(void *priv)
 {
 	hb4_t *dev = (hb4_t *)priv;
 
-	/* Defaults */
-	dev->pci_conf[0] = 0x60; /* UMC */
-	dev->pci_conf[1] = 0x10;
-
-	dev->pci_conf[2] = 0x81; /* 8881x */
-	dev->pci_conf[3] = 0x88;
-
-	dev->pci_conf[7] = 2;
-
-	dev->pci_conf[8] = 4;
-
-	dev->pci_conf[0x09] = 0x00;
-	dev->pci_conf[0x0a] = 0x00;
-	dev->pci_conf[0x0b] = 0x06;
-
-	dev->pci_conf[0x55] = 0x40; /* Openbios Default */
+	hb4_defaults(dev);
 }
 
 static void
