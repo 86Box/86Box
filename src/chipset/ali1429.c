@@ -378,22 +378,16 @@ const device_t ali1429_device = {
     "ALi M1429",
     0,
     0,
-    ali1429_init,
-    ali1429_close,
-    NULL,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    ali1429_init, ali1429_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
 
 const device_t ali1429g_device = {
     "ALi M1429G",
     0,
     1,
-    ali1429_init,
-    ali1429_close,
-    NULL,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    ali1429_init, ali1429_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};

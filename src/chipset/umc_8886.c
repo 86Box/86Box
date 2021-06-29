@@ -372,22 +372,16 @@ const device_t umc_8886f_device = {
     "UMC 8886F",
     DEVICE_PCI,
     0x8886,
-    umc_8886_init,
-    umc_8886_close,
-    umc_8886_reset,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    umc_8886_init, umc_8886_close, umc_8886_reset,
+    { NULL }, NULL, NULL,
+    NULL
+};
 
 const device_t umc_8886af_device = {
     "UMC 8886AF/8886BF",
     DEVICE_PCI,
     0x886a,
-    umc_8886_init,
-    umc_8886_close,
-    umc_8886_reset,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    umc_8886_init, umc_8886_close, umc_8886_reset,
+    { NULL }, NULL, NULL,
+    NULL
+};

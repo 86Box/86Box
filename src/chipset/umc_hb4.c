@@ -132,14 +132,6 @@ typedef struct hb4_t
 	smram_t *smram;	       /* SMRAM Handler */
 } hb4_t;
 
-uint16_t hb4_shadow_recalc(int enabled, hb4_t *dev)
-{
-	if (enabled)
-		return ((dev->pci_conf[0x55] & 0x80) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->pci_conf[0x55] & 0x40) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL);
-	else
-		return (MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-}
-
 void hb4_defaults(hb4_t *dev)
 {
 	dev->pci_conf[0] = 0x60; /* UMC */
@@ -168,6 +160,14 @@ void hb4_defaults(hb4_t *dev)
 	dev->pci_conf[0x5d] = 0x20;
 	dev->pci_conf[0x5f] = 0xff;
 	dev->pci_conf[0x60] = 0x20;
+}
+
+uint16_t hb4_shadow_recalc(int enabled, hb4_t *dev)
+{
+	if (enabled)
+		return ((dev->pci_conf[0x55] & 0x80) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->pci_conf[0x55] & 0x40) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL);
+	else
+		return (MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 }
 
 void hb4_shadow(hb4_t *dev)
@@ -317,10 +317,7 @@ const device_t umc_hb4_device = {
     "UMC HB4(8881F)",
     DEVICE_PCI,
     0x886a,
-    hb4_init,
-    hb4_close,
-    hb4_reset,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    hb4_init, hb4_close, hb4_reset,
+    { NULL }, NULL, NULL,
+    NULL
+};
