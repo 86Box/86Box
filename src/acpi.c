@@ -75,11 +75,15 @@ acpi_update_irq(void *priv)
     if (sci_level) {
 	if (dev->irq_mode == 1)
 		pci_set_irq(dev->slot, dev->irq_pin);
+	else if (dev->irq_mode == 2)
+		pci_set_mirq(5, dev->mirq_is_level);
 	else
 		pci_set_mirq(0xf0 | dev->irq_line, 1);
     } else {
 	if (dev->irq_mode == 1)
 		pci_clear_irq(dev->slot, dev->irq_pin);
+	else if (dev->irq_mode == 2)
+		pci_clear_mirq(5, dev->mirq_is_level);
 	else
 		pci_clear_mirq(0xf0 | dev->irq_line, 1);
     }
@@ -87,22 +91,26 @@ acpi_update_irq(void *priv)
 
 
 static void
-acpi_raise_smi(void *priv)
+acpi_raise_smi(void *priv, int do_smi)
 {
     acpi_t *dev = (acpi_t *) priv;
 
     if (dev->regs.glbctl & 0x01) {
 	if ((dev->vendor == VEN_VIA) || (dev->vendor == VEN_VIA_596B)) {
-		    if ((!dev->regs.smi_lock || !dev->regs.smi_active)) {
-			smi_line = 1;
+		if ((!dev->regs.smi_lock || !dev->regs.smi_active)) {
+			if (do_smi)
+				smi_line = 1;
 			dev->regs.smi_active = 1;
 		}
 	} else if ((dev->vendor == VEN_INTEL) || (dev->vendor == VEN_ALI)) {
-		smi_line = 1;
+		if (do_smi)
+			smi_line = 1;
 		/* Clear bit 16 of GLBCTL. */
 		dev->regs.glbctl &= ~0x00010000;
-	} else if (dev->vendor == VEN_SMC)
-		smi_line = 1;
+	} else if (dev->vendor == VEN_SMC) {
+		if (do_smi)
+			smi_line = 1;
+	}
     }
 }
 
@@ -740,7 +748,7 @@ acpi_reg_write_ali(int size, uint16_t addr, uint8_t val, void *p)
 		else if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
 			dev->regs.glbsts |= 0x01;
 			if (dev->regs.glben & 0x02)
-				acpi_raise_smi(dev);
+				acpi_raise_smi(dev, 1);
 		}
 	}
 }
@@ -816,7 +824,7 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *p)
 		else if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
 			dev->regs.glbsts |= 0x01;
 			if (dev->regs.glben & 0x02)
-				acpi_raise_smi(dev);
+				acpi_raise_smi(dev, 1);
 		}
 		break;
     }
@@ -973,7 +981,7 @@ acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *p)
 			dev->regs.smicmd = val & 0xff;
 			dev->regs.glbsts |= 0x40;
 			if (dev->regs.glben & 0x40)
-				acpi_raise_smi(dev);
+				acpi_raise_smi(dev, 1);
 		}
 		break;
 	case 0x30: case 0x31: case 0x32: case 0x33:
@@ -996,7 +1004,7 @@ acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *p)
 		else if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
 			dev->regs.glbsts |= 0x20;
 			if (dev->regs.glben & 0x20)
-				acpi_raise_smi(dev);
+				acpi_raise_smi(dev, 1);
 		}
 		break;
     }
@@ -1084,7 +1092,7 @@ acpi_reg_write_smc(int size, uint16_t addr, uint8_t val, void *p)
     else if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
 	dev->regs.glbsts |= 0x01;
 	if (dev->regs.glben & 0x01)
-		acpi_raise_smi(dev);
+		acpi_raise_smi(dev, 1);
     }
 }
 
@@ -1477,6 +1485,13 @@ acpi_set_irq_line(acpi_t *dev, int irq_line)
 
 
 void
+acpi_set_mirq_is_level(acpi_t *dev, int mirq_is_level)
+{
+    dev->mirq_is_level = mirq_is_level;
+}
+
+
+void
 acpi_set_gpireg2_default(acpi_t *dev, uint8_t gpireg2_default)
 {
     dev->gpireg2_default = gpireg2_default;
@@ -1491,21 +1506,43 @@ acpi_set_nvr(acpi_t *dev, nvr_t *nvr)
 }
 
 
+uint8_t
+acpi_ali_soft_smi_status_read(acpi_t *dev)
+{
+    return dev->regs.ali_soft_smi = 1;
+}
+
+
+void
+acpi_ali_soft_smi_status_write(acpi_t *dev, uint8_t soft_smi)
+{
+    dev->regs.ali_soft_smi = soft_smi;
+}
+
+
 static void
 acpi_apm_out(uint16_t port, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
+    uint16_t old_port = port;
 
     acpi_log("[%04X:%08X] APM write: %04X = %02X (AX = %04X, BX = %04X, CX = %04X)\n", CS, cpu_state.pc, port, val, AX, BX, CX);
 
     port &= 0x0001;
 
-    if (port == 0x0000) {
+    if ((old_port == 0x00b1) && (dev->vendor == VEN_ALI)) {
+	pclog("ALi SOFT SMI# status set\n");
 	dev->apm->cmd = val;
-	if (dev->apm->do_smi) {
-		if ((dev->vendor == VEN_INTEL) || (dev->vendor == VEN_ALI))
+	dev->regs.ali_soft_smi = 1;
+	// acpi_raise_smi(dev, dev->apm->do_smi);
+	if (dev->apm->do_smi)
+		smi_line = 1;
+    } else if (port == 0x0000) {
+	dev->apm->cmd = val;
+	if (dev->vendor != VEN_ALI) {
+		if (dev->vendor == VEN_INTEL)
 			dev->regs.glbsts |= 0x20;
-		acpi_raise_smi(dev);
+		acpi_raise_smi(dev, dev->apm->do_smi);
 	}
     } else
 	dev->apm->stat = val;
@@ -1517,10 +1554,13 @@ acpi_apm_in(uint16_t port, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
     uint8_t ret = 0xff;
+    uint16_t old_port = port;
 
     port &= 0x0001;
 
-    if (port == 0x0000)
+    if ((old_port == 0x00b1) && (dev->vendor == VEN_ALI))
+	ret = dev->apm->cmd;
+    else if (port == 0x0000)
 	ret = dev->apm->cmd;
     else
 	ret = dev->apm->stat;
@@ -1616,8 +1656,14 @@ acpi_init(const device_t *info)
     dev->irq_line = 9;
 
     if ((dev->vendor == VEN_INTEL) || (dev->vendor == VEN_ALI)) {
+	if (dev->vendor == VEN_ALI)
+		dev->irq_mode = 2;
 	dev->apm = device_add(&apm_pci_acpi_device);
-	io_sethandler(0x00b2, 0x0002, acpi_apm_in, NULL, NULL, acpi_apm_out, NULL, NULL, dev);
+	if (dev->vendor == VEN_ALI) {
+		pclog("Setting I/O handler at port B1\n");
+		io_sethandler(0x00b1, 0x0001, acpi_apm_in, NULL, NULL, acpi_apm_out, NULL, NULL, dev);
+	} else
+		io_sethandler(0x00b2, 0x0002, acpi_apm_in, NULL, NULL, acpi_apm_out, NULL, NULL, dev);
     } else if (dev->vendor == VEN_VIA) {
 	dev->i2c = i2c_gpio_init("smbus_vt82c586b");
 	i2c_smbus = i2c_gpio_get_bus(dev->i2c);

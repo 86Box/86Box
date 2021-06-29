@@ -64,6 +64,7 @@ int64_t		firsttime = 1;
 #define PIT_EXT_IO		32	/* The PIT has externally specified port I/O. */
 #define PIT_CUSTOM_CLOCK	64	/* The PIT uses custom clock inputs provided by another provider. */
 #define PIT_SECONDARY		128	/* The PIT is secondary (ports 0048-004B). */
+#define PIT_OLIVETTI		256	/* The PIT is that of the Olivetti 486 (has slight timing differences). */
 
 
 enum {
@@ -92,67 +93,214 @@ pit_log(const char *fmt, ...)
 #endif
 
 
+#define NEW_PIT_CODE	1
+
+
+#ifdef NEW_PIT_CODE
+typedef void (*tf_t)(ctr_t *ctr);
+
+
+static void	ctr_tick_mode_0(ctr_t *ctr);
+static void	ctr_tick_mode_1(ctr_t *ctr);
+static void	ctr_tick_mode_2_and_6(ctr_t *ctr);
+static void	ctr_tick_mode_3_and_7(ctr_t *ctr);
+static void	ctr_tick_mode_4_and_5(ctr_t *ctr);
+
+
+static tf_t	ctr_tick_funcs[8] =	{	ctr_tick_mode_0,       ctr_tick_mode_1,       ctr_tick_mode_2_and_6,
+						ctr_tick_mode_3_and_7, ctr_tick_mode_4_and_5, ctr_tick_mode_4_and_5,
+						ctr_tick_mode_2_and_6, ctr_tick_mode_3_and_7	};
+
+
+/* MODE 0: Interrupt on Terminal Count. */
 static void
-ctr_set_out(ctr_t *ctr, int out)
+ctr_tick_mode_0(ctr_t *ctr)
 {
-    if (ctr == NULL)
-	return;
+    uint8_t state = ctr->state;
 
-    if (ctr->out_func != NULL)
-	ctr->out_func(out, ctr->out);
-    ctr->out = out;
-}
-
-
-static void
-ctr_decrease_count(ctr_t *ctr)
-{
-    if (ctr->bcd) {
-	ctr->units--;
-	if (ctr->units == 0xff) {
-		ctr->units = 9;
-		ctr->tens--;
-		if (ctr->tens == 0xff) {
-			ctr->tens = 9;
-			ctr->hundreds--;
-			if (ctr->hundreds == 0xff) {
-				ctr->hundreds = 9;
-				ctr->thousands--;
-				if (ctr->thousands == 0xff) {
-					ctr->thousands = 9;
-					ctr->myriads--;
-					if (ctr->myriads == 0xff)
-						ctr->myriads = 0;	/* 0 - 1 should wrap around to 9999. */
-				}
+    switch (state) {
+	case 1:
+		/* Load count. */
+		ctr->count = ctr->l;
+		ctr->null_count = 0;
+		/* Switch to next state. */
+		ctr->state++;
+	case 2: case 3:
+		if (ctr->gate) {
+			/* Decrease counter. */
+			if ((state == 3) || ctr->gate)
+				ctr->count--;
+			if ((state == 2) && ctr->gate && (ctr->count == 0)) {
+				/* Terminal count reached, switch to next state. */
+				ctr->state++;
+				/* Set output high. */
+				if (ctr->out_func != NULL)
+					ctr->out_func(1, ctr->out);
+				ctr->out = 1;
 			}
 		}
-	}
-    } else
-	ctr->count = (ctr->count - 1) & 0xffff;
+		break;
+    }
+}
+
+
+/* MODE 1: Programmale One-Shoft. */
+static void
+ctr_tick_mode_1(ctr_t *ctr)
+{
+    uint8_t state = ctr->state;
+
+    switch (state) {
+	case 1:
+		/* Load count. */
+		ctr->count = ctr->l;
+		ctr->null_count = 0;
+		/* Switch to next state. */
+		ctr->state++;
+		/* Set output low. */
+		if (ctr->out_func != NULL)
+			ctr->out_func(0, ctr->out);
+	    	ctr->out = 0;
+		break;
+	case 2: case 3:
+		/* Decrease counter. */
+		ctr->count--;
+		if ((state == 2) && (ctr->count == 0)) {
+			/* Terminal count reached, switch to next state. */
+			ctr->state++;
+			/* Set output high. */
+			if (ctr->out_func != NULL)
+				ctr->out_func(1, ctr->out);
+		    	ctr->out = 1;
+		}
+		break;
+    }
 }
 
 
 static void
-ctr_load_count(ctr_t *ctr)
+ctr_tick_mode_2_and_6(ctr_t *ctr)
 {
-    int l = ctr->l ? ctr->l : 0x10000;
+    uint8_t state = ctr->state;
 
-    ctr->count = l;
-    pit_log("ctr->count = %i\n", l);
-    ctr->null_count = 0;
-    ctr->newcount = !!(l & 1);
+    switch (state) {
+	case 1: case 3:
+		/* Load count. */
+		ctr->count = ctr->l;
+		ctr->null_count = 0;
+		if (ctr->state == 3) {
+			/* Set output high. */
+			if (ctr->out_func != NULL)
+				ctr->out_func(1, ctr->out);
+		    	ctr->out = 1;
+		}
+		/* Switch to next state. */
+		ctr->state = 2;
+		break;
+	case 2:
+		/* Decrease counter. */
+		if (ctr->gate) {
+			ctr->count--;
+			if (ctr->count == 1) {
+				/* Terminal count reached, switch to previous state. */
+				ctr->state = 3;
+				/* Set output low. */
+				if (ctr->out_func != NULL)
+					ctr->out_func(0, ctr->out);
+			    	ctr->out = 0;
+			}
+		}
+		break;
+    }
 }
 
 
+static void
+ctr_tick_mode_3_and_7(ctr_t *ctr)
+{
+    uint8_t state = ctr->state;
+    uint16_t old_count = ctr->count;
+
+    switch (state) {
+	case 1:
+		/* Load count. */
+		ctr->count = ctr->l;
+		ctr->flag_64k = !ctr->count;
+		ctr->null_count = 0;
+		ctr->newcount = ctr->count & 1;
+		/* Switch to next state. */
+		ctr->state = 2;
+	case 2: case 3:
+		if (ctr->gate) {
+			ctr->count -= (ctr->newcount ? ((ctr->state == 3) ? 3 : 1) : 2);
+			if (!ctr->flag_64k && (ctr->count > old_count)) {
+				/* Load count. */
+				ctr->count = ctr->l;
+				ctr->flag_64k = !ctr->count;
+				ctr->null_count = 0;
+				ctr->newcount = ctr->count & 1;
+				/* Switch to next state. */
+				ctr->state ^= 1;
+				/* Set output low. */
+				if (ctr->out_func != NULL)
+					ctr->out_func(state & 1, ctr->out);
+			    	ctr->out = state & 1;
+			} else {
+				if (ctr->newcount)
+					ctr->newcount = 0;
+				ctr->flag_64k = 0;
+			}
+		}
+		break;
+    }
+}
+
+
+static void
+ctr_tick_mode_4_and_5(ctr_t *ctr)
+{
+    uint8_t state = ctr->state;
+
+    /* Software triggered strobe */
+    /* Hardware triggered strobe */
+    if (ctr->gate || (ctr->m != 4)) {
+	switch(state) {
+		case 0: case 2:
+			ctr->count--;
+			if ((state == 2) && (ctr->count < 1)) {
+				ctr->state++;
+				if (ctr->out_func != NULL)
+					ctr->out_func(0, ctr->out);
+			    	ctr->out = 0;
+			}
+			break;
+		case 3:
+			ctr->state = 0;
+			if (ctr->out_func != NULL)
+				ctr->out_func(1, ctr->out);
+		    	ctr->out = 1;
+			break;
+	}
+    }
+}
+#else
 static void
 ctr_tick(ctr_t *ctr)
 {
     uint8_t state = ctr->state;
+    uint16_t old_count = ctr->count;
 
     if (state == 1) {
 	/* This is true for all modes */
-	ctr_load_count(ctr);
-	ctr->state = 2;
+	ctr->count = ctr->l;
+	ctr->null_count = 0;
+	ctr->newcount = !!(ctr->count & 1);
+	ctr->state++;
+        if ((ctr->m & 0x07) == 1) {
+		if (ctr->out_func != NULL)
+			ctr->out_func(0, ctr->out);
+	    	ctr->out = 0;
+	}
 	return;
     }
 
@@ -161,38 +309,35 @@ ctr_tick(ctr_t *ctr)
 		/* Interrupt on terminal count */
 		switch (state) {
 			case 2:
-				if (ctr->gate && (ctr->count >= 1)) {
-					ctr_decrease_count(ctr);
+				if (ctr->gate) {
+					ctr->count--;
 					if (ctr->count < 1) {
-						ctr->state = 3;
-						ctr_set_out(ctr, 1);
+						ctr->state++;
+						if (ctr->out_func != NULL)
+							ctr->out_func(1, ctr->out);
+						ctr->out = 1;
 					}
 				}
 				break;
 			case 3:
-				ctr_decrease_count(ctr);
+				ctr->count--;
 				break;
 		}
 		break;
 	case 1:
 		/* Hardware retriggerable one-shot */
 		switch (state) {
-			case 1:
-				ctr_load_count(ctr);
-				ctr->state = 2;
-				ctr_set_out(ctr, 0);
-				break;
 			case 2:
-				if (ctr->count >= 1) {
-					ctr_decrease_count(ctr);
-					if (ctr->count < 1) {
-						ctr->state = 3;
-						ctr_set_out(ctr, 1);
-					}
+				ctr->count--;
+				if (ctr->count < 1) {
+					ctr->state++;
+					if (ctr->out_func != NULL)
+						ctr->out_func(1, ctr->out);
+				    	ctr->out = 1;
 				}
 				break;
 			case 3:
-				ctr_decrease_count(ctr);
+				ctr->count--;
 				break;
 		}
 		break;
@@ -200,59 +345,40 @@ ctr_tick(ctr_t *ctr)
 		/* Rate generator */
 		switch (state) {
 			case 3:
-				ctr_load_count(ctr);
-				ctr->state = 2;
-				ctr_set_out(ctr, 1);
+				ctr->count = ctr->l;
+				ctr->null_count = 0;
+				ctr->state ^= 1;
+				if (ctr->out_func != NULL)
+					ctr->out_func(1, ctr->out);
+			    	ctr->out = 1;
 				break;
 			case 2:
-				if (ctr->gate == 0)
-					break;
-				else if (ctr->count >= 2) {
-					ctr_decrease_count(ctr);
+				// if (ctr->gate) {
+					ctr->count--;
 					if (ctr->count < 2) {
-						ctr->state = 3;
-						ctr_set_out(ctr, 0);
+						ctr->state ^= 1;
+						if (ctr->out_func != NULL)
+							ctr->out_func(0, ctr->out);
+					    	ctr->out = 0;
 					}
-				}
+				// }
 				break;
 		}
 		break;
 	case 3: case 7:
 		/* Square wave mode */
 		switch (state) {
-			case 2:
-				if (ctr->gate == 0)
-					break;
-				else if (ctr->count >= 0) {
-					if (ctr->bcd) {
-						ctr_decrease_count(ctr);
-						if (!ctr->newcount)
-							ctr_decrease_count(ctr);
-					} else
-						ctr->count -= (ctr->newcount ? 1 : 2);
-					if (ctr->count < 0) {
-						ctr_load_count(ctr);
-						ctr->state = 3;
-						ctr_set_out(ctr, 0);
-					} else if (ctr->newcount)
-						ctr->newcount = 0;
-				}
-				break;
-			case 3:
-				if (ctr->gate == 0)
-					break;
-				else if (ctr->count >= 0) {
-					if (ctr->bcd) {
-						ctr_decrease_count(ctr);
-						ctr_decrease_count(ctr);
-						if (ctr->newcount)
-							ctr_decrease_count(ctr);
-					} else
-						ctr->count -= (ctr->newcount ? 3 : 2);
-					if (ctr->count < 0) {
-						ctr_load_count(ctr);
-						ctr->state = 2;
-						ctr_set_out(ctr, 1);
+			case 2: case 3:
+				if (ctr->gate != 0) {
+					ctr->count -= (ctr->newcount ? ((state & 1) ? 3 : 1) : 2);
+					if (ctr->count > old_count) {
+						ctr->count = ctr->l;
+						ctr->null_count = 0;
+						ctr->newcount = !!(ctr->count & 1);
+						ctr->state ^= 1;
+						if (ctr->out_func != NULL)
+							ctr->out_func(0, ctr->out);
+					    	ctr->out = 0;
 					} else if (ctr->newcount)
 						ctr->newcount = 0;
 				}
@@ -264,21 +390,20 @@ ctr_tick(ctr_t *ctr)
 		/* Hardware triggered strobe */
 		if ((ctr->gate != 0) || (ctr->m != 4)) {
 			switch(state) {
-				case 0:
-					ctr_decrease_count(ctr);
-					break;
-				case 2:
-					if (ctr->count >= 1) {
-						ctr_decrease_count(ctr);
-						if (ctr->count < 1) {
-							ctr->state = 3;
-							ctr_set_out(ctr, 0);
-						}
+				case 0: case 2:
+					ctr->count--;
+					if ((state == 2) && (ctr->count < 1)) {
+						ctr->state++;
+						if (ctr->out_func != NULL)
+							ctr->out_func(0, ctr->out);
+					    	ctr->out = 0;
 					}
 					break;
 				case 3:
 					ctr->state = 0;
-					ctr_set_out(ctr, 1);
+					if (ctr->out_func != NULL)
+						ctr->out_func(1, ctr->out);
+				    	ctr->out = 1;
 					break;
 			}
 		}
@@ -287,19 +412,24 @@ ctr_tick(ctr_t *ctr)
 		break;
     }
 }
+#endif
 
 
 static void
 ctr_clock(ctr_t *ctr)
 {
-   /* FIXME: Is this even needed? */
+    /* FIXME: Is this even needed? */
     if ((ctr->state == 3) && (ctr->m != 2) && (ctr->m != 3))
 	return;
 
     if (ctr->using_timer)
 	return;
 
+#ifdef NEW_PIT_CODE
+    ctr->tick_func(ctr);
+#else
     ctr_tick(ctr);
+#endif
 }
 
 
@@ -349,6 +479,11 @@ static __inline void
 ctr_latch_count(ctr_t *ctr)
 {
     int count = (ctr->latch || (ctr->state == 1)) ? ctr->l : ctr->count;
+
+    // if ((ctr->pit->flags & PIT_OLIVETTI) && (ctr->state == 0))
+	// count--;
+
+    pit_log("PIT latch count with state %i (%i)\n", ctr->state, ctr->latch);
 
     switch (ctr->rm & 0x03) {
 	case 0x00:
@@ -415,15 +550,21 @@ pit_ctr_set_gate(ctr_t *ctr, int gate)
 		if (!old && gate) {
 			/* Here we handle the rising edges. */
 			if (mode & 1) {
-				if (mode != 1)
-					ctr_set_out(ctr, 1);
+				if (mode != 1) {
+					if (ctr->out_func != NULL)
+						ctr->out_func(1, ctr->out);
+					ctr->out = 1;
+				}
 				ctr->state = 1;
 			} else if (mode == 2)
 				ctr->state = 3;
 		} else if (old && !gate) {
 			/* Here we handle the lowering edges. */
-			if (mode & 2)
-				ctr_set_out(ctr, 1);
+			if (mode & 2) {
+				if (ctr->out_func != NULL)
+					ctr->out_func(1, ctr->out);
+			    	ctr->out = 1;
+			}
 		}
 		break;
    }
@@ -437,12 +578,27 @@ pit_ctr_set_clock_common(ctr_t *ctr, int clock)
 
     ctr->clock = clock;
 
-    if (ctr->using_timer && ctr->latch) {
+    if (!ctr->using_timer)
+	return;
+
+#if 0
+    if ((ctr->pit->flags & PIT_OLIVETTI) && !old && ctr->clock) {
+	if (ctr->do_load) {
+		if (ctr->do_load == 3)
+			ctr_load(ctr);
+		ctr->do_load++;
+		if (ctr->do_load == 4)
+			ctr->do_load = 0;
+	}
+    }
+#endif
+
+    if (ctr->latch) {
 	if (old && !ctr->clock) {
 		ctr_set_state_1(ctr);
 		ctr->latch = 0;
 	}
-    } else if (ctr->using_timer && !ctr->latch) {
+    } else if (!ctr->latch) {
 	if (ctr->state == 1) {
 		if (!old && ctr->clock)
 			ctr->s1_det = 1;	/* Rising edge. */
@@ -450,11 +606,19 @@ pit_ctr_set_clock_common(ctr_t *ctr, int clock)
 			ctr->s1_det++;		/* Falling edge. */
 			if (ctr->s1_det >= 2) {
 				ctr->s1_det = 0;
+#ifdef NEW_PIT_CODE
+				ctr->tick_func(ctr);
+#else
 				ctr_tick(ctr);
+#endif
 			}
 		}
 	} else if (old && !ctr->clock)
+#ifdef NEW_PIT_CODE
+		ctr->tick_func(ctr);
+#else
 		ctr_tick(ctr);
+#endif
     }
 }
 
@@ -538,9 +702,14 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
 				ctr->m = (val >> 1) & 7;
 				if (ctr->m > 5)
 					ctr->m &= 3;
+#ifdef NEW_PIT_CODE
+				ctr->tick_func = ctr_tick_funcs[ctr->m];
+#endif
 				ctr->null_count = 1;
 				ctr->bcd = (ctr->ctrl & 0x01);
-				ctr_set_out(ctr, !!ctr->m);
+				if (ctr->out_func != NULL)
+					ctr->out_func(!!ctr->m, ctr->out);
+			    	ctr->out = !!ctr->m;
 				ctr->state = 0;
 				if (ctr->latched) {
 					pit_log("PIT %i: Reload while counter is latched\n", t);
@@ -563,27 +732,44 @@ pit_write(uint16_t addr, uint8_t val, void *priv)
 				break;
 			case 1:
 				ctr->l = val;
-				if (ctr->m == 0)
-					ctr_set_out(ctr, 0);
-				ctr_load(ctr);
+				if (ctr->m == 0) {
+					if (ctr->out_func != NULL)
+						ctr->out_func(0, ctr->out);
+				    	ctr->out = 0;
+				}
+				if (dev->flags & PIT_OLIVETTI)
+					ctr->do_load = 1;
+				else
+					ctr_load(ctr);
 				break;
 			case 2:
 				ctr->l = (val << 8);
-				if (ctr->m == 0)
-					ctr_set_out(ctr, 0);
-				ctr_load(ctr);
+				if (ctr->m == 0) {
+					if (ctr->out_func != NULL)
+						ctr->out_func(0, ctr->out);
+				    	ctr->out = 0;
+				}
+				if (dev->flags & PIT_OLIVETTI)
+					ctr->do_load = 1;
+				else
+					ctr_load(ctr);
 				break;
 			case 3: case 0x83:
 				if (ctr->wm & 0x80) {
 					ctr->l = (ctr->l & 0x00ff) | (val << 8);
 					pit_log("PIT %i: Written high byte %02X, latch now %04X\n", t, val, ctr->l);
-					ctr_load(ctr);
+					if (dev->flags & PIT_OLIVETTI)
+						ctr->do_load = 1;
+					else
+						ctr_load(ctr);
 				} else {
 					ctr->l = (ctr->l & 0xff00) | val;
 					pit_log("PIT %i: Written low byte %02X, latch now %04X\n", t, val, ctr->l);
 					if (ctr->m == 0) {
 						ctr->state = 0;
-						ctr_set_out(ctr, 0);
+						if (ctr->out_func != NULL)
+							ctr->out_func(0, ctr->out);
+    						ctr->out = 0;
 					}
 				}
 
@@ -757,7 +943,7 @@ pit_nmi_timer_ps2(int new_out, int old_out)
 
 
 static void
-ctr_reset(ctr_t *ctr)
+ctr_reset(pit_t *dev, ctr_t *ctr)
 {
     ctr->ctrl = 0;
     ctr->m = 0;
@@ -771,6 +957,8 @@ ctr_reset(ctr_t *ctr)
 
     ctr->s1_det = 0;
     ctr->l_det = 0;
+
+    ctr->pit = dev;
 }
 
 
@@ -784,10 +972,15 @@ pit_reset(pit_t *dev)
     dev->clock = 0;
 
     for (i = 0; i < 3; i++)
-	ctr_reset(&dev->counters[i]);
+	ctr_reset(dev, &dev->counters[i]);
 
     /* Disable speaker gate. */
     dev->counters[2].gate = 0;
+
+#ifdef NEW_PIT_CODE
+    dev->counters[0].tick_func = dev->counters[1].tick_func =
+    dev->counters[2].tick_func = ctr_tick_funcs[0];
+#endif
 }
 
 
@@ -858,6 +1051,17 @@ const device_t i8254_device =
 };
 
 
+const device_t i8254_olivetti_device =
+{
+        "Intel 8254 Programmable Interval Timer (Olivetti)",
+        DEVICE_ISA,
+	PIT_8254 | PIT_OLIVETTI,
+        pit_init, pit_close, NULL,
+        { NULL }, NULL, NULL,
+	NULL
+};
+
+
 const device_t i8254_sec_device =
 {
         "Intel 8254 Programmable Interval Timer (Secondary)",
@@ -903,6 +1107,9 @@ pit_common_init(int type, void (*out0)(int new_out, int old_out), void (*out1)(i
 		break;
 	case PIT_8254:
 		pit = device_add(&i8254_device);
+		break;
+	case (PIT_8254 | PIT_OLIVETTI):
+		pit = device_add(&i8254_olivetti_device);
 		break;
     }
 

@@ -37,6 +37,7 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 #include <86box/hdc.h>
+#include <86box/port_6x.h>
 #include <86box/sio.h>
 #include <86box/serial.h>
 #include <86box/video.h>
@@ -141,10 +142,34 @@ machine_at_quadt286_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init(model);
-    device_add(&keyboard_at_device);
+	device_add(&keyboard_at_device);
 
     if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
+
+    device_add(&headland_gc10x_device);
+
+    return ret;
+}
+
+
+int
+machine_at_quadt386sx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/quadt386sx/QTC-SXM-EVEN-U3-05-07.BIN",
+				"roms/machines/quadt386sx/QTC-SXM-ODD-U3-05-07.BIN",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+    device_add(&keyboard_at_device);
+
+    if (fdc_type == FDC_INTERNAL)
+	device_add(&fdc_at_device);
 
     device_add(&headland_gc10x_device);
 
@@ -703,6 +728,7 @@ machine_at_pja511m_init(const machine_t *model)
 
     return ret;
 }
+
 #endif
 
 /*
@@ -729,6 +755,7 @@ machine_at_pc8_init(const machine_t *model)
     
     return ret;
 }
+
 
 /*
  * Current bugs: 
@@ -763,6 +790,7 @@ machine_at_3302_init(const machine_t *model)
     return ret;
 }
 
+
 /*
  * Current bugs: 
  * - soft-reboot after saving CMOS settings/pressing ctrl-alt-del produces an 8042 error
@@ -790,6 +818,7 @@ machine_at_pc916sx_init(const machine_t *model)
     return ret;
 }
 
+
 #if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
 int
 machine_at_m290_init(const machine_t *model)
@@ -802,9 +831,10 @@ machine_at_m290_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 4);
     device_add(&keyboard_at_olivetti_device);
-    
+    device_add(&port_6x_olivetti_device);
+
     if (fdc_type == FDC_INTERNAL)
 	device_add(&fdc_at_device);
     
@@ -813,58 +843,3 @@ machine_at_m290_init(const machine_t *model)
     return ret;
 }
 #endif
-
-const device_t *
-at_m30008_get_device(void)
-{
-    return &oti067_m300_device;
-}
-
-int
-machine_at_m30008_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/m30008/BIOS.ROM",
-			   0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_at_common_init(model);
-
-    device_add(&opti283_device);
-    device_add(&keyboard_ps2_olivetti_device);
-    device_add(&pc87310_ide_device);
-    
-    if (gfxcard == VID_INTERNAL)
-	device_add(&oti067_m300_device);
-
-    return ret;
-}
-
-/* Almost identical to M300-08, save for CPU speed, VRAM, and BIOS identification string */
-int
-machine_at_m30015_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/m30015/BIOS.ROM",
-			   0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_at_common_init(model);
-
-    device_add(&opti283_device);
-    device_add(&keyboard_ps2_olivetti_device);
-    device_add(&pc87310_ide_device);
-    
-    /* Stock VRAM is maxed out, so no need to expose video card config */
-    if (gfxcard == VID_INTERNAL)
-	device_add(&oti067_m300_device);
-
-    return ret;
-}
-

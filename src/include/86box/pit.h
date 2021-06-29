@@ -18,33 +18,34 @@
 # define EMU_PIT_H
 
 
-typedef struct {
+typedef struct ctr_s {
     uint8_t	m, ctrl,
 		read_status, latch,
 		s1_det, l_det,
-		bcd, pad;
+		bcd, flag_64k;
 
-    uint16_t	rl;
-
-    int		rm, wm, gate, out,
-		newcount, clock, using_timer, latched,
-		state, null_count, do_read_status;
+    uint16_t	l, rl;
 
     union {
-		int	count;
+		uint16_t	count;
 		struct {
-			int	units		:4;
-			int	tens		:4;
-			int	hundreds	:4;
-			int	thousands	:4;
-			int	myriads		:4;
+			uint16_t	units		:4;
+			uint16_t	tens		:4;
+			uint16_t	hundreds	:4;
+			uint16_t	thousands	:4;
+			uint16_t	myriads		:4;
 		};
     };
 
-    uint32_t	l;
+    int		rm, wm, gate, out,
+		newcount, clock, using_timer, latched,
+		state, null_count, do_read_status, do_load;
 
+    void	(*tick_func)(struct ctr_s *ctr);
     void	(*load_func)(uint8_t new_m, int new_count);
     void	(*out_func)(int new_out, int old_out);
+
+    struct PIT *pit;
 } ctr_t;
 
 

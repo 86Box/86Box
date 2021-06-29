@@ -290,28 +290,6 @@ machine_xt_pcxt_init(const machine_t *model)
 }
 
 
-#if defined(DEV_BRANCH) && defined(USE_HEDAKA)
-int
-machine_xt_hed919_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/hed919/Hedaka_HED-919_bios_version_3.28f.bin",
-			   0x000fe000, 8192, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_xt_clone_init(model);
-
-    if (mem_size > 640)
-	mem_remap_top(mem_size - 640);
-
-    return ret;
-}
-#endif
-
-
 int
 machine_xt_pxxt_init(const machine_t *model)
 {

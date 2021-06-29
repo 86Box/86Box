@@ -44,9 +44,6 @@ extern const device_t	scat_sx_device;
 extern const device_t	cs8230_device;
 extern const device_t   cs4031_device;
 
-/* ETEQ */
-extern const device_t   et6000_device;
-
 /* G2 */
 extern const device_t   gc100_device;
 extern const device_t   gc100a_device;
@@ -60,6 +57,7 @@ extern const device_t	headland_ht18c_device;
 /* Intel */
 extern const device_t   intel_82335_device;
 extern const device_t	i420ex_device;
+extern const device_t	i420ex_ide_device;
 extern const device_t	i420tx_device;
 extern const device_t	i420zx_device;
 extern const device_t	i430lx_device;
@@ -114,7 +112,6 @@ extern const device_t	sis_85c496_ls486e_device;
 extern const device_t	sis_85c50x_device;
 extern const device_t	sis_5511_device;
 extern const device_t	sis_5571_device;
-extern const device_t	sis_5598_device;
 
 /* ST */
 extern const device_t	stpc_client_device;
@@ -123,13 +120,6 @@ extern const device_t	stpc_elite_device;
 extern const device_t	stpc_atlas_device;
 extern const device_t	stpc_serial_device;
 extern const device_t	stpc_lpt_device;
-
-/* UMC */
-extern const device_t	umc_hb4_device;
-extern const device_t	umc_8890_device;
-
-extern const device_t	umc_8886f_device;
-extern const device_t	umc_8886af_device;
 
 /* VIA */
 extern const device_t   via_vt82c49x_device;
@@ -151,6 +141,7 @@ extern const device_t	via_vt82c686b_device;
 
 /* VLSI */
 extern const device_t   vl82c480_device;
+extern const device_t   vl82c486_device;
 extern const device_t   vlsi_scamp_device;
 
 /* WD */

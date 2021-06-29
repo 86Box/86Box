@@ -40,6 +40,7 @@ static char	postcard_str[UISTR_LEN];	/* UI output string */
 extern void	ui_sb_bugui(char *__str);
 
 
+#define ENABLE_POSTCARD_LOG 1
 #ifdef ENABLE_POSTCARD_LOG
 int postcard_do_log = ENABLE_POSTCARD_LOG;
 

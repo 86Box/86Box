@@ -44,6 +44,7 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 #include <86box/gameport.h>
+#include <86box/port_6x.h>
 #include <86box/sound.h>
 #include <86box/snd_speaker.h>
 #include <86box/video.h>
@@ -765,6 +766,9 @@ machine_xt_m240_init(const machine_t *model)
 
     pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
 
+    /* Address 66-67 = mainboard dip-switch settings */
+    io_sethandler(0x0066, 2, m24_read, NULL, NULL, NULL, NULL, NULL, NULL);
+
     /* 
      * port 60: should return jumper settings only under unknown conditions
      * SWB on mainboard (off=1)
@@ -772,6 +776,7 @@ machine_xt_m240_init(const machine_t *model)
      * bit 6 - use OCG/CGA display adapter (on) / other display adapter (off)
      */
     device_add(&keyboard_at_olivetti_device);
+    device_add(&port_6x_olivetti_device);
 
     /* FIXME: make sure this is correct?? */
     device_add(&at_nvr_device);
