@@ -501,24 +501,24 @@ sff_set_irq_mode(sff8038i_t *dev, int channel, int irq_mode)
 	case 0:
 	default:
 		/* Legacy IRQ mode. */
-		pclog("[%08X] Setting channel %i to legacy IRQ %i\n", dev, channel, 14 + channel);
+		sff_log("[%08X] Setting channel %i to legacy IRQ %i\n", dev, channel, 14 + channel);
 		break;
 	case 1:
 		/* Native PCI IRQ mode with interrupt pin. */
-		pclog("[%08X] Setting channel %i to native PCI INT%c\n", dev, channel, '@' + dev->irq_pin);
+		sff_log("[%08X] Setting channel %i to native PCI INT%c\n", dev, channel, '@' + dev->irq_pin);
 		break;
 	case 2:
 	case 5:
 		/* MIRQ 0 or 1. */
-		pclog("[%08X] Setting channel %i to PCI MIRQ%i\n", dev, channel, irq_mode & 1);
+		sff_log("[%08X] Setting channel %i to PCI MIRQ%i\n", dev, channel, irq_mode & 1);
 		break;
 	case 3:
 		/* Native PCI IRQ mode with specified interrupt line. */
-		pclog("[%08X] Setting channel %i to native PCI IRQ %i\n", dev, channel, dev->irq_line);
+		sff_log("[%08X] Setting channel %i to native PCI IRQ %i\n", dev, channel, dev->irq_line);
 		break;
 	case 4:
 		/* ALi Aladdin Native PCI INTAJ mode. */
-		pclog("[%08X] Setting channel %i to INT%cJ\n", dev, channel, 'A' + channel);
+		sff_log("[%08X] Setting channel %i to INT%cJ\n", dev, channel, 'A' + channel);
 		break;
     }
 }

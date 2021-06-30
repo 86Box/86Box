@@ -106,7 +106,10 @@ acpi_raise_smi(void *priv, int do_smi)
 		if (do_smi)
 			smi_line = 1;
 		/* Clear bit 16 of GLBCTL. */
-		dev->regs.glbctl &= ~0x00010000;
+		if (dev->vendor == VEN_INTEL)
+			dev->regs.glbctl &= ~0x00010000;
+		else
+			dev->regs.ali_soft_smi = 1;
 	} else if (dev->vendor == VEN_SMC) {
 		if (do_smi)
 			smi_line = 1;
@@ -172,8 +175,7 @@ acpi_reg_read_ali(int size, uint16_t addr, void *p)
     shift16 = (addr & 1) << 3;
     shift32 = (addr & 3) << 3;
 
-	switch(addr)
-	{
+    switch(addr) {
 	case 0x10: case 0x11: case 0x12: case 0x13:
 		/* PCNTRL - Processor Control Register (IO) */
 		ret = (dev->regs.pcntrl >> shift16) & 0xff;
@@ -188,39 +190,33 @@ acpi_reg_read_ali(int size, uint16_t addr, void *p)
 		break;
 	case 0x18: case 0x19:
 		/* GPE0_STS - General Purpose Event0 Status Register */
-	ret = (dev->regs.gpsts >> shift16) & 0xff;
-	break;
+		ret = (dev->regs.gpsts >> shift16) & 0xff;
+		break;
 	case 0x1a: case 0x1b:
 		/* GPE0_EN - General Purpose Event0 Enable Register */
-	ret = (dev->regs.gpen >> shift16) & 0xff;
-	break;
+		ret = (dev->regs.gpen >> shift16) & 0xff;
+		break;
 	case 0x1d: case 0x1c:
 		/* GPE1_STS - General Purpose Event1 Status Register */
-	ret = (dev->regs.gpsts >> shift16) & 0xff;
-	break;
+		ret = (dev->regs.gpsts1 >> shift16) & 0xff;
+		break;
 	case 0x1f: case 0x1e:
 		/* GPE1_EN - General Purpose Event1 Enable Register */
-	ret = (dev->regs.gpen1 >> shift16) & 0xff;
-	break;
-	case 0x20:
-	case 0x21:
-	case 0x22:
-	case 0x23:
-	case 0x24:
-	case 0x25:
-	case 0x26:
-	case 0x27:
+		ret = (dev->regs.gpen1 >> shift16) & 0xff;
+		break;
+	case 0x20 ... 0x27:
 		/* GPE1_CTL - General Purpose Event1 Control Register */
-	ret = (dev->regs.gpcntrl >> shift32) & 0xff;
-	break;
+		ret = (dev->regs.gpcntrl >> shift32) & 0xff;
+		break;
 	case 0x30:
 		/* PM2_CNTRL - Power Management 2 Control Register( */
-	ret = dev->regs.pmcntrl;
-	break;
+		ret = dev->regs.pmcntrl;
+		break;
 	default:
 		ret = acpi_reg_read_common_regs(size, addr, p);
 		break;
-	}
+    }
+
 #ifdef ENABLE_ACPI_LOG
     if (size != 1)
 		acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
@@ -303,6 +299,7 @@ acpi_reg_read_intel(int size, uint16_t addr, void *p)
 #endif
     return ret;
 }
+
 
 static uint32_t
 acpi_reg_read_sis(int size, uint16_t addr, void *p)
@@ -711,43 +708,36 @@ acpi_reg_write_ali(int size, uint16_t addr, uint8_t val, void *p)
 		break;
 	case 0x18: case 0x19:
 		/* GPE0_STS - General Purpose Event0 Status Register */
-	dev->regs.gpsts &= ~((val << shift16) & 0x0d07);
-	break;
+		dev->regs.gpsts &= ~((val << shift16) & 0x0d07);
+		break;
 	case 0x1a: case 0x1b:
 		/* GPE0_EN - General Purpose Event0 Enable Register */
-	dev->regs.gpen = ((dev->regs.gpen & ~(0xff << shift16)) | (val << shift16)) & 0x0d07;
-	break;
+		dev->regs.gpen = ((dev->regs.gpen & ~(0xff << shift16)) | (val << shift16)) & 0x0d07;
+		break;
 	case 0x1d: case 0x1c:
 		/* GPE1_STS - General Purpose Event1 Status Register */
-	dev->regs.gpsts &= ~((val << shift16) & 0x0c01);
-	break;
+		dev->regs.gpsts1 &= ~((val << shift16) & 0x0c01);
+		break;
 	case 0x1f: case 0x1e:
 		/* GPE1_EN - General Purpose Event1 Enable Register */
-	dev->regs.gpen = ((dev->regs.gpen & ~(0xff << shift16)) | (val << shift16)) & 0x0c01;
-	break;
-	case 0x20:
-	case 0x21:
-	case 0x22:
-	case 0x23:
-	case 0x24:
-	case 0x25:
-	case 0x26:
-	case 0x27:
+		dev->regs.gpen1 = ((dev->regs.gpen & ~(0xff << shift16)) | (val << shift16)) & 0x0c01;
+		break;
+	case 0x20 ... 0x27:
 		/* GPE1_CTL - General Purpose Event1 Control Register */
-	dev->regs.gpcntrl = ((dev->regs.gpcntrl & ~(0xff << shift32)) | (val << shift32)) & 0x00000001;
-	break;
+		dev->regs.gpcntrl = ((dev->regs.gpcntrl & ~(0xff << shift32)) | (val << shift32)) & 0x00000001;
+		break;
 	case 0x30:
 		/* PM2_CNTRL - Power Management 2 Control Register( */
-	dev->regs.pmcntrl = val & 1;
-	break;
+		dev->regs.pmcntrl = val & 1;
+		break;
 	default:
 		acpi_reg_write_common_regs(size, addr, val, p);
 		/* Setting GBL_RLS also sets BIOS_STS and generates SMI. */
 		if ((addr == 0x00) && !(dev->regs.pmsts & 0x20))
-			dev->regs.glbctl &= ~0x0002;
+			dev->regs.gpcntrl &= ~0x0002;
 		else if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
-			dev->regs.glbsts |= 0x01;
-			if (dev->regs.glben & 0x02)
+			dev->regs.gpsts1 |= 0x01;
+			if (dev->regs.gpen1 & 0x01)
 				acpi_raise_smi(dev, 1);
 		}
 	}
@@ -1524,28 +1514,30 @@ static void
 acpi_apm_out(uint16_t port, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
-    uint16_t old_port = port;
 
     acpi_log("[%04X:%08X] APM write: %04X = %02X (AX = %04X, BX = %04X, CX = %04X)\n", CS, cpu_state.pc, port, val, AX, BX, CX);
 
     port &= 0x0001;
 
-    if ((old_port == 0x00b1) && (dev->vendor == VEN_ALI)) {
-	pclog("ALi SOFT SMI# status set\n");
-	dev->apm->cmd = val;
-	dev->regs.ali_soft_smi = 1;
-	// acpi_raise_smi(dev, dev->apm->do_smi);
-	if (dev->apm->do_smi)
-		smi_line = 1;
-    } else if (port == 0x0000) {
-	dev->apm->cmd = val;
-	if (dev->vendor != VEN_ALI) {
+    if (dev->vendor == VEN_ALI) {
+	if (port == 0x0001) {
+		acpi_log("ALi SOFT SMI# status set (%i)\n", dev->apm->do_smi);
+		dev->apm->cmd = val;
+		// acpi_raise_smi(dev, dev->apm->do_smi);
+		if (dev->apm->do_smi)
+			smi_line = 1;
+		dev->regs.ali_soft_smi = 1;
+	} else if (port == 0x0003)
+		dev->apm->stat = val;
+    } else {
+	if (port == 0x0000) {
+		dev->apm->cmd = val;
 		if (dev->vendor == VEN_INTEL)
 			dev->regs.glbsts |= 0x20;
 		acpi_raise_smi(dev, dev->apm->do_smi);
-	}
-    } else
-	dev->apm->stat = val;
+	} else
+		dev->apm->stat = val;
+    }
 }
 
 
@@ -1554,16 +1546,20 @@ acpi_apm_in(uint16_t port, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
     uint8_t ret = 0xff;
-    uint16_t old_port = port;
 
     port &= 0x0001;
 
-    if ((old_port == 0x00b1) && (dev->vendor == VEN_ALI))
-	ret = dev->apm->cmd;
-    else if (port == 0x0000)
-	ret = dev->apm->cmd;
-    else
-	ret = dev->apm->stat;
+    if (dev->vendor == VEN_ALI) {
+	if (port == 0x0001)
+		ret = dev->apm->cmd;
+	else if (port == 0x0003)
+		ret = dev->apm->stat;
+    } else {
+	if (port == 0x0000)
+		ret = dev->apm->cmd;
+	else
+		ret = dev->apm->stat;
+    }
 
     acpi_log("[%04X:%08X] APM read: %04X = %02X\n", CS, cpu_state.pc, port, ret);
 
@@ -1660,8 +1656,8 @@ acpi_init(const device_t *info)
 		dev->irq_mode = 2;
 	dev->apm = device_add(&apm_pci_acpi_device);
 	if (dev->vendor == VEN_ALI) {
-		pclog("Setting I/O handler at port B1\n");
-		io_sethandler(0x00b1, 0x0001, acpi_apm_in, NULL, NULL, acpi_apm_out, NULL, NULL, dev);
+		acpi_log("Setting I/O handler at port B1\n");
+		io_sethandler(0x00b1, 0x0003, acpi_apm_in, NULL, NULL, acpi_apm_out, NULL, NULL, dev);
 	} else
 		io_sethandler(0x00b2, 0x0002, acpi_apm_in, NULL, NULL, acpi_apm_out, NULL, NULL, dev);
     } else if (dev->vendor == VEN_VIA) {

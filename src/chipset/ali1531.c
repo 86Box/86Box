@@ -34,6 +34,7 @@
 
 #include <86box/chipset.h>
 
+
 typedef struct ali1531_t
 {
     uint8_t pci_conf[256];
@@ -42,24 +43,46 @@ typedef struct ali1531_t
 } ali1531_t;
 
 
+#ifdef ENABLE_ALI1531_LOG
+int ali1531_do_log = ENABLE_ALI1531_LOG;
 static void
-ali1531_smm_recalc(uint8_t val, ali1531_t *dev)
+ali1531_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (ali1531_do_log)
+    {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#define ali1531_log(fmt, ...)
+#endif
+
+
+static void
+ali1531_smram_recalc(uint8_t val, ali1531_t *dev)
 {
     smram_disable_all();
 
     if (val & 1) {
 	switch (val & 0x0c) {
 		case 0x00:
+			ali1531_log("SMRAM: D0000 -> B0000 (%i)\n", val & 2);
 			smram_enable(dev->smram, 0xd0000, 0xb0000, 0x10000, val & 2, 1);
 			if (val & 0x10)
 				mem_set_mem_state_smram_ex(1, 0xd0000, 0x10000, 0x02);
 			break;
 		case 0x04:
+			ali1531_log("SMRAM: A0000 -> A0000 (%i)\n", val & 2);
 			smram_enable(dev->smram, 0xa0000, 0xa0000, 0x20000, val & 2, 1);
 			if (val & 0x10)
 				mem_set_mem_state_smram_ex(1, 0xa0000, 0x20000, 0x02);
 			break;
 		case 0x08:
+			ali1531_log("SMRAM: 30000 -> B0000 (%i)\n", val & 2);
 			smram_enable(dev->smram, 0x30000, 0xb0000, 0x10000, val & 2, 1);
 			if (val & 0x10)
 				mem_set_mem_state_smram_ex(1, 0x30000, 0x10000, 0x02);
@@ -95,8 +118,8 @@ ali1531_shadow_recalc(int cur_reg, ali1531_t *dev)
 			shadowbios_write |= 1;
 	}
 
-	pclog("%08X-%08X shadow: R%c, W%c\n", base, base + 0x00003fff,
-	      (dev->pci_conf[r_reg] & (1 << bit)) ? 'I' : 'E', (dev->pci_conf[w_reg] & (1 << bit)) ? 'I' : 'E');
+	ali1531_log("%08X-%08X shadow: R%c, W%c\n", base, base + 0x00003fff,
+		    (dev->pci_conf[r_reg] & (1 << bit)) ? 'I' : 'E', (dev->pci_conf[w_reg] & (1 << bit)) ? 'I' : 'E');
         mem_set_mem_state_both(base, 0x00004000, flags);
     }
 
@@ -181,7 +204,7 @@ ali1531_write(int func, int addr, uint8_t val, void *priv)
 
 	case 0x48:	/* SMRAM */
 		dev->pci_conf[addr] = val;
-		ali1531_smm_recalc((val >> 1) & 7, dev);
+		ali1531_smram_recalc(val, dev);
 		break;
 
 	case 0x49:

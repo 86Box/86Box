@@ -493,10 +493,8 @@ extern int	machine_at_ficpa2012_init(const machine_t *);
 extern int	machine_at_r534f_init(const machine_t *);
 extern int	machine_at_ms5146_init(const machine_t *);
 
-#if defined(DEV_BRANCH) && defined(USE_M154X)
 extern int	machine_at_m560_init(const machine_t *);
 extern int	machine_at_ms5164_init(const machine_t *);
-#endif
 
 /* m_at_sockets7.c */
 extern int	machine_at_ax59pro_init(const machine_t *);

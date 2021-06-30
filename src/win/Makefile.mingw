@@ -46,10 +46,7 @@ ifeq ($(DEV_BUILD), y)
   HEDAKA	:= y
  endif
  ifndef I450KX
-  I450KX		:= y
- endif
- ifndef M154X
-  M154X		:= y
+  I450KX	:= y
  endif
  ifndef LASERXT
   LASERXT	:= y
@@ -77,9 +74,6 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef SIO_DETECT
   SIO_DETECT	:= y
- endif
- ifndef M154X
-  M154X		:= y
  endif
  ifndef M6117
   M6117		:= y
@@ -127,9 +121,6 @@ else
  ifndef LASERXT
   LASERXT	:= n
  endif
- ifndef M154X
-  M154X		:= n
- endif
  ifndef MGA
   MGA		:= n
  endif
@@ -153,9 +144,6 @@ else
  endif
  ifndef SIO_DETECT
   SIO_DETECT	:= n
- endif
- ifndef M154X
-  M154X		:= n
  endif
  ifndef M6117
   M6117		:= n
@@ -563,11 +551,6 @@ OPTS		+= -DUSE_SIO_DETECT
 DEVBROBJ	+= sio_detect.o
 endif
 
-ifeq ($(M154X), y)
-OPTS		+= -DUSE_M154X
-DEVBROBJ	+= ali1531.o ali1543.o
-endif
-
 ifeq ($(M6117), y)
 OPTS		+= -DUSE_M6117
 DEVBROBJ	+= ali6117.o
@@ -618,7 +601,7 @@ CPUOBJ		:= cpu.o cpu_table.o fpu.o x86.o \
 
 CHIPSETOBJ	:= acc2168.o \
 		    cs4031.o cs8230.o \
-		    ali1217.o ali1429.o ali1489.o \
+		    ali1217.o ali1429.o ali1489.o ali1531.o ali1543.o \
 		    gc100.o headland.o \
 		    intel_82335.o intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
 		    neat.o \
