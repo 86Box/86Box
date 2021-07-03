@@ -1561,9 +1561,10 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 			while (count--) {
 				READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
 				
+				/*Note by TC1995: I suppose the x/y clipping max is always more than 0 in the TGUI 96xx, but the TGUI 9440 lacks clipping*/
 				if (steep) {
-					if (dx >= tgui->accel.left && dx <= tgui->accel.right &&
-						dy >= tgui->accel.top && dy <= tgui->accel.bottom) {
+					if ((tgui->type == TGUI_9440) || (tgui->type >= TGUI_9680 && dx >= tgui->accel.left && dx <= tgui->accel.right &&
+						dy >= tgui->accel.top && dy <= tgui->accel.bottom)) {
 						READ(dx + (dy * tgui->accel.pitch), dst_dat);
 
 						pat_dat = tgui->accel.fg_col;
@@ -1578,8 +1579,8 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 						WRITE(dx + (dy * tgui->accel.pitch), out);
 					}
 				} else {
-					if (dy >= tgui->accel.left && dy <= tgui->accel.right &&
-						dx >= tgui->accel.top && dx <= tgui->accel.bottom) {					
+					if ((tgui->type == TGUI_9440) || (tgui->type >= TGUI_9680 && dy >= tgui->accel.left && dy <= tgui->accel.right &&
+						dx >= tgui->accel.top && dx <= tgui->accel.bottom)) {					
 						READ(dy + (dx * tgui->accel.pitch), dst_dat);
 
 						pat_dat = tgui->accel.fg_col;
