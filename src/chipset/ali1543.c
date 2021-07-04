@@ -34,10 +34,12 @@
 #include <86box/fdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
+#include <86box/keyboard.h>
 #include <86box/lpt.h>
 #include <86box/mem.h>
 #include <86box/nvr.h>
 #include <86box/pci.h>
+#include <86box/pic.h>
 #include <86box/port_92.h>
 #include <86box/serial.h>
 #include <86box/smbus.h>
@@ -113,11 +115,15 @@ static void	ali5229_ide_irq_handler(ali1543_t *dev);
 
 static void	ali5229_write(int func, int addr, uint8_t val, void *priv);
 
+static void	ali7101_write(int func, int addr, uint8_t val, void *priv);
+static uint8_t	ali7101_read(int func, int addr, void *priv);
+
 
 static void
 ali1533_write(int func, int addr, uint8_t val, void *priv)
 {
     ali1543_t *dev = (ali1543_t *)priv;
+    int irq;
     ali1543_log("M1533: dev->pci_conf[%02x] = %02x\n", addr, val);
 
     if (func > 0)
@@ -547,7 +553,6 @@ ali5229_ide_irq_handler(ali1543_t *dev)
 
 
 static void
-ali5229_ide_handler(ali1543_t *dev)
 ali5229_ide_handler(ali1543_t *dev)
 {
     uint32_t ch = 0;
