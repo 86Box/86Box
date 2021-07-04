@@ -296,6 +296,7 @@ typedef struct voodoo_t
         int swap_pending;
 
         int bilinear_enabled;
+		int dithersub_enabled;
 
         int fb_size;
         uint32_t fb_mask;

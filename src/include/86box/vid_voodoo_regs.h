@@ -369,6 +369,7 @@ enum
         FBZ_DRAW_MASK  = 0xc000,
 
         FBZ_DEPTH_BIAS = (1 << 16),
+		FBZ_DITHER_SUB = (1 << 19),
 
         FBZ_DEPTH_SOURCE = (1 << 20),
 
@@ -689,3 +690,4 @@ enum
 #define depth_op ( (params->fbzMode >> 5) & 7)
 #define dither ( params->fbzMode & FBZ_DITHER)
 #define dither2x2 (params->fbzMode & FBZ_DITHER_2x2)
+#define dithersub (params->fbzMode & FBZ_DITHER_SUB)
