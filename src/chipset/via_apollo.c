@@ -213,13 +213,12 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 	return;
 	
     /*Read-only addresses*/
-    if ((addr < 4) || ((addr >= 5) && (addr < 7)) || ((addr >= 8) && (addr < 0xd)) ||
-	((addr >= 0xe) && (addr < 0x12)) || ((addr >= 0x14) && (addr < 0x50)) ||
-	(addr == 0x69) || ((addr >= 0x79) && (addr < 0x7e)) ||
-	((addr >= 0x81) && (addr < 0x84)) || ((addr >= 0x85) && (addr < 0x88)) ||
-	((addr >= 0x8c) && (addr < 0xa8)) || ((addr >= 0xaa) && (addr < 0xac)) ||
-	((addr >= 0xad) && (addr < 0xf0)) || ((addr >= 0xf8) && (addr < 0xfc)) ||
-	(addr == 0xfd))
+    if ((addr < 4) || ((addr > 5) && (addr < 7)) || ((addr >= 8) && (addr < 0xd)) ||
+	((addr >= 0xe) && (addr != 0x0f) && (addr < 0x12)) || ((addr >= 0x14) && (addr < 0x50)) ||
+	((addr > 0x7a) && (addr < 0x7e)) || ((addr >= 0x81) && (addr < 0x84)) ||
+	((addr >= 0x85) && (addr < 0x88)) || ((addr >= 0x8c) && (addr < 0xa8)) ||
+	((addr >= 0xaa) && (addr < 0xac)) || ((addr > 0xad) && (addr < 0xf0)) ||
+	((addr >= 0xf8) && (addr < 0xfc)))
 	return;
     if (((addr == 0x78) || (addr >= 0xad)) && (dev->id == VIA_597))
 	return;

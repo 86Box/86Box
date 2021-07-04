@@ -1303,11 +1303,11 @@ static void
 		regs[0x0d] = 0x20;
 		/* According to information from FreeBSD 3.x source code:
 			0x00 = 486DX, 0x20 = 486SX, 0x40 = 486DX2 or 486DX4, 0x80 = Pentium OverDrive. */
-		if (!(hasfpu) && (cpu_multi = 1))
+		if (!(hasfpu) && (cpu_multi == 1))
 			regs[0x50] = 0x20;
-		else if (!(hasfpu) && (cpu_multi = 2))
+		else if (!(hasfpu) && (cpu_multi == 2))
 			regs[0x50] = 0x60;	/* Guess based on the SX, DX, and DX2 values. */
-		else if (hasfpu && (cpu_multi = 1))
+		else if (hasfpu && (cpu_multi == 1))
 			regs[0x50] = 0x00;
 		else if (hasfpu && (cpu_multi >= 2) && !(cpu_s->cpu_type == CPU_P24T))
 			regs[0x50] = 0x40;

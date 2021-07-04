@@ -199,10 +199,10 @@ ali1489_defaults(ali1489_t *dev)
     smi_line = 0;
     in_smm = 0;
 
-    pci_set_irq(PCI_INTA, PCI_IRQ_DISABLED);
-    pci_set_irq(PCI_INTB, PCI_IRQ_DISABLED);
-    pci_set_irq(PCI_INTC, PCI_IRQ_DISABLED);
-    pci_set_irq(PCI_INTD, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTC, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
 }
 
 
@@ -570,10 +570,10 @@ ali1489_reset(void *priv)
 {
     ali1489_t *dev = (ali1489_t *)priv;
 
-    pci_set_irq(PCI_INTA, PCI_IRQ_DISABLED);
-    pci_set_irq(PCI_INTB, PCI_IRQ_DISABLED);
-    pci_set_irq(PCI_INTC, PCI_IRQ_DISABLED);
-    pci_set_irq(PCI_INTD, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTC, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
 
     ali1489_defaults(dev);
 }

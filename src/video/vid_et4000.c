@@ -464,7 +464,8 @@ et4000_kasan_out(uint16_t addr, uint8_t val, void *priv)
 					break;
 				case 1:
 				case 2:
-					et4000->kasan_cfg_regs[et4000->kasan_cfg_index - 0xF0] = val;
+					if ((et4000->kasan_cfg_index - 0xF0) <= 16)
+						et4000->kasan_cfg_regs[et4000->kasan_cfg_index - 0xF0] = val;
 					io_removehandler(et4000->kasan_access_addr, 0x0008, et4000_kasan_in, NULL, NULL, et4000_kasan_out, NULL, NULL, et4000);
 					et4000->kasan_access_addr = (et4000->kasan_cfg_regs[2] << 8) | et4000->kasan_cfg_regs[1];
 					io_sethandler(et4000->kasan_access_addr, 0x0008, et4000_kasan_in, NULL, NULL, et4000_kasan_out, NULL, NULL, et4000);
@@ -507,8 +508,10 @@ et4000_kasan_out(uint16_t addr, uint8_t val, void *priv)
 			case 3:
 			case 4:
 			case 5:
-				if (et4000->kasan_cfg_regs[0] & 1)
-					et4000->kasan_font_data[addr - (((et4000->kasan_cfg_regs[2] << 8) | (et4000->kasan_cfg_regs[1])) + 3)] = val;
+				if (et4000->kasan_cfg_regs[0] & 1) {
+					if ((addr - (((et4000->kasan_cfg_regs[2] << 8) | (et4000->kasan_cfg_regs[1])) + 3)) <= 4)
+						et4000->kasan_font_data[addr - (((et4000->kasan_cfg_regs[2] << 8) | (et4000->kasan_cfg_regs[1])) + 3)] = val;
+				}
 				break;
 			case 6:
 				if ((et4000->kasan_cfg_regs[0] & 1) && (et4000->kasan_font_data[3] & !(val & 0x80)) && (et4000->get_korean_font_base & 0x7F) >= 0x20 && (et4000->get_korean_font_base & 0x7F) < 0x7F) {

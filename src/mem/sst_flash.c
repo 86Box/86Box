@@ -402,8 +402,10 @@ sst_close(void *p)
 
     if (dev->dirty) {
 	f = nvr_fopen(flash_path, "wb");
-	fwrite(&(dev->array[0x00000]), dev->size, 1, f);
-	fclose(f);
+	if (f != NULL) {
+		fwrite(&(dev->array[0x00000]), dev->size, 1, f);
+		fclose(f);
+	}
     }
 
     free(dev->array);

@@ -187,13 +187,14 @@ lm75_remap(lm75_t *dev, uint8_t addr)
 {
     lm75_log("LM75: remapping to SMBus %02Xh\n", addr);
 
-    if (dev->i2c_addr < 0x80)
+    if (dev->i2c_enabled)
 	i2c_removehandler(i2c_smbus, dev->i2c_addr, 1, lm75_i2c_start, lm75_i2c_read, lm75_i2c_write, NULL, dev);
 
     if (addr < 0x80)
 	i2c_sethandler(i2c_smbus, addr, 1, lm75_i2c_start, lm75_i2c_read, lm75_i2c_write, NULL, dev);
 
-    dev->i2c_addr = addr;
+    dev->i2c_addr = addr & 0x7f;
+    dev->i2c_enabled = !!(addr & 0x80);
 }
 
 
