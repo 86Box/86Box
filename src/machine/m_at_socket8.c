@@ -62,6 +62,8 @@ machine_at_p6rp4_init(const machine_t *model)
     pci_register_slot(0x08, PCI_CARD_IDE, 0, 0, 0, 0);
     device_add(&i450kx_device);
     device_add(&sio_zb_device);
+    // device_add(&keyboard_ps2_ami_pci_device);
+    /* Input port bit 2 must be 1 or CMOS Setup is disabled. */
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&fdc37c665_device);
     device_add(&ide_cmd640_pci_device);

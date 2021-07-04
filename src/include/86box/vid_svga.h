@@ -23,8 +23,9 @@
 #define FLAG_EXT_WRITE		4
 #define FLAG_LATCH8		8
 #define FLAG_NOSKEW		16
-#define FLAG_ADDR_BY16	32
 
+#define FLAG_ADDR_BY16	32
+#define FLAG_128K_MASK		64
 
 typedef struct {
     int ena,
@@ -49,7 +50,8 @@ typedef struct svga_t
 	    lowres, interlace, linedbl, rowcount,
 	    set_reset_disabled, bpp, ramdac_type, fb_only,
 	    readmode, writemode, readplane,
-	    hwcursor_oddeven, dac_hwcursor_oddeven, overlay_oddeven;
+	    hwcursor_oddeven, dac_hwcursor_oddeven, overlay_oddeven,
+	    fcr, hblank_overscan;
 
     int dac_addr, dac_pos, dac_r, dac_g,
 	vtotal, dispend, vsyncstart, split, vblankstart,
@@ -59,8 +61,9 @@ typedef struct svga_t
 	con, cursoron, blink, scrollcache, char_width,
 	firstline, lastline, firstline_draw, lastline_draw,
 	displine, fullchange, x_add, y_add, pan,
-	vram_display_mask, vidclock,
-	hwcursor_on, dac_hwcursor_on, overlay_on, set_override;
+	vram_display_mask, vidclock, dots_per_clock, hblank_ext,
+	hwcursor_on, dac_hwcursor_on, overlay_on, set_override,
+	hblankstart, hblankend, hblank_sub, hblank_end_val, hblank_end_len;
 
     /*The three variables below allow us to implement memory maps like that seen on a 1MB Trio64 :
       0MB-1MB - VRAM

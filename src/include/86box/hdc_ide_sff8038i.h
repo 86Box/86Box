@@ -25,8 +25,8 @@ typedef struct
 		addr;
     int		count, eot,
 		slot,
-		irq_mode[2], irq_pin,
-		irq_line;
+		irq_mode[2], irq_level[2],
+		irq_pin, irq_line;
 } sff8038i_t;
 
 
@@ -47,3 +47,5 @@ extern void	sff_set_irq_line(sff8038i_t *dev, int irq_line);
 
 extern void	sff_set_irq_mode(sff8038i_t *dev, int channel, int irq_mode);
 extern void	sff_set_irq_pin(sff8038i_t *dev, int irq_pin);
+
+extern void	sff_set_irq_level(sff8038i_t *dev, int channel, int irq_level);

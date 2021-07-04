@@ -59,7 +59,7 @@ static uint8_t		pci_pmc = 0, last_pci_card = 0, last_normal_pci_card = 0, last_p
 static uint8_t		pci_card_to_slot_mapping[256][32], pci_bus_number_to_index_mapping[256];
 static uint8_t		pci_irqs[16], pci_irq_level[16];
 static uint64_t		pci_irq_hold[16];
-static pci_mirq_t	pci_mirqs[4];
+static pci_mirq_t	pci_mirqs[8];
 static int		pci_type,
 			pci_switch,
 			pci_index,
@@ -74,6 +74,7 @@ static int		trc_reg = 0;
 static void		pci_reset_regs(void);
 
 
+// #define ENABLE_PCI_LOG 1
 #ifdef ENABLE_PCI_LOG
 int pci_do_log = ENABLE_PCI_LOG;
 
