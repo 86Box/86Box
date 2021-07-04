@@ -1607,6 +1607,9 @@ acpi_reset(void *priv)
 		dev->regs.gpi_val |= 0x00000004;
     }
 
+    /* Power on always generates a resume event. */
+    dev->regs.pmsts |= 0x8000;
+
     acpi_rtc_status = 0;
 }
 
