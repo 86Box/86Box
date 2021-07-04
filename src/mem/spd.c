@@ -388,7 +388,8 @@ void
 spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit)
 {
     uint8_t row, dimm, drb, apollo = 0;
-    uint16_t size, rows[SPD_MAX_SLOTS];
+    uint16_t size, size_acc;
+    uint16_t rows[SPD_MAX_SLOTS];
 
     /* Special case for VIA Apollo Pro family, which jumps from 5F to 56. */
     if (reg_max < reg_min) {
@@ -426,15 +427,16 @@ spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint
 	if (apollo && ((drb & 0xf) < 0xa))
 		drb = apollo + (drb & 0xf);
 
-	/* Write DRB register, adding the previous DRB's value. */
+	/* Calculate previous and new size. */
 	if (row == 0)
-		regs[drb] = 0;
-	else if ((apollo) && (drb == apollo))
-		regs[drb] = regs[drb | 0xf]; /* 5F comes before 56 */
+		size_acc = 0;
 	else
-		regs[drb] = regs[drb - 1];
-	if (size)
-		regs[drb] += size / drb_unit; /* this will intentionally overflow on 440GX with 2 GB */
+		size_acc += (size / drb_unit);
+
+	/* Write DRB register, adding the previous DRB's value. */
+	regs[drb] = size_acc & 0xff;
+	regs[drb + 1] = (regs[drb + 1] & 0xf0) | ((size_acc >> 8) & 0x0f);
+
 	spd_log("SPD: DRB[%d] = %d MB (%02Xh raw)\n", row >> 1, size, regs[drb]);
     }
 }
