@@ -167,28 +167,6 @@ dma_block_transfer(int channel)
 
 
 static void
-dma_mem_to_mem_transfer(void)
-{
-    int i;
-
-    if ((dma[0].mode & 0x0c) != 0x08)
-	fatal("DMA memory to memory transfer: channel 0 mode not read\n");
-    if ((dma[1].mode & 0x0c) != 0x04)
-	fatal("DMA memory to memory transfer: channel 1 mode not write\n");
-
-    dma_req_is_soft = 1;
-
-    for (i = 0; i <= dma[0].cb; i++)
-	dma_buffer[i] = dma_channel_read(0);
-
-    for (i = 0; i <= dma[1].cb; i++)
-	dma_channel_write(1, dma_buffer[i]);
-
-    dma_req_is_soft = 0;
-}
-
-
-static void
 dma_sg_write(uint16_t port, uint8_t val, void *priv)
 {
     dma_t *dev = (dma_t *) priv;
@@ -528,18 +506,14 @@ dma_write(uint16_t addr, uint8_t val, void *priv)
 	case 8: /*Control register*/
 		dma_command[0] = val;
 		if (val & 0x01)
-			pclog("[%08X:%04X] Memory-to-memory enable\n", CS, cpu_state.pc);
+			fatal("Memory-to-memory enable\n");
 		return;
 
 	case 9: /*Request register */
 		channel = (val & 3);
 		if (val & 4) {
 			dma_stat_rq_pc |= (1 << channel);
-			if ((channel == 0) && (dma_command[0] & 0x01)) {
-				pclog("Memory to memory transfer start\n");
-				dma_mem_to_mem_transfer();
-			} else
-				dma_block_transfer(channel);
+			dma_block_transfer(channel);
 		} else
 			dma_stat_rq_pc &= ~(1 << channel);
 		break;

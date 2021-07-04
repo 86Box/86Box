@@ -591,18 +591,20 @@ kbd_read(uint16_t port, void *priv)
 	case 0x62:
 		if (kbd->type == 0)
 			ret = 0x00;
-		else if (kbd->type == 1) {
+        else if (kbd->type == 1) {
 			if (kbd->pb & 0x04)
-				ret = ((mem_size - 64) / 32) & 0x0f;
+				ret = ((mem_size-64) / 32) & 0x0f;
 			else
-				ret = ((mem_size - 64) / 32) >> 4;
-		}  else if (kbd->type == 8 || kbd->type == 9) {
-			/* Olivetti M19 or Zenith Data Systems Z-151 */
-			if (kbd->pb & 0x04)
+				ret = ((mem_size-64) / 32) >> 4;
+		} 
+        else if (kbd->type == 8 || kbd->type == 9) {
+            /* Olivetti M19 or Zenith Data Systems Z-151 */
+            if (kbd->pb & 0x04)
 				ret = kbd->pd & 0xbf;
-			else 
-				ret = kbd->pd >> 4;
-		} else {
+            else 
+                ret = kbd->pd >> 4;
+        } 
+        else {
 			if (kbd->pb & 0x08)
 				ret = kbd->pd >> 4;
 			else {
@@ -630,6 +632,7 @@ kbd_read(uint16_t port, void *priv)
 	case 0x63:
 		if ((kbd->type == 2) || (kbd->type == 3) || (kbd->type == 4) || (kbd->type == 6))
 			ret = kbd->pd;
+        
 		break;
     }
 
@@ -679,116 +682,119 @@ kbd_init(const device_t *info)
 
     video_reset(gfxcard);
 
-    if ((kbd->type <= 3) || (kbd->type == 4) || (kbd->type == 6)) {
+    if (kbd->type <= 3 || kbd-> type == 8) {
+        
         /* DIP switch readout: bit set = OFF, clear = ON. */
-        if (kbd->type == 8)
-		/* Olivetti M19
-		 * Jumpers J1, J2 - monitor type. 
-		 * 01 - mono (high-res)
-		 * 10 - color (low-res, disables 640x400x2 mode)
-		 * 00 - autoswitching
-		 */
-		kbd->pd |= 0x00;
-	else
-		/* Switches 7, 8 - floppy drives. */
-		kbd->pd = get_fdd_switch_settings();
+        if (kbd->type != 8)
+            /* Switches 7, 8 - floppy drives. */
+            kbd->pd = get_fdd_switch_settings();
+        else 
+            /* Olivetti M19
+             * Jumpers J1, J2 - monitor type. 
+             * 01 - mono (high-res)
+             * 10 - color (low-res, disables 640x400x2 mode)
+             * 00 - autoswitching
+             */
+            kbd->pd |= 0x00;
+        
+        kbd->pd |= get_videomode_switch_settings();
+        
+        /* Switches 3, 4 - memory size. */
+        // Note to Compaq/Toshiba keyboard maintainers: type 4 and 6 will never be activated in this block
+        // Should the top if be closed right after setting floppy drive count?
+        if ((kbd->type == 3) || (kbd->type == 4) || (kbd->type == 6)) {
+            switch (mem_size) {
+                case 256:
+                    kbd->pd |= 0x00;
+                    break;
+                case 512:
+                    kbd->pd |= 0x04;
+                    break;
+                case 576:
+                    kbd->pd |= 0x08;
+                    break;
+                case 640:
+                default:
+                    kbd->pd |= 0x0c;
+                    break;
+            }
+        } else if (kbd->type >= 1) {
+            switch (mem_size) {
+                case 64:
+                    kbd->pd |= 0x00;
+                    break;
+                case 128:
+                    kbd->pd |= 0x04;
+                    break;
+                case 192:
+                    kbd->pd |= 0x08;
+                    break;
+                case 256:
+                default:
+                    kbd->pd |= 0x0c;
+                    break;
+            }
+        } else {
+            switch (mem_size) {
+                case 16:
+                    kbd->pd |= 0x00;
+                    break;
+                case 32:
+                    kbd->pd |= 0x04;
+                    break;
+                case 48:
+                    kbd->pd |= 0x08;
+                    break;
+                case 64:
+                default:
+                    kbd->pd |= 0x0c;
+                    break;
+            }
+        }
 
-	kbd->pd |= get_videomode_switch_settings();
+        /* Switch 2 - 8087 FPU. */
+        if (hasfpu)
+            kbd->pd |= 0x02;
 
-	/* Switches 3, 4 - memory size. */
-	if ((kbd->type == 3) || (kbd->type == 4) || (kbd->type == 6)) {
-		switch (mem_size) {
-			case 256:
-				kbd->pd |= 0x00;
-				break;
-			case 512:
-				kbd->pd |= 0x04;
-				break;
-			case 576:
-				kbd->pd |= 0x08;
-				break;
-			case 640:
-			default:
-				kbd->pd |= 0x0c;
-				break;
-		}
-	} else if (kbd->type >= 1) {
-		switch (mem_size) {
-			case 64:
-				kbd->pd |= 0x00;
-				break;
-			case 128:
-				kbd->pd |= 0x04;
-				break;
-			case 192:
-				kbd->pd |= 0x08;
-				break;
-			case 256:
-			default:
-				kbd->pd |= 0x0c;
-				break;
-		}
-	} else {
-		switch (mem_size) {
-			case 16:
-				kbd->pd |= 0x00;
-				break;
-			case 32:
-				kbd->pd |= 0x04;
-				break;
-			case 48:
-				kbd->pd |= 0x08;
-				break;
-			case 64:
-			default:
-				kbd->pd |= 0x0c;
-				break;
-		}
-	}
-
-	/* Switch 2 - 8087 FPU. */
-	if (hasfpu)
-		kbd->pd |= 0x02;
-
-	/* Switch 1 - always off. */
-	kbd->pd |= 0x01;
+        /* Switch 1 - always off. */
+        kbd->pd |= 0x01;
     } else if (kbd-> type == 9) {
-	/* Zenith Data Systems Z-151
-	 * SW2 switch settings:
-	 * bit 7: monitor frequency
-	 * bits 5-6: autoboot (00-11 resident monitor, 10 hdd, 01 fdd)
-	 * bits 0-4: installed memory
-	 */
-	kbd->pd = 0x20;
-	switch (mem_size) {
-		case 128:
-			kbd->pd |= 0x02;
-			break;
-		case 192:
-			kbd->pd |= 0x04;
-			break;
-		case 256:
-			kbd->pd |= 0x06;
-			break;
-		case 320:
-			kbd->pd |= 0x08;
-			break;
-		case 384:
-			kbd->pd |= 0x0a;
-			break;
-		case 448:
-			kbd->pd |= 0x0c;
-			break;
-		case 512:
-			kbd->pd |= 0x0e;
-			break;
-		case 576:
-			kbd->pd |= 0x10;
-			break;
-		case 640:
-		default:
-			kbd->pd |= 0x12;
-			break;
+        /* Zenith Data Systems Z-151
+         * SW2 switch settings:
+         * bit 7: monitor frequency
+         * bits 5-6: autoboot (00-11 resident monitor, 10 hdd, 01 fdd)
+         * bits 0-4: installed memory
+         */
+        kbd->pd = 0x20;
+        switch (mem_size) {
+            case 128:
+                kbd->pd |= 0x02;
+                break;
+            case 192:
+                kbd->pd |= 0x04;
+                break;
+            case 256:
+                kbd->pd |= 0x02|0x04;
+                break;
+            case 320:
+                kbd->pd |= 0x08;
+                break;
+            case 384:
+                kbd->pd |= 0x02|0x08;
+                break;
+            case 448:
+                kbd->pd |= 0x04|0x08;
+                break;
+            case 512:
+                kbd->pd |= 0x02|0x04|0x08;
+                break;
+            case 576:
+                kbd->pd |= 0x10;
+                break;
+            case 640:
+            default:
+                kbd->pd |= 0x02|0x10;
+                break;
         }
     }
 

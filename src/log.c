@@ -43,9 +43,6 @@ typedef struct
 } log_t;
 
 
-extern FILE	*stdlog;			/* file to log output to */
-
-
 void
 log_set_suppr_seen(void *priv, int suppr_seen)
 {

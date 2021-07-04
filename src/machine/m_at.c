@@ -56,7 +56,6 @@
 #include <86box/lpt.h>
 #include <86box/rom.h>
 #include <86box/hdc.h>
-#include <86box/port_6x.h>
 #include <86box/machine.h>
 
 
@@ -69,10 +68,6 @@ machine_at_common_init_ex(const machine_t *model, int type)
     pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_at);
     pic2_init();
     dma16_init();
-
-    if (!(type & 4))
-	device_add(&port_6x_device);
-    type &= 3;
 
     if (type == 1)
 	device_add(&ibmat_nvr_device);

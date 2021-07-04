@@ -15,7 +15,6 @@
 #include <86box/nvr.h>
 #include <86box/keyboard.h>
 #include <86box/lpt.h>
-#include <86box/port_6x.h>
 #include <86box/port_92.h>
 #include <86box/serial.h>
 #include <86box/hdc.h>
@@ -187,8 +186,7 @@ machine_ps2_m30_286_init(const machine_t *model)
 	refresh_at_enable = 1;
         pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_at);
         dma16_init();
-	device_add(&keyboard_ps2_device);
-	device_add(&port_6x_ps2_device);
+	device_add(&keyboard_ps2_ps2_device);
 	device_add(&ps_nvr_device);
         pic2_init();
         ps2board_init();

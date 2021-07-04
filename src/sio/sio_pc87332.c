@@ -366,16 +366,6 @@ const device_t pc87332_398_ide_device = {
 };
 
 
-const device_t pc87332_398_ide_sec_device = {
-    "National Semiconductor PC87332 Super I/O (Port 398h) (With Secondary IDE)",
-    0,
-    0x201,
-    pc87332_init, pc87332_close, NULL,
-    { NULL }, NULL, NULL,
-    NULL
-};
-
-
 const device_t pc87332_398_ide_fdcon_device = {
     "National Semiconductor PC87332 Super I/O (Port 398h) (With IDE and FDC on)",
     0,

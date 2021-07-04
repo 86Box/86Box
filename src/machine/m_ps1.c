@@ -59,7 +59,6 @@
 #include <86box/hdc_ide.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
-#include <86box/port_6x.h>
 #include <86box/sound.h>
 #include <86box/snd_sn76489.h>
 #include <86box/video.h>
@@ -515,7 +514,6 @@ ps1_common_init(const machine_t *model)
     pic2_init();
 
     device_add(&keyboard_ps2_ps1_device);
-    device_add(&port_6x_device);
 
     /* Audio uses ports 200h and 202-207h, so only initialize gameport on 201h. */
     standalone_gameport_type = &gameport_201_device;

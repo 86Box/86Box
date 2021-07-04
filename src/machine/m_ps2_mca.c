@@ -63,7 +63,6 @@
 #include <86box/keyboard.h>
 #include <86box/lpt.h>
 #include <86box/mouse.h>
-#include <86box/port_6x.h>
 #include <86box/port_92.h>
 #include <86box/serial.h>
 #include <86box/video.h>
@@ -794,8 +793,7 @@ static void ps2_mca_board_common_init()
         io_sethandler(0x0096, 0x0001, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
         io_sethandler(0x0100, 0x0008, ps2_mca_read, NULL, NULL, ps2_mca_write, NULL, NULL, NULL);
 
-	device_add(&port_6x_ps2_device);
-	device_add(&port_92_device);
+	device_add(&port_92_device);        
 
         ps2.setup = 0xff;
         

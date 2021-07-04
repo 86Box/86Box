@@ -384,62 +384,6 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
 }
 
 
-void
-spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit)
-{
-    uint8_t row, dimm, drb, apollo = 0;
-    uint16_t size, rows[SPD_MAX_SLOTS];
-
-    /* Special case for VIA Apollo Pro family, which jumps from 5F to 56. */
-    if (reg_max < reg_min) {
-	apollo = reg_max;
-	reg_max = reg_min + 7;
-    }
-
-    /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
-    if (!spd_present) {
-	dimm = ((reg_max - reg_min) + 1) >> 2; /* amount of "DIMM"s, also used to determine the maximum "DIMM" size */
-	spd_populate(rows, dimm, mem_size >> 10, drb_unit, 1 << (log2i((machines[machine].max_ram >> 10) / dimm)), 0);
-    }
-
-    /* Write DRBs for each row. */
-    spd_log("SPD: Writing DRBs... regs=[%02X:%02X] unit=%d\n", reg_min, reg_max, drb_unit);
-    for (row = 0; row <= (reg_max - reg_min); row += 2) {
-	dimm = (row >> 2);
-	size = 0;
-
-	if (spd_present) {
-		/* SPD enabled: use SPD info for this slot, if present. */
-		if (spd_modules[dimm]) {
-			if (spd_modules[dimm]->row1 < drb_unit) /* hack within a hack: turn a double-sided DIMM that is too small into a single-sided one */
-				size = ((row >> 1) & 1) ? 0 : drb_unit;
-			else
-				size = ((row >> 1) & 1) ? spd_modules[dimm]->row2 : spd_modules[dimm]->row1;
-		}
-	} else {
-		/* No SPD: use the values calculated above. */
-		size = (rows[dimm] >> 1);
-	}
-
-	/* Determine the DRB register to write. */
-	drb = reg_min + row;
-	if (apollo && ((drb & 0xf) < 0xa))
-		drb = apollo + (drb & 0xf);
-
-	/* Write DRB register, adding the previous DRB's value. */
-	if (row == 0)
-		regs[drb] = 0;
-	else if ((apollo) && (drb == apollo))
-		regs[drb] = regs[drb | 0xf]; /* 5F comes before 56 */
-	else
-		regs[drb] = regs[drb - 1];
-	if (size)
-		regs[drb] += size / drb_unit; /* this will intentionally overflow on 440GX with 2 GB */
-	spd_log("SPD: DRB[%d] = %d MB (%02Xh raw)\n", row >> 1, size, regs[drb]);
-    }
-}
-
-
 static const device_t spd_device = {
     "Serial Presence Detect ROMs",
     DEVICE_ISA,

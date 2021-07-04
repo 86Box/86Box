@@ -392,12 +392,10 @@ static void
 bios_add(void)
 {
     int temp_cpu_type, temp_cpu_16bitbus = 1;
-    int temp_is286 = 0;
 
-    if (/*AT && */cpu_s) {
+    if (AT && cpu_s) {
 	temp_cpu_type = cpu_s->cpu_type;
 	temp_cpu_16bitbus = (temp_cpu_type == CPU_286 || temp_cpu_type == CPU_386SX || temp_cpu_type == CPU_486SLC || temp_cpu_type == CPU_IBM386SLC || temp_cpu_type == CPU_IBM486SLC );
-	temp_is286 = (temp_cpu_type == CPU_286);
     }
 
     if (biosmask > 0x1ffff) {
@@ -419,7 +417,7 @@ bios_add(void)
 			       MEM_READ_ROMCS | MEM_WRITE_ROMCS);
     }
 
-    if (temp_is286 || AT) {
+    if (AT) {
 	mem_mapping_add(&bios_high_mapping, biosaddr | (temp_cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
 			bios_read,bios_readw,bios_readl,
 			NULL,NULL,NULL,
