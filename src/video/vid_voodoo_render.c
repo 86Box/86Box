@@ -1316,8 +1316,21 @@ static void voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, vood
                                 if (params->alphaMode & 1)
                                         ALPHA_TEST(src_a);
 
-                                if (params->alphaMode & (1 << 4))
+                                if (params->alphaMode & (1 << 4)) {
+                                        if (dithersub && !dither2x2 && voodoo->dithersub_enabled)
+                                        {
+                                       	        dest_r = dithersub_rb[dest_r][real_y & 3][x & 3];
+                                       	        dest_g = dithersub_g [dest_g][real_y & 3][x & 3];
+                                       	        dest_b = dithersub_rb[dest_b][real_y & 3][x & 3];
+                                        }
+                                        if (dithersub && dither2x2 && voodoo->dithersub_enabled)
+                                        {
+                                       	        dest_r = dithersub_rb2x2[dest_r][real_y & 1][x & 1];
+                                                dest_g = dithersub_g2x2 [dest_g][real_y & 1][x & 1];
+                                                dest_b = dithersub_rb2x2[dest_b][real_y & 1][x & 1];
+                                        }
                                         ALPHA_BLEND(src_r, src_g, src_b, src_a);
+                                }
 
                                 if (update)
                                 {

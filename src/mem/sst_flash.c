@@ -30,6 +30,7 @@
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/plat.h>
+#include <86box/m_xt_xi8088.h>
 
 
 typedef struct sst_t
@@ -372,7 +373,7 @@ sst_init(const device_t *info)
     else if (dev->id == SST_ID_SST39SF040)
 	dev->size = 0x80000;
     else
-	dev->size = 0x20000;
+	dev->size = ((dev->id == SST_ID_SST39SF010) && (strstr(machine_get_internal_name_ex(machine), "xi8088")) && !xi8088_bios_128kb()) ? 0x10000 : 0x20000;
     dev->mask = dev->size - 1;
     dev->page_mask = dev->mask & 0xffffff80;	/* Filter out A0-A6. */
     dev->sdp = 1;
