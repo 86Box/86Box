@@ -916,12 +916,13 @@ ide_atapi_attach(ide_t *ide)
 void
 ide_set_callback(ide_t *ide, double callback)
 {
-    ide_log("ide_set_callback(%i)\n", ide->channel);
 
     if (!ide) {
-	ide_log("Set callback failed\n");
+	ide_log("ide_set_callback(NULL): Set callback failed\n");
 	return;
     }
+
+    ide_log("ide_set_callback(%i)\n", ide->channel);
 
     if (callback == 0.0)
 	timer_stop(&ide->timer);
@@ -2497,6 +2498,60 @@ id_not_found:
     ide->error = IDNF_ERR;
     ide->pos = 0;
     ide_irq_raise(ide);
+}
+
+
+uint8_t
+ide_read_ali_75(void)
+{
+    ide_t *ide0, *ide1;
+    int ch0, ch1;
+    uint8_t ret = 0x00;
+
+    ch0 = ide_boards[0]->cur_dev;
+    ch1 = ide_boards[1]->cur_dev;
+    ide0 = ide_drives[ch0];
+    ide1 = ide_drives[ch1];
+
+    if (ch1)
+	ret |= 0x08;
+    if (ch0)
+	ret |= 0x04;
+    if (ide1->irqstat)
+	ret |= 0x02;
+    if (ide0->irqstat)
+	ret |= 0x01;
+
+    return ret;
+}
+
+
+uint8_t
+ide_read_ali_76(void)
+{
+    ide_t *ide0, *ide1;
+    int ch0, ch1;
+    uint8_t ret = 0x00;
+
+    ch0 = ide_boards[0]->cur_dev;
+    ch1 = ide_boards[1]->cur_dev;
+    ide0 = ide_drives[ch0];
+    ide1 = ide_drives[ch1];
+
+    if (ide1->atastat & BSY_STAT)
+	ret |= 0x40;
+    if (ide1->atastat & DRQ_STAT)
+	ret |= 0x20;
+    if (ide1->atastat & ERR_STAT)
+	ret |= 0x10;
+    if (ide0->atastat & BSY_STAT)
+	ret |= 0x04;
+    if (ide0->atastat & DRQ_STAT)
+	ret |= 0x02;
+    if (ide0->atastat & ERR_STAT)
+	ret |= 0x01;
+
+    return ret;
 }
 
 

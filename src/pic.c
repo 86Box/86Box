@@ -54,6 +54,8 @@ static pc_timer_t	pic_timer;
 static int	shadow = 0, elcr_enabled = 0,
 		tmr_inited = 0, latched = 0;
 
+static uint16_t	smi_irq_mask = 0x0000,
+		smi_irq_status = 0x0000;
 
 static void	(*update_pending)(void);
 
@@ -77,6 +79,39 @@ pic_log(const char *fmt, ...)
 #else
 #define pic_log(fmt, ...)
 #endif
+
+
+void
+pic_reset_smi_irq_mask(void)
+{
+    smi_irq_mask = 0x0000;
+}
+
+
+void
+pic_set_smi_irq_mask(int irq, int set)
+{
+    if ((irq >= 0) && (irq <= 15)) {
+	if (set)
+		smi_irq_mask |= (1 << irq);
+	else
+		smi_irq_mask &= ~(1 << irq);
+    }
+}
+
+uint16_t
+pic_get_smi_irq_status(void)
+{
+    return smi_irq_status;
+}
+
+
+void
+pic_clear_smi_irq_status(int irq)
+{
+    if ((irq >= 0) && (irq <= 15))
+	smi_irq_status &= ~(1 << irq);
+}
 
 
 void
@@ -255,6 +290,8 @@ pic_reset()
 
     update_pending = is_at ? pic_update_pending_at : pic_update_pending_xt;
     pic.at = pic2.at = is_at;
+
+    smi_irq_mask = smi_irq_status = 0x0000;
 }
 
 
@@ -541,6 +578,11 @@ picint_common(uint16_t num, int level, int set)
 	acpi_rtc_status = !!set;
 
     if (set) {
+	if (smi_irq_mask & num) {
+		smi_line = 1;
+		smi_irq_status |= num;
+	}
+
 	if (num & 0xff00) {
 		if (level)
 			pic2.lines |= (num >> 8);
@@ -555,6 +597,8 @@ picint_common(uint16_t num, int level, int set)
 		pic.irr |= num;
 	}
     } else {
+	smi_irq_status &= ~num;
+
 	if (num & 0xff00) {
 		pic2.lines &= ~(num >> 8);
 		pic2.irr &= ~(num >> 8);

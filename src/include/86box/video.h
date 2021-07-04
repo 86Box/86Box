@@ -252,7 +252,11 @@ extern const device_t ogc_m24_device;
 /* NCR NGA */
 extern const device_t nga_device;
 
+/* Tseng ET3000AX */
+extern const device_t et3000_isa_device;
+
 /* Tseng ET4000AX */
+extern const device_t et4000_tc6058af_isa_device;
 extern const device_t et4000_isa_device;
 extern const device_t et4000k_isa_device;
 extern const device_t et4000k_tg286_isa_device;
@@ -304,7 +308,6 @@ extern const device_t oti037c_device;
 extern const device_t oti067_device;
 extern const device_t oti067_acer386_device;
 extern const device_t oti067_ama932j_device;
-extern const device_t oti067_m300_device;
 extern const device_t oti077_device;
 
 /* Paradise/WD (S)VGA */

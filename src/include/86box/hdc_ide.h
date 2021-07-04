@@ -150,5 +150,8 @@ extern int	(*ide_bus_master_dma)(int channel, uint8_t *data, int transfer_length
 extern void	(*ide_bus_master_set_irq)(int channel, void *priv);
 extern void	*ide_bus_master_priv[2];
 
+extern uint8_t	ide_read_ali_75(void);
+extern uint8_t	ide_read_ali_76(void);
+
 
 #endif	/*EMU_IDE_H*/
