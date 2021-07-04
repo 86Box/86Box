@@ -274,9 +274,6 @@ machine_at_scat_init(const machine_t *model, int is_v4)
     machine_at_common_init(model);
     device_add(&keyboard_at_ami_device);
 
-    if (fdc_type == FDC_INTERNAL)
-    device_add(&fdc_at_device);
-
     if (is_v4)
 	device_add(&scat_4_device);
     else
@@ -311,6 +308,9 @@ machine_at_award286_init(const machine_t *model)
 
     machine_at_scat_init(model, 0);
 
+    if (fdc_type == FDC_INTERNAL)
+	device_add(&fdc_at_device);
+
     return ret;
 }
 
@@ -326,6 +326,9 @@ machine_at_gdc212m_init(const machine_t *model)
 	return ret;
 
     machine_at_scat_init(model, 0);
+
+    if (fdc_type == FDC_INTERNAL)
+	device_add(&fdc_at_device);
 
     device_add(&ide_isa_device);
 
@@ -347,6 +350,8 @@ machine_at_gw286ct_init(const machine_t *model)
 
     machine_at_scat_init(model, 1);
 
+    device_add(&ide_isa_device);
+
     return ret;
 }
 
@@ -363,6 +368,9 @@ machine_at_super286tr_init(const machine_t *model)
 	return ret;
 
     machine_at_scat_init(model, 0);
+
+    if (fdc_type == FDC_INTERNAL)
+	device_add(&fdc_at_device);
 
     return ret;
 }
@@ -381,6 +389,9 @@ machine_at_spc4200p_init(const machine_t *model)
 
     machine_at_scat_init(model, 0);
 
+    if (fdc_type == FDC_INTERNAL)
+	device_add(&fdc_at_device);
+
     return ret;
 }
 
@@ -398,6 +409,9 @@ machine_at_spc4216p_init(const machine_t *model)
 	return ret;
 
     machine_at_scat_init(model, 1);
+
+    if (fdc_type == FDC_INTERNAL)
+	device_add(&fdc_at_device);
 
     return ret;
 }
@@ -423,6 +437,9 @@ machine_at_spc4620p_init(const machine_t *model)
 	return ret;
 
     machine_at_scat_init(model, 1);
+
+    if (fdc_type == FDC_INTERNAL)
+	device_add(&fdc_at_device);
 
     if (gfxcard == VID_INTERNAL)
 	device_add(&ati28800k_spc4620p_device);
@@ -460,6 +477,9 @@ machine_at_deskmaster286_init(const machine_t *model)
 	return ret;
 
     machine_at_scat_init(model, 0);
+
+    if (fdc_type == FDC_INTERNAL)
+	device_add(&fdc_at_device);
 
     return ret;
 }

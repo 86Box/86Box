@@ -207,7 +207,7 @@ const machine_t machines[] = {
     /* Has IBM AT KBC firmware. */
     { "[NEAT] Phoenix 286 clone",		"px286",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512, 16384, 128,  127,		machine_at_px286_init, NULL			},
     /* Has Chips & Technologies KBC firmware. */
-    { "[SCAT] GW-286CT GEAR",			"gw286ct",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512, 16384, 128,  127,	      machine_at_gw286ct_init, NULL			},
+    { "[SCAT] GW-286CT GEAR",			"gw286ct",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							  512, 16384, 128,  127,	      machine_at_gw286ct_init, NULL			},
     /* Has IBM PS/2 Type 1 KBC firmware. */
     { "[SCAT] Goldstar GDC-212M",		"gdc212m",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE | MACHINE_BUS_PS2,					  512,  4096, 512,  127,	      machine_at_gdc212m_init, NULL			},
     /* Has a VIA VT82C42N KBC. */
