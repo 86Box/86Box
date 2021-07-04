@@ -36,7 +36,7 @@ typedef struct {
     uint8_t	regs[8];
     uint8_t	addr_register;
     uint8_t	i2c_addr: 7, i2c_state: 2;
-    uint8_t	i2c_enabled;
+    uint8_t	i2c_enabled: 1;
 } lm75_t;
 
 

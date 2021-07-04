@@ -194,7 +194,7 @@ lm75_remap(lm75_t *dev, uint8_t addr)
 	i2c_sethandler(i2c_smbus, addr, 1, lm75_i2c_start, lm75_i2c_read, lm75_i2c_write, NULL, dev);
 
     dev->i2c_addr = addr & 0x7f;
-    dev->i2c_enabled = !!(addr & 0x80);
+    dev->i2c_enabled = !(addr & 0x80);
 }
 
 
@@ -204,7 +204,7 @@ lm75_reset(lm75_t *dev)
     dev->regs[0x3] = 0x4b;
     dev->regs[0x5] = 0x50;
 
-    lm75_remap(dev, dev->local & 0x7f);
+    lm75_remap(dev, dev->i2c_addr | (dev->i2c_enabled ? 0x00 : 0x80));
 }
 
 

@@ -72,7 +72,7 @@ typedef struct {
     };
     uint8_t	addr_register, data_register;
 
-    uint8_t	i2c_addr: 7, i2c_state: 1;
+    uint8_t	i2c_addr: 7, i2c_state: 1, i2c_enabled: 1;
 } lm78_t;
 
 
@@ -315,7 +315,7 @@ lm78_reset(void *priv)
 	dev->regs[0x49] = 0x40;
     }
 
-    lm78_remap(dev, dev->i2c_addr);
+    lm78_remap(dev, dev->i2c_addr | (dev->i2c_enabled ? 0x00 : 0x80));
 }
 
 
@@ -665,12 +665,14 @@ lm78_remap(lm78_t *dev, uint8_t addr)
 
     lm78_log("LM78: remapping to SMBus %02Xh\n", addr);
 
-    i2c_removehandler(i2c_smbus, dev->i2c_addr, 1, lm78_i2c_start, lm78_i2c_read, lm78_i2c_write, NULL, dev);
+    if (dev->i2c_enabled)
+	i2c_removehandler(i2c_smbus, dev->i2c_addr, 1, lm78_i2c_start, lm78_i2c_read, lm78_i2c_write, NULL, dev);
 
     if (addr < 0x80)
 	i2c_sethandler(i2c_smbus, addr, 1, lm78_i2c_start, lm78_i2c_read, lm78_i2c_write, NULL, dev);
 
-    dev->i2c_addr = addr;
+    dev->i2c_addr = addr & 0x7f;
+    dev->i2c_enabled = !(addr & 0x80);
 
     if (dev->local & LM78_AS99127F) {
 	/* Store our handle on the primary LM75 device to ensure reads/writes
