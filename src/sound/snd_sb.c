@@ -1026,9 +1026,8 @@ sb_ct1745_mixer_read(uint16_t addr, void *p)
 		/* 0 = none, 1 =  digital 8bit or SBMIDI, 2 = digital 16bit, 4 = MPU-401 */
 		/* 0x02000 DSP v4.04, 0x4000 DSP v4.05, 0x8000 DSP v4.12.
 		   I haven't seen this making any difference, but I'm keeping it for now. */
-		/* If QEMU is any indication, then the values are actually 0x20, 0x40, and 0x80. */
 		temp = ((sb->dsp.sb_irq8) ? 1 : 0) | ((sb->dsp.sb_irq16) ? 2 : 0) |
-		       ((sb->dsp.sb_irq401) ? 4 : 0) | 0x40;
+		       ((sb->dsp.sb_irq401) ? 4 : 0) | 0x4000;
 		ret = temp;
 		break;
 

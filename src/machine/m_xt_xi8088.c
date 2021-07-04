@@ -19,7 +19,6 @@
 #include <86box/lpt.h>
 #include <86box/rom.h>
 #include <86box/hdc.h>
-#include <86box/port_6x.h>
 #include <86box/video.h>
 #include <86box/machine.h>
 #include "cpu.h"
@@ -179,7 +178,6 @@ machine_xt_xi8088_init(const machine_t *model)
     device_add(&fdc_at_device);
 
     device_add(&keyboard_ps2_xi8088_device);
-    device_add(&port_6x_xi8088_device);
     nmi_init();
     device_add(&ibmat_nvr_device);
     pic2_init();

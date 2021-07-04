@@ -26,7 +26,6 @@
 #include "cpu.h"
 #include "x86.h"
 #include <86box/machine.h>
-#include <86box/device.h>
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
@@ -240,10 +239,8 @@ reset_common(int hard)
 	leave_smm();
 
     /* Needed for the ALi M1533. */
-    if (soft_reset_pci && !hard) {
+    if (soft_reset_pci && !hard)
 	pci_reset();
-	device_reset_all_pci();
-    }
 
     use32 = 0;
     cpu_cur_status = 0;
@@ -267,7 +264,7 @@ reset_common(int hard)
 	} else {
 		loadcs(0xFFFF);
 		cpu_state.pc = 0;
-		rammask = is286 ? 0xffffff : 0xfffff;
+		rammask = 0xfffff;
 	}
     }
     idt.base = 0;
@@ -310,10 +307,8 @@ reset_common(int hard)
     shadowbios = shadowbios_write = 0;
     alt_access = cpu_end_block_after_ins = 0;
 
-    if (hard) {
+    if (hard)
     	reset_on_hlt = hlt_reset_pending = 0;
-	soft_reset_pci = 0;
-    }
 
     if (!is286)
 	reset_808x(hard);
