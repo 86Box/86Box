@@ -667,6 +667,12 @@ const machine_t machines[] = {
     { "[ALi ALADDiN IV] MSI MS-5164",		"ms5164",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 60000000, 66666667, 2100, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 262144, 8192, 255,	       machine_at_ms5164_init, NULL			},
 
     /* Super Socket 7 machines */
+    /* ALi ALADDiN V */
+    /* Is the exact same as the Matsonic MS6260S. Has the ALi M1543C southbridge
+       with on-chip KBC. */
+    { "[ALi ALADDiN V] PC Chips M579",		"m579",			MACHINE_TYPE_SOCKETS7,		CPU_PKG_SOCKET5_7, 0, 66666667, 124242424, 2000, 3200, 1.5, 5.5,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,2097152, 8192, 255,		 machine_at_m579_init, NULL			},
+    { "[ALi ALADDiN V] Gigabyte GA-5AA",	"ga-5aa",		MACHINE_TYPE_SOCKETS7,		CPU_PKG_SOCKET5_7, 0, 66666667, 124242424, 2000, 3200, 1.5, 5.5,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,2097152, 8192, 255,	       machine_at_ga_5aa_init, NULL			},
+
     /* Apollo MVP3 */
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */

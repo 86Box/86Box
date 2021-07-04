@@ -45,7 +45,7 @@
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/usb.h>
 #include <86box/machine.h>
-#include <86box/smbus_piix4.h>
+#include <86box/smbus.h>
 #include <86box/chipset.h>
 #include <86box/sio.h>
 #include <86box/hwm.h>

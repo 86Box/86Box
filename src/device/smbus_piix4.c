@@ -26,7 +26,7 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/i2c.h>
-#include <86box/smbus_piix4.h>
+#include <86box/smbus.h>
 
 
 #ifdef ENABLE_SMBUS_PIIX4_LOG

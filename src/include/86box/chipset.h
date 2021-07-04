@@ -26,7 +26,9 @@ extern const device_t	ali1217_device;
 extern const device_t	ali1429_device;
 extern const device_t	ali1489_device;
 extern const device_t	ali1531_device;
+extern const device_t	ali1541_device;
 extern const device_t	ali1543_device;
+extern const device_t	ali1543c_device;
 #if defined(DEV_BRANCH) && defined(USE_M6117)
 extern const device_t	ali6117d_device;
 #endif

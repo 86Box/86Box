@@ -497,6 +497,9 @@ extern int	machine_at_m560_init(const machine_t *);
 extern int	machine_at_ms5164_init(const machine_t *);
 
 /* m_at_sockets7.c */
+extern int	machine_at_m579_init(const machine_t *);
+extern int	machine_at_ga_5aa_init(const machine_t *);
+
 extern int	machine_at_ax59pro_init(const machine_t *);
 extern int	machine_at_mvp3_init(const machine_t *);
 extern int	machine_at_ficva503a_init(const machine_t *);
