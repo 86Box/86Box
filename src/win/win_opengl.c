@@ -451,14 +451,10 @@ static void opengl_fail()
 	_endthread();
 }
 
-/*
 static void __stdcall opengl_debugmsg_callback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, const GLchar* message, const void* userParam)
 {
-	OutputDebugStringA("OpenGL: ");
-	OutputDebugStringA(message);
-	OutputDebugStringA("\n");
+	pclog("OpenGL: %s\n", message);
 }
-*/
 
 /**
  * @brief Main OpenGL thread proc.
@@ -478,13 +474,19 @@ static void opengl_main(void* param)
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
-	//SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG | SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+	
+	if (GLAD_GL_ARB_debug_output)
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG | SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
+	else
+		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
 
 	window = SDL_CreateWindow("86Box OpenGL Renderer", 0, 0, resize_info.width, resize_info.height, SDL_WINDOW_OPENGL | SDL_WINDOW_BORDERLESS);
 
 	if (window == NULL)
+	{
+		pclog("OpenGL: failed to create OpenGL window.\n");
 		opengl_fail();
+	}
 
 	/* Keep track of certain parameters, only changed in this thread to avoid race conditions */
 	int fullscreen = resize_info.fullscreen, video_width = INIT_WIDTH, video_height = INIT_HEIGHT,
@@ -495,7 +497,10 @@ static void opengl_main(void* param)
 	SDL_GetWindowWMInfo(window, &wmi);
 
 	if (wmi.subsystem != SDL_SYSWM_WINDOWS)
+	{
+		pclog("OpenGL: subsystem is not SDL_SYSWM_WINDOWS.\n");
 		opengl_fail();
+	}
 	
 	window_hwnd = wmi.info.win.window;
 
@@ -507,29 +512,37 @@ static void opengl_main(void* param)
 	SDL_GLContext context = SDL_GL_CreateContext(window);
 
 	if (context == NULL)
+	{
+		pclog("OpenGL: failed to create OpenGL context.\n");
 		opengl_fail();
+	}
 
 	SDL_GL_SetSwapInterval(options.vsync);
 
 	if (!gladLoadGLLoader(SDL_GL_GetProcAddress))
 	{
+		pclog("OpenGL: failed to set OpenGL loader.\n");
 		SDL_GL_DeleteContext(context);
 		opengl_fail();
 	}
-
-	/*
+	
 	if (GLAD_GL_ARB_debug_output)
 	{
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
 		glDebugMessageControlARB(GL_DONT_CARE, GL_DEBUG_TYPE_PERFORMANCE_ARB, GL_DONT_CARE, 0, 0, GL_FALSE);
 		glDebugMessageCallbackARB(opengl_debugmsg_callback, NULL);
 	}
-	*/
+
+	pclog("OpenGL vendor: %s\n", glGetString(GL_VENDOR));
+	pclog("OpenGL renderer: %s\n", glGetString(GL_RENDERER));
+	pclog("OpenGL version: %s\n", glGetString(GL_VERSION));
+	pclog("OpenGL shader language version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
 
 	gl_identifiers gl = { 0 };
 	
 	if (!initialize_glcontext(&gl))
 	{
+		pclog("OpenGL: failed to initialize.\n");
 		finalize_glcontext(&gl);
 		SDL_GL_DeleteContext(context);
 		opengl_fail();

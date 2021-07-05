@@ -64,6 +64,16 @@ void main() {\n\
 }\n";
 
 /**
+ * @brief OpenGL shader program build targets
+*/
+typedef enum
+{
+	OPENGL_BUILD_TARGET_VERTEX,
+	OPENGL_BUILD_TARGET_FRAGMENT,
+	OPENGL_BUILD_TARGET_LINK
+} opengl_build_target_t;
+
+/**
  * @brief Reads a whole file into a null terminated string.
  * @param Path Path to the file relative to executable path.
  * @return Pointer to the string or NULL on error. Remember to free() after use.
@@ -98,11 +108,11 @@ static char* read_file_to_string(const char* path)
 	return NULL;
 }
 
-static int check_status(GLuint id, int is_shader)
+static int check_status(GLuint id, opengl_build_target_t build_target, const char* shader_path)
 {
 	GLint status = GL_FALSE;
 
-	if (is_shader)
+	if (build_target != OPENGL_BUILD_TARGET_LINK)
 		glGetShaderiv(id, GL_COMPILE_STATUS, &status);
 	else
 		glGetProgramiv(id, GL_LINK_STATUS, &status);
@@ -111,19 +121,37 @@ static int check_status(GLuint id, int is_shader)
 	{
 		int info_log_length;
 
-		if (is_shader)
+		if (build_target != OPENGL_BUILD_TARGET_LINK)
 			glGetShaderiv(id, GL_INFO_LOG_LENGTH, &info_log_length);
 		else
 			glGetProgramiv(id, GL_INFO_LOG_LENGTH, &info_log_length);
 
 		GLchar* info_log_text = (GLchar*)malloc(sizeof(GLchar) * info_log_length);
 
-		if (is_shader)
+		if (build_target != OPENGL_BUILD_TARGET_LINK)
 			glGetShaderInfoLog(id, info_log_length, NULL, info_log_text);
 		else
 			glGetProgramInfoLog(id, info_log_length, NULL, info_log_text);
 
-		/* TODO: error logging */
+		const char* reason = NULL;
+
+		switch (build_target)
+		{
+		case OPENGL_BUILD_TARGET_VERTEX:
+			reason = "compiling vertex shader";
+			break;
+		case OPENGL_BUILD_TARGET_FRAGMENT:
+			reason = "compiling fragment shader";
+			break;
+		case OPENGL_BUILD_TARGET_LINK:
+			reason = "linking shader program";
+			break;
+		}
+
+		/* Shader compilation log can be lengthy, mark begin and end */
+		const char* line = "--------------------";
+
+		pclog("OpenGL: Error when %s in %s:\n%sBEGIN%s\n%s\n%s END %s\n", reason, shader_path, line, line, info_log_text, line, line);
 
 		free(info_log_text);
 
@@ -153,11 +181,11 @@ GLuint load_custom_shaders(const char* path)
 
 		glShaderSource(vertex_id, 2, vertex_sources, NULL);
 		glCompileShader(vertex_id);
-		success *= check_status(vertex_id, 1);
+		success *= check_status(vertex_id, OPENGL_BUILD_TARGET_VERTEX, path);
 
 		glShaderSource(fragment_id, 2, fragment_sources, NULL);
 		glCompileShader(fragment_id);
-		success *= check_status(fragment_id, 1);
+		success *= check_status(fragment_id, OPENGL_BUILD_TARGET_FRAGMENT, path);
 
 		free(shader);
 
@@ -170,7 +198,7 @@ GLuint load_custom_shaders(const char* path)
 			glAttachShader(prog_id, vertex_id);
 			glAttachShader(prog_id, fragment_id);
 			glLinkProgram(prog_id);
-			check_status(prog_id, 0);
+			check_status(prog_id, OPENGL_BUILD_TARGET_LINK, path);
 
 			glDetachShader(prog_id, vertex_id);
 			glDetachShader(prog_id, fragment_id);
