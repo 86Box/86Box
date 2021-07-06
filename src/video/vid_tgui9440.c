@@ -895,14 +895,20 @@ void tgui_pci_write(int func, int addr, uint8_t val, void *p)
 				break;
 			
                 case 0x12:
-                tgui->linear_base = (tgui->linear_base & 0xff000000) | ((val & 0xe0) << 16);
+		if (tgui->type == TGUI_9680)
+                	tgui->linear_base = (tgui->linear_base & 0xff000000) | ((val & 0xc0) << 16);
+		else
+                	tgui->linear_base = (tgui->linear_base & 0xff000000) | ((val & 0xe0) << 16);
                 tgui->linear_size = tgui->vram_size;
 				svga->decode_mask = tgui->vram_mask;
                 svga->crtc[0x21] = (svga->crtc[0x21] & ~0xf) | (val >> 4);
                 tgui_recalcmapping(tgui);
                 break;
                 case 0x13:
-                tgui->linear_base = (tgui->linear_base & 0xe00000) | (val << 24);
+		if (tgui->type == TGUI_9680)
+			tgui->linear_base = (tgui->linear_base & 0xc00000) | (val << 24);
+		else
+			tgui->linear_base = (tgui->linear_base & 0xe00000) | (val << 24);
                 tgui->linear_size = tgui->vram_size;
 				svga->decode_mask = tgui->vram_mask;
                 svga->crtc[0x21] = (svga->crtc[0x21] & ~0xc0) | (val >> 6);
