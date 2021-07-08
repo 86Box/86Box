@@ -122,6 +122,9 @@ smbus_ali7101_write(uint16_t addr, uint8_t val, void *priv)
 				dev->stat = 0x20; /* raise DEVICE_ERR */
 			}
 		}
+
+		if (val & 0x80)
+			dev->index = 0;
 		break;
 
 	case 0x02:
