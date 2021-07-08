@@ -61,11 +61,6 @@ smbus_ali7101_read(uint16_t addr, void *priv)
 		ret = dev->stat;
 		break;
 
-	case 0x02:
-		dev->index = 0; /* reading from this resets the block data index */
-		ret = dev->ctl;
-		break;
-
 	case 0x03:
 		ret = dev->addr;
 		break;
