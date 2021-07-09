@@ -642,6 +642,7 @@ acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
 		break;
 	case 0x04: case 0x05:
 		/* PMCNTRL - Power Management Control Register (IO) */
+		pclog("addr = %02X, val = %02X\n", addr, val);
 		if ((addr == 0x05) && (val & 0x20)) {
 			sus_typ = (val >> 2) & 7;
 			switch (sus_typ) {
