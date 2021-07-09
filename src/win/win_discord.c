@@ -68,7 +68,8 @@ void
 discord_update_activity(int paused)
 {
     struct DiscordActivity activity;
-    char config_name[1024];
+    char config_name[1024], cpufamily[1024];
+    char *paren;
 
     if(discord_activities == NULL)
 	return;
@@ -78,15 +79,21 @@ discord_update_activity(int paused)
     memset(&activity, 0x00, sizeof(activity));
 
     plat_get_dirname(config_name, usr_path);
+
+    strncpy(cpufamily, cpu_f->name, sizeof(cpufamily) - 1);
+    paren = strchr(cpufamily, '(');
+    if (paren)
+	*(paren - 1) = '\0';
+
     if (strlen(plat_get_filename(config_name)) < 100)
     {
 	sprintf_s(activity.details, sizeof(activity.details), "Running \"%s\"", plat_get_filename(config_name));
-	sprintf_s(activity.state, sizeof(activity.state), "%s (%s)", strchr(machine_getname(), ']') + 2, cpu_s->name);
+	sprintf_s(activity.state, sizeof(activity.state), "%s (%s/%s)", strchr(machine_getname(), ']') + 2, cpufamily, cpu_s->name);
     }
     else
     {
 	strncpy(activity.details, strchr(machine_getname(), ']') + 2, sizeof(activity.details) - 1);
-	strncpy(activity.state, cpu_s->name, sizeof(activity.state) - 1);
+	sprintf_s(activity.state, sizeof(activity.state), "%s/%s", cpufamily, cpu_s->name);
     }
 
     activity.timestamps.start = time(NULL);
