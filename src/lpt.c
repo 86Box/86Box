@@ -28,10 +28,11 @@ static const struct
         {"Disney Sound Source",          "dss",            &dss_device},
         {"LPT DAC / Covox Speech Thing", "lpt_dac",        &lpt_dac_device},
         {"Stereo LPT DAC",               "lpt_dac_stereo", &lpt_dac_stereo_device},
-	{"Generic Text Printer",	 "text_prt",       &lpt_prt_text_device},
+	{"Generic Text Printer",         "text_prt",       &lpt_prt_text_device},
 	{"Generic ESC/P Dot-Matrix",     "dot_matrix",     &lpt_prt_escp_device},
 	{"Generic PostScript Printer",   "postscript",     &lpt_prt_ps_device},
-	{"PLIP Network",		 "plip",           &lpt_plip_device},
+	{"PLIP Network",                 "plip",           &lpt_plip_device},
+	{"Protection Dongle for Savage Quest","dongle_savquest",&lpt_hasp_savquest_device},
         {"", "", NULL}
 };
 
