@@ -34,6 +34,7 @@
 #include <86box/snd_ad1848.h>
 #include <86box/snd_opl.h>
 #include <86box/snd_sb.h>
+#include <86box/nvr.h>
 
 
 enum {
@@ -135,6 +136,7 @@ typedef struct cs423x_t
     uint16_t	wss_base, opl_base, sb_base, ctrl_base, ram_addr, eeprom_size: 11;
     uint8_t	type, ad1848_type, pnp_offset, regs[8], indirect_regs[16],
 		eeprom_data[2048], ram_data[384], ram_dl: 2, opl_wss: 1;
+    char	*nvr_path;
 
     uint8_t	pnp_enable: 1, key_pos: 5, slam_enable: 1, slam_state: 2, slam_ld, slam_reg;
     isapnp_device_config_t *slam_config;
@@ -144,6 +146,20 @@ typedef struct cs423x_t
 static void	cs423x_slam_enable(cs423x_t *dev, uint8_t enable);
 static void	cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig);
 static void	cs423x_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv);
+
+
+static void
+cs423x_nvram(cs423x_t *dev, uint8_t save)
+{
+    FILE *f = nvr_fopen(dev->nvr_path, save ? "wb" : "rb");
+    if (f) {
+	if (save)
+		fwrite(dev->eeprom_data, sizeof(dev->eeprom_data), 1, f);
+	else
+		fread(dev->eeprom_data, sizeof(dev->eeprom_data), 1, f);
+	fclose(f);
+    }
+}
 
 
 static uint8_t
@@ -678,10 +694,14 @@ cs423x_reset(void *priv)
     cs423x_t *dev = (cs423x_t *) priv;
 
     /* Load EEPROM data to RAM, or just clear RAM if there's no EEPROM. */
-    if (dev->eeprom)
+    if (dev->eeprom) {
 	memcpy(dev->ram_data, &dev->eeprom_data[4], MIN(sizeof(dev->ram_data), sizeof(dev->eeprom_data) - 4));
-    else
+
+	/* Save EEPROM contents to file. */
+	cs423x_nvram(dev, 1);
+    } else {
 	memset(dev->ram_data, 0, sizeof(dev->ram_data));
+    }
 
     /* Reset registers. */
     memset(dev->indirect_regs, 0, sizeof(dev->indirect_regs));
@@ -729,16 +749,25 @@ cs423x_init(const device_t *info)
 		dev->eeprom_data[2] = sizeof(cs4236b_eeprom) >> 8;
 		dev->eeprom_data[3] = sizeof(cs4236b_eeprom) & 0xff;
 
-		/* Set PnP card ID. */
+		/* Set PnP card ID and EEPROM file name. */
 		switch (dev->type) {
+			case CRYSTAL_CS4236B:
+				dev->nvr_path = "cs4236b.nvr";
+				break;
+
 			case CRYSTAL_CS4237B:
 				dev->eeprom_data[26] = 0x37;
+				dev->nvr_path = "cs4237b.nvr";
 				break;
 
 			case CRYSTAL_CS4238B:
 				dev->eeprom_data[26] = 0x38;
+				dev->nvr_path = "cs4238b.nvr";
 				break;
 		}
+
+		/* Load EEPROM contents from file if present. */
+		cs423x_nvram(dev, 0);
 
 		/* Initialize game port. The '7B and '8B game port only responds to 6 I/O ports; the remaining
 		   2 ports are reserved on those chips, and probably connected to the Digital Assist feature. */
@@ -774,8 +803,11 @@ cs423x_close(void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
 
-    if (dev->eeprom)
+    /* Save EEPROM contents to file. */
+    if (dev->eeprom) {
+	cs423x_nvram(dev, 1);
 	i2c_eeprom_close(dev->eeprom);
+    }
 
     i2c_gpio_close(dev->i2c);
 
