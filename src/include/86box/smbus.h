@@ -33,6 +33,8 @@ enum {
 typedef struct {
     uint32_t	local;
     uint16_t	io_base;
+    int		clock;
+    double	bit_period;
     uint8_t	stat, next_stat, ctl, cmd, addr,
 		data0, data1,
 		index, data[SMBUS_PIIX4_BLOCK_DATA_SIZE];
@@ -52,6 +54,8 @@ typedef struct {
 
 
 extern void	smbus_piix4_remap(smbus_piix4_t *dev, uint16_t new_io_base, uint8_t enable);
+extern void	smbus_piix4_setclock(smbus_piix4_t *dev, int clock);
+
 extern void	smbus_ali7101_remap(smbus_ali7101_t *dev, uint16_t new_io_base, uint8_t enable);
 
 
