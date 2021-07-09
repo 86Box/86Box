@@ -540,7 +540,7 @@ machine_at_ficka6130_init(const machine_t *model)
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&via_apro_device);
-    device_add(&via_vt82c596_device);
+    device_add(&via_vt82c596a_device);
     device_add(&w83877tf_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee020_device);

@@ -62,4 +62,6 @@ extern const lpt_device_t lpt_dac_stereo_device;
 
 extern const lpt_device_t dss_device;
 
+extern const lpt_device_t lpt_hasp_savquest_device;
+
 #endif /*EMU_LPT_H*/

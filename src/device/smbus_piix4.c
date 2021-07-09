@@ -313,8 +313,8 @@ unknown_protocol:
     if (dev->next_stat) { /* schedule dispatch of any pending status register update */
 	dev->stat = 0x01; /* raise HOST_BUSY while waiting */
 	timer_disable(&dev->response_timer);
-	/* delay = ((half clock for start + half clock for stop) + (bytes * (8 bits + ack))) * 60us period measured on real VIA 686B */
-	timer_set_delay_u64(&dev->response_timer, (1 + (timer_bytes * 9)) * 60 * TIMER_USEC);
+	/* delay = ((half clock for start + half clock for stop) + (bytes * (8 bits + ack))) * bit period in usecs */
+	timer_set_delay_u64(&dev->response_timer, (1 + (timer_bytes * 9)) * dev->bit_period * TIMER_USEC);
     }
 }
 
@@ -343,6 +343,16 @@ smbus_piix4_remap(smbus_piix4_t *dev, uint16_t new_io_base, uint8_t enable)
 }
 
 
+void
+smbus_piix4_setclock(smbus_piix4_t *dev, int clock)
+{
+    dev->clock = clock;
+
+    /* Set the bit period in usecs. */
+    dev->bit_period = 1000000.0 / dev->clock;
+}
+
+
 static void *
 smbus_piix4_init(const device_t *info)
 {
@@ -355,6 +365,8 @@ smbus_piix4_init(const device_t *info)
     i2c_smbus = dev->i2c = i2c_addbus((dev->local == SMBUS_VIA) ? "smbus_vt82c686b" : "smbus_piix4");
 
     timer_add(&dev->response_timer, smbus_piix4_response, dev, 0);
+
+    smbus_piix4_setclock(dev, 16384); /* default to 16.384 KHz */
 
     return dev;
 }

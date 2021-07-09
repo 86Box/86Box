@@ -17,32 +17,31 @@
 lpt_port_t	lpt_ports[3];
 
 
-static const struct
-{
-        const char *name;
-        const char *internal_name;
-        const lpt_device_t *device;
-} lpt_devices[] =
-{
-        {"None",                         "none",           NULL},
-        {"Disney Sound Source",          "dss",            &dss_device},
-        {"LPT DAC / Covox Speech Thing", "lpt_dac",        &lpt_dac_device},
-        {"Stereo LPT DAC",               "lpt_dac_stereo", &lpt_dac_stereo_device},
-	{"Generic Text Printer",	 "text_prt",       &lpt_prt_text_device},
-	{"Generic ESC/P Dot-Matrix",     "dot_matrix",     &lpt_prt_escp_device},
-	{"Generic PostScript Printer",   "postscript",     &lpt_prt_ps_device},
-	{"PLIP Network",		 "plip",           &lpt_plip_device},
-        {"", "", NULL}
+static const struct {
+    const char *internal_name;
+    const lpt_device_t *device;
+} lpt_devices[] = {
+    {"none",		NULL},
+    {"dss",		&dss_device},
+    {"lpt_dac",		&lpt_dac_device},
+    {"lpt_dac_stereo",	&lpt_dac_stereo_device},
+    {"text_prt",	&lpt_prt_text_device},
+    {"dot_matrix",	&lpt_prt_escp_device},
+    {"postscript",	&lpt_prt_ps_device},
+    {"plip",		&lpt_plip_device},
+    {"dongle_savquest",	&lpt_hasp_savquest_device},
+    {"", NULL}
 };
 
 
 char *
 lpt_device_get_name(int id)
 {
-    if (strlen((char *) lpt_devices[id].name) == 0)
+    if (strlen((char *) lpt_devices[id].internal_name) == 0)
 	return NULL;
-
-    return (char *) lpt_devices[id].name;
+    if (!lpt_devices[id].device)
+	return "None";
+    return (char *) lpt_devices[id].device->name;
 }
 
 
