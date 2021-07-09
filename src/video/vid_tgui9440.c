@@ -275,7 +275,9 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
 {
         tgui_t *tgui = (tgui_t *)p;
         svga_t *svga = &tgui->svga;
-        uint8_t old;
+        uint8_t old, mask;
+
+	mask = (tgui->type >= TGUI_9680) ? 0x3f : 0x1f;
 
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout & 1)) addr ^= 0x60;
 
@@ -457,19 +459,18 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
 				return;
               
 		case 0x3D8:
-				tgui->tgui_3d8 = val;
-                if (svga->gdcreg[0xf] & 4)
-                {
-                        svga->write_bank = (val & 0x1f) * 65536;
-                        if (!(svga->gdcreg[0xf] & 1))
-                                svga->read_bank = (val & 0x1f) * 65536;
-                }
-                return;
+			tgui->tgui_3d8 = val;
+			if (svga->gdcreg[0xf] & 4) {
+				svga->write_bank = (val & mask) * 65536;
+				if (!(svga->gdcreg[0xf] & 1))
+					svga->read_bank = (val & mask) * 65536;
+			}
+			return;
                 case 0x3D9:
-                tgui->tgui_3d9 = val;
-                if ((svga->gdcreg[0xf] & 5) == 5)
-                        svga->read_bank = (val & 0x1F) * 65536;
-                return;
+			tgui->tgui_3d9 = val;
+			if ((svga->gdcreg[0xf] & 5) == 5)
+				svga->read_bank = (val & mask) * 65536;
+			return;
 
                 case 0x43c8:
                 tgui->clock_n = val & 0x7f;
