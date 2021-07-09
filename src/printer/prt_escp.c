@@ -2143,7 +2143,7 @@ escp_close(void *priv)
 
 
 const lpt_device_t lpt_prt_escp_device = {
-    "EPSON ESC/P compatible printer",
+    "Generic ESC/P Dot-Matrix",
     escp_init,
     escp_close,
     write_data,

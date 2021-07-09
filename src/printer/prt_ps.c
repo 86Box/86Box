@@ -389,7 +389,7 @@ ps_close(void *p)
 
 
 const lpt_device_t lpt_prt_ps_device = {
-    .name = "Generic PostScript printer",
+    .name = "Generic PostScript Printer",
     .init = ps_init,
     .close = ps_close,
     .write_data = ps_write_data,
