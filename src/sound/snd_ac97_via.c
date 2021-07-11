@@ -125,8 +125,8 @@ static void
 ac97_via_sgd_block_start(ac97_via_t *dev)
 {
     /* Start at first entry. */
-    /*if (!dev->sgd_entry_ptr)
-	dev->sgd_entry_ptr = (dev->sgd_regs[0x07] << 24) | (dev->sgd_regs[0x06] << 16) | (dev->sgd_regs[0x05] << 8) | (dev->sgd_regs[0x04] & 0xfe);*/
+    if (!dev->sgd_entry_ptr)
+	dev->sgd_entry_ptr = (dev->sgd_regs[0x07] << 24) | (dev->sgd_regs[0x06] << 16) | (dev->sgd_regs[0x05] << 8) | (dev->sgd_regs[0x04] & 0xfe);
 
     /* Read entry. */
     dev->sgd_entry = ((uint64_t) mem_readl_phys(dev->sgd_entry_ptr + 4) << 32ULL) | (uint64_t) mem_readl_phys(dev->sgd_entry_ptr);
@@ -291,7 +291,7 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 				dev->sgd_regs[0x00] &= ~0x44;
 
 				dev->sgd_entry = 0;
-				dev->sgd_entry_ptr = (dev->sgd_regs[0x07] << 24) | (dev->sgd_regs[0x06] << 16) | (dev->sgd_regs[0x05] << 8) | (dev->sgd_regs[0x04] & 0xfe);
+				dev->sgd_entry_ptr = 0;
 			}
 		}
 		/* Stop SGD if requested. */
@@ -465,7 +465,6 @@ static void
 ac97_via_poll(void *priv)
 {
     ac97_via_t *dev = (ac97_via_t *) priv;
-    uint8_t irq = 0;
 
     timer_advance_u64(&dev->timer_count, dev->timer_latch);
 
@@ -540,7 +539,7 @@ ac97_via_poll(void *priv)
 				ac97_via_log(" restart\n");
 				dev->sgd_regs[0x00] &= ~0x08;
 
-				dev->sgd_entry_ptr = (dev->sgd_regs[0x07] << 24) | (dev->sgd_regs[0x06] << 16) | (dev->sgd_regs[0x05] << 8) | (dev->sgd_regs[0x04] & 0xfe);
+				dev->sgd_entry_ptr = 0;
 			} else {
 				ac97_via_log(" finish\n");
 				dev->sgd_regs[0x00] &= ~0x80;
