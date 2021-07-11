@@ -377,6 +377,7 @@ extern const device_t sigma_device;
 extern const device_t tgui9400cxi_device;
 extern const device_t tgui9440_vlb_device;
 extern const device_t tgui9440_pci_device;
+extern const device_t tgui9660_pci_device;
 extern const device_t tgui9680_pci_device;
 
 /* IBM PS/1 (S)VGA */
