@@ -417,7 +417,7 @@ ac97_via_codec_write(uint16_t addr, uint8_t val, void *priv)
     /* Bit 7 selects secondary codec. */
     ac97_codec_t *codec = dev->codec[(modem << 1) | (addr >> 7)];
     if (codec)
-	ac97_codec_write(codec, addr, val);
+	ac97_codec_write(codec, addr & 0x7f, val);
 }
 
 
