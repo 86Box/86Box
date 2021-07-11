@@ -49,6 +49,8 @@
 #include <86box/chipset.h>
 #include <86box/sio.h>
 #include <86box/hwm.h>
+#include <86box/gameport.h>
+#include <86box/snd_ac97.h>
 
 /* Most revision numbers (PCI-ISA bridge or otherwise) were lifted from PCI device
    listings on forums, as VIA's datasheets are not very helpful regarding those. */
@@ -77,6 +79,8 @@ typedef struct
     smbus_piix4_t *smbus;
     usb_t	*usb[2];
     acpi_t	*acpi;
+    void	*gameport, *ac97;
+    uint16_t	midigame_base;
 } pipc_t;
 
 
@@ -98,6 +102,13 @@ pipc_log(const char *fmt, ...)
 #else
 #define pipc_log(fmt, ...)
 #endif
+
+
+static void	pipc_sgd_handlers(pipc_t *dev, uint8_t modem);
+static void	pipc_midigame_handlers(pipc_t *dev, uint8_t modem);
+static void	pipc_codec_handlers(pipc_t *dev, uint8_t modem);
+static uint8_t	pipc_read(int func, int addr, void *priv);
+static void	pipc_write(int func, int addr, uint8_t val, void *priv);
 
 
 static void
@@ -332,18 +343,28 @@ pipc_reset_hard(void *priv)
 		}
 
 		dev->ac97_regs[i][0x10] = 0x01;
-		dev->ac97_regs[i][(dev->local >= VIA_PIPC_8231) ? 0x1c : 0x14] = 0x01;
-
-		if ((i == 0) && (dev->local >= VIA_PIPC_8231)) {
-			dev->ac97_regs[i][0x18] = 0x31;
-			dev->ac97_regs[i][0x19] = 0x03;
+		if (i == 0) {
+			dev->ac97_regs[i][0x14] = 0x01;
+			dev->ac97_regs[i][0x18] = 0x01;
 		}
+		dev->ac97_regs[i][0x1c] = 0x01;
 
 		dev->ac97_regs[i][0x3d] = 0x03;
 
+		if (i == 0)
+			dev->ac97_regs[i][0x40] = 0x01;
+
 		dev->ac97_regs[i][0x43] = 0x1c;
+		dev->ac97_regs[i][0x4b] = 0x02;
+
+		pipc_sgd_handlers(dev, i);
+		pipc_midigame_handlers(dev, i);
+		pipc_codec_handlers(dev, i);
 	}
     }
+
+    if (dev->gameport)
+	gameport_remap(dev->gameport, 0x200);
 
     pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
     pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
@@ -428,6 +449,79 @@ pipc_bus_master_handlers(pipc_t *dev)
 }
 
 
+static void
+pipc_sgd_handlers(pipc_t *dev, uint8_t modem)
+{
+    if (!dev->ac97)
+    	return;
+
+    if (modem)
+    	ac97_via_remap_modem_sgd(dev->ac97, dev->ac97_regs[1][0x11] << 8, dev->ac97_regs[1][0x04] & PCI_COMMAND_IO);
+    else
+    	ac97_via_remap_audio_sgd(dev->ac97, dev->ac97_regs[0][0x11] << 8, dev->ac97_regs[0][0x04] & PCI_COMMAND_IO);
+}
+
+
+static uint8_t
+pipc_midigame_read(uint16_t addr, void *priv)
+{
+    pipc_t *dev = (pipc_t *) priv;
+    uint8_t ret = 0xff;
+
+    addr &= 0x03;
+    switch (addr) {
+	case 0x02: case 0x03:
+		ret = pipc_read(5, 0x48 + addr, dev);
+		break;
+    }
+
+    return ret;
+}
+
+
+static void
+pipc_midigame_write(uint16_t addr, uint8_t val, void *priv)
+{
+    pipc_t *dev = (pipc_t *) priv;
+
+    addr &= 0x03;
+    switch (addr) {
+	case 0x02: case 0x03:
+		pipc_write(5, 0x48 + addr, val, dev);
+		break;
+    }
+}
+
+
+static void
+pipc_midigame_handlers(pipc_t *dev, uint8_t modem)
+{
+    if (!dev->ac97 || modem)
+	return;
+
+    if (dev->midigame_base)
+	io_removehandler(dev->midigame_base, 4, pipc_midigame_read, NULL, NULL, pipc_midigame_write, NULL, NULL, dev);
+
+    dev->midigame_base = (dev->ac97_regs[0][0x19] << 8) | (dev->ac97_regs[0][0x18] & 0xfc);
+
+    if (dev->midigame_base && (dev->ac97_regs[0][0x04] & PCI_COMMAND_IO))
+	io_sethandler(dev->midigame_base, 4, pipc_midigame_read, NULL, NULL, pipc_midigame_write, NULL, NULL, dev);
+}
+
+
+static void
+pipc_codec_handlers(pipc_t *dev, uint8_t modem)
+{
+    if (!dev->ac97)
+    	return;
+
+    if (modem)
+    	ac97_via_remap_modem_codec(dev->ac97, dev->ac97_regs[1][0x1d] << 8, dev->ac97_regs[1][0x04] & PCI_COMMAND_IO);
+    else
+    	ac97_via_remap_audio_codec(dev->ac97, dev->ac97_regs[0][0x1d] << 8, dev->ac97_regs[0][0x04] & PCI_COMMAND_IO);
+}
+
+
 static uint8_t
 pipc_read(int func, int addr, void *priv)
 {
@@ -487,8 +581,12 @@ pipc_read(int func, int addr, void *priv)
 			ret |= 0x10;
 	}
     }
-    else if ((func <= (pm_func + 2)) && !(dev->pci_isa_regs[0x85] & ((func == (pm_func + 1)) ? 0x04 : 0x08))) /* AC97 / MC97 */
-	ret = dev->ac97_regs[func - pm_func - 1][addr];
+    else if ((func <= (pm_func + 2)) && !(dev->pci_isa_regs[0x85] & ((func == (pm_func + 1)) ? 0x04 : 0x08))) { /* AC97 / MC97 */
+	if (addr == 0x40)
+		ret = ac97_via_read_status(dev->ac97, func - pm_func - 1);
+	else
+		ret = dev->ac97_regs[func - pm_func - 1][addr];
+    }
 
     pipc_log("PIPC: read(%d, %02X) = %02X\n", func, addr, ret);
 
@@ -528,7 +626,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
     pipc_log("PIPC: write(%d, %02X, %02X)\n", func, addr, val);
 
     if (func == 0) { /* PCI-ISA bridge */
-	/* Read-only addresses */
+	/* Read-only addresses. */
 	if ((addr < 4) || (addr == 5) || ((addr >= 8) && (addr < 0x40)) || (addr == 0x49) || (addr == 0x4b) ||
 	    (addr == 0x53) || ((addr >= 0x5d) && (addr < 0x5f)) || (addr >= 0x90))
 		return;
@@ -693,7 +791,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			break;
 	}
     } else if (func == 1) { /* IDE */
-	/* Read-only addresses and disable bit */
+	/* Read-only addresses. */
 	if ((addr < 4) || (addr == 5) || (addr == 8) || ((addr >= 0xa) && (addr < 0x0d)) ||
 	    ((addr >= 0x0e) && (addr < 0x10)) || ((addr >= 0x12) && (addr < 0x13)) ||
 	    ((addr >= 0x16) && (addr < 0x17)) || ((addr >= 0x1a) && (addr < 0x1b)) ||
@@ -702,10 +800,14 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 	    ((addr >= 0x62) && (addr < 0x68)) || ((addr >= 0x6a) && (addr < 0x70)) ||
 	    (addr == 0x72) || (addr == 0x73) || (addr == 0x76) || (addr == 0x77) ||
 	    (addr == 0x7a) || (addr == 0x7b) || (addr == 0x7e) || (addr == 0x7f) ||
-	    ((addr >= 0x84) && (addr < 0x88)) || (addr >= 0x8c) || (dev->pci_isa_regs[0x48] & 0x02))
+	    ((addr >= 0x84) && (addr < 0x88)) || (addr >= 0x8c))
 		return;
 
 	if ((dev->local <= VIA_PIPC_586B) && ((addr == 0x54) || (addr >= 0x70)))
+		return;
+
+	/* Check disable bit. */
+	if (dev->pci_isa_regs[0x48] & 0x02)
 		return;
 
 	switch (addr) {
@@ -851,18 +953,18 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			break;
 	}
     } else if (func < pm_func) { /* USB */
-	/* Read-only addresses */
+	/* Read-only addresses. */
 	if ((addr < 4) || (addr == 5) || (addr == 6) || ((addr >= 8) && (addr < 0xd)) ||
 	    ((addr >= 0xe) && (addr < 0x20)) || ((addr >= 0x22) && (addr < 0x3c)) ||
 	    ((addr >= 0x3e) && (addr < 0x40)) || ((addr >= 0x42) && (addr < 0x44)) ||
 	    ((addr >= 0x46) && (addr < 0x84)) || ((addr >= 0x85) && (addr < 0xc0)) || (addr >= 0xc2))
 		return;
 
-	/* Check disable bits for both controllers */
-	if ((func == 2) ? (dev->pci_isa_regs[0x48] & 0x04) : (dev->pci_isa_regs[0x85] & 0x10))
+	if ((dev->local <= VIA_PIPC_596B) && (addr == 0x84))
 		return;
 
-	if ((dev->local <= VIA_PIPC_596B) && (addr == 0x84))
+	/* Check disable bits for both controllers. */
+	if ((func == 2) ? (dev->pci_isa_regs[0x48] & 0x04) : (dev->pci_isa_regs[0x85] & 0x10))
 		return;
 
 	switch (addr) {
@@ -965,22 +1067,78 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			break;
 	}
     } else if (func <= pm_func + 2) { /* AC97 / MC97 */
-	/* Read-only addresses */
-	if ((addr < 0x4) || ((addr >= 0x6) && (addr < 0xd)) || ((addr >= 0xe) && (addr < 0x10)) || ((addr >= 0x1c) && (addr < 0x2c)) ||
+	/* Read-only addresses. */
+	if ((addr < 0x4) || ((addr >= 0x6) && (addr < 0x9)) || ((addr >= 0xc) && (addr < 0x11)) || (addr == 0x16) ||
+	    (addr == 0x17) || (addr == 0x1a) || (addr == 0x1b) || ((addr >= 0x1e) && (addr < 0x2c)) ||
 	    ((addr >= 0x30) && (addr < 0x34)) || ((addr >= 0x35) && (addr < 0x3c)) || ((addr >= 0x3d) && (addr < 0x41)) ||
 	    ((addr >= 0x45) && (addr < 0x4a)) || (addr >= 0x4c))
 		return;
 
-	/* Also check disable bits for both controllers */
-	if ((func == (pm_func + 1)) && ((addr == 0x44) || (dev->pci_isa_regs[0x85] & 0x04)))
+	/* Small shortcut. */
+	func = func - pm_func - 1;
+
+	/* Check disable bits and specific read-only addresses for both controllers. */
+	if ((func == 0) && (((addr >= 0x09) && (addr < 0xc)) || (addr == 0x44) || (dev->pci_isa_regs[0x85] & 0x04)))
 		return;
 
-	if ((func == (pm_func + 2)) && ((addr == 0x4a) || (addr == 0x4b) || (dev->pci_isa_regs[0x85] & 0x08)))
+	if ((func == 1) && ((addr == 0x14) || (addr == 0x15) || (addr == 0x18) || (addr == 0x19) || (addr == 0x42) ||
+	    (addr == 0x43) || (addr == 0x48) || (addr == 0x4a) || (addr == 0x4b) || (dev->pci_isa_regs[0x85] & 0x08)))
 		return;
 
 	switch (addr) {
+		case 0x04:
+			dev->ac97_regs[func][addr] = val;
+			pipc_midigame_handlers(dev, func);
+			pipc_sgd_handlers(dev, func);
+			pipc_codec_handlers(dev, func);
+			break;
+
+		case 0x09: case 0x0a: case 0x0b:
+			if (dev->ac97_regs[func][0x44] & 0x20)
+				dev->ac97_regs[func][addr] = val;
+			break;
+
+		case 0x11:
+			dev->ac97_regs[func][addr] = val;
+			pipc_sgd_handlers(dev, func);
+			break;
+
+		case 0x18: case 0x19:
+			if (addr == 0x18)
+				val = (val & 0xfc) | 1;
+			dev->ac97_regs[func][addr] = val;
+			pipc_midigame_handlers(dev, func);
+			break;
+
+		case 0x1c:
+			dev->ac97_regs[func][addr] = val;
+			pipc_codec_handlers(dev, func);
+			break;
+
+		case 0x2c: case 0x2d: case 0x2e: case 0x2f:
+			if ((func == 0) && (dev->ac97_regs[func][0x42] & 0x20))
+				dev->ac97_regs[func][addr] = val;
+			break;
+
+		case 0x42: case 0x4a: case 0x4b:
+			dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val;
+			gameport_remap(dev->gameport, (dev->ac97_regs[0][0x42] & 0x08) ? ((dev->ac97_regs[0][0x4b] << 8) | dev->ac97_regs[0][0x4a]) : 0);
+			break;
+
+		case 0x43:
+			dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val;
+			break;
+
+		case 0x44:
+			dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val & 0xf0;
+			break;
+
+		case 0x45:
+			dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val & 0x0f;
+			break;
+
 		default:
-			dev->ac97_regs[func - pm_func - 1][addr] = val;
+			dev->ac97_regs[func][addr] = val;
 			break;
 	}
     }
@@ -1052,8 +1210,14 @@ pipc_init(const device_t *info)
 	dev->acpi = device_add(&acpi_via_device);
 
     dev->usb[0] = device_add_inst(&usb_device, 1);
-    if (dev->local >= VIA_PIPC_686A)
+    if (dev->local >= VIA_PIPC_686A) {
 	dev->usb[1] = device_add_inst(&usb_device, 2);
+
+	dev->ac97 = device_add(&ac97_via_device);
+	ac97_via_set_slot(dev->ac97, dev->slot, PCI_INTC);
+
+	dev->gameport = gameport_add(&gameport_sio_device);
+    }
 
     pipc_reset_hard(dev);
 

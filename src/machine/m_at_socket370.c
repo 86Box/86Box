@@ -37,6 +37,7 @@
 #include "cpu.h"
 #include <86box/machine.h>
 #include <86box/clock.h>
+#include <86box/snd_ac97.h>
 
 
 int
@@ -432,7 +433,7 @@ machine_at_6via90ap_init(const machine_t *model)
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x0A, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      3, 4, 1, 2);
@@ -450,6 +451,10 @@ machine_at_6via90ap_init(const machine_t *model)
     hwm_values.temperatures[0] += 2; /* CPU offset */
     hwm_values.temperatures[1] += 2; /* System offset */
     hwm_values.temperatures[2] = 0; /* unused */
+
+    /* I recall identifying this board's codec as the ALC100 while studying AC97, but I couldn't find
+       that information again. Other Acorp boards have the ALC100, though, so it's a safe bet. -RG */
+    device_add(&alc100_device);
 
     return ret;
 }
