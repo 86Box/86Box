@@ -329,8 +329,13 @@ static void banshee_out(uint16_t addr, uint8_t val, void *p)
                         }
                         if (svga->crtcreg < 0xe || svga->crtcreg > 0x11 || (svga->crtcreg == 0x11 && old != val))
                         {
-                                svga->fullchange = changeframecount;
-                                svga_recalctimings(svga);
+				if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
+                                	svga->fullchange = 3;
+					svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+				} else {
+					svga->fullchange = changeframecount;
+	                                svga_recalctimings(svga);
+				}
                         }
                 }
                 break;
@@ -2623,12 +2628,6 @@ static const device_config_t banshee_sgram_config[] =
                 .default_int = 1
         },
         {
-                .name = "dithersub",
-                .description = "Dither subtraction",
-                .type = CONFIG_BINARY,
-                .default_int = 1
-        },
-        {
                 .name = "dacfilter",
                 .description = "Screen Filter",
                 .type = CONFIG_BINARY,
@@ -2676,12 +2675,6 @@ static const device_config_t banshee_sdram_config[] =
         {
                 .name = "bilinear",
                 .description = "Bilinear filtering",
-                .type = CONFIG_BINARY,
-                .default_int = 1
-        },
-        {
-                .name = "dithersub",
-                .description = "Dither subtraction",
                 .type = CONFIG_BINARY,
                 .default_int = 1
         },

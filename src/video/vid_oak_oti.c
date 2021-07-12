@@ -107,8 +107,13 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 		svga->crtc[idx] = val;
 		if (old != val) {
 			if ((idx < 0x0e) || (idx > 0x10)) {
-				svga->fullchange = changeframecount;
-				svga_recalctimings(svga);
+				if (idx == 0x0c || idx == 0x0d) {
+					svga->fullchange = 3;
+					svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+				} else {
+					svga->fullchange = changeframecount;
+					svga_recalctimings(svga);
+				}
 			}
 		}
 		break;
