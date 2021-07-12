@@ -70,12 +70,14 @@
 #include "cpu.h"
 #include <86box/plat.h>
 #include <86box/video.h>
+#include <86box/i2c.h>
+#include <86box/vid_ddc.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
 #define ROM_TGUI_9400CXI	"roms/video/tgui9440/9400CXI.vbi"
 #define ROM_TGUI_9440		"roms/video/tgui9440/BIOS.BIN"
-#define ROM_TGUI_9680		"roms/video/tgui9660/Union.VBI"
+#define ROM_TGUI_96xx		"roms/video/tgui9660/Union.VBI"
 
 #define EXT_CTRL_16BIT            0x01
 #define EXT_CTRL_MONO_EXPANSION   0x02
@@ -86,6 +88,7 @@ enum
 {
         TGUI_9400CXI = 0,
         TGUI_9440,
+		TGUI_9660,
 		TGUI_9680
 };
 
@@ -100,7 +103,7 @@ typedef struct tgui_t
         svga_t svga;
 	int pci;
         
-        int type;
+        int type, card;
 		
 		uint8_t int_line;
 		uint8_t pci_regs[256];
@@ -156,6 +159,7 @@ typedef struct tgui_t
         uint32_t vram_size, vram_mask;
         
         volatile int write_blitter;
+		void *i2c, *ddc;
 } tgui_t;
 
 video_timings_t timing_tgui_vlb = {VIDEO_BUS, 4,  8, 16,   4,  8, 16};
@@ -206,6 +210,19 @@ dword_remap(svga_t *svga, uint32_t in_addr)
         return ((in_addr << 2) & 0x3fff0) |
                 ((in_addr >> 14) & 0xc) |
                 (in_addr & ~0x3fffc);
+}
+
+static void
+tgui_update_irqs(tgui_t *tgui)
+{
+	if (!tgui->pci)
+		return;
+	
+	if (!(tgui->oldctrl1 & 0x40)) {
+		pci_set_irq(tgui->card, PCI_INTA);
+	} else {
+		pci_clear_irq(tgui->card, PCI_INTA);
+	}
 }
 
 static void
@@ -277,7 +294,7 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
         svga_t *svga = &tgui->svga;
         uint8_t old, mask;
 
-	mask = (tgui->type >= TGUI_9680) ? 0x3f : 0x1f;
+	mask = (tgui->type >= TGUI_9660) ? 0x3f : 0x1f;
 
         if (((addr&0xFFF0) == 0x3D0 || (addr&0xFFF0) == 0x3B0) && !(svga->miscout & 1)) addr ^= 0x60;
 
@@ -300,10 +317,10 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
                                 tgui->newctrl2 = val; 
                         break;
                         case 0xE:
-                        if (tgui->oldmode)
-                                tgui->oldctrl1 = val; 
-                        else 
-                        {
+                        if (tgui->oldmode) {
+                                tgui->oldctrl1 = val;
+								tgui_update_irqs(tgui);
+                        } else {
                                 svga->seqregs[0xe] = val ^ 2;
                                 svga->write_bank = (svga->seqregs[0xe] & 0xf) * 65536;
                                 if (!(svga->gdcreg[0xf] & 1)) 
@@ -332,7 +349,7 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
                                 svga->bpp = 16;
                                 break;
                                 case 0xd0:
-                                svga->bpp = ((svga->crtc[0x38] & 0x08) == 0x08 && tgui->type == TGUI_9440) ? 24 : 32;
+                                svga->bpp = ((svga->crtc[0x38] & 0x08) == 0x08 && (tgui->type == TGUI_9440)) ? 24 : 32;
 								break;
                                 default:
                                 svga->bpp = 8;
@@ -389,7 +406,7 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
                 }
                 break;
                 case 0x3D4:
-		svga->crtcreg = val & 0x7f;
+				svga->crtcreg = val;
                 return;
                 case 0x3D5:
                 if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
@@ -425,14 +442,20 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
 
 					case 0x34:
 					case 0x35:
-						tgui->ge_base = ((svga->crtc[0x35] << 0x18) | (svga->crtc[0x34] << 0x10));
-						tgui_recalcmapping(tgui);
+						if (tgui->type >= TGUI_9440) {
+							tgui->ge_base = ((svga->crtc[0x35] << 0x18) | (svga->crtc[0x34] << 0x10));
+							tgui_recalcmapping(tgui);
+						}
 						break;
 
 					case 0x36:
 					case 0x39:
-						if (tgui->type >= TGUI_9440)
-							tgui_recalcmapping(tgui);
+						tgui_recalcmapping(tgui);
+						break;
+						
+					case 0x37:
+						if (tgui->type >= TGUI_9660)
+							i2c_gpio_set(tgui->i2c, !!(val & 0x02), (val & 0x01));
 						break;
 
 					case 0x40: case 0x41: case 0x42: case 0x43:
@@ -440,7 +463,7 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
                         if (tgui->type >= TGUI_9440) {
 							svga->hwcursor.x = (svga->crtc[0x40] | (svga->crtc[0x41] << 8)) & 0x7ff;
 							svga->hwcursor.y = (svga->crtc[0x42] | (svga->crtc[0x43] << 8)) & 0x7ff;
-							if (tgui->type == TGUI_9680 && (tgui->accel.ger22 & 0xff) == 8) {
+							if (tgui->type >= TGUI_9660 && (tgui->accel.ger22 & 0xff) == 8) {
 								svga->hwcursor.x <<= 1;
 							}
 							svga->hwcursor.xoff = svga->crtc[0x46] & 0x3f;
@@ -498,7 +521,7 @@ tgui_in(uint16_t addr, void *p)
                 case 0x3C5:
 				if ((svga->seqaddr & 0xf) == 9) {
 					if (tgui->type == TGUI_9680)
-						return 1; /*TGUI9680*/
+						return 0x01; /*TGUI9680XGi*/
 				}
                 if ((svga->seqaddr & 0xf) == 0xb)
                 {
@@ -509,6 +532,7 @@ tgui_in(uint16_t addr, void *p)
                                 return 0x93; /*TGUI9400CXi*/
                                 case TGUI_9440:
                                 return 0xe3; /*TGUI9440AGi*/
+								case TGUI_9660:
 								case TGUI_9680:
 								return 0xd3; /*TGUI9660XGi*/
                         }
@@ -547,7 +571,15 @@ tgui_in(uint16_t addr, void *p)
                 case 0x3D4:
                 return svga->crtcreg;
                 case 0x3D5:
-                temp = svga->crtc[svga->crtcreg];
+				temp = svga->crtc[svga->crtcreg];
+				if (svga->crtcreg == 0x37) {
+					if (tgui->type >= TGUI_9660) {
+						if ((svga->crtc[0x37] & 0x02) && i2c_gpio_get_scl(tgui->i2c))
+							temp |= 0x02;
+						if ((svga->crtc[0x37] & 0x01) && i2c_gpio_get_sda(tgui->i2c))
+							temp |= 0x01;
+					}
+				}
                 return temp;
                 case 0x3d8:
 		return tgui->tgui_3d8;
@@ -650,10 +682,10 @@ void tgui_recalctimings(svga_t *svga)
                 {
                         case 8:
                         svga->render = svga_render_8bpp_highres;
-						if (tgui->type >= TGUI_9680) {
+						if (tgui->type >= TGUI_9660) {
 							if (svga->dispend == 512)
 								svga->hdisp = 1280;
-							else if (svga->dispend == 1200)
+							else if (svga->dispend == 600 && svga->hdisp == 800 && svga->vtotal == 651)
 								svga->hdisp = 1600;
 						}
                         break;
@@ -858,7 +890,7 @@ uint8_t tgui_pci_read(int func, int addr, void *p)
                 case 0x08: return 0; /*Revision ID*/
                 case 0x09: return 0; /*Programming interface*/
                 
-                case 0x0a: return 0x01; /*Supports VGA interface*/
+                case 0x0a: return 0x01; /*Supports VGA interface, XGA compatible*/
                 case 0x0b: return 0x03;
                 
                 case 0x10: return 0x00; /*Linear frame buffer address*/
@@ -875,6 +907,9 @@ uint8_t tgui_pci_read(int func, int addr, void *p)
 				case 0x31: return 0x00;
 				case 0x32: return tgui->pci_regs[0x32];
 				case 0x33: return tgui->pci_regs[0x33];
+				
+				case 0x3c: return tgui->int_line;
+				case 0x3d: return PCI_INTA;
         }
         return 0;
 }
@@ -896,7 +931,7 @@ void tgui_pci_write(int func, int addr, uint8_t val, void *p)
 				break;
 			
                 case 0x12:
-		if (tgui->type == TGUI_9680)
+		if (tgui->type >= TGUI_9660)
                 	tgui->linear_base = (tgui->linear_base & 0xff000000) | ((val & 0xc0) << 16);
 		else
                 	tgui->linear_base = (tgui->linear_base & 0xff000000) | ((val & 0xe0) << 16);
@@ -906,7 +941,7 @@ void tgui_pci_write(int func, int addr, uint8_t val, void *p)
                 tgui_recalcmapping(tgui);
                 break;
                 case 0x13:
-		if (tgui->type == TGUI_9680)
+		if (tgui->type >= TGUI_9660)
 			tgui->linear_base = (tgui->linear_base & 0xc00000) | (val << 24);
 		else
 			tgui->linear_base = (tgui->linear_base & 0xe00000) | (val << 24);
@@ -917,11 +952,17 @@ void tgui_pci_write(int func, int addr, uint8_t val, void *p)
                 break;
 
                 case 0x16:
-                tgui->mmio_base = (tgui->mmio_base & 0xff000000) | ((val & 0xe0) << 16);
+                if (tgui->type >= TGUI_9660)
+					tgui->mmio_base = (tgui->mmio_base & 0xff000000) | ((val & 0xc0) << 16);
+				else
+					tgui->mmio_base = (tgui->mmio_base & 0xff000000) | ((val & 0xe0) << 16);
                 tgui_recalcmapping(tgui);
                 break;
                 case 0x17:
-                tgui->mmio_base = (tgui->mmio_base & 0x00e00000) | (val << 24);
+				if (tgui->type >= TGUI_9660)
+					tgui->mmio_base = (tgui->mmio_base & 0x00c00000) | (val << 24);
+				else
+					tgui->mmio_base = (tgui->mmio_base & 0x00e00000) | (val << 24);
                 tgui_recalcmapping(tgui);
                 break;				
 				
@@ -936,6 +977,10 @@ void tgui_pci_write(int func, int addr, uint8_t val, void *p)
 				{
 					mem_mapping_disable(&tgui->bios_rom.mapping);
 				}
+				return;
+				
+				case 0x3c:
+				tgui->int_line = val;
 				return;
         }
 }
@@ -1270,17 +1315,18 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 			}
 			pattern_data = tgui->accel.pattern_16;
 		} else {
-			for (y = 0; y < 8; y++)
+			for (y = 0; y < 4; y++)
 			{
 				for (x = 0; x < 8; x++)
 				{
 					tgui->accel.pattern_32[(y*8) + (7 - x)] = tgui->accel.pattern[x*4 + y*32] | (tgui->accel.pattern[x*4 + y*32 + 1] << 8) | (tgui->accel.pattern[x*4 + y*32 + 2] << 16) | (tgui->accel.pattern[x*4 + y*32 + 3] << 24);
+					tgui->accel.pattern_32[((y+4)*8) + (7 - x)] = tgui->accel.pattern[x*4 + y*32] | (tgui->accel.pattern[x*4 + y*32 + 1] << 8) | (tgui->accel.pattern[x*4 + y*32 + 2] << 16) | (tgui->accel.pattern[x*4 + y*32 + 3] << 24);
 				}
 			}
 			pattern_data = tgui->accel.pattern_32;
 		}
 	}
-	
+
 	switch (tgui->accel.command)
 	{
 		case TGUI_BITBLT:
@@ -1323,7 +1369,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 				count >>= 3;
 
 			while (count) {
-				if ((tgui->type == TGUI_9440) || (tgui->type >= TGUI_9680 && tgui->accel.dx >= tgui->accel.left && tgui->accel.dx <= tgui->accel.right &&
+				if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && tgui->accel.dx >= tgui->accel.left && tgui->accel.dx <= tgui->accel.right &&
 					tgui->accel.dy >= tgui->accel.top && tgui->accel.dy <= tgui->accel.bottom)) {
 					if (tgui->accel.bpp == 0) {
 							src_dat = cpu_dat >> 24;
@@ -1348,7 +1394,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 						pat_dat &= 0xffff;
 					
 					if ((((tgui->accel.flags & (TGUI_PATMONO|TGUI_TRANSENA)) == (TGUI_TRANSENA|TGUI_PATMONO)) && (pat_dat != trans_col)) || !(tgui->accel.flags & TGUI_PATMONO) || 
-						((tgui->accel.flags & (TGUI_PATMONO|TGUI_TRANSENA)) == TGUI_PATMONO)) {
+						((tgui->accel.flags & (TGUI_PATMONO|TGUI_TRANSENA)) == TGUI_PATMONO) || (tgui->accel.ger22 & 0x200)) {
 						MIX();
 
 						WRITE(tgui->accel.dst, out);
@@ -1358,7 +1404,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 				tgui->accel.src += xdir;
 				tgui->accel.dst += xdir;
 				tgui->accel.pat_x += xdir;
-				if (tgui->type >= TGUI_9680)
+				if (tgui->type >= TGUI_9660)
 					tgui->accel.dx += xdir;
 				
 				tgui->accel.x++;
@@ -1368,7 +1414,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 					tgui->accel.pat_x = tgui->accel.dst_x;
 					tgui->accel.pat_y += ydir;
 					
-					if (tgui->type >= TGUI_9680) {
+					if (tgui->type >= TGUI_9660) {
 						tgui->accel.dx = tgui->accel.dst_x & 0xfff;
 						tgui->accel.dy += ydir;
 					}
@@ -1595,7 +1641,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 				
 				/*Note by TC1995: I suppose the x/y clipping max is always more than 0 in the TGUI 96xx, but the TGUI 9440 lacks clipping*/
 				if (steep) {
-					if ((tgui->type == TGUI_9440) || (tgui->type >= TGUI_9680 && dx >= tgui->accel.left && dx <= tgui->accel.right &&
+					if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && dx >= tgui->accel.left && dx <= tgui->accel.right &&
 						dy >= tgui->accel.top && dy <= tgui->accel.bottom)) {
 						READ(dx + (dy * tgui->accel.pitch), dst_dat);
 
@@ -1611,7 +1657,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 						WRITE(dx + (dy * tgui->accel.pitch), out);
 					}
 				} else {
-					if ((tgui->type == TGUI_9440) || (tgui->type >= TGUI_9680 && dy >= tgui->accel.left && dy <= tgui->accel.right &&
+					if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && dy >= tgui->accel.left && dy <= tgui->accel.right &&
 						dx >= tgui->accel.top && dx <= tgui->accel.bottom)) {					
 						READ(dy + (dx * tgui->accel.pitch), dst_dat);
 
@@ -1654,7 +1700,7 @@ tgui_accel_out(uint16_t addr, uint8_t val, void *p)
 	{
 		case 0x2122:
 		tgui->accel.ger22 = (tgui->accel.ger22 & 0xff00) | val;
-		switch (val) {
+		switch (val & 0xff) {
 			case 4:
 			tgui->accel.pitch = 1024;
 			tgui->accel.bpp = 0;
@@ -1662,14 +1708,14 @@ tgui_accel_out(uint16_t addr, uint8_t val, void *p)
 			
 			case 8:
 			tgui->accel.pitch = 2048;
-			if (tgui->type == TGUI_9680)
+			if (tgui->type >= TGUI_9660)
 				tgui->accel.pitch = 1280;
 			tgui->accel.bpp = 0;
 			break;
 			
 			case 9:
 			tgui->accel.pitch = 1024;
-			if (tgui->type == TGUI_9680) {
+			if (tgui->type >= TGUI_9660) {
 				tgui->accel.pitch = tgui->svga.hdisp;
 				if (tgui->svga.hdisp == 800)
 					tgui->accel.pitch = 832;
@@ -2118,7 +2164,7 @@ tgui_accel_write(uint32_t addr, uint8_t val, void *p)
 	{
 		case 0x22:
 		tgui->accel.ger22 = (tgui->accel.ger22 & 0xff00) | val;
-		switch (val) {
+		switch (val & 0xff) {
 			case 4:
 			tgui->accel.pitch = 1024;
 			tgui->accel.bpp = 0;
@@ -2126,14 +2172,14 @@ tgui_accel_write(uint32_t addr, uint8_t val, void *p)
 			
 			case 8:
 			tgui->accel.pitch = 2048;
-			if (tgui->type == TGUI_9680)
+			if (tgui->type >= TGUI_9660)
 				tgui->accel.pitch = 1280;
 			tgui->accel.bpp = 0;
 			break;
 			
 			case 9:
 			tgui->accel.pitch = 1024;
-			if (tgui->type == TGUI_9680) {
+			if (tgui->type >= TGUI_9660) {
 				tgui->accel.pitch = tgui->svga.hdisp;
 				if (tgui->svga.hdisp == 800)
 					tgui->accel.pitch = 832;
@@ -2696,7 +2742,7 @@ static uint16_t
 tgui_mmio_read_w(uint32_t addr, void *p)
 {
 	tgui_t *tgui = (tgui_t *)p;
-	svga_t *svga = &tgui->svga;	
+	svga_t *svga = &tgui->svga;
     uint16_t ret = 0xffff;
 
 	addr &= 0x0000ffff;
@@ -2746,15 +2792,16 @@ static void *tgui_init(const device_t *info)
 
 	tgui->pci = !!(info->flags & DEVICE_PCI);
 
-	switch(info->local) {
+	switch(tgui->type) {
 		case TGUI_9400CXI:
 			bios_fn = ROM_TGUI_9400CXI;
 			break;
 		case TGUI_9440:
 			bios_fn = ROM_TGUI_9440;
 			break;
+		case TGUI_9660:
 		case TGUI_9680:
-			bios_fn = ROM_TGUI_9680;
+			bios_fn = ROM_TGUI_96xx;
 			break;
 		default:
 			free(tgui);
@@ -2763,7 +2810,7 @@ static void *tgui_init(const device_t *info)
 
         rom_init(&tgui->bios_rom, (char *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
-	if (info->flags & DEVICE_PCI)
+	if (tgui->pci)
 		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tgui_pci);
 	else
 		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tgui_vlb);
@@ -2787,18 +2834,23 @@ static void *tgui_init(const device_t *info)
 		tgui_set_io(tgui);
 
         if (tgui->pci && (tgui->type >= TGUI_9440))
-			pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
+			tgui->card = pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
 
 		tgui->pci_regs[PCI_REG_COMMAND] = 3;
+
+		tgui->int_line = 0;
 
 		tgui->pci_regs[0x30] = 0x00;
 		tgui->pci_regs[0x32] = 0x0c;
 		tgui->pci_regs[0x33] = 0x00;
 
-		tgui->int_line = 0;
-		
 		if (tgui->type >= TGUI_9440)
 			tgui->svga.packed_chain4 = 1;
+		
+		if (tgui->type >= TGUI_9660) {
+			tgui->i2c = i2c_gpio_init("ddc_tgui");
+			tgui->ddc = ddc_init(i2c_gpio_get_bus(tgui->i2c));			
+		}
 
         return tgui;
 }
@@ -2815,7 +2867,7 @@ static int tgui9440_available(void)
 
 static int tgui96xx_available(void)
 {
-        return rom_present(ROM_TGUI_9680);
+        return rom_present(ROM_TGUI_96xx);
 }
 
 void tgui_close(void *p)
@@ -2823,6 +2875,11 @@ void tgui_close(void *p)
         tgui_t *tgui = (tgui_t *)p;
         
         svga_close(&tgui->svga);
+
+		if (tgui->type >= TGUI_9660) {
+			ddc_close(tgui->ddc);
+			i2c_gpio_close(tgui->i2c);
+		}
 
         free(tgui);
 }
@@ -2940,6 +2997,20 @@ const device_t tgui9440_pci_device =
         tgui_speed_changed,
         tgui_force_redraw,
         tgui9440_config
+};
+
+const device_t tgui9660_pci_device =
+{
+        "Trident TGUI 9660XGi PCI",
+        DEVICE_PCI,
+	TGUI_9660,
+        tgui_init,
+        tgui_close,
+	NULL,
+        { tgui96xx_available },
+        tgui_speed_changed,
+        tgui_force_redraw,
+        tgui96xx_config
 };
 
 const device_t tgui9680_pci_device =
