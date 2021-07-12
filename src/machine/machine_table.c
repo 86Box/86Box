@@ -370,6 +370,8 @@ const machine_t machines[] = {
 
     /* 486 machines - Socket 3 */
     /* 486 machines with just the ISA slot */
+    /* Has AMI MegaKey KBC firmware. */
+    { "[Contaq 82C597] Green-B",		"green-b",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,									 1024, 65536, 1024, 127,	      machine_at_green_b_init, NULL			},
     /* Has a VIA VT82C42N KBC. */
     { "[OPTi 895] Jetway J-403TG",		"403tg",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB,									 1024, 65536, 1024, 127,		machine_at_403tg_init, NULL			},
     /* Has JetKey 5 KBC Firmware which looks like it is a clone of AMIKey type F. */
@@ -668,10 +670,15 @@ const machine_t machines[] = {
 
     /* Super Socket 7 machines */
     /* ALi ALADDiN V */
+    /* Has the ALi M1543C southbridge with on-chip KBC. */
+    { "[ALi ALADDiN V] ASUS P5A",		"p5a",			MACHINE_TYPE_SOCKETS7,		CPU_PKG_SOCKET5_7, 0, 66666667, 124242424, 2000, 3200, 1.5, 5.5,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,2097152, 8192, 255,		  machine_at_p5a_init, NULL			},
     /* Is the exact same as the Matsonic MS6260S. Has the ALi M1543C southbridge
        with on-chip KBC. */
     { "[ALi ALADDiN V] PC Chips M579",		"m579",			MACHINE_TYPE_SOCKETS7,		CPU_PKG_SOCKET5_7, 0, 66666667, 124242424, 2000, 3200, 1.5, 5.5,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,2097152, 8192, 255,		 machine_at_m579_init, NULL			},
+    /* Has the ALi M1543C southbridge with on-chip KBC. */
     { "[ALi ALADDiN V] Gigabyte GA-5AA",	"ga-5aa",		MACHINE_TYPE_SOCKETS7,		CPU_PKG_SOCKET5_7, 0, 66666667, 124242424, 2000, 3200, 1.5, 5.5,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,2097152, 8192, 255,	       machine_at_ga_5aa_init, NULL			},
+    /* Has the ALi M1543C southbridge with on-chip KBC. */
+    { "[ALi ALADDiN V] Gigabyte GA-5AX",	"ga-5ax",		MACHINE_TYPE_SOCKETS7,		CPU_PKG_SOCKET5_7, 0, 66666667, 124242424, 2000, 3200, 1.5, 5.5,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,2097152, 8192, 255,	       machine_at_ga_5ax_init, NULL			},
 
     /* Apollo MVP3 */
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
@@ -716,6 +723,10 @@ const machine_t machines[] = {
     { "[i440FX] PC Partner MB600N",		"mb600n",		MACHINE_TYPE_SOCKET8,		CPU_PKG_SOCKET8, 0, 60000000, 66666667, 2100, 3500, 1.5, 8.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 524288, 8192, 127,	       machine_at_mb600n_init, NULL			},
 
     /* Slot 1 machines */
+    /* ALi ALADDiN V */
+    /* Has the ALi M1543C southbridge with on-chip KBC. */
+    { "[ALi ALADDiN-PRO II] PC Chips M729",	"m729",			MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 50000000, 66666667, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,2097152, 8192, 255,		 machine_at_m729_init, NULL			},
+
     /* 440FX */
     /* The base board has AMIKey-2 (updated 'H') KBC firmware. */
     { "[i440FX] ASUS P/I-P65UP5 (C-PKND)",	"p65up5_cpknd",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 50000000, 66666667, 1800, 3500, 1.5, 8.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192,1048576, 8192, 127,	 machine_at_p65up5_cpknd_init, NULL			},

@@ -37,6 +37,7 @@
 #define LM78_AS99127F_REV1	0x040000
 #define LM78_AS99127F_REV2	0x080000
 #define LM78_W83782D		0x100000
+#define LM78_P5A		0x200000
 #define LM78_AS99127F		(LM78_AS99127F_REV1 | LM78_AS99127F_REV2) /* special mask covering both _REV1 and _REV2 */
 #define LM78_WINBOND		(LM78_W83781D | LM78_AS99127F | LM78_W83782D) /* special mask covering all Winbond variants */
 #define LM78_WINBOND_VENDOR_ID	((dev->local & LM78_AS99127F_REV1) ? 0x12c3 : 0x5ca3)
@@ -258,8 +259,13 @@ lm78_reset(void *priv)
     dev->regs[0x46] = 0x40;
     dev->regs[0x47] = 0x50;
     if (dev->local & LM78_I2C) {
-	if (!initialization) /* don't reset main I2C address if the reset was triggered by the INITIALIZATION bit */
-		dev->i2c_addr = 0x2d;
+	if (!initialization) { /* don't reset main I2C address if the reset was triggered by the INITIALIZATION bit */
+		if (dev->local & LM78_P5A)
+			dev->i2c_addr = 0x77;
+		else
+			dev->i2c_addr = 0x2d;
+		dev->i2c_enabled = 1;
+	}
 	dev->regs[0x48] = dev->i2c_addr;
 	if (dev->local & LM78_WINBOND)
 		dev->regs[0x4a] = 0x01;
@@ -791,6 +797,17 @@ const device_t w83781d_device = {
     "Winbond W83781D Hardware Monitor",
     DEVICE_ISA,
     0x290 | LM78_I2C | LM78_W83781D,
+    lm78_init, lm78_close, lm78_reset,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+
+/* Winbond W83781D on ISA and SMBus. */
+const device_t w83781d_p5a_device = {
+    "Winbond W83781D Hardware Monitor (ASUS P5A)",
+    DEVICE_ISA,
+    0x290 | LM78_I2C | LM78_W83781D | LM78_P5A,
     lm78_init, lm78_close, lm78_reset,
     { NULL }, NULL, NULL,
     NULL

@@ -384,18 +384,14 @@ spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit
 }
 
 
+/* Used by ALi M1531 and M1541/2. */
 void
 spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit)
 {
-    uint8_t row, dimm, drb, apollo = 0;
+    uint8_t row, dimm;
+    uint8_t drb;
     uint16_t size, size_acc;
     uint16_t rows[SPD_MAX_SLOTS];
-
-    /* Special case for VIA Apollo Pro family, which jumps from 5F to 56. */
-    if (reg_max < reg_min) {
-	apollo = reg_max;
-	reg_max = reg_min + 7;
-    }
 
     /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
     if (!spd_present) {
@@ -424,8 +420,6 @@ spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint
 
 	/* Determine the DRB register to write. */
 	drb = reg_min + row;
-	if (apollo && ((drb & 0xf) < 0xa))
-		drb = apollo + (drb & 0xf);
 
 	/* Calculate previous and new size. */
 	if (row == 0)
@@ -438,6 +432,81 @@ spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint
 	regs[drb + 1] = (regs[drb + 1] & 0xf0) | ((size_acc >> 8) & 0x0f);
 
 	spd_log("SPD: DRB[%d] = %d MB (%02Xh raw)\n", row >> 1, size, regs[drb]);
+    }
+}
+
+
+/* This is needed because the ALi M1621 does this stuff completely differently,
+   as it has DRAM bank registers instead of DRAM row boundary registers. */
+void
+spd_write_drbs_ali1621(uint8_t *regs, uint8_t reg_min, uint8_t reg_max)
+{
+    uint8_t dimm, drb;
+    uint16_t size;
+    uint16_t rows[SPD_MAX_SLOTS];
+
+    /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */
+    if (!spd_present) {
+	dimm = ((reg_max - reg_min) + 1) >> 2; /* amount of "DIMM"s, also used to determine the maximum "DIMM" size */
+	spd_populate(rows, dimm, mem_size >> 10, 4, 1 << (log2i((machines[machine].max_ram >> 10) / dimm)), 0);
+    }
+
+    /* Write DRBs for each row. */
+    spd_log("SPD: Writing DRBs... regs=[%02X:%02X] unit=%d\n", reg_min, reg_max, drb_unit);
+    for (dimm = 0; dimm <= ((reg_max - reg_min) >> 2); dimm++) {
+	size = 0;
+	drb = reg_min + (dimm << 2);
+
+	regs[drb] = 0xff;
+	regs[drb + 1] = 0xff;
+	regs[drb + 2] = 0x00;
+	regs[drb + 3] = 0xf0;
+
+	if (spd_modules[dimm] == NULL)
+		continue;
+
+	if (spd_present) {
+		/* SPD enabled: use SPD info for this slot, if present. */
+		size = (spd_modules[dimm]->row1 + spd_modules[dimm]->row2) >> 1;
+	} else {
+		/* No SPD: use the values calculated above. */
+		size = (rows[dimm] >> 1);
+	}
+
+	if (spd_modules[dimm]->row1)
+		regs[drb + 3] |= 0x06;
+
+	switch (size) {
+		case 4:
+		default:
+			regs[drb + 2] = 0x00;
+			break;
+		case 8:
+			regs[drb + 2] = 0x10;
+			break;
+		case 16:
+			regs[drb + 2] = 0x20;
+			break;
+		case 32:
+			regs[drb + 2] = 0x30;
+			break;
+		case 64:
+			regs[drb + 2] = 0x40;
+			break;
+		case 128:
+			regs[drb + 2] = 0x50;
+			break;
+		case 256:
+			regs[drb + 2] = 0x60;
+			break;
+	}
+
+	if (spd_modules[dimm]->row2) {
+		regs[drb + 3] |= 0x01;
+		regs[drb + 2] |= 0x80;
+	}
+
+	spd_log("SPD: DIMM %i: %02X %02X %02X %02X\n", regs[drb], regs[drb + 1], regs[drb + 2], regs[drb + 3]);
     }
 }
 

@@ -295,7 +295,6 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
 				break;
 		}
 		ali1543_log("IDE slot = %02X (A%0i)\n", dev->ide_slot - 5, dev->ide_slot + 11);
-		pclog("IDE slot = %02X (A%0i)\n", dev->ide_slot - 5, dev->ide_slot + 11);
 		ali5229_ide_irq_handler(dev);
 		break;
 
@@ -365,7 +364,6 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
 				break;
 		}
 		ali1543_log("PMU slot = %02X (A%0i)\n", dev->pmu_slot - 5, dev->pmu_slot + 11);
-		pclog("PMU slot = %02X (A%0i)\n", dev->pmu_slot - 5, dev->pmu_slot + 11);
 		switch (val & 0x03) {
 			case 0x00:
 				dev->usb_slot = 0x14;	/* A31 = slot 20 */
@@ -381,7 +379,6 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
 				break;
 		}
 		ali1543_log("USB slot = %02X (A%0i)\n", dev->usb_slot - 5, dev->usb_slot + 11);
-		pclog("USB slot = %02X (A%0i)\n", dev->usb_slot - 5, dev->usb_slot + 11);
 		break;
 
 	case 0x73:	/* DDMA Base Address */
@@ -424,7 +421,7 @@ ali1533_write(int func, int addr, uint8_t val, void *priv)
 
 	case 0x78:
 		if (dev->type ==  1) {
-			pclog("PCI78 = %02X\n", val);
+			ali1543_log("PCI78 = %02X\n", val);
 			dev->pci_conf[addr] = val & 0x33;
 		}
 		break;
@@ -557,10 +554,10 @@ ali5229_ide_handler(ali1543_t *dev)
 {
     uint32_t ch = 0;
 
-    uint16_t native_base_pri_addr = (dev->ide_conf[0x11] | dev->ide_conf[0x10] << 8);
-    uint16_t native_side_pri_addr = (dev->ide_conf[0x15] | dev->ide_conf[0x14] << 8);
-    uint16_t native_base_sec_addr = (dev->ide_conf[0x19] | dev->ide_conf[0x18] << 8);
-    uint16_t native_side_sec_addr = (dev->ide_conf[0x1c] | dev->ide_conf[0x1b] << 8);
+    uint16_t native_base_pri_addr = ((dev->ide_conf[0x11] | dev->ide_conf[0x10] << 8)) & 0xfffe;
+    uint16_t native_side_pri_addr = ((dev->ide_conf[0x15] | dev->ide_conf[0x14] << 8)) & 0xfffe;
+    uint16_t native_base_sec_addr = ((dev->ide_conf[0x19] | dev->ide_conf[0x18] << 8)) & 0xfffe;
+    uint16_t native_side_sec_addr = ((dev->ide_conf[0x1c] | dev->ide_conf[0x1b] << 8)) & 0xfffe;
 
     uint16_t comp_base_pri_addr = 0x01f0;
     uint16_t comp_side_pri_addr = 0x03f6;
@@ -597,7 +594,7 @@ ali5229_ide_handler(ali1543_t *dev)
 
     if (dev->ide_conf[0x04] & 0x01) {
 	/* Primary Channel Setup */
-	if (dev->ide_conf[0x09] & 0x20) {
+	if ((dev->ide_conf[0x09] & 0x20) || (dev->ide_conf[0x4d] & 0x80)) {
 		ali1543_log("ali5229_ide_handler(): Primary IDE base now %04X...\n", current_pri_base);
 		ide_set_base(0, current_pri_base);
 		ali1543_log("ali5229_ide_handler(): Primary IDE side now %04X...\n", current_pri_side);
@@ -611,7 +608,7 @@ ali5229_ide_handler(ali1543_t *dev)
 	}
 
 	/* Secondary Channel Setup */
-	if (dev->ide_conf[0x09] & 0x10) {
+	if ((dev->ide_conf[0x09] & 0x10) || (dev->ide_conf[0x4d] & 0x80)) {
 		ali1543_log("ali5229_ide_handler(): Secondary IDE base now %04X...\n", current_sec_base);
 		ide_set_base(1, current_sec_base);
 		ali1543_log("ali5229_ide_handler(): Secondary IDE side now %04X...\n", current_sec_side);
@@ -650,8 +647,8 @@ ali5229_chip_reset(ali1543_t *dev)
     dev->ide_conf[0x15] = 0x03;
     dev->ide_conf[0x18] = 0x71;
     dev->ide_conf[0x19] = 0x01;
-    dev->ide_conf[0x1a] = 0x75;
-    dev->ide_conf[0x1b] = 0x03;
+    dev->ide_conf[0x1c] = 0x75;
+    dev->ide_conf[0x1d] = 0x03;
     dev->ide_conf[0x20] = 0x01;
     dev->ide_conf[0x21] = 0xf0;
     dev->ide_conf[0x3d] = 0x01;
@@ -667,12 +664,13 @@ ali5229_chip_reset(ali1543_t *dev)
 
     if (dev->type == 1) {
 	dev->ide_conf[0x08] = 0xc1;
+	dev->ide_conf[0x43] = 0x00;
 	dev->ide_conf[0x4b] = 0x4a;
 	dev->ide_conf[0x4e] = 0xba;
 	dev->ide_conf[0x4f] = 0x1a;
     }
 
-    ali5229_write(0, 0x04, 0x00 /*0x01*/, dev);
+    ali5229_write(0, 0x04, 0x05, dev);
     ali5229_write(0, 0x10, 0xf1, dev);
     ali5229_write(0, 0x11, 0x01, dev);
     ali5229_write(0, 0x14, 0xf5, dev);
@@ -742,10 +740,12 @@ ali5229_write(int func, int addr, uint8_t val, void *priv)
 		break;
 
 	/* Primary Base Address */
-	case 0x10: case 0x11: case 0x12: case 0x13: case 0x14:
+	case 0x10: case 0x11: case 0x14: case 0x15:
+		/* FALLTHROUGH */
 
 	/* Secondary Base Address */
-	case 0x18: case 0x19: case 0x1a: case 0x1b: case 0x1c:
+	case 0x18: case 0x19: case 0x1c: case 0x1d:
+		/* FALLTHROUGH */
 
 	/* Bus Mastering Base Address */
 	case 0x20: case 0x21: case 0x22: case 0x23:
@@ -779,6 +779,7 @@ ali5229_write(int func, int addr, uint8_t val, void *priv)
 
 	case 0x4d:
 		dev->ide_conf[addr] = val & 0x80;
+		ali5229_ide_handler(dev);
 		break;
 
 	case 0x4f:
@@ -969,7 +970,7 @@ ali7101_write(int func, int addr, uint8_t val, void *priv)
 			else if (addr == 0x11)
 				dev->pmu_conf[addr] = val;
 
-			pclog("New ACPI base address: %08X\n", (dev->pmu_conf[0x11] << 8) | (dev->pmu_conf[0x10] & 0xc0));
+			ali1543_log("New ACPI base address: %08X\n", (dev->pmu_conf[0x11] << 8) | (dev->pmu_conf[0x10] & 0xc0));
 			acpi_update_io_mapping(dev->acpi, (dev->pmu_conf[0x11] << 8) | (dev->pmu_conf[0x10] & 0xc0), dev->pmu_conf[0x04] & 1);
 		}
 		break;
@@ -986,10 +987,10 @@ ali7101_write(int func, int addr, uint8_t val, void *priv)
 				dev->pmu_conf[addr] = val;
 
 			if (dev->type == 1) {
-				pclog("New SMBUS base address: %08X\n", (dev->pmu_conf[0x15] << 8) | (dev->pmu_conf[0x14] & 0xc0));
+				ali1543_log("New SMBUS base address: %08X\n", (dev->pmu_conf[0x15] << 8) | (dev->pmu_conf[0x14] & 0xc0));
 				smbus_ali7101_remap(dev->smbus, (dev->pmu_conf[0x15] << 8) | (dev->pmu_conf[0x14] & 0xc0), (dev->pmu_conf[0xe0] & 1) && (dev->pmu_conf[0x04] & 1));
 			} else {
-				pclog("New SMBUS base address: %08X\n", (dev->pmu_conf[0x15] << 8) | (dev->pmu_conf[0x14] & 0xe0));
+				ali1543_log("New SMBUS base address: %08X\n", (dev->pmu_conf[0x15] << 8) | (dev->pmu_conf[0x14] & 0xe0));
 				smbus_ali7101_remap(dev->smbus, (dev->pmu_conf[0x15] << 8) | (dev->pmu_conf[0x14] & 0xe0), (dev->pmu_conf[0xe0] & 1) && (dev->pmu_conf[0x04] & 1));
 			}
 		}

@@ -103,7 +103,7 @@ smbus_ali7101_write(uint16_t addr, uint8_t val, void *priv)
     dev->next_stat = 0x04;
     switch (addr - dev->io_base) {
 	case 0x00:
-		dev->stat &= ~(val & 0xe2);
+		dev->stat &= ~(val & 0xf2);
 		/* Make sure IDLE is set if we're not busy or errored. */
 		if (dev->stat == 0x00)
 			dev->stat = 0x04;
@@ -139,7 +139,7 @@ smbus_ali7101_write(uint16_t addr, uint8_t val, void *priv)
 
 		/* Raise DEV_ERR if no device is at this address, or if the device returned NAK when starting the transfer. */
 		if (!i2c_start(i2c_smbus, smbus_addr, read)) {
-			dev->next_stat = 0x20;
+			dev->next_stat = 0x40;
 			break;
 		}
 

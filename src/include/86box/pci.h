@@ -130,6 +130,7 @@ extern void	pci_bridge_set_ctl(void *priv, uint8_t ctl);
 extern const device_t dec21150_device;
 
 extern const device_t ali5243_agp_device;
+extern const device_t ali5247_agp_device;
 extern const device_t i440lx_agp_device;
 extern const device_t i440bx_agp_device;
 extern const device_t i440gx_agp_device;

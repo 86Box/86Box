@@ -2493,6 +2493,7 @@ mem_set_access(uint8_t bitmap, int mode, uint32_t base, uint32_t size, uint16_t 
     uint16_t mask, smstate = 0x0000;
     const uint16_t smstates[4] = {	0x0000, (MEM_READ_SMRAM | MEM_WRITE_SMRAM),
 					MEM_READ_SMRAM_EX, (MEM_READ_DISABLED_EX | MEM_WRITE_DISABLED_EX)	};
+
     int i;
 
     if (mode)
@@ -2504,7 +2505,15 @@ mem_set_access(uint8_t bitmap, int mode, uint32_t base, uint32_t size, uint16_t 
 	if (mode == 1)
 		access = !!access;
 
-	smstate = smstates[access & 0x03];
+	if (mode == 3) {
+		if (access & ACCESS_SMRAM_X)
+			smstate |= MEM_EXEC_SMRAM;
+		if (access & ACCESS_SMRAM_R)
+			smstate |= MEM_READ_SMRAM_2;
+		if (access & ACCESS_SMRAM_W)
+			smstate |= MEM_WRITE_SMRAM;
+	} else
+		smstate = smstates[access & 0x07];
     } else
 	smstate = access & 0x6f7b;
 

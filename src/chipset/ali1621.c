@@ -36,8 +36,7 @@ typedef struct ali1621_t
 {
     uint8_t	pci_conf[256];
 
-    smram_t *	smram;
-    void    *	agp_bridge;
+    smram_t *	smram[2];
 } ali1621_t;
 
 
@@ -60,33 +59,79 @@ ali1621_log(const char *fmt, ...)
 #endif
 
 
+/* Table translated to a more sensible format:
+	Read cycles:
+	SMREN	SMM	Mode		Code	Data
+	0	X	X		PCI	PCI
+	1	0	Close		PCI	PCI
+	1	0	Lock		PCI	PCI
+	1	0	Protect		PCI	PCI
+	1	0	Open		DRAM	DRAM
+	1	1	Open		DRAM	DRAM
+	1	1	Protect		DRAM	DRAM
+	1	1	Close		DRAM	PCI
+	1	1	Lock		DRAM	PCI
+
+	Write cycles:
+	SMWEN	SMM	Mode		Data
+	0	X	X		PCI
+	1	0	Close		PCI
+	1	0	Lock		PCI
+	1	0	Protect		PCI
+	1	0	Open		DRAM
+	1	1	Open		DRAM
+	1	1	Protect		DRAM
+	1	1	Close		PCI
+	1	1	Lock		PCI
+
+	Explanation of the modes based above:
+		If SM*EN = 0, SMRAM is entirely disabled, otherwise:
+			If mode is Close or Lock, then SMRAM always goes to PCI outside SMM,
+			and data to PCI, code to DRAM in SMM;
+			If mode is Protect, then SMRAM always goes to PCI outside SMM and
+			DRAM in SMM;
+			If mode is Open, then SMRAM always goes to DRAM.
+		Read and write are enabled separately.
+ */
 static void
 ali1621_smram_recalc(uint8_t val, ali1621_t *dev)
 {
+    uint16_t access_smm = 0x0000, access_normal = 0x0000;
+
     smram_disable_all();
 
-    if (val & 1) {
-	switch (val & 0x0c) {
-		case 0x00:
-			ali1621_log("SMRAM: D0000 -> B0000 (%i)\n", val & 2);
-			smram_enable(dev->smram, 0xd0000, 0xb0000, 0x10000, val & 2, 1);
-			if (val & 0x10)
-				mem_set_mem_state_smram_ex(1, 0xd0000, 0x10000, 0x02);
-			break;
-		case 0x04:
-			ali1621_log("SMRAM: A0000 -> A0000 (%i)\n", val & 2);
-			smram_enable(dev->smram, 0xa0000, 0xa0000, 0x20000, val & 2, 1);
-			if (val & 0x10)
-				mem_set_mem_state_smram_ex(1, 0xa0000, 0x20000, 0x02);
-			break;
-		case 0x08:
-			ali1621_log("SMRAM: 30000 -> B0000 (%i)\n", val & 2);
-			smram_enable(dev->smram, 0x30000, 0xb0000, 0x10000, val & 2, 1);
-			if (val & 0x10)
-				mem_set_mem_state_smram_ex(1, 0x30000, 0x10000, 0x02);
+    if (val & 0xc0) {
+	/* SMRAM 0: A0000-BFFFF */
+	if (val & 0x80) {
+		access_smm = ACCESS_SMRAM_X;
+
+		switch (val & 0x30) {
+			case 0x10:	/* Open. */
+				access_normal = ACCESS_SMRAM_RX;
+				/* FALLTHROUGH */
+			case 0x30:	/* Protect. */
+				access_smm |= ACCESS_SMRAM_R;
+				break;
+		}
+	}
+
+	if (val & 0x40)  switch (val & 0x30) {
+		case 0x10:	/* Open. */
+			access_normal |= ACCESS_SMRAM_W;
+			/* FALLTHROUGH */
+		case 0x30:	/* Protect. */
+			access_smm |= ACCESS_SMRAM_W;
 			break;
 	}
+
+	smram_enable(dev->smram[0], 0xa0000, 0xa0000, 0x20000, ((val & 0x30) == 0x10), (val & 0x30));
+
+	mem_set_access(ACCESS_NORMAL, 3, 0xa0000, 0x20000, access_normal);
+	mem_set_access(ACCESS_SMM, 3, 0xa0000, 0x20000, access_smm);
     }
+
+    if (val & 0x08)
+	smram_enable(dev->smram[1], 0x38000, 0xa8000, 0x08000, 0, 1);
 
     flushmmucache_nopc();
 }
@@ -95,31 +140,60 @@ ali1621_smram_recalc(uint8_t val, ali1621_t *dev)
 static void
 ali1621_shadow_recalc(int cur_reg, ali1621_t *dev)
 {
-    int i, bit, r_reg, w_reg;
+    int i, r_bit, w_bit, reg;
     uint32_t base, flags = 0;
 
     shadowbios = shadowbios_write = 0;
 
-    for (i = 0; i < 16; i++) {
+    /* C0000-EFFFF */
+    for (i = 0; i < 12; i++) {
 	base = 0x000c0000 + (i << 14);
-	bit = i & 7;
-	r_reg = 0x56 + (i >> 3);
-	w_reg = 0x58 + (i >> 3);
+	r_bit = (i << 1) + 4;
+	reg = 0x84;
+	if (r_bit > 23) {
+		r_bit &= 7;
+		reg += 3;
+	} else if (r_bit > 15) {
+		r_bit &= 7;
+		reg += 2;
+	} else if (r_bit > 7) {
+		r_bit &= 7;
+		reg++;
+	}
+	w_bit = r_bit + 1;
 
-	flags = (dev->pci_conf[r_reg] & (1 << bit)) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
-	flags |= ((dev->pci_conf[w_reg] & (1 << bit)) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY);
+	flags = (dev->pci_conf[reg] & (1 << r_bit)) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+	flags |= ((dev->pci_conf[reg] & (1 << w_bit)) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY);
 
 	if (base >= 0x000e0000) {
-		if (dev->pci_conf[r_reg] & (1 << bit))
+		if (dev->pci_conf[reg] & (1 << r_bit))
 			shadowbios |= 1;
-		if (dev->pci_conf[w_reg] & (1 << bit))
+		if (dev->pci_conf[reg] & (1 << r_bit))
 			shadowbios_write |= 1;
 	}
 
 	ali1621_log("%08X-%08X shadow: R%c, W%c\n", base, base + 0x00003fff,
-		    (dev->pci_conf[r_reg] & (1 << bit)) ? 'I' : 'E', (dev->pci_conf[w_reg] & (1 << bit)) ? 'I' : 'E');
+		    (dev->pci_conf[reg] & (1 << r_bit)) ? 'I' : 'E', (dev->pci_conf[reg] & (1 << w_bit)) ? 'I' : 'E');
         mem_set_mem_state_both(base, 0x00004000, flags);
     }
+
+    /* F0000-FFFFF */
+    base = 0x000f0000;
+    r_bit = 4;
+    w_bit = 5;
+    reg = 0x87;
+
+    flags = (dev->pci_conf[reg] & (1 << r_bit)) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+    flags |= ((dev->pci_conf[reg] & (1 << w_bit)) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY);
+
+    if (dev->pci_conf[reg] & (1 << r_bit))
+	shadowbios |= 1;
+    if (dev->pci_conf[reg] & (1 << r_bit))
+	shadowbios_write |= 1;
+
+    ali1621_log("%08X-%08X shadow: R%c, W%c\n", base, base + 0x0000ffff,
+		(dev->pci_conf[reg] & (1 << r_bit)) ? 'I' : 'E', (dev->pci_conf[reg] & (1 << w_bit)) ? 'I' : 'E');
+    mem_set_mem_state_both(base, 0x00010000, flags);
 
     flushmmucache_nopc();
 }
@@ -348,7 +422,7 @@ ali1621_write(int func, int addr, uint8_t val, void *priv)
 		dev->pci_conf[addr] = val;
 		break;
 
-	case 0x6c ... case 0x7b:
+	case 0x6c ... 0x7b:
 		/* Bits 22:20 = DRAM Row size:
 			- 000: 4 MB;
 			- 001: 8 MB;
@@ -359,6 +433,7 @@ ali1621_write(int func, int addr, uint8_t val, void *priv)
 			- 110: 256 MB;
 			- 111: Reserved. */
 		dev->pci_conf[addr] = val;
+		spd_write_drbs_ali1621(dev->pci_conf, 0x6c, 0x7b);
 		break;
 
 	case 0x7c ... 0x7f:
@@ -376,148 +451,53 @@ ali1621_write(int func, int addr, uint8_t val, void *priv)
 		dev->pci_conf[addr] = val & 0xf7;
 		break;
 
-	case 0x54:
-		dev->pci_conf[addr] = val & 0x3c;
-
-		if (mem_size > 0xe00000)
-			mem_set_mem_state_both(0xe00000, 0x100000, (val & 0x20) ? (MEM_READ_EXTANY | MEM_WRITE_EXTANY) : (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL));
-
-		if (mem_size > 0xf00000)
-			mem_set_mem_state_both(0xf00000, 0x100000, (val & 0x10) ? (MEM_READ_EXTANY | MEM_WRITE_EXTANY) : (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL));
-
-		mem_set_mem_state_both(0xa0000, 0x20000, (val & 8) ? (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
-		mem_set_mem_state_both(0x80000, 0x20000, (val & 4) ? (MEM_READ_EXTANY | MEM_WRITE_EXTANY) : (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL));
-
-		flushmmucache_nopc();
+	case 0x83:
+		dev->pci_conf[addr] = val & 0xfc;
+		ali1621_smram_recalc(val & 0xfc, dev);
 		break;
 
-	case 0x55:	/* SMRAM */
-		dev->pci_conf[addr] = val & 0x1f;
-		ali1621_smram_recalc(val, dev);
-		break;
-
-	case 0x56 ... 0x59:	/* Shadow RAM */
-		dev->pci_conf[addr] = val;
+	case 0x84 ... 0x87:
+		if (addr == 0x87)
+			dev->pci_conf[addr] = val & 0x3f;
+		else
+			dev->pci_conf[addr] = val;
 		ali1621_shadow_recalc(val, dev);
 		break;
 
-	case 0x5a: case 0x5b:
+	case 0x88: case 0x89:
 		dev->pci_conf[addr] = val;
 		break;
-
-	case 0x5c:
-		dev->pci_conf[addr] = val;
-		break;
-
-	case 0x5d:
-		dev->pci_conf[addr] = val & 0x17;
-		break;
-
-	case 0x5e:
-		dev->pci_conf[addr] = val;
-		break;
-
-	case 0x5f:
-		dev->pci_conf[addr] = val & 0xc1;
-		break;
-
-	case 0x60 ... 0x6f:	/* DRB's */
-		dev->pci_conf[addr] = val;
-		spd_write_drbs_interleaved(dev->pci_conf, 0x60, 0x6f, 1);
-		break;
-
-	case 0x70:
-		dev->pci_conf[addr] = val;
-		break;
-
-	case 0x71:
-		dev->pci_conf[addr] = val;
-		break;
-
-	case 0x72:
-		dev->pci_conf[addr] = val & 0xc7;
-		break;
-
-	case 0x73:
-		dev->pci_conf[addr] = val & 0x1f;
-		break;
-
-	case 0x84: case 0x85:
-		dev->pci_conf[addr] = val;
-		break;
-
-	case 0x86:
-		dev->pci_conf[addr] = val & 0x0f;
-		break;
-
-	case 0x87:	/* H2PO */
-		dev->pci_conf[addr] = val;
-		/* Find where the Shut-down Special cycle is initiated. */
-		// if (!(val & 0x20))
-			// outb(0x92, 0x01);
-		break;
-
-	case 0x88:
-		dev->pci_conf[addr] = val;
-		break;
-
-	case 0x89:
-		dev->pci_conf[addr] = val;
-		break;
-
 	case 0x8a:
-		dev->pci_conf[addr] = val;
+		dev->pci_conf[addr] = val & 0xc5;
 		break;
-
 	case 0x8b:
-		dev->pci_conf[addr] = val & 0x3f;
+		dev->pci_conf[addr] = val & 0xbf;
 		break;
 
-	case 0x8c:
-		dev->pci_conf[addr] = val;
-		break;
-
-	case 0x8d:
-		dev->pci_conf[addr] = val;
-		break;
-
-	case 0x8e:
-		dev->pci_conf[addr] = val;
-		break;
-
-	case 0x8f:
+	case 0x8c ... 0x8f:
 		dev->pci_conf[addr] = val;
 		break;
 
 	case 0x90:
 		dev->pci_conf[addr] = val;
-		pci_bridge_set_ctl(dev->agp_bridge, val);
+		break;
+	case 0x91:
+		dev->pci_conf[addr] = val & 0x07;
 		break;
 
-	case 0x91:
+	case 0x94 ... 0x97:
 		dev->pci_conf[addr] = val;
 		break;
 
-	case 0xb4:
-		if (dev->pci_conf[0x90] & 0x01)
-			dev->pci_conf[addr] = val & 0x03;
-		break;
-	case 0xb5:
-		if (dev->pci_conf[0x90] & 0x01)
-			dev->pci_conf[addr] = val & 0x02;
-		break;
-	case 0xb7:
-		if (dev->pci_conf[0x90] & 0x01)
-			dev->pci_conf[addr] = val;
+	case 0x98 ... 0x9b:
+		dev->pci_conf[addr] = val;
 		break;
 
-	case 0xb8:
-		dev->pci_conf[addr] = val & 0x03;
+	case 0x9c ... 0x9f:
+		dev->pci_conf[addr] = val;
 		break;
-	case 0xb9:
-		dev->pci_conf[addr] = val & 0x03;
-		break;
-	case 0xbb:
+
+	case 0xa0: case 0xa1:
 		dev->pci_conf[addr] = val;
 		break;
 
@@ -533,98 +513,52 @@ ali1621_write(int func, int addr, uint8_t val, void *priv)
 		break;
 
 	case 0xc0:
-		dev->pci_conf[addr] = val & 0x90;
+		dev->pci_conf[addr] = val & 0xb1;
 		break;
-	case 0xc1: case 0xc2:
-	case 0xc3:
+
+	case 0xc4 ... 0xc7:
 		dev->pci_conf[addr] = val;
 		break;
 
-	case 0xc8: case 0xc9:
+	case 0xc8:
+		dev->pci_conf[addr] = val & 0x8c;
+		break;
+	case 0xc9:
+		dev->pci_conf[addr] = val;
+		break;
+	case 0xca:
+		dev->pci_conf[addr] = val & 0x7f;
+		break;
+	case 0xcb:
+		dev->pci_conf[addr] = val & 0x87;
+		break;
+
+	case 0xcc ... 0xcf:
 		dev->pci_conf[addr] = val;
 		break;
 
-	case 0xd1:
-		dev->pci_conf[addr] = val & 0xf1;
+	case 0xd0:
+		dev->pci_conf[addr] = val & 0x80;
 		break;
-	case 0xd2: case 0xd3:
+	case 0xd2:
+		dev->pci_conf[addr] = val & 0x40;
+		break;
+	case 0xd3:
+		dev->pci_conf[addr] = val & 0xb0;
+		break;
+
+	case 0xd4:
+		dev->pci_conf[addr] = val;
+		break;
+	case 0xd5:
+		dev->pci_conf[addr] = val & 0xef;
+		break;
+	case 0xd6: case 0xd7:
 		dev->pci_conf[addr] = val;
 		break;
 
-	case 0xe0: case 0xe1:
-		if (dev->pci_conf[0x90] & 0x20)
-			dev->pci_conf[addr] = val;
-		break;
-	case 0xe2:
-		if (dev->pci_conf[0x90] & 0x20)
-			dev->pci_conf[addr] = val & 0x3f;
-		break;
-	case 0xe3:
-		if (dev->pci_conf[0x90] & 0x20)
-			dev->pci_conf[addr] = val & 0xfe;
-		break;
-
-	case 0xe4:
-		if (dev->pci_conf[0x90] & 0x20)
-			dev->pci_conf[addr] = val & 0x03;
-		break;
-	case 0xe5:
-		if (dev->pci_conf[0x90] & 0x20)
-			dev->pci_conf[addr] = val;
-		break;
-
-	case 0xe6:
-		if (dev->pci_conf[0x90] & 0x20)
-			dev->pci_conf[addr] = val & 0xc0;
-		break;
-
-	case 0xe7:
-		if (dev->pci_conf[0x90] & 0x20)
-			dev->pci_conf[addr] = val;
-		break;
-
-	case 0xe8: case 0xe9:
-		if (dev->pci_conf[0x90] & 0x04)
-			dev->pci_conf[addr] = val;
-		break;
-
-	case 0xea:
-		dev->pci_conf[addr] = val & 0xcf;
-		break;
-
-	case 0xeb:
-		dev->pci_conf[addr] = val & 0xcf;
-		break;
-
-	case 0xec:
-		dev->pci_conf[addr] = val & 0x3f;
-		break;
-
-	case 0xed:
+	case 0xf0 ... 0xff:
 		dev->pci_conf[addr] = val;
-		break;
-
-	case 0xee:
-		dev->pci_conf[addr] = val & 0x3e;
-		break;
-	case 0xef:
-		dev->pci_conf[addr] = val;
-		break;
-
-	case 0xf3:
-		dev->pci_conf[addr] = val & 0x08;
-		break;
-
-	case 0xf5:
-		dev->pci_conf[addr] = val;
-		break;
-
-	case 0xf6:
-		dev->pci_conf[addr] = val;
-		break;
-
-	case 0xf7:
-		dev->pci_conf[addr] = val & 0x43;
 		break;
     }
 }
@@ -683,35 +617,26 @@ ali1621_reset(void *priv)
     dev->pci_conf[0x7e] = 0xc7;
     dev->pci_conf[0x80] = 0x01;
     dev->pci_conf[0x81] = 0xc0;
-
-    dev->pci_conf[0x89] = 0x20;
-    dev->pci_conf[0x8a] = 0x20;
-    dev->pci_conf[0x91] = 0x13;
+    dev->pci_conf[0x8e] = 0x01;
+    dev->pci_conf[0xa0] = 0x20;
     dev->pci_conf[0xb0] = 0x02;
-    dev->pci_conf[0xb1] = 0xe0;
     dev->pci_conf[0xb2] = 0x10;
     dev->pci_conf[0xb4] = 0x03;
     dev->pci_conf[0xb5] = 0x02;
-    dev->pci_conf[0xb7] = 0x1c;
-    dev->pci_conf[0xc8] = 0xbf;
-    dev->pci_conf[0xc9] = 0x0a;
-    dev->pci_conf[0xe0] = 0x01;
+    dev->pci_conf[0xb7] = 0x20;
+    dev->pci_conf[0xc0] = 0x80;
+    dev->pci_conf[0xc9] = 0x28;
+    dev->pci_conf[0xd4] = 0x10;
+    dev->pci_conf[0xd5] = 0x01;
+    dev->pci_conf[0xf0] = dev->pci_conf[0xf4] = dev->pci_conf[0xf8] = dev->pci_conf[0xfc] = 0x20;
+    dev->pci_conf[0xf1] = dev->pci_conf[0xf5] = dev->pci_conf[0xf9] = dev->pci_conf[0xfd] = 0x43;
+    dev->pci_conf[0xf2] = dev->pci_conf[0xf6] = dev->pci_conf[0xfa] = dev->pci_conf[0xfe] = 0x21;
+    dev->pci_conf[0xf3] = dev->pci_conf[0xf7] = dev->pci_conf[0xfb] = dev->pci_conf[0xff] = 0x43;
 
-    cpu_cache_int_enabled = 1;
-    ali1621_write(0, 0x42, 0x00, dev);
-
-    ali1621_write(0, 0x54, 0x00, dev);
-    ali1621_write(0, 0x55, 0x00, dev);
+    ali1621_write(0, 0x83, 0x08, dev);
 
     for (i = 0; i < 4; i++)
-	ali1621_write(0, 0x56 + i, 0x00, dev);
-
-    ali1621_write(0, 0x60 + i, 0x07, dev);
-    ali1621_write(0, 0x61 + i, 0x40, dev);
-    for (i = 0; i < 14; i += 2) {
-	ali1621_write(0, 0x62 + i, 0x00, dev);
-	ali1621_write(0, 0x63 + i, 0x00, dev);
-    }
+	ali1621_write(0, 0x84 + i, 0x00, dev);
 }
 
 
@@ -720,7 +645,9 @@ ali1621_close(void *priv)
 {
     ali1621_t *dev = (ali1621_t *)priv;
 
-    smram_del(dev->smram);
+    smram_del(dev->smram[1]);
+    smram_del(dev->smram[0]);
+
     free(dev);
 }
 
@@ -733,11 +660,12 @@ ali1621_init(const device_t *info)
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, ali1621_read, ali1621_write, dev);
 
-    dev->smram = smram_add();
+    dev->smram[0] = smram_add();
+    dev->smram[1] = smram_add();
 
     ali1621_reset(dev);
 
-    dev->agp_bridge = device_add(&ali5243_agp_device);
+    device_add(&ali5247_agp_device);
 
     return dev;
 }

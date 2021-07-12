@@ -340,6 +340,7 @@ extern int	machine_at_dtk486_init(const machine_t *);
 extern int	machine_at_px471_init(const machine_t *);
 extern int	machine_at_win471_init(const machine_t *);
 extern int	machine_at_vi15g_init(const machine_t *);
+extern int	machine_at_green_b_init(const machine_t *);
 
 extern int	machine_at_r418_init(const machine_t *);
 extern int	machine_at_ls486e_init(const machine_t *);
@@ -497,8 +498,10 @@ extern int	machine_at_m560_init(const machine_t *);
 extern int	machine_at_ms5164_init(const machine_t *);
 
 /* m_at_sockets7.c */
+extern int	machine_at_p5a_init(const machine_t *);
 extern int	machine_at_m579_init(const machine_t *);
 extern int	machine_at_ga_5aa_init(const machine_t *);
+extern int	machine_at_ga_5ax_init(const machine_t *);
 
 extern int	machine_at_ax59pro_init(const machine_t *);
 extern int	machine_at_mvp3_init(const machine_t *);
@@ -522,6 +525,8 @@ extern void	machine_at_p65up5_common_init(const machine_t *, const device_t *nor
 extern int	machine_at_p65up5_cp6nd_init(const machine_t *);
 
 /* m_at_slot1.c */
+extern int	machine_at_m729_init(const machine_t *);
+
 extern int	machine_at_p65up5_cpknd_init(const machine_t *);
 extern int	machine_at_kn97_init(const machine_t *);
 

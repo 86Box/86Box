@@ -232,6 +232,9 @@ lm75_init(const device_t *info)
 	hwm_values.temperatures[dev->local >> 8] = 30;
     dev->values = &hwm_values;
 
+    dev->i2c_addr = dev->local & 0x7f;
+    dev->i2c_enabled = 1;
+
     lm75_reset(dev);
 
     return dev;

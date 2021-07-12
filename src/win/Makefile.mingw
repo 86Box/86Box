@@ -600,8 +600,9 @@ CPUOBJ		:= cpu.o cpu_table.o fpu.o x86.o \
 		    $(DYNARECOBJ)
 
 CHIPSETOBJ	:= acc2168.o \
+		    contaq_82c59x.o \
 		    cs4031.o cs8230.o \
-		    ali1217.o ali1429.o ali1489.o ali1531.o ali1541.o ali1543.o \
+		    ali1217.o ali1429.o ali1489.o ali1531.o ali1541.o ali1543.o ali1621.o \
 		    gc100.o headland.o \
 		    intel_82335.o intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
 		    neat.o \
@@ -633,7 +634,7 @@ MCHOBJ		:= machine.o machine_table.o \
 ifeq ($(NEW_KBC), y)
 DEVOBJ		:= bugger.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_vt82c686.o \
 			ibm_5161.o isamem.o isartc.o lpt.o pci_bridge.o postcard.o serial.o \
-			vpc2007.o clock_ics9xxx.o isapnp.o \
+			clock_ics9xxx.o isapnp.o \
 		    i2c.o i2c_gpio.o smbus_ali7101.o smbus_piix4.o \
 		   keyboard.o \
 		    keyboard_xt.o kbc_at.o kbd_at.o \
@@ -644,7 +645,7 @@ DEVOBJ		:= bugger.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_vt82c68
 else
 DEVOBJ		:= bugger.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_vt82c686.o \
 			ibm_5161.o isamem.o isartc.o lpt.o pci_bridge.o postcard.o serial.o \
-			vpc2007.o clock_ics9xxx.o isapnp.o \
+			clock_ics9xxx.o isapnp.o \
 		    i2c.o i2c_gpio.o smbus_ali7101.o smbus_piix4.o \
 		   keyboard.o \
 		    keyboard_xt.o keyboard_at.o \

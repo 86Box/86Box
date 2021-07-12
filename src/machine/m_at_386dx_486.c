@@ -697,7 +697,7 @@ machine_at_sis_85c471_common_init(const machine_t *model)
     machine_at_common_init(model);
 
     if (fdc_type == FDC_INTERNAL)
-    device_add(&fdc_at_device);
+	device_add(&fdc_at_device);
 
     device_add(&sis_85c471_device);
 }
@@ -811,6 +811,30 @@ machine_at_vi15g_init(const machine_t *model)
 
     machine_at_sis_85c471_common_init(model);
     device_add(&ide_vlb_device);
+    device_add(&keyboard_at_ami_device);
+
+    return ret;
+}
+
+
+int
+machine_at_green_b_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/green-b/4gpv31-ami-1993-8273517.bin",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    if (fdc_type == FDC_INTERNAL)
+	device_add(&fdc_at_device);
+
+    device_add(&contaq_82c597_device);
+
     device_add(&keyboard_at_ami_device);
 
     return ret;

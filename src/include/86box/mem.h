@@ -64,6 +64,15 @@
 #define ACCESS_READ		    1
 #define ACCESS_WRITE		    2
 
+#define ACCESS_SMRAM_OFF	    0
+#define ACCESS_SMRAM_X		    1
+#define ACCESS_SMRAM_W		    2
+#define ACCESS_SMRAM_WX		    3
+#define ACCESS_SMRAM_R		    4
+#define ACCESS_SMRAM_RX		    5
+#define ACCESS_SMRAM_RW		    6
+#define ACCESS_SMRAM_RWX	    7
+
 /* Conversion #define's - we need these to seamlessly convert the old mem_set_mem_state() calls to
    the new stuff in order to make this a drop in replacement.
 
@@ -81,6 +90,8 @@
 #define MEM_READ_EXTERNAL_EX	0
 #define MEM_READ_SMRAM		(ACCESS_X_SMRAM | ACCESS_R_SMRAM)
 #define MEM_READ_SMRAM_EX	(ACCESS_X_SMRAM)
+#define MEM_EXEC_SMRAM		MEM_READ_SMRAM_EX
+#define MEM_READ_SMRAM_2	(ACCESS_R_SMRAM)
 /* Theese two are going to be identical. */
 #define MEM_READ_DISABLED_EX	MEM_READ_DISABLED
 #define MEM_READ_MASK		0x7c1f
