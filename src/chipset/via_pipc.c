@@ -1125,6 +1125,10 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			gameport_remap(dev->gameport, (dev->ac97_regs[0][0x42] & 0x08) ? ((dev->ac97_regs[0][0x4b] << 8) | dev->ac97_regs[0][0x4a]) : 0);
 			break;
 
+		case 0x41:
+			dev->ac97_regs[func][addr] = val;
+			break;
+
 		case 0x43:
 			dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val;
 			break;

@@ -17,6 +17,7 @@
 #include <86box/sound.h>
 #include <86box/midi.h>
 #include <86box/snd_mpu401.h>
+#include <86box/snd_ac97.h>
 
 
 #define N 16
@@ -51,7 +52,7 @@ typedef struct {
     uint8_t uart_ctrl;
     uint8_t uart_status;
 
-    uint16_t codec_regs[128];
+    ac97_codec_t *codec;
     uint32_t codec_ctrl;
 
     struct {
@@ -358,11 +359,7 @@ static uint32_t es1371_inl(uint16_t port, void *p)
 		break;
 		
 		case 0x14:
-		ret = es1371->codec_ctrl & 0x00ff0000;
-		ret |= es1371->codec_regs[(es1371->codec_ctrl >> 16) & 0x7f];
-		if (((es1371->codec_ctrl >> 16) & 0x7f) == 0x26)
-			ret |= 0x0f;
-		ret |= CODEC_READY;
+		ret = es1371->codec_ctrl | CODEC_READY;
 		break;
 
 		case 0x30:
@@ -593,39 +590,48 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 		break;
 
 		case 0x14:
-		es1371->codec_ctrl = val;
-		if (!(val & CODEC_READ))
-		{
-//			audiopci_log("Write codec %02x %04x\n", (val >> 16) & 0x7f, val & 0xffff);
-			if ((((val >> 16) & 0x7f) != 0x7c) && (((val >> 16) & 0x7f) != 0x7e))
-				es1371->codec_regs[(val >> 16) & 0x7f] = val & 0xffff;
-			switch ((val >> 16) & 0x7f)
-			{
-				case 0x02: /*Master volume*/
-				if (val & 0x8000)
-					es1371->master_vol_l = es1371->master_vol_r = 0;
-				else
-				{
-					if (val & 0x2000)
+		if (val & CODEC_READ) {
+			es1371->codec_ctrl &= 0x00ff0000;
+			es1371->codec_ctrl |= ac97_codec_read(es1371->codec, (val >> 16) & 0x7f);
+			es1371->codec_ctrl |= ac97_codec_read(es1371->codec, ((val >> 16) & 0x7f) + 1) << 8;
+		} else {
+			es1371->codec_ctrl &= 0x00ffffff;
+			ac97_codec_write(es1371->codec, (val >> 16) & 0x7f, val & 0xff);
+			ac97_codec_write(es1371->codec, ((val >> 16) & 0x7f) + 1, val >> 8);
+
+			switch ((val >> 16) & 0x7f) {
+				case 0x02: /* Master Volume LSB */
+					if (es1371->codec->regs[0x03] & 0x80)
+						es1371->master_vol_l = es1371->master_vol_r = 0;
+					else if (val & 0x20)
+						es1371->master_vol_r = codec_attn[0];
+					else
+						es1371->master_vol_r = codec_attn[0x1f - (val & 0x1f)];
+					break;
+
+				case 0x03: /* Master Volume MSB */
+					if (val & 0x80)
+						es1371->master_vol_l = es1371->master_vol_r = 0;
+					else if (val & 0x20)
 						es1371->master_vol_l = codec_attn[0];
 					else
-						es1371->master_vol_l = codec_attn[0x1f - ((val >> 8) & 0x1f)];
-					if (val & 0x20)
-						es1371->master_vol_r = codec_attn[0];
-					else					
-						es1371->master_vol_r = codec_attn[0x1f - (val & 0x1f)];
-				}
-				break;
-				case 0x12: /*CD volume*/
-				if (val & 0x8000)
-					es1371->cd_vol_l = es1371->cd_vol_r = 0;
-				else
-				{
-					es1371->cd_vol_l = codec_attn[0x1f - ((val >> 8) & 0x1f)];
-					es1371->cd_vol_r = codec_attn[0x1f - (val & 0x1f)];
-				}
-				break;
-			}       
+						es1371->master_vol_l = codec_attn[0x1f - (val & 0x1f)];
+					break;
+
+				case 0x12: /* CD Volume LSB */
+					if (es1371->codec->regs[0x13] & 0x80)
+						es1371->cd_vol_l = es1371->cd_vol_r = 0;
+					else
+						es1371->cd_vol_r = codec_attn[0x1f - (val & 0x1f)];
+					break;
+
+				case 0x13: /* CD Volume MSB */
+					if (val & 0x80)
+						es1371->cd_vol_l = es1371->cd_vol_r = 0;
+					else
+						es1371->cd_vol_l = codec_attn[0x1f - (val & 0x1f)];
+					break;
+			}
 		}
 		break;
 		
@@ -1362,9 +1368,9 @@ static void *es1371_init(const device_t *info)
         
         generate_es1371_filter();
 
-	/* Return a CS4297A like VMware does. */
-	es1371->codec_regs[0x7c] = 0x4352;
-	es1371->codec_regs[0x7e] = 0x5910;
+	ac97_codec = &es1371->codec;
+	ac97_codec_count = 1;
+	device_add(&cs4297a_device);
 
 	return es1371;
 }
