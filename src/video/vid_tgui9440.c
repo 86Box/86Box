@@ -308,7 +308,7 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
                         break;
                         case 0xC: 
                         if (svga->seqregs[0xe] & 0x80) 
-				svga->seqregs[0xc] = val; 
+							svga->seqregs[0xc] = val; 
                         break;
                         case 0xd: 
                         if (tgui->oldmode)
@@ -321,8 +321,8 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
                                 tgui->oldctrl1 = val;
 								tgui_update_irqs(tgui);
                         } else {
-                                svga->seqregs[0xe] = val ^ 2;
-                                svga->write_bank = (svga->seqregs[0xe] & 0xf) * 65536;
+								svga->seqregs[0xe] = (val ^ 2);                        
+								svga->write_bank = (svga->seqregs[0xe] & 0xf) * 65536;
                                 if (!(svga->gdcreg[0xf] & 1)) 
                                         svga->read_bank = svga->write_bank;
                         }
@@ -418,10 +418,15 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
 				
                 if (old != val)
                 {
-                        if (svga->crtcreg < 0xE || svga->crtcreg > 0x10)
+                        if (svga->crtcreg < 0xe || svga->crtcreg > 0x10)
                         {
-                                svga->fullchange = changeframecount;
-                                svga_recalctimings(svga);
+				if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
+                                	svga->fullchange = 3;
+					svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+				} else {
+					svga->fullchange = changeframecount;
+	                                svga_recalctimings(svga);
+				}
                         }
                 }
                 switch (svga->crtcreg) {
@@ -2155,7 +2160,7 @@ tgui_accel_write(uint32_t addr, uint8_t val, void *p)
 	if ((svga->crtc[0x36] & 0x03) == 0x02) {
 		if ((addr & ~0xff) != 0xbff00)
 			return;
-	} else if ((svga->crtc[0x36] & 0x03) == 0x01) {	
+	} else if ((svga->crtc[0x36] & 0x03) == 0x01) {
 		if ((addr & ~0xff) != 0xb7f00)
 			return;
 	}
@@ -2783,6 +2788,7 @@ static void *tgui_init(const device_t *info)
 	int type = info->local;
 
         tgui_t *tgui = malloc(sizeof(tgui_t));
+		svga_t *svga = &tgui->svga;
         memset(tgui, 0, sizeof(tgui_t));
         
         tgui->vram_size = device_get_config_int("memory") << 20;
@@ -2815,16 +2821,16 @@ static void *tgui_init(const device_t *info)
 	else
 		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tgui_vlb);
 
-        svga_init(info, &tgui->svga, tgui, tgui->vram_size,
+        svga_init(info, svga, tgui, tgui->vram_size,
                    tgui_recalctimings,
                    tgui_in, tgui_out,
                    tgui_hwcursor_draw,
                    NULL);
 
         if (tgui->type == TGUI_9400CXI)
-			tgui->svga.ramdac = device_add(&tkd8001_ramdac_device);
+			svga->ramdac = device_add(&tkd8001_ramdac_device);
 
-        mem_mapping_add(&tgui->linear_mapping, 0,       0,      svga_read_linear, svga_readw_linear, svga_readl_linear, tgui_accel_write_fb_b, tgui_accel_write_fb_w, tgui_accel_write_fb_l, NULL, MEM_MAPPING_EXTERNAL, &tgui->svga);
+        mem_mapping_add(&tgui->linear_mapping, 0,       0,      svga_read_linear, svga_readw_linear, svga_readl_linear, tgui_accel_write_fb_b, tgui_accel_write_fb_w, tgui_accel_write_fb_l, NULL, MEM_MAPPING_EXTERNAL, svga);
         mem_mapping_add(&tgui->accel_mapping,  0, 		0, tgui_accel_read,  tgui_accel_read_w, tgui_accel_read_l, tgui_accel_write,  tgui_accel_write_w, tgui_accel_write_l, NULL, MEM_MAPPING_EXTERNAL,  tgui);
 		if (tgui->type >= TGUI_9440)
 			mem_mapping_add(&tgui->mmio_mapping,  0, 		0, tgui_mmio_read,  tgui_mmio_read_w, tgui_mmio_read_l, tgui_mmio_write,  tgui_mmio_write_w, tgui_mmio_write_l, NULL, MEM_MAPPING_EXTERNAL,  tgui);
@@ -2838,14 +2844,12 @@ static void *tgui_init(const device_t *info)
 
 		tgui->pci_regs[PCI_REG_COMMAND] = 3;
 
-		tgui->int_line = 0;
-
 		tgui->pci_regs[0x30] = 0x00;
 		tgui->pci_regs[0x32] = 0x0c;
 		tgui->pci_regs[0x33] = 0x00;
 
 		if (tgui->type >= TGUI_9440)
-			tgui->svga.packed_chain4 = 1;
+			svga->packed_chain4 = 1;
 		
 		if (tgui->type >= TGUI_9660) {
 			tgui->i2c = i2c_gpio_init("ddc_tgui");
