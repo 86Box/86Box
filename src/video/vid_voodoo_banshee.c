@@ -329,8 +329,13 @@ static void banshee_out(uint16_t addr, uint8_t val, void *p)
                         }
                         if (svga->crtcreg < 0xe || svga->crtcreg > 0x11 || (svga->crtcreg == 0x11 && old != val))
                         {
-                                svga->fullchange = changeframecount;
-                                svga_recalctimings(svga);
+				if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
+                                	svga->fullchange = 3;
+					svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+				} else {
+					svga->fullchange = changeframecount;
+	                                svga_recalctimings(svga);
+				}
                         }
                 }
                 break;

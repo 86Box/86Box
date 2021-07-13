@@ -224,8 +224,13 @@ ega_out(uint16_t addr, uint8_t val, void *p)
 		ega->crtc[ega->crtcreg] = val;
 		if (old != val) {
 			if (ega->crtcreg < 0xe || ega->crtcreg > 0x10) {
-				fullchange = changeframecount;
-				ega_recalctimings(ega);
+				if ((ega->crtcreg == 0xc) || (ega->crtcreg == 0xd)) {
+                    fullchange = 3;
+					ega->ma_latch = ((ega->crtc[0xc] << 8) | ega->crtc[0xd]) + ((ega->crtc[8] & 0x60) >> 5);
+				} else {
+					fullchange = changeframecount;
+					ega_recalctimings(ega);
+				}
 			}
 		}
 		break;
