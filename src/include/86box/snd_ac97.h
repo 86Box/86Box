@@ -42,6 +42,7 @@ extern int		ac97_codec_count, ac97_modem_codec_count;
 
 extern const device_t	alc100_device;
 extern const device_t	cs4297a_device;
+extern const device_t	wm9701a_device;
 
 extern const device_t	ac97_via_device;
 #endif
