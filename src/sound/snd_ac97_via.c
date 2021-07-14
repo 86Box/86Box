@@ -101,7 +101,7 @@ ac97_via_read_status(void *priv, uint8_t modem)
     ac97_via_t *dev = (ac97_via_t *) priv;
     uint8_t ret = 0x00;
 
-    /* Flag codecs as ready if present. */
+    /* Flag each codec as ready if present. */
     for (uint8_t i = 0; i <= 1; i++) {
 	if (dev->codec[modem][i])
 		ret |= 0x01 << (i << 1);
@@ -326,21 +326,19 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 			/* Read from or write to codec. */
 			if (codec) {
 				if (val & 0x80) {
-					val <<= 1;
-					dev->sgd_regs[0x80] = ac97_codec_read(codec, val);
-					dev->sgd_regs[0x81] = ac97_codec_read(codec, val | 1);
+					dev->sgd_regs[0x80] = ac97_codec_read(codec, val & 0x7e);
+					dev->sgd_regs[0x81] = ac97_codec_read(codec, (val & 0x7e) | 1);
 				} else {
-					val <<= 1;
-					ac97_codec_write(codec, val, dev->sgd_regs[0x80]);
-					ac97_codec_write(codec, val | 1, dev->sgd_regs[0x81]);
+					ac97_codec_write(codec, val & 0x7e, dev->sgd_regs[0x80]);
+					ac97_codec_write(codec, (val & 0x7e) | 1, dev->sgd_regs[0x81]);
 				}
+
+				/* Flag data/status/index for this codec as valid. */
+				dev->sgd_regs[0x83] |= 0x02 << (i * 2);
 			} else if (val & 0x80) {
-				/* Unknown behavior when reading from a non-existent codec. */
+				/* Unknown behavior when reading from an absent codec. */
 				dev->sgd_regs[0x80] = dev->sgd_regs[0x81] = 0xff;
 			}
-
-			/* Flag data/status/index for this codec as valid. */
-			dev->sgd_regs[0x83] |= 0x02 << (i * 2);
 			break;
 
 		case 0x83:
@@ -348,14 +346,18 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 
 			/* Clear RWC bits. */
 			for (i = 0x02; i <= 0x08; i <<= 2) {
-	#if 0 /* race condition with Linux clearing bits and starting SGD on the same dword write */
+#if 0 /* race condition with Linux clearing bits and starting SGD on the same dword write */
 				if (val & i)
 					val &= ~i;
 				else
 					val |= dev->sgd_regs[addr] & i;
-	#else
-				val |= i;
-	#endif
+#else
+				/* Don't flag data/status/index as valid if the codec is absent. */
+				if (dev->codec[modem][!!(val & 0x40)])
+					val |= i;
+				else
+					val &= ~i;
+#endif
 			}
 			break;
 	}
@@ -486,8 +488,10 @@ ac97_via_sgd_process(void *priv)
 
 		/* Read entry. */
 		sgd->entry = ((uint64_t) mem_readl_phys(sgd->entry_ptr + 4) << 32ULL) | (uint64_t) mem_readl_phys(sgd->entry_ptr);
+#ifdef ENABLE_AC97_VIA_LOG
 		if (sgd->entry == 0xffffffffffffffffULL)
 			fatal("AC97 VIA: Invalid SGD %d entry at %08X\n", sgd->id >> 4, sgd->entry_ptr);
+#endif
 
 		/* Set sample pointer and count. */
 		sgd->sample_ptr = sgd->entry & 0xffffffff;
@@ -495,6 +499,9 @@ ac97_via_sgd_process(void *priv)
 
 		ac97_via_log("AC97 VIA: Starting SGD %d block at %08X entry %08X%08X (start %08X len %06X) lostirqs %d\n", sgd->id >> 4, sgd->entry_ptr,
 			     mem_readl_phys(sgd->entry_ptr + 4), mem_readl_phys(sgd->entry_ptr), sgd->sample_ptr, sgd->sample_count, ac97_via_lost_irqs);
+
+		/* Increment entry pointer now, as Linux expects it to be one block ahead. */
+		sgd->entry_ptr += 8;
 	}
 
         if (sgd->id & 0x10) {
@@ -511,9 +518,6 @@ ac97_via_sgd_process(void *priv)
 	/* Check if we've hit the end of this block. */
 	if (sgd->sample_count <= 0) {
 		ac97_via_log("AC97 VIA: Ending SGD %d block", sgd->id >> 4);
-
-		/* Move on to the next block on the next run. */
-		sgd->entry_ptr += 8;
 
 		if (sgd->entry & 0x2000000000000000ULL) {
 			ac97_via_log(" with STOP");
@@ -561,7 +565,7 @@ ac97_via_sgd_process(void *priv)
 		}
 		ac97_via_log("\n");
 
-		/* Start a new block. */
+		/* Move on to a new block on the next run. */
 		sgd->entry = sgd->sample_count = 0;
 	}
     }
@@ -586,6 +590,7 @@ ac97_via_poll(void *priv)
 
     dev->out_l = dev->out_r = 0;
 
+    pclog("fifo_end - fifo_pos = %d\n", sgd->fifo_end - sgd->fifo_pos);
     switch (dev->sgd_regs[0x02] & 0x30) {
 	case 0x00: /* Mono, 8-bit PCM */
 		if ((sgd->fifo_end - sgd->fifo_pos) >= 1)
@@ -607,7 +612,6 @@ ac97_via_poll(void *priv)
 		break;
 
 	case 0x30: /* Stereo, 16-bit PCM */
-		pclog("fifo_end - fifo_pos = %d\n", sgd->fifo_end - sgd->fifo_pos);
 		if ((sgd->fifo_end - sgd->fifo_pos) >= 4) {
 			dev->out_l = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
 			sgd->fifo_pos += 2;
