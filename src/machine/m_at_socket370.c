@@ -452,9 +452,7 @@ machine_at_6via90ap_init(const machine_t *model)
     hwm_values.temperatures[1] += 2; /* System offset */
     hwm_values.temperatures[2] = 0; /* unused */
 
-    /* I recall identifying this board's codec as the ALC100 while studying AC97, but I couldn't find
-       that information again. Other Acorp boards have the ALC100, though, so it's a safe bet. -RG */
-    device_add(&alc100_device);
+    device_add(&alc100_device); /* ALC100P identified on similar Acorp boards (694TA, 6VIA90A1) */
 
     return ret;
 }
