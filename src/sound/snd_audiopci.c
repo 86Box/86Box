@@ -333,7 +333,8 @@ static uint16_t es1371_inw(uint16_t port, void *p)
 		break;
 
 		default:
-		audiopci_log("Bad es1371_inw: port=%04x\n", port);
+		ret  = es1371_inb(port, p);
+		ret |= es1371_inb(port + 1, p) << 8;
 	}
 
 //	audiopci_log("es1371_inw: port=%04x ret=%04x %04x:%08x\n", port, ret, CS,cpu_state.pc);
@@ -413,7 +414,8 @@ static uint32_t es1371_inl(uint16_t port, void *p)
 		break;
 		
 		default:
-		audiopci_log("Bad es1371_inl: port=%04x\n", port);
+		ret  = es1371_inw(port, p);
+		ret |= es1371_inw(port + 2, p) << 16;
 	}
 
 	audiopci_log("es1371_inl: port=%04x ret=%08x\n", port, ret);
@@ -524,7 +526,8 @@ static void es1371_outw(uint16_t port, uint16_t val, void *p)
 		break;
 		
 		default:
-		audiopci_log("Bad es1371_outw: port=%04x val=%04x\n", port, val);
+		es1371_outb(port, val & 0xff, p);
+		es1371_outb(port + 1, (val >> 8) & 0xff, p);
 	}
 }
 static void es1371_outl(uint16_t port, uint32_t val, void *p)
@@ -600,36 +603,28 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 			ac97_codec_write(es1371->codec, ((val >> 16) & 0x7f) + 1, val >> 8);
 
 			switch ((val >> 16) & 0x7f) {
-				case 0x02: /* Master Volume LSB */
-					if (es1371->codec->regs[0x03] & 0x80)
+				case 0x02: /* Master Volume */
+					if (val & 0x8000) {
 						es1371->master_vol_l = es1371->master_vol_r = 0;
-					else if (val & 0x20)
-						es1371->master_vol_r = codec_attn[0];
-					else
-						es1371->master_vol_r = codec_attn[0x1f - (val & 0x1f)];
+					} else {
+						if (val & 0x2000)
+							es1371->master_vol_l = codec_attn[0];
+						else
+							es1371->master_vol_l = codec_attn[0x1f - ((val >> 8) & 0x1f)];
+						if (val & 0x20)
+							es1371->master_vol_r = codec_attn[0];
+						else
+							es1371->master_vol_r = codec_attn[0x1f - (val & 0x1f)];
+					}
 					break;
 
-				case 0x03: /* Master Volume MSB */
-					if (val & 0x80)
-						es1371->master_vol_l = es1371->master_vol_r = 0;
-					else if (val & 0x20)
-						es1371->master_vol_l = codec_attn[0];
-					else
-						es1371->master_vol_l = codec_attn[0x1f - (val & 0x1f)];
-					break;
-
-				case 0x12: /* CD Volume LSB */
-					if (es1371->codec->regs[0x13] & 0x80)
+				case 0x12: /* CD Volume */
+					if (val & 0x8000) {
 						es1371->cd_vol_l = es1371->cd_vol_r = 0;
-					else
+					} else {
+						es1371->cd_vol_l = codec_attn[0x1f - ((val >> 8) & 0x1f)];
 						es1371->cd_vol_r = codec_attn[0x1f - (val & 0x1f)];
-					break;
-
-				case 0x13: /* CD Volume MSB */
-					if (val & 0x80)
-						es1371->cd_vol_l = es1371->cd_vol_r = 0;
-					else
-						es1371->cd_vol_l = codec_attn[0x1f - (val & 0x1f)];
+					}
 					break;
 			}
 		}
@@ -736,7 +731,8 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 		break;
 
 		default:
-		audiopci_log("Bad es1371_outl: port=%04x val=%08x\n", port, val);
+		es1371_outw(port, val & 0xffff, p);
+		es1371_outw(port + 2, (val >> 16) & 0xffff, p);
 	}
 }
 
