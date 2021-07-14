@@ -90,7 +90,7 @@ ac97_codec_write(ac97_codec_t *dev, uint8_t reg, uint8_t val)
 	//case 0x2a ... 0x59: /* Linux tests for audio capability by writing to 38-39 */
 	case 0x5a ... 0x5f: /* Vendor Reserved */
 	//case 0x60 ... 0x6f:
-	case 0x70 ... 0x7b: /* Vendor Reserved */
+	case 0x70 ... 0x7f: /* Vendor Reserved */
 		/* Read-only registers. */
 		return;
 
@@ -175,8 +175,8 @@ ac97_codec_reset(void *priv)
     /* Set Vendor ID. */
     dev->regs[0x7c] = dev->id >> 16;
     dev->regs[0x7d] = dev->id >> 24;
-    dev->regs[0x7e] = dev->id >> 8;
-    dev->regs[0x7f] = dev->id;
+    dev->regs[0x7e] = dev->id;
+    dev->regs[0x7f] = dev->id >> 8;
 }
 
 
