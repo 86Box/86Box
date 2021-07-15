@@ -98,6 +98,9 @@ static int	key_queue_start = 0,
 
 video_timings_t timing_m19_vid = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
+const device_t	m19_vid_device;
+
+
 #ifdef ENABLE_M24VID_LOG
 int m24vid_do_log = ENABLE_M24VID_LOG;
 
