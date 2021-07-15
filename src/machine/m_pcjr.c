@@ -824,6 +824,7 @@ machine_pcjr_init(const machine_t *model)
     cpu_set();
 
     /* Initialize the video controller. */
+    video_reset(gfxcard);
     loadfont("roms/video/mda/mda.rom", 0);
     mem_mapping_add(&pcjr->mapping, 0xb8000, 0x08000,
 		    vid_read, NULL, NULL,

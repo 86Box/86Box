@@ -742,6 +742,7 @@ int
 machine_xt_m24_init(const machine_t *model)
 {
     int ret;
+    m24_kbd_t *m24_kbd;
 
     ret = bios_load_interleaved("roms/machines/m24/olivetti_m24_version_1.43_low.bin",
 				"roms/machines/m24/olivetti_m24_version_1.43_high.bin",
@@ -749,11 +750,6 @@ machine_xt_m24_init(const machine_t *model)
 
     if (bios_only || !ret)
 	return ret;
-
-    if (gfxcard == VID_INTERNAL)
-    	device_add(&ogc_m24_device);
-
-    m24_kbd_t *m24_kbd;
 
     m24_kbd = (m24_kbd_t *) malloc(sizeof(m24_kbd_t));
     memset(m24_kbd, 0x00, sizeof(m24_kbd_t));
@@ -776,6 +772,11 @@ machine_xt_m24_init(const machine_t *model)
     standalone_gameport_type = &gameport_device;
 
     nmi_init();
+
+    video_reset(gfxcard);
+
+    if (gfxcard == VID_INTERNAL)
+    	device_add(&ogc_m24_device);
 
     return ret;
 }
@@ -857,6 +858,11 @@ machine_xt_m19_init(const machine_t *model)
     device_add(&keyboard_xt_olivetti_device);
 
     nmi_init();
+
+    video_reset(gfxcard);
+
+    if (gfxcard == VID_INTERNAL)
+    	device_add(&ogc_m24_device);
 
     return ret;
 
