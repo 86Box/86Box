@@ -529,7 +529,7 @@ m19_vid_speed_changed(void *priv)
 static void
 m19_vid_init(m19_vid_t *vid)
 {
-    device_context(&vid_pc2086_device);
+    device_context(&m19_vid_device);
 
     /* int display_type; */
     vid->mode = OLIVETTI_OGC_MODE;
@@ -631,7 +631,7 @@ const device_t m19_vid_device = {
     { NULL },
     m19_vid_speed_changed,
     NULL,
-    m219_vid_config
+    m19_vid_config
 };
 
 const device_t *
