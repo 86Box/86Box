@@ -766,9 +766,6 @@ machine_xt_m24_init(const machine_t *model)
     /* Address 66-67 = mainboard dip-switch settings */
     io_sethandler(0x0066, 2, m24_read, NULL, NULL, NULL, NULL, NULL, NULL);
 
-    m24_kbd_init(m24_kbd);
-    device_add_ex(&m24_kbd_device, m24_kbd);
-
     /* FIXME: make sure this is correct?? */
     device_add(&at_nvr_device);
 
@@ -780,6 +777,9 @@ machine_xt_m24_init(const machine_t *model)
 
     if (gfxcard == VID_INTERNAL)
     	device_add(&ogc_m24_device);
+
+    m24_kbd_init(m24_kbd);
+    device_add_ex(&m24_kbd_device, m24_kbd);
 
     return ret;
 }
@@ -852,21 +852,21 @@ machine_xt_m19_init(const machine_t *model)
 
     machine_common_init(model);
 
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+
     /* On-board FDC cannot be disabled */
     device_add(&fdc_xt_device);
+
+    nmi_init();
+
+    video_reset(gfxcard);
 
     m19_vid_init(vid);
     device_add_ex(&m19_vid_device, vid);
 
     device_add(&keyboard_xt_olivetti_device);
 
-    nmi_init();
-
-    video_reset(gfxcard);
-
-    if (gfxcard == VID_INTERNAL)
-    	device_add(&ogc_m24_device);
+    pit_set_clock(14318184.0);
 
     return ret;
-
 }
