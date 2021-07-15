@@ -75,7 +75,7 @@ const machine_t machines[] = {
     { "[8088] Juko XT clone",			"jukopc",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   640,  64,    0,	       machine_xt_jukopc_init, NULL			},
     { "[8088] Multitech PC-700",		"pc700",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640,  64,    0,		machine_xt_pc700_init, NULL			},
     { "[8088] NCR PC4i",			"pc4i",			MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  256,   640, 256,    0,		 machine_xt_pc4i_init, NULL			},
-    { "[8088] Olivetti M19",			"m19",			MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO_FIXED,						  256,   640, 256,    0,		  machine_xt_m19_init, NULL			},
+    { "[8088] Olivetti M19",			"m19",			MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 4772728, 7159092, 0, 0, 0, 0,									MACHINE_PC | MACHINE_VIDEO_FIXED,						  256,   640, 256,    0,		  machine_xt_m19_init, m19_get_device		},
     { "[8088] OpenXT",				"openxt",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   640,  64,    0,	       machine_xt_openxt_init, NULL			},
     { "[8088] Philips P3105/NMS9100",		"p3105",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_XTA,							  256,   768, 256,    0,		machine_xt_p3105_init, NULL			},
     { "[8088] Phoenix XT clone",		"pxxt",			MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   640,  64,    0,		 machine_xt_pxxt_init, NULL			},

@@ -82,6 +82,9 @@ machine_init_ex(int m)
 	AT = IS_AT(machine);
 	PCI = IS_ARCH(machine, MACHINE_BUS_PCI);
 
+	cpu_set();
+	pc_speed_changed();
+
 	/* Reset the memory state. */
 	mem_reset();
 	smbase = is_am486dxl ? 0x00060000 : 0x00030000;
@@ -131,8 +134,6 @@ machine_common_init(const machine_t *model)
     /* System devices first. */
     pic_init();
     dma_init();
-
-    cpu_set();
 
     pit_common_init(!!AT, pit_irq0_timer, NULL);
 }

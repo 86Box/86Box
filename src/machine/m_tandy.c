@@ -1509,6 +1509,8 @@ machine_tandy1k_init(const machine_t *model, int type)
     if (fdc_type == FDC_INTERNAL)	
 	device_add(&fdc_xt_tandy_device);
 
+    video_reset(gfxcard);
+
     switch(type) {
 	case TYPE_TANDY:
 		keyboard_set_table(scancode_tandy);

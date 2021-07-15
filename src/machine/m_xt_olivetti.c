@@ -98,6 +98,9 @@ static int	key_queue_start = 0,
 
 video_timings_t timing_m19_vid = {VIDEO_ISA, 8, 16, 32,   8, 16, 32};
 
+const device_t	m19_vid_device;
+
+
 #ifdef ENABLE_M24VID_LOG
 int m24vid_do_log = ENABLE_M24VID_LOG;
 
@@ -529,6 +532,8 @@ m19_vid_speed_changed(void *priv)
 static void
 m19_vid_init(m19_vid_t *vid)
 {
+    device_context(&m19_vid_device);
+
     /* int display_type; */
     vid->mode = OLIVETTI_OGC_MODE;
 
@@ -540,23 +545,23 @@ m19_vid_init(m19_vid_t *vid)
     loadfont_ex("roms/machines/m19/BIOS.BIN", 1, 90);
     /* composite is not working yet */
     vid->ogc.cga.composite = 0; // (display_type != CGA_RGB);
-    /* vid->ogc.cga.snow_enabled = device_get_config_int("snow_enabled"); */
+    vid->ogc.cga.revision = device_get_config_int("composite_type");
+    vid->ogc.cga.snow_enabled = device_get_config_int("snow_enabled");
 
     vid->ogc.cga.vram = malloc(0x8000);
 
     /* cga_comp_init(vid->ogc.cga.revision); */
 
-    /* vid->ogc.cga.rgb_type = device_get_config_int("rgb_type"); */
-    /* cga_palette = (vid->ogc.cga.rgb_type << 1); */
-    cga_palette = 0;
+    vid->ogc.cga.rgb_type = device_get_config_int("rgb_type");
+    cga_palette = (vid->ogc.cga.rgb_type << 1);
     cgapal_rebuild();
     ogc_mdaattr_rebuild();
 
     /* color display */
-    /* if (device_get_config_int("rgb_type")==0 || device_get_config_int("rgb_type") == 4)  */
-    vid->ogc.mono_display = 1;
-    /* else */
-    /* 	vid->ogc.mono_display = 1;     */
+    if (device_get_config_int("rgb_type")==0 || device_get_config_int("rgb_type") == 4)
+	vid->ogc.mono_display = 0;
+    else
+	vid->ogc.mono_display = 1;
     /* OGC emulation part end */
 
     /* Plantronics emulation part begin*/
@@ -576,6 +581,8 @@ m19_vid_init(m19_vid_t *vid)
     io_sethandler(0x03d0, 0x0010, m19_vid_in, NULL, NULL, m19_vid_out, NULL, NULL, vid);
 
     vid->mode = OLIVETTI_OGC_MODE;
+
+    device_context_restore();
 }
 
 
@@ -589,6 +596,37 @@ const device_t m24_kbd_device = {
     { NULL }, NULL, NULL
 };
 
+const device_config_t m19_vid_config[] =
+{
+        {
+                /* Olivetti / ATT compatible displays */
+				"rgb_type", "RGB type", CONFIG_SELECTION, "", CGA_RGB, "", { 0 },
+                {
+                        {
+                                "Color", 0
+                        },
+                        {
+                                "Green Monochrome", 1
+                        },
+                        {
+                                "Amber Monochrome", 2
+                        },
+                        {
+                                "Gray Monochrome", 3
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "snow_enabled", "Snow emulation", CONFIG_BINARY, "", 1,
+        },
+        {
+                "", "", -1
+        }
+};
+
 const device_t m19_vid_device = {
     "Olivetti M19 graphics card",
     0, 0,
@@ -596,7 +634,7 @@ const device_t m19_vid_device = {
     { NULL },
     m19_vid_speed_changed,
     NULL,
-    NULL
+    m19_vid_config
 };
 
 const device_t *
@@ -707,6 +745,7 @@ int
 machine_xt_m24_init(const machine_t *model)
 {
     int ret;
+    m24_kbd_t *m24_kbd;
 
     ret = bios_load_interleaved("roms/machines/m24/olivetti_m24_version_1.43_low.bin",
 				"roms/machines/m24/olivetti_m24_version_1.43_high.bin",
@@ -714,11 +753,6 @@ machine_xt_m24_init(const machine_t *model)
 
     if (bios_only || !ret)
 	return ret;
-
-    if (gfxcard == VID_INTERNAL)
-    	device_add(&ogc_m24_device);
-
-    m24_kbd_t *m24_kbd;
 
     m24_kbd = (m24_kbd_t *) malloc(sizeof(m24_kbd_t));
     memset(m24_kbd, 0x00, sizeof(m24_kbd_t));
@@ -732,15 +766,20 @@ machine_xt_m24_init(const machine_t *model)
     /* Address 66-67 = mainboard dip-switch settings */
     io_sethandler(0x0066, 2, m24_read, NULL, NULL, NULL, NULL, NULL, NULL);
 
-    m24_kbd_init(m24_kbd);
-    device_add_ex(&m24_kbd_device, m24_kbd);
-
     /* FIXME: make sure this is correct?? */
     device_add(&at_nvr_device);
 
     standalone_gameport_type = &gameport_device;
 
     nmi_init();
+
+    video_reset(gfxcard);
+
+    if (gfxcard == VID_INTERNAL)
+    	device_add(&ogc_m24_device);
+
+    m24_kbd_init(m24_kbd);
+    device_add_ex(&m24_kbd_device, m24_kbd);
 
     return ret;
 }
@@ -813,16 +852,21 @@ machine_xt_m19_init(const machine_t *model)
 
     machine_common_init(model);
 
+    pit_ctr_set_out_func(&pit->counters[1], pit_refresh_timer_xt);
+
     /* On-board FDC cannot be disabled */
     device_add(&fdc_xt_device);
+
+    nmi_init();
+
+    video_reset(gfxcard);
 
     m19_vid_init(vid);
     device_add_ex(&m19_vid_device, vid);
 
     device_add(&keyboard_xt_olivetti_device);
 
-    nmi_init();
+    pit_set_clock(14318184.0);
 
     return ret;
-
 }

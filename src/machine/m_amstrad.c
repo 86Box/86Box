@@ -2441,6 +2441,8 @@ machine_amstrad_init(const machine_t *model, int type)
 
     ams->language = 7;
 
+    video_reset(gfxcard);
+
     if (gfxcard == VID_INTERNAL) switch(type) {
 	case AMS_PC1512:
 		loadfont("roms/machines/pc1512/40078", 8);

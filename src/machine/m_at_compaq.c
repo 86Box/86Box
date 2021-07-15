@@ -823,6 +823,8 @@ machine_at_compaq_init(const machine_t *model, int type)
                     write_ram, write_ramw, write_raml,
                     0xa0000+ram, MEM_MAPPING_INTERNAL, NULL);
 
+    video_reset(gfxcard);
+
     switch(type) {
 	case COMPAQ_PORTABLEII:
 		break;
