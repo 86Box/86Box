@@ -37,7 +37,7 @@ typedef struct
 {
     uint8_t	cur_reg, tries,
 		reg_base, reg_last,
-		is_471,
+		reg_00, is_471,
 		regs[39], scratch[2];
     smram_t	*smram;
     port_92_t	*port_92;
@@ -78,7 +78,7 @@ sis_85c4xx_recalcmapping(sis_85c4xx_t *dev)
 		mem_set_mem_state(base, 0x8000, readext | writeext);
     }
 
-    flushmmucache();
+    flushmmucache_nopc();
 }
 
 
@@ -195,7 +195,8 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
 					}
 					break;
 			}
-		}
+		} else if ((dev->reg_base == 0x60) && (dev->cur_reg == 0x00))
+			dev->reg_00 = val;
 		dev->cur_reg = 0x00;
 		break;
 
@@ -217,9 +218,15 @@ sis_85c4xx_in(uint16_t port, void *priv)
 	case 0x23:
 		if (dev->is_471 && (dev->cur_reg == 0x1c))
 			ret = inb(0x70);
-		if ((dev->cur_reg >= dev->reg_base) && (dev->cur_reg <= dev->reg_last))
+		/* On the SiS 40x, the shadow RAM read and write enable bits are write-only! */
+		if ((dev->reg_base == 0x60) && (dev->cur_reg == 0x62))
+			ret = dev->regs[rel_reg] & 0x3f;
+		else if ((dev->cur_reg >= dev->reg_base) && (dev->cur_reg <= dev->reg_last))
 			ret = dev->regs[rel_reg];
-		dev->cur_reg = 0x00;
+		else if ((dev->reg_base == 0x60) && (dev->cur_reg == 0x00))
+			ret = dev->reg_00;
+		if (dev->reg_base != 0x60)
+			dev->cur_reg = 0x00;
 		break;
 
 	case 0xe1: case 0xe2:
@@ -340,6 +347,10 @@ sis_85c4xx_init(const device_t *info)
 	port_92_remove(dev->port_92);
     } else {
 	dev->reg_last = dev->reg_base + 0x11;
+
+	/* Bits 6 and 7 must be clear on the SiS 40x. */
+	if (dev->reg_base == 0x60)
+		dev->reg_00 = 0x24;
 
 	switch (mem_size_mb) {
 		case 1:
