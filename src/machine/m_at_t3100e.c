@@ -632,7 +632,7 @@ static uint16_t ems_read_ramw(uint32_t addr, void *priv)
 	struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *)priv;
 	int pg = addr_to_page(addr);
 
-	if (pg < 0) return 0xFF;
+	if (pg < 0) return 0xFFFF;
 	//t3100e_log("ems_read_ramw addr=%05x ", addr);
 	addr = regs->page_exec[pg] + (addr & 0x3FFF);
 	//t3100e_log("-> %06x val=%04x\n", addr, *(uint16_t *)&ram[addr]);	
@@ -645,7 +645,7 @@ static uint32_t ems_read_raml(uint32_t addr, void *priv)
 	struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *)priv;
 	int pg = addr_to_page(addr);
 
-	if (pg < 0) return 0xFF;
+	if (pg < 0) return 0xFFFFFFFF;
 	addr = regs->page_exec[pg] + (addr & 0x3FFF);
 	return *(uint32_t *)&ram[addr];	
 }
