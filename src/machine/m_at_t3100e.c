@@ -365,6 +365,7 @@ void t3100e_map_ram(uint8_t val)
 	int n;
 	int32_t upper_len;
 
+#ifdef ENABLE_T3100E_LOG
 	t3100e_log("OUT 0x8084, %02x [ set memory mapping :", val | 0x40); 
 	if (val & 1) t3100e_log("ENABLE_EMS ");
 	if (val & 2) t3100e_log("ENABLE_XMS ");
@@ -372,6 +373,7 @@ void t3100e_map_ram(uint8_t val)
 	if (val & 8) t3100e_log("X8X ");
 	if (val & 16) t3100e_log("UPPER_IS_XMS ");
 	t3100e_log("\n");
+#endif
 
 	/* Bit 2 controls size of conventional memory */
 	if (val & 4) 
