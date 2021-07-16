@@ -1256,17 +1256,22 @@ void voodoo_card_close(voodoo_t *voodoo)
 
 
 	voodoo->fifo_thread_run = 0;
+        thread_set_event(voodoo->wake_fifo_thread);
         thread_wait(voodoo->fifo_thread, -1);
 	voodoo->render_thread_run[0] = 0;
+	thread_set_event(voodoo->wake_render_thread[0]);
         thread_wait(voodoo->render_thread[0], -1);
         if (voodoo->render_threads >= 2) {
 		voodoo->render_thread_run[1] = 0;
+		thread_set_event(voodoo->wake_render_thread[1]);
                 thread_wait(voodoo->render_thread[1], -1);
 	}
         if (voodoo->render_threads == 4) {
 		voodoo->render_thread_run[2] = 0;
+		thread_set_event(voodoo->wake_render_thread[2]);
                 thread_wait(voodoo->render_thread[2], -1);
 		voodoo->render_thread_run[3] = 0;
+		thread_set_event(voodoo->wake_render_thread[3]);
                 thread_wait(voodoo->render_thread[3], -1);
         }
         thread_destroy_event(voodoo->fifo_not_full_event);

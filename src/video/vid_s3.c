@@ -6321,6 +6321,7 @@ static void s3_close(void *p)
 	svga_close(&s3->svga);
 	
 	s3->thread_run = 0;
+	thread_set_event(s3->wake_fifo_thread);
 	thread_wait(s3->fifo_thread, -1);
 	thread_destroy_event(s3->wake_fifo_thread);
 	thread_destroy_event(s3->fifo_not_full_event);
