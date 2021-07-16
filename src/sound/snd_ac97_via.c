@@ -59,7 +59,7 @@ typedef struct _ac97_via_ {
     int		pos;
 } ac97_via_t;
 
-#define ENABLE_AC97_VIA_LOG 1
+//#define ENABLE_AC97_VIA_LOG 1
 #ifdef ENABLE_AC97_VIA_LOG
 int ac97_via_do_log = ENABLE_AC97_VIA_LOG;
 unsigned int ac97_via_lost_irqs = 0;
@@ -147,7 +147,9 @@ uint8_t
 ac97_via_sgd_read(uint16_t addr, void *priv)
 {
     ac97_via_t *dev = (ac97_via_t *) priv;
+#ifdef ENABLE_AC97_VIA_LOG
     uint8_t modem = (addr & 0xff00) == dev->modem_sgd_base;
+#endif
     addr &= 0xff;
     uint8_t ret;
 
@@ -590,7 +592,7 @@ ac97_via_poll(void *priv)
 
     dev->out_l = dev->out_r = 0;
 
-    pclog("fifo_end - fifo_pos = %d\n", sgd->fifo_end - sgd->fifo_pos);
+    //pclog("fifo_end - fifo_pos = %d\n", sgd->fifo_end - sgd->fifo_pos);
     switch (dev->sgd_regs[0x02] & 0x30) {
 	case 0x00: /* Mono, 8-bit PCM */
 		if ((sgd->fifo_end - sgd->fifo_pos) >= 1)
