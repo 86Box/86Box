@@ -976,12 +976,18 @@ void *voodoo_card_init()
         voodoo->render_not_full_event[1] = thread_create_event();
         voodoo->render_not_full_event[2] = thread_create_event();
         voodoo->render_not_full_event[3] = thread_create_event();
+	voodoo->fifo_thread_run = 1;
         voodoo->fifo_thread = thread_create(voodoo_fifo_thread, voodoo);
+	voodoo->render_thread_run[0] = 1;
         voodoo->render_thread[0] = thread_create(voodoo_render_thread_1, voodoo);
-        if (voodoo->render_threads >= 2)
+        if (voodoo->render_threads >= 2) {
+		voodoo->render_thread_run[1] = 1;
                 voodoo->render_thread[1] = thread_create(voodoo_render_thread_2, voodoo);
+	}
         if (voodoo->render_threads == 4) {
+		voodoo->render_thread_run[2] = 1;
                 voodoo->render_thread[2] = thread_create(voodoo_render_thread_3, voodoo);
+		voodoo->render_thread_run[3] = 1;
                 voodoo->render_thread[3] = thread_create(voodoo_render_thread_4, voodoo);
         }
         voodoo->swap_mutex = thread_create_mutex();
@@ -1094,12 +1100,18 @@ void *voodoo_2d3d_card_init(int type)
         voodoo->render_not_full_event[1] = thread_create_event();
         voodoo->render_not_full_event[2] = thread_create_event();
         voodoo->render_not_full_event[3] = thread_create_event();
+	voodoo->fifo_thread_run = 1;
         voodoo->fifo_thread = thread_create(voodoo_fifo_thread, voodoo);
+	voodoo->render_thread_run[0] = 1;
         voodoo->render_thread[0] = thread_create(voodoo_render_thread_1, voodoo);
-        if (voodoo->render_threads >= 2)
+        if (voodoo->render_threads >= 2) {
+		voodoo->render_thread_run[1] = 1;
                 voodoo->render_thread[1] = thread_create(voodoo_render_thread_2, voodoo);
+	}
         if (voodoo->render_threads == 4) {
+		voodoo->render_thread_run[2] = 1;
                 voodoo->render_thread[2] = thread_create(voodoo_render_thread_3, voodoo);
+		voodoo->render_thread_run[3] = 1;
                 voodoo->render_thread[3] = thread_create(voodoo_render_thread_4, voodoo);
         }
         voodoo->swap_mutex = thread_create_mutex();
@@ -1243,13 +1255,19 @@ void voodoo_card_close(voodoo_t *voodoo)
 #endif */
 
 
-        thread_kill(voodoo->fifo_thread);
-        thread_kill(voodoo->render_thread[0]);
-        if (voodoo->render_threads >= 2)
-                thread_kill(voodoo->render_thread[1]);
+	voodoo->fifo_thread_run = 0;
+        thread_wait(voodoo->fifo_thread, -1);
+	voodoo->render_thread_run[0] = 0;
+        thread_wait(voodoo->render_thread[0], -1);
+        if (voodoo->render_threads >= 2) {
+		voodoo->render_thread_run[1] = 0;
+                thread_wait(voodoo->render_thread[1], -1);
+	}
         if (voodoo->render_threads == 4) {
-                thread_kill(voodoo->render_thread[2]);
-                thread_kill(voodoo->render_thread[3]);
+		voodoo->render_thread_run[2] = 0;
+                thread_wait(voodoo->render_thread[2], -1);
+		voodoo->render_thread_run[3] = 0;
+                thread_wait(voodoo->render_thread[3], -1);
         }
         thread_destroy_event(voodoo->fifo_not_full_event);
         thread_destroy_event(voodoo->wake_main_thread);

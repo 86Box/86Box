@@ -253,6 +253,7 @@ typedef struct mach64_t
         
         int overlay_v_acc;
 
+	uint8_t thread_run;
         void *i2c, *ddc;
 } mach64_t;
 
@@ -931,7 +932,7 @@ static void fifo_thread(void *param)
 {
         mach64_t *mach64 = (mach64_t *)param;
         
-        while (1)
+        while (mach64->thread_run)
         {
                 thread_set_event(mach64->fifo_not_full_event);
                 thread_wait_event(mach64->wake_fifo_thread, -1);
@@ -3364,6 +3365,7 @@ static void *mach64_common_init(const device_t *info)
 
         mach64->wake_fifo_thread = thread_create_event();
         mach64->fifo_not_full_event = thread_create_event();
+	mach64->thread_run = 1;
         mach64->fifo_thread = thread_create(fifo_thread, mach64);
         
         mach64->i2c = i2c_gpio_init("ddc_ati_mach64");
@@ -3455,7 +3457,8 @@ void mach64_close(void *p)
 
         svga_close(&mach64->svga);
         
-        thread_kill(mach64->fifo_thread);
+	mach64->thread_run = 0;
+	thread_wait(mach64->fifo_thread, -1);
         thread_destroy_event(mach64->wake_fifo_thread);
         thread_destroy_event(mach64->fifo_not_full_event);
 

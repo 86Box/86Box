@@ -1605,7 +1605,7 @@ static void render_thread(void *param, int odd_even)
 {
         voodoo_t *voodoo = (voodoo_t *)param;
 
-        while (1)
+        while (voodoo->render_thread_run[odd_even])
         {
                 thread_set_event(voodoo->render_not_full_event[odd_even]);
                 thread_wait_event(voodoo->wake_render_thread[odd_even], -1);

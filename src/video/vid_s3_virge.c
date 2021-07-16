@@ -288,6 +288,8 @@ typedef struct virge_t
 
 	uint8_t subsys_stat, subsys_cntl, advfunc_cntl;
 
+	uint8_t render_thread_run, fifo_thread_run;
+
 	uint8_t serialport;
 
 	void *i2c, *ddc;
@@ -1122,7 +1124,7 @@ static void fifo_thread(void *param)
 {
         virge_t *virge = (virge_t *)param;
         
-        while (1)
+        while (virge->fifo_thread_run)
         {
                 thread_set_event(virge->fifo_not_full_event);
                 thread_wait_event(virge->wake_fifo_thread, -1);
@@ -3235,7 +3237,7 @@ static void render_thread(void *param)
 {
         virge_t *virge = (virge_t *)param;
         
-        while (1)
+        while (virge->render_thread_run)
         {
                 thread_wait_event(virge->wake_render_thread, -1);
                 thread_reset_event(virge->wake_render_thread);
@@ -3897,10 +3899,12 @@ static void *s3_virge_init(const device_t *info)
         virge->wake_render_thread = thread_create_event();
         virge->wake_main_thread = thread_create_event();
         virge->not_full_event = thread_create_event();
+	virge->render_thread_run = 1;
         virge->render_thread = thread_create(render_thread, virge);
 
         virge->wake_fifo_thread = thread_create_event();
         virge->fifo_not_full_event = thread_create_event();
+	virge->fifo_thread_run = 1;
         virge->fifo_thread = thread_create(fifo_thread, virge);
  
         virge->i2c = i2c_gpio_init("ddc_s3_virge");
@@ -3915,12 +3919,14 @@ static void s3_virge_close(void *p)
 {
         virge_t *virge = (virge_t *)p;
 
-        thread_kill(virge->render_thread);
+	virge->render_thread_run = 0;
+        thread_wait(virge->render_thread, -1);
         thread_destroy_event(virge->not_full_event);
         thread_destroy_event(virge->wake_main_thread);
         thread_destroy_event(virge->wake_render_thread);
         
-        thread_kill(virge->fifo_thread);
+	virge->fifo_thread_run = 0;
+        thread_wait(virge->fifo_thread, -1);
         thread_destroy_event(virge->wake_fifo_thread);
         thread_destroy_event(virge->fifo_not_full_event);
 

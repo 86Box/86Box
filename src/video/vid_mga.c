@@ -502,6 +502,8 @@ typedef struct mystique_t
 	mutex_t *lock;
     } dma;
 
+    uint8_t thread_run;
+
     void *i2c, *i2c_ddc, *ddc;
 } mystique_t;
 
@@ -2354,7 +2356,7 @@ fifo_thread(void *p)
 {
     mystique_t *mystique = (mystique_t *)p;
 
-    while (1) {
+    while (mystique->thread_run) {
 	thread_set_event(mystique->fifo_not_full_event);
 	thread_wait_event(mystique->wake_fifo_thread, -1);
 	thread_reset_event(mystique->wake_fifo_thread);
@@ -5008,6 +5010,7 @@ mystique_init(const device_t *info)
 
     mystique->wake_fifo_thread = thread_create_event();
     mystique->fifo_not_full_event = thread_create_event();
+    mystique->thread_run = 1;
     mystique->fifo_thread = thread_create(fifo_thread, mystique);
     mystique->dma.lock = thread_create_mutex();
 
@@ -5031,7 +5034,8 @@ mystique_close(void *p)
 {
     mystique_t *mystique = (mystique_t *)p;
 
-    thread_kill(mystique->fifo_thread);
+    mystique->thread_run = 0;
+    thread_wait(mystique->fifo_thread, -1);
     thread_destroy_event(mystique->wake_fifo_thread);
     thread_destroy_event(mystique->fifo_not_full_event);
     thread_close_mutex(mystique->dma.lock);
