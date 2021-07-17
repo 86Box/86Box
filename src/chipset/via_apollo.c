@@ -341,37 +341,36 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 		break;
 
 	case 0x61:	/* Shadow RAM Control 1 */
-		if ((dev->pci_conf[0x61] ^ val) & 0x03)
-			apollo_map(0xc0000, 0x04000, val & 0x03);
-		if ((dev->pci_conf[0x61] ^ val) & 0x0c)
-			apollo_map(0xc4000, 0x04000, (val & 0x0c) >> 2);
-		if ((dev->pci_conf[0x61] ^ val) & 0x30)
-			apollo_map(0xc8000, 0x04000, (val & 0x30) >> 4);
-		if ((dev->pci_conf[0x61] ^ val) & 0xc0)
-			apollo_map(0xcc000, 0x04000, (val & 0xc0) >> 6);
+		apollo_map(0xc0000, 0x04000, val & 0x03);
+		apollo_map(0xc4000, 0x04000, (val & 0x0c) >> 2);
+		apollo_map(0xc8000, 0x04000, (val & 0x30) >> 4);
+		apollo_map(0xcc000, 0x04000, (val & 0xc0) >> 6);
+
 		dev->pci_conf[0x61] = val;
 		break;
 	case 0x62:	/* Shadow RAM Control 2 */
-		if ((dev->pci_conf[0x62] ^ val) & 0x03)
-			apollo_map(0xd0000, 0x04000, val & 0x03);
-		if ((dev->pci_conf[0x62] ^ val) & 0x0c)
-			apollo_map(0xd4000, 0x04000, (val & 0x0c) >> 2);
-		if ((dev->pci_conf[0x62] ^ val) & 0x30)
-			apollo_map(0xd8000, 0x04000, (val & 0x30) >> 4);
-		if ((dev->pci_conf[0x62] ^ val) & 0xc0)
-			apollo_map(0xdc000, 0x04000, (val & 0xc0) >> 6);
+		apollo_map(0xd0000, 0x04000, val & 0x03);
+		apollo_map(0xd4000, 0x04000, (val & 0x0c) >> 2);
+		apollo_map(0xd8000, 0x04000, (val & 0x30) >> 4);
+		apollo_map(0xdc000, 0x04000, (val & 0xc0) >> 6);
+
 		dev->pci_conf[0x62] = val;
 		break;
 	case 0x63:	/* Shadow RAM Control 3 */
-		if ((dev->pci_conf[0x63] ^ val) & 0x30) {
-			apollo_map(0xf0000, 0x10000, (val & 0x30) >> 4);
-			shadowbios = (((val & 0x30) >> 4) & 0x02);
-		}
-		if ((dev->pci_conf[0x63] ^ val) & 0xc0)
-			apollo_map(0xe0000, 0x10000, (val & 0xc0) >> 6);
+		shadowbios = 0;
+		shadowbios_write = 0;
+
+		apollo_map(0xf0000, 0x10000, (val & 0x30) >> 4);
+		shadowbios = (((val & 0x30) >> 4) & 0x02);
+		shadowbios_write = (((val & 0x30) >> 4) & 0x01);
+
+		apollo_map(0xe0000, 0x10000, (val & 0xc0) >> 6);
+		shadowbios |= (((val & 0xc0) >> 6) & 0x02);
+		shadowbios_write |= (((val & 0xc0) >> 6) & 0x01);
+
 		dev->pci_conf[0x63] = val;
 		smram_disable_all();
-		if (dev->id >= VIA_691) switch (val & 0x03) {
+		if (dev->id >= VIA_691)  switch (val & 0x03) {
 			case 0x00:
 			default:
 				apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 1);	/* SMM: Code DRAM, Data DRAM */
@@ -680,7 +679,8 @@ via_apollo_init(const device_t *info)
     memset(dev, 0, sizeof(via_apollo_t));
 
     dev->smram = smram_add();
-    apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 1);	/* SMM: Code DRAM, Data DRAM */
+    if (dev->id != VIA_8601)
+	apollo_smram_map(dev, 1, 0x000a0000, 0x00020000, 1);	/* SMM: Code DRAM, Data DRAM */
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, via_apollo_read, via_apollo_write, dev);
 

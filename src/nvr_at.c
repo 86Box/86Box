@@ -299,7 +299,9 @@ typedef struct {
     int8_t      stat;
 
     uint8_t	cent, def,
-		flags, read_addr;
+		flags, read_addr,
+		wp_0d, wp_32,
+		pad, pad0;
 
     uint8_t	addr[8], wp[2],
 		bank[8], *lock;
@@ -587,6 +589,7 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
 		break;
 
 	case RTC_REGD:		/* R/O */
+#if 0
 		/* VT82C686A/B have an ACPI register bit controlled by 0D bit 7.
 		   This is overwritten on read, but testing shows BIOSes will
 		   immediately check the ACPI register after writing to this. */
@@ -595,6 +598,10 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
 			if (val & 0x80)
 				nvr->regs[RTC_REGD] |= 0x80;
 		}
+#else
+		if ((local->cent == RTC_CENTURY_VIA) && !local->wp_0d)
+			nvr->regs[RTC_REGD] = val/* & 0x80*/;
+#endif
 		break;
 
 	case 0x2e:
@@ -608,6 +615,11 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
 			break;
 		}
 		/*FALLTHROUGH*/
+
+	case 0x32:
+		if ((local->cent == RTC_CENTURY_VIA) && local->wp_32)
+			break;
+		/* FALLTHROUGH */
 
 	default:		/* non-RTC registers are just NVRAM */
 		if ((reg == 0x2c) && (local->flags & FLAG_LS_HACK))
@@ -686,9 +698,8 @@ nvr_read(uint16_t addr, void *priv)
     cycles -= ISA_CYCLES(8);
 
     if (local->bank[addr_id] == 0xff)
-	return 0xff;
-
-    if (addr & 1)  switch(local->addr[addr_id]) {
+	ret = 0xff;
+    else if (addr & 1)  switch(local->addr[addr_id]) {
 	case RTC_REGA:
 		ret = (nvr->regs[RTC_REGA] & 0x7f) | local->stat;
 		break;
@@ -700,8 +711,14 @@ nvr_read(uint16_t addr, void *priv)
 		break;
 
 	case RTC_REGD:
-		nvr->regs[RTC_REGD] |= REGD_VRT;
-		ret = nvr->regs[RTC_REGD];
+		/* On VIA VT82C596B onwards, bits 6-0 of this register always read 0. */
+		if (local->cent == RTC_CENTURY_VIA)
+			ret = 0x80;
+			// ret = nvr->regs[RTC_REGD]/* & 0x80*/;
+		else {
+			nvr->regs[RTC_REGD] |= REGD_VRT;
+			ret = nvr->regs[RTC_REGD];
+		}
 		break;
 
 	case 0x2c:
@@ -883,6 +900,18 @@ nvr_wp_set(int set, int h, nvr_t *nvr)
     local_t *local = (local_t *) nvr->data;
 
     local->wp[h] = set;
+}
+
+
+void
+nvr_via_wp_set(int set, int reg, nvr_t *nvr)
+{
+    local_t *local = (local_t *) nvr->data;
+
+    if (reg == 0x0d)
+	local->wp_0d = set;
+    else
+	local->wp_32 = set;
 }
 
 
