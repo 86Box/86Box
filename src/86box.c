@@ -921,7 +921,8 @@ pc_close(thread_t *ptr)
 
 	/* Terminate the main thread. */
 	if (ptr != NULL) {
-	thread_kill(ptr);
+	is_quit = 1;
+	thread_wait(ptr, -1);
 
 	/* Wait some more. */
 	plat_delay_ms(200);

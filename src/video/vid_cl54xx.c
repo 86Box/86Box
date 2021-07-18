@@ -1142,10 +1142,16 @@ gd54xx_out(uint16_t addr, uint8_t val, void *p)
 					break;
 			}
 
-			if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
-				svga->fullchange = changeframecount;
-				svga_recalctimings(svga);
-			}
+                        if (svga->crtcreg < 0xe || svga->crtcreg > 0x10)
+                        {
+				if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
+                                	svga->fullchange = 3;
+					svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+				} else {
+					svga->fullchange = changeframecount;
+	                                svga_recalctimings(svga);
+				}
+                        }
 		}
 		break;
     }
@@ -1597,7 +1603,7 @@ gd54xx_recalctimings(svga_t *svga)
     uint8_t clocksel, rdmask;
     uint8_t linedbl = svga->dispend * 9 / 10 >= svga->hdisp;
 
-    svga->rowoffset = (svga->crtc[0x13]) | ((svga->crtc[0x1b] & 0x10) << 4);
+    svga->rowoffset = (svga->crtc[0x13]) | (((int) (uint32_t) (svga->crtc[0x1b] & 0x10)) << 4);
 
     svga->interlace = (svga->crtc[0x1a] & 0x01);
 

@@ -500,8 +500,9 @@ typedef struct voodoo_t
         void *codegen_data;
 
         struct voodoo_set_t *set;
-        
-        
+
+	uint8_t fifo_thread_run, render_thread_run[4];
+
         uint8_t *vram, *changedvram;
         
         void *p;

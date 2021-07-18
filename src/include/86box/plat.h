@@ -150,7 +150,6 @@ typedef void event_t;
 typedef void mutex_t;
 
 extern thread_t	*thread_create(void (*thread_func)(void *param), void *param);
-extern void	thread_kill(thread_t *arg);
 extern int	thread_wait(thread_t *arg, int timeout);
 extern event_t	*thread_create_event(void);
 extern void	thread_set_event(event_t *arg);

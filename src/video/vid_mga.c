@@ -502,6 +502,8 @@ typedef struct mystique_t
 	mutex_t *lock;
     } dma;
 
+    uint8_t thread_run;
+
     void *i2c, *i2c_ddc, *ddc;
 } mystique_t;
 
@@ -674,8 +676,13 @@ mystique_out(uint16_t addr, uint8_t val, void *p)
 		svga->crtc[svga->crtcreg & 0x3f] = val;
 		if (old != val) {
 			if ((svga->crtcreg & 0x3f) < 0xE || (svga->crtcreg & 0x3f) > 0x10) {
-				svga->fullchange = changeframecount;
-				svga_recalctimings(svga);
+				if (((svga->crtcreg & 0x3f) == 0xc) || ((svga->crtcreg & 0x3f) == 0xd)) {
+					svga->fullchange = 3;
+					svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);				
+				} else {
+					svga->fullchange = changeframecount;
+					svga_recalctimings(svga);				
+				}
 			}
 			if (svga->crtcreg == 0x11) {
 				if (!(val & 0x10))
@@ -2349,7 +2356,7 @@ fifo_thread(void *p)
 {
     mystique_t *mystique = (mystique_t *)p;
 
-    while (1) {
+    while (mystique->thread_run) {
 	thread_set_event(mystique->fifo_not_full_event);
 	thread_wait_event(mystique->wake_fifo_thread, -1);
 	thread_reset_event(mystique->wake_fifo_thread);
@@ -5003,6 +5010,7 @@ mystique_init(const device_t *info)
 
     mystique->wake_fifo_thread = thread_create_event();
     mystique->fifo_not_full_event = thread_create_event();
+    mystique->thread_run = 1;
     mystique->fifo_thread = thread_create(fifo_thread, mystique);
     mystique->dma.lock = thread_create_mutex();
 
@@ -5026,7 +5034,9 @@ mystique_close(void *p)
 {
     mystique_t *mystique = (mystique_t *)p;
 
-    thread_kill(mystique->fifo_thread);
+    mystique->thread_run = 0;
+    thread_set_event(mystique->wake_fifo_thread);
+    thread_wait(mystique->fifo_thread, -1);
     thread_destroy_event(mystique->wake_fifo_thread);
     thread_destroy_event(mystique->fifo_not_full_event);
     thread_close_mutex(mystique->dma.lock);

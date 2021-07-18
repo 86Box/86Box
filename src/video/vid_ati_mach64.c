@@ -253,6 +253,7 @@ typedef struct mach64_t
         
         int overlay_v_acc;
 
+	uint8_t thread_run;
         void *i2c, *ddc;
 } mach64_t;
 
@@ -418,12 +419,17 @@ void mach64_out(uint16_t addr, uint8_t val, void *p)
                 old = svga->crtc[svga->crtcreg];
                 svga->crtc[svga->crtcreg] = val;
 
-                if (old!=val)
+                if (old != val)
                 {
                         if (svga->crtcreg < 0xe || svga->crtcreg > 0x10)
                         {
-                                svga->fullchange = changeframecount;
-                                svga_recalctimings(svga);
+				if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
+                                	svga->fullchange = 3;
+					svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+				} else {
+					svga->fullchange = changeframecount;
+	                                svga_recalctimings(svga);
+				}
                         }
                 }
                 break;
@@ -926,7 +932,7 @@ static void fifo_thread(void *param)
 {
         mach64_t *mach64 = (mach64_t *)param;
         
-        while (1)
+        while (mach64->thread_run)
         {
                 thread_set_event(mach64->fifo_not_full_event);
                 thread_wait_event(mach64->wake_fifo_thread, -1);
@@ -3359,6 +3365,7 @@ static void *mach64_common_init(const device_t *info)
 
         mach64->wake_fifo_thread = thread_create_event();
         mach64->fifo_not_full_event = thread_create_event();
+	mach64->thread_run = 1;
         mach64->fifo_thread = thread_create(fifo_thread, mach64);
         
         mach64->i2c = i2c_gpio_init("ddc_ati_mach64");
@@ -3450,7 +3457,9 @@ void mach64_close(void *p)
 
         svga_close(&mach64->svga);
         
-        thread_kill(mach64->fifo_thread);
+	mach64->thread_run = 0;
+        thread_set_event(mach64->wake_fifo_thread);
+	thread_wait(mach64->fifo_thread, -1);
         thread_destroy_event(mach64->wake_fifo_thread);
         thread_destroy_event(mach64->fifo_not_full_event);
 

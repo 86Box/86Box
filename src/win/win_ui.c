@@ -1032,10 +1032,21 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			MoveWindow(hwndRender, 0, 0, rect.right, rect.bottom - sbar_height, TRUE);
 
 			GetClientRect(hwndRender, &rect);
-			if (rect.right != scrnsz_x || rect.bottom != scrnsz_y) {
-				scrnsz_x = rect.right;
-				scrnsz_y = rect.bottom;
-				doresize = 1;
+			if (dpi_scale) {
+				temp_x = MulDiv(rect.right, 96, dpi);
+				temp_y = MulDiv(rect.bottom, 96, dpi);
+
+				if (temp_x != scrnsz_x || temp_y != scrnsz_y) {
+					scrnsz_x = temp_x;
+					scrnsz_y = temp_y;
+					doresize = 1;
+				}
+			} else {
+				if (rect.right != scrnsz_x || rect.bottom != scrnsz_y) {
+					scrnsz_x = rect.right;
+					scrnsz_y = rect.bottom;
+					doresize = 1;
+				}
 			}
 
 			plat_vidsize(rect.right, rect.bottom);
