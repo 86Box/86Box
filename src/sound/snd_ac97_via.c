@@ -35,10 +35,9 @@ typedef struct {
     uint8_t	id;
     struct _ac97_via_ *dev;
 
-    uint64_t	entry;
     uint32_t	entry_ptr, sample_ptr, fifo_pos, fifo_end;
     int32_t	sample_count;
-    uint8_t	fifo[32];
+    uint8_t	entry_flags, fifo[32];
 
     pc_timer_t	timer;
 } ac97_via_sgd_t;
@@ -118,11 +117,11 @@ ac97_via_update_irqs(ac97_via_t *dev, uint8_t iflag_clear)
 {
     /* Check interrupt flags on all SGDs. */
     for (uint8_t i = 0; i < (sizeof(dev->sgd) / sizeof(dev->sgd[0])); i++) {
-    	if (dev->sgd_regs[i << 4] & (dev->sgd_regs[(i << 4) | 0x02] & 0x03)) {
-    		ac97_via_log("AC97 VIA: Setting IRQ (sgd %d iflags %02X stuck %d)\n",
+	if (dev->sgd_regs[i << 4] & (dev->sgd_regs[(i << 4) | 0x02] & 0x03)) {
+		ac97_via_log("AC97 VIA: Setting IRQ (sgd %d iflags %02X stuck %d)\n",
 			     i, dev->sgd_regs[i << 4] & (dev->sgd_regs[(i << 4) | 0x02] & 0x03), dev->irq_stuck);
 
-    		if (dev->irq_stuck && !iflag_clear) {
+		if (dev->irq_stuck && !iflag_clear) {
 #ifdef ENABLE_AC97_VIA_LOG
 			ac97_via_lost_irqs++;
 #endif
@@ -133,7 +132,7 @@ ac97_via_update_irqs(ac97_via_t *dev, uint8_t iflag_clear)
 		dev->irq_stuck = !dev->irq_stuck;
 
 		return;
-    	}
+	}
     }
 
     /* No interrupt pending. */
@@ -154,9 +153,9 @@ ac97_via_sgd_read(uint16_t addr, void *priv)
     uint8_t ret;
 
     if (!(addr & 0x80)) {
-    	/* Process SGD channel registers. */
-    	switch (addr & 0xf) {
-    		case 0x4:
+	/* Process SGD channel registers. */
+	switch (addr & 0xf) {
+		case 0x4:
 			ret = dev->sgd[addr >> 4].entry_ptr;
 			break;
 
@@ -187,9 +186,9 @@ ac97_via_sgd_read(uint16_t addr, void *priv)
 		default:
 			ret = dev->sgd_regs[addr];
 			break;
-    	}
+	}
     } else {
-    	/* Process regular registers. */
+	/* Process regular registers. */
 	switch (addr) {
 		case 0x84:
 			ret  = (dev->sgd_regs[0x00] & 0x01);
@@ -256,7 +255,7 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 	return;
 
     if (!(addr & 0x80)) {
-    	/* Process SGD channel registers. */
+	/* Process SGD channel registers. */
 	switch (addr & 0xf) {
 		case 0x0:
 			/* Clear RWC status bits. */
@@ -281,7 +280,7 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 					dev->sgd_regs[addr & 0xf0] &= ~0x44;
 
 					/* Start at the specified entry pointer. */
-					dev->sgd[addr >> 4].entry = 0;
+					dev->sgd[addr >> 4].sample_ptr = 0;
 					dev->sgd[addr >> 4].entry_ptr = (dev->sgd_regs[(addr & 0xf0) | 0x7] << 24) | (dev->sgd_regs[(addr & 0xf0) | 0x6] << 16) | (dev->sgd_regs[(addr & 0xf0) | 0x5] << 8) | (dev->sgd_regs[(addr & 0xf0) | 0x4] & 0xfe);
 
 					/* Start the actual SGD process. */
@@ -312,7 +311,7 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 			return;
 	}
     } else {
-    	/* Process regular registers. */
+	/* Process regular registers. */
 	switch (addr) {
 		case 0x30 ... 0x3f:
 		case 0x60 ... 0x7f:
@@ -482,34 +481,35 @@ ac97_via_sgd_process(void *priv)
 
     /* Process SGD if active, unless this is Audio Read and there's no room in the FIFO. */
     if (((dev->sgd_regs[sgd->id] & 0xc4) == 0x80) && (sgd->id || ((sgd->fifo_end - sgd->fifo_pos) <= (sizeof(sgd->fifo) - 4)))) {
-    	/* Move on to the next block if no entry is present. */
-	if (!sgd->entry) {
+	/* Move on to the next block if no entry is present. */
+	if (!sgd->sample_ptr) {
 		/* Start at first entry if no pointer is present. */
 		if (!sgd->entry_ptr)
 			sgd->entry_ptr = (dev->sgd_regs[sgd->id | 0x7] << 24) | (dev->sgd_regs[sgd->id | 0x6] << 16) | (dev->sgd_regs[sgd->id | 0x5] << 8) | (dev->sgd_regs[sgd->id | 0x4] & 0xfe);
 
 		/* Read entry. */
-		sgd->entry = ((uint64_t) mem_readl_phys(sgd->entry_ptr + 4) << 32ULL) | (uint64_t) mem_readl_phys(sgd->entry_ptr);
+		sgd->sample_ptr = mem_readl_phys(sgd->entry_ptr);
+		sgd->entry_ptr += 4;
+		sgd->sample_count = mem_readl_phys(sgd->entry_ptr);
+		sgd->entry_ptr += 4;
 #ifdef ENABLE_AC97_VIA_LOG
-		if (sgd->entry == 0xffffffffffffffffULL)
+		if ((sgd->sample_ptr == 0xffffffff) || (sgd->sample_ptr == 0x00000000) ||
+		    (sgd->sample_count == 0xffffffff) || (sgd->sample_count == 0x00000000))
 			fatal("AC97 VIA: Invalid SGD %d entry at %08X\n", sgd->id >> 4, sgd->entry_ptr);
 #endif
 
-		/* Set sample pointer and count. */
-		sgd->sample_ptr = sgd->entry & 0xffffffff;
-		sgd->sample_count = (sgd->entry >> 32) & 0xffffff;
+		/* Extract flags from the most significant byte. */
+		sgd->entry_flags = sgd->sample_count >> 24;
+		sgd->sample_count &= 0xffffff;
 
-		ac97_via_log("AC97 VIA: Starting SGD %d block at %08X entry %08X%08X (start %08X len %06X) lostirqs %d\n", sgd->id >> 4, sgd->entry_ptr,
-			     mem_readl_phys(sgd->entry_ptr + 4), mem_readl_phys(sgd->entry_ptr), sgd->sample_ptr, sgd->sample_count, ac97_via_lost_irqs);
-
-		/* Increment entry pointer now, as Linux expects it to be one block ahead. */
-		sgd->entry_ptr += 8;
+		ac97_via_log("AC97 VIA: Starting SGD %d block at %08X start %08X len %06X flags %02X lostirqs %d\n", sgd->id >> 4,
+			     sgd->entry_ptr, sgd->sample_ptr, sgd->sample_count, sgd->entry_flags, ac97_via_lost_irqs);
 	}
 
-        if (sgd->id & 0x10) {
-        	/* Write channel: read data from FIFO. */
-        	mem_writel_phys(sgd->sample_ptr, *((uint32_t *) &sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)]));
-        } else {
+	if (sgd->id & 0x10) {
+    	/* Write channel: read data from FIFO. */
+    	mem_writel_phys(sgd->sample_ptr, *((uint32_t *) &sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)]));
+	} else {
 		/* Read channel: write data to FIFO. */
 		*((uint32_t *) &sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)]) = mem_readl_phys(sgd->sample_ptr);
 	}
@@ -521,12 +521,12 @@ ac97_via_sgd_process(void *priv)
 	if (sgd->sample_count <= 0) {
 		ac97_via_log("AC97 VIA: Ending SGD %d block", sgd->id >> 4);
 
-		if (sgd->entry & 0x2000000000000000ULL) {
+		if (sgd->entry_flags & 0x20) {
 			ac97_via_log(" with STOP");
 			dev->sgd_regs[sgd->id] |= 0x04;
 		}
 
-		if (sgd->entry & 0x4000000000000000ULL) {
+		if (sgd->entry_flags & 0x40) {
 			ac97_via_log(" with FLAG");
 
 			/* Raise FLAG while also pausing SGD. */
@@ -538,7 +538,7 @@ ac97_via_sgd_process(void *priv)
 #endif
 		}
 
-		if (sgd->entry & 0x8000000000000000ULL) {
+		if (sgd->entry_flags & 0x80) {
 			ac97_via_log(" with EOL");
 
 			/* Raise EOL. */
@@ -568,7 +568,7 @@ ac97_via_sgd_process(void *priv)
 		ac97_via_log("\n");
 
 		/* Move on to a new block on the next run. */
-		sgd->entry = sgd->sample_count = 0;
+		sgd->sample_ptr = sgd->sample_count = 0;
 	}
     }
 
@@ -663,10 +663,10 @@ ac97_via_init(const device_t *info)
 
     /* Set up SGD channels. */
     for (uint8_t i = 0; i < (sizeof(dev->sgd) / sizeof(dev->sgd[0])); i++) {
-    	dev->sgd[i].id = i << 4;
-    	dev->sgd[i].dev = dev;
+	dev->sgd[i].id = i << 4;
+	dev->sgd[i].dev = dev;
 
-    	timer_add(&dev->sgd[i].timer, ac97_via_sgd_process, &dev->sgd[i], 0);
+	timer_add(&dev->sgd[i].timer, ac97_via_sgd_process, &dev->sgd[i], 0);
     }
 
     /* Set up playback poller. */
