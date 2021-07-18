@@ -285,7 +285,7 @@ pipc_reset_hard(void *priv)
 		dev->power_regs[0x34] = 0x68;
 	dev->power_regs[0x40] = 0x20;
 
-	dev->power_regs[0x42] = 0xd0;
+	dev->power_regs[0x42] = 0x50;
 	dev->power_regs[0x48] = 0x01;
 
 	if (dev->local == VIA_PIPC_686B) {
@@ -927,8 +927,8 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			break;
 
 		case 0x42:
-			dev->power_regs[addr] &= ~0x0f;
-			dev->power_regs[addr] |= val & 0x0f;
+			dev->power_regs[addr] &= ~0x2f;
+			dev->power_regs[addr] |= val & 0x2f;
 			acpi_set_irq_line(dev->acpi, dev->power_regs[addr]);
 			break;
 
