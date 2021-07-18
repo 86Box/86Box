@@ -1625,12 +1625,12 @@ sb_pro_mcv_init(const device_t *info)
 
 
 static void *
-sb_pro_cs423x_init(const device_t *info)
+sb_pro_compat_init(const device_t *info)
 {
     sb_t *sb = malloc(sizeof(sb_t));
     memset(sb, 0, sizeof(sb_t));
 
-    sb->opl_enabled = 0; /* updated by cs423x code */
+    sb->opl_enabled = 0; /* CS423x updates this, while VT82C686 lacks OPL */
     opl3_init(&sb->opl);
 
     sb_dsp_init(&sb->dsp, SBPRO2, SB_SUBTYPE_DEFAULT, sb);
@@ -2534,12 +2534,12 @@ const device_t sb_pro_mcv_device =
         NULL
 };
 
-const device_t sb_pro_cs423x_device =
+const device_t sb_pro_compat_device =
 {
-        "Crystal CS423x Sound Blaster Pro compatibility",
+        "Sound Blaster Pro (Compatibility)",
         DEVICE_ISA | DEVICE_AT,
 	0,
-        sb_pro_cs423x_init, sb_close, NULL, { NULL },
+        sb_pro_compat_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
         NULL
