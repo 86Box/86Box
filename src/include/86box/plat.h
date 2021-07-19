@@ -80,6 +80,8 @@ extern int	update_icons;
 extern int	unscaled_size_x,		/* current unscaled size X */
 		unscaled_size_y;		/* current unscaled size Y */
 
+extern int	kbd_req_capture;
+
 /* System-related functions. */
 extern char	*fix_exe_path(char *str);
 extern FILE	*plat_fopen(const char *path, const char *mode);
