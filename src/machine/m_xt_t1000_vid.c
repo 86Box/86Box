@@ -118,7 +118,7 @@ typedef struct t1000_t
         int vc;
         int dispon;
         int vsynctime;
-	uint8_t video_options;
+	uint8_t video_options, backlight;
 
         uint8_t *vram;
 } t1000_t;
@@ -588,8 +588,13 @@ static void t1000_recalcattrs(t1000_t *t1000)
 	 * 	      are bold */
 
 	/* Set up colours */
-	blue = makecol(0x2D, 0x39, 0x5A);
-	grey = makecol(0x85, 0xa0, 0xD6);
+	if (t1000->backlight) {
+		blue = makecol(0x2D, 0x39, 0x5A);
+		grey = makecol(0x85, 0xa0, 0xD6);
+	} else {
+		blue = makecol(0x0f, 0x21, 0x3f);
+		grey = makecol(0x1C, 0x71, 0x31);
+	}
 
 	/* Initialise the attribute mapping. Start by defaulting everything
 	 * to grey on blue, and with bold set by bit 3 */
@@ -681,6 +686,7 @@ static void *t1000_init(const device_t *info)
 	video_inform(VIDEO_FLAG_TYPE_CGA, &timing_t1000);
 
 	t1000->internal = 1;
+	t1000->backlight = device_get_config_int("backlight");
 
 	/* 16k video RAM */
         t1000->vram = malloc(0x4000);
@@ -739,6 +745,9 @@ static const device_config_t t1000_config[] =
 			}
 		},
 		.default_int = 0
+	},
+	{
+		"backlight", "Enable backlight", CONFIG_BINARY, "", 1
 	},
 	{
 		.type = -1
