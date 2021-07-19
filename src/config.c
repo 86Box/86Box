@@ -1804,6 +1804,8 @@ config_load(void)
     memset(zip_drives, 0, sizeof(zip_drive_t));
 
     if (! config_read(cfg_path)) {
+	config_changed = 1;
+
 	cpu_f = (cpu_family_t *) &cpu_families[0];
 	cpu = 0;
 #ifdef USE_LANGUAGE
