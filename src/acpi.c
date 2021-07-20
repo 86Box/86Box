@@ -1070,7 +1070,6 @@ acpi_reg_write_via_596b(int size, uint16_t addr, uint8_t val, void *p)
 		break;
 	case 0x4c: case 0x4d: case 0x4e: case 0x4f:
 		/* GPO Port Output Value */
-		pclog("Write %02X to %02X\n", val, addr);
 		dev->regs.gpo_val = ((dev->regs.gpo_val & ~(0xff << shift32)) | (val << shift32)) & 0x7fffffff;
 		break;
 	default:
