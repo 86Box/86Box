@@ -477,9 +477,10 @@ plat_power_off(void)
 
     /* Cleanly terminate all of the emulator's components so as
        to avoid things like threads getting stuck. */
-    do_stop();
+    // do_stop();
+    cpu_thread_run = 0;
 
-    exit(-1);
+    // exit(-1);
 }
 
 #ifdef MTR_ENABLED
@@ -1547,10 +1548,10 @@ ui_init(int nCmdShow)
 		fatal("bRet is -1\n");
 	}
 
-	if (messages.message == WM_QUIT) {
-		is_quit = 1;
-		break;
-	}
+	/* On WM_QUIT, tell the CPU thread to stop running. That will then tell us
+	   to stop running as well. */
+	if (messages.message == WM_QUIT)
+		cpu_thread_run = 0;
 
 	if (! TranslateAccelerator(hwnd, haccel, &messages))
 	{

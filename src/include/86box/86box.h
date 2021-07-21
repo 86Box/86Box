@@ -189,6 +189,8 @@ extern void	resub_cycles(int old_cycles);
 extern double	isa_timing;
 extern int	io_delay, framecountx;
 
+extern volatile int	cpu_thread_run;
+
 #ifdef __cplusplus
 }
 #endif

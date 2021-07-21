@@ -69,6 +69,7 @@ HANDLE		ghMutex;
 LCID		lang_id;		/* current language ID used */
 DWORD		dwSubLangID;
 int		acp_utf8;		/* Windows supports UTF-8 codepage */
+volatile int	cpu_thread_run = 1;
 
 
 /* Local data. */
@@ -487,7 +488,7 @@ main_thread(void *param)
     title_update = 1;
     old_time = GetTickCount();
     drawits = frames = 0;
-    while (!is_quit) {
+    while (!is_quit && cpu_thread_run) {
 	/* See if it is time to run a frame of code. */
 	new_time = GetTickCount();
 	drawits += (new_time - old_time);
@@ -511,7 +512,7 @@ main_thread(void *param)
 		Sleep(1);
 
 	/* If needed, handle a screen resize. */
-	if (doresize && !video_fullscreen) {
+	if (doresize && !video_fullscreen && !is_quit) {
 		if (vid_resize & 2)
 			plat_resize(fixed_size_x, fixed_size_y);
 		else
@@ -519,6 +520,8 @@ main_thread(void *param)
 		doresize = 0;
 	}
     }
+
+    is_quit = 1;
 }
 
 
@@ -551,16 +554,17 @@ do_start(void)
 void
 do_stop(void)
 {
-    is_quit = 1;
+    /* Claim the video blitter. */
+    startblit();
 
-    plat_delay_ms(100);
-
-    if (source_hwnd)
-	PostMessage((HWND) (uintptr_t) source_hwnd, WM_HAS_SHUTDOWN, (WPARAM) 0, (LPARAM) hwndMain);
+    vid_apis[vid_api].close();
 
     pc_close(thMain);
 
     thMain = NULL;
+
+    if (source_hwnd)
+	PostMessage((HWND) (uintptr_t) source_hwnd, WM_HAS_SHUTDOWN, (WPARAM) 0, (LPARAM) hwndMain);
 }
 
 

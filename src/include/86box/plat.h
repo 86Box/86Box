@@ -64,8 +64,8 @@ extern "C" {
 /* Global variables residing in the platform module. */
 extern int	dopause,			/* system is paused */
 		doresize,			/* screen resize requested */
-		is_quit,				/* system exit requested */
 		mouse_capture;			/* mouse is captured in app */
+extern volatile int	is_quit;				/* system exit requested */
 
 #ifdef MTR_ENABLED
 extern int tracing_on;
