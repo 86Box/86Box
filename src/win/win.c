@@ -545,7 +545,7 @@ do_start(void)
     win_log("Main timer precision: %llu\n", timer_freq);
 
     /* Start the emulator, really. */
-    thMain = thread_create(main_thread, &is_quit);
+    thMain = thread_create(main_thread, NULL);
     SetThreadPriority(thMain, THREAD_PRIORITY_HIGHEST);
 }
 
