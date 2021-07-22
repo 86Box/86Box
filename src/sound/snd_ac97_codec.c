@@ -31,7 +31,7 @@
 enum {
     AC97_CODEC_ALC100 = AC97_CODEC_ID('A', 'L', 'C', 0x20),
     AC97_CODEC_CS4297 = AC97_CODEC_ID('C', 'R', 'Y', 0x03),
-    AC97_CODEC_CS4297A = AC97_CODEC_ID('C', 'R', 'Y', 0x11),
+    AC97_CODEC_CS4297A = AC97_CODEC_ID('C', 'R', 'Y', 0x13),
     AC97_CODEC_WM9701A = AC97_CODEC_ID('W', 'M', 'L', 0x00)
 };
 
