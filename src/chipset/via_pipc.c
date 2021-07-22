@@ -50,7 +50,10 @@
 #include <86box/sio.h>
 #include <86box/hwm.h>
 #include <86box/gameport.h>
+#include <86box/sound.h>
 #include <86box/snd_ac97.h>
+#include <86box/snd_sb.h>
+#include <86box/nmi.h>
 
 /* Most revision numbers (PCI-ISA bridge or otherwise) were lifted from PCI device
    listings on forums, as VIA's datasheets are not very helpful regarding those. */
@@ -68,11 +71,11 @@ typedef struct
     uint32_t	local;
     uint8_t	max_func;
 
-    uint8_t	pci_isa_regs[256];
-    uint8_t	ide_regs[256];
-    uint8_t	usb_regs[2][256];
-    uint8_t	power_regs[256];
-    uint8_t	ac97_regs[2][256];
+    uint8_t	pci_isa_regs[256],
+		ide_regs[256],
+		usb_regs[2][256],
+		power_regs[256],
+		ac97_regs[2][256], fmnmi_regs[4], fm_regs[4];
     sff8038i_t	*bm[2];
     nvr_t	*nvr;
     int		nvr_enabled, slot;
@@ -80,7 +83,9 @@ typedef struct
     usb_t	*usb[2];
     acpi_t	*acpi;
     void	*gameport, *ac97;
-    uint16_t	midigame_base;
+    sb_t	*sb;
+    uint16_t	midigame_base, fmnmi_base;
+    uint8_t	fm_enabled;
 } pipc_t;
 
 
@@ -355,6 +360,7 @@ pipc_reset_hard(void *priv)
 			dev->ac97_regs[i][0x40] = 0x01;
 
 		dev->ac97_regs[i][0x43] = 0x1c;
+		dev->ac97_regs[i][0x48] = 0x01;
 		dev->ac97_regs[i][0x4b] = 0x02;
 
 		pipc_sgd_handlers(dev, i);
@@ -456,12 +462,12 @@ static void
 pipc_sgd_handlers(pipc_t *dev, uint8_t modem)
 {
     if (!dev->ac97)
-    	return;
+	return;
 
     if (modem)
-    	ac97_via_remap_modem_sgd(dev->ac97, dev->ac97_regs[1][0x11] << 8, dev->ac97_regs[1][0x04] & PCI_COMMAND_IO);
+	ac97_via_remap_modem_sgd(dev->ac97, dev->ac97_regs[1][0x11] << 8, dev->ac97_regs[1][0x04] & PCI_COMMAND_IO);
     else
-    	ac97_via_remap_audio_sgd(dev->ac97, dev->ac97_regs[0][0x11] << 8, dev->ac97_regs[0][0x04] & PCI_COMMAND_IO);
+	ac97_via_remap_audio_sgd(dev->ac97, dev->ac97_regs[0][0x11] << 8, dev->ac97_regs[0][0x04] & PCI_COMMAND_IO);
 }
 
 
@@ -516,12 +522,94 @@ static void
 pipc_codec_handlers(pipc_t *dev, uint8_t modem)
 {
     if (!dev->ac97)
-    	return;
+	return;
 
     if (modem)
-    	ac97_via_remap_modem_codec(dev->ac97, dev->ac97_regs[1][0x1d] << 8, dev->ac97_regs[1][0x04] & PCI_COMMAND_IO);
+	ac97_via_remap_modem_codec(dev->ac97, dev->ac97_regs[1][0x1d] << 8, dev->ac97_regs[1][0x04] & PCI_COMMAND_IO);
     else
-    	ac97_via_remap_audio_codec(dev->ac97, dev->ac97_regs[0][0x1d] << 8, dev->ac97_regs[0][0x04] & PCI_COMMAND_IO);
+	ac97_via_remap_audio_codec(dev->ac97, dev->ac97_regs[0][0x1d] << 8, dev->ac97_regs[0][0x04] & PCI_COMMAND_IO);
+}
+
+
+static uint8_t
+pipc_fmnmi_read(uint16_t addr, void *priv)
+{
+    pipc_t *dev = (pipc_t *) priv;
+    uint8_t ret = dev->fmnmi_regs[addr & 0x03];
+
+    pipc_log("PIPC: fmnmi_read(%02X) = %02X\n", addr & 0x03, ret);
+
+    if (dev->ac97_regs[0][0x48] & 0x04)
+	smi_line = 0;
+    else
+	nmi = 0;
+
+    return ret;
+}
+
+
+static void
+pipc_fmnmi_write(uint16_t addr, uint8_t val, void *priv)
+{
+    pipc_t *dev = (pipc_t *) priv;
+
+    pipc_log("PIPC: fmnmi_write(%02X, %02X)\n", addr & 0x03, val);
+}
+
+
+static uint8_t
+pipc_fm_read(uint16_t addr, void *priv)
+{
+    pipc_t *dev = (pipc_t *) priv;
+    uint8_t ret = opl3_read(addr, &dev->sb->opl);
+
+    pipc_log("PIPC: fm_read(%02X) = %02X\n", addr & 0x03, ret);
+
+    return ret;
+}
+
+
+static void
+pipc_fm_write(uint16_t addr, uint8_t val, void *priv)
+{
+    pipc_t *dev = (pipc_t *) priv;
+
+    pipc_log("PIPC: fm_write(%02X, %02X)\n", addr & 0x03, val);
+
+    opl3_write(addr, val, &dev->sb->opl);
+    dev->fm_regs[addr & 0x03] = val;
+
+    dev->fmnmi_regs[0x00] = (addr & 0x02) ? 0x02 : 0x01;
+    dev->fmnmi_regs[0x01] = dev->fm_regs[addr & 0x02];
+    dev->fmnmi_regs[0x02] = dev->fm_regs[(addr & 0x02) | 0x01];
+
+    if (dev->ac97_regs[0][0x48] & 0x04)
+	smi_line = 1;
+    else
+	nmi = 1;
+}
+
+
+static void
+pipc_fmnmi_handlers(pipc_t *dev, uint8_t modem)
+{
+    if (!dev->ac97 || modem)
+	return;
+
+    if (dev->fmnmi_base)
+	io_removehandler(dev->fmnmi_base, 4, pipc_fmnmi_read, NULL, NULL, pipc_fmnmi_write, NULL, NULL, dev);
+
+    if (dev->fm_enabled)
+	io_removehandler(0x388, 4, pipc_fm_read, NULL, NULL, pipc_fm_write, NULL, NULL, dev);
+
+    dev->fmnmi_base = (dev->ac97_regs[0][0x15] << 8) | (dev->ac97_regs[0][0x14] & 0xfc);
+    dev->fm_enabled = !!(dev->ac97_regs[0][0x42] & 0x04);
+
+    if (dev->fmnmi_base && (dev->ac97_regs[0][0x04] & PCI_COMMAND_IO))
+	io_sethandler(dev->fmnmi_base, 4, pipc_fmnmi_read, NULL, NULL, pipc_fmnmi_write, NULL, NULL, dev);
+
+    if (dev->fm_enabled)
+	io_sethandler(0x388, 4, pipc_fm_read, NULL, NULL, pipc_fm_write, NULL, NULL, dev);
 }
 
 
@@ -1096,6 +1184,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			pipc_midigame_handlers(dev, func);
 			pipc_sgd_handlers(dev, func);
 			pipc_codec_handlers(dev, func);
+			pipc_fmnmi_handlers(dev, func);
 			break;
 
 		case 0x09: case 0x0a: case 0x0b:
@@ -1103,9 +1192,16 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 				dev->ac97_regs[func][addr] = val;
 			break;
 
-		case 0x11:
+		case 0x10: case 0x11:
 			dev->ac97_regs[func][addr] = val;
 			pipc_sgd_handlers(dev, func);
+			break;
+
+		case 0x14: case 0x15:
+			if (addr == 0x14)
+				val = (val & 0xfc) | 1;
+			dev->ac97_regs[func][addr] = val;
+			pipc_fmnmi_handlers(dev, func);
 			break;
 
 		case 0x18: case 0x19:
@@ -1115,7 +1211,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			pipc_midigame_handlers(dev, func);
 			break;
 
-		case 0x1c:
+		case 0x1c: case 0x1d:
 			dev->ac97_regs[func][addr] = val;
 			pipc_codec_handlers(dev, func);
 			break;
@@ -1128,10 +1224,8 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 		case 0x42: case 0x4a: case 0x4b:
 			dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val;
 			gameport_remap(dev->gameport, (dev->ac97_regs[0][0x42] & 0x08) ? ((dev->ac97_regs[0][0x4b] << 8) | dev->ac97_regs[0][0x4a]) : 0);
-			break;
-
-		case 0x41:
-			dev->ac97_regs[func][addr] = val;
+			if (addr == 0x42)
+				pipc_fmnmi_handlers(dev, func);
 			break;
 
 		case 0x43:
@@ -1144,6 +1238,20 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 
 		case 0x45:
 			dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val & 0x0f;
+			break;
+
+		case 0x48:
+			dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val & 0x0f;
+			/*if (!(val & 0x01)) {
+				if (val & 0x04)
+					smi_line = 0;
+				else
+					nmi = 0;
+			}*/
+			if (val & 0x04)
+				smi_line = !!(val & 0x01);
+			else
+				nmi = !!(val & 0x01);
 			break;
 
 		default:
@@ -1226,6 +1334,8 @@ pipc_init(const device_t *info)
 
 	dev->ac97 = device_add(&ac97_via_device);
 	ac97_via_set_slot(dev->ac97, dev->slot, PCI_INTC);
+
+	dev->sb = device_add(&sb_pro_compat_device);
 
 	dev->gameport = gameport_add(&gameport_sio_device);
     }

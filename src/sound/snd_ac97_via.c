@@ -50,15 +50,15 @@ typedef struct _ac97_via_ {
     ac97_codec_t *codec[2][2];
     ac97_via_sgd_t sgd[6];
 
-    pc_timer_t	timer_count;
+    pc_timer_t	timer_count, timer_count_fm;
     uint64_t	timer_latch, timer_fifo_latch;
-    int16_t	out_l, out_r;
+    int16_t	out_l, out_r, fm_out_l, fm_out_r;
     double	cd_vol_l, cd_vol_r;
-    int16_t	buffer[SOUNDBUFLEN * 2];
-    int		pos;
+    int16_t	buffer[SOUNDBUFLEN * 2], fm_buffer[SOUNDBUFLEN * 2];
+    int		pos, fm_pos;
 } ac97_via_t;
 
-//#define ENABLE_AC97_VIA_LOG 1
+#define ENABLE_AC97_VIA_LOG 1
 #ifdef ENABLE_AC97_VIA_LOG
 int ac97_via_do_log = ENABLE_AC97_VIA_LOG;
 unsigned int ac97_via_lost_irqs = 0;
@@ -111,7 +111,7 @@ ac97_via_read_status(void *priv, uint8_t modem)
     return ret;
 }
 
-
+#include <86box/nmi.h>
 static void
 ac97_via_update_irqs(ac97_via_t *dev, uint8_t iflag_clear)
 {
@@ -474,6 +474,16 @@ ac97_via_update(ac97_via_t *dev)
 
 
 static void
+ac97_via_update_fm(ac97_via_t *dev)
+{
+    for (; dev->fm_pos < sound_pos_global; dev->fm_pos++) {
+	dev->fm_buffer[dev->fm_pos*2]     = dev->fm_out_l;
+	dev->fm_buffer[dev->fm_pos*2 + 1] = dev->fm_out_r;
+    }
+}
+
+
+static void
 ac97_via_sgd_process(void *priv)
 {
     ac97_via_sgd_t *sgd = (ac97_via_sgd_t *) priv;
@@ -503,12 +513,12 @@ ac97_via_sgd_process(void *priv)
 		sgd->sample_count &= 0xffffff;
 
 		ac97_via_log("AC97 VIA: Starting SGD %d block at %08X start %08X len %06X flags %02X lostirqs %d\n", sgd->id >> 4,
-			     sgd->entry_ptr, sgd->sample_ptr, sgd->sample_count, sgd->entry_flags, ac97_via_lost_irqs);
+			     sgd->entry_ptr - 8, sgd->sample_ptr, sgd->sample_count, sgd->entry_flags, ac97_via_lost_irqs);
 	}
 
 	if (sgd->id & 0x10) {
-    	/* Write channel: read data from FIFO. */
-    	mem_writel_phys(sgd->sample_ptr, *((uint32_t *) &sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)]));
+	/* Write channel: read data from FIFO. */
+	mem_writel_phys(sgd->sample_ptr, *((uint32_t *) &sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)]));
 	} else {
 		/* Read channel: write data to FIFO. */
 		*((uint32_t *) &sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)]) = mem_readl_phys(sgd->sample_ptr);
@@ -626,16 +636,39 @@ ac97_via_poll(void *priv)
 
 
 static void
+ac97_via_poll_fm(void *priv)
+{
+    ac97_via_t *dev = (ac97_via_t *) priv;
+    ac97_via_sgd_t *sgd = &dev->sgd[2]; /* FM Read */
+
+    timer_advance_u64(&dev->timer_count_fm, dev->timer_latch);
+
+    ac97_via_update_fm(dev);
+
+    dev->fm_out_l = dev->fm_out_r = 0;
+
+    /* Unknown format, assumed. */
+    if ((sgd->fifo_end - sgd->fifo_pos) >= 2) {
+	dev->out_l = (sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] ^ 0x80) << 8;
+	dev->out_r = (sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] ^ 0x80) << 8;
+    }
+}
+
+
+static void
 ac97_via_get_buffer(int32_t *buffer, int len, void *priv)
 {
     ac97_via_t *dev = (ac97_via_t *) priv;
 
     ac97_via_update(dev);
+    ac97_via_update_fm(dev);
 
-    for (int c = 0; c < len * 2; c++)
+    for (int c = 0; c < len * 2; c++) {
 	buffer[c] += dev->buffer[c];
+	buffer[c] += dev->fm_buffer[c];
+    }
 
-    dev->pos = 0;
+    dev->pos = dev->fm_pos = 0;
 }
 
 
@@ -669,10 +702,12 @@ ac97_via_init(const device_t *info)
 	timer_add(&dev->sgd[i].timer, ac97_via_sgd_process, &dev->sgd[i], 0);
     }
 
-    /* Set up playback poller. */
+    /* Set up playback pollers. */
     timer_add(&dev->timer_count, ac97_via_poll, dev, 0);
+    timer_add(&dev->timer_count_fm, ac97_via_poll_fm, dev, 0);
     ac97_via_speed_changed(dev);
     timer_advance_u64(&dev->timer_count, dev->timer_latch);
+    timer_advance_u64(&dev->timer_count_fm, dev->timer_latch);
 
     /* Set up playback handler. */
     sound_add_handler(ac97_via_get_buffer, dev);
