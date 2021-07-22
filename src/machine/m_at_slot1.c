@@ -468,8 +468,10 @@ machine_at_tsunamiatx_init(const machine_t *model)
     device_add(&i440bx_device);
     device_add(&piix4e_device);
 
-    if (sound_card_current == SOUND_INTERNAL)
-    	device_add(&es1371_onboard_device);
+    if (sound_card_current == SOUND_INTERNAL) {
+	device_add(&es1371_onboard_device);
+	device_add(&cs4297_device); /* found on other Tyan boards around the same time */
+    }
 
     device_add(&pc87309_device);
     device_add(&keyboard_ps2_ami_pci_device);
@@ -678,8 +680,10 @@ machine_at_ms6168_common_init(const machine_t *model)
     if (gfxcard == VID_INTERNAL)
     	device_add(&voodoo_3_2000_agp_onboard_8m_device);
 
-    if (sound_card_current == SOUND_INTERNAL)
-    	device_add(&es1371_onboard_device);
+    if (sound_card_current == SOUND_INTERNAL) {
+	device_add(&es1371_onboard_device);
+	device_add(&cs4297_device);
+    }
 }
 
 

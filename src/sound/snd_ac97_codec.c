@@ -30,6 +30,7 @@
 
 enum {
     AC97_CODEC_ALC100 = AC97_CODEC_ID('A', 'L', 'C', 0x20),
+    AC97_CODEC_CS4297 = AC97_CODEC_ID('C', 'R', 'Y', 0x03),
     AC97_CODEC_CS4297A = AC97_CODEC_ID('C', 'R', 'Y', 0x11),
     AC97_CODEC_WM9701A = AC97_CODEC_ID('W', 'M', 'L', 0x00)
 };
@@ -221,6 +222,18 @@ const device_t alc100_device =
     "Avance Logic ALC100",
     DEVICE_AC97,
     AC97_CODEC_ALC100,
+    ac97_codec_init, ac97_codec_close, ac97_codec_reset,
+    { NULL },
+    NULL,
+    NULL,
+    NULL
+};
+
+const device_t cs4297_device =
+{
+    "Crystal CS4297",
+    DEVICE_AC97,
+    AC97_CODEC_CS4297,
     ac97_codec_init, ac97_codec_close, ac97_codec_reset,
     { NULL },
     NULL,

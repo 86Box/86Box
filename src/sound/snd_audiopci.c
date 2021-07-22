@@ -1366,7 +1366,8 @@ static void *es1371_init(const device_t *info)
 
 	ac97_codec = &es1371->codec;
 	ac97_codec_count = 1;
-	device_add(&cs4297a_device);
+	if (!info->local)
+		device_add(&cs4297a_device);
 
 	return es1371;
 }
