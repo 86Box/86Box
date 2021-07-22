@@ -64,8 +64,8 @@ extern "C" {
 /* Global variables residing in the platform module. */
 extern int	dopause,			/* system is paused */
 		doresize,			/* screen resize requested */
-		is_quit,				/* system exit requested */
 		mouse_capture;			/* mouse is captured in app */
+extern volatile int	is_quit;				/* system exit requested */
 
 #ifdef MTR_ENABLED
 extern int tracing_on;
@@ -79,6 +79,8 @@ extern int	update_icons;
 
 extern int	unscaled_size_x,		/* current unscaled size X */
 		unscaled_size_y;		/* current unscaled size Y */
+
+extern int	kbd_req_capture;
 
 /* System-related functions. */
 extern char	*fix_exe_path(char *str);

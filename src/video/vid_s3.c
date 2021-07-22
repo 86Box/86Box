@@ -6148,7 +6148,8 @@ static void *s3_init(const device_t *info)
 		case S3_DIAMOND_STEALTH_SE:
 			svga->decode_mask = (4 << 20) - 1;
 			s3->id = 0xe1; /*Trio32*/
-			s3->id_ext = s3->id_ext_pci = 0x10;
+			s3->id_ext = 0x10;
+			s3->id_ext_pci = 0x11;
 			s3->packed_mmio = 1;
 
 			svga->clock_gen = s3;

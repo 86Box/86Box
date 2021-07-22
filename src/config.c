@@ -513,6 +513,7 @@ load_general(void)
     }
 
     sound_gain = config_get_int(cat, "sound_gain", 0);
+    kbd_req_capture = config_get_int(cat, "kbd_req_capture", 0);
 
     confirm_reset = config_get_int(cat, "confirm_reset", 1);
     confirm_exit = config_get_int(cat, "confirm_exit", 1);
@@ -1804,11 +1805,14 @@ config_load(void)
     memset(zip_drives, 0, sizeof(zip_drive_t));
 
     if (! config_read(cfg_path)) {
+	config_changed = 1;
+
 	cpu_f = (cpu_family_t *) &cpu_families[0];
 	cpu = 0;
 #ifdef USE_LANGUAGE
 	plat_langid = 0x0409;
 #endif
+	kbd_req_capture = 0;
 	scale = 1;
 	machine = machine_get_machine_from_internal_name("ibmpc");
 	fpu_type = fpu_get_type(cpu_f, cpu, "none");
@@ -1967,6 +1971,11 @@ save_general(void)
 	config_set_int(cat, "sound_gain", sound_gain);
     else
 	config_delete_var(cat, "sound_gain");
+
+    if (kbd_req_capture != 0)
+	config_set_int(cat, "kbd_req_capture", kbd_req_capture);
+    else
+	config_delete_var(cat, "kbd_req_capture");
 
     if (confirm_reset != 1)
 	config_set_int(cat, "confirm_reset", confirm_reset);

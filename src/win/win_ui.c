@@ -67,6 +67,7 @@ int		infocus = 1, button_down = 0;
 int		rctrl_is_lalt = 0;
 int		user_resize = 0;
 int		fixed_size_x = 0, fixed_size_y = 0;
+int		kbd_req_capture = 0;
 
 extern char	openfilestring[512];
 extern WCHAR	wopenfilestring[512];
@@ -80,11 +81,9 @@ static int	hook_enabled = 0;
 #endif
 static int	manager_wm = 0;
 static int	save_window_pos = 0, pause_state = 0;
-static int  dpi = 96;
-static int  padded_frame = 0;
-
-
-static int vis = -1;
+static int	dpi = 96;
+static int	padded_frame = 0;
+static int	vis = -1;
 
 /* Per Monitor DPI Aware v2 APIs, Windows 10 v1703+ */
 void* user32_handle = NULL;
@@ -263,6 +262,7 @@ ResetAllMenus(void)
 #endif
 
     CheckMenuItem(menuMain, IDM_ACTION_RCTRL_IS_LALT, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_ACTION_KBD_REQ_CAPTURE, MF_UNCHECKED);
 
     CheckMenuItem(menuMain, IDM_UPDATE_ICONS, MF_UNCHECKED);
 
@@ -328,6 +328,7 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_GRAY_RGB+4, MF_UNCHECKED);
 
     CheckMenuItem(menuMain, IDM_ACTION_RCTRL_IS_LALT, rctrl_is_lalt ? MF_CHECKED : MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_ACTION_KBD_REQ_CAPTURE, kbd_req_capture ? MF_CHECKED : MF_UNCHECKED);
 
     CheckMenuItem(menuMain, IDM_UPDATE_ICONS, update_icons ? MF_CHECKED : MF_UNCHECKED);
 
@@ -406,7 +407,8 @@ LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
     BOOL bControlKeyDown;
     KBDLLHOOKSTRUCT *p;
 
-    if (nCode < 0 || nCode != HC_ACTION || (!mouse_capture && !video_fullscreen))
+    if (nCode < 0 || nCode != HC_ACTION ||
+	(!mouse_capture && !video_fullscreen) || (kbd_req_capture && !mouse_capture && !video_fullscreen))
 	return(CallNextHookEx(hKeyboardHook, nCode, wParam, lParam));
 
     p = (KBDLLHOOKSTRUCT*)lParam;
@@ -475,9 +477,10 @@ plat_power_off(void)
 
     /* Cleanly terminate all of the emulator's components so as
        to avoid things like threads getting stuck. */
-    do_stop();
+    // do_stop();
+    cpu_thread_run = 0;
 
-    exit(-1);
+    // exit(-1);
 }
 
 #ifdef MTR_ENABLED
@@ -668,6 +671,12 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_ACTION_RCTRL_IS_LALT:
 				rctrl_is_lalt ^= 1;
 				CheckMenuItem(hmenu, IDM_ACTION_RCTRL_IS_LALT, rctrl_is_lalt ? MF_CHECKED : MF_UNCHECKED);
+				config_save();
+				break;
+
+			case IDM_ACTION_KBD_REQ_CAPTURE:
+				kbd_req_capture ^= 1;
+				CheckMenuItem(hmenu, IDM_ACTION_KBD_REQ_CAPTURE, kbd_req_capture ? MF_CHECKED : MF_UNCHECKED);
 				config_save();
 				break;
 
@@ -1539,10 +1548,10 @@ ui_init(int nCmdShow)
 		fatal("bRet is -1\n");
 	}
 
-	if (messages.message == WM_QUIT) {
-		is_quit = 1;
-		break;
-	}
+	/* On WM_QUIT, tell the CPU thread to stop running. That will then tell us
+	   to stop running as well. */
+	if (messages.message == WM_QUIT)
+		cpu_thread_run = 0;
 
 	if (! TranslateAccelerator(hwnd, haccel, &messages))
 	{
@@ -1688,7 +1697,7 @@ plat_mouse_capture(int on)
 {
     RECT rect;
 
-    if (mouse_type == MOUSE_TYPE_NONE)
+    if (!kbd_req_capture && (mouse_type == MOUSE_TYPE_NONE))
 	return;
 
     if (on && !mouse_capture) {

@@ -691,10 +691,6 @@ nvr_read(uint16_t addr, void *priv)
 		ret = (nvr->regs[RTC_REGA] & 0x7f) | local->stat;
 		break;
 
-	case RTC_REGB:
-		ret = nvr->regs[local->addr[addr_id]] | 0x40;
-		break;
-
 	case RTC_REGC:
 		picintc(1 << nvr->irq);
 		ret = nvr->regs[RTC_REGC];
