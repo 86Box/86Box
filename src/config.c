@@ -158,6 +158,23 @@ find_section(char *name)
 }
 
 
+void *
+config_find_section(char *name)
+{
+    return (void *) find_section(name);
+}
+
+
+void
+config_rename_section(void *priv, char *name)
+{
+    section_t *sec = (section_t *) priv;
+
+    memset(sec->name, 0x00, sizeof(sec->name));
+    memcpy(sec->name, name, MIN(128, strlen(name) + 1));
+}
+
+
 static entry_t *
 find_entry(section_t *section, char *name)
 {
@@ -1015,7 +1032,7 @@ load_storage_controllers(void)
 {
     char *cat = "Storage controllers";
     char *p, temp[512];
-    int c;
+    int c, min = 0;
     int free_p = 0;
 
     /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
@@ -1023,12 +1040,13 @@ load_storage_controllers(void)
 	
     /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
     p = config_get_string(cat, "scsicard", NULL);
-    if (p != NULL)
-	scsi_card_current_legacy = scsi_card_get_from_internal_name(p);
-      else
-	scsi_card_current_legacy = 0;
+    if (p != NULL) {
+	scsi_card_current[0] = scsi_card_get_from_internal_name(p);
+	min++;
+    }
+    config_delete_var(cat, "scsi_card");
 
-    for (c = 0; c < SCSI_BUS_MAX; c++) {
+    for (c = min; c < SCSI_BUS_MAX; c++) {
 	sprintf(temp, "scsicard_%d", c + 1);
 
 	p = config_get_string(cat, temp, NULL);
@@ -1816,9 +1834,9 @@ load_other_peripherals(void)
     if (backwards_compat2) {	
 	p = config_get_string(cat, "scsicard", NULL);
 	if (p != NULL)
-		scsi_card_current_legacy = scsi_card_get_from_internal_name(p);
+		scsi_card_current[0] = scsi_card_get_from_internal_name(p);
 	else
-		scsi_card_current_legacy = 0;
+		scsi_card_current[0] = 0;
 	config_delete_var(cat, "scsicard");
 
 	p = config_get_string(cat, "fdc", NULL);
@@ -2420,12 +2438,6 @@ save_storage_controllers(void)
     char *cat = "Storage controllers";
     char temp[512];
     int c;
-
-    if (scsi_card_current_legacy == 0)
-	config_delete_var(cat, "scsicard");
-      else
-	config_set_string(cat, "scsicard",
-			  scsi_card_get_internal_name(scsi_card_current_legacy));
 
     for (c = 0; c < SCSI_BUS_MAX; c++) {
 	sprintf(temp, "scsicard_%d", c + 1);

@@ -103,7 +103,7 @@ static int temp_lpt_devices[3];
 static int temp_serial[4], temp_lpt[3];
 
 /* Other peripherals category */
-static int temp_fdc_card, temp_hdc, temp_scsi_card_legacy, temp_ide_ter, temp_ide_qua;
+static int temp_fdc_card, temp_hdc, temp_ide_ter, temp_ide_qua;
 static int temp_scsi_card[SCSI_BUS_MAX];
 static int temp_bugger;
 static int temp_postcard;
@@ -370,7 +370,6 @@ win_settings_init(void)
 	temp_serial[i] = serial_enabled[i];
 
     /* Other peripherals category */
-    temp_scsi_card_legacy = scsi_card_current_legacy;
     for (i = 0; i < SCSI_BUS_MAX; i++)
 	temp_scsi_card[i] = scsi_card_current[i];
     temp_fdc_card = fdc_type;
@@ -488,7 +487,6 @@ win_settings_changed(void)
 	i = i || (temp_serial[j] != serial_enabled[j]);
 
     /* Peripherals category */
-    i = i || (scsi_card_current_legacy != temp_scsi_card_legacy);
     for (j = 0; j < SCSI_BUS_MAX; j++)
 	i = i || (temp_scsi_card[j] != scsi_card_current[j]);
     i = i || (fdc_type != temp_fdc_card);
@@ -577,7 +575,6 @@ win_settings_save(void)
 	serial_enabled[i] = temp_serial[i];
 
     /* Peripherals category */
-    scsi_card_current_legacy = temp_scsi_card_legacy;
     for (i = 0; i < SCSI_BUS_MAX; i++)
 	scsi_card_current[i] = temp_scsi_card[i];
     hdc_current = temp_hdc;
@@ -1629,14 +1626,6 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				scsi_dev = scsi_card_getdevice(c);
 
 				if (device_is_valid(scsi_dev, machines[temp_machine].flags)) {
-					if (c == 0)
-						settings_add_string(hdlg, IDC_COMBO_SCSI, win_get_string(IDS_2103));
-					else
-						settings_add_string(hdlg, IDC_COMBO_SCSI, (LPARAM) device_name);
-
-					if ((c == 0) || (c == temp_scsi_card_legacy))
-						settings_set_cur_sel(hdlg, IDC_COMBO_SCSI, d);
-
 					for (e = 0; e < SCSI_BUS_MAX; e++) {
 						if (c == 0)
 							settings_add_string(hdlg, IDC_COMBO_SCSI_1 + e, win_get_string(IDS_2103));
@@ -1655,16 +1644,6 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			c++;
 		}
 
-		settings_show_window(hdlg, IDT_1717, temp_scsi_card_legacy != 0);
-		settings_show_window(hdlg, IDC_COMBO_SCSI, temp_scsi_card_legacy != 0);
-		settings_show_window(hdlg, IDC_CONFIGURE_SCSI, temp_scsi_card_legacy != 0);
-		if (temp_scsi_card_legacy != 0) {
-			settings_enable_window(hdlg, IDC_COMBO_SCSI, d);
-			settings_enable_window(hdlg, IDC_CONFIGURE_SCSI, scsi_card_has_config(temp_scsi_card_legacy));
-		} else {
-			settings_enable_window(hdlg, IDC_COMBO_SCSI, 0);
-			settings_enable_window(hdlg, IDC_CONFIGURE_SCSI, 0);
-		}
 		for (c = 0; c < SCSI_BUS_MAX; c++) {
 			settings_enable_window(hdlg, IDC_COMBO_SCSI_1 + c, d);
 			settings_enable_window(hdlg, IDC_CONFIGURE_SCSI_1 + c, scsi_card_has_config(temp_scsi_card[c]));
@@ -1704,16 +1683,6 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				settings_enable_window(hdlg, IDC_CONFIGURE_HDC, hdc_has_config(temp_hdc));
 				break;
 
-			case IDC_CONFIGURE_SCSI:
-				temp_scsi_card_legacy = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SCSI)];
-				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)scsi_card_getdevice(temp_scsi_card_legacy));
-				break;
-
-			case IDC_COMBO_SCSI:
-				temp_scsi_card_legacy = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SCSI)];
-				settings_enable_window(hdlg, IDC_CONFIGURE_SCSI, scsi_card_has_config(temp_scsi_card_legacy));
-				break;
-
 			case IDC_CONFIGURE_SCSI_1 ... IDC_CONFIGURE_SCSI_4:
 				c = LOWORD(wParam) - IDC_CONFIGURE_SCSI_1;
 				temp_scsi_card[c] = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SCSI_1 + c)];
@@ -1749,7 +1718,6 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_SAVESETTINGS:
 		temp_hdc = settings_list_to_hdc[settings_get_cur_sel(hdlg, IDC_COMBO_HDC)];
 		temp_fdc_card = settings_list_to_fdc[settings_get_cur_sel(hdlg, IDC_COMBO_FDC)];
-		temp_scsi_card_legacy = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SCSI)];
 		for (c = 0; c < SCSI_BUS_MAX; c++)
 			temp_scsi_card[c] = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SCSI_1 + c)];
 		temp_ide_ter = settings_get_check(hdlg, IDC_CHECK_IDE_TER);

@@ -22,7 +22,6 @@
 #define EMU_SCSI_H
 
 extern int	scsi_card_current[4];
-extern int	scsi_card_current_legacy;
 
 extern int	scsi_card_available(int card);
 #ifdef EMU_DEVICE_H

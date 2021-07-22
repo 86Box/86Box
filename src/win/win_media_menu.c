@@ -295,7 +295,7 @@ is_valid_cdrom(int i)
 {
     if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && !MACHINE_HAS_IDE && memcmp(hdc_get_internal_name(hdc_current), "ide", 3))
 	return 0;
-    if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !MACHINE_HAS_SCSI && (scsi_card_current_legacy == 0) &&
+    if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !MACHINE_HAS_SCSI &&
 	(scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
 	(scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
 	return 0;
@@ -307,7 +307,7 @@ is_valid_zip(int i)
 {
     if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && !MACHINE_HAS_IDE && memcmp(hdc_get_internal_name(hdc_current), "ide", 3))
 	return 0;
-    if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && !MACHINE_HAS_SCSI && (scsi_card_current_legacy == 0) &&
+    if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && !MACHINE_HAS_SCSI &&
 	(scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
 	(scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
 	return 0;
@@ -319,7 +319,7 @@ is_valid_mo(int i)
 {
     if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && !MACHINE_HAS_IDE && memcmp(hdc_get_internal_name(hdc_current), "ide", 3))
 	return 0;
-    if ((mo_drives[i].bus_type == MO_BUS_SCSI) && !MACHINE_HAS_SCSI && (scsi_card_current_legacy == 0) &&
+    if ((mo_drives[i].bus_type == MO_BUS_SCSI) && !MACHINE_HAS_SCSI &&
 	(scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
 	(scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
 	return 0;

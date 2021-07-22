@@ -46,7 +46,6 @@
 #endif
 
 
-int		scsi_card_current_legacy = 0;
 int		scsi_card_current[SCSI_BUS_MAX] = { 0, 0 };
 
 static uint8_t	next_scsi_bus = 0;
@@ -169,12 +168,6 @@ scsi_card_init(void)
        increase our instance number here. */
     if (machines[machine].flags & MACHINE_SCSI)
 	max--;
-
-    /* This is for grandfathering legacy single-controller configurations. */
-    if (scsi_cards[scsi_card_current_legacy].device) {
-	device_add(scsi_cards[scsi_card_current_legacy].device);
-	max--;
-    }
 
     /* Do not initialize any controllers if we have do not have any SCSI
        bus left. */
