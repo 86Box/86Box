@@ -143,7 +143,7 @@ typedef struct {
                 int lun_id;
         } dev_id[SCSI_ID_MAX];
 
-	uint8_t last_status;
+	uint8_t last_status, bus;
 	uint8_t cdb[12];
 	int cdb_len;
 	int cdb_id;
@@ -488,7 +488,7 @@ spock_process_imm_cmd(spock_t *scsi)
 			spock_log("Reset Command\n");
 			if ((scsi->attention & 0x0f) == 0x0f) { /*Adapter reset*/
 				for (i = 0; i < 8; i++)
-					scsi_device_reset(&scsi_devices[i]);
+					scsi_device_reset(&scsi_devices[scsi->bus][i]);
 				spock_log("Adapter Reset\n");
 				
 				if (!scsi->adapter_reset && scsi->bios_ver) /*The early 1990 bios must have its boot drive
@@ -798,7 +798,7 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
 				break;
 				
 			case 2: /* Wait */
-				if (scsi->scsi_state == SCSI_STATE_IDLE && scsi_device_present(&scsi_devices[scsi->cdb_id])) {
+				if (scsi->scsi_state == SCSI_STATE_IDLE && scsi_device_present(&scsi_devices[scsi->bus][scsi->cdb_id])) {
 					if (scsi->last_status == SCSI_STATUS_OK) {
 						scsi->scb_state = 3;
 						spock_log("Status is Good on device ID %d, timer = %i\n", scsi->cdb_id, scsi->cmd_timer);
@@ -816,7 +816,7 @@ spock_execute_cmd(spock_t *scsi, scb_t *scb)
 						dma_bm_write(scb->term_status_block_addr + 0xb*2, (uint8_t *)&term_stat_block_addrb, 2, 2);
 						dma_bm_write(scb->term_status_block_addr + 0xc*2, (uint8_t *)&term_stat_block_addrc, 2, 2);
 					}
-				} else if (scsi->scsi_state == SCSI_STATE_IDLE && !scsi_device_present(&scsi_devices[scsi->cdb_id])) {
+				} else if (scsi->scsi_state == SCSI_STATE_IDLE && !scsi_device_present(&scsi_devices[scsi->bus][scsi->cdb_id])) {
 					uint16_t term_stat_block_addr7 = (0xc << 8) | 2;
 					uint16_t term_stat_block_addr8 = 0x10;
 					spock_set_irq(scsi, scsi->scb_id, IRQ_TYPE_COMMAND_FAIL);
@@ -854,7 +854,7 @@ spock_process_scsi(spock_t *scsi, scb_t *scb)
 			
 		case SCSI_STATE_SELECT:
 			spock_log("Selecting ID %d\n", scsi->cdb_id);
-			if ((scsi->cdb_id != (uint8_t)-1) && scsi_device_present(&scsi_devices[scsi->cdb_id])) {
+			if ((scsi->cdb_id != (uint8_t)-1) && scsi_device_present(&scsi_devices[scsi->bus][scsi->cdb_id])) {
 				scsi->scsi_state = SCSI_STATE_SEND_COMMAND;
 				spock_log("Device selected at ID %i\n", scsi->cdb_id);
 			} else {
@@ -869,7 +869,7 @@ spock_process_scsi(spock_t *scsi, scb_t *scb)
 			break;
 
 		case SCSI_STATE_SEND_COMMAND:
-			sd = &scsi_devices[scsi->cdb_id];
+			sd = &scsi_devices[scsi->bus][scsi->cdb_id];
 			memset(scsi->temp_cdb, 0x00, 12);
 
 			if (scsi->cdb_len < 12) {
@@ -1086,7 +1086,7 @@ spock_mca_reset(void *priv)
 
 	/* Reset all devices on controller reset. */
 	for (i = 0; i < 8; i++)
-		scsi_device_reset(&scsi_devices[i]);
+		scsi_device_reset(&scsi_devices[scsi->bus][i]);
 	
 	scsi->adapter_reset = 0;
 }
@@ -1097,7 +1097,9 @@ spock_init(const device_t *info)
 	int c;
 	spock_t *scsi = malloc(sizeof(spock_t));
 	memset(scsi, 0x00, sizeof(spock_t));
-	
+
+	scsi->bus = scsi_get_bus();
+
 	scsi->irq = 14;
 	
 	scsi->bios_ver = device_get_config_int("bios_ver");

@@ -40,6 +40,7 @@
 #include <86box/fdc.h>
 #include <86box/isapnp.h>
 #include <86box/scsi.h>
+#include <86box/scsi_device.h>
 #include <86box/scsi_aha154x.h>
 #include <86box/scsi_x54x.h>
 
@@ -964,6 +965,7 @@ aha_init(const device_t *info)
 
     /* Call common initializer. */
     dev = x54x_init(info);
+    dev->bus = scsi_get_bus();
 
     /*
      * Set up the (initial) I/O address, IRQ and DMA info.
@@ -976,7 +978,7 @@ aha_init(const device_t *info)
     dev->Irq = device_get_config_int("irq");
     dev->DmaChannel = device_get_config_int("dma");
     dev->rom_addr = device_get_config_hex20("bios_addr");
-    if (!(dev->bus & DEVICE_MCA))
+    if (!(dev->card_bus & DEVICE_MCA))
 	dev->fdc_address = device_get_config_hex16("fdc_addr");
     else
 	dev->fdc_address = 0;
@@ -1121,7 +1123,7 @@ aha_init(const device_t *info)
 	/* Initialize the device. */
 	x54x_device_reset(dev);
 
-        if (!(dev->bus & DEVICE_MCA) && !(dev->flags & X54X_ISAPNP)) {
+        if (!(dev->card_bus & DEVICE_MCA) && !(dev->flags & X54X_ISAPNP)) {
 		/* Register our address space. */
 	        x54x_io_set(dev, dev->Base, 4);
 

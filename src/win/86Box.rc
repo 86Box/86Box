@@ -549,32 +549,50 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,118,94,10
 END
 
-DLG_CFG_STORAGE DIALOG DISCARDABLE  107, 0, 267, 111
+DLG_CFG_STORAGE DIALOG DISCARDABLE  107, 0, 267, 211
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
-    LTEXT           "SCSI Controller:",IDT_1717,7,9,64,10
-    COMBOBOX        IDC_COMBO_SCSI,64,7,155,120,CBS_DROPDOWNLIST | 
+    LTEXT           "HD Controller:",IDT_1718,7,9,64,10
+    COMBOBOX        IDC_COMBO_HDC,64,7,155,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_SCSI,222,7,38,12
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_HDC,222,7,38,12
 
-    LTEXT           "HD Controller:",IDT_1718,7,28,64,10
-    COMBOBOX        IDC_COMBO_HDC,64,26,155,120,CBS_DROPDOWNLIST | 
+    LTEXT           "FD Controller:",IDT_1768,7,28,64,10
+    COMBOBOX        IDC_COMBO_FDC,64,26,155,120,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_HDC,222,26,38,12
-
-    LTEXT           "FD Controller:",IDT_1768,7,47,64,10
-    COMBOBOX        IDC_COMBO_FDC,64,45,155,120,CBS_DROPDOWNLIST | 
-                    WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_FDC,222,45,38,12
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_FDC,222,26,38,12
 
     CONTROL         "Tertiary IDE Controller",IDC_CHECK_IDE_TER,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,66,199,10
-    PUSHBUTTON      "Configure",IDC_BUTTON_IDE_TER,222,64,38,12
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,47,199,10
+    PUSHBUTTON      "Configure",IDC_BUTTON_IDE_TER,222,45,38,12
 
     CONTROL         "Quaternary IDE Controller",IDC_CHECK_IDE_QUA,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,85,199,10
-    PUSHBUTTON      "Configure",IDC_BUTTON_IDE_QUA,222,83,38,12
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,66,199,10
+    PUSHBUTTON      "Configure",IDC_BUTTON_IDE_QUA,222,64,38,12
+
+    GROUPBOX        "SCSI",IDC_GROUP_SCSI,7,85,253,93
+    LTEXT           "Controller 1:",IDT_1763,16,102,48,10
+    COMBOBOX        IDC_COMBO_SCSI_1,73,100,137,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_SCSI_1,213,100,38,12
+    LTEXT           "Controller 2:",IDT_1764,16,121,48,10
+    COMBOBOX        IDC_COMBO_SCSI_2,73,119,137,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_SCSI_2,213,119,38,12
+    LTEXT           "Controller 3:",IDT_1765,16,140,48,10
+    COMBOBOX        IDC_COMBO_SCSI_3,73,138,137,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_SCSI_3,213,138,38,12
+    LTEXT           "Controller 4:",IDT_1766,16,159,48,10
+    COMBOBOX        IDC_COMBO_SCSI_4,73,157,137,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_SCSI_4,213,157,38,12
+
+    LTEXT           "SCSI Controller:",IDT_1717,7,185,64,10
+    COMBOBOX        IDC_COMBO_SCSI,64,183,155,120,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_SCSI,222,183,38,12
 END
 
 DLG_CFG_HARD_DISKS DIALOG DISCARDABLE  107, 0, 267, 154
@@ -1114,7 +1132,7 @@ STRINGTABLE DISCARDABLE
 BEGIN
     IDS_4096    "Hard disk (%s)"
     IDS_4097	"%01i:%01i"
-    IDS_4098	"%i"
+    IDS_4098	"%01i"
     IDS_4099	"MFM/RLL or ESDI CD-ROM drives never existed"
     IDS_4100	"Custom..."
     IDS_4101	"Custom (large)..."
@@ -1151,6 +1169,7 @@ BEGIN
     IDS_4132	"This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
     IDS_4133	"Parent and child disk timestamps do not match"
     IDS_4134	"Could not fix VHD timestamp."
+    IDS_4135	"%01i:%02i"
 
     IDS_4352    "MFM/RLL"
     IDS_4353    "XTA"
@@ -1164,7 +1183,7 @@ BEGIN
     IDS_4610	"ESDI (%01i:%01i)"
     IDS_4611	"IDE (%01i:%01i)"
     IDS_4612	"ATAPI (%01i:%01i)"
-    IDS_4613	"SCSI (ID %02i)"
+    IDS_4613	"SCSI (%01i:%02i)"
 
     IDS_5120	"CD-ROM %i (%s): %s"
 
@@ -1174,7 +1193,7 @@ BEGIN
 
     IDS_5632	"Disabled"
     IDS_5637	"ATAPI (%01i:%01i)"
-    IDS_5638    "SCSI (ID %02i)"
+    IDS_5638    "SCSI (%01i:%02i)"
 
     IDS_5888	"160 kB"
     IDS_5889	"180 kB"

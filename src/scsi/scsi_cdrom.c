@@ -798,12 +798,13 @@ scsi_cdrom_sense_clear(scsi_cdrom_t *dev, int command)
 static void
 scsi_cdrom_set_phase(scsi_cdrom_t *dev, uint8_t phase)
 {
-    uint8_t scsi_id = dev->drv->scsi_device_id;
+    uint8_t scsi_bus = (dev->drv->scsi_device_id >> 4) & 0x0f;
+    uint8_t scsi_id = dev->drv->scsi_device_id & 0x0f;
 
     if (dev->drv->bus_type != CDROM_BUS_SCSI)
 	return;
 
-    scsi_devices[scsi_id].phase = phase;
+    scsi_devices[scsi_bus][scsi_id].phase = phase;
 }
 
 
@@ -1417,9 +1418,11 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
     int32_t blen = 0, *BufLen;
     uint8_t *b;
     uint32_t profiles[2] = { MMC_PROFILE_CD_ROM, MMC_PROFILE_DVD_ROM };
+    uint8_t scsi_bus = (dev->drv->scsi_device_id >> 4) & 0x0f;
+    uint8_t scsi_id = dev->drv->scsi_device_id & 0x0f;
 
     if (dev->drv->bus_type == CDROM_BUS_SCSI) {
-	BufLen = &scsi_devices[dev->drv->scsi_device_id].buffer_length;
+	BufLen = &scsi_devices[scsi_bus][scsi_id].buffer_length;
 	dev->status &= ~ERR_STAT;
     } else {
 	BufLen = &blen;
@@ -2687,10 +2690,18 @@ scsi_cdrom_drive_reset(int c)
     scsi_cdrom_t *dev;
     scsi_device_t *sd;
     ide_t *id;
+    uint8_t scsi_bus = (drv->scsi_device_id >> 4) & 0x0f;
+    uint8_t scsi_id = drv->scsi_device_id & 0x0f;
 
-    /* Make sure to ignore any SCSI CD-ROM drive that has an out of range ID. */
-    if ((drv->bus_type == CDROM_BUS_SCSI) && (drv->scsi_device_id >= SCSI_ID_MAX))
-	return;
+    if (drv->bus_type == CDROM_BUS_SCSI) {
+	/* Make sure to ignore any SCSI CD-ROM drive that has an out of range SCSI bus. */
+	if (scsi_bus >= SCSI_BUS_MAX)
+		return;
+
+	/* Make sure to ignore any SCSI CD-ROM drive that has an out of range ID. */
+	if (scsi_id >= SCSI_ID_MAX)
+		return;
+    }
 
     /* Make sure to ignore any ATAPI CD-ROM drive that has an out of range IDE channel. */
     if ((drv->bus_type == CDROM_BUS_ATAPI) && (drv->ide_channel > 7))
@@ -2717,7 +2728,7 @@ scsi_cdrom_drive_reset(int c)
 
     if (drv->bus_type == CDROM_BUS_SCSI) {
 	/* SCSI CD-ROM, attach to the SCSI bus. */
-	sd = &scsi_devices[drv->scsi_device_id];
+	sd = &scsi_devices[scsi_bus][scsi_id];
 
 	sd->sc = (scsi_common_t *) dev;
 	sd->command = scsi_cdrom_command;
