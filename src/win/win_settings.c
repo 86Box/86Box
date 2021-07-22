@@ -1615,7 +1615,8 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 		/*SCSI config*/
 		c = d = 0;
-		settings_reset_content(hdlg, IDC_COMBO_SCSI);
+		for (e = 0; e < SCSI_BUS_MAX; e++)
+			settings_reset_content(hdlg, IDC_COMBO_SCSI_1 + e);
 		while (1) {
 			generate_device_name(scsi_card_getdevice(c), scsi_card_get_internal_name(c), 1);
 
