@@ -38,6 +38,7 @@
 #include <86box/machine.h>
 #include <86box/sound.h>
 #include <86box/clock.h>
+#include <86box/snd_ac97.h>
 
 int
 machine_at_p65up5_cpknd_init(const machine_t *model)
