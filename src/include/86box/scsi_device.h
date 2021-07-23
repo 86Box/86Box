@@ -21,6 +21,8 @@
 
 
 /* Configuration. */
+#define SCSI_BUS_MAX		4		/* currently we support up to 4 controllers */
+
 #define SCSI_ID_MAX		16		/* 16 on wide buses */
 #define SCSI_LUN_MAX		8		/* always 8 */
 
@@ -359,7 +361,7 @@ typedef struct {
 #define SCSI_REMOVABLE_DISK 0x8000
 #define SCSI_REMOVABLE_CDROM 0x8005
 
-extern scsi_device_t	scsi_devices[SCSI_ID_MAX];
+extern scsi_device_t	scsi_devices[SCSI_BUS_MAX][SCSI_ID_MAX];
 
 
 extern int	cdrom_add_error_and_subchannel(uint8_t *b, int real_sector_type);
@@ -383,5 +385,8 @@ extern void	scsi_device_command_stop(scsi_device_t *dev);
 extern void	scsi_device_identify(scsi_device_t *dev, uint8_t lun);
 extern void	scsi_device_close_all(void);
 extern void	scsi_device_init(void);
+
+extern void	scsi_reset(void);
+extern uint8_t	scsi_get_bus(void);
 
 #endif	/*SCSI_DEVICE_H*/

@@ -503,8 +503,9 @@ ui_sb_update_panes(void)
 	    !ide_int && memcmp(hdc_name, "ide", 3))
 		continue;
 
-	if ((cdrom[i].bus_type == CDROM_BUS_SCSI) &&
-	    !scsi_int && (scsi_card_current == 0))
+	if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !scsi_int &&
+	    (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
+	    (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
 		continue;
 	if (cdrom[i].bus_type != 0)
 		sb_parts++;
@@ -515,8 +516,9 @@ ui_sb_update_panes(void)
 	    !ide_int && memcmp(hdc_name, "ide", 3))
 		continue;
 
-	if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) &&
-	    !scsi_int && (scsi_card_current == 0))
+	if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && !scsi_int &&
+	    (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
+	    (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
 		continue;
 	if (zip_drives[i].bus_type != 0)
 		sb_parts++;
@@ -527,8 +529,9 @@ ui_sb_update_panes(void)
 	    !ide_int && memcmp(hdc_name, "ide", 3))
 		continue;
 
-	if ((mo_drives[i].bus_type == MO_BUS_SCSI) &&
-	    !scsi_int && (scsi_card_current == 0))
+	if ((mo_drives[i].bus_type == MO_BUS_SCSI) && !scsi_int &&
+	    (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
+	    (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
 		continue;
 	if (mo_drives[i].bus_type != 0)
 		sb_parts++;
@@ -545,7 +548,8 @@ ui_sb_update_panes(void)
 	sb_parts++;
     if (c_ide && (ide_int || !memcmp(hdc_name, "xtide", 5) || !memcmp(hdc_name, "ide", 3)))
 	sb_parts++;
-    if (c_scsi && (scsi_int || (scsi_card_current != 0)))
+    if (c_scsi && (scsi_int || (scsi_card_current[0] != 0) || (scsi_card_current[1] != 0) ||
+	(scsi_card_current[2] != 0) || (scsi_card_current[3] != 0)))
 	sb_parts++;
     if (do_net)
 	sb_parts++;
@@ -575,8 +579,9 @@ ui_sb_update_panes(void)
 	if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) &&
 	    !ide_int && memcmp(hdc_name, "ide", 3))
 		continue;
-	if ((cdrom[i].bus_type == CDROM_BUS_SCSI) &&
-	    !scsi_int && (scsi_card_current == 0))
+	if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !scsi_int &&
+	    (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
+	    (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
 		continue;
 	if (cdrom[i].bus_type != 0) {
 		edge += icon_width;
@@ -591,8 +596,9 @@ ui_sb_update_panes(void)
 	if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) &&
 	    !ide_int && memcmp(hdc_name, "ide", 3))
 		continue;
-	if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) &&
-	    !scsi_int && (scsi_card_current == 0))
+	if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && !scsi_int &&
+	    (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
+	    (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
 		continue;
 	if (zip_drives[i].bus_type != 0) {
 		edge += icon_width;
@@ -607,8 +613,9 @@ ui_sb_update_panes(void)
 	if ((mo_drives[i].bus_type == MO_BUS_ATAPI) &&
 	    !ide_int && memcmp(hdc_name, "ide", 3))
 		continue;
-	if ((mo_drives[i].bus_type == MO_BUS_SCSI) &&
-	    !scsi_int && (scsi_card_current == 0))
+	if ((mo_drives[i].bus_type == MO_BUS_SCSI) && !scsi_int &&
+	    (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
+	    (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
 		continue;
 	if (mo_drives[i].bus_type != 0) {
 		edge += icon_width;
@@ -646,7 +653,8 @@ ui_sb_update_panes(void)
 	sb_map[SB_HDD | HDD_BUS_IDE] = sb_parts;
 	sb_parts++;
     }
-    if (c_scsi && (scsi_int || (scsi_card_current != 0))) {
+    if (c_scsi && (scsi_int || (scsi_card_current[0] != 0) || (scsi_card_current[1] != 0) ||
+	(scsi_card_current[2] != 0) || (scsi_card_current[3] != 0))) {
 	edge += icon_width;
 	iStatusWidths[sb_parts] = edge;
 	sb_part_meanings[sb_parts] = SB_HDD | HDD_BUS_SCSI;

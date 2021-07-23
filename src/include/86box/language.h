@@ -161,6 +161,7 @@
 #define IDS_4132	4132		// "This could mean that the parent..."
 #define IDS_4133	4133		// "Parent and child disk timestamps..."
 #define IDS_4134	4134		// "Could not fix VHD timestamp."
+#define IDS_4135	4135		// "%01i:%02i"
 
 #define IDS_4352	4352		// "MFM/RLL"
 #define IDS_4353	4353		// "XT IDE"
@@ -230,7 +231,7 @@
 
 #define STR_NUM_2048	100
 #define STR_NUM_3072	11
-#define STR_NUM_4096	39
+#define STR_NUM_4096	40
 #define STR_NUM_4352	6
 #define STR_NUM_4608	6
 #define STR_NUM_5120	1

@@ -1000,12 +1000,13 @@ zip_sense_clear(zip_t *dev, int command)
 static void
 zip_set_phase(zip_t *dev, uint8_t phase)
 {
-    uint8_t scsi_id = dev->drv->scsi_device_id;
+    uint8_t scsi_bus = (dev->drv->scsi_device_id >> 4) & 0x0f;
+    uint8_t scsi_id = dev->drv->scsi_device_id & 0x0f;
 
     if (dev->drv->bus_type != ZIP_BUS_SCSI)
 	return;
 
-    scsi_devices[scsi_id].phase = phase;
+    scsi_devices[scsi_bus][scsi_id].phase = phase;
 }
 
 
@@ -1416,9 +1417,11 @@ zip_command(scsi_common_t *sc, uint8_t *cdb)
     unsigned preamble_len;
     int32_t blen = 0;
     int32_t *BufLen;
+    uint8_t scsi_bus = (dev->drv->scsi_device_id >> 4) & 0x0f;
+    uint8_t scsi_id = dev->drv->scsi_device_id & 0x0f;
 
     if (dev->drv->bus_type == ZIP_BUS_SCSI) {
-	BufLen = &scsi_devices[dev->drv->scsi_device_id].buffer_length;
+	BufLen = &scsi_devices[scsi_bus][scsi_id].buffer_length;
 	dev->status &= ~ERR_STAT;
     } else {
 	BufLen = &blen;
@@ -2330,6 +2333,8 @@ zip_drive_reset(int c)
     zip_t *dev;
     scsi_device_t *sd;
     ide_t *id;
+    uint8_t scsi_bus = (zip_drives[c].scsi_device_id >> 4) & 0x0f;
+    uint8_t scsi_id = zip_drives[c].scsi_device_id & 0x0f;
 
     if (!zip_drives[c].priv) {
 	zip_drives[c].priv = (zip_t *) malloc(sizeof(zip_t));
@@ -2343,7 +2348,7 @@ zip_drive_reset(int c)
 
     if (zip_drives[c].bus_type == ZIP_BUS_SCSI) {
 	/* SCSI ZIP, attach to the SCSI bus. */
-	sd = &scsi_devices[zip_drives[c].scsi_device_id];
+	sd = &scsi_devices[scsi_bus][scsi_id];
 
 	sd->sc = (scsi_common_t *) dev;
 	sd->command = zip_command;
@@ -2382,14 +2387,24 @@ zip_hard_reset(void)
 {
     zip_t *dev;
     int c;
+    uint8_t scsi_id, scsi_bus;
 
     for (c = 0; c < ZIP_NUM; c++) {
 	if ((zip_drives[c].bus_type == ZIP_BUS_ATAPI) || (zip_drives[c].bus_type == ZIP_BUS_SCSI)) {
 		zip_log("ZIP hard_reset drive=%d\n", c);
 
-		/* Make sure to ignore any SCSI ZIP drive that has an out of range ID. */
-		if ((zip_drives[c].bus_type == ZIP_BUS_SCSI) && (zip_drives[c].scsi_device_id >= SCSI_ID_MAX))
-			continue;
+		if (zip_drives[c].bus_type == ZIP_BUS_SCSI) {
+			scsi_bus = (zip_drives[c].scsi_device_id >> 4) & 0x0f;
+			scsi_id = zip_drives[c].scsi_device_id & 0x0f;
+
+			/* Make sure to ignore any SCSI ZIP drive that has an out of range SCSI bus. */
+			if (scsi_bus >= SCSI_BUS_MAX)
+				continue;
+
+			/* Make sure to ignore any SCSI ZIP drive that has an out of range ID. */
+			if (scsi_id >= SCSI_ID_MAX)
+				continue;
+		}
 
 		/* Make sure to ignore any ATAPI ZIP drive that has an out of range IDE channel. */
 		if ((zip_drives[c].bus_type == ZIP_BUS_ATAPI) && (zip_drives[c].ide_channel > 7))
@@ -2423,10 +2438,15 @@ zip_close(void)
 {
     zip_t *dev;
     int c;
+    uint8_t scsi_bus, scsi_id;
 
     for (c = 0; c < ZIP_NUM; c++) {
-	if (zip_drives[c].bus_type == ZIP_BUS_SCSI)
-		memset(&scsi_devices[zip_drives[c].scsi_device_id], 0x00, sizeof(scsi_device_t));
+	if (zip_drives[c].bus_type == ZIP_BUS_SCSI) {
+		scsi_bus = (zip_drives[c].scsi_device_id >> 4) & 0x0f;
+		scsi_id = zip_drives[c].scsi_device_id & 0x0f;
+
+		memset(&scsi_devices[scsi_bus][scsi_id], 0x00, sizeof(scsi_device_t));
+	}
 
 	dev = (zip_t *) zip_drives[c].priv;
 

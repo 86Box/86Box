@@ -158,6 +158,23 @@ find_section(char *name)
 }
 
 
+void *
+config_find_section(char *name)
+{
+    return (void *) find_section(name);
+}
+
+
+void
+config_rename_section(void *priv, char *name)
+{
+    section_t *sec = (section_t *) priv;
+
+    memset(sec->name, 0x00, sizeof(sec->name));
+    memcpy(sec->name, name, MIN(128, strlen(name) + 1));
+}
+
+
 static entry_t *
 find_entry(section_t *section, char *name)
 {
@@ -1014,17 +1031,30 @@ static void
 load_storage_controllers(void)
 {
     char *cat = "Storage controllers";
-    char *p;
+    char *p, temp[512];
+    int c, min = 0;
     int free_p = 0;
 
     /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
     backwards_compat2 = (find_section(cat) == NULL);
 	
+    /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
     p = config_get_string(cat, "scsicard", NULL);
-    if (p != NULL)
-	scsi_card_current = scsi_card_get_from_internal_name(p);
-      else
-	scsi_card_current = 0;
+    if (p != NULL) {
+	scsi_card_current[0] = scsi_card_get_from_internal_name(p);
+	min++;
+    }
+    config_delete_var(cat, "scsi_card");
+
+    for (c = min; c < SCSI_BUS_MAX; c++) {
+	sprintf(temp, "scsicard_%d", c + 1);
+
+	p = config_get_string(cat, temp, NULL);
+	if (p != NULL)
+		scsi_card_current[c] = scsi_card_get_from_internal_name(p);
+	else
+		scsi_card_current[c] = 0;
+    }
 
     p = config_get_string(cat, "fdc", NULL);
     if (p != NULL)
@@ -1168,14 +1198,30 @@ load_hard_disks(void)
 	}
 
 	/* SCSI */
-	sprintf(temp, "hdd_%02i_scsi_id", c+1);
 	if (hdd[c].bus == HDD_BUS_SCSI) {
-		hdd[c].scsi_id = config_get_int(cat, temp, c);
+		sprintf(temp, "hdd_%02i_scsi_location", c+1);
+		sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c+2);
+		p = config_get_string(cat, temp, tmp2);
+		sscanf(p, "%01u:%02u", &board, &dev);
+		if (board >= SCSI_BUS_MAX) {
+			/* Invalid bus - check legacy ID */
+			sprintf(temp, "hdd_%02i_scsi_id", c+1);
+			hdd[c].scsi_id = config_get_int(cat, temp, c+2);
 
-		if (hdd[c].scsi_id > 15)
-			hdd[c].scsi_id = 15;
-	} else
+			if (hdd[c].scsi_id > 15)
+				hdd[c].scsi_id = 15;
+		} else {
+			board %= SCSI_BUS_MAX;
+			dev &= 15;
+			hdd[c].scsi_id = (board<<4)+dev;
+		}
+	} else {
+		sprintf(temp, "hdd_%02i_scsi_location", c+1);
 		config_delete_var(cat, temp);
+	}
+
+	sprintf(temp, "hdd_%02i_scsi_id", c+1);
+	config_delete_var(cat, temp);
 
 	memset(hdd[c].fn, 0x00, sizeof(hdd[c].fn));
 	memset(hdd[c].prev_fn, 0x00, sizeof(hdd[c].prev_fn));
@@ -1402,8 +1448,8 @@ load_floppy_and_cdrom_drives(void)
 	/* Default values, needed for proper operation of the Settings dialog. */
 	cdrom[c].ide_channel = cdrom[c].scsi_device_id = c + 2;
 
-	sprintf(temp, "cdrom_%02i_ide_channel", c+1);
 	if (cdrom[c].bus_type == CDROM_BUS_ATAPI) {
+		sprintf(temp, "cdrom_%02i_ide_channel", c+1);
 		sprintf(tmp2, "%01u:%01u", (c+2)>>1, (c+2)&1);
 		p = config_get_string(cat, temp, tmp2);
 		sscanf(p, "%01u:%01u", &board, &dev);
@@ -1413,16 +1459,37 @@ load_floppy_and_cdrom_drives(void)
 
 		if (cdrom[c].ide_channel > 7)
 			cdrom[c].ide_channel = 7;
-	} else {
-		sprintf(temp, "cdrom_%02i_scsi_id", c+1);
-		if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
+	} else if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
+		sprintf(temp, "cdrom_%02i_scsi_location", c+1);
+		sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c+2);
+		p = config_get_string(cat, temp, tmp2);
+		sscanf(p, "%01u:%02u", &board, &dev);
+		if (board >= SCSI_BUS_MAX) {
+			/* Invalid bus - check legacy ID */
+			sprintf(temp, "cdrom_%02i_scsi_id", c+1);
 			cdrom[c].scsi_device_id = config_get_int(cat, temp, c+2);
-	
+
 			if (cdrom[c].scsi_device_id > 15)
 				cdrom[c].scsi_device_id = 15;
-		} else
-			config_delete_var(cat, temp);
+		} else {
+			board %= SCSI_BUS_MAX;
+			dev &= 15;
+			cdrom[c].scsi_device_id = (board<<4)+dev;
+		}
 	}
+
+	if (cdrom[c].bus_type != CDROM_BUS_ATAPI) {
+		sprintf(temp, "cdrom_%02i_ide_channel", c+1);
+		config_delete_var(cat, temp);
+	}
+
+	if (cdrom[c].bus_type != CDROM_BUS_SCSI) {
+		sprintf(temp, "cdrom_%02i_scsi_location", c+1);
+		config_delete_var(cat, temp);
+	}
+
+	sprintf(temp, "cdrom_%02i_scsi_id", c+1);
+	config_delete_var(cat, temp);
 
 	sprintf(temp, "cdrom_%02i_image_path", c+1);
 	p = config_get_string(cat, temp, "");
@@ -1514,8 +1581,8 @@ load_other_removable_devices(void)
 		cdrom[c].ide_channel = cdrom[c].scsi_device_id = c + 2;
 		config_delete_var(cat, temp);
 
-		sprintf(temp, "cdrom_%02i_ide_channel", c+1);
 		if (cdrom[c].bus_type == CDROM_BUS_ATAPI) {
+			sprintf(temp, "cdrom_%02i_ide_channel", c+1);
 			sprintf(tmp2, "%01u:%01u", (c+2)>>1, (c+2)&1);
 			p = config_get_string(cat, temp, tmp2);
 			sscanf(p, "%01u:%01u", &board, &dev);
@@ -1525,17 +1592,17 @@ load_other_removable_devices(void)
 
 			if (cdrom[c].ide_channel > 7)
 				cdrom[c].ide_channel = 7;
-		} else {
-			sprintf(temp, "cdrom_%02i_scsi_id", c+1);
-			if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
-				cdrom[c].scsi_device_id = config_get_int(cat, temp, c+2);
 
-				if (cdrom[c].scsi_device_id > 15)
-					cdrom[c].scsi_device_id = 15;
-			} else
-				config_delete_var(cat, temp);
+			config_delete_var(cat, temp);
+		} else if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
+			sprintf(temp, "cdrom_%02i_scsi_id", c+1);
+			cdrom[c].scsi_device_id = config_get_int(cat, temp, c+2);
+
+			if (cdrom[c].scsi_device_id > 15)
+				cdrom[c].scsi_device_id = 15;
+
+			config_delete_var(cat, temp);
 		}
-		config_delete_var(cat, temp);
 
 		sprintf(temp, "cdrom_%02i_image_path", c+1);
 		p = config_get_string(cat, temp, "");
@@ -1583,8 +1650,8 @@ load_other_removable_devices(void)
 	/* Default values, needed for proper operation of the Settings dialog. */
 	zip_drives[c].ide_channel = zip_drives[c].scsi_device_id = c + 2;
 
-	sprintf(temp, "zip_%02i_ide_channel", c+1);
 	if (zip_drives[c].bus_type == ZIP_BUS_ATAPI) {
+		sprintf(temp, "zip_%02i_ide_channel", c+1);
 		sprintf(tmp2, "%01u:%01u", (c+2)>>1, (c+2)&1);
 		p = config_get_string(cat, temp, tmp2);
 		sscanf(p, "%01u:%01u", &board, &dev);
@@ -1594,16 +1661,37 @@ load_other_removable_devices(void)
 
 		if (zip_drives[c].ide_channel > 7)
 			zip_drives[c].ide_channel = 7;
-	} else {
-		sprintf(temp, "zip_%02i_scsi_id", c+1);
-		if (zip_drives[c].bus_type == ZIP_BUS_SCSI) {
+	} else if (zip_drives[c].bus_type == ZIP_BUS_SCSI) {
+		sprintf(temp, "zip_%02i_scsi_location", c+1);
+		sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c+2);
+		p = config_get_string(cat, temp, tmp2);
+		sscanf(p, "%01u:%02u", &board, &dev);
+		if (board >= SCSI_BUS_MAX) {
+			/* Invalid bus - check legacy ID */
+			sprintf(temp, "zip_%02i_scsi_id", c+1);
 			zip_drives[c].scsi_device_id = config_get_int(cat, temp, c+2);
-	
+
 			if (zip_drives[c].scsi_device_id > 15)
 				zip_drives[c].scsi_device_id = 15;
-		} else
-			config_delete_var(cat, temp);
+		} else {
+			board %= SCSI_BUS_MAX;
+			dev &= 15;
+			zip_drives[c].scsi_device_id = (board<<4)+dev;
+		}
 	}
+
+	if (zip_drives[c].bus_type != ZIP_BUS_ATAPI) {
+		sprintf(temp, "zip_%02i_ide_channel", c+1);
+		config_delete_var(cat, temp);
+	}
+
+	if (zip_drives[c].bus_type != ZIP_BUS_SCSI) {
+		sprintf(temp, "zip_%02i_scsi_location", c+1);
+		config_delete_var(cat, temp);
+	}
+
+	sprintf(temp, "zip_%02i_scsi_id", c+1);
+	config_delete_var(cat, temp);
 
 	sprintf(temp, "zip_%02i_image_path", c+1);
 	p = config_get_string(cat, temp, "");
@@ -1662,8 +1750,8 @@ load_other_removable_devices(void)
 	/* Default values, needed for proper operation of the Settings dialog. */
 	mo_drives[c].ide_channel = mo_drives[c].scsi_device_id = c + 2;
 
-	sprintf(temp, "mo_%02i_ide_channel", c+1);
 	if (mo_drives[c].bus_type == MO_BUS_ATAPI) {
+		sprintf(temp, "mo_%02i_ide_channel", c+1);
 		sprintf(tmp2, "%01u:%01u", (c+2)>>1, (c+2)&1);
 		p = config_get_string(cat, temp, tmp2);
 		sscanf(p, "%01u:%01u", &board, &dev);
@@ -1673,16 +1761,37 @@ load_other_removable_devices(void)
 
 		if (mo_drives[c].ide_channel > 7)
 			mo_drives[c].ide_channel = 7;
-	} else {
-		sprintf(temp, "mo_%02i_scsi_id", c+1);
-		if (mo_drives[c].bus_type == MO_BUS_SCSI) {
+	} else if (mo_drives[c].bus_type == MO_BUS_SCSI) {
+		sprintf(temp, "mo_%02i_scsi_location", c+1);
+		sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c+2);
+		p = config_get_string(cat, temp, tmp2);
+		sscanf(p, "%01u:%02u", &board, &dev);
+		if (board >= SCSI_BUS_MAX) {
+			/* Invalid bus - check legacy ID */
+			sprintf(temp, "mo_%02i_scsi_id", c+1);
 			mo_drives[c].scsi_device_id = config_get_int(cat, temp, c+2);
-	
+
 			if (mo_drives[c].scsi_device_id > 15)
 				mo_drives[c].scsi_device_id = 15;
-		} else
-			config_delete_var(cat, temp);
+		} else {
+			board %= SCSI_BUS_MAX;
+			dev &= 15;
+			mo_drives[c].scsi_device_id = (board<<4)+dev;
+		}
 	}
+
+	if (mo_drives[c].bus_type != MO_BUS_ATAPI) {
+		sprintf(temp, "mo_%02i_ide_channel", c+1);
+		config_delete_var(cat, temp);
+	}
+
+	if (mo_drives[c].bus_type != MO_BUS_SCSI) {
+		sprintf(temp, "mo_%02i_scsi_location", c+1);
+		config_delete_var(cat, temp);
+	}
+
+	sprintf(temp, "mo_%02i_scsi_id", c+1);
+	config_delete_var(cat, temp);
 
 	sprintf(temp, "mo_%02i_image_path", c+1);
 	p = config_get_string(cat, temp, "");
@@ -1725,9 +1834,9 @@ load_other_peripherals(void)
     if (backwards_compat2) {	
 	p = config_get_string(cat, "scsicard", NULL);
 	if (p != NULL)
-		scsi_card_current = scsi_card_get_from_internal_name(p);
+		scsi_card_current[0] = scsi_card_get_from_internal_name(p);
 	else
-		scsi_card_current = 0;
+		scsi_card_current[0] = 0;
 	config_delete_var(cat, "scsicard");
 
 	p = config_get_string(cat, "fdc", NULL);
@@ -2327,12 +2436,18 @@ static void
 save_storage_controllers(void)
 {
     char *cat = "Storage controllers";
+    char temp[512];
+    int c;
 
-    if (scsi_card_current == 0)
-	config_delete_var(cat, "scsicard");
-      else
-	config_set_string(cat, "scsicard",
-			  scsi_card_get_internal_name(scsi_card_current));
+    for (c = 0; c < SCSI_BUS_MAX; c++) {
+	sprintf(temp, "scsicard_%d", c + 1);
+
+	if (scsi_card_current[c] == 0)
+		config_delete_var(cat, temp);
+	  else
+	config_set_string(cat, temp,
+			  scsi_card_get_internal_name(scsi_card_current[c]));
+    }
 
     if (fdc_type == FDC_INTERNAL)
 	config_delete_var(cat, "fdc");
@@ -2442,10 +2557,16 @@ save_hard_disks(void)
 	}
 
 	sprintf(temp, "hdd_%02i_scsi_id", c+1);
-	if (hdd_is_valid(c) && (hdd[c].bus == HDD_BUS_SCSI))
-		config_set_int(cat, temp, hdd[c].scsi_id);
-	else
+	config_delete_var(cat, temp);
+
+	sprintf(temp, "hdd_%02i_scsi_location", c+1);
+	if (hdd[c].bus != HDD_BUS_SCSI)
 		config_delete_var(cat, temp);
+	else {
+		sprintf(tmp2, "%01u:%02u", hdd[c].scsi_id>>4,
+					hdd[c].scsi_id & 15);
+		config_set_string(cat, temp, tmp2);
+	}
 
 	sprintf(temp, "hdd_%02i_fn", c+1);
 	if (hdd_is_valid(c) && (strlen(hdd[c].fn) != 0))
@@ -2542,10 +2663,15 @@ save_floppy_and_cdrom_drives(void)
 	}
 
 	sprintf(temp, "cdrom_%02i_scsi_id", c + 1);
-	if (cdrom[c].bus_type != CDROM_BUS_SCSI) {
+	config_delete_var(cat, temp);
+
+	sprintf(temp, "cdrom_%02i_scsi_location", c+1);
+	if (cdrom[c].bus_type != CDROM_BUS_SCSI)
 		config_delete_var(cat, temp);
-	} else {
-		config_set_int(cat, temp, cdrom[c].scsi_device_id);
+	else {
+		sprintf(tmp2, "%01u:%02u", cdrom[c].scsi_device_id>>4,
+					cdrom[c].scsi_device_id & 15);
+		config_set_string(cat, temp, tmp2);
 	}
 
 	sprintf(temp, "cdrom_%02i_image_path", c + 1);
@@ -2589,10 +2715,15 @@ save_other_removable_devices(void)
 	}
 
 	sprintf(temp, "zip_%02i_scsi_id", c + 1);
-	if (zip_drives[c].bus_type != ZIP_BUS_SCSI) {
+	config_delete_var(cat, temp);
+
+	sprintf(temp, "zip_%02i_scsi_location", c+1);
+	if (zip_drives[c].bus_type != ZIP_BUS_SCSI)
 		config_delete_var(cat, temp);
-	} else {
-		config_set_int(cat, temp, zip_drives[c].scsi_device_id);
+	else {
+		sprintf(tmp2, "%01u:%02u", zip_drives[c].scsi_device_id>>4,
+					zip_drives[c].scsi_device_id & 15);
+		config_set_string(cat, temp, tmp2);
 	}
 
 	sprintf(temp, "zip_%02i_image_path", c + 1);
@@ -2624,10 +2755,15 @@ save_other_removable_devices(void)
 	}
 
 	sprintf(temp, "mo_%02i_scsi_id", c + 1);
-	if (mo_drives[c].bus_type != MO_BUS_SCSI) {
+	config_delete_var(cat, temp);
+
+	sprintf(temp, "mo_%02i_scsi_location", c+1);
+	if (mo_drives[c].bus_type != MO_BUS_SCSI)
 		config_delete_var(cat, temp);
-	} else {
-		config_set_int(cat, temp, mo_drives[c].scsi_device_id);
+	else {
+		sprintf(tmp2, "%01u:%02u", mo_drives[c].scsi_device_id>>4,
+					mo_drives[c].scsi_device_id & 15);
+		config_set_string(cat, temp, tmp2);
 	}
 
 	sprintf(temp, "mo_%02i_image_path", c + 1);
