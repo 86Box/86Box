@@ -111,34 +111,20 @@ ac97_via_read_status(void *priv, uint8_t modem)
     return ret;
 }
 
-#include <86box/nmi.h>
+
 static void
 ac97_via_update_irqs(ac97_via_t *dev, uint8_t iflag_clear)
 {
+    uint8_t do_irq = 0;
+
     /* Check interrupt flags on all SGDs. */
-    for (uint8_t i = 0; i < (sizeof(dev->sgd) / sizeof(dev->sgd[0])); i++) {
-	if (dev->sgd_regs[i << 4] & (dev->sgd_regs[(i << 4) | 0x02] & 0x03)) {
-		ac97_via_log("AC97 VIA: Setting IRQ (sgd %d iflags %02X stuck %d)\n",
-			     i, dev->sgd_regs[i << 4] & (dev->sgd_regs[(i << 4) | 0x02] & 0x03), dev->irq_stuck);
+    for (uint8_t i = 0; i < (sizeof(dev->sgd) / sizeof(dev->sgd[0])); i++)
+	do_irq |= (dev->sgd_regs[i << 4] & (dev->sgd_regs[(i << 4) | 0x02] & 0x03));
 
-		if (dev->irq_stuck && !iflag_clear) {
-#ifdef ENABLE_AC97_VIA_LOG
-			ac97_via_lost_irqs++;
-#endif
-			pci_clear_irq(dev->slot, dev->irq_pin);
-		} else {
-			pci_set_irq(dev->slot, dev->irq_pin);
-		}
-		dev->irq_stuck = !dev->irq_stuck;
-
-		return;
-	}
-    }
-
-    /* No interrupt pending. */
-    //ac97_via_log("AC97 VIA: Clearing IRQ\n");
-    pci_clear_irq(dev->slot, dev->irq_pin);
-    dev->irq_stuck = 0;
+    if (do_irq)
+	pci_set_irq(dev->slot, dev->irq_pin);
+    else
+	pci_clear_irq(dev->slot, dev->irq_pin);
 }
 
 
@@ -495,7 +481,7 @@ ac97_via_sgd_process(void *priv)
 	if (!sgd->sample_ptr) {
 		/* Start at first entry if no pointer is present. */
 		if (!sgd->entry_ptr)
-			sgd->entry_ptr = (dev->sgd_regs[sgd->id | 0x7] << 24) | (dev->sgd_regs[sgd->id | 0x6] << 16) | (dev->sgd_regs[sgd->id | 0x5] << 8) | (dev->sgd_regs[sgd->id | 0x4] & 0xfe);
+			sgd->entry_ptr = *((uint32_t *) &dev->sgd_regs[sgd->id | 0x4]) & 0xfffffffe;
 
 		/* Read entry. */
 		sgd->sample_ptr = mem_readl_phys(sgd->entry_ptr);
@@ -517,8 +503,8 @@ ac97_via_sgd_process(void *priv)
 	}
 
 	if (sgd->id & 0x10) {
-	/* Write channel: read data from FIFO. */
-	mem_writel_phys(sgd->sample_ptr, *((uint32_t *) &sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)]));
+		/* Write channel: read data from FIFO. */
+		mem_writel_phys(sgd->sample_ptr, *((uint32_t *) &sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)]));
 	} else {
 		/* Read channel: write data to FIFO. */
 		*((uint32_t *) &sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)]) = mem_readl_phys(sgd->sample_ptr);
