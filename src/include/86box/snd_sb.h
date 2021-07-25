@@ -30,9 +30,8 @@
 #define SBPRO		5	/* DSP v3.00 */
 #define SBPRO2		6	/* DSP v3.02 + OPL3 */
 #define SB16		7	/* DSP v4.05 + OPL3 */
-#define SADGOLD		8	/* AdLib Gold */
-#define SND_WSS		9	/* Windows Sound System */
-#define SND_PAS16	10	/* Pro Audio Spectrum 16 */
+#define SBAWE32		8	/* DSP v4.13 + OPL3 */
+#define SBAWE64		9	/* DSP v4.16 + OPL3 */
 
 /* SB 2.0 CD version */
 typedef struct sb_ct1335_mixer_t
