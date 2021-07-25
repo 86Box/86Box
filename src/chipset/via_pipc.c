@@ -551,7 +551,9 @@ pipc_fmnmi_read(uint16_t addr, void *priv)
 static void
 pipc_fmnmi_write(uint16_t addr, uint8_t val, void *priv)
 {
+#ifdef ENABLE_PIPC_LOG
     pipc_t *dev = (pipc_t *) priv;
+#endif
 
     pipc_log("PIPC: fmnmi_write(%02X, %02X)\n", addr & 0x03, val);
 }
