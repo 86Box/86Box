@@ -602,31 +602,28 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 			ac97_codec_write(es1371->codec, (val >> 16) & 0x7f, val & 0xff);
 			ac97_codec_write(es1371->codec, ((val >> 16) & 0x7f) + 1, val >> 8);
 
-			switch ((val >> 16) & 0x7f) {
-				case 0x02: /* Master Volume */
-					if (val & 0x8000) {
-						es1371->master_vol_l = es1371->master_vol_r = 0;
-					} else {
-						if (val & 0x2000)
-							es1371->master_vol_l = codec_attn[0];
-						else
-							es1371->master_vol_l = codec_attn[0x1f - ((val >> 8) & 0x1f)];
-						if (val & 0x20)
-							es1371->master_vol_r = codec_attn[0];
-						else
-							es1371->master_vol_r = codec_attn[0x1f - (val & 0x1f)];
-					}
-					break;
-
-				case 0x12: /* CD Volume */
-					if (val & 0x8000) {
-						es1371->cd_vol_l = es1371->cd_vol_r = 0;
-					} else {
-						es1371->cd_vol_l = codec_attn[0x1f - ((val >> 8) & 0x1f)];
-						es1371->cd_vol_r = codec_attn[0x1f - (val & 0x1f)];
-					}
-					break;
+			val = *((uint16_t *) &es1371->codec->regs[0x02]); /* Master Volume */
+			if (val & 0x8000) {
+				es1371->master_vol_l = es1371->master_vol_r = 0;
+			} else {
+				if (val & 0x2000)
+					es1371->master_vol_l = codec_attn[0];
+				else
+					es1371->master_vol_l = codec_attn[0x1f - ((val >> 8) & 0x1f)];
+				if (val & 0x20)
+					es1371->master_vol_r = codec_attn[0];
+				else
+					es1371->master_vol_r = codec_attn[0x1f - (val & 0x1f)];
 			}
+
+			val = *((uint16_t *) &es1371->codec->regs[0x12]); /* CD Volume */
+			if (val & 0x8000) {
+				es1371->cd_vol_l = es1371->cd_vol_r = 0;
+			} else {
+				es1371->cd_vol_l = codec_attn[0x1f - ((val >> 8) & 0x1f)];
+				es1371->cd_vol_r = codec_attn[0x1f - (val & 0x1f)];
+			}
+			break;
 		}
 		break;
 		
