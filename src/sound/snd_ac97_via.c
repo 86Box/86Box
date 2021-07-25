@@ -37,7 +37,7 @@ typedef struct {
 
     uint32_t	entry_ptr, sample_ptr, fifo_pos, fifo_end;
     int32_t	sample_count;
-    uint8_t	entry_flags, fifo[32];
+    uint8_t	entry_flags, fifo[32], restart;
 
     pc_timer_t	timer;
 } ac97_via_sgd_t;
@@ -267,7 +267,8 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 
 					/* Start at the specified entry pointer. */
 					dev->sgd[addr >> 4].sample_ptr = 0;
-					dev->sgd[addr >> 4].entry_ptr = (dev->sgd_regs[(addr & 0xf0) | 0x7] << 24) | (dev->sgd_regs[(addr & 0xf0) | 0x6] << 16) | (dev->sgd_regs[(addr & 0xf0) | 0x5] << 8) | (dev->sgd_regs[(addr & 0xf0) | 0x4] & 0xfe);
+					dev->sgd[addr >> 4].entry_ptr = *((uint32_t *) &dev->sgd_regs[(addr & 0xf0) | 0x4]) & 0xfffffffe;
+					dev->sgd[addr >> 4].restart = 1;
 
 					/* Start the actual SGD process. */
 					timer_advance_u64(&dev->sgd[addr >> 4].timer, 0);
@@ -478,7 +479,9 @@ ac97_via_sgd_process(void *priv)
     /* Process SGD if active, unless this is Audio Read and there's no room in the FIFO. */
     if (((dev->sgd_regs[sgd->id] & 0xc4) == 0x80) && (sgd->id || ((sgd->fifo_end - sgd->fifo_pos) <= (sizeof(sgd->fifo) - 4)))) {
 	/* Move on to the next block if no entry is present. */
-	if (!sgd->sample_ptr) {
+    	if (sgd->restart) {
+    		sgd->restart = 0;
+
 		/* Start at first entry if no pointer is present. */
 		if (!sgd->entry_ptr)
 			sgd->entry_ptr = *((uint32_t *) &dev->sgd_regs[sgd->id | 0x4]) & 0xfffffffe;
@@ -489,9 +492,10 @@ ac97_via_sgd_process(void *priv)
 		sgd->sample_count = mem_readl_phys(sgd->entry_ptr);
 		sgd->entry_ptr += 4;
 #ifdef ENABLE_AC97_VIA_LOG
-		if ((sgd->sample_ptr == 0xffffffff) || (sgd->sample_ptr == 0x00000000) ||
-		    (sgd->sample_count == 0xffffffff) || (sgd->sample_count == 0x00000000))
-			fatal("AC97 VIA: Invalid SGD %d entry at %08X\n", sgd->id >> 4, sgd->entry_ptr);
+		if (((sgd->sample_ptr == 0xffffffff) && (sgd->sample_count == 0xffffffff)) ||
+		    ((sgd->sample_ptr == 0x00000000) && (sgd->sample_count == 0x00000000)))
+			fatal("AC97 VIA: Invalid SGD %d entry %08X%08X at %08X\n", sgd->id >> 4,
+			      sgd->sample_ptr, sgd->sample_count, sgd->entry_ptr - 8);
 #endif
 
 		/* Extract flags from the most significant byte. */
@@ -553,6 +557,7 @@ ac97_via_sgd_process(void *priv)
 				dev->sgd_regs[sgd->id] &= ~0x08;
 
 				/* Go back to the starting block. */
+				//sgd->entry_ptr = *((uint32_t *) &dev->sgd_regs[sgd->id | 0x4]) & 0xfffffffe; /* why does XP not like this? */
 				sgd->entry_ptr = 0;
 			} else {
 				ac97_via_log(" finish");
@@ -564,7 +569,7 @@ ac97_via_sgd_process(void *priv)
 		ac97_via_log("\n");
 
 		/* Move on to a new block on the next run. */
-		sgd->sample_ptr = sgd->sample_count = 0;
+		sgd->restart = 1;
 	}
     }
 
@@ -588,7 +593,6 @@ ac97_via_poll(void *priv)
 
     dev->out_l = dev->out_r = 0;
 
-    //pclog("fifo_end - fifo_pos = %d\n", sgd->fifo_end - sgd->fifo_pos);
     switch (dev->sgd_regs[0x02] & 0x30) {
 	case 0x00: /* Mono, 8-bit PCM */
 		if ((sgd->fifo_end - sgd->fifo_pos) >= 1)
