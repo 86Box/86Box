@@ -613,36 +613,52 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		fregs[0x0d] = val & 0xf0;
 		break;
 	case 0x10:
-		fregs[0x10] = (val & 0xf8) | 1;
-		piix_ide_handlers(dev, 0x01);
+		if (dev->type == 5) {
+			fregs[0x10] = (val & 0xf8) | 1;
+			piix_ide_handlers(dev, 0x01);
+		}
 		break;
 	case 0x11:
-		fregs[0x11] = val;
-		piix_ide_handlers(dev, 0x01);
+		if (dev->type == 5) {
+			fregs[0x11] = val;
+			piix_ide_handlers(dev, 0x01);
+		}
 		break;
 	case 0x14:
-		fregs[0x14] = (val & 0xfc) | 1;
-		piix_ide_handlers(dev, 0x01);
+		if (dev->type == 5) {
+			fregs[0x14] = (val & 0xfc) | 1;
+			piix_ide_handlers(dev, 0x01);
+		}
 		break;
 	case 0x15:
-		fregs[0x15] = val;
-		piix_ide_handlers(dev, 0x01);
+		if (dev->type == 5) {
+			fregs[0x15] = val;
+			piix_ide_handlers(dev, 0x01);
+		}
 		break;
 	case 0x18:
-		fregs[0x18] = (val & 0xf8) | 1;
-		piix_ide_handlers(dev, 0x02);
+		if (dev->type == 5) {
+			fregs[0x18] = (val & 0xf8) | 1;
+			piix_ide_handlers(dev, 0x02);
+		}
 		break;
 	case 0x19:
-		fregs[0x19] = val;
-		piix_ide_handlers(dev, 0x02);
+		if (dev->type == 5) {
+			fregs[0x19] = val;
+			piix_ide_handlers(dev, 0x02);
+		}
 		break;
 	case 0x1c:
-		fregs[0x1c] = (val & 0xfc) | 1;
-		piix_ide_handlers(dev, 0x02);
+		if (dev->type == 5) {
+			fregs[0x1c] = (val & 0xfc) | 1;
+			piix_ide_handlers(dev, 0x02);
+		}
 		break;
 	case 0x1d:
-		fregs[0x1d] = val;
-		piix_ide_handlers(dev, 0x02);
+		if (dev->type == 5) {
+			fregs[0x1d] = val;
+			piix_ide_handlers(dev, 0x02);
+		}
 		break;
 	case 0x20:
 		fregs[0x20] = (val & 0xf0) | 1;
