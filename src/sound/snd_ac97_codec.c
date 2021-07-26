@@ -54,6 +54,11 @@ ac97_codec_log(const char *fmt, ...)
 #define ac97_codec_log(fmt, ...)
 #endif
 
+static const int32_t codec_attn[] = {
+      25,   32,   41,   51,   65,   82,  103,  130,  164,  206,   260,   327,   412,   519,   653,   822,
+    1036, 1304, 1641, 2067, 2602, 3276, 4125, 5192, 6537, 8230, 10362, 13044, 16422, 20674, 26027, 32767
+};
+
 ac97_codec_t	**ac97_codec = NULL, **ac97_modem_codec = NULL;
 int		ac97_codec_count = 0, ac97_modem_codec_count = 0;
 
@@ -179,6 +184,35 @@ ac97_codec_reset(void *priv)
     dev->regs[0x7d] = dev->id >> 24;
     dev->regs[0x7e] = dev->id;
     dev->regs[0x7f] = dev->id >> 8;
+}
+
+
+void
+ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r)
+{
+    ac97_codec_t *dev = (ac97_codec_t *) priv;
+    uint8_t r_val = dev->regs[reg],
+	    l_val = dev->regs[reg | 1];
+
+    if (l_val & 0x80) { /* mute */
+	*l = 0;
+	*r = 0;
+	return;
+    }
+
+    if (reg < 0x10) { /* 6-bit volume */
+    	if (l_val & 0x20)
+    		*l = codec_attn[0];
+    	else
+    		*l = codec_attn[0x1f - (l_val & 0x1f)];
+    	if (r_val & 0x20)
+    		*r = codec_attn[0];
+    	else
+    		*r = codec_attn[0x1f - (r_val & 0x1f)];
+    } else { /* 5-bit gain */
+    	*l = codec_attn[0x1f - (l_val & 0x1f)];
+	*r = codec_attn[0x1f - (r_val & 0x1f)];
+    }
 }
 
 

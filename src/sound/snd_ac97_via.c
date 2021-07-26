@@ -59,12 +59,12 @@ typedef struct _ac97_via_ {
     pc_timer_t	timer_count, timer_count_fm;
     uint64_t	timer_latch, timer_fifo_latch;
     int16_t	out_l, out_r, fm_out_l, fm_out_r;
-    double	cd_vol_l, cd_vol_r;
-    int16_t	buffer[SOUNDBUFLEN * 2], fm_buffer[SOUNDBUFLEN * 2];
+    int		master_vol_l, master_vol_r, pcm_vol_l, pcm_vol_r, cd_vol_l, cd_vol_r;
+    int32_t	buffer[SOUNDBUFLEN * 2], fm_buffer[SOUNDBUFLEN * 2];
     int		pos, fm_pos;
 } ac97_via_t;
 
-#define ENABLE_AC97_VIA_LOG 1
+
 #ifdef ENABLE_AC97_VIA_LOG
 int ac97_via_do_log = ENABLE_AC97_VIA_LOG;
 
@@ -85,6 +85,7 @@ ac97_via_log(const char *fmt, ...)
 
 
 static void	ac97_via_sgd_process(void *priv);
+static void	ac97_via_update_volumes(ac97_via_t *dev, ac97_codec_t *codec);
 
 
 void
@@ -125,11 +126,15 @@ ac97_via_write_control(void *priv, uint8_t modem, uint8_t val)
 
     ac97_via_log("AC97 VIA %d: write_control(%02X)\n", modem, val);
 
-    /* Reset codecs if requested. */
-    if (val & 0x40) {
-	for (i = 0; i <= 1; i++) {
-		if (dev->codec[modem][i])
+    /* Reset and/or update volumes on all codecs. */
+    for (i = 0; i <= 1; i++) {
+	if (dev->codec[modem][i]) {
+		/* Reset codec if requested. */
+		if (val & 0x40)
 			ac97_codec_reset(dev->codec[modem][i]);
+
+		/* Update volumes. */
+		ac97_via_update_volumes(dev, dev->codec[modem][i]);
 	}
     }
 
@@ -165,6 +170,16 @@ ac97_via_update_irqs(ac97_via_t *dev)
     }
 
     pci_clear_irq(dev->slot, dev->irq_pin);
+}
+
+
+static void
+ac97_via_update_volumes(ac97_via_t *dev, ac97_codec_t *codec) {
+    ac97_codec_getattn(codec, 0x02, &dev->master_vol_l, &dev->master_vol_r);
+    ac97_codec_getattn(codec, 0x18, &dev->pcm_vol_l, &dev->pcm_vol_r);
+    ac97_codec_getattn(codec, 0x12, &dev->cd_vol_l, &dev->cd_vol_r);
+
+    pclog("master %d %d\npcm %d %d\ncd %d %d\n", dev->master_vol_l, dev->master_vol_r, dev->pcm_vol_l, dev->pcm_vol_r, dev->cd_vol_l, dev->cd_vol_r);
 }
 
 
@@ -361,6 +376,9 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 					ac97_codec_write(codec, val, dev->codec_shadow[modem].regs_codec[i][val] = dev->sgd_regs[0x80]);
 					val |= 1;
 					ac97_codec_write(codec, val, dev->codec_shadow[modem].regs_codec[i][val] = dev->sgd_regs[0x81]);
+
+					/* Update volumes. */
+					ac97_via_update_volumes(dev, codec);
 				}
 
 				/* Flag data/status/index for this codec as valid. */
@@ -479,9 +497,12 @@ ac97_via_remap_modem_codec(void *priv, uint16_t new_io_base, uint8_t enable)
 static void
 ac97_via_update(ac97_via_t *dev)
 {
+    int32_t l = (((dev->out_l * dev->pcm_vol_l) >> 15) * dev->master_vol_l) >> 15,
+	    r = (((dev->out_r * dev->pcm_vol_r) >> 15) * dev->master_vol_r) >> 15;
+
     for (; dev->pos < sound_pos_global; dev->pos++) {
-	dev->buffer[dev->pos*2]     = dev->out_l;
-	dev->buffer[dev->pos*2 + 1] = dev->out_r;
+	dev->buffer[dev->pos*2]     = l;
+	dev->buffer[dev->pos*2 + 1] = r;
     }
 }
 
@@ -701,10 +722,9 @@ ac97_via_get_buffer(int32_t *buffer, int len, void *priv)
 
     for (int c = 0; c < len * 2; c++) {
 	buffer[c] += dev->buffer[c] / 2;
-	buffer[c] += dev->fm_buffer[c];
+	buffer[c] += dev->fm_buffer[c] / 2;
     }
 
-    /* Feed silence if the FIFO is empty. */
     dev->pos = dev->fm_pos = 0;
 }
 

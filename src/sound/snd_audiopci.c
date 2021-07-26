@@ -148,12 +148,6 @@ typedef struct {
 #define FORMAT_MONO_16			2
 #define FORMAT_STEREO_16		3
 
-const int32_t codec_attn[]= {
-	25,32,41,51,65,82,103,130,164,206,260,327,412,519,653,
-	822,1036,1304,1641,2067,2602,3276,4125,5192,6537,8230,10362,13044,
-	16422,20674,26027,32767
-};
-
 static void es1371_fetch(es1371_t *es1371, int dac_nr);
 static void update_legacy(es1371_t *es1371, uint32_t old_legacy_ctrl);
 
@@ -595,35 +589,16 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 		case 0x14:
 		if (val & CODEC_READ) {
 			es1371->codec_ctrl &= 0x00ff0000;
-			es1371->codec_ctrl |= ac97_codec_read(es1371->codec, (val >> 16) & 0x7f);
-			es1371->codec_ctrl |= ac97_codec_read(es1371->codec, ((val >> 16) & 0x7f) + 1) << 8;
+			val = (val >> 16) & 0x7e;
+			es1371->codec_ctrl |= ac97_codec_read(es1371->codec, val);
+			es1371->codec_ctrl |= ac97_codec_read(es1371->codec, val | 1) << 8;
 		} else {
-			es1371->codec_ctrl &= 0x00ffffff;
-			ac97_codec_write(es1371->codec, (val >> 16) & 0x7f, val & 0xff);
-			ac97_codec_write(es1371->codec, ((val >> 16) & 0x7f) + 1, val >> 8);
+			es1371->codec_ctrl = val & 0x00ffffff;
+			ac97_codec_write(es1371->codec,  (val >> 16) & 0x7e,      val & 0xff);
+			ac97_codec_write(es1371->codec, ((val >> 16) & 0x7e) | 1, val >> 8);
 
-			val = *((uint16_t *) &es1371->codec->regs[0x02]); /* Master Volume */
-			if (val & 0x8000) {
-				es1371->master_vol_l = es1371->master_vol_r = 0;
-			} else {
-				if (val & 0x2000)
-					es1371->master_vol_l = codec_attn[0];
-				else
-					es1371->master_vol_l = codec_attn[0x1f - ((val >> 8) & 0x1f)];
-				if (val & 0x20)
-					es1371->master_vol_r = codec_attn[0];
-				else
-					es1371->master_vol_r = codec_attn[0x1f - (val & 0x1f)];
-			}
-
-			val = *((uint16_t *) &es1371->codec->regs[0x12]); /* CD Volume */
-			if (val & 0x8000) {
-				es1371->cd_vol_l = es1371->cd_vol_r = 0;
-			} else {
-				es1371->cd_vol_l = codec_attn[0x1f - ((val >> 8) & 0x1f)];
-				es1371->cd_vol_r = codec_attn[0x1f - (val & 0x1f)];
-			}
-			break;
+			ac97_codec_getattn(es1371->codec, 0x02, &es1371->master_vol_l, &es1371->master_vol_r);
+			ac97_codec_getattn(es1371->codec, 0x12, &es1371->cd_vol_l, &es1371->cd_vol_r);
 		}
 		break;
 		
