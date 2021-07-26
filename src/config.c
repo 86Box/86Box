@@ -2439,14 +2439,16 @@ save_storage_controllers(void)
     char temp[512];
     int c;
 
+    config_delete_var(cat, "scsicard");
+
     for (c = 0; c < SCSI_BUS_MAX; c++) {
 	sprintf(temp, "scsicard_%d", c + 1);
 
 	if (scsi_card_current[c] == 0)
 		config_delete_var(cat, temp);
 	  else
-	config_set_string(cat, temp,
-			  scsi_card_get_internal_name(scsi_card_current[c]));
+		config_set_string(cat, temp,
+				  scsi_card_get_internal_name(scsi_card_current[c]));
     }
 
     if (fdc_type == FDC_INTERNAL)
