@@ -1223,6 +1223,11 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 				dev->ac97_regs[func][addr] = val;
 			break;
 
+		case 0x41:
+			dev->ac97_regs[func][addr] = val;
+			ac97_via_write_control(dev->ac97, func, val);
+			break;
+
 		case 0x42: case 0x4a: case 0x4b:
 			dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val;
 			gameport_remap(dev->gameport, (dev->ac97_regs[0][0x42] & 0x08) ? ((dev->ac97_regs[0][0x4b] << 8) | dev->ac97_regs[0][0x4a]) : 0);

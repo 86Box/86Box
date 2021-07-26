@@ -32,7 +32,7 @@
 
 
 typedef struct {
-    uint8_t	id;
+    uint8_t	id, always_run;
     struct _ac97_via_ *dev;
 
     uint32_t	entry_ptr, sample_ptr, fifo_pos, fifo_end;
@@ -44,7 +44,13 @@ typedef struct {
 
 typedef struct _ac97_via_ {
     uint16_t	audio_sgd_base, audio_codec_base, modem_sgd_base, modem_codec_base;
-    uint8_t	sgd_regs[256], irq_stuck;
+    uint8_t	sgd_regs[256], pcm_enabled: 1, fm_enabled: 1;
+    struct {
+	union {
+		uint8_t regs_codec[2][128];
+		uint8_t regs_linear[256];
+	};
+    } codec_shadow[2];
     int		slot, irq_pin;
 
     ac97_codec_t *codec[2][2];
@@ -61,7 +67,6 @@ typedef struct _ac97_via_ {
 #define ENABLE_AC97_VIA_LOG 1
 #ifdef ENABLE_AC97_VIA_LOG
 int ac97_via_do_log = ENABLE_AC97_VIA_LOG;
-unsigned int ac97_via_lost_irqs = 0;
 
 static void
 ac97_via_log(const char *fmt, ...)
@@ -112,19 +117,54 @@ ac97_via_read_status(void *priv, uint8_t modem)
 }
 
 
-static void
-ac97_via_update_irqs(ac97_via_t *dev, uint8_t iflag_clear)
+void
+ac97_via_write_control(void *priv, uint8_t modem, uint8_t val)
 {
-    uint8_t do_irq = 0;
+    ac97_via_t *dev = (ac97_via_t *) priv;
+    uint8_t i;
 
-    /* Check interrupt flags on all SGDs. */
-    for (uint8_t i = 0; i < (sizeof(dev->sgd) / sizeof(dev->sgd[0])); i++)
-	do_irq |= (dev->sgd_regs[i << 4] & (dev->sgd_regs[(i << 4) | 0x02] & 0x03));
+    ac97_via_log("AC97 VIA %d: write_control(%02X)\n", modem, val);
 
-    if (do_irq)
-	pci_set_irq(dev->slot, dev->irq_pin);
-    else
-	pci_clear_irq(dev->slot, dev->irq_pin);
+    /* Reset codecs if requested. */
+    if (val & 0x40) {
+	for (i = 0; i <= 1; i++) {
+		if (dev->codec[modem][i])
+			ac97_codec_reset(dev->codec[modem][i]);
+	}
+    }
+
+    if (!modem) {
+    	/* Start or stop PCM playback. */
+	i = (val & 0xf4) == 0xc4;
+	if (i && !dev->pcm_enabled)
+		timer_advance_u64(&dev->timer_count, dev->timer_latch);
+	dev->pcm_enabled = i;
+
+	/* Start or stop FM playback. */
+	i = (val & 0xf2) == 0xc2;
+	if (i && !dev->fm_enabled)
+		timer_advance_u64(&dev->timer_count_fm, dev->timer_latch);
+	dev->fm_enabled = i;
+    }
+}
+
+
+static void
+ac97_via_update_irqs(ac97_via_t *dev)
+{
+    /* Check interrupt flags in all SGDs. */
+    uint8_t i, sgd_id;
+    for (i = 0; i < (sizeof(dev->sgd) / sizeof(dev->sgd[0])); i++) {
+	sgd_id = i << 4;
+	/* Stop immediately if any flag is set. Doing it this way optimizes
+	   rising edges for the playback SGD (0 - first to be checked). */
+	if (dev->sgd_regs[sgd_id] & (dev->sgd_regs[sgd_id | 0x2] & 0x03)) {
+		pci_set_irq(dev->slot, dev->irq_pin);
+		return;
+	}
+    }
+
+    pci_clear_irq(dev->slot, dev->irq_pin);
 }
 
 
@@ -245,12 +285,10 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 	switch (addr & 0xf) {
 		case 0x0:
 			/* Clear RWC status bits. */
-			for (i = 0x01; i <= 0x04; i <<= 1) {
-				if (val & i)
-					dev->sgd_regs[addr] &= ~i;
-			}
+			dev->sgd_regs[addr] &= ~(val & 0x07);
 
-			ac97_via_update_irqs(dev, 1);
+			/* Update status interrupts. */
+			ac97_via_update_irqs(dev);
 
 			return;
 
@@ -258,7 +296,7 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 			/* Start SGD if requested. */
 			if (val & 0x80) {
 				if (dev->sgd_regs[addr & 0xf0] & 0x80) {
-					/* Queue SGD trigger. */
+					/* Queue SGD trigger if already running. */
 					dev->sgd_regs[addr & 0xf0] |= 0x08;
 				} else {
 					/* Start SGD immediately. */
@@ -271,7 +309,7 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 					dev->sgd[addr >> 4].restart = 1;
 
 					/* Start the actual SGD process. */
-					timer_advance_u64(&dev->sgd[addr >> 4].timer, 0);
+					ac97_via_sgd_process(&dev->sgd[addr >> 4]);
 				}
 			}
 			/* Stop SGD if requested. */
@@ -314,11 +352,15 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 			/* Read from or write to codec. */
 			if (codec) {
 				if (val & 0x80) {
-					dev->sgd_regs[0x80] = ac97_codec_read(codec, val & 0x7e);
-					dev->sgd_regs[0x81] = ac97_codec_read(codec, (val & 0x7e) | 1);
+					val &= 0x7e;
+					dev->sgd_regs[0x80] = dev->codec_shadow[modem].regs_codec[i][val] = ac97_codec_read(codec, val);
+					val |= 1;
+					dev->sgd_regs[0x81] = dev->codec_shadow[modem].regs_codec[i][val] = ac97_codec_read(codec, val);
 				} else {
-					ac97_codec_write(codec, val & 0x7e, dev->sgd_regs[0x80]);
-					ac97_codec_write(codec, (val & 0x7e) | 1, dev->sgd_regs[0x81]);
+					val &= 0x7e;
+					ac97_codec_write(codec, val, dev->codec_shadow[modem].regs_codec[i][val] = dev->sgd_regs[0x80]);
+					val |= 1;
+					ac97_codec_write(codec, val, dev->codec_shadow[modem].regs_codec[i][val] = dev->sgd_regs[0x81]);
 				}
 
 				/* Flag data/status/index for this codec as valid. */
@@ -330,23 +372,12 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 			break;
 
 		case 0x83:
-			val &= 0xca;
-
-			/* Clear RWC bits. */
-			for (i = 0x02; i <= 0x08; i <<= 2) {
-#if 0 /* race condition with Linux clearing bits and starting SGD on the same dword write */
-				if (val & i)
-					val &= ~i;
-				else
-					val |= dev->sgd_regs[addr] & i;
+			/* Clear RWC status bits. */
+#if 0 /* race condition with Linux accessing a register and clearing status bits on the same dword write */
+			val = (dev->sgd_regs[addr] & ~(val & 0x0a)) | (val & 0xc0);
 #else
-				/* Don't flag data/status/index as valid if the codec is absent. */
-				if (dev->codec[modem][!!(val & 0x40)])
-					val |= i;
-				else
-					val &= ~i;
+			val = dev->sgd_regs[addr] | 0x0a | (val & 0xc0);
 #endif
-			}
 			break;
 	}
     }
@@ -393,10 +424,7 @@ ac97_via_codec_read(uint16_t addr, void *priv)
     addr &= 0xff;
     uint8_t ret = 0xff;
 
-    /* Bit 7 selects secondary codec. */
-    ac97_codec_t *codec = dev->codec[modem][addr >> 7];
-    if (codec)
-	ret = ac97_codec_read(codec, addr & 0x7f);
+    ret = dev->codec_shadow[modem].regs_linear[addr];
 
     ac97_via_log("AC97 VIA %d: codec_read(%02X) = %02X\n", modem, addr, ret);
 
@@ -413,10 +441,8 @@ ac97_via_codec_write(uint16_t addr, uint8_t val, void *priv)
 
     ac97_via_log("AC97 VIA %d: codec_write(%02X, %02X)\n", modem, addr, val);
 
-    /* Bit 7 selects secondary codec. */
-    ac97_codec_t *codec = dev->codec[modem][addr >> 7];
-    if (codec)
-	ac97_codec_write(codec, addr & 0x7f, val);
+    /* Unknown behavior, maybe it does write to the shadow registers? */
+    dev->codec_shadow[modem].regs_linear[addr] = val;
 }
 
 
@@ -476,11 +502,19 @@ ac97_via_sgd_process(void *priv)
     ac97_via_sgd_t *sgd = (ac97_via_sgd_t *) priv;
     ac97_via_t *dev = sgd->dev;
 
-    /* Process SGD if active, unless this is Audio Read and there's no room in the FIFO. */
-    if (((dev->sgd_regs[sgd->id] & 0xc4) == 0x80) && (sgd->id || ((sgd->fifo_end - sgd->fifo_pos) <= (sizeof(sgd->fifo) - 4)))) {
+    /* Stop if this SGD is not active. */
+    uint8_t sgd_status = dev->sgd_regs[sgd->id] & 0xc4;
+    if (!(sgd_status & 0x80))
+	return;
+
+    /* Schedule next run. */
+    timer_advance_u64(&sgd->timer, dev->timer_fifo_latch);
+
+    /* Process SGD if it's active, and the FIFO has room or is disabled. */
+    if ((sgd_status == 0x80) && (sgd->always_run || ((sgd->fifo_end - sgd->fifo_pos) <= (sizeof(sgd->fifo) - 4)))) {
 	/* Move on to the next block if no entry is present. */
-    	if (sgd->restart) {
-    		sgd->restart = 0;
+	if (sgd->restart) {
+		sgd->restart = 0;
 
 		/* Start at first entry if no pointer is present. */
 		if (!sgd->entry_ptr)
@@ -502,8 +536,8 @@ ac97_via_sgd_process(void *priv)
 		sgd->entry_flags = sgd->sample_count >> 24;
 		sgd->sample_count &= 0xffffff;
 
-		ac97_via_log("AC97 VIA: Starting SGD %d block at %08X start %08X len %06X flags %02X lostirqs %d\n", sgd->id >> 4,
-			     sgd->entry_ptr - 8, sgd->sample_ptr, sgd->sample_count, sgd->entry_flags, ac97_via_lost_irqs);
+		ac97_via_log("AC97 VIA: Starting SGD %d block at %08X start %08X len %06X flags %02X\n", sgd->id >> 4,
+			     sgd->entry_ptr - 8, sgd->sample_ptr, sgd->sample_count, sgd->entry_flags);
 	}
 
 	if (sgd->id & 0x10) {
@@ -557,8 +591,7 @@ ac97_via_sgd_process(void *priv)
 				dev->sgd_regs[sgd->id] &= ~0x08;
 
 				/* Go back to the starting block. */
-				//sgd->entry_ptr = *((uint32_t *) &dev->sgd_regs[sgd->id | 0x4]) & 0xfffffffe; /* why does XP not like this? */
-				sgd->entry_ptr = 0;
+				sgd->entry_ptr = 0; /* ugly, but Windows XP plays too fast if the pointer is reloaded now */
 			} else {
 				ac97_via_log(" finish");
 
@@ -568,16 +601,13 @@ ac97_via_sgd_process(void *priv)
 		}
 		ac97_via_log("\n");
 
+		/* Fire any requested status interrupts. */
+		ac97_via_update_irqs(dev);
+
 		/* Move on to a new block on the next run. */
 		sgd->restart = 1;
 	}
     }
-
-    ac97_via_update_irqs(dev, 0);
-
-    /* Continue SGD processing if active or an interrupt is pending. */
-    if (dev->sgd_regs[sgd->id] & (0x80 | (dev->sgd_regs[sgd->id | 0x02] & 0x03)))
-	timer_advance_u64(&sgd->timer, dev->timer_fifo_latch);
 }
 
 
@@ -587,22 +617,27 @@ ac97_via_poll(void *priv)
     ac97_via_t *dev = (ac97_via_t *) priv;
     ac97_via_sgd_t *sgd = &dev->sgd[0]; /* Audio Read */
 
-    timer_advance_u64(&dev->timer_count, dev->timer_latch);
+    /* Schedule next run if PCM playback is enabled. */
+    if (dev->pcm_enabled)
+	timer_advance_u64(&dev->timer_count, dev->timer_latch);
 
+    /* Update audio buffer. */
     ac97_via_update(dev);
 
-    dev->out_l = dev->out_r = 0;
-
+    /* Feed next sample from the FIFO. */
     switch (dev->sgd_regs[0x02] & 0x30) {
 	case 0x00: /* Mono, 8-bit PCM */
-		if ((sgd->fifo_end - sgd->fifo_pos) >= 1)
+		if ((sgd->fifo_end - sgd->fifo_pos) >= 1) {
 			dev->out_l = dev->out_r = (sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] ^ 0x80) << 8;
+			return;
+		}
 		break;
 
 	case 0x10: /* Stereo, 8-bit PCM */
 		if ((sgd->fifo_end - sgd->fifo_pos) >= 2) {
 			dev->out_l = (sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] ^ 0x80) << 8;
 			dev->out_r = (sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] ^ 0x80) << 8;
+			return;
 		}
 		break;
 
@@ -610,6 +645,7 @@ ac97_via_poll(void *priv)
 		if ((sgd->fifo_end - sgd->fifo_pos) >= 2) {
 			dev->out_l = dev->out_r = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
 			sgd->fifo_pos += 2;
+			return;
 		}
 		break;
 
@@ -619,9 +655,13 @@ ac97_via_poll(void *priv)
 			sgd->fifo_pos += 2;
 			dev->out_r = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
 			sgd->fifo_pos += 2;
+			return;
 		}
 		break;
     }
+
+    /* Feed silence if the FIFO is empty. */
+    dev->out_l = dev->out_r = 0;
 }
 
 
@@ -631,17 +671,23 @@ ac97_via_poll_fm(void *priv)
     ac97_via_t *dev = (ac97_via_t *) priv;
     ac97_via_sgd_t *sgd = &dev->sgd[2]; /* FM Read */
 
-    timer_advance_u64(&dev->timer_count_fm, dev->timer_latch);
+    /* Schedule next run if FM playback is enabled. */
+    if (dev->fm_enabled)
+	timer_advance_u64(&dev->timer_count_fm, dev->timer_latch);
 
+    /* Update FM audio buffer. */
     ac97_via_update_fm(dev);
 
-    dev->fm_out_l = dev->fm_out_r = 0;
-
-    /* Unknown format, assumed. */
+    /* Feed next sample from the FIFO.
+       Unknown data format assumed to be 8-bit stereo. */
     if ((sgd->fifo_end - sgd->fifo_pos) >= 2) {
-	dev->out_l = (sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] ^ 0x80) << 8;
-	dev->out_r = (sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] ^ 0x80) << 8;
+	dev->fm_out_l = (sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] ^ 0x80) << 8;
+	dev->fm_out_r = (sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] ^ 0x80) << 8;
+	return;
     }
+
+    /* Feed silence if the FIFO is empty. */
+    dev->fm_out_l = dev->fm_out_r = 0;
 }
 
 
@@ -654,10 +700,11 @@ ac97_via_get_buffer(int32_t *buffer, int len, void *priv)
     ac97_via_update_fm(dev);
 
     for (int c = 0; c < len * 2; c++) {
-	buffer[c] += dev->buffer[c];
+	buffer[c] += dev->buffer[c] / 2;
 	buffer[c] += dev->fm_buffer[c];
     }
 
+    /* Feed silence if the FIFO is empty. */
     dev->pos = dev->fm_pos = 0;
 }
 
@@ -689,6 +736,10 @@ ac97_via_init(const device_t *info)
 	dev->sgd[i].id = i << 4;
 	dev->sgd[i].dev = dev;
 
+	/* Disable the FIFO on SGDs we don't care about. */
+	if ((i != 0) && (i != 2))
+		dev->sgd[i].always_run = 1;
+
 	timer_add(&dev->sgd[i].timer, ac97_via_sgd_process, &dev->sgd[i], 0);
     }
 
@@ -696,8 +747,6 @@ ac97_via_init(const device_t *info)
     timer_add(&dev->timer_count, ac97_via_poll, dev, 0);
     timer_add(&dev->timer_count_fm, ac97_via_poll_fm, dev, 0);
     ac97_via_speed_changed(dev);
-    timer_advance_u64(&dev->timer_count, dev->timer_latch);
-    timer_advance_u64(&dev->timer_count_fm, dev->timer_latch);
 
     /* Set up playback handler. */
     sound_add_handler(ac97_via_get_buffer, dev);
