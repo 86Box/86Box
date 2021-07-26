@@ -687,7 +687,12 @@ load_machine(void)
     cpu_f = NULL;
     p = config_get_string(cat, "cpu_family", NULL);
     if (p) {
-	cpu_f = cpu_get_family(p);
+	if (! strcmp(p, "enh_am486dx2")) /* migrate modified names */
+		cpu_f = cpu_get_family("am486dx2_slenh");
+	else if (! strcmp(p, "enh_am486dx4")) /* migrate modified names */
+		cpu_f = cpu_get_family("am486dx4_slenh");
+	else
+		cpu_f = cpu_get_family(p);
 
 	if (cpu_f && !cpu_family_is_eligible(cpu_f, machine)) /* only honor eligible families */
 		cpu_f = NULL;
