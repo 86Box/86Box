@@ -316,8 +316,7 @@ const cpu_family_t cpu_families[] = {
 		{"33",            CPU_i486SX,     fpus_486sx,  33333333, 1,  5000, 0x422,        0, 0, CPU_SUPPORTS_DYNAREC,  6, 6,3,3,  4},
 		{"", 0}
 	}
-    },
-	{
+    }, {
 	.package = CPU_PKG_SOCKET1,
 	.manufacturer = "Intel",
 	.name = "i486SX (SL-Enhanced)",
@@ -327,8 +326,7 @@ const cpu_family_t cpu_families[] = {
 		{"33",            CPU_i486SX_SLENH,     fpus_486sx,  33333333, 1,  5000, 0x42a,    0x42a, 0, CPU_SUPPORTS_DYNAREC,  6, 6,3,3,  4},
 		{"", 0}
 	}
-    },    
-	{
+    }, {
 	.package = CPU_PKG_SOCKET1,
 	.manufacturer = "Intel",
 	.name = "i486SX2",
@@ -349,8 +347,7 @@ const cpu_family_t cpu_families[] = {
 		{"50",            CPU_i486DX,  fpus_internal,  50000000, 1,  5000, 0x411,        0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,4,4,  6},
 		{"", 0}
 	}
-    }, 
-     {
+    }, {
 	.package = CPU_PKG_SOCKET1,
 	.manufacturer = "Intel",
 	.name = "i486DX (SL-Enhanced)",
@@ -371,8 +368,7 @@ const cpu_family_t cpu_families[] = {
 		{"66",           CPU_i486DX, fpus_internal,  66666666, 2,  5000, 0x433,        0, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6,  8},
 		{"", 0}
 	}
-    }, 
- {
+    }, {
 	.package = CPU_PKG_SOCKET1,
 	.manufacturer = "Intel",
 	.name = "i486DX2 (SL-Enhanced)",
@@ -383,7 +379,7 @@ const cpu_family_t cpu_families[] = {
 		{"66",           CPU_i486DX_SLENH, fpus_internal,  66666666, 2,  5000, 0x435,    0x435, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6,  8},
 		{"", 0}
 	}
-    },     {
+    }, {
 	.package = CPU_PKG_SOCKET3_PC330,
 	.manufacturer = "Intel",
 	.name = "i486DX2",
@@ -454,8 +450,7 @@ const cpu_family_t cpu_families[] = {
 		{"80",  CPU_Am486DX, fpus_internal, 80000000, 2, 5000, 0x432,     0, 0, CPU_SUPPORTS_DYNAREC, 14,14, 6, 6, 10},
 		{"", 0}
 	}
-    }, 
- {
+    }, {
 	.package = CPU_PKG_SOCKET1,
 	.manufacturer = "AMD",
 	.name = "Am486DXL",
