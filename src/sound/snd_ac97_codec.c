@@ -58,6 +58,10 @@ static const int32_t codec_attn[] = {
       25,   32,   41,   51,   65,   82,  103,  130,  164,  206,   260,   327,   412,   519,   653,   822,
     1036, 1304, 1641, 2067, 2602, 3276, 4125, 5192, 6537, 8230, 10362, 13044, 16422, 20674, 26027, 32767
 };
+static const int32_t codec_gain[] = {
+    8545, 8552,  8561,  8571,  8585,  8602,  8623,  8650,  8684,  8726,  8780,  8847,  8932,  9039,  9173,  9342,
+    9556, 9824, 10161, 10587, 11122, 11796, 12645, 13712, 15057, 16750, 18882, 21564, 24942, 29194, 34547, 41287
+};
 
 ac97_codec_t	**ac97_codec = NULL, **ac97_modem_codec = NULL;
 int		ac97_codec_count = 0, ac97_modem_codec_count = 0;
@@ -210,8 +214,8 @@ ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r)
     	else
     		*r = codec_attn[0x1f - (r_val & 0x1f)];
     } else { /* 5-bit gain */
-    	*l = codec_attn[0x1f - (l_val & 0x1f)];
-	*r = codec_attn[0x1f - (r_val & 0x1f)];
+    	*l = codec_gain[0x1f - (l_val & 0x1f)];
+	*r = codec_gain[0x1f - (r_val & 0x1f)];
     }
 }
 
