@@ -516,9 +516,13 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case IDM_CASSETTE_RECORD:
 		pc_cas_set_mode(cassette, 1);
+		CheckMenuItem(menus[i], IDM_CASSETTE_RECORD, MF_BYCOMMAND | MF_CHECKED);
+		CheckMenuItem(menus[i], IDM_CASSETTE_PLAY, MF_BYCOMMAND | MF_UNCHECKED);
 		break;
 	case IDM_CASSETTE_PLAY:
 		pc_cas_set_mode(cassette, 0);
+		CheckMenuItem(menus[i], IDM_CASSETTE_RECORD, MF_BYCOMMAND | MF_UNCHECKED);
+		CheckMenuItem(menus[i], IDM_CASSETTE_PLAY, MF_BYCOMMAND | MF_CHECKED);
 		break;
 	case IDM_CASSETTE_REWIND:
 		pc_cas_rewind(cassette);
