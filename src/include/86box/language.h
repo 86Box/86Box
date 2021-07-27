@@ -121,6 +121,8 @@
 #define IDS_2145	2145		// "You are loading an unsupported..."
 #define IDS_2146	2146		// "CPU type filtering based on..."
 #define IDS_2147	2147		// "Continue"
+#define IDS_2148	2148		// "Continue"
+#define IDS_2149	2149		// "Continue"
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
@@ -229,7 +231,7 @@
 
 #define IDS_LANG_ENUS	IDS_7168
 
-#define STR_NUM_2048	100
+#define STR_NUM_2048	102
 #define STR_NUM_3072	11
 #define STR_NUM_4096	40
 #define STR_NUM_4352	6

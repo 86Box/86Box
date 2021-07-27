@@ -37,6 +37,7 @@
 #include "cpu.h"
 #include <86box/device.h>
 #include <86box/timer.h>
+#include <86box/cassette.h>
 #include <86box/nvr.h>
 #include <86box/config.h>
 #include <86box/isamem.h>
@@ -1093,6 +1094,18 @@ load_storage_controllers(void)
 
     ide_ter_enabled = !!config_get_int(cat, "ide_ter", 0);
     ide_qua_enabled = !!config_get_int(cat, "ide_qua", 0);
+
+    cassette_enable = !!config_get_int(cat, "cassette_enabled", 1);
+    p = config_get_string(cat, "cassette_file", "");
+    if (strlen(p) > 511)
+	fatal("load_storage_controllers(): strlen(p) > 511\n");
+    else
+	strncpy(cassette_fname, p, strlen(p) + 1);
+    cassette_mode = config_get_string(cat, "cassette_mode", "load");
+    cassette_pos = config_get_int(cat, "cassette_position", 0);
+    cassette_srate = config_get_int(cat, "cassette_srate", 44100);
+    cassette_append = !!config_get_int(cat, "cassette_append", 0);
+    cassette_pcm = config_get_int(cat, "cassette_pcm", 0);
 }
 
 
@@ -1954,6 +1967,14 @@ config_load(void)
 	for (i = 0; i < ISAMEM_MAX; i++)
 		isamem_type[i] = 0;
 
+	cassette_enable = 1;
+	memset(cassette_fname, 0x00, sizeof(cassette_fname));
+	cassette_mode = "load";
+	cassette_pos = 0;
+	cassette_srate = 44100;
+	cassette_append = 0;
+	cassette_pcm = 0;
+
 	config_log("Config file not present or invalid!\n");
 	return;
     }
@@ -2471,6 +2492,41 @@ save_storage_controllers(void)
 	config_set_int(cat, "ide_qua", ide_qua_enabled);
 
     delete_section_if_empty(cat);
+
+    if (cassette_enable == 1)
+	config_delete_var(cat, "cassette_enabled");
+    else
+	config_set_int(cat, "cassette_enabled", cassette_enable);
+
+    if (cassette_fname == NULL)
+	config_delete_var(cat, "cassette_file");
+    else
+	config_set_string(cat, "cassette_file", cassette_fname);
+
+    if (cassette_mode == NULL)
+	config_delete_var(cat, "cassette_mode");
+    else
+	config_set_string(cat, "cassette_mode", cassette_mode);
+
+    if (cassette_pos == 0)
+	config_delete_var(cat, "cassette_position");
+    else
+	config_set_int(cat, "cassette_position", cassette_pos);
+
+    if (cassette_srate == 44100)
+	config_delete_var(cat, "cassette_srate");
+    else
+	config_set_int(cat, "cassette_srate", cassette_srate);
+
+    if (cassette_append == 0)
+	config_delete_var(cat, "cassette_append");
+    else
+	config_set_int(cat, "cassette_append", cassette_append);
+
+    if (cassette_pcm == 0)
+	config_delete_var(cat, "cassette_pcm");
+    else
+	config_set_int(cat, "cassette_pcm", cassette_pcm);
 }
 
 

@@ -512,7 +512,7 @@ fdd_load(int drive, char *fn)
     drive_empty[drive] = 1;
     fdd_set_head(drive, 0);
     memset(floppyfns[drive], 0, sizeof(floppyfns[drive]));
-    ui_sb_update_icon_state(drive, 1);
+    ui_sb_update_icon_state(SB_FLOPPY | drive, 1);
 }
 
 
@@ -538,7 +538,7 @@ fdd_close(int drive)
     drives[drive].byteperiod = NULL;
     drives[drive].stop = NULL;
     d86f_destroy(drive);
-    ui_sb_update_icon_state(drive, 1);
+    ui_sb_update_icon_state(SB_FLOPPY | drive, 1);
 }
 
 

@@ -131,6 +131,8 @@ extern void	plat_power_off(void);
 
 
 /* Platform-specific device support. */
+extern void	cassette_mount(char *fn, uint8_t wp);
+extern void	cassette_eject(void);
 extern void	floppy_mount(uint8_t id, char *fn, uint8_t wp);
 extern void	floppy_eject(uint8_t id);
 extern void	cdrom_mount(uint8_t id, char *fn);

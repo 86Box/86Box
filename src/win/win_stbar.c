@@ -34,6 +34,7 @@
 #include <86box/device.h>
 #include <86box/machine.h>
 #include <86box/timer.h>
+#include <86box/cassette.h>
 #include <86box/hdd.h>
 #include <86box/hdc.h>
 #include <86box/fdd.h>
@@ -174,6 +175,28 @@ ui_sb_update_icon_state(int tag, int state)
 	SendMessage(hwndSBAR, SB_SETICON, found,
 		    (LPARAM)hIcon[sb_part_icons[found]]);
     }
+}
+
+
+static void
+StatusBarCreateCassetteTip(int part)
+{
+    WCHAR tempTip[512];
+    WCHAR fn[512];
+
+    if (strlen(cassette_fname) == 0)
+	_swprintf(tempTip, plat_get_string(IDS_2148), plat_get_string(IDS_2057));
+    else {
+	mbstoc16s(fn, cassette_fname, sizeof_w(fn));
+	_swprintf(tempTip, plat_get_string(IDS_2148), fn);
+    }
+
+    if (sbTips[part] != NULL) {
+	free(sbTips[part]);
+	sbTips[part] = NULL;
+    }
+    sbTips[part] = (WCHAR *)malloc((wcslen(tempTip) << 1) + 2);
+    wcscpy(sbTips[part], tempTip);
 }
 
 
@@ -364,6 +387,10 @@ ui_sb_update_tip(int meaning)
 
     if (part != 0xff) {
 	switch(meaning & 0xf0) {
+		case SB_CASSETTE:
+			StatusBarCreateCassetteTip(part);
+			break;
+
 		case SB_FLOPPY:
 			StatusBarCreateFloppyTip(part);
 			break;
@@ -492,6 +519,8 @@ ui_sb_update_panes(void)
     memset(sb_map, 0xff, sizeof(sb_map));
 
     sb_parts = 0;
+    if (cassette_enable)
+	sb_parts++;
     for (i=0; i<FDD_NUM; i++) {
 	if (fdd_get_type(i) != 0)
 		sb_parts++;
@@ -565,6 +594,13 @@ ui_sb_update_panes(void)
      memset(sbTips, 0, sb_parts * sizeof(WCHAR *));
 
     sb_parts = 0;
+    if (cassette_enable) {
+	edge += icon_width;
+	iStatusWidths[sb_parts] = edge;
+	sb_part_meanings[sb_parts] = SB_CASSETTE;
+	sb_map[SB_CASSETTE] = sb_parts;
+	sb_parts++;
+    }
     for (i=0; i<FDD_NUM; i++) {
 	if (fdd_get_type(i) != 0) {
 		edge += icon_width;
@@ -685,6 +721,12 @@ ui_sb_update_panes(void)
 
     for (i=0; i<sb_parts; i++) {
 	switch (sb_part_meanings[i] & 0xf0) {
+		case SB_CASSETTE:	/* Cassette */
+			sb_part_icons[i] = (strlen(cassette_fname) == 0) ? 128 : 0;
+			sb_part_icons[i] |= 64;
+			StatusBarCreateCassetteTip(i);
+			break;
+
 		case SB_FLOPPY:		/* Floppy */
 			sb_part_icons[i] = (strlen(floppyfns[sb_part_meanings[i] & 0xf]) == 0) ? 128 : 0;
 			sb_part_icons[i] |= fdd_type_to_icon(fdd_get_type(sb_part_meanings[i] & 0xf));
@@ -758,6 +800,9 @@ StatusBarPopupMenu(HWND hwnd, POINT pt, int id)
     ClientToScreen(hwnd, (LPPOINT) &pt);
 
     switch(sb_part_meanings[id] & 0xF0) {
+	case SB_CASSETTE:
+		menu = media_menu_get_cassette();
+		break;
 	case SB_FLOPPY:
 		menu = media_menu_get_floppy(sb_part_meanings[id] & 0x0F);
 		break;
