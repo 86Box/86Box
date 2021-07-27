@@ -161,7 +161,7 @@ void pc_cas_advance (pc_cassette_t *cas);
 extern pc_cassette_t *	cassette;
 
 extern char		cassette_fname[512];
-extern char *		cassette_mode;
+extern char		cassette_mode[512];
 extern unsigned long	cassette_pos, cassette_srate;
 extern int		cassette_enable;
 extern int		cassette_append, cassette_pcm;

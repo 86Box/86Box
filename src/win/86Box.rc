@@ -196,6 +196,8 @@ BEGIN
         MENUITEM "&Existing image...",				IDM_CASSETTE_IMAGE_EXISTING
         MENUITEM "Existing image (&Write-protected)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
+        MENUITEM "&Record",					IDM_CASSETTE_RECORD
+        MENUITEM "&Play",					IDM_CASSETTE_PLAY
         MENUITEM "&Rewind to the beginning",			IDM_CASSETTE_REWIND
         MENUITEM "&Fast forward to the end",			IDM_CASSETTE_FAST_FORWARD
         MENUITEM SEPARATOR

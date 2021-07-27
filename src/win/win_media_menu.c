@@ -34,7 +34,7 @@
 
 
 static HMENU	media_menu, stbar_menu;
-static HMENU	menus[FDD_NUM + CDROM_NUM + ZIP_NUM + MO_NUM];
+static HMENU	menus[1 + FDD_NUM + CDROM_NUM + ZIP_NUM + MO_NUM];
 
 static char	index_map[255];
 
@@ -216,10 +216,23 @@ media_menu_update_cassette(void)
 
     if (strlen(cassette_fname) == 0) {
 	EnableMenuItem(menus[i], IDM_CASSETTE_EJECT, MF_BYCOMMAND | MF_GRAYED);
+	EnableMenuItem(menus[i], IDM_CASSETTE_RECORD, MF_BYCOMMAND | MF_GRAYED);
+	EnableMenuItem(menus[i], IDM_CASSETTE_PLAY, MF_BYCOMMAND | MF_GRAYED);
+	CheckMenuItem(menus[i], IDM_CASSETTE_RECORD, MF_BYCOMMAND | MF_UNCHECKED);
+	CheckMenuItem(menus[i], IDM_CASSETTE_PLAY, MF_BYCOMMAND | MF_UNCHECKED);
 	EnableMenuItem(menus[i], IDM_CASSETTE_REWIND, MF_BYCOMMAND | MF_GRAYED);
 	EnableMenuItem(menus[i], IDM_CASSETTE_FAST_FORWARD, MF_BYCOMMAND | MF_GRAYED);
     } else {
 	EnableMenuItem(menus[i], IDM_CASSETTE_EJECT, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(menus[i], IDM_CASSETTE_RECORD, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(menus[i], IDM_CASSETTE_PLAY, MF_BYCOMMAND | MF_ENABLED);
+	if (strcmp(cassette_mode, "save") == 0) {
+		CheckMenuItem(menus[i], IDM_CASSETTE_RECORD, MF_BYCOMMAND | MF_CHECKED);
+		CheckMenuItem(menus[i], IDM_CASSETTE_PLAY, MF_BYCOMMAND | MF_UNCHECKED);
+	} else {
+		CheckMenuItem(menus[i], IDM_CASSETTE_RECORD, MF_BYCOMMAND | MF_UNCHECKED);
+		CheckMenuItem(menus[i], IDM_CASSETTE_PLAY, MF_BYCOMMAND | MF_CHECKED);
+	}
 	EnableMenuItem(menus[i], IDM_CASSETTE_REWIND, MF_BYCOMMAND | MF_ENABLED);
 	EnableMenuItem(menus[i], IDM_CASSETTE_FAST_FORWARD, MF_BYCOMMAND | MF_ENABLED);
     }
@@ -501,6 +514,12 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 
+	case IDM_CASSETTE_RECORD:
+		pc_cas_set_mode(cassette, 1);
+		break;
+	case IDM_CASSETTE_PLAY:
+		pc_cas_set_mode(cassette, 0);
+		break;
 	case IDM_CASSETTE_REWIND:
 		pc_cas_rewind(cassette);
 		break;

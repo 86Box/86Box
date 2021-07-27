@@ -47,7 +47,7 @@
 pc_cassette_t *	cassette;
 
 char		cassette_fname[512];
-char *		cassette_mode;
+char		cassette_mode[512];
 unsigned long	cassette_pos, cassette_srate;
 int		cassette_enable;
 int		cassette_append, cassette_pcm;
@@ -269,6 +269,12 @@ void pc_cas_set_mode (pc_cassette_t *cas, int save)
 	}
 
 	cas->save = save;
+
+	memset(cassette_mode, 0x00, sizeof(cassette_mode));
+	if (save)
+		memcpy(cassette_mode, "save", strlen("save") + 1);
+	else
+		memcpy(cassette_mode, "load", strlen("load") + 1);
 
 	if (cas->fp != NULL) {
 		fflush (cas->fp);
