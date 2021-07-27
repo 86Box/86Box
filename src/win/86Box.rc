@@ -1141,7 +1141,7 @@ BEGIN
     IDS_2146	"CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
     IDS_2147	"Continue"
     IDS_2148	"Cassette: %s"
-    IDS_2149	"Cassette images (*.CAS;*.PCM)\0*.CAS;*.PCM\0All files (*.*)\0*.*\0"
+    IDS_2149	"Cassette images (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0All files (*.*)\0*.*\0"
 END
 
 STRINGTABLE DISCARDABLE 
