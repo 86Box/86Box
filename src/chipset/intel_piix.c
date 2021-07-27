@@ -589,18 +589,13 @@ piix_write(int func, int addr, uint8_t val, void *priv)
     } else if (func == 1)  switch(addr) {	/* IDE */
 	case 0x04:
 		fregs[0x04] = (val & 5);
-		if (dev->type < 3)
+		if (dev->type <= 3)
 			fregs[0x04] |= 0x02;
 		piix_ide_handlers(dev, 0x03);
 		piix_ide_bm_handlers(dev);
 		break;
 	case 0x07:
-		if (val & 0x20)
-			fregs[0x07] &= 0xdf;
-		if (val & 0x10)
-			fregs[0x07] &= 0xef;
-		if (val & 0x08)
-			fregs[0x07] &= 0xf7;
+		fregs[0x07] &= ~(val & 0x38);
 		break;
 	case 0x09:
 		if (dev->type == 5) {
@@ -669,7 +664,8 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		piix_ide_bm_handlers(dev);
 		break;
 	case 0x3c:
-		fregs[0x3c] = val;
+		if (dev->type == 5)
+			fregs[0x3c] = val;
 		break;
 	case 0x3d:
 		if (dev->type == 5)
@@ -705,6 +701,8 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 	case 0x5c: case 0x5d:
 		if (dev->type > 4)
 			fregs[addr] = val;
+		break;
+	default:
 		break;
     } else if (func == 2)  switch(addr) {	/* USB */
 	case 0x04:
@@ -1051,6 +1049,8 @@ piix_reset_hard(piix_t *dev)
     /* Function 1: IDE */
     fregs = (uint8_t *) dev->regs[1];
     piix_log("PIIX Function 1: %02X%02X:%02X%02X\n", fregs[0x01], fregs[0x00], fregs[0x03], fregs[0x02]);
+    if (dev->type < 4)
+	fregs[0x04] = 0x02;
     fregs[0x06] = 0x80; fregs[0x07] = 0x02;
     if (dev->type == 4)
 	fregs[0x08] = dev->rev & 0x07;
