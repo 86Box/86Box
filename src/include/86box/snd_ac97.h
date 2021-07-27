@@ -19,8 +19,8 @@
 
 
 typedef struct {
-    uint32_t	id;
-    uint8_t	regs[128];
+    uint32_t	vendor_id;
+    uint8_t	codec_id, regs[128];
 } ac97_codec_t;
 
 
@@ -40,7 +40,8 @@ extern void	ac97_via_remap_modem_codec(void *priv, uint16_t new_io_base, uint8_t
 
 #ifdef EMU_DEVICE_H
 extern ac97_codec_t	**ac97_codec, **ac97_modem_codec;
-extern int		ac97_codec_count, ac97_modem_codec_count;
+extern int		ac97_codec_count, ac97_modem_codec_count,
+			ac97_codec_id, ac97_modem_codec_id;
 
 extern const device_t	alc100_device;
 extern const device_t	cs4297_device;

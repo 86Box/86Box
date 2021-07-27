@@ -55,16 +55,14 @@ ac97_codec_log(const char *fmt, ...)
 #endif
 
 static const int32_t codec_attn[] = {
-      25,   32,   41,   51,   65,   82,  103,  130,  164,  206,   260,   327,   412,   519,   653,   822,
-    1036, 1304, 1641, 2067, 2602, 3276, 4125, 5192, 6537, 8230, 10362, 13044, 16422, 20674, 26027, 32767
-};
-static const int32_t codec_gain[] = {
-    8545, 8552,  8561,  8571,  8585,  8602,  8623,  8650,  8684,  8726,  8780,  8847,  8932,  9039,  9173,  9342,
-    9556, 9824, 10161, 10587, 11122, 11796, 12645, 13712, 15057, 16750, 18882, 21564, 24942, 29194, 34547, 41287
+       25,    32,    41,    51,     65,     82,    103,    130,  164,  206,   260,   327,   412,   519,   653,   822,
+     1036,  1304,  1641,  2067,   2602,   3276,   4125,   5192, 6537, 8230, 10362, 13044, 16422, 20674, 26027, 32767,
+    41305, 52068, 65636, 82739, 104299,	131477, 165737, 208925
 };
 
 ac97_codec_t	**ac97_codec = NULL, **ac97_modem_codec = NULL;
-int		ac97_codec_count = 0, ac97_modem_codec_count = 0;
+int		ac97_codec_count = 0, ac97_modem_codec_count = 0,
+		ac97_codec_id = 0, ac97_modem_codec_id = 0;
 
 
 uint8_t
@@ -72,7 +70,7 @@ ac97_codec_read(ac97_codec_t *dev, uint8_t reg)
 {
     uint8_t ret = dev->regs[reg & 0x7f];
 
-    ac97_codec_log("AC97 Codec: read(%02X) = %02X\n", reg, ret);
+    ac97_codec_log("AC97 Codec %d: read(%02X) = %02X\n", dev->codec_id, reg, ret);
 
     return ret;
 }
@@ -81,7 +79,7 @@ ac97_codec_read(ac97_codec_t *dev, uint8_t reg)
 void
 ac97_codec_write(ac97_codec_t *dev, uint8_t reg, uint8_t val)
 {
-    ac97_codec_log("AC97 Codec: write(%02X, %02X)\n", reg, val);
+    ac97_codec_log("AC97 Codec %d: write(%02X, %02X)\n", dev->codec_id, reg, val);
 
     reg &= 0x7f;
 
@@ -108,9 +106,16 @@ ac97_codec_write(ac97_codec_t *dev, uint8_t reg, uint8_t val)
 	case 0x03: /* Master Volume MSB */
 	case 0x05: /* Aux Out Volume MSB */
 		val &= 0xbf;
+
+		/* Convert 6-bit level 1xxxxx to 011111 per specification. */
+		if (val & 0x20) {
+			val &= ~0x20;
+			val |= 0x1f;
+		}
 		break;
 
 	case 0x07: /* Mono Volume MSB */
+	case 0x0b: /* PC Beep Volume MSB */
 	case 0x20: /* General Purpose LSB */
 		val &= 0x80;
 		break;
@@ -118,12 +123,17 @@ ac97_codec_write(ac97_codec_t *dev, uint8_t reg, uint8_t val)
 	case 0x02: /* Master Volume LSB */
 	case 0x04: /* Aux Out Volume LSB */
 	case 0x06: /* Mono Volume LSB */
-	case 0x0b: /* PC Beep Volume MSB */
 		val &= 0x3f;
+
+		/* Convert 6-bit level 1xxxxx to 011111 per specification. */
+		if (val & 0x20) {
+			val &= ~0x20;
+			val |= 0x1f;
+		}
 		break;
 
 	case 0x0a: /* PC Beep Volume LSB */
-		val &= 0xfe;
+		val &= 0x1e;
 		break;
 
 	case 0x0c: /* Phone Volume LSB */
@@ -173,7 +183,7 @@ ac97_codec_reset(void *priv)
 {
     ac97_codec_t *dev = (ac97_codec_t *) priv;
 
-    ac97_codec_log("AC97 Codec: reset()\n");
+    ac97_codec_log("AC97 Codec %d: reset()\n", dev->codec_id);
 
     memset(dev->regs, 0, sizeof(dev->regs));
 
@@ -183,11 +193,12 @@ ac97_codec_reset(void *priv)
     /* Flag codec as ready. */
     dev->regs[0x26] = 0x0f;
 
-    /* Set Vendor ID. */
-    dev->regs[0x7c] = dev->id >> 16;
-    dev->regs[0x7d] = dev->id >> 24;
-    dev->regs[0x7e] = dev->id;
-    dev->regs[0x7f] = dev->id >> 8;
+    /* Set Codec and Vendor IDs. */
+    dev->regs[0x29] = (dev->codec_id << 6) | 0x02;
+    dev->regs[0x7c] = dev->vendor_id >> 16;
+    dev->regs[0x7d] = dev->vendor_id >> 24;
+    dev->regs[0x7e] = dev->vendor_id;
+    dev->regs[0x7f] = dev->vendor_id >> 8;
 }
 
 
@@ -204,18 +215,14 @@ ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r)
 	return;
     }
 
-    if (reg < 0x10) { /* 6-bit volume */
-    	if (l_val & 0x20)
-    		*l = codec_attn[0];
-    	else
-    		*l = codec_attn[0x1f - (l_val & 0x1f)];
-    	if (r_val & 0x20)
-    		*r = codec_attn[0];
-    	else
-    		*r = codec_attn[0x1f - (r_val & 0x1f)];
+    l_val &= 0x1f;
+    r_val &= 0x1f;
+    if (reg < 0x10) { /* 5-bit level (converted from 6-bit on register write) */
+	*l = codec_attn[0x1f - l_val];
+	*r = codec_attn[0x1f - r_val];
     } else { /* 5-bit gain */
-    	*l = codec_gain[0x1f - (l_val & 0x1f)];
-	*r = codec_gain[0x1f - (r_val & 0x1f)];
+	*l = codec_attn[0x27 - l_val];
+	*r = codec_attn[0x27 - r_val];
     }
 }
 
@@ -226,19 +233,20 @@ ac97_codec_init(const device_t *info)
     ac97_codec_t *dev = malloc(sizeof(ac97_codec_t));
     memset(dev, 0, sizeof(ac97_codec_t));
 
-    dev->id = info->local;
-    ac97_codec_log("AC97 Codec: init(%c%c%c%02X)\n", (dev->id >> 24) & 0xff, (dev->id >> 16) & 0xff, (dev->id >> 8) & 0xff, dev->id & 0xff);
+    dev->vendor_id = info->local;
+    ac97_codec_log("AC97 Codec %d: init(%c%c%c%02X)\n", ac97_codec_id, (dev->vendor_id >> 24) & 0xff, (dev->vendor_id >> 16) & 0xff, (dev->vendor_id >> 8) & 0xff, dev->vendor_id & 0xff);
 
     /* Associate this codec to the current controller. */
     if (!ac97_codec || (ac97_codec_count <= 0)) {
-    	fatal("AC97 Codec: No controller to associate codec");
-    	return NULL;
+	fatal("AC97 Codec %d: No controller to associate codec\n", ac97_codec_id);
+	return NULL;
     }
     *ac97_codec = dev;
     if (--ac97_codec_count == 0)
 	ac97_codec = NULL;
     else
 	ac97_codec += sizeof(ac97_codec_t *);
+    dev->codec_id = ac97_codec_id++;
 
     return dev;
 }
@@ -249,7 +257,7 @@ ac97_codec_close(void *priv)
 {
     ac97_codec_t *dev = (ac97_codec_t *) priv;
 
-    ac97_codec_log("AC97 Codec: close()\n");
+    ac97_codec_log("AC97 Codec %d: close()\n", dev->codec_id);
 
     free(dev);
 }

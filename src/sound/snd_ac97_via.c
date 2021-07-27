@@ -750,6 +750,7 @@ ac97_via_init(const device_t *info)
     ac97_codec = &dev->codec[0][0];
     ac97_modem_codec = &dev->codec[1][0];
     ac97_codec_count = ac97_modem_codec_count = sizeof(dev->codec[0]) / sizeof(dev->codec[0][0]);
+    ac97_codec_id = ac97_modem_codec_id = 0;
 
     /* Set up SGD channels. */
     for (uint8_t i = 0; i < (sizeof(dev->sgd) / sizeof(dev->sgd[0])); i++) {
