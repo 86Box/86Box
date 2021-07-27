@@ -75,7 +75,7 @@ typedef struct
 		ide_regs[256],
 		usb_regs[2][256],
 		power_regs[256],
-		ac97_regs[2][256], fmnmi_regs[4], fm_regs[4];
+		ac97_regs[2][256], fmnmi_regs[4];
     sff8038i_t	*bm[2];
     nvr_t	*nvr;
     int		nvr_enabled, slot;
@@ -475,30 +475,10 @@ static uint8_t
 pipc_midigame_read(uint16_t addr, void *priv)
 {
     pipc_t *dev = (pipc_t *) priv;
-    uint8_t ret = 0xff;
 
-    addr &= 0x03;
-    switch (addr) {
-	case 0x02: case 0x03:
-		ret = pipc_read(5, 0x48 + addr, dev);
-		break;
-    }
-
-    return ret;
-}
-
-
-static void
-pipc_midigame_write(uint16_t addr, uint8_t val, void *priv)
-{
-    pipc_t *dev = (pipc_t *) priv;
-
-    addr &= 0x03;
-    switch (addr) {
-	case 0x02: case 0x03:
-		pipc_write(5, 0x48 + addr, val, dev);
-		break;
-    }
+    /* This BAR apparently doesn't work at all on a real 686B. It doesn't react to writes,
+       and reads always return 0x80 or 0xff depending on AC97 audio register 0x42 bit 7. */
+    return (dev->ac97_regs[0][0x42] & 0x80) ? 0x80 : 0xff;
 }
 
 
@@ -509,12 +489,12 @@ pipc_midigame_handlers(pipc_t *dev, uint8_t modem)
 	return;
 
     if (dev->midigame_base)
-	io_removehandler(dev->midigame_base, 4, pipc_midigame_read, NULL, NULL, pipc_midigame_write, NULL, NULL, dev);
+	io_removehandler(dev->midigame_base, 4, pipc_midigame_read, NULL, NULL, NULL, NULL, NULL, dev);
 
     dev->midigame_base = (dev->ac97_regs[0][0x19] << 8) | (dev->ac97_regs[0][0x18] & 0xfc);
 
     if (dev->midigame_base && (dev->ac97_regs[0][0x04] & PCI_COMMAND_IO))
-	io_sethandler(dev->midigame_base, 4, pipc_midigame_read, NULL, NULL, pipc_midigame_write, NULL, NULL, dev);
+	io_sethandler(dev->midigame_base, 4, pipc_midigame_read, NULL, NULL, NULL, NULL, NULL, dev);
 }
 
 
@@ -539,31 +519,29 @@ pipc_fmnmi_read(uint16_t addr, void *priv)
 
     pipc_log("PIPC: fmnmi_read(%02X) = %02X\n", addr & 0x03, ret);
 
-    if (dev->ac97_regs[0][0x48] & 0x04)
-	smi_line = 0;
-    else
-	nmi = 0;
-
-    return ret;
-}
-
-
-static void
-pipc_fmnmi_write(uint16_t addr, uint8_t val, void *priv)
-{
-#ifdef ENABLE_PIPC_LOG
-    pipc_t *dev = (pipc_t *) priv;
+#ifdef VIA_PIPC_FM_EMULATION
+    /* Clear NMI/SMI if enabled. */
+    if  (dev->ac97_regs[0][0x48] & 0x01) {
+	if (dev->ac97_regs[0][0x48] & 0x04)
+		smi_line = 0;
+	else
+		nmi = 0;
+    }
 #endif
 
-    pipc_log("PIPC: fmnmi_write(%02X, %02X)\n", addr & 0x03, val);
+    return ret;
 }
 
 
 static uint8_t
 pipc_fm_read(uint16_t addr, void *priv)
 {
+#ifdef VIA_PIPC_FM_EMULATION
+    uint8_t ret = 0x00;
+#else
     pipc_t *dev = (pipc_t *) priv;
     uint8_t ret = opl3_read(addr, &dev->sb->opl);
+#endif
 
     pipc_log("PIPC: fm_read(%02X) = %02X\n", addr & 0x03, ret);
 
@@ -578,17 +556,26 @@ pipc_fm_write(uint16_t addr, uint8_t val, void *priv)
 
     pipc_log("PIPC: fm_write(%02X, %02X)\n", addr & 0x03, val);
 
+#ifdef VIA_PIPC_FM_EMULATION
+    /* Real 686B only updates the bank ID register when writing to the
+       index port, and only fires NMI/SMI when writing to the data port. */
+    if (!(addr & 0x01)) {
+	dev->fmnmi_regs[0x00] = (addr & 0x02) ? 0x02 : 0x01;
+	dev->fmnmi_regs[0x01] = val;
+    } else {
+	dev->fmnmi_regs[0x02] = val;
+
+	/* Fire NMI/SMI if enabled. */
+	if (dev->ac97_regs[0][0x48] & 0x01) {
+		if (dev->ac97_regs[0][0x48] & 0x04)
+			smi_line = 1;
+		else
+			nmi = 1;
+	}
+    }
+#else
     opl3_write(addr, val, &dev->sb->opl);
-    dev->fm_regs[addr & 0x03] = val;
-
-    dev->fmnmi_regs[0x00] = (addr & 0x02) ? 0x02 : 0x01;
-    dev->fmnmi_regs[0x01] = dev->fm_regs[addr & 0x02];
-    dev->fmnmi_regs[0x02] = dev->fm_regs[(addr & 0x02) | 0x01];
-
-    if (dev->ac97_regs[0][0x48] & 0x04)
-	smi_line = 1;
-    else
-	nmi = 1;
+#endif
 }
 
 
@@ -599,7 +586,7 @@ pipc_fmnmi_handlers(pipc_t *dev, uint8_t modem)
 	return;
 
     if (dev->fmnmi_base)
-	io_removehandler(dev->fmnmi_base, 4, pipc_fmnmi_read, NULL, NULL, pipc_fmnmi_write, NULL, NULL, dev);
+	io_removehandler(dev->fmnmi_base, 4, pipc_fmnmi_read, NULL, NULL, NULL, NULL, NULL, dev);
 
     if (dev->fm_enabled)
 	io_removehandler(0x388, 4, pipc_fm_read, NULL, NULL, pipc_fm_write, NULL, NULL, dev);
@@ -608,7 +595,7 @@ pipc_fmnmi_handlers(pipc_t *dev, uint8_t modem)
     dev->fm_enabled = !!(dev->ac97_regs[0][0x42] & 0x04);
 
     if (dev->fmnmi_base && (dev->ac97_regs[0][0x04] & PCI_COMMAND_IO))
-	io_sethandler(dev->fmnmi_base, 4, pipc_fmnmi_read, NULL, NULL, pipc_fmnmi_write, NULL, NULL, dev);
+	io_sethandler(dev->fmnmi_base, 4, pipc_fmnmi_read, NULL, NULL, NULL, NULL, NULL, dev);
 
     if (dev->fm_enabled)
 	io_sethandler(0x388, 4, pipc_fm_read, NULL, NULL, pipc_fm_write, NULL, NULL, dev);
@@ -1230,7 +1217,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 
 		case 0x42: case 0x4a: case 0x4b:
 			dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val;
-			gameport_remap(dev->gameport, (dev->ac97_regs[0][0x42] & 0x08) ? ((dev->ac97_regs[0][0x4b] << 8) | dev->ac97_regs[0][0x4a]) : 0);
+			gameport_remap(dev->gameport, (dev->ac97_regs[0][0x42] & 0x08) ? ((dev->ac97_regs[0][0x4b] << 8) | (dev->ac97_regs[0][0x4a] & 0xf8)) : 0);
 			if (addr == 0x42)
 				pipc_fmnmi_handlers(dev, func);
 			break;
@@ -1243,22 +1230,8 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val & 0xf0;
 			break;
 
-		case 0x45:
+		case 0x45: case 0x48:
 			dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val & 0x0f;
-			break;
-
-		case 0x48:
-			dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val & 0x0f;
-			/*if (!(val & 0x01)) {
-				if (val & 0x04)
-					smi_line = 0;
-				else
-					nmi = 0;
-			}*/
-			if (val & 0x04)
-				smi_line = !!(val & 0x01);
-			else
-				nmi = !!(val & 0x01);
 			break;
 
 		default:
