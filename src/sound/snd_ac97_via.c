@@ -44,7 +44,7 @@ typedef struct {
 
 typedef struct _ac97_via_ {
     uint16_t	audio_sgd_base, audio_codec_base, modem_sgd_base, modem_codec_base;
-    uint8_t	sgd_regs[256], pcm_enabled: 1, fm_enabled: 1;
+    uint8_t	sgd_regs[256], pcm_enabled: 1, fm_enabled: 1, vsr_enabled: 1;
     struct {
 	union {
 		uint8_t regs_codec[2][128];
@@ -85,7 +85,8 @@ ac97_via_log(const char *fmt, ...)
 
 
 static void	ac97_via_sgd_process(void *priv);
-static void	ac97_via_update_volumes(ac97_via_t *dev, ac97_codec_t *codec);
+static void	ac97_via_update_codec(ac97_via_t *dev, ac97_codec_t *codec);
+static void	ac97_via_speed_changed(void *priv);
 
 
 void
@@ -126,20 +127,28 @@ ac97_via_write_control(void *priv, uint8_t modem, uint8_t val)
 
     ac97_via_log("AC97 VIA %d: write_control(%02X)\n", modem, val);
 
+    if (!modem) {
+	/* Set the variable sample rate flag now, so that the upcoming
+	   update_codec can properly update the poller timer interval. */
+	dev->vsr_enabled = !!(val & 0x08);
+    }
+
     /* Reset and/or update volumes on all codecs. */
     for (i = 0; i <= 1; i++) {
-	if (dev->codec[modem][i]) {
-		/* Reset codec if requested. */
-		if (val & 0x40)
-			ac97_codec_reset(dev->codec[modem][i]);
+	if (!dev->codec[modem][i])
+		continue;
 
-		/* Update volumes. */
-		ac97_via_update_volumes(dev, dev->codec[modem][i]);
-	}
+	/* Reset codec if requested. */
+	if (!(val & 0x40))
+		ac97_codec_reset(dev->codec[modem][i]);
+
+	/* Update primary codec state. */
+	if (!modem && !i)
+		ac97_via_update_codec(dev, dev->codec[modem][i]);
     }
 
     if (!modem) {
-    	/* Start or stop PCM playback. */
+	/* Start or stop PCM playback. */
 	i = (val & 0xf4) == 0xc4;
 	if (i && !dev->pcm_enabled)
 		timer_advance_u64(&dev->timer_count, dev->timer_latch);
@@ -174,12 +183,14 @@ ac97_via_update_irqs(ac97_via_t *dev)
 
 
 static void
-ac97_via_update_volumes(ac97_via_t *dev, ac97_codec_t *codec) {
+ac97_via_update_codec(ac97_via_t *dev, ac97_codec_t *codec) {
+    /* Update volumes according to codec registers. */
     ac97_codec_getattn(codec, 0x02, &dev->master_vol_l, &dev->master_vol_r);
     ac97_codec_getattn(codec, 0x18, &dev->pcm_vol_l, &dev->pcm_vol_r);
     ac97_codec_getattn(codec, 0x12, &dev->cd_vol_l, &dev->cd_vol_r);
 
-    pclog("master %d %d\npcm %d %d\ncd %d %d\n", dev->master_vol_l, dev->master_vol_r, dev->pcm_vol_l, dev->pcm_vol_r, dev->cd_vol_l, dev->cd_vol_r);
+    /* Update sample rate according to codec registers and the variable sample rate bit. */
+    ac97_via_speed_changed(dev);
 }
 
 
@@ -377,8 +388,9 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 					val |= 1;
 					ac97_codec_write(codec, val, dev->codec_shadow[modem].regs_codec[i][val] = dev->sgd_regs[0x81]);
 
-					/* Update volumes. */
-					ac97_via_update_volumes(dev, codec);
+					/* Update primary codec state. */
+					if (!modem && !i)
+						ac97_via_update_codec(dev, codec);
 				}
 
 				/* Flag data/status/index for this codec as valid. */
@@ -730,10 +742,29 @@ ac97_via_get_buffer(int32_t *buffer, int len, void *priv)
 
 
 static void
+via_ac97_filter_cd_audio(int channel, double *buffer, void *priv)
+{
+    ac97_via_t *dev = (ac97_via_t *) priv;
+    double c, volume = channel ? dev->cd_vol_r : dev->cd_vol_l;
+
+    c = ((*buffer) * volume) / 65536.0;
+    *buffer = c;
+}
+
+
+static void
 ac97_via_speed_changed(void *priv)
 {
     ac97_via_t *dev = (ac97_via_t *) priv;
-    dev->timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 48000.0));
+    double freq;
+
+    /* Get variable sample rate if enabled. */
+    if (dev->vsr_enabled && dev->codec[0][0])
+	freq = ac97_codec_getrate(dev->codec[0][0], 0x2c);
+    else
+	freq = 48000.0;
+
+    dev->timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq));
     dev->timer_fifo_latch = (uint64_t) ((double) TIMER_USEC * 10.0);
 }
 
@@ -771,6 +802,9 @@ ac97_via_init(const device_t *info)
 
     /* Set up playback handler. */
     sound_add_handler(ac97_via_get_buffer, dev);
+
+    /* Set up CD audio filter. */
+    sound_set_cd_audio_filter(via_ac97_filter_cd_audio, dev);
 
     return dev;
 }

@@ -79,6 +79,8 @@ ac97_codec_read(ac97_codec_t *dev, uint8_t reg)
 void
 ac97_codec_write(ac97_codec_t *dev, uint8_t reg, uint8_t val)
 {
+    uint8_t i;
+
     ac97_codec_log("AC97 Codec %d: write(%02X, %02X)\n", dev->codec_id, reg, val);
 
     reg &= 0x7f;
@@ -86,7 +88,7 @@ ac97_codec_write(ac97_codec_t *dev, uint8_t reg, uint8_t val)
     switch (reg) {
 	case 0x00: case 0x01: /* Reset / ID code */
 		ac97_codec_reset(dev);
-		/* fall-through */
+		return;
 
 	case 0x08: case 0x09: /* Master Tone Control (optional) */
 	case 0x0d: /* Phone Volume MSB */
@@ -96,7 +98,8 @@ ac97_codec_write(ac97_codec_t *dev, uint8_t reg, uint8_t val)
 	case 0x24: case 0x25: /* Audio Interrupt and Paging Mechanism (optional) */
 	case 0x26: /* Powerdown Ctrl/Stat LSB */
 	case 0x28: case 0x29: /* Extended Audio ID */
-	//case 0x2a ... 0x59: /* Linux tests for audio capability by writing to 38-39 */
+	case 0x2b: /* Extended Audio Status/Control MSB */
+	//case 0x36 ... 0x59: /* Linux tests for audio capability by writing to 38-39 */
 	case 0x5a ... 0x5f: /* Vendor Reserved */
 	//case 0x60 ... 0x6f:
 	case 0x70 ... 0x7f: /* Vendor Reserved */
@@ -107,7 +110,7 @@ ac97_codec_write(ac97_codec_t *dev, uint8_t reg, uint8_t val)
 	case 0x05: /* Aux Out Volume MSB */
 		val &= 0xbf;
 
-		/* Convert 6-bit level 1xxxxx to 011111 per specification. */
+		/* Convert 6-bit level 1xxxxx to 011111. */
 		if (val & 0x20) {
 			val &= ~0x20;
 			val |= 0x1f;
@@ -125,7 +128,7 @@ ac97_codec_write(ac97_codec_t *dev, uint8_t reg, uint8_t val)
 	case 0x06: /* Mono Volume LSB */
 		val &= 0x3f;
 
-		/* Convert 6-bit level 1xxxxx to 011111 per specification. */
+		/* Convert 6-bit level 1xxxxx to 011111. */
 		if (val & 0x20) {
 			val &= ~0x20;
 			val |= 0x1f;
@@ -172,6 +175,34 @@ ac97_codec_write(ac97_codec_t *dev, uint8_t reg, uint8_t val)
 	case 0x21: /* General Purpose MSB */
 		val &= 0x83;
 		break;
+
+	case 0x2a: /* Extended Audio Status/Control LSB */
+		val &= 0x0b;
+
+		/* Reset DAC sample rates to 48 KHz if VRA is being cleared. */
+		if (!(val & 0x01)) {
+			for (i = 0x2c; i <= 0x30; i += 2)
+				*((uint16_t *) &dev->regs[i]) = 48000;
+		}
+
+		/* Reset ADC sample rates to 48 KHz if VRM is being cleared. */
+		if (!(val & 0x08)) {
+			for (i = 0x32; i <= 0x34; i += 2)
+				*((uint16_t *) &dev->regs[i]) = 48000;
+		}
+		break;
+
+	case 0x2c ... 0x31: /* DAC Rates */
+		/* Writable only if VRA is set. */
+		if (!(dev->regs[0x2a] & 0x01))
+			return;
+		break;
+
+	case 0x32 ... 0x35: /* ADC Rates */
+		/* Writable only if VRM is set. */
+		if (!(dev->regs[0x2a] & 0x08))
+			return;
+		break;
     }
 
     dev->regs[reg] = val;
@@ -182,16 +213,27 @@ void
 ac97_codec_reset(void *priv)
 {
     ac97_codec_t *dev = (ac97_codec_t *) priv;
+    uint8_t i;
 
     ac97_codec_log("AC97 Codec %d: reset()\n", dev->codec_id);
 
     memset(dev->regs, 0, sizeof(dev->regs));
 
-    /* Mute outputs by default. */
-    dev->regs[0x02] = dev->regs[0x04] = dev->regs[0x06] = 0x80;
+    /* Set default level and gain values. */
+    for (i = 0x02; i <= 0x18; i += 2) {
+	if (i == 0x08)
+		continue;
+	if (i >= 0x0c)
+		dev->regs[i] = 0x08;
+	dev->regs[i | 1] = (i >= 0x10) ? 0x88 : 0x80;
+    }
 
     /* Flag codec as ready. */
     dev->regs[0x26] = 0x0f;
+
+    /* Set up variable sample rate support. */
+    dev->regs[0x28] = 0x0b;
+    ac97_codec_write(dev, 0x2a, 0x00); /* reset DAC/ADC sample rates */
 
     /* Set Codec and Vendor IDs. */
     dev->regs[0x29] = (dev->codec_id << 6) | 0x02;
@@ -227,6 +269,24 @@ ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r)
 }
 
 
+uint32_t
+ac97_codec_getrate(void *priv, uint8_t reg)
+{
+    ac97_codec_t *dev = (ac97_codec_t *) priv;
+
+    /* Get configured sample rate, which is always 48000 if VRA/VRM is not set. */
+    uint32_t ret = *((uint16_t *) &dev->regs[reg]);
+
+    /* If this is a DAC, double sample rate if DRA is set. */
+    if ((reg < 0x32) && (dev->regs[0x2a] & 0x02))
+	ret <<= 1;
+
+    ac97_codec_log("AC97 Codec %d: getrate(%02X) = %d\n", dev->codec_id, reg, ret);
+
+    return ret;
+}
+
+
 static void *
 ac97_codec_init(const device_t *info)
 {
@@ -247,6 +307,9 @@ ac97_codec_init(const device_t *info)
     else
 	ac97_codec += sizeof(ac97_codec_t *);
     dev->codec_id = ac97_codec_id++;
+
+    /* Initialize codec registers. */
+    ac97_codec_reset(dev);
 
     return dev;
 }

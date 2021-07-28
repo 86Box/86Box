@@ -28,6 +28,7 @@ extern uint8_t	ac97_codec_read(ac97_codec_t *dev, uint8_t reg);
 extern void	ac97_codec_write(ac97_codec_t *dev, uint8_t reg, uint8_t val);
 extern void	ac97_codec_reset(void *priv);
 extern void	ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r);
+extern uint32_t	ac97_codec_getrate(void *priv, uint8_t reg);
 
 extern void	ac97_via_set_slot(void *priv, int slot, int irq_pin);
 extern uint8_t	ac97_via_read_status(void *priv, uint8_t modem);
