@@ -138,21 +138,21 @@ hercules_out(uint16_t addr, uint8_t val, void *priv)
 
 	case 0x03b8:
 		old = dev->ctrl;
-		if (!(dev->ctrl2 & 0x01) && !(val & 0x02))
-			val = (val & 0xfd) | (dev->ctrl & 0x02);
-		if (!(dev->ctrl2 & 0x02) && !(val & 0x80))
-			val = (val & 0x7f) | (dev->ctrl & 0x80);
+		/* Prevent settings of bits if they are disabled in CTRL2. */
+		if (!(dev->ctrl2 & 0x01) && (val & 0x02))
+			val &= 0xfd;
+		if (!(dev->ctrl2 & 0x02) && (val & 0x80))
+			val &= 0x7f;
 		dev->ctrl = val;
 		if (old ^ val)
 			recalc_timings(dev);
 		break;
 
 	case 0x03bf:
+		old = dev->ctrl2;
 		dev->ctrl2 = val;
-		if (val & 0x02)
-			mem_mapping_set_addr(&dev->mapping, 0xb0000, 0x10000);
-		else
-			mem_mapping_set_addr(&dev->mapping, 0xb0000, 0x08000);
+		if (old ^ val)
+			recalc_timings(dev);
 		break;
 
 	default:
@@ -250,6 +250,7 @@ hercules_poll(void *priv)
     hercules_t *dev = (hercules_t *)priv;
     uint8_t chr, attr;
     uint16_t ca, dat;
+    uint16_t pa;
     int oldsc, blink;
     int x, c, oldvc;
     int drawcursor;
@@ -272,16 +273,13 @@ hercules_poll(void *priv)
 		}
 		dev->lastline = dev->displine;
 
-		// if ((dev->ctrl & 2) && (dev->ctrl2 & 1)) {
-		if (dev->ctrl & 2) {
+		if ((dev->ctrl & 0x02) && (dev->ctrl2 & 0x01)) {
 			ca = (dev->sc & 3) * 0x2000;
-			// if ((dev->ctrl & 0x80) && (dev->ctrl2 & 2)) 
-			if (dev->ctrl & 0x80)
+			if ((dev->ctrl & 0x80) && (dev->ctrl2 & 0x02))
 				ca += 0x8000;
 
 			for (x = 0; x < dev->crtc[1]; x++) {
 				if (dev->ctrl & 8)
-					// dat = (dev->vram[((dev->ma << 1) & 0x1fff) + ca] << 8) | dev->vram[((dev->ma << 1) & 0x1fff) + ca + 1];
 					dat = (dev->vram[((dev->ma << 1) & 0x1fff) + ca] << 8) | dev->vram[((dev->ma << 1) & 0x1fff) + ca + 1];
 				else
 					dat = 0;
@@ -292,9 +290,12 @@ hercules_poll(void *priv)
 					video_blend((x << 4) + c, dev->displine);
 			}
 		} else {
+			pa = ((dev->ctrl & 0x80) && (dev->ctrl2 & 0x02)) ? 0x8000 : 0x0000;
 			for (x = 0; x < dev->crtc[1]; x++) {
 				if (dev->ctrl & 8) {
-					chr  = dev->vram[(dev->ma << 1) & 0xfff];
+					/* Undocumented behavior: page 1 in text mode means characters are read
+					   from page 1 and attributes from page 0. */
+					chr  = dev->vram[((dev->ma << 1) & 0xfff) + pa];
 					attr = dev->vram[((dev->ma << 1) + 1) & 0xfff];
 				} else
 					chr = attr = 0;
