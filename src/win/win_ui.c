@@ -176,6 +176,7 @@ video_toggle_option(HMENU h, int *val, int id)
     device_force_redraw();
 }
 
+#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 /* Recursively finds and deletes target submenu */
 static int
 delete_submenu(HMENU parent, HMENU target)
@@ -203,6 +204,7 @@ delete_submenu(HMENU parent, HMENU target)
 
 	return 0;
 }
+#endif
 
 static void
 show_render_options_menu()
