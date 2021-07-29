@@ -8,6 +8,8 @@
 #include <86box/config.h>
 #include <86box/device.h>
 #include <86box/timer.h>
+#include <86box/cassette.h>
+#include <86box/cartridge.h>
 #include <86box/fdd.h>
 #include <86box/fdd_86f.h>
 #include <86box/hdc.h>
@@ -22,17 +24,22 @@
 #include <86box/zip.h>
 #include <86box/win.h>
 
-#define MACHINE_HAS_IDE	(machines[machine].flags & MACHINE_IDE_QUAD)
+#define MACHINE_HAS_IDE		(machines[machine].flags & MACHINE_IDE_QUAD)
 #define MACHINE_HAS_SCSI	(machines[machine].flags & MACHINE_SCSI_DUAL)
 
-#define FDD_FIRST	0
-#define CDROM_FIRST	FDD_FIRST + FDD_NUM
-#define ZIP_FIRST	CDROM_FIRST + CDROM_NUM
-#define MO_FIRST	ZIP_FIRST + ZIP_NUM
+#define CASSETTE_FIRST		0
+#define CARTRIDGE_FIRST		CASSETTE_FIRST + 1
+#define FDD_FIRST		CARTRIDGE_FIRST + 2
+#define CDROM_FIRST		FDD_FIRST + FDD_NUM
+#define ZIP_FIRST		CDROM_FIRST + CDROM_NUM
+#define MO_FIRST		ZIP_FIRST + ZIP_NUM
+
 
 static HMENU	media_menu, stbar_menu;
-static HMENU	menus[FDD_NUM + CDROM_NUM + ZIP_NUM + MO_NUM];
+static HMENU	menus[1 + 2 + FDD_NUM + CDROM_NUM + ZIP_NUM + MO_NUM];
+
 static char	index_map[255];
+
 
 static void
 media_menu_set_ids(HMENU hMenu, int id)
@@ -51,6 +58,7 @@ media_menu_set_ids(HMENU hMenu, int id)
     }
 }
 
+
 /* Loads the submenu from resource by name */
 static HMENU
 media_menu_load_resource(wchar_t *lpName)
@@ -66,6 +74,51 @@ media_menu_load_resource(wchar_t *lpName)
 
     return actual;
 }
+
+
+static void
+media_menu_set_name_cassette(void)
+{
+    wchar_t name[512], fn[512];
+    MENUITEMINFO mii = { 0 };
+
+    if (strlen(cassette_fname) == 0)
+	_swprintf(name, plat_get_string(IDS_2148), plat_get_string(IDS_2057));
+    else {
+	mbstoc16s(fn, cassette_fname, sizeof_w(fn));
+	_swprintf(name, plat_get_string(IDS_2148), fn);
+    }
+
+    mii.cbSize = sizeof(mii);
+    mii.fMask = MIIM_STRING;
+    mii.dwTypeData = name;
+
+    SetMenuItemInfo(media_menu, (UINT_PTR)menus[CASSETTE_FIRST], FALSE, &mii);
+}
+
+
+static void
+media_menu_set_name_cartridge(int drive)
+{
+    wchar_t name[512], fn[512];
+    MENUITEMINFO mii = { 0 };
+
+    if (strlen(floppyfns[drive]) == 0) {
+	_swprintf(name, plat_get_string(IDS_2150),
+		  drive + 1, plat_get_string(IDS_2057));
+    } else {
+	mbstoc16s(fn, floppyfns[drive], sizeof_w(fn));
+	_swprintf(name, plat_get_string(IDS_2150),
+		  drive + 1, fn);
+    }
+
+    mii.cbSize = sizeof(mii);
+    mii.fMask = MIIM_STRING;
+    mii.dwTypeData = name;
+
+    SetMenuItemInfo(media_menu, (UINT_PTR)menus[CARTRIDGE_FIRST + drive], FALSE, &mii);
+}
+
 
 static void
 media_menu_set_name_floppy(int drive)
@@ -90,6 +143,7 @@ media_menu_set_name_floppy(int drive)
 
     SetMenuItemInfo(media_menu, (UINT_PTR)menus[FDD_FIRST + drive], FALSE, &mii);
 }
+
 
 static void
 media_menu_set_name_cdrom(int drive)
@@ -121,6 +175,7 @@ media_menu_set_name_cdrom(int drive)
     SetMenuItemInfo(media_menu, (UINT_PTR)menus[CDROM_FIRST + drive], FALSE, &mii);
 }
 
+
 static void
 media_menu_set_name_zip(int drive)
 {
@@ -150,6 +205,7 @@ media_menu_set_name_zip(int drive)
     SetMenuItemInfo(media_menu, (UINT_PTR)menus[ZIP_FIRST + drive], FALSE, &mii);
 }
 
+
 static void
 media_menu_set_name_mo(int drive)
 {
@@ -177,6 +233,53 @@ media_menu_set_name_mo(int drive)
     SetMenuItemInfo(media_menu, (UINT_PTR)menus[MO_FIRST + drive], FALSE, &mii);
 }
 
+
+void
+media_menu_update_cassette(void)
+{
+    int i = CASSETTE_FIRST;
+
+    if (strlen(cassette_fname) == 0) {
+	EnableMenuItem(menus[i], IDM_CASSETTE_EJECT, MF_BYCOMMAND | MF_GRAYED);
+	EnableMenuItem(menus[i], IDM_CASSETTE_RECORD, MF_BYCOMMAND | MF_GRAYED);
+	EnableMenuItem(menus[i], IDM_CASSETTE_PLAY, MF_BYCOMMAND | MF_GRAYED);
+	CheckMenuItem(menus[i], IDM_CASSETTE_RECORD, MF_BYCOMMAND | MF_UNCHECKED);
+	CheckMenuItem(menus[i], IDM_CASSETTE_PLAY, MF_BYCOMMAND | MF_UNCHECKED);
+	EnableMenuItem(menus[i], IDM_CASSETTE_REWIND, MF_BYCOMMAND | MF_GRAYED);
+	EnableMenuItem(menus[i], IDM_CASSETTE_FAST_FORWARD, MF_BYCOMMAND | MF_GRAYED);
+    } else {
+	EnableMenuItem(menus[i], IDM_CASSETTE_EJECT, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(menus[i], IDM_CASSETTE_RECORD, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(menus[i], IDM_CASSETTE_PLAY, MF_BYCOMMAND | MF_ENABLED);
+	if (strcmp(cassette_mode, "save") == 0) {
+		CheckMenuItem(menus[i], IDM_CASSETTE_RECORD, MF_BYCOMMAND | MF_CHECKED);
+		CheckMenuItem(menus[i], IDM_CASSETTE_PLAY, MF_BYCOMMAND | MF_UNCHECKED);
+	} else {
+		CheckMenuItem(menus[i], IDM_CASSETTE_RECORD, MF_BYCOMMAND | MF_UNCHECKED);
+		CheckMenuItem(menus[i], IDM_CASSETTE_PLAY, MF_BYCOMMAND | MF_CHECKED);
+	}
+	EnableMenuItem(menus[i], IDM_CASSETTE_REWIND, MF_BYCOMMAND | MF_ENABLED);
+	EnableMenuItem(menus[i], IDM_CASSETTE_FAST_FORWARD, MF_BYCOMMAND | MF_ENABLED);
+    }
+
+    media_menu_set_name_cassette();
+}
+
+
+void
+media_menu_update_cartridge(int id)
+{
+    int i = CARTRIDGE_FIRST + id;
+
+    if (strlen(cart_fns[id]) == 0)
+	EnableMenuItem(menus[i], IDM_CARTRIDGE_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
+    else
+	EnableMenuItem(menus[i], IDM_CARTRIDGE_EJECT | id, MF_BYCOMMAND | MF_ENABLED);
+
+    media_menu_set_name_cartridge(id);
+}
+
+
 void
 media_menu_update_floppy(int id)
 {
@@ -192,6 +295,7 @@ media_menu_update_floppy(int id)
 
     media_menu_set_name_floppy(id);
 }
+
 
 void
 media_menu_update_cdrom(int id)
@@ -220,6 +324,7 @@ media_menu_update_cdrom(int id)
     media_menu_set_name_cdrom(id);
 }
 
+
 void
 media_menu_update_zip(int id)
 {
@@ -237,6 +342,7 @@ media_menu_update_zip(int id)
 
     media_menu_set_name_zip(id);
 }
+
 
 void
 media_menu_update_mo(int id)
@@ -256,12 +362,21 @@ media_menu_update_mo(int id)
     media_menu_set_name_mo(id);
 }
 
+
 static void
 media_menu_load_submenus()
 {
     memset(index_map, -1, sizeof(index_map));
 
     int curr = 0;
+
+    menus[curr] = media_menu_load_resource(CASSETTE_SUBMENU_NAME);
+    media_menu_set_ids(menus[curr++], 0);
+
+    for(int i = 0; i < 2; i++) {
+	menus[curr] = media_menu_load_resource(CARTRIDGE_SUBMENU_NAME);
+	media_menu_set_ids(menus[curr++], i);
+    }
 
     for(int i = 0; i < FDD_NUM; i++) {
 	menus[curr] = media_menu_load_resource(FLOPPY_SUBMENU_NAME);
@@ -284,11 +399,20 @@ media_menu_load_submenus()
     }
 }
 
+
+static inline int
+is_valid_cartridge(void)
+{
+    return ((machines[machine].flags & MACHINE_CARTRIDGE) ? 1 : 0);
+}
+
+
 static inline int
 is_valid_fdd(int i)
 {
     return fdd_get_type(i) != 0;
 }
+
 
 static inline int
 is_valid_cdrom(int i)
@@ -302,6 +426,7 @@ is_valid_cdrom(int i)
     return cdrom[i].bus_type != 0;
 }
 
+
 static inline int
 is_valid_zip(int i)
 {
@@ -313,6 +438,7 @@ is_valid_zip(int i)
 	return 0;
     return zip_drives[i].bus_type != 0;
 }
+
 
 static inline int
 is_valid_mo(int i)
@@ -326,6 +452,7 @@ is_valid_mo(int i)
     return mo_drives[i].bus_type != 0;
 }
 
+
 void
 media_menu_reset()
 {
@@ -337,6 +464,20 @@ media_menu_reset()
 
     /* Add new ones. */
     int curr = 0;
+
+    if(cassette_enable) {
+	AppendMenu(media_menu, MF_POPUP | MF_STRING, (UINT_PTR)menus[curr], L"Test");
+	media_menu_update_cassette();
+    }
+    curr++;
+
+    for(int i = 0; i < 2; i++) {
+	if(is_valid_cartridge()) {
+		AppendMenu(media_menu, MF_POPUP | MF_STRING, (UINT_PTR)menus[curr], L"Test");
+		media_menu_update_cartridge(i);
+	}
+	curr++;
+    }
 
     for(int i = 0; i < FDD_NUM; i++) {
 	if(is_valid_fdd(i)) {
@@ -371,6 +512,7 @@ media_menu_reset()
     }
 }
 
+
 /* Initializes the Media menu in the main menu bar. */
 static void
 media_menu_main_init()
@@ -394,6 +536,7 @@ media_menu_main_init()
     free(lpMenuName);
 }
 
+
 void
 media_menu_init()
 {
@@ -411,6 +554,7 @@ media_menu_init()
     media_menu_reset();
 }
 
+
 int
 media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
@@ -419,6 +563,60 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     id = LOWORD(wParam) & 0x00ff;
 
     switch (LOWORD(wParam) & 0xff00) {
+	case IDM_CASSETTE_IMAGE_NEW:
+		ret = file_dlg_st(hwnd, IDS_2149, "", NULL, 1);
+		if (! ret) {
+			if (strlen(openfilestring) == 0)
+				cassette_mount(NULL, wp);
+			else
+				cassette_mount(openfilestring, wp);
+		}
+		break;
+
+	case IDM_CASSETTE_RECORD:
+		pc_cas_set_mode(cassette, 1);
+		CheckMenuItem(menus[CASSETTE_FIRST], IDM_CASSETTE_RECORD, MF_BYCOMMAND | MF_CHECKED);
+		CheckMenuItem(menus[CASSETTE_FIRST], IDM_CASSETTE_PLAY, MF_BYCOMMAND | MF_UNCHECKED);
+		break;
+	case IDM_CASSETTE_PLAY:
+		pc_cas_set_mode(cassette, 0);
+		CheckMenuItem(menus[CASSETTE_FIRST], IDM_CASSETTE_RECORD, MF_BYCOMMAND | MF_UNCHECKED);
+		CheckMenuItem(menus[CASSETTE_FIRST], IDM_CASSETTE_PLAY, MF_BYCOMMAND | MF_CHECKED);
+		break;
+	case IDM_CASSETTE_REWIND:
+		pc_cas_rewind(cassette);
+		break;
+	case IDM_CASSETTE_FAST_FORWARD:
+		pc_cas_append(cassette);
+		break;
+
+	case IDM_CASSETTE_IMAGE_EXISTING_WP:
+		wp = 1;
+		/* FALLTHROUGH */
+	case IDM_CASSETTE_IMAGE_EXISTING:
+		ret = file_dlg_st(hwnd, IDS_2149, cassette_fname, NULL, 0);
+		if (! ret) {
+			if (strlen(openfilestring) == 0)
+				cassette_mount(NULL, wp);
+			else
+				cassette_mount(openfilestring, wp);
+		}
+		break;
+
+	case IDM_CASSETTE_EJECT:
+		cassette_eject();
+		break;
+
+	case IDM_CARTRIDGE_IMAGE:
+		ret = file_dlg_st(hwnd, IDS_2151, floppyfns[id], NULL, 0);
+		if (! ret)
+			cartridge_mount(id, openfilestring, wp);
+		break;
+
+	case IDM_CARTRIDGE_EJECT:
+		cartridge_eject(id);
+		break;
+
 	case IDM_FLOPPY_IMAGE_NEW:
 		NewFloppyDialogCreate(hwnd, id, 0);
 		break;
@@ -428,9 +626,8 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		/* FALLTHROUGH */
 	case IDM_FLOPPY_IMAGE_EXISTING:
 		ret = file_dlg_st(hwnd, IDS_2109, floppyfns[id], NULL, 0);
-		if (! ret) {
+		if (! ret)
 			floppy_mount(id, openfilestring, wp);
-		}
 		break;
 
 	case IDM_FLOPPY_EJECT:
@@ -518,11 +715,27 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     return(1);
 }
 
+
+HMENU
+media_menu_get_cassette(void)
+{
+    return menus[CASSETTE_FIRST];
+}
+
+
+HMENU
+media_menu_get_cartridge(int id)
+{
+    return menus[CARTRIDGE_FIRST + id];
+}
+
+
 HMENU
 media_menu_get_floppy(int id)
 {
     return menus[FDD_FIRST + id];
 }
+
 
 HMENU
 media_menu_get_cdrom(int id)
@@ -530,11 +743,13 @@ media_menu_get_cdrom(int id)
     return menus[CDROM_FIRST + id];
 }
 
+
 HMENU
 media_menu_get_zip(int id)
 {
     return menus[ZIP_FIRST + id];
 }
+
 
 HMENU
 media_menu_get_mo(int id)

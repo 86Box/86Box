@@ -38,6 +38,7 @@
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/timer.h>
+#include <86box/cassette.h>
 #include <86box/nvr.h>
 #include <86box/machine.h>
 #include <86box/gameport.h>
@@ -103,7 +104,7 @@ static int temp_lpt_devices[3];
 static int temp_serial[4], temp_lpt[3];
 
 /* Other peripherals category */
-static int temp_fdc_card, temp_hdc, temp_ide_ter, temp_ide_qua;
+static int temp_fdc_card, temp_hdc, temp_ide_ter, temp_ide_qua, temp_cassette;
 static int temp_scsi_card[SCSI_BUS_MAX];
 static int temp_bugger;
 static int temp_postcard;
@@ -369,23 +370,17 @@ win_settings_init(void)
     for (i = 0; i < 4; i++)
 	temp_serial[i] = serial_enabled[i];
 
-    /* Other peripherals category */
+    /* Storage devices category */
     for (i = 0; i < SCSI_BUS_MAX; i++)
 	temp_scsi_card[i] = scsi_card_current[i];
     temp_fdc_card = fdc_type;
     temp_hdc = hdc_current;
     temp_ide_ter = ide_ter_enabled;
     temp_ide_qua = ide_qua_enabled;
-    temp_bugger = bugger_enabled;
-    temp_postcard = postcard_enabled;
-    temp_isartc = isartc_type;
-
-    /* ISA memory boards. */
-    for (i = 0; i < ISAMEM_MAX; i++)
-	temp_isamem[i] = isamem_type[i];	
+    temp_cassette = cassette_enable;
 
     mfm_tracking = xta_tracking = esdi_tracking = ide_tracking = 0;
-    for (i = 0; i < 2; i++)
+    for (i = 0; i < 8; i++)
 	scsi_tracking[i] = 0;
 
     /* Hard disks category */
@@ -432,6 +427,15 @@ win_settings_init(void)
     else if (mo_drives[i].bus_type == MO_BUS_SCSI)
 	scsi_tracking[mo_drives[i].scsi_device_id >> 3] |= (1 << ((mo_drives[i].scsi_device_id & 0x07) << 3));
     }
+
+    /* Other peripherals category */
+    temp_bugger = bugger_enabled;
+    temp_postcard = postcard_enabled;
+    temp_isartc = isartc_type;
+
+    /* ISA memory boards. */
+    for (i = 0; i < ISAMEM_MAX; i++)
+	temp_isamem[i] = isamem_type[i];	
 
     temp_deviceconfig = 0;
 }
@@ -486,20 +490,14 @@ win_settings_changed(void)
     for (j = 0; j < 4; j++)
 	i = i || (temp_serial[j] != serial_enabled[j]);
 
-    /* Peripherals category */
+    /* Storage devices category */
     for (j = 0; j < SCSI_BUS_MAX; j++)
 	i = i || (temp_scsi_card[j] != scsi_card_current[j]);
     i = i || (fdc_type != temp_fdc_card);
     i = i || (hdc_current != temp_hdc);
     i = i || (temp_ide_ter != ide_ter_enabled);
     i = i || (temp_ide_qua != ide_qua_enabled);
-    i = i || (temp_bugger != bugger_enabled);
-    i = i || (temp_postcard != postcard_enabled);
-    i = i || (temp_isartc != isartc_type);
-
-    /* ISA memory boards. */
-    for (j = 0; j < ISAMEM_MAX; j++)
-	i = i || (temp_isamem[j] != isamem_type[j]);
+    i = i || (temp_cassette != cassette_enable);
 
     /* Hard disks category */
     i = i || memcmp(hdd, temp_hdd, HDD_NUM * sizeof(hard_disk_t));
@@ -515,6 +513,15 @@ win_settings_changed(void)
     i = i || memcmp(cdrom, temp_cdrom, CDROM_NUM * sizeof(cdrom_t));
     i = i || memcmp(zip_drives, temp_zip_drives, ZIP_NUM * sizeof(zip_drive_t));
     i = i || memcmp(mo_drives, temp_mo_drives, MO_NUM * sizeof(mo_drive_t));
+
+    /* Other peripherals category */
+    i = i || (temp_bugger != bugger_enabled);
+    i = i || (temp_postcard != postcard_enabled);
+    i = i || (temp_isartc != isartc_type);
+
+    /* ISA memory boards. */
+    for (j = 0; j < ISAMEM_MAX; j++)
+	i = i || (temp_isamem[j] != isamem_type[j]);
 
     i = i || !!temp_deviceconfig;
 
@@ -574,20 +581,14 @@ win_settings_save(void)
     for (i = 0; i < 4; i++)
 	serial_enabled[i] = temp_serial[i];
 
-    /* Peripherals category */
+    /* Storage devices category */
     for (i = 0; i < SCSI_BUS_MAX; i++)
 	scsi_card_current[i] = temp_scsi_card[i];
     hdc_current = temp_hdc;
     fdc_type = temp_fdc_card;
     ide_ter_enabled = temp_ide_ter;
     ide_qua_enabled = temp_ide_qua;
-    bugger_enabled = temp_bugger;
-    postcard_enabled = temp_postcard;
-    isartc_type = temp_isartc;
-
-    /* ISA memory boards. */
-    for (i = 0; i < ISAMEM_MAX; i++)
-	isamem_type[i] = temp_isamem[i];
+    cassette_enable = temp_cassette;
 
     /* Hard disks category */
     memcpy(hdd, temp_hdd, HDD_NUM * sizeof(hard_disk_t));
@@ -623,6 +624,15 @@ win_settings_save(void)
 	mo_drives[i].f = NULL;
 	mo_drives[i].priv = NULL;
     }
+
+    /* Other peripherals category */
+    bugger_enabled = temp_bugger;
+    postcard_enabled = temp_postcard;
+    isartc_type = temp_isartc;
+
+    /* ISA memory boards. */
+    for (i = 0; i < ISAMEM_MAX; i++)
+	isamem_type[i] = temp_isamem[i];
 
     /* Mark configuration as changed. */
     config_changed = 2;
@@ -1656,6 +1666,7 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		settings_enable_window(hdlg, IDC_BUTTON_IDE_QUA, is_at && temp_ide_qua);
 		settings_set_check(hdlg, IDC_CHECK_IDE_TER, temp_ide_ter);
 		settings_set_check(hdlg, IDC_CHECK_IDE_QUA, temp_ide_qua);
+		settings_set_check(hdlg, IDC_CHECK_CASSETTE, temp_cassette);
 
 		free(stransi);
 		free(lptsTemp);
@@ -1723,6 +1734,7 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			temp_scsi_card[c] = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SCSI_1 + c)];
 		temp_ide_ter = settings_get_check(hdlg, IDC_CHECK_IDE_TER);
 		temp_ide_qua = settings_get_check(hdlg, IDC_CHECK_IDE_QUA);
+		temp_cassette = settings_get_check(hdlg, IDC_CHECK_CASSETTE);
 
 	default:
 		return FALSE;

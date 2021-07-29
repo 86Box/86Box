@@ -27,6 +27,8 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/timer.h>
+#include <86box/cassette.h>
+#include <86box/cartridge.h>
 #include <86box/dma.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
@@ -90,6 +92,11 @@ machine_init_ex(int m)
 	smbase = is_am486dxl ? 0x00060000 : 0x00030000;
 
 	lpt_init();
+
+	if (cassette_enable)
+		device_add(&cassette_device);
+
+	cart_reset();
     }
 
     /* All good, boot the machine! */

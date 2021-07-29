@@ -187,6 +187,34 @@ BEGIN
     MENUITEM SEPARATOR
 END
 
+CassetteSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&New image...",				IDM_CASSETTE_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "&Existing image...",				IDM_CASSETTE_IMAGE_EXISTING
+        MENUITEM "Existing image (&Write-protected)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "&Record",					IDM_CASSETTE_RECORD
+        MENUITEM "&Play",					IDM_CASSETTE_PLAY
+        MENUITEM "&Rewind to the beginning",			IDM_CASSETTE_REWIND
+        MENUITEM "&Fast forward to the end",			IDM_CASSETTE_FAST_FORWARD
+        MENUITEM SEPARATOR
+        MENUITEM "E&ject",					IDM_CASSETTE_EJECT
+    END
+END
+
+CartridgeSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Image...",					IDM_CARTRIDGE_IMAGE
+        MENUITEM SEPARATOR
+        MENUITEM "E&ject",					IDM_CARTRIDGE_EJECT
+    END
+END
+
 FloppySubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
@@ -549,7 +577,7 @@ BEGIN
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,118,94,10
 END
 
-DLG_CFG_STORAGE DIALOG DISCARDABLE  107, 0, 267, 211
+DLG_CFG_STORAGE DIALOG DISCARDABLE  107, 0, 267, 203
 STYLE DS_CONTROL | WS_CHILD
 FONT 9, "Segoe UI"
 BEGIN
@@ -588,6 +616,9 @@ BEGIN
     COMBOBOX        IDC_COMBO_SCSI_4,73,157,137,120,
                     CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
     PUSHBUTTON      "Configure",IDC_CONFIGURE_SCSI_4,213,157,38,12
+
+    CONTROL         "Cassette",IDC_CHECK_CASSETTE,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,185,94,10
 END
 
 DLG_CFG_HARD_DISKS DIALOG DISCARDABLE  107, 0, 267, 154
@@ -810,6 +841,7 @@ END
  81                     ICON    DISCARDABLE     ICON_PATH "icons/hard_disk_active.ico"
  96                     ICON    DISCARDABLE     ICON_PATH "icons/network.ico"
  97                     ICON    DISCARDABLE     ICON_PATH "icons/network_active.ico"
+104                     ICON    DISCARDABLE     ICON_PATH "icons/cartridge.ico"
 144                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_525_empty.ico"
 145                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_525_empty_active.ico"
 152                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_35_empty.ico"
@@ -822,6 +854,7 @@ END
 185                     ICON    DISCARDABLE     ICON_PATH "icons/mo_empty_active.ico"
 192                     ICON    DISCARDABLE     ICON_PATH "icons/cassette_empty.ico"
 193                     ICON    DISCARDABLE     ICON_PATH "icons/cassette_empty_active.ico"
+232                     ICON    DISCARDABLE     ICON_PATH "icons/cartridge_empty.ico"
 240                     ICON    DISCARDABLE     ICON_PATH "icons/machine.ico"
 241                     ICON    DISCARDABLE     ICON_PATH "icons/display.ico"
 242                     ICON    DISCARDABLE     ICON_PATH "icons/input_devices.ico"
@@ -1121,6 +1154,10 @@ BEGIN
     IDS_2145	"You are loading an unsupported configuration"
     IDS_2146	"CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
     IDS_2147	"Continue"
+    IDS_2148	"Cassette: %s"
+    IDS_2149	"Cassette images (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0All files (*.*)\0*.*\0"
+    IDS_2150	"Cartridge %i: %ls"
+    IDS_2151	"Cartridge images (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0All files (*.*)\0*.*\0"
 END
 
 STRINGTABLE DISCARDABLE 
