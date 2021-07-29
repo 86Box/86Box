@@ -689,7 +689,7 @@ load_machine(void)
     if (p) {
 	if (! strcmp(p, "enh_am486dx2")) /* migrate modified names */
 		cpu_f = cpu_get_family("am486dx2_slenh");
-	else if (! strcmp(p, "enh_am486dx4")) /* migrate modified names */
+	else if (! strcmp(p, "enh_am486dx4"))
 		cpu_f = cpu_get_family("am486dx4_slenh");
 	else
 		cpu_f = cpu_get_family(p);
