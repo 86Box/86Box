@@ -25,17 +25,17 @@
 #include <86box/io.h>
 #include <86box/snd_ac97.h>
 
-#define AC97_CODEC_ID(f, s, t, dev)	((((f) & 0xff) << 24) | (((s) & 0xff) << 16) | (((t) & 0xff) << 8) | ((dev) & 0xff))
+#define AC97_VENDOR_ID(f, s, t, dev)	((((f) & 0xff) << 24) | (((s) & 0xff) << 16) | (((t) & 0xff) << 8) | ((dev) & 0xff))
 
 
 enum {
-    AC97_CODEC_ALC100 = AC97_CODEC_ID('A', 'L', 'C', 0x20),
-    AC97_CODEC_CS4297 = AC97_CODEC_ID('C', 'R', 'Y', 0x03),
-    AC97_CODEC_CS4297A = AC97_CODEC_ID('C', 'R', 'Y', 0x13),
-    AC97_CODEC_WM9701A = AC97_CODEC_ID('W', 'M', 'L', 0x00)
+    AC97_CODEC_ALC100 = AC97_VENDOR_ID('A', 'L', 'C', 0x20),
+    AC97_CODEC_CS4297 = AC97_VENDOR_ID('C', 'R', 'Y', 0x03),
+    AC97_CODEC_CS4297A = AC97_VENDOR_ID('C', 'R', 'Y', 0x13),
+    AC97_CODEC_WM9701A = AC97_VENDOR_ID('W', 'M', 'L', 0x00)
 };
 
-#define ENABLE_AC97_CODEC_LOG 1
+
 #ifdef ENABLE_AC97_CODEC_LOG
 int ac97_codec_do_log = ENABLE_AC97_CODEC_LOG;
 

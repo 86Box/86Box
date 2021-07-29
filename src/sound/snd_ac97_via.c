@@ -371,15 +371,22 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 			i = !!(dev->sgd_regs[0x83] & 0x40);
 			codec = dev->codec[modem][i];
 
-			/* Read from or write to codec. */
+			/* Keep value in register if this codec is not present. */
 			if (codec) {
+				/* Read from or write to codec. */
 				if (val & 0x80) {
-					val &= 0x7e;
-					dev->sgd_regs[0x80] = dev->codec_shadow[modem].regs_codec[i][val] = ac97_codec_read(codec, val);
-					val |= 1;
-					dev->sgd_regs[0x81] = dev->codec_shadow[modem].regs_codec[i][val] = ac97_codec_read(codec, val);
-				} else {
-					val &= 0x7e;
+					if (val & 1) { /* return 0x00 on unaligned reads */
+						dev->sgd_regs[0x80] = dev->sgd_regs[0x81] = 0x00;
+					} else {
+						dev->sgd_regs[0x80] = dev->codec_shadow[modem].regs_codec[i][val] = ac97_codec_read(codec, val);
+						val |= 1;
+						dev->sgd_regs[0x81] = dev->codec_shadow[modem].regs_codec[i][val] = ac97_codec_read(codec, val);
+					}
+
+					/* Flag data/status/index for this codec as valid. */
+					if (val & 0x80)
+						dev->sgd_regs[0x83] |= 0x02 << (i << 1);
+				} else if (!(val & 1)) { /* do nothing on unaligned writes */
 					ac97_codec_write(codec, val, dev->codec_shadow[modem].regs_codec[i][val] = dev->sgd_regs[0x80]);
 					val |= 1;
 					ac97_codec_write(codec, val, dev->codec_shadow[modem].regs_codec[i][val] = dev->sgd_regs[0x81]);
@@ -388,12 +395,6 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 					if (!modem && !i)
 						ac97_via_update_codec(dev);
 				}
-
-				/* Flag data/status/index for this codec as valid. */
-				dev->sgd_regs[0x83] |= 0x02 << (i * 2);
-			} else if (val & 0x80) {
-				/* Unknown behavior when reading from an absent codec. */
-				dev->sgd_regs[0x80] = dev->sgd_regs[0x81] = 0xff;
 			}
 			break;
 
@@ -402,7 +403,7 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 #if 0 /* race condition with Linux accessing a register and clearing status bits on the same dword write */
 			val = (dev->sgd_regs[addr] & ~(val & 0x0a)) | (val & 0xc0);
 #else
-			val = dev->sgd_regs[addr] | 0x0a | (val & 0xc0);
+			val = dev->sgd_regs[addr] | (val & 0xc0);
 #endif
 			break;
 	}
