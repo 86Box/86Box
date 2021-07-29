@@ -124,13 +124,13 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 		if (val & 0x40) { /* dispatch command if START is set */
 			timer_bytes++; /* address */
 
-			smbus_addr = (dev->addr >> 1);
+			smbus_addr = dev->addr >> 1;
 			read = dev->addr & 0x01;
 
 			cmd = (dev->ctl >> 2) & 0xf;
 			smbus_piix4_log("SMBus PIIX4: addr=%02X read=%d protocol=%X cmd=%02X data0=%02X data1=%02X\n", smbus_addr, read, cmd, dev->cmd, dev->data0, dev->data1);
 
-			/* Raise DEV_ERR if no device is at this address, or if the device returned NAK when starting the transfer. */
+			/* Raise DEV_ERR if no device is at this address, or if the device returned NAK. */
 			if (!i2c_start(i2c_smbus, smbus_addr, read)) {
 				dev->next_stat = 0x04;
 				break;

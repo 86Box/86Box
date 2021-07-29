@@ -106,11 +106,17 @@ ac97_codec_write(ac97_codec_t *dev, uint8_t reg, uint8_t val)
 		/* Read-only registers. */
 		return;
 
+	case 0x02: /* Master Volume LSB */
+	case 0x04: /* Aux Out Volume LSB */
+	case 0x06: /* Mono Volume LSB */
+		val &= 0x3f;
+		/* fall-through */
+
 	case 0x03: /* Master Volume MSB */
 	case 0x05: /* Aux Out Volume MSB */
 		val &= 0xbf;
 
-		/* Convert 6-bit level 1xxxxx to 011111. */
+		/* Limit level to a maximum of 011111. */
 		if (val & 0x20) {
 			val &= ~0x20;
 			val |= 0x1f;
@@ -121,18 +127,6 @@ ac97_codec_write(ac97_codec_t *dev, uint8_t reg, uint8_t val)
 	case 0x0b: /* PC Beep Volume MSB */
 	case 0x20: /* General Purpose LSB */
 		val &= 0x80;
-		break;
-
-	case 0x02: /* Master Volume LSB */
-	case 0x04: /* Aux Out Volume LSB */
-	case 0x06: /* Mono Volume LSB */
-		val &= 0x3f;
-
-		/* Convert 6-bit level 1xxxxx to 011111. */
-		if (val & 0x20) {
-			val &= ~0x20;
-			val |= 0x1f;
-		}
 		break;
 
 	case 0x0a: /* PC Beep Volume LSB */
@@ -177,9 +171,12 @@ ac97_codec_write(ac97_codec_t *dev, uint8_t reg, uint8_t val)
 		break;
 
 	case 0x2a: /* Extended Audio Status/Control LSB */
+#ifdef AC97_CODEC_FULL_RATE_RANGE /* enable DRA (double rate) support */
 		val &= 0x0b;
-
-		/* Reset DAC sample rates to 48 KHz if VRA is being cleared. */
+#else
+		val &= 0x09;
+#endif
+		/* Reset DAC sample rates to 48 KHz (96 KHz with DRA) if VRA is being cleared. */
 		if (!(val & 0x01)) {
 			for (i = 0x2c; i <= 0x30; i += 2)
 				*((uint16_t *) &dev->regs[i]) = 48000;
@@ -192,16 +189,19 @@ ac97_codec_write(ac97_codec_t *dev, uint8_t reg, uint8_t val)
 		}
 		break;
 
-	case 0x2c ... 0x31: /* DAC Rates */
-		/* Writable only if VRA is set. */
-		if (!(dev->regs[0x2a] & 0x01))
+	case 0x2c ... 0x35: /* DAC/ADC Rates */
+		/* Writable only if VRA/VRM is set. */
+		i = (reg >= 0x32) ? 0x08 : 0x01;
+		if (!(dev->regs[0x2a] & i))
 			return;
-		break;
 
-	case 0x32 ... 0x35: /* ADC Rates */
-		/* Writable only if VRM is set. */
-		if (!(dev->regs[0x2a] & 0x08))
+#ifndef AC97_CODEC_FULL_RATE_RANGE
+		/* Limit to 48 KHz on MSB write. */
+		if ((reg & 1) && (((val << 8) | dev->regs[reg & 0x7e]) > 48000)) {
+			*((uint16_t *) &dev->regs[reg & 0x7e]) = 48000;
 			return;
+		}
+#endif
 		break;
     }
 
@@ -232,10 +232,14 @@ ac97_codec_reset(void *priv)
     dev->regs[0x26] = 0x0f;
 
     /* Set up variable sample rate support. */
+#ifdef AC97_CODEC_FULL_RATE_RANGE /* enable DRA (double rate) support */
     dev->regs[0x28] = 0x0b;
+#else
+    dev->regs[0x28] = 0x09;
+#endif
     ac97_codec_write(dev, 0x2a, 0x00); /* reset DAC/ADC sample rates */
 
-    /* Set Codec and Vendor IDs. */
+    /* Set codec and vendor IDs. */
     dev->regs[0x29] = (dev->codec_id << 6) | 0x02;
     dev->regs[0x7c] = dev->vendor_id >> 16;
     dev->regs[0x7d] = dev->vendor_id >> 24;
@@ -277,9 +281,11 @@ ac97_codec_getrate(void *priv, uint8_t reg)
     /* Get configured sample rate, which is always 48000 if VRA/VRM is not set. */
     uint32_t ret = *((uint16_t *) &dev->regs[reg]);
 
+#ifdef AC97_CODEC_FULL_RATE_RANGE
     /* If this is a DAC, double sample rate if DRA is set. */
     if ((reg < 0x32) && (dev->regs[0x2a] & 0x02))
 	ret <<= 1;
+#endif
 
     ac97_codec_log("AC97 Codec %d: getrate(%02X) = %d\n", dev->codec_id, reg, ret);
 

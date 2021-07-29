@@ -85,7 +85,7 @@ ac97_via_log(const char *fmt, ...)
 
 
 static void	ac97_via_sgd_process(void *priv);
-static void	ac97_via_update_codec(ac97_via_t *dev, ac97_codec_t *codec);
+static void	ac97_via_update_codec(ac97_via_t *dev);
 static void	ac97_via_speed_changed(void *priv);
 
 
@@ -127,27 +127,18 @@ ac97_via_write_control(void *priv, uint8_t modem, uint8_t val)
 
     ac97_via_log("AC97 VIA %d: write_control(%02X)\n", modem, val);
 
-    if (!modem) {
-	/* Set the variable sample rate flag now, so that the upcoming
-	   update_codec can properly update the poller timer interval. */
-	dev->vsr_enabled = !!(val & 0x08);
-    }
-
-    /* Reset and/or update volumes on all codecs. */
-    for (i = 0; i <= 1; i++) {
-	if (!dev->codec[modem][i])
-		continue;
-
-	/* Reset codec if requested. */
-	if (!(val & 0x40))
-		ac97_codec_reset(dev->codec[modem][i]);
-
-	/* Update primary codec state. */
-	if (!modem && !i)
-		ac97_via_update_codec(dev, dev->codec[modem][i]);
+    /* Reset codecs if requested. */
+    if (!(val & 0x40)) {
+	for (i = 0; i <= 1; i++) {
+		if (dev->codec[modem][i])
+			ac97_codec_reset(dev->codec[modem][i]);
+	}
     }
 
     if (!modem) {
+	/* Set the variable sample rate flag. */
+	dev->vsr_enabled = (val & 0xf8) == 0xc8;
+
 	/* Start or stop PCM playback. */
 	i = (val & 0xf4) == 0xc4;
 	if (i && !dev->pcm_enabled)
@@ -159,6 +150,10 @@ ac97_via_write_control(void *priv, uint8_t modem, uint8_t val)
 	if (i && !dev->fm_enabled)
 		timer_advance_u64(&dev->timer_count_fm, dev->timer_latch);
 	dev->fm_enabled = i;
+
+	/* Update primary audio codec state. */
+	if (dev->codec[0][0])
+		ac97_via_update_codec(dev);
     }
 }
 
@@ -167,12 +162,10 @@ static void
 ac97_via_update_irqs(ac97_via_t *dev)
 {
     /* Check interrupt flags in all SGDs. */
-    uint8_t i, sgd_id;
-    for (i = 0; i < (sizeof(dev->sgd) / sizeof(dev->sgd[0])); i++) {
-	sgd_id = i << 4;
+    for (uint8_t i = 0x00; i < ((sizeof(dev->sgd) / sizeof(dev->sgd[0])) << 4); i += 0x10) {
 	/* Stop immediately if any flag is set. Doing it this way optimizes
 	   rising edges for the playback SGD (0 - first to be checked). */
-	if (dev->sgd_regs[sgd_id] & (dev->sgd_regs[sgd_id | 0x2] & 0x03)) {
+	if (dev->sgd_regs[i] & (dev->sgd_regs[i | 0x2] & 0x03)) {
 		pci_set_irq(dev->slot, dev->irq_pin);
 		return;
 	}
@@ -183,13 +176,16 @@ ac97_via_update_irqs(ac97_via_t *dev)
 
 
 static void
-ac97_via_update_codec(ac97_via_t *dev, ac97_codec_t *codec) {
+ac97_via_update_codec(ac97_via_t *dev) {
+    /* Get primary audio codec. */
+    ac97_codec_t *codec = dev->codec[0][0];
+
     /* Update volumes according to codec registers. */
     ac97_codec_getattn(codec, 0x02, &dev->master_vol_l, &dev->master_vol_r);
     ac97_codec_getattn(codec, 0x18, &dev->pcm_vol_l, &dev->pcm_vol_r);
     ac97_codec_getattn(codec, 0x12, &dev->cd_vol_l, &dev->cd_vol_r);
 
-    /* Update sample rate according to codec registers and the variable sample rate bit. */
+    /* Update sample rate according to codec registers and the variable sample rate flag. */
     ac97_via_speed_changed(dev);
 }
 
@@ -388,9 +384,9 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 					val |= 1;
 					ac97_codec_write(codec, val, dev->codec_shadow[modem].regs_codec[i][val] = dev->sgd_regs[0x81]);
 
-					/* Update primary codec state. */
+					/* Update primary audio codec state if that codec was written to. */
 					if (!modem && !i)
-						ac97_via_update_codec(dev, codec);
+						ac97_via_update_codec(dev);
 				}
 
 				/* Flag data/status/index for this codec as valid. */
