@@ -32,6 +32,7 @@
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/cassette.h>
+#include <86box/cartridge.h>
 #include <86box/fdd.h>
 #include <86box/hdd.h>
 #include <86box/scsi_device.h>
@@ -68,6 +69,29 @@ cassette_eject(void)
     ui_sb_update_icon_state(SB_CASSETTE, 1);
     media_menu_update_cassette();
     ui_sb_update_tip(SB_CASSETTE);
+    config_save();
+}
+
+
+void
+cartridge_mount(uint8_t id, char *fn, uint8_t wp)
+{
+    cart_close(id);
+    cart_load(id, fn);
+    ui_sb_update_icon_state(SB_CARTRIDGE | id, strlen(cart_fns[id]) ? 0 : 1);
+    media_menu_update_cartridge(id);
+    ui_sb_update_tip(SB_CARTRIDGE | id);
+    config_save();
+}
+
+
+void
+cartridge_eject(uint8_t id)
+{
+    cart_close(id);
+    ui_sb_update_icon_state(SB_CARTRIDGE | id, 1);
+    media_menu_update_cartridge(id);
+    ui_sb_update_tip(SB_CARTRIDGE | id);
     config_save();
 }
 

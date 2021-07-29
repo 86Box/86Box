@@ -28,6 +28,7 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/cassette.h>
+#include <86box/cartridge.h>
 #include <86box/dma.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
@@ -94,6 +95,8 @@ machine_init_ex(int m)
 
 	if (cassette_enable)
 		device_add(&cassette_device);
+
+	cart_reset();
     }
 
     /* All good, boot the machine! */

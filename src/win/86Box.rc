@@ -205,6 +205,16 @@ BEGIN
     END
 END
 
+CartridgeSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Image...",					IDM_CARTRIDGE_IMAGE
+        MENUITEM SEPARATOR
+        MENUITEM "E&ject",					IDM_CARTRIDGE_EJECT
+    END
+END
+
 FloppySubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
@@ -831,6 +841,7 @@ END
  81                     ICON    DISCARDABLE     ICON_PATH "icons/hard_disk_active.ico"
  96                     ICON    DISCARDABLE     ICON_PATH "icons/network.ico"
  97                     ICON    DISCARDABLE     ICON_PATH "icons/network_active.ico"
+104                     ICON    DISCARDABLE     ICON_PATH "icons/cartridge.ico"
 144                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_525_empty.ico"
 145                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_525_empty_active.ico"
 152                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_35_empty.ico"
@@ -843,6 +854,7 @@ END
 185                     ICON    DISCARDABLE     ICON_PATH "icons/mo_empty_active.ico"
 192                     ICON    DISCARDABLE     ICON_PATH "icons/cassette_empty.ico"
 193                     ICON    DISCARDABLE     ICON_PATH "icons/cassette_empty_active.ico"
+232                     ICON    DISCARDABLE     ICON_PATH "icons/cartridge_empty.ico"
 240                     ICON    DISCARDABLE     ICON_PATH "icons/machine.ico"
 241                     ICON    DISCARDABLE     ICON_PATH "icons/display.ico"
 242                     ICON    DISCARDABLE     ICON_PATH "icons/input_devices.ico"
@@ -1144,6 +1156,8 @@ BEGIN
     IDS_2147	"Continue"
     IDS_2148	"Cassette: %s"
     IDS_2149	"Cassette images (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0All files (*.*)\0*.*\0"
+    IDS_2150	"Cartridge %i: %ls"
+    IDS_2151	"Cartridge images (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0All files (*.*)\0*.*\0"
 END
 
 STRINGTABLE DISCARDABLE 

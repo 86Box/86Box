@@ -38,6 +38,7 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/cassette.h>
+#include <86box/cartridge.h>
 #include <86box/nvr.h>
 #include <86box/config.h>
 #include <86box/isamem.h>
@@ -1115,6 +1116,33 @@ load_storage_controllers(void)
     cassette_append = !!config_get_int(cat, "cassette_append", 0);
     cassette_pcm = config_get_int(cat, "cassette_pcm", 0);
     cassette_ui_writeprot = !!config_get_int(cat, "cassette_writeprot", 0);
+
+    for (c=0; c<2; c++) {
+	sprintf(temp, "cartridge_%02i_fn", c + 1);
+	p = config_get_string(cat, temp, "");
+
+#if 0
+	/*
+	 * NOTE:
+	 * Temporary hack to remove the absolute
+	 * path currently saved in most config
+	 * files.  We should remove this before
+	 * finalizing this release!  --FvK
+	 */
+	if (! wcsnicmp(wp, usr_path, wcslen(usr_path))) {
+		/*
+		 * Yep, its absolute and prefixed
+		 * with the EXE path.  Just strip
+		 * that off for now...
+		 */
+		wcsncpy(floppyfns[c], &wp[wcslen(usr_path)], sizeof_w(cart_fns[c]));
+	} else
+#endif
+	if (strlen(p) > 511)
+		fatal("load_storage_controllers(): strlen(p) > 511\n");
+	else
+		strncpy(cart_fns[c], p, strlen(p) + 1);
+    }
 }
 
 
@@ -2547,6 +2575,14 @@ save_storage_controllers(void)
 	config_delete_var(cat, "cassette_writeprot");
     else
 	config_set_int(cat, "cassette_writeprot", cassette_ui_writeprot);
+
+    for (c=0; c<2; c++) {
+	sprintf(temp, "cartridge_%02i_fn", c+1);
+	if (strlen(cart_fns[c]) == 0)
+		config_delete_var(cat, temp);
+	else
+		config_set_string(cat, temp, cart_fns[c]);
+    }
 }
 
 

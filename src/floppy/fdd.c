@@ -489,24 +489,24 @@ fdd_load(int drive, char *fn)
     if (!p)
 	return;
     f = plat_fopen(fn, "rb");
-    if (!f)
-	return;
-    if (fseek(f, -1, SEEK_END) == -1)
-	fatal("fdd_load(): Error seeking to the end of the file\n");
-    size = ftell(f) + 1;
-    fclose(f);        
-    while (loaders[c].ext) {
-	if (!strcasecmp(p, (char *) loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1)) {
-		driveloaders[drive] = c;
-		strcpy(floppyfns[drive], fn);
-		d86f_setup(drive);
-		loaders[c].load(drive, floppyfns[drive]);
-		drive_empty[drive] = 0;
-		fdd_forced_seek(drive, 0);
-		fdd_changed[drive] = 1;
-		return;
+    if (f) {
+	if (fseek(f, -1, SEEK_END) == -1)
+		fatal("fdd_load(): Error seeking to the end of the file\n");
+	size = ftell(f) + 1;
+	fclose(f);        
+	while (loaders[c].ext) {
+		if (!strcasecmp(p, (char *) loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1)) {
+			driveloaders[drive] = c;
+			strcpy(floppyfns[drive], fn);
+			d86f_setup(drive);
+			loaders[c].load(drive, floppyfns[drive]);
+			drive_empty[drive] = 0;
+			fdd_forced_seek(drive, 0);
+			fdd_changed[drive] = 1;
+			return;
+		}
+		c++;
 	}
-	c++;
     }
     fdd_log("FDD: could not load '%s' %s\n",fn,p);
     drive_empty[drive] = 1;

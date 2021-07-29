@@ -9,6 +9,7 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/cassette.h>
+#include <86box/cartridge.h>
 #include <86box/fdd.h>
 #include <86box/fdd_86f.h>
 #include <86box/hdc.h>
@@ -27,14 +28,15 @@
 #define MACHINE_HAS_SCSI	(machines[machine].flags & MACHINE_SCSI_DUAL)
 
 #define CASSETTE_FIRST		0
-#define FDD_FIRST		1
+#define CARTRIDGE_FIRST		CASSETTE_FIRST + 1
+#define FDD_FIRST		CARTRIDGE_FIRST + 2
 #define CDROM_FIRST		FDD_FIRST + FDD_NUM
 #define ZIP_FIRST		CDROM_FIRST + CDROM_NUM
 #define MO_FIRST		ZIP_FIRST + ZIP_NUM
 
 
 static HMENU	media_menu, stbar_menu;
-static HMENU	menus[1 + FDD_NUM + CDROM_NUM + ZIP_NUM + MO_NUM];
+static HMENU	menus[1 + 2 + FDD_NUM + CDROM_NUM + ZIP_NUM + MO_NUM];
 
 static char	index_map[255];
 
@@ -92,6 +94,29 @@ media_menu_set_name_cassette(void)
     mii.dwTypeData = name;
 
     SetMenuItemInfo(media_menu, (UINT_PTR)menus[CASSETTE_FIRST], FALSE, &mii);
+}
+
+
+static void
+media_menu_set_name_cartridge(int drive)
+{
+    wchar_t name[512], fn[512];
+    MENUITEMINFO mii = { 0 };
+
+    if (strlen(floppyfns[drive]) == 0) {
+	_swprintf(name, plat_get_string(IDS_2150),
+		  drive + 1, plat_get_string(IDS_2057));
+    } else {
+	mbstoc16s(fn, floppyfns[drive], sizeof_w(fn));
+	_swprintf(name, plat_get_string(IDS_2150),
+		  drive + 1, fn);
+    }
+
+    mii.cbSize = sizeof(mii);
+    mii.fMask = MIIM_STRING;
+    mii.dwTypeData = name;
+
+    SetMenuItemInfo(media_menu, (UINT_PTR)menus[CARTRIDGE_FIRST + drive], FALSE, &mii);
 }
 
 
@@ -242,6 +267,20 @@ media_menu_update_cassette(void)
 
 
 void
+media_menu_update_cartridge(int id)
+{
+    int i = CARTRIDGE_FIRST + id;
+
+    if (strlen(cart_fns[id]) == 0)
+	EnableMenuItem(menus[i], IDM_CARTRIDGE_EJECT | id, MF_BYCOMMAND | MF_GRAYED);
+    else
+	EnableMenuItem(menus[i], IDM_CARTRIDGE_EJECT | id, MF_BYCOMMAND | MF_ENABLED);
+
+    media_menu_set_name_cartridge(id);
+}
+
+
+void
 media_menu_update_floppy(int id)
 {
     int i = FDD_FIRST + id;
@@ -334,6 +373,11 @@ media_menu_load_submenus()
     menus[curr] = media_menu_load_resource(CASSETTE_SUBMENU_NAME);
     media_menu_set_ids(menus[curr++], 0);
 
+    for(int i = 0; i < 2; i++) {
+	menus[curr] = media_menu_load_resource(CARTRIDGE_SUBMENU_NAME);
+	media_menu_set_ids(menus[curr++], i);
+    }
+
     for(int i = 0; i < FDD_NUM; i++) {
 	menus[curr] = media_menu_load_resource(FLOPPY_SUBMENU_NAME);
 	media_menu_set_ids(menus[curr++], i);
@@ -353,6 +397,13 @@ media_menu_load_submenus()
 	menus[curr] = media_menu_load_resource(MO_SUBMENU_NAME);
 	media_menu_set_ids(menus[curr++], i);
     }
+}
+
+
+static inline int
+is_valid_cartridge(void)
+{
+    return ((machines[machine].flags & MACHINE_CARTRIDGE) ? 1 : 0);
 }
 
 
@@ -419,6 +470,14 @@ media_menu_reset()
 	media_menu_update_cassette();
     }
     curr++;
+
+    for(int i = 0; i < 2; i++) {
+	if(is_valid_cartridge()) {
+		AppendMenu(media_menu, MF_POPUP | MF_STRING, (UINT_PTR)menus[curr], L"Test");
+		media_menu_update_cartridge(i);
+	}
+	curr++;
+    }
 
     for(int i = 0; i < FDD_NUM; i++) {
 	if(is_valid_fdd(i)) {
@@ -548,6 +607,16 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		cassette_eject();
 		break;
 
+	case IDM_CARTRIDGE_IMAGE:
+		ret = file_dlg_st(hwnd, IDS_2151, floppyfns[id], NULL, 0);
+		if (! ret)
+			cartridge_mount(id, openfilestring, wp);
+		break;
+
+	case IDM_CARTRIDGE_EJECT:
+		cartridge_eject(id);
+		break;
+
 	case IDM_FLOPPY_IMAGE_NEW:
 		NewFloppyDialogCreate(hwnd, id, 0);
 		break;
@@ -651,6 +720,13 @@ HMENU
 media_menu_get_cassette(void)
 {
     return menus[CASSETTE_FIRST];
+}
+
+
+HMENU
+media_menu_get_cartridge(int id)
+{
+    return menus[CARTRIDGE_FIRST + id];
 }
 
 
