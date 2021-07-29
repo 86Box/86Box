@@ -208,8 +208,6 @@ StatusBarCreateCartridgeTip(int part)
     WCHAR fn[512];
     int drive = sb_part_meanings[part] & 0xf;
 
-    int type = zip_drives[drive].is_250 ? 250 : 100;
-
     if (strlen(cart_fns[drive]) == 0) {
 	_swprintf(tempTip, plat_get_string(IDS_2150),
 		  drive+1, plat_get_string(IDS_2057));
