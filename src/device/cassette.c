@@ -418,7 +418,7 @@ int pc_cas_read_smp (pc_cassette_t *cas)
 static
 void pc_cas_write_bit (pc_cassette_t *cas, unsigned char val)
 {
-	if (val) {
+	if (val && !cassette_ui_writeprot) {
 		cas->cas_out_buf |= (0x80 >> cas->cas_out_cnt);
 	}
 
@@ -426,7 +426,8 @@ void pc_cas_write_bit (pc_cassette_t *cas, unsigned char val)
 
 	if (cas->cas_out_cnt >= 8) {
 		if (cas->fp != NULL) {
-			fputc (cas->cas_out_buf, cas->fp);
+			if (!cassette_ui_writeprot)
+				fputc (cas->cas_out_buf, cas->fp);
 			cas->position += 1;
 		}
 
@@ -447,7 +448,8 @@ void pc_cas_write_smp (pc_cassette_t *cas, int val)
 		smp = (val > 127) ? 0x7f : val;
 	}
 
-	fputc (smp, cas->fp);
+	if (!cassette_ui_writeprot)
+		fputc (smp, cas->fp);
 
 	cas->position += 1;
 }

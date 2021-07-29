@@ -64,6 +64,7 @@ void
 cassette_eject(void)
 {
     pc_cas_set_fname(cassette, NULL);
+    memset(cassette_fname, 0x00, sizeof(cassette_fname));
     ui_sb_update_icon_state(SB_CASSETTE, 1);
     media_menu_update_cassette();
     ui_sb_update_tip(SB_CASSETTE);
