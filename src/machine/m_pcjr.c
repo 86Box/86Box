@@ -618,7 +618,8 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
 		timer_process();
 
-		pc_cas_set_motor(cassette, (pcjr->pb & 0x08) == 0);
+		if (cassette != NULL)
+			pc_cas_set_motor(cassette, (pcjr->pb & 0x08) == 0);
 
 		speaker_update();
 		speaker_gated = val & 1;

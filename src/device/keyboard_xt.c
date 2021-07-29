@@ -516,7 +516,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
                 timer_process();
 
-		if (kbd->type <= 1)
+		if ((kbd->type <= 1) && (cassette != NULL))
 			pc_cas_set_motor(cassette, (kbd->pb & 0x08) == 0);
 
 		speaker_update();
