@@ -287,6 +287,7 @@ ResetAllMenus(void)
 # endif
 #endif
 
+    CheckMenuItem(menuMain, IDM_VID_HIDE_STATUS_BAR, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_FORCE43, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_OVERSCAN, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_INVERT, MF_UNCHECKED);
@@ -353,6 +354,7 @@ ResetAllMenus(void)
 # endif
 #endif
 
+    CheckMenuItem(menuMain, IDM_VID_HIDE_STATUS_BAR, hide_statu_bar ? MF_CHECKED : MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_FORCE43, force_43?MF_CHECKED:MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_OVERSCAN, enable_overscan?MF_CHECKED:MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_INVERT, invert_display ? MF_CHECKED : MF_UNCHECKED);
