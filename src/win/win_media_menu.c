@@ -103,11 +103,11 @@ media_menu_set_name_cartridge(int drive)
     wchar_t name[512], fn[512];
     MENUITEMINFO mii = { 0 };
 
-    if (strlen(floppyfns[drive]) == 0) {
+    if (strlen(cart_fns[drive]) == 0) {
 	_swprintf(name, plat_get_string(IDS_2150),
 		  drive + 1, plat_get_string(IDS_2057));
     } else {
-	mbstoc16s(fn, floppyfns[drive], sizeof_w(fn));
+	mbstoc16s(fn, cart_fns[drive], sizeof_w(fn));
 	_swprintf(name, plat_get_string(IDS_2150),
 		  drive + 1, fn);
     }
@@ -608,7 +608,7 @@ media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case IDM_CARTRIDGE_IMAGE:
-		ret = file_dlg_st(hwnd, IDS_2151, floppyfns[id], NULL, 0);
+		ret = file_dlg_st(hwnd, IDS_2151, cart_fns[id], NULL, 0);
 		if (! ret)
 			cartridge_mount(id, openfilestring, wp);
 		break;
