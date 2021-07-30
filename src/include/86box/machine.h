@@ -37,6 +37,7 @@
 #define MACHINE_BUS_PCI		0x00000200	/* sys has PCI bus */
 #define MACHINE_BUS_PCMCIA	0x00000400	/* sys has PCMCIA bus */
 #define MACHINE_BUS_AGP		0x00000800	/* sys has AGP bus */
+#define MACHINE_BUS_AC97	0x00080000	/* sys has AC97 bus (ACR/AMR/CNR slot) */
 /* Combined flags. */
 #define MACHINE_PC		0x00000004	/* sys is PC/XT-compatible (ISA) */
 #define MACHINE_AT		0x0000000C	/* sys is AT-compatible (ISA + ISA16) */

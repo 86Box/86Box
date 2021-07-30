@@ -394,6 +394,8 @@ device_get_name(const device_t *d, int bus, char *name)
 		sbus = "PCI";
 	else if (d->flags & DEVICE_AGP)
 		sbus = "AGP";
+	else if (d->flags & DEVICE_AC97)
+		sbus = "AMR";
 
 	if (sbus != NULL) {
 		/* First concatenate [<Bus>] before the device's name. */
@@ -665,6 +667,8 @@ device_is_valid(const device_t *device, int mflags)
     if ((device->flags & DEVICE_AGP) && !(mflags & MACHINE_BUS_AGP)) return(0);
 
     if ((device->flags & DEVICE_PS2) && !(mflags & MACHINE_BUS_PS2)) return(0);
+
+    if ((device->flags & DEVICE_AC97) && !(mflags & MACHINE_BUS_AC97)) return(0);
 
     return(1);
 }
