@@ -258,12 +258,6 @@ video_set_filter_menu(HMENU menu)
 static void
 ResetAllMenus(void)
 {
-#ifndef DEV_BRANCH
-    /* FIXME: until we fix these.. --FvK */
-    EnableMenuItem(menuMain, IDM_CONFIG_LOAD, MF_DISABLED);
-    EnableMenuItem(menuMain, IDM_CONFIG_SAVE, MF_DISABLED);
-#endif
-
     CheckMenuItem(menuMain, IDM_ACTION_RCTRL_IS_LALT, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_ACTION_KBD_REQ_CAPTURE, MF_UNCHECKED);
 
