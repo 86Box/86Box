@@ -68,6 +68,7 @@ int		rctrl_is_lalt = 0;
 int		user_resize = 0;
 int		fixed_size_x = 0, fixed_size_y = 0;
 int		kbd_req_capture = 0;
+int		hide_status_bar = 0;
 
 extern char	openfilestring[512];
 extern WCHAR	wopenfilestring[512];
@@ -705,6 +706,18 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				config_save();
 				break;
 
+			case IDM_VID_HIDE_STATUS_BAR:
+				hide_status_bar ^= 1;
+				CheckMenuItem(hmenu, IDM_VID_HIDE_STATUS_BAR, hide_status_bar ? MF_CHECKED : MF_UNCHECKED);
+				ShowWindow(hwndSBAR, hide_status_bar ? SW_HIDE : SW_SHOW);
+				GetWindowRect(hwnd, &rect);
+				if (hide_status_bar)
+					MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top - sbar_height, TRUE);
+				else
+					MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top + sbar_height, TRUE);
+				config_save();
+				break;
+
 			case IDM_VID_RESIZE:
 				vid_resize ^= 1;
 				CheckMenuItem(hmenu, IDM_VID_RESIZE, (vid_resize & 1) ? MF_CHECKED : MF_UNCHECKED);
@@ -723,7 +736,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 					temp_y = unscaled_size_y;
 				}
 
-				ResizeWindowByClientArea(hwnd, temp_x, temp_y + sbar_height);
+				if (hide_status_bar)
+					ResizeWindowByClientArea(hwnd, temp_x, temp_y);
+				else
+					ResizeWindowByClientArea(hwnd, temp_x, temp_y + sbar_height);
 
 				if (mouse_capture) {
 					ClipCursor(&rect);
@@ -1009,7 +1025,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 
 			/* Main Window. */
-			ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
+			if (hide_status_bar)
+				ResizeWindowByClientArea(hwndMain, temp_x, temp_y);
+			else
+				ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
 		} else if (!user_resize)
 			doresize = 1;
 		break;
@@ -1039,8 +1058,12 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (!(pos->flags & SWP_NOSIZE) || !user_resize) {
 			plat_vidapi_enable(0);
 
-			MoveWindow(hwndSBAR, 0, rect.bottom - sbar_height, sbar_height, rect.right, TRUE);
-			MoveWindow(hwndRender, 0, 0, rect.right, rect.bottom - sbar_height, TRUE);
+			if (hide_status_bar)
+				MoveWindow(hwndRender, 0, 0, rect.right, rect.bottom, TRUE);
+			else {
+				MoveWindow(hwndSBAR, 0, rect.bottom - sbar_height, sbar_height, rect.right, TRUE);
+				MoveWindow(hwndRender, 0, 0, rect.right, rect.bottom - sbar_height, TRUE);
+			}
 
 			GetClientRect(hwndRender, &rect);
 			if (dpi_scale) {
@@ -1423,6 +1446,8 @@ ui_init(int nCmdShow)
     /* Get the actual height of the status bar */
     GetWindowRect(hwndSBAR, &sbar_rect);
     sbar_height = sbar_rect.bottom - sbar_rect.top;
+    if (hide_status_bar)
+	ShowWindow(hwndSBAR, SW_HIDE);
 
     /* Set up main window for resizing if configured. */
     if (vid_resize == 1)
@@ -1445,7 +1470,10 @@ ui_init(int nCmdShow)
 		scrnsz_x = fixed_size_x;
 		scrnsz_y = fixed_size_y;
 	}
-	ResizeWindowByClientArea(hwndMain, scrnsz_x, scrnsz_y + sbar_height);
+	if (hide_status_bar)
+		ResizeWindowByClientArea(hwndMain, scrnsz_x, scrnsz_y);
+	else
+		ResizeWindowByClientArea(hwndMain, scrnsz_x, scrnsz_y + sbar_height);
     }
 
     /* Reset all menus to their defaults. */
@@ -1689,7 +1717,10 @@ plat_resize(int x, int y)
 		x = MulDiv(x, dpi, 96);
 		y = MulDiv(y, dpi, 96);
 	}
-	ResizeWindowByClientArea(hwndMain, x, y + sbar_height);
+	if (hide_status_bar)
+		ResizeWindowByClientArea(hwndMain, x, y);
+	else
+		ResizeWindowByClientArea(hwndMain, x, y + sbar_height);
     }
 }
 
