@@ -604,7 +604,7 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
 		/*FALLTHROUGH*/
 
 	case 0x32:
-		if ((local->cent == RTC_CENTURY_VIA) && local->wp_32)
+		if ((reg == 0x32) && (local->cent == RTC_CENTURY_VIA) && local->wp_32)
 			break;
 		/* FALLTHROUGH */
 
