@@ -1070,6 +1070,7 @@ static BOOL CALLBACK
 win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     int c = 0, d = 0;
+    int e;
 
     switch (message) {
 	case WM_INITDIALOG:
@@ -1107,7 +1108,8 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 
 		settings_enable_window(hdlg, IDC_COMBO_VIDEO, !(machines[temp_machine].flags & MACHINE_VIDEO_ONLY));
-		settings_enable_window(hdlg, IDC_CONFIGURE_VID, video_card_has_config(temp_gfxcard));
+		e = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO)];
+		settings_enable_window(hdlg, IDC_CONFIGURE_VID, video_card_has_config(e));
 		settings_enable_window(hdlg, IDC_CHECK_VOODOO, (machines[temp_machine].flags & MACHINE_BUS_PCI));
 		settings_set_check(hdlg, IDC_CHECK_VOODOO, temp_voodoo);
 		settings_enable_window(hdlg, IDC_BUTTON_VOODOO, (machines[temp_machine].flags & MACHINE_BUS_PCI) && temp_voodoo);
