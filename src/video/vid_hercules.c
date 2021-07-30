@@ -63,6 +63,8 @@ typedef struct {
     int	vsynctime;
     int		vadj;
 
+    int		lp_ff;
+
     int		cols[256][2][2];
 
     uint8_t	*vram;
@@ -148,6 +150,11 @@ hercules_out(uint16_t addr, uint8_t val, void *priv)
 			recalc_timings(dev);
 		break;
 
+	case 0x03b9:
+	case 0x03bb:
+		dev->lp_ff = !(addr & 0x0002);
+		break;
+
 	case 0x03bf:
 		old = dev->ctrl2;
 		dev->ctrl2 = val;
@@ -183,7 +190,9 @@ hercules_in(uint16_t addr, void *priv)
 		break;
 
 	case 0x03ba:
-		ret = 0x72;	/* Hercules ident */
+		// ret = 0x72;	/* Hercules ident */
+		ret = 0x70;	/* Hercules ident */
+		ret |= (dev->lp_ff ? 2 : 0);
 #if 0
 		if (dev->stat & 0x08)
 			ret |= 0x88;
@@ -221,10 +230,15 @@ hercules_write(uint32_t addr, uint8_t val, void *priv)
 {
     hercules_t *dev = (hercules_t *)priv;
 
-    if (dev->ctrl2 & 0x01)
-	dev->vram[addr & 0xffff] = val;
-    else
-	dev->vram[addr & 0x0fff] = val;
+    /* According to the Programmer's guide to the Hercules graphics cars
+       by David B. Doty from 1988, the CTRL2 modes (bits 1,0) are as follow:
+	- 00: DIAG: Text mode only, only page 0 accessible;
+	- 01: HALF: Graphics mode allowed, only page 0 accessible;
+	- 11: FULL: Graphics mode allowed, both pages accessible. */
+    if ((addr >= 0xb8000) && ((dev->ctrl2 & 0x03) != 0x03))
+	return;
+
+    dev->vram[addr & 0xffff] = val;
 
     hercules_waitstates(dev);
 }
@@ -235,10 +249,10 @@ hercules_read(uint32_t addr, void *priv)
 {
     hercules_t *dev = (hercules_t *)priv;
 
-    if (dev->ctrl2 & 0x01)
-	return(dev->vram[addr & 0xffff]);
-    else
-	return(dev->vram[addr & 0x0fff]);
+    if ((addr >= 0xb8000) && ((dev->ctrl2 & 0x03) != 0x03))
+	return 0xff;
+
+    return(dev->vram[addr & 0xffff]);
 
     hercules_waitstates(dev);
 }
