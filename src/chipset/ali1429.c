@@ -336,6 +336,8 @@ ali1429_read(uint16_t addr, void *priv)
 
 	if ((addr == 0x23) && (dev->index <= 0x57))
 		return dev->regs[dev->index];
+	else if ((addr == 0x23) && (dev->index >= 0xc0) && cpu_iscyrix)
+		return 0xff;
 	else if (addr == 0x22)
 		return dev->index;
 	else
