@@ -83,7 +83,7 @@ contaq_82c59x_isa_speed_recalc(contaq_82c59x_t *dev)
 		case 0x02:
 			cpu_set_isa_speed(cpu_busspeed / 8);
 			break;
-		case 0x04:
+		case 0x03:
 			cpu_set_isa_speed(cpu_busspeed / 5);
 			break;
 	}
