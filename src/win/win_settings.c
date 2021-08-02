@@ -2154,7 +2154,7 @@ win_settings_hard_disks_update_item(HWND hdlg, int i, int column)
 			wsprintf(szText, plat_get_string(IDS_4612), temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
 			break;
 		case HDD_BUS_SCSI:
-			wsprintf(szText, plat_get_string(IDS_4613), temp_hdd[i].scsi_id >> 4, temp_hdd[i].scsi_id >> 4 & 15);
+			wsprintf(szText, plat_get_string(IDS_4613), temp_hdd[i].scsi_id >> 4, temp_hdd[i].scsi_id & 15);
 			break;
 	}
 	lvI.pszText = szText;
