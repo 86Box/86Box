@@ -20,13 +20,18 @@
 /*
     ALi M1429/M1429G Configuration Registers
 
-    Note: SMM in it's entirety needs more research
+    Notes: Incorporated sometimes with a M1435 PCI-to-VLB Bridge
+           M1429G is just a 1429 with Green Functionality
+           SMM in it's entirety needs more research
 
     Warning: Register documentation may be inaccurate!
 
     Register 03h: Write C5h to unlock the configuration registers
 
     Register 10h & 11h: DRAM Bank Configuration
+
+    Register 12h:
+    Bit 2: Memory Remapping Enable (128KB)
 
     Register 13h:
     Bit 7: Shadow RAM Enable for F8000-FFFFF
@@ -40,31 +45,30 @@
 
     Register 14h:
     Bit 1: Shadow RAM Write for Enabled Segments
-    Bit 0: Shadow RAM REAM for Enabled Segments
+    Bit 0: Shadow RAM Read for Enabled Segments
 
     Register 18h:
+    Bit 6-5-4 (Cache Size)
+        0 0 0 32KB
+	0 0 1 128KB
+	0 1 0 256KB
+	0 1 1 512KB
+	1 0 0 64KB
+	1 0 1 256KB
+	1 1 0 512KB
+	1 1 1 1MB
+
     Bit 1: L2 Cache Enable
 
     Register 20h:
     Bits 2-1-0: Bus Clock Speed
-         0 0 0: 7.1519Mhz
+         0 0 0: 7.1519Mhz (ATCLK2)
 	 0 0 1: CLK2IN/4
 	 0 1 0: CLK2IN/5
 	 0 1 1: CLK2IN/6
 	 1 0 0: CLK2IN/8
 	 1 0 1: CLK2IN/10
 	 1 1 0: CLK2IN/12
-
-    Register 30h: (1429G Only and probably inaccurate!)
-    Bit 7: SMRAM Local Access
-    Bits 5-4: SMRAM Location
-         0 0 A0000 to A0000
-	 0 1 ????? to ?????
-	 1 0 E0000 to E0000
-	 1 1 ????? to ?????
-
-    Register 43h:
-    Bit 6: Software SMI
 
 */
 
@@ -82,15 +86,12 @@
 #include <86box/device.h>
 
 #include <86box/mem.h>
-#include <86box/fdd.h>
-#include <86box/fdc.h>
 #include <86box/port_92.h>
-#include <86box/smram.h>
 #include <86box/chipset.h>
 
 #define GREEN dev->is_g /* Is G Variant */
 #define UNLOCKED !dev->cfg_locked /* Is Unlocked (Write C5h on register 03h) */
-
+#define ENABLE_ALI1429_LOG 1
 #ifdef ENABLE_ALI1429_LOG
 int ali1429_do_log = ENABLE_ALI1429_LOG;
 static void
@@ -111,10 +112,12 @@ ali1429_log(const char *fmt, ...)
 
 typedef struct
 {
-	uint8_t index, regs[90];
+	uint8_t index,
+	regs[90],	/* Proper Configuration Registers */
+	reg_57h;	/* M1429G Configuration Register 57h */
+
 	int cfg_locked; /* Configuration Lock */
 	int is_g;	/* Is G Variant */
-	smram_t *smram;
 } ali1429_t;
 
 static void ali1429_defaults(ali1429_t *dev)
@@ -160,30 +163,6 @@ static void ali1429_shadow(ali1429_t *dev)
 	flushmmucache_nopc();
 }
 
-static void ali1429_smram(int base, int local_access, ali1429_t *dev)
-{
-	uint32_t hbase, rbase;
-	smram_disable_all();
-
-	switch (base)
-	{
-	case 0: /* Phoenix uses it but we can't really tell alot */
-	default:
-		hbase = 0x000a0000;
-		rbase = 0x000a0000;
-		break;
-
-	case 2:
-		hbase = 0x000e0000;
-		rbase = 0x000e0000;
-		break;
-	}
-
-	smram_enable(dev->smram, hbase, rbase, 0x10000, local_access, 1);
-
-	flushmmucache();
-}
-
 static void
 ali1429_write(uint16_t addr, uint8_t val, void *priv)
 {
@@ -198,7 +177,7 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
 	case 0x23:
 		if (dev->index == 0x03)
 			dev->cfg_locked = !(val == 0xc5);
-		else
+		else if(dev->index <= 0x57)
 			ali1429_log("M1429%s: dev->regs[%02x] = %02x POST: %02x\n", GREEN ? "G" : "", dev->index, val, inb(0x80));
 
 		if (!dev->cfg_locked)
@@ -208,8 +187,17 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
 			{
 				case 0x10:
 				case 0x11:
+					dev->regs[dev->index] = val;
+					break;
+
 				case 0x12:
 					dev->regs[dev->index] = val;
+
+					if(val & 4)
+					mem_remap_top(128);
+					else
+					mem_remap_top(0);
+
 					break;
 
 				case 0x13:
@@ -225,7 +213,7 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
 					break;
 
 				case 0x18:
-					dev->regs[dev->index] = val;
+					dev->regs[dev->index] = (val & 0x8f) | 0x20;
 					cpu_cache_ext_enabled = !!(val & 2);
 					cpu_update_waitstates();
 					break;
@@ -289,10 +277,6 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
 				switch (dev->index)
 				{
 					case 0x30:
-						dev->regs[dev->index] = val;
-						ali1429_smram((val >> 4) & 3, !!(val & 0x80), dev);
-						break;
-
 					case 0x31:
 					case 0x32:
 					case 0x33:
@@ -310,17 +294,14 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
 					case 0x3f:
 					case 0x40:
 					case 0x41:
-						dev->regs[dev->index] = val;
-						break;
-
 					case 0x43:
-						dev->regs[dev->index] = val;
-						break;
-
 					case 0x45:
 					case 0x4a:
-					case 0x57:
 						dev->regs[dev->index] = val;
+						break;
+
+					case 0x57:
+						dev->reg_57h = val;
 						break;
 				}
 			}
@@ -334,8 +315,10 @@ ali1429_read(uint16_t addr, void *priv)
 {
 	ali1429_t *dev = (ali1429_t *)priv;
 
-	if ((addr == 0x23) && (dev->index <= 0x57))
+	if ((addr == 0x23) && (dev->index >= 0x10) && (dev->index <= 0x4a))
 		return dev->regs[dev->index];
+	else if ((addr == 0x23) && (dev->index == 0x57))
+		return dev->reg_57h;
 	else if ((addr == 0x23) && (dev->index >= 0xc0) && cpu_iscyrix)
 		return 0xff;
 	else if (addr == 0x22)
@@ -348,10 +331,6 @@ static void
 ali1429_close(void *priv)
 {
 	ali1429_t *dev = (ali1429_t *)priv;
-
-	if (GREEN)
-		smram_del(dev->smram);
-
 	free(dev);
 }
 
@@ -367,9 +346,6 @@ ali1429_init(const device_t *info)
 	io_sethandler(0x0022, 0x0002, ali1429_read, NULL, NULL, ali1429_write, NULL, NULL, dev);
 
 	device_add(&port_92_device);
-
-	if (GREEN)
-		dev->smram = smram_add();
 
 	ali1429_defaults(dev);
 
