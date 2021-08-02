@@ -684,10 +684,10 @@ static int opPSHUFW_xmm_xmm_a32(uint32_t fetchdat)
         
         SEG_CHECK_READ(cpu_state.ea_seg);
         src = readmemq(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
-        cpu_state.MM[cpu_reg].w[0] = (src >> ((imm & 3) << 16)) & 0xffff;
-        cpu_state.MM[cpu_reg].w[1] = (src >> (((imm >> 2) & 3) << 16)) & 0xffff;
-        cpu_state.MM[cpu_reg].w[2] = (src >> (((imm >> 4) & 3) << 16)) & 0xffff;
-        cpu_state.MM[cpu_reg].w[3] = (src >> (((imm >> 6) & 3) << 16)) & 0xffff;
+        cpu_state.MM[cpu_reg].w[0] = (src >> ((imm & 3) << 4)) & 0xffff;
+        cpu_state.MM[cpu_reg].w[1] = (src >> (((imm >> 2) & 3) << 4)) & 0xffff;
+        cpu_state.MM[cpu_reg].w[2] = (src >> (((imm >> 4) & 3) << 4)) & 0xffff;
+        cpu_state.MM[cpu_reg].w[3] = (src >> (((imm >> 6) & 3) << 4)) & 0xffff;
         CLOCK_CYCLES(2);
     }
     return 0;
