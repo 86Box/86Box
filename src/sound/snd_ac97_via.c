@@ -37,7 +37,7 @@ typedef struct {
 
     uint32_t	entry_ptr, sample_ptr, fifo_pos, fifo_end;
     int32_t	sample_count;
-    uint8_t	entry_flags, fifo[32], restart;
+    uint8_t	entry_flags, fifo[32], restart, status_shadow;
 
     pc_timer_t	timer;
 } ac97_via_sgd_t;
@@ -57,7 +57,7 @@ typedef struct _ac97_via_ {
     ac97_via_sgd_t sgd[6];
 
     pc_timer_t	timer_count, timer_count_fm;
-    uint64_t	timer_latch, timer_fifo_latch;
+    uint64_t	timer_latch;
     int16_t	out_l, out_r, fm_out_l, fm_out_r;
     int		master_vol_l, master_vol_r, pcm_vol_l, pcm_vol_r, cd_vol_l, cd_vol_r;
     int32_t	buffer[SOUNDBUFLEN * 2], fm_buffer[SOUNDBUFLEN * 2];
@@ -166,11 +166,13 @@ ac97_via_update_irqs(ac97_via_t *dev)
 	/* Stop immediately if any flag is set. Doing it this way optimizes
 	   rising edges for the playback SGD (0 - first to be checked). */
 	if (dev->sgd_regs[i] & (dev->sgd_regs[i | 0x2] & 0x03)) {
+		pclog("irq set\n");
 		pci_set_irq(dev->slot, dev->irq_pin);
 		return;
 	}
     }
 
+    pclog("irq cleared\n");
     pci_clear_irq(dev->slot, dev->irq_pin);
 }
 
@@ -203,6 +205,10 @@ ac97_via_sgd_read(uint16_t addr, void *priv)
     if (!(addr & 0x80)) {
 	/* Process SGD channel registers. */
 	switch (addr & 0xf) {
+		case 0x0:
+			ret = dev->sgd[addr >> 4].status_shadow;
+			break;
+
 		case 0x4:
 			ret = dev->sgd[addr >> 4].entry_ptr;
 			break;
@@ -235,6 +241,9 @@ ac97_via_sgd_read(uint16_t addr, void *priv)
 			ret = dev->sgd_regs[addr];
 			break;
 	}
+
+	/* Reset SGD status shadow register. See comment on SGD register 0x0 write for more information. */
+	dev->sgd[addr >> 4].status_shadow = dev->sgd_regs[addr & 0xf0];
     } else {
 	/* Process regular registers. */
 	switch (addr) {
@@ -311,6 +320,11 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 
 			/* Update status interrupts. */
 			ac97_via_update_irqs(dev);
+
+			/* Work around a race condition with the V7.00b WDM driver expecting SGD Active to
+			   not clear immediately. It reads this register next, so set up a shadow register
+			   to ensure SGD Active is set for that specific read (but not subsequent ones). */
+			dev->sgd[addr >> 4].status_shadow = dev->sgd_regs[addr] | 0x80;
 
 			return;
 
@@ -394,6 +408,7 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 						ac97_via_update_codec(dev);
 				}
 			}
+
 			break;
 
 		case 0x83:
@@ -536,7 +551,7 @@ ac97_via_sgd_process(void *priv)
 	return;
 
     /* Schedule next run. */
-    timer_advance_u64(&sgd->timer, dev->timer_fifo_latch);
+    timer_on_auto(&sgd->timer, 10.0);
 
     /* Process SGD if it's active, and the FIFO has room or is disabled. */
     if ((sgd_status == 0x80) && (sgd->always_run || ((sgd->fifo_end - sgd->fifo_pos) <= (sizeof(sgd->fifo) - 4)))) {
@@ -585,13 +600,15 @@ ac97_via_sgd_process(void *priv)
 
 		if (sgd->entry_flags & 0x20) {
 			ac97_via_log(" with STOP");
+
+			/* Raise STOP to pause SGD. */
 			dev->sgd_regs[sgd->id] |= 0x04;
 		}
 
 		if (sgd->entry_flags & 0x40) {
 			ac97_via_log(" with FLAG");
 
-			/* Raise FLAG while also pausing SGD. */
+			/* Raise FLAG and STOP. */
 			dev->sgd_regs[sgd->id] |= 0x05;
 
 #ifdef ENABLE_AC97_VIA_LOG
@@ -760,7 +777,6 @@ ac97_via_speed_changed(void *priv)
 	freq = 48000.0;
 
     dev->timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq));
-    dev->timer_fifo_latch = (uint64_t) ((double) TIMER_USEC * 10.0);
 }
 
 
