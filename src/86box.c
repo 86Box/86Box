@@ -85,7 +85,7 @@
    and declared here instead. */
 int		dopause;		/* system is paused */
 int		doresize;			/* screen resize requested */
-int		is_quit;				/* system exit requested */
+volatile int		is_quit;				/* system exit requested */
 uint64_t	timer_freq;
 char        emu_version[200];		/* version ID string */
 
@@ -796,6 +796,7 @@ pc_reset_hard_init(void)
 
 	sound_reset();
 
+	scsi_reset();
 	scsi_device_init();
 
 	/* Initialize the actual machine and its basic modules. */
@@ -919,13 +920,8 @@ pc_close(thread_t *ptr)
 	/* Claim the video blitter. */
 	startblit();
 
-	/* Terminate the main thread. */
-	if (ptr != NULL) {
-	thread_kill(ptr);
-
-	/* Wait some more. */
-	plat_delay_ms(200);
-	}
+	/* Terminate the UI thread. */
+	is_quit = 1;
 
 #if (defined(USE_DYNAREC) && defined(USE_NEW_DYNAREC))
 	codegen_close();
@@ -952,7 +948,7 @@ pc_close(thread_t *ptr)
 
 #ifdef ENABLE_808X_LOG
 	if (dump_on_exit)
-	dumpregs(0);
+		dumpregs(0);
 #endif
 
 	video_close();

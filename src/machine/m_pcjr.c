@@ -29,6 +29,8 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/timer.h>
+#include <86box/device.h>
+#include <86box/cassette.h>
 #include <86box/io.h>
 #include <86box/nmi.h>
 #include <86box/pic.h>
@@ -614,6 +616,11 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 	case 0x61:
 		pcjr->pb = val;
 
+		timer_process();
+
+		if (cassette != NULL)
+			pc_cas_set_motor(cassette, (pcjr->pb & 0x08) == 0);
+
 		speaker_update();
 		speaker_gated = val & 1;
 		speaker_enable = val & 2;
@@ -657,10 +664,14 @@ kbd_read(uint16_t port, void *priv)
 	case 0x61:
 		ret = pcjr->pb;
 		break;
-		
+
 	case 0x62:
 		ret = (pcjr->latched ? 1 : 0);
 		ret |= 0x02; /*Modem card not installed*/
+		if ((pcjr->pb & 0x08) || (cassette == NULL))
+			ret |= (ppispeakon ? 0x10 : 0);
+		else
+			ret |= (pc_cas_get_inp(cassette) ? 0x10 : 0);
 		ret |= (ppispeakon ? 0x10 : 0);
 		ret |= (ppispeakon ? 0x20 : 0);
 		ret |= (pcjr->data ? 0x40: 0);
@@ -824,6 +835,7 @@ machine_pcjr_init(const machine_t *model)
     cpu_set();
 
     /* Initialize the video controller. */
+    video_reset(gfxcard);
     loadfont("roms/video/mda/mda.rom", 0);
     mem_mapping_add(&pcjr->mapping, 0xb8000, 0x08000,
 		    vid_read, NULL, NULL,

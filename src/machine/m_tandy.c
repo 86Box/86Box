@@ -811,8 +811,13 @@ vid_poll(void *priv)
 					}
 				} else {
 					for (c = 0; c < 8; c++) {
-						buffer32->line[(vid->displine << 1)][(x << 3) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + c + 8] =
-							cols[(fontdat[chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+						if (vid->sc == 8) {
+							buffer32->line[(vid->displine << 1)][(x << 3) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + c + 8] =
+								cols[(fontdat[chr][7] & (1 << (c ^ 7))) ? 1 : 0];
+						} else {
+							buffer32->line[(vid->displine << 1)][(x << 3) + c + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 3) + c + 8] =
+								cols[(fontdat[chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+						}
 					}
 				}
 				if (drawcursor) {
@@ -844,9 +849,15 @@ vid_poll(void *priv)
 							cols[0];
 				} else {
 					for (c = 0; c < 8; c++) {
-						buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 8] =  buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] = 
-						buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 1 + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] =
-							cols[(fontdat[chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+						if (vid->sc == 8) {
+							buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 8] =  buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] = 
+							buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 1 + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] =
+								cols[(fontdat[chr][7] & (1 << (c ^ 7))) ? 1 : 0];
+						} else {
+							buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 8] =  buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 8] = 
+							buffer32->line[(vid->displine << 1)][(x << 4) + (c << 1) + 1 + 8] = buffer32->line[(vid->displine << 1) + 1][(x << 4) + (c << 1) + 1 + 8] =
+								cols[(fontdat[chr][vid->sc & 7] & (1 << (c ^ 7))) ? 1 : 0];
+						}
 					}
 				}
 				if (drawcursor) {
@@ -1508,6 +1519,8 @@ machine_tandy1k_init(const machine_t *model, int type)
 
     if (fdc_type == FDC_INTERNAL)	
 	device_add(&fdc_xt_tandy_device);
+
+    video_reset(gfxcard);
 
     switch(type) {
 	case TYPE_TANDY:

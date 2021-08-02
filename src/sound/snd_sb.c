@@ -244,6 +244,81 @@ static uint8_t sb_awe32_pnp_rom[] = {
 
     0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
 };
+static uint8_t sb_awe64_gold_pnp_rom[] = {
+    0x0e, 0x8c, 0x00, 0x9e, 0x00, 0x00, 0x00, 0x00, 0x00, /* CTL009E, dummy checksum (filled in by isapnp_add_card) */
+    0x0a, 0x10, 0x20, /* PnP version 1.0, vendor version 2.0 */
+    0x82, 0x16, 0x00, 'C', 'r', 'e', 'a', 't', 'i', 'v', 'e', ' ', 'S', 'B', ' ', 'A', 'W', 'E', '6', '4', ' ', 'G', 'o', 'l', 'd', /* ANSI identifier */
+
+    0x16, 0x0e, 0x8c, 0x00, 0x44, 0x00, 0xa9, /* logical device CTL0044, supports vendor-specific registers 0x38/0x3A/0x3C/0x3F */
+	0x82, 0x05, 0x00, 'A', 'u', 'd', 'i', 'o', /* ANSI identifier */
+	0x31, 0x00, /* start dependent functions, preferred */
+		0x22, 0x20, 0x00, /* IRQ 5 */
+		0x2a, 0x02, 0x0c, /* DMA 1, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+		0x2a, 0x20, 0x16, /* DMA 5, compatibility, count by word, no count by byte, is bus master, 16-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x20, 0x02, 0x01, 0x10, /* I/O 0x220, decodes 16-bit, 1-byte alignment, 16 addresses */
+		0x47, 0x01, 0x30, 0x03, 0x30, 0x03, 0x01, 0x02, /* I/O 0x330, decodes 16-bit, 1-byte alignment, 2 addresses */
+		0x47, 0x01, 0x88, 0x03, 0xf8, 0x03, 0x01, 0x04, /* I/O 0x388-0x3F8, decodes 16-bit, 1-byte alignment, 4 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
+		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
+		0x47, 0x01, 0x88, 0x03, 0xf8, 0x03, 0x01, 0x04, /* I/O 0x388-0x3F8, decodes 16-bit, 1-byte alignment, 4 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
+		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
+		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
+		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
+		0x47, 0x01, 0x88, 0x03, 0xf8, 0x03, 0x01, 0x04, /* I/O 0x388-0x3F8, decodes 16-bit, 1-byte alignment, 4 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
+		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
+		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+	0x31, 0x02, /* start dependent functions, sub-optimal */
+		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
+		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
+		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
+		0x47, 0x01, 0x88, 0x03, 0x94, 0x03, 0x04, 0x04, /* I/O 0x388-0x394, decodes 16-bit, 4-byte alignment, 4 addresses */
+	0x38, /* end dependent functions */
+
+    0x15, 0x0e, 0x8c, 0x70, 0x02, 0x00, /* logical device CTL7002 */
+	0x1c, 0x41, 0xd0, 0xb0, 0x2f, /* compatible device PNPB02F */
+	0x82, 0x04, 0x00, 'G', 'a', 'm', 'e', /* ANSI identifier */
+	0x47, 0x01, 0x00, 0x02, 0x00, 0x02, 0x01, 0x08, /* I/O 0x200, decodes 16-bit, 1-byte alignment, 8 addresses */
+
+    0x16, 0x0e, 0x8c, 0x00, 0x23, 0x00, 0xa9, /* logical device CTL0023, supports vendor-specific registers 0x38/0x3A/0x3C/0x3F */
+	0x82, 0x09, 0x00, 'W', 'a', 'v', 'e', 'T', 'a', 'b', 'l', 'e', /* ANSI identifier */
+	0x31, 0x00, /* start dependent functions, preferred */
+		0x47, 0x01, 0x20, 0x06, 0x20, 0x06, 0x01, 0x04, /* I/O 0x620, decodes 16-bit, 1-byte alignment, 4 addresses */
+		0x47, 0x01, 0x20, 0x0a, 0x20, 0x0a, 0x01, 0x04, /* I/O 0xA20, decodes 16-bit, 1-byte alignment, 4 addresses */
+		0x47, 0x01, 0x20, 0x0e, 0x20, 0x0e, 0x01, 0x04, /* I/O 0xE20, decodes 16-bit, 1-byte alignment, 4 addresses */
+	0x30, /* start dependent functions, acceptable */
+		0x47, 0x01, 0x20, 0x06, 0x80, 0x06, 0x20, 0x04, /* I/O 0x620-0x680, decodes 16-bit, 32-byte alignment, 4 addresses */
+		0x47, 0x01, 0x20, 0x0a, 0x80, 0x0a, 0x20, 0x04, /* I/O 0xA20-0xA80, decodes 16-bit, 32-byte alignment, 4 addresses */
+		0x47, 0x01, 0x20, 0x0e, 0x80, 0x0e, 0x20, 0x04, /* I/O 0xE20-0xE80, decodes 16-bit, 32-byte alignment, 4 addresses */
+	0x38, /* end dependent functions */
+
+    0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
+};
 
 
 #ifdef ENABLE_SB_LOG
@@ -1302,6 +1377,27 @@ sb_awe32_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pr
 }
 
 
+static void
+sb_awe64_gold_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
+{
+    sb_t *sb = (sb_t *) priv;
+
+    switch (ld) {
+	case 0: /* Audio */
+		sb_16_pnp_config_changed(0, config, sb);
+		break;
+
+	case 1: /* Game */
+		sb_16_pnp_config_changed(1, config, sb);
+		break;
+
+	case 2: /* WaveTable */
+		emu8k_change_addr(&sb->emu8k, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
+		break;
+    }
+}
+
+
 void *
 sb_1_init(const device_t *info)
 {
@@ -1754,7 +1850,7 @@ sb_awe32_init(const device_t *info)
     if (sb->opl_enabled)
 	opl3_init(&sb->opl);
 
-    sb_dsp_init(&sb->dsp, SB16 + 1, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, SBAWE32, SB_SUBTYPE_DEFAULT, sb);
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
@@ -1804,7 +1900,7 @@ sb_awe32_pnp_init(const device_t *info)
     sb->opl_enabled = 1;
     opl3_init(&sb->opl);
 
-    sb_dsp_init(&sb->dsp, SB16 + 1, SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, ((info->local == 2) ? SBAWE64 : SBAWE32), SB_SUBTYPE_DEFAULT, sb);
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled = 1;
@@ -1823,7 +1919,9 @@ sb_awe32_pnp_init(const device_t *info)
 
     sb->gameport = gameport_add(&gameport_pnp_device);
 
-    if (info->local == 1)
+    if (info->local == 2)
+	isapnp_add_card(sb_awe64_gold_pnp_rom, sizeof(sb_awe64_gold_pnp_rom), sb_awe64_gold_pnp_config_changed, NULL, NULL, NULL, sb);
+    else if (info->local == 1)
 	isapnp_add_card(sb_32_pnp_rom, sizeof(sb_32_pnp_rom), sb_awe32_pnp_config_changed, NULL, NULL, NULL, sb);
     else
 	isapnp_add_card(sb_awe32_pnp_rom, sizeof(sb_awe32_pnp_rom), sb_awe32_pnp_config_changed, NULL, NULL, NULL, sb);
@@ -2458,6 +2556,45 @@ static const device_config_t sb_awe32_pnp_config[] =
         }
 };
 
+static const device_config_t sb_awe64_gold_config[] =
+{
+        {
+                "onboard_ram", "Onboard RAM", CONFIG_SELECTION, "", 4096, "", { 0 },
+                {
+                        {
+                                "None", 0
+                        },
+                        {
+                                "512 KB", 512
+                        },
+                        {
+                                "2 MB", 2048
+                        },
+                        {
+                                "4 MB", 4096
+                        },
+                        {
+                                "8 MB", 8192
+                        },
+                        {
+                                "28 MB", 28*1024
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+	{
+		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+	},
+	{
+		"receive_input401", "Receive input (MPU-401)", CONFIG_BINARY, "", 0
+	},
+        {
+                "", "", -1
+        }
+};
+
 const device_t sb_1_device =
 {
         "Sound Blaster v1.0",
@@ -2603,4 +2740,16 @@ const device_t sb_awe32_pnp_device =
         sb_speed_changed,
         NULL,
         sb_awe32_pnp_config
+};
+
+const device_t sb_awe64_gold_device =
+{
+        "Sound Blaster AWE64 Gold",
+        DEVICE_ISA | DEVICE_AT,
+	2,
+        sb_awe32_pnp_init, sb_awe32_close, NULL,
+        { sb_awe32_available },
+        sb_speed_changed,
+        NULL,
+        sb_awe64_gold_config
 };

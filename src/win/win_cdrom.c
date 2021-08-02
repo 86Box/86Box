@@ -27,8 +27,12 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wchar.h>
+#include <86box/86box.h>
 #include <86box/config.h>
 #include <86box/timer.h>
+#include <86box/device.h>
+#include <86box/cassette.h>
+#include <86box/cartridge.h>
 #include <86box/fdd.h>
 #include <86box/hdd.h>
 #include <86box/scsi_device.h>
@@ -42,6 +46,57 @@
 
 
 void
+cassette_mount(char *fn, uint8_t wp)
+{
+    pc_cas_set_fname(cassette, NULL);
+    memset(cassette_fname, 0, sizeof(cassette_fname));
+    cassette_ui_writeprot = wp;
+    pc_cas_set_fname(cassette, fn);
+    if (fn != NULL)
+	memcpy(cassette_fname, fn, MIN(511, strlen(fn)));
+    ui_sb_update_icon_state(SB_CASSETTE, (fn == NULL) ? 1 : 0);
+    media_menu_update_cassette();
+    ui_sb_update_tip(SB_CASSETTE);
+    config_save();
+}
+
+
+void
+cassette_eject(void)
+{
+    pc_cas_set_fname(cassette, NULL);
+    memset(cassette_fname, 0x00, sizeof(cassette_fname));
+    ui_sb_update_icon_state(SB_CASSETTE, 1);
+    media_menu_update_cassette();
+    ui_sb_update_tip(SB_CASSETTE);
+    config_save();
+}
+
+
+void
+cartridge_mount(uint8_t id, char *fn, uint8_t wp)
+{
+    cart_close(id);
+    cart_load(id, fn);
+    ui_sb_update_icon_state(SB_CARTRIDGE | id, strlen(cart_fns[id]) ? 0 : 1);
+    media_menu_update_cartridge(id);
+    ui_sb_update_tip(SB_CARTRIDGE | id);
+    config_save();
+}
+
+
+void
+cartridge_eject(uint8_t id)
+{
+    cart_close(id);
+    ui_sb_update_icon_state(SB_CARTRIDGE | id, 1);
+    media_menu_update_cartridge(id);
+    ui_sb_update_tip(SB_CARTRIDGE | id);
+    config_save();
+}
+
+
+void
 floppy_mount(uint8_t id, char *fn, uint8_t wp)
 {
     fdd_close(id);
@@ -52,6 +107,7 @@ floppy_mount(uint8_t id, char *fn, uint8_t wp)
     ui_sb_update_tip(SB_FLOPPY | id);
     config_save();
 }
+
 
 void
 floppy_eject(uint8_t id)

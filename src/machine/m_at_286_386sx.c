@@ -348,7 +348,10 @@ machine_at_gw286ct_init(const machine_t *model)
 
     device_add(&f82c710_device);
 
-    machine_at_scat_init(model, 1);
+    machine_at_common_init(model);
+    device_add(&keyboard_at_device);
+
+    device_add(&scat_4_device);
 
     device_add(&ide_isa_device);
 

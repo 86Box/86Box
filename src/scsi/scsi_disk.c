@@ -347,12 +347,13 @@ scsi_disk_sense_clear(scsi_disk_t *dev, int command)
 static void
 scsi_disk_set_phase(scsi_disk_t *dev, uint8_t phase)
 {
-    uint8_t scsi_id = dev->drv->scsi_id;
+    uint8_t scsi_bus = (dev->drv->scsi_id >> 4) & 0x0f;
+    uint8_t scsi_id = dev->drv->scsi_id & 0x0f;
 
     if (dev->drv->bus != HDD_BUS_SCSI)
 	return;
 
-    scsi_devices[scsi_id].phase = phase;
+    scsi_devices[scsi_bus][scsi_id].phase = phase;
 }
 
 
@@ -572,8 +573,10 @@ scsi_disk_command(scsi_common_t *sc, uint8_t *cdb)
     char device_identify[9] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', 0 };
     char device_identify_ex[15] = { '8', '6', 'B', '_', 'H', 'D', '0', '0', ' ', 'v', '1', '.', '0', '0', 0 };
     int block_desc = 0;
+    uint8_t scsi_bus = (dev->drv->scsi_id >> 4) & 0x0f;
+    uint8_t scsi_id = dev->drv->scsi_id & 0x0f;
 
-    BufLen = &scsi_devices[dev->drv->scsi_id].buffer_length;
+    BufLen = &scsi_devices[scsi_bus][scsi_id].buffer_length;
 
     last_sector = hdd_image_get_last_sector(dev->id);
 
@@ -1073,8 +1076,10 @@ static uint8_t
 scsi_disk_phase_data_out(scsi_common_t *sc)
 {
     scsi_disk_t *dev = (scsi_disk_t *) sc;
+    uint8_t scsi_bus = (dev->drv->scsi_id >> 4) & 0x0f;
+    uint8_t scsi_id = dev->drv->scsi_id & 0x0f;
     int i;
-    int32_t *BufLen = &scsi_devices[dev->drv->scsi_id].buffer_length;
+    int32_t *BufLen = &scsi_devices[scsi_bus][scsi_id].buffer_length;
     uint32_t last_sector = hdd_image_get_last_sector(dev->id);
     uint32_t c, h, s, last_to_write = 0;
     uint16_t block_desc_len, pos;
@@ -1215,13 +1220,21 @@ scsi_disk_hard_reset(void)
     int c;
     scsi_disk_t *dev;
     scsi_device_t *sd;
+    uint8_t scsi_bus, scsi_id;
 
     for (c = 0; c < HDD_NUM; c++) {
 	if (hdd[c].bus == HDD_BUS_SCSI) {
 		scsi_disk_log("SCSI disk hard_reset drive=%d\n", c);
 
+		scsi_bus = (hdd[c].scsi_id >> 4) & 0x0f;
+		scsi_id = hdd[c].scsi_id & 0x0f;
+
+		/* Make sure to ignore any SCSI disk that has an out of range SCSI bus. */
+		if (scsi_bus >= SCSI_BUS_MAX)
+			continue;
+
 		/* Make sure to ignore any SCSI disk that has an out of range ID. */
-		if (hdd[c].scsi_id >= SCSI_ID_MAX)
+		if (scsi_id >= SCSI_ID_MAX)
 			continue;
 
 		/* Make sure to ignore any SCSI disk whose image file name is empty. */
@@ -1240,7 +1253,7 @@ scsi_disk_hard_reset(void)
 		dev = (scsi_disk_t *) hdd[c].priv;
 
 		/* SCSI disk, attach to the SCSI bus. */
-		sd = &scsi_devices[hdd[c].scsi_id];
+		sd = &scsi_devices[scsi_bus][scsi_id];
 
 		sd->sc = (scsi_common_t *) dev;
 		sd->command = scsi_disk_command;
@@ -1268,10 +1281,14 @@ scsi_disk_close(void)
 {
     scsi_disk_t *dev;
     int c;
+    uint8_t scsi_bus, scsi_id;
 
     for (c = 0; c < HDD_NUM; c++) {
 	if (hdd[c].bus == HDD_BUS_SCSI) {
-		memset(&scsi_devices[hdd[c].scsi_id], 0x00, sizeof(scsi_device_t));
+		scsi_bus = (hdd[c].scsi_id >> 4) & 0x0f;
+		scsi_id = hdd[c].scsi_id & 0x0f;
+
+		memset(&scsi_devices[scsi_bus][scsi_id], 0x00, sizeof(scsi_device_t));
 
 		hdd_image_close(c);
 

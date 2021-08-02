@@ -58,6 +58,8 @@ DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
 #define SDL_CLASS_NAME		L"86BoxSDLWnd"
 #define SDL_SUB_CLASS_NAME	L"86BoxSDLSubWnd"
 
+#define CASSETTE_SUBMENU_NAME	L"CassetteSubmenu"
+#define CARTRIDGE_SUBMENU_NAME	L"CartridgeSubmenu"
 #define FLOPPY_SUBMENU_NAME	L"FloppySubmenu"
 #define CDROM_SUBMENU_NAME	L"CdromSubmenu"
 #define ZIP_SUBMENU_NAME	L"ZIPSubmenu"
@@ -220,10 +222,14 @@ extern wchar_t	*BrowseFolder(wchar_t *saved_path, wchar_t *title);
 extern void	media_menu_init();
 extern void	media_menu_reset();
 extern int	media_menu_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+extern HMENU	media_menu_get_cassette(void);
+extern HMENU	media_menu_get_cartridge(int id);
 extern HMENU	media_menu_get_floppy(int id);
 extern HMENU	media_menu_get_cdrom(int id);
 extern HMENU	media_menu_get_zip(int id);
 extern HMENU	media_menu_get_mo(int id);
+extern void	media_menu_update_cassette(void);
+extern void	media_menu_update_cartridge(int id);
 extern void	media_menu_update_floppy(int id);
 extern void	media_menu_update_cdrom(int id);
 extern void	media_menu_update_zip(int id);

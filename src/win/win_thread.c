@@ -44,15 +44,6 @@ thread_create(void (*func)(void *param), void *param)
 }
 
 
-void
-thread_kill(void *arg)
-{
-    if (arg == NULL) return;
-
-    TerminateThread(arg, 0);
-}
-
-
 int
 thread_wait(thread_t *arg, int timeout)
 {

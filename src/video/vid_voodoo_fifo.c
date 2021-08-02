@@ -204,7 +204,7 @@ void voodoo_fifo_thread(void *param)
 {
         voodoo_t *voodoo = (voodoo_t *)param;
 
-        while (1)
+        while (voodoo->fifo_thread_run)
         {
                 thread_set_event(voodoo->fifo_not_full_event);
                 thread_wait_event(voodoo->wake_fifo_thread, -1);

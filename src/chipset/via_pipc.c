@@ -285,7 +285,7 @@ pipc_reset_hard(void *priv)
 		dev->power_regs[0x34] = 0x68;
 	dev->power_regs[0x40] = 0x20;
 
-	dev->power_regs[0x42] = 0xd0;
+	dev->power_regs[0x42] = 0x50;
 	dev->power_regs[0x48] = 0x01;
 
 	if (dev->local == VIA_PIPC_686B) {
@@ -359,6 +359,9 @@ pipc_reset_hard(void *priv)
 
     ide_pri_disable();
     ide_sec_disable();
+
+    nvr_via_wp_set(0x00, 0x32, dev->nvr);
+    nvr_via_wp_set(0x00, 0x0d, dev->nvr);
 }
 
 
@@ -502,7 +505,7 @@ nvr_update_io_mapping(pipc_t *dev)
     if (dev->nvr_enabled)
 	nvr_at_handler(0, 0x0074, dev->nvr);
 
-    if ((dev->pci_isa_regs[0x5b] & 0x02) && (dev->pci_isa_regs[0x48] & 0x08))
+    if ((dev->pci_isa_regs[0x5b] & 0x02) || (dev->pci_isa_regs[0x48] & 0x08))
 	nvr_at_handler(1, 0x0074, dev->nvr);
 }
 
@@ -682,6 +685,8 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 		case 0x77:
 			if (val & 0x10)
 				pclog("PIPC: Warning: Internal I/O APIC enabled.\n");
+			nvr_via_wp_set(!!(val & 0x04), 0x32, dev->nvr);
+			nvr_via_wp_set(!!(val & 0x02), 0x0d, dev->nvr);
 			break;
 
 		case 0x80: case 0x86: case 0x87:
@@ -922,8 +927,8 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			break;
 
 		case 0x42:
-			dev->power_regs[addr] &= ~0x0f;
-			dev->power_regs[addr] |= val & 0x0f;
+			dev->power_regs[addr] &= ~0x2f;
+			dev->power_regs[addr] |= val & 0x2f;
 			acpi_set_irq_line(dev->acpi, dev->power_regs[addr]);
 			break;
 
@@ -1013,6 +1018,8 @@ pipc_reset(void *p)
 	pipc_write(1, 0x40, 0x04, p);
     else
 	pipc_write(1, 0x40, 0x00, p);
+
+    pipc_write(0, 0x77, 0x00, p);
 }
 
 

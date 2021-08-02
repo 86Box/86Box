@@ -113,6 +113,7 @@ int		video_graytype = 0;
 static int	vid_type;
 static const video_timings_t	*vid_timings;
 static uint32_t cga_2_table[16];
+static uint8_t	thread_run = 0;
 
 
 PALETTE		cgapal = {
@@ -430,7 +431,7 @@ void blit_thread(void *param)
 {
     int yy;
 
-    while (1) {
+    while (thread_run) {
 	thread_wait_event(blit_data.wake_blit_thread, -1);
 	thread_reset_event(blit_data.wake_blit_thread);
     MTR_BEGIN("video", "blit_thread");
@@ -880,6 +881,7 @@ video_init(void)
     blit_data.wake_blit_thread = thread_create_event();
     blit_data.blit_complete = thread_create_event();
     blit_data.buffer_not_in_use = thread_create_event();
+    thread_run = 1;
     blit_data.blit_thread = thread_create(blit_thread, NULL);
 }
 
@@ -887,7 +889,9 @@ video_init(void)
 void
 video_close(void)
 {
-    thread_kill(blit_data.blit_thread);
+    thread_run = 0;
+    thread_set_event(blit_data.wake_blit_thread);
+    thread_wait(blit_data.blit_thread, -1);
     thread_destroy_event(blit_data.buffer_not_in_use);
     thread_destroy_event(blit_data.blit_complete);
     thread_destroy_event(blit_data.wake_blit_thread);

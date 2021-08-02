@@ -82,6 +82,7 @@
 #define MACHINE_IDE_QUAD	0x07800000	/* sys has int quad IDE/ATAPI - mark as dual + both ter and and qua IDE/ATAPI */
 #define MACHINE_SCSI		0x08000000	/* sys has int single SCSI - mark as pri SCSI */
 #define MACHINE_SCSI_DUAL	0x18000000	/* sys has int dual SCSI - mark as both pri and sec SCSI */
+#define MACHINE_CARTRIDGE	0x20000000	/* sys has two cartridge bays */
 
 #define IS_ARCH(m, a)		(machines[m].flags & (a)) ? 1 : 0;
 #define IS_AT(m)		((machines[m].flags & 0x00000FC8) && !(machines[m].flags & MACHINE_PC98)) ? 1 : 0;

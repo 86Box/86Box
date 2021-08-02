@@ -50,14 +50,16 @@ extern void	ui_check_menu_item(int id, int checked);
 
 /* Status Bar functions. */
 #define SB_ICON_WIDTH	24
-#define SB_FLOPPY       0x00
-#define SB_CDROM        0x10
-#define SB_ZIP          0x20
-#define SB_MO           0x30
-#define SB_HDD          0x40
-#define SB_NETWORK      0x50
-#define SB_SOUND        0x60
-#define SB_TEXT         0x70
+#define SB_CASSETTE	0x00
+#define SB_CARTRIDGE    0x10
+#define SB_FLOPPY       0x20
+#define SB_CDROM        0x30
+#define SB_ZIP          0x40
+#define SB_MO           0x50
+#define SB_HDD          0x60
+#define SB_NETWORK      0x70
+#define SB_SOUND        0x80
+#define SB_TEXT         0x90
 
 extern wchar_t  *ui_window_title(wchar_t *s);
 extern void	ui_status_update(void);

@@ -158,6 +158,9 @@ extern void	config_set_mac(char *head, char *name, int val);
 extern void	config_set_string(char *head, char *name, char *val);
 extern void	config_set_wstring(char *head, char *name, wchar_t *val);
 
+extern void *	config_find_section(char *name);
+extern void	config_rename_section(void *priv, char *name);
+
 #ifdef __cplusplus
 }
 #endif

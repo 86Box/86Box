@@ -64,8 +64,8 @@ extern "C" {
 /* Global variables residing in the platform module. */
 extern int	dopause,			/* system is paused */
 		doresize,			/* screen resize requested */
-		is_quit,				/* system exit requested */
 		mouse_capture;			/* mouse is captured in app */
+extern volatile int	is_quit;				/* system exit requested */
 
 #ifdef MTR_ENABLED
 extern int tracing_on;
@@ -79,6 +79,8 @@ extern int	update_icons;
 
 extern int	unscaled_size_x,		/* current unscaled size X */
 		unscaled_size_y;		/* current unscaled size Y */
+
+extern int	kbd_req_capture, hide_status_bar;
 
 /* System-related functions. */
 extern char	*fix_exe_path(char *str);
@@ -129,6 +131,10 @@ extern void	plat_power_off(void);
 
 
 /* Platform-specific device support. */
+extern void	cassette_mount(char *fn, uint8_t wp);
+extern void	cassette_eject(void);
+extern void	cartridge_mount(uint8_t id, char *fn, uint8_t wp);
+extern void	cartridge_eject(uint8_t id);
 extern void	floppy_mount(uint8_t id, char *fn, uint8_t wp);
 extern void	floppy_eject(uint8_t id);
 extern void	cdrom_mount(uint8_t id, char *fn);
@@ -150,7 +156,6 @@ typedef void event_t;
 typedef void mutex_t;
 
 extern thread_t	*thread_create(void (*thread_func)(void *param), void *param);
-extern void	thread_kill(thread_t *arg);
 extern int	thread_wait(thread_t *arg, int timeout);
 extern event_t	*thread_create_event(void);
 extern void	thread_set_event(event_t *arg);

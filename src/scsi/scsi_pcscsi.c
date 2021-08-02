@@ -168,6 +168,7 @@ typedef struct {
     int deferred_complete;
     uint32_t dma;
     uint8_t ti_buf[TI_BUFSZ];
+    uint8_t bus;
     uint8_t id, lun;
     uint8_t cmdbuf[ESP_CMDBUF_SZ];
     uint32_t cmdlen;
@@ -289,7 +290,7 @@ esp_get_cmd(esp_t *dev, uint8_t *buf, uint8_t buflen)
     dev->ti_rptr = 0;
     dev->ti_wptr = 0;
     
-    if (scsi_device_present(&scsi_devices[dev->id]) && (dev->lun > 0)) {
+    if (scsi_device_present(&scsi_devices[dev->bus][dev->id]) && (dev->lun > 0)) {
         /* We only support LUN 0 */
         dev->rregs[ESP_RSTAT] = 0;
         dev->rregs[ESP_RINTR] = INTR_DC;
@@ -298,7 +299,7 @@ esp_get_cmd(esp_t *dev, uint8_t *buf, uint8_t buflen)
 	return 0;
     }
 
-    scsi_device_identify(&scsi_devices[dev->id], dev->lun);
+    scsi_device_identify(&scsi_devices[dev->bus][dev->id], dev->lun);
 
     return dmalen;
 }
@@ -308,7 +309,7 @@ esp_do_busid_cmd(esp_t *dev, uint8_t *buf, uint8_t busid)
 {
     scsi_device_t *sd;
 
-    sd = &scsi_devices[busid];	
+    sd = &scsi_devices[dev->bus][busid];	
 
     sd->buffer_length = -1;
 
@@ -388,7 +389,7 @@ esp_hard_reset(esp_t *dev)
     timer_stop(&dev->timer);
     
     for (int i = 0; i < 8; i++)
-	scsi_device_reset(&scsi_devices[i]);
+	scsi_device_reset(&scsi_devices[dev->bus][i]);
 }
 
 static void
@@ -536,7 +537,7 @@ static void
 handle_ti(void *priv)
 {
     esp_t *dev = (esp_t *)priv;
-    scsi_device_t *sd = &scsi_devices[dev->id];
+    scsi_device_t *sd = &scsi_devices[dev->bus][dev->id];
     uint32_t dmalen;
 
     if (dev->dma) {
@@ -1429,6 +1430,8 @@ dc390_init(const device_t *info)
 
     dev = malloc(sizeof(esp_t));
     memset(dev, 0x00, sizeof(esp_t));
+
+    dev->bus = scsi_get_bus();
 
     dev->PCIBase = 0;
     dev->MMIOBase = 0;

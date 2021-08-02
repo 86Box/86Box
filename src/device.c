@@ -90,11 +90,22 @@ device_init(void)
 void
 device_set_context(device_context_t *c, const device_t *d, int inst)
 {
+    void *sec, *single_sec;
+
     memset(c, 0, sizeof(device_context_t));
     c->dev = d;
-    if (inst)
+    if (inst) {
     	sprintf(c->name, "%s #%i", d->name, inst);
-    else
+
+	/* If this is the first instance and a numbered section is not present, but a non-numbered
+	   section of the same name is, rename the non-numbered section to numbered. */
+	if (inst == 1) {
+		sec = config_find_section(c->name);
+		single_sec = config_find_section((char *) d->name);
+		if ((sec == NULL) && (single_sec != NULL))
+			config_rename_section(single_sec, c->name);
+	}
+    } else
     	sprintf(c->name, "%s", d->name);
 }
 

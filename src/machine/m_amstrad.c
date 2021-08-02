@@ -108,7 +108,8 @@ typedef struct {
 		stat;
     uint8_t	plane_write,		/* 1512/200 */
 		plane_read,		/* 1512/200 */
-		border;			/* 1512/200 */
+		border,			/* 1512/200 */
+		invert;			/* 512/640 */
     int		fontbase;		/* 1512/200 */
     int		linepos,
 		displine;
@@ -1695,8 +1696,17 @@ vid_init_200(amstrad_t *ams)
 
     overscan_x = overscan_y = 16;
 
-    green = makecol(0x1C, 0x71, 0x31);
-    blue = makecol(0x0f, 0x21, 0x3f);	
+    if (ams->type == AMS_PC200)
+	vid->invert = 0;
+    else
+	vid->invert = device_get_config_int("invert");
+    if (vid->invert) {
+	blue = makecol(0x1C, 0x71, 0x31);
+	green = makecol(0x0f, 0x21, 0x3f);
+    } else {
+	green = makecol(0x1C, 0x71, 0x31);
+	blue = makecol(0x0f, 0x21, 0x3f);
+    }
     cgapal_rebuild();
     set_lcd_cols(0);
 
@@ -1953,6 +1963,9 @@ device_config_t vid_ppc512_config[] =
                 ""
 			}
 		}
+	},
+	{
+		"invert", "Invert LCD colors", CONFIG_BINARY, "", 0
 	},
         {
                 "", "", -1
@@ -2440,6 +2453,8 @@ machine_amstrad_init(const machine_t *model, int type)
     }
 
     ams->language = 7;
+
+    video_reset(gfxcard);
 
     if (gfxcard == VID_INTERNAL) switch(type) {
 	case AMS_PC1512:

@@ -831,12 +831,13 @@ mo_sense_clear(mo_t *dev, int command)
 static void
 mo_set_phase(mo_t *dev, uint8_t phase)
 {
-    uint8_t scsi_id = dev->drv->scsi_device_id;
+    uint8_t scsi_bus = (dev->drv->scsi_device_id >> 4) & 0x0f;
+    uint8_t scsi_id = dev->drv->scsi_device_id & 0x0f;
 
     if (dev->drv->bus_type != MO_BUS_SCSI)
 	return;
 
-    scsi_devices[scsi_id].phase = phase;
+    scsi_devices[scsi_bus][scsi_id].phase = phase;
 }
 
 
@@ -1343,9 +1344,11 @@ mo_command(scsi_common_t *sc, uint8_t *cdb)
     int32_t blen = 0;
     int32_t *BufLen;
     uint32_t previous_pos = 0;
+    uint8_t scsi_bus = (dev->drv->scsi_device_id >> 4) & 0x0f;
+    uint8_t scsi_id = dev->drv->scsi_device_id & 0x0f;
 
     if (dev->drv->bus_type == MO_BUS_SCSI) {
-	BufLen = &scsi_devices[dev->drv->scsi_device_id].buffer_length;
+	BufLen = &scsi_devices[scsi_bus][scsi_id].buffer_length;
 	dev->status &= ~ERR_STAT;
     } else {
 	BufLen = &blen;
@@ -2106,6 +2109,8 @@ mo_drive_reset(int c)
     mo_t *dev;
     scsi_device_t *sd;
     ide_t *id;
+    uint8_t scsi_bus = (mo_drives[c].scsi_device_id >> 4) & 0x0f;
+    uint8_t scsi_id = mo_drives[c].scsi_device_id & 0x0f;
 
     if (!mo_drives[c].priv) {
 	mo_drives[c].priv = (mo_t *) malloc(sizeof(mo_t));
@@ -2119,7 +2124,7 @@ mo_drive_reset(int c)
 
     if (mo_drives[c].bus_type == MO_BUS_SCSI) {
 	/* SCSI MO, attach to the SCSI bus. */
-	sd = &scsi_devices[mo_drives[c].scsi_device_id];
+	sd = &scsi_devices[scsi_bus][scsi_id];
 
 	sd->sc = (scsi_common_t *) dev;
 	sd->command = mo_command;
@@ -2158,14 +2163,24 @@ mo_hard_reset(void)
 {
     mo_t *dev;
     int c;
+    uint8_t scsi_id, scsi_bus;
 
     for (c = 0; c < MO_NUM; c++) {
 	if ((mo_drives[c].bus_type == MO_BUS_ATAPI) || (mo_drives[c].bus_type == MO_BUS_SCSI)) {
 		mo_log("MO hard_reset drive=%d\n", c);
 
-		/* Make sure to ignore any SCSI MO drive that has an out of range ID. */
-		if ((mo_drives[c].bus_type == MO_BUS_SCSI) && (mo_drives[c].scsi_device_id >= SCSI_ID_MAX))
-			continue;
+		if (mo_drives[c].bus_type == MO_BUS_SCSI) {
+			scsi_bus = (mo_drives[c].scsi_device_id >> 4) & 0x0f;
+			scsi_id = mo_drives[c].scsi_device_id & 0x0f;
+
+			/* Make sure to ignore any SCSI MO drive that has an out of range SCSI Bus. */
+			if (scsi_bus >= SCSI_BUS_MAX)
+				continue;
+
+			/* Make sure to ignore any SCSI MO drive that has an out of range ID. */
+			if (scsi_id >= SCSI_ID_MAX)
+				continue;
+		}
 
 		/* Make sure to ignore any ATAPI MO drive that has an out of range IDE channel. */
 		if ((mo_drives[c].bus_type == MO_BUS_ATAPI) && (mo_drives[c].ide_channel > 7))
@@ -2199,10 +2214,15 @@ mo_close(void)
 {
     mo_t *dev;
     int c;
+    uint8_t scsi_id, scsi_bus;
 
     for (c = 0; c < MO_NUM; c++) {
-	if (mo_drives[c].bus_type == MO_BUS_SCSI)
-		memset(&scsi_devices[mo_drives[c].scsi_device_id], 0x00, sizeof(scsi_device_t));
+	if (mo_drives[c].bus_type == MO_BUS_SCSI) {
+		scsi_bus = (mo_drives[c].scsi_device_id >> 4) & 0x0f;
+		scsi_id = mo_drives[c].scsi_device_id & 0x0f;
+
+		memset(&scsi_devices[scsi_bus][scsi_id], 0x00, sizeof(scsi_device_t));
+	}
 
 	dev = (mo_t *) mo_drives[c].priv;
 
