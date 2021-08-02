@@ -228,6 +228,19 @@ typedef union {
     float	f[2];
 } MMX_REG;
 
+typedef union {
+    uint64_t q[2];
+    int64_t sq[2];
+    uint32_t l[4];
+    int32_t	sl[4];
+    uint16_t w[8];
+    int16_t	sw[8];
+    uint8_t	b[16];
+    int8_t  sb[16];
+    float	 f[4];
+    double   d[2];
+} SSE_REG;
+
 typedef struct {
     /* IDT WinChip and WinChip 2 MSR's */
     uint32_t	tr1, tr12;		/* 0x00000002, 0x0000000e */
@@ -384,6 +397,8 @@ typedef struct {
     }		CR0;
 
     uint16_t	flags, eflags;
+
+    SSE_REG XMM[8];
 } cpu_state_t;
 
 /*The cpu_state.flags below must match in both cpu_cur_status and block->status for a block

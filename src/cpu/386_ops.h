@@ -205,6 +205,8 @@ extern void	x386_dynarec_log(const char *fmt, ...);
 #include "x86_ops_shift.h"
 #include "x86_ops_amd.h"
 #include "x86_ops_3dnow.h"
+//#include "x86_ops_sse_cvt.h"
+//#include "x86_ops_sse_mov.h"
 #include <time.h>
 
 
