@@ -972,3 +972,583 @@ static int opMAXSS_xmm_xmm_a32(uint32_t fetchdat)
     }
     return 0;
 }
+
+static int opCMPPS_xmm_xmm_a16(uint32_t fetchdat)
+{
+    MMX_ENTER();
+    fetch_ea_16(fetchdat);
+    uint8_t imm = getbyte();
+    uint32_t cmp[4];
+    if (cpu_mod == 3)
+    {
+        switch(imm & 7)
+        {
+            case 0:
+            {
+                cmp[0] = cpu_state.XMM[cpu_reg].f[0] == cpu_state.XMM[cpu_rm].f[0] ? ~0 : 0;
+                cmp[1] = cpu_state.XMM[cpu_reg].f[1] == cpu_state.XMM[cpu_rm].f[1] ? ~0 : 0;
+                cmp[2] = cpu_state.XMM[cpu_reg].f[2] == cpu_state.XMM[cpu_rm].f[2] ? ~0 : 0;
+                cmp[3] = cpu_state.XMM[cpu_reg].f[3] == cpu_state.XMM[cpu_rm].f[3] ? ~0 : 0;
+                break;
+            }
+            case 1:
+            {
+                cmp[0] = cpu_state.XMM[cpu_reg].f[0] < cpu_state.XMM[cpu_rm].f[0] ? ~0 : 0;
+                cmp[1] = cpu_state.XMM[cpu_reg].f[1] < cpu_state.XMM[cpu_rm].f[1] ? ~0 : 0;
+                cmp[2] = cpu_state.XMM[cpu_reg].f[2] < cpu_state.XMM[cpu_rm].f[2] ? ~0 : 0;
+                cmp[3] = cpu_state.XMM[cpu_reg].f[3] < cpu_state.XMM[cpu_rm].f[3] ? ~0 : 0;
+                break;
+            }
+            case 2:
+            {
+                cmp[0] = cpu_state.XMM[cpu_reg].f[0] <= cpu_state.XMM[cpu_rm].f[0] ? ~0 : 0;
+                cmp[1] = cpu_state.XMM[cpu_reg].f[1] <= cpu_state.XMM[cpu_rm].f[1] ? ~0 : 0;
+                cmp[2] = cpu_state.XMM[cpu_reg].f[2] <= cpu_state.XMM[cpu_rm].f[2] ? ~0 : 0;
+                cmp[3] = cpu_state.XMM[cpu_reg].f[3] <= cpu_state.XMM[cpu_rm].f[3] ? ~0 : 0;
+                break;
+            }
+            case 3:
+            {
+                //TODO: NaNs
+                cmp[0] = 0;
+                cmp[1] = 0;
+                cmp[2] = 0;
+                cmp[3] = 0;
+                break;
+            }
+            case 4:
+            {
+                cmp[0] = cpu_state.XMM[cpu_reg].f[0] != cpu_state.XMM[cpu_rm].f[0] ? ~0 : 0;
+                cmp[1] = cpu_state.XMM[cpu_reg].f[1] != cpu_state.XMM[cpu_rm].f[1] ? ~0 : 0;
+                cmp[2] = cpu_state.XMM[cpu_reg].f[2] != cpu_state.XMM[cpu_rm].f[2] ? ~0 : 0;
+                cmp[3] = cpu_state.XMM[cpu_reg].f[3] != cpu_state.XMM[cpu_rm].f[3] ? ~0 : 0;
+                break;
+            }
+            case 5:
+            {
+                cmp[0] = !(cpu_state.XMM[cpu_reg].f[0] < cpu_state.XMM[cpu_rm].f[0]) ? ~0 : 0;
+                cmp[1] = !(cpu_state.XMM[cpu_reg].f[1] < cpu_state.XMM[cpu_rm].f[1]) ? ~0 : 0;
+                cmp[2] = !(cpu_state.XMM[cpu_reg].f[2] < cpu_state.XMM[cpu_rm].f[2]) ? ~0 : 0;
+                cmp[3] = !(cpu_state.XMM[cpu_reg].f[3] < cpu_state.XMM[cpu_rm].f[3]) ? ~0 : 0;
+                break;
+            }
+            case 6:
+            {
+                cmp[0] = !(cpu_state.XMM[cpu_reg].f[0] <= cpu_state.XMM[cpu_rm].f[0]) ? ~0 : 0;
+                cmp[1] = !(cpu_state.XMM[cpu_reg].f[1] <= cpu_state.XMM[cpu_rm].f[1]) ? ~0 : 0;
+                cmp[2] = !(cpu_state.XMM[cpu_reg].f[2] <= cpu_state.XMM[cpu_rm].f[2]) ? ~0 : 0;
+                cmp[3] = !(cpu_state.XMM[cpu_reg].f[3] <= cpu_state.XMM[cpu_rm].f[3]) ? ~0 : 0;
+                break;
+            }
+            case 7:
+            {
+                //TODO: NaNs
+                cmp[0] = ~0;
+                cmp[1] = ~0;
+                cmp[2] = ~0;
+                cmp[3] = ~0;
+                break;
+            }
+        }
+        cpu_state.XMM[cpu_reg].l[0] = cmp[0];
+        cpu_state.XMM[cpu_reg].l[1] = cmp[1];
+        cpu_state.XMM[cpu_reg].l[2] = cmp[2];
+        cpu_state.XMM[cpu_reg].l[3] = cmp[3];
+        CLOCK_CYCLES(1);
+    }
+    else
+    {
+        uint32_t src[4];
+        
+        SEG_CHECK_READ(cpu_state.ea_seg);
+        src[0] = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
+        src[1] = readmeml(easeg, cpu_state.eaaddr + 4); if (cpu_state.abrt) return 1;
+        src[2] = readmeml(easeg, cpu_state.eaaddr + 8); if (cpu_state.abrt) return 1;
+        src[3] = readmeml(easeg, cpu_state.eaaddr + 12); if (cpu_state.abrt) return 1;
+        float src_real[4];
+        src_real[0] = *(float*)&dst[0];
+        src_real[1] = *(float*)&dst[1];
+        src_real[2] = *(float*)&dst[2];
+        src_real[3] = *(float*)&dst[3];
+        switch(imm & 7)
+        {
+            case 0:
+            {
+                cmp[0] = cpu_state.XMM[cpu_reg].f[0] == src_real[0] ? ~0 : 0;
+                cmp[1] = cpu_state.XMM[cpu_reg].f[1] == src_real[1] ? ~0 : 0;
+                cmp[2] = cpu_state.XMM[cpu_reg].f[2] == src_real[2] ? ~0 : 0;
+                cmp[3] = cpu_state.XMM[cpu_reg].f[3] == src_real[3] ? ~0 : 0;
+                break;
+            }
+            case 1:
+            {
+                cmp[0] = cpu_state.XMM[cpu_reg].f[0] < src_real[0] ? ~0 : 0;
+                cmp[1] = cpu_state.XMM[cpu_reg].f[1] < src_real[1] ? ~0 : 0;
+                cmp[2] = cpu_state.XMM[cpu_reg].f[2] < src_real[2] ? ~0 : 0;
+                cmp[3] = cpu_state.XMM[cpu_reg].f[3] < src_real[3] ? ~0 : 0;
+                break;
+            }
+            case 2:
+            {
+                cmp[0] = cpu_state.XMM[cpu_reg].f[0] <= src_real[0] ? ~0 : 0;
+                cmp[1] = cpu_state.XMM[cpu_reg].f[1] <= src_real[1] ? ~0 : 0;
+                cmp[2] = cpu_state.XMM[cpu_reg].f[2] <= src_real[2] ? ~0 : 0;
+                cmp[3] = cpu_state.XMM[cpu_reg].f[3] <= src_real[3] ? ~0 : 0;
+                break;
+            }
+            case 3:
+            {
+                //TODO: NaNs
+                cmp[0] = 0;
+                cmp[1] = 0;
+                cmp[2] = 0;
+                cmp[3] = 0;
+                break;
+            }
+            case 4:
+            {
+                cmp[0] = cpu_state.XMM[cpu_reg].f[0] != src_real[0] ? ~0 : 0;
+                cmp[1] = cpu_state.XMM[cpu_reg].f[1] != src_real[1] ? ~0 : 0;
+                cmp[2] = cpu_state.XMM[cpu_reg].f[2] != src_real[2] ? ~0 : 0;
+                cmp[3] = cpu_state.XMM[cpu_reg].f[3] != src_real[3] ? ~0 : 0;
+                break;
+            }
+            case 5:
+            {
+                cmp[0] = !(cpu_state.XMM[cpu_reg].f[0] < src_real[0]) ? ~0 : 0;
+                cmp[1] = !(cpu_state.XMM[cpu_reg].f[1] < src_real[1]) ? ~0 : 0;
+                cmp[2] = !(cpu_state.XMM[cpu_reg].f[2] < src_real[2]) ? ~0 : 0;
+                cmp[3] = !(cpu_state.XMM[cpu_reg].f[3] < src_real[3]) ? ~0 : 0;
+                break;
+            }
+            case 6:
+            {
+                cmp[0] = !(cpu_state.XMM[cpu_reg].f[0] <= src_real[0]) ? ~0 : 0;
+                cmp[1] = !(cpu_state.XMM[cpu_reg].f[1] <= src_real[1]) ? ~0 : 0;
+                cmp[2] = !(cpu_state.XMM[cpu_reg].f[2] <= src_real[2]) ? ~0 : 0;
+                cmp[3] = !(cpu_state.XMM[cpu_reg].f[3] <= src_real[3]) ? ~0 : 0;
+                break;
+            }
+            case 7:
+            {
+                //TODO: NaNs
+                cmp[0] = ~0;
+                cmp[1] = ~0;
+                cmp[2] = ~0;
+                cmp[3] = ~0;
+                break;
+            }
+        }
+        cpu_state.XMM[cpu_reg].l[0] = cmp[0];
+        cpu_state.XMM[cpu_reg].l[1] = cmp[1];
+        cpu_state.XMM[cpu_reg].l[2] = cmp[2];
+        cpu_state.XMM[cpu_reg].l[3] = cmp[3];
+        CLOCK_CYCLES(2);
+    }
+    return 0;
+}
+
+static int opCMPPS_xmm_xmm_a32(uint32_t fetchdat)
+{
+    MMX_ENTER();
+    fetch_ea_32(fetchdat);
+    uint8_t imm = getbyte();
+    uint32_t cmp[4];
+    if (cpu_mod == 3)
+    {
+        switch(imm & 7)
+        {
+            case 0:
+            {
+                cmp[0] = cpu_state.XMM[cpu_reg].f[0] == cpu_state.XMM[cpu_rm].f[0] ? ~0 : 0;
+                cmp[1] = cpu_state.XMM[cpu_reg].f[1] == cpu_state.XMM[cpu_rm].f[1] ? ~0 : 0;
+                cmp[2] = cpu_state.XMM[cpu_reg].f[2] == cpu_state.XMM[cpu_rm].f[2] ? ~0 : 0;
+                cmp[3] = cpu_state.XMM[cpu_reg].f[3] == cpu_state.XMM[cpu_rm].f[3] ? ~0 : 0;
+                break;
+            }
+            case 1:
+            {
+                cmp[0] = cpu_state.XMM[cpu_reg].f[0] < cpu_state.XMM[cpu_rm].f[0] ? ~0 : 0;
+                cmp[1] = cpu_state.XMM[cpu_reg].f[1] < cpu_state.XMM[cpu_rm].f[1] ? ~0 : 0;
+                cmp[2] = cpu_state.XMM[cpu_reg].f[2] < cpu_state.XMM[cpu_rm].f[2] ? ~0 : 0;
+                cmp[3] = cpu_state.XMM[cpu_reg].f[3] < cpu_state.XMM[cpu_rm].f[3] ? ~0 : 0;
+                break;
+            }
+            case 2:
+            {
+                cmp[0] = cpu_state.XMM[cpu_reg].f[0] <= cpu_state.XMM[cpu_rm].f[0] ? ~0 : 0;
+                cmp[1] = cpu_state.XMM[cpu_reg].f[1] <= cpu_state.XMM[cpu_rm].f[1] ? ~0 : 0;
+                cmp[2] = cpu_state.XMM[cpu_reg].f[2] <= cpu_state.XMM[cpu_rm].f[2] ? ~0 : 0;
+                cmp[3] = cpu_state.XMM[cpu_reg].f[3] <= cpu_state.XMM[cpu_rm].f[3] ? ~0 : 0;
+                break;
+            }
+            case 3:
+            {
+                //TODO: NaNs
+                cmp[0] = 0;
+                cmp[1] = 0;
+                cmp[2] = 0;
+                cmp[3] = 0;
+                break;
+            }
+            case 4:
+            {
+                cmp[0] = cpu_state.XMM[cpu_reg].f[0] != cpu_state.XMM[cpu_rm].f[0] ? ~0 : 0;
+                cmp[1] = cpu_state.XMM[cpu_reg].f[1] != cpu_state.XMM[cpu_rm].f[1] ? ~0 : 0;
+                cmp[2] = cpu_state.XMM[cpu_reg].f[2] != cpu_state.XMM[cpu_rm].f[2] ? ~0 : 0;
+                cmp[3] = cpu_state.XMM[cpu_reg].f[3] != cpu_state.XMM[cpu_rm].f[3] ? ~0 : 0;
+                break;
+            }
+            case 5:
+            {
+                cmp[0] = !(cpu_state.XMM[cpu_reg].f[0] < cpu_state.XMM[cpu_rm].f[0]) ? ~0 : 0;
+                cmp[1] = !(cpu_state.XMM[cpu_reg].f[1] < cpu_state.XMM[cpu_rm].f[1]) ? ~0 : 0;
+                cmp[2] = !(cpu_state.XMM[cpu_reg].f[2] < cpu_state.XMM[cpu_rm].f[2]) ? ~0 : 0;
+                cmp[3] = !(cpu_state.XMM[cpu_reg].f[3] < cpu_state.XMM[cpu_rm].f[3]) ? ~0 : 0;
+                break;
+            }
+            case 6:
+            {
+                cmp[0] = !(cpu_state.XMM[cpu_reg].f[0] <= cpu_state.XMM[cpu_rm].f[0]) ? ~0 : 0;
+                cmp[1] = !(cpu_state.XMM[cpu_reg].f[1] <= cpu_state.XMM[cpu_rm].f[1]) ? ~0 : 0;
+                cmp[2] = !(cpu_state.XMM[cpu_reg].f[2] <= cpu_state.XMM[cpu_rm].f[2]) ? ~0 : 0;
+                cmp[3] = !(cpu_state.XMM[cpu_reg].f[3] <= cpu_state.XMM[cpu_rm].f[3]) ? ~0 : 0;
+                break;
+            }
+            case 7:
+            {
+                //TODO: NaNs
+                cmp[0] = ~0;
+                cmp[1] = ~0;
+                cmp[2] = ~0;
+                cmp[3] = ~0;
+                break;
+            }
+        }
+        cpu_state.XMM[cpu_reg].l[0] = cmp[0];
+        cpu_state.XMM[cpu_reg].l[1] = cmp[1];
+        cpu_state.XMM[cpu_reg].l[2] = cmp[2];
+        cpu_state.XMM[cpu_reg].l[3] = cmp[3];
+        CLOCK_CYCLES(1);
+    }
+    else
+    {
+        uint32_t src[4];
+        
+        SEG_CHECK_READ(cpu_state.ea_seg);
+        src[0] = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
+        src[1] = readmeml(easeg, cpu_state.eaaddr + 4); if (cpu_state.abrt) return 1;
+        src[2] = readmeml(easeg, cpu_state.eaaddr + 8); if (cpu_state.abrt) return 1;
+        src[3] = readmeml(easeg, cpu_state.eaaddr + 12); if (cpu_state.abrt) return 1;
+        float src_real[4];
+        src_real[0] = *(float*)&dst[0];
+        src_real[1] = *(float*)&dst[1];
+        src_real[2] = *(float*)&dst[2];
+        src_real[3] = *(float*)&dst[3];
+        switch(imm & 7)
+        {
+            case 0:
+            {
+                cmp[0] = cpu_state.XMM[cpu_reg].f[0] == src_real[0] ? ~0 : 0;
+                cmp[1] = cpu_state.XMM[cpu_reg].f[1] == src_real[1] ? ~0 : 0;
+                cmp[2] = cpu_state.XMM[cpu_reg].f[2] == src_real[2] ? ~0 : 0;
+                cmp[3] = cpu_state.XMM[cpu_reg].f[3] == src_real[3] ? ~0 : 0;
+                break;
+            }
+            case 1:
+            {
+                cmp[0] = cpu_state.XMM[cpu_reg].f[0] < src_real[0] ? ~0 : 0;
+                cmp[1] = cpu_state.XMM[cpu_reg].f[1] < src_real[1] ? ~0 : 0;
+                cmp[2] = cpu_state.XMM[cpu_reg].f[2] < src_real[2] ? ~0 : 0;
+                cmp[3] = cpu_state.XMM[cpu_reg].f[3] < src_real[3] ? ~0 : 0;
+                break;
+            }
+            case 2:
+            {
+                cmp[0] = cpu_state.XMM[cpu_reg].f[0] <= src_real[0] ? ~0 : 0;
+                cmp[1] = cpu_state.XMM[cpu_reg].f[1] <= src_real[1] ? ~0 : 0;
+                cmp[2] = cpu_state.XMM[cpu_reg].f[2] <= src_real[2] ? ~0 : 0;
+                cmp[3] = cpu_state.XMM[cpu_reg].f[3] <= src_real[3] ? ~0 : 0;
+                break;
+            }
+            case 3:
+            {
+                //TODO: NaNs
+                cmp[0] = 0;
+                cmp[1] = 0;
+                cmp[2] = 0;
+                cmp[3] = 0;
+                break;
+            }
+            case 4:
+            {
+                cmp[0] = cpu_state.XMM[cpu_reg].f[0] != src_real[0] ? ~0 : 0;
+                cmp[1] = cpu_state.XMM[cpu_reg].f[1] != src_real[1] ? ~0 : 0;
+                cmp[2] = cpu_state.XMM[cpu_reg].f[2] != src_real[2] ? ~0 : 0;
+                cmp[3] = cpu_state.XMM[cpu_reg].f[3] != src_real[3] ? ~0 : 0;
+                break;
+            }
+            case 5:
+            {
+                cmp[0] = !(cpu_state.XMM[cpu_reg].f[0] < src_real[0]) ? ~0 : 0;
+                cmp[1] = !(cpu_state.XMM[cpu_reg].f[1] < src_real[1]) ? ~0 : 0;
+                cmp[2] = !(cpu_state.XMM[cpu_reg].f[2] < src_real[2]) ? ~0 : 0;
+                cmp[3] = !(cpu_state.XMM[cpu_reg].f[3] < src_real[3]) ? ~0 : 0;
+                break;
+            }
+            case 6:
+            {
+                cmp[0] = !(cpu_state.XMM[cpu_reg].f[0] <= src_real[0]) ? ~0 : 0;
+                cmp[1] = !(cpu_state.XMM[cpu_reg].f[1] <= src_real[1]) ? ~0 : 0;
+                cmp[2] = !(cpu_state.XMM[cpu_reg].f[2] <= src_real[2]) ? ~0 : 0;
+                cmp[3] = !(cpu_state.XMM[cpu_reg].f[3] <= src_real[3]) ? ~0 : 0;
+                break;
+            }
+            case 7:
+            {
+                //TODO: NaNs
+                cmp[0] = ~0;
+                cmp[1] = ~0;
+                cmp[2] = ~0;
+                cmp[3] = ~0;
+                break;
+            }
+        }
+        cpu_state.XMM[cpu_reg].l[0] = cmp[0];
+        cpu_state.XMM[cpu_reg].l[1] = cmp[1];
+        cpu_state.XMM[cpu_reg].l[2] = cmp[2];
+        cpu_state.XMM[cpu_reg].l[3] = cmp[3];
+        CLOCK_CYCLES(2);
+    }
+    return 0;
+}
+
+static int opCMPSS_xmm_xmm_a16(uint32_t fetchdat)
+{
+    MMX_ENTER();
+    fetch_ea_16(fetchdat);
+    uint8_t imm = getbyte();
+    uint32_t cmp;
+    if (cpu_mod == 3)
+    {
+        switch(imm & 7)
+        {
+            case 0:
+            {
+                cmp = cpu_state.XMM[cpu_reg].f[0] == cpu_state.XMM[cpu_rm].f[0] ? ~0 : 0;
+                break;
+            }
+            case 1:
+            {
+                cmp = cpu_state.XMM[cpu_reg].f[0] < cpu_state.XMM[cpu_rm].f[0] ? ~0 : 0;
+                break;
+            }
+            case 2:
+            {
+                cmp = cpu_state.XMM[cpu_reg].f[0] <= cpu_state.XMM[cpu_rm].f[0] ? ~0 : 0;
+                break;
+            }
+            case 3:
+            {
+                //TODO: NaNs
+                cmp = 0;
+                break;
+            }
+            case 4:
+            {
+                cmp = cpu_state.XMM[cpu_reg].f[0] != cpu_state.XMM[cpu_rm].f[0] ? ~0 : 0;
+                break;
+            }
+            case 5:
+            {
+                cmp = !(cpu_state.XMM[cpu_reg].f[0] < cpu_state.XMM[cpu_rm].f[0]) ? ~0 : 0;
+                break;
+            }
+            case 6:
+            {
+                cmp = !(cpu_state.XMM[cpu_reg].f[0] <= cpu_state.XMM[cpu_rm].f[0]) ? ~0 : 0;
+                break;
+            }
+            case 7:
+            {
+                //TODO: NaNs
+                cmp = ~0;
+                break;
+            }
+        }
+        cpu_state.XMM[cpu_reg].l[0] = cmp;
+        CLOCK_CYCLES(1);
+    }
+    else
+    {
+        uint32_t src;
+        
+        SEG_CHECK_READ(cpu_state.ea_seg);
+        src = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
+        float src_real;
+        src_real = *(float*)&dst;
+        switch(imm & 7)
+        {
+            case 0:
+            {
+                cmp = cpu_state.XMM[cpu_reg].f[0] == src_real ? ~0 : 0;
+                break;
+            }
+            case 1:
+            {
+                cmp = cpu_state.XMM[cpu_reg].f[0] < src_real ? ~0 : 0;
+                break;
+            }
+            case 2:
+            {
+                cmp = cpu_state.XMM[cpu_reg].f[0] <= src_real ? ~0 : 0;
+                break;
+            }
+            case 3:
+            {
+                //TODO: NaNs
+                cmp = 0;
+                break;
+            }
+            case 4:
+            {
+                cmp = cpu_state.XMM[cpu_reg].f[0] != src_real ? ~0 : 0;
+                break;
+            }
+            case 5:
+            {
+                cmp = !(cpu_state.XMM[cpu_reg].f[0] < src_real) ? ~0 : 0;
+                break;
+            }
+            case 6:
+            {
+                cmp = !(cpu_state.XMM[cpu_reg].f[0] <= src_real) ? ~0 : 0;
+                break;
+            }
+            case 7:
+            {
+                //TODO: NaNs
+                cmp = ~0;
+                break;
+            }
+        }
+        cpu_state.XMM[cpu_reg].l[0] = cmp;
+        CLOCK_CYCLES(2);
+    }
+    return 0;
+}
+
+static int opCMPSS_xmm_xmm_a32(uint32_t fetchdat)
+{
+    MMX_ENTER();
+    fetch_ea_32(fetchdat);
+    uint8_t imm = getbyte();
+    uint32_t cmp;
+    if (cpu_mod == 3)
+    {
+        switch(imm & 7)
+        {
+            case 0:
+            {
+                cmp = cpu_state.XMM[cpu_reg].f[0] == cpu_state.XMM[cpu_rm].f[0] ? ~0 : 0;
+                break;
+            }
+            case 1:
+            {
+                cmp = cpu_state.XMM[cpu_reg].f[0] < cpu_state.XMM[cpu_rm].f[0] ? ~0 : 0;
+                break;
+            }
+            case 2:
+            {
+                cmp = cpu_state.XMM[cpu_reg].f[0] <= cpu_state.XMM[cpu_rm].f[0] ? ~0 : 0;
+                break;
+            }
+            case 3:
+            {
+                //TODO: NaNs
+                cmp = 0;
+                break;
+            }
+            case 4:
+            {
+                cmp = cpu_state.XMM[cpu_reg].f[0] != cpu_state.XMM[cpu_rm].f[0] ? ~0 : 0;
+                break;
+            }
+            case 5:
+            {
+                cmp = !(cpu_state.XMM[cpu_reg].f[0] < cpu_state.XMM[cpu_rm].f[0]) ? ~0 : 0;
+                break;
+            }
+            case 6:
+            {
+                cmp = !(cpu_state.XMM[cpu_reg].f[0] <= cpu_state.XMM[cpu_rm].f[0]) ? ~0 : 0;
+                break;
+            }
+            case 7:
+            {
+                //TODO: NaNs
+                cmp = ~0;
+                break;
+            }
+        }
+        cpu_state.XMM[cpu_reg].l[0] = cmp;
+        CLOCK_CYCLES(1);
+    }
+    else
+    {
+        uint32_t src;
+        
+        SEG_CHECK_READ(cpu_state.ea_seg);
+        src = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
+        float src_real;
+        src_real = *(float*)&dst;
+        switch(imm & 7)
+        {
+            case 0:
+            {
+                cmp = cpu_state.XMM[cpu_reg].f[0] == src_real ? ~0 : 0;
+                break;
+            }
+            case 1:
+            {
+                cmp = cpu_state.XMM[cpu_reg].f[0] < src_real ? ~0 : 0;
+                break;
+            }
+            case 2:
+            {
+                cmp = cpu_state.XMM[cpu_reg].f[0] <= src_real ? ~0 : 0;
+                break;
+            }
+            case 3:
+            {
+                //TODO: NaNs
+                cmp = 0;
+                break;
+            }
+            case 4:
+            {
+                cmp = cpu_state.XMM[cpu_reg].f[0] != src_real ? ~0 : 0;
+                break;
+            }
+            case 5:
+            {
+                cmp = !(cpu_state.XMM[cpu_reg].f[0] < src_real) ? ~0 : 0;
+                break;
+            }
+            case 6:
+            {
+                cmp = !(cpu_state.XMM[cpu_reg].f[0] <= src_real) ? ~0 : 0;
+                break;
+            }
+            case 7:
+            {
+                //TODO: NaNs
+                cmp = ~0;
+                break;
+            }
+        }
+        cpu_state.XMM[cpu_reg].l[0] = cmp;
+        CLOCK_CYCLES(2);
+    }
+    return 0;
+}
