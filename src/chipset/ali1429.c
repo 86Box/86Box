@@ -50,13 +50,13 @@
     Register 18h:
     Bit 6-5-4 (Cache Size)
         0 0 0 32KB
-	0 0 1 128KB
-	0 1 0 256KB
-	0 1 1 512KB
-	1 0 0 64KB
-	1 0 1 256KB
-	1 1 0 512KB
-	1 1 1 1MB
+        0 0 1 128KB
+        0 1 0 256KB
+        0 1 1 512KB
+        1 0 0 64KB
+        1 0 1 256KB
+        1 1 0 512KB
+        1 1 1 1MB
 
     Bit 1: L2 Cache Enable
 
@@ -91,7 +91,7 @@
 
 #define GREEN dev->is_g /* Is G Variant */
 #define UNLOCKED !dev->cfg_locked /* Is Unlocked (Write C5h on register 03h) */
-#define ENABLE_ALI1429_LOG 1
+
 #ifdef ENABLE_ALI1429_LOG
 int ali1429_do_log = ENABLE_ALI1429_LOG;
 static void
