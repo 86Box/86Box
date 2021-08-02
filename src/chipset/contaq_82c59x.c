@@ -75,16 +75,16 @@ contaq_82c59x_isa_speed_recalc(contaq_82c59x_t *dev)
 	/* TODO: ISA clock dividers for 386 and alt. 486. */
 	switch (dev->regs[0x10] & 0x03) {
 		case 0x00:
-			cpu_set_isa_pci_div(4);
+			cpu_set_isa_speed(cpu_busspeed / 4);
 			break;
 		case 0x01:
-			cpu_set_isa_pci_div(6);
+			cpu_set_isa_speed(cpu_busspeed / 6);
 			break;
 		case 0x02:
-			cpu_set_isa_pci_div(8);
+			cpu_set_isa_speed(cpu_busspeed / 8);
 			break;
 		case 0x04:
-			cpu_set_isa_pci_div(5);
+			cpu_set_isa_speed(cpu_busspeed / 5);
 			break;
 	}
     }
