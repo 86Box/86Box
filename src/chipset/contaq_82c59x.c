@@ -205,11 +205,7 @@ contaq_82c59x_write(uint16_t addr, uint8_t val, void *priv)
 				cpu_update_waitstates();
 				break;
 
-			case 0x12:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x13:
+			case 0x12: case 0x13:
 				dev->regs[dev->index] = val;
 				break;
 
@@ -223,27 +219,7 @@ contaq_82c59x_write(uint16_t addr, uint8_t val, void *priv)
 				contaq_82c59x_shadow_recalc(dev);
 				break;
 
-			case 0x16:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x17:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x18:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x19:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x1a:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x1b:
+			case 0x16 ... 0x1b:
 				dev->regs[dev->index] = val;
 				break;
 
@@ -253,32 +229,12 @@ contaq_82c59x_write(uint16_t addr, uint8_t val, void *priv)
 				contaq_82c59x_isa_speed_recalc(dev);
 				break;
 
-			case 0x1d:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x1e:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x1f:
+			case 0x1d ... 0x1f:
 				dev->regs[dev->index] = val;
 				break;
 
 			/* Green (82C597-specific) registers. */
-			case 0x60:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x61:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x62:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x63:
+			case 0x60 ... 0x63:
 				dev->regs[dev->index] = val;
 				break;
 
@@ -291,23 +247,7 @@ contaq_82c59x_write(uint16_t addr, uint8_t val, void *priv)
 				}
 				break;
 
-			case 0x65:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x66:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x67:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x68:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x69:
+			case 0x65 ... 0x69:
 				dev->regs[dev->index] = val;
 				break;
 
@@ -316,15 +256,7 @@ contaq_82c59x_write(uint16_t addr, uint8_t val, void *priv)
 				dev->smi_status_set = !!(val & 0x80);
 				break;
 
-			case 0x6b:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x6c:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x6d:
+			case 0x6b ... 0x6d:
 				dev->regs[dev->index] = val;
 				break;
 
@@ -338,47 +270,11 @@ contaq_82c59x_write(uint16_t addr, uint8_t val, void *priv)
 				contaq_82c59x_smram_recalc(dev);
 				break;
 
-			case 0x71:
+			case 0x71 ... 0x79:
 				dev->regs[dev->index] = val;
 				break;
 
-			case 0x72:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x73:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x74:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x75:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x76:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x77:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x78:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x79:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x7b:
-				dev->regs[dev->index] = val;
-				break;
-
-			case 0x7c:
+			case 0x7b: case 0x7c:
 				dev->regs[dev->index] = val;
 				break;
 		}
