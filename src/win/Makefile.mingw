@@ -632,7 +632,7 @@ MCHOBJ		:= machine.o machine_table.o \
 			m_at_misc.o
 
 ifeq ($(NEW_KBC), y)
-DEVOBJ		:= bugger.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_vt82c686.o \
+DEVOBJ		:= bugger.o cartridge.o cassette.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_vt82c686.o \
 			ibm_5161.o isamem.o isartc.o lpt.o pci_bridge.o postcard.o serial.o \
 			clock_ics9xxx.o isapnp.o \
 		    i2c.o i2c_gpio.o smbus_ali7101.o smbus_piix4.o \
@@ -643,7 +643,7 @@ DEVOBJ		:= bugger.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_vt82c68
 		    mouse_serial.o mouse_ps2.o \
 			phoenix_486_jumper.o
 else
-DEVOBJ		:= bugger.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_vt82c686.o \
+DEVOBJ		:= bugger.o cartridge.o cassette.o hasp.o hwm.o hwm_lm75.o hwm_lm78.o hwm_gl518sm.o hwm_vt82c686.o \
 			ibm_5161.o isamem.o isartc.o lpt.o pci_bridge.o postcard.o serial.o \
 			clock_ics9xxx.o isapnp.o \
 		    i2c.o i2c_gpio.o smbus_ali7101.o smbus_piix4.o \
