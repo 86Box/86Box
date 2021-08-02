@@ -29,6 +29,7 @@
 
 
 enum {
+    AC97_CODEC_AD1881 = AC97_VENDOR_ID('A', 'D', 'S', 0x40),
     AC97_CODEC_ALC100 = AC97_VENDOR_ID('A', 'L', 'C', 0x20),
     AC97_CODEC_CS4297 = AC97_VENDOR_ID('C', 'R', 'Y', 0x03),
     AC97_CODEC_CS4297A = AC97_VENDOR_ID('C', 'R', 'Y', 0x13),
@@ -331,6 +332,18 @@ ac97_codec_close(void *priv)
     free(dev);
 }
 
+
+const device_t ad1881_device =
+{
+    "Analog Devices AD1881",
+    DEVICE_AC97,
+    AC97_CODEC_AD1881,
+    ac97_codec_init, ac97_codec_close, ac97_codec_reset,
+    { NULL },
+    NULL,
+    NULL,
+    NULL
+};
 
 const device_t alc100_device =
 {
