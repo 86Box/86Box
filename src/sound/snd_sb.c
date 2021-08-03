@@ -2342,9 +2342,6 @@ static const device_config_t sb_32_pnp_config[] =
                                 "None", 0
                         },
                         {
-                                "512 KB", 512
-                        },
-                        {
                                 "2 MB", 2048
                         },
                         {
