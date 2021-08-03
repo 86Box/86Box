@@ -539,7 +539,7 @@ cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig)
     if (dev->pnp_card) {
 	/* Update PnP resource data if requested. */
 	if (update_rom)
-		isapnp_update_card_rom(dev->pnp_card, &dev->ram_data[dev->pnp_offset], sizeof(dev->ram_data) - dev->pnp_offset);
+		isapnp_update_card_rom(dev->pnp_card, &dev->ram_data[dev->pnp_offset], 384);
 
 	/* Hide PnP card if the PKD bit is set, or if PnP was disabled by command 0x55. */
 	if ((dev->ram_data[0x4002] & 0x20) || !dev->pnp_enable)
