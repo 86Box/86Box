@@ -166,13 +166,11 @@ ac97_via_update_irqs(ac97_via_t *dev)
 	/* Stop immediately if any flag is set. Doing it this way optimizes
 	   rising edges for the playback SGD (0 - first to be checked). */
 	if (dev->sgd_regs[i] & (dev->sgd_regs[i | 0x2] & 0x03)) {
-		pclog("irq set\n");
 		pci_set_irq(dev->slot, dev->irq_pin);
 		return;
 	}
     }
 
-    pclog("irq cleared\n");
     pci_clear_irq(dev->slot, dev->irq_pin);
 }
 
