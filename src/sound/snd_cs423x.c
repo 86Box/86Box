@@ -133,9 +133,9 @@ typedef struct cs423x_t
     void	*gameport;
     void	*i2c, *eeprom;
 
-    uint16_t	wss_base, opl_base, sb_base, ctrl_base, ram_addr, eeprom_size: 11;
-    uint8_t	type, ad1848_type, pnp_offset, regs[8], indirect_regs[16],
-		eeprom_data[2048], ram_data[384], ram_dl: 2, opl_wss: 1;
+    uint16_t	wss_base, opl_base, sb_base, ctrl_base, ram_addr, eeprom_size: 11, pnp_offset;
+    uint8_t	type, ad1848_type, regs[8], indirect_regs[16],
+		eeprom_data[2048], ram_data[65536], ram_dl: 2, opl_wss: 1;
     char	*nvr_path;
 
     uint8_t	pnp_enable: 1, key_pos: 5, slam_enable: 1, slam_state: 2, slam_ld, slam_reg;
@@ -181,14 +181,9 @@ cs423x_read(uint16_t addr, void *priv)
 		break;
 
 	case 5: /* Control/RAM Access */
-		/* Reading RAM is undocumented; the WDM driver does so. */
-		if (dev->ram_dl == 3) {
-			if ((dev->ram_addr >= 0x4000) && (dev->ram_addr < 0x4180)) /* chip configuration and PnP resources */
-				ret = dev->ram_data[dev->ram_addr & 0x01ff];
-			else
-				ret = 0xff;
-			dev->ram_addr++;
-		}
+		/* Reading RAM is undocumented; the Windows drivers do so. */
+		if (dev->ram_dl == 3)
+			ret = dev->ram_data[dev->ram_addr++];
 		break;
 
 	case 7: /* Global Status */
@@ -311,9 +306,7 @@ cs423x_write(uint16_t addr, uint8_t val, void *priv)
 				break;
 
 			case 3: /* data */
-				if ((dev->ram_addr >= 0x4000) && (dev->ram_addr < 0x4180)) /* chip configuration and PnP resources */
-					dev->ram_data[dev->ram_addr & 0x01ff] = val;
-				dev->ram_addr++;
+				dev->ram_data[dev->ram_addr++] = val;
 				break;
 		}
 		break;
@@ -468,7 +461,7 @@ cs423x_slam_enable(cs423x_t *dev, uint8_t enable)
     }
 
     /* Enable SLAM if the CKD bit is not set. */
-    if (enable && !(dev->ram_data[2] & 0x10)) {
+    if (enable && !(dev->ram_data[0x4002] & 0x10)) {
 	dev->slam_enable = 1;
 	io_sethandler(0x279, 1, NULL, NULL, NULL, cs423x_slam_write, NULL, NULL, dev);
     }
@@ -543,25 +536,22 @@ cs423x_get_buffer(int32_t *buffer, int len, void *priv)
 static void
 cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig)
 {
-    uint8_t enable = ISAPNP_CARD_ENABLE;
-
     if (dev->pnp_card) {
-	/* Hide PnP card if the PKD bit is set, or if PnP was disabled by command 0x55. */
-	if ((dev->ram_data[2] & 0x20) || !dev->pnp_enable)
-		enable = ISAPNP_CARD_DISABLE;
-
 	/* Update PnP resource data if requested. */
 	if (update_rom)
 		isapnp_update_card_rom(dev->pnp_card, &dev->ram_data[dev->pnp_offset], sizeof(dev->ram_data) - dev->pnp_offset);
 
-	/* Update PnP state. */
-	isapnp_enable_card(dev->pnp_card, enable);
+	/* Hide PnP card if the PKD bit is set, or if PnP was disabled by command 0x55. */
+	if ((dev->ram_data[0x4002] & 0x20) || !dev->pnp_enable)
+		isapnp_enable_card(dev->pnp_card, ISAPNP_CARD_DISABLE);
+	else
+		isapnp_enable_card(dev->pnp_card, ISAPNP_CARD_ENABLE);
     }
 
     /* Update some register bits based on the config data in RAM if requested. */
     if (update_hwconfig) {
 	/* Update WTEN. */
-	if (dev->ram_data[3] & 0x08) {
+	if (dev->ram_data[0x4003] & 0x08) {
 		dev->indirect_regs[8] |= 0x08;
 		dev->ad1848.wten = 1;
 	} else {
@@ -570,13 +560,13 @@ cs423x_pnp_enable(cs423x_t *dev, uint8_t update_rom, uint8_t update_hwconfig)
 	}
 
 	/* Update SPS. */
-	if (dev->ram_data[3] & 0x04)
+	if (dev->ram_data[0x4003] & 0x04)
 		dev->indirect_regs[8] |= 0x04;
 	else
 		dev->indirect_regs[8] &= ~0x04;
 
 	/* Update IFM. */
-	if (dev->ram_data[3] & 0x80)
+	if (dev->ram_data[0x4003] & 0x80)
 		dev->ad1848.xregs[4] |= 0x10;
 	else
 		dev->ad1848.xregs[4] &= ~0x10;
@@ -693,17 +683,20 @@ cs423x_reset(void *priv)
 {
     cs423x_t *dev = (cs423x_t *) priv;
 
-    /* Load EEPROM data to RAM, or just clear RAM if there's no EEPROM. */
+    /* Clear RAM. */
+    memset(dev->ram_data, 0, sizeof(dev->ram_data));
+
     if (dev->eeprom) {
-	memcpy(dev->ram_data, &dev->eeprom_data[4], MIN(sizeof(dev->ram_data), sizeof(dev->eeprom_data) - 4));
+	/* Load EEPROM data to RAM. */
+	memcpy(&dev->ram_data[0x4000], &dev->eeprom_data[4], MIN(384, ((dev->eeprom_data[2] << 8) | dev->eeprom_data[3]) - 4));
 
 	/* Save EEPROM contents to file. */
 	cs423x_nvram(dev, 1);
-    } else {
-	memset(dev->ram_data, 0, sizeof(dev->ram_data));
     }
 
     /* Reset registers. */
+    memset(dev->regs, 0, sizeof(dev->regs));
+    dev->regs[1] = 0x80;
     memset(dev->indirect_regs, 0, sizeof(dev->indirect_regs));
     dev->indirect_regs[1] = dev->type;
     if (dev->type == CRYSTAL_CS4238B)
@@ -737,7 +730,7 @@ cs423x_init(const device_t *info)
 	case CRYSTAL_CS4238B:
 		/* Same WSS codec and EEPROM structure. */
 		dev->ad1848_type = AD1848_TYPE_CS4236;
-		dev->pnp_offset = 19;
+		dev->pnp_offset = 0x4013;
 
 		/* Different Chip Version and ID registers, which shouldn't be reset by ad1848_init */
 		dev->ad1848.xregs[25] = dev->type;
