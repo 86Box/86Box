@@ -2765,7 +2765,7 @@ ide_board_init(int board, int irq, int base_main, int side_main, int type)
 }
 
 
-static void
+void
 ide_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 {
     if (ld)
@@ -2796,12 +2796,23 @@ ide_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 static void *
 ide_ter_init(const device_t *info)
 {
-    int irq = device_get_config_int("irq");
-    if (irq == -1) {
-	ide_board_init(2, -1, 0, 0, info->local);
-	isapnp_add_card(ide_ter_pnp_rom, sizeof(ide_ter_pnp_rom), ide_pnp_config_changed, NULL, NULL, NULL, (void *) 2);
-    } else
-	ide_board_init(2, irq, 0x168, 0x36e, info->local);
+    /* Don't claim this channel again if it was already claimed. */
+    if (ide_boards[2])
+	return(NULL);
+
+    int irq;
+    if (info->local)
+	irq = -2;
+    else
+	irq = device_get_config_int("irq");
+
+    if (irq < 0) {
+	ide_board_init(2, -1, 0, 0, 0);
+	if (irq == -1)
+		isapnp_add_card(ide_ter_pnp_rom, sizeof(ide_ter_pnp_rom), ide_pnp_config_changed, NULL, NULL, NULL, (void *) 2);
+    } else {
+	ide_board_init(2, irq, 0x168, 0x36e, 0);
+    }
 
     return(ide_boards[2]);
 }
@@ -2818,12 +2829,23 @@ ide_ter_close(void *priv)
 static void *
 ide_qua_init(const device_t *info)
 {
-    int irq = device_get_config_int("irq");
-    if (irq == -1) {
-	ide_board_init(3, -1, 0, 0, info->local);
-	isapnp_add_card(ide_qua_pnp_rom, sizeof(ide_qua_pnp_rom), ide_pnp_config_changed, NULL, NULL, NULL, (void *) 3);
-    } else
-	ide_board_init(3, irq, 0x1e8, 0x3ee, info->local);
+    /* Don't claim this channel again if it was already claimed. */
+    if (ide_boards[3])
+	return(NULL);
+
+    int irq;
+    if (info->local)
+	irq = -2;
+    else
+	irq = device_get_config_int("irq");
+
+    if (irq < 0) {
+	ide_board_init(3, -1, 0, 0, 0);
+	if (irq == -1)
+		isapnp_add_card(ide_qua_pnp_rom, sizeof(ide_qua_pnp_rom), ide_pnp_config_changed, NULL, NULL, NULL, (void *) 3);
+    } else {
+	ide_board_init(3, irq, 0x1e8, 0x3ee, 0);
+    }
 
     return(ide_boards[3]);
 }
@@ -3103,10 +3125,28 @@ const device_t ide_ter_device = {
     ide_ter_config
 };
 
+const device_t ide_ter_pnp_device = {
+    "Tertiary IDE Controller (Plug and Play only)",
+    DEVICE_AT,
+    1,
+    ide_ter_init, ide_ter_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
 const device_t ide_qua_device = {
     "Quaternary IDE Controller",
     DEVICE_AT,
     0,
+    ide_qua_init, ide_qua_close, NULL,
+    { NULL }, NULL, NULL,
+    ide_qua_config
+};
+
+const device_t ide_qua_pnp_device = {
+    "Quaternary IDE Controller (Plug and Play only)",
+    DEVICE_AT,
+    1,
     ide_qua_init, ide_qua_close, NULL,
     { NULL }, NULL, NULL,
     ide_qua_config

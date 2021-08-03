@@ -38,6 +38,8 @@
 #include <86box/filters.h>
 #include <86box/isapnp.h>
 #include <86box/snd_sb.h>
+#include <86box/hdc.h>
+#include <86box/hdc_ide.h>
 
 
 /* 0 to 7 -> -14dB to 0dB i 2dB steps. 8 to 15 -> 0 to +14dB in 2dB steps.
@@ -73,249 +75,85 @@ static const int sb_pro_mcv_irqs[4] = {7, 5, 3, 3};
 
 
 /* Each card in the SB16 family has a million variants, and it shows in the large variety of device IDs for the PnP models.
-   These ROMs were reconstructed in a best-effort basis, around what Linux pnpdump configs and kernel logs could be found
-   in mailing lists, forums and other places, as well as Linux's own SB PnP card tables for ALSA and OSS. */
+   This ROM was reconstructed in a best-effort basis around a pnpdump output log found in a forum. */
 static uint8_t sb_16_pnp_rom[] = {
-    0x0e, 0x8c, 0x00, 0x28, 0x00, 0x00, 0x00, 0x00, 0x00, /* CTL0028, dummy checksum (filled in by isapnp_add_card) */
+    0x0e, 0x8c, 0x00, 0x24, 0x00, 0x00, 0x00, 0x00, 0x00, /* CTL0024, dummy checksum (filled in by isapnp_add_card) */
     0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
     0x82, 0x11, 0x00, 'C', 'r', 'e', 'a', 't', 'i', 'v', 'e', ' ', 'S', 'B', '1', '6', ' ', 'P', 'n', 'P', /* ANSI identifier */
 
-    0x15, 0x0e, 0x8c, 0x00, 0x31, 0x00, /* logical device CTL0031 */
+    0x16, 0x0e, 0x8c, 0x00, 0x31, 0x00, 0x65, /* logical device CTL0031, supports vendor-specific registers 0x39/0x3A/0x3D/0x3F */
 	0x82, 0x05, 0x00, 'A', 'u', 'd', 'i', 'o', /* ANSI identifier */
-	0x30, /* start dependent functions, acceptable */
+	0x31, 0x00, /* start dependent functions, preferred */
+		0x22, 0x20, 0x00, /* IRQ 5 */
+		0x2a, 0x02, 0x08, /* DMA 1, compatibility, no count by word, count by byte, not bus master, 8-bit only */
+		0x2a, 0x20, 0x12, /* DMA 5, compatibility, count by word, no count by byte, not bus master, 16-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x20, 0x02, 0x01, 0x10, /* I/O 0x220, decodes 16-bit, 1-byte alignment, 16 addresses */
+		0x47, 0x01, 0x30, 0x03, 0x30, 0x03, 0x01, 0x02, /* I/O 0x330, decodes 16-bit, 1-byte alignment, 2 addresses */
+		0x47, 0x01, 0x88, 0x03, 0x88, 0x03, 0x01, 0x04, /* I/O 0x388, decodes 16-bit, 1-byte alignment, 4 addresses */
+	0x31, 0x01, /* start dependent functions, acceptable */
 		0x22, 0xa0, 0x04, /* IRQ 5/7/10 */
 		0x2a, 0x0b, 0x08, /* DMA 0/1/3, compatibility, no count by word, count by byte, not bus master, 8-bit only */
-		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
+		0x2a, 0xe0, 0x12, /* DMA 5/6/7, compatibility, count by word, no count by byte, not bus master, 16-bit only */
 		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
 		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
 		0x47, 0x01, 0x88, 0x03, 0x88, 0x03, 0x01, 0x04, /* I/O 0x388, decodes 16-bit, 1-byte alignment, 4 addresses */
+	0x31, 0x01, /* start dependent functions, acceptable */
+		0x22, 0xa0, 0x04, /* IRQ 5/7/10 */
+		0x2a, 0x0b, 0x08, /* DMA 0/1/3, compatibility, no count by word, count by byte, not bus master, 8-bit only */
+		0x2a, 0xe0, 0x12, /* DMA 5/6/7, compatibility, count by word, no count by byte, not bus master, 16-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
+	0x31, 0x02, /* start dependent functions, functional */
+		0x22, 0xa0, 0x04, /* IRQ 5/7/10 */
+		0x2a, 0x0b, 0x08, /* DMA 0/1/3, compatibility, no count by word, count by byte, not bus master, 8-bit only */
+		0x2a, 0xe0, 0x12, /* DMA 5/6/7, compatibility, count by word, no count by byte, not bus master, 16-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+	0x31, 0x02, /* start dependent functions, functional */
+		0x22, 0xa0, 0x04, /* IRQ 5/7/10 */
+		0x2a, 0x0b, 0x08, /* DMA 0/1/3, compatibility, no count by word, count by byte, not bus master, 8-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
+		0x47, 0x01, 0x88, 0x03, 0x88, 0x03, 0x01, 0x04, /* I/O 0x388, decodes 16-bit, 1-byte alignment, 4 addresses */
+	0x31, 0x02, /* start dependent functions, functional */
+		0x22, 0xa0, 0x04, /* IRQ 5/7/10 */
+		0x2a, 0x0b, 0x08, /* DMA 0/1/3, compatibility, no count by word, count by byte, not bus master, 8-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
+		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
+	0x31, 0x02, /* start dependent functions, functional */
+		0x22, 0xa0, 0x04, /* IRQ 5/7/10 */
+		0x2a, 0x0b, 0x08, /* DMA 0/1/3, compatibility, no count by word, count by byte, not bus master, 8-bit only */
+		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
 	0x38, /* end dependent functions */
+
+    0x16, 0x0e, 0x8c, 0x20, 0x11, 0x00, 0x5a, /* logical device CTL2011, supports vendor-specific registers 0x39/0x3B/0x3C/0x3E */
+	0x1c, 0x41, 0xd0, 0x06, 0x00, /* compatible device PNP0600 */
+	0x82, 0x03, 0x00, 'I', 'D', 'E', /* ANSI identifier */
+	0x31, 0x00, /* start dependent functions, preferred */
+		0x22, 0x00, 0x04, /* IRQ 10 */
+		0x47, 0x01, 0x68, 0x01, 0x68, 0x01, 0x01, 0x08, /* I/O 0x168, decodes 16-bit, 1-byte alignment, 8 addresses */
+		0x47, 0x01, 0x6e, 0x03, 0x6e, 0x03, 0x01, 0x02, /* I/O 0x36E, decodes 16-bit, 1-byte alignment, 2 addresses */
+	0x31, 0x01, /* start dependent functions, acceptable */
+		0x22, 0x00, 0x08, /* IRQ 11 */
+		0x47, 0x01, 0xe8, 0x01, 0xe8, 0x01, 0x01, 0x08, /* I/O 0x1E8, decodes 16-bit, 1-byte alignment, 8 addresses */
+		0x47, 0x01, 0xee, 0x03, 0xee, 0x03, 0x01, 0x02, /* I/O 0x3EE, decodes 16-bit, 1-byte alignment, 2 addresses */
+	0x31, 0x01, /* start dependent functions, acceptable */
+		0x22, 0x00, 0x8c, /* IRQ 10/11/15 */
+		0x47, 0x01, 0x00, 0x01, 0xf8, 0x01, 0x08, 0x08, /* I/O 0x100-0x1F8, decodes 16-bit, 8-byte alignment, 8 addresses */
+		0x47, 0x01, 0x00, 0x03, 0xfe, 0x03, 0x02, 0x02, /* I/O 0x300-0x3FE, decodes 16-bit, 2-byte alignment, 2 addresses */
+	0x31, 0x02, /* start dependent functions, functional */
+		0x22, 0x00, 0x80, /* IRQ 15 */
+		0x47, 0x01, 0x70, 0x01, 0x70, 0x01, 0x01, 0x08, /* I/O 0x170, decodes 16-bit, 1-byte alignment, 8 addresses */
+		0x47, 0x01, 0x76, 0x03, 0x76, 0x03, 0x01, 0x02, /* I/O 0x376, decodes 16-bit, 1-byte alignment, 1 addresses */
+	0x38, /* end dependent functions */
+
+    0x16, 0x41, 0xd0, 0xff, 0xff, 0x00, 0xda, /* logical device PNPFFFF, supports vendor-specific registers 0x38/0x39/0x3B/0x3C/0x3E */
+	0x82, 0x08, 0x00, 'R', 'e', 's', 'e', 'r', 'v', 'e', 'd', /* ANSI identifier */
+	0x47, 0x01, 0x00, 0x01, 0xf8, 0x03, 0x08, 0x01, /* I/O 0x100-0x3F8, decodes 16-bit, 8-byte alignment, 1 address */
 
     0x15, 0x0e, 0x8c, 0x70, 0x01, 0x00, /* logical device CTL7001 */
 	0x1c, 0x41, 0xd0, 0xb0, 0x2f, /* compatible device PNPB02F */
 	0x82, 0x04, 0x00, 'G', 'a', 'm', 'e', /* ANSI identifier */
 	0x47, 0x01, 0x00, 0x02, 0x00, 0x02, 0x01, 0x08, /* I/O 0x200, decodes 16-bit, 1-byte alignment, 8 addresses */
-
-    0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
-};
-static uint8_t sb_32_pnp_rom[] = {
-    0x0e, 0x8c, 0x00, 0x48, 0x00, 0x00, 0x00, 0x00, 0x00, /* CTL0048, dummy checksum (filled in by isapnp_add_card) */
-    0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
-    0x82, 0x11, 0x00, 'C', 'r', 'e', 'a', 't', 'i', 'v', 'e', ' ', 'S', 'B', '3', '2', ' ', 'P', 'n', 'P', /* ANSI identifier */
-
-    0x16, 0x0e, 0x8c, 0x00, 0x31, 0x00, 0xa9, /* logical device CTL0031, supports vendor-specific registers 0x38/0x3A/0x3C/0x3F */
-	0x82, 0x05, 0x00, 'A', 'u', 'd', 'i', 'o', /* ANSI identifier */
-	0x31, 0x00, /* start dependent functions, preferred */
-		0x22, 0x20, 0x00, /* IRQ 5 */
-		0x2a, 0x02, 0x0c, /* DMA 1, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x2a, 0x20, 0x16, /* DMA 5, compatibility, count by word, no count by byte, is bus master, 16-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x20, 0x02, 0x01, 0x10, /* I/O 0x220, decodes 16-bit, 1-byte alignment, 16 addresses */
-		0x47, 0x01, 0x30, 0x03, 0x30, 0x03, 0x01, 0x02, /* I/O 0x330, decodes 16-bit, 1-byte alignment, 2 addresses */
-		0x47, 0x01, 0x88, 0x03, 0x88, 0x03, 0x01, 0x04, /* I/O 0x388, decodes 16-bit, 1-byte alignment, 4 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
-		0x47, 0x01, 0x88, 0x03, 0x88, 0x03, 0x01, 0x04, /* I/O 0x388, decodes 16-bit, 1-byte alignment, 4 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
-		0x47, 0x01, 0x88, 0x03, 0x88, 0x03, 0x01, 0x04, /* I/O 0x388, decodes 16-bit, 1-byte alignment, 4 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
-		0x47, 0x01, 0x88, 0x03, 0x94, 0x03, 0x04, 0x04, /* I/O 0x388-0x394, decodes 16-bit, 4-byte alignment, 4 addresses */
-	0x38, /* end dependent functions */
-
-    0x16, 0x0e, 0x8c, 0x00, 0x21, 0x00, 0xa9, /* logical device CTL0021, supports vendor-specific registers 0x38/0x3A/0x3C/0x3F */
-	0x82, 0x09, 0x00, 'W', 'a', 'v', 'e', 'T', 'a', 'b', 'l', 'e', /* ANSI identifier */
-	0x31, 0x00, /* start dependent functions, preferred */
-		0x47, 0x01, 0x20, 0x06, 0x20, 0x06, 0x01, 0x04, /* I/O 0x620, decodes 16-bit, 1-byte alignment, 4 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x47, 0x01, 0x20, 0x06, 0x80, 0x06, 0x20, 0x04, /* I/O 0x620-0x680, decodes 16-bit, 32-byte alignment, 4 addresses */
-	0x38, /* end dependent functions */
-
-    0x15, 0x0e, 0x8c, 0x70, 0x01, 0x00, /* logical device CTL7001 */
-	0x1c, 0x41, 0xd0, 0xb0, 0x2f, /* compatible device PNPB02F */
-	0x82, 0x04, 0x00, 'G', 'a', 'm', 'e', /* ANSI identifier */
-	0x47, 0x01, 0x00, 0x02, 0x00, 0x02, 0x01, 0x08, /* I/O 0x200, decodes 16-bit, 1-byte alignment, 8 addresses */
-
-    0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
-};
-static uint8_t sb_awe32_pnp_rom[] = {
-    0x0e, 0x8c, 0x00, 0x43, 0x00, 0x00, 0x00, 0x00, 0x00, /* CTL0043, dummy checksum (filled in by isapnp_add_card) */
-    0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
-    0x82, 0x15, 0x00, 'C', 'r', 'e', 'a', 't', 'i', 'v', 'e', ' ', 'S', 'B', ' ', 'A', 'W', 'E', '3', '2', ' ', 'P', 'n', 'P', /* ANSI identifier */
-
-    0x16, 0x0e, 0x8c, 0x00, 0x31, 0x00, 0xa9, /* logical device CTL0031, supports vendor-specific registers 0x38/0x3A/0x3C/0x3F */
-	0x82, 0x05, 0x00, 'A', 'u', 'd', 'i', 'o', /* ANSI identifier */
-	0x31, 0x00, /* start dependent functions, preferred */
-		0x22, 0x20, 0x00, /* IRQ 5 */
-		0x2a, 0x02, 0x0c, /* DMA 1, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x2a, 0x20, 0x16, /* DMA 5, compatibility, count by word, no count by byte, is bus master, 16-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x20, 0x02, 0x01, 0x10, /* I/O 0x220, decodes 16-bit, 1-byte alignment, 16 addresses */
-		0x47, 0x01, 0x30, 0x03, 0x30, 0x03, 0x01, 0x02, /* I/O 0x330, decodes 16-bit, 1-byte alignment, 2 addresses */
-		0x47, 0x01, 0x88, 0x03, 0xf8, 0x03, 0x01, 0x04, /* I/O 0x388-0x3F8, decodes 16-bit, 1-byte alignment, 4 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
-		0x47, 0x01, 0x88, 0x03, 0x88, 0x03, 0x01, 0x04, /* I/O 0x388, decodes 16-bit, 1-byte alignment, 4 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
-		0x47, 0x01, 0x88, 0x03, 0x88, 0x03, 0x01, 0x04, /* I/O 0x388, decodes 16-bit, 1-byte alignment, 4 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-	0x31, 0x02, /* start dependent functions, sub-optimal */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
-		0x47, 0x01, 0x88, 0x03, 0x94, 0x03, 0x04, 0x04, /* I/O 0x388-0x394, decodes 16-bit, 4-byte alignment, 4 addresses */
-	0x38, /* end dependent functions */
-
-    0x16, 0x0e, 0x8c, 0x00, 0x21, 0x00, 0xa9, /* logical device CTL0021, supports vendor-specific registers 0x38/0x3A/0x3C/0x3F */
-	0x82, 0x09, 0x00, 'W', 'a', 'v', 'e', 'T', 'a', 'b', 'l', 'e', /* ANSI identifier */
-	0x31, 0x00, /* start dependent functions, preferred */
-		0x47, 0x01, 0x20, 0x06, 0x20, 0x06, 0x01, 0x04, /* I/O 0x620, decodes 16-bit, 1-byte alignment, 4 addresses */
-		0x47, 0x01, 0x20, 0x0a, 0x20, 0x0a, 0x01, 0x04, /* I/O 0xA20, decodes 16-bit, 1-byte alignment, 4 addresses */
-		0x47, 0x01, 0x20, 0x0e, 0x20, 0x0e, 0x01, 0x04, /* I/O 0xE20, decodes 16-bit, 1-byte alignment, 4 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x47, 0x01, 0x20, 0x06, 0x80, 0x06, 0x20, 0x04, /* I/O 0x620-0x680, decodes 16-bit, 32-byte alignment, 4 addresses */
-		0x47, 0x01, 0x20, 0x0a, 0x80, 0x0a, 0x20, 0x04, /* I/O 0xA20-0xA80, decodes 16-bit, 32-byte alignment, 4 addresses */
-		0x47, 0x01, 0x20, 0x0e, 0x80, 0x0e, 0x20, 0x04, /* I/O 0xE20-0xE80, decodes 16-bit, 32-byte alignment, 4 addresses */
-	0x38, /* end dependent functions */
-
-    0x15, 0x0e, 0x8c, 0x70, 0x01, 0x00, /* logical device CTL7001 */
-	0x1c, 0x41, 0xd0, 0xb0, 0x2f, /* compatible device PNPB02F */
-	0x82, 0x04, 0x00, 'G', 'a', 'm', 'e', /* ANSI identifier */
-	0x47, 0x01, 0x00, 0x02, 0x00, 0x02, 0x01, 0x08, /* I/O 0x200, decodes 16-bit, 1-byte alignment, 8 addresses */
-
-    0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
-};
-static uint8_t sb_awe64_gold_pnp_rom[] = {
-    0x0e, 0x8c, 0x00, 0x9e, 0x00, 0x00, 0x00, 0x00, 0x00, /* CTL009E, dummy checksum (filled in by isapnp_add_card) */
-    0x0a, 0x10, 0x20, /* PnP version 1.0, vendor version 2.0 */
-    0x82, 0x16, 0x00, 'C', 'r', 'e', 'a', 't', 'i', 'v', 'e', ' ', 'S', 'B', ' ', 'A', 'W', 'E', '6', '4', ' ', 'G', 'o', 'l', 'd', /* ANSI identifier */
-
-    0x16, 0x0e, 0x8c, 0x00, 0x44, 0x00, 0xa9, /* logical device CTL0044, supports vendor-specific registers 0x38/0x3A/0x3C/0x3F */
-	0x82, 0x05, 0x00, 'A', 'u', 'd', 'i', 'o', /* ANSI identifier */
-	0x31, 0x00, /* start dependent functions, preferred */
-		0x22, 0x20, 0x00, /* IRQ 5 */
-		0x2a, 0x02, 0x0c, /* DMA 1, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x2a, 0x20, 0x16, /* DMA 5, compatibility, count by word, no count by byte, is bus master, 16-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x20, 0x02, 0x01, 0x10, /* I/O 0x220, decodes 16-bit, 1-byte alignment, 16 addresses */
-		0x47, 0x01, 0x30, 0x03, 0x30, 0x03, 0x01, 0x02, /* I/O 0x330, decodes 16-bit, 1-byte alignment, 2 addresses */
-		0x47, 0x01, 0x88, 0x03, 0xf8, 0x03, 0x01, 0x04, /* I/O 0x388-0x3F8, decodes 16-bit, 1-byte alignment, 4 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
-		0x47, 0x01, 0x88, 0x03, 0xf8, 0x03, 0x01, 0x04, /* I/O 0x388-0x3F8, decodes 16-bit, 1-byte alignment, 4 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
-		0x47, 0x01, 0x88, 0x03, 0xf8, 0x03, 0x01, 0x04, /* I/O 0x388-0x3F8, decodes 16-bit, 1-byte alignment, 4 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-	0x31, 0x02, /* start dependent functions, sub-optimal */
-		0x22, 0xa0, 0x06, /* IRQ 5/7/9/10 */
-		0x2a, 0x0b, 0x0c, /* DMA 0/1/3, compatibility, no count by word, count by byte, is bus master, 8-bit only */
-		0x2a, 0xe0, 0x16, /* DMA 5/6/7, compatibility, count by word, no count by byte, is bus master, 16-bit only */
-		0x47, 0x01, 0x20, 0x02, 0x80, 0x02, 0x20, 0x10, /* I/O 0x220-0x280, decodes 16-bit, 32-byte alignment, 16 addresses */
-		0x47, 0x01, 0x00, 0x03, 0x30, 0x03, 0x30, 0x02, /* I/O 0x300-0x330, decodes 16-bit, 48-byte alignment, 2 addresses */
-		0x47, 0x01, 0x88, 0x03, 0x94, 0x03, 0x04, 0x04, /* I/O 0x388-0x394, decodes 16-bit, 4-byte alignment, 4 addresses */
-	0x38, /* end dependent functions */
-
-    0x15, 0x0e, 0x8c, 0x70, 0x02, 0x00, /* logical device CTL7002 */
-	0x1c, 0x41, 0xd0, 0xb0, 0x2f, /* compatible device PNPB02F */
-	0x82, 0x04, 0x00, 'G', 'a', 'm', 'e', /* ANSI identifier */
-	0x47, 0x01, 0x00, 0x02, 0x00, 0x02, 0x01, 0x08, /* I/O 0x200, decodes 16-bit, 1-byte alignment, 8 addresses */
-
-    0x16, 0x0e, 0x8c, 0x00, 0x23, 0x00, 0xa9, /* logical device CTL0023, supports vendor-specific registers 0x38/0x3A/0x3C/0x3F */
-	0x82, 0x09, 0x00, 'W', 'a', 'v', 'e', 'T', 'a', 'b', 'l', 'e', /* ANSI identifier */
-	0x31, 0x00, /* start dependent functions, preferred */
-		0x47, 0x01, 0x20, 0x06, 0x20, 0x06, 0x01, 0x04, /* I/O 0x620, decodes 16-bit, 1-byte alignment, 4 addresses */
-		0x47, 0x01, 0x20, 0x0a, 0x20, 0x0a, 0x01, 0x04, /* I/O 0xA20, decodes 16-bit, 1-byte alignment, 4 addresses */
-		0x47, 0x01, 0x20, 0x0e, 0x20, 0x0e, 0x01, 0x04, /* I/O 0xE20, decodes 16-bit, 1-byte alignment, 4 addresses */
-	0x30, /* start dependent functions, acceptable */
-		0x47, 0x01, 0x20, 0x06, 0x80, 0x06, 0x20, 0x04, /* I/O 0x620-0x680, decodes 16-bit, 32-byte alignment, 4 addresses */
-		0x47, 0x01, 0x20, 0x0a, 0x80, 0x0a, 0x20, 0x04, /* I/O 0xA20-0xA80, decodes 16-bit, 32-byte alignment, 4 addresses */
-		0x47, 0x01, 0x20, 0x0e, 0x80, 0x0e, 0x20, 0x04, /* I/O 0xE20-0xE80, decodes 16-bit, 32-byte alignment, 4 addresses */
-	0x38, /* end dependent functions */
 
     0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
 };
@@ -1348,8 +1186,20 @@ sb_16_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 
 		break;
 
-	case 1: /* Game */
+	case 1: /* IDE */
+		ide_pnp_config_changed(0, config, (void *) 2);
+		break;
+
+	case 2: /* Reserved (16) / WaveTable (32+) */
+		if (sb->dsp.sb_type > SB16)
+			emu8k_change_addr(&sb->emu8k, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
+		break;
+
+	case 3: /* Game */
 		gameport_remap(sb->gameport, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
+		break;
+
+	case 4: /* StereoEnhance (32) */
 		break;
     }
 }
@@ -1362,15 +1212,13 @@ sb_awe32_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pr
 
     switch (ld) {
 	case 0: /* Audio */
-		sb_16_pnp_config_changed(0, config, sb);
-		break;
-
-	case 1: /* WaveTable */
-		emu8k_change_addr(&sb->emu8k, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
+	case 1: /* IDE */
+		sb_16_pnp_config_changed(ld, config, sb);
 		break;
 
 	case 2: /* Game */
-		sb_16_pnp_config_changed(1, config, sb);
+	case 3: /* WaveTable */
+		sb_16_pnp_config_changed(ld ^ 1, config, sb);
 		break;
     }
 }
@@ -1383,15 +1231,12 @@ sb_awe64_gold_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, voi
 
     switch (ld) {
 	case 0: /* Audio */
-		sb_16_pnp_config_changed(0, config, sb);
+	case 2: /* WaveTable */
+		sb_16_pnp_config_changed(ld, config, sb);
 		break;
 
 	case 1: /* Game */
-		sb_16_pnp_config_changed(1, config, sb);
-		break;
-
-	case 2: /* WaveTable */
-		emu8k_change_addr(&sb->emu8k, (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) ? config->io[0].base : 0);
+		sb_16_pnp_config_changed(3, config, sb);
 		break;
     }
 }
@@ -1821,6 +1666,8 @@ sb_16_pnp_init(const device_t *info)
 
     sb->gameport = gameport_add(&gameport_pnp_device);
 
+    device_add(&ide_ter_pnp_device);
+
     isapnp_add_card(sb_16_pnp_rom, sizeof(sb_16_pnp_rom), sb_16_pnp_config_changed, NULL, NULL, NULL, sb);
 
     return sb;
@@ -1831,6 +1678,27 @@ static int
 sb_awe32_available()
 {
     return rom_present("roms/sound/awe32.raw");
+}
+
+
+static int
+sb_32_pnp_available()
+{
+    return sb_awe32_available() && rom_present("roms/sound/CT3600 PnP.BIN");
+}
+
+
+static int
+sb_awe32_pnp_available()
+{
+    return sb_awe32_available() && rom_present("roms/sound/CT3980 PnP.BIN");
+}
+
+
+static int
+sb_awe64_gold_available()
+{
+    return sb_awe32_available() && rom_present("roms/sound/CT4540 PnP.BIN");
 }
 
 
@@ -1899,7 +1767,7 @@ sb_awe32_pnp_init(const device_t *info)
     sb->opl_enabled = 1;
     opl3_init(&sb->opl);
 
-    sb_dsp_init(&sb->dsp, ((info->local == 2) ? SBAWE64 : SBAWE32), SB_SUBTYPE_DEFAULT, sb);
+    sb_dsp_init(&sb->dsp, (info->local == 2) ? SBAWE64 : SBAWE32, SB_SUBTYPE_DEFAULT, sb);
     sb_ct1745_mixer_reset(sb);
 
     sb->mixer_enabled = 1;
@@ -1918,12 +1786,47 @@ sb_awe32_pnp_init(const device_t *info)
 
     sb->gameport = gameport_add(&gameport_pnp_device);
 
-    if (info->local == 2)
-	isapnp_add_card(sb_awe64_gold_pnp_rom, sizeof(sb_awe64_gold_pnp_rom), sb_awe64_gold_pnp_config_changed, NULL, NULL, NULL, sb);
-    else if (info->local == 1)
-	isapnp_add_card(sb_32_pnp_rom, sizeof(sb_32_pnp_rom), sb_awe32_pnp_config_changed, NULL, NULL, NULL, sb);
-    else
-	isapnp_add_card(sb_awe32_pnp_rom, sizeof(sb_awe32_pnp_rom), sb_awe32_pnp_config_changed, NULL, NULL, NULL, sb);
+    if (info->local != 2)
+	device_add(&ide_ter_pnp_device);
+
+    char *pnp_rom_file = NULL;
+    switch (info->local) {
+	case 0:
+		pnp_rom_file = "roms/sound/CT3600 PnP.BIN";
+		break;
+
+	case 1:
+		pnp_rom_file = "roms/sound/CT3980 PnP.BIN";
+		break;
+
+	case 2:
+		pnp_rom_file = "roms/sound/CT4540 PnP.BIN";
+		break;
+    }
+
+    uint8_t *pnp_rom = NULL;
+    if (pnp_rom_file) {
+	FILE *f = rom_fopen(pnp_rom_file, "rb");
+	if (f) {
+		if (fread(sb->pnp_rom, 1, 512, f) == 512)
+			pnp_rom = sb->pnp_rom;
+		fclose(f);
+	}
+    }
+
+    switch (info->local) {
+	case 0:
+		isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_16_pnp_config_changed, NULL, NULL, NULL, sb);
+		break;
+
+	case 1:
+		isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe32_pnp_config_changed, NULL, NULL, NULL, sb);
+		break;
+
+	case 2:
+		isapnp_add_card(pnp_rom, sizeof(sb->pnp_rom), sb_awe64_gold_pnp_config_changed, NULL, NULL, NULL, sb);
+		break;
+    }
 
     return sb;
 }
@@ -2708,9 +2611,9 @@ const device_t sb_32_pnp_device =
 {
         "Sound Blaster 32 PnP",
         DEVICE_ISA | DEVICE_AT,
-	1,
+	0,
         sb_awe32_pnp_init, sb_awe32_close, NULL,
-        { sb_awe32_available },
+        { sb_32_pnp_available },
         sb_speed_changed,
         NULL,
         sb_32_pnp_config
@@ -2733,9 +2636,9 @@ const device_t sb_awe32_pnp_device =
 {
         "Sound Blaster AWE32 PnP",
         DEVICE_ISA | DEVICE_AT,
-	0,
+	1,
         sb_awe32_pnp_init, sb_awe32_close, NULL,
-        { sb_awe32_available },
+        { sb_awe32_pnp_available },
         sb_speed_changed,
         NULL,
         sb_awe32_pnp_config
@@ -2747,7 +2650,7 @@ const device_t sb_awe64_gold_device =
         DEVICE_ISA | DEVICE_AT,
 	2,
         sb_awe32_pnp_init, sb_awe32_close, NULL,
-        { sb_awe32_available },
+        { sb_awe64_gold_available },
         sb_speed_changed,
         NULL,
         sb_awe64_gold_config

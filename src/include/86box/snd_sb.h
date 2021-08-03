@@ -125,7 +125,7 @@ typedef struct sb_t
 
         int pos;
         
-        uint8_t pos_regs[8];
+        uint8_t pos_regs[8], pnp_rom[512];
 
         uint16_t opl_pnp_addr;
 } sb_t;
