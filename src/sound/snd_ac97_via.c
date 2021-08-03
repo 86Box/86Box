@@ -520,6 +520,15 @@ ac97_via_update(ac97_via_t *dev)
     int32_t l = (((dev->out_l * dev->pcm_vol_l) >> 15) * dev->master_vol_l) >> 15,
 	    r = (((dev->out_r * dev->pcm_vol_r) >> 15) * dev->master_vol_r) >> 15;
 
+    if (l < -32768)
+	l = -32768;
+    else if (l > 32767)
+	l = 32767;
+    if (r < -32768)
+	r = -32768;
+    else if (r > 32767)
+	r = 32767;
+
     for (; dev->pos < sound_pos_global; dev->pos++) {
 	dev->buffer[dev->pos*2]     = l;
 	dev->buffer[dev->pos*2 + 1] = r;
