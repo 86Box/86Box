@@ -299,7 +299,9 @@ typedef struct {
     int8_t      stat;
 
     uint8_t	cent, def,
-		flags, read_addr;
+		flags, read_addr,
+		wp_0d, wp_32,
+		pad, pad0;
 
     uint8_t	addr[8], wp[2],
 		bank[8], *lock;
@@ -587,14 +589,6 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
 		break;
 
 	case RTC_REGD:		/* R/O */
-		/* VT82C686A/B have an ACPI register bit controlled by 0D bit 7.
-		   This is overwritten on read, but testing shows BIOSes will
-		   immediately check the ACPI register after writing to this. */
-		if (local->cent == RTC_CENTURY_VIA) {
-			nvr->regs[RTC_REGD] &= ~0x80;
-			if (val & 0x80)
-				nvr->regs[RTC_REGD] |= 0x80;
-		}
 		break;
 
 	case 0x2e:
@@ -608,6 +602,11 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
 			break;
 		}
 		/*FALLTHROUGH*/
+
+	case 0x32:
+		if ((reg == 0x32) && (local->cent == RTC_CENTURY_VIA) && local->wp_32)
+			break;
+		/* FALLTHROUGH */
 
 	default:		/* non-RTC registers are just NVRAM */
 		if ((reg == 0x2c) && (local->flags & FLAG_LS_HACK))
@@ -686,9 +685,8 @@ nvr_read(uint16_t addr, void *priv)
     cycles -= ISA_CYCLES(8);
 
     if (local->bank[addr_id] == 0xff)
-	return 0xff;
-
-    if (addr & 1)  switch(local->addr[addr_id]) {
+	ret = 0xff;
+    else if (addr & 1)  switch(local->addr[addr_id]) {
 	case RTC_REGA:
 		ret = (nvr->regs[RTC_REGA] & 0x7f) | local->stat;
 		break;
@@ -700,8 +698,9 @@ nvr_read(uint16_t addr, void *priv)
 		break;
 
 	case RTC_REGD:
-		nvr->regs[RTC_REGD] |= REGD_VRT;
-		ret = nvr->regs[RTC_REGD];
+		/* Bits 6-0 of this register always read 0. Bit 7 is battery state,
+		   we should always return it set, as that means the battery is OK. */
+		ret = REGD_VRT;
 		break;
 
 	case 0x2c:
@@ -887,6 +886,18 @@ nvr_wp_set(int set, int h, nvr_t *nvr)
 
 
 void
+nvr_via_wp_set(int set, int reg, nvr_t *nvr)
+{
+    local_t *local = (local_t *) nvr->data;
+
+    if (reg == 0x0d)
+	local->wp_0d = set;
+    else
+	local->wp_32 = set;
+}
+
+
+void
 nvr_bank_set(int base, uint8_t bank, nvr_t *nvr)
 {
     local_t *local = (local_t *) nvr->data;
@@ -903,6 +914,17 @@ nvr_lock_set(int base, int size, int lock, nvr_t *nvr)
 
     for (i = 0; i < size; i++)
 	local->lock[base + i] = lock;
+}
+
+
+static void
+nvr_at_reset(void *priv)
+{
+    nvr_t *nvr = (nvr_t *) priv;
+
+    /* These bits are reset on reset. */
+    nvr->regs[RTC_REGB] &= ~(REGB_PIE | REGB_AIE | REGB_UIE | REGB_SQWE);
+    nvr->regs[RTC_REGC] &= ~(REGC_PF | REGC_AF | REGC_UF | REGC_IRQF);
 }
 
 
@@ -990,6 +1012,10 @@ nvr_at_init(const device_t *info)
 	timer_add(&local->update_timer, timer_update, nvr, 0);
 
 	timer_add(&local->rtc_timer, timer_intr, nvr, 0);
+	/* On power on, if the oscillator is disabled, it's reenabled. */
+	if ((nvr->regs[RTC_REGA] & 0x70) == 0x00)
+		nvr->regs[RTC_REGA] = (nvr->regs[RTC_REGA] & 0x8f) | 0x20;
+	nvr_at_reset(nvr);
 	timer_load_count(nvr);
 	timer_set_delay_u64(&local->rtc_timer, RTCCONST);
 
@@ -1039,7 +1065,7 @@ const device_t at_nvr_old_device = {
     "PC/AT NVRAM (No century)",
     DEVICE_ISA | DEVICE_AT,
     0,
-    nvr_at_init, nvr_at_close, NULL,
+    nvr_at_init, nvr_at_close, nvr_at_reset,
     { NULL }, nvr_at_speed_changed,
     NULL
 };
@@ -1048,7 +1074,7 @@ const device_t at_nvr_device = {
     "PC/AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
     1,
-    nvr_at_init, nvr_at_close, NULL,
+    nvr_at_init, nvr_at_close, nvr_at_reset,
     { NULL }, nvr_at_speed_changed,
     NULL
 };
@@ -1057,7 +1083,7 @@ const device_t ps_nvr_device = {
     "PS/1 or PS/2 NVRAM",
     DEVICE_PS2,
     2,
-    nvr_at_init, nvr_at_close, NULL,
+    nvr_at_init, nvr_at_close, nvr_at_reset,
     { NULL }, nvr_at_speed_changed,
     NULL
 };
@@ -1066,7 +1092,7 @@ const device_t amstrad_nvr_device = {
     "Amstrad NVRAM",
     DEVICE_ISA | DEVICE_AT,
     3,
-    nvr_at_init, nvr_at_close, NULL,
+    nvr_at_init, nvr_at_close, nvr_at_reset,
     { NULL }, nvr_at_speed_changed,
     NULL
 };
@@ -1075,7 +1101,7 @@ const device_t ibmat_nvr_device = {
     "IBM AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
     4,
-    nvr_at_init, nvr_at_close, NULL,
+    nvr_at_init, nvr_at_close, nvr_at_reset,
     { NULL }, nvr_at_speed_changed,
     NULL
 };
@@ -1084,7 +1110,7 @@ const device_t piix4_nvr_device = {
     "Intel PIIX4 PC/AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
     9,
-    nvr_at_init, nvr_at_close, NULL,
+    nvr_at_init, nvr_at_close, nvr_at_reset,
     { NULL }, nvr_at_speed_changed,
     NULL
 };
@@ -1093,7 +1119,7 @@ const device_t ls486e_nvr_device = {
     "Lucky Star LS-486E PC/AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
     13,
-    nvr_at_init, nvr_at_close, NULL,
+    nvr_at_init, nvr_at_close, nvr_at_reset,
     { NULL }, nvr_at_speed_changed,
     NULL
 };
@@ -1102,7 +1128,7 @@ const device_t ami_apollo_nvr_device = {
     "AMI Apollo PC/AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
     14,
-    nvr_at_init, nvr_at_close, NULL,
+    nvr_at_init, nvr_at_close, nvr_at_reset,
     { NULL }, nvr_at_speed_changed,
     NULL
 };
@@ -1111,7 +1137,7 @@ const device_t via_nvr_device = {
     "VIA PC/AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
     15,
-    nvr_at_init, nvr_at_close, NULL,
+    nvr_at_init, nvr_at_close, nvr_at_reset,
     { NULL }, nvr_at_speed_changed,
     NULL
 };

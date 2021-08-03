@@ -99,6 +99,7 @@ static const SOUND_CARD sound_cards[] =
     { "sb32_pnp",	&sb_32_pnp_device		},
     { "sbawe32",	&sb_awe32_device		},
     { "sbawe32_pnp",	&sb_awe32_pnp_device		},
+    { "sbawe64_gold",	&sb_awe64_gold_device		},
 #if defined(DEV_BRANCH) && defined(USE_PAS16)
     { "pas16",		&pas16_device			},
 #endif

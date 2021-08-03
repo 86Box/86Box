@@ -19,7 +19,7 @@
 # define EMU_HDD_H
 
 
-#define HDD_NUM		40	/* total of 40 images supported */
+#define HDD_NUM		88	/* total of 88 images supported */
 
 
 /* Hard Disk bus types. */

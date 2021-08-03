@@ -66,7 +66,7 @@ static int sb_commands[256]=
 
 
 char sb16_copyright[] = "COPYRIGHT (C) CREATIVE TECHNOLOGY LTD, 1992.";
-uint16_t sb_dsp_versions[] = {0, 0, 0x105, 0x200, 0x201, 0x300, 0x302, 0x405, 0x40d};
+uint16_t sb_dsp_versions[] = {0, 0, 0x105, 0x200, 0x201, 0x300, 0x302, 0x405, 0x40d, 0x410};
 
 
 /*These tables were 'borrowed' from DOSBox*/
@@ -314,7 +314,7 @@ sb_doreset(sb_dsp_t *dsp)
         sb_commands[8] =  1;
         sb_commands[9] =  1;
     } else {
-        if (dsp->sb_type==SB16)
+        if ((dsp->sb_type >= SB16) && (dsp->sb_type < SBAWE64))
 	    sb_commands[8] =  1;
         else
 	    sb_commands[8] = -1;    

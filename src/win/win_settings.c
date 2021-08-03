@@ -38,6 +38,7 @@
 #include <86box/rom.h>
 #include <86box/device.h>
 #include <86box/timer.h>
+#include <86box/cassette.h>
 #include <86box/nvr.h>
 #include <86box/machine.h>
 #include <86box/gameport.h>
@@ -103,7 +104,8 @@ static int temp_lpt_devices[3];
 static int temp_serial[4], temp_lpt[3];
 
 /* Other peripherals category */
-static int temp_fdc_card, temp_hdc, temp_scsi_card, temp_ide_ter, temp_ide_qua;
+static int temp_fdc_card, temp_hdc, temp_ide_ter, temp_ide_qua, temp_cassette;
+static int temp_scsi_card[SCSI_BUS_MAX];
 static int temp_bugger;
 static int temp_postcard;
 static int temp_isartc;
@@ -136,7 +138,7 @@ static int settings_list_to_midi[20], settings_list_to_midi_in[20];
 static int settings_list_to_hdc[20];
 
 static int max_spt = 63, max_hpc = 255, max_tracks = 266305;
-static uint64_t mfm_tracking, esdi_tracking, xta_tracking, ide_tracking, scsi_tracking[2];
+static uint64_t mfm_tracking, esdi_tracking, xta_tracking, ide_tracking, scsi_tracking[8];
 static uint64_t size;
 static int hd_listview_items, hdc_id_to_listview_index[HDD_NUM];
 static int no_update = 0, existing = 0, chs_enabled = 0;
@@ -368,22 +370,17 @@ win_settings_init(void)
     for (i = 0; i < 4; i++)
 	temp_serial[i] = serial_enabled[i];
 
-    /* Other peripherals category */
-    temp_scsi_card = scsi_card_current;
+    /* Storage devices category */
+    for (i = 0; i < SCSI_BUS_MAX; i++)
+	temp_scsi_card[i] = scsi_card_current[i];
     temp_fdc_card = fdc_type;
     temp_hdc = hdc_current;
     temp_ide_ter = ide_ter_enabled;
     temp_ide_qua = ide_qua_enabled;
-    temp_bugger = bugger_enabled;
-    temp_postcard = postcard_enabled;
-    temp_isartc = isartc_type;
-
-    /* ISA memory boards. */
-    for (i = 0; i < ISAMEM_MAX; i++)
-	temp_isamem[i] = isamem_type[i];	
+    temp_cassette = cassette_enable;
 
     mfm_tracking = xta_tracking = esdi_tracking = ide_tracking = 0;
-    for (i = 0; i < 2; i++)
+    for (i = 0; i < 8; i++)
 	scsi_tracking[i] = 0;
 
     /* Hard disks category */
@@ -430,6 +427,15 @@ win_settings_init(void)
     else if (mo_drives[i].bus_type == MO_BUS_SCSI)
 	scsi_tracking[mo_drives[i].scsi_device_id >> 3] |= (1 << ((mo_drives[i].scsi_device_id & 0x07) << 3));
     }
+
+    /* Other peripherals category */
+    temp_bugger = bugger_enabled;
+    temp_postcard = postcard_enabled;
+    temp_isartc = isartc_type;
+
+    /* ISA memory boards. */
+    for (i = 0; i < ISAMEM_MAX; i++)
+	temp_isamem[i] = isamem_type[i];	
 
     temp_deviceconfig = 0;
 }
@@ -484,19 +490,14 @@ win_settings_changed(void)
     for (j = 0; j < 4; j++)
 	i = i || (temp_serial[j] != serial_enabled[j]);
 
-    /* Peripherals category */
-    i = i || (scsi_card_current != temp_scsi_card);
+    /* Storage devices category */
+    for (j = 0; j < SCSI_BUS_MAX; j++)
+	i = i || (temp_scsi_card[j] != scsi_card_current[j]);
     i = i || (fdc_type != temp_fdc_card);
     i = i || (hdc_current != temp_hdc);
     i = i || (temp_ide_ter != ide_ter_enabled);
     i = i || (temp_ide_qua != ide_qua_enabled);
-    i = i || (temp_bugger != bugger_enabled);
-    i = i || (temp_postcard != postcard_enabled);
-    i = i || (temp_isartc != isartc_type);
-
-    /* ISA memory boards. */
-    for (j = 0; j < ISAMEM_MAX; j++)
-	i = i || (temp_isamem[j] != isamem_type[j]);
+    i = i || (temp_cassette != cassette_enable);
 
     /* Hard disks category */
     i = i || memcmp(hdd, temp_hdd, HDD_NUM * sizeof(hard_disk_t));
@@ -512,6 +513,15 @@ win_settings_changed(void)
     i = i || memcmp(cdrom, temp_cdrom, CDROM_NUM * sizeof(cdrom_t));
     i = i || memcmp(zip_drives, temp_zip_drives, ZIP_NUM * sizeof(zip_drive_t));
     i = i || memcmp(mo_drives, temp_mo_drives, MO_NUM * sizeof(mo_drive_t));
+
+    /* Other peripherals category */
+    i = i || (temp_bugger != bugger_enabled);
+    i = i || (temp_postcard != postcard_enabled);
+    i = i || (temp_isartc != isartc_type);
+
+    /* ISA memory boards. */
+    for (j = 0; j < ISAMEM_MAX; j++)
+	i = i || (temp_isamem[j] != isamem_type[j]);
 
     i = i || !!temp_deviceconfig;
 
@@ -571,19 +581,14 @@ win_settings_save(void)
     for (i = 0; i < 4; i++)
 	serial_enabled[i] = temp_serial[i];
 
-    /* Peripherals category */
-    scsi_card_current = temp_scsi_card;
+    /* Storage devices category */
+    for (i = 0; i < SCSI_BUS_MAX; i++)
+	scsi_card_current[i] = temp_scsi_card[i];
     hdc_current = temp_hdc;
     fdc_type = temp_fdc_card;
     ide_ter_enabled = temp_ide_ter;
     ide_qua_enabled = temp_ide_qua;
-    bugger_enabled = temp_bugger;
-    postcard_enabled = temp_postcard;
-    isartc_type = temp_isartc;
-
-    /* ISA memory boards. */
-    for (i = 0; i < ISAMEM_MAX; i++)
-	isamem_type[i] = temp_isamem[i];
+    cassette_enable = temp_cassette;
 
     /* Hard disks category */
     memcpy(hdd, temp_hdd, HDD_NUM * sizeof(hard_disk_t));
@@ -619,6 +624,15 @@ win_settings_save(void)
 	mo_drives[i].f = NULL;
 	mo_drives[i].priv = NULL;
     }
+
+    /* Other peripherals category */
+    bugger_enabled = temp_bugger;
+    postcard_enabled = temp_postcard;
+    isartc_type = temp_isartc;
+
+    /* ISA memory boards. */
+    for (i = 0; i < ISAMEM_MAX; i++)
+	isamem_type[i] = temp_isamem[i];
 
     /* Mark configuration as changed. */
     config_changed = 2;
@@ -1056,6 +1070,7 @@ static BOOL CALLBACK
 win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     int c = 0, d = 0;
+    int e;
 
     switch (message) {
 	case WM_INITDIALOG:
@@ -1093,7 +1108,8 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 
 		settings_enable_window(hdlg, IDC_COMBO_VIDEO, !(machines[temp_machine].flags & MACHINE_VIDEO_ONLY));
-		settings_enable_window(hdlg, IDC_CONFIGURE_VID, video_card_has_config(temp_gfxcard));
+		e = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO)];
+		settings_enable_window(hdlg, IDC_CONFIGURE_VID, video_card_has_config(e));
 		settings_enable_window(hdlg, IDC_CHECK_VOODOO, (machines[temp_machine].flags & MACHINE_BUS_PCI));
 		settings_set_check(hdlg, IDC_CHECK_VOODOO, temp_voodoo);
 		settings_enable_window(hdlg, IDC_BUTTON_VOODOO, (machines[temp_machine].flags & MACHINE_BUS_PCI) && temp_voodoo);
@@ -1530,7 +1546,7 @@ static BOOL CALLBACK
 win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     int c, d;
-    int is_at;
+    int e, is_at;
     LPTSTR lptsTemp;
     char *stransi;
     const device_t *scsi_dev, *fdc_dev;
@@ -1611,7 +1627,8 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 		/*SCSI config*/
 		c = d = 0;
-		settings_reset_content(hdlg, IDC_COMBO_SCSI);
+		for (e = 0; e < SCSI_BUS_MAX; e++)
+			settings_reset_content(hdlg, IDC_COMBO_SCSI_1 + e);
 		while (1) {
 			generate_device_name(scsi_card_getdevice(c), scsi_card_get_internal_name(c), 1);
 
@@ -1622,13 +1639,17 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				scsi_dev = scsi_card_getdevice(c);
 
 				if (device_is_valid(scsi_dev, machines[temp_machine].flags)) {
-					if (c == 0)
-						settings_add_string(hdlg, IDC_COMBO_SCSI, win_get_string(IDS_2103));
-					else
-						settings_add_string(hdlg, IDC_COMBO_SCSI, (LPARAM) device_name);
+					for (e = 0; e < SCSI_BUS_MAX; e++) {
+						if (c == 0)
+							settings_add_string(hdlg, IDC_COMBO_SCSI_1 + e, win_get_string(IDS_2103));
+						else
+							settings_add_string(hdlg, IDC_COMBO_SCSI_1 + e, (LPARAM) device_name);
+
+						if ((c == 0) || (c == temp_scsi_card[e]))
+							settings_set_cur_sel(hdlg, IDC_COMBO_SCSI_1 + e, d);
+					}
+
 					settings_list_to_device[0][d] = c;
-					if ((c == 0) || (c == temp_scsi_card))
-						settings_set_cur_sel(hdlg, IDC_COMBO_SCSI, d);
 					d++;
 				}
 			}
@@ -1636,8 +1657,10 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			c++;
 		}
 
-		settings_enable_window(hdlg, IDC_COMBO_SCSI, d);
-		settings_enable_window(hdlg, IDC_CONFIGURE_SCSI, scsi_card_has_config(temp_scsi_card));
+		for (c = 0; c < SCSI_BUS_MAX; c++) {
+			settings_enable_window(hdlg, IDC_COMBO_SCSI_1 + c, d);
+			settings_enable_window(hdlg, IDC_CONFIGURE_SCSI_1 + c, scsi_card_has_config(temp_scsi_card[c]));
+		}
 		is_at = IS_AT(temp_machine);
 		settings_enable_window(hdlg, IDC_CHECK_IDE_TER, is_at);
 		settings_enable_window(hdlg, IDC_BUTTON_IDE_TER, is_at && temp_ide_ter);
@@ -1645,6 +1668,7 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		settings_enable_window(hdlg, IDC_BUTTON_IDE_QUA, is_at && temp_ide_qua);
 		settings_set_check(hdlg, IDC_CHECK_IDE_TER, temp_ide_ter);
 		settings_set_check(hdlg, IDC_CHECK_IDE_QUA, temp_ide_qua);
+		settings_set_check(hdlg, IDC_CHECK_CASSETTE, temp_cassette);
 
 		free(stransi);
 		free(lptsTemp);
@@ -1673,14 +1697,16 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				settings_enable_window(hdlg, IDC_CONFIGURE_HDC, hdc_has_config(temp_hdc));
 				break;
 
-			case IDC_CONFIGURE_SCSI:
-				temp_scsi_card = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SCSI)];
-				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)scsi_card_getdevice(temp_scsi_card));
+			case IDC_CONFIGURE_SCSI_1 ... IDC_CONFIGURE_SCSI_4:
+				c = LOWORD(wParam) - IDC_CONFIGURE_SCSI_1;
+				temp_scsi_card[c] = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SCSI_1 + c)];
+				temp_deviceconfig |= deviceconfig_inst_open(hdlg, (void *)scsi_card_getdevice(temp_scsi_card[c]), c + 1);
 				break;
 
-			case IDC_COMBO_SCSI:
-				temp_scsi_card = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SCSI)];
-				settings_enable_window(hdlg, IDC_CONFIGURE_SCSI, scsi_card_has_config(temp_scsi_card));
+			case IDC_COMBO_SCSI_1 ... IDC_COMBO_SCSI_4:
+				c = LOWORD(wParam) - IDC_COMBO_SCSI_1;
+				temp_scsi_card[c] = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SCSI_1 + c)];
+				settings_enable_window(hdlg, IDC_CONFIGURE_SCSI_1 + c, scsi_card_has_config(temp_scsi_card[c]));
 				break;
 
 			case IDC_CHECK_IDE_TER:
@@ -1706,9 +1732,11 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_SAVESETTINGS:
 		temp_hdc = settings_list_to_hdc[settings_get_cur_sel(hdlg, IDC_COMBO_HDC)];
 		temp_fdc_card = settings_list_to_fdc[settings_get_cur_sel(hdlg, IDC_COMBO_FDC)];
-		temp_scsi_card = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SCSI)];
+		for (c = 0; c < SCSI_BUS_MAX; c++)
+			temp_scsi_card[c] = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_SCSI_1 + c)];
 		temp_ide_ter = settings_get_check(hdlg, IDC_CHECK_IDE_TER);
 		temp_ide_qua = settings_get_check(hdlg, IDC_CHECK_IDE_QUA);
+		temp_cassette = settings_get_check(hdlg, IDC_CHECK_CASSETTE);
 
 	default:
 		return FALSE;
@@ -1896,8 +1924,8 @@ add_locations(HWND hdlg)
 	settings_add_string(hdlg, IDC_COMBO_HD_CHANNEL, (LPARAM) lptsTemp);
     }
 
-    for (i = 0; i < 16; i++) {
-	wsprintf(lptsTemp, plat_get_string(IDS_4098), i);
+    for (i = 0; i < 64; i++) {
+	wsprintf(lptsTemp, plat_get_string(IDS_4135), i >> 4, i & 15);
 	settings_add_string(hdlg, IDC_COMBO_HD_ID, (LPARAM) lptsTemp);
     }
 
@@ -1943,7 +1971,7 @@ next_free_scsi_id(uint8_t *id)
 {
     int64_t i;
 
-    for (i = 0; i < 16; i++) {
+    for (i = 0; i < 64; i++) {
 	if (!(scsi_tracking[i >> 3] & (0xffLL << ((i & 0x07) << 3LL)))) {
 		*id = i;
 		return;
@@ -2126,7 +2154,7 @@ win_settings_hard_disks_update_item(HWND hdlg, int i, int column)
 			wsprintf(szText, plat_get_string(IDS_4612), temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
 			break;
 		case HDD_BUS_SCSI:
-			wsprintf(szText, plat_get_string(IDS_4613), temp_hdd[i].scsi_id);
+			wsprintf(szText, plat_get_string(IDS_4613), temp_hdd[i].scsi_id >> 4, temp_hdd[i].scsi_id & 15);
 			break;
 	}
 	lvI.pszText = szText;
@@ -2200,7 +2228,7 @@ win_settings_hard_disks_recalc_list(HWND hdlg)
 				wsprintf(szText, plat_get_string(IDS_4612), temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
 				break;
 			case HDD_BUS_SCSI:
-				wsprintf(szText, plat_get_string(IDS_4613), temp_hdd[i].scsi_id);
+				wsprintf(szText, plat_get_string(IDS_4613), temp_hdd[i].scsi_id >> 4, temp_hdd[i].scsi_id & 15);
 				break;
 		}
 		lvI.pszText = szText;
@@ -3575,7 +3603,7 @@ win_settings_cdrom_drives_recalc_list(HWND hdlg)
 			lvI.iImage = 1;
 			break;
 		case CDROM_BUS_SCSI:
-			wsprintf(szText, plat_get_string(fsid), temp_cdrom[i].scsi_device_id);
+			wsprintf(szText, plat_get_string(fsid), temp_cdrom[i].scsi_device_id >> 4, temp_cdrom[i].scsi_device_id & 15);
 			lvI.pszText = szText;
 			lvI.iImage = 1;
 			break;
@@ -3632,7 +3660,7 @@ win_settings_mo_drives_recalc_list(HWND hdlg)
 			lvI.iImage = 1;
 			break;
 		case MO_BUS_SCSI:
-			wsprintf(szText, plat_get_string(fsid), temp_mo_drives[i].scsi_device_id);
+			wsprintf(szText, plat_get_string(fsid), temp_mo_drives[i].scsi_device_id >> 4, temp_mo_drives[i].scsi_device_id & 15);
 			lvI.pszText = szText;
 			lvI.iImage = 1;
 			break;
@@ -3695,7 +3723,7 @@ win_settings_zip_drives_recalc_list(HWND hdlg)
 			lvI.iImage = 1;
 			break;
 		case ZIP_BUS_SCSI:
-			wsprintf(szText, plat_get_string(fsid), temp_zip_drives[i].scsi_device_id);
+			wsprintf(szText, plat_get_string(fsid), temp_zip_drives[i].scsi_device_id >> 4, temp_zip_drives[i].scsi_device_id & 15);
 			lvI.pszText = szText;
 			lvI.iImage = 1;
 			break;
@@ -4006,7 +4034,7 @@ win_settings_cdrom_drives_update_item(HWND hdlg, int i)
 		lvI.iImage = 1;
 		break;
 	case CDROM_BUS_SCSI:
-		wsprintf(szText, plat_get_string(fsid), temp_cdrom[i].scsi_device_id);
+		wsprintf(szText, plat_get_string(fsid), temp_cdrom[i].scsi_device_id >> 4, temp_cdrom[i].scsi_device_id & 15);
 		lvI.pszText = szText;
 		lvI.iImage = 1;
 		break;
@@ -4059,7 +4087,7 @@ win_settings_mo_drives_update_item(HWND hdlg, int i)
 		lvI.iImage = 1;
 		break;
 	case MO_BUS_SCSI:
-		wsprintf(szText, plat_get_string(fsid), temp_mo_drives[i].scsi_device_id);
+		wsprintf(szText, plat_get_string(fsid), temp_mo_drives[i].scsi_device_id >> 4, temp_mo_drives[i].scsi_device_id & 15);
 		lvI.pszText = szText;
 		lvI.iImage = 1;
 		break;
@@ -4117,7 +4145,7 @@ win_settings_zip_drives_update_item(HWND hdlg, int i)
 		lvI.iImage = 1;
 		break;
 	case ZIP_BUS_SCSI:
-		wsprintf(szText, plat_get_string(fsid), temp_zip_drives[i].scsi_device_id);
+		wsprintf(szText, plat_get_string(fsid), temp_zip_drives[i].scsi_device_id >> 4, temp_zip_drives[i].scsi_device_id & 15);
 		lvI.pszText = szText;
 		lvI.iImage = 1;
 		break;
@@ -4154,8 +4182,8 @@ cdrom_add_locations(HWND hdlg)
 	settings_add_string(hdlg, IDC_COMBO_CD_SPEED, (LPARAM) lptsTemp);
     }
 
-    for (i = 0; i < 16; i++) {
-	wsprintf(lptsTemp, plat_get_string(IDS_4098), i);
+    for (i = 0; i < 64; i++) {
+	wsprintf(lptsTemp, plat_get_string(IDS_4135), i >> 4, i & 15);
 	settings_add_string(hdlg, IDC_COMBO_CD_ID, (LPARAM) lptsTemp);
     }
 
@@ -4222,8 +4250,8 @@ mo_add_locations(HWND hdlg)
 		settings_add_string(hdlg, IDC_COMBO_MO_BUS, win_get_string(combo_id_to_string_id(i)));
     }
 
-    for (i = 0; i < 16; i++) {
-	wsprintf(lptsTemp, plat_get_string(IDS_4098), i);
+    for (i = 0; i < 64; i++) {
+	wsprintf(lptsTemp, plat_get_string(IDS_4135), i >> 4, i & 15);
 	settings_add_string(hdlg, IDC_COMBO_MO_ID, (LPARAM) lptsTemp);
     }
 
@@ -4301,8 +4329,8 @@ zip_add_locations(HWND hdlg)
 		settings_add_string(hdlg, IDC_COMBO_ZIP_BUS, win_get_string(combo_id_to_string_id(i)));
     }
 
-    for (i = 0; i < 16; i++) {
-	wsprintf(lptsTemp, plat_get_string(IDS_4098), i);
+    for (i = 0; i < 64; i++) {
+	wsprintf(lptsTemp, plat_get_string(IDS_4135), i >> 4, i & 15);
 	settings_add_string(hdlg, IDC_COMBO_ZIP_ID, (LPARAM) lptsTemp);
     }
 

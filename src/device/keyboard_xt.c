@@ -33,6 +33,7 @@
 #include <86box/fdd.h>
 #include <86box/machine.h>
 #include <86box/m_xt_t1000.h>
+#include <86box/cassette.h>
 #include <86box/io.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
@@ -515,13 +516,14 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
                 timer_process();
 
+		if ((kbd->type <= 1) && (cassette != NULL))
+			pc_cas_set_motor(cassette, (kbd->pb & 0x08) == 0);
+
 		speaker_update();
-		if ((kbd->type <= 1) && !(kbd->pb & 0x08))
-			speaker_gated = speaker_enable = 1;
-		else {
-			speaker_gated = val & 1;
-			speaker_enable = val & 2;
-		}
+
+		speaker_gated = val & 1;
+		speaker_enable = val & 2;
+
 		if (speaker_enable) 
 			was_speaker_enable = 1;
 		pit_ctr_set_gate(&pit->counters[2], val & 1);
@@ -622,8 +624,12 @@ kbd_read(uint16_t port, void *priv)
 
 		/* This is needed to avoid error 131 (cassette error).
 		   This is serial read: bit 5 = clock, bit 4 = data, cassette header is 256 x 0xff. */
-		if (kbd->type <= 1)
-			ret |= (ppispeakon ? 0x10 : 0);
+		if (kbd->type <= 1) {
+			if (cassette == NULL)
+				ret |= (ppispeakon ? 0x10 : 0);
+			else
+				ret |= (pc_cas_get_inp(cassette) ? 0x10 : 0);
+		}
 
 		if (kbd->type == 5)
 			ret |= (tandy1k_eeprom_read() ? 0x10 : 0);

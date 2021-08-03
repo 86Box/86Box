@@ -308,6 +308,8 @@ typedef struct {
 
     uint32_t bios_mask;
 
+    uint8_t bus;
+
     pc_timer_t timer;
 
 #ifdef USE_WDTR
@@ -440,7 +442,7 @@ ncr53c8xx_soft_reset(ncr53c8xx_t *dev)
 #ifdef USE_WDTR
 		dev->tr_set[i] = 0;
 #endif
-		scsi_device_reset(&scsi_devices[i]);
+		scsi_device_reset(&scsi_devices[dev->bus][i]);
 	}
     } else {
 	/* This is *NOT* a wide SCSI controller, so do not touch
@@ -449,7 +451,7 @@ ncr53c8xx_soft_reset(ncr53c8xx_t *dev)
 #ifdef USE_WDTR
 		dev->tr_set[i] = 0;
 #endif
-		scsi_device_reset(&scsi_devices[i]);
+		scsi_device_reset(&scsi_devices[dev->bus][i]);
 	}
     }
 }
@@ -613,7 +615,7 @@ ncr53c8xx_disconnect(ncr53c8xx_t *dev)
 {
     scsi_device_t *sd;
 
-    sd = &scsi_devices[dev->sdid];
+    sd = &scsi_devices[dev->bus][dev->sdid];
 
     dev->scntl1 &= ~NCR_SCNTL1_CON;
     dev->sstat1 &= ~PHASE_MASK;
@@ -659,7 +661,7 @@ ncr53c8xx_do_dma(ncr53c8xx_t *dev, int out, uint8_t id)
     uint32_t addr, tdbc;
     int count;
 
-    scsi_device_t *sd = &scsi_devices[id];
+    scsi_device_t *sd = &scsi_devices[dev->bus][id];
 
     if ((!scsi_device_present(sd))) {
 	ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: Device not present when attempting to do DMA\n", id, dev->current_lun, dev->last_command);
@@ -697,7 +699,7 @@ ncr53c8xx_do_dma(ncr53c8xx_t *dev, int out, uint8_t id)
     dev->buffer_pos += count;
 
     if (dev->temp_buf_len <= 0) {
-	scsi_device_command_phase1(&scsi_devices[id]);
+	scsi_device_command_phase1(&scsi_devices[dev->bus][id]);
 #ifdef ENABLE_NCR53C8XX_LOG
 	if (out)
 		ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: SCSI Command Phase 1 on PHASE_DO\n", id, dev->current_lun, dev->last_command);
@@ -750,7 +752,7 @@ ncr53c8xx_do_command(ncr53c8xx_t *dev, uint8_t id)
     dev->sfbr = buf[0];
     dev->command_complete = 0;
 
-    sd = &scsi_devices[id];
+    sd = &scsi_devices[dev->bus][id];
     if (!scsi_device_present(sd) || (dev->current_lun > 0)) {
 	ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: Bad Selection\n", id, dev->current_lun, buf[0]);
 	ncr53c8xx_bad_selection(dev, id);
@@ -769,7 +771,7 @@ ncr53c8xx_do_command(ncr53c8xx_t *dev, uint8_t id)
     if ((buf[1] & 0xe0) != (dev->current_lun << 5))
 	buf[1] = (buf[1] & 0x1f) | (dev->current_lun << 5);
 
-    scsi_device_command_phase0(&scsi_devices[dev->current->tag], buf);
+    scsi_device_command_phase0(&scsi_devices[dev->bus][dev->current->tag], buf);
     dev->hba_private = (void *)dev->current;
 
     dev->waiting = 0;
@@ -785,12 +787,12 @@ ncr53c8xx_do_command(ncr53c8xx_t *dev, uint8_t id)
     if ((sd->phase == SCSI_PHASE_DATA_IN) && (sd->buffer_length > 0)) {
 	ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: PHASE_DI\n", id, dev->current_lun, buf[0]);
 	ncr53c8xx_set_phase(dev, PHASE_DI);
-	ncr53c8xx_timer_on(dev, sd, scsi_device_get_callback(&scsi_devices[dev->current->tag]));
+	ncr53c8xx_timer_on(dev, sd, scsi_device_get_callback(&scsi_devices[dev->bus][dev->current->tag]));
 	return 1;
     } else if ((sd->phase == SCSI_PHASE_DATA_OUT) && (sd->buffer_length > 0)) {
 	ncr53c8xx_log("(ID=%02i LUN=%02i) SCSI Command 0x%02x: PHASE_DO\n", id, buf[0]);
 	ncr53c8xx_set_phase(dev, PHASE_DO);
-	ncr53c8xx_timer_on(dev, sd, scsi_device_get_callback(&scsi_devices[dev->current->tag]));
+	ncr53c8xx_timer_on(dev, sd, scsi_device_get_callback(&scsi_devices[dev->bus][dev->current->tag]));
 	return 1;
     } else {
 	ncr53c8xx_command_complete(dev, sd->status);
@@ -913,7 +915,7 @@ ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
 #endif
     scsi_device_t *sd;
 
-    sd = &scsi_devices[id];
+    sd = &scsi_devices[dev->bus][id];
 
 #ifdef ENABLE_NCR53C8XX_LOG
     current_tag = id;
@@ -1169,7 +1171,7 @@ again:
 					}
 					dev->sstat0 |= NCR_SSTAT0_WOA;
 					dev->scntl1 &= ~NCR_SCNTL1_IARB;
-					if (!scsi_device_present(&scsi_devices[id])) {
+					if (!scsi_device_present(&scsi_devices[dev->bus][id])) {
 						ncr53c8xx_bad_selection(dev, id);
 						break;
 					}
@@ -2512,6 +2514,8 @@ ncr53c8xx_init(const device_t *info)
 
     dev = malloc(sizeof(ncr53c8xx_t));
     memset(dev, 0x00, sizeof(ncr53c8xx_t));
+
+    dev->bus = scsi_get_bus();
 
     dev->chip_rev = 0;
     dev->chip = info->local & 0xff;

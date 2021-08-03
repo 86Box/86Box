@@ -681,16 +681,17 @@ add_to_kbc_queue_front(atkbd_t *dev, uint8_t val, uint8_t channel, uint8_t stat_
     if (channel == 2) {
 	if (dev->mem[0] & 0x02)
 		picint(0x1000);
+	dev->last_irq = 0x1000;
     } else {
 	if (dev->mem[0] & 0x01)
 		picint(2);
+	dev->last_irq = 2;
     }
     dev->out = val;
     if (channel == 2)
 	dev->status = (dev->status & ~STAT_IFULL) | (STAT_OFULL | STAT_MFULL) | stat_hi;
     else
 	dev->status = (dev->status & ~(STAT_IFULL | STAT_MFULL)) | STAT_OFULL | stat_hi;
-    dev->last_irq = 0x0000;
 }
 
 
@@ -1055,8 +1056,8 @@ write_output(atkbd_t *dev, uint8_t val)
     uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
     kbd_log("ATkbc: write output port: %02X (old: %02X)\n", val, dev->output_port);
 
-    if ((kbc_ven == KBC_VEN_AMI) || ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF))
-	val |= ((dev->mem[0] << 4) & 0x30);
+    if ((kbc_ven == KBC_VEN_AMI) || ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF))
+	val |= ((dev->mem[0] << 4) & 0x10);
 
     if ((dev->output_port ^ val) & 0x20) { /*IRQ 12*/
 	if (val & 0x20)
@@ -2070,10 +2071,8 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 			case 0xd0:	/* read output port */
 				kbd_log("ATkbc: read output port\n");
 				mask = 0xff;
-				if (dev->mem[0] & 0x10)
+				if (((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF) && (dev->mem[0] & 0x10))
 					mask &= 0xbf;
-				if (((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) && (dev->mem[0] & 0x20))
-					mask &= 0xf7;
 				add_to_kbc_queue_front(dev, dev->output_port & mask, 0, 0x00);
 				break;
 

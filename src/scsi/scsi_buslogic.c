@@ -559,13 +559,13 @@ buslogic_param_len(void *p)
 
 
 static void
-BuslogicSCSIBIOSDMATransfer(ESCMD *ESCSICmd, uint8_t TargetID, int dir, int transfer_size)
+BuslogicSCSIBIOSDMATransfer(x54x_t *dev, ESCMD *ESCSICmd, uint8_t TargetID, int dir, int transfer_size)
 {
     uint32_t DataPointer = ESCSICmd->DataPointer;
     int DataLength = ESCSICmd->DataLength;
     uint32_t Address;
     uint32_t TransferLength;
-    scsi_device_t *dev = &scsi_devices[TargetID];
+    scsi_device_t *sd = &scsi_devices[dev->bus][TargetID];
 
     if (ESCSICmd->DataDirection == 0x03) {
 	/* Non-data command. */
@@ -577,16 +577,16 @@ BuslogicSCSIBIOSDMATransfer(ESCMD *ESCSICmd, uint8_t TargetID, int dir, int tran
 
     /* If the control byte is 0x00, it means that the transfer direction is set up by the SCSI command without
        checking its length, so do this procedure for both read/write commands. */
-    if ((DataLength > 0) && (dev->buffer_length > 0)) {
+    if ((DataLength > 0) && (sd->buffer_length > 0)) {
 	Address = DataPointer;
-	TransferLength = MIN(DataLength, dev->buffer_length);
+	TransferLength = MIN(DataLength, sd->buffer_length);
 
 	if (dir && ((ESCSICmd->DataDirection == CCB_DATA_XFER_OUT) || (ESCSICmd->DataDirection == 0x00))) {
 		buslogic_log("BusLogic BIOS DMA: Reading %i bytes from %08X\n", TransferLength, Address);
-		dma_bm_read(Address, (uint8_t *)dev->sc->temp_buffer, TransferLength, transfer_size);
+		dma_bm_read(Address, (uint8_t *)sd->sc->temp_buffer, TransferLength, transfer_size);
 	} else if (!dir && ((ESCSICmd->DataDirection == CCB_DATA_XFER_IN) || (ESCSICmd->DataDirection == 0x00))) {
 		buslogic_log("BusLogic BIOS DMA: Writing %i bytes at %08X\n", TransferLength, Address);
-		dma_bm_write(Address, (uint8_t *)dev->sc->temp_buffer, TransferLength, transfer_size);
+		dma_bm_write(Address, (uint8_t *)sd->sc->temp_buffer, TransferLength, transfer_size);
 	}
     }
 }
@@ -603,7 +603,7 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
     uint8_t target_id = 0;
 #endif
     int phase;
-    scsi_device_t *sd = &scsi_devices[ESCSICmd->TargetId];
+    scsi_device_t *sd = &scsi_devices[dev->bus][ESCSICmd->TargetId];
 
     DataInBuf[0] = DataInBuf[1] = 0;
 
@@ -654,7 +654,7 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
 
     phase = sd->phase;
     if (phase != SCSI_PHASE_STATUS) {
-	BuslogicSCSIBIOSDMATransfer(ESCSICmd, ESCSICmd->TargetId, (phase == SCSI_PHASE_DATA_OUT), dev->transfer_size);
+	BuslogicSCSIBIOSDMATransfer(dev, ESCSICmd, ESCSICmd->TargetId, (phase == SCSI_PHASE_DATA_OUT), dev->transfer_size);
 	scsi_device_command_phase1(sd);
     }
 
@@ -664,7 +664,7 @@ BuslogicSCSIBIOSRequestSetup(x54x_t *dev, uint8_t *CmdBuf, uint8_t *DataInBuf, u
     if (sd->status == SCSI_STATUS_OK) {
 	DataInBuf[2] = CCB_COMPLETE;
 	DataInBuf[3] = SCSI_STATUS_OK;
-    } else if (scsi_devices[ESCSICmd->TargetId].status == SCSI_STATUS_CHECK_CONDITION) {
+    } else if (scsi_devices[dev->bus][ESCSICmd->TargetId].status == SCSI_STATUS_CHECK_CONDITION) {
 	DataInBuf[2] = CCB_COMPLETE;
 	DataInBuf[3] = SCSI_STATUS_CHECK_CONDITION;			
     }
@@ -704,14 +704,14 @@ buslogic_cmds(void *p)
 		memset(dev->DataBuf, 0, 8);
 		for (i = 8; i < 15; i++) {
 		    dev->DataBuf[i - 8] = 0;
-		    if (scsi_device_present(&scsi_devices[i]) && (i != buslogic_get_host_id(dev)))
+		    if (scsi_device_present(&scsi_devices[dev->bus][i]) && (i != buslogic_get_host_id(dev)))
 			dev->DataBuf[i - 8] |= 1;
 		}
 		dev->DataReplyLeft = 8;
 		break;
 	case 0x24:						
 		for (i = 0; i < 15; i++) {
-			if (scsi_device_present(&scsi_devices[i]) && (i != buslogic_get_host_id(dev)))
+			if (scsi_device_present(&scsi_devices[dev->bus][i]) && (i != buslogic_get_host_id(dev)))
 			    TargetsPresentMask |= (1 << i);
 		}
 		dev->DataBuf[0] = TargetsPresentMask & 0xFF;
@@ -1532,13 +1532,14 @@ buslogic_init(const device_t *info)
 
     /* Call common initializer. */
     dev = x54x_init(info);
+    dev->bus = scsi_get_bus();
 
     dev->ven_data = malloc(sizeof(buslogic_data_t));
     memset(dev->ven_data, 0x00, sizeof(buslogic_data_t));
 
     bl = (buslogic_data_t *) dev->ven_data;
 
-    dev->bus = info->flags;
+    dev->card_bus = info->flags;
     if (!(info->flags & DEVICE_MCA) && !(info->flags & DEVICE_PCI)) {
 	    dev->Base = device_get_config_hex16("base");
 	    dev->Irq = device_get_config_int("irq");
@@ -1668,7 +1669,7 @@ buslogic_init(const device_t *info)
 		break;
     }
 
-    if ((dev->Base != 0) && !(dev->bus & DEVICE_MCA) && !(dev->bus & DEVICE_PCI)) {
+    if ((dev->Base != 0) && !(dev->card_bus & DEVICE_MCA) && !(dev->card_bus & DEVICE_PCI)) {
 	x54x_io_set(dev, dev->Base, 4);
     }
 

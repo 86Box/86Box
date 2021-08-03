@@ -319,7 +319,7 @@ typedef struct s3_t
 	int enable_8514;
 	volatile int busy, force_busy;
 
-	uint8_t serialport;
+	uint8_t thread_run, serialport;
 	void *i2c, *ddc;
 } s3_t;
 
@@ -1509,7 +1509,7 @@ fifo_thread(void *param)
 {
 	s3_t *s3 = (s3_t *)param;
 	
-	while (1)
+	while (s3->thread_run)
 	{
 		thread_set_event(s3->fifo_not_full_event);
 		thread_wait_event(s3->wake_fifo_thread, -1);
@@ -6148,7 +6148,8 @@ static void *s3_init(const device_t *info)
 		case S3_DIAMOND_STEALTH_SE:
 			svga->decode_mask = (4 << 20) - 1;
 			s3->id = 0xe1; /*Trio32*/
-			s3->id_ext = s3->id_ext_pci = 0x10;
+			s3->id_ext = 0x10;
+			s3->id_ext_pci = 0x11;
 			s3->packed_mmio = 1;
 
 			svga->clock_gen = s3;
@@ -6213,6 +6214,7 @@ static void *s3_init(const device_t *info)
 	
 	s3->wake_fifo_thread = thread_create_event();
 	s3->fifo_not_full_event = thread_create_event();
+	s3->thread_run = 1;
 	s3->fifo_thread = thread_create(fifo_thread, s3);	
 
 	return s3;
@@ -6319,7 +6321,9 @@ static void s3_close(void *p)
 
 	svga_close(&s3->svga);
 	
-	thread_kill(s3->fifo_thread);
+	s3->thread_run = 0;
+	thread_set_event(s3->wake_fifo_thread);
+	thread_wait(s3->fifo_thread, -1);
 	thread_destroy_event(s3->wake_fifo_thread);
 	thread_destroy_event(s3->fifo_not_full_event);
 

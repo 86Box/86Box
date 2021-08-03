@@ -365,6 +365,7 @@ void t3100e_map_ram(uint8_t val)
 	int n;
 	int32_t upper_len;
 
+#ifdef ENABLE_T3100E_LOG
 	t3100e_log("OUT 0x8084, %02x [ set memory mapping :", val | 0x40); 
 	if (val & 1) t3100e_log("ENABLE_EMS ");
 	if (val & 2) t3100e_log("ENABLE_XMS ");
@@ -372,6 +373,7 @@ void t3100e_map_ram(uint8_t val)
 	if (val & 8) t3100e_log("X8X ");
 	if (val & 16) t3100e_log("UPPER_IS_XMS ");
 	t3100e_log("\n");
+#endif
 
 	/* Bit 2 controls size of conventional memory */
 	if (val & 4) 
@@ -632,7 +634,7 @@ static uint16_t ems_read_ramw(uint32_t addr, void *priv)
 	struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *)priv;
 	int pg = addr_to_page(addr);
 
-	if (pg < 0) return 0xFF;
+	if (pg < 0) return 0xFFFF;
 	//t3100e_log("ems_read_ramw addr=%05x ", addr);
 	addr = regs->page_exec[pg] + (addr & 0x3FFF);
 	//t3100e_log("-> %06x val=%04x\n", addr, *(uint16_t *)&ram[addr]);	
@@ -645,7 +647,7 @@ static uint32_t ems_read_raml(uint32_t addr, void *priv)
 	struct t3100e_ems_regs *regs = (struct t3100e_ems_regs *)priv;
 	int pg = addr_to_page(addr);
 
-	if (pg < 0) return 0xFF;
+	if (pg < 0) return 0xFFFFFFFF;
 	addr = regs->page_exec[pg] + (addr & 0x3FFF);
 	return *(uint32_t *)&ram[addr];	
 }

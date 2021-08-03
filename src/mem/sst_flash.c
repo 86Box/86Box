@@ -175,13 +175,14 @@ static uint8_t
 sst_read_id(uint32_t addr, void *p)
 {
     sst_t *dev = (sst_t *) p;
+    uint8_t ret = 0xff;
 
     if ((addr & 0xffff) == 0)
-	return SST_ID_MANUFACTURER;	/* SST */
+	ret = SST_ID_MANUFACTURER;	/* SST */
     else if ((addr & 0xffff) == 1)
-	return dev->id;
-    else
-	return 0xff;
+	ret = dev->id;
+
+    return ret;
 }
 
 
@@ -237,7 +238,10 @@ sst_write(uint32_t addr, uint8_t val, void *p)
 	case 2:
 	case 5:
 		/* 3rd and 6th Bus Write Cycle */
-		if ((addr & 0x7fff) == 0x5555)
+		if ((dev->command_state == 5) && (val == SST_SECTOR_ERASE)) {
+			/* Sector erase - can be on any address. */
+			sst_new_command(dev, addr, val);
+		} else if ((addr & 0x7fff) == 0x5555)
 			sst_new_command(dev, addr, val);
 		else
 			dev->command_state = 0;

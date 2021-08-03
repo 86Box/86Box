@@ -1882,7 +1882,11 @@ static uint8_t
 ide_status(ide_t *ide, ide_t *ide_other, int ch)
 {
     if ((ide->type == IDE_NONE) && ((ide_other->type == IDE_NONE) || !(ch & 1)))
+#ifdef STATUS_BIT_7_PULLDOWN
 	return 0x7F;	/* Bit 7 pulled down, all other bits pulled up, per the spec. */
+#else
+	return 0xFF;
+#endif
     else if ((ide->type == IDE_NONE) && (ch & 1))
 	return 0x00;	/* On real hardware, a slave with a present master always returns a status of 0x00. */
     else if (ide->type == IDE_ATAPI)

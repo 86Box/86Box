@@ -121,6 +121,10 @@
 #define IDS_2145	2145		// "You are loading an unsupported..."
 #define IDS_2146	2146		// "CPU type filtering based on..."
 #define IDS_2147	2147		// "Continue"
+#define IDS_2148	2148		// "Cassette: %s"
+#define IDS_2149	2149		// "Cassette images (*.PCM;*.RAW;*..."
+#define IDS_2150	2150		// "Cartridge %i: %ls"
+#define IDS_2151	2151		// "Cartridge images (*.JRC)\0*.JRC\0..."
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
@@ -161,6 +165,7 @@
 #define IDS_4132	4132		// "This could mean that the parent..."
 #define IDS_4133	4133		// "Parent and child disk timestamps..."
 #define IDS_4134	4134		// "Could not fix VHD timestamp."
+#define IDS_4135	4135		// "%01i:%02i"
 
 #define IDS_4352	4352		// "MFM/RLL"
 #define IDS_4353	4353		// "XT IDE"
@@ -228,9 +233,9 @@
 
 #define IDS_LANG_ENUS	IDS_7168
 
-#define STR_NUM_2048	100
+#define STR_NUM_2048	104
 #define STR_NUM_3072	11
-#define STR_NUM_4096	39
+#define STR_NUM_4096	40
 #define STR_NUM_4352	6
 #define STR_NUM_4608	6
 #define STR_NUM_5120	1

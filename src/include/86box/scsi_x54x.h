@@ -382,7 +382,7 @@ typedef struct {
 
     uint8_t	callback_phase		:4,
 		callback_sub_phase	:4,
-		scsi_cmd_phase, pad,
+		scsi_cmd_phase, bus,
 		sync,
 		parity, shram_mode,
 		Geometry, Control,
@@ -429,7 +429,7 @@ typedef struct {
 		PendingInterrupt, Lock,
 		target_data_len, pad0;
 
-    uint32_t	Base, fdc_address, rom_addr,			/* address of BIOS ROM */
+    uint32_t	Base, fdc_address, rom_addr,	/* address of BIOS ROM */
 		CmdParamLeft, Outgoing,
 		transfer_size;
 
@@ -441,7 +441,7 @@ typedef struct {
 		BIOSMailboxInit, BIOSMailboxCount,
 		BIOSMailboxOutAddr, BIOSMailboxOutPosCur,
 		BIOSMailboxReq,
-		Residue, bus;			/* Basically a copy of device flags */
+		Residue, card_bus;		/* Basically a copy of device flags */
 
     /* 8 bytes */
     uint64_t	temp_period;

@@ -124,7 +124,7 @@ typedef struct {
 	int8_t  bios_ver;
     uint8_t	block_count, block_count_num;
     uint8_t	status_ctrl;
-    uint8_t	pad[2];
+    uint8_t	bus, pad;
 
     rom_t	bios_rom;
     mem_mapping_t mapping;
@@ -236,7 +236,7 @@ ncr_reset(ncr5380_t *ncr_dev, ncr_t *ncr)
     timer_stop(&ncr_dev->timer);
     
     for (int i = 0; i < 8; i++)
-	scsi_device_reset(&scsi_devices[i]);
+	scsi_device_reset(&scsi_devices[ncr_dev->bus][i]);
 
     ncr_irq(ncr_dev, ncr, 0);
 }
@@ -318,7 +318,7 @@ ncr_bus_read(ncr5380_t *ncr_dev)
     if (ncr->wait_data) {
 	ncr->wait_data--;
 	if (!ncr->wait_data) {
-		dev = &scsi_devices[ncr->target_id];
+		dev = &scsi_devices[ncr_dev->bus][ncr->target_id];
 		SET_BUS_STATE(ncr, ncr->new_phase);	
 		phase = (ncr->cur_bus & SCSI_PHASE_MESSAGE_IN);
 
@@ -360,7 +360,7 @@ ncr_bus_update(void *priv, int bus)
 {
     ncr5380_t *ncr_dev = (ncr5380_t *)priv;
     ncr_t *ncr = &ncr_dev->ncr;
-    scsi_device_t *dev = &scsi_devices[ncr->target_id];
+    scsi_device_t *dev = &scsi_devices[ncr_dev->bus][ncr->target_id];
     double p;
     uint8_t sel_data;
     int msglen;
@@ -383,7 +383,7 @@ ncr_bus_update(void *priv, int bus)
 			ncr_log("Select - target ID = %i\n", ncr->target_id);
 
 			/*Once the device has been found and selected, mark it as busy*/
-			if ((ncr->target_id != (uint8_t)-1) && scsi_device_present(&scsi_devices[ncr->target_id])) {
+			if ((ncr->target_id != (uint8_t)-1) && scsi_device_present(&scsi_devices[ncr_dev->bus][ncr->target_id])) {
 				ncr->cur_bus |= BUS_BSY;
 				ncr->state = STATE_SELECT;
 			} else {
@@ -395,7 +395,7 @@ ncr_bus_update(void *priv, int bus)
 	case STATE_SELECT:
 		if (!(bus & BUS_SEL)) {
 			if (!(bus & BUS_ATN)) {
-				if ((ncr->target_id != (uint8_t)-1) && scsi_device_present(&scsi_devices[ncr->target_id])) {
+				if ((ncr->target_id != (uint8_t)-1) && scsi_device_present(&scsi_devices[ncr_dev->bus][ncr->target_id])) {
 					ncr_log("Device found at ID %i, Current Bus BSY=%02x\n", ncr->target_id, ncr->cur_bus);
 					ncr->state = STATE_COMMAND;
 					ncr->cur_bus = BUS_BSY | BUS_REQ;
@@ -434,7 +434,7 @@ ncr_bus_update(void *priv, int bus)
 				/*Reset data position to default*/
 				ncr->data_pos = 0;
 
-				dev = &scsi_devices[ncr->target_id];
+				dev = &scsi_devices[ncr_dev->bus][ncr->target_id];
 
 				ncr_log("SCSI Command 0x%02X for ID %d, status code=%02x\n", ncr->command[0], ncr->target_id, dev->status);
 				dev->buffer_length = -1;
@@ -462,7 +462,7 @@ ncr_bus_update(void *priv, int bus)
 		}
 		break;
 	case STATE_DATAIN:
-		dev = &scsi_devices[ncr->target_id];
+		dev = &scsi_devices[ncr_dev->bus][ncr->target_id];
 		if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
 			if (ncr->data_pos >= dev->buffer_length) {
 				ncr->cur_bus &= ~BUS_REQ;
@@ -487,7 +487,7 @@ ncr_bus_update(void *priv, int bus)
 		}
 		break;
 	case STATE_DATAOUT:
-		dev = &scsi_devices[ncr->target_id];
+		dev = &scsi_devices[ncr_dev->bus][ncr->target_id];
 		if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
 			dev->sc->temp_buffer[ncr->data_pos++] = BUS_GETDATA(bus);
 
@@ -514,7 +514,7 @@ ncr_bus_update(void *priv, int bus)
 	case STATE_STATUS:
 		if ((bus & BUS_ACK) && !(ncr->bus_in & BUS_ACK)) {
 			/*All transfers done, wait until next transfer*/
-			scsi_device_identify(&scsi_devices[ncr->target_id], SCSI_LUN_USE_CDB);
+			scsi_device_identify(&scsi_devices[ncr_dev->bus][ncr->target_id], SCSI_LUN_USE_CDB);
 			ncr->cur_bus &= ~BUS_REQ;
 			ncr->new_phase = SCSI_PHASE_MESSAGE_IN;
 			ncr->wait_data = 4;
@@ -542,9 +542,9 @@ ncr_bus_update(void *priv, int bus)
 		}
 		break;
 	case STATE_MESSAGE_ID:
-		if ((ncr->target_id != (uint8_t)-1) && scsi_device_present(&scsi_devices[ncr->target_id])) {
+		if ((ncr->target_id != (uint8_t)-1) && scsi_device_present(&scsi_devices[ncr_dev->bus][ncr->target_id])) {
 			ncr_log("Device found at ID %i on MSGOUT, Current Bus BSY=%02x\n", ncr->target_id, ncr->cur_bus);
-			scsi_device_identify(&scsi_devices[ncr->target_id], ncr->msglun);
+			scsi_device_identify(&scsi_devices[ncr_dev->bus][ncr->target_id], ncr->msglun);
 			ncr->state = STATE_COMMAND;
 			ncr->cur_bus = BUS_BSY | BUS_REQ;
 			ncr_log("CurBus BSY|REQ=%02x\n", ncr->cur_bus);
@@ -1091,7 +1091,7 @@ ncr_callback(void *priv)
 {
     ncr5380_t *ncr_dev = (ncr5380_t *)priv;
     ncr_t *ncr = &ncr_dev->ncr;
-    scsi_device_t *dev = &scsi_devices[ncr->target_id];
+    scsi_device_t *dev = &scsi_devices[ncr_dev->bus][ncr->target_id];
 
     ncr_log("DMA mode=%d, status ctrl = %02x\n", ncr->dma_mode, ncr_dev->status_ctrl);
 
@@ -1165,6 +1165,8 @@ ncr_init(const device_t *info)
     memset(ncr_dev, 0x00, sizeof(ncr5380_t));
     ncr_dev->name = info->name;
     ncr_dev->type = info->local;
+
+    ncr_dev->bus = scsi_get_bus();
 
     switch(ncr_dev->type) {
 	case 0:		/* Longshine LCS6821N */
