@@ -84,8 +84,7 @@ typedef struct
     acpi_t	*acpi;
     void	*gameport, *ac97;
     sb_t	*sb;
-    uint16_t	midigame_base, fmnmi_base;
-    uint8_t	fm_enabled;
+    uint16_t	midigame_base, sb_base, fmnmi_base;
 } pipc_t;
 
 
@@ -110,8 +109,8 @@ pipc_log(const char *fmt, ...)
 
 
 static void	pipc_sgd_handlers(pipc_t *dev, uint8_t modem);
-static void	pipc_midigame_handlers(pipc_t *dev, uint8_t modem);
 static void	pipc_codec_handlers(pipc_t *dev, uint8_t modem);
+static void	pipc_sb_handlers(pipc_t *dev, uint8_t modem);
 static uint8_t	pipc_read(int func, int addr, void *priv);
 static void	pipc_write(int func, int addr, uint8_t val, void *priv);
 
@@ -364,8 +363,8 @@ pipc_reset_hard(void *priv)
 		dev->ac97_regs[i][0x4b] = 0x02;
 
 		pipc_sgd_handlers(dev, i);
-		pipc_midigame_handlers(dev, i);
 		pipc_codec_handlers(dev, i);
+		pipc_sb_handlers(dev, i);
 	}
     }
 
@@ -471,33 +470,6 @@ pipc_sgd_handlers(pipc_t *dev, uint8_t modem)
 }
 
 
-static uint8_t
-pipc_midigame_read(uint16_t addr, void *priv)
-{
-    pipc_t *dev = (pipc_t *) priv;
-
-    /* This BAR apparently doesn't work at all on a real 686B. It doesn't react to writes,
-       and reads always return 0x80 or 0xff depending on AC97 audio register 0x42 bit 7. */
-    return (dev->ac97_regs[0][0x42] & 0x80) ? 0x80 : 0xff;
-}
-
-
-static void
-pipc_midigame_handlers(pipc_t *dev, uint8_t modem)
-{
-    if (!dev->ac97 || modem)
-	return;
-
-    if (dev->midigame_base)
-	io_removehandler(dev->midigame_base, 4, pipc_midigame_read, NULL, NULL, NULL, NULL, NULL, dev);
-
-    dev->midigame_base = (dev->ac97_regs[0][0x19] << 8) | (dev->ac97_regs[0][0x18] & 0xfc);
-
-    if (dev->midigame_base && (dev->ac97_regs[0][0x04] & PCI_COMMAND_IO))
-	io_sethandler(dev->midigame_base, 4, pipc_midigame_read, NULL, NULL, NULL, NULL, NULL, dev);
-}
-
-
 static void
 pipc_codec_handlers(pipc_t *dev, uint8_t modem)
 {
@@ -530,6 +502,22 @@ pipc_fmnmi_read(uint16_t addr, void *priv)
 #endif
 
     return ret;
+}
+
+
+static void
+pipc_fmnmi_handlers(pipc_t *dev, uint8_t modem)
+{
+    if (!dev->ac97 || modem)
+	return;
+
+    if (dev->fmnmi_base)
+	io_removehandler(dev->fmnmi_base, 4, pipc_fmnmi_read, NULL, NULL, NULL, NULL, NULL, dev);
+
+    dev->fmnmi_base = (dev->ac97_regs[0][0x15] << 8) | (dev->ac97_regs[0][0x14] & 0xfc);
+
+    if (dev->fmnmi_base && (dev->ac97_regs[0][0x04] & PCI_COMMAND_IO))
+	io_sethandler(dev->fmnmi_base, 4, pipc_fmnmi_read, NULL, NULL, NULL, NULL, NULL, dev);
 }
 
 
@@ -580,25 +568,53 @@ pipc_fm_write(uint16_t addr, uint8_t val, void *priv)
 
 
 static void
-pipc_fmnmi_handlers(pipc_t *dev, uint8_t modem)
+pipc_sb_handlers(pipc_t *dev, uint8_t modem)
 {
     if (!dev->ac97 || modem)
 	return;
 
-    if (dev->fmnmi_base)
-	io_removehandler(dev->fmnmi_base, 4, pipc_fmnmi_read, NULL, NULL, NULL, NULL, NULL, dev);
+    sb_dsp_setaddr(&dev->sb->dsp, 0);
+    if (dev->sb_base) {
+	io_removehandler(dev->sb_base,     4, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
+	io_removehandler(dev->sb_base + 8, 2, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
+	io_removehandler(dev->sb_base + 4, 2, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, dev->sb);
+    }
 
-    if (dev->fm_enabled)
-	io_removehandler(0x388, 4, pipc_fm_read, NULL, NULL, pipc_fm_write, NULL, NULL, dev);
+    mpu401_change_addr(dev->sb->mpu, 0);
+    mpu401_setirq(dev->sb->mpu, 0);
 
-    dev->fmnmi_base = (dev->ac97_regs[0][0x15] << 8) | (dev->ac97_regs[0][0x14] & 0xfc);
-    dev->fm_enabled = !!(dev->ac97_regs[0][0x42] & 0x04);
+    io_removehandler(0x388, 4, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
 
-    if (dev->fmnmi_base && (dev->ac97_regs[0][0x04] & PCI_COMMAND_IO))
-	io_sethandler(dev->fmnmi_base, 4, pipc_fmnmi_read, NULL, NULL, NULL, NULL, NULL, dev);
+    if (dev->ac97_regs[0][0x42] & 0x01) {
+	dev->sb_base = 0x220 + (0x20 * (dev->ac97_regs[0][0x43] & 0x03));
+	sb_dsp_setaddr(&dev->sb->dsp, dev->sb_base);
+	if (dev->ac97_regs[0][0x42] & 0x04) {
+		io_sethandler(dev->sb_base,     4, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
+		io_sethandler(dev->sb_base + 8, 2, opl3_read, NULL, NULL, opl3_write, NULL, NULL, &dev->sb->opl);
+	}
+	io_sethandler(dev->sb_base + 4, 2, sb_ct1345_mixer_read, NULL, NULL, sb_ct1345_mixer_write, NULL, NULL, dev->sb);
 
-    if (dev->fm_enabled)
+	uint8_t irq = 5 + (2 * ((dev->ac97_regs[0][0x43] >> 6) & 0x03));
+	sb_dsp_setirq(&dev->sb->dsp, (irq == 11) ? 10 : irq);
+
+	sb_dsp_setdma8(&dev->sb->dsp, (dev->ac97_regs[0][0x43] >> 4) & 0x03);
+    }
+
+    if (dev->ac97_regs[0][0x42] & 0x02) {
+	/* BAR 2 is a mess. The MPU and game port remapping registers that VIA claims to be there don't
+	   seem to actually exist on a real 686B. Remapping the MPU to BAR 2 itself does work, though. */
+	if (dev->ac97_regs[0][0x42] & 0x80)
+		mpu401_change_addr(dev->sb->mpu, (dev->ac97_regs[0][0x19] << 8) | (dev->ac97_regs[0][0x18] & 0xfc));
+	else
+		mpu401_change_addr(dev->sb->mpu, 0x300 | ((dev->ac97_regs[0][0x43] << 2) & 0x30));
+
+        if (!(dev->ac97_regs[0][0x42] & 0x40))
+		mpu401_setirq(dev->sb->mpu, dev->sb->dsp.sb_irqnum);
+    }
+
+    if (dev->ac97_regs[0][0x42] & 0x04) {
 	io_sethandler(0x388, 4, pipc_fm_read, NULL, NULL, pipc_fm_write, NULL, NULL, dev);
+    }
 }
 
 
@@ -1170,7 +1186,6 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 	switch (addr) {
 		case 0x04:
 			dev->ac97_regs[func][addr] = val;
-			pipc_midigame_handlers(dev, func);
 			pipc_sgd_handlers(dev, func);
 			pipc_codec_handlers(dev, func);
 			pipc_fmnmi_handlers(dev, func);
@@ -1197,7 +1212,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			if (addr == 0x18)
 				val = (val & 0xfc) | 1;
 			dev->ac97_regs[func][addr] = val;
-			pipc_midigame_handlers(dev, func);
+			pipc_sb_handlers(dev, func);
 			break;
 
 		case 0x1c: case 0x1d:
@@ -1219,7 +1234,7 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			dev->ac97_regs[0][addr] = dev->ac97_regs[1][addr] = val;
 			gameport_remap(dev->gameport, (dev->ac97_regs[0][0x42] & 0x08) ? ((dev->ac97_regs[0][0x4b] << 8) | (dev->ac97_regs[0][0x4a] & 0xf8)) : 0);
 			if (addr == 0x42)
-				pipc_fmnmi_handlers(dev, func);
+				pipc_sb_handlers(dev, func);
 			break;
 
 		case 0x43:
@@ -1316,6 +1331,10 @@ pipc_init(const device_t *info)
 	ac97_via_set_slot(dev->ac97, dev->slot, PCI_INTC);
 
 	dev->sb = device_add(&sb_pro_compat_device);
+#ifndef VIA_PIPC_FM_EMULATION
+	dev->sb->opl_enabled = 1;
+#endif
+	sound_add_handler(sb_get_buffer_sbpro, dev->sb);
 
 	dev->gameport = gameport_add(&gameport_sio_device);
     }

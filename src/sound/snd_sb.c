@@ -1571,7 +1571,6 @@ sb_pro_compat_init(const device_t *info)
     sb_t *sb = malloc(sizeof(sb_t));
     memset(sb, 0, sizeof(sb_t));
 
-    sb->opl_enabled = 0; /* CS423x updates this, while VT82C686 lacks OPL */
     opl3_init(&sb->opl);
 
     sb_dsp_init(&sb->dsp, SBPRO2, SB_SUBTYPE_DEFAULT, sb);
