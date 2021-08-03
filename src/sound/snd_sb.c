@@ -2342,9 +2342,6 @@ static const device_config_t sb_32_pnp_config[] =
                                 "None", 0
                         },
                         {
-                                "512 KB", 512
-                        },
-                        {
                                 "2 MB", 2048
                         },
                         {
@@ -2561,19 +2558,16 @@ static const device_config_t sb_awe64_gold_config[] =
                 "onboard_ram", "Onboard RAM", CONFIG_SELECTION, "", 4096, "", { 0 },
                 {
                         {
-                                "None", 0
-                        },
-                        {
-                                "512 KB", 512
-                        },
-                        {
-                                "2 MB", 2048
-                        },
-                        {
                                 "4 MB", 4096
                         },
                         {
                                 "8 MB", 8192
+                        },
+                        {
+                                "12 MB", 12288
+                        },
+                        {
+                                "16 MB", 16384
                         },
                         {
                                 "28 MB", 28*1024
