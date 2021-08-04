@@ -134,6 +134,8 @@ BEGIN
 # endif
         MENUITEM SEPARATOR
         MENUITEM "Take s&creenshot\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM SEPARATOR
+        MENUITEM "Sound &gain...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
         MENUITEM SEPARATOR
         MENUITEM "Begin trace\tCtrl+T",         IDM_ACTION_BEGIN_TRACE
