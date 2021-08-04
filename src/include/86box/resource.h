@@ -163,6 +163,7 @@
 #define IDC_CHECK_FLOAT		1048
 #define IDC_CONFIGURE_GUS	1049
 #define IDC_COMBO_MIDI_IN	1050
+#define IDC_CONFIGURE_CMS	1051
 
 #define IDC_COMBO_NET_TYPE	1060	/* network config */
 #define IDC_COMBO_PCAP		1061
