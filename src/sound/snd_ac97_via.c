@@ -37,7 +37,7 @@ typedef struct {
 
     uint32_t	entry_ptr, sample_ptr, fifo_pos, fifo_end;
     int32_t	sample_count;
-    uint8_t	entry_flags, fifo[32], restart, status_shadow;
+    uint8_t	entry_flags, fifo[32], restart;
 
     pc_timer_t	timer;
 } ac97_via_sgd_t;
@@ -203,10 +203,6 @@ ac97_via_sgd_read(uint16_t addr, void *priv)
     if (!(addr & 0x80)) {
 	/* Process SGD channel registers. */
 	switch (addr & 0xf) {
-		case 0x0:
-			ret = dev->sgd[addr >> 4].status_shadow;
-			break;
-
 		case 0x4:
 			ret = dev->sgd[addr >> 4].entry_ptr;
 			break;
@@ -239,9 +235,6 @@ ac97_via_sgd_read(uint16_t addr, void *priv)
 			ret = dev->sgd_regs[addr];
 			break;
 	}
-
-	/* Reset SGD status shadow register. See comment on SGD register 0x0 write for more information. */
-	dev->sgd[addr >> 4].status_shadow = dev->sgd_regs[addr & 0xf0];
     } else {
 	/* Process regular registers. */
 	switch (addr) {
@@ -318,11 +311,6 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 
 			/* Update status interrupts. */
 			ac97_via_update_irqs(dev);
-
-			/* Work around a race condition with the V7.00b WDM driver expecting SGD Active to
-			   not clear immediately. It reads this register next, so set up a shadow register
-			   to ensure SGD Active is set for that specific read (but not subsequent ones). */
-			dev->sgd[addr >> 4].status_shadow = dev->sgd_regs[addr] | 0x80;
 
 			return;
 
