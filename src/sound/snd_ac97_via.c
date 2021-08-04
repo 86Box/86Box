@@ -57,7 +57,7 @@ typedef struct _ac97_via_ {
     ac97_via_sgd_t sgd[6];
 
     pc_timer_t	timer_count, timer_count_fm;
-    uint64_t	timer_latch;
+    uint64_t	timer_latch, timer_latch_fm;
     int16_t	out_l, out_r, fm_out_l, fm_out_r;
     int		master_vol_l, master_vol_r, pcm_vol_l, pcm_vol_r, cd_vol_l, cd_vol_r;
     int32_t	buffer[SOUNDBUFLEN * 2], fm_buffer[SOUNDBUFLEN * 2];
@@ -713,16 +713,18 @@ ac97_via_poll_fm(void *priv)
 
     /* Schedule next run if FM playback is enabled. */
     if (dev->fm_enabled)
-	timer_advance_u64(&dev->timer_count_fm, dev->timer_latch);
+	timer_advance_u64(&dev->timer_count_fm, dev->timer_latch_fm);
 
     /* Update FM audio buffer. */
     ac97_via_update_fm(dev);
 
     /* Feed next sample from the FIFO.
-       Unknown data format assumed to be 8-bit stereo. */
-    if ((sgd->fifo_end - sgd->fifo_pos) >= 2) {
-	dev->fm_out_l = (sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] ^ 0x80) << 8;
-	dev->fm_out_r = (sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] ^ 0x80) << 8;
+       The data format is not documented, but it probes as 16-bit stereo at 24 KHz. */
+    if ((sgd->fifo_end - sgd->fifo_pos) >= 4) {
+	dev->out_l = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
+	sgd->fifo_pos += 2;
+	dev->out_r = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
+	sgd->fifo_pos += 2;
 	return;
     }
 
@@ -772,6 +774,7 @@ ac97_via_speed_changed(void *priv)
 	freq = 48000.0;
 
     dev->timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq));
+    dev->timer_latch_fm = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 24000.0));
 }
 
 
