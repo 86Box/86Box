@@ -136,6 +136,9 @@ extern void	ide_sec_enable(void);
 extern void	ide_sec_disable(void);
 
 extern void	ide_board_set_force_ata3(int board, int force_ata3);
+#ifdef EMU_ISAPNP_H
+extern void	ide_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv);
+#endif
 
 extern double	ide_atapi_get_period(uint8_t channel);
 #ifdef SCSI_DEVICE_H

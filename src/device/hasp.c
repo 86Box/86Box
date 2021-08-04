@@ -50,6 +50,7 @@ enum {
     HASP_TYPE_SAVQUEST = 0
 };
 
+
 typedef struct {
     const uint8_t *password, *prodinfo;
     const uint8_t password_size, prodinfo_size;
@@ -266,7 +267,7 @@ hasp_read_status(void *priv)
 static void *
 hasp_init(void *lpt, int type)
 {
-    hasp_t *dev = (hasp_t *) malloc(sizeof(hasp_t));
+    hasp_t *dev = malloc(sizeof(hasp_t));
     memset(dev, 0, sizeof(hasp_t));
 
     hasp_log("HASP: init(%d)\n", type);

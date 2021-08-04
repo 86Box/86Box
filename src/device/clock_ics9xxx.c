@@ -1280,13 +1280,11 @@ ics9xxx_get(uint8_t model)
 
     dev->name = "ICS9xxx-xx Clock Generator";
     dev->local = model;
+    dev->flags = DEVICE_ISA;
 #ifdef ENABLE_ICS9xxx_DETECT
-    if (model == ICS9xxx_xx) {
-	dev->flags = DEVICE_PCI;
+    if (model == ICS9xxx_xx)
 	dev->reset = ics9xxx_detect_reset;
-    } else
 #endif
-	dev->flags = DEVICE_ISA;
     dev->init = ics9xxx_init;
     dev->close = ics9xxx_close;
 

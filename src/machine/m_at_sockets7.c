@@ -40,6 +40,7 @@
 #include <86box/video.h>
 #include "cpu.h"
 #include <86box/machine.h>
+#include <86box/snd_ac97.h>
 
 
 int
@@ -112,7 +113,7 @@ machine_at_ficva503a_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/ficva503a/jo4116.bin",
+    ret = bios_load_linear("roms/machines/ficva503a/jn4116.bin",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -139,6 +140,8 @@ machine_at_ficva503a_init(const machine_t *model)
     hwm_values.temperatures[0] += 2; /* CPU offset */
     hwm_values.temperatures[1] += 2; /* System offset */
     hwm_values.temperatures[2] = 0; /* unused */
+
+    device_add(&wm9701a_device); /* on daughtercard */
 
     return ret;
 }
