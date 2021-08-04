@@ -312,6 +312,7 @@ extern int	machine_at_cs4031_init(const machine_t *);
 
 extern int	machine_at_pb410a_init(const machine_t *);
 
+extern int	machine_at_decpc_lpv_init(const machine_t *);
 extern int	machine_at_acerv10_init(const machine_t *);
 
 extern int	machine_at_acera1g_init(const machine_t *);

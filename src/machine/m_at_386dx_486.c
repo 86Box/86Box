@@ -454,6 +454,29 @@ machine_at_acerv10_init(const machine_t *model)
 }
 
 
+int
+machine_at_decpc_lpv_init(const machine_t *model)
+{
+    int ret;
+
+   ret = bios_load_linear("roms/machines/decpc_lpv/bios.bin-5f2c71ca0a0a5135083487.bin",
+			  0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&sis_85c461_device);
+    /* TODO: Phoenix MultiKey KBC */
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&ide_isa_2ch_device);
+    device_add(&fdc37c663_device);
+    /* TODO: On-board S3 805 with AT&T 490 RAM DAC. */
+
+    return ret;
+}
+
 static void
 machine_at_ali1429_common_init(const machine_t *model)
 {
