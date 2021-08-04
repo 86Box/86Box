@@ -128,6 +128,8 @@ cart_image_load(int drive, char *fn)
 	fclose(f);
     } else {
 	base = drive ? 0xe0000 : 0xd0000;
+	if (size == 32768)
+		base += 0x8000;
 	fseek(f, 0x00000000, SEEK_SET);
 	carts[drive].buf = (uint8_t *) malloc(size);
 	memset(carts[drive].buf, 0x00, size);
