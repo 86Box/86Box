@@ -1436,7 +1436,7 @@ sb_2_init(const device_t *info)
 
     if (mixer_addr > 0x000) {
 	sb->mixer_enabled = 1;
-	io_sethandler(addr + 4, 0x0002, sb_ct1335_mixer_read,  NULL, NULL,
+	io_sethandler(mixer_addr + 4, 0x0002, sb_ct1335_mixer_read,  NULL, NULL,
 		      sb_ct1335_mixer_write, NULL, NULL, sb);
     } else
 	sb->mixer_enabled = 0;
@@ -2060,6 +2060,9 @@ static const device_config_t sb2_config[] =
                         },
                         {
                                 "0x240", 0x240
+                        },
+                        {
+                                "0x250", 0x250
                         },
                         {
                                 "0x260", 0x260
