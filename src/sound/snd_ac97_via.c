@@ -350,10 +350,10 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 			if (val & 0x40)
 				dev->sgd_regs[addr & 0xf0] &= ~0x88;
 
-			val &= 0x04;
+			val &= 0x08;
 
 			/* (Un)pause SGD if requested. */
-			if (val & 0x04)
+			if (val & 0x08)
 				dev->sgd_regs[addr & 0xf0] |= 0x40;
 			else
 				dev->sgd_regs[addr & 0xf0] &= ~0x40;
