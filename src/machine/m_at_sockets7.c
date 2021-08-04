@@ -40,6 +40,7 @@
 #include <86box/video.h>
 #include "cpu.h"
 #include <86box/machine.h>
+#include <86box/snd_ac97.h>
 #include <86box/clock.h>
 
 
