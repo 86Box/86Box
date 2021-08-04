@@ -39,7 +39,7 @@
 #include <86box/isapnp.h>
 
 
-/* This ROM is reconstructed out of several assumptions, some of which are based on the IT8671F. */
+/* This ROM was reconstructed out of many assumptions, some of which based on the IT8671F. */
 static uint8_t um8669f_pnp_rom[] = {
     0x55, 0xa3, 0x86, 0x69, 0x00, 0x00, 0x00, 0x00, 0x00, /* UMC8669, dummy checksum (filled in by isapnp_add_card) */
     0x0a, 0x10, 0x10, /* PnP version 1.0, vendor version 1.0 */
@@ -61,7 +61,7 @@ static uint8_t um8669f_pnp_rom[] = {
 	0x22, 0xfa, 0x1f, /* IRQ 1/3/4/5/6/7/8/9/10/11/12 */
 	0x47, 0x00, 0x00, 0x01, 0xf8, 0x03, 0x08, 0x08, /* I/O 0x100-0x3F8, decodes 10-bit, 8-byte alignment, 8 addresses */
 
-    0x15, 0x55, 0xa3, 0x86, 0x69, 0x00, /* logical device UMC8669 (just a dummy to create a gap in LDNs) */
+    0x15, 0x41, 0xd0, 0xff, 0xff, 0x00, /* logical device PNPFFFF (just a dummy to create a gap in LDNs) */
 
     0x15, 0x41, 0xd0, 0xb0, 0x2f, 0x01, /* logical device PNPB02F, can participate in boot */
 	0x47, 0x00, 0x00, 0x01, 0xf8, 0x03, 0x08, 0x08, /* I/O 0x100-0x3F8, decodes 10-bit, 8-byte alignment, 8 addresses */
@@ -151,8 +151,9 @@ um8669f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
 
 			fdc_set_irq(dev->fdc, config->irq[0].irq);
 			fdc_set_dma_ch(dev->fdc, (config->dma[0].dma == ISAPNP_DMA_DISABLED) ? -1 : config->dma[0].dma);
-		} else
+		} else {
 			um8669f_log("UM8669F: FDC disabled\n");
+		}
 
 		break;
 
@@ -163,8 +164,9 @@ um8669f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
 		if (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) {
 			um8669f_log("UM8669F: UART %d enabled at port %04X IRQ %d\n", ld - 1, config->io[0].base, config->irq[0].irq);
 			serial_setup(dev->uart[ld - 1], config->io[0].base, config->irq[0].irq);
-		} else
+		} else {
 			um8669f_log("UM8669F: UART %d disabled\n", ld - 1);
+		}
 
 		break;
 
@@ -174,8 +176,9 @@ um8669f_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *pri
 		if (config->activate && (config->io[0].base != ISAPNP_IO_DISABLED)) {
 			um8669f_log("UM8669F: LPT enabled at port %04X IRQ %d\n", config->io[0].base, config->irq[0].irq);
 			lpt1_init(config->io[0].base);
-		} else
+		} else {
 			um8669f_log("UM8669F: LPT disabled\n");
+		}
 
 		break;
 

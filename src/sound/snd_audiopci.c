@@ -17,6 +17,7 @@
 #include <86box/sound.h>
 #include <86box/midi.h>
 #include <86box/snd_mpu401.h>
+#include <86box/snd_ac97.h>
 
 
 #define N 16
@@ -51,7 +52,7 @@ typedef struct {
     uint8_t uart_ctrl;
     uint8_t uart_status;
 
-    uint16_t codec_regs[128];
+    ac97_codec_t *codec;
     uint32_t codec_ctrl;
 
     struct {
@@ -146,12 +147,6 @@ typedef struct {
 #define FORMAT_STEREO_8			1
 #define FORMAT_MONO_16			2
 #define FORMAT_STEREO_16		3
-
-const int32_t codec_attn[]= {
-	25,32,41,51,65,82,103,130,164,206,260,327,412,519,653,
-	822,1036,1304,1641,2067,2602,3276,4125,5192,6537,8230,10362,13044,
-	16422,20674,26027,32767
-};
 
 static void es1371_fetch(es1371_t *es1371, int dac_nr);
 static void update_legacy(es1371_t *es1371, uint32_t old_legacy_ctrl);
@@ -332,7 +327,8 @@ static uint16_t es1371_inw(uint16_t port, void *p)
 		break;
 
 		default:
-		audiopci_log("Bad es1371_inw: port=%04x\n", port);
+		ret  = es1371_inb(port, p);
+		ret |= es1371_inb(port + 1, p) << 8;
 	}
 
 //	audiopci_log("es1371_inw: port=%04x ret=%04x %04x:%08x\n", port, ret, CS,cpu_state.pc);
@@ -358,11 +354,7 @@ static uint32_t es1371_inl(uint16_t port, void *p)
 		break;
 		
 		case 0x14:
-		ret = es1371->codec_ctrl & 0x00ff0000;
-		ret |= es1371->codec_regs[(es1371->codec_ctrl >> 16) & 0x7f];
-		if (((es1371->codec_ctrl >> 16) & 0x7f) == 0x26)
-			ret |= 0x0f;
-		ret |= CODEC_READY;
+		ret = es1371->codec_ctrl | CODEC_READY;
 		break;
 
 		case 0x30:
@@ -416,7 +408,8 @@ static uint32_t es1371_inl(uint16_t port, void *p)
 		break;
 		
 		default:
-		audiopci_log("Bad es1371_inl: port=%04x\n", port);
+		ret  = es1371_inw(port, p);
+		ret |= es1371_inw(port + 2, p) << 16;
 	}
 
 	audiopci_log("es1371_inl: port=%04x ret=%08x\n", port, ret);
@@ -527,7 +520,8 @@ static void es1371_outw(uint16_t port, uint16_t val, void *p)
 		break;
 		
 		default:
-		audiopci_log("Bad es1371_outw: port=%04x val=%04x\n", port, val);
+		es1371_outb(port, val & 0xff, p);
+		es1371_outb(port + 1, (val >> 8) & 0xff, p);
 	}
 }
 static void es1371_outl(uint16_t port, uint32_t val, void *p)
@@ -593,39 +587,18 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 		break;
 
 		case 0x14:
-		es1371->codec_ctrl = val;
-		if (!(val & CODEC_READ))
-		{
-//			audiopci_log("Write codec %02x %04x\n", (val >> 16) & 0x7f, val & 0xffff);
-			if ((((val >> 16) & 0x7f) != 0x7c) && (((val >> 16) & 0x7f) != 0x7e))
-				es1371->codec_regs[(val >> 16) & 0x7f] = val & 0xffff;
-			switch ((val >> 16) & 0x7f)
-			{
-				case 0x02: /*Master volume*/
-				if (val & 0x8000)
-					es1371->master_vol_l = es1371->master_vol_r = 0;
-				else
-				{
-					if (val & 0x2000)
-						es1371->master_vol_l = codec_attn[0];
-					else
-						es1371->master_vol_l = codec_attn[0x1f - ((val >> 8) & 0x1f)];
-					if (val & 0x20)
-						es1371->master_vol_r = codec_attn[0];
-					else					
-						es1371->master_vol_r = codec_attn[0x1f - (val & 0x1f)];
-				}
-				break;
-				case 0x12: /*CD volume*/
-				if (val & 0x8000)
-					es1371->cd_vol_l = es1371->cd_vol_r = 0;
-				else
-				{
-					es1371->cd_vol_l = codec_attn[0x1f - ((val >> 8) & 0x1f)];
-					es1371->cd_vol_r = codec_attn[0x1f - (val & 0x1f)];
-				}
-				break;
-			}       
+		if (val & CODEC_READ) {
+			es1371->codec_ctrl &= 0x00ff0000;
+			val = (val >> 16) & 0x7e;
+			es1371->codec_ctrl |= ac97_codec_read(es1371->codec, val);
+			es1371->codec_ctrl |= ac97_codec_read(es1371->codec, val | 1) << 8;
+		} else {
+			es1371->codec_ctrl = val & 0x00ffffff;
+			ac97_codec_write(es1371->codec,  (val >> 16) & 0x7e,      val & 0xff);
+			ac97_codec_write(es1371->codec, ((val >> 16) & 0x7e) | 1, val >> 8);
+
+			ac97_codec_getattn(es1371->codec, 0x02, &es1371->master_vol_l, &es1371->master_vol_r);
+			ac97_codec_getattn(es1371->codec, 0x12, &es1371->cd_vol_l, &es1371->cd_vol_r);
 		}
 		break;
 		
@@ -730,7 +703,8 @@ static void es1371_outl(uint16_t port, uint32_t val, void *p)
 		break;
 
 		default:
-		audiopci_log("Bad es1371_outl: port=%04x val=%08x\n", port, val);
+		es1371_outw(port, val & 0xffff, p);
+		es1371_outw(port + 2, (val >> 16) & 0xffff, p);
 	}
 }
 
@@ -1362,9 +1336,11 @@ static void *es1371_init(const device_t *info)
         
         generate_es1371_filter();
 
-	/* Return a CS4297A like VMware does. */
-	es1371->codec_regs[0x7c] = 0x4352;
-	es1371->codec_regs[0x7e] = 0x5910;
+	ac97_codec = &es1371->codec;
+	ac97_codec_count = 1;
+	ac97_codec_id = 0;
+	if (!info->local) /* let the machine decide the codec on onboard implementations */
+		device_add(&cs4297a_device);
 
 	return es1371;
 }
