@@ -186,34 +186,53 @@ sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
     sb_t *sb = (sb_t *) p;
     sb_ct1335_mixer_t *mixer = &sb->mixer_sb2;            
     int c;
-    double out = 0.0;
+    double out_mono = 0.0, out_l = 0.0, out_r = 0.0;
 
     if (sb->opl_enabled)
 	opl2_update(&sb->opl);
 
     sb_dsp_update(&sb->dsp);
 
-    for (c = 0; c < len * 2; c += 2) {
-	out = 0.0;
+    if (sb->cms_enabled)
+	cms_update(&sb->cms);
 
-	if (sb->opl_enabled) {
-		out = ((double) sb->opl.buffer[c]) * 0.7171630859375;
-		if (sb->mixer_enabled)
-			out *= mixer->fm;
+    for (c = 0; c < len * 2; c += 2) {
+	out_mono = 0.0;
+	out_l = 0.0;
+	out_r = 0.0;
+
+	if (sb->opl_enabled)
+		out_mono = ((double) sb->opl.buffer[c]) * 0.7171630859375;
+
+	if (sb->cms_enabled) {
+		out_l += sb->cms.buffer[c];
+		out_r += sb->cms.buffer[c + 1];
+	}
+	out_l += out_mono;
+	out_r += out_mono;
+
+	if (((sb->opl_enabled) || (sb->cms_enabled)) && sb->mixer_enabled) {
+		out_l *= mixer->fm;
+		out_r *= mixer->fm;
 	}
 
 	/* TODO: Recording: I assume it has direct mic and line in like SB2.
 		 It is unclear from the docs if it has a filter, but it probably does. */
 	/* TODO: Recording: Mic and line In with AGC. */
+	if (sb->mixer_enabled)
+		out_mono = (sb_iir(0, 0, (double) sb->dsp.buffer[c]) * mixer->voice) / 3.9;
+	else
+		out_mono = (((sb_iir(0, 0, (double) sb->dsp.buffer[c]) / 1.3) * 65536.0) / 3.0) / 65536.0;
+	out_l += out_mono;
+	out_r += out_mono;
+
 	if (sb->mixer_enabled) {
-		out += (sb_iir(0, 0, (double) sb->dsp.buffer[c]) * mixer->voice) / 3.9;
+		out_l *= mixer->master;
+		out_r *= mixer->master;
+	}
 
-		out *= mixer->master;
-	} else
-		out += (((sb_iir(0, 0, (double) sb->dsp.buffer[c]) / 1.3) * 65536.0) / 3.0) / 65536.0;
-
-	buffer[c]     += (int32_t) out;
-	buffer[c + 1] += (int32_t) out;
+	buffer[c]     += (int32_t) out_l;
+	buffer[c + 1] += (int32_t) out_r;
     }
 
     sb->pos = 0;
@@ -222,6 +241,9 @@ sb_get_buffer_sb2(int32_t *buffer, int len, void *p)
 	sb->opl.pos = 0;
 
     sb->dsp.pos = 0;
+
+    if (sb->cms_enabled)
+	sb->cms.pos = 0;
 }
 
 
@@ -1261,14 +1283,17 @@ sb_1_init(const device_t *info)
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-    /* CMS I/O handler is activated on the dedicated sound_cms module
-       DSP I/O handler is activated in sb_dsp_setaddr */
+    /* DSP I/O handler is activated in sb_dsp_setaddr */
     if (sb->opl_enabled) {
 	io_sethandler(addr + 8, 0x0002, opl2_read,    NULL, NULL,
 					opl2_write,   NULL, NULL, &sb->opl);
 	io_sethandler(0x0388,   0x0002, opl2_read,    NULL, NULL,
 					opl2_write,   NULL, NULL, &sb->opl);
     }
+
+    sb->cms_enabled = 1;
+    memset(&sb->cms, 0, sizeof(cms_t));
+    io_sethandler(addr, 0x0004, cms_read, NULL, NULL, cms_write, NULL, NULL, &sb->cms);
 
     sb->mixer_enabled = 0;
     sound_add_handler(sb_get_buffer_sb2, sb);
@@ -1300,13 +1325,18 @@ sb_15_init(const device_t *info)
     sb_dsp_setaddr(&sb->dsp, addr);
     sb_dsp_setirq(&sb->dsp, device_get_config_int("irq"));
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
-    /* CMS I/O handler is activated on the dedicated sound_cms module
-       DSP I/O handler is activated in sb_dsp_setaddr */
+    /* DSP I/O handler is activated in sb_dsp_setaddr */
     if (sb->opl_enabled) {
 	io_sethandler(addr + 8, 0x0002, opl2_read,    NULL, NULL,
 					opl2_write,   NULL, NULL, &sb->opl);
 	io_sethandler(0x0388,   0x0002, opl2_read,    NULL, NULL,
 					opl2_write,   NULL, NULL, &sb->opl);
+    }
+
+    sb->cms_enabled = device_get_config_int("cms");
+    if (sb->cms_enabled) {
+	memset(&sb->cms, 0, sizeof(cms_t));
+	io_sethandler(addr, 0x0004, cms_read, NULL, NULL, cms_write, NULL, NULL, &sb->cms);
     }
 
     sb->mixer_enabled = 0;
@@ -1385,10 +1415,11 @@ sb_2_init(const device_t *info)
     sb_dsp_setdma8(&sb->dsp, device_get_config_int("dma"));
     if (mixer_addr > 0x000)
 	sb_ct1335_mixer_reset(sb);
-    /* CMS I/O handler is activated on the dedicated sound_cms module
-       DSP I/O handler is activated in sb_dsp_setaddr */
+
+    sb->cms_enabled = device_get_config_int("cms");
+    /* DSP I/O handler is activated in sb_dsp_setaddr */
     if (sb->opl_enabled) {
-	if (!GAMEBLASTER) {
+	if (!sb->cms_enabled) {
 		io_sethandler(addr,     0x0002, opl2_read,    NULL, NULL,
 						opl2_write,   NULL, NULL, &sb->opl);
 	}
@@ -1398,9 +1429,14 @@ sb_2_init(const device_t *info)
 					opl2_write,   NULL, NULL, &sb->opl);
     }
 
+    if (sb->cms_enabled) {
+	memset(&sb->cms, 0, sizeof(cms_t));
+	io_sethandler(addr, 0x0004, cms_read, NULL, NULL, cms_write, NULL, NULL, &sb->cms);
+    }
+
     if (mixer_addr > 0x000) {
 	sb->mixer_enabled = 1;
-	io_sethandler(addr + 4, 0x0002, sb_ct1335_mixer_read,  NULL, NULL,
+	io_sethandler(mixer_addr + 4, 0x0002, sb_ct1335_mixer_read,  NULL, NULL,
 		      sb_ct1335_mixer_write, NULL, NULL, sb);
     } else
 	sb->mixer_enabled = 0;
@@ -1926,31 +1962,11 @@ static const device_config_t sb_config[] =
 };
 
 
-static const device_config_t sb2_config[] =
+static const device_config_t sb15_config[] =
 {
         {
                 "base", "Address", CONFIG_HEX16, "", 0x220, "", { 0 },
                 {
-                        {
-                                "0x220", 0x220
-                        },
-                        {
-                                "0x240", 0x240
-                        },
-                        {
-                                "0x260", 0x260
-                        },
-	                {
-				""
-			}
-                }
-        },
-        {
-                "mixaddr", "Mixer", CONFIG_HEX16, "", 0x220, "", { 0 },
-                {
-                        {
-                                "Disabled", 0
-                        },
                         {
                                 "0x220", 0x220
                         },
@@ -2001,6 +2017,100 @@ static const device_config_t sb2_config[] =
         },
 	{
 		"opl", "Enable OPL", CONFIG_BINARY, "", 1
+	},
+	{
+		"cms", "Enable CMS", CONFIG_BINARY, "", 0
+	},
+	{
+		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
+	},
+        {
+                "", "", -1
+        }
+};
+
+
+static const device_config_t sb2_config[] =
+{
+        {
+                "base", "Address", CONFIG_HEX16, "", 0x220, "", { 0 },
+                {
+                        {
+                                "0x220", 0x220
+                        },
+                        {
+                                "0x240", 0x240
+                        },
+                        {
+                                "0x260", 0x260
+                        },
+	                {
+				""
+			}
+                }
+        },
+        {
+                "mixaddr", "Mixer", CONFIG_HEX16, "", 0, "", { 0 },
+                {
+                        {
+                                "Disabled", 0
+                        },
+                        {
+                                "0x220", 0x220
+                        },
+                        {
+                                "0x240", 0x240
+                        },
+                        {
+                                "0x250", 0x250
+                        },
+                        {
+                                "0x260", 0x260
+                        },
+	                {
+				""
+			}
+                }
+        },
+        {
+                "irq", "IRQ", CONFIG_SELECTION, "", 7, "", { 0 },
+                {
+                        {
+                                "IRQ 2", 2
+                        },
+                        {
+                                "IRQ 3", 3
+                        },
+                        {
+                                "IRQ 5", 5
+                        },
+                        {
+                                "IRQ 7", 7
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "dma", "DMA", CONFIG_SELECTION, "", 1, "", { 0 },
+                {
+                        {
+                                "DMA 1", 1
+                        },
+                        {
+                                "DMA 3", 3
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+	{
+		"opl", "Enable OPL", CONFIG_BINARY, "", 1
+	},
+	{
+		"cms", "Enable CMS", CONFIG_BINARY, "", 0
 	},
 	{
 		"receive_input", "Receive input (SB MIDI)", CONFIG_BINARY, "", 1
@@ -2509,7 +2619,7 @@ const device_t sb_15_device =
         sb_15_init, sb_close, NULL, { NULL },
         sb_speed_changed,
         NULL,
-        sb_config
+        sb15_config
 };
 
 const device_t sb_mcv_device =
