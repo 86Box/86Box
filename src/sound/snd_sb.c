@@ -2050,7 +2050,7 @@ static const device_config_t sb2_config[] =
                 }
         },
         {
-                "mixaddr", "Mixer", CONFIG_HEX16, "", 0x220, "", { 0 },
+                "mixaddr", "Mixer", CONFIG_HEX16, "", 0, "", { 0 },
                 {
                         {
                                 "Disabled", 0
