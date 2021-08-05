@@ -316,8 +316,7 @@ const cpu_family_t cpu_families[] = {
 		{"33",            CPU_i486SX,     fpus_486sx,  33333333, 1,  5000, 0x422,        0, 0, CPU_SUPPORTS_DYNAREC,  6, 6,3,3,  4},
 		{"", 0}
 	}
-    },
-	{
+    }, {
 	.package = CPU_PKG_SOCKET1,
 	.manufacturer = "Intel",
 	.name = "i486SX (SL-Enhanced)",
@@ -327,8 +326,7 @@ const cpu_family_t cpu_families[] = {
 		{"33",            CPU_i486SX_SLENH,     fpus_486sx,  33333333, 1,  5000, 0x42a,    0x42a, 0, CPU_SUPPORTS_DYNAREC,  6, 6,3,3,  4},
 		{"", 0}
 	}
-    },    
-	{
+    }, {
 	.package = CPU_PKG_SOCKET1,
 	.manufacturer = "Intel",
 	.name = "i486SX2",
@@ -349,8 +347,7 @@ const cpu_family_t cpu_families[] = {
 		{"50",            CPU_i486DX,  fpus_internal,  50000000, 1,  5000, 0x411,        0, 0, CPU_SUPPORTS_DYNAREC,  8, 8,4,4,  6},
 		{"", 0}
 	}
-    }, 
-     {
+    }, {
 	.package = CPU_PKG_SOCKET1,
 	.manufacturer = "Intel",
 	.name = "i486DX (SL-Enhanced)",
@@ -371,8 +368,7 @@ const cpu_family_t cpu_families[] = {
 		{"66",           CPU_i486DX, fpus_internal,  66666666, 2,  5000, 0x433,        0, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6,  8},
 		{"", 0}
 	}
-    }, 
- {
+    }, {
 	.package = CPU_PKG_SOCKET1,
 	.manufacturer = "Intel",
 	.name = "i486DX2 (SL-Enhanced)",
@@ -383,7 +379,7 @@ const cpu_family_t cpu_families[] = {
 		{"66",           CPU_i486DX_SLENH, fpus_internal,  66666666, 2,  5000, 0x435,    0x435, 0, CPU_SUPPORTS_DYNAREC, 12,12,6,6,  8},
 		{"", 0}
 	}
-    },     {
+    }, {
 	.package = CPU_PKG_SOCKET3_PC330,
 	.manufacturer = "Intel",
 	.name = "i486DX2",
@@ -454,8 +450,7 @@ const cpu_family_t cpu_families[] = {
 		{"80",  CPU_Am486DX, fpus_internal, 80000000, 2, 5000, 0x432,     0, 0, CPU_SUPPORTS_DYNAREC, 14,14, 6, 6, 10},
 		{"", 0}
 	}
-    }, 
- {
+    }, {
 	.package = CPU_PKG_SOCKET1,
 	.manufacturer = "AMD",
 	.name = "Am486DXL",
@@ -493,7 +488,7 @@ const cpu_family_t cpu_families[] = {
 	.package = CPU_PKG_SOCKET3,
 	.manufacturer = "AMD",
 	.name = "Am486DX2 (Enhanced)",
-	.internal_name = "enh_am486dx2",
+	.internal_name = "am486dx2_slenh",
 	.cpus = (const CPU[]) {
 		{"66",  CPU_ENH_Am486DX, fpus_internal, 66666666, 2, 5000, 0x435, 0x435, 0, CPU_SUPPORTS_DYNAREC, 12,12, 6, 6, 8},
 		{"80",  CPU_ENH_Am486DX, fpus_internal, 80000000, 2, 5000, 0x435, 0x435, 0, CPU_SUPPORTS_DYNAREC, 14,14, 6, 6, 10},
@@ -503,7 +498,7 @@ const cpu_family_t cpu_families[] = {
 	.package = CPU_PKG_SOCKET3,
 	.manufacturer = "AMD",
 	.name = "Am486DX4 (Enhanced)",
-	.internal_name = "enh_am486dx4",
+	.internal_name = "am486dx4_slenh",
 	.cpus = (const CPU[]) {
 		{"75",  CPU_ENH_Am486DX, fpus_internal,   75000000, 3.0, 5000, 0x482, 0x482, 0, CPU_SUPPORTS_DYNAREC, 12,12, 9, 9, 9},
 		{"100", CPU_ENH_Am486DX, fpus_internal,  100000000, 3.0, 5000, 0x482, 0x482, 0, CPU_SUPPORTS_DYNAREC, 15,15, 9, 9, 12},
@@ -1736,7 +1731,7 @@ const cpu_legacy_machine_t cpu_legacy_table[] = {
     {"dtk",                     cputables_8088},
     {"genxt",                   cputables_8088},
     {"jukopc",                  cputables_8088},
-    {"open_xt",                 cputables_8088},
+    {"openxt",                  cputables_8088},
     {"pxxt",                    cputables_8088},
     {"europc",                  cputables_europc},
     {"tandy",                   cputables_europc},
@@ -1793,7 +1788,7 @@ const cpu_legacy_machine_t cpu_legacy_table[] = {
     {"shuttle386sx",            cputables_i386SX_Am386SX_486SLC},
     {"dtk386",                  cputables_i386SX_Am386SX_486SLC},
     {"awardsx",                 cputables_i386SX_Am386SX_486SLC},
-    {"cbm_sl386sx25",           cputables_i386SX_Am386SX_486SLC},
+    {"cmdsl386sx25",            cputables_i386SX_Am386SX_486SLC},
     {"kmxc02",                  cputables_i386SX_Am386SX_486SLC},
     {"megapc",                  cputables_i386SX_Am386SX_486SLC},
     {"ibmps2_m55sx",            cputables_i386SX_Am386SX_486SLC_IBM486SLC},
@@ -1804,8 +1799,6 @@ const cpu_legacy_machine_t cpu_legacy_table[] = {
     {"asus386",                 cputables_i386DX_Am386DX_486DLC},
     {"ustechnologies386",       cputables_i386DX_Am386DX_486DLC},
     {"award386dx",              cputables_i386DX_Am386DX_486DLC},
-    {"ami386dx",                cputables_i386DX_Am386DX_486DLC},
-    {"mr386dx",                 cputables_i386DX_Am386DX_486DLC},
     {"ibmps2_m70_type3",        cputables_i386DX_Am386DX_486DLC_IBM486BL},
     {"ibmps2_m80",              cputables_i386DX_Am386DX_486DLC_IBM486BL},
     {"pb410a",                  cputables_i486_Am486_Cx486},
@@ -1923,7 +1916,6 @@ const cpu_legacy_machine_t cpu_legacy_table[] = {
     {"tsunamiatx",              cputables_PentiumII_Celeron_Cyrix3},
     {"p6sba",                   cputables_PentiumII_Celeron_Cyrix3},
     {"ergox365",                cputables_PentiumII_Celeron_Cyrix3},
-    {"fw6400gx_s1",             cputables_PentiumII_Celeron_Cyrix3},
     {"ficka6130",               cputables_PentiumII_Celeron_Cyrix3},
     {"6gxu",                    cputables_Xeon},
     {"fw6400gx",                cputables_Xeon},
@@ -1937,7 +1929,7 @@ const cpu_legacy_machine_t cpu_legacy_table[] = {
     {"63a",                     cputables_Celeron_Cyrix3},
     {"apas3",                   cputables_Celeron_Cyrix3},
     {"wcf681",                  cputables_Celeron_Cyrix3},
-    {"6via85x",                 cputables_Celeron_Cyrix3},
+    {"6via90ap",                cputables_Celeron_Cyrix3},
     {"p6bap",                   cputables_Celeron_Cyrix3},
     {"603tcf",                  cputables_Celeron_Cyrix3},
     {"vpc2007",                 cputables_PentiumIID_Celeron},

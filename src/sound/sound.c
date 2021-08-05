@@ -37,6 +37,7 @@
 #include <86box/snd_mpu401.h>
 #include <86box/snd_sb_dsp.h>
 #include <86box/snd_azt2316a.h>
+#include <86box/snd_ac97.h>
 #include <86box/filters.h>
 
 
@@ -109,6 +110,7 @@ static const SOUND_CARD sound_cards[] =
     { "sbmcv",		&sb_mcv_device			},
     { "sbpromcv",	&sb_pro_mcv_device		},
     { "es1371",		&es1371_device			},
+    { "cs4297a",	&cs4297a_device			},
     { "",		NULL				}
 };
 

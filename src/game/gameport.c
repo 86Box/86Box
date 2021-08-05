@@ -324,7 +324,7 @@ gameport_remap(void *priv, uint16_t address)
 
     if (dev->addr) {
 	/* Add this port to the active ports list. */
-	if ( !active_gameports || ((dev->addr & 0xfff8) == 0x200)) {
+	if (!active_gameports || ((dev->addr & 0xfff8) == 0x200)) {
 		/* No ports have been added yet, or port within 200-207h: add to top. */
 		dev->next = active_gameports;
 		active_gameports = dev;

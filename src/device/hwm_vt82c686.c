@@ -29,18 +29,17 @@
 
 #define CLAMP(a, min, max)		(((a) < (min)) ? (min) : (((a) > (max)) ? (max) : (a)))
 #define VT82C686_RPM_TO_REG(r, d)	((r) ? CLAMP(1350000 / (r * d), 1, 255) : 0)
-/* Temperature/voltage formulas and factors derived from Linux's via686a.c driver */
+/* Temperature/voltage formulas and factors derived from Linux's via686a.c driver. */
 #define VT82C686_TEMP_TO_REG(t)		(-1.160370e-10*(t*t*t*t*t*t) + 3.193693e-08*(t*t*t*t*t) - 1.464447e-06*(t*t*t*t) - 2.525453e-04*(t*t*t) + 1.424593e-02*(t*t) + 2.148941e+00*t + 7.275808e+01)
 #define VT82C686_VOLTAGE_TO_REG(v, f)	CLAMP((((v) * (2.628 / (f))) - 120.5) / 25, 0, 255)
 
 
 typedef struct {
     hwm_values_t *values;
-    device_t     *lm75[2];
 
     uint8_t	enable;
     uint16_t	io_base;
-    uint8_t	regs[80];
+    uint8_t	regs[128];
 } vt82c686_t;
 
 
@@ -59,6 +58,11 @@ vt82c686_read(uint16_t addr, void *priv)
     addr -= dev->io_base;
 
     switch (addr) {
+	case 0x00 ... 0x0f: case 0x50 ... 0x7f: /* undefined registers */
+		/* Real 686B returns the contents of 0x40. */
+		ret = dev->regs[0x40];
+		break;
+
 	case 0x1f: case 0x20: case 0x21: /* temperatures */
 		ret = VT82C686_TEMP_TO_REG(dev->values->temperatures[(addr == 0x1f) ? 2 : (addr & 1)]);
 		break;
@@ -84,14 +88,26 @@ static void
 vt82c686_write(uint16_t port, uint8_t val, void *priv)
 {
     vt82c686_t *dev = (vt82c686_t *) priv;
-    uint8_t reg = port - dev->io_base;
+    uint8_t reg = port & 0x7f;
 
-    if ((reg == 0x41) || (reg == 0x42) || (reg == 0x45) || (reg == 0x46) || (reg == 0x48) || (reg == 0x4a) || (reg >= 0x4c))
-	return;
+    switch (reg) {
+	case 0x00 ... 0x0f:
+	case 0x3f: case 0x41: case 0x42: case 0x4a:
+	case 0x4c ... 0x7f:
+		/* Read-only registers. */
+		return;
 
-    if ((reg == 0x40) && (val & 0x80)) {
-	val &= 0x7f;
-	vt82c686_reset(dev, 1);
+	case 0x40:
+		/* Reset if requested. */
+		if (val & 0x80) {
+			vt82c686_reset(dev, 1);
+			return;
+		}
+		break;
+
+	case 0x48:
+		val &= 0x7f;
+		break;
     }
 
     dev->regs[reg] = val;
@@ -106,7 +122,7 @@ vt82c686_hwm_write(uint8_t addr, uint8_t val, void *priv)
     vt82c686_t *dev = (vt82c686_t *) priv;
 
     if (dev->io_base)
-	io_removehandler(dev->io_base, 0x0050,
+	io_removehandler(dev->io_base, 128,
 			 vt82c686_read, NULL, NULL, vt82c686_write, NULL, NULL, dev);
 
     switch (addr) {
@@ -126,7 +142,7 @@ vt82c686_hwm_write(uint8_t addr, uint8_t val, void *priv)
     }
 
     if (dev->enable && dev->io_base)
-	io_sethandler(dev->io_base, 0x0050,
+	io_sethandler(dev->io_base, 128,
 		      vt82c686_read, NULL, NULL, vt82c686_write, NULL, NULL, dev);
 }
 
@@ -134,8 +150,10 @@ vt82c686_hwm_write(uint8_t addr, uint8_t val, void *priv)
 static void
 vt82c686_reset(vt82c686_t *dev, uint8_t initialization)
 {
-    memset(dev->regs, 0, 80);
+    memset(dev->regs, 0, sizeof(dev->regs));
 
+    dev->regs[0x17] = 0x80;
+    dev->regs[0x3f] = 0xa2;
     dev->regs[0x40] = 0x08;
     dev->regs[0x47] = 0x50;
     dev->regs[0x4b] = 0x15;

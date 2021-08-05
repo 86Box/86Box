@@ -60,7 +60,9 @@ extern const device_t	ide_cmd640_pci_single_channel_device;	/* CMD PCI-640B PCI 
 extern const device_t	ide_opti611_vlb_device;		/* OPTi 82c611/611A VLB */
 
 extern const device_t	ide_ter_device;
+extern const device_t	ide_ter_pnp_device;
 extern const device_t	ide_qua_device;
+extern const device_t	ide_qua_pnp_device;
 
 extern const device_t	xta_wdxt150_device;		/* xta_wdxt150 */
 extern const device_t	xta_hd20_device;		/* EuroPC internal */
