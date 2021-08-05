@@ -678,6 +678,49 @@ machine_at_awardsx_init(const machine_t *model)
     return ret;
 }
 
+
+int
+machine_at_arb1374_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/arb1374/1374s.rom",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&ali1217_device);
+    device_add(&w83787f_ide_en_device);
+    device_add(&keyboard_ps2_ami_device);
+
+    return ret;
+}
+
+
+int
+machine_at_sbc_350a_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/sbc_350a/350a.rom",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&ali1217_device);
+    device_add(&sio_detect_device);
+    device_add(&keyboard_at_device);
+
+    return ret;
+}
+
+
 int
 machine_at_flytech386_init(const machine_t *model)
 {
@@ -701,30 +744,31 @@ machine_at_flytech386_init(const machine_t *model)
     return ret;
 }
 
+
 const device_t *
 at_flytech386_get_device(void)
 {
     return &tvga8900d_device;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_M6117)
+
 int
-machine_at_arb1375_init(const machine_t *model)
+machine_at_mr1217_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/arb1375/a1375v25.u11-a",
-			   0x000e0000, 131072, 0);
+    ret = bios_load_linear("roms/machines/mr1217/mrbios.BIN",
+			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
 	return ret;
 
     machine_at_common_init(model);
 
-    device_add(&fdc37c669_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&ali6117d_device);
-    device_add(&sst_flash_29ee010_device);
+    device_add(&ali1217_device);
+    device_add(&fdc_at_device);
+    device_add(&ide_isa_device);
+    device_add(&keyboard_ps2_device);
 
     return ret;
 }
@@ -752,7 +796,6 @@ machine_at_pja511m_init(const machine_t *model)
     return ret;
 }
 
-#endif
 
 /*
  * Current bugs: 

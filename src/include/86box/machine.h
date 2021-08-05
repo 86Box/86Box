@@ -279,13 +279,13 @@ extern int	machine_at_cmdsl386sx16_init(const machine_t *);
 extern int	machine_at_cmdsl386sx25_init(const machine_t *);
 extern int	machine_at_spc6033p_init(const machine_t *);
 extern int	machine_at_wd76c10_init(const machine_t *);
+extern int	machine_at_arb1374_init(const machine_t *);
+extern int	machine_at_sbc_350a_init(const machine_t *);
 extern int	machine_at_flytech386_init(const machine_t *);
+extern int	machine_at_mr1217_init(const machine_t *);
+extern int	machine_at_pja511m_init(const machine_t *);
 
 extern int	machine_at_awardsx_init(const machine_t *);
-#if defined(DEV_BRANCH) && defined(USE_M6117)
-extern int	machine_at_arb1375_init(const machine_t *);
-extern int	machine_at_pja511m_init(const machine_t *);
-#endif
 
 extern int  machine_at_pc916sx_init(const machine_t *);
 
