@@ -714,7 +714,7 @@ machine_at_sbc_350a_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add(&ali1217_device);
-    device_add(&sio_detect_device);
+    device_add(&fdc37c665_ide_device);
     device_add(&keyboard_at_device);
 
     return ret;
