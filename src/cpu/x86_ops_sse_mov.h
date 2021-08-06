@@ -637,6 +637,23 @@ static int opMOVMSKPS_l_xmm_a16(uint32_t fetchdat)
     return 0;
 }
 
+static int opMOVMSKPS_l_xmm_a32(uint32_t fetchdat)
+{
+    fetch_ea_32(fetchdat);
+    ILLEGAL_ON(cpu_mod != 3);
+    if (cpu_mod == 3)
+    {
+        uint32_t result = 0;
+        if(cpu_state.XMM[cpu_rm].l[0] & (1 << 31)) result |= 1;
+        if(cpu_state.XMM[cpu_rm].l[1] & (1 << 31)) result |= 2;
+        if(cpu_state.XMM[cpu_rm].l[2] & (1 << 31)) result |= 4;
+        if(cpu_state.XMM[cpu_rm].l[3] & (1 << 31)) result |= 8;
+        setr32(cpu_reg, result);
+        CLOCK_CYCLES(1);
+    }
+    return 0;
+}
+
 static int opPSHUFW_xmm_xmm_a16(uint32_t fetchdat)
 {
     MMX_ENTER();
@@ -693,7 +710,7 @@ static int opPSHUFW_xmm_xmm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opLDMXCSR_xmm_xmm_a16(uint32_t fetchdat)
+static int opLDMXCSR_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
@@ -707,7 +724,7 @@ static int opLDMXCSR_xmm_xmm_a16(uint32_t fetchdat)
     return 0;
 }
 
-static int opLDMXCSR_xmm_xmm_a32(uint32_t fetchdat)
+static int opLDMXCSR_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
@@ -721,9 +738,20 @@ static int opLDMXCSR_xmm_xmm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opSTMXCSR_xmm_xmm_a16(uint32_t fetchdat)
+static int opSTMXCSR_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
+    ILLEGAL_ON(cpu_mod == 3);
+    
+    SEG_CHECK_WRITE(cpu_state.ea_seg);
+    writememl(easeg, cpu_state.eaaddr, cpu_state.mxcsr); if (cpu_state.abrt) return 1;
+    CLOCK_CYCLES(1);
+    return 0;
+}
+
+static int opSTMXCSR_a32(uint32_t fetchdat)
+{
+    fetch_ea_32(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
     
     SEG_CHECK_WRITE(cpu_state.ea_seg);
@@ -912,6 +940,108 @@ static int opSHUFPS_xmm_w_a16(uint32_t fetchdat)
         cpu_state.XMM[cpu_reg].l[2] = src[(imm >> 4) & 3];
         cpu_state.XMM[cpu_reg].l[3] = src[(imm >> 6) & 3];
         CLOCK_CYCLES(2);
+    }
+    return 0;
+}
+
+static int opPMOVMSKB_l_mm_a16(uint32_t fetchdat)
+{
+    MMX_ENTER();
+    fetch_ea_16(fetchdat);
+    ILLEGAL_ON(cpu_mod != 3);
+    if (cpu_mod == 3)
+    {
+        uint32_t result = 0;
+        if(cpu_state.MM[cpu_rm].b[0] & (1 << 7)) result |= 1;
+        if(cpu_state.MM[cpu_rm].b[1] & (1 << 7)) result |= 2;
+        if(cpu_state.MM[cpu_rm].b[2] & (1 << 7)) result |= 4;
+        if(cpu_state.MM[cpu_rm].b[3] & (1 << 7)) result |= 8;
+        if(cpu_state.MM[cpu_rm].b[4] & (1 << 7)) result |= 0x10;
+        if(cpu_state.MM[cpu_rm].b[5] & (1 << 7)) result |= 0x20;
+        if(cpu_state.MM[cpu_rm].b[6] & (1 << 7)) result |= 0x40;
+        if(cpu_state.MM[cpu_rm].b[7] & (1 << 7)) result |= 0x80;
+        setr32(cpu_reg, result);
+        CLOCK_CYCLES(1);
+    }
+    return 0;
+}
+
+static int opPMOVMSKB_l_mm_a32(uint32_t fetchdat)
+{
+    MMX_ENTER();
+    fetch_ea_32(fetchdat);
+    ILLEGAL_ON(cpu_mod != 3);
+    if (cpu_mod == 3)
+    {
+        uint32_t result = 0;
+        if(cpu_state.MM[cpu_rm].b[0] & (1 << 7)) result |= 1;
+        if(cpu_state.MM[cpu_rm].b[1] & (1 << 7)) result |= 2;
+        if(cpu_state.MM[cpu_rm].b[2] & (1 << 7)) result |= 4;
+        if(cpu_state.MM[cpu_rm].b[3] & (1 << 7)) result |= 8;
+        if(cpu_state.MM[cpu_rm].b[4] & (1 << 7)) result |= 0x10;
+        if(cpu_state.MM[cpu_rm].b[5] & (1 << 7)) result |= 0x20;
+        if(cpu_state.MM[cpu_rm].b[6] & (1 << 7)) result |= 0x40;
+        if(cpu_state.MM[cpu_rm].b[7] & (1 << 7)) result |= 0x80;
+        setr32(cpu_reg, result);
+        CLOCK_CYCLES(1);
+    }
+    return 0;
+}
+
+static int opPMOVMSKB_l_xmm_a16(uint32_t fetchdat)
+{
+    fetch_ea_16(fetchdat);
+    ILLEGAL_ON(cpu_mod != 3);
+    if (cpu_mod == 3)
+    {
+        uint32_t result = 0;
+        if(cpu_state.XMM[cpu_rm].b[0] & (1 << 7)) result |= 1;
+        if(cpu_state.XMM[cpu_rm].b[1] & (1 << 7)) result |= 2;
+        if(cpu_state.XMM[cpu_rm].b[2] & (1 << 7)) result |= 4;
+        if(cpu_state.XMM[cpu_rm].b[3] & (1 << 7)) result |= 8;
+        if(cpu_state.XMM[cpu_rm].b[4] & (1 << 7)) result |= 0x10;
+        if(cpu_state.XMM[cpu_rm].b[5] & (1 << 7)) result |= 0x20;
+        if(cpu_state.XMM[cpu_rm].b[6] & (1 << 7)) result |= 0x40;
+        if(cpu_state.XMM[cpu_rm].b[7] & (1 << 7)) result |= 0x80;
+        if(cpu_state.XMM[cpu_rm].b[8] & (1 << 7)) result |= 0x100;
+        if(cpu_state.XMM[cpu_rm].b[9] & (1 << 7)) result |= 0x200;
+        if(cpu_state.XMM[cpu_rm].b[10] & (1 << 7)) result |= 0x400;
+        if(cpu_state.XMM[cpu_rm].b[11] & (1 << 7)) result |= 0x800;
+        if(cpu_state.XMM[cpu_rm].b[12] & (1 << 7)) result |= 0x1000;
+        if(cpu_state.XMM[cpu_rm].b[13] & (1 << 7)) result |= 0x2000;
+        if(cpu_state.XMM[cpu_rm].b[14] & (1 << 7)) result |= 0x4000;
+        if(cpu_state.XMM[cpu_rm].b[15] & (1 << 7)) result |= 0x8000;
+        setr32(cpu_reg, result);
+        CLOCK_CYCLES(1);
+    }
+    return 0;
+}
+
+static int opPMOVMSKB_l_xmm_a32(uint32_t fetchdat)
+{
+    fetch_ea_32(fetchdat);
+    ILLEGAL_ON(cpu_mod != 3);
+    if (cpu_mod == 3)
+    {
+        uint32_t result = 0;
+        if(cpu_state.XMM[cpu_rm].b[0] & (1 << 7)) result |= 1;
+        if(cpu_state.XMM[cpu_rm].b[1] & (1 << 7)) result |= 2;
+        if(cpu_state.XMM[cpu_rm].b[2] & (1 << 7)) result |= 4;
+        if(cpu_state.XMM[cpu_rm].b[3] & (1 << 7)) result |= 8;
+        if(cpu_state.XMM[cpu_rm].b[4] & (1 << 7)) result |= 0x10;
+        if(cpu_state.XMM[cpu_rm].b[5] & (1 << 7)) result |= 0x20;
+        if(cpu_state.XMM[cpu_rm].b[6] & (1 << 7)) result |= 0x40;
+        if(cpu_state.XMM[cpu_rm].b[7] & (1 << 7)) result |= 0x80;
+        if(cpu_state.XMM[cpu_rm].b[8] & (1 << 7)) result |= 0x100;
+        if(cpu_state.XMM[cpu_rm].b[9] & (1 << 7)) result |= 0x200;
+        if(cpu_state.XMM[cpu_rm].b[10] & (1 << 7)) result |= 0x400;
+        if(cpu_state.XMM[cpu_rm].b[11] & (1 << 7)) result |= 0x800;
+        if(cpu_state.XMM[cpu_rm].b[12] & (1 << 7)) result |= 0x1000;
+        if(cpu_state.XMM[cpu_rm].b[13] & (1 << 7)) result |= 0x2000;
+        if(cpu_state.XMM[cpu_rm].b[14] & (1 << 7)) result |= 0x4000;
+        if(cpu_state.XMM[cpu_rm].b[15] & (1 << 7)) result |= 0x8000;
+        setr32(cpu_reg, result);
+        CLOCK_CYCLES(1);
     }
     return 0;
 }
