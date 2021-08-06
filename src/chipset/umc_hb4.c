@@ -64,26 +64,26 @@
    Bit 7: Host-to-PCI Post Write (0: 1 Wait State / 1: 0 Wait States)
 
    Register 54:
-   Bit 7: DC000-DFFFF
-   Bit 6: D8000-DBFFF
-   Bit 5: D4000-D7FFF
-   Bit 4: D0000-D3FFF
-   Bit 3: CC000-CFFFF
-   Bit 2: C8000-CBFFF
-   Bit 1: C0000-C7FFF
-   Bit 0: ??? (Supposedly E segment but doesn't seem to work)
+   Bit 7: DC000-DFFFF Read Enable
+   Bit 6: D8000-DBFFF Read Enable
+   Bit 5: D4000-D7FFF Read Enable
+   Bit 4: D0000-D3FFF Read Enable
+   Bit 3: CC000-CFFFF Read Enable
+   Bit 2: C8000-CBFFF Read Enable
+   Bit 1: C0000-C7FFF Read Enable
+   Bit 0: Enable C0000-DFFFF Shadow Segment Bits
 
    Register 55:
-   Bit 7: Enable Shadow Reads For System & Selected Segments
-   Bit 6: Write Protect Enable
+   Bit 7: E0000-FFFF Read Enable
+   Bit 6: Shadow Write Status (1: Write Protect/0: Write)
 
    Register 56h & 57h: DRAM Bank 0 Configuration
    Register 58h & 59h: DRAM Bank 1 Configuration
   
    Register 60:
-   Bit 3-2: SMRAM Position(Lot's of uncertainty to those bits)
-       1 0  A0000 to E0000
-       0 0  A0000 to ????? (Phoenix uses it. Works only with 0x30000 but makes no sense)
+   Bit 5-4: SMRAM Position(Lot's of uncertainty to those bits)
+       0 0  A0000 to E0000
+       1 0  A0000 to ????? (Phoenix uses it to no avail)
 
    Bit 0: SMRAM Local Access Enable
 */
@@ -150,11 +150,6 @@ void hb4_defaults(hb4_t *dev)
 
 	dev->pci_conf[0x51] = 1;
 	dev->pci_conf[0x52] = 1;
-	dev->pci_conf[0x55] = 0x40; /* Not exactly datasheet default */
-	dev->pci_conf[0x56] = 0xff;
-	dev->pci_conf[0x57] = 0x0f;
-	dev->pci_conf[0x58] = 0xff;
-	dev->pci_conf[0x59] = 0x0f;
 	dev->pci_conf[0x5a] = 4;
 	dev->pci_conf[0x5c] = 0xc0;
 	dev->pci_conf[0x5d] = 0x20;
@@ -162,21 +157,25 @@ void hb4_defaults(hb4_t *dev)
 	dev->pci_conf[0x60] = 0x20;
 }
 
-uint16_t hb4_shadow_recalc(int enabled, hb4_t *dev)
-{
-	if (enabled)
-		return ((dev->pci_conf[0x55] & 0x80) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->pci_conf[0x55] & 0x40) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL);
-	else
-		return (MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-}
-
 void hb4_shadow(hb4_t *dev)
 {
-	mem_set_mem_state_both(0xe0000, 0x20000, hb4_shadow_recalc(1, dev));
 
-	mem_set_mem_state_both(0xc0000, 0x8000, hb4_shadow_recalc(dev->pci_conf[0x54] & 2, dev));
-	for (int i = 0; i < 6; i++)
-		mem_set_mem_state_both(0xc8000 + (i << 14), 0x4000, hb4_shadow_recalc(dev->pci_conf[0x54] & (4 << i), dev));
+	mem_set_mem_state_both(0xe0000, 0x20000, ((dev->pci_conf[0x55] & 0x80) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->pci_conf[0x55] & 0x40) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL));
+
+	if(dev->pci_conf[0x54] & 1)
+	{
+		if(dev->pci_conf[0x54] & 2)
+			mem_set_mem_state_both(0xc0000, 0x8000, MEM_READ_INTERNAL | ((dev->pci_conf[0x55] & 0x40) ? MEM_WRITE_EXTANY :MEM_WRITE_INTERNAL));
+		else
+			mem_set_mem_state_both(0xc0000, 0x8000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+
+
+		for(int i = 0; i < 5; i++)
+			if((dev->pci_conf[0x54] >> i) & 4)
+				mem_set_mem_state_both(0xc8000 + (i << 14), 0x8000, MEM_READ_INTERNAL | ((dev->pci_conf[0x55] & 0x40) ? MEM_WRITE_EXTANY :MEM_WRITE_INTERNAL));
+			else
+				mem_set_mem_state_both(0xc8000 + (i << 14), 0x8000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+	}
 
 	flushmmucache_nopc();
 }
@@ -185,24 +184,22 @@ void hb4_smram(int smram_space, int local_access, hb4_t *dev)
 {
 	smram_disable_all();
 
-	uint32_t h_base, r_base;
+	uint32_t r_base;
 
 	switch (smram_space)
 	{
 	case 0:
 	default:
-		h_base = 0x000a0000;
 		r_base = 0x000e0000;
 		break;
 
-	case 1:
-		h_base = 0x000a0000; /* Read Notes */
-		r_base = 0x00030000;
+	case 1:/* Phoenix uses it to no avail */
+		r_base = 0x000a0000;
 		break;
 	}
 
-	smram_enable(dev->smram, h_base, r_base, 0x10000, local_access, 1);
-	hb4_log("UM8881-SMRAM: Host Base: 0x%05x, RAM Base: 0x%05x, Local Access: %01x\n", h_base, r_base, local_access);
+	smram_enable(dev->smram, 0x000a0000, r_base, 0x10000, local_access, 1);
+	hb4_log("UM8881-SMRAM: Host Base: 0xa0000, RAM Base: 0x%05x, Local Access: %01x\n", r_base, local_access);
 
 	flushmmucache();
 }
@@ -262,7 +259,7 @@ hb4_write(int func, int addr, uint8_t val, void *priv)
 
 		case 0x60:
 			dev->pci_conf[addr] = val;
-			hb4_smram((val >> 2) & 3, val & 1, dev);
+			hb4_smram((val >> 4) & 3, val & 1, dev);
 			break;
 
 		case 0x61:

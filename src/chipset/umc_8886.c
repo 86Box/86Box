@@ -36,6 +36,7 @@
    Bits 3-0 PCI IRQ for INTC
 
    Function 0 Register 46:
+   Bit 7: PMU Trigger(1: By IRQ/0: By SMI)
    Bit 6: IRQ SMI Request (1: IRQ 10) (Supposedly 0 according to Phoenix is IRQ 15 but doesn't seem to make sense)
 
    Function 0 Register 56:
@@ -222,7 +223,7 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
 					dev->pci_conf_sb[func][addr] = val;
 
 					if(val & 0x40)
-					picint(1 << ((val & 0x10) ? 15 : 10));
+					picint(1 << ((val & 0x80) ? 15 : 10));
 
 					break;
 
