@@ -2375,7 +2375,7 @@ amd_k_invalid_rdmsr:
 				EDX = tsc >> 32;
 				break;
 			case 0x17:
-				if (cpu_s->cpu_type != CPU_PENTIUM2D)
+				if (cpu_s->cpu_type != CPU_PENTIUM2D && cpu_s->cpu_type != CPU_PENTIUM3)
 					goto i686_invalid_rdmsr;
 
 				EAX = msr.ecx17 & 0xffffffff;
