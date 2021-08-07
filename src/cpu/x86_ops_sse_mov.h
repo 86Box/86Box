@@ -1029,7 +1029,6 @@ static int opMOVNTQ_q_mm_a16(uint32_t fetchdat)
     writememl(easeg, cpu_state.eaaddr, cpu_state.MM[cpu_reg].l[0]); if (cpu_state.abrt) return 1;
     writememl(easeg, cpu_state.eaaddr + 4, cpu_state.MM[cpu_reg].l[1]); if (cpu_state.abrt) return 1;
     CLOCK_CYCLES(1);
-    }
     return 0;
 }
 
@@ -1042,7 +1041,6 @@ static int opMOVNTQ_q_mm_a32(uint32_t fetchdat)
     writememl(easeg, cpu_state.eaaddr, cpu_state.MM[cpu_reg].l[0]); if (cpu_state.abrt) return 1;
     writememl(easeg, cpu_state.eaaddr + 4, cpu_state.MM[cpu_reg].l[1]); if (cpu_state.abrt) return 1;
     CLOCK_CYCLES(1);
-    }
     return 0;
 }
 

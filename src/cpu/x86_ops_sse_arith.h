@@ -416,6 +416,7 @@ static int opADDSS_xmm_xmm_a16(uint32_t fetchdat)
         float src_real;
         src_real = *(float*)&src;
         cpu_state.XMM[cpu_reg].f[0] += src_real;
+    }
     return 0;
 }
 
@@ -436,6 +437,7 @@ static int opADDSS_xmm_xmm_a32(uint32_t fetchdat)
         float src_real;
         src_real = *(float*)&src;
         cpu_state.XMM[cpu_reg].f[0] += src_real;
+    }
     return 0;
 }
 
@@ -522,6 +524,7 @@ static int opMULSS_xmm_xmm_a16(uint32_t fetchdat)
         float src_real;
         src_real = *(float*)&src;
         cpu_state.XMM[cpu_reg].f[0] *= src_real;
+    }
     return 0;
 }
 
@@ -542,6 +545,7 @@ static int opMULSS_xmm_xmm_a32(uint32_t fetchdat)
         float src_real;
         src_real = *(float*)&src;
         cpu_state.XMM[cpu_reg].f[0] *= src_real;
+    }
     return 0;
 }
 
@@ -628,6 +632,7 @@ static int opSUBSS_xmm_xmm_a16(uint32_t fetchdat)
         float src_real;
         src_real = *(float*)&src;
         cpu_state.XMM[cpu_reg].f[0] -= src_real;
+    }
     return 0;
 }
 
@@ -648,10 +653,11 @@ static int opSUBSS_xmm_xmm_a32(uint32_t fetchdat)
         float src_real;
         src_real = *(float*)&src;
         cpu_state.XMM[cpu_reg].f[0] -= src_real;
+    }
     return 0;
 }
 
-static int opfminPS_xmm_xmm_a16(uint32_t fetchdat)
+static int opMINPS_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
@@ -684,7 +690,7 @@ static int opfminPS_xmm_xmm_a16(uint32_t fetchdat)
     return 0;
 }
 
-static int opfminPS_xmm_xmm_a32(uint32_t fetchdat)
+static int opMINPS_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
@@ -717,7 +723,7 @@ static int opfminPS_xmm_xmm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opfminSS_xmm_xmm_a16(uint32_t fetchdat)
+static int opMINSS_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
@@ -738,7 +744,7 @@ static int opfminSS_xmm_xmm_a16(uint32_t fetchdat)
     return 0;
 }
 
-static int opfminSS_xmm_xmm_a32(uint32_t fetchdat)
+static int opMINSS_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
@@ -842,6 +848,7 @@ static int opDIVSS_xmm_xmm_a16(uint32_t fetchdat)
         float src_real;
         src_real = *(float*)&src;
         cpu_state.XMM[cpu_reg].f[0] /= src_real;
+    }
     return 0;
 }
 
@@ -862,10 +869,11 @@ static int opDIVSS_xmm_xmm_a32(uint32_t fetchdat)
         float src_real;
         src_real = *(float*)&src;
         cpu_state.XMM[cpu_reg].f[0] /= src_real;
+    }
     return 0;
 }
 
-static int opfmaxPS_xmm_xmm_a16(uint32_t fetchdat)
+static int opMAXPS_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
@@ -898,7 +906,7 @@ static int opfmaxPS_xmm_xmm_a16(uint32_t fetchdat)
     return 0;
 }
 
-static int opfmaxPS_xmm_xmm_a32(uint32_t fetchdat)
+static int opMAXPS_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
@@ -931,7 +939,7 @@ static int opfmaxPS_xmm_xmm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opfmaxSS_xmm_xmm_a16(uint32_t fetchdat)
+static int opMAXSS_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
@@ -952,7 +960,7 @@ static int opfmaxSS_xmm_xmm_a16(uint32_t fetchdat)
     return 0;
 }
 
-static int opfmaxSS_xmm_xmm_a32(uint32_t fetchdat)
+static int opMAXSS_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
@@ -1553,7 +1561,7 @@ static int opCMPSS_xmm_xmm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opPfminUB_mm_mm_a16(uint32_t fetchdat)
+static int opPMINUB_mm_mm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
@@ -1593,7 +1601,7 @@ static int opPfminUB_mm_mm_a16(uint32_t fetchdat)
     return 0;
 }
 
-static int opPfminUB_mm_mm_a32(uint32_t fetchdat)
+static int opPMINUB_mm_mm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
@@ -1633,7 +1641,7 @@ static int opPfminUB_mm_mm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opPfminUB_xmm_xmm_a16(uint32_t fetchdat)
+static int opPMINUB_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
@@ -1697,7 +1705,7 @@ static int opPfminUB_xmm_xmm_a16(uint32_t fetchdat)
     return 0;
 }
 
-static int opPfminUB_xmm_xmm_a32(uint32_t fetchdat)
+static int opPMINUB_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
@@ -1761,7 +1769,7 @@ static int opPfminUB_xmm_xmm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opPfmaxUB_mm_mm_a16(uint32_t fetchdat)
+static int opPMAXUB_mm_mm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
@@ -1801,7 +1809,7 @@ static int opPfmaxUB_mm_mm_a16(uint32_t fetchdat)
     return 0;
 }
 
-static int opPfmaxUB_mm_mm_a32(uint32_t fetchdat)
+static int opPMAXUB_mm_mm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
@@ -1841,7 +1849,7 @@ static int opPfmaxUB_mm_mm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opPfmaxUB_xmm_xmm_a16(uint32_t fetchdat)
+static int opPMAXUB_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
@@ -1905,7 +1913,7 @@ static int opPfmaxUB_xmm_xmm_a16(uint32_t fetchdat)
     return 0;
 }
 
-static int opPfmaxUB_xmm_xmm_a32(uint32_t fetchdat)
+static int opPMAXUB_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
@@ -2453,7 +2461,7 @@ static int opPMULHUW_xmm_xmm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opPfminSW_mm_mm_a16(uint32_t fetchdat)
+static int opPMINSW_mm_mm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
@@ -2481,7 +2489,7 @@ static int opPfminSW_mm_mm_a16(uint32_t fetchdat)
     return 0;
 }
 
-static int opPfminSW_mm_mm_a32(uint32_t fetchdat)
+static int opPMINSW_mm_mm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
@@ -2509,7 +2517,7 @@ static int opPfminSW_mm_mm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opPfminSW_xmm_xmm_a16(uint32_t fetchdat)
+static int opPMINSW_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
@@ -2549,7 +2557,7 @@ static int opPfminSW_xmm_xmm_a16(uint32_t fetchdat)
     return 0;
 }
 
-static int opPfminSW_xmm_xmm_a32(uint32_t fetchdat)
+static int opPMINSW_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
@@ -2589,7 +2597,7 @@ static int opPfminSW_xmm_xmm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opPfmaxSW_mm_mm_a16(uint32_t fetchdat)
+static int opPMAXSW_mm_mm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
@@ -2617,7 +2625,7 @@ static int opPfmaxSW_mm_mm_a16(uint32_t fetchdat)
     return 0;
 }
 
-static int opPfmaxSW_mm_mm_a32(uint32_t fetchdat)
+static int opPMAXSW_mm_mm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
@@ -2645,7 +2653,7 @@ static int opPfmaxSW_mm_mm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opPfmaxSW_xmm_xmm_a16(uint32_t fetchdat)
+static int opPMAXSW_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
@@ -2685,7 +2693,7 @@ static int opPfmaxSW_xmm_xmm_a16(uint32_t fetchdat)
     return 0;
 }
 
-static int opPfmaxSW_xmm_xmm_a32(uint32_t fetchdat)
+static int opPMAXSW_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
