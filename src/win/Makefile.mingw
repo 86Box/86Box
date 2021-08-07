@@ -242,9 +242,9 @@ endif
 # Name of the executable.
 ifndef PROG
  ifneq ($(WX), n)
-  PROG		:= Wx86Box
+  PROG		:= WxPCBox
  else
-  PROG		:= 86Box
+  PROG		:= PCBox
  endif
 endif
 

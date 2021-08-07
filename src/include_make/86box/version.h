@@ -14,8 +14,8 @@
  */
 
 /* Version info. */
-#define EMU_NAME	"86Box"
-#define EMU_NAME_W	L"86Box"
+#define EMU_NAME	"PCBox"
+#define EMU_NAME_W	L"PCBox"
 
 #define EMU_VERSION	"3.0"
 #define EMU_VERSION_W	L"3.0"
@@ -23,9 +23,9 @@
 #define EMU_VERSION_MAJ	3
 #define EMU_VERSION_MIN	0
 
-#define COPYRIGHT_YEAR	"2020"
+#define COPYRIGHT_YEAR	"2021"
 
 /* Web URL info. */
 #define EMU_SITE	L"86box.net"
-#define EMU_ROMS_URL	L"https://github.com/86Box/roms/releases/latest"
+#define EMU_ROMS_URL	L"https://github.com/PCBox/roms/releases/latest"
 #define EMU_DOCS_URL	L"https://86box.readthedocs.io"
