@@ -75,10 +75,15 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 
     fxinst = (rmdat >> 3) & 7;
 
-    if (((fxinst > 1) && !is_pentium3) || (((fxinst > 3) || (fxinst != 7)) && is_pentium3) || (cpu_mod == 3)) {
+    if (((fxinst > 1) && !is_pentium3) || (cpu_mod == 3)) {
 	x86illegal();
 	return cpu_state.abrt;
     }
+	else if(((fxinst > 3) && (fxinst != 7)) && is_pentium3)
+	{
+		x86illegal();
+		return cpu_state.abrt;
+	}
 
     FP_ENTER();
 

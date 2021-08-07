@@ -1452,6 +1452,7 @@ x86_int_sw_rm(int num)
 void
 x86illegal()
 {
+    pclog("opcode %02x fetchdat %08x\n", opcode, fetchdat);
     x86_int(6);
 }
 
