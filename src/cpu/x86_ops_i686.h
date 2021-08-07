@@ -75,11 +75,11 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 
     fxinst = (rmdat >> 3) & 7;
 
-    if (((fxinst > 1) && !is_pentium3) || (cpu_mod == 3)) {
+    if (((fxinst > 1) && !is_pentium3)) {
 	x86illegal();
 	return cpu_state.abrt;
     }
-	else if(((fxinst > 3) && (fxinst != 7)) && is_pentium3)
+	if(((fxinst > 3) && (fxinst != 7)) && is_pentium3)
 	{
 		x86illegal();
 		return cpu_state.abrt;
@@ -91,6 +91,11 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 
     if (fxinst == 1) {
 	/* FXRSTOR */
+	if(cpu_mod == 3)
+	{
+		x86illegal();
+		return cpu_state.abrt;
+	}
 	cpu_state.npxc = readmemw(easeg, cpu_state.eaaddr);
 	fpus = readmemw(easeg, cpu_state.eaaddr + 2);
 	cpu_state.npxc = (cpu_state.npxc & ~FPU_CW_Reserved_Bits) | 0x0040;
@@ -160,6 +165,11 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 	CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
     } else if(fxinst == 0){
 	/* FXSAVE */
+	if(cpu_mod == 3)
+	{
+		x86illegal();
+		return cpu_state.abrt;
+	}
 	if ((twd & 0x0003) == 0x0003)  ftwb |= 0x01;
 	if ((twd & 0x000C) == 0x000C)  ftwb |= 0x02;
 	if ((twd & 0x0030) == 0x0030)  ftwb |= 0x04;
@@ -243,6 +253,11 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
     }
 	else if(fxinst == 2)
 	{
+		if(cpu_mod == 3)
+		{
+			x86illegal();
+			return cpu_state.abrt;
+		}
 		uint32_t src;
     
     	SEG_CHECK_READ(cpu_state.ea_seg);
@@ -252,6 +267,11 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 	}
 	else if(fxinst == 3)
 	{
+		if(cpu_mod == 3)
+		{
+			x86illegal();
+			return cpu_state.abrt;
+		}
 		SEG_CHECK_WRITE(cpu_state.ea_seg);
     	writememl(easeg, cpu_state.eaaddr, cpu_state.mxcsr); if (cpu_state.abrt) return 1;
 	}
