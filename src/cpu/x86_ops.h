@@ -168,6 +168,8 @@ extern const OpFn *x86_opcodes_df_a16;
 extern const OpFn *x86_opcodes_df_a32;
 extern const OpFn *x86_opcodes_REPE;
 extern const OpFn *x86_opcodes_REPNE;
+extern const OpFn *x86_opcodes_REPE_0f;
+extern const OpFn *x86_opcodes_REPNE_0f;
 extern const OpFn *x86_opcodes_3DNOW;
 
 extern const OpFn ops_286[1024];
@@ -197,6 +199,8 @@ extern const OpFn ops_k62_0f[1024];
 extern const OpFn ops_pentiumpro_0f[1024];
 extern const OpFn ops_pentium2_0f[1024];
 extern const OpFn ops_pentium2d_0f[1024];
+extern const OpFn ops_pentium3_0f[1024];
+extern const OpFn ops_pentium3_REPNE_0f[1024];
 
 extern const OpFn ops_fpu_287_d9_a16[256];
 extern const OpFn ops_fpu_287_d9_a32[256];
@@ -241,6 +245,8 @@ extern const OpFn ops_fpu_686_df_a32[256];
 
 extern const OpFn ops_REPE[1024];
 extern const OpFn ops_REPNE[1024];
+extern const OpFn ops_REPE_0f[1024];
+extern const OpFn ops_REPNE_0f[1024];
 extern const OpFn ops_3DNOW[256];
 
 #define C0 (1<<8)

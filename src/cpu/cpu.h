@@ -78,7 +78,8 @@ enum {
     CPU_CYRIX3S,
     CPU_PENTIUMPRO,	/* 686 class CPUs */
     CPU_PENTIUM2,
-    CPU_PENTIUM2D
+    CPU_PENTIUM2D,
+    CPU_PENTIUM3,
 };
 
 enum {
@@ -227,6 +228,19 @@ typedef union {
     int8_t	sb[8];
     float	f[2];
 } MMX_REG;
+
+typedef union {
+    uint64_t q[2];
+    int64_t sq[2];
+    uint32_t l[4];
+    int32_t	sl[4];
+    uint16_t w[8];
+    int16_t	sw[8];
+    uint8_t	b[16];
+    int8_t  sb[16];
+    float	 f[4];
+    double   d[2];
+} SSE_REG;
 
 typedef struct {
     /* IDT WinChip and WinChip 2 MSR's */
@@ -384,6 +398,9 @@ typedef struct {
     }		CR0;
 
     uint16_t	flags, eflags;
+
+    SSE_REG XMM[8];
+    uint32_t mxcsr;
 } cpu_state_t;
 
 /*The cpu_state.flags below must match in both cpu_cur_status and block->status for a block
@@ -477,7 +494,7 @@ extern int	cpu_cyrix_alignment;	/*Cyrix 5x86/6x86 only has data misalignment
 					  penalties when crossing 8-byte boundaries*/
 
 extern int	is8086,	is286, is386, is486;
-extern int	is_am486, is_am486dxl, is_pentium, is_k5, is_k6, is_p6, is_cxsmm;
+extern int	is_am486, is_am486dxl, is_pentium, is_k5, is_k6, is_p6, is_cxsmm, is_pentium3;
 extern int	hascache;
 extern int	isibm486;
 extern int	is_rapidcad;
@@ -489,6 +506,7 @@ extern int	hasfpu;
 #define CPU_FEATURE_VME   (1 << 4)
 #define CPU_FEATURE_CX8   (1 << 5)
 #define CPU_FEATURE_3DNOW (1 << 6)
+#define CPU_FEATURE_SSE   (1 << 7)
 
 extern uint32_t	cpu_features;
 

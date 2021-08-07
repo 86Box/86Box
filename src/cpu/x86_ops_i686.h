@@ -75,7 +75,7 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 
     fxinst = (rmdat >> 3) & 7;
 
-    if ((fxinst > 1) || (cpu_mod == 3)) {
+    if (((fxinst > 1) && !is_pentium3) || (((fxinst > 3) || (fxinst != 7)) && is_pentium3) || (cpu_mod == 3)) {
 	x86illegal();
 	return cpu_state.abrt;
     }
@@ -153,7 +153,7 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 	x87_settag(rec_ftw);
 
 	CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
-    } else {
+    } else if(fxinst == 0){
 	/* FXSAVE */
 	if ((twd & 0x0003) == 0x0003)  ftwb |= 0x01;
 	if ((twd & 0x000C) == 0x000C)  ftwb |= 0x02;
@@ -199,6 +199,27 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 	cpu_state.eaaddr = old_eaaddr + 144;
 	cpu_state.ismmx ? x87_stmmx(cpu_state.MM[7]) : x87_st_fsave(7);
 
+	if(is_pentium3)
+	{
+		writememl(easeg,cpu_state.eaaddr+24,cpu_state.mxcsr);
+		writememq(easeg,cpu_state.eaaddr+0xa0,cpu_state.XMM[0].q[0]);
+		writememq(easeg,cpu_state.eaaddr+0xa8,cpu_state.XMM[0].q[1]);
+		writememq(easeg,cpu_state.eaaddr+0xb0,cpu_state.XMM[1].q[0]);
+		writememq(easeg,cpu_state.eaaddr+0xb8,cpu_state.XMM[1].q[1]);
+		writememq(easeg,cpu_state.eaaddr+0xc0,cpu_state.XMM[2].q[0]);
+		writememq(easeg,cpu_state.eaaddr+0xc8,cpu_state.XMM[2].q[1]);
+		writememq(easeg,cpu_state.eaaddr+0xd0,cpu_state.XMM[3].q[0]);
+		writememq(easeg,cpu_state.eaaddr+0xd8,cpu_state.XMM[3].q[1]);
+		writememq(easeg,cpu_state.eaaddr+0xe0,cpu_state.XMM[4].q[0]);
+		writememq(easeg,cpu_state.eaaddr+0xe8,cpu_state.XMM[4].q[1]);
+		writememq(easeg,cpu_state.eaaddr+0xf0,cpu_state.XMM[5].q[0]);
+		writememq(easeg,cpu_state.eaaddr+0xf8,cpu_state.XMM[5].q[1]);
+		writememq(easeg,cpu_state.eaaddr+0x100,cpu_state.XMM[6].q[0]);
+		writememq(easeg,cpu_state.eaaddr+0x108,cpu_state.XMM[6].q[1]);
+		writememq(easeg,cpu_state.eaaddr+0x110,cpu_state.XMM[7].q[0]);
+		writememq(easeg,cpu_state.eaaddr+0x118,cpu_state.XMM[7].q[1]);
+	}
+
 	cpu_state.eaaddr = old_eaaddr;
 
 	cpu_state.npxc = 0x37F;
@@ -215,6 +236,22 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 
 	CLOCK_CYCLES((cr0 & 1) ? 56 : 67);
     }
+	else if(fxinst == 2)
+	{
+		uint32_t src;
+    
+    	SEG_CHECK_READ(cpu_state.ea_seg);
+    	src = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
+		if(src & ~0xffbf) x86gpf(NULL, 0);
+    	cpu_state.mxcsr = src & 0xffbf;
+	}
+	else if(fxinst == 3)
+	{
+		SEG_CHECK_WRITE(cpu_state.ea_seg);
+    	writememl(easeg, cpu_state.eaaddr, cpu_state.mxcsr); if (cpu_state.abrt) return 1;
+	}
+	//fxinst == 7 is SFENCE which deals with cache stuff.
+	//We don't emulate the cache so we can safely ignore it.
 
     return cpu_state.abrt;
 }
