@@ -387,7 +387,7 @@ cpu_set(void)
     is_k6        = (cpu_s->cpu_type >= CPU_K6) && !strcmp(cpu_f->manufacturer, "AMD");
     /* The Samuel 2 datasheet claims it's Celeron-compatible. */
     is_p6        = (cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUMPRO)) || !strcmp(cpu_f->manufacturer, "VIA");
-	is_pentium3  = cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUM3)
+	is_pentium3  = cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUM3);
     is_cxsmm     = !strcmp(cpu_f->manufacturer, "Cyrix") && (cpu_s->cpu_type >= CPU_Cx486S);
 
     hasfpu       = (fpu_type != FPU_NONE);
@@ -1284,7 +1284,7 @@ cpu_set(void)
                 break;
 	case CPU_PENTIUM3:
 #ifdef USE_DYNAREC
-                x86_setopcodes(ops_386, ops_pentium3_0f, dynarec_ops_386, dynarec_ops_pentium3_0f);
+                x86_setopcodes(ops_386, ops_pentium3_0f, dynarec_ops_386, dynarec_ops_pentium2d_0f);
                 x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_686_da_a16;
                 x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_686_da_a32;
                 x86_dynarec_opcodes_db_a16 = dynarec_ops_fpu_686_db_a16;

@@ -651,15 +651,15 @@ static int opSUBSS_xmm_xmm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opMINPS_xmm_xmm_a16(uint32_t fetchdat)
+static int opfminPS_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.XMM[cpu_reg].f[0] = min(cpu_state.XMM[cpu_rm].f[0], cpu_state.XMM[cpu_reg].f[0]);
-        cpu_state.XMM[cpu_reg].f[1] = min(cpu_state.XMM[cpu_rm].f[1], cpu_state.XMM[cpu_reg].f[1]);
-        cpu_state.XMM[cpu_reg].f[2] = min(cpu_state.XMM[cpu_rm].f[2], cpu_state.XMM[cpu_reg].f[2]);
-        cpu_state.XMM[cpu_reg].f[3] = min(cpu_state.XMM[cpu_rm].f[3], cpu_state.XMM[cpu_reg].f[3]);
+        cpu_state.XMM[cpu_reg].f[0] = fmin(cpu_state.XMM[cpu_rm].f[0], cpu_state.XMM[cpu_reg].f[0]);
+        cpu_state.XMM[cpu_reg].f[1] = fmin(cpu_state.XMM[cpu_rm].f[1], cpu_state.XMM[cpu_reg].f[1]);
+        cpu_state.XMM[cpu_reg].f[2] = fmin(cpu_state.XMM[cpu_rm].f[2], cpu_state.XMM[cpu_reg].f[2]);
+        cpu_state.XMM[cpu_reg].f[3] = fmin(cpu_state.XMM[cpu_rm].f[3], cpu_state.XMM[cpu_reg].f[3]);
         CLOCK_CYCLES(1);
     }
     else
@@ -676,23 +676,23 @@ static int opMINPS_xmm_xmm_a16(uint32_t fetchdat)
         src_real[1] = *(float*)&src[1];
         src_real[2] = *(float*)&src[2];
         src_real[3] = *(float*)&src[3];
-        cpu_state.XMM[cpu_reg].f[0] = min(cpu_state.XMM[cpu_reg].f[0], src_real[0]);
-        cpu_state.XMM[cpu_reg].f[1] = min(cpu_state.XMM[cpu_reg].f[0], src_real[1]);
-        cpu_state.XMM[cpu_reg].f[2] = min(cpu_state.XMM[cpu_reg].f[0], src_real[2]);
-        cpu_state.XMM[cpu_reg].f[3] = min(cpu_state.XMM[cpu_reg].f[0], src_real[3]);
+        cpu_state.XMM[cpu_reg].f[0] = fmin(cpu_state.XMM[cpu_reg].f[0], src_real[0]);
+        cpu_state.XMM[cpu_reg].f[1] = fmin(cpu_state.XMM[cpu_reg].f[0], src_real[1]);
+        cpu_state.XMM[cpu_reg].f[2] = fmin(cpu_state.XMM[cpu_reg].f[0], src_real[2]);
+        cpu_state.XMM[cpu_reg].f[3] = fmin(cpu_state.XMM[cpu_reg].f[0], src_real[3]);
     }
     return 0;
 }
 
-static int opMINPS_xmm_xmm_a32(uint32_t fetchdat)
+static int opfminPS_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.XMM[cpu_reg].f[0] = min(cpu_state.XMM[cpu_rm].f[0], cpu_state.XMM[cpu_reg].f[0]);
-        cpu_state.XMM[cpu_reg].f[1] = min(cpu_state.XMM[cpu_rm].f[1], cpu_state.XMM[cpu_reg].f[1]);
-        cpu_state.XMM[cpu_reg].f[2] = min(cpu_state.XMM[cpu_rm].f[2], cpu_state.XMM[cpu_reg].f[2]);
-        cpu_state.XMM[cpu_reg].f[3] = min(cpu_state.XMM[cpu_rm].f[3], cpu_state.XMM[cpu_reg].f[3]);
+        cpu_state.XMM[cpu_reg].f[0] = fmin(cpu_state.XMM[cpu_rm].f[0], cpu_state.XMM[cpu_reg].f[0]);
+        cpu_state.XMM[cpu_reg].f[1] = fmin(cpu_state.XMM[cpu_rm].f[1], cpu_state.XMM[cpu_reg].f[1]);
+        cpu_state.XMM[cpu_reg].f[2] = fmin(cpu_state.XMM[cpu_rm].f[2], cpu_state.XMM[cpu_reg].f[2]);
+        cpu_state.XMM[cpu_reg].f[3] = fmin(cpu_state.XMM[cpu_rm].f[3], cpu_state.XMM[cpu_reg].f[3]);
         CLOCK_CYCLES(1);
     }
     else
@@ -709,20 +709,20 @@ static int opMINPS_xmm_xmm_a32(uint32_t fetchdat)
         src_real[1] = *(float*)&src[1];
         src_real[2] = *(float*)&src[2];
         src_real[3] = *(float*)&src[3];
-        cpu_state.XMM[cpu_reg].f[0] = min(cpu_state.XMM[cpu_reg].f[0], src_real[0]);
-        cpu_state.XMM[cpu_reg].f[1] = min(cpu_state.XMM[cpu_reg].f[0], src_real[1]);
-        cpu_state.XMM[cpu_reg].f[2] = min(cpu_state.XMM[cpu_reg].f[0], src_real[2]);
-        cpu_state.XMM[cpu_reg].f[3] = min(cpu_state.XMM[cpu_reg].f[0], src_real[3]);
+        cpu_state.XMM[cpu_reg].f[0] = fmin(cpu_state.XMM[cpu_reg].f[0], src_real[0]);
+        cpu_state.XMM[cpu_reg].f[1] = fmin(cpu_state.XMM[cpu_reg].f[0], src_real[1]);
+        cpu_state.XMM[cpu_reg].f[2] = fmin(cpu_state.XMM[cpu_reg].f[0], src_real[2]);
+        cpu_state.XMM[cpu_reg].f[3] = fmin(cpu_state.XMM[cpu_reg].f[0], src_real[3]);
     }
     return 0;
 }
 
-static int opMINSS_xmm_xmm_a16(uint32_t fetchdat)
+static int opfminSS_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.XMM[cpu_reg].f[0] = min(cpu_state.XMM[cpu_rm].f[0], cpu_state.XMM[cpu_reg].f[0]);
+        cpu_state.XMM[cpu_reg].f[0] = fmin(cpu_state.XMM[cpu_rm].f[0], cpu_state.XMM[cpu_reg].f[0]);
         CLOCK_CYCLES(1);
     }
     else
@@ -730,20 +730,20 @@ static int opMINSS_xmm_xmm_a16(uint32_t fetchdat)
         uint32_t src;
         
         SEG_CHECK_READ(cpu_state.ea_seg);
-        src[0] = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
+        src = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
         float src_real;
         src_real = *(float*)&src;
-        cpu_state.XMM[cpu_reg].f[0] = min(cpu_state.XMM[cpu_reg].f[0], src_real);
+        cpu_state.XMM[cpu_reg].f[0] = fmin(cpu_state.XMM[cpu_reg].f[0], src_real);
     }
     return 0;
 }
 
-static int opMINSS_xmm_xmm_a32(uint32_t fetchdat)
+static int opfminSS_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.XMM[cpu_reg].f[0] = min(cpu_state.XMM[cpu_rm].f[0], cpu_state.XMM[cpu_reg].f[0]);
+        cpu_state.XMM[cpu_reg].f[0] = fmin(cpu_state.XMM[cpu_rm].f[0], cpu_state.XMM[cpu_reg].f[0]);
         CLOCK_CYCLES(1);
     }
     else
@@ -751,10 +751,10 @@ static int opMINSS_xmm_xmm_a32(uint32_t fetchdat)
         uint32_t src;
         
         SEG_CHECK_READ(cpu_state.ea_seg);
-        src[0] = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
+        src = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
         float src_real;
         src_real = *(float*)&src;
-        cpu_state.XMM[cpu_reg].f[0] = min(cpu_state.XMM[cpu_reg].f[0], src_real);
+        cpu_state.XMM[cpu_reg].f[0] = fmin(cpu_state.XMM[cpu_reg].f[0], src_real);
     }
     return 0;
 }
@@ -865,15 +865,15 @@ static int opDIVSS_xmm_xmm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opMAXPS_xmm_xmm_a16(uint32_t fetchdat)
+static int opfmaxPS_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.XMM[cpu_reg].f[0] = max(cpu_state.XMM[cpu_rm].f[0], cpu_state.XMM[cpu_reg].f[0]);
-        cpu_state.XMM[cpu_reg].f[1] = max(cpu_state.XMM[cpu_rm].f[1], cpu_state.XMM[cpu_reg].f[1]);
-        cpu_state.XMM[cpu_reg].f[2] = max(cpu_state.XMM[cpu_rm].f[2], cpu_state.XMM[cpu_reg].f[2]);
-        cpu_state.XMM[cpu_reg].f[3] = max(cpu_state.XMM[cpu_rm].f[3], cpu_state.XMM[cpu_reg].f[3]);
+        cpu_state.XMM[cpu_reg].f[0] = fmax(cpu_state.XMM[cpu_rm].f[0], cpu_state.XMM[cpu_reg].f[0]);
+        cpu_state.XMM[cpu_reg].f[1] = fmax(cpu_state.XMM[cpu_rm].f[1], cpu_state.XMM[cpu_reg].f[1]);
+        cpu_state.XMM[cpu_reg].f[2] = fmax(cpu_state.XMM[cpu_rm].f[2], cpu_state.XMM[cpu_reg].f[2]);
+        cpu_state.XMM[cpu_reg].f[3] = fmax(cpu_state.XMM[cpu_rm].f[3], cpu_state.XMM[cpu_reg].f[3]);
         CLOCK_CYCLES(1);
     }
     else
@@ -890,23 +890,23 @@ static int opMAXPS_xmm_xmm_a16(uint32_t fetchdat)
         src_real[1] = *(float*)&src[1];
         src_real[2] = *(float*)&src[2];
         src_real[3] = *(float*)&src[3];
-        cpu_state.XMM[cpu_reg].f[0] = max(cpu_state.XMM[cpu_reg].f[0], src_real[0]);
-        cpu_state.XMM[cpu_reg].f[1] = max(cpu_state.XMM[cpu_reg].f[0], src_real[1]);
-        cpu_state.XMM[cpu_reg].f[2] = max(cpu_state.XMM[cpu_reg].f[0], src_real[2]);
-        cpu_state.XMM[cpu_reg].f[3] = max(cpu_state.XMM[cpu_reg].f[0], src_real[3]);
+        cpu_state.XMM[cpu_reg].f[0] = fmax(cpu_state.XMM[cpu_reg].f[0], src_real[0]);
+        cpu_state.XMM[cpu_reg].f[1] = fmax(cpu_state.XMM[cpu_reg].f[0], src_real[1]);
+        cpu_state.XMM[cpu_reg].f[2] = fmax(cpu_state.XMM[cpu_reg].f[0], src_real[2]);
+        cpu_state.XMM[cpu_reg].f[3] = fmax(cpu_state.XMM[cpu_reg].f[0], src_real[3]);
     }
     return 0;
 }
 
-static int opMAXPS_xmm_xmm_a32(uint32_t fetchdat)
+static int opfmaxPS_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.XMM[cpu_reg].f[0] = max(cpu_state.XMM[cpu_rm].f[0], cpu_state.XMM[cpu_reg].f[0]);
-        cpu_state.XMM[cpu_reg].f[1] = max(cpu_state.XMM[cpu_rm].f[1], cpu_state.XMM[cpu_reg].f[1]);
-        cpu_state.XMM[cpu_reg].f[2] = max(cpu_state.XMM[cpu_rm].f[2], cpu_state.XMM[cpu_reg].f[2]);
-        cpu_state.XMM[cpu_reg].f[3] = max(cpu_state.XMM[cpu_rm].f[3], cpu_state.XMM[cpu_reg].f[3]);
+        cpu_state.XMM[cpu_reg].f[0] = fmax(cpu_state.XMM[cpu_rm].f[0], cpu_state.XMM[cpu_reg].f[0]);
+        cpu_state.XMM[cpu_reg].f[1] = fmax(cpu_state.XMM[cpu_rm].f[1], cpu_state.XMM[cpu_reg].f[1]);
+        cpu_state.XMM[cpu_reg].f[2] = fmax(cpu_state.XMM[cpu_rm].f[2], cpu_state.XMM[cpu_reg].f[2]);
+        cpu_state.XMM[cpu_reg].f[3] = fmax(cpu_state.XMM[cpu_rm].f[3], cpu_state.XMM[cpu_reg].f[3]);
         CLOCK_CYCLES(1);
     }
     else
@@ -923,41 +923,20 @@ static int opMAXPS_xmm_xmm_a32(uint32_t fetchdat)
         src_real[1] = *(float*)&src[1];
         src_real[2] = *(float*)&src[2];
         src_real[3] = *(float*)&src[3];
-        cpu_state.XMM[cpu_reg].f[0] = max(cpu_state.XMM[cpu_reg].f[0], src_real[0]);
-        cpu_state.XMM[cpu_reg].f[1] = max(cpu_state.XMM[cpu_reg].f[0], src_real[1]);
-        cpu_state.XMM[cpu_reg].f[2] = max(cpu_state.XMM[cpu_reg].f[0], src_real[2]);
-        cpu_state.XMM[cpu_reg].f[3] = max(cpu_state.XMM[cpu_reg].f[0], src_real[3]);
+        cpu_state.XMM[cpu_reg].f[0] = fmax(cpu_state.XMM[cpu_reg].f[0], src_real[0]);
+        cpu_state.XMM[cpu_reg].f[1] = fmax(cpu_state.XMM[cpu_reg].f[0], src_real[1]);
+        cpu_state.XMM[cpu_reg].f[2] = fmax(cpu_state.XMM[cpu_reg].f[0], src_real[2]);
+        cpu_state.XMM[cpu_reg].f[3] = fmax(cpu_state.XMM[cpu_reg].f[0], src_real[3]);
     }
     return 0;
 }
 
-static int opMAXSS_xmm_xmm_a16(uint32_t fetchdat)
+static int opfmaxSS_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.XMM[cpu_reg].f[0] = max(cpu_state.XMM[cpu_rm].f[0], cpu_state.XMM[cpu_reg].f[0]);
-        CLOCK_CYCLES(1);
-    }
-    else
-    {
-        uint32_t src;
-        
-        SEG_CHECK_READ(cpu_state.ea_seg);
-        src[0] = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
-        float src_real;
-        src_real = *(float*)&src;
-        cpu_state.XMM[cpu_reg].f[0] = max(cpu_state.XMM[cpu_reg].f[0], src_real);
-    }
-    return 0;
-}
-
-static int opMAXSS_xmm_xmm_a32(uint32_t fetchdat)
-{
-    fetch_ea_32(fetchdat);
-    if (cpu_mod == 3)
-    {
-        cpu_state.XMM[cpu_reg].f[0] = max(cpu_state.XMM[cpu_rm].f[0], cpu_state.XMM[cpu_reg].f[0]);
+        cpu_state.XMM[cpu_reg].f[0] = fmax(cpu_state.XMM[cpu_rm].f[0], cpu_state.XMM[cpu_reg].f[0]);
         CLOCK_CYCLES(1);
     }
     else
@@ -968,7 +947,28 @@ static int opMAXSS_xmm_xmm_a32(uint32_t fetchdat)
         src = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
         float src_real;
         src_real = *(float*)&src;
-        cpu_state.XMM[cpu_reg].f[0] = max(cpu_state.XMM[cpu_reg].f[0], src_real);
+        cpu_state.XMM[cpu_reg].f[0] = fmax(cpu_state.XMM[cpu_reg].f[0], src_real);
+    }
+    return 0;
+}
+
+static int opfmaxSS_xmm_xmm_a32(uint32_t fetchdat)
+{
+    fetch_ea_32(fetchdat);
+    if (cpu_mod == 3)
+    {
+        cpu_state.XMM[cpu_reg].f[0] = fmax(cpu_state.XMM[cpu_rm].f[0], cpu_state.XMM[cpu_reg].f[0]);
+        CLOCK_CYCLES(1);
+    }
+    else
+    {
+        uint32_t src;
+        
+        SEG_CHECK_READ(cpu_state.ea_seg);
+        src = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
+        float src_real;
+        src_real = *(float*)&src;
+        cpu_state.XMM[cpu_reg].f[0] = fmax(cpu_state.XMM[cpu_reg].f[0], src_real);
     }
     return 0;
 }
@@ -1066,10 +1066,10 @@ static int opCMPPS_xmm_xmm_a16(uint32_t fetchdat)
         src[2] = readmeml(easeg, cpu_state.eaaddr + 8); if (cpu_state.abrt) return 1;
         src[3] = readmeml(easeg, cpu_state.eaaddr + 12); if (cpu_state.abrt) return 1;
         float src_real[4];
-        src_real[0] = *(float*)&dst[0];
-        src_real[1] = *(float*)&dst[1];
-        src_real[2] = *(float*)&dst[2];
-        src_real[3] = *(float*)&dst[3];
+        src_real[0] = *(float*)&src[0];
+        src_real[1] = *(float*)&src[1];
+        src_real[2] = *(float*)&src[2];
+        src_real[3] = *(float*)&src[3];
         switch(imm & 7)
         {
             case 0:
@@ -1241,10 +1241,10 @@ static int opCMPPS_xmm_xmm_a32(uint32_t fetchdat)
         src[2] = readmeml(easeg, cpu_state.eaaddr + 8); if (cpu_state.abrt) return 1;
         src[3] = readmeml(easeg, cpu_state.eaaddr + 12); if (cpu_state.abrt) return 1;
         float src_real[4];
-        src_real[0] = *(float*)&dst[0];
-        src_real[1] = *(float*)&dst[1];
-        src_real[2] = *(float*)&dst[2];
-        src_real[3] = *(float*)&dst[3];
+        src_real[0] = *(float*)&src[0];
+        src_real[1] = *(float*)&src[1];
+        src_real[2] = *(float*)&src[2];
+        src_real[3] = *(float*)&src[3];
         switch(imm & 7)
         {
             case 0:
@@ -1386,7 +1386,7 @@ static int opCMPSS_xmm_xmm_a16(uint32_t fetchdat)
         SEG_CHECK_READ(cpu_state.ea_seg);
         src = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
         float src_real;
-        src_real = *(float*)&dst;
+        src_real = *(float*)&src;
         switch(imm & 7)
         {
             case 0:
@@ -1501,7 +1501,7 @@ static int opCMPSS_xmm_xmm_a32(uint32_t fetchdat)
         SEG_CHECK_READ(cpu_state.ea_seg);
         src = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
         float src_real;
-        src_real = *(float*)&dst;
+        src_real = *(float*)&src;
         switch(imm & 7)
         {
             case 0:
@@ -1553,19 +1553,19 @@ static int opCMPSS_xmm_xmm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opPMINUB_mm_mm_a16(uint32_t fetchdat)
+static int opPfminUB_mm_mm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.MM[cpu_reg].b[0] = min(cpu_state.MM[cpu_reg].b[0], cpu_state.MM[cpu_rm].b[0]);
-        cpu_state.MM[cpu_reg].b[1] = min(cpu_state.MM[cpu_reg].b[1], cpu_state.MM[cpu_rm].b[1]);
-        cpu_state.MM[cpu_reg].b[2] = min(cpu_state.MM[cpu_reg].b[2], cpu_state.MM[cpu_rm].b[2]);
-        cpu_state.MM[cpu_reg].b[3] = min(cpu_state.MM[cpu_reg].b[3], cpu_state.MM[cpu_rm].b[3]);
-        cpu_state.MM[cpu_reg].b[4] = min(cpu_state.MM[cpu_reg].b[4], cpu_state.MM[cpu_rm].b[4]);
-        cpu_state.MM[cpu_reg].b[5] = min(cpu_state.MM[cpu_reg].b[5], cpu_state.MM[cpu_rm].b[5]);
-        cpu_state.MM[cpu_reg].b[6] = min(cpu_state.MM[cpu_reg].b[6], cpu_state.MM[cpu_rm].b[6]);
-        cpu_state.MM[cpu_reg].b[7] = min(cpu_state.MM[cpu_reg].b[7], cpu_state.MM[cpu_rm].b[7]);
+        cpu_state.MM[cpu_reg].b[0] = fmin(cpu_state.MM[cpu_reg].b[0], cpu_state.MM[cpu_rm].b[0]);
+        cpu_state.MM[cpu_reg].b[1] = fmin(cpu_state.MM[cpu_reg].b[1], cpu_state.MM[cpu_rm].b[1]);
+        cpu_state.MM[cpu_reg].b[2] = fmin(cpu_state.MM[cpu_reg].b[2], cpu_state.MM[cpu_rm].b[2]);
+        cpu_state.MM[cpu_reg].b[3] = fmin(cpu_state.MM[cpu_reg].b[3], cpu_state.MM[cpu_rm].b[3]);
+        cpu_state.MM[cpu_reg].b[4] = fmin(cpu_state.MM[cpu_reg].b[4], cpu_state.MM[cpu_rm].b[4]);
+        cpu_state.MM[cpu_reg].b[5] = fmin(cpu_state.MM[cpu_reg].b[5], cpu_state.MM[cpu_rm].b[5]);
+        cpu_state.MM[cpu_reg].b[6] = fmin(cpu_state.MM[cpu_reg].b[6], cpu_state.MM[cpu_rm].b[6]);
+        cpu_state.MM[cpu_reg].b[7] = fmin(cpu_state.MM[cpu_reg].b[7], cpu_state.MM[cpu_rm].b[7]);
         CLOCK_CYCLES(1);
     }
     else
@@ -1581,31 +1581,31 @@ static int opPMINUB_mm_mm_a16(uint32_t fetchdat)
         src[5] = readmemb(easeg, cpu_state.eaaddr + 5); if (cpu_state.abrt) return 1;
         src[6] = readmemb(easeg, cpu_state.eaaddr + 6); if (cpu_state.abrt) return 1;
         src[7] = readmemb(easeg, cpu_state.eaaddr + 7); if (cpu_state.abrt) return 1;
-        cpu_state.MM[cpu_reg].b[0] = min(cpu_state.MM[cpu_reg].b[0], src[0]);
-        cpu_state.MM[cpu_reg].b[1] = min(cpu_state.MM[cpu_reg].b[1], src[1]);
-        cpu_state.MM[cpu_reg].b[2] = min(cpu_state.MM[cpu_reg].b[2], src[2]);
-        cpu_state.MM[cpu_reg].b[3] = min(cpu_state.MM[cpu_reg].b[3], src[3]);
-        cpu_state.MM[cpu_reg].b[4] = min(cpu_state.MM[cpu_reg].b[4], src[4]);
-        cpu_state.MM[cpu_reg].b[5] = min(cpu_state.MM[cpu_reg].b[5], src[5]);
-        cpu_state.MM[cpu_reg].b[6] = min(cpu_state.MM[cpu_reg].b[6], src[6]);
-        cpu_state.MM[cpu_reg].b[7] = min(cpu_state.MM[cpu_reg].b[7], src[7]);
+        cpu_state.MM[cpu_reg].b[0] = fmin(cpu_state.MM[cpu_reg].b[0], src[0]);
+        cpu_state.MM[cpu_reg].b[1] = fmin(cpu_state.MM[cpu_reg].b[1], src[1]);
+        cpu_state.MM[cpu_reg].b[2] = fmin(cpu_state.MM[cpu_reg].b[2], src[2]);
+        cpu_state.MM[cpu_reg].b[3] = fmin(cpu_state.MM[cpu_reg].b[3], src[3]);
+        cpu_state.MM[cpu_reg].b[4] = fmin(cpu_state.MM[cpu_reg].b[4], src[4]);
+        cpu_state.MM[cpu_reg].b[5] = fmin(cpu_state.MM[cpu_reg].b[5], src[5]);
+        cpu_state.MM[cpu_reg].b[6] = fmin(cpu_state.MM[cpu_reg].b[6], src[6]);
+        cpu_state.MM[cpu_reg].b[7] = fmin(cpu_state.MM[cpu_reg].b[7], src[7]);
     }
     return 0;
 }
 
-static int opPMINUB_mm_mm_a32(uint32_t fetchdat)
+static int opPfminUB_mm_mm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.MM[cpu_reg].b[0] = min(cpu_state.MM[cpu_reg].b[0], cpu_state.MM[cpu_rm].b[0]);
-        cpu_state.MM[cpu_reg].b[1] = min(cpu_state.MM[cpu_reg].b[1], cpu_state.MM[cpu_rm].b[1]);
-        cpu_state.MM[cpu_reg].b[2] = min(cpu_state.MM[cpu_reg].b[2], cpu_state.MM[cpu_rm].b[2]);
-        cpu_state.MM[cpu_reg].b[3] = min(cpu_state.MM[cpu_reg].b[3], cpu_state.MM[cpu_rm].b[3]);
-        cpu_state.MM[cpu_reg].b[4] = min(cpu_state.MM[cpu_reg].b[4], cpu_state.MM[cpu_rm].b[4]);
-        cpu_state.MM[cpu_reg].b[5] = min(cpu_state.MM[cpu_reg].b[5], cpu_state.MM[cpu_rm].b[5]);
-        cpu_state.MM[cpu_reg].b[6] = min(cpu_state.MM[cpu_reg].b[6], cpu_state.MM[cpu_rm].b[6]);
-        cpu_state.MM[cpu_reg].b[7] = min(cpu_state.MM[cpu_reg].b[7], cpu_state.MM[cpu_rm].b[7]);
+        cpu_state.MM[cpu_reg].b[0] = fmin(cpu_state.MM[cpu_reg].b[0], cpu_state.MM[cpu_rm].b[0]);
+        cpu_state.MM[cpu_reg].b[1] = fmin(cpu_state.MM[cpu_reg].b[1], cpu_state.MM[cpu_rm].b[1]);
+        cpu_state.MM[cpu_reg].b[2] = fmin(cpu_state.MM[cpu_reg].b[2], cpu_state.MM[cpu_rm].b[2]);
+        cpu_state.MM[cpu_reg].b[3] = fmin(cpu_state.MM[cpu_reg].b[3], cpu_state.MM[cpu_rm].b[3]);
+        cpu_state.MM[cpu_reg].b[4] = fmin(cpu_state.MM[cpu_reg].b[4], cpu_state.MM[cpu_rm].b[4]);
+        cpu_state.MM[cpu_reg].b[5] = fmin(cpu_state.MM[cpu_reg].b[5], cpu_state.MM[cpu_rm].b[5]);
+        cpu_state.MM[cpu_reg].b[6] = fmin(cpu_state.MM[cpu_reg].b[6], cpu_state.MM[cpu_rm].b[6]);
+        cpu_state.MM[cpu_reg].b[7] = fmin(cpu_state.MM[cpu_reg].b[7], cpu_state.MM[cpu_rm].b[7]);
         CLOCK_CYCLES(1);
     }
     else
@@ -1621,39 +1621,39 @@ static int opPMINUB_mm_mm_a32(uint32_t fetchdat)
         src[5] = readmemb(easeg, cpu_state.eaaddr + 5); if (cpu_state.abrt) return 1;
         src[6] = readmemb(easeg, cpu_state.eaaddr + 6); if (cpu_state.abrt) return 1;
         src[7] = readmemb(easeg, cpu_state.eaaddr + 7); if (cpu_state.abrt) return 1;
-        cpu_state.MM[cpu_reg].b[0] = min(cpu_state.MM[cpu_reg].b[0], src[0]);
-        cpu_state.MM[cpu_reg].b[1] = min(cpu_state.MM[cpu_reg].b[1], src[1]);
-        cpu_state.MM[cpu_reg].b[2] = min(cpu_state.MM[cpu_reg].b[2], src[2]);
-        cpu_state.MM[cpu_reg].b[3] = min(cpu_state.MM[cpu_reg].b[3], src[3]);
-        cpu_state.MM[cpu_reg].b[4] = min(cpu_state.MM[cpu_reg].b[4], src[4]);
-        cpu_state.MM[cpu_reg].b[5] = min(cpu_state.MM[cpu_reg].b[5], src[5]);
-        cpu_state.MM[cpu_reg].b[6] = min(cpu_state.MM[cpu_reg].b[6], src[6]);
-        cpu_state.MM[cpu_reg].b[7] = min(cpu_state.MM[cpu_reg].b[7], src[7]);
+        cpu_state.MM[cpu_reg].b[0] = fmin(cpu_state.MM[cpu_reg].b[0], src[0]);
+        cpu_state.MM[cpu_reg].b[1] = fmin(cpu_state.MM[cpu_reg].b[1], src[1]);
+        cpu_state.MM[cpu_reg].b[2] = fmin(cpu_state.MM[cpu_reg].b[2], src[2]);
+        cpu_state.MM[cpu_reg].b[3] = fmin(cpu_state.MM[cpu_reg].b[3], src[3]);
+        cpu_state.MM[cpu_reg].b[4] = fmin(cpu_state.MM[cpu_reg].b[4], src[4]);
+        cpu_state.MM[cpu_reg].b[5] = fmin(cpu_state.MM[cpu_reg].b[5], src[5]);
+        cpu_state.MM[cpu_reg].b[6] = fmin(cpu_state.MM[cpu_reg].b[6], src[6]);
+        cpu_state.MM[cpu_reg].b[7] = fmin(cpu_state.MM[cpu_reg].b[7], src[7]);
     }
     return 0;
 }
 
-static int opPMINUB_xmm_xmm_a16(uint32_t fetchdat)
+static int opPfminUB_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.XMM[cpu_reg].b[0] = min(cpu_state.XMM[cpu_reg].b[0], cpu_state.XMM[cpu_rm].b[0]);
-        cpu_state.XMM[cpu_reg].b[1] = min(cpu_state.XMM[cpu_reg].b[1], cpu_state.XMM[cpu_rm].b[1]);
-        cpu_state.XMM[cpu_reg].b[2] = min(cpu_state.XMM[cpu_reg].b[2], cpu_state.XMM[cpu_rm].b[2]);
-        cpu_state.XMM[cpu_reg].b[3] = min(cpu_state.XMM[cpu_reg].b[3], cpu_state.XMM[cpu_rm].b[3]);
-        cpu_state.XMM[cpu_reg].b[4] = min(cpu_state.XMM[cpu_reg].b[4], cpu_state.XMM[cpu_rm].b[4]);
-        cpu_state.XMM[cpu_reg].b[5] = min(cpu_state.XMM[cpu_reg].b[5], cpu_state.XMM[cpu_rm].b[5]);
-        cpu_state.XMM[cpu_reg].b[6] = min(cpu_state.XMM[cpu_reg].b[6], cpu_state.XMM[cpu_rm].b[6]);
-        cpu_state.XMM[cpu_reg].b[7] = min(cpu_state.XMM[cpu_reg].b[7], cpu_state.XMM[cpu_rm].b[7]);
-        cpu_state.XMM[cpu_reg].b[8] = min(cpu_state.XMM[cpu_reg].b[8], cpu_state.XMM[cpu_rm].b[8]);
-        cpu_state.XMM[cpu_reg].b[9] = min(cpu_state.XMM[cpu_reg].b[9], cpu_state.XMM[cpu_rm].b[9]);
-        cpu_state.XMM[cpu_reg].b[10] = min(cpu_state.XMM[cpu_reg].b[10], cpu_state.XMM[cpu_rm].b[10]);
-        cpu_state.XMM[cpu_reg].b[11] = min(cpu_state.XMM[cpu_reg].b[11], cpu_state.XMM[cpu_rm].b[11]);
-        cpu_state.XMM[cpu_reg].b[12] = min(cpu_state.XMM[cpu_reg].b[12], cpu_state.XMM[cpu_rm].b[12]);
-        cpu_state.XMM[cpu_reg].b[13] = min(cpu_state.XMM[cpu_reg].b[13], cpu_state.XMM[cpu_rm].b[13]);
-        cpu_state.XMM[cpu_reg].b[14] = min(cpu_state.XMM[cpu_reg].b[14], cpu_state.XMM[cpu_rm].b[14]);
-        cpu_state.XMM[cpu_reg].b[15] = min(cpu_state.XMM[cpu_reg].b[15], cpu_state.XMM[cpu_rm].b[15]);
+        cpu_state.XMM[cpu_reg].b[0] = fmin(cpu_state.XMM[cpu_reg].b[0], cpu_state.XMM[cpu_rm].b[0]);
+        cpu_state.XMM[cpu_reg].b[1] = fmin(cpu_state.XMM[cpu_reg].b[1], cpu_state.XMM[cpu_rm].b[1]);
+        cpu_state.XMM[cpu_reg].b[2] = fmin(cpu_state.XMM[cpu_reg].b[2], cpu_state.XMM[cpu_rm].b[2]);
+        cpu_state.XMM[cpu_reg].b[3] = fmin(cpu_state.XMM[cpu_reg].b[3], cpu_state.XMM[cpu_rm].b[3]);
+        cpu_state.XMM[cpu_reg].b[4] = fmin(cpu_state.XMM[cpu_reg].b[4], cpu_state.XMM[cpu_rm].b[4]);
+        cpu_state.XMM[cpu_reg].b[5] = fmin(cpu_state.XMM[cpu_reg].b[5], cpu_state.XMM[cpu_rm].b[5]);
+        cpu_state.XMM[cpu_reg].b[6] = fmin(cpu_state.XMM[cpu_reg].b[6], cpu_state.XMM[cpu_rm].b[6]);
+        cpu_state.XMM[cpu_reg].b[7] = fmin(cpu_state.XMM[cpu_reg].b[7], cpu_state.XMM[cpu_rm].b[7]);
+        cpu_state.XMM[cpu_reg].b[8] = fmin(cpu_state.XMM[cpu_reg].b[8], cpu_state.XMM[cpu_rm].b[8]);
+        cpu_state.XMM[cpu_reg].b[9] = fmin(cpu_state.XMM[cpu_reg].b[9], cpu_state.XMM[cpu_rm].b[9]);
+        cpu_state.XMM[cpu_reg].b[10] = fmin(cpu_state.XMM[cpu_reg].b[10], cpu_state.XMM[cpu_rm].b[10]);
+        cpu_state.XMM[cpu_reg].b[11] = fmin(cpu_state.XMM[cpu_reg].b[11], cpu_state.XMM[cpu_rm].b[11]);
+        cpu_state.XMM[cpu_reg].b[12] = fmin(cpu_state.XMM[cpu_reg].b[12], cpu_state.XMM[cpu_rm].b[12]);
+        cpu_state.XMM[cpu_reg].b[13] = fmin(cpu_state.XMM[cpu_reg].b[13], cpu_state.XMM[cpu_rm].b[13]);
+        cpu_state.XMM[cpu_reg].b[14] = fmin(cpu_state.XMM[cpu_reg].b[14], cpu_state.XMM[cpu_rm].b[14]);
+        cpu_state.XMM[cpu_reg].b[15] = fmin(cpu_state.XMM[cpu_reg].b[15], cpu_state.XMM[cpu_rm].b[15]);
         CLOCK_CYCLES(1);
     }
     else
@@ -1677,47 +1677,47 @@ static int opPMINUB_xmm_xmm_a16(uint32_t fetchdat)
         src[13] = readmemb(easeg, cpu_state.eaaddr + 13); if (cpu_state.abrt) return 1;
         src[14] = readmemb(easeg, cpu_state.eaaddr + 14); if (cpu_state.abrt) return 1;
         src[15] = readmemb(easeg, cpu_state.eaaddr + 15); if (cpu_state.abrt) return 1;
-        cpu_state.XMM[cpu_reg].b[0] = min(cpu_state.XMM[cpu_reg].b[0], src[0]);
-        cpu_state.XMM[cpu_reg].b[1] = min(cpu_state.XMM[cpu_reg].b[1], src[1]);
-        cpu_state.XMM[cpu_reg].b[2] = min(cpu_state.XMM[cpu_reg].b[2], src[2]);
-        cpu_state.XMM[cpu_reg].b[3] = min(cpu_state.XMM[cpu_reg].b[3], src[3]);
-        cpu_state.XMM[cpu_reg].b[4] = min(cpu_state.XMM[cpu_reg].b[4], src[4]);
-        cpu_state.XMM[cpu_reg].b[5] = min(cpu_state.XMM[cpu_reg].b[5], src[5]);
-        cpu_state.XMM[cpu_reg].b[6] = min(cpu_state.XMM[cpu_reg].b[6], src[6]);
-        cpu_state.XMM[cpu_reg].b[7] = min(cpu_state.XMM[cpu_reg].b[7], src[7]);
-        cpu_state.XMM[cpu_reg].b[8] = min(cpu_state.XMM[cpu_reg].b[8], src[8]);
-        cpu_state.XMM[cpu_reg].b[9] = min(cpu_state.XMM[cpu_reg].b[9], src[9]);
-        cpu_state.XMM[cpu_reg].b[10] = min(cpu_state.XMM[cpu_reg].b[10], src[10]);
-        cpu_state.XMM[cpu_reg].b[11] = min(cpu_state.XMM[cpu_reg].b[11], src[11]);
-        cpu_state.XMM[cpu_reg].b[12] = min(cpu_state.XMM[cpu_reg].b[12], src[12]);
-        cpu_state.XMM[cpu_reg].b[13] = min(cpu_state.XMM[cpu_reg].b[13], src[13]);
-        cpu_state.XMM[cpu_reg].b[14] = min(cpu_state.XMM[cpu_reg].b[14], src[14]);
-        cpu_state.XMM[cpu_reg].b[15] = min(cpu_state.XMM[cpu_reg].b[15], src[15]);
+        cpu_state.XMM[cpu_reg].b[0] = fmin(cpu_state.XMM[cpu_reg].b[0], src[0]);
+        cpu_state.XMM[cpu_reg].b[1] = fmin(cpu_state.XMM[cpu_reg].b[1], src[1]);
+        cpu_state.XMM[cpu_reg].b[2] = fmin(cpu_state.XMM[cpu_reg].b[2], src[2]);
+        cpu_state.XMM[cpu_reg].b[3] = fmin(cpu_state.XMM[cpu_reg].b[3], src[3]);
+        cpu_state.XMM[cpu_reg].b[4] = fmin(cpu_state.XMM[cpu_reg].b[4], src[4]);
+        cpu_state.XMM[cpu_reg].b[5] = fmin(cpu_state.XMM[cpu_reg].b[5], src[5]);
+        cpu_state.XMM[cpu_reg].b[6] = fmin(cpu_state.XMM[cpu_reg].b[6], src[6]);
+        cpu_state.XMM[cpu_reg].b[7] = fmin(cpu_state.XMM[cpu_reg].b[7], src[7]);
+        cpu_state.XMM[cpu_reg].b[8] = fmin(cpu_state.XMM[cpu_reg].b[8], src[8]);
+        cpu_state.XMM[cpu_reg].b[9] = fmin(cpu_state.XMM[cpu_reg].b[9], src[9]);
+        cpu_state.XMM[cpu_reg].b[10] = fmin(cpu_state.XMM[cpu_reg].b[10], src[10]);
+        cpu_state.XMM[cpu_reg].b[11] = fmin(cpu_state.XMM[cpu_reg].b[11], src[11]);
+        cpu_state.XMM[cpu_reg].b[12] = fmin(cpu_state.XMM[cpu_reg].b[12], src[12]);
+        cpu_state.XMM[cpu_reg].b[13] = fmin(cpu_state.XMM[cpu_reg].b[13], src[13]);
+        cpu_state.XMM[cpu_reg].b[14] = fmin(cpu_state.XMM[cpu_reg].b[14], src[14]);
+        cpu_state.XMM[cpu_reg].b[15] = fmin(cpu_state.XMM[cpu_reg].b[15], src[15]);
     }
     return 0;
 }
 
-static int opPMINUB_xmm_xmm_a32(uint32_t fetchdat)
+static int opPfminUB_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.XMM[cpu_reg].b[0] = min(cpu_state.XMM[cpu_reg].b[0], cpu_state.XMM[cpu_rm].b[0]);
-        cpu_state.XMM[cpu_reg].b[1] = min(cpu_state.XMM[cpu_reg].b[1], cpu_state.XMM[cpu_rm].b[1]);
-        cpu_state.XMM[cpu_reg].b[2] = min(cpu_state.XMM[cpu_reg].b[2], cpu_state.XMM[cpu_rm].b[2]);
-        cpu_state.XMM[cpu_reg].b[3] = min(cpu_state.XMM[cpu_reg].b[3], cpu_state.XMM[cpu_rm].b[3]);
-        cpu_state.XMM[cpu_reg].b[4] = min(cpu_state.XMM[cpu_reg].b[4], cpu_state.XMM[cpu_rm].b[4]);
-        cpu_state.XMM[cpu_reg].b[5] = min(cpu_state.XMM[cpu_reg].b[5], cpu_state.XMM[cpu_rm].b[5]);
-        cpu_state.XMM[cpu_reg].b[6] = min(cpu_state.XMM[cpu_reg].b[6], cpu_state.XMM[cpu_rm].b[6]);
-        cpu_state.XMM[cpu_reg].b[7] = min(cpu_state.XMM[cpu_reg].b[7], cpu_state.XMM[cpu_rm].b[7]);
-        cpu_state.XMM[cpu_reg].b[8] = min(cpu_state.XMM[cpu_reg].b[8], cpu_state.XMM[cpu_rm].b[8]);
-        cpu_state.XMM[cpu_reg].b[9] = min(cpu_state.XMM[cpu_reg].b[9], cpu_state.XMM[cpu_rm].b[9]);
-        cpu_state.XMM[cpu_reg].b[10] = min(cpu_state.XMM[cpu_reg].b[10], cpu_state.XMM[cpu_rm].b[10]);
-        cpu_state.XMM[cpu_reg].b[11] = min(cpu_state.XMM[cpu_reg].b[11], cpu_state.XMM[cpu_rm].b[11]);
-        cpu_state.XMM[cpu_reg].b[12] = min(cpu_state.XMM[cpu_reg].b[12], cpu_state.XMM[cpu_rm].b[12]);
-        cpu_state.XMM[cpu_reg].b[13] = min(cpu_state.XMM[cpu_reg].b[13], cpu_state.XMM[cpu_rm].b[13]);
-        cpu_state.XMM[cpu_reg].b[14] = min(cpu_state.XMM[cpu_reg].b[14], cpu_state.XMM[cpu_rm].b[14]);
-        cpu_state.XMM[cpu_reg].b[15] = min(cpu_state.XMM[cpu_reg].b[15], cpu_state.XMM[cpu_rm].b[15]);
+        cpu_state.XMM[cpu_reg].b[0] = fmin(cpu_state.XMM[cpu_reg].b[0], cpu_state.XMM[cpu_rm].b[0]);
+        cpu_state.XMM[cpu_reg].b[1] = fmin(cpu_state.XMM[cpu_reg].b[1], cpu_state.XMM[cpu_rm].b[1]);
+        cpu_state.XMM[cpu_reg].b[2] = fmin(cpu_state.XMM[cpu_reg].b[2], cpu_state.XMM[cpu_rm].b[2]);
+        cpu_state.XMM[cpu_reg].b[3] = fmin(cpu_state.XMM[cpu_reg].b[3], cpu_state.XMM[cpu_rm].b[3]);
+        cpu_state.XMM[cpu_reg].b[4] = fmin(cpu_state.XMM[cpu_reg].b[4], cpu_state.XMM[cpu_rm].b[4]);
+        cpu_state.XMM[cpu_reg].b[5] = fmin(cpu_state.XMM[cpu_reg].b[5], cpu_state.XMM[cpu_rm].b[5]);
+        cpu_state.XMM[cpu_reg].b[6] = fmin(cpu_state.XMM[cpu_reg].b[6], cpu_state.XMM[cpu_rm].b[6]);
+        cpu_state.XMM[cpu_reg].b[7] = fmin(cpu_state.XMM[cpu_reg].b[7], cpu_state.XMM[cpu_rm].b[7]);
+        cpu_state.XMM[cpu_reg].b[8] = fmin(cpu_state.XMM[cpu_reg].b[8], cpu_state.XMM[cpu_rm].b[8]);
+        cpu_state.XMM[cpu_reg].b[9] = fmin(cpu_state.XMM[cpu_reg].b[9], cpu_state.XMM[cpu_rm].b[9]);
+        cpu_state.XMM[cpu_reg].b[10] = fmin(cpu_state.XMM[cpu_reg].b[10], cpu_state.XMM[cpu_rm].b[10]);
+        cpu_state.XMM[cpu_reg].b[11] = fmin(cpu_state.XMM[cpu_reg].b[11], cpu_state.XMM[cpu_rm].b[11]);
+        cpu_state.XMM[cpu_reg].b[12] = fmin(cpu_state.XMM[cpu_reg].b[12], cpu_state.XMM[cpu_rm].b[12]);
+        cpu_state.XMM[cpu_reg].b[13] = fmin(cpu_state.XMM[cpu_reg].b[13], cpu_state.XMM[cpu_rm].b[13]);
+        cpu_state.XMM[cpu_reg].b[14] = fmin(cpu_state.XMM[cpu_reg].b[14], cpu_state.XMM[cpu_rm].b[14]);
+        cpu_state.XMM[cpu_reg].b[15] = fmin(cpu_state.XMM[cpu_reg].b[15], cpu_state.XMM[cpu_rm].b[15]);
         CLOCK_CYCLES(1);
     }
     else
@@ -1741,39 +1741,39 @@ static int opPMINUB_xmm_xmm_a32(uint32_t fetchdat)
         src[13] = readmemb(easeg, cpu_state.eaaddr + 13); if (cpu_state.abrt) return 1;
         src[14] = readmemb(easeg, cpu_state.eaaddr + 14); if (cpu_state.abrt) return 1;
         src[15] = readmemb(easeg, cpu_state.eaaddr + 15); if (cpu_state.abrt) return 1;
-        cpu_state.XMM[cpu_reg].b[0] = min(cpu_state.XMM[cpu_reg].b[0], src[0]);
-        cpu_state.XMM[cpu_reg].b[1] = min(cpu_state.XMM[cpu_reg].b[1], src[1]);
-        cpu_state.XMM[cpu_reg].b[2] = min(cpu_state.XMM[cpu_reg].b[2], src[2]);
-        cpu_state.XMM[cpu_reg].b[3] = min(cpu_state.XMM[cpu_reg].b[3], src[3]);
-        cpu_state.XMM[cpu_reg].b[4] = min(cpu_state.XMM[cpu_reg].b[4], src[4]);
-        cpu_state.XMM[cpu_reg].b[5] = min(cpu_state.XMM[cpu_reg].b[5], src[5]);
-        cpu_state.XMM[cpu_reg].b[6] = min(cpu_state.XMM[cpu_reg].b[6], src[6]);
-        cpu_state.XMM[cpu_reg].b[7] = min(cpu_state.XMM[cpu_reg].b[7], src[7]);
-        cpu_state.XMM[cpu_reg].b[8] = min(cpu_state.XMM[cpu_reg].b[8], src[8]);
-        cpu_state.XMM[cpu_reg].b[9] = min(cpu_state.XMM[cpu_reg].b[9], src[9]);
-        cpu_state.XMM[cpu_reg].b[10] = min(cpu_state.XMM[cpu_reg].b[10], src[10]);
-        cpu_state.XMM[cpu_reg].b[11] = min(cpu_state.XMM[cpu_reg].b[11], src[11]);
-        cpu_state.XMM[cpu_reg].b[12] = min(cpu_state.XMM[cpu_reg].b[12], src[12]);
-        cpu_state.XMM[cpu_reg].b[13] = min(cpu_state.XMM[cpu_reg].b[13], src[13]);
-        cpu_state.XMM[cpu_reg].b[14] = min(cpu_state.XMM[cpu_reg].b[14], src[14]);
-        cpu_state.XMM[cpu_reg].b[15] = min(cpu_state.XMM[cpu_reg].b[15], src[15]);
+        cpu_state.XMM[cpu_reg].b[0] = fmin(cpu_state.XMM[cpu_reg].b[0], src[0]);
+        cpu_state.XMM[cpu_reg].b[1] = fmin(cpu_state.XMM[cpu_reg].b[1], src[1]);
+        cpu_state.XMM[cpu_reg].b[2] = fmin(cpu_state.XMM[cpu_reg].b[2], src[2]);
+        cpu_state.XMM[cpu_reg].b[3] = fmin(cpu_state.XMM[cpu_reg].b[3], src[3]);
+        cpu_state.XMM[cpu_reg].b[4] = fmin(cpu_state.XMM[cpu_reg].b[4], src[4]);
+        cpu_state.XMM[cpu_reg].b[5] = fmin(cpu_state.XMM[cpu_reg].b[5], src[5]);
+        cpu_state.XMM[cpu_reg].b[6] = fmin(cpu_state.XMM[cpu_reg].b[6], src[6]);
+        cpu_state.XMM[cpu_reg].b[7] = fmin(cpu_state.XMM[cpu_reg].b[7], src[7]);
+        cpu_state.XMM[cpu_reg].b[8] = fmin(cpu_state.XMM[cpu_reg].b[8], src[8]);
+        cpu_state.XMM[cpu_reg].b[9] = fmin(cpu_state.XMM[cpu_reg].b[9], src[9]);
+        cpu_state.XMM[cpu_reg].b[10] = fmin(cpu_state.XMM[cpu_reg].b[10], src[10]);
+        cpu_state.XMM[cpu_reg].b[11] = fmin(cpu_state.XMM[cpu_reg].b[11], src[11]);
+        cpu_state.XMM[cpu_reg].b[12] = fmin(cpu_state.XMM[cpu_reg].b[12], src[12]);
+        cpu_state.XMM[cpu_reg].b[13] = fmin(cpu_state.XMM[cpu_reg].b[13], src[13]);
+        cpu_state.XMM[cpu_reg].b[14] = fmin(cpu_state.XMM[cpu_reg].b[14], src[14]);
+        cpu_state.XMM[cpu_reg].b[15] = fmin(cpu_state.XMM[cpu_reg].b[15], src[15]);
     }
     return 0;
 }
 
-static int opPMAXUB_mm_mm_a16(uint32_t fetchdat)
+static int opPfmaxUB_mm_mm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.MM[cpu_reg].b[0] = max(cpu_state.MM[cpu_reg].b[0], cpu_state.MM[cpu_rm].b[0]);
-        cpu_state.MM[cpu_reg].b[1] = max(cpu_state.MM[cpu_reg].b[1], cpu_state.MM[cpu_rm].b[1]);
-        cpu_state.MM[cpu_reg].b[2] = max(cpu_state.MM[cpu_reg].b[2], cpu_state.MM[cpu_rm].b[2]);
-        cpu_state.MM[cpu_reg].b[3] = max(cpu_state.MM[cpu_reg].b[3], cpu_state.MM[cpu_rm].b[3]);
-        cpu_state.MM[cpu_reg].b[4] = max(cpu_state.MM[cpu_reg].b[4], cpu_state.MM[cpu_rm].b[4]);
-        cpu_state.MM[cpu_reg].b[5] = max(cpu_state.MM[cpu_reg].b[5], cpu_state.MM[cpu_rm].b[5]);
-        cpu_state.MM[cpu_reg].b[6] = max(cpu_state.MM[cpu_reg].b[6], cpu_state.MM[cpu_rm].b[6]);
-        cpu_state.MM[cpu_reg].b[7] = max(cpu_state.MM[cpu_reg].b[7], cpu_state.MM[cpu_rm].b[7]);
+        cpu_state.MM[cpu_reg].b[0] = fmax(cpu_state.MM[cpu_reg].b[0], cpu_state.MM[cpu_rm].b[0]);
+        cpu_state.MM[cpu_reg].b[1] = fmax(cpu_state.MM[cpu_reg].b[1], cpu_state.MM[cpu_rm].b[1]);
+        cpu_state.MM[cpu_reg].b[2] = fmax(cpu_state.MM[cpu_reg].b[2], cpu_state.MM[cpu_rm].b[2]);
+        cpu_state.MM[cpu_reg].b[3] = fmax(cpu_state.MM[cpu_reg].b[3], cpu_state.MM[cpu_rm].b[3]);
+        cpu_state.MM[cpu_reg].b[4] = fmax(cpu_state.MM[cpu_reg].b[4], cpu_state.MM[cpu_rm].b[4]);
+        cpu_state.MM[cpu_reg].b[5] = fmax(cpu_state.MM[cpu_reg].b[5], cpu_state.MM[cpu_rm].b[5]);
+        cpu_state.MM[cpu_reg].b[6] = fmax(cpu_state.MM[cpu_reg].b[6], cpu_state.MM[cpu_rm].b[6]);
+        cpu_state.MM[cpu_reg].b[7] = fmax(cpu_state.MM[cpu_reg].b[7], cpu_state.MM[cpu_rm].b[7]);
         CLOCK_CYCLES(1);
     }
     else
@@ -1789,31 +1789,31 @@ static int opPMAXUB_mm_mm_a16(uint32_t fetchdat)
         src[5] = readmemb(easeg, cpu_state.eaaddr + 5); if (cpu_state.abrt) return 1;
         src[6] = readmemb(easeg, cpu_state.eaaddr + 6); if (cpu_state.abrt) return 1;
         src[7] = readmemb(easeg, cpu_state.eaaddr + 7); if (cpu_state.abrt) return 1;
-        cpu_state.MM[cpu_reg].b[0] = max(cpu_state.MM[cpu_reg].b[0], src[0]);
-        cpu_state.MM[cpu_reg].b[1] = max(cpu_state.MM[cpu_reg].b[1], src[1]);
-        cpu_state.MM[cpu_reg].b[2] = max(cpu_state.MM[cpu_reg].b[2], src[2]);
-        cpu_state.MM[cpu_reg].b[3] = max(cpu_state.MM[cpu_reg].b[3], src[3]);
-        cpu_state.MM[cpu_reg].b[4] = max(cpu_state.MM[cpu_reg].b[4], src[4]);
-        cpu_state.MM[cpu_reg].b[5] = max(cpu_state.MM[cpu_reg].b[5], src[5]);
-        cpu_state.MM[cpu_reg].b[6] = max(cpu_state.MM[cpu_reg].b[6], src[6]);
-        cpu_state.MM[cpu_reg].b[7] = max(cpu_state.MM[cpu_reg].b[7], src[7]);
+        cpu_state.MM[cpu_reg].b[0] = fmax(cpu_state.MM[cpu_reg].b[0], src[0]);
+        cpu_state.MM[cpu_reg].b[1] = fmax(cpu_state.MM[cpu_reg].b[1], src[1]);
+        cpu_state.MM[cpu_reg].b[2] = fmax(cpu_state.MM[cpu_reg].b[2], src[2]);
+        cpu_state.MM[cpu_reg].b[3] = fmax(cpu_state.MM[cpu_reg].b[3], src[3]);
+        cpu_state.MM[cpu_reg].b[4] = fmax(cpu_state.MM[cpu_reg].b[4], src[4]);
+        cpu_state.MM[cpu_reg].b[5] = fmax(cpu_state.MM[cpu_reg].b[5], src[5]);
+        cpu_state.MM[cpu_reg].b[6] = fmax(cpu_state.MM[cpu_reg].b[6], src[6]);
+        cpu_state.MM[cpu_reg].b[7] = fmax(cpu_state.MM[cpu_reg].b[7], src[7]);
     }
     return 0;
 }
 
-static int opPMAXUB_mm_mm_a32(uint32_t fetchdat)
+static int opPfmaxUB_mm_mm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.MM[cpu_reg].b[0] = max(cpu_state.MM[cpu_reg].b[0], cpu_state.MM[cpu_rm].b[0]);
-        cpu_state.MM[cpu_reg].b[1] = max(cpu_state.MM[cpu_reg].b[1], cpu_state.MM[cpu_rm].b[1]);
-        cpu_state.MM[cpu_reg].b[2] = max(cpu_state.MM[cpu_reg].b[2], cpu_state.MM[cpu_rm].b[2]);
-        cpu_state.MM[cpu_reg].b[3] = max(cpu_state.MM[cpu_reg].b[3], cpu_state.MM[cpu_rm].b[3]);
-        cpu_state.MM[cpu_reg].b[4] = max(cpu_state.MM[cpu_reg].b[4], cpu_state.MM[cpu_rm].b[4]);
-        cpu_state.MM[cpu_reg].b[5] = max(cpu_state.MM[cpu_reg].b[5], cpu_state.MM[cpu_rm].b[5]);
-        cpu_state.MM[cpu_reg].b[6] = max(cpu_state.MM[cpu_reg].b[6], cpu_state.MM[cpu_rm].b[6]);
-        cpu_state.MM[cpu_reg].b[7] = max(cpu_state.MM[cpu_reg].b[7], cpu_state.MM[cpu_rm].b[7]);
+        cpu_state.MM[cpu_reg].b[0] = fmax(cpu_state.MM[cpu_reg].b[0], cpu_state.MM[cpu_rm].b[0]);
+        cpu_state.MM[cpu_reg].b[1] = fmax(cpu_state.MM[cpu_reg].b[1], cpu_state.MM[cpu_rm].b[1]);
+        cpu_state.MM[cpu_reg].b[2] = fmax(cpu_state.MM[cpu_reg].b[2], cpu_state.MM[cpu_rm].b[2]);
+        cpu_state.MM[cpu_reg].b[3] = fmax(cpu_state.MM[cpu_reg].b[3], cpu_state.MM[cpu_rm].b[3]);
+        cpu_state.MM[cpu_reg].b[4] = fmax(cpu_state.MM[cpu_reg].b[4], cpu_state.MM[cpu_rm].b[4]);
+        cpu_state.MM[cpu_reg].b[5] = fmax(cpu_state.MM[cpu_reg].b[5], cpu_state.MM[cpu_rm].b[5]);
+        cpu_state.MM[cpu_reg].b[6] = fmax(cpu_state.MM[cpu_reg].b[6], cpu_state.MM[cpu_rm].b[6]);
+        cpu_state.MM[cpu_reg].b[7] = fmax(cpu_state.MM[cpu_reg].b[7], cpu_state.MM[cpu_rm].b[7]);
         CLOCK_CYCLES(1);
     }
     else
@@ -1829,39 +1829,39 @@ static int opPMAXUB_mm_mm_a32(uint32_t fetchdat)
         src[5] = readmemb(easeg, cpu_state.eaaddr + 5); if (cpu_state.abrt) return 1;
         src[6] = readmemb(easeg, cpu_state.eaaddr + 6); if (cpu_state.abrt) return 1;
         src[7] = readmemb(easeg, cpu_state.eaaddr + 7); if (cpu_state.abrt) return 1;
-        cpu_state.MM[cpu_reg].b[0] = max(cpu_state.MM[cpu_reg].b[0], src[0]);
-        cpu_state.MM[cpu_reg].b[1] = max(cpu_state.MM[cpu_reg].b[1], src[1]);
-        cpu_state.MM[cpu_reg].b[2] = max(cpu_state.MM[cpu_reg].b[2], src[2]);
-        cpu_state.MM[cpu_reg].b[3] = max(cpu_state.MM[cpu_reg].b[3], src[3]);
-        cpu_state.MM[cpu_reg].b[4] = max(cpu_state.MM[cpu_reg].b[4], src[4]);
-        cpu_state.MM[cpu_reg].b[5] = max(cpu_state.MM[cpu_reg].b[5], src[5]);
-        cpu_state.MM[cpu_reg].b[6] = max(cpu_state.MM[cpu_reg].b[6], src[6]);
-        cpu_state.MM[cpu_reg].b[7] = max(cpu_state.MM[cpu_reg].b[7], src[7]);
+        cpu_state.MM[cpu_reg].b[0] = fmax(cpu_state.MM[cpu_reg].b[0], src[0]);
+        cpu_state.MM[cpu_reg].b[1] = fmax(cpu_state.MM[cpu_reg].b[1], src[1]);
+        cpu_state.MM[cpu_reg].b[2] = fmax(cpu_state.MM[cpu_reg].b[2], src[2]);
+        cpu_state.MM[cpu_reg].b[3] = fmax(cpu_state.MM[cpu_reg].b[3], src[3]);
+        cpu_state.MM[cpu_reg].b[4] = fmax(cpu_state.MM[cpu_reg].b[4], src[4]);
+        cpu_state.MM[cpu_reg].b[5] = fmax(cpu_state.MM[cpu_reg].b[5], src[5]);
+        cpu_state.MM[cpu_reg].b[6] = fmax(cpu_state.MM[cpu_reg].b[6], src[6]);
+        cpu_state.MM[cpu_reg].b[7] = fmax(cpu_state.MM[cpu_reg].b[7], src[7]);
     }
     return 0;
 }
 
-static int opPMAXUB_xmm_xmm_a16(uint32_t fetchdat)
+static int opPfmaxUB_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.XMM[cpu_reg].b[0] = max(cpu_state.XMM[cpu_reg].b[0], cpu_state.XMM[cpu_rm].b[0]);
-        cpu_state.XMM[cpu_reg].b[1] = max(cpu_state.XMM[cpu_reg].b[1], cpu_state.XMM[cpu_rm].b[1]);
-        cpu_state.XMM[cpu_reg].b[2] = max(cpu_state.XMM[cpu_reg].b[2], cpu_state.XMM[cpu_rm].b[2]);
-        cpu_state.XMM[cpu_reg].b[3] = max(cpu_state.XMM[cpu_reg].b[3], cpu_state.XMM[cpu_rm].b[3]);
-        cpu_state.XMM[cpu_reg].b[4] = max(cpu_state.XMM[cpu_reg].b[4], cpu_state.XMM[cpu_rm].b[4]);
-        cpu_state.XMM[cpu_reg].b[5] = max(cpu_state.XMM[cpu_reg].b[5], cpu_state.XMM[cpu_rm].b[5]);
-        cpu_state.XMM[cpu_reg].b[6] = max(cpu_state.XMM[cpu_reg].b[6], cpu_state.XMM[cpu_rm].b[6]);
-        cpu_state.XMM[cpu_reg].b[7] = max(cpu_state.XMM[cpu_reg].b[7], cpu_state.XMM[cpu_rm].b[7]);
-        cpu_state.XMM[cpu_reg].b[8] = max(cpu_state.XMM[cpu_reg].b[8], cpu_state.XMM[cpu_rm].b[8]);
-        cpu_state.XMM[cpu_reg].b[9] = max(cpu_state.XMM[cpu_reg].b[9], cpu_state.XMM[cpu_rm].b[9]);
-        cpu_state.XMM[cpu_reg].b[10] = max(cpu_state.XMM[cpu_reg].b[10], cpu_state.XMM[cpu_rm].b[10]);
-        cpu_state.XMM[cpu_reg].b[11] = max(cpu_state.XMM[cpu_reg].b[11], cpu_state.XMM[cpu_rm].b[11]);
-        cpu_state.XMM[cpu_reg].b[12] = max(cpu_state.XMM[cpu_reg].b[12], cpu_state.XMM[cpu_rm].b[12]);
-        cpu_state.XMM[cpu_reg].b[13] = max(cpu_state.XMM[cpu_reg].b[13], cpu_state.XMM[cpu_rm].b[13]);
-        cpu_state.XMM[cpu_reg].b[14] = max(cpu_state.XMM[cpu_reg].b[14], cpu_state.XMM[cpu_rm].b[14]);
-        cpu_state.XMM[cpu_reg].b[15] = max(cpu_state.XMM[cpu_reg].b[15], cpu_state.XMM[cpu_rm].b[15]);
+        cpu_state.XMM[cpu_reg].b[0] = fmax(cpu_state.XMM[cpu_reg].b[0], cpu_state.XMM[cpu_rm].b[0]);
+        cpu_state.XMM[cpu_reg].b[1] = fmax(cpu_state.XMM[cpu_reg].b[1], cpu_state.XMM[cpu_rm].b[1]);
+        cpu_state.XMM[cpu_reg].b[2] = fmax(cpu_state.XMM[cpu_reg].b[2], cpu_state.XMM[cpu_rm].b[2]);
+        cpu_state.XMM[cpu_reg].b[3] = fmax(cpu_state.XMM[cpu_reg].b[3], cpu_state.XMM[cpu_rm].b[3]);
+        cpu_state.XMM[cpu_reg].b[4] = fmax(cpu_state.XMM[cpu_reg].b[4], cpu_state.XMM[cpu_rm].b[4]);
+        cpu_state.XMM[cpu_reg].b[5] = fmax(cpu_state.XMM[cpu_reg].b[5], cpu_state.XMM[cpu_rm].b[5]);
+        cpu_state.XMM[cpu_reg].b[6] = fmax(cpu_state.XMM[cpu_reg].b[6], cpu_state.XMM[cpu_rm].b[6]);
+        cpu_state.XMM[cpu_reg].b[7] = fmax(cpu_state.XMM[cpu_reg].b[7], cpu_state.XMM[cpu_rm].b[7]);
+        cpu_state.XMM[cpu_reg].b[8] = fmax(cpu_state.XMM[cpu_reg].b[8], cpu_state.XMM[cpu_rm].b[8]);
+        cpu_state.XMM[cpu_reg].b[9] = fmax(cpu_state.XMM[cpu_reg].b[9], cpu_state.XMM[cpu_rm].b[9]);
+        cpu_state.XMM[cpu_reg].b[10] = fmax(cpu_state.XMM[cpu_reg].b[10], cpu_state.XMM[cpu_rm].b[10]);
+        cpu_state.XMM[cpu_reg].b[11] = fmax(cpu_state.XMM[cpu_reg].b[11], cpu_state.XMM[cpu_rm].b[11]);
+        cpu_state.XMM[cpu_reg].b[12] = fmax(cpu_state.XMM[cpu_reg].b[12], cpu_state.XMM[cpu_rm].b[12]);
+        cpu_state.XMM[cpu_reg].b[13] = fmax(cpu_state.XMM[cpu_reg].b[13], cpu_state.XMM[cpu_rm].b[13]);
+        cpu_state.XMM[cpu_reg].b[14] = fmax(cpu_state.XMM[cpu_reg].b[14], cpu_state.XMM[cpu_rm].b[14]);
+        cpu_state.XMM[cpu_reg].b[15] = fmax(cpu_state.XMM[cpu_reg].b[15], cpu_state.XMM[cpu_rm].b[15]);
         CLOCK_CYCLES(1);
     }
     else
@@ -1885,47 +1885,47 @@ static int opPMAXUB_xmm_xmm_a16(uint32_t fetchdat)
         src[13] = readmemb(easeg, cpu_state.eaaddr + 13); if (cpu_state.abrt) return 1;
         src[14] = readmemb(easeg, cpu_state.eaaddr + 14); if (cpu_state.abrt) return 1;
         src[15] = readmemb(easeg, cpu_state.eaaddr + 15); if (cpu_state.abrt) return 1;
-        cpu_state.XMM[cpu_reg].b[0] = max(cpu_state.XMM[cpu_reg].b[0], src[0]);
-        cpu_state.XMM[cpu_reg].b[1] = max(cpu_state.XMM[cpu_reg].b[1], src[1]);
-        cpu_state.XMM[cpu_reg].b[2] = max(cpu_state.XMM[cpu_reg].b[2], src[2]);
-        cpu_state.XMM[cpu_reg].b[3] = max(cpu_state.XMM[cpu_reg].b[3], src[3]);
-        cpu_state.XMM[cpu_reg].b[4] = max(cpu_state.XMM[cpu_reg].b[4], src[4]);
-        cpu_state.XMM[cpu_reg].b[5] = max(cpu_state.XMM[cpu_reg].b[5], src[5]);
-        cpu_state.XMM[cpu_reg].b[6] = max(cpu_state.XMM[cpu_reg].b[6], src[6]);
-        cpu_state.XMM[cpu_reg].b[7] = max(cpu_state.XMM[cpu_reg].b[7], src[7]);
-        cpu_state.XMM[cpu_reg].b[8] = max(cpu_state.XMM[cpu_reg].b[8], src[8]);
-        cpu_state.XMM[cpu_reg].b[9] = max(cpu_state.XMM[cpu_reg].b[9], src[9]);
-        cpu_state.XMM[cpu_reg].b[10] = max(cpu_state.XMM[cpu_reg].b[10], src[10]);
-        cpu_state.XMM[cpu_reg].b[11] = max(cpu_state.XMM[cpu_reg].b[11], src[11]);
-        cpu_state.XMM[cpu_reg].b[12] = max(cpu_state.XMM[cpu_reg].b[12], src[12]);
-        cpu_state.XMM[cpu_reg].b[13] = max(cpu_state.XMM[cpu_reg].b[13], src[13]);
-        cpu_state.XMM[cpu_reg].b[14] = max(cpu_state.XMM[cpu_reg].b[14], src[14]);
-        cpu_state.XMM[cpu_reg].b[15] = max(cpu_state.XMM[cpu_reg].b[15], src[15]);
+        cpu_state.XMM[cpu_reg].b[0] = fmax(cpu_state.XMM[cpu_reg].b[0], src[0]);
+        cpu_state.XMM[cpu_reg].b[1] = fmax(cpu_state.XMM[cpu_reg].b[1], src[1]);
+        cpu_state.XMM[cpu_reg].b[2] = fmax(cpu_state.XMM[cpu_reg].b[2], src[2]);
+        cpu_state.XMM[cpu_reg].b[3] = fmax(cpu_state.XMM[cpu_reg].b[3], src[3]);
+        cpu_state.XMM[cpu_reg].b[4] = fmax(cpu_state.XMM[cpu_reg].b[4], src[4]);
+        cpu_state.XMM[cpu_reg].b[5] = fmax(cpu_state.XMM[cpu_reg].b[5], src[5]);
+        cpu_state.XMM[cpu_reg].b[6] = fmax(cpu_state.XMM[cpu_reg].b[6], src[6]);
+        cpu_state.XMM[cpu_reg].b[7] = fmax(cpu_state.XMM[cpu_reg].b[7], src[7]);
+        cpu_state.XMM[cpu_reg].b[8] = fmax(cpu_state.XMM[cpu_reg].b[8], src[8]);
+        cpu_state.XMM[cpu_reg].b[9] = fmax(cpu_state.XMM[cpu_reg].b[9], src[9]);
+        cpu_state.XMM[cpu_reg].b[10] = fmax(cpu_state.XMM[cpu_reg].b[10], src[10]);
+        cpu_state.XMM[cpu_reg].b[11] = fmax(cpu_state.XMM[cpu_reg].b[11], src[11]);
+        cpu_state.XMM[cpu_reg].b[12] = fmax(cpu_state.XMM[cpu_reg].b[12], src[12]);
+        cpu_state.XMM[cpu_reg].b[13] = fmax(cpu_state.XMM[cpu_reg].b[13], src[13]);
+        cpu_state.XMM[cpu_reg].b[14] = fmax(cpu_state.XMM[cpu_reg].b[14], src[14]);
+        cpu_state.XMM[cpu_reg].b[15] = fmax(cpu_state.XMM[cpu_reg].b[15], src[15]);
     }
     return 0;
 }
 
-static int opPMAXUB_xmm_xmm_a32(uint32_t fetchdat)
+static int opPfmaxUB_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.XMM[cpu_reg].b[0] = max(cpu_state.XMM[cpu_reg].b[0], cpu_state.XMM[cpu_rm].b[0]);
-        cpu_state.XMM[cpu_reg].b[1] = max(cpu_state.XMM[cpu_reg].b[1], cpu_state.XMM[cpu_rm].b[1]);
-        cpu_state.XMM[cpu_reg].b[2] = max(cpu_state.XMM[cpu_reg].b[2], cpu_state.XMM[cpu_rm].b[2]);
-        cpu_state.XMM[cpu_reg].b[3] = max(cpu_state.XMM[cpu_reg].b[3], cpu_state.XMM[cpu_rm].b[3]);
-        cpu_state.XMM[cpu_reg].b[4] = max(cpu_state.XMM[cpu_reg].b[4], cpu_state.XMM[cpu_rm].b[4]);
-        cpu_state.XMM[cpu_reg].b[5] = max(cpu_state.XMM[cpu_reg].b[5], cpu_state.XMM[cpu_rm].b[5]);
-        cpu_state.XMM[cpu_reg].b[6] = max(cpu_state.XMM[cpu_reg].b[6], cpu_state.XMM[cpu_rm].b[6]);
-        cpu_state.XMM[cpu_reg].b[7] = max(cpu_state.XMM[cpu_reg].b[7], cpu_state.XMM[cpu_rm].b[7]);
-        cpu_state.XMM[cpu_reg].b[8] = max(cpu_state.XMM[cpu_reg].b[8], cpu_state.XMM[cpu_rm].b[8]);
-        cpu_state.XMM[cpu_reg].b[9] = max(cpu_state.XMM[cpu_reg].b[9], cpu_state.XMM[cpu_rm].b[9]);
-        cpu_state.XMM[cpu_reg].b[10] = max(cpu_state.XMM[cpu_reg].b[10], cpu_state.XMM[cpu_rm].b[10]);
-        cpu_state.XMM[cpu_reg].b[11] = max(cpu_state.XMM[cpu_reg].b[11], cpu_state.XMM[cpu_rm].b[11]);
-        cpu_state.XMM[cpu_reg].b[12] = max(cpu_state.XMM[cpu_reg].b[12], cpu_state.XMM[cpu_rm].b[12]);
-        cpu_state.XMM[cpu_reg].b[13] = max(cpu_state.XMM[cpu_reg].b[13], cpu_state.XMM[cpu_rm].b[13]);
-        cpu_state.XMM[cpu_reg].b[14] = max(cpu_state.XMM[cpu_reg].b[14], cpu_state.XMM[cpu_rm].b[14]);
-        cpu_state.XMM[cpu_reg].b[15] = max(cpu_state.XMM[cpu_reg].b[15], cpu_state.XMM[cpu_rm].b[15]);
+        cpu_state.XMM[cpu_reg].b[0] = fmax(cpu_state.XMM[cpu_reg].b[0], cpu_state.XMM[cpu_rm].b[0]);
+        cpu_state.XMM[cpu_reg].b[1] = fmax(cpu_state.XMM[cpu_reg].b[1], cpu_state.XMM[cpu_rm].b[1]);
+        cpu_state.XMM[cpu_reg].b[2] = fmax(cpu_state.XMM[cpu_reg].b[2], cpu_state.XMM[cpu_rm].b[2]);
+        cpu_state.XMM[cpu_reg].b[3] = fmax(cpu_state.XMM[cpu_reg].b[3], cpu_state.XMM[cpu_rm].b[3]);
+        cpu_state.XMM[cpu_reg].b[4] = fmax(cpu_state.XMM[cpu_reg].b[4], cpu_state.XMM[cpu_rm].b[4]);
+        cpu_state.XMM[cpu_reg].b[5] = fmax(cpu_state.XMM[cpu_reg].b[5], cpu_state.XMM[cpu_rm].b[5]);
+        cpu_state.XMM[cpu_reg].b[6] = fmax(cpu_state.XMM[cpu_reg].b[6], cpu_state.XMM[cpu_rm].b[6]);
+        cpu_state.XMM[cpu_reg].b[7] = fmax(cpu_state.XMM[cpu_reg].b[7], cpu_state.XMM[cpu_rm].b[7]);
+        cpu_state.XMM[cpu_reg].b[8] = fmax(cpu_state.XMM[cpu_reg].b[8], cpu_state.XMM[cpu_rm].b[8]);
+        cpu_state.XMM[cpu_reg].b[9] = fmax(cpu_state.XMM[cpu_reg].b[9], cpu_state.XMM[cpu_rm].b[9]);
+        cpu_state.XMM[cpu_reg].b[10] = fmax(cpu_state.XMM[cpu_reg].b[10], cpu_state.XMM[cpu_rm].b[10]);
+        cpu_state.XMM[cpu_reg].b[11] = fmax(cpu_state.XMM[cpu_reg].b[11], cpu_state.XMM[cpu_rm].b[11]);
+        cpu_state.XMM[cpu_reg].b[12] = fmax(cpu_state.XMM[cpu_reg].b[12], cpu_state.XMM[cpu_rm].b[12]);
+        cpu_state.XMM[cpu_reg].b[13] = fmax(cpu_state.XMM[cpu_reg].b[13], cpu_state.XMM[cpu_rm].b[13]);
+        cpu_state.XMM[cpu_reg].b[14] = fmax(cpu_state.XMM[cpu_reg].b[14], cpu_state.XMM[cpu_rm].b[14]);
+        cpu_state.XMM[cpu_reg].b[15] = fmax(cpu_state.XMM[cpu_reg].b[15], cpu_state.XMM[cpu_rm].b[15]);
         CLOCK_CYCLES(1);
     }
     else
@@ -1949,22 +1949,22 @@ static int opPMAXUB_xmm_xmm_a32(uint32_t fetchdat)
         src[13] = readmemb(easeg, cpu_state.eaaddr + 13); if (cpu_state.abrt) return 1;
         src[14] = readmemb(easeg, cpu_state.eaaddr + 14); if (cpu_state.abrt) return 1;
         src[15] = readmemb(easeg, cpu_state.eaaddr + 15); if (cpu_state.abrt) return 1;
-        cpu_state.XMM[cpu_reg].b[0] = max(cpu_state.XMM[cpu_reg].b[0], src[0]);
-        cpu_state.XMM[cpu_reg].b[1] = max(cpu_state.XMM[cpu_reg].b[1], src[1]);
-        cpu_state.XMM[cpu_reg].b[2] = max(cpu_state.XMM[cpu_reg].b[2], src[2]);
-        cpu_state.XMM[cpu_reg].b[3] = max(cpu_state.XMM[cpu_reg].b[3], src[3]);
-        cpu_state.XMM[cpu_reg].b[4] = max(cpu_state.XMM[cpu_reg].b[4], src[4]);
-        cpu_state.XMM[cpu_reg].b[5] = max(cpu_state.XMM[cpu_reg].b[5], src[5]);
-        cpu_state.XMM[cpu_reg].b[6] = max(cpu_state.XMM[cpu_reg].b[6], src[6]);
-        cpu_state.XMM[cpu_reg].b[7] = max(cpu_state.XMM[cpu_reg].b[7], src[7]);
-        cpu_state.XMM[cpu_reg].b[8] = max(cpu_state.XMM[cpu_reg].b[8], src[8]);
-        cpu_state.XMM[cpu_reg].b[9] = max(cpu_state.XMM[cpu_reg].b[9], src[9]);
-        cpu_state.XMM[cpu_reg].b[10] = max(cpu_state.XMM[cpu_reg].b[10], src[10]);
-        cpu_state.XMM[cpu_reg].b[11] = max(cpu_state.XMM[cpu_reg].b[11], src[11]);
-        cpu_state.XMM[cpu_reg].b[12] = max(cpu_state.XMM[cpu_reg].b[12], src[12]);
-        cpu_state.XMM[cpu_reg].b[13] = max(cpu_state.XMM[cpu_reg].b[13], src[13]);
-        cpu_state.XMM[cpu_reg].b[14] = max(cpu_state.XMM[cpu_reg].b[14], src[14]);
-        cpu_state.XMM[cpu_reg].b[15] = max(cpu_state.XMM[cpu_reg].b[15], src[15]);
+        cpu_state.XMM[cpu_reg].b[0] = fmax(cpu_state.XMM[cpu_reg].b[0], src[0]);
+        cpu_state.XMM[cpu_reg].b[1] = fmax(cpu_state.XMM[cpu_reg].b[1], src[1]);
+        cpu_state.XMM[cpu_reg].b[2] = fmax(cpu_state.XMM[cpu_reg].b[2], src[2]);
+        cpu_state.XMM[cpu_reg].b[3] = fmax(cpu_state.XMM[cpu_reg].b[3], src[3]);
+        cpu_state.XMM[cpu_reg].b[4] = fmax(cpu_state.XMM[cpu_reg].b[4], src[4]);
+        cpu_state.XMM[cpu_reg].b[5] = fmax(cpu_state.XMM[cpu_reg].b[5], src[5]);
+        cpu_state.XMM[cpu_reg].b[6] = fmax(cpu_state.XMM[cpu_reg].b[6], src[6]);
+        cpu_state.XMM[cpu_reg].b[7] = fmax(cpu_state.XMM[cpu_reg].b[7], src[7]);
+        cpu_state.XMM[cpu_reg].b[8] = fmax(cpu_state.XMM[cpu_reg].b[8], src[8]);
+        cpu_state.XMM[cpu_reg].b[9] = fmax(cpu_state.XMM[cpu_reg].b[9], src[9]);
+        cpu_state.XMM[cpu_reg].b[10] = fmax(cpu_state.XMM[cpu_reg].b[10], src[10]);
+        cpu_state.XMM[cpu_reg].b[11] = fmax(cpu_state.XMM[cpu_reg].b[11], src[11]);
+        cpu_state.XMM[cpu_reg].b[12] = fmax(cpu_state.XMM[cpu_reg].b[12], src[12]);
+        cpu_state.XMM[cpu_reg].b[13] = fmax(cpu_state.XMM[cpu_reg].b[13], src[13]);
+        cpu_state.XMM[cpu_reg].b[14] = fmax(cpu_state.XMM[cpu_reg].b[14], src[14]);
+        cpu_state.XMM[cpu_reg].b[15] = fmax(cpu_state.XMM[cpu_reg].b[15], src[15]);
     }
     return 0;
 }
@@ -2453,15 +2453,15 @@ static int opPMULHUW_xmm_xmm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opPMINSW_mm_mm_a16(uint32_t fetchdat)
+static int opPfminSW_mm_mm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.MM[cpu_reg].sw[0] = min(cpu_state.MM[cpu_reg].sw[0], cpu_state.MM[cpu_rm].sw[0]);
-        cpu_state.MM[cpu_reg].sw[1] = min(cpu_state.MM[cpu_reg].sw[1], cpu_state.MM[cpu_rm].sw[1]);
-        cpu_state.MM[cpu_reg].sw[2] = min(cpu_state.MM[cpu_reg].sw[2], cpu_state.MM[cpu_rm].sw[2]);
-        cpu_state.MM[cpu_reg].sw[3] = min(cpu_state.MM[cpu_reg].sw[3], cpu_state.MM[cpu_rm].sw[3]);
+        cpu_state.MM[cpu_reg].sw[0] = fmin(cpu_state.MM[cpu_reg].sw[0], cpu_state.MM[cpu_rm].sw[0]);
+        cpu_state.MM[cpu_reg].sw[1] = fmin(cpu_state.MM[cpu_reg].sw[1], cpu_state.MM[cpu_rm].sw[1]);
+        cpu_state.MM[cpu_reg].sw[2] = fmin(cpu_state.MM[cpu_reg].sw[2], cpu_state.MM[cpu_rm].sw[2]);
+        cpu_state.MM[cpu_reg].sw[3] = fmin(cpu_state.MM[cpu_reg].sw[3], cpu_state.MM[cpu_rm].sw[3]);
         CLOCK_CYCLES(1);
     }
     else
@@ -2473,23 +2473,23 @@ static int opPMINSW_mm_mm_a16(uint32_t fetchdat)
         src[1] = readmemw(easeg, cpu_state.eaaddr + 2); if (cpu_state.abrt) return 1;
         src[2] = readmemw(easeg, cpu_state.eaaddr + 4); if (cpu_state.abrt) return 1;
         src[3] = readmemw(easeg, cpu_state.eaaddr + 6); if (cpu_state.abrt) return 1;
-        cpu_state.MM[cpu_reg].sw[0] = min(cpu_state.MM[cpu_reg].sw[0], src[0]);
-        cpu_state.MM[cpu_reg].sw[1] = min(cpu_state.MM[cpu_reg].sw[1], src[1]);
-        cpu_state.MM[cpu_reg].sw[2] = min(cpu_state.MM[cpu_reg].sw[2], src[2]);
-        cpu_state.MM[cpu_reg].sw[3] = min(cpu_state.MM[cpu_reg].sw[3], src[3]);
+        cpu_state.MM[cpu_reg].sw[0] = fmin(cpu_state.MM[cpu_reg].sw[0], src[0]);
+        cpu_state.MM[cpu_reg].sw[1] = fmin(cpu_state.MM[cpu_reg].sw[1], src[1]);
+        cpu_state.MM[cpu_reg].sw[2] = fmin(cpu_state.MM[cpu_reg].sw[2], src[2]);
+        cpu_state.MM[cpu_reg].sw[3] = fmin(cpu_state.MM[cpu_reg].sw[3], src[3]);
     }
     return 0;
 }
 
-static int opPMINSW_mm_mm_a32(uint32_t fetchdat)
+static int opPfminSW_mm_mm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.MM[cpu_reg].sw[0] = min(cpu_state.MM[cpu_reg].sw[0], cpu_state.MM[cpu_rm].sw[0]);
-        cpu_state.MM[cpu_reg].sw[1] = min(cpu_state.MM[cpu_reg].sw[1], cpu_state.MM[cpu_rm].sw[1]);
-        cpu_state.MM[cpu_reg].sw[2] = min(cpu_state.MM[cpu_reg].sw[2], cpu_state.MM[cpu_rm].sw[2]);
-        cpu_state.MM[cpu_reg].sw[3] = min(cpu_state.MM[cpu_reg].sw[3], cpu_state.MM[cpu_rm].sw[3]);
+        cpu_state.MM[cpu_reg].sw[0] = fmin(cpu_state.MM[cpu_reg].sw[0], cpu_state.MM[cpu_rm].sw[0]);
+        cpu_state.MM[cpu_reg].sw[1] = fmin(cpu_state.MM[cpu_reg].sw[1], cpu_state.MM[cpu_rm].sw[1]);
+        cpu_state.MM[cpu_reg].sw[2] = fmin(cpu_state.MM[cpu_reg].sw[2], cpu_state.MM[cpu_rm].sw[2]);
+        cpu_state.MM[cpu_reg].sw[3] = fmin(cpu_state.MM[cpu_reg].sw[3], cpu_state.MM[cpu_rm].sw[3]);
         CLOCK_CYCLES(1);
     }
     else
@@ -2501,27 +2501,27 @@ static int opPMINSW_mm_mm_a32(uint32_t fetchdat)
         src[1] = readmemw(easeg, cpu_state.eaaddr + 2); if (cpu_state.abrt) return 1;
         src[2] = readmemw(easeg, cpu_state.eaaddr + 4); if (cpu_state.abrt) return 1;
         src[3] = readmemw(easeg, cpu_state.eaaddr + 6); if (cpu_state.abrt) return 1;
-        cpu_state.MM[cpu_reg].sw[0] = min(cpu_state.MM[cpu_reg].sw[0], src[0]);
-        cpu_state.MM[cpu_reg].sw[1] = min(cpu_state.MM[cpu_reg].sw[1], src[1]);
-        cpu_state.MM[cpu_reg].sw[2] = min(cpu_state.MM[cpu_reg].sw[2], src[2]);
-        cpu_state.MM[cpu_reg].sw[3] = min(cpu_state.MM[cpu_reg].sw[3], src[3]);
+        cpu_state.MM[cpu_reg].sw[0] = fmin(cpu_state.MM[cpu_reg].sw[0], src[0]);
+        cpu_state.MM[cpu_reg].sw[1] = fmin(cpu_state.MM[cpu_reg].sw[1], src[1]);
+        cpu_state.MM[cpu_reg].sw[2] = fmin(cpu_state.MM[cpu_reg].sw[2], src[2]);
+        cpu_state.MM[cpu_reg].sw[3] = fmin(cpu_state.MM[cpu_reg].sw[3], src[3]);
     }
     return 0;
 }
 
-static int opPMINSW_xmm_xmm_a16(uint32_t fetchdat)
+static int opPfminSW_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.XMM[cpu_reg].sw[0] = min(cpu_state.XMM[cpu_reg].sw[0], cpu_state.XMM[cpu_rm].sw[0]);
-        cpu_state.XMM[cpu_reg].sw[1] = min(cpu_state.XMM[cpu_reg].sw[1], cpu_state.XMM[cpu_rm].sw[1]);
-        cpu_state.XMM[cpu_reg].sw[2] = min(cpu_state.XMM[cpu_reg].sw[2], cpu_state.XMM[cpu_rm].sw[2]);
-        cpu_state.XMM[cpu_reg].sw[3] = min(cpu_state.XMM[cpu_reg].sw[3], cpu_state.XMM[cpu_rm].sw[3]);
-        cpu_state.XMM[cpu_reg].sw[4] = min(cpu_state.XMM[cpu_reg].sw[4], cpu_state.XMM[cpu_rm].sw[4]);
-        cpu_state.XMM[cpu_reg].sw[5] = min(cpu_state.XMM[cpu_reg].sw[5], cpu_state.XMM[cpu_rm].sw[5]);
-        cpu_state.XMM[cpu_reg].sw[6] = min(cpu_state.XMM[cpu_reg].sw[6], cpu_state.XMM[cpu_rm].sw[6]);
-        cpu_state.XMM[cpu_reg].sw[7] = min(cpu_state.XMM[cpu_reg].sw[7], cpu_state.XMM[cpu_rm].sw[7]);
+        cpu_state.XMM[cpu_reg].sw[0] = fmin(cpu_state.XMM[cpu_reg].sw[0], cpu_state.XMM[cpu_rm].sw[0]);
+        cpu_state.XMM[cpu_reg].sw[1] = fmin(cpu_state.XMM[cpu_reg].sw[1], cpu_state.XMM[cpu_rm].sw[1]);
+        cpu_state.XMM[cpu_reg].sw[2] = fmin(cpu_state.XMM[cpu_reg].sw[2], cpu_state.XMM[cpu_rm].sw[2]);
+        cpu_state.XMM[cpu_reg].sw[3] = fmin(cpu_state.XMM[cpu_reg].sw[3], cpu_state.XMM[cpu_rm].sw[3]);
+        cpu_state.XMM[cpu_reg].sw[4] = fmin(cpu_state.XMM[cpu_reg].sw[4], cpu_state.XMM[cpu_rm].sw[4]);
+        cpu_state.XMM[cpu_reg].sw[5] = fmin(cpu_state.XMM[cpu_reg].sw[5], cpu_state.XMM[cpu_rm].sw[5]);
+        cpu_state.XMM[cpu_reg].sw[6] = fmin(cpu_state.XMM[cpu_reg].sw[6], cpu_state.XMM[cpu_rm].sw[6]);
+        cpu_state.XMM[cpu_reg].sw[7] = fmin(cpu_state.XMM[cpu_reg].sw[7], cpu_state.XMM[cpu_rm].sw[7]);
         CLOCK_CYCLES(1);
     }
     else
@@ -2537,31 +2537,31 @@ static int opPMINSW_xmm_xmm_a16(uint32_t fetchdat)
         src[5] = readmemw(easeg, cpu_state.eaaddr + 10); if (cpu_state.abrt) return 1;
         src[6] = readmemw(easeg, cpu_state.eaaddr + 12); if (cpu_state.abrt) return 1;
         src[7] = readmemw(easeg, cpu_state.eaaddr + 14); if (cpu_state.abrt) return 1;
-        cpu_state.XMM[cpu_reg].sw[0] = min(cpu_state.XMM[cpu_reg].sw[0], src[0]);
-        cpu_state.XMM[cpu_reg].sw[1] = min(cpu_state.XMM[cpu_reg].sw[1], src[1]);
-        cpu_state.XMM[cpu_reg].sw[2] = min(cpu_state.XMM[cpu_reg].sw[2], src[2]);
-        cpu_state.XMM[cpu_reg].sw[3] = min(cpu_state.XMM[cpu_reg].sw[3], src[3]);
-        cpu_state.XMM[cpu_reg].sw[4] = min(cpu_state.XMM[cpu_reg].sw[4], src[4]);
-        cpu_state.XMM[cpu_reg].sw[5] = min(cpu_state.XMM[cpu_reg].sw[5], src[5]);
-        cpu_state.XMM[cpu_reg].sw[6] = min(cpu_state.XMM[cpu_reg].sw[6], src[6]);
-        cpu_state.XMM[cpu_reg].sw[7] = min(cpu_state.XMM[cpu_reg].sw[7], src[7]);
+        cpu_state.XMM[cpu_reg].sw[0] = fmin(cpu_state.XMM[cpu_reg].sw[0], src[0]);
+        cpu_state.XMM[cpu_reg].sw[1] = fmin(cpu_state.XMM[cpu_reg].sw[1], src[1]);
+        cpu_state.XMM[cpu_reg].sw[2] = fmin(cpu_state.XMM[cpu_reg].sw[2], src[2]);
+        cpu_state.XMM[cpu_reg].sw[3] = fmin(cpu_state.XMM[cpu_reg].sw[3], src[3]);
+        cpu_state.XMM[cpu_reg].sw[4] = fmin(cpu_state.XMM[cpu_reg].sw[4], src[4]);
+        cpu_state.XMM[cpu_reg].sw[5] = fmin(cpu_state.XMM[cpu_reg].sw[5], src[5]);
+        cpu_state.XMM[cpu_reg].sw[6] = fmin(cpu_state.XMM[cpu_reg].sw[6], src[6]);
+        cpu_state.XMM[cpu_reg].sw[7] = fmin(cpu_state.XMM[cpu_reg].sw[7], src[7]);
     }
     return 0;
 }
 
-static int opPMINSW_xmm_xmm_a32(uint32_t fetchdat)
+static int opPfminSW_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.XMM[cpu_reg].sw[0] = min(cpu_state.XMM[cpu_reg].sw[0], cpu_state.XMM[cpu_rm].sw[0]);
-        cpu_state.XMM[cpu_reg].sw[1] = min(cpu_state.XMM[cpu_reg].sw[1], cpu_state.XMM[cpu_rm].sw[1]);
-        cpu_state.XMM[cpu_reg].sw[2] = min(cpu_state.XMM[cpu_reg].sw[2], cpu_state.XMM[cpu_rm].sw[2]);
-        cpu_state.XMM[cpu_reg].sw[3] = min(cpu_state.XMM[cpu_reg].sw[3], cpu_state.XMM[cpu_rm].sw[3]);
-        cpu_state.XMM[cpu_reg].sw[4] = min(cpu_state.XMM[cpu_reg].sw[4], cpu_state.XMM[cpu_rm].sw[4]);
-        cpu_state.XMM[cpu_reg].sw[5] = min(cpu_state.XMM[cpu_reg].sw[5], cpu_state.XMM[cpu_rm].sw[5]);
-        cpu_state.XMM[cpu_reg].sw[6] = min(cpu_state.XMM[cpu_reg].sw[6], cpu_state.XMM[cpu_rm].sw[6]);
-        cpu_state.XMM[cpu_reg].sw[7] = min(cpu_state.XMM[cpu_reg].sw[7], cpu_state.XMM[cpu_rm].sw[7]);
+        cpu_state.XMM[cpu_reg].sw[0] = fmin(cpu_state.XMM[cpu_reg].sw[0], cpu_state.XMM[cpu_rm].sw[0]);
+        cpu_state.XMM[cpu_reg].sw[1] = fmin(cpu_state.XMM[cpu_reg].sw[1], cpu_state.XMM[cpu_rm].sw[1]);
+        cpu_state.XMM[cpu_reg].sw[2] = fmin(cpu_state.XMM[cpu_reg].sw[2], cpu_state.XMM[cpu_rm].sw[2]);
+        cpu_state.XMM[cpu_reg].sw[3] = fmin(cpu_state.XMM[cpu_reg].sw[3], cpu_state.XMM[cpu_rm].sw[3]);
+        cpu_state.XMM[cpu_reg].sw[4] = fmin(cpu_state.XMM[cpu_reg].sw[4], cpu_state.XMM[cpu_rm].sw[4]);
+        cpu_state.XMM[cpu_reg].sw[5] = fmin(cpu_state.XMM[cpu_reg].sw[5], cpu_state.XMM[cpu_rm].sw[5]);
+        cpu_state.XMM[cpu_reg].sw[6] = fmin(cpu_state.XMM[cpu_reg].sw[6], cpu_state.XMM[cpu_rm].sw[6]);
+        cpu_state.XMM[cpu_reg].sw[7] = fmin(cpu_state.XMM[cpu_reg].sw[7], cpu_state.XMM[cpu_rm].sw[7]);
         CLOCK_CYCLES(1);
     }
     else
@@ -2577,27 +2577,27 @@ static int opPMINSW_xmm_xmm_a32(uint32_t fetchdat)
         src[5] = readmemw(easeg, cpu_state.eaaddr + 10); if (cpu_state.abrt) return 1;
         src[6] = readmemw(easeg, cpu_state.eaaddr + 12); if (cpu_state.abrt) return 1;
         src[7] = readmemw(easeg, cpu_state.eaaddr + 14); if (cpu_state.abrt) return 1;
-        cpu_state.XMM[cpu_reg].sw[0] = min(cpu_state.XMM[cpu_reg].sw[0], src[0]);
-        cpu_state.XMM[cpu_reg].sw[1] = min(cpu_state.XMM[cpu_reg].sw[1], src[1]);
-        cpu_state.XMM[cpu_reg].sw[2] = min(cpu_state.XMM[cpu_reg].sw[2], src[2]);
-        cpu_state.XMM[cpu_reg].sw[3] = min(cpu_state.XMM[cpu_reg].sw[3], src[3]);
-        cpu_state.XMM[cpu_reg].sw[4] = min(cpu_state.XMM[cpu_reg].sw[4], src[4]);
-        cpu_state.XMM[cpu_reg].sw[5] = min(cpu_state.XMM[cpu_reg].sw[5], src[5]);
-        cpu_state.XMM[cpu_reg].sw[6] = min(cpu_state.XMM[cpu_reg].sw[6], src[6]);
-        cpu_state.XMM[cpu_reg].sw[7] = min(cpu_state.XMM[cpu_reg].sw[7], src[7]);
+        cpu_state.XMM[cpu_reg].sw[0] = fmin(cpu_state.XMM[cpu_reg].sw[0], src[0]);
+        cpu_state.XMM[cpu_reg].sw[1] = fmin(cpu_state.XMM[cpu_reg].sw[1], src[1]);
+        cpu_state.XMM[cpu_reg].sw[2] = fmin(cpu_state.XMM[cpu_reg].sw[2], src[2]);
+        cpu_state.XMM[cpu_reg].sw[3] = fmin(cpu_state.XMM[cpu_reg].sw[3], src[3]);
+        cpu_state.XMM[cpu_reg].sw[4] = fmin(cpu_state.XMM[cpu_reg].sw[4], src[4]);
+        cpu_state.XMM[cpu_reg].sw[5] = fmin(cpu_state.XMM[cpu_reg].sw[5], src[5]);
+        cpu_state.XMM[cpu_reg].sw[6] = fmin(cpu_state.XMM[cpu_reg].sw[6], src[6]);
+        cpu_state.XMM[cpu_reg].sw[7] = fmin(cpu_state.XMM[cpu_reg].sw[7], src[7]);
     }
     return 0;
 }
 
-static int opPMAXSW_mm_mm_a16(uint32_t fetchdat)
+static int opPfmaxSW_mm_mm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.MM[cpu_reg].sw[0] = max(cpu_state.MM[cpu_reg].sw[0], cpu_state.MM[cpu_rm].sw[0]);
-        cpu_state.MM[cpu_reg].sw[1] = max(cpu_state.MM[cpu_reg].sw[1], cpu_state.MM[cpu_rm].sw[1]);
-        cpu_state.MM[cpu_reg].sw[2] = max(cpu_state.MM[cpu_reg].sw[2], cpu_state.MM[cpu_rm].sw[2]);
-        cpu_state.MM[cpu_reg].sw[3] = max(cpu_state.MM[cpu_reg].sw[3], cpu_state.MM[cpu_rm].sw[3]);
+        cpu_state.MM[cpu_reg].sw[0] = fmax(cpu_state.MM[cpu_reg].sw[0], cpu_state.MM[cpu_rm].sw[0]);
+        cpu_state.MM[cpu_reg].sw[1] = fmax(cpu_state.MM[cpu_reg].sw[1], cpu_state.MM[cpu_rm].sw[1]);
+        cpu_state.MM[cpu_reg].sw[2] = fmax(cpu_state.MM[cpu_reg].sw[2], cpu_state.MM[cpu_rm].sw[2]);
+        cpu_state.MM[cpu_reg].sw[3] = fmax(cpu_state.MM[cpu_reg].sw[3], cpu_state.MM[cpu_rm].sw[3]);
         CLOCK_CYCLES(1);
     }
     else
@@ -2609,23 +2609,23 @@ static int opPMAXSW_mm_mm_a16(uint32_t fetchdat)
         src[1] = readmemw(easeg, cpu_state.eaaddr + 2); if (cpu_state.abrt) return 1;
         src[2] = readmemw(easeg, cpu_state.eaaddr + 4); if (cpu_state.abrt) return 1;
         src[3] = readmemw(easeg, cpu_state.eaaddr + 6); if (cpu_state.abrt) return 1;
-        cpu_state.MM[cpu_reg].sw[0] = max(cpu_state.MM[cpu_reg].sw[0], src[0]);
-        cpu_state.MM[cpu_reg].sw[1] = max(cpu_state.MM[cpu_reg].sw[1], src[1]);
-        cpu_state.MM[cpu_reg].sw[2] = max(cpu_state.MM[cpu_reg].sw[2], src[2]);
-        cpu_state.MM[cpu_reg].sw[3] = max(cpu_state.MM[cpu_reg].sw[3], src[3]);
+        cpu_state.MM[cpu_reg].sw[0] = fmax(cpu_state.MM[cpu_reg].sw[0], src[0]);
+        cpu_state.MM[cpu_reg].sw[1] = fmax(cpu_state.MM[cpu_reg].sw[1], src[1]);
+        cpu_state.MM[cpu_reg].sw[2] = fmax(cpu_state.MM[cpu_reg].sw[2], src[2]);
+        cpu_state.MM[cpu_reg].sw[3] = fmax(cpu_state.MM[cpu_reg].sw[3], src[3]);
     }
     return 0;
 }
 
-static int opPMAXSW_mm_mm_a32(uint32_t fetchdat)
+static int opPfmaxSW_mm_mm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.MM[cpu_reg].sw[0] = max(cpu_state.MM[cpu_reg].sw[0], cpu_state.MM[cpu_rm].sw[0]);
-        cpu_state.MM[cpu_reg].sw[1] = max(cpu_state.MM[cpu_reg].sw[1], cpu_state.MM[cpu_rm].sw[1]);
-        cpu_state.MM[cpu_reg].sw[2] = max(cpu_state.MM[cpu_reg].sw[2], cpu_state.MM[cpu_rm].sw[2]);
-        cpu_state.MM[cpu_reg].sw[3] = max(cpu_state.MM[cpu_reg].sw[3], cpu_state.MM[cpu_rm].sw[3]);
+        cpu_state.MM[cpu_reg].sw[0] = fmax(cpu_state.MM[cpu_reg].sw[0], cpu_state.MM[cpu_rm].sw[0]);
+        cpu_state.MM[cpu_reg].sw[1] = fmax(cpu_state.MM[cpu_reg].sw[1], cpu_state.MM[cpu_rm].sw[1]);
+        cpu_state.MM[cpu_reg].sw[2] = fmax(cpu_state.MM[cpu_reg].sw[2], cpu_state.MM[cpu_rm].sw[2]);
+        cpu_state.MM[cpu_reg].sw[3] = fmax(cpu_state.MM[cpu_reg].sw[3], cpu_state.MM[cpu_rm].sw[3]);
         CLOCK_CYCLES(1);
     }
     else
@@ -2637,27 +2637,27 @@ static int opPMAXSW_mm_mm_a32(uint32_t fetchdat)
         src[1] = readmemw(easeg, cpu_state.eaaddr + 2); if (cpu_state.abrt) return 1;
         src[2] = readmemw(easeg, cpu_state.eaaddr + 4); if (cpu_state.abrt) return 1;
         src[3] = readmemw(easeg, cpu_state.eaaddr + 6); if (cpu_state.abrt) return 1;
-        cpu_state.MM[cpu_reg].sw[0] = max(cpu_state.MM[cpu_reg].sw[0], src[0]);
-        cpu_state.MM[cpu_reg].sw[1] = max(cpu_state.MM[cpu_reg].sw[1], src[1]);
-        cpu_state.MM[cpu_reg].sw[2] = max(cpu_state.MM[cpu_reg].sw[2], src[2]);
-        cpu_state.MM[cpu_reg].sw[3] = max(cpu_state.MM[cpu_reg].sw[3], src[3]);
+        cpu_state.MM[cpu_reg].sw[0] = fmax(cpu_state.MM[cpu_reg].sw[0], src[0]);
+        cpu_state.MM[cpu_reg].sw[1] = fmax(cpu_state.MM[cpu_reg].sw[1], src[1]);
+        cpu_state.MM[cpu_reg].sw[2] = fmax(cpu_state.MM[cpu_reg].sw[2], src[2]);
+        cpu_state.MM[cpu_reg].sw[3] = fmax(cpu_state.MM[cpu_reg].sw[3], src[3]);
     }
     return 0;
 }
 
-static int opPMAXSW_xmm_xmm_a16(uint32_t fetchdat)
+static int opPfmaxSW_xmm_xmm_a16(uint32_t fetchdat)
 {
     fetch_ea_16(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.XMM[cpu_reg].sw[0] = max(cpu_state.XMM[cpu_reg].sw[0], cpu_state.XMM[cpu_rm].sw[0]);
-        cpu_state.XMM[cpu_reg].sw[1] = max(cpu_state.XMM[cpu_reg].sw[1], cpu_state.XMM[cpu_rm].sw[1]);
-        cpu_state.XMM[cpu_reg].sw[2] = max(cpu_state.XMM[cpu_reg].sw[2], cpu_state.XMM[cpu_rm].sw[2]);
-        cpu_state.XMM[cpu_reg].sw[3] = max(cpu_state.XMM[cpu_reg].sw[3], cpu_state.XMM[cpu_rm].sw[3]);
-        cpu_state.XMM[cpu_reg].sw[4] = max(cpu_state.XMM[cpu_reg].sw[4], cpu_state.XMM[cpu_rm].sw[4]);
-        cpu_state.XMM[cpu_reg].sw[5] = max(cpu_state.XMM[cpu_reg].sw[5], cpu_state.XMM[cpu_rm].sw[5]);
-        cpu_state.XMM[cpu_reg].sw[6] = max(cpu_state.XMM[cpu_reg].sw[6], cpu_state.XMM[cpu_rm].sw[6]);
-        cpu_state.XMM[cpu_reg].sw[7] = max(cpu_state.XMM[cpu_reg].sw[7], cpu_state.XMM[cpu_rm].sw[7]);
+        cpu_state.XMM[cpu_reg].sw[0] = fmax(cpu_state.XMM[cpu_reg].sw[0], cpu_state.XMM[cpu_rm].sw[0]);
+        cpu_state.XMM[cpu_reg].sw[1] = fmax(cpu_state.XMM[cpu_reg].sw[1], cpu_state.XMM[cpu_rm].sw[1]);
+        cpu_state.XMM[cpu_reg].sw[2] = fmax(cpu_state.XMM[cpu_reg].sw[2], cpu_state.XMM[cpu_rm].sw[2]);
+        cpu_state.XMM[cpu_reg].sw[3] = fmax(cpu_state.XMM[cpu_reg].sw[3], cpu_state.XMM[cpu_rm].sw[3]);
+        cpu_state.XMM[cpu_reg].sw[4] = fmax(cpu_state.XMM[cpu_reg].sw[4], cpu_state.XMM[cpu_rm].sw[4]);
+        cpu_state.XMM[cpu_reg].sw[5] = fmax(cpu_state.XMM[cpu_reg].sw[5], cpu_state.XMM[cpu_rm].sw[5]);
+        cpu_state.XMM[cpu_reg].sw[6] = fmax(cpu_state.XMM[cpu_reg].sw[6], cpu_state.XMM[cpu_rm].sw[6]);
+        cpu_state.XMM[cpu_reg].sw[7] = fmax(cpu_state.XMM[cpu_reg].sw[7], cpu_state.XMM[cpu_rm].sw[7]);
         CLOCK_CYCLES(1);
     }
     else
@@ -2673,31 +2673,31 @@ static int opPMAXSW_xmm_xmm_a16(uint32_t fetchdat)
         src[5] = readmemw(easeg, cpu_state.eaaddr + 10); if (cpu_state.abrt) return 1;
         src[6] = readmemw(easeg, cpu_state.eaaddr + 12); if (cpu_state.abrt) return 1;
         src[7] = readmemw(easeg, cpu_state.eaaddr + 14); if (cpu_state.abrt) return 1;
-        cpu_state.XMM[cpu_reg].sw[0] = max(cpu_state.XMM[cpu_reg].sw[0], src[0]);
-        cpu_state.XMM[cpu_reg].sw[1] = max(cpu_state.XMM[cpu_reg].sw[1], src[1]);
-        cpu_state.XMM[cpu_reg].sw[2] = max(cpu_state.XMM[cpu_reg].sw[2], src[2]);
-        cpu_state.XMM[cpu_reg].sw[3] = max(cpu_state.XMM[cpu_reg].sw[3], src[3]);
-        cpu_state.XMM[cpu_reg].sw[4] = max(cpu_state.XMM[cpu_reg].sw[4], src[4]);
-        cpu_state.XMM[cpu_reg].sw[5] = max(cpu_state.XMM[cpu_reg].sw[5], src[5]);
-        cpu_state.XMM[cpu_reg].sw[6] = max(cpu_state.XMM[cpu_reg].sw[6], src[6]);
-        cpu_state.XMM[cpu_reg].sw[7] = max(cpu_state.XMM[cpu_reg].sw[7], src[7]);
+        cpu_state.XMM[cpu_reg].sw[0] = fmax(cpu_state.XMM[cpu_reg].sw[0], src[0]);
+        cpu_state.XMM[cpu_reg].sw[1] = fmax(cpu_state.XMM[cpu_reg].sw[1], src[1]);
+        cpu_state.XMM[cpu_reg].sw[2] = fmax(cpu_state.XMM[cpu_reg].sw[2], src[2]);
+        cpu_state.XMM[cpu_reg].sw[3] = fmax(cpu_state.XMM[cpu_reg].sw[3], src[3]);
+        cpu_state.XMM[cpu_reg].sw[4] = fmax(cpu_state.XMM[cpu_reg].sw[4], src[4]);
+        cpu_state.XMM[cpu_reg].sw[5] = fmax(cpu_state.XMM[cpu_reg].sw[5], src[5]);
+        cpu_state.XMM[cpu_reg].sw[6] = fmax(cpu_state.XMM[cpu_reg].sw[6], src[6]);
+        cpu_state.XMM[cpu_reg].sw[7] = fmax(cpu_state.XMM[cpu_reg].sw[7], src[7]);
     }
     return 0;
 }
 
-static int opPMAXSW_xmm_xmm_a32(uint32_t fetchdat)
+static int opPfmaxSW_xmm_xmm_a32(uint32_t fetchdat)
 {
     fetch_ea_32(fetchdat);
     if (cpu_mod == 3)
     {
-        cpu_state.XMM[cpu_reg].sw[0] = max(cpu_state.XMM[cpu_reg].sw[0], cpu_state.XMM[cpu_rm].sw[0]);
-        cpu_state.XMM[cpu_reg].sw[1] = max(cpu_state.XMM[cpu_reg].sw[1], cpu_state.XMM[cpu_rm].sw[1]);
-        cpu_state.XMM[cpu_reg].sw[2] = max(cpu_state.XMM[cpu_reg].sw[2], cpu_state.XMM[cpu_rm].sw[2]);
-        cpu_state.XMM[cpu_reg].sw[3] = max(cpu_state.XMM[cpu_reg].sw[3], cpu_state.XMM[cpu_rm].sw[3]);
-        cpu_state.XMM[cpu_reg].sw[4] = max(cpu_state.XMM[cpu_reg].sw[4], cpu_state.XMM[cpu_rm].sw[4]);
-        cpu_state.XMM[cpu_reg].sw[5] = max(cpu_state.XMM[cpu_reg].sw[5], cpu_state.XMM[cpu_rm].sw[5]);
-        cpu_state.XMM[cpu_reg].sw[6] = max(cpu_state.XMM[cpu_reg].sw[6], cpu_state.XMM[cpu_rm].sw[6]);
-        cpu_state.XMM[cpu_reg].sw[7] = max(cpu_state.XMM[cpu_reg].sw[7], cpu_state.XMM[cpu_rm].sw[7]);
+        cpu_state.XMM[cpu_reg].sw[0] = fmax(cpu_state.XMM[cpu_reg].sw[0], cpu_state.XMM[cpu_rm].sw[0]);
+        cpu_state.XMM[cpu_reg].sw[1] = fmax(cpu_state.XMM[cpu_reg].sw[1], cpu_state.XMM[cpu_rm].sw[1]);
+        cpu_state.XMM[cpu_reg].sw[2] = fmax(cpu_state.XMM[cpu_reg].sw[2], cpu_state.XMM[cpu_rm].sw[2]);
+        cpu_state.XMM[cpu_reg].sw[3] = fmax(cpu_state.XMM[cpu_reg].sw[3], cpu_state.XMM[cpu_rm].sw[3]);
+        cpu_state.XMM[cpu_reg].sw[4] = fmax(cpu_state.XMM[cpu_reg].sw[4], cpu_state.XMM[cpu_rm].sw[4]);
+        cpu_state.XMM[cpu_reg].sw[5] = fmax(cpu_state.XMM[cpu_reg].sw[5], cpu_state.XMM[cpu_rm].sw[5]);
+        cpu_state.XMM[cpu_reg].sw[6] = fmax(cpu_state.XMM[cpu_reg].sw[6], cpu_state.XMM[cpu_rm].sw[6]);
+        cpu_state.XMM[cpu_reg].sw[7] = fmax(cpu_state.XMM[cpu_reg].sw[7], cpu_state.XMM[cpu_rm].sw[7]);
         CLOCK_CYCLES(1);
     }
     else
@@ -2713,14 +2713,14 @@ static int opPMAXSW_xmm_xmm_a32(uint32_t fetchdat)
         src[5] = readmemw(easeg, cpu_state.eaaddr + 10); if (cpu_state.abrt) return 1;
         src[6] = readmemw(easeg, cpu_state.eaaddr + 12); if (cpu_state.abrt) return 1;
         src[7] = readmemw(easeg, cpu_state.eaaddr + 14); if (cpu_state.abrt) return 1;
-        cpu_state.XMM[cpu_reg].sw[0] = max(cpu_state.XMM[cpu_reg].sw[0], src[0]);
-        cpu_state.XMM[cpu_reg].sw[1] = max(cpu_state.XMM[cpu_reg].sw[1], src[1]);
-        cpu_state.XMM[cpu_reg].sw[2] = max(cpu_state.XMM[cpu_reg].sw[2], src[2]);
-        cpu_state.XMM[cpu_reg].sw[3] = max(cpu_state.XMM[cpu_reg].sw[3], src[3]);
-        cpu_state.XMM[cpu_reg].sw[4] = max(cpu_state.XMM[cpu_reg].sw[4], src[4]);
-        cpu_state.XMM[cpu_reg].sw[5] = max(cpu_state.XMM[cpu_reg].sw[5], src[5]);
-        cpu_state.XMM[cpu_reg].sw[6] = max(cpu_state.XMM[cpu_reg].sw[6], src[6]);
-        cpu_state.XMM[cpu_reg].sw[7] = max(cpu_state.XMM[cpu_reg].sw[7], src[7]);
+        cpu_state.XMM[cpu_reg].sw[0] = fmax(cpu_state.XMM[cpu_reg].sw[0], src[0]);
+        cpu_state.XMM[cpu_reg].sw[1] = fmax(cpu_state.XMM[cpu_reg].sw[1], src[1]);
+        cpu_state.XMM[cpu_reg].sw[2] = fmax(cpu_state.XMM[cpu_reg].sw[2], src[2]);
+        cpu_state.XMM[cpu_reg].sw[3] = fmax(cpu_state.XMM[cpu_reg].sw[3], src[3]);
+        cpu_state.XMM[cpu_reg].sw[4] = fmax(cpu_state.XMM[cpu_reg].sw[4], src[4]);
+        cpu_state.XMM[cpu_reg].sw[5] = fmax(cpu_state.XMM[cpu_reg].sw[5], src[5]);
+        cpu_state.XMM[cpu_reg].sw[6] = fmax(cpu_state.XMM[cpu_reg].sw[6], src[6]);
+        cpu_state.XMM[cpu_reg].sw[7] = fmax(cpu_state.XMM[cpu_reg].sw[7], src[7]);
     }
     return 0;
 }
