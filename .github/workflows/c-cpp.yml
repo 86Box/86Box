@@ -54,5 +54,5 @@ jobs:
       working-directory: ./src
     - uses: actions/upload-artifact@v2
       with:
-        name: pcbox
+        name: 'PCBox-${{ matrix.build.name }}-${{ matrix.target-arch }}-${{ matrix.toolset }}-${{ github.sha }}'
         path: src/PCBox.exe
