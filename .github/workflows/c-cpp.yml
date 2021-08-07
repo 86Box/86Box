@@ -55,4 +55,4 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: pcbox
-        path: build/artifacts/bin/**
+        path: src/PCBox.exe
