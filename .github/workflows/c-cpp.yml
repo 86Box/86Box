@@ -52,3 +52,7 @@ jobs:
     - name: make
       run: make -fwin/makefile.mingw -j DEV_BUILD=${{ matrix.dev-build }} NEW_DYNAREC=${{ matrix.new-dynarec }} X64=${{ matrix.target-arch.x64 }} VNC=n
       working-directory: ./src
+    - uses: actions/upload-artifact@v2
+      with:
+        name: pcbox
+        path: PCBox.exe
