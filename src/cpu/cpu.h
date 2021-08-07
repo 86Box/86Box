@@ -78,7 +78,8 @@ enum {
     CPU_CYRIX3S,
     CPU_PENTIUMPRO,	/* 686 class CPUs */
     CPU_PENTIUM2,
-    CPU_PENTIUM2D
+    CPU_PENTIUM2D,
+    CPU_PENTIUM3,
 };
 
 enum {
@@ -493,7 +494,7 @@ extern int	cpu_cyrix_alignment;	/*Cyrix 5x86/6x86 only has data misalignment
 					  penalties when crossing 8-byte boundaries*/
 
 extern int	is8086,	is286, is386, is486;
-extern int	is_am486, is_am486dxl, is_pentium, is_k5, is_k6, is_p6, is_cxsmm;
+extern int	is_am486, is_am486dxl, is_pentium, is_k5, is_k6, is_p6, is_cxsmm, is_pentium3;
 extern int	hascache;
 extern int	isibm486;
 extern int	is_rapidcad;
@@ -505,6 +506,7 @@ extern int	hasfpu;
 #define CPU_FEATURE_VME   (1 << 4)
 #define CPU_FEATURE_CX8   (1 << 5)
 #define CPU_FEATURE_3DNOW (1 << 6)
+#define CPU_FEATURE_SSE   (1 << 7)
 
 extern uint32_t	cpu_features;
 

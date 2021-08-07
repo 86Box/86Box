@@ -944,6 +944,18 @@ const cpu_family_t cpu_families[] = {
     }, {
 	.package = CPU_PKG_SLOT1,
 	.manufacturer = "Intel",
+	.name = "Pentium III (Katmai)",
+	.internal_name = "pentium2_katmai",
+	.cpus = (const CPU[]) {
+		{"450",       CPU_PENTIUM3,  fpus_internal, 450000000, 4.5, 2800,  0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 54},
+		{"500",       CPU_PENTIUM3,  fpus_internal, 500000000, 5.0, 2800,  0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 60},
+		{"550",       CPU_PENTIUM3,  fpus_internal, 550000000, 5.5, 2800,  0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 66},
+		{"600",       CPU_PENTIUM3,  fpus_internal, 600000000, 6.0, 2800,  0x673,  0x673, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 41,41,14,14, 72},
+		{"", 0}
+	}
+	}, {
+	.package = CPU_PKG_SLOT1,
+	.manufacturer = "Intel",
 	.name = "Pentium II (Deschutes)",
 	.internal_name = "pentium2_deschutes",
 	.cpus = (const CPU[]) {

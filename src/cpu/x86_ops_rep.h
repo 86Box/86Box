@@ -766,3 +766,17 @@ static int opREPE(uint32_t fetchdat)
                 return x86_opcodes_REPE[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
         return x86_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
 }
+
+static int opREPNE_0f(uint32_t fetchdat)
+{
+        fetchdat = fastreadl(cs + cpu_state.pc);
+        if (cpu_state.abrt) return 1;
+        cpu_state.pc++;
+
+        CLOCK_CYCLES(2);
+        PREFETCH_PREFIX();
+        if(!x86_opcodes_REPNE_0f) return x86_opcodes_0f[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
+        if (x86_opcodes_REPNE_0f[(fetchdat & 0xff) | cpu_state.op32])
+                return x86_opcodes_REPNE_0f[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
+        return x86_opcodes_0f[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
+}
