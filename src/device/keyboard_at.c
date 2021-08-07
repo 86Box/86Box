@@ -2315,7 +2315,7 @@ write64_ami(void *priv, uint8_t val)
 	case 0xa1:	/* get controller version */
 		kbd_log("ATkbc: AMI - get controller version\n");
 		// kbc_transmit(dev, 'H');
-		kbc_transmit(dev, '5');
+		kbc_transmit(dev, 'Z');
 		return 0;
 
 	case 0xa2:	/* clear keyboard controller lines P22/P23 */
@@ -2875,6 +2875,11 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 			else
 				dev->mem[0x20] &= ~0x10;
 		} else if (val == 0xa1) {
+			dev->status &= ~STAT_IFULL;
+			kbc_send_to_ob(dev, 'H', 0, 0x00);
+		}
+#else
+		if (val == 0xa1) {
 			dev->status &= ~STAT_IFULL;
 			kbc_send_to_ob(dev, 'H', 0, 0x00);
 		}

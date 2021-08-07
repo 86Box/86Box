@@ -360,6 +360,9 @@ extern int	machine_at_g486vpa_init(const machine_t *);
 extern int	machine_at_486vipio2_init(const machine_t *);
 extern int	machine_at_abpb4_init(const machine_t *);
 extern int	machine_at_win486pci_init(const machine_t *);
+extern int	machine_at_ms4145_init(const machine_t *);
+extern int	machine_at_sbc_490_init(const machine_t *);
+extern int	machine_at_tf_486_init(const machine_t *);
 
 extern int	machine_at_itoxstar_init(const machine_t *);
 extern int	machine_at_arb1479_init(const machine_t *);
@@ -451,6 +454,7 @@ extern int	machine_at_ap53_init(const machine_t *);
 extern int	machine_at_8500tuc_init(const machine_t *);
 extern int	machine_at_p55t2s_init(const machine_t *);
 
+extern int	machine_at_p5vxb_init(const machine_t *);
 extern int	machine_at_gw2kte_init(const machine_t *);
 
 extern int	machine_at_ap5s_init(const machine_t *);

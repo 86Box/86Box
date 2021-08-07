@@ -105,7 +105,7 @@ ali1489_shadow_recalc(ali1489_t *dev)
 	}
     }
 
-    flushmmucache();
+    flushmmucache_nopc();
 }
 
 

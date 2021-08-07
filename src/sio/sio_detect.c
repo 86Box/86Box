@@ -53,7 +53,7 @@ sio_detect_read(uint16_t port, void *priv)
 
     pclog("sio_detect_read : port=%04x = %02X\n", port, dev->regs[port & 1]);
 
-    return dev->regs[port & 1];
+    return 0xff /*dev->regs[port & 1]*/;
 }
 
 

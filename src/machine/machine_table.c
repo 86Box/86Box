@@ -397,6 +397,8 @@ const machine_t machines[] = {
     { "[SiS 471] Epox 486SX/DX Green",		"ami471",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 65536, 1024, 127,	       machine_at_ami471_init, NULL			},
 
     /* 486 machines which utilize the PCI bus */
+    /* This has an AMIKey-2, which is an updated version of type 'H'. */
+    { "[ALi M1489] AAEON SBC-490",		"sbc-490",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,  65536, 1024, 255,	      machine_at_sbc_490_init, NULL			},
     /* Has the ALi M1487/9's on-chip keyboard controller which clones a standard AT
        KBC. */
     { "[ALi M1489] ABIT AB-PB4",		"abpb4",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024,  65536, 1024, 255,		machine_at_abpb4_init, NULL			},
@@ -406,6 +408,14 @@ const machine_t machines[] = {
        and 0xCB if command 0xA1 returns a letter in the 0x5x or 0x7x ranges, so I'm
        going to give it an AMI 'U' KBC. */
     { "[ALi M1489] AMI WinBIOS 486 PCI",	"win486pci",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024,  65536, 1024, 255,	    machine_at_win486pci_init, NULL			},
+    /* Has the ALi M1487/9's on-chip keyboard controller which clones a standard AT
+       KBC.
+       The known BIOS string ends in -E, and the BIOS returns whatever command 0xA1
+       returns (but only if command 0xA1 is instant response), so said ALi keyboard
+       controller likely returns 'E'. */
+    { "[ALi M1489] MSI MS-4145",		"ms4145",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024,  65536, 1024, 255,	       machine_at_ms4145_init, NULL			},
+    /* Has an ALi M5042 keyboard controller with Phoenix MultiKey/42 v1.40 firmware. */
+    { "[ALi M1489] ESA TF-486",			"tf-486",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,  65536, 1024, 255,	       machine_at_tf_486_init, NULL			},
     /* Has IBM PS/2 Type 1 KBC firmware. */
     { "[OPTi 802G] IBM PC 330 (type 6573)",	"pc330_6573",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3_PC330, 0, 25000000, 33333333, 0, 0, 2.0, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024, 65536, 1024, 127,	   machine_at_pc330_6573_init, NULL			},
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
@@ -578,6 +588,8 @@ const machine_t machines[] = {
     { "[i430HX] SuperMicro Super P55T2S",	"p55t2s",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3300, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 786432, 8192, 127,	       machine_at_p55t2s_init, NULL			},
 
     /* 430VX */
+    /* Has AMIKey H KBC firmware (AMIKey-2). */
+    { "[i430VX] ECS P5VX-B",			"p5vxb",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 131072, 8192, 127,		machine_at_p5vxb_init, NULL			},
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
