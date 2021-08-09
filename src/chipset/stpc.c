@@ -150,7 +150,7 @@ stpc_recalcmapping(stpc_t *dev)
 	}
     }
 
-    flushmmucache();
+    flushmmucache_nopc();
 }
 
 
