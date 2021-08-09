@@ -1,13 +1,11 @@
 static int opRDTSC(uint32_t fetchdat)
 {
-#if 0
         if (!cpu_has_feature(CPU_FEATURE_RDTSC))
         {
                 cpu_state.pc = cpu_state.oldpc;
                 x86illegal();
                 return 1;
         }
-#endif
         if ((cr4 & CR4_TSD) && CPL)
         {
                 x86gpf("RDTSC when TSD set and CPL != 0", 0);
