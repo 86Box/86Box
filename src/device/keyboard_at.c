@@ -673,7 +673,7 @@ kbd_status(const char *fmt, ...)
 }
 
 
-// #define ENABLE_KEYBOARD_AT_LOG 1
+#define ENABLE_KEYBOARD_AT_LOG 1
 #ifdef ENABLE_KEYBOARD_AT_LOG
 int keyboard_at_do_log = ENABLE_KEYBOARD_AT_LOG;
 
@@ -1184,7 +1184,7 @@ write_output(atkbd_t *dev, uint8_t val)
     uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
     kbd_log("ATkbc: write output port: %02X (old: %02X)\n", val, dev->p2);
 
-    if ((kbc_ven == KBC_VEN_AMI) || (dev->flags & KBC_FLAG_PS2))
+    if (!(dev->flags & KBC_FLAG_PS2))
 	val |= ((dev->mem[0x20] << 4) & 0x30);
 
     dev->kbd_inhibit = (val & 0x40);
@@ -1245,10 +1245,13 @@ write_cmd(atkbd_t *dev, uint8_t val)
        The AMIKEY firmware apparently uses this bit for something else. */
     if ((kbc_ven == KBC_VEN_AMI) || (dev->flags & KBC_FLAG_PS2)) {
 	keyboard_mode &= ~CCB_PCMODE;
-	/* Update the output port to mirror the KBD DIS and AUX DIS bits, if active. */
-	write_output(dev, dev->p2);
 
 	kbd_log("ATkbc: mouse interrupt is now %s\n",  (val & 0x02) ? "enabled" : "disabled");
+    }
+
+    if (!(dev->flags & KBC_FLAG_PS2)) {
+	/* Update the output port to mirror the KBD DIS and AUX DIS bits, if active. */
+	write_output(dev, dev->p2);
     }
 
     kbd_log("Command byte now: %02X (%02X)\n", dev->mem[0x20], val);
@@ -2058,6 +2061,8 @@ write64_generic(void *priv, uint8_t val)
 		   P6RP4:
 			Bit 2 must be 1 or CMOS setup is disabled. */
 		kbd_log("ATkbc: read input port\n");
+		kbc_transmit(dev, 0b10011100);
+		return 0;
 		fixed_bits = 4;
 		/* The SMM handlers of Intel AMI Pentium BIOS'es expect bit 6 to be set. */
 		if (kbc_ven == KBC_VEN_INTEL_AMI)
@@ -2879,10 +2884,11 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 			kbc_send_to_ob(dev, 'H', 0, 0x00);
 		}
 #else
-		if (val == 0xa1) {
+		/* if (val == 0xa1) {
 			dev->status &= ~STAT_IFULL;
 			kbc_send_to_ob(dev, 'H', 0, 0x00);
-		}
+		} */
+		kbc_process(dev);
 #endif
 		break;
     }
