@@ -2060,8 +2060,6 @@ write64_generic(void *priv, uint8_t val)
 		   P6RP4:
 			Bit 2 must be 1 or CMOS setup is disabled. */
 		kbd_log("ATkbc: read input port\n");
-		kbc_transmit(dev, 0b10011100);
-		return 0;
 		fixed_bits = 4;
 		/* The SMM handlers of Intel AMI Pentium BIOS'es expect bit 6 to be set. */
 		if (kbc_ven == KBC_VEN_INTEL_AMI)
