@@ -809,10 +809,17 @@ cpu_set(void)
 
 	case CPU_Cx486S:
 	case CPU_Cx486DX:
+	case CPU_STPC:
 #ifdef USE_DYNAREC
-		x86_setopcodes(ops_386, ops_c486_0f, dynarec_ops_386, dynarec_ops_c486_0f);
+		if (cpu_s->cpu_type == CPU_STPC)
+			x86_setopcodes(ops_386, ops_stpc_0f, dynarec_ops_386, dynarec_ops_stpc_0f);
+		else
+			x86_setopcodes(ops_386, ops_c486_0f, dynarec_ops_386, dynarec_ops_c486_0f);
 #else
-		x86_setopcodes(ops_386, ops_c486_0f);
+		if (cpu_s->cpu_type == CPU_STPC)
+			x86_setopcodes(ops_386, ops_stpc_0f);
+		else
+			x86_setopcodes(ops_386, ops_c486_0f);
 #endif
 
                 timing_rr			=   1;	/* register dest - register src */
@@ -846,6 +853,9 @@ cpu_set(void)
 		timing_jmp_pm_gate		=  37;
 
 		timing_misaligned		=   3;
+
+		if (cpu_s->cpu_type == CPU_STPC)
+			cpu_features = CPU_FEATURE_RDTSC;
 		break;
 
 	case CPU_Cx5x86:
