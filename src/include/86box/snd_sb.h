@@ -22,6 +22,7 @@
 #include <86box/snd_mpu401.h>
 #include <86box/snd_opl.h>
 #include <86box/snd_sb_dsp.h>
+#include <86box/snd_cms.h>
 
 #define SADLIB		1	/* No DSP */
 #define SB1		2	/* DSP v1.05 */
@@ -111,7 +112,8 @@ typedef struct sb_ct1745_mixer_t
 
 typedef struct sb_t
 {
-	uint8_t		opl_enabled, mixer_enabled;
+	uint8_t		cms_enabled, opl_enabled, mixer_enabled;
+        cms_t           cms;
         opl_t           opl, opl2;
         sb_dsp_t        dsp;
         union {

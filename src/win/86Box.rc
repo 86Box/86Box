@@ -134,6 +134,8 @@ BEGIN
 # endif
         MENUITEM SEPARATOR
         MENUITEM "Take s&creenshot\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM SEPARATOR
+        MENUITEM "Sound &gain...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
         MENUITEM SEPARATOR
         MENUITEM "Begin trace\tCtrl+T",         IDM_ACTION_BEGIN_TRACE
@@ -517,15 +519,17 @@ BEGIN
 
     CONTROL         "Innovation SSI-2001",IDC_CHECK_SSI,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,84,95,10
+
     CONTROL         "CMS / Game Blaster",IDC_CHECK_CMS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,147,84,95,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,102,95,10
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_CMS,214,100,46,12
 
     CONTROL         "Gravis Ultrasound",IDC_CHECK_GUS,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,101,94,10
-    PUSHBUTTON      "Configure",IDC_CONFIGURE_GUS,214,101,46,12
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,120,94,10
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_GUS,214,118,46,12
     
     CONTROL         "Use FLOAT32 sound",IDC_CHECK_FLOAT,"Button",
-                    BS_AUTOCHECKBOX | WS_TABSTOP,7,117,94,10
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,138,94,10
 END
 
 DLG_CFG_NETWORK DIALOG DISCARDABLE  107, 0, 267, 65

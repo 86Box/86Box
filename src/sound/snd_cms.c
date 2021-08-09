@@ -9,31 +9,8 @@
 #include <86box/io.h>
 #include <86box/device.h>
 #include <86box/sound.h>
+#include <86box/snd_cms.h>
 
-
-#define MASTER_CLOCK 7159090
-
-
-typedef struct cms_t
-{
-        int addrs[2];
-        uint8_t regs[2][32];
-        uint16_t latch[2][6];
-        int freq[2][6];
-        float count[2][6];
-        int vol[2][6][2];
-        int stat[2][6];
-        uint16_t noise[2][2];
-        uint16_t noisefreq[2][2];
-        int noisecount[2][2];
-        int noisetype[2][2];
-       
-        uint8_t latched_data;
-
-        int16_t buffer[SOUNDBUFLEN * 2];
-
-        int pos;
-} cms_t;
 
 void cms_update(cms_t *cms)
 {
@@ -181,7 +158,8 @@ void *cms_init(const device_t *info)
         cms_t *cms = malloc(sizeof(cms_t));
         memset(cms, 0, sizeof(cms_t));
 
-        io_sethandler(0x0220, 0x0010, cms_read, NULL, NULL, cms_write, NULL, NULL, cms);
+        uint16_t addr = device_get_config_hex16("base");
+        io_sethandler(addr, 0x0010, cms_read, NULL, NULL, cms_write, NULL, NULL, cms);
         sound_add_handler(cms_get_buffer, cms);
         return cms;
 }
@@ -193,11 +171,44 @@ void cms_close(void *p)
         free(cms);
 }
 
+static const device_config_t cms_config[] =
+{
+        {
+                "base", "Address", CONFIG_HEX16, "", 0x220, "", { 0 },
+                {
+                        {
+                                "0x210", 0x210
+                        },
+                        {
+                                "0x220", 0x220
+                        },
+                        {
+                                "0x230", 0x230
+                        },
+                        {
+                                "0x240", 0x240
+                        },
+                        {
+                                "0x250", 0x250
+                        },
+                        {
+                                "0x260", 0x260
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "", "", -1
+        }
+};
+
 const device_t cms_device =
 {
         "Creative Music System / Game Blaster",
         0, 0,
         cms_init, cms_close, NULL,
         { NULL }, NULL, NULL,
-        NULL
+        cms_config
 };

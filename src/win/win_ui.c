@@ -688,6 +688,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				win_settings_open(hwnd);
 				break;
 
+			case IDM_SND_GAIN:
+				SoundGainDialogCreate(hwnd);
+				break;
+
 			case IDM_ABOUT:
 				AboutDialogCreate(hwnd);
 				break;

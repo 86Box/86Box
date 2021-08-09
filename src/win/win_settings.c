@@ -1376,6 +1376,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		settings_enable_window(hdlg, IDC_CHECK_MPU401, mpu401_standalone_allow());
 		settings_enable_window(hdlg, IDC_CONFIGURE_MPU401, mpu401_standalone_allow() && temp_mpu401);
 		settings_set_check(hdlg, IDC_CHECK_CMS, temp_GAMEBLASTER);
+		settings_enable_window(hdlg, IDC_CONFIGURE_CMS, temp_GAMEBLASTER);
 		settings_set_check(hdlg, IDC_CHECK_GUS, temp_GUS);
 		settings_enable_window(hdlg, IDC_CONFIGURE_GUS, temp_GUS);
 		settings_set_check(hdlg, IDC_CHECK_SSI, temp_SSI2001);
@@ -1435,6 +1436,16 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDC_CONFIGURE_MPU401:
 				temp_deviceconfig |= deviceconfig_open(hdlg, (machines[temp_machine].flags & MACHINE_MCA) ?
 								       (void *)&mpu401_mca_device : (void *)&mpu401_device);
+				break;
+
+			case IDC_CHECK_CMS:
+				temp_GAMEBLASTER = settings_get_check(hdlg, IDC_CHECK_CMS);
+
+				settings_enable_window(hdlg, IDC_CONFIGURE_CMS, temp_GAMEBLASTER);
+				break;
+
+			case IDC_CONFIGURE_CMS:
+				temp_deviceconfig |= deviceconfig_open(hdlg, &cms_device);
 				break;
 
 			case IDC_CHECK_GUS:

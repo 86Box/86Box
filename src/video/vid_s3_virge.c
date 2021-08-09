@@ -586,6 +586,8 @@ static void s3_virge_out(uint16_t addr, uint8_t val, void *p)
 				if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
                                 	svga->fullchange = 3;
 					svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
+						if ((svga->crtc[0x67] & 0xc) != 0xc)
+							svga->ma_latch |= (virge->ma_ext << 16);
 				} else {
 					svga->fullchange = changeframecount;
 	                                svga_recalctimings(svga);
