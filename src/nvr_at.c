@@ -589,6 +589,9 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
 		break;
 
 	case RTC_REGD:		/* R/O */
+		/* This is needed for VIA, where writing to this register changes a write-only
+		   bit whose value is read from power management register 42. */
+		nvr->regs[RTC_REGD] = val & 0x80;
 		break;
 
 	case 0x2e:
@@ -796,6 +799,8 @@ nvr_reset(nvr_t *nvr)
     nvr->regs[RTC_YEAR] = RTC_BCD(80);
     if (local->cent != 0xFF)
 	nvr->regs[local->cent] = RTC_BCD(19);
+
+    nvr->regs[RTC_REGD] = REGD_VRT;
 }
 
 /* Process after loading from file. */
