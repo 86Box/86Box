@@ -1457,7 +1457,7 @@ machine_at_arb1479_init(const machine_t *model)
     device_add(&w83977f_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_consumer2_device);
-    device_add(&sst_flash_39sf020_device);
+    device_add(&winbond_flash_w29c020_device);
 
     return ret;
 }
