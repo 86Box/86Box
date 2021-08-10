@@ -35,7 +35,8 @@
 
 typedef struct sst_t
 {
-    uint8_t		id, is_39, page_bytes, sdp;
+    uint8_t		manufacturer, id, has_bbp, is_39,
+			page_bytes, sdp, bbp_first_8k, bbp_last_8k;
 
     int			command_state, id_mode,
 			dirty;
@@ -60,6 +61,7 @@ static char	flash_path[1024];
 #define SST_CHIP_ERASE    	0x10	/* Both 29 and 39, 6th cycle */
 #define SST_SDP_DISABLE		0x20	/* Only 29, Software data protect disable and write - treat as write */
 #define SST_SECTOR_ERASE  	0x30	/* Only 39, 6th cycle */
+#define W_BOOT_BLOCK_PROT	0x40	/* Only W29C020 */
 #define SST_SET_ID_MODE_ALT	0x60	/* Only 29, 6th cycle */
 #define SST_ERASE         	0x80	/* Both 29 and 39 */
 					/* With data 60h on 6th cycle, it's alt. ID */
@@ -68,21 +70,36 @@ static char	flash_path[1024];
 #define SST_CLEAR_ID_MODE 	0xf0	/* Both 29 and 39 */
 					/* 1st cycle variant only on 39 */
 
-#define SST_ID_MANUFACTURER	0xbf	/* SST Manufacturer's ID */
-#define SST_ID_SST29EE010	0x07
-#define SST_ID_SST29LE_VE010	0x08
-#define SST_ID_SST29EE020	0x10
-#define SST_ID_SST29LE_VE020	0x12
-#define SST_ID_SST39SF512	0xb4
-#define SST_ID_SST39SF010	0xb5
-#define SST_ID_SST39SF020	0xb6
-#define SST_ID_SST39SF040	0xb7
+#define SST			0xbf	/* SST Manufacturer's ID */
+#define SST29EE010		0x0700
+#define SST29LE_VE010		0x0800
+#define SST29EE020		0x1000
+#define SST29LE_VE020		0x1200
+#define SST39SF512		0xb400
+#define SST39SF010		0xb500
+#define SST39SF020		0xb600
+#define SST39SF040		0xb700
+
+#define WINBOND			0xda	/* Winbond Manufacturer's ID */
+#define W29C020			0x4500
+
+#define SIZE_512K		0x010000
+#define SIZE_1M			0x020000
+#define SIZE_2M			0x040000
+#define SIZE_4M			0x080000
 
 
 static void
 sst_sector_erase(sst_t *dev, uint32_t addr)
 {
-    memset(&dev->array[addr & (dev->mask & ~0xfff)], 0xff, 4096);
+    uint32_t base = addr & (dev->mask & ~0xfff);
+
+    if ((base < 0x2000) && (dev->bbp_first_8k & 0x01))
+	return;
+    else if ((base >= (dev->size - 0x2000)) && (dev->bbp_last_8k & 0x01))
+	return;
+
+    memset(&dev->array[base], 0xff, 4096);
     dev->dirty = 1;
 }
 
@@ -90,9 +107,19 @@ sst_sector_erase(sst_t *dev, uint32_t addr)
 static void
 sst_new_command(sst_t *dev, uint32_t addr, uint8_t val)
 {
+    uint32_t base = 0x00000, size = dev->size;
+
     if (dev->command_state == 5)  switch (val) {
 	case SST_CHIP_ERASE:
-		memset(dev->array, 0xff, 0x20000);
+		if (dev->bbp_first_8k & 0x01) {
+			base += 0x2000;
+			size -= 0x2000;
+		}
+
+		if (dev->bbp_last_8k & 0x01)
+			size -= 0x2000;
+
+		memset(&(dev->array[base]), 0xff, size);
 		dev->command_state = 0;
 		break;
 
@@ -138,6 +165,10 @@ sst_new_command(sst_t *dev, uint32_t addr, uint8_t val)
 		dev->command_state = 6;
 		break;
 
+	case W_BOOT_BLOCK_PROT:
+		dev->command_state = dev->has_bbp ? 8 : 0;
+		break;
+
 	case SST_CLEAR_ID_MODE:
 		dev->id_mode = 0;
 		dev->command_state = 0;
@@ -160,6 +191,11 @@ sst_page_write(void *priv)
 	dev->page_base = dev->last_addr & dev->page_mask;
 	for (i = 0; i < 128; i++) {
 		if (dev->page_dirty[i]) {
+			if (((dev->page_base + i) < 0x2000) && (dev->bbp_first_8k & 0x01))
+				continue;
+			else if (((dev->page_base + i) >= (dev->size - 0x2000)) && (dev->bbp_last_8k & 0x01))
+				continue;
+
 			dev->array[dev->page_base + i] = dev->page_buffer[i];
 			dev->dirty |= 1;
 		}
@@ -175,12 +211,24 @@ static uint8_t
 sst_read_id(uint32_t addr, void *p)
 {
     sst_t *dev = (sst_t *) p;
-    uint8_t ret = 0xff;
+    uint8_t ret = 0x00;
 
     if ((addr & 0xffff) == 0)
-	ret = SST_ID_MANUFACTURER;	/* SST */
+	ret = dev->manufacturer;
     else if ((addr & 0xffff) == 1)
 	ret = dev->id;
+#ifdef UNKNOWN_FLASH
+    else if ((addr & 0xffff) == 0x100)
+	ret = 0x1c;
+    else if ((addr & 0xffff) == 0x101)
+	ret = 0x92;
+#endif
+    else if (dev->has_bbp) {
+	if (addr == 0x00002)
+		ret = dev->bbp_first_8k;
+	else if (addr == 0x3fff2)
+		ret = dev->bbp_last_8k;
+    }
 
     return ret;
 }
@@ -249,8 +297,9 @@ sst_write(uint32_t addr, uint8_t val, void *p)
 	case 6:
 		/* Page Load Cycle (29) / Data Write Cycle (39SF) */
 		if (dev->is_39) {
-			dev->array[addr & dev->mask] = val;
 			dev->command_state = 0;
+
+			dev->array[addr & dev->mask] = val;
 			dev->dirty = 1;
 		} else {
 			dev->command_state++;
@@ -260,6 +309,13 @@ sst_write(uint32_t addr, uint8_t val, void *p)
 	case 7:
 		if (!dev->is_39)
 			sst_buf_write(dev, addr, val);
+		break;
+	case 8:
+		if ((addr == 0x00000) && (val == 0x00))
+			dev->bbp_first_8k = 0xff;
+		else if ((addr == 0x3ffff) && (val == 0xff))
+			dev->bbp_last_8k = 0xff;
+		dev->command_state = 0;
 		break;
     }
 }
@@ -367,20 +423,19 @@ sst_init(const device_t *info)
     dev->array = (uint8_t *) malloc(biosmask + 1);
     memset(dev->array, 0xff, biosmask + 1);
 
-    dev->id = info->local;
-    dev->is_39 = (dev->id >= SST_ID_SST39SF512);
+    dev->manufacturer = info->local & 0xff;
+    dev->id = (info->local >> 8) & 0xff;
+    dev->has_bbp = (dev->manufacturer == WINBOND) && ((info->local & 0xff00) >= W29C020);
+    dev->is_39 = (dev->manufacturer == SST) && ((info->local & 0xff00) >= SST39SF512);
 
-    if (dev->id == SST_ID_SST39SF512)
+    dev->size = info->local & 0xffff0000;
+    if ((dev->size == 0x20000) && (strstr(machine_get_internal_name_ex(machine), "xi8088")) && !xi8088_bios_128kb())
 	dev->size = 0x10000;
-    else if ((dev->id == SST_ID_SST29EE020) || (dev->id == SST_ID_SST29LE_VE020) || (dev->id == SST_ID_SST39SF020))
-	dev->size = 0x40000;
-    else if (dev->id == SST_ID_SST39SF040)
-	dev->size = 0x80000;
-    else
-	dev->size = ((dev->id == SST_ID_SST39SF010) && (strstr(machine_get_internal_name_ex(machine), "xi8088")) && !xi8088_bios_128kb()) ? 0x10000 : 0x20000;
+
     dev->mask = dev->size - 1;
     dev->page_mask = dev->mask & 0xffffff80;	/* Filter out A0-A6. */
     dev->sdp = 1;
+    dev->bbp_first_8k = dev->bbp_last_8k = 0xfe;
 
     sst_add_mappings(dev);
 
@@ -422,7 +477,7 @@ const device_t sst_flash_29ee010_device =
 {
     "SST 29EE010 Flash BIOS",
     0,
-    SST_ID_SST29EE010,
+    SST | SST29EE010 | SIZE_1M,
     sst_init,
     sst_close,
     NULL,
@@ -434,7 +489,19 @@ const device_t sst_flash_29ee020_device =
 {
     "SST 29EE020 Flash BIOS",
     0,
-    SST_ID_SST29EE020,
+    SST | SST29EE020 | SIZE_2M,
+    sst_init,
+    sst_close,
+    NULL,
+    { NULL }, NULL, NULL, NULL
+};
+
+
+const device_t winbond_flash_w29c020_device =
+{
+    "Winbond W29C020 Flash BIOS",
+    0,
+    WINBOND | W29C020 | SIZE_2M,
     sst_init,
     sst_close,
     NULL,
@@ -446,7 +513,7 @@ const device_t sst_flash_39sf010_device =
 {
     "SST 39SF010 Flash BIOS",
     0,
-    SST_ID_SST39SF010,
+    SST | SST39SF010 | SIZE_1M,
     sst_init,
     sst_close,
     NULL,
@@ -458,7 +525,7 @@ const device_t sst_flash_39sf020_device =
 {
     "SST 39SF020 Flash BIOS",
     0,
-    SST_ID_SST39SF020,
+    SST | SST39SF020 | SIZE_2M,
     sst_init,
     sst_close,
     NULL,
@@ -469,7 +536,7 @@ const device_t sst_flash_39sf040_device =
 {
     "SST 39SF040 Flash BIOS",
     0,
-    SST_ID_SST39SF040,
+    SST | SST39SF040 | SIZE_4M,
     sst_init,
     sst_close,
     NULL,
