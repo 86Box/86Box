@@ -472,6 +472,7 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 #define CR4_TSD  (1 << 2)
 #define CR4_DE   (1 << 3)
 #define CR4_MCE  (1 << 6)
+#define CR4_PGE  (1 << 7)
 #define CR4_PCE  (1 << 8)
 #define CR4_OSFXSR  (1 << 9)
 
@@ -507,6 +508,7 @@ extern int	hasfpu;
 #define CPU_FEATURE_CX8   (1 << 5)
 #define CPU_FEATURE_3DNOW (1 << 6)
 #define CPU_FEATURE_SSE   (1 << 7)
+#define CPU_FEATURE_PGE   (1 << 8)
 
 extern uint32_t	cpu_features;
 

@@ -571,52 +571,34 @@ static int opMOVAPS_xmm_q_a32(uint32_t fetchdat)
 static int opMOVNTPS_xmm_q_a16(uint32_t fetchdat)
 {       
     fetch_ea_16(fetchdat);
-    if (cpu_mod == 3)
-    {
-        cpu_state.XMM[cpu_rm].f[0] = cpu_state.XMM[cpu_reg].f[0];
-        cpu_state.XMM[cpu_rm].f[1] = cpu_state.XMM[cpu_reg].f[1];
-        cpu_state.XMM[cpu_rm].f[2] = cpu_state.XMM[cpu_reg].f[2];
-        cpu_state.XMM[cpu_rm].f[3] = cpu_state.XMM[cpu_reg].f[3];
-        CLOCK_CYCLES(1);
-    }
-    else
-    {
-        uint32_t rm[4] = {cpu_state.XMM[cpu_reg].l[0], cpu_state.XMM[cpu_reg].l[1], cpu_state.XMM[cpu_reg].l[2], cpu_state.XMM[cpu_reg].l[3]};
-        SEG_CHECK_WRITE(cpu_state.ea_seg);
-        if(cpu_state.eaaddr & 0xf) x86gpf(NULL, 0);
-        writememl(easeg, cpu_state.eaaddr, rm[0]); if (cpu_state.abrt) return 1;
-        writememl(easeg, cpu_state.eaaddr + 4, rm[1]); if (cpu_state.abrt) return 1;
-        writememl(easeg, cpu_state.eaaddr + 8, rm[2]); if (cpu_state.abrt) return 1;
-        writememl(easeg, cpu_state.eaaddr + 12, rm[3]); if (cpu_state.abrt) return 1;
+    ILLEGAL_ON(cpu_mod == 3);
 
-        CLOCK_CYCLES(2);
-    }
+    uint32_t rm[4] = {cpu_state.XMM[cpu_reg].l[0], cpu_state.XMM[cpu_reg].l[1], cpu_state.XMM[cpu_reg].l[2], cpu_state.XMM[cpu_reg].l[3]};
+    SEG_CHECK_WRITE(cpu_state.ea_seg);
+    if(cpu_state.eaaddr & 0xf) x86gpf(NULL, 0);
+    writememl(easeg, cpu_state.eaaddr, rm[0]); if (cpu_state.abrt) return 1;
+    writememl(easeg, cpu_state.eaaddr + 4, rm[1]); if (cpu_state.abrt) return 1;
+    writememl(easeg, cpu_state.eaaddr + 8, rm[2]); if (cpu_state.abrt) return 1;
+    writememl(easeg, cpu_state.eaaddr + 12, rm[3]); if (cpu_state.abrt) return 1;
+
+    CLOCK_CYCLES(2);
     return 0;
 }
 
 static int opMOVNTPS_xmm_q_a32(uint32_t fetchdat)
 {       
     fetch_ea_32(fetchdat);
-    if (cpu_mod == 3)
-    {
-        cpu_state.XMM[cpu_rm].f[0] = cpu_state.XMM[cpu_reg].f[0];
-        cpu_state.XMM[cpu_rm].f[1] = cpu_state.XMM[cpu_reg].f[1];
-        cpu_state.XMM[cpu_rm].f[2] = cpu_state.XMM[cpu_reg].f[2];
-        cpu_state.XMM[cpu_rm].f[3] = cpu_state.XMM[cpu_reg].f[3];
-        CLOCK_CYCLES(1);
-    }
-    else
-    {
-        uint32_t rm[4] = {cpu_state.XMM[cpu_reg].l[0], cpu_state.XMM[cpu_reg].l[1], cpu_state.XMM[cpu_reg].l[2], cpu_state.XMM[cpu_reg].l[3]};
-        SEG_CHECK_WRITE(cpu_state.ea_seg);
-        if(cpu_state.eaaddr & 0xf) x86gpf(NULL, 0);
-        writememl(easeg, cpu_state.eaaddr, rm[0]); if (cpu_state.abrt) return 1;
-        writememl(easeg, cpu_state.eaaddr + 4, rm[1]); if (cpu_state.abrt) return 1;
-        writememl(easeg, cpu_state.eaaddr + 8, rm[2]); if (cpu_state.abrt) return 1;
-        writememl(easeg, cpu_state.eaaddr + 12, rm[3]); if (cpu_state.abrt) return 1;
+    ILLEGAL_ON(cpu_mod == 3);
+
+    uint32_t rm[4] = {cpu_state.XMM[cpu_reg].l[0], cpu_state.XMM[cpu_reg].l[1], cpu_state.XMM[cpu_reg].l[2], cpu_state.XMM[cpu_reg].l[3]};
+    SEG_CHECK_WRITE(cpu_state.ea_seg);
+    if(cpu_state.eaaddr & 0xf) x86gpf(NULL, 0);
+    writememl(easeg, cpu_state.eaaddr, rm[0]); if (cpu_state.abrt) return 1;
+    writememl(easeg, cpu_state.eaaddr + 4, rm[1]); if (cpu_state.abrt) return 1;
+    writememl(easeg, cpu_state.eaaddr + 8, rm[2]); if (cpu_state.abrt) return 1;
+    writememl(easeg, cpu_state.eaaddr + 12, rm[3]); if (cpu_state.abrt) return 1;
 
         CLOCK_CYCLES(2);
-    }
     return 0;
 }
 

@@ -60,6 +60,7 @@ enum {
 	CPUID_AMDSEP = (1 << 10),
 	CPUID_SEP = (1 << 11),
 	CPUID_MTRR = (1 << 12),
+	CPUID_PGE = (1 << 13),
         CPUID_CMOV = (1 << 15),
         CPUID_MMX = (1 << 23),
 	CPUID_FXSR = (1 << 24),
@@ -1334,9 +1335,9 @@ cpu_set(void)
 
 		timing_misaligned		=   3;
 
-                cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_SSE;
+                cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_SSE | CPU_FEATURE_PGE;
                 msr.fcr = (1 << 8) | (1 << 9) | (1 << 12) |  (1 << 16) | (1 << 19) | (1 << 21);
-                cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PAE | CR4_PCE;
+                cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PAE | CR4_PCE | CR4_PGE;
 	            cpu_CR4_mask |= CR4_OSFXSR;
 
 #ifdef USE_DYNAREC
@@ -2044,7 +2045,7 @@ cpu_CPUID(void)
 		} else if (EAX == 1) {
 			EAX = CPUID;
 			EBX = ECX = 0;
-			EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_SEP | CPUID_FXSR | CPUID_CMOV | CPUID_SSE;
+			EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_SEP | CPUID_FXSR | CPUID_CMOV | CPUID_SSE | CPUID_PGE;
 		} else if (EAX == 2) {
 			EAX = 0x00000001;
 			EBX = ECX = 0;
