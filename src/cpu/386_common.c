@@ -306,7 +306,6 @@ enum SMMRAM_Fields_AMD_K {
 };
 
 
-#define ENABLE_386_COMMON_LOG 1
 #ifdef ENABLE_386_COMMON_LOG
 int x386_common_do_log = ENABLE_386_COMMON_LOG;
 

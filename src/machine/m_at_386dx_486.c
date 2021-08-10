@@ -97,7 +97,7 @@ machine_at_sis401_common_init(const machine_t *model)
     device_add(&keyboard_at_ami_device);
 
     if (fdc_type == FDC_INTERNAL)
-    device_add(&fdc_at_device);
+	device_add(&fdc_at_device);
 }
 
 
@@ -227,7 +227,7 @@ machine_at_spc6000a_init(const machine_t *model)
     device_add(&cs8230_device);
 
     if (fdc_type == FDC_INTERNAL)
-    device_add(&fdc_at_device);
+	device_add(&fdc_at_device);
 
     device_add(&keyboard_at_samsung_device);
 
@@ -1310,7 +1310,7 @@ machine_at_arb1479_init(const machine_t *model)
     device_add(&w83977f_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&stpc_consumer2_device);
-    device_add(&sst_flash_29ee020_device);
+    device_add(&winbond_flash_w29c020_device);
 
     return ret;
 }
