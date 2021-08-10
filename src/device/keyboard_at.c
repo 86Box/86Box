@@ -1118,10 +1118,13 @@ write_cmd(atkbd_t *dev, uint8_t val)
     if ((kbc_ven == KBC_VEN_AMI) ||
         ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF)) {
 	keyboard_mode &= ~CCB_PCMODE;
-	/* Update the output port to mirror the KBD DIS and AUX DIS bits, if active. */
-	write_output(dev, dev->output_port);
 
 	kbd_log("ATkbc: mouse interrupt is now %s\n",  (val & 0x02) ? "enabled" : "disabled");
+    }
+
+    if ((kbc_ven == KBC_VEN_AMI) || ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF)) {
+	/* Update the output port to mirror the KBD DIS and AUX DIS bits, if active. */
+	write_output(dev, dev->output_port);
     }
 
     kbd_log("Command byte now: %02X (%02X)\n", dev->mem[0], val);
@@ -1740,7 +1743,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
 				case 0xd2: /* write to keyboard output buffer */
 					kbd_log("ATkbc: write to keyboard output buffer\n");
-					add_data_kbd_direct(dev, val);
+					add_to_kbc_queue_front(dev, val, 0, 0x00);
 					break;
 
 				case 0xd3: /* write to mouse output buffer */
