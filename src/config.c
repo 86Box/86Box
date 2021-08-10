@@ -1112,12 +1112,12 @@ load_storage_controllers(void)
     if (strlen(p) > 511)
 	fatal("load_storage_controllers(): strlen(p) > 511\n");
     else
-	strncpy(cassette_fname, p, strlen(p) + 1);
+	strncpy(cassette_fname, p, MIN(511, strlen(p) + 1));
     p = config_get_string(cat, "cassette_mode", "");
     if (strlen(p) > 511)
 	fatal("load_storage_controllers(): strlen(p) > 511\n");
     else
-	strncpy(cassette_mode, p, strlen(p) + 1);
+	strncpy(cassette_mode, p, MIN(511, strlen(p) + 1));
     cassette_pos = config_get_int(cat, "cassette_position", 0);
     cassette_srate = config_get_int(cat, "cassette_srate", 44100);
     cassette_append = !!config_get_int(cat, "cassette_append", 0);
