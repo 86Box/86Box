@@ -99,6 +99,9 @@ ifeq ($(DEV_BUILD), y)
  ifndef OLIVETTI
   OLIVETTI	:= y
  endif
+ ifndef RIVA128
+  RIVA128   := y
+ endif
 else
  ifndef DEBUG
   DEBUG		:= n
@@ -171,6 +174,9 @@ else
  endif
  ifndef OLIVETTI
   OLIVETTI	:= n
+ endif
+ ifndef RIVA128
+  RIVA128   := n
  endif
 endif
 
@@ -580,6 +586,11 @@ OPTS		+= -DUSE_OLIVETTI
 DEVBROBJ	+= olivetti_eva.o
 endif
 
+
+ifeq ($(RIVA128), y)
+OPTS		+= -DUSE_RIVA128
+DEVBROBJ	+= vid_riva128.o
+endif
 
 endif
 
