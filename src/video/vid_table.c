@@ -145,6 +145,7 @@ video_cards[] = {
     { "mystique_220",		&mystique_220_device			},
 #endif
     { "n9_9fx_pci",		&s3_9fx_pci_device			},
+    { "riva128",            &riva128_pci_device},
     { "bahamas64_pci",		&s3_bahamas64_pci_device		},
     { "px_vision864_pci",	&s3_phoenix_vision864_pci_device	},
     { "px_vision868_pci",	&s3_phoenix_vision868_pci_device	},
