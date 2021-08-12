@@ -74,6 +74,9 @@ typedef struct
 } ali1489_t;
 
 
+static void	ali1489_ide_handler(ali1489_t *dev);
+
+
 static void
 ali1489_shadow_recalc(ali1489_t *dev)
 {
@@ -105,7 +108,7 @@ ali1489_shadow_recalc(ali1489_t *dev)
 	}
     }
 
-    flushmmucache();
+    flushmmucache_nopc();
 }
 
 
@@ -121,8 +124,7 @@ ali1489_smram_recalc(ali1489_t *dev)
 		smram_enable(dev->smram, 0xa0000, 0xa0000, 0x20000, (dev->regs[0x19] & 0x08), 1);
 		break;
 	case 0x20:
-		if ((dev->regs[0x14] & 0x03) == 0x00)
-			smram_enable(dev->smram, 0xe0000, 0xe0000, 0x10000, (dev->regs[0x19] & 0x08), 1);
+		smram_enable(dev->smram, 0xe0000, 0xe0000, 0x10000, (dev->regs[0x19] & 0x08), 1);
 		break;
 	case 0x30:
 		if ((dev->regs[0x35] & 0xc0) == 0x80)
@@ -199,10 +201,12 @@ ali1489_defaults(ali1489_t *dev)
     smi_line = 0;
     in_smm = 0;
 
-    pci_set_irq(PCI_INTA, PCI_IRQ_DISABLED);
-    pci_set_irq(PCI_INTB, PCI_IRQ_DISABLED);
-    pci_set_irq(PCI_INTC, PCI_IRQ_DISABLED);
-    pci_set_irq(PCI_INTD, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTC, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
+
+    ali1489_ide_handler(dev);
 }
 
 
@@ -459,7 +463,7 @@ ali1489_ide_handler(ali1489_t *dev)
 {
     ide_pri_disable();
     ide_sec_disable();
-    if (dev->regs[0x01] & 0x01) {
+    if (dev->ide_regs[0x01] & 0x01) {
 	ide_pri_enable();
 	if (!(dev->ide_regs[0x35] & 0x40))
 		ide_sec_enable();
@@ -570,10 +574,10 @@ ali1489_reset(void *priv)
 {
     ali1489_t *dev = (ali1489_t *)priv;
 
-    pci_set_irq(PCI_INTA, PCI_IRQ_DISABLED);
-    pci_set_irq(PCI_INTB, PCI_IRQ_DISABLED);
-    pci_set_irq(PCI_INTC, PCI_IRQ_DISABLED);
-    pci_set_irq(PCI_INTD, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTA, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTB, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTC, PCI_IRQ_DISABLED);
+    pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
 
     ali1489_defaults(dev);
 }
