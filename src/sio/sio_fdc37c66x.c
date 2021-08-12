@@ -73,7 +73,7 @@ set_com34_addr(fdc37c66x_t *dev)
 static void
 set_serial_addr(fdc37c66x_t *dev, int port)
 {
-    uint8_t shift = (port << 4);
+    uint8_t shift = (port << 2);
     double clock_src = 24000000.0 / 13.0;
 
     if (dev->regs[4] & (1 << (4 + port)))
@@ -81,7 +81,7 @@ set_serial_addr(fdc37c66x_t *dev, int port)
 
     serial_remove(dev->uart[port]);
     if (dev->regs[2] & (4 << shift)) {
-	switch (dev->regs[2] & (3 << shift)) {
+	switch ((dev->regs[2] >> shift) & 3) {
 		case 0:
 			serial_setup(dev->uart[port], SERIAL1_ADDR, SERIAL1_IRQ);
 			break;
@@ -112,11 +112,11 @@ lpt1_handler(fdc37c66x_t *dev)
 		break;
 	case 2:
 		lpt1_init(0x378);
-		lpt1_irq(5);
+		lpt1_irq(7 /*5*/);
 		break;
 	case 3:
 		lpt1_init(0x278);
-		lpt1_irq(5);
+		lpt1_irq(7 /*5*/);
 		break;
     }
 }
@@ -263,6 +263,13 @@ fdc37c66x_reset(fdc37c66x_t *dev)
     dev->regs[0x6] = 0xff;
     dev->regs[0xd] = dev->chip_id;
     dev->regs[0xe] = 0x01;
+
+    set_serial_addr(dev, 0);
+    set_serial_addr(dev, 1);
+
+    lpt1_handler(dev);
+
+    fdc_handler(dev);
 
     if (dev->has_ide)
 	ide_handler(dev);
