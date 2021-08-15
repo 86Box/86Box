@@ -399,9 +399,6 @@ typedef struct {
     }		CR0;
 
     uint16_t	flags, eflags;
-
-    SSE_REG XMM[8];
-    uint32_t mxcsr;
 } cpu_state_t;
 
 /*The cpu_state.flags below must match in both cpu_cur_status and block->status for a block
@@ -542,6 +539,8 @@ extern uint16_t		temp_seg_data[4];
 extern uint16_t		cs_msr;
 extern uint32_t		esp_msr;
 extern uint32_t		eip_msr;
+extern SSE_REG XMM[8];
+extern uint32_t mxcsr;
 
 /* For the AMD K6. */
 extern uint64_t		amd_efer, star;

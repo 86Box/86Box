@@ -164,23 +164,23 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 
 	if(is_pentium3)
 	{
-		cpu_state.mxcsr = readmeml(easeg,cpu_state.eaaddr+24) & ~0xffbf;
-		cpu_state.XMM[0].q[0] = readmemq(easeg,cpu_state.eaaddr+0xa0);
-		cpu_state.XMM[0].q[1] = readmemq(easeg,cpu_state.eaaddr+0xa8);
-		cpu_state.XMM[1].q[0] = readmemq(easeg,cpu_state.eaaddr+0xb0);
-		cpu_state.XMM[1].q[1] = readmemq(easeg,cpu_state.eaaddr+0xb8);
-		cpu_state.XMM[2].q[0] = readmemq(easeg,cpu_state.eaaddr+0xc0);
-		cpu_state.XMM[2].q[1] = readmemq(easeg,cpu_state.eaaddr+0xc8);
-		cpu_state.XMM[3].q[0] = readmemq(easeg,cpu_state.eaaddr+0xd0);
-		cpu_state.XMM[3].q[1] = readmemq(easeg,cpu_state.eaaddr+0xd8);
-		cpu_state.XMM[4].q[0] = readmemq(easeg,cpu_state.eaaddr+0xe0);
-		cpu_state.XMM[4].q[1] = readmemq(easeg,cpu_state.eaaddr+0xe8);
-		cpu_state.XMM[5].q[0] = readmemq(easeg,cpu_state.eaaddr+0xf0);
-		cpu_state.XMM[5].q[1] = readmemq(easeg,cpu_state.eaaddr+0xf8);
-		cpu_state.XMM[6].q[0] = readmemq(easeg,cpu_state.eaaddr+0x100);
-		cpu_state.XMM[6].q[1] = readmemq(easeg,cpu_state.eaaddr+0x108);
-		cpu_state.XMM[7].q[0] = readmemq(easeg,cpu_state.eaaddr+0x110);
-		cpu_state.XMM[7].q[1] = readmemq(easeg,cpu_state.eaaddr+0x118);
+		mxcsr = readmeml(easeg,cpu_state.eaaddr+24) & ~0xffbf;
+		XMM[0].q[0] = readmemq(easeg,cpu_state.eaaddr+0xa0);
+		XMM[0].q[1] = readmemq(easeg,cpu_state.eaaddr+0xa8);
+		XMM[1].q[0] = readmemq(easeg,cpu_state.eaaddr+0xb0);
+		XMM[1].q[1] = readmemq(easeg,cpu_state.eaaddr+0xb8);
+		XMM[2].q[0] = readmemq(easeg,cpu_state.eaaddr+0xc0);
+		XMM[2].q[1] = readmemq(easeg,cpu_state.eaaddr+0xc8);
+		XMM[3].q[0] = readmemq(easeg,cpu_state.eaaddr+0xd0);
+		XMM[3].q[1] = readmemq(easeg,cpu_state.eaaddr+0xd8);
+		XMM[4].q[0] = readmemq(easeg,cpu_state.eaaddr+0xe0);
+		XMM[4].q[1] = readmemq(easeg,cpu_state.eaaddr+0xe8);
+		XMM[5].q[0] = readmemq(easeg,cpu_state.eaaddr+0xf0);
+		XMM[5].q[1] = readmemq(easeg,cpu_state.eaaddr+0xf8);
+		XMM[6].q[0] = readmemq(easeg,cpu_state.eaaddr+0x100);
+		XMM[6].q[1] = readmemq(easeg,cpu_state.eaaddr+0x108);
+		XMM[7].q[0] = readmemq(easeg,cpu_state.eaaddr+0x110);
+		XMM[7].q[1] = readmemq(easeg,cpu_state.eaaddr+0x118);
 	}
 
 	CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
@@ -237,23 +237,23 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 
 	if(is_pentium3)
 	{
-		writememl(easeg,cpu_state.eaaddr+24,cpu_state.mxcsr);
-		writememq(easeg,cpu_state.eaaddr+0xa0,cpu_state.XMM[0].q[0]);
-		writememq(easeg,cpu_state.eaaddr+0xa8,cpu_state.XMM[0].q[1]);
-		writememq(easeg,cpu_state.eaaddr+0xb0,cpu_state.XMM[1].q[0]);
-		writememq(easeg,cpu_state.eaaddr+0xb8,cpu_state.XMM[1].q[1]);
-		writememq(easeg,cpu_state.eaaddr+0xc0,cpu_state.XMM[2].q[0]);
-		writememq(easeg,cpu_state.eaaddr+0xc8,cpu_state.XMM[2].q[1]);
-		writememq(easeg,cpu_state.eaaddr+0xd0,cpu_state.XMM[3].q[0]);
-		writememq(easeg,cpu_state.eaaddr+0xd8,cpu_state.XMM[3].q[1]);
-		writememq(easeg,cpu_state.eaaddr+0xe0,cpu_state.XMM[4].q[0]);
-		writememq(easeg,cpu_state.eaaddr+0xe8,cpu_state.XMM[4].q[1]);
-		writememq(easeg,cpu_state.eaaddr+0xf0,cpu_state.XMM[5].q[0]);
-		writememq(easeg,cpu_state.eaaddr+0xf8,cpu_state.XMM[5].q[1]);
-		writememq(easeg,cpu_state.eaaddr+0x100,cpu_state.XMM[6].q[0]);
-		writememq(easeg,cpu_state.eaaddr+0x108,cpu_state.XMM[6].q[1]);
-		writememq(easeg,cpu_state.eaaddr+0x110,cpu_state.XMM[7].q[0]);
-		writememq(easeg,cpu_state.eaaddr+0x118,cpu_state.XMM[7].q[1]);
+		writememl(easeg,cpu_state.eaaddr+24,mxcsr);
+		writememq(easeg,cpu_state.eaaddr+0xa0,XMM[0].q[0]);
+		writememq(easeg,cpu_state.eaaddr+0xa8,XMM[0].q[1]);
+		writememq(easeg,cpu_state.eaaddr+0xb0,XMM[1].q[0]);
+		writememq(easeg,cpu_state.eaaddr+0xb8,XMM[1].q[1]);
+		writememq(easeg,cpu_state.eaaddr+0xc0,XMM[2].q[0]);
+		writememq(easeg,cpu_state.eaaddr+0xc8,XMM[2].q[1]);
+		writememq(easeg,cpu_state.eaaddr+0xd0,XMM[3].q[0]);
+		writememq(easeg,cpu_state.eaaddr+0xd8,XMM[3].q[1]);
+		writememq(easeg,cpu_state.eaaddr+0xe0,XMM[4].q[0]);
+		writememq(easeg,cpu_state.eaaddr+0xe8,XMM[4].q[1]);
+		writememq(easeg,cpu_state.eaaddr+0xf0,XMM[5].q[0]);
+		writememq(easeg,cpu_state.eaaddr+0xf8,XMM[5].q[1]);
+		writememq(easeg,cpu_state.eaaddr+0x100,XMM[6].q[0]);
+		writememq(easeg,cpu_state.eaaddr+0x108,XMM[6].q[1]);
+		writememq(easeg,cpu_state.eaaddr+0x110,XMM[7].q[0]);
+		writememq(easeg,cpu_state.eaaddr+0x118,XMM[7].q[1]);
 	}
 
 	cpu_state.eaaddr = old_eaaddr;
@@ -284,7 +284,7 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
     	SEG_CHECK_READ(cpu_state.ea_seg);
     	src = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
 		if(src & ~0xffbf) x86gpf(NULL, 0);
-    	cpu_state.mxcsr = src & 0xffbf;
+    	mxcsr = src & 0xffbf;
 	}
 	else if(fxinst == 3)
 	{
@@ -294,7 +294,7 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 			return cpu_state.abrt;
 		}
 		SEG_CHECK_WRITE(cpu_state.ea_seg);
-    	writememl(easeg, cpu_state.eaaddr, cpu_state.mxcsr & 0xffbf); if (cpu_state.abrt) return 1;
+    	writememl(easeg, cpu_state.eaaddr, mxcsr & 0xffbf); if (cpu_state.abrt) return 1;
 	}
 	//fxinst == 7 is SFENCE which deals with cache stuff.
 	//We don't emulate the cache so we can safely ignore it.

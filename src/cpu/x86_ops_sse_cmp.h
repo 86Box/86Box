@@ -5,16 +5,16 @@ static int opUCOMISS_xmm_xmm_a16(uint32_t fetchdat)
     cpu_state.flags &= ~(V_FLAG | A_FLAG | N_FLAG);
     if (cpu_mod == 3)
     {
-        if(cpu_state.XMM[cpu_reg].f[0] > cpu_state.XMM[cpu_rm].f[0])
+        if(XMM[cpu_reg].f[0] > XMM[cpu_rm].f[0])
         {
             cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
         }
-        else if(cpu_state.XMM[cpu_reg].f[0] == cpu_state.XMM[cpu_rm].f[0])
+        else if(XMM[cpu_reg].f[0] == XMM[cpu_rm].f[0])
         {
             cpu_state.flags &= ~(P_FLAG | C_FLAG);
             cpu_state.flags |= Z_FLAG;
         }
-        else if(cpu_state.XMM[cpu_reg].f[0] < cpu_state.XMM[cpu_rm].f[0])
+        else if(XMM[cpu_reg].f[0] < XMM[cpu_rm].f[0])
         {
             cpu_state.flags &= ~(Z_FLAG | P_FLAG);
             cpu_state.flags |= C_FLAG;
@@ -29,16 +29,16 @@ static int opUCOMISS_xmm_xmm_a16(uint32_t fetchdat)
         src = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
         float src_real;
         src_real = *(float*)&src;
-        if(cpu_state.XMM[cpu_reg].f[0] > src_real)
+        if(XMM[cpu_reg].f[0] > src_real)
         {
             cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
         }
-        else if(cpu_state.XMM[cpu_reg].f[0] == src_real)
+        else if(XMM[cpu_reg].f[0] == src_real)
         {
             cpu_state.flags &= ~(P_FLAG | C_FLAG);
             cpu_state.flags |= Z_FLAG;
         }
-        else if(cpu_state.XMM[cpu_reg].f[0] < src_real)
+        else if(XMM[cpu_reg].f[0] < src_real)
         {
             cpu_state.flags &= ~(Z_FLAG | P_FLAG);
             cpu_state.flags |= C_FLAG;
@@ -55,16 +55,16 @@ static int opUCOMISS_xmm_xmm_a32(uint32_t fetchdat)
     cpu_state.flags &= ~(V_FLAG | A_FLAG | N_FLAG);
     if (cpu_mod == 3)
     {
-        if(cpu_state.XMM[cpu_reg].f[0] > cpu_state.XMM[cpu_rm].f[0])
+        if(XMM[cpu_reg].f[0] > XMM[cpu_rm].f[0])
         {
             cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
         }
-        else if(cpu_state.XMM[cpu_reg].f[0] == cpu_state.XMM[cpu_rm].f[0])
+        else if(XMM[cpu_reg].f[0] == XMM[cpu_rm].f[0])
         {
             cpu_state.flags &= ~(P_FLAG | C_FLAG);
             cpu_state.flags |= Z_FLAG;
         }
-        else if(cpu_state.XMM[cpu_reg].f[0] < cpu_state.XMM[cpu_rm].f[0])
+        else if(XMM[cpu_reg].f[0] < XMM[cpu_rm].f[0])
         {
             cpu_state.flags &= ~(Z_FLAG | P_FLAG);
             cpu_state.flags |= C_FLAG;
@@ -79,16 +79,16 @@ static int opUCOMISS_xmm_xmm_a32(uint32_t fetchdat)
         src = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
         float src_real;
         src_real = *(float*)&src;
-        if(cpu_state.XMM[cpu_reg].f[0] > src_real)
+        if(XMM[cpu_reg].f[0] > src_real)
         {
             cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
         }
-        else if(cpu_state.XMM[cpu_reg].f[0] == src_real)
+        else if(XMM[cpu_reg].f[0] == src_real)
         {
             cpu_state.flags &= ~(P_FLAG | C_FLAG);
             cpu_state.flags |= Z_FLAG;
         }
-        else if(cpu_state.XMM[cpu_reg].f[0] < src_real)
+        else if(XMM[cpu_reg].f[0] < src_real)
         {
             cpu_state.flags &= ~(Z_FLAG | P_FLAG);
             cpu_state.flags |= C_FLAG;
@@ -105,16 +105,16 @@ static int opCOMISS_xmm_xmm_a16(uint32_t fetchdat)
     cpu_state.flags &= ~(V_FLAG | A_FLAG | N_FLAG);
     if (cpu_mod == 3)
     {
-        if(cpu_state.XMM[cpu_reg].f[0] > cpu_state.XMM[cpu_rm].f[0])
+        if(XMM[cpu_reg].f[0] > XMM[cpu_rm].f[0])
         {
             cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
         }
-        else if(cpu_state.XMM[cpu_reg].f[0] == cpu_state.XMM[cpu_rm].f[0])
+        else if(XMM[cpu_reg].f[0] == XMM[cpu_rm].f[0])
         {
             cpu_state.flags &= ~(P_FLAG | C_FLAG);
             cpu_state.flags |= Z_FLAG;
         }
-        else if(cpu_state.XMM[cpu_reg].f[0] < cpu_state.XMM[cpu_rm].f[0])
+        else if(XMM[cpu_reg].f[0] < XMM[cpu_rm].f[0])
         {
             cpu_state.flags &= ~(Z_FLAG | P_FLAG);
             cpu_state.flags |= C_FLAG;
@@ -129,16 +129,16 @@ static int opCOMISS_xmm_xmm_a16(uint32_t fetchdat)
         src = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
         float src_real;
         src_real = *(float*)&src;
-        if(cpu_state.XMM[cpu_reg].f[0] > src_real)
+        if(XMM[cpu_reg].f[0] > src_real)
         {
             cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
         }
-        else if(cpu_state.XMM[cpu_reg].f[0] == src_real)
+        else if(XMM[cpu_reg].f[0] == src_real)
         {
             cpu_state.flags &= ~(P_FLAG | C_FLAG);
             cpu_state.flags |= Z_FLAG;
         }
-        else if(cpu_state.XMM[cpu_reg].f[0] < src_real)
+        else if(XMM[cpu_reg].f[0] < src_real)
         {
             cpu_state.flags &= ~(Z_FLAG | P_FLAG);
             cpu_state.flags |= C_FLAG;
@@ -155,16 +155,16 @@ static int opCOMISS_xmm_xmm_a32(uint32_t fetchdat)
     cpu_state.flags &= ~(V_FLAG | A_FLAG | N_FLAG);
     if (cpu_mod == 3)
     {
-        if(cpu_state.XMM[cpu_reg].f[0] > cpu_state.XMM[cpu_rm].f[0])
+        if(XMM[cpu_reg].f[0] > XMM[cpu_rm].f[0])
         {
             cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
         }
-        else if(cpu_state.XMM[cpu_reg].f[0] == cpu_state.XMM[cpu_rm].f[0])
+        else if(XMM[cpu_reg].f[0] == XMM[cpu_rm].f[0])
         {
             cpu_state.flags &= ~(P_FLAG | C_FLAG);
             cpu_state.flags |= Z_FLAG;
         }
-        else if(cpu_state.XMM[cpu_reg].f[0] < cpu_state.XMM[cpu_rm].f[0])
+        else if(XMM[cpu_reg].f[0] < XMM[cpu_rm].f[0])
         {
             cpu_state.flags &= ~(Z_FLAG | P_FLAG);
             cpu_state.flags |= C_FLAG;
@@ -179,16 +179,16 @@ static int opCOMISS_xmm_xmm_a32(uint32_t fetchdat)
         src = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
         float src_real;
         src_real = *(float*)&src;
-        if(cpu_state.XMM[cpu_reg].f[0] > src_real)
+        if(XMM[cpu_reg].f[0] > src_real)
         {
             cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
         }
-        else if(cpu_state.XMM[cpu_reg].f[0] == src_real)
+        else if(XMM[cpu_reg].f[0] == src_real)
         {
             cpu_state.flags &= ~(P_FLAG | C_FLAG);
             cpu_state.flags |= Z_FLAG;
         }
-        else if(cpu_state.XMM[cpu_reg].f[0] < src_real)
+        else if(XMM[cpu_reg].f[0] < src_real)
         {
             cpu_state.flags &= ~(Z_FLAG | P_FLAG);
             cpu_state.flags |= C_FLAG;

@@ -49,6 +49,9 @@
 #define CCR3_NMI_EN   (1 << 1)
 
 
+SSE_REG XMM[8];
+uint32_t mxcsr;
+
 enum {
         CPUID_FPU = (1 << 0),
         CPUID_VME = (1 << 1),

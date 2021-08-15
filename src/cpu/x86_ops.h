@@ -247,8 +247,6 @@ extern const OpFn ops_fpu_686_df_a32[256];
 
 extern const OpFn ops_REPE[1024];
 extern const OpFn ops_REPNE[1024];
-extern const OpFn ops_REPE_0f[1024];
-extern const OpFn ops_REPNE_0f[1024];
 extern const OpFn ops_3DNOW[256];
 
 #define C0 (1<<8)
