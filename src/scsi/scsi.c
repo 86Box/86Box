@@ -69,6 +69,7 @@ static SCSI_CARD scsi_cards[] = {
     { "bt545s",		&buslogic_545s_device,	},
     { "lcs6821n",	&scsi_lcs6821n_device,	},
     { "rt1000b",	&scsi_rt1000b_device,	},
+    { "t128",		&scsi_t128_device,	},
     { "t130b",		&scsi_t130b_device,	},
 #ifdef WALTJE
     { "scsiat",		&scsi_scsiat_device,	},
