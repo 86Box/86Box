@@ -114,7 +114,7 @@ typedef struct {
 	uint8_t status;
 	uint8_t buffer[512];
 	uint8_t ext_ram[0x600];
-	uint8_t block_count, bufval[512];
+	uint8_t block_count;
 	
 	int block_loaded, xfer_complete;
 	int pos, host_pos;
@@ -183,7 +183,7 @@ ncr_log(const char *fmt, ...)
 
     if (ncr5380_do_log) {
 	va_start(ap, fmt);
-	ncr_log_ex(fmt, ap);
+	pclog_ex(fmt, ap);
 	va_end(ap);
     }
 }
