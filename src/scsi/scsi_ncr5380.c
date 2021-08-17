@@ -271,8 +271,7 @@ ncr_timer_on(ncr5380_t *ncr_dev, ncr_t *ncr, int callback)
 
 	p += 1.0;
 	
-	if (ncr_dev->type == 3 && ncr->dma_mode == DMA_SEND)
-		ncr_log("P = %lf, command = %02x, callback = %i, period = %lf, t128 pos = %i\n", p, ncr->command[0], callback, ncr_dev->period, ncr_dev->t128.host_pos);
+	ncr_log("P = %lf, command = %02x, callback = %i, period = %lf, t128 pos = %i\n", p, ncr->command[0], callback, ncr_dev->period, ncr_dev->t128.host_pos);
 	timer_on_auto(&ncr_dev->timer, p);
 }
 
@@ -694,8 +693,8 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 		ncr_log("NCR5380: bad write %04x %02x\n", port, val);
 		break;
     }
-
-    if (ncr->dma_mode == DMA_IDLE || ncr_dev->type == 0 || (ncr_dev->type == 3 && ncr->dma_mode == DMA_SEND)) {
+	
+    if (ncr->dma_mode == DMA_IDLE || ncr_dev->type == 0 || ncr_dev->type == 3) {
 	bus_host = get_bus_host(ncr);
 	ncr_bus_update(priv, bus_host);
     }
@@ -1129,8 +1128,9 @@ ncr_dma_initiator_receive(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev)
 	
 	if (scsi_device_get_callback(dev) > 0.0) {
 		ncr_timer_on(ncr_dev, ncr, 1);
-	} else
+	} else {
 		ncr_timer_on(ncr_dev, ncr, 0);
+	}
 	
     for (c = 0; c < 10; c++) {
 	ncr_bus_read(ncr_dev);
@@ -1206,24 +1206,9 @@ ncr_callback(void *priv)
 		ncr_log("DMA Callback, load = %i\n", ncr_dev->t128.block_loaded);
 		if (ncr->dma_mode != DMA_IDLE && (ncr->mode & MODE_DMA) && ncr_dev->t128.block_loaded) {
 			ncr_log("Timer on! Host POS = %i, status = %02x, DMA mode = %i, Period = %lf\n", ncr_dev->t128.host_pos, ncr_dev->t128.status, ncr->dma_mode, scsi_device_get_callback(dev));
-			if (ncr->dma_mode == DMA_INITIATOR_RECEIVE) {
-				if (ncr_dev->t128.host_pos < 512 && ncr_dev->t128.block_count)
-					return;
-				
-				if (ncr_dev->t128.host_pos == 512 && ncr_dev->t128.block_count) {
-					ncr_dev->t128.status |= 0x04;
-					ncr_log("Keep reading\n");
-					ncr_timer_on(ncr_dev, ncr, 0);
-				}
-			} else if (ncr->dma_mode == DMA_SEND) {
-				if (ncr_dev->t128.host_pos < 512 && ncr_dev->t128.block_count)
-					return;
-				
-				if (ncr_dev->t128.host_pos == 512 && ncr_dev->t128.block_count) {
-					ncr_dev->t128.status |= 0x04;
-					ncr_log("Keep writing\n");
-					ncr_timer_on(ncr_dev, ncr, 0);
-				}
+			if (ncr_dev->t128.host_pos == 512 && ncr_dev->t128.block_count) {
+				ncr_dev->t128.status |= 0x04;
+				ncr_timer_on(ncr_dev, ncr, 0);
 			}
 		}
 	} else {
@@ -1265,7 +1250,10 @@ ncr_callback(void *priv)
 			if (!ncr_dev->t128.block_loaded) {
 				ncr_log("Write block not loaded\n");
 				break;
-			}		
+			}
+
+			if (ncr_dev->t128.host_pos < 512)
+				return;
 		}
 		ncr_dma_send(ncr_dev, ncr, dev);
 		break;
@@ -1294,6 +1282,9 @@ ncr_callback(void *priv)
 				ncr_log("Read block not loaded\n");
 				break;
 			}
+			
+			if (ncr_dev->t128.host_pos < 512)
+				return;
 		}
 		ncr_dma_initiator_receive(ncr_dev, ncr, dev);
 		break;
@@ -1325,7 +1316,7 @@ t128_read(uint32_t addr, void *priv)
 	ret = ncr_dev->t128.ctrl;
 	} else if (addr >= 0x1c20 && addr < 0x1c40) {
 	ret = ncr_dev->t128.status;
-	ncr_log("T128 status read = %02x\n", ret);
+	ncr_log("T128 status read = %02x, cur bus = %02x, req = %02x, dma = %02x\n", ret, ncr->cur_bus, ncr->cur_bus & BUS_REQ, ncr->mode & MODE_DMA);
 	} else if (addr >= 0x1d00 && addr < 0x1e00) {
 		if (addr >= 0x1d00 && addr < 0x1d20)
 			ret = ncr_read(0, ncr_dev);
@@ -1353,7 +1344,9 @@ t128_read(uint32_t addr, void *priv)
 
 			if (ncr_dev->t128.host_pos == 512) {
 				ncr_dev->t128.status &= ~0x04;
-				ncr_log("Transfer busy read, status = %02x\n", ncr_dev->t128.status);
+				ncr_log("Transfer busy read, status = %02x, period = %lf\n", ncr_dev->t128.status, ncr_dev->period);
+				if (ncr_dev->period == 0.2)
+					timer_on_auto(&ncr_dev->timer, 10.0);
 			}
 		}
 	}
