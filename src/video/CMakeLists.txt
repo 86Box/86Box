@@ -56,6 +56,7 @@ endif()
 # that cause ~3000 lines to be output into the logs each time
 if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
 	target_compile_options(voodoo PRIVATE "-Wstringop-overflow=0")
+endif()
 if(RIVA128)
 	target_compile_definitions(vid PRIVATE USE_RIVA128)
 	target_sources(vid PRIVATE vid_riva128.c)
