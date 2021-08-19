@@ -113,11 +113,13 @@ typedef struct {
 	uint8_t ctrl;
 	uint8_t status;
 	uint8_t buffer[512];
-	uint8_t ext_ram[0x600];
+	uint8_t ext_ram[0x80];
 	uint8_t block_count;
 	
-	int block_loaded, xfer_complete;
+	int block_loaded;
 	int pos, host_pos;
+	
+	int bios_enabled, int_lock;
 } t128_t;
 
 typedef struct {
@@ -1046,7 +1048,7 @@ ncr_dma_send(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev)
     int bus, c = 0;
     uint8_t data;
     
-    if (scsi_device_get_callback(dev) > 0.0)	
+    if (scsi_device_get_callback(dev) > 0.0)
 	ncr_timer_on(ncr_dev, ncr, 1);
     else
 	ncr_timer_on(ncr_dev, ncr, 0);
@@ -1080,7 +1082,6 @@ ncr_dma_send(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev)
 			ncr_log("Remaining blocks to be written=%d\n", ncr_dev->t128.block_count);
 			if (!ncr_dev->t128.block_count) {
 				ncr_dev->t128.block_loaded = 0;
-				ncr_dev->t128.xfer_complete = 0;
 				ncr_log("IO End of write transfer\n");
 				ncr->tcr |= TCR_LAST_BYTE_SENT;
 				ncr->isr |= STATUS_END_OF_DMA;
@@ -1253,7 +1254,7 @@ ncr_callback(void *priv)
 			}
 
 			if (ncr_dev->t128.host_pos < 512)
-				return;
+				break;
 		}
 		ncr_dma_send(ncr_dev, ncr, dev);
 		break;
@@ -1284,7 +1285,7 @@ ncr_callback(void *priv)
 			}
 			
 			if (ncr_dev->t128.host_pos < 512)
-				return;
+				break;
 		}
 		ncr_dma_initiator_receive(ncr_dev, ncr, dev);
 		break;
@@ -1311,7 +1312,7 @@ t128_read(uint32_t addr, void *priv)
     if (addr >= 0 && addr < 0x1800)
 	ret = ncr_dev->bios_rom.rom[addr & 0x1fff];
     else if (addr >= 0x1800 && addr < 0x1880)
-	ret = ncr_dev->t128.ext_ram[addr - 0x1800];
+	ret = ncr_dev->t128.ext_ram[addr & 0x7f];
 	else if (addr >= 0x1c00 && addr < 0x1c20) {	
 	ret = ncr_dev->t128.ctrl;
 	} else if (addr >= 0x1c20 && addr < 0x1c40) {
@@ -1346,7 +1347,7 @@ t128_read(uint32_t addr, void *priv)
 				ncr_dev->t128.status &= ~0x04;
 				ncr_log("Transfer busy read, status = %02x, period = %lf\n", ncr_dev->t128.status, ncr_dev->period);
 				if (ncr_dev->period == 0.2)
-					timer_on_auto(&ncr_dev->timer, 10.0);
+					timer_on_auto(&ncr_dev->timer, 40.2);
 			}
 		}
 	}
@@ -1362,7 +1363,7 @@ t128_write(uint32_t addr, uint8_t val, void *priv)
 	
     addr &= 0x3fff;
     if (addr >= 0x1800 && addr < 0x1880)
-	ncr_dev->t128.ext_ram[addr - 0x1800] = val;
+	ncr_dev->t128.ext_ram[addr & 0x7f] = val;
 	else if (addr >= 0x1c00 && addr < 0x1c20) {
 		if ((val & 0x02) && !(ncr_dev->t128.ctrl & 0x02)) {
 			ncr_dev->t128.status |= 0x02;
@@ -1397,7 +1398,7 @@ t128_write(uint32_t addr, uint8_t val, void *priv)
 			if (ncr_dev->t128.host_pos == 512) {
 				ncr_dev->t128.status &= ~0x04;
 				ncr_log("Transfer busy write, status = %02x\n", ncr_dev->t128.status);
-				timer_on_auto(&ncr_dev->timer, 0.2);
+				timer_on_auto(&ncr_dev->timer, 0.02);
 			}
 		} else
 			ncr_log("Write PDMA addr = %i, val = %02x\n", addr & 0x1ff, val);
@@ -1472,8 +1473,12 @@ ncr_init(const device_t *info)
 	case 3:		/* Trantor T128 */
 		ncr_dev->rom_addr = device_get_config_hex20("bios_addr");
 		ncr_dev->irq = device_get_config_int("irq");
-		rom_init(&ncr_dev->bios_rom, T128_ROM,
-			 ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+		ncr_dev->t128.bios_enabled = device_get_config_int("boot");
+		ncr_dev->t128.int_lock = device_get_config_int("int_lock");
+		
+		if (ncr_dev->t128.bios_enabled)
+			rom_init(&ncr_dev->bios_rom, T128_ROM,
+				 ncr_dev->rom_addr, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
 
 		mem_mapping_add(&ncr_dev->mapping, ncr_dev->rom_addr, 0x4000, 
 				t128_read, NULL, NULL,
@@ -1496,6 +1501,11 @@ ncr_init(const device_t *info)
 	} else {
 		ncr_dev->t128.status = 0x04;
 		ncr_dev->t128.host_pos = 512;
+		
+		if (!ncr_dev->t128.bios_enabled)
+			ncr_dev->t128.status |= 0x80;
+		if (ncr_dev->t128.int_lock)
+			ncr_dev->t128.status |= 0x40;
 	}
 	timer_add(&ncr_dev->timer, ncr_callback, ncr_dev, 0);
 
@@ -1712,6 +1722,55 @@ static const device_config_t t130b_config[] = {
 };
 
 
+static const device_config_t t128_config[] = {
+        {
+                "bios_addr", "BIOS Address", CONFIG_HEX20, "", 0xD8000, "", { 0 },
+                {
+                        {
+                                "C800H", 0xc8000
+                        },
+                        {
+                                "CC00H", 0xcc000
+                        },
+                        {
+                                "D800H", 0xd8000
+                        },
+                        {
+                                "DC00H", 0xdc000
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+        {
+		"irq", "IRQ", CONFIG_SELECTION, "", 5, "", { 0 },
+                {
+                        {
+                                "IRQ 3", 3
+                        },
+                        {
+                                "IRQ 5", 5
+                        },
+                        {
+                                "IRQ 7", 7
+                        },
+                        {
+                                ""
+                        }
+                },
+        },
+        {
+                "boot", "Enable Boot ROM", CONFIG_BINARY, "", 1
+        },
+        {
+                "int_lock", "Enable Handshake Interlock", CONFIG_BINARY, "", 0
+        },
+	{
+		"", "", -1
+	}
+};
+
 const device_t scsi_lcs6821n_device =
 {
     "Longshine LCS-6821N",
@@ -1753,5 +1812,5 @@ const device_t scsi_t128_device =
     ncr_init, ncr_close, NULL,
     { t128_available },
     NULL, NULL,
-    ncr5380_mmio_config
+    t128_config
 };
