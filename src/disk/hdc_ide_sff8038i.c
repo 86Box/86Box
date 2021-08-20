@@ -370,8 +370,10 @@ void
 sff_bus_master_set_irq(int channel, void *priv)
 {
     sff8038i_t *dev = (sff8038i_t *) priv;
-    dev->status &= ~4;
-    dev->status |= (channel >> 4);
+    if (!(dev->status & 0x04) || (channel & 0x40)) {
+	dev->status &= ~4;
+	dev->status |= (channel >> 4);
+    }
 
     channel &= 0x01;
     if (dev->status & 0x04) {
