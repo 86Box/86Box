@@ -131,7 +131,7 @@ typedef struct tgui_t
         	int pat_x, pat_y;
         	int use_src;
 	
-        	int pitch, bpp;
+        	int src_pitch, dst_pitch, bpp;
 			uint32_t fill_pattern[8*8];
 			uint32_t mono_pattern[8*8];
 			uint32_t pattern_8[8*8];
@@ -1332,14 +1332,63 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 		}
 	}
 
+	/*Other than mode stuff, this bit is undocumented*/
+	switch (tgui->accel.ger22 & 0xff) {
+		case 4:
+		tgui->accel.src_pitch = 1024;
+		tgui->accel.dst_pitch = 1024;
+		if (svga->hdisp == 800) {
+			if ((tgui->accel.ger22 >> 8) > 0) {
+				tgui->accel.src_pitch = 832;
+				tgui->accel.dst_pitch = 832;
+			}
+		}
+		break;
+		
+		case 8:
+		tgui->accel.src_pitch = 2048;
+		tgui->accel.dst_pitch = 2048;
+		if (tgui->type >= TGUI_9660) {
+			tgui->accel.src_pitch = 1280;
+			tgui->accel.dst_pitch = 1280;
+		}
+		break;
+		
+		case 9:
+		tgui->accel.src_pitch = 1024;
+		tgui->accel.dst_pitch = 1024;
+		if (tgui->type >= TGUI_9660) {
+			tgui->accel.src_pitch = svga->hdisp;
+			tgui->accel.dst_pitch = svga->hdisp;
+			if (svga->hdisp == 800) {
+				tgui->accel.src_pitch = 832;
+				tgui->accel.dst_pitch = 832;
+			}
+		}
+		break;
+		
+		case 14:
+		tgui->accel.src_pitch = svga->hdisp;
+		tgui->accel.dst_pitch = svga->hdisp;
+		switch (tgui->svga.bpp) {
+			case 32:
+			if (svga->hdisp == 800) {
+				tgui->accel.src_pitch = 832;
+				tgui->accel.dst_pitch = 832;
+			}
+			break;
+		}
+		break;
+	}
+
 	switch (tgui->accel.command)
 	{
 		case TGUI_BITBLT:
 		if (count == -1) {
-			tgui->accel.src_old = tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch);
+			tgui->accel.src_old = tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.src_pitch);
 			tgui->accel.src = tgui->accel.src_old;
 			
-			tgui->accel.dst_old = tgui->accel.dst_x + (tgui->accel.dst_y * tgui->accel.pitch);
+			tgui->accel.dst_old = tgui->accel.dst_x + (tgui->accel.dst_y * tgui->accel.dst_pitch);
 			tgui->accel.dst = tgui->accel.dst_old;
 			
 			tgui->accel.pat_x = tgui->accel.dst_x;
@@ -1424,8 +1473,8 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 						tgui->accel.dy += ydir;
 					}
 
-					tgui->accel.src_old += (ydir * tgui->accel.pitch);
-					tgui->accel.dst_old += (ydir * tgui->accel.pitch);
+					tgui->accel.src_old += (ydir * tgui->accel.src_pitch);
+					tgui->accel.dst_old += (ydir * tgui->accel.dst_pitch);
 					
 					tgui->accel.src = tgui->accel.src_old;
 					tgui->accel.dst = tgui->accel.dst_old;
@@ -1486,8 +1535,8 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 					tgui->accel.pat_x = tgui->accel.dst_x;
 					tgui->accel.pat_y += ydir;
 
-					tgui->accel.src = tgui->accel.src_old = tgui->accel.src_old + (ydir * tgui->accel.pitch);
-					tgui->accel.dst = tgui->accel.dst_old = tgui->accel.dst_old + (ydir * tgui->accel.pitch);
+					tgui->accel.src = tgui->accel.src_old = tgui->accel.src_old + (ydir * tgui->accel.src_pitch);
+					tgui->accel.dst = tgui->accel.dst_old = tgui->accel.dst_old + (ydir * tgui->accel.dst_pitch);
 					
 					tgui->accel.y++;
 					
@@ -1533,8 +1582,8 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 					tgui->accel.pat_x = tgui->accel.dst_x;
 					tgui->accel.pat_y += ydir;
 
-					tgui->accel.src = tgui->accel.src_old = tgui->accel.src_old + (ydir * tgui->accel.pitch);
-					tgui->accel.dst = tgui->accel.dst_old = tgui->accel.dst_old + (ydir * tgui->accel.pitch);
+					tgui->accel.src = tgui->accel.src_old = tgui->accel.src_old + (ydir * tgui->accel.src_pitch);
+					tgui->accel.dst = tgui->accel.dst_old = tgui->accel.dst_old + (ydir * tgui->accel.dst_pitch);
 					
 					if (tgui->accel.y > tgui->accel.size_y)
 						return;
@@ -1547,10 +1596,10 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 		case TGUI_SCANLINE:
 		{
 			if (count == -1) {
-				tgui->accel.src_old = tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch);
+				tgui->accel.src_old = tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.src_pitch);
 				tgui->accel.src = tgui->accel.src_old;			
 				
-				tgui->accel.dst_old = tgui->accel.dst_x + (tgui->accel.dst_y * tgui->accel.pitch);
+				tgui->accel.dst_old = tgui->accel.dst_x + (tgui->accel.dst_y * tgui->accel.dst_pitch);
 				tgui->accel.dst = tgui->accel.dst_old;
 				
 				tgui->accel.pat_x = tgui->accel.dst_x;
@@ -1584,8 +1633,8 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 					tgui->accel.x = 0;
 					
 					tgui->accel.pat_x = tgui->accel.dst_x;
-					tgui->accel.src = tgui->accel.src_old = tgui->accel.src_old + (ydir * tgui->accel.pitch);
-					tgui->accel.dst = tgui->accel.dst_old = tgui->accel.dst_old + (ydir * tgui->accel.pitch);
+					tgui->accel.src = tgui->accel.src_old = tgui->accel.src_old + (ydir * tgui->accel.src_pitch);
+					tgui->accel.dst = tgui->accel.dst_old = tgui->accel.dst_old + (ydir * tgui->accel.dst_pitch);
 					tgui->accel.pat_y += ydir;
 					return;
 				}
@@ -1642,13 +1691,13 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 			}
 
 			while (count--) {
-				READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.pitch), src_dat);
+				READ(tgui->accel.src_x + (tgui->accel.src_y * tgui->accel.src_pitch), src_dat);
 				
 				/*Note by TC1995: I suppose the x/y clipping max is always more than 0 in the TGUI 96xx, but the TGUI 9440 lacks clipping*/
 				if (steep) {
 					if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && dx >= tgui->accel.left && dx <= tgui->accel.right &&
 						dy >= tgui->accel.top && dy <= tgui->accel.bottom)) {
-						READ(dx + (dy * tgui->accel.pitch), dst_dat);
+						READ(dx + (dy * tgui->accel.dst_pitch), dst_dat);
 
 						pat_dat = tgui->accel.fg_col;
 						
@@ -1659,12 +1708,12 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 					
 						MIX();
 						
-						WRITE(dx + (dy * tgui->accel.pitch), out);
+						WRITE(dx + (dy * tgui->accel.dst_pitch), out);
 					}
 				} else {
 					if ((tgui->type == TGUI_9440) || ((tgui->type >= TGUI_9660) && dy >= tgui->accel.left && dy <= tgui->accel.right &&
 						dx >= tgui->accel.top && dx <= tgui->accel.bottom)) {					
-						READ(dy + (dx * tgui->accel.pitch), dst_dat);
+						READ(dy + (dx * tgui->accel.dst_pitch), dst_dat);
 
 						pat_dat = tgui->accel.fg_col;
 						
@@ -1675,7 +1724,7 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 					
 						MIX();
 						
-						WRITE(dy + (dx * tgui->accel.pitch), out);
+						WRITE(dy + (dx * tgui->accel.dst_pitch), out);
 					}
 				}
 
@@ -1707,29 +1756,15 @@ tgui_accel_out(uint16_t addr, uint8_t val, void *p)
 		tgui->accel.ger22 = (tgui->accel.ger22 & 0xff00) | val;
 		switch (val & 0xff) {
 			case 4:
-			tgui->accel.pitch = 1024;
-			tgui->accel.bpp = 0;
-			break;
-			
 			case 8:
-			tgui->accel.pitch = 2048;
-			if (tgui->type >= TGUI_9660)
-				tgui->accel.pitch = 1280;
 			tgui->accel.bpp = 0;
 			break;
 			
 			case 9:
-			tgui->accel.pitch = 1024;
-			if (tgui->type >= TGUI_9660) {
-				tgui->accel.pitch = tgui->svga.hdisp;
-				if (tgui->svga.hdisp == 800)
-					tgui->accel.pitch = 832;
-			}
 			tgui->accel.bpp = 1;
 			break;
-
+			
 			case 14:
-			tgui->accel.pitch = tgui->svga.hdisp;
 			switch (tgui->svga.bpp) {
 				case 15:
 				case 16:
@@ -1741,14 +1776,11 @@ tgui_accel_out(uint16_t addr, uint8_t val, void *p)
 				break;
 				
 				case 32:
-				if (tgui->svga.hdisp == 800) /*Weird oddball on Win95's side*/
-					tgui->accel.pitch = 832;
 				tgui->accel.bpp = 3;
 				break;
 			}
 			break;
 		}
-
 		break;
 
 		case 0x2123:
@@ -2171,29 +2203,15 @@ tgui_accel_write(uint32_t addr, uint8_t val, void *p)
 		tgui->accel.ger22 = (tgui->accel.ger22 & 0xff00) | val;
 		switch (val & 0xff) {
 			case 4:
-			tgui->accel.pitch = 1024;
-			tgui->accel.bpp = 0;
-			break;
-			
 			case 8:
-			tgui->accel.pitch = 2048;
-			if (tgui->type >= TGUI_9660)
-				tgui->accel.pitch = 1280;
 			tgui->accel.bpp = 0;
 			break;
 			
 			case 9:
-			tgui->accel.pitch = 1024;
-			if (tgui->type >= TGUI_9660) {
-				tgui->accel.pitch = tgui->svga.hdisp;
-				if (tgui->svga.hdisp == 800)
-					tgui->accel.pitch = 832;
-			}
 			tgui->accel.bpp = 1;
 			break;
 			
 			case 14:
-			tgui->accel.pitch = tgui->svga.hdisp;
 			switch (tgui->svga.bpp) {
 				case 15:
 				case 16:
@@ -2205,8 +2223,6 @@ tgui_accel_write(uint32_t addr, uint8_t val, void *p)
 				break;
 				
 				case 32:
-				if (tgui->svga.hdisp == 800) /*Weird oddball on Win95's side*/
-					tgui->accel.pitch = 832;
 				tgui->accel.bpp = 3;
 				break;
 			}
