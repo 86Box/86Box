@@ -6,10 +6,11 @@
  *
  *		This file is part of the 86Box distribution.
  *
- * Emulation of the SMC FDC37C651 Super I/O
+ *		Implementation of the SMC FDC37C651 Super I/O Chip.
  *
- * Authors:	Tiseno100
- * Copyright 2020 Tiseno100
+ * Authors:	Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2021 Miran Grca.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -30,15 +31,17 @@
 #include <86box/fdc.h>
 #include <86box/sio.h>
 
+
 #ifdef ENABLE_FDC37C651_LOG
 int fdc37c651_do_log = ENABLE_FDC37C651_LOG;
+
+
 static void
 fdc37c651_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (fdc37c651_do_log)
-    {
+    if (fdc37c651_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
@@ -48,143 +51,264 @@ fdc37c651_log(const char *fmt, ...)
 #define fdc37c651_log(fmt, ...)
 #endif
 
-typedef struct
-{
-    uint8_t configuration_select, regs[3];
-    uint16_t com3, com4;
 
-    fdc_t *fdc_controller;
+typedef struct {
+    uint8_t tries, has_ide,
+	    regs[16];
+    int cur_reg,
+	com3_addr, com4_addr;
+    fdc_t *fdc;
     serial_t *uart[2];
-
 } fdc37c651_t;
 
+
 static void
-fdc37c651_write(uint16_t addr, uint8_t val, void *priv)
+set_com34_addr(fdc37c651_t *dev)
 {
-    fdc37c651_t *dev = (fdc37c651_t *)priv;
-
-    switch (addr)
-    {
-    case 0x3f0:
-        dev->configuration_select = val;
-        break;
-    case 0x3f1:
-        switch (dev->configuration_select)
-        {
-        case 0: /* CR0 */
-            dev->regs[dev->configuration_select] = val;
-            ide_pri_disable();
-            fdc_remove(dev->fdc_controller);
-
-            if (val & 1) /* Enable IDE */
-                ide_pri_enable();
-
-            if (val & 0x10) /* Enable FDC */
-                fdc_set_base(dev->fdc_controller, 0x3f0);
-
-            break;
-
-        case 1: /* CR1 */
-            dev->regs[dev->configuration_select] = val;
-            lpt1_remove();
-
-            if ((val & 3) != 0) /* Program LPT if not Disabled */
-                lpt1_init((val & 2) ? ((val & 1) ? 0x278 : 0x378) : 0x3f8);
-
-            switch ((val >> 4) & 3) /* COM3 & 4 Select*/
-            {
-            case 0:
-                dev->com3 = 0x338;
-                dev->com4 = 0x238;
-                break;
-            case 1:
-                dev->com3 = 0x3e8;
-                dev->com4 = 0x2e8;
-                break;
-            case 2:
-                dev->com3 = 0x2e8;
-                dev->com4 = 0x2e0;
-                break;
-            case 3:
-                dev->com3 = 0x220;
-                dev->com4 = 0x228;
-                break;
-            }
-
-            break;
-
-        case 2: /* CR2 */
-            dev->regs[dev->configuration_select] = val;
-            serial_remove(dev->uart[0]);
-            serial_remove(dev->uart[1]);
-
-            if (val & 4)
-                serial_setup(dev->uart[0], (val & 2) ? ((val & 1) ? dev->com4 : dev->com3) : ((val & 1) ? 0x2f8 : 0x3f8), 4);
-
-            if (val & 0x40)
-                serial_setup(dev->uart[1], (val & 0x20) ? ((val & 0x10) ? dev->com4 : dev->com3) : ((val & 0x10) ? 0x2f8 : 0x3f8), 3);
-
-            break;
-        }
-        break;
+    switch (dev->regs[1] & 0x60) {
+	case 0x00:
+		dev->com3_addr = 0x338;
+		dev->com4_addr = 0x238;
+		break;
+	case 0x20:
+		dev->com3_addr = 0x3e8;
+		dev->com4_addr = 0x2e8;
+		break;
+	case 0x40:
+		dev->com3_addr = 0x3e8;
+		dev->com4_addr = 0x2e0;
+		break;
+	case 0x60:
+		dev->com3_addr = 0x220;
+		dev->com4_addr = 0x228;
+		break;
     }
 }
 
-static uint8_t
-fdc37c651_read(uint16_t addr, void *priv)
-{
-    fdc37c651_t *dev = (fdc37c651_t *)priv;
 
-    return dev->regs[dev->configuration_select];
+static void
+set_serial_addr(fdc37c651_t *dev, int port)
+{
+    uint8_t shift = (port << 2);
+
+    serial_remove(dev->uart[port]);
+    if (dev->regs[2] & (4 << shift)) {
+	switch ((dev->regs[2] >> shift) & 3) {
+		case 0:
+			serial_setup(dev->uart[port], SERIAL1_ADDR, SERIAL1_IRQ);
+			break;
+		case 1:
+			serial_setup(dev->uart[port], SERIAL2_ADDR, SERIAL2_IRQ);
+			break;
+		case 2:
+			serial_setup(dev->uart[port], dev->com3_addr, 4);
+			break;
+		case 3:
+			serial_setup(dev->uart[port], dev->com4_addr, 3);
+			break;
+	}
+    }
 }
+
+
+static void
+lpt1_handler(fdc37c651_t *dev)
+{
+    lpt1_remove();
+    switch (dev->regs[1] & 3) {
+	case 1:
+		lpt1_init(0x3bc);
+		lpt1_irq(7);
+		break;
+	case 2:
+		lpt1_init(0x378);
+		lpt1_irq(7 /*5*/);
+		break;
+	case 3:
+		lpt1_init(0x278);
+		lpt1_irq(7 /*5*/);
+		break;
+    }
+}
+
+
+static void
+fdc_handler(fdc37c651_t *dev)
+{
+    fdc_remove(dev->fdc);
+    if (dev->regs[0] & 0x10)
+	fdc_set_base(dev->fdc, 0x03f0);
+}
+
+
+
+static void
+ide_handler(fdc37c651_t *dev)
+{
+    /* TODO: Make an ide_disable(channel) and ide_enable(channel) so we can simplify this. */
+    if (dev->has_ide == 2) {
+	ide_sec_disable();
+	ide_set_base(1, 0x1f0);
+	ide_set_side(1, 0x3f6);
+	if (dev->regs[0x00] & 0x01)
+		ide_sec_enable();
+    } else if (dev->has_ide == 1) {
+	ide_pri_disable();
+	ide_set_base(0, 0x1f0);
+	ide_set_side(0, 0x3f6);
+	if (dev->regs[0x00] & 0x01)
+		ide_pri_enable();
+    }
+}
+
+
+static void
+fdc37c651_write(uint16_t port, uint8_t val, void *priv)
+{
+    fdc37c651_t *dev = (fdc37c651_t *) priv;
+    uint8_t valxor = 0;
+
+    if (dev->tries == 2) {
+	if (port == 0x3f0) {
+		if (val == 0xaa)
+			dev->tries = 0;
+		else
+			dev->cur_reg = val;
+	} else {
+		if (dev->cur_reg > 15)
+			return;
+
+		valxor = val ^ dev->regs[dev->cur_reg];
+		dev->regs[dev->cur_reg] = val;
+
+		switch(dev->cur_reg) {
+			case 0:
+				if (dev->has_ide && (valxor & 0x01))
+					ide_handler(dev);
+				if (valxor & 0x10)
+					fdc_handler(dev);
+				break;
+			case 1:
+				if (valxor & 3)
+					lpt1_handler(dev);
+				if (valxor & 0x60) {
+					set_com34_addr(dev);
+					set_serial_addr(dev, 0);
+					set_serial_addr(dev, 1);
+				}
+				break;
+			case 2:
+				if (valxor & 7)
+					set_serial_addr(dev, 0);
+				if (valxor & 0x70)
+					set_serial_addr(dev, 1);
+				break;
+		}
+	}
+    } else if ((port == 0x3f0) && (val == 0x55))
+	dev->tries++;
+}
+
+
+static uint8_t
+fdc37c651_read(uint16_t port, void *priv)
+{
+    fdc37c651_t *dev = (fdc37c651_t *) priv;
+    uint8_t ret = 0x00;
+
+    if (dev->tries == 2) {
+	if (port == 0x3f1)
+		ret = dev->regs[dev->cur_reg];
+    }
+
+    return ret;
+}
+
+
+static void
+fdc37c651_reset(fdc37c651_t *dev)
+{
+    dev->com3_addr = 0x338;
+    dev->com4_addr = 0x238;
+
+    serial_remove(dev->uart[0]);
+    serial_setup(dev->uart[0], SERIAL1_ADDR, SERIAL1_IRQ);
+
+    serial_remove(dev->uart[1]);
+    serial_setup(dev->uart[1], SERIAL2_ADDR, SERIAL2_IRQ);
+
+    lpt1_remove();
+    lpt1_init(0x378);
+
+    fdc_reset(dev->fdc);
+    fdc_remove(dev->fdc);
+
+    dev->tries = 0;
+    memset(dev->regs, 0, 16);
+
+    dev->regs[0x0] = 0x3f;
+    dev->regs[0x1] = 0x9f;
+    dev->regs[0x2] = 0xdc;
+
+    set_serial_addr(dev, 0);
+    set_serial_addr(dev, 1);
+
+    lpt1_handler(dev);
+
+    fdc_handler(dev);
+
+    if (dev->has_ide)
+	ide_handler(dev);
+}
+
 
 static void
 fdc37c651_close(void *priv)
 {
-    fdc37c651_t *dev = (fdc37c651_t *)priv;
+    fdc37c651_t *dev = (fdc37c651_t *) priv;
+
     free(dev);
 }
+
 
 static void *
 fdc37c651_init(const device_t *info)
 {
-    fdc37c651_t *dev = (fdc37c651_t *)malloc(sizeof(fdc37c651_t));
+    fdc37c651_t *dev = (fdc37c651_t *) malloc(sizeof(fdc37c651_t));
     memset(dev, 0, sizeof(fdc37c651_t));
 
-    dev->fdc_controller = device_add(&fdc_at_smc_device);
+    dev->fdc = device_add(&fdc_at_smc_device);
+
     dev->uart[0] = device_add_inst(&ns16450_device, 1);
     dev->uart[1] = device_add_inst(&ns16450_device, 2);
-    device_add(&ide_isa_device);
 
-    /* Program Defaults */
-    dev->regs[0] = 0x3f;
-    dev->regs[1] = 0x9f;
-    dev->regs[2] = 0xdc;
-    ide_pri_disable();
-    fdc_remove(dev->fdc_controller);
-    lpt1_remove();
-    serial_remove(dev->uart[0]);
-    serial_remove(dev->uart[1]);
+    dev->has_ide = (info->local >> 8) & 0xff;
 
-    ide_pri_enable();
-    fdc_set_base(dev->fdc_controller, 0x3f0);
-    lpt1_init(0x278);
-    serial_setup(dev->uart[0], 0x2f8, 4);
-    serial_setup(dev->uart[1], 0x3f8, 3);
+    io_sethandler(0x03f0, 0x0002,
+		  fdc37c651_read, NULL, NULL, fdc37c651_write, NULL, NULL, dev);
 
-    io_sethandler(0x03f0, 2, fdc37c651_read, NULL, NULL, fdc37c651_write, NULL, NULL, dev);
+    fdc37c651_reset(dev);
 
     return dev;
 }
 
+
+/* The three appear to differ only in the chip ID, if I
+   understood their datasheets correctly. */
 const device_t fdc37c651_device = {
-    "SMC FDC37C651",
+    "SMC FDC37C651 Super I/O",
     0,
     0,
-    fdc37c651_init,
-    fdc37c651_close,
-    NULL,
-    {NULL},
-    NULL,
-    NULL,
-    NULL};
+    fdc37c651_init, fdc37c651_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+const device_t fdc37c651_ide_device = {
+    "SMC FDC37C651 Super I/O (With IDE)",
+    0,
+    0x100,
+    fdc37c651_init, fdc37c651_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};

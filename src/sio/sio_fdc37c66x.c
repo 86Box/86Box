@@ -256,7 +256,7 @@ fdc37c66x_reset(fdc37c66x_t *dev)
     dev->tries = 0;
     memset(dev->regs, 0, 16);
 
-    dev->regs[0x0] = 0x2a;
+    dev->regs[0x0] = 0x3a;
     dev->regs[0x1] = 0x9f;
     dev->regs[0x2] = 0xdc;
     dev->regs[0x3] = 0x78;
