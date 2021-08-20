@@ -93,22 +93,27 @@ ps2_write(uint8_t val, void *priv)
     mouse_t *dev = (mouse_t *)priv;
     uint8_t temp;
 
+    pclog("ps2_write(%02X)\n", val);
+
     if (dev->flags & FLAG_CTRLDAT) {
 	dev->flags &= ~FLAG_CTRLDAT;
+
+	if (val == 0xff)
+		goto mouse_reset;
 
 	switch (dev->command) {
 		case 0xe8:	/* set mouse resolution */
 			dev->resolution = val;
-			keyboard_at_adddata_mouse(0xfa);
+			keyboard_at_adddata_mouse_cmd(0xfa);
 			break;
 
 		case 0xf3:	/* set sample rate */
 			dev->sample_rate = val;
-			keyboard_at_adddata_mouse(0xfa);	/* Command response */
+			keyboard_at_adddata_mouse_cmd(0xfa);		/* Command response */
 			break;
 
 		default:
-			keyboard_at_adddata_mouse(0xfc);
+			keyboard_at_adddata_mouse_cmd(0xfc);
 	}
     } else {
 	dev->command = val;
@@ -116,21 +121,21 @@ ps2_write(uint8_t val, void *priv)
 	switch (dev->command) {
 		case 0xe6:	/* set scaling to 1:1 */
 			dev->flags &= ~FLAG_SCALED;
-			keyboard_at_adddata_mouse(0xfa);
+			keyboard_at_adddata_mouse_cmd(0xfa);
 			break;
 
 		case 0xe7:	/* set scaling to 2:1 */
 			dev->flags |= FLAG_SCALED;
-			keyboard_at_adddata_mouse(0xfa);
+			keyboard_at_adddata_mouse_cmd(0xfa);
 			break;
 
 		case 0xe8:	/* set mouse resolution */
 			dev->flags |= FLAG_CTRLDAT;
-			keyboard_at_adddata_mouse(0xfa);
+			keyboard_at_adddata_mouse_cmd(0xfa);
 			break;
 
 		case 0xe9:	/* status request */
-			keyboard_at_adddata_mouse(0xfa);
+			keyboard_at_adddata_mouse_cmd(0xfa);
 			temp = (dev->flags & 0x30);
 			if (mouse_buttons & 0x01)
 				temp |= 0x01;
@@ -138,13 +143,13 @@ ps2_write(uint8_t val, void *priv)
 				temp |= 0x02;
 			if (mouse_buttons & 0x04)
 				temp |= 0x03;
-			keyboard_at_adddata_mouse(temp);
-			keyboard_at_adddata_mouse(dev->resolution);
-			keyboard_at_adddata_mouse(dev->sample_rate);
+			keyboard_at_adddata_mouse_cmd(temp);
+			keyboard_at_adddata_mouse_cmd(dev->resolution);
+			keyboard_at_adddata_mouse_cmd(dev->sample_rate);
 			break;
 
 		case 0xeb:	/* Get mouse data */
-			keyboard_at_adddata_mouse(0xfa);
+			keyboard_at_adddata_mouse_cmd(0xfa);
 
 			temp = 0;
 			if (dev->x < 0)
@@ -157,53 +162,54 @@ ps2_write(uint8_t val, void *priv)
 				temp |= 2;
 			if ((mouse_buttons & 4) && (dev->flags & FLAG_INTELLI))
 				temp |= 4;
-			keyboard_at_adddata_mouse(temp);
-			keyboard_at_adddata_mouse(dev->x & 0xff);
-			keyboard_at_adddata_mouse(dev->y & 0xff);
+			keyboard_at_adddata_mouse_cmd(temp);
+			keyboard_at_adddata_mouse_cmd(dev->x & 0xff);
+			keyboard_at_adddata_mouse_cmd(dev->y & 0xff);
 			if (dev->flags & FLAG_INTMODE)
-				keyboard_at_adddata_mouse(dev->z);
+				keyboard_at_adddata_mouse_cmd(dev->z);
 			break;
 
 		case 0xf2:	/* read ID */
-			keyboard_at_adddata_mouse(0xfa);
+			keyboard_at_adddata_mouse_cmd(0xfa);
 			if (dev->flags & FLAG_INTMODE)
-				keyboard_at_adddata_mouse(0x03);
+				keyboard_at_adddata_mouse_cmd(0x03);
 			  else
-				keyboard_at_adddata_mouse(0x00);
+				keyboard_at_adddata_mouse_cmd(0x00);
 			break;
 
 		case 0xf3:	/* set command mode */
 			dev->flags |= FLAG_CTRLDAT;
-			keyboard_at_adddata_mouse(0xfa);		/* ACK for command byte */
+			keyboard_at_adddata_mouse_cmd(0xfa);		/* ACK for command byte */
 			break;
 
 		case 0xf4:	/* enable */
 			dev->flags |= FLAG_ENABLED;
 			mouse_scan = 1;
-			keyboard_at_adddata_mouse(0xfa);
+			keyboard_at_adddata_mouse_cmd(0xfa);
 			break;
 
 		case 0xf5:	/* disable */
 			dev->flags &= ~FLAG_ENABLED;
 			mouse_scan = 0;
-			keyboard_at_adddata_mouse(0xfa);
+			keyboard_at_adddata_mouse_cmd(0xfa);
 			break;
 
 		case 0xf6:	/* set defaults */
 		case 0xff:	/* reset */
+mouse_reset:
 			dev->mode  = MODE_STREAM;
 			dev->flags &= 0x88;
-			mouse_scan = 0;
+			mouse_scan = 1;
 			keyboard_at_mouse_reset();
-			keyboard_at_adddata_mouse(0xfa);
+			keyboard_at_adddata_mouse_cmd(0xfa);
 			if (dev->command == 0xff) {
-				keyboard_at_adddata_mouse(0xaa);
-				keyboard_at_adddata_mouse(0x00);
+				keyboard_at_adddata_mouse_cmd(0xaa);
+				keyboard_at_adddata_mouse_cmd(0x00);
 			}
 			break;
 
 		default:
-			keyboard_at_adddata_mouse(0xfe);
+			keyboard_at_adddata_mouse_cmd(0xfe);
 	}
     }
 
@@ -234,6 +240,9 @@ ps2_poll(int x, int y, int z, int b, void *priv)
     if (!(dev->flags & FLAG_ENABLED))
 	return(0xff);
 #endif
+
+    if ((keyboard_at_fixed_channel() & 0xf00) == 0x200)
+	return(0xff);
 
     if (!mouse_scan)
 	return(0xff);
