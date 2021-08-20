@@ -592,7 +592,7 @@ smram_restore_state_p5(uint32_t *saved_state)
     smm_seg_load(&cpu_state.seg_gs);
 
     if (SMM_REVISION_ID & SMM_SMBASE_RELOCATION)
-	smbase = saved_state[SMRAM_FIELD_P5_SMBASE_OFFSET];
+	smbase = saved_state[SMRAM_FIELD_P5_SMBASE_OFFSET] & 0x00ffffff;
 
     /* Am486/5x86 stuff */
     if (!is_pentium) {
@@ -1306,6 +1306,11 @@ leave_smm(void)
     x386_common_log("EAX = %08X, EBX = %08X, ECX = %08X, EDX = %08X, ESI = %08X, EDI = %08X, ESP = %08X, EBP = %08X\n",
 		    EAX, EBX, ECX, EDX, ESI, EDI, ESP, EBP);
     x386_common_log("leave_smm()\n");
+
+    if (cr0 & 1)
+	pclog("%s mode\n", (cpu_state.eflags & VM_FLAG) ? "V86" : "Protected");
+    else
+	pclog("Real mode\n");
 }
 
 
