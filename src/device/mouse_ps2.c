@@ -189,14 +189,17 @@ ps2_write(uint8_t val, void *priv)
 			keyboard_at_adddata_mouse(0xfa);
 			break;
 
+		case 0xf6:	/* set defaults */
 		case 0xff:	/* reset */
 			dev->mode  = MODE_STREAM;
 			dev->flags &= 0x88;
 			mouse_scan = 0;
 			keyboard_at_mouse_reset();
 			keyboard_at_adddata_mouse(0xfa);
-			keyboard_at_adddata_mouse(0xaa);
-			keyboard_at_adddata_mouse(0x00);
+			if (dev->command == 0xff) {
+				keyboard_at_adddata_mouse(0xaa);
+				keyboard_at_adddata_mouse(0x00);
+			}
 			break;
 
 		default:
