@@ -645,12 +645,13 @@ machine_at_ms6168_common_init(const machine_t *model)
     device_add(&i440zx_device);
     device_add(&piix4e_device);
     device_add(&w83977ef_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&intel_flash_bxt_device);
-    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     if (gfxcard == VID_INTERNAL)
     	device_add(&voodoo_3_2000_agp_onboard_8m_device);
+
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     if (sound_card_current == SOUND_INTERNAL) {
 	device_add(&es1371_onboard_device);

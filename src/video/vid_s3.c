@@ -73,6 +73,7 @@ enum
 	S3_METHEUS_86C928,
 	S3_AMI_86C924,
 	S3_TRIO64V2_DX,
+	S3_TRIO64V2_DX_ONBOARD,
 	S3_PHOENIX_TRIO64VPLUS,
 	S3_PHOENIX_TRIO64VPLUS_ONBOARD,
 	S3_DIAMOND_STEALTH_SE,
@@ -2460,8 +2461,14 @@ s3_in(uint16_t addr, void *p)
 		break;
 
 		case 0x3c5:
-		if (svga->seqaddr >= 0x10 && svga->seqaddr < 0x20)
-			return svga->seqregs[svga->seqaddr];
+		if (svga->seqaddr >= 0x10 && svga->seqaddr < 0x20) {
+			temp = svga->seqregs[svga->seqaddr];
+			/* This is needed for the Intel Advanced/ATX's built-in S3 Trio64V+ BIOS to not
+			   get stuck in an infinite loop. */
+			if ((s3->card_type == S3_PHOENIX_TRIO64VPLUS_ONBOARD) && (svga->seqaddr == 0x17))
+				svga->seqregs[svga->seqaddr] ^= 0x01;
+			return temp;
+		}
 		break;
 		
 		case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
@@ -5884,6 +5891,11 @@ static void *s3_init(const device_t *info)
 			chip = S3_TRIO64V2;
 			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
 			break;
+		case S3_TRIO64V2_DX_ONBOARD:
+			bios_fn = NULL;
+			chip = S3_TRIO64V2;
+			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+			break;
 		default:
 			free(s3);
 			return NULL;
@@ -6205,6 +6217,7 @@ static void *s3_init(const device_t *info)
 			break;
 
 		case S3_TRIO64V2_DX:
+		case S3_TRIO64V2_DX_ONBOARD:
 			svga->decode_mask = (4 << 20) - 1;
 			s3->id = 0xe1; /*Trio64V2/DX*/
 			s3->id_ext = s3->id_ext_pci = 0x01;
@@ -6981,3 +6994,17 @@ const device_t s3_trio64v2_dx_pci_device =
         s3_standard_config
 };
 
+
+const device_t s3_trio64v2_dx_onboard_pci_device =
+{
+        "S3 Trio64V2/DX On-Board PCI",
+        DEVICE_PCI,
+        S3_TRIO64V2_DX_ONBOARD,
+        s3_init,
+        s3_close,
+	NULL,
+        { NULL },
+        s3_speed_changed,
+        s3_force_redraw,
+        s3_standard_config
+};

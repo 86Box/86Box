@@ -97,6 +97,10 @@ machine_init_ex(int m)
 		device_add(&cassette_device);
 
 	cart_reset();
+
+	/* Prepare some video-related things if we're using internal
+	   or no video. */
+	video_pre_reset(gfxcard);
     }
 
     /* All good, boot the machine! */

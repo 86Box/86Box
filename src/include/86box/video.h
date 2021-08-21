@@ -167,6 +167,7 @@ extern void	updatewindowsize(int x, int y);
 extern void	video_init(void);
 extern void	video_close(void);
 extern void	video_reset_close(void);
+extern void	video_pre_reset(int card);
 extern void	video_reset(int card);
 extern uint8_t	video_force_resize_get(void);
 extern void	video_force_resize_set(uint8_t res);
@@ -357,6 +358,7 @@ extern const device_t s3_elsa_winner2000_pro_x_964_vlb_device;
 extern const device_t s3_elsa_winner2000_pro_x_pci_device;
 extern const device_t s3_elsa_winner2000_pro_x_vlb_device;
 extern const device_t s3_trio64v2_dx_pci_device;
+extern const device_t s3_trio64v2_dx_onboard_pci_device;
 
 /* S3 ViRGE */
 extern const device_t s3_virge_325_vlb_device;
@@ -380,6 +382,7 @@ extern const device_t sigma_device;
 extern const device_t tgui9400cxi_device;
 extern const device_t tgui9440_vlb_device;
 extern const device_t tgui9440_pci_device;
+extern const device_t tgui9440_onboard_pci_device;
 extern const device_t tgui9660_pci_device;
 extern const device_t tgui9680_pci_device;
 

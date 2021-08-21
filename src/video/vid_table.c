@@ -235,18 +235,9 @@ video_reset_close(void)
 }
 
 
-void
-video_reset(int card)
+static void
+video_prepare(void)
 {
-    /* This is needed to avoid duplicate resets. */
-    if ((video_get_type() != VIDEO_FLAG_TYPE_NONE) && was_reset)
-	return;
-
-    vid_table_log("VIDEO: reset (gfxcard=%d, internal=%d)\n",
-		  card, (machines[machine].flags & MACHINE_VIDEO)?1:0);
-
-    loadfont("roms/video/mda/mda.rom", 0);
-
     /* Reset (deallocate) the video font arrays. */
     if (fontdatksc5601) {
 	free(fontdatksc5601);
@@ -260,14 +251,39 @@ video_reset(int card)
     /* Reset the blend. */
     herc_blend = 0;
 
+    /* Do an inform on the default values, so that that there's some sane values initialized
+       even if the device init function does not do an inform of its own. */
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_default);
+}
+
+
+void
+video_pre_reset(int card)
+{
+    if ((card == VID_NONE) || \
+	(card == VID_INTERNAL) || (machines[machine].flags & MACHINE_VIDEO_ONLY))
+	video_prepare();
+}
+
+
+void
+video_reset(int card)
+{
+    /* This is needed to avoid duplicate resets. */
+    if ((video_get_type() != VIDEO_FLAG_TYPE_NONE) && was_reset)
+	return;
+
+    vid_table_log("VIDEO: reset (gfxcard=%d, internal=%d)\n",
+		  card, (machines[machine].flags & MACHINE_VIDEO)?1:0);
+
+    loadfont("roms/video/mda/mda.rom", 0);
+
     /* Do not initialize internal cards here. */
     if (!(card == VID_NONE) && \
 	!(card == VID_INTERNAL) && !(machines[machine].flags & MACHINE_VIDEO_ONLY)) {
 	vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].name);
 
-	/* Do an inform on the default values, so that that there's some sane values initialized
-	   even if the device init function does not do an inform of its own. */
-	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_default);
+	video_prepare();
 
 	/* Initialize the video card. */
 	device_add(video_cards[card].device);

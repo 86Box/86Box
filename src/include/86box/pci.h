@@ -52,6 +52,8 @@
 
 #define PCI_IRQ_DISABLED -1
 
+#define PCI_ADD_STRICT	0x80
+
 enum {
     PCI_CARD_NORTHBRIDGE = 0,
     PCI_CARD_AGPBRIDGE,

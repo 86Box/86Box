@@ -112,6 +112,38 @@ machine_at_sp4_common_init(const machine_t *model)
 
 
 int
+machine_at_excalibur_pci_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_inverted("roms/machines/excalibur_pci/S701P.ROM",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_2);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x03, PCI_CARD_IDE, 0, 0, 0, 0);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0E, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&fdc37c665_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&ide_cmd640_pci_legacy_only_device);
+
+    device_add(&i430lx_device);
+    device_add(&sio_zb_device);
+    device_add(&intel_flash_bxt_ami_device);
+
+    return ret;
+}
+
+
+int
 machine_at_p5mp3_init(const machine_t *model)
 {
     int ret;
@@ -331,6 +363,7 @@ machine_at_pb520r_init(const machine_t *model)
     return ret;
 }
 
+
 const device_t *
 at_pb520r_get_device(void)
 {
@@ -384,6 +417,38 @@ machine_at_p5vl_init(const machine_t *model)
 
     if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
+
+    return ret;
+}
+
+
+int
+machine_at_excalibur_pci_2_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear_inverted("roms/machines/excalibur_pci-2/S722P.ROM",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x08, PCI_CARD_IDE, 0, 0, 0, 0);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    device_add(&fdc37c665_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&ide_cmd640_pci_legacy_only_device);
+
+    device_add(&sis_85c50x_device);
+    device_add(&intel_flash_bxt_ami_device);
 
     return ret;
 }

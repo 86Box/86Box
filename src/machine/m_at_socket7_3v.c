@@ -60,6 +60,9 @@ machine_at_thor_common_init(const machine_t *model, int mr)
     pci_register_slot(0x10, PCI_CARD_NORMAL, 4, 3, 2, 1);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
 
+    if (gfxcard == VID_INTERNAL)
+	device_add(&s3_phoenix_trio64vplus_onboard_pci_device);
+
     // device_add(&keyboard_ps2_ami_pci_device);
     device_add(&keyboard_ps2_intel_ami_pci_device);
     device_add(&i430fx_device);
@@ -162,6 +165,13 @@ machine_at_thor_init(const machine_t *model)
     machine_at_thor_common_init(model, 0);
 
     return ret;
+}
+
+
+const device_t *
+at_thor_get_device(void)
+{
+    return &s3_phoenix_trio64vplus_onboard_pci_device;
 }
 
 

@@ -888,10 +888,17 @@ pci_find_slot(uint8_t add_type, uint8_t ignore_slot)
 	dev = &pci_cards[i];
 
 	if (!dev->read && !dev->write && ((ignore_slot == 0xff) || (i != ignore_slot))) {
-		if (((dev->type == PCI_CARD_NORMAL) && (add_type >= PCI_ADD_NORMAL)) ||
-		    (dev->type == add_type)) {
-			ret = i;
-			break;
+		if (add_type & PCI_ADD_STRICT) {
+			if (dev->type == (add_type & 0x7f)) {
+				ret = i;
+				break;
+			}
+		} else {
+			if (((dev->type == PCI_CARD_NORMAL) && ((add_type & 0x7f) >= PCI_ADD_NORMAL)) ||
+			    (dev->type == (add_type & 0x7f))) {
+				ret = i;
+				break;
+			}
 		}
 	}
     }

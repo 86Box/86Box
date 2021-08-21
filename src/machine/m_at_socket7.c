@@ -44,6 +44,7 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/nvr.h>
+#include <86box/scsi_ncr53c8xx.h>
 
 
 int
@@ -73,6 +74,41 @@ machine_at_acerv35n_init(const machine_t *model)
     device_add(&fdc37c932fr_device);
 
     device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
+
+
+int
+machine_at_ap5vm_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ap5vm/AP5V270.ROM",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    /* It seems there were plans for an on-board NCR 53C810 according to some clues
+       left in the manual, but were latter scrapped. The BIOS still support that
+       PCI device, though, so why not. */
+    pci_register_slot(0x06, PCI_CARD_SCSI, 1, 2, 3, 4);
+    pci_register_slot(0x09, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x0A, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x0B, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    device_add(&i430vx_device);
+    device_add(&piix3_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&fdc37c665_device);
+    device_add(&ncr53c810_onboard_pci_device);
+    device_add(&intel_flash_bxt_device);
 
     return ret;
 }
@@ -366,8 +402,11 @@ machine_at_presario2240_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x14, PCI_CARD_SOUND, 3, 0, 0, 0);
+    pci_register_slot(0x14, PCI_CARD_VIDEO, 3, 0, 0, 0);
     pci_register_slot(0x13, PCI_CARD_NORMAL, 1, 2, 3, 4);
+
+    if (gfxcard == VID_INTERNAL)
+	device_add(&s3_trio64v2_dx_onboard_pci_device);
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
@@ -376,6 +415,13 @@ machine_at_presario2240_init(const machine_t *model)
     device_add(&sst_flash_29ee020_device);
 
     return ret;
+}
+
+
+const device_t *
+at_presario2240_get_device(void)
+{
+    return &s3_trio64v2_dx_onboard_pci_device;
 }
 
 
@@ -395,8 +441,11 @@ machine_at_presario4500_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x13, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x14, PCI_CARD_VIDEO, 3, 0, 0, 0);
+    pci_register_slot(0x13, PCI_CARD_NORMAL, 1, 2, 3, 4);
+
+    if (gfxcard == VID_INTERNAL)
+	device_add(&s3_trio64v2_dx_onboard_pci_device);
 
     device_add(&i430vx_device);
     device_add(&piix3_device);
@@ -646,12 +695,21 @@ machine_at_an430tx_init(const machine_t *model)
 {
     int ret;
 
+#if 1
     ret = bios_load_linear_combined2("roms/machines/an430tx/P10-0095.BIO",
 				     "roms/machines/an430tx/P10-0095.BI1",
 				     "roms/machines/an430tx/P10-0095.BI2",
 				     "roms/machines/an430tx/P10-0095.BI3",
 				     "roms/machines/an430tx/P10-0095.RCV",
 				     0x3a000, 160);
+#else
+    ret = bios_load_linear_combined2("roms/machines/an430tx/P06-0062.BIO",
+				     "roms/machines/an430tx/P06-0062.BI1",
+				     "roms/machines/an430tx/P06-0062.BI2",
+				     "roms/machines/an430tx/P06-0062.BI3",
+				     "roms/machines/an430tx/P10-0095.RCV",
+				     0x3a000, 160);
+#endif
 
     if (bios_only || !ret)
 	return ret;
@@ -661,7 +719,7 @@ machine_at_an430tx_init(const machine_t *model)
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);	/* PIIX4 */
-    pci_register_slot(0x08, PCI_CARD_VIDEO, 4, 0, 0, 0);
+    // pci_register_slot(0x08, PCI_CARD_VIDEO, 4, 0, 0, 0);
     pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);
     pci_register_slot(0x0E, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);

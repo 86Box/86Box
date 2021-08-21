@@ -1184,7 +1184,7 @@ write_output(atkbd_t *dev, uint8_t val)
     kbd_log("ATkbc: write output port: %02X (old: %02X)\n", val, dev->p2);
 
     if (!(dev->flags & KBC_FLAG_PS2))
-	val |= ((dev->mem[0x20] << 4) & 0x30);
+	val |= ((dev->mem[0x20] << 4) & 0x10);
 
     dev->kbd_inhibit = (val & 0x40);
     dev->mouse_inhibit = (val & 0x08);
@@ -1211,6 +1211,7 @@ write_output(atkbd_t *dev, uint8_t val)
     if ((dev->p2 ^ val) & 0x01) { /*Reset*/
 	if (! (val & 0x01)) {
 		/* Pin 0 selected. */
+		pclog("write_output(): Pulse reset!\n");
 		softresetx86(); /*Pulse reset!*/
 		cpu_set_edx();
 		smbase = is_am486dxl ? 0x00060000 : 0x00030000;
@@ -1503,10 +1504,8 @@ kbc_command(atkbd_t *dev)
 		case 0xd0:	/* read output port */
 			kbd_log("ATkbc: read output port\n");
 			mask = 0xff;
-			if (dev->mem[0x20] & 0x10)
+			if (!(dev->flags & KBC_FLAG_PS2) && (dev->mem[0x20] & 0x10))
 				mask &= 0xbf;
-			if ((dev->flags & KBC_FLAG_PS2) && (dev->mem[0x20] & 0x20))
-				mask &= 0xf7;
 			kbc_transmit(dev, dev->p2 & mask);
 			break;
 
@@ -2885,7 +2884,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 			dev->status &= ~STAT_IFULL;
 			kbc_send_to_ob(dev, 'H', 0, 0x00);
 		} */
-		kbc_process(dev);
+		// kbc_process(dev);
 #endif
 		break;
     }
