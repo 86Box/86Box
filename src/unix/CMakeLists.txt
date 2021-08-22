@@ -1,0 +1,5 @@
+add_library(plat STATIC unix_thread.c unix_midi.c)
+add_library(ui STATIC unix.c unix_sdl.c unix_cdrom.c)
+target_compile_definitions(ui PUBLIC _FILE_OFFSET_BITS=64)
+target_link_libraries(ui dl)
+target_link_libraries(plat pthread)
