@@ -130,9 +130,16 @@ static const uint16_t sdl_to_xt[0x200] =
     [SDL_SCANCODE_KP_ENTER] = 0x11c,
     [SDL_SCANCODE_RCTRL] = 0x11d,
     [SDL_SCANCODE_KP_DIVIDE] = 0x135,
-    [SDL_SCANCODE_RALT] = 0x138
+    [SDL_SCANCODE_RALT] = 0x138,
+    [SDL_SCANCODE_KP_9] = 0x49,
+    [SDL_SCANCODE_KP_8] = 0x48,
+    [SDL_SCANCODE_KP_7] = 0x47,
+    [SDL_SCANCODE_KP_6] = 0x4D,
+    [SDL_SCANCODE_KP_4] = 0x4B,
+    [SDL_SCANCODE_KP_3] = 0x51,
+    [SDL_SCANCODE_KP_2] = 0x50,
+    [SDL_SCANCODE_KP_1] = 0x4F
 };
-// TODO: Keypad.
 
 typedef struct sdl_blit_params
 {
@@ -524,6 +531,7 @@ wchar_t* ui_sb_bugui(wchar_t *str)
     return str;
 }
 extern void     sdl_blit(int x, int y, int y1, int y2, int w, int h);
+int numlock = 0;
 
 void ui_window_title(wchar_t* str) {}
 void ui_sb_set_ready(int ready) {}
@@ -573,6 +581,19 @@ int main(int argc, char** argv)
                 uint16_t xtkey = 0;
                 switch(event.key.keysym.scancode)
                 {
+                    case SDL_SCANCODE_KP_1 ... SDL_SCANCODE_KP_0:
+                    {
+                        if (numlock)
+                        {
+                            xtkey = (event.key.keysym.scancode - SDL_SCANCODE_KP_1) + 2;
+                        }
+                        else xtkey = sdl_to_xt[event.key.keysym.scancode];
+                        break;
+                    }
+                    case SDL_SCANCODE_NUMLOCKCLEAR:
+                    {
+                        if (event.type == SDL_KEYDOWN) numlock ^= 1;
+                    }
                     default:
                         xtkey = sdl_to_xt[event.key.keysym.scancode];
                         break;
