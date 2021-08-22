@@ -54,7 +54,7 @@ void* dynld_module(const char *name, dllimp_t *table)
     {
         for (imp = table; imp->name != NULL; imp++)
         {
-            if ((imp->func = dlsym(modhandle, imp->name)) == NULL)
+            if ((*(void**)imp->func = dlsym(modhandle, imp->name)) == NULL)
             {
                 dlclose(modhandle);
                 return NULL;
