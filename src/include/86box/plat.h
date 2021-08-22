@@ -32,7 +32,7 @@
 # define strcasecmp	_stricmp
 #endif
 
-#if defined(UNIX) && defined(FREEBSD)
+#if defined(UNIX) && defined(FREEBSD) && defined(__APPLE__)
 /* FreeBSD has largefile by default. */
 # define fopen64        fopen
 # define fseeko64       fseeko
