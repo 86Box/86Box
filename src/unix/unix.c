@@ -24,7 +24,7 @@
 #include <86box/unix_sdl.h>
 #include <86box/timer.h>
 #include <86box/nvr.h>
-#include <86box/unix_sdl.h>
+
 static int	first_use = 1;
 static uint64_t	StartingTime;
 static uint64_t Frequency;
@@ -203,6 +203,15 @@ void dynld_close(void *handle)
 
 wchar_t* plat_get_string(int i)
 {
+    switch (i)
+    {
+        case IDS_2077:
+            return L"Click to capture mouse.";
+        case IDS_2078:
+            return L"Press F12-F8 to release mouse";
+        case IDS_2079:
+            return L"Press F12-F8 or middle button to release mouse";
+    }
     return L"";
 }
 
@@ -497,19 +506,21 @@ do_stop(void)
 
 int	ui_msgbox(int flags, void *message)
 {
+    fprintf(stderr, "Got msgbox request. Flags: 0x%X, msgid: %llu\n", flags, (uint64_t) message);
     return 0;
 }
 
 int	ui_msgbox_header(int flags, void *message, void* header)
 {
     // Parameters that are passed will crash the program so keep these off for the time being.
+    fprintf(stderr, "Got msgbox request. Flags: 0x%X, msgid: %llu, hdrid: %llu\n", flags, (uint64_t) message, (uint64_t) header);
     return 0;
 }
 
 void plat_get_exe_name(char *s, int size)
 {
     char* basepath = SDL_GetBasePath();
-    snprintf(s, size, "%s/86box", basepath);
+    snprintf(s, size, "%s%s", basepath, basepath[strlen(basepath) - 1] == '/' ? "86box" : "/86box");
 }
 
 void
@@ -533,7 +544,6 @@ wchar_t* ui_sb_bugui(wchar_t *str)
 extern void     sdl_blit(int x, int y, int y1, int y2, int w, int h);
 int numlock = 0;
 
-void ui_window_title(wchar_t* str) {}
 void ui_sb_set_ready(int ready) {}
 int main(int argc, char** argv)
 {
@@ -565,10 +575,10 @@ int main(int argc, char** argv)
 
     /* Initialize the rendering window, or fullscreen. */
 
-
     do_start();
     while (!is_quit)
     {
+        static int onesec_tic = 0;
         if (SDL_PollEvent(&event))
         switch(event.type)
         {
@@ -605,6 +615,11 @@ int main(int argc, char** argv)
         {
             extern void sdl_blit(int x, int y, int y1, int y2, int w, int h);
             sdl_blit(params.x, params.y, params.y1, params.y2, params.w, params.h);
+        }
+        if (SDL_GetTicks() - onesec_tic >= 1000)
+        {
+            onesec_tic = SDL_GetTicks();
+            pc_onesec();
         }
     }
 

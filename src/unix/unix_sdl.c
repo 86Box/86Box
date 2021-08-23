@@ -15,6 +15,7 @@
 #include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/version.h>
+#include <86box/unix_sdl.h>
 
 #define RENDERER_FULL_SCREEN	1
 #define RENDERER_HARDWARE	2
@@ -417,4 +418,23 @@ plat_mouse_capture(int on)
 void plat_resize(int w, int h)
 {
     SDL_SetWindowSize(sdl_win, w, h);
+}
+wchar_t sdl_win_title[512] = L"86Box";
+wchar_t* ui_window_title(wchar_t* str)
+{
+    char* res;
+    if (!res) return sdl_win_title;
+    if (sizeof(wchar_t) == 1)
+    {
+        SDL_SetWindowTitle(sdl_win, (char*)str);
+        return str;
+    }
+    res = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char*)str, wcslen(str) * sizeof(wchar_t));
+    if (res)
+    {
+        SDL_SetWindowTitle(sdl_win, res);
+        wcsncpy(sdl_win_title, str, 512);
+        SDL_free((void*)res);
+    }
+    return str;
 }

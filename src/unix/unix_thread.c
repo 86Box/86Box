@@ -15,11 +15,28 @@ typedef struct event_pthread_t
 	int state;
 } event_pthread_t;
 
+typedef struct thread_param
+{
+	void (*thread_rout)(void*);
+	void* param;
+} thread_param;
+
+void* thread_run_wrapper(thread_param* arg)
+{
+	thread_param localparam = *arg;
+	free(arg);
+	localparam.thread_rout(localparam.param);
+	return NULL;
+}
+
 thread_t *thread_create(void (*thread_rout)(void *param), void *param)
 {
 	pthread_t *thread = malloc(sizeof(pthread_t));
+	thread_param *thrparam = malloc(sizeof(thread_param));
+	thrparam->thread_rout = thread_rout;
+	thrparam->param = param;
         
-	pthread_create(thread, NULL, (void*)thread_rout, param);
+	pthread_create(thread, NULL, (void* (*)(void*))thread_run_wrapper, thrparam);
 
 	return thread;
 }
