@@ -423,7 +423,7 @@ wchar_t sdl_win_title[512] = L"86Box";
 wchar_t* ui_window_title(wchar_t* str)
 {
     char* res;
-    if (!res) return sdl_win_title;
+    if (!str) return sdl_win_title;
     if (sizeof(wchar_t) == 1)
     {
         SDL_SetWindowTitle(sdl_win, (char*)str);
