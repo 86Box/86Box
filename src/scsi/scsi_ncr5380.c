@@ -119,7 +119,7 @@ typedef struct {
 	int block_loaded;
 	int pos, host_pos;
 	
-	int bios_enabled, int_lock;
+	int bios_enabled;
 } t128_t;
 
 typedef struct {
@@ -657,6 +657,8 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 		/*a Write 6/10 has occurred, start the timer when the block count is loaded*/
 		ncr->dma_mode = DMA_SEND;
 		if (ncr_dev->type == 3) {
+			memset(ncr_dev->t128.buffer, 0, MIN(512, dev->buffer_length));			
+			
 			ncr_log("DMA send timer start, enabled? = %i\n", timer_is_enabled(&ncr_dev->timer));	
 			ncr_dev->t128.block_count = dev->buffer_length >> 9;
 			ncr_dev->t128.block_loaded = 1;
@@ -665,6 +667,8 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 			ncr_dev->t128.status |= 0x04;
 		} else {
 			if ((ncr->mode & MODE_DMA) && !timer_is_enabled(&ncr_dev->timer)) {
+				memset(ncr_dev->buffer, 0, MIN(128, dev->buffer_length));
+				
 				ncr_log("DMA send timer on\n");
 				ncr_timer_on(ncr_dev, ncr, 0);
 			}
@@ -676,15 +680,23 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 		/*a Read 6/10 has occurred, start the timer when the block count is loaded*/
 		ncr->dma_mode = DMA_INITIATOR_RECEIVE;
 		if (ncr_dev->type == 3) {
-			ncr_log("DMA receive timer start, enabled? = %i\n", timer_is_enabled(&ncr_dev->timer));	
+			ncr_log("DMA receive timer start, enabled? = %i, cdb[0] = %02x\n", timer_is_enabled(&ncr_dev->timer), ncr->command[0]);
+			memset(ncr_dev->t128.buffer, 0, MIN(512, dev->buffer_length));
+			
 			ncr_dev->t128.block_count = dev->buffer_length >> 9;
+
+			if (dev->buffer_length < 512)
+				ncr_dev->t128.block_count = 1;
+			
 			ncr_dev->t128.block_loaded = 1;
 
-			ncr_dev->t128.host_pos = 512;
+			ncr_dev->t128.host_pos = MIN(512, dev->buffer_length);
 			ncr_dev->t128.status |= 0x04;
 			timer_on_auto(&ncr_dev->timer, 0.2);
 		} else {
 			if ((ncr->mode & MODE_DMA) && !timer_is_enabled(&ncr_dev->timer)) {
+				memset(ncr_dev->buffer, 0, MIN(128, dev->buffer_length));
+				
 				ncr_log("DMA receive timer start\n");
 				ncr_timer_on(ncr_dev, ncr, 0);
 			}
@@ -820,6 +832,8 @@ static uint8_t
 memio_read(uint32_t addr, void *priv)
 {
     ncr5380_t *ncr_dev = (ncr5380_t *)priv;
+	ncr_t *ncr = &ncr_dev->ncr;
+	scsi_device_t *dev = &scsi_devices[ncr_dev->bus][ncr->target_id];
     uint8_t ret = 0xff;
 	
     addr &= 0x3fff;
@@ -846,12 +860,12 @@ memio_read(uint32_t addr, void *priv)
 		break;
 		
 	case 0x3900:
-		if (ncr_dev->buffer_host_pos >= 128 || !(ncr_dev->status_ctrl & CTRL_DATA_DIR)) {
+		if (ncr_dev->buffer_host_pos >= MIN(128, dev->buffer_length) || !(ncr_dev->status_ctrl & CTRL_DATA_DIR)) {
 			ret = 0xff;
 		} else {
 			ret = ncr_dev->buffer[ncr_dev->buffer_host_pos++];
 
-			if (ncr_dev->buffer_host_pos == 128) {	
+			if (ncr_dev->buffer_host_pos == MIN(128, dev->buffer_length)) {	
 				ncr_dev->status_ctrl |= STATUS_BUFFER_NOT_READY;
 				ncr_log("Transfer busy read, status = %02x\n", ncr_dev->status_ctrl);
 			}
@@ -896,7 +910,8 @@ static void
 memio_write(uint32_t addr, uint8_t val, void *priv)
 {
     ncr5380_t *ncr_dev = (ncr5380_t *)priv;
-    ncr_t *ncr = &ncr_dev->ncr;
+	ncr_t *ncr = &ncr_dev->ncr;
+	scsi_device_t *dev = &scsi_devices[ncr_dev->bus][ncr->target_id];
 	
     addr &= 0x3fff;
 
@@ -914,12 +929,12 @@ memio_write(uint32_t addr, uint8_t val, void *priv)
 		break;
 		
 	case 0x3900:
-		if (!(ncr_dev->status_ctrl & CTRL_DATA_DIR) && ncr_dev->buffer_host_pos < 128) {
+		if (!(ncr_dev->status_ctrl & CTRL_DATA_DIR) && ncr_dev->buffer_host_pos < MIN(128, dev->buffer_length)) {
 			ncr_dev->buffer[ncr_dev->buffer_host_pos++] = val;
 
 			ncr_log("Write host pos = %i, val = %02x\n", ncr_dev->buffer_host_pos, val);
 
-			if (ncr_dev->buffer_host_pos == 128) {
+			if (ncr_dev->buffer_host_pos == MIN(128, dev->buffer_length)) {
 				ncr_dev->status_ctrl |= STATUS_BUFFER_NOT_READY;
 				ncr_dev->ncr_busy = 1;
 			}
@@ -930,7 +945,7 @@ memio_write(uint32_t addr, uint8_t val, void *priv)
 		switch (addr) {
 			case 0x3980:	/* Control */
 				if ((val & CTRL_DATA_DIR) && !(ncr_dev->status_ctrl & CTRL_DATA_DIR)) {
-					ncr_dev->buffer_host_pos = 128;
+					ncr_dev->buffer_host_pos = MIN(128, dev->buffer_length);
 					ncr_dev->status_ctrl |= STATUS_BUFFER_NOT_READY;
 				}
 				else if (!(val & CTRL_DATA_DIR) && (ncr_dev->status_ctrl & CTRL_DATA_DIR)) {
@@ -949,7 +964,7 @@ memio_write(uint32_t addr, uint8_t val, void *priv)
 					ncr_timer_on(ncr_dev, ncr, 0);
 				
 				if (ncr_dev->status_ctrl & CTRL_DATA_DIR) {
-					ncr_dev->buffer_host_pos = 128;
+					ncr_dev->buffer_host_pos = MIN(128, dev->buffer_length);
 					ncr_dev->status_ctrl |= STATUS_BUFFER_NOT_READY;
 				} else {
 					ncr_dev->buffer_host_pos = 0;
@@ -1074,7 +1089,7 @@ ncr_dma_send(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev)
 		ncr_dev->t128.pos++;
 		ncr_log("Buffer pos for writing = %d, data = %02x\n", ncr_dev->t128.pos, data);
 
-		if (ncr_dev->t128.pos == 512) {
+		if (ncr_dev->t128.pos == MIN(512, dev->buffer_length)) {
 			ncr_dev->t128.pos = 0;
 			ncr_dev->t128.host_pos = 0;
 			ncr_dev->t128.status &= ~0x02;
@@ -1097,7 +1112,7 @@ ncr_dma_send(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev)
 		ncr_dev->buffer_pos++;
 		ncr_log("Buffer pos for writing = %d\n", ncr_dev->buffer_pos);
 
-		if (ncr_dev->buffer_pos == 128) {
+		if (ncr_dev->buffer_pos == MIN(128, dev->buffer_length)) {
 			ncr_dev->buffer_pos = 0;
 			ncr_dev->buffer_host_pos = 0;
 			ncr_dev->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
@@ -1126,7 +1141,7 @@ ncr_dma_initiator_receive(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev)
 {
     int bus, c = 0;
     uint8_t temp;
-	
+
 	if (scsi_device_get_callback(dev) > 0.0) {
 		ncr_timer_on(ncr_dev, ncr, 1);
 	} else {
@@ -1152,12 +1167,12 @@ ncr_dma_initiator_receive(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev)
 		ncr_dev->t128.buffer[ncr_dev->t128.pos++] = temp;    
 		ncr_log("Buffer pos for reading = %d, temp = %02x\n", ncr_dev->t128.pos, temp);
 
-		if (ncr_dev->t128.pos == 512) {
+		if (ncr_dev->t128.pos == MIN(512, dev->buffer_length)) {
 			ncr_dev->t128.pos = 0;
 			ncr_dev->t128.host_pos = 0;
 			ncr_dev->t128.status &= ~0x02;
 			ncr_dev->t128.block_count = (ncr_dev->t128.block_count - 1) & 0xff;
-			ncr_log("Remaining blocks to be read=%d, status=%02x, len=%i\n", ncr_dev->t128.block_count, ncr_dev->t128.status, dev->buffer_length);
+			ncr_log("Remaining blocks to be read=%d, status=%02x, len=%i, cdb[0] = %02x\n", ncr_dev->t128.block_count, ncr_dev->t128.status, dev->buffer_length, ncr->command[0]);
 			if (!ncr_dev->t128.block_count) {
 				ncr_dev->t128.block_loaded = 0;
 				ncr_log("IO End of read transfer\n");
@@ -1174,7 +1189,7 @@ ncr_dma_initiator_receive(ncr5380_t *ncr_dev, ncr_t *ncr, scsi_device_t *dev)
 		ncr_dev->buffer[ncr_dev->buffer_pos++] = temp;    
 		ncr_log("Buffer pos for reading = %d\n", ncr_dev->buffer_pos);
 		
-		if (ncr_dev->buffer_pos == 128) {					
+		if (ncr_dev->buffer_pos == MIN(128, dev->buffer_length)) {					
 			ncr_dev->buffer_pos = 0;
 			ncr_dev->buffer_host_pos = 0;
 			ncr_dev->status_ctrl &= ~STATUS_BUFFER_NOT_READY;
@@ -1207,7 +1222,7 @@ ncr_callback(void *priv)
 		ncr_log("DMA Callback, load = %i\n", ncr_dev->t128.block_loaded);
 		if (ncr->dma_mode != DMA_IDLE && (ncr->mode & MODE_DMA) && ncr_dev->t128.block_loaded) {
 			ncr_log("Timer on! Host POS = %i, status = %02x, DMA mode = %i, Period = %lf\n", ncr_dev->t128.host_pos, ncr_dev->t128.status, ncr->dma_mode, scsi_device_get_callback(dev));
-			if (ncr_dev->t128.host_pos == 512 && ncr_dev->t128.block_count) {
+			if (ncr_dev->t128.host_pos == MIN(512, dev->buffer_length) && ncr_dev->t128.block_count) {
 				ncr_dev->t128.status |= 0x04;
 				ncr_timer_on(ncr_dev, ncr, 0);
 			}
@@ -1253,7 +1268,7 @@ ncr_callback(void *priv)
 				break;
 			}
 
-			if (ncr_dev->t128.host_pos < 512)
+			if (ncr_dev->t128.host_pos < MIN(512, dev->buffer_length))
 				break;
 		}
 		ncr_dma_send(ncr_dev, ncr, dev);
@@ -1284,7 +1299,7 @@ ncr_callback(void *priv)
 				break;
 			}
 			
-			if (ncr_dev->t128.host_pos < 512)
+			if (ncr_dev->t128.host_pos < MIN(512, dev->buffer_length))
 				break;
 		}
 		ncr_dma_initiator_receive(ncr_dev, ncr, dev);
@@ -1306,6 +1321,7 @@ t128_read(uint32_t addr, void *priv)
 {
     ncr5380_t *ncr_dev = (ncr5380_t *)priv;
 	ncr_t *ncr = &ncr_dev->ncr;
+	scsi_device_t *dev = &scsi_devices[ncr_dev->bus][ncr->target_id];
     uint8_t ret = 0xff;
 
     addr &= 0x3fff;
@@ -1336,14 +1352,14 @@ t128_read(uint32_t addr, void *priv)
 		else if (addr >= 0x1de0 && addr < 0x1e00)
 			ret = ncr_read(7, ncr_dev);
 	} else if (addr >= 0x1e00 && addr < 0x2000) {
-		if (ncr_dev->t128.host_pos >= 512 || ncr->dma_mode != DMA_INITIATOR_RECEIVE) {
+		if (ncr_dev->t128.host_pos >= MIN(512, dev->buffer_length) || ncr->dma_mode != DMA_INITIATOR_RECEIVE) {
 			ret = 0xff;
 		} else {
 			ret = ncr_dev->t128.buffer[ncr_dev->t128.host_pos++];
 
 			ncr_log("Read transfer, addr = %i, pos = %i\n", addr & 0x1ff, ncr_dev->t128.host_pos);
-
-			if (ncr_dev->t128.host_pos == 512) {
+			
+			if (ncr_dev->t128.host_pos == MIN(512, dev->buffer_length)) {
 				ncr_dev->t128.status &= ~0x04;
 				ncr_log("Transfer busy read, status = %02x, period = %lf\n", ncr_dev->t128.status, ncr_dev->period);
 				if (ncr_dev->period == 0.2)
@@ -1360,6 +1376,7 @@ t128_write(uint32_t addr, uint8_t val, void *priv)
 {
     ncr5380_t *ncr_dev = (ncr5380_t *)priv;
 	ncr_t *ncr = &ncr_dev->ncr;
+	scsi_device_t *dev = &scsi_devices[ncr_dev->bus][ncr->target_id];
 	
     addr &= 0x3fff;
     if (addr >= 0x1800 && addr < 0x1880)
@@ -1389,13 +1406,13 @@ t128_write(uint32_t addr, uint8_t val, void *priv)
 		else if (addr >= 0x1de0 && addr < 0x1e00)
 			ncr_write(7, val, ncr_dev);
 	} else if (addr >= 0x1e00 && addr < 0x2000) {
-		if (ncr_dev->t128.host_pos < 512 && ncr->dma_mode == DMA_SEND) {
+		if (ncr_dev->t128.host_pos < MIN(512, dev->buffer_length) && ncr->dma_mode == DMA_SEND) {
 			ncr_dev->t128.buffer[ncr_dev->t128.host_pos] = val;
 			ncr_dev->t128.host_pos++;
 
 			ncr_log("Write transfer, addr = %i, pos = %i, val = %02x\n", addr & 0x1ff, ncr_dev->t128.host_pos, val);
 
-			if (ncr_dev->t128.host_pos == 512) {
+			if (ncr_dev->t128.host_pos == MIN(512, dev->buffer_length)) {
 				ncr_dev->t128.status &= ~0x04;
 				ncr_log("Transfer busy write, status = %02x\n", ncr_dev->t128.status);
 				timer_on_auto(&ncr_dev->timer, 0.02);
@@ -1474,7 +1491,6 @@ ncr_init(const device_t *info)
 		ncr_dev->rom_addr = device_get_config_hex20("bios_addr");
 		ncr_dev->irq = device_get_config_int("irq");
 		ncr_dev->t128.bios_enabled = device_get_config_int("boot");
-		ncr_dev->t128.int_lock = device_get_config_int("int_lock");
 		
 		if (ncr_dev->t128.bios_enabled)
 			rom_init(&ncr_dev->bios_rom, T128_ROM,
@@ -1495,7 +1511,7 @@ ncr_init(const device_t *info)
     ncr_log("%s\n", temp);
 
     ncr_reset(ncr_dev, &ncr_dev->ncr);
-	if (ncr_dev->type != 3) {
+	if (ncr_dev->type < 3) {
 		ncr_dev->status_ctrl = STATUS_BUFFER_NOT_READY;
 		ncr_dev->buffer_host_pos = 128;
 	} else {
@@ -1504,8 +1520,6 @@ ncr_init(const device_t *info)
 		
 		if (!ncr_dev->t128.bios_enabled)
 			ncr_dev->t128.status |= 0x80;
-		if (ncr_dev->t128.int_lock)
-			ncr_dev->t128.status |= 0x40;
 	}
 	timer_add(&ncr_dev->timer, ncr_callback, ncr_dev, 0);
 
@@ -1762,9 +1776,6 @@ static const device_config_t t128_config[] = {
         },
         {
                 "boot", "Enable Boot ROM", CONFIG_BINARY, "", 1
-        },
-        {
-                "int_lock", "Enable Handshake Interlock", CONFIG_BINARY, "", 0
         },
 	{
 		"", "", -1
