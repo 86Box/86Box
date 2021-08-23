@@ -38,7 +38,7 @@
 #include <86box/smram.h>
 #include <86box/chipset.h>
 
-#define disabled_shadow		(MEM_READ_EXTANY | MEM_WRITE_EXTANY)
+#define GREEN			dev->is_g		/* Is G Variant */
 
 
 #ifdef ENABLE_ALI1429_LOG
@@ -63,10 +63,8 @@ ali1429_log(const char *fmt, ...)
 
 typedef struct
 {
-    uint8_t	index, cfg_locked,
-		regs[256];
-
-    smram_t *	smram;
+    uint8_t	is_g, index, cfg_locked, reg_57h,
+		regs[90];
 } ali1429_t;
 
 
@@ -87,7 +85,7 @@ ali1429_shadow_recalc(ali1429_t *dev)
         if (dev->regs[0x13] & (1 << i))
             mem_set_mem_state_both(base, 0x8000, can_read | can_write);
         else
-            mem_set_mem_state_both(base, 0x8000, disabled_shadow);
+            mem_set_mem_state_both(base, 0x8000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
     }
 
     flushmmucache_nopc();
@@ -114,17 +112,93 @@ ali1429_write(uint16_t addr, uint8_t val, void *priv)
 			dev->cfg_locked = !(val == 0xc5);
 
 		if (!dev->cfg_locked) {
-			dev->regs[dev->index] = val;
-
+			/* Common M1429 Registers */
 			switch (dev->index) {
+				case 0x10: case 0x11:
+					dev->regs[dev->index] = val;
+					break;
+
+				case 0x12:
+					dev->regs[dev->index] = val;
+					if(val & 4)
+						mem_remap_top(128);
+					else
+						mem_remap_top(0);
+					break;
+
 				case 0x13: case 0x14:
+					dev->regs[dev->index] = val;
 					ali1429_shadow_recalc(dev);
 					break;
 
+				case 0x15: case 0x16:
+				case 0x17:
+					dev->regs[dev->index] = val;
+					break;
+
 				case 0x18:
+					dev->regs[dev->index] = (val & 0x8f) | 0x20;
 					cpu_cache_ext_enabled = !!(val & 2);
 					cpu_update_waitstates();
 					break;
+
+				case 0x19: case 0x1a:
+				case 0x1e:
+					dev->regs[dev->index] = val;
+					break;
+
+				case 0x20:
+					dev->regs[dev->index] = val;
+
+					switch(val & 7) {
+						case 0: case 7:		/* Illegal */
+							cpu_set_isa_speed(7159091);
+							break;
+
+						case 1:
+							cpu_set_isa_speed(cpu_busspeed / 4);
+							break;
+
+						case 2:
+							cpu_set_isa_speed(cpu_busspeed / 5);
+							break;
+
+						case 3:
+							cpu_set_isa_speed(cpu_busspeed / 6);
+							break;
+
+						case 4:
+							cpu_set_isa_speed(cpu_busspeed / 8);
+							break;
+
+						case 5:
+							cpu_set_isa_speed(cpu_busspeed / 10);
+							break;
+
+						case 6:
+							cpu_set_isa_speed(cpu_busspeed / 12);
+							break;
+					}
+					break;
+
+				case 0x21 ... 0x27:
+					dev->regs[dev->index] = val;
+					break;
+			}
+
+			/* M1429G Only Registers */
+			if (GREEN) {
+				switch (dev->index) {
+					case 0x30 ... 0x41:
+					case 0x43: case 0x45:
+					case 0x4a:
+						dev->regs[dev->index] = val;
+						break;
+
+					case 0x57:
+						dev->reg_57h = val;
+						break;
+				}
 			}
 		}
 		break;
@@ -138,8 +212,12 @@ ali1429_read(uint16_t addr, void *priv)
     ali1429_t *dev = (ali1429_t *)priv;
     uint8_t ret = 0xff;
 
-    if ((addr == 0x23) && (dev->index < 0xc0))
+    if ((addr == 0x23) && (dev->index >= 0x10) && (dev->index <= 0x4a))
 	ret = dev->regs[dev->index];
+    else if ((addr == 0x23) && (dev->index == 0x57))
+	ret = dev->reg_57h;
+    else if (addr == 0x22)
+	ret = dev->index;
 
     return ret;
 }
@@ -154,11 +232,42 @@ ali1429_close(void *priv)
 }
 
 
+static void
+ali1429_defaults(ali1429_t *dev)
+{
+    /* M1429 Defaults */
+    dev->regs[0x10] = 0xf0;
+    dev->regs[0x11] = 0xff;
+    dev->regs[0x12] = 0x10;
+    dev->regs[0x14] = 0x48;
+    dev->regs[0x15] = 0x40;
+    dev->regs[0x17] = 0x7a;
+    dev->regs[0x1a] = 0x80;
+    dev->regs[0x22] = 0x80;
+    dev->regs[0x23] = 0x57;
+    dev->regs[0x25] = 0xc0;
+    dev->regs[0x27] = 0x30;
+
+    /* M1429G Default Registers */
+    if (GREEN) {
+	dev->regs[0x31] = 0x88;
+	dev->regs[0x32] = 0xc0;
+	dev->regs[0x38] = 0xe5;
+	dev->regs[0x40] = 0xe3;
+	dev->regs[0x41] = 2;
+	dev->regs[0x45] = 0x80;
+    }
+}
+
+
 static void *
 ali1429_init(const device_t *info)
 {
     ali1429_t *dev = (ali1429_t *)malloc(sizeof(ali1429_t));
     memset(dev, 0, sizeof(ali1429_t));
+
+    dev->cfg_locked = 1;
+    GREEN = info->local;
 
     /* M1429 Ports:
 		22h	Index Port
@@ -166,25 +275,27 @@ ali1429_init(const device_t *info)
     */
     io_sethandler(0x0022, 0x0002, ali1429_read, NULL, NULL, ali1429_write, NULL, NULL, dev);
 
-    dev->cfg_locked = 1;
-
-    device_add(&apm_device);
     device_add(&port_92_device);
-    /* dev->smram = smram_add(); */
+
+    ali1429_defaults(dev);
 
     return dev;
 }
-
 
 const device_t ali1429_device = {
     "ALi M1429",
     0,
     0,
-    ali1429_init,
-    ali1429_close,
-    NULL,
-    { NULL },
-    NULL,
-    NULL,
+    ali1429_init, ali1429_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+const device_t ali1429g_device = {
+    "ALi M1429G",
+    0,
+    1,
+    ali1429_init, ali1429_close, NULL,
+    { NULL }, NULL, NULL,
     NULL
 };
