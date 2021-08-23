@@ -672,11 +672,6 @@ int main(int argc, char** argv)
                 }
                 break;
             }
-            case SDL_WINDOWEVENT_FOCUS_LOST:
-            {
-                plat_mouse_capture(0);
-                break;
-            }
             case SDL_KEYDOWN:
             case SDL_KEYUP:
             {
