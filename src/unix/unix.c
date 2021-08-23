@@ -494,9 +494,9 @@ do_stop(void)
 {
     /* Claim the video blitter. */
     startblit();
-
+    
     sdl_close();
-
+    
     pc_close(thMain);
 
     thMain = NULL;
@@ -581,7 +581,7 @@ int main(int argc, char** argv)
         fprintf(stderr, "Failed to create blit mutex: %s", SDL_GetError());
         return -1;
     }
-
+    mousemutex = SDL_CreateMutex();
     sdl_initho();
 
     if (start_in_fullscreen)
