@@ -139,7 +139,8 @@ static const uint16_t sdl_to_xt[0x200] =
     [SDL_SCANCODE_KP_4] = 0x4B,
     [SDL_SCANCODE_KP_3] = 0x51,
     [SDL_SCANCODE_KP_2] = 0x50,
-    [SDL_SCANCODE_KP_1] = 0x4F
+    [SDL_SCANCODE_KP_1] = 0x4F,
+    [SDL_SCANCODE_KP_0] = 0x52
 };
 
 typedef struct sdl_blit_params
@@ -492,11 +493,22 @@ do_start(void)
 void
 do_stop(void)
 {
-    /* Claim the video blitter. */
+    
+    if (blitreq)
+    {
+        blitreq = 0;
+        extern void video_blit_complete();
+        video_blit_complete();
+    }
+
+    is_quit = 1;
+
+    /* Give the thread the time to shut down. */
+    plat_delay_ms(200);
     startblit();
     
     sdl_close();
-    
+
     pc_close(thMain);
 
     thMain = NULL;
