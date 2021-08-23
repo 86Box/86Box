@@ -411,14 +411,18 @@ void
 plat_mouse_capture(int on)
 {
     SDL_LockMutex(sdl_mutex);
-    SDL_SetWindowMouseGrab(sdl_win, (SDL_bool)on);
+    SDL_SetRelativeMouseMode((SDL_bool)on);
+    mouse_capture = on;
     SDL_UnlockMutex(sdl_mutex);
 }
+int real_sdl_w = SCREEN_RES_X, real_sdl_h = SCREEN_RES_Y;
 
 void plat_resize(int w, int h)
 {
     SDL_SetWindowSize(sdl_win, w, h);
+    real_sdl_w = w, real_sdl_h = h;
 }
+
 wchar_t sdl_win_title[512] = L"86Box";
 wchar_t* ui_window_title(wchar_t* str)
 {

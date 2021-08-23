@@ -16,6 +16,7 @@
 #include <SDL2/SDL.h>
 #include <86box/86box.h>
 #include <86box/keyboard.h>
+#include <86box/mouse.h>
 #include <86box/config.h>
 #include <86box/plat.h>
 #include <86box/plat_dynld.h>
@@ -208,9 +209,9 @@ wchar_t* plat_get_string(int i)
         case IDS_2077:
             return L"Click to capture mouse.";
         case IDS_2078:
-            return L"Press F12-F8 to release mouse";
+            return L"Press CTRL-END to release mouse";
         case IDS_2079:
-            return L"Press F12-F8 or middle button to release mouse";
+            return L"Press CTRL-END or middle button to release mouse";
     }
     return L"";
 }
@@ -474,9 +475,6 @@ main_thread(void *param)
 
 thread_t* thMain = NULL;
 
-void mouse_poll()
-{}
-
 void
 do_start(void)
 {
@@ -541,9 +539,30 @@ wchar_t* ui_sb_bugui(wchar_t *str)
 {
     return str;
 }
+
 extern void     sdl_blit(int x, int y, int y1, int y2, int w, int h);
 int numlock = 0;
 
+typedef struct mouseinputdata
+{
+    int deltax, deltay, deltaz;
+    int mousebuttons;
+} mouseinputdata;
+SDL_mutex* mousemutex;
+static mouseinputdata mousedata;
+void mouse_poll()
+{
+    SDL_LockMutex(mousemutex);
+    mouse_x = mousedata.deltax;
+    mouse_y = mousedata.deltay;
+    mouse_z = mousedata.deltaz;
+    mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
+    mouse_buttons = mousedata.mousebuttons;
+    SDL_UnlockMutex(mousemutex);
+}
+
+
+extern int real_sdl_w, real_sdl_h;
 void ui_sb_set_ready(int ready) {}
 int main(int argc, char** argv)
 {
@@ -562,6 +581,7 @@ int main(int argc, char** argv)
         fprintf(stderr, "Failed to create blit mutex: %s", SDL_GetError());
         return -1;
     }
+
     sdl_initho();
 
     if (start_in_fullscreen)
@@ -585,6 +605,78 @@ int main(int argc, char** argv)
             case SDL_QUIT:
                 do_stop();
                 break;
+            case SDL_MOUSEWHEEL:
+            {
+                if (mouse_capture || video_fullscreen)
+                {
+                    if (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED)
+                    {
+                        event.wheel.x *= -1;
+                        event.wheel.y *= -1;
+                    }
+                    SDL_LockMutex(mousemutex);
+                    mousedata.deltaz = event.wheel.y;
+                    SDL_UnlockMutex(mousemutex);
+                }
+            }
+            case SDL_MOUSEMOTION:
+            {
+                if (mouse_capture || video_fullscreen)
+                {
+                    SDL_LockMutex(mousemutex);
+                    mousedata.deltax += event.motion.xrel;
+                    mousedata.deltay += event.motion.yrel;
+                    SDL_UnlockMutex(mousemutex);
+                }
+                break;
+            }
+            case SDL_MOUSEBUTTONDOWN:
+            case SDL_MOUSEBUTTONUP:
+            {
+                if ((event.button.button == SDL_BUTTON_LEFT)
+                && !(mouse_capture || video_fullscreen)
+                && event.button.state == SDL_RELEASED
+                && event.button.x <= real_sdl_w && event.button.y <= real_sdl_h)
+                {
+                    plat_mouse_capture(1);
+                    break;
+                }
+                if (mouse_get_buttons() < 3 && event.button.button == SDL_BUTTON_MIDDLE && !video_fullscreen)
+                {
+                    plat_mouse_capture(0);
+                    break;
+                }
+                if (mouse_capture || video_fullscreen)
+                {
+                    int buttonmask = 0;
+
+                    switch(event.button.button)
+                    {
+                        case SDL_BUTTON_LEFT:
+                            buttonmask = 1;
+                            break;
+                        case SDL_BUTTON_RIGHT:
+                            buttonmask = 2;
+                            break;
+                        case SDL_BUTTON_MIDDLE:
+                            buttonmask = 4;
+                            break;
+                    }
+                    SDL_LockMutex(mousemutex);
+                    if (event.button.state == SDL_PRESSED)
+                    {
+                        mousedata.mousebuttons |= buttonmask;
+                    }
+                    else mousedata.mousebuttons &= ~buttonmask;
+                    SDL_UnlockMutex(mousemutex);
+                }
+                break;
+            }
+            case SDL_WINDOWEVENT_FOCUS_LOST:
+            {
+                plat_mouse_capture(0);
+                break;
+            }
             case SDL_KEYDOWN:
             case SDL_KEYUP:
             {
@@ -610,6 +702,10 @@ int main(int argc, char** argv)
                 }
                 keyboard_input(event.key.state == SDL_PRESSED, xtkey);
             }
+        }
+        if (mouse_capture && keyboard_ismsexit())
+        {
+            plat_mouse_capture(0);
         }
         if (blitreq)
         {
