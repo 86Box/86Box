@@ -15,7 +15,7 @@
  *		Copyright 2020 RichardG.
  */
 #include <tinyglib.h>
-
+#include <string.h>
 
 /* Must be a function, as libslirp redefines it as a macro. */
 gboolean
