@@ -433,7 +433,7 @@ wchar_t* ui_window_title(wchar_t* str)
         SDL_SetWindowTitle(sdl_win, (char*)str);
         return str;
     }
-    res = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char*)str, wcslen(str) * sizeof(wchar_t));
+    res = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char*)str, wcslen(str) * sizeof(wchar_t) + sizeof(wchar_t));
     if (res)
     {
         SDL_SetWindowTitle(sdl_win, res);
