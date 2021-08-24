@@ -559,6 +559,26 @@ timer_tick(nvr_t *nvr)
 }
 
 
+static void
+nvr_reg_common_write(uint16_t reg, uint8_t val, nvr_t *nvr, local_t *local)
+{
+    if ((reg == 0x2c) && (local->flags & FLAG_LS_HACK))
+	nvr->new = 0;
+    if ((reg == 0x52) && (local->flags & FLAG_APOLLO_HACK))
+	nvr->new = 0;
+    if ((reg >= 0x38) && (reg <= 0x3f) && local->wp[0])
+	return;
+    if ((reg >= 0xb8) && (reg <= 0xbf) && local->wp[1])
+	return;
+    if (local->lock[reg])
+	return;
+    if (nvr->regs[reg] != val) {
+	nvr->regs[reg] = val;
+	nvr_dosave = 1;
+    }
+}
+
+
 /* This must be exposed because ACPI uses it. */
 void
 nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
@@ -604,28 +624,17 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
 			nvr->regs[0x2f] = checksum & 0xff;
 			break;
 		}
-		/*FALLTHROUGH*/
+		nvr_reg_common_write(reg, val, nvr, local);
+		break;
 
 	case 0x32:
 		if ((reg == 0x32) && (local->cent == RTC_CENTURY_VIA) && local->wp_32)
 			break;
-		/* FALLTHROUGH */
+		nvr_reg_common_write(reg, val, nvr, local);
+		break;
 
 	default:		/* non-RTC registers are just NVRAM */
-		if ((reg == 0x2c) && (local->flags & FLAG_LS_HACK))
-			nvr->new = 0;
-		if ((reg == 0x52) && (local->flags & FLAG_APOLLO_HACK))
-			nvr->new = 0;
-		if ((reg >= 0x38) && (reg <= 0x3f) && local->wp[0])
-			break;
-		if ((reg >= 0xb8) && (reg <= 0xbf) && local->wp[1])
-			break;
-		if (local->lock[reg])
-			break;
-		if (nvr->regs[reg] != val) {
-			nvr->regs[reg] = val;
-			nvr_dosave = 1;
-		}
+		nvr_reg_common_write(reg, val, nvr, local);
 		break;
     }
 
