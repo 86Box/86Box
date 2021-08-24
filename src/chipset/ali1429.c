@@ -8,14 +8,70 @@
  *
  *		Implementation of the ALi M1429 chipset.
  *
- *      Note: This chipset has no datasheet, everything were done via
- *      reverse engineering the BIOS of various machines using it.
+ *		Note: This chipset has no datasheet, everything were done via
+ *		reverse engineering the BIOS of various machines using it.
  *
- *      Authors: Tiseno100
+ * Authors:	Tiseno100,
+ *		Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2020 Tiseno100
- *
+ *		Copyright 2020,2021 Tiseno100.
+ *		Copyright 2021,2021 Miran Grca.
  */
+
+/*
+    ALi M1429/M1429G Configuration Registers
+
+    Notes: Incorporated sometimes with a M1435 PCI-to-VLB Bridge
+           M1429G is just a 1429 with Green Functionality
+           SMM in it's entirety needs more research
+
+    Warning: Register documentation may be inaccurate!
+
+    Register 03h: Write C5h to unlock the configuration registers
+
+    Register 10h & 11h: DRAM Bank Configuration
+
+    Register 12h:
+    Bit 2: Memory Remapping Enable (128KB)
+
+    Register 13h:
+    Bit 7: Shadow RAM Enable for F8000-FFFFF
+    Bit 6: Shadow RAM Enable for F0000-F7FFF
+    Bit 5: Shadow RAM Enable for E8000-FFFFF
+    Bit 4: Shadow RAM Enable for E0000-F7FFF
+    Bit 3: Shadow RAM Enable for D8000-FFFFF
+    Bit 2: Shadow RAM Enable for D0000-F7FFF
+    Bit 1: Shadow RAM Enable for C8000-FFFFF
+    Bit 0: Shadow RAM Enable for C0000-F7FFF
+
+    Register 14h:
+    Bit 1: Shadow RAM Write for Enabled Segments
+    Bit 0: Shadow RAM Read for Enabled Segments
+
+    Register 18h:
+    Bit 6-5-4 (Cache Size)
+        0 0 0 32KB
+        0 0 1 128KB
+        0 1 0 256KB
+        0 1 1 512KB
+        1 0 0 64KB
+        1 0 1 256KB
+        1 1 0 512KB
+        1 1 1 1MB
+
+    Bit 1: L2 Cache Enable
+
+    Register 20h:
+    Bits 2-1-0: Bus Clock Speed
+         0 0 0: 7.1519Mhz (ATCLK2)
+	 0 0 1: CLK2IN/4
+	 0 1 0: CLK2IN/5
+	 0 1 1: CLK2IN/6
+	 1 0 0: CLK2IN/8
+	 1 0 1: CLK2IN/10
+	 1 1 0: CLK2IN/12
+
+*/
 
 #include <stdarg.h>
 #include <stdint.h>

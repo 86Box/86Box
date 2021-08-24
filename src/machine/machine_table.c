@@ -99,11 +99,7 @@ const machine_type_t machine_types[] = {
 	 Write Input Port, same as on AMIKey-3.
 
    Machines to remove:
-   - Hedaka HED-919;
-   - A-Trend ATC-1415;
-   - ECS Elite UM8810PAIO;
-   - Shuttle HOT-433A;
-   - Azza 5IVG (if a more interesting machine with Prime3C is found).
+   - Hedaka HED-919.
 */
 
 
@@ -276,6 +272,10 @@ const machine_t machines[] = {
        the IBM PS/2 Type 1 KBC firmware unless evidence emerges of any
        proprietary commands. */
     { "[SCAMP] Commodore SL386SX-25",		"cmdsl386sx25",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 1024,  8192,  512, 127,	 machine_at_cmdsl386sx25_init, at_cmdsl386sx25_get_device },
+    /* The closest BIOS string I find to this one's, differs only in one part,
+       and ends in -8, so I'm going to assume that this, too, has an AMI '8'
+       (AMI Keyboard BIOS Plus) KBC firmware. */
+    { "[SCAMP] DataExpert 386SX",		"dataexpert386sx",	MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 10000000, 25000000, 0, 0, 0, 0,								MACHINE_AT,									 1024, 16384, 1024, 127,	 machine_at_dataexpert386sx_init, NULL			},
     /* Has IBM PS/2 Type 1 KBC firmware. */
     { "[SCAMP] Samsung SPC-6033P",		"spc6033p",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 2048, 12288, 2048, 127,	     machine_at_spc6033p_init, at_spc6033p_get_device	},
     /* Has an unknown AMI KBC firmware, I'm going to assume 'F' until a
@@ -297,6 +297,7 @@ const machine_t machines[] = {
     { "[ACC 2168] AMI 386DX clone",		"acc386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 16384, 1024, 127,	       machine_at_acc386_init, NULL			},
     /* Has an AMI Keyboard BIOS PLUS KBC firmware ('8'). */
     { "[C&T 386] ECS 386/32",			"ecs386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 16384, 1024, 127,	       machine_at_ecs386_init, NULL			},
+    /* Has IBM AT KBC firmware. */
     { "[C&T 386] Samsung SPC-6000A",		"spc6000a",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							 1024, 32768, 1024, 127,	     machine_at_spc6000a_init, NULL			},
     /* Uses Compaq KBC firmware. */
     { "[ISA] Compaq Portable III (386)",	"portableiii386",       MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE | MACHINE_VIDEO,					 1024, 14336, 1024, 127,       machine_at_portableiii386_init, at_cpqiii_get_device	},
@@ -366,7 +367,7 @@ const machine_t machines[] = {
     { "[ALi M1429G] Acer A1G",			"acera1g",		MACHINE_TYPE_486_S2,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO,		 4096, 36864, 1024, 127,	      machine_at_acera1g_init, at_acera1g_get_device	},
     /* There are two similar BIOS strings with -H, and one with -U, so I'm going to
         give it an AMIKey H KBC firmware. */
-    { "[ALi M1429G] AMI WinBIOS 486",		"win486",		MACHINE_TYPE_486_S2,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	  machine_at_winbios1429_init, NULL			},
+    { "[ALi M1429G] Kaimei 486",		"win486",		MACHINE_TYPE_486_S2,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	  machine_at_winbios1429_init, NULL			},
     /* Uses an Intel KBC with Phoenix MultiKey KBC firmware. */
     { "[SiS 461] DEC DECpc LPV",		"decpc_lpv",		MACHINE_TYPE_486_S2,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO,		 1024, 32768, 1024, 127,	    machine_at_decpc_lpv_init, NULL			},
     /* Uses an NEC 90M002A (UPD82C42C, 8042 clone) with unknown firmware. */
@@ -446,13 +447,18 @@ const machine_t machines[] = {
        of type 'H'. */
     { "[SiS 496] Zida Tomato 4DP",		"4dps",			MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 261120, 1024, 255,		 machine_at_4dps_init, NULL			},
     /* This has the UMC 88xx on-chip KBC. */
-    { "[UMC 8881] A-Trend ATC-1415",		"atc1415",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024,  65536, 1024, 255,	      machine_at_atc1415_init, NULL			},
+    { "[UMC 888x] A-Trend ATC-1415",		"atc1415",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024,  65536, 1024, 255,	      machine_at_atc1415_init, NULL			},
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[UMC 8881] ECS Elite UM8810PAIO",	"ecs486",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 131072, 1024, 255,	       machine_at_ecs486_init, NULL			},
+    { "[UMC 888x] ECS Elite UM8810PAIO",	"ecs486",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 131072, 1024, 255,	       machine_at_ecs486_init, NULL			},
     /* Has AMIKey Z(!) KBC firmware. */
-    { "[UMC 8881] Epson Action PC 2600",	"actionpc2600",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 262144, 1024, 255,	 machine_at_actionpc2600_init, NULL			},
+    { "[UMC 888x] Epson Action PC 2600",	"actionpc2600",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 262144, 1024, 255,	 machine_at_actionpc2600_init, NULL			},
+    /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
+       in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
+    { "[UMC 888x] PC Chips M919",		"m919",			MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_VLB | MACHINE_IDE_DUAL,					 1024, 131072, 1024, 255,		 machine_at_m919_init, NULL			},
+    /* Has IBM PS/2 Type 1 KBC firmware. Uses a mysterious I/O port C05. */
+    { "[UMC 888x] Samsung SPC7700P-LW",		"spc7700p-lw",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024, 131072, 1024, 255,	  machine_at_spc7700p_lw_init, NULL			},
     /* This has a Holtek KBC. */
-    { "[UMC 8881] Shuttle HOT-433A",		"hot433",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 262144, 1024, 255,	       machine_at_hot433_init, NULL			},
+    { "[UMC 888x] Shuttle HOT-433A",		"hot433",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 262144, 1024, 255,	       machine_at_hot433_init, NULL			},
     /* Has a VIA VT82C406 KBC+RTC that likely has identical commands to the VT82C42N. */
     { "[VIA VT82C496G] DFI G486VPA",		"g486vpa",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_IDE_DUAL,						 1024, 131072, 1024, 255,	      machine_at_g486vpa_init, NULL			},
     /* Has a VIA VT82C42N KBC. */
@@ -463,6 +469,9 @@ const machine_t machines[] = {
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     { "[STPC Client] ITOX STAR",		"itoxstar",		MACHINE_TYPE_486_MISC,		CPU_PKG_STPC, 0, 66666667, 75000000, 0, 0, 1.0, 1.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 255,	     machine_at_itoxstar_init, NULL			},
+    /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
+       firmware. */
+    { "[STPC Consumer-II] Acrosser AR-B1423C",	"arb1423c",		MACHINE_TYPE_486_MISC,		CPU_PKG_STPC, 0, 66666667, 66666667, 0, 0, 2.0, 2.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				32768, 163840, 8192, 255,	     machine_at_arb1423c_init, NULL			},
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     { "[STPC Consumer-II] Acrosser AR-B1479",	"arb1479",		MACHINE_TYPE_486_MISC,		CPU_PKG_STPC, 0, 66666667, 66666667, 0, 0, 2.0, 2.0,								MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				32768, 163840, 8192, 255,	      machine_at_arb1479_init, NULL			},

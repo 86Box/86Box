@@ -12,8 +12,10 @@
  *		reverse engineering the BIOS of various machines using it.
  *
  * Authors:	Tiseno100,
+ *		Miran Grca, <mgrca8@gmail.com>
  *
  *		Copyright 2021 Tiseno100.
+ *		Copyright 2021 Miran Grca.
  */
 
 /* 
@@ -35,9 +37,9 @@
    Bits 7-4 PCI IRQ for INTD
    Bits 3-0 PCI IRQ for INTC
 
-   Function 0 Register 46:
-   Bit 7: PMU Trigger(1: By IRQ/0: By SMI)
-   Bit 6: IRQ SMI Request (1: IRQ 10) (Supposedly 0 according to Phoenix is IRQ 15 but doesn't seem to make sense)
+   Function 0 Register 46 (corrected by Miran Grca):
+   Bit 7: IRQ SMI Request (1: IRQ 15, 0: IRQ 10)
+   Bit 6: PMU Trigger(1: By IRQ/0: By SMI)
 
    Function 0 Register 56:
    Bit 1-0 ISA Bus Speed
@@ -45,9 +47,17 @@
        0 1 PCICLK/4
        1 0 PCICLK/2
 
-   Function 0 Register A3:
+   Function 0 Register A2 - non-software SMI# status register
+			    (documented by Miran Grca):
+   Bit 4: I set, graphics card goes into sleep mode
+   This register is most likely R/WC
+
+   Function 0 Register A3 (added more details by Miran Grca):
    Bit 7: Unlock SMM
-   Bit 6: Software SMI trigger
+   Bit 6: Software SMI trigger (also doubles as software SMI# status register,
+	  cleared by writing a 0 to it - see the handler used by Phoenix BIOS'es):
+	  If Function 0 Register 46 Bit 6 is set, it raises the specified IRQ (15
+	  or 10) instead.
 
    Function 0 Register A4:
    Bit 0: Host to PCI Clock (1: 1 by 1/0: 1 by half)
@@ -76,6 +86,9 @@
 #include <86box/pci.h>
 
 #include <86box/chipset.h>
+
+
+#define IDE_BIT		0x01
 
 
 #ifdef ENABLE_UMC_8886_LOG
@@ -113,10 +126,10 @@ umc_8886_log(const char *fmt, ...)
 
 typedef struct umc_8886_t
 {
-    uint8_t	pci_conf_sb[2][256];	/* PCI Registers */
+    uint8_t	max_func,		/* Last function number */
+		pci_conf_sb[2][256];	/* PCI Registers */
     uint16_t	sb_id;			/* Southbridge Revision */
     int		has_ide;		/* Check if Southbridge Revision is AF or F */
-
 } umc_8886_t;
 
 
@@ -138,7 +151,7 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
 {
     umc_8886_t *dev = (umc_8886_t *)priv;
 
-    switch (func) {
+    if (func <= dev->max_func)  switch (func) {
 	case 0:		/* PCI to ISA Bridge */
 		umc_8886_log("UM8886: dev->regs[%02x] = %02x POST %02x\n", addr, val, inb(0x80));
 
@@ -171,11 +184,8 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
 				break;
 
 			case 0x46:
+				/* Bit 6 seems to be the IRQ/SMI# toggle, 1 = IRQ, 0 = SMI#. */
 				dev->pci_conf_sb[func][addr] = val;
-
-				if (val & 0x40)
-					picint(1 << ((val & 0x80) ? 15 : 10));
-
 				break;
 
 			case 0x47:
@@ -208,17 +218,25 @@ umc_8886_write(int func, int addr, uint8_t val, void *priv)
 			case 0x70 ... 0x76:
 			case 0x80: case 0x81:
 			case 0x90 ... 0x92:
-			case 0xa0 ... 0xa2:
+			case 0xa0 ... 0xa1:
 				dev->pci_conf_sb[func][addr] = val;
 				break;
 
+			case 0xa2:
+				dev->pci_conf_sb[func][addr] &= ~val;
+				break;
+
 			case 0xa3:
+				/* SMI Provocation (Bit 7 Enable SMM + Bit 6 Software SMI) */
+				if (((val & 0xc0) == 0xc0) && !(dev->pci_conf_sb[0][0xa3] & 0x40)) {
+					if (dev->pci_conf_sb[0][0x46] & 0x40)
+						picint(1 << ((dev->pci_conf_sb[0][0x46] & 0x80) ? 15 : 10));
+					else
+						smi_line = 1;
+					dev->pci_conf_sb[0][0xa3] |= 0x04;
+				}
+
 				dev->pci_conf_sb[func][addr] = val;
-
-				/* SMI Provocation (Bit 7 Enable SMM + Bit 6 Software SMI */
-				if (((dev->pci_conf_sb[0][0xa3] >> 6) == 3) && !in_smm)
-					smi_line = 1;
-
 				break;
 
 			case 0xa4:
@@ -259,8 +277,12 @@ static uint8_t
 umc_8886_read(int func, int addr, void *priv)
 {
     umc_8886_t *dev = (umc_8886_t *)priv;
+    uint8_t ret = 0xff;
 
-    return dev->pci_conf_sb[func][addr];
+    if (func <= dev->max_func)
+	ret = dev->pci_conf_sb[func][addr];
+
+    return ret;
 }
 
 
@@ -338,6 +360,8 @@ umc_8886_init(const device_t *info)
     /* Add IDE if UM8886AF variant */
     if (HAS_IDE)
 	device_add(&ide_pci_2ch_device);
+
+    dev->max_func = (HAS_IDE) ? 1 : 0;
 
     /* Get the Southbridge Revision */
     SB_ID = info->local;

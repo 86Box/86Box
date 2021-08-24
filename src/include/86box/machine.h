@@ -277,6 +277,7 @@ extern int	machine_at_shuttle386sx_init(const machine_t *);
 extern int	machine_at_adi386sx_init(const machine_t *);
 extern int	machine_at_cmdsl386sx16_init(const machine_t *);
 extern int	machine_at_cmdsl386sx25_init(const machine_t *);
+extern int	machine_at_dataexpert386sx_init(const machine_t *);
 extern int	machine_at_spc6033p_init(const machine_t *);
 extern int	machine_at_wd76c10_init(const machine_t *);
 extern int	machine_at_arb1374_init(const machine_t *);
@@ -288,7 +289,7 @@ extern int	machine_at_prox1332_init(const machine_t *);
 
 extern int	machine_at_awardsx_init(const machine_t *);
 
-extern int  machine_at_pc916sx_init(const machine_t *);
+extern int 	machine_at_pc916sx_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t	*at_ama932j_get_device(void);
@@ -366,6 +367,7 @@ extern int	machine_at_sbc_490_init(const machine_t *);
 extern int	machine_at_tf_486_init(const machine_t *);
 
 extern int	machine_at_itoxstar_init(const machine_t *);
+extern int	machine_at_arb1423c_init(const machine_t *);
 extern int	machine_at_arb1479_init(const machine_t *);
 extern int	machine_at_pcm9340_init(const machine_t *);
 extern int	machine_at_pcm5330_init(const machine_t *);
@@ -374,6 +376,8 @@ extern int	machine_at_ecs486_init(const machine_t *);
 extern int	machine_at_hot433_init(const machine_t *);
 extern int	machine_at_atc1415_init(const machine_t *);
 extern int	machine_at_actionpc2600_init(const machine_t *);
+extern int	machine_at_m919_init(const machine_t *);
+extern int	machine_at_spc7700p_lw_init(const machine_t *);
 
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_acera1g_get_device(void);

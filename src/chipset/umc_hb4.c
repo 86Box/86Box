@@ -15,8 +15,10 @@
  *		around the web.
  *
  * Authors:	Tiseno100,
+ *		Miran Grca, <mgrca8@gmail.com>
  *
  *		Copyright 2021 Tiseno100.
+ *		Copyright 2021 Miran Grca.
  */
 
 /*
@@ -81,11 +83,9 @@
    Register 58h & 59h: DRAM Bank 1 Configuration
   
    Register 60:
-   Bit 5-4: SMRAM Position(Lot's of uncertainty to those bits)
-       0 0  A0000 to E0000
-       1 0  A0000 to ????? (Phoenix uses it to no avail)
-
-   Bit 0: SMRAM Local Access Enable
+   Bit 5: If set and SMRAM is enabled, data cycles go to PCI and code cycles go to DRAM
+   Bit 0: SMRAM Local Access Enable - if set, SMRAM is also enabled outside SMM
+	  SMRAM appears to always be enabled in SMM, and always set to A0000-BFFFF.
 */
 
 #include <stdarg.h>
@@ -165,7 +165,17 @@ hb4_smram(hb4_t *dev)
 {
     smram_disable_all();
 
+    /* Bit 0, if set, enables SMRAM access outside SMM. SMRAM appears to be always enabled
+       in SMM, and is always set to A0000-BFFFF. */
     smram_enable(dev->smram, 0x000a0000, 0x000a0000, 0x20000, dev->pci_conf[0x60] & 0x01, 1);
+
+    /* Bit 5 seems to set data to go to PCI and code to DRAM. The Samsung SPC7700P-LW uses
+       this. */
+    if (dev->pci_conf[0x60] & 0x20) {
+	if (dev->pci_conf[0x60] & 0x01)
+		mem_set_mem_state_smram_ex(0, 0x000a0000, 0x20000, 0x02);
+	mem_set_mem_state_smram_ex(1, 0x000a0000, 0x20000, 0x02);
+    }
 }
 
 
