@@ -269,7 +269,7 @@ sdl_set_fs(int fs)
     sdl_enabled = 0;
     sdl_destroy_texture();
     SDL_SetWindowFullscreen(sdl_win, fs ? SDL_WINDOW_FULLSCREEN : 0);
-    SDL_SetWindowMouseGrab(sdl_win, mouse_capture);
+    SDL_SetRelativeMouseMode((SDL_bool)mouse_capture);
 
     sdl_fs = fs;
 
