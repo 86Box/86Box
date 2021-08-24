@@ -13,7 +13,7 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <dlfcn.h>
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <86box/86box.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
@@ -183,7 +183,7 @@ plat_tempfile(char *bufp, char *prefix, char *suffix)
     gettimeofday(&t, NULL);
     curtime = time(NULL);
     calendertime = localtime(&curtime);
-    sprintf(&bufp[strlen(bufp)], "%d%02d%02d-%02d%02d%02d-%03d%s", calendertime->tm_year, calendertime->tm_mon, calendertime->tm_mday, calendertime->tm_hour, calendertime->tm_min, calendertime->tm_sec, t.tv_usec / 1000, suffix);
+    sprintf(&bufp[strlen(bufp)], "%d%02d%02d-%02d%02d%02d-%03ld%s", calendertime->tm_year, calendertime->tm_mon, calendertime->tm_mday, calendertime->tm_hour, calendertime->tm_min, calendertime->tm_sec, t.tv_usec / 1000, suffix);
 }
 
 int
@@ -514,14 +514,14 @@ do_stop(void)
 
 int	ui_msgbox(int flags, void *message)
 {
-    fprintf(stderr, "Got msgbox request. Flags: 0x%X, msgid: %llu\n", flags, (uint64_t) message);
+    fprintf(stderr, "Got msgbox request. Flags: 0x%X, msgid: %llu\n", flags, (unsigned long long) message);
     return 0;
 }
 
 int	ui_msgbox_header(int flags, void *message, void* header)
 {
     // Parameters that are passed will crash the program so keep these off for the time being.
-    fprintf(stderr, "Got msgbox request. Flags: 0x%X, msgid: %llu, hdrid: %llu\n", flags, (uint64_t) message, (uint64_t) header);
+    fprintf(stderr, "Got msgbox request. Flags: 0x%X, msgid: %llu, hdrid: %llu\n", flags, (unsigned long long) message, (unsigned long long) header);
     return 0;
 }
 
