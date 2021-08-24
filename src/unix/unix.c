@@ -112,19 +112,19 @@ static const uint16_t sdl_to_xt[0x200] =
     [SDL_SCANCODE_F10] = 0x44,
     [SDL_SCANCODE_NUMLOCKCLEAR] = 0x45,
     [SDL_SCANCODE_SCROLLLOCK] = 0x46,
-    [SDL_SCANCODE_HOME] = 0x47,
-    [SDL_SCANCODE_UP] = 0x48,
-    [SDL_SCANCODE_PAGEUP] = 0x49,
+    [SDL_SCANCODE_HOME] = 0x147,
+    [SDL_SCANCODE_UP] = 0x148,
+    [SDL_SCANCODE_PAGEUP] = 0x149,
     [SDL_SCANCODE_KP_MINUS] = 0x4A,
-    [SDL_SCANCODE_LEFT] = 0x4B,
+    [SDL_SCANCODE_LEFT] = 0x14B,
     [SDL_SCANCODE_KP_5] = 0x4C,
-    [SDL_SCANCODE_RIGHT] = 0x4D,
+    [SDL_SCANCODE_RIGHT] = 0x14D,
     [SDL_SCANCODE_KP_PLUS] = 0x4E,
-    [SDL_SCANCODE_END] = 0x4F,
-    [SDL_SCANCODE_DOWN] = 0x50,
-    [SDL_SCANCODE_PAGEDOWN] = 0x51,
-    [SDL_SCANCODE_INSERT] = 0x52,
-    [SDL_SCANCODE_DELETE] = 0x53,
+    [SDL_SCANCODE_END] = 0x14F,
+    [SDL_SCANCODE_DOWN] = 0x150,
+    [SDL_SCANCODE_PAGEDOWN] = 0x151,
+    [SDL_SCANCODE_INSERT] = 0x152,
+    [SDL_SCANCODE_DELETE] = 0x153,
     [SDL_SCANCODE_F11] = 0x57,
     [SDL_SCANCODE_F12] = 0x58,
 
@@ -503,8 +503,6 @@ do_stop(void)
 
     is_quit = 1;
 
-    /* Give the thread the time to shut down. */
-    plat_delay_ms(200);
     startblit();
     
     sdl_close();
@@ -553,7 +551,6 @@ wchar_t* ui_sb_bugui(wchar_t *str)
 }
 
 extern void     sdl_blit(int x, int y, int y1, int y2, int w, int h);
-int numlock = 0;
 
 typedef struct mouseinputdata
 {
@@ -575,6 +572,7 @@ void mouse_poll()
 
 
 extern int real_sdl_w, real_sdl_h;
+static int exit_event = 0;
 void ui_sb_set_ready(int ready) {}
 int main(int argc, char** argv)
 {
@@ -615,7 +613,7 @@ int main(int argc, char** argv)
         switch(event.type)
         {
             case SDL_QUIT:
-                do_stop();
+                exit_event = 1;
                 break;
             case SDL_MOUSEWHEEL:
             {
@@ -684,25 +682,19 @@ int main(int argc, char** argv)
                 }
                 break;
             }
+            case SDL_RENDER_DEVICE_RESET:
+            case SDL_RENDER_TARGETS_RESET:
+                {    
+                    extern void sdl_reinit_texture();
+                    sdl_reinit_texture();
+                    break;
+                }
             case SDL_KEYDOWN:
             case SDL_KEYUP:
             {
                 uint16_t xtkey = 0;
                 switch(event.key.keysym.scancode)
                 {
-                    case SDL_SCANCODE_KP_1 ... SDL_SCANCODE_KP_0:
-                    {
-                        if (numlock)
-                        {
-                            xtkey = (event.key.keysym.scancode - SDL_SCANCODE_KP_1) + 2;
-                        }
-                        else xtkey = sdl_to_xt[event.key.keysym.scancode];
-                        break;
-                    }
-                    case SDL_SCANCODE_NUMLOCKCLEAR:
-                    {
-                        if (event.type == SDL_KEYDOWN) numlock ^= 1;
-                    }
                     default:
                         xtkey = sdl_to_xt[event.key.keysym.scancode];
                         break;
@@ -723,6 +715,11 @@ int main(int argc, char** argv)
         {
             onesec_tic = SDL_GetTicks();
             pc_onesec();
+        }
+        if (exit_event)
+        {
+            do_stop();
+            break;
         }
     }
 
