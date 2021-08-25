@@ -50,9 +50,9 @@ target_link_libraries(86Box cpu chipset mch dev mem fdd game cdrom zip mo hdd
 find_package(Freetype REQUIRED)
 include_directories(${FREETYPE_INCLUDE_DIRS})
 
-find_package(OpenAL CONFIG REQUIRED)
+find_package(OpenAL REQUIRED)
 include_directories(${OPENAL_INCLUDE_DIR})
-target_link_libraries(86Box OpenAL::OpenAL)
+target_link_libraries(86Box ${OPENAL_LIBRARY})
 
 find_package(SDL2 CONFIG REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})

@@ -2,6 +2,7 @@
 #define _FILE_OFFSET_BITS 64
 #define _LARGEFILE64_SOURCE 1
 #endif
+#define _POSIX_C_SOURCE 200809L
 #include <stdlib.h>
 #include <stdio.h>
 #include <time.h>
@@ -579,8 +580,23 @@ void monitor_thread(void* param)
 {
     if (isatty(fileno(stdin)) && isatty(fileno(stdout)))
     {
+        char* line = NULL;
+        size_t n;
         printf("86Box monitor console.\n");
-        
+        while (!exit_event)
+        {
+            printf("(86Box) ");
+            getline(&line, &n, stdin);
+            if (line)
+            {
+                line[n - 1] = '\0';
+                if (strncasecmp(line, "exit", 4) == 0)
+                {
+                    exit_event = 1;
+                }
+                free(line);
+            }
+        }
     }
 }
 
@@ -616,6 +632,7 @@ int main(int argc, char** argv)
     /* Initialize the rendering window, or fullscreen. */
 
     do_start();
+    thread_create(monitor_thread, NULL);
     while (!is_quit)
     {
         static int onesec_tic = 0;
