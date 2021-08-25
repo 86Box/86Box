@@ -861,7 +861,7 @@ ibm_rgb528_hwcursor_draw(svga_t *svga, int displine)
     x_pos = offset + svga->x_add;
     p = buffer32->line[y_pos];
 
-    for (x = 0; x < svga->dac_hwcursor_latch.xsize; x ++) {
+    for (x = 0; x < svga->dac_hwcursor_latch.xsize; x++) {
 	if (!(x & 3))
 		four_pixels = ramdac->indexed_data[svga->dac_hwcursor_latch.addr];
 
