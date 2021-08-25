@@ -594,6 +594,10 @@ void monitor_thread(void* param)
                 {
                     exit_event = 1;
                 }
+                else if (strncasecmp(line, "fddload", sizeof("fddload") - 1) == 0)
+                {
+                    
+                }
                 free(line);
             }
         }
