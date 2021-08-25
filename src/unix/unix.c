@@ -41,6 +41,8 @@ int	kbd_req_capture;
 int hide_status_bar;
 int fixed_size_x = 640;
 int fixed_size_y = 480;
+extern int title_set;
+extern wchar_t sdl_win_title[512];
 plat_joystick_t	plat_joystick_state[MAX_PLAT_JOYSTICKS];
 joystick_t	joystick_state[MAX_JOYSTICKS];
 int		joysticks_present;
@@ -509,7 +511,7 @@ do_stop(void)
 
     is_quit = 1;
 
-    startblit();
+    //startblit();
     
     sdl_close();
 
@@ -682,7 +684,7 @@ void monitor_thread(void* param)
         }
     }
 }
-
+SDL_threadID eventthread;
 int main(int argc, char** argv)
 {
     SDL_Event event;
@@ -694,6 +696,8 @@ int main(int argc, char** argv)
         SDL_Quit();
         return 6;
     }
+    
+    eventthread = SDL_ThreadID();
     blitmtx = SDL_CreateMutex();
     if (!blitmtx)
     {
@@ -815,16 +819,21 @@ int main(int argc, char** argv)
         if (mouse_capture && keyboard_ismsexit())
         {
             plat_mouse_capture(0);
+        }        
+        if (SDL_GetTicks() - onesec_tic >= 1000)
+        {
+            onesec_tic = SDL_GetTicks();
+            pc_onesec();
         }
         if (blitreq)
         {
             extern void sdl_blit(int x, int y, int y1, int y2, int w, int h);
             sdl_blit(params.x, params.y, params.y1, params.y2, params.w, params.h);
         }
-        if (SDL_GetTicks() - onesec_tic >= 1000)
+        if (title_set)
         {
-            onesec_tic = SDL_GetTicks();
-            pc_onesec();
+            extern void ui_window_title_real();
+            ui_window_title_real();
         }
         if (exit_event)
         {

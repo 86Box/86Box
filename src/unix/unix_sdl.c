@@ -38,6 +38,10 @@ static int		cur_wx = 0, cur_wy = 0, cur_ww =0, cur_wh = 0;
 static volatile int	sdl_enabled = 1;
 static SDL_mutex*	sdl_mutex = NULL;
 int mouse_capture;
+int title_set = 0;
+int resize_pending = 0;
+int resize_w = 0;
+int resize_h = 0;
 
 static void
 sdl_integer_scale(double *d, double *g)
@@ -128,6 +132,8 @@ sdl_blit_shim(int x, int y, int y1, int y2, int w, int h)
     blitreq = 1;
 }
 
+void ui_window_title_real();
+
 void
 sdl_blit(int x, int y, int y1, int y2, int w, int h)
 {
@@ -141,6 +147,11 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
 
     SDL_LockMutex(sdl_mutex);
 
+    if (resize_pending)
+    {
+        sdl_resize(resize_w, resize_h);
+        resize_pending = 0;
+    }
     r_src.x = 0;
     r_src.y = y1;
     r_src.w = w;
@@ -308,7 +319,6 @@ sdl_resize(int x, int y)
     cur_wh = wh;
 
     SDL_SetWindowSize(sdl_win, cur_ww, cur_wh);
-    SDL_SetWindowPosition(sdl_win, cur_wx, cur_wy);
 
     sdl_reinit_texture();
 
@@ -419,26 +429,52 @@ int real_sdl_w = SCREEN_RES_X, real_sdl_h = SCREEN_RES_Y;
 
 void plat_resize(int w, int h)
 {
-    SDL_SetWindowSize(sdl_win, w, h);
-    real_sdl_w = w, real_sdl_h = h;
+    SDL_LockMutex(sdl_mutex);
+    resize_w = w;
+    resize_h = h;
+    resize_pending = 1;
+    SDL_UnlockMutex(sdl_mutex);
 }
 
-wchar_t sdl_win_title[512] = L"86Box";
-wchar_t* ui_window_title(wchar_t* str)
+wchar_t sdl_win_title[512] = { L'8', L'6', L'B', L'o', L'x', 0 };
+SDL_mutex* titlemtx = NULL;
+
+void ui_window_title_real()
 {
     char* res;
-    if (!str) return sdl_win_title;
     if (sizeof(wchar_t) == 1)
     {
-        SDL_SetWindowTitle(sdl_win, (char*)str);
-        return str;
+        SDL_SetWindowTitle(sdl_win, (char*)sdl_win_title);
+        return;
     }
-    res = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char*)str, wcslen(str) * sizeof(wchar_t) + sizeof(wchar_t));
+    res = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char*)sdl_win_title, wcslen(sdl_win_title) * sizeof(wchar_t) + sizeof(wchar_t));
     if (res)
     {
         SDL_SetWindowTitle(sdl_win, res);
-        wcsncpy(sdl_win_title, str, 512);
         SDL_free((void*)res);
     }
+    title_set = 0;
+}
+extern SDL_threadID eventthread;
+
+/* Only activate threading path on macOS, otherwise it will softlock Xorg.
+   Wayland doesn't seem to have this issue. */
+wchar_t* ui_window_title(wchar_t* str)
+{
+    if (!str) return sdl_win_title;
+#ifdef __APPLE__
+    if (eventthread == SDL_ThreadID())
+#endif
+    {
+        memset(sdl_win_title, 0, sizeof(sdl_win_title));
+        wcsncpy(sdl_win_title, str, 512);
+        ui_window_title_real();
+        return str;
+    }
+#ifdef __APPLE__
+    memset(sdl_win_title, 0, sizeof(sdl_win_title));
+    wcsncpy(sdl_win_title, str, 512);
+    title_set = 1;
+#endif
     return str;
 }
