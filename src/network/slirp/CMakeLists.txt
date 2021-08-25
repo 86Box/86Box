@@ -20,5 +20,5 @@ add_library(slirp STATIC tinyglib.c arp_table.c bootp.c cksum.c dnssearch.c if.c
 #target_link_libraries(slirp wsock32 iphlpapi)
 #target_link_libraries(slirp)
 if (CMAKE_SYSTEM_NAME MATCHES "Windows")
-target_link_libraries(wsock32 iphlpapi)
+target_link_libraries(slirp wsock32 iphlpapi)
 endif()
