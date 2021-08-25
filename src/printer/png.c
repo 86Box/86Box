@@ -65,6 +65,9 @@
 # define PATH_PNG_DLL		"libpng16.so"
 #endif
 
+#ifndef PNG_Z_DEFAULT_STRATEGY
+#define PNG_Z_DEFAULT_STRATEGY 1
+#endif
 
 # define PNGFUNC(x)		png_ ## x
 
