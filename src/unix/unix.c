@@ -574,6 +574,16 @@ void mouse_poll()
 extern int real_sdl_w, real_sdl_h;
 static int exit_event = 0;
 void ui_sb_set_ready(int ready) {}
+
+void monitor_thread(void* param)
+{
+    if (isatty(fileno(stdin)) && isatty(fileno(stdout)))
+    {
+        printf("86Box monitor console.\n");
+        
+    }
+}
+
 int main(int argc, char** argv)
 {
     SDL_Event event;
