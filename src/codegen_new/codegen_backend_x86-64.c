@@ -21,6 +21,7 @@
 #if defined WIN32 || defined _WIN32 || defined _WIN32
 #include <windows.h>
 #endif
+#include <string.h>
 
 void *codegen_mem_load_byte;
 void *codegen_mem_load_word;
