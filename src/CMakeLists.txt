@@ -51,7 +51,7 @@ find_package(Freetype REQUIRED)
 include_directories(${FREETYPE_INCLUDE_DIRS})
 
 find_package(OpenAL CONFIG REQUIRED)
-include_directories(${OPENAL_INCLUDE_DIRS})
+include_directories(${OPENAL_INCLUDE_DIR})
 target_link_libraries(86Box OpenAL::OpenAL)
 
 find_package(SDL2 CONFIG REQUIRED)
