@@ -7,7 +7,9 @@
 #define _DARWIN_C_SOURCE 1
 #endif
 #include <stdlib.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 #include <sys/time.h>
 #include <sys/param.h>
@@ -578,6 +580,19 @@ void mouse_poll()
 extern int real_sdl_w, real_sdl_h;
 static int exit_event = 0;
 void ui_sb_set_ready(int ready) {}
+char* xargv[512];
+
+// From musl.
+char *local_strsep(char **str, const char *sep)
+{
+	char *s = *str, *end;
+	if (!s) return NULL;
+	end = s + strcspn(s, sep);
+	if (*end) *end++ = 0;
+	else end = 0;
+	*str = end;
+	return s;
+}
 
 void monitor_thread(void* param)
 {
@@ -588,20 +603,81 @@ void monitor_thread(void* param)
         printf("86Box monitor console.\n");
         while (!exit_event)
         {
+            if (feof(stdin)) break;
             printf("(86Box) ");
             getline(&line, &n, stdin);
             if (line)
             {
-                line[n - 1] = '\0';
-                if (strncasecmp(line, "exit", 4) == 0)
+                int cmdargc = 0;
+                char* linecpy;
+                line[strcspn(line, "\r\n")] = '\0';
+                linecpy = strdup(line);
+                if (!linecpy)
+                {
+                    free(line);
+                    line = NULL;
+                    continue;
+                }
+                memset(xargv, 0, sizeof(xargv));
+                while(1) 
+                {
+                    xargv[cmdargc++] = local_strsep(&linecpy, " ");
+                    if (xargv[cmdargc - 1] == NULL || cmdargc >= 512) break;
+                }
+                if (strncasecmp(xargv[0], "exit", 4) == 0)
                 {
                     exit_event = 1;
                 }
-                else if (strncasecmp(line, "fddload", sizeof("fddload") - 1) == 0)
+                else if (strncasecmp(xargv[0], "fddload", 7) == 0 && cmdargc >= 4)
                 {
-                    
+                    uint8_t id, wp;
+                    bool err = false;
+                    char fn[PATH_MAX];
+                    memset(fn, 0, sizeof(fn));
+                    if (xargv[2][0] == '\'' || xargv[2][0] == '"')
+                    {
+                        int curarg = 2;
+                        for (curarg = 2; curarg < cmdargc; curarg++)
+                        {
+                            if (strlen(fn) + strlen(xargv[curarg]) >= PATH_MAX)
+                            {
+                                err = true;
+                                fprintf(stderr, "Path name too long.\n");
+                            }
+                            strcat(fn, xargv[curarg]);
+                            if (fn[strlen(fn) - 1] == '\''
+                                || fn[strlen(fn) - 1] == '"')
+                            {
+                                if (curarg + 1 < cmdargc)
+                                {
+                                    wp = atoi(xargv[curarg + 1]);
+                                }
+                                break;
+                            }
+                            strcat(fn, " ");
+                        }
+                    }
+                    else
+                    {
+                        if (strlen(xargv[2]) < PATH_MAX)
+                        {
+                            strcpy(fn, xargv[2]);
+                            wp = atoi(xargv[3]);
+                        }
+                        else
+                        {
+                            fprintf(stderr, "Path name too long.\n");
+                        }
+                    }
+                    if (!err)
+                    {
+                        printf("Inserting disk into floppy drive %hhu: %s\n", id, fn);
+                        floppy_mount(id, fn, wp);
+                    }
                 }
                 free(line);
+                free(linecpy);
+                line = NULL;
             }
         }
     }
