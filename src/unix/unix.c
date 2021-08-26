@@ -596,6 +596,8 @@ char *local_strsep(char **str, const char *sep)
 	return s;
 }
 
+
+
 void monitor_thread(void* param)
 {
     if (isatty(fileno(stdin)) && isatty(fileno(stdout)))
@@ -630,11 +632,16 @@ void monitor_thread(void* param)
                 {
                     exit_event = 1;
                 }
-                else if (strncasecmp(xargv[0], "fddload", 7) == 0 && cmdargc >= 4)
+                else if (strncasecmp(xargv[0], "hardreset", 9) == 0)
                 {
-                    uint8_t id, wp;
+                    pc_reset_hard();
+                }
+                else if (strncasecmp(xargv[0], "cdload", 6) == 0 && cmdargc >= 3)
+                {
+                    uint8_t id;
                     bool err = false;
                     char fn[PATH_MAX];
+                    id = atoi(xargv[1]);
                     memset(fn, 0, sizeof(fn));
                     if (xargv[2][0] == '\'' || xargv[2][0] == '"')
                     {
@@ -646,7 +653,53 @@ void monitor_thread(void* param)
                                 err = true;
                                 fprintf(stderr, "Path name too long.\n");
                             }
-                            strcat(fn, xargv[curarg]);
+                            strcat(fn, xargv[curarg] + (xargv[curarg][0] == '\'' || xargv[curarg][0] == '"'));
+                            if (fn[strlen(fn) - 1] == '\''
+                                || fn[strlen(fn) - 1] == '"')
+                            {
+                                break;
+                            }
+                            strcat(fn, " ");
+                        }
+                    }
+                    else
+                    {
+                        if (strlen(xargv[2]) < PATH_MAX)
+                        {
+                            strcpy(fn, xargv[2]);
+                        }
+                        else
+                        {
+                            fprintf(stderr, "Path name too long.\n");
+                        }
+                    }
+                    if (!err)
+                    {
+
+                        if (fn[strlen(fn) - 1] == '\''
+                            || fn[strlen(fn) - 1] == '"') fn[strlen(fn) - 1] = '\0';
+                        printf("Inserting disk into CD-ROM drive %hhu: %s\n", id, fn);
+                        cdrom_mount(id, fn);
+                    }
+                }
+                else if (strncasecmp(xargv[0], "fddload", 7) == 0 && cmdargc >= 4)
+                {
+                    uint8_t id, wp;
+                    bool err = false;
+                    char fn[PATH_MAX];
+                    memset(fn, 0, sizeof(fn));
+                    id = atoi(xargv[1]);
+                    if (xargv[2][0] == '\'' || xargv[2][0] == '"')
+                    {
+                        int curarg = 2;
+                        for (curarg = 2; curarg < cmdargc; curarg++)
+                        {
+                            if (strlen(fn) + strlen(xargv[curarg]) >= PATH_MAX)
+                            {
+                                err = true;
+                                fprintf(stderr, "Path name too long.\n");
+                            }
+                            strcat(fn, xargv[curarg] + (xargv[curarg][0] == '\'' || xargv[curarg][0] == '"'));
                             if (fn[strlen(fn) - 1] == '\''
                                 || fn[strlen(fn) - 1] == '"')
                             {
@@ -673,7 +726,10 @@ void monitor_thread(void* param)
                     }
                     if (!err)
                     {
-                        printf("Inserting disk into floppy drive %hhu: %s\n", id, fn);
+
+                        if (fn[strlen(fn) - 1] == '\''
+                            || fn[strlen(fn) - 1] == '"') fn[strlen(fn) - 1] = '\0';
+                        printf("Inserting disk into floppy drive %c: %s\n", id + 'A', fn);
                         floppy_mount(id, fn, wp);
                     }
                 }
@@ -841,7 +897,7 @@ int main(int argc, char** argv)
             break;
         }
     }
-
+    printf("\n");
     SDL_DestroyMutex(blitmtx);
     SDL_Quit();
     return 0;
