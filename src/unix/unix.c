@@ -685,9 +685,17 @@ void monitor_thread(void* param)
 
                         if (fn[strlen(fn) - 1] == '\''
                             || fn[strlen(fn) - 1] == '"') fn[strlen(fn) - 1] = '\0';
-                        printf("Inserting disk into CD-ROM drive %hhu: %s\n", id, fn);
+                        printf("Inserting disc into CD-ROM drive %hhu: %s\n", id, fn);
                         cdrom_mount(id, fn);
                     }
+                }
+                else if (strncasecmp(xargv[0], "fddeject", 8) == 0 && cmdargc >= 3)
+                {
+                    floppy_eject(atof(xargv[2]));
+                }
+                else if (strncasecmp(xargv[0], "cdeject", 8) == 0 && cmdargc >= 3)
+                {
+                    cdrom_mount(atof(xargv[2]), "");
                 }
                 else if (strncasecmp(xargv[0], "fddload", 7) == 0 && cmdargc >= 4)
                 {
