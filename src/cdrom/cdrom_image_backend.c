@@ -106,7 +106,7 @@ bin_get_length(void *p)
     off64_t len;
     track_file_t *tf = (track_file_t *) p;
 
-    cdrom_image_backend_log("CDROM: binary_length(%08lx)\n", bf->file);
+    cdrom_image_backend_log("CDROM: binary_length(%08lx)\n", tf->file);
 
     if (tf->file == NULL)
 	return 0;
