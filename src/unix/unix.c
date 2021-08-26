@@ -641,6 +641,13 @@ void monitor_thread(void* param)
                     uint8_t id;
                     bool err = false;
                     char fn[PATH_MAX];
+                    if (!xargv[2] || !xargv[1])
+                    {
+                        free(line);
+                        free(linecpy);
+                        line = NULL;
+                        continue;
+                    }
                     id = atoi(xargv[1]);
                     memset(fn, 0, sizeof(fn));
                     if (xargv[2][0] == '\'' || xargv[2][0] == '"')
@@ -688,6 +695,13 @@ void monitor_thread(void* param)
                     bool err = false;
                     char fn[PATH_MAX];
                     memset(fn, 0, sizeof(fn));
+                    if (!xargv[2] || !xargv[1])
+                    {
+                        free(line);
+                        free(linecpy);
+                        line = NULL;
+                        continue;
+                    }
                     id = atoi(xargv[1]);
                     if (xargv[2][0] == '\'' || xargv[2][0] == '"')
                     {
