@@ -434,34 +434,34 @@ void blit_thread(void *param)
     while (thread_run) {
 	thread_wait_event(blit_data.wake_blit_thread, -1);
 	thread_reset_event(blit_data.wake_blit_thread);
-    MTR_BEGIN("video", "blit_thread");
+	MTR_BEGIN("video", "blit_thread");
 
-    if (blit_data.y2 > 0) {
-	for (yy = blit_data.y1; yy < blit_data.y2; yy++) {
-		if (((blit_data.y + yy) >= 0) && ((blit_data.y + yy) < buffer32->h)) {
-			if (video_grayscale || invert_display)
-				video_transform_copy(&(render_buffer->dat)[yy * blit_data.w], &(buffer32->line[blit_data.y + yy][blit_data.x]), blit_data.w);
-			else
-				memcpy(&(render_buffer->dat)[yy * blit_data.w], &(buffer32->line[blit_data.y + yy][blit_data.x]), blit_data.w << 2);
+	if (blit_data.y2 > 0) {
+		for (yy = blit_data.y1; yy < blit_data.y2; yy++) {
+			if (((blit_data.y + yy) >= 0) && ((blit_data.y + yy) < buffer32->h)) {
+				if (video_grayscale || invert_display)
+					video_transform_copy(&(render_buffer->dat)[yy * blit_data.w], &(buffer32->line[blit_data.y + yy][blit_data.x]), blit_data.w);
+				else
+					memcpy(&(render_buffer->dat)[yy * blit_data.w], &(buffer32->line[blit_data.y + yy][blit_data.x]), blit_data.w << 2);
+			}
 		}
 	}
-    }
 
-    if (screenshots) {
-	if (render_buffer != NULL)
-		video_screenshot(blit_data.x, blit_data.y, blit_data.y1, blit_data.y2, blit_data.w, blit_data.h);
-	screenshots--;
-	video_log("screenshot taken, %i left\n", screenshots);
-    }
+	if (screenshots) {
+		if (render_buffer != NULL)
+			video_screenshot(blit_data.x, blit_data.y, blit_data.y1, blit_data.y2, blit_data.w, blit_data.h);
+		screenshots--;
+		video_log("screenshot taken, %i left\n", screenshots);
+	}
 
-    if (blit_func)
-	blit_func(blit_data.x, blit_data.y,
-		  blit_data.y1, blit_data.y2,
-		  blit_data.w, blit_data.h);
+	if (blit_func)
+		blit_func(blit_data.x, blit_data.y,
+			  blit_data.y1, blit_data.y2,
+			  blit_data.w, blit_data.h);
 
-    blit_data.busy = 0;
+	blit_data.busy = 0;
 
-    MTR_END("video", "blit_thread");
+	MTR_END("video", "blit_thread");
 	thread_set_event(blit_data.blit_complete);
     }
 }
