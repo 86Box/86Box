@@ -69,6 +69,9 @@ enum {
 #define CPUID_3DNOW	(1UL << 31UL)
 
 
+/* Make sure this is as low as possible. */
+cpu_state_t	cpu_state;
+
 #ifdef USE_DYNAREC
 const OpFn	*x86_dynarec_opcodes, *x86_dynarec_opcodes_0f,
 		*x86_dynarec_opcodes_d8_a16, *x86_dynarec_opcodes_d8_a32,
@@ -127,8 +130,6 @@ uint64_t	pmc[2] = {0, 0};
 double		cpu_dmulti;
 
 msr_t		msr;
-
-cpu_state_t	cpu_state;
 
 cyrix_t		cyrix;
 

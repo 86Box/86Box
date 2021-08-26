@@ -461,6 +461,8 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 
 
 /* Global variables. */
+extern cpu_state_t	cpu_state;
+
 extern const cpu_family_t cpu_families[];
 extern const cpu_legacy_machine_t cpu_legacy_table[];
 extern cpu_family_t *cpu_f;
@@ -505,7 +507,6 @@ extern uint32_t		cpu_cur_status;
 extern uint64_t		cpu_CR4_mask;
 extern uint64_t		tsc;
 extern msr_t		msr;
-extern cpu_state_t	cpu_state;
 extern uint8_t		opcode;
 extern int		cgate16;
 extern int		cpl_override;
