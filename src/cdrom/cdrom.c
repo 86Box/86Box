@@ -12,7 +12,7 @@
  *
  * Author:	Miran Grca, <mgrca8@gmail.com>
  *
- *		Copyright 2018,2019 Miran Grca.
+ *		Copyright 2018-2021 Miran Grca.
  */
 #include <inttypes.h>
 #include <stdarg.h>
