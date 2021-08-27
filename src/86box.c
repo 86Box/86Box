@@ -564,15 +564,12 @@ usage:
 	 * At this point usr_path is perfectly initialized.
 	 * If no --vmname parameter specified we'll use the
 	 *   working directory name as the VM's name.
-	 * The directory name will stored in local buffer 
-	 *   named `path` since it's unused in further parts 
-	 *   of this function.
 	 */
     if (strlen(vm_name) == 0)
 	{
-		plat_get_dirname(path, usr_path);
-		p = plat_get_filename(path);
-		strcpy(vm_name, p);
+		char ltemp[1024] = {'/0'};
+		plat_get_dirname(ltemp, usr_path);
+		strcpy(vm_name, plat_get_filename(ltemp));
 	}
 
 	/*
