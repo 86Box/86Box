@@ -812,7 +812,12 @@ LIBS		+= $(WX_LIBS) -lm
 endif
 LIBS		+= -lpng -lz -lwsock32 -lshell32 -liphlpapi -lpsapi -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -luxtheme -lversion -lwinmm -static -lstdc++
 ifneq ($(X64), y)
+ifneq ($(ARM64), y)
 LIBS		+= -Wl,--large-address-aware
+endif
+endif
+ifeq ($(ARM64), y)
+LIBS		+= -lgcc
 endif
 ifeq ($(DINPUT), y)
  LIBS    += -ldinput8
