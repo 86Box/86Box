@@ -647,7 +647,22 @@ char *local_strsep(char **str, const char *sep)
 	return s;
 }
 
+void
+plat_pause(int p)
+{
+    static wchar_t oldtitle[512];
+    wchar_t title[512];
 
+    dopause = p;
+    if (p) {
+	wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
+	wcscpy(title, oldtitle);
+	wcscat(title, L" - PAUSED -");
+	ui_window_title(title);
+    } else {
+	ui_window_title(oldtitle);
+    }
+}
 
 void monitor_thread(void* param)
 {
@@ -682,6 +697,10 @@ void monitor_thread(void* param)
                 if (strncasecmp(xargv[0], "exit", 4) == 0)
                 {
                     exit_event = 1;
+                }
+                else if (strncasecmp(xargv[0], "pause", 5) == 0)
+                {
+                    plat_pause(dopause ^ 1);
                 }
                 else if (strncasecmp(xargv[0], "hardreset", 9) == 0)
                 {
