@@ -31,6 +31,7 @@
 #include <86box/unix_sdl.h>
 #include <86box/timer.h>
 #include <86box/nvr.h>
+#include <86box/ui.h>
 
 static int	first_use = 1;
 static uint64_t	StartingTime;
@@ -221,6 +222,26 @@ wchar_t* plat_get_string(int i)
             return L"Press CTRL-END to release mouse";
         case IDS_2079:
             return L"Press CTRL-END or middle button to release mouse";
+        case IDS_2080:
+            return L"Failed to initialize FluidSynth";
+        case IDS_4099:
+            return L"MFM/RLL or ESDI CD-ROM drives never existed";
+        case IDS_2093:
+            return L"Failed to set up PCap";
+        case IDS_2094:
+            return L"No PCap devices found";
+        case IDS_2110:
+            return L"Unable to initialize FreeType";
+        case IDS_2111:
+            return L"Unable to initialize SDL, libsdl2 is required";
+        case IDS_2131:
+            return L"libfreetype is required for ESC/P printer emulation.";
+        case IDS_2132:
+            return L"libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
+        case IDS_2129:
+            return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
+        case IDS_2114:
+            return L"Unable to initialize Ghostscript";
     }
     return L"";
 }
@@ -522,14 +543,44 @@ do_stop(void)
 
 int	ui_msgbox(int flags, void *message)
 {
-    fprintf(stderr, "Got msgbox request. Flags: 0x%X, msgid: %llu\n", flags, (unsigned long long) message);
-    return 0;
+    return ui_msgbox_header(flags, message, NULL);
 }
 
 int	ui_msgbox_header(int flags, void *message, void* header)
 {
-    // Parameters that are passed will crash the program so keep these off for the time being.
-    fprintf(stderr, "Got msgbox request. Flags: 0x%X, msgid: %llu, hdrid: %llu\n", flags, (unsigned long long) message, (unsigned long long) header);
+    int sdlmsgflags;
+    if (!header) header = L"86Box";
+    if (flags & MBX_ERROR)
+    {
+        sdlmsgflags = flags & MBX_FATAL ? SDL_MESSAGEBOX_ERROR : SDL_MESSAGEBOX_WARNING;
+    }
+    else
+    {
+        if (flags & MBX_WARNING) sdlmsgflags = SDL_MESSAGEBOX_WARNING;
+        else sdlmsgflags = SDL_MESSAGEBOX_INFORMATION;
+    }
+    if (message >= (void*)2048 && message <= (void*)7168)
+    {
+        if (wcsncasecmp(L"", plat_get_string((int)message), 1) == 0)
+        {
+            return 0;
+        }
+        char* res = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char*)plat_get_string((int)message), wcslen(plat_get_string((int)message)) * sizeof(wchar_t) + sizeof(wchar_t));
+        if (res) 
+        {
+            SDL_ShowSimpleMessageBox(sdlmsgflags, header, res, NULL);
+            SDL_free(res);
+            return 0;
+        }
+    }
+    else if (flags & MBX_ANSI)
+    {
+        SDL_ShowSimpleMessageBox(sdlmsgflags, header, (char*)message, NULL);
+        return 0;
+    }
+   
+
+    fprintf(stderr, "Got msgbox request. Flags: 0x%X, msgid: %llu\n", flags, (unsigned long long) message);
     return 0;
 }
 
@@ -553,9 +604,9 @@ plat_power_off(void)
     cpu_thread_run = 0;
 }
 
-wchar_t* ui_sb_bugui(wchar_t *str)
+void ui_sb_bugui(char *str)
 {
-    return str;
+    
 }
 
 extern void     sdl_blit(int x, int y, int y1, int y2, int w, int h);
