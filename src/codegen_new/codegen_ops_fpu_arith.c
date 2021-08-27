@@ -277,8 +277,8 @@ uint32_t ropFADD ## name(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint
 {                                                                                                                               \
         x86seg *target_seg;                                                                                                     \
                                                                                                                                 \
-	if ((cpu_state.npxc >> 10) & 3)												\
-		return 0;													\
+        if ((cpu_state.npxc >> 10) & 3)                                                                                         \
+                return 0;                                                                                                       \
         uop_FP_ENTER(ir);                                                                                                       \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                                                           \
         op_pc--;                                                                                                                \

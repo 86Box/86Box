@@ -244,10 +244,15 @@ mem_flush_write_page(uint32_t addr, uint32_t virt)
 {
     page_t *page_target = &pages[addr >> 12];
     int c;
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
     uint32_t a;
+#endif
 
     for (c = 0; c < 256; c++) {
 	if (writelookup[c] != (int) 0xffffffff) {
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+		uintptr_t target = (uintptr_t)&ram[(uintptr_t)(addr & ~0xfff) - (virt & ~0xfff)];
+#else
 		a = (uintptr_t)(addr & ~0xfff) - (virt & ~0xfff);
 		uintptr_t target;
 
@@ -255,6 +260,7 @@ mem_flush_write_page(uint32_t addr, uint32_t virt)
 			target = (uintptr_t)&ram2[a - (1 << 30)];
 		else
 			target = (uintptr_t)&ram[a];
+#endif
 
 		if (writelookup2[writelookup[c]] == target || page_lookup[writelookup[c]] == page_target) {
 			writelookup2[writelookup[c]] = LOOKUP_INV;
@@ -556,9 +562,7 @@ mem_addr_translate(uint32_t addr, uint32_t chunk_start, uint32_t len)
 void
 addreadlookup(uint32_t virt, uint32_t phys)
 {
-#if (defined __amd64__ || defined _M_X64)
-    uint64_t a;
-#else
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
     uint32_t a;
 #endif
 
@@ -572,16 +576,16 @@ addreadlookup(uint32_t virt, uint32_t phys)
 	readlookup2[readlookup[readlnext]] = LOOKUP_INV;
     }
 
-#if (defined __amd64__ || defined _M_X64)
-    a = ((uint64_t)(phys & ~0xfff) - (uint64_t)(virt & ~0xfff));
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+    readlookup2[virt>>12] = (uintptr_t)&ram[(uintptr_t)(phys & ~0xFFF) - (uintptr_t)(virt & ~0xfff)];
 #else
     a = ((uint32_t)(phys & ~0xfff) - (uint32_t)(virt & ~0xfff));
-#endif
 
     if ((phys & ~0xfff) >= (1 << 30))
 	readlookup2[virt>>12] = (uintptr_t)&ram2[a - (1 << 30)];
     else
 	readlookup2[virt>>12] = (uintptr_t)&ram[a];
+#endif
     readlookupp[virt>>12] = mmu_perm;
 
     readlookup[readlnext++] = virt >> 12;
@@ -594,9 +598,7 @@ addreadlookup(uint32_t virt, uint32_t phys)
 void
 addwritelookup(uint32_t virt, uint32_t phys)
 {
-#if (defined __amd64__ || defined _M_X64)
-    uint64_t a;
-#else
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
     uint32_t a;
 #endif
 
@@ -625,16 +627,16 @@ addwritelookup(uint32_t virt, uint32_t phys)
 	page_lookup[virt >> 12] = &pages[phys >> 12];
 	page_lookupp[virt >> 12] = mmu_perm;
     } else {
-#if (defined __amd64__ || defined _M_X64)
-	a = ((uint64_t)(phys & ~0xfff) - (uint64_t)(virt & ~0xfff));
+#if (defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64)
+	writelookup2[virt>>12] = (uintptr_t)&ram[(uintptr_t)(phys & ~0xFFF) - (uintptr_t)(virt & ~0xfff)];
 #else
 	a = ((uint32_t)(phys & ~0xfff) - (uint32_t)(virt & ~0xfff));
-#endif
 
 	if ((phys & ~0xfff) >= (1 << 30))
 		writelookup2[virt>>12] = (uintptr_t)&ram2[a - (1 << 30)];
 	else
 		writelookup2[virt>>12] = (uintptr_t)&ram[a];
+#endif
     }
     writelookupp[virt>>12] = mmu_perm;
 
@@ -2607,7 +2609,7 @@ mem_reset(void)
 	free(ram);
 	ram = NULL;
     }
-#if (!(defined __amd64__ || defined _M_X64))
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
     if (ram2 != NULL) {
 	free(ram2);
 	ram2 = NULL;
@@ -2619,7 +2621,7 @@ mem_reset(void)
 
     m = 1024UL * mem_size;
 
-#if (!(defined __amd64__ || defined _M_X64))
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
     if (mem_size > 1048576) {
 	ram = (uint8_t *)malloc(1 << 30);		/* allocate and clear the RAM block of the first 1 GB */
 	if (ram == NULL) {

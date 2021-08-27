@@ -65,7 +65,7 @@ uint32_t ropAND_b_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t
         {
                 int src_reg = fetchdat & 7;
                 
-                if(src_reg != dest_reg) uop_AND(ir, IREG_8(dest_reg), IREG_8(dest_reg), IREG_8(src_reg));
+                uop_AND(ir, IREG_8(dest_reg), IREG_8(dest_reg), IREG_8(src_reg));
         }
         else
         {
@@ -93,7 +93,7 @@ uint32_t ropAND_b_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_
         {
                 int dest_reg = fetchdat & 7;
 
-                if(src_reg != dest_reg) uop_AND(ir, IREG_8(dest_reg), IREG_8(dest_reg), IREG_8(src_reg));
+                uop_AND(ir, IREG_8(dest_reg), IREG_8(dest_reg), IREG_8(src_reg));
                 uop_MOVZX(ir, IREG_flags_res, IREG_8(dest_reg));
         }
         else
@@ -124,7 +124,7 @@ uint32_t ropAND_w_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t
         {
                 int src_reg = fetchdat & 7;
 
-                if(src_reg != dest_reg) uop_AND(ir, IREG_16(dest_reg), IREG_16(dest_reg), IREG_16(src_reg));
+                uop_AND(ir, IREG_16(dest_reg), IREG_16(dest_reg), IREG_16(src_reg));
         }
         else
         {
@@ -152,7 +152,7 @@ uint32_t ropAND_w_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_
         {
                 int dest_reg = fetchdat & 7;
 
-                if(src_reg != dest_reg) uop_AND(ir, IREG_16(dest_reg), IREG_16(dest_reg), IREG_16(src_reg));
+                uop_AND(ir, IREG_16(dest_reg), IREG_16(dest_reg), IREG_16(src_reg));
                 uop_MOVZX(ir, IREG_flags_res, IREG_16(dest_reg));
         }
         else
@@ -183,7 +183,7 @@ uint32_t ropAND_l_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t
         {
                 int src_reg = fetchdat & 7;
 
-                if(src_reg != dest_reg) uop_AND(ir, IREG_32(dest_reg), IREG_32(dest_reg), IREG_32(src_reg));
+                uop_AND(ir, IREG_32(dest_reg), IREG_32(dest_reg), IREG_32(src_reg));
         }
         else
         {
@@ -211,7 +211,7 @@ uint32_t ropAND_l_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_
         {
                 int dest_reg = fetchdat & 7;
 
-                if(src_reg != dest_reg) uop_AND(ir, IREG_32(dest_reg), IREG_32(dest_reg), IREG_32(src_reg));
+                uop_AND(ir, IREG_32(dest_reg), IREG_32(dest_reg), IREG_32(src_reg));
                 uop_MOV(ir, IREG_flags_res, IREG_32(dest_reg));
         }
         else
@@ -288,7 +288,7 @@ uint32_t ropOR_b_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t 
         {
                 int src_reg = fetchdat & 7;
 
-                if(src_reg != dest_reg) uop_OR(ir, IREG_8(dest_reg), IREG_8(dest_reg), IREG_8(src_reg));
+                uop_OR(ir, IREG_8(dest_reg), IREG_8(dest_reg), IREG_8(src_reg));
         }
         else
         {
@@ -316,7 +316,7 @@ uint32_t ropOR_b_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t
         {
                 int dest_reg = fetchdat & 7;
 
-                if(src_reg != dest_reg) uop_OR(ir, IREG_8(dest_reg), IREG_8(dest_reg), IREG_8(src_reg));
+                uop_OR(ir, IREG_8(dest_reg), IREG_8(dest_reg), IREG_8(src_reg));
                 uop_MOVZX(ir, IREG_flags_res, IREG_8(dest_reg));
         }
         else
@@ -347,7 +347,7 @@ uint32_t ropOR_w_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t 
         {
                 int src_reg = fetchdat & 7;
 
-                if(src_reg != dest_reg) uop_OR(ir, IREG_16(dest_reg), IREG_16(dest_reg), IREG_16(src_reg));
+                uop_OR(ir, IREG_16(dest_reg), IREG_16(dest_reg), IREG_16(src_reg));
         }
         else
         {
@@ -375,7 +375,7 @@ uint32_t ropOR_w_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t
         {
                 int dest_reg = fetchdat & 7;
 
-                if(src_reg != dest_reg) uop_OR(ir, IREG_16(dest_reg), IREG_16(dest_reg), IREG_16(src_reg));
+                uop_OR(ir, IREG_16(dest_reg), IREG_16(dest_reg), IREG_16(src_reg));
                 uop_MOVZX(ir, IREG_flags_res, IREG_16(dest_reg));
         }
         else
@@ -406,7 +406,7 @@ uint32_t ropOR_l_rm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t 
         {
                 int src_reg = fetchdat & 7;
 
-                if(src_reg != dest_reg) uop_OR(ir, IREG_32(dest_reg), IREG_32(dest_reg), IREG_32(src_reg));
+                uop_OR(ir, IREG_32(dest_reg), IREG_32(dest_reg), IREG_32(src_reg));
         }
         else
         {
@@ -434,7 +434,7 @@ uint32_t ropOR_l_rmw(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t
         {
                 int dest_reg = fetchdat & 7;
 
-                if(src_reg != dest_reg) uop_OR(ir, IREG_32(dest_reg), IREG_32(dest_reg), IREG_32(src_reg));
+                uop_OR(ir, IREG_32(dest_reg), IREG_32(dest_reg), IREG_32(src_reg));
                 uop_MOV(ir, IREG_flags_res, IREG_32(dest_reg));
         }
         else

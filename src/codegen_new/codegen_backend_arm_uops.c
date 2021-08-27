@@ -913,8 +913,8 @@ static int codegen_MMX_ENTER(codeblock_t *block, uop_t *uop)
 	*branch_ptr |= ((((uintptr_t)&block_write_data[block_pos] - (uintptr_t)branch_ptr) - 8) & 0x3fffffc) >> 2;
 
         host_arm_MOV_IMM(block, REG_TEMP, 0x01010101);
- 	host_arm_STR_IMM(block, REG_TEMP, REG_CPUSTATE, (uintptr_t)&cpu_state.tag[0] - (uintptr_t)&cpu_state);
- 	host_arm_STR_IMM(block, REG_TEMP, REG_CPUSTATE, (uintptr_t)&cpu_state.tag[4] - (uintptr_t)&cpu_state);
+	host_arm_STR_IMM(block, REG_TEMP, REG_CPUSTATE, (uintptr_t)&cpu_state.tag[0] - (uintptr_t)&cpu_state);
+	host_arm_STR_IMM(block, REG_TEMP, REG_CPUSTATE, (uintptr_t)&cpu_state.tag[4] - (uintptr_t)&cpu_state);
         host_arm_MOV_IMM(block, REG_TEMP, 0);
 	host_arm_STR_IMM(block, REG_TEMP, REG_CPUSTATE, (uintptr_t)&cpu_state.TOP - (uintptr_t)&cpu_state);
 	host_arm_STRB_IMM(block, REG_TEMP, REG_CPUSTATE, (uintptr_t)&cpu_state.ismmx - (uintptr_t)&cpu_state);
