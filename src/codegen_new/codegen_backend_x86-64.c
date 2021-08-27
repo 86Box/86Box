@@ -1,5 +1,6 @@
 #if defined __amd64__ || defined _M_X64
 
+#include <stdlib.h>
 #include <stdint.h>
 #include <86box/86box.h>
 #include "cpu.h"
