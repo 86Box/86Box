@@ -299,6 +299,37 @@ static inline double high_cut_iir(int c, int i, double NewSample) {
     return y[c][i][0];
 }
 
+/* fc=5.283kHz, gain=-9.477dB, width=0.4845 */
+static inline double deemph_iir(int i, double NewSample) {
+    double ACoef[NCoef+1] = {
+        0.46035077886318842566,
+        -0.28440821191249848754,
+        0.03388877229118691936
+    };
+
+    double BCoef[NCoef+1] = {
+        1.00000000000000000000,
+        -1.05429146278569141337,
+        0.26412280202756849290
+    };
+    static double y[2][NCoef+1]; /* output samples */
+    static double x[2][NCoef+1]; /* input samples */
+    int n;
+
+    /* shift the old samples */
+    for(n=NCoef; n>0; n--) {
+       x[i][n] = x[i][n-1];
+       y[i][n] = y[i][n-1];
+    }
+
+    /* Calculate the new output */
+    x[i][0] = NewSample;
+    y[i][0] = ACoef[0] * x[i][0];
+    for(n=1; n<=NCoef; n++)
+        y[i][0] += ACoef[n] * x[i][n] - BCoef[n] * y[i][n];
+
+    return y[i][0];
+}
 
 #undef NCoef
 #define NCoef 2
