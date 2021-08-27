@@ -583,10 +583,11 @@ MAINOBJ		:= 86box.o config.o log.o random.o timer.o io.o acpi.o apm.o dma.o ddma
 
 MEMOBJ		:= catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o smram.o spd.o sst_flash.o
 
-CPUOBJ		:= cpu.o cpu_table.o fpu.o x86.o \
-		    808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o $(CGTOBJ) \
-		    x86seg.o x87.o x87_timings.o \
-		    $(DYNARECOBJ)
+CPUOBJ		:= $(DYNARECOBJ) \
+		    $(CGTOBJ) \
+		    cpu.o cpu_table.o fpu.o x86.o \
+		    808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o \
+		    x86seg.o x87.o x87_timings.o
 
 CHIPSETOBJ	:= acc2168.o \
 		    contaq_82c59x.o \
@@ -810,7 +811,12 @@ LIBS		+= $(WX_LIBS) -lm
 endif
 LIBS		+= -lpng -lz -lwsock32 -lshell32 -liphlpapi -lpsapi -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -luxtheme -lversion -lwinmm -static -lstdc++
 ifneq ($(X64), y)
+ifneq ($(ARM64), y)
 LIBS		+= -Wl,--large-address-aware
+endif
+endif
+ifeq ($(ARM64), y)
+LIBS		+= -lgcc
 endif
 ifeq ($(DINPUT), y)
  LIBS    += -ldinput8

@@ -1,6 +1,7 @@
 #if defined(__linux__) || defined(__APPLE__)
 #include <sys/mman.h>
 #include <unistd.h>
+#include <stdlib.h>
 #endif
 #if defined WIN32 || defined _WIN32 || defined _WIN32
 #include <windows.h>
@@ -35,6 +36,10 @@ void codegen_allocator_init()
 
 #if defined WIN32 || defined _WIN32 || defined _WIN32
         mem_block_alloc = VirtualAlloc(NULL, MEM_BLOCK_NR * MEM_BLOCK_SIZE, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+        /* TODO: check deployment target: older Intel-based versions of macOS don't play
+           nice with MAP_JIT. */
+#elif defined(__APPLE__) && defined(MAP_JIT)
+        mem_block_alloc = mmap(0, MEM_BLOCK_NR * MEM_BLOCK_SIZE, PROT_READ|PROT_WRITE|PROT_EXEC, MAP_ANON|MAP_PRIVATE|MAP_JIT, 0, 0);
 #else
         mem_block_alloc = mmap(0, MEM_BLOCK_NR * MEM_BLOCK_SIZE, PROT_READ|PROT_WRITE|PROT_EXEC, MAP_ANON|MAP_PRIVATE, 0, 0);
 #endif
@@ -115,11 +120,7 @@ void codegen_allocator_clean_blocks(struct mem_block_t *block)
 #if defined __ARM_EABI__ || defined _ARM_ || defined __aarch64__ || defined _M_ARM || defined _M_ARM64
         while (1)
         {
-#ifndef _MSC_VER
 		__clear_cache(&mem_block_alloc[block->offset], &mem_block_alloc[block->offset + MEM_BLOCK_SIZE]);
-#else
-		FlushInstructionCache(GetCurrentProcess(), &mem_block_alloc[block->offset], MEM_BLOCK_SIZE);
-#endif
 		if (block->next)
 			block = &mem_blocks[block->next - 1];
 		else

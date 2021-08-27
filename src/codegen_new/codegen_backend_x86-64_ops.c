@@ -32,7 +32,7 @@ static inline void call(codeblock_t *block, uintptr_t func)
         codegen_alloc_bytes(block, 5);
         diff = func - (uintptr_t)&block_write_data[block_pos + 5];
 
-	if (diff >= -0x80000000ULL && diff < 0x7fffffffULL)
+	if (diff >= -0x80000000 && diff < 0x7fffffff)
 	{
 	        codegen_addbyte(block, 0xE8); /*CALL*/
 	        codegen_addlong(block, (uint32_t)diff);
@@ -53,7 +53,7 @@ static inline void jmp(codeblock_t *block, uintptr_t func)
         codegen_alloc_bytes(block, 5);
         diff = func - (uintptr_t)&block_write_data[block_pos + 5];
 
-	if (diff >= -0x80000000ULL && diff < 0x7fffffffULL)
+	if (diff >= -0x80000000 && diff < 0x7fffffff)
 	{
 	        codegen_addbyte(block, 0xe9); /*JMP*/
 	        codegen_addlong(block, (uint32_t)diff);

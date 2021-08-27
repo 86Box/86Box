@@ -210,11 +210,12 @@ typedef union {
 } x86reg;
 
 typedef struct {
+    uint32_t	base;
+    uint32_t	limit;
     uint8_t	access, ar_high;
-    int8_t	checked; /*Non-zero if selector is known to be valid*/
     uint16_t	seg;
-    uint32_t	base, limit,
-		limit_low, limit_high;
+    uint32_t	limit_low, limit_high;
+    int		checked;	/*Non-zero if selector is known to be valid*/
 } x86seg;
 
 typedef union {
@@ -352,9 +353,9 @@ typedef struct {
     }		rm_data;
 
     uint8_t	ssegs, ismmx,
-		abrt, pad;
+		abrt, _smi_line;
 
-    int		_cycles;
+    int		_cycles, _in_smm;
 
     uint16_t	npxs, npxc;
 
@@ -364,8 +365,6 @@ typedef struct {
 
     MMX_REG	MM[8];
 
-    uint16_t	old_npxc, new_npxc;
-
 #ifdef USE_NEW_DYNAREC
     uint32_t	old_fp_control, new_fp_control;
 #if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86
@@ -374,6 +373,8 @@ typedef struct {
 #if defined i386 || defined __i386 || defined __i386__ || defined _X86_ || defined _M_IX86 || defined __amd64__ || defined _M_X64
     uint32_t	trunc_fp_control;
 #endif
+#else
+    uint16_t	old_npxc, new_npxc;
 #endif
 
     x86seg	seg_cs, seg_ds, seg_es, seg_ss,
@@ -385,7 +386,16 @@ typedef struct {
     }		CR0;
 
     uint16_t	flags, eflags;
+
+    uint32_t	_smbase;
 } cpu_state_t;
+
+
+#define in_smm		cpu_state._in_smm
+#define smi_line	cpu_state._smi_line
+
+#define smbase		cpu_state._smbase
+
 
 /*The cpu_state.flags below must match in both cpu_cur_status and block->status for a block
   to be valid*/
@@ -461,6 +471,8 @@ COMPILE_TIME_ASSERT(sizeof(cpu_state_t) <= 128)
 
 
 /* Global variables. */
+extern cpu_state_t	cpu_state;
+
 extern const cpu_family_t cpu_families[];
 extern const cpu_legacy_machine_t cpu_legacy_table[];
 extern cpu_family_t *cpu_f;
@@ -493,9 +505,8 @@ extern int	hasfpu;
 
 extern uint32_t	cpu_features;
 
-extern int	in_smm, smi_line, smi_latched, smm_in_hlt;
+extern int	smi_latched, smm_in_hlt;
 extern int	smi_block;
-extern uint32_t	smbase;
 
 #ifdef USE_NEW_DYNAREC
 extern uint16_t		cpu_cur_status;
@@ -505,7 +516,6 @@ extern uint32_t		cpu_cur_status;
 extern uint64_t		cpu_CR4_mask;
 extern uint64_t		tsc;
 extern msr_t		msr;
-extern cpu_state_t	cpu_state;
 extern uint8_t		opcode;
 extern int		cgate16;
 extern int		cpl_override;

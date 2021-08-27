@@ -60,7 +60,7 @@ typedef struct
 	uint8_t cursor64_data[1024];
 	uint8_t palettes[3][256];
 	ibm_rgb528_pixel32_t extra_pal[4];
-	int hwc_y, hwc_x;
+	int16_t hwc_y, hwc_x;
 	uint16_t index, smlc_part;
 	uint8_t cmd_r0;
         uint8_t cmd_r1;
@@ -68,7 +68,8 @@ typedef struct
 	uint8_t cmd_r3;
 	uint8_t cmd_r4;
 	uint8_t status, indx_cntl;
-	uint8_t cursor_array;
+	uint8_t cursor_array,
+		cursor_hotspot_x, cursor_hotspot_y;
 } ibm_rgb528_ramdac_t;
 
 
@@ -641,7 +642,8 @@ ibm_rgb528_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga
 			case 0x031:
 				if (!updt_cntl)
 					break;
-				svga->dac_hwcursor.x = (svga->dac_hwcursor.x & 0xff00) | val;
+				ramdac->hwc_x = (ramdac->hwc_x & 0xff00) | val;
+				svga->dac_hwcursor.x = ((int) ramdac->hwc_x) - ramdac->cursor_hotspot_x;
 				break;
 			case 0x032:
 				/* Sign-extend the sign bit (7) to the remaining bits (6-4). */
@@ -651,12 +653,14 @@ ibm_rgb528_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga
 				ramdac->indexed_data[ramdac->index] = val;
 				if (!updt_cntl)
 					break;
-				svga->dac_hwcursor.x = (svga->dac_hwcursor.x & 0x00ff) | (val << 8);
+				ramdac->hwc_x = (ramdac->hwc_x & 0x00ff) | (val << 8);
+				svga->dac_hwcursor.x = ((int) ramdac->hwc_x) - ramdac->cursor_hotspot_x;
 				break;
 			case 0x033:
 				if (!updt_cntl)
 					break;
-				svga->dac_hwcursor.y = (svga->dac_hwcursor.y & 0xff00) | val;
+				ramdac->hwc_y = (ramdac->hwc_y & 0xff00) | val;
+				svga->dac_hwcursor.y = ((int) ramdac->hwc_y) - ramdac->cursor_hotspot_y;
 				break;
 			case 0x034:
 				/* Sign-extend the sign bit (7) to the remaining bits (6-4). */
@@ -664,26 +668,31 @@ ibm_rgb528_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga
 				if (val & 0x80)
 					val |= 0x70;
 				ramdac->indexed_data[ramdac->index] = val;
-				if (updt_cntl)
-					svga->dac_hwcursor.y = (svga->dac_hwcursor.y & 0x00ff) | (val << 8);
-				else {
-					svga->dac_hwcursor.x = ramdac->indexed_data[0x031];
-					svga->dac_hwcursor.x |= (ramdac->indexed_data[0x032] << 8);
-					svga->dac_hwcursor.y = ramdac->indexed_data[0x033];
-					svga->dac_hwcursor.y |= (val << 8);
+				if (updt_cntl) {
+					ramdac->hwc_y = (ramdac->hwc_y & 0x00ff) | (val << 8);
+					svga->dac_hwcursor.y = ((int) ramdac->hwc_y) - ramdac->cursor_hotspot_y;
+				} else {
+					ramdac->hwc_x = ramdac->indexed_data[0x031];
+					ramdac->hwc_x |= (ramdac->indexed_data[0x032] << 8);
+					ramdac->hwc_y = ramdac->indexed_data[0x033];
+					ramdac->hwc_y |= (val << 8);
+					svga->dac_hwcursor.x = ((int) ramdac->hwc_x) - ramdac->cursor_hotspot_x;
+					svga->dac_hwcursor.y = ((int) ramdac->hwc_y) - ramdac->cursor_hotspot_y;
 				}
 				break;
 			case 0x035:
 				if (svga->dac_hwcursor.xsize == 64)
-					svga->dac_hwcursor.xoff = (val & 0x1f);
+					ramdac->cursor_hotspot_x = (val & 0x3f);
 				else
-					svga->dac_hwcursor.xoff = (val & 0x3f);
+					ramdac->cursor_hotspot_x = (val & 0x1f);
+				svga->dac_hwcursor.x = ((int) ramdac->hwc_x) - ramdac->cursor_hotspot_x;
 				break;
 			case 0x036:
 				if (svga->dac_hwcursor.xsize == 64)
-					svga->dac_hwcursor.yoff = (val & 0x1f);
+					ramdac->cursor_hotspot_y = (val & 0x3f);
 				else
-					svga->dac_hwcursor.yoff = (val & 0x3f);
+					ramdac->cursor_hotspot_y = (val & 0x1f);
+				svga->dac_hwcursor.y = ((int) ramdac->hwc_y) - ramdac->cursor_hotspot_y;
 				break;
 			case 0x040: case 0x043: case 0x046:
 				ramdac->extra_pal[(ramdac->index - 0x40) / 3].r = val;
@@ -762,19 +771,19 @@ ibm_rgb528_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
 				break;
 			case 0x0031:
 				if (loc_read)
-					temp = svga->dac_hwcursor.x & 0xff;
+					temp = ramdac->hwc_x & 0xff;
 				break;
 			case 0x0032:
 				if (loc_read)
-					temp = svga->dac_hwcursor.x >> 8;
+					temp = ramdac->hwc_x >> 8;
 				break;
 			case 0x0033:
 				if (loc_read)
-					temp = svga->dac_hwcursor.y & 0xff;
+					temp = ramdac->hwc_y & 0xff;
 				break;
 			case 0x0034:
 				if (loc_read)
-					temp = svga->dac_hwcursor.y >> 8;
+					temp = ramdac->hwc_y >> 8;
 				break;
 			default:
 				temp = ramdac->indexed_data[ramdac->index];
@@ -852,7 +861,7 @@ ibm_rgb528_hwcursor_draw(svga_t *svga, int displine)
     x_pos = offset + svga->x_add;
     p = buffer32->line[y_pos];
 
-    for (x = 0; x < svga->dac_hwcursor_latch.xsize; x ++) {
+    for (x = 0; x < svga->dac_hwcursor_latch.xsize; x++) {
 	if (!(x & 3))
 		four_pixels = ramdac->indexed_data[svga->dac_hwcursor_latch.addr];
 
