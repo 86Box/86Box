@@ -567,7 +567,7 @@ usage:
 	 */
     if (strlen(vm_name) == 0)
 	{
-		char ltemp[1024] = {'/0'};
+		char ltemp[1024] = { '\0'};
 		plat_get_dirname(ltemp, usr_path);
 		strcpy(vm_name, plat_get_filename(ltemp));
 	}
