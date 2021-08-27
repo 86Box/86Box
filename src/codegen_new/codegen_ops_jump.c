@@ -13,7 +13,7 @@
 
 uint32_t ropJMP_r8(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
-        int32_t offset = (int32_t)(int8_t)fastreadb(cs + op_pc);
+        uint32_t offset = (int32_t)(int8_t)fastreadb(cs + op_pc);
         uint32_t dest_addr = op_pc+1+offset;
 
         if (!(op_32 & 0x100))
@@ -26,7 +26,7 @@ uint32_t ropJMP_r8(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t f
 }
 uint32_t ropJMP_r16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
-        int32_t offset = (int32_t)(int16_t)fastreadw(cs + op_pc);
+        uint32_t offset = (int32_t)(int16_t)fastreadw(cs + op_pc);
         uint32_t dest_addr = op_pc+2+offset;
         
         dest_addr &= 0xffff;
@@ -38,7 +38,7 @@ uint32_t ropJMP_r16(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t 
 }
 uint32_t ropJMP_r32(codeblock_t *block, ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
-        int32_t offset = fastreadl(cs + op_pc);
+        uint32_t offset = fastreadl(cs + op_pc);
         uint32_t dest_addr = op_pc+4+offset;
         
         if (offset < 0)

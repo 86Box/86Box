@@ -48,11 +48,16 @@ void codegen_accumulate(int acc_reg, int delta)
 void codegen_accumulate_flush(void)
 {
 	if (acc_regs[0].count) {
-		addbyte(0x81); /*ADD $acc_regs[0].count,acc_regs[0].dest*/
-		addbyte(0x04);
-		addbyte(0x25);
-		addlong((uint32_t) acc_regs[0].dest_reg);
+		addbyte(0x55); /*push rbp*/
+		addbyte(0x48); /*mov rbp,val*/
+		addbyte(0xbd);
+		addlong((uint32_t) (acc_regs[0].dest_reg & 0xffffffffULL));
+		addlong((uint32_t) (acc_regs[0].dest_reg >> 32ULL));
+		addbyte(0x81); /* add d,[rbp][0],val */
+		addbyte(0x45);
+		addbyte(0x00);
 		addlong(acc_regs[0].count);
+		addbyte(0x5d); /*pop rbp*/
 	}
 
 	acc_regs[0].count = 0;

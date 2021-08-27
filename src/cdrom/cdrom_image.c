@@ -253,7 +253,10 @@ cdrom_image_open(cdrom_t *dev, const char *fn)
 {
     cd_img_t *img;
 
-    strcpy(dev->image_path, fn);
+    /* Make sure to not STRCPY if the two are pointing
+       at the same place. */
+    if (fn != dev->image_path)
+	strcpy(dev->image_path, fn);
 
     /* Create new instance of the CDROM_Image class. */
     img = (cd_img_t *) malloc(sizeof(cd_img_t));

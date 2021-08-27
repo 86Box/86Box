@@ -327,13 +327,9 @@ printf("block_pos=%i\n", block_pos);
 
         block_write_data = NULL;
 //fatal("block_pos=%i\n", block_pos);
-#if !defined _MSC_VER || defined __clang__
 	asm("vmrs %0, fpscr\n"
                 : "=r" (cpu_state.old_fp_control)
 	);
-#else
-	cpu_state.old_fp_control = _controlfp();
-#endif
 	if ((cpu_state.old_fp_control >> 22) & 3)
 		fatal("VFP not in nearest rounding mode\n");
 }
