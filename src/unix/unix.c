@@ -464,6 +464,7 @@ main_thread(void *param)
     uint32_t old_time, new_time;
     int drawits, frames;
 
+    SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
     framecountx = 0;
     //title_update = 1;
     old_time = SDL_GetTicks();
@@ -725,18 +726,6 @@ void monitor_thread(void* param)
     {
         char* line = NULL;
         size_t n;
-        void* libedithandle = dlopen(LIBEDIT_LIBRARY, RTLD_LOCAL | RTLD_LAZY);
-        if (libedithandle)
-        {
-            f_readline = dlsym(libedithandle, "readline");
-            f_add_history = dlsym(libedithandle, "add_history");
-            if (!f_readline)
-            {
-                fprintf(stderr, "readline in libedit not found, line editing will be limited.\n");
-            }
-            f_rl_callback_handler_remove = dlsym(libedithandle, "rl_callback_handler_remove");
-        }
-        else fprintf(stderr, "libedit not found, line editing will be limited.\n");
         printf("86Box monitor console.\n");
         while (!exit_event)
         {
@@ -834,25 +823,25 @@ void monitor_thread(void* param)
                         cdrom_mount(id, fn);
                     }
                 }
-                else if (strncasecmp(xargv[0], "fddeject", 8) == 0 && cmdargc >= 3)
+                else if (strncasecmp(xargv[0], "fddeject", 8) == 0 && cmdargc >= 2)
                 {
-                    floppy_eject(atoi(xargv[2]));
+                    floppy_eject(atoi(xargv[1]));
                 }
-                else if (strncasecmp(xargv[0], "cdeject", 8) == 0 && cmdargc >= 3)
+                else if (strncasecmp(xargv[0], "cdeject", 8) == 0 && cmdargc >= 2)
                 {
-                    cdrom_mount(atoi(xargv[2]), "");
+                    cdrom_mount(atoi(xargv[1]), "");
                 }
-                else if (strncasecmp(xargv[0], "moeject", 8) == 0 && cmdargc >= 3)
+                else if (strncasecmp(xargv[0], "moeject", 8) == 0 && cmdargc >= 2)
                 {
-                    mo_eject(atoi(xargv[2]));
+                    mo_eject(atoi(xargv[1]));
                 }
-                else if (strncasecmp(xargv[0], "carteject", 8) == 0 && cmdargc >= 3)
+                else if (strncasecmp(xargv[0], "carteject", 8) == 0 && cmdargc >= 2)
                 {
-                    cartridge_eject(atoi(xargv[2]));
+                    cartridge_eject(atoi(xargv[1]));
                 }
-                else if (strncasecmp(xargv[0], "zipeject", 8) == 0 && cmdargc >= 3)
+                else if (strncasecmp(xargv[0], "zipeject", 8) == 0 && cmdargc >= 2)
                 {
-                    zip_eject(atoi(xargv[2]));
+                    zip_eject(atoi(xargv[1]));
                 }
                 else if (strncasecmp(xargv[0], "fddload", 7) == 0 && cmdargc >= 4)
                 {
@@ -953,6 +942,7 @@ SDL_threadID eventthread;
 int main(int argc, char** argv)
 {
     SDL_Event event;
+    void* libedithandle;
 
     SDL_Init(0);
     pc_init(argc, argv);
@@ -969,6 +959,18 @@ int main(int argc, char** argv)
         fprintf(stderr, "Failed to create blit mutex: %s", SDL_GetError());
         return -1;
     }
+    libedithandle = dlopen(LIBEDIT_LIBRARY, RTLD_LOCAL | RTLD_LAZY);
+    if (libedithandle)
+    {
+        f_readline = dlsym(libedithandle, "readline");
+        f_add_history = dlsym(libedithandle, "add_history");
+        if (!f_readline)
+        {
+            fprintf(stderr, "readline in libedit not found, line editing will be limited.\n");
+        }
+        f_rl_callback_handler_remove = dlsym(libedithandle, "rl_callback_handler_remove");
+    }
+    else fprintf(stderr, "libedit not found, line editing will be limited.\n");
     mousemutex = SDL_CreateMutex();
     sdl_initho();
 
