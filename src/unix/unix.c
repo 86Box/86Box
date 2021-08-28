@@ -708,6 +708,14 @@ bool process_media_commands_3(uint8_t* id, char* fn, uint8_t* wp, int cmdargc)
     || fn[strlen(fn) - 1] == '"') fn[strlen(fn) - 1] = '\0';
     return err;
 }
+char* (*f_readline)(const char*) = NULL;
+int  (*f_add_history)(const char *) = NULL;
+
+#ifdef __APPLE__
+#define LIBEDIT_LIBRARY "libedit.dylib"
+#else
+#define LIBEDIT_LIBRARY "libedit.so"
+#endif
 
 void monitor_thread(void* param)
 {
@@ -715,12 +723,28 @@ void monitor_thread(void* param)
     {
         char* line = NULL;
         size_t n;
+        void* libedithandle = dlopen(LIBEDIT_LIBRARY, RTLD_LOCAL | RTLD_LAZY);
+        if (libedithandle)
+        {
+            f_readline = dlsym(libedithandle, "readline");
+            f_add_history = dlsym(libedithandle, "add_history");
+            if (!f_readline)
+            {
+                fprintf(stderr, "readline in libedit not found, line editing will be limited.\n");
+            }
+        }
+        else fprintf(stderr, "libedit not found, line editing will be limited.\n");
         printf("86Box monitor console.\n");
         while (!exit_event)
         {
             if (feof(stdin)) break;
-            printf("(86Box) ");
-            getline(&line, &n, stdin);
+            if (f_readline)
+                line = f_readline("(86Box) ");
+            else
+            {
+                printf("(86Box) ");
+                getline(&line, &n, stdin);
+            }
             if (line)
             {
                 int cmdargc = 0;
@@ -733,6 +757,7 @@ void monitor_thread(void* param)
                     line = NULL;
                     continue;
                 }
+                if (f_add_history) f_add_history(line);
                 memset(xargv, 0, sizeof(xargv));
                 while(1) 
                 {
