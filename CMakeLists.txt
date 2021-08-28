@@ -33,6 +33,7 @@ include(CPack)
 include(CMakeDependentOption)
 
 add_compile_definitions(CMAKE)
+add_compile_definitions("$<$<CONFIG:DEBUG>:DEBUG>")
 
 if(WIN32)
 	# Disables *_s function warnings
