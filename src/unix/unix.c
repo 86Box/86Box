@@ -1009,6 +1009,7 @@ int main(int argc, char** argv)
                     mousedata.deltaz = event.wheel.y;
                     SDL_UnlockMutex(mousemutex);
                 }
+                break;
             }
             case SDL_MOUSEMOTION:
             {
