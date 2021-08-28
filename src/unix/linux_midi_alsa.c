@@ -3,6 +3,7 @@
 #include <86box/config.h>
 #include <86box/midi.h>
 #include <86box/plat.h>
+#include <86box/plat_midi.h>
 
 #define MAX_MIDI_DEVICES 128
 
@@ -127,52 +128,9 @@ static int midi_lengths[8] = {3, 3, 3, 3, 2, 2, 3, 1};
 static int midi_insysex;
 static uint8_t midi_sysex_data[65536];
 
-void plat_midi_write(uint8_t val)
+int plat_midi_write(uint8_t val)
 {
-	//pclog("Write MIDI %02x\n", val);
-	if (!midiout) return;
-
-        if ((val & 0x80) && !(val == 0xf7 && midi_insysex))
-        {
-                midi_pos = 0;
-                midi_len = midi_lengths[(val >> 4) & 7];
-                midi_command[0] = midi_command[1] = midi_command[2] = midi_command[3] = 0;
-                if (val == 0xf0)
-                        midi_insysex = 1;
-        }
-
-        if (midi_insysex)
-        {
-                midi_sysex_data[midi_pos++] = val;
-                
-                if (val == 0xf7 || midi_pos >= 65536)
-		{
-/*			pclog("MIDI send sysex %i: ", midi_pos);
-			for (int i = 0; i < midi_pos; i++)
-				pclog("%02x ", midi_sysex_data[i]);
-			pclog("\n");*/
-			snd_rawmidi_write(midiout, midi_sysex_data, midi_pos);
-//			pclog("Sent sysex\n");
-			midi_insysex = 0;
-		}
-                return;
-        }
-                        
-        if (midi_len)
-        {
-		if (midi_pos < 3)
-		{
-			midi_command[midi_pos] = val;
-                
-	                midi_pos++;
-                
-	                if (midi_pos == midi_len)
-			{
-//				pclog("MIDI send %i: %02x %02x %02x %02x\n", midi_len, midi_command[0], midi_command[1], midi_command[2], midi_command[3]);
-				snd_rawmidi_write(midiout, midi_command, midi_len);
-			}
-		}
-        }
+	return 0;
 }
 
 void plat_midi_play_sysex(uint8_t *sysex, unsigned int len)
@@ -185,9 +143,7 @@ void plat_midi_play_sysex(uint8_t *sysex, unsigned int len)
 
 void plat_midi_play_msg(uint8_t *msg)
 {
-	plat_midi_write(msg[0]);
-	if (midi_len > 1) plat_midi_write(msg[1]);
-	if (midi_len > 2) plat_midi_write(msg[2]);
+	plat_midi_play_sysex(msg, midi_lengths[(msg[0] >> 4) & 7]);
 }
 
 int plat_midi_get_num_devs()
