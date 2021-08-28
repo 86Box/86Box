@@ -664,6 +664,51 @@ plat_pause(int p)
     }
 }
 
+bool process_media_commands_3(uint8_t* id, char* fn, uint8_t* wp, int cmdargc)
+{
+    bool err = false;
+    *id = atoi(xargv[1]);
+    if (xargv[2][0] == '\'' || xargv[2][0] == '"')
+    {
+        int curarg = 2;
+        for (curarg = 2; curarg < cmdargc; curarg++)
+        {
+            if (strlen(fn) + strlen(xargv[curarg]) >= PATH_MAX)
+            {
+                err = true;
+                fprintf(stderr, "Path name too long.\n");
+            }
+            strcat(fn, xargv[curarg] + (xargv[curarg][0] == '\'' || xargv[curarg][0] == '"'));
+            if (fn[strlen(fn) - 1] == '\''
+                || fn[strlen(fn) - 1] == '"')
+            {
+                if (curarg + 1 < cmdargc)
+                {
+                    *wp = atoi(xargv[curarg + 1]);
+                }
+                break;
+            }
+            strcat(fn, " ");
+        }
+    }
+    else
+    {
+        if (strlen(xargv[2]) < PATH_MAX)
+        {
+            strcpy(fn, xargv[2]);
+            *wp = atoi(xargv[3]);
+        }
+        else
+        {
+            fprintf(stderr, "Path name too long.\n");
+            err = true;
+        }
+    }
+    if (fn[strlen(fn) - 1] == '\''
+    || fn[strlen(fn) - 1] == '"') fn[strlen(fn) - 1] = '\0';
+    return err;
+}
+
 void monitor_thread(void* param)
 {
     if (isatty(fileno(stdin)) && isatty(fileno(stdout)))
@@ -701,6 +746,7 @@ void monitor_thread(void* param)
                 else if (strncasecmp(xargv[0], "pause", 5) == 0)
                 {
                     plat_pause(dopause ^ 1);
+                    printf("%s", dopause ? "Paused.\n" : "Unpaused.\n");
                 }
                 else if (strncasecmp(xargv[0], "hardreset", 9) == 0)
                 {
@@ -711,6 +757,7 @@ void monitor_thread(void* param)
                     uint8_t id;
                     bool err = false;
                     char fn[PATH_MAX];
+                    
                     if (!xargv[2] || !xargv[1])
                     {
                         free(line);
@@ -761,11 +808,23 @@ void monitor_thread(void* param)
                 }
                 else if (strncasecmp(xargv[0], "fddeject", 8) == 0 && cmdargc >= 3)
                 {
-                    floppy_eject(atof(xargv[2]));
+                    floppy_eject(atoi(xargv[2]));
                 }
                 else if (strncasecmp(xargv[0], "cdeject", 8) == 0 && cmdargc >= 3)
                 {
-                    cdrom_mount(atof(xargv[2]), "");
+                    cdrom_mount(atoi(xargv[2]), "");
+                }
+                else if (strncasecmp(xargv[0], "moeject", 8) == 0 && cmdargc >= 3)
+                {
+                    mo_eject(atoi(xargv[2]));
+                }
+                else if (strncasecmp(xargv[0], "carteject", 8) == 0 && cmdargc >= 3)
+                {
+                    cartridge_eject(atoi(xargv[2]));
+                }
+                else if (strncasecmp(xargv[0], "zipeject", 8) == 0 && cmdargc >= 3)
+                {
+                    zip_eject(atoi(xargv[2]));
                 }
                 else if (strncasecmp(xargv[0], "fddload", 7) == 0 && cmdargc >= 4)
                 {
@@ -780,49 +839,79 @@ void monitor_thread(void* param)
                         line = NULL;
                         continue;
                     }
-                    id = atoi(xargv[1]);
-                    if (xargv[2][0] == '\'' || xargv[2][0] == '"')
-                    {
-                        int curarg = 2;
-                        for (curarg = 2; curarg < cmdargc; curarg++)
-                        {
-                            if (strlen(fn) + strlen(xargv[curarg]) >= PATH_MAX)
-                            {
-                                err = true;
-                                fprintf(stderr, "Path name too long.\n");
-                            }
-                            strcat(fn, xargv[curarg] + (xargv[curarg][0] == '\'' || xargv[curarg][0] == '"'));
-                            if (fn[strlen(fn) - 1] == '\''
-                                || fn[strlen(fn) - 1] == '"')
-                            {
-                                if (curarg + 1 < cmdargc)
-                                {
-                                    wp = atoi(xargv[curarg + 1]);
-                                }
-                                break;
-                            }
-                            strcat(fn, " ");
-                        }
-                    }
-                    else
-                    {
-                        if (strlen(xargv[2]) < PATH_MAX)
-                        {
-                            strcpy(fn, xargv[2]);
-                            wp = atoi(xargv[3]);
-                        }
-                        else
-                        {
-                            fprintf(stderr, "Path name too long.\n");
-                        }
-                    }
+                    err = process_media_commands_3(&id, fn, &wp, cmdargc);
                     if (!err)
                     {
-
                         if (fn[strlen(fn) - 1] == '\''
                             || fn[strlen(fn) - 1] == '"') fn[strlen(fn) - 1] = '\0';
                         printf("Inserting disk into floppy drive %c: %s\n", id + 'A', fn);
                         floppy_mount(id, fn, wp);
+                    }
+                }
+                else if (strncasecmp(xargv[0], "moload", 7) == 0 && cmdargc >= 4)
+                {
+                    uint8_t id, wp;
+                    bool err = false;
+                    char fn[PATH_MAX];
+                    memset(fn, 0, sizeof(fn));
+                    if (!xargv[2] || !xargv[1])
+                    {
+                        free(line);
+                        free(linecpy);
+                        line = NULL;
+                        continue;
+                    }
+                    err = process_media_commands_3(&id, fn, &wp, cmdargc);
+                    if (!err)
+                    {
+                        if (fn[strlen(fn) - 1] == '\''
+                            || fn[strlen(fn) - 1] == '"') fn[strlen(fn) - 1] = '\0';
+                        printf("Inserting into mo drive %hhu: %s\n", id, fn);
+                        mo_mount(id, fn, wp);
+                    }
+                }
+                else if (strncasecmp(xargv[0], "cartload", 7) == 0 && cmdargc >= 4)
+                {
+                    uint8_t id, wp;
+                    bool err = false;
+                    char fn[PATH_MAX];
+                    memset(fn, 0, sizeof(fn));
+                    if (!xargv[2] || !xargv[1])
+                    {
+                        free(line);
+                        free(linecpy);
+                        line = NULL;
+                        continue;
+                    }
+                    err = process_media_commands_3(&id, fn, &wp, cmdargc);
+                    if (!err)
+                    {
+                        if (fn[strlen(fn) - 1] == '\''
+                            || fn[strlen(fn) - 1] == '"') fn[strlen(fn) - 1] = '\0';
+                        printf("Inserting tape into cartridge holder %hhu: %s\n", id, fn);
+                        cartridge_mount(id, fn, wp);
+                    }
+                }
+                else if (strncasecmp(xargv[0], "zipload", 7) == 0 && cmdargc >= 4)
+                {
+                    uint8_t id, wp;
+                    bool err = false;
+                    char fn[PATH_MAX];
+                    memset(fn, 0, sizeof(fn));
+                    if (!xargv[2] || !xargv[1])
+                    {
+                        free(line);
+                        free(linecpy);
+                        line = NULL;
+                        continue;
+                    }
+                    err = process_media_commands_3(&id, fn, &wp, cmdargc);
+                    if (!err)
+                    {
+                        if (fn[strlen(fn) - 1] == '\''
+                            || fn[strlen(fn) - 1] == '"') fn[strlen(fn) - 1] = '\0';
+                        printf("Inserting disk into ZIP drive %c: %s\n", id + 'A', fn);
+                        zip_mount(id, fn, wp);
                     }
                 }
                 free(line);
