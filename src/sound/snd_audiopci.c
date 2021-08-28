@@ -16,7 +16,6 @@
 #include <86box/timer.h>
 #include <86box/sound.h>
 #include <86box/midi.h>
-#include <86box/snd_mpu401.h>
 #include <86box/snd_ac97.h>
 
 
@@ -27,8 +26,6 @@
 static float low_fir_es1371_coef[ES1371_NCoef];
 
 typedef struct {
-    mpu_t mpu;
-
     uint8_t pci_command, pci_serr;
 
     uint32_t base_addr;
@@ -897,7 +894,7 @@ static uint8_t es1371_pci_read(int func, int addr, void *p)
 		case 0x04: return es1371->pci_command;
 		case 0x05: return es1371->pci_serr;
 		
-		case 0x06: return 0x10;	/* Supports support ACPI */
+		case 0x06: return 0x10;	/* Supports ACPI */
 		case 0x07: return 0x00;
 
 		case 0x08: return 0x02;	/* Revision ID */
