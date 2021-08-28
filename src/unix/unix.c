@@ -149,7 +149,8 @@ static const uint16_t sdl_to_xt[0x200] =
     [SDL_SCANCODE_KP_3] = 0x51,
     [SDL_SCANCODE_KP_2] = 0x50,
     [SDL_SCANCODE_KP_1] = 0x4F,
-    [SDL_SCANCODE_KP_0] = 0x52
+    [SDL_SCANCODE_KP_0] = 0x52,
+    [SDL_SCANCODE_KP_PERIOD] = 0x53
 };
 
 typedef struct sdl_blit_params
@@ -710,6 +711,7 @@ bool process_media_commands_3(uint8_t* id, char* fn, uint8_t* wp, int cmdargc)
 }
 char* (*f_readline)(const char*) = NULL;
 int  (*f_add_history)(const char *) = NULL;
+void (*f_rl_callback_handler_remove)(void) = NULL;
 
 #ifdef __APPLE__
 #define LIBEDIT_LIBRARY "libedit.dylib"
@@ -732,6 +734,7 @@ void monitor_thread(void* param)
             {
                 fprintf(stderr, "readline in libedit not found, line editing will be limited.\n");
             }
+            f_rl_callback_handler_remove = dlsym(libedithandle, "rl_callback_handler_remove");
         }
         else fprintf(stderr, "libedit not found, line editing will be limited.\n");
         printf("86Box monitor console.\n");
@@ -1106,6 +1109,7 @@ int main(int argc, char** argv)
     printf("\n");
     SDL_DestroyMutex(blitmtx);
     SDL_Quit();
+    if (f_rl_callback_handler_remove) f_rl_callback_handler_remove();
     return 0;
 }
 char* plat_vidapi_name(int i)
