@@ -19,6 +19,7 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <dlfcn.h>
+#include <wchar.h>
 #include <SDL.h>
 #include <86box/86box.h>
 #include <86box/keyboard.h>
@@ -550,39 +551,17 @@ int	ui_msgbox(int flags, void *message)
 
 int	ui_msgbox_header(int flags, void *message, void* header)
 {
-    int sdlmsgflags;
     if (!header) header = L"86Box";
-    if (flags & MBX_ERROR)
+    if (flags & MBX_ANSI)
     {
-        sdlmsgflags = flags & MBX_FATAL ? SDL_MESSAGEBOX_ERROR : SDL_MESSAGEBOX_WARNING;
-    }
-    else
-    {
-        if (flags & MBX_WARNING) sdlmsgflags = SDL_MESSAGEBOX_WARNING;
-        else sdlmsgflags = SDL_MESSAGEBOX_INFORMATION;
-    }
-    if (message >= (void*)2048 && message <= (void*)7168)
-    {
-        if (wcsncasecmp(L"", plat_get_string((int)message), 1) == 0)
-        {
-            return 0;
-        }
-        char* res = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char*)plat_get_string((int)message), wcslen(plat_get_string((int)message)) * sizeof(wchar_t) + sizeof(wchar_t));
-        if (res) 
-        {
-            SDL_ShowSimpleMessageBox(sdlmsgflags, header, res, NULL);
-            SDL_free(res);
-            return 0;
-        }
-    }
-    else if (flags & MBX_ANSI)
-    {
-        SDL_ShowSimpleMessageBox(sdlmsgflags, header, (char*)message, NULL);
+        fwprintf(stderr, L"%s\n", header);
+        fprintf(stderr, "==========================\n"
+            "%s\n", message);
         return 0;
     }
-   
-
-    fprintf(stderr, "Got msgbox request. Flags: 0x%X, msgid: %llu\n", flags, (unsigned long long) message);
+    fwprintf(stderr, L"%s\n", header);
+    fwprintf(stderr, L"==========================\n"
+    L"%s\n", plat_get_string(message));
     return 0;
 }
 
@@ -719,6 +698,11 @@ void (*f_rl_callback_handler_remove)(void) = NULL;
 #else
 #define LIBEDIT_LIBRARY "libedit.so"
 #endif
+uint32_t timer_onesec(uint32_t interval, void* param)
+{
+        pc_onesec();
+        return interval;
+}
 
 void monitor_thread(void* param)
 {
@@ -987,9 +971,9 @@ int main(int argc, char** argv)
 
     do_start();
     thread_create(monitor_thread, NULL);
+    SDL_AddTimer(1000, timer_onesec, NULL);
     while (!is_quit)
     {
-        static int onesec_tic = 0;
         while (SDL_PollEvent(&event))
 	    {
             switch(event.type)
@@ -1090,11 +1074,6 @@ int main(int argc, char** argv)
         {
             plat_mouse_capture(0);
         }        
-        if (SDL_GetTicks() - onesec_tic >= 1000)
-        {
-            onesec_tic = SDL_GetTicks();
-            pc_onesec();
-        }
         if (blitreq)
         {
             extern void sdl_blit(int x, int y, int y1, int y2, int w, int h);
@@ -1113,6 +1092,7 @@ int main(int argc, char** argv)
     }
     printf("\n");
     SDL_DestroyMutex(blitmtx);
+    SDL_DestroyMutex(mousemutex);
     SDL_Quit();
     if (f_rl_callback_handler_remove) f_rl_callback_handler_remove();
     return 0;

@@ -139,7 +139,6 @@ mutex_t *thread_create_mutex(void)
         pthread_mutex_init(&mutex->mutex, NULL);
         
         return mutex;
-
 }
 
 mutex_t *
