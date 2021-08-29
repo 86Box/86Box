@@ -18,7 +18,7 @@ on:
 
 jobs:
   mingw:
-    name: ${{ matrix.target-arch.msystem }} build (DEV_BUILD=${{ matrix.dev-build }}, NEW_DYNAREC=${{ matrix.new-dynarec }})
+    name: MSYS2 ${{ matrix.build.name }} build (${{ matrix.target-arch.msystem }})
 
     runs-on: windows-latest
 
@@ -72,7 +72,7 @@ jobs:
       run: cmake --build build --target install
     - uses: actions/upload-artifact@v2
       with:
-        name: '86Box-${{ matrix.target-arch.msystem }}-${{ matrix.build.name }}-${{ matrix.target-arch }}-${{ github.sha }}'
+        name: '86Box-MSYS2-${{ matrix.target-arch.msystem }}-${{ matrix.build.name }}-${{ github.sha }}'
         path: build/artifacts/bin/**
 
   vs2019:
