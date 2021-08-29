@@ -64,10 +64,14 @@ target_link_libraries(86Box PNG::PNG)
 
 if(ARCH STREQUAL "i386")
 	if(MSVC)
-		set_target_properties(86Box PROPERTIES LINK_FLAGS "/LARGEADDRESSAWARE")
-	elseif(MINGW)
-		set_target_properties(86Box PROPERTIES LINK_FLAGS "-Wl,--large-address-aware")
+		target_link_options(86Box PRIVATE "/LARGEADDRESSAWARE")
+	else()
+		target_link_options(86Box PRIVATE "LINKER:--large-address-aware")
 	endif()
+endif()
+
+if(NOT MSVC)
+	target_link_options(86Box PRIVATE "-static")
 endif()
 
 configure_file(include/86box/version.h.in include/86box/version.h @ONLY)
