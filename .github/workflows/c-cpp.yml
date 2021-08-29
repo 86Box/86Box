@@ -47,11 +47,11 @@ jobs:
             x64: y
             clang: n
             continue-on-error: false
-          - msystem: CLANG64
-            prefix: mingw-w64-clang-x86_64
-            x64: y
-            clang: y
-            continue-on-error: true
+#          - msystem: CLANG64
+#            prefix: mingw-w64-clang-x86_64
+#            x64: y
+#            clang: y
+#            continue-on-error: true
 
     steps:
     - uses: msys2/setup-msys2@v2
