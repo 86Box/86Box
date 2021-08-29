@@ -6,15 +6,18 @@ on:
     paths:
     - src/**
     - "**/CMakeLists.txt"
-    - .github/workflows/**
+    - .github/workflows/cmake.yml
     - vcpkg.json
+    - "!**/Makefile*"
 
   pull_request:
     paths:
     - src/**
     - "**/CMakeLists.txt"
     - .github/workflows/**
+    - .github/workflows/cmake.yml
     - vcpkg.json
+    - "!**/Makefile*"
 
 jobs:
   mingw:

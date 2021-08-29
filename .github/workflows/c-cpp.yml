@@ -5,12 +5,14 @@ on:
   push:
     paths:
     - src/**
-    - .github/workflows/**
+    - .github/workflows/c-cpp.yml
+    - "!**/CMakeLists.txt"
 
   pull_request:
     paths:
     - src/**
-    - .github/workflows/**
+    - .github/workflows/c-cpp.yml
+    - "!**/CMakeLists.txt"
 
 jobs:
   build:
