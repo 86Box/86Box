@@ -49,6 +49,9 @@ plat_joystick_t	plat_joystick_state[MAX_PLAT_JOYSTICKS];
 joystick_t	joystick_state[MAX_JOYSTICKS];
 int		joysticks_present;
 SDL_mutex *blitmtx;
+SDL_threadID eventthread;
+static int exit_event = 0;
+static int fullscreen_pending = 0;
 
 static const uint16_t sdl_to_xt[0x200] =
 {
@@ -525,7 +528,11 @@ do_start(void)
 void
 do_stop(void)
 {
-    
+    if (SDL_ThreadID() != eventthread)
+    {
+        exit_event = 1;
+        return;
+    }
     if (blitreq)
     {
         blitreq = 0;
@@ -533,10 +540,18 @@ do_stop(void)
         video_blit_complete();
     }
 
-    is_quit = 1;
+    while(SDL_TryLockMutex(blitmtx) == SDL_MUTEX_TIMEDOUT)
+    {
+        if (blitreq)
+        {
+            blitreq = 0;
+            extern void video_blit_complete();
+            video_blit_complete();
+        }
+    }
+    startblit();
 
-    //startblit();
-    
+    is_quit = 1;
     sdl_close();
 
     pc_close(thMain);
@@ -612,7 +627,6 @@ void mouse_poll()
 
 
 extern int real_sdl_w, real_sdl_h;
-static int exit_event = 0;
 void ui_sb_set_ready(int ready) {}
 char* xargv[512];
 
@@ -743,6 +757,11 @@ void monitor_thread(void* param)
                 if (strncasecmp(xargv[0], "exit", 4) == 0)
                 {
                     exit_event = 1;
+                }
+                else if (strncasecmp(xargv[0], "fullscreen", 1) == 0)
+                {
+                    video_fullscreen = 1;
+                    fullscreen_pending = 1;
                 }
                 else if (strncasecmp(xargv[0], "pause", 5) == 0)
                 {
@@ -922,7 +941,7 @@ void monitor_thread(void* param)
         }
     }
 }
-SDL_threadID eventthread;
+
 int main(int argc, char** argv)
 {
     SDL_Event event;
@@ -959,8 +978,10 @@ int main(int argc, char** argv)
     sdl_initho();
 
     if (start_in_fullscreen)
-	sdl_set_fs(1);
-
+    {
+        video_fullscreen = 1;
+	    sdl_set_fs(1);
+    }
     /* Fire up the machine. */
     pc_reset_hard_init();
 
@@ -1083,6 +1104,16 @@ int main(int argc, char** argv)
         {
             extern void ui_window_title_real();
             ui_window_title_real();
+        }
+        if (video_fullscreen && keyboard_isfsexit())
+        {
+            sdl_set_fs(0);
+            video_fullscreen = 0;
+        }
+        if (fullscreen_pending)
+        {
+            sdl_set_fs(video_fullscreen);
+            fullscreen_pending = 0;
         }
         if (exit_event)
         {
