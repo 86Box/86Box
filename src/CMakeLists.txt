@@ -70,7 +70,7 @@ if(ARCH STREQUAL "i386")
 	endif()
 endif()
 
-if(NOT MSVC)
+if(NOT MSVC AND NOT UNIX AND NOT APPLE)
 	target_link_options(86Box PRIVATE "-static")
 endif()
 
