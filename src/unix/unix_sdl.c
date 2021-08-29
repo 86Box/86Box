@@ -149,7 +149,8 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
 
     if (resize_pending)
     {
-        sdl_resize(resize_w, resize_h);
+        if (video_fullscreen) SDL_RenderSetLogicalSize(sdl_render, resize_w, resize_h);
+        else sdl_resize(resize_w, resize_h);
         resize_pending = 0;
     }
     r_src.x = 0;
@@ -262,7 +263,6 @@ sdl_reinit_texture()
 
     sdl_destroy_texture();
 
-    SDL_GL_SetAttribute(SDL_GL_SHARE_WITH_CURRENT_CONTEXT, 1);
     if (sdl_flags & RENDERER_HARDWARE) {
 	sdl_render = SDL_CreateRenderer(sdl_win, -1, SDL_RENDERER_ACCELERATED);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, video_filter_method ? "1" : "0");
@@ -277,9 +277,7 @@ void
 sdl_set_fs(int fs)
 {
     SDL_LockMutex(sdl_mutex);
-    sdl_enabled = 0;
-    sdl_destroy_texture();
-    SDL_SetWindowFullscreen(sdl_win, fs ? SDL_WINDOW_FULLSCREEN : 0);
+    SDL_SetWindowFullscreen(sdl_win, fs ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
     SDL_SetRelativeMouseMode((SDL_bool)mouse_capture);
 
     sdl_fs = fs;
@@ -290,7 +288,6 @@ sdl_set_fs(int fs)
 	sdl_flags &= ~RENDERER_FULL_SCREEN;
 
     sdl_reinit_texture();
-    sdl_enabled = 1;
     SDL_UnlockMutex(sdl_mutex);
 }
 
@@ -370,7 +367,7 @@ sdl_init_common(int flags)
 
     sdl_mutex = SDL_CreateMutex();
     sdl_win = SDL_CreateWindow("86Box", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, scrnsz_x, scrnsz_y, SDL_WINDOW_OPENGL);
-    sdl_set_fs(video_fullscreen & 1);
+    sdl_set_fs(video_fullscreen);
     if (!(video_fullscreen & 1))
     {
         if (vid_resize & 2)
