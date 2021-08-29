@@ -1674,7 +1674,7 @@ mpu401_init(mpu_t *mpu, uint16_t addr, int irq, int mode, int receive_input)
     mpu->mode = M_UART;
     mpu->addr = addr;
 
-    /* Explanation:
+    /* Expalantion:
 	MPU-401 starting in intelligent mode = Full MPU-401 intelligent mode capability;
 	MPU-401 starting in UART mode = Reduced MPU-401 intelligent mode capability seen on the Sound Blaster 16/AWE32,
 					only supporting commands 3F (set UART mode) and FF (reset). */
@@ -1809,9 +1809,6 @@ static const device_config_t mpu401_standalone_config[] =
                                 "0x300", 0x300
                         },
                         {
-                                "0x320", 0x320
-                        },
-                        {
                                 "0x330", 0x330
                         },
                         {
@@ -1820,10 +1817,10 @@ static const device_config_t mpu401_standalone_config[] =
                 }
         },
         {
-                "irq", "MPU-401 IRQ", CONFIG_SELECTION, "", 2, "", { 0 },
+                "irq", "MPU-401 IRQ", CONFIG_SELECTION, "", 9, "", { 0 },
                 {
                         {
-                                "IRQ 2", 2
+                                "IRQ 9", 9
                         },
                         {
                                 "IRQ 3", 3
@@ -1835,10 +1832,10 @@ static const device_config_t mpu401_standalone_config[] =
                                 "IRQ 5", 5
                         },
                         {
-                                "IRQ 6", 6
+                                "IRQ 7", 7
                         },
                         {
-                                "IRQ 7", 7
+                                "IRQ 10", 10
                         },
                         {
                                 ""
