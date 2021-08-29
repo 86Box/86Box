@@ -43,6 +43,10 @@ jobs:
             prefix: mingw-w64-i686
           - msystem: MINGW64
             prefix: mingw-w64-x86_64
+          - msystem: UCRT64
+            prefix: mingw-w64-ucrt-x86_64
+          - msystem: CLANG64
+            prefix: mingw-w64-clang-x86_64
 
     steps:
     - uses: msys2/setup-msys2@v2
