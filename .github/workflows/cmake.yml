@@ -67,7 +67,7 @@ jobs:
       run: >-
         cmake -S . -B build
         -G "MSYS Makefiles"
-        -D CMAKE_INSTALL_PREFIX=${{ github.workspace }}/build/artifacts
+        -D CMAKE_INSTALL_PREFIX=./build/artifacts
         -D CMAKE_BUILD_TYPE=${{ env.build.type }}
         -D DEV_BRANCH=${{ matrix.build.dev-build }}
         -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
@@ -114,7 +114,7 @@ jobs:
         cmake -S . -B build
         -G "Visual Studio 16 2019" -A ${{ matrix.target-arch }} -T ${{ matrix.toolset }}
         -D CMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
-        -D CMAKE_INSTALL_PREFIX=${{ github.workspace }}/build/artifacts
+        -D CMAKE_INSTALL_PREFIX=./build/artifacts
         -D DEV_BRANCH=${{ matrix.build.dev-build }}
         -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
         -D VNC=OFF
