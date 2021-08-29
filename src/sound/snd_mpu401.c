@@ -1809,6 +1809,9 @@ static const device_config_t mpu401_standalone_config[] =
                                 "0x300", 0x300
                         },
                         {
+                                "0x320", 0x320
+                        },
+                        {
                                 "0x330", 0x330
                         },
                         {
@@ -1830,6 +1833,9 @@ static const device_config_t mpu401_standalone_config[] =
                         },
                         {
                                 "IRQ 5", 5
+                        },
+                        {
+                                "IRQ 6", 6
                         },
                         {
                                 "IRQ 7", 7
