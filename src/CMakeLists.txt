@@ -62,7 +62,7 @@ find_package(PNG REQUIRED)
 include_directories(${PNG_INCLUDE_DIRS})
 target_link_libraries(86Box PNG::PNG)
 
-if(CMAKE_TARGET_ARCHITECTURES STREQUAL "i386")
+if(ARCH STREQUAL "i386")
 	if(MSVC)
 		set_target_properties(86Box PROPERTIES LINK_FLAGS "/LARGEADDRESSAWARE")
 	elseif(MINGW)
