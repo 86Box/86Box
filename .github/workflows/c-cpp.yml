@@ -5,16 +5,18 @@ on:
   push:
     paths:
     - src/**
-    - .github/workflows/**
+    - .github/workflows/c-cpp.yml
+    - "!**/CMakeLists.txt"
 
   pull_request:
     paths:
     - src/**
-    - .github/workflows/**
+    - .github/workflows/c-cpp.yml
+    - "!**/CMakeLists.txt"
 
 jobs:
   build:
-    name: Build (DEV_BUILD=${{ matrix.dev-build }}, NEW_DYNAREC=${{ matrix.new-dynarec }}, X64=${{ matrix.target-arch.x64 }})
+    name: ${{ matrix.build-target.msystem }} makefile build (DEV_BUILD=${{ matrix.dev-build }}, NEW_DYNAREC=${{ matrix.new-dynarec }})
 
     runs-on: windows-latest
 
@@ -22,33 +24,50 @@ jobs:
       run:
         shell: msys2 {0}
 
+    continue-on-error: ${{ matrix.build-target.continue-on-error }}
+
     strategy:
+      fail-fast: false
       matrix:
         dev-build: ['y', 'n']
         new-dynarec: ['y', 'n']
-        target-arch:
-          - x64: 'n'
-            msystem: MINGW32
+        build-target:
+          - msystem: MINGW32
             prefix: mingw-w64-i686
-          - x64: 'y'
-            msystem: MINGW64
+            x64: n
+            clang: n
+            continue-on-error: false
+          - msystem: MINGW64
             prefix: mingw-w64-x86_64
+            x64: y
+            clang: n
+            continue-on-error: false
+          - msystem: UCRT64
+            prefix: mingw-w64-ucrt-x86_64
+            x64: y
+            clang: n
+            continue-on-error: false
+#          - msystem: CLANG64
+#            prefix: mingw-w64-clang-x86_64
+#            x64: y
+#            clang: y
+#            continue-on-error: true
 
     steps:
     - uses: msys2/setup-msys2@v2
       with:
         update: true
-        msystem: ${{ matrix.target-arch.msystem }}
+        msystem: ${{ matrix.build-target.msystem }}
         install: >-
           make
-          ${{ matrix.target-arch.prefix }}-toolchain
-          ${{ matrix.target-arch.prefix }}-openal
-          ${{ matrix.target-arch.prefix }}-freetype
-          ${{ matrix.target-arch.prefix }}-SDL2
-          ${{ matrix.target-arch.prefix }}-zlib
-          ${{ matrix.target-arch.prefix }}-libpng
-          ${{ matrix.target-arch.prefix }}-libvncserver
+          ${{ matrix.build-target.prefix }}-toolchain
+          ${{ matrix.build-target.prefix }}-openal
+          ${{ matrix.build-target.prefix }}-freetype
+          ${{ matrix.build-target.prefix }}-SDL2
+          ${{ matrix.build-target.prefix }}-zlib
+          ${{ matrix.build-target.prefix }}-libpng
+          ${{ matrix.build-target.prefix }}-libvncserver
     - uses: actions/checkout@v2
     - name: make
-      run: make -fwin/makefile.mingw -j DEV_BUILD=${{ matrix.dev-build }} NEW_DYNAREC=${{ matrix.new-dynarec }} X64=${{ matrix.target-arch.x64 }} VNC=n
+      run: make -fwin/makefile.mingw -j DEV_BUILD=${{ matrix.dev-build }} NEW_DYNAREC=${{ matrix.new-dynarec }} X64=${{ matrix.build-target.x64 }} CLANG=${{ matrix.build-target.clang }} VNC=n
       working-directory: ./src

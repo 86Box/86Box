@@ -6,22 +6,22 @@ on:
     paths:
     - src/**
     - "**/CMakeLists.txt"
-    - .github/workflows/**
+    - .github/workflows/cmake.yml
     - vcpkg.json
+    - "!**/Makefile*"
 
   pull_request:
     paths:
     - src/**
     - "**/CMakeLists.txt"
     - .github/workflows/**
+    - .github/workflows/cmake.yml
     - vcpkg.json
-
-env:
-  BUILD_TYPE: RelWithDebInfo
+    - "!**/Makefile*"
 
 jobs:
   mingw:
-    name: ${{ matrix.target-arch.msystem }} build (DEV_BUILD=${{ matrix.dev-build }}, NEW_DYNAREC=${{ matrix.new-dynarec }})
+    name: MSYS2 ${{ matrix.build.name }} build (${{ matrix.target-arch.msystem }})
 
     runs-on: windows-latest
 
@@ -30,14 +30,26 @@ jobs:
         shell: msys2 {0}
 
     strategy:
+      fail-fast: false
       matrix:
-        dev-build: ['ON', 'OFF']
-        new-dynarec: ['ON', 'OFF']
+        build:
+        - name: Debug
+          dev-build: off
+          new-dynarec: off
+          type: Debug
+        - name: Dev
+          dev-build: on
+          new-dynarec: on
+          type: Debug
         target-arch:
           - msystem: MINGW32
             prefix: mingw-w64-i686
           - msystem: MINGW64
             prefix: mingw-w64-x86_64
+          - msystem: UCRT64
+            prefix: mingw-w64-ucrt-x86_64
+          - msystem: CLANG64
+            prefix: mingw-w64-clang-x86_64
 
     steps:
     - uses: msys2/setup-msys2@v2
@@ -58,12 +70,17 @@ jobs:
       run: >-
         cmake -S . -B build
         -G "MSYS Makefiles"
-        -D CMAKE_BUILD_TYPE=${{ env.BUILD_TYPE }}
-        -D DEV_BRANCH=${{ matrix.dev-build }}
-        -D NEW_DYNAREC=${{ matrix.new-dynarec }}
+        -D CMAKE_INSTALL_PREFIX=./build/artifacts
+        -D CMAKE_BUILD_TYPE=${{ env.build.type }}
+        -D DEV_BRANCH=${{ matrix.build.dev-build }}
+        -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
         -D VNC=OFF
     - name: Build
-      run: cmake --build build
+      run: cmake --build build --target install
+    - uses: actions/upload-artifact@v2
+      with:
+        name: '86Box-MSYS2-${{ matrix.target-arch.msystem }}-${{ matrix.build.name }}-${{ github.sha }}'
+        path: build/artifacts/bin/**
 
   vs2019:
     name: VS2019 ${{ matrix.build.name }} ${{ matrix.target-arch }} build (${{ matrix.toolset }})
@@ -100,7 +117,7 @@ jobs:
         cmake -S . -B build
         -G "Visual Studio 16 2019" -A ${{ matrix.target-arch }} -T ${{ matrix.toolset }}
         -D CMAKE_TOOLCHAIN_FILE=C:\vcpkg\scripts\buildsystems\vcpkg.cmake
-        -D CMAKE_INSTALL_PREFIX=${{ github.workspace }}/build/artifacts
+        -D CMAKE_INSTALL_PREFIX=./build/artifacts
         -D DEV_BRANCH=${{ matrix.build.dev-build }}
         -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
         -D VNC=OFF
