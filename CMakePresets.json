@@ -29,7 +29,8 @@
             "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release",
-                "DEV_BRANCH": "OFF"
+                "DEV_BRANCH": "OFF",
+                "NEW_DYNAREC": "OFF"
             }
         },
         {
@@ -40,7 +41,8 @@
             "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Optimized",
-                "DEV_BRANCH": "OFF"
+                "DEV_BRANCH": "OFF",
+                "NEW_DYNAREC": "OFF"
             }
         },
         {
@@ -51,7 +53,8 @@
             "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "DEV_BRANCH": "OFF"
+                "DEV_BRANCH": "OFF",
+                "NEW_DYNAREC": "OFF"
             }
         },
         {
@@ -62,7 +65,8 @@
             "generator": "Ninja",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
-                "DEV_BRANCH": "ON"
+                "DEV_BRANCH": "ON",
+                "NEW_DYNAREC": "ON"
             }
         }
     ]
