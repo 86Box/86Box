@@ -720,6 +720,7 @@ uint32_t timer_onesec(uint32_t interval, void* param)
 
 void monitor_thread(void* param)
 {
+#ifndef USE_CLI
     if (isatty(fileno(stdin)) && isatty(fileno(stdout)))
     {
         char* line = NULL;
@@ -940,6 +941,7 @@ void monitor_thread(void* param)
             }
         }
     }
+#endif
 }
 
 int main(int argc, char** argv)
@@ -991,7 +993,9 @@ int main(int argc, char** argv)
     /* Initialize the rendering window, or fullscreen. */
 
     do_start();
+#ifndef USE_CLI
     thread_create(monitor_thread, NULL);
+#endif
     SDL_AddTimer(1000, timer_onesec, NULL);
     while (!is_quit)
     {
