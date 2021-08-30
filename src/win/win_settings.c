@@ -1380,6 +1380,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		settings_set_check(hdlg, IDC_CHECK_GUS, temp_GUS);
 		settings_enable_window(hdlg, IDC_CONFIGURE_GUS, temp_GUS);
 		settings_set_check(hdlg, IDC_CHECK_SSI, temp_SSI2001);
+		settings_enable_window(hdlg, IDC_CONFIGURE_SSI, temp_SSI2001);
 		settings_set_check(hdlg, IDC_CHECK_FLOAT, temp_float);
 
 		free(lptsTemp);
@@ -1455,6 +1456,16 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDC_CONFIGURE_GUS:
 				temp_deviceconfig |= deviceconfig_open(hdlg, (void *)&gus_device);
+				break;
+
+			case IDC_CHECK_SSI:
+				temp_SSI2001 = settings_get_check(hdlg, IDC_CHECK_SSI);
+
+				settings_enable_window(hdlg, IDC_CONFIGURE_SSI, temp_SSI2001);
+				break;
+
+			case IDC_CONFIGURE_SSI:
+				temp_deviceconfig |= deviceconfig_open(hdlg, &ssi2001_device);
 				break;
 		}
 		return FALSE;

@@ -10,3 +10,4 @@ src/NUL
 src/nvr/
 src/roms/
 /.vs
+/CMakeUserPresets.json

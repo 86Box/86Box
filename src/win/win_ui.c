@@ -76,10 +76,6 @@ extern WCHAR	wopenfilestring[512];
 
 /* Local data. */
 static wchar_t	wTitle[512];
-#ifndef NO_KEYBOARD_HOOK
-static HHOOK	hKeyboardHook;
-static int	hook_enabled = 0;
-#endif
 static int	manager_wm = 0;
 static int	save_window_pos = 0, pause_state = 0;
 static int	dpi = 96;
@@ -399,42 +395,6 @@ ResetAllMenus(void)
 }
 
 
-#ifndef NO_KEYBOARD_HOOK
-static LRESULT CALLBACK
-LowLevelKeyboardProc(int nCode, WPARAM wParam, LPARAM lParam)
-{
-    BOOL bControlKeyDown;
-    KBDLLHOOKSTRUCT *p;
-
-    if (nCode < 0 || nCode != HC_ACTION ||
-	(!mouse_capture && !video_fullscreen) || (kbd_req_capture && !mouse_capture && !video_fullscreen))
-	return(CallNextHookEx(hKeyboardHook, nCode, wParam, lParam));
-
-    p = (KBDLLHOOKSTRUCT*)lParam;
-
-    /* disable alt-tab */
-    if (p->vkCode == VK_TAB && p->flags & LLKHF_ALTDOWN) return(1);
-
-    /* disable alt-space */
-    if (p->vkCode == VK_SPACE && p->flags & LLKHF_ALTDOWN) return(1);
-
-    /* disable alt-escape */
-    if (p->vkCode == VK_ESCAPE && p->flags & LLKHF_ALTDOWN) return(1);
-
-    /* disable windows keys */
-    if((p->vkCode == VK_LWIN) || (p->vkCode == VK_RWIN)) return(1);
-
-    /* checks ctrl key pressed */
-    bControlKeyDown = GetAsyncKeyState(VK_CONTROL)>>((sizeof(SHORT)*8)-1);
-
-    /* disable ctrl-escape */
-    if (p->vkCode == VK_ESCAPE && bControlKeyDown) return(1);
-
-    return(CallNextHookEx(hKeyboardHook, nCode, wParam, lParam));
-}
-#endif
-
-
 void
 win_notify_dlg_open(void)
 {
@@ -466,10 +426,6 @@ plat_power_off(void)
     /* Deduct a sufficiently large number of cycles that no instructions will
        run before the main thread is terminated */
     cycles -= 99999999;
-
-#ifndef NO_KEYBOARD_HOOK
-    UnhookWindowsHookEx(hKeyboardHook);
-#endif
 
     KillTimer(hwndMain, TIMER_1SEC);
     PostQuitMessage(0);
@@ -532,26 +488,11 @@ input_proc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_SETFOCUS:
 		infocus = 1;
-#ifndef NO_KEYBOARD_HOOK
-		if (! hook_enabled) {
-			hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL,
-							 LowLevelKeyboardProc,
-							 GetModuleHandle(NULL),
-							 0);
-			hook_enabled = 1;
-		}
-#endif
 		break;
 
 	case WM_KILLFOCUS:
 		infocus = 0;
 		plat_mouse_capture(0);
-#ifndef NO_KEYBOARD_HOOK
-		if (hook_enabled) {
-			UnhookWindowsHookEx(hKeyboardHook);
-			hook_enabled = 0;
-		}
-#endif
 		break;
 
 	case WM_LBUTTONDOWN:
@@ -597,12 +538,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     switch (message) {
 	case WM_CREATE:
 		SetTimer(hwnd, TIMER_1SEC, 1000, NULL);
-#ifndef NO_KEYBOARD_HOOK
-		hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL,
-						 LowLevelKeyboardProc,
-						 GetModuleHandle(NULL), 0);
-		hook_enabled = 1;
-#endif
 		break;
 
 	case WM_COMMAND:
@@ -654,9 +589,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 						nvr_save();
 						config_save();
 					}
-#ifndef NO_KEYBOARD_HOOK
-					UnhookWindowsHookEx(hKeyboardHook);
-#endif
 					KillTimer(hwnd, TIMER_1SEC);
 					PostQuitMessage(0);
 				}
@@ -1125,9 +1057,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				nvr_save();
 				config_save();
 			}
-#ifndef NO_KEYBOARD_HOOK
-			UnhookWindowsHookEx(hKeyboardHook);
-#endif
 			KillTimer(hwnd, TIMER_1SEC);
 			PostQuitMessage(0);
 		}
@@ -1135,9 +1064,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_DESTROY:
-#ifndef NO_KEYBOARD_HOOK
-		UnhookWindowsHookEx(hKeyboardHook);
-#endif
 		KillTimer(hwnd, TIMER_1SEC);
 		PostQuitMessage(0);
 		break;
@@ -1192,9 +1118,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				nvr_save();
 				config_save();
 			}
-#ifndef NO_KEYBOARD_HOOK
-			UnhookWindowsHookEx(hKeyboardHook);
-#endif
 			KillTimer(hwnd, TIMER_1SEC);
 			PostQuitMessage(0);
 		}
@@ -1224,26 +1147,11 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	case WM_SETFOCUS:
 		infocus = 1;
-#ifndef NO_KEYBOARD_HOOK
-		if (! hook_enabled) {
-			hKeyboardHook = SetWindowsHookEx(WH_KEYBOARD_LL,
-							 LowLevelKeyboardProc,
-							 GetModuleHandle(NULL),
-							 0);
-			hook_enabled = 1;
-		}
-#endif
 		break;
 
 	case WM_KILLFOCUS:
 		infocus = 0;
 		plat_mouse_capture(0);
-#ifndef NO_KEYBOARD_HOOK
-		if (hook_enabled) {
-			UnhookWindowsHookEx(hKeyboardHook);
-			hook_enabled = 0;
-		}
-#endif
 		break;
 
 	case WM_ACTIVATE:

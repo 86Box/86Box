@@ -25,27 +25,26 @@ if(DYNAREC)
 		codegen_ops_mmx_pack.c codegen_ops_mmx_shift.c codegen_ops_mov.c
 		codegen_ops_shift.c codegen_ops_stack.c codegen_reg.c)
 
-	if(CMAKE_TARGET_ARCHITECTURES STREQUAL "i386")
+	if(ARCH STREQUAL "i386")
 		target_sources(dynarec PRIVATE codegen_backend_x86.c
 			codegen_backend_x86_ops.c codegen_backend_x86_ops_fpu.c
 			codegen_backend_x86_ops_sse.c
 			codegen_backend_x86_uops.c)
-	elseif(CMAKE_TARGET_ARCHITECTURES STREQUAL "x86_64")
+	elseif(ARCH STREQUAL "x86_64")
 		target_sources(dynarec PRIVATE codegen_backend_x86-64.c
 			codegen_backend_x86-64_ops.c
 			codegen_backend_x86-64_ops_sse.c
 			codegen_backend_x86-64_uops.c)
-	elseif(CMAKE_TARGET_ARCHITECTURES STREQUAL "armv8")
+	elseif(ARCH STREQUAL "arm64")
 		target_sources(dynarec PRIVATE codegen_backend_arm64.c
 			codegen_backend_arm64_ops.c codegen_backend_arm64_uops.c
 			codegen_backend_arm64_imm.c)
-	elseif(CMAKE_TARGET_ARCHITECTURES MATCHES "arm")
+	elseif(ARCH STREQUAL "arm")
 		target_sources(dynarec PRIVATE codegen_backend_arm.c
 			codegen_backend_arm_ops.c codegen_backend_arm_uops.c)
 	else()
 		message(SEND_ERROR 
-			"Dynarec is incompatible with target platform "
-			${CMAKE_TARGET_ARCHITECTURES})
+			"Dynarec is incompatible with target platform ${ARCH}")
 	endif()
 
 	target_link_libraries(86Box dynarec cgt)
