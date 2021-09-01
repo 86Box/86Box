@@ -37,10 +37,13 @@ jobs:
         build:
         - name: Regular
           preset: regular
+          target: install/strip
         - name: Debug
           preset: debug
+          target: install
         - name: Dev
           preset: experimental
+          target: install
         environment:
           - msystem: MINGW32
             prefix: mingw-w64-i686
@@ -74,7 +77,7 @@ jobs:
         -D CMAKE_INSTALL_PREFIX=./build/artifacts
         -D VNC=OFF
     - name: Build
-      run: cmake --build build --target install
+      run: cmake --build build --target ${{ matrix.build.target }}
     - uses: actions/upload-artifact@v2
       with:
         name: '86Box-${{ matrix.build.name }}-MSYS2-${{ matrix.environment.msystem }}-${{ github.sha }}'
