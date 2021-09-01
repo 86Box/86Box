@@ -279,6 +279,27 @@ config_free(void)
 }
 #endif
 
+static int
+config_detect_bom(char *fn)
+{
+	FILE *f;
+	unsigned char bom[4] = { 0, 0, 0, 0 };
+
+#if defined(ANSI_CFG) || !defined(_WIN32)
+    f = plat_fopen(fn, "rt");
+#else
+    f = plat_fopen(fn, "rt, ccs=UTF-8");
+#endif
+    if (f == NULL) return(0);
+	fread(bom, 1, 3, f);
+	if (bom[0] == 0xEF && bom[1] == 0xBB && bom[2] == 0xBF)
+	{
+		fclose(f);
+		return 1;
+	}
+	fclose(f);
+	return 0;
+}
 
 /* Read and parse the configuration file into memory. */
 static int
@@ -288,9 +309,10 @@ config_read(char *fn)
     wchar_t buff[1024];
     section_t *sec, *ns;
     entry_t *ne;
-    int c, d;
+    int c, d, bom;
     FILE *f;
 
+	bom = config_detect_bom(fn);
 #if defined(ANSI_CFG) || !defined(_WIN32)
     f = plat_fopen(fn, "rt");
 #else
@@ -302,6 +324,8 @@ config_read(char *fn)
     memset(sec, 0x00, sizeof(section_t));
     memset(&config_head, 0x00, sizeof(list_t));
     list_add(&sec->list, &config_head);
+	if (bom)
+		fseek(f, 3, SEEK_SET);
 
     while (1) {
 	memset(buff, 0x00, sizeof(buff));

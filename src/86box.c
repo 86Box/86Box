@@ -560,10 +560,15 @@ usage:
 	strftime(temp, sizeof(temp), "%Y/%m/%d %H:%M:%S", info);
 	pclog("#\n# %ls v%ls logfile, created %s\n#\n",
 		EMU_NAME_W, EMU_VERSION_W, temp);
+#ifdef _WIN32
 	pclog("# Emulator path: %ls\n", exe_path);
 	pclog("# Userfiles path: %ls\n", usr_path);
 	pclog("# Configuration file: %ls\n#\n\n", cfg_path);
-
+#else
+	pclog("# Emulator path: %s\n", exe_path);
+	pclog("# Userfiles path: %s\n", usr_path);
+	pclog("# Configuration file: %s\n#\n\n", cfg_path);
+#endif
 	/*
 	 * We are about to read the configuration file, which MAY
 	 * put data into global variables (the hard- and floppy

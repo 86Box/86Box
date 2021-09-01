@@ -31,6 +31,7 @@
 #include <tinyglib.h>
 #include <fcntl.h>
 #include <stdint.h>
+#include <string.h>
 
 #if defined(_WIN32)
 int slirp_inet_aton(const char *cp, struct in_addr *ia)

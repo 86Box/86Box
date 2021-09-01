@@ -361,7 +361,7 @@ mo_load(mo_t *dev, char *fn)
     }
 
     fseek(dev->drv->f, 0, SEEK_END);
-    size = (uint32_t) ftello64(dev->drv->f);
+    size = (uint32_t) ftell(dev->drv->f);
 
     if (is_mdi) {
 	/* This is a MDI image. */
