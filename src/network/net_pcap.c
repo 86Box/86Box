@@ -248,6 +248,8 @@ net_pcap_prepare(netdev_t *list)
     /* Try loading the DLL. */
 #ifdef _WIN32
     pcap_handle = dynld_module("wpcap.dll", pcap_imports);
+#elif defined __APPLE__
+    pcap_handle = dynld_module("libpcap.dylib", pcap_imports);
 #else
     pcap_handle = dynld_module("libpcap.so", pcap_imports);
 #endif

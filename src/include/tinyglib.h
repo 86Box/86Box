@@ -25,7 +25,6 @@
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
