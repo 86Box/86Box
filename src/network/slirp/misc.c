@@ -7,6 +7,12 @@
 #include <stdbool.h>
 #ifdef G_OS_UNIX
 #include <sys/un.h>
+#include <sys/param.h>
+#ifdef BSD
+#define g_strlcpy strlcpy
+#else
+extern int g_strlcpy(gchar* dest, const gchar* src, gsize dest_size);
+#endif
 #endif
 
 extern inline void insque(void *a, void *b)
