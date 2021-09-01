@@ -339,10 +339,11 @@ static inline ir_reg_t codegen_reg_read(int reg)
                 fatal("codegen_reg_read - refcount overflow\n");
         else
 #endif
-	if (version->refcount > REG_REFCOUNT_MAX)
+        if (version->refcount > REG_REFCOUNT_MAX)
                 CPU_BLOCK_END();
         if (version->refcount > max_version_refcount)
                 max_version_refcount = version->refcount;
+//        pclog("codegen_reg_read: %i %i %i\n", reg & IREG_REG_MASK, ireg.version, reg_version_refcount[IREG_GET_REG(ireg.reg)][ireg.version]);
         return ireg;
 }
 
@@ -374,7 +375,7 @@ static inline ir_reg_t codegen_reg_write(int reg, int uop_nr)
                 fatal("codegen_reg_write - version overflow\n");
         else
 #endif
-	if (reg_last_version[IREG_GET_REG(reg)] > REG_VERSION_MAX)
+        if (reg_last_version[IREG_GET_REG(reg)] > REG_VERSION_MAX)
                 CPU_BLOCK_END();
         if (reg_last_version[IREG_GET_REG(reg)] > max_version_refcount)
                 max_version_refcount = reg_last_version[IREG_GET_REG(reg)];
@@ -383,6 +384,7 @@ static inline ir_reg_t codegen_reg_write(int reg, int uop_nr)
         version->refcount = 0;
         version->flags = 0;
         version->parent_uop = uop_nr;
+//        pclog("codegen_reg_write: %i\n", reg & IREG_REG_MASK);
         return ireg;
 }
 

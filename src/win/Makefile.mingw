@@ -297,21 +297,38 @@ TOOL_PREFIX     := x86_64-w64-mingw32-
 else
 TOOL_PREFIX     := i686-w64-mingw32-
 endif
-CPP             := ${TOOL_PREFIX}g++
-CC              := ${TOOL_PREFIX}gcc
 WINDRES		:= windres
 STRIP		:= strip
 ifeq ($(ARM64), y)
-CPP		:= aarch64-w64-mingw32-g++
-CC		:= aarch64-w64-mingw32-gcc
 WINDRES		:= aarch64-w64-mingw32-windres
 STRIP		:= aarch64-w64-mingw32-strip
 endif
 ifeq ($(ARM), y)
-CPP		:= armv7-w64-mingw32-g++
-CC		:= armv7-w64-mingw32-gcc
 WINDRES		:= armv7-w64-mingw32-windres
 STRIP		:= armv7-w64-mingw32-strip
+endif
+ifeq ($(CLANG), y)
+CPP             := clang++
+CC              := clang
+ifeq ($(ARM64), y)
+CPP		:= aarch64-w64-mingw32-clang++
+CC		:= aarch64-w64-mingw32-clang
+endif
+ifeq ($(ARM), y)
+CPP		:= armv7-w64-mingw32-clang++
+CC		:= armv7-w64-mingw32-clang
+endif
+else
+CPP             := ${TOOL_PREFIX}g++
+CC              := ${TOOL_PREFIX}gcc
+ifeq ($(ARM64), y)
+CPP		:= aarch64-w64-mingw32-g++
+CC		:= aarch64-w64-mingw32-gcc
+endif
+ifeq ($(ARM), y)
+CPP		:= armv7-w64-mingw32-g++
+CC		:= armv7-w64-mingw32-gcc
+endif
 endif
 DEPS		= -MMD -MF $*.d -c $<
 DEPFILE		:= win/.depends
@@ -326,15 +343,11 @@ endif
 ifdef EXINC
 OPTS		+= -I$(EXINC)
 endif
-ifeq ($(X64), y)
- ifeq ($(OPTIM), y)
-  DFLAGS	:= -march=native
- else
-  DFLAGS	:=
- endif
+ifeq ($(OPTIM), y)
+ DFLAGS	:= -march=native
 else
- ifeq ($(OPTIM), y)
-  DFLAGS	:= -march=native
+ ifeq ($(X64), y)
+  DFLAGS	:=
  else
   DFLAGS	:= -march=i686
  endif
@@ -377,10 +390,6 @@ endif
 ifeq ($(VRAMDUMP), y)
 OPTS		+= -DENABLE_VRAM_DUMP
 RFLAGS		+= -DENABLE_VRAM_DUMP
-endif
-ifeq ($(NOHOOK), y)
-OPTS		+= -DNO_KEYBOARD_HOOK
-RFLAGS		+= -DNO_KEYBOARD_HOOK
 endif
 
 
@@ -605,10 +614,11 @@ MAINOBJ		:= 86box.o config.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
 
 MEMOBJ		:= catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o smram.o spd.o sst_flash.o
 
-CPUOBJ		:= cpu.o cpu_table.o fpu.o x86.o \
-		    808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o $(CGTOBJ) \
-		    x86seg.o x87.o x87_timings.o \
-		    $(DYNARECOBJ)
+CPUOBJ		:= $(DYNARECOBJ) \
+		    $(CGTOBJ) \
+		    cpu.o cpu_table.o fpu.o x86.o \
+		    808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o \
+		    x86seg.o x87.o x87_timings.o
 
 CHIPSETOBJ	:= acc2168.o cs8230.o ali1217.o ali1429.o ali1489.o et6000.o headland.o intel_82335.o cs4031.o \
 		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
@@ -811,7 +821,12 @@ LIBS		+= $(WX_LIBS) -lm
 endif
 LIBS		+= -lpng -lz -lwsock32 -lshell32 -liphlpapi -lpsapi -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -luxtheme -lversion -lwinmm -static -lstdc++
 ifneq ($(X64), y)
+ifneq ($(ARM64), y)
 LIBS		+= -Wl,--large-address-aware
+endif
+endif
+ifeq ($(ARM64), y)
+LIBS		+= -lgcc
 endif
 ifeq ($(DINPUT), y)
  LIBS    += -ldinput8
@@ -823,7 +838,7 @@ LIBS    += -static
 ifeq ($(AUTODEP), y)
 %.o:		%.c
 		@echo $<
-		@$(CC) $(CFLAGS) $(DEPS) -c $<
+		$(CC) $(CFLAGS) $(DEPS) -c $<
 
 %.o:		%.cc
 		@echo $<
@@ -860,7 +875,9 @@ endif
 
 # Suppress false positive warnings in vid_voodoo_codegen_x86[-64].h
 # that cause ~3000 lines to be output into the logs each time.
-$(VOODOOOBJ): CFLAGS += -Wstringop-overflow=0
+ifneq ($(CLANG), y)
+ $(VOODOOOBJ): CFLAGS += -Wstringop-overflow=0
+endif
 
 all:		$(PROG).exe
 

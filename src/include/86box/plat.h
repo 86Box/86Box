@@ -30,6 +30,10 @@
 #ifdef _WIN32
 # define wcscasecmp	_wcsicmp
 # define strcasecmp	_stricmp
+#else
+/* Declare these functions to avoid warnings. They will redirect to strcasecmp and strncasecmp respectively. */
+extern int stricmp(const char* s1, const char* s2);
+extern int strnicmp(const char* s1, const char* s2, size_t n);
 #endif
 
 #if defined(UNIX) && defined(FREEBSD) || defined(__APPLE__)

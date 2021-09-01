@@ -391,10 +391,10 @@ exec386_dynarec_dyn(void)
     codeblock_t *block = codeblock_hash[hash];
 #endif
     int valid_block = 0;
+
 #ifdef USE_NEW_DYNAREC
     if (!cpu_state.abrt)
 #else
-
     if (block && !cpu_state.abrt)
 #endif
     {
@@ -535,6 +535,9 @@ exec386_dynarec_dyn(void)
 	cpu_block_end = 0;
 	x86_was_reset = 0;
 
+#if defined(__APPLE__) && defined(__aarch64__)
+	pthread_jit_write_protect_np(0);
+#endif
 	codegen_block_start_recompile(block);
 	codegen_in_recompile = 1;
 
@@ -585,20 +588,20 @@ exec386_dynarec_dyn(void)
 #endif
 			CPU_BLOCK_END();
 
+		if (cpu_state.flags & T_FLAG)
+			CPU_BLOCK_END();
+		if (smi_line)
+			CPU_BLOCK_END();
+		if (nmi && nmi_enable && nmi_mask)
+			CPU_BLOCK_END();
+		if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins)
+			CPU_BLOCK_END();
+
 		if (cpu_end_block_after_ins) {
 			cpu_end_block_after_ins--;
 			if (!cpu_end_block_after_ins)
 				CPU_BLOCK_END();
 		}
-
-		if (smi_line)
-			CPU_BLOCK_END();
-		else if (cpu_state.flags & T_FLAG)
-			CPU_BLOCK_END();
-		else if (nmi && nmi_enable && nmi_mask)
-			CPU_BLOCK_END();
-		else if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins)
-			CPU_BLOCK_END();
 
 		if (cpu_state.abrt) {
 			if (!(cpu_state.abrt & ABRT_EXPECTED))
@@ -616,6 +619,9 @@ exec386_dynarec_dyn(void)
 		codegen_reset();
 
 	codegen_in_recompile = 0;
+#if defined(__APPLE__) && defined(__aarch64__)
+	pthread_jit_write_protect_np(1);
+#endif
     } else if (!cpu_state.abrt) {
 	/* Mark block but do not recompile */
 #ifdef USE_NEW_DYNAREC
@@ -642,8 +648,8 @@ exec386_dynarec_dyn(void)
 		cpu_state.ssegs = 0;
 
 		codegen_endpc = (cs + cpu_state.pc) + 8;
-
 		fetchdat = fastreadl(cs + cpu_state.pc);
+
 #ifdef ENABLE_386_DYNAREC_LOG
 		if (in_smm)
 			x386_dynarec_log("[%04X:%08X] fetchdat = %08X\n", CS, cpu_state.pc, fetchdat);
@@ -677,13 +683,13 @@ exec386_dynarec_dyn(void)
 #endif
 			CPU_BLOCK_END();
 
+		if (cpu_state.flags & T_FLAG)
+			CPU_BLOCK_END();
 		if (smi_line)
 			CPU_BLOCK_END();
-		else if (cpu_state.flags & T_FLAG)
+		if (nmi && nmi_enable && nmi_mask)
 			CPU_BLOCK_END();
-		else if (nmi && nmi_enable && nmi_mask)
-			CPU_BLOCK_END();
-		else if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins)
+		if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins)
 			CPU_BLOCK_END();
 
 		if (cpu_end_block_after_ins) {

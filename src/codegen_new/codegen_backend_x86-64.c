@@ -1,5 +1,6 @@
 #if defined __amd64__ || defined _M_X64
 
+#include <stdlib.h>
 #include <stdint.h>
 #include <86box/86box.h>
 #include "cpu.h"
@@ -21,8 +22,7 @@
 #if defined WIN32 || defined _WIN32 || defined _WIN32
 #include <windows.h>
 #endif
-
-#include <xmmintrin.h>
+#include <string.h>
 
 void *codegen_mem_load_byte;
 void *codegen_mem_load_word;
@@ -326,7 +326,6 @@ void codegen_backend_init()
         host_x86_XOR32_REG_REG(block, REG_EDI, REG_EDI);
         host_x86_XOR32_REG_REG(block, REG_ESI, REG_ESI);
 #endif
-	/* host_x86_CALL(block, (uintptr_t)x86gpf); */
 	host_x86_CALL(block, (void *)x86gpf);
         codegen_exit_rout = &codeblock[block_current].data[block_pos];
         host_x86_ADD64_REG_IMM(block, REG_RSP, 0x38);
@@ -342,7 +341,11 @@ void codegen_backend_init()
 
         block_write_data = NULL;
 
-        cpu_state.trunc_fp_control = _mm_getcsr() | 0x6000;
+        asm(
+                "stmxcsr %0\n"
+                : "=m" (cpu_state.old_fp_control)
+        );
+        cpu_state.trunc_fp_control = cpu_state.old_fp_control | 0x6000;
 }
 
 void codegen_set_rounding_mode(int mode)

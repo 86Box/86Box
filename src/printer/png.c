@@ -61,10 +61,15 @@
 
 #ifdef _WIN32
 # define PATH_PNG_DLL		"libpng16-16.dll"
+#elif defined __APPLE__
+# define PATH_PNG_DLL		"libpng16.dylib"
 #else
 # define PATH_PNG_DLL		"libpng16.so"
 #endif
 
+#ifndef PNG_Z_DEFAULT_STRATEGY
+#define PNG_Z_DEFAULT_STRATEGY 1
+#endif
 
 # define PNGFUNC(x)		png_ ## x
 

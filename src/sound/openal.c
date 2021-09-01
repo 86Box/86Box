@@ -26,9 +26,9 @@
 # undef ALC_API
 # define AL_LIBTYPE_STATIC
 # define ALC_LIBTYPE_STATIC
-# include <AL/al.h>
-# include <AL/alc.h>
-# include <AL/alext.h>
+# include "AL/al.h"
+# include "AL/alc.h"
+# include "AL/alext.h"
 #include <86box/86box.h>
 #include <86box/sound.h>
 #include <86box/midi.h>

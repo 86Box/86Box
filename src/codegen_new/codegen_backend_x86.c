@@ -23,6 +23,7 @@
 #if defined WIN32 || defined _WIN32 || defined _WIN32
 #include <windows.h>
 #endif
+#include <string.h>
 
 void *codegen_mem_load_byte;
 void *codegen_mem_load_word;
@@ -304,20 +305,12 @@ void codegen_backend_init()
         block_write_data = NULL;
 
         cpu_state.old_fp_control = 0;
-#ifndef _MSC_VER
         asm(
                 "fstcw %0\n"
                 "stmxcsr %1\n"
                 : "=m" (cpu_state.old_fp_control2),
                   "=m" (cpu_state.old_fp_control)
         );
-#else
-        __asm
-        {
-                fstcw cpu_state.old_fp_control2
-                stmxcsr cpu_state.old_fp_control
-        }
-#endif
         cpu_state.trunc_fp_control = cpu_state.old_fp_control | 0x6000;
 }
 

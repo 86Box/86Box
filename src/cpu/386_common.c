@@ -65,9 +65,8 @@ uint32_t old_rammask = 0xffffffff;
 
 int soft_reset_mask = 0;
 
-int in_smm = 0, smi_line = 0, smi_latched = 0, smm_in_hlt = 0;
-int smi_block = 0;
-uint32_t smbase = 0x30000;
+int smi_latched = 0;
+int smm_in_hlt = 0, smi_block = 0;
 
 uint32_t addr64, addr64_2;
 uint32_t addr64a[8], addr64a_2[8];
@@ -1845,7 +1844,6 @@ sysret(uint32_t fetchdat)
 /* This is for compatibility with new x87 code. */
 void codegen_set_rounding_mode(int mode)
 {
-	/* cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (cpu_state.npxc & 0xc00); */
-	cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (mode << 10);
+	/* cpu_state.new_npxc = (cpu_state.old_npxc & ~0xc00) | (mode << 10); */
 }
 #endif

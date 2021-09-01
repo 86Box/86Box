@@ -519,6 +519,7 @@ BEGIN
 
     CONTROL         "Innovation SSI-2001",IDC_CHECK_SSI,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,84,95,10
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_SSI,214,82,46,12
 
     CONTROL         "CMS / Game Blaster",IDC_CHECK_CMS,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,7,102,95,10
@@ -1295,7 +1296,7 @@ BEGIN
             VALUE "FileDescription", EMU_NAME "\0"
             VALUE "FileVersion", EMU_VERSION "\0"
             VALUE "InternalName", EMU_NAME "\0"
-            VALUE "LegalCopyright", "Copyright © 2007-2020 " EMU_NAME " contributors\0"
+            VALUE "LegalCopyright", "Copyright \xc2\xa9 2007-2020 " EMU_NAME " contributors\0"
             VALUE "OriginalFilename", "86box.exe\0"
             VALUE "ProductName", EMU_NAME "\0"
             VALUE "ProductVersion", EMU_VERSION "\0"

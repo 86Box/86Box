@@ -22,6 +22,7 @@
 #if defined WIN32 || defined _WIN32 || defined _WIN32
 #include <windows.h>
 #endif
+#include <string.h>
 
 void *codegen_mem_load_byte;
 void *codegen_mem_load_word;
@@ -332,13 +333,9 @@ void codegen_backend_init()
 
 	codegen_allocator_clean_blocks(block->head_mem_block);
 
-#if !defined _MSC_VER || defined __clang__
 	asm("mrs %0, fpcr\n"
                 : "=r" (cpu_state.old_fp_control)
 	);
-#else
-	cpu_state.old_fp_control = _controlfp();
-#endif
 }
 
 void codegen_set_rounding_mode(int mode)

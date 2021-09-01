@@ -1,6 +1,7 @@
 #if defined(__linux__) || defined(__APPLE__)
 #include <sys/mman.h>
 #include <unistd.h>
+#include <stdlib.h>
 #endif
 #if defined WIN32 || defined _WIN32 || defined _WIN32
 #include <windows.h>
@@ -35,6 +36,10 @@ void codegen_allocator_init()
 
 #if defined WIN32 || defined _WIN32 || defined _WIN32
         mem_block_alloc = VirtualAlloc(NULL, MEM_BLOCK_NR * MEM_BLOCK_SIZE, MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+        /* TODO: check deployment target: older Intel-based versions of macOS don't play
+           nice with MAP_JIT. */
+#elif defined(__APPLE__) && defined(MAP_JIT)
+        mem_block_alloc = mmap(0, MEM_BLOCK_NR * MEM_BLOCK_SIZE, PROT_READ|PROT_WRITE|PROT_EXEC, MAP_ANON|MAP_PRIVATE|MAP_JIT, 0, 0);
 #else
         mem_block_alloc = mmap(0, MEM_BLOCK_NR * MEM_BLOCK_SIZE, PROT_READ|PROT_WRITE|PROT_EXEC, MAP_ANON|MAP_PRIVATE, 0, 0);
 #endif

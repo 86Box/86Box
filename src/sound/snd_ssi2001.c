@@ -65,7 +65,8 @@ void *ssi2001_init(const device_t *info)
 
         ssi2001->psid = sid_init();
         sid_reset(ssi2001->psid);
-        io_sethandler(0x0280, 0x0020, ssi2001_read, NULL, NULL, ssi2001_write, NULL, NULL, ssi2001);
+        uint16_t addr = device_get_config_hex16("base");
+        io_sethandler(addr, 0x0020, ssi2001_read, NULL, NULL, ssi2001_write, NULL, NULL, ssi2001);
         sound_add_handler(ssi2001_get_buffer, ssi2001);
         return ssi2001;
 }
@@ -79,11 +80,38 @@ void ssi2001_close(void *p)
         free(ssi2001);
 }
 
+static const device_config_t ssi2001_config[] =
+{
+        {
+                "base", "Address", CONFIG_HEX16, "", 0x280, "", { 0 },
+                {
+                        {
+                                "0x280", 0x280
+                        },
+                        {
+                                "0x2A0", 0x2A0
+                        },
+                        {
+                                "0x2C0", 0x2C0
+                        },
+                        {
+                                "0x2E0", 0x2E0
+                        },
+                        {
+                                ""
+                        }
+                }
+        },
+        {
+                "", "", -1
+        }
+};
+
 const device_t ssi2001_device =
 {
         "Innovation SSI-2001",
         0, 0,
         ssi2001_init, ssi2001_close, NULL,
 	{ NULL }, NULL, NULL,
-        NULL
+        ssi2001_config
 };

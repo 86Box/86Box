@@ -110,6 +110,7 @@ uint64_t	unique_id = 0;
 uint64_t	source_hwnd = 0;
 #endif
 char	log_path[1024] = { '\0'};		/* (O) full path of logfile */
+char	vm_name[1024]  = { '\0'};		/* (O) display name of the VM */
 
 /* Configuration values. */
 int	window_w;   /* (C) window size and */
@@ -417,6 +418,7 @@ usage:
 			printf("-F or --fullscreen   - start in fullscreen mode\n");
 			printf("-L or --logfile path - set 'path' to be the logfile\n");
 			printf("-P or --vmpath path  - set 'path' to be root for vm\n");
+			printf("-V or --vmname name  - overrides the name of the running VM.\n");
 			printf("-S or --settings     - show only the settings dialog\n");
 			printf("-N or --noconfirm    - do not ask for confirmation on quit\n");
 #ifdef _WIN32
@@ -446,6 +448,11 @@ usage:
 			if ((c+1) == argc) goto usage;
 
 			strcpy(path, argv[++c]);
+		} else if (!strcasecmp(argv[c], "--vmname") ||
+			   !strcasecmp(argv[c], "-V")) {
+			if ((c+1) == argc) goto usage;
+
+			strcpy(vm_name, argv[++c]);
 		} else if (!strcasecmp(argv[c], "--settings") ||
 			   !strcasecmp(argv[c], "-S")) {
 			settings_only = 1;
@@ -552,6 +559,20 @@ usage:
 	plat_append_filename(cfg_path, usr_path, p);
 
 	/*
+     * Get the current directory's name
+	 *
+	 * At this point usr_path is perfectly initialized.
+	 * If no --vmname parameter specified we'll use the
+	 *   working directory name as the VM's name.
+	 */
+    if (strlen(vm_name) == 0)
+	{
+		char ltemp[1024] = { '\0'};
+		plat_get_dirname(ltemp, usr_path);
+		strcpy(vm_name, plat_get_filename(ltemp));
+	}
+
+	/*
 	 * This is where we start outputting to the log file,
 	 * if there is one. Create a little info header first.
 	 */
@@ -560,10 +581,15 @@ usage:
 	strftime(temp, sizeof(temp), "%Y/%m/%d %H:%M:%S", info);
 	pclog("#\n# %ls v%ls logfile, created %s\n#\n",
 		EMU_NAME_W, EMU_VERSION_W, temp);
+#ifdef _WIN32
 	pclog("# Emulator path: %ls\n", exe_path);
 	pclog("# Userfiles path: %ls\n", usr_path);
 	pclog("# Configuration file: %ls\n#\n\n", cfg_path);
-
+#else
+	pclog("# Emulator path: %s\n", exe_path);
+	pclog("# Userfiles path: %s\n", usr_path);
+	pclog("# Configuration file: %s\n#\n\n", cfg_path);
+#endif
 	/*
 	 * We are about to read the configuration file, which MAY
 	 * put data into global variables (the hard- and floppy

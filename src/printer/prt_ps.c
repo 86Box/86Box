@@ -43,8 +43,13 @@
 #define GS_ARG_ENCODING_UTF8	1
 #define gs_error_Quit		-101 
 
+#ifdef _WIN32
 #define PATH_GHOSTSCRIPT_DLL		"gsdll32.dll"
-#define PATH_GHOSTSCRIPT_SO		"libgs.so"
+#elif defined __APPLE__
+#define PATH_GHOSTSCRIPT_DLL		"libgs.dylib"
+#else
+#define PATH_GHOSTSCRIPT_DLL		"libgs.so"
+#endif
 
 #define POSTSCRIPT_BUFFER_LENGTH	65536
 
