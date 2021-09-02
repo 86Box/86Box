@@ -838,7 +838,7 @@ LIBS    += -static
 ifeq ($(AUTODEP), y)
 %.o:		%.c
 		@echo $<
-		$(CC) $(CFLAGS) $(DEPS) -c $<
+		@$(CC) $(CFLAGS) $(DEPS) -c $<
 
 %.o:		%.cc
 		@echo $<

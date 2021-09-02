@@ -79,6 +79,7 @@ extern int	confirm_exit_cmdl;		/* (O) do not ask for confirmation on quit if set
 extern uint64_t	unique_id;
 extern uint64_t	source_hwnd;
 #endif
+extern char	rom_path[1024];			/* (O) full path to ROMs */
 extern char	log_path[1024];			/* (O) full path of logfile */
 extern char	vm_name[1024];			/* (O) display name of the VM */
 
