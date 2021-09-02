@@ -15,7 +15,7 @@
  *		Copyright 2020 RichardG.
  */
 #include <tinyglib.h>
-
+#include <string.h>
 
 /* Must be a function, as libslirp redefines it as a macro. */
 gboolean
@@ -93,4 +93,41 @@ g_strv_length(gchar **str_array)
     while (str_array[i] != NULL)
     	++i;
     return i;
+}
+
+/* Implementation borrowed from GLib itself. */
+gsize
+g_strlcpy (gchar       *dest,
+           const gchar *src,
+           gsize        dest_size)
+{
+  gchar *d = dest;
+  const gchar *s = src;
+  gsize n = dest_size;
+  
+  if (dest == NULL) return 0;
+  if (src  == NULL) return 0;
+  
+  /* Copy as many bytes as will fit */
+  if (n != 0 && --n != 0)
+    do
+      {
+        gchar c = *s++;
+
+        *d++ = c;
+        if (c == 0)
+          break;
+      }
+    while (--n != 0);
+  
+  /* If not enough room in dest, add NUL and traverse rest of src */
+  if (n == 0)
+    {
+      if (dest_size != 0)
+        *d = 0;
+      while (*s++)
+        ;
+    }
+  
+  return s - src - 1;  /* count does not include NUL */
 }

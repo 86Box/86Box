@@ -13,9 +13,11 @@
 #		Copyright 2020,2021 David Hrdlička.
 #
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.15)
 
 cmake_policy(SET CMP0091 NEW)
+cmake_policy(SET CMP0079 NEW)
+
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 project(86Box
@@ -37,7 +39,7 @@ include(CPack)
 include(CMakeDependentOption)
 
 add_compile_definitions(CMAKE)
-add_compile_definitions("$<$<CONFIG:DEBUG>:DEBUG>")
+add_compile_definitions("$<$<CONFIG:Debug>:DEBUG>")
 
 if(WIN32)
 	# Disables *_s function warnings

@@ -45,6 +45,13 @@
 # define ENABLE_LOG_COMMANDS	1
 #endif
 
+#ifdef MIN
+#undef MIN
+#endif
+#ifdef MAX
+#undef MAX
+#endif
+
 #define MIN(a, b)	((a) < (b) ? (a) : (b))
 #define MAX(a, b)	((a) > (b) ? (a) : (b))
 #define ABS(x)		((x) > 0 ? (x) : -(x))
@@ -72,7 +79,9 @@ extern int	confirm_exit_cmdl;		/* (O) do not ask for confirmation on quit if set
 extern uint64_t	unique_id;
 extern uint64_t	source_hwnd;
 #endif
+extern char	rom_path[1024];			/* (O) full path to ROMs */
 extern char	log_path[1024];			/* (O) full path of logfile */
+extern char	vm_name[1024];			/* (O) display name of the VM */
 
 
 extern int	window_w, window_h,		/* (C) window size and */

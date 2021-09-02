@@ -6,6 +6,7 @@ on:
     paths:
     - src/**
     - "**/CMakeLists.txt"
+    - "CMakePresets.json"
     - .github/workflows/cmake.yml
     - vcpkg.json
     - "!**/Makefile*"
@@ -14,6 +15,7 @@ on:
     paths:
     - src/**
     - "**/CMakeLists.txt"
+    - "CMakePresets.json"
     - .github/workflows/**
     - .github/workflows/cmake.yml
     - vcpkg.json
@@ -21,7 +23,7 @@ on:
 
 jobs:
   mingw:
-    name: MSYS2 ${{ matrix.build.name }} build (${{ matrix.target-arch.msystem }})
+    name: MSYS2 ${{ matrix.build.name }} build (${{ matrix.environment.msystem }})
 
     runs-on: windows-latest
 
@@ -33,15 +35,16 @@ jobs:
       fail-fast: false
       matrix:
         build:
+        - name: Regular
+          preset: regular
+          target: install/strip
         - name: Debug
-          dev-build: off
-          new-dynarec: off
-          type: Debug
+          preset: debug
+          target: install
         - name: Dev
-          dev-build: on
-          new-dynarec: on
-          type: Debug
-        target-arch:
+          preset: experimental
+          target: install
+        environment:
           - msystem: MINGW32
             prefix: mingw-w64-i686
           - msystem: MINGW64
@@ -56,30 +59,28 @@ jobs:
       with:
         path-type: inherit
         update: true
-        msystem: ${{ matrix.target-arch.msystem }}
+        msystem: ${{ matrix.environment.msystem }}
         install: >-
-          ${{ matrix.target-arch.prefix }}-toolchain
-          ${{ matrix.target-arch.prefix }}-openal
-          ${{ matrix.target-arch.prefix }}-freetype
-          ${{ matrix.target-arch.prefix }}-SDL2
-          ${{ matrix.target-arch.prefix }}-zlib
-          ${{ matrix.target-arch.prefix }}-libpng
-          ${{ matrix.target-arch.prefix }}-libvncserver
+          ${{ matrix.environment.prefix }}-ninja
+          ${{ matrix.environment.prefix }}-toolchain
+          ${{ matrix.environment.prefix }}-openal
+          ${{ matrix.environment.prefix }}-freetype
+          ${{ matrix.environment.prefix }}-SDL2
+          ${{ matrix.environment.prefix }}-zlib
+          ${{ matrix.environment.prefix }}-libpng
+          ${{ matrix.environment.prefix }}-libvncserver
     - uses: actions/checkout@v2
     - name: Configure CMake
       run: >-
         cmake -S . -B build
-        -G "MSYS Makefiles"
+        --preset ${{ matrix.build.preset }}
         -D CMAKE_INSTALL_PREFIX=./build/artifacts
-        -D CMAKE_BUILD_TYPE=${{ env.build.type }}
-        -D DEV_BRANCH=${{ matrix.build.dev-build }}
-        -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
         -D VNC=OFF
     - name: Build
-      run: cmake --build build --target install
+      run: cmake --build build --target ${{ matrix.build.target }}
     - uses: actions/upload-artifact@v2
       with:
-        name: '86Box-MSYS2-${{ matrix.target-arch.msystem }}-${{ matrix.build.name }}-${{ github.sha }}'
+        name: '86Box-${{ matrix.build.name }}-MSYS2-${{ matrix.environment.msystem }}-${{ github.sha }}'
         path: build/artifacts/bin/**
 
   vs2019:
@@ -125,5 +126,5 @@ jobs:
       run: cmake --build build --config ${{ matrix.build.type }} --target install
     - uses: actions/upload-artifact@v2
       with:
-        name: '86Box-VS2019-${{ matrix.build.name }}-${{ matrix.target-arch }}-${{ matrix.toolset }}-${{ github.sha }}'
+        name: '86Box-${{ matrix.build.name }}-VS2019-${{ matrix.target-arch }}-${{ matrix.toolset }}-${{ github.sha }}'
         path: build/artifacts/bin/**

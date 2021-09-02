@@ -968,6 +968,9 @@ check_interrupts(void)
 	if (nmi && nmi_enable && nmi_mask) {
 		nmi_enable = 0;
 		interrupt(2);
+#ifndef OLD_NMI_BEHAVIOR
+		nmi = 0;
+#endif
 		return;
 	}
 	if ((cpu_state.flags & I_FLAG) && pic.int_pending && !noint) {
