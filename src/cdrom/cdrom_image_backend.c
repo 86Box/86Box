@@ -272,6 +272,18 @@ cdi_get_audio_tracks_lba(cd_img_t *cdi, int *st_track, int *end, uint32_t *lead_
 }
 
 
+int
+cdi_get_audio_track_pre(cd_img_t *cdi, int track)
+{
+    track_t *trk = &cdi->tracks[track - 1];
+
+    if ((track < 1) || (track > cdi->tracks_num))
+	return 0;
+
+    return trk->pre;
+}
+
+
 /* This replaces both Info and EndInfo, they are specified by a variable. */
 int
 cdi_get_audio_track_info(cd_img_t *cdi, int end, int track, int *track_num, TMSF *start, uint8_t *attr)
@@ -710,6 +722,25 @@ cdi_cue_get_frame(uint64_t *frames, char **line)
 
 
 static int
+cdi_cue_get_flags(track_t *cur, char **line)
+{
+    char temp[128], temp2[128];
+    int success;
+
+    success = cdi_cue_get_buffer(temp, line, 0);
+    if (! success) return 0;
+
+    memset(temp2, 0x00, sizeof(temp2));
+    success = sscanf(temp, "%s", temp2) == 1;
+    if (! success) return 0;
+
+    cur->pre = (strstr(temp2, "PRE") != NULL);
+
+    return 1;
+}
+
+
+static int
 cdi_add_track(cd_img_t *cdi, track_t *cur, uint64_t *shift, uint64_t prestart, uint64_t *total_pregap, uint64_t cur_pregap)
 {
     /* Frames between index 0 (prestart) and 1 (current track start) must be skipped. */
@@ -850,6 +881,8 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
 		trk.form = 0;
 		trk.mode2 = 0;
 
+		trk.pre = 0;
+
 		if (!strcmp(type, "AUDIO")) {
 			trk.sector_size = RAW_SECTOR_SIZE;
 			trk.attr = AUDIO_TRACK;
@@ -964,7 +997,9 @@ cdi_load_cue(cd_img_t *cdi, const char *cuefile)
 		}
 	} else if (!strcmp(command, "PREGAP"))
 		success = cdi_cue_get_frame(&cur_pregap, &line);
-	else if (!strcmp(command, "CATALOG") || !strcmp(command, "CDTEXTFILE") || !strcmp(command, "FLAGS") || !strcmp(command, "ISRC") ||
+	else if (!strcmp(command, "FLAGS"))
+		success = cdi_cue_get_flags(&trk, &line);
+	else if (!strcmp(command, "CATALOG") || !strcmp(command, "CDTEXTFILE") || !strcmp(command, "ISRC") ||
 		 !strcmp(command, "PERFORMER") || !strcmp(command, "POSTGAP") || !strcmp(command, "REM") ||
 		 !strcmp(command, "SONGWRITER") || !strcmp(command, "TITLE") || !strcmp(command, "")) {
 		/* Ignored commands. */
