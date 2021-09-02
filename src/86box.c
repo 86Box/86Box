@@ -562,7 +562,8 @@ usage:
 	if (vmrp && (path2[0] == '\0')) {
 		strcpy(path2, usr_path);
 		plat_path_slash(path2);
-		strcat(path2, "roms/");
+		strcat(path2, "roms");
+		plat_path_slash(path2);
 	}
 
 	/*
