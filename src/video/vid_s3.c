@@ -522,7 +522,7 @@ s3_enable_fifo(s3_t *s3)
 	return 1;	/* FIFO always enabled on these chips. */
 
     //return !!((svga->crtc[0x40] & 0x08) || (s3->accel.advfunc_cntl & 0x40));
-	return 0; /*Disable FIFO on pre-964 cards due to glitches going around*/
+    return 0; /*Disable FIFO on pre-964 cards due to glitches going around*/
 }
 
 static void
@@ -2723,8 +2723,8 @@ static void s3_recalctimings(svga_t *svga)
 			svga->render = svga_render_15bpp_highres;
 			if (s3->chip <= S3_86C924)
 				svga->rowoffset >>= 1;
-			if ((s3->chip != S3_VISION964) && (s3->card_type != S3_SPEA_MIRAGE_86C801 || 
-				(s3->card_type != S3_SPEA_MIRAGE_86C805))) {
+			if ((s3->chip != S3_VISION964) && (s3->card_type != S3_SPEA_MIRAGE_86C801) && 
+				(s3->card_type != S3_SPEA_MIRAGE_86C805)) {
 				if (s3->chip == S3_86C928)
 					svga->hdisp *= 2;
 				else if (s3->chip != S3_VISION968)
@@ -2740,13 +2740,13 @@ static void s3_recalctimings(svga_t *svga)
 			svga->render = svga_render_16bpp_highres;
 			if (s3->chip <= S3_86C924)
 				svga->rowoffset >>= 1;
-			if ((s3->chip != S3_VISION964) && (s3->card_type != S3_SPEA_MIRAGE_86C801 || 
-				(s3->card_type != S3_SPEA_MIRAGE_86C805))) {
+			if ((s3->chip != S3_VISION964) && (s3->card_type != S3_SPEA_MIRAGE_86C801) && 
+				(s3->card_type != S3_SPEA_MIRAGE_86C805)) {
 				if (s3->chip == S3_86C928)
 					svga->hdisp *= 2;
 				else if (s3->chip != S3_VISION968)
 					svga->hdisp /= 2;
-			} else if (s3->card_type == S3_SPEA_MIRAGE_86C801 || s3->card_type == S3_SPEA_MIRAGE_86C805) {
+			} else if ((s3->card_type == S3_SPEA_MIRAGE_86C801) || (s3->card_type == S3_SPEA_MIRAGE_86C805)) {
 					svga->hdisp /= 2;
 			}
 			if ((s3->chip != S3_VISION868) && (s3->chip != S3_TRIO32) &&
