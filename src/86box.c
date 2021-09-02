@@ -385,8 +385,8 @@ pc_init(int argc, char *argv[])
 	char temp[128];
 	struct tm *info;
 	time_t now;
-	int c, ng;
-	int lvmp;
+	int c;
+	int ng = 0, lvmp = 0;
 	uint32_t *uid, *shwnd;
 
 	/* Grab the executable's full path. */
