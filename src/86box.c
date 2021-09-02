@@ -620,7 +620,8 @@ usage:
 
 	/* Make sure we have a trailing backslash. */
 	plat_path_slash(usr_path);
-	plat_path_slash(rom_path);
+	if (rom_path[0] != '\0')
+		plat_path_slash(rom_path);
 
 	/* At this point, we can safely create the full path name. */
 	plat_append_filename(cfg_path, usr_path, p);
@@ -653,7 +654,7 @@ usage:
 	if (rom_path[0] != '\0')
 		pclog("# ROM path: %s\n", rom_path);
 	else
-		pclog("# ROM path: %sroms\\\n", usr_path);
+		pclog("# ROM path: %sroms\\\n", exe_path);
 	pclog("# Configuration file: %s\n#\n\n", cfg_path);
 	/*
 	 * We are about to read the configuration file, which MAY
