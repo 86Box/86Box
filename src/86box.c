@@ -385,7 +385,7 @@ pc_init(int argc, char *argv[])
 	char temp[128];
 	struct tm *info;
 	time_t now;
-	int c;
+	int c, vmrp = 0;
 	int ng = 0, lvmp = 0;
 	uint32_t *uid, *shwnd;
 
@@ -429,6 +429,7 @@ usage:
 			printf("-H or --hwnd id,hwnd - sends back the main dialog's hwnd\n");
 #endif
 			printf("-L or --logfile path - set 'path' to be the logfile\n");
+			printf("-M or --vmrompath    - ROM path is roms subdirectory inside the userfiles path\n");
 			printf("-N or --noconfirm    - do not ask for confirmation on quit\n");
 			printf("-O or --dumpcfg      - dump config file after loading\n");
 			printf("-P or --vmpath path  - set 'path' to be root for vm\n");
@@ -438,6 +439,9 @@ usage:
 			printf("-Z or --lastvmpath   - the last parameter is VM path rather than config\n");
 			printf("\nA config file can be specified. If none is, the default file will be used.\n");
 			return(0);
+		} else if (!strcasecmp(argv[c], "--vmrompath") ||
+			   !strcasecmp(argv[c], "-M")) {
+			vmrp = 1;
 		} else if (!strcasecmp(argv[c], "--lastvmpath") ||
 			   !strcasecmp(argv[c], "-Z")) {
 			lvmp = 1;
@@ -553,6 +557,12 @@ usage:
 		   create it. */
 		if (! plat_dir_check(usr_path))
 			plat_dir_create(usr_path);
+	}
+
+	if (vmrp && (path2[0] == '\0')) {
+		strcpy(path2, usr_path);
+		plat_path_slash(path2);
+		strcat(path2, "roms/");
 	}
 
 	/*
