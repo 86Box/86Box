@@ -638,14 +638,13 @@ usage:
 	plat_append_filename(cfg_path, usr_path, p);
 
 	/*
-     * Get the current directory's name
+	 * Get the current directory's name
 	 *
 	 * At this point usr_path is perfectly initialized.
 	 * If no --vmname parameter specified we'll use the
 	 *   working directory name as the VM's name.
 	 */
-    if (strlen(vm_name) == 0)
-	{
+	if (strlen(vm_name) == 0) {
 		char ltemp[1024] = { '\0'};
 		plat_get_dirname(ltemp, usr_path);
 		strcpy(vm_name, plat_get_filename(ltemp));
@@ -660,6 +659,7 @@ usage:
 	strftime(temp, sizeof(temp), "%Y/%m/%d %H:%M:%S", info);
 	pclog("#\n# %ls v%ls logfile, created %s\n#\n",
 		EMU_NAME_W, EMU_VERSION_W, temp);
+	pclog("# VM: %s\n#\n", vm_name);
 	pclog("# Emulator path: %s\n", exe_path);
 	pclog("# Userfiles path: %s\n", usr_path);
 	if (rom_path[0] != '\0')
