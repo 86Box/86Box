@@ -385,8 +385,8 @@ pc_init(int argc, char *argv[])
 	char temp[128];
 	struct tm *info;
 	time_t now;
-	int c, ng;
-	int lvmp;
+	int c;
+	int ng = 0, lvmp = 0;
 	uint32_t *uid, *shwnd;
 
 	/* Grab the executable's full path. */
@@ -620,6 +620,7 @@ usage:
 
 	/* Make sure we have a trailing backslash. */
 	plat_path_slash(usr_path);
+	plat_path_slash(rom_path);
 
 	/* At this point, we can safely create the full path name. */
 	plat_append_filename(cfg_path, usr_path, p);
@@ -647,15 +648,13 @@ usage:
 	strftime(temp, sizeof(temp), "%Y/%m/%d %H:%M:%S", info);
 	pclog("#\n# %ls v%ls logfile, created %s\n#\n",
 		EMU_NAME_W, EMU_VERSION_W, temp);
-#ifdef _WIN32
-	pclog("# Emulator path: %ls\n", exe_path);
-	pclog("# Userfiles path: %ls\n", usr_path);
-	pclog("# Configuration file: %ls\n#\n\n", cfg_path);
-#else
 	pclog("# Emulator path: %s\n", exe_path);
 	pclog("# Userfiles path: %s\n", usr_path);
+	if (rom_path[0] != '\0')
+		pclog("# ROM path: %s\n", rom_path);
+	else
+		pclog("# ROM path: %sroms\\\n", usr_path);
 	pclog("# Configuration file: %s\n#\n\n", cfg_path);
-#endif
 	/*
 	 * We are about to read the configuration file, which MAY
 	 * put data into global variables (the hard- and floppy
