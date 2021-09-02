@@ -1039,7 +1039,7 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 			break;
 		s3->accel.pix_trans[0] = val;
 		if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80 && !(s3->accel.cmd & 0x600) && (s3->accel.cmd & 0x100) &&
-			(s3->accel.cmd & 2)) {
+			((s3->accel.cmd & 2) || ((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40))) {
 			s3_accel_start(8, 1, s3->accel.pix_trans[0], 0, s3);
 		} else if (!(s3->accel.cmd & 0x600) && (s3->accel.cmd & 0x100))
 			s3_accel_start(1, 1, 0xffffffff, s3->accel.pix_trans[0], s3);
@@ -1049,7 +1049,7 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		if (s3_cpu_dest(s3))
 			break;
 		s3->accel.pix_trans[1] = val;
-		if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80 && (s3->accel.cmd & 2)) {
+		if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80 && ((s3->accel.cmd & 2) || ((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40))) {
 			if (s3->accel.cmd & 0x100) {
 				switch (s3->accel.cmd & 0x600) {
 					case 0x000:
@@ -1106,7 +1106,7 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		if (s3_cpu_dest(s3))
 			break;
 		s3->accel.pix_trans[3] = val;
-		if ((s3->accel.multifunc[0xa]& 0xc0) == 0x80 && (s3->accel.cmd & 2)) {
+		if ((s3->accel.multifunc[0xa]& 0xc0) == 0x80 && ((s3->accel.cmd & 2) || ((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40))) {
 			if (s3->accel.cmd & 0x100) {
 				switch (s3->accel.cmd & 0x600) {
 					case 0x000:
@@ -1285,7 +1285,7 @@ s3_accel_write_fifo(s3_t *s3, uint32_t addr, uint8_t val)
     if (svga->crtc[0x53] & 0x08) {
 	if ((addr & 0x1ffff) < 0x8000) {
 		if (s3->accel.cmd & 0x100) {
-			if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80 && (s3->accel.cmd & 2))
+			if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80 && ((s3->accel.cmd & 2) || ((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40)))
 				s3_accel_start(8, 1, val | (val << 8) | (val << 16) | (val << 24), 0, s3);
 			else
 				s3_accel_start(1, 1, 0xffffffff, val | (val << 8) | (val << 16) | (val << 24), s3);
@@ -3933,7 +3933,7 @@ s3_accel_read_l(uint32_t addr, void *p)
 	    temp |= s3->accel.pix_trans[2] << 16;
 	    temp |= s3->accel.pix_trans[3] << 24;
 
-		if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80 && (s3->accel.cmd & 2)) {	
+		if ((s3->accel.multifunc[0xa] & 0xc0) == 0x80 && ((s3->accel.cmd & 2) || ((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40))) {	
 			if ((s3->accel.cmd & 0x200) == 0x000) {
 			    s3_accel_start(8, 1, 0xffffffff, 0, s3);
 				s3_accel_start(8, 1, 0xffffffff, 0, s3);
