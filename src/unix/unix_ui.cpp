@@ -2,6 +2,17 @@
 #include "imgui_impl_sdl.h"
 #include "imgui_sdl.h"
 #include <SDL.h>
+#include <86box/86box.h>
+#include <86box/keyboard.h>
+#include <86box/mouse.h>
+#include <86box/config.h>
+#include <86box/plat.h>
+#include <86box/plat_dynld.h>
+#include <86box/device.h>
+#include <86box/gameport.h>
+#include <86box/unix_sdl.h>
+#include <86box/timer.h>
+#include <86box/ui.h>
 extern "C" SDL_Window* sdl_win;
 extern "C" SDL_Renderer	*sdl_render;
 extern "C" float menubarheight;
@@ -45,7 +56,31 @@ extern "C" void RenderImGui()
         }
         if (ImGui::BeginMenu("Action"))
         {
-            if (ImGui::MenuItem("Quit", "Alt+F4"))
+            if (ImGui::MenuItem("Keyboard requires capture", NULL, (bool)kbd_req_capture))
+                kbd_req_capture ^= 1;
+            if (ImGui::MenuItem("Right CTRL is left ALT", NULL, (bool)rctrl_is_lalt))
+                rctrl_is_lalt ^= 1;
+            ImGui::Separator();
+            if (ImGui::MenuItem("Hard Reset", NULL))
+            {
+                pc_reset_hard();
+            }
+            if (ImGui::MenuItem("Ctrl+Alt+Del", "Ctrl+F12"))
+            {
+                pc_send_cad();
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Ctrl+Alt+Esc", NULL))
+            {
+                pc_send_cae();
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Pause", NULL, (bool)dopause))
+            {
+                plat_pause(dopause ^ 1);
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Exit", "Alt+F4"))
             {
                 SDL_Event event;
                 event.type = SDL_QUIT;

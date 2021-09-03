@@ -1157,6 +1157,10 @@ int main(int argc, char** argv)
             sdl_set_fs(video_fullscreen);
             fullscreen_pending = 0;
         }
+        if ((keyboard_recv(0x1D) || keyboard_recv(0x11D)) && keyboard_recv(0x58))
+        {
+            pc_send_cad();
+        }
         if (exit_event)
         {
             do_stop();
