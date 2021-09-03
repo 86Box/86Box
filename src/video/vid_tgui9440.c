@@ -2870,7 +2870,7 @@ static void *tgui_init(const device_t *info)
 			tgui->card = pci_add_card(PCI_ADD_VIDEO | PCI_ADD_STRICT, tgui_pci_read, tgui_pci_write, tgui);
 	}
 
-	tgui->pci_regs[PCI_REG_COMMAND] = 3;
+		tgui->pci_regs[PCI_REG_COMMAND] = 7;
 
 	if (tgui->has_bios) {
 		tgui->pci_regs[0x30] = 0x00;
@@ -2878,8 +2878,8 @@ static void *tgui_init(const device_t *info)
 		tgui->pci_regs[0x33] = 0x00;
 	}
 
-	if (tgui->type >= TGUI_9440)
-		svga->packed_chain4 = 1;
+		if (tgui->type >= TGUI_9440)
+			svga->packed_chain4 = 1;
 
 	if (tgui->type >= TGUI_9660) {
 		tgui->i2c = i2c_gpio_init("ddc_tgui");
