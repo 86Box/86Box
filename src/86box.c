@@ -26,6 +26,9 @@
 #include <string.h>
 #include <time.h>
 #include <wchar.h>
+#if defined(__APPLE__) && defined(__aarch64__)
+#include <pthread.h>
+#endif
 
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -780,7 +783,13 @@ pc_init_modules(void)
 	mem_init();
 
 #ifdef USE_DYNAREC
+#if defined(__APPLE__) && defined(__aarch64__)
+	pthread_jit_write_protect_np(0);
+#endif
 	codegen_init();
+#if defined(__APPLE__) && defined(__aarch64__)
+	pthread_jit_write_protect_np(1);
+#endif
 #endif
 
 	keyboard_init();
