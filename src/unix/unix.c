@@ -31,6 +31,10 @@
 #include <86box/nvr.h>
 #include <86box/ui.h>
 
+extern bool     ImGui_ImplSDL2_Init(SDL_Window* window);
+extern void     ImGui_ImplSDL2_Shutdown();
+extern void     ImGui_ImplSDL2_NewFrame();
+extern bool     ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event);
 static int	first_use = 1;
 static uint64_t	StartingTime;
 static uint64_t Frequency;
@@ -49,6 +53,7 @@ SDL_mutex *blitmtx;
 SDL_threadID eventthread;
 static int exit_event = 0;
 static int fullscreen_pending = 0;
+extern float menubarheight;
 
 static const uint16_t sdl_to_xt[0x200] =
 {
@@ -965,6 +970,11 @@ void monitor_thread(void* param)
 #endif
 }
 
+extern void InitImGui();
+extern bool ImGuiWantsMouseCapture();
+extern bool ImGuiWantsKeyboardCapture();
+
+extern SDL_Window* sdl_win;
 int main(int argc, char** argv)
 {
     SDL_Event event;
@@ -1018,10 +1028,12 @@ int main(int argc, char** argv)
     thread_create(monitor_thread, NULL);
 #endif
     SDL_AddTimer(1000, timer_onesec, NULL);
+    InitImGui();
     while (!is_quit)
     {
         while (SDL_PollEvent(&event))
 	    {
+            ImGui_ImplSDL2_ProcessEvent(&event);
             switch(event.type)
             {
                 case SDL_QUIT:
@@ -1029,6 +1041,7 @@ int main(int argc, char** argv)
                     break;
                 case SDL_MOUSEWHEEL:
                 {
+                    if (ImGuiWantsMouseCapture()) break;
                     if (mouse_capture || video_fullscreen)
                     {
                         if (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED)
@@ -1044,6 +1057,7 @@ int main(int argc, char** argv)
                 }
                 case SDL_MOUSEMOTION:
                 {
+                    if (ImGuiWantsMouseCapture()) break;
                     if (mouse_capture || video_fullscreen)
                     {
                         SDL_LockMutex(mousemutex);
@@ -1056,10 +1070,12 @@ int main(int argc, char** argv)
                 case SDL_MOUSEBUTTONDOWN:
                 case SDL_MOUSEBUTTONUP:
                 {
+                    if (ImGuiWantsMouseCapture()) break;
                     if ((event.button.button == SDL_BUTTON_LEFT)
                     && !(mouse_capture || video_fullscreen)
                     && event.button.state == SDL_RELEASED
-                    && event.button.x <= real_sdl_w && event.button.y <= real_sdl_h)
+                    && event.button.x <= real_sdl_w && event.button.y <= real_sdl_h
+                    && event.button.y > menubarheight)
                     {
                         plat_mouse_capture(1);
                         break;
@@ -1105,6 +1121,7 @@ int main(int argc, char** argv)
                 case SDL_KEYDOWN:
                 case SDL_KEYUP:
                 {
+                    if (ImGuiWantsKeyboardCapture()) break;
                     uint16_t xtkey = 0;
                     switch(event.key.keysym.scancode)
                     {
@@ -1149,6 +1166,7 @@ int main(int argc, char** argv)
     printf("\n");
     SDL_DestroyMutex(blitmtx);
     SDL_DestroyMutex(mousemutex);
+    ImGui_ImplSDL2_Shutdown();
     SDL_Quit();
     if (f_rl_callback_handler_remove) f_rl_callback_handler_remove();
     return 0;

@@ -28,8 +28,8 @@ typedef struct sdl_blit_params
 extern sdl_blit_params params;
 extern int blitreq;
 
-static SDL_Window	*sdl_win = NULL;
-static SDL_Renderer	*sdl_render = NULL;
+SDL_Window	*sdl_win = NULL;
+SDL_Renderer	*sdl_render = NULL;
 static SDL_Texture	*sdl_tex = NULL;
 static int		sdl_w, sdl_h;
 static int		sdl_fs, sdl_flags = -1;
@@ -42,7 +42,9 @@ int title_set = 0;
 int resize_pending = 0;
 int resize_w = 0;
 int resize_h = 0;
+float menubarheight = 0.0f;
 
+extern void RenderImGui();
 static void
 sdl_integer_scale(double *d, double *g)
 {
@@ -135,7 +137,7 @@ void ui_window_title_real();
 void
 sdl_blit(int x, int y, int w, int h)
 {
-    SDL_Rect r_src;
+    SDL_Rect r_src, r_dst;
     int ret;
 
     if (!sdl_enabled || (h <= 0) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
@@ -164,10 +166,13 @@ sdl_blit(int x, int y, int w, int h)
     r_src.y = y;
     r_src.w = w;
     r_src.h = h;
+    r_dst = r_src;
+    r_dst.y += menubarheight;
 
-    ret = SDL_RenderCopy(sdl_render, sdl_tex, &r_src, 0);
+    ret = SDL_RenderCopy(sdl_render, sdl_tex, &r_src, &r_dst);
     if (ret)
 	fprintf(stderr, "SDL: unable to copy texture to renderer (%s)\n", SDL_GetError());
+    RenderImGui();
 
     SDL_RenderPresent(sdl_render);
     SDL_UnlockMutex(sdl_mutex);
@@ -253,6 +258,7 @@ sdl_select_best_hw_driver(void)
     }
 }
 
+extern void HandleSizeChange();
 
 void
 sdl_reinit_texture()
@@ -270,6 +276,7 @@ sdl_reinit_texture()
 
     sdl_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ARGB8888,
 				SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
+    HandleSizeChange();
 }
 
 void
@@ -314,7 +321,7 @@ sdl_resize(int x, int y)
     cur_ww = ww;
     cur_wh = wh;
 
-    SDL_SetWindowSize(sdl_win, cur_ww, cur_wh);
+    SDL_SetWindowSize(sdl_win, cur_ww, cur_wh + menubarheight);
 
     sdl_reinit_texture();
 
