@@ -2584,12 +2584,12 @@ save_storage_controllers(void)
     else
 	config_set_int(cat, "cassette_enabled", cassette_enable);
 
-    if (cassette_fname == NULL)
+    if (strlen(cassette_fname) == 0)
 	config_delete_var(cat, "cassette_file");
     else
 	config_set_string(cat, "cassette_file", cassette_fname);
 
-    if (cassette_mode == NULL)
+    if (strlen(cassette_mode) == 0)
 	config_delete_var(cat, "cassette_mode");
     else
 	config_set_string(cat, "cassette_mode", cassette_mode);

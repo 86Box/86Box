@@ -239,6 +239,16 @@ cdrom_seek(cdrom_t *dev, uint32_t pos)
 
 
 int
+cdrom_is_pre(cdrom_t *dev, uint32_t lba)
+{
+    if (dev->ops && dev->ops->is_track_pre)
+	return dev->ops->is_track_pre(dev, lba);
+
+    return 0;
+}
+
+
+int
 cdrom_audio_callback(cdrom_t *dev, int16_t *output, int len)
 {
     int ret = 1;

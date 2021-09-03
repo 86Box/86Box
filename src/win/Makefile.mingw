@@ -778,7 +778,8 @@ VIDOBJ		:= video.o \
 		    vid_s3.o vid_s3_virge.o \
 		    vid_ibm_rgb528_ramdac.o vid_sdac_ramdac.o \
 			vid_ogc.o \
-			vid_nga.o
+			vid_nga.o \
+			vid_tvp3026_ramdac.o
 
 VOODOOOBJ	:= vid_voodoo.o vid_voodoo_banshee.o \
 		    vid_voodoo_banshee_blitter.o \
@@ -837,7 +838,7 @@ LIBS    += -static
 ifeq ($(AUTODEP), y)
 %.o:		%.c
 		@echo $<
-		$(CC) $(CFLAGS) $(DEPS) -c $<
+		@$(CC) $(CFLAGS) $(DEPS) -c $<
 
 %.o:		%.cc
 		@echo $<

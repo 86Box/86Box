@@ -109,6 +109,7 @@ int	confirm_exit_cmdl = 1;			/* (O) do not ask for confirmation on quit if set t
 uint64_t	unique_id = 0;
 uint64_t	source_hwnd = 0;
 #endif
+char	rom_path[1024] = { '\0'};		/* (O) full path to ROMs */
 char	log_path[1024] = { '\0'};		/* (O) full path of logfile */
 char	vm_name[1024]  = { '\0'};		/* (O) display name of the VM */
 
@@ -379,12 +380,13 @@ pc_log(const char *fmt, ...)
 int
 pc_init(int argc, char *argv[])
 {
-	char path[2048];
+	char path[2048], path2[2048];
 	char *cfg = NULL, *p;
 	char temp[128];
 	struct tm *info;
 	time_t now;
-	int c;
+	int c, vmrp = 0;
+	int ng = 0, lvmp = 0;
 	uint32_t *uid, *shwnd;
 
 	/* Grab the executable's full path. */
@@ -401,7 +403,10 @@ pc_init(int argc, char *argv[])
 	 * could have been set to something else.
 	 */
 	plat_getcwd(usr_path, sizeof(usr_path) - 1);
+	plat_getcwd(rom_path, sizeof(rom_path) - 1);
+
 	memset(path, 0x00, sizeof(path));
+	memset(path2, 0x00, sizeof(path));
 
 	for (c=1; c<argc; c++) {
 		if (argv[c][0] != '-') break;
@@ -411,30 +416,49 @@ usage:
 			printf("\nUsage: 86box [options] [cfg-file]\n\n");
 			printf("Valid options are:\n\n");
 			printf("-? or --help         - show this information\n");
-			printf("-C or --dumpcfg      - dump config file after loading\n");
+#ifdef _WIN32
+			printf("-A or --crashdump    - enables crashdump on exception\n");
+#endif
+			printf("-C or --config path  - set 'path' to be config file\n");
 #ifdef _WIN32
 			printf("-D or --debug        - force debug output logging\n");
+			printf("-E or --nographic    - forces the old behavior\n");
 #endif
 			printf("-F or --fullscreen   - start in fullscreen mode\n");
-			printf("-L or --logfile path - set 'path' to be the logfile\n");
-			printf("-P or --vmpath path  - set 'path' to be root for vm\n");
-			printf("-V or --vmname name  - overrides the name of the running VM.\n");
-			printf("-S or --settings     - show only the settings dialog\n");
-			printf("-N or --noconfirm    - do not ask for confirmation on quit\n");
 #ifdef _WIN32
 			printf("-H or --hwnd id,hwnd - sends back the main dialog's hwnd\n");
 #endif
-			printf("-R or --crashdump    - enables crashdump on exception\n");
+			printf("-L or --logfile path - set 'path' to be the logfile\n");
+			printf("-M or --vmrompath    - ROM path is roms subdirectory inside the userfiles path\n");
+			printf("-N or --noconfirm    - do not ask for confirmation on quit\n");
+			printf("-O or --dumpcfg      - dump config file after loading\n");
+			printf("-P or --vmpath path  - set 'path' to be root for vm\n");
+			printf("-R or --rompath path - set 'path' to be ROM path\n");
+			printf("-S or --settings     - show only the settings dialog\n");
+			printf("-V or --vmname name  - overrides the name of the running VM\n");
+			printf("-Z or --lastvmpath   - the last parameter is VM path rather than config\n");
 			printf("\nA config file can be specified. If none is, the default file will be used.\n");
 			return(0);
+		} else if (!strcasecmp(argv[c], "--vmrompath") ||
+			   !strcasecmp(argv[c], "-M")) {
+			vmrp = 1;
+		} else if (!strcasecmp(argv[c], "--lastvmpath") ||
+			   !strcasecmp(argv[c], "-Z")) {
+			lvmp = 1;
 		} else if (!strcasecmp(argv[c], "--dumpcfg") ||
-			   !strcasecmp(argv[c], "-C")) {
+			   !strcasecmp(argv[c], "-O")) {
 			do_dump_config = 1;
 #ifdef _WIN32
 		} else if (!strcasecmp(argv[c], "--debug") ||
 			   !strcasecmp(argv[c], "-D")) {
 			force_debug = 1;
 #endif
+		} else if (!strcasecmp(argv[c], "--nographic") ||
+			   !strcasecmp(argv[c], "-E")) {
+			/* Currently does nothing, but if/when we implement a built-in manager,
+			   it's going to force the manager not to run, allowing the old usage
+			   without parameter. */
+			ng = 1;
 		} else if (!strcasecmp(argv[c], "--fullscreen") ||
 			   !strcasecmp(argv[c], "-F")) {
 			start_in_fullscreen = 1;
@@ -448,6 +472,16 @@ usage:
 			if ((c+1) == argc) goto usage;
 
 			strcpy(path, argv[++c]);
+		} else if (!strcasecmp(argv[c], "--rompath") ||
+			   !strcasecmp(argv[c], "-R")) {
+			if ((c+1) == argc) goto usage;
+
+			strcpy(path2, argv[++c]);
+		} else if (!strcasecmp(argv[c], "--config") ||
+			   !strcasecmp(argv[c], "-C")) {
+			if ((c+1) == argc) goto usage;
+
+			cfg = argv[++c];
 		} else if (!strcasecmp(argv[c], "--vmname") ||
 			   !strcasecmp(argv[c], "-V")) {
 			if ((c+1) == argc) goto usage;
@@ -459,10 +493,10 @@ usage:
 		} else if (!strcasecmp(argv[c], "--noconfirm") ||
 			   !strcasecmp(argv[c], "-N")) {
 			confirm_exit_cmdl = 0;
-		} else if (!strcasecmp(argv[c], "--crashdump") ||
-			   !strcasecmp(argv[c], "-R")) {
-			enable_crashdump = 1;
 #ifdef _WIN32
+		} else if (!strcasecmp(argv[c], "--crashdump") ||
+			   !strcasecmp(argv[c], "-A")) {
+			enable_crashdump = 1;
 		} else if (!strcasecmp(argv[c], "--hwnd") ||
 			   !strcasecmp(argv[c], "-H")) {
 
@@ -484,10 +518,17 @@ usage:
 	}
 
 	/* One argument (config file) allowed. */
-	if (c < argc)
-		cfg = argv[c++];
+	if (c < argc) {
+		if (lvmp)
+			strcpy(path, argv[c++]);
+		else
+			cfg = argv[c++];
+	}
 
 	if (c != argc) goto usage;
+
+	plat_path_slash(usr_path);
+	plat_path_slash(rom_path);
 
 	/*
 	 * If the user provided a path for files, use that
@@ -495,7 +536,7 @@ usage:
 	 * make sure that if that was a relative path, we
 	 * make it absolute.
 	 */
-	if (path[0] != L'\0') {
+	if (path[0] != '\0') {
 		if (! plat_path_abs(path)) {
 			/*
 			 * This looks like a relative path.
@@ -503,7 +544,6 @@ usage:
 			 * Add it to the current working directory
 			 * to convert it (back) to an absolute path.
 			 */
-			plat_path_slash(usr_path);
 			strcat(usr_path, path);
 		} else {
 			/*
@@ -518,6 +558,43 @@ usage:
 		if (! plat_dir_check(usr_path))
 			plat_dir_create(usr_path);
 	}
+
+	if (vmrp && (path2[0] == '\0')) {
+		strcpy(path2, usr_path);
+		plat_path_slash(path2);
+		strcat(path2, "roms");
+		plat_path_slash(path2);
+	}
+
+	/*
+	 * If the user provided a path for ROMs, use that
+	 * instead of the current working directory. We do
+	 * make sure that if that was a relative path, we
+	 * make it absolute.
+	 */
+	if (path2[0] != '\0') {
+		if (! plat_path_abs(path2)) {
+			/*
+			 * This looks like a relative path.
+			 *
+			 * Add it to the current working directory
+			 * to convert it (back) to an absolute path.
+			 */
+			strcat(rom_path, path2);
+		} else {
+			/*
+			 * The user-provided path seems like an
+			 * absolute path, so just use that.
+			 */
+			strcpy(rom_path, path2);
+		}
+
+		/* If the specified path does not yet exist,
+		   create it. */
+		if (! plat_dir_check(rom_path))
+			plat_dir_create(rom_path);
+	} else
+		rom_path[0] = '\0';
 
 	/* Grab the name of the configuration file. */
 	if (cfg == NULL)
@@ -554,19 +631,20 @@ usage:
 
 	/* Make sure we have a trailing backslash. */
 	plat_path_slash(usr_path);
+	if (rom_path[0] != '\0')
+		plat_path_slash(rom_path);
 
 	/* At this point, we can safely create the full path name. */
 	plat_append_filename(cfg_path, usr_path, p);
 
 	/*
-     * Get the current directory's name
+	 * Get the current directory's name
 	 *
 	 * At this point usr_path is perfectly initialized.
 	 * If no --vmname parameter specified we'll use the
 	 *   working directory name as the VM's name.
 	 */
-    if (strlen(vm_name) == 0)
-	{
+	if (strlen(vm_name) == 0) {
 		char ltemp[1024] = { '\0'};
 		plat_get_dirname(ltemp, usr_path);
 		strcpy(vm_name, plat_get_filename(ltemp));
@@ -581,15 +659,14 @@ usage:
 	strftime(temp, sizeof(temp), "%Y/%m/%d %H:%M:%S", info);
 	pclog("#\n# %ls v%ls logfile, created %s\n#\n",
 		EMU_NAME_W, EMU_VERSION_W, temp);
-#ifdef _WIN32
-	pclog("# Emulator path: %ls\n", exe_path);
-	pclog("# Userfiles path: %ls\n", usr_path);
-	pclog("# Configuration file: %ls\n#\n\n", cfg_path);
-#else
+	pclog("# VM: %s\n#\n", vm_name);
 	pclog("# Emulator path: %s\n", exe_path);
 	pclog("# Userfiles path: %s\n", usr_path);
+	if (rom_path[0] != '\0')
+		pclog("# ROM path: %s\n", rom_path);
+	else
+		pclog("# ROM path: %sroms\\\n", exe_path);
 	pclog("# Configuration file: %s\n#\n\n", cfg_path);
-#endif
 	/*
 	 * We are about to read the configuration file, which MAY
 	 * put data into global variables (the hard- and floppy

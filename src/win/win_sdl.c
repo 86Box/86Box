@@ -288,7 +288,8 @@ sdl_destroy_texture(void)
 void
 sdl_close(void)
 {
-    SDL_LockMutex(sdl_mutex);
+    if (sdl_mutex != NULL)
+	SDL_LockMutex(sdl_mutex);
 
     /* Unregister our renderer! */
     video_setblit(NULL);
