@@ -31,6 +31,9 @@
 #endif
 #include "386_common.h"
 
+#if defined(__APPLE__) && defined(__aarch64__)
+#include <pthread.h>
+#endif
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 
