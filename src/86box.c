@@ -26,6 +26,13 @@
 #include <string.h>
 #include <time.h>
 #include <wchar.h>
+#ifdef __APPLE__
+#include <string.h>
+#include <dispatch/dispatch.h>
+#ifdef __aarch64__
+#include <pthread.h>
+#endif
+#endif
 
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -385,7 +392,7 @@ pc_init(int argc, char *argv[])
 	char temp[128];
 	struct tm *info;
 	time_t now;
-	int c;
+	int c, vmrp = 0;
 	int ng = 0, lvmp = 0;
 	uint32_t *uid, *shwnd;
 
@@ -429,6 +436,7 @@ usage:
 			printf("-H or --hwnd id,hwnd - sends back the main dialog's hwnd\n");
 #endif
 			printf("-L or --logfile path - set 'path' to be the logfile\n");
+			printf("-M or --vmrompath    - ROM path is roms subdirectory inside the userfiles path\n");
 			printf("-N or --noconfirm    - do not ask for confirmation on quit\n");
 			printf("-O or --dumpcfg      - dump config file after loading\n");
 			printf("-P or --vmpath path  - set 'path' to be root for vm\n");
@@ -438,6 +446,9 @@ usage:
 			printf("-Z or --lastvmpath   - the last parameter is VM path rather than config\n");
 			printf("\nA config file can be specified. If none is, the default file will be used.\n");
 			return(0);
+		} else if (!strcasecmp(argv[c], "--vmrompath") ||
+			   !strcasecmp(argv[c], "-M")) {
+			vmrp = 1;
 		} else if (!strcasecmp(argv[c], "--lastvmpath") ||
 			   !strcasecmp(argv[c], "-Z")) {
 			lvmp = 1;
@@ -555,6 +566,13 @@ usage:
 			plat_dir_create(usr_path);
 	}
 
+	if (vmrp && (path2[0] == '\0')) {
+		strcpy(path2, usr_path);
+		plat_path_slash(path2);
+		strcat(path2, "roms");
+		plat_path_slash(path2);
+	}
+
 	/*
 	 * If the user provided a path for ROMs, use that
 	 * instead of the current working directory. We do
@@ -620,20 +638,20 @@ usage:
 
 	/* Make sure we have a trailing backslash. */
 	plat_path_slash(usr_path);
-	plat_path_slash(rom_path);
+	if (rom_path[0] != '\0')
+		plat_path_slash(rom_path);
 
 	/* At this point, we can safely create the full path name. */
 	plat_append_filename(cfg_path, usr_path, p);
 
 	/*
-     * Get the current directory's name
+	 * Get the current directory's name
 	 *
 	 * At this point usr_path is perfectly initialized.
 	 * If no --vmname parameter specified we'll use the
 	 *   working directory name as the VM's name.
 	 */
-    if (strlen(vm_name) == 0)
-	{
+	if (strlen(vm_name) == 0) {
 		char ltemp[1024] = { '\0'};
 		plat_get_dirname(ltemp, usr_path);
 		strcpy(vm_name, plat_get_filename(ltemp));
@@ -648,12 +666,13 @@ usage:
 	strftime(temp, sizeof(temp), "%Y/%m/%d %H:%M:%S", info);
 	pclog("#\n# %ls v%ls logfile, created %s\n#\n",
 		EMU_NAME_W, EMU_VERSION_W, temp);
+	pclog("# VM: %s\n#\n", vm_name);
 	pclog("# Emulator path: %s\n", exe_path);
 	pclog("# Userfiles path: %s\n", usr_path);
 	if (rom_path[0] != '\0')
 		pclog("# ROM path: %s\n", rom_path);
 	else
-		pclog("# ROM path: %sroms\\\n", usr_path);
+		pclog("# ROM path: %sroms\\\n", exe_path);
 	pclog("# Configuration file: %s\n#\n\n", cfg_path);
 	/*
 	 * We are about to read the configuration file, which MAY
@@ -768,7 +787,13 @@ pc_init_modules(void)
 	mem_init();
 
 #ifdef USE_DYNAREC
+#if defined(__APPLE__) && defined(__aarch64__)
+	pthread_jit_write_protect_np(0);
+#endif
 	codegen_init();
+#if defined(__APPLE__) && defined(__aarch64__)
+	pthread_jit_write_protect_np(1);
+#endif
 #endif
 
 	keyboard_init();
@@ -1064,6 +1089,15 @@ pc_close(thread_t *ptr)
 }
 
 
+#ifdef __APPLE__
+static void _ui_window_title(void *s)
+{
+    ui_window_title((const wchar_t *) s);
+    free(s);
+}
+#endif
+
+
 void
 pc_run(void)
 {
@@ -1092,7 +1126,12 @@ pc_run(void)
 
 	if (title_update) {
 		swprintf(temp, sizeof_w(temp), mouse_msg[!!mouse_capture], fps);
+#ifdef __APPLE__
+		/* Needed due to modifying the UI on the non-main thread is a big no-no. */
+		dispatch_async_f(dispatch_get_main_queue(), wcsdup((const wchar_t *) temp), _ui_window_title);
+#else
 		ui_window_title(temp);
+#endif
 		title_update = 0;
 	}
 }
