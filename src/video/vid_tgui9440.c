@@ -2881,11 +2881,6 @@ static void *tgui_init(const device_t *info)
 		if (tgui->type >= TGUI_9440)
 			svga->packed_chain4 = 1;
 
-	if (tgui->type >= TGUI_9660) {
-		tgui->i2c = i2c_gpio_init("ddc_tgui");
-		tgui->ddc = ddc_init(i2c_gpio_get_bus(tgui->i2c));			
-	}
-
         return tgui;
 }
 
