@@ -1092,7 +1092,7 @@ pc_close(thread_t *ptr)
 #ifdef __APPLE__
 static void _ui_window_title(void *s)
 {
-    ui_window_title((const char *) s);
+    ui_window_title((const wchar_t *) s);
     free(s);
 }
 #endif
@@ -1128,7 +1128,7 @@ pc_run(void)
 		swprintf(temp, sizeof_w(temp), mouse_msg[!!mouse_capture], fps);
 #ifdef __APPLE__
 		/* Needed due to modifying the UI on the non-main thread is a big no-no. */
-		dispatch_async_f(dispatch_get_main_queue(), strdup((const char *) temp), _ui_window_title);
+		dispatch_async_f(dispatch_get_main_queue(), wcsdup((const wchar_t *) temp), _ui_window_title);
 #else
 		ui_window_title(temp);
 #endif
