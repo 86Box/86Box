@@ -1074,8 +1074,7 @@ int main(int argc, char** argv)
                     if ((event.button.button == SDL_BUTTON_LEFT)
                     && !(mouse_capture || video_fullscreen)
                     && event.button.state == SDL_RELEASED
-                    && event.button.x <= real_sdl_w && event.button.y <= real_sdl_h
-                    && event.button.y > menubarheight)
+                    && event.button.x <= real_sdl_w && event.button.y <= real_sdl_h)
                     {
                         plat_mouse_capture(1);
                         break;
