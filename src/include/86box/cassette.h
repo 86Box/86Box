@@ -68,6 +68,10 @@ typedef struct {
 	pc_timer_t    timer;
 } pc_cassette_t;
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 
 void pc_cas_init (pc_cassette_t *cas);
 void pc_cas_free (pc_cassette_t *cas);
@@ -157,6 +161,9 @@ void pc_cas_print_state (const pc_cassette_t *cas);
 void pc_cas_clock (pc_cassette_t *cas, unsigned long cnt);
 void pc_cas_advance (pc_cassette_t *cas);
 
+#ifdef __cplusplus
+}
+#endif
 
 extern pc_cassette_t *	cassette;
 
@@ -168,6 +175,7 @@ extern int		cassette_append, cassette_pcm;
 extern int		cassette_ui_writeprot;
 
 extern const device_t	cassette_device;
+
 
 
 #endif

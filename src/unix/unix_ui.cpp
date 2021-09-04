@@ -330,6 +330,55 @@ struct MOMenu
     }
 };
 
+static void RenderCassetteImguiMenu()
+{
+    if (cassette_enable)
+    {
+        std::string str = "Cassette: ";
+        str += strlen(cassette_fname) == 0 ? "(empty)" : cassette_fname;
+        if (ImGui::BeginMenu(str.c_str()))
+        {
+            if (ImGui::MenuItem("Image..."))
+            {
+                char res[4096];
+                if (OpenFileChooser(res, sizeof(res)))
+                {
+                    cassette_mount(res, 0);
+                }
+            }
+            if (ImGui::MenuItem("Image... (write-protected)"))
+            {
+                char res[4096];
+                if (OpenFileChooser(res, sizeof(res)))
+                {
+                    cassette_mount(res, 1);
+                }
+            }
+            if (ImGui::MenuItem("Play"))
+            {
+                pc_cas_set_mode(cassette, 0);
+            }
+            if (ImGui::MenuItem("Record"))
+            {
+                pc_cas_set_mode(cassette, 1);
+            }
+            if (ImGui::MenuItem("Rewind to the beginning"))
+            {
+                pc_cas_rewind(cassette);
+            }
+            if (ImGui::MenuItem("Fast forward to the end"))
+            {
+                pc_cas_append(cassette);
+            }
+            if (ImGui::MenuItem("Eject"))
+            {
+                cassette_eject();
+            }
+            ImGui::EndMenu();
+        }
+    }
+}
+
 std::vector<CartMenu> cmenu;
 std::vector<FloppyMenu> fddmenu;
 std::vector<CDMenu> cdmenu;
@@ -465,6 +514,7 @@ extern "C" void RenderImGui()
             {
                 curmomenu.RenderImGuiMenu();
             }
+            RenderCassetteImguiMenu();
             ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
