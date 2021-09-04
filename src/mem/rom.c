@@ -62,10 +62,35 @@ FILE *
 rom_fopen(char *fn, char *mode)
 {
     char temp[1024];
+    char *fn2;
 
-    plat_append_filename(temp, exe_path, fn);
+    if ((strstr(fn, "roms/") == fn) || (strstr(fn, "roms\\") == fn)) {
+	/* Relative path */
+	fn2 = (char *) malloc(strlen(fn) + 1);
+	memcpy(fn2, fn, strlen(fn) + 1);
 
-    return(plat_fopen(temp, mode));
+	if (rom_path[0] != '\0') {
+		memset(fn2, 0x00, strlen(fn) + 1);
+		memcpy(fn2, &(fn[5]), strlen(fn) - 4);		
+
+		plat_append_filename(temp, rom_path, fn2);
+	} else {
+		/* Make sure to make it a backslash, just in case there's malformed
+		   code calling us that assumes Windows. */
+		if (fn2[4] == '\\')
+			fn2[4] = '/';
+
+		plat_append_filename(temp, exe_path, fn2);
+	}
+
+	free(fn2);
+	fn2 = NULL;
+
+	return(plat_fopen(temp, mode));
+    } else {
+	/* Absolute path */
+	return(plat_fopen(fn, mode));
+    }
 }
 
 

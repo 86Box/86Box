@@ -212,7 +212,8 @@ sound_cd_clean_buffers(void)
 static void
 sound_cd_thread(void *param)
 {
-    int c, r, i, channel_select[2];
+    uint32_t lba;
+    int c, r, i, pre, channel_select[2];
     double audio_vol_l, audio_vol_r;
     double cd_buffer_temp[2] = {0.0, 0.0};
 
@@ -231,9 +232,11 @@ sound_cd_thread(void *param)
 		if ((cdrom[i].bus_type == CDROM_BUS_DISABLED) ||
 		    (cdrom[i].cd_status == CD_STATUS_EMPTY))
 			continue;
+		lba = cdrom[i].seek_pos;
 		r = cdrom_audio_callback(&(cdrom[i]), cd_buffer[i], CD_BUFLEN * 2);
 		if (!cdrom[i].bus_type || !cdrom[i].sound_on || !r)
 				continue;
+		pre = cdrom_is_pre(&(cdrom[i]), lba);
 
 		if (cdrom[i].get_volume) {
 			audio_vol_l = (float) (cdrom[i].get_volume(cdrom[i].priv, 0));
@@ -277,6 +280,9 @@ sound_cd_thread(void *param)
 					cd_buffer_temp[0] += ((double) cd_buffer[i][c + 1]);	/* Channel 1 => Port 0 */
 
 				cd_buffer_temp[0] *= audio_vol_l;				/* Multiply Port 0 by Port 0 volume */
+
+				if (pre)
+					cd_buffer_temp[0] = deemph_iir(0, cd_buffer_temp[0]);	/* De-emphasize if necessary */
 			}
 
 			if ((audio_vol_r != 0.0) && (channel_select[1] != 0)) {
@@ -286,6 +292,9 @@ sound_cd_thread(void *param)
 					cd_buffer_temp[1] += ((double) cd_buffer[i][c + 1]);	/* Channel 1 => Port 1 */
 
 				cd_buffer_temp[1] *= audio_vol_r;				/* Multiply Port 1 by Port 1 volume */
+
+				if (pre)
+					cd_buffer_temp[1] = deemph_iir(1, cd_buffer_temp[1]);	/* De-emphasize if necessary */
 			}
 
 			/* Apply sound card CD volume and filters */

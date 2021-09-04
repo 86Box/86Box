@@ -83,6 +83,7 @@ typedef struct {
     void	(*get_tracks)(struct cdrom *dev, int *first, int *last);
     void	(*get_track_info)(struct cdrom *dev, uint32_t track, int end, track_info_t *ti);
     void	(*get_subchannel)(struct cdrom *dev, uint32_t lba, subchannel_t *subc);
+    int		(*is_track_pre)(struct cdrom *dev, uint32_t lba);
     int		(*sector_size)(struct cdrom *dev, uint32_t lba);
     int		(*read_sector)(struct cdrom *dev, int type, uint8_t *b, uint32_t lba);
     int		(*track_type)(struct cdrom *dev, uint32_t lba);
@@ -136,6 +137,7 @@ extern cdrom_t	cdrom[CDROM_NUM];
 extern int	cdrom_lba_to_msf_accurate(int lba);
 extern double	cdrom_seek_time(cdrom_t *dev);
 extern void	cdrom_stop(cdrom_t *dev);
+extern int	cdrom_is_pre(cdrom_t *dev, uint32_t lba);
 extern int	cdrom_audio_callback(cdrom_t *dev, int16_t *output, int len);
 extern uint8_t	cdrom_audio_play(cdrom_t *dev, uint32_t pos, uint32_t len, int ismsf);
 extern uint8_t	cdrom_audio_track_search(cdrom_t *dev, uint32_t pos, int type, uint8_t playbit);
