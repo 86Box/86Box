@@ -135,10 +135,27 @@ sdl_blit_shim(int x, int y, int w, int h)
 void ui_window_title_real();
 
 void
-sdl_blit(int x, int y, int w, int h)
+sdl_real_blit(SDL_Rect* r_src)
 {
-    SDL_Rect r_src, r_dst;
+    SDL_Rect r_dst;
     int ret;
+    SDL_RenderClear(sdl_render);
+
+    r_dst = *r_src;
+    r_dst.y += menubarheight;
+
+    ret = SDL_RenderCopy(sdl_render, sdl_tex, r_src, &r_dst);
+    if (ret)
+	fprintf(stderr, "SDL: unable to copy texture to renderer (%s)\n", SDL_GetError());
+    RenderImGui();
+
+    SDL_RenderPresent(sdl_render);
+}
+
+void
+sdl_blit(int x, int y, int y1, int y2, int w, int h)
+{
+    SDL_Rect r_src;
 
     if (!sdl_enabled || (h <= 0) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
 	video_blit_complete();
@@ -160,21 +177,7 @@ sdl_blit(int x, int y, int w, int h)
     SDL_UpdateTexture(sdl_tex, &r_src, &(buffer32->line[y][x]), (2048 + 64) * 4);
     video_blit_complete();
 
-    SDL_RenderClear(sdl_render);
-
-    r_src.x = x;
-    r_src.y = y;
-    r_src.w = w;
-    r_src.h = h;
-    r_dst = r_src;
-    r_dst.y += menubarheight;
-
-    ret = SDL_RenderCopy(sdl_render, sdl_tex, &r_src, &r_dst);
-    if (ret)
-	fprintf(stderr, "SDL: unable to copy texture to renderer (%s)\n", SDL_GetError());
-    RenderImGui();
-
-    SDL_RenderPresent(sdl_render);
+    sdl_real_blit(&r_src);
     SDL_UnlockMutex(sdl_mutex);
 }
 

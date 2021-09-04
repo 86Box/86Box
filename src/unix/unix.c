@@ -973,6 +973,7 @@ void monitor_thread(void* param)
 extern void InitImGui();
 extern bool ImGuiWantsMouseCapture();
 extern bool ImGuiWantsKeyboardCapture();
+extern void sdl_real_blit(SDL_Rect* r_src, int w, int h);
 
 extern SDL_Window* sdl_win;
 int main(int argc, char** argv)
@@ -1135,11 +1136,20 @@ int main(int argc, char** argv)
         if (mouse_capture && keyboard_ismsexit())
         {
             plat_mouse_capture(0);
-        }        
+        }
+        if (video_fullscreen && keyboard_isfsexit())
+        {
+            sdl_set_fs(0);
+        }
         if (blitreq)
         {
             extern void sdl_blit(int x, int y, int w, int h);
             sdl_blit(params.x, params.y, params.w, params.h);
+        }
+        else
+        {
+            SDL_Rect srcrect;
+            sdl_real_blit(&srcrect, params.w, params.h);
         }
         if (title_set)
         {
