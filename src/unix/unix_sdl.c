@@ -153,11 +153,16 @@ sdl_real_blit(SDL_Rect* r_src)
 }
 
 void
-sdl_blit(int x, int y, int y1, int y2, int w, int h)
+sdl_blit(int x, int y, int w, int h)
 {
     SDL_Rect r_src;
 
     if (!sdl_enabled || (h <= 0) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
+    r_src.x = x;
+    r_src.y = y;
+    r_src.w = w;
+    r_src.h = h;
+    sdl_real_blit(&r_src);
 	video_blit_complete();
 	return;
     }
