@@ -29,6 +29,10 @@
 				 * least 7 devices, with each device being
 				 * able to support 8 units, but hey... */
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
 extern int	hdc_current;
 
 
@@ -83,6 +87,8 @@ extern int	hdc_has_config(int hdc);
 extern const device_t	*hdc_get_device(int hdc);
 extern int	hdc_get_flags(int hdc);
 extern int	hdc_available(int hdc);
-
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/*EMU_HDC_H*/

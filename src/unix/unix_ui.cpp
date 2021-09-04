@@ -159,8 +159,48 @@ struct FloppyMenu
         }
     }
 };
+
+struct CDMenu
+{
+    int cdid;
+    CDMenu(int id)
+    {
+        cdid = id;
+    }
+    void RenderImGuiMenu()
+    {
+        std::string str = "CD-ROM ";
+        str += std::to_string(cdid + 1);
+        str += " (";
+        str += cdrom[cdid].bus_type == 1 ? "SCSI" : "ATAPI";
+        str += ") ";
+        str += strlen(cdrom[cdid].image_path) == 0 ? "(empty)" : cdrom[cdid].image_path;
+        if (ImGui::BeginMenu(str.c_str()))
+        {
+            if (ImGui::MenuItem("Image"))
+            {
+                char res[4096];
+                if (OpenFileChooser(res, sizeof(res)))
+                {
+                    cdrom_mount(cdid, res);
+                }
+            }
+            if (ImGui::MenuItem("Reload previous image"))
+            {
+                cdrom_mount(cdid, cdrom[cdid].prev_image_path);
+            }
+            if (ImGui::MenuItem("Empty", NULL, strlen(cdrom[cdid].image_path) == 0))
+            {
+                cdrom_eject(cdid);
+            }
+            ImGui::EndMenu();
+        }
+    }
+};
+
 std::vector<CartMenu> cmenu;
 std::vector<FloppyMenu> fddmenu;
+std::vector<CDMenu> cdmenu;
 
 extern "C" void
 media_menu_reset()
@@ -175,6 +215,12 @@ media_menu_reset()
     for(int i = 0; i < FDD_NUM; i++) {
 	if(is_valid_fdd(i)) {
 		fddmenu.emplace_back(i);
+	}
+	curr++;
+    }
+    for(int i = 0; i < CDROM_NUM; i++) {
+	if(is_valid_cdrom(i)) {
+		cdmenu.emplace_back(i);
 	}
 	curr++;
     }
@@ -260,6 +306,10 @@ extern "C" void RenderImGui()
             for (auto &floppyMenu : fddmenu)
             {
                 floppyMenu.RenderImGuiMenu();
+            }
+            for (auto &curcdmenu : cdmenu)
+            {
+                curcdmenu.RenderImGuiMenu();
             }
             ImGui::EndMenu();
         }
