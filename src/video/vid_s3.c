@@ -507,6 +507,8 @@ s3_accel_out_pixtrans_w(s3_t *s3, uint16_t val)
 			case 0x400:
 				if (svga->crtc[0x53] & 0x08) {
 					if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 2)) {
+						if ((s3->accel.cmd & 0x1000) && (((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40)))
+							val = (val >> 8) | (val << 8);
 						s3_accel_start(32, 1, val | (val << 16), 0, s3);
 					} else
 						s3_accel_start(4, 1, 0xffffffff, val | (val << 16), s3);
@@ -1348,16 +1350,16 @@ s3_accel_write_fifo(s3_t *s3, uint32_t addr, uint8_t val)
 		s3_accel_out_fifo(s3, addr & 0xffff, val);
 	} else {
 		if (s3->accel.cmd & 0x100) {
-			if (!(s3->accel.cmd & 0x600)) {
-				if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 2)) {
-					s3_accel_start(8, 1, val, 0, s3);
-				} else
-					s3_accel_start(1, 1, 0xffffffff, val, s3);
-			} else if ((s3->accel.cmd & 0x600) == 0x200) {
+			if ((s3->accel.cmd & 0x600) == 0x200) {
 				if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 2)) {
 					s3_accel_start(16, 1, val, 0, s3);
 				} else
 					s3_accel_start(2, 1, 0xffffffff, val, s3);
+			} else {
+				if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 2)) {
+					s3_accel_start(8, 1, val, 0, s3);
+				} else
+					s3_accel_start(1, 1, 0xffffffff, val, s3);
 			}
 		}
 	}    
@@ -2711,12 +2713,8 @@ static void s3_recalctimings(svga_t *svga)
 	svga->lowres = !((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10));
 	
 	if (((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10)) || (svga->crtc[0x3a] & 0x10)) {
-		if (svga->crtc[0x31] & 0x08) {
-			if (!(svga->crtc[0x17] & 0x40) && (svga->crtc[0x14] & 0x40)) /*Disable dword mode addressing when CRTC14 bit 6 is not enabled, regardless of the S3 dword mode bit.*/
-				svga->force_dword_mode = 1;
-		} else
-			svga->force_dword_mode = 0;
-
+		if (((svga->crtc[0x17] & 0x60) == 0x20) && (svga->crtc[0x31] & 0x08))
+				svga->crtc[0x17] |= 0x40;
 		switch (svga->bpp) {
 			case 8:
 			svga->render = svga_render_8bpp_highres;
@@ -2853,12 +2851,8 @@ static void s3_trio64v_recalctimings(svga_t *svga)
 		
 		svga->lowres = !((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10));
 		if ((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10)) {
-			if (svga->crtc[0x31] & 0x08) {
-				if (!(svga->crtc[0x17] & 0x40) && (svga->crtc[0x14] & 0x40)) /*Disable dword mode addressing when CRTC14 bit 6 is not enabled, regardless of the S3 dword mode bit.*/
-					svga->force_dword_mode = 1;
-			} else
-				svga->force_dword_mode = 0;
-
+			if (((svga->crtc[0x17] & 0x60) == 0x20) && (svga->crtc[0x31] & 0x08))
+				svga->crtc[0x17] |= 0x40;
 			switch (svga->bpp) {
 				case 8:
 				svga->render = svga_render_8bpp_highres;
@@ -4760,7 +4754,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 			}
 		}
 	}
-
+	
 	if (cpu_input && (((s3->accel.multifunc[0xa] & 0xc0) != 0x80) || (!(s3->accel.cmd & 2)))) {
 		if ((s3->bpp == 3) && count == 2) {
 			if (s3->accel.dat_count) {
