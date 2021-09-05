@@ -1,3 +1,23 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Ensoniq AudioPCI (ES1371) emulation.
+ *
+ *
+ *
+ * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
+ *		RichardG, <richardg867@gmail.com>
+ *		Miran Grca, <mgrca8@gmail.com>
+ *
+ *		Copyright 2008-2021 Sarah Walker.
+ *		Copyright 2021 RichardG.
+ *		Copyright 2021 Miran Grca.
+ */
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
