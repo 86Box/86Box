@@ -62,7 +62,8 @@ enum
 {
         TYPE_BANSHEE = 0,
         TYPE_V3_2000,
-        TYPE_V3_3000
+        TYPE_V3_3000,
+		TYPE_VELOCITY100
 };
 
 typedef struct banshee_t
@@ -2406,7 +2407,7 @@ static uint8_t banshee_pci_read(int func, int addr, void *p)
                 case 0x00: ret = 0x1a; break; /*3DFX*/
                 case 0x01: ret = 0x12; break;
                 
-                case 0x02: ret = (banshee->type == TYPE_BANSHEE) ? 0x03 : 0x05; break;
+                case 0x02: ret = (banshee->type == TYPE_BANSHEE) ? 0x03 : ((banshee->type == TYPE_VELOCITY100) ? 0x04 : 0x05); break;
                 case 0x03: ret = 0x00; break;
 
                 case 0x04: ret = banshee->pci_regs[0x04] & 0x27; break;
@@ -2750,9 +2751,12 @@ static void *banshee_init_common(const device_t *info, char *fn, int has_sgram, 
 
         if (!banshee->has_bios)
                 mem_size = info->local; /* fixed size for on-board chips */
-        else if (has_sgram)
-                mem_size = device_get_config_int("memory");
-        else
+        else if (has_sgram) {
+                if (banshee->type == TYPE_VELOCITY100)
+					mem_size = 8; /* Velocity 100 only supports 8 MB */
+				else
+					mem_size = device_get_config_int("memory");
+        } else
                 mem_size = 16; /* SDRAM Banshee only supports 16 MB */
 
         svga_init(info, &banshee->svga, banshee, mem_size << 20,
@@ -2889,6 +2893,10 @@ static void *v3_3000_agp_init(const device_t *info)
 {
         return banshee_init_common(info, "roms/video/voodoo/3k12sd.rom", 0, TYPE_V3_3000, VOODOO_3, 1);
 }
+static void *velocity_100_agp_init(const device_t *info)
+{
+        return banshee_init_common(info, "roms/video/voodoo/Velocity100.VBI", 1, TYPE_VELOCITY100, VOODOO_3, 1);
+}
 
 static int banshee_available(void)
 {
@@ -2908,6 +2916,10 @@ static int v3_3000_available(void)
         return rom_present("roms/video/voodoo/3k12sd.rom");
 }
 #define v3_3000_agp_available v3_3000_available
+static int velocity_100_available(void)
+{
+        return rom_present("roms/video/voodoo/Velocity100.VBI");
+}
 
 static void banshee_close(void *p)
 {
@@ -3030,6 +3042,20 @@ const device_t voodoo_3_3000_agp_device =
         banshee_close,
 	NULL,
         { v3_3000_agp_available },
+        banshee_speed_changed,
+        banshee_force_redraw,
+        banshee_sdram_config
+};
+
+const device_t velocity_100_agp_device =
+{
+        "3dfx Velocity 100",
+        DEVICE_AGP,
+        0,
+	velocity_100_agp_init,
+        banshee_close,
+	NULL,
+        { velocity_100_available },
         banshee_speed_changed,
         banshee_force_redraw,
         banshee_sdram_config
