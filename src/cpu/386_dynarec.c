@@ -196,6 +196,9 @@ static void prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int 
 {
 	int mem_cycles = reads*cpu_cycles_read + reads_l*cpu_cycles_read_l + writes*cpu_cycles_write + writes_l*cpu_cycles_write_l;
 
+	if (is486)
+		return;
+
 	if (instr_cycles < mem_cycles)
 		instr_cycles = mem_cycles;
 
