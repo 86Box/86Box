@@ -1643,8 +1643,6 @@ vid_init_200(amstrad_t *ams)
     memset(vid, 0x00, sizeof(amsvid_t));
 
     vid->emulation = device_get_config_int("video_emulation");
-    cga_palette = (device_get_config_int("display_type") << 1);
-    ams_inform(vid);
 
     /* Default to CGA */
     vid->dipswitches = 0x10;	
@@ -1676,6 +1674,9 @@ vid_init_200(amstrad_t *ams)
     cga->vram = mda->vram = malloc(0x4000);
     cga_init(cga);
     mda_init(mda);
+
+    cga_palette = (device_get_config_int("display_type") << 1);
+    ams_inform(vid);
 
     /* Attribute 8 is white on black (on a real MDA it's black on black) */
     mda_setcol(0x08, 0, 1, 15);

@@ -19,7 +19,8 @@
                 "CMAKE_C_FLAGS_OPTIMIZED": "-march=native -mtune=native -O3 -ffp-contract=last -flto",
                 "CMAKE_CXX_FLAGS_OPTIMIZED": "-march=native -mtune=native -O3 -ffp-contract=last -flto"
             },
-            "hidden": true
+            "hidden": true,
+            "binaryDir": "build"
         },
         {
             "name": "regular",

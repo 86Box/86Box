@@ -110,20 +110,20 @@ ctr_decrease_count(ctr_t *ctr)
 {
     if (ctr->bcd) {
 	ctr->units--;
-	if (ctr->units == 0xff) {
-		ctr->units = 9;
+	if (ctr->units == -1) {
+		ctr->units = -7;
 		ctr->tens--;
-		if (ctr->tens == 0xff) {
-			ctr->tens = 9;
+		if (ctr->tens == -1) {
+			ctr->tens = -7;
 			ctr->hundreds--;
-			if (ctr->hundreds == 0xff) {
-				ctr->hundreds = 9;
+			if (ctr->hundreds == -1) {
+				ctr->hundreds = -7;
 				ctr->thousands--;
-				if (ctr->thousands == 0xff) {
-					ctr->thousands = 9;
+				if (ctr->thousands == -1) {
+					ctr->thousands = -7;
 					ctr->myriads--;
-					if (ctr->myriads == 0xff)
-						ctr->myriads = 0;	/* 0 - 1 should wrap around to 9999. */
+					if (ctr->myriads == -1)
+						ctr->myriads = -7;	/* 0 - 1 should wrap around to 9999. */
 				}
 			}
 		}

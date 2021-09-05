@@ -47,22 +47,7 @@ endif()
 target_link_libraries(86Box cpu chipset mch dev mem fdd game cdrom zip mo hdd
 	net print scsi sio snd vid voodoo plat ui)
 
-find_package(Freetype REQUIRED)
-include_directories(${FREETYPE_INCLUDE_DIRS})
-
-find_package(OpenAL REQUIRED)
-include_directories(${OPENAL_INCLUDE_DIR})
-target_link_libraries(86Box ${OPENAL_LIBRARY})
-
-find_package(SDL2 CONFIG REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS})
-target_link_libraries(86Box SDL2::SDL2)
-
-find_package(PNG REQUIRED)
-include_directories(${PNG_INCLUDE_DIRS})
-target_link_libraries(86Box PNG::PNG)
-
-if(ARCH STREQUAL "i386")
+if(WIN32 AND ARCH STREQUAL "i386")
 	if(MSVC)
 		target_link_options(86Box PRIVATE "/LARGEADDRESSAWARE")
 	else()
@@ -70,9 +55,29 @@ if(ARCH STREQUAL "i386")
 	endif()
 endif()
 
-if(NOT MSVC AND NOT UNIX AND NOT APPLE)
+if(MINGW)
 	target_link_options(86Box PRIVATE "-static")
+	set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".dll.a")
 endif()
+
+find_package(Freetype REQUIRED)
+include_directories(${FREETYPE_INCLUDE_DIRS})
+
+find_package(OpenAL REQUIRED)
+include_directories(${OPENAL_INCLUDE_DIR})
+target_link_libraries(86Box ${OPENAL_LIBRARY})
+
+find_package(SDL2 REQUIRED)
+include_directories(${SDL2_INCLUDE_DIRS})
+if(MINGW)
+	target_link_libraries(86Box SDL2::SDL2-static)
+else()
+	target_link_libraries(86Box SDL2::SDL2)
+endif()
+
+find_package(PNG REQUIRED)
+include_directories(${PNG_INCLUDE_DIRS})
+target_link_libraries(86Box PNG::PNG)
 
 configure_file(include/86box/version.h.in include/86box/version.h @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
@@ -123,7 +128,7 @@ add_subdirectory(sio)
 add_subdirectory(scsi)
 add_subdirectory(sound)
 add_subdirectory(video)
-if (${CMAKE_SYSTEM_NAME} MATCHES "Windows")
+if (WIN32)
 	add_subdirectory(win)
 else()
 	add_subdirectory(unix)
