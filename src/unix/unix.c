@@ -759,7 +759,7 @@ void monitor_thread(void* param)
                 {
                     exit_event = 1;
                 }
-                else if (strncasecmp(xargv[0], "fullscreen", 1) == 0)
+                else if (strncasecmp(xargv[0], "fullscreen", 10) == 0)
                 {
                     video_fullscreen = 1;
                     fullscreen_pending = 1;

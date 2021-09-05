@@ -344,6 +344,8 @@ extern const device_t s3_phoenix_trio64_onboard_pci_device;
 extern const device_t s3_phoenix_trio64_pci_device;
 extern const device_t s3_phoenix_trio64vplus_pci_device;
 extern const device_t s3_phoenix_trio64vplus_onboard_pci_device;
+extern const device_t s3_mirocrystal_20sv_964_vlb_device;
+extern const device_t s3_mirocrystal_20sv_964_pci_device;
 extern const device_t s3_phoenix_vision864_pci_device;
 extern const device_t s3_phoenix_vision864_vlb_device;
 extern const device_t s3_phoenix_vision868_pci_device;
@@ -406,6 +408,7 @@ extern const device_t voodoo_3_2000_agp_device;
 extern const device_t voodoo_3_2000_agp_onboard_8m_device;
 extern const device_t voodoo_3_3000_device;
 extern const device_t voodoo_3_3000_agp_device;
+extern const device_t velocity_100_agp_device;
 
 /* Wyse 700 */
 extern const device_t wy700_device;
