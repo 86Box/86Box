@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <math.h>
 
 static int opSQRTPS_xmm_xmm_a16(uint32_t fetchdat)
