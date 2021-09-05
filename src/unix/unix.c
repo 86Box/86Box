@@ -1137,10 +1137,6 @@ int main(int argc, char** argv)
         {
             plat_mouse_capture(0);
         }
-        if (video_fullscreen && keyboard_isfsexit())
-        {
-            sdl_set_fs(0);
-        }
         if (blitreq)
         {
             extern void sdl_blit(int x, int y, int w, int h);
