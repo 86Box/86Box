@@ -19,6 +19,8 @@ cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED 14)
 
 project(86Box
 	VERSION 3.0
