@@ -517,6 +517,21 @@ extern "C" void RenderImGui()
             RenderCassetteImguiMenu();
             ImGui::EndMenu();
         }
+        if (ImGui::BeginMenu("Help"))
+        {
+            if (ImGui::MenuItem("Documentation"))
+            {
+                SDL_OpenURL("https://86box.readthedocs.io");
+            }
+            if (ImGui::MenuItem("About 86Box"))
+            {
+                int origpause = dopause;
+                plat_pause(1);
+                SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "About 86Box", "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information.", NULL);
+                plat_pause(origpause);
+            }
+            ImGui::EndMenu();
+        }
         ImGui::EndMainMenuBar();
     }
 
