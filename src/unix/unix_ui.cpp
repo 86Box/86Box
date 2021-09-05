@@ -20,7 +20,7 @@
 #include <86box/zip.h>
 #include <86box/hdc.h>
 #include <86box/plat.h>
-#include <86box/plat_dynld.h>
+#include <86box/video.h>
 #include <86box/device.h>
 #include <86box/gameport.h>
 #include <86box/unix_sdl.h>
@@ -38,6 +38,21 @@ static bool firstrender = true;
 
 #define MACHINE_HAS_IDE		(machines[machine].flags & MACHINE_IDE_QUAD)
 #define MACHINE_HAS_SCSI	(machines[machine].flags & MACHINE_SCSI_DUAL)
+typedef struct sdl_blit_params
+{
+    int x, y, y1, y2, w, h;
+} sdl_blit_params;
+
+extern sdl_blit_params params;
+extern int blitreq;
+extern "C" void sdl_blit(int x, int y, int y1, int y2, int w, int h);
+
+void
+take_screenshot(void)
+{
+    screenshots++;
+    device_force_redraw();
+}
 
 static inline int
 is_valid_cartridge(void)
@@ -490,6 +505,14 @@ extern "C" void RenderImGui()
                 SDL_Event event;
                 event.type = SDL_QUIT;
                 SDL_PushEvent(&event);
+            }
+            ImGui::EndMenu();
+        }
+        if (ImGui::BeginMenu("View"))
+        {
+            if (ImGui::MenuItem("Take screenshot"))
+            {
+                take_screenshot();
             }
             ImGui::EndMenu();
         }

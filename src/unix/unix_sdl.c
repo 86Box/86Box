@@ -163,6 +163,7 @@ sdl_blit(int x, int y, int w, int h)
     r_src.w = w;
     r_src.h = h;
     sdl_real_blit(&r_src);
+    blitreq = 0;
 	video_blit_complete();
 	return;
     }
