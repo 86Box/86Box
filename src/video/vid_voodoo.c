@@ -1237,23 +1237,7 @@ void *voodoo_init()
 
 void voodoo_card_close(voodoo_t *voodoo)
 {
-/* #ifndef RELEASE_BUILD
-        FILE *f;
-#endif */
         int c;
-        
-/* #ifndef RELEASE_BUILD        
-        f = rom_fopen("texram.dmp", "wb");
-        fwrite(voodoo->tex_mem[0], voodoo->texture_size*1024*1024, 1, f);
-        fclose(f);
-        if (voodoo->dual_tmus)
-        {
-                f = rom_fopen("texram2.dmp", "wb");
-                fwrite(voodoo->tex_mem[1], voodoo->texture_size*1024*1024, 1, f);
-                fclose(f);
-        }
-#endif */
-
 
 	voodoo->fifo_thread_run = 0;
         thread_set_event(voodoo->wake_fifo_thread);

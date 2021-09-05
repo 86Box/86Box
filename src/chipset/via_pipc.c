@@ -37,6 +37,7 @@
 #include <86box/timer.h>
 #include <86box/nvr.h>
 #include <86box/acpi.h>
+#include <86box/ddma.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
 #include <86box/port_92.h>
@@ -79,6 +80,7 @@ typedef struct
     sff8038i_t	*bm[2];
     nvr_t	*nvr;
     int		nvr_enabled, slot;
+    ddma_t	*ddma;
     smbus_piix4_t *smbus;
     usb_t	*usb[2];
     acpi_t	*acpi;
@@ -709,6 +711,19 @@ usb_update_io_mapping(pipc_t *dev, int func)
 
 
 static void
+pipc_ddma_update(pipc_t *dev, int addr)
+{
+    uint32_t base;
+
+    if (dev->local >= VIA_PIPC_8231)
+	return;
+
+    base = (dev->pci_isa_regs[addr] & 0xf0) | (((uint32_t) dev->pci_isa_regs[addr | 0x01]) << 8);
+    ddma_update_io_mapping(dev->ddma, (addr & 0x0e) >> 1, (dev->pci_isa_regs[addr] & 0xf0), dev->pci_isa_regs[addr | 0x01], (dev->pci_isa_regs[addr] & 0x08) && (base != 0x0000));
+}
+
+
+static void
 pipc_write(int func, int addr, uint8_t val, void *priv)
 {
     pipc_t *dev = (pipc_t *) priv;
@@ -854,19 +869,13 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 
 		case 0x60: case 0x62: case 0x64: case 0x66:
 		case 0x6a: case 0x6c: case 0x6e:
-			c = (addr & 0x0e) >> 1;
-			dma[c].ab = (dma[c].ab & 0xffffff0f) | (val & 0xf0);
-			dma[c].ac = (dma[c].ac & 0xffffff0f) | (val & 0xf0);
-			if (val & 0x08)
-				dma_e |= (1 << c);
-			else
-				dma_e &= ~(1 << c);
+			dev->pci_isa_regs[addr] = val & 0xf8;
+			pipc_ddma_update(dev, addr);
 			break;
 		case 0x61: case 0x63: case 0x65: case 0x67:
 		case 0x6b: case 0x6d: case 0x6f:
-			c = (addr & 0x0e) >> 1;
-			dma[c].ab = (dma[c].ab & 0xffff00ff) | (val << 8);
-			dma[c].ac = (dma[c].ac & 0xffff00ff) | (val << 8);
+			dev->pci_isa_regs[addr] = val;
+			pipc_ddma_update(dev, addr & 0xfe);
 			break;
 
 		case 0x70: case 0x71: case 0x72: case 0x73:
@@ -1352,6 +1361,9 @@ pipc_init(const device_t *info)
 	if (dev->local == VIA_PIPC_586B)
 		pci_enable_mirq(2);
     }
+
+    if (dev->local < VIA_PIPC_8231)
+	dev->ddma = device_add(&ddma_device);
 
     if (dev->acpi) {
 	acpi_set_slot(dev->acpi, dev->slot);

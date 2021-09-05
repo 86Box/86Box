@@ -692,7 +692,7 @@ ncr_write(uint16_t port, uint8_t val, void *priv)
 
 			ncr_dev->t128.host_pos = MIN(512, dev->buffer_length);
 			ncr_dev->t128.status |= 0x04;
-			timer_on_auto(&ncr_dev->timer, 0.2);
+			timer_on_auto(&ncr_dev->timer, 0.02);
 		} else {
 			if ((ncr->mode & MODE_DMA) && !timer_is_enabled(&ncr_dev->timer)) {
 				memset(ncr_dev->buffer, 0, MIN(128, dev->buffer_length));
