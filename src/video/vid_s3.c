@@ -2713,8 +2713,10 @@ static void s3_recalctimings(svga_t *svga)
 	if (((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10)) || (svga->crtc[0x3a] & 0x10)) {
 		if (svga->crtc[0x31] & 0x08) { /*If the dword mode bit is not enabled when the S3 dword mode is enabled, enable it*/
 			if (!(svga->crtc[0x14] & 0x40))
-				svga->crtc[0x14] |= 0x40;
-		}
+				svga->force_dword_mode = 1;
+		} else
+			svga->force_dword_mode = 0;
+	
 		switch (svga->bpp) {
 			case 8:
 			svga->render = svga_render_8bpp_highres;
@@ -2851,10 +2853,12 @@ static void s3_trio64v_recalctimings(svga_t *svga)
 		
 		svga->lowres = !((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10));
 		if ((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10)) {
-			if (svga->crtc[0x31] & 0x08) {
+			if (svga->crtc[0x31] & 0x08) { /*If the dword mode bit is not enabled when the S3 dword mode is enabled, enable it*/
 				if (!(svga->crtc[0x14] & 0x40))
-					svga->crtc[0x14] |= 0x40;
-			}
+					svga->force_dword_mode = 1;
+			} else
+				svga->force_dword_mode = 0;
+
 			switch (svga->bpp) {
 				case 8:
 				svga->render = svga_render_8bpp_highres;
