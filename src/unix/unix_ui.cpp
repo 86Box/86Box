@@ -100,6 +100,7 @@ static bool OpenFileChooser(char* res, size_t n)
         {
             res[strcspn(res, "\r\n")] = 0;
             boolres = true;
+            pclose(output);
         }
     }
     plat_pause(origpause);
