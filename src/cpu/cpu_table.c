@@ -15,12 +15,14 @@
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		RichardG, <richardg867@gmail.com>
+ *		dob205,
  *
  *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2016-2019 leilei.
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2017-2019 Fred N. van Kempen.
  *		Copyright 2020 RichardG.
+ *		Copyright 2021 dob205.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -760,6 +762,9 @@ const cpu_family_t cpu_families[] = {
 	.name = "K6 (Model 6)",
 	.internal_name = "k6_m6",
 	.cpus = (const CPU[]) {
+		{"66",         CPU_K6,    fpus_internal,   66666666, 1.0, 2900, 0x561, 0x561, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 6, 6, 3, 3, 8},     /* out of spec */
+		{"100",        CPU_K6,    fpus_internal,  100000000, 1.5, 2900, 0x561, 0x561, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 9, 9, 4, 4, 12},   /* out of spec */
+		{"133",        CPU_K6,    fpus_internal,  133333333, 2.0, 2900, 0x561, 0x561, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 16}, /* out of spec */
 		{"166",        CPU_K6,    fpus_internal,  166666666, 2.5, 2900, 0x561, 0x561, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20},
 		{"200",        CPU_K6,    fpus_internal,  200000000, 3.0, 2900, 0x561, 0x561, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 18,18, 9, 9, 24},
 		{"233",        CPU_K6,    fpus_internal,  233333333, 3.5, 3200, 0x561, 0x561, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 21,21,10,10, 28},
@@ -1513,6 +1518,9 @@ static const cpu_legacy_table_t cpus_K5[] = {
 };
 
 static const cpu_legacy_table_t cpus_K56[] = {
+    {"k6_m6", 66666666, 1.0},
+    {"k6_m6", 100000000, 1.5},
+    {"k6_m6", 133333333, 2.0},
     {"k6_m6", 166666666, 2.5},
     {"k6_m6", 200000000, 3.0},
     {"k6_m6", 233333333, 3.5},
