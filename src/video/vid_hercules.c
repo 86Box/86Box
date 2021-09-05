@@ -203,11 +203,12 @@ hercules_in(uint16_t addr, void *priv)
 	case 0x03b3:
 	case 0x03b5:
 	case 0x03b7:
-		ret = dev->crtc[dev->crtcreg];
-		if (dev->crtcreg == 12)
+		if (dev->crtcreg == 0x0c)
 			ret = (dev->ma >> 8) & 0x3f;
-		else
+		else if (dev->crtcreg == 0x0d)
 			ret = dev->ma & 0xff;
+		else
+			ret = dev->crtc[dev->crtcreg];
 		break;
 
 	case 0x03ba:
