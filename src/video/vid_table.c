@@ -201,6 +201,7 @@ video_cards[] = {
     { "virge375_vbe20_vlb",	&s3_virge_375_4_vlb_device		},
     { "tgui9400cxi_vlb",	&tgui9400cxi_device			},
     { "tgui9440_vlb",		&tgui9440_vlb_device			},
+	{ "velocity100_agp",	&velocity_100_agp_device		},
     { "voodoo3_2k_agp",		&voodoo_3_2000_agp_device		},
     { "voodoo3_3k_agp",		&voodoo_3_3000_agp_device		},
     { "",			NULL                        		}
