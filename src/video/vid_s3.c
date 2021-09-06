@@ -2886,11 +2886,6 @@ static void s3_trio64v_recalctimings(svga_t *svga)
 		
 		svga->lowres = !((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10));
 		if ((svga->gdcreg[5] & 0x40) && (svga->crtc[0x3a] & 0x10)) {
-			if (svga->crtc[0x31] & 0x08) /*This would typically force dword mode, but we are encountering accel bugs with it, so force byte mode instead*/
-				svga->force_byte_mode = 1;
-			else
-				svga->force_byte_mode = 0;
-
 			switch (svga->bpp) {
 				case 8:
 				svga->render = svga_render_8bpp_highres;
