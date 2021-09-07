@@ -775,7 +775,7 @@ static int opREPNE_0f(uint32_t fetchdat)
 
         PREFETCH_PREFIX();
         if(!x86_opcodes_REPNE_0f) return x86_opcodes_0f[opcode | cpu_state.op32](fetchdat >> 8);
-        if (x86_opcodes_REPNE_0f[(opcode | cpu_state.op32])
+        if (x86_opcodes_REPNE_0f[opcode | cpu_state.op32])
                 return x86_opcodes_REPNE_0f[opcode | cpu_state.op32](fetchdat >> 8);
         return x86_opcodes_0f[opcode | cpu_state.op32](fetchdat >> 8);
 }
