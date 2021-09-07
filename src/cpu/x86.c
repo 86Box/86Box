@@ -312,6 +312,8 @@ reset_common(int hard)
 
     if (!is286)
 	reset_808x(hard);
+
+    mxcsr = 0x1f80;
 }
 
 

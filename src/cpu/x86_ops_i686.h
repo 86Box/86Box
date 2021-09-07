@@ -67,12 +67,6 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 	fetch_ea_16(fetchdat);
     }
 
-    if (cpu_state.eaaddr & 0xf) {
-	x386_dynarec_log("Effective address %08X not on 16-byte boundary\n", cpu_state.eaaddr);
-	x86gpf(NULL, 0);
-	return cpu_state.abrt;
-    }
-
     fxinst = (rmdat >> 3) & 7;
 
     if (((fxinst > 1) && !is_pentium3)) {
@@ -91,6 +85,11 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 
     if (fxinst == 1) {
 	/* FXRSTOR */
+	if (cpu_state.eaaddr & 0xf) {
+	x386_dynarec_log("Effective address %08X not on 16-byte boundary\n", cpu_state.eaaddr);
+	x86gpf(NULL, 0);
+	return cpu_state.abrt;
+    }
 	if(cpu_mod == 3)
 	{
 		x86illegal();
@@ -186,6 +185,11 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 	CLOCK_CYCLES((cr0 & 1) ? 34 : 44);
     } else if(fxinst == 0){
 	/* FXSAVE */
+	if (cpu_state.eaaddr & 0xf) {
+	x386_dynarec_log("Effective address %08X not on 16-byte boundary\n", cpu_state.eaaddr);
+	x86gpf(NULL, 0);
+	return cpu_state.abrt;
+    }
 	if(cpu_mod == 3)
 	{
 		x86illegal();
@@ -283,7 +287,7 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
     
     	SEG_CHECK_READ(cpu_state.ea_seg);
     	src = readmeml(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
-		if(src & ~0xffbf) x86gpf(NULL, 0);
+		//if(src & ~0xffbf) x86gpf(NULL, 0);
     	mxcsr = src & 0xffbf;
 	}
 	else if(fxinst == 3)
