@@ -772,6 +772,7 @@ VIDOBJ		:= video.o \
 		    vid_paradise.o \
 			vid_rtg310x.o \
 		    vid_ti_cf62011.o \
+		    vid_f82c425.o \
 		    vid_tvga.o \
 		    vid_tgui9440.o vid_tkd8001_ramdac.o \
 		    vid_att20c49x_ramdac.o \
