@@ -298,14 +298,17 @@ void plat_midi_input_init(void)
 
 void plat_midi_input_close(void)
 {
-	thread_wait_mutex(midiinmtx);
+	if (midiinmtx) thread_wait_mutex(midiinmtx);
 	if (midiin != NULL)
 	{
 		snd_rawmidi_close(midiin);
 		midiin = NULL;
 	}
-	thread_release_mutex(midiinmtx);
-	thread_close_mutex(midiinmtx);
+	if (midiinmtx)
+	{
+		thread_release_mutex(midiinmtx);
+		thread_close_mutex(midiinmtx);
+	}
 	midiinmtx = NULL;
 }
 

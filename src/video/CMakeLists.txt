@@ -22,7 +22,7 @@ add_library(vid OBJECT video.c vid_table.c vid_cga.c vid_cga_comp.c
 	vid_av9194.c vid_icd2061.c vid_ics2494.c vid_ics2595.c vid_cl54xx.c
 	vid_et4000.c vid_sc1148x_ramdac.c vid_sc1502x_ramdac.c vid_et4000w32.c
 	vid_stg_ramdac.c vid_ht216.c vid_oak_oti.c vid_paradise.c vid_rtg310x.c
-	vid_ti_cf62011.c vid_tvga.c vid_tgui9440.c vid_tkd8001_ramdac.c
+	vid_f82c425.c vid_ti_cf62011.c vid_tvga.c vid_tgui9440.c vid_tkd8001_ramdac.c
 	vid_att20c49x_ramdac.c vid_s3.c vid_s3_virge.c vid_ibm_rgb528_ramdac.c
 	vid_sdac_ramdac.c vid_ogc.c vid_nga.c vid_tvp3026_ramdac.c)
 

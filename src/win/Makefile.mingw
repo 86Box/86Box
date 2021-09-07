@@ -646,7 +646,7 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_xt_xi8088.o m_xt_zenith.o \
 		    m_pcjr.o \
 		    m_amstrad.o m_europc.o \
-		    m_xt_olivetti.o m_tandy.o \
+		    m_xt_olivetti.o m_tandy.o m_v86p.o \
 		    m_at.o m_at_commodore.o \
 		    m_at_t3100e.o m_at_t3100e_vid.o \
 		    m_ps1.o m_ps1_hdc.o \
@@ -784,6 +784,7 @@ VIDOBJ		:= video.o \
 		    vid_paradise.o \
 			vid_rtg310x.o \
 		    vid_ti_cf62011.o \
+		    vid_f82c425.o \
 		    vid_tvga.o \
 		    vid_tgui9440.o vid_tkd8001_ramdac.o \
 		    vid_att20c49x_ramdac.o \
