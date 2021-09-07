@@ -43,6 +43,7 @@ int resize_pending = 0;
 int resize_w = 0;
 int resize_h = 0;
 float menubarheight = 0.0f;
+static void* interpixels;
 
 extern void RenderImGui();
 static void
@@ -129,7 +130,10 @@ sdl_blit_shim(int x, int y, int w, int h)
     params.y = y;
     params.w = w;
     params.h = h;
+    if (!interpixels) interpixels = calloc(17842176, 1);
+    memcpy(interpixels, &(buffer32->line[y][x]), h * (2048 + 64) * sizeof(uint32_t));
     blitreq = 1;
+    video_blit_complete();
 }
 
 void ui_window_title_real();
@@ -164,7 +168,6 @@ sdl_blit(int x, int y, int w, int h)
     r_src.h = h;
     sdl_real_blit(&r_src);
     blitreq = 0;
-	video_blit_complete();
 	return;
     }
 
@@ -180,8 +183,8 @@ sdl_blit(int x, int y, int w, int h)
     r_src.y = y;
     r_src.w = w;
     r_src.h = h;
-    SDL_UpdateTexture(sdl_tex, &r_src, &(buffer32->line[y][x]), (2048 + 64) * 4);
-    video_blit_complete();
+    SDL_UpdateTexture(sdl_tex, &r_src, interpixels, (2048 + 64) * 4);
+    blitreq = 0;
 
     sdl_real_blit(&r_src);
     SDL_UnlockMutex(sdl_mutex);
