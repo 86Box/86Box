@@ -521,6 +521,72 @@ extern "C" void RenderImGui()
             {
                 take_screenshot();
             }
+            if (ImGui::BeginMenu("EGA/(S)VGA settings"))
+            {
+                if (ImGui::BeginMenu("VGA screen type"))
+                {
+                    if (ImGui::MenuItem("RGB Color", NULL, video_grayscale == 0, true))
+                    {
+                        video_grayscale = 0;
+                        device_force_redraw();
+                        config_save();
+                    }
+                    if (ImGui::MenuItem("RGB Grayscale", NULL, video_grayscale == 1, true))
+                    {
+                        video_grayscale = 1;
+                        device_force_redraw();
+                        config_save();
+                    }
+                    if (ImGui::MenuItem("Amber monitor", NULL, video_grayscale == 2, true))
+                    {
+                        video_grayscale = 2;
+                        device_force_redraw();
+                        config_save();
+                    }
+                    if (ImGui::MenuItem("Green monitor", NULL, video_grayscale == 3, true))
+                    {
+                        video_grayscale = 3;
+                        device_force_redraw();
+                        config_save();
+                    }
+                    if (ImGui::MenuItem("White monitor", NULL, video_grayscale == 4, true))
+                    {
+                        video_grayscale = 4;
+                        device_force_redraw();
+                        config_save();
+                    }
+                    ImGui::EndMenu();
+                }
+                if (ImGui::BeginMenu("Grayscale conversion type"))
+                {
+                    if (ImGui::MenuItem("BT601 (NTSC/PAL)", NULL, video_graytype == 0, true))
+                    {
+                        video_graytype = 0;
+                        device_force_redraw();
+                        config_save();
+                    }
+                    if (ImGui::MenuItem("BT709 (HDTV)", NULL, video_graytype == 1, true))
+                    {
+                        video_graytype = 1;
+                        device_force_redraw();
+                        config_save();
+                    }
+                    if (ImGui::MenuItem("Average", NULL, video_graytype == 2, true))
+                    {
+                        video_graytype = 2;
+                        device_force_redraw();
+                        config_save();
+                    }
+                    ImGui::EndMenu();
+                }
+                if (ImGui::MenuItem("Inverted VGA monitor", NULL, invert_display))
+                {
+                    invert_display ^= 1;
+                    device_force_redraw();
+                    config_save();
+                }
+                ImGui::EndMenu();
+            }
             ImGui::EndMenu();
         }
         if (ImGui::BeginMenu("Media"))
