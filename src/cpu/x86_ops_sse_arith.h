@@ -984,7 +984,6 @@ static int opMAXSS_xmm_xmm_a32(uint32_t fetchdat)
 
 static int opCMPPS_xmm_xmm_a16(uint32_t fetchdat)
 {
-    MMX_ENTER();
     fetch_ea_16(fetchdat);
     uint8_t imm = getbyte();
     uint32_t cmp[4];
@@ -1159,7 +1158,6 @@ static int opCMPPS_xmm_xmm_a16(uint32_t fetchdat)
 
 static int opCMPPS_xmm_xmm_a32(uint32_t fetchdat)
 {
-    MMX_ENTER();
     fetch_ea_32(fetchdat);
     uint8_t imm = getbyte();
     uint32_t cmp[4];
@@ -1334,7 +1332,6 @@ static int opCMPPS_xmm_xmm_a32(uint32_t fetchdat)
 
 static int opCMPSS_xmm_xmm_a16(uint32_t fetchdat)
 {
-    MMX_ENTER();
     fetch_ea_16(fetchdat);
     uint8_t imm = getbyte();
     uint32_t cmp;
@@ -1449,7 +1446,6 @@ static int opCMPSS_xmm_xmm_a16(uint32_t fetchdat)
 
 static int opCMPSS_xmm_xmm_a32(uint32_t fetchdat)
 {
-    MMX_ENTER();
     fetch_ea_32(fetchdat);
     uint8_t imm = getbyte();
     uint32_t cmp;

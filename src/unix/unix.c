@@ -154,7 +154,11 @@ static const uint16_t sdl_to_xt[0x200] =
     [SDL_SCANCODE_KP_2] = 0x50,
     [SDL_SCANCODE_KP_1] = 0x4F,
     [SDL_SCANCODE_KP_0] = 0x52,
-    [SDL_SCANCODE_KP_PERIOD] = 0x53
+    [SDL_SCANCODE_KP_PERIOD] = 0x53,
+
+    [SDL_SCANCODE_LGUI] = 0x15B,
+    [SDL_SCANCODE_RGUI] = 0x15C,
+    [SDL_SCANCODE_APPLICATION] = 0x15D
 };
 
 typedef struct sdl_blit_params
