@@ -598,13 +598,20 @@ CPUOBJ		:= $(DYNARECOBJ) \
 		    808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o \
 		    x86seg.o x87.o x87_timings.o
 
-CHIPSETOBJ	:= 82c100.o acc2168.o cs8230.o ali1217.o ali1429.o ali1489.o et6000.o headland.o intel_82335.o cs4031.o \
-		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
-		    neat.o opti495.o opti822.o opti895.o opti5x7.o scamp.o scat.o via_vt82c49x.o via_vt82c505.o \
-		    gc100.o \
-		    sis_85c310.o sis_85c4xx.o sis_85c496.o sis_85c50x.o sis_5511.o sis_5571.o sis_5598.o stpc.o opti283.o opti291.o \
-		    umc_8886.o umc_8890.o umc_hb4.o \
-		    via_apollo.o via_pipc.o wd76c10.o vl82c480.o
+CHIPSETOBJ	:= 82c100.o acc2168.o \
+		    contaq_82c59x.o \
+		    cs4031.o cs8230.o \
+		    ali1429.o ali1489.o ali1531.o ali1541.o ali1543.o ali1621.o ali6117.o \
+		    gc100.o headland.o \
+		    intel_82335.o intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
+		    neat.o \
+		    opti283.o opti291.o opti391.o opti495.o opti822.o opti895.o opti5x7.o \
+		    scamp.o scat.o \
+		    stpc.o \
+		    wd76c10.o vl82c480.o \
+		    umc_8886.o umc_hb4.o \
+		    via_vt82c49x.o via_vt82c505.o via_apollo.o via_pipc.o \
+		    sis_85c310.o sis_85c4xx.o sis_85c496.o sis_85c50x.o sis_5511.o sis_5571.o
 
 MCHOBJ		:= machine.o machine_table.o \
 		    m_xt.o m_xt_compaq.o \
@@ -613,7 +620,7 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_xt_xi8088.o m_xt_zenith.o \
 		    m_pcjr.o \
 		    m_amstrad.o m_europc.o \
-		    m_xt_olivetti.o m_tandy.o m_v86p.o \
+		    m_xt_olivetti.o m_tandy.o \
 		    m_at.o m_at_commodore.o \
 		    m_at_t3100e.o m_at_t3100e_vid.o \
 		    m_ps1.o m_ps1_hdc.o \
@@ -765,7 +772,6 @@ VIDOBJ		:= video.o \
 		    vid_paradise.o \
 			vid_rtg310x.o \
 		    vid_ti_cf62011.o \
-		    vid_f82c425.o \
 		    vid_tvga.o \
 		    vid_tgui9440.o vid_tkd8001_ramdac.o \
 		    vid_att20c49x_ramdac.o \
