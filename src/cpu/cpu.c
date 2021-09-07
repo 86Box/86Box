@@ -88,6 +88,7 @@ const OpFn	*x86_dynarec_opcodes, *x86_dynarec_opcodes_0f,
 		*x86_dynarec_opcodes_de_a16, *x86_dynarec_opcodes_de_a32,
 		*x86_dynarec_opcodes_df_a16, *x86_dynarec_opcodes_df_a32,
 		*x86_dynarec_opcodes_REPE, *x86_dynarec_opcodes_REPNE,
+		*x86_dynarec_opcodes_REPNE_0f,
 		*x86_dynarec_opcodes_3DNOW;
 #endif
 
@@ -1300,13 +1301,14 @@ cpu_set(void)
                 break;
 	case CPU_PENTIUM3:
 #ifdef USE_DYNAREC
-                x86_setopcodes(ops_386, ops_pentium3_0f, dynarec_ops_386, dynarec_ops_pentium2d_0f);
+                x86_setopcodes(ops_386, ops_pentium3_0f, dynarec_ops_386, dynarec_ops_pentium3_0f);
                 x86_dynarec_opcodes_da_a16 = dynarec_ops_fpu_686_da_a16;
                 x86_dynarec_opcodes_da_a32 = dynarec_ops_fpu_686_da_a32;
                 x86_dynarec_opcodes_db_a16 = dynarec_ops_fpu_686_db_a16;
                 x86_dynarec_opcodes_db_a32 = dynarec_ops_fpu_686_db_a32;
                 x86_dynarec_opcodes_df_a16 = dynarec_ops_fpu_686_df_a16;
                 x86_dynarec_opcodes_df_a32 = dynarec_ops_fpu_686_df_a32;
+				x86_dynarec_opcodes_REPNE_0f = dynarec_ops_pentium3_REPNE_0f;
 #else
 		x86_setopcodes(ops_386, ops_pentium3_0f);
 #endif
