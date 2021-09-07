@@ -60,7 +60,7 @@ ct_82c100_ems_pages_recalc(ct_82c100_t *dev)
 	page_base = dev->ems_window_base + (i << 14);
 	if (dev->ems_page_regs[i] & 0x80) {
 		dev->ems_pages[i].virt = page_base;
-		dev->ems_pages[i].phys = 0xa0000 + (((uint32_t) (dev->ems_page_regs[4] & 0x7f)) << 14);
+		dev->ems_pages[i].phys = 0xa0000 + (((uint32_t) (dev->ems_page_regs[i] & 0x7f)) << 14);
 		mem_mapping_set_addr(&(dev->ems_mappings[i]), dev->ems_pages[i].virt, 0x4000);
 		mem_mapping_set_exec(&(dev->ems_mappings[i]), &(ram[dev->ems_pages[i].phys]));
 		mem_set_mem_state_both(page_base, 0x00004000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
