@@ -128,7 +128,7 @@ serial_update_ints(serial_t *dev)
 	dev->iir = 0;
     }
 
-    if (stat && ((dev->mctrl & 8) || (dev->type == SERIAL_8250_PCJR))) {
+    if (stat && (dev->irq != 0xff) && ((dev->mctrl & 8) || (dev->type == SERIAL_8250_PCJR))) {
 	if (dev->type >= SERIAL_NS16450)
 		picintlevel(1 << dev->irq);
 	else
@@ -615,7 +615,7 @@ serial_remove(serial_t *dev)
 
 
 void
-serial_setup(serial_t *dev, uint16_t addr, int irq)
+serial_setup(serial_t *dev, uint16_t addr, uint8_t irq)
 {
     serial_log("Adding serial port %i at %04X...\n", dev->inst, addr);
 
