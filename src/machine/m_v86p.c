@@ -43,6 +43,7 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 #include <86box/keyboard.h>
+#include <86box/chipset.h>
 #include <86box/sio.h>
 #include <86box/video.h>
 
@@ -69,6 +70,7 @@ machine_v86p_init(const machine_t *model)
 
 	machine_common_init(model);
 
+	device_add(&ct_82c100_device);
 	device_add(&f82c606_device);
 
 	device_add(&keyboard_xt_device);
