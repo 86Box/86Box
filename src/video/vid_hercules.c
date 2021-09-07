@@ -279,11 +279,17 @@ static void
 hercules_render_overscan_left(hercules_t *dev)
 {
     int i;
+    uint32_t width;
+
+    if (dev->ctrl & 0x02)
+	width = (((uint32_t) dev->crtc[1]) << 4);
+    else
+	width = (((uint32_t) dev->crtc[1]) * 9);
 
     if ((dev->displine + 14) < 0)
 	return;
 
-    if ((((uint32_t) dev->crtc[1]) * 9) == 0)
+    if (width == 0)
 	return;
 
     for (i = 0; i < 8; i++)
@@ -295,15 +301,21 @@ static void
 hercules_render_overscan_right(hercules_t *dev)
 {
     int i;
+    uint32_t width;
+
+    if (dev->ctrl & 0x02)
+	width = (((uint32_t) dev->crtc[1]) << 4);
+    else
+	width = (((uint32_t) dev->crtc[1]) * 9);
 
     if ((dev->displine + 14) < 0)
 	return;
 
-    if ((((uint32_t) dev->crtc[1]) * 9) == 0)
+    if (width == 0)
 	return;
 
     for (i = 0; i < 8; i++)
-	buffer32->line[dev->displine + 14][8 + (((uint32_t) dev->crtc[1]) * 9) + i] = 0x00000000;
+	buffer32->line[dev->displine + 14][8 + width + i] = 0x00000000;
 }
 
 

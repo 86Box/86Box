@@ -649,7 +649,9 @@ ht216_recalctimings(svga_t *svga)
 			svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
 			svga->rowoffset <<= 1;
 			if ((svga->crtc[0x17] & 0x60) == 0x20) /*Would result in a garbled screen with trailing cursor glitches*/
-				svga->crtc[0x17] |= 0x40;
+				svga->force_byte_mode = 1;
+			else
+				svga->force_byte_mode = 0;
 		}
 		svga->render = svga_render_8bpp_highres;
 	}

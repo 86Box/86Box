@@ -121,6 +121,7 @@ extern void	nvr_wp_set(int set, int h, nvr_t *nvr);
 extern void	nvr_via_wp_set(int set, int reg, nvr_t *nvr);
 extern void	nvr_bank_set(int base, uint8_t bank, nvr_t *nvr);
 extern void	nvr_lock_set(int base, int size, int lock, nvr_t *nvr);
+extern void	nvr_irq_set(int irq, nvr_t *nvr);
 
 
 #endif	/*EMU_NVR_H*/

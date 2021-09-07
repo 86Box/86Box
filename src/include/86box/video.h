@@ -250,6 +250,9 @@ extern const device_t compaq_cga_2_device;
 extern const device_t ogc_device;
 extern const device_t ogc_m24_device;
 
+/* Chips & Technologies 82C425 */
+extern const device_t f82c425_video_device;
+
 /* NCR NGA */
 extern const device_t nga_device;
 
