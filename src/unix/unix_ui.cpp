@@ -215,7 +215,7 @@ struct CDMenu
         std::string str = "CD-ROM ";
         str += std::to_string(cdid + 1);
         str += " (";
-        str += cdrom[cdid].bus_type == 1 ? "SCSI" : "ATAPI";
+        str += cdrom[cdid].bus_type == CDROM_BUS_ATAPI ? "ATAPI" : "SCSI";
         str += ") ";
         str += strlen(cdrom[cdid].image_path) == 0 ? "(empty)" : cdrom[cdid].image_path;
         if (ImGui::BeginMenu(str.c_str()))
@@ -255,7 +255,7 @@ struct ZIPMenu
         str += " ";
         str += std::to_string(zipid + 1);
         str += " (";
-        str += zip_drives[zipid].bus_type == 1 ? "SCSI" : "ATAPI";
+        str += zip_drives[zipid].bus_type == ZIP_BUS_SCSI ? "SCSI" : "ATAPI";
         str += ") ";
         str += strlen(zip_drives[zipid].image_path) == 0 ? "(empty)" : zip_drives[zipid].image_path;
         if (ImGui::BeginMenu(str.c_str()))

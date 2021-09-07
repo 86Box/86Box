@@ -1166,6 +1166,10 @@ int main(int argc, char** argv)
         {
             pc_send_cad();
         }
+        if ((keyboard_recv(0x1D) || keyboard_recv(0x11D)) && keyboard_recv(0x57))
+        {
+            take_screenshot();
+        }
         if (exit_event)
         {
             do_stop();
