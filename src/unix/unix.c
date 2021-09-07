@@ -759,6 +759,7 @@ void monitor_thread(void* param)
                     xargv[cmdargc++] = local_strsep(&linecpy, " ");
                     if (xargv[cmdargc - 1] == NULL || cmdargc >= 512) break;
                 }
+		cmdargc--;
                 if (strncasecmp(xargv[0], "exit", 4) == 0)
                 {
                     exit_event = 1;

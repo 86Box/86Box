@@ -622,6 +622,9 @@ extern int	machine_tandy_init(const machine_t *);
 extern int	machine_tandy1000hx_init(const machine_t *);
 extern int	machine_tandy1000sl2_init(const machine_t *);
 
+/* m_v86p.c */
+extern int	machine_v86p_init(const machine_t *);
+
 #ifdef EMU_DEVICE_H
 extern const device_t	*tandy1k_get_device(void);
 extern const device_t	*tandy1k_hx_get_device(void);

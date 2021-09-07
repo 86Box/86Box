@@ -20,6 +20,7 @@ extern void		vt82c686_sio_write(uint8_t addr, uint8_t val, void *priv);
 
 extern const device_t	acc3221_device;
 extern const device_t	f82c710_device;
+extern const device_t	f82c606_device;
 extern const device_t	fdc37c651_device;
 extern const device_t	fdc37c661_device;
 extern const device_t	fdc37c663_device;
