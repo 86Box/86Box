@@ -463,7 +463,14 @@ extern "C" bool ImGuiWantsKeyboardCapture()
 extern "C" void RenderImGui()
 {
     if (!imrendererinit) HandleSizeChange();
-    ImGui_ImplSDL2_NewFrame(sdl_win);
+    if (!mouse_capture) ImGui_ImplSDL2_NewFrame(sdl_win);
+    else
+    {
+        int w, h;
+        SDL_GetRendererOutputSize(sdl_render, &w, &h);
+        ImGui::GetIO().DisplaySize.x = w;
+        ImGui::GetIO().DisplaySize.y = h;
+    }
     ImGui::NewFrame();
     if (ImGui::BeginMainMenuBar())
     {

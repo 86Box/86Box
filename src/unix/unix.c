@@ -1034,7 +1034,7 @@ int main(int argc, char** argv)
     {
         while (SDL_PollEvent(&event))
 	    {
-            ImGui_ImplSDL2_ProcessEvent(&event);
+            if (!mouse_capture) ImGui_ImplSDL2_ProcessEvent(&event);
             switch(event.type)
             {
                 case SDL_QUIT:
