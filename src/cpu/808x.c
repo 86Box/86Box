@@ -38,6 +38,10 @@
 /* Is the CPU 8088 or 8086. */
 int is8086 = 0;
 
+uint8_t use_custom_nmi_vector = 0;
+uint32_t custom_nmi_vector = 0x00000000;
+
+
 /* The prefetch queue (4 bytes for 8088, 6 bytes for 8086). */
 static uint8_t pfq[6];
 
@@ -578,6 +582,9 @@ reset_808x(int hard)
 
     prefetching = 1;
     cpu_alu_op = 0;
+
+    use_custom_nmi_vector = 0x00;
+    custom_nmi_vector = 0x00000000;
 }
 
 
@@ -943,6 +950,41 @@ interrupt(uint16_t addr)
 }
 
 
+static void
+custom_nmi(void)
+{
+    uint16_t old_cs, old_ip;
+    uint16_t new_cs, new_ip;
+    uint16_t tempf;
+
+    cpu_state.eaaddr = 0x0002;
+    old_cs = CS;
+    access(5, 16);
+    (void) readmemw(0, cpu_state.eaaddr);
+    new_ip = custom_nmi_vector & 0xffff;
+    wait(1, 0);
+    cpu_state.eaaddr = (cpu_state.eaaddr + 2) & 0xffff;
+    access(6, 16);
+    (void) readmemw(0, cpu_state.eaaddr);
+    new_cs = custom_nmi_vector >> 16;
+    prefetching = 0;
+    pfq_clear();
+    ovr_seg = NULL;
+    access(39, 16);
+    tempf = cpu_state.flags & 0x0fd7;
+    push(&tempf);
+    cpu_state.flags &= ~(I_FLAG | T_FLAG);
+    access(40, 16);
+    push(&old_cs);
+    old_ip = cpu_state.pc;
+    load_cs(new_cs);
+    access(68, 16);
+    set_ip(new_ip);
+    access(41, 16);
+    push(&old_ip);
+}
+
+
 static int
 irq_pending(void)
 {
@@ -967,7 +1009,10 @@ check_interrupts(void)
 	}
 	if (nmi && nmi_enable && nmi_mask) {
 		nmi_enable = 0;
-		interrupt(2);
+		if (use_custom_nmi_vector)
+			custom_nmi();
+		else
+			interrupt(2);
 #ifndef OLD_NMI_BEHAVIOR
 		nmi = 0;
 #endif

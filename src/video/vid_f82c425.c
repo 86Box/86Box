@@ -239,7 +239,7 @@ static void f82c425_out(uint16_t addr, uint8_t val, void *p)
 	if (addr == 0x3d4)
 		f82c425->crtcreg = val;
 
-	if (f82c425->function & 0x01 == 0 && (f82c425->crtcreg != 0xdf || addr != 0x3d5))
+	if (((f82c425->function & 0x01) == 0) && ((f82c425->crtcreg != 0xdf) || (addr != 0x3d5)))
 		return;
 
 	if (addr != 0x3d5 || f82c425->crtcreg <= 31)
@@ -282,7 +282,7 @@ static uint8_t f82c425_in(uint16_t addr, void *p)
 {
 	f82c425_t *f82c425 = (f82c425_t *)p;
 
-	if (f82c425->function & 0x01 == 0)
+	if ((f82c425->function & 0x01) == 0)
 		return 0xff;
 
 	if (addr == 0x3d4)
@@ -308,6 +308,8 @@ static uint8_t f82c425_in(uint16_t addr, void *p)
 		case 0xdf:
 			return f82c425->function;
 	}
+
+	return 0xff;
 }
 
 static void f82c425_write(uint32_t addr, uint8_t val, void *p)

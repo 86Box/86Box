@@ -37,6 +37,7 @@ extern const device_t	ali6117d_device;
 extern const device_t	amd640_device;
 
 /* C&T */
+extern const device_t	ct_82c100_device;
 extern const device_t	neat_device;
 extern const device_t	scat_device;
 extern const device_t	scat_4_device;
@@ -65,6 +66,7 @@ extern const device_t	i420zx_device;
 extern const device_t	i430lx_device;
 extern const device_t	i430nx_device;
 extern const device_t	i430fx_device;
+extern const device_t	i430fx_old_device;
 extern const device_t	i430fx_rev02_device;
 extern const device_t	i430hx_device;
 extern const device_t	i430vx_device;
@@ -84,6 +86,7 @@ extern const device_t	sio_device;
 extern const device_t	sio_zb_device;
 
 extern const device_t	piix_device;
+extern const device_t	piix_old_device;
 extern const device_t	piix_rev02_device;
 extern const device_t	piix3_device;
 extern const device_t	piix4_device;
