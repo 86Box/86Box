@@ -29,6 +29,8 @@
 
 #include <string>
 #include <vector>
+#include <utility>
+#include <algorithm>
 
 extern "C" SDL_Window* sdl_win;
 extern "C" SDL_Renderer	*sdl_render;
@@ -102,13 +104,42 @@ is_valid_mo(int i)
     return mo_drives[i].bus_type != 0;
 }
 
-static bool OpenFileChooser(char* res, size_t n)
+static std::vector<std::pair<std::string, std::string>> floppyfilter
+{
+    {"All images", "*.0?? *.1?? *.??0 *.86F *.BIN *.CQ? *.D?? *.FLP *.HDM *.IM? *.JSON *.TD0 *.*FD? *.MFM *.XDF"},
+    {"Advanced sector images", "*.IMD *.JSON *.TD0"},
+    {"Basic sector images", "*.0?? *.1?? *.??0 *.BIN *.CQ? *.D?? *.FLP *.HDM *.IM? *.XDF *.*FD?"},
+    {"Flux images", "*.FDI"},
+    {"Surface images", "*.86F *.MFM"}
+};
+
+static std::vector<std::pair<std::string, std::string>> allfilefilter
+{
+    {"All Files", "*"}
+};
+
+static bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::string, std::string>>& filters = allfilefilter)
 {
     bool boolres = false;
     FILE* output;
     int origpause = dopause;
+    std::string cmd = "zenity --file-selection";
+    for (auto &curFilter : filters)
+    {
+        std::string realfilter = std::get<1>(curFilter);
+        cmd += " --file-filter=\'";
+        cmd += std::get<0>(curFilter);
+        cmd += " (";
+        cmd += realfilter;
+        cmd += ") | ";
+        cmd += realfilter;
+        std::transform(realfilter.begin(), realfilter.end(), realfilter.begin(), [](unsigned char c) { return std::tolower(c); } );
+        cmd += " ";
+        cmd += realfilter;
+        cmd += "\'";
+    }
     plat_pause(1);
-    output = popen("zenity --file-selection", "r");
+    output = popen(cmd.c_str(), "r");
     if (output)
     {
         if (fgets(res, n, output) != NULL)
@@ -181,7 +212,7 @@ struct FloppyMenu
             if (ImGui::MenuItem("Image..."))
             {
                 char res[4096];
-                if (OpenFileChooser(res, sizeof(res)))
+                if (OpenFileChooser(res, sizeof(res), floppyfilter))
                 {
                     floppy_mount(flpid, res, 0);
                 }
@@ -189,7 +220,7 @@ struct FloppyMenu
             if (ImGui::MenuItem("Image... (write-protected)"))
             {
                 char res[4096];
-                if (OpenFileChooser(res, sizeof(res)))
+                if (OpenFileChooser(res, sizeof(res), floppyfilter))
                 {
                     floppy_mount(flpid, res, 1);
                 }
