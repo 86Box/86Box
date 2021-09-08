@@ -113,6 +113,31 @@ static std::vector<std::pair<std::string, std::string>> floppyfilter
     {"Surface images", "*.86F *.MFM"}
 };
 
+static std::vector<std::pair<std::string, std::string>> mofilter
+{
+    { "MO images", "*.IM? *.MDI" }
+};
+
+static std::vector<std::pair<std::string, std::string>> cdromfilter
+{
+    { "CD-ROM images", "*.ISO *.CUE" }
+};
+
+static std::vector<std::pair<std::string, std::string>> casfilter
+{
+    { "Cassette images", "*.PCM *.RAW *.WAV *.CAS" }
+};
+
+static std::vector<std::pair<std::string, std::string>> zipfilter
+{
+    { "ZIP images", "*.IM? *.ZDI" }
+};
+
+static std::vector<std::pair<std::string, std::string>> cartfilter
+{
+    { "Cartridge images", "*.A *.B *.JRC" }
+};
+
 static std::vector<std::pair<std::string, std::string>> allfilefilter
 {
     {"All Files", "*"}
@@ -175,7 +200,7 @@ struct CartMenu
             if (ImGui::MenuItem("Image..."))
             {
                 char res[4096];
-                if (OpenFileChooser(res, sizeof(res)))
+                if (OpenFileChooser(res, sizeof(res), cartfilter))
                 {
                     cartridge_mount(cartid, res, 0);
                 }
@@ -183,7 +208,7 @@ struct CartMenu
             if (ImGui::MenuItem("Image... (write-protected)"))
             {
                 char res[4096];
-                if (OpenFileChooser(res, sizeof(res)))
+                if (OpenFileChooser(res, sizeof(res), cartfilter))
                 {
                     cartridge_mount(cartid, res, 1);
                 }
@@ -258,7 +283,7 @@ struct CDMenu
             if (ImGui::MenuItem("Image"))
             {
                 char res[4096];
-                if (OpenFileChooser(res, sizeof(res)))
+                if (OpenFileChooser(res, sizeof(res), cdromfilter))
                 {
                     cdrom_mount(cdid, res);
                 }
@@ -298,7 +323,7 @@ struct ZIPMenu
             if (ImGui::MenuItem("Image..."))
             {
                 char res[4096];
-                if (OpenFileChooser(res, sizeof(res)))
+                if (OpenFileChooser(res, sizeof(res), zipfilter))
                 {
                     zip_mount(zipid, res, 0);
                 }
@@ -306,7 +331,7 @@ struct ZIPMenu
             if (ImGui::MenuItem("Image... (write-protected)"))
             {
                 char res[4096];
-                if (OpenFileChooser(res, sizeof(res)))
+                if (OpenFileChooser(res, sizeof(res), zipfilter))
                 {
                     zip_mount(zipid, res, 1);
                 }
@@ -355,7 +380,7 @@ struct MOMenu
             if (ImGui::MenuItem("Image..."))
             {
                 char res[4096];
-                if (OpenFileChooser(res, sizeof(res)))
+                if (OpenFileChooser(res, sizeof(res), mofilter))
                 {
                     mo_mount(moid, res, 0);
                 }
@@ -363,7 +388,7 @@ struct MOMenu
             if (ImGui::MenuItem("Image... (write-protected)"))
             {
                 char res[4096];
-                if (OpenFileChooser(res, sizeof(res)))
+                if (OpenFileChooser(res, sizeof(res), mofilter))
                 {
                     mo_mount(moid, res, 1);
                 }
@@ -392,7 +417,7 @@ static void RenderCassetteImguiMenu()
             if (ImGui::MenuItem("Image..."))
             {
                 char res[4096];
-                if (OpenFileChooser(res, sizeof(res)))
+                if (OpenFileChooser(res, sizeof(res), casfilter))
                 {
                     cassette_mount(res, 0);
                 }
@@ -400,7 +425,7 @@ static void RenderCassetteImguiMenu()
             if (ImGui::MenuItem("Image... (write-protected)"))
             {
                 char res[4096];
-                if (OpenFileChooser(res, sizeof(res)))
+                if (OpenFileChooser(res, sizeof(res), casfilter))
                 {
                     cassette_mount(res, 1);
                 }
