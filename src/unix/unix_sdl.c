@@ -43,7 +43,7 @@ int resize_pending = 0;
 int resize_w = 0;
 int resize_h = 0;
 float menubarheight = 0.0f;
-static void* interpixels;
+static uint8_t interpixels[17842176];
 
 extern void RenderImGui();
 static void
@@ -130,7 +130,6 @@ sdl_blit_shim(int x, int y, int w, int h)
     params.y = y;
     params.w = w;
     params.h = h;
-    if (!interpixels) interpixels = calloc(17842176, 1);
     memcpy(interpixels, &(buffer32->line[y][x]), h * (2048 + 64) * sizeof(uint32_t));
     blitreq = 1;
     video_blit_complete();
