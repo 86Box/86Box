@@ -138,6 +138,10 @@ static bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::stri
         cmd += realfilter;
         cmd += "\'";
     }
+    if (std::get<0>(filters[0]) != "All Files")
+    {
+        cmd += " --file-filter=\'All Files (*) | *\'";
+    }
     plat_pause(1);
     output = popen(cmd.c_str(), "r");
     if (output)
