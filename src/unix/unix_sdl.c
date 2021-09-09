@@ -141,11 +141,15 @@ void
 sdl_real_blit(SDL_Rect* r_src)
 {
     SDL_Rect r_dst;
-    int ret;
+    int ret, winx, winy;
+    SDL_GL_GetDrawableSize(sdl_win, &winx, &winy);
+    winy -= menubarheight;
     SDL_RenderClear(sdl_render);
 
     r_dst = *r_src;
     r_dst.y += menubarheight;
+    r_dst.w *= ((float)winx / (float) w);
+    r_dst.h *= ((float)winy / (float) h);
 
     ret = SDL_RenderCopy(sdl_render, sdl_tex, r_src, &r_dst);
     if (ret)
