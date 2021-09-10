@@ -554,9 +554,15 @@ extern "C" void RenderImGui()
         if (ImGui::BeginMenu("Action"))
         {
             if (ImGui::MenuItem("Keyboard requires capture", NULL, (bool)kbd_req_capture))
+            {
                 kbd_req_capture ^= 1;
+                config_save();
+            }
             if (ImGui::MenuItem("Right CTRL is left ALT", NULL, (bool)rctrl_is_lalt))
+            {
                 rctrl_is_lalt ^= 1;
+                config_save();
+            }
             ImGui::Separator();
             if (ImGui::MenuItem("Hard Reset", NULL))
             {
