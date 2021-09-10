@@ -158,18 +158,18 @@ sdl_real_blit(SDL_Rect* r_src)
         switch (video_fullscreen_scale)
         {
 			case FULLSCR_SCALE_INT:
-				px_size = MAX(MIN(winx / w, winy / h), 1);
+				px_size = MAX(MIN(winx / resize_w, winy / resize_h), 1);
 
-				pad_x = winx - (w * px_size);
-				pad_y = winy - (h * px_size);
+				pad_x = winx - (resize_w * px_size);
+				pad_y = winy - (resize_h * px_size);
 				break;
 
 			case FULLSCR_SCALE_KEEPRATIO:
-				ratio = (float)w / (float)h;
+				ratio = (float)resize_w / (float)resize_h;
 			case FULLSCR_SCALE_43:
 				if (ratio == 0)
 					ratio = ratio43;
-				if (ratio < ((float)w / (float)h))
+				if (ratio < ((float)resize_w / (float)resize_h))
 					pad_x = winx - (int)roundf((float)winy * ratio);
 				else
 					pad_y = winy - (int)roundf((float)winx / ratio);
@@ -218,8 +218,7 @@ sdl_blit(int x, int y, int w, int h)
 
     if (resize_pending)
     {
-        if (video_fullscreen) SDL_RenderSetLogicalSize(sdl_render, resize_w, resize_h);
-        else sdl_resize(resize_w, resize_h);
+        if (!video_fullscreen) sdl_resize(resize_w, resize_h);
         resize_pending = 0;
     }
     r_src.x = x;
