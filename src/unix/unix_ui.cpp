@@ -592,6 +592,23 @@ extern "C" void RenderImGui()
                 vid_resize ^= 1;
                 SDL_SetWindowResizable(sdl_win, (SDL_bool)(vid_resize & 1));
             }
+            if (ImGui::BeginMenu("Filter options"))
+            {
+                SDL_Event event{};
+                event.type = SDL_RENDER_DEVICE_RESET;
+                int cur_video_filter_method = video_filter_method;
+                if (ImGui::MenuItem("Nearest", NULL, video_filter_method == 0))
+                {
+                    video_filter_method = 0;
+                }
+                if (ImGui::MenuItem("Linear", NULL, video_filter_method == 1))
+                {
+                    video_filter_method = 1;
+                }
+                if (cur_video_filter_method != video_filter_method)
+                    SDL_PushEvent(&event);
+                ImGui::EndMenu();
+            }
             if (ImGui::BeginMenu("EGA/(S)VGA settings"))
             {
                 if (ImGui::BeginMenu("VGA screen type"))

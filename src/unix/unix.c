@@ -1043,7 +1043,7 @@ int main(int argc, char** argv)
                 case SDL_MOUSEWHEEL:
                 {
                     if (ImGuiWantsMouseCapture()) break;
-                    if (mouse_capture || video_fullscreen)
+                    if (mouse_capture)
                     {
                         if (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED)
                         {
@@ -1059,7 +1059,7 @@ int main(int argc, char** argv)
                 case SDL_MOUSEMOTION:
                 {
                     if (ImGuiWantsMouseCapture()) break;
-                    if (mouse_capture || video_fullscreen)
+                    if (mouse_capture)
                     {
                         SDL_LockMutex(mousemutex);
                         mousedata.deltax += event.motion.xrel;
@@ -1073,19 +1073,19 @@ int main(int argc, char** argv)
                 {
                     if (ImGuiWantsMouseCapture()) break;
                     if ((event.button.button == SDL_BUTTON_LEFT)
-                    && !(mouse_capture || video_fullscreen)
+                    && !(mouse_capture)
                     && event.button.state == SDL_RELEASED
                     && event.button.x <= sdl_w && event.button.y <= sdl_h)
                     {
                         plat_mouse_capture(1);
                         break;
                     }
-                    if (mouse_get_buttons() < 3 && event.button.button == SDL_BUTTON_MIDDLE && !video_fullscreen)
+                    if (mouse_get_buttons() < 3 && event.button.button == SDL_BUTTON_MIDDLE)
                     {
                         plat_mouse_capture(0);
                         break;
                     }
-                    if (mouse_capture || video_fullscreen)
+                    if (mouse_capture)
                     {
                         int buttonmask = 0;
 
