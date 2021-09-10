@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <sys/param.h>
 /* This #undef is needed because a SDL include header redefines HAVE_STDARG_H. */
 #undef HAVE_STDARG_H
 #define HAVE_STDARG_H
@@ -31,7 +32,7 @@ extern int blitreq;
 SDL_Window	*sdl_win = NULL;
 SDL_Renderer	*sdl_render = NULL;
 static SDL_Texture	*sdl_tex = NULL;
-static int		sdl_w, sdl_h;
+int		sdl_w = SCREEN_RES_X, sdl_h = SCREEN_RES_Y;
 static int		sdl_fs, sdl_flags = -1;
 static int		cur_w, cur_h;
 static int		cur_wx = 0, cur_wy = 0, cur_ww =0, cur_wh = 0;
@@ -147,9 +148,48 @@ sdl_real_blit(SDL_Rect* r_src)
     SDL_RenderClear(sdl_render);
 
     r_dst = *r_src;
+    
+    if (sdl_fs)
+    {
+		int pad_x = 0, pad_y = 0, px_size = 1;
+		float ratio = 0;
+		const float ratio43 = 4.f / 3.f;
+
+        switch (video_fullscreen_scale)
+        {
+			case FULLSCR_SCALE_INT:
+				px_size = MAX(MIN(winx / w, winy / h), 1);
+
+				pad_x = winx - (w * px_size);
+				pad_y = winy - (h * px_size);
+				break;
+
+			case FULLSCR_SCALE_KEEPRATIO:
+				ratio = (float)w / (float)h;
+			case FULLSCR_SCALE_43:
+				if (ratio == 0)
+					ratio = ratio43;
+				if (ratio < ((float)w / (float)h))
+					pad_x = winx - (int)roundf((float)winy * ratio);
+				else
+					pad_y = winy - (int)roundf((float)winx / ratio);
+				break;
+
+			case FULLSCR_SCALE_FULL:
+			default:
+				break;
+		}
+        r_dst.x = pad_x / 2;
+        r_dst.y = pad_y / 2;
+        r_dst.w = winx - pad_x;
+        r_dst.h = winy - pad_y;
+    }
+    else
+    {
+        r_dst.w *= ((float)winx / (float) w);
+        r_dst.h *= ((float)winy / (float) h);
+    }
     r_dst.y += menubarheight;
-    r_dst.w *= ((float)winx / (float) w);
-    r_dst.h *= ((float)winy / (float) h);
 
     ret = SDL_RenderCopy(sdl_render, sdl_tex, r_src, &r_dst);
     if (ret)
@@ -337,6 +377,7 @@ sdl_resize(int x, int y)
     cur_wh = wh;
 
     SDL_SetWindowSize(sdl_win, cur_ww, cur_wh + menubarheight);
+    SDL_GL_GetDrawableSize(sdl_win, &sdl_w, &sdl_h);
 
     sdl_reinit_texture();
 
@@ -443,7 +484,6 @@ plat_mouse_capture(int on)
     mouse_capture = on;
     SDL_UnlockMutex(sdl_mutex);
 }
-int real_sdl_w = SCREEN_RES_X, real_sdl_h = SCREEN_RES_Y;
 
 void plat_resize(int w, int h)
 {

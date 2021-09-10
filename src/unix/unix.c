@@ -52,7 +52,7 @@ int		joysticks_present;
 SDL_mutex *blitmtx;
 SDL_threadID eventthread;
 static int exit_event = 0;
-static int fullscreen_pending = 0;
+int fullscreen_pending = 0;
 extern float menubarheight;
 
 static const uint16_t sdl_to_xt[0x200] =
@@ -633,7 +633,7 @@ void mouse_poll()
 }
 
 
-extern int real_sdl_w, real_sdl_h;
+extern int sdl_w, sdl_h;
 void ui_sb_set_ready(int ready) {}
 char* xargv[512];
 
@@ -1075,7 +1075,7 @@ int main(int argc, char** argv)
                     if ((event.button.button == SDL_BUTTON_LEFT)
                     && !(mouse_capture || video_fullscreen)
                     && event.button.state == SDL_RELEASED
-                    && event.button.x <= real_sdl_w && event.button.y <= real_sdl_h)
+                    && event.button.x <= sdl_w && event.button.y <= sdl_h)
                     {
                         plat_mouse_capture(1);
                         break;
@@ -1131,6 +1131,20 @@ int main(int argc, char** argv)
                     }
                     keyboard_input(event.key.state == SDL_PRESSED, xtkey);
                 }
+                case SDL_WINDOWEVENT:
+                {
+                    switch (event.window.type)
+                    {
+                    case SDL_WINDOWEVENT_SIZE_CHANGED:
+                    {
+                        sdl_w = event.window.data1;
+                        sdl_h = event.window.data2;
+                        break;
+                    }
+                    default:
+                        break;
+                    }
+                }
             }
 	    }
         if (mouse_capture && keyboard_ismsexit())
@@ -1156,6 +1170,11 @@ int main(int argc, char** argv)
         {
             sdl_set_fs(0);
             video_fullscreen = 0;
+        }
+        if (!(video_fullscreen) && keyboard_isfsenter())
+        {
+            sdl_set_fs(1);
+            video_fullscreen = 1;
         }
         if (fullscreen_pending)
         {

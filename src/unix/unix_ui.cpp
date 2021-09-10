@@ -581,6 +581,17 @@ extern "C" void RenderImGui()
             {
                 take_screenshot();
             }
+            if (ImGui::MenuItem("Fullscreen", "Ctrl-Alt-Pageup", video_fullscreen))
+            {
+                video_fullscreen ^= 1;
+                extern int fullscreen_pending;
+                fullscreen_pending = 1;
+            }
+            if (ImGui::MenuItem("Resizable window", NULL, vid_resize == 1, vid_resize < 2))
+            {
+                vid_resize ^= 1;
+                SDL_SetWindowResizable(sdl_win, (SDL_bool)(vid_resize & 1));
+            }
             if (ImGui::BeginMenu("EGA/(S)VGA settings"))
             {
                 if (ImGui::BeginMenu("VGA screen type"))

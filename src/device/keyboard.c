@@ -317,6 +317,16 @@ keyboard_isfsexit(void)
 }
 
 
+/* Do we have Control-Alt-PgUp in the keyboard buffer? */
+int
+keyboard_isfsenter(void)
+{
+    return( (recv_key[0x01D] || recv_key[0x11D]) &&
+	    (recv_key[0x038] || recv_key[0x138]) &&
+	    (recv_key[0x049] || recv_key[0x149]) );
+}
+
+
 /* Do we have F8-F12 in the keyboard buffer? */
 int
 keyboard_ismsexit(void)
