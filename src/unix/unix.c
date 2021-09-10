@@ -1137,8 +1137,19 @@ int main(int argc, char** argv)
                     {
                     case SDL_WINDOWEVENT_SIZE_CHANGED:
                     {
-                        sdl_w = event.window.data1;
-                        sdl_h = event.window.data2;
+                        sdl_w = window_w = event.window.data1;
+                        sdl_h = window_h = event.window.data2;
+                        if (window_remember) config_save();
+                        break;
+                    }
+                    case SDL_WINDOWEVENT_MOVED:
+                    {
+                        if (strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0)
+                        {
+                            window_x = event.window.data1;
+                            window_y = event.window.data2;
+                            if (window_remember) config_save();
+                        }
                         break;
                     }
                     default:

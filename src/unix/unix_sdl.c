@@ -237,6 +237,14 @@ static void
 sdl_destroy_window(void)
 {
     if (sdl_win != NULL) {
+    if (window_remember)
+    {
+        SDL_GetWindowSize(sdl_win, &window_w, &window_h);
+        if (strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0)
+        {
+            SDL_GetWindowPosition(sdl_win, &window_x, &window_y);
+        }
+    }
 	SDL_DestroyWindow(sdl_win);
 	sdl_win = NULL;
     }
@@ -248,6 +256,8 @@ sdl_destroy_texture(void)
 {
     /* SDL_DestroyRenderer also automatically destroys all associated textures. */
     if (sdl_render != NULL) {
+    extern void DeinitializeImGuiSDLRenderer();
+    DeinitializeImGuiSDLRenderer();
 	SDL_DestroyRenderer(sdl_render);
 	sdl_render = NULL;
     }
@@ -428,7 +438,7 @@ sdl_init_common(int flags)
     }
 
     sdl_mutex = SDL_CreateMutex();
-    sdl_win = SDL_CreateWindow("86Box", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, scrnsz_x, scrnsz_y, SDL_WINDOW_OPENGL | (vid_resize & 1 ? SDL_WINDOW_RESIZABLE : 0));
+    sdl_win = SDL_CreateWindow("86Box", strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_x : SDL_WINDOWPOS_CENTERED, strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_y : SDL_WINDOWPOS_CENTERED, scrnsz_x, scrnsz_y, SDL_WINDOW_OPENGL | (vid_resize & 1 ? SDL_WINDOW_RESIZABLE : 0));
     sdl_set_fs(video_fullscreen);
     if (!(video_fullscreen & 1))
     {
@@ -436,6 +446,10 @@ sdl_init_common(int flags)
 	        plat_resize(fixed_size_x, fixed_size_y);
         else
 	        plat_resize(scrnsz_x, scrnsz_y);
+    }
+    if ((vid_resize < 2) && window_remember)
+    {
+        SDL_SetWindowSize(sdl_win, window_w, window_h);
     }
 
     /* Make sure we get a clean exit. */

@@ -545,9 +545,9 @@ namespace ImGuiSDL
 		// Frees up the memory of the font texture.
 		ImGuiIO& io = ImGui::GetIO();
 		Texture* texture = static_cast<Texture*>(io.Fonts->TexID);
-		delete texture;
+		if (texture) { delete texture; texture = nullptr; }
 
-		delete CurrentDevice;
+		if (CurrentDevice) { delete CurrentDevice; CurrentDevice = nullptr; }
 	}
 
 	void Render(ImDrawData* drawData)

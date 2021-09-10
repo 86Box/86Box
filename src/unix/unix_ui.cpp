@@ -16,6 +16,7 @@
 #include <86box/cdrom.h>
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
+#include <86box/vid_ega.h>
 #include <86box/mo.h>
 #include <86box/zip.h>
 #include <86box/hdc.h>
@@ -143,7 +144,7 @@ static std::vector<std::pair<std::string, std::string>> allfilefilter
     {"All Files", "*"}
 };
 
-static bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::string, std::string>>& filters = allfilefilter)
+static bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::string, std::string>>& filters = allfilefilter, bool save = false)
 {
     bool boolres = false;
     FILE* output;
@@ -167,6 +168,7 @@ static bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::stri
     {
         cmd += " --file-filter=\'All Files (*) | *\'";
     }
+    if (save) cmd += " --save";
     plat_pause(1);
     output = popen(cmd.c_str(), "r");
     if (output)
@@ -511,15 +513,23 @@ extern "C" void HandleSizeChange()
     ImGuiSDL::Initialize(sdl_render, w, h);
     imrendererinit = true;
 }
+
 extern "C" void plat_resize(int w, int h);
 extern "C" bool ImGuiWantsMouseCapture()
 {
     return ImGui::GetIO().WantCaptureMouse;
 }
+
 extern "C" bool ImGuiWantsKeyboardCapture()
 {
     return ImGui::GetIO().WantCaptureKeyboard;
 }
+
+extern "C" void DeinitializeImGuiSDLRenderer()
+{
+    ImGuiSDL::Deinitialize();
+}
+
 extern "C" void RenderImGui()
 {
     if (!imrendererinit) HandleSizeChange();
@@ -577,6 +587,70 @@ extern "C" void RenderImGui()
         }
         if (ImGui::BeginMenu("View"))
         {
+            if (ImGui::MenuItem("Resizable window", NULL, vid_resize == 1, vid_resize < 2))
+            {
+                vid_resize ^= 1;
+                SDL_SetWindowResizable(sdl_win, (SDL_bool)(vid_resize & 1));
+                scrnsz_x = unscaled_size_x;
+				scrnsz_y = unscaled_size_y;
+                config_save();
+            }
+            if (ImGui::MenuItem("Remember size & position", NULL, window_remember))
+            {
+                window_remember = !window_remember;
+                if (window_remember)
+                {
+                    SDL_GetWindowSize(sdl_win, &window_w, &window_h);
+                    if (strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0)
+                    {
+                        SDL_GetWindowPosition(sdl_win, &window_x, &window_y);
+                    }
+                    config_save();
+                }
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Force 4:3 display ratio", NULL, force_43))
+            {
+                force_43 ^= 1;
+                video_force_resize_set(1);
+                config_save();
+            }
+            if (ImGui::BeginMenu("Window scale factor"))
+            {
+                int cur_scale = scale;
+                if (ImGui::MenuItem("0.5x", NULL, scale == 0, !vid_resize))
+                {
+                    scale = 0;
+                }
+                if (ImGui::MenuItem("1x", NULL, scale == 1 || vid_resize, !vid_resize))
+                {
+                    scale = 1;
+                }
+                if (ImGui::MenuItem("1.5x", NULL, scale == 2, !vid_resize))
+                {
+                    scale = 2;
+                }
+                if (ImGui::MenuItem("2x", NULL, scale == 3, !vid_resize))
+                {
+                    scale = 3;
+                }
+                if (scale != cur_scale)
+                {
+                    reset_screen_size();
+                    device_force_redraw();
+                    video_force_resize_set(1);
+                    if (!video_fullscreen)
+                    {
+                        if (vid_resize & 2)
+                            plat_resize(fixed_size_x, fixed_size_y);
+                        else
+                            plat_resize(scrnsz_x, scrnsz_y);
+                    }
+                    config_save();
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::Separator();
             if (ImGui::MenuItem("Take screenshot"))
             {
                 take_screenshot();
@@ -586,11 +660,7 @@ extern "C" void RenderImGui()
                 video_fullscreen ^= 1;
                 extern int fullscreen_pending;
                 fullscreen_pending = 1;
-            }
-            if (ImGui::MenuItem("Resizable window", NULL, vid_resize == 1, vid_resize < 2))
-            {
-                vid_resize ^= 1;
-                SDL_SetWindowResizable(sdl_win, (SDL_bool)(vid_resize & 1));
+                config_save();
             }
             if (ImGui::BeginMenu("Filter options"))
             {
@@ -606,7 +676,10 @@ extern "C" void RenderImGui()
                     video_filter_method = 1;
                 }
                 if (cur_video_filter_method != video_filter_method)
+                {
                     SDL_PushEvent(&event);
+                    config_save();
+                }
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("EGA/(S)VGA settings"))
@@ -674,6 +747,19 @@ extern "C" void RenderImGui()
                     config_save();
                 }
                 ImGui::EndMenu();
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("CGA/PCjr/Tandy/EGA/(S)VGA overscan", NULL, enable_overscan))
+            {
+                update_overscan = 1;
+                enable_overscan ^= 1;
+                video_force_resize_set(1);
+            }
+            if (ImGui::MenuItem("Change contrast for monochrome display", NULL, vid_cga_contrast))
+            {
+				vid_cga_contrast ^= 1;
+				cgapal_rebuild();
+				config_save();
             }
             ImGui::EndMenu();
         }
