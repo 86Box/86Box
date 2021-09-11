@@ -227,8 +227,6 @@ sdl_destroy_texture(void)
 {
     /* SDL_DestroyRenderer also automatically destroys all associated textures. */
     if (sdl_render != NULL) {
-    extern void DeinitializeImGuiSDLRenderer();
-    DeinitializeImGuiSDLRenderer();
 	SDL_DestroyRenderer(sdl_render);
 	sdl_render = NULL;
     }
