@@ -661,13 +661,6 @@ extern "C" void RenderImGui()
             {
                 take_screenshot();
             }
-            if (ImGui::MenuItem("Fullscreen", "Ctrl-Alt-Pageup", video_fullscreen))
-            {
-                video_fullscreen ^= 1;
-                extern int fullscreen_pending;
-                fullscreen_pending = 1;
-                config_save();
-            }
             if (ImGui::BeginMenu("Filter options"))
             {
                 SDL_Event event{};
@@ -686,6 +679,37 @@ extern "C" void RenderImGui()
                     SDL_PushEvent(&event);
                     config_save();
                 }
+                ImGui::EndMenu();
+            }
+            ImGui::Separator();
+            if (ImGui::MenuItem("Fullscreen", "Ctrl-Alt-Pageup", video_fullscreen))
+            {
+                video_fullscreen ^= 1;
+                extern int fullscreen_pending;
+                fullscreen_pending = 1;
+                config_save();
+            }
+            if (ImGui::BeginMenu("Fullscreen stretch mode"))
+            {
+                int cur_video_fullscreen_scale = video_fullscreen_scale;
+                if (ImGui::MenuItem("Full screen stretch", NULL, video_fullscreen_scale == FULLSCR_SCALE_FULL))
+                {
+                    video_fullscreen_scale = FULLSCR_SCALE_FULL;
+                }
+                if (ImGui::MenuItem("4:3", NULL, video_fullscreen_scale == FULLSCR_SCALE_43))
+                {
+                    video_fullscreen_scale = FULLSCR_SCALE_43;
+                }
+                if (ImGui::MenuItem("Square pixels (Keep ratio)", NULL, video_fullscreen_scale == FULLSCR_SCALE_KEEPRATIO))
+                {
+                    video_fullscreen_scale = FULLSCR_SCALE_KEEPRATIO;
+                }
+                if (ImGui::MenuItem("Integer scale", NULL, video_fullscreen_scale == FULLSCR_SCALE_INT))
+                {
+                    video_fullscreen_scale = FULLSCR_SCALE_INT;
+                }
+                if (cur_video_fullscreen_scale != video_fullscreen_scale)
+                    config_save();
                 ImGui::EndMenu();
             }
             if (ImGui::BeginMenu("EGA/(S)VGA settings"))

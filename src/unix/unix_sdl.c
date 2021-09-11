@@ -67,9 +67,12 @@ static void
 sdl_stretch(int *w, int *h, int *x, int *y)
 {
     double hw, gw, hh, gh, dx, dy, dw, dh, gsr, hsr;
+    int real_sdl_w, real_sdl_h;
 
-    hw = (double) sdl_w;
-    hh = (double) sdl_h;
+    SDL_GL_GetDrawableSize(sdl_win, &real_sdl_w, &real_sdl_h);
+    real_sdl_h -= menubarheight;
+    hw = (double) real_sdl_w;
+    hh = (double) real_sdl_h;
     gw = (double) *w;
     gh = (double) *h;
     hsr = hw / hh;
@@ -77,8 +80,8 @@ sdl_stretch(int *w, int *h, int *x, int *y)
     switch (video_fullscreen_scale) {
 	case FULLSCR_SCALE_FULL:
 	default:
-		*w = sdl_w;
-		*h = sdl_h;
+		*w = real_sdl_w;
+		*h = real_sdl_h;
 		*x = 0;
 		*y = 0;
 		break;
@@ -151,38 +154,7 @@ sdl_real_blit(SDL_Rect* r_src)
     
     if (sdl_fs)
     {
-		int pad_x = 0, pad_y = 0, px_size = 1;
-		float ratio = 0;
-		const float ratio43 = 4.f / 3.f;
-
-        switch (video_fullscreen_scale)
-        {
-			case FULLSCR_SCALE_INT:
-				px_size = MAX(MIN(winx / resize_w, winy / resize_h), 1);
-
-				pad_x = winx - (resize_w * px_size);
-				pad_y = winy - (resize_h * px_size);
-				break;
-
-			case FULLSCR_SCALE_KEEPRATIO:
-				ratio = (float)resize_w / (float)resize_h;
-			case FULLSCR_SCALE_43:
-				if (ratio == 0)
-					ratio = ratio43;
-				if (ratio < ((float)resize_w / (float)resize_h))
-					pad_x = winx - (int)roundf((float)winy * ratio);
-				else
-					pad_y = winy - (int)roundf((float)winx / ratio);
-				break;
-
-			case FULLSCR_SCALE_FULL:
-			default:
-				break;
-		}
-        r_dst.x = pad_x / 2;
-        r_dst.y = pad_y / 2;
-        r_dst.w = winx - pad_x;
-        r_dst.h = winy - pad_y;
+		sdl_stretch(&r_dst.w, &r_dst.h, &r_dst.x, &r_dst.y);
     }
     else
     {
@@ -327,9 +299,6 @@ extern void HandleSizeChange();
 void
 sdl_reinit_texture()
 {
-    if (sdl_flags == -1)
-        return;
-
     sdl_destroy_texture();
 
     if (sdl_flags & RENDERER_HARDWARE) {
