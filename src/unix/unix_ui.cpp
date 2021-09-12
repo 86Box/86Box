@@ -2,6 +2,8 @@
 #include "imgui_impl_sdl.h"
 #include "imgui_sdl.h"
 #include <SDL.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 #include <86box/86box.h>
 #include <86box/machine.h>
 #include <86box/device.h>
@@ -28,14 +30,21 @@
 #include <86box/timer.h>
 #include <86box/ui.h>
 
+#include <incbin.h>
+INCBIN(cdromicon, _INCBIN_DIR"/icons/cdrom.png");
+INCBIN(cdromactiveicon, _INCBIN_DIR"/icons/cdrom_active.png");
+
 #include <string>
 #include <vector>
 #include <utility>
 #include <algorithm>
+#include <atomic>
+#include <array>
 
 extern "C" SDL_Window* sdl_win;
 extern "C" SDL_Renderer	*sdl_render;
 extern "C" float menubarheight;
+
 static bool imrendererinit = false;
 static bool firstrender = true;
 
@@ -272,7 +281,7 @@ struct CDMenu
     {
         cdid = id;
     }
-    void RenderImGuiMenu()
+    std::string FormatStr()
     {
         std::string str = "CD-ROM ";
         str += std::to_string(cdid + 1);
@@ -280,7 +289,11 @@ struct CDMenu
         str += cdrom[cdid].bus_type == CDROM_BUS_ATAPI ? "ATAPI" : "SCSI";
         str += ") ";
         str += strlen(cdrom[cdid].image_path) == 0 ? "(empty)" : cdrom[cdid].image_path;
-        if (ImGui::BeginMenu(str.c_str()))
+        return str;
+    }
+    void RenderImGuiMenu()
+    {
+        if (ImGui::BeginMenu(FormatStr().c_str()))
         {
             if (ImGui::MenuItem("Image"))
             {
@@ -408,6 +421,7 @@ struct MOMenu
     }
 };
 
+static std::atomic<bool> cas_active, cas_empty;
 static void RenderCassetteImguiMenu()
 {
     if (cassette_enable)
@@ -505,12 +519,37 @@ extern "C" void InitImGui()
     ImGui_ImplSDL2_InitForOpenGL(sdl_win, NULL);
 }
 
+SDL_Texture* cdrom_status_icon[2];
+
 extern "C" void HandleSizeChange()
 {
-    int w, h;
+    int w, h, c;
     if (!ImGui::GetCurrentContext()) ImGui::CreateContext(NULL);
     SDL_GetRendererOutputSize(sdl_render, &w, &h);
     ImGuiSDL::Initialize(sdl_render, w, h);
+    w = 0, h = 0;
+    stbi_uc* imgdata = stbi_load_from_memory(gcdromiconData, gcdromiconSize, &w, &h, &c, 4);
+    if (imgdata)
+    {
+        cdrom_status_icon[0] = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, w, h);
+        if (cdrom_status_icon)
+        {
+            SDL_UpdateTexture(cdrom_status_icon[0], NULL, imgdata, w * 4);
+            SDL_SetTextureBlendMode(cdrom_status_icon[0], SDL_BlendMode::SDL_BLENDMODE_BLEND);
+        }
+        STBI_FREE(imgdata);
+    }
+    imgdata = stbi_load_from_memory(gcdromactiveiconData, gcdromactiveiconSize, &w, &h, &c, 4);
+    if (imgdata)
+    {
+        cdrom_status_icon[1] = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, w, h);
+        if (cdrom_status_icon)
+        {
+            SDL_UpdateTexture(cdrom_status_icon[1], NULL, imgdata, w * 4);
+            SDL_SetTextureBlendMode(cdrom_status_icon[1], SDL_BlendMode::SDL_BLENDMODE_BLEND);
+        }
+        STBI_FREE(imgdata);
+    }
     imrendererinit = true;
 }
 
@@ -528,6 +567,88 @@ extern "C" bool ImGuiWantsKeyboardCapture()
 extern "C" void DeinitializeImGuiSDLRenderer()
 {
     ImGuiSDL::Deinitialize();
+}
+
+std::array<std::atomic<bool>, 2> cartactive, cartempty;
+std::array<std::atomic<bool>, FDD_NUM> fddactive, fddempty;
+std::array<std::atomic<bool>, ZIP_NUM> zipactive, zipempty;
+std::array<std::atomic<bool>, CDROM_NUM> cdactive, cdempty;
+std::array<std::atomic<bool>, MO_NUM> moactive, moempty;
+
+extern "C" void ui_sb_update_icon_state(int tag, int state)
+{
+    uint8_t index = tag & 0x0F;
+    switch (tag & 0xF0)
+    {
+        case SB_FLOPPY:
+        {
+            fddempty[index] = (bool)(state);
+            break;
+        }
+        case SB_MO:
+        {
+            moempty[index] = (bool)(state);
+            break;
+        }
+        case SB_CASSETTE:
+        {
+            cas_empty = (bool)(state);
+            break;
+        }
+        case SB_ZIP:
+        {
+            zipempty[index] = (bool)(state);
+            break;
+        }
+        case SB_CARTRIDGE:
+        {
+            cartempty[index] = (bool)(state);
+            break;
+        }
+        case SB_CDROM:
+        {
+            cdempty[index] = (bool)(state);
+            break;
+        }
+    }
+}
+
+extern "C" void ui_sb_update_icon(int tag, int active)
+{
+    uint8_t index = tag & 0x0F;
+    switch (tag & 0xF0)
+    {
+        case SB_FLOPPY:
+        {
+            fddactive[index] = (bool)(active);
+            break;
+        }
+        case SB_MO:
+        {
+            moactive[index] = (bool)(active);
+            break;
+        }
+        case SB_CASSETTE:
+        {
+            cas_active = (bool)(active);
+            break;
+        }
+        case SB_ZIP:
+        {
+            zipactive[index] = (bool)(active);
+            break;
+        }
+        case SB_CARTRIDGE:
+        {
+            cartactive[index] = (bool)(active);
+            break;
+        }
+        case SB_CDROM:
+        {
+            cdactive[index] = (bool)(active);
+            break;
+        }
+    }
 }
 
 extern "C" void RenderImGui()
@@ -857,6 +978,23 @@ extern "C" void RenderImGui()
         ImGui::EndMainMenuBar();
     }
 
+    ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetIO().DisplaySize.y - (menubarheight * 2)));
+    ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, menubarheight * 2));
+    if (ImGui::Begin("86Box status bar", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar))
+    {
+        for (size_t i = 0; i < cdmenu.size(); i++)
+        {
+            ImGui::ImageButton((ImTextureID)cdrom_status_icon[cdactive[i]], ImVec2(16, 16));
+            if (ImGui::BeginPopupContextItem() || ImGui::BeginPopupContextItem(nullptr, ImGuiPopupFlags_MouseButtonLeft))
+            {
+                cdmenu[i].RenderImGuiMenu();
+                ImGui::EndPopup();
+            }
+            ImGui::SameLine();
+        }
+        ImGui::End();
+    }
+        
     ImGui::Render();
     ImGuiSDL::Render(ImGui::GetDrawData());
 }

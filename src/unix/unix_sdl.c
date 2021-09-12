@@ -17,6 +17,7 @@
 #include <86box/ui.h>
 #include <86box/version.h>
 #include <86box/unix_sdl.h>
+#include <incbin.h>
 
 #define RENDERER_FULL_SCREEN	1
 #define RENDERER_HARDWARE	2
@@ -162,6 +163,7 @@ sdl_real_blit(SDL_Rect* r_src)
         r_dst.h *= ((float)winy / (float) h);
     }
     r_dst.y += menubarheight;
+    r_dst.h -= (menubarheight * 2);
 
     ret = SDL_RenderCopy(sdl_render, sdl_tex, r_src, &r_dst);
     if (ret)
@@ -190,7 +192,7 @@ sdl_blit(int x, int y, int w, int h)
 
     if (resize_pending)
     {
-        if (!video_fullscreen) sdl_resize(resize_w, resize_h);
+        if (!video_fullscreen) sdl_resize(resize_w, resize_h + (menubarheight * 2) );
         resize_pending = 0;
     }
     r_src.x = x;
@@ -307,6 +309,7 @@ sdl_reinit_texture()
 
     sdl_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ARGB8888,
 				SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
+    
     HandleSizeChange();
 }
 

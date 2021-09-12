@@ -402,17 +402,7 @@ void plat_remove(char* path)
     remove(path);
 }
 
-void
-ui_sb_update_icon_state(int tag, int state)
-{
 
-}
-
-void
-ui_sb_update_icon(int tag, int active)
-{
-
-}
 
 void
 plat_delay_ms(uint32_t count)
