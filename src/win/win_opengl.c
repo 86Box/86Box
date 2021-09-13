@@ -819,7 +819,7 @@ static void opengl_blit(int x, int y, int y1, int y2, int w, int h)
 		return;
 	}
 
-	for (yy = y1; yy < y2; yy++) {
+	for (yy = 0; yy < h; yy++) {
 		if ((y + yy) >= 0 && (y + yy) < buffer32->h)
 			memcpy(blit_info[write_pos].buffer + (yy * w * 4),
 			       &(((uint32_t *) buffer32->line[y + yy])[x]), w * 4);
@@ -827,8 +827,8 @@ static void opengl_blit(int x, int y, int y1, int y2, int w, int h)
 
 	video_blit_complete();
 
-	blit_info[write_pos].y1 = y1;
-	blit_info[write_pos].y2 = y2;
+	blit_info[write_pos].y1 = 0;
+	blit_info[write_pos].y2 = h - 1;
 	blit_info[write_pos].w = w;
 	blit_info[write_pos].h = h;
 
