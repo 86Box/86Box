@@ -802,6 +802,8 @@ fdd_type_to_icon(int type)
 uint32_t timer_sb_icons(uint32_t interval, void* param)
 {
     std::fill(hddactive.begin(), hddactive.end(), false);
+    std::fill(zipactive.begin(), zipactive.end(), false);
+    std::fill(moactive.begin(), moactive.end(), false);
     return interval;
 }
 
