@@ -367,7 +367,7 @@ sdl_init_common(int flags)
     }
 
     sdl_mutex = SDL_CreateMutex();
-    sdl_win = SDL_CreateWindow("86Box", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, scrnsz_x, scrnsz_y, SDL_WINDOW_OPENGL);
+    sdl_win = SDL_CreateWindow("86Box", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, scrnsz_x, scrnsz_y, SDL_WINDOW_OPENGL | (vid_resize & 1 ? SDL_WINDOW_RESIZABLE : 0));
     sdl_set_fs(video_fullscreen);
     if (!(video_fullscreen & 1))
     {

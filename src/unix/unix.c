@@ -2,10 +2,7 @@
 #define _FILE_OFFSET_BITS 64
 #define _LARGEFILE64_SOURCE 1
 #endif
-#define _POSIX_C_SOURCE 200809L
-#ifdef __APPLE__
-#define _DARWIN_C_SOURCE 1
-#endif
+#include <SDL.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -20,7 +17,7 @@
 #include <inttypes.h>
 #include <dlfcn.h>
 #include <wchar.h>
-#include <SDL.h>
+
 #include <86box/86box.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
