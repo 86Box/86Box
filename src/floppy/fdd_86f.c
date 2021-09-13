@@ -235,7 +235,6 @@ static d86f_t	*d86f[FDD_NUM];
 static uint16_t	CRCTable[256];
 static fdc_t	*d86f_fdc;
 uint64_t	poly = 0x42F0E1EBA9EA3693ll;		/* ECMA normal */
-uint64_t	table[256];
 
 
 uint16_t d86f_side_flags(int drive);

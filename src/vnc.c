@@ -176,7 +176,7 @@ vnc_blit(int x, int y, int y1, int y2, int w, int h)
 	p = (uint32_t *)&(((uint32_t *)rfb->frameBuffer)[yy*VNC_MAX_X]);
 
 	if ((y+yy) >= 0 && (y+yy) < VNC_MAX_Y)
-		memcpy(p, &(render_buffer->dat[yy * w]), w*4);
+		memcpy(p, &(buffer32->line[yy]), w*4);
     }
  
     video_blit_complete();
