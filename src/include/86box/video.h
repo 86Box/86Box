@@ -150,10 +150,10 @@ extern void	video_inform(int type, const video_timings_t *ptr);
 extern int	video_get_type(void);
 
 
-extern void	video_setblit(void(*blit)(int,int,int,int,int,int));
+extern void	video_setblit(void(*blit)(int,int,int,int));
 extern void	video_blend(int x, int y);
-extern void	video_blit_memtoscreen_8(int x, int y, int y1, int y2, int w, int h);
-extern void	video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
+extern void	video_blit_memtoscreen_8(int x, int y, int w, int h);
+extern void	video_blit_memtoscreen(int x, int y, int w, int h);
 extern void	video_blit_complete(void);
 extern void	video_wait_for_blit(void);
 extern void	video_wait_for_buffer(void);

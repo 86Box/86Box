@@ -2493,7 +2493,7 @@ pgc_cga_poll(pgc_t *dev)
 			if (video_force_resize_get())
 				video_force_resize_set(0);
 		} 
-		video_blit_memtoscreen_8(0, 0, 0, ysize, xsize, ysize);
+		video_blit_memtoscreen_8(0, 0, xsize, ysize);
 		frames++;
 
 		/* We have a fixed 640x400 screen for CGA modes. */
@@ -2578,7 +2578,7 @@ pgc_poll(void *priv)
 			if (video_force_resize_get())
 				video_force_resize_set(0);
 		} 
-		video_blit_memtoscreen(0, 0, 0, ysize, xsize, ysize);
+		video_blit_memtoscreen(0, 0, xsize, ysize);
 		frames++;
 
 		video_res_x = dev->screenw;

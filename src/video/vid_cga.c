@@ -463,17 +463,17 @@ cga_poll(void *p)
 
 					if (enable_overscan) {
 						if (cga->composite) 
-							video_blit_memtoscreen(0, (cga->firstline - 4) << 1, 0, ((cga->lastline - cga->firstline) + 8) << 1,
+							video_blit_memtoscreen(0, (cga->firstline - 4) << 1,
 								       xsize, ((cga->lastline - cga->firstline) + 8) << 1);
 						else
-							video_blit_memtoscreen_8(0, (cga->firstline - 4) << 1, 0, ((cga->lastline - cga->firstline) + 8) << 1,
+							video_blit_memtoscreen_8(0, (cga->firstline - 4) << 1,
 										 xsize, ((cga->lastline - cga->firstline) + 8) << 1);
 					} else {
 						if (cga->composite) 
-							video_blit_memtoscreen(8, cga->firstline << 1, 0, (cga->lastline - cga->firstline) << 1,
+							video_blit_memtoscreen(8, cga->firstline << 1,
 								       xsize, (cga->lastline - cga->firstline) << 1);
 						else
-							video_blit_memtoscreen_8(8, cga->firstline << 1, 0, (cga->lastline - cga->firstline) << 1,
+							video_blit_memtoscreen_8(8, cga->firstline << 1,
 										 xsize, (cga->lastline - cga->firstline) << 1);
 					}
 				}

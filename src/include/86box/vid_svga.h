@@ -202,7 +202,7 @@ void		svga_close(svga_t *svga);
 uint32_t	svga_mask_addr(uint32_t addr, svga_t *svga);
 uint32_t	svga_mask_changedaddr(uint32_t addr, svga_t *svga);
 
-void		svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga);
+void		svga_doblit(int wx, int wy, svga_t *svga);
 
 
 enum {

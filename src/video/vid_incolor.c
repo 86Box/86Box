@@ -998,7 +998,7 @@ incolor_poll(void *priv)
 					if (video_force_resize_get())
 						video_force_resize_set(0);
 				}
-				video_blit_memtoscreen(0, dev->firstline, 0, dev->lastline - dev->firstline, xsize, dev->lastline - dev->firstline);
+				video_blit_memtoscreen(0, dev->firstline, xsize, dev->lastline - dev->firstline);
 				frames++;
 				if ((dev->ctrl & INCOLOR_CTRL_GRAPH) && (dev->ctrl2 & INCOLOR_CTRL2_GRAPH)) {
 					video_res_x = dev->crtc[1] * 16;

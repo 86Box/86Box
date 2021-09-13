@@ -689,7 +689,7 @@ genius_poll(void *p)
 				video_force_resize_set(0);
 		}
 
-		video_blit_memtoscreen_8(0, 0, 0, ysize, xsize, ysize);
+		video_blit_memtoscreen_8(0, 0, xsize, ysize);
 
 		frames++;
 		/* Fixed 728x1008 resolution */
