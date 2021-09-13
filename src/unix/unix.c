@@ -2,10 +2,7 @@
 #define _FILE_OFFSET_BITS 64
 #define _LARGEFILE64_SOURCE 1
 #endif
-#define _POSIX_C_SOURCE 200809L
-#ifdef __APPLE__
-#define _DARWIN_C_SOURCE 1
-#endif
+#include <SDL.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -20,7 +17,7 @@
 #include <inttypes.h>
 #include <dlfcn.h>
 #include <wchar.h>
-#include <SDL.h>
+
 #include <86box/86box.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
@@ -164,10 +161,10 @@ static const uint16_t sdl_to_xt[0x200] =
 
 typedef struct sdl_blit_params
 {
-    int x, y, y1, y2, w, h;
+    int x, y, w, h;
 } sdl_blit_params;
 
-sdl_blit_params params = { 0, 0, 0, 0, 0, 0 };
+sdl_blit_params params = { 0, 0, 0, 0 };
 int blitreq = 0;
 
 void* dynld_module(const char *name, dllimp_t *table)
@@ -610,7 +607,7 @@ void ui_sb_bugui(char *str)
     
 }
 
-extern void     sdl_blit(int x, int y, int y1, int y2, int w, int h);
+extern void     sdl_blit(int x, int y, int w, int h);
 
 typedef struct mouseinputdata
 {
@@ -1125,8 +1122,8 @@ int main(int argc, char** argv)
         }        
         if (blitreq)
         {
-            extern void sdl_blit(int x, int y, int y1, int y2, int w, int h);
-            sdl_blit(params.x, params.y, params.y1, params.y2, params.w, params.h);
+            extern void sdl_blit(int x, int y, int w, int h);
+            sdl_blit(params.x, params.y, params.w, params.h);
         }
         if (title_set)
         {

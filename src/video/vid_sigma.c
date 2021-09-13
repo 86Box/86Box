@@ -758,7 +758,7 @@ sigma_poll(void *p)
 						video_force_resize_set(0);
 				}
 
-				video_blit_memtoscreen_8(0, sigma->firstline - 4, 0, (sigma->lastline - sigma->firstline) + 8, xsize, (sigma->lastline - sigma->firstline) + 8);
+				video_blit_memtoscreen_8(0, sigma->firstline - 4, xsize, (sigma->lastline - sigma->firstline) + 8);
 				frames++;
 
 				video_res_x = xsize - 16;

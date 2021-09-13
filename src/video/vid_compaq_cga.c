@@ -340,14 +340,14 @@ compaq_cga_poll(void *p)
 
 					if (enable_overscan) {
 	                                        if (self->cga.composite) 
-       		                                   video_blit_memtoscreen(0, self->cga.firstline - 8, 0, (self->cga.lastline - self->cga.firstline) + 16, xsize, (self->cga.lastline - self->cga.firstline) + 16);
+       		                                   video_blit_memtoscreen(0, self->cga.firstline - 8, xsize, (self->cga.lastline - self->cga.firstline) + 16);
                		                        else          
-                       		                   video_blit_memtoscreen_8(0, self->cga.firstline - 8, 0, (self->cga.lastline - self->cga.firstline) + 16, xsize, (self->cga.lastline - self->cga.firstline) + 16);
+                       		                   video_blit_memtoscreen_8(0, self->cga.firstline - 8, xsize, (self->cga.lastline - self->cga.firstline) + 16);
 					} else {
 	                                        if (self->cga.composite) 
-       		                                   video_blit_memtoscreen(8, self->cga.firstline, 0, self->cga.lastline - self->cga.firstline, xsize, self->cga.lastline - self->cga.firstline);
+       		                                   video_blit_memtoscreen(8, self->cga.firstline, xsize, self->cga.lastline - self->cga.firstline);
                		                        else          
-                       		                   video_blit_memtoscreen_8(8, self->cga.firstline, 0, self->cga.lastline - self->cga.firstline, xsize, self->cga.lastline - self->cga.firstline);
+                       		                   video_blit_memtoscreen_8(8, self->cga.firstline, xsize, self->cga.lastline - self->cga.firstline);
 					}
 				}
 

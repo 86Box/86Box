@@ -581,7 +581,7 @@ herculesplus_poll(void *priv)
 					if (video_force_resize_get())
 						video_force_resize_set(0);
 				}
-				video_blit_memtoscreen_8(0, dev->firstline, 0, dev->lastline - dev->firstline, xsize, dev->lastline - dev->firstline);
+				video_blit_memtoscreen_8(0, dev->firstline, xsize, dev->lastline - dev->firstline);
 				frames++;
 				if ((dev->ctrl & HERCULESPLUS_CTRL_GRAPH) && (dev->ctrl2 & HERCULESPLUS_CTRL2_GRAPH)) {
 					video_res_x = dev->crtc[1] * 16;
