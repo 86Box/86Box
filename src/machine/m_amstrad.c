@@ -577,10 +577,10 @@ vid_poll_1512(void *priv)
 				}
 
 				if (enable_overscan) {
-					video_blit_memtoscreen_8(0, (vid->firstline - 4) << 1, 0, ((vid->lastline - vid->firstline) + 8) << 1,
+					video_blit_memtoscreen_8(0, (vid->firstline - 4) << 1,
 								 xsize, ((vid->lastline - vid->firstline) + 8) << 1);
 				} else {
-					video_blit_memtoscreen_8(8, vid->firstline << 1, 0, (vid->lastline - vid->firstline) << 1,
+					video_blit_memtoscreen_8(8, vid->firstline << 1,
 								 xsize, (vid->lastline - vid->firstline) << 1);
 				}
 			}
@@ -1403,7 +1403,7 @@ lcdm_poll(amsvid_t *vid)
 					if (video_force_resize_get())
 						video_force_resize_set(0);
 				}
-				video_blit_memtoscreen(0, mda->firstline, 0, ysize, xsize, ysize);
+				video_blit_memtoscreen(0, mda->firstline, xsize, ysize);
 				frames++;
 				video_res_x = mda->crtc[1];
 				video_res_y = mda->crtc[6];
@@ -1571,7 +1571,7 @@ lcdc_poll(amsvid_t *vid)
 							video_force_resize_set(0);
 					}
 
-					video_blit_memtoscreen(0, cga->firstline << 1, 0, (cga->lastline - cga->firstline) << 1,
+					video_blit_memtoscreen(0, cga->firstline << 1,
 							       xsize, (cga->lastline - cga->firstline) << 1);
 				}
 

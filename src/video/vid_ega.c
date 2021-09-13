@@ -35,7 +35,7 @@
 #include <86box/vid_ega.h>
 
 
-void ega_doblit(int y1, int y2, int wx, int wy, ega_t *ega);
+void ega_doblit(int wx, int wy, ega_t *ega);
 
 
 #define BIOS_IBM_PATH		"roms/video/ega/ibm_6277356_ega_card_u44_27128.bin"
@@ -597,10 +597,10 @@ ega_poll(void *p)
 
 		if (ega->vres) {
 			wy = (ega->lastline - ega->firstline) << 1;
-			ega_doblit(ega->firstline_draw << 1, (ega->lastline_draw + 1) << 1, wx, wy, ega);
+			ega_doblit(wx, wy, ega);
 		} else {
 			wy = ega->lastline - ega->firstline;
-			ega_doblit(ega->firstline_draw, ega->lastline_draw + 1, wx, wy, ega);
+			ega_doblit(wx, wy, ega);
 		}
 
 		frames++;
@@ -658,7 +658,7 @@ ega_poll(void *p)
 
 
 void
-ega_doblit(int y1, int y2, int wx, int wy, ega_t *ega)
+ega_doblit(int wx, int wy, ega_t *ega)
 {
     int y_add = (enable_overscan) ? overscan_y : 0;
     int x_add = (enable_overscan) ? overscan_x : 0;
@@ -676,12 +676,7 @@ ega_doblit(int y1, int y2, int wx, int wy, ega_t *ega)
     }
 
     if ((wx <= 0) || (wy <= 0)) {
-	video_blit_memtoscreen(x_start, y_start, 0, 0, 0, 0);
-	return;
-    }
-
-    if (y1 > y2) {
-	video_blit_memtoscreen(x_start, y_start, 0, 0, xsize + x_add, ysize + y_add);
+	video_blit_memtoscreen(x_start, y_start, 0, 0);
 	return;
     }
 
@@ -734,7 +729,7 @@ ega_doblit(int y1, int y2, int wx, int wy, ega_t *ega)
 	}
     }
 
-    video_blit_memtoscreen(x_start, y_start, y1, y2 + y_add, xsize + x_add, ysize + y_add);
+    video_blit_memtoscreen(x_start, y_start, xsize + x_add, ysize + y_add);
 
     if (ega->vres)
 	ega->y_add >>= 1;

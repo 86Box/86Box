@@ -23,7 +23,7 @@
 
 typedef struct sdl_blit_params
 {
-    int x, y, y1, y2, w, h;
+    int x, y, w, h;
 } sdl_blit_params;
 extern sdl_blit_params params;
 extern int blitreq;
@@ -121,26 +121,24 @@ sdl_stretch(int *w, int *h, int *x, int *y)
 
 
 void
-sdl_blit_shim(int x, int y, int y1, int y2, int w, int h)
+sdl_blit_shim(int x, int y, int w, int h)
 {
     params.x = x;
     params.y = y;
     params.w = w;
     params.h = h;
-    params.y1 = y1;
-    params.y2 = y2;
     blitreq = 1;
 }
 
 void ui_window_title_real();
 
 void
-sdl_blit(int x, int y, int y1, int y2, int w, int h)
+sdl_blit(int x, int y, int w, int h)
 {
     SDL_Rect r_src;
     int ret;
 
-    if (!sdl_enabled || (y1 == y2) || (h <= 0) || (render_buffer == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
+    if (!sdl_enabled || (h <= 0) || (render_buffer == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
 	video_blit_complete();
 	return;
     }
@@ -153,17 +151,17 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
         else sdl_resize(resize_w, resize_h);
         resize_pending = 0;
     }
-    r_src.x = 0;
-    r_src.y = y1;
+    r_src.x = x;
+    r_src.y = y;
     r_src.w = w;
-    r_src.h = y2 - y1;
-    SDL_UpdateTexture(sdl_tex, &r_src, &(render_buffer->dat)[y1 * w], w * 4);
+    r_src.h = h;
+    SDL_UpdateTexture(sdl_tex, &r_src, &(buffer32->line[y][x]), (2048 + 64) * 4);
     video_blit_complete();
 
     SDL_RenderClear(sdl_render);
 
-    r_src.x = 0;
-    r_src.y = 0;
+    r_src.x = x;
+    r_src.y = y;
     r_src.w = w;
     r_src.h = h;
 

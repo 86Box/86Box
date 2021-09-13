@@ -489,17 +489,17 @@ ogc_poll(void *priv)
 								/* ogc specific */
 								if (enable_overscan) {
 									if (ogc->cga.composite) 
-										video_blit_memtoscreen(0, (ogc->cga.firstline - 8), 0, (ogc->cga.lastline - ogc->cga.firstline) + 16,
+										video_blit_memtoscreen(0, (ogc->cga.firstline - 8),
 												xsize, (ogc->cga.lastline - ogc->cga.firstline) + 16);
 									else
-										video_blit_memtoscreen_8(0, (ogc->cga.firstline - 8), 0, (ogc->cga.lastline - ogc->cga.firstline) + 16,
+										video_blit_memtoscreen_8(0, (ogc->cga.firstline - 8),
 												xsize, (ogc->cga.lastline - ogc->cga.firstline) + 16);
 								} else {
 									if (ogc->cga.composite) 
-										video_blit_memtoscreen(8, ogc->cga.firstline, 0, (ogc->cga.lastline - ogc->cga.firstline),
+										video_blit_memtoscreen(8, ogc->cga.firstline,
 												xsize, (ogc->cga.lastline - ogc->cga.firstline));
 									else
-										video_blit_memtoscreen_8(8, ogc->cga.firstline, 0, (ogc->cga.lastline - ogc->cga.firstline),
+										video_blit_memtoscreen_8(8, ogc->cga.firstline,
 												xsize, (ogc->cga.lastline - ogc->cga.firstline));
 								}
 							}

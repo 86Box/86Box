@@ -326,9 +326,9 @@ void colorplus_poll(void *p)
                                         }
                                         
                                         if (colorplus->cga.composite) 
-                                           video_blit_memtoscreen(0, colorplus->cga.firstline - 4, 0, (colorplus->cga.lastline - colorplus->cga.firstline) + 8, xsize, (colorplus->cga.lastline - colorplus->cga.firstline) + 8);
+                                           video_blit_memtoscreen(0, colorplus->cga.firstline - 4, xsize, (colorplus->cga.lastline - colorplus->cga.firstline) + 8);
                                         else          
-                                           video_blit_memtoscreen_8(0, colorplus->cga.firstline - 4, 0, (colorplus->cga.lastline - colorplus->cga.firstline) + 8, xsize, (colorplus->cga.lastline - colorplus->cga.firstline) + 8);
+                                           video_blit_memtoscreen_8(0, colorplus->cga.firstline - 4, xsize, (colorplus->cga.lastline - colorplus->cga.firstline) + 8);
                                         frames++;
 
                                         video_res_x = xsize - 16;

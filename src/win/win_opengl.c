@@ -808,11 +808,11 @@ static void opengl_main(void* param)
 	CoUninitialize();
 }
 
-static void opengl_blit(int x, int y, int y1, int y2, int w, int h)
+static void opengl_blit(int x, int y, int w, int h)
 {
 	int yy;
 
-	if (y1 == y2 || h <= 0 || buffer32 == NULL || thread == NULL ||
+	if ((h <= 0) || (buffer32 == NULL) || (thread == NULL) ||
 		atomic_flag_test_and_set(&blit_info[write_pos].in_use))
 	{
 		video_blit_complete();
@@ -821,8 +821,8 @@ static void opengl_blit(int x, int y, int y1, int y2, int w, int h)
 
 	for (yy = 0; yy < h; yy++) {
 		if ((y + yy) >= 0 && (y + yy) < buffer32->h)
-			memcpy(blit_info[write_pos].buffer + (yy * w * 4),
-			       &(((uint32_t *) buffer32->line[y + yy])[x]), w * 4);
+			memcpy(blit_info[write_pos].buffer + (yy * w * sizeof(uint32_t)),
+			       &(((uint32_t *) buffer32->line[y + yy])[x]), w * sizeof(uint32_t));
 	}
 
 	video_blit_complete();

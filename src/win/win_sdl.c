@@ -229,12 +229,12 @@ sdl_stretch(int *w, int *h, int *x, int *y)
 
 
 static void
-sdl_blit(int x, int y, int y1, int y2, int w, int h)
+sdl_blit(int x, int y, int w, int h)
 {
     SDL_Rect r_src;
     int ret;
 
-    if (!sdl_enabled || (y1 == y2) || (h <= 0) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
+    if (!sdl_enabled || (h <= 0) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
 	video_blit_complete();
 	return;
     }
@@ -245,7 +245,7 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
     r_src.y = y;
     r_src.w = w;
     r_src.h = h;
-    SDL_UpdateTexture(sdl_tex, &r_src, &(buffer32->line[y][x]), (2048 + 64) * 4);
+    SDL_UpdateTexture(sdl_tex, &r_src, &(buffer32->line[y][x]), (2048 + 64) * sizeof(uint32_t));
     video_blit_complete();
 
     SDL_RenderClear(sdl_render);
