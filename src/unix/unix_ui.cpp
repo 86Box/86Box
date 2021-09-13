@@ -23,6 +23,7 @@
 #include <86box/mo.h>
 #include <86box/zip.h>
 #include <86box/hdc.h>
+#include <86box/hdd.h>
 #include <86box/plat.h>
 #include <86box/video.h>
 #include <86box/device.h>
@@ -46,6 +47,8 @@ INCBIN(zip_active_icon, _INCBIN_DIR"/icons/zip_active.png");
 INCBIN(cartridge_icon, _INCBIN_DIR"/icons/cartridge.png");
 INCBIN(cassette_icon, _INCBIN_DIR"/icons/cassette.png");
 INCBIN(cassette_active_icon, _INCBIN_DIR"/icons/cassette_active.png");
+INCBIN(hard_disk, _INCBIN_DIR"/icons/hard_disk.png");
+INCBIN(hard_disk_active, _INCBIN_DIR"/icons/hard_disk_active.png");
 
 #include <string>
 #include <vector>
@@ -512,42 +515,6 @@ std::vector<CDMenu> cdmenu;
 std::vector<ZIPMenu> zipmenu;
 std::vector<MOMenu> momenu;
 
-extern "C" void
-media_menu_reset()
-{
-    int curr;
-    for(int i = 0; i < 2; i++) {
-	if(is_valid_cartridge()) {
-		cmenu.emplace_back(i);
-	}
-	curr++;
-    }
-    for(int i = 0; i < FDD_NUM; i++) {
-	if(is_valid_fdd(i)) {
-		fddmenu.emplace_back(i);
-	}
-	curr++;
-    }
-    for(int i = 0; i < CDROM_NUM; i++) {
-	if(is_valid_cdrom(i)) {
-		cdmenu.emplace_back(i);
-	}
-	curr++;
-    }
-    for(int i = 0; i < ZIP_NUM; i++) {
-	if(is_valid_zip(i)) {
-		zipmenu.emplace_back(i);
-	}
-	curr++;
-    }
-    for(int i = 0; i < MO_NUM; i++) {
-	if(is_valid_mo(i)) {
-		momenu.emplace_back(i);
-	}
-	curr++;
-    }
-}
-
 extern "C" void InitImGui()
 {
     ImGui::CreateContext(NULL);
@@ -560,6 +527,7 @@ SDL_Texture* cart_icon;
 SDL_Texture* mo_status_icon[2];
 SDL_Texture* zip_status_icon[2];
 SDL_Texture* cas_status_icon[2];
+SDL_Texture* hdd_status_icon[2];
 
 static SDL_Texture* load_icon(const stbi_uc* buffer, int len)
 {
@@ -599,6 +567,8 @@ extern "C" void HandleSizeChange()
     zip_status_icon[1] = load_icon(gzip_active_icon_data, gzip_active_icon_size);
     cas_status_icon[0] = load_icon(gcassette_icon_data, gcassette_icon_size);
     cas_status_icon[1] = load_icon(gcassette_active_icon_data, gcassette_icon_size);
+    hdd_status_icon[0] = load_icon(ghard_disk_data, ghard_disk_size);
+    hdd_status_icon[1] = load_icon(ghard_disk_active_data, ghard_disk_active_size);
     
     imrendererinit = true;
 }
@@ -624,6 +594,103 @@ std::array<std::atomic<bool>, FDD_NUM> fddactive, fddempty;
 std::array<std::atomic<bool>, ZIP_NUM> zipactive, zipempty;
 std::array<std::atomic<bool>, CDROM_NUM> cdactive, cdempty;
 std::array<std::atomic<bool>, MO_NUM> moactive, moempty;
+std::array<std::atomic<bool>, 16> hddactive, hddenabled;
+
+static int
+hdd_count(int bus)
+{
+    int c = 0;
+    int i;
+
+    for (i=0; i<HDD_NUM; i++) {
+	if (hdd[i].bus == bus)
+		c++;
+    }
+
+    return(c);
+}
+
+extern "C" void
+media_menu_reset()
+{
+    int curr;
+
+    cmenu.clear();
+    fddmenu.clear();
+    cdmenu.clear();
+    zipmenu.clear();
+    momenu.clear();
+    for(int i = 0; i < 2; i++) {
+	if(is_valid_cartridge()) {
+		cmenu.emplace_back(i);
+	}
+	curr++;
+    }
+    for(int i = 0; i < FDD_NUM; i++) {
+	if(is_valid_fdd(i)) {
+		fddmenu.emplace_back(i);
+	}
+	curr++;
+    }
+    for(int i = 0; i < CDROM_NUM; i++) {
+	if(is_valid_cdrom(i)) {
+		cdmenu.emplace_back(i);
+	}
+	curr++;
+    }
+    for(int i = 0; i < ZIP_NUM; i++) {
+	if(is_valid_zip(i)) {
+		zipmenu.emplace_back(i);
+	}
+	curr++;
+    }
+    for(int i = 0; i < MO_NUM; i++) {
+	if(is_valid_mo(i)) {
+		momenu.emplace_back(i);
+	}
+	curr++;
+    }
+}
+
+extern "C" void ui_sb_update_panes()
+{
+    int cart_int, mfm_int, xta_int, esdi_int, ide_int, scsi_int;
+    int c_mfm, c_esdi, c_xta;
+    int c_ide, c_scsi;
+
+    cart_int = (machines[machine].flags & MACHINE_CARTRIDGE) ? 1 : 0;
+    mfm_int = (machines[machine].flags & MACHINE_MFM) ? 1 : 0;
+    xta_int = (machines[machine].flags & MACHINE_XTA) ? 1 : 0;
+    esdi_int = (machines[machine].flags & MACHINE_ESDI) ? 1 : 0;
+    ide_int = (machines[machine].flags & MACHINE_IDE_QUAD) ? 1 : 0;
+    scsi_int = (machines[machine].flags & MACHINE_SCSI_DUAL) ? 1 : 0;
+
+    c_mfm = hdd_count(HDD_BUS_MFM);
+    c_esdi = hdd_count(HDD_BUS_ESDI);
+    c_xta = hdd_count(HDD_BUS_XTA);
+    c_ide = hdd_count(HDD_BUS_IDE);
+    c_scsi = hdd_count(HDD_BUS_SCSI);
+
+    media_menu_reset();
+
+    std::fill(hddenabled.begin(), hddenabled.end(), false);
+    char* hdc_name = hdc_get_internal_name(hdc_current);
+    if (c_mfm && (mfm_int || !memcmp(hdc_name, "st506", 5))) {
+	/* MFM drives, and MFM or Internal controller. */
+	hddenabled[HDD_BUS_MFM] = true;
+    }
+    if (c_esdi && (esdi_int || !memcmp(hdc_name, "esdi", 4))) {
+	/* ESDI drives, and ESDI or Internal controller. */
+	hddenabled[HDD_BUS_ESDI] = true;
+    }
+    if (c_xta && (xta_int || !memcmp(hdc_name, "xta", 3)))
+	hddenabled[HDD_BUS_XTA] = true;
+    if (c_ide && (ide_int || !memcmp(hdc_name, "xtide", 5) || !memcmp(hdc_name, "ide", 3)))
+	hddenabled[HDD_BUS_IDE] = true;
+    if (c_scsi && (scsi_int || (scsi_card_current[0] != 0) || (scsi_card_current[1] != 0) ||
+	(scsi_card_current[2] != 0) || (scsi_card_current[3] != 0)))
+	hddenabled[HDD_BUS_SCSI] = true;
+}
 
 extern "C" void ui_sb_update_icon_state(int tag, int state)
 {
@@ -698,6 +765,11 @@ extern "C" void ui_sb_update_icon(int tag, int active)
             cdactive[index] = (bool)(active);
             break;
         }
+        case SB_HDD:
+        {
+            hddactive[index] = (bool)(active);
+            break;
+        }
     }
 }
 
@@ -727,6 +799,12 @@ fdd_type_to_icon(int type)
     return(ret);
 }
 
+uint32_t timer_sb_icons(uint32_t interval, void* param)
+{
+    std::fill(hddactive.begin(), hddactive.end(), false);
+    return interval;
+}
+
 extern "C" void RenderImGui()
 {
     if (!imrendererinit) HandleSizeChange();
@@ -747,6 +825,7 @@ extern "C" void RenderImGui()
             firstrender = false;
             plat_resize(640, 480 + menubarheight);
             media_menu_reset();
+            SDL_AddTimer(75, timer_sb_icons, nullptr);
         }
         if (ImGui::BeginMenu("Action"))
         {
@@ -1127,6 +1206,37 @@ extern "C" void RenderImGui()
             }
             ImGui::SameLine(0, 0);
         }
+        if (hddenabled[HDD_BUS_MFM])
+        {
+            ImGui::ImageButton((ImTextureID)hdd_status_icon[hddactive[HDD_BUS_MFM]], ImVec2(16, 16));
+            if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Hard Disk (MFM/RLL)");
+            ImGui::SameLine(0, 0);
+        }
+        if (hddenabled[HDD_BUS_ESDI])
+        {
+            ImGui::ImageButton((ImTextureID)hdd_status_icon[hddactive[HDD_BUS_ESDI]], ImVec2(16, 16));
+            if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Hard Disk (ESDI)");
+            ImGui::SameLine(0, 0);
+        }
+        if (hddenabled[HDD_BUS_XTA])
+        {
+            ImGui::ImageButton((ImTextureID)hdd_status_icon[hddactive[HDD_BUS_XTA]], ImVec2(16, 16));
+            if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Hard Disk (XTA)");
+            ImGui::SameLine(0, 0);
+        }
+        if (hddenabled[HDD_BUS_IDE])
+        {
+            ImGui::ImageButton((ImTextureID)hdd_status_icon[hddactive[HDD_BUS_IDE]], ImVec2(16, 16));
+            if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Hard Disk (IDE)");
+            ImGui::SameLine(0, 0);
+        }
+        if (hddenabled[HDD_BUS_SCSI])
+        {
+            ImGui::ImageButton((ImTextureID)hdd_status_icon[hddactive[HDD_BUS_SCSI]], ImVec2(16, 16));
+            if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Hard Disk (SCSI)");
+            ImGui::SameLine(0, 0);
+        }
+
         ImGui::PopStyleColor(3);
         ImGui::End();
     }
