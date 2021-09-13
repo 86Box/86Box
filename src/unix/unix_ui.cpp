@@ -1,4 +1,5 @@
 #include "imgui.h"
+#include "imgui_internal.h"
 #include "imgui_impl_sdl.h"
 #include "imgui_sdl.h"
 #include <SDL.h>
@@ -30,9 +31,21 @@
 #include <86box/timer.h>
 #include <86box/ui.h>
 
+#define INCBIN_STYLE INCBIN_STYLE_SNAKE
 #include <incbin.h>
 INCBIN(cdromicon, _INCBIN_DIR"/icons/cdrom.png");
 INCBIN(cdromactiveicon, _INCBIN_DIR"/icons/cdrom_active.png");
+INCBIN(floppy_35_icon, _INCBIN_DIR"/icons/floppy_35.png");
+INCBIN(floppy_35_active_icon, _INCBIN_DIR"/icons/floppy_35_active.png");
+INCBIN(floppy_525_icon, _INCBIN_DIR"/icons/floppy_525.png");
+INCBIN(floppy_525_active_icon, _INCBIN_DIR"/icons/floppy_525_active.png");
+INCBIN(mo_icon, _INCBIN_DIR"/icons/mo.png");
+INCBIN(mo_active_icon, _INCBIN_DIR"/icons/mo_active.png");
+INCBIN(zip_icon, _INCBIN_DIR"/icons/zip.png");
+INCBIN(zip_active_icon, _INCBIN_DIR"/icons/zip_active.png");
+INCBIN(cartridge_icon, _INCBIN_DIR"/icons/cartridge.png");
+INCBIN(cassette_icon, _INCBIN_DIR"/icons/cassette.png");
+INCBIN(cassette_active_icon, _INCBIN_DIR"/icons/cassette_active.png");
 
 #include <string>
 #include <vector>
@@ -193,53 +206,91 @@ static bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::stri
     return boolres;
 }
 
-struct CartMenu
+struct BaseMenu
+{
+    virtual std::string FormatStr() { return ""; } 
+    virtual void RenderImGuiMenuItemsOnly() {}
+    void RenderImGuiMenu()
+    {
+        if (ImGui::BeginMenu(FormatStr().c_str()))
+        {
+            RenderImGuiMenuItemsOnly();
+            ImGui::EndMenu();
+        }
+    }
+};
+
+struct CartMenu : BaseMenu
 {
     int cartid;
     CartMenu(int id)
     {
         cartid = id;
     }
-    void RenderImGuiMenu()
+    std::string FormatStr() override
     {
         std::string str = "Cartridge ";
         str += std::to_string(cartid);
         str += " ";
         str += strlen(cart_fns[cartid]) == 0 ? "(empty)" : cart_fns[cartid];
-        if (ImGui::BeginMenu(str.c_str()))
+        return str;
+    }
+    void RenderImGuiMenuItemsOnly() override
+    {
+        if (ImGui::MenuItem("Image..."))
         {
-            if (ImGui::MenuItem("Image..."))
+            char res[4096];
+            if (OpenFileChooser(res, sizeof(res), cartfilter))
             {
-                char res[4096];
-                if (OpenFileChooser(res, sizeof(res), cartfilter))
-                {
-                    cartridge_mount(cartid, res, 0);
-                }
+                cartridge_mount(cartid, res, 0);
             }
-            if (ImGui::MenuItem("Image... (write-protected)"))
+        }
+        if (ImGui::MenuItem("Image... (write-protected)"))
+        {
+            char res[4096];
+            if (OpenFileChooser(res, sizeof(res), cartfilter))
             {
-                char res[4096];
-                if (OpenFileChooser(res, sizeof(res), cartfilter))
-                {
-                    cartridge_mount(cartid, res, 1);
-                }
+                cartridge_mount(cartid, res, 1);
             }
-            if (ImGui::MenuItem("Eject"))
-            {
-                cartridge_eject(cartid);
-            }
+        }
+        if (ImGui::MenuItem("Eject"))
+        {
+            cartridge_eject(cartid);
         }
     }
 };
 
-struct FloppyMenu
+struct FloppyMenu : BaseMenu
 {
     int flpid;
     FloppyMenu(int id)
     {
         flpid = id;
     }
-    void RenderImGuiMenu()
+    void RenderImGuiMenuItemsOnly() override
+    {
+        if (ImGui::MenuItem("Image..."))
+        {
+            char res[4096];
+            if (OpenFileChooser(res, sizeof(res), floppyfilter))
+            {
+                floppy_mount(flpid, res, 0);
+            }
+        }
+        if (ImGui::MenuItem("Image... (write-protected)"))
+        {
+            char res[4096];
+            if (OpenFileChooser(res, sizeof(res), floppyfilter))
+            {
+                floppy_mount(flpid, res, 1);
+            }
+        }
+        if (ImGui::MenuItem("Eject"))
+        {
+            floppy_eject(flpid);
+        }
+    }
+    std::string FormatStr() override
     {
         std::string str = "Floppy ";
         str += std::to_string(flpid + 1);
@@ -247,41 +298,18 @@ struct FloppyMenu
         str += fdd_getname(fdd_get_type(flpid));
         str += ") ";
         str += strlen(floppyfns[flpid]) == 0 ? "(empty)" : floppyfns[flpid];
-        if (ImGui::BeginMenu(str.c_str()))
-        {
-            if (ImGui::MenuItem("Image..."))
-            {
-                char res[4096];
-                if (OpenFileChooser(res, sizeof(res), floppyfilter))
-                {
-                    floppy_mount(flpid, res, 0);
-                }
-            }
-            if (ImGui::MenuItem("Image... (write-protected)"))
-            {
-                char res[4096];
-                if (OpenFileChooser(res, sizeof(res), floppyfilter))
-                {
-                    floppy_mount(flpid, res, 1);
-                }
-            }
-            if (ImGui::MenuItem("Eject"))
-            {
-                floppy_eject(flpid);
-            }
-            ImGui::EndMenu();
-        }
+        return str;
     }
 };
 
-struct CDMenu
+struct CDMenu : BaseMenu
 {
     int cdid;
     CDMenu(int id)
     {
         cdid = id;
     }
-    std::string FormatStr()
+    std::string FormatStr() override
     {
         std::string str = "CD-ROM ";
         str += std::to_string(cdid + 1);
@@ -291,39 +319,35 @@ struct CDMenu
         str += strlen(cdrom[cdid].image_path) == 0 ? "(empty)" : cdrom[cdid].image_path;
         return str;
     }
-    void RenderImGuiMenu()
+    void RenderImGuiMenuItemsOnly() override
     {
-        if (ImGui::BeginMenu(FormatStr().c_str()))
+        if (ImGui::MenuItem("Image"))
         {
-            if (ImGui::MenuItem("Image"))
+            char res[4096];
+            if (OpenFileChooser(res, sizeof(res), cdromfilter))
             {
-                char res[4096];
-                if (OpenFileChooser(res, sizeof(res), cdromfilter))
-                {
-                    cdrom_mount(cdid, res);
-                }
+                cdrom_mount(cdid, res);
             }
-            if (ImGui::MenuItem("Reload previous image"))
-            {
-                cdrom_mount(cdid, cdrom[cdid].prev_image_path);
-            }
-            if (ImGui::MenuItem("Empty", NULL, strlen(cdrom[cdid].image_path) == 0))
-            {
-                cdrom_eject(cdid);
-            }
-            ImGui::EndMenu();
+        }
+        if (ImGui::MenuItem("Reload previous image"))
+        {
+            cdrom_reload(cdid);
+        }
+        if (ImGui::MenuItem("Empty", NULL, strlen(cdrom[cdid].image_path) == 0))
+        {
+            cdrom_eject(cdid);
         }
     }
 };
 
-struct ZIPMenu
+struct ZIPMenu : BaseMenu
 {
     int zipid;
     ZIPMenu(int id)
     {
         zipid = id;
     }
-    void RenderImGuiMenu()
+    std::string FormatStr() override
     {
         std::string str = "ZIP ";
         str += std::to_string(zip_drives[zipid].is_250 ? 250 : 100);
@@ -333,45 +357,45 @@ struct ZIPMenu
         str += zip_drives[zipid].bus_type == ZIP_BUS_SCSI ? "SCSI" : "ATAPI";
         str += ") ";
         str += strlen(zip_drives[zipid].image_path) == 0 ? "(empty)" : zip_drives[zipid].image_path;
-        if (ImGui::BeginMenu(str.c_str()))
+        return str;
+    }
+    void RenderImGuiMenuItemsOnly() override
+    {
+        if (ImGui::MenuItem("Image..."))
         {
-            if (ImGui::MenuItem("Image..."))
+            char res[4096];
+            if (OpenFileChooser(res, sizeof(res), zipfilter))
             {
-                char res[4096];
-                if (OpenFileChooser(res, sizeof(res), zipfilter))
-                {
-                    zip_mount(zipid, res, 0);
-                }
+                zip_mount(zipid, res, 0);
             }
-            if (ImGui::MenuItem("Image... (write-protected)"))
+        }
+        if (ImGui::MenuItem("Image... (write-protected)"))
+        {
+            char res[4096];
+            if (OpenFileChooser(res, sizeof(res), zipfilter))
             {
-                char res[4096];
-                if (OpenFileChooser(res, sizeof(res), zipfilter))
-                {
-                    zip_mount(zipid, res, 1);
-                }
+                zip_mount(zipid, res, 1);
             }
-            if (ImGui::MenuItem("Reload previous image"))
-            {
-                zip_reload(zipid);
-            }
-            if (ImGui::MenuItem("Eject"))
-            {
-                zip_eject(zipid);
-            }
-            ImGui::EndMenu();
+        }
+        if (ImGui::MenuItem("Reload previous image"))
+        {
+            zip_reload(zipid);
+        }
+        if (ImGui::MenuItem("Eject"))
+        {
+            zip_eject(zipid);
         }
     }
 };
 
-struct MOMenu
+struct MOMenu : BaseMenu
 {
     int moid;
     MOMenu(int id)
     {
         moid = id;
     }
-    void RenderImGuiMenu()
+    std::string FormatStr()
     {
         std::string str = "MO ";
         str += std::to_string(moid + 1);
@@ -390,82 +414,93 @@ struct MOMenu
         }
         str += ") ";
         str += strlen(mo_drives[moid].image_path) == 0 ? "(empty)" : mo_drives[moid].image_path;
-        if (ImGui::BeginMenu(str.c_str()))
+        return str;
+    }
+    void RenderImGuiMenuItemsOnly()
+    {
+        if (ImGui::MenuItem("Image..."))
         {
-            if (ImGui::MenuItem("Image..."))
+            char res[4096];
+            if (OpenFileChooser(res, sizeof(res), mofilter))
             {
-                char res[4096];
-                if (OpenFileChooser(res, sizeof(res), mofilter))
-                {
-                    mo_mount(moid, res, 0);
-                }
+                mo_mount(moid, res, 0);
             }
-            if (ImGui::MenuItem("Image... (write-protected)"))
+        }
+        if (ImGui::MenuItem("Image... (write-protected)"))
+        {
+            char res[4096];
+            if (OpenFileChooser(res, sizeof(res), mofilter))
             {
-                char res[4096];
-                if (OpenFileChooser(res, sizeof(res), mofilter))
-                {
-                    mo_mount(moid, res, 1);
-                }
+                mo_mount(moid, res, 1);
             }
-            if (ImGui::MenuItem("Reload previous image"))
-            {
-                mo_reload(moid);
-            }
-            if (ImGui::MenuItem("Eject"))
-            {
-                mo_eject(moid);
-            }
-            ImGui::EndMenu();
+        }
+        if (ImGui::MenuItem("Reload previous image"))
+        {
+            mo_reload(moid);
+        }
+        if (ImGui::MenuItem("Eject"))
+        {
+            mo_eject(moid);
         }
     }
 };
 
 static std::atomic<bool> cas_active, cas_empty;
+
+static void RenderCassetteImguiMenuItemsOnly()
+{
+    if (ImGui::MenuItem("Image..."))
+    {
+        char res[4096];
+        if (OpenFileChooser(res, sizeof(res), casfilter))
+        {
+            cassette_mount(res, 0);
+        }
+    }
+    if (ImGui::MenuItem("Image... (write-protected)"))
+    {
+        char res[4096];
+        if (OpenFileChooser(res, sizeof(res), casfilter))
+        {
+            cassette_mount(res, 1);
+        }
+    }
+    if (ImGui::MenuItem("Play"))
+    {
+        pc_cas_set_mode(cassette, 0);
+    }
+    if (ImGui::MenuItem("Record"))
+    {
+        pc_cas_set_mode(cassette, 1);
+    }
+    if (ImGui::MenuItem("Rewind to the beginning"))
+    {
+        pc_cas_rewind(cassette);
+    }
+    if (ImGui::MenuItem("Fast forward to the end"))
+    {
+        pc_cas_append(cassette);
+    }
+    if (ImGui::MenuItem("Eject"))
+    {
+        cassette_eject();
+    }
+}
+
+static std::string CassetteFormatStr()
+{
+    std::string str = "Cassette: ";
+    str += strlen(cassette_fname) == 0 ? "(empty)" : cassette_fname;
+    return str;
+}
+
 static void RenderCassetteImguiMenu()
 {
     if (cassette_enable)
     {
-        std::string str = "Cassette: ";
-        str += strlen(cassette_fname) == 0 ? "(empty)" : cassette_fname;
-        if (ImGui::BeginMenu(str.c_str()))
+        if (ImGui::BeginMenu(CassetteFormatStr().c_str()))
         {
-            if (ImGui::MenuItem("Image..."))
-            {
-                char res[4096];
-                if (OpenFileChooser(res, sizeof(res), casfilter))
-                {
-                    cassette_mount(res, 0);
-                }
-            }
-            if (ImGui::MenuItem("Image... (write-protected)"))
-            {
-                char res[4096];
-                if (OpenFileChooser(res, sizeof(res), casfilter))
-                {
-                    cassette_mount(res, 1);
-                }
-            }
-            if (ImGui::MenuItem("Play"))
-            {
-                pc_cas_set_mode(cassette, 0);
-            }
-            if (ImGui::MenuItem("Record"))
-            {
-                pc_cas_set_mode(cassette, 1);
-            }
-            if (ImGui::MenuItem("Rewind to the beginning"))
-            {
-                pc_cas_rewind(cassette);
-            }
-            if (ImGui::MenuItem("Fast forward to the end"))
-            {
-                pc_cas_append(cassette);
-            }
-            if (ImGui::MenuItem("Eject"))
-            {
-                cassette_eject();
-            }
+            RenderCassetteImguiMenuItemsOnly();
             ImGui::EndMenu();
         }
     }
@@ -520,6 +555,29 @@ extern "C" void InitImGui()
 }
 
 SDL_Texture* cdrom_status_icon[2];
+SDL_Texture* fdd_status_icon[2][2];
+SDL_Texture* cart_icon;
+SDL_Texture* mo_status_icon[2];
+SDL_Texture* zip_status_icon[2];
+SDL_Texture* cas_status_icon[2];
+
+static SDL_Texture* load_icon(const stbi_uc* buffer, int len)
+{
+    SDL_Texture* tex = nullptr;
+    int w, h, c;
+    stbi_uc* imgdata = stbi_load_from_memory(buffer, len, &w, &h, &c, 4);
+    if (imgdata)
+    {
+        tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, w, h);
+        if (cdrom_status_icon)
+        {
+            SDL_UpdateTexture(tex, NULL, imgdata, w * 4);
+            SDL_SetTextureBlendMode(tex, SDL_BlendMode::SDL_BLENDMODE_BLEND);
+        }
+        STBI_FREE(imgdata);
+    }
+    return tex;
+}
 
 extern "C" void HandleSizeChange()
 {
@@ -528,28 +586,20 @@ extern "C" void HandleSizeChange()
     SDL_GetRendererOutputSize(sdl_render, &w, &h);
     ImGuiSDL::Initialize(sdl_render, w, h);
     w = 0, h = 0;
-    stbi_uc* imgdata = stbi_load_from_memory(gcdromiconData, gcdromiconSize, &w, &h, &c, 4);
-    if (imgdata)
-    {
-        cdrom_status_icon[0] = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, w, h);
-        if (cdrom_status_icon)
-        {
-            SDL_UpdateTexture(cdrom_status_icon[0], NULL, imgdata, w * 4);
-            SDL_SetTextureBlendMode(cdrom_status_icon[0], SDL_BlendMode::SDL_BLENDMODE_BLEND);
-        }
-        STBI_FREE(imgdata);
-    }
-    imgdata = stbi_load_from_memory(gcdromactiveiconData, gcdromactiveiconSize, &w, &h, &c, 4);
-    if (imgdata)
-    {
-        cdrom_status_icon[1] = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, w, h);
-        if (cdrom_status_icon)
-        {
-            SDL_UpdateTexture(cdrom_status_icon[1], NULL, imgdata, w * 4);
-            SDL_SetTextureBlendMode(cdrom_status_icon[1], SDL_BlendMode::SDL_BLENDMODE_BLEND);
-        }
-        STBI_FREE(imgdata);
-    }
+    cdrom_status_icon[0] = load_icon(gcdromicon_data, gcdromicon_size);
+    cdrom_status_icon[1] = load_icon(gcdromactiveicon_data, gcdromactiveicon_size);
+    fdd_status_icon[0][0] = load_icon(gfloppy_35_icon_data, gfloppy_35_icon_size);
+    fdd_status_icon[0][1] = load_icon(gfloppy_35_active_icon_data, gfloppy_35_active_icon_size);
+    fdd_status_icon[1][0] = load_icon(gfloppy_525_icon_data, gfloppy_525_icon_size);
+    fdd_status_icon[1][1] = load_icon(gfloppy_525_active_icon_data, gfloppy_525_active_icon_size);
+    cart_icon = load_icon(gcartridge_icon_data, gcartridge_icon_size);
+    mo_status_icon[0] = load_icon(gmo_icon_data, gmo_icon_size);
+    mo_status_icon[1] = load_icon(gmo_active_icon_data, gmo_active_icon_size);
+    zip_status_icon[0] = load_icon(gzip_icon_data, gzip_icon_size);
+    zip_status_icon[1] = load_icon(gzip_active_icon_data, gzip_active_icon_size);
+    cas_status_icon[0] = load_icon(gcassette_icon_data, gcassette_icon_size);
+    cas_status_icon[1] = load_icon(gcassette_active_icon_data, gcassette_icon_size);
+    
     imrendererinit = true;
 }
 
@@ -649,6 +699,32 @@ extern "C" void ui_sb_update_icon(int tag, int active)
             break;
         }
     }
+}
+
+intptr_t
+fdd_type_to_icon(int type)
+{
+    int ret = 248;
+
+    switch(type) {
+	case 0:
+		break;
+
+	case 1: case 2: case 3: case 4:
+	case 5: case 6:
+		ret = 16;
+		break;
+
+	case 7: case 8: case 9: case 10:
+	case 11: case 12: case 13:
+		ret = 24;
+		break;
+
+	default:
+		break;
+    }
+
+    return(ret);
 }
 
 extern "C" void RenderImGui()
@@ -977,24 +1053,84 @@ extern "C" void RenderImGui()
         }
         ImGui::EndMainMenuBar();
     }
-
+    
     ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetIO().DisplaySize.y - (menubarheight * 2)));
     ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, menubarheight * 2));
     if (ImGui::Begin("86Box status bar", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar))
     {
-        for (size_t i = 0; i < cdmenu.size(); i++)
+        ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
+        if (cassette_enable)
         {
-            ImGui::ImageButton((ImTextureID)cdrom_status_icon[cdactive[i]], ImVec2(16, 16));
-            if (ImGui::BeginPopupContextItem() || ImGui::BeginPopupContextItem(nullptr, ImGuiPopupFlags_MouseButtonLeft))
+            ImGui::ImageButton((ImTextureID)cas_status_icon[cas_active], ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, cas_empty ? 0.75 : 1));
+            if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip(CassetteFormatStr().c_str());
+            if (ImGui::BeginPopupContextItem("cassette") || ImGui::BeginPopupContextItem("cassette", ImGuiPopupFlags_MouseButtonLeft))
             {
-                cdmenu[i].RenderImGuiMenu();
+                RenderCassetteImguiMenuItemsOnly();
                 ImGui::EndPopup();
             }
-            ImGui::SameLine();
+            ImGui::SameLine(0, 0);
         }
+        for (size_t i = 0; i < cmenu.size(); i++)
+        {
+            ImGui::ImageButton((ImTextureID)cart_icon, ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, cartempty[i] ? 0.75 : 1));
+            if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip(cmenu[i].FormatStr().c_str());
+            if (ImGui::BeginPopupContextItem(("cart" + std::to_string(cmenu[i].cartid)).c_str()) || ImGui::BeginPopupContextItem(("cart" + std::to_string(cmenu[i].cartid)).c_str(), ImGuiPopupFlags_MouseButtonLeft))
+            {
+                cmenu[i].RenderImGuiMenuItemsOnly();
+                ImGui::EndPopup();
+            }
+            ImGui::SameLine(0, 0);
+        }
+        for (size_t i = 0; i < fddmenu.size(); i++)
+        {
+            ImGui::ImageButton((ImTextureID)fdd_status_icon[fdd_type_to_icon(fdd_get_type(i)) == 16][fddactive[i]], ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, fddempty[i] ? 0.75 : 1));
+            if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip(fddmenu[i].FormatStr().c_str());
+            if (ImGui::BeginPopupContextItem(("flp" + std::to_string(fddmenu[i].flpid)).c_str()) || ImGui::BeginPopupContextItem(("flp" + std::to_string(fddmenu[i].flpid)).c_str(), ImGuiPopupFlags_MouseButtonLeft))
+            {
+                fddmenu[i].RenderImGuiMenuItemsOnly();
+                ImGui::EndPopup();
+            }
+            ImGui::SameLine(0, 0);
+        }
+        for (size_t i = 0; i < cdmenu.size(); i++)
+        {
+            ImGui::ImageButton((ImTextureID)cdrom_status_icon[cdactive[i]], ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, cdrom[i].image_path[0] == 0 ? 0.75 : 1));
+            if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip(cdmenu[i].FormatStr().c_str());
+            if (ImGui::BeginPopupContextItem(("cdr" + std::to_string(cdmenu[i].cdid)).c_str()) || ImGui::BeginPopupContextItem(("cdr" + std::to_string(cdmenu[i].cdid)).c_str(), ImGuiPopupFlags_MouseButtonLeft))
+            {
+                cdmenu[i].RenderImGuiMenuItemsOnly();
+                ImGui::EndPopup();
+            }
+            ImGui::SameLine(0, 0);
+        }
+        for (size_t i = 0; i < zipmenu.size(); i++)
+        {
+            ImGui::ImageButton((ImTextureID)zip_status_icon[zipactive[i]], ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, zip_drives[i].image_path[0] == '\0' ? 0.75 : 1));
+            if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip(zipmenu[i].FormatStr().c_str());
+            if (ImGui::BeginPopupContextItem(("zip" + std::to_string(zipmenu[i].zipid)).c_str()) || ImGui::BeginPopupContextItem(("zip" + std::to_string(zipmenu[i].zipid)).c_str(), ImGuiPopupFlags_MouseButtonLeft))
+            {
+                zipmenu[i].RenderImGuiMenuItemsOnly();
+                ImGui::EndPopup();
+            }
+            ImGui::SameLine(0, 0);
+        }
+        for (size_t i = 0; i < momenu.size(); i++)
+        {
+            ImGui::ImageButton((ImTextureID)mo_status_icon[moactive[i]], ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, mo_drives[i].image_path[0] == '\0' ? 0.75 : 1));
+            if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip(momenu[i].FormatStr().c_str());
+            if (ImGui::BeginPopupContextItem(("mo" + std::to_string(momenu[i].moid)).c_str()) || ImGui::BeginPopupContextItem(("mo" + std::to_string(momenu[i].moid)).c_str(), ImGuiPopupFlags_MouseButtonLeft))
+            {
+                momenu[i].RenderImGuiMenuItemsOnly();
+                ImGui::EndPopup();
+            }
+            ImGui::SameLine(0, 0);
+        }
+        ImGui::PopStyleColor(3);
         ImGui::End();
     }
-        
+    ImGui::EndFrame();
     ImGui::Render();
     ImGuiSDL::Render(ImGui::GetDrawData());
 }

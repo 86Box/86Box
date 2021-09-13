@@ -62,9 +62,11 @@ namespace
 		};
 	}
 
-	template <typename Key, typename Value, std::size_t Size> class LRUCache
+	template <typename Key, typename Value> class LRUCache
 	{
 	public:
+		void SetCapacity(size_t capacity) { Capacity = capacity; }
+
 		bool Contains(const Key& key) const
 		{
 			return Container.find(key) != Container.end();
@@ -90,13 +92,17 @@ namespace
 
 			Order.push_front(std::make_pair(key, std::move(value)));
 			Container.insert(std::make_pair(key, Order.begin()));
-
-			Clean();
 		}
-	private:
+
+		void Reset()
+		{
+			Order.clear();
+			Container.clear();
+		}
+
 		void Clean()
 		{
-			while (Container.size() > Size)
+			while (Container.size() > Capacity)
 			{
 				auto last = Order.end();
 				last--;
@@ -105,6 +111,8 @@ namespace
 			}
 		}
 
+	private:
+		size_t Capacity = 0;
 		std::list<std::pair<Key, Value>> Order;
 		std::unordered_map<Key, decltype(Order.begin()), TupleHash::Hash<Key>> Container;
 	};
@@ -142,6 +150,7 @@ namespace
 	struct Device
 	{
 		SDL_Renderer* Renderer;
+		bool CacheWasInvalidated = false;
 
 		struct ClipRect
 		{
@@ -156,19 +165,12 @@ namespace
 			~TriangleCacheItem() { if (Texture) SDL_DestroyTexture(Texture); }
 		};
 
-		// You can tweak these to values that you find that work the best.
-		static constexpr std::size_t UniformColorTriangleCacheSize = 512;
-		static constexpr std::size_t GenericTriangleCacheSize = 64;
-
-		// Uniform color is identified by its color and the coordinates of the edges.
-		using UniformColorTriangleKey = std::tuple<uint32_t, int, int, int, int, int, int>;
-		// The generic triangle cache unfortunately has to be basically a full representation of the triangle.
+		// The triangle cache has to be basically a full representation of the triangle.
 		// This includes the (offset) vertex positions, texture coordinates and vertex colors.
-		using GenericTriangleVertexKey = std::tuple<int, int, double, double, uint32_t>;
-		using GenericTriangleKey = std::tuple<GenericTriangleVertexKey, GenericTriangleVertexKey, GenericTriangleVertexKey>;
+		using GenericTriangleVertexKey = std::tuple<float, float, float, float, uint32_t>;
+		using GenericTriangleKey = std::tuple<GenericTriangleVertexKey, GenericTriangleVertexKey, GenericTriangleVertexKey, SDL_Texture*>;
 
-		LRUCache<UniformColorTriangleKey, std::unique_ptr<TriangleCacheItem>, UniformColorTriangleCacheSize> UniformColorTriangleCache;
-		LRUCache<GenericTriangleKey, std::unique_ptr<TriangleCacheItem>, GenericTriangleCacheSize> GenericTriangleCache;
+		LRUCache<GenericTriangleKey, std::unique_ptr<TriangleCacheItem>> TriangleCache;
 
 		Device(SDL_Renderer* renderer) : Renderer(renderer) { }
 
@@ -181,12 +183,6 @@ namespace
 
 		void EnableClip() { SetClipRect(Clip); }
 		void DisableClip() { SDL_RenderSetClipRect(Renderer, nullptr); }
-
-		void SetAt(int x, int y, const Color& color)
-		{
-			color.UseAsDrawColor(Renderer);
-			SDL_RenderDrawPoint(Renderer, x, y);
-		}
 
 		SDL_Texture* MakeTexture(int width, int height)
 		{
@@ -204,56 +200,6 @@ namespace
 				SDL_RenderClear(Renderer);
 			}
 		}
-	};
-
-	struct Texture
-	{
-		SDL_Surface* Surface;
-		SDL_Texture* Source;
-
-		~Texture()
-		{
-			SDL_FreeSurface(Surface);
-			SDL_DestroyTexture(Source);
-		}
-
-		Color Sample(float u, float v) const
-		{
-			const int x = static_cast<int>(std::round(u * (Surface->w - 1) + 0.5f));
-			const int y = static_cast<int>(std::round(v * (Surface->h - 1) + 0.5f));
-
-			const int location = y * Surface->w + x;
-			assert(location < Surface->w * Surface->h);
-
-			return Color(static_cast<uint32_t*>(Surface->pixels)[location]);
-		}
-	};
-
-	template <typename T> class InterpolatedFactorEquation
-	{
-	public:
-		InterpolatedFactorEquation(const T& value0, const T& value1, const T& value2, const ImVec2& v0, const ImVec2& v1, const ImVec2& v2)
-			: Value0(value0), Value1(value1), Value2(value2), V0(v0), V1(v1), V2(v2),
-			Divisor((V1.y - V2.y) * (V0.x - V2.x) + (V2.x - V1.x) * (V0.y - V2.y)) { }
-
-		T Evaluate(float x, float y) const
-		{
-			const float w1 = ((V1.y - V2.y) * (x - V2.x) + (V2.x - V1.x) * (y - V2.y)) / Divisor;
-			const float w2 = ((V2.y - V0.y) * (x - V2.x) + (V0.x - V2.x) * (y - V2.y)) / Divisor;
-			const float w3 = 1.0f - w1 - w2;
-
-			return static_cast<T>((Value0 * w1) + (Value1 * w2) + (Value2 * w3));
-		}
-	private:
-		const T Value0;
-		const T Value1;
-		const T Value2;
-
-		const ImVec2& V0;
-		const ImVec2& V1;
-		const ImVec2& V2;
-
-		const float Divisor;
 	};
 
 	struct Rect
@@ -288,233 +234,275 @@ namespace
 		}
 	};
 
-	struct FixedPointTriangleRenderInfo
+	void DrawTriangle(ImDrawVert v1, ImDrawVert v2, ImDrawVert v3, SDL_Texture *texture)
 	{
-		int X1, X2, X3, Y1, Y2, Y3;
-		int MinX, MaxX, MinY, MaxY;
+		// This function operates in s28.4 fixed point: it's more precise than
+		// floating point and often faster. This also effectively lets us work in
+		// a subpixel space where each pixel is divided into 256 subpixels.
+		// TODO: check for overflow
 
-		static FixedPointTriangleRenderInfo CalculateFixedPointTriangleInfo(const ImVec2& v1, const ImVec2& v2, const ImVec2& v3)
-		{
-			static constexpr float scale = 16.0f;
+		// Find integral bounding box, scale to fixed point. We use this to
+		// iterate over all pixels possibly covered by the triangle.
+		const Sint32 minXf = SDL_floor(SDL_min(v1.pos.x, SDL_min(v2.pos.x, v3.pos.x))) * 16;
+		const Sint32 minYf = SDL_floor(SDL_min(v1.pos.y, SDL_min(v2.pos.y, v3.pos.y))) * 16;
+		const Sint32 maxXf = SDL_ceil(SDL_max(v1.pos.x, SDL_max(v2.pos.x, v3.pos.x))) * 16;
+		const Sint32 maxYf = SDL_ceil(SDL_max(v1.pos.y, SDL_max(v2.pos.y, v3.pos.y))) * 16;
 
-			const int x1 = static_cast<int>(std::round(v1.x * scale));
-			const int x2 = static_cast<int>(std::round(v2.x * scale));
-			const int x3 = static_cast<int>(std::round(v3.x * scale));
+		// Find center of bounding box, used for translating coordinates.
+		// This accomplishes two things: 1) makes the fixed point calculations less
+		// likely to overflow 2) makes it less likely that triangles will be rendered
+		// differently on different parts of the screen (seems to happen sometimes
+		// with fractional coordinates). Make sure they're on integer boundaries too,
+		// to make it easy to calculate our starting position.
+		const Sint32 meanXf = round((maxXf - minXf) / 2 / 16) * 16;
+		const Sint32 meanYf = round((maxYf - minYf) / 2 / 16) * 16;
 
-			const int y1 = static_cast<int>(std::round(v1.y * scale));
-			const int y2 = static_cast<int>(std::round(v2.y * scale));
-			const int y3 = static_cast<int>(std::round(v3.y * scale));
+		// Translate vertex coordinates with respect to the center of the bounding
+		// box, and scale to fixed point.
+		Sint32 f1x = round(v1.pos.x * 16) - meanXf;
+		Sint32 f1y = round(v1.pos.y * 16) - meanYf;
+		Sint32 f2x = round(v2.pos.x * 16) - meanXf;
+		Sint32 f2y = round(v2.pos.y * 16) - meanYf;
+		Sint32 f3x = round(v3.pos.x * 16) - meanXf;
+		Sint32 f3y = round(v3.pos.y * 16) - meanYf;
 
-			int minX = (std::min({ x1, x2, x3 }) + 0xF) >> 4;
-			int maxX = (std::max({ x1, x2, x3 }) + 0xF) >> 4;
-			int minY = (std::min({ y1, y2, y3 }) + 0xF) >> 4;
-			int maxY = (std::max({ y1, y2, y3 }) + 0xF) >> 4;
+		// Calculate starting position for iteration. It's the top-left of our
+		// bounding box with respect to the center of the bounding box. We add a
+		// half-pixel on each axis to match hardware renderers, which evaluate at the
+		// center of pixels.
+		const Sint32 px = minXf - meanXf + 8;
+		const Sint32 py = minYf - meanYf + 8;
 
-			return FixedPointTriangleRenderInfo{ x1, x2, x3, y1, y2, y3, minX, maxX, minY, maxY };
+		// Calculate barycentric coordinates at starting position. Barycentric
+		// coordinates tell us the position of a point with respect to the
+		// edges/vertices of a triangle: we can easily use these to calculate if
+		// a point is inside a triangle (the three barycentric coordinates will all
+		// be positive) and how to interpolate vertex attributes (multiply them by
+		// the normalized barycentric coordinates at that point.)
+		Sint32 w1 = (f3x - f2x) * (py - f2y) - (f3y - f2y) * (px - f2x);
+		Sint32 w2 = (f1x - f3x) * (py - f3y) - (f1y - f3y) * (px - f3x);
+		Sint32 w3 = (f2x - f1x) * (py - f1y) - (f2y - f1y) * (px - f1x);
+
+		// Calculate the normalization factor for transforming our barycentric
+		// coordinates into interpolation constants. If it's negative, then the
+		// triangle is back-facing (wound the wrong way), and we flip two vertices
+		// to make it front-facing. Keep this factor as a float since 1) we'll be
+		// dividing by it later 2) we don't lose precision going through the raster
+		// loop.
+		float normalization = (w1 + w2 + w3);
+		if (normalization < 0) {
+			ImDrawVert vswap = v3;
+			v3 = v2;
+			v2 = vswap;
+
+			Sint32 fxswap = f3x;
+			f3x = f2x;
+			f2x = fxswap;
+			Sint32 fyswap = f3y;
+			f3y = f2y;
+			f2y = fyswap;
+
+			Sint32 wswap = w3;
+			w3 = -w2;
+			w2 = -wswap;
+			w1 = -w1;
+
+			normalization = -normalization;
 		}
-	};
 
-	void DrawTriangleWithColorFunction(const FixedPointTriangleRenderInfo& renderInfo, const std::function<Color(float x, float y)>& colorFunction, Device::TriangleCacheItem* cacheItem)
-	{
-		// Implementation source: https://web.archive.org/web/20171128164608/http://forum.devmaster.net/t/advanced-rasterization/6145.
-		// This is a fixed point implementation that rounds to top-left.
+		// We deal with shared edges between triangles by defining a fill rule: only
+		// edges on the top or left of the triangle will be filled. We could change
+		// the comparison in the loop below to differentiate between greater-than
+		// and greater-or-equal-than, but since we're in fixed point space where
+		// everything is an integer we instead add a bias to each barycentric
+		// coordinate corresponding to a non-top, non-left edge.
+		const int bias1 = ((f3y == f2y && f3x > f2x) || f3x < f2x) ? 0 : -1;
+		const int bias2 = ((f3y == f1y && f1x > f3x) || f1x < f3x) ? 0 : -1;
+		const int bias3 = ((f2y == f1y && f2x > f1x) || f2x < f1x) ? 0 : -1;
+		w1 += bias1;
+		w2 += bias2;
+		w3 += bias3;
 
-		const int deltaX12 = renderInfo.X1 - renderInfo.X2;
-		const int deltaX23 = renderInfo.X2 - renderInfo.X3;
-		const int deltaX31 = renderInfo.X3 - renderInfo.X1;
+		// As we go through each pixel, we use the barycentric coordinates to check
+		// if they're covered by the triangle. We could recalculate them every time,
+		// but since they're linear we can calculate the linear factors with respect
+		// to advancing through columns and rows and just add each time through the
+		// loop. We multiply to get from subpixel space back to pixel space, since
+		// we'll be iterating pixel by pixel.
+		const Sint32 a1 = (f2y - f3y) * 16;
+		const Sint32 a2 = (f3y - f1y) * 16;
+		const Sint32 a3 = (f1y - f2y) * 16;
+		const Sint32 b1 = (f3x - f2x) * 16;
+		const Sint32 b2 = (f1x - f3x) * 16;
+		const Sint32 b3 = (f2x - f1x) * 16;
 
-		const int deltaY12 = renderInfo.Y1 - renderInfo.Y2;
-		const int deltaY23 = renderInfo.Y2 - renderInfo.Y3;
-		const int deltaY31 = renderInfo.Y3 - renderInfo.Y1;
+		// Save the original texture color and alpha mod here, since we change it
+		// according to vertex attributes and need to return it to its original state
+		// afterwards.
+		Uint8 original_mod_r, original_mod_g, original_mod_b, original_mod_a;
+		if (texture) {
+			SDL_GetTextureColorMod(texture, &original_mod_r, &original_mod_g, &original_mod_b);
+			SDL_GetTextureAlphaMod(texture, &original_mod_a);
+		}
 
-		const int fixedDeltaX12 = deltaX12 << 4;
-		const int fixedDeltaX23 = deltaX23 << 4;
-		const int fixedDeltaX31 = deltaX31 << 4;
+		// Store texture width and height for use in mapping vertex attributes
+		int texture_width = 0, texture_height = 0;
+		if (texture) {
+			SDL_QueryTexture(texture, NULL, NULL, &texture_width, &texture_height);
+		}
 
-		const int fixedDeltaY12 = deltaY12 << 4;
-		const int fixedDeltaY23 = deltaY23 << 4;
-		const int fixedDeltaY31 = deltaY31 << 4;
+		// Precalculate normalized vertex attributes. We just need to multiply these
+		// by the barycentric coordinates and sum them to get the interpolated vertex
+		// attribute for any point. This can save a few frames per second.
+		const float col1r = Color(v1.col).R * 255 / normalization;
+		const float col1g = Color(v1.col).G * 255 / normalization;
+		const float col1b = Color(v1.col).B * 255 / normalization;
+		const float col1a = Color(v1.col).A * 255 / normalization;
+		const float col2r = Color(v2.col).R * 255 / normalization;
+		const float col2g = Color(v2.col).G * 255 / normalization;
+		const float col2b = Color(v2.col).B * 255 / normalization;
+		const float col2a = Color(v2.col).A * 255 / normalization;
+		const float col3r = Color(v3.col).R * 255 / normalization;
+		const float col3g = Color(v3.col).G * 255 / normalization;
+		const float col3b = Color(v3.col).B * 255 / normalization;
+		const float col3a = Color(v3.col).A * 255 / normalization;
+		const float v1u = v1.uv.x * texture_width / normalization;
+		const float v1v = v1.uv.y * texture_height / normalization;
+		const float v2u = v2.uv.x * texture_width / normalization;
+		const float v2v = v2.uv.y * texture_height / normalization;
+		const float v3u = v3.uv.x * texture_width / normalization;
+		const float v3v = v3.uv.y * texture_height / normalization;
 
-		const int width = renderInfo.MaxX - renderInfo.MinX;
-		const int height = renderInfo.MaxY - renderInfo.MinY;
-		if (width == 0 || height == 0) return;
+		// If the triangle is uniformly-colored, we can get a big speed up by setting
+		// the color once and drawing batches of rows, rather than drawing individually
+		// colored pixels. Avoid malloc and a dynamic buffer size since it's slower
+		// than just grabbing space from the stack.
+		bool isUniformColor = false;
+		SDL_Rect rectsbuffer[1024];
+		int rects_i = 0;
+		if (!texture && v1.col == v2.col && v1.col == v3.col) {
+			isUniformColor = true;
+			SDL_SetRenderDrawColor(CurrentDevice->Renderer,
+				Color(v1.col).R * 255,
+				Color(v1.col).G * 255,
+				Color(v1.col).B * 255,
+				Color(v1.col).A * 255
+			);
+		}
 
-		int c1 = deltaY12 * renderInfo.X1 - deltaX12 * renderInfo.Y1;
-		int c2 = deltaY23 * renderInfo.X2 - deltaX23 * renderInfo.Y2;
-		int c3 = deltaY31 * renderInfo.X3 - deltaX31 * renderInfo.Y3;
+		// Iterate over all pixels in the bounding box.
+		for (int y = minYf / 16; y <= maxYf / 16; y++) {
+			// Stash barycentric coordinates at start of row
+			Sint32 w1_row = w1;
+			Sint32 w2_row = w2;
+			Sint32 w3_row = w3;
 
-		if (deltaY12 < 0 || (deltaY12 == 0 && deltaX12 > 0)) c1++;
-		if (deltaY23 < 0 || (deltaY23 == 0 && deltaX23 > 0)) c2++;
-		if (deltaY31 < 0 || (deltaY31 == 0 && deltaX31 > 0)) c3++;
+			// Keep track of where the triangle starts on this row, as an optimization
+			// to draw uniformly-colored triangles.
+			bool in_triangle = false;
+			int x_start;
 
-		int edgeStart1 = c1 + deltaX12 * (renderInfo.MinY << 4) - deltaY12 * (renderInfo.MinX << 4);
-		int edgeStart2 = c2 + deltaX23 * (renderInfo.MinY << 4) - deltaY23 * (renderInfo.MinX << 4);
-		int edgeStart3 = c3 + deltaX31 * (renderInfo.MinY << 4) - deltaY31 * (renderInfo.MinX << 4);
+			for (int x = minXf / 16; x <= maxXf / 16; x++) {
+				// If all barycentric coordinates are positive, we're inside the triangle
+				if (w1 >= 0 && w2 >= 0 && w3 >= 0) {
+					if (!in_triangle) {
+						// We draw uniformly-colored triangles row by row, so we need to keep
+						// track of where the row starts and know when it ends.
+						x_start = x;
+						in_triangle = true;
+					}
 
-		SDL_Texture* cache = CurrentDevice->MakeTexture(width, height);
-		CurrentDevice->DisableClip();
-		CurrentDevice->UseAsRenderTarget(cache);
+					if (!isUniformColor) {
+						// Fix the adjustment due to fill rule. It's incorrect when calculating
+						// interpolation values.
+						const Sint32 alpha = w1 - bias1;
+						const Sint32 beta = w2 - bias2;
+						const Sint32 gamma = w3 - bias3;
 
-		for (int y = renderInfo.MinY; y < renderInfo.MaxY; y++)
-		{
-			int edge1 = edgeStart1;
-			int edge2 = edgeStart2;
-			int edge3 = edgeStart3;
+						// Interpolate color
+						const Uint8 r = col1r * alpha + col2r * beta + col3r * gamma;
+						const Uint8 g = col1g * alpha + col2g * beta + col3g * gamma;
+						const Uint8 b = col1b * alpha + col2b * beta + col3b * gamma;
+						const Uint8 a = col1a * alpha + col2a * beta + col3a * gamma;
 
-			for (int x = renderInfo.MinX; x < renderInfo.MaxX; x++)
-			{
-				if (edge1 > 0 && edge2 > 0 && edge3 > 0)
-				{
-					CurrentDevice->SetAt(x - renderInfo.MinX, y - renderInfo.MinY, colorFunction(x + 0.5f, y + 0.5f));
+						if (!texture) {
+							// Draw a single colored pixel
+							SDL_SetRenderDrawColor(CurrentDevice->Renderer, r, g, b, a);
+							SDL_RenderDrawPoint(CurrentDevice->Renderer, x, y);
+						} else {
+							// Copy a pixel from the source texture to the target pixel. This
+							// effectively does nearest neighbor sampling. Could probably be
+							// extended to copy from a larger rect to do bilinear sampling if
+							// needed.
+							const int u = v1u * alpha + v2u * beta + v3u * gamma;
+							const int v = v1v * alpha + v2v * beta + v3v * gamma;
+							SDL_SetTextureColorMod(texture, r, g, b);
+							SDL_SetTextureAlphaMod(texture, a);
+							SDL_Rect srcrect;
+							srcrect.x = u;
+							srcrect.y = v;
+							srcrect.w = 1;
+							srcrect.h = 1;
+							SDL_Rect destrect;
+							destrect.x = x;
+							destrect.y = y;
+							destrect.w = 1;
+							destrect.h = 1;
+							SDL_RenderCopy(CurrentDevice->Renderer, texture, &srcrect, &destrect);
+						}
+					}
+				} else if (in_triangle) {
+					// No longer in triangle, so we're done with this row.
+					if (isUniformColor) {
+						// For uniformly-colored triangles, store lines so we can send them
+						// to the renderer in batches. This provides a huge speedup in most
+						// cases (even with SDL 2.0.10's built-in batching!).
+						rectsbuffer[rects_i].x = x_start;
+						rectsbuffer[rects_i].y = y;
+						rectsbuffer[rects_i].w = x - x_start;
+						rectsbuffer[rects_i].h = 1;
+						rects_i++;
+						if (rects_i == 1024) {
+							SDL_RenderFillRects(CurrentDevice->Renderer, rectsbuffer, rects_i);
+							rects_i = 0;
+						}
+					}
+
+					break;
 				}
 
-				edge1 -= fixedDeltaY12;
-				edge2 -= fixedDeltaY23;
-				edge3 -= fixedDeltaY31;
+				// Increment barycentric coordinates one pixel rightwards
+				w1 += a1;
+				w2 += a2;
+				w3 += a3;
 			}
-
-			edgeStart1 += fixedDeltaX12;
-			edgeStart2 += fixedDeltaX23;
-			edgeStart3 += fixedDeltaX31;
+			// Increment barycentric coordinates one pixel downwards
+			w1 = w1_row + b1;
+			w2 = w2_row + b2;
+			w3 = w3_row + b3;
 		}
 
-		CurrentDevice->UseAsRenderTarget(nullptr);
-		CurrentDevice->EnableClip();
-
-		cacheItem->Texture = cache;
-		cacheItem->Width = width;
-		cacheItem->Height = height;
-	}
-
-	void DrawCachedTriangle(const Device::TriangleCacheItem& triangle, const FixedPointTriangleRenderInfo& renderInfo)
-	{
-		const SDL_Rect destination = { renderInfo.MinX, renderInfo.MinY, triangle.Width, triangle.Height };
-		SDL_RenderCopy(CurrentDevice->Renderer, triangle.Texture, nullptr, &destination);
-	}
-
-	void DrawTriangle(const ImDrawVert& v1, const ImDrawVert& v2, const ImDrawVert& v3, const Texture* texture)
-	{
-		// The naming inconsistency in the parameters is intentional. The fixed point algorithm wants the vertices in a counter clockwise order.
-		const auto& renderInfo = FixedPointTriangleRenderInfo::CalculateFixedPointTriangleInfo(v3.pos, v2.pos, v1.pos);
-
-		// First we check if there is a cached version of this triangle already waiting for us. If so, we can just do a super fast texture copy.
-
-		const auto key = std::make_tuple(
-			std::make_tuple(static_cast<int>(std::round(v1.pos.x)) - renderInfo.MinX, static_cast<int>(std::round(v1.pos.y)) - renderInfo.MinY, v1.uv.x, v1.uv.y, v1.col),
-			std::make_tuple(static_cast<int>(std::round(v2.pos.x)) - renderInfo.MinX, static_cast<int>(std::round(v2.pos.y)) - renderInfo.MinY, v2.uv.x, v2.uv.y, v2.col),
-			std::make_tuple(static_cast<int>(std::round(v3.pos.x)) - renderInfo.MinX, static_cast<int>(std::round(v3.pos.y)) - renderInfo.MinY, v3.uv.x, v3.uv.y, v3.col));
-
-		if (CurrentDevice->GenericTriangleCache.Contains(key))
-		{
-			const auto& cached = CurrentDevice->GenericTriangleCache.At(key);
-			DrawCachedTriangle(*cached, renderInfo);
-
-			return;
+		if (isUniformColor) {
+			SDL_RenderFillRects(CurrentDevice->Renderer, rectsbuffer, rects_i);
 		}
 
-		const InterpolatedFactorEquation<float> textureU(v1.uv.x, v2.uv.x, v3.uv.x, v1.pos, v2.pos, v3.pos);
-		const InterpolatedFactorEquation<float> textureV(v1.uv.y, v2.uv.y, v3.uv.y, v1.pos, v2.pos, v3.pos);
-
-		const InterpolatedFactorEquation<Color> shadeColor(Color(v1.col), Color(v2.col), Color(v3.col), v1.pos, v2.pos, v3.pos);
-
-		auto cached = std::make_unique<Device::TriangleCacheItem>();
-		DrawTriangleWithColorFunction(renderInfo, [&](float x, float y) {
-			const float u = textureU.Evaluate(x, y);
-			const float v = textureV.Evaluate(x, y);
-			const Color sampled = texture->Sample(u, v);
-			const Color shade = shadeColor.Evaluate(x, y);
-
-			return sampled * shade;
-		}, cached.get());
-
-		if (!cached->Texture) return;
-
-		const SDL_Rect destination = { renderInfo.MinX, renderInfo.MinY, cached->Width, cached->Height };
-		SDL_RenderCopy(CurrentDevice->Renderer, cached->Texture, nullptr, &destination);
-
-		CurrentDevice->GenericTriangleCache.Insert(key, std::move(cached));
-	}
-
-	void DrawUniformColorTriangle(const ImDrawVert& v1, const ImDrawVert& v2, const ImDrawVert& v3)
-	{
-		const Color color(v1.col);
-
-		// The naming inconsistency in the parameters is intentional. The fixed point algorithm wants the vertices in a counter clockwise order.
-		const auto& renderInfo = FixedPointTriangleRenderInfo::CalculateFixedPointTriangleInfo(v3.pos, v2.pos, v1.pos);
-
-		const auto key =std::make_tuple(v1.col,
-			static_cast<int>(std::round(v1.pos.x)) - renderInfo.MinX, static_cast<int>(std::round(v1.pos.y)) - renderInfo.MinY,
-			static_cast<int>(std::round(v2.pos.x)) - renderInfo.MinX, static_cast<int>(std::round(v2.pos.y)) - renderInfo.MinY,
-			static_cast<int>(std::round(v3.pos.x)) - renderInfo.MinX, static_cast<int>(std::round(v3.pos.y)) - renderInfo.MinY);
-		if (CurrentDevice->UniformColorTriangleCache.Contains(key))
-		{
-			const auto& cached = CurrentDevice->UniformColorTriangleCache.At(key);
-			DrawCachedTriangle(*cached, renderInfo);
-
-			return;
+		// Restore original texture color and alpha mod.
+		if (texture) {
+			SDL_SetTextureColorMod(texture, original_mod_r, original_mod_g, original_mod_b);
+			SDL_SetTextureAlphaMod(texture, original_mod_a);
 		}
-
-		auto cached = std::make_unique<Device::TriangleCacheItem>();
-		DrawTriangleWithColorFunction(renderInfo, [&color](float, float) { return color; }, cached.get());
-
-		if (!cached->Texture) return;
-
-		const SDL_Rect destination = { renderInfo.MinX, renderInfo.MinY, cached->Width, cached->Height };
-		SDL_RenderCopy(CurrentDevice->Renderer, cached->Texture, nullptr, &destination);
-
-		CurrentDevice->UniformColorTriangleCache.Insert(key, std::move(cached));
-	}
-
-	void DrawRectangle(const Rect& bounding, SDL_Texture* texture, int textureWidth, int textureHeight, const Color& color, bool doHorizontalFlip, bool doVerticalFlip)
-	{
-		// We are safe to assume uniform color here, because the caller checks it and and uses the triangle renderer to render those.
-
-		const SDL_Rect destination = {
-			static_cast<int>(bounding.MinX),
-			static_cast<int>(bounding.MinY),
-			static_cast<int>(bounding.MaxX - bounding.MinX),
-			static_cast<int>(bounding.MaxY - bounding.MinY)
-		};
-
-		// If the area isn't textured, we can just draw a rectangle with the correct color.
-		if (bounding.UsesOnlyColor())
-		{
-			color.UseAsDrawColor(CurrentDevice->Renderer);
-			SDL_RenderFillRect(CurrentDevice->Renderer, &destination);
-		}
-		else
-		{
-			// We can now just calculate the correct source rectangle and draw it.
-
-			const SDL_Rect source = {
-				static_cast<int>(bounding.MinU * textureWidth),
-				static_cast<int>(bounding.MinV * textureHeight),
-				static_cast<int>((bounding.MaxU - bounding.MinU) * textureWidth),
-				static_cast<int>((bounding.MaxV - bounding.MinV) * textureHeight)
-			};
-
-			const SDL_RendererFlip flip = static_cast<SDL_RendererFlip>((doHorizontalFlip ? SDL_FLIP_HORIZONTAL : 0) | (doVerticalFlip ? SDL_FLIP_VERTICAL : 0));
-
-			SDL_SetTextureColorMod(texture, static_cast<uint8_t>(color.R * 255), static_cast<uint8_t>(color.G * 255), static_cast<uint8_t>(color.B * 255));
-			SDL_RenderCopyEx(CurrentDevice->Renderer, texture, &source, &destination, 0.0, nullptr, flip);
-		}
-	}
-
-	void DrawRectangle(const Rect& bounding, const Texture* texture, const Color& color, bool doHorizontalFlip, bool doVerticalFlip)
-	{
-		DrawRectangle(bounding, texture->Source, texture->Surface->w, texture->Surface->h, color, doHorizontalFlip, doVerticalFlip);
-	}
-
-	void DrawRectangle(const Rect& bounding, SDL_Texture* texture, const Color& color, bool doHorizontalFlip, bool doVerticalFlip)
-	{
-		int width, height;
-		SDL_QueryTexture(texture, nullptr, nullptr, &width, &height);
-		DrawRectangle(bounding, texture, width, height, color, doHorizontalFlip, doVerticalFlip);
 	}
 }
 
 namespace ImGuiSDL
 {
+	static int ImGuiSDLEventWatch(void *userdata, SDL_Event *event) {
+		if (event->type == SDL_RENDER_TARGETS_RESET) {
+			CurrentDevice->CacheWasInvalidated = true;
+		}
+		return 0;
+	}
+
 	void Initialize(SDL_Renderer* renderer, int windowWidth, int windowHeight)
 	{
 		ImGuiIO& io = ImGui::GetIO();
@@ -524,6 +512,12 @@ namespace ImGuiSDL
 		ImGui::GetStyle().WindowRounding = 0.0f;
 		ImGui::GetStyle().AntiAliasedFill = false;
 		ImGui::GetStyle().AntiAliasedLines = false;
+		ImGui::GetStyle().ChildRounding = 0.0f;
+		ImGui::GetStyle().PopupRounding = 0.0f;
+		ImGui::GetStyle().FrameRounding = 0.0f;
+		ImGui::GetStyle().ScrollbarRounding = 0.0f;
+		ImGui::GetStyle().GrabRounding = 0.0f;
+		ImGui::GetStyle().TabRounding = 0.0f;
 
 		// Loads the font texture.
 		unsigned char* pixels;
@@ -531,27 +525,33 @@ namespace ImGuiSDL
 		io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 		static constexpr uint32_t rmask = 0x000000ff, gmask = 0x0000ff00, bmask = 0x00ff0000, amask = 0xff000000;
 		SDL_Surface* surface = SDL_CreateRGBSurfaceFrom(pixels, width, height, 32, 4 * width, rmask, gmask, bmask, amask);
-
-		Texture* texture = new Texture();
-		texture->Surface = surface;
-		texture->Source = SDL_CreateTextureFromSurface(renderer, surface);
-		io.Fonts->TexID = (void*)texture;
+		io.Fonts->TexID = SDL_CreateTextureFromSurface(renderer, surface);
+		SDL_FreeSurface(surface);
 
 		CurrentDevice = new Device(renderer);
+		SDL_AddEventWatch(ImGuiSDLEventWatch, nullptr);
 	}
 
 	void Deinitialize()
 	{
 		// Frees up the memory of the font texture.
 		ImGuiIO& io = ImGui::GetIO();
-		Texture* texture = static_cast<Texture*>(io.Fonts->TexID);
-		if (texture) { delete texture; texture = nullptr; }
+		SDL_Texture* texture = static_cast<SDL_Texture*>(io.Fonts->TexID);
+		SDL_DestroyTexture(texture);
 
-		if (CurrentDevice) { delete CurrentDevice; CurrentDevice = nullptr; }
+		delete CurrentDevice;
+		SDL_DelEventWatch(ImGuiSDLEventWatch, nullptr);
 	}
 
 	void Render(ImDrawData* drawData)
 	{
+		if (CurrentDevice->CacheWasInvalidated) {
+			CurrentDevice->CacheWasInvalidated = false;
+			CurrentDevice->TriangleCache.Reset();
+		}
+
+		size_t num_triangles = 0;
+
 		SDL_BlendMode blendMode;
 		SDL_GetRenderDrawBlendMode(CurrentDevice->Renderer, &blendMode);
 		SDL_SetRenderDrawBlendMode(CurrentDevice->Renderer, SDL_BLENDMODE_BLEND);
@@ -591,69 +591,59 @@ namespace ImGuiSDL
 				}
 				else
 				{
-					const bool isWrappedTexture = drawCommand->TextureId == io.Fonts->TexID;
-
 					// Loops over triangles.
 					for (unsigned int i = 0; i + 3 <= drawCommand->ElemCount; i += 3)
 					{
-						const ImDrawVert& v0 = vertexBuffer[indexBuffer[i + 0]];
-						const ImDrawVert& v1 = vertexBuffer[indexBuffer[i + 1]];
-						const ImDrawVert& v2 = vertexBuffer[indexBuffer[i + 2]];
+						num_triangles++;
+						ImDrawVert v0 = vertexBuffer[indexBuffer[i + 0]];
+						ImDrawVert v1 = vertexBuffer[indexBuffer[i + 1]];
+						ImDrawVert v2 = vertexBuffer[indexBuffer[i + 2]];
 
-						const Rect& bounding = Rect::CalculateBoundingBox(v0, v1, v2);
-
+						const Rect bounding = Rect::CalculateBoundingBox(v0, v1, v2);
 						const bool isTriangleUniformColor = v0.col == v1.col && v1.col == v2.col;
 						const bool doesTriangleUseOnlyColor = bounding.UsesOnlyColor();
 
-						// Actually, since we render a whole bunch of rectangles, we try to first detect those, and render them more efficiently.
-						// How are rectangles detected? It's actually pretty simple: If all 6 vertices lie on the extremes of the bounding box,
-						// it's a rectangle.
-						if (i + 6 <= drawCommand->ElemCount)
-						{
-							const ImDrawVert& v3 = vertexBuffer[indexBuffer[i + 3]];
-							const ImDrawVert& v4 = vertexBuffer[indexBuffer[i + 4]];
-							const ImDrawVert& v5 = vertexBuffer[indexBuffer[i + 5]];
-
-							const bool isUniformColor = isTriangleUniformColor && v2.col == v3.col && v3.col == v4.col && v4.col == v5.col;
-
-							if (isUniformColor
-							&& bounding.IsOnExtreme(v0.pos)
-							&& bounding.IsOnExtreme(v1.pos)
-							&& bounding.IsOnExtreme(v2.pos)
-							&& bounding.IsOnExtreme(v3.pos)
-							&& bounding.IsOnExtreme(v4.pos)
-							&& bounding.IsOnExtreme(v5.pos))
-							{
-								// ImGui gives the triangles in a nice order: the first vertex happens to be the topleft corner of our rectangle.
-								// We need to check for the orientation of the texture, as I believe in theory ImGui could feed us a flipped texture,
-								// so that the larger texture coordinates are at topleft instead of bottomright.
-								// We don't consider equal texture coordinates to require a flip, as then the rectangle is mostlikely simply a colored rectangle.
-								const bool doHorizontalFlip = v2.uv.x < v0.uv.x;
-								const bool doVerticalFlip = v2.uv.x < v0.uv.x;
-
-								if (isWrappedTexture)
-								{
-									DrawRectangle(bounding, static_cast<const Texture*>(drawCommand->TextureId), Color(v0.col), doHorizontalFlip, doVerticalFlip);
-								}
-								else
-								{
-									DrawRectangle(bounding, static_cast<SDL_Texture*>(drawCommand->TextureId), Color(v0.col), doHorizontalFlip, doVerticalFlip);
-								}
-
-								i += 3;  // Additional increment to account for the extra 3 vertices we consumed.
-								continue;
-							}
+						if ((bounding.MinX > clipRect.X + clipRect.Width || bounding.MaxX < clipRect.X)
+							&& (bounding.MinY > clipRect.Y + clipRect.Height || bounding.MaxY < clipRect.Y)
+						) {
+							// Not in clip rect, ignore
+							continue;
 						}
 
-						if (isTriangleUniformColor && doesTriangleUseOnlyColor)
-						{
-							DrawUniformColorTriangle(v0, v1, v2);
-						}
-						else
-						{
-							// Currently we assume that any non rectangular texture samples the font texture. Dunno if that's what actually happens, but it seems to work.
-							assert(isWrappedTexture);
-							DrawTriangle(v0, v1, v2, static_cast<const Texture*>(drawCommand->TextureId));
+						SDL_Texture *texture = doesTriangleUseOnlyColor ? nullptr : (SDL_Texture*)drawCommand->TextureId;
+
+						// First we check if there is a cached version of this triangle already waiting for us. If so, we can just do a super fast texture copy.
+						v0.pos.x -= (int)bounding.MinX; v0.pos.y -= (int)bounding.MinY;
+						v1.pos.x -= (int)bounding.MinX; v1.pos.y -= (int)bounding.MinY;
+						v2.pos.x -= (int)bounding.MinX; v2.pos.y -= (int)bounding.MinY;
+
+						const Device::GenericTriangleKey key = std::make_tuple(
+							std::make_tuple(v0.pos.x, v0.pos.y, v0.uv.x, v0.uv.y, v0.col),
+							std::make_tuple(v1.pos.x, v1.pos.y, v1.uv.x, v1.uv.y, v1.col),
+							std::make_tuple(v2.pos.x, v2.pos.y, v2.uv.x, v2.uv.y, v2.col),
+							texture
+						);
+
+						if (CurrentDevice->TriangleCache.Contains(key)) {
+							const auto& cached = CurrentDevice->TriangleCache.At(key);
+							const SDL_Rect destination = { (int)bounding.MinX, (int)bounding.MinY, (int)cached->Width, (int)cached->Height };
+							SDL_RenderCopy(CurrentDevice->Renderer, cached->Texture, nullptr, &destination);
+						} else {
+							auto cached = std::make_unique<Device::TriangleCacheItem>();
+							cached->Width = bounding.MaxX - bounding.MinX + 1;
+							cached->Height = bounding.MaxY - bounding.MinY + 1;
+							cached->Texture = CurrentDevice->MakeTexture(cached->Width, cached->Height);
+
+							CurrentDevice->UseAsRenderTarget(cached->Texture);
+							SDL_SetRenderDrawBlendMode(CurrentDevice->Renderer, SDL_BLENDMODE_NONE);
+							DrawTriangle(v0, v1, v2, texture);
+							CurrentDevice->UseAsRenderTarget(initialRenderTarget);
+							SDL_SetRenderDrawBlendMode(CurrentDevice->Renderer, SDL_BLENDMODE_BLEND);
+
+							const SDL_Rect destination = { (int)bounding.MinX, (int)bounding.MinY, (int)cached->Width, (int)cached->Height };
+							SDL_RenderCopy(CurrentDevice->Renderer, cached->Texture, nullptr, &destination);
+
+							CurrentDevice->TriangleCache.Insert(key, std::move(cached));
 						}
 					}
 				}
@@ -672,5 +662,8 @@ namespace ImGuiSDL
 			initialR, initialG, initialB, initialA);
 
 		SDL_SetRenderDrawBlendMode(CurrentDevice->Renderer, blendMode);
+
+		CurrentDevice->TriangleCache.SetCapacity(num_triangles);
+		CurrentDevice->TriangleCache.Clean();
 	}
 }
