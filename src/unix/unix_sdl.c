@@ -138,7 +138,7 @@ sdl_blit(int x, int y, int w, int h)
     SDL_Rect r_src;
     int ret;
 
-    if (!sdl_enabled || (h <= 0) || (render_buffer == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
+    if (!sdl_enabled || (h <= 0) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
 	video_blit_complete();
 	return;
     }

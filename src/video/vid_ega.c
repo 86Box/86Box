@@ -675,10 +675,8 @@ ega_doblit(int wx, int wy, ega_t *ega)
 	bottom <<= 1;
     }
 
-    if ((wx <= 0) || (wy <= 0)) {
-	video_blit_memtoscreen(x_start, y_start, 0, 0);
+    if ((wx <= 0) || (wy <= 0))
 	return;
-    }
 
     if (ega->vres)
 	ega->y_add <<= 1;
