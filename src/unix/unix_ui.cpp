@@ -31,6 +31,7 @@
 #include <86box/unix_sdl.h>
 #include <86box/timer.h>
 #include <86box/ui.h>
+#include <86box/network.h>
 
 #define INCBIN_STYLE INCBIN_STYLE_SNAKE
 #include <incbin.h>
@@ -49,6 +50,8 @@ INCBIN(cassette_icon, _INCBIN_DIR"/icons/cassette.png");
 INCBIN(cassette_active_icon, _INCBIN_DIR"/icons/cassette_active.png");
 INCBIN(hard_disk, _INCBIN_DIR"/icons/hard_disk.png");
 INCBIN(hard_disk_active, _INCBIN_DIR"/icons/hard_disk_active.png");
+INCBIN(network_icon, _INCBIN_DIR"/icons/network.png");
+INCBIN(network_active_icon, _INCBIN_DIR"/icons/network_active.png");
 
 #include <string>
 #include <vector>
@@ -528,6 +531,7 @@ SDL_Texture* mo_status_icon[2];
 SDL_Texture* zip_status_icon[2];
 SDL_Texture* cas_status_icon[2];
 SDL_Texture* hdd_status_icon[2];
+SDL_Texture* net_status_icon[2];
 
 static SDL_Texture* load_icon(const stbi_uc* buffer, int len)
 {
@@ -569,6 +573,8 @@ extern "C" void HandleSizeChange()
     cas_status_icon[1] = load_icon(gcassette_active_icon_data, gcassette_icon_size);
     hdd_status_icon[0] = load_icon(ghard_disk_data, ghard_disk_size);
     hdd_status_icon[1] = load_icon(ghard_disk_active_data, ghard_disk_active_size);
+    net_status_icon[0] = load_icon(gnetwork_icon_data, gnetwork_icon_size);
+    net_status_icon[1] = load_icon(gnetwork_active_icon_data, gnetwork_active_icon_size);
     
     imrendererinit = true;
 }
@@ -595,6 +601,7 @@ std::array<std::atomic<bool>, ZIP_NUM> zipactive, zipempty;
 std::array<std::atomic<bool>, CDROM_NUM> cdactive, cdempty;
 std::array<std::atomic<bool>, MO_NUM> moactive, moempty;
 std::array<std::atomic<bool>, 16> hddactive, hddenabled;
+std::atomic<bool> netactive;
 
 static int
 hdd_count(int bus)
@@ -770,6 +777,11 @@ extern "C" void ui_sb_update_icon(int tag, int active)
             hddactive[index] = (bool)(active);
             break;
         }
+        case SB_NETWORK:
+        {
+            netactive = (bool)(active);
+            break;
+        }
     }
 }
 
@@ -804,6 +816,7 @@ uint32_t timer_sb_icons(uint32_t interval, void* param)
     std::fill(hddactive.begin(), hddactive.end(), false);
     std::fill(zipactive.begin(), zipactive.end(), false);
     std::fill(moactive.begin(), moactive.end(), false);
+    netactive = false;
     return interval;
 }
 
@@ -1236,6 +1249,12 @@ extern "C" void RenderImGui()
         {
             ImGui::ImageButton((ImTextureID)hdd_status_icon[hddactive[HDD_BUS_SCSI]], ImVec2(16, 16));
             if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Hard Disk (SCSI)");
+            ImGui::SameLine(0, 0);
+        }
+        if (network_available())
+        {
+            ImGui::ImageButton((ImTextureID)net_status_icon[netactive], ImVec2(16, 16));
+            if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Network");
             ImGui::SameLine(0, 0);
         }
 
