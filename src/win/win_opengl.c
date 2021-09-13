@@ -810,14 +810,20 @@ static void opengl_main(void* param)
 
 static void opengl_blit(int x, int y, int y1, int y2, int w, int h)
 {
-	if (y1 == y2 || h <= 0 || render_buffer == NULL || thread == NULL ||
+	int yy;
+
+	if (y1 == y2 || h <= 0 || buffer32 == NULL || thread == NULL ||
 		atomic_flag_test_and_set(&blit_info[write_pos].in_use))
 	{
 		video_blit_complete();
 		return;
 	}
 
-	memcpy(blit_info[write_pos].buffer, &(render_buffer->dat)[y1 * w], w * (y2 - y1) * sizeof(uint32_t));
+	for (yy = y1; yy < y2; yy++) {
+		if ((y + yy) >= 0 && (y + yy) < buffer32->h)
+			memcpy(blit_info[write_pos].buffer + (yy * w * 4),
+			       &(((uint32_t *) buffer32->line[y + yy])[x]), w * 4);
+	}
 
 	video_blit_complete();
 

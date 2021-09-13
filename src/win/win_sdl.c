@@ -234,24 +234,24 @@ sdl_blit(int x, int y, int y1, int y2, int w, int h)
     SDL_Rect r_src;
     int ret;
 
-    if (!sdl_enabled || (y1 == y2) || (h <= 0) || (render_buffer == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
+    if (!sdl_enabled || (y1 == y2) || (h <= 0) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
 	video_blit_complete();
 	return;
     }
 
     SDL_LockMutex(sdl_mutex);
 
-    r_src.x = 0;
-    r_src.y = y1;
+    r_src.x = x;
+    r_src.y = y;
     r_src.w = w;
-    r_src.h = y2 - y1;
-    SDL_UpdateTexture(sdl_tex, &r_src, &(render_buffer->dat)[y1 * w], w * 4);
+    r_src.h = h;
+    SDL_UpdateTexture(sdl_tex, &r_src, &(buffer32->line[y][x]), (2048 + 64) * 4);
     video_blit_complete();
 
     SDL_RenderClear(sdl_render);
 
-    r_src.x = 0;
-    r_src.y = 0;
+    r_src.x = x;
+    r_src.y = y;
     r_src.w = w;
     r_src.h = h;
 
