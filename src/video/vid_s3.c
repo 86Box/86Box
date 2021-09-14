@@ -1907,8 +1907,6 @@ s3_hwcursor_draw(svga_t *svga, int displine)
 	uint32_t fg, bg;
 	uint32_t real_addr;
 
-	real_addr = s3_hwcursor_convert_addr(svga);
-
 	switch (svga->bpp)
 	{	       
 		case 15:
@@ -1959,6 +1957,8 @@ s3_hwcursor_draw(svga_t *svga, int displine)
 
 	if (svga->interlace && svga->hwcursor_oddeven)
 		svga->hwcursor_latch.addr += 16;
+
+	real_addr = s3_hwcursor_convert_addr(svga);
 
 	for (x = 0; x < 64; x += 16)
 	{
