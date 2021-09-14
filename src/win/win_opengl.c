@@ -64,6 +64,7 @@ static const int INIT_HEIGHT = 400;
 static const int BUFFERPIXELS = 4460544;	/* Same size as render_buffer, pow(2048+64,2). */
 static const int BUFFERBYTES = 17842176;	/* Pixel is 4 bytes. */
 static const int BUFFERCOUNT = 3;		/* How many buffers to use for pixel transfer (2-3 is commonly recommended). */
+static const int ROW_LENGTH = 2112;		/* Source buffer row lenght (including padding) */
 
 /**
  * @brief A dedicated OpenGL thread.
@@ -106,7 +107,7 @@ static union
 */
 typedef struct
 {
-	int y1, y2, w, h;
+	int w, h;
 	void* buffer;			/* Buffer for pixel transfer, allocated by gpu driver. */
 	volatile atomic_flag in_use;	/* Is buffer currently in use. */
 	GLsync sync;			/* Fence sync object used by opengl thread to track pixel transfer completion. */
@@ -641,18 +642,16 @@ static void opengl_main(void* param)
 					SetEvent(sync_objects.resize);
 			}
 
-			/* Clip to height. y2 can be out-of-bounds. */
-			int sub_height = MIN(info->y2, info->h) - info->y1;
-
 			if (!GLAD_GL_ARB_buffer_storage)
 			{
 				/* Fallback method, copy data to pixel buffer. */
-				glBufferSubData(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * read_pos, info->w * sub_height * sizeof(uint32_t), info->buffer);
+				glBufferSubData(GL_PIXEL_UNPACK_BUFFER, BUFFERBYTES * read_pos, info->h * ROW_LENGTH * sizeof(uint32_t), info->buffer);
 			}
 
 			/* Update texture from pixel buffer. */
 			glPixelStorei(GL_UNPACK_SKIP_PIXELS, BUFFERPIXELS * read_pos);
-			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, info->y1, info->w, sub_height, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
+			glPixelStorei(GL_UNPACK_ROW_LENGTH, ROW_LENGTH);
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, info->w, info->h, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
 
 			/* Add fence to track when above gl commands are complete. */
 			info->sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
@@ -819,16 +818,10 @@ static void opengl_blit(int x, int y, int w, int h)
 		return;
 	}
 
-	for (yy = 0; yy < h; yy++) {
-		if ((y + yy) >= 0 && (y + yy) < buffer32->h)
-			memcpy(blit_info[write_pos].buffer + (yy * w * sizeof(uint32_t)),
-			       &(((uint32_t *) buffer32->line[y + yy])[x]), w * sizeof(uint32_t));
-	}
+	memcpy(blit_info[write_pos].buffer, &(buffer32->line[y][x]), h * ROW_LENGTH * sizeof(uint32_t));
 
 	video_blit_complete();
 
-	blit_info[write_pos].y1 = 0;
-	blit_info[write_pos].y2 = h - 1;
 	blit_info[write_pos].w = w;
 	blit_info[write_pos].h = h;
 

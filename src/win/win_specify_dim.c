@@ -140,11 +140,13 @@ SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 				if (mouse_capture)
 					ClipCursor(&r);
 
-				if (!(vid_resize & 2) && window_remember) {
+				if (window_remember || (vid_resize & 2)) {
 					window_x = r.left;
 					window_y = r.top;
-					window_w = r.right - r.left;
-					window_h = r.bottom - r.top;
+					if (!(vid_resize & 2)) {
+						window_w = r.right - r.left;
+						window_h = r.bottom - r.top;
+					}
 				}
 
 				config_save();

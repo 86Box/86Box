@@ -26,6 +26,10 @@ ifndef DEV_BUILD
 DEV_BUILD	:= n
 endif
 
+ifneq ($(PTHREAD), n)
+  PTHREAD	:= y
+endif
+
 ifeq ($(DEV_BUILD), y)
  ifndef DEBUG
   DEBUG		:= y
@@ -595,6 +599,7 @@ MAINOBJ		:= 86box.o config.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
 		   nmi.o pic.o pit.o port_92.o ppi.o pci.o mca.o \
 		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o \
 		   $(VNCOBJ)
+endif
 
 MEMOBJ		:= catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o smram.o spd.o sst_flash.o
 
@@ -796,11 +801,19 @@ VOODOOOBJ	:= vid_voodoo.o vid_voodoo_banshee.o \
 		    vid_voodoo_render.o vid_voodoo_setup.o \
 		    vid_voodoo_texture.o
 
+ifeq ($(PTHREAD), y)
+PLATOBJ		:= win.o \
+		    win_dynld.o \
+		    win_cdrom.o win_keyboard.o \
+		    win_crashdump.o win_midi.o \
+		    win_mouse.o
+else
 PLATOBJ		:= win.o \
 		    win_dynld.o win_thread.o \
 		    win_cdrom.o win_keyboard.o \
 		    win_crashdump.o win_midi.o \
 		    win_mouse.o
+endif
 
 ifeq ($(DINPUT), y)
  PLATOBJ	+= win_joystick.o
@@ -826,7 +839,11 @@ endif
 ifneq ($(WX), n)
 LIBS		+= $(WX_LIBS) -lm
 endif
+ifeq ($(PTHREAD), y)
+LIBS		+= -lpng -lz -lwsock32 -lshell32 -liphlpapi -lpsapi -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -luxtheme -lversion -lwinmm -static -lstdc++ -lpthread
+else
 LIBS		+= -lpng -lz -lwsock32 -lshell32 -liphlpapi -lpsapi -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -luxtheme -lversion -lwinmm -static -lstdc++
+endif
 ifneq ($(X64), y)
 ifneq ($(ARM64), y)
 LIBS		+= -Wl,--large-address-aware
