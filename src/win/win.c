@@ -1093,6 +1093,9 @@ plat_setfullscreen(int on)
 				ResizeWindowByClientArea(hwndMain, temp_x, temp_y);
 			else
 				ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
+
+			if (window_remember)
+				SetWindowPos(hwndMain, HWND_TOP, window_x, window_y, 0, 0, SWP_NOSIZE);
 		}
 
 		/* Render window. */

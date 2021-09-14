@@ -697,11 +697,13 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				window_remember = !window_remember;
 				CheckMenuItem(hmenu, IDM_VID_REMEMBER, window_remember ? MF_CHECKED : MF_UNCHECKED);
 				GetWindowRect(hwnd, &rect);
-				if (!(vid_resize & 2) && window_remember) {
+				if (window_remember) {
 					window_x = rect.left;
 					window_y = rect.top;
-					window_w = rect.right - rect.left;
-					window_h = rect.bottom - rect.top;
+					if (!(vid_resize & 2)) {
+						window_w = rect.right - rect.left;
+						window_h = rect.bottom - rect.top;
+					}
 				}
 				config_save();
 				break;
@@ -1382,6 +1384,9 @@ ui_init(int nCmdShow)
 		ResizeWindowByClientArea(hwndMain, scrnsz_x, scrnsz_y);
 	else
 		ResizeWindowByClientArea(hwndMain, scrnsz_x, scrnsz_y + sbar_height);
+
+	if (window_remember)
+		SetWindowPos(hwndMain, HWND_TOP, window_x, window_y, 0, 0, SWP_NOSIZE);
     }
 
     /* Reset all menus to their defaults. */
