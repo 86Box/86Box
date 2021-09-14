@@ -1876,6 +1876,25 @@ s3_queue(s3_t *s3, uint32_t addr, uint32_t val, uint32_t type)
 		wake_fifo_thread(s3);
 }
 
+
+static uint32_t
+s3_hwcursor_convert_addr(svga_t *svga)
+{
+    uint32_t real_addr;
+
+    if ((svga->bpp == 8) && ((svga->gdcreg[5] & 0x60) >= 0x20) && (svga->crtc[0x45] & 0x10)) {
+	real_addr = (svga->hwcursor_latch.addr & 0xfffff000);
+	if ((svga->gdcreg[5] & 0x60) >= 0x40)
+		return (real_addr | ((svga->hwcursor_latch.addr & 0x200) << 2)) + 0x200;
+	else if ((svga->gdcreg[5] & 0x60) == 0x20)
+		return (real_addr | ((svga->hwcursor_latch.addr & 0x300) << 2)) + 0x100;
+	else
+		return svga->hwcursor_latch.addr;
+    } else
+	return svga->hwcursor_latch.addr;
+}
+
+
 static void
 s3_hwcursor_draw(svga_t *svga, int displine)
 {
@@ -1888,14 +1907,7 @@ s3_hwcursor_draw(svga_t *svga, int displine)
 	uint32_t fg, bg;
 	uint32_t real_addr;
 
-	if ((svga->bpp == 8) && ((svga->gdcreg[5] & 0x60) >= 0x20) && (svga->crtc[0x45] & 0x10)) {
-		real_addr = (svga->hwcursor_latch.addr & 0xfffff000);
-		if ((svga->gdcreg[5] & 0x60) >= 0x40)
-			real_addr = (real_addr | ((svga->hwcursor_latch.addr & 0x200) << 2)) + 0x200;
-		else if ((svga->gdcreg[5] & 0x60) == 0x20)
-			real_addr = (real_addr | ((svga->hwcursor_latch.addr & 0x300) << 2)) + 0x100;
-	} else
-		real_addr = svga->hwcursor_latch.addr;
+	real_addr = s3_hwcursor_convert_addr(svga);
 
 	switch (svga->bpp)
 	{	       
@@ -1950,8 +1962,8 @@ s3_hwcursor_draw(svga_t *svga, int displine)
 
 	for (x = 0; x < 64; x += 16)
 	{
-		dat[0] = (svga->vram[svga->hwcursor_latch.addr & svga->vram_display_mask] << 8) | svga->vram[(svga->hwcursor_latch.addr + 1) & svga->vram_display_mask];
-		dat[1] = (svga->vram[(svga->hwcursor_latch.addr + 2) & svga->vram_display_mask] << 8) | svga->vram[(svga->hwcursor_latch.addr + 3) & svga->vram_display_mask];
+		dat[0] = (svga->vram[real_addr & svga->vram_display_mask] << 8) | svga->vram[(real_addr + 1) & svga->vram_display_mask];
+		dat[1] = (svga->vram[(real_addr + 2) & svga->vram_display_mask] << 8) | svga->vram[(real_addr + 3) & svga->vram_display_mask];
                 if (svga->crtc[0x55] & 0x10) {
                         /*X11*/
                         for (xx = 0; xx < 16; xx++) {
@@ -1980,6 +1992,7 @@ s3_hwcursor_draw(svga_t *svga, int displine)
                         }
                 }
 		svga->hwcursor_latch.addr += 4;
+		real_addr = s3_hwcursor_convert_addr(svga);
 	}
 	if (svga->interlace && !svga->hwcursor_oddeven)
 		svga->hwcursor_latch.addr += 16;
