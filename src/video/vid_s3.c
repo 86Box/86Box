@@ -1880,14 +1880,11 @@ s3_queue(s3_t *s3, uint32_t addr, uint32_t val, uint32_t type)
 static uint32_t
 s3_hwcursor_convert_addr(svga_t *svga)
 {
-    uint32_t real_addr;
-
     if ((svga->bpp == 8) && ((svga->gdcreg[5] & 0x60) >= 0x20) && (svga->crtc[0x45] & 0x10)) {
-	real_addr = (svga->hwcursor_latch.addr & 0xfffff000);
 	if ((svga->gdcreg[5] & 0x60) >= 0x40)
-		return (real_addr | ((svga->hwcursor_latch.addr & 0x200) << 2)) + 0x600 + (svga->hwcursor_latch.addr & 0x1ff);
+		return ((svga->hwcursor_latch.addr & 0xfffff1ff) | ((svga->hwcursor_latch.addr & 0x200) << 2)) | 0x600;
 	else if ((svga->gdcreg[5] & 0x60) == 0x20)
-		return (real_addr | ((svga->hwcursor_latch.addr & 0x300) << 2)) + 0x300 + (svga->hwcursor_latch.addr & 0xff);
+		return ((svga->hwcursor_latch.addr & 0xfffff0ff) | ((svga->hwcursor_latch.addr & 0x300) << 2)) | 0x300;
 	else
 		return svga->hwcursor_latch.addr;
     } else
