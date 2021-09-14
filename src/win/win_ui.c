@@ -19,6 +19,7 @@
  *		Copyright 2017-2020 Fred N. van Kempen.
  *		Copyright 2019,2020 GH Cao.
  */
+
 #define UNICODE
 #include <windows.h>
 #include <commctrl.h>
@@ -26,6 +27,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <time.h>
 #include <wchar.h>
 #include <86box/plat.h>
@@ -36,7 +38,6 @@
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
 #include <86box/timer.h>
-#include <86box/nvr.h>
 #include <86box/video.h>
 #include <86box/vid_ega.h>		// for update_overscan
 #include <86box/plat_midi.h>
@@ -54,7 +55,6 @@
 
 #define TIMER_1SEC	1		/* ID of the one-second timer */
 
-
 /* Platform Public data, specific. */
 HWND		hwndMain,		/* application main window */
 		hwndRender;		/* machine render window */
@@ -64,18 +64,13 @@ RECT		oldclip;		/* mouse rect */
 int		sbar_height = 23;	/* statusbar height */
 int		minimized = 0;
 int		infocus = 1, button_down = 0;
-int		rctrl_is_lalt = 0;
 int		user_resize = 0;
-int		fixed_size_x = 0, fixed_size_y = 0;
-int		kbd_req_capture = 0;
-int		hide_status_bar = 0;
 
 extern char	openfilestring[512];
 extern WCHAR	wopenfilestring[512];
 
 
 /* Local data. */
-static wchar_t	wTitle[512];
 static int	manager_wm = 0;
 static int	save_window_pos = 0, pause_state = 0;
 static int	dpi = 96;
@@ -416,27 +411,6 @@ win_notify_dlg_closed(void)
 }
 
 
-void
-plat_power_off(void)
-{
-    confirm_exit = 0;
-    nvr_save();
-    config_save();
-
-    /* Deduct a sufficiently large number of cycles that no instructions will
-       run before the main thread is terminated */
-    cycles -= 99999999;
-
-    KillTimer(hwndMain, TIMER_1SEC);
-    PostQuitMessage(0);
-
-    /* Cleanly terminate all of the emulator's components so as
-       to avoid things like threads getting stuck. */
-    // do_stop();
-    cpu_thread_run = 0;
-
-    // exit(-1);
-}
 
 #ifdef MTR_ENABLED
 static void
@@ -566,7 +540,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 					pc_reset_hard();
 					if (i == 10) {
 						confirm_reset = 0;
-						nvr_save();
 						config_save();
 					}
 				}
@@ -586,7 +559,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if ((i % 10) == 0) {
 					if (i == 10) {
 						confirm_exit = 0;
-						nvr_save();
 						config_save();
 					}
 					KillTimer(hwnd, TIMER_1SEC);
@@ -1058,7 +1030,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if ((i % 10) == 0) {
 			if (i == 10) {
 				confirm_exit = 0;
-				nvr_save();
 				config_save();
 			}
 			KillTimer(hwnd, TIMER_1SEC);
@@ -1101,7 +1072,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			pc_reset_hard();
 			if (i == 10) {
 				confirm_reset = 0;
-				nvr_save();
 				config_save();
 			}
 		}
@@ -1119,7 +1089,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if ((i % 10) == 0) {
 			if (i == 10) {
 				confirm_exit = 0;
-				nvr_save();
 				config_save();
 			}
 			KillTimer(hwnd, TIMER_1SEC);
@@ -1554,111 +1523,4 @@ ui_init(int nCmdShow)
 }
 
 
-wchar_t *
-ui_window_title(wchar_t *s)
-{
-    if (! video_fullscreen) {
-	if (s != NULL) {
-		wcsncpy(wTitle, s, sizeof_w(wTitle) - 1);
-	} else
-		s = wTitle;
 
-       	SetWindowText(hwndMain, s);
-    } else {
-	if (s == NULL)
-		s = wTitle;
-    }
-
-    return(s);
-}
-
-
-/* We should have the language ID as a parameter. */
-void
-plat_pause(int p)
-{
-    static wchar_t oldtitle[512];
-    wchar_t title[512];
-
-    /* If un-pausing, as the renderer if that's OK. */
-    if (p == 0)
-	p = get_vidpause();
-
-    /* If already so, done. */
-    if (dopause == p) {
-	/* Send the WM to a manager if needed. */
-	if (source_hwnd)
-		PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSTATUS, (WPARAM) !!dopause, (LPARAM) hwndMain);
-
-	return;
-    }
-
-    if (p) {
-	wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
-	wcscpy(title, oldtitle);
-	wcscat(title, L" - PAUSED -");
-	ui_window_title(title);
-    } else {
-	ui_window_title(oldtitle);
-    }
-
-    dopause = p;
-
-    /* Update the actual menu. */
-    CheckMenuItem(menuMain, IDM_ACTION_PAUSE,
-		  (dopause) ? MF_CHECKED : MF_UNCHECKED);
-
-#if USE_DISCORD
-    /* Update Discord status */
-    if(enable_discord)
-	discord_update_activity(dopause);
-#endif
-
-    /* Send the WM to a manager if needed. */
-    if (source_hwnd)
-	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSTATUS, (WPARAM) !!dopause, (LPARAM) hwndMain);
-}
-
-
-/* Tell the UI about a new screen resolution. */
-void
-plat_resize(int x, int y)
-{
-    /* First, see if we should resize the UI window. */
-    if (!vid_resize) {
-	/* scale the screen base on DPI */
-	if (dpi_scale) {
-		x = MulDiv(x, dpi, 96);
-		y = MulDiv(y, dpi, 96);
-	}
-	if (hide_status_bar)
-		ResizeWindowByClientArea(hwndMain, x, y);
-	else
-		ResizeWindowByClientArea(hwndMain, x, y + sbar_height);
-    }
-}
-
-
-void
-plat_mouse_capture(int on)
-{
-    RECT rect;
-
-    if (!kbd_req_capture && (mouse_type == MOUSE_TYPE_NONE))
-	return;
-
-    if (on && !mouse_capture) {
-	/* Enable the in-app mouse. */
-	GetClipCursor(&oldclip);
-	GetWindowRect(hwndRender, &rect);
-	ClipCursor(&rect);
-	show_cursor(0);
-	mouse_capture = 1;
-    } else if (!on && mouse_capture) {
-	/* Disable the in-app mouse. */
-	ClipCursor(&oldclip);
-	show_cursor(-1);
-
-	mouse_capture = 0;
-    }
-}

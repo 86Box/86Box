@@ -27,7 +27,6 @@
 #include <86box/plat.h>
 #include <86box/win.h>
 
-int mouse_capture;
 
 typedef struct {
 	int buttons;
@@ -111,26 +110,3 @@ win_mouse_close(void)
 	RegisterRawInputDevices(&ridev, 1, sizeof(ridev));
 }
 
-void
-mouse_poll(void)
-{
-    static int b = 0;
-    if (mouse_capture || video_fullscreen) {
-		if (mousestate.dx != 0 || mousestate.dy != 0 || mousestate.dwheel != 0) {
-			mouse_x += mousestate.dx;
-			mouse_y += mousestate.dy;
-			mouse_z = mousestate.dwheel;
-
-			mousestate.dx=0;
-			mousestate.dy=0;
-			mousestate.dwheel=0;
-			
-			//pclog("dx=%d, dy=%d, dwheel=%d\n", mouse_x, mouse_y, mouse_z);
-		}
-
-		if (b != mousestate.buttons) {
-			mouse_buttons = mousestate.buttons;
-			b = mousestate.buttons;
-		}
-	}
-}

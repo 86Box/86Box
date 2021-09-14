@@ -453,64 +453,6 @@ is_valid_mo(int i)
 }
 
 
-void
-media_menu_reset()
-{
-    /* Remove existing entries. */
-    int c = GetMenuItemCount(media_menu);
-
-    for(int i = 0; i < c; i++)
-	RemoveMenu(media_menu, 0, MF_BYPOSITION);
-
-    /* Add new ones. */
-    int curr = 0;
-
-    if(cassette_enable) {
-	AppendMenu(media_menu, MF_POPUP | MF_STRING, (UINT_PTR)menus[curr], L"Test");
-	media_menu_update_cassette();
-    }
-    curr++;
-
-    for(int i = 0; i < 2; i++) {
-	if(is_valid_cartridge()) {
-		AppendMenu(media_menu, MF_POPUP | MF_STRING, (UINT_PTR)menus[curr], L"Test");
-		media_menu_update_cartridge(i);
-	}
-	curr++;
-    }
-
-    for(int i = 0; i < FDD_NUM; i++) {
-	if(is_valid_fdd(i)) {
-		AppendMenu(media_menu, MF_POPUP | MF_STRING, (UINT_PTR)menus[curr], L"Test");
-		media_menu_update_floppy(i);
-	}
-	curr++;
-    }
-
-    for(int i = 0; i < CDROM_NUM; i++) {
-	if(is_valid_cdrom(i)) {
-		AppendMenu(media_menu, MF_POPUP | MF_STRING, (UINT_PTR)menus[curr], L"Test");
-		media_menu_update_cdrom(i);
-	}
-	curr++;
-    }
-
-    for(int i = 0; i < ZIP_NUM; i++) {
-	if(is_valid_zip(i)) {
-		AppendMenu(media_menu, MF_POPUP | MF_STRING, (UINT_PTR)menus[curr], L"Test");
-		media_menu_update_zip(i);
-	}
-	curr++;
-    }
-
-    for(int i = 0; i < MO_NUM; i++) {
-	if(is_valid_mo(i)) {
-		AppendMenu(media_menu, MF_POPUP | MF_STRING, (UINT_PTR)menus[curr], L"Test");
-		media_menu_update_mo(i);
-	}
-	curr++;
-    }
-}
 
 
 /* Initializes the Media menu in the main menu bar. */

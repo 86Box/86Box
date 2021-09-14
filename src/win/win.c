@@ -20,6 +20,7 @@
  */
 #define UNICODE
 #define NTDDI_VERSION 0x06010000
+#include <SDL2/SDL.h>
 #include <windows.h>
 #include <commctrl.h>
 #include <shlobj.h>
@@ -30,11 +31,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <time.h>
 #include <direct.h>
 #include <wchar.h>
 #include <io.h>
-#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/config.h>
 #include <86box/device.h>
@@ -53,10 +54,12 @@
 #include <86box/win_sdl.h>
 #include <86box/win_opengl.h>
 #include <86box/win.h>
+#include <86box/win_imgui.h>
 #include <86box/version.h>
 #ifdef MTR_ENABLED
 #include <minitrace/minitrace.h>
 #endif
+
 
 typedef struct {
     WCHAR str[512];
@@ -69,52 +72,149 @@ HANDLE		ghMutex;
 LCID		lang_id;		/* current language ID used */
 DWORD		dwSubLangID;
 int		acp_utf8;		/* Windows supports UTF-8 codepage */
-volatile int	cpu_thread_run = 1;
 
 
 /* Local data. */
-static HANDLE	thMain;
-static rc_str_t	*lpRCstr2048,
-		*lpRCstr4096,
-		*lpRCstr4352,
-		*lpRCstr4608,
-		*lpRCstr5120,
-		*lpRCstr5376,
-		*lpRCstr5632,
-		*lpRCstr5888,
-		*lpRCstr6144,
-		*lpRCstr7168;
-static int	vid_api_inited = 0;
+//static int	vid_api_inited = 0;
 static char	*argbuf;
+
+extern bool     ImGui_ImplSDL2_Init(SDL_Window* window);
+extern void     ImGui_ImplSDL2_Shutdown();
+extern void     ImGui_ImplSDL2_NewFrame();
+extern bool     ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event);
 static int	first_use = 1;
-static LARGE_INTEGER	StartingTime;
-static LARGE_INTEGER	Frequency;
+static uint64_t	StartingTime;
+static uint64_t Frequency;
+int rctrl_is_lalt;
+int	update_icons;
+int	kbd_req_capture;
+int hide_status_bar;
+int fixed_size_x = 640;
+int fixed_size_y = 480;
+extern int title_set;
+extern wchar_t sdl_win_title[512];
+SDL_mutex *blitmtx;
+SDL_threadID eventthread;
+static int exit_event = 0;
+int fullscreen_pending = 0;
+extern float menubarheight;
 
+static const uint16_t sdl_to_xt[0x200] =
+{
+    [SDL_SCANCODE_ESCAPE] = 0x01,
+    [SDL_SCANCODE_1] = 0x02,
+    [SDL_SCANCODE_2] = 0x03,
+    [SDL_SCANCODE_3] = 0x04,
+    [SDL_SCANCODE_4] = 0x05,
+    [SDL_SCANCODE_5] = 0x06,
+    [SDL_SCANCODE_6] = 0x07,
+    [SDL_SCANCODE_7] = 0x08,
+    [SDL_SCANCODE_8] = 0x09,
+    [SDL_SCANCODE_9] = 0x0A,
+    [SDL_SCANCODE_0] = 0x0B,
+    [SDL_SCANCODE_MINUS] = 0x0C,
+    [SDL_SCANCODE_EQUALS] = 0x0D,
+    [SDL_SCANCODE_BACKSPACE] = 0x0E,
+    [SDL_SCANCODE_TAB] = 0x0F,
+    [SDL_SCANCODE_Q] = 0x10,
+    [SDL_SCANCODE_W] = 0x11,
+    [SDL_SCANCODE_E] = 0x12,
+    [SDL_SCANCODE_R] = 0x13,
+    [SDL_SCANCODE_T] = 0x14,
+    [SDL_SCANCODE_Y] = 0x15,
+    [SDL_SCANCODE_U] = 0x16,
+    [SDL_SCANCODE_I] = 0x17,
+    [SDL_SCANCODE_O] = 0x18,
+    [SDL_SCANCODE_P] = 0x19,
+    [SDL_SCANCODE_LEFTBRACKET] = 0x1A,
+    [SDL_SCANCODE_RIGHTBRACKET] = 0x1B,
+    [SDL_SCANCODE_RETURN] = 0x1C,
+    [SDL_SCANCODE_LCTRL] = 0x1D,
+    [SDL_SCANCODE_A] = 0x1E,
+    [SDL_SCANCODE_S] = 0x1F,
+    [SDL_SCANCODE_D] = 0x20,
+    [SDL_SCANCODE_F] = 0x21,
+    [SDL_SCANCODE_G] = 0x22,
+    [SDL_SCANCODE_H] = 0x23,
+    [SDL_SCANCODE_J] = 0x24,
+    [SDL_SCANCODE_K] = 0x25,
+    [SDL_SCANCODE_L] = 0x26,
+    [SDL_SCANCODE_SEMICOLON] = 0x27,
+    [SDL_SCANCODE_APOSTROPHE] = 0x28,
+    [SDL_SCANCODE_GRAVE] = 0x29,
+    [SDL_SCANCODE_LSHIFT] = 0x2A,
+    [SDL_SCANCODE_BACKSLASH] = 0x2B,
+    [SDL_SCANCODE_Z] = 0x2C,
+    [SDL_SCANCODE_X] = 0x2D,
+    [SDL_SCANCODE_C] = 0x2E,
+    [SDL_SCANCODE_V] = 0x2F,
+    [SDL_SCANCODE_B] = 0x30,
+    [SDL_SCANCODE_N] = 0x31,
+    [SDL_SCANCODE_M] = 0x32,
+    [SDL_SCANCODE_COMMA] = 0x33,
+    [SDL_SCANCODE_PERIOD] = 0x34,
+    [SDL_SCANCODE_SLASH] = 0x35,
+    [SDL_SCANCODE_RSHIFT] = 0x36,
+    [SDL_SCANCODE_KP_MULTIPLY] = 0x37,
+    [SDL_SCANCODE_LALT] = 0x38,
+    [SDL_SCANCODE_SPACE] = 0x39,
+    [SDL_SCANCODE_CAPSLOCK] = 0x3A,
+    [SDL_SCANCODE_F1] = 0x3B,
+    [SDL_SCANCODE_F2] = 0x3C,
+    [SDL_SCANCODE_F3] = 0x3D,
+    [SDL_SCANCODE_F4] = 0x3E,
+    [SDL_SCANCODE_F5] = 0x3F,
+    [SDL_SCANCODE_F6] = 0x40,
+    [SDL_SCANCODE_F7] = 0x41,
+    [SDL_SCANCODE_F8] = 0x42,
+    [SDL_SCANCODE_F9] = 0x43,
+    [SDL_SCANCODE_F10] = 0x44,
+    [SDL_SCANCODE_NUMLOCKCLEAR] = 0x45,
+    [SDL_SCANCODE_SCROLLLOCK] = 0x46,
+    [SDL_SCANCODE_HOME] = 0x147,
+    [SDL_SCANCODE_UP] = 0x148,
+    [SDL_SCANCODE_PAGEUP] = 0x149,
+    [SDL_SCANCODE_KP_MINUS] = 0x4A,
+    [SDL_SCANCODE_LEFT] = 0x14B,
+    [SDL_SCANCODE_KP_5] = 0x4C,
+    [SDL_SCANCODE_RIGHT] = 0x14D,
+    [SDL_SCANCODE_KP_PLUS] = 0x4E,
+    [SDL_SCANCODE_END] = 0x14F,
+    [SDL_SCANCODE_DOWN] = 0x150,
+    [SDL_SCANCODE_PAGEDOWN] = 0x151,
+    [SDL_SCANCODE_INSERT] = 0x152,
+    [SDL_SCANCODE_DELETE] = 0x153,
+    [SDL_SCANCODE_F11] = 0x57,
+    [SDL_SCANCODE_F12] = 0x58,
 
-static const struct {
-    const char	*name;
-    int		local;
-    int		(*init)(void *);
-    void	(*close)(void);
-    void	(*resize)(int x, int y);
-    int		(*pause)(void);
-    void	(*enable)(int enable);
-    void	(*set_fs)(int fs);
-    void	(*reload)(void);
-} vid_apis[RENDERERS_NUM] = {
-  {	"SDL_Software", 1, (int(*)(void*))sdl_inits, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload	},
-  {	"SDL_Hardware", 1, (int(*)(void*))sdl_inith, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload	},
-  {	"SDL_OpenGL", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, sdl_reload	}
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
- ,{	"OpenGL_Core", 1, (int(*)(void*))opengl_init, opengl_close, opengl_resize, opengl_pause, NULL, opengl_set_fs, opengl_reload}
-#else
- ,{	"OpenGL_Core", 1, (int(*)(void*))sdl_initho, sdl_close, NULL, sdl_pause, sdl_enable, sdl_set_fs, NULL		} /* fall back to SDL_OpenGL */
-#endif
-#ifdef USE_VNC
- ,{	"VNC", 0, vnc_init, vnc_close, vnc_resize, vnc_pause, NULL, NULL						}
-#endif
+    [SDL_SCANCODE_KP_ENTER] = 0x11c,
+    [SDL_SCANCODE_RCTRL] = 0x11d,
+    [SDL_SCANCODE_KP_DIVIDE] = 0x135,
+    [SDL_SCANCODE_RALT] = 0x138,
+    [SDL_SCANCODE_KP_9] = 0x49,
+    [SDL_SCANCODE_KP_8] = 0x48,
+    [SDL_SCANCODE_KP_7] = 0x47,
+    [SDL_SCANCODE_KP_6] = 0x4D,
+    [SDL_SCANCODE_KP_4] = 0x4B,
+    [SDL_SCANCODE_KP_3] = 0x51,
+    [SDL_SCANCODE_KP_2] = 0x50,
+    [SDL_SCANCODE_KP_1] = 0x4F,
+    [SDL_SCANCODE_KP_0] = 0x52,
+    [SDL_SCANCODE_KP_PERIOD] = 0x53,
+
+    [SDL_SCANCODE_LGUI] = 0x15B,
+    [SDL_SCANCODE_RGUI] = 0x15C,
+    [SDL_SCANCODE_APPLICATION] = 0x15D,
+    [SDL_SCANCODE_PRINTSCREEN] = 0x137
 };
 
+typedef struct sdl_blit_params
+{
+    int x, y, w, h;
+} sdl_blit_params;
+
+sdl_blit_params params = { 0, 0, 0, 0 };
+int blitreq = 0;
 
 extern int title_update;
 
@@ -137,59 +237,6 @@ win_log(const char *fmt, ...)
 #else
 #define win_log(fmt, ...)
 #endif
-
-
-static void
-LoadCommonStrings(void)
-{
-    int i;
-
-    lpRCstr2048 = (rc_str_t *)malloc(STR_NUM_2048*sizeof(rc_str_t));
-    lpRCstr4096 = (rc_str_t *)malloc(STR_NUM_4096*sizeof(rc_str_t));
-    lpRCstr4352 = (rc_str_t *)malloc(STR_NUM_4352*sizeof(rc_str_t));
-    lpRCstr4608 = (rc_str_t *)malloc(STR_NUM_4608*sizeof(rc_str_t));
-    lpRCstr5120 = (rc_str_t *)malloc(STR_NUM_5120*sizeof(rc_str_t));
-    lpRCstr5376 = (rc_str_t *)malloc(STR_NUM_5376*sizeof(rc_str_t));
-    lpRCstr5632 = (rc_str_t *)malloc(STR_NUM_5632*sizeof(rc_str_t));
-    lpRCstr5888 = (rc_str_t *)malloc(STR_NUM_5888*sizeof(rc_str_t));
-    lpRCstr6144 = (rc_str_t *)malloc(STR_NUM_6144*sizeof(rc_str_t));
-    lpRCstr7168 = (rc_str_t *)malloc(STR_NUM_7168*sizeof(rc_str_t));
-
-    for (i=0; i<STR_NUM_2048; i++)
-	LoadString(hinstance, 2048+i, lpRCstr2048[i].str, 512);
-
-    for (i=0; i<STR_NUM_4096; i++)
-	LoadString(hinstance, 4096+i, lpRCstr4096[i].str, 512);
-
-    for (i=0; i<STR_NUM_4352; i++)
-	LoadString(hinstance, 4352+i, lpRCstr4352[i].str, 512);
-
-    for (i=0; i<STR_NUM_4608; i++)
-	LoadString(hinstance, 4608+i, lpRCstr4608[i].str, 512);
-
-    for (i=0; i<STR_NUM_5120; i++)
-	LoadString(hinstance, 5120+i, lpRCstr5120[i].str, 512);
-
-    for (i=0; i<STR_NUM_5376; i++) {
-	if ((i == 0) || (i > 3))
-		LoadString(hinstance, 5376+i, lpRCstr5376[i].str, 512);
-    }
-
-    for (i=0; i<STR_NUM_5632; i++) {
-	if ((i == 0) || (i > 3))
-		LoadString(hinstance, 5632+i, lpRCstr5632[i].str, 512);
-    }
-
-    for (i=0; i<STR_NUM_5888; i++)
-	LoadString(hinstance, 5888+i, lpRCstr5888[i].str, 512);
-
-    for (i=0; i<STR_NUM_6144; i++)
-	LoadString(hinstance, 6144+i, lpRCstr6144[i].str, 512);
-
-    for (i=0; i<STR_NUM_7168; i++)
-	LoadString(hinstance, 7168+i, lpRCstr7168[i].str, 512);
-}
-
 
 size_t mbstoc16s(uint16_t dst[], const char src[], int len)
 {
@@ -225,47 +272,43 @@ size_t c16stombs(char dst[], const uint16_t src[], int len)
 void
 set_language(int id)
 {
-    LCID lcidNew = MAKELCID(id, dwSubLangID);
 
-    if (lang_id != lcidNew) {
-	/* Set our new language ID. */
-	lang_id = lcidNew;
-
-	SetThreadLocale(lang_id);
-
-	/* Load the strings table for this ID. */
-	LoadCommonStrings();
-    }
 }
 
 
 wchar_t *
 plat_get_string(int i)
 {
-    LPTSTR str;
-
-    if ((i >= 2048) && (i <= 3071))
-	str = lpRCstr2048[i-2048].str;
-    else if ((i >= 4096) && (i <= 4351))
-	str = lpRCstr4096[i-4096].str;
-    else if ((i >= 4352) && (i <= 4607))
-	str = lpRCstr4352[i-4352].str;
-    else if ((i >= 4608) && (i <= 5119))
-	str = lpRCstr4608[i-4608].str;
-    else if ((i >= 5120) && (i <= 5375))
-	str = lpRCstr5120[i-5120].str;
-    else if ((i >= 5376) && (i <= 5631))
-	str = lpRCstr5376[i-5376].str;
-    else if ((i >= 5632) && (i <= 5887))
-	str = lpRCstr5632[i-5632].str;
-    else if ((i >= 5888) && (i <= 6143))
-	str = lpRCstr5888[i-5888].str;
-    else if ((i >= 6144) && (i <= 7167))
-	str = lpRCstr6144[i-6144].str;
-    else
-	str = lpRCstr7168[i-7168].str;
-
-    return((wchar_t *)str);
+    switch (i)
+    {
+        case IDS_2077:
+            return L"Click to capture mouse.";
+        case IDS_2078:
+            return L"Press CTRL-END to release mouse";
+        case IDS_2079:
+            return L"Press CTRL-END or middle button to release mouse";
+        case IDS_2080:
+            return L"Failed to initialize FluidSynth";
+        case IDS_4099:
+            return L"MFM/RLL or ESDI CD-ROM drives never existed";
+        case IDS_2093:
+            return L"Failed to set up PCap";
+        case IDS_2094:
+            return L"No PCap devices found";
+        case IDS_2110:
+            return L"Unable to initialize FreeType";
+        case IDS_2111:
+            return L"Unable to initialize SDL, libsdl2 is required";
+        case IDS_2131:
+            return L"libfreetype is required for ESC/P printer emulation.";
+        case IDS_2132:
+            return L"libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
+        case IDS_2129:
+            return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
+        case IDS_2114:
+            return L"Unable to initialize Ghostscript";
+    }
+    return L"";
 }
 
 #ifdef MTR_ENABLED
@@ -283,61 +326,6 @@ shutdown_trace(void)
     mtr_shutdown();
 }
 #endif
-
-/* Create a console if we don't already have one. */
-static void
-CreateConsole(int init)
-{
-    HANDLE h;
-    FILE *fp;
-    fpos_t p;
-    int i;
-
-    if (! init) {
-	if (force_debug)
-		FreeConsole();
-	return;
-    }
-
-    /* Are we logging to a file? */
-    p = 0;
-    (void)fgetpos(stdout, &p);
-    if (p != -1) return;
-
-    /* Not logging to file, attach to console. */
-    if (! AttachConsole(ATTACH_PARENT_PROCESS)) {
-	/* Parent has no console, create one. */
-	if (! AllocConsole()) {
-		/* Cannot create console, just give up. */
-		return;
-	}
-    }
-    fp = NULL;
-    if ((h = GetStdHandle(STD_OUTPUT_HANDLE)) != NULL) {
-	/* We got the handle, now open a file descriptor. */
-	if ((i = _open_osfhandle((intptr_t)h, _O_TEXT)) != -1) {
-		/* We got a file descriptor, now allocate a new stream. */
-		if ((fp = _fdopen(i, "w")) != NULL) {
-			/* Got the stream, re-initialize stdout without it. */
-			(void)freopen("CONOUT$", "w", stdout);
-			setvbuf(stdout, NULL, _IONBF, 0);
-			fflush(stdout);
-		}
-	}
-    }
-
-    if (fp != NULL) {
-	fclose(fp);
-	fp = NULL;
-    }
-}
-
-
-static void
-CloseConsole(void)
-{
-    CreateConsole(0);
-}
 
 
 /* Process the commandline, and create standard argc/argv array. */
@@ -407,76 +395,21 @@ ProcessCommandLine(char ***argv)
     return(argc);
 }
 
-
-/* For the Windows platform, this is the start of the application. */
-int WINAPI
-WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
+volatile int cpu_thread_run = 1;
+void ui_sb_set_text_w(wchar_t *wstr)
 {
-    char **argv = NULL;
-    int	argc, i;
-    wchar_t * AppID = L"86Box.86Box\0";
 
-    SetCurrentProcessExplicitAppUserModelID(AppID);
-
-    /* Initialize the COM library for the main thread. */
-    CoInitializeEx(NULL, COINIT_MULTITHREADED);
-
-    /* Check if Windows supports UTF-8 */
-    if (GetACP() == CP_UTF8)
-	acp_utf8 = 1;
-    else
-	acp_utf8 = 0;
-
-    /* Set this to the default value (windowed mode). */
-    video_fullscreen = 0;
-
-    /* We need this later. */
-    hinstance = hInst;
-
-    /* Set the application version ID string. */
-    sprintf(emu_version, "%s v%s", EMU_NAME, EMU_VERSION);
-
-    /* First, set our (default) language. */
-    set_language(0x0409);
-
-    /* Process the command line for options. */
-    argc = ProcessCommandLine(&argv);
-
-    /* Pre-initialize the system, this loads the config file. */
-    if (! pc_init(argc, argv)) {
-	/* Detach from console. */
-	if (force_debug)
-		CreateConsole(0);
-
-	if (source_hwnd)
-		PostMessage((HWND) (uintptr_t) source_hwnd, WM_HAS_SHUTDOWN, (WPARAM) 0, (LPARAM) hwndMain);
-
-	free(argbuf);
-	free(argv);
-	return(1);
-    }
-
-    /* Enable crash dump services. */
-    if (enable_crashdump)
-	InitCrashDump();
-
-    /* Create console window. */
-    if (force_debug) {
-	CreateConsole(1);
-	atexit(CloseConsole);
 }
 
-    /* Handle our GUI. */
-    i = ui_init(nCmdShow);
-
-    /* Uninitialize COM before exit. */
-    CoUninitialize();
-
-    free(argbuf);
-    free(argv);
-    return(i);
+int stricmp(const char* s1, const char* s2)
+{
+    return strcasecmp(s1, s2);
 }
 
+int strnicmp(const char *s1, const char *s2, size_t n)
+{
+    return strncasecmp(s1, s2, n);
+}
 
 void
 main_thread(void *param)
@@ -484,13 +417,14 @@ main_thread(void *param)
     uint32_t old_time, new_time;
     int drawits, frames;
 
+    SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
     framecountx = 0;
     title_update = 1;
-    old_time = GetTickCount();
+    old_time = SDL_GetTicks();
     drawits = frames = 0;
     while (!is_quit && cpu_thread_run) {
 	/* See if it is time to run a frame of code. */
-	new_time = GetTickCount();
+	new_time = SDL_GetTicks();
 	drawits += (new_time - old_time);
 	old_time = new_time;
 	if (drawits > 0 && !dopause) {
@@ -509,7 +443,7 @@ main_thread(void *param)
 			frames = 0;
 		}
 	} else	/* Just so we dont overload the host OS. */
-		Sleep(1);
+		SDL_Delay(1);
 
 	/* If needed, handle a screen resize. */
 	if (doresize && !video_fullscreen && !is_quit) {
@@ -524,48 +458,126 @@ main_thread(void *param)
     is_quit = 1;
 }
 
+thread_t* thMain = NULL;
 
-/*
- * We do this here since there is platform-specific stuff
- * going on here, and we do it in a function separate from
- * main() so we can call it from the UI module as well.
- */
 void
 do_start(void)
 {
-    LARGE_INTEGER qpc;
-
     /* We have not stopped yet. */
     is_quit = 0;
 
     /* Initialize the high-precision timer. */
-    timeBeginPeriod(1);
-    QueryPerformanceFrequency(&qpc);
-    timer_freq = qpc.QuadPart;
-    win_log("Main timer precision: %llu\n", timer_freq);
+    SDL_InitSubSystem(SDL_INIT_TIMER);
+    timer_freq = SDL_GetPerformanceFrequency();
 
     /* Start the emulator, really. */
     thMain = thread_create(main_thread, NULL);
-    SetThreadPriority(thMain, THREAD_PRIORITY_HIGHEST);
 }
 
-
-/* Cleanly stop the emulator. */
 void
 do_stop(void)
 {
-    /* Claim the video blitter. */
+    if (SDL_ThreadID() != eventthread)
+    {
+        exit_event = 1;
+        return;
+    }
+    if (blitreq)
+    {
+        blitreq = 0;
+        extern void video_blit_complete();
+        video_blit_complete();
+    }
+
+    while(SDL_TryLockMutex(blitmtx) == SDL_MUTEX_TIMEDOUT)
+    {
+        if (blitreq)
+        {
+            blitreq = 0;
+            extern void video_blit_complete();
+            video_blit_complete();
+        }
+    }
     startblit();
 
-    vid_apis[vid_api].close();
+    is_quit = 1;
+    sdl_close();
 
     pc_close(thMain);
 
     thMain = NULL;
-
-    if (source_hwnd)
-	PostMessage((HWND) (uintptr_t) source_hwnd, WM_HAS_SHUTDOWN, (WPARAM) 0, (LPARAM) hwndMain);
 }
+
+int	ui_msgbox(int flags, void *message)
+{
+    return ui_msgbox_header(flags, message, NULL);
+}
+
+int	ui_msgbox_header(int flags, void *message, void* header)
+{
+    if (!header) header = L"86Box";
+    fwprintf(stderr, L"%s\n", header);
+    fwprintf(stderr, L"==========================\n%s\n", plat_get_string((int)message));
+    return 0;
+}
+
+
+void
+plat_power_off(void)
+{
+    confirm_exit = 0;
+    nvr_save();
+    config_save();
+
+    /* Deduct a sufficiently large number of cycles that no instructions will
+       run before the main thread is terminated */
+    cycles -= 99999999;
+
+    cpu_thread_run = 0;
+}
+
+void ui_sb_bugui(char *str)
+{
+    
+}
+
+extern void     sdl_blit(int x, int y, int y1, int y2, int w, int h);
+
+typedef struct mouseinputdata
+{
+    int deltax, deltay, deltaz;
+    int mousebuttons;
+} mouseinputdata;
+SDL_mutex* mousemutex;
+static mouseinputdata mousedata;
+void mouse_poll()
+{
+    SDL_LockMutex(mousemutex);
+    mouse_x = mousedata.deltax;
+    mouse_y = mousedata.deltay;
+    mouse_z = mousedata.deltaz;
+    mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
+    mouse_buttons = mousedata.mousebuttons;
+    SDL_UnlockMutex(mousemutex);
+}
+
+
+extern int sdl_w, sdl_h;
+void ui_sb_set_ready(int ready) {}
+char* xargv[512];
+
+// From musl.
+char *local_strsep(char **str, const char *sep)
+{
+	char *s = *str, *end;
+	if (!s) return NULL;
+	end = s + strcspn(s, sep);
+	if (*end) *end++ = 0;
+	else end = 0;
+	*str = end;
+	return s;
+}
+
 
 
 void
@@ -861,54 +873,596 @@ plat_dir_create(char *path)
 uint64_t
 plat_timer_read(void)
 {
-    LARGE_INTEGER li;
-
-    QueryPerformanceCounter(&li);
-
-    return(li.QuadPart);
+    return SDL_GetPerformanceCounter();
 }
 
-static LARGE_INTEGER
+void
+plat_pause(int p)
+{
+    static wchar_t oldtitle[512];
+    wchar_t title[512];
+
+    dopause = p;
+    if (p) {
+	wcsncpy(oldtitle, ui_window_title(NULL), sizeof_w(oldtitle) - 1);
+	wcscpy(title, oldtitle);
+	wcscat(title, L" - PAUSED -");
+	ui_window_title(title);
+    } else {
+	ui_window_title(oldtitle);
+    }
+}
+
+bool process_media_commands_3(uint8_t* id, char* fn, uint8_t* wp, int cmdargc)
+{
+    bool err = false;
+    *id = atoi(xargv[1]);
+    if (xargv[2][0] == '\'' || xargv[2][0] == '"')
+    {
+        int curarg = 2;
+        for (curarg = 2; curarg < cmdargc; curarg++)
+        {
+            if (strlen(fn) + strlen(xargv[curarg]) >= PATH_MAX)
+            {
+                err = true;
+                fprintf(stderr, "Path name too long.\n");
+            }
+            strcat(fn, xargv[curarg] + (xargv[curarg][0] == '\'' || xargv[curarg][0] == '"'));
+            if (fn[strlen(fn) - 1] == '\''
+                || fn[strlen(fn) - 1] == '"')
+            {
+                if (curarg + 1 < cmdargc)
+                {
+                    *wp = atoi(xargv[curarg + 1]);
+                }
+                break;
+            }
+            strcat(fn, " ");
+        }
+    }
+    else
+    {
+        if (strlen(xargv[2]) < PATH_MAX)
+        {
+            strcpy(fn, xargv[2]);
+            *wp = atoi(xargv[3]);
+        }
+        else
+        {
+            fprintf(stderr, "Path name too long.\n");
+            err = true;
+        }
+    }
+    if (fn[strlen(fn) - 1] == '\''
+    || fn[strlen(fn) - 1] == '"') fn[strlen(fn) - 1] = '\0';
+    return err;
+}
+char* (*f_readline)(const char*) = NULL;
+int  (*f_add_history)(const char *) = NULL;
+void (*f_rl_callback_handler_remove)(void) = NULL;
+
+uint32_t timer_onesec(uint32_t interval, void* param)
+{
+        pc_onesec();
+        return interval;
+}
+
+void monitor_thread(void* param)
+{
+#ifndef USE_CLI
+    if (isatty(fileno(stdin)) && isatty(fileno(stdout)))
+    {
+        char line[256] = {0};
+        printf("86Box monitor console.\n");
+        while (!exit_event)
+        {
+            if (feof(stdin)) break;
+            printf("(86Box) ");
+            fgets(line, 255, stdin);
+            
+			int cmdargc = 0;
+			char* linecpy;
+			line[strcspn(line, "\r\n")] = '\0';
+			linecpy = strdup(line);
+			if (f_add_history) f_add_history(line);
+			memset(xargv, 0, sizeof(xargv));
+			while(1) 
+			{
+				xargv[cmdargc++] = local_strsep(&linecpy, " ");
+				if (xargv[cmdargc - 1] == NULL || cmdargc >= 512) break;
+			}
+			cmdargc--;
+			if (strncasecmp(xargv[0], "help", 4) == 0)
+			{
+				printf(
+					"fddload <id> <filename> <wp> - Load floppy disk image into drive <id>.\n"
+					"cdload <id> <filename> - Load CD-ROM image into drive <id>.\n"
+					"zipload <id> <filename> <wp> - Load ZIP image into ZIP drive <id>.\n"
+					"cartload <id> <filename> <wp> - Load cartridge image into cartridge drive <id>.\n"
+					"moload <id> <filename> <wp> - Load MO image into MO drive <id>.\n\n"
+					"fddeject <id> - eject disk from floppy drive <id>.\n"
+					"cdeject <id> - eject disc from CD-ROM drive <id>.\n"
+					"zipeject <id> - eject ZIP image from ZIP drive <id>.\n"
+					"carteject <id> - eject cartridge from drive <id>.\n"
+					"moeject <id> - eject image from MO drive <id>.\n\n"
+					"hardreset - hard reset the emulated system.\n"
+					"pause - pause the the emulated system.\n"
+					"fullscreen - toggle fullscreen.\n"
+					"exit - exit 86Box.\n");
+			}
+			else if (strncasecmp(xargv[0], "exit", 4) == 0)
+			{
+				exit_event = 1;
+			}
+			else if (strncasecmp(xargv[0], "fullscreen", 10) == 0)
+			{
+				video_fullscreen = 1;
+				fullscreen_pending = 1;
+			}
+			else if (strncasecmp(xargv[0], "pause", 5) == 0)
+			{
+				plat_pause(dopause ^ 1);
+				printf("%s", dopause ? "Paused.\n" : "Unpaused.\n");
+			}
+			else if (strncasecmp(xargv[0], "hardreset", 9) == 0)
+			{
+				pc_reset_hard();
+			}
+			else if (strncasecmp(xargv[0], "cdload", 6) == 0 && cmdargc >= 3)
+			{
+				uint8_t id;
+				bool err = false;
+				char fn[PATH_MAX];
+				
+				if (!xargv[2] || !xargv[1])
+				{
+					free(linecpy);
+					continue;
+				}
+				id = atoi(xargv[1]);
+				memset(fn, 0, sizeof(fn));
+				if (xargv[2][0] == '\'' || xargv[2][0] == '"')
+				{
+					int curarg = 2;
+					for (curarg = 2; curarg < cmdargc; curarg++)
+					{
+						if (strlen(fn) + strlen(xargv[curarg]) >= PATH_MAX)
+						{
+							err = true;
+							fprintf(stderr, "Path name too long.\n");
+						}
+						strcat(fn, xargv[curarg] + (xargv[curarg][0] == '\'' || xargv[curarg][0] == '"'));
+						if (fn[strlen(fn) - 1] == '\''
+							|| fn[strlen(fn) - 1] == '"')
+						{
+							break;
+						}
+						strcat(fn, " ");
+					}
+				}
+				else
+				{
+					if (strlen(xargv[2]) < PATH_MAX)
+					{
+						strcpy(fn, xargv[2]);
+					}
+					else
+					{
+						fprintf(stderr, "Path name too long.\n");
+					}
+				}
+				if (!err)
+				{
+
+					if (fn[strlen(fn) - 1] == '\''
+						|| fn[strlen(fn) - 1] == '"') fn[strlen(fn) - 1] = '\0';
+					printf("Inserting disc into CD-ROM drive %hhu: %s\n", id, fn);
+					cdrom_mount(id, fn);
+				}
+			}
+			else if (strncasecmp(xargv[0], "fddeject", 8) == 0 && cmdargc >= 2)
+			{
+				floppy_eject(atoi(xargv[1]));
+			}
+			else if (strncasecmp(xargv[0], "cdeject", 8) == 0 && cmdargc >= 2)
+			{
+				cdrom_mount(atoi(xargv[1]), "");
+			}
+			else if (strncasecmp(xargv[0], "moeject", 8) == 0 && cmdargc >= 2)
+			{
+				mo_eject(atoi(xargv[1]));
+			}
+			else if (strncasecmp(xargv[0], "carteject", 8) == 0 && cmdargc >= 2)
+			{
+				cartridge_eject(atoi(xargv[1]));
+			}
+			else if (strncasecmp(xargv[0], "zipeject", 8) == 0 && cmdargc >= 2)
+			{
+				zip_eject(atoi(xargv[1]));
+			}
+			else if (strncasecmp(xargv[0], "fddload", 7) == 0 && cmdargc >= 4)
+			{
+				uint8_t id, wp;
+				bool err = false;
+				char fn[PATH_MAX];
+				memset(fn, 0, sizeof(fn));
+				if (!xargv[2] || !xargv[1])
+				{
+					free(linecpy);
+					continue;
+				}
+				err = process_media_commands_3(&id, fn, &wp, cmdargc);
+				if (!err)
+				{
+					if (fn[strlen(fn) - 1] == '\''
+						|| fn[strlen(fn) - 1] == '"') fn[strlen(fn) - 1] = '\0';
+					printf("Inserting disk into floppy drive %c: %s\n", id + 'A', fn);
+					floppy_mount(id, fn, wp);
+				}
+			}
+			else if (strncasecmp(xargv[0], "moload", 7) == 0 && cmdargc >= 4)
+			{
+				uint8_t id, wp;
+				bool err = false;
+				char fn[PATH_MAX];
+				memset(fn, 0, sizeof(fn));
+				if (!xargv[2] || !xargv[1])
+				{
+					free(linecpy);
+					continue;
+				}
+				err = process_media_commands_3(&id, fn, &wp, cmdargc);
+				if (!err)
+				{
+					if (fn[strlen(fn) - 1] == '\''
+						|| fn[strlen(fn) - 1] == '"') fn[strlen(fn) - 1] = '\0';
+					printf("Inserting into mo drive %hhu: %s\n", id, fn);
+					mo_mount(id, fn, wp);
+				}
+			}
+			else if (strncasecmp(xargv[0], "cartload", 7) == 0 && cmdargc >= 4)
+			{
+				uint8_t id, wp;
+				bool err = false;
+				char fn[PATH_MAX];
+				memset(fn, 0, sizeof(fn));
+				if (!xargv[2] || !xargv[1])
+				{
+					free(linecpy);
+					continue;
+				}
+				err = process_media_commands_3(&id, fn, &wp, cmdargc);
+				if (!err)
+				{
+					if (fn[strlen(fn) - 1] == '\''
+						|| fn[strlen(fn) - 1] == '"') fn[strlen(fn) - 1] = '\0';
+					printf("Inserting tape into cartridge holder %hhu: %s\n", id, fn);
+					cartridge_mount(id, fn, wp);
+				}
+			}
+			else if (strncasecmp(xargv[0], "zipload", 7) == 0 && cmdargc >= 4)
+			{
+				uint8_t id, wp;
+				bool err = false;
+				char fn[PATH_MAX];
+				memset(fn, 0, sizeof(fn));
+				if (!xargv[2] || !xargv[1])
+				{
+					free(linecpy);
+					continue;
+				}
+				err = process_media_commands_3(&id, fn, &wp, cmdargc);
+				if (!err)
+				{
+					if (fn[strlen(fn) - 1] == '\''
+						|| fn[strlen(fn) - 1] == '"') fn[strlen(fn) - 1] = '\0';
+					printf("Inserting disk into ZIP drive %c: %s\n", id + 'A', fn);
+					zip_mount(id, fn, wp);
+				}
+			}
+			free(linecpy);
+            
+        }
+    }
+#endif
+}
+
+
+extern void sdl_real_blit(SDL_Rect* r_src);
+
+extern SDL_Window* sdl_win;
+/* For the Windows platform, this is the start of the application. */
+int WINAPI
+WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
+{
+    SDL_Event event;
+
+    char **argv = NULL;
+    int	argc;
+    wchar_t * AppID = L"86Box.86Box\0";
+
+    SetCurrentProcessExplicitAppUserModelID(AppID);
+
+    /* Initialize the COM library for the main thread. */
+    CoInitializeEx(NULL, COINIT_MULTITHREADED);
+
+    /* Check if Windows supports UTF-8 */
+    if (GetACP() == CP_UTF8)
+	acp_utf8 = 1;
+    else
+	acp_utf8 = 0;
+
+    /* Set this to the default value (windowed mode). */
+    video_fullscreen = 0;
+
+    /* We need this later. */
+    hinstance = hInst;
+
+    /* Set the application version ID string. */
+    sprintf(emu_version, "%s v%s", EMU_NAME, EMU_VERSION);
+
+    /* First, set our (default) language. */
+    set_language(0x0409);
+
+    /* Process the command line for options. */
+    argc = ProcessCommandLine(&argv);
+
+    SDL_Init(0);
+    pc_init(argc, argv);
+    if (! pc_init_modules()) {
+        fprintf(stderr, "No ROMs found.\n");
+        SDL_Quit();
+        return 6;
+    }
+    
+    eventthread = SDL_ThreadID();
+    blitmtx = SDL_CreateMutex();
+    if (!blitmtx)
+    {
+        fprintf(stderr, "Failed to create blit mutex: %s", SDL_GetError());
+        return -1;
+    }
+    mousemutex = SDL_CreateMutex();
+    sdl_initho(0);
+
+    if (start_in_fullscreen)
+    {
+        video_fullscreen = 1;
+	    sdl_set_fs(1);
+    }
+    /* Fire up the machine. */
+    pc_reset_hard_init();
+
+    /* Set the PAUSE mode depending on the renderer. */
+    //plat_pause(0);
+
+    /* Initialize the rendering window, or fullscreen. */
+
+    do_start();
+#ifndef USE_CLI
+    thread_create(monitor_thread, NULL);
+#endif
+    SDL_AddTimer(1000, timer_onesec, NULL);
+    InitImGui();
+    while (!is_quit)
+    {
+        while (SDL_PollEvent(&event))
+	    {
+            if (!mouse_capture) ImGui_ImplSDL2_ProcessEvent(&event);
+            switch(event.type)
+            {
+                case SDL_QUIT:
+                    exit_event = 1;
+                    break;
+                case SDL_MOUSEWHEEL:
+                {
+                    if (ImGuiWantsMouseCapture()) break;
+                    if (mouse_capture)
+                    {
+                        if (event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED)
+                        {
+                            event.wheel.x *= -1;
+                            event.wheel.y *= -1;
+                        }
+                        SDL_LockMutex(mousemutex);
+                        mousedata.deltaz = event.wheel.y;
+                        SDL_UnlockMutex(mousemutex);
+                    }
+                    break;
+                }
+                case SDL_MOUSEMOTION:
+                {
+                    if (ImGuiWantsMouseCapture()) break;
+                    if (mouse_capture)
+                    {
+                        SDL_LockMutex(mousemutex);
+                        mousedata.deltax += event.motion.xrel;
+                        mousedata.deltay += event.motion.yrel;
+                        SDL_UnlockMutex(mousemutex);
+                    }
+                    break;
+                }
+                case SDL_MOUSEBUTTONDOWN:
+                case SDL_MOUSEBUTTONUP:
+                {
+                    if (ImGuiWantsMouseCapture()) break;
+                    if ((event.button.button == SDL_BUTTON_LEFT)
+                    && !(mouse_capture)
+                    && event.button.state == SDL_RELEASED
+                    && ((event.button.x <= sdl_w && event.button.y <= sdl_h) || video_fullscreen))
+                    {
+                        plat_mouse_capture(1);
+                        break;
+                    }
+                    if (mouse_get_buttons() < 3 && event.button.button == SDL_BUTTON_MIDDLE)
+                    {
+                        plat_mouse_capture(0);
+                        break;
+                    }
+                    if (mouse_capture)
+                    {
+                        int buttonmask = 0;
+
+                        switch(event.button.button)
+                        {
+                            case SDL_BUTTON_LEFT:
+                                buttonmask = 1;
+                                break;
+                            case SDL_BUTTON_RIGHT:
+                                buttonmask = 2;
+                                break;
+                            case SDL_BUTTON_MIDDLE:
+                                buttonmask = 4;
+                                break;
+                        }
+                        SDL_LockMutex(mousemutex);
+                        if (event.button.state == SDL_PRESSED)
+                        {
+                            mousedata.mousebuttons |= buttonmask;
+                        }
+                        else mousedata.mousebuttons &= ~buttonmask;
+                        SDL_UnlockMutex(mousemutex);
+                    }
+                    break;
+                }
+                case SDL_RENDER_DEVICE_RESET:
+                case SDL_RENDER_TARGETS_RESET:
+                    {    
+                        extern void sdl_reinit_texture();
+                        sdl_reinit_texture();
+                        break;
+                    }
+                case SDL_KEYDOWN:
+                case SDL_KEYUP:
+                {
+                    if (ImGuiWantsKeyboardCapture()) break;
+                    uint16_t xtkey = 0;
+                    switch(event.key.keysym.scancode)
+                    {
+                        default:
+                            xtkey = sdl_to_xt[event.key.keysym.scancode];
+                            break;
+                    }
+                    keyboard_input(event.key.state == SDL_PRESSED, xtkey);
+                }
+                case SDL_WINDOWEVENT:
+                {
+                    switch (event.window.type)
+                    {
+                    case SDL_WINDOWEVENT_SIZE_CHANGED:
+                    {
+                        sdl_w = window_w = event.window.data1;
+                        sdl_h = window_h = event.window.data2;
+                        if (window_remember) config_save();
+                        break;
+                    }
+                    case SDL_WINDOWEVENT_MOVED:
+                    {
+                        if (strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0)
+                        {
+                            window_x = event.window.data1;
+                            window_y = event.window.data2;
+                            if (window_remember) config_save();
+                        }
+                        break;
+                    }
+                    default:
+                        break;
+                    }
+                }
+            }
+	    }
+        if (mouse_capture && keyboard_ismsexit())
+        {
+            plat_mouse_capture(0);
+        }
+        if (blitreq)
+        {
+            extern void sdl_blit(int x, int y, int w, int h);
+            sdl_blit(params.x, params.y, params.w, params.h);
+        }
+        else
+        {
+            SDL_Rect srcrect;
+            memcpy(&srcrect, &params, sizeof(SDL_Rect));
+            sdl_real_blit(&srcrect);
+        }
+        if (title_set)
+        {
+            extern void ui_window_title_real();
+            ui_window_title_real();
+        }
+        if (video_fullscreen && keyboard_isfsexit())
+        {
+            sdl_set_fs(0);
+            video_fullscreen = 0;
+        }
+        if (!(video_fullscreen) && keyboard_isfsenter())
+        {
+            sdl_set_fs(1);
+            video_fullscreen = 1;
+        }
+        if (fullscreen_pending)
+        {
+            sdl_set_fs(video_fullscreen);
+            fullscreen_pending = 0;
+        }
+        if ((keyboard_recv(0x1D) || keyboard_recv(0x11D)) && keyboard_recv(0x58))
+        {
+            pc_send_cad();
+        }
+        if ((keyboard_recv(0x1D) || keyboard_recv(0x11D)) && keyboard_recv(0x57))
+        {
+            take_screenshot();
+        }
+        if (exit_event)
+        {
+            do_stop();
+            break;
+        }
+    }
+    printf("\n");
+    SDL_DestroyMutex(blitmtx);
+    SDL_DestroyMutex(mousemutex);
+    ImGui_ImplSDL2_Shutdown();
+    SDL_Quit();
+    if (f_rl_callback_handler_remove) f_rl_callback_handler_remove();
+    return 0;
+}
+
+
+
+
+static uint64_t
 plat_get_ticks_common(void)
 {
-    LARGE_INTEGER EndingTime, ElapsedMicroseconds;
-
+    uint64_t EndingTime, ElapsedMicroseconds;
     if (first_use) {
-	QueryPerformanceFrequency(&Frequency);
-	QueryPerformanceCounter(&StartingTime);
+	Frequency = SDL_GetPerformanceFrequency();
+	StartingTime = SDL_GetPerformanceCounter();
 	first_use = 0;
     }
-
-    QueryPerformanceCounter(&EndingTime);
-    ElapsedMicroseconds.QuadPart = EndingTime.QuadPart - StartingTime.QuadPart;
-
-    /* We now have the elapsed number of ticks, along with the
-       number of ticks-per-second. We use these values
-       to convert to the number of elapsed microseconds.
-       To guard against loss-of-precision, we convert
-       to microseconds *before* dividing by ticks-per-second. */
-    ElapsedMicroseconds.QuadPart *= 1000000;
-    ElapsedMicroseconds.QuadPart /= Frequency.QuadPart;
-
+    EndingTime = SDL_GetPerformanceCounter();
+    ElapsedMicroseconds = ((EndingTime - StartingTime) * 1000000) / Frequency;
     return ElapsedMicroseconds;
 }
 
 uint32_t
 plat_get_ticks(void)
 {
-	return (uint32_t)(plat_get_ticks_common().QuadPart / 1000);
+	return (uint32_t)(plat_get_ticks_common() / 1000);
 }
 
 uint32_t
 plat_get_micro_ticks(void)
 {
-	return (uint32_t)plat_get_ticks_common().QuadPart;
+	return (uint32_t)plat_get_ticks_common();
 }
 
 void
 plat_delay_ms(uint32_t count)
 {
-    Sleep(count);
+    SDL_Delay(count);
 }
 
 
@@ -916,21 +1470,8 @@ plat_delay_ms(uint32_t count)
 int
 plat_vidapi(char *name)
 {
-    int i;
-
-    /* Default/System is SDL Hardware. */
-    if (!strcasecmp(name, "default") || !strcasecmp(name, "system")) return(1);
-
-    /* If DirectDraw or plain SDL was specified, return SDL Software. */
-    if (!strcasecmp(name, "ddraw") || !strcasecmp(name, "sdl")) return(1);
-
-    for (i = 0; i < RENDERERS_NUM; i++) {
-	if (vid_apis[i].name &&
-	    !strcasecmp(vid_apis[i].name, name)) return(i);
-    }
-
     /* Default value. */
-    return(1);
+    return(0);
 }
 
 
@@ -938,67 +1479,14 @@ plat_vidapi(char *name)
 char *
 plat_vidapi_name(int api)
 {
-    char *name = "default";
-
-    switch(api) {
-	case 0:
-		name = "sdl_software";
-		break;
-	case 1:
-		break;
-	case 2:
-		name = "sdl_opengl";
-		break;
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
-	case 3:
-		name = "opengl_core";
-		break;
-#else
-	case 3:
-		name = "sdl_opengl"; /* fall back to SDL_OpenGL */
-		break;
-#endif
-#ifdef USE_VNC
-	case 4:
-		name = "vnc";
-		break;
-#endif
-	default:
-		fatal("Unknown renderer: %i\n", api);
-		break;
-    }
-
-    return(name);
+     return "default";
 }
 
 
 int
 plat_setvid(int api)
 {
-    int i;
-
-    win_log("Initializing VIDAPI: api=%d\n", api);
-    startblit();
-
-    /* Close the (old) API. */
-    vid_apis[vid_api].close();
-    vid_api = api;
-
-    if (vid_apis[vid_api].local)
-	ShowWindow(hwndRender, SW_SHOW);
-      else
-	ShowWindow(hwndRender, SW_HIDE);
-
-    /* Initialize the (new) API. */
-    i = vid_apis[vid_api].init((void *)hwndRender);
-    endblit();
-    if (! i) return(0);
-
-    device_force_redraw();
-
-    vid_api_inited = 1;
-
-    return(1);
+    return(0);
 }
 
 
@@ -1006,42 +1494,27 @@ plat_setvid(int api)
 void
 plat_vidsize(int x, int y)
 {
-    if (!vid_api_inited || !vid_apis[vid_api].resize) return;
-
-    startblit();
-    vid_apis[vid_api].resize(x, y);
-    endblit();
 }
 
 
 void
 plat_vidapi_enable(int enable)
 {
-    int i = 1;
 
-    if (!vid_api_inited || !vid_apis[vid_api].enable)
-	return;
-
-    vid_apis[vid_api].enable(enable != 0);
-
-    if (! i)
-	return;
-
-    if (enable)
-	device_force_redraw();
 }
 
 
 int
 get_vidpause(void)
 {
-    return(vid_apis[vid_api].pause());
+	return 0;
 }
 
 
 void
 plat_setfullscreen(int on)
 {
+<<<<<<< HEAD
     RECT rect;
     int temp_x, temp_y;
     int dpi = win_get_dpi(hwndMain);
@@ -1131,15 +1604,14 @@ plat_setfullscreen(int on)
     /* This is needed for OpenGL. */
     plat_vidapi_enable(0);
     plat_vidapi_enable(1);
+=======
+  
+>>>>>>> fe027ed5 (Windows port of Imgui)
 }
 
 void
 plat_vid_reload_options(void)
 {
-	if (!vid_api_inited || !vid_apis[vid_api].reload)
-		return;
-
-	vid_apis[vid_api].reload();
 }
 
 
@@ -1166,12 +1638,12 @@ LPARAM win_get_string(int id)
 void	/* plat_ */
 startblit(void)
 {
-    WaitForSingleObject(ghMutex, INFINITE);
+    SDL_LockMutex(blitmtx);
 }
 
 
 void	/* plat_ */
 endblit(void)
 {
-    ReleaseMutex(ghMutex);
+    SDL_UnlockMutex(blitmtx);
 }
