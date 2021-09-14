@@ -97,7 +97,7 @@ SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 
 				if (lock) {
 					vid_resize = 2;
-					window_remember = 1;
+					window_remember = 0;
 				} else {
 					vid_resize = 1;
 					window_remember = 1;
@@ -140,7 +140,7 @@ SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 				if (mouse_capture)
 					ClipCursor(&r);
 
-				if (window_remember) {
+				if (window_remember || (vid_resize & 2)) {
 					window_x = r.left;
 					window_y = r.top;
 					if (!(vid_resize & 2)) {
