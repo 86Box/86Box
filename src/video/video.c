@@ -367,7 +367,9 @@ video_take_screenshot(const char *fn)
 			memset(&(b_rgb[y][x * 3]), 0x00, 3);
 		else {
 			temp = buffer32->line[blit_data.y + y][blit_data.x + x];
-			memcpy(&(b_rgb[y][x * 3]), &temp, 3);
+			b_rgb[y][x * 3] = (temp >> 16) & 0xff;
+			b_rgb[y][(x * 3) + 1] = (temp >> 8) & 0xff;
+			b_rgb[y][(x * 3) + 2] = temp & 0xff;
 		}
 	}
     }
