@@ -651,6 +651,7 @@ extern int	machine_xt_pc4i_init(const machine_t *);
 extern int	machine_xt_mpc1600_init(const machine_t *);
 extern int	machine_xt_pcspirit_init(const machine_t *);
 extern int	machine_xt_pc700_init(const machine_t *);
+extern int	machine_xt_multitechpc500_init(const machine_t *);
 
 extern int	machine_xt_iskra3104_init(const machine_t *);
 

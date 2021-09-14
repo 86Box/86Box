@@ -424,3 +424,22 @@ machine_xt_pc700_init(const machine_t *model)
 
     return ret;
 }
+
+
+int
+machine_xt_multitechpc500_init(const machine_t* model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/multitech_pc500/rom404.bin",
+			   0x000f8000, 32768, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    device_add(&keyboard_pc_device);
+
+    machine_xt_common_init(model);
+
+    return ret;
+}
