@@ -541,7 +541,7 @@ void ui_sb_bugui(char *str)
     
 }
 
-extern void     sdl_blit(int x, int y, int y1, int y2, int w, int h);
+extern void     sdl_blit(int x, int y, int w, int h);
 
 typedef struct mouseinputdata
 {
