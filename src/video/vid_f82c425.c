@@ -144,7 +144,11 @@ static inline uint32_t f82c425_makecol(uint8_t rgbi, int gs4, int inv)
 	}
 	c = 0x10 * gs4 * ((rgbi >> gs4) + 2);
 
+#ifdef NO_BLUE
 	return makecol(c, c + 0x08, c - 0x20);
+#else
+	return makecol(c, c + 0x08, 0x70);
+#endif
 }
 
 /* Saturating/non-saturating addition for SMARTMAP(see below). */
