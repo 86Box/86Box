@@ -1885,9 +1885,9 @@ s3_hwcursor_convert_addr(svga_t *svga)
     if ((svga->bpp == 8) && ((svga->gdcreg[5] & 0x60) >= 0x20) && (svga->crtc[0x45] & 0x10)) {
 	real_addr = (svga->hwcursor_latch.addr & 0xfffff000);
 	if ((svga->gdcreg[5] & 0x60) >= 0x40)
-		return (real_addr | ((svga->hwcursor_latch.addr & 0x200) << 2)) + 0x600;
+		return (real_addr | ((svga->hwcursor_latch.addr & 0x200) << 2)) + 0x600 + (svga->hwcursor_latch.addr & 0x1ff);
 	else if ((svga->gdcreg[5] & 0x60) == 0x20)
-		return (real_addr | ((svga->hwcursor_latch.addr & 0x300) << 2)) + 0x300;
+		return (real_addr | ((svga->hwcursor_latch.addr & 0x300) << 2)) + 0x300 + (svga->hwcursor_latch.addr & 0xff);
 	else
 		return svga->hwcursor_latch.addr;
     } else
