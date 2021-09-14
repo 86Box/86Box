@@ -1886,6 +1886,16 @@ s3_hwcursor_draw(svga_t *svga, int displine)
 	int xx;
 	int offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
 	uint32_t fg, bg;
+	uint32_t real_addr;
+
+	if ((svga->bpp == 8) && ((svga->gdcreg[5] & 0x60) >= 0x20) && (svga->crtc[0x45] & 0x10)) {
+		real_addr = (svga->hwcursor_latch.addr & 0xfffff000);
+		if ((svga->gdcreg[5] & 0x60) >= 0x40)
+			real_addr = (real_addr | ((svga->hwcursor_latch.addr & 0x200) << 2)) + 0x200;
+		else if ((svga->gdcreg[5] & 0x60) == 0x20)
+			real_addr = (real_addr | ((svga->hwcursor_latch.addr & 0x300) << 2)) + 0x100;
+	} else
+		real_addr = svga->hwcursor_latch.addr;
 
 	switch (svga->bpp)
 	{	       
