@@ -135,10 +135,9 @@ sdl_blit_shim(int x, int y, int w, int h)
     params.y = y;
     params.w = w;
     params.h = h;
-   // fprintf(stderr, "Blit params: x: %d, y: %d, w: %d, h: %d\n", x, y, w, h);
-   // memcpy(interpixels, &(buffer32->line[y][x]), h * (2048 + 64) * sizeof(uint32_t));
+    if (!(!sdl_enabled || (h <= 0) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL))) memcpy(interpixels, &(buffer32->line[y][x]), h * (2048 + 64) * sizeof(uint32_t));
     blitreq = 1;
-    //video_blit_complete();
+    video_blit_complete();
 }
 
 void ui_window_title_real();
@@ -179,17 +178,14 @@ void
 sdl_blit(int x, int y, int w, int h)
 {
     SDL_Rect r_src;
-    int ret;
 
     if (!sdl_enabled || (h <= 0) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
-	video_blit_complete();
-    memcpy(&r_src, &params, sizeof(SDL_Rect));
-    SDL_RenderClear(sdl_render);
-    ret = SDL_RenderCopy(sdl_render, sdl_tex, &r_src, 0);
-    if (ret)
-	fprintf(stderr, "SDL: unable to copy texture to renderer (%s)\n", SDL_GetError());
-    RenderImGui();
-    SDL_RenderPresent(sdl_render);
+    r_src.x = x;
+    r_src.y = y;
+    r_src.w = w;
+    r_src.h = h;
+    sdl_real_blit(&r_src);
+    blitreq = 0;
 	return;
     }
 
@@ -197,30 +193,17 @@ sdl_blit(int x, int y, int w, int h)
 
     if (resize_pending)
     {
-        if (video_fullscreen) SDL_RenderSetLogicalSize(sdl_render, resize_w, resize_h);
-        else sdl_resize(resize_w, resize_h);
+        if (!video_fullscreen) sdl_resize(resize_w, resize_h + (menubarheight * 2) );
         resize_pending = 0;
     }
     r_src.x = x;
     r_src.y = y;
     r_src.w = w;
     r_src.h = h;
-    SDL_UpdateTexture(sdl_tex, &r_src, &(buffer32->line[y][x]), (2048 + 64) * 4);
-    video_blit_complete();
+    SDL_UpdateTexture(sdl_tex, &r_src, interpixels, (2048 + 64) * 4);
+    blitreq = 0;
 
-    SDL_RenderClear(sdl_render);
-
-    r_src.x = x;
-    r_src.y = y;
-    r_src.w = w;
-    r_src.h = h;
-
-    ret = SDL_RenderCopy(sdl_render, sdl_tex, &r_src, 0);
-    if (ret)
-	fprintf(stderr, "SDL: unable to copy texture to renderer (%s)\n", SDL_GetError());
-    RenderImGui();
-
-    SDL_RenderPresent(sdl_render);
+    sdl_real_blit(&r_src);
     SDL_UnlockMutex(sdl_mutex);
 }
 

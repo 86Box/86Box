@@ -171,6 +171,7 @@ typedef struct sdl_blit_params
 
 sdl_blit_params params = { 0, 0, 0, 0 };
 int blitreq = 0;
+int limitedblitreq = 0;
 
 void* dynld_module(const char *name, dllimp_t *table)
 {
@@ -957,7 +958,7 @@ void monitor_thread(void* param)
 extern void InitImGui();
 extern bool ImGuiWantsMouseCapture();
 extern bool ImGuiWantsKeyboardCapture();
-extern void sdl_real_blit(SDL_Rect* r_src, int w, int h);
+extern void sdl_real_blit(SDL_Rect* r_src);
 
 extern SDL_Window* sdl_win;
 int main(int argc, char** argv)
@@ -1154,7 +1155,8 @@ int main(int argc, char** argv)
         else
         {
             SDL_Rect srcrect;
-            sdl_real_blit(&srcrect, params.w, params.h);
+            memcpy(&srcrect, &params, sizeof(SDL_Rect));
+            sdl_real_blit(&srcrect);
         }
         if (title_set)
         {
