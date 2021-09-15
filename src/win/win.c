@@ -60,6 +60,8 @@
 #include <minitrace/minitrace.h>
 #endif
 
+#define PATH_MAX MAX_PATH
+
 
 typedef struct {
     WCHAR str[512];
@@ -958,7 +960,7 @@ void monitor_thread(void* param)
         {
             if (feof(stdin)) break;
             printf("(86Box) ");
-            fgets(line, 255, stdin);
+            fgets(line, 255 + PATH_MAX, stdin);
             
 			int cmdargc = 0;
 			char* linecpy;
@@ -1514,99 +1516,7 @@ get_vidpause(void)
 void
 plat_setfullscreen(int on)
 {
-<<<<<<< HEAD
-    RECT rect;
-    int temp_x, temp_y;
-    int dpi = win_get_dpi(hwndMain);
 
-    /* Are we changing from the same state to the same state? */
-    if ((!!on) == (!!video_fullscreen))
-	return;
-
-    if (on && video_fullscreen_first) {
-	video_fullscreen |= 2;
-	if (ui_msgbox_header(MBX_INFO | MBX_DONTASK, (wchar_t *) IDS_2134, (wchar_t *) IDS_2052) == 10) {
-		video_fullscreen_first = 0;
-		config_save();
-	}
-	video_fullscreen &= 1;
-    }
-
-    /* OK, claim the video. */
-    win_mouse_close();
-
-    /* Close the current mode, and open the new one. */
-    video_fullscreen = on | 2;
-    if (vid_apis[vid_api].set_fs)
-	vid_apis[vid_api].set_fs(on);
-    if (!on) {
-	plat_resize(scrnsz_x, scrnsz_y);
-	if (vid_resize) {
-		/* scale the screen base on DPI */
-		if (!(vid_resize & 2) && window_remember) {
-			MoveWindow(hwndMain, window_x, window_y, window_w, window_h, TRUE);
-			GetClientRect(hwndMain, &rect);
-
-			temp_x = rect.right - rect.left + 1;
-			if (hide_status_bar)
-				temp_y = rect.bottom - rect.top + 1;
-			else
-				temp_y = rect.bottom - rect.top + 1 - sbar_height;
-		} else {
-			if (dpi_scale) {
-				temp_x = MulDiv((vid_resize & 2) ? fixed_size_x : unscaled_size_x, dpi, 96);
-				temp_y = MulDiv((vid_resize & 2) ? fixed_size_y : unscaled_size_y, dpi, 96);
-			} else {
-				temp_x = (vid_resize & 2) ? fixed_size_x : unscaled_size_x;
-				temp_y = (vid_resize & 2) ? fixed_size_y : unscaled_size_y;
-			}
-
-			/* Main Window. */
-			if (hide_status_bar)
-				ResizeWindowByClientArea(hwndMain, temp_x, temp_y);
-			else
-				ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
-
-			SetWindowPos(hwndMain, HWND_TOP, window_x, window_y, 0, 0, SWP_NOSIZE);
-		}
-
-		/* Render window. */
-		MoveWindow(hwndRender, 0, 0, temp_x, temp_y, TRUE);
-		GetWindowRect(hwndRender, &rect);
-
-		/* Status bar. */
-		MoveWindow(hwndSBAR, 0, rect.bottom, temp_x, 17, TRUE);
-
-		if (mouse_capture)
-			ClipCursor(&rect);
-
-		scrnsz_x = (vid_resize & 2) ? fixed_size_x : unscaled_size_x;
-		scrnsz_y = (vid_resize & 2) ? fixed_size_y : unscaled_size_y;
-	}
-    }
-    video_fullscreen &= 1;
-    video_force_resize_set(1);
-    if (!on)
-	doresize = 1;
-
-    win_mouse_init();
-
-    /* Release video and make it redraw the screen. */
-    device_force_redraw();
-
-    /* Send a CTRL break code so CTRL does not get stuck. */
-    keyboard_input(0, 0x01D);
-
-    /* Finally, handle the host's mouse cursor. */
-    /* win_log("%s full screen, %s cursor\n", on ? "enter" : "leave", on ? "hide" : "show"); */
-    show_cursor(video_fullscreen ? 0 : -1);
-
-    /* This is needed for OpenGL. */
-    plat_vidapi_enable(0);
-    plat_vidapi_enable(1);
-=======
-  
->>>>>>> fe027ed5 (Windows port of Imgui)
 }
 
 void

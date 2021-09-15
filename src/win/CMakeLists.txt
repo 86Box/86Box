@@ -62,5 +62,6 @@ if(NOT PTHREAD)
 	target_sources(plat PRIVATE win_thread.c)
 endif()
 
+target_link_libraries(86Box uicommon)
 target_link_libraries(86Box advapi32 comctl32 comdlg32 gdi32 shell32 iphlpapi
 	dxguid imm32 hid setupapi uxtheme version winmm psapi)
