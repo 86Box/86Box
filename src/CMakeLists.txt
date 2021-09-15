@@ -16,7 +16,7 @@
 # WIN32 marks us as a GUI app on Windows
 add_executable(86Box WIN32 86box.c config.c random.c timer.c io.c acpi.c apm.c
 	dma.c ddma.c nmi.c pic.c pit.c port_92.c ppi.c pci.c mca.c usb.c
-	device.c nvr.c nvr_at.c nvr_ps2.c thread.c)
+	device.c nvr.c nvr_at.c nvr_ps2.c)
 
 if(NEW_DYNAREC)
 	add_compile_definitions(USE_NEW_DYNAREC)
@@ -42,6 +42,18 @@ if(VNC)
 	add_compile_definitions(USE_VNC)
 	add_library(vnc OBJECT vnc.c vnc_keymap.c)
 	target_link_libraries(86Box vnc vncserver ws2_32)
+endif()
+
+if(NOT WIN32 OR PTHREAD)
+	target_sources(86Box PRIVATE thread.c)
+	if(WIN32 AND VCPKG_TOOLCHAIN)
+		find_package(pthreads REQUIRED)
+		target_link_libraries(86Box pthreads)
+	else()
+		set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+		find_package(Threads REQUIRED)
+		target_link_libraries(86Box Threads::Threads)
+	endif()
 endif()
 
 target_link_libraries(86Box cpu chipset mch dev mem fdd game cdrom zip mo hdd
@@ -74,8 +86,6 @@ if(MINGW)
 else()
 	target_link_libraries(86Box SDL2::SDL2)
 endif()
-
-target_link_libraries(86Box plat pthread)
 
 find_package(PNG REQUIRED)
 include_directories(${PNG_INCLUDE_DIRS})

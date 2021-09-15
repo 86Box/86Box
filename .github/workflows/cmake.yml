@@ -62,13 +62,16 @@ jobs:
         msystem: ${{ matrix.environment.msystem }}
         install: >-
           ${{ matrix.environment.prefix }}-ninja
-          ${{ matrix.environment.prefix }}-toolchain
+          ${{ matrix.environment.prefix }}-gcc
+          ${{ matrix.environment.prefix }}-clang
+          ${{ matrix.environment.prefix }}-pkg-config
           ${{ matrix.environment.prefix }}-openal
           ${{ matrix.environment.prefix }}-freetype
           ${{ matrix.environment.prefix }}-SDL2
           ${{ matrix.environment.prefix }}-zlib
           ${{ matrix.environment.prefix }}-libpng
           ${{ matrix.environment.prefix }}-libvncserver
+          ${{ matrix.environment.prefix }}-winpthreads
     - uses: actions/checkout@v2
     - name: Configure CMake
       run: >-
