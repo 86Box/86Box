@@ -197,6 +197,30 @@ machine_at_neat_ami_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_at_ataripc4_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/ataripc4/ami_pc4x_1.7_even.bin",
+               "roms/machines/ataripc4/ami_pc4x_1.7_odd.bin",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&neat_device);
+
+    if (fdc_type == FDC_INTERNAL)
+    device_add(&fdc_at_device);
+
+    device_add(&keyboard_at_ami_device);
+
+    return ret;
+}
+
 
 int
 machine_at_px286_init(const machine_t *model)

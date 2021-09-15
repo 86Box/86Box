@@ -251,6 +251,7 @@ extern int	machine_at_mr286_init(const machine_t *);
 
 extern int	machine_at_neat_init(const machine_t *);
 extern int	machine_at_neat_ami_init(const machine_t *);
+extern int	machine_at_ataripc4_init(const machine_t *);
 
 extern int	machine_at_award286_init(const machine_t *);
 extern int	machine_at_gdc212m_init(const machine_t *);

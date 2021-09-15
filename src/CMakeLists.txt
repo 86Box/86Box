@@ -75,7 +75,7 @@ else()
 	target_link_libraries(86Box SDL2::SDL2)
 endif()
 
-target_link_libraries(plat pthread)
+target_link_libraries(86Box plat pthread)
 
 find_package(PNG REQUIRED)
 include_directories(${PNG_INCLUDE_DIRS})
