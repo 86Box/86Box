@@ -89,6 +89,10 @@ CMAKE_DEPENDENT_OPTION(VNC "VNC renderer" ON "DEV_BRANCH" OFF)
 CMAKE_DEPENDENT_OPTION(XL24 "ATI VGA Wonder XL24 (ATI-28800-6)" ON "DEV_BRANCH" OFF)
 CMAKE_DEPENDENT_OPTION(VECT486VL "HP Vectra 486VL" ON "DEV_BRANCH" OFF)
 
+if(WIN32)
+	option(PTHREAD "Use POSIX threads (pthreads) instead of Win32 threads" ON)
+endif()
+
 # HACK: Avoid a MSVC2019 compiler bug on ARM64 Debug builds
 if(MSVC_TOOLSET_VERSION GREATER_EQUAL 142 AND ARCH STREQUAL "arm64")
 	# Define a cache option in case somebody wants to disable this workaround
