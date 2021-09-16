@@ -3,13 +3,14 @@
 #include "imgui_impl_sdl.h"
 #include "imgui_sdl.h"
 #ifdef _WIN32
-#include <SDL2/SDL.h>
 #include <windows.h>
-#else
-#include <SDL.h>
 #endif
+#include <SDL.h>
+#include <SDL_syswm.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+extern "C"
+{
 #include <86box/86box.h>
 #include <86box/machine.h>
 #include <86box/device.h>
@@ -30,6 +31,9 @@
 #include <86box/hdc.h>
 #include <86box/hdd.h>
 #include <86box/plat.h>
+#ifdef _WIN32
+#include <86box/win.h>
+#endif
 #include <86box/video.h>
 #include <86box/device.h>
 #include <86box/gameport.h>
@@ -37,6 +41,7 @@
 #include <86box/timer.h>
 #include <86box/ui.h>
 #include <86box/network.h>
+}
 
 #ifndef _WIN32
 #define INCBIN_STYLE INCBIN_STYLE_SNAKE
@@ -88,8 +93,10 @@ extern "C" void sdl_blit(int x, int y, int y1, int y2, int w, int h);
 void
 take_screenshot(void)
 {
-    screenshots++;
-    device_force_redraw();
+	startblit();
+	screenshots++;
+	endblit();
+	device_force_redraw();
 }
 
 static inline int
@@ -176,13 +183,43 @@ static std::vector<std::pair<std::string, std::string>> cartfilter
 
 static std::vector<std::pair<std::string, std::string>> allfilefilter
 {
+#ifdef _WIN32
+	{"All Files", "*.*"}
+#else
     {"All Files", "*"}
+#endif
 };
 
 static bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::string, std::string>>& filters = allfilefilter, bool save = false)
 {
 #ifdef _WIN32
-
+	std::string filterwin;
+	for (auto& curFilter : filters)
+	{
+		std::string realfilter = std::get<1>(curFilter);
+		filterwin += std::get<0>(curFilter);
+		filterwin += " (";
+		filterwin += realfilter;
+		filterwin += ")";
+		filterwin.push_back(0);
+		filterwin += realfilter;
+		filterwin.push_back(0);
+	}
+	if (std::get<0>(filters[0]) != "All Files")
+	{
+		filterwin += "All Files (*.*)";
+		filterwin.push_back(0);
+		filterwin += "*.*";
+		filterwin.push_back(0);
+	}
+	filterwin.push_back(0);
+	filterwin.push_back(0);
+	SDL_SysWMinfo wmInfo;
+	SDL_VERSION(&wmInfo.version);
+	SDL_GetWindowWMInfo(sdl_win, &wmInfo);
+	HWND hwnd = wmInfo.info.win.window;
+	return (bool)file_dlg_mb(hwnd, (char*)filterwin.c_str(), res, "Open File", save);
+	
 #else
     bool boolres = false;
     FILE* output;
@@ -190,17 +227,17 @@ static bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::stri
     std::string cmd = "zenity --file-selection";
     for (auto &curFilter : filters)
     {
-	std::string realfilter = std::get<1>(curFilter);
-	cmd += " --file-filter=\'";
-	cmd += std::get<0>(curFilter);
-	cmd += " (";
-	cmd += realfilter;
-	cmd += ") | ";
-	cmd += realfilter;
-	std::transform(realfilter.begin(), realfilter.end(), realfilter.begin(), [](unsigned char c) { return std::tolower(c); } );
-	cmd += " ";
-	cmd += realfilter;
-	cmd += "\'";
+		std::string realfilter = std::get<1>(curFilter);
+		cmd += " --file-filter=\'";
+		cmd += std::get<0>(curFilter);
+		cmd += " (";
+		cmd += realfilter;
+		cmd += ") | ";
+		cmd += realfilter;
+		std::transform(realfilter.begin(), realfilter.end(), realfilter.begin(), [](unsigned char c) { return std::tolower(c); } );
+		cmd += " ";
+		cmd += realfilter;
+		cmd += "\'";
     }
     if (std::get<0>(filters[0]) != "All Files")
     {
@@ -850,6 +887,7 @@ extern "C" void ui_sb_update_icon(int tag, int active)
     }
 }
 
+#ifndef _WIN32
 intptr_t
 fdd_type_to_icon(int type)
 {
@@ -875,6 +913,7 @@ fdd_type_to_icon(int type)
 
     return(ret);
 }
+#endif
 
 uint32_t timer_sb_icons(uint32_t interval, void* param)
 {

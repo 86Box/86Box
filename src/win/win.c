@@ -1524,17 +1524,6 @@ plat_vid_reload_options(void)
 {
 }
 
-
-void
-take_screenshot(void)
-{
-    startblit();
-    screenshots++;
-    endblit();
-    device_force_redraw();
-}
-
-
 /* LPARAM interface to plat_get_string(). */
 LPARAM win_get_string(int id)
 {

@@ -108,8 +108,9 @@ thread_wait_event(event_t *handle, int timeout)
     struct timespec abstime;
 
 #ifdef _WIN32
-	abstime.tv_sec = GetTickCount64() / 1000;
-	abstime.tv_nsec = (GetTickCount64() % 1000) * 1000 * 1000;
+	ULONGLONG tickcnt = GetTickCount64();
+	abstime.tv_sec = tickcnt / 1000;
+	abstime.tv_nsec = (tickcnt % 1000) * 1000 * 1000;
 #else
     clock_gettime(CLOCK_REALTIME, &abstime);
     abstime.tv_nsec += (timeout % 1000) * 1000000;
@@ -147,7 +148,11 @@ thread_destroy_event(event_t *handle)
 void
 thread_sleep(int t)
 {
+#ifdef _WIN32
+	Sleep(t);
+#else
     usleep(t * 1000);
+#endif
 }
 
 
