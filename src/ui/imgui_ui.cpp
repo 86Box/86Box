@@ -214,11 +214,18 @@ static bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::stri
 	}
 	filterwin.push_back(0);
 	filterwin.push_back(0);
+	std::wstring filterwinwide;
+	// Filter strings are pure-ASCII for the moment.
+	for (auto& curChar : filterwin)
+	{
+		filterwinwide.push_back(curChar);
+	}
+	
 	SDL_SysWMinfo wmInfo;
 	SDL_VERSION(&wmInfo.version);
 	SDL_GetWindowWMInfo(sdl_win, &wmInfo);
 	HWND hwnd = wmInfo.info.win.window;
-	return (bool)file_dlg_mb(hwnd, (char*)filterwin.c_str(), res, "Open File", save);
+	return (bool)file_dlg(hwnd, (wchar_t*)filterwinwide.c_str(), res, "Open File", save);
 	
 #else
     bool boolres = false;
@@ -598,7 +605,7 @@ static SDL_Texture* load_icon(char* name)
 			if (imgdata)
 			{
 				tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, w, h);
-				if (cdrom_status_icon)
+				if (tex)
 				{
 					SDL_UpdateTexture(tex, NULL, imgdata, w * 4);
 					SDL_SetTextureBlendMode(tex, SDL_BlendMode::SDL_BLENDMODE_BLEND);
@@ -612,7 +619,6 @@ static SDL_Texture* load_icon(char* name)
 	return tex;
 }
 #else
-
 static SDL_Texture* load_icon(const stbi_uc* buffer, int len)
 {
     SDL_Texture* tex = nullptr;
@@ -634,7 +640,7 @@ static SDL_Texture* load_icon(const stbi_uc* buffer, int len)
 
 extern "C" void HandleSizeChange()
 {
-    int w, h, c;
+    int w, h;
     if (!ImGui::GetCurrentContext()) ImGui::CreateContext(NULL);
     SDL_GetRendererOutputSize(sdl_render, &w, &h);
     ImGuiSDL::Initialize(sdl_render, w, h);
@@ -1224,7 +1230,7 @@ extern "C" void RenderImGui()
 		int origpause = dopause;
 		int buttonid;
 		SDL_MessageBoxData msgdata{};
-		SDL_MessageBoxButtonData btndata[2] = { 0, 0 };
+		SDL_MessageBoxButtonData btndata[2] = { { 0 }, { 0 } };
 		btndata[0].buttonid = 1;
 		btndata[0].flags = SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT;
 		btndata[0].text = "86box.net";
@@ -1262,7 +1268,7 @@ extern "C" void RenderImGui()
 	if (cassette_enable)
 	{
 	    ImGui::ImageButton((ImTextureID)cas_status_icon[cas_active], ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, cas_empty ? 0.75 : 1));
-	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip(CassetteFormatStr().c_str());
+	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("%s", CassetteFormatStr().c_str());
 	    if (ImGui::BeginPopupContextItem("cassette") || ImGui::BeginPopupContextItem("cassette", ImGuiPopupFlags_MouseButtonLeft))
 	    {
 		RenderCassetteImguiMenuItemsOnly();
@@ -1273,7 +1279,7 @@ extern "C" void RenderImGui()
 	for (size_t i = 0; i < cmenu.size(); i++)
 	{
 	    ImGui::ImageButton((ImTextureID)cart_icon, ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, cartempty[i] ? 0.75 : 1));
-	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip(cmenu[i].FormatStr().c_str());
+	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("%s", cmenu[i].FormatStr().c_str());
 	    if (ImGui::BeginPopupContextItem(("cart" + std::to_string(cmenu[i].cartid)).c_str()) || ImGui::BeginPopupContextItem(("cart" + std::to_string(cmenu[i].cartid)).c_str(), ImGuiPopupFlags_MouseButtonLeft))
 	    {
 		cmenu[i].RenderImGuiMenuItemsOnly();
@@ -1284,7 +1290,7 @@ extern "C" void RenderImGui()
 	for (size_t i = 0; i < fddmenu.size(); i++)
 	{
 	    ImGui::ImageButton((ImTextureID)fdd_status_icon[fdd_type_to_icon(fdd_get_type(i)) == 16][fddactive[i]], ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, fddempty[i] ? 0.75 : 1));
-	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip(fddmenu[i].FormatStr().c_str());
+	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("%s", fddmenu[i].FormatStr().c_str());
 	    if (ImGui::BeginPopupContextItem(("flp" + std::to_string(fddmenu[i].flpid)).c_str()) || ImGui::BeginPopupContextItem(("flp" + std::to_string(fddmenu[i].flpid)).c_str(), ImGuiPopupFlags_MouseButtonLeft))
 	    {
 		fddmenu[i].RenderImGuiMenuItemsOnly();
@@ -1295,7 +1301,7 @@ extern "C" void RenderImGui()
 	for (size_t i = 0; i < cdmenu.size(); i++)
 	{
 	    ImGui::ImageButton((ImTextureID)cdrom_status_icon[cdactive[i]], ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, cdrom[i].image_path[0] == 0 ? 0.75 : 1));
-	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip(cdmenu[i].FormatStr().c_str());
+	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("%s", cdmenu[i].FormatStr().c_str());
 	    if (ImGui::BeginPopupContextItem(("cdr" + std::to_string(cdmenu[i].cdid)).c_str()) || ImGui::BeginPopupContextItem(("cdr" + std::to_string(cdmenu[i].cdid)).c_str(), ImGuiPopupFlags_MouseButtonLeft))
 	    {
 		cdmenu[i].RenderImGuiMenuItemsOnly();
@@ -1306,7 +1312,7 @@ extern "C" void RenderImGui()
 	for (size_t i = 0; i < zipmenu.size(); i++)
 	{
 	    ImGui::ImageButton((ImTextureID)zip_status_icon[zipactive[i]], ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, zip_drives[i].image_path[0] == '\0' ? 0.75 : 1));
-	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip(zipmenu[i].FormatStr().c_str());
+	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("%s", zipmenu[i].FormatStr().c_str());
 	    if (ImGui::BeginPopupContextItem(("zip" + std::to_string(zipmenu[i].zipid)).c_str()) || ImGui::BeginPopupContextItem(("zip" + std::to_string(zipmenu[i].zipid)).c_str(), ImGuiPopupFlags_MouseButtonLeft))
 	    {
 		zipmenu[i].RenderImGuiMenuItemsOnly();
@@ -1317,7 +1323,7 @@ extern "C" void RenderImGui()
 	for (size_t i = 0; i < momenu.size(); i++)
 	{
 	    ImGui::ImageButton((ImTextureID)mo_status_icon[moactive[i]], ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, mo_drives[i].image_path[0] == '\0' ? 0.75 : 1));
-	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip(momenu[i].FormatStr().c_str());
+	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("%s", momenu[i].FormatStr().c_str());
 	    if (ImGui::BeginPopupContextItem(("mo" + std::to_string(momenu[i].moid)).c_str()) || ImGui::BeginPopupContextItem(("mo" + std::to_string(momenu[i].moid)).c_str(), ImGuiPopupFlags_MouseButtonLeft))
 	    {
 		momenu[i].RenderImGuiMenuItemsOnly();
