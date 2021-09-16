@@ -5,8 +5,8 @@
 #ifdef _WIN32
 #include <windows.h>
 #endif
-#include <SDL.h>
-#include <SDL_syswm.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_syswm.h>
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 extern "C"

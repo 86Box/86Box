@@ -2,7 +2,7 @@
 #define _FILE_OFFSET_BITS 64
 #define _LARGEFILE64_SOURCE 1
 #endif
-#include <SDL.h>
+#include <SDL2/SDL.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
