@@ -1279,11 +1279,6 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
                         sdl_reinit_texture();
                         break;
                     }
-                case SDL_KEYDOWN:
-                case SDL_KEYUP:
-                {
-                    if (ImGuiWantsKeyboardCapture()) break;
-                }
                 case SDL_WINDOWEVENT:
                 {
                     switch (event.window.type)
