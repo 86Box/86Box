@@ -152,10 +152,72 @@ static __inline double x87_pop()
         return t;
 }
 
+static __inline int16_t x87_fround16(double b)
+{
+        int16_t a, c;
+
+        switch ((cpu_state.npxc >> 10) & 3)
+        {
+                case 0: /*Nearest*/
+                a = (int16_t)floor(b);
+                c = (int16_t)floor(b + 1.0);
+                if ((b - a) < (c - b))
+                        return a;
+                else if ((b - a) > (c - b))
+                        return c;
+                else
+                        return (a & 1) ? c : a;
+                case 1: /*Down*/
+                return (int16_t)floor(b);
+                case 2: /*Up*/
+                return (int16_t)ceil(b);
+                case 3: /*Chop*/
+                return (int16_t)b;
+        }
+
+        return 0;
+}
+
+static __inline int64_t x87_fround16_64(double b)
+{
+    return (int64_t) x87_fround16(b);
+}
+
+static __inline int32_t x87_fround32(double b)
+{
+        int32_t a, c;
+
+        switch ((cpu_state.npxc >> 10) & 3)
+        {
+                case 0: /*Nearest*/
+                a = (int32_t)floor(b);
+                c = (int32_t)floor(b + 1.0);
+                if ((b - a) < (c - b))
+                        return a;
+                else if ((b - a) > (c - b))
+                        return c;
+                else
+                        return (a & 1) ? c : a;
+                case 1: /*Down*/
+                return (int32_t)floor(b);
+                case 2: /*Up*/
+                return (int32_t)ceil(b);
+                case 3: /*Chop*/
+                return (int32_t)b;
+        }
+
+        return 0;
+}
+
+static __inline int64_t x87_fround32_64(double b)
+{
+    return (int64_t) x87_fround32(b);
+}
+
 static __inline int64_t x87_fround(double b)
 {
         int64_t a, c;
-        
+
         switch ((cpu_state.npxc >> 10) & 3)
         {
                 case 0: /*Nearest*/
