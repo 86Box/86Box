@@ -155,12 +155,12 @@ jobs:
         run: sudo apt install gcc-11 g++-11 libfreetype-dev libsdl2-dev libpng-dev libopenal-dev libc6-dev
       - name: Configure CMake
         run: >-
-        cmake -S . -B build
-        -D CMAKE_INSTALL_PREFIX=./build/artifacts
-        -D DEV_BRANCH=${{ matrix.build.dev-build }}
-        -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
-        -D VNC=OFF
-        -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
+          cmake -S . -B build
+          -D CMAKE_INSTALL_PREFIX=./build/artifacts
+          -D DEV_BRANCH=${{ matrix.build.dev-build }}
+          -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
+          -D VNC=OFF
+          -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
       - name: Build
         run: cmake --build build --target install
 
@@ -187,11 +187,11 @@ jobs:
         run: brew install freetype sdl2 libpng openal-soft
       - name: Configure CMake
         run: >-
-        cmake -S . -B build
-        -D CMAKE_INSTALL_PREFIX=./build/artifacts
-        -D DEV_BRANCH=${{ matrix.build.dev-build }}
-        -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
-        -D VNC=OFF
-        -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
+          cmake -S . -B build
+          -D CMAKE_INSTALL_PREFIX=./build/artifacts
+          -D DEV_BRANCH=${{ matrix.build.dev-build }}
+          -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
+          -D VNC=OFF
+          -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
       - name: Build
         run: cmake --build build --target install
