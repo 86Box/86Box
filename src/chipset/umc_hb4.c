@@ -139,20 +139,22 @@ typedef struct hb4_t
 void
 hb4_shadow(hb4_t *dev)
 {
+    int state, i;
+
     mem_set_mem_state_both(0xe0000, 0x20000, ((dev->pci_conf[0x55] & 0x80) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) |
 					     ((dev->pci_conf[0x55] & 0x40) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL));
 
     if (dev->pci_conf[0x54] & 1) {
-	if (dev->pci_conf[0x54] & 2)
-		mem_set_mem_state_both(0xc0000, 0x8000, MEM_READ_INTERNAL | ((dev->pci_conf[0x55] & 0x40) ? MEM_WRITE_EXTANY :MEM_WRITE_INTERNAL));
-	else
-		mem_set_mem_state_both(0xc0000, 0x8000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+	state = (dev->pci_conf[0x54] & 0x02) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+	state |= (dev->pci_conf[0x55] & 0x40) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL;
 
-	for (int i = 0; i < 5; i++) {
-		if ((dev->pci_conf[0x54] >> i) & 4)
-			mem_set_mem_state_both(0xc8000 + (i << 14), 0x8000, MEM_READ_INTERNAL | ((dev->pci_conf[0x55] & 0x40) ? MEM_WRITE_EXTANY :MEM_WRITE_INTERNAL));
-		else
-			mem_set_mem_state_both(0xc8000 + (i << 14), 0x8000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+	mem_set_mem_state_both(0xc0000, 0x8000, state);
+
+	for (i = 0; i < 6; i++) {
+		state = (dev->pci_conf[0x54] & (1 << (i + 2))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+		state |= (dev->pci_conf[0x55] & 0x40) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL;
+
+		mem_set_mem_state_both(0xc8000 + (i << 4), 0x4000, state);
 	}
     }
 
@@ -265,7 +267,8 @@ hb4_reset(void *priv)
     dev->pci_conf[0x5d] = 0x20;
     dev->pci_conf[0x5f] = 0xff;
 
-    hb4_shadow(dev);
+    hb4_write(0, 0x54, 0x00, dev);
+    hb4_write(0, 0x55, 0x00, dev);
     hb4_write(0, 0x60, 0x20, dev);
 }
 
