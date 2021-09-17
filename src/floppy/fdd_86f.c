@@ -2137,9 +2137,9 @@ d86f_turbo_read(int drive, int side)
 	recv_data = d86f_get_data(drive, 0);
 	d86f_compare_byte(drive, recv_data, dat);
     } else {
-	if (dev->data_find.bytes_obtained < (128UL << dev->last_sector.id.n)) {
+	if (dev->turbo_pos < (128UL << dev->last_sector.id.n)) {
 		if (dev->state != STATE_16_VERIFY_DATA) {
-			read_status = fdc_data(d86f_fdc, dat, dev->data_find.bytes_obtained == ((128UL << dev->last_sector.id.n) - 1));
+			read_status = fdc_data(d86f_fdc, dat, dev->turbo_pos == ((128UL << dev->last_sector.id.n) - 1));
 			if (read_status == -1)
 				dev->dma_over++;
 		}
