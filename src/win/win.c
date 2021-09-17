@@ -1089,12 +1089,13 @@ plat_setfullscreen(int on)
 			}
 
 			/* Main Window. */
+			if (vid_resize >= 2)
+				MoveWindow(hwndMain, window_x, window_y, window_w, window_h, TRUE);
+
 			if (hide_status_bar)
 				ResizeWindowByClientArea(hwndMain, temp_x, temp_y);
 			else
 				ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
-
-			SetWindowPos(hwndMain, HWND_TOP, window_x, window_y, 0, 0, SWP_NOSIZE);
 		}
 
 		/* Render window. */
