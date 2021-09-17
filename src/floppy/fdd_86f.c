@@ -1577,7 +1577,7 @@ d86f_read_sector_data(int drive, int side)
 			} else {
 				if (dev->data_find.bytes_obtained < d86f_get_data_len(drive)) {
 					if (dev->state != STATE_16_VERIFY_DATA) {
-						read_status = fdc_data(d86f_fdc, data);
+						read_status = fdc_data(d86f_fdc, data, dev->data_find.bytes_obtained == ((d86f_get_data_len(drive)) - 1));
 						if (read_status == -1)
 							dev->dma_over++;
 					}
@@ -2139,7 +2139,7 @@ d86f_turbo_read(int drive, int side)
     } else {
 	if (dev->data_find.bytes_obtained < (128UL << dev->last_sector.id.n)) {
 		if (dev->state != STATE_16_VERIFY_DATA) {
-			read_status = fdc_data(d86f_fdc, dat);
+			read_status = fdc_data(d86f_fdc, dat, dev->data_find.bytes_obtained == ((128UL << dev->last_sector.id.n) - 1));
 			if (read_status == -1)
 				dev->dma_over++;
 		}

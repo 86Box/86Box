@@ -4314,6 +4314,56 @@ static inline void FP_LOAD_REG_D(int reg, int *host_reg1, int *host_reg2)
         
         *host_reg1 = REG_EBX;
 }
+static inline int64_t x87_fround16_64(double b)
+{
+        int16_t a, c;
+        
+        switch ((cpu_state.npxc >> 10) & 3)
+        {
+                case 0: /*Nearest*/
+                a = (int16_t)floor(b);
+                c = (int16_t)floor(b + 1.0);
+                if ((b - a) < (c - b))
+                        return (int64_t) a;
+                else if ((b - a) > (c - b))
+                        return (int64_t) c;
+                else
+                        return (a & 1) ? c : a;
+                case 1: /*Down*/
+                return (int64_t)((int16_t)floor(b));
+                case 2: /*Up*/
+                return (int64_t)((int16_t)ceil(b));
+                case 3: /*Chop*/
+                return (int64_t)((int16_t)b);
+        }
+        
+        return 0;
+}
+static inline int64_t x87_fround32_64(double b)
+{
+        int32_t a, c;
+        
+        switch ((cpu_state.npxc >> 10) & 3)
+        {
+                case 0: /*Nearest*/
+                a = (int32_t)floor(b);
+                c = (int32_t)floor(b + 1.0);
+                if ((b - a) < (c - b))
+                        return (int64_t) a;
+                else if ((b - a) > (c - b))
+                        return (int64_t) c;
+                else
+                        return (a & 1) ? c : a;
+                case 1: /*Down*/
+                return (int64_t)((int32_t)floor(b));
+                case 2: /*Up*/
+                return (int64_t)((int32_t)ceil(b));
+                case 3: /*Chop*/
+                return (int64_t)((int32_t)b);
+        }
+        
+        return 0;
+}
 static inline int64_t x87_fround(double b)
 {
         int64_t a, c;
@@ -4363,7 +4413,7 @@ static inline int FP_LOAD_REG_INT_W(int reg)
         addbyte(0xc5);
         addbyte((uint8_t)cpu_state_offset(ST));
 
-        CALL_FUNC((uintptr_t)x87_fround);
+        CALL_FUNC((uintptr_t)x87_fround16_64);
         
         addbyte(0x93); /*XCHG EBX, EAX*/
         
@@ -4393,7 +4443,7 @@ static inline int FP_LOAD_REG_INT(int reg)
         addbyte(0xc5);
         addbyte((uint8_t)cpu_state_offset(ST));
 
-        CALL_FUNC((uintptr_t)x87_fround);
+        CALL_FUNC((uintptr_t)x87_fround32_64);
         
         addbyte(0x93); /*XCHG EBX, EAX*/
         
