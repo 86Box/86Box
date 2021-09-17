@@ -26,6 +26,8 @@
 #include "cpu.h"
 #include "x86.h"
 #include <86box/machine.h>
+#include <86box/device.h>
+#include <86box/dma.h>
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
@@ -239,7 +241,7 @@ reset_common(int hard)
 	leave_smm();
 
     /* Needed for the ALi M1533. */
-    if (soft_reset_pci && !hard)
+    if (is486 && (hard || soft_reset_pci))
 	pci_reset();
 
     use32 = 0;
@@ -275,13 +277,13 @@ reset_common(int hard)
     if (is386 || hard)
 	EAX = EBX = ECX = EDX = ESI = EDI = EBP = ESP = 0;
 
-    if (hard) {
+    /* if (hard) {
 	makeznptable();
 	resetreadlookup();
 	makemod1table();
 	cpu_set_edx();
 	mmu_perm = 4;
-    }
+    } */
     x86seg_reset();
 #ifdef USE_DYNAREC
     if (hard)
@@ -299,8 +301,9 @@ reset_common(int hard)
     smi_block = 0;
 
     if (hard) {
-	smbase = is_am486dxl ? 0x00060000 : 0x00030000;
-	ppi_reset();
+	if (is486)
+		smbase = is_am486dxl ? 0x00060000 : 0x00030000;
+	// ppi_reset();
     }
     in_sys = 0;
 
@@ -320,6 +323,15 @@ void
 resetx86(void)
 {
     reset_common(1);
+/* ---- */
+    makeznptable();
+    resetreadlookup();
+    makemod1table();
+    cpu_set_edx();
+    mmu_perm = 4;
+
+    ppi_reset();
+/* ---- */
 
     soft_reset_mask = 0;
 }
@@ -333,4 +345,22 @@ softresetx86(void)
 	return;
 
     reset_common(0);
+}
+
+
+/* Actual hard reset. */
+void
+hardresetx86(void)
+{
+    dma_reset();
+    device_reset_all();
+
+    cpu_alt_reset = 0;
+
+    mem_a20_alt = 0;
+    mem_a20_recalc();
+
+    flushmmucache();
+
+    resetx86();
 }

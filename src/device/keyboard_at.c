@@ -1181,6 +1181,8 @@ static void
 write_output(atkbd_t *dev, uint8_t val)
 {
     uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
+    uint8_t old = dev->p2;
+
     kbd_log("ATkbc: write output port: %02X (old: %02X)\n", val, dev->p2);
 
     if (!(dev->flags & KBC_FLAG_PS2))
@@ -1189,36 +1191,43 @@ write_output(atkbd_t *dev, uint8_t val)
     dev->kbd_inhibit = (val & 0x40);
     dev->mouse_inhibit = (val & 0x08);
 
-    if ((dev->p2 ^ val) & 0x20) { /*IRQ 12*/
+    /* IRQ 12 */
+    if ((old ^ val) & 0x20) {
 	if (val & 0x20) {
 		kbd_log("ATkbc: write_output(): IRQ 12\n");
 		picint(1 << 12);
 	} else
 		picintc(1 << 12);
     }
-    if ((dev->p2 ^ val) & 0x10) { /*IRQ 1*/
+
+    /* IRQ 1 */
+    if ((old ^ val) & 0x10) {
 	if (val & 0x10) {
 		kbd_log("ATkbc: write_output(): IRQ  1\n");
 		picint(1 << 1);
 	} else
 		picintc(1 << 1);
     }
-    if ((dev->p2 ^ val) & 0x02) { /*A20 enable change*/
+
+    /* A20 enable change */
+    if ((old ^ val) & 0x02) {
 	mem_a20_key = val & 0x02;
 	mem_a20_recalc();
 	flushmmucache();
     }
-    if ((dev->p2 ^ val) & 0x01) { /*Reset*/
-	if (! (val & 0x01)) {
+
+    /* Do this here to avoid an infinite reset loop. */
+    dev->p2 = val;
+
+    /* 0 holds the CPU in the RESET state, 1 releases it. To simply this,
+       we just do everything on release. */
+    if ((val & 0x01) && !(old & 0x01)) {
+	if (val & 0x01) {
 		/* Pin 0 selected. */
 		pclog("write_output(): Pulse reset!\n");
-		softresetx86(); /*Pulse reset!*/
-		cpu_set_edx();
-		smbase = is_am486dxl ? 0x00060000 : 0x00030000;
+		hardresetx86();		/*Pulse reset!*/
 	}
     }
-    /* Mask off the A20 stuff because we use mem_a20_key directly for that. */
-    dev->p2 = val;
 }
 
 
@@ -2315,8 +2324,8 @@ write64_ami(void *priv, uint8_t val)
 		
 	case 0xa1:	/* get controller version */
 		kbd_log("ATkbc: AMI - get controller version\n");
-		// kbc_transmit(dev, 'H');
-		kbc_transmit(dev, 'Z');
+		kbc_transmit(dev, 'H');
+		// kbc_transmit(dev, 'Z');
 		return 0;
 
 	case 0xa2:	/* clear keyboard controller lines P22/P23 */
@@ -2928,13 +2937,14 @@ kbd_reset(void *priv)
 {
     atkbd_t *dev = (atkbd_t *)priv;
     int i;
-	uint8_t kbc_ven = 0x0;
-	kbc_ven = dev->flags & KBC_VEN_MASK;
+    uint8_t kbc_ven;
 
-    dev->status = STAT_UNLOCKED;
-    dev->mem[0x20] = 0x01;
-    dev->mem[0x20] |= CCB_TRANSLATE;
-    write_output(dev, 0xcf);
+    if (dev == NULL)
+	return;
+
+    kbc_ven = dev->flags & KBC_VEN_MASK;
+
+    dev->status &= ~(STAT_IFULL | STAT_OFULL | STAT_CD);
     dev->last_irq = 0;
     dev->secr_phase = 0;
     dev->kbd_in = 0;
@@ -2970,6 +2980,20 @@ kbd_reset(void *priv)
     set_scancode_map(dev);
 
     dev->mem[0x31] = 0xfe;
+}
+
+
+static void
+kbd_power_on(atkbd_t *dev)
+{
+    kbd_reset(dev);
+
+    dev->status = STAT_UNLOCKED;
+    /* Write the value here first, so that we don't hit a pulse reset. */
+    dev->p2 = 0xcf;
+    write_output(dev, 0xcf);
+    dev->mem[0x20] = 0x01;
+    dev->mem[0x20] |= CCB_TRANSLATE;
 }
 
 
@@ -3064,7 +3088,7 @@ kbd_init(const device_t *info)
 		break;
     }
 
-    kbd_reset(dev);
+    kbd_power_on(dev);
 
     /* We need this, sadly. */
     SavedKbd = dev;
