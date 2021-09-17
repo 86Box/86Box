@@ -2130,23 +2130,24 @@ d86f_turbo_read(int drive, int side)
 	dat = d86f_handler[drive].read_data(drive, side, dev->turbo_pos);
     else
 	dat = (random_generate() & 0xff);
-    dev->turbo_pos++;
 
     if (dev->state == STATE_11_SCAN_DATA) {
 	/* Scan/compare command. */
 	recv_data = d86f_get_data(drive, 0);
 	d86f_compare_byte(drive, recv_data, dat);
     } else {
-	if (dev->data_find.bytes_obtained < d86f_get_data_len(drive)) {
+	if (dev->turbo_pos < (128UL << dev->req_sector.id.n)) {
 		if (dev->state != STATE_16_VERIFY_DATA) {
-			read_status = fdc_data(d86f_fdc, dat, dev->data_find.bytes_obtained == (d86f_get_data_len(drive) - 1));
+			read_status = fdc_data(d86f_fdc, dat, dev->turbo_pos == ((128UL << dev->req_sector.id.n) - 1));
 			if (read_status == -1)
 				dev->dma_over++;
 		}
 	}
     }
 
-    if (dev->turbo_pos >= d86f_get_data_len(drive)) {
+    dev->turbo_pos++;
+
+    if (dev->turbo_pos >= (128UL << dev->req_sector.id.n)) {
 	dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
 	if ((flags & SECTOR_CRC_ERROR) && (dev->state != STATE_02_READ_DATA)) {
 #ifdef ENABLE_D86F_LOG
