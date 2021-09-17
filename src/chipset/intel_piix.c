@@ -528,6 +528,8 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 	case 0xab:
 		if (dev->type == 3)
 			fregs[addr] &= (val & 0x01);
+		else if (dev->type < 3)
+			fregs[addr] = val;
 		break;
 	case 0xb0:
 		if (dev->type == 4)
