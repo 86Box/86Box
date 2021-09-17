@@ -4,9 +4,12 @@
 #include "imgui_sdl.h"
 #ifdef _WIN32
 #include <windows.h>
-#endif
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_syswm.h>
+#else
+#include <SDL.h>
+#include <SDL_syswm.h>
+#endif
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 extern "C"
