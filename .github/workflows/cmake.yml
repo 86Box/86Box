@@ -131,3 +131,68 @@ jobs:
       with:
         name: '86Box-${{ matrix.build.name }}-VS2019-${{ matrix.target-arch }}-${{ matrix.toolset }}-${{ github.sha }}'
         path: build/artifacts/bin/**
+
+  linux:
+    name: "Linux GCC 11"
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        build:
+        - name: Debug
+          dev-build: off
+          new-dynarec: off
+          type: Debug
+        - name: Dev
+          dev-build: on
+          new-dynarec: on
+          type: Debug
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: sudo apt install gcc-11 g++-11 libfreetype-dev libsdl2-dev libpng-dev libopenal-dev libc6-dev
+      - name: Configure CMake
+        run: >-
+          cmake -S . -B build
+          -D CMAKE_INSTALL_PREFIX=./build/artifacts
+          -D DEV_BRANCH=${{ matrix.build.dev-build }}
+          -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
+          -D VNC=OFF
+          -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
+          -D CMAKE_C_COMPILER=gcc-11 -D CMAKE_CXX_COMPILER=g++-11
+      - name: Build
+        run: cmake --build build --target install
+
+  macos:
+    name: "macOS 11"
+
+    runs-on: macos-11
+    strategy:
+      fail-fast: false
+      matrix:
+        build:
+        - name: Debug
+          dev-build: off
+          new-dynarec: off
+          type: Debug
+        - name: Dev
+          dev-build: on
+          new-dynarec: on
+          type: Debug
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Install dependencies
+        run: brew install freetype sdl2 libpng openal-soft
+      - name: Configure CMake
+        run: >-
+          cmake -S . -B build
+          -D CMAKE_INSTALL_PREFIX=./build/artifacts
+          -D DEV_BRANCH=${{ matrix.build.dev-build }}
+          -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
+          -D VNC=OFF
+          -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
+      - name: Build
+        run: cmake --build build --target install

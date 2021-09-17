@@ -1498,10 +1498,15 @@ uint8_t
 d86f_get_data(int drive, int base)
 {
     d86f_t *dev = d86f[drive];
-    int data;
+    int data, byte_count;
 
-    if (dev->data_find.bytes_obtained < (d86f_get_data_len(drive) + base)) {
-	data = fdc_getdata(d86f_fdc, dev->data_find.bytes_obtained == (d86f_get_data_len(drive) + base - 1));
+    if (fdd_get_turbo(drive) && (dev->version == 0x0063))
+	byte_count = dev->turbo_pos;
+    else
+	byte_count = dev->data_find.bytes_obtained;
+
+    if (byte_count < (d86f_get_data_len(drive) + base)) {
+	data = fdc_getdata(d86f_fdc, byte_count == (d86f_get_data_len(drive) + base - 1));
 	if ((data & DMA_OVER) || (data == -1)) {
 		dev->dma_over++;
 		if (data == -1)
@@ -1577,7 +1582,7 @@ d86f_read_sector_data(int drive, int side)
 			} else {
 				if (dev->data_find.bytes_obtained < d86f_get_data_len(drive)) {
 					if (dev->state != STATE_16_VERIFY_DATA) {
-						read_status = fdc_data(d86f_fdc, data, dev->data_find.bytes_obtained == ((d86f_get_data_len(drive)) - 1));
+						read_status = fdc_data(d86f_fdc, data, dev->data_find.bytes_obtained == (d86f_get_data_len(drive) - 1));
 						if (read_status == -1)
 							dev->dma_over++;
 					}
@@ -2130,23 +2135,24 @@ d86f_turbo_read(int drive, int side)
 	dat = d86f_handler[drive].read_data(drive, side, dev->turbo_pos);
     else
 	dat = (random_generate() & 0xff);
-    dev->turbo_pos++;
 
     if (dev->state == STATE_11_SCAN_DATA) {
 	/* Scan/compare command. */
 	recv_data = d86f_get_data(drive, 0);
 	d86f_compare_byte(drive, recv_data, dat);
     } else {
-	if (dev->data_find.bytes_obtained < (128UL << dev->last_sector.id.n)) {
+	if (dev->turbo_pos < (128UL << dev->req_sector.id.n)) {
 		if (dev->state != STATE_16_VERIFY_DATA) {
-			read_status = fdc_data(d86f_fdc, dat, dev->data_find.bytes_obtained == ((128UL << dev->last_sector.id.n) - 1));
+			read_status = fdc_data(d86f_fdc, dat, dev->turbo_pos == ((128UL << dev->req_sector.id.n) - 1));
 			if (read_status == -1)
 				dev->dma_over++;
 		}
 	}
     }
 
-    if (dev->turbo_pos >= (128 << dev->last_sector.id.n)) {
+    dev->turbo_pos++;
+
+    if (dev->turbo_pos >= (128UL << dev->req_sector.id.n)) {
 	dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
 	if ((flags & SECTOR_CRC_ERROR) && (dev->state != STATE_02_READ_DATA)) {
 #ifdef ENABLE_D86F_LOG
