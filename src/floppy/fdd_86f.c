@@ -1498,10 +1498,15 @@ uint8_t
 d86f_get_data(int drive, int base)
 {
     d86f_t *dev = d86f[drive];
-    int data;
+    int data, byte_count;
 
-    if (dev->data_find.bytes_obtained < (d86f_get_data_len(drive) + base)) {
-	data = fdc_getdata(d86f_fdc, dev->data_find.bytes_obtained == (d86f_get_data_len(drive) + base - 1));
+    if (fdd_get_turbo(drive) && (dev->version == 0x0063))
+	byte_count = dev->turbo_pos;
+    else
+	byte_count = dev->data_find.bytes_obtained;
+
+    if (byte_count < (d86f_get_data_len(drive) + base)) {
+	data = fdc_getdata(d86f_fdc, byte_count == (d86f_get_data_len(drive) + base - 1));
 	if ((data & DMA_OVER) || (data == -1)) {
 		dev->dma_over++;
 		if (data == -1)
