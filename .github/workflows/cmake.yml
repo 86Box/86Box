@@ -161,6 +161,7 @@ jobs:
           -D NEW_DYNAREC=${{ matrix.build.new-dynarec }}
           -D VNC=OFF
           -D CMAKE_BUILD_TYPE=${{ matrix.build.type }}
+          -D CMAKE_C_COMPILER=gcc-11 -D CMAKE_CXX_COMPILER=g++-11
       - name: Build
         run: cmake --build build --target install
 
