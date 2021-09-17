@@ -187,6 +187,7 @@ video_cards[] = {
     { "stealth3d_2000_vlb",	&s3_virge_vlb_device			},
     { "stealth3d_3000_vlb",	&s3_virge_988_vlb_device		},
     { "metheus928_vlb",		&s3_metheus_86c928_vlb_device		},
+	{ "mirocrystal8s_vlb", &s3_mirocrystal_8s_805_vlb_device		},
 	{ "mirocrystal10sd_vlb", &s3_mirocrystal_10sd_805_vlb_device		},
     { "px_86c805_vlb",		&s3_phoenix_86c805_vlb_device		},
     { "px_s3_v7_805_vlb",	&s3_spea_mirage_86c805_vlb_device		},
