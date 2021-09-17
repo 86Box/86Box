@@ -42,24 +42,20 @@ static int opFILDiw_a32(uint32_t fetchdat)
 
 static int opFISTiw_a16(uint32_t fetchdat)
 {
-        int64_t temp64;
         FP_ENTER();
         fetch_ea_16(fetchdat);
 	SEG_CHECK_WRITE(cpu_state.ea_seg);
-        temp64 = x87_fround(ST(0));
-        seteaw((int16_t)temp64);
+        seteaw(x87_fround16(ST(0)));
         CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fist_16) : (x87_timings.fist_16 * cpu_multi));
         return cpu_state.abrt;
 }
 #ifndef FPU_8087
 static int opFISTiw_a32(uint32_t fetchdat)
 {
-        int64_t temp64;
         FP_ENTER();
         fetch_ea_32(fetchdat);
 	SEG_CHECK_WRITE(cpu_state.ea_seg);
-        temp64 = x87_fround(ST(0));
-        seteaw((int16_t)temp64);
+        seteaw(x87_fround16(ST(0)));
         CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fist_16) : (x87_timings.fist_16 * cpu_multi));
         return cpu_state.abrt;
 }
@@ -67,12 +63,10 @@ static int opFISTiw_a32(uint32_t fetchdat)
 
 static int opFISTPiw_a16(uint32_t fetchdat)
 {
-        int64_t temp64;
         FP_ENTER();
         fetch_ea_16(fetchdat);
 	SEG_CHECK_WRITE(cpu_state.ea_seg);
-        temp64 = x87_fround(ST(0));
-        seteaw((int16_t)temp64); if (cpu_state.abrt) return 1;
+        seteaw(x87_fround16(ST(0))); if (cpu_state.abrt) return 1;
         x87_pop();
         CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fist_16) : (x87_timings.fist_16 * cpu_multi));
         return 0;
@@ -80,12 +74,10 @@ static int opFISTPiw_a16(uint32_t fetchdat)
 #ifndef FPU_8087
 static int opFISTPiw_a32(uint32_t fetchdat)
 {
-        int64_t temp64;
         FP_ENTER();
         fetch_ea_32(fetchdat);
 	SEG_CHECK_WRITE(cpu_state.ea_seg);
-        temp64 = x87_fround(ST(0));
-        seteaw((int16_t)temp64); if (cpu_state.abrt) return 1;
+        seteaw(x87_fround16(ST(0))); if (cpu_state.abrt) return 1;
         x87_pop();
         CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fist_16) : (x87_timings.fist_16 * cpu_multi));
         return 0;
@@ -240,24 +232,20 @@ static int opFILDil_a32(uint32_t fetchdat)
 
 static int opFISTil_a16(uint32_t fetchdat)
 {
-        int64_t temp64;
         FP_ENTER();
         fetch_ea_16(fetchdat);
 	SEG_CHECK_WRITE(cpu_state.ea_seg);
-        temp64 = x87_fround(ST(0));
-        seteal((int32_t)temp64);
+        seteal(x87_fround32(ST(0)));
         CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fist_32) : (x87_timings.fist_32 * cpu_multi));
         return cpu_state.abrt;
 }
 #ifndef FPU_8087
 static int opFISTil_a32(uint32_t fetchdat)
 {
-        int64_t temp64;
         FP_ENTER();
         fetch_ea_32(fetchdat);
 	SEG_CHECK_WRITE(cpu_state.ea_seg);
-        temp64 = x87_fround(ST(0));
-        seteal((int32_t)temp64);
+        seteal(x87_fround32(ST(0)));
         CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fist_32) : (x87_timings.fist_32 * cpu_multi));
         return cpu_state.abrt;
 }
@@ -265,12 +253,10 @@ static int opFISTil_a32(uint32_t fetchdat)
 
 static int opFISTPil_a16(uint32_t fetchdat)
 {
-        int64_t temp64;
         FP_ENTER();
         fetch_ea_16(fetchdat);
 	SEG_CHECK_WRITE(cpu_state.ea_seg);
-        temp64 = x87_fround(ST(0));
-        seteal((int32_t)temp64); if (cpu_state.abrt) return 1;
+        seteal(x87_fround32(ST(0))); if (cpu_state.abrt) return 1;
         x87_pop();
         CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fist_32) : (x87_timings.fist_32 * cpu_multi));
         return 0;
@@ -278,12 +264,10 @@ static int opFISTPil_a16(uint32_t fetchdat)
 #ifndef FPU_8087
 static int opFISTPil_a32(uint32_t fetchdat)
 {
-        int64_t temp64;
         FP_ENTER();
         fetch_ea_32(fetchdat);
 	SEG_CHECK_WRITE(cpu_state.ea_seg);
-        temp64 = x87_fround(ST(0));
-        seteal((int32_t)temp64); if (cpu_state.abrt) return 1;
+        seteal(x87_fround32(ST(0))); if (cpu_state.abrt) return 1;
         x87_pop();
         CLOCK_CYCLES((fpu_type >= FPU_487SX) ? (x87_timings.fist_32) : (x87_timings.fist_32 * cpu_multi));
         return 0;

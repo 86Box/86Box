@@ -1892,9 +1892,10 @@ fdc_is_verify(fdc_t *fdc)
 
 
 int
-fdc_data(fdc_t *fdc, uint8_t data)
+fdc_data(fdc_t *fdc, uint8_t data, int last)
 {
-    int result = 0;
+    int i, result = 0;
+    int n;
 
     if (fdc->deleted & 2) {
 	/* We're in a VERIFY command, so return with 0. */
@@ -1924,27 +1925,39 @@ fdc_data(fdc_t *fdc, uint8_t data)
 		}
 	}
     } else {
-	result = dma_channel_write(fdc->dma_ch, data);
-
 	if (fdc->tc)
 		return -1;
 
-	if (result & DMA_OVER) {
-		fdc->data_ready = 1;
-		fdc->stat = 0xd0;
-		fdc->tc = 1;
-		return -1;
-	}
-
 	if (!fdc->fifo || (fdc->tfifo < 1)) {
+		dma_channel_write(fdc->dma_ch, data);
+
 		fdc->data_ready = 1;
 		fdc->stat = 0xd0;
+
+		if (result & DMA_OVER) {
+			fdc->tc = 1;
+			return -1;
+		}
 	} else {
-		fdc_fifo_buf_advance(fdc);
-		if (fdc->fifobufpos == 0) {
+		/* FIFO enabled */
+		fdc_fifo_buf_write(fdc, data);
+		if (last || (fdc->fifobufpos == 0)) {
 			/* We have wrapped around, means FIFO is over */
 			fdc->data_ready = 1;
 			fdc->stat = 0xd0;
+
+			n = (fdc->fifobufpos > 0) ? (fdc->fifobufpos - 1) : fdc->tfifo;
+			if (fdc->fifobufpos > 0)
+				fdc->fifobufpos = 0;
+
+			for (i = 0; i <= n; i++) {
+				result = dma_channel_write(fdc->dma_ch, fdc->fifobuf[i]);
+
+				if (result & DMA_OVER) {
+					fdc->tc = 1;
+					return -1;
+				}
+			}
 		}
 	}
     }
@@ -2057,10 +2070,10 @@ fdc_writeprotect(fdc_t *fdc)
 
 int fdc_getdata(fdc_t *fdc, int last)
 {
-    int data;
+    int i, data = 0;
 
     if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->dma) {
-	if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->fifo) {
+	if ((fdc->flags & FDC_FLAG_PCJR) || !fdc->fifo || (fdc->tfifo < 1)) {
 		data = fdc->dat;
 
 		if (!last)
@@ -2072,20 +2085,32 @@ int fdc_getdata(fdc_t *fdc, int last)
 			fdc->stat = 0xb0;
 	}
     } else {
-	data = dma_channel_read(fdc->dma_ch);
+	if (!fdc->fifo || (fdc->tfifo < 1)) {
+		data = dma_channel_read(fdc->dma_ch);
 
-	if (!fdc->fifo) {
+		if (data & DMA_OVER)
+			fdc->tc = 1;
+
 		if (!last)
 			fdc->stat = 0x90;
 	} else {
-		fdc_fifo_buf_advance(fdc);
+		if (fdc->fifobufpos == 0) {
+			for (i = 0; i <= fdc->tfifo; i++) {
+				data = dma_channel_read(fdc->dma_ch);
+				fdc->fifobuf[i] = data;
+
+				if (data & DMA_OVER) {
+					fdc->tc = 1;
+					break;
+				}
+			}
+		}
+
+		data = fdc_fifo_buf_read(fdc);
 
 		if (!last && (fdc->fifobufpos == 0))
 			fdc->stat = 0x90;
 	}
-
-	if (data & DMA_OVER)
-		fdc->tc = 1;
     }
 
     return data & 0xff;
