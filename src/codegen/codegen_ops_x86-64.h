@@ -4363,7 +4363,7 @@ static inline int FP_LOAD_REG_INT_W(int reg)
         addbyte(0xc5);
         addbyte((uint8_t)cpu_state_offset(ST));
 
-        CALL_FUNC((uintptr_t)x87_fround);
+        CALL_FUNC((uintptr_t)x87_fround16_64);
         
         addbyte(0x93); /*XCHG EBX, EAX*/
         
@@ -4393,7 +4393,7 @@ static inline int FP_LOAD_REG_INT(int reg)
         addbyte(0xc5);
         addbyte((uint8_t)cpu_state_offset(ST));
 
-        CALL_FUNC((uintptr_t)x87_fround);
+        CALL_FUNC((uintptr_t)x87_fround32_64);
         
         addbyte(0x93); /*XCHG EBX, EAX*/
         
