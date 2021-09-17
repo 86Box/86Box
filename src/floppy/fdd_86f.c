@@ -2139,7 +2139,7 @@ d86f_turbo_read(int drive, int side)
     } else {
 	if (dev->data_find.bytes_obtained < d86f_get_data_len(drive)) {
 		if (dev->state != STATE_16_VERIFY_DATA) {
-			read_status = fdc_data(d86f_fdc, data, dev->data_find.bytes_obtained == (d86f_get_data_len(drive) - 1));
+			read_status = fdc_data(d86f_fdc, dat, dev->data_find.bytes_obtained == (d86f_get_data_len(drive) - 1));
 			if (read_status == -1)
 				dev->dma_over++;
 		}
