@@ -2,8 +2,6 @@
 #include <stdio.h>
 #include <time.h>
 #include <pthread.h>
-#include <sys/param.h>
-#include <unistd.h>
 #include <inttypes.h>
 #include <86box/86box.h>
 #include <86box/plat.h>
@@ -103,7 +101,11 @@ thread_wait_event(event_t *handle, int timeout)
     event_pthread_t *event = (event_pthread_t *)handle;
     struct timespec abstime;
 
+#ifdef HAS_TIMESPEC_GET
+    timespec_get(&abstime, TIME_UTC);
+#else
     clock_gettime(CLOCK_REALTIME, &abstime);
+#endif
     abstime.tv_nsec += (timeout % 1000) * 1000000;
     abstime.tv_sec += (timeout / 1000);
     if (abstime.tv_nsec > 1000000000) {
@@ -132,13 +134,6 @@ thread_destroy_event(event_t *handle)
     pthread_mutex_destroy(&event->mutex);
 
     free(event);
-}
-
-
-void
-thread_sleep(int t)
-{
-    usleep(t * 1000);
 }
 
 

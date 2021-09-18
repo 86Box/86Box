@@ -1047,10 +1047,10 @@ plat_setfullscreen(int on)
     int dpi = win_get_dpi(hwndMain);
 
     /* Are we changing from the same state to the same state? */
-    if ((!!on) == (!!video_fullscreen))
+    if ((!!(on & 1)) == (!!video_fullscreen))
 	return;
 
-    if (on && video_fullscreen_first) {
+    if (on && (start_in_fullscreen || video_fullscreen_first)) {
 	video_fullscreen |= 2;
 	if (ui_msgbox_header(MBX_INFO | MBX_DONTASK, (wchar_t *) IDS_2134, (wchar_t *) IDS_2052) == 10) {
 		video_fullscreen_first = 0;
@@ -1060,13 +1060,14 @@ plat_setfullscreen(int on)
     }
 
     /* OK, claim the video. */
-    win_mouse_close();
+    if (!(on & 2))
+	win_mouse_close();
 
     /* Close the current mode, and open the new one. */
-    video_fullscreen = on | 2;
+    video_fullscreen = (on & 1) | 2;
     if (vid_apis[vid_api].set_fs)
-	vid_apis[vid_api].set_fs(on);
-    if (!on) {
+	vid_apis[vid_api].set_fs(on & 1);
+    if (!(on & 1)) {
 	plat_resize(scrnsz_x, scrnsz_y);
 	if (vid_resize) {
 		/* scale the screen base on DPI */
@@ -1114,25 +1115,30 @@ plat_setfullscreen(int on)
     }
     video_fullscreen &= 1;
     video_force_resize_set(1);
-    if (!on)
+    if (!(on & 1))
 	doresize = 1;
 
     win_mouse_init();
 
-    /* Release video and make it redraw the screen. */
-    device_force_redraw();
+    if (!(on & 2)) {
+	/* Release video and make it redraw the screen. */
+	device_force_redraw();
 
-    /* Send a CTRL break code so CTRL does not get stuck. */
-    keyboard_input(0, 0x01D);
+	/* Send a CTRL break code so CTRL does not get stuck. */
+	keyboard_input(0, 0x01D);
+    }
 
     /* Finally, handle the host's mouse cursor. */
     /* win_log("%s full screen, %s cursor\n", on ? "enter" : "leave", on ? "hide" : "show"); */
     show_cursor(video_fullscreen ? 0 : -1);
 
-    /* This is needed for OpenGL. */
-    plat_vidapi_enable(0);
-    plat_vidapi_enable(1);
+    if (!(on & 2)) {
+	/* This is needed for OpenGL. */
+	plat_vidapi_enable(0);
+	plat_vidapi_enable(1);
+    }
 }
+
 
 void
 plat_vid_reload_options(void)
