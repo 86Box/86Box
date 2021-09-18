@@ -1517,6 +1517,7 @@ plat_setfullscreen(int on)
   device_force_redraw();
 }
 
+
 void
 plat_vid_reload_options(void)
 {

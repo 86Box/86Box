@@ -2,13 +2,6 @@
 #include <stdio.h>
 #include <time.h>
 #include <pthread.h>
-#ifndef _MSC_VER
-#include <sys/param.h>
-#include <unistd.h>
-#endif
-#ifdef _WIN32
-#include <windows.h>
-#endif
 #include <inttypes.h>
 #include <86box/86box.h>
 #include <86box/plat.h>
@@ -103,30 +96,22 @@ thread_reset_event(event_t *handle)
 
 
 int
-thread_wait_event(event_t* handle, int timeout)
+thread_wait_event(event_t *handle, int timeout)
 {
-	event_pthread_t* event = (event_pthread_t*)handle;
-	struct timespec abstime;
+    event_pthread_t *event = (event_pthread_t *)handle;
+    struct timespec abstime;
 
-#ifdef _MSC_VER
-	/* https://stackoverflow.com/a/31335254 */
-	FILETIME systime;
-	uint64_t systimeint = 0;
-	GetSystemTimeAsFileTime(&systime);
-	systimeint |= systime.dwLowDateTime;
-	systimeint |= (uint64_t)systime.dwHighDateTime << 32i64;
-	systimeint -= 116444736000000000i64;
-	abstime.tv_sec = systimeint / 10000000i64;
-	abstime.tv_nsec = systimeint % 10000000i64 * 100;
+#ifdef HAS_TIMESPEC_GET
+    timespec_get(&abstime, TIME_UTC);
 #else
     clock_gettime(CLOCK_REALTIME, &abstime);
+#endif
     abstime.tv_nsec += (timeout % 1000) * 1000000;
     abstime.tv_sec += (timeout / 1000);
     if (abstime.tv_nsec > 1000000000) {
 	abstime.tv_nsec -= 1000000000;
 	abstime.tv_sec++;
     }
-#endif
 
     pthread_mutex_lock(&event->mutex);
     if (timeout == -1) {
@@ -149,17 +134,6 @@ thread_destroy_event(event_t *handle)
     pthread_mutex_destroy(&event->mutex);
 
     free(event);
-}
-
-
-void
-thread_sleep(int t)
-{
-#ifdef _WIN32
-	Sleep(t);
-#else
-    usleep(t * 1000);
-#endif
 }
 
 

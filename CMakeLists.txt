@@ -106,4 +106,11 @@ if(MSVC_TOOLSET_VERSION GREATER_EQUAL 142 AND ARCH STREQUAL "arm64")
 	endif()
 endif()
 
+# HACK: MinGW and macOS <10.15 does not have `timespec_get`
+include(CheckSymbolExists)
+check_symbol_exists(timespec_get time.h HAS_TIMESPEC_GET)
+if(HAS_TIMESPEC_GET)
+	add_compile_definitions(HAS_TIMESPEC_GET)
+endif()
+
 add_subdirectory(src)

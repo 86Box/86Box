@@ -277,7 +277,7 @@ sdl_blit(int x, int y, int w, int h)
 {
     SDL_Rect r_src;
 
-    if (!sdl_enabled || (h <= 0) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
+    if (!sdl_enabled || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
     r_src.x = x;
     r_src.y = y;
     r_src.w = w;
@@ -326,6 +326,11 @@ sdl_destroy_window(void)
 static void
 sdl_destroy_texture(void)
 {
+    if (sdl_tex != NULL) {
+	SDL_DestroyTexture(sdl_tex);
+	sdl_tex = NULL;
+    }
+
     /* SDL_DestroyRenderer also automatically destroys all associated textures. */
     if (sdl_render != NULL) {
 	SDL_DestroyRenderer(sdl_render);
@@ -391,11 +396,10 @@ sdl_select_best_hw_driver(void)
     }
 }
 
-void
-sdl_reinit_texture()
-{
-    sdl_destroy_texture();
 
+static void
+sdl_init_texture(void)
+{
     if (sdl_flags & RENDERER_HARDWARE) {
 	sdl_render = SDL_CreateRenderer(sdl_win, -1, SDL_RENDERER_ACCELERATED);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, video_filter_method ? "1" : "0");
@@ -407,6 +411,18 @@ sdl_reinit_texture()
     
     HandleSizeChange();
 }
+
+
+static void
+sdl_reinit_texture(void)
+{
+    if (sdl_flags == -1)
+        return;
+
+    sdl_destroy_texture();
+    sdl_init_texture();
+}
+
 
 void
 sdl_set_fs(int fs)
@@ -422,7 +438,8 @@ sdl_set_fs(int fs)
     else
 	sdl_flags &= ~RENDERER_FULL_SCREEN;
 
-    sdl_reinit_texture();
+    // sdl_reinit_texture();
+    sdl_enabled = 1;
     SDL_UnlockMutex(sdl_mutex);
 }
 
@@ -510,7 +527,7 @@ sdl_init_common(int flags)
     {
         SDL_SetWindowSize(sdl_win, window_w, window_h);
     }
-
+    sdl_init_texture();
     /* Make sure we get a clean exit. */
     atexit(sdl_close);
 
