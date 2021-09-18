@@ -1301,7 +1301,11 @@ extern "C" void RenderImGui()
 	{
 	    if (ImGui::MenuItem("Documentation"))
 	    {
+#if SDL_VERSION_ATLEAST(2, 0, 14)
 		SDL_OpenURL("https://86box.readthedocs.io");
+#else
+		popen("xdg-open https://86box.readthedocs.io", "r");
+#endif
 	    }
 	    if (ImGui::MenuItem("About 86Box"))
 	    {
@@ -1327,7 +1331,11 @@ extern "C" void RenderImGui()
 		SDL_ShowMessageBox(&msgdata, &buttonid);
 		if (buttonid == 1)
 		{
+#if SDL_VERSION_ATLEAST(2, 0, 14)
 		    SDL_OpenURL("https://86box.net");
+#else
+		    popen("xdg-open https://86box.net", "r");
+#endif
 		}
 		plat_pause(origpause);
 	    }
