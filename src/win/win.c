@@ -1513,7 +1513,8 @@ get_vidpause(void)
 void
 plat_setfullscreen(int on)
 {
-
+  sdl_set_fs(on);
+  device_force_redraw();
 }
 
 void
