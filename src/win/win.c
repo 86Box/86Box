@@ -102,6 +102,16 @@ SDL_threadID eventthread;
 static int exit_event = 0;
 int fullscreen_pending = 0;
 extern float menubarheight;
+static rc_str_t* lpRCstr2048,
+* lpRCstr4096,
+* lpRCstr4352,
+* lpRCstr4608,
+* lpRCstr5120,
+* lpRCstr5376,
+* lpRCstr5632,
+* lpRCstr5888,
+* lpRCstr6144,
+* lpRCstr7168;
 
 typedef struct sdl_blit_params
 {
@@ -171,39 +181,33 @@ set_language(int id)
 }
 
 
-wchar_t *
+wchar_t*
 plat_get_string(int i)
 {
-    switch (i)
-    {
-        case IDS_2077:
-            return L"Click to capture mouse.";
-        case IDS_2078:
-            return L"Press CTRL-END to release mouse";
-        case IDS_2079:
-            return L"Press CTRL-END or middle button to release mouse";
-        case IDS_2080:
-            return L"Failed to initialize FluidSynth";
-        case IDS_4099:
-            return L"MFM/RLL or ESDI CD-ROM drives never existed";
-        case IDS_2093:
-            return L"Failed to set up PCap";
-        case IDS_2094:
-            return L"No PCap devices found";
-        case IDS_2110:
-            return L"Unable to initialize FreeType";
-        case IDS_2111:
-            return L"Unable to initialize SDL, libsdl2 is required";
-        case IDS_2131:
-            return L"libfreetype is required for ESC/P printer emulation.";
-        case IDS_2132:
-            return L"libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
-        case IDS_2129:
-            return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
-        case IDS_2114:
-            return L"Unable to initialize Ghostscript";
-    }
-    return L"";
+	LPTSTR str;
+
+	if ((i >= 2048) && (i <= 3071))
+		str = lpRCstr2048[i - 2048].str;
+	else if ((i >= 4096) && (i <= 4351))
+		str = lpRCstr4096[i - 4096].str;
+	else if ((i >= 4352) && (i <= 4607))
+		str = lpRCstr4352[i - 4352].str;
+	else if ((i >= 4608) && (i <= 5119))
+		str = lpRCstr4608[i - 4608].str;
+	else if ((i >= 5120) && (i <= 5375))
+		str = lpRCstr5120[i - 5120].str;
+	else if ((i >= 5376) && (i <= 5631))
+		str = lpRCstr5376[i - 5376].str;
+	else if ((i >= 5632) && (i <= 5887))
+		str = lpRCstr5632[i - 5632].str;
+	else if ((i >= 5888) && (i <= 6143))
+		str = lpRCstr5888[i - 5888].str;
+	else if ((i >= 6144) && (i <= 7167))
+		str = lpRCstr6144[i - 6144].str;
+	else
+		str = lpRCstr7168[i - 7168].str;
+
+	return((wchar_t*)str);
 }
 
 #ifdef MTR_ENABLED
@@ -410,10 +414,7 @@ int	ui_msgbox(int flags, void *message)
 
 int	ui_msgbox_header(int flags, void *message, void* header)
 {
-    if (!header) header = L"86Box";
-    fwprintf(stderr, L"%s\n", header);
-    fwprintf(stderr, L"==========================\n%s\n", plat_get_string((int)message));
-    return 0;
+	return ui_msgbox_ex(flags, header, message, NULL, NULL, NULL);
 }
 
 
@@ -1093,6 +1094,57 @@ void PreSDLWinMessageHook(void* userdata, void* hWnd, unsigned int message, Uint
 	}
 }
 
+static void
+LoadCommonStrings(void)
+{
+	int i;
+
+	lpRCstr2048 = (rc_str_t*)malloc(STR_NUM_2048 * sizeof(rc_str_t));
+	lpRCstr4096 = (rc_str_t*)malloc(STR_NUM_4096 * sizeof(rc_str_t));
+	lpRCstr4352 = (rc_str_t*)malloc(STR_NUM_4352 * sizeof(rc_str_t));
+	lpRCstr4608 = (rc_str_t*)malloc(STR_NUM_4608 * sizeof(rc_str_t));
+	lpRCstr5120 = (rc_str_t*)malloc(STR_NUM_5120 * sizeof(rc_str_t));
+	lpRCstr5376 = (rc_str_t*)malloc(STR_NUM_5376 * sizeof(rc_str_t));
+	lpRCstr5632 = (rc_str_t*)malloc(STR_NUM_5632 * sizeof(rc_str_t));
+	lpRCstr5888 = (rc_str_t*)malloc(STR_NUM_5888 * sizeof(rc_str_t));
+	lpRCstr6144 = (rc_str_t*)malloc(STR_NUM_6144 * sizeof(rc_str_t));
+	lpRCstr7168 = (rc_str_t*)malloc(STR_NUM_7168 * sizeof(rc_str_t));
+
+	for (i = 0; i < STR_NUM_2048; i++)
+		LoadString(hinstance, 2048 + i, lpRCstr2048[i].str, 512);
+
+	for (i = 0; i < STR_NUM_4096; i++)
+		LoadString(hinstance, 4096 + i, lpRCstr4096[i].str, 512);
+
+	for (i = 0; i < STR_NUM_4352; i++)
+		LoadString(hinstance, 4352 + i, lpRCstr4352[i].str, 512);
+
+	for (i = 0; i < STR_NUM_4608; i++)
+		LoadString(hinstance, 4608 + i, lpRCstr4608[i].str, 512);
+
+	for (i = 0; i < STR_NUM_5120; i++)
+		LoadString(hinstance, 5120 + i, lpRCstr5120[i].str, 512);
+
+	for (i = 0; i < STR_NUM_5376; i++) {
+		if ((i == 0) || (i > 3))
+			LoadString(hinstance, 5376 + i, lpRCstr5376[i].str, 512);
+	}
+
+	for (i = 0; i < STR_NUM_5632; i++) {
+		if ((i == 0) || (i > 3))
+			LoadString(hinstance, 5632 + i, lpRCstr5632[i].str, 512);
+	}
+
+	for (i = 0; i < STR_NUM_5888; i++)
+		LoadString(hinstance, 5888 + i, lpRCstr5888[i].str, 512);
+
+	for (i = 0; i < STR_NUM_6144; i++)
+		LoadString(hinstance, 6144 + i, lpRCstr6144[i].str, 512);
+
+	for (i = 0; i < STR_NUM_7168; i++)
+		LoadString(hinstance, 7168 + i, lpRCstr7168[i].str, 512);
+}
+
 extern SDL_Window* sdl_win;
 /* For the Windows platform, this is the start of the application. */
 int WINAPI
@@ -1135,14 +1187,17 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 
     /* Process the command line for options. */
     argc = ProcessCommandLine(&argv);
+	LoadCommonStrings();
 
     SDL_Init(0);
     pc_init(argc, argv);
-    if (! pc_init_modules()) {
-        fprintf(stderr, "No ROMs found.\n");
-        SDL_Quit();
-        return 6;
-    }
+	if (!pc_init_modules()) {
+		/* Dang, no ROMs found at all! */
+		tdconfig.pszMainInstruction = MAKEINTRESOURCE(IDS_2120);
+		tdconfig.pszContent = MAKEINTRESOURCE(IDS_2056);
+		TaskDialogIndirect(&tdconfig, NULL, NULL, NULL);
+		return(6);
+	}
     
     eventthread = SDL_ThreadID();
     blitmtx = SDL_CreateMutex();

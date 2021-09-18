@@ -37,6 +37,7 @@ extern "C"
 #ifdef _WIN32
 #include <86box/win.h>
 #endif
+#include <86box/sound.h>
 #include <86box/video.h>
 #include <86box/device.h>
 #include <86box/gameport.h>
@@ -228,7 +229,7 @@ static bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::stri
 	SDL_VERSION(&wmInfo.version);
 	SDL_GetWindowWMInfo(sdl_win, &wmInfo);
 	HWND hwnd = wmInfo.info.win.window;
-	return (bool)file_dlg(hwnd, (wchar_t*)filterwinwide.c_str(), res, "Open File", save);
+	return (bool)file_dlg(hwnd, (wchar_t*)filterwinwide.c_str(), res, "", save);
 	
 #else
     bool boolres = false;
@@ -317,6 +318,7 @@ struct CartMenu : BaseMenu
 		cartridge_mount(cartid, res, 1);
 	    }
 	}
+	ImGui::Separator();
 	if (ImGui::MenuItem("Eject"))
 	{
 	    cartridge_eject(cartid);
@@ -333,6 +335,17 @@ struct FloppyMenu : BaseMenu
     }
     void RenderImGuiMenuItemsOnly() override
     {
+#ifdef _WIN32
+	if (ImGui::MenuItem("New Image..."))
+	{
+		SDL_SysWMinfo wmInfo;
+		SDL_VERSION(&wmInfo.version);
+		SDL_GetWindowWMInfo(sdl_win, &wmInfo);
+		HWND hwnd = wmInfo.info.win.window;
+		NewFloppyDialogCreate(hwnd, flpid, 0);
+	}
+	ImGui::Separator();
+#endif
 	if (ImGui::MenuItem("Image..."))
 	{
 	    char res[4096];
@@ -349,6 +362,7 @@ struct FloppyMenu : BaseMenu
 		floppy_mount(flpid, res, 1);
 	    }
 	}
+	ImGui::Separator();
 	if (ImGui::MenuItem("Eject"))
 	{
 	    floppy_eject(flpid);
@@ -385,6 +399,22 @@ struct CDMenu : BaseMenu
     }
     void RenderImGuiMenuItemsOnly() override
     {
+	if (ImGui::MenuItem("Mute", NULL, cdrom[cdid].sound_on))
+	{
+		cdrom[cdid].sound_on ^= 1;
+		config_save();
+		sound_cd_thread_reset();
+	}
+	ImGui::Separator();
+	if (ImGui::MenuItem("Empty", NULL, strlen(cdrom[cdid].image_path) == 0))
+	{
+	    cdrom_eject(cdid);
+	}
+	if (ImGui::MenuItem("Reload previous image"))
+	{
+	    cdrom_reload(cdid);
+	}
+	ImGui::Separator();
 	if (ImGui::MenuItem("Image"))
 	{
 	    char res[4096];
@@ -392,14 +422,6 @@ struct CDMenu : BaseMenu
 	    {
 		cdrom_mount(cdid, res);
 	    }
-	}
-	if (ImGui::MenuItem("Reload previous image"))
-	{
-	    cdrom_reload(cdid);
-	}
-	if (ImGui::MenuItem("Empty", NULL, strlen(cdrom[cdid].image_path) == 0))
-	{
-	    cdrom_eject(cdid);
 	}
     }
 };
@@ -425,6 +447,17 @@ struct ZIPMenu : BaseMenu
     }
     void RenderImGuiMenuItemsOnly() override
     {
+#ifdef _WIN32
+	if (ImGui::MenuItem("New Image..."))
+	{
+		SDL_SysWMinfo wmInfo;
+		SDL_VERSION(&wmInfo.version);
+		SDL_GetWindowWMInfo(sdl_win, &wmInfo);
+		HWND hwnd = wmInfo.info.win.window;
+		NewFloppyDialogCreate(hwnd, zipid | 0x80, 0);
+	}
+	ImGui::Separator();
+#endif
 	if (ImGui::MenuItem("Image..."))
 	{
 	    char res[4096];
@@ -441,6 +474,7 @@ struct ZIPMenu : BaseMenu
 		zip_mount(zipid, res, 1);
 	    }
 	}
+	ImGui::Separator();
 	if (ImGui::MenuItem("Reload previous image"))
 	{
 	    zip_reload(zipid);
@@ -482,6 +516,17 @@ struct MOMenu : BaseMenu
     }
     void RenderImGuiMenuItemsOnly()
     {
+#ifdef _WIN32
+	if (ImGui::MenuItem("New Image..."))
+	{
+		SDL_SysWMinfo wmInfo;
+		SDL_VERSION(&wmInfo.version);
+		SDL_GetWindowWMInfo(sdl_win, &wmInfo);
+		HWND hwnd = wmInfo.info.win.window;
+		NewFloppyDialogCreate(hwnd, moid | 0x100, 0);
+	}
+	ImGui::Separator();
+#endif
 	if (ImGui::MenuItem("Image..."))
 	{
 	    char res[4096];
@@ -498,6 +543,7 @@ struct MOMenu : BaseMenu
 		mo_mount(moid, res, 1);
 	    }
 	}
+	ImGui::Separator();
 	if (ImGui::MenuItem("Reload previous image"))
 	{
 	    mo_reload(moid);
@@ -513,6 +559,19 @@ static std::atomic<bool> cas_active, cas_empty;
 
 static void RenderCassetteImguiMenuItemsOnly()
 {
+	if (ImGui::MenuItem("New Image..."))
+	{
+		char res[4096];
+		memset(res, 0, sizeof(res));
+		bool ret = OpenFileChooser(res, sizeof(res), casfilter, true);
+		if (!ret) {
+			if (strlen(res) == 0)
+				cassette_mount(NULL, 0);
+			else
+				cassette_mount(res, 0);
+		}
+	}
+	ImGui::Separator();
     if (ImGui::MenuItem("Image..."))
     {
 	char res[4096];
@@ -529,6 +588,7 @@ static void RenderCassetteImguiMenuItemsOnly()
 	    cassette_mount(res, 1);
 	}
     }
+	ImGui::Separator();
     if (ImGui::MenuItem("Play"))
     {
 	pc_cas_set_mode(cassette, 0);
@@ -545,6 +605,7 @@ static void RenderCassetteImguiMenuItemsOnly()
     {
 	pc_cas_append(cassette);
     }
+	ImGui::Separator();
     if (ImGui::MenuItem("Eject"))
     {
 	cassette_eject();
@@ -1222,6 +1283,20 @@ extern "C" void RenderImGui()
 	    RenderCassetteImguiMenu();
 	    ImGui::EndMenu();
 	}
+#ifdef _WIN32
+	if (ImGui::BeginMenu("Tools"))
+	{
+		if (ImGui::MenuItem("Settings"))
+		{
+			SDL_SysWMinfo wmInfo;
+			SDL_VERSION(&wmInfo.version);
+			SDL_GetWindowWMInfo(sdl_win, &wmInfo);
+			HWND hwnd = wmInfo.info.win.window;
+			win_settings_open(hwnd);
+		}
+		ImGui::EndMenu();
+	}
+#endif
 	if (ImGui::BeginMenu("Help"))
 	{
 	    if (ImGui::MenuItem("Documentation"))

@@ -2,10 +2,11 @@
 #include <stdio.h>
 #include <time.h>
 #include <pthread.h>
-#ifndef _WIN32
+#ifndef _MSC_VER
 #include <sys/param.h>
 #include <unistd.h>
-#else
+#endif
+#ifdef _WIN32
 #include <windows.h>
 #endif
 #include <inttypes.h>
@@ -102,15 +103,21 @@ thread_reset_event(event_t *handle)
 
 
 int
-thread_wait_event(event_t *handle, int timeout)
+thread_wait_event(event_t* handle, int timeout)
 {
-    event_pthread_t *event = (event_pthread_t *)handle;
-    struct timespec abstime;
+	event_pthread_t* event = (event_pthread_t*)handle;
+	struct timespec abstime;
 
-#ifdef _WIN32
-	ULONGLONG tickcnt = GetTickCount64();
-	abstime.tv_sec = tickcnt / 1000;
-	abstime.tv_nsec = (tickcnt % 1000) * 1000 * 1000;
+#ifdef _MSC_VER
+	/* https://stackoverflow.com/a/31335254 */
+	FILETIME systime;
+	uint64_t systimeint = 0;
+	GetSystemTimeAsFileTime(&systime);
+	systimeint |= systime.dwLowDateTime;
+	systimeint |= (uint64_t)systime.dwHighDateTime << 32i64;
+	systimeint -= 116444736000000000i64;
+	abstime.tv_sec = systimeint / 10000000i64;
+	abstime.tv_nsec = systimeint % 10000000i64 * 100;
 #else
     clock_gettime(CLOCK_REALTIME, &abstime);
     abstime.tv_nsec += (timeout % 1000) * 1000000;
