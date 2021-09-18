@@ -1929,10 +1929,12 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
 		return -1;
 
 	if (!fdc->fifo || (fdc->tfifo < 1)) {
-		dma_channel_write(fdc->dma_ch, data);
-
 		fdc->data_ready = 1;
 		fdc->stat = 0xd0;
+
+		fdc->fifobufpos = 0;
+
+		result = dma_channel_write(fdc->dma_ch, data);
 
 		if (result & DMA_OVER) {
 			fdc->tc = 1;
