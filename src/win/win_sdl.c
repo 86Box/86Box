@@ -413,7 +413,7 @@ sdl_init_texture(void)
 }
 
 
-static void
+void
 sdl_reinit_texture(void)
 {
     if (sdl_flags == -1)
