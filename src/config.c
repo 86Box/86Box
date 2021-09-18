@@ -505,7 +505,7 @@ load_general(void)
 
     video_fullscreen_scale = config_get_int(cat, "video_fullscreen_scale", 0);
 
-    video_fullscreen_first = config_get_int(cat, "video_fullscreen_first", 0);
+    video_fullscreen_first = config_get_int(cat, "video_fullscreen_first", 1);
 
     video_filter_method = config_get_int(cat, "video_filter_method", 1);
 
@@ -2018,6 +2018,7 @@ config_load(void)
 	gfxcard = video_get_video_from_internal_name("cga");
 	vid_api = plat_vidapi("default");
 	vid_resize = 0;
+	video_fullscreen_first = 1;
 	time_sync = TIME_SYNC_ENABLED;
 	hdc_current = hdc_get_from_internal_name("none");
 	serial_enabled[0] = 1;
