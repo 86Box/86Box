@@ -263,7 +263,7 @@ image_list_init(HWND hdlg, int id, const uint8_t *icon_ids)
     while(1) {
 	if (icon_ids[i] == 0)
 		break;
-
+	BITMAPINFOHEADER hdr;
 #if defined(__amd64__) || defined(__aarch64__)
 	hiconItem = LoadIcon(hinstance, (LPCWSTR) ((uint64_t) icon_ids[i]));
 #else
@@ -4282,7 +4282,7 @@ mo_add_locations(HWND hdlg)
 	settings_add_string(hdlg, IDC_COMBO_MO_CHANNEL_IDE, (LPARAM) lptsTemp);
     }
 
-    for (int i = 0; i < KNOWN_MO_DRIVE_TYPES; i++) {
+    for (i = 0; i < KNOWN_MO_DRIVE_TYPES; i++) {
 	memset(temp, 0, 30);
 	memcpy(temp, mo_drive_types[i].vendor, 8);
 	temp[strlen(temp)] = ' ';

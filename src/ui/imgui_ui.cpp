@@ -711,23 +711,23 @@ extern "C" void HandleSizeChange()
     w = 0, h = 0;
 
 #ifdef _WIN32
-    cdrom_status_icon[0] = load_icon(MAKEINTRESOURCE(32));
-    cdrom_status_icon[1] = load_icon(MAKEINTRESOURCE(33));
-    fdd_status_icon[0][0] = load_icon(MAKEINTRESOURCE(24));
-    fdd_status_icon[0][1] = load_icon(MAKEINTRESOURCE(25));
-    fdd_status_icon[1][0] = load_icon(MAKEINTRESOURCE(16));
-    fdd_status_icon[1][1] = load_icon(MAKEINTRESOURCE(17));
-    cart_icon = load_icon(MAKEINTRESOURCE(104));
-    mo_status_icon[0] = load_icon(MAKEINTRESOURCE(56));
-    mo_status_icon[1] = load_icon(MAKEINTRESOURCE(57));
-    zip_status_icon[0] = load_icon(MAKEINTRESOURCE(48));
-    zip_status_icon[1] = load_icon(MAKEINTRESOURCE(49));
-    cas_status_icon[0] = load_icon(MAKEINTRESOURCE(64));
-    cas_status_icon[1] = load_icon(MAKEINTRESOURCE(65));
-    hdd_status_icon[0] = load_icon(MAKEINTRESOURCE(80));
-    hdd_status_icon[1] = load_icon(MAKEINTRESOURCE(81));
-    net_status_icon[0] = load_icon(MAKEINTRESOURCE(96));
-    net_status_icon[1] = load_icon(MAKEINTRESOURCE(97));
+    cdrom_status_icon[0] = load_icon(MAKEINTRESOURCE(32 + 256));
+    cdrom_status_icon[1] = load_icon(MAKEINTRESOURCE(33 + 256));
+    fdd_status_icon[0][0] = load_icon(MAKEINTRESOURCE(24 + 256));
+    fdd_status_icon[0][1] = load_icon(MAKEINTRESOURCE(25 + 256));
+    fdd_status_icon[1][0] = load_icon(MAKEINTRESOURCE(16 + 256));
+    fdd_status_icon[1][1] = load_icon(MAKEINTRESOURCE(17 + 256));
+    cart_icon = load_icon(MAKEINTRESOURCE(104 + 256));
+    mo_status_icon[0] = load_icon(MAKEINTRESOURCE(56 + 256));
+    mo_status_icon[1] = load_icon(MAKEINTRESOURCE(57 + 256));
+    zip_status_icon[0] = load_icon(MAKEINTRESOURCE(48 + 256));
+    zip_status_icon[1] = load_icon(MAKEINTRESOURCE(49 + 256));
+    cas_status_icon[0] = load_icon(MAKEINTRESOURCE(64 + 256));
+    cas_status_icon[1] = load_icon(MAKEINTRESOURCE(65 + 256));
+    hdd_status_icon[0] = load_icon(MAKEINTRESOURCE(80 + 256));
+    hdd_status_icon[1] = load_icon(MAKEINTRESOURCE(81 + 256));
+    net_status_icon[0] = load_icon(MAKEINTRESOURCE(96 + 256));
+    net_status_icon[1] = load_icon(MAKEINTRESOURCE(97 + 256));
 #else
     cdrom_status_icon[0] = load_icon(gcdromicon_data, gcdromicon_size);
     cdrom_status_icon[1] = load_icon(gcdromactiveicon_data, gcdromactiveicon_size);
