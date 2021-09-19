@@ -298,21 +298,25 @@ thread_create_mutex_with_spin_count(unsigned int spin_count)
 }
 
 
-void
+int
 thread_wait_mutex(mutex_t *_mutex)
 {
     pt_mutex_t *mutex = (pt_mutex_t *)_mutex;
 
     pthread_mutex_lock(&mutex->mutex);
+
+    return 1;
 }
 
 
-void
+int
 thread_unlock_mutex(mutex_t *_mutex)
 {
     pt_mutex_t *mutex = (pt_mutex_t *)_mutex;
 
     pthread_mutex_unlock(&mutex->mutex);
+
+    return 1;
 }
 
 
