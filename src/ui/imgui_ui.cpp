@@ -1283,9 +1283,10 @@ extern "C" void RenderImGui()
 	    RenderCassetteImguiMenu();
 	    ImGui::EndMenu();
 	}
-#ifdef _WIN32
+
 	if (ImGui::BeginMenu("Tools"))
 	{
+#ifdef _WIN32
 		if (ImGui::MenuItem("Settings"))
 		{
 			SDL_SysWMinfo wmInfo;
@@ -1294,9 +1295,15 @@ extern "C" void RenderImGui()
 			HWND hwnd = wmInfo.info.win.window;
 			win_settings_open(hwnd);
 		}
+#endif
+		if (ImGui::MenuItem("Update status bar icons", NULL, update_icons))
+		{
+			update_icons ^= 1;
+			config_save();
+		}
 		ImGui::EndMenu();
 	}
-#endif
+
 	if (ImGui::BeginMenu("Help"))
 	{
 	    if (ImGui::MenuItem("Documentation"))
