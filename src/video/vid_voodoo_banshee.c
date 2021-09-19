@@ -2407,7 +2407,7 @@ static uint8_t banshee_pci_read(int func, int addr, void *p)
                 case 0x00: ret = 0x1a; break; /*3DFX*/
                 case 0x01: ret = 0x12; break;
                 
-                case 0x02: ret = (banshee->type == TYPE_BANSHEE) ? 0x03 : ((banshee->type == TYPE_VELOCITY100) ? 0x04 : 0x05); break;
+                case 0x02: ret = (banshee->type == TYPE_BANSHEE) ? 0x03 : 0x05; break;
                 case 0x03: ret = 0x00; break;
 
                 case 0x04: ret = banshee->pci_regs[0x04] & 0x27; break;
@@ -2858,7 +2858,14 @@ static void *banshee_init_common(const device_t *info, char *fn, int has_sgram, 
 			banshee->pci_regs[0x2e] = 0x3a;
 			banshee->pci_regs[0x2f] = 0x00;
 			break;
-        }
+        
+                case TYPE_VELOCITY100:
+			banshee->pci_regs[0x2c] = 0x1a;
+			banshee->pci_regs[0x2d] = 0x12;
+			banshee->pci_regs[0x2e] = 0x4b;
+			banshee->pci_regs[0x2f] = 0x00;
+			break;		
+		}
 
 	video_inform(VIDEO_FLAG_TYPE_SPECIAL, banshee->agp ? &timing_banshee_agp : &timing_banshee);
 

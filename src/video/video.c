@@ -74,7 +74,6 @@
 
 volatile int	screenshots = 0;
 bitmap_t	*buffer32 = NULL;
-bitmap_t	*render_buffer = NULL;
 uint8_t		fontdat[2048][8];		/* IBM CGA font */
 uint8_t		fontdatm[2048][16];		/* IBM MDA font */
 uint8_t		fontdatw[512][32];		/* Wyse700 font */
@@ -245,7 +244,7 @@ const uint32_t shade[5][256] =
 
 
 static struct {
-    int		x, y, y1, y2, w, h;
+    int		x, y, w, h;
     int		busy;
     int		buffer_in_use;
 
@@ -256,7 +255,7 @@ static struct {
 }		blit_data;
 
 
-static void (*blit_func)(int x, int y, int y1, int y2, int w, int h);
+static void (*blit_func)(int x, int y, int w, int h);
 
 
 #ifdef ENABLE_VIDEO_LOG
@@ -280,7 +279,7 @@ video_log(const char *fmt, ...)
 
 
 void
-video_setblit(void(*blit)(int,int,int,int,int,int))
+video_setblit(void(*blit)(int,int,int,int))
 {
     blit_func = blit;
 }
@@ -318,7 +317,7 @@ static png_infop	info_ptr;
 
 
 static void
-video_take_screenshot(const char *fn, int startx, int starty, int y1, int y2, int w, int h)
+video_take_screenshot(const char *fn)
 {
     int i, x, y;
     png_bytep *b_rgb = NULL;
@@ -350,25 +349,28 @@ video_take_screenshot(const char *fn, int startx, int starty, int y1, int y2, in
 
     png_init_io(png_ptr, fp);
 
-    png_set_IHDR(png_ptr, info_ptr, w, h,
+    png_set_IHDR(png_ptr, info_ptr, blit_data.w, blit_data.h,
 	8, PNG_COLOR_TYPE_RGB, PNG_INTERLACE_NONE,
 	PNG_COMPRESSION_TYPE_BASE, PNG_FILTER_TYPE_BASE);
 
-    b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * h);
+    b_rgb = (png_bytep *) malloc(sizeof(png_bytep) * blit_data.h);
     if (b_rgb == NULL) {
 	video_log("[video_take_screenshot] Unable to Allocate RGB Bitmap Memory");
 	fclose(fp);
 	return;
     }
 
-    for (y = 0; y < h; ++y) {
+    for (y = 0; y < blit_data.h; ++y) {
 	b_rgb[y] = (png_byte *) malloc(png_get_rowbytes(png_ptr, info_ptr));
-    	for (x = 0; x < w; ++x) {
-		temp = render_buffer->dat[(y * w) + x];
-
-		b_rgb[y][(x) * 3 + 0] = (temp >> 16) & 0xff;
-		b_rgb[y][(x) * 3 + 1] = (temp >> 8) & 0xff;
-		b_rgb[y][(x) * 3 + 2] = temp & 0xff;
+    	for (x = 0; x < blit_data.w; ++x) {
+		if (buffer32 == NULL)
+			memset(&(b_rgb[y][x * 3]), 0x00, 3);
+		else {
+			temp = buffer32->line[blit_data.y + y][blit_data.x + x];
+			b_rgb[y][x * 3] = (temp >> 16) & 0xff;
+			b_rgb[y][(x * 3) + 1] = (temp >> 8) & 0xff;
+			b_rgb[y][(x * 3) + 2] = temp & 0xff;
+		}
 	}
     }
 
@@ -379,7 +381,7 @@ video_take_screenshot(const char *fn, int startx, int starty, int y1, int y2, in
     png_write_end(png_ptr, NULL);
 
     /* cleanup heap allocation */
-    for (i = 0; i < h; i++)
+    for (i = 0; i < blit_data.h; i++)
 	if (b_rgb[i])  free(b_rgb[i]);
 
     if (b_rgb) free(b_rgb);
@@ -389,7 +391,7 @@ video_take_screenshot(const char *fn, int startx, int starty, int y1, int y2, in
 
 
 static void
-video_screenshot(int x, int y, int y1, int y2, int w, int h)
+video_screenshot(void)
 {
     char path[1024], fn[128];
 
@@ -408,7 +410,7 @@ video_screenshot(int x, int y, int y1, int y2, int w, int h)
 
     video_log("taking screenshot to: %s\n", path);
 
-    video_take_screenshot((const char *) path, x, y, y1, y2, w, h);
+    video_take_screenshot((const char *) path);
     png_destroy_write_struct(&png_ptr, &info_ptr);
 }
 
@@ -418,10 +420,12 @@ video_transform_copy(uint32_t *dst, uint32_t *src, int len)
 {
     int i;
 
-    for (i = 0; i < len; i++) {
-	*dst = video_color_transform(*src);
-	dst++;
-	src++;
+    if ((dst != NULL) && (src != NULL)) {
+	for (i = 0; i < len; i++) {
+		*dst = video_color_transform(*src);
+		dst++;
+		src++;
+	}
     }
 }
 
@@ -436,28 +440,22 @@ void blit_thread(void *param)
 	thread_reset_event(blit_data.wake_blit_thread);
 	MTR_BEGIN("video", "blit_thread");
 
-	if (blit_data.y2 > 0) {
-		for (yy = blit_data.y1; yy < blit_data.y2; yy++) {
+	if ((video_grayscale || invert_display) && (blit_data.h > 0)) {
+		for (yy = 0; yy < blit_data.h; yy++) {
 			if (((blit_data.y + yy) >= 0) && ((blit_data.y + yy) < buffer32->h)) {
-				if (video_grayscale || invert_display)
-					video_transform_copy(&(render_buffer->dat)[yy * blit_data.w], &(buffer32->line[blit_data.y + yy][blit_data.x]), blit_data.w);
-				else
-					memcpy(&(render_buffer->dat)[yy * blit_data.w], &(buffer32->line[blit_data.y + yy][blit_data.x]), blit_data.w << 2);
+				video_transform_copy(&(buffer32->line[blit_data.y + yy][blit_data.x]), &(buffer32->line[blit_data.y + yy][blit_data.x]), blit_data.w);
 			}
 		}
 	}
 
 	if (screenshots) {
-		if (render_buffer != NULL)
-			video_screenshot(blit_data.x, blit_data.y, blit_data.y1, blit_data.y2, blit_data.w, blit_data.h);
+		video_screenshot();
 		screenshots--;
 		video_log("screenshot taken, %i left\n", screenshots);
 	}
 
 	if (blit_func)
-		blit_func(blit_data.x, blit_data.y,
-			  blit_data.y1, blit_data.y2,
-			  blit_data.w, blit_data.h);
+		blit_func(blit_data.x, blit_data.y, blit_data.w, blit_data.h);
 
 	blit_data.busy = 0;
 
@@ -468,7 +466,7 @@ void blit_thread(void *param)
 
 
 void
-video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
+video_blit_memtoscreen(int x, int y, int w, int h)
 {
     MTR_BEGIN("video", "video_blit_memtoscreen");
 
@@ -481,8 +479,6 @@ video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h)
     blit_data.buffer_in_use = 1;
     blit_data.x = x;
     blit_data.y = y;
-    blit_data.y1 = y1;
-    blit_data.y2 = y2;
     blit_data.w = w;
     blit_data.h = h;
 
@@ -546,7 +542,7 @@ video_blend(int x, int y)
 
 
 void
-video_blit_memtoscreen_8(int x, int y, int y1, int y2, int w, int h)
+video_blit_memtoscreen_8(int x, int y, int w, int h)
 {
     int yy, xx;
 
@@ -563,7 +559,7 @@ video_blit_memtoscreen_8(int x, int y, int y1, int y2, int w, int h)
 	}
     }
 
-    video_blit_memtoscreen(x, y, y1, y2, w, h);
+    video_blit_memtoscreen(x, y, w, h);
 }
 
 
@@ -833,7 +829,6 @@ video_init(void)
 
     /* Account for overscan. */
     buffer32 = create_bitmap(2048 + 64, 2048 + 64);
-    render_buffer = create_bitmap(2048 + 64, 2048 + 64);
 
     for (c = 0; c < 64; c++) {
 	cgapal[c + 64].r = (((c & 4) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
@@ -902,7 +897,6 @@ video_close(void)
     free(video_8togs);
     free(video_6to8);
 
-    destroy_bitmap(render_buffer);
     destroy_bitmap(buffer32);
 
     if (fontdatksc5601) {

@@ -153,6 +153,7 @@ typedef struct svga_t
 
 	/*Force CRTC to dword mode, regardless of CR14/CR17. Required for S3 enhanced mode*/
 	int force_dword_mode;
+	int force_byte_mode;
 
 	int remap_required;
 	uint32_t (*remap_func)(struct svga_t *svga, uint32_t in_addr);
@@ -201,7 +202,7 @@ void		svga_close(svga_t *svga);
 uint32_t	svga_mask_addr(uint32_t addr, svga_t *svga);
 uint32_t	svga_mask_changedaddr(uint32_t addr, svga_t *svga);
 
-void		svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga);
+void		svga_doblit(int wx, int wy, svga_t *svga);
 
 
 enum {

@@ -72,7 +72,8 @@ const machine_t machines[] = {
     { "[8088] DTK XT clone",			"dtk",			MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   640,  64,    0,		  machine_xt_dtk_init, NULL			},
     { "[8088] Eagle PC Spirit",			"pcspirit",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640,  64,    0,	     machine_xt_pcspirit_init, NULL			},
     { "[8088] Generic XT clone",		"genxt",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   640,  64,    0,		   machine_genxt_init, NULL			},
-    { "[8088] Juko XT clone",			"jukopc",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   640,  64,    0,	       machine_xt_jukopc_init, NULL			},
+    { "[8088] Juko ST",				"jukopc",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									   64,   640,  64,    0,	       machine_xt_jukopc_init, NULL			},
+    { "[8088] Multitech PC-500",		"multitech_pc500",	MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640,  64,    0,       machine_xt_multitechpc500_init, NULL			},
     { "[8088] Multitech PC-700",		"pc700",		MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640,  64,    0,		machine_xt_pc700_init, NULL			},
     { "[8088] NCR PC4i",			"pc4i",			MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  256,   640, 256,    0,		 machine_xt_pc4i_init, NULL			},
     { "[8088] Olivetti M19",			"m19",			MACHINE_TYPE_8088,		CPU_PKG_8088, 0, 4772728, 7159092, 0, 0, 0, 0,									MACHINE_PC | MACHINE_VIDEO_FIXED,						  256,   640, 256,    0,		  machine_xt_m19_init, m19_get_device		},
@@ -105,6 +106,7 @@ const machine_t machines[] = {
     { "[8086] Olivetti M240",			"m240",			MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640, 128,    0,		 machine_xt_m240_init, NULL			},
     { "[8086] Schetmash Iskra-3104",		"iskra3104",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640, 128,    0,	    machine_xt_iskra3104_init, NULL			},
     { "[8086] Tandy 1000 SL/2",			"tandy1000sl2",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO_FIXED,						  512,   768, 128,    0,	    machine_tandy1000sl2_init, tandy1k_sl_get_device	},
+    { "[8086] Victor V86P",			"v86p",			MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO,							  512,  1024, 128,  127,		machine_v86p_init, NULL				},
     { "[8086] Toshiba T1200",			"t1200",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO,							 1024,  2048,1024,   63,		machine_xt_t1200_init, t1200_get_device		},
     
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)

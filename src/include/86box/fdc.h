@@ -157,7 +157,7 @@ extern void	fdc_set_base(fdc_t *fdc, int base);
 extern void	fdc_set_irq(fdc_t *fdc, int irq);
 extern void	fdc_set_dma_ch(fdc_t *fdc, int dma_ch);
 extern int	fdc_getdata(fdc_t *fdc, int last);
-extern int	fdc_data(fdc_t *fdc, uint8_t data);
+extern int	fdc_data(fdc_t *fdc, uint8_t data, int last);
 
 extern void	fdc_sectorid(fdc_t *fdc, uint8_t track, uint8_t side,
 			     uint8_t sector, uint8_t size, uint8_t crc1,

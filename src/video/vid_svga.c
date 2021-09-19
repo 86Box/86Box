@@ -41,7 +41,7 @@
 #include <86box/vid_svga_render.h>
 
 
-void svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga);
+void svga_doblit(int wx, int wy, svga_t *svga);
 
 extern int	cyc_total;
 extern uint8_t	edatlookup[4][4];
@@ -823,10 +823,10 @@ svga_poll(void *p)
 		if (!svga->override) {
 			if (svga->vertical_linedbl) {
 				wy = (svga->lastline - svga->firstline) << 1;
-				svga_doblit(svga->firstline_draw << 1, (svga->lastline_draw + 1) << 1, wx, wy, svga);
+				svga_doblit(wx, wy, svga);
 			} else {
 				wy = svga->lastline - svga->firstline;
-				svga_doblit(svga->firstline_draw, svga->lastline_draw + 1, wx, wy, svga);
+				svga_doblit(wx, wy, svga);
 			}
 		}
 
@@ -1342,7 +1342,7 @@ svga_read_linear(uint32_t addr, void *p)
 
 
 void
-svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
+svga_doblit(int wx, int wy, svga_t *svga)
 {
     int y_add, x_add, y_start, x_start, bottom;
     uint32_t *p;
@@ -1361,15 +1361,8 @@ svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 	bottom <<= 1;
     }
 
-    if ((wx <= 0) || (wy <= 0)) {
-	video_blit_memtoscreen(x_start, y_start, 0, 0, 0, 0);
+    if ((wx <= 0) || (wy <= 0))
 	return;
-    }
-
-    if (y1 > y2) {
-	video_blit_memtoscreen(x_start, y_start, 0, 0, xsize + x_add, ysize + y_add);
-	return;
-    }
 
     if (svga->vertical_linedbl)
 	svga->y_add <<= 1;
@@ -1423,7 +1416,7 @@ svga_doblit(int y1, int y2, int wx, int wy, svga_t *svga)
 	}
     }
 
-    video_blit_memtoscreen(x_start, y_start, y1, y2 + y_add, xsize + x_add, ysize + y_add);
+    video_blit_memtoscreen(x_start, y_start, xsize + x_add, ysize + y_add);
 
     if (svga->vertical_linedbl)
 	svga->vertical_linedbl >>= 1;

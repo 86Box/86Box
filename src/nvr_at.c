@@ -922,6 +922,13 @@ nvr_lock_set(int base, int size, int lock, nvr_t *nvr)
 }
 
 
+void
+nvr_irq_set(int irq, nvr_t *nvr)
+{
+    nvr->irq = irq;
+}
+
+
 static void
 nvr_at_reset(void *priv)
 {

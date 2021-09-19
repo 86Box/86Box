@@ -230,7 +230,7 @@ void mda_poll(void *p)
 						if (video_force_resize_get())
 							video_force_resize_set(0);
                                         }
-                                        video_blit_memtoscreen_8(0, mda->firstline, 0, ysize, xsize, ysize);
+                                        video_blit_memtoscreen_8(0, mda->firstline, xsize, ysize);
                                         frames++;
                                         video_res_x = mda->crtc[1];
                                         video_res_y = mda->crtc[6];

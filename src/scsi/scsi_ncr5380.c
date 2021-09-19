@@ -1362,7 +1362,7 @@ t128_read(uint32_t addr, void *priv)
 			if (ncr_dev->t128.host_pos == MIN(512, dev->buffer_length)) {
 				ncr_dev->t128.status &= ~0x04;
 				ncr_log("Transfer busy read, status = %02x, period = %lf\n", ncr_dev->t128.status, ncr_dev->period);
-				if (ncr_dev->period == 0.2)
+				if (ncr_dev->period == 0.2 || ncr_dev->period == 0.02)
 					timer_on_auto(&ncr_dev->timer, 40.2);
 			}
 		}

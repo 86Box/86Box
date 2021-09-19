@@ -474,17 +474,17 @@ nga_poll(void *priv)
 								/* nga specific */
 								if (enable_overscan) {
 									if (nga->cga.composite) 
-										video_blit_memtoscreen(0, (nga->cga.firstline - 8), 0, (nga->cga.lastline - nga->cga.firstline) + 16,
+										video_blit_memtoscreen(0, (nga->cga.firstline - 8),
 												xsize, (nga->cga.lastline - nga->cga.firstline) + 16);
 									else
-										video_blit_memtoscreen_8(0, (nga->cga.firstline - 8), 0, (nga->cga.lastline - nga->cga.firstline) + 16,
+										video_blit_memtoscreen_8(0, (nga->cga.firstline - 8),
 												xsize, (nga->cga.lastline - nga->cga.firstline) + 16);
 								} else {
 									if (nga->cga.composite) 
-										video_blit_memtoscreen(8, nga->cga.firstline, 0, (nga->cga.lastline - nga->cga.firstline),
+										video_blit_memtoscreen(8, nga->cga.firstline,
 												xsize, (nga->cga.lastline - nga->cga.firstline));
 									else
-										video_blit_memtoscreen_8(8, nga->cga.firstline, 0, (nga->cga.lastline - nga->cga.firstline),
+										video_blit_memtoscreen_8(8, nga->cga.firstline,
 												xsize, (nga->cga.lastline - nga->cga.firstline));
 								}
 							}

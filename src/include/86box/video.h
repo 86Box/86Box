@@ -84,7 +84,7 @@ typedef rgb_t PALETTE[256];
 extern int	changeframecount;
 
 extern volatile int screenshots;
-extern bitmap_t	*buffer32, *render_buffer;
+extern bitmap_t	*buffer32;
 extern PALETTE	cgapal,
 		cgapal_mono[6];
 extern uint32_t	pal_lookup[256];
@@ -150,10 +150,10 @@ extern void	video_inform(int type, const video_timings_t *ptr);
 extern int	video_get_type(void);
 
 
-extern void	video_setblit(void(*blit)(int,int,int,int,int,int));
+extern void	video_setblit(void(*blit)(int,int,int,int));
 extern void	video_blend(int x, int y);
-extern void	video_blit_memtoscreen_8(int x, int y, int y1, int y2, int w, int h);
-extern void	video_blit_memtoscreen(int x, int y, int y1, int y2, int w, int h);
+extern void	video_blit_memtoscreen_8(int x, int y, int w, int h);
+extern void	video_blit_memtoscreen(int x, int y, int w, int h);
 extern void	video_blit_complete(void);
 extern void	video_wait_for_blit(void);
 extern void	video_wait_for_buffer(void);
@@ -249,6 +249,9 @@ extern const device_t compaq_cga_2_device;
 extern const device_t ogc_device;
 extern const device_t ogc_m24_device;
 
+/* Chips & Technologies 82C425 */
+extern const device_t f82c425_video_device;
+
 /* NCR NGA */
 extern const device_t nga_device;
 
@@ -327,6 +330,7 @@ extern const device_t s3_metheus_86c928_isa_device;
 extern const device_t s3_metheus_86c928_vlb_device;
 extern const device_t s3_spea_mirage_86c801_isa_device;
 extern const device_t s3_spea_mirage_86c805_vlb_device;
+extern const device_t s3_mirocrystal_8s_805_vlb_device;
 extern const device_t s3_mirocrystal_10sd_805_vlb_device;
 extern const device_t s3_phoenix_86c801_isa_device;
 extern const device_t s3_phoenix_86c805_vlb_device;
@@ -346,6 +350,7 @@ extern const device_t s3_phoenix_trio64vplus_pci_device;
 extern const device_t s3_phoenix_trio64vplus_onboard_pci_device;
 extern const device_t s3_mirocrystal_20sv_964_vlb_device;
 extern const device_t s3_mirocrystal_20sv_964_pci_device;
+extern const device_t s3_mirocrystal_20sd_864_vlb_device;
 extern const device_t s3_phoenix_vision864_pci_device;
 extern const device_t s3_phoenix_vision864_vlb_device;
 extern const device_t s3_phoenix_vision868_pci_device;
@@ -354,8 +359,9 @@ extern const device_t s3_diamond_stealth64_pci_device;
 extern const device_t s3_diamond_stealth64_vlb_device;
 extern const device_t s3_diamond_stealth64_964_pci_device;
 extern const device_t s3_diamond_stealth64_964_vlb_device;
-extern const device_t s3_mirovideo_40sv_968_pci_device;
-extern const device_t s3_mirovideo_40sv_968_vlb_device;
+extern const device_t s3_mirovideo_40sv_ergo_968_pci_device;
+extern const device_t s3_phoenix_vision968_pci_device;
+extern const device_t s3_phoenix_vision968_vlb_device;
 extern const device_t s3_spea_mercury_p64v_pci_device;
 extern const device_t s3_elsa_winner2000_pro_x_964_pci_device;
 extern const device_t s3_elsa_winner2000_pro_x_pci_device;

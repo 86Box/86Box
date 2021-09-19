@@ -590,7 +590,7 @@ void t3100e_poll(void *p)
 				if (video_force_resize_get())
 					video_force_resize_set(0);
                         }
-                        video_blit_memtoscreen(0, 0, 0, ysize, xsize, ysize);
+                        video_blit_memtoscreen(0, 0, xsize, ysize);
 
                         frames++;
 			/* Fixed 640x400 resolution */

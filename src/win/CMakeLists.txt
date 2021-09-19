@@ -15,7 +15,7 @@
 
 enable_language(RC)
 
-add_library(plat OBJECT win.c win_dynld.c win_thread.c win_cdrom.c
+add_library(plat OBJECT win.c win_dynld.c win_cdrom.c
 	win_keyboard.c win_crashdump.c win_midi.c win_mouse.c)
 
 add_library(ui OBJECT win_ui.c win_stbar.c win_sdl.c win_dialog.c win_about.c
@@ -56,6 +56,10 @@ if(OPENGL)
 	target_compile_definitions(plat PRIVATE USE_OPENGL)
 
 	target_sources(ui PRIVATE glad.c win_opengl.c win_opengl_glslp.c)
+endif()
+
+if(NOT PTHREAD)
+	target_sources(plat PRIVATE win_thread.c)
 endif()
 
 target_link_libraries(86Box advapi32 comctl32 comdlg32 gdi32 shell32 iphlpapi

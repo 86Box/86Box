@@ -715,6 +715,9 @@ extern int	reset_on_hlt, hlt_reset_pending;
 
 extern cyrix_t	cyrix;
 
+extern uint8_t	use_custom_nmi_vector;
+extern uint32_t	custom_nmi_vector;
+
 extern void	(*cpu_exec)(int cycs);
 extern uint8_t	do_translate, do_translate2;
 

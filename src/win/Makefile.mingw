@@ -26,6 +26,10 @@ ifndef DEV_BUILD
 DEV_BUILD	:= n
 endif
 
+ifneq ($(PTHREAD), n)
+  PTHREAD	:= y
+endif
+
 ifeq ($(DEV_BUILD), y)
  ifndef DEBUG
   DEBUG		:= y
@@ -607,10 +611,17 @@ CXXFLAGS	:= $(CFLAGS)
 #########################################################################
 #		Create the (final) list of objects to build.		#
 #########################################################################
+ifeq ($(PTHREAD), y)
+MAINOBJ		:= 86box.o config.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
+		   nmi.o pic.o pit.o port_92.o ppi.o pci.o mca.o \
+		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o thread.o \
+		   $(VNCOBJ)
+else
 MAINOBJ		:= 86box.o config.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
 		   nmi.o pic.o pit.o port_92.o ppi.o pci.o mca.o \
 		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o \
 		   $(VNCOBJ)
+endif
 
 MEMOBJ		:= catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o smram.o spd.o sst_flash.o
 
@@ -620,7 +631,7 @@ CPUOBJ		:= $(DYNARECOBJ) \
 		    808x.o 386.o 386_common.o 386_dynarec.o 386_dynarec_ops.o \
 		    x86seg.o x87.o x87_timings.o
 
-CHIPSETOBJ	:= acc2168.o cs8230.o ali1217.o ali1429.o ali1489.o et6000.o headland.o intel_82335.o cs4031.o \
+CHIPSETOBJ	:= 82c100.o acc2168.o cs8230.o ali1217.o ali1429.o ali1489.o et6000.o headland.o intel_82335.o cs4031.o \
 		    intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
 		    neat.o opti495.o opti822.o opti895.o opti5x7.o scamp.o scat.o via_vt82c49x.o via_vt82c505.o \
 		    gc100.o \
@@ -635,7 +646,7 @@ MCHOBJ		:= machine.o machine_table.o \
 		    m_xt_xi8088.o m_xt_zenith.o \
 		    m_pcjr.o \
 		    m_amstrad.o m_europc.o \
-		    m_xt_olivetti.o m_tandy.o \
+		    m_xt_olivetti.o m_tandy.o m_v86p.o \
 		    m_at.o m_at_commodore.o \
 		    m_at_t3100e.o m_at_t3100e_vid.o \
 		    m_ps1.o m_ps1_hdc.o \
@@ -773,6 +784,7 @@ VIDOBJ		:= video.o \
 		    vid_paradise.o \
 			vid_rtg310x.o \
 		    vid_ti_cf62011.o \
+		    vid_f82c425.o \
 		    vid_tvga.o \
 		    vid_tgui9440.o vid_tkd8001_ramdac.o \
 		    vid_att20c49x_ramdac.o \
@@ -790,11 +802,19 @@ VOODOOOBJ	:= vid_voodoo.o vid_voodoo_banshee.o \
 		    vid_voodoo_render.o vid_voodoo_setup.o \
 		    vid_voodoo_texture.o
 
+ifeq ($(PTHREAD), y)
+PLATOBJ		:= win.o \
+		    win_dynld.o \
+		    win_cdrom.o win_keyboard.o \
+		    win_crashdump.o win_midi.o \
+		    win_mouse.o
+else
 PLATOBJ		:= win.o \
 		    win_dynld.o win_thread.o \
 		    win_cdrom.o win_keyboard.o \
 		    win_crashdump.o win_midi.o \
 		    win_mouse.o
+endif
 
 ifeq ($(DINPUT), y)
  PLATOBJ	+= win_joystick.o
@@ -820,7 +840,11 @@ endif
 ifneq ($(WX), n)
 LIBS		+= $(WX_LIBS) -lm
 endif
+ifeq ($(PTHREAD), y)
+LIBS		+= -lpng -lz -lwsock32 -lshell32 -liphlpapi -lpsapi -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -luxtheme -lversion -lwinmm -static -lstdc++ -lpthread
+else
 LIBS		+= -lpng -lz -lwsock32 -lshell32 -liphlpapi -lpsapi -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -luxtheme -lversion -lwinmm -static -lstdc++
+endif
 ifneq ($(X64), y)
 ifneq ($(ARM64), y)
 LIBS		+= -Wl,--large-address-aware

@@ -697,11 +697,13 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				window_remember = !window_remember;
 				CheckMenuItem(hmenu, IDM_VID_REMEMBER, window_remember ? MF_CHECKED : MF_UNCHECKED);
 				GetWindowRect(hwnd, &rect);
-				if (!(vid_resize & 2) && window_remember) {
+				if (window_remember || (vid_resize & 2)) {
 					window_x = rect.left;
 					window_y = rect.top;
-					window_w = rect.right - rect.left;
-					window_h = rect.bottom - rect.top;
+					if (!(vid_resize & 2)) {
+						window_w = rect.right - rect.left;
+						window_h = rect.bottom - rect.top;
+					}
 				}
 				config_save();
 				break;
@@ -978,11 +980,13 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			video_force_resize_set(1);
 		}
 
-		if (window_remember) {
+		if (!(pos->flags & SWP_NOSIZE) && (window_remember || (vid_resize & 2))) {
 			window_x = pos->x;
 			window_y = pos->y;
-			window_w = pos->cx;
-			window_h = pos->cy;
+			if (!(vid_resize & 2)) {
+				window_w = pos->cx;
+				window_h = pos->cy;
+			}
 			save_window_pos = 1;
 			config_save();
 		}
@@ -1375,6 +1379,7 @@ ui_init(int nCmdShow)
 	MoveWindow(hwnd, window_x, window_y, window_w, window_h, TRUE);
     else {
 	if (vid_resize >= 2) {
+		MoveWindow(hwnd, window_x, window_y, window_w, window_h, TRUE);
 		scrnsz_x = fixed_size_x;
 		scrnsz_y = fixed_size_y;
 	}
@@ -1422,7 +1427,8 @@ ui_init(int nCmdShow)
     }
 
     /* Initialize the mouse module. */
-    win_mouse_init();
+    if (!start_in_fullscreen && !video_fullscreen_first)
+	win_mouse_init();
 
     /*
      * Before we can create the Render window, we first have
@@ -1452,15 +1458,15 @@ ui_init(int nCmdShow)
     else
 	plat_resize(scrnsz_x, scrnsz_y);
 
+    /* Initialize the rendering window, or fullscreen. */
+    if (start_in_fullscreen || video_fullscreen_first)
+	plat_setfullscreen(3);
+
     /* Fire up the machine. */
     pc_reset_hard_init();
 
     /* Set the PAUSE mode depending on the renderer. */
     plat_pause(0);
-
-    /* Initialize the rendering window, or fullscreen. */
-    if (start_in_fullscreen)
-	plat_setfullscreen(1);
 
     /* If so requested via the command line, inform the
      * application that started us of our HWND, using the
