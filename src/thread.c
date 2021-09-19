@@ -310,7 +310,7 @@ thread_wait_mutex(mutex_t *_mutex)
 
 
 int
-thread_unlock_mutex(mutex_t *_mutex)
+thread_release_mutex(mutex_t *_mutex)
 {
     pt_mutex_t *mutex = (pt_mutex_t *)_mutex;
 
