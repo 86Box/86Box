@@ -36,6 +36,9 @@ extern "C"
 #include <86box/plat.h>
 #ifdef _WIN32
 #include <86box/win.h>
+#ifdef USE_DISCORD
+#include <86box/win_discord.h>
+#endif
 #endif
 #include <86box/sound.h>
 #include <86box/video.h>
@@ -46,6 +49,10 @@ extern "C"
 #include <86box/ui.h>
 #include <86box/network.h>
 }
+
+#ifdef MTR_ENABLED
+#include <minitrace/minitrace.h>
+#endif
 
 #ifndef _WIN32
 #define INCBIN_STYLE INCBIN_STYLE_SNAKE
@@ -67,6 +74,7 @@ INCBIN(hard_disk, _INCBIN_DIR"/../unix/icons/hard_disk.png");
 INCBIN(hard_disk_active, _INCBIN_DIR"/../unix/icons/hard_disk_active.png");
 INCBIN(network_icon, _INCBIN_DIR"/../unix/icons/network.png");
 INCBIN(network_active_icon, _INCBIN_DIR"/../unix/icons/network_active.png");
+INCBIN(sound_icon, _INCBIN_DIR"/../unix/icons/sound.png")
 #endif
 
 #include <string>
@@ -149,6 +157,49 @@ is_valid_mo(int i)
 	(scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
 	return 0;
     return mo_drives[i].bus_type != 0;
+}
+
+#ifdef MTR_ENABLED
+static void
+handle_trace(int trace)
+{
+	//EnableMenuItem(hmenu, IDM_ACTION_BEGIN_TRACE, trace ? MF_GRAYED : MF_ENABLED);
+	//EnableMenuItem(hmenu, IDM_ACTION_END_TRACE, trace ? MF_ENABLED : MF_GRAYED);
+	if (trace) {
+		init_trace();
+	}
+	else {
+		shutdown_trace();
+	}
+}
+#endif
+
+static void open_url(const char* url)
+{
+#if SDL_VERSION_ATLEAST(2, 0, 14)
+	SDL_version version{};
+	SDL_GetVersion(&version);
+	if (version.major >= 2 && version.minor >= 0 && version.patch >= 14)
+	{
+		SDL_OpenURL(url);
+	}
+	else
+#endif
+	{
+#ifndef _WIN32
+		char cmd[4096] = { 0 };
+#endif
+
+#ifdef _WIN32
+		ShellExecuteA(nullptr, "open", url, NULL, NULL, SW_SHOW);
+#elif defined __APPLE__
+		sprintf(cmd, "open %s", url);
+		popen(cmd, "r");
+#elif defined __unix__
+		sprintf(cmd, "xdg-open %s", url);
+		popen(cmd, "r");
+#endif
+	}
 }
 
 static std::vector<std::pair<std::string, std::string>> floppyfilter
@@ -643,14 +694,15 @@ extern "C" void InitImGui()
     ImGui_ImplSDL2_InitForOpenGL(sdl_win, NULL);
 }
 
-SDL_Texture* cdrom_status_icon[2];
-SDL_Texture* fdd_status_icon[2][2];
-SDL_Texture* cart_icon;
-SDL_Texture* mo_status_icon[2];
-SDL_Texture* zip_status_icon[2];
-SDL_Texture* cas_status_icon[2];
-SDL_Texture* hdd_status_icon[2];
-SDL_Texture* net_status_icon[2];
+static SDL_Texture* cdrom_status_icon[2];
+static SDL_Texture* fdd_status_icon[2][2];
+static SDL_Texture* cart_icon;
+static SDL_Texture* mo_status_icon[2];
+static SDL_Texture* zip_status_icon[2];
+static SDL_Texture* cas_status_icon[2];
+static SDL_Texture* hdd_status_icon[2];
+static SDL_Texture* net_status_icon[2];
+static SDL_Texture* sound_icon;
 
 #ifdef _WIN32
 static SDL_Texture* load_icon(char* name)
@@ -728,6 +780,7 @@ extern "C" void HandleSizeChange()
     hdd_status_icon[1] = load_icon(MAKEINTRESOURCE(81 + 256));
     net_status_icon[0] = load_icon(MAKEINTRESOURCE(96 + 256));
     net_status_icon[1] = load_icon(MAKEINTRESOURCE(97 + 256));
+	sound_icon = load_icon(MAKEINTRESOURCE(361));
 #else
     cdrom_status_icon[0] = load_icon(gcdromicon_data, gcdromicon_size);
     cdrom_status_icon[1] = load_icon(gcdromactiveicon_data, gcdromactiveicon_size);
@@ -746,6 +799,7 @@ extern "C" void HandleSizeChange()
     hdd_status_icon[1] = load_icon(ghard_disk_active_data, ghard_disk_active_size);
     net_status_icon[0] = load_icon(gnetwork_icon_data, gnetwork_icon_size);
     net_status_icon[1] = load_icon(gnetwork_active_icon_data, gnetwork_active_icon_size);
+	sound_icon = load_icon(gsound_icon_data, gsound_icon_size);
 #endif
 
     imrendererinit = true;
@@ -1122,10 +1176,6 @@ extern "C" void RenderImGui()
 		ImGui::EndMenu();
 	    }
 	    ImGui::Separator();
-	    if (ImGui::MenuItem("Take screenshot"))
-	    {
-		take_screenshot();
-	    }
 	    if (ImGui::BeginMenu("Filter options"))
 	    {
 		SDL_Event event{};
@@ -1301,18 +1351,57 @@ extern "C" void RenderImGui()
 			update_icons ^= 1;
 			config_save();
 		}
+#if defined USE_DISCORD && defined _WIN32
+		ImGui::Separator();
+		if (ImGui::MenuItem("Enable Discord integration", NULL, enable_discord))
+		{
+			enable_discord ^= 1;
+			if (enable_discord) {
+				discord_init();
+				discord_update_activity(dopause);
+			}
+			else
+				discord_close();
+		}
+#endif
+		ImGui::Separator();
+		if (ImGui::MenuItem("Take screenshot"))
+		{
+			take_screenshot();
+		}
+#ifdef _WIN32
+		ImGui::Separator();
+		if (ImGui::MenuItem("Sound gain..."))
+		{
+			SDL_SysWMinfo wmInfo;
+			SDL_VERSION(&wmInfo.version);
+			SDL_GetWindowWMInfo(sdl_win, &wmInfo);
+			HWND hwnd = wmInfo.info.win.window;
+			SoundGainDialogCreate(hwnd);
+		}
+#endif
+#ifdef MTR_ENABLED
+		ImGui::Separator();
+		if (ImGui::MenuItem("Begin trace", NULL, tracing_on, !tracing_on))
+		{
+			tracing_on = !tracing_on;
+			handle_trace(tracing_on);
+		}
+		if (ImGui::MenuItem("End trace", NULL, !tracing_on, tracing_on))
+		{
+			tracing_on = !tracing_on;
+			handle_trace(tracing_on);
+		}
+#endif
+
 		ImGui::EndMenu();
 	}
 
 	if (ImGui::BeginMenu("Help"))
 	{
-	    if (ImGui::MenuItem("Documentation"))
-	    {
-#if SDL_VERSION_ATLEAST(2, 0, 14)
-		SDL_OpenURL("https://86box.readthedocs.io");
-#else
-		popen("xdg-open https://86box.readthedocs.io", "r");
-#endif
+		if (ImGui::MenuItem("Documentation"))
+		{
+			open_url("https://86box.readthedocs.io");
 	    }
 	    if (ImGui::MenuItem("About 86Box"))
 	    {
@@ -1338,11 +1427,7 @@ extern "C" void RenderImGui()
 		SDL_ShowMessageBox(&msgdata, &buttonid);
 		if (buttonid == 1)
 		{
-#if SDL_VERSION_ATLEAST(2, 0, 14)
-		    SDL_OpenURL("https://86box.net");
-#else
-		    popen("xdg-open https://86box.net", "r");
-#endif
+			open_url("https://86box.net");
 		}
 		plat_pause(origpause);
 	    }
@@ -1460,6 +1545,17 @@ extern "C" void RenderImGui()
 	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Network");
 	    ImGui::SameLine(0, 0);
 	}
+#ifdef _WIN32
+	ImGui::ImageButton((ImTextureID)sound_icon, ImVec2(16, 16));
+	if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Sound");
+	if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
+	{
+		int curpause = dopause;
+		plat_pause(1);
+		SoundGainDialogCreate(NULL);
+		plat_pause(curpause);
+	}
+#endif
 
 	ImGui::PopStyleColor(3);
 	ImGui::End();

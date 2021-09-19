@@ -893,6 +893,7 @@ END
  352					RCDATA    DISCARDABLE     ICON_PATH "../unix/icons/network.png"
  353					RCDATA    DISCARDABLE     ICON_PATH "../unix/icons/network_active.png"
  360					RCDATA    DISCARDABLE     ICON_PATH "../unix/icons/cartridge.png"
+ 361					RCDATA    DISCARDABLE	  ICON_PATH "../unix/icons/sound.png"
 
 #ifdef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////
