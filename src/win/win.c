@@ -1051,7 +1051,7 @@ plat_setfullscreen(int on)
     if ((!!(on & 1)) == (!!video_fullscreen))
 	return;
 
-    if (on && (start_in_fullscreen || video_fullscreen_first)) {
+    if (on && video_fullscreen_first) {
 	video_fullscreen |= 2;
 	if (ui_msgbox_header(MBX_INFO | MBX_DONTASK, (wchar_t *) IDS_2134, (wchar_t *) IDS_2052) == 10) {
 		video_fullscreen_first = 0;
