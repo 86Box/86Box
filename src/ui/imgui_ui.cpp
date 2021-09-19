@@ -80,7 +80,7 @@ INCBIN(hard_disk, _INCBIN_DIR"/../unix/icons/hard_disk.png");
 INCBIN(hard_disk_active, _INCBIN_DIR"/../unix/icons/hard_disk_active.png");
 INCBIN(network_icon, _INCBIN_DIR"/../unix/icons/network.png");
 INCBIN(network_active_icon, _INCBIN_DIR"/../unix/icons/network_active.png");
-INCBIN(sound_icon, _INCBIN_DIR"/../unix/icons/sound.png")
+INCBIN(sound_icon, _INCBIN_DIR"/../unix/icons/sound.png");
 #endif
 
 extern "C" SDL_Window* sdl_win;
