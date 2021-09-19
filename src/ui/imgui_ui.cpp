@@ -12,6 +12,12 @@
 #endif
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
+#include <string>
+#include <vector>
+#include <utility>
+#include <algorithm>
+#include <atomic>
+#include <array>
 extern "C"
 {
 #include <86box/86box.h>
@@ -76,13 +82,6 @@ INCBIN(network_icon, _INCBIN_DIR"/../unix/icons/network.png");
 INCBIN(network_active_icon, _INCBIN_DIR"/../unix/icons/network_active.png");
 INCBIN(sound_icon, _INCBIN_DIR"/../unix/icons/sound.png")
 #endif
-
-#include <string>
-#include <vector>
-#include <utility>
-#include <algorithm>
-#include <atomic>
-#include <array>
 
 extern "C" SDL_Window* sdl_win;
 extern "C" SDL_Renderer	*sdl_render;
