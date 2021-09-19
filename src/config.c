@@ -524,7 +524,10 @@ load_general(void)
     update_icons = config_get_int(cat, "update_icons", 1);
 
     window_remember = config_get_int(cat, "window_remember", 0);
-    if (window_remember) {
+    if (window_remember || (vid_resize & 2)) {
+	if (!window_remember)
+		config_delete_var(cat, "window_remember");
+
 	p = config_get_string(cat, "window_coordinates", NULL);
 	if (p == NULL)
 		p = "0, 0, 0, 0";
@@ -2015,6 +2018,7 @@ config_load(void)
 	gfxcard = video_get_video_from_internal_name("cga");
 	vid_api = plat_vidapi("default");
 	vid_resize = 0;
+	video_fullscreen_first = 1;
 	time_sync = TIME_SYNC_ENABLED;
 	hdc_current = hdc_get_from_internal_name("none");
 	serial_enabled[0] = 1;
@@ -2156,8 +2160,11 @@ save_general(void)
       else
 	config_set_int(cat, "update_icons", update_icons);
 
-    if (window_remember) {
-	config_set_int(cat, "window_remember", window_remember);
+    if (window_remember || (vid_resize & 2)) {
+	if (window_remember)
+		config_set_int(cat, "window_remember", window_remember);
+	else
+		config_delete_var(cat, "window_remember");
 
 	sprintf(temp, "%i, %i, %i, %i", window_w, window_h, window_x, window_y);
 	config_set_string(cat, "window_coordinates", temp);

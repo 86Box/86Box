@@ -234,7 +234,7 @@ sdl_blit(int x, int y, int w, int h)
     SDL_Rect r_src;
     int ret;
 
-    if (!sdl_enabled || (h <= 0) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
+    if (!sdl_enabled || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
 	video_blit_complete();
 	return;
     }
@@ -277,6 +277,11 @@ sdl_destroy_window(void)
 static void
 sdl_destroy_texture(void)
 {
+    if (sdl_tex != NULL) {
+	SDL_DestroyTexture(sdl_tex);
+	sdl_tex = NULL;
+    }
+
     /* SDL_DestroyRenderer also automatically destroys all associated textures. */
     if (sdl_render != NULL) {
 	SDL_DestroyRenderer(sdl_render);
@@ -339,13 +344,8 @@ sdl_select_best_hw_driver(void)
 
 
 static void
-sdl_reinit_texture(void)
+sdl_init_texture(void)
 {
-    if (sdl_flags == -1)
-        return;
-
-    sdl_destroy_texture();
-
     if (sdl_flags & RENDERER_HARDWARE) {
 	sdl_render = SDL_CreateRenderer(sdl_win, -1, SDL_RENDERER_ACCELERATED);
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, video_filter_method ? "1" : "0");
@@ -357,6 +357,17 @@ sdl_reinit_texture(void)
 }
 
 
+static void
+sdl_reinit_texture(void)
+{
+    if (sdl_flags == -1)
+        return;
+
+    sdl_destroy_texture();
+    sdl_init_texture();
+}
+
+
 void
 sdl_set_fs(int fs)
 {
@@ -365,7 +376,6 @@ sdl_set_fs(int fs)
 
     SDL_LockMutex(sdl_mutex);
     sdl_enabled = 0;
-    sdl_destroy_texture();
 
     if (fs) {
 	ShowWindow(sdl_parent_hwnd, TRUE);
@@ -408,7 +418,7 @@ sdl_set_fs(int fs)
     else
 	sdl_flags &= ~RENDERER_FULL_SCREEN;
 
-    sdl_reinit_texture();
+    // sdl_reinit_texture();
     sdl_enabled = 1;
     SDL_UnlockMutex(sdl_mutex);
 }
@@ -456,6 +466,7 @@ sdl_init_common(int flags)
     }
 
     sdl_win = SDL_CreateWindowFrom((void *)hwndRender);
+    sdl_init_texture();
     sdl_set_fs(video_fullscreen & 1);
 
     /* Make sure we get a clean exit. */
@@ -554,16 +565,16 @@ sdl_enable(int enable)
     SDL_UnlockMutex(sdl_mutex);
 }
 
+
 void
 sdl_reload(void)
 {
-	if (sdl_flags & RENDERER_HARDWARE)
-	{
-		SDL_LockMutex(sdl_mutex);
+    if (sdl_flags & RENDERER_HARDWARE) {
+	SDL_LockMutex(sdl_mutex);
 
-		SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, video_filter_method ? "1" : "0");
-		sdl_reinit_texture();
+	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, video_filter_method ? "1" : "0");
+	sdl_reinit_texture();
 
-		SDL_UnlockMutex(sdl_mutex);
-	}
+	SDL_UnlockMutex(sdl_mutex);
+    }
 }
