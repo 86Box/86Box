@@ -1396,7 +1396,7 @@ ui_init(int nCmdShow)
     }
 
     /* Initialize the mouse module. */
-    if (!start_in_fullscreen && !video_fullscreen_first)
+    if (!start_in_fullscreen)
 	win_mouse_init();
 
     /*
@@ -1428,7 +1428,7 @@ ui_init(int nCmdShow)
 	plat_resize(scrnsz_x, scrnsz_y);
 
     /* Initialize the rendering window, or fullscreen. */
-    if (start_in_fullscreen || video_fullscreen_first)
+    if (start_in_fullscreen)
 	plat_setfullscreen(3);
 
     /* Fire up the machine. */
