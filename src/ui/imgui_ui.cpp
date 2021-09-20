@@ -403,19 +403,23 @@ struct CartMenu : BaseMenu
     {
 	if (ImGui::MenuItem("Image..."))
 	{
-	    char res[4096];
-	    if (OpenFileChooser(res, sizeof(res), cartfilter))
-	    {
-		cartridge_mount(cartid, res, 0);
-	    }
+		FileOpenSaveRequest filereq{};
+		filereq.filters = cartfilter;
+		filereq.id = cartid;
+		filereq.wp = 0;
+		filereq.filefunc3params = cartridge_mount;
+		std::thread thr(file_open_request, filereq);
+		thr.detach();
 	}
 	if (ImGui::MenuItem("Image... (write-protected)"))
 	{
-	    char res[4096];
-	    if (OpenFileChooser(res, sizeof(res), cartfilter))
-	    {
-		cartridge_mount(cartid, res, 1);
-	    }
+		FileOpenSaveRequest filereq{};
+		filereq.filters = cartfilter;
+		filereq.id = cartid;
+		filereq.wp = 1;
+		filereq.filefunc3params = cartridge_mount;
+		std::thread thr(file_open_request, filereq);
+		thr.detach();
 	}
 	ImGui::Separator();
 	if (ImGui::MenuItem("Eject"))
