@@ -956,6 +956,7 @@ void monitor_thread(void* param)
 extern void InitImGui();
 extern bool ImGuiWantsMouseCapture();
 extern bool ImGuiWantsKeyboardCapture();
+extern bool IsFileDlgOpen();
 extern void sdl_real_blit(SDL_Rect* r_src);
 
 extern SDL_Window* sdl_win;
@@ -1022,18 +1023,20 @@ int main(int argc, char** argv)
             switch(event.type)
             {
                 case SDL_QUIT:
-					extern bool IsFileDlgOpen();
-					if (IsFileDlgOpen())
-					{
-						int curdopause = dopause;
-						plat_pause(1);
-						SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "86Box",
+                {
+			if (IsFileDlgOpen())
+			{
+				int curdopause = dopause;
+				plat_pause(1);
+				SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "86Box",
 							"A file dialog is open. Please close it before exiting 86Box.\n", NULL);
-						plat_pause(curdopause);
-						break;
-					}
-                    exit_event = 1;
-                    break;
+				plat_pause(curdopause);
+				break;
+			}
+                  
+                	exit_event = 1;
+                	break;
+                }
                 case SDL_MOUSEWHEEL:
                 {
                     if (ImGuiWantsMouseCapture()) break;
