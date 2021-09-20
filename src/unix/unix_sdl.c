@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <sys/param.h>
 /* This #undef is needed because a SDL include header redefines HAVE_STDARG_H. */
 #undef HAVE_STDARG_H
 #define HAVE_STDARG_H
@@ -28,10 +29,10 @@ typedef struct sdl_blit_params
 extern sdl_blit_params params;
 extern int blitreq;
 
-static SDL_Window	*sdl_win = NULL;
-static SDL_Renderer	*sdl_render = NULL;
+SDL_Window	*sdl_win = NULL;
+SDL_Renderer	*sdl_render = NULL;
 static SDL_Texture	*sdl_tex = NULL;
-static int		sdl_w, sdl_h;
+int		sdl_w = SCREEN_RES_X, sdl_h = SCREEN_RES_Y;
 static int		sdl_fs, sdl_flags = -1;
 static int		cur_w, cur_h;
 static int		cur_wx = 0, cur_wy = 0, cur_ww =0, cur_wh = 0;
@@ -42,7 +43,9 @@ int title_set = 0;
 int resize_pending = 0;
 int resize_w = 0;
 int resize_h = 0;
+static uint8_t interpixels[17842176];
 
+extern void RenderImGui();
 static void
 sdl_integer_scale(double *d, double *g)
 {
@@ -63,9 +66,12 @@ static void
 sdl_stretch(int *w, int *h, int *x, int *y)
 {
     double hw, gw, hh, gh, dx, dy, dw, dh, gsr, hsr;
+    int real_sdl_w, real_sdl_h;
 
-    hw = (double) sdl_w;
-    hh = (double) sdl_h;
+    SDL_GL_GetDrawableSize(sdl_win, &real_sdl_w, &real_sdl_h);
+
+    hw = (double) real_sdl_w;
+    hh = (double) real_sdl_h;
     gw = (double) *w;
     gh = (double) *h;
     hsr = hw / hh;
@@ -73,8 +79,8 @@ sdl_stretch(int *w, int *h, int *x, int *y)
     switch (video_fullscreen_scale) {
 	case FULLSCR_SCALE_FULL:
 	default:
-		*w = sdl_w;
-		*h = sdl_h;
+		*w = real_sdl_w;
+		*h = real_sdl_h;
 		*x = 0;
 		*y = 0;
 		break;
@@ -127,19 +133,54 @@ sdl_blit_shim(int x, int y, int w, int h)
     params.y = y;
     params.w = w;
     params.h = h;
+    if (!(!sdl_enabled || (h <= 0) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL))) memcpy(interpixels, &(buffer32->line[y][x]), h * (2048 + 64) * sizeof(uint32_t));
     blitreq = 1;
+    video_blit_complete();
 }
 
 void ui_window_title_real();
 
 void
+sdl_real_blit(SDL_Rect* r_src)
+{
+    SDL_Rect r_dst;
+    int ret, winx, winy;
+    SDL_GL_GetDrawableSize(sdl_win, &winx, &winy);
+    SDL_RenderClear(sdl_render);
+
+    r_dst = *r_src;
+    r_dst.x = r_dst.y = 0;
+    
+    if (sdl_fs)
+    {
+		sdl_stretch(&r_dst.w, &r_dst.h, &r_dst.x, &r_dst.y);
+    }
+    else
+    {
+        r_dst.w *= ((float)winx / (float) r_dst.w);
+        r_dst.h *= ((float)winy / (float) r_dst.h);
+    }
+
+
+    ret = SDL_RenderCopy(sdl_render, sdl_tex, r_src, &r_dst);
+    if (ret)
+	fprintf(stderr, "SDL: unable to copy texture to renderer (%s)\n", SDL_GetError());
+
+    SDL_RenderPresent(sdl_render);
+}
+
+void
 sdl_blit(int x, int y, int w, int h)
 {
     SDL_Rect r_src;
-    int ret;
 
     if (!sdl_enabled || (h <= 0) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
-	video_blit_complete();
+    r_src.x = x;
+    r_src.y = y;
+    r_src.w = w;
+    r_src.h = h;
+    sdl_real_blit(&r_src);
+    blitreq = 0;
 	return;
     }
 
@@ -147,29 +188,17 @@ sdl_blit(int x, int y, int w, int h)
 
     if (resize_pending)
     {
-        if (video_fullscreen) SDL_RenderSetLogicalSize(sdl_render, resize_w, resize_h);
-        else sdl_resize(resize_w, resize_h);
+        if (!video_fullscreen) sdl_resize(resize_w, resize_h);
         resize_pending = 0;
     }
     r_src.x = x;
     r_src.y = y;
     r_src.w = w;
     r_src.h = h;
-    SDL_UpdateTexture(sdl_tex, &r_src, &(buffer32->line[y][x]), (2048 + 64) * 4);
-    video_blit_complete();
+    SDL_UpdateTexture(sdl_tex, &r_src, interpixels, (2048 + 64) * 4);
+    blitreq = 0;
 
-    SDL_RenderClear(sdl_render);
-
-    r_src.x = x;
-    r_src.y = y;
-    r_src.w = w;
-    r_src.h = h;
-
-    ret = SDL_RenderCopy(sdl_render, sdl_tex, &r_src, 0);
-    if (ret)
-	fprintf(stderr, "SDL: unable to copy texture to renderer (%s)\n", SDL_GetError());
-
-    SDL_RenderPresent(sdl_render);
+    sdl_real_blit(&r_src);
     SDL_UnlockMutex(sdl_mutex);
 }
 
@@ -177,6 +206,14 @@ static void
 sdl_destroy_window(void)
 {
     if (sdl_win != NULL) {
+    if (window_remember)
+    {
+        SDL_GetWindowSize(sdl_win, &window_w, &window_h);
+        if (strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0)
+        {
+            SDL_GetWindowPosition(sdl_win, &window_x, &window_y);
+        }
+    }
 	SDL_DestroyWindow(sdl_win);
 	sdl_win = NULL;
     }
@@ -253,13 +290,9 @@ sdl_select_best_hw_driver(void)
     }
 }
 
-
 void
 sdl_reinit_texture()
 {
-    if (sdl_flags == -1)
-        return;
-
     sdl_destroy_texture();
 
     if (sdl_flags & RENDERER_HARDWARE) {
@@ -270,6 +303,7 @@ sdl_reinit_texture()
 
     sdl_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ARGB8888,
 				SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
+
 }
 
 void
@@ -315,6 +349,7 @@ sdl_resize(int x, int y)
     cur_wh = wh;
 
     SDL_SetWindowSize(sdl_win, cur_ww, cur_wh);
+    SDL_GL_GetDrawableSize(sdl_win, &sdl_w, &sdl_h);
 
     sdl_reinit_texture();
 
@@ -365,7 +400,7 @@ sdl_init_common(int flags)
     }
 
     sdl_mutex = SDL_CreateMutex();
-    sdl_win = SDL_CreateWindow("86Box", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, scrnsz_x, scrnsz_y, SDL_WINDOW_OPENGL | (vid_resize & 1 ? SDL_WINDOW_RESIZABLE : 0));
+    sdl_win = SDL_CreateWindow("86Box", strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_x : SDL_WINDOWPOS_CENTERED, strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_y : SDL_WINDOWPOS_CENTERED, scrnsz_x, scrnsz_y, SDL_WINDOW_OPENGL | (vid_resize & 1 ? SDL_WINDOW_RESIZABLE : 0));
     sdl_set_fs(video_fullscreen);
     if (!(video_fullscreen & 1))
     {
@@ -373,6 +408,10 @@ sdl_init_common(int flags)
 	        plat_resize(fixed_size_x, fixed_size_y);
         else
 	        plat_resize(scrnsz_x, scrnsz_y);
+    }
+    if ((vid_resize < 2) && window_remember)
+    {
+        SDL_SetWindowSize(sdl_win, window_w, window_h);
     }
 
     /* Make sure we get a clean exit. */
@@ -421,7 +460,6 @@ plat_mouse_capture(int on)
     mouse_capture = on;
     SDL_UnlockMutex(sdl_mutex);
 }
-int real_sdl_w = SCREEN_RES_X, real_sdl_h = SCREEN_RES_Y;
 
 void plat_resize(int w, int h)
 {
