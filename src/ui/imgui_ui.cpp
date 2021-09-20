@@ -441,7 +441,8 @@ struct FloppyMenu : BaseMenu
 		SDL_VERSION(&wmInfo.version);
 		SDL_GetWindowWMInfo(sdl_win, &wmInfo);
 		HWND hwnd = wmInfo.info.win.window;
-		NewFloppyDialogCreate(hwnd, flpid, 0);
+		std::thread thr(NewFloppyDialogCreate, hwnd, flpid, 0);
+		thr.detach();
 	}
 	ImGui::Separator();
 #endif
@@ -559,7 +560,8 @@ struct ZIPMenu : BaseMenu
 		SDL_VERSION(&wmInfo.version);
 		SDL_GetWindowWMInfo(sdl_win, &wmInfo);
 		HWND hwnd = wmInfo.info.win.window;
-		NewFloppyDialogCreate(hwnd, zipid | 0x80, 0);
+		std::thread thr(NewFloppyDialogCreate, hwnd, zipid | 0x80, 0);
+		thr.detach();
 	}
 	ImGui::Separator();
 #endif
@@ -632,7 +634,8 @@ struct MOMenu : BaseMenu
 		SDL_VERSION(&wmInfo.version);
 		SDL_GetWindowWMInfo(sdl_win, &wmInfo);
 		HWND hwnd = wmInfo.info.win.window;
-		NewFloppyDialogCreate(hwnd, moid | 0x100, 0);
+		std::thread thr(NewFloppyDialogCreate, hwnd, moid | 0x100, 0);
+		thr.detach();
 	}
 	ImGui::Separator();
 #endif
@@ -1404,7 +1407,7 @@ extern "C" void RenderImGui()
 #ifdef _WIN32
 		if (ImGui::MenuItem("Settings"))
 		{
-			SDL_SysWMinfo wmInfo;
+			SDL_SysWMinfo wmInfo{};
 			SDL_VERSION(&wmInfo.version);
 			SDL_GetWindowWMInfo(sdl_win, &wmInfo);
 			HWND hwnd = wmInfo.info.win.window;
@@ -1442,7 +1445,8 @@ extern "C" void RenderImGui()
 			SDL_VERSION(&wmInfo.version);
 			SDL_GetWindowWMInfo(sdl_win, &wmInfo);
 			HWND hwnd = wmInfo.info.win.window;
-			SoundGainDialogCreate(hwnd);
+			std::thread thr(SoundGainDialogCreate, hwnd);
+			thr.detach();
 		}
 #endif
 #ifdef MTR_ENABLED
@@ -1663,10 +1667,12 @@ extern "C" void RenderImGui()
 	if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Sound");
 	if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
 	{
-		int curpause = dopause;
-		plat_pause(1);
-		SoundGainDialogCreate(NULL);
-		plat_pause(curpause);
+		SDL_SysWMinfo wmInfo;
+		SDL_VERSION(&wmInfo.version);
+		SDL_GetWindowWMInfo(sdl_win, &wmInfo);
+		HWND hwnd = wmInfo.info.win.window;
+		std::thread thr(SoundGainDialogCreate, hwnd);
+		thr.detach();
 	}
 #endif
 

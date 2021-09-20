@@ -1022,6 +1022,16 @@ int main(int argc, char** argv)
             switch(event.type)
             {
                 case SDL_QUIT:
+					extern bool IsFileDlgOpen();
+					if (IsFileDlgOpen())
+					{
+						int curdopause = dopause;
+						plat_pause(1);
+						SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "86Box",
+							"A file dialog is open. Please close it before exiting 86Box.\n", nullptr);
+						plat_pause(curdopause);
+						break;
+					}
                     exit_event = 1;
                     break;
                 case SDL_MOUSEWHEEL:
