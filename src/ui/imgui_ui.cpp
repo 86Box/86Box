@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <atomic>
 #include <array>
+#include <thread>
 extern "C"
 {
 #include <86box/86box.h>
@@ -256,6 +257,7 @@ static bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::stri
 		filterwin += realfilter;
 		filterwin += ")";
 		filterwin.push_back(0);
+		std::transform(realfilter.begin(), realfilter.end(), realfilter.begin(), [](char c) { if (c == ' ') return ';'; return c; });
 		filterwin += realfilter;
 		filterwin.push_back(0);
 	}
@@ -305,7 +307,7 @@ static bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::stri
 	cmd += " --file-filter=\'All Files (*) | *\'";
     }
     if (save) cmd += " --save";
-    plat_pause(1);
+    //plat_pause(1);
     output = popen(cmd.c_str(), "r");
     if (output)
     {
@@ -316,9 +318,56 @@ static bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::stri
 	    pclose(output);
 	}
     }
-    plat_pause(origpause);
+    //plat_pause(origpause);
     return boolres;
 #endif
+}
+
+struct FileOpenSaveRequest
+{
+	std::vector<std::pair<std::string, std::string>>& filters = allfilefilter;
+	void (*filefunc3params)(uint8_t, char*, uint8_t) = nullptr;
+	void (*filefunc2params)(uint8_t, char*) = nullptr;
+	void (*filefunc2paramsalt)(char*, uint8_t) = nullptr;
+	bool save = false;
+	bool wp = false;
+	uint8_t id = 0;
+};
+
+std::atomic<int> filedlgopen{ 0 };
+
+extern "C" bool IsFileDlgOpen()
+{
+	return filedlgopen;
+}
+
+void file_request_thread(FileOpenSaveRequest param)
+{
+	char res[4096];
+	memset((void*)res, 0, sizeof(res));
+	filedlgopen++;
+	if (OpenFileChooser(res, sizeof(res), param.filters, param.save))
+	{
+		if (param.filefunc3params) param.filefunc3params(param.id, res, param.wp);
+		else if (param.filefunc2params) param.filefunc2params(param.id, res);
+		else if (param.filefunc2paramsalt) param.filefunc2paramsalt(res, param.wp);
+		filedlgopen--;
+		return;
+	}
+	else if (param.save && param.filefunc2paramsalt) param.filefunc2paramsalt(NULL, 0);
+	filedlgopen--;
+}
+
+void DisplayFileAlreadyOpenMessage()
+{
+	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "86Box",
+							"A file dialog is already open. Please close it before opening a new one.\n", nullptr);
+}
+
+void file_open_request(FileOpenSaveRequest param)
+{
+	if (IsFileDlgOpen()) DisplayFileAlreadyOpenMessage();
+	file_request_thread(param);
 }
 
 struct BaseMenu
@@ -398,19 +447,23 @@ struct FloppyMenu : BaseMenu
 #endif
 	if (ImGui::MenuItem("Image..."))
 	{
-	    char res[4096];
-	    if (OpenFileChooser(res, sizeof(res), floppyfilter))
-	    {
-		floppy_mount(flpid, res, 0);
-	    }
+		FileOpenSaveRequest filereq{};
+		filereq.filters = floppyfilter;
+		filereq.id = flpid;
+		filereq.wp = 0;
+		filereq.filefunc3params = floppy_mount;
+		std::thread thr(file_open_request, filereq);
+		thr.detach();
 	}
 	if (ImGui::MenuItem("Image... (write-protected)"))
 	{
-	    char res[4096];
-	    if (OpenFileChooser(res, sizeof(res), floppyfilter))
-	    {
-		floppy_mount(flpid, res, 1);
-	    }
+		FileOpenSaveRequest filereq{};
+		filereq.filters = floppyfilter;
+		filereq.id = flpid;
+		filereq.wp = 1;
+		filereq.filefunc3params = floppy_mount;
+		std::thread thr(file_open_request, filereq);
+		thr.detach();
 	}
 	ImGui::Separator();
 	if (ImGui::MenuItem("Eject"))
@@ -467,11 +520,13 @@ struct CDMenu : BaseMenu
 	ImGui::Separator();
 	if (ImGui::MenuItem("Image"))
 	{
-	    char res[4096];
-	    if (OpenFileChooser(res, sizeof(res), cdromfilter))
-	    {
-		cdrom_mount(cdid, res);
-	    }
+		FileOpenSaveRequest filereq{};
+		filereq.filters = cdromfilter;
+		filereq.id = cdid;
+		filereq.wp = 0;
+		filereq.filefunc2params = cdrom_mount;
+		std::thread thr(file_open_request, filereq);
+		thr.detach();
 	}
     }
 };
@@ -510,19 +565,23 @@ struct ZIPMenu : BaseMenu
 #endif
 	if (ImGui::MenuItem("Image..."))
 	{
-	    char res[4096];
-	    if (OpenFileChooser(res, sizeof(res), zipfilter))
-	    {
-		zip_mount(zipid, res, 0);
-	    }
+		FileOpenSaveRequest filereq{};
+		filereq.filters = zipfilter;
+		filereq.id = zipid;
+		filereq.wp = 0;
+		filereq.filefunc3params = zip_mount;
+		std::thread thr(file_open_request, filereq);
+		thr.detach();
 	}
 	if (ImGui::MenuItem("Image... (write-protected)"))
 	{
-	    char res[4096];
-	    if (OpenFileChooser(res, sizeof(res), zipfilter))
-	    {
-		zip_mount(zipid, res, 1);
-	    }
+		FileOpenSaveRequest filereq{};
+		filereq.filters = zipfilter;
+		filereq.id = zipid;
+		filereq.wp = 1;
+		filereq.filefunc3params = zip_mount;
+		std::thread thr(file_open_request, filereq);
+		thr.detach();
 	}
 	ImGui::Separator();
 	if (ImGui::MenuItem("Reload previous image"))
@@ -579,19 +638,23 @@ struct MOMenu : BaseMenu
 #endif
 	if (ImGui::MenuItem("Image..."))
 	{
-	    char res[4096];
-	    if (OpenFileChooser(res, sizeof(res), mofilter))
-	    {
-		mo_mount(moid, res, 0);
-	    }
+		FileOpenSaveRequest filereq{};
+		filereq.filters = mofilter;
+		filereq.id = moid;
+		filereq.wp = 0;
+		filereq.filefunc3params = mo_mount;
+		std::thread thr(file_open_request, filereq);
+		thr.detach();
 	}
 	if (ImGui::MenuItem("Image... (write-protected)"))
 	{
-	    char res[4096];
-	    if (OpenFileChooser(res, sizeof(res), mofilter))
-	    {
-		mo_mount(moid, res, 1);
-	    }
+		FileOpenSaveRequest filereq{};
+		filereq.filters = mofilter;
+		filereq.id = moid;
+		filereq.wp = 1;
+		filereq.filefunc3params = mo_mount;
+		std::thread thr(file_open_request, filereq);
+		thr.detach();
 	}
 	ImGui::Separator();
 	if (ImGui::MenuItem("Reload previous image"))
@@ -611,32 +674,35 @@ static void RenderCassetteImguiMenuItemsOnly()
 {
 	if (ImGui::MenuItem("New Image..."))
 	{
-		char res[4096];
-		memset(res, 0, sizeof(res));
-		bool ret = OpenFileChooser(res, sizeof(res), casfilter, true);
-		if (!ret) {
-			if (strlen(res) == 0)
-				cassette_mount(NULL, 0);
-			else
-				cassette_mount(res, 0);
-		}
+		FileOpenSaveRequest filereq{};
+		filereq.filters = casfilter;
+		filereq.id = 0;
+		filereq.wp = 0;
+		filereq.save = true;
+		filereq.filefunc2paramsalt = cassette_mount;
+		std::thread thr(file_open_request, filereq);
+		thr.detach();
 	}
 	ImGui::Separator();
     if (ImGui::MenuItem("Image..."))
     {
-	char res[4096];
-	if (OpenFileChooser(res, sizeof(res), casfilter))
-	{
-	    cassette_mount(res, 0);
-	}
+		FileOpenSaveRequest filereq{};
+		filereq.filters = casfilter;
+		filereq.id = 0;
+		filereq.wp = 0;
+		filereq.filefunc2paramsalt = cassette_mount;
+		std::thread thr(file_open_request, filereq);
+		thr.detach();
     }
     if (ImGui::MenuItem("Image... (write-protected)"))
     {
-	char res[4096];
-	if (OpenFileChooser(res, sizeof(res), casfilter))
-	{
-	    cassette_mount(res, 1);
-	}
+		FileOpenSaveRequest filereq{};
+		filereq.filters = casfilter;
+		filereq.id = 0;
+		filereq.wp = 1;
+		filereq.filefunc2paramsalt = cassette_mount;
+		std::thread thr(file_open_request, filereq);
+		thr.detach();
     }
 	ImGui::Separator();
     if (ImGui::MenuItem("Play"))
@@ -1392,10 +1458,58 @@ extern "C" void RenderImGui()
 			handle_trace(tracing_on);
 		}
 #endif
-
 		ImGui::EndMenu();
 	}
-
+#if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
+	if (ImGui::BeginMenu("Logging"))
+	{
+		#define ENABLE_LOG(s, y, x) \
+		if (ImGui::MenuItem(s, NULL, x)) \
+		{ \
+			x ^= 1;\
+			config_save();\
+		}
+#ifdef ENABLE_BUSLOGIC_LOG
+		ENABLE_LOG("Enable BusLogic logs", "Ctrl+F4", buslogic_do_log);
+#endif
+#ifdef ENABLE_CDROM_LOG
+		ENABLE_LOG("Enable CD-ROM logs", "Ctrl+F5", cdrom_do_log);
+#endif
+#ifdef ENABLE_D86F_LOG
+		ENABLE_LOG("Enable floppy (86F) logs", "Ctrl+F6", d86f_do_log);
+#endif
+# ifdef ENABLE_FDC_LOG
+		ENABLE_LOG("Enable floppy controller logs", "Ctrl+F7", fdc_do_log);
+# endif
+#ifdef ENABLE_IDE_LOG
+		ENABLE_LOG("Enable IDE logs", "Ctrl+F8", ide_do_log);
+#endif
+#ifdef ENABLE_SERIAL_LOG
+		ENABLE_LOG("Enable Serial Port logs", "Ctrl+F3", serial_do_log);
+#endif
+#ifdef ENABLE_NIC_LOG
+		ENABLE_LOG("Enable Network logs", "Ctrl+F9", serial_do_log);
+#endif
+#if defined(ENABLE_LOG_COMMANDS)
+#ifdef ENABLE_LOG_TOGGLES
+		ImGui::Separator();
+#endif
+#ifdef ENABLE_LOG_BREAKPOINT
+		if (ImGui::MenuItem("Log breakpoint", "Ctrl+F10"))
+		{
+			pclog("---- LOG BREAKPOINT ----\n");
+		}
+#endif
+#ifdef ENABLE_VRAM_DUMP
+		if (ImGui::MenuItem("Dump video RAM", "Ctrl+F1"))
+		{
+			svga_dump_vram();
+		}
+#endif
+#endif
+		ImGui::EndMenu();
+	}
+#endif
 	if (ImGui::BeginMenu("Help"))
 	{
 		if (ImGui::MenuItem("Documentation"))
