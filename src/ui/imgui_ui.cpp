@@ -1120,6 +1120,36 @@ uint32_t timer_sb_icons(uint32_t interval, void* param)
     return interval;
 }
 
+void show_about_dlg()
+{
+	int buttonid;
+	SDL_MessageBoxData msgdata{};
+	SDL_MessageBoxButtonData btndata[2] = { { 0 }, { 0 } };
+	btndata[0].buttonid = 1;
+	btndata[0].flags = SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT;
+	btndata[0].text = "86box.net";
+	btndata[1].buttonid = 2;
+	btndata[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
+	btndata[1].text = "OK";
+	msgdata.flags = SDL_MESSAGEBOX_INFORMATION;
+	msgdata.message = "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information.";
+	msgdata.title = "About 86Box";
+	msgdata.buttons = btndata;
+	msgdata.colorScheme = NULL;
+	msgdata.numbuttons = 2;
+	msgdata.window = sdl_win;
+
+	if (SDL_ShowMessageBox(&msgdata, &buttonid) == -1)
+	{
+		msgdata.window = nullptr;
+		SDL_ShowMessageBox(&msgdata, &buttonid);
+	}
+	if (buttonid == 1)
+	{
+		open_url("https://86box.net");
+	}
+}
+
 extern "C" void RenderImGui()
 {
     if (!imrendererinit) HandleSizeChange();
@@ -1526,31 +1556,8 @@ extern "C" void RenderImGui()
 	    }
 	    if (ImGui::MenuItem("About 86Box"))
 	    {
-		int origpause = dopause;
-		int buttonid;
-		SDL_MessageBoxData msgdata{};
-		SDL_MessageBoxButtonData btndata[2] = { { 0 }, { 0 } };
-		btndata[0].buttonid = 1;
-		btndata[0].flags = SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT;
-		btndata[0].text = "86box.net";
-		btndata[1].buttonid = 2;
-		btndata[1].flags = SDL_MESSAGEBOX_BUTTON_ESCAPEKEY_DEFAULT;
-		btndata[1].text = "OK";
-		msgdata.flags = SDL_MESSAGEBOX_INFORMATION;
-		msgdata.message = "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2. See LICENSE for more information.";
-		msgdata.title = "About 86Box";
-		msgdata.buttons = btndata;
-		msgdata.colorScheme = NULL;
-		msgdata.numbuttons = 2;
-		msgdata.window = NULL;
-		
-		plat_pause(1);
-		SDL_ShowMessageBox(&msgdata, &buttonid);
-		if (buttonid == 1)
-		{
-			open_url("https://86box.net");
-		}
-		plat_pause(origpause);
+			std::thread thr(show_about_dlg);
+			thr.detach();
 	    }
 	    ImGui::EndMenu();
 	}
