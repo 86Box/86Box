@@ -617,8 +617,6 @@ void mouse_poll()
     SDL_UnlockMutex(mousemutex);
 }
 
-
-extern int sdl_w, sdl_h;
 void ui_sb_set_ready(int ready) {}
 char* xargv[512];
 
@@ -1017,6 +1015,7 @@ int main(int argc, char** argv)
     InitImGui();
     while (!is_quit)
     {
+        static int mouse_inside = 0;
         while (SDL_PollEvent(&event))
 	    {
             if (!mouse_capture) ImGui_ImplSDL2_ProcessEvent(&event);
@@ -1060,7 +1059,7 @@ int main(int argc, char** argv)
                     if ((event.button.button == SDL_BUTTON_LEFT)
                     && !(mouse_capture)
                     && event.button.state == SDL_RELEASED
-                    && ((event.button.x <= sdl_w && event.button.y <= sdl_h) || video_fullscreen))
+                    && (mouse_inside || video_fullscreen))
                     {
                         plat_mouse_capture(1);
                         break;
@@ -1118,7 +1117,7 @@ int main(int argc, char** argv)
                 }
                 case SDL_WINDOWEVENT:
                 {
-                    switch (event.window.type)
+                    switch (event.window.event)
                     {
                     case SDL_WINDOWEVENT_SIZE_CHANGED:
                     {
@@ -1137,7 +1136,11 @@ int main(int argc, char** argv)
                         }
                         break;
                     }
-                    default:
+                    case SDL_WINDOWEVENT_ENTER:
+                        mouse_inside = 1;
+                        break;
+                    case SDL_WINDOWEVENT_LEAVE:
+                        mouse_inside = 0;
                         break;
                     }
                 }
