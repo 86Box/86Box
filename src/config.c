@@ -2009,6 +2009,7 @@ config_load(void)
 	hide_status_bar = 0;
 	scale = 1;
 	machine = machine_get_machine_from_internal_name("ibmpc");
+	dpi_scale = 1;
 
 	/* Set up the architecture flags. */
 	AT = IS_AT(machine);
