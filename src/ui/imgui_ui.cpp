@@ -377,7 +377,7 @@ void DisplayFileAlreadyOpenMessage()
 void file_open_request(FileOpenSaveRequest param)
 {
 	if (IsFileDlgOpen()) DisplayFileAlreadyOpenMessage();
-	file_request_thread(param);
+	else file_request_thread(param);
 }
 
 struct BaseMenu

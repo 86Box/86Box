@@ -1024,15 +1024,15 @@ int main(int argc, char** argv)
             {
                 case SDL_QUIT:
                 {
-			if (IsFileDlgOpen())
-			{
-				int curdopause = dopause;
-				plat_pause(1);
-				SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "86Box",
-							"A file dialog is open. Please close it before exiting 86Box.\n", NULL);
-				plat_pause(curdopause);
-				break;
-			}
+                    if (IsFileDlgOpen())
+                    {
+                        int curdopause = dopause;
+                        plat_pause(1);
+                        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "86Box",
+                                    "A file dialog is open. Please close it before exiting 86Box.\n", NULL);
+                        plat_pause(curdopause);
+                        break;
+                    }
                   
                 	exit_event = 1;
                 	break;
