@@ -95,12 +95,22 @@ static bool firstrender = true;
 #define MACHINE_HAS_SCSI	(machines[machine].flags & MACHINE_SCSI_DUAL)
 typedef struct sdl_blit_params
 {
-    int x, y, y1, y2, w, h;
+    int x, y, w, h;
 } sdl_blit_params;
 
 extern sdl_blit_params params;
 extern int blitreq;
 extern "C" void sdl_blit(int x, int y, int y1, int y2, int w, int h);
+
+#ifdef _WIN32
+HWND GetHWNDFromSDLWindow()
+{
+	SDL_SysWMinfo wmInfo{};
+	SDL_VERSION(&wmInfo.version);
+	SDL_GetWindowWMInfo(sdl_win, &wmInfo);
+	return wmInfo.info.win.window;
+}
+#endif
 
 void
 take_screenshot(void)
@@ -441,11 +451,7 @@ struct FloppyMenu : BaseMenu
 #ifdef _WIN32
 	if (ImGui::MenuItem("New Image..."))
 	{
-		SDL_SysWMinfo wmInfo;
-		SDL_VERSION(&wmInfo.version);
-		SDL_GetWindowWMInfo(sdl_win, &wmInfo);
-		HWND hwnd = wmInfo.info.win.window;
-		std::thread thr(NewFloppyDialogCreate, hwnd, flpid, 0);
+		std::thread thr(NewFloppyDialogCreate, GetHWNDFromSDLWindow(), flpid, 0);
 		thr.detach();
 	}
 	ImGui::Separator();
@@ -560,11 +566,7 @@ struct ZIPMenu : BaseMenu
 #ifdef _WIN32
 	if (ImGui::MenuItem("New Image..."))
 	{
-		SDL_SysWMinfo wmInfo;
-		SDL_VERSION(&wmInfo.version);
-		SDL_GetWindowWMInfo(sdl_win, &wmInfo);
-		HWND hwnd = wmInfo.info.win.window;
-		std::thread thr(NewFloppyDialogCreate, hwnd, zipid | 0x80, 0);
+		std::thread thr(NewFloppyDialogCreate, GetHWNDFromSDLWindow(), zipid | 0x80, 0);
 		thr.detach();
 	}
 	ImGui::Separator();
@@ -634,11 +636,7 @@ struct MOMenu : BaseMenu
 #ifdef _WIN32
 	if (ImGui::MenuItem("New Image..."))
 	{
-		SDL_SysWMinfo wmInfo;
-		SDL_VERSION(&wmInfo.version);
-		SDL_GetWindowWMInfo(sdl_win, &wmInfo);
-		HWND hwnd = wmInfo.info.win.window;
-		std::thread thr(NewFloppyDialogCreate, hwnd, moid | 0x100, 0);
+		std::thread thr(NewFloppyDialogCreate, GetHWNDFromSDLWindow(), moid | 0x100, 0);
 		thr.detach();
 	}
 	ImGui::Separator();
@@ -1138,6 +1136,9 @@ uint32_t timer_sb_icons(uint32_t interval, void* param)
 
 void show_about_dlg()
 {
+#ifdef _WIN32
+	AboutDialogCreate(GetHWNDFromSDLWindow());
+#else
 	int buttonid;
 	SDL_MessageBoxData msgdata{};
 	SDL_MessageBoxButtonData btndata[2] = { { 0 }, { 0 } };
@@ -1164,6 +1165,7 @@ void show_about_dlg()
 	{
 		open_url("https://86box.net");
 	}
+#endif
 }
 
 extern "C" void RenderImGui()
@@ -1471,11 +1473,7 @@ extern "C" void RenderImGui()
 #ifdef _WIN32
 		if (ImGui::MenuItem("Settings"))
 		{
-			SDL_SysWMinfo wmInfo{};
-			SDL_VERSION(&wmInfo.version);
-			SDL_GetWindowWMInfo(sdl_win, &wmInfo);
-			HWND hwnd = wmInfo.info.win.window;
-			win_settings_open(hwnd);
+			win_settings_open(GetHWNDFromSDLWindow());
 		}
 #endif
 		if (ImGui::MenuItem("Update status bar icons", NULL, update_icons))
@@ -1505,11 +1503,7 @@ extern "C" void RenderImGui()
 		ImGui::Separator();
 		if (ImGui::MenuItem("Sound gain..."))
 		{
-			SDL_SysWMinfo wmInfo;
-			SDL_VERSION(&wmInfo.version);
-			SDL_GetWindowWMInfo(sdl_win, &wmInfo);
-			HWND hwnd = wmInfo.info.win.window;
-			std::thread thr(SoundGainDialogCreate, hwnd);
+			std::thread thr(SoundGainDialogCreate, GetHWNDFromSDLWindow());
 			thr.detach();
 		}
 #endif
@@ -1708,11 +1702,7 @@ extern "C" void RenderImGui()
 	if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Sound");
 	if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
 	{
-		SDL_SysWMinfo wmInfo;
-		SDL_VERSION(&wmInfo.version);
-		SDL_GetWindowWMInfo(sdl_win, &wmInfo);
-		HWND hwnd = wmInfo.info.win.window;
-		std::thread thr(SoundGainDialogCreate, hwnd);
+		std::thread thr(SoundGainDialogCreate, GetHWNDFromSDLWindow());
 		thr.detach();
 	}
 #endif
