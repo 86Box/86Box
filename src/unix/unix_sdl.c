@@ -379,6 +379,7 @@ sdl_set_fs(int fs)
 
     sdl_reinit_texture();
     SDL_UnlockMutex(sdl_mutex);
+    device_force_redraw();
 }
 
 void
