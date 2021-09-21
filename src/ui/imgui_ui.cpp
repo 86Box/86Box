@@ -777,7 +777,7 @@ static SDL_Texture* net_status_icon[2];
 static SDL_Texture* sound_icon;
 
 #ifdef _WIN32
-static SDL_Texture* load_icon(char* name)
+static SDL_Texture* load_icon(TCHAR* name)
 {
 	SDL_Texture* tex = nullptr;
 	HRSRC src = FindResource(NULL, name, RT_RCDATA);
@@ -830,6 +830,22 @@ extern "C" void HandleSizeChange()
 {
     int w, h;
     if (!ImGui::GetCurrentContext()) ImGui::CreateContext(NULL);
+	else
+	{
+		ImGui_ImplSDL2_Shutdown();
+		ImGui::DestroyContext();
+		ImGui::CreateContext(NULL);
+		ImGui_ImplSDL2_InitForOpenGL(sdl_win, nullptr);
+	}
+	if (dpi_scale)
+	{
+		float ddpi = 96.;
+		if (SDL_GetDisplayDPI(SDL_GetWindowDisplayIndex(sdl_win), &ddpi, nullptr, nullptr) != -1)
+		{
+			ImGui::GetStyle().ScaleAllSizes(ddpi / 96.);
+			ImGui::GetIO().FontGlobalScale = ddpi / 96.;
+		}
+	}
     SDL_GetRendererOutputSize(sdl_render, &w, &h);
     ImGuiSDL::Initialize(sdl_render, w, h);
     w = 0, h = 0;
@@ -1278,7 +1294,7 @@ extern "C" void RenderImGui()
 		ImGui::EndMenu();
 	    }
 	    ImGui::Separator();
-	    if (ImGui::BeginMenu("Filter options"))
+	    if (ImGui::BeginMenu("Filter method"))
 	    {
 		SDL_Event event{};
 		event.type = SDL_RENDER_DEVICE_RESET;
@@ -1298,6 +1314,20 @@ extern "C" void RenderImGui()
 		}
 		ImGui::EndMenu();
 	    }
+		if (ImGui::MenuItem("HiDPI scaling", nullptr, dpi_scale))
+		{
+			extern int resize_pending;
+			dpi_scale ^= 1;
+			config_save();
+			resize_pending = 1;
+			imrendererinit = false;
+			if (video_fullscreen)
+			{
+				SDL_Event event{};
+				event.type = SDL_RENDER_DEVICE_RESET;
+				SDL_PushEvent(&event);
+			}
+		}
 	    ImGui::Separator();
 	    if (ImGui::MenuItem("Fullscreen", "Ctrl-Alt-Pageup", video_fullscreen))
 	    {

@@ -439,6 +439,10 @@ sdl_set_fs(int fs)
 	sdl_flags &= ~RENDERER_FULL_SCREEN;
 
     // sdl_reinit_texture();
+	if (!(sdl_flags & RENDERER_FULL_SCREEN))
+	{
+		resize_pending = 1;
+	}
     sdl_enabled = 1;
     SDL_UnlockMutex(sdl_mutex);
 }
@@ -447,11 +451,13 @@ void
 sdl_resize(int x, int y)
 {
     int ww = 0, wh = 0, wx = 0, wy = 0;
+	static int cur_dpi_scale = 0;
+	float windowscale = 1.f;
 
     if (video_fullscreen & 2)
 	return;
 
-    if ((x == cur_w) && (y == cur_h))
+    if ((x == cur_w) && (y == cur_h) && cur_dpi_scale == dpi_scale)
 	return;
 
     SDL_LockMutex(sdl_mutex);
@@ -466,8 +472,17 @@ sdl_resize(int x, int y)
     cur_wy = wy;
     cur_ww = ww;
     cur_wh = wh;
+	cur_dpi_scale = dpi_scale;
+	if (dpi_scale)
+	{
+		float ddpi = 96.f;
+		if (SDL_GetDisplayDPI(SDL_GetWindowDisplayIndex(sdl_win), &ddpi, NULL, NULL) != -1)
+		{
+			windowscale = ddpi / 96.f;
+		}
+	}
 
-    SDL_SetWindowSize(sdl_win, cur_ww, cur_wh + menubarheight);
+    SDL_SetWindowSize(sdl_win, cur_ww * windowscale, cur_wh * windowscale + menubarheight);
     SDL_GL_GetDrawableSize(sdl_win, &sdl_w, &sdl_h);
 
     sdl_reinit_texture();
