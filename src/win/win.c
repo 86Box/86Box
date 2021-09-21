@@ -1207,7 +1207,19 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
         return -1;
     }
     mousemutex = SDL_CreateMutex();
-    sdl_initho(0);
+    switch (vid_api)
+    {
+        case 0:
+            sdl_inits(0);
+            break;
+        default:
+        case 1:
+            sdl_inith(0);
+            break;
+        case 2:
+            sdl_initho(0);
+            break;
+    }
 
 	/* Initialize SDL2 WM structure. */
 	SDL_VERSION(&wmInfo.version);
@@ -1467,18 +1479,29 @@ plat_delay_ms(uint32_t count)
 
 /* Return the VIDAPI number for the given name. */
 int
-plat_vidapi(char *name)
+plat_vidapi(char* api)
 {
-    /* Default value. */
-    return(0);
+    if (_strnicmp(api, "sdl_software", sizeof("sdl_software") - 1) == 0) return 0;
+    if (_strnicmp(api, "default", sizeof("default") - 1) == 0) return 1;
+    if (_strnicmp(api, "sdl_opengl", sizeof("sdl_opengl") - 1) == 0) return 2;
+    return 0;
 }
 
 
 /* Return the VIDAPI name for the given number. */
-char *
-plat_vidapi_name(int api)
+char*
+plat_vidapi_name(int i)
 {
-     return "default";
+    switch (i)
+    {
+        case 0:
+            return "sdl_software";
+        case 1:
+        default:
+            return "default";
+        case 2:
+            return "sdl_opengl";
+    }
 }
 
 

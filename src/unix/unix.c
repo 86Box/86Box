@@ -993,7 +993,20 @@ int main(int argc, char** argv)
     }
     else fprintf(stderr, "libedit not found, line editing will be limited.\n");
     mousemutex = SDL_CreateMutex();
-    sdl_initho();
+    switch (vid_api)
+    {
+        case 0:
+            sdl_inits();
+            break;
+        default:
+        case 1:
+            sdl_inith();
+            break;
+        case 2:
+            sdl_initho();
+            break;
+    }
+    //sdl_initho();
 
     if (start_in_fullscreen)
     {
@@ -1218,7 +1231,16 @@ int main(int argc, char** argv)
 }
 char* plat_vidapi_name(int i)
 {
-    return "default";
+    switch (i)
+    {
+        case 0:
+            return "sdl_software";
+        case 1:
+        default:
+            return "default";
+        case 2:
+            return "sdl_opengl";
+    }
 }
 void joystick_init(void) {}
 void joystick_close(void) {}

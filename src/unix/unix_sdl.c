@@ -83,7 +83,7 @@ SDL_Window	*sdl_win = NULL;
 SDL_Renderer	*sdl_render = NULL;
 static SDL_Texture	*sdl_tex = NULL;
 int		sdl_w = SCREEN_RES_X, sdl_h = SCREEN_RES_Y;
-static int		sdl_fs, sdl_flags = -1;
+int		sdl_fs, sdl_flags = -1;
 static int		cur_w, cur_h;
 static int		cur_wx = 0, cur_wy = 0, cur_ww =0, cur_wh = 0;
 static volatile int	sdl_enabled = 1;
@@ -213,7 +213,7 @@ sdl_real_blit(SDL_Rect* r_src)
         r_dst.h *= ((float)winy / (float) r_dst.h);
     }
     r_dst.y += menubarheight;
-    r_dst.h -= (menubarheight * 2);
+    if (!hide_status_bar) r_dst.h -= (menubarheight * 2);
 
     ret = SDL_RenderCopy(sdl_render, sdl_tex, r_src, &r_dst);
     if (ret)
@@ -242,7 +242,7 @@ sdl_blit(int x, int y, int w, int h)
 
     if (resize_pending)
     {
-        if (!video_fullscreen) sdl_resize(resize_w, resize_h + (menubarheight * 2) );
+        if (!video_fullscreen) sdl_resize(resize_w, resize_h + (hide_status_bar ? 0 : menubarheight * 2) );
         resize_pending = 0;
     }
     r_src.x = x;
@@ -349,6 +349,8 @@ extern void HandleSizeChange();
 void
 sdl_reinit_texture()
 {
+    SDL_RendererInfo info;
+    memset(&info, 0, sizeof(SDL_RendererInfo));
     sdl_destroy_texture();
 
     if (sdl_flags & RENDERER_HARDWARE) {
@@ -356,6 +358,8 @@ sdl_reinit_texture()
 	SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, video_filter_method ? "1" : "0");
     } else
 	sdl_render = SDL_CreateRenderer(sdl_win, -1, SDL_RENDERER_SOFTWARE);
+
+    SDL_GetRendererInfo(sdl_render, &info);
 
     sdl_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ARGB8888,
 				SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
@@ -441,7 +445,23 @@ sdl_reload(void)
 int
 plat_vidapi(char* api)
 {
+    if (strncasecmp(api, "sdl_software", sizeof("sdl_software") - 1) == 0) return 0;
+    if (strncasecmp(api, "default", sizeof("default") - 1) == 0) return 1;
+    if (strncasecmp(api, "sdl_opengl", sizeof("sdl_opengl") - 1) == 0) return 2;
     return 0;
+}
+
+void sdl_determine_renderer(int flags)
+{
+    if (flags & RENDERER_HARDWARE)
+    {
+        if (flags & RENDERER_OPENGL)
+        {
+            SDL_SetHint(SDL_HINT_RENDER_DRIVER, "opengl");
+        }
+        else sdl_select_best_hw_driver();
+    }
+    else SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
 }
 
 static int
@@ -460,13 +480,7 @@ sdl_init_common(int flags)
 	return(0);
     }
 
-    if (flags & RENDERER_HARDWARE) {
-	if (flags & RENDERER_OPENGL) {
-		SDL_SetHint(SDL_HINT_RENDER_DRIVER, "OpenGL");
-	}
-    else
-		sdl_select_best_hw_driver();
-    }
+    sdl_determine_renderer(flags);
 
     sdl_mutex = SDL_CreateMutex();
     sdl_win = SDL_CreateWindow("86Box", strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_x : SDL_WINDOWPOS_CENTERED, strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_y : SDL_WINDOWPOS_CENTERED, scrnsz_x, scrnsz_y, SDL_WINDOW_OPENGL | (vid_resize & 1 ? SDL_WINDOW_RESIZABLE : 0));
@@ -490,6 +504,7 @@ sdl_init_common(int flags)
     video_setblit(sdl_blit_shim);
 
     sdl_enabled = 1;
+    sdl_flags = flags;
 
     return(1);
 }

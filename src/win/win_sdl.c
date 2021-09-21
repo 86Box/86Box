@@ -90,7 +90,7 @@ SDL_Window	*sdl_win = NULL;
 SDL_Renderer	*sdl_render = NULL;
 static SDL_Texture	*sdl_tex = NULL;
 int		sdl_w = SCREEN_RES_X, sdl_h = SCREEN_RES_Y;
-static int		sdl_fs, sdl_flags = -1;
+int		sdl_fs, sdl_flags = -1;
 static int		cur_w, cur_h;
 static int		cur_wx = 0, cur_wy = 0, cur_ww =0, cur_wh = 0;
 static volatile int	sdl_enabled = 1;
@@ -262,7 +262,7 @@ sdl_real_blit(SDL_Rect* r_src)
         r_dst.h *= ((float)winy / (float) r_dst.h);
     }
     r_dst.y += menubarheight;
-    r_dst.h -= (menubarheight * 2);
+    if (!hide_status_bar) r_dst.h -= (menubarheight * 2);
 
     ret = SDL_RenderCopy(sdl_render, sdl_tex, r_src, &r_dst);
     if (ret)
@@ -291,7 +291,7 @@ sdl_blit(int x, int y, int w, int h)
 
     if (resize_pending)
     {
-        if (!video_fullscreen) sdl_resize(resize_w, resize_h + (menubarheight * 2) );
+        if (!video_fullscreen) sdl_resize(resize_w, resize_h + (hide_status_bar ? 0 : menubarheight * 2) );
         resize_pending = 0;
     }
     r_src.x = x;
@@ -503,6 +503,18 @@ sdl_reload(void)
 	}
 }
 
+void sdl_determine_renderer(int flags)
+{
+    if (flags & RENDERER_HARDWARE)
+    {
+        if (flags & RENDERER_OPENGL)
+        {
+            SDL_SetHint(SDL_HINT_RENDER_DRIVER, "OpenGL");
+        }
+        else sdl_select_best_hw_driver();
+    }
+    else SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
+}
 
 static int
 sdl_init_common(int flags)
@@ -520,13 +532,7 @@ sdl_init_common(int flags)
 	return(0);
     }
 
-    if (flags & RENDERER_HARDWARE) {
-	if (flags & RENDERER_OPENGL) {
-		SDL_SetHint(SDL_HINT_RENDER_DRIVER, "OpenGL");
-	}
-    else
-		sdl_select_best_hw_driver();
-    }
+    sdl_determine_renderer(flags);
 
     sdl_mutex = SDL_CreateMutex();
     sdl_win = SDL_CreateWindow("86Box", strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_x : SDL_WINDOWPOS_CENTERED, strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_y : SDL_WINDOWPOS_CENTERED, scrnsz_x, scrnsz_y, SDL_WINDOW_OPENGL | (vid_resize & 1 ? SDL_WINDOW_RESIZABLE : 0));

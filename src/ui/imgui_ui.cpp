@@ -61,6 +61,10 @@ extern "C"
 #include <minitrace/minitrace.h>
 #endif
 
+#define RENDERER_FULL_SCREEN	1
+#define RENDERER_HARDWARE	2
+#define RENDERER_OPENGL		4
+
 #ifndef _WIN32
 #define INCBIN_STYLE INCBIN_STYLE_SNAKE
 #include <incbin.h>
@@ -1168,6 +1172,8 @@ void show_about_dlg()
 #endif
 }
 
+extern "C" void sdl_determine_renderer(int);
+
 extern "C" void RenderImGui()
 {
     if (!imrendererinit) HandleSizeChange();
@@ -1232,12 +1238,20 @@ extern "C" void RenderImGui()
 	}
 	if (ImGui::BeginMenu("View"))
 	{
+		if (ImGui::MenuItem("Hide status bar", NULL, hide_status_bar))
+		{
+			hide_status_bar ^= 1;
+			config_save();
+			extern int resize_pending;
+			resize_pending = 1;
+		}
+		ImGui::Separator();
 	    if (ImGui::MenuItem("Resizable window", NULL, vid_resize == 1, vid_resize < 2))
 	    {
 		vid_resize ^= 1;
 		SDL_SetWindowResizable(sdl_win, (SDL_bool)(vid_resize & 1));
 		scrnsz_x = unscaled_size_x;
-				scrnsz_y = unscaled_size_y;
+		scrnsz_y = unscaled_size_y;
 		config_save();
 	    }
 	    if (ImGui::MenuItem("Remember size & position", NULL, window_remember))
@@ -1254,6 +1268,37 @@ extern "C" void RenderImGui()
 		}
 	    }
 	    ImGui::Separator();
+		if (ImGui::BeginMenu("Renderer"))
+		{
+			extern int sdl_flags;
+			SDL_Event event{};
+			event.type = SDL_RENDER_DEVICE_RESET;
+			if (ImGui::MenuItem("SDL (Software)", NULL, vid_api == 0))
+			{
+				vid_api = 0;
+				sdl_flags = (sdl_flags & RENDERER_FULL_SCREEN);
+				SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
+				SDL_PushEvent(&event);
+			}
+			if (ImGui::MenuItem("SDL (Hardware)", NULL, vid_api == 1))
+			{
+				vid_api = 1;
+				sdl_flags = (sdl_flags & RENDERER_FULL_SCREEN);
+				sdl_flags |= RENDERER_HARDWARE;
+				sdl_determine_renderer(sdl_flags);
+				SDL_PushEvent(&event);
+			}
+			if (ImGui::MenuItem("SDL (OpenGL)", NULL, vid_api == 2))
+			{
+				vid_api = 2;
+				sdl_flags = (sdl_flags & RENDERER_FULL_SCREEN);
+				sdl_flags |= RENDERER_HARDWARE | RENDERER_OPENGL;
+				sdl_determine_renderer(sdl_flags);
+				SDL_PushEvent(&event);
+			}
+			ImGui::EndMenu();
+		}
+		ImGui::Separator();
 	    if (ImGui::MenuItem("Force 4:3 display ratio", NULL, force_43))
 	    {
 		force_43 ^= 1;
@@ -1590,7 +1635,7 @@ extern "C" void RenderImGui()
     
     ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetIO().DisplaySize.y - (menubarheight * 2)));
     ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, menubarheight * 2));
-    if (ImGui::Begin("86Box status bar", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar))
+    if (!hide_status_bar && ImGui::Begin("86Box status bar", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar))
     {
 	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(0, 0, 0, 0));
