@@ -251,7 +251,7 @@ es1371_reset(void *p)
        Addressable as byte, word, longword */
     dev->mem_page = 0x00;
 
-    /* Sample Rate Concerter Interface Register, Address 10H
+    /* Sample Rate Converter Interface Register, Address 10H
        Addressable as longword only */
     dev->sr_cir = 0x00000000;
 
@@ -682,7 +682,7 @@ es1371_inl(uint16_t port, void *p)
 		ret = dev->mem_page;
 		break;
 
-	/* Sample Rate Concerter Interface Register, Address 10H
+	/* Sample Rate Converter Interface Register, Address 10H
 	   Addressable as longword only */
 	case 0x10:
 		ret = dev->sr_cir & ~0xffff;
@@ -959,7 +959,7 @@ es1371_outl(uint16_t port, uint32_t val, void *p)
 		dev->mem_page = val & 0xf;
 		break;
 
-	/* Sample Rate Concerter Interface Register, Address 10H
+	/* Sample Rate Converter Interface Register, Address 10H
 	   Addressable as longword only */
 	case 0x10:
 		dev->sr_cir = val;
