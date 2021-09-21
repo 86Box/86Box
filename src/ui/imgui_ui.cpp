@@ -1279,6 +1279,7 @@ extern "C" void RenderImGui()
 				sdl_flags = (sdl_flags & RENDERER_FULL_SCREEN);
 				SDL_SetHint(SDL_HINT_RENDER_DRIVER, "software");
 				SDL_PushEvent(&event);
+				config_save();
 			}
 			if (ImGui::MenuItem("SDL (Hardware)", NULL, vid_api == 1))
 			{
@@ -1287,6 +1288,7 @@ extern "C" void RenderImGui()
 				sdl_flags |= RENDERER_HARDWARE;
 				sdl_determine_renderer(sdl_flags);
 				SDL_PushEvent(&event);
+				config_save();
 			}
 			if (ImGui::MenuItem("SDL (OpenGL)", NULL, vid_api == 2))
 			{
@@ -1295,6 +1297,7 @@ extern "C" void RenderImGui()
 				sdl_flags |= RENDERER_HARDWARE | RENDERER_OPENGL;
 				sdl_determine_renderer(sdl_flags);
 				SDL_PushEvent(&event);
+				config_save();
 			}
 			ImGui::EndMenu();
 		}
