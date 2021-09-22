@@ -672,7 +672,7 @@ ui_sb_update_text()
 	SendMessage(hwndSBAR, SB_SETTEXT, part | SBT_NOBORDERS, (LPARAM)((sb_text[0] != L'\0') ? sb_text : sb_bugtext));
 }
 
-
+#if 0
 /* API */
 void
 ui_sb_set_text(char *str)
@@ -683,5 +683,5 @@ ui_sb_set_text(char *str)
 	memset(sb_text, 0x00, sizeof(sb_text));
     ui_sb_update_text();
 }
-
+#endif
 

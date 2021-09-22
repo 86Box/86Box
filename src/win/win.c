@@ -295,10 +295,6 @@ ProcessCommandLine(char ***argv)
 }
 
 volatile int cpu_thread_run = 1;
-void ui_sb_set_text_w(wchar_t *wstr)
-{
-
-}
 
 int stricmp(const char* s1, const char* s2)
 {
@@ -430,11 +426,6 @@ plat_power_off(void)
     cycles -= 99999999;
 
     cpu_thread_run = 0;
-}
-
-void ui_sb_bugui(char *str)
-{
-    
 }
 
 extern void     sdl_blit(int x, int y, int w, int h);

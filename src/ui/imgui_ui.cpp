@@ -1060,6 +1060,37 @@ uint32_t timer_sb_icon_cb(uint32_t interval, void* param)
 	return 0;
 }
 
+static char status_bar_text[512] = { 0 };
+static char status_bar_bugui_text[512] = { 0 };
+
+extern "C" void ui_sb_bugui(char *str)
+{
+	if (str) strncpy(status_bar_bugui_text, str, sizeof(status_bar_bugui_text) - 1);
+	else memset(status_bar_bugui_text, 0, sizeof(status_bar_bugui_text) - 1);
+}
+
+extern "C" void ui_sb_set_text(char* str)
+{
+	if (str) strncpy(status_bar_text, str, sizeof(status_bar_text) - 1);
+	else memset(status_bar_text, 0, sizeof(status_bar_text) - 1);
+}
+
+extern "C" void ui_sb_set_text_w(wchar_t* str)
+{
+	if (sizeof(wchar_t) == 1) return ui_sb_set_text((char*)str);
+	if (str == NULL)
+	{
+		memset(status_bar_text, 0, sizeof(status_bar_text));
+		return;
+	}
+	char* res = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char*)str, wcslen(str) * sizeof(wchar_t) + sizeof(wchar_t));
+	if (res)
+	{
+		ui_sb_set_text(res);
+		SDL_free(res);
+	}
+}
+
 extern "C" void ui_sb_update_icon(int tag, int active)
 {
     uint8_t index = tag & 0x0F;
@@ -1800,7 +1831,10 @@ extern "C" void RenderImGui()
 		std::thread thr(SoundGainDialogCreate, GetHWNDFromSDLWindow());
 		thr.detach();
 	}
+	ImGui::SameLine(0, 0);
 #endif
+	ImGui::AlignTextToFramePadding();
+	ImGui::Text(" %s", status_bar_text[0] != 0 ? status_bar_text : status_bar_bugui_text);
 
 	ImGui::PopStyleColor(3);
 	ImGui::End();

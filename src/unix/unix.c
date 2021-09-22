@@ -255,6 +255,8 @@ wchar_t* plat_get_string(int i)
             return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
         case IDS_2114:
             return L"Unable to initialize Ghostscript";
+        case IDS_2142:
+            return L"Monitor in sleep mode";
     }
     return L"";
 }
@@ -439,10 +441,6 @@ plat_get_dirname(char *dest, const char *path)
     *dest = '\0';
 }
 volatile int cpu_thread_run = 1;
-void ui_sb_set_text_w(wchar_t *wstr)
-{
-
-}
 
 int stricmp(const char* s1, const char* s2)
 {
@@ -590,11 +588,6 @@ plat_power_off(void)
     cycles -= 99999999;
 
     cpu_thread_run = 0;
-}
-
-void ui_sb_bugui(char *str)
-{
-    
 }
 
 extern void     sdl_blit(int x, int y, int w, int h);
