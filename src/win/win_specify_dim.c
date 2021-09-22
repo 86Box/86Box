@@ -55,7 +55,9 @@ SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 
     switch (message) {
 	case WM_INITDIALOG:
-		int width = 0, height = 0;
+		int width, height;
+		width = 0;
+		height = 0;
 		SDL_GetWindowSize(sdl_win, &width, &height);
 		height -= menubarheight;
 		if (!hide_status_bar) height -= menubarheight * 2;
