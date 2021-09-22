@@ -90,7 +90,7 @@ static int	first_use = 1;
 static uint64_t	StartingTime;
 static uint64_t Frequency;
 int rctrl_is_lalt;
-int	update_icons;
+int	update_icons = 1;
 int	kbd_req_capture;
 int hide_status_bar;
 int fixed_size_x = 640;

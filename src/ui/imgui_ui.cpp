@@ -1054,49 +1054,64 @@ extern "C" void ui_sb_update_icon_state(int tag, int state)
     }
 }
 
+uint32_t timer_sb_icon_cb(uint32_t interval, void* param)
+{
+	*(std::atomic<bool>*)(param) = false;
+	return 0;
+}
+
 extern "C" void ui_sb_update_icon(int tag, int active)
 {
     uint8_t index = tag & 0x0F;
+	if (!update_icons) return;
     switch (tag & 0xF0)
     {
 	case SB_FLOPPY:
 	{
 	    fddactive[index] = (bool)(active);
+		SDL_AddTimer(75, timer_sb_icon_cb, &fddactive[index]);
 	    break;
 	}
 	case SB_MO:
 	{
 	    moactive[index] = (bool)(active);
+		SDL_AddTimer(75, timer_sb_icon_cb, &moactive[index]);
 	    break;
 	}
 	case SB_CASSETTE:
 	{
 	    cas_active = (bool)(active);
+		SDL_AddTimer(75, timer_sb_icon_cb, &cas_active);
 	    break;
 	}
 	case SB_ZIP:
 	{
 	    zipactive[index] = (bool)(active);
+		SDL_AddTimer(75, timer_sb_icon_cb, &zipactive[index]);
 	    break;
 	}
 	case SB_CARTRIDGE:
 	{
 	    cartactive[index] = (bool)(active);
+		SDL_AddTimer(75, timer_sb_icon_cb, &cartactive[index]);
 	    break;
 	}
 	case SB_CDROM:
 	{
 	    cdactive[index] = (bool)(active);
+		SDL_AddTimer(75, timer_sb_icon_cb, &cdactive[index]);
 	    break;
 	}
 	case SB_HDD:
 	{
 	    hddactive[index] = (bool)(active);
+		SDL_AddTimer(75, timer_sb_icon_cb, &hddactive[index]);
 	    break;
 	}
 	case SB_NETWORK:
 	{
 	    netactive = (bool)(active);
+		SDL_AddTimer(75, timer_sb_icon_cb, &netactive);
 	    break;
 	}
     }
@@ -1129,15 +1144,6 @@ fdd_type_to_icon(int type)
     return(ret);
 }
 #endif
-
-uint32_t timer_sb_icons(uint32_t interval, void* param)
-{
-    std::fill(hddactive.begin(), hddactive.end(), false);
-    std::fill(zipactive.begin(), zipactive.end(), false);
-    std::fill(moactive.begin(), moactive.end(), false);
-    netactive = false;
-    return interval;
-}
 
 void show_about_dlg()
 {
@@ -1196,7 +1202,6 @@ extern "C" void RenderImGui()
 		//extern int resize_w, resize_h;
 	    //SDL_SetWindowSize(sdl_win, resize_w, resize_h + menubarheight + (hide_status_bar ? 0 : menubarheight * 2));
 	    media_menu_reset();
-	    SDL_AddTimer(75, timer_sb_icons, nullptr);
 	}
 	if (ImGui::BeginMenu("Action"))
 	{
