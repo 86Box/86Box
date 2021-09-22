@@ -1140,6 +1140,8 @@ int main(int argc, char** argv)
                             xtkey = sdl_to_xt[event.key.keysym.scancode];
                             break;
                     }
+                    if ((xtkey == 0x11D) && rctrl_is_lalt)
+			            xtkey = 0x038;
                     keyboard_input(event.key.state == SDL_PRESSED, xtkey);
                 }
                 case SDL_WINDOWEVENT:
