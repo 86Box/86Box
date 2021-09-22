@@ -493,7 +493,7 @@ es1371_inb(uint16_t port, void *p)
 		break;
 
 	/* Interrupt/Chip Select Status Register, Address 04H
-	   Addressable as longword only, but PCem implemens byte access, which
+	   Addressable as longword only, but PCem implements byte access, which
 	   must be for a reason */
 	case 0x04:
 		ret = dev->int_status & 0xff;
