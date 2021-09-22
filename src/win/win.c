@@ -1070,6 +1070,12 @@ void PreSDLWinMessageHook(void* userdata, void* hWnd, unsigned int message, Uint
 {
 	switch (message)
 	{
+    case WM_FORCERESIZE:
+    {
+        extern SDL_Window* sdl_win;
+        SDL_SetWindowSize(sdl_win, wParam, lParam);
+        break;
+    }
 	case WM_INPUT:
 	{
 		if (infocus) {
@@ -1373,7 +1379,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
                         {
                             window_x = event.window.data1;
                             window_y = event.window.data2;
-                            if (window_remember) config_save();
+                            if (window_remember || (vid_resize & 2)) config_save();
                         }
                         break;
                     }

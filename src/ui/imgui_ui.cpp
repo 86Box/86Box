@@ -107,7 +107,7 @@ extern int blitreq;
 extern "C" void sdl_blit(int x, int y, int y1, int y2, int w, int h);
 
 #ifdef _WIN32
-HWND GetHWNDFromSDLWindow()
+extern "C" HWND GetHWNDFromSDLWindow()
 {
 	SDL_SysWMinfo wmInfo{};
 	SDL_VERSION(&wmInfo.version);
@@ -871,6 +871,7 @@ extern "C" void HandleSizeChange()
     net_status_icon[0] = load_icon(MAKEINTRESOURCE(96 + 256));
     net_status_icon[1] = load_icon(MAKEINTRESOURCE(97 + 256));
 	sound_icon = load_icon(MAKEINTRESOURCE(361));
+	hwndRender = hwndMain = GetHWNDFromSDLWindow();
 #else
     cdrom_status_icon[0] = load_icon(gcdromicon_data, gcdromicon_size);
     cdrom_status_icon[1] = load_icon(gcdromactiveicon_data, gcdromactiveicon_size);
@@ -1192,7 +1193,8 @@ extern "C" void RenderImGui()
 	if (firstrender)
 	{
 	    firstrender = false;
-	    plat_resize(640, 480 + menubarheight);
+		//extern int resize_w, resize_h;
+	    //SDL_SetWindowSize(sdl_win, resize_w, resize_h + menubarheight + (hide_status_bar ? 0 : menubarheight * 2));
 	    media_menu_reset();
 	    SDL_AddTimer(75, timer_sb_icons, nullptr);
 	}
@@ -1302,6 +1304,13 @@ extern "C" void RenderImGui()
 			ImGui::EndMenu();
 		}
 		ImGui::Separator();
+#ifdef _WIN32
+		if (ImGui::MenuItem("Specify dimensions..."))
+		{
+			std::thread thr(SpecifyDimensionsDialogCreate, GetHWNDFromSDLWindow());
+			thr.detach();
+		}
+#endif
 	    if (ImGui::MenuItem("Force 4:3 display ratio", NULL, force_43))
 	    {
 		force_43 ^= 1;
@@ -1367,9 +1376,30 @@ extern "C" void RenderImGui()
 		if (ImGui::MenuItem("HiDPI scaling", nullptr, dpi_scale))
 		{
 			extern int resize_pending;
+			int cur_dpi_scale = dpi_scale;
 			dpi_scale ^= 1;
 			config_save();
-			resize_pending = 1;
+			if (!video_fullscreen && vid_resize)
+			{
+				int screenwidth = 0, screenheight = 0;
+				SDL_GetWindowSize(sdl_win, &screenwidth, &screenheight);
+				screenheight -= menubarheight;
+				if (!hide_status_bar) screenheight -= menubarheight * 2;
+				if (cur_dpi_scale >= 1)
+				{
+					menubarheight *= 1.f / ImGui::GetIO().FontGlobalScale;
+				}
+				else if (cur_dpi_scale == 0)
+				{
+					float ddpi = 96.f;
+					SDL_GetDisplayDPI(SDL_GetWindowDisplayIndex(sdl_win), &ddpi, nullptr, nullptr);
+					menubarheight *= ddpi / 96.f;
+				}
+				screenheight += menubarheight;
+				if (!hide_status_bar) screenheight += menubarheight * 2;
+				SDL_SetWindowSize(sdl_win, screenwidth, screenheight);
+			}
+			else resize_pending = 1;
 			imrendererinit = false;
 			if (video_fullscreen)
 			{

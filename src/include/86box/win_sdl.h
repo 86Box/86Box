@@ -49,7 +49,7 @@
 #ifndef WIN_SDL_H
 # define WIN_SDL_H
 
-
+#define WM_FORCERESIZE 0x8999
 extern void	sdl_close(void);
 extern int	sdl_inits(HWND h);
 extern int	sdl_inith(HWND h);
