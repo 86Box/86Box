@@ -1250,11 +1250,23 @@ extern "C" void RenderImGui()
 		ImGui::Separator();
 	    if (ImGui::MenuItem("Resizable window", NULL, vid_resize == 1, vid_resize < 2))
 	    {
-		vid_resize ^= 1;
-		SDL_SetWindowResizable(sdl_win, (SDL_bool)(vid_resize & 1));
-		scrnsz_x = unscaled_size_x;
-		scrnsz_y = unscaled_size_y;
-		config_save();
+			vid_resize ^= 1;
+			SDL_SetWindowResizable(sdl_win, (SDL_bool)(vid_resize & 1));
+			scrnsz_x = unscaled_size_x;
+			scrnsz_y = unscaled_size_y;
+			SDL_SetWindowSize(sdl_win, unscaled_size_x, unscaled_size_y + menubarheight + (hide_status_bar ? 0 : menubarheight * 2));
+			scale = 1;
+			reset_screen_size();
+		    device_force_redraw();
+		    video_force_resize_set(1);
+		    if (!video_fullscreen)
+		    {
+			if (vid_resize & 2)
+			    plat_resize(fixed_size_x, fixed_size_y);
+			else
+			    plat_resize(scrnsz_x, scrnsz_y);
+		    }
+			config_save();
 	    }
 	    if (ImGui::MenuItem("Remember size & position", NULL, window_remember))
 	    {
