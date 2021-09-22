@@ -1132,6 +1132,7 @@ int main(int argc, char** argv)
                 case SDL_KEYUP:
                 {
                     if (ImGuiWantsKeyboardCapture()) break;
+                    if (kbd_req_capture && !mouse_capture) break;
                     uint16_t xtkey = 0;
                     switch(event.key.keysym.scancode)
                     {
