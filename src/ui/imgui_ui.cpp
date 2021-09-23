@@ -375,7 +375,7 @@ void file_request_thread(FileOpenSaveRequest param)
 void DisplayFileAlreadyOpenMessage()
 {
 	SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_WARNING, "86Box",
-							"A file dialog is already open. Please close it before opening a new one.\n", nullptr);
+							"A dialog is already open. Please close it before opening a new one.\n", nullptr);
 }
 
 void file_open_request(FileOpenSaveRequest param)
@@ -1182,6 +1182,10 @@ void show_about_dlg()
 	AboutDialogCreate(GetHWNDFromSDLWindow());
 #else
 	int buttonid;
+	if (filedlgopen)
+	{
+		return;
+	}
 	SDL_MessageBoxData msgdata{};
 	SDL_MessageBoxButtonData btndata[2] = { { 0 }, { 0 } };
 	btndata[0].buttonid = 1;
@@ -1197,6 +1201,7 @@ void show_about_dlg()
 	msgdata.colorScheme = NULL;
 	msgdata.numbuttons = 2;
 	msgdata.window = sdl_win;
+	filedlgopen++;
 
 	if (SDL_ShowMessageBox(&msgdata, &buttonid) == -1)
 	{
@@ -1207,6 +1212,7 @@ void show_about_dlg()
 	{
 		open_url("https://86box.net");
 	}
+	filedlgopen--;
 #endif
 }
 
