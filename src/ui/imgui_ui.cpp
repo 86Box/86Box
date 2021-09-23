@@ -1287,10 +1287,12 @@ extern "C" void RenderImGui()
 	    if (ImGui::MenuItem("Resizable window", NULL, vid_resize == 1, vid_resize < 2))
 	    {
 			vid_resize ^= 1;
+			float ddpi = 96.;
+			if (dpi_scale) SDL_GetDisplayDPI(SDL_GetWindowDisplayIndex(sdl_win), &ddpi, nullptr, nullptr);
 			SDL_SetWindowResizable(sdl_win, (SDL_bool)(vid_resize & 1));
 			scrnsz_x = unscaled_size_x;
 			scrnsz_y = unscaled_size_y;
-			SDL_SetWindowSize(sdl_win, unscaled_size_x, unscaled_size_y + menubarheight + (hide_status_bar ? 0 : menubarheight * 2));
+			SDL_SetWindowSize(sdl_win, unscaled_size_x * (ddpi / 96.), (unscaled_size_y * (ddpi / 96.)) + menubarheight + (hide_status_bar ? 0 : menubarheight * 2));
 			scale = 1;
 			reset_screen_size();
 		    device_force_redraw();

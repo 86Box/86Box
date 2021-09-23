@@ -547,6 +547,10 @@ plat_mouse_capture(int on)
 
 void plat_resize(int w, int h)
 {
+    if (vid_resize)
+    {
+        return;
+    }
     SDL_LockMutex(sdl_mutex);
     resize_w = w;
     resize_h = h;
