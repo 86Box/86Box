@@ -1239,6 +1239,10 @@ extern "C" void RenderImGui()
 		//extern int resize_w, resize_h;
 	    //SDL_SetWindowSize(sdl_win, resize_w, resize_h + menubarheight + (hide_status_bar ? 0 : menubarheight * 2));
 	    media_menu_reset();
+		if (vid_resize & 2)
+		{
+			SDL_SetWindowSize(sdl_win, fixed_size_x, fixed_size_y + menubarheight + (hide_status_bar ? 0 : menubarheight * 2));
+		}		
 	}
 	if (ImGui::BeginMenu("Action"))
 	{

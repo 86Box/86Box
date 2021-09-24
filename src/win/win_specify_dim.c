@@ -128,8 +128,6 @@ SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 						window_h = scrnsz_y + menubarheight + (hide_status_bar ? 0 : menubarheight * 2) ;
 					}
 				}
-				fixed_size_y += menubarheight;
-				if (!hide_status_bar) fixed_size_y += menubarheight * 2;
 
 				config_save();
 
