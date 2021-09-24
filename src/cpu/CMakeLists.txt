@@ -24,6 +24,10 @@ if(CYRIX_6X86)
 	target_compile_definitions(cpu PRIVATE USE_CYRIX_6X86)
 endif()
 
+if(M6117)
+	target_compile_definitions(cpu PRIVATE USE_M6117)
+endif()
+
 if(DYNAREC)
 	add_library(cgt OBJECT codegen_timing_486.c codegen_timing_686.c
 		codegen_timing_common.c codegen_timing_k6.c
