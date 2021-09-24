@@ -23,7 +23,7 @@ set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 project(PCBox
 	VERSION 3.0
 	DESCRIPTION "Emulator of x86-based systems"
-	HOMEPAGE_URL "https://86box.github.io/"
+	HOMEPAGE_URL "https://pcbox.github.io/"
 	LANGUAGES C CXX)
 
 # Detect the target architecture by trying to compile `src/arch_detect.c`
