@@ -1284,10 +1284,14 @@ extern "C" void RenderImGui()
 	{
 		if (ImGui::MenuItem("Hide status bar", NULL, hide_status_bar))
 		{
+			int windowwidth = 0, windowheight = 0;
+			int cur_hide_status_bar = hide_status_bar;
 			hide_status_bar ^= 1;
 			config_save();
-			extern int resize_pending;
-			resize_pending = 1;
+			SDL_GetWindowSize(sdl_win, &windowwidth, &windowheight);
+			if (!hide_status_bar) windowheight += menubarheight * 2;
+			else windowheight -= menubarheight * 2;
+			SDL_SetWindowSize(sdl_win, windowwidth, windowheight);
 		}
 		ImGui::Separator();
 	    if (ImGui::MenuItem("Resizable window", NULL, vid_resize == 1, vid_resize < 2))
