@@ -1286,8 +1286,7 @@ extern "C" void RenderImGui()
 		{
 			hide_status_bar ^= 1;
 			config_save();
-			extern int resize_pending;
-			resize_pending = 1;
+			SDL_SetWindowSize(sdl_win, scrnsz_x, scrnsz_y + menubarheight + (hide_status_bar ? menubarheight * 2 : 0));
 		}
 		ImGui::Separator();
 	    if (ImGui::MenuItem("Resizable window", NULL, vid_resize == 1, vid_resize < 2))
