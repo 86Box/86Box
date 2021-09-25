@@ -47,22 +47,6 @@ if(VNC)
 	endif()
 endif()
 
-if(NOT WIN32 OR PTHREAD)
-	target_sources(86Box PRIVATE thread.c)
-	if(WIN32 AND VCPKG_TOOLCHAIN)
-		find_package(pthreads REQUIRED)
-		if (PThreads4W_FOUND)
-			target_link_libraries(86Box PThreads4W::PThreads4W)
-		else()
-			target_link_libraries(86Box pthreads)
-		endif()
-	else()
-		set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-		find_package(Threads REQUIRED)
-		target_link_libraries(86Box Threads::Threads)
-	endif()
-endif()
-
 target_link_libraries(86Box cpu chipset mch dev mem fdd game cdrom zip mo hdd
 	net print scsi sio snd vid voodoo plat ui)
 
