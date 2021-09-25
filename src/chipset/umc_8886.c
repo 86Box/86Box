@@ -291,6 +291,9 @@ umc_8886_reset(void *priv)
 {
     umc_8886_t *dev = (umc_8886_t *)priv;
 
+    memset(dev->pci_conf_sb[0], 0x00, sizeof(dev->pci_conf_sb[0]));
+    memset(dev->pci_conf_sb[1], 0x00, sizeof(dev->pci_conf_sb[1]));
+
     dev->pci_conf_sb[0][0] = 0x60;		/* UMC */
     dev->pci_conf_sb[0][1] = 0x10;
 
@@ -336,6 +339,9 @@ umc_8886_reset(void *priv)
 
     for (int i = 1; i < 5; i++)		/* Disable all IRQ interrupts */
 	pci_set_irq_routing(i, PCI_IRQ_DISABLED);
+
+    cpu_set_isa_pci_div(3);
+    cpu_set_pci_speed(cpu_busspeed / 2);
 }
 
 

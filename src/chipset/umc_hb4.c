@@ -97,6 +97,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
+#include "x86.h"
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
@@ -106,6 +107,18 @@
 #include <86box/port_92.h>
 #include <86box/smram.h>
 
+#ifdef USE_DYNAREC
+# include "codegen_public.h"
+#else
+#ifdef USE_NEW_DYNAREC
+# define PAGE_MASK_SHIFT	6
+#else
+# define PAGE_MASK_INDEX_MASK	3
+# define PAGE_MASK_INDEX_SHIFT	10
+# define PAGE_MASK_SHIFT	4
+#endif
+# define PAGE_MASK_MASK		63
+#endif
 #include <86box/chipset.h>
 
 
@@ -131,34 +144,108 @@ hb4_log(const char *fmt, ...)
 
 typedef struct hb4_t
 {
-    uint8_t	pci_conf[128];	/* PCI Registers */
-    smram_t	*smram;		/* SMRAM Handler */
+    uint8_t	shadow,
+		shadow_read, shadow_write,
+		pci_conf[256];	/* PCI Registers */
+    int		mem_state[9];
+    smram_t	*smram[2];	/* SMRAM Handlers */
 } hb4_t;
+
+
+static int shadow_bios[4] = { (MEM_READ_EXTANY | MEM_WRITE_INTERNAL), (MEM_READ_EXTANY | MEM_WRITE_EXTANY),
+			      (MEM_READ_INTERNAL | MEM_WRITE_INTERNAL), (MEM_READ_INTERNAL | MEM_WRITE_EXTANY) };
+static int shadow_read[2] = { MEM_READ_EXTANY, MEM_READ_INTERNAL };
+static int shadow_write[2] = { MEM_WRITE_INTERNAL, MEM_WRITE_EXTANY };
+
+
+int
+hb4_shadow_bios_high(hb4_t *dev)
+{
+    int state;
+
+    state = shadow_bios[dev->pci_conf[0x55] >> 6];
+
+    if (state != dev->mem_state[8]) {
+	mem_set_mem_state_both(0xf0000, 0x10000, state);
+	if ((dev->mem_state[8] & MEM_READ_INTERNAL) && !(state & MEM_READ_INTERNAL))
+		mem_invalidate_range(0xf0000, 0xfffff);
+	dev->mem_state[8] = state;
+	return 1;
+    }
+
+    return 0;
+}
+
+
+int
+hb4_shadow_bios_low(hb4_t *dev)
+{
+    int state;
+
+    state = shadow_bios[(dev->pci_conf[0x55] >> 6) & (dev->shadow | 0x01)];
+
+    if (state != dev->mem_state[7]) {
+	mem_set_mem_state_both(0xe0000, 0x10000, state);
+	dev->mem_state[7] = state;
+	return 1;
+    }
+
+    return 0;
+}
+
+
+int
+hb4_shadow_main(hb4_t *dev)
+{
+    int i, state;
+    int n = 0;
+
+    for (i = 0; i < 6; i++) {
+	state = shadow_read[dev->shadow && ((dev->pci_conf[0x54] >> (i + 2)) & 0x01)] |
+		shadow_write[(dev->pci_conf[0x55] >> 6) & 0x01];
+
+	if (state != dev->mem_state[i + 1]) {
+		n++;
+		mem_set_mem_state_both(0xc8000 + (i << 14), 0x4000, state);
+		dev->mem_state[i + 1] = state;
+	}
+    }
+
+    return n;
+}
+
+
+int
+hb4_shadow_video(hb4_t *dev)
+{
+    int state;
+
+    state = shadow_read[dev->shadow && ((dev->pci_conf[0x54] >> 1) & 0x01)] |
+	    shadow_write[(dev->pci_conf[0x55] >> 6) & 0x01];
+
+    if (state != dev->mem_state[0]) {
+	mem_set_mem_state_both(0xc0000, 0x8000, state);
+	dev->mem_state[0] = state;
+	return 1;
+    }
+
+    return 0;
+}
 
 
 void
 hb4_shadow(hb4_t *dev)
 {
-    int state, i;
+    int n = 0;
+    pclog("SHADOW: %02X%02X\n", dev->pci_conf[0x55], dev->pci_conf[0x54]);
 
-    mem_set_mem_state_both(0xe0000, 0x20000, ((dev->pci_conf[0x55] & 0x80) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) |
-					     ((dev->pci_conf[0x55] & 0x40) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL));
+    n = hb4_shadow_bios_high(dev);
+    n += hb4_shadow_bios_low(dev);
+    n += hb4_shadow_main(dev);
+    n += hb4_shadow_video(dev);
 
-    if (dev->pci_conf[0x54] & 1) {
-	state = (dev->pci_conf[0x54] & 0x02) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
-	state |= (dev->pci_conf[0x55] & 0x40) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL;
-
-	mem_set_mem_state_both(0xc0000, 0x8000, state);
-
-	for (i = 0; i < 6; i++) {
-		state = (dev->pci_conf[0x54] & (1 << (i + 2))) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
-		state |= (dev->pci_conf[0x55] & 0x40) ? MEM_WRITE_EXTANY : MEM_WRITE_INTERNAL;
-
-		mem_set_mem_state_both(0xc8000 + (i << 4), 0x4000, state);
-	}
-    }
-
-    flushmmucache_nopc();
+    if (n > 0)
+	flushmmucache_nopc();
 }
 
 
@@ -169,7 +256,9 @@ hb4_smram(hb4_t *dev)
 
     /* Bit 0, if set, enables SMRAM access outside SMM. SMRAM appears to be always enabled
        in SMM, and is always set to A0000-BFFFF. */
-    smram_enable(dev->smram, 0x000a0000, 0x000a0000, 0x20000, dev->pci_conf[0x60] & 0x01, 1);
+    smram_enable(dev->smram[0], 0x000a0000, 0x000a0000, 0x20000, dev->pci_conf[0x60] & 0x01, 1);
+    /* There's a mirror of the SMRAM at 0E0A0000, mapped to A0000. */
+    smram_enable(dev->smram[1], 0x0e0a0000, 0x000a0000, 0x20000, dev->pci_conf[0x60] & 0x01, 1);
 
     /* Bit 5 seems to set data to go to PCI and code to DRAM. The Samsung SPC7700P-LW uses
        this. */
@@ -185,6 +274,8 @@ static void
 hb4_write(int func, int addr, uint8_t val, void *priv)
 {
     hb4_t *dev = (hb4_t *)priv;
+    uint8_t old;
+
     hb4_log("UM8881: dev->regs[%02x] = %02x POST: %02x \n", addr, val, inb(0x80));
 
     switch (addr) {
@@ -207,11 +298,23 @@ hb4_write(int func, int addr, uint8_t val, void *priv)
 		break;
 
 	case 0x51: case 0x52:
-	case 0x53:
 		dev->pci_conf[addr] = val;
 		break;
 
-	case 0x54: case 0x55:
+	case 0x53:
+		old = dev->pci_conf[addr];
+		dev->pci_conf[addr] = val;
+		pclog("HB53: %02X\n", val);
+		break;
+
+	case 0x55:
+		dev->shadow_read = (val & 0x80);
+		dev->shadow_write = (val & 0x40);
+		dev->pci_conf[addr] = val;
+		hb4_shadow(dev);
+		break;
+	case 0x54:
+		dev->shadow = (val & 0x01) << 1;
 		dev->pci_conf[addr] = val;
 		hb4_shadow(dev);
 		break;
@@ -236,8 +339,12 @@ static uint8_t
 hb4_read(int func, int addr, void *priv)
 {
     hb4_t *dev = (hb4_t *)priv;
+    uint8_t ret = 0xff;
 
-    return dev->pci_conf[addr];
+    if (func == 0)
+	ret = dev->pci_conf[addr];
+
+    return ret;
 }
 
 
@@ -245,6 +352,7 @@ static void
 hb4_reset(void *priv)
 {
     hb4_t *dev = (hb4_t *)priv;
+    memset(dev->pci_conf, 0x00, sizeof(dev->pci_conf));
 
     dev->pci_conf[0] = 0x60; /* UMC */
     dev->pci_conf[1] = 0x10;
@@ -269,7 +377,12 @@ hb4_reset(void *priv)
 
     hb4_write(0, 0x54, 0x00, dev);
     hb4_write(0, 0x55, 0x00, dev);
-    hb4_write(0, 0x60, 0x20, dev);
+    hb4_write(0, 0x60, 0x80, dev);
+
+    cpu_cache_ext_enabled = 0;
+    cpu_update_waitstates();
+
+    memset(dev->mem_state, 0x00, sizeof(dev->mem_state));
 }
 
 
@@ -294,7 +407,8 @@ hb4_init(const device_t *info)
     device_add(&port_92_pci_device);
 
     /* SMRAM */
-    dev->smram = smram_add();
+    dev->smram[0] = smram_add();
+    dev->smram[1] = smram_add();
 
     hb4_reset(dev);
 

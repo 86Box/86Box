@@ -673,6 +673,7 @@ kbd_status(const char *fmt, ...)
 }
 
 
+// #define ENABLE_KEYBOARD_AT_LOG 1
 #ifdef ENABLE_KEYBOARD_AT_LOG
 int keyboard_at_do_log = ENABLE_KEYBOARD_AT_LOG;
 
@@ -1219,13 +1220,14 @@ write_output(atkbd_t *dev, uint8_t val)
     /* Do this here to avoid an infinite reset loop. */
     dev->p2 = val;
 
-    /* 0 holds the CPU in the RESET state, 1 releases it. To simply this,
+    /* 0 holds the CPU in the RESET state, 1 releases it. To simplify this,
        we just do everything on release. */
     if ((val & 0x01) && !(old & 0x01)) {
 	if (val & 0x01) {
 		/* Pin 0 selected. */
 		pclog("write_output(): Pulse reset!\n");
-		hardresetx86();		/*Pulse reset!*/
+		softresetx86();		/*Pulse reset!*/
+		cpu_set_edx();
 	}
     }
 }
@@ -2936,18 +2938,36 @@ static void
 kbd_reset(void *priv)
 {
     atkbd_t *dev = (atkbd_t *)priv;
-    int i;
-    uint8_t kbc_ven;
 
     if (dev == NULL)
 	return;
 
-    kbc_ven = dev->flags & KBC_VEN_MASK;
-
     dev->status &= ~(STAT_IFULL | STAT_OFULL | STAT_CD);
     dev->last_irq = 0;
+    picintc(1 << 1);
+    picintc(1 << 12);
     dev->secr_phase = 0;
     dev->kbd_in = 0;
+    dev->ob = 0xff;
+
+    sc_or = 0;
+}
+
+
+static void
+kbd_power_on(atkbd_t *dev)
+{
+    int i;
+    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
+
+    kbd_reset(dev);
+
+    dev->status = STAT_UNLOCKED;
+    /* Write the value here first, so that we don't hit a pulse reset. */
+    dev->p2 = 0xcf;
+    write_output(dev, 0xcf);
+    dev->mem[0x20] = 0x01;
+    dev->mem[0x20] |= CCB_TRANSLATE;
     dev->ami_mode = !!(dev->flags & KBC_FLAG_PS2);
 
     /* Set up the correct Video Type bits. */
@@ -2960,17 +2980,15 @@ kbd_reset(void *priv)
 	dev->inhibit = 0x10;
     kbd_log("ATkbc: input port = %02x\n", dev->p1);
 
-    keyboard_mode = 0x02 | (dev->mem[0x20] & CCB_TRANSLATE);
-
     /* Enable keyboard, disable mouse. */
     set_enable_kbd(dev, 1);
     keyboard_scan = 1;
     set_enable_mouse(dev, 0);
     mouse_scan = 0;
 
-    dev->ob = 0xff;
+    dev->mem[0x31] = 0xfe;
 
-    sc_or = 0;
+    keyboard_mode = 0x02 | (dev->mem[0x20] & CCB_TRANSLATE);
 
     for (i = 1; i <= 2; i++)
 	kbc_queue_reset(i);
@@ -2978,22 +2996,6 @@ kbd_reset(void *priv)
     memset(keyboard_set3_flags, 0, 512);
 
     set_scancode_map(dev);
-
-    dev->mem[0x31] = 0xfe;
-}
-
-
-static void
-kbd_power_on(atkbd_t *dev)
-{
-    kbd_reset(dev);
-
-    dev->status = STAT_UNLOCKED;
-    /* Write the value here first, so that we don't hit a pulse reset. */
-    dev->p2 = 0xcf;
-    write_output(dev, 0xcf);
-    dev->mem[0x20] = 0x01;
-    dev->mem[0x20] |= CCB_TRANSLATE;
 }
 
 

@@ -241,8 +241,13 @@ reset_common(int hard)
 	leave_smm();
 
     /* Needed for the ALi M1533. */
-    if (is486 && (hard || soft_reset_pci))
+    if (is486 && (hard || soft_reset_pci)) {
 	pci_reset();
+	if (!hard && soft_reset_pci) {
+		dma_reset();
+		device_reset_all();
+	}
+    }
 
     use32 = 0;
     cpu_cur_status = 0;

@@ -89,7 +89,7 @@ sis_85c50x_shadow_recalc(sis_85c50x_t *dev)
 	mem_set_mem_state_both(base, 0x4000, (dev->pci_conf[0x56] & (1 << (7 - i))) ? (can_read | can_write) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
     }
 
-    flushmmucache();
+    flushmmucache_nopc();
 }
 
 
