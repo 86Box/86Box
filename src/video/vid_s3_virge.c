@@ -3316,7 +3316,7 @@ static void s3_virge_hwcursor_draw(svga_t *svga, int displine)
                         /*X11*/
                         for (xx = 0; xx < 16; xx++)
                         {
-                                if (offset >= svga->hwcursor_latch.x)
+                                if (offset >= 0)
                                 {
                                         if (dat[0] & 0x8000)
 						buffer32->line[displine][offset + svga->x_add]  = (dat[1] & 0x8000) ? fg : bg;
@@ -3332,7 +3332,7 @@ static void s3_virge_hwcursor_draw(svga_t *svga, int displine)
                         /*Windows*/
                         for (xx = 0; xx < 16; xx++)
                         {
-                                if (offset >= svga->hwcursor_latch.x)
+                                if (offset >= 0)
                                 {
                                         if (!(dat[0] & 0x8000))
 						buffer32->line[displine][offset + svga->x_add]  = (dat[1] & 0x8000) ? fg : bg;
