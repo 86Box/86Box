@@ -106,8 +106,15 @@ timer_control(opl_t *dev, int tmr, int start)
 		timer_tick(dev, tmr);	/* Per the YMF 262 datasheet, OPL3 starts counting immediately, unlike OPL2. */
 	else
 		timer_on_auto(&dev->timers[tmr], (tmr == 1) ? 320.0 : 80.0);
-    } else
-	opl_log("Timer %i stopped\n", tmr);
+    } else {
+		opl_log("Timer %i stopped\n", tmr);
+		if (!(dev->flags & FLAG_OPL3)) {
+			if (tmr == 1) {
+				dev->status &= ~STAT_TMR2_OVER;
+			} else
+				dev->status &= ~STAT_TMR1_OVER;
+		}
+	}
 }
 
 
@@ -139,6 +146,8 @@ opl_read(opl_t *dev, uint16_t port)
 	if (dev->status & STAT_TMR_OVER)
 		ret |= STAT_TMR_ANY;
     }
+
+	opl_log("OPL statret = %02x, status = %02x\n", ret, dev->status);
 
     return ret;
 }
@@ -231,7 +240,8 @@ opl2_read(uint16_t port, void *priv)
 	cycles -= ((int) (isa_timing * 8));
 
     opl2_update(dev);
-
+	opl_log("OPL2 port read = %04x\n", port);
+	
     return(opl_read(dev, port));
 }
 
@@ -243,6 +253,7 @@ opl2_write(uint16_t port, uint8_t val, void *priv)
 
     opl2_update(dev);
 
+	opl_log("OPL2 port write = %04x\n", port);
     opl_write(dev, port, val);
 }
 
@@ -257,8 +268,9 @@ opl2_init(opl_t *dev)
 void
 opl2_update(opl_t *dev)
 {
-    if (dev->pos >= sound_pos_global)
-	return;
+    if (dev->pos >= sound_pos_global) {
+		return;
+	}
 
     nuked_generate_stream(dev->opl,
 			  &dev->buffer[dev->pos * 2],

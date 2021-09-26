@@ -31,10 +31,6 @@ if(MGA)
 	target_sources(vid PRIVATE vid_mga.c)
 endif()
 
-if(S3TRIO3D2X)
-	target_compile_definitions(vid PRIVATE USE_S3TRIO3D2X)
-endif()
-
 if(VGAWONDER)
 	target_compile_definitions(vid PRIVATE USE_VGAWONDER)
 endif()
