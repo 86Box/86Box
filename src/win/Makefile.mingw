@@ -72,9 +72,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef PS2M70T4
   PS2M70T4	:= y
  endif
- ifndef S3TRIO3D2X
-  S3TRIO3D2X	:= y
- endif
  ifndef SIO_DETECT
   SIO_DETECT	:= y
  endif
@@ -144,9 +141,6 @@ else
  endif
  ifndef PS2M70T4
   PS2M70T4	:= n
- endif
- ifndef S3TRIO3D2X
-  S3TRIO3D2X	:= n
  endif
  ifndef SIO_DETECT
   SIO_DETECT	:= n
@@ -556,10 +550,6 @@ endif
 
 ifeq ($(PS2M70T4), y)
 OPTS		+= -DUSE_PS2M70T4
-endif
-
-ifeq ($(S3TRIO3D2X), y)
-OPTS		+= -DUSE_S3TRIO3D2X
 endif
 
 ifeq ($(SIO_DETECT), y)

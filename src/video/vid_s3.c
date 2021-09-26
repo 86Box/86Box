@@ -1846,11 +1846,11 @@ s3_hwcursor_draw(svga_t *svga, int displine)
                 if (svga->crtc[0x55] & 0x10) {
                         /*X11*/
                         for (xx = 0; xx < 16; xx++) {
-                                if (offset >= svga->hwcursor_latch.x) {
+                                if (offset >= 0) {
                                         if (dat[0] & 0x8000)
 						buffer32->line[displine][offset + svga->x_add]  = (dat[1] & 0x8000) ? fg : bg;
                                 }
-                           
+
                                 offset++;
                                 dat[0] <<= shift;
                                 dat[1] <<= shift;
@@ -1858,16 +1858,16 @@ s3_hwcursor_draw(svga_t *svga, int displine)
                 } else {
                         /*Windows*/
                         for (xx = 0; xx < width; xx++) {	
-								if (offset >= svga->hwcursor_latch.x) {
+                                if (offset >= 0) {
                                         if (!(dat[0] & 0x8000))
 						buffer32->line[displine][offset + svga->x_add]  = (dat[1] & 0x8000) ? fg : bg;
                                         else if (dat[1] & 0x8000)
 						buffer32->line[displine][offset + svga->x_add] ^= 0xffffff;
-								}
-								
-								offset++;
-								dat[0] <<= shift;
-								dat[1] <<= shift;
+				}
+
+                                offset++;
+                                dat[0] <<= shift;
+                                dat[1] <<= shift;
                         }
                 }
 		svga->hwcursor_latch.addr += 4;
