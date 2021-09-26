@@ -828,27 +828,35 @@ static SDL_Texture* load_icon(const stbi_uc* buffer, int len)
 }
 #endif
 
+ImGuiStyle prevstyle;
+float prevfontscale = 1.0f;
 extern "C" void HandleSizeChange()
 {
     int w, h;
-    if (!ImGui::GetCurrentContext()) ImGui::CreateContext(NULL);
-	else
+	static int cur_dpi_scale = dpi_scale;
+    if (!ImGui::GetCurrentContext())
 	{
-		ImGui_ImplSDL2_Shutdown();
-		ImGui::DestroyContext();
 		ImGui::CreateContext(NULL);
-		ImGui_ImplSDL2_InitForOpenGL(sdl_win, nullptr);
-	}
-	if (dpi_scale)
-	{
-		float ddpi = 96.;
-		if (SDL_GetDisplayDPI(SDL_GetWindowDisplayIndex(sdl_win), &ddpi, nullptr, nullptr) != -1)
+		float ddpi = 96.f;
+		SDL_GetDisplayDPI(SDL_GetWindowDisplayIndex(sdl_win), &ddpi, nullptr, nullptr);
+		switch (dpi_scale)
 		{
-			ImGui::GetStyle().ScaleAllSizes(ddpi / 96.);
-			ImGui::GetIO().FontGlobalScale = ddpi / 96.;
+			case 0:
+			{
+				prevstyle.ScaleAllSizes(ddpi / 96.f);
+				prevfontscale = ddpi / 96.f;
+				break;
+			}
+			case 1:
+			{
+				ImGui::GetStyle().ScaleAllSizes(ddpi / 96.f);
+				ImGui::GetIO().FontGlobalScale = ddpi / 96.f;
+				break;
+			}
 		}
 	}
     SDL_GetRendererOutputSize(sdl_render, &w, &h);
+	ImGuiSDL::Deinitialize();
     ImGuiSDL::Initialize(sdl_render, w, h);
     w = 0, h = 0;
 
@@ -1220,6 +1228,7 @@ extern "C" void sdl_determine_renderer(int);
 
 extern "C" void RenderImGui()
 {
+	bool dpi_scale_changed = false;
     if (!imrendererinit) HandleSizeChange();
     if (!mouse_capture) ImGui_ImplSDL2_NewFrame(sdl_win);
     else
@@ -1465,6 +1474,7 @@ extern "C" void RenderImGui()
 			}
 			else resize_pending = 1;
 			imrendererinit = false;
+			dpi_scale_changed = true;
 			if (video_fullscreen)
 			{
 				SDL_Event event{};
@@ -1475,33 +1485,33 @@ extern "C" void RenderImGui()
 	    ImGui::Separator();
 	    if (ImGui::MenuItem("Fullscreen", "Ctrl-Alt-Pageup", video_fullscreen))
 	    {
-		video_fullscreen ^= 1;
-		extern int fullscreen_pending;
-		fullscreen_pending = 1;
-		config_save();
+			video_fullscreen ^= 1;
+			extern int fullscreen_pending;
+			fullscreen_pending = 1;
+			config_save();
 	    }
 	    if (ImGui::BeginMenu("Fullscreen stretch mode"))
 	    {
-		int cur_video_fullscreen_scale = video_fullscreen_scale;
-		if (ImGui::MenuItem("Full screen stretch", NULL, video_fullscreen_scale == FULLSCR_SCALE_FULL))
-		{
-		    video_fullscreen_scale = FULLSCR_SCALE_FULL;
-		}
-		if (ImGui::MenuItem("4:3", NULL, video_fullscreen_scale == FULLSCR_SCALE_43))
-		{
-		    video_fullscreen_scale = FULLSCR_SCALE_43;
-		}
-		if (ImGui::MenuItem("Square pixels (Keep ratio)", NULL, video_fullscreen_scale == FULLSCR_SCALE_KEEPRATIO))
-		{
-		    video_fullscreen_scale = FULLSCR_SCALE_KEEPRATIO;
-		}
-		if (ImGui::MenuItem("Integer scale", NULL, video_fullscreen_scale == FULLSCR_SCALE_INT))
-		{
-		    video_fullscreen_scale = FULLSCR_SCALE_INT;
-		}
-		if (cur_video_fullscreen_scale != video_fullscreen_scale)
-		    config_save();
-		ImGui::EndMenu();
+			int cur_video_fullscreen_scale = video_fullscreen_scale;
+			if (ImGui::MenuItem("Full screen stretch", NULL, video_fullscreen_scale == FULLSCR_SCALE_FULL))
+			{
+				video_fullscreen_scale = FULLSCR_SCALE_FULL;
+			}
+			if (ImGui::MenuItem("4:3", NULL, video_fullscreen_scale == FULLSCR_SCALE_43))
+			{
+				video_fullscreen_scale = FULLSCR_SCALE_43;
+			}
+			if (ImGui::MenuItem("Square pixels (Keep ratio)", NULL, video_fullscreen_scale == FULLSCR_SCALE_KEEPRATIO))
+			{
+				video_fullscreen_scale = FULLSCR_SCALE_KEEPRATIO;
+			}
+			if (ImGui::MenuItem("Integer scale", NULL, video_fullscreen_scale == FULLSCR_SCALE_INT))
+			{
+				video_fullscreen_scale = FULLSCR_SCALE_INT;
+			}
+			if (cur_video_fullscreen_scale != video_fullscreen_scale)
+				config_save();
+			ImGui::EndMenu();
 	    }
 	    if (ImGui::BeginMenu("EGA/(S)VGA settings"))
 	    {
@@ -1858,4 +1868,9 @@ extern "C" void RenderImGui()
     ImGui::EndFrame();
     ImGui::Render();
     ImGuiSDL::Render(ImGui::GetDrawData());
+	if (dpi_scale_changed)
+	{
+		std::swap(ImGui::GetStyle(), prevstyle);
+		std::swap(ImGui::GetIO().FontGlobalScale, prevfontscale);
+	}
 }
