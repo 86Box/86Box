@@ -856,7 +856,7 @@ extern "C" void HandleSizeChange()
 		}
 	}
     SDL_GetRendererOutputSize(sdl_render, &w, &h);
-	ImGuiSDL::Deinitialize();
+	//ImGuiSDL::Deinitialize();
     ImGuiSDL::Initialize(sdl_render, w, h);
     w = 0, h = 0;
 
