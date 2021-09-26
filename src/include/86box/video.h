@@ -368,19 +368,18 @@ extern const device_t s3_elsa_winner2000_pro_x_pci_device;
 extern const device_t s3_trio64v2_dx_pci_device;
 
 /* S3 ViRGE */
-extern const device_t s3_virge_325_vlb_device;
 extern const device_t s3_virge_325_pci_device;
-extern const device_t s3_virge_vlb_device;
-extern const device_t s3_virge_pci_device;
-extern const device_t s3_virge_988_vlb_device;
-extern const device_t s3_virge_988_pci_device;
-extern const device_t s3_virge_375_vlb_device;
+extern const device_t s3_diamond_stealth_2000_pci_device;
+extern const device_t s3_diamond_stealth_3000_pci_device;
 extern const device_t s3_virge_375_pci_device;
-extern const device_t s3_virge_375_4_vlb_device;
-extern const device_t s3_virge_375_4_pci_device;
-#if defined(DEV_BRANCH) && defined(USE_S3TRIO3D2X)
-extern const device_t s3_trio3d_2x_pci_device;
-#endif
+extern const device_t s3_diamond_stealth_2000pro_pci_device;
+extern const device_t s3_virge_385_pci_device;
+extern const device_t s3_virge_357_pci_device;
+extern const device_t s3_virge_357_agp_device;
+extern const device_t s3_diamond_stealth_4000_pci_device;
+extern const device_t s3_diamond_stealth_4000_agp_device;
+extern const device_t s3_trio3d2x_pci_device;
+extern const device_t s3_trio3d2x_agp_device;
 
 /* Sigma Color 400 */
 extern const device_t sigma_device;
