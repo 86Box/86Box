@@ -809,9 +809,7 @@ static void opengl_main(void* param)
 
 static void opengl_blit(int x, int y, int w, int h)
 {
-	int yy;
-
-	if ((h <= 0) || (buffer32 == NULL) || (thread == NULL) ||
+	if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (thread == NULL) ||
 		atomic_flag_test_and_set(&blit_info[write_pos].in_use))
 	{
 		video_blit_complete();
