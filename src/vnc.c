@@ -172,7 +172,7 @@ vnc_blit(int x, int y, int w, int h)
     uint32_t *p;
     int yy;
 
-    if (h <= 0)
+    if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL))
 	return;
 
     for (yy=0; yy<h; yy++) {
