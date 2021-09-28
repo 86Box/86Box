@@ -121,6 +121,7 @@ sdl_stretch(int *w, int *h, int *x, int *y)
 
     SDL_GL_GetDrawableSize(sdl_win, &real_sdl_w, &real_sdl_h);
     real_sdl_h -= menubarheight;
+    if (!hide_status_bar) real_sdl_h -= menubarheight * 2;
     hw = (double) real_sdl_w;
     hh = (double) real_sdl_h;
     gw = (double) *w;
@@ -213,7 +214,7 @@ sdl_real_blit(SDL_Rect* r_src)
         r_dst.h *= ((float)winy / (float) r_dst.h);
     }
     r_dst.y += menubarheight;
-    if (!hide_status_bar) r_dst.h -= (menubarheight * 2);
+    //if (!hide_status_bar) r_dst.h -= (menubarheight * 2);
 
     ret = SDL_RenderCopy(sdl_render, sdl_tex, r_src, &r_dst);
     if (ret)
