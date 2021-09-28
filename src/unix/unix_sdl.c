@@ -214,7 +214,7 @@ sdl_real_blit(SDL_Rect* r_src)
         r_dst.h *= ((float)winy / (float) r_dst.h);
     }
     r_dst.y += menubarheight;
-    //if (!hide_status_bar) r_dst.h -= (menubarheight * 2);
+    if (!hide_status_bar && !video_fullscreen) r_dst.h -= (menubarheight * 2);
 
     ret = SDL_RenderCopy(sdl_render, sdl_tex, r_src, &r_dst);
     if (ret)
