@@ -1105,6 +1105,9 @@ machine_at_486vipio2_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee010_device);
 
+    if (fdc_type == FDC_INTERNAL)
+    device_add(&fdc_at_device);
+
     return ret;
 }
 
