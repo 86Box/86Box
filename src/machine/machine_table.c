@@ -916,7 +916,7 @@ const machine_t machines[] = {
 
    /* Intel i815 + ICH2 */
     { "[Intel i815EP] MSI 815EPT PRO",			"msi6337",	MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 786432, 8192, 255,	      machine_at_msi6337_init, NULL			},
-    { "[Intel i815E] SuperMicro 370SSA",		"370ssa",	MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 786432, 8192, 255,	        machine_at_370ssa_init, NULL			},
+    { "[Intel i815E] AMI Olympus II",		   "olympusii",MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 	 8192, 786432, 8192, 255,	    machine_at_olympusii_init, NULL			},
 
     /* Miscellaneous/Fake/Hypervisor machines */
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC

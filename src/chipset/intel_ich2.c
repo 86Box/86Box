@@ -270,6 +270,7 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
         {
             default:
             dev->lpc_conf[func][addr] = val;
+            break;
         }
     }
 }
@@ -278,6 +279,8 @@ static uint8_t
 intel_ich2_lpc_read(int func, int addr, void *priv)
 {
     intel_ich2_t *dev = (intel_ich2_t *)priv;
+
+    intel_ich2_log("Intel ICH2: dev->regs[%02x][%02x]  (%02x) POST: %02x \n", func, addr, dev->lpc_conf[func][addr], inb(0x80));
 
     if (func == 0)
 	    return dev->lpc_conf[func][addr];
