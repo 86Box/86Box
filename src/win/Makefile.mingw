@@ -76,7 +76,7 @@ ifeq ($(DEV_BUILD), y)
   VGAWONDER	:= y
  endif
  ifndef VNC
-  VNC		:= y
+  VNC		:= n
  endif
  ifndef XL24
   XL24		:= y
@@ -593,7 +593,7 @@ CHIPSETOBJ	:= 82c100.o acc2168.o \
 		    cs4031.o cs8230.o \
 		    ali1429.o ali1489.o ali1531.o ali1541.o ali1543.o ali1621.o ali6117.o \
 		    gc100.o headland.o \
-		    intel_82335.o intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o ioapic.o \
+		    intel_82335.o intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o intel_gmch.o intel_ich2.o ioapic.o \
 		    neat.o \
 		    opti283.o opti291.o opti391.o opti495.o opti822.o opti895.o opti5x7.o \
 		    scamp.o scat.o \

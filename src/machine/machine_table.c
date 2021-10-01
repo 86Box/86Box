@@ -914,6 +914,10 @@ const machine_t machines[] = {
        VT82C42N. */
     { "[VIA Apollo Pro133A] Acorp 6VIA90AP",	"6via90ap",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1300, 3500, MACHINE_MULTIPLIER_FIXED,				MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_GAMEPORT,		 8192,1572864, 8192, 255,	     machine_at_6via90ap_init, NULL			},
 
+   /* Intel i815 + ICH2 */
+    { "[Intel i815EP] MSI 815EPT PRO",			"msi6337",	MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 786432, 8192, 255,	      machine_at_msi6337_init, NULL			},
+    { "[Intel i815E] SuperMicro 370SSA",		"370ssa",	MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 786432, 8192, 255,	        machine_at_370ssa_init, NULL			},
+
     /* Miscellaneous/Fake/Hypervisor machines */
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */

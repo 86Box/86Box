@@ -80,6 +80,8 @@ extern const device_t	i440bx_device;
 extern const device_t	i440gx_device;
 extern const device_t	i440zx_device;
 
+extern const device_t	intel_gmch_device;
+
 #if defined(DEV_BRANCH) && defined(USE_I450KX)
 extern const device_t	i450kx_device;
 #endif
@@ -95,6 +97,7 @@ extern const device_t	piix4_device;
 extern const device_t	piix4e_device;
 extern const device_t	slc90e66_device;
 
+extern const device_t	intel_ich2_device;
 extern const device_t	ioapic_device;
 
 /* OPTi */

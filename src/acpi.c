@@ -41,7 +41,7 @@
 
 int acpi_rtc_status = 0;
 
-
+#define ENABLE_ACPI_LOG 1
 #ifdef ENABLE_ACPI_LOG
 int acpi_do_log = ENABLE_ACPI_LOG;
 
@@ -652,7 +652,7 @@ acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
 			switch (sus_typ) {
 				case 0:
 					/* Soft power off. */
-					plat_power_off();
+					//plat_power_off();
 					break;
 				case 1:
 					/* Suspend to RAM. */

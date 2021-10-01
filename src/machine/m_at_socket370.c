@@ -456,3 +456,57 @@ machine_at_6via90ap_init(const machine_t *model)
 
     return ret;
 }
+
+int
+machine_at_msi6337_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/msi6337/w6337ims.740",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x1e, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x1f, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    device_add(&intel_gmch_device);
+    device_add(&intel_ich2_device);
+    device_add(&w83977tf_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+int
+machine_at_370ssa_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/370ssa/SSAA092.ROM",
+			   0x00080000, 524288, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x1e, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x1f, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    device_add(&intel_gmch_device);
+    device_add(&intel_ich2_device);
+    device_add(&w83877tf_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&sst_flash_39sf040_device);
+
+    return ret;
+}
