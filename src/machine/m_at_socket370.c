@@ -479,7 +479,7 @@ machine_at_msi6337_init(const machine_t *model)
     device_add(&intel_ich2_device);
     device_add(&w83977tf_device);
     device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&intel_flash_bxt_device);
+    device_add(&sst_flash_39sf020_device);
 
     return ret;
 }

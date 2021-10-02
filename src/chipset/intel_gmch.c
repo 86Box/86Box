@@ -73,8 +73,8 @@ intel_gmch_pam(int cur_reg, intel_gmch_t *dev)
     else
     {
         int negate = cur_reg - 0x5a;
-        mem_set_mem_state_both(0xc0000 + (negate << 15), 0x4000, ((dev->pci_conf[0][cur_reg] & 0x10) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->pci_conf[0][cur_reg] & 0x20) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
-        mem_set_mem_state_both(0xc4000 + (negate << 15), 0x4000, ((dev->pci_conf[0][cur_reg] & 1) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->pci_conf[0][cur_reg] & 2) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
+        mem_set_mem_state_both(0xc0000 + (negate << 15), 0x4000, ((dev->pci_conf[0][cur_reg] & 1) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->pci_conf[0][cur_reg] & 2) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
+        mem_set_mem_state_both(0xc4000 + (negate << 15), 0x4000, ((dev->pci_conf[0][cur_reg] & 0x10) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->pci_conf[0][cur_reg] & 0x20) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
     }
 }
 
@@ -116,7 +116,7 @@ intel_gmch_smram(intel_gmch_t *dev)
 
             case 2:
                 smram_enable(dev->smram[2], 0x000a0000, 0x000a0000, 0x20000, 0, 1);
-                mem_set_mem_state_smram_ex(1, 0xa0000, 0x20000, 2);
+                mem_set_mem_state_smram_ex(0, 0xa0000, 0x20000, 2);
             break;
 
             case 3:
@@ -183,7 +183,7 @@ intel_gmch_reset(void *priv)
     dev->pci_conf[0][0x02] = 0x30;
     dev->pci_conf[0][0x03] = 0x11;
     dev->pci_conf[0][0x04] = 6;
-    dev->pci_conf[0][0x06] = 0x90;  /* AGP Variation i815EP */
+    dev->pci_conf[0][0x06] = 0x90;
     dev->pci_conf[0][0x08] = 2;
     dev->pci_conf[0][0x0b] = 6;
     dev->pci_conf[0][0x10] = 8;

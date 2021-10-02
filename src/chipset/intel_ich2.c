@@ -129,11 +129,6 @@ intel_ich2_ide(intel_ich2_t *dev)
 
     if(dev->lpc_conf[1][4] & 1)
     {
-        ide_set_base(0, (dev->lpc_conf[1][0x11] << 8) | (dev->lpc_conf[1][0x10] & 0xf8));
-        ide_set_side(0, ((dev->lpc_conf[1][0x15] << 8) | (dev->lpc_conf[1][0x14] & 0xfc)) + 2);
-        ide_set_base(1, (dev->lpc_conf[1][0x19] << 8) | (dev->lpc_conf[1][0x18] & 0xf8));
-        ide_set_side(1, ((dev->lpc_conf[1][0x1d] << 8) | (dev->lpc_conf[1][0x1c] & 0xfc)) + 2);
-
         ide_pri_enable();
         ide_sec_enable();
     }
@@ -208,18 +203,13 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
         intel_ich2_log("Intel ICH2-IDE: dev->regs[%02x][%02x] = %02x POST: %02x \n", func, addr, val, inb(0x80));
         switch(addr)
         {
-            case 0x04:
+            case 0x04: /* IDE Controller */
                 dev->lpc_conf[func][addr] = val;
                 intel_ich2_ide(dev);
                 intel_ich2_bus_master(dev);
             break;
 
-            case 0x10 ... 0x1f:
-                dev->lpc_conf[func][addr] = val;
-                intel_ich2_ide(dev);
-            break;
-
-            case 0x20 ... 0x23:
+            case 0x20 ... 0x23: /* IDE Bus Mastering */
                 dev->lpc_conf[func][addr] = val;
                 intel_ich2_bus_master(dev);    
             break;
@@ -326,6 +316,7 @@ intel_ich2_reset(void *priv)
     dev->lpc_conf[0][0x04] = 0x0f;
     dev->lpc_conf[0][0x06] = 0x80;
     dev->lpc_conf[0][0x07] = 2;
+    dev->lpc_conf[0][0x08] = 2;
     dev->lpc_conf[0][0x0a] = 1;
     dev->lpc_conf[0][0x0b] = 6;
     dev->lpc_conf[0][0x0e] = 0x80;
@@ -341,6 +332,7 @@ intel_ich2_reset(void *priv)
     dev->lpc_conf[1][0x04] = 0x0f;
     dev->lpc_conf[1][0x06] = 0x80;
     dev->lpc_conf[1][0x07] = 2;
+    dev->lpc_conf[1][0x08] = 2;
     dev->lpc_conf[1][0x09] = 0x80;
     dev->lpc_conf[1][0x0a] = 1;
     dev->lpc_conf[1][0x0b] = 1;
@@ -358,6 +350,7 @@ intel_ich2_reset(void *priv)
     dev->lpc_conf[2][0x03] = 0x24;
     dev->lpc_conf[2][0x06] = 0x80;
     dev->lpc_conf[2][0x07] = 2;
+    dev->lpc_conf[2][0x08] = 2;
     dev->lpc_conf[2][0x0a] = 3;
     dev->lpc_conf[2][0x0b] = 0x0c;
     dev->lpc_conf[2][0x20] = 1;
@@ -373,6 +366,7 @@ intel_ich2_reset(void *priv)
     dev->lpc_conf[4][0x03] = 0x24;
     dev->lpc_conf[4][0x06] = 0x80;
     dev->lpc_conf[4][0x07] = 2;
+    dev->lpc_conf[4][0x08] = 2;
     dev->lpc_conf[4][0x0a] = 3;
     dev->lpc_conf[4][0x0b] = 0x0c;
     dev->lpc_conf[4][0x20] = 1;
@@ -389,6 +383,7 @@ intel_ich2_reset(void *priv)
     dev->lpc_conf[3][0x03] = 0x24;
     dev->lpc_conf[3][0x06] = 0x80;
     dev->lpc_conf[3][0x07] = 2;
+    dev->lpc_conf[3][0x08] = 2;
     dev->lpc_conf[3][0x09] = 0x80;
     dev->lpc_conf[3][0x0a] = 3;
     dev->lpc_conf[3][0x0b] = 0x0c;
@@ -404,6 +399,7 @@ intel_ich2_reset(void *priv)
     dev->lpc_conf[5][0x03] = 0x24;
     dev->lpc_conf[5][0x06] = 0x80;
     dev->lpc_conf[5][0x07] = 2;
+    dev->lpc_conf[5][0x08] = 2;
     dev->lpc_conf[5][0x0a] = 1;
     dev->lpc_conf[5][0x0b] = 4;
     dev->lpc_conf[5][0x10] = 1;
@@ -417,6 +413,7 @@ intel_ich2_reset(void *priv)
     dev->lpc_conf[6][0x03] = 0x24;
     dev->lpc_conf[6][0x06] = 0x80;
     dev->lpc_conf[6][0x07] = 2;
+    dev->lpc_conf[6][0x08] = 2;
     dev->lpc_conf[6][0x0a] = 3;
     dev->lpc_conf[6][0x0b] = 7;
     dev->lpc_conf[6][0x10] = 1;
