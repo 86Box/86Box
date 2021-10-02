@@ -66,6 +66,79 @@ typedef struct intel_gmch_t
 } intel_gmch_t;
 
 static void
+intel_gmch_dram_population(intel_gmch_t *dev)
+{
+    switch(mem_size >> 10)
+    {
+        case 32:
+            dev->pci_conf[0][0x52] = 1;
+        break;
+
+        case 64:
+            dev->pci_conf[0][0x52] = 4;
+        break;
+
+        case 96:
+            dev->pci_conf[0][0x52] = 6;
+        break;
+
+        case 128:
+            dev->pci_conf[0][0x52] = 9;
+        break;
+
+        case 160:
+            dev->pci_conf[0][0x52] = 0x19;
+        break;
+
+        case 192:
+            dev->pci_conf[0][0x52] = 0x0b;
+        break;
+
+        case 224:
+            dev->pci_conf[0][0x52] = 0x1b;
+        break;
+
+        case 256:
+            dev->pci_conf[0][0x52] = 0x0c;
+        break;
+
+        case 288:
+            dev->pci_conf[0][0x52] = 0x1c;
+        break;
+
+        case 320:
+            dev->pci_conf[0][0x52] = 0x4c;
+        break;
+
+        case 352:
+            dev->pci_conf[0][0x52] = 0x9c;
+        break;
+
+        case 384:
+            dev->pci_conf[0][0x52] = 0x9c;
+        break;
+
+        case 416:
+            dev->pci_conf[0][0x52] = 0x9c;
+            dev->pci_conf[0][0x54] = 1;
+        break;
+
+        case 448:
+            dev->pci_conf[0][0x52] = 0xbc;
+        break;
+
+        case 480:
+            dev->pci_conf[0][0x52] = 0xbc;
+            dev->pci_conf[0][0x54] = 1;
+        break;
+
+        case 512:
+            dev->pci_conf[0][0x52] = 0x0f;
+        break;
+    }
+}
+
+static void
 intel_gmch_pam(int cur_reg, intel_gmch_t *dev)
 {
     if(cur_reg == 0x59)
@@ -139,7 +212,6 @@ intel_gmch_write(int func, int addr, uint8_t val, void *priv)
     {
         case 0x52: /* DRAM Banking */
         case 0x54:
-            dev->pci_conf[func][addr] = val;
         break;
 
         case 0x59 ... 0x5f: /* PAM */
@@ -200,6 +272,7 @@ intel_gmch_reset(void *priv)
     dev->pci_conf[0][0xa5] = 2;
     dev->pci_conf[0][0xa7] = 0x1f;
 
+    intel_gmch_dram_population(dev);
     intel_gmch_pam(0x59, dev);
     intel_gmch_pam(0x5a, dev);
     intel_gmch_pam(0x5b, dev);
