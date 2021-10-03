@@ -35,6 +35,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/mem.h>
+#include <86box/pic.h>
 #include <86box/pci.h>
 #include <86box/port_92.h>
 #include <86box/smbus.h>
@@ -452,9 +453,14 @@ intel_ich2_init(const device_t *info)
     /* IDE */
     dev->ide_drive[0] = device_add_inst(&sff8038i_device, 1);
     dev->ide_drive[1] = device_add_inst(&sff8038i_device, 2);
+    sff_set_irq_line(dev->ide_drive[0], 14);
+    sff_set_irq_line(dev->ide_drive[1], 15);
 
     /* SMBus */
     dev->smbus = device_add(&piix4_smbus_device);
+
+    /* PIC */
+    pic_set_pci();
 
     /* USB */
     dev->usb[0] = device_add_inst(&usb_device, 1);

@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the Intel i815EP GMCH Chipset.
+ *		Implementation of the Intel i815xx GMCH Chipset.
  *
  *
  * Authors:	Tiseno100
@@ -306,6 +306,9 @@ intel_gmch_init(const device_t *info)
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, intel_gmch_read, intel_gmch_write, dev);
 
+    /* AGP Bridge */
+    device_add(&intel_gmch_agp_device);
+
     /* Port 92 */
     device_add(&port_92_pci_device);
 
@@ -321,7 +324,7 @@ intel_gmch_init(const device_t *info)
 
 
 const device_t intel_gmch_device = {
-    "Intel i815EP(GMCH) Chipset",
+    "Intel i815xx(GMCH) Chipset",
     DEVICE_PCI,
     0,
     intel_gmch_init, intel_gmch_close, intel_gmch_reset,

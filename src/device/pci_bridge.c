@@ -38,6 +38,7 @@
 #define AGP_BRIDGE_INTEL_440LX	0x80867181
 #define AGP_BRIDGE_INTEL_440BX	0x80867191
 #define AGP_BRIDGE_INTEL_440GX	0x808671a1
+#define AGP_BRIDGE_INTEL_GMCH	0x80861131
 #define AGP_BRIDGE_VIA_597	0x11068597
 #define AGP_BRIDGE_VIA_598	0x11068598
 #define AGP_BRIDGE_VIA_691	0x11068691
@@ -170,6 +171,8 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 			else if ((dev->local == AGP_BRIDGE_INTEL_440BX) ||
 				 (dev->local == AGP_BRIDGE_INTEL_440GX))
 				dev->regs[addr] &= ~(val & 0xf0);
+			else if (dev->local == AGP_BRIDGE_INTEL_GMCH)
+				dev->regs[addr] &= ~val;
 		} else if (AGP_BRIDGE_ALI(dev->local))
 			dev->regs[addr] &= ~(val & 0xf0);
 		return;
@@ -195,6 +198,8 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 			if ((dev->local == AGP_BRIDGE_INTEL_440BX) ||
 			    (dev->local == AGP_BRIDGE_INTEL_440GX))
 				val &= 0xed;
+			else if (dev->local == AGP_BRIDGE_INTEL_GMCH)
+				val &= 0xef;
 			else
 				val &= 0x0f;
 		}
@@ -407,6 +412,7 @@ pci_bridge_reset(void *priv)
 
 	case AGP_BRIDGE_INTEL_440BX:
 	case AGP_BRIDGE_INTEL_440GX:
+	case AGP_BRIDGE_INTEL_GMCH:
 		dev->regs[0x06] = 0x20;
 		dev->regs[0x07] = dev->regs[0x08] = 0x02;
 		break;
@@ -576,6 +582,20 @@ const device_t i440gx_agp_device =
     "Intel 82443GX AGP Bridge",
     DEVICE_PCI,
     AGP_BRIDGE_INTEL_440GX,
+    pci_bridge_init,
+    NULL,
+    pci_bridge_reset,
+    { NULL },
+    NULL,
+    NULL,
+    NULL
+};
+
+const device_t intel_gmch_agp_device =
+{
+    "Intel i815xx AGP Bridge",
+    DEVICE_PCI,
+    AGP_BRIDGE_INTEL_GMCH,
     pci_bridge_init,
     NULL,
     pci_bridge_reset,
