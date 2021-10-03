@@ -516,6 +516,18 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
 
 
 void
+pic_set_pci(void)
+{
+    int i;
+
+    for (i = 0x0024; i < 0x0040; i++) {
+	io_sethandler(i, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
+	io_sethandler(i + 0x0080, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
+    }
+}
+
+
+void
 pic_init(void)
 {
     pic_reset();
