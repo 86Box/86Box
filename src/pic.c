@@ -520,7 +520,7 @@ pic_set_pci(void)
 {
     int i;
 
-    for (i = 0x0024; i < 0x0040; i++) {
+    for (i = 0x0024; i < 0x0040; i += 4) {
 	io_sethandler(i, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
 	io_sethandler(i + 0x0080, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
     }
