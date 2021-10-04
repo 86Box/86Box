@@ -194,6 +194,9 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
                 dev->lpc_conf[func][addr] = val;
             break;
 
+            case 0xa4:
+            break;
+
             default:
                 dev->lpc_conf[func][addr] = val;
             break;
