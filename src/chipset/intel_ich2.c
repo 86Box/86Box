@@ -271,16 +271,22 @@ intel_ich2_lpc_read(int func, int addr, void *priv)
 {
     intel_ich2_t *dev = (intel_ich2_t *)priv;
 
-    intel_ich2_log("Intel ICH2: dev->regs[%02x][%02x]  (%02x) POST: %02x \n", func, addr, dev->lpc_conf[func][addr], inb(0x80));
-
-    if (func == 0)
+    if (func == 0) {
+        intel_ich2_log("Intel ICH2: dev->regs[%02x][%02x]  (%02x) POST: %02x \n", func, addr, dev->lpc_conf[func][addr], inb(0x80));
 	    return dev->lpc_conf[func][addr];
-    else if(func == 1)
+    }
+    else if(func == 1) {
+        intel_ich2_log("Intel ICH2-IDE: dev->regs[%02x][%02x]  (%02x) POST: %02x \n", func, addr, dev->lpc_conf[func][addr], inb(0x80));
         return dev->lpc_conf[func][addr];
-    else if((func == 2) || (func == 4))
+    }
+    else if((func == 2) || (func == 4)) {
+        intel_ich2_log("Intel ICH2-USB: HUB: %d dev->regs[%02x][%02x]  (%02x) POST: %02x \n", !!(func == 4), func, addr, dev->lpc_conf[func][addr], inb(0x80));
         return dev->lpc_conf[func][addr];
-    else if((func == 5) || (func == 6))
-        return dev->lpc_conf[func][addr];
+    }
+    else if((func == 5) || (func == 6)){
+       intel_ich2_log("Intel ICH2-%s: dev->regs[%02x][%02x]  (%02x) POST: %02x \n", (func == 5) ? "AC97" : "MODEM", func, addr, dev->lpc_conf[func][addr], inb(0x80));
+       return dev->lpc_conf[func][addr];
+    }
     else
         return 0xff;
 }
@@ -443,7 +449,7 @@ intel_ich2_init(const device_t *info)
     dev->lpc_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, intel_ich2_lpc_read, intel_ich2_lpc_write, dev);
 
     /* ACPI */
-    dev->acpi = device_add(&acpi_intel_device);
+    dev->acpi = device_add(&acpi_intel_ich2_device);
     acpi_set_slot(dev->acpi, dev->lpc_slot);
 
     /* NVR */
