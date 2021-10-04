@@ -148,7 +148,7 @@ static int	cyrix_addr;
 
 static void	cpu_write(uint16_t addr, uint8_t val, void *priv);
 static uint8_t	cpu_read(uint16_t addr, void *priv);
-
+#define ENABLE_CPU_LOG 1
 #ifdef ENABLE_CPU_LOG
 int cpu_do_log = ENABLE_CPU_LOG;
 
@@ -2408,6 +2408,14 @@ amd_k_invalid_rdmsr:
 				EAX = msr.ecx187 & 0xffffffff;
 				EDX = msr.ecx187 >> 32;
 				break;
+			case 0x19a:
+				EAX = msr.ecx19a & 0xffffffff;
+				EDX = msr.ecx19a >> 32;
+				break;
+			case 0x1a0:
+				EAX = msr.ecx1a0 & 0xffffffff;
+				EDX = msr.ecx1a0 >> 32;
+				break;
 			case 0x1e0:
 				EAX = msr.ecx1e0 & 0xffffffff;
 				EDX = msr.ecx1e0 >> 32;
@@ -2777,6 +2785,12 @@ amd_k_invalid_wrmsr:
 				break;
 			case 0x187:
 				msr.ecx187 = EAX | ((uint64_t)EDX << 32);
+				break;
+			case 0x19a:
+				msr.ecx19a = EAX | ((uint64_t)EDX << 32);
+				break;
+			case 0x1a0:
+				msr.ecx1a0 = EAX | ((uint64_t)EDX << 32);
 				break;
 			case 0x1e0:
 				msr.ecx1e0 = EAX | ((uint64_t)EDX << 32);
