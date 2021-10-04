@@ -215,6 +215,10 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
                 intel_ich2_bus_master(dev);    
             break;
 
+            case 0x54:
+                dev->lpc_conf[func][addr] = val | 0xf0;
+            break;
+
             default:
                 dev->lpc_conf[func][addr] = val;
             break;
@@ -345,6 +349,7 @@ intel_ich2_reset(void *priv)
     dev->lpc_conf[1][0x0b] = 1;
     dev->lpc_conf[1][0x0e] = 0x80;
     dev->lpc_conf[1][0x20] = 1;
+    dev->lpc_conf[1][0x54] = 0xf0;
 
     intel_ich2_ide(dev);
     sff_bus_master_reset(dev->ide_drive[0], ((dev->lpc_conf[1][0x20] & 0xf0) | (dev->lpc_conf[1][0x21] << 8)));

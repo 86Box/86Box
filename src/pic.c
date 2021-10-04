@@ -60,7 +60,7 @@ static uint16_t	smi_irq_mask = 0x0000,
 static void	(*update_pending)(void);
 
 
-#define ENABLE_PIC_LOG 1
+//#define ENABLE_PIC_LOG 1
 #ifdef ENABLE_PIC_LOG
 int pic_do_log = ENABLE_PIC_LOG;
 
@@ -520,7 +520,7 @@ pic_set_pci(void)
 {
     int i;
 
-    for (i = 0x0024; i < 0x0040; i++) {
+    for (i = 0x0024; i < 0x0040; i+=4) {
 	io_sethandler(i, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
 	io_sethandler(i + 0x0080, 0x0002, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
     }

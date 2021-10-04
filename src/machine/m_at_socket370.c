@@ -479,7 +479,7 @@ machine_at_msi6337_init(const machine_t *model)
     device_add(&intel_ich2_device);
     device_add(&w83977tf_device);
     device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&intel_flash_bxt_device);
+    device_add(&sst_flash_39sf020_device);
 
     return ret;
 }
@@ -498,10 +498,22 @@ machine_at_olympusii_init(const machine_t *model)
     machine_at_common_init_ex(model, 2);
 
     pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x1e, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_slot(0x1f, PCI_CARD_SOUTHBRIDGE, 1, 2, 8, 4);
-    pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+    pci_register_bus_slot(0, 0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_bus_slot(0, 0x1e, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
+    pci_register_bus_slot(0, 0x1f, PCI_CARD_SOUTHBRIDGE, 1, 2, 8, 4);
+
+    pci_register_bus_slot(1, 0x00, PCI_CARD_NORMAL, 1, 2, 3, 4);
+
+    pci_register_bus_slot(2, 0x00, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_bus_slot(2, 0x01, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_bus_slot(2, 0x02, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_bus_slot(2, 0x03, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_bus_slot(2, 0x04, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_bus_slot(2, 0x05, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_bus_slot(2, 0x08, PCI_CARD_NORMAL, 5, 6, 7, 8);
+    pci_register_bus_slot(2, 0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_bus_slot(0, 0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
+
     device_add(&intel_gmch_device);
     device_add(&intel_ich2_device);
     device_add(&w83977tf_device);
