@@ -32,6 +32,7 @@
 
 #include <86box/apm.h>
 #include <86box/acpi.h>
+#include <86box/dma.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/mem.h>
@@ -87,12 +88,88 @@ intel_ich2_hub_write(int func, int addr, uint8_t val, void *priv)
     intel_ich2_log("Intel ICH2-HUB: dev->regs[%02x] = %02x POST: %02x \n", addr, val, inb(0x80));
 
     if(func == 0)
-    switch(addr)
-    {
-        default:
-            dev->hub_conf[addr] = val;
-        break;
-    }
+        switch(addr)
+        {
+            case 0x04:
+                dev->hub_conf[addr] = val & 0x4f;
+                break;
+
+            case 0x05:
+                dev->hub_conf[addr] = val & 1;
+                break;
+
+            case 0x07:
+                dev->hub_conf[addr] &= val;
+                break;
+
+            case 0x0d:
+                dev->hub_conf[addr] = val & 0xf8;
+                break;
+
+            case 0x0e:
+                dev->hub_conf[addr] = val;
+                break;
+
+            case 0x19 ... 0x1a:
+                dev->hub_conf[addr] = val;
+                break;
+
+            case 0x1b:
+                dev->hub_conf[addr] = val & 0xf8;
+                break;
+
+            case 0x1c ... 0x1d:
+                dev->hub_conf[addr] = val & 0xf0;
+                break;
+
+            case 0x1e:
+                dev->hub_conf[addr] &= val & 0xe0;
+                break;
+
+            case 0x1f:
+                dev->hub_conf[addr] &= val;
+                break;
+
+            case 0x20:
+                dev->hub_conf[addr] = val & 0xf0;
+                break;
+
+            case 0x21:
+                dev->hub_conf[addr] = val;
+                break;
+
+            case 0x22:
+                dev->hub_conf[addr] = val & 0xf0;
+                break;
+
+            case 0x23:
+                dev->hub_conf[addr] = val;
+                break;
+
+            case 0x24:
+                dev->hub_conf[addr] = val & 0xf0;
+                break;
+
+            case 0x25:
+                dev->hub_conf[addr] = val;
+                break;
+
+            case 0x26:
+                dev->hub_conf[addr] = val & 0xf0;
+                break;
+
+            case 0x27:
+                dev->hub_conf[addr] = val;
+                break;
+
+            case 0x3e:
+                dev->hub_conf[addr] = val & 0xef;
+                break;
+
+            default:
+                dev->hub_conf[addr] = val;
+                break;
+        }
 }
 
 
@@ -163,12 +240,12 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
     intel_ich2_t *dev = (intel_ich2_t *)priv;
 
 
-    if(func == 0)
+    if(func == 0)   /* LPC */
     {
         intel_ich2_log("Intel ICH2-LPC: dev->regs[%02x][%02x] = %02x POST: %02x \n", func, addr, val, inb(0x80));
         switch(addr)
         {
-            case 0x40 ... 0x44: /* ACPI */
+            case 0x40 ... 0x44: /* ACPI I/O Base & Enable */
                 dev->lpc_conf[func][addr] = val;
                 intel_ich2_acpi(dev);
             break;
@@ -464,15 +541,18 @@ intel_ich2_init(const device_t *info)
     dev->acpi = device_add(&acpi_intel_ich2_device);
     acpi_set_slot(dev->acpi, dev->lpc_slot);
 
-    /* NVR */
-    dev->nvr = device_add(&piix4_nvr_device);
-    acpi_set_nvr(dev->acpi, dev->nvr);
+    /* DMA */
+    dma_alias_set_piix();
 
     /* IDE */
     dev->ide_drive[0] = device_add_inst(&sff8038i_device, 1);
     dev->ide_drive[1] = device_add_inst(&sff8038i_device, 2);
     sff_set_irq_line(dev->ide_drive[0], 14);
     sff_set_irq_line(dev->ide_drive[1], 15);
+
+    /* NVR */
+    dev->nvr = device_add(&piix4_nvr_device);
+    acpi_set_nvr(dev->acpi, dev->nvr);
 
     /* SMBus */
     dev->smbus = device_add(&piix4_smbus_device);

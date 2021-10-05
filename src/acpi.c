@@ -1581,6 +1581,9 @@ acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en)
     int size;
 
     switch (dev->vendor) {
+	case VEN_INTEL_ICH2:
+		size = 0x080;
+		break;
 	case VEN_ALI:
 	case VEN_INTEL:
 	default:
