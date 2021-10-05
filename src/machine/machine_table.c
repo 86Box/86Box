@@ -61,8 +61,6 @@ const machine_type_t machine_types[] = {
 
 
 /* Machines to add before machine freeze:
-   - Jetway J-403TG MR BIOS v2.02;
-   - Matsonic MS6260S (AMI Super Socket 7 with Aladdin V chipset);
    - PCChips M773 (440BX + SMSC with AMI BIOS);
    - Rise R418 (was removed on my end, has to be re-added);
    - TMC Mycomp PCI54ST;
@@ -434,6 +432,10 @@ const machine_t machines[] = {
     { "[i420TX] ASUS PCI/I-486SP3",		"486sp3",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL | MACHINE_SCSI,					 1024, 131072, 1024, 127,	       machine_at_486sp3_init, NULL			},
     /* This has the Phoenix MultiKey KBC firmware. */
     { "[i420TX] Intel Classic/PCI",		"alfredo",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 2048, 131072, 2048, 127,	      machine_at_alfredo_init, NULL			},
+    /* This most likely has a standalone AMI Megakey 1993, which is type 'P', like the below Tekram board. */
+    { "[IMS 8848] J-Bond PCI400C-B",		"pci400c_b",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 2048, 131072, 2048, 127,	    machine_at_pci400c_b_init, NULL			},
+    /* This has a standalone AMI Megakey 1993, which is type 'P'. */
+    { "[IMS 8848] Tekram G486IP",		"g486ip",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 2048, 131072, 2048, 127,	       machine_at_g486ip_init, NULL			},
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     { "[SiS 496] ASUS PVI-486SP3C",		"486sp3c",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_IDE_DUAL,						 1024, 261120, 1024, 255,	      machine_at_486sp3c_init, NULL			},
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
@@ -464,7 +466,7 @@ const machine_t machines[] = {
     /* Has a VIA VT82C406 KBC+RTC that likely has identical commands to the VT82C42N. */
     { "[VIA VT82C496G] DFI G486VPA",		"g486vpa",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_IDE_DUAL,						 1024, 131072, 1024, 255,	      machine_at_g486vpa_init, NULL			},
     /* Has a VIA VT82C42N KBC. */
-    { "[VIA VT82C496G] FIC VIP-IO2",		"486vipio2",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_IDE_DUAL,						 1024, 131072, 1024, 255,	    machine_at_486vipio2_init, NULL			},
+    { "[VIA VT82C496G] FIC VIP-IO2",		"486vipio2",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024, 131072, 1024, 255,	    machine_at_486vipio2_init, NULL			},
 
     /* 486 machines - Miscellaneous */
     /* 486 machines which utilize the PCI bus */

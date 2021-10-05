@@ -50,7 +50,7 @@ att49x_ramdac_control(uint8_t val, void *p, svga_t *svga)
 {
 	att49x_ramdac_t *ramdac = (att49x_ramdac_t *) p;
 	ramdac->ctrl = val;
-	switch (ramdac->ctrl >> 4) {
+	switch ((ramdac->ctrl >> 5) & 7) {
 		case 0:
 		case 1:
 		case 2:
@@ -62,11 +62,9 @@ att49x_ramdac_control(uint8_t val, void *p, svga_t *svga)
 		svga->bpp = 15;
 		break;
 		case 6:
-		case 0xc:
 		svga->bpp = 16;
 		break;
 		case 7:
-		case 0xe:
 		svga->bpp = 24;
 		break;
 	}
