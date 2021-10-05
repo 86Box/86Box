@@ -188,6 +188,8 @@ intel_gmch_smram(intel_gmch_t *dev)
 
         case 3:
             smram_enable(dev->low_smram, 0x000a0000, 0x000a0000, 0x20000, 0, 1);
+		    mem_set_mem_state_smram_ex(1, 0x000a0000, 0x20000, 1);
+	        mem_set_mem_state_smram_ex(0, 0x000a0000, 0x20000, 0);
         break;
     }
 
@@ -197,30 +199,143 @@ intel_gmch_smram(intel_gmch_t *dev)
 static void
 intel_gmch_write(int func, int addr, uint8_t val, void *priv)
 {
+
     intel_gmch_t *dev = (intel_gmch_t *)priv;
 
-    intel_gmch_log("Intel 815EP: dev->regs[%02x] = %02x POST: %02x \n", addr, val, inb(0x80));
+    if (func == 0) { /* GMCH */
+        intel_gmch_log("Intel 815EP: dev->regs[%02x] = %02x POST: %02x \n", addr, val, inb(0x80));
 
-    switch(addr)
-    {
-        case 0x52: /* DRAM Banking */
-        case 0x54:
-        break;
+        switch(addr)
+        {
+            case 0x04:
+                dev->pci_conf[addr] = val;
+            break;
 
-        case 0x59 ... 0x5f: /* PAM */
-            dev->pci_conf[addr] = val;
-            intel_gmch_pam(addr, dev);
-        break;
+            case 0x06:
+                dev->pci_conf[addr] &= val & 0x90;
+            break;
 
-        case 0x70: /* SMRAM */
-            dev->pci_conf[addr] = val;
-            intel_gmch_smram(dev);
-        break;
+            case 0x07:
+                dev->pci_conf[addr] &= val;
+            break;
 
-        default:
-            dev->pci_conf[addr] = val;
-        break;
+            case 0x13:
+                dev->pci_conf[addr] = val & 0xfe;
+            break;
+
+            case 0x2c ... 0x2f:
+                if(dev->pci_conf[addr] == 0)
+                    dev->pci_conf[addr] = val;
+            break; 
+
+            case 0x50: /* DRAM Speed. We fake it at 133Mhz */
+                dev->pci_conf[addr] = (val & 0xdc) | 4;
+            break;
+
+            case 0x51:
+                dev->pci_conf[addr] = val & 7;
+            break;
+
+            case 0x52: /* DRAM Banking. We enforce bankings considering the BIOS write random values */
+            case 0x54:
+            break;
+
+            case 0x53:
+                dev->pci_conf[addr] = val & 0xf7;
+            break;
+
+            case 0x56:
+                dev->pci_conf[addr] = val & 0x80;
+            break;
+
+            case 0x59 ... 0x5f: /* PAM */
+                dev->pci_conf[addr] = (addr != 0x59) ? (val & 0x33) : (val & 0x30);
+                intel_gmch_pam(addr, dev);
+            break;
+
+            case 0x70: /* SMRAM */
+                dev->pci_conf[addr] = val;
+                intel_gmch_smram(dev);
+            break;
+
+            case 0x72:
+                dev->pci_conf[addr] = val & 0xfb;
+            break;
+
+            case 0x73:
+                dev->pci_conf[addr] = val & 0xa8;
+            break;
+
+            case 0x92 ... 0x93:
+                dev->pci_conf[addr] = val;
+            break;
+
+            case 0x94:
+                dev->pci_conf[addr] = val & 0x3f;
+            break;
+
+            case 0x98:
+                dev->pci_conf[addr] = val & 0x77;
+            break;
+
+            case 0x99:
+                dev->pci_conf[addr] = val & 0x80;
+            break;
+
+            case 0x9a:
+                dev->pci_conf[addr] = val & 0x77;
+            break;
+
+            case 0x9b:
+                dev->pci_conf[addr] = val & 0x80;
+            break;
+
+            case 0x9d:
+                dev->pci_conf[addr] = val & 0x80;
+            break;
+
+            case 0xa8:
+                dev->pci_conf[addr] = val & 0x37;
+            break;
+
+            case 0xa9:
+                dev->pci_conf[addr] = val & 0x03;
+            break;
+
+            case 0xb0:
+                dev->pci_conf[addr] = val & 0x81;
+            break;
+
+            case 0xb4:
+                dev->pci_conf[addr] = val & 8;
+            break;
+
+            case 0xb9:
+                dev->pci_conf[addr] = val & 0xf0;
+            break;
+
+            case 0xba:
+                dev->pci_conf[addr] = val & 0xff;
+            break;
+
+            case 0xbb:
+                dev->pci_conf[addr] = val & 0x1f;
+            break;
+
+            case 0xbc ... 0xbd:
+                dev->pci_conf[addr] = val & 0xf8;
+            break;
+
+            case 0xbe:
+                dev->pci_conf[addr] = val & 0x20;
+            break;
+
+            case 0xcb:
+                dev->pci_conf[addr] = val & 0x3f;
+            break;
+        }
     }
+
 }
 
 
@@ -229,8 +344,11 @@ intel_gmch_read(int func, int addr, void *priv)
 {
     intel_gmch_t *dev = (intel_gmch_t *)priv;
 
-    intel_gmch_log("Intel 815EP: dev->regs[%02x] (%02x) POST: %02x \n", addr, dev->pci_conf[addr], inb(0x80));
-    return dev->pci_conf[addr];
+    if (func == 0) {
+        intel_gmch_log("Intel 815EP: dev->regs[%02x] (%02x) POST: %02x \n", addr, dev->pci_conf[addr], inb(0x80));
+        return dev->pci_conf[addr];
+    }
+    else return 0xff;
 }
 
 
@@ -254,7 +372,7 @@ intel_gmch_reset(void *priv)
     dev->pci_conf[0x88] = 9;
     dev->pci_conf[0x89] = 0xa0;
     dev->pci_conf[0x8a] = 4;
-    dev->pci_conf[0x8b] = 0xf1;
+    dev->pci_conf[0x8b] = 0xe1; /* Bit 4 is about if we have Internal Graphics on our chip */
     dev->pci_conf[0x92] = dev->pci_conf[0x93] = dev->pci_conf[0x94] = dev->pci_conf[0x95] = 0xff;
     dev->pci_conf[0xa0] = 2;
     dev->pci_conf[0xa2] = 0x20;

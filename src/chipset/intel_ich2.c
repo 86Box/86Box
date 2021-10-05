@@ -154,7 +154,7 @@ else
 static void
 intel_ich2_smbus(intel_ich2_t *dev)
 {
-    smbus_piix4_remap(dev->smbus, ((uint16_t) (dev->lpc_conf[3][0x21] << 8)) | (dev->lpc_conf[3][0x20] & 0xf0), (!!(dev->lpc_conf[3][0x40] & 1) && !!(dev->lpc_conf[3][4] & 1)));
+    smbus_piix4_remap(dev->smbus, (dev->lpc_conf[3][0x21] << 8) | (dev->lpc_conf[3][0x20] & 0xf0), (!!(dev->lpc_conf[3][0x40] & 1) && !!(dev->lpc_conf[3][4] & 1)));
 }
 
 static void
@@ -246,7 +246,7 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
     }
     else if(func == 3)
     {
-        intel_ich2_log("Intel ICH2-SMBus: dev->regs[%02x][%02x] = %02x POST: %02x \n", func, addr, val, inb(0x80));
+        intel_ich2_log("Intel ICH2-SMBUS: dev->regs[%02x][%02x] = %02x POST: %02x \n", func, addr, val, inb(0x80));
         switch(addr)
         {
             case 0x04:
@@ -288,6 +288,10 @@ intel_ich2_lpc_read(int func, int addr, void *priv)
     }
     else if((func == 2) || (func == 4)) {
         intel_ich2_log("Intel ICH2-USB: HUB: %d dev->regs[%02x][%02x]  (%02x) POST: %02x \n", !!(func == 4), func, addr, dev->lpc_conf[func][addr], inb(0x80));
+        return dev->lpc_conf[func][addr];
+    }
+    else if(func == 3) {
+        intel_ich2_log("Intel ICH2-SMBUS: dev->regs[%02x][%02x]  (%02x) POST: %02x \n", func, addr, dev->lpc_conf[func][addr], inb(0x80));
         return dev->lpc_conf[func][addr];
     }
     else if((func == 5) || (func == 6)){
