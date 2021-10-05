@@ -3976,7 +3976,7 @@ static void *s3_virge_init(const device_t *info)
 
 	memset(virge->dmabuffer, 0, 65536);
 
-    virge->card = pci_add_card(PCI_ADD_VIDEO, s3_virge_pci_read, s3_virge_pci_write, virge);
+    virge->card = pci_add_card((info->flags & DEVICE_AGP) ? PCI_ADD_AGP : PCI_ADD_VIDEO, s3_virge_pci_read, s3_virge_pci_write, virge);
 
 	virge->i2c = i2c_gpio_init("ddc_s3_virge");
 	virge->ddc = ddc_init(i2c_gpio_get_bus(virge->i2c));
