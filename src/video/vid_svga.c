@@ -215,6 +215,8 @@ svga_out(uint16_t addr, uint8_t val, void *p)
 		svga->dac_addr = (val + (addr & 0x01)) & 255;
 		break;
 	case 0x3c9:
+		if (svga->adv_flags & FLAG_RAMDAC_SHIFT)
+			val <<= 2;
 		svga->fullchange = changeframecount;
 		switch (svga->dac_pos) {
 			case 0:
@@ -356,6 +358,8 @@ svga_in(uint16_t addr, void *p)
 					ret = svga->vgapal[index].b & 0x3f;
 				break;
 		}
+		if (svga->adv_flags & FLAG_RAMDAC_SHIFT)
+			ret >>= 2;
 		break;
 	case 0x3ca:
 		ret = svga->fcr;
