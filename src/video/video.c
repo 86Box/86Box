@@ -114,7 +114,11 @@ static const video_timings_t	*vid_timings;
 static uint32_t cga_2_table[16];
 static uint8_t	thread_run = 0;
 
+#ifdef _WIN32
 void * __cdecl	(*video_copy)(void *_Dst, const void *_Src, size_t _Size) = memcpy;
+#else
+void *		(*video_copy)(void *__restrict, const void *__restrict, size_t);
+#endif
 
 
 PALETTE		cgapal = {
@@ -419,8 +423,13 @@ video_screenshot(uint32_t *buf, int start_x, int start_y, int row_len)
 }
 
 
+#ifdef _WIN32
 void * __cdecl
 video_transform_copy(void *_Dst, const void *_Src, size_t _Size)
+#else
+void *
+video_transform_copy(void *__restrict _Dst, const void *__restrict _Src, size_t _Size)
+#endif
 {
     int i;
     uint32_t *dest_ex = (uint32_t *) _Dst;
