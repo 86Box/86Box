@@ -301,7 +301,7 @@ typedef struct virge_t
         fifo_entry_t fifo[FIFO_SIZE];
         volatile int fifo_read_idx, fifo_write_idx;
 
-        int virge_busy;
+        int virge_busy, local;
 
 	uint8_t subsys_stat, subsys_cntl, advfunc_cntl;
 
@@ -3785,6 +3785,86 @@ static void s3_virge_pci_write(int func, int addr, uint8_t val, void *p)
         }
 }
 
+static void s3_virge_reset(void *priv)
+{
+	virge_t *virge = (virge_t *) priv;
+    svga_t *svga = &virge->svga;
+
+    memset(svga->crtc, 0x00, sizeof(svga->crtc));
+    svga->crtc[0] = 63;
+    svga->crtc[6] = 255;
+    svga->dispontime = 1000ull << 32;
+    svga->dispofftime = 1000ull << 32;
+    svga->bpp = 8;
+
+    io_removehandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
+    io_sethandler(0x03c0, 0x0020, s3_virge_in, NULL, NULL, s3_virge_out, NULL, NULL, virge);
+
+    memset(virge->pci_regs, 0x00, 256);
+
+       	virge->pci_regs[PCI_REG_COMMAND] = 3;
+       	virge->pci_regs[0x05] = 0;
+        virge->pci_regs[0x06] = 0;
+       	virge->pci_regs[0x07] = 2;
+        virge->pci_regs[0x32] = 0x0c;
+       	virge->pci_regs[0x3d] = 1; 
+        virge->pci_regs[0x3e] = 4;
+       	virge->pci_regs[0x3f] = 0xff;
+
+	switch(virge->local) {
+		case S3_VIRGE_325:
+		case S3_DIAMOND_STEALTH3D_2000:
+			virge->svga.crtc[0x59] = 0x70;
+			break;
+		case S3_DIAMOND_STEALTH3D_3000:
+			virge->svga.crtc[0x59] = 0x70;
+			break;
+		case S3_VIRGE_GX2:
+		case S3_DIAMOND_STEALTH3D_4000:
+			virge->svga.crtc[0x6c] = 1;
+			virge->svga.crtc[0x59] = 0x70;
+			break;
+
+		case S3_TRIO_3D2X:
+			virge->svga.crtc[0x6c] = 1;
+			virge->svga.crtc[0x59] = 0x70;
+			break;
+
+		default:
+			virge->svga.crtc[0x6c] = 1;
+			virge->svga.crtc[0x59] = 0x70;
+			break;
+	}
+
+	if (virge->chip >= S3_VIRGEGX2)
+		virge->svga.crtc[0x36] = 2 | (0 << 2) | (1 << 4) | (0 << 5);
+	else {
+		switch (virge->memory_size) {
+			case 2:
+				virge->svga.crtc[0x36] = 2 | (0 << 2) | (1 << 4) | (4 << 5);
+				break;
+			case 8:
+				virge->svga.crtc[0x36] = 2 | (0 << 2) | (1 << 4) | (3 << 5);
+				break;
+			case 4:
+				virge->svga.crtc[0x36] = 2 | (0 << 2) | (1 << 4) | (0 << 5);
+				break;
+		}	
+	}
+
+	virge->svga.crtc[0x37] = 1 | (7 << 5);
+	virge->svga.crtc[0x53] = 8;
+
+    mem_mapping_disable(&virge->bios_rom.mapping);
+
+	memset(virge->dmabuffer, 0, 65536);
+
+    s3_virge_updatemapping(virge);
+
+	mem_mapping_disable(&virge->mmio_mapping);
+	mem_mapping_disable(&virge->new_mmio_mapping);
+}
+
 static void *s3_virge_init(const device_t *info)
 {
 	const char *bios_fn;
@@ -3990,6 +4070,8 @@ static void *s3_virge_init(const device_t *info)
 	virge->render_thread = thread_create(render_thread, virge);
 
 	timer_add(&virge->tri_timer, s3_virge_tri_timer, virge, 0);
+
+	virge->local = info->local;
  
 	return virge;
 }
@@ -4119,7 +4201,7 @@ const device_t s3_virge_325_pci_device =
         S3_VIRGE_325,
         s3_virge_init,
         s3_virge_close,
-	NULL,
+	s3_virge_reset,
         { s3_virge_325_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4133,7 +4215,7 @@ const device_t s3_diamond_stealth_2000_pci_device =
         S3_DIAMOND_STEALTH3D_2000,
         s3_virge_init,
         s3_virge_close,
-	NULL,
+	s3_virge_reset,
         { s3_virge_325_diamond_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4147,7 +4229,7 @@ const device_t s3_diamond_stealth_3000_pci_device =
         S3_DIAMOND_STEALTH3D_3000,
         s3_virge_init,
         s3_virge_close,
-	NULL,
+	s3_virge_reset,
         { s3_virge_988_diamond_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4161,7 +4243,7 @@ const device_t s3_virge_375_pci_device =
         S3_VIRGE_DX,
         s3_virge_init,
         s3_virge_close,
-	NULL,
+	s3_virge_reset,
         { s3_virge_375_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4175,7 +4257,7 @@ const device_t s3_diamond_stealth_2000pro_pci_device =
         S3_DIAMOND_STEALTH3D_2000PRO,
         s3_virge_init,
         s3_virge_close,
-	NULL,
+	s3_virge_reset,
         { s3_virge_375_diamond_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4189,7 +4271,7 @@ const device_t s3_virge_385_pci_device =
         S3_VIRGE_GX,
         s3_virge_init,
         s3_virge_close,
-	NULL,
+	s3_virge_reset,
         { s3_virge_385_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4203,7 +4285,7 @@ const device_t s3_virge_357_pci_device =
         S3_VIRGE_GX2,
         s3_virge_init,
         s3_virge_close,
-	NULL,
+	s3_virge_reset,
         { s3_virge_357_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4217,7 +4299,7 @@ const device_t s3_virge_357_agp_device =
         S3_VIRGE_GX2,
         s3_virge_init,
         s3_virge_close,
-	NULL,
+	s3_virge_reset,
         { s3_virge_357_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4231,7 +4313,7 @@ const device_t s3_diamond_stealth_4000_pci_device =
         S3_DIAMOND_STEALTH3D_4000,
         s3_virge_init,
         s3_virge_close,
-	NULL,
+	s3_virge_reset,
         { s3_virge_357_diamond_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4245,7 +4327,7 @@ const device_t s3_diamond_stealth_4000_agp_device =
         S3_DIAMOND_STEALTH3D_4000,
         s3_virge_init,
         s3_virge_close,
-	NULL,
+	s3_virge_reset,
         { s3_virge_357_diamond_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4259,7 +4341,7 @@ const device_t s3_trio3d2x_pci_device =
         S3_TRIO_3D2X,
         s3_virge_init,
         s3_virge_close,
-	NULL,
+	s3_virge_reset,
         { s3_trio3d2x_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
@@ -4273,7 +4355,7 @@ const device_t s3_trio3d2x_agp_device =
         S3_TRIO_3D2X,
         s3_virge_init,
         s3_virge_close,
-	NULL,
+	s3_virge_reset,
         { s3_trio3d2x_available },
         s3_virge_speed_changed,
         s3_virge_force_redraw,
