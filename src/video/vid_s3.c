@@ -352,6 +352,8 @@ typedef struct s3_t
 
 	uint8_t thread_run, serialport;
 	void *i2c, *ddc;
+
+	int vram;
 } s3_t;
 
 #define INT_VSY      (1 << 0)
@@ -6406,6 +6408,147 @@ static int vram_sizes[] =
 	3 /*8 MB*/
 };
 
+
+static void s3_reset(void *priv)
+{
+    s3_t *s3 = (s3_t *) priv;
+    svga_t *svga = &s3->svga;
+
+    memset(svga->crtc, 0x00, sizeof(svga->crtc));
+    svga->crtc[0] = 63;
+    svga->crtc[6] = 255;
+    svga->dispontime = 1000ull << 32;
+    svga->dispofftime = 1000ull << 32;
+    svga->bpp = 8;
+
+	if (s3->pci)
+		svga->crtc[0x36] = 2 | (3 << 2) | (1 << 4);
+	else if (s3->vlb)
+		svga->crtc[0x36] = 1 | (3 << 2) | (1 << 4);
+	else
+		svga->crtc[0x36] = 3 | (1 << 4);
+	
+	if (s3->chip >= S3_86C928)
+		svga->crtc[0x36] |= (vram_sizes[s3->vram] << 5);
+	else
+		svga->crtc[0x36] |= ((s3->vram == 1) ? 0x00 : 0x20) | 0x80;
+	
+	svga->crtc[0x37] = 1 | (7 << 5);
+	
+	if (s3->chip >= S3_86C928)
+		svga->crtc[0x37] |= 0x04;
+
+    s3_io_set(s3);
+
+    memset(s3->pci_regs, 0x00, 256);
+
+    s3->pci_regs[PCI_REG_COMMAND] = 7;
+
+    s3->pci_regs[0x30] = 0x00;
+    s3->pci_regs[0x32] = 0x0c;
+    s3->pci_regs[0x33] = 0x00;
+
+    switch(s3->card_type) {
+		case S3_MIROCRYSTAL8S_805:
+		case S3_MIROCRYSTAL10SD_805:
+			svga->crtc[0x5a] = 0x0a;
+			svga->getclock = sdac_getclock;
+			break;
+
+		case S3_SPEA_MIRAGE_86C801:
+		case S3_SPEA_MIRAGE_86C805:
+			svga->crtc[0x5a] = 0x0a;
+			break;
+
+		case S3_PHOENIX_86C801:
+		case S3_PHOENIX_86C805:
+			svga->crtc[0x5a] = 0x0a;
+			break;
+			
+		case S3_METHEUS_86C928:
+			svga->crtc[0x5a] = 0x0a;
+			break;			
+			
+		case S3_PARADISE_BAHAMAS64:
+		case S3_PHOENIX_VISION864:
+		case S3_MIROCRYSTAL20SD_864:
+			svga->crtc[0x5a] = 0x0a;
+			break;
+
+		case S3_DIAMOND_STEALTH64_964:
+		case S3_ELSAWIN2KPROX_964:
+		case S3_MIROCRYSTAL20SV_964:
+			svga->crtc[0x5a] = 0x0a;
+			break;
+
+		case S3_ELSAWIN2KPROX:
+		case S3_SPEA_MERCURY_P64V:
+		case S3_MIROVIDEO40SV_ERGO_968:
+		case S3_PHOENIX_VISION968:
+			if (s3->pci) {
+				svga->crtc[0x53] = 0x18;
+				svga->crtc[0x58] = 0x10;
+				svga->crtc[0x59] = 0x70;
+				svga->crtc[0x5a] = 0x00;
+				svga->crtc[0x6c] = 1;
+			} else {
+				svga->crtc[0x53] = 0x00;
+				svga->crtc[0x59] = 0x00;
+				svga->crtc[0x5a] = 0x0a;
+			}
+			break;
+
+		case S3_PHOENIX_VISION868:
+			if (s3->pci) {
+				svga->crtc[0x53] = 0x18;
+				svga->crtc[0x58] = 0x10;
+				svga->crtc[0x59] = 0x70;
+				svga->crtc[0x5a] = 0x00;
+				svga->crtc[0x6c] = 1;
+			} else {
+				svga->crtc[0x53] = 0x00;
+				svga->crtc[0x59] = 0x00;
+				svga->crtc[0x5a] = 0x0a;
+			}
+			break;
+
+		case S3_PHOENIX_TRIO64:
+		case S3_PHOENIX_TRIO64_ONBOARD:
+		case S3_PHOENIX_TRIO64VPLUS:
+		case S3_PHOENIX_TRIO64VPLUS_ONBOARD:
+		case S3_DIAMOND_STEALTH64_764:
+		case S3_SPEA_MIRAGE_P64:
+		case S3_NUMBER9_9FX:
+			if (s3->card_type == S3_PHOENIX_TRIO64VPLUS || s3->card_type == S3_PHOENIX_TRIO64VPLUS_ONBOARD)
+				svga->crtc[0x53] = 0x08;
+			break;
+
+		case S3_TRIO64V2_DX:
+			svga->crtc[0x53] = 0x08;
+			svga->crtc[0x59] = 0x70;
+			svga->crtc[0x5a] = 0x00;
+			svga->crtc[0x6c] = 1;
+			s3->pci_regs[0x05] = 0;
+			s3->pci_regs[0x06] = 0;
+			s3->pci_regs[0x07] = 2;
+			s3->pci_regs[0x3d] = 1; 
+			s3->pci_regs[0x3e] = 4;
+			s3->pci_regs[0x3f] = 0xff;
+			break;
+	}
+
+	if (s3->has_bios) {
+		if (s3->pci)
+			mem_mapping_disable(&s3->bios_rom.mapping);
+	}
+
+	s3_updatemapping(s3);
+
+	mem_mapping_disable(&s3->mmio_mapping);
+	mem_mapping_disable(&s3->new_mmio_mapping);
+}
+
+
 static void *s3_init(const device_t *info)
 {
 	const char *bios_fn;
@@ -6637,6 +6780,7 @@ static void *s3_init(const device_t *info)
 	else
 		vram_size = 512 << 10;
 	s3->vram_mask = vram_size - 1;
+	s3->vram = vram;
 
 	s3->has_bios = (bios_fn != NULL);
 	if (s3->has_bios) {
@@ -7311,7 +7455,7 @@ const device_t s3_orchid_86c911_isa_device =
 	S3_ORCHID_86C911,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_orchid_86c911_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7325,7 +7469,7 @@ const device_t s3_diamond_stealth_vram_isa_device =
 	S3_DIAMOND_STEALTH_VRAM,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_diamond_stealth_vram_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7339,7 +7483,7 @@ const device_t s3_ami_86c924_isa_device =
 	S3_AMI_86C924,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_ami_86c924_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7353,7 +7497,7 @@ const device_t s3_spea_mirage_86c801_isa_device =
 	S3_SPEA_MIRAGE_86C801,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_spea_mirage_86c801_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7367,7 +7511,7 @@ const device_t s3_spea_mirage_86c805_vlb_device =
 	S3_SPEA_MIRAGE_86C805,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_spea_mirage_86c805_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7381,7 +7525,7 @@ const device_t s3_mirocrystal_8s_805_vlb_device =
 	S3_MIROCRYSTAL8S_805,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_mirocrystal_8s_805_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7396,7 +7540,7 @@ const device_t s3_mirocrystal_10sd_805_vlb_device =
 	S3_MIROCRYSTAL10SD_805,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_mirocrystal_10sd_805_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7410,7 +7554,7 @@ const device_t s3_phoenix_86c801_isa_device =
 	S3_PHOENIX_86C801,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_phoenix_86c80x_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7424,7 +7568,7 @@ const device_t s3_phoenix_86c805_vlb_device =
 	S3_PHOENIX_86C805,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_phoenix_86c80x_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7438,7 +7582,7 @@ const device_t s3_metheus_86c928_isa_device =
 	S3_METHEUS_86C928,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_metheus_86c928_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7452,7 +7596,7 @@ const device_t s3_metheus_86c928_vlb_device =
 	S3_METHEUS_86C928,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_metheus_86c928_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7466,7 +7610,7 @@ const device_t s3_mirocrystal_20sd_864_vlb_device =
 	S3_MIROCRYSTAL20SD_864,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_mirocrystal_20sd_864_vlb_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7480,7 +7624,7 @@ const device_t s3_bahamas64_vlb_device =
 	S3_PARADISE_BAHAMAS64,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_bahamas64_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7494,7 +7638,7 @@ const device_t s3_bahamas64_pci_device =
 	S3_PARADISE_BAHAMAS64,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_bahamas64_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7508,7 +7652,7 @@ const device_t s3_mirocrystal_20sv_964_vlb_device =
 	S3_MIROCRYSTAL20SV_964,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_mirocrystal_20sv_964_vlb_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7522,7 +7666,7 @@ const device_t s3_mirocrystal_20sv_964_pci_device =
 	S3_MIROCRYSTAL20SV_964,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_mirocrystal_20sv_964_pci_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7537,7 +7681,7 @@ const device_t s3_diamond_stealth64_964_vlb_device =
 	S3_DIAMOND_STEALTH64_964,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_diamond_stealth64_964_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7551,7 +7695,7 @@ const device_t s3_diamond_stealth64_964_pci_device =
 	S3_DIAMOND_STEALTH64_964,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_diamond_stealth64_964_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7565,7 +7709,7 @@ const device_t s3_phoenix_vision968_pci_device =
 	S3_PHOENIX_VISION968,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_phoenix_vision968_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7579,7 +7723,7 @@ const device_t s3_phoenix_vision968_vlb_device =
 	S3_PHOENIX_VISION968,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_phoenix_vision968_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7593,7 +7737,7 @@ const device_t s3_mirovideo_40sv_ergo_968_pci_device =
 	S3_MIROVIDEO40SV_ERGO_968,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_mirovideo_40sv_ergo_968_pci_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7607,7 +7751,7 @@ const device_t s3_spea_mercury_p64v_pci_device =
 	S3_SPEA_MERCURY_P64V,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_spea_mercury_p64v_pci_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7621,7 +7765,7 @@ const device_t s3_9fx_vlb_device =
 	S3_NUMBER9_9FX,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_9fx_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7635,7 +7779,7 @@ const device_t s3_9fx_pci_device =
 	S3_NUMBER9_9FX,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_9fx_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7649,7 +7793,7 @@ const device_t s3_phoenix_trio32_vlb_device =
 	S3_PHOENIX_TRIO32,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_phoenix_trio32_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7663,7 +7807,7 @@ const device_t s3_phoenix_trio32_pci_device =
 	S3_PHOENIX_TRIO32,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_phoenix_trio32_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7677,7 +7821,7 @@ const device_t s3_diamond_stealth_se_vlb_device =
 	S3_DIAMOND_STEALTH_SE,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_diamond_stealth_se_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7691,7 +7835,7 @@ const device_t s3_diamond_stealth_se_pci_device =
 	S3_DIAMOND_STEALTH_SE,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_diamond_stealth_se_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7706,7 +7850,7 @@ const device_t s3_phoenix_trio64_vlb_device =
 	S3_PHOENIX_TRIO64,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_phoenix_trio64_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7720,7 +7864,7 @@ const device_t s3_phoenix_trio64_onboard_pci_device =
 	S3_PHOENIX_TRIO64_ONBOARD,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ NULL },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7734,7 +7878,7 @@ const device_t s3_phoenix_trio64_pci_device =
 	S3_PHOENIX_TRIO64,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_phoenix_trio64_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7748,7 +7892,7 @@ const device_t s3_phoenix_trio64vplus_onboard_pci_device =
 	S3_PHOENIX_TRIO64VPLUS_ONBOARD,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ NULL },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7762,7 +7906,7 @@ const device_t s3_phoenix_trio64vplus_pci_device =
 	S3_PHOENIX_TRIO64VPLUS,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_phoenix_trio64vplus_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7776,7 +7920,7 @@ const device_t s3_phoenix_vision864_vlb_device =
 	S3_PHOENIX_VISION864,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_phoenix_vision864_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7790,7 +7934,7 @@ const device_t s3_phoenix_vision864_pci_device =
 	S3_PHOENIX_VISION864,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_phoenix_vision864_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7804,7 +7948,7 @@ const device_t s3_phoenix_vision868_vlb_device =
 	S3_PHOENIX_VISION868,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_phoenix_vision868_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7818,7 +7962,7 @@ const device_t s3_phoenix_vision868_pci_device =
 	S3_PHOENIX_VISION868,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_phoenix_vision868_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7832,7 +7976,7 @@ const device_t s3_diamond_stealth64_vlb_device =
 	S3_DIAMOND_STEALTH64_764,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_diamond_stealth64_764_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7846,7 +7990,7 @@ const device_t s3_diamond_stealth64_pci_device =
 	S3_DIAMOND_STEALTH64_764,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_diamond_stealth64_764_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7860,7 +8004,7 @@ const device_t s3_spea_mirage_p64_vlb_device =
 	S3_SPEA_MIRAGE_P64,
 	s3_init,
 	s3_close,
-	NULL,
+	s3_reset,
 	{ s3_spea_mirage_p64_vlb_available },
 	s3_speed_changed,
 	s3_force_redraw,
@@ -7874,7 +8018,7 @@ const device_t s3_elsa_winner2000_pro_x_964_pci_device =
         S3_ELSAWIN2KPROX_964,
         s3_init,
         s3_close,
-	NULL,
+	s3_reset,
         { s3_elsa_winner2000_pro_x_964_available },
         s3_speed_changed,
         s3_force_redraw,
@@ -7888,7 +8032,7 @@ const device_t s3_elsa_winner2000_pro_x_pci_device =
         S3_ELSAWIN2KPROX,
         s3_init,
         s3_close,
-	NULL,
+	s3_reset,
         { s3_elsa_winner2000_pro_x_available },
         s3_speed_changed,
         s3_force_redraw,
@@ -7902,7 +8046,7 @@ const device_t s3_trio64v2_dx_pci_device =
         S3_TRIO64V2_DX,
         s3_init,
         s3_close,
-	NULL,
+	s3_reset,
         { s3_trio64v2_dx_available },
         s3_speed_changed,
         s3_force_redraw,
