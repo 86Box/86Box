@@ -2056,28 +2056,29 @@ config_load(void)
 	cassette_ui_writeprot = 0;
 
 	config_log("Config file not present or invalid!\n");
-	return;
+    } else {
+	load_general();			/* General */
+	load_machine();			/* Machine */
+	load_video();			/* Video */
+	load_input_devices();		/* Input devices */
+	load_sound();			/* Sound */
+	load_network();			/* Network */
+	load_ports();			/* Ports (COM & LPT) */
+	load_storage_controllers();		/* Storage controllers */
+	load_hard_disks();			/* Hard disks */
+	load_floppy_and_cdrom_drives();	/* Floppy and CD-ROM drives */
+	/* TODO: Backwards compatibility, get rid of this when enough time has passed. */
+	load_floppy_drives();		/* Floppy drives */
+	load_other_removable_devices();	/* Other removable devices */
+	load_other_peripherals();		/* Other peripherals */
+
+	/* Mark the configuration as changed. */
+	config_changed = 1;
+
+	config_log("Config loaded.\n\n");
     }
 
-    load_general();			/* General */
-    load_machine();			/* Machine */
-    load_video();			/* Video */
-    load_input_devices();		/* Input devices */
-    load_sound();			/* Sound */
-    load_network();			/* Network */
-    load_ports();			/* Ports (COM & LPT) */
-    load_storage_controllers();		/* Storage controllers */
-    load_hard_disks();			/* Hard disks */
-    load_floppy_and_cdrom_drives();	/* Floppy and CD-ROM drives */
-    /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
-    load_floppy_drives();		/* Floppy drives */
-    load_other_removable_devices();	/* Other removable devices */
-    load_other_peripherals();		/* Other peripherals */
-
-    /* Mark the configuration as changed. */
-    config_changed = 1;
-
-    config_log("Config loaded.\n\n");
+    video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
 }
 
 
