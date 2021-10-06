@@ -618,52 +618,62 @@ ht216_recalctimings(svga_t *svga)
 
     ht216->adjust_cursor = 0;
     
-    if (svga->crtc[0x17] == 0xeb) {
-	svga->rowoffset <<= 1;
-	svga->render = svga_render_2bpp_headland_highres;
-    }
-
-    if (svga->bpp == 8) {
-	ht216_log("regC8 = %02x, gdcreg5 bit 6 = %02x, no lowres = %02x, regf8 bit 7 = %02x, regfc = %02x\n", ht216->ht_regs[0xc8] & HT_REG_C8_E256, svga->gdcreg[5] & 0x40, !svga->lowres, ht216->ht_regs[0xf6] & 0x80, ht216->ht_regs[0xfc] & HT_REG_FC_ECOLRE);
-	if (((ht216->ht_regs[0xc8] & HT_REG_C8_E256) || (svga->gdcreg[5] & 0x40)) && (!svga->lowres || (ht216->ht_regs[0xf6] & 0x80))) {
-		if (high_res_256) {
-			svga->hdisp >>= 1;
-			ht216->adjust_cursor = 1;
-		}
-		svga->render = svga_render_8bpp_highres;
-	} else if (svga->lowres) {
-		if (high_res_256) {
-			svga->hdisp >>= 1;
-			ht216->adjust_cursor = 1;
-			svga->render = svga_render_8bpp_highres;
+    if (!svga->scrblank && svga->attr_palette_enable) {
+	if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
+		if (svga->seqregs[1] & 8) /*40 column*/ {
+			svga->render = svga_render_text_40;
 		} else {
-			ht216_log("8bpp low, packed = %02x, chain4 = %02x\n", svga->packed_chain4, svga->chain4);
-			svga->render = svga_render_8bpp_lowres;
+			svga->render = svga_render_text_80;
 		}
-	} else if (ht216->ht_regs[0xfc] & HT_REG_FC_ECOLRE) {
-		if (ht216->id == 0x7152) {
-			svga->hdisp = svga->crtc[1] - ((svga->crtc[5] & 0x60) >> 5);
-			if (!(svga->crtc[1] & 1))
-				svga->hdisp--;
-			svga->hdisp++;
-			svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
-			svga->rowoffset <<= 1;
-			if ((svga->crtc[0x17] & 0x60) == 0x20) /*Would result in a garbled screen with trailing cursor glitches*/
-				svga->force_byte_mode = 1;
-			else
-				svga->force_byte_mode = 0;
-		}
-		svga->render = svga_render_8bpp_highres;
-	}
-    } else if (svga->bpp == 15) {
+	} else {
+		if (svga->crtc[0x17] == 0xeb) {
 		svga->rowoffset <<= 1;
-		svga->hdisp >>= 1;
-		svga->render = svga_render_15bpp_highres;
-	}
+		svga->render = svga_render_2bpp_headland_highres;
+		}
 
+		if (svga->bpp == 8) {
+		ht216_log("regC8 = %02x, gdcreg5 bit 6 = %02x, no lowres = %02x, regf8 bit 7 = %02x, regfc = %02x\n", ht216->ht_regs[0xc8] & HT_REG_C8_E256, svga->gdcreg[5] & 0x40, !svga->lowres, ht216->ht_regs[0xf6] & 0x80, ht216->ht_regs[0xfc] & HT_REG_FC_ECOLRE);
+		if (((ht216->ht_regs[0xc8] & HT_REG_C8_E256) || (svga->gdcreg[5] & 0x40)) && (!svga->lowres || (ht216->ht_regs[0xf6] & 0x80))) {
+			if (high_res_256) {
+				svga->hdisp >>= 1;
+				ht216->adjust_cursor = 1;
+			}
+			svga->render = svga_render_8bpp_highres;
+		} else if (svga->lowres) {
+			if (high_res_256) {
+				svga->hdisp >>= 1;
+				ht216->adjust_cursor = 1;
+				svga->render = svga_render_8bpp_highres;
+			} else {
+				ht216_log("8bpp low, packed = %02x, chain4 = %02x\n", svga->packed_chain4, svga->chain4);
+				svga->render = svga_render_8bpp_lowres;
+			}
+		} else if (ht216->ht_regs[0xfc] & HT_REG_FC_ECOLRE) {
+			if (ht216->id == 0x7152) {
+				svga->hdisp = svga->crtc[1] - ((svga->crtc[5] & 0x60) >> 5);
+				if (!(svga->crtc[1] & 1))
+					svga->hdisp--;
+				svga->hdisp++;
+				svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
+				svga->rowoffset <<= 1;
+				if ((svga->crtc[0x17] & 0x60) == 0x20) /*Would result in a garbled screen with trailing cursor glitches*/
+					svga->crtc[0x17] |= 0x40;
+			}
+			svga->render = svga_render_8bpp_highres;
+		}
+		} else if (svga->bpp == 15) {
+			svga->rowoffset <<= 1;
+			svga->hdisp >>= 1;
+			if ((svga->crtc[0x17] & 0x60) == 0x20) /*Would result in a garbled screen with trailing cursor glitches*/
+				svga->crtc[0x17] |= 0x40;
+			svga->render = svga_render_15bpp_highres;
+		}
+	}
+	}
+	
 	svga->ma_latch |= ((ht216->ht_regs[0xf6] & 0x30) << 14);
 
-    if (svga->crtc[0x17] == 0xeb) /*Looks like that 1024x768 mono mode expects 512K of video memory*/
+    if (svga->crtc[0x17] == 0xeb) /*Looks like 1024x768 mono mode expects 512K of video memory*/
 	svga->vram_display_mask = 0x7ffff;
     else
 	svga->vram_display_mask = (ht216->ht_regs[0xf6] & 0x40) ? ht216->vram_mask : 0x3ffff;

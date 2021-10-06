@@ -816,7 +816,10 @@ static void opengl_blit(int x, int y, int w, int h)
 		return;
 	}
 
-	memcpy(blit_info[write_pos].buffer, &(buffer32->line[y][x]), h * ROW_LENGTH * sizeof(uint32_t));
+	video_copy(blit_info[write_pos].buffer, &(buffer32->line[y][x]), h * ROW_LENGTH * sizeof(uint32_t));
+
+	if (screenshots)
+		video_screenshot(blit_info[write_pos].buffer, 0, 0, ROW_LENGTH);
 
 	video_blit_complete();
 

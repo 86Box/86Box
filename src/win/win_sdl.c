@@ -232,7 +232,8 @@ static void
 sdl_blit(int x, int y, int w, int h)
 {
     SDL_Rect r_src;
-    int ret;
+    void *pixeldata;
+    int pitch, ret;
 
     if (!sdl_enabled || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
 	video_blit_complete();
@@ -241,17 +242,21 @@ sdl_blit(int x, int y, int w, int h)
 
     SDL_LockMutex(sdl_mutex);
 
-    r_src.x = x;
-    r_src.y = y;
-    r_src.w = w;
-    r_src.h = h;
-    SDL_UpdateTexture(sdl_tex, &r_src, &(buffer32->line[y][x]), (2048 + 64) * sizeof(uint32_t));
+    SDL_LockTexture(sdl_tex, 0, &pixeldata, &pitch);
+
+    video_copy(pixeldata, &(buffer32->line[y][x]), h * (2048 + 64) * sizeof(uint32_t));
+
+    if (screenshots)
+	video_screenshot((uint32_t *) pixeldata, 0, 0, (2048 + 64));
+
+    SDL_UnlockTexture(sdl_tex);
+
     video_blit_complete();
 
     SDL_RenderClear(sdl_render);
 
-    r_src.x = x;
-    r_src.y = y;
+    r_src.x = 0;
+    r_src.y = 0;
     r_src.w = w;
     r_src.h = h;
 
@@ -353,7 +358,7 @@ sdl_init_texture(void)
 	sdl_render = SDL_CreateRenderer(sdl_win, -1, SDL_RENDERER_SOFTWARE);
 
     sdl_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ARGB8888,
-				SDL_TEXTUREACCESS_STREAMING, 2048, 2048);
+				SDL_TEXTUREACCESS_STREAMING, (2048 + 64), (2048 + 64));
 }
 
 
