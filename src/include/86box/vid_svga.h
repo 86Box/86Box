@@ -23,7 +23,8 @@
 #define FLAG_EXT_WRITE		4
 #define FLAG_LATCH8		8
 #define FLAG_NOSKEW		16
-#define FLAG_ADDR_BY16	32
+#define FLAG_ADDR_BY16		32
+#define FLAG_RAMDAC_SHIFT	64
 
 
 typedef struct {
