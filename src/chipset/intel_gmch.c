@@ -173,17 +173,13 @@ intel_gmch_smram(intel_gmch_t *dev)
 
     switch((dev->pci_conf[0x70] >> 2) & 3)
     {
-        case 0:
-            mem_set_mem_state_both(0xa0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_DISABLED);
-        break;
-
         case 1:
-            mem_set_mem_state_both(0xa0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+            smram_enable(dev->low_smram, 0x000a0000, 0x000a0000, 0x20000, 1, 1);
         break;
 
         case 2:
             smram_enable(dev->low_smram, 0x000a0000, 0x000a0000, 0x20000, 0, 1);
-            mem_set_mem_state_smram_ex(1, 0xa0000, 0x20000, 2);
+            mem_set_mem_state_smram_ex(1, 0x000a0000, 0x00020000, 2);
         break;
 
         case 3:

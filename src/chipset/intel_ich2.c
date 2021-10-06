@@ -166,8 +166,32 @@ intel_ich2_hub_write(int func, int addr, uint8_t val, void *priv)
                 dev->hub_conf[addr] = val & 0xef;
                 break;
 
-            default:
-                dev->hub_conf[addr] = val;
+            case 0x40:
+                dev->hub_conf[addr] = val & 1;
+                break;
+
+            case 0x50:
+                dev->hub_conf[addr] = val & 6;
+                break;
+
+            case 0x51:
+                dev->hub_conf[addr] = val & 3;
+                break;
+
+            case 0x70:
+                dev->hub_conf[addr] = val & 0xf8;
+                break;
+
+            case 0x82:
+                dev->hub_conf[addr] &= val;
+                break;
+
+            case 0x90:
+                dev->hub_conf[addr] = val & 6;
+                break;
+
+            case 0x92:
+                dev->hub_conf[addr] &= val & 6;
                 break;
         }
 }
@@ -178,10 +202,11 @@ intel_ich2_hub_read(int func, int addr, void *priv)
 {
     intel_ich2_t *dev = (intel_ich2_t *)priv;
 
-    if (func == 0)
+    if (func == 0) {
+        intel_ich2_log("Intel ICH2-HUB: dev->regs[%02x] (%02x) POST: %02x \n", addr, dev->hub_conf[addr], inb(0x80));
 	    return dev->hub_conf[addr];
-    else
-        return 0xff;
+    }
+    else return 0xff;
 }
 
 static void

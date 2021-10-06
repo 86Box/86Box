@@ -28,7 +28,7 @@
 #include <86box/i2c.h>
 #include <86box/smbus.h>
 
-
+#define ENABLE_SMBUS_PIIX4_LOG 1
 #ifdef ENABLE_SMBUS_PIIX4_LOG
 int smbus_piix4_do_log = ENABLE_SMBUS_PIIX4_LOG;
 
