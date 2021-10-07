@@ -198,7 +198,7 @@ intel_gmch_write(int func, int addr, uint8_t val, void *priv)
 
     intel_gmch_t *dev = (intel_gmch_t *)priv;
 
-    if (func == 0) { /* GMCH */
+    if (func == 0) {
         intel_gmch_log("Intel 815EP: dev->regs[%02x] = %02x POST: %02x \n", addr, val, inb(0x80));
 
         switch(addr)

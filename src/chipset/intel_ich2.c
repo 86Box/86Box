@@ -69,7 +69,8 @@ intel_ich2_log(const char *fmt, ...)
 typedef struct intel_ich2_t
 {
 
-	uint8_t hub_conf[256], lpc_conf[7][256];
+	uint8_t hub_conf[256], lpc_conf[7][256], gpio_space[64];
+    int gpio_base;
 
     int lpc_slot;
     acpi_t *acpi;
@@ -216,12 +217,60 @@ intel_ich2_acpi(intel_ich2_t *dev)
 }
 
 static void
+intel_ich2_gpio_write(uint16_t addr, uint8_t val, void *priv)
+{
+    intel_ich2_t *dev = (intel_ich2_t *)priv;
+
+    dev->gpio_space[addr - dev->gpio_base] = val;
+}
+
+static uint8_t
+intel_ich2_gpio_read(uint16_t addr, void *priv)
+{
+    intel_ich2_t *dev = (intel_ich2_t *)priv;
+
+    return dev->gpio_space[addr - dev->gpio_base];
+}
+
+static void
+intel_ich2_gpio(intel_ich2_t *dev)
+{
+    if(dev->gpio_base) /* Remove the old GPIO base*/
+        io_removehandler(dev->gpio_base, 64, intel_ich2_gpio_read, NULL, NULL, intel_ich2_gpio_write, NULL, NULL, dev);
+
+    dev->gpio_base = (dev->lpc_conf[0][0x59] << 8) | (dev->lpc_conf[0][0x58] & 0xc0);
+
+    if(dev->gpio_base && !!(dev->lpc_conf[0][0x54] & 0x10)) /* Set the new GPIO base*/
+        io_sethandler(dev->gpio_base, 64, intel_ich2_gpio_read, NULL, NULL, intel_ich2_gpio_write, NULL, NULL, dev);
+
+}
+
+static void
 intel_ich2_pirq_routing(int enabled, int cur_reg, int irq, intel_ich2_t *dev)
 {
     if(enabled)
         pci_set_irq_routing(cur_reg, irq);
     else
         pci_set_irq_routing(cur_reg, PCI_IRQ_DISABLED);
+}
+
+static void
+intel_ich2_nvr(intel_ich2_t *dev)
+{
+    nvr_at_handler(0, 0x0070, dev->nvr);
+    nvr_at_handler(0, 0x0072, dev->nvr);
+    nvr_at_handler(0, 0x0074, dev->nvr);
+    nvr_at_handler(0, 0x0076, dev->nvr);
+
+    if(!(dev->lpc_conf[0][0xd8] & 8)) {
+        nvr_at_handler(1, 0x0070, dev->nvr);
+        nvr_at_handler(1, 0x0074, dev->nvr);
+    }
+
+    if(!!(dev->lpc_conf[0][0xd8] & 4) && !(dev->lpc_conf[0][0xd8] & 0x10)) {
+        nvr_at_handler(1, 0x0072, dev->nvr);
+        nvr_at_handler(1, 0x0076, dev->nvr);
+    }
 }
 
 static void
@@ -260,6 +309,36 @@ intel_ich2_smbus(intel_ich2_t *dev)
 }
 
 static void
+intel_ich2_disable(intel_ich2_t *dev)
+{
+
+    /* F2h Bit 1: Disable IDE */
+    if(dev->lpc_conf[0][0xf2] & 2) {
+        ide_pri_disable();
+        ide_sec_disable();
+    }
+
+    /* F2h Bit 2: Disable USB 0 */
+    if(dev->lpc_conf[0][0xf2] & 4) {
+        uhci_update_io_mapping(dev->usb[0], dev->lpc_conf[2][0x20] & ~0x1f, dev->lpc_conf[2][0x21], 0);
+    }
+
+    /* F2h Bit 3: Disable SMBus (Note that F3h Bit 0 allows the ICH2 to access the SMBus address space even if PCI functionality is disabled) */
+    if(dev->lpc_conf[0][0xf2] & 8) {
+        if(!(dev->lpc_conf[0][0xf3] & 1))
+            smbus_piix4_remap(dev->smbus, (dev->lpc_conf[3][0x21] << 8) | (dev->lpc_conf[3][0x20] & 0xf0), 0);
+    }
+
+    /* F2h Bit 4: Disable USB 1 */
+    if(dev->lpc_conf[0][0xf2] & 0x10) {
+        uhci_update_io_mapping(dev->usb[1], dev->lpc_conf[2][0x20] & ~0x1f, dev->lpc_conf[2][0x21], 0);
+    }
+
+    /* F2h Bit 5: Disable AC97 */
+    /* F2h Bit 6: Disable AC97 Modem */
+}
+
+static void
 intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
 {
     intel_ich2_t *dev = (intel_ich2_t *)priv;
@@ -270,33 +349,192 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
         intel_ich2_log("Intel ICH2-LPC: dev->regs[%02x][%02x] = %02x POST: %02x \n", func, addr, val, inb(0x80));
         switch(addr)
         {
-            case 0x40 ... 0x44: /* ACPI I/O Base & Enable */
-                dev->lpc_conf[func][addr] = val;
-                intel_ich2_acpi(dev);
+            case 0x04:
+                dev->lpc_conf[func][addr] = val & 0x40;
             break;
 
-            case 0x4e: /* BIOS SMI */
-                dev->lpc_conf[func][addr] = val;
+            case 0x07:
+                dev->lpc_conf[func][addr] = val & 0xf8;
+                dev->lpc_conf[func][addr] &= val & 1;
+            break;
+
+
+            case 0x40 ... 0x41: /* ACPI */
+            case 0x44:
+
+                if(addr == 0x44) { /* ACPI IRQ */
+                    dev->lpc_conf[func][addr] = val & 0x27;
+                    acpi_set_irq_line(dev->acpi, ((dev->lpc_conf[0][0x44] & 7) < 3) ? (9 + (dev->lpc_conf[0][0x44] & 7)) : 9);
+                }
+                else { /* ACPI I/O Base & Enable */
+                    dev->lpc_conf[func][addr] = (addr & 1) ? val : (val & 0x80);
+
+                    dev->lpc_conf[func][addr] = val;
+                    intel_ich2_acpi(dev);
+                }
+            break;
+
+            case 0x4e: /* BIOS Control SMI */
+                if(dev->lpc_conf[func][addr] == 2)
+                    dev->lpc_conf[func][addr] = (val & 3) | 2;
+                else
+                    dev->lpc_conf[func][addr] = val & 3;
 
                 if((val & 3) == 3)
                     smi_line = 1;
             break;
 
+            case 0x54:
+                dev->lpc_conf[func][addr] = val & 7;
+            break;
+
+            case 0x58 ... 0x59: /* General Purpose 64 byte I/O space */
+            case 0x5c:
+
+                if(addr == 0x5c) /* GPIO Enable */
+                    dev->lpc_conf[func][addr] = val & 0x10;
+                else /* GPIO base address */
+                    dev->lpc_conf[func][addr] = (addr & 1) ? val : (val & 0xc0);
+            
+                intel_ich2_gpio(dev);
+            break;
+
             case 0x60 ... 0x63: /* PCI IRQ Routing */
-            dev->lpc_conf[func][addr] = val;
-            intel_ich2_pirq_routing(val & 0x80, addr - 0x60, val & 0x0f, dev);
+                dev->lpc_conf[func][addr] = val & 0x8f;
+                intel_ich2_pirq_routing(val & 0x80, addr - 0x60, val & 0x0f, dev);
             break;
 
-            case 0x68 ... 0x6b: /* PCI IRQ Routing */
-            dev->lpc_conf[func][addr] = val;
-            intel_ich2_pirq_routing(val & 0x80, addr - 0x64, val & 0x0f, dev);
-            break;
-
-            case 0xd8: /* RTC Control */
+            case 0x64:
                 dev->lpc_conf[func][addr] = val;
             break;
 
+            case 0x68 ... 0x6b: /* PCI IRQ Routing */
+                dev->lpc_conf[func][addr] = val;
+                intel_ich2_pirq_routing(val & 0x80, addr - 0x64, val & 0x0f, dev);
+            break;
+
+            case 0x88:
+                dev->lpc_conf[func][addr] = val & 6;
+            break;
+
+            case 0x8a:
+                dev->lpc_conf[func][addr] &= val & 6;
+            break;
+
+            case 0x90:
+                dev->lpc_conf[func][addr] = val & 0xff;
+            break;
+
+            case 0x91:
+                dev->lpc_conf[func][addr] = val & 0xfc;
+            break;
+
+            case 0xa0:
+                dev->lpc_conf[func][addr] = val & 0x63;
+            break;
+
+            case 0xa1:
+                dev->lpc_conf[func][addr] = val & 6;
+            break;
+
+            case 0xa2:
+                dev->lpc_conf[func][addr] &= val & 3;
+            break;
+
             case 0xa4:
+                dev->lpc_conf[func][addr] = val & 1;
+                dev->lpc_conf[func][addr] &= val & 6;
+            break;
+
+            case 0xb8 ... 0xbb: /* GPIO SMI */
+                dev->lpc_conf[func][addr] = val;
+            break;
+
+            case 0xd0:
+                dev->lpc_conf[func][addr] = val & 0xc7;
+            break;
+
+            case 0xc0:
+                dev->lpc_conf[func][addr] = val & 0xf0;
+            break;
+
+            case 0xc4 ... 0xcd:
+                dev->lpc_conf[func][addr] = val;
+            break;
+
+            case 0xd1:
+                dev->lpc_conf[func][addr] = val & 0x39;
+            break;
+
+            case 0xd3:
+                dev->lpc_conf[func][addr] = val & 3;
+            break;
+
+            case 0xd4:
+                dev->lpc_conf[func][addr] = val & 2;
+            break;
+
+            case 0xd5:
+                dev->lpc_conf[func][addr] = val & 0x3f;
+            break;
+
+            case 0xd8: /* RTC Control */
+                if((dev->lpc_conf[func][addr] & 0x18) != 0)
+                    dev->lpc_conf[func][addr] = (val & 0x1c) | (dev->lpc_conf[func][addr] & 0x18);
+                else
+                    dev->lpc_conf[func][addr] = val & 0x1c;
+
+                intel_ich2_nvr(dev);
+            break;
+
+            case 0xe0:
+                dev->lpc_conf[func][addr] = val & 0x77;
+            break;
+
+            case 0xe1:
+                dev->lpc_conf[func][addr] = val & 0x13;
+            break;
+
+            case 0xe2:
+                dev->lpc_conf[func][addr] = val & 0x3b;
+            break;
+
+            case 0xe3: /* FWH Address Range Enable */
+                dev->lpc_conf[func][addr] = val;
+            break;
+
+            case 0xe4:
+                dev->lpc_conf[func][addr] = val & 0x81;
+            break;
+
+            case 0xe5 ... 0xe6:
+                dev->lpc_conf[func][addr] = val;
+            break;
+
+            case 0xe7:
+                dev->lpc_conf[func][addr] = val & 0xcf;
+            break;
+
+            case 0xe8 ... 0xeb:
+                dev->lpc_conf[func][addr] = val;
+            break;
+
+            case 0xec:
+                dev->lpc_conf[func][addr] = val & 0xf1;
+            break;
+
+            case 0xed ... 0xef:
+                dev->lpc_conf[func][addr] = val;
+            break;
+
+            case 0xf0:
+                dev->lpc_conf[func][addr] = val & 0x0f;
+            break;
+
+            case 0xf2: /* Device Function Disable */
+            case 0xf3:
+                dev->lpc_conf[func][addr] = (addr & 1) ? (val & 1) : (val & 0x7e);
+                intel_ich2_disable(dev);
             break;
 
             default:
@@ -304,7 +542,7 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
             break;
         }
     }
-    else if(func == 1)
+    else if((func == 1) && !(dev->lpc_conf[0][0xf2] & 2))
     {
         intel_ich2_log("Intel ICH2-IDE: dev->regs[%02x][%02x] = %02x POST: %02x \n", func, addr, val, inb(0x80));
         switch(addr)
@@ -329,7 +567,7 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
             break;
         }
     }
-    else if((func == 2) || (func == 4))
+    else if(((func == 2) && !(dev->lpc_conf[0][0xf2] & 4)) || ((func == 4) && !(dev->lpc_conf[0][0xf2] & 0x10)))
     {
         int usb_variant = !!(func == 4); /* Function 4 is Hub 1 while 2 is Hub 0 */
         intel_ich2_log("Intel ICH2-USB: HUB: %d dev->regs[%02x][%02x] = %02x POST: %02x\n", usb_variant, func, addr, val, inb(0x80));
@@ -346,7 +584,7 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
             break;
         }
     }
-    else if(func == 3)
+    else if((func == 3) && !(dev->lpc_conf[0][0xf2] & 8))
     {
         intel_ich2_log("Intel ICH2-SMBUS: dev->regs[%02x][%02x] = %02x POST: %02x \n", func, addr, val, inb(0x80));
         switch(addr)
@@ -363,7 +601,7 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
             break;
         }
     }
-    else if((func == 5) || (func == 6))
+    else if(((func == 5) && !(dev->lpc_conf[0][0xf2] & 0x20)) || ((func == 6) && !(dev->lpc_conf[0][0xf2] & 0x40)))
     {
         intel_ich2_log("Intel ICH2-%s: dev->regs[%02x][%02x] = %02x POST: %02x \n", (func == 5) ? "AC97" : "MODEM", func, addr, val, inb(0x80));
         switch(addr)
@@ -384,19 +622,19 @@ intel_ich2_lpc_read(int func, int addr, void *priv)
         intel_ich2_log("Intel ICH2: dev->regs[%02x][%02x]  (%02x) POST: %02x \n", func, addr, dev->lpc_conf[func][addr], inb(0x80));
 	    return dev->lpc_conf[func][addr];
     }
-    else if(func == 1) {
+    else if((func == 1) && !(dev->lpc_conf[0][0xf2] & 2)) {
         intel_ich2_log("Intel ICH2-IDE: dev->regs[%02x][%02x]  (%02x) POST: %02x \n", func, addr, dev->lpc_conf[func][addr], inb(0x80));
         return dev->lpc_conf[func][addr];
     }
-    else if((func == 2) || (func == 4)) {
+    else if(((func == 2) && !(dev->lpc_conf[0][0xf2] & 4)) || ((func == 4) && !(dev->lpc_conf[0][0xf2] & 0x10))) {
         intel_ich2_log("Intel ICH2-USB: HUB: %d dev->regs[%02x][%02x]  (%02x) POST: %02x \n", !!(func == 4), func, addr, dev->lpc_conf[func][addr], inb(0x80));
         return dev->lpc_conf[func][addr];
     }
-    else if(func == 3) {
+    else if((func == 3) && !(dev->lpc_conf[0][0xf2] & 8)) {
         intel_ich2_log("Intel ICH2-SMBUS: dev->regs[%02x][%02x]  (%02x) POST: %02x \n", func, addr, dev->lpc_conf[func][addr], inb(0x80));
         return dev->lpc_conf[func][addr];
     }
-    else if((func == 5) || (func == 6)){
+    else if(((func == 5) && !(dev->lpc_conf[0][0xf2] & 0x20)) || ((func == 6) && !(dev->lpc_conf[0][0xf2] & 0x40))){
        intel_ich2_log("Intel ICH2-%s: dev->regs[%02x][%02x]  (%02x) POST: %02x \n", (func == 5) ? "AC97" : "MODEM", func, addr, dev->lpc_conf[func][addr], inb(0x80));
        return dev->lpc_conf[func][addr];
     }
@@ -441,8 +679,23 @@ intel_ich2_reset(void *priv)
     dev->lpc_conf[0][0x0b] = 6;
     dev->lpc_conf[0][0x0e] = 0x80;
     dev->lpc_conf[0][0x40] = 1;
+    dev->lpc_conf[0][0x58] = 1;
+    dev->lpc_conf[0][0x60] = dev->lpc_conf[0][0x61] = dev->lpc_conf[0][0x62] = dev->lpc_conf[0][0x63] = 1;
+    dev->lpc_conf[0][0x64] = 0x10;
+    dev->lpc_conf[0][0x68] = dev->lpc_conf[0][0x69] = dev->lpc_conf[0][0x6a] = dev->lpc_conf[0][0x6b] = 1;
+    dev->lpc_conf[0][0xd5] = 0x0f;
+    dev->lpc_conf[0][0xe3] = 0xff;
+    dev->lpc_conf[0][0xe8] = 0x33;
+    dev->lpc_conf[0][0xe9] = 0x22;
+    dev->lpc_conf[0][0xea] = 0x11;
+    dev->lpc_conf[0][0xeb] = 0x00;
+    dev->lpc_conf[0][0xee] = 0x67;
+    dev->lpc_conf[0][0xef] = 0x45;
+    dev->lpc_conf[0][0xf0] = 0x0f;
 
     intel_ich2_acpi(dev);
+    intel_ich2_gpio(dev);
+    intel_ich2_nvr(dev);
 
     /* ICH2 IDE Controller */
     dev->lpc_conf[1][0x00] = 0x86;
