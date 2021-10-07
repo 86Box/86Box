@@ -158,17 +158,29 @@ intel_gmch_pam(int cur_reg, intel_gmch_t *dev)
 static void
 intel_gmch_smram(intel_gmch_t *dev)
 {
+    uint32_t tom = (mem_size << 10);
+    uint32_t tom_size = 0;
 
-    switch((dev->pci_conf[0x70] >> 4) & 3)
-    {
-        case 0:
-        break;
+    if(((dev->pci_conf[0x70] >> 4) & 3) != 0) {
+        if(((dev->pci_conf[0x70] >> 4) & 3) >= 2) { /* Top Remapping based on intel_4x0.c by OBattler */
+            /* Phase 0 */
+            tom -= (1 << 20);
+            mem_set_mem_state_smm(tom, (1 << 20), MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 
-        case 1 ... 3:
-            if(((dev->pci_conf[0x70] >> 2) & 3) == 0)
+            /* Phase 1 */
+            tom = (mem_size << 10);
+            tom_size = (((dev->pci_conf[0x70] >> 4) & 3) == 3) ? 0x100000 : 0x80000; /* 3: 1MB / 2: 512KB */
+            tom -= tom_size;
+
+            smram_enable(dev->upper_smram_tseg, tom + (1 << 28), tom, tom_size, 0, 1);
+            mem_set_mem_state_smm(tom, tom_size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+            mem_set_mem_state_smram_ex(0, tom, tom_size, 0); /* All Non-SMM accesses are forwarded to the Hub */
+        }
+
+        if(((dev->pci_conf[0x70] >> 2) & 3) == 0) {
             smram_enable(dev->upper_smram_hseg, 0xfeea0000, 0x000a0000, 0x20000, 0, 1);
-        break;
-
+            mem_set_mem_state_smram_ex(0, 0xfeea0000, 0x00020000, 0); /* All Non-SMM accesses are forwarded to the Hub */
+        }
     }
 
     switch((dev->pci_conf[0x70] >> 2) & 3)
@@ -184,7 +196,7 @@ intel_gmch_smram(intel_gmch_t *dev)
 
         case 3:
             smram_enable(dev->low_smram, 0x000a0000, 0x000a0000, 0x20000, 0, 1);
-		    mem_set_mem_state_smram_ex(1, 0x000a0000, 0x20000, 1);
+		    mem_set_mem_state_smram_ex(1, 0x000a0000, 0x20000, 1); /* All Non-SMM accesses are forwarded to the Hub */
 	        mem_set_mem_state_smram_ex(0, 0x000a0000, 0x20000, 0);
         break;
     }
@@ -250,8 +262,10 @@ intel_gmch_write(int func, int addr, uint8_t val, void *priv)
             break;
 
             case 0x70: /* SMRAM */
-                dev->pci_conf[addr] = val;
-                intel_gmch_smram(dev);
+                if(!(dev->pci_conf[addr] & 2)) { /* D_LCK Locks SMRAM Registers from being configured. Clear only possible via reset */
+                    dev->pci_conf[addr] = val;
+                    intel_gmch_smram(dev);
+                }
             break;
 
             case 0x72:
