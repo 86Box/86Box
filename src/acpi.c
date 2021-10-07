@@ -651,6 +651,7 @@ acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
 			sus_typ = (val >> 2) & 7;
 			switch (sus_typ) {
 				case 0:
+				case 6:		/* Reserved according to the datasheet but used by eg. the ASUS P2B-LS. */
 					/* Soft power off. */
 					plat_power_off();
 					break;
