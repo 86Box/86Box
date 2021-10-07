@@ -3768,18 +3768,19 @@ gd54xx_reset(void *priv)
     io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
 
     mem_mapping_disable(&gd54xx->vgablt_mapping);
-    if (gd54xx->has_bios)
+    if (gd54xx->has_bios && gd54xx->pci)
 	mem_mapping_disable(&gd54xx->bios_rom.mapping);
 
     memset(gd54xx->pci_regs, 0x00, 256);
-
-    gd543x_recalc_mapping(gd54xx);
 
     mem_mapping_set_p(&svga->mapping, gd54xx);
     mem_mapping_disable(&gd54xx->mmio_mapping);
     mem_mapping_disable(&gd54xx->linear_mapping);
     mem_mapping_disable(&gd54xx->aperture2_mapping);
     mem_mapping_disable(&gd54xx->vgablt_mapping);
+
+    gd543x_recalc_mapping(gd54xx);
+    gd54xx_recalc_banking(gd54xx);
 
     svga->hwcursor.yoff = svga->hwcursor.xoff = 0;
 
