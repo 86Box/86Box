@@ -1520,30 +1520,35 @@ extern "C" void RenderImGui()
 		    if (ImGui::MenuItem("RGB Color", NULL, video_grayscale == 0, true))
 		    {
 			video_grayscale = 0;
+			video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
 			device_force_redraw();
 			config_save();
 		    }
 		    if (ImGui::MenuItem("RGB Grayscale", NULL, video_grayscale == 1, true))
 		    {
 			video_grayscale = 1;
+			video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
 			device_force_redraw();
 			config_save();
 		    }
 		    if (ImGui::MenuItem("Amber monitor", NULL, video_grayscale == 2, true))
 		    {
 			video_grayscale = 2;
+			video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
 			device_force_redraw();
 			config_save();
 		    }
 		    if (ImGui::MenuItem("Green monitor", NULL, video_grayscale == 3, true))
 		    {
 			video_grayscale = 3;
+			video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
 			device_force_redraw();
 			config_save();
 		    }
 		    if (ImGui::MenuItem("White monitor", NULL, video_grayscale == 4, true))
 		    {
 			video_grayscale = 4;
+			video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
 			device_force_redraw();
 			config_save();
 		    }
@@ -1574,6 +1579,7 @@ extern "C" void RenderImGui()
 		if (ImGui::MenuItem("Inverted VGA monitor", NULL, invert_display))
 		{
 		    invert_display ^= 1;
+			video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
 		    device_force_redraw();
 		    config_save();
 		}
