@@ -183,7 +183,7 @@ vnc_blit(int x, int y, int w, int h)
     }
 
     if (screenshots)
-	video_screenshot((uint32_t *) rfb->frameBuffer, 0, 0, ROW_LENGTH);
+	video_screenshot((uint32_t *) rfb->frameBuffer, 0, 0, VNC_MAX_X);
  
     video_blit_complete();
 
