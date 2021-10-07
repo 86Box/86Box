@@ -612,9 +612,43 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
         switch(addr)
         {
             case 0x04:
-            case 0x20 ... 0x21:
-                dev->lpc_conf[func][addr] = val;
+                dev->lpc_conf[func][addr] = val & 5;
                 intel_ich2_usb(usb_variant, dev);
+            break;
+
+            case 0x07:
+                dev->lpc_conf[func][addr] &= val & 0x28;
+            break;
+
+            case 0x20 ... 0x21: /* USB Base Address */
+                dev->lpc_conf[func][addr] = (addr & 1) ? val : ((val & 0xe0) | 1);
+                intel_ich2_usb(usb_variant, dev);
+            break;
+
+            case 0x2c ... 0x2f:
+                if(dev->lpc_conf[func][addr] == 0)
+                    dev->lpc_conf[func][addr] = val;
+            break;
+
+            case 0x3c:
+                dev->lpc_conf[func][addr] = val;
+            break;
+
+            case 0x3d:
+                dev->lpc_conf[func][addr] = val & 7;
+            break;
+
+            case 0xc0:
+                dev->lpc_conf[func][addr] = val & 0xbf;
+            break;
+
+            case 0xc1:
+                dev->lpc_conf[func][addr] = val & 0x20;
+                dev->lpc_conf[func][addr] &= val & 0x8f;
+            break;
+
+            case 0xc4:
+                dev->lpc_conf[func][addr] = val & 3;
             break;
 
             default:
@@ -628,6 +662,15 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
         switch(addr)
         {
             case 0x04:
+                dev->lpc_conf[func][addr] = val & 5;
+                intel_ich2_smbus(dev);
+            break;
+
+            case 0x07:
+                dev->lpc_conf[func][addr] &= val & 0x28;
+            break;
+
+
             case 0x20 ... 0x21:
             case 0x40:
                 dev->lpc_conf[func][addr] = val;

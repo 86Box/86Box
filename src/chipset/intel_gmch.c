@@ -161,6 +161,8 @@ intel_gmch_smram(intel_gmch_t *dev)
     uint32_t tom = (mem_size << 10);
     uint32_t tom_size = 0;
 
+    smram_disable_all();
+
     if(((dev->pci_conf[0x70] >> 4) & 3) != 0) {
         if(((dev->pci_conf[0x70] >> 4) & 3) >= 2) { /* Top Remapping based on intel_4x0.c by OBattler */
             /* Phase 0 */
