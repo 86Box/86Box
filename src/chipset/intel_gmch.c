@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the Intel i815xx GMCH Chipset.
+ *		Implementation of the Intel i815 (GMCH) Chipset.
  *
  *
  * Authors:	Tiseno100
@@ -36,7 +36,6 @@
 
 #include <86box/chipset.h>
 
-#define ENABLE_INTEL_GMCH_LOG 1
 #ifdef ENABLE_INTEL_GMCH_LOG
 int intel_gmch_do_log = ENABLE_INTEL_GMCH_LOG;
 
@@ -55,7 +54,6 @@ intel_gmch_log(const char *fmt, ...)
 #else
 #define intel_gmch_log(fmt, ...)
 #endif
-
 
 typedef struct intel_gmch_t
 {
@@ -384,7 +382,7 @@ intel_gmch_reset(void *priv)
     dev->pci_conf[0x88] = 9;
     dev->pci_conf[0x89] = 0xa0;
     dev->pci_conf[0x8a] = 4;
-    dev->pci_conf[0x8b] = 0xe1; /* Bit 4 is about if we have Internal Graphics on our chip */
+    dev->pci_conf[0x8b] = 0xf1;
     dev->pci_conf[0x92] = dev->pci_conf[0x93] = dev->pci_conf[0x94] = dev->pci_conf[0x95] = 0xff;
     dev->pci_conf[0xa0] = 2;
     dev->pci_conf[0xa2] = 0x20;
@@ -444,7 +442,7 @@ intel_gmch_init(const device_t *info)
 
 
 const device_t intel_gmch_device = {
-    "Intel i815xx(GMCH) Chipset",
+    "Intel i815 (GMCH) Chipset",
     DEVICE_PCI,
     0,
     intel_gmch_init, intel_gmch_close, intel_gmch_reset,

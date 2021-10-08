@@ -45,7 +45,6 @@
 
 #include <86box/chipset.h>
 
-#define ENABLE_INTEL_ICH2_LOG 1
 #ifdef ENABLE_INTEL_ICH2_LOG
 int intel_ich2_do_log = ENABLE_INTEL_ICH2_LOG;
 
@@ -662,33 +661,93 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
         switch(addr)
         {
             case 0x04:
-                dev->lpc_conf[func][addr] = val & 5;
+                dev->lpc_conf[func][addr] = val & 1;
                 intel_ich2_smbus(dev);
             break;
 
             case 0x07:
-                dev->lpc_conf[func][addr] &= val & 0x28;
+                dev->lpc_conf[func][addr] &= val & 0x0e;
             break;
 
-
-            case 0x20 ... 0x21:
-            case 0x40:
-                dev->lpc_conf[func][addr] = val;
+            case 0x20 ... 0x21: /* SMBus Base Address */
+                dev->lpc_conf[func][addr] = (addr & 1) ? val : ((val & 0xf0) | 1);
                 intel_ich2_smbus(dev);
             break;
 
-            default:
+            case 0x2c ... 0x2d:
+                if(dev->lpc_conf[func][addr] == 0)
+                    dev->lpc_conf[func][addr] = val;
+            break;
+
+            case 0x3c:
+                dev->lpc_conf[func][addr] = val;
+            break;
+
+            case 0x40:
+                dev->lpc_conf[func][addr] = val & 7;
+                intel_ich2_smbus(dev);
+            break;
+        }
+    }
+    else if((func == 5) && !(dev->lpc_conf[0][0xf2] & 0x20)) /* AC97 */
+    {
+        intel_ich2_log("Intel ICH2-AC97: dev->regs[%02x][%02x] = %02x POST: %02x \n", func, addr, val, inb(0x80));
+        switch(addr)
+        {
+            case 0x04:
+                dev->lpc_conf[func][addr] = val & 5;
+            break;
+
+            case 0x07:
+                dev->lpc_conf[func][addr] &= val & 0x26;
+            break;
+
+            case 0x11: /* AC97 Base Address */
+                dev->lpc_conf[func][addr] = val;
+            break;
+
+            case 0x14 ... 0x15: /* AC97 Bus Master Base Address */
+                dev->lpc_conf[func][addr] = (addr & 1) ? val : ((val & 0xc0) | 1);
+            break;
+
+            case 0x2c ... 0x2d:
+                if(dev->lpc_conf[func][addr] == 0)
+                    dev->lpc_conf[func][addr] = val;
+            break;
+
+            case 0x3c:
                 dev->lpc_conf[func][addr] = val;
             break;
         }
     }
-    else if(((func == 5) && !(dev->lpc_conf[0][0xf2] & 0x20)) || ((func == 6) && !(dev->lpc_conf[0][0xf2] & 0x40))) /* AC97 */
+    else if((func == 6) && !(dev->lpc_conf[0][0xf2] & 0x40)) /* AC97 */
     {
-        intel_ich2_log("Intel ICH2-%s: dev->regs[%02x][%02x] = %02x POST: %02x \n", (func == 5) ? "AC97" : "MODEM", func, addr, val, inb(0x80));
+        intel_ich2_log("Intel ICH2-MODEM: dev->regs[%02x][%02x] = %02x POST: %02x \n", func, addr, val, inb(0x80));
         switch(addr)
         {
-            default:
-            dev->lpc_conf[func][addr] = val;
+            case 0x04:
+                dev->lpc_conf[func][addr] = val & 5;
+            break;
+
+            case 0x07:
+                dev->lpc_conf[func][addr] &= val & 0x20;
+            break;
+
+            case 0x11: /* AC97 Modem Base Address */
+                dev->lpc_conf[func][addr] = val;
+            break;
+
+            case 0x14 ... 0x15: /* AC97 Modem Bus Master Base Address */
+                dev->lpc_conf[func][addr] = (addr & 1) ? val : ((val & 0xc0) | 1);
+            break;
+
+            case 0x2c ... 0x2d:
+                if(dev->lpc_conf[func][addr] == 0)
+                    dev->lpc_conf[func][addr] = val;
+            break;
+
+            case 0x3c:
+                dev->lpc_conf[func][addr] = val;
             break;
         }
     }
@@ -715,8 +774,12 @@ intel_ich2_lpc_read(int func, int addr, void *priv)
         intel_ich2_log("Intel ICH2-SMBUS: dev->regs[%02x][%02x]  (%02x) POST: %02x \n", func, addr, dev->lpc_conf[func][addr], inb(0x80));
         return dev->lpc_conf[func][addr];
     }
-    else if(((func == 5) && !(dev->lpc_conf[0][0xf2] & 0x20)) || ((func == 6) && !(dev->lpc_conf[0][0xf2] & 0x40))){
-       intel_ich2_log("Intel ICH2-%s: dev->regs[%02x][%02x]  (%02x) POST: %02x \n", (func == 5) ? "AC97" : "MODEM", func, addr, dev->lpc_conf[func][addr], inb(0x80));
+    else if((func == 5) && !(dev->lpc_conf[0][0xf2] & 0x20)) {
+       intel_ich2_log("Intel ICH2-AC97: dev->regs[%02x][%02x]  (%02x) POST: %02x \n", func, addr, dev->lpc_conf[func][addr], inb(0x80));
+       return dev->lpc_conf[func][addr];
+    }
+    else if((func == 6) && !(dev->lpc_conf[0][0xf2] & 0x40)) {
+       intel_ich2_log("Intel ICH2-MODEM: dev->regs[%02x][%02x]  (%02x) POST: %02x \n", func, addr, dev->lpc_conf[func][addr], inb(0x80));
        return dev->lpc_conf[func][addr];
     }
     else
@@ -847,6 +910,7 @@ intel_ich2_reset(void *priv)
 
     intel_ich2_smbus(dev);
 
+#ifdef AC97
     /* ICH2 AC97 */
     dev->lpc_conf[5][0x00] = 0x86;
     dev->lpc_conf[5][0x01] = 0x80;
@@ -875,6 +939,7 @@ intel_ich2_reset(void *priv)
     dev->lpc_conf[6][0x14] = 1;
     dev->lpc_conf[6][0x18] = 1;
     dev->lpc_conf[6][0x3d] = 2;
+#endif
 }
 
 

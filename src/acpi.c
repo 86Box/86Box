@@ -41,7 +41,6 @@
 
 int acpi_rtc_status = 0;
 
-#define ENABLE_ACPI_LOG 1
 #ifdef ENABLE_ACPI_LOG
 int acpi_do_log = ENABLE_ACPI_LOG;
 
@@ -1043,6 +1042,14 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 
 	default:
 		acpi_reg_write_common_regs(size, addr, val, p);
+		/* Setting GBL_RLS also sets BIOS_STS and generates SMI. */
+		if ((addr == 0x00) && !(dev->regs.pmsts & 0x20))
+			dev->regs.monsmi &= ~0x00000080;
+		else if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
+			dev->regs.glbsts |= 0x01;
+			if (dev->regs.glben & 0x02)
+				acpi_raise_smi(dev, 1);
+		}
 		break;
 
     }

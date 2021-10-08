@@ -866,6 +866,15 @@ const machine_t machines[] = {
     { "[i440GX] SuperMicro Super S2DGE",	"s2dge",		MACHINE_TYPE_SLOT2,		CPU_PKG_SLOT2, 0, 66666667, 100000000, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		16384,2097152,16384, 511,		machine_at_s2dge_init, NULL			},
 
     /* PGA370 machines */
+
+    /* Intel i815 + ICH2 */
+    /* Has a Winbond W83627HF Super I/O chip with on-chip KBC with AMIKey-2 KBC
+       firmware. */
+    { "[Intel i815EP] ABit AB-SA6",		   "sa6",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 32768, 524288, 32768, 255,	      	  machine_at_sa6_init, NULL			},
+    /* Has a Winbond W83627HF Super I/O chip with on-chip KBC with AMIKey-2 KBC
+       firmware. */
+    { "[Intel i815E] AMI Olympus II",		   "olympusii",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 32768, 524288, 32768, 255,	    machine_at_olympusii_init, NULL			},
+
     /* 440LX */
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -911,10 +920,6 @@ const machine_t machines[] = {
     /* Has the VIA VT82C686B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
     { "[VIA Apollo Pro133A] Acorp 6VIA90AP",	"6via90ap",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1300, 3500, MACHINE_MULTIPLIER_FIXED,				MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_GAMEPORT,		 8192,1572864, 8192, 255,	     machine_at_6via90ap_init, NULL			},
-
-    /* Intel i815 + ICH2 */
-    { "[Intel i815E] AMI Olympus II",		   "olympusii",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 	 32768, 524288, 32768, 255,	    machine_at_olympusii_init, NULL			},
-    { "[Intel i815EP] MSI 815EPT PRO",		   "msi6337",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 	 32768, 524288, 32768, 255,	      machine_at_msi6337_init, NULL			},
 
     /* Miscellaneous/Fake/Hypervisor machines */
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
