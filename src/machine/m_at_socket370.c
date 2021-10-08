@@ -494,43 +494,6 @@ machine_at_sa6_init(const machine_t *model)
     return ret;
 }
 
-int
-machine_at_sa6_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/881pci/SAH6P_7X.bin",
-			   0x00080000, 524288, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_at_common_init_ex(model, 2);
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_bus_slot(0, 0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_bus_slot(0, 0x1e, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
-    pci_register_bus_slot(0, 0x1f, PCI_CARD_SOUTHBRIDGE, 1, 2, 8, 4);
-    pci_register_bus_slot(1, 0x00, PCI_CARD_NORMAL,      1, 2, 3, 4);
-    pci_register_bus_slot(2, 0x00, PCI_CARD_NORMAL,      1, 2, 3, 4);
-    pci_register_bus_slot(2, 0x01, PCI_CARD_NORMAL,      2, 3, 4, 1);
-    pci_register_bus_slot(2, 0x02, PCI_CARD_NORMAL,      3, 4, 1, 2);
-    pci_register_bus_slot(2, 0x03, PCI_CARD_NORMAL,      4, 1, 2, 3);
-    pci_register_bus_slot(2, 0x04, PCI_CARD_NORMAL,      1, 2, 3, 4);
-    pci_register_bus_slot(2, 0x05, PCI_CARD_NORMAL,      2, 3, 4, 1);
-    pci_register_bus_slot(2, 0x06, PCI_CARD_NORMAL,      3, 4, 1, 2);
-    pci_register_bus_slot(2, 0x07, PCI_CARD_NORMAL,      4, 1, 2, 3);
-    pci_register_bus_slot(0, 0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
-
-    device_add(&intel_gmch_device);
-    device_add(&intel_ich2_device);
-    device_add(&w83977tf_device); /* Winbond W83627HF */
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&sst_flash_39sf040_device); /* Needs Intel or SST FWH */
-
-    return ret;
-}
-
 /* Needs Research! Gets stuck on POST AD on summary screen */
 /* We can't get PCI IRQ's due to that */
 int
