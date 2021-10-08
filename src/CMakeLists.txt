@@ -63,6 +63,11 @@ if(MINGW)
 	set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".dll.a")
 endif()
 
+if(APPLE)
+	# Force using the newest library if it's installed by homebrew
+	set(CMAKE_FIND_FRAMEWORK LAST)
+endif()
+
 find_package(Freetype REQUIRED)
 include_directories(${FREETYPE_INCLUDE_DIRS})
 
