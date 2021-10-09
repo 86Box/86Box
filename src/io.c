@@ -319,9 +319,6 @@ inb(uint16_t port)
     if (port == 0x1ed)
 	ret = 0xfe;
 
-    if (port == 0x2b60)
-	ret = 0x00;
-
     io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
     return(ret);
