@@ -148,7 +148,7 @@ typedef struct hb4_t
 		shadow_read, shadow_write,
 		pci_conf[256];	/* PCI Registers */
     int		mem_state[9];
-    smram_t	*smram[2];	/* SMRAM Handlers */
+    smram_t	*smram[3];	/* SMRAM Handlers */
 } hb4_t;
 
 
@@ -237,7 +237,7 @@ void
 hb4_shadow(hb4_t *dev)
 {
     int n = 0;
-    pclog("SHADOW: %02X%02X\n", dev->pci_conf[0x55], dev->pci_conf[0x54]);
+    hb4_log("SHADOW: %02X%02X\n", dev->pci_conf[0x55], dev->pci_conf[0x54]);
 
     n = hb4_shadow_bios_high(dev);
     n += hb4_shadow_bios_low(dev);
@@ -259,6 +259,8 @@ hb4_smram(hb4_t *dev)
     smram_enable(dev->smram[0], 0x000a0000, 0x000a0000, 0x20000, dev->pci_conf[0x60] & 0x01, 1);
     /* There's a mirror of the SMRAM at 0E0A0000, mapped to A0000. */
     smram_enable(dev->smram[1], 0x0e0a0000, 0x000a0000, 0x20000, dev->pci_conf[0x60] & 0x01, 1);
+    /* There's another mirror of the SMRAM at 4E0A0000, mapped to A0000. */
+    smram_enable(dev->smram[2], 0x4e0a0000, 0x000a0000, 0x20000, dev->pci_conf[0x60] & 0x01, 1);
 
     /* Bit 5 seems to set data to go to PCI and code to DRAM. The Samsung SPC7700P-LW uses
        this. */
@@ -274,7 +276,6 @@ static void
 hb4_write(int func, int addr, uint8_t val, void *priv)
 {
     hb4_t *dev = (hb4_t *)priv;
-    uint8_t old;
 
     hb4_log("UM8881: dev->regs[%02x] = %02x POST: %02x \n", addr, val, inb(0x80));
 
@@ -302,9 +303,8 @@ hb4_write(int func, int addr, uint8_t val, void *priv)
 		break;
 
 	case 0x53:
-		old = dev->pci_conf[addr];
 		dev->pci_conf[addr] = val;
-		pclog("HB53: %02X\n", val);
+		hb4_log("HB53: %02X\n", val);
 		break;
 
 	case 0x55:
@@ -409,6 +409,7 @@ hb4_init(const device_t *info)
     /* SMRAM */
     dev->smram[0] = smram_add();
     dev->smram[1] = smram_add();
+    dev->smram[2] = smram_add();
 
     hb4_reset(dev);
 
