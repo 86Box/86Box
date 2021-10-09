@@ -282,13 +282,13 @@ reset_common(int hard)
     if (is386 || hard)
 	EAX = EBX = ECX = EDX = ESI = EDI = EBP = ESP = 0;
 
-    /* if (hard) {
+    if (hard) {
 	makeznptable();
 	resetreadlookup();
 	makemod1table();
 	cpu_set_edx();
 	mmu_perm = 4;
-    } */
+    }
     x86seg_reset();
 #ifdef USE_DYNAREC
     if (hard)
@@ -308,15 +308,19 @@ reset_common(int hard)
     if (hard) {
 	if (is486)
 		smbase = is_am486dxl ? 0x00060000 : 0x00030000;
-	// ppi_reset();
+	ppi_reset();
     }
     in_sys = 0;
 
     shadowbios = shadowbios_write = 0;
     alt_access = cpu_end_block_after_ins = 0;
 
-    if (hard)
+    if (hard) {
     	reset_on_hlt = hlt_reset_pending = 0;
+	cache_index = 0;
+	memset(_tr, 0x00, sizeof(_tr));
+	memset(_cache, 0x00, sizeof(_cache));
+    }
 
     if (!is286)
 	reset_808x(hard);
@@ -328,15 +332,6 @@ void
 resetx86(void)
 {
     reset_common(1);
-/* ---- */
-    makeznptable();
-    resetreadlookup();
-    makemod1table();
-    cpu_set_edx();
-    mmu_perm = 4;
-
-    ppi_reset();
-/* ---- */
 
     soft_reset_mask = 0;
 }

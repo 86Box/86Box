@@ -59,6 +59,9 @@ extern const device_t	headland_ht18a_device;
 extern const device_t	headland_ht18b_device;
 extern const device_t	headland_ht18c_device;
 
+/* IMS */
+extern const device_t	ims8848_device;
+
 /* Intel */
 extern const device_t   intel_82335_device;
 extern const device_t	i420ex_device;
@@ -162,7 +165,7 @@ extern const device_t	wd76c10_device;
 
 /* Miscellaneous Hardware */
 extern const device_t   phoenix_486_jumper_device;
-extern const device_t	vpc2007_device;
+extern const device_t   phoenix_486_jumper_pci_device;
 
 #if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
 extern const device_t   olivetti_eva_device;

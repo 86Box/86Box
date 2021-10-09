@@ -32,6 +32,9 @@
 
 static smram_t		*base_smram, *last_smram;
 
+static uint8_t		use_separate_smram = 0;
+static uint8_t		smram[0x40000];
+
 
 #ifdef ENABLE_SMRAM_LOG
 int smram_do_log = ENABLE_SMRAM_LOG;
@@ -61,8 +64,10 @@ smram_read(uint32_t addr, void *priv)
 
     if (new_addr >= (1 << 30))
 	return mem_read_ram_2gb(new_addr, priv);
-    else
+    else if (!use_separate_smram || (new_addr >= 0xa0000))
 	return mem_read_ram(new_addr, priv);
+    else
+	return dev->mapping.exec[addr - dev->host_base];
 }
 
 
@@ -74,8 +79,10 @@ smram_readw(uint32_t addr, void *priv)
 
     if (new_addr >= (1 << 30))
 	return mem_read_ram_2gbw(new_addr, priv);
-    else
+    else if (!use_separate_smram || (new_addr >= 0xa0000))
 	return mem_read_ramw(new_addr, priv);
+    else
+	return *(uint16_t *) &(dev->mapping.exec[addr - dev->host_base]);
 }
 
 
@@ -87,8 +94,10 @@ smram_readl(uint32_t addr, void *priv)
 
     if (new_addr >= (1 << 30))
 	return mem_read_ram_2gbl(new_addr, priv);
-    else
+    else if (!use_separate_smram || (new_addr >= 0xa0000))
 	return mem_read_raml(new_addr, priv);
+    else
+	return *(uint32_t *) &(dev->mapping.exec[addr - dev->host_base]);
 }
 
 
@@ -98,7 +107,10 @@ smram_write(uint32_t addr, uint8_t val, void *priv)
     smram_t *dev = (smram_t *) priv;
     uint32_t new_addr = addr - dev->host_base + dev->ram_base;
 
-    mem_write_ram(new_addr, val, priv);
+    if (!use_separate_smram || (new_addr >= 0xa0000))
+	mem_write_ram(new_addr, val, priv);
+    else
+	dev->mapping.exec[addr - dev->host_base] = val;
 }
 
 
@@ -108,7 +120,10 @@ smram_writew(uint32_t addr, uint16_t val, void *priv)
     smram_t *dev = (smram_t *) priv;
     uint32_t new_addr = addr - dev->host_base + dev->ram_base;
 
-    mem_write_ramw(new_addr, val, priv);
+    if (!use_separate_smram || (new_addr >= 0xa0000))
+	mem_write_ramw(new_addr, val, priv);
+    else
+	*(uint16_t *) &(dev->mapping.exec[addr - dev->host_base]) = val;
 }
 
 
@@ -118,7 +133,10 @@ smram_writel(uint32_t addr, uint32_t val, void *priv)
     smram_t *dev = (smram_t *) priv;
     uint32_t new_addr = addr - dev->host_base + dev->ram_base;
 
-    mem_write_raml(new_addr, val, priv);
+    if (!use_separate_smram || (new_addr >= 0xa0000))
+	mem_write_raml(new_addr, val, priv);
+    else
+	*(uint32_t *) &(dev->mapping.exec[addr - dev->host_base]) = val;
 }
 
 
@@ -263,6 +281,8 @@ smram_add(void)
 		    smram_write,smram_writew,smram_writel,
 		    ram, MEM_MAPPING_SMRAM, temp_smram);
 
+    smram_set_separate_smram(0);
+
     return temp_smram;
 }
 
@@ -326,10 +346,21 @@ smram_enable(smram_t *smr, uint32_t host_base, uint32_t ram_base, uint32_t size,
 	smr->size = size;
 
 	mem_mapping_set_addr(&(smr->mapping), smr->host_base, smr->size);
-	if (smr->ram_base < (1 << 30))
-		mem_mapping_set_exec(&(smr->mapping), ram + smr->ram_base);
-	else
-		mem_mapping_set_exec(&(smr->mapping), ram2 + smr->ram_base - (1 << 30));
+	if (!use_separate_smram || (smr->ram_base >= 0x000a0000)) {
+		if (smr->ram_base < (1 << 30))
+			mem_mapping_set_exec(&(smr->mapping), ram + smr->ram_base);
+		else
+			mem_mapping_set_exec(&(smr->mapping), ram2 + smr->ram_base - (1 << 30));
+	} else {
+		if (smr->ram_base == 0x00030000)
+			mem_mapping_set_exec(&(smr->mapping), smram);
+		else if (smr->ram_base == 0x00040000)
+			mem_mapping_set_exec(&(smr->mapping), smram + 0x10000);
+		else if (smr->ram_base == 0x00060000)
+			mem_mapping_set_exec(&(smr->mapping), smram + 0x20000);
+		else if (smr->ram_base == 0x00070000)
+			mem_mapping_set_exec(&(smr->mapping), smram + 0x30000);
+	}
 
 	smram_map(0, host_base, size, flags_normal);
 	smram_map(1, host_base, size, flags_smm);
@@ -363,4 +394,11 @@ smram_state_change(smram_t *smr, int smm, int flags)
     }
 
     smram_map(smm, smr->host_base, smr->size, flags);
+}
+
+
+void
+smram_set_separate_smram(uint8_t set)
+{
+    use_separate_smram = set;
 }

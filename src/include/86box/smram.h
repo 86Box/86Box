@@ -52,6 +52,8 @@ extern void	smram_enable(smram_t *smr, uint32_t host_base, uint32_t ram_base, ui
 extern int	smram_enabled(smram_t *smr);
 /* Changes the SMRAM state. */
 extern void	smram_state_change(smram_t *smr, int smm, int flags);
+/* Enables or disables the use of a separate SMRAM for addresses below A0000. */
+extern void	smram_set_separate_smram(uint8_t set);
 
 
 #endif	/*EMU_SMRAM_H*/

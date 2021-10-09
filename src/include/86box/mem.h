@@ -89,6 +89,7 @@
 /* Internal execute access, external read access. */
 #define MEM_READ_EXTERNAL_EX	0
 #define MEM_READ_SMRAM		(ACCESS_X_SMRAM | ACCESS_R_SMRAM)
+#define MEM_READ_CACHE		(ACCESS_X_CACHE | ACCESS_R_CACHE)
 #define MEM_READ_SMRAM_EX	(ACCESS_X_SMRAM)
 #define MEM_EXEC_SMRAM		MEM_READ_SMRAM_EX
 #define MEM_READ_SMRAM_2	(ACCESS_R_SMRAM)
@@ -104,6 +105,7 @@
 #define MEM_WRITE_ROMCS		(ACCESS_W_ROMCS)
 #define MEM_WRITE_EXTANY	(ACCESS_W_ROMCS)
 #define MEM_WRITE_SMRAM		(ACCESS_W_SMRAM)
+#define MEM_WRITE_CACHE		(ACCESS_W_CACHE)
 /* Theese two are going to be identical. */
 #define MEM_WRITE_DISABLED_EX	MEM_READ_DISABLED
 #define MEM_WRITE_MASK		0x03e0
