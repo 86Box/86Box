@@ -559,14 +559,13 @@ int	ui_msgbox_header(int flags, void *message, void* header)
     if (!header) header = L"86Box";
     if (flags & MBX_ANSI)
     {
-        fwprintf(stderr, L"%s\n", header);
+        fprintf(stderr, "%ls\n", header);
         fprintf(stderr, "==========================\n"
             "%s\n", message);
         return 0;
     }
-    fwprintf(stderr, L"%s\n", header);
-    fwprintf(stderr, L"==========================\n"
-    L"%s\n", plat_get_string(message));
+    fprintf(stderr, "%ls\n", header);
+    fprintf(stderr, "==========================\n%ls\n", message > 7168 ? message : plat_get_string(message));
     return 0;
 }
 
