@@ -733,7 +733,7 @@ int main(int argc, char** argv)
     SDL_Init(0);
     pc_init(argc, argv);
     if (! pc_init_modules()) {
-        fprintf(stderr, "No ROMs found.\n");
+        ui_msgbox(MBX_FATAL, L"86Box could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory.");
         SDL_Quit();
         return 6;
     }
