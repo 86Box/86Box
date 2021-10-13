@@ -36,7 +36,7 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
-#define BIOS_RIVATNT_PATH		L"roms/video/nvidia/NV4_diamond_revB.rom"
+#define BIOS_RIVATNT_PATH		"roms/video/nvidia/NV4_diamond_revB.rom"
 
 #define RIVATNT_VENDOR_ID 0x10de
 #define RIVATNT_DEVICE_ID 0x0020
@@ -1014,7 +1014,7 @@ static void
 {
 	rivatnt_t *rivatnt = malloc(sizeof(rivatnt_t));
 	svga_t *svga;
-	wchar_t *romfn = BIOS_RIVATNT_PATH;
+	char *romfn = BIOS_RIVATNT_PATH;
 	memset(rivatnt, 0, sizeof(rivatnt_t));
 	svga = &rivatnt->svga;
 
