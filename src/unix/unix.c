@@ -563,22 +563,48 @@ do_stop(void)
 
 int	ui_msgbox(int flags, void *message)
 {
-    return ui_msgbox_header(flags, message, NULL);
+    return ui_msgbox_header(flags, NULL, message);
 }
 
-int	ui_msgbox_header(int flags, void *message, void* header)
+int	ui_msgbox_header(int flags, void *header, void* message)
 {
-    if (!header) header = L"86Box";
+    SDL_MessageBoxData msgdata;
+    SDL_MessageBoxButtonData msgbtn;
+    if (!header) header = (flags & MBX_ANSI) ? "86Box" : L"86Box";
+    if (header <= (void*)7168) header = plat_get_string(header);
+    if (message <= (void*)7168) message = plat_get_string(message);
+    msgbtn.buttonid = 1;
+    msgbtn.text = "OK";
+    msgbtn.flags = 0;
+    memset(&msgdata, 0, sizeof(SDL_MessageBoxData));
+    msgdata.numbuttons = 1;
+    msgdata.buttons = &msgbtn;
+    int msgflags = 0;
+    if (msgflags & MBX_FATAL) msgflags |= SDL_MESSAGEBOX_ERROR;
+    else if (msgflags & MBX_ERROR || msgflags & MBX_WARNING) msgflags |= SDL_MESSAGEBOX_WARNING;
+    else msgflags |= SDL_MESSAGEBOX_INFORMATION;
+    msgdata.flags = msgflags;
     if (flags & MBX_ANSI)
     {
-        fwprintf(stderr, L"%s\n", header);
-        fprintf(stderr, "==========================\n"
-            "%s\n", message);
-        return 0;
+        int button = 0;
+        msgdata.title = header;
+        msgdata.message = message;
+        SDL_ShowMessageBox(&msgdata, &button);
+        return button;
     }
-    fwprintf(stderr, L"%s\n", header);
-    fwprintf(stderr, L"==========================\n"
-    L"%s\n", plat_get_string(message));
+    else
+    {
+        int button = 0;
+        char *res = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char *)message, wcslen(message) * sizeof(wchar_t) + sizeof(wchar_t));
+        char *res2 = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char *)header, wcslen(header) * sizeof(wchar_t) + sizeof(wchar_t));
+        msgdata.message = res;
+        msgdata.title = res2;
+        SDL_ShowMessageBox(&msgdata, &button);
+        free(res);
+        free(res2);
+        return button;
+    }
+
     return 0;
 }
 
@@ -973,7 +999,7 @@ int main(int argc, char** argv)
     SDL_Init(0);
     pc_init(argc, argv);
     if (! pc_init_modules()) {
-        fprintf(stderr, "No ROMs found.\n");
+        ui_msgbox_header(MBX_FATAL, L"No ROMs found.", L"86Box could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory.");
         SDL_Quit();
         return 6;
     }
