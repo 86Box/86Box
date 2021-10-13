@@ -554,13 +554,13 @@ int	ui_msgbox(int flags, void *message)
     return ui_msgbox_header(flags, message, NULL);
 }
 
-int	ui_msgbox_header(int flags, void *message, void* header)
+int	ui_msgbox_header(int flags, void *header, void* message)
 {
     SDL_MessageBoxData msgdata;
     SDL_MessageBoxButtonData msgbtn;
     if (!header) header = (flags & MBX_ANSI) ? "86Box" : L"86Box";
-    if (header <= 7168) header = plat_get_string(header);
-    if (message <= 7168) message = plat_get_string(message);
+    if (header <= (void*)7168) header = plat_get_string(header);
+    if (message <= (void*)7168) message = plat_get_string(message);
     msgbtn.buttonid = 1;
     msgbtn.text = "OK";
     msgbtn.flags = 0;
