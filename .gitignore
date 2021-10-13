@@ -13,3 +13,4 @@ src/roms/
 /CMakeUserPresets.json
 /build
 /.vscode
+roms/
