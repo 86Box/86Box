@@ -166,6 +166,7 @@ video_cards[] = {
 #endif
 #if defined(DEV_BRANCH) && defined(USE_RIVA128)
     { "riva128",            &riva128_pci_device},
+    { "rivatnt"             &rivatnt_pci_device},
 #endif
     { "cl_gd5446_stb_pci",	&gd5446_stb_pci_device			},
     { "tgui9440_pci",		&tgui9440_pci_device			},

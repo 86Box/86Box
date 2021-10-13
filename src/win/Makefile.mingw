@@ -588,7 +588,7 @@ endif
 
 ifeq ($(RIVA128), y)
 OPTS		+= -DUSE_RIVA128
-DEVBROBJ	+= vid_riva128.o
+DEVBROBJ	+= vid_riva128.o vid_rivatnt.o
 endif
 
 endif

@@ -314,6 +314,7 @@ extern const device_t mystique_220_device;
 /* nVidia RIVA 128 */
 #if defined(DEV_BRANCH) && defined(USE_RIVA128)
 extern const device_t riva128_pci_device;
+extern const device_t rivatnt_pci_device;
 #endif
 
 /* Oak OTI-0x7 */
