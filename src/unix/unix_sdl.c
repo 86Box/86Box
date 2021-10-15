@@ -202,7 +202,8 @@ sdl_real_blit(SDL_Rect* r_src)
 {
     SDL_Rect r_dst;
     int ret, winx, winy;
-    SDL_GL_GetDrawableSize(sdl_win, &winx, &winy);
+    SDL_GetWindowSize(sdl_win, &winx, &winy);
+    SDL_RenderSetLogicalSize(sdl_render, winx, winy);
     winy -= menubarheight;
     SDL_RenderClear(sdl_render);
 
