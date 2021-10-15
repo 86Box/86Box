@@ -150,7 +150,7 @@ intel_gmch_pam(int cur_reg, intel_gmch_t *dev)
         mem_set_mem_state_both(0xc4000 + (negate << 15), 0x4000, ((dev->pci_conf[cur_reg] & 0x10) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->pci_conf[cur_reg] & 0x20) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
     }
 
-    flushmmucache();
+    flushmmucache_nopc();
 }
 
 static void
