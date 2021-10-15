@@ -825,12 +825,19 @@ END
 
 // Icon with lowest ID value placed first to ensure application icon
 // remains consistent on all systems.
+// defining the icons depending on the build status
 #ifdef RELEASE_BUILD
-/* Icon by Devcore - https://commons.wikimedia.org/wiki/File:Icon_PC_256x256.png */
- 10                     ICON    DISCARDABLE     ICON_PATH "icons/86Box-RB.ico"
+/* Icon by OBattler and laciba96 (green for release builds)*/
+ 10                     ICON    DISCARDABLE     ICON_PATH "icons/86Box-green.ico"
+#elif BETA_BUILD
+/* Icon by OBattler and laciba96 (yellow for beta builds done by Jenkins)*/
+ 10                     ICON    DISCARDABLE     ICON_PATH "icons/86Box-yellow.ico"
+#elif ALPHA_BUILD
+/* Icon by OBattler and laciba96 (red for alpha builds done by Jenkins)*/
+ 10                     ICON    DISCARDABLE     ICON_PATH "icons/86Box-red.ico"
 #else
-/* Icon by Devcore - https://commons.wikimedia.org/wiki/File:Icon_PC2_256x256.png */
- 10                     ICON    DISCARDABLE     ICON_PATH "icons/86Box.ico"
+/* Icon by OBattler and laciba96 (gray for builds of branches and from the git master)*/
+ 10                     ICON    DISCARDABLE     ICON_PATH "icons/86Box-gray.ico"
 #endif
  16                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_525.ico"
  17                     ICON    DISCARDABLE     ICON_PATH "icons/floppy_525_active.ico"
