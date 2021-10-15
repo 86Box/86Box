@@ -830,6 +830,7 @@ static SDL_Texture* load_icon(const stbi_uc* buffer, int len)
 
 ImGuiStyle prevstyle;
 float prevfontscale = 1.0f;
+static bool dpi_scale_disable = false;
 extern "C" void HandleSizeChange()
 {
     int w, h;
@@ -838,7 +839,20 @@ extern "C" void HandleSizeChange()
 	{
 		ImGui::CreateContext(NULL);
 		float ddpi = 96.f;
+		int w, h, render_w, render_h;
 		SDL_GetDisplayDPI(SDL_GetWindowDisplayIndex(sdl_win), &ddpi, nullptr, nullptr);
+		SDL_GetWindowSize(sdl_win, &w, &h);
+		SDL_GL_GetDrawableSize(sdl_win, &render_w, &render_h);
+		if (render_w > w && render_h > h)
+		{
+			dpi_scale_disable = true;
+			dpi_scale = 1;
+		}
+		if (ddpi < 96.)
+		{
+			dpi_scale_disable = true;
+			dpi_scale = 0;
+		}
 		switch (dpi_scale)
 		{
 			case 0:
@@ -1234,7 +1248,7 @@ extern "C" void RenderImGui()
     else
     {
 	int w, h;
-	SDL_GetRendererOutputSize(sdl_render, &w, &h);
+	SDL_GL_GetDrawableSize(sdl_win, &w, &h);
 	ImGui::GetIO().DisplaySize.x = w;
 	ImGui::GetIO().DisplaySize.y = h;
     }
@@ -1748,6 +1762,12 @@ extern "C" void RenderImGui()
     
     ImGui::SetNextWindowPos(ImVec2(0, ImGui::GetIO().DisplaySize.y - (menubarheight * 2)));
     ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x, menubarheight * 2));
+	ImVec2 iconsize(16, 16);
+	if (dpi_scale == 1)
+	{
+		iconsize.x *= ImGui::GetIO().FontGlobalScale;
+		iconsize.y *= ImGui::GetIO().FontGlobalScale;
+	}
     if (!hide_status_bar && ImGui::Begin("86Box status bar", nullptr, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar))
     {
 	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(0, 0, 0, 0));
@@ -1755,7 +1775,7 @@ extern "C" void RenderImGui()
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(0, 0, 0, 0));
 	if (cassette_enable)
 	{
-	    ImGui::ImageButton((ImTextureID)cas_status_icon[cas_active], ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, cas_empty ? 0.75 : 1));
+	    ImGui::ImageButton((ImTextureID)cas_status_icon[cas_active], iconsize, ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, cas_empty ? 0.75 : 1));
 	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("%s", CassetteFormatStr().c_str());
 	    if (ImGui::BeginPopupContextItem("cassette") || ImGui::BeginPopupContextItem("cassette", ImGuiPopupFlags_MouseButtonLeft))
 	    {
@@ -1766,7 +1786,7 @@ extern "C" void RenderImGui()
 	}
 	for (size_t i = 0; i < cmenu.size(); i++)
 	{
-	    ImGui::ImageButton((ImTextureID)cart_icon, ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, cartempty[i] ? 0.75 : 1));
+	    ImGui::ImageButton((ImTextureID)cart_icon, iconsize, ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, cartempty[i] ? 0.75 : 1));
 	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("%s", cmenu[i].FormatStr().c_str());
 	    if (ImGui::BeginPopupContextItem(("cart" + std::to_string(cmenu[i].cartid)).c_str()) || ImGui::BeginPopupContextItem(("cart" + std::to_string(cmenu[i].cartid)).c_str(), ImGuiPopupFlags_MouseButtonLeft))
 	    {
@@ -1777,7 +1797,7 @@ extern "C" void RenderImGui()
 	}
 	for (size_t i = 0; i < fddmenu.size(); i++)
 	{
-	    ImGui::ImageButton((ImTextureID)fdd_status_icon[fdd_type_to_icon(fdd_get_type(i)) == 16][fddactive[i]], ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, fddempty[i] ? 0.75 : 1));
+	    ImGui::ImageButton((ImTextureID)fdd_status_icon[fdd_type_to_icon(fdd_get_type(i)) == 16][fddactive[i]], iconsize, ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, fddempty[i] ? 0.75 : 1));
 	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("%s", fddmenu[i].FormatStr().c_str());
 	    if (ImGui::BeginPopupContextItem(("flp" + std::to_string(fddmenu[i].flpid)).c_str()) || ImGui::BeginPopupContextItem(("flp" + std::to_string(fddmenu[i].flpid)).c_str(), ImGuiPopupFlags_MouseButtonLeft))
 	    {
@@ -1788,7 +1808,7 @@ extern "C" void RenderImGui()
 	}
 	for (size_t i = 0; i < cdmenu.size(); i++)
 	{
-	    ImGui::ImageButton((ImTextureID)cdrom_status_icon[cdactive[i]], ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, cdrom[i].image_path[0] == 0 ? 0.75 : 1));
+	    ImGui::ImageButton((ImTextureID)cdrom_status_icon[cdactive[i]], iconsize, ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, cdrom[i].image_path[0] == 0 ? 0.75 : 1));
 	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("%s", cdmenu[i].FormatStr().c_str());
 	    if (ImGui::BeginPopupContextItem(("cdr" + std::to_string(cdmenu[i].cdid)).c_str()) || ImGui::BeginPopupContextItem(("cdr" + std::to_string(cdmenu[i].cdid)).c_str(), ImGuiPopupFlags_MouseButtonLeft))
 	    {
@@ -1799,7 +1819,7 @@ extern "C" void RenderImGui()
 	}
 	for (size_t i = 0; i < zipmenu.size(); i++)
 	{
-	    ImGui::ImageButton((ImTextureID)zip_status_icon[zipactive[i]], ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, zip_drives[i].image_path[0] == '\0' ? 0.75 : 1));
+	    ImGui::ImageButton((ImTextureID)zip_status_icon[zipactive[i]], iconsize, ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, zip_drives[i].image_path[0] == '\0' ? 0.75 : 1));
 	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("%s", zipmenu[i].FormatStr().c_str());
 	    if (ImGui::BeginPopupContextItem(("zip" + std::to_string(zipmenu[i].zipid)).c_str()) || ImGui::BeginPopupContextItem(("zip" + std::to_string(zipmenu[i].zipid)).c_str(), ImGuiPopupFlags_MouseButtonLeft))
 	    {
@@ -1810,7 +1830,7 @@ extern "C" void RenderImGui()
 	}
 	for (size_t i = 0; i < momenu.size(); i++)
 	{
-	    ImGui::ImageButton((ImTextureID)mo_status_icon[moactive[i]], ImVec2(16, 16), ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, mo_drives[i].image_path[0] == '\0' ? 0.75 : 1));
+	    ImGui::ImageButton((ImTextureID)mo_status_icon[moactive[i]], iconsize, ImVec2(0,0), ImVec2(1, 1), -1, ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, mo_drives[i].image_path[0] == '\0' ? 0.75 : 1));
 	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("%s", momenu[i].FormatStr().c_str());
 	    if (ImGui::BeginPopupContextItem(("mo" + std::to_string(momenu[i].moid)).c_str()) || ImGui::BeginPopupContextItem(("mo" + std::to_string(momenu[i].moid)).c_str(), ImGuiPopupFlags_MouseButtonLeft))
 	    {
@@ -1821,42 +1841,42 @@ extern "C" void RenderImGui()
 	}
 	if (hddenabled[HDD_BUS_MFM])
 	{
-	    ImGui::ImageButton((ImTextureID)hdd_status_icon[hddactive[HDD_BUS_MFM]], ImVec2(16, 16));
+	    ImGui::ImageButton((ImTextureID)hdd_status_icon[hddactive[HDD_BUS_MFM]], iconsize);
 	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Hard Disk (MFM/RLL)");
 	    ImGui::SameLine(0, 0);
 	}
 	if (hddenabled[HDD_BUS_ESDI])
 	{
-	    ImGui::ImageButton((ImTextureID)hdd_status_icon[hddactive[HDD_BUS_ESDI]], ImVec2(16, 16));
+	    ImGui::ImageButton((ImTextureID)hdd_status_icon[hddactive[HDD_BUS_ESDI]], iconsize);
 	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Hard Disk (ESDI)");
 	    ImGui::SameLine(0, 0);
 	}
 	if (hddenabled[HDD_BUS_XTA])
 	{
-	    ImGui::ImageButton((ImTextureID)hdd_status_icon[hddactive[HDD_BUS_XTA]], ImVec2(16, 16));
+	    ImGui::ImageButton((ImTextureID)hdd_status_icon[hddactive[HDD_BUS_XTA]], iconsize);
 	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Hard Disk (XTA)");
 	    ImGui::SameLine(0, 0);
 	}
 	if (hddenabled[HDD_BUS_IDE])
 	{
-	    ImGui::ImageButton((ImTextureID)hdd_status_icon[hddactive[HDD_BUS_IDE]], ImVec2(16, 16));
+	    ImGui::ImageButton((ImTextureID)hdd_status_icon[hddactive[HDD_BUS_IDE]], iconsize);
 	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Hard Disk (IDE)");
 	    ImGui::SameLine(0, 0);
 	}
 	if (hddenabled[HDD_BUS_SCSI])
 	{
-	    ImGui::ImageButton((ImTextureID)hdd_status_icon[hddactive[HDD_BUS_SCSI]], ImVec2(16, 16));
+	    ImGui::ImageButton((ImTextureID)hdd_status_icon[hddactive[HDD_BUS_SCSI]], iconsize);
 	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Hard Disk (SCSI)");
 	    ImGui::SameLine(0, 0);
 	}
 	if (network_available())
 	{
-	    ImGui::ImageButton((ImTextureID)net_status_icon[netactive], ImVec2(16, 16));
+	    ImGui::ImageButton((ImTextureID)net_status_icon[netactive], iconsize);
 	    if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Network");
 	    ImGui::SameLine(0, 0);
 	}
 #ifdef _WIN32
-	ImGui::ImageButton((ImTextureID)sound_icon, ImVec2(16, 16));
+	ImGui::ImageButton((ImTextureID)sound_icon, iconsize);
 	if (ImGui::IsItemHovered() && ImGui::GetCurrentContext()->HoveredIdTimer >= 0.5) ImGui::SetTooltip("Sound");
 	if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(ImGuiMouseButton_Left))
 	{
