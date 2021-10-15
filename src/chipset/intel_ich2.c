@@ -68,7 +68,7 @@ intel_ich2_log(const char *fmt, ...)
 typedef struct intel_ich2_t
 {
 
-	uint8_t hub_conf[256], lpc_conf[7][256], gpio_space[64];
+	uint8_t lan_conf[256], hub_conf[256], lpc_conf[7][256], gpio_space[64];
     int gpio_base;
 
     int lpc_slot;
@@ -79,6 +79,79 @@ typedef struct intel_ich2_t
     usb_t *usb[2];
 
 } intel_ich2_t;
+
+static void
+intel_ich2_lan_write(int func, int addr, uint8_t val, void *priv)
+{
+    intel_ich2_t *dev = (intel_ich2_t *)priv;
+
+    intel_ich2_log("Intel ICH2-LAN: dev->regs[%02x] = %02x POST: %02x \n", addr, val, inb(0x80));
+
+    if(func == 0)
+        switch(addr)
+        {
+            case 0x04:
+                dev->lan_conf[addr] = val & 0x57;
+            break;
+
+            case 0x05:
+                dev->lan_conf[addr] = val & 1;
+            break;
+
+            case 0x06:
+                dev->lan_conf[addr] &= val & 0x80;
+            break;
+
+            case 0x07:
+                dev->lan_conf[addr] &= val & 0xf1;
+            break;
+
+            case 0x0c:
+                dev->lan_conf[addr] = val & 0x18;
+            break;
+
+            case 0x0d:
+                dev->lan_conf[addr] = val & 0xf8;
+            break;
+
+            case 0x11 ... 0x13: /* LAN Memory Base Address */
+                dev->lan_conf[addr] = (addr != 0x11) ? val : (val & 0xf0);
+            break;
+
+            case 0x14 ... 0x15: /* LAN I/O Space */
+                dev->lan_conf[addr] = (addr & 1) ? val : ((val & 0xf0) | 1);
+            break;
+
+            case 0x3c:
+                dev->lan_conf[addr] = val;
+            break;
+
+            case 0xe0:
+                dev->lan_conf[addr] = val & 0x83;
+            break;
+
+            case 0xe1:
+                dev->lan_conf[addr] = val & 0x1f;
+                dev->lan_conf[addr] &= val & 0x80;
+            break;
+
+            case 0xe3:
+                dev->lan_conf[addr] = val;
+            break;
+        }
+}
+
+static uint8_t
+intel_ich2_lan_read(int func, int addr, void *priv)
+{
+    intel_ich2_t *dev = (intel_ich2_t *)priv;
+
+    if (func == 0) {
+        intel_ich2_log("Intel ICH2-LAN: dev->regs[%02x] (%02x) POST: %02x \n", addr, dev->lan_conf[addr], inb(0x80));
+	    return dev->lan_conf[addr];
+    }
+    else return 0xff;
+}
 
 static void
 intel_ich2_hub_write(int func, int addr, uint8_t val, void *priv)
@@ -220,6 +293,7 @@ intel_ich2_gpio_write(uint16_t addr, uint8_t val, void *priv)
 {
     intel_ich2_t *dev = (intel_ich2_t *)priv;
 
+    intel_ich2_log("Intel ICH2-GPIO: dev->regs[%02x] = %02x POST: %02x \n", addr - dev->gpio_base, val, inb(0x80));
     dev->gpio_space[addr - dev->gpio_base] = val;
 }
 
@@ -228,6 +302,7 @@ intel_ich2_gpio_read(uint16_t addr, void *priv)
 {
     intel_ich2_t *dev = (intel_ich2_t *)priv;
 
+    intel_ich2_log("Intel ICH2-GPIO: dev->regs[%02x] (%02x) POST: %02x \n", addr - dev->gpio_base, dev->gpio_space[addr - dev->gpio_base], inb(0x80));
     return dev->gpio_space[addr - dev->gpio_base];
 }
 
@@ -703,11 +778,11 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
             break;
 
             case 0x11: /* AC97 Base Address */
-                dev->lpc_conf[func][addr] = val;
+//              dev->lpc_conf[func][addr] = val;
             break;
 
             case 0x14 ... 0x15: /* AC97 Bus Master Base Address */
-                dev->lpc_conf[func][addr] = (addr & 1) ? val : ((val & 0xc0) | 1);
+//              dev->lpc_conf[func][addr] = (addr & 1) ? val : ((val & 0xc0) | 1);
             break;
 
             case 0x2c ... 0x2d:
@@ -720,7 +795,7 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
             break;
         }
     }
-    else if((func == 6) && !(dev->lpc_conf[0][0xf2] & 0x40)) /* AC97 */
+    else if((func == 6) && !(dev->lpc_conf[0][0xf2] & 0x40)) /* AC97 Modem */
     {
         intel_ich2_log("Intel ICH2-MODEM: dev->regs[%02x][%02x] = %02x POST: %02x \n", func, addr, val, inb(0x80));
         switch(addr)
@@ -734,11 +809,11 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
             break;
 
             case 0x11: /* AC97 Modem Base Address */
-                dev->lpc_conf[func][addr] = val;
+//              dev->lpc_conf[func][addr] = val;
             break;
 
             case 0x14 ... 0x15: /* AC97 Modem Bus Master Base Address */
-                dev->lpc_conf[func][addr] = (addr & 1) ? val : ((val & 0xc0) | 1);
+//              dev->lpc_conf[func][addr] = (addr & 1) ? val : ((val & 0xc0) | 1);
             break;
 
             case 0x2c ... 0x2d:
@@ -759,7 +834,7 @@ intel_ich2_lpc_read(int func, int addr, void *priv)
     intel_ich2_t *dev = (intel_ich2_t *)priv;
 
     if (func == 0) {
-        intel_ich2_log("Intel ICH2: dev->regs[%02x][%02x]  (%02x) POST: %02x \n", func, addr, dev->lpc_conf[func][addr], inb(0x80));
+        intel_ich2_log("Intel ICH2-LPC: dev->regs[%02x][%02x]  (%02x) POST: %02x \n", func, addr, dev->lpc_conf[func][addr], inb(0x80));
 	    return dev->lpc_conf[func][addr];
     }
     else if((func == 1) && !(dev->lpc_conf[0][0xf2] & 2)) {
@@ -792,6 +867,26 @@ intel_ich2_reset(void *priv)
     intel_ich2_t *dev = (intel_ich2_t *)priv;
     memset(dev->hub_conf, 0, sizeof(dev->hub_conf));
     memset(dev->lpc_conf, 0, sizeof(dev->lpc_conf));
+
+    /* LAN Interface */
+    dev->lan_conf[0x00] = 0x86;
+    dev->lan_conf[0x01] = 0x80;
+    dev->lan_conf[0x02] = 0x49;
+    dev->lan_conf[0x03] = 0x24;
+    dev->lan_conf[0x06] = 0x80;
+    dev->lan_conf[0x07] = 2;
+    dev->lan_conf[0x08] = 2;
+    dev->lan_conf[0x0b] = 2;
+    dev->lan_conf[0x10] = 8;
+    dev->lan_conf[0x14] = 1;
+    dev->lan_conf[0x34] = 0xdc;
+    dev->lan_conf[0x3d] = 1;
+    dev->lan_conf[0x3e] = 8;
+    dev->lan_conf[0x3f] = 0x38;
+    dev->lan_conf[0xdc] = 1;
+    dev->lan_conf[0xde] = 0x21;
+    dev->lan_conf[0xdf] = 0xfe;
+
 
     /* HUB Interface */
     dev->hub_conf[0x00] = 0x86;
@@ -855,7 +950,7 @@ intel_ich2_reset(void *priv)
     dev->lpc_conf[1][0x0b] = 1;
     dev->lpc_conf[1][0x0e] = 0x80;
     dev->lpc_conf[1][0x20] = 1;
-    dev->lpc_conf[1][0x54] = 0xf0;
+    dev->lpc_conf[1][0x54] = 0xf0; /* Bruteforce the 80-conductor cable */
 
     intel_ich2_ide(dev);
     sff_bus_master_reset(dev->ide_drive[0], ((dev->lpc_conf[1][0x20] & 0xf0) | (dev->lpc_conf[1][0x21] << 8)));
@@ -910,7 +1005,6 @@ intel_ich2_reset(void *priv)
 
     intel_ich2_smbus(dev);
 
-#ifdef AC97
     /* ICH2 AC97 */
     dev->lpc_conf[5][0x00] = 0x86;
     dev->lpc_conf[5][0x01] = 0x80;
@@ -939,7 +1033,6 @@ intel_ich2_reset(void *priv)
     dev->lpc_conf[6][0x14] = 1;
     dev->lpc_conf[6][0x18] = 1;
     dev->lpc_conf[6][0x3d] = 2;
-#endif
 }
 
 
@@ -958,8 +1051,10 @@ intel_ich2_init(const device_t *info)
     intel_ich2_t *dev = (intel_ich2_t *)malloc(sizeof(intel_ich2_t));
     memset(dev, 0, sizeof(intel_ich2_t));
 
-    pci_add_card(PCI_ADD_SOUTHBRIDGE, intel_ich2_hub_read, intel_ich2_hub_write, dev);
-    dev->lpc_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, intel_ich2_lpc_read, intel_ich2_lpc_write, dev);
+    /* Devices */
+    pci_add_card(PCI_ADD_SOUTHBRIDGE, intel_ich2_hub_read, intel_ich2_hub_write, dev);                 /* Bus 0: Device 30: HUB */
+    pci_add_card(PCI_ADD_NETWORK, intel_ich2_lan_read, intel_ich2_lan_write, dev);                     /* Bus 1: Device 8:  LAN */
+    dev->lpc_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, intel_ich2_lpc_read, intel_ich2_lpc_write, dev); /* Bus 0: Device 31: LPC */
 
     /* ACPI */
     dev->acpi = device_add(&acpi_intel_ich2_device);
@@ -992,7 +1087,6 @@ intel_ich2_init(const device_t *info)
 
     return dev;
 }
-
 
 const device_t intel_ich2_device = {
     "Intel 82801BA(ICH2)",

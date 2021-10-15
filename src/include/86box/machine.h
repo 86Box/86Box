@@ -605,8 +605,8 @@ extern int	machine_at_6via90ap_init(const machine_t *);
 extern int	machine_at_trinity371_init(const machine_t *);
 extern int	machine_at_p6bap_init(const machine_t *);
 
-extern int	machine_at_sa6_init(const machine_t *);
-extern int	machine_at_olympusii_init(const machine_t *);
+extern int	machine_at_6a815epq_init(const machine_t *);
+extern int	machine_at_venturam_init(const machine_t *);
 
 /* m_at_misc.c */
 extern int	machine_at_vpc2007_init(const machine_t *);
