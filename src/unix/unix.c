@@ -255,6 +255,12 @@ wchar_t* plat_get_string(int i)
             return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
         case IDS_2114:
             return L"Unable to initialize Ghostscript";
+        case IDS_2063:
+            return L"Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.";
+        case IDS_2064:
+            return L"Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.";
+        case IDS_2128:
+            return L"Hardware not available";
         case IDS_2142:
             return L"Monitor in sleep mode";
     }
