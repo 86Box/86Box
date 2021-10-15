@@ -489,7 +489,7 @@ sdl_init_common(int flags)
     sdl_determine_renderer(flags);
 
     sdl_mutex = SDL_CreateMutex();
-    sdl_win = SDL_CreateWindow("86Box", strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_x : SDL_WINDOWPOS_CENTERED, strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_y : SDL_WINDOWPOS_CENTERED, vid_resize & 2 ? fixed_size_x : scrnsz_x, vid_resize & 2 ? fixed_size_y : scrnsz_y, SDL_WINDOW_OPENGL | (vid_resize & 1 ? SDL_WINDOW_RESIZABLE : 0));
+    sdl_win = SDL_CreateWindow("86Box", strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_x : SDL_WINDOWPOS_CENTERED, strncasecmp(SDL_GetCurrentVideoDriver(), "wayland", 7) != 0 && window_remember ? window_y : SDL_WINDOWPOS_CENTERED, vid_resize & 2 ? fixed_size_x : scrnsz_x, vid_resize & 2 ? fixed_size_y : scrnsz_y, SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI | (vid_resize & 1 ? SDL_WINDOW_RESIZABLE : 0));
     sdl_set_fs(video_fullscreen);
     if (!(video_fullscreen & 1))
     {
