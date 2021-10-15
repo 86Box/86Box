@@ -2067,6 +2067,8 @@ write64_generic(void *priv, uint8_t val)
 			Bit 2 must be 0 (and Acer V10 disables CMOS setup if it's 1),
 			Bit 4 must be 0,
 			Bit 6 ignored.
+		   Packard Bell PB450:
+			Bit 2 must be 1.
 		   P6RP4:
 			Bit 2 must be 1 or CMOS setup is disabled. */
 		kbd_log("ATkbc: read input port\n");

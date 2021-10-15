@@ -66,7 +66,7 @@ machine_at_acc386_init(const machine_t *model)
     device_add(&keyboard_at_ami_device);
 
     if (fdc_type == FDC_INTERNAL)
-    device_add(&fdc_at_device);
+	device_add(&fdc_at_device);
 
     return ret;
 }
@@ -1148,6 +1148,68 @@ machine_at_486sp3_init(const machine_t *model)
 
 
 int
+machine_at_pci400c_b_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/pci400c-b/032295.ROM",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+    device_add(&ide_isa_device);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL, 4, 3, 2, 1);	/* 0F = Slot 1 */
+    pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);	/* 0E = Slot 2 */
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);	/* 0D = Slot 3 */
+    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);	/* 0C = Slot 4 */
+    device_add(&keyboard_ps2_ami_pci_device);			/* Assume AMI Megakey 1993 stanalone ('P')
+								   because of the Tekram machine below. */
+
+    device_add(&ims8848_device);
+
+    if (fdc_type == FDC_INTERNAL)
+	device_add(&fdc_at_device);
+
+    return ret;
+}
+
+
+int
+machine_at_g486ip_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/g486ip/G486IP.BIN",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+    device_add(&ide_isa_device);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);	/* 03 = Slot 1 */
+    pci_register_slot(0x0E, PCI_CARD_NORMAL, 2, 3, 4, 1);	/* 04 = Slot 2 */
+    pci_register_slot(0x0D, PCI_CARD_NORMAL, 1, 2, 3, 4);	/* 05 = Slot 3 */
+    device_add(&keyboard_ps2_ami_pci_device);			/* AMI Megakey 1993 stanalone ('P') */
+
+    device_add(&ims8848_device);
+
+    if (fdc_type == FDC_INTERNAL)
+	device_add(&fdc_at_device);
+
+    return ret;
+}
+
+
+int
 machine_at_486sp3g_init(const machine_t *model)
 {
     int ret;
@@ -1623,8 +1685,10 @@ machine_at_hot433_init(const machine_t *model)
     device_add(&umc_hb4_device);
     device_add(&umc_8886af_device);
     device_add(&um8669f_device);
-    device_add(&intel_flash_bxt_device);
-    device_add(&keyboard_at_ami_device);
+    // device_add(&intel_flash_bxt_device);
+    device_add(&sst_flash_29ee010_device);
+    // device_add(&keyboard_at_ami_device);
+    device_add(&keyboard_ps2_ami_device);
 
     return ret;
 }
@@ -1652,6 +1716,7 @@ machine_at_atc1415_init(const machine_t *model)
 
     device_add(&umc_hb4_device);
     device_add(&umc_8886af_device);
+    device_add(&intel_flash_bxt_device);
     device_add(&keyboard_at_ami_device);
 
     if (fdc_type == FDC_INTERNAL)

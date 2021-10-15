@@ -79,39 +79,55 @@ typedef struct sis_5511_t
 } sis_5511_t;
 
 static void
-sis_5511_shadow_recalc(int cur_reg, sis_5511_t *dev)
+sis_5511_shadow_recalc(sis_5511_t *dev)
 {
-	if (cur_reg == 0x86)
-		mem_set_mem_state_both(0xf0000, 0x10000, ((dev->pci_conf[cur_reg] & 0x80) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->pci_conf[cur_reg] & 0x20) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
-	else
-	{
-		mem_set_mem_state_both(0xc0000 + ((cur_reg & 7) << 15), 0x4000, ((dev->pci_conf[cur_reg] & 0x80) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->pci_conf[cur_reg] & 0x20) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
-		mem_set_mem_state_both(0xc4000 + ((cur_reg & 7) << 15), 0x4000, ((dev->pci_conf[cur_reg] & 8) ? MEM_READ_INTERNAL : MEM_READ_EXTANY) | ((dev->pci_conf[cur_reg] & 2) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY));
-	}
+    int i, state;
+    uint32_t base;
 
-	flushmmucache_nopc();
+    for (i = 0x80; i <= 0x86; i++) {
+	if (i == 0x86) {
+		state = (dev->pci_conf[i] & 0x80) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+		state |= (dev->pci_conf[i] & 0x20) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+		mem_set_mem_state_both(0xf0000, 0x10000, state);
+		pclog("000F0000-000FFFFF\n");
+	} else {
+		base = ((i & 0x07) << 15) + 0xc0000;
+
+		state = (dev->pci_conf[i] & 0x80) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+		state |= (dev->pci_conf[i] & 0x20) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+		mem_set_mem_state_both(base, 0x4000, state);
+		pclog("%08X-%08X\n", base, base + 0x3fff);
+
+		state = (dev->pci_conf[i] & 0x08) ? MEM_READ_INTERNAL : MEM_READ_EXTANY;
+		state |= (dev->pci_conf[i] & 0x02) ? MEM_WRITE_INTERNAL : MEM_WRITE_EXTANY;
+		mem_set_mem_state_both(base + 0x4000, 0x4000, state);
+		pclog("%08X-%08X\n", base + 0x4000, base + 0x7fff);
+	}
+    }
+
+    flushmmucache_nopc();
 }
 
 static void
 sis_5511_smram_recalc(sis_5511_t *dev)
 {
-	smram_disable_all();
+    smram_disable_all();
 
-		switch (dev->pci_conf[0x65] >> 6)
-		{
-		case 0:
-			smram_enable(dev->smram, 0x000e0000, 0x000e0000, 0x8000, dev->pci_conf[0x65] & 0x10, 1);
-			break;
-		case 1:
-			smram_enable(dev->smram, 0x000e0000, 0x000a0000, 0x8000, dev->pci_conf[0x65] & 0x10, 1);
-			break;
-		case 2:
-			smram_enable(dev->smram, 0x000e0000, 0x000b0000, 0x8000, dev->pci_conf[0x65] & 0x10, 1);
-			break;
-		}
+    switch (dev->pci_conf[0x65] >> 6) {
+	case 0:
+		smram_enable(dev->smram, 0x000e0000, 0x000e0000, 0x8000, dev->pci_conf[0x65] & 0x10, 1);
+		break;
+	case 1:
+		smram_enable(dev->smram, 0x000e0000, 0x000a0000, 0x8000, dev->pci_conf[0x65] & 0x10, 1);
+		break;
+	case 2:
+		smram_enable(dev->smram, 0x000e0000, 0x000b0000, 0x8000, dev->pci_conf[0x65] & 0x10, 1);
+		break;
+	}
 
 	flushmmucache();
 }
+
 
 void sis_5513_ide_handler(sis_5511_t *dev)
 {
@@ -140,31 +156,19 @@ void sis_5513_bm_handler(sis_5511_t *dev)
 	sff_bus_master_handler(dev->ide_drive[1], dev->pci_conf_sb[1][4] & 4, BUS_MASTER_BASE + 8);
 }
 
+
 static void
 sis_5511_write(int func, int addr, uint8_t val, void *priv)
 {
-	sis_5511_t *dev = (sis_5511_t *)priv;
+    sis_5511_t *dev = (sis_5511_t *)priv;
 
-	switch (addr)
-	{
-	case 0x04: /* Command - low  byte */
-		dev->pci_conf[addr] = val;
-		break;
-
-	case 0x05: /* Command - high  byte */
-		dev->pci_conf[addr] = val;
-		break;
-
-	case 0x06: /* Status - Low Byte */
-		dev->pci_conf[addr] &= val;
-		break;
-
-	case 0x07: /* Status - High Byte */
-		dev->pci_conf[addr] &= 0x16;
+    switch (addr) {
+	case 0x07:	/* Status - High Byte */
+		dev->pci_conf[addr] &= 0xb0;
 		break;
 
 	case 0x50:
-		dev->pci_conf[addr] = (val & 0xf9) | 4;
+		dev->pci_conf[addr] = val;
 		cpu_cache_ext_enabled = !!(val & 0x40);
 		cpu_update_waitstates();
 		break;
@@ -177,8 +181,7 @@ sis_5511_write(int func, int addr, uint8_t val, void *priv)
 		dev->pci_conf[addr] = val & 0x3f;
 		break;
 
-	case 0x53:
-	case 0x54:
+	case 0x53: case 0x54:
 		dev->pci_conf[addr] = val;
 		break;
 
@@ -186,15 +189,17 @@ sis_5511_write(int func, int addr, uint8_t val, void *priv)
 		dev->pci_conf[addr] = val & 0xf8;
 		break;
 
-	case 0x57:
-	case 0x58:
-	case 0x59:
+	case 0x56 ... 0x59:
 		dev->pci_conf[addr] = val;
 		break;
 
 	case 0x5a:
+		/* TODO: Fast Gate A20 Emulation and Fast Reset Emulation on the KBC.
+			 The former (bit 7) means the chipset intercepts D1h to 64h and 00h to 60h.
+			 The latter (bit 6) means the chipset intercepts all odd FXh to 64h.
+			 Bit 5 sets fast reset latency. This should be fixed on the other SiS
+			 chipsets as well. */
 		dev->pci_conf[addr] = val;
-		port_92_set_features(dev->port_92, !!(val & 0x40), !!(val & 0x80));
 		break;
 
 	case 0x5b:
@@ -214,22 +219,18 @@ sis_5511_write(int func, int addr, uint8_t val, void *priv)
 		break;
 
 	case 0x5f:
-		dev->pci_conf[addr] = val;
+		dev->pci_conf[addr] = val & 0xfe;
 		break;
 
 	case 0x60:
 		dev->pci_conf[addr] = val & 0x3e;
-		if (!!(val & 2) && (dev->pci_conf[0x68] & 1))
-		{
+		if ((dev->pci_conf[0x68] & 1) && (val & 2)) {
 			smi_line = 1;
 			dev->pci_conf[0x69] |= 1;
 		}
 		break;
 
-	case 0x61: /* STPCLK# Assertion Timer */
-	case 0x62: /* STPCLK# De-assertion Timer */
-	case 0x63: /* System Standby Timer */
-	case 0x64:
+	case 0x61 ... 0x64:
 		dev->pci_conf[addr] = val;
 		break;
 
@@ -242,8 +243,7 @@ sis_5511_write(int func, int addr, uint8_t val, void *priv)
 		dev->pci_conf[addr] = val & 0x7f;
 		break;
 
-	case 0x67:
-	case 0x68:
+	case 0x67: case 0x68:
 		dev->pci_conf[addr] = val;
 		break;
 
@@ -251,11 +251,7 @@ sis_5511_write(int func, int addr, uint8_t val, void *priv)
 		dev->pci_conf[addr] &= val;
 		break;
 
-	case 0x6a:
-	case 0x6b:
-	case 0x6c:
-	case 0x6d:
-	case 0x6e:
+	case 0x6a ... 0x6e:
 		dev->pci_conf[addr] = val;
 		break;
 
@@ -329,8 +325,7 @@ sis_5511_write(int func, int addr, uint8_t val, void *priv)
 	case 0x85:
 	case 0x86:
 		dev->pci_conf[addr] = val & ((addr == 0x86) ? 0xe8 : 0xee);
-		sis_5511_shadow_recalc(addr, dev);
-		sis_5511_smram_recalc(dev);
+		sis_5511_shadow_recalc(dev);
 		break;
 
 	case 0x90: /* 5512 General Purpose Register Index */
@@ -620,24 +615,45 @@ sis_5513_isa_read(uint16_t addr, void *priv)
 		return 0xff;
 }
 
+
 static void
 sis_5511_reset(void *priv)
 {
-	sis_5511_t *dev = (sis_5511_t *)priv;
+    sis_5511_t *dev = (sis_5511_t *)priv;
 
-	/* SiS 5511 */
-	dev->pci_conf[0x00] = 0x39;
-	dev->pci_conf[0x01] = 0x10;
-	dev->pci_conf[0x02] = 0x11;
-	dev->pci_conf[0x03] = 0x55;
-	dev->pci_conf[0x04] = 7;
-	dev->pci_conf[0x07] = 2;
-	dev->pci_conf[0x0b] = 6;
-	dev->pci_conf[0x52] = 0x20;
-	dev->pci_conf[0x61] = 0xff;
-	dev->pci_conf[0x62] = 0xff;
-	dev->pci_conf[0x63] = 0xff;
-	dev->pci_conf[0x67] = 0xff;
+    /* SiS 5511 */
+    dev->pci_conf[0x00] = 0x39;
+    dev->pci_conf[0x01] = 0x10;
+    dev->pci_conf[0x02] = 0x11;
+    dev->pci_conf[0x03] = 0x55;
+    dev->pci_conf[0x04] = 0x07;
+    dev->pci_conf[0x05] = dev->pci_conf[0x06] = 0x00;
+    dev->pci_conf[0x07] = 0x02;
+    dev->pci_conf[0x08] = 0x00;
+    dev->pci_conf[0x09] = dev->pci_conf[0x0a] = 0x00;
+    dev->pci_conf[0x0b] = 0x06;
+    dev->pci_conf[0x50] = dev->pci_conf[0x51] = 0x00;
+    dev->pci_conf[0x52] = 0x20;
+    dev->pci_conf[0x53] = dev->pci_conf[0x54] = 0x00;
+    dev->pci_conf[0x55] = dev->pci_conf[0x56] = 0x00;
+    dev->pci_conf[0x57] = dev->pci_conf[0x58] = 0x00;
+    dev->pci_conf[0x59] = dev->pci_conf[0x5a] = 0x00;
+    dev->pci_conf[0x5b] = dev->pci_conf[0x5c] = 0x00;
+    dev->pci_conf[0x5d] = dev->pci_conf[0x5e] = 0x00;
+    dev->pci_conf[0x5f] = dev->pci_conf[0x60] = 0x00;
+    dev->pci_conf[0x61] = dev->pci_conf[0x62] = 0xff;
+    dev->pci_conf[0x63] = 0xff;
+    dev->pci_conf[0x64] = dev->pci_conf[0x65] = 0x00;
+    dev->pci_conf[0x66] = 0x00;
+    dev->pci_conf[0x67] = 0xff;
+    dev->pci_conf[0x68] = dev->pci_conf[0x69] = 0x00;
+    dev->pci_conf[0x6a] = dev->pci_conf[0x6b] = 0x00;
+    dev->pci_conf[0x6c] = dev->pci_conf[0x6d] = 0x00;
+    dev->pci_conf[0x6e] = dev->pci_conf[0x6f] = 0x00;
+
+    cpu_cache_ext_enabled = 0;
+    cpu_update_waitstates();
+
 	dev->pci_conf[0x6b] = 0xff;
 	dev->pci_conf[0x6c] = 0xff;
 	dev->pci_conf[0x70] = 4;
@@ -652,6 +668,15 @@ sis_5511_reset(void *priv)
 	dev->pci_conf[0x7c] = 4;
 	dev->pci_conf[0x7e] = 4;
 	dev->pci_conf[0x7f] = 0x80;
+	dev->pci_conf[0x80] = 0x00;
+	dev->pci_conf[0x81] = 0x00;
+	dev->pci_conf[0x82] = 0x00;
+	dev->pci_conf[0x83] = 0x00;
+	dev->pci_conf[0x84] = 0x00;
+	dev->pci_conf[0x85] = 0x00;
+	dev->pci_conf[0x86] = 0x00;
+	sis_5511_smram_recalc(dev);
+	sis_5511_shadow_recalc(dev);
 
 	/* SiS 5513 */
 	dev->pci_conf_sb[0][0x00] = 0x39;

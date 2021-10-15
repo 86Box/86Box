@@ -124,6 +124,10 @@ int		isa_cycles, cpu_inited,
 		timing_jmp_rm, timing_jmp_pm, timing_jmp_pm_gate, timing_misaligned;
 uint32_t	cpu_features, cpu_fast_off_flags;
 
+uint32_t	_tr[8] = {0, 0, 0, 0, 0, 0, 0, 0};
+uint32_t	cache_index = 0;
+uint8_t		_cache[2048];
+
 uint64_t	cpu_CR4_mask, tsc = 0;
 uint64_t	pmc[2] = {0, 0};
 
@@ -2289,6 +2293,7 @@ amd_k_invalid_rdmsr:
 				EDX = tsc >> 32;
 				break;
 		}
+		pclog("RDMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
 		break;
 
 	case CPU_PENTIUMPRO:
@@ -2702,6 +2707,7 @@ amd_k_invalid_wrmsr:
 	case CPU_CxGX1:
 	case CPU_Cx6x86MX:
 #endif
+		pclog("WRMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
 		switch (ECX) {
 			case 0x10:
 				tsc = EAX | ((uint64_t)EDX << 32);
