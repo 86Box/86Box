@@ -644,6 +644,8 @@ load_machine(void)
 		machine = machine_get_machine_from_internal_name("s1857");
 	else if (! strcmp(p, "63a"))
 		machine = machine_get_machine_from_internal_name("63a1");
+	else if (! strcmp(p, "4sa2"))
+		machine = machine_get_machine_from_internal_name("4saw2");
 	else if (! strcmp(p, "award386dx")) /* ...merged machines... */
 		machine = machine_get_machine_from_internal_name("award495");
 	else if (! strcmp(p, "ami386dx"))
