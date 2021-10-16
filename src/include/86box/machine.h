@@ -481,9 +481,6 @@ extern int	machine_at_ficva502_init(const machine_t *);
 
 extern int	machine_at_ficpa2012_init(const machine_t *);
 
-extern int	machine_at_sp97xv_init(const machine_t *);
-extern int	machine_at_m571_init(const machine_t *);
-
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_thor_get_device(void);
 extern const device_t	*at_pb640_get_device(void);
