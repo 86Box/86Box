@@ -37,8 +37,8 @@
 #define LM78_AS99127F_REV1	0x040000
 #define LM78_AS99127F_REV2	0x080000
 #define LM78_W83782D		0x100000
-#define LM78_AS99127F		(LM78_AS99127F_REV1 | LM78_AS99127F_REV2) /* special mask covering both _REV1 and _REV2 */
-#define LM78_WINBOND		(LM78_W83781D | LM78_AS99127F | LM78_W83782D) /* special mask covering all Winbond variants */
+#define LM78_AS99127F		(LM78_AS99127F_REV1 | LM78_AS99127F_REV2) /* mask covering both _REV1 and _REV2 */
+#define LM78_WINBOND		(LM78_W83781D | LM78_AS99127F | LM78_W83782D) /* mask covering all Winbond variants */
 #define LM78_WINBOND_VENDOR_ID	((dev->local & LM78_AS99127F_REV1) ? 0x12c3 : 0x5ca3)
 #define LM78_WINBOND_BANK	(dev->regs[0x4e] & 0x07)
 
@@ -363,9 +363,12 @@ lm78_read(lm78_t *dev, uint8_t reg, uint8_t bank)
 		ret = LM78_VOLTAGE_TO_REG(dev->values->voltages[7 + masked_reg]);
 	else if (masked_reg == 0x27) /* temperature */
 		ret = dev->values->temperatures[0];
-	else if ((masked_reg >= 0x28) && (masked_reg <= 0x2a)) /* fan speeds */
-		ret = LM78_RPM_TO_REG(dev->values->fans[reg & 3], 1 << ((dev->regs[((reg & 3) == 2) ? 0x4b : 0x47] >> ((reg & 3) ? 6 : 4)) & 0x3));
-	else if ((reg == 0x4f) && (dev->local & LM78_WINBOND)) /* two-byte vendor ID register */
+	else if ((masked_reg >= 0x28) && (masked_reg <= 0x2a)) { /* fan speeds */
+		ret = (dev->regs[((reg & 3) == 2) ? 0x4b : 0x47] >> ((reg & 3) ? 6 : 4)) & 0x03; /* bits [1:0] */
+		if (dev->local & LM78_W83782D)
+			ret |= (dev->regs[0x5d] >> (3 + (reg & 3))) & 0x04; /* bit 2 */
+		ret = LM78_RPM_TO_REG(dev->values->fans[reg & 3], 1 << ret);
+	} else if ((reg == 0x4f) && (dev->local & LM78_WINBOND)) /* two-byte vendor ID register */
 		ret = (dev->regs[0x4e] & 0x80) ? (uint8_t) (LM78_WINBOND_VENDOR_ID >> 8) : (uint8_t) LM78_WINBOND_VENDOR_ID;
 	else
 		ret = dev->regs[masked_reg];
