@@ -343,11 +343,11 @@ machine_at_apas3_init(const machine_t *model)
 
 
 int
-machine_at_wcf681_init(const machine_t *model)
+machine_at_gt694va_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/wcf681/681osda2.bin",
+    ret = bios_load_linear("roms/machines/gt694va/21071100.bin",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -366,15 +366,16 @@ machine_at_wcf681_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&via_apro133a_device);
     device_add(&via_vt82c596b_device);
-    device_add(&w83977tf_device);
+    device_add(&w83977ef_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf020_device);
-    spd_register(SPD_TYPE_SDRAM, 0x3, 512);
-    device_add(&w83781d_device); /* fans: CPU, unused, unused; temperatures: System, unused, CPU */
-    hwm_values.voltages[1] = 2500; /* +2.5V */
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
+    device_add(&w83782d_device); /* fans: CPU, unused, unused; temperatures: System, CPU1, unused */
+    hwm_values.voltages[1] = 1500; /* IN1 (unknown purpose, assumed Vtt) */
+    hwm_values.fans[0] = 4500; /* BIOS does not display <4411 RPM */
     hwm_values.fans[1] = 0; /* unused */
     hwm_values.fans[2] = 0; /* unused */
-    hwm_values.temperatures[1] = 0; /* unused */
+    hwm_values.temperatures[2] = 0; /* unused */
 
     return ret;
 }

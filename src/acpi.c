@@ -1568,22 +1568,18 @@ acpi_reset(void *priv)
 	   ASUS P3V4X:
 	   - Bit 15: 80-conductor cable on secondary IDE channel (active low)
 	   - Bit  5: 80-conductor cable on primary IDE channel (active low)
-	   AEWIN WCF-681:
-	   - Bit  3: 80-conductor cable on primary IDE channel (active low)
-	   - Bit  2: 80-conductor cable on secondary IDE channel (active low)
+	   BCM GT694VA:
+	   - Bit 19: 80-conductor cable on secondary IDE channel (active low)
+	   - Bit 17: 80-conductor cable on primary IDE channel (active low)
 	   ASUS CUV4X-LS:
 	   - Bit  2: 80-conductor cable on secondary IDE channel (active low)
 	   - Bit  1: 80-conductor cable on primary IDE channel (active low)
 	   Acorp 6VIA90AP:
 	   - Bit  3: 80-conductor cable on secondary IDE channel (active low)
 	   - Bit  1: 80-conductor cable on primary IDE channel (active low) */
-	dev->regs.gpi_val = 0xffff7fc1;
-	if (!strcmp(machines[machine].internal_name, "ficva503a"))
+	dev->regs.gpi_val = 0xfff57fc1;
+	if (!strcmp(machines[machine].internal_name, "ficva503a") || !strcmp(machines[machine].internal_name, "6via90ap"))
 		dev->regs.gpi_val |= 0x00000004;
-	if (!strcmp(machines[machine].internal_name, "6via90ap"))
-		dev->regs.gpi_val |= 0x00000004;
-	// dev->regs.gpi_val = 0xffffffe5;
-	// dev->regs.gpi_val = 0x00000004;
     }
 
     /* Power on always generates a resume event. */
