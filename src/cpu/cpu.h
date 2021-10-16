@@ -262,6 +262,9 @@ typedef struct {
     uint32_t	sysenter_eip;		/* 0x00000176 - SYSENTER/SYSEXIT MSR's */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	mcg_ctl;		/* 0x0000017b - Machine Check Architecture */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t	ecx186, ecx187;		/* 0x00000186, 0x00000187 */
     uint64_t	ecx1e0;			/* 0x000001e0 */
 
@@ -282,10 +285,7 @@ typedef struct {
     uint64_t	mtrr_deftype;		/* 0x000002ff */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t	ecx404;			/* 0x00000404 - Model Identification MSR's used by some Acer BIOSes */
-    uint64_t	ecx408;			/* 0x00000408 */
-    uint64_t	ecx40c;			/* 0x0000040c */
-    uint64_t	ecx410;			/* 0x00000410 */
+    uint64_t	mca_ctl[5];		/* 0x00000400, 0x00000404, 0x00000408, 0x0000040c, 0x00000410 - Machine Check Architecture */
     uint64_t	ecx570;			/* 0x00000570 */
 
     /* IBM 386SLC, 486SLC, and 486BL MSR's */
