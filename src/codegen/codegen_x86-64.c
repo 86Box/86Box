@@ -21,7 +21,7 @@
 #include "codegen_ops.h"
 #include "codegen_ops_x86-64.h"
 
-#if defined(__linux__) || defined(__APPLE__)
+#if defined(__unix__) || defined(__APPLE__)
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
@@ -63,16 +63,11 @@ static int last_ssegs;
 void codegen_init()
 {
         int c;
-
-#if defined(__linux__) || defined(__APPLE__)
-	void *start;
-	size_t len;
-	long pagesize = sysconf(_SC_PAGESIZE);
-	long pagemask = ~(pagesize - 1);
-#endif
         
 #if _WIN64
         codeblock = VirtualAlloc(NULL, BLOCK_SIZE * sizeof(codeblock_t), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+#elif defined(__unix__) || defined(__APPLE__)
+        codeblock = mmap(NULL, BLOCK_SIZE * sizeof(codeblock_t), PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, 0, 0);
 #else
         codeblock = malloc(BLOCK_SIZE * sizeof(codeblock_t));
 #endif
@@ -83,16 +78,6 @@ void codegen_init()
 
         for (c = 0; c < BLOCK_SIZE; c++)
                 codeblock[c].valid = 0;
-
-#if defined(__linux__) || defined(__APPLE__)
-	start = (void *)((long)codeblock & pagemask);
-	len = ((BLOCK_SIZE * sizeof(codeblock_t)) + pagesize) & pagemask;
-	if (mprotect(start, len, PROT_READ | PROT_WRITE | PROT_EXEC) != 0)
-	{
-		perror("mprotect");
-		exit(-1);
-	}
-#endif
 }
 
 void codegen_reset()
