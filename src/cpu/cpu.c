@@ -2310,8 +2310,10 @@ amd_k_invalid_rdmsr:
 				if (cpu_s->cpu_type != CPU_PENTIUM2D)
 					goto i686_invalid_rdmsr;
 
-				EAX = msr.ecx17 & 0xffffffff;
-				EDX = msr.ecx17 >> 32;
+				if (cpu_f->package == CPU_PKG_SLOT2)
+					EDX |= 0x80000;
+				else if (cpu_f->package == CPU_PKG_SOCKET370)
+					EDX |= 0x100000;
 				break;
 			case 0x1B:
 				EAX = msr.apic_base & 0xffffffff;
@@ -2724,12 +2726,6 @@ amd_k_invalid_wrmsr:
 		switch (ECX) {
 			case 0x10:
 				tsc = EAX | ((uint64_t)EDX << 32);
-				break;
-			case 0x17:
-				if (cpu_s->cpu_type != CPU_PENTIUM2D)
-					goto i686_invalid_wrmsr;
-
-				msr.ecx17 = EAX | ((uint64_t)EDX << 32);
 				break;
 			case 0x1b:
 				cpu_log("APIC_BASE write: %08X%08X\n", EDX, EAX);

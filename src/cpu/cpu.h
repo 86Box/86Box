@@ -236,7 +236,6 @@ typedef struct {
     uint32_t	cesr;			/* 0x00000011 */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t	ecx17;			/* 0x00000017 - Only on Pentium II Deschutes */
     uint64_t	apic_base;		/* 0x0000001b - Should the Pentium not also have this? */
     uint64_t	ecx79;			/* 0x00000079 */
 
