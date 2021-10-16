@@ -1273,13 +1273,19 @@ ui_init(int nCmdShow)
     wincl.lpfnWndProc = MainWindowProcedure;
     wincl.style = CS_DBLCLKS;		/* Catch double-clicks */
     wincl.cbSize = sizeof(WNDCLASSEX);
-    wincl.hIcon = LoadIcon(hinstance, (LPCTSTR)10);
-    wincl.hIconSm = LoadIcon(hinstance, (LPCTSTR)10);
+    wincl.hIcon = NULL;
+    wincl.hIconSm = NULL;
     wincl.hCursor = NULL;
     wincl.lpszMenuName = NULL;
     wincl.cbClsExtra = 0;
     wincl.cbWndExtra = 0;
     wincl.hbrBackground = CreateSolidBrush(RGB(0,0,0));
+
+    /* Load proper icons */
+    wchar_t path[MAX_PATH + 1] = {0};
+    GetModuleFileNameW(hinstance, path, MAX_PATH);
+    ExtractIconExW(path, 0, &wincl.hIcon, &wincl.hIconSm, 1);
+
     if (! RegisterClassEx(&wincl))
 			return(2);
     wincl.lpszClassName = SUB_CLASS_NAME;
