@@ -369,7 +369,7 @@ machine_at_gt694va_init(const machine_t *model)
     device_add(&w83977ef_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf020_device);
-    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
     device_add(&w83782d_device); /* fans: CPU, unused, unused; temperatures: System, CPU1, unused */
     hwm_values.voltages[1] = 1500; /* IN1 (unknown purpose, assumed Vtt) */
     hwm_values.fans[0] = 4500; /* BIOS does not display <4411 RPM */
@@ -412,7 +412,7 @@ machine_at_cuv4xls_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(ics9xxx_get(ICS9250_18));
     device_add(&sst_flash_39sf020_device);
-    spd_register(SPD_TYPE_SDRAM, 0xF, 512);
+    spd_register(SPD_TYPE_SDRAM, 0xF, 1024);
     device_add(&as99127f_device); /* fans: Chassis, CPU, Power; temperatures: MB, JTPWR, CPU */
 
     return ret;
@@ -447,7 +447,7 @@ machine_at_6via90ap_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(ics9xxx_get(ICS9250_18));
     device_add(&sst_flash_39sf020_device);
-    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 1024);
     device_add(&via_vt82c686_hwm_device); /* fans: CPU1, CPU2; temperatures: CPU, System, unused */
     hwm_values.temperatures[0] += 2; /* CPU offset */
     hwm_values.temperatures[1] += 2; /* System offset */
