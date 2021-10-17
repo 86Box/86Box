@@ -28,6 +28,7 @@
 #include <86box/i2c.h>
 #include <86box/smbus.h>
 
+
 #ifdef ENABLE_SMBUS_PIIX4_LOG
 int smbus_piix4_do_log = ENABLE_SMBUS_PIIX4_LOG;
 
@@ -85,16 +86,6 @@ smbus_piix4_read(uint16_t addr, void *priv)
 		if (dev->index >= SMBUS_PIIX4_BLOCK_DATA_SIZE)
 			dev->index = 0;
 		break;
-
-	case 0x0e:
-		if(dev->local == SMBUS_ICH2)
-			ret = dev->smlink_pin_ctl;
-		break;
-
-	case 0x0f:
-		if(dev->local == SMBUS_ICH2)
-			ret = dev->smbus_pin_ctl;
-		break;
     }
 
     smbus_piix4_log("SMBus PIIX4: read(%02X) = %02x\n", addr, ret);
@@ -123,7 +114,7 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 		break;
 
 	case 0x02:
-		dev->ctl = val & (((dev->local == SMBUS_VIA) || (dev->local == SMBUS_ICH2)) ? 0x3f : 0x1f);
+		dev->ctl = val & ((dev->local == SMBUS_VIA) ? 0x3f : 0x1f);
 		if (val & 0x02) { /* cancel an in-progress command if KILL is set */
 			if (prev_stat) { /* cancel only if a command is in progress */
 				timer_disable(&dev->response_timer);
@@ -242,6 +233,8 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 					}
 					timer_bytes += i;
 
+					if(dev->local == SMBUS_ICH2)
+						dev->next_stat |= 0x80;
 					break;
 
 				case 0x6: /* I2C with 10-bit address */
@@ -293,10 +286,6 @@ unknown_protocol:
 
 			/* Finish transfer. */
 			i2c_stop(i2c_smbus, smbus_addr);
-
-			/* Indicate that a Block R/W write was completed sucessfully on ICH2 (Status Bit 7) */
-			if(SMBUS_ICH2 && ((dev->cmd == 0x5) || (dev->cmd == 0x0d)))
-				dev->stat |= 0x80;
 		}
 		break;
 
@@ -320,16 +309,6 @@ unknown_protocol:
 		dev->data[dev->index++] = val;
 		if (dev->index >= SMBUS_PIIX4_BLOCK_DATA_SIZE)
 			dev->index = 0;
-		break;
-
-	case 0x0e:
-		if(dev->local == SMBUS_ICH2)
-			dev->smlink_pin_ctl = val & 4;
-		break;
-
-	case 0x0f:
-		if(dev->local == SMBUS_ICH2)
-			dev->smbus_pin_ctl = val & 4;
 		break;
     }
 
@@ -385,20 +364,7 @@ smbus_piix4_init(const device_t *info)
     dev->local = info->local;
     /* We save the I2C bus handle on dev but use i2c_smbus for all operations because
        dev and therefore dev->i2c will be invalidated if a device triggers a hard reset. */
-    switch(info->local)
-    {
-	    case SMBUS_PIIX4: /* PIIX4 SMBus */
-	    	i2c_smbus = dev->i2c = i2c_addbus("smbus_piix4");
-	    break;
-
-	    case SMBUS_VIA: /* VIA 82C686B SMBus */
-	    	i2c_smbus = dev->i2c = i2c_addbus("smbus_vt82c686b");
-	    break;
-
-	    case SMBUS_ICH2: /* Intel ICH2 SMBus */
-	    	i2c_smbus = dev->i2c = i2c_addbus("smbus_ich2");
-	    break;
-    }
+    i2c_smbus = dev->i2c = i2c_addbus((dev->local == SMBUS_VIA) ? "smbus_vt82c686b" : "smbus_piix4");
 
     timer_add(&dev->response_timer, smbus_piix4_response, dev, 0);
 

@@ -101,11 +101,11 @@ acpi_raise_smi(void *priv, int do_smi)
 				smi_line = 1;
 			dev->regs.smi_active = 1;
 		}
-	} else if ((dev->vendor == VEN_INTEL) || (dev->vendor == VEN_INTEL_ICH2) || (dev->vendor == VEN_ALI)) {
+	} else if ((dev->vendor == VEN_INTEL) || (dev->vendor == VEN_ALI)) {
 		if (do_smi)
 			smi_line = 1;
 		/* Clear bit 16 of GLBCTL. */
-		if ((dev->vendor == VEN_INTEL) || (dev->vendor == VEN_INTEL_ICH2))
+		if (dev->vendor == VEN_INTEL)
 			dev->regs.glbctl &= ~0x00010000;
 		else
 			dev->regs.ali_soft_smi = 1;
@@ -113,6 +113,15 @@ acpi_raise_smi(void *priv, int do_smi)
 		if (do_smi)
 			smi_line = 1;
 	}
+    }
+    else if((dev->vendor == VEN_INTEL_ICH2) && do_smi && !!(dev->regs.smi_en & 1)) /* ICH2 SMI */
+    {
+	smi_line = 1;
+
+	if(dev->apm->do_smi)
+	dev->regs.smi_sts |= 0x00000020; /* SMI was provoked by APM */
+	else
+	dev->regs.smi_sts |= 0x00000004; /* SMI was provoked by the BIOS */
     }
 }
 
@@ -958,11 +967,17 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 					plat_power_off();
 					break;
 				default:
-					dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3f05;
+					dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c05;
 					break;
 			}
 		} else
-			dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3f05;
+			dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c05;
+
+		if((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
+			dev->regs.smi_sts |= 0x02;
+			if (dev->regs.monsmi & 0x02)
+				acpi_raise_smi(dev, 1);
+		}
 		break;
 
 	case 0x10: case 0x11: case 0x13:
@@ -1000,7 +1015,8 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 				acpi_update_irq(dev);
 		}
 
-		apm_set_do_smi(dev->apm, ((addr == 0x30) && !!(val & 0x20)));
+		if(addr == 0x30)
+			apm_set_do_smi(dev->apm, ((addr == 0x30) && !!(val & 0x20)));
 
 		break;
 
@@ -1045,11 +1061,6 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 		/* Setting GBL_RLS also sets BIOS_STS and generates SMI. */
 		if ((addr == 0x00) && !(dev->regs.pmsts & 0x20))
 			dev->regs.monsmi &= ~0x00000080;
-		else if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
-			dev->regs.glbsts |= 0x01;
-			if (dev->regs.glben & 0x02)
-				acpi_raise_smi(dev, 1);
-		}
 		break;
 
     }
@@ -1589,13 +1600,13 @@ acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en)
     int size;
 
     switch (dev->vendor) {
-	case VEN_INTEL_ICH2:
-		size = 0x080;
-		break;
 	case VEN_ALI:
 	case VEN_INTEL:
 	default:
 		size = 0x040;
+		break;
+	case VEN_INTEL_ICH2:
+		size = 0x080;
 		break;
 	case VEN_SIS:
 		size = 0x030;

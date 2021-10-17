@@ -440,15 +440,16 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
             case 0x44:
 
                 if(addr == 0x44) { /* ACPI IRQ */
-                    dev->lpc_conf[func][addr] = val & 0x27;
+                    dev->lpc_conf[func][addr] = val & 0x17;
                     acpi_set_irq_line(dev->acpi, ((dev->lpc_conf[0][0x44] & 7) < 3) ? (9 + (dev->lpc_conf[0][0x44] & 7)) : 9);
                 }
                 else { /* ACPI I/O Base & Enable */
                     dev->lpc_conf[func][addr] = (addr & 1) ? val : (val & 0x80);
 
                     dev->lpc_conf[func][addr] = val;
-                    intel_ich2_acpi(dev);
                 }
+
+                intel_ich2_acpi(dev);
             break;
 
             case 0x4e: /* BIOS Control SMI */
