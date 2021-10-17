@@ -813,11 +813,13 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		fregs[0x40] = (val & 0xc0) | 1;
 		dev->acpi_io_base = (dev->regs[3][0x41] << 8) | (dev->regs[3][0x40] & 0xc0);
 		acpi_update_io_mapping(dev->acpi, dev->acpi_io_base, (dev->regs[3][0x80] & 0x01));
+		acpi_update_aux_io_mapping(dev->acpi, dev->acpi_io_base + 0x40, (dev->regs[3][0x80] & 0x01));
 		break;
 	case 0x41:
 		fregs[0x41] = val;
 		dev->acpi_io_base = (dev->regs[3][0x41] << 8) | (dev->regs[3][0x40] & 0xc0);
 		acpi_update_io_mapping(dev->acpi, dev->acpi_io_base, (dev->regs[3][0x80] & 0x01));
+		acpi_update_aux_io_mapping(dev->acpi, dev->acpi_io_base + 0x40, (dev->regs[3][0x80] & 0x01));
 		break;
 	case 0x44: case 0x45: case 0x46: case 0x47:
 	case 0x48: case 0x49:
@@ -844,10 +846,12 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x4f: case 0x80: case 0xd2:
 		fregs[addr] = val & 0x0f;
-		if (addr == 0x80)
+		if (addr == 0x80) {
 			acpi_update_io_mapping(dev->acpi, dev->acpi_io_base, (dev->regs[3][0x80] & 0x01));
-		else if (addr == 0xd2)
+			acpi_update_aux_io_mapping(dev->acpi, dev->acpi_io_base + 0x40, (dev->regs[3][0x80] & 0x01));
+		} else if (addr == 0xd2) {
 			smbus_update_io_mapping(dev);
+		}
 		break;
 	case 0x50:
 		fregs[addr] = val & 0x3f;

@@ -1174,9 +1174,9 @@ acpi_reg_write_common(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
 
-	if (dev->vendor == VEN_ALI)
+    if (dev->vendor == VEN_ALI)
 	acpi_reg_write_ali(size, addr, val, p);
-    if (dev->vendor == VEN_VIA)
+    else if (dev->vendor == VEN_VIA)
 	acpi_reg_write_via(size, addr, val, p);
     else if (dev->vendor == VEN_VIA_596B)
 	acpi_reg_write_via_596b(size, addr, val, p);
@@ -1195,7 +1195,11 @@ acpi_aux_reg_read_common(int size, uint16_t addr, void *p)
     acpi_t *dev = (acpi_t *) p;
     uint8_t ret = 0xff;
 
-    if (dev->vendor == VEN_SMC)
+    if (dev->vendor == VEN_VIA_596B)
+	ret = acpi_reg_read_via_596b(size, addr - (0xf0 - 0x04), p);
+    else if (dev->vendor == VEN_INTEL)
+	ret = acpi_reg_read_intel(size, addr - (0x40 - 0x04), p);
+    else if (dev->vendor == VEN_SMC)
 	ret = acpi_aux_reg_read_smc(size, addr, p);
 
     return ret;
@@ -1207,7 +1211,11 @@ acpi_aux_reg_write_common(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
 
-    if (dev->vendor == VEN_SMC)
+    if (dev->vendor == VEN_VIA_596B)
+	acpi_reg_write_via_596b(size, addr - (0xf0 - 0x04), val, p);
+    else if (dev->vendor == VEN_INTEL)
+	acpi_reg_write_intel(size, addr - (0x40 - 0x04), val, p);
+    else if (dev->vendor == VEN_SMC)
 	acpi_aux_reg_write_smc(size, addr, val, p);
 }
 
@@ -1256,7 +1264,7 @@ acpi_reg_read(uint16_t addr, void *p)
 
 
 static uint32_t
-acpi_aux_read_readl(uint16_t addr, void *p)
+acpi_aux_reg_readl(uint16_t addr, void *p)
 {
     uint32_t ret = 0x00000000;
 
@@ -1272,7 +1280,7 @@ acpi_aux_read_readl(uint16_t addr, void *p)
 
 
 static uint16_t
-acpi_aux_read_readw(uint16_t addr, void *p)
+acpi_aux_reg_readw(uint16_t addr, void *p)
 {
     uint16_t ret = 0x0000;
 
@@ -1286,7 +1294,7 @@ acpi_aux_read_readw(uint16_t addr, void *p)
 
 
 static uint8_t
-acpi_aux_read_read(uint16_t addr, void *p)
+acpi_aux_reg_read(uint16_t addr, void *p)
 {
     uint8_t ret = 0x00;
 
@@ -1396,17 +1404,33 @@ acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en)
 void
 acpi_update_aux_io_mapping(acpi_t *dev, uint32_t base, int chipset_en)
 {
+    int size;
+
+    switch (dev->vendor) {
+	case VEN_INTEL:
+	case VEN_VIA_596B:
+		/* Undocumented mirror of PMCNTRL. */
+		size = 0x001;
+		break;
+	case VEN_SMC:
+		size = 0x008;
+		break;
+	default:
+		size = 0x000;
+		break;
+    }
+
     if (dev->aux_io_base != 0x0000) {
-	io_removehandler(dev->aux_io_base, 0x08,
-			 acpi_aux_read_read, acpi_aux_read_readw, acpi_aux_read_readl,
+	io_removehandler(dev->aux_io_base, size,
+			 acpi_aux_reg_read, acpi_aux_reg_readw, acpi_aux_reg_readl,
 			 acpi_aux_reg_write, acpi_aux_reg_writew, acpi_aux_reg_writel, dev);
     }
 
     dev->aux_io_base = base;
 
     if (chipset_en && (dev->aux_io_base != 0x0000)) {
-	io_sethandler(dev->aux_io_base, 0x08,
-		      acpi_aux_read_read, acpi_aux_read_readw, acpi_aux_read_readl,
+	io_sethandler(dev->aux_io_base, size,
+		      acpi_aux_reg_read, acpi_aux_reg_readw, acpi_aux_reg_readl,
 		      acpi_aux_reg_write, acpi_aux_reg_writew, acpi_aux_reg_writel, dev);
     }
 }
