@@ -466,12 +466,11 @@ machine_at_ich2_common_init(int pci_slots, const machine_t *model)
     pci_register_bus_slot(0, 0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0); /* i815 NB  */
     pci_register_bus_slot(0, 0x1e, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4); /* ICH2 Hub */
     pci_register_bus_slot(0, 0x1f, PCI_CARD_SOUTHBRIDGE, 1, 2, 8, 4); /* ICH2 LPC */
-
-    pci_register_bus_slot(1, 0x00, PCI_CARD_NORMAL,      1, 2, 3, 4); /* AGP Device */
     pci_register_bus_slot(1, 0x08, PCI_CARD_NETWORK,     5, 6, 7, 8); /* LAN */
 
-    for(int i = 0; i < pci_slots; i++)
-        pci_register_bus_slot(2, i, PCI_CARD_NORMAL, (i % 4) + 1, ((i + 1) % 4) + 1, ((i + 2) % 4) + 1, ((i + 3) % 4) + 1);
+    if((pci_slots >= 1) && (pci_slots < 7))
+        for(int i = 0; i < pci_slots; i++)
+            pci_register_bus_slot(2, i, PCI_CARD_NORMAL, (i % 4) + 1, ((i + 1) % 4) + 1, ((i + 2) % 4) + 1, ((i + 3) % 4) + 1);
 
     pci_register_bus_slot(2, 0x07, PCI_CARD_NORMAL,      4, 1, 2, 3);
 

@@ -999,7 +999,7 @@ intel_ich2_reset(void *priv)
     dev->lpc_conf[3][0x07] = 2;
     dev->lpc_conf[3][0x08] = 2;
     dev->lpc_conf[3][0x09] = 0x80;
-    dev->lpc_conf[3][0x0a] = 3;
+    dev->lpc_conf[3][0x0a] = 5;
     dev->lpc_conf[3][0x0b] = 0x0c;
     dev->lpc_conf[3][0x20] = 1;
     dev->lpc_conf[3][0x3d] = 2;
@@ -1054,8 +1054,8 @@ intel_ich2_init(const device_t *info)
 
     /* Devices */
     pci_add_card(PCI_ADD_SOUTHBRIDGE, intel_ich2_hub_read, intel_ich2_hub_write, dev);                 /* Bus 0: Device 30: HUB */
-    pci_add_card(PCI_ADD_NETWORK, intel_ich2_lan_read, intel_ich2_lan_write, dev);                     /* Bus 1: Device 8:  LAN */
     dev->lpc_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, intel_ich2_lpc_read, intel_ich2_lpc_write, dev); /* Bus 0: Device 31: LPC */
+    pci_add_card(PCI_ADD_NETWORK, intel_ich2_lan_read, intel_ich2_lan_write, dev);                     /* Bus 1: Device 8:  LAN */
 
     /* ACPI */
     dev->acpi = device_add(&acpi_intel_ich2_device);
@@ -1063,6 +1063,8 @@ intel_ich2_init(const device_t *info)
 
     /* DMA */
     dma_alias_set_piix();
+    ich2_dma_alias_init();
+    ich2_dma16_alias_init();
 
     /* IDE */
     dev->ide_drive[0] = device_add_inst(&sff8038i_device, 1);

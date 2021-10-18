@@ -120,8 +120,6 @@ acpi_raise_smi(void *priv, int do_smi)
 
 	if(dev->apm->do_smi)
 	dev->regs.smi_sts |= 0x00000020; /* SMI was provoked by APM */
-	else
-	dev->regs.smi_sts |= 0x00000004; /* SMI was provoked by the BIOS */
     }
 }
 
@@ -940,43 +938,54 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
     switch (addr) {
 	case 0x04: case 0x05:
 		/* PMCNTRL - Power Management Control Register (IO) */
-		if ((addr == 0x05) && (val & 0x20)) {
-			sus_typ = (val >> 2) & 7;
-			switch (sus_typ) {
-				case 5:
-					/* Suspend to RAM. */
-					nvr_reg_write(0x000f, 0xff, dev->nvr);
+		if ((addr == 0x05) && !!(val & 0x20)) {
+			if(dev->regs.smi_en & 0x00000020) /* Sleep SMI */
+			{
+				dev->regs.smi_sts |= 0x00000020; /* SMI was provoked by the Sleep Register while Sleep SMI is on */
+				acpi_raise_smi(dev, 1);
+			}
+			else
+			{
+				sus_typ = (val >> 2) & 7;
+				switch (sus_typ) {
+					case 5:  /* Suspend to RAM. */
+						nvr_reg_write(0x000f, 0xff, dev->nvr);
 
-					/* Do a hard reset. */
-					device_reset_all_pci();
+					case 6: /* Suspend to Disk. */
+						/* Do a hard reset. */
+						device_reset_all_pci();
 
-					cpu_alt_reset = 0;
+						cpu_alt_reset = 0;
 
-					pci_reset();
-					keyboard_at_reset();
+						pci_reset();
+						keyboard_at_reset();
 
-					mem_a20_alt = 0;
-					mem_a20_recalc();
+						mem_a20_alt = 0;
+						mem_a20_recalc();
 
-					flushmmucache();
+						flushmmucache();
 
-					resetx86();
-					break;
-				case 7:
-					/* Soft power off. */
-					plat_power_off();
-					break;
-				default:
-					dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c05;
-					break;
+						resetx86();
+						break;
+					case 7:
+						/* Soft Power Off. */
+						plat_power_off();
+						break;
+					default:
+						dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c05;
+						break;
+				}
 			}
 		} else
 			dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c05;
 
-		if((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
-			dev->regs.smi_sts |= 0x02;
-			if (dev->regs.monsmi & 0x02)
+		if((addr == 0x04) && (val & 4)) { /* BIOS SMI */
+			dev->regs.smi_sts |= 2;
+			if (dev->regs.smi_en & 0x04)
+			{
+				dev->regs.smi_sts |= 4; /* SMI was provoked by the BIOS */
 				acpi_raise_smi(dev, 1);
+			}
 		}
 		break;
 

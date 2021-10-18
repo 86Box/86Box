@@ -117,6 +117,8 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 		if (AGP_BRIDGE_INTEL(dev->local)) {
 			if (dev->local == AGP_BRIDGE_INTEL_440BX)
 				val &= 0x1f;
+			else if (dev->local == AGP_BRIDGE_INTEL_GMCH)
+				val &= 7;
 		} else if (dev->local == AGP_BRIDGE_ALI_M5243)
 			val |= 0x02;
 		else if (dev->local == AGP_BRIDGE_ALI_M5247)
@@ -135,7 +137,7 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 		break;
 
 	case 0x07:
-		if (dev->local == AGP_BRIDGE_INTEL_440LX)
+		if ((dev->local == AGP_BRIDGE_INTEL_440LX) || (dev->local == AGP_BRIDGE_INTEL_GMCH))
 			dev->regs[addr] &= ~(val & 0x40);
 		else if (dev->local == AGP_BRIDGE_ALI_M5243)
 			dev->regs[addr] &= ~(val & 0xf8);
