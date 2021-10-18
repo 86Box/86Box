@@ -1128,7 +1128,6 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 				c -= 0x400;
 			acpi_set_timer32(dev->acpi, dev->power_regs[0x41] & 0x08);
 			acpi_update_io_mapping(dev->acpi, c, dev->power_regs[0x41] & 0x80);
-			acpi_update_aux_io_mapping(dev->acpi, c + 0xf0, dev->power_regs[0x41] & 0x80);
 			break;
 
 		case 0x42:

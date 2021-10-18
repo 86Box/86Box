@@ -39,6 +39,13 @@ extern "C" {
 #define SCI_EN		(1 << 0)
 #define SUS_EN		(1 << 13)
 
+#define SUS_POWER_OFF	(1 << 0)
+#define SUS_SUSPEND	(1 << 1)
+#define SUS_NVR		(1 << 2)
+#define SUS_RESET_CPU	(1 << 3)
+#define SUS_RESET_CACHE	(1 << 4)
+#define SUS_RESET_PCI	(1 << 5)
+
 #define ACPI_ENABLE	0xf1
 #define	ACPI_DISABLE	0xf0
 
@@ -79,7 +86,8 @@ typedef struct
 {
     acpi_regs_t		regs;
     uint8_t		gpireg2_default, pad[3],
-			gporeg_default[4];
+			gporeg_default[4],
+			suspend_types[8];
     uint16_t		io_base, aux_io_base;
     int			vendor,
 			slot, irq_mode,
