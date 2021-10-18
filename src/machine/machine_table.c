@@ -874,10 +874,7 @@ const machine_t machines[] = {
     /* Intel i815 + ICH2 */
     /* Has a Winbond W83627HF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[Intel i815EP] Lucky Tech 6A815EPQ ",	   "6a815epq",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 32768, 524288, 32768, 255,	     machine_at_6a815epq_init, NULL			},
-    /* Has a Winbond W83627HF Super I/O chip with on-chip KBC with AMIKey-2 KBC
-       firmware. */
-    { "[Intel i815EP] Trigem Ventura",		   "venturam",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 32768, 524288, 32768, 255,	     machine_at_venturam_init, NULL			},
+    { "[Intel i815EP] MSI MS-6337",	   	"ms6337",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		32768, 524288, 32768, 255,	       machine_at_ms6337_init, NULL			},
 
     /* 440LX */
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC

@@ -458,7 +458,7 @@ machine_at_6via90ap_init(const machine_t *model)
 }
 
 static void
-machine_at_ich2_common_init(int pci_slots, const machine_t *model)
+machine_at_ich2_common_init(int lan, int pci_slots, const machine_t *model)
 {
     machine_at_common_init_ex(model, 2);
 
@@ -466,56 +466,40 @@ machine_at_ich2_common_init(int pci_slots, const machine_t *model)
     pci_register_bus_slot(0, 0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0); /* i815 NB  */
     pci_register_bus_slot(0, 0x1e, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4); /* ICH2 Hub */
     pci_register_bus_slot(0, 0x1f, PCI_CARD_SOUTHBRIDGE, 1, 2, 8, 4); /* ICH2 LPC */
-    pci_register_bus_slot(1, 0x08, PCI_CARD_NETWORK,     5, 6, 7, 8); /* LAN */
 
-    if((pci_slots >= 1) && (pci_slots < 7))
+    if(lan) /* ICH2 LAN */
+    pci_register_bus_slot(1, 0x08, PCI_CARD_NETWORK,     5, 6, 7, 8);
+
+    if((pci_slots >= 1) && (pci_slots < 8))
         for(int i = 0; i < pci_slots; i++)
             pci_register_bus_slot(2, i, PCI_CARD_NORMAL, (i % 4) + 1, ((i + 1) % 4) + 1, ((i + 2) % 4) + 1, ((i + 3) % 4) + 1);
 
-    pci_register_bus_slot(2, 0x07, PCI_CARD_NORMAL,      4, 1, 2, 3);
-
     pci_register_bus_slot(0, 0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4); /* AGP Bridge */
 
-    device_add(&intel_gmch_device); /* Intel i815 */
-    device_add(&intel_ich2_device); /* Intel ICH2 */
+    device_add(&intel_gmch_device); /* Intel i815 GMCH */
+
+    if(lan)
+        device_add(&intel_ich2_device); /* Intel ICH2 */
+    else
+        device_add(&intel_ich2_no_lan_device); /* Intel ICH2 Without LAN */
 }
 
 int
-machine_at_6a815epq_init(const machine_t *model)
+machine_at_ms6337_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/6a815epq/epqv22.BIN",
+    ret = bios_load_linear("roms/machines/ms6337/W6337IMS.330",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_ich2_common_init(5, model);
+    machine_at_ich2_common_init(0, 6, model);
 
     device_add(&w83977tf_device); /* Winbond W83627HF */
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&intel_flash_bxt_device); /* Needs Intel or SST FWH */
-
-    return ret;
-}
-
-int
-machine_at_venturam_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/venturam/vndo-201.rom",
-			   0x00080000, 524288, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_at_ich2_common_init(3, model);
-
-    device_add(&w83977tf_device); /* Winbond W83627HF */
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&sst_flash_39sf040_device); /* Needs Intel or SST FWH */
 
     return ret;
 }

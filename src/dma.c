@@ -1142,14 +1142,17 @@ ich2_dma_alias_init(void)
 		  dma_read,NULL,NULL, dma_write,NULL,NULL, NULL);
     io_sethandler(0x1080, 8,
 		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
-}
-
-void
-ich2_dma16_alias_init(void)
-{
     io_sethandler(0x10C0, 32,
 		  dma16_read,NULL,NULL, dma16_write,NULL,NULL, NULL);
     io_sethandler(0x1088, 8,
+		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+    io_sethandler(0x1100, 16,
+		  dma_read,NULL,NULL, dma_write,NULL,NULL, NULL);
+    io_sethandler(0x1180, 8,
+		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
+    io_sethandler(0x11C0, 32,
+		  dma16_read,NULL,NULL, dma16_write,NULL,NULL, NULL);
+    io_sethandler(0x1188, 8,
 		  dma_page_read,NULL,NULL, dma_page_write,NULL,NULL, NULL);
 }
 

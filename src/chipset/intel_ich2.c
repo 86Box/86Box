@@ -69,7 +69,7 @@ typedef struct intel_ich2_t
 {
 
 	uint8_t lan_conf[256], hub_conf[256], lpc_conf[7][256], gpio_space[64];
-    int gpio_base;
+    int gpio_base, lan;
 
     int lpc_slot;
     acpi_t *acpi;
@@ -778,7 +778,7 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
                 dev->lpc_conf[func][addr] &= val & 0x26;
             break;
 
-            case 0x11: /* AC97 Base Address */
+            case 0x11: /* AC97 Base Address (Disabled till proper implementation) */
 //              dev->lpc_conf[func][addr] = val;
             break;
 
@@ -809,7 +809,7 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
                 dev->lpc_conf[func][addr] &= val & 0x20;
             break;
 
-            case 0x11: /* AC97 Modem Base Address */
+            case 0x11: /* AC97 Modem Base Address (Disabled till proper implementation) */
 //              dev->lpc_conf[func][addr] = val;
             break;
 
@@ -870,24 +870,26 @@ intel_ich2_reset(void *priv)
     memset(dev->lpc_conf, 0, sizeof(dev->lpc_conf));
 
     /* LAN Interface */
-    dev->lan_conf[0x00] = 0x86;
-    dev->lan_conf[0x01] = 0x80;
-    dev->lan_conf[0x02] = 0x49;
-    dev->lan_conf[0x03] = 0x24;
-    dev->lan_conf[0x06] = 0x80;
-    dev->lan_conf[0x07] = 2;
-    dev->lan_conf[0x08] = 2;
-    dev->lan_conf[0x0b] = 2;
-    dev->lan_conf[0x10] = 8;
-    dev->lan_conf[0x14] = 1;
-    dev->lan_conf[0x34] = 0xdc;
-    dev->lan_conf[0x3d] = 1;
-    dev->lan_conf[0x3e] = 8;
-    dev->lan_conf[0x3f] = 0x38;
-    dev->lan_conf[0xdc] = 1;
-    dev->lan_conf[0xde] = 0x21;
-    dev->lan_conf[0xdf] = 0xfe;
-
+    if(dev->lan)
+    {
+        dev->lan_conf[0x00] = 0x86;
+        dev->lan_conf[0x01] = 0x80;
+        dev->lan_conf[0x02] = 0x49;
+        dev->lan_conf[0x03] = 0x24;
+        dev->lan_conf[0x06] = 0x80;
+        dev->lan_conf[0x07] = 2;
+        dev->lan_conf[0x08] = 2;
+        dev->lan_conf[0x0b] = 2;
+        dev->lan_conf[0x10] = 8;
+        dev->lan_conf[0x14] = 1;
+        dev->lan_conf[0x34] = 0xdc;
+        dev->lan_conf[0x3d] = 1;
+        dev->lan_conf[0x3e] = 8;
+        dev->lan_conf[0x3f] = 0x38;
+        dev->lan_conf[0xdc] = 1;
+        dev->lan_conf[0xde] = 0x21;
+        dev->lan_conf[0xdf] = 0xfe;
+    }
 
     /* HUB Interface */
     dev->hub_conf[0x00] = 0x86;
@@ -1055,22 +1057,29 @@ intel_ich2_init(const device_t *info)
     /* Devices */
     pci_add_card(PCI_ADD_SOUTHBRIDGE, intel_ich2_hub_read, intel_ich2_hub_write, dev);                 /* Bus 0: Device 30: HUB */
     dev->lpc_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, intel_ich2_lpc_read, intel_ich2_lpc_write, dev); /* Bus 0: Device 31: LPC */
-    pci_add_card(PCI_ADD_NETWORK, intel_ich2_lan_read, intel_ich2_lan_write, dev);                     /* Bus 1: Device 8:  LAN */
 
     /* ACPI */
     dev->acpi = device_add(&acpi_intel_ich2_device);
     acpi_set_slot(dev->acpi, dev->lpc_slot);
 
+    /* Cache */
+    cpu_cache_ext_enabled = 1;
+    cpu_update_waitstates();
+
     /* DMA */
     dma_alias_set_piix();
     ich2_dma_alias_init();
-    ich2_dma16_alias_init();
 
     /* IDE */
     dev->ide_drive[0] = device_add_inst(&sff8038i_device, 1);
     dev->ide_drive[1] = device_add_inst(&sff8038i_device, 2);
     sff_set_irq_line(dev->ide_drive[0], 14);
     sff_set_irq_line(dev->ide_drive[1], 15);
+
+    /* LAN */
+    dev->lan = info->local & 1;
+    if(dev->lan)
+        pci_add_card(PCI_ADD_NETWORK, intel_ich2_lan_read, intel_ich2_lan_write, dev);                     /* Bus 1: Device 8:  LAN */
 
     /* NVR */
     dev->nvr = device_add(&piix4_nvr_device);
@@ -1093,6 +1102,15 @@ intel_ich2_init(const device_t *info)
 
 const device_t intel_ich2_device = {
     "Intel 82801BA(ICH2)",
+    DEVICE_PCI,
+    1,
+    intel_ich2_init, intel_ich2_close, intel_ich2_reset,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+const device_t intel_ich2_no_lan_device = {
+    "Intel 82801BA(ICH2) Without LAN",
     DEVICE_PCI,
     0,
     intel_ich2_init, intel_ich2_close, intel_ich2_reset,
