@@ -49,8 +49,14 @@
 #include <86box/chipset.h>
 
 
-typedef struct
-{
+typedef struct {
+    struct _piix_ *dev;
+    void	*trap;
+    uint8_t	dev_id;
+    uint32_t	*sts_reg, *en_reg, sts_mask, en_mask;
+} piix_io_trap_t;
+
+typedef struct _piix_ {
     uint8_t		cur_readout_reg, rev,
 			type, func_shift,
 			max_func, pci_slot,
@@ -66,6 +72,7 @@ typedef struct
     ddma_t *		ddma;
     usb_t *		usb;
     acpi_t *		acpi;
+    piix_io_trap_t	io_traps[26];
     port_92_t *		port_92;
     pc_timer_t		fast_off_timer;
 } piix_t;
@@ -262,6 +269,148 @@ nvr_update_io_mapping(piix_t *dev)
 	if (dev->nvr_io_base != 0x0000)
 		nvr_at_handler(1, dev->nvr_io_base + 0x0002, dev->nvr);
     }
+}
+
+
+static void
+piix_trap_io(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+{
+    piix_io_trap_t *trap = (piix_io_trap_t *) priv;
+
+    if (*(trap->en_reg) & trap->en_mask) {
+	*(trap->sts_reg) |= trap->sts_mask;
+	acpi_raise_smi(trap->dev->acpi);
+    }
+}
+
+
+static void
+piix_trap_update_devctl(piix_t *dev, uint8_t trap_id, uint8_t dev_id,
+			uint32_t devctl_mask, uint8_t enable,
+			uint16_t addr, uint16_t size)
+{
+    piix_io_trap_t *trap = &dev->io_traps[trap_id];
+    enable = (dev->acpi->regs.devctl & devctl_mask) && enable;
+
+    /* Set up Device I/O traps dynamically. */
+    if (enable && !trap->trap) {
+    	trap->dev = dev;
+	trap->trap = io_trap_add(piix_trap_io, trap);
+	trap->dev_id = dev_id;
+	trap->sts_reg = &dev->acpi->regs.devsts;
+	trap->sts_mask = 0x00010000 << dev_id;
+	trap->en_reg = &dev->acpi->regs.devctl;
+	trap->en_mask = devctl_mask;
+    }
+
+//#ifdef ENABLE_PIIX_LOG
+    if ((dev_id == 9) || (dev_id == 10) || (dev_id == 12) || (dev_id == 13))
+	pclog("PIIX: Mapping trap device %d to %04X-%04X (enable %d)\n", dev_id, addr, addr + size - 1, enable);
+//#endif
+
+    /* Remap I/O trap. */
+    io_trap_remap(trap->trap, enable, addr, size);
+}
+
+
+static void
+piix_trap_update(void *priv)
+{
+    piix_t *dev = (piix_t *) priv;
+    uint8_t trap_id = 0, *fregs = dev->regs[3];
+    uint16_t temp;
+
+    piix_trap_update_devctl(dev, trap_id++, 0, 0x00000002, 1, 0x1f0, 8);
+    piix_trap_update_devctl(dev, trap_id++, 0, 0x00000002, 1, 0x3f6, 1);
+
+    piix_trap_update_devctl(dev, trap_id++, 1, 0x00000008, 1, 0x1f0, 8);
+    piix_trap_update_devctl(dev, trap_id++, 1, 0x00000008, 1, 0x3f6, 1);
+
+    piix_trap_update_devctl(dev, trap_id++, 2, 0x00000020, 1, 0x170, 8);
+    piix_trap_update_devctl(dev, trap_id++, 2, 0x00000020, 1, 0x376, 1);
+
+    piix_trap_update_devctl(dev, trap_id++, 3, 0x00000080, 1, 0x170, 8);
+    piix_trap_update_devctl(dev, trap_id++, 3, 0x00000080, 1, 0x376, 1);
+
+    piix_trap_update_devctl(dev, trap_id++, 4, 0x00000200, fregs[0x5c] & 0x08, 0x220 + (0x20 * ((fregs[0x5c] >> 5) & 0x03)), 20);
+    piix_trap_update_devctl(dev, trap_id++, 4, 0x00000200, fregs[0x5c] & 0x10, 0x200, 8);
+    piix_trap_update_devctl(dev, trap_id++, 4, 0x00000200, fregs[0x5c] & 0x08, 0x388, 4);
+    switch (fregs[0x5d] & 0x03) {
+	case 0x00: temp = 0x530; break;
+	case 0x01: temp = 0x604; break;
+	case 0x02: temp = 0xe80; break;
+	default:   temp = 0xf40; break;
+    }
+    piix_trap_update_devctl(dev, trap_id++, 4, 0x00000200, fregs[0x5c] & 0x80, temp, 8);
+    piix_trap_update_devctl(dev, trap_id++, 4, 0x00000200, fregs[0x5c] & 0x01, 0x300 + (0x10 * ((fregs[0x5c] >> 1) & 0x03)), 4);
+
+    piix_trap_update_devctl(dev, trap_id++, 5, 0x00000800, fregs[0x51] & 0x10, 0x370 + (0x80 * !(fregs[0x63] & 0x10)), 6);
+    piix_trap_update_devctl(dev, trap_id++, 5, 0x00000800, fregs[0x51] & 0x10, 0x377 + (0x80 * !(fregs[0x63] & 0x10)), 1);
+
+    switch (fregs[0x67] & 0x07) {
+    	case 0x00: temp = 0x3f8; break;
+    	case 0x01: temp = 0x2f8; break;
+    	case 0x02: temp = 0x220; break;
+    	case 0x03: temp = 0x228; break;
+    	case 0x04: temp = 0x238; break;
+    	case 0x05: temp = 0x2e8; break;
+    	case 0x06: temp = 0x338; break;
+    	default:   temp = 0x3e8; break;
+    }
+    piix_trap_update_devctl(dev, trap_id++, 6, 0x00002000, fregs[0x51] & 0x40, temp, 8);
+
+    switch (fregs[0x67] & 0x70) {
+    	case 0x00: temp = 0x3f8; break;
+    	case 0x10: temp = 0x2f8; break;
+    	case 0x20: temp = 0x220; break;
+    	case 0x30: temp = 0x228; break;
+    	case 0x40: temp = 0x238; break;
+    	case 0x50: temp = 0x2e8; break;
+    	case 0x60: temp = 0x338; break;
+    	default:   temp = 0x3e8; break;
+    }
+    piix_trap_update_devctl(dev, trap_id++, 7, 0x00008000, fregs[0x52] & 0x01, temp, 8);
+
+    switch (fregs[0x63] & 0x06) {
+    	case 0x00:
+    		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x3bc, 4);
+    		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x7bc, 3);
+    		break;
+
+    	case 0x02:
+    		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x378, 8);
+    		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x778, 3);
+    		break;
+
+    	case 0x04:
+    		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x278, 8);
+    		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x678, 3);
+    		break;
+
+    	default:
+    		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0, 0);
+    		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0, 0);
+    		break;
+    }
+
+    temp = fregs[0x62] & 0x0f;
+    piix_trap_update_devctl(dev, trap_id++, 9, 0x00080000, fregs[0x62] & 0x20, (fregs[0x60] | (fregs[0x61] << 8)) & ~temp, temp + 1);
+
+    temp = fregs[0x66] & 0x0f;
+    piix_trap_update_devctl(dev, trap_id++, 10, 0x00200000, fregs[0x66] & 0x20, (fregs[0x64] | (fregs[0x65] << 8)) & ~temp, temp + 1);
+
+    piix_trap_update_devctl(dev, trap_id++, 11, 0x00800000, fregs[0x5f] & 0x04, 0x3b0, 48);
+    piix_trap_update_devctl(dev, trap_id++, 11, 0x00800000, fregs[0x5f] & 0x10, 0x60, 1);
+    piix_trap_update_devctl(dev, trap_id++, 11, 0x00800000, fregs[0x5f] & 0x10, 0x64, 1);
+    /* [A0000:BFFFF] memory trap not implemented. */
+
+    temp = fregs[0x6a] & 0x0f;
+    piix_trap_update_devctl(dev, trap_id++, 12, 0x01000000, fregs[0x6a] & 0x10, (fregs[0x68] | (fregs[0x69] << 8)) & ~temp, temp + 1);
+    /* Programmable memory trap not implemented. */
+
+    temp = fregs[0x72] & 0x0f;
+    piix_trap_update_devctl(dev, trap_id++, 13, 0x02000000, fregs[0x72] & 0x10, (fregs[0x70] | (fregs[0x71] << 8)) & ~temp, temp + 1);
+    /* Programmable memory trap not implemented. */
 }
 
 
@@ -835,6 +984,10 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 	case 0xd3: case 0xd4:
 	case 0xd5:
 		fregs[addr] = val;
+		if ((addr == 0x5c) || (addr == 0x60) || (addr == 0x61) || (addr == 0x62) ||
+		    (addr == 0x64) || (addr == 0x65) || (addr == 0x68) || (addr == 0x69) ||
+		    (addr == 0x70) || (addr == 0x71))
+			piix_trap_update(dev);
 		break;
 	case 0x4a:
 		fregs[addr] = val & 0x73;
@@ -854,9 +1007,11 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x51:
 		fregs[addr] = val & 0x58;
+		piix_trap_update(dev);
 		break;
 	case 0x52:
 		fregs[addr] = val & 0x7f;
+		piix_trap_update(dev);
 		break;
 	case 0x58:
 		fregs[addr] = val & 0x77;
@@ -867,12 +1022,16 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x63:
 		fregs[addr] = val & 0xf7;
+		piix_trap_update(dev);
 		break;
 	case 0x66:
 		fregs[addr] = val & 0xef;
+		piix_trap_update(dev);
 		break;
 	case 0x6a: case 0x72: case 0x7a: case 0x7e:
 		fregs[addr] = val & 0x1f;
+		if ((addr == 0x6a) || (addr == 0x72))
+			piix_trap_update(dev);
 		break;
 	case 0x6d: case 0x75:
 		fregs[addr] = val & 0x80;
@@ -1297,6 +1456,7 @@ static void
 	acpi_set_slot(dev->acpi, dev->pci_slot);
 	acpi_set_nvr(dev->acpi, dev->nvr);
 	acpi_set_gpireg2_default(dev->acpi, (dev->type > 4) ? 0xf1 : 0xdd);
+	acpi_set_trap_update(dev->acpi, piix_trap_update, dev);
 
 	dev->ddma = device_add(&ddma_device);
     } else

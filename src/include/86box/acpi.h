@@ -63,7 +63,8 @@ typedef struct
 			smicmd, gpio_dir,
 			gpio_val, muxcntrl, pad,
 			timer32, smireg,
-			gpireg[3], gporeg[4];
+			gpireg[3], gporeg[4],
+			extiotrapsts, extiotrapen;
     uint16_t		pmsts, pmen,
 			pmcntrl, gpsts, gpsts1,
 			gpen, gpen1, gpscien,
@@ -95,7 +96,8 @@ typedef struct
     pc_timer_t		timer;
     nvr_t		*nvr;
     apm_t		*apm;
-    void		*i2c;
+    void		*i2c,
+			(*trap_update)(void *priv), *trap_priv;
 } acpi_t;
 
 
@@ -111,6 +113,8 @@ extern const device_t	acpi_via_596b_device;
 
 
 /* Functions */
+extern void		acpi_update_irq(acpi_t *dev);
+extern void		acpi_raise_smi(acpi_t *dev);
 extern void		acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en);
 extern void		acpi_update_aux_io_mapping(acpi_t *dev, uint32_t base, int chipset_en);
 extern void		acpi_init_gporeg(acpi_t *dev, uint8_t val0, uint8_t val1, uint8_t val2, uint8_t val3);
@@ -121,6 +125,7 @@ extern void		acpi_set_irq_pin(acpi_t *dev, int irq_pin);
 extern void		acpi_set_irq_line(acpi_t *dev, int irq_line);
 extern void		acpi_set_gpireg2_default(acpi_t *dev, uint8_t gpireg2_default);
 extern void		acpi_set_nvr(acpi_t *dev, nvr_t *nvr);
+extern void		acpi_set_trap_update(acpi_t *dev, void (*update)(void *priv), void *priv);
 
 #ifdef __cplusplus
 }

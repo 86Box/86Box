@@ -63,13 +63,10 @@ acpi_log(const char *fmt, ...)
 #endif
 
 
-static void
-acpi_update_irq(void *priv)
+void
+acpi_update_irq(acpi_t *dev)
 {
-    acpi_t *dev = (acpi_t *) priv;
-    int sci_level;
-
-    sci_level = (dev->regs.pmsts & dev->regs.pmen) & (RTC_EN | PWRBTN_EN | GBL_EN | TMROF_EN);
+    int sci_level = (dev->regs.pmsts & dev->regs.pmen) & (RTC_EN | PWRBTN_EN | GBL_EN | TMROF_EN);
     if (dev->vendor == VEN_SMC)
 	sci_level |= (dev->regs.pmsts & BM_STS);
 
@@ -87,11 +84,9 @@ acpi_update_irq(void *priv)
 }
 
 
-static void
-acpi_raise_smi(void *priv)
+void
+acpi_raise_smi(acpi_t *dev)
 {
-    acpi_t *dev = (acpi_t *) priv;
-
     if (dev->regs.glbctl & 0x01) {
 	if ((dev->vendor == VEN_VIA) || (dev->vendor == VEN_VIA_596B)) {
 		    if ((!dev->regs.smi_lock || !dev->regs.smi_active)) {
@@ -530,10 +525,11 @@ acpi_reg_read_via_596b(int size, uint16_t addr, void *p)
     shift32 = (addr & 3) << 3;
 
     switch (addr) {
-	case 0x42:
-		/* GPIO port Output Value */
-		if (size == 1)
-			ret = dev->regs.gpio_val & 0x13;
+	case 0x40: /* Extended I/O Trap Status (686A/B) */
+		ret = dev->regs.extiotrapsts;
+		break;
+	case 0x42: /* Extended I/O Trap Enable (686A/B) */
+		ret = dev->regs.extiotrapen;
 		break;
 	case 0x44: case 0x45:
 		/* External SMI Input Value */
@@ -817,6 +813,8 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *p)
 	case 0x2c: case 0x2d: case 0x2e: case 0x2f:
 		/* DEVCTL - Device Control Register (IO) */
 		dev->regs.devctl = ((dev->regs.devctl & ~(0xff << shift32)) | (val << shift32)) & 0x0fffffff;
+		if (dev->trap_update)
+			dev->trap_update(dev->trap_priv);
 		break;
 	case 0x34: case 0x35: case 0x36: case 0x37:
 		/* GPOREG - General Purpose Output Register (IO) */
@@ -957,14 +955,6 @@ acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *p)
 		/* Power Supply Control */
 		dev->regs.pscntrl = ((dev->regs.pscntrl & ~(0xff << shift16)) | (val << shift16)) & 0x0701;
 		break;
-	case 0x28: case 0x29:
-		/* GLBSTS - Global Status Register (IO) */
-		dev->regs.glbsts &= ~((val << shift16) & 0x007f);
-		break;
-	case 0x2a: case 0x2b:
-		/* GLBEN - Global Enable Register (IO) */
-		dev->regs.glben = ((dev->regs.glben & ~(0xff << shift16)) | (val << shift16)) & 0x007f;
-		break;
 	case 0x2c:
 		/* GLBCTL - Global Control Register (IO) */
 		dev->regs.glbctl = (dev->regs.glbctl & ~0xff) | (val & 0xff);
@@ -990,14 +980,6 @@ acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *p)
 			if (dev->regs.glben & 0x40)
 				acpi_raise_smi(dev);
 		}
-		break;
-	case 0x30: case 0x31: case 0x32: case 0x33:
-		/* Primary Activity Detect Status */
-		dev->regs.padsts &= ~((val << shift32) & 0x000000fd);
-		break;
-	case 0x34: case 0x35: case 0x36: case 0x37:
-		/* Primary Activity Detect Enable */
-		dev->regs.paden = ((dev->regs.paden & ~(0xff << shift32)) | (val << shift32)) & 0x000000fd;
 		break;
 	case 0x38: case 0x39: case 0x3a: case 0x3b:
 		/* GP Timer Reload Enable */
@@ -1030,13 +1012,32 @@ static void
 acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
-    int shift16;
+    int shift16, shift32;
 
     addr &= 0xff;
     acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
     shift16 = (addr & 1) << 3;
+    shift32 = (addr & 3) << 3;
 
     switch (addr) {
+	case 0x28: case 0x29:
+		/* GLBSTS - Global Status Register (IO) */
+		dev->regs.glbsts &= ~((val << shift16) & 0x007f);
+		break;
+	case 0x2a: case 0x2b:
+		/* GLBEN - Global Enable Register (IO) */
+		dev->regs.glben = ((dev->regs.glben & ~(0xff << shift16)) | (val << shift16)) & 0x007f;
+		break;
+	case 0x30: case 0x31: case 0x32: case 0x33:
+		/* Primary Activity Detect Status */
+		dev->regs.padsts &= ~((val << shift32) & 0x000000fd);
+		break;
+	case 0x34: case 0x35: case 0x36: case 0x37:
+		/* Primary Activity Detect Enable */
+		dev->regs.paden = ((dev->regs.paden & ~(0xff << shift32)) | (val << shift32)) & 0x000000fd;
+		if (dev->trap_update)
+			dev->trap_update(dev->trap_priv);
+		break;
 	case 0x40:
 		/* GPIO Direction Control */
 		if (size == 1) {
@@ -1066,17 +1067,37 @@ static void
 acpi_reg_write_via_596b(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
-    int shift32;
+    int shift16, shift32;
 
     addr &= 0x7f;
     acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
+    shift16 = (addr & 1) << 3;
     shift32 = (addr & 3) << 3;
 
     switch (addr) {
-	case 0x42:
-		/* GPIO port Output Value */
-		if (size == 1)
-			dev->regs.gpio_val = val & 0x13;
+	case 0x28: case 0x29:
+		/* GLBSTS - Global Status Register (IO) */
+		dev->regs.glbsts &= ~((val << shift16) & 0xfdff);
+		break;
+	case 0x2a: case 0x2b:
+		/* GLBEN - Global Enable Register (IO) */
+		dev->regs.glben = ((dev->regs.glben & ~(0xff << shift16)) | (val << shift16)) & 0xfdff;
+		break;
+	case 0x30: case 0x31: case 0x32: case 0x33:
+		/* Primary Activity Detect Status */
+		dev->regs.padsts &= ~((val << shift32) & 0x000007ff);
+		break;
+	case 0x34: case 0x35: case 0x36: case 0x37:
+		/* Primary Activity Detect Enable */
+		dev->regs.paden = ((dev->regs.paden & ~(0xff << shift32)) | (val << shift32)) & 0x000007ff;
+		if (dev->trap_update)
+			dev->trap_update(dev->trap_priv);
+		break;
+	case 0x40: /* Extended I/O Trap Status (686A/B) */
+		dev->regs.extiotrapsts &= ~(val & 0x13);
+		break;
+	case 0x42: /* Extended I/O Trap Enable (686A/B) */
+		dev->regs.extiotrapen = val & 0x13;
 		break;
 	case 0x4c: case 0x4d: case 0x4e: case 0x4f:
 		/* GPO Port Output Value */
@@ -1534,6 +1555,14 @@ acpi_set_nvr(acpi_t *dev, nvr_t *nvr)
 }
 
 
+void
+acpi_set_trap_update(acpi_t *dev, void (*update)(void *priv), void *priv)
+{
+    dev->trap_update = update;
+    dev->trap_priv = priv;
+}
+
+
 static void
 acpi_apm_out(uint16_t port, uint8_t val, void *p)
 {
@@ -1771,7 +1800,7 @@ const device_t acpi_via_device =
 
 const device_t acpi_via_596b_device =
 {
-    "VIA ACPI (VT82C596B)",
+    "VIA VT82C596 ACPI",
     DEVICE_PCI,
     VEN_VIA_596B,
     acpi_init, 
