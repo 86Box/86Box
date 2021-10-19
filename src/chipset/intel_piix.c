@@ -1397,11 +1397,14 @@ piix_reset(void *p)
 
 
 static void
-piix_close(void *p)
+piix_close(void *priv)
 {
-    piix_t *piix = (piix_t *)p;
+    piix_t *dev = (piix_t *) priv;
 
-    free(piix);
+    for (int i = 0; i < (sizeof(dev->io_traps) / sizeof(dev->io_traps[0])); i++)
+	io_trap_remove(dev->io_traps[i].trap);
+
+    free(dev);
 }
 
 
