@@ -303,10 +303,10 @@ piix_trap_update_devctl(piix_t *dev, uint8_t trap_id, uint8_t dev_id,
 	trap->en_mask = devctl_mask;
     }
 
-//#ifdef ENABLE_PIIX_LOG
+#ifdef ENABLE_PIIX_LOG
     if ((dev_id == 9) || (dev_id == 10) || (dev_id == 12) || (dev_id == 13))
-	pclog("PIIX: Mapping trap device %d to %04X-%04X (enable %d)\n", dev_id, addr, addr + size - 1, enable);
-//#endif
+	piix_log("PIIX: Mapping trap device %d to %04X-%04X (enable %d)\n", dev_id, addr, addr + size - 1, enable);
+#endif
 
     /* Remap I/O trap. */
     io_trap_remap(trap->trap, enable, addr, size);

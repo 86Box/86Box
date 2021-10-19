@@ -666,7 +666,7 @@ io_trap_remap(void *handle, int enable, uint16_t addr, uint16_t size)
 	return;
 
     io_log("I/O: Remapping trap from %04X-%04X (enable %d) to %04X-%04X (enable %d)\n",
-	   trap->base, trap->base + trap->size, trap->enable, addr, addr + size, enable);
+	   trap->base, trap->base + trap->size - 1, trap->enable, addr, addr + size - 1, enable);
 
     /* Remove old I/O mapping. */
     if (trap->enable && trap->base && trap->size) {
