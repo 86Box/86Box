@@ -201,6 +201,20 @@ void *pssj_init(const device_t *info)
         return pssj;
 }
 
+void *pssj_1e0_init(const device_t *info)
+{
+        pssj_t *pssj = malloc(sizeof(pssj_t));
+        memset(pssj, 0, sizeof(pssj_t));
+
+        sn76489_init(&pssj->sn76489, 0x01e0, 0x0004, PSSJ, 3579545);
+
+        io_sethandler(0x01E4, 0x0004, pssj_read, NULL, NULL, pssj_write, NULL, NULL, pssj);
+		timer_add(&pssj->timer_count, pssj_callback, pssj, pssj->enable);
+        sound_add_handler(pssj_get_buffer, pssj);
+        
+        return pssj;
+}
+
 void pssj_close(void *p)
 {
         pssj_t *pssj = (pssj_t *)p;
@@ -213,6 +227,18 @@ const device_t pssj_device =
         "Tandy PSSJ",
         0, 0,
         pssj_init,
+        pssj_close,
+	NULL,
+        { NULL },
+        NULL,
+        NULL
+};
+
+const device_t pssj_1e0_device =
+{
+        "Tandy PSSJ (port 1e0h)",
+        0, 0,
+        pssj_1e0_init,
         pssj_close,
 	NULL,
         { NULL },
