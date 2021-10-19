@@ -37,7 +37,6 @@
 #include <86box/acpi.h>
 #include <86box/machine.h>
 #include <86box/i2c.h>
-#include <86box/ui.h>
 
 
 int acpi_rtc_status = 0;
@@ -674,8 +673,9 @@ acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
 				if (sus_typ & SUS_RESET_CPU)
 					resetx86();
 
-				/* Resume immediately as a power button is not implemented yet. */
-				ui_msgbox_ex(MBX_INFO, L"Sleep mode", L"Press OK to resume the emulated machine.", NULL, NULL, NULL);
+				/* Pause emulation and trigger a resume event immediately,
+				   as the UI doesn't have a power button implemented yet. */
+				plat_pause(1);
 				dev->regs.pmsts |= 0x8000;
 			}
 		}
