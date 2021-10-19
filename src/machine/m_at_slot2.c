@@ -9,7 +9,8 @@
  *		Implementation of Slot 2 machines.
  *
  *		Slot 2 is quite a rare type of Slot. Used mostly by Pentium II & III Xeons
- *		These boards were also capable to take Slot 1 CPU's using Slot 2 to 1 adapters.
+ *
+ *
  *
  * Authors:	Miran Grca, <mgrca8@gmail.com>
  *
@@ -35,6 +36,7 @@
 #include <86box/hwm.h>
 #include <86box/spd.h>
 #include <86box/video.h>
+#include <86box/clock.h>
 #include "cpu.h"
 #include <86box/machine.h>
 
@@ -67,10 +69,7 @@ machine_at_6gxu_init(const machine_t *model)
     device_add(&w83977ef_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 512);
-    device_add(&w83782d_device); /* fans: ???, ???, System; temperatures: System, CPU, unused */
-    hwm_values.fans[0] = 2000;
-    hwm_values.fans[1] = 2500;
-    hwm_values.fans[2] = 3000;
+    device_add(&w83782d_device); /* fans: CPU, Power, System; temperatures: System, CPU, unused */
     hwm_values.temperatures[2] = 0; /* unused */
     hwm_values.voltages[1] = 1500; /* VGTL */
 	
@@ -143,6 +142,7 @@ machine_at_fw6400gx_init(const machine_t *model)
     device_add(&piix4e_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&pc87309_15c_device);
+    device_add(ics9xxx_get(ICS9250_08));
     device_add(&sst_flash_29ee020_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 512);
     device_add(&w83781d_device); /* fans: Chassis, Power, CPU; temperatures: System, CPU, unused */
