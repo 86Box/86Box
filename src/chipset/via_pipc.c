@@ -172,7 +172,7 @@ pipc_trap_io_pact(int size, uint16_t addr, uint8_t write, uint8_t val, void *pri
 	*(trap->sts_reg) |= trap->mask;
 	trap->dev->acpi->regs.glbsts |= 0x0001;
 	if (trap->dev->acpi->regs.glben & 0x0001)
-		acpi_raise_smi(trap->dev->acpi);
+		acpi_raise_smi(trap->dev->acpi, 1);
     }
 }
 
@@ -184,7 +184,7 @@ pipc_io_trap_glb(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv
 
     if (*(trap->en_reg) & trap->mask) {
 	*(trap->sts_reg) |= trap->mask;
-	acpi_raise_smi(trap->dev->acpi);
+	acpi_raise_smi(trap->dev->acpi, 1);
     }
 }
 

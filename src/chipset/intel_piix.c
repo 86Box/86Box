@@ -281,7 +281,7 @@ piix_trap_io(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
 
     if (*(trap->en_reg) & trap->en_mask) {
 	*(trap->sts_reg) |= trap->sts_mask;
-	acpi_raise_smi(trap->dev->acpi);
+	acpi_raise_smi(trap->dev->acpi, 1);
     }
 }
 
