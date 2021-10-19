@@ -35,18 +35,25 @@
 
 
 typedef struct _io_ {
-	uint8_t  (*inb)(uint16_t addr, void *priv);
-	uint16_t (*inw)(uint16_t addr, void *priv);
-	uint32_t (*inl)(uint16_t addr, void *priv);
+    uint8_t  (*inb)(uint16_t addr, void *priv);
+    uint16_t (*inw)(uint16_t addr, void *priv);
+    uint32_t (*inl)(uint16_t addr, void *priv);
 
-	void     (*outb)(uint16_t addr, uint8_t  val, void *priv);
-	void     (*outw)(uint16_t addr, uint16_t val, void *priv);
-	void     (*outl)(uint16_t addr, uint32_t val, void *priv);
+    void     (*outb)(uint16_t addr, uint8_t  val, void *priv);
+    void     (*outw)(uint16_t addr, uint16_t val, void *priv);
+    void     (*outl)(uint16_t addr, uint32_t val, void *priv);
 
-	void	*priv;
+    void	*priv;
 
-	struct _io_ *prev, *next;
+    struct _io_ *prev, *next;
 } io_t;
+
+typedef struct {
+    uint8_t	enable;
+    uint16_t	base, size;
+    void	(*func)(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv),
+		*priv;
+} io_trap_t;
 
 int initialized = 0;
 io_t *io[NPORTS], *io_last[NPORTS];
@@ -582,4 +589,117 @@ outl(uint16_t port, uint32_t val)
     io_log("[%04X:%08X] (%i, %i, %04i) outl(%04X, %08X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
 
     return;
+}
+
+
+static uint8_t
+io_trap_readb(uint16_t addr, void *priv)
+{
+    io_trap_t *trap = (io_trap_t *) priv;
+    trap->func(1, addr, 0, 0, trap->priv);
+    return 0xff;
+}
+
+
+static uint16_t
+io_trap_readw(uint16_t addr, void *priv)
+{
+    io_trap_t *trap = (io_trap_t *) priv;
+    trap->func(2, addr, 0, 0, trap->priv);
+    return 0xffff;
+}
+
+
+static uint32_t
+io_trap_readl(uint16_t addr, void *priv)
+{
+    io_trap_t *trap = (io_trap_t *) priv;
+    trap->func(4, addr, 0, 0, trap->priv);
+    return 0xffffffff;
+}
+
+
+static void
+io_trap_writeb(uint16_t addr, uint8_t val, void *priv)
+{
+    io_trap_t *trap = (io_trap_t *) priv;
+    trap->func(1, addr, 1, val, trap->priv);
+}
+
+
+static void
+io_trap_writew(uint16_t addr, uint16_t val, void *priv)
+{
+    io_trap_t *trap = (io_trap_t *) priv;
+    trap->func(2, addr, 1, val, trap->priv);
+}
+
+
+static void
+io_trap_writel(uint16_t addr, uint32_t val, void *priv)
+{
+    io_trap_t *trap = (io_trap_t *) priv;
+    trap->func(4, addr, 1, val, trap->priv);
+}
+
+
+void *
+io_trap_add(void (*func)(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv),
+	    void *priv)
+{
+    /* Instantiate new I/O trap. */
+    io_trap_t *trap = (io_trap_t *) malloc(sizeof(io_trap_t));
+    trap->enable = 0;
+    trap->base = trap->size = 0;
+    trap->func = func;
+    trap->priv = priv;
+
+    return trap;
+}
+
+
+void
+io_trap_remap(void *handle, int enable, uint16_t addr, uint16_t size)
+{
+    io_trap_t *trap = (io_trap_t *) handle;
+    if (!trap)
+	return;
+
+    io_log("I/O: Remapping trap from %04X-%04X (enable %d) to %04X-%04X (enable %d)\n",
+	   trap->base, trap->base + trap->size - 1, trap->enable, addr, addr + size - 1, enable);
+
+    /* Remove old I/O mapping. */
+    if (trap->enable && trap->base && trap->size) {
+	io_removehandler(trap->base, trap->size,
+			 io_trap_readb, io_trap_readw, io_trap_readl,
+			 io_trap_writeb, io_trap_writew, io_trap_writel,
+			 trap);
+    }
+
+    /* Set trap enable flag, base address and size. */
+    trap->enable = !!enable;
+    trap->base = addr;
+    trap->size = size;
+
+    /* Add new I/O mapping. */
+    if (trap->enable && trap->base && trap->size) {
+    	io_sethandler(trap->base, trap->size,
+		      io_trap_readb, io_trap_readw, io_trap_readl,
+		      io_trap_writeb, io_trap_writew, io_trap_writel,
+		      trap);
+    }
+}
+
+
+void
+io_trap_remove(void *handle)
+{
+    io_trap_t *trap = (io_trap_t *) handle;
+    if (!trap)
+	return;
+
+    /* Unmap I/O trap before freeing it. */
+    io_trap_remap(trap, 0, 0, 0);
+
+    free(trap);
 }

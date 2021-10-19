@@ -481,9 +481,6 @@ extern int	machine_at_ficva502_init(const machine_t *);
 
 extern int	machine_at_ficpa2012_init(const machine_t *);
 
-extern int	machine_at_sp97xv_init(const machine_t *);
-extern int	machine_at_m571_init(const machine_t *);
-
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_thor_get_device(void);
 extern const device_t	*at_pb640_get_device(void);
@@ -559,10 +556,9 @@ extern int	machine_at_awo671r_init(const machine_t *);
 extern int	machine_at_63a_init(const machine_t *);
 extern int	machine_at_s370sba_init(const machine_t *);
 extern int	machine_at_apas3_init(const machine_t *);
-extern int	machine_at_wcf681_init(const machine_t *);
+extern int	machine_at_gt694va_init(const machine_t *);
 extern int	machine_at_cuv4xls_init(const machine_t *);
 extern int	machine_at_6via90ap_init(const machine_t *);
-extern int	machine_at_603tcf_init(const machine_t *);
 extern int	machine_at_trinity371_init(const machine_t *);
 extern int	machine_at_p6bap_init(const machine_t *);
 
@@ -651,7 +647,7 @@ extern int	machine_xt_pc4i_init(const machine_t *);
 extern int	machine_xt_mpc1600_init(const machine_t *);
 extern int	machine_xt_pcspirit_init(const machine_t *);
 extern int	machine_xt_pc700_init(const machine_t *);
-extern int	machine_xt_multitechpc500_init(const machine_t *);
+extern int	machine_xt_pc500_init(const machine_t *);
 
 extern int	machine_xt_iskra3104_init(const machine_t *);
 
