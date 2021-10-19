@@ -673,10 +673,10 @@ acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
 				if (sus_typ & SUS_RESET_CPU)
 					resetx86();
 
-				/* Pause emulation and trigger a resume event immediately,
-				   as the UI doesn't have a power button implemented yet. */
+				/* Since the UI doesn't have a power button at the moment, pause emulation,
+				   then trigger a resume event so that the system resumes after unpausing. */
 				plat_pause(1);
-				dev->regs.pmsts |= 0x8000;
+				timer_set_delay_u64(&dev->resume_timer, 50 * TIMER_USEC);
 			}
 		}
 		dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3f07 /* 0x3c07 */;
@@ -1491,6 +1491,20 @@ acpi_timer_count(void *priv)
 }
 
 
+static void
+acpi_timer_resume(void *priv)
+{
+    acpi_t *dev = (acpi_t *) priv;
+
+    dev->regs.pmsts |= 0x8000;
+
+    /* Nasty workaround for ASUS P2B-LS and potentially others, where the PMCNTRL
+       SMI trap handler clears the resume bit before returning control to the OS. */
+    if (in_smm)
+	timer_set_delay_u64(&dev->resume_timer, 50 * TIMER_USEC);
+}
+
+
 void
 acpi_init_gporeg(acpi_t *dev, uint8_t val0, uint8_t val1, uint8_t val2, uint8_t val3)
 {
@@ -1735,6 +1749,7 @@ acpi_init(const device_t *info)
 
     timer_add(&dev->timer, acpi_timer_count, dev, 0);
     timer_set_delay_u64(&dev->timer, ACPICONST);
+    timer_add(&dev->resume_timer, acpi_timer_resume, dev, 0);
 
     acpi_reset(dev);
 

@@ -93,7 +93,7 @@ typedef struct
     int			vendor,
 			slot, irq_mode,
 			irq_pin, irq_line;
-    pc_timer_t		timer;
+    pc_timer_t		timer, resume_timer;
     nvr_t		*nvr;
     apm_t		*apm;
     void		*i2c,
