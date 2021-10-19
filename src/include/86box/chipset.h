@@ -117,7 +117,6 @@ extern const device_t	sis_85c496_ls486e_device;
 extern const device_t	sis_85c50x_device;
 extern const device_t	sis_5511_device;
 extern const device_t	sis_5571_device;
-extern const device_t	sis_5598_device;
 
 /* ST */
 extern const device_t	stpc_client_device;
