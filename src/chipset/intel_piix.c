@@ -41,6 +41,8 @@
 #include <86box/pic.h>
 #include <86box/pit.h>
 #include <86box/port_92.h>
+#include <86box/scsi_device.h>
+#include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/usb.h>
@@ -285,6 +287,17 @@ piix_trap_io(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
 
 
 static void
+piix_trap_io_ide(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+{
+    piix_io_trap_t *trap = (piix_io_trap_t *) priv;
+
+    /* IDE traps are per drive, not per channel. */
+    if (ide_drives[trap->dev_id]->selected)
+	piix_trap_io(size, addr, write, val, priv);
+}
+
+
+static void
 piix_trap_update_devctl(piix_t *dev, uint8_t trap_id, uint8_t dev_id,
 			uint32_t devctl_mask, uint8_t enable,
 			uint16_t addr, uint16_t size)
@@ -294,8 +307,8 @@ piix_trap_update_devctl(piix_t *dev, uint8_t trap_id, uint8_t dev_id,
 
     /* Set up Device I/O traps dynamically. */
     if (enable && !trap->trap) {
-    	trap->dev = dev;
-	trap->trap = io_trap_add(piix_trap_io, trap);
+	trap->dev = dev;
+	trap->trap = io_trap_add((dev_id <= 3) ? piix_trap_io_ide : piix_trap_io, trap);
 	trap->dev_id = dev_id;
 	trap->sts_reg = &dev->acpi->regs.devsts;
 	trap->sts_mask = 0x00010000 << dev_id;
@@ -348,49 +361,49 @@ piix_trap_update(void *priv)
     piix_trap_update_devctl(dev, trap_id++, 5, 0x00000800, fregs[0x51] & 0x10, 0x377 + (0x80 * !(fregs[0x63] & 0x10)), 1);
 
     switch (fregs[0x67] & 0x07) {
-    	case 0x00: temp = 0x3f8; break;
-    	case 0x01: temp = 0x2f8; break;
-    	case 0x02: temp = 0x220; break;
-    	case 0x03: temp = 0x228; break;
-    	case 0x04: temp = 0x238; break;
-    	case 0x05: temp = 0x2e8; break;
-    	case 0x06: temp = 0x338; break;
-    	default:   temp = 0x3e8; break;
+	case 0x00: temp = 0x3f8; break;
+	case 0x01: temp = 0x2f8; break;
+	case 0x02: temp = 0x220; break;
+	case 0x03: temp = 0x228; break;
+	case 0x04: temp = 0x238; break;
+	case 0x05: temp = 0x2e8; break;
+	case 0x06: temp = 0x338; break;
+	default:   temp = 0x3e8; break;
     }
     piix_trap_update_devctl(dev, trap_id++, 6, 0x00002000, fregs[0x51] & 0x40, temp, 8);
 
     switch (fregs[0x67] & 0x70) {
-    	case 0x00: temp = 0x3f8; break;
-    	case 0x10: temp = 0x2f8; break;
-    	case 0x20: temp = 0x220; break;
-    	case 0x30: temp = 0x228; break;
-    	case 0x40: temp = 0x238; break;
-    	case 0x50: temp = 0x2e8; break;
-    	case 0x60: temp = 0x338; break;
-    	default:   temp = 0x3e8; break;
+	case 0x00: temp = 0x3f8; break;
+	case 0x10: temp = 0x2f8; break;
+	case 0x20: temp = 0x220; break;
+	case 0x30: temp = 0x228; break;
+	case 0x40: temp = 0x238; break;
+	case 0x50: temp = 0x2e8; break;
+	case 0x60: temp = 0x338; break;
+	default:   temp = 0x3e8; break;
     }
     piix_trap_update_devctl(dev, trap_id++, 7, 0x00008000, fregs[0x52] & 0x01, temp, 8);
 
     switch (fregs[0x63] & 0x06) {
-    	case 0x00:
-    		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x3bc, 4);
-    		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x7bc, 3);
-    		break;
+	case 0x00:
+		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x3bc, 4);
+		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x7bc, 3);
+		break;
 
-    	case 0x02:
-    		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x378, 8);
-    		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x778, 3);
-    		break;
+	case 0x02:
+		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x378, 8);
+		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x778, 3);
+		break;
 
-    	case 0x04:
-    		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x278, 8);
-    		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x678, 3);
-    		break;
+	case 0x04:
+		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x278, 8);
+		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0x678, 3);
+		break;
 
-    	default:
-    		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0, 0);
-    		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0, 0);
-    		break;
+	default:
+		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0, 0);
+		piix_trap_update_devctl(dev, trap_id++, 8, 0x00020000, fregs[0x52] & 0x04, 0, 0);
+		break;
     }
 
     temp = fregs[0x62] & 0x0f;
@@ -1059,7 +1072,7 @@ piix_read(int func, int addr, void *priv)
 
     /* Return on unsupported function. */
     if ((func <= dev->max_func) || ((func == 1) && (dev->max_func == 0))) {
-    	fregs = (uint8_t *) dev->regs[func];
+	fregs = (uint8_t *) dev->regs[func];
 	ret = fregs[addr];
 	if ((func == 0) && (addr == 0x4e))
 		ret |= keyboard_at_get_mouse_scan();
@@ -1147,21 +1160,21 @@ piix_reset_hard(piix_t *dev)
 
     /* Clear all 4 functions' arrays and set their vendor and device ID's. */
     for (i = 0; i < 4; i++) {
-    	memset(dev->regs[i], 0, 256);
-    	if (dev->type == 5) {
-    		dev->regs[i][0x00] = 0x55; dev->regs[i][0x01] = 0x10;		/* SMSC/EFAR */
-    		if (i == 1) { /* IDE controller is 9130, breaking convention */
-    			dev->regs[i][0x02] = 0x30;
-    			dev->regs[i][0x03] = 0x91;
-    		} else {
-    			dev->regs[i][0x02] = (dev->func0_id & 0xff) + (i << dev->func_shift);
-    			dev->regs[i][0x03] = (dev->func0_id >> 8);
-    		}
-    	} else {
-    		dev->regs[i][0x00] = 0x86; dev->regs[i][0x01] = 0x80;		/* Intel */
-    		dev->regs[i][0x02] = (dev->func0_id & 0xff) + (i << dev->func_shift);
-    		dev->regs[i][0x03] = (dev->func0_id >> 8);
-    	}
+	memset(dev->regs[i], 0, 256);
+	if (dev->type == 5) {
+		dev->regs[i][0x00] = 0x55; dev->regs[i][0x01] = 0x10;		/* SMSC/EFAR */
+		if (i == 1) { /* IDE controller is 9130, breaking convention */
+			dev->regs[i][0x02] = 0x30;
+			dev->regs[i][0x03] = 0x91;
+		} else {
+			dev->regs[i][0x02] = (dev->func0_id & 0xff) + (i << dev->func_shift);
+			dev->regs[i][0x03] = (dev->func0_id >> 8);
+		}
+	} else {
+		dev->regs[i][0x00] = 0x86; dev->regs[i][0x01] = 0x80;		/* Intel */
+		dev->regs[i][0x02] = (dev->func0_id & 0xff) + (i << dev->func_shift);
+		dev->regs[i][0x03] = (dev->func0_id >> 8);
+	}
     }
 
     /* Function 0: PCI to ISA Bridge */
@@ -1172,7 +1185,7 @@ piix_reset_hard(piix_t *dev)
     if (dev->type == 4)
 	fregs[0x08] = (dev->rev & 0x08) ? 0x02 : (dev->rev & 0x07);
     else
-    	fregs[0x08] = dev->rev;
+	fregs[0x08] = dev->rev;
     fregs[0x09] = 0x00;
     fregs[0x0a] = 0x01; fregs[0x0b] = 0x06;
     fregs[0x0e] = ((dev->type > 1) || (dev->rev != 2)) ? 0x80 : 0x00;
@@ -1476,7 +1489,7 @@ static void
 
     /* On PIIX4, PIIX4E, and SMSC, APM is added by the ACPI device. */
     if (dev->type < 4) {
-    	dev->apm = device_add(&apm_pci_device);
+	dev->apm = device_add(&apm_pci_device);
 	/* APM intercept handler to update PIIX/PIIX3 and PIIX4/4E/SMSC ACPI SMI status on APM SMI. */
 	io_sethandler(0x00b2, 0x0001, NULL, NULL, NULL, piix_apm_out, NULL, NULL, dev);
     }

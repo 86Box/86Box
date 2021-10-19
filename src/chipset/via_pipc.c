@@ -591,7 +591,7 @@ pipc_trap_update_paden(pipc_t *dev, uint8_t trap_id,
 
     /* Set up Primary Activity Detect I/O traps dynamically. */
     if (enable && !trap->trap) {
-    	trap->dev = dev;
+	trap->dev = dev;
 	trap->trap = io_trap_add(pipc_trap_io_pact, trap);
 	trap->sts_reg = &dev->acpi->regs.padsts;
 	trap->en_reg = &dev->acpi->regs.paden;
