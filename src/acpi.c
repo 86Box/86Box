@@ -90,6 +90,8 @@ acpi_update_irq(acpi_t *dev)
 void
 acpi_raise_smi(void *priv, int do_smi)
 {
+    acpi_t *dev = (acpi_t *) priv;
+
     if (dev->regs.glbctl & 0x01) {
 	if ((dev->vendor == VEN_VIA) || (dev->vendor == VEN_VIA_596B)) {
 		if ((!dev->regs.smi_lock || !dev->regs.smi_active)) {
