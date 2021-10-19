@@ -145,6 +145,8 @@ typedef struct {
 #define INT_DAC2_EN			(1<<5)
 #define INT_UART_EN			(1<<3)
 
+#define SI_P2_PAUSE			(1<<12)
+#define SI_P1_PAUSE			(1<<11)
 #define SI_P2_INTR_EN			(1<<9)
 #define SI_P1_INTR_EN			(1<<8)
 
@@ -1507,6 +1509,9 @@ es1371_pci_write(int func, int addr, uint8_t val, void *p)
 static void
 es1371_fetch(es1371_t *dev, int dac_nr)
 {
+    if (dev->si_cr & (dac_nr ? SI_P2_PAUSE : SI_P1_PAUSE))
+	return;
+
     int format = dac_nr ? ((dev->si_cr >> 2) & 3) : (dev->si_cr & 3);
     int pos = dev->dac[dac_nr].buffer_pos & 63;
     int c;
