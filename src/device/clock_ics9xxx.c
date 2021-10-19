@@ -124,7 +124,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 	.hw_select = {0, 3},
 	.frequencies_ref = ICS9250_08
     ICS9xxx_MODEL_END()
-#if 0
+#ifdef ENABLE_ICS9xxx_DETECT
     ICS9xxx_MODEL(ICS9248_81)
 	.max_reg = 5,
 	.regs = {0x82, 0xfe, 0x7f, 0xff, 0xff, 0xb7},
@@ -522,7 +522,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
     ICS9xxx_MODEL(ICS9250_08)
 	.max_reg = 5,
 	.regs = {0x00, 0xff, 0xff, 0xff, 0x6d, 0xbf},
-	.fs_regs = {{0, 4, 4, 7}, {0, 5, 4, 4}, {0, 6, 5, 6}, {0, 7, 4, 1}, {-1, -1, -1, -1}},
+	.fs_regs = {{0, 4, 4, 7}, {0, 5, 4, 4}, {0, 6, 5, 6}, {0, 2, 4, 1}, {-1, -1, -1, -1}},
 	.hw_select = {0, 3},
 	.frequencies = (const ics9xxx_frequency_t[]) {
 		{.bus = 12400, .pci_div = 3},
@@ -544,7 +544,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 		{0}
 	}
     ICS9xxx_MODEL_END()
-#if 0
+#ifdef ENABLE_ICS9xxx_DETECT
     ICS9xxx_MODEL(ICS9250_10)
 	.max_reg = 5,
 	.regs = {0x1f, 0xff, 0xfe, 0x00, 0x00, 0x06},
@@ -703,7 +703,7 @@ static const ics9xxx_model_t ics9xxx_models[] = {
 		{0}
 	}
     ICS9xxx_MODEL_END()
-#if 0
+#ifdef ENABLE_ICS9xxx_DETECT
     ICS9xxx_MODEL(ICS9250_19)
 	.max_reg = 5,
 	.regs = {0x02, 0xff, 0xff, 0xff, 0x6d, 0xbf},
@@ -1199,7 +1199,7 @@ ics9xxx_init(const device_t *info)
 
     uint8_t i;
 #ifdef ENABLE_ICS9xxx_DETECT
-    for (i = 0; i < ICS9xxx_MAX; i++) {
+    for (i = ICS9xxx_xx + 1; i < ICS9xxx_MAX; i++) {
 	if (ics9xxx_models[i].frequencies_ref || !ics9xxx_models[i].name)
 		continue;
 	for (uint8_t j = 0; j < i; j++) {

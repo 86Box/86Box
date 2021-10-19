@@ -105,6 +105,8 @@ extern void	plat_path_slash(char *path);
 extern int	plat_path_abs(char *path);
 extern int	plat_dir_check(char *path);
 extern int	plat_dir_create(char *path);
+extern void	*plat_mmap(size_t size, uint8_t executable);
+extern void	plat_munmap(void *ptr, size_t size);
 extern uint64_t	plat_timer_read(void);
 extern uint32_t	plat_get_ticks(void);
 extern uint32_t	plat_get_micro_ticks(void);

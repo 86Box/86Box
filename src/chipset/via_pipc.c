@@ -67,23 +67,69 @@
 #define VIA_PIPC_8231	0x82311000
 
 
-typedef struct
-{
+enum {
+    TRAP_DRQ = 0,
+    TRAP_PIRQ,
+    TRAP_PIDE_MAIN,
+    TRAP_PIDE_SIDE,
+    TRAP_SIDE_MAIN,
+    TRAP_SIDE_SIDE,
+    TRAP_FLP_MAIN,
+    TRAP_FLP_SIDE,
+    TRAP_COM1,
+    TRAP_COM3,
+    TRAP_COM2,
+    TRAP_COM4,
+    TRAP_LPT_LPT1,
+    TRAP_LPT_LPT2,
+    TRAP_VGA,
+    TRAP_KBC,
+    TRAP_AUD_MIDI_0,
+    TRAP_AUD_MIDI_1,
+    TRAP_AUD_MIDI_2,
+    TRAP_AUD_MIDI_3,
+    TRAP_AUD_SB_0,
+    TRAP_AUD_SB_1,
+    TRAP_AUD_SB_2,
+    TRAP_AUD_SB_3,
+    TRAP_AUD_GAME,
+    TRAP_AUD_WSS_0,
+    TRAP_AUD_WSS_1,
+    TRAP_AUD_WSS_2,
+    TRAP_AUD_WSS_3,
+    TRAP_GR0,
+    TRAP_GR1,
+    TRAP_GR2,
+    TRAP_GR3,
+    TRAP_MAX
+};
+
+typedef struct {
+    struct _pipc_ *dev;
+    void	*trap;
+    uint32_t	*sts_reg, *en_reg, mask;
+} pipc_io_trap_t;
+
+typedef struct _pipc_ {
     uint32_t	local;
-    uint8_t	max_func;
+    uint8_t	max_func, max_pcs;
 
     uint8_t	pci_isa_regs[256],
 		ide_regs[256],
 		usb_regs[2][256],
 		power_regs[256],
 		ac97_regs[2][256], fmnmi_regs[4];
+
     sff8038i_t	*bm[2];
     nvr_t	*nvr;
     int		nvr_enabled, slot;
     ddma_t	*ddma;
     smbus_piix4_t *smbus;
     usb_t	*usb[2];
+
     acpi_t	*acpi;
+    pipc_io_trap_t io_traps[TRAP_MAX];
+
     void	*gameport, *ac97;
     sb_t	*sb;
     uint16_t	midigame_base, sb_base, fmnmi_base;
@@ -118,6 +164,32 @@ static void	pipc_write(int func, int addr, uint8_t val, void *priv);
 
 
 static void
+pipc_trap_io_pact(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+{
+    pipc_io_trap_t *trap = (pipc_io_trap_t *) priv;
+
+    if (*(trap->en_reg) & trap->mask) {
+	*(trap->sts_reg) |= trap->mask;
+	trap->dev->acpi->regs.glbsts |= 0x0001;
+	if (trap->dev->acpi->regs.glben & 0x0001)
+		acpi_raise_smi(trap->dev->acpi);
+    }
+}
+
+
+static void
+pipc_io_trap_glb(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+{
+    pipc_io_trap_t *trap = (pipc_io_trap_t *) priv;
+
+    if (*(trap->en_reg) & trap->mask) {
+	*(trap->sts_reg) |= trap->mask;
+	acpi_raise_smi(trap->dev->acpi);
+    }
+}
+
+
+static void
 pipc_reset_hard(void *priv)
 {
     int i;
@@ -136,7 +208,7 @@ pipc_reset_hard(void *priv)
     memset(dev->power_regs, 0, 256);
     memset(dev->ac97_regs, 0, 512);
 
-    /* PCI-ISA bridge registers */
+    /* PCI-ISA bridge registers. */
     dev->pci_isa_regs[0x00] = 0x06; dev->pci_isa_regs[0x01] = 0x11;
     dev->pci_isa_regs[0x02] = dev->local >> 16;
     dev->pci_isa_regs[0x03] = dev->local >> 24;
@@ -164,7 +236,9 @@ pipc_reset_hard(void *priv)
 
     pic_set_shadow(0);
 
-    /* IDE registers */
+    dev->max_pcs = (dev->local >= VIA_PIPC_686A) ? 3 : 1;
+
+    /* IDE registers. */
     dev->max_func++;
     dev->ide_regs[0x00] = 0x06; dev->ide_regs[0x01] = 0x11;
     dev->ide_regs[0x02] = 0x71; dev->ide_regs[0x03] = 0x05;
@@ -212,7 +286,7 @@ pipc_reset_hard(void *priv)
 	dev->ide_regs[0xc2] = 0x02;
     }
 
-    /* USB registers */
+    /* USB registers. */
     for (i = 0; i <= (dev->local >= VIA_PIPC_686A); i++) {
 	dev->max_func++;
 	dev->usb_regs[i][0x00] = 0x06; dev->usb_regs[i][0x01] = 0x11;
@@ -260,7 +334,7 @@ pipc_reset_hard(void *priv)
 	dev->usb_regs[i][0xc1] = 0x20;
     }
 
-    /* power management registers */
+    /* Power management registers. */
     if (dev->acpi) {
 	dev->max_func++;
 	dev->power_regs[0x00] = 0x06; dev->power_regs[0x01] = 0x11;
@@ -317,9 +391,26 @@ pipc_reset_hard(void *priv)
 		dev->power_regs[0x80] = 0x01;
 	else if (dev->local >= VIA_PIPC_596B)
 		dev->power_regs[0x90] = 0x01;
+
+	/* Set up PCS I/O traps. */
+	pipc_io_trap_t *trap;
+	for (i = 0; i <= dev->max_pcs; i++) {
+		trap = &dev->io_traps[TRAP_GR0 + i];
+		trap->dev = dev;
+		trap->trap = io_trap_add(pipc_io_trap_glb, trap);
+		if (i & 2) {
+			trap->sts_reg = (uint32_t *) &dev->acpi->regs.extiotrapsts;
+			trap->en_reg = (uint32_t *) &dev->acpi->regs.extiotrapen;
+			trap->mask = 0x01 << (i & 1);
+		} else {
+			trap->sts_reg = &dev->acpi->regs.glbsts;
+			trap->en_reg = &dev->acpi->regs.glben;
+			trap->mask = 0x4000 << i;
+		}
+	}
     }
 
-    /* AC97/MC97 registers */
+    /* AC97/MC97 registers. */
     if (dev->local >= VIA_PIPC_686A) {
 	for (i = 0; i <= 1; i++) {
 		dev->max_func++;
@@ -456,6 +547,139 @@ pipc_bus_master_handlers(pipc_t *dev)
 
     sff_bus_master_handler(dev->bm[0], (dev->ide_regs[0x04] & 1), base);
     sff_bus_master_handler(dev->bm[1], (dev->ide_regs[0x04] & 1), base + 8);
+}
+
+
+static void
+pipc_pcs_update(pipc_t *dev)
+{
+    uint8_t i, io_base_reg, io_mask_reg, io_mask_shift, enable;
+    uint16_t io_base, io_mask;
+
+    for (i = 0; i <= dev->max_pcs; i++) {
+	if (i & 2) {
+		io_base_reg = 0x8c;
+		io_mask_reg = 0x8a;
+	} else {
+		io_base_reg = 0x78;
+		io_mask_reg = 0x80;
+	}
+	io_base_reg |= (i & 1) << 1;
+	io_mask_shift = (i & 1) << 2;
+
+	if (dev->local <= VIA_PIPC_596B)
+		enable = dev->pci_isa_regs[0x76] & (0x10 << i);
+	else
+		enable = dev->pci_isa_regs[0x8b] & (0x01 << i);
+
+	io_base = dev->pci_isa_regs[io_base_reg] | (dev->pci_isa_regs[io_base_reg | 1] << 8);
+	io_mask = (dev->pci_isa_regs[io_mask_reg] >> io_mask_shift) & 0x000f;
+
+	pipc_log("PIPC: Mapping PCS%d to %04X-%04X (enable %d)\n", i, io_base, io_base + io_mask, enable);
+	io_trap_remap(dev->io_traps[TRAP_GR0 + i].trap, enable, io_base & ~io_mask, io_mask + 1);
+    }
+}
+
+
+static void
+pipc_trap_update_paden(pipc_t *dev, uint8_t trap_id,
+		       uint32_t paden_mask, uint8_t enable,
+		       uint16_t addr, uint16_t size)
+{
+    pipc_io_trap_t *trap = &dev->io_traps[trap_id];
+    enable = (dev->acpi->regs.paden & paden_mask) && enable;
+
+    /* Set up Primary Activity Detect I/O traps dynamically. */
+    if (enable && !trap->trap) {
+	trap->dev = dev;
+	trap->trap = io_trap_add(pipc_trap_io_pact, trap);
+	trap->sts_reg = &dev->acpi->regs.padsts;
+	trap->en_reg = &dev->acpi->regs.paden;
+	trap->mask = paden_mask;
+    }
+
+    /* Remap I/O trap. */
+    io_trap_remap(trap->trap, enable, addr, size);
+}
+
+
+static void
+pipc_trap_update_586(void *priv)
+{
+    pipc_t *dev = (pipc_t *) priv;
+
+    /* TRAP_DRQ (00000001) and TRAP_PIRQ (00000002) not implemented. */
+
+    pipc_trap_update_paden(dev, TRAP_PIDE_MAIN, 0x00000008, 1, 0x1f0, 8);
+    pipc_trap_update_paden(dev, TRAP_SIDE_MAIN, 0x00000008, 1, 0x170, 8);
+    pipc_trap_update_paden(dev, TRAP_FLP_MAIN, 0x00000008, 1, 0x3f5, 1);
+
+    pipc_trap_update_paden(dev, TRAP_VGA, 0x00000010, 1, 0x3b0, 48);
+    /* [A0000:BFFFF] memory trap not implemented. */
+
+    pipc_trap_update_paden(dev, TRAP_LPT_LPT1, 0x00000020, 1, 0x378, 8);
+    pipc_trap_update_paden(dev, TRAP_LPT_LPT2, 0x00000020, 1, 0x278, 8);
+
+    pipc_trap_update_paden(dev, TRAP_COM1, 0x00000040, 1, 0x3f8, 8);
+    pipc_trap_update_paden(dev, TRAP_COM2, 0x00000040, 1, 0x2f8, 8);
+    pipc_trap_update_paden(dev, TRAP_COM3, 0x00000040, 1, 0x3e8, 8);
+    pipc_trap_update_paden(dev, TRAP_COM4, 0x00000040, 1, 0x2e8, 8);
+
+    pipc_trap_update_paden(dev, TRAP_KBC, 0x00000080, 1, 0x60, 1);
+}
+
+
+static void
+pipc_trap_update_596(void *priv)
+{
+    pipc_t *dev = (pipc_t *) priv;
+    int i;
+
+    /* TRAP_DRQ (00000001) and TRAP_PIRQ (00000002) not implemented. */
+
+    pipc_trap_update_paden(dev, TRAP_PIDE_MAIN, 0x00000004, 1, 0x1f0, 8);
+    pipc_trap_update_paden(dev, TRAP_PIDE_SIDE, 0x00000004, 1, 0x3f6, 1);
+
+    pipc_trap_update_paden(dev, TRAP_SIDE_MAIN, 0x00000008, 1, 0x170, 8);
+    pipc_trap_update_paden(dev, TRAP_SIDE_SIDE, 0x00000008, 1, 0x376, 1);
+
+    pipc_trap_update_paden(dev, TRAP_FLP_MAIN, 0x00000010, 1, 0x3f0, 6);
+    pipc_trap_update_paden(dev, TRAP_FLP_SIDE, 0x00000010, 1, 0x3f7, 1);
+
+    pipc_trap_update_paden(dev, TRAP_COM1, 0x00000020, 1, 0x3f8, 8);
+    pipc_trap_update_paden(dev, TRAP_COM3, 0x00000020, 1, 0x3e8, 8);
+
+    pipc_trap_update_paden(dev, TRAP_COM2, 0x00000040, 1, 0x2f8, 8);
+    pipc_trap_update_paden(dev, TRAP_COM4, 0x00000040, 1, 0x2e8, 8);
+
+    pipc_trap_update_paden(dev, TRAP_LPT_LPT1, 0x00000080, 1, 0x378, 8);
+    pipc_trap_update_paden(dev, TRAP_LPT_LPT2, 0x00000080, 1, 0x278, 8);
+
+    pipc_trap_update_paden(dev, TRAP_VGA, 0x00000100, 1, 0x3b0, 48);
+    /* [A0000:BFFFF] memory trap not implemented. */
+
+    pipc_trap_update_paden(dev, TRAP_KBC, 0x00000200, 1, 0x60, 1);
+
+    /* The following traps are poorly documented and assumed to operate on all ranges allowed
+       by the Positive Decoding Control registers. I couldn't probe this behavior on hardware.
+       It's better to be safe and cover all of them than to assume Intel-like behavior (one range). */
+
+    for (i = 0; i < 3; i++) {
+	pipc_trap_update_paden(dev, TRAP_AUD_MIDI_0 + i,
+			       0x00000400, (dev->local <= VIA_PIPC_596B) || (dev->power_regs[0x40] & 0x01),
+			       0x300 + (0x10 * i), 4);
+
+	pipc_trap_update_paden(dev, TRAP_AUD_SB_0 + i,
+			       0x00000400, (dev->local <= VIA_PIPC_596B) || (dev->power_regs[0x40] & 0x02),
+			       0x220 + (0x20 * i), 20);
+    }
+
+    pipc_trap_update_paden(dev, TRAP_AUD_GAME, 0x00000400, (dev->local <= VIA_PIPC_596B) || (dev->power_regs[0x40] & 0x04), 0x200, 8);
+
+    pipc_trap_update_paden(dev, TRAP_AUD_WSS_0, 0x00000400, (dev->local <= VIA_PIPC_596B) || (dev->power_regs[0x40] & 0x08), 0x530, 8);
+    pipc_trap_update_paden(dev, TRAP_AUD_WSS_1, 0x00000400, (dev->local <= VIA_PIPC_596B) || (dev->power_regs[0x40] & 0x08), 0x604, 8);
+    pipc_trap_update_paden(dev, TRAP_AUD_WSS_2, 0x00000400, (dev->local <= VIA_PIPC_596B) || (dev->power_regs[0x40] & 0x08), 0xe80, 8);
+    pipc_trap_update_paden(dev, TRAP_AUD_WSS_3, 0x00000400, (dev->local <= VIA_PIPC_596B) || (dev->power_regs[0x40] & 0x08), 0xf40, 8);
 }
 
 
@@ -882,15 +1106,19 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 			dev->pci_isa_regs[(addr - 0x44)] = val;
 			break;
 
+		case 0x74: case 0x8b:
+		case 0x78: case 0x79: case 0x7a: case 0x7b:
+		case 0x8c: case 0x8d: case 0x8e: case 0x8f:
+		case 0x80: case 0x8a:
+			dev->pci_isa_regs[addr] = val;
+			pipc_pcs_update(dev);
+			break;
+
 		case 0x77:
-			if (val & 0x10)
+			if ((dev->local >= VIA_PIPC_686A) && (val & 0x10))
 				pclog("PIPC: Warning: Internal I/O APIC enabled.\n");
 			nvr_via_wp_set(!!(val & 0x04), 0x32, dev->nvr);
 			nvr_via_wp_set(!!(val & 0x02), 0x0d, dev->nvr);
-			break;
-
-		case 0x80: case 0x86: case 0x87:
-			dev->pci_isa_regs[addr] &= ~(val);
 			break;
 
 		default:
@@ -1326,10 +1554,13 @@ pipc_init(const device_t *info)
     else if (dev->local >= VIA_PIPC_596A)
 	dev->smbus = device_add(&piix4_smbus_device);
 
-    if (dev->local >= VIA_PIPC_596A)
+    if (dev->local >= VIA_PIPC_596A) {
 	dev->acpi = device_add(&acpi_via_596b_device);
-    else if (dev->local >= VIA_PIPC_586B)
+	acpi_set_trap_update(dev->acpi, pipc_trap_update_596, dev);
+    } else if (dev->local >= VIA_PIPC_586B) {
 	dev->acpi = device_add(&acpi_via_device);
+	acpi_set_trap_update(dev->acpi, pipc_trap_update_586, dev);
+    }
 
     dev->usb[0] = device_add_inst(&usb_device, 1);
     if (dev->local >= VIA_PIPC_686A) {
@@ -1382,6 +1613,9 @@ pipc_close(void *p)
     pipc_t *dev = (pipc_t *) p;
 
     pipc_log("PIPC: close()\n");
+
+    for (int i = 0; i < TRAP_MAX; i++)
+	io_trap_remove(dev->io_traps[i].trap);
 
     free(dev);
 }
