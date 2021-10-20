@@ -497,8 +497,7 @@ machine_at_ms6337_init(const machine_t *model)
 
     machine_at_ich2_common_init(0, 6, model);
 
-    device_add(&w83977tf_device); /* Winbond W83627HF */
-    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&w83627hf_device); /* Winbond W83627HF */
     device_add(&intel_flash_bxt_device); /* Needs Intel or SST FWH */
 
     return ret;

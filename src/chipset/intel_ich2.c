@@ -1062,10 +1062,6 @@ intel_ich2_init(const device_t *info)
     dev->acpi = device_add(&acpi_intel_ich2_device);
     acpi_set_slot(dev->acpi, dev->lpc_slot);
 
-    /* Cache */
-    cpu_cache_ext_enabled = 1;
-    cpu_update_waitstates();
-
     /* DMA */
     dma_alias_set_piix();
     ich2_dma_alias_init();

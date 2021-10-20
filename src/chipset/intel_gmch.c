@@ -30,7 +30,6 @@
 
 #include <86box/mem.h>
 #include <86box/pci.h>
-#include <86box/port_92.h>
 #include <86box/spd.h>
 #include <86box/smram.h>
 
@@ -427,8 +426,9 @@ intel_gmch_init(const device_t *info)
     /* AGP Bridge */
     device_add(&intel_gmch_agp_device);
 
-    /* Port 92 */
-    device_add(&port_92_pci_device);
+    /* Cache */
+    cpu_cache_ext_enabled = 1;
+    cpu_update_waitstates();
 
     /* SMRAM */
     dev->upper_smram_tseg = smram_add(); /* SMRAM High TSEG */
