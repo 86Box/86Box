@@ -18,9 +18,9 @@
 
 /*
 
-Winbond W83627HF PnP ROM dump
+Winbond W83627HF Register Summary for ISAPnP
 
-https://github.com/koitsu/bsdhwmon/issues/6
+Based on: https://github.com/koitsu/bsdhwmon/issues/6
 
 Register dump:
 idx 02 20 21 22 23 24 25 26  28 29 2a 2b 2c 2e 2f
@@ -125,14 +125,41 @@ w83627hf_log(const char *fmt, ...)
 
 typedef struct
 {
+    uint8_t hwm_index, hwm_regs[256];
+
     uint8_t	index, cfg_unlocked,
-		regs[48], dev_regs[12][256];
+		    regs[48], dev_regs[12][256];
 
     fdc_t *fdc_controller;
     port_92_t *port_92;
     serial_t *uart[2];
 } w83627hf_t;
 
+static void
+w83627hf_hwm_write(uint16_t addr, uint8_t val, void *priv)
+{
+    w83627hf_t *dev = (w83627hf_t *)priv;
+
+    switch(addr)
+    {
+        case 0x295:
+            dev->hwm_index = val;
+        break;
+
+        case 0x296:
+            dev->hwm_regs[dev->hwm_index] = val;
+            w83627hf_log("W83627HF-HWM: dev->regs[%02x] = %02x\n", dev->hwm_index, val);
+        break;
+    }
+}
+
+static uint8_t
+w83627hf_hwm_read(uint16_t addr, void *priv)
+{
+    w83627hf_t *dev = (w83627hf_t *)priv;
+
+    return (addr == 0x296) ? dev->hwm_regs[dev->hwm_index] : dev->hwm_index;
+}
 
 static void
 w83627hf_fdc_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
@@ -600,6 +627,7 @@ w83627hf_init(const device_t *info)
 
     /* I/O Ports */
     io_sethandler(0x002e + info->local, 2, w83627hf_read, NULL, NULL, w83627hf_write, NULL, NULL, dev);
+    io_sethandler(0x0295, 2, w83627hf_hwm_read, NULL, NULL, w83627hf_hwm_write, NULL, NULL, dev);
 
     /* Floppy Disk Controller */
     dev->fdc_controller = device_add(&fdc_at_smc_device);

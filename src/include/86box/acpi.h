@@ -64,7 +64,7 @@ typedef struct
 			smicmd, gpio_dir,
 			gpio_val, muxcntrl, ali_soft_smi,
 			timer32, smireg,
-			gpireg[3], gporeg[4], tco[49];
+			gpireg[3], gporeg[4], tco[49],
 			extiotrapsts, extiotrapen;
     uint16_t		pmsts, pmen,
 			pmcntrl, busaddtrack, devactsts,
