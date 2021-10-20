@@ -12,6 +12,7 @@
 #include <sys/param.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/mman.h>
 #include <unistd.h>
 #include <errno.h>
 #include <inttypes.h>
@@ -377,7 +378,11 @@ plat_dir_create(char *path)
 void *
 plat_mmap(size_t size, uint8_t executable)
 {
+#if defined __APPLE__ && defined MAP_JIT
+    void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE | (executable ? MAP_JIT : 0), 0, 0);
+#else
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE, 0, 0);
+#endif
     return (ret < 0) ? NULL : ret;
 }
 
