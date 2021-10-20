@@ -22,7 +22,6 @@ enum {
     ICS9xxx_xx,
     ICS9150_08,
     ICS9248_39,
-#if 0
     ICS9248_81,
     ICS9248_95,
     ICS9248_98,
@@ -35,16 +34,12 @@ enum {
     ICS9248_143,
     ICS9248_151,
     ICS9248_192,
-#endif
     ICS9250_08,
-#if 0
     ICS9250_10,
     ICS9250_13,
     ICS9250_14,
     ICS9250_16,
-#endif
     ICS9250_18,
-#if 0
     ICS9250_19,
     ICS9250_23,
     ICS9250_25,
@@ -56,7 +51,6 @@ enum {
     ICS9250_32,
     ICS9250_38,
     ICS9250_50,
-#endif
     ICS9xxx_MAX
 };
 

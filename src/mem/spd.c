@@ -167,6 +167,22 @@ spd_populate(uint16_t *rows, uint8_t slot_count, uint16_t total_size, uint16_t m
 }
 
 
+static int
+spd_write_part_no(char *part_no, char *type, uint16_t size)
+{
+    char size_unit;
+
+    if (size >= 1024) {
+	size_unit = 'G';
+	size >>= 10;
+    } else {
+	size_unit = 'M';
+    }
+
+    return sprintf(part_no, EMU_NAME "-%s-%03d%c", type, size, size_unit);
+}
+
+
 void
 spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 {
@@ -204,7 +220,7 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 
     /* Register SPD devices and populate their data according to the rows. */
     row = 0;
-    for (slot = 0; slot < SPD_MAX_SLOTS && rows[row]; slot++) {
+    for (slot = 0; (slot < SPD_MAX_SLOTS) && rows[row]; slot++) {
 	if (!(slot_mask & (1 << slot)))
 		continue; /* slot disabled */
 
@@ -249,8 +265,8 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 			edo_data->dram_width = 8;
 
 			edo_data->spd_rev = 0x12;
-			sprintf(edo_data->part_no, EMU_NAME "-%s-%03dM", (ram_type == SPD_TYPE_FPM) ? "FPM" : "EDO", rows[row]);
-			for (i = strlen(edo_data->part_no); i < sizeof(edo_data->part_no); i++)
+			for (i = spd_write_part_no(edo_data->part_no, (ram_type == SPD_TYPE_FPM) ? "FPM" : "EDO", rows[row]);
+			     i < sizeof(edo_data->part_no); i++)
 				edo_data->part_no[i] = ' '; /* part number should be space-padded */
 			edo_data->rev_code[0] = BCD8(EMU_VERSION_MAJ);
 			edo_data->rev_code[1] = BCD8(EMU_VERSION_MIN);
@@ -303,8 +319,8 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
 			sdram_data->ca_hold = sdram_data->data_hold = 0x08;
 
 			sdram_data->spd_rev = 0x12;
-			sprintf(sdram_data->part_no, EMU_NAME "-SDR-%03dM", rows[row]);
-			for (i = strlen(sdram_data->part_no); i < sizeof(sdram_data->part_no); i++)
+			for (i = spd_write_part_no(sdram_data->part_no, "SDR", rows[row]);
+			     i < sizeof(sdram_data->part_no); i++)
 				sdram_data->part_no[i] = ' '; /* part number should be space-padded */
 			sdram_data->rev_code[0] = BCD8(EMU_VERSION_MAJ);
 			sdram_data->rev_code[1] = BCD8(EMU_VERSION_MIN);
