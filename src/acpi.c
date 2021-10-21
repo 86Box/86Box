@@ -31,6 +31,7 @@
 #include <86box/plat.h>
 #include <86box/timer.h>
 #include <86box/keyboard.h>
+#include <86box/nmi.h>
 #include <86box/nvr.h>
 #include <86box/pit.h>
 #include <86box/apm.h>
@@ -40,7 +41,7 @@
 
 
 int acpi_rtc_status = 0;
-
+#define ENABLE_ACPI_LOG 1
 #ifdef ENABLE_ACPI_LOG
 int acpi_do_log = ENABLE_ACPI_LOG;
 
@@ -112,12 +113,7 @@ acpi_raise_smi(void *priv, int do_smi)
 	}
     }
     else if((dev->vendor == VEN_INTEL_ICH2) && do_smi && !!(dev->regs.smi_en & 1)) /* ICH2 SMI */
-    {
 	smi_line = 1;
-
-	if(dev->apm->do_smi)
-	dev->regs.smi_sts |= 0x00000020; /* SMI was provoked by APM */
-    }
 }
 
 
@@ -376,7 +372,7 @@ acpi_reg_read_intel_ich2(int size, uint16_t addr, void *p)
 		ret = dev->regs.buscyctrack;
 		break;
 
-	case 0x60 ... 0x7f:
+	case 0x60 ... 0x70:
 		/* TCO Registers */
 		ret = dev->regs.tco[addr - 0x60];
 		break;
@@ -948,9 +944,9 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 	case 0x04: case 0x05:
 		/* PMCNTRL - Power Management Control Register (IO) */
 		if ((addr == 0x05) && !!(val & 0x20)) {
-			if(dev->regs.smi_en & 0x00000020) /* Sleep SMI */
+			if(dev->regs.smi_en & 0x00000020) /* ICH2 Sleep SMI */
 			{
-				dev->regs.smi_sts |= 0x00000020; /* SMI was provoked by the Sleep Register while Sleep SMI is on */
+				dev->regs.smi_sts |= 0x00000010; /* SMI was provoked by the Sleep Register while Sleep SMI is on */
 				acpi_raise_smi(dev, 1);
 			}
 			else
@@ -961,19 +957,14 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 						nvr_reg_write(0x000f, 0xff, dev->nvr);
 
 					case 6: /* Suspend to Disk. */
-						/* Do a hard reset. */
+						/* Do a hard reset. Same as PIIX4 */
 						device_reset_all_pci();
-
 						cpu_alt_reset = 0;
-
 						pci_reset();
 						keyboard_at_reset();
-
 						mem_a20_alt = 0;
 						mem_a20_recalc();
-
 						flushmmucache();
-
 						resetx86();
 						break;
 					case 7:
@@ -985,16 +976,14 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 						break;
 				}
 			}
-		} else
+		}
+		else
 			dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c05;
 
-		if((addr == 0x04) && (val & 4)) { /* BIOS SMI */
-			dev->regs.smi_sts |= 2;
-			if (dev->regs.smi_en & 0x04)
-			{
-				dev->regs.smi_sts |= 4; /* SMI was provoked by the BIOS */
-				acpi_raise_smi(dev, 1);
-			}
+		if((addr == 4) && !!(val & 4) && !!(dev->regs.smi_en & 4)) /* ICH2 BIOS SMI */
+		{
+			dev->regs.smi_sts |= 4;
+			acpi_raise_smi(dev, 1);
 		}
 		break;
 
@@ -1011,6 +1000,9 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 	case 0x2a: case 0x2b:
 		/* GPE0_EN - General Purpose Event 0 Enables Register */
 		dev->regs.gpen = ((dev->regs.gpen & ~(0xff << shift16)) | (val << shift16)) & 0x19fb;
+
+		if((addr == 0x2b) && (val & 8))
+			dev->regs.gpsts |= 0x00000800;
 		break;
 
 	case 0x2c: case 0x2d:
@@ -1027,14 +1019,10 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 		/* SMI_EN - SMI Control and Enable Register */
 		dev->regs.smi_en = ((dev->regs.smi_en & ~(0xff << shift32)) | (val << shift32)) & 0x000068ff;
 
-		if((addr == 0x30) && !!(val & 0x80)) { /* Like the PIIX4. Setting BIOS_RLS, causes it to set GBL_RLS and generate an SMI. */
-			dev->regs.pmsts |= 0x20;
-			if (dev->regs.pmen & 0x20)
-				acpi_update_irq(dev);
-		}
+		dev->apm->do_smi = (addr == 0x30) && !!(val & 0x20); /* ICH2 APM SMI */
 
-		if(addr == 0x30)
-			apm_set_do_smi(dev->apm, ((addr == 0x30) && !!(val & 0x20)));
+		if((addr == 0x30) && !!(val & 0x80)) /* ICH2 BIOS_RLS SCI */
+			acpi_update_irq(dev);
 
 		break;
 
@@ -1069,8 +1057,80 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 		dev->regs.buscyctrack = val;
 		break;
 
-	case 0x60 ... 0x7f:
-		/* TCO Registers */
+	case 0x60:
+		/* TCO1_RLD - TCO Timer Reload and Current Value Register */
+		dev->regs.tco[addr - 0x60] = val & 0x3f;
+		break;
+
+	case 0x61:
+		/* TCO1_DAT_IN—TCO Data In Register */
+		dev->regs.tco[addr - 0x60] = val & 0x3f;
+
+		dev->regs.tco[0x04] |= 2;
+		acpi_raise_smi(dev, 1); /* ICH2 OS TCO SMI */
+		break;
+
+	case 0x62:
+		/* TCO1_DAT_IN - TCO Data In Register */
+		dev->regs.tco[addr - 0x60] = val;
+		break;
+
+	case 0x63:
+		/* TCO1_DAT_OUT - TCO Data Out Register */
+		dev->regs.tco[addr - 0x60] = val;
+
+		if(smi_line) /* Under SMI, Writes can cause an interrupt */
+		{
+			dev->regs.tco[0x04] |= 4;
+			acpi_update_irq(dev);
+		}
+
+		break;
+
+	case 0x64:
+		/* TCO1_STS - TCO1 Status Register */
+		dev->regs.tco[addr - 0x60] &= val & 0x8f;
+		break;
+
+	case 0x65:
+		/* TCO1_STS - TCO1 Status Register */
+		dev->regs.tco[addr - 0x60] &= val & 0x1f;
+		break;
+
+	case 0x66:
+		/* TCO2_STS - TCO2 Status Register */
+		dev->regs.tco[addr - 0x60] &= val & 7;
+		break;
+
+	case 0x69:
+		/* TCO1_CNT - TCO1 Control Register */
+		dev->regs.tco[addr - 0x60] = val & 0x0f;
+
+		if(val & 1) /* ICH2 NMI Trigger */
+			nmi = 1;
+		
+		if(nmi) /* Under NMI, Bit 0 can be cleared */
+			dev->regs.tco[addr - 0x60] &= val & 1;
+		break;
+
+	case 0x6a:
+		/* TCO2_CNT - TCO2 Control Register */
+		dev->regs.tco[addr - 0x60] = val & 6;
+		break;
+
+	case 0x6c:
+	case 0x6d:
+		/* TCO_MESSAGE1 and TCO_MESSAGE2 Registers */
+		dev->regs.tco[addr - 0x60] = val & 6;
+		break;
+
+	case 0x6e:
+		/* TCO_WDSTATUS - TCO2 Control Register */
+		dev->regs.tco[addr - 0x60] = val;
+		break;
+
+	case 0x70:
+		/* SW_IRQ_GEN - Software IRQ Generation Register */
 		dev->regs.tco[addr - 0x60] = val;
 		break;
 
@@ -1876,8 +1936,12 @@ acpi_apm_out(uint16_t port, uint8_t val, void *p)
     } else {
 	if (port == 0x0000) {
 		dev->apm->cmd = val;
-		if ((dev->vendor == VEN_INTEL) || (dev->vendor == VEN_INTEL_ICH2))
+		if (dev->vendor == VEN_INTEL)
 			dev->regs.glbsts |= 0x20;
+
+		if ((dev->vendor == VEN_INTEL_ICH2) && dev->apm->do_smi) /* ICH2 APM SMI */
+			dev->regs.smi_sts |= 0x00000020;
+
 		acpi_raise_smi(dev, dev->apm->do_smi);
 	} else
 		dev->apm->stat = val;

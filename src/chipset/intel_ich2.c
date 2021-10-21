@@ -44,7 +44,7 @@
 #include <86box/usb.h>
 
 #include <86box/chipset.h>
-
+#define ENABLE_INTEL_ICH2_LOG 1
 #ifdef ENABLE_INTEL_ICH2_LOG
 int intel_ich2_do_log = ENABLE_INTEL_ICH2_LOG;
 
@@ -935,6 +935,8 @@ intel_ich2_reset(void *priv)
     dev->lpc_conf[0][0xef] = 0x45;
     dev->lpc_conf[0][0xf0] = 0x0f;
 
+    dev->acpi->regs.tco[0x01] = 4;
+    dev->acpi->regs.tco[0x10] = 3;
     intel_ich2_acpi(dev);
     intel_ich2_gpio(dev);
     intel_ich2_nvr(dev);

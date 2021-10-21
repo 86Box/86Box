@@ -95,6 +95,7 @@ Notes : ISAPnP is missing and the Hardware Monitor is not properly implemented
 
 #include <86box/fdd.h>
 #include <86box/fdc.h>
+#include <86box/i2c.h>
 #include <86box/keyboard.h>
 #include <86box/lpt.h>
 #include <86box/port_92.h>
@@ -136,6 +137,26 @@ typedef struct
 } w83627hf_t;
 
 static void
+w83627hf_hwm_reset(w83627hf_t *dev)
+{
+    /* W83627HF Hardware Monitor */
+    dev->hwm_regs[0x40] = 1;
+    dev->hwm_regs[0x47] = 0xa0;
+    dev->hwm_regs[0x48] = 0x2d;
+    dev->hwm_regs[0x49] = 1;
+    dev->hwm_regs[0x4a] = 1;
+    dev->hwm_regs[0x4b] = 0x44;
+    dev->hwm_regs[0x4d] = 0x15;
+    dev->hwm_regs[0x4e] = 0x80;
+    dev->hwm_regs[0x57] = 0x80;
+    dev->hwm_regs[0x58] = 0x21;
+    dev->hwm_regs[0x59] = 0x70;
+    dev->hwm_regs[0x5a] = 0xff;
+    dev->hwm_regs[0x5b] = 0xff;
+    dev->hwm_regs[0x5c] = 0x11;
+}
+
+static void
 w83627hf_hwm_write(uint16_t addr, uint8_t val, void *priv)
 {
     w83627hf_t *dev = (w83627hf_t *)priv;
@@ -147,8 +168,79 @@ w83627hf_hwm_write(uint16_t addr, uint8_t val, void *priv)
         break;
 
         case 0x296:
-            dev->hwm_regs[dev->hwm_index] = val;
-            w83627hf_log("W83627HF-HWM: dev->regs[%02x] = %02x\n", dev->hwm_index, val);
+            switch(dev->hwm_index)
+            {
+                case 0x2b ... 0x3f:
+                case 0x6b ... 0x7f:
+                     dev->hwm_regs[dev->hwm_index & 0x1f] = val;
+                break;
+
+                case 0x40:
+                    dev->hwm_regs[dev->hwm_index] = val & 0x8b;
+                break;
+
+                case 0x43:
+                    dev->hwm_regs[dev->hwm_index] = val;
+                break;
+
+                case 0x44:
+                    dev->hwm_regs[dev->hwm_index] = val & 0x3f;
+                break;
+
+                case 0x46:
+                    dev->hwm_regs[dev->hwm_index] = val & 0x80;
+                        if(val & 0x80)
+                            dev->hwm_regs[dev->hwm_index] &= 0x10;
+                break;
+
+                case 0x47:
+                    dev->hwm_regs[dev->hwm_index] = val & 0x3f;
+                break;
+
+                case 0x49:
+                    dev->hwm_regs[dev->hwm_index] = val & 1;
+                break;
+
+                case 0x4a:
+                    dev->hwm_regs[dev->hwm_index] = val;
+                break;
+
+                case 0x4b:
+                    dev->hwm_regs[dev->hwm_index] = val & 0xfc;
+                break;
+
+                case 0x4c:
+                    dev->hwm_regs[dev->hwm_index] = val & 0x5c;
+                break;
+
+                case 0x4d:
+                    dev->hwm_regs[dev->hwm_index] = val & 0xbf;
+                break;
+
+                case 0x4e:
+                    dev->hwm_regs[dev->hwm_index] = val;
+                break;
+
+                case 0x56:
+                    dev->hwm_regs[dev->hwm_index] = val;
+                break;
+
+                case 0x57:
+                    dev->hwm_regs[dev->hwm_index] = val & 0xbf;
+                break;
+
+                case 0x59:
+                    dev->hwm_regs[dev->hwm_index] = val & 0x70;
+                break;
+
+                case 0x5a ... 0x5b:
+                    dev->hwm_regs[dev->hwm_index] = val;
+                break;
+
+                case 0x5c:
+                    dev->hwm_regs[dev->hwm_index] = val & 0x77;
+                break;
+            }
         break;
     }
 }
@@ -158,7 +250,63 @@ w83627hf_hwm_read(uint16_t addr, void *priv)
 {
     w83627hf_t *dev = (w83627hf_t *)priv;
 
-    return (addr == 0x296) ? dev->hwm_regs[dev->hwm_index] : dev->hwm_index;
+    switch(addr)
+    {
+        case 0x295:
+            return dev->hwm_index;
+
+        case 0x296:
+            switch(dev->hwm_index)
+            {
+                case 0x20 ... 0x3f:
+                case 0x60 ... 0x7f:
+                    switch(dev->hwm_index & 0x1f)
+                    {
+                        case 0x00: /* CPU Voltage (Mendocino Celerons have 2 Volts) */
+                            return 0x7f;
+
+                        case 0x01: /* VCOREB (+1.5V) */
+                            return 0x5f;
+
+                        case 0x02: /* +3.3V */
+                            return 0xd0;
+
+                        case 0x03: /* +5V */
+                            return 0xc0;
+
+                        case 0x04: /* +12V */
+                            return 0xc6;
+
+                        case 0x05: /* -12V */
+                            return 1;
+                        
+                        case 0x06: /* -5V */
+                            return 1;
+                        
+                        case 0x08 ... 0x0a: /* Fans */
+                            return 0x19;
+
+                        case 0x0b ... 0x1f:
+                            return dev->hwm_regs[dev->hwm_index & 0x1f];
+                    }
+
+                case 0x4f:
+                    if(dev->hwm_regs[0x4e] & 0x80)
+                        return 0x5c;
+                    else
+                        return 0xa3;
+
+                case 0x40 ... 0x4e:
+                case 0x50 ... 0x5c:
+                    return dev->hwm_regs[dev->hwm_index];
+
+                default:
+                    return 0xff;
+            }
+
+        default:
+            return 0xff;
+    }
 }
 
 static void
@@ -481,6 +629,8 @@ w83627hf_reset(void *priv)
     dev->dev_regs[7][0x70] = 9;
     dev->dev_regs[7][0xf0] = 0xff;
 
+    /* W83627HF Hardware Monitor */
+    w83627hf_hwm_reset(dev);
 }
 
 static void
