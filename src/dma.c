@@ -1136,7 +1136,7 @@ dma16_init(void)
 }
 
 void
-ich2_dma_alias_init(void)
+intel_ich2_dma_alias_set_init(void)
 {
     io_sethandler(0x1000, 16,
 		  dma_read,NULL,NULL, dma_write,NULL,NULL, NULL);

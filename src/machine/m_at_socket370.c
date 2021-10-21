@@ -485,6 +485,25 @@ machine_at_ich2_common_init(int lan, int pci_slots, const machine_t *model)
 }
 
 int
+machine_at_j815epda_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/j815epda/815EPAA2.BIN",
+			   0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_ich2_common_init(0, 5, model);
+
+    device_add(&w83627hf_device);
+    device_add(&intel_flash_bxt_device); /* Needs Intel or SST FWH */
+
+    return ret;
+}
+
+int
 machine_at_ms6337_init(const machine_t *model)
 {
     int ret;
@@ -497,7 +516,7 @@ machine_at_ms6337_init(const machine_t *model)
 
     machine_at_ich2_common_init(0, 6, model);
 
-    device_add(&w83627hf_device); /* Winbond W83627HF */
+    device_add(&w83627hf_device);
     device_add(&intel_flash_bxt_device); /* Needs Intel or SST FWH */
 
     return ret;

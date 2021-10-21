@@ -18,9 +18,9 @@
 
 /*
 
-Winbond W83627HF Register Summary for ISAPnP
+Winbond W83627HF Register Summary for ISAPnP (potentially)
 
-Based on: https://github.com/koitsu/bsdhwmon/issues/6
+Found on: https://github.com/koitsu/bsdhwmon/issues/6
 
 Register dump:
 idx 02 20 21 22 23 24 25 26  28 29 2a 2b 2c 2e 2f
@@ -103,7 +103,6 @@ Notes : ISAPnP is missing and the Hardware Monitor is not properly implemented
 
 #include <86box/sio.h>
 
-#define ENABLE_W83627HF_LOG 1
 #ifdef ENABLE_W83627HF_LOG
 int w83627hf_do_log = ENABLE_W83627HF_LOG;
 
@@ -451,7 +450,7 @@ w83627hf_uart_write(int uart, uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 
     if(dev->dev_regs[2 + uart][0x30] & 1)
     {
-        serial_setup(dev->uart[uart], (dev->dev_regs[1][0x60] << 8) | (dev->dev_regs[1][0x61]), dev->dev_regs[1][0x70]);
+        serial_setup(dev->uart[uart], (dev->dev_regs[2 + uart][0x60] << 8) | (dev->dev_regs[2 + uart][0x61]), dev->dev_regs[2 + uart][0x70]);
         serial_set_clock_src(dev->uart[uart], uart_clock);
         w83627hf_log("W83627HF-UART%s: BASE: %04x IRQ: %d\n", uart ? "B" : "A", (dev->dev_regs[2 + uart][0x60] << 8) | (dev->dev_regs[2 + uart][0x61]), dev->dev_regs[2 + uart][0x70]);
     }

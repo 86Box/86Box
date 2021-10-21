@@ -44,7 +44,7 @@
 #include <86box/usb.h>
 
 #include <86box/chipset.h>
-#define ENABLE_INTEL_ICH2_LOG 1
+
 #ifdef ENABLE_INTEL_ICH2_LOG
 int intel_ich2_do_log = ENABLE_INTEL_ICH2_LOG;
 
@@ -1066,7 +1066,7 @@ intel_ich2_init(const device_t *info)
 
     /* DMA */
     dma_alias_set_piix();
-    ich2_dma_alias_init();
+    intel_ich2_dma_alias_set_init();
 
     /* IDE */
     dev->ide_drive[0] = device_add_inst(&sff8038i_device, 1);

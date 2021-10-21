@@ -41,7 +41,7 @@
 
 
 int acpi_rtc_status = 0;
-#define ENABLE_ACPI_LOG 1
+
 #ifdef ENABLE_ACPI_LOG
 int acpi_do_log = ENABLE_ACPI_LOG;
 
@@ -952,6 +952,7 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 			else
 			{
 				sus_typ = (val >> 2) & 7;
+				acpi_log("ACPI: Entered Suspend Mode Type: %d\n", sus_typ);
 				switch (sus_typ) {
 					case 5:  /* Suspend to RAM. */
 						nvr_reg_write(0x000f, 0xff, dev->nvr);

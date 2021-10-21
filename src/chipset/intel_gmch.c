@@ -34,7 +34,7 @@
 #include <86box/smram.h>
 
 #include <86box/chipset.h>
-#define ENABLE_INTEL_GMCH_LOG 1
+
 #ifdef ENABLE_INTEL_GMCH_LOG
 int intel_gmch_do_log = ENABLE_INTEL_GMCH_LOG;
 
