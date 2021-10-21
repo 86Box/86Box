@@ -1779,12 +1779,25 @@ const device_t i440ex_device =
     NULL
 };
 
-
 const device_t i440bx_device =
 {
     "Intel 82443BX",
     DEVICE_PCI,
     0x8000 | INTEL_440BX,
+    i4x0_init, 
+    i4x0_close, 
+    i4x0_reset,
+    { NULL },
+    NULL,
+    NULL,
+    NULL
+};
+
+const device_t i440bx_no_agp_device =
+{
+    "Intel 82443BX",
+    DEVICE_PCI,
+    0x8200 | INTEL_440BX,
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
