@@ -1503,7 +1503,7 @@ static void
 
 		regs[0x02] = (regs[0x7a] & 0x02) ? 0x92 : 0x90; regs[0x03] = 0x71;	/* 82443BX */
 		regs[0x06] = (regs[0x7a] & 0x02) ? 0x00 : 0x10;
-		regs[0x08] = 0x02;
+		regs[0x08] = (regs[0x7a] & 0x02) ? 0x03 : 0x02;
 		regs[0x10] = 0x08;
 		regs[0x34] = (regs[0x7a] & 0x02) ? 0x00 : 0xa0;
 		if (cpu_busspeed <= 66666667)
@@ -1775,12 +1775,25 @@ const device_t i440ex_device =
     NULL
 };
 
-
 const device_t i440bx_device =
 {
     "Intel 82443BX",
     DEVICE_PCI,
     0x8000 | INTEL_440BX,
+    i4x0_init, 
+    i4x0_close, 
+    i4x0_reset,
+    { NULL },
+    NULL,
+    NULL,
+    NULL
+};
+
+const device_t i440bx_no_agp_device =
+{
+    "Intel 82443BX",
+    DEVICE_PCI,
+    0x8200 | INTEL_440BX,
     i4x0_init, 
     i4x0_close, 
     i4x0_reset,
