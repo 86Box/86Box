@@ -455,6 +455,9 @@ dma_sg_int_status_read(uint16_t addr, void *priv)
 static uint8_t
 dma_read(uint16_t addr, void *priv)
 {
+    if(addr >= 0x1000) /* ICH2 Alias to Proper */
+	addr = addr - ((addr >= 0x1100) ? 0x1100 : 0x1000);
+
     int channel = (addr >> 1) & 3;
     uint8_t temp;
 
@@ -487,7 +490,8 @@ dma_read(uint16_t addr, void *priv)
 		return(temp);
 
 	case 0xd: /*Temporary register*/
-		return(0);
+	case 0xe:
+		return(0xff);
     }
 
     return(dmaregs[0][addr & 0xf]);
@@ -497,6 +501,9 @@ dma_read(uint16_t addr, void *priv)
 static void
 dma_write(uint16_t addr, uint8_t val, void *priv)
 {
+    if(addr >= 0x1000) /* ICH2 Alias to Proper */
+	addr = addr - ((addr >= 0x1100) ? 0x1100 : 0x1000);
+
     int channel = (addr >> 1) & 3;
 
     dmaregs[0][addr & 0xf] = val;
@@ -748,6 +755,9 @@ dma_ps2_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 dma16_read(uint16_t addr, void *priv)
 {
+    if(addr >= 0x1000) /* ICH2 Alias to Proper */
+	addr = addr - ((addr >= 0x1100) ? 0x1100 : 0x1000);
+
     int channel = ((addr >> 2) & 3) + 4;
     uint8_t temp;
 
@@ -792,6 +802,9 @@ dma16_read(uint16_t addr, void *priv)
 static void
 dma16_write(uint16_t addr, uint8_t val, void *priv)
 {
+    if(addr >= 0x1000) /* ICH2 Alias to Proper */
+	addr = addr - ((addr >= 0x1100) ? 0x1100 : 0x1000);
+
     int channel = ((addr >> 2) & 3) + 4;
     addr >>= 1;
 
@@ -889,6 +902,9 @@ dma16_write(uint16_t addr, uint8_t val, void *priv)
 static void
 dma_page_write(uint16_t addr, uint8_t val, void *priv)
 {
+    if(addr >= 0x1000) /* ICH2 Alias to Proper */
+	addr = addr - ((addr >= 0x1100) ? 0x1100 : 0x1000);
+
     uint8_t convert[8] = CHANNELS;
 
     if ((addr == 0x84) && cpu_use_dynarec)
@@ -921,6 +937,9 @@ dma_page_write(uint16_t addr, uint8_t val, void *priv)
 static uint8_t
 dma_page_read(uint16_t addr, void *priv)
 {
+    if(addr >= 0x1000) /* ICH2 Alias to Proper */
+	addr = addr - ((addr >= 0x1100) ? 0x1100 : 0x1000);
+
     uint8_t convert[8] = CHANNELS;
     uint8_t ret = 0xff;
 

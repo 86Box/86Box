@@ -57,6 +57,7 @@ intel_gmch_log(const char *fmt, ...)
 typedef struct intel_gmch_t
 {
 
+    int is_agp;
 	uint8_t pci_conf[256];
     smram_t	*low_smram;
     smram_t *upper_smram_hseg;
@@ -235,8 +236,8 @@ intel_gmch_write(int func, int addr, uint8_t val, void *priv)
                     dev->pci_conf[addr] = val;
             break; 
 
-            case 0x50: /* DRAM Speed. We fake it at 133Mhz */
-                dev->pci_conf[addr] = (val & 0xdc) | 4;
+            case 0x50:
+                dev->pci_conf[addr] = val & 0xdc;
             break;
 
             case 0x51:
@@ -430,6 +431,9 @@ intel_gmch_init(const device_t *info)
     cpu_cache_ext_enabled = 1;
     cpu_update_waitstates();
 
+    /* i815EP */
+    dev->is_agp = info->local;
+
     /* SMRAM */
     dev->upper_smram_tseg = smram_add(); /* SMRAM High TSEG */
     dev->upper_smram_hseg = smram_add(); /* SMRAM High HSEG */
@@ -440,9 +444,8 @@ intel_gmch_init(const device_t *info)
     return dev;
 }
 
-
 const device_t intel_gmch_device = {
-    "Intel i815 (GMCH) Chipset",
+    "Intel i815EP (GMCH) Chipset",
     DEVICE_PCI,
     0,
     intel_gmch_init, intel_gmch_close, intel_gmch_reset,

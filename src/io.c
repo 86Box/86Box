@@ -58,7 +58,6 @@ typedef struct {
 int initialized = 0;
 io_t *io[NPORTS], *io_last[NPORTS];
 
-
 #ifdef ENABLE_IO_LOG
 int io_do_log = ENABLE_IO_LOG;
 

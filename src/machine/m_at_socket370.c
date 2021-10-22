@@ -463,25 +463,30 @@ machine_at_ich2_common_init(int lan, int pci_slots, const machine_t *model)
     machine_at_common_init_ex(model, 2);
 
     pci_init(PCI_CONFIG_TYPE_1);
+
+    /* Proper Devices */
     pci_register_bus_slot(0, 0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0); /* i815 NB  */
-    pci_register_bus_slot(0, 0x1e, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4); /* ICH2 Hub */
     pci_register_bus_slot(0, 0x1f, PCI_CARD_SOUTHBRIDGE, 1, 2, 8, 4); /* ICH2 LPC */
 
+    /* Bridges */
+    pci_register_bus_slot(0, 0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4); /* AGP Bridge */
+    pci_register_bus_slot(0, 0x1e, PCI_CARD_BRIDGE,      1, 2, 3, 4); /*  ICH2 Hub  */
+
+    /* Internal LAN */
     if(lan) /* ICH2 LAN */
     pci_register_bus_slot(1, 0x08, PCI_CARD_NETWORK,     5, 6, 7, 8);
 
-    if((pci_slots >= 1) && (pci_slots < 8))
-        for(int i = 0; i < pci_slots; i++)
-            pci_register_bus_slot(2, i, PCI_CARD_NORMAL, (i % 4) + 1, ((i + 1) % 4) + 1, ((i + 2) % 4) + 1, ((i + 3) % 4) + 1);
+    /* ICH2 HUB Bridge Bus Masters(The PCI Slots) */
+    intel_ich2_pci_slot_number(pci_slots);
 
-    pci_register_bus_slot(0, 0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4); /* AGP Bridge */
-
-    device_add(&intel_gmch_device); /* Intel i815 GMCH */
+    /* Intel i815EP GMCH */
+    device_add(&intel_gmch_device);
 
     if(lan)
         device_add(&intel_ich2_device); /* Intel ICH2 */
     else
         device_add(&intel_ich2_no_lan_device); /* Intel ICH2 Without LAN */
+
 }
 
 int
@@ -498,26 +503,33 @@ machine_at_j815epda_init(const machine_t *model)
     machine_at_ich2_common_init(0, 5, model);
 
     device_add(&w83627hf_device);
+    w83627hf_stabilizer(0x7a, /* CPU Voltage (Mendocino's are utilizing 2 Volts ) */
+                        0x6f, /* 1.8V Rail */
+                        0x1c,    /* FAN 2 */
+                        0x1e,    /* FAN 3 */
+                        0x1d     /* FAN 1 */
+    );
+
     device_add(&intel_flash_bxt_device); /* Needs Intel or SST FWH */
 
     return ret;
 }
 
 int
-machine_at_ms6337_init(const machine_t *model)
+machine_at_olympusii_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/ms6337/W6337IMS.330",
-			   0x000c0000, 262144, 0);
+    ret = bios_load_linear("roms/machines/olympusii/S821P.ROM",
+			   0x00080000, 524288, 0);
 
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_ich2_common_init(0, 6, model);
+    machine_at_ich2_common_init(0, 3, model);
 
     device_add(&w83627hf_device);
-    device_add(&intel_flash_bxt_device); /* Needs Intel or SST FWH */
+    device_add(&sst_flash_39sf040_device); /* Needs Intel or SST FWH */
 
     return ret;
 }

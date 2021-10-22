@@ -71,7 +71,7 @@ typedef struct intel_ich2_t
 	uint8_t lan_conf[256], hub_conf[256], lpc_conf[7][256], gpio_space[64];
     int gpio_base, lan;
 
-    int lpc_slot;
+    int hub_slot, lpc_slot;
     acpi_t *acpi;
     nvr_t *nvr;
     sff8038i_t *ide_drive[2];
@@ -153,6 +153,33 @@ intel_ich2_lan_read(int func, int addr, void *priv)
     else return 0xff;
 }
 
+int bus, ich2_pci_slots;
+
+void
+intel_ich2_pci_slot_number(int slots)
+{
+    ich2_pci_slots = slots;
+}
+
+static void
+intel_ich2_pci_bus_masters(intel_ich2_t *dev)
+{
+    bus = pci_register_bus();
+
+    uint8_t irq_routings[4];
+    uint8_t mask = sizeof(irq_routings) - 1;
+
+    if(dev->hub_slot < 32)
+        for(int i = 0; i < sizeof(irq_routings); i++)
+            irq_routings[i] = pci_get_int(dev->hub_slot, PCI_INTA + i);
+    
+    if((ich2_pci_slots >= 1) && (ich2_pci_slots < 8))
+    {
+        for(int i = 0; i < ich2_pci_slots; i++)
+            pci_register_bus_slot(bus, i, PCI_CARD_NORMAL, irq_routings[i & mask], irq_routings[(i + 1) & mask], irq_routings[(i + 2) & mask], irq_routings[(i + 3) & mask]);
+    }
+}
+
 static void
 intel_ich2_hub_write(int func, int addr, uint8_t val, void *priv)
 {
@@ -183,7 +210,12 @@ intel_ich2_hub_write(int func, int addr, uint8_t val, void *priv)
                 dev->hub_conf[addr] = val;
                 break;
 
-            case 0x19 ... 0x1a:
+            case 0x19:
+                dev->hub_conf[addr] = val;
+                pci_remap_bus(bus, val);
+                break;
+
+            case 0x1a:
                 dev->hub_conf[addr] = val;
                 break;
 
@@ -322,10 +354,14 @@ intel_ich2_gpio(intel_ich2_t *dev)
 static void
 intel_ich2_pirq_routing(int enabled, int cur_reg, int irq, intel_ich2_t *dev)
 {
-    if(enabled)
+    if(!enabled) {
         pci_set_irq_routing(cur_reg, irq);
-    else
+        intel_ich2_log("Intel ICH2-PIRQ: Assigning IRQ: %d, on PIRQ %d\n", irq, cur_reg);
+    }
+    else {
         pci_set_irq_routing(cur_reg, PCI_IRQ_DISABLED);
+        intel_ich2_log("Intel ICH2-PIRQ: PIRQ %d Disabled\n", cur_reg);
+    }
 }
 
 static void
@@ -479,7 +515,7 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x60 ... 0x63: /* PCI IRQ Routing INT A-D */
                 dev->lpc_conf[func][addr] = val & 0x8f;
-                intel_ich2_pirq_routing(val & 0x80, addr - 0x60, val & 0x0f, dev);
+                intel_ich2_pirq_routing(val & 0x80, addr - 0x5f, val & 0x0f, dev);
             break;
 
             case 0x64:
@@ -488,7 +524,7 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x68 ... 0x6b: /* PCI IRQ Routing E-H */
                 dev->lpc_conf[func][addr] = val;
-                intel_ich2_pirq_routing(val & 0x80, addr - 0x64, val & 0x0f, dev);
+                intel_ich2_pirq_routing(val & 0x80, addr - 0x63, val & 0x0f, dev);
             break;
 
             case 0x88:
@@ -1057,7 +1093,7 @@ intel_ich2_init(const device_t *info)
     memset(dev, 0, sizeof(intel_ich2_t));
 
     /* Devices */
-    pci_add_card(PCI_ADD_SOUTHBRIDGE, intel_ich2_hub_read, intel_ich2_hub_write, dev);                 /* Bus 0: Device 30: HUB */
+    dev->hub_slot = pci_add_card(PCI_ADD_BRIDGE, intel_ich2_hub_read, intel_ich2_hub_write, dev);                 /* Bus 0: Device 30: HUB */
     dev->lpc_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, intel_ich2_lpc_read, intel_ich2_lpc_write, dev); /* Bus 0: Device 31: LPC */
 
     /* ACPI */
@@ -1067,6 +1103,9 @@ intel_ich2_init(const device_t *info)
     /* DMA */
     dma_alias_set_piix();
     intel_ich2_dma_alias_set_init();
+
+    /* Hub Setup */
+    intel_ich2_pci_bus_masters(dev);
 
     /* IDE */
     dev->ide_drive[0] = device_add_inst(&sff8038i_device, 1);

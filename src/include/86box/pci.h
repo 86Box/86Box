@@ -127,6 +127,8 @@ extern void	trc_write(uint16_t port, uint8_t val, void *priv);
 
 extern void	pci_bridge_set_ctl(void *priv, uint8_t ctl);
 
+/* ICH2 Specific Configuration */
+extern void intel_ich2_pci_slot_number(int slots);
 
 #ifdef EMU_DEVICE_H
 extern const device_t dec21150_device;

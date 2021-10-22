@@ -101,8 +101,9 @@ Notes : ISAPnP is missing and the Hardware Monitor is not properly implemented
 #include <86box/port_92.h>
 #include <86box/serial.h>
 
+#include <86box/hwm.h>
 #include <86box/sio.h>
-
+#define ENABLE_W83627HF_LOG 1
 #ifdef ENABLE_W83627HF_LOG
 int w83627hf_do_log = ENABLE_W83627HF_LOG;
 
@@ -134,6 +135,19 @@ typedef struct
     port_92_t *port_92;
     serial_t *uart[2];
 } w83627hf_t;
+
+/* These differ per board and must be programmed manually */
+int fan1_rpm, fan2_rpm, fan3_rpm, vcorea_voltage, vcoreb_voltage;
+
+void
+w83627hf_stabilizer(int vcorea, int vcoreb, int fan1, int fan2, int fan3)
+{
+    vcorea_voltage = vcorea;
+    vcoreb_voltage = vcoreb;
+    fan1_rpm = fan1;
+    fan2_rpm = fan2;
+    fan3_rpm = fan3;
+}
 
 static void
 w83627hf_hwm_reset(w83627hf_t *dev)
@@ -261,29 +275,35 @@ w83627hf_hwm_read(uint16_t addr, void *priv)
                 case 0x60 ... 0x7f:
                     switch(dev->hwm_index & 0x1f)
                     {
-                        case 0x00: /* CPU Voltage (Mendocino Celerons have 2 Volts) */
-                            return 0x7f;
+                        case 0x00: /* VCOREA */
+                            return vcorea_voltage;
 
-                        case 0x01: /* VCOREB (+1.5V) */
-                            return 0x5f;
+                        case 0x01: /* VCOREB */
+                            return vcoreb_voltage;
 
                         case 0x02: /* +3.3V */
                             return 0xd0;
 
                         case 0x03: /* +5V */
-                            return 0xc0;
+                            return 0xb9;
 
                         case 0x04: /* +12V */
-                            return 0xc6;
+                            return 0xc4;
 
                         case 0x05: /* -12V */
-                            return 1;
+                            return 0x23;
                         
                         case 0x06: /* -5V */
-                            return 1;
+                            return 0x34;
                         
-                        case 0x08 ... 0x0a: /* Fans */
-                            return 0x19;
+                        case 0x08: /* Fan 1 */
+                            return fan1_rpm;
+
+                        case 0x09: /* Fan 2 */
+                            return fan2_rpm;
+
+                        case 0x0a: /* Fan 3 */
+                            return fan3_rpm;
 
                         case 0x0b ... 0x1f:
                             return dev->hwm_regs[dev->hwm_index & 0x1f];
@@ -780,6 +800,9 @@ w83627hf_init(const device_t *info)
 
     /* Floppy Disk Controller */
     dev->fdc_controller = device_add(&fdc_at_smc_device);
+
+    /* Hardware Monitor */
+    fan1_rpm = fan2_rpm = fan3_rpm = vcorea_voltage = vcoreb_voltage = 0;
 
     /* Keyboard Controller (Based on AMIKEY-2) */
     /* Note: The base addresses and IRQ's of the Keyboard & PS/2 Mouse are remappable. Due to 86Box limitations we can't do that just yet */

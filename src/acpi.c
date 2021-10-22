@@ -944,29 +944,17 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 	case 0x04: case 0x05:
 		/* PMCNTRL - Power Management Control Register (IO) */
 		if ((addr == 0x05) && !!(val & 0x20)) {
-			if(dev->regs.smi_en & 0x00000020) /* ICH2 Sleep SMI */
-			{
-				dev->regs.smi_sts |= 0x00000010; /* SMI was provoked by the Sleep Register while Sleep SMI is on */
-				acpi_raise_smi(dev, 1);
-			}
-			else
-			{
 				sus_typ = (val >> 2) & 7;
 				acpi_log("ACPI: Entered Suspend Mode Type: %d\n", sus_typ);
+				if(dev->regs.smi_en & 0x00000010) {
+					acpi_log("ACPI: Sleep SMI provoked Instead!");
+					dev->regs.smi_en |= 0x00000010;
+					acpi_raise_smi(dev, 1);
+				}
+				else {
 				switch (sus_typ) {
 					case 5:  /* Suspend to RAM. */
 						nvr_reg_write(0x000f, 0xff, dev->nvr);
-
-					case 6: /* Suspend to Disk. */
-						/* Do a hard reset. Same as PIIX4 */
-						device_reset_all_pci();
-						cpu_alt_reset = 0;
-						pci_reset();
-						keyboard_at_reset();
-						mem_a20_alt = 0;
-						mem_a20_recalc();
-						flushmmucache();
-						resetx86();
 						break;
 					case 7:
 						/* Soft Power Off. */
@@ -976,8 +964,9 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 						dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c05;
 						break;
 				}
+				dev->regs.pmsts |= 0x8000; /* Get a Wake Up Even Immediately */
+				}
 			}
-		}
 		else
 			dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c05;
 
