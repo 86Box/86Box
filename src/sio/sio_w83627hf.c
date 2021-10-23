@@ -126,7 +126,11 @@ w83627hf_log(const char *fmt, ...)
 
 typedef struct
 {
-    uint8_t hwm_index, hwm_regs[256];
+    uint8_t hwm_index, hwm_regs[256], vtin2_regs[5], vtin3_regs[5];
+
+    int i2c_vtin2_index, i2c_vtin2_on_index; /* VTIN2 I2C Handler */
+    int i2c_vtin3_index, i2c_vtin3_on_index; /* VTIN2 I2C Handler */
+
 
     uint8_t	index, cfg_unlocked,
 		    regs[48], dev_regs[12][256];
@@ -167,6 +171,175 @@ w83627hf_hwm_reset(w83627hf_t *dev)
     dev->hwm_regs[0x5a] = 0xff;
     dev->hwm_regs[0x5b] = 0xff;
     dev->hwm_regs[0x5c] = 0x11;
+}
+
+static uint8_t
+w83627hf_i2c_vtin2_start(void *bus, uint8_t addr, uint8_t read, void *priv)
+{
+    w83627hf_t *dev = (w83627hf_t *) priv;
+
+    dev->i2c_vtin2_on_index = 0;
+
+    return 1;
+}
+
+static uint8_t
+w83627hf_i2c_vtin2_write(void *bus, uint8_t addr, uint8_t val, void *priv)
+{
+    w83627hf_t *dev = (w83627hf_t *) priv;
+
+    if(dev->i2c_vtin2_on_index == 0)
+    {
+        dev->i2c_vtin2_index = val;
+        dev->i2c_vtin2_on_index = 1;
+    }
+    else
+    {
+        switch(dev->i2c_vtin2_index)
+        {
+            case 0x52:
+                dev->vtin2_regs[dev->i2c_vtin2_index - 0x52] = val & 0x1b;
+            break;
+
+            case 0x53:
+                dev->vtin2_regs[dev->i2c_vtin2_index - 0x52] = val;
+            break;
+
+            case 0x54:
+                dev->vtin2_regs[dev->i2c_vtin2_index - 0x52] = val & 0x80;
+            break;
+
+            case 0x55 ... 0x56:
+                dev->vtin2_regs[dev->i2c_vtin2_index - 0x52] = val;
+            break;
+        }
+
+        dev->i2c_vtin2_on_index = 0;
+    }
+
+    return 1;
+}
+
+static uint8_t
+w83627hf_i2c_vtin2_read(void *bus, uint8_t addr, void *priv)
+{
+    w83627hf_t *dev = (w83627hf_t *) priv;
+
+    if(dev->i2c_vtin2_on_index == 1) {
+        switch(dev->i2c_vtin2_index)
+        {
+            case 0x50:
+                return 0x32;
+            
+            case 0x51:
+                return 0;
+
+            case 0x52 ... 0x56:
+                return dev->vtin2_regs[dev->i2c_vtin2_index - 0x52];
+
+            default:
+                return 0xff;
+        }
+
+        dev->i2c_vtin2_on_index = 0;
+    }
+    else
+        return 0xff;
+
+}
+
+void
+w83627hf_i2c_vtin2_remap(w83627hf_t *dev, int enable, uint8_t addr)
+{
+	i2c_sethandler(i2c_smbus, 0x90 | (addr & 7), 1, w83627hf_i2c_vtin2_start, w83627hf_i2c_vtin2_read, w83627hf_i2c_vtin2_write, NULL, dev); /* Add a VTIN2 I2C */
+
+    if(!enable)
+	i2c_removehandler(i2c_smbus, 0x90 | (addr & 7), 1, w83627hf_i2c_vtin2_start, w83627hf_i2c_vtin2_read, w83627hf_i2c_vtin2_write, NULL, dev); /* Remove a VTIN2 I2C if disabled */
+
+    w83627hf_log("W83627-VTIN2: ADDR: %02x ENABLED: %01d\n", 0x90 | (addr & 7), enable);
+}
+
+static uint8_t
+w83627hf_i2c_vtin3_start(void *bus, uint8_t addr, uint8_t read, void *priv)
+{
+    w83627hf_t *dev = (w83627hf_t *) priv;
+
+    dev->i2c_vtin3_on_index = 0;
+
+    return 1;
+}
+
+static uint8_t
+w83627hf_i2c_vtin3_write(void *bus, uint8_t addr, uint8_t val, void *priv)
+{
+    w83627hf_t *dev = (w83627hf_t *) priv;
+
+    if(dev->i2c_vtin3_on_index == 0)
+    {
+        dev->i2c_vtin3_index = val;
+        dev->i2c_vtin3_on_index = 1;
+    }
+    else
+    {
+        switch(dev->i2c_vtin3_index)
+        {
+            case 0x52:
+                dev->vtin3_regs[dev->i2c_vtin3_index - 0x52] = val & 0x1b;
+            break;
+
+            case 0x53:
+                dev->vtin3_regs[dev->i2c_vtin3_index - 0x52] = val;
+            break;
+
+            case 0x54:
+                dev->vtin3_regs[dev->i2c_vtin3_index - 0x52] = val & 0x80;
+            break;
+
+            case 0x55 ... 0x56:
+                dev->vtin3_regs[dev->i2c_vtin3_index - 0x52] = val;
+            break;
+        }
+
+        dev->i2c_vtin3_on_index = 0;
+    }
+
+    return 1;
+}
+
+static uint8_t
+w83627hf_i2c_vtin3_read(void *bus, uint8_t addr, void *priv)
+{
+    w83627hf_t *dev = (w83627hf_t *) priv;
+
+    if(dev->i2c_vtin3_on_index == 1) {
+        switch(dev->i2c_vtin3_index)
+        {
+            case 0x50:
+                return 0x32;
+
+            case 0x52 ... 0x56:
+                return dev->vtin3_regs[dev->i2c_vtin3_index - 0x52];
+
+            default:
+                return 0xff;
+        }
+
+        dev->i2c_vtin3_on_index = 0;
+    }
+    else
+        return 0xff;
+
+}
+
+void
+w83627hf_i2c_vtin3_remap(w83627hf_t *dev, int enable, uint8_t addr)
+{
+	i2c_sethandler(i2c_smbus, 0x90 | (addr & 7), 1, w83627hf_i2c_vtin3_start, w83627hf_i2c_vtin3_read, w83627hf_i2c_vtin3_write, NULL, dev); /* Add a VTIN3 I2C */
+
+    if(!enable)
+	i2c_removehandler(i2c_smbus, 0x90 | (addr & 7), 1, w83627hf_i2c_vtin3_start, w83627hf_i2c_vtin3_read, w83627hf_i2c_vtin3_write, NULL, dev); /* Remove a VTIN3 I2C if disabled */
+
+    w83627hf_log("W83627-VTIN3: ADDR: %02x ENABLED: %01d\n", 0x90 | (addr & 7), enable);
 }
 
 static void
@@ -216,6 +389,8 @@ w83627hf_hwm_write(uint16_t addr, uint8_t val, void *priv)
 
                 case 0x4a:
                     dev->hwm_regs[dev->hwm_index] = val;
+                    w83627hf_i2c_vtin2_remap(dev, !!(addr & 8), addr & 7);
+                    w83627hf_i2c_vtin3_remap(dev, !!(addr & 0x80), (addr >> 4) & 7);
                 break;
 
                 case 0x4b:
@@ -583,6 +758,101 @@ w83627hf_watchdog_timer_gpio2_write(uint16_t cur_reg, uint8_t val, w83627hf_t *d
 }
 
 static void
+w83627hf_gpio3_vsb_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
+{
+    /* Unimplemented Functionality */
+    switch(cur_reg)
+    {
+        case 0x30:
+            dev->dev_regs[9][cur_reg] = val & 1;
+        break;
+
+        case 0xf0 ... 0xf2:
+            dev->dev_regs[9][cur_reg] = val;
+        break;
+
+        case 0xf3:
+            dev->dev_regs[9][cur_reg] = val & 0xc0;
+        break;
+    }
+}
+
+static void
+w83627hf_acpi_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
+{
+    switch(cur_reg)
+    {
+        case 0x30:
+            dev->dev_regs[0x0a][cur_reg] = val & 1;
+        break;
+
+        case 0x70:
+            dev->dev_regs[0x0a][cur_reg] = val & 0x0f;
+        break;
+
+        case 0xe0:
+            dev->dev_regs[0x0a][cur_reg] = val & 0xc0;
+        break;
+
+        case 0xe1 ... 0xe2:
+            dev->dev_regs[0x0a][cur_reg] = val;
+        break;
+
+        case 0xe4:
+            dev->dev_regs[0x0a][cur_reg] = val & 0xfc;
+        break;
+
+        case 0xe5 ... 0xe6:
+            dev->dev_regs[0x0a][cur_reg] = val & 0x7f;
+
+            if(cur_reg == 0xe6)
+                if(val & 0x40)
+                    dev->hwm_regs[0x42] &= 0x10;
+        break;
+
+        case 0xe7:
+            dev->dev_regs[0x0a][cur_reg] = val & 0x0f;
+        break;
+
+        case 0xf0:
+            dev->dev_regs[0x0a][cur_reg] = val;
+        break;
+
+        case 0xf1:
+            dev->dev_regs[0x0a][cur_reg] = val & 0xef;
+        break;
+
+        case 0xf3 ... 0xf4:
+            dev->dev_regs[0x0a][cur_reg] &= val & 0x3f;
+        break;
+
+        case 0xf5:
+        case 0xf7:
+            dev->dev_regs[0x0a][cur_reg] = val & 0x3f;
+        break;
+    }
+}
+
+static void
+w83627hf_hwm_lpc_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
+{
+    switch(cur_reg)
+    {
+        case 0x30:
+            dev->dev_regs[0x0b][cur_reg] = val & 1;
+        break;
+
+        case 0x70:
+            dev->dev_regs[0x0b][cur_reg] = val & 0x0f;
+        break;
+
+        case 0xf0:
+            dev->dev_regs[0x0b][cur_reg] = val & 1;
+        break;
+    }
+}
+
+static void
 w83627hf_reset(void *priv)
 {
     w83627hf_t *dev = (w83627hf_t *)priv;
@@ -648,8 +918,12 @@ w83627hf_reset(void *priv)
     dev->dev_regs[7][0x70] = 9;
     dev->dev_regs[7][0xf0] = 0xff;
 
+    /* GPIO3, VSB */
+    dev->dev_regs[9][0xf0] = 0xff;
+
     /* W83627HF Hardware Monitor */
     w83627hf_hwm_reset(dev);
+    w83627hf_i2c_vtin2_remap(dev, 0, 1);
 }
 
 static void
@@ -716,13 +990,9 @@ w83627hf_write(uint16_t addr, uint8_t val, void *priv)
 
                     case 0x30: /* Device Specific Registers */
                     case 0x60 ... 0x63:
-                    case 0x70:
-                    case 0x72:
-                    case 0x74:
-                    case 0xf0:
-                    case 0xf1:
-                    case 0xf2:
-                    case 0xf4 ... 0xf5:
+                    case 0x70: case 0x72:case 0x74:
+                    case 0xe0 ... 0xe7:
+                    case 0xf0 ... 0xf6:
                         switch(dev->regs[7])
                         {
                             case 0: /* FDC */
@@ -742,16 +1012,28 @@ w83627hf_write(uint16_t addr, uint8_t val, void *priv)
                                 w83627hf_kbc_write(dev->index, val, dev);
                             break;
 
-                            case 6:
+                            case 6: /* CIR */
                                 w83627hf_cir_write(dev->index, val, dev);
                             break;
 
-                            case 7:
+                            case 7: /* GAMEPORT, MIDI & GPIO1 */
                                 w83627hf_gameport_midi_gpio1_write(dev->index, val, dev);
                             break;
 
-                            case 8:
+                            case 8: /* WATCHDOG TIMER & GPIO2 */
                                 w83627hf_watchdog_timer_gpio2_write(dev->index, val, dev);
+                            break;
+
+                            case 9: /* GPIO3 & VSB */
+                                w83627hf_gpio3_vsb_write(dev->index, val, dev);
+                            break;
+
+                            case 0x0a: /* ACPI */
+                                w83627hf_acpi_write(dev->index, val, dev);
+                            break;
+
+                            case 0x0b: /* HWM LPC */
+                                w83627hf_hwm_lpc_write(dev->index, val, dev);
                             break;
 
                             default:
@@ -772,7 +1054,7 @@ w83627hf_read(uint16_t addr, void *priv)
 
     if((dev->index >= 0x00) && (dev->index <= 0x2f))
         return dev->regs[dev->index];
-    else if((dev->index >= 0x30) && (dev->index <= 0xff) && (dev->regs[7] >= 0) && (dev->regs[7] <= 9))
+    else if((dev->index >= 0x30) && (dev->index <= 0xff) && (dev->regs[7] >= 0) && (dev->regs[7] <= 0x0b))
         return dev->dev_regs[dev->regs[7]][dev->index];
     else
         return 0xff;
