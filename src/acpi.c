@@ -946,60 +946,59 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 		if ((addr == 0x05) && !!(val & 0x20)) {
 			sus_typ = dev->suspend_types[(val >> 2) & 7];
 			acpi_log("ACPI: Entered Suspend Mode Type: %d\n", sus_typ);
-		if(dev->regs.smi_en & 0x00000010) { /* ICH2 SLEEP SMI */
-			acpi_log("ACPI: Sleep SMI provoked Instead!");
-			dev->regs.smi_sts |= 0x00000010;
-			acpi_raise_smi(dev, 1);
-		}
-		else {
-			if (sus_typ & SUS_POWER_OFF) {
-			/* Soft power off. */
-			plat_power_off();
-			return;
+
+			if(dev->regs.smi_en & 0x00000010) { /* ICH2 SLEEP SMI */
+				acpi_log("ACPI: Sleep SMI provoked Instead!");
+				dev->regs.smi_sts |= 0x00000010;
+				acpi_raise_smi(dev, 1);
 			}
-
-			if (sus_typ & SUS_SUSPEND) {
-			if (sus_typ & SUS_NVR) {
-				/* Suspend to RAM. */
-				nvr_reg_write(0x000f, 0xff, dev->nvr);
-			}
-
-			if (sus_typ & SUS_RESET_PCI)
-				device_reset_all_pci();
-
-			if (sus_typ & SUS_RESET_CPU)
-				cpu_alt_reset = 0;
-
-			if (sus_typ & SUS_RESET_PCI) {
-				pci_reset();
-				keyboard_at_reset();
-
-				mem_a20_alt = 0;
-				mem_a20_recalc();
-			}
-
-			if (sus_typ & (SUS_RESET_CPU | SUS_RESET_CACHE))
-				flushmmucache();
-
-			if (sus_typ & SUS_RESET_CPU)
-				resetx86();
-
-			/* Since the UI doesn't have a power button at the moment, pause emulation,
-			then trigger a resume event so that the system resumes after unpausing. */
-			plat_pause(1);
-			timer_set_delay_u64(&dev->resume_timer, 50 * TIMER_USEC);
-		}
-
-				dev->regs.pmsts |= 0x8000; /* Get a Wake Up Event Immediately */
+			else {
+				if (sus_typ & SUS_POWER_OFF) {
+				/* Soft power off. */
+				plat_power_off();
+				return;
 				}
-		}
-		else dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c05;
 
-		if((addr == 4) && !!(val & 4) && !!(dev->regs.smi_en & 4)) /* ICH2 BIOS SMI */
+				if (sus_typ & SUS_SUSPEND) {
+
+					if (sus_typ & SUS_NVR) {
+						/* Suspend to RAM. */
+						nvr_reg_write(0x000f, 0xff, dev->nvr);
+					}
+
+					if (sus_typ & SUS_RESET_PCI)
+						device_reset_all_pci();
+
+					if (sus_typ & SUS_RESET_CPU)
+						cpu_alt_reset = 0;
+
+					if (sus_typ & SUS_RESET_PCI) {
+						pci_reset();
+						keyboard_at_reset();
+
+						mem_a20_alt = 0;
+						mem_a20_recalc();
+					}
+
+					if (sus_typ & SUS_RESET_CPU)
+						resetx86();
+
+					/* Since the UI doesn't have a power button at the moment, pause emulation,
+					then trigger a resume event so that the system resumes after unpausing. */
+					plat_pause(1);
+					timer_set_delay_u64(&dev->resume_timer, 50 * TIMER_USEC);
+				}
+			}
+		}
+
+		if((addr == 4) && !!(val & 4) && !!(dev->regs.smi_en & 4))
 		{
 			dev->regs.smi_sts |= 4;
 			acpi_raise_smi(dev, 1);
+			acpi_update_irq(dev);
 		}
+
+		dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c05;
 		break;
 
 	case 0x10: case 0x11: case 0x13:
@@ -1037,7 +1036,7 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 		dev->apm->do_smi = (addr == 0x30) && !!(val & 0x20); /* ICH2 APM SMI */
 
 		if((addr == 0x30) && !!(val & 0x80)) /* ICH2 BIOS_RLS SCI */
-			acpi_update_irq(dev);
+			dev->regs.pmsts |= 0x0020;
 
 		break;
 
@@ -1151,11 +1150,11 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 
 	default:
 		acpi_reg_write_common_regs(size, addr, val, p);
-		/* Setting GBL_RLS also sets BIOS_STS and generates SMI. */
-		if ((addr == 0x00) && !(dev->regs.pmsts & 0x20))
-			dev->regs.monsmi &= ~0x00000080;
-		break;
 
+		if(((addr == 0x02) & !!(val & 0x20)) && !!(dev->regs.pmsts & 0x0020)) /* ICH2 BIOS SMI */
+			acpi_update_irq(dev);
+
+		break;
     }
 }
 

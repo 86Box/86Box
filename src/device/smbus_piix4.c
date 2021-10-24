@@ -106,9 +106,14 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
     dev->next_stat = 0x00;
     switch (addr - dev->io_base) {
 	case 0x00:
-		for (smbus_addr = 0x02; smbus_addr <= 0x10; smbus_addr <<= 1) { /* handle clearable bits */
-			if (val & smbus_addr)
-				dev->stat &= ~smbus_addr;
+		if(dev->local == SMBUS_ICH2)
+			dev->stat &= ~val;
+		else
+		{
+			for (smbus_addr = 0x02; smbus_addr <= 0x10; smbus_addr <<= 1) { /* handle clearable bits */
+				if (val & smbus_addr)
+					dev->stat &= ~smbus_addr;
+			}
 		}
 		break;
 
@@ -212,6 +217,9 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 					/* fall-through */
 
 				case 0xd: /* I2C block R/W */
+					if((dev->local == SMBUS_ICH2) && !!(dev->stat & 0x80))
+						dev->stat &= 0x80;
+
 					i2c_write(i2c_smbus, smbus_addr, dev->cmd);
 					timer_bytes++;
 
@@ -285,6 +293,10 @@ unknown_protocol:
 
 			/* Finish transfer. */
 			i2c_stop(i2c_smbus, smbus_addr);
+
+			if((dev->local == SMBUS_ICH2) && !!(val & 1)) { /* Upon Completion of the command. Provoke an SMI if Bit 0 is set */
+				smi_line = 1;
+			}
 		}
 		break;
 
@@ -313,9 +325,14 @@ unknown_protocol:
 
     if (dev->next_stat) { /* schedule dispatch of any pending status register update */
 	dev->stat = 0x01; /* raise HOST_BUSY while waiting */
+
+	if(dev->local != SMBUS_ICH2)
+	{
 	timer_disable(&dev->response_timer);
 	/* delay = ((half clock for start + half clock for stop) + (bytes * (8 bits + ack))) * bit period in usecs */
 	timer_set_delay_u64(&dev->response_timer, (1 + (timer_bytes * 9)) * dev->bit_period * TIMER_USEC);
+	}
+	else dev->stat |= dev->next_stat;
     }
 }
 
@@ -365,7 +382,8 @@ smbus_piix4_init(const device_t *info)
        dev and therefore dev->i2c will be invalidated if a device triggers a hard reset. */
     i2c_smbus = dev->i2c = i2c_addbus((dev->local == SMBUS_VIA) ? "smbus_vt82c686b" : "smbus_piix4");
 
-    timer_add(&dev->response_timer, smbus_piix4_response, dev, 0);
+    if(dev->local != SMBUS_ICH2)
+    	timer_add(&dev->response_timer, smbus_piix4_response, dev, 0);
 
     smbus_piix4_setclock(dev, 16384); /* default to 16.384 KHz */
 

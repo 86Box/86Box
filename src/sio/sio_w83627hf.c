@@ -103,7 +103,7 @@ Notes : ISAPnP is missing and the Hardware Monitor is not properly implemented
 
 #include <86box/hwm.h>
 #include <86box/sio.h>
-#define ENABLE_W83627HF_LOG 1
+
 #ifdef ENABLE_W83627HF_LOG
 int w83627hf_do_log = ENABLE_W83627HF_LOG;
 
@@ -1088,7 +1088,7 @@ w83627hf_init(const device_t *info)
 
     /* Keyboard Controller (Based on AMIKEY-2) */
     /* Note: The base addresses and IRQ's of the Keyboard & PS/2 Mouse are remappable. Due to 86Box limitations we can't do that just yet */
-    device_add(&keyboard_ps2_ami_device);
+    device_add(&keyboard_ps2_ami_pci_device);
 
     /* Port 92h */
     dev->port_92 = device_add(&port_92_device);
