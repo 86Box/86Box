@@ -19,8 +19,10 @@
 typedef struct
 {
     uint8_t	command, status,
-		ptr0, enabled;
-    uint16_t	base, pad;
+		ptr0, enabled,
+		dma_mode, pad,
+		pad0, pad1;
+    uint16_t	base, pad2;
     uint32_t	ptr, ptr_cur,
 		addr;
     int		count, eot,
@@ -38,6 +40,11 @@ extern int	sff_bus_master_dma_read(int channel, uint8_t *data, int transfer_leng
 extern int	sff_bus_master_dma_write(int channel, uint8_t *data, int transfer_length, void *priv);
 
 extern void	sff_bus_master_set_irq(int channel, void *priv);
+
+extern int	sff_bus_master_dma(int channel, uint8_t *data, int transfer_length, int out, void *priv);
+
+extern void	sff_bus_master_write(uint16_t port, uint8_t val, void *priv);
+extern uint8_t	sff_bus_master_read(uint16_t port, void *priv);
 
 extern void	sff_bus_master_reset(sff8038i_t *dev, uint16_t old_base);
 

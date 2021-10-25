@@ -30,6 +30,8 @@
 #include <86box/hdc_ide.h>
 #include <86box/keyboard.h>
 #include <86box/flash.h>
+#include <86box/timer.h>
+#include <86box/nvr.h>
 #include <86box/sio.h>
 #include <86box/hwm.h>
 #include <86box/spd.h>
@@ -37,7 +39,7 @@
 #include "cpu.h"
 #include <86box/machine.h>
 
-#if defined(DEV_BRANCH) && defined(USE_I450KX)
+
 int
 machine_at_p6rp4_init(const machine_t *model)
 {
@@ -49,11 +51,12 @@ machine_at_p6rp4_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    device_add(&p6rp4_nvr_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x19, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x12, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x14, PCI_CARD_AGPBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x08, PCI_CARD_IDE, 0, 0, 0, 0);
     pci_register_slot(0x07, PCI_CARD_NORMAL, 1, 2, 3, 4);
@@ -62,16 +65,15 @@ machine_at_p6rp4_init(const machine_t *model)
     pci_register_slot(0x04, PCI_CARD_NORMAL, 4, 1, 2, 3);
     device_add(&i450kx_device);
     device_add(&sio_zb_device);
-    // device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&ide_cmd646_device);
     /* Input port bit 2 must be 1 or CMOS Setup is disabled. */
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&fdc37c665_device);
-    device_add(&ide_cmd640_pci_device);
     device_add(&intel_flash_bxt_device);
 
     return ret;
 }
-#endif
+
 
 int
 machine_at_686nx_init(const machine_t *model)

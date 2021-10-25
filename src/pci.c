@@ -150,6 +150,80 @@ pci_write(uint16_t port, uint8_t val, void *priv)
 }
 
 
+static void
+pci_writew(uint16_t port, uint16_t val, void *priv)
+{
+    uint8_t slot = 0;
+
+    if (in_smm)
+	pci_log("(%i) %03x write: %02X\n", pci_enable, port, val);
+
+    switch (port) {
+	case 0xcfc: case 0xcfe:
+		if (! pci_enable) 
+			return;
+		   
+		pci_log("Writing %04X to PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", val, pci_bus, pci_card, slot, pci_func, pci_index | (port & 3));
+		slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
+		if (slot != 0xff) {
+			if (pci_cards[slot].write) {
+				pci_log("Writing to PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
+				pci_cards[slot].write(pci_func, pci_index | (port & 3), val & 0xff, pci_cards[slot].priv);
+				pci_cards[slot].write(pci_func, pci_index | (port & 3) | 1, val >> 8, pci_cards[slot].priv);
+			}
+#ifdef ENABLE_PCI_LOG
+			else
+				pci_log("Writing to empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
+#endif
+		}
+#ifdef ENABLE_PCI_LOG
+		else
+			pci_log("Writing to unassigned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
+#endif
+
+		break;
+    }
+}
+
+
+static void
+pci_writel(uint16_t port, uint32_t val, void *priv)
+{
+    uint8_t slot = 0;
+
+    if (in_smm)
+	pci_log("(%i) %03x write: %02X\n", pci_enable, port, val);
+
+    switch (port) {
+	case 0xcfc:
+		if (! pci_enable) 
+			return;
+		   
+		pci_log("Writing %08X to PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", val, pci_bus, pci_card, slot, pci_func, pci_index | (port & 3));
+		slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
+		if (slot != 0xff) {
+			if (pci_cards[slot].write) {
+				pci_log("Writing to PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
+				pci_cards[slot].write(pci_func, pci_index | (port & 3), val & 0xff, pci_cards[slot].priv);
+				pci_cards[slot].write(pci_func, pci_index | (port & 3) | 1, (val >> 8) & 0xff, pci_cards[slot].priv);
+				pci_cards[slot].write(pci_func, pci_index | (port & 3) | 2, (val >> 16) & 0xff, pci_cards[slot].priv);
+				pci_cards[slot].write(pci_func, pci_index | (port & 3) | 3, (val >> 24) & 0xff, pci_cards[slot].priv);
+			}
+#ifdef ENABLE_PCI_LOG
+			else
+				pci_log("Writing to empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
+#endif
+		}
+#ifdef ENABLE_PCI_LOG
+		else
+			pci_log("Writing to unassigned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
+#endif
+
+		break;
+    }
+}
+
+
 static uint8_t
 pci_read(uint16_t port, void *priv)
 {
@@ -180,6 +254,82 @@ pci_read(uint16_t port, void *priv)
     }
 
     pci_log("Reading %02X, from PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", ret, pci_bus, pci_card, slot, pci_func, pci_index | (port & 3));
+
+    return ret;
+}
+
+
+static uint16_t
+pci_readw(uint16_t port, void *priv)
+{
+    uint8_t slot = 0;
+    uint16_t ret = 0xffff;
+
+    if (in_smm)
+	pci_log("(%i) %03x read\n", pci_enable, port);
+
+    switch (port) {
+	case 0xcfc: case 0xcfe:
+		if (! pci_enable) 
+			return 0xff;
+
+		slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
+		if (slot != 0xff) {
+			if (pci_cards[slot].read) {
+				ret = pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
+				ret |= (pci_cards[slot].read(pci_func, pci_index | (port & 3) | 1, pci_cards[slot].priv) << 8);
+			}
+#ifdef ENABLE_PCI_LOG
+			else
+				pci_log("Reading from empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
+#endif
+		}
+#ifdef ENABLE_PCI_LOG
+		else
+			pci_log("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
+#endif
+    }
+
+    pci_log("Reading %04X, from PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", ret, pci_bus, pci_card, slot, pci_func, pci_index | (port & 3));
+
+    return ret;
+}
+
+
+static uint32_t
+pci_readl(uint16_t port, void *priv)
+{
+    uint8_t slot = 0;
+    uint32_t ret = 0xffffffff;
+
+    if (in_smm)
+	pci_log("(%i) %03x read\n", pci_enable, port);
+
+    switch (port) {
+	case 0xcfc: case 0xcfe:
+		if (! pci_enable) 
+			return 0xff;
+
+		slot = pci_card_to_slot_mapping[pci_bus_number_to_index_mapping[pci_bus]][pci_card];
+		if (slot != 0xff) {
+			if (pci_cards[slot].read) {
+				ret = pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
+				ret |= (pci_cards[slot].read(pci_func, pci_index | (port & 3) | 1, pci_cards[slot].priv) << 8);
+				ret |= (pci_cards[slot].read(pci_func, pci_index | (port & 3) | 2, pci_cards[slot].priv) << 16);
+				ret |= (pci_cards[slot].read(pci_func, pci_index | (port & 3) | 3, pci_cards[slot].priv) << 24);
+			}
+#ifdef ENABLE_PCI_LOG
+			else
+				pci_log("Reading from empty PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
+#endif
+		}
+#ifdef ENABLE_PCI_LOG
+		else
+			pci_log("Reading from unasisgned PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
+#endif
+    }
+
+    pci_log("Reading %08X, from PCI card on bus %i, slot %02X (pci_cards[%i]) (%02X:%02X)...\n", ret, pci_bus, pci_card, slot, pci_func, pci_index | (port & 3));
 
     return ret;
 }
@@ -803,7 +953,7 @@ pci_init(int type)
 	io_sethandler(0x0cf8, 1,
 		      NULL,NULL,pci_cf8_read, NULL,NULL,pci_cf8_write, NULL);
 	io_sethandler(0x0cfc, 4,
-		      pci_read,NULL,NULL, pci_write,NULL,NULL, NULL);
+		      pci_read,pci_readw,pci_readl, pci_write,pci_writew,pci_writel, NULL);
 	pci_pmc = 1;
     } else {
 	io_sethandler(0x0cf8, 1,

@@ -47,10 +47,10 @@
 static int	next_id = 0;
 
 
-static uint8_t	sff_bus_master_read(uint16_t port, void *priv);
+uint8_t		sff_bus_master_read(uint16_t port, void *priv);
 static uint16_t	sff_bus_master_readw(uint16_t port, void *priv);
 static uint32_t	sff_bus_master_readl(uint16_t port, void *priv);
-static void	sff_bus_master_write(uint16_t port, uint8_t val, void *priv);
+void		sff_bus_master_write(uint16_t port, uint8_t val, void *priv);
 static void	sff_bus_master_writew(uint16_t port, uint16_t val, void *priv);
 static void	sff_bus_master_writel(uint16_t port, uint32_t val, void *priv);
 
@@ -112,7 +112,7 @@ sff_bus_master_next_addr(sff8038i_t *dev)
 }
 
 
-static void
+void
 sff_bus_master_write(uint16_t port, uint8_t val, void *priv)
 {
     sff8038i_t *dev = (sff8038i_t *) priv;
@@ -137,6 +137,9 @@ sff_bus_master_write(uint16_t port, uint8_t val, void *priv)
 		}
 
 		dev->command = val;
+		break;
+	case 1:
+		dev->dma_mode = val & 0x03;
 		break;
 	case 2:
 		sff_log("sff Status: val = %02X, old = %02X\n", val, dev->status);
@@ -177,6 +180,7 @@ sff_bus_master_writew(uint16_t port, uint16_t val, void *priv)
 
     switch (port & 7) {
 	case 0:
+	case 1:
 	case 2:
 		sff_bus_master_write(port, val & 0xff, priv);
 		break;
@@ -202,6 +206,7 @@ sff_bus_master_writel(uint16_t port, uint32_t val, void *priv)
 
     switch (port & 7) {
 	case 0:
+	case 1:
 	case 2:
 		sff_bus_master_write(port, val & 0xff, priv);
 		break;
@@ -214,7 +219,7 @@ sff_bus_master_writel(uint16_t port, uint32_t val, void *priv)
 }
 
 
-static uint8_t
+uint8_t
 sff_bus_master_read(uint16_t port, void *priv)
 {
     sff8038i_t *dev = (sff8038i_t *) priv;
@@ -224,6 +229,9 @@ sff_bus_master_read(uint16_t port, void *priv)
     switch (port & 7) {
 	case 0:
 		ret = dev->command;
+		break;
+	case 1:
+		ret = dev->dma_mode & 0x03;
 		break;
 	case 2:
 		ret = dev->status & 0x67;
@@ -257,6 +265,7 @@ sff_bus_master_readw(uint16_t port, void *priv)
 
     switch (port & 7) {
 	case 0:
+	case 1:
 	case 2:
 		ret = (uint16_t) sff_bus_master_read(port, priv);
 		break;
@@ -283,6 +292,7 @@ sff_bus_master_readl(uint16_t port, void *priv)
 
     switch (port & 7) {
 	case 0:
+	case 1:
 	case 2:
 		ret = (uint32_t) sff_bus_master_read(port, priv);
 		break;
@@ -297,7 +307,7 @@ sff_bus_master_readl(uint16_t port, void *priv)
 }
 
 
-static int
+int
 sff_bus_master_dma(int channel, uint8_t *data, int transfer_length, int out, void *priv)
 {
     sff8038i_t *dev = (sff8038i_t *) priv;
@@ -311,8 +321,10 @@ sff_bus_master_dma(int channel, uint8_t *data, int transfer_length, int out, voi
     sop = out ? "Read" : "Writ";
 #endif
 
-    if (!(dev->status & 1))
+    if (!(dev->status & 1)) {
+	sff_log("DMA disabled\n");
 	return 2;                                    /*DMA disabled*/
+    }
 
     sff_log("SFF-8038i Bus master %s: %i bytes\n", out ? "write" : "read", transfer_length);
 

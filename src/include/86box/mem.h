@@ -145,10 +145,18 @@
 	mem_set_access(ACCESS_SMM, 0, base, size, access)
 #define mem_set_mem_state_both(base, size, access) \
 	mem_set_access(ACCESS_ALL, 0, base, size, access)
+#define mem_set_mem_state_cpu_both(base, size, access) \
+	mem_set_access(ACCESS_CPU_BOTH, 0, base, size, access)
+#define mem_set_mem_state_bus_both(base, size, access) \
+	mem_set_access(ACCESS_BUS_BOTH, 0, base, size, access)
 #define mem_set_mem_state_smram(smm, base, size, is_smram) \
 	mem_set_access((smm ? ACCESS_SMM : ACCESS_NORMAL), 1, base, size, is_smram)
 #define mem_set_mem_state_smram_ex(smm, base, size, is_smram) \
 	mem_set_access((smm ? ACCESS_SMM : ACCESS_NORMAL), 2, base, size, is_smram)
+#define mem_set_access_smram_cpu(smm, base, size, is_smram) \
+	mem_set_access((smm ? ACCESS_CPU_SMM : ACCESS_CPU), 1, base, size, is_smram)
+#define mem_set_access_smram_bus(smm, base, size, is_smram) \
+	mem_set_access((smm ? ACCESS_BUS_SMM : ACCESS_BUS), 1, base, size, is_smram)
 #define flushmmucache_cr3 \
 	flushmmucache_nopc
 

@@ -83,10 +83,7 @@ extern const device_t	i440bx_device;
 extern const device_t	i440bx_no_agp_device;
 extern const device_t	i440gx_device;
 extern const device_t	i440zx_device;
-
-#if defined(DEV_BRANCH) && defined(USE_I450KX)
 extern const device_t	i450kx_device;
-#endif
 
 extern const device_t	sio_device;
 extern const device_t	sio_zb_device;
@@ -133,6 +130,7 @@ extern const device_t	stpc_serial_device;
 extern const device_t	stpc_lpt_device;
 
 /* UMC */
+extern const device_t	umc_um82c49x_device;
 extern const device_t	umc_8886f_device;
 extern const device_t	umc_8886af_device;
 extern const device_t	umc_hb4_device;

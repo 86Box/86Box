@@ -292,7 +292,8 @@
 
 #define FLAG_LS_HACK		0x01
 #define FLAG_APOLLO_HACK	0x02
-#define FLAG_PIIX4		0x04
+#define FLAG_P6RP4_HACK		0x04
+#define FLAG_PIIX4		0x08
 
 
 typedef struct {
@@ -755,7 +756,28 @@ nvr_read(uint16_t addr, void *priv)
 				ret = checksum >> 8;
 			else
 				ret = checksum & 0xff;
+		} else if (!nvr->new && (local->flags & FLAG_P6RP4_HACK)) {
+			/* The checksum at 3E-3F is for 37-3D and 40-51. */
+			for (i = 0x37; i <= 0x3d; i++)
+				checksum += nvr->regs[i];
+			for (i = 0x40; i <= 0x51; i++) {
+				if (i == 0x43)
+					checksum += (nvr->regs[i] | 0x02);
+				else
+					checksum += nvr->regs[i];
+			}
+			if (local->addr[addr_id] == 0x3e)
+				ret = checksum >> 8;
+			else
+				ret = checksum & 0xff;
 		} else
+			ret = nvr->regs[local->addr[addr_id]];
+		break;
+
+	case 0x43:
+		if (!nvr->new && (local->flags & FLAG_P6RP4_HACK))
+			ret = nvr->regs[local->addr[addr_id]] | 0x02;
+		else
 			ret = nvr->regs[local->addr[addr_id]];
 		break;
 
@@ -972,8 +994,14 @@ nvr_at_init(const device_t *info)
     local->flags = 0x00;
     switch(info->local & 7) {
 	case 0:		/* standard AT, no century register */
-		nvr->irq = 8;
-		local->cent = 0xff;
+		if (info->local == 16) {
+			local->flags |= FLAG_P6RP4_HACK;
+			nvr->irq = 8;
+			local->cent = RTC_CENTURY_AT;
+		} else {
+			nvr->irq = 8;
+			local->cent = 0xff;
+		}
 		break;
 
 	case 1:		/* standard AT */
@@ -1158,6 +1186,15 @@ const device_t via_nvr_device = {
     "VIA PC/AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
     15,
+    nvr_at_init, nvr_at_close, nvr_at_reset,
+    { NULL }, nvr_at_speed_changed,
+    NULL
+};
+
+const device_t p6rp4_nvr_device = {
+    "ASUS P/I-P6RP4 PC/AT NVRAM",
+    DEVICE_ISA | DEVICE_AT,
+    16,
     nvr_at_init, nvr_at_close, nvr_at_reset,
     { NULL }, nvr_at_speed_changed,
     NULL
