@@ -118,7 +118,7 @@ static const device_config_t ssi2001_config[] =
 const device_t ssi2001_device =
 {
         "Innovation SSI-2001",
-        0, 0,
+        DEVICE_ISA, 0,
         ssi2001_init, ssi2001_close, NULL,
 	{ NULL }, NULL, NULL,
         ssi2001_config
