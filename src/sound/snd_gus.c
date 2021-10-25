@@ -1315,7 +1315,7 @@ static const device_config_t gus_config[] = {
 const device_t gus_device =
 {
         "Gravis UltraSound",
-        DEVICE_ISA,
+        DEVICE_ISA | DEVICE_AT,
 	0,
         gus_init, gus_close, NULL,
 	{ NULL },
