@@ -1389,6 +1389,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		settings_enable_window(hdlg, IDC_CHECK_SSI, (machines[temp_machine].flags & MACHINE_BUS_ISA));
 		settings_set_check(hdlg, IDC_CHECK_SSI, temp_SSI2001);
 		settings_enable_window(hdlg, IDC_CONFIGURE_SSI, (machines[temp_machine].flags & MACHINE_BUS_ISA) && temp_SSI2001);
+		settings_set_check(hdlg, IDC_CHECK_FLOAT, temp_float);
 
 		free(lptsTemp);
 
