@@ -1258,6 +1258,9 @@ mpu401_standalone_allow(void)
 {
     char *md, *mdin;
 
+    if (!machine_has_bus(temp_machine, MACHINE_BUS_ISA) && !machine_has_bus(temp_machine, MACHINE_BUS_MCA))
+	return 0;
+
     md = midi_device_get_internal_name(temp_midi_device);
     mdin = midi_in_device_get_internal_name(temp_midi_input_device);
 
