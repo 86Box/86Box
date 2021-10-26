@@ -192,6 +192,8 @@ svga_out(uint16_t addr, uint8_t val, void *p)
 		svga->dac_addr = (val + (addr & 0x01)) & 255;
 		break;
 	case 0x3c9:
+		if (svga->adv_flags & FLAG_RAMDAC_SHIFT)
+			val <<= 2;
 		svga->fullchange = changeframecount;
 		switch (svga->dac_pos) {
 			case 0:
@@ -330,6 +332,8 @@ svga_in(uint16_t addr, void *p)
 					ret = svga->vgapal[index].b & 0x3f;
 				break;
 		}
+		if (svga->adv_flags & FLAG_RAMDAC_SHIFT)
+			ret >>= 2;
 		break;
 	case 0x3cc:
 		ret = svga->miscout;
@@ -949,7 +953,7 @@ svga_init(const device_t *info, svga_t *svga, void *p, int memsize,
     svga->translate_address = NULL;
     svga->ksc5601_english_font_type = 0;    
 
-    if ((info->flags & DEVICE_PCI) || (info->flags & DEVICE_VLB)) {
+    if ((info->flags & DEVICE_PCI) || (info->flags & DEVICE_VLB) || (info->flags & DEVICE_MCA)) {
 	    mem_mapping_add(&svga->mapping, 0xa0000, 0x20000,
 			    svga_read, svga_readw, svga_readl,
 			    svga_write, svga_writew, svga_writel,

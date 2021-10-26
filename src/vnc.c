@@ -179,8 +179,11 @@ vnc_blit(int x, int y, int w, int h)
 	p = (uint32_t *)&(((uint32_t *)rfb->frameBuffer)[yy*VNC_MAX_X]);
 
 	if ((y+yy) >= 0 && (y+yy) < VNC_MAX_Y)
-		memcpy(p, &(buffer32->line[yy]), w*sizeof(uint32_t));
+		video_copy(p, &(buffer32->line[yy]), w*sizeof(uint32_t));
     }
+
+    if (screenshots)
+	video_screenshot((uint32_t *) rfb->frameBuffer, 0, 0, VNC_MAX_X);
  
     video_blit_complete();
 

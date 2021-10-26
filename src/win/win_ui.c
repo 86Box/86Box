@@ -822,6 +822,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 			case IDM_VID_INVERT:
 				video_toggle_option(hmenu, &invert_display, IDM_VID_INVERT);
+				video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
 				break;
 
 			case IDM_VID_OVERSCAN:
@@ -854,6 +855,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_GRAY_WHITE:
 				CheckMenuItem(hmenu, IDM_VID_GRAY_RGB+video_grayscale, MF_UNCHECKED);
 				video_grayscale = LOWORD(wParam) - IDM_VID_GRAY_RGB;
+				video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
 				CheckMenuItem(hmenu, IDM_VID_GRAY_RGB+video_grayscale, MF_CHECKED);
 				device_force_redraw();
 				config_save();
@@ -1302,13 +1304,19 @@ ui_init(int nCmdShow)
     wincl.lpfnWndProc = MainWindowProcedure;
     wincl.style = CS_DBLCLKS;		/* Catch double-clicks */
     wincl.cbSize = sizeof(WNDCLASSEX);
-    wincl.hIcon = LoadIcon(hinstance, (LPCTSTR)10);
-    wincl.hIconSm = LoadIcon(hinstance, (LPCTSTR)10);
+    wincl.hIcon = NULL;
+    wincl.hIconSm = NULL;
     wincl.hCursor = NULL;
     wincl.lpszMenuName = NULL;
     wincl.cbClsExtra = 0;
     wincl.cbWndExtra = 0;
     wincl.hbrBackground = CreateSolidBrush(RGB(0,0,0));
+
+    /* Load proper icons */
+    wchar_t path[MAX_PATH + 1] = {0};
+    GetModuleFileNameW(hinstance, path, MAX_PATH);
+    ExtractIconExW(path, 0, &wincl.hIcon, &wincl.hIconSm, 1);
+
     if (! RegisterClassEx(&wincl))
 			return(2);
     wincl.lpszClassName = SUB_CLASS_NAME;

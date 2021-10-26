@@ -59,7 +59,7 @@ typedef struct ht216_t
     uint8_t		bg_plane_sel, fg_plane_sel;
         
     uint8_t		ht_regs[256];
-	uint8_t 	extensions;
+    uint8_t		extensions, reg_3cb;
     
     uint8_t		pos_regs[8];
 } ht216_t;
@@ -179,7 +179,7 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
     ht216_log("ht216 %i out %04X %02X %04X:%04X\n", svga->miscout & 1, addr, val, CS, cpu_state.pc);
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
-		addr ^= 0x60;
+	addr ^= 0x60;
 
     switch (addr) {
 	case 0x3c2:
@@ -300,6 +300,12 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 					svga->hwcursor.ena = !!(val & 0x80);
 					break;
 
+				case 0xc0:
+					break;
+
+				case 0xc1:
+					break;
+
 				case 0xc8:
 					if ((old ^ val) & HT_REG_C8_E256) {
 						svga->fullchange = changeframecount;
@@ -313,6 +319,10 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 					break;
 
 				case 0xe0:
+					svga->adv_flags &= ~FLAG_RAMDAC_SHIFT;
+					if (val & 0x04)
+						svga->adv_flags |= FLAG_RAMDAC_SHIFT;
+					/* FALLTHROUGH */
 				/*Bank registers*/
 				case 0xe8: case 0xe9:
 					ht216_log("HT216 reg 0x%02x write = %02x, mode = 1, chain4 = %x\n", svga->seqaddr & 0xff, val, svga->chain4);
@@ -377,70 +387,76 @@ ht216_out(uint16_t addr, uint8_t val, void *p)
 		}
 		break;
 
-		case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
+	case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
 		if (ht216->id == 0x7152)
 			sc1148x_ramdac_out(addr, 0, val, svga->ramdac, svga);
 		else
 			svga_out(addr, val, svga);
 		return;
 
-		case 0x3cf:
-			if (svga->gdcaddr == 5) {
-				svga->chain2_read = val & 0x10;
-				ht216_remap(ht216);
-			} else if (svga->gdcaddr == 6) {
-				if (val & 8)
-					svga->banked_mask = 0x7fff;
-				else
-					svga->banked_mask = 0xffff;
-			}
-			
-			if (svga->gdcaddr <= 8) {
-				svga->fast = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) &&
-						 !svga->gdcreg[1]) && svga->chain4 && svga->packed_chain4;
-			}
-			break;
+	case 0x3cb:
+		if (ht216->id == 0x7152) {
+			ht216->reg_3cb = val;
+			svga_set_ramdac_type(svga, (val & 0x20) ? RAMDAC_6BIT : RAMDAC_8BIT);
+		}
+		break;
 
-		case 0x3D4:
-			svga->crtcreg = val & 0x3f;
+	case 0x3cf:
+		if (svga->gdcaddr == 5) {
+			svga->chain2_read = val & 0x10;
+			ht216_remap(ht216);
+		} else if (svga->gdcaddr == 6) {
+			if (val & 8)
+				svga->banked_mask = 0x7fff;
+			else
+				svga->banked_mask = 0xffff;
+		}
+
+		if (svga->gdcaddr <= 8) {
+			svga->fast = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) &&
+					 !svga->gdcreg[1]) && svga->chain4 && svga->packed_chain4;
+		}
+		break;
+
+	case 0x3D4:
+		svga->crtcreg = val & 0x3f;
+		return;
+	case 0x3D5:
+		if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
 			return;
-		case 0x3D5:
-			if ((svga->crtcreg < 7) && (svga->crtc[0x11] & 0x80))
-				return;
-			if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
-				val = (svga->crtc[7] & ~0x10) | (val & 0x10);
+		if ((svga->crtcreg == 7) && (svga->crtc[0x11] & 0x80))
+			val = (svga->crtc[7] & ~0x10) | (val & 0x10);
 
-			old = svga->crtc[svga->crtcreg];
-			svga->crtc[svga->crtcreg] = val;
+		old = svga->crtc[svga->crtcreg];
+		svga->crtc[svga->crtcreg] = val;
 
-			if (old != val) {
-                        if (svga->crtcreg < 0xe || svga->crtcreg > 0x10)
-                        {
+		if (old != val) {
+			if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
 				if ((svga->crtcreg == 0xc) || (svga->crtcreg == 0xd)) {
-                                	svga->fullchange = 3;
+					svga->fullchange = 3;
 					svga->ma_latch = ((svga->crtc[0xc] << 8) | svga->crtc[0xd]) + ((svga->crtc[8] & 0x60) >> 5);
 				} else {
 					svga->fullchange = changeframecount;
-	                                svga_recalctimings(svga);
+					svga_recalctimings(svga);
 				}
-                        }
 			}
-			break;
+		}
+		break;
 
-		case 0x46e8:
+	case 0x46e8:
+		if ((ht216->id == 0x7152) && ht216->isabus)
+			io_removehandler(0x0105, 0x0001, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
+		io_removehandler(0x03c0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
+		mem_mapping_disable(&svga->mapping);
+		mem_mapping_disable(&ht216->linear_mapping);
+		if (val & 8) {
 			if ((ht216->id == 0x7152) && ht216->isabus)
-				io_removehandler(0x0105, 0x0001, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
-			io_removehandler(0x03c0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
-			mem_mapping_disable(&svga->mapping);
-			mem_mapping_disable(&ht216->linear_mapping);
-			if (val & 8) {
-				if ((ht216->id == 0x7152) && ht216->isabus)
-					io_sethandler(0x0105, 0x0001, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
-				io_sethandler(0x03c0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
-				mem_mapping_enable(&svga->mapping);
-				ht216_remap(ht216);
-			}
-			break;
+				io_sethandler(0x0105, 0x0001, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
+			io_sethandler(0x03c0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
+			mem_mapping_enable(&svga->mapping);
+			ht216_remap(ht216);
+		}
+		break;
     }
 
     svga_out(addr, val, svga);
@@ -457,10 +473,10 @@ ht216_in(uint16_t addr, void *p)
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1))
 		addr ^= 0x60;
 
-	if ((ht216->id == 0x7152) && ht216->isabus) {
-		if (addr == 0x105)
-			return ht216->extensions;
-	}
+    if ((ht216->id == 0x7152) && ht216->isabus) {
+	if (addr == 0x105)
+		return ht216->extensions;
+    }
 
     switch (addr) {
 	case 0x3c4:
@@ -522,6 +538,11 @@ ht216_in(uint16_t addr, void *p)
 		if (ht216->id == 0x7152)
 			return sc1148x_ramdac_in(addr, 0, svga->ramdac, svga);
 		return svga_in(addr, svga);
+
+	case 0x3cb:
+		if (ht216->id == 0x7152)
+			return ht216->reg_3cb;
+		break;
 
 	case 0x3cc:
 		return svga->miscout;
@@ -618,52 +639,62 @@ ht216_recalctimings(svga_t *svga)
 
     ht216->adjust_cursor = 0;
     
-    if (svga->crtc[0x17] == 0xeb) {
-	svga->rowoffset <<= 1;
-	svga->render = svga_render_2bpp_headland_highres;
-    }
-
-    if (svga->bpp == 8) {
-	ht216_log("regC8 = %02x, gdcreg5 bit 6 = %02x, no lowres = %02x, regf8 bit 7 = %02x, regfc = %02x\n", ht216->ht_regs[0xc8] & HT_REG_C8_E256, svga->gdcreg[5] & 0x40, !svga->lowres, ht216->ht_regs[0xf6] & 0x80, ht216->ht_regs[0xfc] & HT_REG_FC_ECOLRE);
-	if (((ht216->ht_regs[0xc8] & HT_REG_C8_E256) || (svga->gdcreg[5] & 0x40)) && (!svga->lowres || (ht216->ht_regs[0xf6] & 0x80))) {
-		if (high_res_256) {
-			svga->hdisp >>= 1;
-			ht216->adjust_cursor = 1;
-		}
-		svga->render = svga_render_8bpp_highres;
-	} else if (svga->lowres) {
-		if (high_res_256) {
-			svga->hdisp >>= 1;
-			ht216->adjust_cursor = 1;
-			svga->render = svga_render_8bpp_highres;
+    if (!svga->scrblank && svga->attr_palette_enable) {
+	if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
+		if (svga->seqregs[1] & 8) /*40 column*/ {
+			svga->render = svga_render_text_40;
 		} else {
-			ht216_log("8bpp low, packed = %02x, chain4 = %02x\n", svga->packed_chain4, svga->chain4);
-			svga->render = svga_render_8bpp_lowres;
+			svga->render = svga_render_text_80;
 		}
-	} else if (ht216->ht_regs[0xfc] & HT_REG_FC_ECOLRE) {
-		if (ht216->id == 0x7152) {
-			svga->hdisp = svga->crtc[1] - ((svga->crtc[5] & 0x60) >> 5);
-			if (!(svga->crtc[1] & 1))
-				svga->hdisp--;
-			svga->hdisp++;
-			svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
-			svga->rowoffset <<= 1;
-			if ((svga->crtc[0x17] & 0x60) == 0x20) /*Would result in a garbled screen with trailing cursor glitches*/
-				svga->force_byte_mode = 1;
-			else
-				svga->force_byte_mode = 0;
-		}
-		svga->render = svga_render_8bpp_highres;
-	}
-    } else if (svga->bpp == 15) {
+	} else {
+		if (svga->crtc[0x17] == 0xeb) {
 		svga->rowoffset <<= 1;
-		svga->hdisp >>= 1;
-		svga->render = svga_render_15bpp_highres;
-	}
+		svga->render = svga_render_2bpp_headland_highres;
+		}
 
+		if (svga->bpp == 8) {
+		ht216_log("regC8 = %02x, gdcreg5 bit 6 = %02x, no lowres = %02x, regf8 bit 7 = %02x, regfc = %02x\n", ht216->ht_regs[0xc8] & HT_REG_C8_E256, svga->gdcreg[5] & 0x40, !svga->lowres, ht216->ht_regs[0xf6] & 0x80, ht216->ht_regs[0xfc] & HT_REG_FC_ECOLRE);
+		if (((ht216->ht_regs[0xc8] & HT_REG_C8_E256) || (svga->gdcreg[5] & 0x40)) && (!svga->lowres || (ht216->ht_regs[0xf6] & 0x80))) {
+			if (high_res_256) {
+				svga->hdisp >>= 1;
+				ht216->adjust_cursor = 1;
+			}
+			svga->render = svga_render_8bpp_highres;
+		} else if (svga->lowres) {
+			if (high_res_256) {
+				svga->hdisp >>= 1;
+				ht216->adjust_cursor = 1;
+				svga->render = svga_render_8bpp_highres;
+			} else {
+				ht216_log("8bpp low, packed = %02x, chain4 = %02x\n", svga->packed_chain4, svga->chain4);
+				svga->render = svga_render_8bpp_lowres;
+			}
+		} else if (ht216->ht_regs[0xfc] & HT_REG_FC_ECOLRE) {
+			if (ht216->id == 0x7152) {
+				svga->hdisp = svga->crtc[1] - ((svga->crtc[5] & 0x60) >> 5);
+				if (!(svga->crtc[1] & 1))
+					svga->hdisp--;
+				svga->hdisp++;
+				svga->hdisp *= (svga->seqregs[1] & 8) ? 16 : 8;
+				svga->rowoffset <<= 1;
+				if ((svga->crtc[0x17] & 0x60) == 0x20) /*Would result in a garbled screen with trailing cursor glitches*/
+					svga->crtc[0x17] |= 0x40;
+			}
+			svga->render = svga_render_8bpp_highres;
+		}
+		} else if (svga->bpp == 15) {
+			svga->rowoffset <<= 1;
+			svga->hdisp >>= 1;
+			if ((svga->crtc[0x17] & 0x60) == 0x20) /*Would result in a garbled screen with trailing cursor glitches*/
+				svga->crtc[0x17] |= 0x40;
+			svga->render = svga_render_15bpp_highres;
+		}
+	}
+	}
+	
 	svga->ma_latch |= ((ht216->ht_regs[0xf6] & 0x30) << 14);
 
-    if (svga->crtc[0x17] == 0xeb) /*Looks like that 1024x768 mono mode expects 512K of video memory*/
+    if (svga->crtc[0x17] == 0xeb) /*Looks like 1024x768 mono mode expects 512K of video memory*/
 	svga->vram_display_mask = 0x7ffff;
     else
 	svga->vram_display_mask = (ht216->ht_regs[0xf6] & 0x40) ? ht216->vram_mask : 0x3ffff;
@@ -1390,7 +1421,7 @@ void
 	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_v7vga_vlb);
     else if (info->flags & DEVICE_MCA)
 	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_v7vga_mca);
-	else
+    else
 	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_v7vga_isa);
 	
     svga_init(info, svga, ht216, mem_size,
@@ -1466,17 +1497,20 @@ void
     mem_mapping_disable(&ht216->linear_mapping);
 
     ht216->id = info->local;
-	ht216->isabus = (info->flags & DEVICE_ISA);
-	ht216->mca = (info->flags & DEVICE_MCA);
-	
-	io_sethandler(0x03c0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
-	io_sethandler(0x46e8, 0x0001, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
+    ht216->isabus = (info->flags & DEVICE_ISA);
+    ht216->mca = (info->flags & DEVICE_MCA);
+
+    io_sethandler(0x03c0, 0x0020, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
+    io_sethandler(0x46e8, 0x0001, ht216_in, NULL, NULL, ht216_out, NULL, NULL, ht216);
 
     svga->bpp = 8;
     svga->miscout = 1;	
 	
     if (ht216->id == 0x7861)
 	ht216->ht_regs[0xb4] = 0x08; /*32-bit DRAM bus*/
+
+    if (ht216->id == 0x7152)
+	ht216->reg_3cb = 0x20;
 
     /* Initialize the cursor pointer towards the end of its segment, needed for ht256sf.drv to work correctly
        when Windows 3.1 is started after boot. */

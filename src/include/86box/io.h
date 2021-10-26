@@ -111,5 +111,10 @@ extern void	outw(uint16_t port, uint16_t val);
 extern uint32_t	inl(uint16_t port);
 extern void	outl(uint16_t port, uint32_t val);
 
+extern void	*io_trap_add(void (*func)(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv),
+			     void *priv);
+extern void	io_trap_remap(void *handle, int enable, uint16_t addr, uint16_t size);
+extern void	io_trap_remove(void *handle);
+
 
 #endif	/*EMU_IO_H*/

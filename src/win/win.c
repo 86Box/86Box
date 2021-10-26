@@ -728,7 +728,7 @@ plat_get_basename(const char *path)
 
     while (c > 0) {
 	if (path[c] == '/' || path[c] == '\\')
-	   return((char *)&path[c]);
+	   return((char *)&path[c + 1]);
        c--;
     }
 
@@ -855,6 +855,20 @@ plat_dir_create(char *path)
 
 	return ret;
     }
+}
+
+
+void *
+plat_mmap(size_t size, uint8_t executable)
+{
+    return VirtualAlloc(NULL, size, MEM_COMMIT, executable ? PAGE_EXECUTE_READWRITE : PAGE_READWRITE);
+}
+
+
+void
+plat_munmap(void *ptr, size_t size)
+{
+    VirtualFree(ptr, 0, MEM_RELEASE);
 }
 
 

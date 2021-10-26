@@ -133,6 +133,15 @@ extern int	readflash;
 
 /* Function handler pointers. */
 extern void	(*video_recalctimings)(void);
+extern void	video_screenshot(uint32_t *buf, int start_x, int start_y, int row_len);
+
+#ifdef _WIN32
+extern void * __cdecl	(*video_copy)(void *_Dst, const void *_Src, size_t _Size);
+extern void * __cdecl	video_transform_copy(void *_Dst, const void *_Src, size_t _Size);
+#else
+extern void *		(*video_copy)(void *__restrict _Dst, const void *__restrict _Src, size_t _Size);
+extern void *		video_transform_copy(void *__restrict _Dst, const void *__restrict _Src, size_t _Size);
+#endif
 
 
 /* Table functions. */

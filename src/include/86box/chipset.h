@@ -75,6 +75,7 @@ extern const device_t	i440fx_device;
 extern const device_t	i440lx_device;
 extern const device_t	i440ex_device;
 extern const device_t	i440bx_device;
+extern const device_t	i440bx_no_agp_device;
 extern const device_t	i440gx_device;
 extern const device_t	i440zx_device;
 
@@ -117,7 +118,6 @@ extern const device_t	sis_85c496_ls486e_device;
 extern const device_t	sis_85c50x_device;
 extern const device_t	sis_5511_device;
 extern const device_t	sis_5571_device;
-extern const device_t	sis_5598_device;
 
 /* ST */
 extern const device_t	stpc_client_device;

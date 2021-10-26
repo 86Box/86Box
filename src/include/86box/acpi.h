@@ -39,6 +39,13 @@ extern "C" {
 #define SCI_EN		(1 << 0)
 #define SUS_EN		(1 << 13)
 
+#define SUS_POWER_OFF	(1 << 0)
+#define SUS_SUSPEND	(1 << 1)
+#define SUS_NVR		(1 << 2)
+#define SUS_RESET_CPU	(1 << 3)
+#define SUS_RESET_CACHE	(1 << 4)
+#define SUS_RESET_PCI	(1 << 5)
+
 #define ACPI_ENABLE	0xf1
 #define	ACPI_DISABLE	0xf0
 
@@ -56,7 +63,8 @@ typedef struct
 			smicmd, gpio_dir,
 			gpio_val, muxcntrl, pad,
 			timer32, smireg,
-			gpireg[3], gporeg[4];
+			gpireg[3], gporeg[4],
+			extiotrapsts, extiotrapen;
     uint16_t		pmsts, pmen,
 			pmcntrl, gpsts, gpsts1,
 			gpen, gpen1, gpscien,
@@ -79,15 +87,17 @@ typedef struct
 {
     acpi_regs_t		regs;
     uint8_t		gpireg2_default, pad[3],
-			gporeg_default[4];
+			gporeg_default[4],
+			suspend_types[8];
     uint16_t		io_base, aux_io_base;
     int			vendor,
 			slot, irq_mode,
 			irq_pin, irq_line;
-    pc_timer_t		timer;
+    pc_timer_t		timer, resume_timer;
     nvr_t		*nvr;
     apm_t		*apm;
-    void		*i2c;
+    void		*i2c,
+			(*trap_update)(void *priv), *trap_priv;
 } acpi_t;
 
 
@@ -103,6 +113,8 @@ extern const device_t	acpi_via_596b_device;
 
 
 /* Functions */
+extern void		acpi_update_irq(acpi_t *dev);
+extern void		acpi_raise_smi(acpi_t *dev);
 extern void		acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en);
 extern void		acpi_update_aux_io_mapping(acpi_t *dev, uint32_t base, int chipset_en);
 extern void		acpi_init_gporeg(acpi_t *dev, uint8_t val0, uint8_t val1, uint8_t val2, uint8_t val3);
@@ -113,6 +125,7 @@ extern void		acpi_set_irq_pin(acpi_t *dev, int irq_pin);
 extern void		acpi_set_irq_line(acpi_t *dev, int irq_line);
 extern void		acpi_set_gpireg2_default(acpi_t *dev, uint8_t gpireg2_default);
 extern void		acpi_set_nvr(acpi_t *dev, nvr_t *nvr);
+extern void		acpi_set_trap_update(acpi_t *dev, void (*update)(void *priv), void *priv);
 
 #ifdef __cplusplus
 }

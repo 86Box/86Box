@@ -212,7 +212,7 @@ typedef struct gd54xx_t
 
     uint8_t		fc;		/* Feature Connector */
 
-    int			card;
+    int			card, id;
     
     uint8_t		pos_regs[8];
 
@@ -3728,6 +3728,79 @@ gd5428_mca_feedb(void *p)
 }
 
 static void
+gd54xx_reset(void *priv)
+{
+    gd54xx_t *gd54xx = (gd54xx_t *) priv;
+    svga_t *svga = &gd54xx->svga;
+
+    memset(svga->crtc, 0x00, sizeof(svga->crtc));
+    memset(svga->seqregs, 0x00, sizeof(svga->seqregs));
+    memset(svga->gdcreg, 0x00, sizeof(svga->gdcreg));
+    svga->crtc[0] = 63;
+    svga->crtc[6] = 255;
+    svga->dispontime = 1000ull << 32;
+    svga->dispofftime = 1000ull << 32;
+    svga->bpp = 8;
+
+    io_removehandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
+    io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
+
+    mem_mapping_disable(&gd54xx->vgablt_mapping);
+    if (gd54xx->has_bios && gd54xx->pci)
+	mem_mapping_disable(&gd54xx->bios_rom.mapping);
+
+    memset(gd54xx->pci_regs, 0x00, 256);
+
+    mem_mapping_set_p(&svga->mapping, gd54xx);
+    mem_mapping_disable(&gd54xx->mmio_mapping);
+    mem_mapping_disable(&gd54xx->linear_mapping);
+    mem_mapping_disable(&gd54xx->aperture2_mapping);
+    mem_mapping_disable(&gd54xx->vgablt_mapping);
+
+    gd543x_recalc_mapping(gd54xx);
+    gd54xx_recalc_banking(gd54xx);
+
+    svga->hwcursor.yoff = svga->hwcursor.xoff = 0;
+
+    if (gd54xx->id >= CIRRUS_ID_CLGD5420) {
+	gd54xx->vclk_n[0] = 0x4a;
+	gd54xx->vclk_d[0] = 0x2b;
+	gd54xx->vclk_n[1] = 0x5b;
+	gd54xx->vclk_d[1] = 0x2f;
+	gd54xx->vclk_n[2] = 0x45;
+	gd54xx->vclk_d[2] = 0x30;
+	gd54xx->vclk_n[3] = 0x7e;
+	gd54xx->vclk_d[3] = 0x33;
+    } else {
+	gd54xx->vclk_n[0] = 0x66;
+	gd54xx->vclk_d[0] = 0x3b;
+	gd54xx->vclk_n[1] = 0x5b;
+	gd54xx->vclk_d[1] = 0x2f;
+	gd54xx->vclk_n[2] = 0x45;
+	gd54xx->vclk_d[2] = 0x2c;
+	gd54xx->vclk_n[3] = 0x7e;
+	gd54xx->vclk_d[3] = 0x33;
+    }
+
+    svga->extra_banks[1] = 0x8000;
+
+    gd54xx->pci_regs[PCI_REG_COMMAND] = 7;
+
+    gd54xx->pci_regs[0x30] = 0x00;
+    gd54xx->pci_regs[0x32] = 0x0c;
+    gd54xx->pci_regs[0x33] = 0x00;
+
+    svga->crtc[0x27] = gd54xx->id;
+
+    svga->seqregs[6] = 0x0f;
+    if (svga->crtc[0x27] >= CIRRUS_ID_CLGD5429)
+	gd54xx->unlocked = 1;
+    else
+	gd54xx->unlocked = 0;
+}
+
+
+static void
 *gd54xx_init(const device_t *info)
 {
     gd54xx_t *gd54xx = malloc(sizeof(gd54xx_t));
@@ -3745,8 +3818,9 @@ static void
     gd54xx->rev = 0;
     gd54xx->has_bios = 1;
 
-    switch (id) {
-	
+    gd54xx->id = id;
+
+    switch (id) {	
 	case CIRRUS_ID_CLGD5401:
 		romfn = BIOS_GD5401_PATH;
 		break;
@@ -3921,14 +3995,17 @@ static void
 			gd5480_vgablt_write, gd5480_vgablt_writew, NULL,
 			NULL, MEM_MAPPING_EXTERNAL, gd54xx);
     }
+    io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
+    
+    if (gd54xx->pci && id >= CIRRUS_ID_CLGD5430)
+	pci_add_card(PCI_ADD_VIDEO, cl_pci_read, cl_pci_write, gd54xx);
+
     mem_mapping_set_p(&svga->mapping, gd54xx);
     mem_mapping_disable(&gd54xx->mmio_mapping);
     mem_mapping_disable(&gd54xx->linear_mapping);
     mem_mapping_disable(&gd54xx->aperture2_mapping);
     mem_mapping_disable(&gd54xx->vgablt_mapping);
 
-    io_sethandler(0x03c0, 0x0020, gd54xx_in, NULL, NULL, gd54xx_out, NULL, NULL, gd54xx);
-    
     svga->hwcursor.yoff = svga->hwcursor.xoff = 0;
 
     if (id >= CIRRUS_ID_CLGD5420) {
@@ -3953,15 +4030,12 @@ static void
 
     svga->extra_banks[1] = 0x8000;
 
-    if (gd54xx->pci && id >= CIRRUS_ID_CLGD5430)
-	pci_add_card(PCI_ADD_VIDEO, cl_pci_read, cl_pci_write, gd54xx);
-
     gd54xx->pci_regs[PCI_REG_COMMAND] = 7;
 
     gd54xx->pci_regs[0x30] = 0x00;
     gd54xx->pci_regs[0x32] = 0x0c;
     gd54xx->pci_regs[0x33] = 0x00;
-	
+
     svga->crtc[0x27] = id;
 
     svga->seqregs[6] = 0x0f;
@@ -4260,7 +4334,7 @@ const device_t gd5401_isa_device =
     DEVICE_ISA,
     CIRRUS_ID_CLGD5401,
     gd54xx_init, gd54xx_close,
-    NULL,
+    gd54xx_reset,
     { gd5401_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4273,7 +4347,7 @@ const device_t gd5402_isa_device =
     DEVICE_ISA,
     CIRRUS_ID_CLGD5402,
     gd54xx_init, gd54xx_close,
-    NULL,
+    gd54xx_reset,
     { gd5402_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4286,7 +4360,7 @@ const device_t gd5402_onboard_device =
     DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5402 | 0x200,
     gd54xx_init, gd54xx_close,
-    NULL,
+    gd54xx_reset,
     { NULL },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4299,7 +4373,7 @@ const device_t gd5420_isa_device =
     DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5420,
     gd54xx_init, gd54xx_close,
-    NULL,
+    gd54xx_reset,
     { gd5420_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4311,7 +4385,7 @@ const device_t gd5422_isa_device = {
     DEVICE_AT | DEVICE_ISA,
     CIRRUS_ID_CLGD5422,
     gd54xx_init, gd54xx_close,
-    NULL,
+    gd54xx_reset,
     { gd5422_available }, /* Common BIOS between 5422 and 5424 */
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4323,7 +4397,7 @@ const device_t gd5424_vlb_device = {
     DEVICE_VLB,
     CIRRUS_ID_CLGD5424,
     gd54xx_init, gd54xx_close,
-    NULL,
+    gd54xx_reset,
     { gd5422_available }, /* Common BIOS between 5422 and 5424 */
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4337,7 +4411,7 @@ const device_t gd5426_vlb_device =
     CIRRUS_ID_CLGD5426,
     gd54xx_init, 
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { gd5426_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4351,7 +4425,7 @@ const device_t gd5426_onboard_device =
     CIRRUS_ID_CLGD5426 | 0x200,
     gd54xx_init, 
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { NULL },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4365,7 +4439,7 @@ const device_t gd5428_isa_device =
     CIRRUS_ID_CLGD5428,
     gd54xx_init, 
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { gd5428_isa_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4379,7 +4453,7 @@ const device_t gd5428_vlb_device =
     CIRRUS_ID_CLGD5428,
     gd54xx_init, 
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { gd5428_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4393,7 +4467,7 @@ const device_t gd5428_mca_device =
     CIRRUS_ID_CLGD5428,
     gd54xx_init, 
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { gd5428_mca_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4407,7 +4481,7 @@ const device_t gd5428_onboard_device =
     CIRRUS_ID_CLGD5428,
     gd54xx_init, 
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { gd5428_isa_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4421,7 +4495,7 @@ const device_t gd5429_isa_device =
     CIRRUS_ID_CLGD5429,
     gd54xx_init, 
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { gd5429_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4435,7 +4509,7 @@ const device_t gd5429_vlb_device =
     CIRRUS_ID_CLGD5429,
     gd54xx_init, 
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { gd5429_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4449,7 +4523,7 @@ const device_t gd5430_vlb_device =
     CIRRUS_ID_CLGD5430,
     gd54xx_init, 
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { gd5430_vlb_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4463,7 +4537,7 @@ const device_t gd5430_pci_device =
     CIRRUS_ID_CLGD5430,
     gd54xx_init, 
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { gd5430_pci_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4477,7 +4551,7 @@ const device_t gd5434_isa_device =
     CIRRUS_ID_CLGD5434,
     gd54xx_init, 
     gd54xx_close,
-    NULL,
+    gd54xx_reset,
     { gd5434_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4491,7 +4565,7 @@ const device_t gd5434_onboard_pci_device =
     CIRRUS_ID_CLGD5434 | 0x200,
     gd54xx_init, 
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { NULL },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4505,7 +4579,7 @@ const device_t gd5434_vlb_device =
     CIRRUS_ID_CLGD5434,
     gd54xx_init, 
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { gd5434_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4519,7 +4593,7 @@ const device_t gd5434_pci_device =
     CIRRUS_ID_CLGD5434,
     gd54xx_init, 
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { gd5434_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4533,7 +4607,7 @@ const device_t gd5436_pci_device =
     CIRRUS_ID_CLGD5436,
     gd54xx_init, 
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { gd5436_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4547,7 +4621,7 @@ const device_t gd5440_onboard_pci_device =
     CIRRUS_ID_CLGD5440 | 0x600,
     gd54xx_init,
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { NULL },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4561,7 +4635,7 @@ const device_t gd5440_pci_device =
     CIRRUS_ID_CLGD5440 | 0x400,
     gd54xx_init,
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { gd5440_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4575,7 +4649,7 @@ const device_t gd5446_pci_device =
     CIRRUS_ID_CLGD5446,
     gd54xx_init,
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { gd5446_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4589,7 +4663,7 @@ const device_t gd5446_stb_pci_device =
     CIRRUS_ID_CLGD5446 | 0x100,
     gd54xx_init,
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { gd5446_stb_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,
@@ -4603,7 +4677,7 @@ const device_t gd5480_pci_device =
     CIRRUS_ID_CLGD5480,
     gd54xx_init, 
     gd54xx_close, 
-    NULL,
+    gd54xx_reset,
     { gd5480_available },
     gd54xx_speed_changed,
     gd54xx_force_redraw,

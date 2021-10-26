@@ -114,6 +114,12 @@ static const video_timings_t	*vid_timings;
 static uint32_t cga_2_table[16];
 static uint8_t	thread_run = 0;
 
+#ifdef _WIN32
+void * __cdecl	(*video_copy)(void *_Dst, const void *_Src, size_t _Size) = memcpy;
+#else
+void *		(*video_copy)(void *__restrict, const void *__restrict, size_t);
+#endif
+
 
 PALETTE		cgapal = {
     {0,0,0},    {0,42,0},   {42,0,0},   {42,21,0},
@@ -317,7 +323,7 @@ static png_infop	info_ptr;
 
 
 static void
-video_take_screenshot(const char *fn)
+video_take_screenshot(const char *fn, uint32_t *buf, int start_x, int start_y, int row_len)
 {
     int i, x, y;
     png_bytep *b_rgb = NULL;
@@ -363,10 +369,10 @@ video_take_screenshot(const char *fn)
     for (y = 0; y < blit_data.h; ++y) {
 	b_rgb[y] = (png_byte *) malloc(png_get_rowbytes(png_ptr, info_ptr));
     	for (x = 0; x < blit_data.w; ++x) {
-		if (buffer32 == NULL)
+		if (buf == NULL)
 			memset(&(b_rgb[y][x * 3]), 0x00, 3);
 		else {
-			temp = buffer32->line[blit_data.y + y][blit_data.x + x];
+			temp = buf[((start_y + y) * row_len) + start_x + x];
 			b_rgb[y][x * 3] = (temp >> 16) & 0xff;
 			b_rgb[y][(x * 3) + 1] = (temp >> 8) & 0xff;
 			b_rgb[y][(x * 3) + 2] = temp & 0xff;
@@ -390,8 +396,8 @@ video_take_screenshot(const char *fn)
 }
 
 
-static void
-video_screenshot(void)
+void
+video_screenshot(uint32_t *buf, int start_x, int start_y, int row_len)
 {
     char path[1024], fn[128];
 
@@ -410,49 +416,46 @@ video_screenshot(void)
 
     video_log("taking screenshot to: %s\n", path);
 
-    video_take_screenshot((const char *) path);
+    video_take_screenshot((const char *) path, buf, start_x, start_y, row_len);
     png_destroy_write_struct(&png_ptr, &info_ptr);
+
+    screenshots--;
 }
 
 
-static void
-video_transform_copy(uint32_t *dst, uint32_t *src, int len)
+#ifdef _WIN32
+void * __cdecl
+video_transform_copy(void *_Dst, const void *_Src, size_t _Size)
+#else
+void *
+video_transform_copy(void *__restrict _Dst, const void *__restrict _Src, size_t _Size)
+#endif
 {
     int i;
+    uint32_t *dest_ex = (uint32_t *) _Dst;
+    uint32_t *src_ex = (uint32_t *) _Src;
 
-    if ((dst != NULL) && (src != NULL)) {
-	for (i = 0; i < len; i++) {
-		*dst = video_color_transform(*src);
-		dst++;
-		src++;
+    _Size /= sizeof(uint32_t);
+
+    if ((dest_ex != NULL) && (src_ex != NULL)) {
+	for (i = 0; i < _Size; i++) {
+		*dest_ex = video_color_transform(*src_ex);
+		dest_ex++;
+		src_ex++;
 	}
     }
+
+    return _Dst;
 }
 
 
 static
 void blit_thread(void *param)
 {
-    int yy;
-
     while (thread_run) {
 	thread_wait_event(blit_data.wake_blit_thread, -1);
 	thread_reset_event(blit_data.wake_blit_thread);
 	MTR_BEGIN("video", "blit_thread");
-
-	if ((video_grayscale || invert_display) && (blit_data.h > 0)) {
-		for (yy = 0; yy < blit_data.h; yy++) {
-			if (((blit_data.y + yy) >= 0) && ((blit_data.y + yy) < buffer32->h)) {
-				video_transform_copy(&(buffer32->line[blit_data.y + yy][blit_data.x]), &(buffer32->line[blit_data.y + yy][blit_data.x]), blit_data.w);
-			}
-		}
-	}
-
-	if (screenshots) {
-		video_screenshot();
-		screenshots--;
-		video_log("screenshot taken, %i left\n", screenshots);
-	}
 
 	if (blit_func)
 		blit_func(blit_data.x, blit_data.y, blit_data.w, blit_data.h);

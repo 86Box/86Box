@@ -1806,10 +1806,31 @@ static const device_config_t mpu401_standalone_config[] =
                 "base", "MPU-401 Address", CONFIG_HEX16, "", 0x330, "", { 0 },
                 {
                         {
+                                "0x220", 0x220
+                        },
+                        {
+                                "0x230", 0x230
+                        },
+                        {
+                                "0x240", 0x240
+                        },
+                        {
+                                "0x250", 0x250
+                        },
+                        {
                                 "0x300", 0x300
                         },
                         {
+                                "0x320", 0x320
+                        },
+                        {
                                 "0x330", 0x330
+                        },
+                        {
+                                "0x340", 0x340
+                        },
+                        {
+                                "0x350", 0x350
                         },
                         {
                                 ""
@@ -1817,10 +1838,10 @@ static const device_config_t mpu401_standalone_config[] =
                 }
         },
         {
-                "irq", "MPU-401 IRQ", CONFIG_SELECTION, "", 9, "", { 0 },
+                "irq", "MPU-401 IRQ", CONFIG_SELECTION, "", 2, "", { 0 },
                 {
                         {
-                                "IRQ 9", 9
+                                "IRQ 2", 2
                         },
                         {
                                 "IRQ 3", 3
@@ -1832,10 +1853,10 @@ static const device_config_t mpu401_standalone_config[] =
                                 "IRQ 5", 5
                         },
                         {
-                                "IRQ 7", 7
+                                "IRQ 6", 6
                         },
                         {
-                                "IRQ 10", 10
+                                "IRQ 7", 7
                         },
                         {
                                 ""

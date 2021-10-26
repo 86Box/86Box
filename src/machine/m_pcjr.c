@@ -859,8 +859,8 @@ machine_pcjr_init(const machine_t *model)
     keyboard_set_table(scancode_xt);
     keyboard_send = kbd_adddata_ex;
 
-    /* Technically it's the SN76496N, but the NCR 8496 is a drop-in replacement for it. */
-    device_add(&ncr8496_device);
+    /* Technically it's the SN76496N, but the SN76489 is identical to the SN76496N. */
+    device_add(&sn76489_device);
 
     nmi_mask = 0x80;
 

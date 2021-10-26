@@ -62,13 +62,10 @@ acpi_log(const char *fmt, ...)
 #endif
 
 
-static void
-acpi_update_irq(void *priv)
+void
+acpi_update_irq(acpi_t *dev)
 {
-    acpi_t *dev = (acpi_t *) priv;
-    int sci_level;
-
-    sci_level = (dev->regs.pmsts & dev->regs.pmen) & (RTC_EN | PWRBTN_EN | GBL_EN | TMROF_EN);
+    int sci_level = (dev->regs.pmsts & dev->regs.pmen) & (RTC_EN | PWRBTN_EN | GBL_EN | TMROF_EN);
     if (dev->vendor == VEN_SMC)
 	sci_level |= (dev->regs.pmsts & BM_STS);
 
@@ -86,11 +83,9 @@ acpi_update_irq(void *priv)
 }
 
 
-static void
-acpi_raise_smi(void *priv)
+void
+acpi_raise_smi(acpi_t *dev)
 {
-    acpi_t *dev = (acpi_t *) priv;
-
     if (dev->regs.glbctl & 0x01) {
 	if ((dev->vendor == VEN_VIA) || (dev->vendor == VEN_VIA_596B)) {
 		    if ((!dev->regs.smi_lock || !dev->regs.smi_active)) {
@@ -529,10 +524,11 @@ acpi_reg_read_via_596b(int size, uint16_t addr, void *p)
     shift32 = (addr & 3) << 3;
 
     switch (addr) {
-	case 0x42:
-		/* GPIO port Output Value */
-		if (size == 1)
-			ret = dev->regs.gpio_val & 0x13;
+	case 0x40: /* Extended I/O Trap Status (686A/B) */
+		ret = dev->regs.extiotrapsts;
+		break;
+	case 0x42: /* Extended I/O Trap Enable (686A/B) */
+		ret = dev->regs.extiotrapen;
 		break;
 	case 0x44: case 0x45:
 		/* External SMI Input Value */
@@ -643,37 +639,47 @@ acpi_reg_write_common_regs(int size, uint16_t addr, uint8_t val, void *p)
 	case 0x04: case 0x05:
 		/* PMCNTRL - Power Management Control Register (IO) */
 		if ((addr == 0x05) && (val & 0x20)) {
-			sus_typ = (val >> 2) & 7;
-			switch (sus_typ) {
-				case 0:
-					/* Soft power off. */
-					plat_power_off();
-					break;
-				case 1:
+			sus_typ = dev->suspend_types[(val >> 2) & 7];
+
+			if (sus_typ & SUS_POWER_OFF) {
+				/* Soft power off. */
+				plat_power_off();
+				return;
+			}
+
+			if (sus_typ & SUS_SUSPEND) {
+				if (sus_typ & SUS_NVR) {
 					/* Suspend to RAM. */
 					nvr_reg_write(0x000f, 0xff, dev->nvr);
+				}
 
-					/* Do a hard reset. */
+				if (sus_typ & SUS_RESET_PCI)
 					device_reset_all_pci();
 
+				if (sus_typ & SUS_RESET_CPU)
 					cpu_alt_reset = 0;
 
+				if (sus_typ & SUS_RESET_PCI) {
 					pci_reset();
 					keyboard_at_reset();
 
 					mem_a20_alt = 0;
 					mem_a20_recalc();
+				}
 
+				if (sus_typ & (SUS_RESET_CPU | SUS_RESET_CACHE))
 					flushmmucache();
 
+				if (sus_typ & SUS_RESET_CPU)
 					resetx86();
-					break;
-				default:
-					dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3f07 /* 0x3c07 */;
-					break;
+
+				/* Since the UI doesn't have a power button at the moment, pause emulation,
+				   then trigger a resume event so that the system resumes after unpausing. */
+				plat_pause(1);
+				timer_set_delay_u64(&dev->resume_timer, 50 * TIMER_USEC);
 			}
-		} else
-			dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3f07 /* 0x3c07 */;
+		}
+		dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3f07 /* 0x3c07 */;
 		break;
     }
 }
@@ -807,6 +813,8 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *p)
 	case 0x2c: case 0x2d: case 0x2e: case 0x2f:
 		/* DEVCTL - Device Control Register (IO) */
 		dev->regs.devctl = ((dev->regs.devctl & ~(0xff << shift32)) | (val << shift32)) & 0x0fffffff;
+		if (dev->trap_update)
+			dev->trap_update(dev->trap_priv);
 		break;
 	case 0x34: case 0x35: case 0x36: case 0x37:
 		/* GPOREG - General Purpose Output Register (IO) */
@@ -947,14 +955,6 @@ acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *p)
 		/* Power Supply Control */
 		dev->regs.pscntrl = ((dev->regs.pscntrl & ~(0xff << shift16)) | (val << shift16)) & 0x0701;
 		break;
-	case 0x28: case 0x29:
-		/* GLBSTS - Global Status Register (IO) */
-		dev->regs.glbsts &= ~((val << shift16) & 0x007f);
-		break;
-	case 0x2a: case 0x2b:
-		/* GLBEN - Global Enable Register (IO) */
-		dev->regs.glben = ((dev->regs.glben & ~(0xff << shift16)) | (val << shift16)) & 0x007f;
-		break;
 	case 0x2c:
 		/* GLBCTL - Global Control Register (IO) */
 		dev->regs.glbctl = (dev->regs.glbctl & ~0xff) | (val & 0xff);
@@ -980,14 +980,6 @@ acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *p)
 			if (dev->regs.glben & 0x40)
 				acpi_raise_smi(dev);
 		}
-		break;
-	case 0x30: case 0x31: case 0x32: case 0x33:
-		/* Primary Activity Detect Status */
-		dev->regs.padsts &= ~((val << shift32) & 0x000000fd);
-		break;
-	case 0x34: case 0x35: case 0x36: case 0x37:
-		/* Primary Activity Detect Enable */
-		dev->regs.paden = ((dev->regs.paden & ~(0xff << shift32)) | (val << shift32)) & 0x000000fd;
 		break;
 	case 0x38: case 0x39: case 0x3a: case 0x3b:
 		/* GP Timer Reload Enable */
@@ -1020,13 +1012,32 @@ static void
 acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
-    int shift16;
+    int shift16, shift32;
 
     addr &= 0xff;
     acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
     shift16 = (addr & 1) << 3;
+    shift32 = (addr & 3) << 3;
 
     switch (addr) {
+	case 0x28: case 0x29:
+		/* GLBSTS - Global Status Register (IO) */
+		dev->regs.glbsts &= ~((val << shift16) & 0x007f);
+		break;
+	case 0x2a: case 0x2b:
+		/* GLBEN - Global Enable Register (IO) */
+		dev->regs.glben = ((dev->regs.glben & ~(0xff << shift16)) | (val << shift16)) & 0x007f;
+		break;
+	case 0x30: case 0x31: case 0x32: case 0x33:
+		/* Primary Activity Detect Status */
+		dev->regs.padsts &= ~((val << shift32) & 0x000000fd);
+		break;
+	case 0x34: case 0x35: case 0x36: case 0x37:
+		/* Primary Activity Detect Enable */
+		dev->regs.paden = ((dev->regs.paden & ~(0xff << shift32)) | (val << shift32)) & 0x000000fd;
+		if (dev->trap_update)
+			dev->trap_update(dev->trap_priv);
+		break;
 	case 0x40:
 		/* GPIO Direction Control */
 		if (size == 1) {
@@ -1056,17 +1067,37 @@ static void
 acpi_reg_write_via_596b(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
-    int shift32;
+    int shift16, shift32;
 
     addr &= 0x7f;
     acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
+    shift16 = (addr & 1) << 3;
     shift32 = (addr & 3) << 3;
 
     switch (addr) {
-	case 0x42:
-		/* GPIO port Output Value */
-		if (size == 1)
-			dev->regs.gpio_val = val & 0x13;
+	case 0x28: case 0x29:
+		/* GLBSTS - Global Status Register (IO) */
+		dev->regs.glbsts &= ~((val << shift16) & 0xfdff);
+		break;
+	case 0x2a: case 0x2b:
+		/* GLBEN - Global Enable Register (IO) */
+		dev->regs.glben = ((dev->regs.glben & ~(0xff << shift16)) | (val << shift16)) & 0xfdff;
+		break;
+	case 0x30: case 0x31: case 0x32: case 0x33:
+		/* Primary Activity Detect Status */
+		dev->regs.padsts &= ~((val << shift32) & 0x000007ff);
+		break;
+	case 0x34: case 0x35: case 0x36: case 0x37:
+		/* Primary Activity Detect Enable */
+		dev->regs.paden = ((dev->regs.paden & ~(0xff << shift32)) | (val << shift32)) & 0x000007ff;
+		if (dev->trap_update)
+			dev->trap_update(dev->trap_priv);
+		break;
+	case 0x40: /* Extended I/O Trap Status (686A/B) */
+		dev->regs.extiotrapsts &= ~(val & 0x13);
+		break;
+	case 0x42: /* Extended I/O Trap Enable (686A/B) */
+		dev->regs.extiotrapen = val & 0x13;
 		break;
 	case 0x4c: case 0x4d: case 0x4e: case 0x4f:
 		/* GPO Port Output Value */
@@ -1173,9 +1204,9 @@ acpi_reg_write_common(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
 
-	if (dev->vendor == VEN_ALI)
+    if (dev->vendor == VEN_ALI)
 	acpi_reg_write_ali(size, addr, val, p);
-    if (dev->vendor == VEN_VIA)
+    else if (dev->vendor == VEN_VIA)
 	acpi_reg_write_via(size, addr, val, p);
     else if (dev->vendor == VEN_VIA_596B)
 	acpi_reg_write_via_596b(size, addr, val, p);
@@ -1255,7 +1286,7 @@ acpi_reg_read(uint16_t addr, void *p)
 
 
 static uint32_t
-acpi_aux_read_readl(uint16_t addr, void *p)
+acpi_aux_reg_readl(uint16_t addr, void *p)
 {
     uint32_t ret = 0x00000000;
 
@@ -1264,32 +1295,34 @@ acpi_aux_read_readl(uint16_t addr, void *p)
     ret |= (acpi_aux_reg_read_common(4, addr + 2, p) << 16);
     ret |= (acpi_aux_reg_read_common(4, addr + 3, p) << 24);
 
-    acpi_log("ACPI: Read L %08X from %04X\n", ret, addr);
+    acpi_log("ACPI: Read Aux L %08X from %04X\n", ret, addr);
 
     return ret;
 }
 
 
 static uint16_t
-acpi_aux_read_readw(uint16_t addr, void *p)
+acpi_aux_reg_readw(uint16_t addr, void *p)
 {
     uint16_t ret = 0x0000;
 
     ret = acpi_aux_reg_read_common(2, addr, p);
     ret |= (acpi_aux_reg_read_common(2, addr + 1, p) << 8);
 
-    acpi_log("ACPI: Read W %08X from %04X\n", ret, addr);
+    acpi_log("ACPI: Read Aux W %04X from %04X\n", ret, addr);
 
     return ret;
 }
 
 
 static uint8_t
-acpi_aux_read_read(uint16_t addr, void *p)
+acpi_aux_reg_read(uint16_t addr, void *p)
 {
     uint8_t ret = 0x00;
 
     ret = acpi_aux_reg_read_common(1, addr, p);
+
+    acpi_log("ACPI: Read Aux B %02X from %04X\n", ret, addr);
 
     return ret;
 }
@@ -1329,6 +1362,8 @@ acpi_reg_write(uint16_t addr, uint8_t val, void *p)
 static void
 acpi_aux_reg_writel(uint16_t addr, uint32_t val, void *p)
 {
+    acpi_log("ACPI: Write Aux L %08X to %04X\n", val, addr);
+
     acpi_aux_reg_write_common(4, addr, val & 0xff, p);
     acpi_aux_reg_write_common(4, addr + 1, (val >> 8) & 0xff, p);
     acpi_aux_reg_write_common(4, addr + 2, (val >> 16) & 0xff, p);
@@ -1339,6 +1374,8 @@ acpi_aux_reg_writel(uint16_t addr, uint32_t val, void *p)
 static void
 acpi_aux_reg_writew(uint16_t addr, uint16_t val, void *p)
 {
+    acpi_log("ACPI: Write Aux W %04X to %04X\n", val, addr);
+
     acpi_aux_reg_write_common(2, addr, val & 0xff, p);
     acpi_aux_reg_write_common(2, addr + 1, (val >> 8) & 0xff, p);
 }
@@ -1347,6 +1384,8 @@ acpi_aux_reg_writew(uint16_t addr, uint16_t val, void *p)
 static void
 acpi_aux_reg_write(uint16_t addr, uint8_t val, void *p)
 {
+    acpi_log("ACPI: Write Aux B %02X to %04X\n", val, addr);
+
     acpi_aux_reg_write_common(1, addr, val, p);
 }
 
@@ -1376,6 +1415,8 @@ acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en)
 		break;
     }
 
+    acpi_log("ACPI: Update I/O %04X to %04X (%sabled)\n", dev->io_base, base, chipset_en ? "en" : "dis");
+
     if (dev->io_base != 0x0000) {
 	io_removehandler(dev->io_base, size,
 			 acpi_reg_read, acpi_reg_readw, acpi_reg_readl,
@@ -1395,17 +1436,30 @@ acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en)
 void
 acpi_update_aux_io_mapping(acpi_t *dev, uint32_t base, int chipset_en)
 {
+    int size;
+
+    switch (dev->vendor) {
+	case VEN_SMC:
+		size = 0x008;
+		break;
+	default:
+		size = 0x000;
+		break;
+    }
+
+    acpi_log("ACPI: Update Aux I/O %04X to %04X (%sabled)\n", dev->aux_io_base, base, chipset_en ? "en" : "dis");
+
     if (dev->aux_io_base != 0x0000) {
-	io_removehandler(dev->aux_io_base, 0x08,
-			 acpi_aux_read_read, acpi_aux_read_readw, acpi_aux_read_readl,
+	io_removehandler(dev->aux_io_base, size,
+			 acpi_aux_reg_read, acpi_aux_reg_readw, acpi_aux_reg_readl,
 			 acpi_aux_reg_write, acpi_aux_reg_writew, acpi_aux_reg_writel, dev);
     }
 
     dev->aux_io_base = base;
 
     if (chipset_en && (dev->aux_io_base != 0x0000)) {
-	io_sethandler(dev->aux_io_base, 0x08,
-		      acpi_aux_read_read, acpi_aux_read_readw, acpi_aux_read_readl,
+	io_sethandler(dev->aux_io_base, size,
+		      acpi_aux_reg_read, acpi_aux_reg_readw, acpi_aux_reg_readl,
 		      acpi_aux_reg_write, acpi_aux_reg_writew, acpi_aux_reg_writel, dev);
     }
 }
@@ -1434,6 +1488,20 @@ acpi_timer_count(void *priv)
     }
 
     timer_advance_u64(&dev->timer, ACPICONST);
+}
+
+
+static void
+acpi_timer_resume(void *priv)
+{
+    acpi_t *dev = (acpi_t *) priv;
+
+    dev->regs.pmsts |= 0x8000;
+
+    /* Nasty workaround for ASUS P2B-LS and potentially others, where the PMCNTRL
+       SMI trap handler clears the resume bit before returning control to the OS. */
+    if (in_smm)
+	timer_set_delay_u64(&dev->resume_timer, 50 * TIMER_USEC);
 }
 
 
@@ -1498,6 +1566,14 @@ void
 acpi_set_nvr(acpi_t *dev, nvr_t *nvr)
 {
     dev->nvr = nvr;
+}
+
+
+void
+acpi_set_trap_update(acpi_t *dev, void (*update)(void *priv), void *priv)
+{
+    dev->trap_update = update;
+    dev->trap_priv = priv;
 }
 
 
@@ -1567,22 +1643,18 @@ acpi_reset(void *priv)
 	   ASUS P3V4X:
 	   - Bit 15: 80-conductor cable on secondary IDE channel (active low)
 	   - Bit  5: 80-conductor cable on primary IDE channel (active low)
-	   AEWIN WCF-681:
-	   - Bit  3: 80-conductor cable on primary IDE channel (active low)
-	   - Bit  2: 80-conductor cable on secondary IDE channel (active low)
+	   BCM GT694VA:
+	   - Bit 19: 80-conductor cable on secondary IDE channel (active low)
+	   - Bit 17: 80-conductor cable on primary IDE channel (active low)
 	   ASUS CUV4X-LS:
 	   - Bit  2: 80-conductor cable on secondary IDE channel (active low)
 	   - Bit  1: 80-conductor cable on primary IDE channel (active low)
 	   Acorp 6VIA90AP:
 	   - Bit  3: 80-conductor cable on secondary IDE channel (active low)
 	   - Bit  1: 80-conductor cable on primary IDE channel (active low) */
-	dev->regs.gpi_val = 0xffff7fc1;
-	if (!strcmp(machines[machine].internal_name, "ficva503a"))
+	dev->regs.gpi_val = 0xfff57fc1;
+	if (!strcmp(machines[machine].internal_name, "ficva503a") || !strcmp(machines[machine].internal_name, "6via90ap"))
 		dev->regs.gpi_val |= 0x00000004;
-	if (!strcmp(machines[machine].internal_name, "6via90ap"))
-		dev->regs.gpi_val |= 0x00000004;
-	// dev->regs.gpi_val = 0xffffffe5;
-	// dev->regs.gpi_val = 0x00000004;
     }
 
     /* Power on always generates a resume event. */
@@ -1640,8 +1712,44 @@ acpi_init(const device_t *info)
 	i2c_smbus = i2c_gpio_get_bus(dev->i2c);
     }
 
+    switch (dev->vendor) {
+	case VEN_ALI:
+		dev->suspend_types[0] = SUS_POWER_OFF;
+		dev->suspend_types[1] = SUS_POWER_OFF;
+		dev->suspend_types[2] = SUS_SUSPEND | SUS_NVR | SUS_RESET_CPU | SUS_RESET_PCI;
+		dev->suspend_types[3] = SUS_SUSPEND;
+		break;
+
+	case VEN_VIA:
+		dev->suspend_types[0] = SUS_POWER_OFF;
+		dev->suspend_types[2] = SUS_SUSPEND;
+		break;
+
+	case VEN_VIA_596B:
+		dev->suspend_types[1] = SUS_SUSPEND | SUS_NVR | SUS_RESET_CPU | SUS_RESET_PCI;
+		dev->suspend_types[2] = SUS_POWER_OFF;
+		dev->suspend_types[4] = SUS_SUSPEND;
+		dev->suspend_types[5] = SUS_SUSPEND | SUS_RESET_CPU;
+		dev->suspend_types[6] = SUS_SUSPEND | SUS_RESET_CPU | SUS_RESET_PCI;
+		break;
+
+	case VEN_INTEL:
+		dev->suspend_types[0] = SUS_POWER_OFF;
+		dev->suspend_types[1] = SUS_SUSPEND | SUS_NVR | SUS_RESET_CPU | SUS_RESET_PCI;
+		dev->suspend_types[2] = SUS_SUSPEND | SUS_RESET_CPU;
+		dev->suspend_types[3] = SUS_SUSPEND | SUS_RESET_CACHE;
+		dev->suspend_types[4] = SUS_SUSPEND;
+		break;
+
+	case VEN_SIS:
+		dev->suspend_types[0] = SUS_SUSPEND;
+		dev->suspend_types[4] = SUS_POWER_OFF;
+		break;
+    }
+
     timer_add(&dev->timer, acpi_timer_count, dev, 0);
     timer_set_delay_u64(&dev->timer, ACPICONST);
+    timer_add(&dev->resume_timer, acpi_timer_resume, dev, 0);
 
     acpi_reset(dev);
 
@@ -1707,7 +1815,7 @@ const device_t acpi_via_device =
 
 const device_t acpi_via_596b_device =
 {
-    "VIA ACPI (VT82C596B)",
+    "VIA VT82C596 ACPI",
     DEVICE_PCI,
     VEN_VIA_596B,
     acpi_init, 

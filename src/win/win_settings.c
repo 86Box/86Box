@@ -807,7 +807,12 @@ win_settings_machine_recalc_machine(HWND hdlg)
     } else {
 	/* MB granularity */
 	h = GetDlgItem(hdlg, IDC_MEMSPIN);
-	SendMessage(h, UDM_SETRANGE, 0, (machines[temp_machine].min_ram << 6) | machines[temp_machine].max_ram >> 10);
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
+	i = MIN(machines[temp_machine].max_ram, 2097152);
+#else
+	i = MIN(machines[temp_machine].max_ram, 3145728);
+#endif
+	SendMessage(h, UDM_SETRANGE, 0, (machines[temp_machine].min_ram << 6) | (i >> 10));
 
 	accel.nSec = 0;
 	accel.nInc = machines[temp_machine].ram_granularity >> 10;
@@ -1375,12 +1380,15 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		settings_set_check(hdlg, IDC_CHECK_MPU401, temp_mpu401);
 		settings_enable_window(hdlg, IDC_CHECK_MPU401, mpu401_standalone_allow());
 		settings_enable_window(hdlg, IDC_CONFIGURE_MPU401, mpu401_standalone_allow() && temp_mpu401);
+		settings_enable_window(hdlg, IDC_CHECK_CMS, (machines[temp_machine].flags & MACHINE_BUS_ISA));
 		settings_set_check(hdlg, IDC_CHECK_CMS, temp_GAMEBLASTER);
-		settings_enable_window(hdlg, IDC_CONFIGURE_CMS, temp_GAMEBLASTER);
+		settings_enable_window(hdlg, IDC_CONFIGURE_CMS, (machines[temp_machine].flags & MACHINE_BUS_ISA) && temp_GAMEBLASTER);		
+		settings_enable_window(hdlg, IDC_CHECK_GUS, (machines[temp_machine].flags & MACHINE_BUS_ISA16));
 		settings_set_check(hdlg, IDC_CHECK_GUS, temp_GUS);
-		settings_enable_window(hdlg, IDC_CONFIGURE_GUS, temp_GUS);
+		settings_enable_window(hdlg, IDC_CONFIGURE_GUS, (machines[temp_machine].flags & MACHINE_BUS_ISA16) && temp_GUS);	
+		settings_enable_window(hdlg, IDC_CHECK_SSI, (machines[temp_machine].flags & MACHINE_BUS_ISA));
 		settings_set_check(hdlg, IDC_CHECK_SSI, temp_SSI2001);
-		settings_enable_window(hdlg, IDC_CONFIGURE_SSI, temp_SSI2001);
+		settings_enable_window(hdlg, IDC_CONFIGURE_SSI, (machines[temp_machine].flags & MACHINE_BUS_ISA) && temp_SSI2001);
 		settings_set_check(hdlg, IDC_CHECK_FLOAT, temp_float);
 
 		free(lptsTemp);

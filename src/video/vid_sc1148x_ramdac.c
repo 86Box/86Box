@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Emulation of Sierra SC11483 and SC11487 RAMDACs.
+ *		Emulation of Sierra SC1148x RAMDACs and clones (e.g.: Winbond).
  *
  *		Used by the S3 911 and 924 chips.
  *
@@ -33,6 +33,7 @@ typedef struct
 {
     int type;
     int state;
+	int rs2;
     uint8_t ctrl;
 } sc1148x_ramdac_t;
 
@@ -42,63 +43,53 @@ sc1148x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga)
 {
     sc1148x_ramdac_t *ramdac = (sc1148x_ramdac_t *) p;
     uint8_t rs = (addr & 0x03);
-	rs |= ((!!rs2) << 2);    
-	
-	if (ramdac->type == 0 || ramdac->type == 3) {
-		switch (addr) {
-			case 0x3c6:
-			if (ramdac->state == 4) {
+    rs |= ((!!rs2) << 2);
+	int oldbpp = 0;
+
+    switch (addr) {
+	case 0x3c6:
+		switch (ramdac->state) {
+			case 4:
 				ramdac->state = 0;
+				if (val == 0xff)
+					break;
 				ramdac->ctrl = val;
-				if (ramdac->ctrl & 0x80) {
-					svga->bpp = 15;
-				} else {
-					svga->bpp = 8;
+				ramdac->ctrl = (ramdac->ctrl & ~1) | ((((val >> 2) ^ val) & (val & 0x20)) >> 5);
+				oldbpp = svga->bpp;
+				switch (ramdac->type) {
+					case 0: /* Sierra Mark 2 (11483)*/
+					case 2:	/* Sierra Mark 2 (11484)*/
+					case 3:	/* Sierra Mark 1 (11486)*/
+						if (val & 0xa0) {
+							svga->bpp = 15;
+						} else if (val == 0x00)
+							svga->bpp = 8;
+						break;
+					case 1: /* Sierra Mark 3 (11487)*/
+						if (val & 0xa0) {
+							if (val & 0x40)
+								svga->bpp = 16;
+							else
+								svga->bpp = 15;
+						} else if (val == 0x00)
+							svga->bpp = 8;
+						break;
 				}
-				svga_recalctimings(svga);
+				if (oldbpp != svga->bpp)
+					svga_recalctimings(svga);
 				return;
-			}
-			ramdac->state = 0;
-			break;
-			
-			case 0x3c7:
-			case 0x3c8:
-			case 0x3c9:
-			ramdac->state = 0;
-			svga_out(addr, val, svga);
-			break;
+			default:
+				svga_out(addr, val, svga);
+				break;
 		}
-	} else {
-		switch (rs) {
-		case 0x00:
-		case 0x01:
-		case 0x02:
-		case 0x03:
-		case 0x04:
-		case 0x05:
-		case 0x07:
-			svga_out(addr, val, svga);
-			ramdac->state = 0;
-			break;
-		case 0x06:
-			if (ramdac->state == 4) {
-				ramdac->state = 0;
-				ramdac->ctrl = val;
-				if (ramdac->ctrl & 0x80) {
-					if ((ramdac->ctrl & 0x40) && (ramdac->type == 1))
-						svga->bpp = 16;
-					else
-						svga->bpp = 15;
-				} else {
-					svga->bpp = 8;
-				}
-				svga_recalctimings(svga);
-				return;
-			}
-			ramdac->state = 0;
-			break;
-		}		
-	}
+		break;
+
+	case 0x3c7: case 0x3c8:
+	case 0x3c9:
+		ramdac->state = 0;
+		svga_out(addr, val, svga);
+		break;
+    }
 }
 
 
@@ -106,58 +97,37 @@ uint8_t
 sc1148x_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga)
 {
     sc1148x_ramdac_t *ramdac = (sc1148x_ramdac_t *) p;
-    uint8_t temp = 0xff;
+    uint8_t ret = 0xff;
     uint8_t rs = (addr & 0x03);
-	rs |= ((!!rs2) << 2);    
-	
-	if (ramdac->type == 0 || ramdac->type == 3) {
-		switch (addr) {
-			case 0x3c6:
-			if (ramdac->state == 4) {
-				ramdac->state = 0;
-				temp = ramdac->ctrl;
-				return temp;
-			}
-			ramdac->state++;
-			break;
-			
-			case 0x3c7:
-			case 0x3c8:
-			case 0x3c9:
-			ramdac->state = 0;
-			temp = svga_in(addr, svga);
-			break;
-		}
-	} else {
-		switch (rs) {
-		case 0x00:
-		case 0x01:
-		case 0x02:
-		case 0x03:
-		case 0x04:
-		case 0x05:
-		case 0x07:
-			temp = svga_in(addr, svga);
-			ramdac->state = 0;
-			break;
-		case 0x06:
-			if (ramdac->state == 4) {
-				ramdac->state = 0;
-				temp = ramdac->ctrl;
-				if (ramdac->type == 1) {
-					if (((ramdac->ctrl >> 4) == 1) || ((ramdac->ctrl >> 4) == 3))
-						temp |= 1;
-					else
-						temp &= ~1;
-				}
-				return temp;
-			}
-			ramdac->state++;
-			break;
-		}		
-	}
+    rs |= ((!!rs2) << 2);    
 
-    return temp;
+    switch (addr) {
+	case 0x3c6:
+		switch (ramdac->state) {
+			case 1:
+			case 2: case 3:
+				ret = 0x00;
+				ramdac->state++;
+				break;
+			case 4:
+				ret = ramdac->ctrl;
+				ret = (ret & ~0x18) | (svga->dac_mask & 0x18);
+				break;
+			default:
+				ret = svga_in(addr, svga);
+				ramdac->state++;
+				break;
+		}
+		break;
+
+	case 0x3c7: case 0x3c8:
+	case 0x3c9:
+		ret = svga_in(addr, svga);
+		ramdac->state = 0;
+		break;
+    }
+
+    return ret;
 }
 
 
@@ -198,17 +168,17 @@ const device_t sc11487_ramdac_device =
 	NULL, { NULL }, NULL, NULL
 };
 
-const device_t sc11484_ramdac_device =
+const device_t sc11484_nors2_ramdac_device =
 {
-        "Sierra SC11484 RAMDAC",
+        "Sierra SC11484 RAMDAC (no RS2 signal)",
         0, 2,
         sc1148x_ramdac_init, sc1148x_ramdac_close,
 	NULL, { NULL }, NULL, NULL
 };
 
-const device_t sc11484_nors2_ramdac_device =
+const device_t sc11486_ramdac_device =
 {
-        "Sierra SC11484 RAMDAC (no RS2 signal)",
+        "Sierra SC11486 RAMDAC",
         0, 3,
         sc1148x_ramdac_init, sc1148x_ramdac_close,
 	NULL, { NULL }, NULL, NULL

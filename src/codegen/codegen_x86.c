@@ -61,7 +61,7 @@
 #include "codegen_ops.h"
 #include "codegen_ops_x86.h"
 
-#ifdef __linux__
+#ifdef __unix__
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
@@ -1173,15 +1173,10 @@ static uint32_t gen_MEM_CHECK_WRITE_L()
 
 void codegen_init()
 {
-#ifdef __linux__
-	void *start;
-	size_t len;
-	long pagesize = sysconf(_SC_PAGESIZE);
-	long pagemask = ~(pagesize - 1);
-#endif
-        
 #ifdef _WIN32
         codeblock = VirtualAlloc(NULL, (BLOCK_SIZE+1) * sizeof(codeblock_t), MEM_COMMIT, PAGE_EXECUTE_READWRITE);
+#elif defined __unix__
+        codeblock = mmap(NULL, (BLOCK_SIZE+1) * sizeof(codeblock_t), PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANON | MAP_PRIVATE, 0, 0);
 #else
         codeblock = malloc((BLOCK_SIZE+1) * sizeof(codeblock_t));
 #endif
@@ -1189,16 +1184,6 @@ void codegen_init()
 
         memset(codeblock, 0, (BLOCK_SIZE+1) * sizeof(codeblock_t));
         memset(codeblock_hash, 0, HASH_SIZE * sizeof(codeblock_t *));
-
-#ifdef __linux__
-	start = (void *)((long)codeblock & pagemask);
-	len = (((BLOCK_SIZE+1) * sizeof(codeblock_t)) + pagesize) & pagemask;
-	if (mprotect(start, len, PROT_READ | PROT_WRITE | PROT_EXEC) != 0)
-	{
-		perror("mprotect");
-		exit(-1);
-	}
-#endif
 
         block_current = BLOCK_SIZE;
         block_pos = 0;

@@ -63,6 +63,11 @@ if(MINGW)
 	set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".dll.a")
 endif()
 
+if(APPLE)
+	# Force using the newest library if it's installed by homebrew
+	set(CMAKE_FIND_FRAMEWORK LAST)
+endif()
+
 find_package(Freetype REQUIRED)
 include_directories(${FREETYPE_INCLUDE_DIRS})
 
@@ -77,7 +82,11 @@ if(MINGW)
 elseif(WIN32)
 	target_link_libraries(86Box SDL2::SDL2)
 else()
-	target_link_libraries(86Box ${SDL2_LIBRARIES})
+        if (TARGET SDL2::SDL2)
+                target_link_libraries(86Box SDL2::SDL2)
+        else()
+	        target_link_libraries(86Box ${SDL2_LIBRARIES})
+        endif()
 endif()
 
 find_package(PNG REQUIRED)
