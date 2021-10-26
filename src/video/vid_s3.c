@@ -85,6 +85,7 @@ enum
 	S3_METHEUS_86C928,
 	S3_AMI_86C924,
 	S3_TRIO64V2_DX,
+	S3_TRIO64V2_DX_ONBOARD,
 	S3_PHOENIX_TRIO64VPLUS,
 	S3_PHOENIX_TRIO64VPLUS_ONBOARD,
 	S3_DIAMOND_STEALTH_SE,
@@ -2800,6 +2801,8 @@ static void s3_recalctimings(svga_t *svga)
 	s3_t *s3 = (s3_t *)svga->p;
 	int clk_sel = (svga->miscout >> 2) & 3;
 
+	svga->hdisp = svga->hdisp_old;
+
 	if (!svga->scrblank && svga->attr_palette_enable) {
 		if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
 			if (svga->crtc[0x3a] & 0x10) { /*256+ color register*/
@@ -2809,13 +2812,12 @@ static void s3_recalctimings(svga_t *svga)
 	}
 	
 	svga->ma_latch |= (s3->ma_ext << 16);
-	if (s3->chip >= S3_86C928) {
-		svga->hdisp = svga->hdisp_old;
 
+	if (s3->chip >= S3_86C928) {
 		if (svga->crtc[0x5d] & 0x01) svga->htotal     |= 0x100;
 		if (svga->crtc[0x5d] & 0x02) {
 			svga->hdisp_time |= 0x100;
-			svga->hdisp |= 0x100 * ((svga->seqregs[1] & 8) ? 16 : 8);
+			svga->hdisp |= 0x100 * svga->dots_per_clock;
 		}
 		if (svga->crtc[0x5e] & 0x01) svga->vtotal      |= 0x400;
 		if (svga->crtc[0x5e] & 0x02) svga->dispend     |= 0x400;
@@ -2824,7 +2826,7 @@ static void s3_recalctimings(svga_t *svga)
 		if (svga->crtc[0x5e] & 0x40) svga->split       |= 0x400;
 		if (svga->crtc[0x51] & 0x30)      svga->rowoffset  |= (svga->crtc[0x51] & 0x30) << 4;
 		else if (svga->crtc[0x43] & 0x04) svga->rowoffset  |= 0x100;
-	}
+	} else if (svga->crtc[0x43] & 0x04) svga->rowoffset  |= 0x100;
 	if (!svga->rowoffset) svga->rowoffset = 256;
 
 	if ((s3->chip == S3_VISION964) || (s3->chip == S3_86C928)) {
@@ -3064,6 +3066,28 @@ static void s3_recalctimings(svga_t *svga)
 			}
 		}
 	}
+
+	if (s3->chip >= S3_86C801) {
+		if (!svga->scrblank && svga->attr_palette_enable && (svga->crtc[0x43] & 0x80)) {
+			/* TODO: In case of bug reports, disable 9-dots-wide character clocks in graphics modes. */
+			svga->dots_per_clock = ((svga->seqregs[1] & 1) ? 16 : 18);
+		}
+
+		if (svga->crtc[0x5d] & 0x04)
+			svga->hblankstart += 0x100;
+		if (s3->chip >= S3_VISION964) {
+			/* NOTE: The S3 Trio64V+ datasheet says this is bit 7, but then where is bit 6?
+				 The datasheets for the pre-Trio64V+ cards say +64, which implies bit 6,
+				 and, contrary to VGADOC, it also exists on Trio32, Trio64, Vision868,
+				 and Vision968. */
+			// pclog("svga->crtc[0x5d] = %02X\n", svga->crtc[0x5d]);
+			if (svga->crtc[0x5d] & 0x08)
+				svga->hblank_ext = 0x40;
+			svga->hblank_end_len = 0x00000040;
+		}
+	}
+
+	svga->hblank_overscan = !(svga->crtc[0x33] & 0x20);
 }
 
 static void s3_trio64v_recalctimings(svga_t *svga)
@@ -6806,6 +6830,11 @@ static void *s3_init(const device_t *info)
 			chip = S3_TRIO64V2;
 			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
 			break;
+		case S3_TRIO64V2_DX_ONBOARD:
+			bios_fn = NULL;
+			chip = S3_TRIO64V2;
+			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+			break;
 		default:
 			free(s3);
 			return NULL;
@@ -7165,6 +7194,7 @@ static void *s3_init(const device_t *info)
 			break;
 
 		case S3_TRIO64V2_DX:
+		case S3_TRIO64V2_DX_ONBOARD:
 			svga->decode_mask = (4 << 20) - 1;
 			s3->id = 0xe1; /*Trio64V2*/
 			s3->id_ext = s3->id_ext_pci = 0x01;
@@ -8094,3 +8124,17 @@ const device_t s3_trio64v2_dx_pci_device =
         s3_standard_config
 };
 
+
+const device_t s3_trio64v2_dx_onboard_pci_device =
+{
+        "S3 Trio64V2/DX On-Board PCI",
+        DEVICE_PCI,
+        S3_TRIO64V2_DX_ONBOARD,
+        s3_init,
+        s3_close,
+	NULL,
+        { NULL },
+        s3_speed_changed,
+        s3_force_redraw,
+        s3_standard_config
+};

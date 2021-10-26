@@ -206,7 +206,7 @@ fdc37c93x_nvr_sec_handler(fdc37c93x_t *dev)
 	dev->nvr_sec_base = ld_port = make_port_sec(dev, 6) & 0xFFFE;
 	/* Datasheet erratum: First it says minimum address is 0x0100, but later implies that it's 0x0000
 			      and that default is 0x0070, same as (unrelocatable) primary NVR. */
-	if ((ld_port >= 0x0000) && (ld_port <= 0x0FFE))
+	if (ld_port <= 0x0FFE)
 		nvr_at_sec_handler(1, dev->nvr_sec_base, dev->nvr);
     }
 }

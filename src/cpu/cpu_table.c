@@ -186,7 +186,6 @@ const cpu_family_t cpu_families[] = {
 		{"", 0}
 	}
     },
-#if defined(DEV_BRANCH) && defined(USE_M6117)
     {
 	.package = CPU_PKG_M6117,
 	.manufacturer = "ALi",
@@ -198,7 +197,6 @@ const cpu_family_t cpu_families[] = {
 		{"", 0}
 	}
     },
-#endif
     {
 	.package = CPU_PKG_386SLC_IBM,
 	.manufacturer = "IBM",
