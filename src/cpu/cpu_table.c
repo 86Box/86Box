@@ -833,7 +833,7 @@ const cpu_family_t cpu_families[] = {
 	.name = "K6-III+",
 	.internal_name = "k6_3p",
 	.cpus = (const CPU[]) {
-		{"100",             CPU_K6_3P, fpus_internal,  100000000, 1.0, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,     7,    7,   4,   4,  9},
+		{"100",             CPU_K6_3P, fpus_internal,  100000000, 1.5, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,     7,    7,   4,   4,  9}, /* out of spec */
 		{"400",             CPU_K6_3P, fpus_internal,  400000000, 4.0, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    36,   36,  12,  12, 48},
 		{"450",             CPU_K6_3P, fpus_internal,  450000000, 4.5, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    41,   41,  14,  14, 54},
 		{"475",             CPU_K6_3P, fpus_internal,  475000000, 5.0, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    43,   43,  15,  15, 57},
@@ -1564,7 +1564,8 @@ static const cpu_legacy_table_t cpus_K56_SS7[] = {
     {"k6_3", 400000000, 4.0},
     {"k6_3", 450000000, 4.5},
     {"k6_3p", 75000000, 1.5},
-    {"k6_3p", 400000000, 4.0},
+	{"k6_3p", 100000000, 1.5},
+	{"k6_3p", 400000000, 4.0},
     {"k6_3p", 450000000, 4.5},
     {"k6_3p", 475000000, 5.0},
     {"k6_3p", 500000000, 5.0},
