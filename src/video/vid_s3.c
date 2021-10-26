@@ -1438,7 +1438,15 @@ s3_accel_write_fifo(s3_t *s3, uint32_t addr, uint8_t val)
 
     if (svga->crtc[0x53] & 0x08) {
 	if ((addr & 0x1ffff) < 0x8000) {
-		s3_accel_out_fifo(s3, 0xe2e8 + (addr & 3), val);
+		if (s3->accel.cmd & 0x100) {
+			if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 2)) {
+				if (((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40))
+					s3_accel_start(8, 1, val | (val << 8) | (val << 16) | (val << 24), 0, s3);
+				else
+					s3_accel_start(1, 1, 0xffffffff, val | (val << 8) | (val << 16) | (val << 24), s3);
+			} else
+				s3_accel_start(1, 1, 0xffffffff, val | (val << 8) | (val << 16) | (val << 24), s3);
+		}
 	} else {
 		switch (addr & 0x1ffff) {
 			case 0x83b0: case 0x83b1: case 0x83b2: case 0x83b3:
@@ -3041,17 +3049,19 @@ static void s3_recalctimings(svga_t *svga)
 		}
 	} else {
 		svga->fb_only = 0;
-		if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
-			if ((svga->crtc[0x31] & 0x08) && ((svga->gdcreg[5] & 0x60) == 0x00)) {
-				if (svga->bpp == 8) {
-					svga->render = svga_render_8bpp_highres; /*Enhanced 4bpp mode, just like the 8bpp mode per spec.*/
-					if (svga->hdisp <= 1024)
-						s3->width = 1024;
+		if (!svga->scrblank && svga->attr_palette_enable) {
+			if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
+				if ((svga->crtc[0x31] & 0x08) && ((svga->gdcreg[5] & 0x60) == 0x00)) {
+					if (svga->bpp == 8) {
+						svga->render = svga_render_8bpp_highres; /*Enhanced 4bpp mode, just like the 8bpp mode per spec.*/
+						if (svga->hdisp <= 1024)
+							s3->width = 1024;
+					}
 				}
+			} else {
+				if (s3->chip <= S3_86C924)
+					s3->width = 1024;
 			}
-		} else {
-			if (s3->chip <= S3_86C924)
-				s3->width = 1024;
 		}
 	}
 }
