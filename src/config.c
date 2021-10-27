@@ -658,6 +658,8 @@ load_machine(void)
 		machine = machine_get_machine_from_internal_name("ami495");
 	else if (! strcmp(p, "mr486"))
 		machine = machine_get_machine_from_internal_name("mr495");
+	else if (! strcmp(p, "ibmps1_2121_isa"))
+		machine = machine_get_machine_from_internal_name("ibmps1_2121");
 	else if (! strcmp(p, "fw6400gx_s1"))
 		machine = machine_get_machine_from_internal_name("fw6400gx");
 	else if (! strcmp(p, "p54vl"))
