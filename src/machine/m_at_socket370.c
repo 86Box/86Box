@@ -503,32 +503,32 @@ machine_at_j815epda_init(const machine_t *model)
     machine_at_ich2_common_init(0, 5, model);
 
     device_add(&w83627hf_device);
-    w83627hf_stabilizer(0x7a, /* CPU Voltage (Mendocino's are utilizing 2 Volts ) */
-                        0x6f, /* 1.8V Rail */
+    w83627hf_stabilizer(0x7a,    /* CPU Voltage (Mendocino's are utilizing 2 Volts ) */
+                        0x6f,    /* 1.8V Rail */
                         0x1c,    /* FAN 2 */
                         0x1e,    /* FAN 3 */
                         0x1d     /* FAN 1 */
     );
-
     device_add(&intel_flash_bxt_device); /* Needs Intel or SST FWH */
 
     return ret;
 }
 
 int
-machine_at_olympusii_init(const machine_t *model)
+machine_at_s2080_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/olympusii/S821P.ROM",
+    ret = bios_load_linear("roms/machines/s2080/2080V110.ROM",
 			   0x00080000, 524288, 0);
 
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_ich2_common_init(0, 3, model);
+    machine_at_ich2_common_init(0, 6, model);
 
-    device_add(&w83627hf_device);
+    device_add(&pc87309_device); /* NSC PC87366 */
+    device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf040_device); /* Needs Intel or SST FWH */
 
     return ret;

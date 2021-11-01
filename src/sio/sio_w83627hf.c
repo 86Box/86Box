@@ -354,6 +354,7 @@ w83627hf_hwm_write(uint16_t addr, uint8_t val, void *priv)
         break;
 
         case 0x296:
+            w83627hf_log("W83627HF-HWM: dev->regs[%02x] = %02x\n", dev->hwm_index, val);
             switch(dev->hwm_index)
             {
                 case 0x2b ... 0x3f:
@@ -943,6 +944,7 @@ w83627hf_write(uint16_t addr, uint8_t val, void *priv)
         break;
 
         case 0x0f:
+            w83627hf_log("W83627HF: dev->regs[%02x] = %02x\n", dev->index, val);
             if(dev->cfg_unlocked)
                 switch(dev->index)
                 {

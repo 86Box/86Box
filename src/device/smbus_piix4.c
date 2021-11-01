@@ -325,14 +325,9 @@ unknown_protocol:
 
     if (dev->next_stat) { /* schedule dispatch of any pending status register update */
 	dev->stat = 0x01; /* raise HOST_BUSY while waiting */
-
-	if(dev->local != SMBUS_ICH2)
-	{
 	timer_disable(&dev->response_timer);
 	/* delay = ((half clock for start + half clock for stop) + (bytes * (8 bits + ack))) * bit period in usecs */
 	timer_set_delay_u64(&dev->response_timer, (1 + (timer_bytes * 9)) * dev->bit_period * TIMER_USEC);
-	}
-	else dev->stat |= dev->next_stat;
     }
 }
 
@@ -381,10 +376,7 @@ smbus_piix4_init(const device_t *info)
     /* We save the I2C bus handle on dev but use i2c_smbus for all operations because
        dev and therefore dev->i2c will be invalidated if a device triggers a hard reset. */
     i2c_smbus = dev->i2c = i2c_addbus((dev->local == SMBUS_VIA) ? "smbus_vt82c686b" : "smbus_piix4");
-
-    if(dev->local != SMBUS_ICH2)
-    	timer_add(&dev->response_timer, smbus_piix4_response, dev, 0);
-
+    timer_add(&dev->response_timer, smbus_piix4_response, dev, 0);
     smbus_piix4_setclock(dev, 16384); /* default to 16.384 KHz */
 
     return dev;
@@ -414,7 +406,7 @@ const device_t piix4_smbus_device = {
 };
 
 const device_t ich2_smbus_device = {
-    "ICH2-compatible SMBus Host Controller",
+    "Intel ICH2 SMBus Host Controller",
     DEVICE_AT,
     SMBUS_ICH2,
     smbus_piix4_init, smbus_piix4_close, NULL,

@@ -324,9 +324,44 @@ static void
 intel_ich2_gpio_write(uint16_t addr, uint8_t val, void *priv)
 {
     intel_ich2_t *dev = (intel_ich2_t *)priv;
+    
+    addr = addr - dev->gpio_base;
+    intel_ich2_log("Intel ICH2-GPIO: dev->regs[%02x] = %02x POST: %02x \n", addr, val, inb(0x80));
 
-    intel_ich2_log("Intel ICH2-GPIO: dev->regs[%02x] = %02x POST: %02x \n", addr - dev->gpio_base, val, inb(0x80));
-    dev->gpio_space[addr - dev->gpio_base] = val;
+    switch(addr)
+    {
+        case 0x00:
+            dev->gpio_space[addr] = val & 0x7f;
+        break;
+
+        case 0x08:
+            dev->gpio_space[addr] = val & 0x1f;
+        break;
+
+        case 0x0e:
+            dev->gpio_space[addr] = val & 0x7f;
+        break;
+
+        case 0x0f:
+            dev->gpio_space[addr] = val & 0x1b;
+        break;
+
+        case 0x19:
+            dev->gpio_space[addr] = val & 0x0e;
+        break;
+
+        case 0x1b:
+            dev->gpio_space[addr] = val & 0x1a;
+        break;
+
+        case 0x2c:
+            dev->gpio_space[addr] = val & 0xdb;
+        break;
+
+        case 0x2d:
+            dev->gpio_space[addr] = val & 0x39;
+        break;
+    }
 }
 
 static uint8_t
@@ -334,8 +369,13 @@ intel_ich2_gpio_read(uint16_t addr, void *priv)
 {
     intel_ich2_t *dev = (intel_ich2_t *)priv;
 
-    intel_ich2_log("Intel ICH2-GPIO: dev->regs[%02x] (%02x) POST: %02x \n", addr - dev->gpio_base, dev->gpio_space[addr - dev->gpio_base], inb(0x80));
-    return dev->gpio_space[addr - dev->gpio_base];
+    addr = addr - dev->gpio_base;
+    intel_ich2_log("Intel ICH2-GPIO: dev->regs[%02x] (%02x) POST: %02x \n", addr, dev->gpio_space[addr - dev->gpio_base], inb(0x80));
+
+    if((addr >= 0) && (addr <= 0x40))
+        return dev->gpio_space[addr];
+    else
+        return 0xff;
 }
 
 static void
@@ -345,6 +385,8 @@ intel_ich2_gpio(intel_ich2_t *dev)
         io_removehandler(dev->gpio_base, 64, intel_ich2_gpio_read, NULL, NULL, intel_ich2_gpio_write, NULL, NULL, dev);
 
     dev->gpio_base = (dev->lpc_conf[0][0x59] << 8) | (dev->lpc_conf[0][0x58] & 0xc0);
+
+    intel_ich2_log("Intel ICH2-GPIO: New Base %04x\n", dev->gpio_base);
 
     if(dev->gpio_base && !!(dev->lpc_conf[0][0x54] & 0x10)) /* Set the new GPIO base*/
         io_sethandler(dev->gpio_base, 64, intel_ich2_gpio_read, NULL, NULL, intel_ich2_gpio_write, NULL, NULL, dev);
@@ -973,6 +1015,15 @@ intel_ich2_reset(void *priv)
 
     dev->acpi->regs.tco[0x01] = 4;
     dev->acpi->regs.tco[0x10] = 3;
+
+    dev->gpio_space[0x00] = 0x80;
+    dev->gpio_space[0x01] = 0x31;
+    dev->gpio_space[0x02] = 0x1a;
+    dev->gpio_space[0x04] = dev->gpio_space[0x05] = 0xff;
+    dev->gpio_space[0x0e] = dev->gpio_space[0x0f] = 0x1f;
+    dev->gpio_space[0x16] = 0x63;
+    dev->gpio_space[0x17] = 6;
+
     intel_ich2_acpi(dev);
     intel_ich2_gpio(dev);
     intel_ich2_nvr(dev);
@@ -1093,8 +1144,8 @@ intel_ich2_init(const device_t *info)
     memset(dev, 0, sizeof(intel_ich2_t));
 
     /* Devices */
-    dev->hub_slot = pci_add_card(PCI_ADD_BRIDGE, intel_ich2_hub_read, intel_ich2_hub_write, dev);                 /* Bus 0: Device 30: HUB */
-    dev->lpc_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, intel_ich2_lpc_read, intel_ich2_lpc_write, dev); /* Bus 0: Device 31: LPC */
+    dev->hub_slot = pci_add_card(PCI_ADD_BRIDGE, intel_ich2_hub_read, intel_ich2_hub_write, dev);          /* Bus 0: Device 30: HUB */
+    dev->lpc_slot = pci_add_card(PCI_ADD_SOUTHBRIDGE, intel_ich2_lpc_read, intel_ich2_lpc_write, dev);     /* Bus 0: Device 31: LPC */
 
     /* ACPI */
     dev->acpi = device_add(&acpi_intel_ich2_device);

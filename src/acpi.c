@@ -112,8 +112,9 @@ acpi_raise_smi(void *priv, int do_smi)
 			smi_line = 1;
 	}
     }
-    else if((dev->vendor == VEN_INTEL_ICH2) && do_smi && !!(dev->regs.smi_en & 1)) /* ICH2 SMI */
+    else if((dev->vendor == VEN_INTEL_ICH2) && do_smi && !!(dev->regs.smi_en & 1)) { /* ICH2 SMI */
 	smi_line = 1;
+    }
 }
 
 
@@ -948,7 +949,7 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 			acpi_log("ACPI: Entered Suspend Mode Type: %d\n", sus_typ);
 
 			if(dev->regs.smi_en & 0x00000010) { /* ICH2 SLEEP SMI */
-				acpi_log("ACPI: Sleep SMI provoked Instead!");
+				acpi_log("ACPI: Sleep SMI is Enabled");
 				dev->regs.smi_sts |= 0x00000010;
 				acpi_raise_smi(dev, 1);
 			}
@@ -988,16 +989,15 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 					plat_pause(1);
 					timer_set_delay_u64(&dev->resume_timer, 50 * TIMER_USEC);
 				}
+
+				if((addr == 0x04) && !!(val & 4) && !!(dev->regs.smi_en & 0x0004))
+				{
+					dev->regs.smi_sts |= 0x0004;
+					acpi_log("ACPI: BIOS SMI is Enabled");
+					acpi_raise_smi(dev, 1);
+				}
 			}
 		}
-
-		if((addr == 4) && !!(val & 4) && !!(dev->regs.smi_en & 4))
-		{
-			dev->regs.smi_sts |= 4;
-			acpi_raise_smi(dev, 1);
-			acpi_update_irq(dev);
-		}
-
 		dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c05;
 		break;
 
@@ -1035,14 +1035,23 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 
 		dev->apm->do_smi = (addr == 0x30) && !!(val & 0x20); /* ICH2 APM SMI */
 
-		if((addr == 0x30) && !!(val & 0x80)) /* ICH2 BIOS_RLS SCI */
+		if((addr == 0x30) && !!(val & 0x80)) /* ICH2 BIOS SCI */
+		{
+			acpi_update_irq(dev);
 			dev->regs.pmsts |= 0x0020;
 
+			dev->regs.pmcntrl |= 0x0004;
+			if((addr == 0x30) && !!(val & 4))
+			{
+				acpi_log("ACPI: BIOS SMI via BIOS_RLS is Enabled");
+				acpi_raise_smi(dev, 1);
+			}
+		}
 		break;
 
 	case 0x34: case 0x35: case 0x36: case 0x37:
 		/* SMI_STS - SMI Status Register */
-		dev->regs.smi_sts = ((dev->regs.smi_sts & ~(0xff << shift32)) | (val << shift32)) & 0x000068ff;
+		dev->regs.smi_sts &= ((dev->regs.smi_sts & ~(0xff << shift32)) | (val << shift32)) & 0x000068ff;
 		break;
 
 	case 0x40: case 0x41:
@@ -1151,7 +1160,7 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 	default:
 		acpi_reg_write_common_regs(size, addr, val, p);
 
-		if(((addr == 0x02) & !!(val & 0x20)) && !!(dev->regs.pmsts & 0x0020)) /* ICH2 BIOS SMI */
+		if((addr == 0x02) && !!(dev->regs.pmsts & 0x0020))
 			acpi_update_irq(dev);
 
 		break;
@@ -1954,7 +1963,10 @@ acpi_apm_out(uint16_t port, uint8_t val, void *p)
 			dev->regs.glbsts |= 0x20;
 
 		if ((dev->vendor == VEN_INTEL_ICH2) && dev->apm->do_smi) /* ICH2 APM SMI */
+		{
 			dev->regs.smi_sts |= 0x00000020;
+			acpi_log("ACPI: APM SMI is Enabled\n");
+		}
 
 		acpi_raise_smi(dev, dev->apm->do_smi);
 	} else

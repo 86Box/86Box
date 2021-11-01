@@ -1155,7 +1155,7 @@ dma16_init(void)
 }
 
 void
-intel_ich2_dma_alias_set_init(void)
+intel_ich2_dma_alias_set_init(void) /* These are probably the LPC DMA I/O Ports. Although there are zero I/O map references about it. */
 {
     io_sethandler(0x1000, 16,
 		  dma_read,NULL,NULL, dma_write,NULL,NULL, NULL);
