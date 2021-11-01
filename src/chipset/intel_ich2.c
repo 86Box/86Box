@@ -44,7 +44,7 @@
 #include <86box/usb.h>
 
 #include <86box/chipset.h>
-
+#define ENABLE_INTEL_ICH2_LOG 1
 #ifdef ENABLE_INTEL_ICH2_LOG
 int intel_ich2_do_log = ENABLE_INTEL_ICH2_LOG;
 

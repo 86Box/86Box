@@ -313,6 +313,11 @@ acpi_reg_read_intel_ich2(int size, uint16_t addr, void *p)
 
     switch (addr) {
 
+	case 0x04: case 0x05:
+		/* PMCNTRL - Power Management Control Register (IO) */
+		ret = (dev->regs.pmcntrl >> shift16) & 0xff;
+		break;
+	
 	case 0x10: case 0x11: case 0x13:
 		/* PCNTRL - Processor Control Register (IO) */
 		ret = (dev->regs.pcntrl >> shift32) & 0xff;
@@ -946,6 +951,7 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 		/* PMCNTRL - Power Management Control Register (IO) */
 		if ((addr == 0x05) && !!(val & 0x20)) {
 			sus_typ = dev->suspend_types[(val >> 2) & 7];
+
 			acpi_log("ACPI: Entered Suspend Mode Type: %d\n", sus_typ);
 
 			if(dev->regs.smi_en & 0x00000010) { /* ICH2 SLEEP SMI */
@@ -989,15 +995,16 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 					plat_pause(1);
 					timer_set_delay_u64(&dev->resume_timer, 50 * TIMER_USEC);
 				}
-
-				if((addr == 0x04) && !!(val & 4) && !!(dev->regs.smi_en & 0x0004))
-				{
-					dev->regs.smi_sts |= 0x0004;
-					acpi_log("ACPI: BIOS SMI is Enabled");
-					acpi_raise_smi(dev, 1);
-				}
 			}
 		}
+
+		if((addr == 0x04) && !!(val & 4) && !!(dev->regs.smi_en & 0x0004))
+		{
+			dev->regs.smi_sts |= 0x0004;
+			acpi_log("ACPI: BIOS SMI is Enabled");
+			acpi_raise_smi(dev, 1);
+		}
+
 		dev->regs.pmcntrl = ((dev->regs.pmcntrl & ~(0xff << shift16)) | (val << shift16)) & 0x3c05;
 		break;
 
