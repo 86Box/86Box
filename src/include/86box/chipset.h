@@ -87,7 +87,6 @@ extern const device_t	i440zx_device;
 extern const device_t	intel_gmch_gfx_device;
 extern const device_t	intel_gmch_device;
 
-#if defined(DEV_BRANCH) && defined(USE_I450KX)
 extern const device_t	i450kx_device;
 
 extern const device_t	sio_device;
