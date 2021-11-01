@@ -287,11 +287,24 @@ smram_add(void)
 }
 
 
+/* Set memory state in the specified model (normal or SMM) according to the specified flags,
+   separately for bus and CPU. */
+void
+smram_map_ex(int bus, int smm, uint32_t addr, uint32_t size, int is_smram)
+{
+    if (bus)
+	mem_set_access_smram_bus(smm, addr, size, is_smram);
+    else
+	mem_set_access_smram_cpu(smm, addr, size, is_smram);
+}
+
+
 /* Set memory state in the specified model (normal or SMM) according to the specified flags. */
 void
 smram_map(int smm, uint32_t addr, uint32_t size, int is_smram)
 {
-    mem_set_mem_state_smram(smm, addr, size, is_smram);
+    smram_map_ex(0, smm, addr, size, is_smram);
+    smram_map_ex(1, smm, addr, size, is_smram);
 }
 
 
@@ -331,9 +344,11 @@ smram_disable_all(void)
 }
 
 
-/* Enable SMRAM mappings according to flags for both normal and SMM modes. */
+/* Enable SMRAM mappings according to flags for both normal and SMM modes, separately for bus
+   and CPU. */
 void
-smram_enable(smram_t *smr, uint32_t host_base, uint32_t ram_base, uint32_t size, int flags_normal, int flags_smm)
+smram_enable_ex(smram_t *smr, uint32_t host_base, uint32_t ram_base, uint32_t size,
+		int flags_normal, int flags_normal_bus, int flags_smm, int flags_smm_bus)
 {
     if (smr == NULL) {
 	fatal("smram_add(): Invalid SMRAM mapping\n");
@@ -362,10 +377,20 @@ smram_enable(smram_t *smr, uint32_t host_base, uint32_t ram_base, uint32_t size,
 			mem_mapping_set_exec(&(smr->mapping), smram + 0x30000);
 	}
 
-	smram_map(0, host_base, size, flags_normal);
-	smram_map(1, host_base, size, flags_smm);
+	smram_map_ex(0, 0, host_base, size, flags_normal);
+	smram_map_ex(1, 0, host_base, size, flags_normal_bus);
+	smram_map_ex(0, 1, host_base, size, flags_smm);
+	smram_map_ex(1, 1, host_base, size, flags_smm_bus);
     } else
 	smram_disable(smr);
+}
+
+
+/* Enable SMRAM mappings according to flags for both normal and SMM modes. */
+void
+smram_enable(smram_t *smr, uint32_t host_base, uint32_t ram_base, uint32_t size, int flags_normal, int flags_smm)
+{
+    smram_enable_ex(smr, host_base, ram_base, size, flags_normal, flags_normal, flags_smm, flags_smm);
 }
 
 

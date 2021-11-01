@@ -2247,6 +2247,12 @@ mem_mapping_access_allowed(uint32_t flags, uint16_t access)
 		ret = ret && !(flags & MEM_MAPPING_INTERNAL) && !(flags & MEM_MAPPING_SMRAM);
 	} else
 		ret = !(flags & MEM_MAPPING_EXTERNAL) && !(flags & MEM_MAPPING_SMRAM);
+    } else {
+	/* Still allow SMRAM if access is DISABLED but also has CACHE and/or SMRAM flags set. */
+	if (access & ACCESS_CACHE)
+		ret = (flags & MEM_MAPPING_CACHE);
+	else if (access & ACCESS_SMRAM)
+		ret = (flags & MEM_MAPPING_SMRAM);
     }
 
     return ret;

@@ -39,12 +39,19 @@ extern void	smram_recalc_all(int ret);
 extern void	smram_del(smram_t *smr);
 /* Add a SMRAM mapping. */
 extern smram_t *smram_add(void);
+/* Set memory state in the specified model (normal or SMM) according to the specified flags,
+   separately for bus and CPU. */
+extern void	smram_map_ex(int bus, int smm, uint32_t addr, uint32_t size, int is_smram);
 /* Set memory state in the specified model (normal or SMM) according to the specified flags. */
 extern void	smram_map(int smm, uint32_t addr, uint32_t size, int is_smram);
 /* Disable a specific SMRAM mapping. */
 extern void	smram_disable(smram_t *smr);
 /* Disable all SMRAM mappings. */
 extern void	smram_disable_all(void);
+/* Enable SMRAM mappings according to flags for both normal and SMM modes, separately for bus
+   and CPU. */
+extern void smram_enable_ex(smram_t *smr, uint32_t host_base, uint32_t ram_base, uint32_t size,
+			    int flags_normal, int flags_normal_bus, int flags_smm, int flags_smm_bus);
 /* Enable SMRAM mappings according to flags for both normal and SMM modes. */
 extern void	smram_enable(smram_t *smr, uint32_t host_base, uint32_t ram_base, uint32_t size,
 			     int flags_normal, int flags_smm);

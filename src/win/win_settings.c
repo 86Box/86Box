@@ -1382,12 +1382,15 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		settings_set_check(hdlg, IDC_CHECK_MPU401, temp_mpu401);
 		settings_enable_window(hdlg, IDC_CHECK_MPU401, mpu401_standalone_allow());
 		settings_enable_window(hdlg, IDC_CONFIGURE_MPU401, mpu401_standalone_allow() && temp_mpu401);
+		settings_enable_window(hdlg, IDC_CHECK_CMS, (machines[temp_machine].flags & MACHINE_BUS_ISA));
 		settings_set_check(hdlg, IDC_CHECK_CMS, temp_GAMEBLASTER);
-		settings_enable_window(hdlg, IDC_CONFIGURE_CMS, temp_GAMEBLASTER);
+		settings_enable_window(hdlg, IDC_CONFIGURE_CMS, (machines[temp_machine].flags & MACHINE_BUS_ISA) && temp_GAMEBLASTER);		
+		settings_enable_window(hdlg, IDC_CHECK_GUS, (machines[temp_machine].flags & MACHINE_BUS_ISA16));
 		settings_set_check(hdlg, IDC_CHECK_GUS, temp_GUS);
-		settings_enable_window(hdlg, IDC_CONFIGURE_GUS, temp_GUS);
+		settings_enable_window(hdlg, IDC_CONFIGURE_GUS, (machines[temp_machine].flags & MACHINE_BUS_ISA16) && temp_GUS);	
+		settings_enable_window(hdlg, IDC_CHECK_SSI, (machines[temp_machine].flags & MACHINE_BUS_ISA));
 		settings_set_check(hdlg, IDC_CHECK_SSI, temp_SSI2001);
-		settings_enable_window(hdlg, IDC_CONFIGURE_SSI, temp_SSI2001);
+		settings_enable_window(hdlg, IDC_CONFIGURE_SSI, (machines[temp_machine].flags & MACHINE_BUS_ISA) && temp_SSI2001);
 		settings_set_check(hdlg, IDC_CHECK_FLOAT, temp_float);
 
 		free(lptsTemp);

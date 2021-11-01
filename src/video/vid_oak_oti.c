@@ -28,6 +28,7 @@
 #include <86box/device.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
+#include <86box/vid_svga_render.h>
 
 #define BIOS_037C_PATH			"roms/video/oti/bios.bin"
 #define BIOS_067_AMA932J_PATH		"roms/machines/ama932j/oti067.bin"
@@ -82,6 +83,14 @@ oti_out(uint16_t addr, uint8_t val, void *p)
 			return;
 		} else
 			break;
+		break;
+		
+	case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
+		if (oti->chip_id == OTI_077)
+			sc1148x_ramdac_out(addr, 0, val, svga->ramdac, svga);
+		else
+			svga_out(addr, val, svga);
+		return;
 
 	case 0x3D4:
 		if (oti->chip_id)
@@ -213,6 +222,11 @@ oti_in(uint16_t addr, void *p)
 			temp = oti->enable_register;
 		break;
 
+	case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
+		if (oti->chip_id == OTI_077)
+			return sc1148x_ramdac_in(addr, 0, svga->ramdac, svga);
+		return svga_in(addr, svga);
+
                 case 0x3CF:
                 return svga->gdcreg[svga->gdcaddr & 0xf];
 
@@ -340,6 +354,14 @@ oti_recalctimings(svga_t *svga)
     if ((oti->regs[0x0d] & 0x0c) && !(oti->regs[0x0d] & 0x10)) svga->rowoffset <<= 1;
 
     svga->interlace = oti->regs[0x14] & 0x80;
+	
+	if (svga->bpp == 16) {
+		svga->render = svga_render_16bpp_highres;
+		svga->hdisp >>= 1;
+	} else if (svga->bpp == 15) {
+		svga->render = svga_render_15bpp_highres;
+		svga->hdisp >>= 1;
+	}
 }
 
 
@@ -392,6 +414,9 @@ oti_init(const device_t *info)
 
     svga_init(info, &oti->svga, oti, oti->vram_size << 10,
 	      oti_recalctimings, oti_in, oti_out, NULL, NULL);
+
+	if (oti->chip_id == OTI_077)
+		oti->svga.ramdac = device_add(&sc11487_ramdac_device); /*Actually a 82c487, probably a clone.*/
 
     io_sethandler(0x03c0, 32,
 		  oti_in, NULL, NULL, oti_out, NULL, NULL, oti);

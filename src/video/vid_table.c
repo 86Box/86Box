@@ -58,12 +58,13 @@ video_cards[] = {
     { "ati28800k",		&ati28800k_device			},
     { "ati18800v",		&ati18800_vga88_device			},
     { "ati28800",		&ati28800_device			},
+    { "compaq_ati28800",	&compaq_ati28800_device			},
+#if defined(DEV_BRANCH) && defined(USE_XL24)
+    { "ati28800w",		&ati28800_wonderxl24_device		},
+#endif
     { "ati18800",		&ati18800_device			},
 #if defined(DEV_BRANCH) && defined(USE_VGAWONDER)
     { "ati18800w",		&ati18800_wonder_device			},
-#endif
-#if defined(DEV_BRANCH) && defined(USE_XL24)
-    { "ati28800w",		&ati28800_wonderxl24_device		},
 #endif
     { "cga",			&cga_device				},
     { "superega",		&sega_device				},
@@ -74,7 +75,6 @@ video_cards[] = {
     { "cl_gd5428_isa",		&gd5428_isa_device			},
     { "cl_gd5429_isa",		&gd5429_isa_device			},
     { "cl_gd5434_isa",		&gd5434_isa_device			},
-    { "compaq_ati28800",	&compaq_ati28800_device			},
     { "compaq_cga",		&compaq_cga_device			},
     { "compaq_cga_2",		&compaq_cga_2_device			},
     { "compaq_ega",		&cpqega_device				},

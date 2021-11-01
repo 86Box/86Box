@@ -45,9 +45,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef HEDAKA
   HEDAKA	:= y
  endif
- ifndef I450KX
-  I450KX	:= y
- endif
  ifndef LASERXT
   LASERXT	:= y
  endif
@@ -108,9 +105,6 @@ else
  endif
  ifndef HEDAKA
   HEDAKA	:= n
- endif
- ifndef I450KX
-  I450KX		:= n
  endif
  ifndef LASERXT
   LASERXT	:= n
@@ -501,11 +495,6 @@ ifeq ($(HEDAKA), y)
 OPTS		+= -DUSE_HEDAKA
 endif
 
-ifeq ($(I450KX), y)
-OPTS		+= -DUSE_I450KX
-DEVBROBJ	+= intel_i450kx.o
-endif
-
 ifeq ($(LASERXT), y)
 OPTS		+= -DUSE_LASERXT
 DEVBROBJ	+= m_xt_laserxt.o
@@ -593,7 +582,8 @@ CHIPSETOBJ	:= 82c100.o acc2168.o \
 		    cs4031.o cs8230.o \
 		    ali1429.o ali1489.o ali1531.o ali1541.o ali1543.o ali1621.o ali6117.o \
 		    gc100.o headland.o \
-		    ims8848.o intel_82335.o intel_420ex.o intel_4x0.o intel_sio.o intel_piix.o intel_gmch.o intel_ich2.o ioapic.o \
+		    ims8848.o intel_82335.o intel_420ex.o intel_4x0.o intel_i450kx.o intel_gmch.o intel_ich2.o intel_sio.o intel_piix.o \
+		    ioapic.o \
 		    neat.o \
 		    opti283.o opti291.o opti391.o opti495.o opti822.o opti895.o opti5x7.o \
 		    scamp.o scat.o \
@@ -674,7 +664,8 @@ HDDOBJ		:= hdd.o \
 		    hdc_esdi_at.o hdc_esdi_mca.o \
 		    hdc_xtide.o hdc_ide.o \
 		    hdc_ide_opti611.o \
-		    hdc_ide_cmd640.o hdc_ide_sff8038i.o
+		    hdc_ide_cmd640.o hdc_ide_cmd646.o \
+		    hdc_ide_sff8038i.o
 
 MINIVHDOBJ  := cwalk.o libxml2_encoding.o minivhd_convert.o \
 		    minivhd_create.o minivhd_io.o minivhd_manage.o \
