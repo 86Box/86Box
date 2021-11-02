@@ -108,6 +108,7 @@ extern void spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_modul
 extern void spd_write_drbs(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit);
 extern void spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint8_t drb_unit);
 extern void spd_write_drbs_ali1621(uint8_t *regs, uint8_t reg_min, uint8_t reg_max);
+extern void spd_write_drbs_intel_ich2(void);
 
 
 #endif	/*EMU_SPD_H*/

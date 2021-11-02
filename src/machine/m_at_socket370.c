@@ -481,6 +481,7 @@ machine_at_ich2_common_init(int lan, int pci_slots, const machine_t *model)
 
     /* Intel i815EP GMCH */
     device_add(&intel_gmch_device);
+    spd_register(SPD_TYPE_SDRAM, 7, 512);
 
     if(lan)
         device_add(&intel_ich2_device); /* Intel ICH2 */

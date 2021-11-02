@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the Intel i815 (GMCH) Chipset.
+ *		Implementation of the Intel i815EP (GMCH) Chipset.
  *
  *
  * Authors:	Tiseno100
@@ -34,7 +34,7 @@
 #include <86box/smram.h>
 
 #include <86box/chipset.h>
-#define ENABLE_INTEL_GMCH_LOG 1
+
 #ifdef ENABLE_INTEL_GMCH_LOG
 int intel_gmch_do_log = ENABLE_INTEL_GMCH_LOG;
 
@@ -68,6 +68,7 @@ typedef struct intel_gmch_t
 static void
 intel_gmch_dram_population(intel_gmch_t *dev)
 {
+    pclog("%d\n", mem_size >> 10);
     switch(mem_size >> 10)
     {
         case 32:
@@ -211,7 +212,7 @@ intel_gmch_write(int func, int addr, uint8_t val, void *priv)
     intel_gmch_t *dev = (intel_gmch_t *)priv;
 
     if (func == 0) {
-        intel_gmch_log("Intel i815: dev->regs[%02x] = %02x POST: %02x \n", addr, val, inb(0x80));
+        intel_gmch_log("Intel i815EP: dev->regs[%02x] = %02x POST: %02x \n", addr, val, inb(0x80));
 
         switch(addr)
         {
@@ -246,6 +247,7 @@ intel_gmch_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x52: /* DRAM Banking. We enforce bankings considering the BIOS write random values */
             case 0x54:
+                spd_write_drbs_intel_ich2();
             break;
 
             case 0x53:
@@ -355,7 +357,7 @@ intel_gmch_read(int func, int addr, void *priv)
     intel_gmch_t *dev = (intel_gmch_t *)priv;
 
     if (func == 0) {
-        intel_gmch_log("Intel 815EP: dev->regs[%02x] (%02x) POST: %02x \n", addr, dev->pci_conf[addr], inb(0x80));
+        intel_gmch_log("Intel i815EP: dev->regs[%02x] (%02x) POST: %02x \n", addr, dev->pci_conf[addr], inb(0x80));
         return dev->pci_conf[addr];
     }
     else return 0xff;
@@ -430,9 +432,6 @@ intel_gmch_init(const device_t *info)
     /* Cache */
     cpu_cache_ext_enabled = 1;
     cpu_update_waitstates();
-
-    /* i815EP */
-    dev->is_agp = info->local;
 
     /* SMRAM */
     dev->upper_smram_tseg = smram_add(); /* SMRAM High TSEG */

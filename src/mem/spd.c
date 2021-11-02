@@ -526,7 +526,13 @@ spd_write_drbs_ali1621(uint8_t *regs, uint8_t reg_min, uint8_t reg_max)
     }
 }
 
-
+void
+spd_write_drbs_intel_ich2()
+{
+	uint16_t rows[SPD_MAX_SLOTS];
+	if(!spd_present)
+		spd_populate(rows, 3, mem_size >> 10, 32, 1 << (log2i((machines[machine].max_ram >> 10) / 3)), 0);
+}
 static const device_t spd_device = {
     "Serial Presence Detect ROMs",
     DEVICE_ISA,
