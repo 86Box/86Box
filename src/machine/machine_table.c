@@ -304,7 +304,7 @@ const machine_t machines[] = {
     /* Has IBM AT KBC firmware. */
     { "[ISA] Micronics 09-00021",		"micronics386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,	 machine_at_micronics386_init, NULL			},
     /* Has AMIKey F KBC firmware. */
-    { "[SiS 310] ASUS ISA-386C",		"asus386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 32768, 1024, 127,	      machine_at_asus386_init, NULL			},
+    { "[SiS 310] ASUS ISA-386C",		"asus386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 65536, 1024, 127,	      machine_at_asus386_init, NULL			},
 
     /* 386DX machines which utilize the MCA bus */
     /* Has IBM PS/2 Type 1 KBC firmware. */
