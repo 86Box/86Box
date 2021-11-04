@@ -763,7 +763,7 @@ sb_exec_command(sb_dsp_t *dsp)
 		sb_dsp_log("Trigger IRQ\n");
 		sb_irq(dsp, 0);
 		break;
-	case 0xE7: case 0xFA:	/* ???? */
+	case 0xE7: /* ???? */
 		break;
 	case 0x07: case 0xFF:	/* No, that's not how you program auto-init DMA */
 		break;
@@ -808,15 +808,15 @@ sb_exec_command(sb_dsp_t *dsp)
 		break;
 	case 0xF9:
 		if (dsp->sb_type >= SB16) {
-			if (dsp->sb_data[0] == 0x0e)
-				sb_add_data(dsp, 0xff);
-			else if (dsp->sb_data[0] == 0x0f)
-				sb_add_data(dsp, 0x07);
-			else if (dsp->sb_data[0] == 0x37)
-				sb_add_data(dsp, 0x38);
-			else
-				sb_add_data(dsp, 0x00);
+			sb_add_data(dsp, dsp->sb_8051_ram[dsp->sb_data[0]]);
 		}
+		break;
+	case 0xFA:
+		if(dsp->sb_type >= SB16)
+		{
+			dsp->sb_8051_ram[dsp->sb_data[0]] = dsp->sb_data[1];
+		}
+		break;
 	case 0x04: case 0x05:
 		break;
 
@@ -847,6 +847,12 @@ sb_exec_command(sb_dsp_t *dsp)
 	 *  0FDh           DSP Command Status                                  SB16
 	 */                
     }
+	if(dsp->sb_type >= SB16)
+	{
+		//Update 8051 ram with the last DSP command.
+		//See https://github.com/joncampbell123/dosbox-x/issues/1044
+		dsp->sb_8051_ram[0x30] = dsp->sb_command;
+	}
 }
 
 
@@ -1059,6 +1065,12 @@ sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
        a set frequency command is sent. */
     recalc_sb16_filter(0, 3200*2);
     recalc_sb16_filter(1, 44100);
+
+	//Initialize SB16 8051 RAM
+	memset(dsp->sb_8051_ram, 0, 256);
+	dsp->sb_8051_ram[0x0e] = 0xff;
+	dsp->sb_8051_ram[0x0f] = 0x07;
+	dsp->sb_8051_ram[0x37] = 0x38;
 }
 
 

@@ -66,6 +66,7 @@ typedef struct sb_dsp_t
 	int sb_irqm8, sb_irqm16, sb_irqm401;
 
 	uint8_t sb_asp_regs[256];
+	uint8_t sb_8051_ram[256];
         
 	int sbenable, sb_enable_i;
         
