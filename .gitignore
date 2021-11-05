@@ -1,7 +1,6 @@
 src/*.o
 src/*.exe
 src/*.res
-src/*.d
 src/*.cfg
 src/*.log
 src/*.dll
@@ -10,6 +9,14 @@ src/NUL
 src/nvr/
 src/roms/
 /.vs
-/CMakeUserPresets.json
 /build
 /.vscode
+/CMakeUserPresets.json
+/CMakeCache.txt
+CMakeFiles
+*.cmake
+*.obj
+*.d
+*.a
+src/include/86box/version.h
+Makefile
