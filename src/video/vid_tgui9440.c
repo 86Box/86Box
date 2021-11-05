@@ -479,6 +479,10 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
 						tgui_recalcmapping(tgui);
 						break;
 
+					case 0x37:
+						i2c_gpio_set(tgui->i2c, (val & 0x02) || !(val & 0x04), (val & 0x01) || !(val & 0x08));
+						break;
+
 					case 0x40: case 0x41: case 0x42: case 0x43:
 					case 0x44: case 0x45: case 0x46: case 0x47:
                         if (tgui->type >= TGUI_9440) {
@@ -577,7 +581,7 @@ tgui_in(uint16_t addr, void *p)
 						return svga->seqregs[0x0e];
                 }
                 break;
-				
+
                 case 0x3C6:
                 if (tgui->type == TGUI_9400CXI)
 					return tkd8001_ramdac_in(addr, svga->ramdac, svga);
@@ -585,13 +589,13 @@ tgui_in(uint16_t addr, void *p)
 					return tgui->ramdac_ctrl;
 				tgui->ramdac_state++;
                 break;
-				
+
                 case 0x3C7: case 0x3C8: case 0x3C9:
                 if (tgui->type == TGUI_9400CXI)
                         return tkd8001_ramdac_in(addr, svga->ramdac, svga);
                 tgui->ramdac_state = 0;
                 break;
-				
+
                 case 0x3CF:
                 if (tgui->type == TGUI_9400CXI && svga->gdcaddr >= 16 && svga->gdcaddr < 32)
                         return tgui->ext_gdc_regs[svga->gdcaddr & 15];
@@ -601,7 +605,17 @@ tgui_in(uint16_t addr, void *p)
                 case 0x3D4:
                 return svga->crtcreg;
                 case 0x3D5:
-				temp = svga->crtc[svga->crtcreg];
+		temp = svga->crtc[svga->crtcreg];
+		if (!(svga->crtc[0x37] & 0x04)) {
+                        temp &= 0xfd;
+                        if (i2c_gpio_get_scl(tgui->i2c))
+                                temp |= 0x02;
+                }
+                if (!(svga->crtc[0x37] & 0x08)) {
+                        temp &= 0xfe;
+                        if (i2c_gpio_get_sda(tgui->i2c))
+                                temp |= 0x01;
+                }
                 return temp;
                 case 0x3d8:
 		return tgui->tgui_3d8;
@@ -2991,16 +3005,19 @@ static void *tgui_init(const device_t *info)
 		tgui_set_io(tgui);
 
         if (tgui->pci && (tgui->type >= TGUI_9440))
-			tgui->card = pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
+		tgui->card = pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
 
-		tgui->pci_regs[PCI_REG_COMMAND] = 7;
+	tgui->pci_regs[PCI_REG_COMMAND] = 7;
 
-		tgui->pci_regs[0x30] = 0x00;
-		tgui->pci_regs[0x32] = 0x0c;
-		tgui->pci_regs[0x33] = 0x00;
+	tgui->pci_regs[0x30] = 0x00;
+	tgui->pci_regs[0x32] = 0x0c;
+	tgui->pci_regs[0x33] = 0x00;
 
-		if (tgui->type >= TGUI_9440)
-			svga->packed_chain4 = 1;
+	tgui->i2c = i2c_gpio_init("ddc_tgui9440");
+	tgui->ddc = ddc_init(i2c_gpio_get_bus(tgui->i2c));
+
+	if (tgui->type >= TGUI_9440)
+		svga->packed_chain4 = 1;
 
         return tgui;
 }
@@ -3025,6 +3042,9 @@ void tgui_close(void *p)
         tgui_t *tgui = (tgui_t *)p;
         
         svga_close(&tgui->svga);
+
+        ddc_close(tgui->ddc);
+        i2c_gpio_close(tgui->i2c);
 
         free(tgui);
 }
