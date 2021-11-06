@@ -665,7 +665,7 @@ usage:
 	info = localtime(&now);
 	strftime(temp, sizeof(temp), "%Y/%m/%d %H:%M:%S", info);
 	pclog("#\n# %ls v%ls logfile, created %s\n#\n",
-		EMU_NAME_W, EMU_VERSION_W, temp);
+		EMU_NAME_W, EMU_VERSION_FULL_W, temp);
 	pclog("# VM: %s\n#\n", vm_name);
 	pclog("# Emulator path: %s\n", exe_path);
 	pclog("# Userfiles path: %s\n", usr_path);
