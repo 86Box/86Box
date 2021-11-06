@@ -457,39 +457,7 @@ machine_at_6via90ap_init(const machine_t *model)
     return ret;
 }
 
-static void
-machine_at_ich2_common_init(int lan, int pci_slots, const machine_t *model)
-{
-    machine_at_common_init_ex(model, 2);
-
-    pci_init(PCI_CONFIG_TYPE_1);
-
-    /* Proper Devices */
-    pci_register_bus_slot(0, 0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0); /* i815 NB  */
-    pci_register_bus_slot(0, 0x1f, PCI_CARD_SOUTHBRIDGE, 1, 2, 8, 4); /* ICH2 LPC */
-
-    /* Bridges */
-    pci_register_bus_slot(0, 0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4); /* AGP Bridge */
-    pci_register_bus_slot(0, 0x1e, PCI_CARD_BRIDGE,      1, 2, 3, 4); /*  ICH2 Hub  */
-
-    /* Internal LAN */
-    if(lan) /* ICH2 LAN */
-    pci_register_bus_slot(1, 0x08, PCI_CARD_NETWORK,     5, 6, 7, 8);
-
-    /* ICH2 HUB Bridge Bus Masters(The PCI Slots) */
-    intel_ich2_pci_slot_number(pci_slots);
-
-    /* Intel i815EP GMCH */
-    device_add(&intel_gmch_device);
-    spd_register(SPD_TYPE_SDRAM, 7, 512);
-
-    if(lan)
-        device_add(&intel_ich2_device); /* Intel ICH2 */
-    else
-        device_add(&intel_ich2_no_lan_device); /* Intel ICH2 Without LAN */
-
-}
-
+/* Socket 370 Based Boards */
 int
 machine_at_j815epda_init(const machine_t *model)
 {
@@ -501,7 +469,7 @@ machine_at_j815epda_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_ich2_common_init(0, 5, model);
+    intel_ich2_setup(815, 0, 5, model);
 
     device_add(&w83627hf_device);
     w83627hf_stabilizer(0x7a,    /* CPU Voltage (Mendocino's are utilizing 2 Volts ) */
@@ -526,7 +494,7 @@ machine_at_s2080_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_ich2_common_init(0, 6, model);
+    intel_ich2_setup(815, 0, 6, model);
 
     device_add(&pc87309_device); /* NSC PC87366 */
     device_add(&keyboard_ps2_ami_pci_device);

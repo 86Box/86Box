@@ -68,7 +68,6 @@ typedef struct intel_gmch_t
 static void
 intel_gmch_dram_population(intel_gmch_t *dev)
 {
-    pclog("%d\n", mem_size >> 10);
     switch(mem_size >> 10)
     {
         case 32:

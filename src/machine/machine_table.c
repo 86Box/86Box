@@ -56,6 +56,7 @@ const machine_type_t machine_types[] = {
     { "Slot 1/2",			MACHINE_TYPE_SLOT1_2	},
     { "Slot 2",				MACHINE_TYPE_SLOT2	},
     { "Socket 370",			MACHINE_TYPE_SOCKET370	},
+    { "Socket 423",			MACHINE_TYPE_SOCKET423	},
     { "Miscellaneous",			MACHINE_TYPE_MISC    	}
 };
 
@@ -868,15 +869,6 @@ const machine_t machines[] = {
     { "[i440GX] SuperMicro Super S2DGE",	"s2dge",		MACHINE_TYPE_SLOT2,		CPU_PKG_SLOT2, 0, 66666667, 100000000, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		16384,2097152,16384, 511,		machine_at_s2dge_init, NULL			},
 
     /* PGA370 machines */
-
-    /* Intel i815 + ICH2 */
-    /* Has a Winbond W83627HF Super I/O chip with on-chip KBC with AMIKey-2 KBC
-       firmware. */
-    { "[Intel i815EP] Jetway J-815EPDA",      "j815epda",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						(MACHINE_AGP & ~MACHINE_AT) | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		32768, 524288, 32768, 255,	     machine_at_j815epda_init, NULL			},
-    /* Has a National Semiconductor PC87366 Super I/O chip with on-chip KBC with AMIKey-2 KBC
-       firmware. */
-    { "[Intel i815EP] Tyan Tomcat i815T",      "s2080",			MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						(MACHINE_AGP & ~MACHINE_AT) | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		32768, 524288, 32768, 255,	    	machine_at_s2080_init, NULL			},
-
     /* 440LX */
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -901,6 +893,14 @@ const machine_t machines[] = {
        firmware. */
     { "[i440ZX] Soltek SL-63A1",		"63a",			MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 100000000, 1800, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 524288, 8192, 255,		  machine_at_63a_init, NULL			},
 
+    /* Intel i815 + ICH2 */
+    /* Has a Winbond W83627HF Super I/O chip with on-chip KBC with AMIKey-2 KBC
+       firmware. */
+    { "[Intel i815EP] Jetway J-815EPDA",      "j815epda",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						(MACHINE_AGP & ~MACHINE_AT) | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		32768, 524288, 32768, 255,	     machine_at_j815epda_init, NULL			},
+    /* Has a National Semiconductor PC87366 Super I/O chip with on-chip KBC with AMIKey-2 KBC
+       firmware. */
+    { "[Intel i815EP] Tyan Tomcat i815T",      "s2080",			MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						(MACHINE_AGP & ~MACHINE_AT) | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		32768, 524288, 32768, 255,	    	machine_at_s2080_init, NULL			},
+
     /* SMSC VictoryBX-66 */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
@@ -922,6 +922,12 @@ const machine_t machines[] = {
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     { "[VIA Apollo Pro133A] BCM GT694VA",	"gt694va",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				16384,3145728, 8192, 255,	      machine_at_gt694va_init, NULL			},
+
+    /* Socket 423 Machines */
+    /* Intel i845 SDRAM */
+    /* Has a Winbond W83627HF Super I/O chip with on-chip KBC with AMIKey-2 KBC
+       firmware. */
+    { "[Intel i845 SDRAM] MSI 845 Pro",      	"845pro",		MACHINE_TYPE_SOCKET423,		CPU_PKG_SOCKET423, 0, 66666667, 400000000, 1300, 3500, 1.5, 8.0,						(MACHINE_AGP & ~MACHINE_AT) | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	      32768, 3145728, 32768, 255,	       machine_at_845pro_init, NULL			},
 
     /* Miscellaneous/Fake/Hypervisor machines */
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
