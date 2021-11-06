@@ -108,12 +108,10 @@ timer_control(opl_t *dev, int tmr, int start)
 		timer_on_auto(&dev->timers[tmr], (tmr == 1) ? 320.0 : 80.0);
     } else {
 		opl_log("Timer %i stopped\n", tmr);
-		if (!(dev->flags & FLAG_OPL3)) {
-			if (tmr == 1) {
-				dev->status &= ~STAT_TMR2_OVER;
-			} else
-				dev->status &= ~STAT_TMR1_OVER;
-		}
+		if (tmr == 1) {
+			dev->status &= ~STAT_TMR2_OVER;
+		} else
+			dev->status &= ~STAT_TMR1_OVER;
 	}
 }
 
