@@ -467,6 +467,17 @@ const machine_t machines[] = {
     { NULL,					NULL,			MACHINE_TYPE_NONE,		0, 0, 0, 0, 0, 0, 0, 0,												0,										    0,      0,    0,   0,				 NULL, NULL			}
 };
 
+int
+machine_type_count(void)
+{
+    return ((sizeof(machine_types) / sizeof(machine_type_t)) - 1);
+}
+
+char*
+machine_type_getname(int id)
+{
+    return ((char *)machine_types[id].name);
+}
 
 int
 machine_count(void)
@@ -474,6 +485,11 @@ machine_count(void)
     return((sizeof(machines) / sizeof(machine_t)) - 1);
 }
 
+char *
+machine_getname_from_id(int id)
+{
+    return((char *)machines[id].name);
+}
 
 char *
 machine_getname(void)
@@ -521,7 +537,7 @@ machine_get_nvrmask(int m)
 
 
 int
-machine_get_machine_from_internal_name(char *s)
+machine_get_machine_from_internal_name(const char *s)
 {
     int c = 0;
 

@@ -56,6 +56,7 @@ extern "C"
 #include <86box/ui.h>
 #include <86box/network.h>
 }
+#include <86box/imgui_settings_window.h>
 
 #ifdef MTR_ENABLED
 #include <minitrace/minitrace.h>
@@ -817,7 +818,7 @@ static SDL_Texture* load_icon(const stbi_uc* buffer, int len)
     if (imgdata)
     {
 	tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_RGBA32, SDL_TEXTUREACCESS_STATIC, w, h);
-	if (cdrom_status_icon)
+	if (tex)
 	{
 	    SDL_UpdateTexture(tex, NULL, imgdata, w * 4);
 	    SDL_SetTextureBlendMode(tex, SDL_BlendMode::SDL_BLENDMODE_BLEND);
@@ -1243,6 +1244,7 @@ extern "C" void sdl_determine_renderer(int);
 extern "C" void RenderImGui()
 {
 	bool dpi_scale_changed = false;
+	bool settingsopen = false;
     if (!imrendererinit) HandleSizeChange();
     if (!mouse_capture) ImGui_ImplSDL2_NewFrame(sdl_win);
 	int w, h;
@@ -1640,12 +1642,16 @@ extern "C" void RenderImGui()
 
 	if (ImGui::BeginMenu("Tools"))
 	{
-#ifdef _WIN32
+
 		if (ImGui::MenuItem("Settings"))
 		{
+			#ifdef _WIN32
 			win_settings_open(GetHWNDFromSDLWindow());
+			#else
+			settingsopen = true;
+			#endif
 		}
-#endif
+
 		if (ImGui::MenuItem("Update status bar icons", NULL, update_icons))
 		{
 			update_icons ^= 1;
@@ -1889,6 +1895,16 @@ extern "C" void RenderImGui()
 	ImGui::PopStyleColor(3);
 	ImGui::End();
     }
+	if (settingsopen)
+	{
+		settingsopen = false;
+		ImGui::OpenPopup("Settings Window");
+		ImGuiSettingsWindow::showSettingsWindow = true;
+	}
+	if (ImGuiSettingsWindow::showSettingsWindow)
+	{
+		ImGuiSettingsWindow::Render();
+	}
     ImGui::EndFrame();
     ImGui::Render();
     ImGuiSDL::Render(ImGui::GetDrawData());

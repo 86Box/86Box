@@ -134,6 +134,76 @@ machine_available(int m)
     return ret;
 }
 
+machine_t
+machine_get_from_id(int i)
+{
+    if (i < machine_count()) {
+        return machines[i];
+    }
+    else {
+        machine_t null_machine;
+        memset(&null_machine, NULL, sizeof(machine_t));
+        return null_machine;
+    }
+}
+
+machine_t
+machine_get_from_internal_name(const char* name)
+{
+    int c = 0;
+
+    while (machines[c].init != NULL) {
+        if (!strcmp(machines[c].internal_name, (const char *)name))
+            return machine_get_from_id(c);
+        c++;
+    }
+
+    machine_t null_machine;
+    memset(&null_machine, NULL, sizeof(machine_t));
+    return null_machine;
+}
+
+machine_t
+machine_get_from_name(const char* name)
+{
+    int c = 0;
+
+    while (machines[c].init != NULL) {
+        if (!strcmp(machines[c].name, (const char *)name))
+            return machine_get_from_id(c);
+        c++;
+    }
+
+    machine_t null_machine;
+    memset(&null_machine, NULL, sizeof(machine_t));
+    return null_machine;
+}
+
+int
+machine_get_id_from_name(const char* name)
+{
+    int id = NULL;
+
+    while (machines[id].init != NULL) {
+        if (!strcmp(machines[id].name, (const char *)name))
+            return id;
+        id++;
+    }
+
+    return NULL;
+}
+
+int
+machine_get_type_from_id(int machine_id)
+{
+    if (machine_id < machine_count()) {
+        return machines[machine_id].type;
+    }
+    else {
+        return MACHINE_TYPE_NONE;
+    }
+
+}
 
 void
 machine_common_init(const machine_t *model)
