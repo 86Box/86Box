@@ -649,15 +649,15 @@ spd_write_drbs_intel_gmch(uint8_t *regs)
 		switch(dimm)
 		{
 			case 0:
-				regs[0x50] |= reg_pick;
+				regs[0x52] |= reg_pick;
 				break;
 
 			case 1:
-				regs[0x50] |= (reg_pick << 4);
+				regs[0x52] |= (reg_pick << 4);
 				break;
 
 			case 2:
-				regs[0x52] |= reg_pick;
+				regs[0x54] |= reg_pick;
 				break;
 		}
 	}

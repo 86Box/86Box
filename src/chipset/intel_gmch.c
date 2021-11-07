@@ -57,7 +57,6 @@ intel_gmch_log(const char *fmt, ...)
 typedef struct intel_gmch_t
 {
 
-    int is_agp;
 	uint8_t pci_conf[256];
     smram_t	*low_smram;
     smram_t *upper_smram_hseg;
@@ -173,8 +172,8 @@ intel_gmch_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x52: /* DRAM Population */
             case 0x54:
-                dev->pci_conf[addr] = val;
                 spd_write_drbs_intel_gmch(dev->pci_conf);
+                dev->pci_conf[addr] = val;
             break;
 
             case 0x53:
