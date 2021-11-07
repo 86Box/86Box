@@ -457,7 +457,6 @@ machine_at_6via90ap_init(const machine_t *model)
     return ret;
 }
 
-/* Socket 370 Based Boards */
 int
 machine_at_j815epda_init(const machine_t *model)
 {
@@ -469,7 +468,7 @@ machine_at_j815epda_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    intel_ich2_setup(815, 0, 5, model);
+    intel_ich2_setup(815, 0, 5, 0, 3, model);
 
     device_add(&w83627hf_device);
     w83627hf_stabilizer(0x7a,    /* CPU Voltage (Mendocino's are utilizing 2 Volts ) */
@@ -494,7 +493,7 @@ machine_at_s2080_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    intel_ich2_setup(815, 0, 6, model);
+    intel_ich2_setup(815, 0, 6, 0, 3, model);
 
     device_add(&pc87309_device); /* NSC PC87366 */
     device_add(&keyboard_ps2_ami_pci_device);

@@ -59,7 +59,7 @@ intel_mch_p4_log(const char *fmt, ...)
 typedef struct intel_mch_p4_t
 {
 
-    int is_agp;
+    int is_ddr;
 	uint8_t pci_conf[256];
     smram_t	*low_smram;
     smram_t *upper_smram_hseg;
@@ -177,8 +177,8 @@ intel_mch_p4_write(int func, int addr, uint8_t val, void *priv)
             break;
 
             case 0x60 ... 0x67: /* SPD */
+                spd_write_drbs(dev->pci_conf, 0x60, 0x67, 32);
                 dev->pci_conf[addr] = val;
-                spd_write_drbs(dev->pci_conf, 0x60, 0x67, 1);
             break;
 
             case 0x70 ... 0x73:
@@ -198,7 +198,7 @@ intel_mch_p4_write(int func, int addr, uint8_t val, void *priv)
             break;
 
             case 0x7c:
-                dev->pci_conf[addr] = val & 0x73;
+                dev->pci_conf[addr] = (val & 0x73) | dev->is_ddr;
             break;
 
             case 0x7d:
@@ -334,6 +334,7 @@ intel_mch_p4_reset(void *priv)
     dev->pci_conf[0x10] = 8;
     dev->pci_conf[0x34] = 0xa0;
     dev->pci_conf[0x78] = 0x10;
+    dev->pci_conf[0x7c] = 1;
     dev->pci_conf[0x9d] = 2;
     dev->pci_conf[0x9e] = 0x38;
     dev->pci_conf[0xa0] = 2;
@@ -346,7 +347,7 @@ intel_mch_p4_reset(void *priv)
     dev->pci_conf[0xe6] = 4;
     dev->pci_conf[0xe7] = 0xf1;
 
-    spd_write_drbs(dev->pci_conf, 0x60, 0x67, 1);
+    spd_write_drbs(dev->pci_conf, 0x60, 0x67, 8);
 
     intel_mch_p4_pam(0x90, dev);
     intel_mch_p4_pam(0x91, dev);
@@ -387,6 +388,9 @@ intel_mch_p4_init(const device_t *info)
     cpu_cache_ext_enabled = 1;
     cpu_update_waitstates();
 
+    /* DDR */
+    dev->is_ddr = info->local;
+
     /* SMRAM */
     dev->upper_smram_tseg = smram_add(); /* SMRAM High TSEG */
     dev->upper_smram_hseg = smram_add(); /* SMRAM High HSEG */
@@ -401,6 +405,15 @@ const device_t intel_mch_p4_device = {
     "Intel i845 SDRAM (MCH) Chipset",
     DEVICE_PCI,
     0,
+    intel_mch_p4_init, intel_mch_p4_close, intel_mch_p4_reset,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+const device_t intel_mch_p4_ddr_device = {
+    "Intel i845 DDR (MCH) Chipset",
+    DEVICE_PCI,
+    1,
     intel_mch_p4_init, intel_mch_p4_close, intel_mch_p4_reset,
     { NULL }, NULL, NULL,
     NULL

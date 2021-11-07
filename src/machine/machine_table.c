@@ -56,7 +56,7 @@ const machine_type_t machine_types[] = {
     { "Slot 1/2",			MACHINE_TYPE_SLOT1_2	},
     { "Slot 2",				MACHINE_TYPE_SLOT2	},
     { "Socket 370",			MACHINE_TYPE_SOCKET370	},
-    { "Socket 423",			MACHINE_TYPE_SOCKET423	},
+    { "Socket 478",			MACHINE_TYPE_SOCKET478	},
     { "Miscellaneous",			MACHINE_TYPE_MISC    	}
 };
 
@@ -923,11 +923,11 @@ const machine_t machines[] = {
        firmware. */
     { "[VIA Apollo Pro133A] BCM GT694VA",	"gt694va",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				16384,3145728, 8192, 255,	      machine_at_gt694va_init, NULL			},
 
-    /* Socket 423 Machines */
-    /* Intel i845 SDRAM */
+    /* Socket 478 Machines */
+    /* Intel i845 DDR */
     /* Has a Winbond W83627HF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[Intel i845 SDRAM] MSI 845 Pro",      	"845pro",		MACHINE_TYPE_SOCKET423,		CPU_PKG_SOCKET423, 0, 66666667, 400000000, 1300, 3500, 1.5, 8.0,						(MACHINE_AGP & ~MACHINE_AT) | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	      32768, 3145728, 32768, 255,	       machine_at_845pro_init, NULL			},
+    { "[Intel i845 DDR] MSI 845 Ultra FSC",      "ms6398",		MACHINE_TYPE_SOCKET478,		CPU_PKG_SOCKET478, 0, 66666667, 400000000, 1300, 3500, 1.5, 8.0,						(MACHINE_AGP & ~MACHINE_AT) | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	       32768,2097152, 32768, 255,	       machine_at_ms6398_init, NULL			},
 
     /* Miscellaneous/Fake/Hypervisor machines */
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC

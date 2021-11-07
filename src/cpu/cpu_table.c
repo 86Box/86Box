@@ -1035,14 +1035,15 @@ const cpu_family_t cpu_families[] = {
 		{"", 0}
 	}
     }, {
-	.package = CPU_PKG_SOCKET423,
+	.package = CPU_PKG_SOCKET478,
 	.manufacturer = "Intel",
 	.name = "Pentium 4 (Fake)",
 	.internal_name = "fake_p4",
 	.cpus = (const CPU[]) {
-		{"66",        CPU_PENTIUM2D,  fpus_internal,  66666666, 1.0, 2050,  0xf0a,  0xf0a, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER,  6, 6, 3, 3, 8},  /* out of spec */
-		{"100",       CPU_PENTIUM2D,  fpus_internal, 100000000, 1.5, 2050,  0xf0a,  0xf0a, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER,  8, 8, 4, 4, 12}, /* out of spec */
-		{"133",       CPU_PENTIUM2D,  fpus_internal, 133333333, 2.0, 2050,  0xf0a,  0xf0a, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER, 11,11, 5, 5, 16}, /* out of spec */
+		{"66",        CPU_PENTIUM2D,  fpus_internal,  66666666, 1.0, 2050,  0xf12,  0xf12, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER,  6, 6, 3, 3, 8},  /* out of spec */
+		{"100",       CPU_PENTIUM2D,  fpus_internal, 100000000, 1.5, 2050,  0xf12,  0xf12, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER,  8, 8, 4, 4, 12}, /* out of spec */
+		{"133",       CPU_PENTIUM2D,  fpus_internal, 133333333, 2.0, 2050,  0xf12,  0xf12, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER, 11,11, 5, 5, 16}, /* out of spec */
+		{"1400",      CPU_PENTIUM2D,  fpus_internal,1400000000,14.0, 1600,  0xf12,  0xf12, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER, 66, 66, 18, 18, 88},
 		{"", 0}
 	}
     }, {

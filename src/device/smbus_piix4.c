@@ -293,10 +293,6 @@ unknown_protocol:
 
 			/* Finish transfer. */
 			i2c_stop(i2c_smbus, smbus_addr);
-
-			if((dev->local == SMBUS_ICH2) && !!(val & 1)) { /* Upon Completion of the command. Provoke an SMI if Bit 0 is set */
-				smi_line = 1;
-			}
 		}
 		break;
 

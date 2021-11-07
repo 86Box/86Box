@@ -115,7 +115,7 @@ enum {
     MACHINE_TYPE_SLOT1_2,
     MACHINE_TYPE_SLOT2,
     MACHINE_TYPE_SOCKET370,
-    MACHINE_TYPE_SOCKET423,
+    MACHINE_TYPE_SOCKET478,
     MACHINE_TYPE_MISC,
     MACHINE_TYPE_MAX
 };
@@ -610,8 +610,8 @@ extern int	machine_at_p6bap_init(const machine_t *);
 extern int	machine_at_j815epda_init(const machine_t *);
 extern int	machine_at_s2080_init(const machine_t *);
 
-/* m_at_socket423.c */
-extern int	machine_at_845pro_init(const machine_t *);
+/* m_at_socket478.c */
+extern int	machine_at_ms6398_init(const machine_t *);
 
 /* m_at_misc.c */
 extern int	machine_at_vpc2007_init(const machine_t *);
@@ -739,6 +739,6 @@ extern int	machine_xt_xi8088_init(const machine_t *);
 extern const device_t	*xi8088_get_device(void);
 #endif
 
-extern void intel_ich2_setup(int northbridge, int lan, int pci_slots, const machine_t *model);
+extern void intel_ich2_setup(int northbridge, int lan, int pci_slots, int dimm_type, int dimm_slots, const machine_t *model);
 
 #endif	/*EMU_MACHINE_H*/

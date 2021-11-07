@@ -34,17 +34,17 @@
 #include <86box/machine.h>
 
 int
-machine_at_845pro_init(const machine_t *model)
+machine_at_ms6398_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/845pro/A6529IMS.130",
+    ret = bios_load_linear("roms/machines/ms6398/W6398IF1.120",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
 	return ret;
 
-    intel_ich2_setup(845, 0, 5, model);
+    intel_ich2_setup(845, 0, 5, 1, 3, model);
 
     device_add(&w83627hf_device);
     w83627hf_stabilizer(0x7a,    /* CPU Voltage (Mendocino's are utilizing 2 Volts ) */
