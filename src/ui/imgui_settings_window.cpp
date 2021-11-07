@@ -5,12 +5,125 @@
 #include <86box/imgui_settings_window.h>
 
 extern "C" {
+#include <86box/86box.h>
+#include <86box/config.h>
+#include "cpu.h"
+#include <86box/mem.h>
+#include <86box/rom.h>
+#include <86box/device.h>
+#include <86box/timer.h>
+#include <86box/cassette.h>
+#include <86box/nvr.h>
 #include <86box/machine.h>
+#include <86box/gameport.h>
+#include <86box/isamem.h>
+#include <86box/isartc.h>
+#include <86box/lpt.h>
+#include <86box/mouse.h>
+#include <86box/scsi.h>
+#include <86box/scsi_device.h>
+#include <86box/cdrom.h>
+#include <86box/hdd.h>
+#include <86box/hdc.h>
+#include <86box/hdc_ide.h>
+#include <86box/zip.h>
+#include <86box/mo.h>
+#include <86box/fdd.h>
+#include <86box/fdc.h>
+#include <86box/fdc_ext.h>
+#include <86box/network.h>
+#include <86box/sound.h>
+#include <86box/midi.h>
+#include <86box/snd_mpu401.h>
+#include <86box/video.h>
+#include <86box/plat.h>
+#include <86box/plat_midi.h>
+#include <86box/ui.h>
+#include "../disk/minivhd/minivhd.h"
+#include "../disk/minivhd/minivhd_util.h"
 }
 
 namespace ImGuiSettingsWindow {
 
 	bool showSettingsWindow = false;
+	/* Icon, Bus, File, C, H, S, Size */
+	#define C_COLUMNS_HARD_DISKS			6
+
+
+	static int first_cat = 0;
+	static int dpi = 96;
+
+	/* Machine category */
+	static int temp_machine_type, temp_machine, temp_cpu, temp_wait_states, temp_fpu, temp_sync;
+	static cpu_family_t *temp_cpu_f;
+	static uint32_t temp_mem_size;
+	#ifdef USE_DYNAREC
+	static int temp_dynarec;
+	#endif
+
+	/* Video category */
+	static int temp_gfxcard, temp_voodoo;
+
+	/* Input devices category */
+	static int temp_mouse, temp_joystick;
+
+	/* Sound category */
+	static int temp_sound_card, temp_midi_device, temp_midi_input_device, temp_mpu401, temp_SSI2001, temp_GAMEBLASTER, temp_GUS;
+	static int temp_float;
+
+	/* Network category */
+	static int temp_net_type, temp_net_card;
+	static char temp_pcap_dev[522];
+
+	/* Ports category */
+	static int temp_lpt_devices[3];
+	static int temp_serial[4], temp_lpt[3];
+
+	/* Other peripherals category */
+	static int temp_fdc_card, temp_hdc, temp_ide_ter, temp_ide_qua, temp_cassette;
+	static int temp_scsi_card[SCSI_BUS_MAX];
+	static int temp_bugger;
+	static int temp_postcard;
+	static int temp_isartc;
+	static int temp_isamem[ISAMEM_MAX];
+
+	static uint8_t temp_deviceconfig;
+
+	/* Hard disks category */
+	static hard_disk_t temp_hdd[HDD_NUM];
+
+	/* Floppy drives category */
+	static int temp_fdd_types[FDD_NUM];
+	static int temp_fdd_turbo[FDD_NUM];
+	static int temp_fdd_check_bpb[FDD_NUM];
+
+	/* Other removable devices category */
+	static cdrom_t temp_cdrom[CDROM_NUM];
+	static zip_drive_t temp_zip_drives[ZIP_NUM];
+	static mo_drive_t temp_mo_drives[MO_NUM];
+
+	static uint32_t displayed_category = 0;
+
+	extern int is486;
+	static int listtomachinetype[256], listtomachine[256];
+	static int listtocpufamily[256], listtocpu[256];
+	static int settings_list_to_device[2][256], settings_list_to_fdc[20];
+	static int settings_list_to_midi[20], settings_list_to_midi_in[20];
+	static int settings_list_to_hdc[20];
+
+	static int max_spt = 63, max_hpc = 255, max_tracks = 266305;
+	static uint64_t mfm_tracking, esdi_tracking, xta_tracking, ide_tracking, scsi_tracking[8];
+	static uint64_t size;
+	static int hd_listview_items, hdc_id_to_listview_index[HDD_NUM];
+	static int no_update = 0, existing = 0, chs_enabled = 0;
+	static int lv1_current_sel, lv2_current_sel;
+	static int hard_disk_added = 0, next_free_id = 0, selection = 127;
+	static int spt, hpc, tracks, ignore_change = 0;
+
+	static hard_disk_t new_hdd, *hdd_ptr;
+
+	static wchar_t hd_file_name[512];
+	static wchar_t device_name[512];
 
 	// forward declares
 	void RenderMachineCategory();
@@ -322,23 +435,17 @@ namespace ImGuiSettingsWindow {
 		//////////////////////////////
 		// Time Syncronization Radio Selection
 		//////////////////////////////
-		enum TimeSyncMode
-		{
-			TIME_SYNC_DISABLED,
-			TIME_SYNC_LOCAL,
-			TIME_SYNC_UTC
-		};
 
 		ImGui::Text("Time Syncronization");
 		static int timeSyncMode = 0;
-		if (ImGui::RadioButton("Disabled", timeSyncMode == TimeSyncMode::TIME_SYNC_DISABLED)) {
-			timeSyncMode = TimeSyncMode::TIME_SYNC_DISABLED;
+		if (ImGui::RadioButton("Disabled", timeSyncMode == TIME_SYNC_DISABLED)) {
+			timeSyncMode = TIME_SYNC_DISABLED;
 		}
-		if (ImGui::RadioButton("Enabled (local time)", timeSyncMode == TimeSyncMode::TIME_SYNC_LOCAL)) {
-			timeSyncMode = TimeSyncMode::TIME_SYNC_LOCAL;
+		if (ImGui::RadioButton("Enabled (local time)", timeSyncMode == TIME_SYNC_ENABLED)) {
+			timeSyncMode = TIME_SYNC_ENABLED;
 		}
-		if (ImGui::RadioButton("Enabled (UTC)", timeSyncMode == TimeSyncMode::TIME_SYNC_UTC)) {
-			timeSyncMode = TimeSyncMode::TIME_SYNC_UTC;
+		if (ImGui::RadioButton("Enabled (UTC)", timeSyncMode == TIME_SYNC_UTC)) {
+			timeSyncMode = TIME_SYNC_UTC;
 		}
 	}
 

@@ -67,7 +67,12 @@
 typedef struct _nvr_ {
     char	*fn;			/* pathname of image file */
     uint16_t	size;			/* device configuration */
-    int8_t	irq, new;
+    int8_t	irq;
+    #ifdef __cplusplus
+    int8_t newirq;
+    #else
+    int8_t new;
+    #endif
 
     uint8_t	onesec_cnt;
     pc_timer_t	onesec_time;
