@@ -441,7 +441,7 @@ ifeq ($(WX), y)
  LIBS		+= $(WX_LIBS)
  UIOBJ		:= wx_main.o wx_ui.o wx_stbar.o wx_render.o
 else
- UIOBJ		:= win_ui.o imgui_ui.o win_stbar.o \
+ UIOBJ		:= win_ui.o imgui_ui.o imgui_settings_window.o win_stbar.o \
 		   win_sdl.o imgui_tables.o imgui_widgets.o imgui.o \
 		   imgui_sdl.o imgui_impl_sdl.o imgui_demo.o imgui_draw.o \
 		   win_dialog.o win_about.o \
