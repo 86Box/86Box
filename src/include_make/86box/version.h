@@ -13,17 +13,23 @@
  *		Copyright 2020 Miran Grca.
  */
 
+#define _LSTR(s) L ## s
+#define LSTR(s) _LSTR(s)
+
 /* Version info. */
 #define EMU_NAME	"86Box"
-#define EMU_NAME_W	L"86Box"
+#define EMU_NAME_W	LSTR(EMU_NAME)
 
 #define EMU_VERSION	"3.0"
-#define EMU_VERSION_W	L"3.0"
+#define EMU_VERSION_W	LSTR(EMU_VERSION)
 #define EMU_VERSION_EX	"3.00"
 #define EMU_VERSION_MAJ	3
 #define EMU_VERSION_MIN	0
 
-#define COPYRIGHT_YEAR	"2020"
+#define EMU_VERSION_FULL	EMU_VERSION
+#define EMU_VERSION_FULL_W	EMU_VERSION_W
+
+#define COPYRIGHT_YEAR	"2021"
 
 /* Web URL info. */
 #define EMU_SITE	L"86box.net"
