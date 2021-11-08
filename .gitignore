@@ -30,6 +30,7 @@ Makefile
 /archive_tmp
 /static2dll.*
 /*.zip
+/*.tar.xz
 
 # Visual Studio Code
 /.vs
