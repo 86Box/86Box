@@ -1,6 +1,7 @@
 #include <array>
 #include <vector>
 #include <iostream>
+#include <string>
 #include "imgui.h"
 #include <86box/imgui_settings_window.h>
 
