@@ -259,7 +259,7 @@ namespace ImGuiSettingsWindow {
 
 		temp_deviceconfig = 0;
 	}
-
+	void SaveSettings();
 	void Render() {
 		//ImGui::Begin("Settings", &ImGuiSettingsWindow::showSettingsWindow);
 		if (!ImGui::BeginPopupModal("Settings Window", &showSettingsWindow)) return;
@@ -328,13 +328,126 @@ namespace ImGuiSettingsWindow {
 			ImGui::EndChild();
 			if (ImGui::Button("Cancel")) { ImGui::CloseCurrentPopup(); }
 			ImGui::SameLine();
-			if (ImGui::Button("Save")) {}
+			if (ImGui::Button("Save")) { SaveSettings(); ImGui::CloseCurrentPopup(); }
 			ImGui::EndGroup();
 		}
 
 		ImGui::EndPopup();
+		if (!ImGui::IsPopupOpen("Settings Window"))
+		{
+			plat_pause(0);
+		}
 	}
 	
+	void SaveSettings()
+	{
+		int i = 0;
+
+		pc_reset_hard_close();
+
+		/* Machine category */
+		machine = temp_machine;
+		cpu_f = temp_cpu_f;
+		cpu_waitstates = temp_wait_states;
+		cpu = temp_cpu;
+		mem_size = temp_mem_size;
+	#ifdef USE_DYNAREC
+		cpu_use_dynarec = temp_dynarec;
+	#endif
+		fpu_type = temp_fpu;
+		time_sync = temp_sync;
+
+		/* Video category */
+		gfxcard = temp_gfxcard;
+		voodoo_enabled = temp_voodoo;
+
+		/* Input devices category */
+		mouse_type = temp_mouse;
+		joystick_type = temp_joystick;
+
+		/* Sound category */
+		sound_card_current = temp_sound_card;
+		midi_device_current = temp_midi_device;
+		midi_input_device_current = temp_midi_input_device;
+		mpu401_standalone_enable = temp_mpu401;
+		SSI2001 = temp_SSI2001;
+		GAMEBLASTER = temp_GAMEBLASTER;
+		GUS = temp_GUS;
+		sound_is_float = temp_float;
+
+		/* Network category */
+		network_type = temp_net_type;
+		memset(network_host, '\0', sizeof(network_host));
+		strcpy(network_host, temp_pcap_dev);
+		network_card = temp_net_card;
+
+		/* Ports category */
+		for (i = 0; i < 3; i++) {
+		lpt_ports[i].device = temp_lpt_devices[i];
+		lpt_ports[i].enabled = temp_lpt[i];
+		}
+		for (i = 0; i < 4; i++)
+		serial_enabled[i] = temp_serial[i];
+
+		/* Storage devices category */
+		for (i = 0; i < SCSI_BUS_MAX; i++)
+		scsi_card_current[i] = temp_scsi_card[i];
+		hdc_current = temp_hdc;
+		fdc_type = temp_fdc_card;
+		ide_ter_enabled = temp_ide_ter;
+		ide_qua_enabled = temp_ide_qua;
+		cassette_enable = temp_cassette;
+
+		/* Hard disks category */
+		memcpy(hdd, temp_hdd, HDD_NUM * sizeof(hard_disk_t));
+		for (i = 0; i < HDD_NUM; i++)
+		hdd[i].priv = NULL;
+
+		/* Floppy drives category */
+		for (i = 0; i < FDD_NUM; i++) {
+		fdd_set_type(i, temp_fdd_types[i]);
+		fdd_set_turbo(i, temp_fdd_turbo[i]);
+		fdd_set_check_bpb(i, temp_fdd_check_bpb[i]);
+		}
+
+		/* Removable devices category */
+		memcpy(cdrom, temp_cdrom, CDROM_NUM * sizeof(cdrom_t));
+		for (i = 0; i < CDROM_NUM; i++) {
+		cdrom[i].img_fp = NULL;
+		cdrom[i].priv = NULL;
+		cdrom[i].ops = NULL;
+		cdrom[i].image = NULL;
+		cdrom[i].insert = NULL;
+		cdrom[i].close = NULL;
+		cdrom[i].get_volume = NULL;
+		cdrom[i].get_channel = NULL;
+		}
+		memcpy(zip_drives, temp_zip_drives, ZIP_NUM * sizeof(zip_drive_t));
+		for (i = 0; i < ZIP_NUM; i++) {
+		zip_drives[i].f = NULL;
+		zip_drives[i].priv = NULL;
+		}
+		memcpy(mo_drives, temp_mo_drives, MO_NUM * sizeof(mo_drive_t));
+		for (i = 0; i < MO_NUM; i++) {
+		mo_drives[i].f = NULL;
+		mo_drives[i].priv = NULL;
+		}
+
+		/* Other peripherals category */
+		bugger_enabled = temp_bugger;
+		postcard_enabled = temp_postcard;
+		isartc_type = temp_isartc;
+
+		/* ISA memory boards. */
+		for (i = 0; i < ISAMEM_MAX; i++)
+		isamem_type[i] = temp_isamem[i];
+
+		/* Mark configuration as changed. */
+		config_changed = 2;
+
+		pc_reset_hard_init();
+	}
+
 	void RenderMachineCategory() {
 
 		//ImGui::PushItemWidth(ImGui::GetFontSize() * -12);
@@ -543,6 +656,7 @@ namespace ImGuiSettingsWindow {
 		//////////////////////////////
 		// Wait States Combo Drop Down
 		//////////////////////////////
+		ImGui::BeginDisabled(!(temp_cpu_f->cpus[temp_cpu].cpu_type >= CPU_286 && (temp_cpu_f->cpus[temp_cpu].cpu_type <= CPU_386DX)));
 		std::vector<std::string> wait_states_types {"Default"};
 		for (int i = 0; i < 8; i++)
 		{
@@ -565,10 +679,11 @@ namespace ImGuiSettingsWindow {
 			}
 			ImGui::EndCombo();
 		}
+		ImGui::EndDisabled();
 		//////////////////////////////
 		// RAM/Memory Config
 		//////////////////////////////
-		static int memory_amount = 0, memory_amount_mb = 0;
+		static int memory_amount_mb = 0;
 		
 
 		// if (memory_amount > selected_machine.max_ram) {
@@ -583,24 +698,24 @@ namespace ImGuiSettingsWindow {
 			ImGui::Text("Memory (MB):");
 			ImGui::SameLine();
 			ImGui::InputInt("##memory", &memory_amount_mb, selected_machine.ram_granularity/1024, selected_machine.ram_granularity/1024, ImGuiInputTextFlags_EnterReturnsTrue);
-			memory_amount = memory_amount_mb * selected_machine.ram_granularity;
-			while (memory_amount > selected_machine.max_ram) {
-				memory_amount -= selected_machine.ram_granularity;
+			temp_mem_size = memory_amount_mb * selected_machine.ram_granularity;
+			while (temp_mem_size > selected_machine.max_ram) {
+				temp_mem_size -= selected_machine.ram_granularity;
 			}
-			if (memory_amount < selected_machine.min_ram) {
-				memory_amount = selected_machine.min_ram;
+			if (temp_mem_size < selected_machine.min_ram) {
+				temp_mem_size = selected_machine.min_ram;
 			}
-			memory_amount_mb = memory_amount / selected_machine.ram_granularity;
+			memory_amount_mb = temp_mem_size / selected_machine.ram_granularity;
 		}
 		else {
 			ImGui::Text("Memory (KB):");
 			ImGui::SameLine();
-			ImGui::InputInt("##memory", &memory_amount, selected_machine.ram_granularity, selected_machine.ram_granularity, ImGuiInputTextFlags_EnterReturnsTrue);
-			while (memory_amount > selected_machine.max_ram) {
-				memory_amount -= selected_machine.ram_granularity;
+			ImGui::InputInt("##memory", (int*)&temp_mem_size, selected_machine.ram_granularity, selected_machine.ram_granularity, ImGuiInputTextFlags_EnterReturnsTrue);
+			while (temp_mem_size > selected_machine.max_ram) {
+				temp_mem_size -= selected_machine.ram_granularity;
 			}
-			if (memory_amount < selected_machine.min_ram) {
-				memory_amount = selected_machine.min_ram;
+			if (temp_mem_size < selected_machine.min_ram) {
+				temp_mem_size = selected_machine.min_ram;
 			}
 		}
 
@@ -628,9 +743,18 @@ namespace ImGuiSettingsWindow {
 		//////////////////////////////
 		//Dynamic Recompiler Toggle
 		//////////////////////////////
+		ImGui::BeginDisabled(!(temp_cpu_f->cpus[temp_cpu].cpu_flags & CPU_SUPPORTS_DYNAREC) || (temp_cpu_f->cpus[temp_cpu].cpu_flags & CPU_REQUIRES_DYNAREC));
+		if (!(temp_cpu_f->cpus[temp_cpu].cpu_flags & CPU_SUPPORTS_DYNAREC) || (temp_cpu_f->cpus[temp_cpu].cpu_flags & CPU_REQUIRES_DYNAREC))
+		{
+			if (!(temp_cpu_f->cpus[temp_cpu].cpu_flags & CPU_SUPPORTS_DYNAREC))
+				temp_dynarec = 0;
+			if (temp_cpu_f->cpus[temp_cpu].cpu_flags & CPU_REQUIRES_DYNAREC)
+				temp_dynarec = 1;
+		}
 		ImGui::Text("Dynamic Recompiler");
 		ImGui::SameLine();
 		ImGui::Checkbox("##Dynarec", &temp_dynarec);
+		ImGui::EndDisabled();
 
 		//////////////////////////////
 		// Time Syncronization Radio Selection

@@ -1901,6 +1901,7 @@ extern "C" void RenderImGui()
 		ImGui::OpenPopup("Settings Window");
 		ImGuiSettingsWindow::showSettingsWindow = true;
 		ImGuiSettingsWindow::InitSettings();
+		plat_pause(1);
 	}
 	if (ImGuiSettingsWindow::showSettingsWindow)
 	{
