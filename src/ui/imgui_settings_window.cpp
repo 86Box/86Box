@@ -58,7 +58,7 @@ namespace ImGuiSettingsWindow {
 	static cpu_family_t *temp_cpu_f;
 	static uint32_t temp_mem_size;
 	#ifdef USE_DYNAREC
-	static int temp_dynarec;
+	static bool temp_dynarec;
 	#endif
 
 	/* Video category */
@@ -137,6 +137,128 @@ namespace ImGuiSettingsWindow {
 	void RenderOtherRemovableDevicesCategory();
 	void RenderOtherPeripheralsCategory();
 
+	void InitSettings()
+	{
+		int i = 0;
+
+		/* Machine category */
+		temp_machine_type = machines[machine].type;
+		temp_machine = machine;
+		temp_cpu_f = cpu_f;
+		temp_wait_states = cpu_waitstates;
+		temp_cpu = cpu;
+		temp_mem_size = mem_size;
+	#ifdef USE_DYNAREC
+		temp_dynarec = (bool)cpu_use_dynarec;
+	#endif
+		temp_fpu = fpu_type;
+		temp_sync = time_sync;
+
+		/* Video category */
+		temp_gfxcard = gfxcard;
+		temp_voodoo = voodoo_enabled;
+
+		/* Input devices category */
+		temp_mouse = mouse_type;
+		temp_joystick = joystick_type;
+
+		/* Sound category */
+		temp_sound_card = sound_card_current;
+		temp_midi_device = midi_device_current;
+		temp_midi_input_device = midi_input_device_current;
+		temp_mpu401 = mpu401_standalone_enable;
+		temp_SSI2001 = SSI2001;
+		temp_GAMEBLASTER = GAMEBLASTER;
+		temp_GUS = GUS;
+		temp_float = sound_is_float;
+
+		/* Network category */
+		temp_net_type = network_type;
+		memset(temp_pcap_dev, 0, sizeof(temp_pcap_dev));
+	#ifdef ENABLE_SETTINGS_LOG
+		assert(sizeof(temp_pcap_dev) == sizeof(network_host));
+	#endif
+		memcpy(temp_pcap_dev, network_host, sizeof(network_host));
+		temp_net_card = network_card;
+
+		/* Ports category */
+		for (i = 0; i < 3; i++) {
+		temp_lpt_devices[i] = lpt_ports[i].device;
+		temp_lpt[i] = lpt_ports[i].enabled;
+		}
+		for (i = 0; i < 4; i++)
+		temp_serial[i] = serial_enabled[i];
+
+		/* Storage devices category */
+		for (i = 0; i < SCSI_BUS_MAX; i++)
+		temp_scsi_card[i] = scsi_card_current[i];
+		temp_fdc_card = fdc_type;
+		temp_hdc = hdc_current;
+		temp_ide_ter = ide_ter_enabled;
+		temp_ide_qua = ide_qua_enabled;
+		temp_cassette = cassette_enable;
+
+		mfm_tracking = xta_tracking = esdi_tracking = ide_tracking = 0;
+		for (i = 0; i < 8; i++)
+		scsi_tracking[i] = 0;
+
+		/* Hard disks category */
+		memcpy(temp_hdd, hdd, HDD_NUM * sizeof(hard_disk_t));
+		for (i = 0; i < HDD_NUM; i++) {
+		if (hdd[i].bus == HDD_BUS_MFM)
+			mfm_tracking |= (1 << (hdd[i].mfm_channel << 3));
+		else if (hdd[i].bus == HDD_BUS_XTA)
+			xta_tracking |= (1 << (hdd[i].xta_channel << 3));
+		else if (hdd[i].bus == HDD_BUS_ESDI)
+			esdi_tracking |= (1 << (hdd[i].esdi_channel << 3));
+		else if ((hdd[i].bus == HDD_BUS_IDE) || (hdd[i].bus == HDD_BUS_ATAPI))
+			ide_tracking |= (1 << (hdd[i].ide_channel << 3));
+		else if (hdd[i].bus == HDD_BUS_SCSI)
+			scsi_tracking[hdd[i].scsi_id >> 3] |= (1 << ((hdd[i].scsi_id & 0x07) << 3));
+		}
+
+		/* Floppy drives category */
+		for (i = 0; i < FDD_NUM; i++) {
+		temp_fdd_types[i] = fdd_get_type(i);
+		temp_fdd_turbo[i] = fdd_get_turbo(i);
+		temp_fdd_check_bpb[i] = fdd_get_check_bpb(i);
+		}
+
+		/* Other removable devices category */
+		memcpy(temp_cdrom, cdrom, CDROM_NUM * sizeof(cdrom_t));
+		for (i = 0; i < CDROM_NUM; i++) {
+		if (cdrom[i].bus_type == CDROM_BUS_ATAPI)
+			ide_tracking |= (2 << (cdrom[i].ide_channel << 3));
+		else if (cdrom[i].bus_type == CDROM_BUS_SCSI)
+			scsi_tracking[cdrom[i].scsi_device_id >> 3] |= (1 << ((cdrom[i].scsi_device_id & 0x07) << 3));
+		}
+		memcpy(temp_zip_drives, zip_drives, ZIP_NUM * sizeof(zip_drive_t));
+		for (i = 0; i < ZIP_NUM; i++) {
+		if (zip_drives[i].bus_type == ZIP_BUS_ATAPI)
+			ide_tracking |= (4 << (zip_drives[i].ide_channel << 3));
+		else if (zip_drives[i].bus_type == ZIP_BUS_SCSI)
+			scsi_tracking[zip_drives[i].scsi_device_id >> 3] |= (1 << ((zip_drives[i].scsi_device_id & 0x07) << 3));
+		}
+		memcpy(temp_mo_drives, mo_drives, MO_NUM * sizeof(mo_drive_t));
+		for (i = 0; i < MO_NUM; i++) {
+		if (mo_drives[i].bus_type == MO_BUS_ATAPI)
+		ide_tracking |= (1 << (mo_drives[i].ide_channel << 3));
+		else if (mo_drives[i].bus_type == MO_BUS_SCSI)
+		scsi_tracking[mo_drives[i].scsi_device_id >> 3] |= (1 << ((mo_drives[i].scsi_device_id & 0x07) << 3));
+		}
+
+		/* Other peripherals category */
+		temp_bugger = bugger_enabled;
+		temp_postcard = postcard_enabled;
+		temp_isartc = isartc_type;
+
+		/* ISA memory boards. */
+		for (i = 0; i < ISAMEM_MAX; i++)
+		temp_isamem[i] = isamem_type[i];	
+
+		temp_deviceconfig = 0;
+	}
+
 	void Render() {
 		//ImGui::Begin("Settings", &ImGuiSettingsWindow::showSettingsWindow);
 		if (!ImGui::BeginPopupModal("Settings Window", &showSettingsWindow)) return;
@@ -211,14 +333,19 @@ namespace ImGuiSettingsWindow {
 
 		ImGui::EndPopup();
 	}
-
+	
 	void RenderMachineCategory() {
 
 		//ImGui::PushItemWidth(ImGui::GetFontSize() * -12);
 		//ImGui::AlignTextToFramePadding();
-
+		struct dev_settings_t
+		{
+			const char* name;
+			size_t id;
+		};
 
 		std::vector<char *> item_list; // will be reused for memory savings
+		std::vector<dev_settings_t> machine_list;
 
 		//////////////////////////////
 		// Machine Type Combo Drop Down Box
@@ -226,17 +353,26 @@ namespace ImGuiSettingsWindow {
 		for (std::size_t i = 0; i < machine_type_count(); ++i) {
 			item_list.push_back(machine_type_getname(i));
 		}
-		static int machine_type_current = machines[machine].type;;
-		const char* machine_type_preview_value = item_list[machine_type_current];
+		const char* machine_type_preview_value = item_list[temp_machine_type];
 		ImGui::Text("Machine Type:");
 		ImGui::SameLine();
 		if (ImGui::BeginCombo("##Machine Type", machine_type_preview_value))
 		{
 			for (int n = 0; n < item_list.size(); n++)
 			{
-				const bool is_selected = (machine_type_current == n);
+				const bool is_selected = (temp_machine_type == n);
 				if (ImGui::Selectable(item_list.at(n), is_selected))
-					machine_type_current = n;
+				{
+					temp_machine_type = n;
+					for (int i = 0; i < machine_count(); i++)
+					{
+						if (machine_available(i) && machine_get_type_from_id(i) == n)
+						{
+							temp_machine = i;
+							break;
+						}
+					}
+				}
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 				if (is_selected)
@@ -250,23 +386,15 @@ namespace ImGuiSettingsWindow {
 		//////////////////////////////
 		// Machine Combo Drop Down
 		//////////////////////////////
-		item_list.clear();
-		for (std::size_t i = 0; i < machine_count(); ++i) {
-			if (machine_available(i) && machine_get_type_from_id(i) == machine_type_current) {
-				item_list.push_back(machine_getname_from_id(i));
-			}
-		}
-		static int machine_current = 0;
-		const char* machine_preview_value = item_list.at(machine_current);  // Pass in the preview value visible before opening the combo (it could be anything)
 		ImGui::Text("Machine:");
 		ImGui::SameLine();
-		if (ImGui::BeginCombo("##Machine", machine_preview_value))
+		if (ImGui::BeginCombo("##Machine", machines[temp_machine].name))
 		{
-			for (int n = 0; n < item_list.size(); n++)
+			for (int n = 0; n < machine_count(); n++)
 			{
-				const bool is_selected = (machine_current == n);
-				if (ImGui::Selectable(item_list.at(n), is_selected))
-					machine_current = n;
+				const bool is_selected = (temp_machine == n);
+				if (machine_available(n) && machine_get_type_from_id(n) == temp_machine_type && ImGui::Selectable(machines[n].name, is_selected))
+					temp_machine = n;
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 				if (is_selected)
@@ -274,8 +402,42 @@ namespace ImGuiSettingsWindow {
 			}
 			ImGui::EndCombo();
 		}
+
+		auto recalcCPUFamily = [&]()
+		{
+			if (!cpu_family_is_eligible(temp_cpu_f, temp_machine))
+			{
+				int c = 0;
+				while (cpu_families[c].package != 0)
+				{
+					if (cpu_family_is_eligible(&cpu_families[c], temp_machine))
+					{
+						temp_cpu_f = (cpu_family_t *)&cpu_families[c];
+					}
+					c++;
+				}
+			}
+		};
+
+		auto recalcCPUSpeed = [&]()
+		{
+			if (!cpu_is_eligible(temp_cpu_f, temp_cpu, temp_machine))
+			{
+				int c = 0;
+				while (temp_cpu_f->cpus[c].cpu_type != 0)
+				{
+					if (cpu_is_eligible(temp_cpu_f, c, temp_machine))
+					{
+						temp_cpu = c;
+					}
+					c++;
+				}
+			}
+		};
 		//char* machine_name = item_list.size() > 0 ? item_list.at(machine_current) : "";
-		machine_t selected_machine = machine_get_from_id(machine_current);
+		machine_t selected_machine = machines[temp_machine];
+		recalcCPUFamily();
+		recalcCPUSpeed();
 
 		//////////////////////////////
 		// CPU Type Combo Drop Down
@@ -285,17 +447,21 @@ namespace ImGuiSettingsWindow {
 		const char* cpu_preview_value = cpu_types[cpu_current];  // Pass in the preview value visible before opening the combo (it could be anything)
 		ImGui::Text("CPU:");
 		ImGui::SameLine();
-		if (ImGui::BeginCombo("##CPU Type", cpu_preview_value))
+		if (ImGui::BeginCombo("##CPU Type", (std::string(temp_cpu_f->manufacturer) + " " + std::string(temp_cpu_f->name)).c_str()))
 		{
-			for (int n = 0; n < cpu_types.size(); n++)
-			{
-				const bool is_selected = (cpu_current == n);
-				if (ImGui::Selectable(cpu_types[n], is_selected))
-					cpu_current = n;
-
-				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-				if (is_selected)
-					ImGui::SetItemDefaultFocus();
+			int c = 0;
+			while (cpu_families[c].package != 0) {
+				if (cpu_family_is_eligible(&cpu_families[c], temp_machine))
+				{
+					if (ImGui::Selectable((std::string(cpu_families[c].manufacturer) + " " + std::string(cpu_families[c].name)).c_str(), &cpu_families[c] == temp_cpu_f))
+					temp_cpu_f = (cpu_family_t *)&cpu_families[c];
+					
+					if (&cpu_families[c] == temp_cpu_f)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				c++;
 			}
 			ImGui::EndCombo();
 		}
@@ -303,22 +469,23 @@ namespace ImGuiSettingsWindow {
 		//////////////////////////////
 		// CPU Speed Combo Drop Down
 		//////////////////////////////
-		const std::array cpu_speed_types {"1", "2", "3", "4"};
-		static int cpu_speed_current = 0;
-		const char* cpu_speed_preview_value = cpu_speed_types[cpu_current];  // Pass in the preview value visible before opening the combo (it could be anything)
 		ImGui::Text("Speed:");
 		ImGui::SameLine();
-		if (ImGui::BeginCombo("##Speed", cpu_speed_preview_value))
+		if (ImGui::BeginCombo("##Speed", temp_cpu_f->cpus[temp_cpu].name))
 		{
-			for (int n = 0; n < cpu_speed_types.size(); n++)
-			{
-				const bool is_selected = (cpu_speed_current == n);
-				if (ImGui::Selectable(cpu_speed_types[n], is_selected))
-					cpu_speed_current = n;
-
-				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-				if (is_selected)
-					ImGui::SetItemDefaultFocus();
+			int c = 0;
+			while (temp_cpu_f->cpus[c].cpu_type != 0) {
+				if (cpu_is_eligible(temp_cpu_f, c, temp_machine))
+				{
+					if (ImGui::Selectable(temp_cpu_f->cpus[c].name, c == temp_cpu))
+					temp_cpu = c;
+					
+					if (temp_cpu == c)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				c++;
 			}
 			ImGui::EndCombo();
 		}
@@ -348,18 +515,21 @@ namespace ImGuiSettingsWindow {
 		//////////////////////////////
 		// Wait States Combo Drop Down
 		//////////////////////////////
-		const std::array wait_states_types {"1", "2", "3", "4"};
-		static int wait_state_current = 0;
-		const char* wait_state_preview_value = wait_states_types[wait_state_current];  // Pass in the preview value visible before opening the combo (it could be anything)
+		std::vector<std::string> wait_states_types {"Default"};
+		for (int i = 0; i < 8; i++)
+		{
+			wait_states_types.push_back(std::to_string(i) + std::string(" Wait state(s)"));
+		}
+		const char* wait_state_preview_value = wait_states_types[temp_wait_states].data();  // Pass in the preview value visible before opening the combo (it could be anything)
 		ImGui::Text("Wait States:");
 		ImGui::SameLine();
 		if (ImGui::BeginCombo("##WaitStates", wait_state_preview_value))
 		{
 			for (int n = 0; n < wait_states_types.size(); n++)
 			{
-				const bool is_selected = (wait_state_current == n);
-				if (ImGui::Selectable(wait_states_types[n], is_selected))
-					wait_state_current = n;
+				const bool is_selected = (temp_wait_states == n);
+				if (ImGui::Selectable(wait_states_types[n].data(), is_selected))
+					temp_wait_states = n;
 
 				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
 				if (is_selected)
@@ -370,26 +540,29 @@ namespace ImGuiSettingsWindow {
 		//////////////////////////////
 		// RAM/Memory Config
 		//////////////////////////////
-		static int memory_amount = 0;
+		static int memory_amount = 0, memory_amount_mb = 0;
+		
 
 		// if (memory_amount > selected_machine.max_ram) {
 		// 	memory_amount = selected_machine.max_ram;
 		// }
 
-		std::cout << "Ram Granularity = " << selected_machine.ram_granularity << "\n";
-		std::cout << "Machine: " << selected_machine.name << "\n";
+		//std::cout << "Ram Granularity = " << selected_machine.ram_granularity << "\n";
+		//std::cout << "Machine: " << selected_machine.name << "\n";
 
 		// ram_granularity is in kilobytes, if it's more than 1024 then step in megabytes
 		if (selected_machine.ram_granularity >= 1024) {
 			ImGui::Text("Memory (MB):");
 			ImGui::SameLine();
-			ImGui::InputInt("##memory", &memory_amount, selected_machine.ram_granularity/1024, selected_machine.ram_granularity/1024, ImGuiInputTextFlags_EnterReturnsTrue);
+			ImGui::InputInt("##memory", &memory_amount_mb, selected_machine.ram_granularity/1024, selected_machine.ram_granularity/1024, ImGuiInputTextFlags_EnterReturnsTrue);
+			memory_amount = memory_amount_mb * selected_machine.ram_granularity;
 			while (memory_amount > selected_machine.max_ram) {
-				memory_amount -= selected_machine.ram_granularity/1024;
+				memory_amount -= selected_machine.ram_granularity;
 			}
 			if (memory_amount < selected_machine.min_ram) {
-				memory_amount == selected_machine.min_ram;
+				memory_amount = selected_machine.min_ram;
 			}
+			memory_amount_mb = memory_amount / selected_machine.ram_granularity;
 		}
 		else {
 			ImGui::Text("Memory (KB):");
@@ -399,7 +572,7 @@ namespace ImGuiSettingsWindow {
 				memory_amount -= selected_machine.ram_granularity;
 			}
 			if (memory_amount < selected_machine.min_ram) {
-				memory_amount == selected_machine.min_ram;
+				memory_amount = selected_machine.min_ram;
 			}
 		}
 
@@ -427,25 +600,23 @@ namespace ImGuiSettingsWindow {
 		//////////////////////////////
 		//Dynamic Recompiler Toggle
 		//////////////////////////////
-		static bool isUsingDynarec = false;
 		ImGui::Text("Dynamic Recompiler");
 		ImGui::SameLine();
-		ImGui::Checkbox("##Dynarec", &isUsingDynarec);
+		ImGui::Checkbox("##Dynarec", &temp_dynarec);
 
 		//////////////////////////////
 		// Time Syncronization Radio Selection
 		//////////////////////////////
 
 		ImGui::Text("Time Syncronization");
-		static int timeSyncMode = 0;
-		if (ImGui::RadioButton("Disabled", timeSyncMode == TIME_SYNC_DISABLED)) {
-			timeSyncMode = TIME_SYNC_DISABLED;
+		if (ImGui::RadioButton("Disabled", temp_sync == TIME_SYNC_DISABLED)) {
+			temp_sync = TIME_SYNC_DISABLED;
 		}
-		if (ImGui::RadioButton("Enabled (local time)", timeSyncMode == TIME_SYNC_ENABLED)) {
-			timeSyncMode = TIME_SYNC_ENABLED;
+		if (ImGui::RadioButton("Enabled (local time)", temp_sync == TIME_SYNC_ENABLED)) {
+			temp_sync = TIME_SYNC_ENABLED;
 		}
-		if (ImGui::RadioButton("Enabled (UTC)", timeSyncMode == TIME_SYNC_UTC)) {
-			timeSyncMode = TIME_SYNC_UTC;
+		if (ImGui::RadioButton("Enabled (UTC)", temp_sync == TIME_SYNC_UTC)) {
+			temp_sync = TIME_SYNC_UTC;
 		}
 	}
 
