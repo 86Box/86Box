@@ -207,7 +207,7 @@ static const device_config_t cms_config[] =
 const device_t cms_device =
 {
         "Creative Music System / Game Blaster",
-        0, 0,
+        DEVICE_ISA, 0,
         cms_init, cms_close, NULL,
         { NULL }, NULL, NULL,
         cms_config

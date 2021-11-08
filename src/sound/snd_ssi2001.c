@@ -8,6 +8,7 @@
 #include <86box/86box.h>
 #include <86box/io.h>
 #include <86box/device.h>
+#include <86box/gameport.h>
 #include <86box/sound.h>
 #include <86box/snd_resid.h>
 
@@ -17,6 +18,7 @@ typedef struct ssi2001_t
         void    *psid;
         int16_t buffer[SOUNDBUFLEN * 2];
         int     pos;
+        int     gameport_enabled;		
 } ssi2001_t;
 
 static void ssi2001_update(ssi2001_t *ssi2001)
@@ -66,7 +68,10 @@ void *ssi2001_init(const device_t *info)
         ssi2001->psid = sid_init();
         sid_reset(ssi2001->psid);
         uint16_t addr = device_get_config_hex16("base");
+        ssi2001->gameport_enabled = device_get_config_int("gameport");		
         io_sethandler(addr, 0x0020, ssi2001_read, NULL, NULL, ssi2001_write, NULL, NULL, ssi2001);
+        if (ssi2001->gameport_enabled)
+        gameport_remap(gameport_add(&gameport_201_device), 0x201);
         sound_add_handler(ssi2001_get_buffer, ssi2001);
         return ssi2001;
 }
@@ -103,6 +108,9 @@ static const device_config_t ssi2001_config[] =
                 }
         },
         {
+                "gameport", "Enable Game port", CONFIG_BINARY, "", 1
+        },
+        {
                 "", "", -1
         }
 };
@@ -110,7 +118,7 @@ static const device_config_t ssi2001_config[] =
 const device_t ssi2001_device =
 {
         "Innovation SSI-2001",
-        0, 0,
+        DEVICE_ISA, 0,
         ssi2001_init, ssi2001_close, NULL,
 	{ NULL }, NULL, NULL,
         ssi2001_config

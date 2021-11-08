@@ -54,6 +54,7 @@ typedef struct paradise_t
         uint32_t read_bank[4], write_bank[4];
 		
 		int interlace;
+		int check;
 		
 		struct {
 			uint8_t reg_block_ptr;
@@ -104,6 +105,13 @@ void paradise_out(uint16_t addr, uint8_t val, void *p)
                         return;
                 }
                 break;
+
+				case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
+				if (paradise->type == WD90C30)
+					sc1148x_ramdac_out(addr, 0, val, svga->ramdac, svga);
+				else
+					svga_out(addr, val, svga);
+				return;
 
                 case 0x3cf:
                 if (svga->gdcaddr >= 9 && svga->gdcaddr <= 0x0e) {
@@ -215,10 +223,15 @@ uint8_t paradise_in(uint16_t addr, void *p)
                         return svga->seqregs[svga->seqaddr & 0x1f];
                 }
                 break;
-                        
+
+				case 0x3c6: case 0x3c7: case 0x3c8: case 0x3c9:
+				if (paradise->type == WD90C30)
+					return sc1148x_ramdac_in(addr, 0, svga->ramdac, svga);
+				return svga_in(addr, svga);
+
                 case 0x3cf:
                 if (svga->gdcaddr >= 9 && svga->gdcaddr <= 0x0e) {
-					if ((paradise->pr5 & 7) != 5)
+					if (paradise->pr5 & 0x10)
 						return 0xff;
                 }
 				switch (svga->gdcaddr) {
@@ -232,8 +245,11 @@ uint8_t paradise_in(uint16_t addr, void *p)
 							paradise->pr1 &= ~0x40;
 						} else if (paradise->vram_mask == (1024 << 10) - 1) {
 							paradise->pr1 |= 0xc0;
-							if (svga->bpp >= 8 && !svga->lowres) /*Horrible tweak, but needed to get around black corruption in 1M mode*/
+							/*The following is a horrible tweak, but needed to get around black corruption in 1M mode*/
+							if (svga->bpp >= 8 && (svga->gdcreg[0x0e] & 0x01) && paradise->check)
 								paradise->pr1 &= ~0x40;
+							else if (!(svga->gdcreg[0x0e] & 0x01) && !(svga->crtc[0x14] & 0x40) && paradise->check)
+								paradise->check = 0;
 						}
 						return paradise->pr1;
 					case 6:
@@ -336,9 +352,28 @@ void paradise_recalctimings(svga_t *svga)
 			svga->interlace = 1;
 		}
 	}
-
-	if (svga->bpp >= 8 && !svga->lowres)
-		svga->render = svga_render_8bpp_highres;
+	
+	if (paradise->type < WD90C30) {
+		if (svga->bpp >= 8 && !svga->lowres) {
+			if ((svga->crtc[0x17] == 0xc2) && (svga->crtc[0x14] & 0x40))
+				paradise->check = 1;
+			svga->render = svga_render_8bpp_highres;
+		}
+	} else {
+		if (svga->bpp >= 8 && !svga->lowres) {
+			if (svga->bpp == 16) {
+				svga->render = svga_render_16bpp_highres;
+				svga->hdisp >>= 1;
+			} else if (svga->bpp == 15) {
+				svga->render = svga_render_15bpp_highres;
+				svga->hdisp >>= 1;
+			} else {
+				if ((svga->crtc[0x17] == 0xc2) && (svga->crtc[0x14] & 0x40))
+					paradise->check = 1;
+				svga->render = svga_render_8bpp_highres;
+			}
+		}
+	}
 }
 
 static void paradise_write(uint32_t addr, uint8_t val, void *p)
@@ -348,7 +383,7 @@ static void paradise_write(uint32_t addr, uint8_t val, void *p)
 
 		addr &= svga->banked_mask;
 		addr = (addr & 0x7fff) + paradise->write_bank[(addr >> 15) & 3];
-		
+
 		svga_write_linear(addr, val, svga);
 }
 static void paradise_writew(uint32_t addr, uint16_t val, void *p)
@@ -421,6 +456,7 @@ void *paradise_init(const device_t *info, uint32_t memsize)
 				   NULL);
 			paradise->vram_mask = memsize - 1;
 			svga->decode_mask = memsize - 1;
+			svga->ramdac = device_add(&sc11487_ramdac_device); /*Actually a Winbond W82c487-80, probably a clone.*/
 			break;
 	}
 	

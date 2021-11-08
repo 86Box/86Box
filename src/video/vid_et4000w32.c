@@ -97,11 +97,12 @@ typedef struct et4000w32p_t
 		uint32_t	pattern_addr, source_addr, dest_addr, mix_addr;
 	} queued, internal;
 
+	uint8_t		osr;
 	uint8_t		status;
 
 	int		pattern_x, source_x, pattern_x_back, source_x_back,
 			pattern_y, source_y, cpu_dat_pos, pix_pos,
-			cpu_input_num;
+			cpu_input_num, queue;
 
 	uint32_t	pattern_addr, source_addr, dest_addr, mix_addr,
 			pattern_back, source_back, dest_back, mix_back,
@@ -119,9 +120,9 @@ typedef struct et4000w32p_t
 
 static int		et4000w32_vbus[4] = {1, 2, 4, 4};
 
-static int		et4000w32_max_x[8] = {0, 0, 4, 8, 16, 32, 64, 0x70000000};
-static int		et4000w32_wrap_x[8] = {0, 0, 3, 7, 15, 31, 63, 0xffffffff};
-static int		et4000w32_wrap_y[8] = {1, 2, 4, 8, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff};
+static int		et4000w32_max_x[8] = {0,0,4,8,0x10,0x20,0x40,0x70000000};
+static int		et4000w32_wrap_x[8] = {0,0,3,7,0x0F,0x1F,0x3F,~0};
+static int		et4000w32_wrap_y[8] = {1,2,4,8,~0,~0,~0,~0};
 
 static video_timings_t	timing_et4000w32_vlb = {VIDEO_BUS, 4,  4,  4,  10, 10, 10};
 static video_timings_t	timing_et4000w32_pci = {VIDEO_PCI, 4,  4,  4,  10, 10, 10};
@@ -168,7 +169,7 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *p)
     uint32_t add2addr = 0;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
-	addr ^= 0x60;
+		addr ^= 0x60;
 
     switch (addr) {
 	case 0x3c2:
@@ -271,14 +272,24 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *p)
 			switch (svga->bpp) {
 				case 8:
 					svga->hwcursor.xoff += 32;
-					break;			
+					break;
 			}
 		}
 
 		if (svga->hwcursor.xsize == 128) {
 			svga->hwcursor.xoff &= 0x7f;
 			svga->hwcursor.yoff &= 0x7f;
+			if (et4000->type > ET4000W32P_REVC) {
+				if (svga->bpp == 24) {
+					et4000->adjust_cursor = 2;
+				}
+			}
 		} else {
+			if (et4000->type > ET4000W32P_REVC) {
+				if (svga->bpp == 24 && et4000->adjust_cursor) {
+					et4000->adjust_cursor = 0;
+				}
+			}
 			svga->hwcursor.xoff &= 0x3f;
 			svga->hwcursor.yoff &= 0x3f;
 		}
@@ -300,7 +311,7 @@ et4000w32p_in(uint16_t addr, void *p)
     svga_t *svga = &et4000->svga;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
-	addr ^= 0x60;
+		addr ^= 0x60;
 
     switch (addr) {
 	case 0x3c5:
@@ -324,17 +335,34 @@ et4000w32p_in(uint16_t addr, void *p)
 	case 0x3d5:
 		return svga->crtc[svga->crtcreg];
 
+	case 0x3da:
+		svga->attrff = 0;
+
+		/*Bit 1 of the Input Status Register is required by OS/2 ET4000W32/I drivers to be set otherwise
+		  the guest will loop infinitely upon reaching the GUI*/
+		if (svga->cgastat & 0x01)
+			svga->cgastat &= ~0x32;
+		else
+			svga->cgastat ^= 0x32;
+		return svga->cgastat;
+
 	case 0x210a: case 0x211a: case 0x212a: case 0x213a:
 	case 0x214a: case 0x215a: case 0x216a: case 0x217a:
 		return et4000->index;
-		case 0x210B: case 0x211B: case 0x212B: case 0x213B:
-		case 0x214B: case 0x215B: case 0x216B: case 0x217B:
-		if (et4000->index == 0xec)
+	case 0x210B: case 0x211B: case 0x212B: case 0x213B:
+	case 0x214B: case 0x215B: case 0x216B: case 0x217B:
+		if (et4000->index == 0xec) {
 			return (et4000->regs[0xec] & 0xf) | (et4000->rev << 4);
-		if (et4000->index == 0xee) {	/* Preliminary implementation */
-			if (svga->bpp == 8)
-				return 3;
-			else if (svga->bpp == 16)
+		}
+		if (et4000->index == 0xee) {
+			if (svga->bpp == 8) {
+				if ((svga->gdcreg[5] & 0x60) >= 0x40)
+					return 3;
+				else if ((svga->gdcreg[5] & 0x60) == 0x20)
+					return 1;
+				else
+					return 2;
+			} else if (svga->bpp == 15 || svga->bpp == 16)
 				return 4;
 			else
 				break;
@@ -409,13 +437,21 @@ et4000w32p_recalctimings(svga_t *svga)
 	switch (svga->bpp) {
 	case 15: case 16:
 		svga->hdisp >>= 1;
-		if (et4000->type <= ET4000W32P_REVC)
-			et4000->adjust_cursor = 1;
+		if (et4000->type <= ET4000W32P_REVC) {
+			if (et4000->type == ET4000W32P_REVC) {
+				if (svga->hdisp != 1024)
+					et4000->adjust_cursor = 1;
+			} else
+				et4000->adjust_cursor = 1;
+		}
 		break;
 	case 24:
 		svga->hdisp /= 3;
 		if (et4000->type <= ET4000W32P_REVC)
 			et4000->adjust_cursor = 2;
+		if (et4000->type == ET4000W32P_DIAMOND && (svga->hdisp == 640/2 || svga->hdisp == 1232)) {
+			svga->hdisp = 640;
+		}
 		break;
 	}
 
@@ -569,45 +605,51 @@ et4000w32p_accel_write_fifo(et4000w32p_t *et4000, uint32_t addr, uint8_t val)
 	case 0x7f80:	et4000->acl.queued.pattern_addr = (et4000->acl.queued.pattern_addr & 0xFFFFFF00) | val;		break;
 	case 0x7f81:	et4000->acl.queued.pattern_addr = (et4000->acl.queued.pattern_addr & 0xFFFF00FF) | (val << 8);	break;
 	case 0x7f82:	et4000->acl.queued.pattern_addr = (et4000->acl.queued.pattern_addr & 0xFF00FFFF) | (val << 16);	break;
-	case 0x7f83:	et4000->acl.queued.pattern_addr = (et4000->acl.queued.pattern_addr & 0x00FFFFFF) | (val << 24);	break;
+	case 0x7f83:	et4000->acl.queued.pattern_addr = (et4000->acl.queued.pattern_addr & 0x00FFFFFF) | (val << 24);	et4000->acl.queue++; break;
 	case 0x7f84:	et4000->acl.queued.source_addr  = (et4000->acl.queued.source_addr  & 0xFFFFFF00) | val;		break;
 	case 0x7f85:	et4000->acl.queued.source_addr  = (et4000->acl.queued.source_addr  & 0xFFFF00FF) | (val << 8);	break;
 	case 0x7f86:	et4000->acl.queued.source_addr  = (et4000->acl.queued.source_addr  & 0xFF00FFFF) | (val << 16);	break;
-	case 0x7f87:	et4000->acl.queued.source_addr  = (et4000->acl.queued.source_addr  & 0x00FFFFFF) | (val << 24);	break;
+	case 0x7f87:	et4000->acl.queued.source_addr  = (et4000->acl.queued.source_addr  & 0x00FFFFFF) | (val << 24); et4000->acl.queue++; break;
 	case 0x7f88:	et4000->acl.queued.pattern_off  = (et4000->acl.queued.pattern_off  & 0xFF00) | val;		break;
-	case 0x7f89:	et4000->acl.queued.pattern_off  = (et4000->acl.queued.pattern_off  & 0x00FF) | (val << 8);	break;
+	case 0x7f89:	et4000->acl.queued.pattern_off  = (et4000->acl.queued.pattern_off  & 0x00FF) | (val << 8); et4000->acl.queue++; break;
 	case 0x7f8a:	et4000->acl.queued.source_off   = (et4000->acl.queued.source_off   & 0xFF00) | val;		break;
-	case 0x7f8b:	et4000->acl.queued.source_off   = (et4000->acl.queued.source_off   & 0x00FF) | (val << 8);	break;
+	case 0x7f8b:	et4000->acl.queued.source_off   = (et4000->acl.queued.source_off   & 0x00FF) | (val << 8); et4000->acl.queue++;break;
 	case 0x7f8c:	et4000->acl.queued.dest_off     = (et4000->acl.queued.dest_off     & 0xFF00) | val;		break;
-	case 0x7f8d:	et4000->acl.queued.dest_off     = (et4000->acl.queued.dest_off     & 0x00FF) | (val << 8);	break;
+	case 0x7f8d:	et4000->acl.queued.dest_off     = (et4000->acl.queued.dest_off     & 0x00FF) | (val << 8); et4000->acl.queue++; break;
 	case 0x7f8e:
+		et4000->acl.queue++;
 		if (et4000->type >= ET4000W32P_REVC) 
 			et4000->acl.queued.pixel_depth = val;
 		else
 			et4000->acl.queued.vbus = val; 
 		break;
-	case 0x7f8f:	et4000->acl.queued.xy_dir = val;	break;
-	case 0x7f90:	et4000->acl.queued.pattern_wrap = val;	break;
-	case 0x7f92:	et4000->acl.queued.source_wrap  = val;	break;
+	case 0x7f8f:	et4000->acl.queued.xy_dir = val;	et4000->acl.queue++; break;
+	case 0x7f90:	et4000->acl.queued.pattern_wrap = val;	et4000->acl.queue++; break;
+	case 0x7f92:	et4000->acl.queued.source_wrap  = val;	et4000->acl.queue++; break;
 	case 0x7f98:	et4000->acl.queued.count_x    = (et4000->acl.queued.count_x & 0xFF00) | val;			break;
-	case 0x7f99:	et4000->acl.queued.count_x    = (et4000->acl.queued.count_x & 0x00FF) | (val << 8);		break;
+	case 0x7f99:	et4000->acl.queued.count_x    = (et4000->acl.queued.count_x & 0x00FF) | (val << 8); et4000->acl.queue++; break;
 	case 0x7f9a:	et4000->acl.queued.count_y    = (et4000->acl.queued.count_y & 0xFF00) | val;			break;
-	case 0x7f9b:	et4000->acl.queued.count_y    = (et4000->acl.queued.count_y & 0x00FF) | (val << 8);		break;
-	case 0x7f9c:	et4000->acl.queued.ctrl_routing = val;	break;
-	case 0x7f9d:	et4000->acl.queued.ctrl_reload  = val;	break;
-	case 0x7f9e:	et4000->acl.queued.rop_bg       = val;	break;
-	case 0x7f9f:	et4000->acl.queued.rop_fg       = val;	break;
+	case 0x7f9b:	et4000->acl.queued.count_y    = (et4000->acl.queued.count_y & 0x00FF) | (val << 8);	et4000->acl.queue++; break;
+	case 0x7f9c:	et4000->acl.queued.ctrl_routing = val;	et4000->acl.queue++; break;
+	case 0x7f9d:	et4000->acl.queued.ctrl_reload  = val;	et4000->acl.queue++; break;
+	case 0x7f9e:	et4000->acl.queued.rop_bg       = val;	et4000->acl.queue++; break;
+	case 0x7f9f:	et4000->acl.queued.rop_fg       = val;	et4000->acl.queue++; break;
 	case 0x7fa0:	et4000->acl.queued.dest_addr = (et4000->acl.queued.dest_addr & 0xFFFFFF00) | val;		break;
 	case 0x7fa1:	et4000->acl.queued.dest_addr = (et4000->acl.queued.dest_addr & 0xFFFF00FF) | (val << 8);	break;
 	case 0x7fa2:	et4000->acl.queued.dest_addr = (et4000->acl.queued.dest_addr & 0xFF00FFFF) | (val << 16);	break;
 	case 0x7fa3:	et4000->acl.queued.dest_addr = (et4000->acl.queued.dest_addr & 0x00FFFFFF) | (val << 24);
+		et4000->acl.queue++;
 		et4000->acl.internal = et4000->acl.queued;
 		if (et4000->type >= ET4000W32P_REVC) {
-			et4000w32p_blit_start(et4000);
-			if (!(et4000->acl.queued.ctrl_routing & 0x43))
-				et4000w32p_blit(0xffffff, ~0, 0, 0, et4000);
-			if ((et4000->acl.queued.ctrl_routing & 0x40) && !(et4000->acl.internal.ctrl_routing & 3))
-				et4000w32p_blit(4, ~0, 0, 0, et4000);
+			if (et4000->acl.osr & 0x10) {
+				et4000w32p_blit_start(et4000);
+				if (!(et4000->acl.queued.ctrl_routing & 0x43)) {
+					et4000w32p_blit(0xffffff, ~0, 0, 0, et4000);
+				}
+				if ((et4000->acl.queued.ctrl_routing & 0x40) && !(et4000->acl.internal.ctrl_routing & 3)) {
+					et4000w32p_blit(4, ~0, 0, 0, et4000);
+				}
+			}
 		} else {
 			et4000w32_blit_start(et4000);
 			et4000->acl.cpu_input_num = 0;
@@ -618,15 +660,15 @@ et4000w32p_accel_write_fifo(et4000w32p_t *et4000, uint32_t addr, uint8_t val)
 	case 0x7fa4:	et4000->acl.queued.mix_addr = (et4000->acl.queued.mix_addr & 0xFFFFFF00) | val;			break;
 	case 0x7fa5:	et4000->acl.queued.mix_addr = (et4000->acl.queued.mix_addr & 0xFFFF00FF) | (val << 8);		break;
 	case 0x7fa6:	et4000->acl.queued.mix_addr = (et4000->acl.queued.mix_addr & 0xFF00FFFF) | (val << 16);		break;
-	case 0x7fa7:	et4000->acl.queued.mix_addr = (et4000->acl.queued.mix_addr & 0x00FFFFFF) | (val << 24);		break;
+	case 0x7fa7:	et4000->acl.queued.mix_addr = (et4000->acl.queued.mix_addr & 0x00FFFFFF) | (val << 24);	et4000->acl.queue++; break;
 	case 0x7fa8:	et4000->acl.queued.mix_off = (et4000->acl.queued.mix_off & 0xFF00) | val;			break;
-	case 0x7fa9:	et4000->acl.queued.mix_off = (et4000->acl.queued.mix_off & 0x00FF) | (val << 8);		break;
+	case 0x7fa9:	et4000->acl.queued.mix_off = (et4000->acl.queued.mix_off & 0x00FF) | (val << 8); et4000->acl.queue++; break;
 	case 0x7faa:	et4000->acl.queued.error   = (et4000->acl.queued.error   & 0xFF00) | val;			break;
-	case 0x7fab:	et4000->acl.queued.error   = (et4000->acl.queued.error   & 0x00FF) | (val << 8);		break;
+	case 0x7fab:	et4000->acl.queued.error   = (et4000->acl.queued.error   & 0x00FF) | (val << 8); et4000->acl.queue++; break;
 	case 0x7fac:	et4000->acl.queued.dmin    = (et4000->acl.queued.dmin    & 0xFF00) | val;			break;
-	case 0x7fad:	et4000->acl.queued.dmin    = (et4000->acl.queued.dmin    & 0x00FF) | (val << 8);		break;
+	case 0x7fad:	et4000->acl.queued.dmin    = (et4000->acl.queued.dmin    & 0x00FF) | (val << 8); et4000->acl.queue++; break;
 	case 0x7fae:	et4000->acl.queued.dmaj    = (et4000->acl.queued.dmaj    & 0xFF00) | val;			break;
-	case 0x7faf:	et4000->acl.queued.dmaj    = (et4000->acl.queued.dmaj    & 0x00FF) | (val << 8);		break;
+	case 0x7faf:	et4000->acl.queued.dmaj    = (et4000->acl.queued.dmaj    & 0x00FF) | (val << 8); et4000->acl.queue++; break;
     }
 }
 
@@ -638,17 +680,17 @@ et4000w32p_accel_write_mmu(et4000w32p_t *et4000, uint32_t addr, uint8_t val)
 	if (!(et4000->acl.status & ACL_XYST))
 		return;
 	if (et4000->acl.internal.ctrl_routing & 3) {
+		et4000->acl.queue++;
 		if ((et4000->acl.internal.ctrl_routing & 3) == 2) {
-			if (et4000->acl.mix_addr & 7)
-				et4000w32p_blit(8 - (et4000->acl.mix_addr & 7), val >> (et4000->acl.mix_addr & 7), 0, 1, et4000);
-			else
-				et4000w32p_blit(8, val, 0, 1, et4000);
+			et4000w32p_blit(8 - (et4000->acl.mix_addr & 7), val >> (et4000->acl.mix_addr & 7), 0, 1, et4000);
 		}
-		else if ((et4000->acl.internal.ctrl_routing & 3) == 1)
+		else if ((et4000->acl.internal.ctrl_routing & 3) == 1) {
 			et4000w32p_blit(1, ~0, val, 2, et4000);
+		}
 	}
     } else {
 	if (!(et4000->acl.status & ACL_XYST)) {
+		et4000->acl.queue++;
 		et4000->acl.queued.dest_addr = (addr & 0x1FFF) + et4000->mmu.base[et4000->bank];
 		et4000->acl.internal = et4000->acl.queued;
 		et4000w32_blit_start(et4000);
@@ -658,6 +700,7 @@ et4000w32p_accel_write_mmu(et4000w32p_t *et4000, uint32_t addr, uint8_t val)
 	}
 
 	if (et4000->acl.internal.ctrl_routing & 7) {
+		et4000->acl.queue++;
 		et4000->acl.cpu_input = (et4000->acl.cpu_input &~ (0xFF << (et4000->acl.cpu_input_num << 3))) |
 					(val << (et4000->acl.cpu_input_num << 3));
 		et4000->acl.cpu_input_num++;
@@ -716,6 +759,7 @@ et4000w32p_mmu_write(uint32_t addr, uint8_t val, void *p)
 			case 0x7f0a:	et4000->mmu.base[2] = (et4000->mmu.base[2] & 0xFF00FFFF) | (val << 16);	break;
 			case 0x7f0b:	et4000->mmu.base[2] = (et4000->mmu.base[2] & 0x00FFFFFF) | (val << 24);	break;
 			case 0x7f13:	et4000->mmu.ctrl = val;	break;
+			case 0x7f31:	et4000->acl.osr = val; break;
 		}
 		break;
     }
@@ -729,7 +773,7 @@ et4000w32p_mmu_read(uint32_t addr, void *p)
     svga_t *svga = &et4000->svga;
     int bank;
     uint8_t temp;
-
+	
     switch (addr & 0x6000) {
 	case 0x0000:	/* MMU 0 */
 	case 0x2000:	/* MMU 1 */
@@ -751,7 +795,7 @@ et4000w32p_mmu_read(uint32_t addr, void *p)
 
 		if ((addr&0x1fff) + et4000->mmu.base[bank] >= svga->vram_max)
 			return 0xff;
-
+		
 		return svga->vram[(addr&0x1fff) + et4000->mmu.base[bank]];
 
 	case 0x6000:
@@ -771,13 +815,23 @@ et4000w32p_mmu_read(uint32_t addr, void *p)
 			case 0x7f13:	return et4000->mmu.ctrl;
 
 			case 0x7f36:
-				if (et4000->type >= ET4000W32P_REVC) {
+				if (et4000->type >= ET4000W32P_REVC) {					
+					if (et4000->acl.queue) {
+						et4000->acl.status |= ACL_RDST;
+						et4000->acl.queue = 0;
+					} else
+						et4000->acl.status &= ~ACL_RDST;
+					
 					temp = et4000->acl.status;
-					temp &= ~(ACL_RDST | ACL_WRST);
-					if (temp == ACL_XYST && (et4000->acl.internal.ctrl_routing == 1 || et4000->acl.internal.ctrl_routing == 2))
-						temp |= ACL_RDST;
 				} else {
 					et4000->acl.status &= ~(ACL_XYST | ACL_SSO);
+
+					if (et4000->acl.queue) {
+						et4000->acl.status |= ACL_RDST;
+						et4000->acl.queue = 0;
+					} else
+						et4000->acl.status &= ~ACL_RDST;					
+					
 					temp = et4000->acl.status;
 				}
 				return temp;
@@ -847,7 +901,10 @@ et4000w32_blit_start(et4000w32p_t *et4000)
     }
     et4000->acl.pattern_back = et4000->acl.pattern_addr;
     if (!(et4000->acl.internal.pattern_wrap & 0x40)) {
-	et4000->acl.pattern_y = (et4000->acl.pattern_addr / (et4000w32_wrap_x[et4000->acl.internal.pattern_wrap & 7] + 1)) & (et4000w32_wrap_y[(et4000->acl.internal.pattern_wrap >> 4) & 7] - 1);
+	if ((et4000w32_wrap_x[et4000->acl.internal.pattern_wrap & 7] + 1) == 0x00)
+		et4000->acl.pattern_y = (et4000->acl.pattern_addr / (0x7f + 1)) & (et4000w32_wrap_y[(et4000->acl.internal.pattern_wrap >> 4) & 7] - 1);
+	else
+		et4000->acl.pattern_y = (et4000->acl.pattern_addr / (et4000w32_wrap_x[et4000->acl.internal.pattern_wrap & 7] + 1)) & (et4000w32_wrap_y[(et4000->acl.internal.pattern_wrap >> 4) & 7] - 1);
 	et4000->acl.pattern_back &= ~(((et4000w32_wrap_x[et4000->acl.internal.pattern_wrap & 7] + 1) * et4000w32_wrap_y[(et4000->acl.internal.pattern_wrap >> 4) & 7]) - 1);
     }
     et4000->acl.pattern_x_back = et4000->acl.pattern_x;
@@ -860,7 +917,10 @@ et4000w32_blit_start(et4000w32p_t *et4000)
     et4000->acl.source_back = et4000->acl.source_addr;
 
     if (!(et4000->acl.internal.source_wrap & 0x40)) {
-	et4000->acl.source_y = (et4000->acl.source_addr / (et4000w32_wrap_x[et4000->acl.internal.source_wrap & 7] + 1)) & (et4000w32_wrap_y[(et4000->acl.internal.source_wrap >> 4) & 7] - 1);
+	if ((et4000w32_wrap_x[et4000->acl.internal.source_wrap & 7] + 1) == 0x00)
+		et4000->acl.source_y = (et4000->acl.source_addr / (0x7f + 1)) & (et4000w32_wrap_y[(et4000->acl.internal.source_wrap >> 4) & 7] - 1);
+	else
+		et4000->acl.source_y = (et4000->acl.source_addr / (et4000w32_wrap_x[et4000->acl.internal.source_wrap & 7] + 1)) & (et4000w32_wrap_y[(et4000->acl.internal.source_wrap >> 4) & 7] - 1);
 	et4000->acl.source_back &= ~(((et4000w32_wrap_x[et4000->acl.internal.source_wrap & 7] + 1) * et4000w32_wrap_y[(et4000->acl.internal.source_wrap >> 4) & 7]) - 1);
     }
     et4000->acl.source_x_back = et4000->acl.source_x;
@@ -883,7 +943,7 @@ et4000w32p_blit_start(et4000w32p_t *et4000)
     et4000->acl.status |= ACL_XYST;
 	et4000w32_log("ACL status XYST set\n");
     if ((!(et4000->acl.internal.ctrl_routing & 7) || (et4000->acl.internal.ctrl_routing & 4)) && !(et4000->acl.internal.ctrl_routing & 0x40)) 
-	et4000->acl.status |= ACL_SSO;
+		et4000->acl.status |= ACL_SSO;
 
     if (et4000w32_wrap_x[et4000->acl.internal.pattern_wrap & 7]) {
 	et4000->acl.pattern_x = et4000->acl.pattern_addr & et4000w32_wrap_x[et4000->acl.internal.pattern_wrap & 7];
@@ -997,7 +1057,7 @@ et4000w32p_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et4000w32
     if (!(et4000->acl.status & ACL_XYST) && (et4000->type >= ET4000W32P_REVC))
 	return;
 
-    if (et4000->acl.internal.xy_dir & 0x80){	/* Line draw */
+    if (et4000->acl.internal.xy_dir & 0x80) {	/* Line draw */
 	while (count--) {
 		et4000w32_log("%i,%i : ", et4000->acl.internal.pos_x, et4000->acl.internal.pos_y);
 		pattern = svga->vram[(et4000->acl.pattern_addr + et4000->acl.pattern_x) & et4000->vram_mask];
@@ -1613,7 +1673,7 @@ static const device_config_t et4000w32p_config[] =
 
 const device_t et4000w32_device =
 {
-        "Tseng Labs ET4000/w32",
+        "Tseng Labs ET4000/w32 ISA",
         DEVICE_ISA | DEVICE_AT, ET4000W32,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32_available },
@@ -1624,7 +1684,7 @@ const device_t et4000w32_device =
 
 const device_t et4000w32_onboard_device =
 {
-        "Tseng Labs ET4000/w32 (On-board)",
+        "Tseng Labs ET4000/w32 (ISA) (On-Board)",
         DEVICE_ISA | DEVICE_AT, ET4000W32,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32_available },
@@ -1635,7 +1695,7 @@ const device_t et4000w32_onboard_device =
 
 const device_t et4000w32i_isa_device =
 {
-        "Tseng Labs ET4000/w32i ISA",
+        "Tseng Labs ET4000/w32i Rev. B ISA",
         DEVICE_ISA | DEVICE_AT, ET4000W32I,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32i_isa_available },
@@ -1646,7 +1706,7 @@ const device_t et4000w32i_isa_device =
 
 const device_t et4000w32i_vlb_device =
 {
-        "Tseng Labs ET4000/w32i VLB",
+        "Tseng Labs ET4000/w32i Rev. B VLB",
         DEVICE_VLB, ET4000W32I,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32i_vlb_available },
@@ -1679,7 +1739,7 @@ const device_t et4000w32p_revc_pci_device =
 
 const device_t et4000w32p_noncardex_vlb_device =
 {
-        "Tseng Labs ET4000/w32p VLB",
+        "Tseng Labs ET4000/w32p Rev. D VLB",
         DEVICE_VLB, ET4000W32P,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_noncardex_available },
@@ -1690,7 +1750,7 @@ const device_t et4000w32p_noncardex_vlb_device =
 
 const device_t et4000w32p_noncardex_pci_device =
 {
-        "Tseng Labs ET4000/w32p PCI",
+        "Tseng Labs ET4000/w32p Rev. D PCI",
         DEVICE_PCI, ET4000W32P,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_noncardex_available },
@@ -1701,7 +1761,7 @@ const device_t et4000w32p_noncardex_pci_device =
 
 const device_t et4000w32p_cardex_vlb_device =
 {
-        "Tseng Labs ET4000/w32p VLB (Cardex)",
+        "Tseng Labs ET4000/w32p Rev. D VLB (Cardex)",
         DEVICE_VLB, ET4000W32P_CARDEX,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_cardex_available },
@@ -1712,7 +1772,7 @@ const device_t et4000w32p_cardex_vlb_device =
 
 const device_t et4000w32p_cardex_pci_device =
 {
-        "Tseng Labs ET4000/w32p PCI (Cardex)",
+        "Tseng Labs ET4000/w32p Rev. D PCI (Cardex)",
         DEVICE_PCI, ET4000W32P_CARDEX,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_cardex_available },
@@ -1723,7 +1783,7 @@ const device_t et4000w32p_cardex_pci_device =
 
 const device_t et4000w32p_vlb_device =
 {
-        "Tseng Labs ET4000/w32p VLB (Diamond)",
+        "Tseng Labs ET4000/w32p Rev. D VLB (Diamond Stealth32)",
         DEVICE_VLB, ET4000W32P_DIAMOND,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_available },
@@ -1734,7 +1794,7 @@ const device_t et4000w32p_vlb_device =
 
 const device_t et4000w32p_pci_device =
 {
-        "Tseng Labs ET4000/w32p PCI (Diamond)",
+        "Tseng Labs ET4000/w32p Rev. D PCI (Diamond Stealth32)",
         DEVICE_PCI, ET4000W32P_DIAMOND,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_available },
