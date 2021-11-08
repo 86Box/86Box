@@ -789,7 +789,7 @@ BEGIN
     IDS_2087	"BPB ellenőrzése"
     IDS_2088	"KB"
     IDS_2089	"Nem sikerült inicializálni a videó megjelenítőt."
-    IDS_2090	"Alapértelmezet"
+    IDS_2090	"Alapértelmezett"
     IDS_2091	"%i várakozási ciklus(ok)"
     IDS_2092	"Típus"
     IDS_2093	"Nem sikerült a PCap beállítása"
