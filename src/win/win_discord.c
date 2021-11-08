@@ -109,7 +109,7 @@ discord_update_activity(int paused)
     strcpy(activity.assets.large_image, "86box-red");
 #else
 /* Icon by OBattler and laciba96 (gray for builds of branches and from the git master)*/
-    strcpy(activity.assets.large_image, "86Box");
+    strcpy(activity.assets.large_image, "86box");
 #endif
 
 /* End of icon choosing */
