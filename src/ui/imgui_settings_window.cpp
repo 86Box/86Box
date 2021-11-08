@@ -434,6 +434,22 @@ namespace ImGuiSettingsWindow {
 				}
 			}
 		};
+		auto recalcFPU = [&]()
+		{
+			int c = 0;
+			int finalresult = temp_fpu;
+			while (1)
+			{
+				auto stransi = (char *) fpu_get_name_from_index(temp_cpu_f, temp_cpu, c);
+				auto type = fpu_get_type_from_index(temp_cpu_f, temp_cpu, c);
+				if (!stransi)
+					break;
+				if (!c || (type == temp_fpu))
+					finalresult = c;
+				c++;
+			}
+			temp_fpu = fpu_get_type_from_index(temp_cpu_f, temp_cpu, finalresult);
+		};
 		//char* machine_name = item_list.size() > 0 ? item_list.at(machine_current) : "";
 		machine_t selected_machine = machines[temp_machine];
 		recalcCPUFamily();
@@ -493,22 +509,29 @@ namespace ImGuiSettingsWindow {
 		//////////////////////////////
 		// FPU Combo Drop Down
 		//////////////////////////////
-		const std::array fpu_types {"1", "2", "3", "4"};
-		static int fpu_current = 0;
-		const char* fpu_preview_value = fpu_types[fpu_current];  // Pass in the preview value visible before opening the combo (it could be anything)
 		ImGui::Text("FPU:");
 		ImGui::SameLine();
-		if (ImGui::BeginCombo("##FPU", fpu_preview_value))
+		std::array<std::string, 7> fpu_type_to_string
 		{
-			for (int n = 0; n < fpu_types.size(); n++)
+			"None",
+			"8087",
+			"287",
+			"287XL",
+			"387",
+			"487SX",
+			"Internal"
+		};
+		if (ImGui::BeginCombo("##FPU", fpu_type_to_string[temp_fpu].c_str()))
+		{
+			int c = 0;
+			while(1)
 			{
-				const bool is_selected = (cpu_speed_current == n);
-				if (ImGui::Selectable(fpu_types[n], is_selected))
-					fpu_current = n;
-
-				// Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-				if (is_selected)
-					ImGui::SetItemDefaultFocus();
+				if (fpu_get_name_from_index(temp_cpu_f, temp_cpu, c) == NULL) break;
+				if (fpu_get_name_from_index(temp_cpu_f, temp_cpu, c) && ImGui::Selectable(fpu_get_name_from_index(temp_cpu_f, temp_cpu, c), fpu_get_type_from_index(temp_cpu_f, temp_cpu, c) == temp_fpu))
+				{
+					temp_fpu = fpu_get_type_from_index(temp_cpu_f, temp_cpu, c);
+				}
+				c++;
 			}
 			ImGui::EndCombo();
 		}
