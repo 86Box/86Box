@@ -435,22 +435,6 @@ namespace ImGuiSettingsWindow {
 				}
 			}
 		};
-		auto recalcFPU = [&]()
-		{
-			int c = 0;
-			int finalresult = temp_fpu;
-			while (1)
-			{
-				auto stransi = (char *) fpu_get_name_from_index(temp_cpu_f, temp_cpu, c);
-				auto type = fpu_get_type_from_index(temp_cpu_f, temp_cpu, c);
-				if (!stransi)
-					break;
-				if (!c || (type == temp_fpu))
-					finalresult = c;
-				c++;
-			}
-			temp_fpu = fpu_get_type_from_index(temp_cpu_f, temp_cpu, finalresult);
-		};
 		//char* machine_name = item_list.size() > 0 ? item_list.at(machine_current) : "";
 		machine_t selected_machine = machines[temp_machine];
 		recalcCPUFamily();
@@ -512,27 +496,47 @@ namespace ImGuiSettingsWindow {
 		//////////////////////////////
 		ImGui::Text("FPU:");
 		ImGui::SameLine();
-		std::array<std::string, 7> fpu_type_to_string
-		{
-			"None",
-			"8087",
-			"287",
-			"287XL",
-			"387",
-			"487SX",
-			"Internal"
-		};
-		if (ImGui::BeginCombo("##FPU", fpu_type_to_string[temp_fpu].c_str()))
+		auto getFPUIndex = [&]()
 		{
 			int c = 0;
-			while(1)
+			size_t i = 0;
+			while (1)
 			{
-				if (fpu_get_name_from_index(temp_cpu_f, temp_cpu, c) == NULL) break;
-				if (fpu_get_name_from_index(temp_cpu_f, temp_cpu, c) && ImGui::Selectable(fpu_get_name_from_index(temp_cpu_f, temp_cpu, c), fpu_get_type_from_index(temp_cpu_f, temp_cpu, c) == temp_fpu))
+				if (temp_cpu_f->cpus[temp_cpu].fpus[c].type == temp_fpu)
 				{
-					temp_fpu = fpu_get_type_from_index(temp_cpu_f, temp_cpu, c);
+					i = c;
+					break;
 				}
+				if (temp_cpu_f->cpus[temp_cpu].fpus[c].name == NULL) break;
 				c++;
+			}
+			if (i == 0) temp_fpu = temp_cpu_f->cpus[temp_cpu].fpus[0].type;
+			return i;
+		};
+		auto getFPUCount = [&]()
+		{
+			int c = 0;
+			while (1)
+			{
+				if (!fpu_get_name_from_index(temp_cpu_f, temp_cpu, c)) break;
+				c++;
+			}
+			return c;
+		};
+		const char* fpustr = temp_cpu_f->cpus[temp_cpu].fpus[getFPUIndex()].name;
+		
+		if (ImGui::BeginCombo("##FPU", fpustr))
+		{
+			for (int i = 0; i < getFPUCount(); i++)
+			{
+				if (ImGui::Selectable(temp_cpu_f->cpus[temp_cpu].fpus[i].name, temp_cpu_f->cpus[temp_cpu].fpus[i].type == temp_fpu))
+				{
+					temp_fpu = temp_cpu_f->cpus[temp_cpu].fpus[i].type;
+				}
+				if (temp_fpu == temp_cpu_f->cpus[temp_cpu].fpus[i].type)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
 			}
 			ImGui::EndCombo();
 		}
