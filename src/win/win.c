@@ -241,6 +241,15 @@ size_t c16stombs(char dst[], const uint16_t src[], int len)
 }
 
 
+int
+has_language_changed(int id)
+{
+    LCID lcidNew = MAKELCID(id, dwSubLangID);
+
+    return (lang_id != lcidNew);
+}
+
+
 /* Set (or re-set) the language for the application. */
 void
 set_language(int id)
