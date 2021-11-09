@@ -772,9 +772,54 @@ namespace ImGuiSettingsWindow {
 		}
 	}
 
+	std::string GetNameOfDevice(const device_t *device, char *internal_name, int bus)
+	{
+		std::string str;
+		str.resize(512);
+		if (strcmp(internal_name, "none") == 0)
+		{
+			return "None";
+		}
+		if (strcmp(internal_name, "internal") == 0)
+		{
+			return "Internal";
+		}
+		device_get_name(device, bus, str.data());
+		return str;
+	}
 
+	void RenderDeviceWindow()
+	{
+		
+	}
 	void RenderDisplayCategory() {
 
+		int c = 0;
+		ImGui::TextUnformatted("Video card: ");
+		if (ImGui::BeginCombo("##Display", GetNameOfDevice(video_card_getdevice(temp_gfxcard), video_get_internal_name(temp_gfxcard), 1).c_str()))
+		{
+			while (1)
+			{
+				if ((c == 1) && !(machines[temp_machine].flags & MACHINE_VIDEO)) {
+					c++;
+					continue;
+				}
+				auto name = GetNameOfDevice(video_card_getdevice(c), video_get_internal_name(c), 1);
+				if (name[0] == 0) break;
+				if (video_card_available(c) &&
+					device_is_valid(video_card_getdevice(c), machines[temp_machine].flags))
+				{
+					if (ImGui::Selectable(name.c_str(), c == 0 || c == temp_gfxcard))
+					{
+						temp_gfxcard = c;
+					}
+					if ((c == 0) || (c == temp_gfxcard))
+						ImGui::SetItemDefaultFocus();
+				}
+				c++;
+			}
+			ImGui::EndCombo();
+		}
 	}
 
 	void RenderSoundCategory() {
