@@ -320,12 +320,9 @@ BEGIN
     CONTROL         "List2",IDC_SETTINGSCATLIST,"SysListView32",LVS_REPORT | LVS_NOCOLUMNHEADER | 
                     LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | WS_TABSTOP,7,7,100,212
     CONTROL         "",-1,"Static",SS_BLACKFRAME | SS_SUNKEN,1,226,373,1
-/* Leave this commented out until we get into localization. */
-#if 0
     LTEXT           "Language:",IDT_1700,7,237,41,10
     COMBOBOX        IDC_COMBO_LANG,48,236,108,120,CBS_DROPDOWN | WS_VSCROLL | 
                     WS_TABSTOP
-#endif
 END
 
 DLG_SPECIFY_DIM DIALOG DISCARDABLE  0, 0, 175, 66
