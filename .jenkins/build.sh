@@ -205,8 +205,8 @@ EOF
 		32 | x86)    local cmake_flags_extra="$cmake_flags_extra -D ARCH=i386";;
 		64 | x86_64) local cmake_flags_extra="$cmake_flags_extra -D ARCH=x86_64";;
 		# new dynarec only
-		arm32) local cmake_flags_extra="$cmake_flags_extra -D NEW_DYNAREC=ON -D ARCH=arm";;
-		arm64) local cmake_flags_extra="$cmake_flags_extra -D NEW_DYNAREC=ON -D ARCH=arm64";;
+		ARM32 | arm32) local cmake_flags_extra="$cmake_flags_extra -D NEW_DYNAREC=ON -D ARCH=arm";;
+		ARM64 | arm64) local cmake_flags_extra="$cmake_flags_extra -D NEW_DYNAREC=ON -D ARCH=arm64";;
 		# no dynarec
 		*) local cmake_flags_extra="$cmake_flags_extra -D DYNAREC=OFF";;
 	esac
