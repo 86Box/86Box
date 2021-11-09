@@ -433,6 +433,7 @@ usage:
 #endif
 			printf("-F or --fullscreen   - start in fullscreen mode\n");
 #ifdef _WIN32
+			printf("-G or --lang langid  - start the application with the specified language\n");
 			printf("-H or --hwnd id,hwnd - sends back the main dialog's hwnd\n");
 #endif
 			printf("-L or --logfile path - set 'path' to be the logfile\n");
@@ -512,6 +513,18 @@ usage:
 			uid = (uint32_t *) &unique_id;
 			shwnd = (uint32_t *) &source_hwnd;
 			sscanf(argv[++c], "%08X%08X,%08X%08X", uid + 1, uid, shwnd + 1, shwnd);
+		} else if (!strcasecmp(argv[c], "--lang") ||
+			   !strcasecmp(argv[c], "-G")) {
+
+
+		  //This function is currently unimplemented for *nix.
+
+		  if (!plat_set_language(argv[++c]))
+			 printf("\nWarning: Invalid language code, ignoring --lang parameter.\n\n");
+
+		  //The return value of 0 only means that the code is invalid,
+		  //  not related to that translation is exists or not for the
+          //  selected language.
 #endif
 		} else if (!strcasecmp(argv[c], "--test")) {
 			/* some (undocumented) test function here.. */

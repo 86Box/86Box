@@ -121,6 +121,7 @@ extern void	plat_setfullscreen(int on);
 extern void	plat_resize(int x, int y);
 extern void	plat_vidapi_enable(int enabled);
 extern void	plat_vid_reload_options(void);
+extern int plat_set_language(char* langcode);
 
 /* Resource management. */
 extern void	set_language(int id);

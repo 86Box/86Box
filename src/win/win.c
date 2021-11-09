@@ -1163,6 +1163,23 @@ plat_vid_reload_options(void)
 	vid_apis[vid_api].reload();
 }
 
+/* Sets up the program language before initialization. */
+int
+plat_set_language(char* langcode)
+{
+	int len = mbstoc16s(NULL, langcode, 0) + 1;
+	wchar_t *temp = malloc(len * sizeof(wchar_t));
+	mbstoc16s(temp, langcode, len);
+
+	LCID lcid = LocaleNameToLCID((LPWSTR)temp, 0);
+
+	free(temp);
+
+	if (lcid)
+		return (SetThreadUILanguage(lcid) == lcid);
+	else
+		return 0;
+}
 
 void
 take_screenshot(void)

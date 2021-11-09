@@ -5,7 +5,7 @@
 // 
 
 #ifdef _WIN32
-LANGUAGE 0x0E,0x01
+LANGUAGE LANG_HUNGARIAN, SUBLANG_DEFAULT
 #pragma code_page(65001)
 #endif //_WIN32
 
