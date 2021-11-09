@@ -698,14 +698,14 @@ namespace ImGuiSettingsWindow {
 			ImGui::Text("Memory (MB):");
 			ImGui::SameLine();
 			ImGui::InputInt("##memory", &memory_amount_mb, selected_machine.ram_granularity/1024, selected_machine.ram_granularity/1024, ImGuiInputTextFlags_EnterReturnsTrue);
-			temp_mem_size = memory_amount_mb * selected_machine.ram_granularity;
+			temp_mem_size = memory_amount_mb * 1024;
 			while (temp_mem_size > selected_machine.max_ram) {
 				temp_mem_size -= selected_machine.ram_granularity;
 			}
 			if (temp_mem_size < selected_machine.min_ram) {
 				temp_mem_size = selected_machine.min_ram;
 			}
-			memory_amount_mb = temp_mem_size / selected_machine.ram_granularity;
+			memory_amount_mb = temp_mem_size / 1024;
 		}
 		else {
 			ImGui::Text("Memory (KB):");
