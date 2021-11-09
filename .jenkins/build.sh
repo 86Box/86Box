@@ -119,6 +119,7 @@ build() {
 				cd "$cwd"
 				CHERE_INVOKING=yes MSYSTEM=$msys JOB_BASE_NAME=$JOB_BASE_NAME BUILD_TYPE=$BUILD_TYPE BUILD_NUMBER=$BUILD_NUMBER GIT_COMMIT=$GIT_COMMIT \
 					bash -lc '"'$0'" -b "'$arch'" '$cmake_flags && job_exit=0
+				return $?
 			fi
 		else
 			echo [!] No MSYSTEM for architecture [$arch]
