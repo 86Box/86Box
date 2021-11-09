@@ -1067,6 +1067,11 @@ namespace ImGuiSettingsWindow {
 		}
 		RenderDeviceWindow();
 		ImGui::EndDisabled();
+		ImGui::BeginDisabled(!(machines[temp_machine].flags & MACHINE_BUS_PCI));
+		bool voodoo_enabled = temp_voodoo == true;
+		ImGui::Checkbox("Voodoo Graphics", &voodoo_enabled);
+		temp_voodoo = voodoo_enabled;
+		ImGui::EndDisabled();
 	}
 
 	void RenderSoundCategory() {
