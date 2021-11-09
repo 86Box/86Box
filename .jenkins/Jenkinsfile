@@ -1,3 +1,20 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Jenkins build pipeline definition.
+ *
+ *
+ *
+ * Authors:	RichardG, <richardg867@gmail.com>
+ *
+ *		Copyright 2021 RichardG.
+ */
+
 def gitClone() {
 	cleanWs()
 	def scmVars = git url: 'https://github.com/richardg867/86Box.git',
@@ -19,6 +36,13 @@ def saveArtifacts() {
 
 pipeline {
 	agent any
+
+	parameters {
+		choice(name: 'BUILD_TYPE',
+		       choices: ['none', 'alpha', 'beta', 'release'],
+		       defaultValue: 'beta',
+		       description: 'Build type to pass on to CMake. This may affect the UI icon and feature set.')
+	}
 
 	stages {
 		stage('Build Windows') {

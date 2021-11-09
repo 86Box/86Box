@@ -116,7 +116,7 @@ build() {
 				# Call build with the correct MSYSTEM.
 				echo [-] Switching to MSYSTEM [$msys]
 				cd "$cwd"
-				CHERE_INVOKING=yes MSYSTEM=$msys JOB_BASE_NAME=$JOB_BASE_NAME BUILD_NUMBER=$BUILD_NUMBER GIT_COMMIT=$GIT_COMMIT \
+				CHERE_INVOKING=yes MSYSTEM=$msys JOB_BASE_NAME=$JOB_BASE_NAME BUILD_TYPE=$BUILD_TYPE BUILD_NUMBER=$BUILD_NUMBER GIT_COMMIT=$GIT_COMMIT \
 					bash -lc '"'$0'" -b "'$arch'" '$cmake_flags
 				return $?
 			fi
@@ -213,7 +213,7 @@ EOF
 
 	# Run CMake.
 	echo [-] Running CMake
-	cmake -G "Unix Makefiles" $cmake_flags $cmake_flags_extra -D BUILD_TYPE="alpha" -D EMU_BUILD="$build_qualifier" -D EMU_GIT_HASH="$git_hash" .
+	cmake -G "Unix Makefiles" $cmake_flags $cmake_flags_extra -D BUILD_TYPE="$BUILD_TYPE" -D EMU_BUILD="$build_qualifier" -D EMU_GIT_HASH="$git_hash" .
 	local status=$?
 	if [ $? -gt 0 ]
 	then
@@ -364,12 +364,16 @@ do
 				args=1
 			elif [ $args -eq 1 ]
 			then
-				BUILD_NUMBER=$1
+				BUILD_TYPE=$1
 				args=2
 			elif [ $args -eq 2 ]
 			then
-				GIT_COMMIT=$1
+				BUILD_NUMBER=$1
 				args=3
+			elif [ $args -eq 3 ]
+			then
+				GIT_COMMIT=$1
+				args=4
 			fi
 			shift
 			;;
@@ -379,7 +383,7 @@ done
 # Check if at least the job name was specified.
 if [ -z "$JOB_BASE_NAME" ]
 then
-	echo [!] Manual usage: build.sh [{job_name} [{build_number|build_qualifier} [git_hash]]] [-b {architecture} [cmake_flags...]]
+	echo [!] Manual usage: build.sh [{job_name} [{build_type} [{build_number|build_qualifier} [git_hash]]]] [-b {architecture} [cmake_flags...]]
 	exit 100
 fi
 
