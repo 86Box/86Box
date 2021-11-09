@@ -65,6 +65,7 @@ build() {
 
 	# Set argument and environment variables.
 	local job_name=$JOB_BASE_NAME
+	local build_type=$BUILD_TYPE
 	local build_number=$BUILD_NUMBER
 	local git_hash=$(echo $GIT_COMMIT | cut -c1-7)
 	local arch=$1
@@ -117,8 +118,7 @@ build() {
 				echo [-] Switching to MSYSTEM [$msys]
 				cd "$cwd"
 				CHERE_INVOKING=yes MSYSTEM=$msys JOB_BASE_NAME=$JOB_BASE_NAME BUILD_TYPE=$BUILD_TYPE BUILD_NUMBER=$BUILD_NUMBER GIT_COMMIT=$GIT_COMMIT \
-					bash -lc '"'$0'" -b "'$arch'" '$cmake_flags
-				return $?
+					bash -lc '"'$0'" -b "'$arch'" '$cmake_flags && job_exit=0
 			fi
 		else
 			echo [!] No MSYSTEM for architecture [$arch]
@@ -211,8 +211,12 @@ EOF
 		*) local cmake_flags_extra="$cmake_flags_extra -D DYNAREC=OFF";;
 	esac
 
+	# Determine additional CMake flags.
+	[ ! -z "$build_type" ] && local cmake_flags_extra="$cmake_flags_extra -D BUILD_TYPE=\"$build_type\""
+	[ ! -z "$build_qualifier" ] && local cmake_flags_extra="$cmake_flags_extra -D EMU_BUILD=\"$build_qualifier\""
+	[ ! -z "$git_hash" ] && local cmake_flags_extra="$cmake_flags_extra -D EMU_GIT_HASH=\"$git_hash\""
+
 	# Run CMake.
-	cmake_flags_extra="$cmake_flags_extra -D BUILD_TYPE=\"$BUILD_TYPE\" -D EMU_BUILD=\"$build_qualifier\" -D EMU_GIT_HASH=\"$git_hash\""
 	echo [-] Running CMake with flags [$cmake_flags $cmake_flags_extra]
 	eval cmake -G \"Unix Makefiles\" $cmake_flags $cmake_flags_extra .
 	local status=$?
@@ -334,7 +338,7 @@ EOF
 
 	# All good.
 	echo [-] Build of [$job_name] [$build_number] [$git_hash] for [$arch] with flags [$cmake_flags] successful
-	export job_exit=0
+	job_exit=0
 }
 
 # Set common variables.
