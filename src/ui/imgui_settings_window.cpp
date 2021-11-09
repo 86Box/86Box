@@ -1,7 +1,13 @@
+#ifdef _WIN32
+#include <SDL2/SDL.h>
+#else
+#include <SDL.h>
+#endif
 #include <array>
 #include <vector>
 #include <iostream>
 #include <string>
+#include <codecvt>
 #include "imgui.h"
 #include <86box/imgui_settings_window.h>
 
@@ -260,6 +266,243 @@ namespace ImGuiSettingsWindow {
 		temp_deviceconfig = 0;
 	}
 	void SaveSettings();
+
+	struct device_config_temp_t
+	{
+		device_config_t config;
+		int val;
+		char* str;
+		wchar_t filestr[512];
+	};
+	struct
+	{
+		device_context_t dev;
+		std::vector<device_config_temp_t> configs;
+		
+	} config_device;
+	void OpenDeviceWindow(const device_t* device, int inst = 0)
+	{
+		device_set_context(&config_device.dev, device, inst);
+		config_device.configs.clear();
+		auto config = config_device.dev.dev->config;
+		while (config && config->type != -1)
+		{
+			config_device.configs.push_back((device_config_temp_t){*config});
+			switch (config->type)
+			{
+				case CONFIG_SELECTION:
+				case CONFIG_MIDI:
+				case CONFIG_MIDI_IN:
+				case CONFIG_SPINNER:
+				case CONFIG_BINARY:
+					config_device.configs.back().val = config_get_int((char *) config_device.dev.name,
+								 (char *) config->name, config->default_int);
+					break;
+				case CONFIG_HEX16:
+					config_device.configs.back().val = config_get_hex16((char *) config_device.dev.name,
+								 (char *) config->name, config->default_int);
+					break;
+				case CONFIG_HEX20:
+					config_device.configs.back().val = config_get_hex20((char *) config_device.dev.name,
+								 (char *) config->name, config->default_int);
+					break;
+				case CONFIG_FNAME:
+					wcsncpy(config_device.configs.back().filestr, config_get_wstring((char *) config_device.dev.name,
+								 (char *) config->name, 0), 512);
+					break;
+			}
+			config++;
+		}
+		ImGui::OpenPopup((std::string(config_device.dev.name) + " device configuration").c_str(), ImGuiPopupFlags_AnyPopupLevel);
+	}
+	void RenderDeviceWindow()
+	{
+		if (ImGui::BeginPopupModal((std::string(config_device.dev.name) + " device configuration").c_str()))
+		{
+			for (auto &config : config_device.configs)
+			{
+				ImGui::TextUnformatted(config.config.description);
+				switch (config.config.type)
+				{
+					case CONFIG_BINARY:
+					{
+						bool val = config.val == true;
+						ImGui::Checkbox(config.config.description, &val);
+						config.val = val;
+						break;
+					}
+					case CONFIG_SELECTION:
+					{
+						auto selection = config.config.selection;
+						auto orig_selection = selection;
+						int c = 0;
+						while (selection->description && selection->description[0])
+						{
+							if (selection->value == config.val)
+							{
+								break;
+							}
+							selection++;
+						}
+						if (ImGui::BeginCombo((std::string("##") + config.config.description).c_str(), selection->description))
+						{
+							selection = orig_selection;
+							while (selection->description && selection->description[0])
+							{
+								if (ImGui::Selectable(selection->description, selection->value == config.val))
+								{
+									config.val = selection->value;
+								}
+								if (config.val == selection->value)
+								{
+									ImGui::SetItemDefaultFocus();
+								}
+								c++;
+								selection++;
+							}
+							ImGui::EndCombo();
+						}
+						break;
+					}
+					case CONFIG_SPINNER:
+					{
+						ImGui::InputInt(std::to_string(config.val).c_str(), &config.val, config.config.spinner.step, config.config.spinner.step, ImGuiInputTextFlags_EnterReturnsTrue);
+						config.val = (int)std::clamp((int16_t)config.val, config.config.spinner.min, config.config.spinner.max);
+						break;
+					}
+					case CONFIG_MIDI:
+					{
+						char midiname[512] = { 0 };
+						if (config.val >= plat_midi_get_num_devs()) config.val = plat_midi_get_num_devs() - 1;
+						plat_midi_get_dev_name(config.val, midiname);
+						if (ImGui::BeginCombo((std::string("##") + config.config.description).c_str(), midiname))
+						for (int i = 0; i < plat_midi_get_num_devs(); i++)
+						{
+							plat_midi_get_dev_name(i, midiname);
+							if (ImGui::Selectable(midiname, config.val == i))
+							{
+								config.val = i;
+							}
+							if (config.val == i)
+							{
+								ImGui::SetItemDefaultFocus();
+							}
+						}
+						break;
+					}
+					case CONFIG_MIDI_IN:
+					{
+						char midiname[512] = { 0 };
+						if (config.val >= plat_midi_in_get_num_devs()) config.val = plat_midi_in_get_num_devs() - 1;
+						plat_midi_in_get_dev_name(config.val, midiname);
+						if (ImGui::BeginCombo((std::string("##") + config.config.description).c_str(), midiname))
+						for (int i = 0; i < plat_midi_in_get_num_devs(); i++)
+						{
+							plat_midi_in_get_dev_name(i, midiname);
+							if (ImGui::Selectable(midiname, config.val == i))
+							{
+								config.val = i;
+							}
+							if (config.val == i)
+							{
+								ImGui::SetItemDefaultFocus();
+							}
+						}
+						break;
+					}
+					case CONFIG_HEX16:
+					case CONFIG_HEX20:
+					{
+						auto selection = config.config.selection;
+						auto orig_selection = selection;
+						int c = 0;
+						while (selection->description && selection->description[0])
+						{
+							if (selection->value == config.val)
+							{
+								break;
+							}
+							selection++;
+						}
+						if (ImGui::BeginCombo((std::string("##") + config.config.description).c_str(), selection->description))
+						{
+							selection = orig_selection;
+							while (selection->description && selection->description[0])
+							{
+								if (ImGui::Selectable(selection->description, selection->value == config.val))
+								{
+									config.val = selection->value;
+								}
+								if (config.val == selection->value)
+								{
+									ImGui::SetItemDefaultFocus();
+								}
+								c++;
+								selection++;
+							}
+							ImGui::EndCombo();
+						}
+						break;
+					}
+					case CONFIG_FNAME:
+					{
+						std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+						std::wstring wfilestr{config.filestr};
+						
+						std::string utf8str = converter.to_bytes(wfilestr);
+						utf8str.resize(1024);
+						ImGui::InputText(utf8str.data(), utf8str.data(), utf8str.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+						wfilestr = converter.from_bytes(utf8str);
+						wcsncpy(config.filestr, wfilestr.c_str(), 512);
+						break;
+					}
+				}
+			}
+			if (ImGui::Button("OK"))
+			{
+				for (auto& config : config_device.configs)
+				{
+					switch (config.config.type)
+					{
+						case CONFIG_SELECTION:
+						case CONFIG_MIDI:
+						case CONFIG_MIDI_IN:
+						case CONFIG_SPINNER:
+						case CONFIG_BINARY:
+							config_set_int((char *) config_device.dev.name,
+								(char *) config.config.name, config.val);
+							break;
+						case CONFIG_HEX16:
+						{
+							config_set_hex16((char *) config_device.dev.name,
+								(char *) config.config.name, config.val);
+							break;
+						}
+						case CONFIG_HEX20:
+						{
+							config_set_hex20((char *) config_device.dev.name,
+								(char *) config.config.name, config.val);
+							break;
+						}
+						case CONFIG_FNAME:
+						{
+							config_set_wstring((char *) config_device.dev.name,
+								(char *) config.config.name, config.filestr);
+							break;
+						}
+					}
+				}
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Cancel")) 
+			{
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndPopup();
+		}
+	}
+
 	void Render() {
 		//ImGui::Begin("Settings", &ImGuiSettingsWindow::showSettingsWindow);
 		if (!ImGui::BeginPopupModal("Settings Window", &showSettingsWindow)) return;
@@ -331,7 +574,7 @@ namespace ImGuiSettingsWindow {
 			if (ImGui::Button("Save")) { SaveSettings(); ImGui::CloseCurrentPopup(); }
 			ImGui::EndGroup();
 		}
-
+		
 		ImGui::EndPopup();
 		if (!ImGui::IsPopupOpen("Settings Window"))
 		{
@@ -788,10 +1031,6 @@ namespace ImGuiSettingsWindow {
 		return str;
 	}
 
-	void RenderDeviceWindow()
-	{
-		
-	}
 	void RenderDisplayCategory() {
 
 		int c = 0;
@@ -820,6 +1059,14 @@ namespace ImGuiSettingsWindow {
 			}
 			ImGui::EndCombo();
 		}
+		ImGui::SameLine();
+		ImGui::BeginDisabled(video_card_getdevice(temp_gfxcard)->config == NULL);
+		if (ImGui::Button("Configure"))
+		{
+			OpenDeviceWindow(video_card_getdevice(temp_gfxcard));
+		}
+		RenderDeviceWindow();
+		ImGui::EndDisabled();
 	}
 
 	void RenderSoundCategory() {
