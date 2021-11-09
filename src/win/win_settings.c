@@ -318,12 +318,19 @@ settings_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn
     return(i);
 }
 
+int enum_helper = -1, c = 0;
+
 BOOL CALLBACK 
 EnumResLangProc(HMODULE hModule, LPCTSTR lpszType, LPCTSTR lpszName, WORD wIDLanguage, LONG_PTR lParam)
 {
 	wchar_t temp[LOCALE_NAME_MAX_LENGTH + 1];
 	LCIDToLocaleName(wIDLanguage, temp, LOCALE_NAME_MAX_LENGTH, 0);
 	SendMessage((HWND)lParam, CB_ADDSTRING, 0, (LPARAM)temp);
+	
+	if (wIDLanguage == temp_language)
+		enum_helper = c;
+	
+	c++;
 	return 1;
 }
 
@@ -331,8 +338,13 @@ EnumResLangProc(HMODULE hModule, LPCTSTR lpszType, LPCTSTR lpszName, WORD wIDLan
 static void
 win_fill_languages(HWND hdlg)
 {
-	SendMessage(GetDlgItem(hdlg, IDC_COMBO_LANG), CB_GETCURSEL, 0, 0);
-	EnumResourceLanguages(hinstance, RT_MENU, L"MainMenu", &EnumResLangProc, (LPARAM)GetDlgItem(hdlg, IDC_COMBO_LANG));
+	temp_language = GetThreadUILanguage();
+	HWND lang_combo = GetDlgItem(hdlg, IDC_COMBO_LANG); 
+	
+	SendMessage(lang_combo, CB_RESETCONTENT, 0, 0);
+	EnumResourceLanguages(hinstance, RT_MENU, L"MainMenu", &EnumResLangProc, (LPARAM)lang_combo);
+	
+	SendMessage(lang_combo, CB_SETCURSEL, enum_helper, 0);
 }
 
 /* This does the initial read of global variables into the temporary ones. */
