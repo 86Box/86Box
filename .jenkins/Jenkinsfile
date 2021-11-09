@@ -1,0 +1,44 @@
+def gitClone() {
+	cleanWs()
+	def scmVars = git url: 'https://github.com/richardg867/86Box.git',
+					  branch: 'cleanup30'
+	env.GIT_COMMIT = scmVars.GIT_COMMIT
+}
+
+def windowsBuild() {
+	bat 'C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c .jenkins/build.sh'
+}
+
+def unixBuild() {
+	sh 'chmod u+x .jenkins/build.sh && .jenkins/build.sh'
+}
+
+def saveArtifacts() {
+	archiveArtifacts artifacts: "${env.JOB_BASE_NAME}-*"
+}
+
+pipeline {
+	agent any
+
+	stages {
+		stage('Build Windows') {
+			steps {
+				node('windows') {
+					gitClone()
+					windowsBuild()
+					saveArtifacts()
+				}
+			}
+		}
+
+		stage('Build Linux') {
+			steps {
+				node('debian') {
+					gitClone()
+					unixBuild()
+					saveArtifacts()
+				}
+			}
+		}
+	}
+}
