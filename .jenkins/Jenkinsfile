@@ -39,8 +39,7 @@ pipeline {
 
 	parameters {
 		choice(name: 'BUILD_TYPE',
-		       choices: ['none', 'alpha', 'beta', 'release'],
-		       defaultValue: 'beta',
+		       choices: ['beta', 'none', 'alpha', 'beta', 'release'], // duplicated on purpose, first is default
 		       description: 'Build type to pass on to CMake. This may affect the UI icon and feature set.')
 	}
 
