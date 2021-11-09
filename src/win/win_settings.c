@@ -318,6 +318,22 @@ settings_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn
     return(i);
 }
 
+BOOL CALLBACK 
+EnumResLangProc(HMODULE hModule, LPCTSTR lpszType, LPCTSTR lpszName, WORD wIDLanguage, LONG_PTR lParam)
+{
+	wchar_t temp[LOCALE_NAME_MAX_LENGTH + 1];
+	LCIDToLocaleName(wIDLanguage, temp, LOCALE_NAME_MAX_LENGTH, 0);
+	SendMessage((HWND)lParam, CB_ADDSTRING, 0, (LPARAM)temp);
+	return 1;
+}
+
+/* Load available languages */
+static void
+win_fill_languages(HWND hdlg)
+{
+	SendMessage(GetDlgItem(hdlg, IDC_COMBO_LANG), CB_GETCURSEL, 0, 0);
+	EnumResourceLanguages(hinstance, RT_MENU, L"MainMenu", &EnumResLangProc, (LPARAM)GetDlgItem(hdlg, IDC_COMBO_LANG));
+}
 
 /* This does the initial read of global variables into the temporary ones. */
 static void
@@ -326,7 +342,7 @@ win_settings_init(void)
     int i = 0;
 
     /* Language */
-    // TODO: Set temp_language here.
+    win_fill_languages(hwndParentDialog);
 
     /* Machine category */
     temp_machine_type = machines[machine].type;
