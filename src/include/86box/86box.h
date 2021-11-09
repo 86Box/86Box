@@ -15,6 +15,7 @@
  *
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2017-2020 Fred N. van Kempen.
+ *		Copyright 2021 Laci bá'
  */
 #ifndef EMU_86BOX_H
 # define EMU_86BOX_H
@@ -90,6 +91,7 @@ extern int	window_w, window_h,		/* (C) window size and */
 		vid_resize,			/* (C) allow resizing */
 		invert_display,			/* (C) invert the display */
 		suppress_overscan;		/* (C) suppress overscans */
+extern uint32_t	lang_id;	/* (C) language code identifier */
 extern int	scale;				/* (C) screen scale factor */
 extern int  dpi_scale;      /* (C) DPI scaling of the emulated screen */
 extern int	vid_api;			/* (C) video renderer */

@@ -15,6 +15,7 @@
  *
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2021 Laci bá'
  */
 #ifndef EMU_PLAT_H
 # define EMU_PLAT_H
@@ -121,10 +122,10 @@ extern void	plat_setfullscreen(int on);
 extern void	plat_resize(int x, int y);
 extern void	plat_vidapi_enable(int enabled);
 extern void	plat_vid_reload_options(void);
-extern int plat_set_language(char* langcode);
+extern uint32_t plat_language_code(char* langcode);
 
 /* Resource management. */
-extern void	set_language(int id);
+extern void	set_language(uint32_t id);
 extern wchar_t	*plat_get_string(int id);
 
 

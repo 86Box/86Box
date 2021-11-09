@@ -17,6 +17,7 @@
  *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2021 Laci bá'
  */
 #ifndef PLAT_WIN_H
 # define PLAT_WIN_H
@@ -105,7 +106,6 @@ extern HINSTANCE	hinstance;
 extern HWND		hwndMain,
 			hwndRender;
 extern HANDLE		ghMutex;
-extern LCID		lang_id;
 extern HICON		hIcon[256];
 extern RECT		oldclip;
 extern int		sbar_height, user_resize;
@@ -129,8 +129,8 @@ extern void	do_start(void);
 extern void	do_stop(void);
 
 /* Internal platform support functions. */
-extern int	has_language_changed(int id);
-extern void	set_language(int id);
+extern int	has_language_changed(uint32_t id);
+extern void	set_language(uint32_t id);
 extern int	get_vidpause(void);
 extern void	show_cursor(int);
 

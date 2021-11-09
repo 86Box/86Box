@@ -17,6 +17,7 @@
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2017-2020 Fred N. van Kempen.
+ *		Copyright 2021 Laci bá'
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -395,7 +396,8 @@ pc_init(int argc, char *argv[])
 	int c, vmrp = 0;
 	int ng = 0, lvmp = 0;
 	uint32_t *uid, *shwnd;
-
+	uint32_t lang_init = 0;
+	
 	/* Grab the executable's full path. */
 	plat_get_exe_name(exe_path, sizeof(exe_path)-1);
 	p = plat_get_filename(exe_path);
@@ -519,7 +521,8 @@ usage:
 
 		  //This function is currently unimplemented for *nix.
 
-		  if (!plat_set_language(argv[++c]))
+		  lang_init = plat_language_code(argv[++c]);
+		  if (!lang_init)
 			 printf("\nWarning: Invalid language code, ignoring --lang parameter.\n\n");
 
 		  //The return value of 0 only means that the code is invalid,
@@ -702,7 +705,19 @@ usage:
 
 	/* Load the configuration file. */
 	config_load();
-
+	
+	/* Load the desired language */
+	pclog("lang_init %u, lang_id: %u\n", lang_init, lang_id);
+	if (lang_init)
+		lang_id = lang_init;
+	
+	pclog("lang_init %u, lang_id: %u\n", lang_init, lang_id);
+	lang_init = lang_id;
+	lang_id = 0;
+	if (lang_init)
+		set_language(lang_init);
+	
+	pclog("lang_init %u, lang_id: %u\n", lang_init, lang_id);
 	/* All good! */
 	return(1);
 }
