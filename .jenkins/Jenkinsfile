@@ -23,7 +23,7 @@ def gitClone() {
 }
 
 def windowsBuild() {
-	bat 'C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c .jenkins/build.sh'
+	bat 'C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c "exec .jenkins/build.sh"'
 }
 
 def unixBuild() {

@@ -208,12 +208,13 @@ EOF
 		arm32) local cmake_flags_extra="$cmake_flags_extra -D NEW_DYNAREC=ON -D ARCH=arm";;
 		arm64) local cmake_flags_extra="$cmake_flags_extra -D NEW_DYNAREC=ON -D ARCH=arm64";;
 		# no dynarec
-		*) local cmake_flags_extra="$cmake_flags_extra -D DYNAREC=OFF";; # no dynarec
+		*) local cmake_flags_extra="$cmake_flags_extra -D DYNAREC=OFF";;
 	esac
 
 	# Run CMake.
-	echo [-] Running CMake
-	cmake -G "Unix Makefiles" $cmake_flags $cmake_flags_extra -D BUILD_TYPE="$BUILD_TYPE" -D EMU_BUILD="$build_qualifier" -D EMU_GIT_HASH="$git_hash" .
+	cmake_flags_extra="$cmake_flags_extra -D BUILD_TYPE=\"$BUILD_TYPE\" -D EMU_BUILD=\"$build_qualifier\" -D EMU_GIT_HASH=\"$git_hash\""
+	echo [-] Running CMake with flags [$cmake_flags $cmake_flags_extra]
+	cmake -G "Unix Makefiles" $cmake_flags $cmake_flags_extra .
 	local status=$?
 	if [ $? -gt 0 ]
 	then
@@ -333,7 +334,7 @@ EOF
 
 	# All good.
 	echo [-] Build of [$job_name] [$build_number] [$git_hash] for [$arch] with flags [$cmake_flags] successful
-	job_exit=0
+	export job_exit=0
 }
 
 # Set common variables.
@@ -444,8 +445,11 @@ case $JOB_BASE_NAME in
 		;;
 
 	*)
-		echo Error: unknown job name $JOB_BASE_NAME
+		echo [!] Unknown job name $JOB_BASE_NAME
 		exit 1
 		;;
 esac
+
+echo
+echo [-] Exiting with code [$job_exit]
 exit $job_exit
