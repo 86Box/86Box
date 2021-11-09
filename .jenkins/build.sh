@@ -214,7 +214,7 @@ EOF
 	# Run CMake.
 	cmake_flags_extra="$cmake_flags_extra -D BUILD_TYPE=\"$BUILD_TYPE\" -D EMU_BUILD=\"$build_qualifier\" -D EMU_GIT_HASH=\"$git_hash\""
 	echo [-] Running CMake with flags [$cmake_flags $cmake_flags_extra]
-	cmake -G "Unix Makefiles" $cmake_flags $cmake_flags_extra .
+	eval cmake -G "Unix Makefiles" $cmake_flags $cmake_flags_extra .
 	local status=$?
 	if [ $? -gt 0 ]
 	then
