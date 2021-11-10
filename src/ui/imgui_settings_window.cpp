@@ -317,11 +317,11 @@ namespace ImGuiSettingsWindow {
 	}
 	void RenderDeviceWindow()
 	{
-		if (ImGui::BeginPopupModal((std::string(config_device.dev.name) + " device configuration").c_str()))
+		if (ImGui::BeginPopupModal((std::string(config_device.dev.name) + " device configuration").c_str(), nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 		{
 			for (auto &config : config_device.configs)
 			{
-				ImGui::TextUnformatted(config.config.description);
+				//ImGui::TextUnformatted(config.config.description);
 				switch (config.config.type)
 				{
 					case CONFIG_BINARY:
@@ -332,6 +332,8 @@ namespace ImGuiSettingsWindow {
 						break;
 					}
 					case CONFIG_SELECTION:
+					case CONFIG_HEX16:
+					case CONFIG_HEX20:
 					{
 						auto selection = config.config.selection;
 						auto orig_selection = selection;
@@ -344,7 +346,7 @@ namespace ImGuiSettingsWindow {
 							}
 							selection++;
 						}
-						if (ImGui::BeginCombo((std::string("##") + config.config.description).c_str(), selection->description))
+						if (ImGui::BeginCombo(config.config.description, selection->description))
 						{
 							selection = orig_selection;
 							while (selection->description && selection->description[0])
@@ -366,6 +368,7 @@ namespace ImGuiSettingsWindow {
 					}
 					case CONFIG_SPINNER:
 					{
+						ImGui::TextUnformatted(config.config.description); ImGui::SameLine();
 						ImGui::InputInt(std::to_string(config.val).c_str(), &config.val, config.config.spinner.step, config.config.spinner.step, ImGuiInputTextFlags_EnterReturnsTrue);
 						config.val = (int)std::clamp((int16_t)config.val, config.config.spinner.min, config.config.spinner.max);
 						break;
@@ -375,18 +378,21 @@ namespace ImGuiSettingsWindow {
 						char midiname[512] = { 0 };
 						if (config.val >= plat_midi_get_num_devs()) config.val = plat_midi_get_num_devs() - 1;
 						plat_midi_get_dev_name(config.val, midiname);
-						if (ImGui::BeginCombo((std::string("##") + config.config.description).c_str(), midiname))
-						for (int i = 0; i < plat_midi_get_num_devs(); i++)
+						if (ImGui::BeginCombo(config.config.description, midiname))
 						{
-							plat_midi_get_dev_name(i, midiname);
-							if (ImGui::Selectable(midiname, config.val == i))
+							for (int i = 0; i < plat_midi_get_num_devs(); i++)
 							{
-								config.val = i;
+								plat_midi_get_dev_name(i, midiname);
+								if (ImGui::Selectable(midiname, config.val == i))
+								{
+									config.val = i;
+								}
+								if (config.val == i)
+								{
+									ImGui::SetItemDefaultFocus();
+								}
 							}
-							if (config.val == i)
-							{
-								ImGui::SetItemDefaultFocus();
-							}
+							ImGui::EndCombo();
 						}
 						break;
 					}
@@ -395,50 +401,19 @@ namespace ImGuiSettingsWindow {
 						char midiname[512] = { 0 };
 						if (config.val >= plat_midi_in_get_num_devs()) config.val = plat_midi_in_get_num_devs() - 1;
 						plat_midi_in_get_dev_name(config.val, midiname);
-						if (ImGui::BeginCombo((std::string("##") + config.config.description).c_str(), midiname))
-						for (int i = 0; i < plat_midi_in_get_num_devs(); i++)
+						if (ImGui::BeginCombo(config.config.description, midiname))
 						{
-							plat_midi_in_get_dev_name(i, midiname);
-							if (ImGui::Selectable(midiname, config.val == i))
+							for (int i = 0; i < plat_midi_in_get_num_devs(); i++)
 							{
-								config.val = i;
-							}
-							if (config.val == i)
-							{
-								ImGui::SetItemDefaultFocus();
-							}
-						}
-						break;
-					}
-					case CONFIG_HEX16:
-					case CONFIG_HEX20:
-					{
-						auto selection = config.config.selection;
-						auto orig_selection = selection;
-						int c = 0;
-						while (selection->description && selection->description[0])
-						{
-							if (selection->value == config.val)
-							{
-								break;
-							}
-							selection++;
-						}
-						if (ImGui::BeginCombo((std::string("##") + config.config.description).c_str(), selection->description))
-						{
-							selection = orig_selection;
-							while (selection->description && selection->description[0])
-							{
-								if (ImGui::Selectable(selection->description, selection->value == config.val))
+								plat_midi_in_get_dev_name(i, midiname);
+								if (ImGui::Selectable(midiname, config.val == i))
 								{
-									config.val = selection->value;
+									config.val = i;
 								}
-								if (config.val == selection->value)
+								if (config.val == i)
 								{
 									ImGui::SetItemDefaultFocus();
 								}
-								c++;
-								selection++;
 							}
 							ImGui::EndCombo();
 						}
@@ -451,6 +426,7 @@ namespace ImGuiSettingsWindow {
 						
 						std::string utf8str = converter.to_bytes(wfilestr);
 						utf8str.resize(1024);
+						ImGui::TextUnformatted(config.config.description); ImGui::SameLine();
 						ImGui::InputText(utf8str.data(), utf8str.data(), utf8str.size(), ImGuiInputTextFlags_EnterReturnsTrue);
 						wfilestr = converter.from_bytes(utf8str);
 						wcsncpy(config.filestr, wfilestr.c_str(), 512);
@@ -568,6 +544,7 @@ namespace ImGuiSettingsWindow {
 				default: RenderMachineCategory();
 			}
 
+			RenderDeviceWindow();
 			ImGui::EndChild();
 			if (ImGui::Button("Cancel")) { ImGui::CloseCurrentPopup(); }
 			ImGui::SameLine();
@@ -770,6 +747,7 @@ namespace ImGuiSettingsWindow {
 					if (cpu_family_is_eligible(&cpu_families[c], temp_machine))
 					{
 						temp_cpu_f = (cpu_family_t *)&cpu_families[c];
+						break;
 					}
 					c++;
 				}
@@ -786,6 +764,7 @@ namespace ImGuiSettingsWindow {
 					if (cpu_is_eligible(temp_cpu_f, c, temp_machine))
 					{
 						temp_cpu = c;
+						break;
 					}
 					c++;
 				}
@@ -1065,12 +1044,17 @@ namespace ImGuiSettingsWindow {
 		{
 			OpenDeviceWindow(video_card_getdevice(temp_gfxcard));
 		}
-		RenderDeviceWindow();
 		ImGui::EndDisabled();
 		ImGui::BeginDisabled(!(machines[temp_machine].flags & MACHINE_BUS_PCI));
 		bool voodoo_enabled = temp_voodoo == true;
 		ImGui::Checkbox("Voodoo Graphics", &voodoo_enabled);
 		temp_voodoo = voodoo_enabled;
+		ImGui::BeginDisabled(!(machines[temp_machine].flags & MACHINE_BUS_PCI) || !temp_voodoo);
+		if (ImGui::Button("Configure##Voodoo"))
+		{
+			OpenDeviceWindow(&voodoo_device);
+		}
+		ImGui::EndDisabled();
 		ImGui::EndDisabled();
 	}
 
