@@ -6,11 +6,10 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of the Intel i845 SDRAM (MCH) Chipset.
+ *		Implementation of the Intel i845 (MCH) Chipset.
  *
- *      Note: This chipset is only made for testing and debugging the
- *      emulator. It has NO real purpose other than that.
- * 
+ *
+ *
  * Authors:	Tiseno100
  *
  *		Copyright 2021 Tiseno100.
@@ -181,7 +180,7 @@ intel_mch_p4_write(int func, int addr, uint8_t val, void *priv)
                 dev->pci_conf[addr] = val;
             break;
 
-            case 0x64 ... 0x67:
+            case 0x64 ... 0x67: /* SPD Note: BIOS must write the value of 0x63 on those registers. */
                 dev->pci_conf[addr] = val;
             break;
 

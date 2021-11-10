@@ -115,7 +115,6 @@ enum {
     MACHINE_TYPE_SLOT1_2,
     MACHINE_TYPE_SLOT2,
     MACHINE_TYPE_SOCKET370,
-    MACHINE_TYPE_SOCKET478,
     MACHINE_TYPE_MISC,
     MACHINE_TYPE_MAX
 };
@@ -609,9 +608,6 @@ extern int	machine_at_p6bap_init(const machine_t *);
 
 extern int	machine_at_j815epda_init(const machine_t *);
 extern int	machine_at_s2080_init(const machine_t *);
-
-/* m_at_socket478.c */
-extern int	machine_at_ms6398_init(const machine_t *);
 
 /* m_at_misc.c */
 extern int	machine_at_vpc2007_init(const machine_t *);

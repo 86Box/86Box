@@ -577,11 +577,11 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
                 dev->lpc_conf[func][addr] &= val & 6;
             break;
 
-            case 0x90:
+            case 0x90: /* PCI DMA Decode */
                 dev->lpc_conf[func][addr] = val & 0xff;
             break;
 
-            case 0x91:
+            case 0x91: /* PCI DMA Decode */
                 dev->lpc_conf[func][addr] = val & 0xfc;
             break;
 
@@ -606,10 +606,6 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
                 dev->lpc_conf[func][addr] = val;
             break;
 
-            case 0xd0:
-                dev->lpc_conf[func][addr] = val & 0xc7;
-            break;
-
             case 0xc0:
                 dev->lpc_conf[func][addr] = val & 0xf0;
             break;
@@ -618,11 +614,15 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
                 dev->lpc_conf[func][addr] = val;
             break;
 
+            case 0xd0: /* APIC */
+                dev->lpc_conf[func][addr] = val & 0xc7;
+            break;
+
             case 0xd1:
                 dev->lpc_conf[func][addr] = val & 0x39;
             break;
 
-            case 0xd3:
+            case 0xd3: /* PCI-to-ISA Bridge Hide */
                 dev->lpc_conf[func][addr] = val & 3;
             break;
 

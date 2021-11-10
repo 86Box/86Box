@@ -318,7 +318,6 @@ intel_gmch_reset(void *priv)
     dev->pci_conf[0xa5] = 2;
     dev->pci_conf[0xa7] = 0x1f;
 
-    spd_write_drbs_intel_gmch(dev->pci_conf);
     intel_gmch_pam(0x59, dev);
     intel_gmch_pam(0x5a, dev);
     intel_gmch_pam(0x5b, dev);
@@ -328,7 +327,6 @@ intel_gmch_reset(void *priv)
     intel_gmch_pam(0x5f, dev);
 
     intel_gmch_smram(dev);
-
 }
 
 
