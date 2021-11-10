@@ -79,7 +79,18 @@ int		acp_utf8;		/* Windows supports UTF-8 codepage */
 
 
 /* Local data. */
-//static int	vid_api_inited = 0;
+static HANDLE	thMain;
+static rc_str_t	*lpRCstr2048 = NULL,
+		*lpRCstr4096 = NULL,
+		*lpRCstr4352 = NULL,
+		*lpRCstr4608 = NULL,
+		*lpRCstr5120 = NULL,
+		*lpRCstr5376 = NULL,
+		*lpRCstr5632 = NULL,
+		*lpRCstr5888 = NULL,
+		*lpRCstr6144 = NULL,
+		*lpRCstr7168 = NULL;
+static int	vid_api_inited = 0;
 static char	*argbuf;
 
 extern bool     ImGui_ImplSDL2_Init(SDL_Window* window);
@@ -143,6 +154,79 @@ win_log(const char *fmt, ...)
 #define win_log(fmt, ...)
 #endif
 
+void
+free_string(rc_str_t **str)
+{
+    if (*str != NULL) {
+	free(*str);
+	*str = NULL;
+    }
+}
+
+
+static void
+LoadCommonStrings(void)
+{
+    int i;
+
+    free_string(&lpRCstr7168);
+    free_string(&lpRCstr6144);
+    free_string(&lpRCstr5888);
+    free_string(&lpRCstr5632);
+    free_string(&lpRCstr5376);
+    free_string(&lpRCstr5120);
+    free_string(&lpRCstr4608);
+    free_string(&lpRCstr4352);
+    free_string(&lpRCstr4096);
+    free_string(&lpRCstr2048);
+
+    lpRCstr2048 = (rc_str_t *)malloc(STR_NUM_2048*sizeof(rc_str_t));
+    lpRCstr4096 = (rc_str_t *)malloc(STR_NUM_4096*sizeof(rc_str_t));
+    lpRCstr4352 = (rc_str_t *)malloc(STR_NUM_4352*sizeof(rc_str_t));
+    lpRCstr4608 = (rc_str_t *)malloc(STR_NUM_4608*sizeof(rc_str_t));
+    lpRCstr5120 = (rc_str_t *)malloc(STR_NUM_5120*sizeof(rc_str_t));
+    lpRCstr5376 = (rc_str_t *)malloc(STR_NUM_5376*sizeof(rc_str_t));
+    lpRCstr5632 = (rc_str_t *)malloc(STR_NUM_5632*sizeof(rc_str_t));
+    lpRCstr5888 = (rc_str_t *)malloc(STR_NUM_5888*sizeof(rc_str_t));
+    lpRCstr6144 = (rc_str_t *)malloc(STR_NUM_6144*sizeof(rc_str_t));
+    lpRCstr7168 = (rc_str_t *)malloc(STR_NUM_7168*sizeof(rc_str_t));
+
+    for (i=0; i<STR_NUM_2048; i++)
+	LoadString(hinstance, 2048+i, lpRCstr2048[i].str, 512);
+
+    for (i=0; i<STR_NUM_4096; i++)
+	LoadString(hinstance, 4096+i, lpRCstr4096[i].str, 512);
+
+    for (i=0; i<STR_NUM_4352; i++)
+	LoadString(hinstance, 4352+i, lpRCstr4352[i].str, 512);
+
+    for (i=0; i<STR_NUM_4608; i++)
+	LoadString(hinstance, 4608+i, lpRCstr4608[i].str, 512);
+
+    for (i=0; i<STR_NUM_5120; i++)
+	LoadString(hinstance, 5120+i, lpRCstr5120[i].str, 512);
+
+    for (i=0; i<STR_NUM_5376; i++) {
+	if ((i == 0) || (i > 3))
+		LoadString(hinstance, 5376+i, lpRCstr5376[i].str, 512);
+    }
+
+    for (i=0; i<STR_NUM_5632; i++) {
+	if ((i == 0) || (i > 3))
+		LoadString(hinstance, 5632+i, lpRCstr5632[i].str, 512);
+    }
+
+    for (i=0; i<STR_NUM_5888; i++)
+	LoadString(hinstance, 5888+i, lpRCstr5888[i].str, 512);
+
+    for (i=0; i<STR_NUM_6144; i++)
+	LoadString(hinstance, 6144+i, lpRCstr6144[i].str, 512);
+
+    for (i=0; i<STR_NUM_7168; i++)
+	LoadString(hinstance, 7168+i, lpRCstr7168[i].str, 512);
+}
+
+
 size_t mbstoc16s(uint16_t dst[], const char src[], int len)
 {
     if (src == NULL) return 0;
@@ -170,6 +254,15 @@ size_t c16stombs(char dst[], const uint16_t src[], int len)
     }
 
     return ret;
+}
+
+
+int
+has_language_changed(int id)
+{
+    LCID lcidNew = MAKELCID(id, dwSubLangID);
+
+    return (lang_id != lcidNew);
 }
 
 
