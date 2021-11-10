@@ -259,7 +259,7 @@ EOF
 		[ "$arch" = "32" -a -d "/c/Program Files (x86)" ] && pf="/c/Program Files (x86)"
 
 		# Archive freetype from local MSYS installation.
-		./.jenkins/static2dll.sh -p freetype2 /$MSYSTEM/lib/libfreetype.a archive_tmp/libfreetype-6.dll
+		.ci/static2dll.sh -p freetype2 /$MSYSTEM/lib/libfreetype.a archive_tmp/libfreetype-6.dll
 
 		# Archive Ghostscript DLL from local official distribution installation.
 		for gs in "$pf"/gs/gs*.*.*
@@ -268,9 +268,9 @@ EOF
 		done
 
 		# Archive Discord Game SDK DLL from their CDN.
-		discordarch=
-		[ "$arch" = "32" ] && discordarch=x86
-		[ "$arch" = "64" ] && discordarch=x86_64
+		local discordarch=
+		[ "$arch" = "32" ] && local discordarch=x86
+		[ "$arch" = "64" ] && local discordarch=x86_64
 		if [ ! -z "$discordarch" ]
 		then
 			[ ! -e "discord_game_sdk.zip" ] && wget -qOdiscord_game_sdk.zip https://dl-game-sdk.discordapp.net/2.5.6/discord_game_sdk.zip
@@ -282,7 +282,7 @@ EOF
 
 		# Archive executable.
 		mv "$build_dir"/src/$project.exe archive_tmp/
-		status=$?
+		local status=$?
 	elif is_mac
 	then
 		# TBD
@@ -301,7 +301,7 @@ EOF
 
 		# Archive executable.
 		mv "$build_dir"/src/$project archive_tmp/
-		status=$?
+		local status=$?
 	fi
 
 	# Check if the executable move succeeded.

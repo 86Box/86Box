@@ -23,11 +23,11 @@ def gitClone() {
 }
 
 def windowsBuild() {
-	bat 'C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c "exec .jenkins/build.sh"'
+	bat 'C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c "exec .ci/build.sh"'
 }
 
 def unixBuild() {
-	sh 'chmod u+x .jenkins/build.sh && .jenkins/build.sh'
+	sh 'chmod u+x .ci/build.sh && .ci/build.sh'
 }
 
 def saveArtifacts() {
