@@ -592,7 +592,7 @@ CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
 # Add freetyp2 references through pkgconfig
 CFLAGS          := $(CFLAGS)  `pkg-config --cflags freetype2`
 
-CXXFLAGS	:= $(CFLAGS) -std=g++17
+CXXFLAGS	:= $(CFLAGS) -std=c++17
 
 
 #########################################################################
