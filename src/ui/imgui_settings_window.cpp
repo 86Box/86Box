@@ -265,6 +265,91 @@ namespace ImGuiSettingsWindow {
 
 		temp_deviceconfig = 0;
 	}
+	static int
+	SettingsChanged(void)
+	{
+		int i = 0, j = 0;
+
+		/* Machine category */
+		i = i || (machine != temp_machine);
+		i = i || (cpu_f != temp_cpu_f);
+		i = i || (cpu_waitstates != temp_wait_states);
+		i = i || (cpu != temp_cpu);
+		i = i || (mem_size != temp_mem_size);
+	#ifdef USE_DYNAREC
+		i = i || (temp_dynarec != cpu_use_dynarec);
+	#endif
+		i = i || (temp_fpu != fpu_type);
+		i = i || (temp_sync != time_sync);
+
+		/* Video category */
+		i = i || (gfxcard != temp_gfxcard);
+		i = i || (voodoo_enabled != temp_voodoo);
+
+		/* Input devices category */
+		i = i || (mouse_type != temp_mouse);
+		i = i || (joystick_type != temp_joystick);
+
+		/* Sound category */
+		i = i || (sound_card_current != temp_sound_card);
+		i = i || (midi_device_current != temp_midi_device);
+		i = i || (midi_input_device_current != temp_midi_input_device);
+		i = i || (mpu401_standalone_enable != temp_mpu401);
+		i = i || (SSI2001 != temp_SSI2001);
+		i = i || (GAMEBLASTER != temp_GAMEBLASTER);
+		i = i || (GUS != temp_GUS);
+		i = i || (sound_is_float != temp_float);
+
+		/* Network category */
+		i = i || (network_type != temp_net_type);
+		i = i || strcmp(temp_pcap_dev, network_host);
+		i = i || (network_card != temp_net_card);
+
+		/* Ports category */
+		for (j = 0; j < 3; j++) {
+		i = i || (temp_lpt_devices[j] != lpt_ports[j].device);
+		i = i || (temp_lpt[j] != lpt_ports[j].enabled);
+		}
+		for (j = 0; j < 4; j++)
+		i = i || (temp_serial[j] != serial_enabled[j]);
+
+		/* Storage devices category */
+		for (j = 0; j < SCSI_BUS_MAX; j++)
+		i = i || (temp_scsi_card[j] != scsi_card_current[j]);
+		i = i || (fdc_type != temp_fdc_card);
+		i = i || (hdc_current != temp_hdc);
+		i = i || (temp_ide_ter != ide_ter_enabled);
+		i = i || (temp_ide_qua != ide_qua_enabled);
+		i = i || (temp_cassette != cassette_enable);
+
+		/* Hard disks category */
+		i = i || memcmp(hdd, temp_hdd, HDD_NUM * sizeof(hard_disk_t));
+
+		/* Floppy drives category */
+		for (j = 0; j < FDD_NUM; j++) {
+		i = i || (temp_fdd_types[j] != fdd_get_type(j));
+		i = i || (temp_fdd_turbo[j] != fdd_get_turbo(j));
+		i = i || (temp_fdd_check_bpb[j] != fdd_get_check_bpb(j));
+		}
+
+		/* Other removable devices category */
+		i = i || memcmp(cdrom, temp_cdrom, CDROM_NUM * sizeof(cdrom_t));
+		i = i || memcmp(zip_drives, temp_zip_drives, ZIP_NUM * sizeof(zip_drive_t));
+		i = i || memcmp(mo_drives, temp_mo_drives, MO_NUM * sizeof(mo_drive_t));
+
+		/* Other peripherals category */
+		i = i || (temp_bugger != bugger_enabled);
+		i = i || (temp_postcard != postcard_enabled);
+		i = i || (temp_isartc != isartc_type);
+
+		/* ISA memory boards. */
+		for (j = 0; j < ISAMEM_MAX; j++)
+		i = i || (temp_isamem[j] != isamem_type[j]);
+
+		i = i || !!temp_deviceconfig;
+
+		return i;
+	}
 	void SaveSettings();
 
 	struct device_config_temp_t
@@ -522,7 +607,7 @@ namespace ImGuiSettingsWindow {
 			ImGui::EndChild();
 		}
 		ImGui::SameLine();
-
+		static int save_settings = 0;
 		// Right
 		{
 			ImGui::BeginGroup();
@@ -546,12 +631,41 @@ namespace ImGuiSettingsWindow {
 
 			RenderDeviceWindow();
 			ImGui::EndChild();
+			
 			if (ImGui::Button("Cancel")) { ImGui::CloseCurrentPopup(); }
 			ImGui::SameLine();
-			if (ImGui::Button("Save")) { SaveSettings(); ImGui::CloseCurrentPopup(); }
+			if (ImGui::Button("Save"))
+			{
+				if (!SettingsChanged()) ImGui::CloseCurrentPopup();
+				else if (confirm_save) ImGui::OpenPopup("Do you want to save the settings?");
+				else save_settings = 1;
+			}
+			if (ImGui::BeginPopupModal("Do you want to save the settings?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
+			{
+				ImGui::TextUnformatted("This will hard reset the emulated machine!");
+				bool save_confirm = (!!confirm_save);
+				ImGui::Checkbox("Don't ask me again", &save_confirm);
+				if (ImGui::Button("Yes"))
+				{
+					confirm_save = save_confirm;
+					save_settings = 1;
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::SameLine();
+				if (ImGui::Button("No"))
+				{
+					ImGui::CloseCurrentPopup();
+				}
+				ImGui::EndPopup();
+			}
 			ImGui::EndGroup();
 		}
-		
+		if (save_settings)
+		{
+			SaveSettings();
+			ImGui::CloseCurrentPopup();
+			save_settings = 0;
+		}
 		ImGui::EndPopup();
 		if (!ImGui::IsPopupOpen("Settings Window"))
 		{
