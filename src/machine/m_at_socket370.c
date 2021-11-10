@@ -76,11 +76,11 @@ machine_at_s370slm_init(const machine_t *model)
 
 
 int
-machine_at_trinity371_init(const machine_t *model)
+machine_at_s1857_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/trinity371/BX57200A.ROM",
+    ret = bios_load_linear("roms/machines/s1857/BX57200A.ROM",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -278,7 +278,7 @@ machine_at_awo671r_init(const machine_t *model)
 
 
 int
-machine_at_63a_init(const machine_t *model)
+machine_at_63a1_init(const machine_t *model)
 {
     int ret;
 

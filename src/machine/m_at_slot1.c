@@ -444,11 +444,11 @@ machine_at_p6sba_init(const machine_t *model)
 
 
 int
-machine_at_tsunamiatx_init(const machine_t *model)
+machine_at_s1846_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/tsunamiatx/bx46200f.rom",
+    ret = bios_load_linear("roms/machines/s1846/bx46200f.rom",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -484,7 +484,7 @@ machine_at_tsunamiatx_init(const machine_t *model)
 
 
 const device_t *
-at_tsunamiatx_get_device(void)
+at_s1846_get_device(void)
 {
     return &es1371_onboard_device;
 }
