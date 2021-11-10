@@ -164,7 +164,11 @@ if(MINITRACE)
     target_link_libraries(86Box minitrace)
 endif()
 
-install(TARGETS 86Box)
+if(APPLE)
+	install(TARGETS 86Box DESTINATION "bin")
+else()
+	install(TARGETS 86Box)
+endif()
 
 
 # adjustments for macOS app bundles
