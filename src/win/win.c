@@ -74,16 +74,16 @@ volatile int	cpu_thread_run = 1;
 
 /* Local data. */
 static HANDLE	thMain;
-static rc_str_t	*lpRCstr2048,
-		*lpRCstr4096,
-		*lpRCstr4352,
-		*lpRCstr4608,
-		*lpRCstr5120,
-		*lpRCstr5376,
-		*lpRCstr5632,
-		*lpRCstr5888,
-		*lpRCstr6144,
-		*lpRCstr7168;
+static rc_str_t	*lpRCstr2048 = NULL,
+		*lpRCstr4096 = NULL,
+		*lpRCstr4352 = NULL,
+		*lpRCstr4608 = NULL,
+		*lpRCstr5120 = NULL,
+		*lpRCstr5376 = NULL,
+		*lpRCstr5632 = NULL,
+		*lpRCstr5888 = NULL,
+		*lpRCstr6144 = NULL,
+		*lpRCstr7168 = NULL;
 static int	vid_api_inited = 0;
 static char	*argbuf;
 static int	first_use = 1;
@@ -139,10 +139,30 @@ win_log(const char *fmt, ...)
 #endif
 
 
+free_string(rc_str_t **str)
+{
+    if (*str != NULL) {
+	free(*str);
+	*str = NULL;
+    }
+}
+
+
 static void
 LoadCommonStrings(void)
 {
     int i;
+
+    free_string(&lpRCstr7168);
+    free_string(&lpRCstr6144);
+    free_string(&lpRCstr5888);
+    free_string(&lpRCstr5632);
+    free_string(&lpRCstr5376);
+    free_string(&lpRCstr5120);
+    free_string(&lpRCstr4608);
+    free_string(&lpRCstr4352);
+    free_string(&lpRCstr4096);
+    free_string(&lpRCstr2048);
 
     lpRCstr2048 = (rc_str_t *)malloc(STR_NUM_2048*sizeof(rc_str_t));
     lpRCstr4096 = (rc_str_t *)malloc(STR_NUM_4096*sizeof(rc_str_t));
@@ -218,6 +238,15 @@ size_t c16stombs(char dst[], const uint16_t src[], int len)
     }
 
     return ret;
+}
+
+
+int
+has_language_changed(int id)
+{
+    LCID lcidNew = MAKELCID(id, dwSubLangID);
+
+    return (lang_id != lcidNew);
 }
 
 
