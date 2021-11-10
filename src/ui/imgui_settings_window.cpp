@@ -135,6 +135,7 @@ namespace ImGuiSettingsWindow {
 	// forward declares
 	void RenderMachineCategory();
 	void RenderDisplayCategory();
+	void RenderInputCategory();
 	void RenderSoundCategory();
 	void RenderNetworkCategory();
 	void RenderPortsCategory();
@@ -393,7 +394,7 @@ namespace ImGuiSettingsWindow {
 					break;
 				case CONFIG_FNAME:
 					wcsncpy(config_device.configs.back().filestr, config_get_wstring((char *) config_device.dev.name,
-								 (char *) config->name, 0), 512);
+								 (char *) config->name, L""), 512);
 					break;
 			}
 			config++;
@@ -512,7 +513,7 @@ namespace ImGuiSettingsWindow {
 						std::string utf8str = converter.to_bytes(wfilestr);
 						utf8str.resize(1024);
 						ImGui::TextUnformatted(config.config.description); ImGui::SameLine();
-						ImGui::InputText(utf8str.data(), utf8str.data(), utf8str.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+						ImGui::InputText((std::string("##File name") + std::string(config.config.name)).c_str(), utf8str.data(), utf8str.size(), ImGuiInputTextFlags_EnterReturnsTrue);
 						wfilestr = converter.from_bytes(utf8str);
 						wcsncpy(config.filestr, wfilestr.c_str(), 512);
 						break;
@@ -553,6 +554,7 @@ namespace ImGuiSettingsWindow {
 						}
 					}
 				}
+				temp_deviceconfig |= 1;
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::SameLine();
@@ -566,7 +568,8 @@ namespace ImGuiSettingsWindow {
 
 	void Render() {
 		//ImGui::Begin("Settings", &ImGuiSettingsWindow::showSettingsWindow);
-		if (!ImGui::BeginPopupModal("Settings Window", &showSettingsWindow)) return;
+		ImGui::SetNextWindowSize(ImVec2(ImGui::GetIO().DisplaySize.x * 0.95, ImGui::GetIO().DisplaySize.y * 0.95));
+		if (!ImGui::BeginPopupModal("Settings Window", &showSettingsWindow, ImGuiWindowFlags_NoResize)) return;
 
 		// Left
 		static int currentSettingsCategory = 0;
@@ -579,29 +582,32 @@ namespace ImGuiSettingsWindow {
 			if(ImGui::Selectable("Display")) {
 				currentSettingsCategory = 1;
 			} else
-			if(ImGui::Selectable("Sound")) {
+			if(ImGui::Selectable("Input")) {
 				currentSettingsCategory = 2;
 			} else
-			if(ImGui::Selectable("Network")) {
+			if(ImGui::Selectable("Sound")) {
 				currentSettingsCategory = 3;
 			} else
-			if(ImGui::Selectable("Ports (COM & LPT)")) {
+			if(ImGui::Selectable("Network")) {
 				currentSettingsCategory = 4;
 			} else
-			if(ImGui::Selectable("Storage Controllers")) {
+			if(ImGui::Selectable("Ports (COM & LPT)")) {
 				currentSettingsCategory = 5;
 			} else
-			if(ImGui::Selectable("Hard Disks")) {
+			if(ImGui::Selectable("Storage Controllers")) {
 				currentSettingsCategory = 6;
 			} else
-			if(ImGui::Selectable("Floppy & CD-ROM Drives")) {
+			if(ImGui::Selectable("Hard Disks")) {
 				currentSettingsCategory = 7;
 			} else
-			if(ImGui::Selectable("Other Removable Devices")) {
+			if(ImGui::Selectable("Floppy & CD-ROM Drives")) {
 				currentSettingsCategory = 8;
 			} else
-			if(ImGui::Selectable("Other Peripherals")) {
+			if(ImGui::Selectable("Other Removable Devices")) {
 				currentSettingsCategory = 9;
+			} else
+			if(ImGui::Selectable("Other Peripherals")) {
+				currentSettingsCategory = 10;
 			}
 
 			ImGui::EndChild();
@@ -611,21 +617,22 @@ namespace ImGuiSettingsWindow {
 		// Right
 		{
 			ImGui::BeginGroup();
-			ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing())); // Leave room for 1 line below us
+			ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), false); // Leave room for 1 line below us
 
 			ImGui::Separator();
 
 			switch(currentSettingsCategory) {
 				case 0: RenderMachineCategory(); break;
 				case 1: RenderDisplayCategory(); break;
-				case 2: RenderSoundCategory(); break;
-				case 3: RenderNetworkCategory(); break;
-				case 4: RenderPortsCategory(); break;
-				case 5: RenderStorageControllersCategory(); break;
-				case 6: RenderHardDisksCategory(); break;
-				case 7: RenderFloppyCdromDrivesCategory(); break;
-				case 8: RenderOtherRemovableDevicesCategory(); break;
-				case 9: RenderOtherPeripheralsCategory(); break;
+				case 2: RenderInputCategory(); break;
+				case 3: RenderSoundCategory(); break;
+				case 4: RenderNetworkCategory(); break;
+				case 5: RenderPortsCategory(); break;
+				case 6: RenderStorageControllersCategory(); break;
+				case 7: RenderHardDisksCategory(); break;
+				case 8: RenderFloppyCdromDrivesCategory(); break;
+				case 9: RenderOtherRemovableDevicesCategory(); break;
+				case 10: RenderOtherPeripheralsCategory(); break;
 				default: RenderMachineCategory();
 			}
 
@@ -892,9 +899,6 @@ namespace ImGuiSettingsWindow {
 		//////////////////////////////
 		// CPU Type Combo Drop Down
 		//////////////////////////////
-		const std::array cpu_types {"1", "2", "3", "4"};
-		static int cpu_current = 0;
-		const char* cpu_preview_value = cpu_types[cpu_current];  // Pass in the preview value visible before opening the combo (it could be anything)
 		ImGui::Text("CPU:");
 		ImGui::SameLine();
 		if (ImGui::BeginCombo("##CPU Type", (std::string(temp_cpu_f->manufacturer) + " " + std::string(temp_cpu_f->name)).c_str()))
@@ -1112,13 +1116,16 @@ namespace ImGuiSettingsWindow {
 	{
 		std::string str;
 		str.resize(512);
-		if (strcmp(internal_name, "none") == 0)
+		if (internal_name)
 		{
-			return "None";
-		}
-		if (strcmp(internal_name, "internal") == 0)
-		{
-			return "Internal";
+			if (strcmp(internal_name, "none") == 0)
+			{
+				return "None";
+			}
+			if (strcmp(internal_name, "internal") == 0)
+			{
+				return "Internal";
+			}
 		}
 		device_get_name(device, bus, str.data());
 		return str;
@@ -1164,6 +1171,7 @@ namespace ImGuiSettingsWindow {
 		ImGui::Checkbox("Voodoo Graphics", &voodoo_enabled);
 		temp_voodoo = voodoo_enabled;
 		ImGui::BeginDisabled(!(machines[temp_machine].flags & MACHINE_BUS_PCI) || !temp_voodoo);
+		ImGui::SameLine();
 		if (ImGui::Button("Configure##Voodoo"))
 		{
 			OpenDeviceWindow(&voodoo_device);
@@ -1171,9 +1179,112 @@ namespace ImGuiSettingsWindow {
 		ImGui::EndDisabled();
 		ImGui::EndDisabled();
 	}
+	static int
+	mouse_valid(int num, int m)
+	{
+		const device_t *dev;
 
-	void RenderSoundCategory() {
+		if ((num == MOUSE_TYPE_INTERNAL) &&
+		!(machines[m].flags & MACHINE_MOUSE)) return(0);
 
+		dev = mouse_get_device(num);
+		return(device_is_valid(dev, machines[m].flags));
+	}
+	void RenderInputCategory() {
+		int c = 0;
+		if (!mouse_valid(temp_mouse, temp_machine)) temp_mouse = 0;
+		ImGui::TextUnformatted("Mouse:"); ImGui::SameLine();
+		if (ImGui::BeginCombo("##Mouse", GetNameOfDevice(mouse_get_device(temp_mouse), mouse_get_internal_name(temp_mouse), 0).c_str()))
+		{
+			for (c = 0; c < mouse_get_ndev(); c++)
+			{
+				if (mouse_valid(c, temp_machine))
+				{
+					if (ImGui::Selectable(GetNameOfDevice(mouse_get_device(c), mouse_get_internal_name(c), 0).c_str(), c == temp_mouse))
+					{
+						temp_mouse = c;
+					}
+					if (temp_mouse == c)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::BeginDisabled(!mouse_has_config(temp_mouse));
+		ImGui::SameLine();
+		if (ImGui::Button("Configure##Mouse"))
+		{
+			OpenDeviceWindow(mouse_get_device(temp_mouse));
+		}
+		ImGui::EndDisabled();
+	}
+	void RenderSoundCategory()
+	{
+		int c = 0;
+		ImGui::TextUnformatted("Sound:"); ImGui::SameLine();
+		if (ImGui::BeginCombo("##Sound", GetNameOfDevice(sound_card_getdevice(temp_sound_card), sound_card_get_internal_name(temp_sound_card), 1).c_str()))
+		{
+			while (1)
+			{
+				if ((c == 1) && !(machines[temp_machine].flags & MACHINE_SOUND)) {
+					c++;
+					continue;
+				}
+				auto name = GetNameOfDevice(sound_card_getdevice(c), sound_card_get_internal_name(c), 1);
+				if (name[0] == 0) break;
+				if (sound_card_available(c) &&
+					device_is_valid(sound_card_getdevice(c), machines[temp_machine].flags))
+				{
+					if (ImGui::Selectable(name.c_str(), c == 0 || c == temp_sound_card))
+					{
+						temp_sound_card = c;
+					}
+					if ((c == 0) || (c == temp_sound_card))
+						ImGui::SetItemDefaultFocus();
+				}
+				c++;
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::BeginDisabled(!sound_card_has_config(temp_sound_card));
+		ImGui::SameLine();
+		if (ImGui::Button("Configure"))
+		{
+			OpenDeviceWindow(sound_card_getdevice(temp_sound_card));
+		}
+		ImGui::EndDisabled();
+		ImGui::TextUnformatted("MIDI Out Device:"); ImGui::SameLine();
+		if (ImGui::BeginCombo("##MIDI Out Device", GetNameOfDevice(midi_device_getdevice(temp_midi_device), midi_device_get_internal_name(temp_midi_device), 0).c_str()))
+		{
+			c = 0;
+			while (1)
+			{
+				if (GetNameOfDevice(midi_device_getdevice(c), midi_device_get_internal_name(c), 0)[0] == 0) break;
+				
+				if (midi_device_available(c))
+				{
+					if (ImGui::Selectable(GetNameOfDevice(midi_device_getdevice(c), midi_device_get_internal_name(c), 0).c_str(), (c == 0) || (c == temp_midi_device)))
+					{
+						temp_midi_device = c;
+					}
+					if ((c == 0) || (c == temp_midi_device))
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				c++;
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::BeginDisabled(!midi_device_has_config(temp_midi_device));
+		ImGui::SameLine();
+		if (ImGui::Button("Configure##MIDI Out Device"))
+		{
+			OpenDeviceWindow(midi_device_getdevice(temp_midi_device));
+		}
+		ImGui::EndDisabled();
 	}
 
 	void RenderNetworkCategory() {
