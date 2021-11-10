@@ -37,7 +37,6 @@ spd_t		*spd_modules[SPD_MAX_SLOTS];
 
 static const device_t spd_device;
 
-#define ENABLE_SPD_LOG 1
 #ifdef ENABLE_SPD_LOG
 int spd_do_log = ENABLE_SPD_LOG;
 
@@ -591,7 +590,7 @@ spd_write_drbs_intel_gmch(uint8_t *regs)
 	uint16_t rows[SPD_MAX_SLOTS];
 
 	if(!spd_present)
-		spd_populate(rows, 2, mem_size >> 10, 32, 1 << (log2i((machines[machine].max_ram >> 10) / 3)), 0);
+		spd_populate(rows, 2, mem_size >> 10, 32, 1 << (log2i((machines[machine].max_ram >> 10) / 2)), 0);
 
 	regs[0x52] = regs[0x54] = 0;
 

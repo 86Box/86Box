@@ -126,11 +126,7 @@ w83627hf_log(const char *fmt, ...)
 
 typedef struct
 {
-    uint8_t hwm_index, hwm_regs[256], vtin2_regs[5], vtin3_regs[5];
-
-    int i2c_vtin2_index, i2c_vtin2_on_index; /* VTIN2 I2C Handler */
-    int i2c_vtin3_index, i2c_vtin3_on_index; /* VTIN2 I2C Handler */
-
+    uint8_t hwm_index, hwm_regs[256];
 
     uint8_t	index, cfg_unlocked,
 		    regs[48], dev_regs[12][256];
@@ -151,195 +147,6 @@ w83627hf_stabilizer(int vcorea, int vcoreb, int fan1, int fan2, int fan3)
     fan1_rpm = fan1;
     fan2_rpm = fan2;
     fan3_rpm = fan3;
-}
-
-static void
-w83627hf_hwm_reset(w83627hf_t *dev)
-{
-    /* W83627HF Hardware Monitor */
-    dev->hwm_regs[0x40] = 1;
-    dev->hwm_regs[0x47] = 0xa0;
-    dev->hwm_regs[0x48] = 0x2d;
-    dev->hwm_regs[0x49] = 1;
-    dev->hwm_regs[0x4a] = 1;
-    dev->hwm_regs[0x4b] = 0x44;
-    dev->hwm_regs[0x4d] = 0x15;
-    dev->hwm_regs[0x4e] = 0x80;
-    dev->hwm_regs[0x57] = 0x80;
-    dev->hwm_regs[0x58] = 0x21;
-    dev->hwm_regs[0x59] = 0x70;
-    dev->hwm_regs[0x5a] = 0xff;
-    dev->hwm_regs[0x5b] = 0xff;
-    dev->hwm_regs[0x5c] = 0x11;
-}
-
-static uint8_t
-w83627hf_i2c_vtin2_start(void *bus, uint8_t addr, uint8_t read, void *priv)
-{
-    w83627hf_t *dev = (w83627hf_t *) priv;
-
-    dev->i2c_vtin2_on_index = 0;
-
-    return 1;
-}
-
-static uint8_t
-w83627hf_i2c_vtin2_write(void *bus, uint8_t addr, uint8_t val, void *priv)
-{
-    w83627hf_t *dev = (w83627hf_t *) priv;
-
-    if(dev->i2c_vtin2_on_index == 0)
-    {
-        dev->i2c_vtin2_index = val;
-        dev->i2c_vtin2_on_index = 1;
-    }
-    else
-    {
-        switch(dev->i2c_vtin2_index)
-        {
-            case 0x52:
-                dev->vtin2_regs[dev->i2c_vtin2_index - 0x52] = val & 0x1b;
-            break;
-
-            case 0x53:
-                dev->vtin2_regs[dev->i2c_vtin2_index - 0x52] = val;
-            break;
-
-            case 0x54:
-                dev->vtin2_regs[dev->i2c_vtin2_index - 0x52] = val & 0x80;
-            break;
-
-            case 0x55 ... 0x56:
-                dev->vtin2_regs[dev->i2c_vtin2_index - 0x52] = val;
-            break;
-        }
-
-        dev->i2c_vtin2_on_index = 0;
-    }
-
-    return 1;
-}
-
-static uint8_t
-w83627hf_i2c_vtin2_read(void *bus, uint8_t addr, void *priv)
-{
-    w83627hf_t *dev = (w83627hf_t *) priv;
-
-    if(dev->i2c_vtin2_on_index == 1) {
-        switch(dev->i2c_vtin2_index)
-        {
-            case 0x50:
-                return 0x32;
-            
-            case 0x51:
-                return 0;
-
-            case 0x52 ... 0x56:
-                return dev->vtin2_regs[dev->i2c_vtin2_index - 0x52];
-
-            default:
-                return 0xff;
-        }
-
-        dev->i2c_vtin2_on_index = 0;
-    }
-    else
-        return 0xff;
-
-}
-
-void
-w83627hf_i2c_vtin2_remap(w83627hf_t *dev, int enable, uint8_t addr)
-{
-	i2c_sethandler(i2c_smbus, 0x90 | (addr & 7), 1, w83627hf_i2c_vtin2_start, w83627hf_i2c_vtin2_read, w83627hf_i2c_vtin2_write, NULL, dev); /* Add a VTIN2 I2C */
-
-    if(!enable)
-	i2c_removehandler(i2c_smbus, 0x90 | (addr & 7), 1, w83627hf_i2c_vtin2_start, w83627hf_i2c_vtin2_read, w83627hf_i2c_vtin2_write, NULL, dev); /* Remove a VTIN2 I2C if disabled */
-
-    w83627hf_log("W83627-VTIN2: ADDR: %02x ENABLED: %01d\n", 0x90 | (addr & 7), enable);
-}
-
-static uint8_t
-w83627hf_i2c_vtin3_start(void *bus, uint8_t addr, uint8_t read, void *priv)
-{
-    w83627hf_t *dev = (w83627hf_t *) priv;
-
-    dev->i2c_vtin3_on_index = 0;
-
-    return 1;
-}
-
-static uint8_t
-w83627hf_i2c_vtin3_write(void *bus, uint8_t addr, uint8_t val, void *priv)
-{
-    w83627hf_t *dev = (w83627hf_t *) priv;
-
-    if(dev->i2c_vtin3_on_index == 0)
-    {
-        dev->i2c_vtin3_index = val;
-        dev->i2c_vtin3_on_index = 1;
-    }
-    else
-    {
-        switch(dev->i2c_vtin3_index)
-        {
-            case 0x52:
-                dev->vtin3_regs[dev->i2c_vtin3_index - 0x52] = val & 0x1b;
-            break;
-
-            case 0x53:
-                dev->vtin3_regs[dev->i2c_vtin3_index - 0x52] = val;
-            break;
-
-            case 0x54:
-                dev->vtin3_regs[dev->i2c_vtin3_index - 0x52] = val & 0x80;
-            break;
-
-            case 0x55 ... 0x56:
-                dev->vtin3_regs[dev->i2c_vtin3_index - 0x52] = val;
-            break;
-        }
-
-        dev->i2c_vtin3_on_index = 0;
-    }
-
-    return 1;
-}
-
-static uint8_t
-w83627hf_i2c_vtin3_read(void *bus, uint8_t addr, void *priv)
-{
-    w83627hf_t *dev = (w83627hf_t *) priv;
-
-    if(dev->i2c_vtin3_on_index == 1) {
-        switch(dev->i2c_vtin3_index)
-        {
-            case 0x50:
-                return 0x32;
-
-            case 0x52 ... 0x56:
-                return dev->vtin3_regs[dev->i2c_vtin3_index - 0x52];
-
-            default:
-                return 0xff;
-        }
-
-        dev->i2c_vtin3_on_index = 0;
-    }
-    else
-        return 0xff;
-
-}
-
-void
-w83627hf_i2c_vtin3_remap(w83627hf_t *dev, int enable, uint8_t addr)
-{
-	i2c_sethandler(i2c_smbus, 0x90 | (addr & 7), 1, w83627hf_i2c_vtin3_start, w83627hf_i2c_vtin3_read, w83627hf_i2c_vtin3_write, NULL, dev); /* Add a VTIN3 I2C */
-
-    if(!enable)
-	i2c_removehandler(i2c_smbus, 0x90 | (addr & 7), 1, w83627hf_i2c_vtin3_start, w83627hf_i2c_vtin3_read, w83627hf_i2c_vtin3_write, NULL, dev); /* Remove a VTIN3 I2C if disabled */
-
-    w83627hf_log("W83627-VTIN3: ADDR: %02x ENABLED: %01d\n", 0x90 | (addr & 7), enable);
 }
 
 static void
@@ -384,14 +191,16 @@ w83627hf_hwm_write(uint16_t addr, uint8_t val, void *priv)
                     dev->hwm_regs[dev->hwm_index] = val & 0x3f;
                 break;
 
+                case 0x48: /* Serial Bus Address */
+                    dev->hwm_regs[dev->hwm_index] = val & 0x7f;
+                break;
+
                 case 0x49:
                     dev->hwm_regs[dev->hwm_index] = val & 1;
                 break;
 
                 case 0x4a:
                     dev->hwm_regs[dev->hwm_index] = val;
-                    w83627hf_i2c_vtin2_remap(dev, !!(addr & 8), addr & 7);
-                    w83627hf_i2c_vtin3_remap(dev, !!(addr & 0x80), (addr >> 4) & 7);
                 break;
 
                 case 0x4b:
@@ -713,7 +522,6 @@ w83627hf_cir_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 static void
 w83627hf_gameport_midi_gpio1_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 {
-    /* Unimplemented Functionality */
     switch(cur_reg)
     {
         case 0x30:
@@ -737,7 +545,6 @@ w83627hf_gameport_midi_gpio1_write(uint16_t cur_reg, uint8_t val, w83627hf_t *de
 static void
 w83627hf_watchdog_timer_gpio2_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 {
-    /* Unimplemented Functionality */
     switch(cur_reg)
     {
         case 0x30:
@@ -761,7 +568,6 @@ w83627hf_watchdog_timer_gpio2_write(uint16_t cur_reg, uint8_t val, w83627hf_t *d
 static void
 w83627hf_gpio3_vsb_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 {
-    /* Unimplemented Functionality */
     switch(cur_reg)
     {
         case 0x30:
@@ -854,6 +660,26 @@ w83627hf_hwm_lpc_write(uint16_t cur_reg, uint8_t val, w83627hf_t *dev)
 }
 
 static void
+w83627hf_hwm_reset(w83627hf_t *dev)
+{
+    /* W83627HF Hardware Monitor */
+    dev->hwm_regs[0x40] = 1;
+    dev->hwm_regs[0x47] = 0xa0;
+    dev->hwm_regs[0x48] = 0x2d;
+    dev->hwm_regs[0x49] = 1;
+    dev->hwm_regs[0x4a] = 1;
+    dev->hwm_regs[0x4b] = 0x44;
+    dev->hwm_regs[0x4d] = 0x15;
+    dev->hwm_regs[0x4e] = 0x80;
+    dev->hwm_regs[0x57] = 0x80;
+    dev->hwm_regs[0x58] = 0x21;
+    dev->hwm_regs[0x59] = 0x70;
+    dev->hwm_regs[0x5a] = 0xff;
+    dev->hwm_regs[0x5b] = 0xff;
+    dev->hwm_regs[0x5c] = 0x11;
+}
+
+static void
 w83627hf_reset(void *priv)
 {
     w83627hf_t *dev = (w83627hf_t *)priv;
@@ -924,7 +750,6 @@ w83627hf_reset(void *priv)
 
     /* W83627HF Hardware Monitor */
     w83627hf_hwm_reset(dev);
-    w83627hf_i2c_vtin2_remap(dev, 0, 1);
 }
 
 static void
@@ -944,7 +769,6 @@ w83627hf_write(uint16_t addr, uint8_t val, void *priv)
         break;
 
         case 0x0f:
-            w83627hf_log("W83627HF: dev->regs[%02x] = %02x\n", dev->index, val);
             if(dev->cfg_unlocked)
                 switch(dev->index)
                 {

@@ -6,13 +6,14 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Implementation of Socket 423 machines.
+ *		Implementation of Socket 478(mPGA478) Machines.
  *
  *
+ * Authors:	Tiseno100,
+ *		Miran Grca, <mgrca8@gmail.com>
  *
- * Authors:	Miran Grca, <mgrca8@gmail.com>
- *
- *		Copyright 2016-2019 Miran Grca.
+ *		Copyright 2020,2021 Tiseno100.
+ *		Copyright 2021,2021 Miran Grca.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -31,6 +32,7 @@
 #include <86box/flash.h>
 #include <86box/sio.h>
 #include "cpu.h"
+#include <86box/clock.h>
 #include <86box/machine.h>
 
 int
@@ -47,13 +49,15 @@ machine_at_ms6398_init(const machine_t *model)
     intel_ich2_setup(845, 0, 5, 1, 3, model);
 
     device_add(&w83627hf_device);
-    w83627hf_stabilizer(0x7a,    /* CPU Voltage (Mendocino's are utilizing 2 Volts ) */
+    w83627hf_stabilizer(0x7a,    /* CPU Voltage */
                         0x6f,    /* 1.8V Rail */
                         0x1c,    /* FAN 2 */
                         0x1e,    /* FAN 3 */
                         0x1d     /* FAN 1 */
     );
-    device_add(&intel_flash_bxt_device); /* Needs Intel or SST FWH */
+
+    device_add(&intel_flash_bxt_device);
+    device_add(ics9xxx_get(ICS9250_18));
 
     return ret;
 }

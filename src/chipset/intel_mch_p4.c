@@ -176,8 +176,12 @@ intel_mch_p4_write(int func, int addr, uint8_t val, void *priv)
                 dev->pci_conf[addr] = val & 0x02;
             break;
 
-            case 0x60 ... 0x67: /* SPD */
-                spd_write_drbs(dev->pci_conf, 0x60, 0x67, 32);
+            case 0x60 ... 0x63: /* SPD */
+                spd_write_drbs(dev->pci_conf, 0x60, 0x63, 32);
+                dev->pci_conf[addr] = val;
+            break;
+
+            case 0x64 ... 0x67:
                 dev->pci_conf[addr] = val;
             break;
 
@@ -346,8 +350,6 @@ intel_mch_p4_reset(void *priv)
     dev->pci_conf[0xe5] = 0xa0;
     dev->pci_conf[0xe6] = 4;
     dev->pci_conf[0xe7] = 0xf1;
-
-    spd_write_drbs(dev->pci_conf, 0x60, 0x67, 8);
 
     intel_mch_p4_pam(0x90, dev);
     intel_mch_p4_pam(0x91, dev);

@@ -284,7 +284,9 @@ typedef struct {
 
     /* Pentium II/III/IV MSR's needed for late BIOS */
     uint64_t	ecx1a0;			/* 0x000001a0 */
+    uint64_t    ecx198;         /* 0x00000198 */
     uint64_t    ecx19a;         /* 0x0000019a */
+    uint64_t    ecx19d;         /* 0x0000019d */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t	ecx404;			/* 0x00000404 - Model Identification MSR's used by some Acer BIOSes */

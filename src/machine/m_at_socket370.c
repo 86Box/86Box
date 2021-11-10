@@ -477,7 +477,8 @@ machine_at_j815epda_init(const machine_t *model)
                         0x1e,    /* FAN 3 */
                         0x1d     /* FAN 1 */
     );
-    device_add(&intel_flash_bxt_device); /* Needs Intel or SST FWH */
+    device_add(&intel_flash_bxt_device);
+    device_add(ics9xxx_get(ICS9250_18));
 
     return ret;
 }
@@ -495,9 +496,10 @@ machine_at_s2080_init(const machine_t *model)
 
     intel_ich2_setup(815, 0, 6, 0, 3, model);
 
-    device_add(&pc87309_device); /* NSC PC87366 */
+    device_add(&pc87332_device); /* NSC PC87366 */
     device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&sst_flash_39sf040_device); /* Needs Intel or SST FWH */
+    device_add(&sst_flash_39sf040_device);
+    device_add(ics9xxx_get(ICS9250_18));
 
     return ret;
 }
