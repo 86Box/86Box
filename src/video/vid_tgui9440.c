@@ -606,15 +606,17 @@ tgui_in(uint16_t addr, void *p)
                 return svga->crtcreg;
                 case 0x3D5:
 		temp = svga->crtc[svga->crtcreg];
-		if (!(svga->crtc[0x37] & 0x04)) {
-                        temp &= 0xfd;
-                        if (i2c_gpio_get_scl(tgui->i2c))
-                                temp |= 0x02;
-                }
-                if (!(svga->crtc[0x37] & 0x08)) {
-                        temp &= 0xfe;
-                        if (i2c_gpio_get_sda(tgui->i2c))
-                                temp |= 0x01;
+		if (svga->crtcreg == 0x37) {
+			if (!(temp & 0x04)) {
+                                temp &= ~0x02;
+                                if (i2c_gpio_get_scl(tgui->i2c))
+                                        temp |= 0x02;
+                        }
+                        if (!(temp & 0x08)) {
+                                temp &= ~0x01;
+                                if (i2c_gpio_get_sda(tgui->i2c))
+                                        temp |= 0x01;
+                        }
                 }
                 return temp;
                 case 0x3d8:
