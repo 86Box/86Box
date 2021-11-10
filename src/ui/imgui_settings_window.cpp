@@ -8,6 +8,8 @@
 #include <iostream>
 #include <string>
 #include <codecvt>
+#include <locale>
+#include <algorithm>
 #include "imgui.h"
 #include <86box/imgui_settings_window.h>
 
