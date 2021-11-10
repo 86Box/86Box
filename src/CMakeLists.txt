@@ -53,7 +53,6 @@ endif()
 
 if(DEV_BRANCH)
 	add_compile_definitions(DEV_BRANCH)
-	set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/branch/86Box.icns)
 endif()
 
 if(VNC)
@@ -170,6 +169,10 @@ install(TARGETS 86Box)
 
 # adjustments for macOS app bundles
 if(APPLE)
+	install(TARGETS 86Box
+    		BUNDLE DESTINATION . COMPONENT Runtime
+    		RUNTIME DESTINATION bin COMPONENT Runtime
+    	)
 	set(APPS ${CMAKE_CURRENT_BINARY_DIR}/86Box.app)
 	install(CODE "
         	include(InstallRequiredSystemLibraries)
