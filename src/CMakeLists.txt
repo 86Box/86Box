@@ -173,10 +173,6 @@ endif()
 
 # adjustments for macOS app bundles
 if(APPLE)
-	install(TARGETS 86Box
-    		BUNDLE DESTINATION . COMPONENT Runtime
-    		RUNTIME DESTINATION bin COMPONENT Runtime
-    	)
 	set(APPS ${CMAKE_CURRENT_BINARY_DIR}/86Box.app)
 	install(CODE "
         	include(InstallRequiredSystemLibraries)
