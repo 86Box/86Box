@@ -297,7 +297,6 @@ static bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::stri
 	SDL_GetWindowWMInfo(sdl_win, &wmInfo);
 	HWND hwnd = wmInfo.info.win.window;
 	return (bool)file_dlg(hwnd, (wchar_t*)filterwinwide.c_str(), res, "", save);
-	
 #else
     bool boolres = false;
     FILE* output;
@@ -385,6 +384,17 @@ void file_open_request(FileOpenSaveRequest param)
 	else file_request_thread(param);
 }
 
+void file_open_request_wrapper(FileOpenSaveRequest param)
+{
+#ifdef __APPLE__
+	extern void FileOpenSaveMacOS(FileOpenSaveRequest param);
+	FileOpenSaveMacOS(param);
+#else
+	std::thread thr(file_open_request, param);
+	thr.detach();
+#endif
+}
+
 struct BaseMenu
 {
     virtual std::string FormatStr() { return ""; } 
@@ -423,8 +433,7 @@ struct CartMenu : BaseMenu
 		filereq.id = cartid;
 		filereq.wp = 0;
 		filereq.filefunc3params = cartridge_mount;
-		std::thread thr(file_open_request, filereq);
-		thr.detach();
+		file_open_request_wrapper(filereq);
 	}
 	if (ImGui::MenuItem("Image... (write-protected)"))
 	{
@@ -433,8 +442,7 @@ struct CartMenu : BaseMenu
 		filereq.id = cartid;
 		filereq.wp = 1;
 		filereq.filefunc3params = cartridge_mount;
-		std::thread thr(file_open_request, filereq);
-		thr.detach();
+		file_open_request_wrapper(filereq);
 	}
 	ImGui::Separator();
 	if (ImGui::MenuItem("Eject"))
@@ -468,8 +476,7 @@ struct FloppyMenu : BaseMenu
 		filereq.id = flpid;
 		filereq.wp = 0;
 		filereq.filefunc3params = floppy_mount;
-		std::thread thr(file_open_request, filereq);
-		thr.detach();
+		file_open_request_wrapper(filereq);
 	}
 	if (ImGui::MenuItem("Image... (write-protected)"))
 	{
@@ -478,8 +485,7 @@ struct FloppyMenu : BaseMenu
 		filereq.id = flpid;
 		filereq.wp = 1;
 		filereq.filefunc3params = floppy_mount;
-		std::thread thr(file_open_request, filereq);
-		thr.detach();
+		file_open_request_wrapper(filereq);
 	}
 	ImGui::Separator();
 	if (ImGui::MenuItem("Eject"))
@@ -541,8 +547,7 @@ struct CDMenu : BaseMenu
 		filereq.id = cdid;
 		filereq.wp = 0;
 		filereq.filefunc2params = cdrom_mount;
-		std::thread thr(file_open_request, filereq);
-		thr.detach();
+		file_open_request_wrapper(filereq);
 	}
     }
 };
@@ -583,8 +588,7 @@ struct ZIPMenu : BaseMenu
 		filereq.id = zipid;
 		filereq.wp = 0;
 		filereq.filefunc3params = zip_mount;
-		std::thread thr(file_open_request, filereq);
-		thr.detach();
+		file_open_request_wrapper(filereq);
 	}
 	if (ImGui::MenuItem("Image... (write-protected)"))
 	{
@@ -593,8 +597,7 @@ struct ZIPMenu : BaseMenu
 		filereq.id = zipid;
 		filereq.wp = 1;
 		filereq.filefunc3params = zip_mount;
-		std::thread thr(file_open_request, filereq);
-		thr.detach();
+		file_open_request_wrapper(filereq);
 	}
 	ImGui::Separator();
 	if (ImGui::MenuItem("Reload previous image"))
@@ -653,8 +656,7 @@ struct MOMenu : BaseMenu
 		filereq.id = moid;
 		filereq.wp = 0;
 		filereq.filefunc3params = mo_mount;
-		std::thread thr(file_open_request, filereq);
-		thr.detach();
+		file_open_request_wrapper(filereq);
 	}
 	if (ImGui::MenuItem("Image... (write-protected)"))
 	{
@@ -663,8 +665,7 @@ struct MOMenu : BaseMenu
 		filereq.id = moid;
 		filereq.wp = 1;
 		filereq.filefunc3params = mo_mount;
-		std::thread thr(file_open_request, filereq);
-		thr.detach();
+		file_open_request_wrapper(filereq);
 	}
 	ImGui::Separator();
 	if (ImGui::MenuItem("Reload previous image"))
@@ -690,8 +691,7 @@ static void RenderCassetteImguiMenuItemsOnly()
 		filereq.wp = 0;
 		filereq.save = true;
 		filereq.filefunc2paramsalt = cassette_mount;
-		std::thread thr(file_open_request, filereq);
-		thr.detach();
+		file_open_request_wrapper(filereq);
 	}
 	ImGui::Separator();
     if (ImGui::MenuItem("Image..."))
@@ -701,8 +701,7 @@ static void RenderCassetteImguiMenuItemsOnly()
 		filereq.id = 0;
 		filereq.wp = 0;
 		filereq.filefunc2paramsalt = cassette_mount;
-		std::thread thr(file_open_request, filereq);
-		thr.detach();
+		file_open_request_wrapper(filereq);
     }
     if (ImGui::MenuItem("Image... (write-protected)"))
     {
@@ -711,8 +710,7 @@ static void RenderCassetteImguiMenuItemsOnly()
 		filereq.id = 0;
 		filereq.wp = 1;
 		filereq.filefunc2paramsalt = cassette_mount;
-		std::thread thr(file_open_request, filereq);
-		thr.detach();
+		file_open_request_wrapper(filereq);
     }
 	ImGui::Separator();
     if (ImGui::MenuItem("Play"))
