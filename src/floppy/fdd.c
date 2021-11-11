@@ -497,7 +497,7 @@ fdd_load(int drive, char *fn)
 	while (loaders[c].ext) {
 		if (!strcasecmp(p, (char *) loaders[c].ext) && (size == loaders[c].size || loaders[c].size == -1)) {
 			driveloaders[drive] = c;
-			strcpy(floppyfns[drive], fn);
+			if (floppyfns[drive] != fn) strcpy(floppyfns[drive], fn);
 			d86f_setup(drive);
 			loaders[c].load(drive, floppyfns[drive]);
 			drive_empty[drive] = 0;
