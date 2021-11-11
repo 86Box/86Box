@@ -29,6 +29,7 @@
 #include <86box/chipset.h>
 #include <86box/spd.h>
 #include <86box/machine.h>
+#include <86box/video.h>
 
 
 enum
@@ -57,6 +58,7 @@ typedef struct
     uint8_t	regs[256], regs_locked[256];
     int		type;
     smram_t	*smram_low, *smram_high;
+    void	*agpgart;
 } i4x0_t;
 
 
@@ -208,14 +210,25 @@ i4x0_smram_handler_phase1(i4x0_t *dev)
 
 
 static void
-i4x0_mask_bar(uint8_t *regs)
+i4x0_mask_bar(uint8_t *regs, void *agpgart)
 {
     uint32_t bar;
 
+    /* Make sure the aperture's base is aligned to its size. */
     bar = (regs[0x13] << 24) | (regs[0x12] << 16);
     bar &= (((uint32_t) regs[0xb4] << 22) | 0xf0000000);
     regs[0x12] = (bar >> 16) & 0xff;
     regs[0x13] = (bar >> 24) & 0xff;
+
+    if (!agpgart)
+	return;
+
+    /* Map aperture and GART. */
+    agpgart_set_aperture(agpgart,
+			 bar,
+			 ((uint32_t) (uint8_t) (~regs[0xb4] & 0x3f) + 1) << 22,
+			 !!(regs[0x51] & 0x02));
+    agpgart_set_gart(agpgart, (regs[0xb9] << 8) | (regs[0xba] << 16) | (regs[0xbb] << 24));
 }
 
 
@@ -323,7 +336,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440BX: case INTEL_440ZX:
 			case INTEL_440GX:
 				regs[0x12] = (val & 0xc0);
-				i4x0_mask_bar(regs);
+				i4x0_mask_bar(regs, dev->agpgart);
 				break;
 		}
 		break;
@@ -333,7 +346,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440BX: case INTEL_440ZX:
 			case INTEL_440GX:
 				regs[0x13] = val;
-				i4x0_mask_bar(regs);
+				i4x0_mask_bar(regs, dev->agpgart);
 				break;
 		}
 		break;
@@ -411,15 +424,19 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 				break;
 			case INTEL_440LX:
 				regs[0x51] = (regs[0x51] & 0x40) | (val & 0x87);
+				i4x0_mask_bar(regs, dev->agpgart);
 				break;
 			case INTEL_440EX:
 				regs[0x51] = (val & 0x86);
+				i4x0_mask_bar(regs, dev->agpgart);
 				break;
 			case INTEL_440BX: case INTEL_440ZX:
 				regs[0x51] = (regs[0x51] & 0x70) | (val & 0x8f);
+				i4x0_mask_bar(regs, dev->agpgart);
 				break;
 			case INTEL_440GX:
    				regs[0x51] = (regs[0x51] & 0xb0) | (val & 0x4f);
+   				i4x0_mask_bar(regs, dev->agpgart);
 				break;
 		}
 		break;
@@ -1074,7 +1091,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440BX: case INTEL_440ZX:
 			case INTEL_440GX:
 				regs[0xb4] = (val & 0x3f);
-				i4x0_mask_bar(regs);
+				i4x0_mask_bar(regs, dev->agpgart);
 				break;
 		}
 		break;
@@ -1084,6 +1101,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440BX: case INTEL_440ZX:
 			case INTEL_440GX:
 				regs[0xb9] = (val & 0xf0);
+				i4x0_mask_bar(regs, dev->agpgart);
 				break;
 		}
 		break;
@@ -1094,6 +1112,7 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 			case INTEL_440BX: case INTEL_440ZX:
 			case INTEL_440GX:
 				regs[addr] = val;
+				i4x0_mask_bar(regs, dev->agpgart);
 				break;
 		}
 		break;
@@ -1593,10 +1612,13 @@ static void
 
     pci_add_card(PCI_ADD_NORTHBRIDGE, i4x0_read, i4x0_write, dev);
 
-    if ((dev->type >= INTEL_440BX) && !(regs[0x7a] & 0x02))
+    if ((dev->type >= INTEL_440BX) && !(regs[0x7a] & 0x02)) {
 	device_add((dev->type == INTEL_440GX) ? &i440gx_agp_device : &i440bx_agp_device);
-    else if (dev->type >= INTEL_440LX)
+	dev->agpgart = device_add(&agpgart_device);
+    } else if (dev->type >= INTEL_440LX) {
 	device_add(&i440lx_agp_device);
+	dev->agpgart = device_add(&agpgart_device);
+    }
 
     return dev;
 }
