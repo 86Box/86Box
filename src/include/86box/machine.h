@@ -426,7 +426,7 @@ extern const device_t	*at_thor_get_device(void);
 /* m_at_socket7_s7.c */
 extern int	machine_at_ap5s_init(const machine_t *);
 
-extern int	machine_at_chariot_init(const machine_t *);
+extern int	machine_at_fmb_init(const machine_t *);
 extern int	machine_at_p54tp4xe_init(const machine_t *);
 extern int	machine_at_p54tp4xe_mr_init(const machine_t *);
 extern int	machine_at_thor_init(const machine_t *);
