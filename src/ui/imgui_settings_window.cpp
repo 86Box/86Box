@@ -1288,6 +1288,36 @@ namespace ImGuiSettingsWindow {
 			OpenDeviceWindow(midi_device_getdevice(temp_midi_device));
 		}
 		ImGui::EndDisabled();
+		ImGui::TextUnformatted("MIDI In Device:"); ImGui::SameLine();
+		if (ImGui::BeginCombo("##MIDI In Device", GetNameOfDevice(midi_in_device_getdevice(temp_midi_input_device), midi_in_device_get_internal_name(temp_midi_input_device), 0).c_str()))
+		{
+			c = 0;
+			while (1)
+			{
+				if (GetNameOfDevice(midi_in_device_getdevice(c), midi_in_device_get_internal_name(c), 0)[0] == 0) break;
+				
+				if (midi_in_device_available(c))
+				{
+					if (ImGui::Selectable(GetNameOfDevice(midi_in_device_getdevice(c), midi_in_device_get_internal_name(c), 0).c_str(), (c == 0) || (c == temp_midi_input_device)))
+					{
+						temp_midi_input_device = c;
+					}
+					if ((c == 0) || (c == temp_midi_input_device))
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				c++;
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::BeginDisabled(!midi_in_device_has_config(temp_midi_input_device));
+		ImGui::SameLine();
+		if (ImGui::Button("Configure##MIDI In Device"))
+		{
+			OpenDeviceWindow(midi_in_device_getdevice(temp_midi_input_device));
+		}
+		ImGui::EndDisabled();
 	}
 
 	void RenderNetworkCategory() {

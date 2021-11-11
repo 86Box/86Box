@@ -1,3 +1,4 @@
+#include "SDL_video.h"
 #include "imgui.h"
 #include "imgui_internal.h"
 #include "imgui_impl_sdl.h"
@@ -1245,11 +1246,6 @@ extern "C" void RenderImGui()
 	bool settingsopen = false;
     if (!imrendererinit) HandleSizeChange();
     if (!mouse_capture) ImGui_ImplSDL2_NewFrame(sdl_win);
-	int w, h;
-	SDL_GL_GetDrawableSize(sdl_win, &w, &h);
-	ImGui::GetIO().DisplaySize.x = w;
-	ImGui::GetIO().DisplaySize.y = h;
-	ImGui::GetIO().DisplayFramebufferScale.x = ImGui::GetIO().DisplayFramebufferScale.y = 1.0;
     ImGui::NewFrame();
     if (ImGui::BeginMainMenuBar())
     {
