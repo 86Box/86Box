@@ -63,6 +63,7 @@ void FileOpenSaveMacOS(FileOpenSaveRequest param)
         [savePanel setCanCreateDirectories:NO];
         [savePanel setAllowedFileTypes: wildcards ? nil : [NSArray arrayWithArray:array]];
         [savePanel setAllowsOtherFileTypes:YES];
+        [array release];
         [savePanel beginSheetModalForWindow:wnd completionHandler:[param, savePanel, array](NSModalResponse result)
         {
             if (result == NSModalResponseOK)
@@ -84,6 +85,7 @@ void FileOpenSaveMacOS(FileOpenSaveRequest param)
         [openPanel setCanChooseFiles:YES];
         [openPanel setAllowsMultipleSelection:NO];
         [openPanel setAllowedFileTypes: wildcards ? nil : [NSArray arrayWithArray:array]];
+        [array release];
         [openPanel beginSheetModalForWindow:wnd completionHandler:[param, openPanel, array](NSModalResponse result)
         {
             if (result == NSModalResponseOK)
