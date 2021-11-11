@@ -14,12 +14,14 @@
 #
 
 cmake_minimum_required(VERSION 3.15)
+set(CMAKE_CXX_STANDARD_REQUIRED 17)
+set(CMAKE_CXX_STANDARD 17)
 
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
 
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-set(CMAKE_CXX_STANDARD_REQUIRED 17)
+
 
 project(86Box
 	VERSION 3.0

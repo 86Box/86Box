@@ -10,6 +10,7 @@
 #include <codecvt>
 #include <locale>
 #include <algorithm>
+#include <utility>
 #include "imgui.h"
 #include <86box/imgui_settings_window.h>
 
@@ -515,7 +516,7 @@ namespace ImGuiSettingsWindow {
 						std::string utf8str = converter.to_bytes(wfilestr);
 						utf8str.resize(1024);
 						ImGui::TextUnformatted(config.config.description); ImGui::SameLine();
-						ImGui::InputText((std::string("##File name") + std::string(config.config.name)).c_str(), utf8str.data(), utf8str.size(), ImGuiInputTextFlags_EnterReturnsTrue);
+						ImGui::InputText((std::string("##File name") + std::string(config.config.name)).c_str(), (char*)utf8str.data(), utf8str.size(), ImGuiInputTextFlags_EnterReturnsTrue);
 						wfilestr = converter.from_bytes(utf8str);
 						wcsncpy(config.filestr, wfilestr.c_str(), 512);
 						break;
@@ -1129,7 +1130,7 @@ namespace ImGuiSettingsWindow {
 				return "Internal";
 			}
 		}
-		device_get_name(device, bus, str.data());
+		device_get_name(device, bus, (char*)str.data());
 		return str;
 	}
 
