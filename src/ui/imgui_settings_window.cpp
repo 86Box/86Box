@@ -653,11 +653,11 @@ namespace ImGuiSettingsWindow {
 			if (ImGui::BeginPopupModal("Do you want to save the settings?", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 			{
 				ImGui::TextUnformatted("This will hard reset the emulated machine!");
-				bool save_confirm = (!!confirm_save);
+				static bool save_confirm = (!confirm_save);
 				ImGui::Checkbox("Don't ask me again", &save_confirm);
 				if (ImGui::Button("Yes"))
 				{
-					confirm_save = save_confirm;
+					confirm_save = !save_confirm;
 					save_settings = 1;
 					ImGui::CloseCurrentPopup();
 				}
@@ -1223,10 +1223,25 @@ namespace ImGuiSettingsWindow {
 		}
 		ImGui::EndDisabled();
 	}
+	int
+	mpu401_standalone_allow(void)
+	{
+		char *md, *mdin;
+
+		md = midi_device_get_internal_name(temp_midi_device);
+		mdin = midi_in_device_get_internal_name(temp_midi_input_device);
+
+		if (md != NULL) {
+		if (!strcmp(md, "none") && !strcmp(mdin, "none"))
+			return 0;
+		}
+
+		return 1;
+	}
 	void RenderSoundCategory()
 	{
 		int c = 0;
-		ImGui::TextUnformatted("Sound:"); ImGui::SameLine();
+		ImGui::TextUnformatted("Sound card:"); ImGui::SameLine();
 		if (ImGui::BeginCombo("##Sound", GetNameOfDevice(sound_card_getdevice(temp_sound_card), sound_card_get_internal_name(temp_sound_card), 1).c_str()))
 		{
 			while (1)
@@ -1258,6 +1273,7 @@ namespace ImGuiSettingsWindow {
 			OpenDeviceWindow(sound_card_getdevice(temp_sound_card));
 		}
 		ImGui::EndDisabled();
+
 		ImGui::TextUnformatted("MIDI Out Device:"); ImGui::SameLine();
 		if (ImGui::BeginCombo("##MIDI Out Device", GetNameOfDevice(midi_device_getdevice(temp_midi_device), midi_device_get_internal_name(temp_midi_device), 0).c_str()))
 		{
@@ -1288,6 +1304,7 @@ namespace ImGuiSettingsWindow {
 			OpenDeviceWindow(midi_device_getdevice(temp_midi_device));
 		}
 		ImGui::EndDisabled();
+
 		ImGui::TextUnformatted("MIDI In Device:"); ImGui::SameLine();
 		if (ImGui::BeginCombo("##MIDI In Device", GetNameOfDevice(midi_in_device_getdevice(temp_midi_input_device), midi_in_device_get_internal_name(temp_midi_input_device), 0).c_str()))
 		{
@@ -1318,6 +1335,62 @@ namespace ImGuiSettingsWindow {
 			OpenDeviceWindow(midi_in_device_getdevice(temp_midi_input_device));
 		}
 		ImGui::EndDisabled();
+
+		ImGui::BeginDisabled(!mpu401_standalone_allow());
+		bool mpu401_enabled = temp_mpu401;
+		ImGui::Checkbox("Standalone MPU-401", &mpu401_enabled);
+		temp_mpu401 = mpu401_enabled;
+		ImGui::BeginDisabled(!temp_mpu401);
+		ImGui::SameLine();
+		if (ImGui::Button("Configure##Standalone MPU-401"))
+		{
+			OpenDeviceWindow((machines[temp_machine].flags & MACHINE_MCA) ? &mpu401_mca_device : &mpu401_device);
+		}
+		ImGui::EndDisabled();
+		ImGui::EndDisabled();
+
+		ImGui::BeginDisabled(!(machines[temp_machine].flags & MACHINE_BUS_ISA));
+		bool ssi_enabled = temp_SSI2001;
+		ImGui::Checkbox("Innovation SSI-2001", &ssi_enabled);
+		temp_SSI2001 = ssi_enabled;
+		ImGui::BeginDisabled(!temp_SSI2001);
+		ImGui::SameLine();
+		if (ImGui::Button("Configure##Innovation SSI-2001"))
+		{
+			OpenDeviceWindow(&ssi2001_device);
+		}
+		ImGui::EndDisabled();
+		ImGui::EndDisabled();
+
+		ImGui::BeginDisabled(!(machines[temp_machine].flags & MACHINE_BUS_ISA));
+		bool gb_enabled = temp_GAMEBLASTER;
+		ImGui::Checkbox("CMS / Game Blaster", &gb_enabled);
+		temp_GAMEBLASTER = gb_enabled;
+		ImGui::BeginDisabled(!temp_GAMEBLASTER);
+		ImGui::SameLine();
+		if (ImGui::Button("Configure##CMS / Game Blaster"))
+		{
+			OpenDeviceWindow(&cms_device);
+		}
+		ImGui::EndDisabled();
+		ImGui::EndDisabled();
+
+		ImGui::BeginDisabled(!(machines[temp_machine].flags & MACHINE_BUS_ISA16));
+		bool gus_enabled = temp_GUS;
+		ImGui::Checkbox("Gravis Ultrasound", &gus_enabled);
+		temp_GUS = gus_enabled;
+		ImGui::BeginDisabled(!temp_GUS);
+		ImGui::SameLine();
+		if (ImGui::Button("Configure##Gravis Ultrasound"))
+		{
+			OpenDeviceWindow(&gus_device);
+		}
+		ImGui::EndDisabled();
+		ImGui::EndDisabled();
+		
+		bool float32 = temp_float;
+		ImGui::Checkbox("Use FLOAT32 sound", &float32);
+		temp_float = float32;
 	}
 
 	void RenderNetworkCategory() {
