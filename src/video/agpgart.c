@@ -31,7 +31,7 @@ typedef struct {
     mem_mapping_t aperture_mapping;
 } agpgart_t;
 
-#define ENABLE_AGPGART_LOG 1
+
 #ifdef ENABLE_AGPGART_LOG
 int agpgart_do_log = ENABLE_AGPGART_LOG;
 
@@ -96,7 +96,7 @@ agpgart_translate(uint32_t addr, agpgart_t *dev)
     register uint32_t gart_ptr = mem_readl_phys(dev->gart_base + ((addr >> 10) & 0xfffffffc)) & 0xfffff000;
 
     /* Return remapped address with the page offset. */
-    return gart_ptr + (addr & 0x00000fff);
+    return gart_ptr | (addr & 0x00000fff);
 }
 
 
