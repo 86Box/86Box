@@ -39,7 +39,12 @@ typedef struct {
     int32_t	sample_count;
     uint8_t	entry_flags, fifo[32], restart;
 
-    pc_timer_t	timer;
+    int16_t	out_l, out_r;
+    int		vol_l, vol_r, pos;
+    int32_t	buffer[SOUNDBUFLEN * 2];
+    uint64_t	timer_latch;
+
+    pc_timer_t	dma_timer, poll_timer;
 } ac97_via_sgd_t;
 
 typedef struct _ac97_via_ {
@@ -56,12 +61,7 @@ typedef struct _ac97_via_ {
     ac97_codec_t *codec[2][2];
     ac97_via_sgd_t sgd[6];
 
-    pc_timer_t	timer_count, timer_count_fm;
-    uint64_t	timer_latch, timer_latch_fm;
-    int16_t	out_l, out_r, fm_out_l, fm_out_r;
-    int		master_vol_l, master_vol_r, pcm_vol_l, pcm_vol_r, cd_vol_l, cd_vol_r;
-    int32_t	buffer[SOUNDBUFLEN * 2], fm_buffer[SOUNDBUFLEN * 2];
-    int		pos, fm_pos;
+    int		master_vol_l, master_vol_r, cd_vol_l, cd_vol_r;
 } ac97_via_t;
 
 
@@ -142,13 +142,13 @@ ac97_via_write_control(void *priv, uint8_t modem, uint8_t val)
 	/* Start or stop PCM playback. */
 	i = (val & 0xf4) == 0xc4;
 	if (i && !dev->pcm_enabled)
-		timer_advance_u64(&dev->timer_count, dev->timer_latch);
+		timer_advance_u64(&dev->sgd[0].poll_timer, dev->sgd[0].timer_latch);
 	dev->pcm_enabled = i;
 
 	/* Start or stop FM playback. */
 	i = (val & 0xf2) == 0xc2;
 	if (i && !dev->fm_enabled)
-		timer_advance_u64(&dev->timer_count_fm, dev->timer_latch);
+		timer_advance_u64(&dev->sgd[2].poll_timer, dev->sgd[2].timer_latch);
 	dev->fm_enabled = i;
 
 	/* Update primary audio codec state. */
@@ -183,7 +183,7 @@ ac97_via_update_codec(ac97_via_t *dev)
 
     /* Update volumes according to codec registers. */
     ac97_codec_getattn(codec, 0x02, &dev->master_vol_l, &dev->master_vol_r);
-    ac97_codec_getattn(codec, 0x18, &dev->pcm_vol_l, &dev->pcm_vol_r);
+    ac97_codec_getattn(codec, 0x18, &dev->sgd[0].vol_l, &dev->sgd[0].vol_r);
     ac97_codec_getattn(codec, 0x12, &dev->cd_vol_l, &dev->cd_vol_r);
 
     /* Update sample rate according to codec registers and the variable sample rate flag. */
@@ -503,10 +503,10 @@ ac97_via_remap_modem_codec(void *priv, uint16_t new_io_base, uint8_t enable)
 
 
 static void
-ac97_via_update(ac97_via_t *dev)
+ac97_via_update_stereo(ac97_via_t *dev, ac97_via_sgd_t *sgd)
 {
-    int32_t l = (((dev->out_l * dev->pcm_vol_l) >> 15) * dev->master_vol_l) >> 15,
-	    r = (((dev->out_r * dev->pcm_vol_r) >> 15) * dev->master_vol_r) >> 15;
+    int32_t l = (((sgd->out_l * sgd->vol_l) >> 15) * dev->master_vol_l) >> 15,
+	    r = (((sgd->out_r * sgd->vol_r) >> 15) * dev->master_vol_r) >> 15;
 
     if (l < -32768)
 	l = -32768;
@@ -517,19 +517,9 @@ ac97_via_update(ac97_via_t *dev)
     else if (r > 32767)
 	r = 32767;
 
-    for (; dev->pos < sound_pos_global; dev->pos++) {
-	dev->buffer[dev->pos*2]     = l;
-	dev->buffer[dev->pos*2 + 1] = r;
-    }
-}
-
-
-static void
-ac97_via_update_fm(ac97_via_t *dev)
-{
-    for (; dev->fm_pos < sound_pos_global; dev->fm_pos++) {
-	dev->fm_buffer[dev->fm_pos*2]     = dev->fm_out_l;
-	dev->fm_buffer[dev->fm_pos*2 + 1] = dev->fm_out_r;
+    for (; sgd->pos < sound_pos_global; sgd->pos++) {
+	sgd->buffer[sgd->pos*2]     = l;
+	sgd->buffer[sgd->pos*2 + 1] = r;
     }
 }
 
@@ -546,7 +536,7 @@ ac97_via_sgd_process(void *priv)
 	return;
 
     /* Schedule next run. */
-    timer_on_auto(&sgd->timer, 10.0);
+    timer_on_auto(&sgd->dma_timer, 10.0);
 
     /* Process SGD if it's active, and the FIFO has room or is disabled. */
     if ((sgd_status == 0x80) && (sgd->always_run || ((sgd->fifo_end - sgd->fifo_pos) <= (sizeof(sgd->fifo) - 4)))) {
@@ -652,38 +642,38 @@ ac97_via_sgd_process(void *priv)
 
 
 static void
-ac97_via_poll(void *priv)
+ac97_via_poll_stereo(void *priv)
 {
     ac97_via_t *dev = (ac97_via_t *) priv;
     ac97_via_sgd_t *sgd = &dev->sgd[0]; /* Audio Read */
 
     /* Schedule next run if PCM playback is enabled. */
     if (dev->pcm_enabled)
-	timer_advance_u64(&dev->timer_count, dev->timer_latch);
+	timer_advance_u64(&sgd->poll_timer, sgd->timer_latch);
 
-    /* Update audio buffer. */
-    ac97_via_update(dev);
+    /* Update stereo audio buffer. */
+    ac97_via_update_stereo(dev, sgd);
 
     /* Feed next sample from the FIFO. */
-    switch (dev->sgd_regs[0x02] & 0x30) {
+    switch (dev->sgd_regs[sgd->id | 0x2] & 0x30) {
 	case 0x00: /* Mono, 8-bit PCM */
 		if ((sgd->fifo_end - sgd->fifo_pos) >= 1) {
-			dev->out_l = dev->out_r = (sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] ^ 0x80) << 8;
+			sgd->out_l = sgd->out_r = (sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] ^ 0x80) << 8;
 			return;
 		}
 		break;
 
 	case 0x10: /* Stereo, 8-bit PCM */
 		if ((sgd->fifo_end - sgd->fifo_pos) >= 2) {
-			dev->out_l = (sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] ^ 0x80) << 8;
-			dev->out_r = (sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] ^ 0x80) << 8;
+			sgd->out_l = (sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] ^ 0x80) << 8;
+			sgd->out_r = (sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] ^ 0x80) << 8;
 			return;
 		}
 		break;
 
 	case 0x20: /* Mono, 16-bit PCM */
 		if ((sgd->fifo_end - sgd->fifo_pos) >= 2) {
-			dev->out_l = dev->out_r = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
+			sgd->out_l = sgd->out_r = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
 			sgd->fifo_pos += 2;
 			return;
 		}
@@ -691,9 +681,9 @@ ac97_via_poll(void *priv)
 
 	case 0x30: /* Stereo, 16-bit PCM */
 		if ((sgd->fifo_end - sgd->fifo_pos) >= 4) {
-			dev->out_l = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
+			sgd->out_l = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
 			sgd->fifo_pos += 2;
-			dev->out_r = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
+			sgd->out_r = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
 			sgd->fifo_pos += 2;
 			return;
 		}
@@ -701,7 +691,7 @@ ac97_via_poll(void *priv)
     }
 
     /* Feed silence if the FIFO is empty. */
-    dev->out_l = dev->out_r = 0;
+    sgd->out_l = sgd->out_r = 0;
 }
 
 
@@ -713,23 +703,23 @@ ac97_via_poll_fm(void *priv)
 
     /* Schedule next run if FM playback is enabled. */
     if (dev->fm_enabled)
-	timer_advance_u64(&dev->timer_count_fm, dev->timer_latch_fm);
+	timer_advance_u64(&sgd->poll_timer, sgd->timer_latch);
 
     /* Update FM audio buffer. */
-    ac97_via_update_fm(dev);
+    ac97_via_update_stereo(dev, sgd);
 
     /* Feed next sample from the FIFO.
        The data format is not documented, but it probes as 16-bit stereo at 24 KHz. */
     if ((sgd->fifo_end - sgd->fifo_pos) >= 4) {
-	dev->out_l = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
+	sgd->out_l = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
 	sgd->fifo_pos += 2;
-	dev->out_r = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
+	sgd->out_r = *((uint16_t *) &sgd->fifo[sgd->fifo_pos & (sizeof(sgd->fifo) - 1)]);
 	sgd->fifo_pos += 2;
 	return;
     }
 
     /* Feed silence if the FIFO is empty. */
-    dev->fm_out_l = dev->fm_out_r = 0;
+    sgd->out_l = sgd->out_r = 0;
 }
 
 
@@ -738,15 +728,15 @@ ac97_via_get_buffer(int32_t *buffer, int len, void *priv)
 {
     ac97_via_t *dev = (ac97_via_t *) priv;
 
-    ac97_via_update(dev);
-    ac97_via_update_fm(dev);
+    ac97_via_update_stereo(dev, &dev->sgd[0]);
+    ac97_via_update_stereo(dev, &dev->sgd[2]);
 
     for (int c = 0; c < len * 2; c++) {
-	buffer[c] += dev->buffer[c] / 2;
-	buffer[c] += dev->fm_buffer[c] / 2;
+	buffer[c] += dev->sgd[0].buffer[c] / 2;
+	buffer[c] += dev->sgd[2].buffer[c] / 2;
     }
 
-    dev->pos = dev->fm_pos = 0;
+    dev->sgd[0].pos = dev->sgd[2].pos = 0;
 }
 
 
@@ -773,8 +763,8 @@ ac97_via_speed_changed(void *priv)
     else
 	freq = 48000.0;
 
-    dev->timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq));
-    dev->timer_latch_fm = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 24000.0));
+    dev->sgd[0].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq));
+    dev->sgd[2].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 24000.0));
 }
 
 
@@ -801,12 +791,16 @@ ac97_via_init(const device_t *info)
 	if ((i != 0) && (i != 2))
 		dev->sgd[i].always_run = 1;
 
-	timer_add(&dev->sgd[i].timer, ac97_via_sgd_process, &dev->sgd[i], 0);
+	/* No volume control on FM SGD that I know of. */
+	if (i == 2)
+		dev->sgd[i].vol_l = dev->sgd[i].vol_r = 32767;
+
+	timer_add(&dev->sgd[i].dma_timer, ac97_via_sgd_process, &dev->sgd[i], 0);
     }
 
     /* Set up playback pollers. */
-    timer_add(&dev->timer_count, ac97_via_poll, dev, 0);
-    timer_add(&dev->timer_count_fm, ac97_via_poll_fm, dev, 0);
+    timer_add(&dev->sgd[0].poll_timer, ac97_via_poll_stereo, dev, 0);
+    timer_add(&dev->sgd[2].poll_timer, ac97_via_poll_fm, dev, 0);
     ac97_via_speed_changed(dev);
 
     /* Set up playback handler. */
