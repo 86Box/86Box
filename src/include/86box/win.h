@@ -184,6 +184,9 @@ extern void	NewFloppyDialogCreate(HWND hwnd, int id, int part);
 /* Functions in win_specify_dim.c: */
 extern void	SpecifyDimensionsDialogCreate(HWND hwnd);
 
+/* Functions in win_lang.c: */
+extern void	ProgSettDlgCreate(HWND hwnd);
+
 
 /* Functions in win_settings.c: */
 #define SETTINGS_PAGE_MACHINE			0

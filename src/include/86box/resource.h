@@ -29,6 +29,7 @@
 #define DLG_SND_GAIN		103	/* top-level dialog */
 #define DLG_NEW_FLOPPY		104	/* top-level dialog */
 #define DLG_SPECIFY_DIM		105	/* top-level dialog */
+#define DLG_PROG_SETT		106	/* top-level dialog */
 #define DLG_CONFIG		110	/* top-level dialog */
 #define  DLG_CFG_MACHINE	111	/* sub-dialog of config */
 #define  DLG_CFG_VIDEO		112	/* sub-dialog of config */
@@ -122,7 +123,6 @@
 #define IDC_RADIO_TS_DISABLED	1006
 #define IDC_RADIO_TS_LOCAL	1007
 #define IDC_RADIO_TS_UTC	1008
-#define IDC_COMBO_LANG		1009
 
 #define IDC_COMBO_MACHINE_TYPE	1010
 #define IDC_COMBO_MACHINE	1011	/* machine/cpu config */
@@ -264,6 +264,11 @@
 #define IDC_COMBO_DISK_SIZE	1201
 #define IDC_COMBO_RPM_MODE	1202
 
+#define IDC_COMBO_LANG		1009    /* change language dialog */
+#define IDC_CHECKBOX_GLOBAL 1300
+#define IDC_BUTTON_SYSTEM   1301
+#define IDC_BUTTON_DEFAULT  1302
+
 /* For the DeviceConfig code, re-do later. */
 #define IDC_CONFIG_BASE		1300
 #define  IDC_CONFIGURE_VID	1300
@@ -350,6 +355,8 @@
 #ifdef USE_DISCORD
 #define IDM_DISCORD		40090
 #endif
+
+#define IDM_VID_PROG_SETT	40091
 
 #if defined(DEV_BRANCH) && defined(USE_OPENGL)
 #define IDM_VID_GL_FPS_BLITTER	40100
