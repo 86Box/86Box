@@ -376,19 +376,18 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 			if (codec) {
 				/* Read from or write to codec. */
 				if (val & 0x80) {
-					if (val & 1) { /* return 0x00 on unaligned reads */
+					if (val & 1) { /* return 0x0000 on unaligned reads (real 686B behavior) */
 						dev->sgd_regs[0x80] = dev->sgd_regs[0x81] = 0x00;
 					} else {
-						dev->sgd_regs[0x80] = dev->codec_shadow[modem].regs_codec[i][(val & 0x7f)]     = ac97_codec_read(codec, val);
-						dev->sgd_regs[0x81] = dev->codec_shadow[modem].regs_codec[i][(val & 0x7f) | 1] = ac97_codec_read(codec, val | 1);
+						*((uint16_t *) &dev->codec_shadow[modem].regs_codec[i][val & 0x7f]) = *((uint16_t *) &dev->sgd_regs[0x80]) =
+							ac97_codec_readw(codec, val);
 					}
 
 					/* Flag data/status/index for this codec as valid. */
-					if (val & 0x80)
-						dev->sgd_regs[0x83] |= 0x02 << (i << 1);
+					dev->sgd_regs[0x83] |= 0x02 << (i << 1);
 				} else if (!(val & 1)) { /* do nothing on unaligned writes */
-					ac97_codec_write(codec, val,     dev->codec_shadow[modem].regs_codec[i][(val & 0x7f)]     = dev->sgd_regs[0x80]);
-					ac97_codec_write(codec, val | 1, dev->codec_shadow[modem].regs_codec[i][(val & 0x7f) | 1] = dev->sgd_regs[0x81]);
+					ac97_codec_writew(codec, val,
+						*((uint16_t *) &dev->codec_shadow[modem].regs_codec[i][val & 0x7f]) = *((uint16_t *) &dev->sgd_regs[0x80]));
 
 					/* Update primary audio codec state if that codec was written to. */
 					if (!modem && !i)

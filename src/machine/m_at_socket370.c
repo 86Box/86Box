@@ -37,6 +37,7 @@
 #include "cpu.h"
 #include <86box/machine.h>
 #include <86box/clock.h>
+#include <86box/sound.h>
 #include <86box/snd_ac97.h>
 
 
@@ -452,7 +453,8 @@ machine_at_6via90ap_init(const machine_t *model)
     hwm_values.temperatures[1] += 2; /* System offset */
     hwm_values.temperatures[2] = 0; /* unused */
 
-    device_add(&alc100_device); /* ALC100P identified on similar Acorp boards (694TA, 6VIA90A1) */
+    if (sound_card_current == SOUND_INTERNAL)
+	device_add(&alc100_device); /* ALC100P identified on similar Acorp boards (694TA, 6VIA90A1) */
 
     return ret;
 }

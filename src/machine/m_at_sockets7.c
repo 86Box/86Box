@@ -40,6 +40,7 @@
 #include <86box/video.h>
 #include "cpu.h"
 #include <86box/machine.h>
+#include <86box/sound.h>
 #include <86box/snd_ac97.h>
 
 
@@ -141,7 +142,8 @@ machine_at_ficva503a_init(const machine_t *model)
     hwm_values.temperatures[1] += 2; /* System offset */
     hwm_values.temperatures[2] = 0; /* unused */
 
-    device_add(&wm9701a_device); /* on daughtercard */
+    if (sound_card_current == SOUND_INTERNAL)
+	device_add(&wm9701a_device); /* on daughtercard */
 
     return ret;
 }
