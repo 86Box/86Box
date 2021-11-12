@@ -1644,7 +1644,12 @@ extern "C" void RenderImGui()
 			settingsopen = true;
 			#endif
 		}
-
+#ifdef _WIN32
+		if (ImGui::MenuItem("Settings (Imgui)"))
+		{
+			settingsopen = true;
+		}
+#endif
 		if (ImGui::MenuItem("Update status bar icons", NULL, update_icons))
 		{
 			update_icons ^= 1;

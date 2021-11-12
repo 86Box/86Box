@@ -926,6 +926,7 @@ namespace ImGuiSettingsWindow {
 		//////////////////////////////
 		// CPU Speed Combo Drop Down
 		//////////////////////////////
+		ImGui::SameLine();
 		ImGui::Text("Speed:");
 		ImGui::SameLine();
 		if (ImGui::BeginCombo("##Speed", temp_cpu_f->cpus[temp_cpu].name))
@@ -1394,11 +1395,97 @@ namespace ImGuiSettingsWindow {
 	}
 
 	void RenderNetworkCategory() {
+		const char* nettypes[] = {"None", "PCap", "SLiRP"};
+		ImGui::TextUnformatted("Network type:"); ImGui::SameLine();
+		ImGui::Combo("##Network Type", &temp_net_type, nettypes, 3);
+		ImGui::BeginDisabled(temp_net_type != NET_TYPE_PCAP);
+		ImGui::TextUnformatted("PCap device:"); ImGui::SameLine();
+		if (ImGui::BeginCombo("##PCap device:", network_devs[network_dev_to_id(temp_pcap_dev)].description))
+		{
+			for (int c = 0; c < network_ndev; c++) {
+				if (ImGui::Selectable(network_devs[c].description, !strcmp(network_devs[c].device, temp_pcap_dev)))
+				{
+					strcpy(temp_pcap_dev, network_devs[c].device);
+				}
+				if (!strcmp(network_devs[c].device, temp_pcap_dev))
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::EndDisabled();
+		ImGui::TextUnformatted("Network adapter:"); ImGui::SameLine();
 
+		ImGui::BeginDisabled(!((temp_net_type == NET_TYPE_SLIRP) ||
+				 ((temp_net_type == NET_TYPE_PCAP) && (network_dev_to_id(temp_pcap_dev) > 0))));
+		if (ImGui::BeginCombo("##Network adapter", GetNameOfDevice(network_card_getdevice(temp_net_card), network_card_get_internal_name(temp_net_card), 1).c_str()))
+		{
+			int c = 0;
+			while (1)
+			{
+				auto name = GetNameOfDevice(network_card_getdevice(c), network_card_get_internal_name(c), 1);
+				if (name[0] == 0) break;
+				if (network_card_available(c) &&
+					device_is_valid(network_card_getdevice(c), machines[temp_machine].flags))
+				{
+					if (ImGui::Selectable(name.c_str(), c == 0 || c == temp_net_card))
+					{
+						temp_net_card = c;
+					}
+					if ((c == 0) || (c == temp_net_card))
+						ImGui::SetItemDefaultFocus();
+				}
+				c++;
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::SameLine();
+		if (ImGui::Button("Configure##Network adapter"))
+		{
+			OpenDeviceWindow(network_card_getdevice(temp_net_card));
+		}
+		ImGui::EndDisabled();
 	}
 
 	void RenderPortsCategory() {
-
+		for (int i = 0; i < 3; i++)
+		{
+			ImGui::BeginDisabled(!temp_lpt[i]);
+			if (ImGui::BeginCombo((std::string("LPT") + std::to_string(i + 1) + " Device").c_str(), lpt_device_get_name(temp_lpt_devices[i])))
+			{
+				int c = 0;
+				while (1)
+				{
+					if (!lpt_device_get_name(c)) break;
+					if (ImGui::Selectable(lpt_device_get_name(c), c == temp_lpt_devices[i]))
+					{
+						temp_lpt_devices[i] = c;
+					}
+					if (temp_lpt_devices[i] == c)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+					c++;
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::EndDisabled();
+		}
+		for (int i = 0; i < 4; i++)
+		{
+			bool temp_serial_b = temp_serial[i];
+			if (i != 0 && ((i + 1) % 2)) ImGui::SameLine();
+			ImGui::Checkbox((std::string("Serial port ") + std::to_string(i + 1)).c_str(), &temp_serial_b);
+			temp_serial[i] = temp_serial_b;
+		}
+		for (int i = 0; i < 3; i++)
+		{
+			bool temp_lpt_b = temp_lpt[i];
+			if ((i + 1) % 2) ImGui::SameLine();
+			ImGui::Checkbox((std::string("Parallel port ") + std::to_string(i + 1)).c_str(), &temp_lpt_b);
+			temp_lpt[i] = temp_lpt_b;
+		}
 	}
 
 	void RenderStorageControllersCategory() {
