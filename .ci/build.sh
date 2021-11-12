@@ -67,7 +67,7 @@ build() {
 	local job_name=$JOB_BASE_NAME
 	local build_type=$BUILD_TYPE
 	local build_number=$BUILD_NUMBER
-	local git_hash=$(echo $GIT_COMMIT | cut -c1-7)
+	local git_hash=$(echo $GIT_COMMIT | cut -c1-8)
 	local arch=$1
 	shift
 	local cmake_flags=$*
