@@ -105,6 +105,11 @@ machine_at_s1857_init(const machine_t *model)
     device_add(&w83977f_370_device);
     device_add(&intel_flash_bxt_device);
 
+    if (sound_card_current == SOUND_INTERNAL) {
+	device_add(&es1371_onboard_device);
+	device_add(&cs4297_device); /* found on other Tyan boards around the same time */
+    }
+
     return ret;
 }
 
@@ -376,6 +381,11 @@ machine_at_gt694va_init(const machine_t *model)
     hwm_values.fans[1] = 0; /* unused */
     hwm_values.fans[2] = 0; /* unused */
     hwm_values.temperatures[2] = 0; /* unused */
+
+    if (sound_card_current == SOUND_INTERNAL) {
+	device_add(&es1371_onboard_device);
+	device_add(&cs4297_device); /* assumed */
+    }
 
     return ret;
 }

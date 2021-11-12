@@ -468,16 +468,15 @@ machine_at_s1846_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
+    device_add(&pc87309_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     if (sound_card_current == SOUND_INTERNAL) {
 	device_add(&es1371_onboard_device);
 	device_add(&cs4297_device); /* found on other Tyan boards around the same time */
     }
-
-    device_add(&pc87309_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&intel_flash_bxt_device);
-    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     return ret;
 }
@@ -691,10 +690,6 @@ machine_at_ms6168_common_init(const machine_t *model)
 int
 machine_at_borapro_init(const machine_t *model)
 {
-    /* AMI 440ZX Board. Packard Bell OEM of the MSI MS-6168
-       MIGHT REQUIRE MORE EXCESSIVE TESTING!
-       Reports emmersive amounts of RAM like few Intel OEM boards
-       we have. */
     int ret;
 
     ret = bios_load_linear("roms/machines/borapro/MS6168V2.50",
