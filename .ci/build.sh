@@ -108,8 +108,8 @@ build() {
 	if is_windows
 	then
 		# Switch into the correct MSYSTEM if required.
-		msys=MINGW$arch
-		[ ! -d "/$msys" ] && msys=CLANG$arch
+		local msys=MINGW$arch
+		[ ! -d "/$msys" ] && local msys=CLANG$arch
 		if [ -d "/$msys" ]
 		then
 			if [ "$MSYSTEM" != "$msys" ]
@@ -133,10 +133,10 @@ build() {
 	else
 		# Determine Debian architecture.
 		case $arch in
-			x86)	arch_deb="i386";;
-			x86_64)	arch_deb="amd64";;
-			arm32)	arch_deb="armhf";;
-			*)	arch_deb="$arch";;
+			x86)	local arch_deb="i386";;
+			x86_64)	local arch_deb="amd64";;
+			arm32)	local arch_deb="armhf";;
+			*)	local arch_deb="$arch";;
 		esac
 
 		# Establish general and architecture-specific dependencies.
@@ -153,16 +153,16 @@ build() {
 		for pkg in libc6-dev linux-libc-dev libopenal-dev libfreetype6-dev libsdl2-dev libpng-dev
 		do
 			local libpkgs="$libpkgs $pkg:$arch_deb"
-			length=$(echo -n $pkg | sed 's/-dev$//g' | wc -c)
+			local length=$(echo -n $pkg | sed 's/-dev$//g' | wc -c)
 			[ $length -gt $longest_libpkg ] && longest_libpkg=$length
 		done
 
 		# Determine GNU toolchain architecture.
 		case $arch in
-			x86)	arch_gnu="i686-linux-gnu";;
-			arm32)	arch_gnu="arm-linux-gnueabihf";;
-			arm64)	arch_gnu="aarch64-linux-gnu";;
-			*)	arch_gnu="$arch-linux-gnu";;
+			x86)	local arch_gnu="i686-linux-gnu";;
+			arm32)	local arch_gnu="arm-linux-gnueabihf";;
+			arm64)	local arch_gnu="aarch64-linux-gnu";;
+			*)	local arch_gnu="$arch-linux-gnu";;
 		esac
 
 		# Create CMake toolchain file.
@@ -254,8 +254,8 @@ EOF
 	then
 		# Determine Program Files directory for Ghostscript and 7-Zip.
 		# Manual checks because MSYS is bad at passing the ProgramFiles variables.
-		pf="/c/Program Files"
-		sevenzip="$pf/7-Zip/7z.exe"
+		local pf="/c/Program Files"
+		local sevenzip="$pf/7-Zip/7z.exe"
 		[ "$arch" = "32" -a -d "/c/Program Files (x86)" ] && pf="/c/Program Files (x86)"
 
 		# Archive freetype from local MSYS installation.
