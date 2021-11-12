@@ -67,7 +67,7 @@ typedef struct {
 /* Platform Public data, specific. */
 HINSTANCE	hinstance;		/* application instance */
 HANDLE		ghMutex;
-uint32_t		lang_id;		/* current language ID used */
+uint32_t		lang_id, lang_sys;		/* current and system language ID */
 DWORD		dwSubLangID;
 int		acp_utf8;		/* Windows supports UTF-8 codepage */
 volatile int	cpu_thread_run = 1;
@@ -260,10 +260,14 @@ set_language(uint32_t id)
 		lang_id = id;
 		SetThreadUILanguage(lang_id);
 		
-		SetMenu(hwndMain, LoadMenu(hinstance, L"MainMenu"));
-
 		/* Load the strings table for this ID. */
 		LoadCommonStrings();
+		
+		/* Reload main menu */
+		SetMenu(hwndMain, LoadMenu(hinstance, L"MainMenu"));
+		
+		/* Re-init media menu */
+		media_menu_init();
     } 
 }
 
@@ -466,7 +470,8 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
     sprintf(emu_version, "%s v%s", EMU_NAME, EMU_VERSION);
 	
 	/* First, set our (default) language. */
-    set_language(GetThreadUILanguage());
+	lang_sys = GetThreadUILanguage();
+    set_language(lang_sys);
 
     /* Process the command line for options. */
     argc = ProcessCommandLine(&argv);

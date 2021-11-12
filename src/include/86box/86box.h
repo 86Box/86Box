@@ -65,6 +65,8 @@ extern "C" {
 #endif
 
 /* Global variables. */
+extern uint32_t	lang_sys;	/* (-) system language code */
+
 extern int	dump_on_exit;			/* (O) dump regs on exit*/
 extern int	do_dump_config;			/* (O) dump cfg after load */
 extern int	start_in_fullscreen;		/* (O) start in fullscreen */
