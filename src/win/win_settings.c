@@ -78,9 +78,6 @@
 static int first_cat = 0;
 static int dpi = 96;
 
-/* Language */
-static LCID temp_language;
-
 /* Machine category */
 static int temp_machine_type, temp_machine, temp_cpu, temp_wait_states, temp_fpu, temp_sync;
 static cpu_family_t *temp_cpu_f;
@@ -319,51 +316,12 @@ settings_msgbox_ex(int flags, void *header, void *message, void *btn1, void *btn
     return(i);
 }
 
-int enum_helper, c;
-
-BOOL CALLBACK 
-EnumResLangProc(HMODULE hModule, LPCTSTR lpszType, LPCTSTR lpszName, WORD wIDLanguage, LONG_PTR lParam)
-{
-	wchar_t temp[LOCALE_NAME_MAX_LENGTH + 1];
-	LCIDToLocaleName(wIDLanguage, temp, LOCALE_NAME_MAX_LENGTH, 0);
-	SendMessage((HWND)lParam, CB_ADDSTRING, 0, (LPARAM)temp);
-	SendMessage((HWND)lParam, CB_SETITEMDATA, c, (LPARAM)wIDLanguage);
-	
-	pclog("widl: %u, langid: %u, c: %u\n", wIDLanguage, lang_id, c);
-	if (wIDLanguage == lang_id)
-		enum_helper = c;
-	c++;
-	
-	return 1;
-}
-
-/* Load available languages */
-static void
-win_fill_languages(HWND hdlg)
-{
-	temp_language = GetThreadUILanguage();
-	HWND lang_combo = GetDlgItem(hdlg, IDC_COMBO_LANG); 
-	
-	SendMessage(lang_combo, CB_RESETCONTENT, 0, 0);
-	
-	enum_helper = -1; c = 0;
-	EnumResourceLanguages(hinstance, RT_MENU, L"MainMenu", &EnumResLangProc, (LPARAM)lang_combo);
-	pclog("enum_helper is %d\n", enum_helper);
-	
-	SendMessage(lang_combo, CB_SETCURSEL, enum_helper, 0);
-	pclog("win_fill_languages\n");
-}
 
 /* This does the initial read of global variables into the temporary ones. */
 static void
 win_settings_init(void)
 {
     int i = 0;
-
-    /* Language */
-	temp_language = lang_id;
-	pclog("temp_language is %u\n", lang_id);
-    win_fill_languages(hwndParentDialog);
 
     /* Machine category */
     temp_machine_type = machines[machine].type;
@@ -490,9 +448,6 @@ win_settings_changed(void)
 {
     int i = 0, j = 0;
 
-    /* Language */
-    i = i || has_language_changed(temp_language);
-
     /* Machine category */
     i = i || (machine != temp_machine);
     i = i || (cpu_f != temp_cpu_f);
@@ -582,9 +537,6 @@ win_settings_save(void)
     int i = 0;
 
     pc_reset_hard_close();
-
-    /* Language */
-    set_language(temp_language);
 
     /* Machine category */
     machine = temp_machine;
@@ -5238,13 +5190,6 @@ win_settings_main_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				EndDialog(hdlg, 0);
 				win_notify_dlg_closed();
 				return TRUE;
-			case IDC_COMBO_LANG:
-				if (HIWORD(wParam) == CBN_SELCHANGE) {
-					HWND combo = GetDlgItem(hwndParentDialog, IDC_COMBO_LANG);
-					int index = SendMessage(combo, CB_GETCURSEL, 0, 0); 
-					temp_language = SendMessage(combo, CB_GETITEMDATA, index, 0);
-					pclog("combobox changed -> temp_language = %u", temp_language);
-				}
 		}
 		break;
 
