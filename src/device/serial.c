@@ -717,20 +717,8 @@ serial_set_next_inst(int ni)
 
 void
 serial_standalone_init(void) {
-    if (next_inst == 0) {
-	device_add_inst(&i8250_device, 1);
-	device_add_inst(&i8250_device, 2);
-	device_add_inst(&i8250_device, 3);
-	device_add_inst(&i8250_device, 4);
-    } else if (next_inst == 1) {
-	device_add_inst(&i8250_device, 2);
-	device_add_inst(&i8250_device, 3);
-	device_add_inst(&i8250_device, 4);
-    } else if (next_inst == 2) {
-	device_add_inst(&i8250_device, 3);
-	device_add_inst(&i8250_device, 4);
-    } else
-	device_add_inst(&i8250_device, 4);
+	for ( ; next_inst < 4; )
+		device_add_inst(&i8250_device, next_inst + 1);
 };
 
 
