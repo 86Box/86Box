@@ -56,7 +56,7 @@ pipeline {
 	parameters {
 		string(name: 'BUILD_TYPE',
 		       defaultValue: 'beta', /* !!! CHANGE HERE !!! for build type */
-		       description: 'Build type to pass on to CMake. This may affect the UI icon and feature set.')
+		       description: "Build type to pass on to CMake. Don't change this, you should instead change the default value on .ci/Jenkinsfile")
 		string(name: 'BRANCH',
 		       defaultValue: 'master',
 		       description: "Used internally to make sure all downstream builds use the same commit. Don't change this.")
