@@ -544,16 +544,16 @@ case $JOB_BASE_NAME in
 	$project-Dev)
 		if is_windows
 		then
-			build 32 --preset=experimental
-			build 64 --preset=experimental
+			build 32 --preset=experimental -D VNC=OFF
+			build 64 --preset=experimental -D VNC=OFF
 		elif is_mac
 		then
-			build Universal --preset=experimental
+			build Universal --preset=experimental -D VNC=OFF
 		else
-			build x86 --preset=experimental
-			build x86_64 --preset=experimental
-			build arm32 --preset=experimental
-			build arm64 --preset=experimental
+			build x86 --preset=experimental -D VNC=OFF
+			build x86_64 --preset=experimental -D VNC=OFF
+			build arm32 --preset=experimental -D VNC=OFF
+			build arm64 --preset=experimental -D VNC=OFF
 		fi
 		;;
 
