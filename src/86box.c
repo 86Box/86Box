@@ -434,8 +434,8 @@ usage:
 			printf("-E or --nographic    - forces the old behavior\n");
 #endif
 			printf("-F or --fullscreen   - start in fullscreen mode\n");
-#ifdef _WIN32
 			printf("-G or --lang langid  - start the application with the specified language\n");
+#ifdef _WIN32
 			printf("-H or --hwnd id,hwnd - sends back the main dialog's hwnd\n");
 #endif
 			printf("-L or --logfile path - set 'path' to be the logfile\n");
@@ -519,7 +519,8 @@ usage:
 			   !strcasecmp(argv[c], "-G")) {
 
 
-		  //This function is currently unimplemented for *nix.
+#endif
+		  //This function is currently unimplemented for *nix but has placeholders.
 
 		  lang_init = plat_language_code(argv[++c]);
 		  if (!lang_init)
@@ -528,7 +529,6 @@ usage:
 		  //The return value of 0 only means that the code is invalid,
 		  //  not related to that translation is exists or not for the
           //  selected language.
-#endif
 		} else if (!strcasecmp(argv[c], "--test")) {
 			/* some (undocumented) test function here.. */
 
@@ -922,8 +922,6 @@ pc_reset_hard_close(void)
 void
 pc_reset_hard_init(void)
 {
-	wchar_t wcpufamily[2048], wcpu[2048], wmachine[2048], *wcp;
-
 	/*
 	 * First, we reset the modules that are not part of
 	 * the actual machine, but which support some of the
@@ -1025,7 +1023,14 @@ pc_reset_hard_init(void)
 	pc_full_speed();
 
 	cycles = cycles_main = 0;
+	
+	update_mouse_msg();
+}
 
+void update_mouse_msg()
+{
+	wchar_t wcpufamily[2048], wcpu[2048], wmachine[2048], *wcp;
+	
 	mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
 
 	if (!cpu_override)
@@ -1037,6 +1042,7 @@ pc_reset_hard_init(void)
 	if (wcp) /* remove parentheses */
 		*(wcp - 1) = L'\0';
 	mbstowcs(wcpu, cpu_s->name, strlen(cpu_s->name)+1);
+	
 	swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
 		EMU_NAME_W, EMU_VERSION_W, wmachine, wcpufamily, wcpu,
 		plat_get_string(IDS_2077));
@@ -1044,7 +1050,6 @@ pc_reset_hard_init(void)
 		EMU_NAME_W, EMU_VERSION_W, wmachine, wcpufamily, wcpu,
 		(mouse_get_buttons() > 2) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079));
 }
-
 
 void
 pc_reset_hard(void)

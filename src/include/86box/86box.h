@@ -33,6 +33,9 @@
 #define SCREENSHOT_PATH "screenshots"
 
 
+/* Default language 0xFFFF = from system, 0x409 = en-US */
+#define DEFAULT_LANGUAGE 0x0409
+
 #if defined(ENABLE_BUSLOGIC_LOG) || \
     defined(ENABLE_CDROM_LOG) || \
     defined(ENABLE_D86F_LOG) || \
@@ -173,6 +176,7 @@ extern void	fatal(const char *fmt, ...);
 extern void	set_screen_size(int x, int y);
 extern void	reset_screen_size(void);
 extern void	set_screen_size_natural(void);
+extern void update_mouse_msg();
 #if 0
 extern void	pc_reload(wchar_t *fn);
 #endif
