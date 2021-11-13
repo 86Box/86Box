@@ -59,7 +59,7 @@ pipeline {
 		       description: 'Build type to pass on to CMake. This may affect the UI icon and feature set.')
 		string(name: 'BRANCH',
 		       defaultValue: 'master',
-		       description: 'Used internally to make sure all downstream builds use the same commit.')
+		       description: "Used internally to make sure all downstream builds use the same commit. Don't change this.")
 	}
 
 	stages {
@@ -96,8 +96,8 @@ pipeline {
 		}
 
 		/* This stage has two tasks:
-		   - Fail the build if all build stages failed
 		   - Trigger downstream jobs if we're on the main job
+		   - Fail this build if all build stages failed
 		   This could be done with two stages and when{} blocks, but then they
 		   would show up separately in the UI (unless JENKINS-44094 happens). */
 		stage('Finish build') {
