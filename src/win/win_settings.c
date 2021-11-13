@@ -77,6 +77,9 @@
 static int first_cat = 0;
 static int dpi = 96;
 
+/* Language */
+static int temp_language;
+
 /* Machine category */
 static int temp_machine_type, temp_machine, temp_cpu, temp_wait_states, temp_fpu, temp_sync;
 static cpu_family_t *temp_cpu_f;
@@ -322,6 +325,9 @@ win_settings_init(void)
 {
     int i = 0;
 
+    /* Language */
+    // TODO: Set temp_language here.
+
     /* Machine category */
     temp_machine_type = machines[machine].type;
     temp_machine = machine;
@@ -447,6 +453,9 @@ win_settings_changed(void)
 {
     int i = 0, j = 0;
 
+    /* Language */
+    // i = i || has_language_changed(temp_language);
+
     /* Machine category */
     i = i || (machine != temp_machine);
     i = i || (cpu_f != temp_cpu_f);
@@ -536,6 +545,9 @@ win_settings_save(void)
     int i = 0;
 
     pc_reset_hard_close();
+
+    /* Language */
+    // set_language(temp_language);
 
     /* Machine category */
     machine = temp_machine;
