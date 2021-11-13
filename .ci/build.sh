@@ -508,7 +508,7 @@ fi
 
 # Run builds according to the Jenkins job name.
 case $JOB_BASE_NAME in
-	$project | $project-TestBuildPleaseIgnore)
+	$project | $project-TestBuildPleaseIgnore*)
 		if is_windows
 		then
 			build 32 --preset=regular

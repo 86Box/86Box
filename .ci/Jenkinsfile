@@ -102,7 +102,7 @@ pipeline {
 							job.nextBuildNumber = env.BUILD_NUMBER as Integer
 							job.saveNextBuildNumber()
 						} catch (Exception e) {
-							println "[!] Failed to set next build number for [$it], make sure the script approvals are in place"
+							println "[!] Could not set next build number for [$it], make sure all the script approvals are in place"
 						}
 
 						/* Trigger this job. */
