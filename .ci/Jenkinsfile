@@ -53,20 +53,24 @@ pipeline {
 	stages {
 		stage('Build Windows') {
 			steps {
-				node('windows') {
-					gitClone()
-					windowsBuild()
-					saveArtifacts()
+				catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+					node('windows') {
+						gitClone()
+						windowsBuild()
+						saveArtifacts()
+					}
 				}
 			}
 		}
 
 		stage('Build Linux') {
 			steps {
-				node('debian') {
-					gitClone()
-					unixBuild()
-					saveArtifacts()
+				catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+					node('debian') {
+						gitClone()
+						unixBuild()
+						saveArtifacts()
+					}
 				}
 			}
 		}
