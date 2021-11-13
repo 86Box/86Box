@@ -59,6 +59,12 @@ try_make() {
 }
 
 make_tar() {
+	# Install dependencies.
+	if ! which tar xz > /dev/null 2>&1
+	then
+		which apt-get > /dev/null 2>&1 && DEBIAN_FRONTEND=noninteractive sudo apt-get install -y tar xz-utils
+	fi
+
 	# Determine the best supported compression type.
 	local compression_flag=
 	local compression_ext=
