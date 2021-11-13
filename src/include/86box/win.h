@@ -129,6 +129,7 @@ extern void	do_start(void);
 extern void	do_stop(void);
 
 /* Internal platform support functions. */
+extern int	has_language_changed(int id);
 extern void	set_language(int id);
 extern int	get_vidpause(void);
 extern void	show_cursor(int);
