@@ -749,6 +749,7 @@ pc_init_modules(void)
 	wchar_t temp[512];
 	char tempc[512];
 
+#ifdef PRINT_MISSING_MACHINES_AND_VIDEO_CARDS
 	c = m = 0;
 	while (machine_get_internal_name_ex(c) != NULL) {
 		m = machine_available(c);
@@ -768,6 +769,7 @@ pc_init_modules(void)
 			pclog("Missing video card: %s\n", tempc);
 		c++;
 	}
+#endif
 
 	pc_log("Scanning for ROM images:\n");
 	c = m = 0;
