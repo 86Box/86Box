@@ -66,7 +66,6 @@ build() {
 	# Set argument and environment variables.
 	local job_name=$JOB_BASE_NAME
 	local build_type=$BUILD_TYPE
-	local build_number=$BUILD_NUMBER
 	local git_hash=$(echo $GIT_COMMIT | cut -c1-8)
 	local arch=$1
 	shift
@@ -76,29 +75,11 @@ build() {
 	# Check if at least the job name was received.
 	if [ -z "$job_name" ]
 	then
-		echo [!] Missing environment variables: received JOB_BASE_NAME=[$job_name] BUILD_NUMBER=[$build_number] GIT_COMMIT=[$git_hash]
+		echo [!] Missing environment variables: received JOB_BASE_NAME=[$JOB_BASE_NAME] BUILD_TYPE=[$BUILD_TYPE] BUILD_NUMBER=[$BUILD_NUMBER] GIT_COMMIT=[$GIT_COMMIT]
 		return 1
 	fi
 
-	# Generate the build qualifier and filename.
-	if echo $build_number | grep -q " "
-	then
-		# Full build qualifier.
-		build_qualifier="$build_number"
-		build_fn="-"$(echo "$build_number" | rev | cut -f1 -d" " | rev | tr '\\/:*?"<>|' '_')
-	elif [ ! -z "$build_number" ]
-	then
-		# Build number.
-		build_number=$(echo "$build_number" | sed "s/[^0-9]//g") # remove non-numeric characters
-		build_qualifier="build $build_number"
-		build_fn="-b$build_number"
-	else
-		# No build information.
-		build_qualifier=
-		build_fn=
-	fi
-
-	echo [-] Building [$job_name] [$build_number] [$git_hash] for [$arch] with flags [$cmake_flags]
+	echo [-] Building [$job_name] [$build_type] [$build_qualifier] [$git_hash] for [$arch] with flags [$cmake_flags]
 
 	# Switch to the correct directory.
 	cd "$cwd"
@@ -117,8 +98,8 @@ build() {
 				# Call build with the correct MSYSTEM.
 				echo [-] Switching to MSYSTEM [$msys]
 				cd "$cwd"
-				CHERE_INVOKING=yes MSYSTEM=$msys JOB_BASE_NAME=$JOB_BASE_NAME BUILD_TYPE=$BUILD_TYPE BUILD_NUMBER=$BUILD_NUMBER GIT_COMMIT=$GIT_COMMIT \
-					bash -lc 'exec "'$0'" -b "'$arch'" '$cmake_flags && job_exit=0 # make sure the main script exits cleanly on any success
+				CHERE_INVOKING=yes MSYSTEM="$msys" JOB_BASE_NAME="$JOB_BASE_NAME" BUILD_TYPE="$BUILD_TYPE" BUILD_NUMBER="$BUILD_NUMBER" GIT_COMMIT="$GIT_COMMIT" \
+					bash -lc 'exec "'$0'" -b "'$arch'" '$cmake_flags && job_status=0 # make sure the main script exits cleanly on any success
 				return $?
 			fi
 		else
@@ -215,7 +196,9 @@ EOF
 	# Determine additional CMake flags.
 	[ ! -z "$build_type" ] && local cmake_flags_extra="$cmake_flags_extra -D BUILD_TYPE=\"$build_type\""
 	[ ! -z "$build_qualifier" ] && local cmake_flags_extra="$cmake_flags_extra -D EMU_BUILD=\"$build_qualifier\""
+	[ ! -z "$build_number" ] && local cmake_flags_extra="$cmake_flags_extra -D EMU_BUILD_NUM=\"$build_number\""
 	[ ! -z "$git_hash" ] && local cmake_flags_extra="$cmake_flags_extra -D EMU_GIT_HASH=\"$git_hash\""
+	local cmake_flags_extra="$cmake_flags_extra -D EMU_COPYRIGHT_YEAR=\"$(date +%Y)\""
 
 	# Run CMake.
 	echo [-] Running CMake with flags [$cmake_flags $cmake_flags_extra]
@@ -338,15 +321,15 @@ EOF
 	fi
 
 	# All good.
-	echo [-] Build of [$job_name] [$build_number] [$git_hash] for [$arch] with flags [$cmake_flags] successful
-	job_exit=0
+	echo [-] Build of [$job_name] [$build_type] [$build_qualifier] [$git_hash] for [$arch] with flags [$cmake_flags] successful
+	job_status=0
 }
 
 # Set common variables.
 project=86Box
 cwd=$(pwd)
 first_build=1
-job_exit=1
+job_status=1
 
 # Parse arguments.
 single_build=0
@@ -393,6 +376,27 @@ then
 	exit 100
 fi
 
+# Generate build information. Note that variable names are case sensitive.
+build_number=$BUILD_NUMBER
+if echo $build_number | grep -q " "
+then
+	# A full build qualifier was specified.
+	build_qualifier="$build_number"
+	build_fn="-"$(echo "$build_number" | rev | cut -f1 -d" " | rev | tr '\\/:*?"<>|' '_')
+	build_number= # no build number
+elif [ ! -z "$build_number" ]
+then
+	# A build number was specified.
+	build_qualifier="build $build_number"
+	build_fn="-b$build_number"
+	build_number=$(echo "$build_number" | sed "s/[^0-9]//g") # remove non-numeric characters from build number
+else
+	# No build data was specified.
+	build_number=
+	build_qualifier=
+	build_fn=
+fi
+
 # Run single build if requested.
 if [ $single_build -ne 0 ]
 then
@@ -406,6 +410,7 @@ case $JOB_BASE_NAME in
 		if is_windows
 		then
 			build 32 --preset=regular
+			build 64 --preset=regular
 		elif is_mac
 		then
 			build Universal --preset=regular
@@ -456,5 +461,5 @@ case $JOB_BASE_NAME in
 esac
 
 echo
-echo [-] Exiting with code [$job_exit]
-exit $job_exit
+echo [-] Exiting with status [$job_status]
+exit $job_status
