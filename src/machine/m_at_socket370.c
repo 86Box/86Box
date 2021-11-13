@@ -462,7 +462,7 @@ machine_at_cusl2cbp_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/cusl2cbp/815EPAA2.BIN",
+    ret = bios_load_linear("roms/machines/cusl2cbp/1014cb.001",
 			   0x00080000, 524288, 0);
 
     if (bios_only || !ret)
