@@ -48,6 +48,8 @@ def saveArtifacts() {
 	archiveArtifacts artifacts: "${env.JOB_BASE_NAME}-*"
 }
 
+def anySuccess = false
+
 pipeline {
 	agent any
 
@@ -69,6 +71,10 @@ pipeline {
 						windowsBuild()
 						saveArtifacts()
 					}
+
+					script {
+						anySuccess = true
+					}
 				}
 			}
 		}
@@ -81,38 +87,47 @@ pipeline {
 						unixBuild()
 						saveArtifacts()
 					}
+
+					script {
+						anySuccess = true
+					}
 				}
 			}
 		}
 
-		/* If we're on the main jobs, trigger each of the downstream jobs. */
-		stage('Trigger downstream jobs') {
-			when {
-				expression {
-					return env.JOB_BASE_NAME == '86Box-TestBuildPleaseIgnore';
-				}
-			}
-
+		/* This stage has two tasks:
+		   - Fail the build if all build stages failed
+		   - Trigger downstream jobs if we're on the main job
+		   This could be done with two stages and when{} blocks, but then they
+		   would show up separately in the UI (unless JENKINS-44094 happens). */
+		stage('Finish build') {
 			steps {
 				script {
-					["${env.JOB_BASE_NAME}2"].each {
-						try {
-							/* Set next build number for this job. */
-							def job = Jenkins.instance.getItem(it)
-							job.nextBuildNumber = env.BUILD_NUMBER as Integer
-							job.saveNextBuildNumber()
-						} catch (Exception e) {
-							println "[!] Could not set next build number for [$it], make sure all the script approvals are in place"
-						}
+					if (env.JOB_BASE_NAME == '86Box-TestBuildPleaseIgnore') {
+						["${env.JOB_BASE_NAME}2"].each {
+							try {
+								/* Set next build number for this job. */
+								def job = Jenkins.instance.getItem(it)
+								job.nextBuildNumber = env.BUILD_NUMBER as Integer
+								job.saveNextBuildNumber()
+							} catch (Exception e) {
+								println "[!] Could not set next build number for [$it], make sure all the script approvals are in place"
+							}
 
-						/* Trigger this job. */
-						build propagate: false,
-						      wait: false,
-						      job: it,
-						      parameters: [
-							string(name: 'BUILD_TYPE', value: BUILD_TYPE),
-							string(name: 'BRANCH', value: env.GIT_COMMIT)
-						      ]
+							/* Trigger this job. */
+							build propagate: false,
+							      wait: false,
+							      job: it,
+							      parameters: [
+								string(name: 'BUILD_TYPE', value: BUILD_TYPE),
+								string(name: 'BRANCH', value: env.GIT_COMMIT)
+							      ]
+						}
+					}
+
+					if (!anySuccess) {
+						println "[!] Failing build because all build stages failed"
+						currentBuild.result = 'FAILURE'
 					}
 				}
 			}
