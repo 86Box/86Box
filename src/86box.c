@@ -724,6 +724,26 @@ pc_init_modules(void)
 	wchar_t temp[512];
 	char tempc[512];
 
+	c = m = 0;
+	while (machine_get_internal_name_ex(c) != NULL) {
+		m = machine_available(c);
+		if (!m)
+			pclog("Missing machine: %s\n", machine_getname_ex(c));
+		c++;
+	}
+
+	c = m = 0;
+	while (video_get_internal_name(c) != NULL) {
+		memset(tempc, 0, sizeof(tempc));
+		device_get_name(video_card_getdevice(c), 0, tempc);
+		if ((c > 1) && !(tempc[0]))
+			break;
+		m = video_card_available(c);
+		if (!m)
+			pclog("Missing video card: %s\n", tempc);
+		c++;
+	}
+
 	pc_log("Scanning for ROM images:\n");
 	c = m = 0;
 	while (machine_get_internal_name_ex(m) != NULL) {

@@ -109,7 +109,7 @@ ali6117_recalcmapping(ali6117_t *dev)
 	}
     }
 
-    flushmmucache();
+    flushmmucache_nopc();
 }
 
 
@@ -127,11 +127,15 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
     else if (dev->unlocked) {
 	ali6117_log("ALI6117: regs[%02X] = %02X\n", dev->reg_offset, val);
 
-	switch (dev->reg_offset) {
+	if (!(dev->local & 0x08) || (dev->reg_offset < 0x30))  switch (dev->reg_offset) {
 		case 0x30: case 0x34: case 0x35: case 0x3e:
 		case 0x3f: case 0x46: case 0x4c: case 0x6a:
 		case 0x73:
 			return; /* read-only registers */
+
+		case 0x10:
+			refresh_at_enable = !(val & 0x02) || !!(dev->regs[0x20] & 0x80);
+			break;
 
 		case 0x12:
 			val &= 0xf7;
@@ -184,7 +188,7 @@ ali6117_reg_write(uint16_t addr, uint8_t val, void *priv)
 
 		case 0x20:
 			val &= 0xbf;
-			refresh_at_enable = !!(val & 0x80);
+			refresh_at_enable = !(dev->regs[0x10] & 0x02) || !!(val & 0x80);
 			break;
 
 		case 0x31:
@@ -311,13 +315,17 @@ ali6117_reset(void *priv)
     dev->regs[0x1b] = 0xf0;
     dev->regs[0x1d] = 0xff;
     dev->regs[0x20] = 0x80;
-    dev->regs[0x30] = 0x08;
-    dev->regs[0x31] = 0x01;
-    dev->regs[0x34] = 0x04; /* enable internal RTC */
-    dev->regs[0x35] = 0x20; /* enable internal KBC */
-    dev->regs[0x36] = dev->local & 0x4; /* M6117D ID */
+    if (dev->local & 0x08) {
+	dev->regs[0x30] = 0x08;
+	dev->regs[0x31] = 0x01;
+	dev->regs[0x34] = 0x04; /* enable internal RTC */
+	dev->regs[0x35] = 0x20; /* enable internal KBC */
+	dev->regs[0x36] = dev->local & 0x07; /* M6117D ID */
+    }
 
     cpu_set_isa_speed(7159091);
+
+    refresh_at_enable = 1;
 }
 
 
@@ -361,11 +369,26 @@ ali6117_init(const device_t *info)
     ali6117_setup(dev);
     ali6117_reset(dev);
 
-    pic_elcr_io_handler(0);
-    refresh_at_enable = 0;
+    if (!(dev->local & 0x08))
+	pic_elcr_io_handler(0);
 
     return dev;
 }
+
+
+const device_t ali1217_device =
+{
+    "ALi M1217",
+    DEVICE_AT,
+    0x8,
+    ali6117_init, 
+    ali6117_close, 
+    ali6117_reset,
+    { NULL },
+    NULL,
+    NULL,
+    NULL
+};
 
 
 const device_t ali6117d_device =

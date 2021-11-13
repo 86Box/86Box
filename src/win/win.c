@@ -139,6 +139,7 @@ win_log(const char *fmt, ...)
 #endif
 
 
+void
 free_string(rc_str_t **str)
 {
     if (*str != NULL) {
@@ -538,7 +539,8 @@ main_thread(void *param)
 			frames = 0;
 		}
 	} else	/* Just so we dont overload the host OS. */
-		Sleep(1);
+		Sleep((drawits < -1) ? 1 : 0);
+		// Sleep(1);
 
 	/* If needed, handle a screen resize. */
 	if (doresize && !video_fullscreen && !is_quit) {

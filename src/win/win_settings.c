@@ -980,6 +980,8 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 						win_settings_machine_recalc_machine(hdlg);
 					}
+
+					free(lptsTemp);
 				}
 				break;
 			case IDC_COMBO_MACHINE:

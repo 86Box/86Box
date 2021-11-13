@@ -43,6 +43,7 @@ typedef struct
 } opti895_t;
 
 
+#define ENABLE_OPTI895_LOG 1
 #ifdef ENABLE_OPTI895_LOG
 int opti895_do_log = ENABLE_OPTI895_LOG;
 
@@ -91,11 +92,15 @@ opti895_recalc(opti895_t *dev)
 		shflags = MEM_READ_INTERNAL;
 		shflags |= (dev->regs[0x22] & ((base >= 0xe0000) ? 0x08 : 0x10)) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
 	} else {
-		if (dev->regs[0x26] & 0x40) {
-			shflags = MEM_READ_EXTANY;
+		shflags = (dev->regs[0x2d] & (1 << ((i >> 1) + 2))) ? MEM_READ_EXTANY : MEM_READ_EXTERNAL;
+		if (dev->regs[0x26] & 0x40)
 			shflags |= (dev->regs[0x22] & ((base >= 0xe0000) ? 0x08 : 0x10)) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
-		} else
-			shflags = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
+		else {
+			if (dev->regs[0x26] & 0x80)
+				shflags |= (dev->regs[0x2d] & (1 << ((i >> 1) + 2))) ? MEM_WRITE_EXTANY : MEM_WRITE_EXTERNAL;
+			else
+				shflags |= MEM_WRITE_EXTERNAL;
+		}
 	}
 
 	mem_set_mem_state_both(base, 0x4000, shflags);
@@ -108,17 +113,21 @@ opti895_recalc(opti895_t *dev)
 		shflags = MEM_READ_INTERNAL;
 		shflags |= (dev->regs[0x26] & 0x20) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
 	} else {
-		if (dev->regs[0x26] & 0x40) {
-			shflags = MEM_READ_EXTANY;
+		shflags = (dev->regs[0x2d] & (1 << (i >> 1))) ? MEM_READ_EXTANY : MEM_READ_EXTERNAL;
+		if (dev->regs[0x26] & 0x40)
 			shflags |= (dev->regs[0x26] & 0x20) ? MEM_WRITE_DISABLED : MEM_WRITE_INTERNAL;
-		} else
-			shflags = MEM_READ_EXTANY | MEM_WRITE_EXTANY;
+		else {
+			if (dev->regs[0x26] & 0x80)
+				shflags |= (dev->regs[0x2d] & (1 << (i >> 1))) ? MEM_WRITE_EXTANY : MEM_WRITE_EXTERNAL;
+			else
+				shflags |= MEM_WRITE_EXTERNAL;
+		}
 	}
 
 	mem_set_mem_state_both(base, 0x4000, shflags);
     }
 
-    flushmmucache();
+    flushmmucache_nopc();
 }
 
 
@@ -138,7 +147,7 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
 		}
 		break;
 	case 0x24:
-		if (((dev->idx >= 0x20) && (dev->idx <= 0x2c)) ||
+		if (((dev->idx >= 0x20) && (dev->idx <= 0x2f)) ||
 		    ((dev->idx >= 0xe0) && (dev->idx <= 0xef))) {
 			dev->regs[dev->idx] = val;
 			opti895_log("dev->regs[%04x] = %08x\n", dev->idx, val);
@@ -152,6 +161,7 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
 				case 0x22:
 				case 0x23:
 				case 0x26:
+				case 0x2d:
 					opti895_recalc(dev);
 					break;
 
@@ -177,7 +187,7 @@ opti895_write(uint16_t addr, uint8_t val, void *priv)
 
 	case 0xe1:
 	case 0xe2:
-		dev->scratch[addr] = val;
+		dev->scratch[addr - 0xe1] = val;
 		break;
     }
 }
@@ -195,7 +205,7 @@ opti895_read(uint16_t addr, void *priv)
 			ret = dev->regs[dev->idx];
 		break;
 	case 0x24:
-		if (((dev->idx >= 0x20) && (dev->idx <= 0x2c)) ||
+		if (((dev->idx >= 0x20) && (dev->idx <= 0x2f)) ||
 		    ((dev->idx >= 0xe0) && (dev->idx <= 0xef))) {
 			ret = dev->regs[dev->idx];
 			if (dev->idx == 0xe0)
@@ -204,7 +214,7 @@ opti895_read(uint16_t addr, void *priv)
 		break;
 	case 0xe1:
 	case 0xe2:
-		ret = dev->scratch[addr];
+		ret = dev->scratch[addr - 0xe1];
 		break;
     }
 

@@ -22,6 +22,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
+#include "x86.h"
 #include <86box/timer.h>
 #include <86box/io.h>
 #include <86box/device.h>
@@ -39,6 +40,7 @@ typedef struct
 		reg_base, reg_last,
 		reg_00, is_471,
 		regs[39], scratch[2];
+    uint32_t	mem_state[8];
     smram_t	*smram;
     port_92_t	*port_92;
 } sis_85c4xx_t;
@@ -47,7 +49,7 @@ typedef struct
 static void
 sis_85c4xx_recalcmapping(sis_85c4xx_t *dev)
 {
-    uint32_t base;
+    uint32_t base, n = 0;
     uint32_t i, shflags = 0;
     uint32_t readext, writeext;
     uint8_t romcs = 0xc0, cur_romcs;
@@ -73,12 +75,25 @@ sis_85c4xx_recalcmapping(sis_85c4xx_t *dev)
 		shadowbios_write |= (base >= 0xe0000) && !(dev->regs[0x02] & 0x40);
 		shflags = (dev->regs[0x02] & 0x80) ? MEM_READ_INTERNAL : readext;
 		shflags |= (dev->regs[0x02] & 0x40) ? writeext : MEM_WRITE_INTERNAL;
-		mem_set_mem_state(base, 0x8000, shflags);
-	} else
-		mem_set_mem_state(base, 0x8000, readext | writeext);
+		if (dev->mem_state[i] != shflags) {
+			n++;
+			mem_set_mem_state(base, 0x8000, shflags);
+			if ((base >= 0xf0000) && (dev->mem_state[i] & MEM_READ_INTERNAL) && !(shflags & MEM_READ_INTERNAL))
+				mem_invalidate_range(base, base + 0x7fff);
+			dev->mem_state[i] = shflags;
+		}
+	} else {
+		shflags = readext | writeext;
+		if (dev->mem_state[i] != shflags) {
+			n++;
+			mem_set_mem_state(base, 0x8000, shflags);
+			dev->mem_state[i] = shflags;
+		}
+	}
     }
 
-    flushmmucache_nopc();
+    if (n > 0)
+	flushmmucache_nopc();
 }
 
 
@@ -141,7 +156,8 @@ sis_85c4xx_out(uint16_t port, uint8_t val, void *priv)
 
 				case 0x02: case 0x03:
 				case 0x08:
-					sis_85c4xx_recalcmapping(dev);
+					if (valxor)
+						sis_85c4xx_recalcmapping(dev);
 					break;
 
 				case 0x0b:
@@ -238,6 +254,69 @@ sis_85c4xx_in(uint16_t port, void *priv)
 
 
 static void
+sis_85c4xx_reset(void *priv)
+{
+    sis_85c4xx_t *dev = (sis_85c4xx_t *) priv;
+    int mem_size_mb = mem_size >> 10;
+    static uint8_t ram_4xx[64] = { 0x00, 0x00, 0x01, 0x00, 0x02, 0x00, 0x03, 0x00, 0x04, 0x00, 0x05, 0x00, 0x0b, 0x00, 0x00, 0x00,
+				   0x19, 0x00, 0x06, 0x00, 0x14, 0x00, 0x00, 0x00, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				   0x1b, 0x00, 0x00, 0x00, 0x16, 0x00, 0x00, 0x00, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+				   0x1e, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+    static uint8_t ram_471[64] = { 0x00, 0x00, 0x01, 0x01, 0x02, 0x20, 0x09, 0x09, 0x04, 0x04, 0x05, 0x05, 0x0b, 0x0b, 0x0b, 0x0b,
+				   0x13, 0x21, 0x06, 0x06, 0x0d, 0x0d, 0x0d, 0x0d, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e, 0x0e,
+				   0x1b, 0x1b, 0x1b, 0x1b, 0x0f, 0x0f, 0x0f, 0x0f, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17, 0x17,
+				   0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e, 0x1e };
+
+    memset(dev->regs, 0x00, sizeof(dev->regs));
+
+    if (cpu_s->rspeed < 25000000)
+	dev->regs[0x08] = 0x80;
+
+    if (dev->is_471) {
+	dev->regs[0x09] = 0x40;
+	if (mem_size_mb >= 64) {
+		if ((mem_size_mb >= 65) && (mem_size_mb < 68))
+			dev->regs[0x09] |= 0x22;
+		else
+			dev->regs[0x09] |= 0x24;
+	} else
+		dev->regs[0x09] |= ram_471[mem_size_mb];
+
+	dev->regs[0x11] = 0x09;
+	dev->regs[0x12] = 0xff;
+	dev->regs[0x1f] = 0x20;		/* Video access enabled. */
+	dev->regs[0x23] = 0xf0;
+	dev->regs[0x26] = 0x01;
+
+	smram_enable(dev->smram, 0x000e0000, 0x000a0000, 0x00010000, 0, 1);
+
+	port_92_remove(dev->port_92);
+
+	mem_remap_top(256);
+	soft_reset_mask = 0;
+    } else {
+	/* Bits 6 and 7 must be clear on the SiS 40x. */
+	if (dev->reg_base == 0x60)
+		dev->reg_00 = 0x24;
+
+	if (mem_size_mb == 64)
+		dev->regs[0x00] = 0x1f;
+	else if (mem_size_mb < 64)
+		dev->regs[0x00] = ram_4xx[mem_size_mb];
+
+	dev->regs[0x11] = 0x01;
+    }
+
+    dev->scratch[0] = dev->scratch[1] = 0xff;
+
+    cpu_cache_ext_enabled = 0;
+    cpu_update_waitstates();
+
+    sis_85c4xx_recalcmapping(dev);
+}
+
+
+static void
 sis_85c4xx_close(void *priv)
 {
     sis_85c4xx_t *dev = (sis_85c4xx_t *) priv;
@@ -252,8 +331,6 @@ sis_85c4xx_close(void *priv)
 static void *
 sis_85c4xx_init(const device_t *info)
 {
-    int mem_size_mb;
-
     sis_85c4xx_t *dev = (sis_85c4xx_t *) malloc(sizeof(sis_85c4xx_t));
     memset(dev, 0, sizeof(sis_85c4xx_t));
 
@@ -261,161 +338,22 @@ sis_85c4xx_init(const device_t *info)
 
     dev->reg_base = info->local & 0xff;
 
-    mem_size_mb = mem_size >> 10;
-
-    if (cpu_s->rspeed < 25000000)
-	dev->regs[0x08] = 0x80;
-
     if (dev->is_471) {
 	dev->reg_last = dev->reg_base + 0x76;
 
-	dev->regs[0x09] = 0x40;
-	switch (mem_size_mb) {
-		case 0: case 1:
-			dev->regs[0x09] |= 0x00;
-			break;
-		case 2: case 3:
-			dev->regs[0x09] |= 0x01;
-			break;
-		case 4:
-			dev->regs[0x09] |= 0x02;
-			break;
-		case 5:
-			dev->regs[0x09] |= 0x20;
-			break;
-		case 6: case 7:
-			dev->regs[0x09] |= 0x09;
-			break;
-		case 8: case 9:
-			dev->regs[0x09] |= 0x04;
-			break;
-		case 10: case 11:
-			dev->regs[0x09] |= 0x05;
-			break;
-		case 12: case 13: case 14: case 15:
-			dev->regs[0x09] |= 0x0b;
-			break;
-		case 16:
-			dev->regs[0x09] |= 0x13;
-			break;
-		case 17:
-			dev->regs[0x09] |= 0x21;
-			break;
-		case 18: case 19:
-			dev->regs[0x09] |= 0x06;
-			break;
-		case 20: case 21: case 22: case 23:
-			dev->regs[0x09] |= 0x0d;
-			break;
-		case 24: case 25: case 26: case 27:
-		case 28: case 29: case 30: case 31:
-			dev->regs[0x09] |= 0x0e;
-			break;
-		case 32: case 33: case 34: case 35:
-			dev->regs[0x09] |= 0x1b;
-			break;
-		case 36: case 37: case 38: case 39:
-			dev->regs[0x09] |= 0x0f;
-			break;
-		case 40: case 41: case 42: case 43:
-		case 44: case 45: case 46: case 47:
-			dev->regs[0x09] |= 0x17;
-			break;
-		case 48:
-			dev->regs[0x09] |= 0x1e;
-			break;
-		default:
-			if (mem_size_mb < 64)
-				dev->regs[0x09] |= 0x1e;
-			else if ((mem_size_mb >= 65) && (mem_size_mb < 68))
-				dev->regs[0x09] |= 0x22;
-			else
-				dev->regs[0x09] |= 0x24;
-			break;
-	}
-
-	dev->regs[0x11] = 0x09;
-	dev->regs[0x12] = 0xff;
-	dev->regs[0x1f] = 0x20;		/* Video access enabled. */
-	dev->regs[0x23] = 0xf0;
-	dev->regs[0x26] = 0x01;
-
 	dev->smram = smram_add();
-	smram_enable(dev->smram, 0x000e0000, 0x000a0000, 0x00010000, 0, 1);
 
 	dev->port_92 = device_add(&port_92_device);
-	port_92_remove(dev->port_92);
-    } else {
+    } else
 	dev->reg_last = dev->reg_base + 0x11;
-
-	/* Bits 6 and 7 must be clear on the SiS 40x. */
-	if (dev->reg_base == 0x60)
-		dev->reg_00 = 0x24;
-
-	switch (mem_size_mb) {
-		case 1:
-		default:
-			dev->regs[0x00] = 0x00;
-			break;
-		case 2:
-			dev->regs[0x00] = 0x01;
-			break;
-		case 4:
-			dev->regs[0x00] = 0x02;
-			break;
-		case 6:
-			dev->regs[0x00] = 0x03;
-			break;
-		case 8:
-			dev->regs[0x00] = 0x04;
-			break;
-		case 10:
-			dev->regs[0x00] = 0x05;
-			break;
-		case 12:
-			dev->regs[0x00] = 0x0b;
-			break;
-		case 16:
-			dev->regs[0x00] = 0x19;
-			break;
-		case 18:
-			dev->regs[0x00] = 0x06;
-			break;
-		case 20:
-			dev->regs[0x00] = 0x14;
-			break;
-		case 24:
-			dev->regs[0x00] = 0x15;
-			break;
-		case 32:
-			dev->regs[0x00] = 0x1b;
-			break;
-		case 36:
-			dev->regs[0x00] = 0x16;
-			break;
-		case 40:
-			dev->regs[0x00] = 0x17;
-			break;
-		case 48:
-			dev->regs[0x00] = 0x1e;
-			break;
-		case 64:
-			dev->regs[0x00] = 0x1f;
-			break;
-	}
-
-	dev->regs[0x11] = 0x01;
-    }
 
     io_sethandler(0x0022, 0x0002,
 		  sis_85c4xx_in, NULL, NULL, sis_85c4xx_out, NULL, NULL, dev);
 
-    dev->scratch[0] = dev->scratch[1] = 0xff;
-
     io_sethandler(0x00e1, 0x0002,
 		  sis_85c4xx_in, NULL, NULL, sis_85c4xx_out, NULL, NULL, dev);
 
-    sis_85c4xx_recalcmapping(dev);
+    sis_85c4xx_reset(dev);
 
     return dev;
 }
@@ -425,7 +363,7 @@ const device_t sis_85c401_device = {
     "SiS 85c401/85c402",
     0,
     0x060,
-    sis_85c4xx_init, sis_85c4xx_close, NULL,
+    sis_85c4xx_init, sis_85c4xx_close, sis_85c4xx_reset,
     { NULL }, NULL, NULL,
     NULL
 };
@@ -434,7 +372,7 @@ const device_t sis_85c460_device = {
     "SiS 85c460",
     0,
     0x050,
-    sis_85c4xx_init, sis_85c4xx_close, NULL,
+    sis_85c4xx_init, sis_85c4xx_close, sis_85c4xx_reset,
     { NULL }, NULL, NULL,
     NULL
 };
@@ -444,7 +382,7 @@ const device_t sis_85c461_device = {
     "SiS 85c461",
     0,
     0x050,
-    sis_85c4xx_init, sis_85c4xx_close, NULL,
+    sis_85c4xx_init, sis_85c4xx_close, sis_85c4xx_reset,
     { NULL }, NULL, NULL,
     NULL
 };
@@ -453,7 +391,7 @@ const device_t sis_85c471_device = {
     "SiS 85c407/85c471",
     0,
     0x150,
-    sis_85c4xx_init, sis_85c4xx_close, NULL,
+    sis_85c4xx_init, sis_85c4xx_close, sis_85c4xx_reset,
     { NULL }, NULL, NULL,
     NULL
 };
