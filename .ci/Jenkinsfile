@@ -17,6 +17,7 @@
 
 def gitClone() {
 	cleanWs()
+	println env.GIT_COMMIT
 	if (env.GIT_COMMIT == null)
 		env.GIT_COMMIT = BRANCH
 	def scmVars = git url: 'https://github.com/richardg867/86Box.git',
