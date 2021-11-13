@@ -1048,12 +1048,12 @@ load_ports(void)
     char temp[512];
     int c, d;
 
-    for (c = 0; c < 4; c++) {
+    for (c = 0; c < SERIAL_MAX; c++) {
 	sprintf(temp, "serial%d_enabled", c + 1);
 	serial_enabled[c] = !!config_get_int(cat, temp, (c >= 2) ? 0 : 1);
     }
 
-    for (c = 0; c < 3; c++) {
+    for (c = 0; c < PARALLEL_MAX; c++) {
 	sprintf(temp, "lpt%d_enabled", c + 1);
 	lpt_ports[c].enabled = !!config_get_int(cat, temp, (c == 0) ? 1 : 0);
 
@@ -1065,7 +1065,7 @@ load_ports(void)
     /* Legacy config compatibility. */
     d = config_get_int(cat, "lpt_enabled", 2);
     if (d < 2) {
-	for (c = 0; c < 3; c++)
+	for (c = 0; c < PARALLEL_MAX; c++)
 		lpt_ports[c].enabled = d;
     }
     config_delete_var(cat, "lpt_enabled");
@@ -2518,7 +2518,7 @@ save_ports(void)
     char temp[512];
     int c, d;
 
-    for (c = 0; c < 4; c++) {
+    for (c = 0; c < SERIAL_MAX; c++) {
 	sprintf(temp, "serial%d_enabled", c + 1);
 	if (((c < 2) && serial_enabled[c]) || ((c >= 2) && !serial_enabled[c]))
 		config_delete_var(cat, temp);
@@ -2526,7 +2526,7 @@ save_ports(void)
 		config_set_int(cat, temp, serial_enabled[c]);
     }
 
-    for (c = 0; c < 3; c++) {
+    for (c = 0; c < PARALLEL_MAX; c++) {
 	sprintf(temp, "lpt%d_enabled", c + 1);
 	d = (c == 0) ? 1 : 0;
 	if (lpt_ports[c].enabled == d)
