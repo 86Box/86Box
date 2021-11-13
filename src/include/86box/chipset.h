@@ -24,17 +24,21 @@ extern const device_t	acc2168_device;
 /* ALi */
 extern const device_t	ali1217_device;
 extern const device_t	ali1429_device;
+extern const device_t	ali1429g_device;
 extern const device_t	ali1489_device;
-#if defined(DEV_BRANCH) && defined(USE_M154X)
 extern const device_t	ali1531_device;
+extern const device_t	ali1541_device;
 extern const device_t	ali1543_device;
-#endif
-#if defined(DEV_BRANCH) && defined(USE_M6117)
+extern const device_t	ali1543c_device;
+extern const device_t	ali1621_device;
 extern const device_t	ali6117d_device;
-#endif
 
 /* AMD */
 extern const device_t	amd640_device;
+
+/* Contaq/Cypress */
+extern const device_t	contaq_82c596a_device;
+extern const device_t	contaq_82c597_device;
 
 /* C&T */
 extern const device_t	ct_82c100_device;
@@ -44,9 +48,6 @@ extern const device_t	scat_4_device;
 extern const device_t	scat_sx_device;
 extern const device_t	cs8230_device;
 extern const device_t   cs4031_device;
-
-/* ETEQ */
-extern const device_t   et6000_device;
 
 /* G2 */
 extern const device_t   gc100_device;
@@ -58,9 +59,13 @@ extern const device_t	headland_ht18a_device;
 extern const device_t	headland_ht18b_device;
 extern const device_t	headland_ht18c_device;
 
+/* IMS */
+extern const device_t	ims8848_device;
+
 /* Intel */
 extern const device_t   intel_82335_device;
 extern const device_t	i420ex_device;
+extern const device_t	i420ex_ide_device;
 extern const device_t	i420tx_device;
 extern const device_t	i420zx_device;
 extern const device_t	i430lx_device;
@@ -78,10 +83,7 @@ extern const device_t	i440bx_device;
 extern const device_t	i440bx_no_agp_device;
 extern const device_t	i440gx_device;
 extern const device_t	i440zx_device;
-
-#if defined(DEV_BRANCH) && defined(USE_I450KX)
 extern const device_t	i450kx_device;
-#endif
 
 extern const device_t	sio_device;
 extern const device_t	sio_zb_device;
@@ -128,11 +130,10 @@ extern const device_t	stpc_serial_device;
 extern const device_t	stpc_lpt_device;
 
 /* UMC */
-extern const device_t	umc_hb4_device;
-extern const device_t	umc_8890_device;
-
+extern const device_t	umc_um82c49x_device;
 extern const device_t	umc_8886f_device;
 extern const device_t	umc_8886af_device;
+extern const device_t	umc_hb4_device;
 
 /* VIA */
 extern const device_t   via_vt82c49x_device;
@@ -155,6 +156,7 @@ extern const device_t	via_vt8231_device;
 
 /* VLSI */
 extern const device_t   vl82c480_device;
+extern const device_t   vl82c486_device;
 extern const device_t   vlsi_scamp_device;
 
 /* WD */
@@ -162,7 +164,7 @@ extern const device_t	wd76c10_device;
 
 /* Miscellaneous Hardware */
 extern const device_t   phoenix_486_jumper_device;
-extern const device_t	vpc2007_device;
+extern const device_t   phoenix_486_jumper_pci_device;
 
 #if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
 extern const device_t   olivetti_eva_device;

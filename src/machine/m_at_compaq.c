@@ -810,8 +810,6 @@ at_cpqiii_get_device(void)
 static void
 machine_at_compaq_init(const machine_t *model, int type)
 {
-    machine_at_init(model);
-
     if (type != COMPAQ_DESKPRO386)
 	mem_remap_top(384);
 	
@@ -846,6 +844,8 @@ machine_at_compaq_init(const machine_t *model, int type)
 			device_add(&ide_isa_device);
 		break;
     }
+
+    machine_at_init(model);
 }
 
 

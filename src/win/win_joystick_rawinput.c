@@ -56,7 +56,7 @@ typedef struct {
 	HANDLE hdevice;
 	PHIDP_PREPARSED_DATA data;
 	
-	USAGE usage_button[128];
+	USAGE usage_button[256];
 
 	struct raw_axis_t {
 		USAGE  usage;

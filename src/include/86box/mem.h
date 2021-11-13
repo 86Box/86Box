@@ -64,6 +64,15 @@
 #define ACCESS_READ		    1
 #define ACCESS_WRITE		    2
 
+#define ACCESS_SMRAM_OFF	    0
+#define ACCESS_SMRAM_X		    1
+#define ACCESS_SMRAM_W		    2
+#define ACCESS_SMRAM_WX		    3
+#define ACCESS_SMRAM_R		    4
+#define ACCESS_SMRAM_RX		    5
+#define ACCESS_SMRAM_RW		    6
+#define ACCESS_SMRAM_RWX	    7
+
 /* Conversion #define's - we need these to seamlessly convert the old mem_set_mem_state() calls to
    the new stuff in order to make this a drop in replacement.
 
@@ -80,7 +89,10 @@
 /* Internal execute access, external read access. */
 #define MEM_READ_EXTERNAL_EX	0
 #define MEM_READ_SMRAM		(ACCESS_X_SMRAM | ACCESS_R_SMRAM)
+#define MEM_READ_CACHE		(ACCESS_X_CACHE | ACCESS_R_CACHE)
 #define MEM_READ_SMRAM_EX	(ACCESS_X_SMRAM)
+#define MEM_EXEC_SMRAM		MEM_READ_SMRAM_EX
+#define MEM_READ_SMRAM_2	(ACCESS_R_SMRAM)
 /* Theese two are going to be identical. */
 #define MEM_READ_DISABLED_EX	MEM_READ_DISABLED
 #define MEM_READ_MASK		0x7c1f
@@ -93,6 +105,7 @@
 #define MEM_WRITE_ROMCS		(ACCESS_W_ROMCS)
 #define MEM_WRITE_EXTANY	(ACCESS_W_ROMCS)
 #define MEM_WRITE_SMRAM		(ACCESS_W_SMRAM)
+#define MEM_WRITE_CACHE		(ACCESS_W_CACHE)
 /* Theese two are going to be identical. */
 #define MEM_WRITE_DISABLED_EX	MEM_READ_DISABLED
 #define MEM_WRITE_MASK		0x03e0
@@ -132,10 +145,18 @@
 	mem_set_access(ACCESS_SMM, 0, base, size, access)
 #define mem_set_mem_state_both(base, size, access) \
 	mem_set_access(ACCESS_ALL, 0, base, size, access)
+#define mem_set_mem_state_cpu_both(base, size, access) \
+	mem_set_access(ACCESS_CPU_BOTH, 0, base, size, access)
+#define mem_set_mem_state_bus_both(base, size, access) \
+	mem_set_access(ACCESS_BUS_BOTH, 0, base, size, access)
 #define mem_set_mem_state_smram(smm, base, size, is_smram) \
 	mem_set_access((smm ? ACCESS_SMM : ACCESS_NORMAL), 1, base, size, is_smram)
 #define mem_set_mem_state_smram_ex(smm, base, size, is_smram) \
 	mem_set_access((smm ? ACCESS_SMM : ACCESS_NORMAL), 2, base, size, is_smram)
+#define mem_set_access_smram_cpu(smm, base, size, is_smram) \
+	mem_set_access((smm ? ACCESS_CPU_SMM : ACCESS_CPU), 1, base, size, is_smram)
+#define mem_set_access_smram_bus(smm, base, size, is_smram) \
+	mem_set_access((smm ? ACCESS_BUS_SMM : ACCESS_BUS), 1, base, size, is_smram)
 #define flushmmucache_cr3 \
 	flushmmucache_nopc
 

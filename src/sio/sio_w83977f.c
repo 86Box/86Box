@@ -268,11 +268,11 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
 				if (dev->id == 1)
 					break;
 
-				if (valxor & 0x20)
+				if (!dev->id && (valxor & 0x20))
 					fdc_update_drv2en(dev->fdc, (val & 0x20) ? 0 : 1);
-				if (valxor & 0x10)
+				if (!dev->id && (valxor & 0x10))
 					fdc_set_swap(dev->fdc, (val & 0x10) ? 1 : 0);
-				if (valxor & 0x01)
+				if (!dev->id && (valxor & 0x01))
 					fdc_update_enh_mode(dev->fdc, (val & 0x01) ? 1 : 0);
 				break;
 			case 0x01:
@@ -291,13 +291,13 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
 				if (dev->id == 1)
 					break;
 
-				if (valxor & 0xc0)
+				if (!dev->id && (valxor & 0xc0))
 					fdc_update_boot_drive(dev->fdc, (val & 0xc0) >> 6);
-				if (valxor & 0x0c)
+				if (!dev->id && (valxor & 0x0c))
 					fdc_update_densel_force(dev->fdc, (val & 0x0c) >> 2);
-				if (valxor & 0x02)
+				if (!dev->id && (valxor & 0x02))
 					fdc_set_diswr(dev->fdc, (val & 0x02) ? 1 : 0);
-				if (valxor & 0x01)
+				if (!dev->id && (valxor & 0x01))
 					fdc_set_swwp(dev->fdc, (val & 0x01) ? 1 : 0);
 				break;
 		}
@@ -308,13 +308,13 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
 				if (dev->id == 1)
 					break;
 
-				if (valxor & 0xc0)
+				if (!dev->id && (valxor & 0xc0))
 					fdc_update_rwc(dev->fdc, 3, (val & 0xc0) >> 6);
-				if (valxor & 0x30)
+				if (!dev->id && (valxor & 0x30))
 					fdc_update_rwc(dev->fdc, 2, (val & 0x30) >> 4);
-				if (valxor & 0x0c)
+				if (!dev->id && (valxor & 0x0c))
 					fdc_update_rwc(dev->fdc, 1, (val & 0x0c) >> 2);
-				if (valxor & 0x03)
+				if (!dev->id && (valxor & 0x03))
 					fdc_update_rwc(dev->fdc, 0, val & 0x03);
 				break;
 		}
@@ -325,7 +325,7 @@ w83977f_write(uint16_t port, uint8_t val, void *priv)
 				if (dev->id == 1)
 					break;
 
-				if (valxor & 0x18)
+				if (!dev->id && (valxor & 0x18))
 					fdc_update_drvrate(dev->fdc, dev->cur_reg & 0x03, (val & 0x18) >> 3);
 				break;
 		}
@@ -347,7 +347,7 @@ w83977f_read(uint16_t port, void *priv)
 		ret = dev->cur_reg;
 	else {
 		if (!dev->rw_locked) {
-			if ((dev->cur_reg == 0xf2) && (ld == 0x00))
+			if (!dev->id && ((dev->cur_reg == 0xf2) && (ld == 0x00)))
 				ret = (fdc_get_rwc(dev->fdc, 0) | (fdc_get_rwc(dev->fdc, 1) << 2) | (fdc_get_rwc(dev->fdc, 2) << 4) | (fdc_get_rwc(dev->fdc, 3) << 6));
 			else if (dev->cur_reg >= 0x30)
 				ret = dev->dev_regs[ld][dev->cur_reg - 0x30];
@@ -506,7 +506,7 @@ w83977f_reset(w83977f_t *dev)
 	dev->dev_regs[10][0xc0] = 0x8f;
     }
 
-    if (next_id == 1) {
+    if (dev->id == 1) {
 	serial_setup(dev->uart[0], SERIAL3_ADDR, SERIAL3_IRQ);
 	serial_setup(dev->uart[1], SERIAL4_ADDR, SERIAL4_IRQ);
     } else {

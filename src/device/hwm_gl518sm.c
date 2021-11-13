@@ -41,7 +41,7 @@ typedef struct {
     uint16_t regs[32];
     uint8_t addr_register: 5;
 
-    uint8_t i2c_addr: 7, i2c_state: 2;
+    uint8_t i2c_addr: 7, i2c_state: 2, i2c_enabled: 1;
 } gl518sm_t;
 
 
@@ -78,12 +78,14 @@ gl518sm_remap(gl518sm_t *dev, uint8_t addr)
 {
     gl518sm_log("GL518SM: remapping to SMBus %02Xh\n", addr);
 
-    i2c_removehandler(i2c_smbus, dev->i2c_addr, 1, gl518sm_i2c_start, gl518sm_i2c_read, gl518sm_i2c_write, NULL, dev);
+    if (dev->i2c_enabled)
+	i2c_removehandler(i2c_smbus, dev->i2c_addr, 1, gl518sm_i2c_start, gl518sm_i2c_read, gl518sm_i2c_write, NULL, dev);
 
     if (addr < 0x80)
 	i2c_sethandler(i2c_smbus, addr, 1, gl518sm_i2c_start, gl518sm_i2c_read, gl518sm_i2c_write, NULL, dev);
 
-    dev->i2c_addr = addr;
+    dev->i2c_addr = addr & 0x7f;
+    dev->i2c_enabled = !(addr & 0x80);
 }
 
 
@@ -244,6 +246,8 @@ gl518sm_reset(gl518sm_t *dev)
     dev->regs[0x0b] = 0xdac5;
     dev->regs[0x0c] = 0xdac5;
     dev->regs[0x0f] = 0xf8;
+
+    gl518sm_remap(dev, dev->i2c_addr | (dev->i2c_enabled ? 0x00 : 0x80));
 }
 
 
