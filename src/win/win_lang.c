@@ -30,11 +30,15 @@
 #include <86box/plat.h>
 #include <86box/sound.h>
 #include <86box/win.h>
+#include <86box/ui.h>
+#include <86box/resource.h>
 
 /* Language */
 static LCID temp_language;
 
 int enum_helper, c;
+
+HWND hwndProgSett;
 
 BOOL CALLBACK 
 EnumResLangProc(HMODULE hModule, LPCTSTR lpszType, LPCTSTR lpszName, WORD wIDLanguage, LONG_PTR lParam)
@@ -62,8 +66,12 @@ progsett_fill_languages(HWND hdlg)
 	HWND lang_combo = GetDlgItem(hdlg, IDC_COMBO_LANG); 
 	
 	SendMessage(lang_combo, CB_RESETCONTENT, 0, 0);
+	SendMessage(lang_combo, CB_ADDSTRING, 0, (LPARAM)L"(System Default)");
+	SendMessage(lang_combo, CB_SETITEMDATA, 0, 0xFFFF);
 	
-	enum_helper = -1; c = 0;
+	enum_helper = 0; c = 1; 
+	//if no one is selected, then it was 0xFFFF or unsupported language, in either case go with index enum_helper=0
+	//also start enum index from c=1
 	EnumResourceLanguages(hinstance, RT_MENU, L"MainMenu", &EnumResLangProc, (LPARAM)lang_combo);
 	pclog("enum_helper is %d\n", enum_helper);
 	
@@ -83,12 +91,37 @@ progsett_settings_changed(void)
 	return i;
 }
 
+/* IndexOf by ItemData */
+static int 
+progsett_indexof(HWND combo, LPARAM itemdata)
+{
+	int i;
+	for (i = 0; i < SendMessage(combo, CB_GETCOUNT, 0, 0); i++)
+		if (SendMessage(combo, CB_GETITEMDATA, i, 0) == itemdata)
+			return i;
+	
+	return -1;
+}
+
 /* This saves the settings back to the global variables. */
 static void
 progsett_settings_save(void)
-{
+{	
     /* Language */
     set_language(temp_language);
+	
+	pclog("done");
+
+    /* Update title bar */
+	update_mouse_msg();
+	
+	/* Update status bar */
+	config_changed = 1;	
+	ui_sb_set_ready(0);
+	ui_sb_update_panes();
+	
+	/* Save the language changes */
+	config_save();
 }
 
 #if defined(__amd64__) || defined(__aarch64__)
@@ -100,6 +133,7 @@ ProgSettDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message) {
 	case WM_INITDIALOG:
+	    hwndProgSett = hdlg;
 	    /* Language */
 		temp_language = lang_id;
 		pclog("temp_language is %u\n", lang_id);
@@ -107,10 +141,10 @@ ProgSettDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_COMMAND:
-                switch (LOWORD(wParam)) {
-			case IDOK:
-			    if (progsett_settings_changed())
-					progsett_settings_save();
+        switch (LOWORD(wParam)) {
+			case IDOK:				
+				if (progsett_settings_changed()) 
+				  progsett_settings_save();
 				EndDialog(hdlg, 0);
 				return TRUE;
 
@@ -125,6 +159,16 @@ ProgSettDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					temp_language = SendMessage(combo, CB_GETITEMDATA, index, 0);
 					pclog("combobox changed -> temp_language = %u", temp_language);
 				}
+				break; 
+				
+			case IDC_BUTTON_DEFAULT: {
+				HWND combo = GetDlgItem(hdlg, IDC_COMBO_LANG);
+				int index = progsett_indexof(combo, DEFAULT_LANGUAGE);
+				SendMessage(combo, CB_SETCURSEL, index, 0); 
+				temp_language = DEFAULT_LANGUAGE;
+				pclog("combobox changed -> temp_language = %u", temp_language);
+				break; 
+			}
 			default:
 				break;
 		}
