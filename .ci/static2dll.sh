@@ -37,11 +37,12 @@ find_lib() {
 
 add_lib() {
 	# Always make sure this lib is listed after the last lib that depends on it.
-	if grep -q -- '^'"$*"'$' "$libs_file"
-	then
-		cp "$libs_file" "$libs_file.tmp"
-		grep -v -- '^'"$*"'$' "$libs_file.tmp" > "$libs_file"
-	fi
+	old_libs=$(cat "$libs_file")
+	rm -f "$libs_file"
+	for lib in $old_libs
+	do
+		[ "$lib" != "$*" ] && echo "$lib" >> "$libs_file"
+	done
 	echo "$*" >> "$libs_file"
 
 	# Add libstdc++ in the end if required.
@@ -63,6 +64,16 @@ add_lib() {
 	fi
 }
 
+run_pkgconfig() {
+	local cache_file="static2dll.$1.cache"
+	if [ -e "$cache_file" ]
+	then
+		cat "$cache_file"
+	else
+		pkg-config --static --libs "$1" 2> /dev/null | tee "$cache_file"
+	fi
+}
+
 parse_pkgconfig() {
 	# Parse arguments.
 	local layers=$1
@@ -80,6 +91,7 @@ parse_pkgconfig() {
 	for arg in $*
 	do
 		local arg_base="$(echo $arg | cut -c1-2)"
+		echo $arg
 		if [ "x$arg_base" = "x-l" ]
 		then
 			# Don't process the same lib again.
@@ -90,7 +102,7 @@ parse_pkgconfig() {
 			add_lib "$(find_lib $lib_name)"
 
 			# Get this lib's dependencies through pkg-config.
-			local pkgconfig="$(pkg-config --static --libs "$lib_name" 2>/dev/null)"
+			local pkgconfig="$(run_pkgconfig "$lib_name")"
 			[ $? -eq 0 ] && parse_pkgconfig "$layers"'>' "$lib_name" $pkgconfig || echo $lib_name >> "$seen_file"
 		elif [ "x$(echo $arg_base | cut -c1)" = "x-" ]
 		then
@@ -107,7 +119,7 @@ parse_pkgconfig() {
 case $1 in
 	-p) # -p pkg_config_name static_lib_path out_dll
 		shift
-		base_pkgconfig=$(pkg-config --static --libs "$1")
+		base_pkgconfig=$(run_pkgconfig "$1")
 		base_path="$2"
 		base_name="$1"
 		;;
@@ -141,6 +153,7 @@ parse_pkgconfig '>' $base_name $base_pkgconfig
 # Produce final DLL.
 dllwrap --def "$def_file" -o "$3" -Wl,--allow-multiple-definition "$base_path" $(cat "$libs_file")
 status=$?
+[ $status -eq 0 ] && rm -f "$def_file" "$seen_file" "$libs_file" "static2dll.*.cache"
 
 # Update final DLL timestamp.
 touch -r "$base_path" "$3"
