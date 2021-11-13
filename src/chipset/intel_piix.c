@@ -47,7 +47,7 @@
 #include <86box/hdc_ide_sff8038i.h>
 #include <86box/usb.h>
 #include <86box/machine.h>
-#include <86box/smbus_piix4.h>
+#include <86box/smbus.h>
 #include <86box/chipset.h>
 
 
@@ -281,7 +281,7 @@ piix_trap_io(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
 
     if (*(trap->en_reg) & trap->en_mask) {
 	*(trap->sts_reg) |= trap->sts_mask;
-	acpi_raise_smi(trap->dev->acpi);
+	acpi_raise_smi(trap->dev->acpi, 1);
     }
 }
 
@@ -690,6 +690,8 @@ piix_write(int func, int addr, uint8_t val, void *priv)
 	case 0xab:
 		if (dev->type == 3)
 			fregs[addr] &= (val & 0x01);
+		else if (dev->type < 3)
+			fregs[addr] = val;
 		break;
 	case 0xb0:
 		if (dev->type == 4)
@@ -1406,6 +1408,17 @@ piix_reset(void *p)
 	piix_write(3, 0x91, 0x00, p);
 	piix_write(3, 0xd2, 0x00, p);
     }
+
+    sff_set_irq_mode(dev->bm[0], 0, 0);
+    sff_set_irq_mode(dev->bm[1], 0, 0);
+
+    if (dev->type >= 4) {
+	sff_set_irq_mode(dev->bm[0], 1, 0);
+	sff_set_irq_mode(dev->bm[1], 1, 0);
+    } else {
+	sff_set_irq_mode(dev->bm[0], 1, 2);
+	sff_set_irq_mode(dev->bm[1], 1, 2);
+    }
 }
 
 
@@ -1459,6 +1472,17 @@ static void
 	   so set our devices IDE devices to force ATA-3 (no DMA). */
 	ide_board_set_force_ata3(0, 1);
 	ide_board_set_force_ata3(1, 1);
+    }
+
+    sff_set_irq_mode(dev->bm[0], 0, 0);
+    sff_set_irq_mode(dev->bm[1], 0, 0);
+
+    if (dev->type >= 4) {
+	sff_set_irq_mode(dev->bm[0], 1, 0);
+	sff_set_irq_mode(dev->bm[1], 1, 0);
+    } else {
+	sff_set_irq_mode(dev->bm[0], 1, 2);
+	sff_set_irq_mode(dev->bm[1], 1, 2);
     }
 
     if (dev->type >= 3)

@@ -64,7 +64,13 @@ port_92_readb(uint16_t port, void *priv)
 static uint16_t
 port_92_readw(uint16_t port, void *priv)
 {
-    return port_92_readb(port, priv);
+    uint16_t ret = 0xffff;
+    port_92_t *dev = (port_92_t *) priv;
+
+    if (!(dev->flags & PORT_92_PCI))
+	ret = port_92_readb(port, priv);
+
+    return ret;
 }
 
 
@@ -106,7 +112,10 @@ port_92_writeb(uint16_t port, uint8_t val, void *priv)
 static void
 port_92_writew(uint16_t port, uint16_t val, void *priv)
 {
-    port_92_writeb(port, val & 0xff, priv);
+    port_92_t *dev = (port_92_t *) priv;
+
+    if (!(dev->flags & PORT_92_PCI))
+	port_92_writeb(port, val & 0xff, priv);
 }
 
 
@@ -146,7 +155,7 @@ port_92_add(void *priv)
 {
     port_92_t *dev = (port_92_t *) priv;
 
-    if (dev->flags & PORT_92_WORD)
+    if (dev->flags & (PORT_92_WORD | PORT_92_PCI))
 	    io_sethandler(0x0092, 2,
 			  port_92_readb, port_92_readw, NULL, port_92_writeb, port_92_writew, NULL, dev);
     else
@@ -160,7 +169,7 @@ port_92_remove(void *priv)
 {
     port_92_t *dev = (port_92_t *) priv;
 
-    if (dev->flags & PORT_92_WORD)
+    if (dev->flags & (PORT_92_WORD | PORT_92_PCI))
 	    io_removehandler(0x0092, 2,
 			     port_92_readb, port_92_readw, NULL, port_92_writeb, port_92_writew, NULL, dev);
     else

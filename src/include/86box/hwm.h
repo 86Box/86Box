@@ -36,6 +36,7 @@ typedef struct {
     uint8_t	regs[8];
     uint8_t	addr_register;
     uint8_t	i2c_addr: 7, i2c_state: 2;
+    uint8_t	i2c_enabled: 1;
 } lm75_t;
 
 
@@ -63,6 +64,7 @@ extern const device_t	lm75_w83781d_device;
 
 extern const device_t	lm78_device;
 extern const device_t	w83781d_device;
+extern const device_t	w83781d_p5a_device;
 extern const device_t	as99127f_device;
 extern const device_t	as99127f_rev2_device;
 extern const device_t	w83782d_device;

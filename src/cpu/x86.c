@@ -26,6 +26,8 @@
 #include "cpu.h"
 #include "x86.h"
 #include <86box/machine.h>
+#include <86box/device.h>
+#include <86box/dma.h>
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/rom.h>
@@ -239,8 +241,13 @@ reset_common(int hard)
 	leave_smm();
 
     /* Needed for the ALi M1533. */
-    if (soft_reset_pci && !hard)
+    if (is486 && (hard || soft_reset_pci)) {
 	pci_reset();
+	if (!hard && soft_reset_pci) {
+		dma_reset();
+		device_reset_all();
+	}
+    }
 
     use32 = 0;
     cpu_cur_status = 0;
@@ -299,7 +306,8 @@ reset_common(int hard)
     smi_block = 0;
 
     if (hard) {
-	smbase = is_am486dxl ? 0x00060000 : 0x00030000;
+	if (is486)
+		smbase = is_am486dxl ? 0x00060000 : 0x00030000;
 	ppi_reset();
     }
     in_sys = 0;
@@ -307,8 +315,12 @@ reset_common(int hard)
     shadowbios = shadowbios_write = 0;
     alt_access = cpu_end_block_after_ins = 0;
 
-    if (hard)
+    if (hard) {
     	reset_on_hlt = hlt_reset_pending = 0;
+	cache_index = 0;
+	memset(_tr, 0x00, sizeof(_tr));
+	memset(_cache, 0x00, sizeof(_cache));
+    }
 
     if (!is286)
 	reset_808x(hard);
@@ -333,4 +345,22 @@ softresetx86(void)
 	return;
 
     reset_common(0);
+}
+
+
+/* Actual hard reset. */
+void
+hardresetx86(void)
+{
+    dma_reset();
+    device_reset_all();
+
+    cpu_alt_reset = 0;
+
+    mem_a20_alt = 0;
+    mem_a20_recalc();
+
+    flushmmucache();
+
+    resetx86();
 }

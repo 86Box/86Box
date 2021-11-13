@@ -133,9 +133,9 @@ vt82c49x_recalc(vt82c49x_t *dev)
 			state = (dev->regs[0x33] & 0x10) ? MEM_WRITE_ROMCS : MEM_WRITE_EXTERNAL;
 
 		if ((dev->regs[0x32]) & (1 << (bit + 1)))
-			state = MEM_READ_INTERNAL;
+			state |= MEM_READ_INTERNAL;
 		else
-			state = (dev->regs[0x33] & 0x10) ? MEM_READ_ROMCS : MEM_READ_EXTERNAL;
+			state |= (dev->regs[0x33] & 0x10) ? MEM_READ_ROMCS : MEM_READ_EXTERNAL;
 	} else if ((base >= 0xe8000) && (base <= 0xeffff)) {
 		if (dev->regs[0x40] & 0x20)
 			state = MEM_WRITE_DISABLED;

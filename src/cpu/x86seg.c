@@ -942,173 +942,173 @@ void loadcscall(uint16_t seg)
 			segdat[2] = (segdat[2] & ~(3 << (5+8))) | (CPL << (5+8));
 		} else	/* On non-conforming segments, set RPL = CPL */
 			seg = (seg & 0xfffc) | CPL;
-			CS = seg;
-			do_seg_load(&cpu_state.seg_cs, segdat);
-			if ((CPL == 3) && (oldcpl != 3))
-				flushmmucache_cr3();
+		CS = seg;
+		do_seg_load(&cpu_state.seg_cs, segdat);
+		if ((CPL == 3) && (oldcpl != 3))
+			flushmmucache_cr3();
 #ifdef USE_NEW_DYNAREC
-			oldcpl = CPL;
+		oldcpl = CPL;
 #endif
 #ifdef ENABLE_X86SEG_LOG
-			x86seg_log("Complete\n");
+		x86seg_log("Complete\n");
 #endif
-			cycles -= timing_call_pm;
-		} else {
-			type = segdat[2] & 0x0f00;
-			x86seg_log("Type %03X\n", type);
-			switch (type) {
-				case 0x0400:	/* Call gate */
-				case 0x0c00:	/* 386 Call gate */
-					x86seg_log("Callgate %08X\n", cpu_state.pc);
-					cgate32 = (type & 0x0800);
-					cgate16 = !cgate32;
+		cycles -= timing_call_pm;
+	} else {
+		type = segdat[2] & 0x0f00;
+		x86seg_log("Type %03X\n", type);
+		switch (type) {
+			case 0x0400:	/* Call gate */
+			case 0x0c00:	/* 386 Call gate */
+				x86seg_log("Callgate %08X\n", cpu_state.pc);
+				cgate32 = (type & 0x0800);
+				cgate16 = !cgate32;
 #ifndef USE_NEW_DYNAREC
-					oldcs = CS;
+				oldcs = CS;
 #endif
-					count = segdat[2] & 0x001f;
-					if (DPL < CPL) {
-						x86gpf("loadcscall(): ex DPL < CPL",seg & 0xfffc);
-						return;
-					}
-					if (DPL < (seg & 0x0003)) {
-						x86gpf("loadcscall(): ex DPL < RPL", seg & 0xfffc);
-						return;
-					}
-					if (!(segdat[2] & 0x8000)) {
-						x86np("Call gate not present", seg & 0xfffc);
-						return;
-					}
-					seg2 = segdat[1];
+				count = segdat[2] & 0x001f;
+				if (DPL < CPL) {
+					x86gpf("loadcscall(): ex DPL < CPL",seg & 0xfffc);
+					return;
+				}
+				if (DPL < (seg & 0x0003)) {
+					x86gpf("loadcscall(): ex DPL < RPL", seg & 0xfffc);
+					return;
+				}
+				if (!(segdat[2] & 0x8000)) {
+					x86np("Call gate not present", seg & 0xfffc);
+					return;
+				}
+				seg2 = segdat[1];
 
-					x86seg_log("New address : %04X:%08X\n", seg2, newpc);
+				x86seg_log("New address : %04X:%08X\n", seg2, newpc);
 
-					if (!(seg2 & 0xfffc)) {
-						x86gpf("loadcscall(): ex selector is NULL", 0);
-						return;
-					}
-					addr = seg2 & 0xfff8;
-					dt = (seg2 & 0x0004) ? &ldt : &gdt;
-					if ((addr + 7) > dt->limit) {
-						x86gpf("loadcscall(): ex Selector > DT limit", seg2 & 0xfff8);
-						return;
-					}
-					addr += dt->base;
-					read_descriptor(addr, segdat, segdat32, 1);
-					if (cpu_state.abrt)
-						return;
+				if (!(seg2 & 0xfffc)) {
+					x86gpf("loadcscall(): ex selector is NULL", 0);
+					return;
+				}
+				addr = seg2 & 0xfff8;
+				dt = (seg2 & 0x0004) ? &ldt : &gdt;
+				if ((addr + 7) > dt->limit) {
+					x86gpf("loadcscall(): ex Selector > DT limit", seg2 & 0xfff8);
+					return;
+				}
+				addr += dt->base;
+				read_descriptor(addr, segdat, segdat32, 1);
+				if (cpu_state.abrt)
+					return;
 
 					x86seg_log("Code seg2 call - %04X - %04X %04X %04X\n", seg2, segdat[0], segdat[1], segdat[2]);
 
-					if (DPL > CPL) {
-						x86gpf("loadcscall(): ex DPL > CPL", seg2 & 0xfffc);
-						return;
-					}
-					if (!(segdat[2] & 0x8000)) {
-						x86seg_log("Call gate CS not present %04X\n", seg2);
-						x86np("Call gate CS not present", seg2 & 0xfffc);
-						return;
-					}
+				if (DPL > CPL) {
+					x86gpf("loadcscall(): ex DPL > CPL", seg2 & 0xfffc);
+					return;
+				}
+				if (!(segdat[2] & 0x8000)) {
+					x86seg_log("Call gate CS not present %04X\n", seg2);
+					x86np("Call gate CS not present", seg2 & 0xfffc);
+					return;
+				}
 
-					switch (segdat[2] & 0x1f00) {
-						case 0x1800: case 0x1900: case 0x1a00: case 0x1b00:	/* Non-conforming code */
-							if (DPL < CPL) {
+				switch (segdat[2] & 0x1f00) {
+					case 0x1800: case 0x1900: case 0x1a00: case 0x1b00:	/* Non-conforming code */
+						if (DPL < CPL) {
 #ifdef USE_NEW_DYNAREC
-								uint16_t oldcs = CS;
+							uint16_t oldcs = CS;
 #endif
-								oaddr = addr;
-								/* Load new stack */
-								oldss = SS;
-								oldsp = oldsp2 = ESP;
-								cpl_override = 1;
-								if (tr.access & 8) {
-									addr = 4 + tr.base + (DPL << 3);
-									newss = readmemw(0, addr + 4);
-									if (cpu_16bitbus) {
-										newsp = readmemw(0, addr);
-										newsp |= (readmemw(0, addr + 2) << 16);
-									} else
-										newsp = readmeml(0, addr);
-								} else {
-									addr = 2 + tr.base + (DPL * 4);
-									newss = readmemw(0, addr + 2);
+							oaddr = addr;
+							/* Load new stack */
+							oldss = SS;
+							oldsp = oldsp2 = ESP;
+							cpl_override = 1;
+							if (tr.access & 8) {
+								addr = 4 + tr.base + (DPL << 3);
+								newss = readmemw(0, addr + 4);
+								if (cpu_16bitbus) {
 									newsp = readmemw(0, addr);
-								}
-								cpl_override = 0;
-								if (cpu_state.abrt)
-									return;
-								x86seg_log("New stack %04X:%08X\n", newss, newsp);
-								if (!(newss & 0xfffc)) {
-									x86ts(NULL, newss & 0xfffc);
-									return;
-								}
-								addr = newss & 0xfff8;
-								dt = (newss & 0x0004) ? &ldt : &gdt;
-								if ((addr + 7) > dt->limit) {
-									fatal("Bigger than DT limit %04X %08X %04X CSC SS\n", newss, addr, dt->limit);
-									x86ts(NULL, newss & ~3);
-									return;
-								}
-								addr += dt->base;
-								x86seg_log("Read stack seg\n");
-								read_descriptor(addr, segdat2, segdat232, 1);
-								if (cpu_state.abrt)
-									return;
-								x86seg_log("Read stack seg done!\n");
-								if (((newss & 0x0003) != DPL) || (DPL2 != DPL)) {
-									x86ts(NULL, newss & 0xfffc);
-									return;
-								}
-								if ((segdat2[2] & 0x1a00) != 0x1200) {
-									x86ts("Call gate loading SS unknown type", newss & 0xfffc);
-									return;
-								}
-								if (!(segdat2[2] & 0x8000)) {
-									x86ss("Call gate loading SS not present", newss & 0xfffc);
-									return;
-								}
-								if (!stack32)
-									oldsp &= 0xffff;
-								SS = newss;
-								set_stack32((segdat2[3] & 0x0040) ? 1 : 0);
-								if (stack32)
-									ESP = newsp;
-								else
-									SP = newsp;
+									newsp |= (readmemw(0, addr + 2) << 16);
+								} else
+									newsp = readmeml(0, addr);
+							} else {
+								addr = 2 + tr.base + (DPL * 4);
+								newss = readmemw(0, addr + 2);
+								newsp = readmemw(0, addr);
+							}
+							cpl_override = 0;
+							if (cpu_state.abrt)
+								return;
+							x86seg_log("New stack %04X:%08X\n", newss, newsp);
+							if (!(newss & 0xfffc)) {
+								x86ts(NULL, newss & 0xfffc);
+								return;
+							}
+							addr = newss & 0xfff8;
+							dt = (newss & 0x0004) ? &ldt : &gdt;
+							if ((addr + 7) > dt->limit) {
+								fatal("Bigger than DT limit %04X %08X %04X CSC SS\n", newss, addr, dt->limit);
+								x86ts(NULL, newss & ~3);
+								return;
+							}
+							addr += dt->base;
+							x86seg_log("Read stack seg\n");
+							read_descriptor(addr, segdat2, segdat232, 1);
+							if (cpu_state.abrt)
+								return;
+							x86seg_log("Read stack seg done!\n");
+							if (((newss & 0x0003) != DPL) || (DPL2 != DPL)) {
+								x86ts(NULL, newss & 0xfffc);
+								return;
+							}
+							if ((segdat2[2] & 0x1a00) != 0x1200) {
+								x86ts("Call gate loading SS unknown type", newss & 0xfffc);
+								return;
+							}
+							if (!(segdat2[2] & 0x8000)) {
+								x86ss("Call gate loading SS not present", newss & 0xfffc);
+								return;
+							}
+							if (!stack32)
+								oldsp &= 0xffff;
+							SS = newss;
+							set_stack32((segdat2[3] & 0x0040) ? 1 : 0);
+							if (stack32)
+								ESP = newsp;
+							else
+								SP = newsp;
 
-								do_seg_load(&cpu_state.seg_ss, segdat2);
+							do_seg_load(&cpu_state.seg_ss, segdat2);
 
-								x86seg_log("Set access 1\n");
-								cpl_override = 1;
-								writememw(0, addr + 4, segdat2[2] | 0x100);	/* Set accessed bit */
-								cpl_override = 0;
+							x86seg_log("Set access 1\n");
+							cpl_override = 1;
+							writememw(0, addr + 4, segdat2[2] | 0x100);	/* Set accessed bit */
+							cpl_override = 0;
 
-								CS = seg2;
-								do_seg_load(&cpu_state.seg_cs, segdat);
-								if ((CPL == 3) && (oldcpl != 3))
-									flushmmucache_cr3();
+							CS = seg2;
+							do_seg_load(&cpu_state.seg_cs, segdat);
+							if ((CPL == 3) && (oldcpl != 3))
+								flushmmucache_cr3();
 #ifdef USE_NEW_DYNAREC
-								oldcpl = CPL;
+							oldcpl = CPL;
 #endif
-								set_use32(segdat[3] & 0x0040);
-								cpu_state.pc = newpc;
+							set_use32(segdat[3] & 0x0040);
+							cpu_state.pc = newpc;
 
-								x86seg_log("Set access 2\n");
+							x86seg_log("Set access 2\n");
 
-								cpl_override = 1;
-								writememw(0, oaddr + 4, segdat[2] | 0x100);	/* Set accessed bit */
-								cpl_override = 0;
+							cpl_override = 1;
+							writememw(0, oaddr + 4, segdat[2] | 0x100);	/* Set accessed bit */
+							cpl_override = 0;
 
-								x86seg_log("Type %04X\n", type);
-								if (type == 0x0c00) {
-									PUSHL(oldss);
-									PUSHL(oldsp2);
-									if (cpu_state.abrt) {
-										SS = oldss;
-										ESP = oldsp2;
+							x86seg_log("Type %04X\n", type);
+							if (type == 0x0c00) {
+								PUSHL(oldss);
+								PUSHL(oldsp2);
+								if (cpu_state.abrt) {
+									SS = oldss;
+									ESP = oldsp2;
 #ifdef USE_NEW_DYNAREC
-										CS = oldcs;
+									CS = oldcs;
 #endif
-										return;
+									return;
 								}
 								if (count) {
 									while (count--) {

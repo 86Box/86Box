@@ -542,6 +542,9 @@ extern uint64_t		amd_efer, star;
 #define msw		cpu_state.CR0.w
 extern uint32_t		cr2, cr3, cr4;
 extern uint32_t		dr[8];
+extern uint32_t		_tr[8];
+extern uint32_t		cache_index;
+extern uint8_t		_cache[2048];
 
 
 /*Segments -
@@ -656,6 +659,7 @@ extern void	resetx86(void);
 extern void	refreshread(void);
 extern void	resetreadlookup(void);
 extern void	softresetx86(void);
+extern void	hardresetx86(void);
 extern void	x86_int(int num);
 extern void	x86_int_sw(int num);
 extern int	x86_int_sw_rm(int num);

@@ -629,20 +629,26 @@ load_machine(void)
 		machine = machine_get_machine_from_internal_name("pc916sx");
 	else if (! strcmp(p, "cbm_sl386sx16"))
 		machine = machine_get_machine_from_internal_name("cmdsl386sx16");
-	else if (! strcmp(p, "olivetti_m300_08"))
-		machine = machine_get_machine_from_internal_name("m30008");
-	else if (! strcmp(p, "olivetti_m300_15"))
-		machine = machine_get_machine_from_internal_name("m30015");
 	else if (! strcmp(p, "cbm_sl386sx25"))
 		machine = machine_get_machine_from_internal_name("cmdsl386sx25");
 	else if (! strcmp(p, "award386dx")) /* ...merged machines... */
-		machine = machine_get_machine_from_internal_name("award486");
+		machine = machine_get_machine_from_internal_name("award495");
 	else if (! strcmp(p, "ami386dx"))
-		machine = machine_get_machine_from_internal_name("ami486");
+		machine = machine_get_machine_from_internal_name("ami495");
 	else if (! strcmp(p, "mr386dx"))
-		machine = machine_get_machine_from_internal_name("mr486");
+		machine = machine_get_machine_from_internal_name("mr495");
+	else if (! strcmp(p, "award486"))
+		machine = machine_get_machine_from_internal_name("award495");
+	else if (! strcmp(p, "ami486"))
+		machine = machine_get_machine_from_internal_name("ami495");
+	else if (! strcmp(p, "mr486"))
+		machine = machine_get_machine_from_internal_name("mr495");
 	else if (! strcmp(p, "fw6400gx_s1"))
 		machine = machine_get_machine_from_internal_name("fw6400gx");
+	else if (! strcmp(p, "p54vl"))
+		machine = machine_get_machine_from_internal_name("p5vl");
+	else if (! strcmp(p, "chariot"))
+		machine = machine_get_machine_from_internal_name("fmb");
 	else if (! strcmp(p, "president")) { /* ...and removed machines */
 		machine = machine_get_machine_from_internal_name("mb500n");
 		migrate_from = NULL;
@@ -1039,12 +1045,12 @@ load_ports(void)
     char temp[512];
     int c, d;
 
-    for (c = 0; c < 4; c++) {
+    for (c = 0; c < SERIAL_MAX; c++) {
 	sprintf(temp, "serial%d_enabled", c + 1);
 	serial_enabled[c] = !!config_get_int(cat, temp, (c >= 2) ? 0 : 1);
     }
 
-    for (c = 0; c < 3; c++) {
+    for (c = 0; c < PARALLEL_MAX; c++) {
 	sprintf(temp, "lpt%d_enabled", c + 1);
 	lpt_ports[c].enabled = !!config_get_int(cat, temp, (c == 0) ? 1 : 0);
 
@@ -1056,7 +1062,7 @@ load_ports(void)
     /* Legacy config compatibility. */
     d = config_get_int(cat, "lpt_enabled", 2);
     if (d < 2) {
-	for (c = 0; c < 3; c++)
+	for (c = 0; c < PARALLEL_MAX; c++)
 		lpt_ports[c].enabled = d;
     }
     config_delete_var(cat, "lpt_enabled");
@@ -2509,7 +2515,7 @@ save_ports(void)
     char temp[512];
     int c, d;
 
-    for (c = 0; c < 4; c++) {
+    for (c = 0; c < SERIAL_MAX; c++) {
 	sprintf(temp, "serial%d_enabled", c + 1);
 	if (((c < 2) && serial_enabled[c]) || ((c >= 2) && !serial_enabled[c]))
 		config_delete_var(cat, temp);
@@ -2517,7 +2523,7 @@ save_ports(void)
 		config_set_int(cat, temp, serial_enabled[c]);
     }
 
-    for (c = 0; c < 3; c++) {
+    for (c = 0; c < PARALLEL_MAX; c++) {
 	sprintf(temp, "lpt%d_enabled", c + 1);
 	d = (c == 0) ? 1 : 0;
 	if (lpt_ports[c].enabled == d)
