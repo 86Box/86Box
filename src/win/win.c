@@ -139,6 +139,7 @@ win_log(const char *fmt, ...)
 #endif
 
 
+void
 free_string(rc_str_t **str)
 {
     if (*str != NULL) {
