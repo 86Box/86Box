@@ -37,4 +37,8 @@
 /* Web URL info. */
 #define EMU_SITE	L"86box.net"
 #define EMU_ROMS_URL	L"https://github.com/86Box/roms/releases/latest"
-#define EMU_DOCS_URL	L"https://86box.readthedocs.io"
+#ifdef RELEASE_BUILD
+# define EMU_DOCS_URL	L"https://86box.readthedocs.io/en/v3.0/"
+#else
+# define EMU_DOCS_URL	L"https://86box.readthedocs.io"
+#endif
