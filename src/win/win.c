@@ -1221,6 +1221,22 @@ plat_language_code(char* langcode)
 	return lcid;
 }
 
+/* Converts back the language code to LCID */
+void
+plat_language_code_r(uint32_t lcid, char* outbuf, int len)
+{
+	if (lcid == 0xFFFF)
+	{
+		strcpy(outbuf, "system");
+		return;
+	}
+	
+	wchar_t buffer[LOCALE_NAME_MAX_LENGTH + 1];
+	LCIDToLocaleName(lcid, buffer, LOCALE_NAME_MAX_LENGTH, 0);
+	
+	c16stombs(outbuf, buffer, len);
+}
+
 void
 take_screenshot(void)
 {

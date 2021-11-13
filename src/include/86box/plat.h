@@ -123,6 +123,7 @@ extern void	plat_resize(int x, int y);
 extern void	plat_vidapi_enable(int enabled);
 extern void	plat_vid_reload_options(void);
 extern uint32_t plat_language_code(char* langcode);
+extern void plat_language_code_r(uint32_t lcid, char* outbuf, int len);
 
 /* Resource management. */
 extern void	set_language(uint32_t id);
