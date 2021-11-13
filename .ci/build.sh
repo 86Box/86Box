@@ -58,6 +58,46 @@ try_make() {
 	fi
 }
 
+make_tar() {
+	# Determine the best supported compression type.
+	local compression_flag=
+	local compression_ext=
+	if which xz > /dev/null 2>&1
+	then
+		local compression_flag=-J
+		local compression_ext=.xz
+	elif which bzip2 > /dev/null 2>&1
+	then
+		local compression_flag=-j
+		local compression_ext=.bz2
+	elif which gzip > /dev/null 2>&1
+	then
+		local compression_flag=-z
+		local compression_ext=.gz
+	fi
+
+	# Make tar verbose if requested.
+	[ ! -z "$VERBOSE" ] && local compression_flag="$compression_flag -v"
+
+	# tar is notorious for having many diverging implementations. For instance,
+	# the flags we use to strip UID/GID metadata can be --owner/group (GNU),
+	# --uid/gid (bsdtar) or even none at all (MSYS2 bsdtar). Account for such
+	# flag differences by checking if they're mentioned on the help text.
+	local ownership_flags=
+	local tar_help=$(tar --help 2>&1)
+	if echo $tar_help | grep -q -- --owner
+	then
+		local ownership_flags="--owner=0 --group=0"
+	elif echo $tar_help | grep -q -- --uid
+	then
+		local ownership_flags="--uid 0 --gid 0"
+	fi
+
+	# Run tar.
+	tar -c $compression_flag -f "$1$compression_ext" $ownership_flags *
+	return $?
+}
+
 build() {
 	# Create a line gap between builds.
 	[ $first_build -eq 0 ] && echo
@@ -307,8 +347,8 @@ EOF
 		# TBD
 		:
 	else
-		# Create tarball.
-		tar Jcvf ../$job_name-Linux-$arch$build_fn.tar.xz --owner=0 --group=0 * # strip UID/GID metadata
+		# Create binary tarball.
+		make_tar ../$job_name-Linux-$arch$build_fn.tar
 		local status=$?
 	fi
 	cd ..
@@ -325,6 +365,46 @@ EOF
 	job_status=0
 }
 
+tarball() {
+	# Create a line gap between builds.
+	[ $first_build -eq 0 ] && echo
+	first_build=0
+
+	# Set argument and environment variables.
+	local job_name=$JOB_BASE_NAME
+
+	# Check if the job name was received.
+	if [ -z "$job_name" ]
+	then
+		echo [!] Missing environment variable: received JOB_BASE_NAME=[$JOB_BASE_NAME]
+		return 1
+	fi
+
+	echo [-] Making source tarball for [$job_name]
+
+	# Switch to the correct directory.
+	cd "$cwd"
+	[ -e "build.sh" ] && cd ..
+
+	# Clean local tree of gitignored files.
+	git clean -dfX
+
+	# Save current HEAD commit to VERSION.
+	git log -1 > VERSION || rm -f VERSION
+
+	# Archive source.
+	make_tar $job_name-Source$build_fn.tar
+
+	# Check if the archival succeeded.
+	if [ $? -gt 0 ]
+	then
+		echo [!] Tarball creation failed with status [$status]
+		return 2
+	fi
+
+	echo [-] Source tarball for [$job_name] created successfully
+}
+
 # Set common variables.
 project=86Box
 cwd=$(pwd)
@@ -333,16 +413,24 @@ job_status=1
 
 # Parse arguments.
 single_build=0
+tarball=0
 args=0
 while [ $# -gt 0 ]
 do
 	case $1 in
 		-b)
 			# Execute single build.
-			shift
 			[ -z "$JOB_BASE_NAME" ] && JOB_BASE_NAME=$project-Custom
 			single_build=1
+			shift
 			break
+			;;
+
+		-t)
+			# Create tarball.
+			[ -z "$JOB_BASE_NAME" ] && JOB_BASE_NAME=$project
+			tarball=1
+			shift
 			;;
 
 		*)
@@ -372,7 +460,7 @@ done
 # Check if at least the job name was specified.
 if [ -z "$JOB_BASE_NAME" ]
 then
-	echo [!] Manual usage: build.sh [{job_name} [{build_type} [{build_number|build_qualifier} [git_hash]]]] [-b {architecture} [cmake_flags...]]
+	echo [!] Manual usage: build.sh [{job_name} [{build_type} [{build_number'|"'build_qualifier'"'} [git_hash]]]] [-t] [-b {architecture} [cmake_flags...]]
 	exit 100
 fi
 
@@ -397,6 +485,14 @@ else
 	build_fn=
 fi
 
+# Make tarball if requested.
+if [ $tarball -ne 0 ]
+then
+	tarball
+	status=$?
+	[ $single_build -eq 0 ] && exit $status
+fi
+
 # Run single build if requested.
 if [ $single_build -ne 0 ]
 then
@@ -415,6 +511,7 @@ case $JOB_BASE_NAME in
 		then
 			build Universal --preset=regular
 		else
+			tarball
 			build x86 --preset=regular
 			build x86_64 --preset=regular
 			build arm32 --preset=regular
