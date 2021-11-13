@@ -78,20 +78,22 @@ pipeline {
 			}
 
 			steps {
-				["${env.JOB_BASE_NAME}2"].each {
-					/* Set next build number for this job. */
-					def job = Jenkins.instance.getItem(it)
-					job.nextBuildNumber = env.BUILD_NUMBER
-					job.saveNextBuildNumber()
+				script {
+					["${env.JOB_BASE_NAME}2"].each {
+						/* Set next build number for this job. */
+						def job = Jenkins.instance.getItem(it)
+						job.nextBuildNumber = env.BUILD_NUMBER
+						job.saveNextBuildNumber()
 
-					/* Trigger this job. */
-					build propagate: false,
-					      wait: false,
-					      job: it,
-					      parameters: [
-						string(name: 'BUILD_TYPE', value: BUILD_TYPE),
-						string(name: 'BRANCH', value: env.GIT_COMMIT)
-					      ]
+						/* Trigger this job. */
+						build propagate: false,
+						      wait: false,
+						      job: it,
+						      parameters: [
+							string(name: 'BUILD_TYPE', value: BUILD_TYPE),
+							string(name: 'BRANCH', value: env.GIT_COMMIT)
+						      ]
+					}
 				}
 			}
 		}
