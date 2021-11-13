@@ -479,7 +479,8 @@ machine_at_cusl2cbp_init(const machine_t *model)
     pci_register_bus_slot(2, 0x08, PCI_CARD_NORMAL, 5, 0, 0, 0);
 
     device_add(&w83627hf_no_hwm_device);
-    device_add(&sst_flash_39sf020_device);
+    device_add(&as99127f_rev2_device);
+    device_add(&sst_flash_39sf040_device);
     device_add(ics9xxx_get(ICS9250_18));
 
     return ret;
