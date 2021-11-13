@@ -17,8 +17,10 @@
 
 def gitClone() {
 	cleanWs()
+	if (env.GIT_COMMIT == null)
+		env.GIT_COMMIT = BRANCH
 	def scmVars = git url: 'https://github.com/richardg867/86Box.git',
-			  branch: 'cleanup30'
+			  branch: env.GIT_COMMIT
 	env.GIT_COMMIT = scmVars.GIT_COMMIT
 }
 
@@ -38,9 +40,12 @@ pipeline {
 	agent any
 
 	parameters {
-		choice(name: 'BUILD_TYPE',
-		       choices: ['beta', 'none', 'alpha', 'beta', 'release'], // duplicated on purpose, first is default
+		string(name: 'BUILD_TYPE',
+		       defaultValue: 'beta', /* !!! CHANGE HERE !!! for build type */
 		       description: 'Build type to pass on to CMake. This may affect the UI icon and feature set.')
+		string(name: 'BRANCH',
+		       defaultValue: 'master',
+		       description: 'Used internally to make sure all downstream builds use the same commit.')
 	}
 
 	stages {
@@ -60,6 +65,33 @@ pipeline {
 					gitClone()
 					unixBuild()
 					saveArtifacts()
+				}
+			}
+		}
+
+		/* If we're on the main jobs, trigger each of the downstream jobs. */
+		stage('Trigger downstream jobs') {
+			when {
+				expression {
+					return env.JOB_BASE_NAME == '86Box-TestBuildPleaseIgnore';
+				}
+			}
+
+			steps {
+				["${env.JOB_BASE_NAME}2"].each {
+					/* Set next build number for this job. */
+					def job = Jenkins.instance.getItem(it)
+					job.nextBuildNumber = env.BUILD_NUMBER
+					job.saveNextBuildNumber()
+
+					/* Trigger this job. */
+					build propagate: false,
+					      wait: false,
+					      job: it,
+					      parameters: [
+						string(name: 'BUILD_TYPE', value: BUILD_TYPE)
+						string(name: 'BRANCH', value: env.GIT_COMMIT)
+					      ]
 				}
 			}
 		}
