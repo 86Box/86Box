@@ -2327,9 +2327,8 @@ save_machine(void)
       else
 	config_set_string(cat, "fpu_type", (char *) fpu_get_internal_name(cpu_f, cpu, fpu_type));
 
-    if (mem_size == 4096)
+    //Write the mem_size explicitly to the setttings in order to help managers to display it without having the actual machine table
 	config_delete_var(cat, "mem_size");
-      else
 	config_set_int(cat, "mem_size", mem_size);
 
     config_set_int(cat, "cpu_use_dynarec", cpu_use_dynarec);
