@@ -752,7 +752,7 @@ BEGIN
     IDS_2049	"Hiba"
     IDS_2050	"Végzetes hiba"
     IDS_2051	"<fenntartva>"
-    IDS_2052	"Használja a CTRL+ALT+PAGE DOWN kombinációt az ablakhoz való visszatéréshez."
+    IDS_2052	"Használja a CTRL+ALT+PAGE DOWN gombokat az ablakhoz való visszatéréshez."
     IDS_2053	"Sebesség"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIP-lemezképek (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
@@ -781,7 +781,7 @@ BEGIN
     IDS_2074	"Egyéb cserélhető tárolók"
     IDS_2075	"Egyéb perifériák"
     IDS_2076	"Felületi képfájlok (*.86F)\0*.86F\0"
-    IDS_2077	"Az egér elfogásához kattintson az ablakba"
+    IDS_2077	"Kattintson az egér elfogásához"
     IDS_2078	"Nyomja meg az F8+F12-t az egér elengédéséhez"
     IDS_2079	"Nyomja meg az F8+F12-t vagy a középső gombot az egér elengédéséhez"
 END
