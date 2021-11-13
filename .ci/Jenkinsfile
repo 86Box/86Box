@@ -31,8 +31,8 @@ def gitClone() {
 		env.GIT_COMMIT = BRANCH
 	println "[-] Building git tag [${env.GIT_COMMIT}]"
 	def scmVars = checkout scm: [$class: 'GitSCM',
-			       branches: [[name: env.GIT_COMMIT]],
-			       userRemoteConfigs: [[url: 'https://github.com/richardg867/86Box.git']]]
+				     branches: [[name: env.GIT_COMMIT]],
+				     userRemoteConfigs: [[url: 'https://github.com/richardg867/86Box.git']]]
 	env.GIT_COMMIT = scmVars.GIT_COMMIT
 }
 
