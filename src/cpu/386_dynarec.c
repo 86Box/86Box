@@ -344,6 +344,7 @@ exec386_dynarec_int(void)
 
 		cpu_state.pc++;
 		x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
+		cpu_state.sse_xmm = 0;
 	}
 
 #ifndef USE_NEW_DYNAREC
@@ -572,6 +573,7 @@ exec386_dynarec_dyn(void)
 			codegen_generate_call(opcode, x86_opcodes[(opcode | cpu_state.op32) & 0x3ff], fetchdat, cpu_state.pc, cpu_state.pc-1);
 
 			x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
+			cpu_state.sse_xmm = 0;
 
 			if (x86_was_reset)
 				break;
@@ -667,6 +669,7 @@ exec386_dynarec_dyn(void)
 			cpu_state.pc++;
 
 			x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
+			cpu_state.sse_xmm = 0;
 
 			if (x86_was_reset)
 				break;

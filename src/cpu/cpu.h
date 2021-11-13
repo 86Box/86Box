@@ -402,6 +402,8 @@ typedef struct {
     uint16_t	flags, eflags;
 
     uint32_t	_smbase;
+
+    int sse_xmm;
 } cpu_state_t;
 
 
