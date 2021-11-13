@@ -17,11 +17,12 @@
 
 def gitClone() {
 	cleanWs()
-	println env.GIT_COMMIT
 	if (env.GIT_COMMIT == null)
 		env.GIT_COMMIT = BRANCH
-	def scmVars = git url: 'https://github.com/richardg867/86Box.git',
-			  branch: env.GIT_COMMIT
+	println "[-] Building git tag [${env.GIT_COMMIT}]"
+	def scmVars = checkout scm: [$class: 'GitSCM',
+			       branches: [[name: env.GIT_COMMIT]],
+			       userRemoteConfigs: [[url: 'http://git-server/user/repository.git']]]
 	env.GIT_COMMIT = scmVars.GIT_COMMIT
 }
 
