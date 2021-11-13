@@ -567,15 +567,12 @@ load_general(void)
     confirm_exit = config_get_int(cat, "confirm_exit", 1);
     confirm_save = config_get_int(cat, "confirm_save", 1);
 
-#ifdef USE_LANGUAGE
-    /*
-     * Currently, 86Box is English (US) only, but in the future
-     * (version 3.0 at the earliest) other languages will be
-     * added, therefore it is better to future-proof the code.
-     */
-    plat_langid = config_get_hex16(cat, "language", 0x0409);
-#endif
-
+	p = config_get_string(cat, "language", NULL);
+	if (p != NULL)
+	{
+		lang_id = plat_language_code(p);
+	}	
+	
 #if USE_DISCORD
     enable_discord = !!config_get_int(cat, "enable_discord", 0);
 #endif
@@ -1048,12 +1045,12 @@ load_ports(void)
     char temp[512];
     int c, d;
 
-    for (c = 0; c < 4; c++) {
+    for (c = 0; c < SERIAL_MAX; c++) {
 	sprintf(temp, "serial%d_enabled", c + 1);
 	serial_enabled[c] = !!config_get_int(cat, temp, (c >= 2) ? 0 : 1);
     }
 
-    for (c = 0; c < 3; c++) {
+    for (c = 0; c < PARALLEL_MAX; c++) {
 	sprintf(temp, "lpt%d_enabled", c + 1);
 	lpt_ports[c].enabled = !!config_get_int(cat, temp, (c == 0) ? 1 : 0);
 
@@ -1065,7 +1062,7 @@ load_ports(void)
     /* Legacy config compatibility. */
     d = config_get_int(cat, "lpt_enabled", 2);
     if (d < 2) {
-	for (c = 0; c < 3; c++)
+	for (c = 0; c < PARALLEL_MAX; c++)
 		lpt_ports[c].enabled = d;
     }
     config_delete_var(cat, "lpt_enabled");
@@ -2008,9 +2005,7 @@ config_load(void)
 
 	cpu_f = (cpu_family_t *) &cpu_families[0];
 	cpu = 0;
-#ifdef USE_LANGUAGE
-	plat_langid = 0x0409;
-#endif
+
 	kbd_req_capture = 0;
 	hide_status_bar = 0;
 	scale = 1;
@@ -2217,12 +2212,14 @@ save_general(void)
     else
 	config_delete_var(cat, "confirm_save");
 
-#ifdef USE_LANGUAGE
-    if (plat_langid == 0x0409)
+    if (lang_id == DEFAULT_LANGUAGE)
 	config_delete_var(cat, "language");
       else
-	config_set_hex16(cat, "language", plat_langid);
-#endif
+	  {
+		char buffer[512] = {0};
+		plat_language_code_r(lang_id, buffer, 511);
+		config_set_string(cat, "language", buffer);
+	  }
 
 #if USE_DISCORD
     if (enable_discord)
@@ -2518,7 +2515,7 @@ save_ports(void)
     char temp[512];
     int c, d;
 
-    for (c = 0; c < 4; c++) {
+    for (c = 0; c < SERIAL_MAX; c++) {
 	sprintf(temp, "serial%d_enabled", c + 1);
 	if (((c < 2) && serial_enabled[c]) || ((c >= 2) && !serial_enabled[c]))
 		config_delete_var(cat, temp);
@@ -2526,7 +2523,7 @@ save_ports(void)
 		config_set_int(cat, temp, serial_enabled[c]);
     }
 
-    for (c = 0; c < 3; c++) {
+    for (c = 0; c < PARALLEL_MAX; c++) {
 	sprintf(temp, "lpt%d_enabled", c + 1);
 	d = (c == 0) ? 1 : 0;
 	if (lpt_ports[c].enabled == d)
@@ -2946,7 +2943,7 @@ save_other_removable_devices(void)
 
 void
 config_save(void)
-{
+{	
     save_general();			/* General */
     save_machine();			/* Machine */
     save_video();			/* Video */
