@@ -434,7 +434,7 @@ usage:
 			printf("-E or --nographic    - forces the old behavior\n");
 #endif
 			printf("-F or --fullscreen   - start in fullscreen mode\n");
-			printf("-G or --lang langid  - start the application with the specified language\n");
+			printf("-G or --lang langid  - start with specified language (e.g. en-US, or system)\n");
 #ifdef _WIN32
 			printf("-H or --hwnd id,hwnd - sends back the main dialog's hwnd\n");
 #endif
