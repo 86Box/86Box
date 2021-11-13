@@ -507,8 +507,6 @@ then
 fi
 
 # Run builds according to the Jenkins job name.
-echo Temporarily disabled [$JOB_BASE_NAME]
-exit 0
 case $JOB_BASE_NAME in
 	$project | $project-TestBuildPleaseIgnore)
 		if is_windows
