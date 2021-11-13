@@ -39,6 +39,8 @@
 #define SERIAL4_ADDR		0x02e8
 #define SERIAL4_IRQ		3
 
+#define MAX_SERIAL		4
+
 
 struct serial_device_s;
 struct serial_s;
