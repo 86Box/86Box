@@ -4,6 +4,8 @@
 // Translated by Laci bá', 2021
 // 
 
+#define TRANSLATORS_NAME "Laci bá'"
+
 #ifdef _WIN32
 LANGUAGE LANG_HUNGARIAN, SUBLANG_DEFAULT
 #pragma code_page(65001)
@@ -65,7 +67,6 @@ BEGIN
             MENUITEM "&Lineáris",                  IDM_VID_FILTER_LINEAR
         END
         MENUITEM "Hi&DPI méretezés",              IDM_VID_HIDPI
-        MENUITEM "&Nyelvi beállítások...",    IDM_VID_PROG_SETT
         MENUITEM SEPARATOR
         MENUITEM "&Teljes képernyő\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
         POPUP "Teljes képernyős &méretezés"
@@ -102,6 +103,8 @@ BEGIN
     BEGIN
         MENUITEM "&Beállítások...",                IDM_CONFIG
         MENUITEM "Állapotsori ikonok &frissítése",	IDM_UPDATE_ICONS
+        MENUITEM SEPARATOR
+        MENUITEM "A &program nyelvének módosítása...",    IDM_VID_PROG_SETT
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "&Discord integráció engedélyezése", IDM_DISCORD
@@ -272,20 +275,17 @@ END
 //
 // Dialog
 //
-DLG_PROG_SETT DIALOG DISCARDABLE  0, 0, 286, 86
+DLG_PROG_SETT DIALOG DISCARDABLE  0, 0, 240, 86
 STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
 CAPTION "Nyelvi beállítások"
 FONT 9, "Segoe UI"
 BEGIN
-    DEFPUSHBUTTON   "OK", IDOK, 166, 64, 50, 14
-    PUSHBUTTON      "Mégse", IDCANCEL, 222, 64, 50, 14
-    COMBOBOX        IDC_COMBO_LANG, 10, 18, 266, 16,  CBS_DROPDOWNLIST | CBS_HASSTRINGS
-#if 0
-    AUTOCHECKBOX    "Ezen beállítások használata mint alapérték", IDC_CHECKBOX_GLOBAL,  8, 67, 152, 8
-#endif
-    PUSHBUTTON      "A &rendszer nyelve", IDC_BUTTON_SYSTEM, 120, 35, 82, 14 
-    PUSHBUTTON      "&Alapértelmezett", IDC_BUTTON_DEFAULT, 206, 35, 60, 14
-    LTEXT	        "Nyelv:", 0, 9, 8, 34, 8 
+    DEFPUSHBUTTON   "OK", IDOK, 123, 65, 50, 14 
+    PUSHBUTTON      "Mégse", IDCANCEL, 179, 65, 50, 14  
+    COMBOBOX        IDC_COMBO_LANG, 13, 18, 213, 22,  CBS_DROPDOWNLIST | CBS_HASSTRINGS
+    AUTOCHECKBOX    "Beállítások mentése &globális alapértékként", IDC_CHECKBOX_GLOBAL, 13, 50, 217, 8, WS_DISABLED  
+    PUSHBUTTON      "&Alapértelmezett", IDC_BUTTON_DEFAULT, 162, 32, 60, 14 
+    LTEXT	        "Nyelv:", 0, 13, 8, 34, 8
 END
 
 DLG_STATUS DIALOG DISCARDABLE  0, 0, 186, 386
@@ -834,7 +834,18 @@ BEGIN
     IDS_2123	"Mentés"
     IDS_2124	"A 86Box névjegye"
     IDS_2125	"86Box v" EMU_VERSION
-    IDS_2126	"Régi számítógépek emulátora\n\nFejlesztők: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, és mások.\n\nMegjelent a GNU General Public License v2 alatt. További információért lásd a LICENSE fájlt. "
+    IDS_2126	"Régi számítógépek emulátora\n\n"
+	
+	"Fejlesztők: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\n" 	
+	
+	/* 
+		Translate the following line as "Translated by: <your name goes here>\n\n". 
+	    If there were previous translators, don't erase their name, just add yours to the end of line.
+	*/
+	
+	"Fordította: Laci bá'\n\n" 
+	
+	"Megjelent a GNU General Public License v2 vagy újabb alatt. További információért lásd a LICENSE fájlt."
     IDS_2127	"OK"
     IDS_2128	"Hardver nem elérhető"
 #ifdef _WIN32
@@ -979,7 +990,7 @@ BEGIN
     IDS_6146	"1.5%%-kal a tökéletes RPM alatt"
     IDS_6147	"2%%-kal a tökéletes RPM alatt"
 
-    IDS_7168	"magyar (Magyarország)"
+    IDS_7168	"(A rendszer nyelve)"
 END
 #define IDS_LANG_ENUS	IDS_7168
 

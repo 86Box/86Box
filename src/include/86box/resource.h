@@ -266,7 +266,6 @@
 
 #define IDC_COMBO_LANG		1009    /* change language dialog */
 #define IDC_CHECKBOX_GLOBAL 1300
-#define IDC_BUTTON_SYSTEM   1301
 #define IDC_BUTTON_DEFAULT  1302
 
 /* For the DeviceConfig code, re-do later. */

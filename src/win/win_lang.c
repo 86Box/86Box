@@ -66,7 +66,7 @@ progsett_fill_languages(HWND hdlg)
 	HWND lang_combo = GetDlgItem(hdlg, IDC_COMBO_LANG); 
 	
 	SendMessage(lang_combo, CB_RESETCONTENT, 0, 0);
-	SendMessage(lang_combo, CB_ADDSTRING, 0, (LPARAM)L"(System Default)");
+	SendMessage(lang_combo, CB_ADDSTRING, 0, win_get_string(IDS_7168));
 	SendMessage(lang_combo, CB_SETITEMDATA, 0, 0xFFFF);
 	
 	enum_helper = 0; c = 1; 
