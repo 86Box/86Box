@@ -567,15 +567,12 @@ load_general(void)
     confirm_exit = config_get_int(cat, "confirm_exit", 1);
     confirm_save = config_get_int(cat, "confirm_save", 1);
 
-#ifdef USE_LANGUAGE
-    /*
-     * Currently, 86Box is English (US) only, but in the future
-     * (version 3.0 at the earliest) other languages will be
-     * added, therefore it is better to future-proof the code.
-     */
-    plat_langid = config_get_hex16(cat, "language", 0x0409);
-#endif
-
+	p = config_get_string(cat, "language", NULL);
+	if (p != NULL)
+	{
+		lang_id = plat_language_code(p);
+	}	
+	
 #if USE_DISCORD
     enable_discord = !!config_get_int(cat, "enable_discord", 0);
 #endif
@@ -2008,9 +2005,7 @@ config_load(void)
 
 	cpu_f = (cpu_family_t *) &cpu_families[0];
 	cpu = 0;
-#ifdef USE_LANGUAGE
-	plat_langid = 0x0409;
-#endif
+
 	kbd_req_capture = 0;
 	hide_status_bar = 0;
 	scale = 1;
@@ -2217,12 +2212,14 @@ save_general(void)
     else
 	config_delete_var(cat, "confirm_save");
 
-#ifdef USE_LANGUAGE
-    if (plat_langid == 0x0409)
+    if (lang_id == DEFAULT_LANGUAGE)
 	config_delete_var(cat, "language");
       else
-	config_set_hex16(cat, "language", plat_langid);
-#endif
+	  {
+		char buffer[512] = {0};
+		plat_language_code_r(lang_id, buffer, 511);
+		config_set_string(cat, "language", buffer);
+	  }
 
 #if USE_DISCORD
     if (enable_discord)
@@ -2946,7 +2943,7 @@ save_other_removable_devices(void)
 
 void
 config_save(void)
-{
+{	
     save_general();			/* General */
     save_machine();			/* Machine */
     save_video();			/* Video */
