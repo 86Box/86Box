@@ -89,7 +89,7 @@ pipeline {
 					      wait: false,
 					      job: it,
 					      parameters: [
-						string(name: 'BUILD_TYPE', value: BUILD_TYPE)
+						string(name: 'BUILD_TYPE', value: BUILD_TYPE),
 						string(name: 'BRANCH', value: env.GIT_COMMIT)
 					      ]
 				}
