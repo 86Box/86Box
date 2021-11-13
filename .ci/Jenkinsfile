@@ -18,7 +18,7 @@
 def gitClone() {
 	cleanWs()
 	def scmVars = git url: 'https://github.com/richardg867/86Box.git',
-					  branch: 'cleanup30'
+			  branch: 'cleanup30'
 	env.GIT_COMMIT = scmVars.GIT_COMMIT
 }
 

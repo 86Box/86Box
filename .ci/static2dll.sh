@@ -91,7 +91,6 @@ parse_pkgconfig() {
 	for arg in $*
 	do
 		local arg_base="$(echo $arg | cut -c1-2)"
-		echo $arg
 		if [ "x$arg_base" = "x-l" ]
 		then
 			# Don't process the same lib again.
