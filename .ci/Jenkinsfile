@@ -15,6 +15,16 @@
  *		Copyright 2021 RichardG.
  */
 
+/* Run this on /script to get all the approvals necessary to sync build numbers across jobs:
+
+def approval = org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval.get()
+approval.approveSignature('staticMethod jenkins.model.Jenkins getInstance')
+approval.approveSignature('method hudson.model.ItemGroup getItem java.lang.String')
+approval.approveSignature('field hudson.model.Job nextBuildNumber')
+approval.approveSignature('method hudson.model.Job saveNextBuildNumber')
+
+*/
+
 def gitClone() {
 	cleanWs()
 	if (env.GIT_COMMIT == null)
@@ -86,10 +96,14 @@ pipeline {
 			steps {
 				script {
 					["${env.JOB_BASE_NAME}2"].each {
-						/* Set next build number for this job. */
-						def job = Jenkins.instance.getItem(it)
-						job.nextBuildNumber = env.BUILD_NUMBER
-						job.saveNextBuildNumber()
+						try {
+							/* Set next build number for this job. */
+							def job = Jenkins.instance.getItem(it)
+							job.nextBuildNumber = env.BUILD_NUMBER as Integer
+							job.saveNextBuildNumber()
+						} catch (Exception e) {
+							println "[!] Failed to set next build number for [$it], make sure the script approvals are in place"
+						}
 
 						/* Trigger this job. */
 						build propagate: false,
