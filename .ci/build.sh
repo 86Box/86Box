@@ -242,7 +242,7 @@ EOF
 		[ "$arch" = "32" -a -d "/c/Program Files (x86)" ] && pf="/c/Program Files (x86)"
 
 		# Archive freetype from local MSYS installation.
-		.ci/static2dll.sh -p freetype2 /$MSYSTEM/lib/libfreetype.a archive_tmp/libfreetype-6.dll
+		.ci/static2dll.sh -p freetype2 /$MSYSTEM/lib/libfreetype.a archive_tmp/libfreetype.dll
 
 		# Archive Ghostscript DLL from local official distribution installation.
 		for gs in "$pf"/gs/gs*.*.*
