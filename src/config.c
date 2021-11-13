@@ -632,20 +632,26 @@ load_machine(void)
 		machine = machine_get_machine_from_internal_name("pc916sx");
 	else if (! strcmp(p, "cbm_sl386sx16"))
 		machine = machine_get_machine_from_internal_name("cmdsl386sx16");
-	else if (! strcmp(p, "olivetti_m300_08"))
-		machine = machine_get_machine_from_internal_name("m30008");
-	else if (! strcmp(p, "olivetti_m300_15"))
-		machine = machine_get_machine_from_internal_name("m30015");
 	else if (! strcmp(p, "cbm_sl386sx25"))
 		machine = machine_get_machine_from_internal_name("cmdsl386sx25");
 	else if (! strcmp(p, "award386dx")) /* ...merged machines... */
-		machine = machine_get_machine_from_internal_name("award486");
+		machine = machine_get_machine_from_internal_name("award495");
 	else if (! strcmp(p, "ami386dx"))
-		machine = machine_get_machine_from_internal_name("ami486");
+		machine = machine_get_machine_from_internal_name("ami495");
 	else if (! strcmp(p, "mr386dx"))
-		machine = machine_get_machine_from_internal_name("mr486");
+		machine = machine_get_machine_from_internal_name("mr495");
+	else if (! strcmp(p, "award486"))
+		machine = machine_get_machine_from_internal_name("award495");
+	else if (! strcmp(p, "ami486"))
+		machine = machine_get_machine_from_internal_name("ami495");
+	else if (! strcmp(p, "mr486"))
+		machine = machine_get_machine_from_internal_name("mr495");
 	else if (! strcmp(p, "fw6400gx_s1"))
 		machine = machine_get_machine_from_internal_name("fw6400gx");
+	else if (! strcmp(p, "p54vl"))
+		machine = machine_get_machine_from_internal_name("p5vl");
+	else if (! strcmp(p, "chariot"))
+		machine = machine_get_machine_from_internal_name("fmb");
 	else if (! strcmp(p, "president")) { /* ...and removed machines */
 		machine = machine_get_machine_from_internal_name("mb500n");
 		migrate_from = NULL;
