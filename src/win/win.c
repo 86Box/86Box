@@ -255,6 +255,13 @@ void
 set_language(uint32_t id)
 {
 	pclog("set_language %u, lang_id %u\n", id, lang_id);
+	if (id == 0xFFFF)
+	{
+		set_language(lang_sys);
+		lang_id = id;
+		return;
+	}
+	
     if (lang_id != id) {
 		/* Set our new language ID. */
 		lang_id = id;
@@ -471,7 +478,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 	
 	/* First, set our (default) language. */
 	lang_sys = GetThreadUILanguage();
-    set_language(lang_sys);
+    set_language(DEFAULT_LANGUAGE);
 
     /* Process the command line for options. */
     argc = ProcessCommandLine(&argv);
@@ -1201,6 +1208,9 @@ plat_vid_reload_options(void)
 uint32_t 
 plat_language_code(char* langcode)
 {
+	if (!strcmp(langcode, "system"))
+		return 0xFFFF;
+	
 	int len = mbstoc16s(NULL, langcode, 0) + 1;
 	wchar_t *temp = malloc(len * sizeof(wchar_t));
 	mbstoc16s(temp, langcode, len);
