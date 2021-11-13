@@ -50,7 +50,6 @@ EnumResLangProc(HMODULE hModule, LPCTSTR lpszType, LPCTSTR lpszName, WORD wIDLan
 	SendMessage((HWND)lParam, CB_ADDSTRING, 0, (LPARAM)dispname);
 	SendMessage((HWND)lParam, CB_SETITEMDATA, c, (LPARAM)wIDLanguage);
 	
-	pclog("widl: %u, langid: %u, c: %u\n", wIDLanguage, lang_id, c);
 	if (wIDLanguage == lang_id)
 		enum_helper = c;
 	c++;
@@ -73,10 +72,8 @@ progsett_fill_languages(HWND hdlg)
 	//if no one is selected, then it was 0xFFFF or unsupported language, in either case go with index enum_helper=0
 	//also start enum index from c=1
 	EnumResourceLanguages(hinstance, RT_MENU, L"MainMenu", &EnumResLangProc, (LPARAM)lang_combo);
-	pclog("enum_helper is %d\n", enum_helper);
 	
 	SendMessage(lang_combo, CB_SETCURSEL, enum_helper, 0);
-	pclog("win_fill_languages\n");
 }
 
 /* This returns 1 if any variable has changed, 0 if not. */
@@ -109,8 +106,6 @@ progsett_settings_save(void)
 {	
     /* Language */
     set_language(temp_language);
-	
-	pclog("done");
 
     /* Update title bar */
 	update_mouse_msg();
@@ -136,7 +131,6 @@ ProgSettDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	    hwndProgSett = hdlg;
 	    /* Language */
 		temp_language = lang_id;
-		pclog("temp_language is %u\n", lang_id);
 		progsett_fill_languages(hdlg);
 		break;
 
@@ -157,7 +151,6 @@ ProgSettDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					HWND combo = GetDlgItem(hdlg, IDC_COMBO_LANG);
 					int index = SendMessage(combo, CB_GETCURSEL, 0, 0); 
 					temp_language = SendMessage(combo, CB_GETITEMDATA, index, 0);
-					pclog("combobox changed -> temp_language = %u", temp_language);
 				}
 				break; 
 				
@@ -166,7 +159,6 @@ ProgSettDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				int index = progsett_indexof(combo, DEFAULT_LANGUAGE);
 				SendMessage(combo, CB_SETCURSEL, index, 0); 
 				temp_language = DEFAULT_LANGUAGE;
-				pclog("combobox changed -> temp_language = %u", temp_language);
 				break; 
 			}
 			default:

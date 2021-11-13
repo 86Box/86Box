@@ -2939,8 +2939,6 @@ save_other_removable_devices(void)
 void
 config_save(void)
 {	
-	pclog("config_save");
-
     save_general();			/* General */
     save_machine();			/* Machine */
     save_video();			/* Video */

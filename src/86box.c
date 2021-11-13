@@ -707,17 +707,14 @@ usage:
 	config_load();
 	
 	/* Load the desired language */
-	pclog("lang_init %u, lang_id: %u\n", lang_init, lang_id);
 	if (lang_init)
 		lang_id = lang_init;
 	
-	pclog("lang_init %u, lang_id: %u\n", lang_init, lang_id);
 	lang_init = lang_id;
 	lang_id = 0;
 	if (lang_init)
 		set_language(lang_init);
 	
-	pclog("lang_init %u, lang_id: %u\n", lang_init, lang_id);
 	/* All good! */
 	return(1);
 }

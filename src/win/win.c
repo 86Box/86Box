@@ -245,7 +245,6 @@ size_t c16stombs(char dst[], const uint16_t src[], int len)
 int
 has_language_changed(uint32_t id)
 {
-	pclog("has_language_changed? lang_id:%u == id:%u?\n", lang_id, id);
     return (lang_id != id);
 }
 
@@ -254,7 +253,6 @@ has_language_changed(uint32_t id)
 void
 set_language(uint32_t id)
 {
-	pclog("set_language %u, lang_id %u\n", id, lang_id);
 	if (id == 0xFFFF)
 	{
 		set_language(lang_sys);
