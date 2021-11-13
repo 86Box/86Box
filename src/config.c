@@ -567,7 +567,11 @@ load_general(void)
     confirm_exit = config_get_int(cat, "confirm_exit", 1);
     confirm_save = config_get_int(cat, "confirm_save", 1);
 
-    lang_id = config_get_hex16(cat, "language", DEFAULT_LANGUAGE);
+	p = config_get_string(cat, "language", NULL);
+	if (p != NULL)
+	{
+		lang_id = plat_language_code(p);
+	}	
 	
 #if USE_DISCORD
     enable_discord = !!config_get_int(cat, "enable_discord", 0);
@@ -1995,9 +1999,7 @@ config_load(void)
 
 	cpu_f = (cpu_family_t *) &cpu_families[0];
 	cpu = 0;
-#ifdef USE_LANGUAGE
-	plat_langid = 0x0409;
-#endif
+
 	kbd_req_capture = 0;
 	hide_status_bar = 0;
 	scale = 1;
@@ -2207,7 +2209,11 @@ save_general(void)
     if (lang_id == DEFAULT_LANGUAGE)
 	config_delete_var(cat, "language");
       else
-	config_set_hex16(cat, "language", lang_id);
+	  {
+		char buffer[512] = {0};
+		plat_language_code_r(lang_id, buffer, 511);
+		config_set_string(cat, "language", buffer);
+	  }
 
 #if USE_DISCORD
     if (enable_discord)
