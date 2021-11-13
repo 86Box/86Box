@@ -69,7 +69,7 @@ typedef struct intel_ich2_t
 {
 
 	uint8_t lan_conf[256], hub_conf[256], lpc_conf[7][256], gpio_space[64];
-    int gpio_base, lan;
+    int bus, gpio_base, lan;
 
     int hub_slot, lpc_slot;
     acpi_t *acpi;
@@ -153,33 +153,6 @@ intel_ich2_lan_read(int func, int addr, void *priv)
     else return 0xff;
 }
 
-int bus, ich2_pci_slots;
-
-void
-intel_ich2_pci_slot_number(int slots)
-{
-    ich2_pci_slots = slots;
-}
-
-static void
-intel_ich2_pci_bus_masters(intel_ich2_t *dev)
-{
-    bus = pci_register_bus();
-
-    uint8_t irq_routings[4];
-    uint8_t mask = sizeof(irq_routings) - 1;
-
-    if(dev->hub_slot < 32)
-        for(int i = 0; i < sizeof(irq_routings); i++)
-            irq_routings[i] = pci_get_int(dev->hub_slot, PCI_INTA + i);
-    
-    if((ich2_pci_slots >= 1) && (ich2_pci_slots < 8))
-    {
-        for(int i = 0; i < ich2_pci_slots; i++)
-            pci_register_bus_slot(bus, i, PCI_CARD_NORMAL, irq_routings[i & mask], irq_routings[(i + 1) & mask], irq_routings[(i + 2) & mask], irq_routings[(i + 3) & mask]);
-    }
-}
-
 static void
 intel_ich2_hub_write(int func, int addr, uint8_t val, void *priv)
 {
@@ -212,7 +185,7 @@ intel_ich2_hub_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x19:
                 dev->hub_conf[addr] = val;
-                pci_remap_bus(bus, val);
+                pci_remap_bus(dev->bus, val);
                 break;
 
             case 0x1a:
@@ -480,8 +453,7 @@ intel_ich2_disable(intel_ich2_t *dev)
 
     /* F2h Bit 3: Disable SMBus (Note that F3h Bit 0 allows the ICH2 to access the SMBus address space even if PCI functionality is disabled) */
     if(dev->lpc_conf[0][0xf2] & 8) {
-        if(!(dev->lpc_conf[0][0xf3] & 1))
-            smbus_piix4_remap(dev->smbus, (dev->lpc_conf[3][0x21] << 8) | (dev->lpc_conf[3][0x20] & 0xf0), 0);
+        smbus_piix4_remap(dev->smbus, (dev->lpc_conf[3][0x21] << 8) | (dev->lpc_conf[3][0x20] & 0xf0), (dev->lpc_conf[0][0xf3] & 1));
     }
 
     /* F2h Bit 4: Disable USB 1 */
@@ -1156,7 +1128,7 @@ intel_ich2_init(const device_t *info)
     intel_ich2_dma_alias_set_init();
 
     /* Hub Setup */
-    intel_ich2_pci_bus_masters(dev);
+    dev->bus = pci_register_bus();
 
     /* IDE */
     dev->ide_drive[0] = device_add_inst(&sff8038i_device, 1);

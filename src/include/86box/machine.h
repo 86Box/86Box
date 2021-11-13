@@ -606,6 +606,7 @@ extern int	machine_at_6via90ap_init(const machine_t *);
 extern int	machine_at_trinity371_init(const machine_t *);
 extern int	machine_at_p6bap_init(const machine_t *);
 
+extern int	machine_at_cusl2cbp_init(const machine_t *);
 extern int	machine_at_j815epda_init(const machine_t *);
 extern int	machine_at_s2080_init(const machine_t *);
 
@@ -735,6 +736,6 @@ extern int	machine_xt_xi8088_init(const machine_t *);
 extern const device_t	*xi8088_get_device(void);
 #endif
 
-extern void intel_ich2_setup(int northbridge, int lan, int pci_slots, int dimm_type, int dimm_slots, const machine_t *model);
+extern void intel_ich2_setup(int northbridge, int lan, int dimm_type, int dimm_slots, const machine_t *model);
 
 #endif	/*EMU_MACHINE_H*/

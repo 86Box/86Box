@@ -131,6 +131,7 @@ typedef struct
     uint8_t	index, cfg_unlocked,
 		    regs[48], dev_regs[12][256];
 
+    int has_hwm;
     fdc_t *fdc_controller;
     port_92_t *port_92;
     serial_t *uart[2];
@@ -749,7 +750,8 @@ w83627hf_reset(void *priv)
     dev->dev_regs[9][0xf0] = 0xff;
 
     /* W83627HF Hardware Monitor */
-    w83627hf_hwm_reset(dev);
+    if(dev->has_hwm)
+        w83627hf_hwm_reset(dev);
 }
 
 static void
@@ -902,9 +904,15 @@ w83627hf_init(const device_t *info)
     w83627hf_t *dev = (w83627hf_t *)malloc(sizeof(w83627hf_t));
     memset(dev, 0, sizeof(w83627hf_t));
 
+    /* Knock out the Hardware Monitor if needed(Mainly for ASUS TUSL2-C) */
+    dev->has_hwm = info->local;
+
     /* I/O Ports */
-    io_sethandler(0x002e + info->local, 2, w83627hf_read, NULL, NULL, w83627hf_write, NULL, NULL, dev);
-    io_sethandler(0x0295, 2, w83627hf_hwm_read, NULL, NULL, w83627hf_hwm_write, NULL, NULL, dev);
+    io_sethandler(0x002e, 2, w83627hf_read, NULL, NULL, w83627hf_write, NULL, NULL, dev);
+    io_sethandler(0x004e, 2, w83627hf_read, NULL, NULL, w83627hf_write, NULL, NULL, dev);
+
+    if(dev->has_hwm)
+        io_sethandler(0x0295, 2, w83627hf_hwm_read, NULL, NULL, w83627hf_hwm_write, NULL, NULL, dev);
 
     /* Floppy Disk Controller */
     dev->fdc_controller = device_add(&fdc_at_smc_device);
@@ -929,16 +937,16 @@ w83627hf_init(const device_t *info)
 const device_t w83627hf_device = {
     "Winbond W83627HF",
     0,
-    0,
+    1,
     w83627hf_init, w83627hf_close, w83627hf_reset,
     { NULL }, NULL, NULL,
     NULL
 };
 
-const device_t w83627hf_4eh_device = {
-    "Winbond W83627HF on 4Eh Port",
+const device_t w83627hf_no_hwm_device = {
+    "Winbond W83627HF with no Hardware Monitor",
     0,
-    0x0020,
+    0,
     w83627hf_init, w83627hf_close, w83627hf_reset,
     { NULL }, NULL, NULL,
     NULL

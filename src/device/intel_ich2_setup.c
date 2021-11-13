@@ -31,13 +31,12 @@ Intel ICH2 Setup:
 
 northbridge: Selects the Northbridge (815 for i815EP / 845 for i845).
 lan: Adds the Internal LAN Controller if the board supports it.
-pci_slots: The amount of PCI Slots registered by the BIOS.
 dimm_type: Selects the type of Memory the board has (1 for DDR / 0 for SDRAM).
 dimm_slots: Selects the amount of DIMM slots the board has from 1 to 4.
 
 */
 void
-intel_ich2_setup(int northbridge, int lan, int pci_slots, int dimm_type, int dimm_slots, const machine_t *model)
+intel_ich2_setup(int northbridge, int lan, int dimm_type, int dimm_slots, const machine_t *model)
 {
     machine_at_common_init_ex(model, 2);
 
@@ -51,13 +50,6 @@ intel_ich2_setup(int northbridge, int lan, int pci_slots, int dimm_type, int dim
     pci_register_bus_slot(0, 0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4); /* AGP Bridge */
     pci_register_bus_slot(0, 0x1e, PCI_CARD_BRIDGE,      1, 2, 3, 4); /*  ICH2 Hub  */
 
-    /* Internal LAN */
-    if(lan) /* ICH2 LAN */
-        pci_register_bus_slot(1, 0x08, PCI_CARD_NETWORK,     5, 6, 7, 8);
-
-    /* ICH2 HUB Bridge Bus Masters(The PCI Slots) */
-    intel_ich2_pci_slot_number(pci_slots);
-
     /* Intel i8xx Northbridge Setup */
     int max_dimm_size = 512; /* Maximum DIMM size supported by the Northbridge. */
     switch(northbridge)
@@ -67,8 +59,7 @@ intel_ich2_setup(int northbridge, int lan, int pci_slots, int dimm_type, int dim
         break;
 
         case 845:                                 /*  Intel i845  */
-                                                  /*  Note: That is a Pentium 4 chipset which 86Box doesn't emulate. Used only for testing. */
-        if(dimm_type)
+        if(dimm_type)                             /*  Note: That is a Pentium 4 chipset which 86Box doesn't emulate. Used only for testing. */
             device_add(&intel_mch_p4_ddr_device); /*   DDR i845   */
         else
             device_add(&intel_mch_p4_device);     /*  SDRAM i845  */
@@ -82,7 +73,10 @@ intel_ich2_setup(int northbridge, int lan, int pci_slots, int dimm_type, int dim
     }
 
     if(lan)
+    {
+        pci_register_bus_slot(1, 0x08, PCI_CARD_NETWORK,     5, 6, 7, 8); /* Register the ICH2 LAN */
         device_add(&intel_ich2_device); /* Intel ICH2 */
+    }
     else
         device_add(&intel_ich2_no_lan_device); /* Intel ICH2 Without LAN */
 

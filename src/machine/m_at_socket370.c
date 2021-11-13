@@ -458,6 +458,34 @@ machine_at_6via90ap_init(const machine_t *model)
 }
 
 int
+machine_at_cusl2cbp_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/cusl2cbp/815EPAA2.BIN",
+			   0x00080000, 524288, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    intel_ich2_setup(815, 0, 0, 3, model);
+    /* CUSL2-C BP PCI Bus Masters */
+    pci_register_bus_slot(2, 0x09, PCI_CARD_NORMAL, 6, 7, 8, 5);
+    pci_register_bus_slot(2, 0x0A, PCI_CARD_NORMAL, 7, 8, 5, 6);
+    pci_register_bus_slot(2, 0x0B, PCI_CARD_NORMAL, 8, 5, 6, 7);
+    pci_register_bus_slot(2, 0x0C, PCI_CARD_NORMAL, 5, 6, 7, 8);
+    pci_register_bus_slot(2, 0x0D, PCI_CARD_NORMAL, 6, 7, 8, 5);
+    pci_register_bus_slot(2, 0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_bus_slot(2, 0x08, PCI_CARD_NORMAL, 5, 0, 0, 0);
+
+    device_add(&w83627hf_no_hwm_device);
+    device_add(&sst_flash_39sf020_device);
+    device_add(ics9xxx_get(ICS9250_18));
+
+    return ret;
+}
+
+int
 machine_at_j815epda_init(const machine_t *model)
 {
     int ret;
@@ -468,7 +496,15 @@ machine_at_j815epda_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    intel_ich2_setup(815, 0, 5, 0, 3, model);
+    intel_ich2_setup(815, 0, 0, 2, model);
+    /* J-815EPDA PCI Bus Masters */
+    pci_register_bus_slot(2, 0x08, PCI_CARD_NORMAL, 5, 6, 7, 8);
+    pci_register_bus_slot(2, 0x07, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_bus_slot(2, 0x09, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_bus_slot(2, 0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
+    pci_register_bus_slot(2, 0x0B, PCI_CARD_NORMAL, 4, 1, 2, 3);
+    pci_register_bus_slot(2, 0x0D, PCI_CARD_NORMAL, 5, 6, 7, 8);
+    pci_register_bus_slot(2, 0x0C, PCI_CARD_NORMAL, 6, 7, 8, 5);
 
     device_add(&w83627hf_device);
     w83627hf_stabilizer(0x7a,    /* CPU Voltage (Mendocino's are utilizing 2 Volts ) */
@@ -477,6 +513,7 @@ machine_at_j815epda_init(const machine_t *model)
                         0x1e,    /* FAN 3 */
                         0x1d     /* FAN 1 */
     );
+
     device_add(&intel_flash_bxt_device);
     device_add(ics9xxx_get(ICS9250_18));
 
@@ -494,7 +531,16 @@ machine_at_s2080_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    intel_ich2_setup(815, 0, 6, 0, 3, model);
+    intel_ich2_setup(815, 0, 0, 3, model);
+    /* Tyan Tomcat i815T PCI Bus Masters */
+    pci_register_bus_slot(1, 0x08, PCI_CARD_NORMAL, 5, 0, 0, 0);
+    pci_register_bus_slot(1, 0x04, PCI_CARD_NORMAL, 2, 3, 4, 5);
+    pci_register_bus_slot(1, 0x05, PCI_CARD_NORMAL, 3, 4, 5, 6);
+    pci_register_bus_slot(1, 0x06, PCI_CARD_NORMAL, 4, 5, 6, 7);
+    pci_register_bus_slot(1, 0x07, PCI_CARD_NORMAL, 5, 6, 7, 8);
+    pci_register_bus_slot(1, 0x0A, PCI_CARD_NORMAL, 6, 7, 8, 2);
+    pci_register_bus_slot(1, 0x09, PCI_CARD_NORMAL, 7, 8, 1, 2);
+    pci_register_bus_slot(1, 0x0B, PCI_CARD_NORMAL, 8, 0, 0, 0);
 
     device_add(&pc87332_device); /* NSC PC87366 */
     device_add(&keyboard_ps2_ami_pci_device);
