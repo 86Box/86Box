@@ -14,7 +14,7 @@
 #
 
 add_library(chipset OBJECT 82c100.c acc2168.c cs8230.c ali1429.c ali1489.c ali1531.c ali1541.c ali1543.c
-	ali1621.c ali6117.c headland.c intel_82335.c contaq_82c59x.c cs4031.c intel_420ex.c
+	ali1621.c ali6117.c headland.c intel_82335.c contaq_82c59x.c cs4031.c ims8848.c intel_420ex.c
 	intel_4x0.c intel_i450kx.c intel_sio.c intel_piix.c ../ioapic.c neat.c opti283.c opti291.c opti391.c
 	opti495.c opti822.c opti895.c opti5x7.c scamp.c scat.c sis_85c310.c sis_85c4xx.c
 	sis_85c496.c sis_85c50x.c sis_5511.c sis_5571.c via_vt82c49x.c via_vt82c505.c sis_85c310.c
