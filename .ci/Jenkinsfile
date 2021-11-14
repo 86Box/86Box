@@ -50,11 +50,11 @@ def saveArtifacts() {
 
 def anySuccess = false
 
-def buildChain = {
+def buildChain = [
 	'86Box': '86Box-Dev',
 	'86Box-Dev': '86Box-Debug',
 	'86Box-TestBuildPleaseIgnore': '86Box-TestBuildPleaseIgnore2'
-}
+]
 
 pipeline {
 	agent none
