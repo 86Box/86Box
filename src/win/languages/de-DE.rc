@@ -84,7 +84,6 @@ BEGIN
                 MENUITEM "&Grüner Monitor",      IDM_VID_GRAY_GREEN
                 MENUITEM "&Weißer Monitor",      IDM_VID_GRAY_WHITE
             END
-            END
             POPUP "Methode zur &Graustufenkonversion"
             BEGIN
                 MENUITEM "BT&601 (NTSC/PAL)",   IDM_VID_GRAYCT_601
@@ -124,32 +123,32 @@ BEGIN
         MENUITEM "BusLogic-Logs aktivieren\tStrg+F4", IDM_LOG_BUSLOGIC
 # endif
 # ifdef ENABLE_CDROM_LOG
-        MENUITEM "CD-ROM-Logs aktivieren\tSTRG+F5", IDM_LOG_CDROM
+        MENUITEM "CD-ROM-Logs aktivieren\tStrg+F5", IDM_LOG_CDROM
 # endif
 # ifdef ENABLE_D86F_LOG
-        MENUITEM "Disketten (86F)-Logs aktivieren\tSTRG+F6", IDM_LOG_D86F
+        MENUITEM "Disketten (86F)-Logs aktivieren\tStrg+F6", IDM_LOG_D86F
 # endif
 # ifdef ENABLE_FDC_LOG
-        MENUITEM "Diskettencontroller-Logs aktivieren\tSTRG+F7", IDM_LOG_FDC
+        MENUITEM "Diskettencontroller-Logs aktivieren\tStrg+F7", IDM_LOG_FDC
 # endif
 # ifdef ENABLE_IDE_LOG
-        MENUITEM "IDE-Logs aktivieren\tSTRG+F8", IDM_LOG_IDE
+        MENUITEM "IDE-Logs aktivieren\tStrg+F8", IDM_LOG_IDE
 # endif
 # ifdef ENABLE_SERIAL_LOG
-        MENUITEM "Seriell-Port-Logs aktivieren\tSTRG+F3", IDM_LOG_SERIAL
+        MENUITEM "Seriell-Port-Logs aktivieren\tStrg+F3", IDM_LOG_SERIAL
 # endif
 # ifdef ENABLE_NIC_LOG
-        MENUITEM "Netzwerk-Logs aktivieren\tSTRG+F9", IDM_LOG_NIC
+        MENUITEM "Netzwerk-Logs aktivieren\tStrg+F9", IDM_LOG_NIC
 # endif
 # ifdef ENABLE_LOG_COMMANDS
 #  ifdef ENABLE_LOG_TOGGLES
 	MENUITEM SEPARATOR
 #  endif
 #  ifdef ENABLE_LOG_BREAKPOINT
-        MENUITEM "&Breakpoint für die Log-Datei\tSTRG+F10", IDM_LOG_BREAKPOINT
+        MENUITEM "&Breakpoint für die Log-Datei\tStrg+F10", IDM_LOG_BREAKPOINT
 #  endif
 #  ifdef ENABLE_VRAM_DUMP
-        MENUITEM "&Video-RAM dumpen\tSTRG+F1", IDM_DUMP_VRAM
+        MENUITEM "&Video-RAM dumpen\tStrg+F1", IDM_DUMP_VRAM
 #  endif
 # endif
     END
