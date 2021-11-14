@@ -224,11 +224,15 @@ void* fluidsynth_init(const device_t *info)
 
 	/* Try loading the DLL. */
 #ifdef _WIN32
+# if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
 	fluidsynth_handle = dynld_module("libfluidsynth.dll", fluidsynth_imports);
+# else
+	fluidsynth_handle = dynld_module("libfluidsynth64.dll", fluidsynth_imports);
+# endif
 #elif defined __APPLE__
         fluidsynth_handle = dynld_module("libfluidsynth.dylib", fluidsynth_imports);
 #else
-	fluidsynth_handle = dynld_module("libfluidsynth.so", fluidsynth_imports);
+	fluidsynth_handle = dynld_module("libfluidsynth.so.3", fluidsynth_imports);
 #endif
 	if (fluidsynth_handle == NULL)
 	{

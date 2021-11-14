@@ -112,11 +112,11 @@ machine_at_sp4_common_init(const machine_t *model)
 
 
 int
-machine_at_excalibur_pci_init(const machine_t *model)
+machine_at_excaliburpci_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_inverted("roms/machines/excalibur_pci/S701P.ROM",
+    ret = bios_load_linear_inverted("roms/machines/excaliburpci/S701P.ROM",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -423,11 +423,11 @@ machine_at_p5vl_init(const machine_t *model)
 
 
 int
-machine_at_excalibur_pci_2_init(const machine_t *model)
+machine_at_excaliburpci2_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_inverted("roms/machines/excalibur_pci-2/S722P.ROM",
+    ret = bios_load_linear_inverted("roms/machines/excaliburpci2/S722P.ROM",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)

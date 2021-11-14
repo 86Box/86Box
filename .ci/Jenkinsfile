@@ -1,0 +1,147 @@
+/*
+ * 86Box	A hypervisor and IBM PC system emulator that specializes in
+ *		running old operating systems and software designed for IBM
+ *		PC systems and compatibles from 1981 through fairly recent
+ *		system designs based on the PCI bus.
+ *
+ *		This file is part of the 86Box distribution.
+ *
+ *		Jenkins build pipeline definition.
+ *
+ *
+ *
+ * Authors:	RichardG, <richardg867@gmail.com>
+ *
+ *		Copyright 2021 RichardG.
+ */
+
+/* Run this on /script to get all approvals required to sync build numbers across jobs:
+
+def approval = org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval.get()
+approval.approveSignature('staticMethod jenkins.model.Jenkins getInstance')
+approval.approveSignature('method hudson.model.ItemGroup getItem java.lang.String')
+approval.approveSignature('field hudson.model.Job nextBuildNumber')
+approval.approveSignature('method hudson.model.Job saveNextBuildNumber')
+
+*/
+
+def gitClone() {
+	cleanWs()
+	if (env.GIT_COMMIT == null)
+		env.GIT_COMMIT = BRANCH
+	println "[-] Building git tag [${env.GIT_COMMIT}]"
+	def scmVars = checkout scm: [$class: 'GitSCM',
+				     branches: [[name: env.GIT_COMMIT]],
+				     userRemoteConfigs: [[url: 'https://github.com/86Box/86Box.git']]]
+	env.GIT_COMMIT = scmVars.GIT_COMMIT
+}
+
+def windowsBuild() {
+	bat 'C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c "exec .ci/build.sh"'
+}
+
+def unixBuild() {
+	sh 'chmod u+x .ci/build.sh && exec .ci/build.sh'
+}
+
+def saveArtifacts() {
+	archiveArtifacts artifacts: "${env.JOB_BASE_NAME}-*"
+}
+
+def anySuccess = false
+
+def buildChain = [
+	'86Box': '86Box-Dev',
+	'86Box-Dev': '86Box-DevODR',
+	'86Box-DevODR': '86Box-Debug',
+	'86Box-TestBuildPleaseIgnore': '86Box-TestBuildPleaseIgnore2'
+]
+
+pipeline {
+	agent none
+
+	parameters {
+		string(name: 'BUILD_TYPE',
+		       defaultValue: 'beta', /* !!! CHANGE HERE !!! for build type */
+		       description: "Build type to pass on to CMake. Don't change this, you should instead change the default value on .ci/Jenkinsfile")
+		string(name: 'BRANCH',
+		       defaultValue: 'master',
+		       description: "Used internally to make sure all downstream builds use the same commit. Don't change this.")
+	}
+
+	environment {
+		DISCORD_WEBHOOK_URL = credentials('discord-webhook-url')
+	}
+
+	stages {
+		stage('Build Windows') {
+			steps {
+				catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+					node('windows') {
+						gitClone()
+						windowsBuild()
+						saveArtifacts()
+					}
+
+					script {
+						anySuccess = true
+					}
+				}
+			}
+		}
+
+		stage('Build Linux') {
+			steps {
+				catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+					node('debian') {
+						gitClone()
+						unixBuild()
+						saveArtifacts()
+					}
+
+					script {
+						anySuccess = true
+					}
+				}
+			}
+		}
+	}
+
+	post {
+		always {
+			script {
+				if (buildChain[env.JOB_BASE_NAME]) {
+					def nextJob = buildChain[env.JOB_BASE_NAME]
+
+					try {
+						/* Set next build number for this job. */
+						def job = Jenkins.instance.getItem(nextJob)
+						job.nextBuildNumber = env.BUILD_NUMBER as Integer
+						job.saveNextBuildNumber()
+					} catch (Exception e) {
+						println "[!] Could not set next build number for [$nextJob], make sure all required script approvals are in place"
+					}
+
+					/* Trigger this job. */
+					build propagate: false,
+					      wait: false,
+					      job: nextJob,
+					      parameters: [
+						string(name: 'BUILD_TYPE', value: BUILD_TYPE),
+						string(name: 'BRANCH', value: env.GIT_COMMIT)
+					      ]
+				}
+
+				if (!anySuccess) {
+					println "[!] Failing build because all build stages failed"
+					currentBuild.result = 'FAILURE'
+				}
+
+				if (!env.JOB_BASE_NAME.contains("TestBuildPleaseIgnore")) {
+					discordSend webhookURL: DISCORD_WEBHOOK_URL
+					ircNotify()
+				}
+			}
+		}
+	}
+}

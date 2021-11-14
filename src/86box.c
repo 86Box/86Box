@@ -17,6 +17,7 @@
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2017-2020 Fred N. van Kempen.
+ *		Copyright 2021 Laci bá'
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -196,7 +197,7 @@ int unscaled_size_y = SCREEN_RES_Y;	/* current unscaled size Y */
 int efscrnsz_y = SCREEN_RES_Y;
 
 
-static wchar_t	mouse_msg[2][200];
+static wchar_t	mouse_msg[3][200];
 
 
 #ifndef RELEASE_BUILD
@@ -395,7 +396,8 @@ pc_init(int argc, char *argv[])
 	int c, vmrp = 0;
 	int ng = 0, lvmp = 0;
 	uint32_t *uid, *shwnd;
-
+	uint32_t lang_init = 0;
+	
 	/* Grab the executable's full path. */
 	plat_get_exe_name(exe_path, sizeof(exe_path)-1);
 	p = plat_get_filename(exe_path);
@@ -432,6 +434,7 @@ usage:
 			printf("-E or --nographic    - forces the old behavior\n");
 #endif
 			printf("-F or --fullscreen   - start in fullscreen mode\n");
+			printf("-G or --lang langid  - start with specified language (e.g. en-US, or system)\n");
 #ifdef _WIN32
 			printf("-H or --hwnd id,hwnd - sends back the main dialog's hwnd\n");
 #endif
@@ -512,7 +515,20 @@ usage:
 			uid = (uint32_t *) &unique_id;
 			shwnd = (uint32_t *) &source_hwnd;
 			sscanf(argv[++c], "%08X%08X,%08X%08X", uid + 1, uid, shwnd + 1, shwnd);
+		} else if (!strcasecmp(argv[c], "--lang") ||
+			   !strcasecmp(argv[c], "-G")) {
+
+
 #endif
+		  //This function is currently unimplemented for *nix but has placeholders.
+
+		  lang_init = plat_language_code(argv[++c]);
+		  if (!lang_init)
+			 printf("\nWarning: Invalid language code, ignoring --lang parameter.\n\n");
+
+		  //The return value of 0 only means that the code is invalid,
+		  //  not related to that translation is exists or not for the
+          //  selected language.
 		} else if (!strcasecmp(argv[c], "--test")) {
 			/* some (undocumented) test function here.. */
 
@@ -665,7 +681,7 @@ usage:
 	info = localtime(&now);
 	strftime(temp, sizeof(temp), "%Y/%m/%d %H:%M:%S", info);
 	pclog("#\n# %ls v%ls logfile, created %s\n#\n",
-		EMU_NAME_W, EMU_VERSION_W, temp);
+		EMU_NAME_W, EMU_VERSION_FULL_W, temp);
 	pclog("# VM: %s\n#\n", vm_name);
 	pclog("# Emulator path: %s\n", exe_path);
 	pclog("# Userfiles path: %s\n", usr_path);
@@ -689,7 +705,16 @@ usage:
 
 	/* Load the configuration file. */
 	config_load();
-
+	
+	/* Load the desired language */
+	if (lang_init)
+		lang_id = lang_init;
+	
+	lang_init = lang_id;
+	lang_id = 0;
+	if (lang_init)
+		set_language(lang_init);
+	
 	/* All good! */
 	return(1);
 }
@@ -724,6 +749,7 @@ pc_init_modules(void)
 	wchar_t temp[512];
 	char tempc[512];
 
+#ifdef PRINT_MISSING_MACHINES_AND_VIDEO_CARDS
 	c = m = 0;
 	while (machine_get_internal_name_ex(c) != NULL) {
 		m = machine_available(c);
@@ -743,6 +769,7 @@ pc_init_modules(void)
 			pclog("Missing video card: %s\n", tempc);
 		c++;
 	}
+#endif
 
 	pc_log("Scanning for ROM images:\n");
 	c = m = 0;
@@ -914,8 +941,6 @@ pc_reset_hard_close(void)
 void
 pc_reset_hard_init(void)
 {
-	wchar_t wcpufamily[2048], wcpu[2048], wmachine[2048], *wcp;
-
 	/*
 	 * First, we reset the modules that are not part of
 	 * the actual machine, but which support some of the
@@ -1017,7 +1042,14 @@ pc_reset_hard_init(void)
 	pc_full_speed();
 
 	cycles = cycles_main = 0;
+	
+	update_mouse_msg();
+}
 
+void update_mouse_msg()
+{
+	wchar_t wcpufamily[2048], wcpu[2048], wmachine[2048], *wcp;
+	
 	mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
 
 	if (!cpu_override)
@@ -1029,14 +1061,16 @@ pc_reset_hard_init(void)
 	if (wcp) /* remove parentheses */
 		*(wcp - 1) = L'\0';
 	mbstowcs(wcpu, cpu_s->name, strlen(cpu_s->name)+1);
+	
 	swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
-		EMU_NAME_W, EMU_VERSION_W, wmachine, wcpufamily, wcpu,
+		EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu,
 		plat_get_string(IDS_2077));
 	swprintf(mouse_msg[1], sizeof_w(mouse_msg[1]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
-		EMU_NAME_W, EMU_VERSION_W, wmachine, wcpufamily, wcpu,
+		EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu,
 		(mouse_get_buttons() > 2) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079));
+	swprintf(mouse_msg[2], sizeof_w(mouse_msg[2]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls",
+		EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu);
 }
-
 
 void
 pc_reset_hard(void)
@@ -1121,6 +1155,7 @@ static void _ui_window_title(void *s)
 void
 pc_run(void)
 {
+	int mouse_msg_idx;
 	wchar_t temp[200];
 
 	/* Trigger a hard reset if one is pending. */
@@ -1145,7 +1180,8 @@ pc_run(void)
 	}
 
 	if (title_update) {
-		swprintf(temp, sizeof_w(temp), mouse_msg[!!mouse_capture], fps);
+		mouse_msg_idx = (mouse_type == MOUSE_TYPE_NONE) ? 2 : !!mouse_capture;
+		swprintf(temp, sizeof_w(temp), mouse_msg[mouse_msg_idx], fps);
 #ifdef __APPLE__
 		/* Needed due to modifying the UI on the non-main thread is a big no-no. */
 		dispatch_async_f(dispatch_get_main_queue(), wcsdup((const wchar_t *) temp), _ui_window_title);
