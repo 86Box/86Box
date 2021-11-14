@@ -88,9 +88,11 @@ enum
 {
         TGUI_9400CXI = 0,
         TGUI_9440,
-		TGUI_9660,
-		TGUI_9680
+	TGUI_9660,
+	TGUI_9680
 };
+
+#define ONBOARD			0x0100
 
 typedef struct tgui_t
 {
@@ -162,6 +164,8 @@ typedef struct tgui_t
         
         volatile int write_blitter;
 		void *i2c, *ddc;
+
+	int has_bios;
 } tgui_t;
 
 video_timings_t timing_tgui_vlb = {VIDEO_BUS, 4,  8, 16,   4,  8, 16};
@@ -949,13 +953,13 @@ uint8_t tgui_pci_read(int func, int addr, void *p)
                 case 0x16: return tgui->mmio_base >> 16;
                 case 0x17: return tgui->mmio_base >> 24;				
 
-				case 0x30: return (tgui->pci_regs[0x30] & 0x01); /*BIOS ROM address*/
-				case 0x31: return 0x00;
-				case 0x32: return tgui->pci_regs[0x32];
-				case 0x33: return tgui->pci_regs[0x33];
-				
-				case 0x3c: return tgui->int_line;
-				case 0x3d: return PCI_INTA;
+		case 0x30: return tgui->has_bios ? (tgui->pci_regs[0x30] & 0x01) : 0x00; /*BIOS ROM address*/
+		case 0x31: return 0x00;
+		case 0x32: return tgui->has_bios ? tgui->pci_regs[0x32] : 0x00;
+		case 0x33: return tgui->has_bios ? tgui->pci_regs[0x33] : 0x00;
+
+		case 0x3c: return tgui->int_line;
+		case 0x3d: return PCI_INTA;
         }
         return 0;
 }
@@ -1009,23 +1013,25 @@ void tgui_pci_write(int func, int addr, uint8_t val, void *p)
 					tgui->mmio_base = (tgui->mmio_base & 0x00e00000) | (val << 24);
                 tgui_recalcmapping(tgui);
                 break;				
-				
-				case 0x30: case 0x32: case 0x33:
-				tgui->pci_regs[addr] = val;
-				if (tgui->pci_regs[0x30] & 0x01)
-				{
-					uint32_t biosaddr = (tgui->pci_regs[0x32] << 16) | (tgui->pci_regs[0x33] << 24);
-					mem_mapping_set_addr(&tgui->bios_rom.mapping, biosaddr, 0x8000);
-				}
-				else
-				{
-					mem_mapping_disable(&tgui->bios_rom.mapping);
-				}
-				return;
-				
-				case 0x3c:
-				tgui->int_line = val;
-				return;
+
+		case 0x30: case 0x32: case 0x33:
+		if (tgui->has_bios) {
+			tgui->pci_regs[addr] = val;
+			if (tgui->pci_regs[0x30] & 0x01)
+			{
+				uint32_t biosaddr = (tgui->pci_regs[0x32] << 16) | (tgui->pci_regs[0x33] << 24);
+				mem_mapping_set_addr(&tgui->bios_rom.mapping, biosaddr, 0x8000);
+			}
+			else
+			{
+				mem_mapping_disable(&tgui->bios_rom.mapping);
+			}
+		}
+		return;
+
+		case 0x3c:
+		tgui->int_line = val;
+		return;
         }
 }
 
@@ -2952,16 +2958,15 @@ tgui_mmio_read_l(uint32_t addr, void *p)
 static void *tgui_init(const device_t *info)
 {
 	const char *bios_fn;
-	int type = info->local;
 
         tgui_t *tgui = malloc(sizeof(tgui_t));
-		svga_t *svga = &tgui->svga;
+	svga_t *svga = &tgui->svga;
         memset(tgui, 0, sizeof(tgui_t));
         
         tgui->vram_size = device_get_config_int("memory") << 20;
         tgui->vram_mask = tgui->vram_size - 1;
         
-        tgui->type = type;
+        tgui->type = info->local & 0xff;
 
 	tgui->pci = !!(info->flags & DEVICE_PCI);
 
@@ -2970,7 +2975,7 @@ static void *tgui_init(const device_t *info)
 			bios_fn = ROM_TGUI_9400CXI;
 			break;
 		case TGUI_9440:
-			bios_fn = ROM_TGUI_9440;
+			bios_fn = (info->local & ONBOARD) ? NULL : ROM_TGUI_9440;
 			break;
 		case TGUI_9660:
 		case TGUI_9680:
@@ -2981,7 +2986,10 @@ static void *tgui_init(const device_t *info)
 			return NULL;
 	}
 
-        rom_init(&tgui->bios_rom, (char *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+	tgui->has_bios = (bios_fn != NULL);
+
+	if (tgui->has_bios)
+		rom_init(&tgui->bios_rom, (char *) bios_fn, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
 
 	if (tgui->pci)
 		video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_tgui_pci);
@@ -2995,31 +3003,38 @@ static void *tgui_init(const device_t *info)
                    NULL);
 
         if (tgui->type == TGUI_9400CXI)
-			svga->ramdac = device_add(&tkd8001_ramdac_device);
+		svga->ramdac = device_add(&tkd8001_ramdac_device);
 
         mem_mapping_add(&tgui->linear_mapping, 0,       0,      svga_read_linear, svga_readw_linear, svga_readl_linear, tgui_accel_write_fb_b, tgui_accel_write_fb_w, tgui_accel_write_fb_l, NULL, MEM_MAPPING_EXTERNAL, svga);
         mem_mapping_add(&tgui->accel_mapping,  0, 		0, tgui_accel_read,  tgui_accel_read_w, tgui_accel_read_l, tgui_accel_write,  tgui_accel_write_w, tgui_accel_write_l, NULL, MEM_MAPPING_EXTERNAL,  tgui);
-		if (tgui->type >= TGUI_9440)
-			mem_mapping_add(&tgui->mmio_mapping,  0, 		0, tgui_mmio_read,  tgui_mmio_read_w, tgui_mmio_read_l, tgui_mmio_write,  tgui_mmio_write_w, tgui_mmio_write_l, NULL, MEM_MAPPING_EXTERNAL,  tgui);
+	if (tgui->type >= TGUI_9440)
+		mem_mapping_add(&tgui->mmio_mapping,  0, 		0, tgui_mmio_read,  tgui_mmio_read_w, tgui_mmio_read_l, tgui_mmio_write,  tgui_mmio_write_w, tgui_mmio_write_l, NULL, MEM_MAPPING_EXTERNAL,  tgui);
         mem_mapping_disable(&tgui->accel_mapping);
-		mem_mapping_disable(&tgui->mmio_mapping);
+	mem_mapping_disable(&tgui->mmio_mapping);
 
-		tgui_set_io(tgui);
+	tgui_set_io(tgui);
 
-        if (tgui->pci && (tgui->type >= TGUI_9440))
+        if (tgui->pci && (tgui->type >= TGUI_9440)) {
+		if (tgui->has_bios)
 		tgui->card = pci_add_card(PCI_ADD_VIDEO, tgui_pci_read, tgui_pci_write, tgui);
+		else
+			tgui->card = pci_add_card(PCI_ADD_VIDEO | PCI_ADD_STRICT, tgui_pci_read, tgui_pci_write, tgui);
+	}
 
 	tgui->pci_regs[PCI_REG_COMMAND] = 7;
 
-	tgui->pci_regs[0x30] = 0x00;
-	tgui->pci_regs[0x32] = 0x0c;
-	tgui->pci_regs[0x33] = 0x00;
+	if (tgui->has_bios) {
+		tgui->pci_regs[0x30] = 0x00;
+		tgui->pci_regs[0x32] = 0x0c;
+		tgui->pci_regs[0x33] = 0x00;
+	}
 
-	tgui->i2c = i2c_gpio_init("ddc_tgui9440");
-	tgui->ddc = ddc_init(i2c_gpio_get_bus(tgui->i2c));
-
-	if (tgui->type >= TGUI_9440)
+	if (tgui->type >= TGUI_9440) {
 		svga->packed_chain4 = 1;
+
+		tgui->i2c = i2c_gpio_init("ddc_tgui");
+		tgui->ddc = ddc_init(i2c_gpio_get_bus(tgui->i2c));			
+	}
 
         return tgui;
 }
@@ -3161,6 +3176,20 @@ const device_t tgui9440_pci_device =
         tgui_close,
 	NULL,
         { tgui9440_available },
+        tgui_speed_changed,
+        tgui_force_redraw,
+        tgui9440_config
+};
+
+const device_t tgui9440_onboard_pci_device =
+{
+        "Trident TGUI 9440AGi On-Board PCI",
+        DEVICE_PCI,
+	TGUI_9440 | ONBOARD,
+        tgui_init,
+        tgui_close,
+	NULL,
+        { NULL },
         tgui_speed_changed,
         tgui_force_redraw,
         tgui9440_config

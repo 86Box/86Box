@@ -1700,24 +1700,17 @@ es1371_poll(void *p)
 		   But if anything sets MIDI Input and Output together we'd have to take account
 		   of the MIDI Output case, and disable IRQ's and RX bits when MIDI Input is
 		   enabled as well but not in the MIDI Output portion */
-		if (dev->uart_ctrl & UART_CTRL_TXINTEN) 
-			dev->int_status |= INT_STATUS_UART;
-		else
-			dev->int_status &= ~INT_STATUS_UART;
+		dev->int_status &= ~INT_STATUS_UART;
+		dev->uart_status |= (UART_STATUS_TXINT | UART_STATUS_TXRDY);
 	} else if (!(dev->uart_ctrl & UART_CTRL_RXINTEN) && ((dev->uart_ctrl & UART_CTRL_TXINTEN))) {
 		/* Or enable the UART IRQ and the respective TX bits only when the MIDI Output is
 		   enabled */
 		dev->int_status |= INT_STATUS_UART;
+	} else {
+		dev->uart_status |= (UART_STATUS_TXINT | UART_STATUS_TXRDY);
 	}
 
-	if (dev->uart_ctrl & UART_CTRL_RXINTEN) {
-		if (dev->uart_ctrl & UART_CTRL_TXINTEN) 
-			dev->uart_status |= (UART_STATUS_TXINT | UART_STATUS_TXRDY);
-		else
-			dev->uart_status &= ~(UART_STATUS_TXINT | UART_STATUS_TXRDY);
-	} else
-		dev->uart_status |= (UART_STATUS_TXINT | UART_STATUS_TXRDY);
-
+	audiopci_log("UART control = %02x\n", dev->uart_ctrl & (UART_CTRL_RXINTEN | UART_CTRL_TXINTEN));
 	es1371_update_irqs(dev);
     }
 

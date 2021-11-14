@@ -37,6 +37,7 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 #include <86box/hdc.h>
+#include <86box/port_6x.h>
 #include <86box/sio.h>
 #include <86box/serial.h>
 #include <86box/video.h>
@@ -119,10 +120,10 @@ machine_at_ama932j_init(const machine_t *model)
 
     machine_at_common_ide_init(model);
 
-    machine_at_headland_common_init(1);
-
     if (gfxcard == VID_INTERNAL)
 	device_add(&oti067_ama932j_device);
+
+    machine_at_headland_common_init(1);
 
     return ret;
 }
@@ -141,10 +142,34 @@ machine_at_quadt286_init(const machine_t *model)
 	return ret;
 
     machine_at_common_init(model);
-    device_add(&keyboard_at_device);
+	device_add(&keyboard_at_device);
 
     if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
+
+    device_add(&headland_gc10x_device);
+
+    return ret;
+}
+
+
+int
+machine_at_quadt386sx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/quadt386sx/QTC-SXM-EVEN-U3-05-07.BIN",
+				"roms/machines/quadt386sx/QTC-SXM-ODD-U3-05-07.BIN",
+				0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+    device_add(&keyboard_at_device);
+
+    if (fdc_type == FDC_INTERNAL)
+	device_add(&fdc_at_device);
 
     device_add(&headland_gc10x_device);
 
@@ -414,13 +439,13 @@ machine_at_spc4620p_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
+    if (gfxcard == VID_INTERNAL)
+	device_add(&ati28800k_spc4620p_device);
+
     machine_at_scat_init(model, 1);
 
     if (fdc_type == FDC_INTERNAL)
 	device_add(&fdc_at_device);
-
-    if (gfxcard == VID_INTERNAL)
-	device_add(&ati28800k_spc4620p_device);
 
     return ret;
 }
@@ -525,12 +550,12 @@ machine_at_wd76c10_init(const machine_t *model)
 
     machine_at_common_init(model);
 
+    if (gfxcard == VID_INTERNAL)
+	device_add(&paradise_wd90c11_megapc_device);
+
     device_add(&keyboard_ps2_quadtel_device);
 
     device_add(&wd76c10_device);
-
-    if (gfxcard == VID_INTERNAL)
-	device_add(&paradise_wd90c11_megapc_device);
 
     return ret;
 }
@@ -565,14 +590,17 @@ machine_at_cmdsl386sx16_init(const machine_t *model)
 
 
 static void
-machine_at_scamp_common_init(const machine_t *model)
+machine_at_scamp_common_init(const machine_t *model, int is_ps2)
 {
     machine_at_common_ide_init(model);
 
-    device_add(&keyboard_ps2_ami_device);
+    if (is_ps2)
+	device_add(&keyboard_ps2_ami_device);
+    else
+	device_add(&keyboard_at_ami_device);
 
     if (fdc_type == FDC_INTERNAL)
-    device_add(&fdc_at_device);
+	device_add(&fdc_at_device);
 
     device_add(&vlsi_scamp_device);
 }
@@ -596,10 +624,27 @@ machine_at_cmdsl386sx25_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_scamp_common_init(model);
-
     if (gfxcard == VID_INTERNAL)
 	device_add(&gd5402_onboard_device);
+
+    machine_at_scamp_common_init(model, 1);
+
+    return ret;
+}
+
+
+int
+machine_at_dataexpert386sx_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/dataexpert386sx/5e9f20e5ef967717086346.BIN",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_scamp_common_init(model, 0);
 
     return ret;
 }
@@ -623,10 +668,10 @@ machine_at_spc6033p_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_scamp_common_init(model);
-
     if (gfxcard == VID_INTERNAL)
 	device_add(&ati28800k_spc6033p_device);
+
+    machine_at_scamp_common_init(model, 1);
 
     return ret;
 }
@@ -653,6 +698,49 @@ machine_at_awardsx_init(const machine_t *model)
     return ret;
 }
 
+
+int
+machine_at_arb1374_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/arb1374/1374s.rom",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&ali1217_device);
+    device_add(&w83787f_ide_en_device);
+    device_add(&keyboard_ps2_ami_device);
+
+    return ret;
+}
+
+
+int
+machine_at_sbc_350a_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/sbc_350a/350a.rom",
+			   0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&ali1217_device);
+    device_add(&fdc37c665_ide_device);
+    device_add(&keyboard_at_device);
+
+    return ret;
+}
+
+
 int
 machine_at_flytech386_init(const machine_t *model)
 {
@@ -668,13 +756,15 @@ machine_at_flytech386_init(const machine_t *model)
 
     device_add(&ali1217_device);
     device_add(&w83787f_ide_en_device);
-    device_add(&keyboard_ps2_device);
 
     if (gfxcard == VID_INTERNAL)
 	device_add(&tvga8900d_device);
 
+    device_add(&keyboard_ps2_device);
+
     return ret;
 }
+
 
 const device_t *
 at_flytech386_get_device(void)
@@ -682,24 +772,24 @@ at_flytech386_get_device(void)
     return &tvga8900d_device;
 }
 
-#if defined(DEV_BRANCH) && defined(USE_M6117)
+
 int
-machine_at_arb1375_init(const machine_t *model)
+machine_at_mr1217_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/arb1375/a1375v25.u11-a",
-			   0x000e0000, 131072, 0);
+    ret = bios_load_linear("roms/machines/mr1217/mrbios.BIN",
+			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
 	return ret;
 
     machine_at_common_init(model);
 
-    device_add(&fdc37c669_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&ali6117d_device);
-    device_add(&sst_flash_29ee010_device);
+    device_add(&ali1217_device);
+    device_add(&fdc_at_device);
+    device_add(&ide_isa_device);
+    device_add(&keyboard_ps2_device);
 
     return ret;
 }
@@ -719,14 +809,36 @@ machine_at_pja511m_init(const machine_t *model)
     machine_at_common_init(model);
 
     device_add_inst(&fdc37c669_device, 1);
-    //device_add_inst(&fdc37c669_device, 2); /* enable when dual FDC37C669 is implemented */
+    device_add_inst(&fdc37c669_device, 2);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&ali6117d_device);
     device_add(&sst_flash_29ee010_device);
 
     return ret;
 }
-#endif
+
+
+int
+machine_at_prox1332_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/prox1332/D30B3AC1.BIN",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&fdc37c669_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&ali6117d_device);
+    device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
+
 
 /*
  * Current bugs: 
@@ -753,6 +865,7 @@ machine_at_pc8_init(const machine_t *model)
     return ret;
 }
 
+
 /*
  * Current bugs: 
  * - ctrl-alt-del produces an 8042 error
@@ -775,16 +888,18 @@ machine_at_3302_init(const machine_t *model)
 
     machine_at_common_ide_init(model);
     device_add(&neat_device);
-    device_add(&keyboard_at_ncr_device);
 
     if (fdc_type == FDC_INTERNAL)
 	device_add(&fdc_at_device);
 
     if (gfxcard == VID_INTERNAL)
 	device_add(&paradise_pvga1a_ncr3302_device);
+
+    device_add(&keyboard_at_ncr_device);
     
     return ret;
 }
+
 
 /*
  * Current bugs: 
@@ -813,6 +928,7 @@ machine_at_pc916sx_init(const machine_t *model)
     return ret;
 }
 
+
 #if defined(DEV_BRANCH) && defined(USE_OLIVETTI)
 int
 machine_at_m290_init(const machine_t *model)
@@ -825,9 +941,10 @@ machine_at_m290_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 4);
     device_add(&keyboard_at_olivetti_device);
-    
+    device_add(&port_6x_olivetti_device);
+
     if (fdc_type == FDC_INTERNAL)
 	device_add(&fdc_at_device);
     
@@ -836,58 +953,3 @@ machine_at_m290_init(const machine_t *model)
     return ret;
 }
 #endif
-
-const device_t *
-at_m30008_get_device(void)
-{
-    return &oti067_m300_device;
-}
-
-int
-machine_at_m30008_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/m30008/BIOS.ROM",
-			   0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_at_common_init(model);
-
-    device_add(&opti283_device);
-    device_add(&keyboard_ps2_olivetti_device);
-    device_add(&pc87310_ide_device);
-    
-    if (gfxcard == VID_INTERNAL)
-	device_add(&oti067_m300_device);
-
-    return ret;
-}
-
-/* Almost identical to M300-08, save for CPU speed, VRAM, and BIOS identification string */
-int
-machine_at_m30015_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/m30015/BIOS.ROM",
-			   0x000f0000, 65536, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_at_common_init(model);
-
-    device_add(&opti283_device);
-    device_add(&keyboard_ps2_olivetti_device);
-    device_add(&pc87310_ide_device);
-    
-    /* Stock VRAM is maxed out, so no need to expose video card config */
-    if (gfxcard == VID_INTERNAL)
-	device_add(&oti067_m300_device);
-
-    return ret;
-}
-

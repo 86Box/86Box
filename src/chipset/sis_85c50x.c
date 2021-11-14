@@ -89,7 +89,7 @@ sis_85c50x_shadow_recalc(sis_85c50x_t *dev)
 	mem_set_mem_state_both(base, 0x4000, (dev->pci_conf[0x56] & (1 << (7 - i))) ? (can_read | can_write) : (MEM_READ_EXTANY | MEM_WRITE_EXTANY));
     }
 
-    flushmmucache();
+    flushmmucache_nopc();
 }
 
 
@@ -107,8 +107,7 @@ sis_85c50x_smm_recalc(sis_85c50x_t *dev)
 
     switch ((dev->pci_conf[0x65] & 0xe0) >> 5) {
 	case 0x00:
-		if (!(dev->pci_conf[0x54] & 0xc0))
-			smram_enable(dev->smram, 0xe0000, 0xe0000, 0x8000, (dev->pci_conf[0x65] & 0x10), 1);
+		smram_enable(dev->smram, 0xe0000, 0xe0000, 0x8000, (dev->pci_conf[0x65] & 0x10), 1);
 		break;
 	case 0x01:
 		smram_enable(dev->smram, 0xb0000, ram_base, 0x10000, (dev->pci_conf[0x65] & 0x10), 1);

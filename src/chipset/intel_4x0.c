@@ -56,6 +56,7 @@ typedef struct
 		smram_locked, max_drb,
 		drb_unit, drb_default;
     uint8_t	regs[256], regs_locked[256];
+    uint8_t	mem_state[256];
     int		type;
     smram_t	*smram_low, *smram_high;
     void	*agpgart;
@@ -83,23 +84,18 @@ i4x0_log(const char *fmt, ...)
 
 
 static void
-i4x0_map(uint32_t addr, uint32_t size, int state)
+i4x0_map(i4x0_t *dev, uint32_t addr, uint32_t size, int state)
 {
-    switch (state & 3) {
-	case 0:
-		mem_set_mem_state_both(addr, size, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-		break;
-	case 1:
-		mem_set_mem_state_both(addr, size, MEM_READ_INTERNAL | MEM_WRITE_EXTANY);
-		break;
-	case 2:
-		mem_set_mem_state_both(addr, size, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-		break;
-	case 3:
-		mem_set_mem_state_both(addr, size, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-		break;
+    uint32_t base = addr >> 12;
+    int states[4] = { MEM_READ_EXTANY | MEM_WRITE_EXTANY, MEM_READ_INTERNAL | MEM_WRITE_EXTANY,
+		      MEM_READ_EXTANY | MEM_WRITE_INTERNAL, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL };
+
+    state &= 3;
+    if (dev->mem_state[base] != state) {
+	mem_set_mem_state_both(addr, size, states[state]);
+	dev->mem_state[base] = state;
+	flushmmucache_nopc();
     }
-    flushmmucache_nopc();
 }
 
 
@@ -601,10 +597,10 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 	case 0x59:	/* PAM0 */
 		if (dev->type <= INTEL_430NX) {
 			if ((regs[0x59] ^ val) & 0x0f)
-				i4x0_map(0x80000, 0x20000, val & 0x0f);
+				i4x0_map(dev, 0x80000, 0x20000, val & 0x0f);
 		}
 		if ((regs[0x59] ^ val) & 0xf0) {
-			i4x0_map(0xf0000, 0x10000, val >> 4);
+			i4x0_map(dev, 0xf0000, 0x10000, val >> 4);
 			shadowbios = (val & 0x10);
 		}
 		if (dev->type > INTEL_430NX)
@@ -614,44 +610,44 @@ i4x0_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x5a:	/* PAM1 */
 		if ((regs[0x5a] ^ val) & 0x0f)
-			i4x0_map(0xc0000, 0x04000, val & 0xf);
+			i4x0_map(dev, 0xc0000, 0x04000, val & 0xf);
 		if ((regs[0x5a] ^ val) & 0xf0)
-			i4x0_map(0xc4000, 0x04000, val >> 4);
+			i4x0_map(dev, 0xc4000, 0x04000, val >> 4);
 		regs[0x5a] = val & 0x77;
 		break;
 	case 0x5b:	/*PAM2 */
 		if ((regs[0x5b] ^ val) & 0x0f)
-			i4x0_map(0xc8000, 0x04000, val & 0xf);
+			i4x0_map(dev, 0xc8000, 0x04000, val & 0xf);
 		if ((regs[0x5b] ^ val) & 0xf0)
-			i4x0_map(0xcc000, 0x04000, val >> 4);
+			i4x0_map(dev, 0xcc000, 0x04000, val >> 4);
 		regs[0x5b] = val & 0x77;
 		break;
 	case 0x5c:	/*PAM3 */
 		if ((regs[0x5c] ^ val) & 0x0f)
-			i4x0_map(0xd0000, 0x04000, val & 0xf);
+			i4x0_map(dev, 0xd0000, 0x04000, val & 0xf);
 		if ((regs[0x5c] ^ val) & 0xf0)
-			i4x0_map(0xd4000, 0x04000, val >> 4);
+			i4x0_map(dev, 0xd4000, 0x04000, val >> 4);
 		regs[0x5c] = val & 0x77;
 		break;
 	case 0x5d:	/* PAM4 */
 		if ((regs[0x5d] ^ val) & 0x0f)
-			i4x0_map(0xd8000, 0x04000, val & 0xf);
+			i4x0_map(dev, 0xd8000, 0x04000, val & 0xf);
 		if ((regs[0x5d] ^ val) & 0xf0)
-			i4x0_map(0xdc000, 0x04000, val >> 4);
+			i4x0_map(dev, 0xdc000, 0x04000, val >> 4);
 		regs[0x5d] = val & 0x77;
 		break;
 	case 0x5e:	/* PAM5 */
 		if ((regs[0x5e] ^ val) & 0x0f)
-			i4x0_map(0xe0000, 0x04000, val & 0xf);
+			i4x0_map(dev, 0xe0000, 0x04000, val & 0xf);
 		if ((regs[0x5e] ^ val) & 0xf0)
-			i4x0_map(0xe4000, 0x04000, val >> 4);
+			i4x0_map(dev, 0xe4000, 0x04000, val >> 4);
 		regs[0x5e] = val & 0x77;
 		break;
 	case 0x5f:	/* PAM6 */
 		if ((regs[0x5f] ^ val) & 0x0f)
-			i4x0_map(0xe8000, 0x04000, val & 0xf);
+			i4x0_map(dev, 0xe8000, 0x04000, val & 0xf);
 		if ((regs[0x5f] ^ val) & 0xf0)
-			i4x0_map(0xec000, 0x04000, val >> 4);
+			i4x0_map(dev, 0xec000, 0x04000, val >> 4);
 		regs[0x5f] = val & 0x77;
 		break;
 	case 0x60: case 0x61: case 0x62: case 0x63: case 0x64:
@@ -1322,11 +1318,11 @@ static void
 		regs[0x0d] = 0x20;
 		/* According to information from FreeBSD 3.x source code:
 			0x00 = 486DX, 0x20 = 486SX, 0x40 = 486DX2 or 486DX4, 0x80 = Pentium OverDrive. */
-		if (!(hasfpu) && (cpu_multi = 1))
+		if (!(hasfpu) && (cpu_multi == 1))
 			regs[0x50] = 0x20;
-		else if (!(hasfpu) && (cpu_multi = 2))
+		else if (!(hasfpu) && (cpu_multi == 2))
 			regs[0x50] = 0x60;	/* Guess based on the SX, DX, and DX2 values. */
-		else if (hasfpu && (cpu_multi = 1))
+		else if (hasfpu && (cpu_multi == 1))
 			regs[0x50] = 0x00;
 		else if (hasfpu && (cpu_multi >= 2) && !(cpu_s->cpu_type == CPU_P24T))
 			regs[0x50] = 0x40;

@@ -186,7 +186,6 @@ const cpu_family_t cpu_families[] = {
 		{"", 0}
 	}
     },
-#if defined(DEV_BRANCH) && defined(USE_M6117)
     {
 	.package = CPU_PKG_M6117,
 	.manufacturer = "ALi",
@@ -198,7 +197,6 @@ const cpu_family_t cpu_families[] = {
 		{"", 0}
 	}
     },
-#endif
     {
 	.package = CPU_PKG_386SLC_IBM,
 	.manufacturer = "IBM",
@@ -776,6 +774,9 @@ const cpu_family_t cpu_families[] = {
 	.name = "K6 (Model 7)",
 	.internal_name = "k6_m7",
 	.cpus = (const CPU[]) {
+		{"100",        CPU_K6,    fpus_internal,  100000000, 1.5, 2200, 0x570, 0x570, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 9, 9, 4, 4, 12}, /* out of spec */
+		{"133",        CPU_K6,    fpus_internal,  133333333, 2.0, 2200, 0x570, 0x570, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 12,12, 6, 6, 16}, /* out of spec */
+		{"166",        CPU_K6,    fpus_internal,  166666666, 2.5, 2200, 0x570, 0x570, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 15,15, 7, 7, 20}, /* out of spec */
 		{"200",        CPU_K6,    fpus_internal,  200000000, 3.0, 2200, 0x570, 0x570, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 18,18, 9, 9, 24},
 		{"233",        CPU_K6,    fpus_internal,  233333333, 3.5, 2200, 0x570, 0x570, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 21,21,10,10, 28},
 		{"266",        CPU_K6,    fpus_internal,  266666666, 4.0, 2200, 0x570, 0x570, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC, 24,24,12,12, 32},
@@ -788,6 +789,10 @@ const cpu_family_t cpu_families[] = {
 	.name = "K6-2",
 	.internal_name = "k6_2",
 	.cpus = (const CPU[]) {
+		{"100",                CPU_K6_2,  fpus_internal,  100000000, 1.5, 2200, 0x580, 0x580, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    9,     9,   4,   4, 12}, /* out of spec */
+		{"133",                CPU_K6_2,  fpus_internal,  133333333, 2.0, 2200, 0x580, 0x580, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    12,   12,   6,   6, 16}, /* out of spec */
+		{"166",                CPU_K6_2,  fpus_internal,  166666666, 2.5, 2200, 0x580, 0x580, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    15,   15,   7,   7, 20}, /* out of spec */
+		{"200",                CPU_K6_2,  fpus_internal,  200000000, 3.0, 2200, 0x580, 0x580, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    18,   18,   9,   9, 24}, /* out of spec */
 		{"233",                CPU_K6_2,  fpus_internal,  233333333, 3.5, 2200, 0x580, 0x580, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    21,   21,  10,  10, 28},
 		{"266",                CPU_K6_2,  fpus_internal,  266666666, 4.0, 2200, 0x580, 0x580, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    24,   24,  12,  12, 32},
 		{"300",                CPU_K6_2,  fpus_internal,  300000000, 3.0, 2200, 0x580, 0x580, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    27,   27,   9,   9, 36},
@@ -810,11 +815,24 @@ const cpu_family_t cpu_families[] = {
 	.name = "K6-2+",
 	.internal_name = "k6_2p",
 	.cpus = (const CPU[]) {
-		{"450",               CPU_K6_2P, fpus_internal,  450000000, 4.5, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    41,   41,  14,  14, 54},
-		{"475",               CPU_K6_2P, fpus_internal,  475000000, 5.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    43,   43,  15,  15, 57},
-		{"500",               CPU_K6_2P, fpus_internal,  500000000, 5.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    45,   45,  15,  15, 60},
-		{"533",               CPU_K6_2P, fpus_internal,  533333333, 5.5, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    48,   48,  17,  17, 64},
-		{"550",               CPU_K6_2P, fpus_internal,  550000000, 5.5, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    50,   50,  17,  17, 66},
+		{"100",               CPU_K6_2P,  fpus_internal,  100000000, 1.5, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    9,     9,   4,   4, 12}, /* out of spec */
+		{"133",               CPU_K6_2P,  fpus_internal,  133333333, 2.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    12,   12,   6,   6, 16}, /* out of spec */
+		{"166",               CPU_K6_2P,  fpus_internal,  166666666, 2.5, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    15,   15,   7,   7, 20}, /* out of spec */
+		{"200",               CPU_K6_2P,  fpus_internal,  200000000, 3.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    18,   18,   9,   9, 24}, /* out of spec */
+		{"233",               CPU_K6_2P,  fpus_internal,  233333333, 3.5, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    21,   21,  10,  10, 28}, /* out of spec */
+		{"266",               CPU_K6_2P,  fpus_internal,  266666666, 4.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    24,   24,  12,  12, 32}, /* out of spec */
+		{"300",               CPU_K6_2P,  fpus_internal,  300000000, 3.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    27,   27,   9,   9, 36}, /* out of spec */
+		{"333",               CPU_K6_2P,  fpus_internal,  332500000, 3.5, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    30,   30,  11,  11, 40}, /* out of spec */
+		{"350",               CPU_K6_2P,  fpus_internal,  350000000, 3.5, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    32,   32,  11,  11, 42}, /* out of spec */
+		{"366",               CPU_K6_2P,  fpus_internal,  366666666, 5.5, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    33,   33,  17,  17, 44}, /* out of spec */
+		{"380",               CPU_K6_2P,  fpus_internal,  380000000, 4.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    34,   34,  12,  12, 46}, /* out of spec */
+		{"400/66",            CPU_K6_2P,  fpus_internal,  400000000, 6.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    36,   36,  12,  12, 48}, /* out of spec */
+		{"400/100",           CPU_K6_2P,  fpus_internal,  400000000, 4.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    36,   36,  12,  12, 48}, /* out of spec */
+		{"450",               CPU_K6_2P,  fpus_internal,  450000000, 4.5, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    41,   41,  14,  14, 54}, 
+		{"475",               CPU_K6_2P,  fpus_internal,  475000000, 5.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    43,   43,  15,  15, 57},
+		{"500",               CPU_K6_2P,  fpus_internal,  500000000, 5.0, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    45,   45,  15,  15, 60},
+		{"533",               CPU_K6_2P,  fpus_internal,  533333333, 5.5, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    48,   48,  17,  17, 64},
+		{"550",               CPU_K6_2P,  fpus_internal,  550000000, 5.5, 2000, 0x5d4, 0x5d4, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    50,   50,  17,  17, 66},
 		{"", 0}
 	}
     }, {
@@ -823,6 +841,17 @@ const cpu_family_t cpu_families[] = {
 	.name = "K6-III",
 	.internal_name = "k6_3",
 	.cpus = (const CPU[]) {
+		{"100",              CPU_K6_3,  fpus_internal,  100000000, 1.5, 2200, 0x591, 0x591, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    9,     9,   4,   4, 12}, /* out of spec */
+		{"133",              CPU_K6_3,  fpus_internal,  133333333, 2.0, 2200, 0x591, 0x591, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    12,   12,   6,   6, 16}, /* out of spec */
+		{"166",              CPU_K6_3,  fpus_internal,  166666666, 2.5, 2200, 0x591, 0x591, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    15,   15,   7,   7, 20}, /* out of spec */
+		{"200",              CPU_K6_3,  fpus_internal,  200000000, 3.0, 2200, 0x591, 0x591, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    18,   18,   9,   9, 24}, /* out of spec */
+		{"233",              CPU_K6_3,  fpus_internal,  233333333, 3.5, 2200, 0x591, 0x591, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    21,   21,  10,  10, 28}, /* out of spec */
+		{"266",              CPU_K6_3,  fpus_internal,  266666666, 4.0, 2200, 0x591, 0x591, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    24,   24,  12,  12, 32}, /* out of spec */
+		{"300",              CPU_K6_3,  fpus_internal,  300000000, 3.0, 2200, 0x591, 0x591, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    27,   27,   9,   9, 36}, /* out of spec */
+		{"333",              CPU_K6_3,  fpus_internal,  332500000, 3.5, 2200, 0x591, 0x591, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    30,   30,  11,  11, 40}, /* out of spec */
+		{"350",              CPU_K6_3,  fpus_internal,  350000000, 3.5, 2200, 0x591, 0x591, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    32,   32,  11,  11, 42}, /* out of spec */
+		{"366",              CPU_K6_3,  fpus_internal,  366666666, 5.5, 2200, 0x591, 0x591, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    33,   33,  17,  17, 44}, /* out of spec */
+		{"380",              CPU_K6_3,  fpus_internal,  380000000, 4.0, 2200, 0x591, 0x591, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    34,   34,  12,  12, 46}, /* out of spec */
 		{"400",              CPU_K6_3,  fpus_internal,  400000000, 4.0, 2200, 0x591, 0x591, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    36,   36,  12,  12, 48},
 		{"450",              CPU_K6_3,  fpus_internal,  450000000, 4.5, 2200, 0x591, 0x591, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    41,   41,  14,  14, 54},
 		{"", 0}
@@ -833,7 +862,17 @@ const cpu_family_t cpu_families[] = {
 	.name = "K6-III+",
 	.internal_name = "k6_3p",
 	.cpus = (const CPU[]) {
-		{"100",             CPU_K6_3P, fpus_internal,  100000000, 1.0, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,     7,    7,   4,   4,  9},
+		{"100",             CPU_K6_3P, fpus_internal,  100000000, 1.5, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,     7,    7,   4,   4,  9}, /* out of spec */
+		{"133",             CPU_K6_3P, fpus_internal,  133333333, 2.0, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    12,   12,   6,   6, 16}, /* out of spec */
+		{"166",             CPU_K6_3P, fpus_internal,  166666666, 2.5, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    15,   15,   7,   7, 20}, /* out of spec */
+		{"200",             CPU_K6_3P, fpus_internal,  200000000, 3.0, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    18,   18,   9,   9, 24}, /* out of spec */
+		{"233",             CPU_K6_3P, fpus_internal,  233333333, 3.5, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    21,   21,  10,  10, 28}, /* out of spec */
+		{"266",             CPU_K6_3P, fpus_internal,  266666666, 4.0, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    24,   24,  12,  12, 32}, /* out of spec */
+		{"300",             CPU_K6_3P, fpus_internal,  300000000, 3.0, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    27,   27,   9,   9, 36}, /* out of spec */
+		{"333",             CPU_K6_3P, fpus_internal,  332500000, 3.5, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    30,   30,  11,  11, 40}, /* out of spec */
+		{"350",             CPU_K6_3P, fpus_internal,  350000000, 3.5, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    32,   32,  11,  11, 42}, /* out of spec */
+		{"366",             CPU_K6_3P, fpus_internal,  366666666, 5.5, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    33,   33,  17,  17, 44}, /* out of spec */
+		{"380",             CPU_K6_3P, fpus_internal,  380000000, 4.0, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    34,   34,  12,  12, 46}, /* out of spec */
 		{"400",             CPU_K6_3P, fpus_internal,  400000000, 4.0, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    36,   36,  12,  12, 48},
 		{"450",             CPU_K6_3P, fpus_internal,  450000000, 4.5, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    41,   41,  14,  14, 54},
 		{"475",             CPU_K6_3P, fpus_internal,  475000000, 5.0, 2000, 0x5d0, 0x5d0, 0, CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,    43,   43,  15,  15, 57},
@@ -1524,11 +1563,18 @@ static const cpu_legacy_table_t cpus_K56[] = {
     {"k6_m6", 166666666, 2.5},
     {"k6_m6", 200000000, 3.0},
     {"k6_m6", 233333333, 3.5},
-    {"k6_m7", 200000000, 3.0},
+    {"k6_m7", 100000000, 1.5},
+    {"k6_m7", 133333333, 2.0},
+    {"k6_m7", 166666666, 2.5},
+	{"k6_m7", 200000000, 3.0},
     {"k6_m7", 233333333, 3.5},
     {"k6_m7", 266666666, 4.0},
     {"k6_m7", 300000000, 4.5},
-    {"k6_2", 233333333, 3.5},
+    {"k6_2", 100000000, 1.5},
+    {"k6_2", 133333333, 2.0},
+    {"k6_2", 166666666, 2.5},
+    {"k6_2", 200000000, 3.0},
+	{"k6_2", 233333333, 3.5},
     {"k6_2", 266666666, 4.0},
     {"k6_2", 300000000, 4.5},
     {"k6_2", 366666666, 5.5},
@@ -1536,14 +1582,24 @@ static const cpu_legacy_table_t cpus_K56[] = {
 };
 
 static const cpu_legacy_table_t cpus_K56_SS7[] = {
-    {"k6_m6", 166666666, 2.5},
+    {"k6_m6", 66666666, 1.0},
+    {"k6_m6", 100000000, 1.5},
+    {"k6_m6", 133333333, 2.0},
+	{"k6_m6", 166666666, 2.5},
     {"k6_m6", 200000000, 3.0},
     {"k6_m6", 233333333, 3.5},
-    {"k6_m7", 200000000, 3.0},
+    {"k6_m7", 100000000, 1.5},
+    {"k6_m7", 133333333, 2.0},
+    {"k6_m7", 166666666, 2.5},
+	{"k6_m7", 200000000, 3.0},
     {"k6_m7", 233333333, 3.5},
     {"k6_m7", 266666666, 4.0},
     {"k6_m7", 300000000, 4.5},
-    {"k6_2", 233333333, 3.5},
+    {"k6_2", 100000000, 1.5},
+    {"k6_2", 133333333, 2.0},
+    {"k6_2", 166666666, 2.5},
+	{"k6_2", 200000000, 3.0},
+	{"k6_2", 233333333, 3.5},
     {"k6_2", 266666666, 4.0},
     {"k6_2", 300000000, 3.0},
     {"k6_2", 332500000, 3.5},
@@ -1556,15 +1612,49 @@ static const cpu_legacy_table_t cpus_K56_SS7[] = {
     {"k6_2", 500000000, 5.0},
     {"k6_2", 533333333, 5.5},
     {"k6_2", 550000000, 5.5},
-    {"k6_2p", 450000000, 4.5},
+    {"k6_2p", 100000000, 1.5},
+    {"k6_2p", 133333333, 2.0},
+    {"k6_2p", 166666666, 2.5},
+	{"k6_2p", 200000000, 3.0},
+	{"k6_2p", 233333333, 3.5},
+    {"k6_2p", 266666666, 4.0},
+    {"k6_2p", 300000000, 3.0},
+    {"k6_2p", 332500000, 3.5},
+    {"k6_2p", 350000000, 3.5},
+    {"k6_2p", 366666666, 5.5},
+    {"k6_2p", 380000000, 4.0},
+    {"k6_2p", 400000000, 4.0},
+	{"k6_2p", 450000000, 4.5},
     {"k6_2p", 475000000, 5.0},
     {"k6_2p", 500000000, 5.0},
     {"k6_2p", 533333333, 5.5},
     {"k6_2p", 550000000, 5.5},
-    {"k6_3", 400000000, 4.0},
+    {"k6_3", 100000000, 1.5},
+    {"k6_3", 133333333, 2.0},
+    {"k6_3", 166666666, 2.5},
+	{"k6_3", 200000000, 3.0},
+	{"k6_3", 233333333, 3.5},
+    {"k6_3", 266666666, 4.0},
+    {"k6_3", 300000000, 3.0},
+    {"k6_3", 332500000, 3.5},
+    {"k6_3", 350000000, 3.5},
+    {"k6_3", 366666666, 5.5},
+    {"k6_3", 380000000, 4.0},
+	{"k6_3", 400000000, 4.0},
     {"k6_3", 450000000, 4.5},
     {"k6_3p", 75000000, 1.5},
-    {"k6_3p", 400000000, 4.0},
+	{"k6_3p", 100000000, 1.5},
+    {"k6_3p", 133333333, 2.0},
+    {"k6_3p", 166666666, 2.5},
+	{"k6_3p", 200000000, 3.0},
+	{"k6_3p", 233333333, 3.5},
+    {"k6_3p", 266666666, 4.0},
+    {"k6_3p", 300000000, 3.0},
+    {"k6_3p", 332500000, 3.5},
+    {"k6_3p", 350000000, 3.5},
+    {"k6_3p", 366666666, 5.5},
+    {"k6_3p", 380000000, 4.0},
+	{"k6_3p", 400000000, 4.0},
     {"k6_3p", 450000000, 4.5},
     {"k6_3p", 475000000, 5.0},
     {"k6_3p", 500000000, 5.0},
