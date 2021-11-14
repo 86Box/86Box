@@ -17,8 +17,8 @@ MainMenu MENU DISCARDABLE
 BEGIN
     POPUP "&Acção"
     BEGIN
-        MENUITEM "&Teclado require captura",	IDM_ACTION_KBD_REQ_CAPTURE
-        MENUITEM "&CTRL direita é ALT esquerda",IDM_ACTION_RCTRL_IS_LALT
+        MENUITEM "&Teclado requere captura",	IDM_ACTION_KBD_REQ_CAPTURE
+        MENUITEM "&CTRL direito é ALT esquerdo",IDM_ACTION_RCTRL_IS_LALT
         MENUITEM SEPARATOR
         MENUITEM "&Reinicialização completa...",IDM_ACTION_HRESET
         MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",     IDM_ACTION_RESET_CAD
@@ -50,7 +50,7 @@ BEGIN
         END
         MENUITEM SEPARATOR
         MENUITEM "&Especificar dimensões...",   IDM_VID_SPECIFY_DIM
-        MENUITEM "&Forćar rácio de visualização 4:3",    IDM_VID_FORCE43
+        MENUITEM "&Forçar rácio de visualização 4:3",    IDM_VID_FORCE43
         POPUP "F&actor de escala de janela"
         BEGIN
             MENUITEM "&0.5x",                   IDM_VID_SCALE_1X
