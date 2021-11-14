@@ -55,6 +55,7 @@ SDL_threadID eventthread;
 static int exit_event = 0;
 int fullscreen_pending = 0;
 extern float menubarheight;
+uint32_t lang_id = 0x0409, lang_sys = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
 
 static const uint16_t sdl_to_xt[0x200] =
 {
@@ -1034,6 +1035,15 @@ uint32_t plat_language_code(char* langcode)
     /* or maybe not */ 
     return 0;
 }
+
+/* Converts back the language code to LCID */
+void
+plat_language_code_r(uint32_t lcid, char* outbuf, int len)
+{
+    /* or maybe not */ 
+    return;
+}
+
 
 void joystick_init(void) {}
 void joystick_close(void) {}
