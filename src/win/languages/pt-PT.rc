@@ -423,7 +423,7 @@ BEGIN
     IDS_2064	"A placa vídeo ""%hs"" não é disponível devido à falta de ROMs na pasta roms/video. A mudar para uma placa vídeo disponível."
     IDS_2065	"Máquina"
     IDS_2066	"Apresentação"
-    IDS_2067	"Dispositivos de entraa"
+    IDS_2067	"Dispositivos de entrada"
     IDS_2068	"Som"
     IDS_2069	"Rede"
     IDS_2070	"Portas (COM e LPT)"
