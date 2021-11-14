@@ -68,10 +68,10 @@ BEGIN
         BEGIN
             MENUITEM "&Vollbild-Stretching",        IDM_VID_FS_FULL
             MENUITEM "&4:3",                        IDM_VID_FS_43
-            MENUITEM "&Square pixels (Keep ratio)", IDM_VID_FS_KEEPRATIO
-            MENUITEM "&Integer scale",              IDM_VID_FS_INT
+            MENUITEM "&Quadratische Pixel (Seitenverhältnis beibehalten)", IDM_VID_FS_KEEPRATIO
+            MENUITEM "&Integer-Skalierung",              IDM_VID_FS_INT
         END
-        POPUP "E&GA/(S)VGA settings"
+        POPUP "E&GA/(S)VGA-Einstellungen"
         BEGIN
             MENUITEM "&Invertierte VGA-Anzeige",   IDM_VID_INVERT
             POPUP "&VGA-Bildschirmtyp"
