@@ -6,7 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Handle the dialog for specifying the dimensions of the main window.
+ *		Handle the dialog for changing the program's language.
  *
  *
  *

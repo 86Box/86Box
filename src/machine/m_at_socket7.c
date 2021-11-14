@@ -246,15 +246,15 @@ machine_at_equium5200_init(const machine_t *model)
 
 
 int
-machine_at_pcv240_init(const machine_t *model)
+machine_at_pcv90_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined2("roms/machines/pcv240/1010DD04.BIO",
-				     "roms/machines/pcv240/1010DD04.BI1",
-				     "roms/machines/pcv240/1010DD04.BI2",
-				     "roms/machines/pcv240/1010DD04.BI3",
-				     "roms/machines/pcv240/1010DD04.RCV",
+    ret = bios_load_linear_combined2("roms/machines/pcv90/1010DD04.BIO",
+				     "roms/machines/pcv90/1010DD04.BI1",
+				     "roms/machines/pcv90/1010DD04.BI2",
+				     "roms/machines/pcv90/1010DD04.BI3",
+				     "roms/machines/pcv90/1010DD04.RCV",
 				     0x3a000, 128);
 
     if (bios_only || !ret)

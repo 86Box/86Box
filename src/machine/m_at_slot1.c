@@ -444,11 +444,11 @@ machine_at_p6sba_init(const machine_t *model)
 
 
 int
-machine_at_tsunamiatx_init(const machine_t *model)
+machine_at_s1846_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/tsunamiatx/bx46200f.rom",
+    ret = bios_load_linear("roms/machines/s1846/bx46200f.rom",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -468,23 +468,22 @@ machine_at_tsunamiatx_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
     device_add(&i440bx_device);
     device_add(&piix4e_device);
+    device_add(&pc87309_device);
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     if (sound_card_current == SOUND_INTERNAL) {
 	device_add(&es1371_onboard_device);
 	device_add(&cs4297_device); /* found on other Tyan boards around the same time */
     }
 
-    device_add(&pc87309_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&intel_flash_bxt_device);
-    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
-
     return ret;
 }
 
 
 const device_t *
-at_tsunamiatx_get_device(void)
+at_s1846_get_device(void)
 {
     return &es1371_onboard_device;
 }
@@ -660,13 +659,16 @@ machine_at_ms6168_common_init(const machine_t *model)
 }
 
 
+const device_t *
+at_ms6168_get_device(void)
+{
+    return &voodoo_3_2000_agp_onboard_8m_device;
+}
+
+
 int
 machine_at_borapro_init(const machine_t *model)
 {
-    /* AMI 440ZX Board. Packard Bell OEM of the MSI MS-6168
-       MIGHT REQUIRE MORE EXCESSIVE TESTING!
-       Reports emmersive amounts of RAM like few Intel OEM boards
-       we have. */
     int ret;
 
     ret = bios_load_linear("roms/machines/borapro/MS6168V2.50",
