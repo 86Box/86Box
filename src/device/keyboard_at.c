@@ -1228,6 +1228,7 @@ write_output(atkbd_t *dev, uint8_t val)
 		pclog("write_output(): Pulse reset!\n");
 		softresetx86();		/*Pulse reset!*/
 		cpu_set_edx();
+		flushmmucache();
 	}
     }
 }
@@ -2070,7 +2071,8 @@ write64_generic(void *priv, uint8_t val)
 		   Packard Bell PB450:
 			Bit 2 must be 1.
 		   P6RP4:
-			Bit 2 must be 1 or CMOS setup is disabled. */
+			Bit 2 must be 1 or CMOS setup is disabled.
+			Bit 5 must be 1 or the BIOS ends in an infinite reset loop. */
 		kbd_log("ATkbc: read input port\n");
 		fixed_bits = 4;
 		/* The SMM handlers of Intel AMI Pentium BIOS'es expect bit 6 to be set. */

@@ -398,8 +398,6 @@ const machine_t machines[] = {
     { "[SiS 471] DTK PKM-0038S E-2",		"dtk486",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 65536, 1024, 127,	       machine_at_dtk486_init, NULL			},
     /* Unknown Epox VLB Socket 3 board, has AMIKey F keyboard BIOS. */
     { "[SiS 471] Epox 486SX/DX Green",		"ami471",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 65536, 1024, 127,	       machine_at_ami471_init, NULL			},
-    /* Has an Intel 82C42PE with Phoenix MultiKey KBC firmware. */
-    { "[UMC 491/493] Epson Action Tower 3000",	"actiontower3000",	MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 262144, 1024, 255,     machine_at_actiontower3000_init, NULL			},
 
     /* 486 machines which utilize the PCI bus */
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
@@ -422,14 +420,14 @@ const machine_t machines[] = {
     /* Has an ALi M5042 keyboard controller with Phoenix MultiKey/42 v1.40 firmware. */
     { "[ALi M1489] ESA TF-486",			"tf-486",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,  65536, 1024, 255,	       machine_at_tf_486_init, NULL			},
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[OPTi 802G] IBM PC 330 (type 6573)",	"pc330_6573",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3_PC330, 0, 25000000, 33333333, 0, 0, 2.0, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024, 65536, 1024, 127,	   machine_at_pc330_6573_init, NULL			},
+    { "[OPTi 802G] IBM PC 330 (type 6573)",	"pc330_6573",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3_PC330, 0, 25000000, 33333333, 0, 0, 2.0, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE,					 1024,  65536, 1024, 127,	   machine_at_pc330_6573_init, NULL			},
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[i420EX] ASUS PVI-486AP4",		"486ap4",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_IDE_DUAL,						 1024, 131072, 1024, 127,	       machine_at_486ap4_init, NULL			},
+    { "[i420EX] ASUS PVI-486AP4",		"486ap4",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024, 131072, 1024, 127,	       machine_at_486ap4_init, NULL			},
     /* This has the Phoenix MultiKey KBC firmware. */
     { "[i420EX] Intel Classic/PCI ED",		"ninja",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 1024, 131072, 1024, 127,		machine_at_ninja_init, NULL			},
     /* This has an AMIKey-2, which is an updated version of type 'H'. Also has a
        SST 29EE010 Flash chip. */
-    { "[i420ZX] ASUS PCI/I-486SP3G",		"486sp3g",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL | MACHINE_SCSI,					 1024, 131072, 1024, 127,	      machine_at_486sp3g_init, NULL			},
+    { "[i420ZX] ASUS PCI/I-486SP3G",		"486sp3g",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_SCSI,		 1024, 131072, 1024, 127,	      machine_at_486sp3g_init, NULL			},
     /* I'm going to assume this as an AMIKey-2 like the other two 486SP3's. */
     { "[i420TX] ASUS PCI/I-486SP3",		"486sp3",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL | MACHINE_SCSI,					 1024, 131072, 1024, 127,	       machine_at_486sp3_init, NULL			},
     /* This has the Phoenix MultiKey KBC firmware. */
@@ -439,7 +437,7 @@ const machine_t machines[] = {
     /* This has a standalone AMI Megakey 1993, which is type 'P'. */
     { "[IMS 8848] Tekram G486IP",		"g486ip",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 2048, 131072, 2048, 127,	       machine_at_g486ip_init, NULL			},
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[SiS 496] ASUS PVI-486SP3C",		"486sp3c",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_IDE_DUAL,						 1024, 261120, 1024, 255,	      machine_at_486sp3c_init, NULL			},
+    { "[SiS 496] ASUS PVI-486SP3C",		"486sp3c",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_BUS_PS2 |  MACHINE_IDE_DUAL,				 1024, 261120, 1024, 255,	      machine_at_486sp3c_init, NULL			},
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     { "[SiS 496] Lucky Star LS-486E",		"ls486e",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 131072, 1024, 255,	       machine_at_ls486e_init, NULL			},
     /* The BIOS does not send a single non-standard KBC command, so it has a standard PS/2 KBC. */
@@ -451,7 +449,7 @@ const machine_t machines[] = {
     { "[SiS 496] Soyo 4SA2",			"4sa2",			MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, CPU_BLOCK(CPU_i486SX, CPU_i486DX, CPU_Am486SX, CPU_Am486DX), 0, 0, 0, 0, 0, 0,			MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 261120, 1024, 255,		 machine_at_4sa2_init, NULL			},
     /* According to MrKsoft, his real 4DPS has an AMIKey-2, which is an updated version
        of type 'H'. */
-    { "[SiS 496] Zida Tomato 4DP",		"4dps",			MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 261120, 1024, 255,		 machine_at_4dps_init, NULL			},
+    { "[SiS 496] Zida Tomato 4DP",		"4dps",			MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024, 261120, 1024, 255,		 machine_at_4dps_init, NULL			},
     /* This has the UMC 88xx on-chip KBC. */
     { "[UMC 888x] A-Trend ATC-1415",		"atc1415",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024,  65536, 1024, 255,	      machine_at_atc1415_init, NULL			},
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
@@ -519,7 +517,7 @@ const machine_t machines[] = {
     /* This uses an AMI KBC firmware in PS/2 mode (it sends command A5 with the
        PS/2 "Load Security" meaning), most likely MegaKey as it sends command AF
        (Set Extended Controller RAM) just like the later Intel AMI BIOS'es. */
-    { "[OPTi 597] AMI Excalibur VLB",		"excalibur",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED,					MACHINE_VLB | MACHINE_IDE,						 	 2048,  65536, 2048, 127,	    machine_at_excalibur_init, NULL			},
+    { "[OPTi 597] AMI Excalibur VLB",		"excalibur",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED,					MACHINE_VLB | MACHINE_BUS_PS2 | MACHINE_IDE,					 2048,  65536, 2048, 127,	    machine_at_excalibur_init, NULL			},
 
     /* OPTi 596/597/822 */
     /* This has AMIKey 'F' KBC firmware. */
@@ -605,7 +603,7 @@ const machine_t machines[] = {
        Super I/O chip (that has the KBC firmware on it) as eg. the Advanced/EV. */
     { "[i430FX] Packard Bell PB640",		"pb640",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO, 		 8192, 131072, 8192, 127,		machine_at_pb640_init, at_pb640_get_device	},
     /* Has an AMI 'H' KBC firmware (1992). */
-    { "[i430FX] QDI FMB",			"fmb",			MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, CPU_BLOCK(CPU_WINCHIP, CPU_WINCHIP2, CPU_Cx6x86, CPU_Cx6x86L, CPU_Cx6x86MX), 50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PCI | MACHINE_IDE_DUAL,			 8192, 131072, 8192, 127,		  machine_at_fmb_init, NULL			},
+    { "[i430FX] QDI FMB",			"fmb",			MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, CPU_BLOCK(CPU_WINCHIP, CPU_WINCHIP2, CPU_Cx6x86, CPU_Cx6x86L, CPU_Cx6x86MX), 50000000, 66666667, 3380, 3520, 1.5, 3.0, MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	 8192, 131072, 8192, 127,		  machine_at_fmb_init, NULL			},
 
     /* 430HX */
     /* I can't determine what KBC firmware this has, but given that the Acer V35N and

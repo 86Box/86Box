@@ -15,6 +15,7 @@
  *
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2018,2019 David Hrdlička.
+ *		Copyright 2021 Laci bá'
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP

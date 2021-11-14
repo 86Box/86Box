@@ -17,6 +17,7 @@
  *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2017-2019 Fred N. van Kempen.
+ *		Copyright 2021 Laci bá'
  */
 #define UNICODE
 #define NTDDI_VERSION 0x06010000
@@ -66,7 +67,7 @@ typedef struct {
 /* Platform Public data, specific. */
 HINSTANCE	hinstance;		/* application instance */
 HANDLE		ghMutex;
-LCID		lang_id;		/* current language ID used */
+uint32_t		lang_id, lang_sys;		/* current and system language ID */
 DWORD		dwSubLangID;
 int		acp_utf8;		/* Windows supports UTF-8 codepage */
 volatile int	cpu_thread_run = 1;
@@ -74,16 +75,16 @@ volatile int	cpu_thread_run = 1;
 
 /* Local data. */
 static HANDLE	thMain;
-static rc_str_t	*lpRCstr2048,
-		*lpRCstr4096,
-		*lpRCstr4352,
-		*lpRCstr4608,
-		*lpRCstr5120,
-		*lpRCstr5376,
-		*lpRCstr5632,
-		*lpRCstr5888,
-		*lpRCstr6144,
-		*lpRCstr7168;
+static rc_str_t	*lpRCstr2048 = NULL,
+		*lpRCstr4096 = NULL,
+		*lpRCstr4352 = NULL,
+		*lpRCstr4608 = NULL,
+		*lpRCstr5120 = NULL,
+		*lpRCstr5376 = NULL,
+		*lpRCstr5632 = NULL,
+		*lpRCstr5888 = NULL,
+		*lpRCstr6144 = NULL,
+		*lpRCstr7168 = NULL;
 static int	vid_api_inited = 0;
 static char	*argbuf;
 static int	first_use = 1;
@@ -138,11 +139,31 @@ win_log(const char *fmt, ...)
 #define win_log(fmt, ...)
 #endif
 
+void
+free_string(rc_str_t **str)
+{
+    if (*str != NULL) {
+	free(*str);
+	*str = NULL;
+    }
+}
+
 
 static void
 LoadCommonStrings(void)
 {
     int i;
+
+    free_string(&lpRCstr7168);
+    free_string(&lpRCstr6144);
+    free_string(&lpRCstr5888);
+    free_string(&lpRCstr5632);
+    free_string(&lpRCstr5376);
+    free_string(&lpRCstr5120);
+    free_string(&lpRCstr4608);
+    free_string(&lpRCstr4352);
+    free_string(&lpRCstr4096);
+    free_string(&lpRCstr2048);
 
     lpRCstr2048 = (rc_str_t *)malloc(STR_NUM_2048*sizeof(rc_str_t));
     lpRCstr4096 = (rc_str_t *)malloc(STR_NUM_4096*sizeof(rc_str_t));
@@ -221,21 +242,38 @@ size_t c16stombs(char dst[], const uint16_t src[], int len)
 }
 
 
+int
+has_language_changed(uint32_t id)
+{
+    return (lang_id != id);
+}
+
+
 /* Set (or re-set) the language for the application. */
 void
-set_language(int id)
+set_language(uint32_t id)
 {
-    LCID lcidNew = MAKELCID(id, dwSubLangID);
-
-    if (lang_id != lcidNew) {
-	/* Set our new language ID. */
-	lang_id = lcidNew;
-
-	SetThreadLocale(lang_id);
-
-	/* Load the strings table for this ID. */
-	LoadCommonStrings();
-    }
+	if (id == 0xFFFF)
+	{
+		set_language(lang_sys);
+		lang_id = id;
+		return;
+	}
+	
+    if (lang_id != id) {
+		/* Set our new language ID. */
+		lang_id = id;
+		SetThreadUILanguage(lang_id);
+		
+		/* Load the strings table for this ID. */
+		LoadCommonStrings();
+		
+		/* Reload main menu */
+		SetMenu(hwndMain, LoadMenu(hinstance, L"MainMenu"));
+		
+		/* Re-init media menu */
+		media_menu_init();
+    } 
 }
 
 
@@ -435,9 +473,10 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 
     /* Set the application version ID string. */
     sprintf(emu_version, "%s v%s", EMU_NAME, EMU_VERSION);
-
-    /* First, set our (default) language. */
-    set_language(0x0409);
+	
+	/* First, set our (default) language. */
+	lang_sys = GetThreadUILanguage();
+    set_language(DEFAULT_LANGUAGE);
 
     /* Process the command line for options. */
     argc = ProcessCommandLine(&argv);
@@ -1164,6 +1203,38 @@ plat_vid_reload_options(void)
 	vid_apis[vid_api].reload();
 }
 
+/* Sets up the program language before initialization. */
+uint32_t 
+plat_language_code(char* langcode)
+{
+	if (!strcmp(langcode, "system"))
+		return 0xFFFF;
+	
+	int len = mbstoc16s(NULL, langcode, 0) + 1;
+	wchar_t *temp = malloc(len * sizeof(wchar_t));
+	mbstoc16s(temp, langcode, len);
+
+	LCID lcid = LocaleNameToLCID((LPWSTR)temp, 0);
+
+	free(temp);
+	return lcid;
+}
+
+/* Converts back the language code to LCID */
+void
+plat_language_code_r(uint32_t lcid, char* outbuf, int len)
+{
+	if (lcid == 0xFFFF)
+	{
+		strcpy(outbuf, "system");
+		return;
+	}
+	
+	wchar_t buffer[LOCALE_NAME_MAX_LENGTH + 1];
+	LCIDToLocaleName(lcid, buffer, LOCALE_NAME_MAX_LENGTH, 0);
+	
+	c16stombs(outbuf, buffer, len);
+}
 
 void
 take_screenshot(void)
