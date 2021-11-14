@@ -138,8 +138,21 @@ pipeline {
 				}
 
 				if (!env.JOB_BASE_NAME.contains("TestBuildPleaseIgnore")) {
-					discordSend webhookURL: DISCORD_WEBHOOK_URL
-					ircNotify()
+					try {
+						def result = currentBuild.currentResult.toLowerCase()
+						discordSend webhookURL: DISCORD_WEBHOOK_URL,
+							    title: "${env.JOB_BASE_NAME} #${env.BUILD_NUMBER}",
+							    url: env.BUILD_URL,
+							    description: "**Status:** ${result}\n\u2060", /* word joiner forces a blank line */
+							    enableArtifactsList: false,
+							    showChangeset: true
+
+						node { /* IRC notifications need a node for whatever reason */
+							ircNotify()
+						}
+					} catch (Exception e) {
+						e.printStackTrace()
+					}
 				}
 			}
 		}
