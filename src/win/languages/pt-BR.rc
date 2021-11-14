@@ -990,7 +990,7 @@ BEGIN
     IDS_6146	"1.5%% abaixo das RPM perfeita"
     IDS_6147	"2%% abaixo das RPM perfeita"
 
-    IDS_7168	"(Sistema padrão)"
+    IDS_7168	"(Padrão do sistema)"
 END
 #define IDS_LANG_ENUS	IDS_7168
 
