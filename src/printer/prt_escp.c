@@ -87,7 +87,7 @@
 
 
 #ifdef _WIN32
-# define PATH_FREETYPE_DLL	"freetype.dll"
+# define PATH_FREETYPE_DLL	"libfreetype.dll"
 #else
 # define PATH_FREETYPE_DLL	"libfreetype.so.6"
 #endif

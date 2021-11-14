@@ -6,6 +6,8 @@ LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
 #pragma code_page(65001)
 #endif //_WIN32
 
+#define AUTHORS
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Menu
@@ -833,19 +835,7 @@ BEGIN
     IDS_2124	"About 86Box"
     IDS_2125	"86Box v" EMU_VERSION
 
-    IDS_2126	"An emulator of old computers\n\n"
-	
-	"Authors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\n" 	
-	
-	/* 
-	    Here uncomment following line and add your name like "Translated by: <your name goes here>\n\n". 
-	    If such a line exists with name of previous translators, don't erase their name, just add yours to the end of line.
-	*/
-
-	//"Translated by: <your name goes here>\n\n"
-	
-	"Released under the GNU General Public License version 2 or later. See LICENSE for more information."
-	
+    IDS_2126	"An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
     IDS_2127	"OK"
     IDS_2128	"Hardware not available"
 #ifdef _WIN32

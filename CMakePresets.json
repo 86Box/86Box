@@ -16,8 +16,8 @@
                 "CMAKE_CXX_FLAGS_RELEASE": "-g0 -O3",
                 "CMAKE_C_FLAGS_DEBUG": "-ggdb -Og",
                 "CMAKE_CXX_FLAGS_DEBUG": "-ggdb -Og",
-                "CMAKE_C_FLAGS_OPTIMIZED": "-march=native -mtune=native -O3 -ffp-contract=last -flto",
-                "CMAKE_CXX_FLAGS_OPTIMIZED": "-march=native -mtune=native -O3 -ffp-contract=last -flto"
+                "CMAKE_C_FLAGS_OPTIMIZED": "-march=native -mtune=native -O3 -ffp-contract=fast -flto",
+                "CMAKE_CXX_FLAGS_OPTIMIZED": "-march=native -mtune=native -O3 -ffp-contract=fast -flto"
             },
             "hidden": true,
             "binaryDir": "build"

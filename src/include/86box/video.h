@@ -194,6 +194,9 @@ extern void	svga_dump_vram(void);
 
 extern uint32_t	video_color_transform(uint32_t color);
 
+extern void	agpgart_set_aperture(void *handle, uint32_t base, uint32_t size, int enable);
+extern void	agpgart_set_gart(void *handle, uint32_t base);
+
 #ifdef __cplusplus
 }
 #endif
@@ -432,6 +435,9 @@ extern const device_t velocity_100_agp_device;
 
 /* Wyse 700 */
 extern const device_t wy700_device;
+
+/* AGP GART */
+extern const device_t agpgart_device;
 #endif
 
 

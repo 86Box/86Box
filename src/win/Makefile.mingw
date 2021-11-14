@@ -724,7 +724,7 @@ SNDOBJ		:= sound.o \
 		    snd_wss.o \
 		    snd_ym7128.o
 
-VIDOBJ		:= video.o \
+VIDOBJ		:= agpgart.o video.o \
 		    vid_table.o \
 		    vid_cga.o vid_cga_comp.o \
 		    vid_compaq_cga.o \
