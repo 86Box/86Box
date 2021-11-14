@@ -197,7 +197,7 @@ int unscaled_size_y = SCREEN_RES_Y;	/* current unscaled size Y */
 int efscrnsz_y = SCREEN_RES_Y;
 
 
-static wchar_t	mouse_msg[2][200];
+static wchar_t	mouse_msg[3][200];
 
 
 #ifndef RELEASE_BUILD
@@ -681,7 +681,7 @@ usage:
 	info = localtime(&now);
 	strftime(temp, sizeof(temp), "%Y/%m/%d %H:%M:%S", info);
 	pclog("#\n# %ls v%ls logfile, created %s\n#\n",
-		EMU_NAME_W, EMU_VERSION_W, temp);
+		EMU_NAME_W, EMU_VERSION_FULL_W, temp);
 	pclog("# VM: %s\n#\n", vm_name);
 	pclog("# Emulator path: %s\n", exe_path);
 	pclog("# Userfiles path: %s\n", usr_path);
@@ -1063,11 +1063,13 @@ void update_mouse_msg()
 	mbstowcs(wcpu, cpu_s->name, strlen(cpu_s->name)+1);
 	
 	swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
-		EMU_NAME_W, EMU_VERSION_W, wmachine, wcpufamily, wcpu,
+		EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu,
 		plat_get_string(IDS_2077));
 	swprintf(mouse_msg[1], sizeof_w(mouse_msg[1]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
-		EMU_NAME_W, EMU_VERSION_W, wmachine, wcpufamily, wcpu,
+		EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu,
 		(mouse_get_buttons() > 2) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079));
+	swprintf(mouse_msg[2], sizeof_w(mouse_msg[2]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls",
+		EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu);
 }
 
 void
@@ -1153,6 +1155,7 @@ static void _ui_window_title(void *s)
 void
 pc_run(void)
 {
+	int mouse_msg_idx;
 	wchar_t temp[200];
 
 	/* Trigger a hard reset if one is pending. */
@@ -1177,7 +1180,8 @@ pc_run(void)
 	}
 
 	if (title_update) {
-		swprintf(temp, sizeof_w(temp), mouse_msg[!!mouse_capture], fps);
+		mouse_msg_idx = (mouse_type == MOUSE_TYPE_NONE) ? 2 : !!mouse_capture;
+		swprintf(temp, sizeof_w(temp), mouse_msg[mouse_msg_idx], fps);
 #ifdef __APPLE__
 		/* Needed due to modifying the UI on the non-main thread is a big no-no. */
 		dispatch_async_f(dispatch_get_main_queue(), wcsdup((const wchar_t *) temp), _ui_window_title);

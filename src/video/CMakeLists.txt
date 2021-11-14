@@ -13,7 +13,7 @@
 #		Copyright 2020,2021 David Hrdlička.
 #
 
-add_library(vid OBJECT video.c vid_table.c vid_cga.c vid_cga_comp.c
+add_library(vid OBJECT agpgart.c video.c vid_table.c vid_cga.c vid_cga_comp.c
 	vid_compaq_cga.c vid_mda.c vid_hercules.c vid_herculesplus.c
 	vid_incolor.c vid_colorplus.c vid_genius.c vid_pgc.c vid_im1024.c
 	vid_sigma.c vid_wy700.c vid_ega.c vid_ega_render.c vid_svga.c

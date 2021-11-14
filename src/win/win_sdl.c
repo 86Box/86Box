@@ -459,7 +459,7 @@ sdl_init_common(int flags)
     sdl_h = GetSystemMetrics(SM_CYSCREEN);
 
     /* Create the desktop-covering window. */
-    _swprintf(temp, L"%s v%s", EMU_NAME_W, EMU_VERSION_W);
+    _swprintf(temp, L"%s v%s", EMU_NAME_W, EMU_VERSION_FULL_W);
     sdl_parent_hwnd = CreateWindow(SDL_CLASS_NAME, temp, WS_POPUP, 0, 0, sdl_w, sdl_h,
 				   HWND_DESKTOP, NULL, hinstance, NULL);
     ShowWindow(sdl_parent_hwnd, FALSE);
