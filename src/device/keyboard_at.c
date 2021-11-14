@@ -1320,6 +1320,11 @@ write60_ami(void *priv, uint8_t val)
 		}
 		return 0;
 
+	case 0xc1:
+		kbd_log("ATkbc: AMI MegaKey - write %02X to input port\n", val);
+		dev->input_port = val;
+		return 0;
+
 	case 0xcb:	/* set keyboard mode */
 		kbd_log("ATkbc: AMI - set keyboard mode\n");
 		dev->ami_flags = val;
@@ -1475,6 +1480,24 @@ write64_ami(void *priv, uint8_t val)
 		add_data(dev, 0x00);
 		return 0;
 
+	case 0xc1:	/* write input port */
+		kbd_log("ATkbc: AMI MegaKey - write input port\n");
+		dev->want60 = 1;
+		return 0;
+
+	case 0xc4:
+		/* set KBC line P14 low */
+		kbd_log("ATkbc: set KBC line P14 (input port bit 4) low\n");
+		dev->input_port &= 0xef;
+		add_data(dev, 0x00);
+		return 0;
+	case 0xc5:
+		/* set KBC line P15 low */
+		kbd_log("ATkbc: set KBC line P15 (input port bit 5) low\n");
+		dev->input_port &= 0xdf;
+		add_data(dev, 0x00);
+		return 0;
+
 	case 0xc8:
 		/*
 		 * unblock KBC lines P22/P23
@@ -1491,6 +1514,19 @@ write64_ami(void *priv, uint8_t val)
 		 */
 		kbd_log("ATkbc: AMI - block KBC lines P22 and P23\n");
 		dev->output_locked = 1;
+		return 0;
+
+	case 0xcc:
+		/* set KBC line P14 high */
+		kbd_log("ATkbc: set KBC line P14 (input port bit 4) high\n");
+		dev->input_port |= 0x10;
+		add_data(dev, 0x00);
+		return 0;
+	case 0xcd:
+		/* set KBC line P15 high */
+		kbd_log("ATkbc: set KBC line P15 (input port bit 5) high\n");
+		dev->input_port |= 0x20;
+		add_data(dev, 0x00);
 		return 0;
 
 	case 0xef:	/* ??? - sent by AMI486 */
