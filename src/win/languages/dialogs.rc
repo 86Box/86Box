@@ -456,3 +456,121 @@ BEGIN
     CONTROL         STR_POSTCARD,IDC_CHECK_POSTCARD,"Button",
                     BS_AUTOCHECKBOX | WS_TABSTOP,147,128,94,10
 END
+
+#undef STR_PROG_SETT
+#undef STR_SND_GAIN
+#undef STR_NEW_FLOPPY
+#undef STR_CONFIG
+#undef STR_SPECIFY_DIM
+
+#undef STR_OK
+#undef STR_CANCEL
+#undef STR_GLOBAL
+#undef STR_DEFAULT
+#undef STR_LANGUAGE
+
+#undef STR_GAIN
+
+#undef STR_FILE_NAME
+#undef STR_DISK_SIZE
+#undef STR_RPM_MODE
+#undef STR_PROGRESS
+
+#undef STR_WIDTH
+#undef STR_HEIGHT
+#undef STR_LOCK_TO_SIZE
+
+#undef STR_MACHINE_TYPE
+#undef STR_MACHINE
+#undef STR_CONFIGURE
+#undef STR_CPU_TYPE
+#undef STR_SPEED
+#undef STR_FPU
+#undef STR_WAIT_STATES
+#undef STR_MB
+#undef STR_MEMORY
+#undef STR_TIME_SYNC
+#undef STR_DISABLED
+#undef STR_ENABLED_LOCAL
+#undef STR_ENABLED_UTC
+#undef STR_DYNAREC
+
+#undef STR_VIDEO
+#undef STR_VOODOO
+
+#undef STR_MOUSE
+#undef STR_JOYSTICK
+#undef STR_JOY1
+#undef STR_JOY2
+#undef STR_JOY3
+#undef STR_JOY4
+
+#undef STR_SOUND
+#undef STR_MIDI
+#undef STR_MIDI_IN
+#undef STR_MPU401
+#undef STR_SSI
+#undef STR_CMS
+#undef STR_GUS
+#undef STR_FLOAT
+
+#undef STR_NET_TYPE
+#undef STR_PCAP
+#undef STR_NET
+
+#undef STR_LPT1
+#undef STR_LPT2
+#undef STR_LPT3
+#undef STR_SERIAL1
+#undef STR_SERIAL2
+#undef STR_SERIAL3
+#undef STR_SERIAL4
+#undef STR_PARALLEL1
+#undef STR_PARALLEL2
+#undef STR_PARALLEL3
+
+#undef STR_HDC
+#undef STR_FDC
+#undef STR_IDE_TER
+#undef STR_IDE_QUA
+#undef STR_SCSI
+#undef STR_SCSI_1
+#undef STR_SCSI_2
+#undef STR_SCSI_3
+#undef STR_SCSI_4
+#undef STR_CASSETTE
+
+#undef STR_HDD
+#undef STR_NEW
+#undef STR_EXISTING
+#undef STR_REMOVE
+#undef STR_BUS
+#undef STR_CHANNEL
+#undef STR_ID
+
+#undef STR_SPECIFY
+#undef STR_SECTORS
+#undef STR_HEADS
+#undef STR_CYLS
+#undef STR_SIZE_MB
+#undef STR_TYPE
+#undef STR_IMG_FORMAT
+#undef STR_BLOCK_SIZE
+
+#undef STR_FLOPPY_DRIVES
+#undef STR_TURBO
+#undef STR_CHECKBPB
+#undef STR_CDROM_DRIVES
+
+#undef STR_MO_DRIVES
+#undef STR_ZIP_DRIVES
+#undef STR_250
+
+#undef STR_ISARTC
+#undef STR_ISAMEM
+#undef STR_ISAMEM_1
+#undef STR_ISAMEM_2
+#undef STR_ISAMEM_3
+#undef STR_ISAMEM_4
+#undef STR_BUGGER
+#undef STR_POSTCARD
