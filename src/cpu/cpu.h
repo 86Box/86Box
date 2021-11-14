@@ -402,10 +402,10 @@ typedef struct {
     uint16_t	flags, eflags;
 
     uint32_t	_smbase;
-
-    int sse_xmm;
 } cpu_state_t;
 
+
+extern int sse_xmm;
 
 #define in_smm		cpu_state._in_smm
 #define smi_line	cpu_state._smi_line
@@ -495,6 +495,7 @@ extern const cpu_legacy_machine_t cpu_legacy_table[];
 extern cpu_family_t *cpu_f;
 extern CPU	*cpu_s;
 extern int	cpu_override;
+extern int  bochs_timing;
 
 extern int	cpu_isintel;
 extern int	cpu_iscyrix;

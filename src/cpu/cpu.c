@@ -108,6 +108,8 @@ const OpFn	*x86_opcodes, *x86_opcodes_0f,
 uint16_t	cpu_fast_off_count, cpu_fast_off_val;
 uint16_t	temp_seg_data[4] = {0, 0, 0, 0};
 
+int sse_xmm;
+
 int		isa_cycles, cpu_inited,
 
 		cpu_cycles_read, cpu_cycles_read_l, cpu_cycles_write, cpu_cycles_write_l,
@@ -117,6 +119,8 @@ int		isa_cycles, cpu_inited,
 
 		cpu_override, cpu_effective, cpu_multi, cpu_16bitbus, cpu_64bitbus, cpu_busspeed,
 		cpu_cyrix_alignment, CPUID,
+
+		bochs_timing,
 
  		is286, is386, is486 = 1,
 		cpu_isintel, cpu_iscyrix, hascache, isibm486, israpidcad, is_vpc,
@@ -1453,6 +1457,8 @@ cpu_set(void)
 	cpu_exec = exec386;
     else
 	cpu_exec = execx86;
+
+	if(bochs_timing) codegen_timing_set(&codegen_timing_486);
 }
 
 

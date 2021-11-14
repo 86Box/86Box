@@ -1768,13 +1768,13 @@ static int opPMINUB_xmm_xmm_a32(uint32_t fetchdat)
 
 static int opPMINUB_a16(uint32_t fetchdat)
 {
-    if(cpu_state.sse_xmm) return opPMINUB_xmm_xmm_a16(fetchdat);
+    if(sse_xmm) return opPMINUB_xmm_xmm_a16(fetchdat);
     else return opPMINUB_mm_mm_a16(fetchdat);
 }
 
 static int opPMINUB_a32(uint32_t fetchdat)
 {
-    if(cpu_state.sse_xmm) return opPMINUB_xmm_xmm_a32(fetchdat);
+    if(sse_xmm) return opPMINUB_xmm_xmm_a32(fetchdat);
     else return opPMINUB_mm_mm_a32(fetchdat);
 }
 
@@ -1988,13 +1988,13 @@ static int opPMAXUB_xmm_xmm_a32(uint32_t fetchdat)
 
 static int opPMAXUB_a16(uint32_t fetchdat)
 {
-    if(cpu_state.sse_xmm) return opPMAXUB_xmm_xmm_a16(fetchdat);
+    if(sse_xmm) return opPMAXUB_xmm_xmm_a16(fetchdat);
     else return opPMAXUB_mm_mm_a16(fetchdat);
 }
 
 static int opPMAXUB_a32(uint32_t fetchdat)
 {
-    if(cpu_state.sse_xmm) return opPMAXUB_xmm_xmm_a32(fetchdat);
+    if(sse_xmm) return opPMAXUB_xmm_xmm_a32(fetchdat);
     else return opPMAXUB_mm_mm_a32(fetchdat);
 }
 
@@ -2210,13 +2210,13 @@ static int opPAVGB_xmm_xmm_a32(uint32_t fetchdat)
 
 static int opPAVGB_a16(uint32_t fetchdat)
 {
-    if(cpu_state.sse_xmm) return opPAVGB_xmm_xmm_a16(fetchdat);
+    if(sse_xmm) return opPAVGB_xmm_xmm_a16(fetchdat);
     else return opPAVGB_mm_mm_a16(fetchdat);
 }
 
 static int opPAVGB_a32(uint32_t fetchdat)
 {
-    if(cpu_state.sse_xmm) return opPAVGB_xmm_xmm_a32(fetchdat);
+    if(sse_xmm) return opPAVGB_xmm_xmm_a32(fetchdat);
     else return opPAVGB_mm_mm_a32(fetchdat);
 }
 
@@ -2358,13 +2358,13 @@ static int opPAVGW_xmm_xmm_a32(uint32_t fetchdat)
 
 static int opPAVGW_a16(uint32_t fetchdat)
 {
-    if(cpu_state.sse_xmm) return opPAVGW_xmm_xmm_a16(fetchdat);
+    if(sse_xmm) return opPAVGW_xmm_xmm_a16(fetchdat);
     else return opPAVGB_mm_mm_a16(fetchdat);
 }
 
 static int opPAVGW_a32(uint32_t fetchdat)
 {
-    if(cpu_state.sse_xmm) return opPAVGW_xmm_xmm_a32(fetchdat);
+    if(sse_xmm) return opPAVGW_xmm_xmm_a32(fetchdat);
     else return opPAVGW_mm_mm_a32(fetchdat);
 }
 
@@ -2509,13 +2509,13 @@ static int opPMULHUW_xmm_xmm_a32(uint32_t fetchdat)
 
 static int opPMULHUW_a16(uint32_t fetchdat)
 {
-    if(cpu_state.sse_xmm) return opPMULHUW_xmm_xmm_a16(fetchdat);
+    if(sse_xmm) return opPMULHUW_xmm_xmm_a16(fetchdat);
     else return opPMULHUW_mm_mm_a16(fetchdat);
 }
 
 static int opPMULHUW_a32(uint32_t fetchdat)
 {
-    if(cpu_state.sse_xmm) return opPMULHUW_xmm_xmm_a32(fetchdat);
+    if(sse_xmm) return opPMULHUW_xmm_xmm_a32(fetchdat);
     else return opPMULHUW_mm_mm_a32(fetchdat);
 }
 
@@ -2658,13 +2658,13 @@ static int opPMINSW_xmm_xmm_a32(uint32_t fetchdat)
 
 static int opPMINSW_a16(uint32_t fetchdat)
 {
-    if(cpu_state.sse_xmm) return opPMINSW_xmm_xmm_a16(fetchdat);
+    if(sse_xmm) return opPMINSW_xmm_xmm_a16(fetchdat);
     else return opPMINSW_mm_mm_a16(fetchdat);
 }
 
 static int opPMINSW_a32(uint32_t fetchdat)
 {
-    if(cpu_state.sse_xmm) return opPMINSW_xmm_xmm_a32(fetchdat);
+    if(sse_xmm) return opPMINSW_xmm_xmm_a32(fetchdat);
     else return opPMINSW_mm_mm_a32(fetchdat);
 }
 
@@ -2806,13 +2806,13 @@ static int opPMAXSW_xmm_xmm_a32(uint32_t fetchdat)
 
 static int opPMAXSW_a16(uint32_t fetchdat)
 {
-    if(cpu_state.sse_xmm) return opPMAXSW_xmm_xmm_a16(fetchdat);
+    if(sse_xmm) return opPMAXSW_xmm_xmm_a16(fetchdat);
     else return opPMULHUW_mm_mm_a16(fetchdat);
 }
 
 static int opPMAXSW_a32(uint32_t fetchdat)
 {
-    if(cpu_state.sse_xmm) return opPMAXSW_xmm_xmm_a32(fetchdat);
+    if(sse_xmm) return opPMAXSW_xmm_xmm_a32(fetchdat);
     else return opPMAXSW_mm_mm_a32(fetchdat);
 }
 
@@ -3124,12 +3124,12 @@ static int opPSADBW_xmm_xmm_a32(uint32_t fetchdat)
 
 static int opPSADBW_a16(uint32_t fetchdat)
 {
-    if(cpu_state.sse_xmm) return opPSADBW_xmm_xmm_a16(fetchdat);
+    if(sse_xmm) return opPSADBW_xmm_xmm_a16(fetchdat);
     else return opPMULHUW_mm_mm_a16(fetchdat);
 }
 
 static int opPSADBW_a32(uint32_t fetchdat)
 {
-    if(cpu_state.sse_xmm) return opPSADBW_xmm_xmm_a32(fetchdat);
+    if(sse_xmm) return opPSADBW_xmm_xmm_a32(fetchdat);
     else return opPSADBW_mm_mm_a32(fetchdat);
 }

@@ -721,6 +721,7 @@ load_machine(void)
     }
 
     cpu_override = config_get_int(cat, "cpu_override", 0);
+	bochs_timing = config_get_int(cat, "bochs_timing", 0);
     cpu_f = NULL;
     p = config_get_string(cat, "cpu_family", NULL);
     if (p) {
@@ -2264,10 +2265,11 @@ save_machine(void)
     config_set_string(cat, "cpu_family", (char *) cpu_f->internal_name);
     config_set_int(cat, "cpu_speed", cpu_f->cpus[cpu].rspeed);
     config_set_double(cat, "cpu_multi", cpu_f->cpus[cpu].multi);
-    if (cpu_override)
-	config_set_int(cat, "cpu_override", cpu_override);
-    else
-	config_delete_var(cat, "cpu_override");
+    if (cpu_override) config_set_int(cat, "cpu_override", cpu_override);
+    else config_delete_var(cat, "cpu_override");
+	
+	if (bochs_timing) config_set_int(cat, "bochs_timing", bochs_timing);
+	else config_delete_var(cat, "bochs_timing");
 
     /* Forwards compatibility with the previous CPU model system. */
     config_delete_var(cat, "cpu_manufacturer");

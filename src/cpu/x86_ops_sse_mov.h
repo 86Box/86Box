@@ -699,7 +699,7 @@ static int opPINSRW_xmm_w_a16(uint32_t fetchdat)
     if (cpu_mod == 3)
     {
         uint16_t rm = getr16(cpu_rm);
-        if(cpu_state.sse_xmm) XMM[cpu_reg].w[imm & 7] = rm;
+        if(sse_xmm) XMM[cpu_reg].w[imm & 7] = rm;
         else
         {
             MMX_ENTER();
@@ -713,7 +713,7 @@ static int opPINSRW_xmm_w_a16(uint32_t fetchdat)
         
         SEG_CHECK_READ(cpu_state.ea_seg);
         src = readmemw(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
-        if(cpu_state.sse_xmm) XMM[cpu_reg].w[imm & 7] = src;
+        if(sse_xmm) XMM[cpu_reg].w[imm & 7] = src;
         else
         {
             MMX_ENTER();
@@ -731,7 +731,7 @@ static int opPINSRW_xmm_w_a32(uint32_t fetchdat)
     if (cpu_mod == 3)
     {
         uint16_t rm = getr16(cpu_rm);
-        if(cpu_state.sse_xmm) XMM[cpu_reg].w[imm & 7] = rm;
+        if(sse_xmm) XMM[cpu_reg].w[imm & 7] = rm;
         else
         {
             MMX_ENTER();
@@ -745,7 +745,7 @@ static int opPINSRW_xmm_w_a32(uint32_t fetchdat)
         
         SEG_CHECK_READ(cpu_state.ea_seg);
         src = readmemw(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;
-        if(cpu_state.sse_xmm) XMM[cpu_reg].w[imm & 7] = src;
+        if(sse_xmm) XMM[cpu_reg].w[imm & 7] = src;
         else
         {
             MMX_ENTER();
@@ -791,7 +791,7 @@ static int opPEXTRW_xmm_w_a16(uint32_t fetchdat)
     ILLEGAL_ON(cpu_mod != 3);
     if (cpu_mod == 3)
     {
-        if(cpu_state.sse_xmm) setr32(cpu_reg, XMM[cpu_rm].w[imm & 7]);
+        if(sse_xmm) setr32(cpu_reg, XMM[cpu_rm].w[imm & 7]);
         else
         {
             MMX_ENTER();
@@ -809,7 +809,7 @@ static int opPEXTRW_xmm_w_a32(uint32_t fetchdat)
     ILLEGAL_ON(cpu_mod != 3);
     if (cpu_mod == 3)
     {
-        if(cpu_state.sse_xmm) setr32(cpu_reg, XMM[cpu_rm].w[imm & 7]);
+        if(sse_xmm) setr32(cpu_reg, XMM[cpu_rm].w[imm & 7]);
         else
         {
             MMX_ENTER();
@@ -887,7 +887,7 @@ static int opPMOVMSKB_l_xmm_a16(uint32_t fetchdat)
     if (cpu_mod == 3)
     {
         uint32_t result = 0;
-        if(cpu_state.sse_xmm)
+        if(sse_xmm)
         {
             if(XMM[cpu_rm].b[0] & (1 << 7)) result |= 1;
             if(XMM[cpu_rm].b[1] & (1 << 7)) result |= 2;
@@ -931,7 +931,7 @@ static int opPMOVMSKB_l_xmm_a32(uint32_t fetchdat)
     if (cpu_mod == 3)
     {
         uint32_t result = 0;
-        if(cpu_state.sse_xmm)
+        if(sse_xmm)
         {
             if(XMM[cpu_rm].b[0] & (1 << 7)) result |= 1;
             if(XMM[cpu_rm].b[1] & (1 << 7)) result |= 2;

@@ -188,6 +188,7 @@ extern int			AT, PCI;
 extern int	machine_count(void);
 extern int	machine_available(int m);
 extern char	*machine_getname(void);
+extern char	*machine_getname_ex(int m);
 extern char	*machine_get_internal_name(void);
 extern int	machine_get_machine_from_internal_name(char *s);
 extern void	machine_init(void);
