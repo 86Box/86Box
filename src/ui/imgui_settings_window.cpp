@@ -1,3 +1,4 @@
+#include <functional>
 #ifdef _WIN32
 #include <SDL2/SDL.h>
 #else
@@ -1487,9 +1488,60 @@ namespace ImGuiSettingsWindow {
 			temp_lpt[i] = temp_lpt_b;
 		}
 	}
-
-	void RenderStorageControllersCategory() {
-
+	static void RenderDeviceCombo(const char* description, std::function<const device_t*(int)> get_device, std::function<char*(int)> get_internal_name, std::function<int(int)> available, int& device, int bus, uint32_t flag = 0, bool configure = false, std::function<int(int)> has_config = [](int){ return false;})
+	{
+		int c = 0;
+		ImGui::TextUnformatted(description); ImGui::SameLine();
+		if (ImGui::BeginCombo((std::string("##") + description).c_str(), GetNameOfDevice(get_device(device), get_internal_name(device), bus).c_str()))
+		{
+			while (1)
+			{
+				if (flag)
+				{
+					if ((c == 1) && !(machines[temp_machine].flags & flag))
+					{
+						c++;
+						continue;
+					}
+				}
+				auto name = GetNameOfDevice(get_device(c), get_internal_name(c), bus);
+				if (name[0] == 0) break;
+				if (available(c) && device_is_valid(get_device(c), machines[temp_machine].flags))
+				{
+					if (ImGui::Selectable(name.c_str(), c == 0 || c == device))
+					{
+						device = c;
+					}
+					if ((c == 0) || (c == device))
+						ImGui::SetItemDefaultFocus();
+				}
+				c++;
+			}
+			ImGui::EndCombo();
+		}
+		if (configure)
+		{
+			ImGui::BeginDisabled(!has_config(device));
+			ImGui::SameLine();
+			if (ImGui::Button((std::string("Configure") + std::string("##") + description).c_str()))
+			{
+				OpenDeviceWindow(get_device(device));
+			}
+			ImGui::EndDisabled();
+		}
+	}
+	void RenderStorageControllersCategory()
+	{
+		int c = 0;
+		RenderDeviceCombo("HD Controller:", hdc_get_device, hdc_get_internal_name, hdc_available, temp_hdc, 1, 0, true, hdc_has_config);
+		RenderDeviceCombo("FD Controller:", fdc_card_getdevice, fdc_card_get_internal_name, fdc_card_available, temp_fdc_card, 1, 0, true, fdc_card_has_config);
+		ImGui::BeginGroup();
+		ImGui::TextUnformatted("SCSI");
+		for (int i = 0; i < SCSI_BUS_MAX; i++)
+		{
+			RenderDeviceCombo((std::string("Controller ") + std::to_string(i) + ':').c_str(), scsi_card_getdevice, scsi_card_get_internal_name, scsi_card_available, temp_scsi_card[i], 1, 0, true, scsi_card_has_config);
+		}
+		ImGui::EndGroup();
 	}
 
 	void RenderHardDisksCategory() {
