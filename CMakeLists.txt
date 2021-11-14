@@ -21,7 +21,7 @@ cmake_policy(SET CMP0079 NEW)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 project(86Box
-	VERSION 3.0
+	VERSION 4.0
 	DESCRIPTION "Emulator of x86-based systems"
 	HOMEPAGE_URL "https://86box.net"
 	LANGUAGES C CXX)

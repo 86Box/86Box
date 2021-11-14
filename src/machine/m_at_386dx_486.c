@@ -253,7 +253,7 @@ machine_at_rycleopardlx_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
 
     device_add(&opti283_device);
     device_add(&keyboard_at_ami_device);
@@ -1812,6 +1812,29 @@ machine_at_spc7700p_lw_init(const machine_t *model)
     device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
     device_add(&keyboard_at_ami_device);
+
+    return ret;
+}
+
+
+int
+machine_at_actiontower3000_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/actiontower3000/PHOEN12V.BIN",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init(model);
+
+    device_add(&umc_um82c49x_device);
+    /* Actually has an Intel 82C42PE with Phoenix MultiKey KBC firmware. */
+    device_add(&keyboard_at_ami_device);
+
+    device_add(&um8669f_device);
 
     return ret;
 }

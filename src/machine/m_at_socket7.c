@@ -724,12 +724,12 @@ machine_at_an430tx_init(const machine_t *model)
     pci_register_slot(0x0E, PCI_CARD_NORMAL, 2, 3, 4, 1);
     pci_register_slot(0x0F, PCI_CARD_NORMAL, 3, 4, 1, 2);
     pci_register_slot(0x10, PCI_CARD_NORMAL, 4, 1, 2, 3);
-    device_add(&i430tx_device);
+    device_add(&i430tx_standalone_device);
     device_add(&piix4_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&pc87307_both_device);
     device_add(&intel_flash_bxt_ami_device);
-    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
+    spd_register(SPD_TYPE_EDO, 0x3, 256);
 
     return ret;
 }

@@ -382,6 +382,8 @@ extern int	machine_at_actionpc2600_init(const machine_t *);
 extern int	machine_at_m919_init(const machine_t *);
 extern int	machine_at_spc7700p_lw_init(const machine_t *);
 
+extern int	machine_at_actiontower3000_init(const machine_t *);
+
 #ifdef EMU_DEVICE_H
 extern const device_t 	*at_acera1g_get_device(void);
 extern const device_t 	*at_vect486vl_get_device(void);
