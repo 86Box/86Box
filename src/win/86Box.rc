@@ -361,6 +361,7 @@ END
 
 
 #include "languages/cs-CZ.rc"
+#include "languages/de-DE.rc"
 #include "languages/en-US.rc"
 #include "languages/hu-HU.rc"
 #include "languages/pt-BR.rc"
