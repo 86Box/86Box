@@ -27,6 +27,8 @@
 #define SERIAL_NS16450		2
 #define SERIAL_NS16550		3
 
+#define SERIAL_FIFO_SIZE	16
+
 /* Default settings for the standard ports. */
 #define SERIAL1_ADDR		0x03f8
 #define SERIAL1_IRQ		4
@@ -36,6 +38,8 @@
 #define SERIAL3_IRQ		4
 #define SERIAL4_ADDR		0x02e8
 #define SERIAL4_IRQ		3
+
+#define MAX_SERIAL		4
 
 
 struct serial_device_s;
@@ -54,7 +58,7 @@ typedef struct serial_s
 
     uint8_t rcvr_fifo_pos, xmit_fifo_pos,
 	    pad0, pad1,
-	    rcvr_fifo[16], xmit_fifo[16];
+	    rcvr_fifo[SERIAL_FIFO_SIZE], xmit_fifo[SERIAL_FIFO_SIZE];
 
     pc_timer_t transmit_timer, timeout_timer;
     double clock_src, transmit_period;

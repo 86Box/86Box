@@ -231,7 +231,7 @@ uint8_t paradise_in(uint16_t addr, void *p)
 
                 case 0x3cf:
                 if (svga->gdcaddr >= 9 && svga->gdcaddr <= 0x0e) {
-					if ((paradise->pr5 & 7) != 5)
+					if (paradise->pr5 & 0x10)
 						return 0xff;
                 }
 				switch (svga->gdcaddr) {
@@ -354,8 +354,11 @@ void paradise_recalctimings(svga_t *svga)
 	}
 	
 	if (paradise->type < WD90C30) {
-		if (svga->bpp >= 8 && !svga->lowres)
+		if (svga->bpp >= 8 && !svga->lowres) {
+			if ((svga->crtc[0x17] == 0xc2) && (svga->crtc[0x14] & 0x40))
+				paradise->check = 1;
 			svga->render = svga_render_8bpp_highres;
+		}
 	} else {
 		if (svga->bpp >= 8 && !svga->lowres) {
 			if (svga->bpp == 16) {

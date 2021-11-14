@@ -61,7 +61,7 @@ typedef struct
 {
     uint8_t		acpitst, auxen, auxsts, plvl2, plvl3,
 			smicmd, gpio_dir,
-			gpio_val, muxcntrl, pad,
+			gpio_val, muxcntrl, ali_soft_smi,
 			timer32, smireg,
 			gpireg[3], gporeg[4],
 			extiotrapsts, extiotrapen;
@@ -92,7 +92,8 @@ typedef struct
     uint16_t		io_base, aux_io_base;
     int			vendor,
 			slot, irq_mode,
-			irq_pin, irq_line;
+			irq_pin, irq_line,
+			mirq_is_level;
     pc_timer_t		timer, resume_timer;
     nvr_t		*nvr;
     apm_t		*apm;
@@ -114,7 +115,7 @@ extern const device_t	acpi_via_596b_device;
 
 /* Functions */
 extern void		acpi_update_irq(acpi_t *dev);
-extern void		acpi_raise_smi(acpi_t *dev);
+extern void		acpi_raise_smi(void *priv, int do_smi);
 extern void		acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en);
 extern void		acpi_update_aux_io_mapping(acpi_t *dev, uint32_t base, int chipset_en);
 extern void		acpi_init_gporeg(acpi_t *dev, uint8_t val0, uint8_t val1, uint8_t val2, uint8_t val3);
@@ -123,9 +124,12 @@ extern void		acpi_set_slot(acpi_t *dev, int slot);
 extern void		acpi_set_irq_mode(acpi_t *dev, int irq_mode);
 extern void		acpi_set_irq_pin(acpi_t *dev, int irq_pin);
 extern void		acpi_set_irq_line(acpi_t *dev, int irq_line);
+extern void		acpi_set_mirq_is_level(acpi_t *dev, int mirq_is_level);
 extern void		acpi_set_gpireg2_default(acpi_t *dev, uint8_t gpireg2_default);
 extern void		acpi_set_nvr(acpi_t *dev, nvr_t *nvr);
 extern void		acpi_set_trap_update(acpi_t *dev, void (*update)(void *priv), void *priv);
+extern uint8_t		acpi_ali_soft_smi_status_read(acpi_t *dev);
+extern void		acpi_ali_soft_smi_status_write(acpi_t *dev, uint8_t soft_smi);
 
 #ifdef __cplusplus
 }

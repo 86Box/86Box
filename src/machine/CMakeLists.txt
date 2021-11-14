@@ -20,15 +20,12 @@ add_library(mch OBJECT machine.c machine_table.c m_xt.c m_xt_compaq.c
 	m_at.c m_at_commodore.c
 	m_at_t3100e.c m_at_t3100e_vid.c m_ps1.c m_ps1_hdc.c m_ps2_isa.c
 	m_ps2_mca.c m_at_compaq.c m_at_286_386sx.c m_at_386dx_486.c
-	m_at_socket4_5.c m_at_socket7.c m_at_sockets7.c m_at_socket8.c
-	m_at_slot1.c m_at_slot2.c m_at_socket370.c m_at_misc.c)
+	m_at_socket4.c m_at_socket5.c m_at_socket7_3v.c m_at_socket7.c
+	m_at_sockets7.c m_at_socket8.c m_at_slot1.c m_at_slot2.c m_at_socket370.c
+	m_at_misc.c)
 
 if(HEDAKA)
 	target_compile_definitions(mch PRIVATE USE_HEDAKA)
-endif()
-
-if(I450KX)
-	target_compile_definitions(mch PRIVATE USE_I450KX)
 endif()
 
 if(LASERXT)
@@ -46,8 +43,4 @@ endif()
 
 if(M154X)
 	target_compile_definitions(mch PRIVATE USE_M154X)
-endif()
-
-if(M6117)
-	target_compile_definitions(mch PRIVATE USE_M6117)
 endif()

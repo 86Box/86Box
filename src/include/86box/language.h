@@ -229,7 +229,7 @@
 #define IDS_6146	6146		// "1.5%% below perfect RPM"
 #define IDS_6147	6147		// "2%% below perfect RPM"
 
-#define IDS_7168	7168		// "English (United States)"
+#define IDS_7168	7168		// "(System Default)"
 
 #define IDS_LANG_ENUS	IDS_7168
 

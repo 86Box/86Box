@@ -1220,6 +1220,21 @@ char* plat_vidapi_name(int i)
 {
     return "default";
 }
+
+void
+set_language(uint32_t id)
+{
+    lang_id = id;
+}
+
+
+/* Sets up the program language before initialization. */
+uint32_t plat_language_code(char* langcode)
+{
+    /* or maybe not */ 
+    return 0;
+}
+
 void joystick_init(void) {}
 void joystick_close(void) {}
 void joystick_process(void) {}

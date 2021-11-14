@@ -1169,6 +1169,9 @@ static const device_config_t ega_config[] =
                 "memory", "Memory size", CONFIG_SELECTION, "", 256, "", { 0 },
                 {
                         {
+                                "32 kB", 32
+                        },
+                        {
                                 "64 kB", 64
                         },
                         {

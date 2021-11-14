@@ -810,6 +810,10 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				doresize = 1;
 				config_save();
 				break;
+				
+			case IDM_VID_PROG_SETT:
+				ProgSettDlgCreate(hwnd);
+				break;
 
 			case IDM_VID_SPECIFY_DIM:
 				SpecifyDimensionsDialogCreate(hwnd);

@@ -37,17 +37,18 @@
 
 
 typedef struct {
-    uint8_t chip_id, tries,
-	    has_ide, regs[16];
+    uint8_t max_reg, chip_id,
+	    tries, has_ide,
+	    regs[16];
     int cur_reg,
 	com3_addr, com4_addr;
     fdc_t *fdc;
     serial_t *uart[2];
-} fdc37c66x_t;
+} fdc37c6xx_t;
 
 
 static void
-set_com34_addr(fdc37c66x_t *dev)
+set_com34_addr(fdc37c6xx_t *dev)
 {
     switch (dev->regs[1] & 0x60) {
 	case 0x00:
@@ -71,7 +72,7 @@ set_com34_addr(fdc37c66x_t *dev)
 
 
 static void
-set_serial_addr(fdc37c66x_t *dev, int port)
+set_serial_addr(fdc37c6xx_t *dev, int port)
 {
     uint8_t shift = (port << 2);
     double clock_src = 24000000.0 / 13.0;
@@ -102,7 +103,7 @@ set_serial_addr(fdc37c66x_t *dev, int port)
 
 
 static void
-lpt1_handler(fdc37c66x_t *dev)
+lpt1_handler(fdc37c6xx_t *dev)
 {
     lpt1_remove();
     switch (dev->regs[1] & 3) {
@@ -123,7 +124,7 @@ lpt1_handler(fdc37c66x_t *dev)
 
 
 static void
-fdc_handler(fdc37c66x_t *dev)
+fdc_handler(fdc37c6xx_t *dev)
 {
     fdc_remove(dev->fdc);
     if (dev->regs[0] & 0x10)
@@ -133,7 +134,7 @@ fdc_handler(fdc37c66x_t *dev)
 
 
 static void
-ide_handler(fdc37c66x_t *dev)
+ide_handler(fdc37c6xx_t *dev)
 {
     /* TODO: Make an ide_disable(channel) and ide_enable(channel) so we can simplify this. */
     if (dev->has_ide == 2) {
@@ -153,9 +154,9 @@ ide_handler(fdc37c66x_t *dev)
 
 
 static void
-fdc37c66x_write(uint16_t port, uint8_t val, void *priv)
+fdc37c6xx_write(uint16_t port, uint8_t val, void *priv)
 {
-    fdc37c66x_t *dev = (fdc37c66x_t *) priv;
+    fdc37c6xx_t *dev = (fdc37c6xx_t *) priv;
     uint8_t valxor = 0;
 
     if (dev->tries == 2) {
@@ -165,7 +166,7 @@ fdc37c66x_write(uint16_t port, uint8_t val, void *priv)
 		else
 			dev->cur_reg = val;
 	} else {
-		if (dev->cur_reg > 15)
+		if (dev->cur_reg > dev->max_reg)
 			return;
 
 		valxor = val ^ dev->regs[dev->cur_reg];
@@ -221,9 +222,9 @@ fdc37c66x_write(uint16_t port, uint8_t val, void *priv)
 
 
 static uint8_t
-fdc37c66x_read(uint16_t port, void *priv)
+fdc37c6xx_read(uint16_t port, void *priv)
 {
-    fdc37c66x_t *dev = (fdc37c66x_t *) priv;
+    fdc37c6xx_t *dev = (fdc37c6xx_t *) priv;
     uint8_t ret = 0x00;
 
     if (dev->tries == 2) {
@@ -236,7 +237,7 @@ fdc37c66x_read(uint16_t port, void *priv)
 
 
 static void
-fdc37c66x_reset(fdc37c66x_t *dev)
+fdc37c6xx_reset(fdc37c6xx_t *dev)
 {
     dev->com3_addr = 0x338;
     dev->com4_addr = 0x238;
@@ -256,13 +257,33 @@ fdc37c66x_reset(fdc37c66x_t *dev)
     dev->tries = 0;
     memset(dev->regs, 0, 16);
 
-    dev->regs[0x0] = 0x2a;
+    switch (dev->chip_id) {
+	case 0x63: case 0x65:
+		dev->max_reg = 0x0f;
+		dev->regs[0x0] = 0x3b;
+		break;
+	case 0x64: case 0x66:
+		dev->max_reg = 0x0f;
+		dev->regs[0x0] = 0x2b;
+		break;
+	default:
+		dev->max_reg = (dev->chip_id >= 0x61) ? 0x03 : 0x02;
+		dev->regs[0x0] = 0x3f;
+		break;
+    }
+
     dev->regs[0x1] = 0x9f;
     dev->regs[0x2] = 0xdc;
     dev->regs[0x3] = 0x78;
-    dev->regs[0x6] = 0xff;
-    dev->regs[0xd] = dev->chip_id;
-    dev->regs[0xe] = 0x01;
+
+    if (dev->chip_id >= 0x63) {
+	dev->regs[0x6] = 0xff;
+	dev->regs[0xd] = dev->chip_id;
+	if (dev->chip_id >= 0x65)
+		dev->regs[0xe] = 0x02;
+	else
+		dev->regs[0xe] = 0x01;
+    }
 
     set_serial_addr(dev, 0);
     set_serial_addr(dev, 1);
@@ -277,32 +298,37 @@ fdc37c66x_reset(fdc37c66x_t *dev)
 
 
 static void
-fdc37c66x_close(void *priv)
+fdc37c6xx_close(void *priv)
 {
-    fdc37c66x_t *dev = (fdc37c66x_t *) priv;
+    fdc37c6xx_t *dev = (fdc37c6xx_t *) priv;
 
     free(dev);
 }
 
 
 static void *
-fdc37c66x_init(const device_t *info)
+fdc37c6xx_init(const device_t *info)
 {
-    fdc37c66x_t *dev = (fdc37c66x_t *) malloc(sizeof(fdc37c66x_t));
-    memset(dev, 0, sizeof(fdc37c66x_t));
+    fdc37c6xx_t *dev = (fdc37c6xx_t *) malloc(sizeof(fdc37c6xx_t));
+    memset(dev, 0, sizeof(fdc37c6xx_t));
 
     dev->fdc = device_add(&fdc_at_smc_device);
-
-    dev->uart[0] = device_add_inst(&ns16550_device, 1);
-    dev->uart[1] = device_add_inst(&ns16550_device, 2);
 
     dev->chip_id = info->local & 0xff;
     dev->has_ide = (info->local >> 8) & 0xff;
 
-    io_sethandler(0x03f0, 0x0002,
-		  fdc37c66x_read, NULL, NULL, fdc37c66x_write, NULL, NULL, dev);
+    if (dev->chip_id >= 0x63) {
+	dev->uart[0] = device_add_inst(&ns16550_device, 1);
+	dev->uart[1] = device_add_inst(&ns16550_device, 2);
+    } else {
+	dev->uart[0] = device_add_inst(&ns16450_device, 1);
+	dev->uart[1] = device_add_inst(&ns16450_device, 2);
+    }
 
-    fdc37c66x_reset(dev);
+    io_sethandler(0x03f0, 0x0002,
+		  fdc37c6xx_read, NULL, NULL, fdc37c6xx_write, NULL, NULL, dev);
+
+    fdc37c6xx_reset(dev);
 
     return dev;
 }
@@ -310,11 +336,47 @@ fdc37c66x_init(const device_t *info)
 
 /* The three appear to differ only in the chip ID, if I
    understood their datasheets correctly. */
+const device_t fdc37c651_device = {
+    "SMC FDC37C651 Super I/O",
+    0,
+    0x51,
+    fdc37c6xx_init, fdc37c6xx_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+const device_t fdc37c651_ide_device = {
+    "SMC FDC37C651 Super I/O (With IDE)",
+    0,
+    0x151,
+    fdc37c6xx_init, fdc37c6xx_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+const device_t fdc37c661_device = {
+    "SMC FDC37C661 Super I/O",
+    0,
+    0x61,
+    fdc37c6xx_init, fdc37c6xx_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+const device_t fdc37c661_ide_device = {
+    "SMC FDC37C661 Super I/O (With IDE)",
+    0,
+    0x161,
+    fdc37c6xx_init, fdc37c6xx_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
 const device_t fdc37c663_device = {
     "SMC FDC37C663 Super I/O",
     0,
     0x63,
-    fdc37c66x_init, fdc37c66x_close, NULL,
+    fdc37c6xx_init, fdc37c6xx_close, NULL,
     { NULL }, NULL, NULL,
     NULL
 };
@@ -323,7 +385,7 @@ const device_t fdc37c663_ide_device = {
     "SMC FDC37C663 Super I/O (With IDE)",
     0,
     0x163,
-    fdc37c66x_init, fdc37c66x_close, NULL,
+    fdc37c6xx_init, fdc37c6xx_close, NULL,
     { NULL }, NULL, NULL,
     NULL
 };
@@ -332,7 +394,7 @@ const device_t fdc37c665_device = {
     "SMC FDC37C665 Super I/O",
     0,
     0x65,
-    fdc37c66x_init, fdc37c66x_close, NULL,
+    fdc37c6xx_init, fdc37c6xx_close, NULL,
     { NULL }, NULL, NULL,
     NULL
 };
@@ -341,7 +403,7 @@ const device_t fdc37c665_ide_device = {
     "SMC FDC37C665 Super I/O (With IDE)",
     0,
     0x265,
-    fdc37c66x_init, fdc37c66x_close, NULL,
+    fdc37c6xx_init, fdc37c6xx_close, NULL,
     { NULL }, NULL, NULL,
     NULL
 };
@@ -350,7 +412,7 @@ const device_t fdc37c666_device = {
     "SMC FDC37C666 Super I/O",
     0,
     0x66,
-    fdc37c66x_init, fdc37c66x_close, NULL,
+    fdc37c6xx_init, fdc37c6xx_close, NULL,
     { NULL }, NULL, NULL,
     NULL
 };

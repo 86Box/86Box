@@ -57,8 +57,6 @@
 #define STAT_IFULL		0x02
 #define STAT_OFULL		0x01
 
-#define PS2_REFRESH_TIME	(16 * TIMER_USEC)
-
 #define RESET_DELAY_TIME	(100 * 10)	/* 600ms */
 
 #define CCB_UNUSED		0x80
@@ -97,8 +95,8 @@
 typedef struct {
     uint8_t	command, status, old_status, out, old_out, secr_phase,
 		mem_addr, input_port, output_port, old_output_port,
-		key_command, output_locked, ami_stat,  want60,
-		wantirq, key_wantdata, refresh, first_write;
+		key_command, output_locked, ami_stat, want60,
+		wantirq, key_wantdata, ami_flags, first_write;
 
     uint8_t	mem[0x100];
 
@@ -108,7 +106,7 @@ typedef struct {
 
     uint32_t	flags;
 
-    pc_timer_t	refresh_time, pulse_cb;
+    pc_timer_t	pulse_cb;
 
     uint8_t	(*write60_ven)(void *p, uint8_t val);
     uint8_t	(*write64_ven)(void *p, uint8_t val);
@@ -1320,6 +1318,7 @@ write60_ami(void *priv, uint8_t val)
 
 	case 0xcb:	/* set keyboard mode */
 		kbd_log("ATkbc: AMI - set keyboard mode\n");
+		dev->ami_flags = val;
 		return 0;
     }
 
@@ -1704,11 +1703,6 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
     uint8_t mask, kbc_ven = 0x0;
     kbc_ven = dev->flags & KBC_VEN_MASK;
 
-    if ((kbc_ven == KBC_VEN_XI8088) && (port == 0x63))
-	port = 0x61;
-
-    kbd_log((port == 0x61) ? "" : "ATkbc: write(%04X, %02X)\n", port, val);
-
     switch (port) {
 	case 0x60:
 		dev->status &= ~STAT_CD;
@@ -1970,20 +1964,6 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 		}
 		break;
 
-	case 0x61:
-		ppi.pb = (ppi.pb & 0x10) | (val & 0x0f);
-
-		speaker_update();
-		speaker_gated = val & 1;
-		speaker_enable = val & 2;
-		if (speaker_enable) 
-			was_speaker_enable = 1;
-		pit_ctr_set_gate(&pit->counters[2], val & 1);
-
-		if (kbc_ven == KBC_VEN_XI8088)
-			xi8088_turbo_set(!!(val & 0x04));
-		break;
-
 	case 0x64:
 		/* Controller command. */
 		dev->want60 = 0;
@@ -2063,7 +2043,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 
 			case 0xca:	/* read keyboard mode */
 				kbd_log("ATkbc: AMI - read keyboard mode\n");
-				add_data(dev, ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) ? 0x01 : 0x00); /*ISA mode*/
+				add_data(dev, dev->ami_flags);
 				break;
 
 			case 0xcb:	/* set keyboard mode */
@@ -2133,9 +2113,6 @@ kbd_read(uint16_t port, void *priv)
     if ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF)
 	cycles -= ISA_CYCLES(8);
 
-    if ((kbc_ven == KBC_VEN_XI8088) && (port == 0x63))
-	port = 0x61;
-
     switch (port) {
 	case 0x60:
                 ret = dev->out;
@@ -2144,56 +2121,6 @@ kbd_read(uint16_t port, void *priv)
                 dev->last_irq = 0;
 		break;
 
-	case 0x61:
-		ret = ppi.pb & ~0xe0;
-		if (ppispeakon)
-			ret |= 0x20;
-		if ((dev->flags & KBC_TYPE_MASK) > KBC_TYPE_PS2_NOREF) {
-			if (dev->refresh)
-				ret |= 0x10;
-			else
-				ret &= ~0x10;
-		}
-		if (kbc_ven == KBC_VEN_XI8088) {
-			if (xi8088_turbo_get())
-					ret |= 0x04;
-				else
-					ret &= ~0x04;
-		}
-		break;
-
-	case 0x62:
-		ret = 0xff;
-		if (kbc_ven == KBC_VEN_OLIVETTI) {
-			/* SWA on Olivetti M240 mainboard (off=1) */
-			ret = 0x00;
-			if (ppi.pb & 0x8) {
-				/* Switches 4, 5 - floppy drives (number) */
-				int i, fdd_count = 0;
-				for (i = 0; i < FDD_NUM; i++) {
-				    if (fdd_get_flags(i))
-				        fdd_count++;
-				}
-				if (!fdd_count)
-					ret |= 0x00;
-				else
-					ret |= ((fdd_count - 1) << 2);
-				/* Switches 6, 7 - monitor type */
-				if (video_is_mda())
-					ret |= 0x3;
-				else if (video_is_cga())
-					ret |= 0x2;	/* 0x10 would be 40x25 */
-				else
-					ret |= 0x0;
-			} else {
-				/* bit 2 always on */
-				ret |= 0x4;
-				/* Switch 8 - 8087 FPU. */
-				if (hasfpu)
-	            	ret |= 0x02;
-			}
-		}
-		break;
 	case 0x64:
 		ret = (dev->status & 0xfb);
 		if (dev->mem[0] & STAT_SYSFLAG)
@@ -2218,22 +2145,11 @@ kbd_read(uint16_t port, void *priv)
 
 
 static void
-kbd_refresh(void *priv)
-{
-    atkbd_t *dev = (atkbd_t *)priv;
-
-    dev->refresh = !dev->refresh;
-    timer_advance_u64(&dev->refresh_time, PS2_REFRESH_TIME);
-}
-
-
-static void
 kbd_reset(void *priv)
 {
     atkbd_t *dev = (atkbd_t *)priv;
     int i;
-	uint8_t kbc_ven = 0x0;
-	kbc_ven = dev->flags & KBC_VEN_MASK;
+    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
 
     dev->first_write = 1;
     // dev->status = STAT_UNLOCKED | STAT_CD;
@@ -2271,6 +2187,8 @@ kbd_reset(void *priv)
     memset(keyboard_set3_flags, 0, 512);
 
     set_scancode_map(dev);
+
+    dev->ami_flags = ((dev->flags & KBC_TYPE_MASK) >= KBC_TYPE_PS2_NOREF) ? 0x01 : 0x00;
 }
 
 
@@ -2292,7 +2210,6 @@ kbd_close(void *priv)
 
     /* Stop timers. */
     timer_disable(&dev->send_delay_timer);
-    timer_disable(&dev->refresh_time);
 
     keyboard_scan = 0;
     keyboard_send = NULL;
@@ -2318,15 +2235,11 @@ kbd_init(const device_t *info)
     video_reset(gfxcard);
     kbd_reset(dev);
 
-    io_sethandler(0x0060, 5,
-		  kbd_read, NULL, NULL, kbd_write, NULL, NULL, dev);
+    io_sethandler(0x0060, 1, kbd_read, NULL, NULL, kbd_write, NULL, NULL, dev);
+    io_sethandler(0x0064, 1, kbd_read, NULL, NULL, kbd_write, NULL, NULL, dev);
     keyboard_send = add_data_kbd;
 
     timer_add(&dev->send_delay_timer, kbd_poll, dev, 1); 
-
-    if ((dev->flags & KBC_TYPE_MASK) > KBC_TYPE_PS2_NOREF)
-	timer_add(&dev->refresh_time, kbd_refresh, dev, 1);
-
     timer_add(&dev->pulse_cb, pulse_poll, dev, 0);
 
     dev->write60_ven = NULL;

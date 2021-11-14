@@ -146,6 +146,9 @@ ohci_mmio_read(uint32_t addr, void *p)
 
     ret = dev->ohci_mmio[addr];
 
+    if (addr == 0x101)
+	ret = (ret & 0xfe) | (!!mem_a20_key);
+
     return ret;
 }
 
