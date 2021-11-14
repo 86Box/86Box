@@ -360,6 +360,7 @@ END
 #endif    // not APSTUDIO_INVOKED
 
 
+#include "languages/cs-CZ.rc"
 #include "languages/en-US.rc"
 #include "languages/hu-HU.rc"
 #include "languages/pt-BR.rc"
