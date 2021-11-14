@@ -834,18 +834,7 @@ BEGIN
     IDS_2123	"Salvar"
     IDS_2124	"Sobre o 86Box"
     IDS_2125	"86Box versão" EMU_VERSION
-    IDS_2126	"Um emulador de computadores antigos\n\n"
-	
-	"Autores: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, e outros.\n\n" 	
-	
-	/* 
-	    Here uncomment following line and add your name like "Translated by: <your name goes here>\n\n". 
-	    If such a line exists with name of previous translators, don't erase their name, just add yours to the end of line.
-	*/
-	
-	"Traduzido por: Altieres Lima da Silva\n\n" 
-	
-	"Lançado sob a Licença Pública Geral GNU versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
+    IDS_2126	"Um emulador de computadores antigos\n\nAutores: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva\n\nLançado sob a Licença Pública Geral GNU versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
     IDS_2127	"OK"
     IDS_2128	"Hardware não disponível"
 #ifdef _WIN32
