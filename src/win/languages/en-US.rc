@@ -334,9 +334,9 @@ END
 #define STR_PCAP		"PCap device:"
 #define STR_NET			"Network adapter:"
 
-#define STR_LPT1		"LPT1 Device"
-#define STR_LPT2		"LPT2 Device"
-#define STR_LPT3		"LPT3 Device"
+#define STR_LPT1		"LPT1 Device:"
+#define STR_LPT2		"LPT2 Device:"
+#define STR_LPT3		"LPT3 Device:"
 #define STR_SERIAL1		"Serial port 1"
 #define STR_SERIAL2		"Serial port 2"
 #define STR_SERIAL3		"Serial port 3"
