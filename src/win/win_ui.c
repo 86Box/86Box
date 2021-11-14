@@ -59,7 +59,6 @@
 HWND		hwndMain,		/* application main window */
 		hwndRender;		/* machine render window */
 HMENU		menuMain;		/* application main menu */
-HICON		hIcon[256];		/* icon data loaded from resources */
 RECT		oldclip;		/* mouse rect */
 int		sbar_height = 23;	/* statusbar height */
 int		minimized = 0;
@@ -78,7 +77,7 @@ extern WCHAR	wopenfilestring[512];
 static wchar_t	wTitle[512];
 static int	manager_wm = 0;
 static int	save_window_pos = 0, pause_state = 0;
-static int	dpi = 96;
+int	dpi = 96;
 static int	padded_frame = 0;
 static int	vis = -1;
 
@@ -152,15 +151,6 @@ show_cursor(int val)
 
     vis = val;
 }
-
-
-HICON
-LoadIconEx(PCTSTR pszIconName)
-{
-    return((HICON)LoadImage(hinstance, pszIconName, IMAGE_ICON,
-						16, 16, LR_SHARED));
-}
-
 
 static void
 video_toggle_option(HMENU h, int *val, int id)
@@ -1074,6 +1064,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_DESTROY:
+	    win_clear_icon_set();
 		KillTimer(hwnd, TIMER_1SEC);
 		PostQuitMessage(0);
 		break;
