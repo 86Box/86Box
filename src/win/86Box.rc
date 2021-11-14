@@ -363,3 +363,4 @@ END
 #include "languages/en-US.rc"
 #include "languages/hu-HU.rc"
 #include "languages/pt-BR.rc"
+#include "languages/pt-PT.rc"
