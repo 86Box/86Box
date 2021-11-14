@@ -544,16 +544,32 @@ case $JOB_BASE_NAME in
 	$project-Dev)
 		if is_windows
 		then
-			build 32 --preset=experimental -D VNC=OFF
-			build 64 --preset=experimental -D VNC=OFF
+			build 32 --preset=experimental -D NEW_DYNAREC=ON -D VNC=OFF
+			build 64 --preset=experimental -D NEW_DYNAREC=ON -D VNC=OFF
 		elif is_mac
 		then
-			build Universal --preset=experimental -D VNC=OFF
+			build Universal --preset=experimental -D NEW_DYNAREC=ON -D VNC=OFF
 		else
-			build x86 --preset=experimental -D VNC=OFF
-			build x86_64 --preset=experimental -D VNC=OFF
-			build arm32 --preset=experimental -D VNC=OFF
-			build arm64 --preset=experimental -D VNC=OFF
+			build x86 --preset=experimental -D NEW_DYNAREC=ON -D VNC=OFF
+			build x86_64 --preset=experimental -D NEW_DYNAREC=ON -D VNC=OFF
+			build arm32 --preset=experimental -D NEW_DYNAREC=ON -D VNC=OFF
+			build arm64 --preset=experimental -D NEW_DYNAREC=ON -D VNC=OFF
+		fi
+		;;
+
+	$project-DevODR)
+		if is_windows
+		then
+			build 32 --preset=experimental -D NEW_DYNAREC=OFF -D VNC=OFF
+			build 64 --preset=experimental -D NEW_DYNAREC=OFF -D VNC=OFF
+		elif is_mac
+		then
+			build Universal --preset=experimental -D NEW_DYNAREC=OFF -D VNC=OFF
+		else
+			build x86 --preset=experimental -D NEW_DYNAREC=OFF -D VNC=OFF
+			build x86_64 --preset=experimental -D NEW_DYNAREC=OFF -D VNC=OFF
+			build arm32 --preset=experimental -D NEW_DYNAREC=OFF -D VNC=OFF
+			build arm64 --preset=experimental -D NEW_DYNAREC=OFF -D VNC=OFF
 		fi
 		;;
 

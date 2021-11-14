@@ -52,7 +52,8 @@ def anySuccess = false
 
 def buildChain = [
 	'86Box': '86Box-Dev',
-	'86Box-Dev': '86Box-Debug',
+	'86Box-Dev': '86Box-DevODR',
+	'86Box-DevODR': '86Box-Debug',
 	'86Box-TestBuildPleaseIgnore': '86Box-TestBuildPleaseIgnore2'
 ]
 
