@@ -2392,7 +2392,7 @@ amd_k_invalid_rdmsr:
 				EDX = tsc >> 32;
 				break;
 		}
-		pclog("RDMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
+		cpu_log("RDMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
 		break;
 
 	case CPU_PENTIUMPRO:
@@ -2799,7 +2799,7 @@ amd_k_invalid_wrmsr:
 	case CPU_CxGX1:
 	case CPU_Cx6x86MX:
 #endif
-		pclog("WRMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
+		cpu_log("WRMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
 		switch (ECX) {
 			case 0x10:
 				tsc = EAX | ((uint64_t)EDX << 32);

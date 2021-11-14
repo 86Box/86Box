@@ -37,6 +37,7 @@
 #include "cpu.h"
 #include <86box/machine.h>
 #include <86box/clock.h>
+#include <86box/sound.h>
 #include <86box/snd_ac97.h>
 
 
@@ -76,11 +77,11 @@ machine_at_s370slm_init(const machine_t *model)
 
 
 int
-machine_at_trinity371_init(const machine_t *model)
+machine_at_s1857_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/trinity371/BX57200A.ROM",
+    ret = bios_load_linear("roms/machines/s1857/BX57200A.ROM",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -103,6 +104,11 @@ machine_at_trinity371_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&w83977ef_370_device);
     device_add(&intel_flash_bxt_device);
+
+    if (sound_card_current == SOUND_INTERNAL) {
+	device_add(&es1371_onboard_device);
+	device_add(&cs4297_device); /* found on other Tyan boards around the same time */
+    }
 
     return ret;
 }
@@ -278,7 +284,7 @@ machine_at_awo671r_init(const machine_t *model)
 
 
 int
-machine_at_63a_init(const machine_t *model)
+machine_at_63a1_init(const machine_t *model)
 {
     int ret;
 
@@ -376,6 +382,11 @@ machine_at_gt694va_init(const machine_t *model)
     hwm_values.fans[2] = 0; /* unused */
     hwm_values.temperatures[2] = 0; /* unused */
 
+    if (sound_card_current == SOUND_INTERNAL) {
+	device_add(&es1371_onboard_device);
+	device_add(&cs4297_device); /* assumed */
+    }
+
     return ret;
 }
 
@@ -452,7 +463,8 @@ machine_at_6via90ap_init(const machine_t *model)
     hwm_values.temperatures[1] += 2; /* System offset */
     hwm_values.temperatures[2] = 0; /* unused */
 
-    device_add(&alc100_device); /* ALC100P identified on similar Acorp boards (694TA, 6VIA90A1) */
+    if (sound_card_current == SOUND_INTERNAL)
+	device_add(&alc100_device); /* ALC100P identified on similar Acorp boards (694TA, 6VIA90A1) */
 
     return ret;
 }

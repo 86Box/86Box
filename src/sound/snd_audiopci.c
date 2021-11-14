@@ -1013,13 +1013,10 @@ es1371_outl(uint16_t port, uint32_t val, void *p)
 	case 0x14:
 		if (val & CODEC_READ) {
 			dev->codec_ctrl &= 0x00ff0000;
-			val = (val >> 16) & 0x7e;
-			dev->codec_ctrl |= ac97_codec_read(dev->codec, val);
-			dev->codec_ctrl |= ac97_codec_read(dev->codec, val | 1) << 8;
+			dev->codec_ctrl |= ac97_codec_readw(dev->codec, val >> 16);
 		} else {
 			dev->codec_ctrl = val & 0x00ffffff;
-			ac97_codec_write(dev->codec,  (val >> 16) & 0x7e,      val & 0xff);
-			ac97_codec_write(dev->codec, ((val >> 16) & 0x7e) | 1, val >> 8);
+			ac97_codec_writew(dev->codec, val >> 16, val);
 
 			ac97_codec_getattn(dev->codec, 0x02, &dev->master_vol_l, &dev->master_vol_r);
 			ac97_codec_getattn(dev->codec, 0x12, &dev->cd_vol_l, &dev->cd_vol_r);

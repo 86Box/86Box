@@ -453,18 +453,18 @@ const machine_t machines[] = {
        of type 'H'. */
     { "[SiS 496] Zida Tomato 4DP",		"4dps",			MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024, 261120, 1024, 255,		 machine_at_4dps_init, NULL			},
     /* This has the UMC 88xx on-chip KBC. */
-    { "[UMC 888x] A-Trend ATC-1415",		"atc1415",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024,  65536, 1024, 255,	      machine_at_atc1415_init, NULL			},
+    { "[UMC 8881] A-Trend ATC-1415",		"atc1415",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024,  65536, 1024, 255,	      machine_at_atc1415_init, NULL			},
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[UMC 888x] ECS Elite UM8810PAIO",	"ecs486",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 131072, 1024, 255,	       machine_at_ecs486_init, NULL			},
+    { "[UMC 8881] ECS Elite UM8810PAIO",	"ecs486",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 131072, 1024, 255,	       machine_at_ecs486_init, NULL			},
     /* Has AMIKey Z(!) KBC firmware. */
-    { "[UMC 888x] Epson Action PC 2600",	"actionpc2600",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 262144, 1024, 255,	 machine_at_actionpc2600_init, NULL			},
+    { "[UMC 8881] Epson Action PC 2600",	"actionpc2600",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 262144, 1024, 255,	 machine_at_actionpc2600_init, NULL			},
     /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
        in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
-    { "[UMC 888x] PC Chips M919",		"m919",			MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_VLB | MACHINE_IDE_DUAL,					 1024, 131072, 1024, 255,		 machine_at_m919_init, NULL			},
+    { "[UMC 8881] PC Chips M919",		"m919",			MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_VLB | MACHINE_IDE_DUAL,					 1024, 131072, 1024, 255,		 machine_at_m919_init, NULL			},
     /* Has IBM PS/2 Type 1 KBC firmware. Uses a mysterious I/O port C05. */
-    { "[UMC 888x] Samsung SPC7700P-LW",		"spc7700p-lw",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024, 131072, 1024, 255,	  machine_at_spc7700p_lw_init, NULL			},
+    { "[UMC 8881] Samsung SPC7700P-LW",		"spc7700p-lw",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024, 131072, 1024, 255,	  machine_at_spc7700p_lw_init, NULL			},
     /* This has a Holtek KBC. */
-    { "[UMC 888x] Shuttle HOT-433A",		"hot433",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 262144, 1024, 255,	       machine_at_hot433_init, NULL			},
+    { "[UMC 8881] Shuttle HOT-433A",		"hot433",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 262144, 1024, 255,	       machine_at_hot433_init, NULL			},
     /* Has a VIA VT82C406 KBC+RTC that likely has identical commands to the VT82C42N. */
     { "[VIA VT82C496G] DFI G486VPA",		"g486vpa",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCIV | MACHINE_IDE_DUAL,						 1024, 131072, 1024, 255,	      machine_at_g486vpa_init, NULL			},
     /* Has a VIA VT82C42N KBC. */
@@ -495,7 +495,7 @@ const machine_t machines[] = {
        connector.
        The boot block for BIOS recovery requires an unknown bit on port 805h
        to be clear. */
-    { "[i430LX] AMI Excalibur PCI Pentium",	"excalibur_pci",	MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED,					MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 2048, 131072, 2048, 127,	machine_at_excalibur_pci_init, NULL			},
+    { "[i430LX] AMI Excalibur PCI Pentium",	"excaliburpci",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED,					MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 2048, 131072, 2048, 127,	 machine_at_excaliburpci_init, NULL			},
     /* Has AMIKey F KBC firmware (AMIKey). */
     { "[i430LX] ASUS P/I-P5MP3",		"p5mp3",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED,					MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE,		 			 2048, 196608, 2048, 127,		machine_at_p5mp3_init, NULL			},
     /* Has IBM PS/2 Type 1 KBC firmware. */
@@ -519,7 +519,7 @@ const machine_t machines[] = {
     /* This uses an AMI KBC firmware in PS/2 mode (it sends command A5 with the
        PS/2 "Load Security" meaning), most likely MegaKey as it sends command AF
        (Set Extended Controller RAM) just like the later Intel AMI BIOS'es. */
-    { "[OPTi 597] AMI Excalibur VLB",		"excalibur",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED,					MACHINE_VLB | MACHINE_BUS_PS2 | MACHINE_IDE,					 2048,  65536, 2048, 127,	    machine_at_excalibur_init, NULL			},
+    { "[OPTi 597] AMI Excalibur VLB",		"excalibur",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 60000000, 5000, 5000, MACHINE_MULTIPLIER_FIXED,					MACHINE_VLB | MACHINE_BUS_PS2 | MACHINE_IDE,					 2048,  65536, 2048, 127,	    machine_at_excalibur_init, NULL			},
 
     /* OPTi 596/597/822 */
     /* This has AMIKey 'F' KBC firmware. */
@@ -527,9 +527,9 @@ const machine_t machines[] = {
 
     /* SiS 50x */
     /* This has an unknown AMI KBC firmware, most likely AMIKey / type 'F'. */
-    { "[SiS 50x] AMI Excalibur PCI-II Pentium ISA","excalibur_pci-2",	MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED,					MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,     machine_at_excalibur_pci_2_init, NULL			},
+    { "[SiS 501] AMI Excalibur PCI-II Pentium ISA","excaliburpci2",	MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED,					MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	machine_at_excaliburpci2_init, NULL			},
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[SiS 50x] ASUS PCI/I-P5SP4",		"p5sp4",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED,					MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,		machine_at_p5sp4_init, NULL			},
+    { "[SiS 501] ASUS PCI/I-P5SP4",		"p5sp4",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED,					MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,		machine_at_p5sp4_init, NULL			},
 
     /* Socket 5 machines */
     /* 430NX */
@@ -548,9 +548,6 @@ const machine_t machines[] = {
     { "[i430FX] AMI Apollo",			"apollo",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 2.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	       machine_at_apollo_init, NULL			},
     /* Has AMIKey H KBC firmware. */
     { "[i430FX] Dataexpert EXP8551",		"exp8551",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 2.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	      machine_at_exp8551_init, NULL			},
-    /* The BIOS does not send a single non-standard KBC command, but the board has a SMC Super I/O
-       chip with on-chip KBC and AMI MegaKey KBC firmware. */
-    { "[i430FX] HP Vectra VL 5 Series 4",	"vectra54",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 2.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO,		 8192, 131072, 8192, 511,	     machine_at_vectra54_init, at_vectra54_get_device	},
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
@@ -569,24 +566,27 @@ const machine_t machines[] = {
     { "[OPTi 597] TMC PAT54PV",			"pat54pv",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, CPU_BLOCK(CPU_K5, CPU_5K86), 50000000, 66666667, 3520, 3520, 1.5, 1.5,			MACHINE_VLB,									 2048,  65536, 2048, 127,	      machine_at_pat54pv_init, NULL			},
     
     /* OPTi 596/597/822 */
-    { "[OPTi 597] Shuttle HOT-543",		"hot543",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3520, 3520, 1.5, 1.5,							MACHINE_PCI | MACHINE_VLB,							 8192, 131072, 8192, 127,	       machine_at_hot543_init, NULL			},
+    { "[OPTi 597] Shuttle HOT-543",		"hot543",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3520, 3520, 1.5, 2.0,							MACHINE_PCI | MACHINE_VLB,							 8192, 131072, 8192, 127,	       machine_at_hot543_init, NULL			},
 
     /* SiS 85C50x */
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[SiS 85C50x] ASUS PCI/I-P54SP4",		"p54sp4",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, CPU_BLOCK(CPU_K5, CPU_5K86), 40000000, 66666667, 3380, 3520, 1.5, 1.5,			MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	       machine_at_p54sp4_init, NULL			},
+    { "[SiS 501] ASUS PCI/I-P54SP4",		"p54sp4",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, CPU_BLOCK(CPU_K5, CPU_5K86), 40000000, 66666667, 3380, 3520, 1.5, 1.5,			MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	       machine_at_p54sp4_init, NULL			},
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[SiS 85C50x] BCM SQ-588",		"sq588",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, CPU_BLOCK(CPU_PENTIUMMMX), 50000000, 66666667, 3520, 3520, 1.5, 1.5,				MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,		machine_at_sq588_init, NULL			},
+    { "[SiS 501] BCM SQ-588",			"sq588",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, CPU_BLOCK(CPU_PENTIUMMMX), 50000000, 66666667, 3520, 3520, 1.5, 1.5,				MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,		machine_at_sq588_init, NULL			},
 
     /* Socket 7 (Single Voltage) machines */
     /* 430FX */
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     { "[i430FX] ASUS P/I-P54TP4XE",		"p54tp4xe",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3600, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	     machine_at_p54tp4xe_init, NULL			},
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
-    { "[i430FX] ASUS P/I-P54TP4XE (MR BIOS)",	"mr586",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3600, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,		machine_at_mr586_init, NULL			},
+    { "[i430FX] ASUS P/I-P54TP4XE (MR BIOS)",	"p54tp4xe_mr",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3600, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	  machine_at_p54tp4xe_mr_init, NULL			},
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
     { "[i430FX] Gateway 2000 Thor",		"gw2katx",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	      machine_at_gw2katx_init, NULL			},
+    /* The BIOS does not send a single non-standard KBC command, but the board has a SMC Super I/O
+       chip with on-chip KBC and AMI MegaKey KBC firmware. */
+    { "[i430FX] HP Vectra VL 5 Series 4",	"vectra54",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 2.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO,		 8192, 131072, 8192, 511,	     machine_at_vectra54_init, at_vectra54_get_device	},
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
@@ -618,7 +618,7 @@ const machine_t machines[] = {
     { "[i430HX] Biostar MB-8500TUC",		"8500tuc",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 524288, 8192, 127,	      machine_at_8500tuc_init, NULL			},
     /* [TEST] Unable to determine what KBC this has. A list on a Danish site shows
        the BIOS as having a -0 string, indicating non-AMI KBC firmware. */
-    { "[i430HX] SuperMicro Super P55T2S",	"p55t2s",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3300, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 786432, 8192, 127,	       machine_at_p55t2s_init, NULL			},
+    { "[i430HX] Supermicro P55T2S",		"p55t2s",		MACHINE_TYPE_SOCKET7_3V,	CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3300, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 786432, 8192, 127,	       machine_at_p55t2s_init, NULL			},
 
     /* 430VX */
     /* Has AMIKey H KBC firmware (AMIKey-2). */
@@ -652,7 +652,7 @@ const machine_t machines[] = {
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI .
        Yes, this is an Intel AMI BIOS with a fancy splash screen. */
-    { "[i430HX] Sony Vaio PCV-240",		"pcv240",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2800, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 196608, 8192, 127,	       machine_at_pcv240_init, NULL			},
+    { "[i430HX] Sony Vaio PCV-90",		"pcv90",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2800, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 196608, 8192, 127,		machine_at_pcv90_init, NULL			},
     /* The base board has AMIKey-2 (updated 'H') KBC firmware. */
     { "[i430HX] ASUS P/I-P65UP5 (C-P55T2D)",	"p65up5_cp55t2d",	MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2500, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 524288, 8192, 127,      machine_at_p65up5_cp55t2d_init, NULL			},
 
@@ -700,7 +700,7 @@ const machine_t machines[] = {
     /* The BIOS sends KBC command BB and expects it to output a byte, which is AMI KBC behavior. */
     { "[i430TX] PC Partner MB540N",		"mb540n",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 60000000, 66666667, 2700, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 262144, 8192, 255,	       machine_at_mb540n_init, NULL			},
     /* [TEST] Has AMIKey 'H' KBC firmware. */
-    { "[i430TX] SuperMicro Super P5MMS98",	"p5mms98",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2100, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 262144, 8192, 255,	      machine_at_p5mms98_init, NULL			},
+    { "[i430TX] Supermicro P5MMS98",		"p5mms98",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2100, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 262144, 8192, 255,	      machine_at_p5mms98_init, NULL			},
 
     /* Apollo VPX */
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
@@ -762,7 +762,7 @@ const machine_t machines[] = {
     { "[i440FX] ASUS P/I-P65UP5 (C-P6ND)",	"p65up5_cp6nd",		MACHINE_TYPE_SOCKET8,		CPU_PKG_SOCKET8, 0, 60000000, 66666667, 2100, 3500, 1.5, 8.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192,1048576, 8192, 127,	 machine_at_p65up5_cp6nd_init, NULL			},
     /* The MB-8600TTX has an AMIKey 'F' KBC firmware, so I'm going to assume so does
        the MB-8600TTC until someone can actually identify it. */
-    { "[i440FX] Biostar MB-8600TTC",		"8600ttc",		MACHINE_TYPE_SOCKET8,		CPU_PKG_SOCKET8, 0, 50000000, 66666667, 2900, 3300, 2.0, 5.5,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192,1048576, 8192, 127,	      machine_at_8500ttc_init, NULL			},
+    { "[i440FX] Biostar MB-8600TTC",		"8600ttc",		MACHINE_TYPE_SOCKET8,		CPU_PKG_SOCKET8, 0, 50000000, 66666667, 2900, 3300, 2.0, 5.5,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192,1048576, 8192, 127,	      machine_at_8600ttc_init, NULL			},
     { "[i440FX] Gigabyte GA-686NX",		"686nx",		MACHINE_TYPE_SOCKET8,		CPU_PKG_SOCKET8, 0, 60000000, 66666667, 2100, 3500, 2.0, 5.5,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 524288, 8192, 127,		machine_at_686nx_init, NULL			},
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
@@ -825,18 +825,18 @@ const machine_t machines[] = {
     { "[i440BX] HP Vectra VEi 8",		"vei8",			MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 100000000, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	 			 8192,1048576, 8192, 255,		 machine_at_vei8_init, NULL			},
     /* Has a National Semiconductors PC87309 Super I/O chip with on-chip KBC
        with most likely AMIKey-2 KBC firmware. */
-    { "[i440BX] Tyan Tsunami ATX",		"tsunamiatx",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 112121212, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_SOUND,	 	 8192,1048576, 8192, 255,	   machine_at_tsunamiatx_init, at_tsunamiatx_get_device	},
+    { "[i440BX] Tyan Tsunami ATX",		"s1846",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 112121212, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_SOUND,	 	 8192,1048576, 8192, 255,		machine_at_s1846_init, at_s1846_get_device	},
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440BX] SuperMicro Super P6SBA",	"p6sba",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 100000000, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 786432, 8192, 255,		machine_at_p6sba_init, NULL			},
+    { "[i440BX] Supermicro P6SBA",		"p6sba",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 100000000, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 786432, 8192, 255,		machine_at_p6sba_init, NULL			},
     
     /* 440ZX */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440ZX] MSI MS-6168",			"ms6168",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 100000000, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND,8192, 524288, 8192, 255,	       machine_at_ms6168_init, NULL			},
+    { "[i440ZX] MSI MS-6168",			"ms6168",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 100000000, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND,8192, 524288, 8192, 255,	       machine_at_ms6168_init, at_ms6168_get_device	},
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440ZX] Packard Bell Bora Pro",		"borapro",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 66666667, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND,8192, 524288, 8192, 255,	      machine_at_borapro_init, NULL			},
+    { "[i440ZX] Packard Bell Bora Pro",		"borapro",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 66666667, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO | MACHINE_SOUND,8192, 524288, 8192, 255,	      machine_at_borapro_init, at_borapro_get_device	},
 
     /* SMSC VictoryBX-66 */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -867,13 +867,13 @@ const machine_t machines[] = {
     { "[i440GX] Gigabyte GA-6GXU",		"6gxu",			MACHINE_TYPE_SLOT2,		CPU_PKG_SLOT2, 0, 100000000, 133333333, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		16384,2097152,16384, 511,		 machine_at_6gxu_init, NULL			},
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440GX] SuperMicro Super S2DGE",	"s2dge",		MACHINE_TYPE_SLOT2,		CPU_PKG_SLOT2, 0, 66666667, 100000000, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		16384,2097152,16384, 511,		machine_at_s2dge_init, NULL			},
+    { "[i440GX] Supermicro S2DGE",		"s2dge",		MACHINE_TYPE_SLOT2,		CPU_PKG_SLOT2, 0, 66666667, 100000000, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		16384,2097152,16384, 511,		machine_at_s2dge_init, NULL			},
 
     /* PGA370 machines */
     /* 440LX */
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440LX] SuperMicro Super 370SLM",	"s370slm",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 100000000, 1800, 3500, MACHINE_MULTIPLIER_FIXED,				MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 786432, 8192, 255,	      machine_at_s370slm_init, NULL			},
+    { "[i440LX] Supermicro 370SLM",		"s370slm",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 100000000, 1800, 3500, MACHINE_MULTIPLIER_FIXED,				MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 786432, 8192, 255,	      machine_at_s370slm_init, NULL			},
 
     /* 440BX */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -887,12 +887,12 @@ const machine_t machines[] = {
     { "[i440BX] AmazePC AM-BX133",		"ambx133",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0, /* limits assumed */				MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 786432, 8192, 255,	      machine_at_ambx133_init, NULL			},
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440BX] Tyan Trinity 371",		"trinity371",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 786432, 8192, 255,	   machine_at_trinity371_init, NULL			},
+    { "[i440BX] Tyan Trinity 371",		"s1857",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 786432, 8192, 255,		machine_at_s1857_init, at_s1857_get_device	},
 
     /* 440ZX */
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440ZX] Soltek SL-63A1",		"63a",			MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 100000000, 1800, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 524288, 8192, 255,		  machine_at_63a_init, NULL			},
+    { "[i440ZX] Soltek SL-63A1",		"63a1",			MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 100000000, 1800, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 524288, 8192, 255,		 machine_at_63a1_init, NULL			},
 
     /* SMSC VictoryBX-66 */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -914,7 +914,7 @@ const machine_t machines[] = {
     { "[VIA Apollo Pro133A] ASUS CUV4X-LS",	"cuv4xls",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1300, 3500, 1.5, 8.0,						(MACHINE_AGP & ~MACHINE_AT) | MACHINE_BUS_PS2 | MACHINE_BUS_AC97 | MACHINE_IDE_DUAL,16384,4194304, 8192, 255,	      machine_at_cuv4xls_init, NULL			},
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[VIA Apollo Pro133A] BCM GT694VA",	"gt694va",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				16384,3145728, 8192, 255,	      machine_at_gt694va_init, NULL			},
+    { "[VIA Apollo Pro133A] BCM GT694VA",	"gt694va",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				16384,3145728, 8192, 255,	      machine_at_gt694va_init, at_gt694va_get_device	},
 
     /* Miscellaneous/Fake/Hypervisor machines */
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
