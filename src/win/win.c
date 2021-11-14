@@ -1651,15 +1651,6 @@ plat_language_code_r(uint32_t lcid, char* outbuf, int len)
 	c16stombs(outbuf, buffer, len);
 }
 
-void
-take_screenshot(void)
-{
-    startblit();
-    screenshots++;
-    endblit();
-    device_force_redraw();
-}
-
 /* LPARAM interface to plat_get_string(). */
 LPARAM win_get_string(int id)
 {
