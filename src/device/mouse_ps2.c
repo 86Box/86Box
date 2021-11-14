@@ -96,6 +96,9 @@ ps2_write(uint8_t val, void *priv)
     if (dev->flags & FLAG_CTRLDAT) {
 	dev->flags &= ~FLAG_CTRLDAT;
 
+	if (val == 0xff)
+		goto mouse_reset;
+
 	switch (dev->command) {
 		case 0xe8:	/* set mouse resolution */
 			dev->resolution = val;
@@ -191,9 +194,10 @@ ps2_write(uint8_t val, void *priv)
 
 		case 0xf6:	/* set defaults */
 		case 0xff:	/* reset */
+mouse_reset:
 			dev->mode  = MODE_STREAM;
 			dev->flags &= 0x88;
-			mouse_scan = 0;
+			mouse_scan = 1;
 			keyboard_at_mouse_reset();
 			keyboard_at_adddata_mouse(0xfa);
 			if (dev->command == 0xff) {

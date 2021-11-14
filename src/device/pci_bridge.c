@@ -33,6 +33,8 @@
 
 
 #define PCI_BRIDGE_DEC_21150	0x10110022
+#define AGP_BRIDGE_ALI_M5243	0x10b95243
+#define AGP_BRIDGE_ALI_M5247	0x10b95247
 #define AGP_BRIDGE_INTEL_440LX	0x80867181
 #define AGP_BRIDGE_INTEL_440BX	0x80867191
 #define AGP_BRIDGE_INTEL_440GX	0x808671a1
@@ -41,15 +43,16 @@
 #define AGP_BRIDGE_VIA_691	0x11068691
 #define AGP_BRIDGE_VIA_8601	0x11068601
 
+#define AGP_BRIDGE_ALI(x)	(((x) >> 16) == 0x10b9)
 #define AGP_BRIDGE_INTEL(x)	(((x) >> 16) == 0x8086)
 #define AGP_BRIDGE_VIA(x)	(((x) >> 16) == 0x1106)
-#define AGP_BRIDGE(x)		((x) >= AGP_BRIDGE_VIA_597)
+#define AGP_BRIDGE(x)		((x) >= AGP_BRIDGE_ALI_M5243)
 
 
 typedef struct
 {
     uint32_t	local;
-    uint8_t	type;
+    uint8_t	type, ctl;
 
     uint8_t	regs[256];
     uint8_t	bus_index;
@@ -77,6 +80,15 @@ pci_bridge_log(const char *fmt, ...)
 #endif
 
 
+void
+pci_bridge_set_ctl(void *priv, uint8_t ctl)
+{
+    pci_bridge_t *dev = (pci_bridge_t *) priv;
+
+    dev->ctl = ctl;
+}
+
+
 static void
 pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 {
@@ -87,6 +99,9 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
     if (func > 0)
 	return;
 
+    if ((dev->local == AGP_BRIDGE_ALI_M5247) && (addr >= 0x40))
+	return;
+
     switch (addr) {
 	case 0x00: case 0x01: case 0x02: case 0x03:
 	case 0x06: case 0x08: case 0x09: case 0x0a:
@@ -94,20 +109,25 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 	case 0x11: case 0x12: case 0x13: case 0x14:
 	case 0x15: case 0x16: case 0x17: case 0x1e:
 	case 0x34: case 0x3d: case 0x67: case 0xdc:
-	case 0xdd: case 0xde: case 0xdf: case 0xe0:
-	case 0xe1: case 0xe2: case 0xe3:
+	case 0xdd: case 0xde: case 0xdf:
 		return;
 
 	case 0x04:
 		if (AGP_BRIDGE_INTEL(dev->local)) {
 			if (dev->local == AGP_BRIDGE_INTEL_440BX)
 				val &= 0x1f;
-		} else
+		} else if (dev->local == AGP_BRIDGE_ALI_M5243)
+			val |= 0x02;
+		else if (dev->local == AGP_BRIDGE_ALI_M5247)
+			val &= 0xc3;
+		else
 			val &= 0x67;
 		break;
 
 	case 0x05:
 		if (AGP_BRIDGE_INTEL(dev->local))
+			val &= 0x01;
+		else if (AGP_BRIDGE_ALI(dev->local))
 			val &= 0x01;
 		else
 			val &= 0x03;
@@ -116,6 +136,10 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 	case 0x07:
 		if (dev->local == AGP_BRIDGE_INTEL_440LX)
 			dev->regs[addr] &= ~(val & 0x40);
+		else if (dev->local == AGP_BRIDGE_ALI_M5243)
+			dev->regs[addr] &= ~(val & 0xf8);
+		else if (dev->local == AGP_BRIDGE_ALI_M5247)
+			dev->regs[addr] &= ~(val & 0xc0);
 		return;
 
 	case 0x0c: case 0x18:
@@ -128,6 +152,8 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 		if (AGP_BRIDGE_VIA(dev->local))
 			return;
 		else if (AGP_BRIDGE_INTEL(dev->local))
+			val &= 0xf8;
+		else if (AGP_BRIDGE_ALI(dev->local))
 			val &= 0xf8;
 		break;
 
@@ -144,7 +170,8 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 			else if ((dev->local == AGP_BRIDGE_INTEL_440BX) ||
 				 (dev->local == AGP_BRIDGE_INTEL_440GX))
 				dev->regs[addr] &= ~(val & 0xf0);
-		}
+		} else if (AGP_BRIDGE_ALI(dev->local))
+			dev->regs[addr] &= ~(val & 0xf0);
 		return;
 
 	case 0x1c: case 0x1d: case 0x20: case 0x22:
@@ -152,9 +179,18 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 		val &= 0xf0;
 		break;
 
+	case 0x3c:
+		if (!(dev->ctl & 0x80))
+			return;
+		break;
+
 	case 0x3e:
 		if (AGP_BRIDGE_VIA(dev->local))
 			val &= 0x0c;
+		else if (dev->local == AGP_BRIDGE_ALI_M5247)
+			val &= 0x0f;
+		else if (dev->local == AGP_BRIDGE_ALI_M5243)
+			return;
 		else if (AGP_BRIDGE(dev->local)) {
 			if ((dev->local == AGP_BRIDGE_INTEL_440BX) ||
 			    (dev->local == AGP_BRIDGE_INTEL_440GX))
@@ -170,7 +206,11 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 		if (dev->local == AGP_BRIDGE_INTEL_440LX) {
 			dev->regs[addr] = ((dev->regs[addr] & 0x04) | (val & 0x02)) & ~(val & 0x04);
 			return;
-		} else if (AGP_BRIDGE(dev->local))
+		} else if (dev->local == AGP_BRIDGE_ALI_M5247)
+			return;
+		else if (dev->local == AGP_BRIDGE_ALI_M5243)
+			val &= 0x06;
+		else if (AGP_BRIDGE(dev->local))
 			return;
 		else if (dev->local == PCI_BRIDGE_DEC_21150)
 			val &= 0x0f;
@@ -206,6 +246,94 @@ pci_bridge_write(int func, int addr, uint8_t val, void *priv)
 	case 0x69:
 		if (dev->local == PCI_BRIDGE_DEC_21150)
 			val &= 0x3f;
+		break;
+
+	case 0x86:
+		if (AGP_BRIDGE_ALI(dev->local))
+			val &= 0x3f;
+		break;
+
+	case 0x87:
+		if (AGP_BRIDGE_ALI(dev->local))
+			val &= 0x60;
+		break;
+
+	case 0x88:
+		if (AGP_BRIDGE_ALI(dev->local))
+			val &= 0x8c;
+		break;
+
+	case 0x8b:
+		if (AGP_BRIDGE_ALI(dev->local))
+			val &= 0x0f;
+		break;
+
+	case 0x8c:
+		if (AGP_BRIDGE_ALI(dev->local))
+			val &= 0x83;
+		break;
+
+	case 0x8d:
+		if (AGP_BRIDGE_ALI(dev->local))
+			return;
+		break;
+
+	case 0xe0: case 0xe1:
+		if (AGP_BRIDGE_ALI(dev->local)) {
+			if (!(dev->ctl & 0x20))
+				return;
+		} else
+			return;
+		break;
+
+	case 0xe2:
+		if (AGP_BRIDGE_ALI(dev->local)) {
+			if (dev->ctl & 0x20)
+				val &= 0x3f;
+			else
+				return;
+		} else
+			return;
+		break;
+	case 0xe3:
+		if (AGP_BRIDGE_ALI(dev->local)) {
+			if (dev->ctl & 0x20)
+				val &= 0xfe;
+			else
+				return;
+		} else
+			return;
+		break;
+
+	case 0xe4:
+		if (AGP_BRIDGE_ALI(dev->local)) {
+			if (dev->ctl & 0x20)
+				val &= 0x03;
+			else
+				return;
+		}
+		break;
+	case 0xe5:
+		if (AGP_BRIDGE_ALI(dev->local)) {
+			if (!(dev->ctl & 0x20))
+				return;
+		}
+		break;
+
+	case 0xe6:
+		if (AGP_BRIDGE_ALI(dev->local)) {
+			if (dev->ctl & 0x20)
+				val &= 0xc0;
+			else
+				return;
+		}
+		break;
+
+	case 0xe7:
+		if (AGP_BRIDGE_ALI(dev->local)) {
+			if (!(dev->ctl & 0x20))
+				return;
+		}
 		break;
     }
 
@@ -251,6 +379,26 @@ pci_bridge_reset(void *priv)
 		dev->regs[0x07] = 0x02;
 		break;
 
+	case AGP_BRIDGE_ALI_M5243:
+		dev->regs[0x04] = 0x06;
+		dev->regs[0x07] = 0x04;
+		dev->regs[0x0d] = 0x20;
+		dev->regs[0x19] = 0x01;
+		dev->regs[0x1b] = 0x20;
+		dev->regs[0x34] = 0xe0;
+		dev->regs[0x89] = 0x20;
+		dev->regs[0x8a] = 0xa0;
+		dev->regs[0x8e] = 0x20;
+		dev->regs[0x8f] = 0x20;
+		dev->regs[0xe0] = 0x01;
+		pci_remap_bus(dev->bus_index, 0x01);
+		break;
+
+	case AGP_BRIDGE_ALI_M5247:
+		dev->regs[0x04] = 0x03;
+		dev->regs[0x08] = 0x01;
+		break;
+
 	case AGP_BRIDGE_INTEL_440LX:
 		dev->regs[0x06] = 0xa0;
 		dev->regs[0x07] = 0x02;
@@ -266,7 +414,7 @@ pci_bridge_reset(void *priv)
 	case AGP_BRIDGE_VIA_597:
 	case AGP_BRIDGE_VIA_598:
 	case AGP_BRIDGE_VIA_691:
-    case AGP_BRIDGE_VIA_8601:
+	case AGP_BRIDGE_VIA_8601:
 		dev->regs[0x04] = 0x07;
 		dev->regs[0x06] = 0x20;
 		dev->regs[0x07] = 0x02;
@@ -284,7 +432,9 @@ pci_bridge_reset(void *priv)
     else
 	dev->regs[0x1c] = dev->regs[0x1d] = 0x01;
 
-    if (!AGP_BRIDGE_VIA(dev->local)) {
+    if (dev->local == AGP_BRIDGE_ALI_M5247)
+	dev->regs[0x1e] = 0x20;
+    else if (!AGP_BRIDGE_VIA(dev->local)) {
 	dev->regs[0x1e] = AGP_BRIDGE(dev->local) ? 0xa0 : 0x80;
 	dev->regs[0x1f] = 0x02;
     }
@@ -323,8 +473,10 @@ pci_bridge_init(const device_t *info)
     dev->slot = pci_add_card(AGP_BRIDGE(dev->local) ? PCI_ADD_AGPBRIDGE : PCI_ADD_BRIDGE, pci_bridge_read, pci_bridge_write, dev);
     interrupt_count = sizeof(interrupts);
     interrupt_mask = interrupt_count - 1;
-    for (i = 0; i < interrupt_count; i++)
-	interrupts[i] = pci_get_int(dev->slot, PCI_INTA + i);
+    if (dev->slot < 32) {
+	for (i = 0; i < interrupt_count; i++)
+		interrupts[i] = pci_get_int(dev->slot, PCI_INTA + i);
+    }
     pci_bridge_log("PCI Bridge %d: upstream bus %02X slot %02X interrupts %02X %02X %02X %02X\n", dev->bus_index, (dev->slot >> 5) & 0xff, dev->slot & 31, interrupts[0], interrupts[1], interrupts[2], interrupts[3]);
 
     if (info->local == PCI_BRIDGE_DEC_21150)
@@ -362,6 +514,35 @@ const device_t dec21150_device =
 };
 
 /* AGP bridges */
+const device_t ali5243_agp_device =
+{
+    "ALi M5243 AGP Bridge",
+    DEVICE_PCI,
+    AGP_BRIDGE_ALI_M5243,
+    pci_bridge_init,
+    NULL,
+    pci_bridge_reset,
+    { NULL },
+    NULL,
+    NULL,
+    NULL
+};
+
+/* AGP bridges */
+const device_t ali5247_agp_device =
+{
+    "ALi M5247 AGP Bridge",
+    DEVICE_PCI,
+    AGP_BRIDGE_ALI_M5247,
+    pci_bridge_init,
+    NULL,
+    pci_bridge_reset,
+    { NULL },
+    NULL,
+    NULL,
+    NULL
+};
+
 const device_t i440lx_agp_device =
 {
     "Intel 82443LX/EX AGP Bridge",

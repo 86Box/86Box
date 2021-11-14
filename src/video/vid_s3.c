@@ -85,6 +85,7 @@ enum
 	S3_METHEUS_86C928,
 	S3_AMI_86C924,
 	S3_TRIO64V2_DX,
+	S3_TRIO64V2_DX_ONBOARD,
 	S3_PHOENIX_TRIO64VPLUS,
 	S3_PHOENIX_TRIO64VPLUS_ONBOARD,
 	S3_DIAMOND_STEALTH_SE,
@@ -6806,6 +6807,11 @@ static void *s3_init(const device_t *info)
 			chip = S3_TRIO64V2;
 			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
 			break;
+		case S3_TRIO64V2_DX_ONBOARD:
+			bios_fn = NULL;
+			chip = S3_TRIO64V2;
+			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+			break;
 		default:
 			free(s3);
 			return NULL;
@@ -7165,6 +7171,7 @@ static void *s3_init(const device_t *info)
 			break;
 
 		case S3_TRIO64V2_DX:
+		case S3_TRIO64V2_DX_ONBOARD:
 			svga->decode_mask = (4 << 20) - 1;
 			s3->id = 0xe1; /*Trio64V2*/
 			s3->id_ext = s3->id_ext_pci = 0x01;
@@ -8089,6 +8096,21 @@ const device_t s3_trio64v2_dx_pci_device =
         s3_close,
 	s3_reset,
         { s3_trio64v2_dx_available },
+        s3_speed_changed,
+        s3_force_redraw,
+        s3_standard_config
+};
+
+
+const device_t s3_trio64v2_dx_onboard_pci_device =
+{
+        "S3 Trio64V2/DX On-Board PCI",
+        DEVICE_PCI,
+        S3_TRIO64V2_DX_ONBOARD,
+        s3_init,
+        s3_close,
+	NULL,
+        { NULL },
         s3_speed_changed,
         s3_force_redraw,
         s3_standard_config
