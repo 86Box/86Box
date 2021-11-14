@@ -72,20 +72,11 @@ machine_at_thor_common_init(const machine_t *model, int mr)
 }
 
 
-int
-machine_at_p54tp4xe_init(const machine_t *model)
+static void
+machine_at_p54tp4xe_common_init(const machine_t *model)
 {
-    int ret;
-
-    ret = bios_load_linear("roms/machines/p54tp4xe/t15i0302.awd",
-			   0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
     machine_at_common_init(model);
 
-    /* Award BIOS, SMC FDC37C665. */
     pci_init(PCI_CONFIG_TYPE_1);
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
@@ -98,37 +89,38 @@ machine_at_p54tp4xe_init(const machine_t *model)
     device_add(&piix_device);
     device_add(&fdc37c665_device);
     device_add(&intel_flash_bxt_device);
+}
+
+
+int
+machine_at_p54tp4xe_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/p54tp4xe/t15i0302.awd",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_p54tp4xe_common_init(model);
 
     return ret;
 }
 
 
 int
-machine_at_mr586_init(const machine_t *model)
+machine_at_p54tp4xe_mr_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/mr586/TRITON.BIO",
+    ret = bios_load_linear("roms/machines/p54tp4xe_mr/TRITON.BIO",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_init(model);
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x0B, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x0A, PCI_CARD_NORMAL, 3, 4, 1, 2);
-    pci_register_slot(0x09, PCI_CARD_NORMAL, 4, 1, 2, 3);
-	
-    device_add(&i430fx_device);
-    device_add(&piix_device);
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&fdc37c665_device);
-    device_add(&intel_flash_bxt_device);
+    machine_at_p54tp4xe_common_init(model);
 
     return ret;
 }
@@ -548,6 +540,40 @@ machine_at_ap5s_init(const machine_t *model)
     device_add(&sis_5511_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&fdc37c665_device);
+    device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
+
+
+int
+machine_at_vectra54_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/vectra54/GT0724.22",
+			   0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+	return ret;
+
+    machine_at_common_init_ex(model, 2);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x0D, PCI_CARD_VIDEO, 0, 0, 0, 0);
+    pci_register_slot(0x06, PCI_CARD_NORMAL, 1, 2, 3, 4);
+    pci_register_slot(0x07, PCI_CARD_NORMAL, 2, 3, 4, 1);
+    pci_register_slot(0x08, PCI_CARD_NORMAL, 3, 4, 1, 2);
+
+    if (gfxcard == VID_INTERNAL)
+	device_add(&s3_phoenix_trio64_onboard_pci_device);
+
+    device_add(&keyboard_ps2_ami_pci_device);
+    device_add(&i430fx_device);
+    device_add(&piix_device);
+    device_add(&fdc37c931apm_device);
     device_add(&sst_flash_29ee010_device);
 
     return ret;

@@ -236,7 +236,7 @@ machine_at_8600ttc_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/8500ttc/TTC0715B.ROM",
+    ret = bios_load_linear("roms/machines/8600ttc/TTC0715B.ROM",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
