@@ -145,7 +145,7 @@ build() {
 				echo [-] Switching to MSYSTEM [$msys]
 				cd "$cwd"
 				CHERE_INVOKING=yes MSYSTEM="$msys" JOB_BASE_NAME="$JOB_BASE_NAME" BUILD_TYPE="$BUILD_TYPE" BUILD_NUMBER="$BUILD_NUMBER" GIT_COMMIT="$GIT_COMMIT" \
-					bash -lc 'exec "'$0'" -b "'$arch'" '$cmake_flags && job_status=0 # make sure the main script exits cleanly on any success
+					bash -lc 'exec "'$0'" -b "'$arch'" '"$cmake_flags" && job_status=0 # make sure the main script exits cleanly on any success
 				return $?
 			fi
 		else
@@ -211,7 +211,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 EOF
-		local cmake_flags_extra="$cmake_flags_extra -DCMAKE_TOOLCHAIN_FILE=toolchain.cmake"
+		local cmake_flags_extra="$cmake_flags_extra -D CMAKE_TOOLCHAIN_FILE=toolchain.cmake"
 
 		# Install or update dependencies.
 		echo [-] Installing dependencies through apt
@@ -223,8 +223,8 @@ EOF
 	# Clean workspace.
 	echo [-] Cleaning workspace
 	try_make clean > /dev/null
-	find . \( -name Makefile -o -name CMakeCache.txt -o -name CMakeFiles \) -exec rm -rf "{}" \; 2> /dev/null
 	rm -rf build
+	find . \( -name Makefile -o -name CMakeCache.txt -o -name CMakeFiles \) -exec rm -rf "{}" \; 2> /dev/null
 
 	# Determine available dynarec types for this architecture, and
 	# also specify ARCH right away to skip the arch_detect process.
@@ -288,7 +288,7 @@ EOF
 		[ "$arch" = "32" -a -d "/c/Program Files (x86)" ] && pf="/c/Program Files (x86)"
 
 		# Archive freetype from local MSYS installation.
-		.ci/static2dll.sh -p freetype2 /$MSYSTEM/lib/libfreetype.a archive_tmp/libfreetype.dll
+		.ci/static2dll.sh -p freetype2 /$MSYSTEM/lib/libfreetype.a archive_tmp/freetype.dll
 
 		# Archive Ghostscript DLL from local official distribution installation.
 		for gs in "$pf"/gs/gs*.*.*
@@ -354,7 +354,7 @@ EOF
 		:
 	else
 		# Create binary tarball.
-		make_tar ../$job_name-Linux-$arch$build_fn.tar
+		VERBOSE=1 make_tar ../$job_name-Linux-$arch$build_fn.tar
 		local status=$?
 	fi
 	cd ..
