@@ -8,6 +8,8 @@
 #include <utility>
 #include <algorithm>
 #include <tuple>
+#include <iostream>
+#include <sstream>
 
 extern SDL_Window* sdl_win;
 struct FileOpenSaveRequest
@@ -20,6 +22,15 @@ struct FileOpenSaveRequest
 	bool wp = false;
 	uint8_t id = 0;
 };
+
+std::vector<std::string> split(const std::string& s)
+{
+    std::stringstream ss(s);
+    std::vector<std::string> words;
+    for (std::string w; ss>>w; ) words.push_back(w);
+    return words;
+}
+
 void FileOpenSaveMacOS(FileOpenSaveRequest param)
 {
     NSMutableArray<NSString*>* array = [[NSMutableArray alloc] init];
@@ -33,12 +44,7 @@ void FileOpenSaveMacOS(FileOpenSaveRequest param)
     {
         wnd = info.info.cocoa.window;
     }
-    while (filterstr.find_first_of(' ') != std::string::npos)
-    {
-        auto ext = filterstr.substr(0, filterstr.find_first_of(' '));
-        extensions.push_back(ext);
-        filterstr.erase(filterstr.begin(), filterstr.begin() + filterstr.find_first_of(' ') + 1);
-    }
+    extensions = split(filterstr);
             
     for (auto &ext : extensions)
     {

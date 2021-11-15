@@ -1488,7 +1488,7 @@ namespace ImGuiSettingsWindow {
 			temp_lpt[i] = temp_lpt_b;
 		}
 	}
-	static void RenderDeviceCombo(const char* description, std::function<const device_t*(int)> get_device, std::function<char*(int)> get_internal_name, std::function<int(int)> available, int& device, int bus, uint32_t flag = 0, bool configure = false, std::function<int(int)> has_config = [](int){ return false;})
+	static void RenderDeviceCombo(const char* description, std::function<const device_t*(int)> get_device, std::function<char*(int)> get_internal_name, std::function<int(int)> available, int& device, int bus, uint32_t flag = 0, bool configure = false, std::function<int(int)> has_config = [](int){ return false;}, int inst = 0)
 	{
 		int c = 0;
 		ImGui::TextUnformatted(description); ImGui::SameLine();
@@ -1525,7 +1525,7 @@ namespace ImGuiSettingsWindow {
 			ImGui::SameLine();
 			if (ImGui::Button((std::string("Configure") + std::string("##") + description).c_str()))
 			{
-				OpenDeviceWindow(get_device(device));
+				OpenDeviceWindow(get_device(device), inst);
 			}
 			ImGui::EndDisabled();
 		}
@@ -1535,13 +1535,47 @@ namespace ImGuiSettingsWindow {
 		int c = 0;
 		RenderDeviceCombo("HD Controller:", hdc_get_device, hdc_get_internal_name, hdc_available, temp_hdc, 1, 0, true, hdc_has_config);
 		RenderDeviceCombo("FD Controller:", fdc_card_getdevice, fdc_card_get_internal_name, fdc_card_available, temp_fdc_card, 1, 0, true, fdc_card_has_config);
+		
+		bool is_at = IS_AT(temp_machine);
+		ImGui::BeginDisabled(!is_at);
+		{
+			bool ide_ter = temp_ide_ter;
+			ImGui::Checkbox("Tertiary IDE Controller", &ide_ter);
+			temp_ide_ter = ide_ter;
+		}
+		ImGui::BeginDisabled(!temp_ide_ter);
+		ImGui::SameLine();
+		if (ImGui::Button("Configure##Tertiary IDE Controller"))
+		{
+			OpenDeviceWindow(&ide_ter_device);
+		}
+		ImGui::EndDisabled();
+		{
+			bool ide_qua = temp_ide_qua;
+			ImGui::Checkbox("Quaternary IDE Controller", &ide_qua);
+			temp_ide_qua = ide_qua;
+		}
+		ImGui::BeginDisabled(!temp_ide_qua);
+		ImGui::SameLine();
+		if (ImGui::Button("Configure##Quaternary IDE Controller"))
+		{
+			OpenDeviceWindow(&ide_qua_device);
+		}
+		ImGui::EndDisabled();
+		ImGui::EndDisabled();
+
 		ImGui::BeginGroup();
 		ImGui::TextUnformatted("SCSI");
 		for (int i = 0; i < SCSI_BUS_MAX; i++)
 		{
-			RenderDeviceCombo((std::string("Controller ") + std::to_string(i) + ':').c_str(), scsi_card_getdevice, scsi_card_get_internal_name, scsi_card_available, temp_scsi_card[i], 1, 0, true, scsi_card_has_config);
+			RenderDeviceCombo((std::string("Controller ") + std::to_string(i) + ':').c_str(), scsi_card_getdevice, scsi_card_get_internal_name, scsi_card_available, temp_scsi_card[i], 1, 0, true, scsi_card_has_config, i + 1);
 		}
 		ImGui::EndGroup();
+		{
+			bool cas = temp_cassette;
+			ImGui::Checkbox("Cassette", &cas);
+			temp_cassette = cas;
+		}
 	}
 
 	void RenderHardDisksCategory() {
