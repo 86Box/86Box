@@ -63,9 +63,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef PAS16
   PAS16		:= n
  endif
- ifndef PS2M70T4
-  PS2M70T4	:= y
- endif
  ifndef SIO_DETECT
   SIO_DETECT	:= y
  endif
@@ -123,9 +120,6 @@ else
  endif
  ifndef PAS16
   PAS16		:= n
- endif
- ifndef PS2M70T4
-  PS2M70T4	:= n
  endif
  ifndef SIO_DETECT
   SIO_DETECT	:= n
@@ -522,10 +516,6 @@ endif
 ifeq ($(PAS16), y)
 OPTS		+= -DUSE_PAS16
 DEVBROBJ	+= snd_pas16.o
-endif
-
-ifeq ($(PS2M70T4), y)
-OPTS		+= -DUSE_PS2M70T4
 endif
 
 ifeq ($(SIO_DETECT), y)
