@@ -1,0 +1,988 @@
+////////////////////////////////////////////////////////////////////////////
+// Italian (IT-it) resources
+
+#ifdef _WIN32
+LANGUAGE LANG_ITALIAN, SUBLANG_ITALIAN
+#pragma code_page(65001)
+#endif //_WIN32
+
+#define explorerdotexe
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+MainMenu MENU DISCARDABLE 
+BEGIN
+    POPUP "&Azione"
+    BEGIN
+        MENUITEM "&Tastiera richiede la cattura",	IDM_ACTION_KBD_REQ_CAPTURE
+        MENUITEM "&CTRL destro è ALT sinistro",	IDM_ACTION_RCTRL_IS_LALT
+        MENUITEM SEPARATOR
+        MENUITEM "&Riavvia...",                 IDM_ACTION_HRESET
+        MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",     IDM_ACTION_RESET_CAD
+        MENUITEM SEPARATOR
+	MENUITEM "Ctrl+Alt+&Esc",		IDM_ACTION_CTRL_ALT_ESC
+        MENUITEM SEPARATOR
+        MENUITEM "&Pausa",                      IDM_ACTION_PAUSE
+        MENUITEM SEPARATOR
+        MENUITEM "E&sci...",                       IDM_ACTION_EXIT
+    END
+    POPUP "&Visualizza"
+    BEGIN
+        MENUITEM "&Nascondi barra di stato",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM SEPARATOR
+        MENUITEM "&Finestra ridimensionabile",          IDM_VID_RESIZE
+        MENUITEM "R&icorda dimensioni e posizione",  IDM_VID_REMEMBER
+        MENUITEM SEPARATOR
+        POPUP "Re&nderer"
+        BEGIN
+            MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
+            MENUITEM "SDL (&Hardware)",         IDM_VID_SDL_HW
+            MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
+#if defined(DEV_BRANCH) && defined(USE_OPENGL)
+            MENUITEM "Open&GL (3.3 Core)",      IDM_VID_OPENGL_CORE
+#endif
+#ifdef USE_VNC
+            MENUITEM "&VNC",                    IDM_VID_VNC
+#endif
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "Specifica dimensioni...",          IDM_VID_SPECIFY_DIM
+        MENUITEM "F&orza display 4:3",    IDM_VID_FORCE43
+        POPUP "&Fattore scalare della finestra"
+        BEGIN
+            MENUITEM "&0.5x",                   IDM_VID_SCALE_1X
+            MENUITEM "&1x",                     IDM_VID_SCALE_2X
+            MENUITEM "1.&5x",                   IDM_VID_SCALE_3X
+            MENUITEM "&2x",                     IDM_VID_SCALE_4X
+        END
+        POPUP "Metodo filtro"
+        BEGIN
+            MENUITEM "&Dal più vicino",                 IDM_VID_FILTER_NEAREST
+            MENUITEM "&Lineare",                  IDM_VID_FILTER_LINEAR
+        END
+        MENUITEM "Scala Hi&DPI",              IDM_VID_HIDPI
+        MENUITEM SEPARATOR
+        MENUITEM "&Schermo intero\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        POPUP "Modalità adattamento &schermo intero"
+        BEGIN
+            MENUITEM "&Adatta a schermo intero",        IDM_VID_FS_FULL
+            MENUITEM "&4:3",                        IDM_VID_FS_43
+            MENUITEM "&Pixel quadrati (Mantiene l'aspetto)", IDM_VID_FS_KEEPRATIO
+            MENUITEM "&Scala Integer",              IDM_VID_FS_INT
+        END
+        POPUP "Impostazioni E&GA/(S)VGA"
+        BEGIN
+            MENUITEM "&Invertire monitor VGA",   IDM_VID_INVERT
+            POPUP "Schermi VGA &"
+            BEGIN
+                MENUITEM "RGB &Color",          IDM_VID_GRAY_RGB
+                MENUITEM "&RGB Monocroma",      IDM_VID_GRAY_MONO
+                MENUITEM "&Monitor ambra",      IDM_VID_GRAY_AMBER
+                MENUITEM "&Monitor verde",      IDM_VID_GRAY_GREEN
+                MENUITEM "&Monitor bianco",      IDM_VID_GRAY_WHITE
+            END
+            POPUP "Conversione &scala grigia"
+            BEGIN
+                MENUITEM "BT&601 (NTSC/PAL)",   IDM_VID_GRAYCT_601
+                MENUITEM "BT&709 (HDTV)",       IDM_VID_GRAYCT_709
+                MENUITEM "&AMedia",            IDM_VID_GRAYCT_AVE
+            END
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "Sovrascansione CGA/PCjr/Tandy/E&GA/(S)VGA",     IDM_VID_OVERSCAN
+        MENUITEM "Cambia il contrasto per &display monocromatici", IDM_VID_CGACON
+    END
+    MENUITEM "&Dispositivi",				IDM_MEDIA
+    POPUP "&Strumenti"
+    BEGIN
+        MENUITEM "&Impostazioni...",                IDM_CONFIG
+        MENUITEM "&Aggiorna icone della barra di stato",	IDM_UPDATE_ICONS
+        MENUITEM SEPARATOR
+        MENUITEM "Cambia li&ngua...",    IDM_VID_PROG_SETT
+# ifdef USE_DISCORD
+        MENUITEM SEPARATOR
+        MENUITEM "Abilita &integrazione Discord", IDM_DISCORD
+# endif
+        MENUITEM SEPARATOR
+        MENUITEM "Cattura schermata\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM SEPARATOR
+        MENUITEM "Guadagno &suono...",              IDM_SND_GAIN
+#ifdef MTR_ENABLED
+        MENUITEM SEPARATOR
+        MENUITEM "Inizia traccia\tCtrl+T",         IDM_ACTION_BEGIN_TRACE
+        MENUITEM "Ferma traccia\tCtrl+T",           IDM_ACTION_END_TRACE
+#endif
+    END
+#if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
+    POPUP "&Registra"
+    BEGIN
+# ifdef ENABLE_BUSLOGIC_LOG
+        MENUITEM "Attiva registrazione da BusLogic\tCtrl+F4", IDM_LOG_BUSLOGIC
+# endif
+# ifdef ENABLE_CDROM_LOG
+        MENUITEM "Attiva registrazione da CD-ROM\tCtrl+F5", IDM_LOG_CDROM
+# endif
+# ifdef ENABLE_D86F_LOG
+        MENUITEM "Attiva registrazione del floppy (86F)\tCtrl+F6", IDM_LOG_D86F
+# endif
+# ifdef ENABLE_FDC_LOG
+        MENUITEM "Attiva registrazione del controller floppy\tCtrl+F7", IDM_LOG_FDC
+# endif
+# ifdef ENABLE_IDE_LOG
+        MENUITEM "Attiva registrazione da IDE\tCtrl+F8", IDM_LOG_IDE
+# endif
+# ifdef ENABLE_SERIAL_LOG
+        MENUITEM "Attiva registrazione della porta seriale\tCtrl+F3", IDM_LOG_SERIAL
+# endif
+# ifdef ENABLE_NIC_LOG
+        MENUITEM "Attiva registrazione della rete\tCtrl+F9", IDM_LOG_NIC
+# endif
+# ifdef ENABLE_LOG_COMMANDS
+#  ifdef ENABLE_LOG_TOGGLES
+	MENUITEM SEPARATOR
+#  endif
+#  ifdef ENABLE_LOG_BREAKPOINT
+        MENUITEM "&Punto di interruzione del registro\tCtrl+F10", IDM_LOG_BREAKPOINT
+#  endif
+#  ifdef ENABLE_VRAM_DUMP
+        MENUITEM "Scarica &la RAM video\tCtrl+F1", IDM_DUMP_VRAM
+#  endif
+# endif
+    END
+#endif
+    POPUP "&Aiuto"
+    BEGIN
+        MENUITEM "&Documentazione...",           IDM_DOCS
+        MENUITEM "&Informazioni su 86Box...",             IDM_ABOUT
+    END
+END
+
+StatusBarMenu MENU DISCARDABLE 
+BEGIN
+    MENUITEM SEPARATOR
+END
+
+CassetteSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Nuova immagine...",				IDM_CASSETTE_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "&Immagine esistente...",				IDM_CASSETTE_IMAGE_EXISTING
+        MENUITEM "Immagine esistente (&Protezione scrittura)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "&Registra",					IDM_CASSETTE_RECORD
+        MENUITEM "&Riproduci",					IDM_CASSETTE_PLAY
+        MENUITEM "&Riavvolgi all'inizio",			IDM_CASSETTE_REWIND
+        MENUITEM "&Velocizza alla fine",			IDM_CASSETTE_FAST_FORWARD
+        MENUITEM SEPARATOR
+        MENUITEM "E&spelli",					IDM_CASSETTE_EJECT
+    END
+END
+
+CartridgeSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Immagine...",					IDM_CARTRIDGE_IMAGE
+        MENUITEM SEPARATOR
+        MENUITEM "E&spelli",					IDM_CARTRIDGE_EJECT
+    END
+END
+
+FloppySubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Nuova immagine...",				IDM_FLOPPY_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "&Immagine esistente...",				IDM_FLOPPY_IMAGE_EXISTING
+        MENUITEM "Immagine esistente (&Protezione scrittura)...",	IDM_FLOPPY_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "E&sporta in 86F...",				IDM_FLOPPY_EXPORT_TO_86F
+        MENUITEM SEPARATOR
+        MENUITEM "E&spelli",					IDM_FLOPPY_EJECT
+    END
+END
+
+CdromSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Muto",					IDM_CDROM_MUTE
+        MENUITEM SEPARATOR
+        MENUITEM "E&spelli",					IDM_CDROM_EMPTY
+        MENUITEM "&Ricarica l'immagine precedente",			IDM_CDROM_RELOAD
+        MENUITEM SEPARATOR
+        MENUITEM "&Immagine",					IDM_CDROM_IMAGE
+    END
+END
+
+ZIPSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Nuova immagine...",				IDM_ZIP_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "&Immagine esistente...",				IDM_ZIP_IMAGE_EXISTING
+        MENUITEM "Immagine esistente (&Protezione scrittura)...",	IDM_ZIP_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "E&spelli",					IDM_ZIP_EJECT
+        MENUITEM "&Ricarica l'immagine precedente",			IDM_ZIP_RELOAD
+    END
+END
+
+MOSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Nuova immagine...",				IDM_MO_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "&Immagine esistente...",				IDM_MO_IMAGE_EXISTING
+        MENUITEM "Immagine esistente (&Protezione scrittura)...",	IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "E&spelli",					IDM_MO_EJECT
+        MENUITEM "&Ricarica l'immagine precedente",			IDM_MO_RELOAD
+    END
+END
+
+#if defined(DEV_BRANCH) && defined(USE_OPENGL)
+VidGLSubMenu MENU DISCARDABLE
+BEGIN
+    POPUP "Imposta obiettivo &fotogrammi"
+    BEGIN
+        MENUITEM "&Sincronizza col video", IDM_VID_GL_FPS_BLITTER
+        MENUITEM "&25 FPS", IDM_VID_GL_FPS_25
+        MENUITEM "&30 FPS", IDM_VID_GL_FPS_30
+        MENUITEM "&50 FPS", IDM_VID_GL_FPS_50
+        MENUITEM "&60 FPS", IDM_VID_GL_FPS_60
+        MENUITEM "&75 FPS", IDM_VID_GL_FPS_75
+    END
+    MENUITEM "&VSync", IDM_VID_GL_VSYNC
+    MENUITEM "&Seleziona shader...", IDM_VID_GL_SHADER
+    MENUITEM "&Rimuovi shader", IDM_VID_GL_NOSHADER
+END
+#endif
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+DLG_PROG_SETT DIALOG DISCARDABLE  0, 0, 240, 86
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Cambia Lingua Display"
+FONT 9, "Segoe UI"
+BEGIN
+    DEFPUSHBUTTON   "OK", IDOK, 123, 65, 50, 14 
+    PUSHBUTTON      "Cancella", IDCANCEL, 179, 65, 50, 14  
+    COMBOBOX        IDC_COMBO_LANG, 13, 18, 213, 22,  CBS_DROPDOWNLIST | CBS_HASSTRINGS
+    AUTOCHECKBOX    "Salva queste impostazioni come &predefinite globali", IDC_CHECKBOX_GLOBAL, 13, 50, 217, 8 , WS_DISABLED 
+    PUSHBUTTON      "&Predefinito", IDC_BUTTON_DEFAULT, 162, 32, 60, 14 
+    LTEXT	        "Lingua:", 0, 13, 8, 34, 8
+END
+
+DLG_STATUS DIALOG DISCARDABLE  0, 0, 186, 386
+STYLE DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Stato"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT           "1",IDT_SDEVICE,16,16,180,1000
+    LTEXT           "1",IDT_STEXT,16,186,180,1000
+END
+
+DLG_SND_GAIN DIALOG DISCARDABLE  0, 0, 113, 136
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Guadagno del Suono"
+FONT 9, "Segoe UI"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,57,7,50,14
+    PUSHBUTTON      "Cancella",IDCANCEL,57,24,50,14
+    CONTROL         "Guadagno",IDC_SLIDER_GAIN,"msctls_trackbar32",TBS_VERT | 
+                    TBS_BOTH | TBS_AUTOTICKS | WS_TABSTOP,15,20,20,109
+    CTEXT           "Guadagno",IDT_1746,10,7,32,9,SS_CENTERIMAGE
+END
+
+DLG_NEW_FLOPPY DIALOG DISCARDABLE  0, 0, 226, 86
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Nuova Immagine"
+FONT 9, "Segoe UI"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,104,65,50,14
+    PUSHBUTTON      "Cancella",IDCANCEL,162,65,50,14
+    LTEXT           "Nome file:",IDT_1749,7,6,44,12,SS_CENTERIMAGE
+    LTEXT           "Dimensioni disco:",IDT_1750,7,25,44,12,SS_CENTERIMAGE
+    LTEXT           "Modalità RPM:",IDT_1751,7,45,44,12,SS_CENTERIMAGE
+    EDITTEXT        IDC_EDIT_FILE_NAME,53,5,150,14,ES_AUTOHSCROLL | ES_READONLY
+    COMBOBOX        IDC_COMBO_DISK_SIZE,53,25,166,14,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_COMBO_RPM_MODE,53,45,166,14,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "...",IDC_CFILE,206,5,13,14
+    LTEXT           "Progresso:",IDT_1757,7,45,44,12,SS_CENTERIMAGE
+    CONTROL         "IMGCreateProgress",IDC_PBAR_IMG_CREATE,"msctls_progress32",PBS_SMOOTH | 
+                    WS_BORDER,53,45,166,14
+END
+
+DLG_CONFIG DIALOG DISCARDABLE  0, 0, 376, 256
+STYLE DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Impostazioni 86Box"
+FONT 9, "Segoe UI"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,246,235,50,14
+    PUSHBUTTON      "Cancella",IDCANCEL,307,235,50,14
+    CONTROL         "List2",IDC_SETTINGSCATLIST,"SysListView32",LVS_REPORT | LVS_NOCOLUMNHEADER | 
+                    LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | WS_TABSTOP,7,7,100,212
+    CONTROL         "",-1,"Static",SS_BLACKFRAME | SS_SUNKEN,1,226,373,1
+END
+
+DLG_SPECIFY_DIM DIALOG DISCARDABLE  0, 0, 175, 66
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Specifica dimensioni della finestra principale"
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT           "Larghezza:",IDT_1709,7,9,24,12
+    EDITTEXT        IDC_EDIT_WIDTH,33,7,45,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_WIDTHSPIN,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_ARROWKEYS | UDS_NOTHOUSANDS,76,6,
+                    12,12
+    LTEXT           "Altezza:",IDT_1710,97,9,24,12
+    EDITTEXT        IDC_EDIT_HEIGHT,123,7,45,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_HEIGHTSPIN,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_ARROWKEYS | UDS_NOTHOUSANDS,166,6,
+                    12,12
+    CONTROL         "Blocca in questa dimensione",IDC_CHECK_LOCK_SIZE,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,26,94,10
+    DEFPUSHBUTTON   "OK",IDOK,30,45,50,14
+    PUSHBUTTON      "Cancella",IDCANCEL,99,45,50,14
+END
+
+DLG_CFG_MACHINE DIALOG DISCARDABLE  107, 0, 305, 200
+STYLE DS_CONTROL | WS_CHILD
+FONT 9, "Segoe UI"
+BEGIN
+    COMBOBOX        IDC_COMBO_MACHINE_TYPE,71,7,189,120,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Tipo di macchina:",IDT_1708,7,9,60,10
+    COMBOBOX        IDC_COMBO_MACHINE,71,26,138,120,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Macchina:",IDT_1701,7,28,60,10
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_MACHINE,214,26,46,12
+    COMBOBOX        IDC_COMBO_CPU_TYPE,71,45,110,120,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Tipo del CPU:",IDT_1702,7,47,59,10
+    COMBOBOX        IDC_COMBO_CPU,215,45,45,120,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Veloc.:",IDT_1704,189,47,24,10
+    COMBOBOX        IDC_COMBO_FPU,71,64,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "FPU:",IDT_1707,7,66,59,10
+    COMBOBOX        IDC_COMBO_WS,71,83,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "Stati di attesa :",IDT_1703,7,85,60,10
+    EDITTEXT        IDC_MEMTEXT,70,102,45,12,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_MEMSPIN,"msctls_updown32",UDS_SETBUDDYINT | 
+                    UDS_ALIGNRIGHT | UDS_ARROWKEYS | UDS_NOTHOUSANDS,113,101,
+                    12,12
+    LTEXT           "MB",IDT_1705,123,104,10,10
+    LTEXT           "Memoria:",IDT_1706,7,104,30,10
+    GROUPBOX        "sincronizzazione del tempo",IDC_TIME_SYNC,7,135,100,56
+    CONTROL         "Disattiva",IDC_RADIO_TS_DISABLED,"Button",
+                    BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,14,147,84,10
+    CONTROL         "Attiva (tempo locale)", IDC_RADIO_TS_LOCAL,"Button",
+                    BS_AUTORADIOBUTTON | WS_TABSTOP,14,161,84,10
+    CONTROL         "Attiva (UTC)", IDC_RADIO_TS_UTC,"Button",
+                    BS_AUTORADIOBUTTON | WS_TABSTOP,14,175,84,10
+#ifdef USE_DYNAREC
+    CONTROL         "Ricompilatore dinamico",IDC_CHECK_DYNAREC,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,120,94,10
+#endif
+END
+
+DLG_CFG_VIDEO DIALOG DISCARDABLE  107, 0, 267, 45
+STYLE DS_CONTROL | WS_CHILD
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT           "Video:",IDT_1707,7,9,48,10
+    COMBOBOX        IDC_COMBO_VIDEO,64,7,155,120,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_VID,222,7,38,12
+    CONTROL         "Grafica Voodoo",IDC_CHECK_VOODOO,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,27,199,10
+    PUSHBUTTON      "Configura",IDC_BUTTON_VOODOO,222,26,38,12
+END
+
+DLG_CFG_INPUT DIALOG DISCARDABLE  107, 0, 267, 65
+STYLE DS_CONTROL | WS_CHILD
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT           "Mouse:",IDT_1709,7,9,57,10
+    COMBOBOX        IDC_COMBO_MOUSE,71,7,140,120,CBS_DROPDOWNLIST | 
+		    WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_MOUSE,214,7,46,12
+    LTEXT           "Joystick:",IDT_1710,7,27,58,10
+    COMBOBOX        IDC_COMBO_JOYSTICK,71,25,189,120,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Joystick 1...",IDC_JOY1,7,44,50,14
+    PUSHBUTTON      "Joystick 2...",IDC_JOY2,74,44,50,14
+    PUSHBUTTON      "Joystick 3...",IDC_JOY3,141,44,50,14
+    PUSHBUTTON      "Joystick 4...",IDC_JOY4,209,44,50,14
+END
+
+DLG_CFG_SOUND DIALOG DISCARDABLE  107, 0, 267, 201
+STYLE DS_CONTROL | WS_CHILD
+FONT 9, "Segoe UI"
+BEGIN
+    COMBOBOX        IDC_COMBO_SOUND,71,7,140,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "Scheda audio:",IDT_1711,7,9,59,10
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_SND,214,7,46,12
+
+    COMBOBOX        IDC_COMBO_MIDI,71,26,140,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "Dispositivo uscita MIDI:",IDT_1712,7,28,59,10
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_MIDI,214,26,46,12
+
+    COMBOBOX        IDC_COMBO_MIDI_IN,71,45,140,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    LTEXT           "Dispositivo entrata MIDI:",IDT_1713,7,47,59,10
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_MIDI_IN,214,45,46,12
+
+    CONTROL         "MPU-401 autonomo",IDC_CHECK_MPU401,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,66,199,10
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_MPU401,214,64,46,12
+
+    CONTROL         "Innovation SSI-2001",IDC_CHECK_SSI,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,84,95,10
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_SSI,214,82,46,12
+
+    CONTROL         "CMS / Game Blaster",IDC_CHECK_CMS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,102,95,10
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_CMS,214,100,46,12
+
+    CONTROL         "Gravis Ultrasound",IDC_CHECK_GUS,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,120,94,10
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_GUS,214,118,46,12
+    
+    CONTROL         "Usare suono FLOAT32",IDC_CHECK_FLOAT,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,138,94,10
+END
+
+DLG_CFG_NETWORK DIALOG DISCARDABLE  107, 0, 267, 65
+STYLE DS_CONTROL | WS_CHILD
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT           "Tipo di Rete:",IDT_1714,7,9,59,10
+    COMBOBOX        IDC_COMBO_NET_TYPE,71,7,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+
+    LTEXT           "Dispositivo PCap:",IDT_1715,7,28,59,10
+    COMBOBOX        IDC_COMBO_PCAP,71,26,189,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+
+    LTEXT           "Scheda di rete:",IDT_1716,7,47,59,10
+    COMBOBOX        IDC_COMBO_NET,71,45,140,120,CBS_DROPDOWNLIST | WS_VSCROLL | 
+                    WS_TABSTOP
+    PUSHBUTTON      "Configure",IDC_CONFIGURE_NET,214,44,46,12
+END
+
+DLG_CFG_PORTS DIALOG DISCARDABLE  107, 0, 267, 135
+STYLE DS_CONTROL | WS_CHILD
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT           "Dispositivo LPT1:",IDT_1717,7,9,61,10
+    COMBOBOX        IDC_COMBO_LPT1,71,7,189,120,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+
+    LTEXT           "Dispositivo LPT2:",IDT_1718,7,28,61,10
+    COMBOBOX        IDC_COMBO_LPT2,71,26,189,120,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+
+    LTEXT           "Dispositivo LPT3:",IDT_1719,7,47,61,10
+    COMBOBOX        IDC_COMBO_LPT3,71,45,189,120,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+
+    CONTROL         "Porta seriale 1",IDC_CHECK_SERIAL1,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,64,94,10
+    CONTROL         "Porta seriale 2",IDC_CHECK_SERIAL2,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,147,64,94,10
+    CONTROL         "Porta seriale 3",IDC_CHECK_SERIAL3,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,82,94,10
+    CONTROL         "Porta seriale 4",IDC_CHECK_SERIAL4,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,147,82,94,10
+
+    CONTROL         "Porta parallela 1",IDC_CHECK_PARALLEL1,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,100,94,10
+    CONTROL         "Porta parallela 2",IDC_CHECK_PARALLEL2,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,147,100,94,10
+    CONTROL         "Porta parallela 3",IDC_CHECK_PARALLEL3,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,118,94,10
+END
+
+DLG_CFG_STORAGE DIALOG DISCARDABLE  107, 0, 267, 203
+STYLE DS_CONTROL | WS_CHILD
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT           "Controllore HDD:",IDT_1718,7,9,64,10
+    COMBOBOX        IDC_COMBO_HDC,64,7,155,120,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_HDC,222,7,38,12
+
+    LTEXT           "Controllore FD:",IDT_1768,7,28,64,10
+    COMBOBOX        IDC_COMBO_FDC,64,26,155,120,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_FDC,222,26,38,12
+
+    CONTROL         "Controllore IDE terziario",IDC_CHECK_IDE_TER,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,47,199,10
+    PUSHBUTTON      "Configura",IDC_BUTTON_IDE_TER,222,45,38,12
+
+    CONTROL         "Controllore IDE quaternario",IDC_CHECK_IDE_QUA,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,66,199,10
+    PUSHBUTTON      "Configura",IDC_BUTTON_IDE_QUA,222,64,38,12
+
+    GROUPBOX        "SCSI",IDC_GROUP_SCSI,7,85,253,93
+    LTEXT           "Controllore 1:",IDT_1763,16,102,48,10
+    COMBOBOX        IDC_COMBO_SCSI_1,73,100,137,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_SCSI_1,213,100,38,12
+    LTEXT           "Controllore 2:",IDT_1764,16,121,48,10
+    COMBOBOX        IDC_COMBO_SCSI_2,73,119,137,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_SCSI_2,213,119,38,12
+    LTEXT           "Controllore 3:",IDT_1765,16,140,48,10
+    COMBOBOX        IDC_COMBO_SCSI_3,73,138,137,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_SCSI_3,213,138,38,12
+    LTEXT           "Controllore 4:",IDT_1766,16,159,48,10
+    COMBOBOX        IDC_COMBO_SCSI_4,73,157,137,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_SCSI_4,213,157,38,12
+
+    CONTROL         "Cassetta",IDC_CHECK_CASSETTE,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,185,94,10
+END
+
+DLG_CFG_HARD_DISKS DIALOG DISCARDABLE  107, 0, 267, 154
+STYLE DS_CONTROL | WS_CHILD
+FONT 9, "Segoe UI"
+BEGIN
+    CONTROL         "List1",IDC_LIST_HARD_DISKS,"SysListView32",LVS_REPORT | 
+                    LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
+                    WS_TABSTOP,7,18,253,92
+    LTEXT           "Disco rigido:",IDT_1720,7,7,253,8
+    PUSHBUTTON      "&Nuovo...",IDC_BUTTON_HDD_ADD_NEW,60,137,62,10
+    PUSHBUTTON      "&Esistente...",IDC_BUTTON_HDD_ADD,129,137,62,10
+    PUSHBUTTON      "&Rimuovi",IDC_BUTTON_HDD_REMOVE,198,137,62,10
+    COMBOBOX        IDC_COMBO_HD_BUS,33,117,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Bus:",IDT_1721,7,119,24,8
+    COMBOBOX        IDC_COMBO_HD_CHANNEL,170,117,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Canale:",IDT_1722,131,119,38,8
+    COMBOBOX        IDC_COMBO_HD_ID,170,117,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "ID:",IDT_1723,131,119,38,8
+    COMBOBOX        IDC_COMBO_HD_CHANNEL_IDE,170,117,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+END
+
+DLG_CFG_HARD_DISKS_ADD DIALOG DISCARDABLE  0, 0, 219, 149
+STYLE DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Aggiungi disco rigido"
+FONT 9, "Segoe UI"
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,55,127,50,14
+    PUSHBUTTON      "Cancella",IDCANCEL,112,127,50,14
+    EDITTEXT        IDC_EDIT_HD_FILE_NAME,7,16,153,12
+    PUSHBUTTON      "&Specifica...",IDC_CFILE,167,16,44,12
+    EDITTEXT        IDC_EDIT_HD_SPT,183,34,28,12
+    EDITTEXT        IDC_EDIT_HD_HPC,112,34,28,12
+    EDITTEXT        IDC_EDIT_HD_CYL,42,34,28,12
+    EDITTEXT        IDC_EDIT_HD_SIZE,42,52,28,12
+    COMBOBOX        IDC_COMBO_HD_TYPE,113,52,98,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Settori:",IDT_1726,154,35,27,10
+    LTEXT           "Teste:",IDT_1727,81,35,29,8
+    LTEXT           "Cilindri:",IDT_1728,7,35,32,12
+    LTEXT           "Dimensioni (MB):",IDT_1729,7,54,33,8
+    LTEXT           "Tipo:",IDT_1730,86,54,24,8
+    LTEXT           "Nome file:",IDT_1731,7,7,204,9
+    COMBOBOX        IDC_COMBO_HD_BUS,33,71,58,12,CBS_DROPDOWNLIST |
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Bus:",IDT_1721,7,73,24,8
+    COMBOBOX        IDC_COMBO_HD_CHANNEL,134,71,77,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Canale:",IDT_1722,99,73,34,8
+    COMBOBOX        IDC_COMBO_HD_ID,134,71,77,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "ID:",IDT_1723,99,73,34,8
+    COMBOBOX        IDC_COMBO_HD_CHANNEL_IDE,134,71,77,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Formato Immag.:",IDT_1774,7,92,50,12
+    COMBOBOX        IDC_COMBO_HD_IMG_FORMAT,58,90,153,12,CBS_DROPDOWNLIST |
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Dimensioni blocchi:",IDT_1775,7,111,50,12
+    COMBOBOX        IDC_COMBO_HD_BLOCK_SIZE,58,109,153,12,CBS_DROPDOWNLIST |
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Progresso:",IDT_1752,7,7,204,9
+    CONTROL         "IMGCreateProgress",IDC_PBAR_IMG_CREATE,"msctls_progress32",PBS_SMOOTH | 
+                    WS_BORDER,7,16,204,12
+END
+
+DLG_CFG_FLOPPY_AND_CDROM_DRIVES DIALOG DISCARDABLE  107, 0, 267, 222
+STYLE DS_CONTROL | WS_CHILD
+FONT 9, "Segoe UI"
+BEGIN
+    CONTROL         "List1",IDC_LIST_FLOPPY_DRIVES,"SysListView32",
+                    LVS_REPORT | LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
+                    WS_TABSTOP,7,18,253,60
+    LTEXT           "Unità floppy:",IDT_1737,7,7,253,8
+    COMBOBOX        IDC_COMBO_FD_TYPE,33,85,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Tipo:",IDT_1738,7,87,24,8
+    CONTROL         "Turbo",IDC_CHECKTURBO,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,131,86,64,10
+    CONTROL         "Verifica BPB",IDC_CHECKBPB,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,196,86,64,10
+
+    CONTROL         "List1",IDC_LIST_CDROM_DRIVES,"SysListView32",LVS_REPORT | 
+                    LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
+                    WS_TABSTOP,7,117,253,60
+    LTEXT           "Unità CD-ROM:",IDT_1739,7,107,253,8
+    COMBOBOX        IDC_COMBO_CD_BUS,33,185,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Bus:",IDT_1740,7,187,24,8
+    COMBOBOX        IDC_COMBO_CD_ID,170,185,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "ID:",IDT_1741,131,187,38,8
+    COMBOBOX        IDC_COMBO_CD_CHANNEL_IDE,170,185,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Canale:",IDT_1742,131,187,38,8
+    COMBOBOX        IDC_COMBO_CD_SPEED,33,205,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Velocità:",IDT_1758,7,207,24,8
+END
+
+DLG_CFG_OTHER_REMOVABLE_DEVICES DIALOG DISCARDABLE  107, 0, 267, 222
+STYLE DS_CONTROL | WS_CHILD
+FONT 9, "Segoe UI"
+BEGIN
+
+    CONTROL         "List1",IDC_LIST_MO_DRIVES,"SysListView32",LVS_REPORT | 
+                    LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
+                    WS_TABSTOP,7,17,253,60
+    LTEXT           "Unità MO:",IDT_1769,7,7,253,8
+    COMBOBOX        IDC_COMBO_MO_BUS,33,85,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Bus:",IDT_1770,7,87,24,8
+    COMBOBOX        IDC_COMBO_MO_ID,170,85,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "ID:",IDT_1771,131,87,38,8
+    COMBOBOX        IDC_COMBO_MO_CHANNEL_IDE,170,85,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Canale:",IDT_1772,131,87,38,8
+    COMBOBOX        IDC_COMBO_MO_TYPE,33,105,120,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Tipo:",IDT_1773,7,107,24,8
+
+    CONTROL         "List1",IDC_LIST_ZIP_DRIVES,"SysListView32",LVS_REPORT | 
+                    LVS_SHOWSELALWAYS | LVS_SINGLESEL | WS_BORDER | 
+                    WS_TABSTOP,7,137,253,60
+    LTEXT           "Unità ZIP:",IDT_1759,7,127,253,8
+    COMBOBOX        IDC_COMBO_ZIP_BUS,23,205,90,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Bus:",IDT_1753,7,207,14,8
+    COMBOBOX        IDC_COMBO_ZIP_ID,149,205,61,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "ID:",IDT_1754,120,207,28,8
+    COMBOBOX        IDC_COMBO_ZIP_CHANNEL_IDE,149,205,61,12,CBS_DROPDOWNLIST | 
+                    WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Canale:",IDT_1755,120,207,28,8
+    CONTROL         "ZIP 250",IDC_CHECK250,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,218,205,44,10
+END
+
+DLG_CFG_PERIPHERALS DIALOG DISCARDABLE  107, 0, 267, 154
+STYLE DS_CONTROL | WS_CHILD
+FONT 9, "Segoe UI"
+BEGIN
+    LTEXT           "ISA RTC:",IDT_1767,7,9,48,10
+    COMBOBOX        IDC_COMBO_ISARTC,64,7,155,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_ISARTC,222,7,38,12
+
+    GROUPBOX        "Espansione memoria ISA",IDC_GROUP_ISAMEM,7,28,253,93
+    LTEXT           "Scheda 1:",IDT_1763,16,45,48,10
+    COMBOBOX        IDC_COMBO_ISAMEM_1,73,43,137,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_ISAMEM_1,213,43,38,12
+    LTEXT           "Scheda 2:",IDT_1764,16,64,48,10
+    COMBOBOX        IDC_COMBO_ISAMEM_2,73,62,137,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_ISAMEM_2,213,62,38,12
+    LTEXT           "Scheda 3:",IDT_1765,16,83,48,10
+    COMBOBOX        IDC_COMBO_ISAMEM_3,73,81,137,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_ISAMEM_3,213,81,38,12
+    LTEXT           "Scheda 4:",IDT_1766,16,102,48,10
+    COMBOBOX        IDC_COMBO_ISAMEM_4,73,100,137,120,
+                    CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Configura",IDC_CONFIGURE_ISAMEM_4,213,100,38,12
+
+    CONTROL         "Dispositivo ISABugger",IDC_CHECK_BUGGER,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,7,128,94,10
+
+    CONTROL         "Scheda POST",IDC_CHECK_POSTCARD,"Button",
+                    BS_AUTOCHECKBOX | WS_TABSTOP,147,128,94,10
+END
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    2048	"86Box"
+    IDS_2049	"Errore"
+    IDS_2050	"Errore fatale"
+    IDS_2051	"<reserved>"
+    IDS_2052	"Usa CTRL+ALT+PAGE DOWN per tornare alla modalità finestra."
+    IDS_2053	"Velocità"
+    IDS_2054	"ZIP %03i %i (%s): %ls"
+    IDS_2055	"Immagini ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
+    IDS_2056	"86Box non può trovare immagini ROM utilizzabili.\n\nPlease <a href=""https://github.com/86Box/roms/releases/latest"">download</a> a ROM set and extract it into the ""roms"" directory."
+    IDS_2057	"(empty)"
+    IDS_2058	"Immagini ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Tutti i file (*.*)\0*.*\0"
+    IDS_2059	"Turbo"
+    IDS_2060	"Acceso"
+    IDS_2061	"Spento"
+    IDS_2062	"Tutte le immagini (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Immagini di settori base (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Immagini di superfice (*.86F)\0*.86F\0"
+    IDS_2063	"La macchina ""%hs"" non è disponibile a causa di immagini ROM mancanti nel percorso roms/machines. Cambiando ad una macchina disponibile."
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_2064	"La scheda video ""%hs"" non è disponibile a causa di immagini ROM mancanti nel percorso roms/video. Cambiando ad una scheda video disponibile."
+    IDS_2065	"Macchina"
+    IDS_2066	"Schermo"
+    IDS_2067	"Dispositivi di input"
+    IDS_2068	"Audio"
+    IDS_2069	"Rete"
+    IDS_2070	"Porte (COM & LPT)"
+    IDS_2071	"Controllori di memor."
+    IDS_2072	"Dischi rigidi"
+    IDS_2073	"Unitaà CD-ROM e Floppy"
+    IDS_2074	"Altri dispositivi rimuov."
+    IDS_2075	"Altre periferiche"
+    IDS_2076	"Immagini di superfice (*.86F)\0*.86F\0"
+    IDS_2077	"Clicca per catturare mouse"
+    IDS_2078	"Premi F8+F12 per liberare il mouse"
+    IDS_2079	"Premi F8+F12 o pulsante centrale per liberare il mouse"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_2080	"Impossibile inizializzare FluidSynth"
+    IDS_2081	"Bus"
+    IDS_2082	"File"
+    IDS_2083	"C"
+    IDS_2084	"H"
+    IDS_2085	"S"
+    IDS_2086	"MB"
+    IDS_2087	"Verifica BPB"
+    IDS_2088	"KB"
+    IDS_2089	"Impossibile inizializzare il renderer video."
+    IDS_2090	"Predefinito"
+    IDS_2091	"%i Stati d'attesa"
+    IDS_2092	"Tipo"
+    IDS_2093	"Impossibile impostare PCap"
+    IDS_2094	"Nessun dispositivo PCap trovato"
+    IDS_2095	"Dispositivo PCap invalido"
+    IDS_2096	"Joystick comune da 2 pulsanti"
+    IDS_2097	"Joystick comune da 4 pulsanti"
+    IDS_2098	"Joystick comune da 6 pulsanti"
+    IDS_2099	"Joystick comune da 8 pulsanti"
+    IDS_2100	"CH Flightstick Pro"
+    IDS_2101	"Microsoft SideWinder Pad"
+    IDS_2102	"Thrustmaster Flight Control System"
+    IDS_2103	"Niente"
+    IDS_2104	"Impossibile caricare gli acceleratori da tastiera."
+    IDS_2105	"Impossibile registrare input raw."
+    IDS_2106	"%u"
+    IDS_2107	"%u MB (CHS: %i, %i, %i)"
+    IDS_2108	"Floppy %i (%s): %ls"
+    IDS_2109	"Tutte le immagini (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Immagini da settori avanzati (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Imagini da settori basilari (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Immagini flusso (*.FDI)\0*.FDI\0Immagini da superfice (*.86F;*.MFM)\0*.86F;*.MFM\0Tutti i file (*.*)\0*.*\0"
+    IDS_2110	"Impossibile inizializzare FreeType"
+    IDS_2111	"Impossibile inizializzare SDL, SDL2.dll è necessario"
+    IDS_2112	"Sei sicuro di voler riavviare la macchina emulata?"
+    IDS_2113	"Sei sicuro di voler uscire da 86Box?"
+    IDS_2114	"Impossibile inizializzare Ghostscript"
+    IDS_2115	"MO %i (%ls): %ls"
+    IDS_2116	"Immagini MO (*.IM?;*.MDI)\0*.IM?;*.MDI\0Tutti i file (*.*)\0*.*\0"
+    IDS_2117	"Benvenuti in 86Box!"
+    IDS_2118	"Controllore interno"
+    IDS_2119	"Esci"
+    IDS_2120	"Nessune immagini ROM trovate"
+    IDS_2121	"Vuoi salvare queste impostazioni?"
+    IDS_2122	"Questo riavviera la macchina emulata."
+    IDS_2123	"Salva"
+    IDS_2124	"Informazioni su 86Box"
+    IDS_2125	"86Box v" EMU_VERSION
+
+    IDS_2126	"Un emulatore di computer vecchi\n\nAutori: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nTradotto da: explorerdotexe\n\nRilasciato sotto la Licenza Pubblica GNU versione 2 o dopo. Vedi LICENSE per maggior informazioni."
+    IDS_2127	"OK"
+    IDS_2128	"Hardware non disponibile"
+#ifdef _WIN32
+#define LIB_NAME_PCAP "WinPcap"
+#else
+#define LIB_NAME_PCAP "libpcap"
+#endif
+    IDS_2129	"Controlla se " LIB_NAME_PCAP " è installato e che tu sia connesso ad una connessione " LIB_NAME_PCAP " compatibile."
+    IDS_2130	"Configurazione invalida"
+#ifdef _WIN32
+#define LIB_NAME_FREETYPE "freetype.dll"
+#else
+#define LIB_NAME_FREETYPE "libfreetype"
+#endif
+    IDS_2131	LIB_NAME_FREETYPE " è richesto per l'emuazione di stampanti ESC/P."
+#ifdef _WIN32
+#define LIB_NAME_GS "gsdll32.dll"
+#else
+#define LIB_NAME_GS "libgs"
+#endif
+    IDS_2132	LIB_NAME_GS " è richiesto per la conversione automatica di file PostScript a file PDF.\n\nQualsiasi documento mandato alla stampante generica PostScript sarà salvato come file PostScript. (.ps)"
+#ifdef _WIN32
+#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
+#else
+#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
+#endif
+    IDS_2133	LIB_NAME_FLUIDSYNTH " è richiesto per l'output FluidSynth MIDI."
+    IDS_2134	"Entrando modalità schermo intero"
+    IDS_2135	"Non mostrare più questo messaggio"
+    IDS_2136	"Non uscire"
+    IDS_2137	"Riavvia"
+    IDS_2138	"Non riavviare"
+    IDS_2139	"Immagini MO (*.IM?;*.MDI)\0*.IM?;*.MDI\0Tutti i file (*.*)\0*.*\0"
+    IDS_2140	"Immagini CD-ROM (*.ISO;*.CUE)\0*.ISO;*.CUE\0Tutti i file (*.*)\0*.*\0"
+    IDS_2141	"Configurazione del dispositivo %hs"
+    IDS_2142    "Monitor in modalità riposo"
+    IDS_2143	"Shader OpenGL (*.GLSL)\0*.GLSL\0Tutti i file (*.*)\0*.*\0"
+    IDS_2144	"Impostazioni OpenGL"
+    IDS_2145	"Stai caricando una configurazione non supportata"
+    IDS_2146	"Il filtraggio della tipologia di CPU è disabilitato per la macchina selezionata.\n\nQuesto lo rende possibile scegliere un CPU che è altrimenti incompatibile con la macchina selezionata. Tuttavia, portresti incorrere in incompatibilità con il BIOS della macchina o altri programmi. \n\nL'abilitare di questa impostazione non è ufficialmente supportato e tutte le segnalazioni di errori saranno considerate invalide."
+    IDS_2147	"Continua"
+    IDS_2148	"Cassetta: %s"
+    IDS_2149	"Immagini cassetta (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Tutti i file (*.*)\0*.*\0"
+    IDS_2150	"Cartuccia %i: %ls"
+    IDS_2151	"Immagini cartuccia (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Tutti i file (*.*)\0*.*\0"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_4096    "Disco rigido (%s)"
+    IDS_4097	"%01i:%01i"
+    IDS_4098	"%01i"
+    IDS_4099	"Le unità CD-ROM per MFM/RLL o ESDI non sono mai esistite."
+    IDS_4100	"Personalizzata..."
+    IDS_4101	"Personalizzata (grande)..."
+    IDS_4102	"Aggiungi un nuovo disco rigido"
+    IDS_4103	"Aggiungi un disco rigido esistente"
+    IDS_4104	"Le immagini HDI non possono essere più grandi di 4 GB."
+    IDS_4105	"Le immmagini disco non possono essere più grandi di 127 GB."
+    IDS_4106	"Immagini disco rigido (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0Tutti i file (*.*)\0*.*\0"
+    IDS_4107	"Impossibile leggere il file"
+    IDS_4108	"Impossibile scrivere al file"
+    IDS_4109	"Le immagini HDI o HDX con settori di dimensioni diverse da 512 non sono supportati."
+    IDS_4110	"USB non è ancora supportato"
+    IDS_4111	"Immagine disco già esiste"
+    IDS_4112	"Specifica un nome file valido."
+    IDS_4113	"Immagine disco creata"
+    IDS_4114	"Controlla che il file esiste e che sia leggibile."
+    IDS_4115	"Controlla che il file viene salvato ad un percorso con diritti di scrittura"
+    IDS_4116	"Immagine disco troppo grande"
+    IDS_4117	"Ricordati di partizionare e formattare il disco appena creato."
+    IDS_4118	"Il file selezionato sarà sovrascritto, sei sicuro di volerlo usare?"
+    IDS_4119	"Immagine disco non supportata"
+    IDS_4120	"Sovrascrivi"
+    IDS_4121	"Non sovrascrivere"
+    IDS_4122	"Immagine raw (.img)"
+    IDS_4123	"Immagine HDI (.hdi)"
+    IDS_4124	"Immagine HDX (.hdx)"
+    IDS_4125	"VHD di dimensioni fisse (.vhd)"
+    IDS_4126	"VHD di dimensioni dinamiche (.vhd)"
+    IDS_4127	"VHD di differenziazione (.vhd)"
+    IDS_4128	"Blocchi larghi (2 MB)"
+    IDS_4129	"Blocchi piccoli (512 KB)"
+    IDS_4130	"File VHD (*.VHD)\0*.VHD\0Tutti i file (*.*)\0*.*\0"
+    IDS_4131	"Seleziona il VHD padre."
+    IDS_4132	"Questo potrebbe significare che l'immagine padre sia stata modificata dopo la creazione dell'immagine  di differenziazione.\n\nPuò anche succedere se i file immagini sono stati spostati o copiati, o da un errore nel programma che ha creato questo disco.\n\nVuoi aggiustare le marcature di tempo?"
+    IDS_4133	"Le marcature di tempo padre e figlio non corrispondono"
+    IDS_4134	"Impossibile aggiustare marcature di tempo VHD."
+    IDS_4135	"%01i:%02i"
+
+    IDS_4352    "MFM/RLL"
+    IDS_4353    "XTA"
+    IDS_4354    "ESDI"
+    IDS_4355    "IDE"
+    IDS_4356    "ATAPI"
+    IDS_4357    "SCSI"
+
+    IDS_4608	"MFM/RLL (%01i:%01i)"
+    IDS_4609	"XTA (%01i:%01i)"
+    IDS_4610	"ESDI (%01i:%01i)"
+    IDS_4611	"IDE (%01i:%01i)"
+    IDS_4612	"ATAPI (%01i:%01i)"
+    IDS_4613	"SCSI (%01i:%02i)"
+
+    IDS_5120	"CD-ROM %i (%s): %s"
+
+    IDS_5376	"Disabilitato"
+    IDS_5381	"ATAPI"
+    IDS_5382    "SCSI"
+
+    IDS_5632	"Disabilitato"
+    IDS_5637	"ATAPI (%01i:%01i)"
+    IDS_5638    "SCSI (%01i:%02i)"
+
+    IDS_5888	"160 kB"
+    IDS_5889	"180 kB"
+    IDS_5890	"320 kB"
+    IDS_5891	"360 kB"
+    IDS_5892	"640 kB"
+    IDS_5893	"720 kB"
+    IDS_5894	"1.2 MB"
+    IDS_5895	"1.25 MB"
+    IDS_5896	"1.44 MB"
+    IDS_5897	"DMF (cluster 1024)"
+    IDS_5898	"DMF (cluster 2048)"
+    IDS_5899	"2.88 MB"
+    IDS_5900	"ZIP 100"
+    IDS_5901	"ZIP 250"
+    IDS_5902	"3.5"" 128Mb M.O. (ISO 10090)"
+    IDS_5903	"3.5"" 230Mb M.O. (ISO 13963)"
+    IDS_5904	"3.5"" 540Mb M.O. (ISO 15498)"
+    IDS_5905	"3.5"" 640Mb M.O. (ISO 15498)"
+    IDS_5906	"3.5"" 1.3Gb M.O. (GigaMO)"
+    IDS_5907	"3.5"" 2.3Gb M.O. (GigaMO 2)"
+    IDS_5908	"5.25"" 600Mb M.O."
+    IDS_5909	"5.25"" 650Mb M.O."
+    IDS_5910	"5.25"" 1Gb M.O."
+    IDS_5911	"5.25"" 1.3Gb M.O."
+
+    IDS_6144	"RPM Perfette"
+    IDS_6145	"RPM 1%% sotto perfezione"
+    IDS_6146	"RPM 1.5%% sotto perfezione"
+    IDS_6147	"RPM 2%% sotto perfezione"
+
+    IDS_7168	"(Predefinito del sistema)"
+END
+#define IDS_LANG_ENUS	IDS_7168
+
+// Italian (IT-it) resources
+/////////////////////////////////////////////////////////////////////////////
