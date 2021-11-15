@@ -143,6 +143,7 @@ pipeline {
 						discordSend webhookURL: DISCORD_WEBHOOK_URL,
 							    title: "${env.JOB_BASE_NAME} #${env.BUILD_NUMBER}",
 							    link: env.BUILD_URL,
+							    result: currentBuild.currentResult,
 							    description: "**Status:** ${result}\n\u2060", /* word joiner character forces a blank line */
 							    enableArtifactsList: false,
 							    showChangeset: true
