@@ -145,7 +145,7 @@ build() {
 				echo [-] Switching to MSYSTEM [$msys]
 				cd "$cwd"
 				CHERE_INVOKING=yes MSYSTEM="$msys" JOB_BASE_NAME="$JOB_BASE_NAME" BUILD_TYPE="$BUILD_TYPE" BUILD_NUMBER="$BUILD_NUMBER" GIT_COMMIT="$GIT_COMMIT" \
-					bash -lc 'exec "'$0'" -b "'$arch'" '$cmake_flags && job_status=0 # make sure the main script exits cleanly on any success
+					bash -lc 'exec "'$0'" -b "'$arch'" '"$cmake_flags" && job_status=0 # make sure the main script exits cleanly on any success
 				return $?
 			fi
 		else
@@ -354,7 +354,7 @@ EOF
 		:
 	else
 		# Create binary tarball.
-		make_tar ../$job_name-Linux-$arch$build_fn.tar
+		VERBOSE=1 make_tar ../$job_name-Linux-$arch$build_fn.tar
 		local status=$?
 	fi
 	cd ..
