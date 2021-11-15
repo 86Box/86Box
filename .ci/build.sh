@@ -211,7 +211,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 EOF
-		local cmake_flags_extra="$cmake_flags_extra -DCMAKE_TOOLCHAIN_FILE=toolchain.cmake"
+		local cmake_flags_extra="$cmake_flags_extra -D CMAKE_TOOLCHAIN_FILE=toolchain.cmake"
 
 		# Install or update dependencies.
 		echo [-] Installing dependencies through apt
@@ -223,8 +223,8 @@ EOF
 	# Clean workspace.
 	echo [-] Cleaning workspace
 	try_make clean > /dev/null
-	find . \( -name Makefile -o -name CMakeCache.txt -o -name CMakeFiles \) -exec rm -rf "{}" \; 2> /dev/null
 	rm -rf build
+	find . \( -name Makefile -o -name CMakeCache.txt -o -name CMakeFiles \) -exec rm -rf "{}" \; 2> /dev/null
 
 	# Determine available dynarec types for this architecture, and
 	# also specify ARCH right away to skip the arch_detect process.
