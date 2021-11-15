@@ -51,7 +51,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "&Especificar dimensões...",   IDM_VID_SPECIFY_DIM
         MENUITEM "&Forçar rácio de visualização 4:3",    IDM_VID_FORCE43
-        POPUP "&Factor de escala de janela"
+        POPUP "F&actor de escala de janela"
         BEGIN
             MENUITEM "&0.5x",                   IDM_VID_SCALE_1X
             MENUITEM "&1x",                     IDM_VID_SCALE_2X
@@ -65,7 +65,7 @@ BEGIN
         END
         MENUITEM "Escala Hi&DPI",                IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Ecrã cheio\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        MENUITEM "E&crã cheio\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
         POPUP "Modo &de estiramento em ecrã cheio"
         BEGIN
             MENUITEM "&Estiramento em ecrã cheio",  IDM_VID_FS_FULL
