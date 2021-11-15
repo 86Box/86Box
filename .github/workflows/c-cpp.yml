@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: MinGW64 Makefile
 
 on:
 
@@ -16,7 +16,7 @@ on:
 
 jobs:
   build:
-    name: ${{ matrix.environment.msystem }} makefile build (DEV_BUILD=${{ matrix.dev-build }}, NEW_DYNAREC=${{ matrix.new-dynarec }}, CLANG=${{ matrix.clang }})
+    name: ${{ matrix.environment.msystem }} Makefile build (DEV_BUILD=${{ matrix.dev-build }}, NEW_DYNAREC=${{ matrix.new-dynarec }})
 
     runs-on: windows-latest
 
@@ -25,20 +25,16 @@ jobs:
         shell: msys2 {0}
 
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         dev-build: ['y', 'n']
         new-dynarec: ['y', 'n']
-        clang: ['y', 'n']
         environment:
           - msystem: MINGW32
             prefix: mingw-w64-i686
             x64: n
           - msystem: MINGW64
             prefix: mingw-w64-x86_64
-            x64: y
-          - msystem: UCRT64
-            prefix: mingw-w64-ucrt-x86_64
             x64: y
 
     steps:
@@ -49,7 +45,6 @@ jobs:
         install: >-
           make
           ${{ matrix.environment.prefix }}-gcc
-          ${{ matrix.environment.prefix }}-clang
           ${{ matrix.environment.prefix }}-pkg-config
           ${{ matrix.environment.prefix }}-openal
           ${{ matrix.environment.prefix }}-freetype
@@ -60,7 +55,7 @@ jobs:
           ${{ matrix.environment.prefix }}-winpthreads
     - uses: actions/checkout@v2
     - name: make
-      run: make -fwin/makefile.mingw -j DEV_BUILD=${{ matrix.dev-build }} NEW_DYNAREC=${{ matrix.new-dynarec }} X64=${{ matrix.environment.x64 }} CLANG=${{ matrix.clang }} VNC=n
+      run: make -fwin/makefile.mingw -j DEV_BUILD=${{ matrix.dev-build }} NEW_DYNAREC=${{ matrix.new-dynarec }} X64=${{ matrix.environment.x64 }} VNC=n
       working-directory: ./src
     - uses: actions/upload-artifact@v2
       with:
