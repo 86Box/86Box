@@ -107,7 +107,7 @@ BEGIN
         MENUITEM "Omogući integraciju &Discord-a", IDM_DISCORD
 # endif
         MENUITEM SEPARATOR
-        MENUITEM "Napravite &snimku zaslona\Ctrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM "Napravite &snimku zaslona\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Pojačanje zvuka...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -487,7 +487,7 @@ BEGIN
     IDS_2124	"O 86Box"
     IDS_2125	"86Box verzija " EMU_VERSION
 
-    IDS_2126	"Emulator starih računala\n\nAutori: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, i drugi.\n\Preveo: dob205\n\nObjavljeno pod GNU Općom javnom licencom, verzija 2 ili kasnije. Vidi LICENSE za više informacije."
+    IDS_2126	"Emulator starih računala\n\nAutori: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, i drugi.\n\nPreveo: dob205\n\nObjavljeno pod GNU Općom javnom licencom, verzija 2 ili kasnije. Vidi LICENSE za više informacije."
     IDS_2127	"OK"
     IDS_2128	"Hardver nije dostupan"
 #ifdef _WIN32
