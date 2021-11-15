@@ -1,9 +1,10 @@
-#include <functional>
 #ifdef _WIN32
 #include <SDL2/SDL.h>
 #else
 #include <SDL.h>
 #endif
+#include <cstdio>
+#include <functional>
 #include <array>
 #include <vector>
 #include <iostream>
@@ -1578,8 +1579,81 @@ namespace ImGuiSettingsWindow {
 		}
 	}
 
-	void RenderHardDisksCategory() {
+	static void
+	normalize_hd_list()
+	{
+		hard_disk_t ihdd[HDD_NUM];
+		int i, j;
 
+		j = 0;
+		memset(ihdd, 0x00, HDD_NUM * sizeof(hard_disk_t));
+
+		for (i = 0; i < HDD_NUM; i++) {
+		if (temp_hdd[i].bus != HDD_BUS_DISABLED) {
+			memcpy(&(ihdd[j]), &(temp_hdd[i]), sizeof(hard_disk_t));
+			j++;
+		}
+		}
+
+		memcpy(temp_hdd, ihdd, HDD_NUM * sizeof(hard_disk_t));
+	}
+
+	void RenderHardDisksCategory() {
+		normalize_hd_list();
+		if (ImGui::BeginTable("hddtable", 6))
+		{
+			ImGui::TableSetupScrollFreeze(0, 1);
+			ImGui::TableSetupColumn("Bus");
+			ImGui::TableSetupColumn("File");
+			ImGui::TableSetupColumn("C");
+			ImGui::TableSetupColumn("H");
+			ImGui::TableSetupColumn("S");
+			ImGui::TableSetupColumn(".");
+			ImGui::TableHeadersRow();
+			for (int i = 0; i < HDD_NUM; i++)
+			{
+				static char hddname[512] = { 0 };
+				std::fill(hddname, &hddname[sizeof(hddname)], 0);
+				if (temp_hdd[i].bus <= HDD_BUS_DISABLED) continue;
+				ImGui::TableNextRow();
+				switch(temp_hdd[i].bus)
+				{
+					case HDD_BUS_IDE:
+						snprintf(hddname, sizeof(hddname), "IDE (%01i:%01i)", temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
+						break;
+					case HDD_BUS_ATAPI:
+						snprintf(hddname, sizeof(hddname), "ATAPI (%01i:%01i)", temp_hdd[i].ide_channel >> 1, temp_hdd[i].ide_channel & 1);
+						break;
+					case HDD_BUS_ESDI:
+						snprintf(hddname, sizeof(hddname), "ESDI (%01i:%01i)", temp_hdd[i].esdi_channel >> 1, temp_hdd[i].esdi_channel & 1);
+						break;
+					case HDD_BUS_MFM:
+						snprintf(hddname, sizeof(hddname), "MFM/RLL (%01i:%01i)", temp_hdd[i].mfm_channel >> 1, temp_hdd[i].mfm_channel & 1);
+						break;
+					case HDD_BUS_XTA:
+						snprintf(hddname, sizeof(hddname), "XTA (%01i:%01i)", temp_hdd[i].xta_channel >> 1, temp_hdd[i].xta_channel & 1);
+						break;
+					case HDD_BUS_SCSI:
+						snprintf(hddname, sizeof(hddname), "SCSI (%01i:%02i)", temp_hdd[i].scsi_id >> 4, temp_hdd[i].scsi_id & 15);
+						break;
+				}
+				ImGui::TableSetColumnIndex(0);
+				ImGui::TextUnformatted(hddname);
+				
+				ImGui::TableSetColumnIndex(1);
+				ImGui::TextUnformatted((!strnicmp(temp_hdd[i].fn, usr_path, strlen(usr_path))) ? temp_hdd[i].fn + strlen(usr_path) : temp_hdd[i].fn);
+
+				ImGui::TableSetColumnIndex(2);
+				ImGui::Text("%i", temp_hdd[i].tracks);
+				ImGui::TableSetColumnIndex(3);
+				ImGui::Text("%i", temp_hdd[i].hpc);
+				ImGui::TableSetColumnIndex(4);
+				ImGui::Text("%i", temp_hdd[i].spt);
+				ImGui::TableSetColumnIndex(5);
+				ImGui::Text("%i", (temp_hdd[i].tracks * temp_hdd[i].hpc * temp_hdd[i].spt) >> 11);
+			}
+			ImGui::EndTable();
+		}
 	}
 
 	void RenderFloppyCdromDrivesCategory() {
