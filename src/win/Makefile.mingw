@@ -72,9 +72,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef XL24
   XL24		:= y
  endif
- ifndef VECT486VL
-  VECT486VL	:= y
- endif
  ifndef OLIVETTI
   OLIVETTI	:= y
  endif
@@ -126,9 +123,6 @@ else
  endif
  ifndef XL24
   XL24		:= n
- endif
- ifndef VECT486VL
-  VECT486VL	:= n
  endif
  ifndef OLIVETTI
   OLIVETTI	:= n
