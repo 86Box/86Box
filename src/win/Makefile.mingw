@@ -42,9 +42,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef GUSMAX
   GUSMAX	:= y
  endif
- ifndef HEDAKA
-  HEDAKA	:= y
- endif
  ifndef LASERXT
   LASERXT	:= y
  endif
@@ -99,9 +96,6 @@ else
  endif
  ifndef GUSMAX
   GUSMAX	:= n
- endif
- ifndef HEDAKA
-  HEDAKA	:= n
  endif
  ifndef LASERXT
   LASERXT	:= n
@@ -483,10 +477,6 @@ endif
 
 ifeq ($(GUSMAX), y)
 OPTS		+= -DUSE_GUSMAX
-endif
-
-ifeq ($(HEDAKA), y)
-OPTS		+= -DUSE_HEDAKA
 endif
 
 ifeq ($(LASERXT), y)
