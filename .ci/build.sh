@@ -122,6 +122,7 @@ build() {
 	if [ -z "$job_name" ]
 	then
 		echo [!] Missing environment variables: received JOB_BASE_NAME=[$JOB_BASE_NAME] BUILD_TYPE=[$BUILD_TYPE] BUILD_NUMBER=[$BUILD_NUMBER] GIT_COMMIT=[$GIT_COMMIT]
+		job_status=1
 		return 1
 	fi
 
@@ -145,11 +146,12 @@ build() {
 				echo [-] Switching to MSYSTEM [$msys]
 				cd "$cwd"
 				CHERE_INVOKING=yes MSYSTEM="$msys" JOB_BASE_NAME="$JOB_BASE_NAME" BUILD_TYPE="$BUILD_TYPE" BUILD_NUMBER="$BUILD_NUMBER" GIT_COMMIT="$GIT_COMMIT" \
-					bash -lc 'exec "'$0'" -b "'$arch'" '"$cmake_flags" && job_status=0 # make sure the main script exits cleanly on any success
+					bash -lc 'exec "'$0'" -b "'$arch'" '"$cmake_flags"
 				return $?
 			fi
 		else
 			echo [!] No MSYSTEM for architecture [$arch]
+			job_status=1
 			return 2
 		fi
 		echo [-] Using MSYSTEM [$MSYSTEM]
@@ -253,6 +255,7 @@ EOF
 	if [ $? -gt 0 ]
 	then
 		echo [!] CMake failed with status [$status]
+		job_status=1
 		return 3
 	fi
 
@@ -263,6 +266,7 @@ EOF
 	if [ $status -gt 0 ]
 	then
 		echo [!] Make failed with status [$status]
+		job_status=1
 		return 4
 	fi
 
@@ -273,6 +277,7 @@ EOF
 	if [ ! -d "archive_tmp" ]
 	then
 		echo [!] Archive directory creation failed
+		job_status=1
 		return 5
 	fi
 
@@ -337,6 +342,7 @@ EOF
 	if [ $status -gt 0 ]
 	then
 		echo [!] Executable move failed with status [$status]
+		job_status=1
 		return 6
 	fi
 
@@ -363,12 +369,12 @@ EOF
 	if [ $status -gt 0 ]
 	then
 		echo [!] Artifact archive creation failed with status [$status]
+		job_status=1
 		return 7
 	fi
 
 	# All good.
 	echo [-] Build of [$job_name] [$build_type] [$build_qualifier] [$git_hash] for [$arch] with flags [$cmake_flags] successful
-	job_status=0
 }
 
 tarball() {
@@ -383,6 +389,7 @@ tarball() {
 	if [ -z "$job_name" ]
 	then
 		echo [!] Missing environment variable: received JOB_BASE_NAME=[$JOB_BASE_NAME]
+		job_status=1
 		return 1
 	fi
 
@@ -405,6 +412,7 @@ tarball() {
 	if [ $? -gt 0 ]
 	then
 		echo [!] Tarball creation failed with status [$status]
+		job_status=1
 		return 2
 	fi
 
@@ -415,7 +423,7 @@ tarball() {
 project=86Box
 cwd=$(pwd)
 first_build=1
-job_status=1
+job_status=0
 
 # Parse arguments.
 single_build=0

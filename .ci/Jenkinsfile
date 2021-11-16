@@ -48,7 +48,7 @@ def saveArtifacts() {
 	archiveArtifacts artifacts: "${env.JOB_BASE_NAME}-*"
 }
 
-def anySuccess = false
+def successCount = 0
 
 def buildChain = [
 	'86Box': '86Box-Dev',
@@ -75,32 +75,40 @@ pipeline {
 
 	stages {
 		stage('Build Windows') {
+			agent {
+				node {
+					label 'windows'
+				}
+			}
+
 			steps {
 				catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-					node('windows') {
-						gitClone()
-						windowsBuild()
-						saveArtifacts()
-					}
+					gitClone()
+					windowsBuild()
+					saveArtifacts()
 
 					script {
-						anySuccess = true
+						successCount += 1
 					}
 				}
 			}
 		}
 
 		stage('Build Linux') {
+			agent {
+				node {
+					label 'debian'
+				}
+			}
+
 			steps {
 				catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-					node('debian') {
-						gitClone()
-						unixBuild()
-						saveArtifacts()
-					}
+					gitClone()
+					unixBuild()
+					saveArtifacts()
 
 					script {
-						anySuccess = true
+						successCount += 1
 					}
 				}
 			}
@@ -110,11 +118,12 @@ pipeline {
 	post {
 		always {
 			script {
+				/* Trigger next job is applicable. */
 				if (buildChain[env.JOB_BASE_NAME]) {
 					def nextJob = buildChain[env.JOB_BASE_NAME]
 
+					/* Set next build number for the next job. */
 					try {
-						/* Set next build number for this job. */
 						def job = Jenkins.instance.getItem(nextJob)
 						job.nextBuildNumber = env.BUILD_NUMBER as Integer
 						job.saveNextBuildNumber()
@@ -122,7 +131,7 @@ pipeline {
 						println "[!] Could not set next build number for [$nextJob], make sure all required script approvals are in place"
 					}
 
-					/* Trigger this job. */
+					/* Trigger next job. */
 					build propagate: false,
 					      wait: false,
 					      job: nextJob,
@@ -132,8 +141,8 @@ pipeline {
 					      ]
 				}
 
-				if (!anySuccess) {
-					println "[!] Failing build because all build stages failed"
+				if (successCount < 2) {
+					println "[!] Failing build because a build stage failed"
 					currentBuild.result = 'FAILURE'
 				}
 
