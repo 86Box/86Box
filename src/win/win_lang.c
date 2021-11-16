@@ -122,7 +122,7 @@ progsett_fill_iconsets(HWND hdlg)
 				FILE *fp = _wfopen(temp, L"r");
 				if (fp)
 				{
-					char line[512];
+					char line[512] = {0};
 					if (fgets(line, 511, fp))
 					{
 						mbstowcs(dispname, line, strlen(line) + 1);
