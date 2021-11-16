@@ -285,6 +285,7 @@ END
 #define STR_GLOBAL		"Usar estas configurações como &padrões globais"
 #define STR_DEFAULT		"&Padrão"
 #define STR_LANGUAGE		"Idioma:"
+#define STR_ICONSET "Conjunto de ícones:"
 
 #define STR_GAIN		"Ganho"
 

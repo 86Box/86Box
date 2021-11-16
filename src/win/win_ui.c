@@ -1064,7 +1064,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_DESTROY:
-	    win_clear_icon_set();
+	    plat_clear_icon_set();
 		KillTimer(hwnd, TIMER_1SEC);
 		PostQuitMessage(0);
 		break;

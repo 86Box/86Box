@@ -715,6 +715,9 @@ usage:
 	if (lang_init)
 		set_language(lang_init);
 	
+	/* Load the desired iconset */
+	plat_load_icon_set();
+	
 	/* All good! */
 	return(1);
 }

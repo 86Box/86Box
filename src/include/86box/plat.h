@@ -125,6 +125,11 @@ extern void	plat_vid_reload_options(void);
 extern uint32_t plat_language_code(char* langcode);
 extern void plat_language_code_r(uint32_t lcid, char* outbuf, int len);
 
+extern void plat_clear_icon_set();
+extern void plat_system_icon_set();
+extern void plat_load_icon_set();
+extern void plat_get_icons_path(char* path_root);
+
 /* Resource management. */
 extern void	set_language(uint32_t id);
 extern wchar_t	*plat_get_string(int id);

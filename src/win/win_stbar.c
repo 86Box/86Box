@@ -877,7 +877,7 @@ StatusBarPopupMenu(HWND hwnd, POINT pt, int id)
 /* API: Load status bar icons */
 void
 StatusBarLoadIcon(HINSTANCE hInst) {
-	win_load_icon_set(hInst);
+	plat_load_icon_set(hInst);
 }
 
 /* Handle messages for the Status Bar window. */

@@ -287,6 +287,7 @@ END
 #define STR_GLOBAL		"Beállítások mentése &globális alapértékként"
 #define STR_DEFAULT		"&Alapértelmezett"
 #define STR_LANGUAGE		"Nyelv:"
+#define STR_ICONSET "Ikonkészlet:"
 
 #define STR_GAIN		"Hangerő"
 

@@ -284,6 +284,7 @@ END
 #define STR_GLOBAL		"Spremite ove postavke kao &globalne zadane postavke"
 #define STR_DEFAULT		"&Standard"
 #define STR_LANGUAGE		"Jezik:"
+#define STR_ICONSET "Skup ikona:"
 
 #define STR_GAIN		"Pojačavanje"
 

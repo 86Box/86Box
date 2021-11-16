@@ -28,9 +28,9 @@
 #include <86box/win.h>
  
 HICON hIcon[256];		    /* icon data loaded from resources */
-char  icon_set[256] = "winbox";  /* name of the iconset to be used */ 
+char  icon_set[256] = "";  /* name of the iconset to be used */ 
 
-void win_clear_icon_set()
+void plat_clear_icon_set()
 {
 	int i;
 	
@@ -42,12 +42,12 @@ void win_clear_icon_set()
 		}
 }
 
-void win_system_icon_set(HINSTANCE hInst)
+void plat_system_icon_set()
 {
 	int i, x = win_get_system_metrics(SM_CXSMICON, dpi), y = win_get_system_metrics(SM_CYSMICON, dpi);
 
 	for (i = 0; i < 256; i++)
-		hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, y, LR_DEFAULTCOLOR);
+		hIcon[i] = LoadImage(hinstance, MAKEINTRESOURCE(i), IMAGE_ICON, x, y, LR_DEFAULTCOLOR);
 }
 
 typedef struct
@@ -103,17 +103,8 @@ const _ICON_DATA icon_files[] =
 		{252, "storage_controllers.ico"}
 	};
 
-void win_load_icon_set(HINSTANCE hInst)
+void plat_get_icons_path(char* path_root)
 {
-	win_clear_icon_set();
-	win_system_icon_set(hInst);
-	
-	if (strlen(icon_set) == 0)
-		return;
-		
-	char path_root[2048] = {0}, temp[2048] = {0};
-	wchar_t wtemp[2048] = {0};
-	
 	char roms_root[1024] = {0};
 	if (rom_path[0])
 		strcpy(roms_root, rom_path);
@@ -122,6 +113,20 @@ void win_load_icon_set(HINSTANCE hInst)
 	
 	plat_append_filename(path_root, roms_root, "icons");
 	plat_path_slash(path_root);
+}
+
+void plat_load_icon_set()
+{
+	plat_clear_icon_set();
+	plat_system_icon_set();
+	
+	if (strlen(icon_set) == 0)
+		return;
+		
+	char path_root[2048] = {0}, temp[2048] = {0};
+	wchar_t wtemp[2048] = {0};
+	
+	plat_get_icons_path(path_root);
 	strcat(path_root, icon_set);
 	plat_path_slash(path_root);
 		

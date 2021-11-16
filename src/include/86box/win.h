@@ -149,10 +149,6 @@ extern int      win_get_system_metrics(int i, int dpi);
 
 extern LPARAM	win_get_string(int id);
 
-extern void win_clear_icon_set();
-extern void win_system_icon_set(HINSTANCE hInst);
-extern void win_load_icon_set(HINSTANCE hInst);
-
 extern intptr_t	fdd_type_to_icon(int type);
 
 #ifdef EMU_DEVICE_H
