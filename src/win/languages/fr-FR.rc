@@ -2,7 +2,7 @@
 // EnglishFrench (U.S.) resources
 
 #ifdef _WIN32
-LANGUAGE LANG_FRENCJ, SUBLANG_ENGLISH_US
+LANGUAGE LANG_FRENCH, SUBLANG_ENGLISH_US
 #pragma code_page(65001)
 #endif //_WIN32
 
@@ -27,19 +27,19 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "&Pause",                      IDM_ACTION_PAUSE
         MENUITEM SEPARATOR
-        MENUITEM "E&xit...",                       IDM_ACTION_EXIT
+        MENUITEM "&Quitter...",                       IDM_ACTION_EXIT
     END
-    POPUP "&View"
+    POPUP "&Vue"
     BEGIN
-        MENUITEM "&Hide status bar",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "&Masquer la barre de status",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM SEPARATOR
-        MENUITEM "&Resizeable window",          IDM_VID_RESIZE
-        MENUITEM "R&emember size && position",  IDM_VID_REMEMBER
+        MENUITEM "Fenètre &Retaillable",          IDM_VID_RESIZE
+        MENUITEM "S&auvegarder taille && position",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
         POPUP "Re&nderer"
         BEGIN
-            MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
-            MENUITEM "SDL (&Hardware)",         IDM_VID_SDL_HW
+            MENUITEM "&SDL (Logiciel)",         IDM_VID_SDL_SW
+            MENUITEM "SDL (&Materiel)",         IDM_VID_SDL_HW
             MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
 #if defined(DEV_BRANCH) && defined(USE_OPENGL)
             MENUITEM "Open&GL (3.3 Core)",      IDM_VID_OPENGL_CORE
@@ -50,23 +50,23 @@ BEGIN
         END
         MENUITEM SEPARATOR
         MENUITEM "Specify dimensions...",          IDM_VID_SPECIFY_DIM
-        MENUITEM "F&orce 4:3 display ratio",    IDM_VID_FORCE43
-        POPUP "&Window scale factor"
+        MENUITEM "F&orcer 4:3",    IDM_VID_FORCE43
+        POPUP "&Echelle factor"
         BEGIN
             MENUITEM "&0.5x",                   IDM_VID_SCALE_1X
             MENUITEM "&1x",                     IDM_VID_SCALE_2X
             MENUITEM "1.&5x",                   IDM_VID_SCALE_3X
             MENUITEM "&2x",                     IDM_VID_SCALE_4X
         END
-        POPUP "Filter method"
+        POPUP "Filtre method"
         BEGIN
-            MENUITEM "&Nearest",                 IDM_VID_FILTER_NEAREST
-            MENUITEM "&Linear",                  IDM_VID_FILTER_LINEAR
+            MENUITEM "&<plud proche",                 IDM_VID_FILTER_NEAREST
+            MENUITEM "&Lineaire",                  IDM_VID_FILTER_LINEAR
         END
         MENUITEM "Hi&DPI scaling",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Fullscreen\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
-        POPUP "Fullscreen &stretch mode"
+        MENUITEM "&Plein Ecran\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        POPUP "Mode &Elargi plein écran"
         BEGIN
             MENUITEM "&Full screen stretch",        IDM_VID_FS_FULL
             MENUITEM "&4:3",                        IDM_VID_FS_43
@@ -78,11 +78,11 @@ BEGIN
             MENUITEM "&Inverted VGA monitor",   IDM_VID_INVERT
             POPUP "VGA screen &type"
             BEGIN
-                MENUITEM "RGB &Color",          IDM_VID_GRAY_RGB
-                MENUITEM "&RGB Grayscale",      IDM_VID_GRAY_MONO
-                MENUITEM "&Amber monitor",      IDM_VID_GRAY_AMBER
-                MENUITEM "&Green monitor",      IDM_VID_GRAY_GREEN
-                MENUITEM "&White monitor",      IDM_VID_GRAY_WHITE
+                MENUITEM "RGB &Couleur",          IDM_VID_GRAY_RGB
+                MENUITEM "&RGB Ton de Gris",      IDM_VID_GRAY_MONO
+                MENUITEM "Moniteur &Ambre",      IDM_VID_GRAY_AMBER
+                MENUITEM "Moniteur &Vert",      IDM_VID_GRAY_GREEN
+                MENUITEM "Moniteur &Blanc",      IDM_VID_GRAY_WHITE
             END
             POPUP "Grayscale &conversion type"
             BEGIN
@@ -96,12 +96,12 @@ BEGIN
         MENUITEM "Change contrast for &monochrome display", IDM_VID_CGACON
     END
     MENUITEM "&Media",				IDM_MEDIA
-    POPUP "&Tools"
+    POPUP "Ou&tils"
     BEGIN
-        MENUITEM "&Settings...",                IDM_CONFIG
+        MENUITEM "&Réglages...",                IDM_CONFIG
         MENUITEM "&Update status bar icons",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Change dis&play language...",    IDM_VID_PROG_SETT
+        MENUITEM "Changer la &langue...",    IDM_VID_PROG_SETT
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Enable &Discord integration", IDM_DISCORD
@@ -169,9 +169,9 @@ CassetteSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&New image...",				IDM_CASSETTE_IMAGE_NEW
+        MENUITEM "&Nouvelle image...",				IDM_CASSETTE_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Existing image...",				IDM_CASSETTE_IMAGE_EXISTING
+        MENUITEM "Image &Existante...",				IDM_CASSETTE_IMAGE_EXISTING
         MENUITEM "Existing image (&Write-protected)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "&Record",					IDM_CASSETTE_RECORD
@@ -189,7 +189,7 @@ BEGIN
     BEGIN
         MENUITEM "&Image...",					IDM_CARTRIDGE_IMAGE
         MENUITEM SEPARATOR
-        MENUITEM "E&ject",					IDM_CARTRIDGE_EJECT
+        MENUITEM "E&jecter",					IDM_CARTRIDGE_EJECT
     END
 END
 
@@ -197,14 +197,14 @@ FloppySubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&New image...",				IDM_FLOPPY_IMAGE_NEW
+        MENUITEM "&Nouvelle image...",				IDM_FLOPPY_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Existing image...",				IDM_FLOPPY_IMAGE_EXISTING
+        MENUITEM "Image &Existante...",				IDM_FLOPPY_IMAGE_EXISTING
         MENUITEM "Existing image (&Write-protected)...",	IDM_FLOPPY_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "E&xport to 86F...",				IDM_FLOPPY_EXPORT_TO_86F
         MENUITEM SEPARATOR
-        MENUITEM "E&ject",					IDM_FLOPPY_EJECT
+        MENUITEM "E&jecter",					IDM_FLOPPY_EJECT
     END
 END
 

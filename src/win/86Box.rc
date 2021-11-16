@@ -368,3 +368,5 @@ END
 #include "languages/it-IT.rc"
 #include "languages/pt-BR.rc"
 #include "languages/pt-PT.rc"
+#include "languages/fr-FR.rc"
+
