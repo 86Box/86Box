@@ -1361,30 +1361,6 @@ machine_ps2_model_70_type3_init(const machine_t *model)
 }
 
 
-#if defined(DEV_BRANCH) && defined(USE_PS2M70T4)
-int
-machine_ps2_model_70_type4_init(const machine_t *model)
-{
-	int ret;
-
-	ret = bios_load_interleaved("roms/machines/ibmps2_m70_type4/70-b_even.bin",
-				    "roms/machines/ibmps2_m70_type4/70-b_odd.bin",
-				    0x000e0000, 131072, 0);
-
-	if (bios_only || !ret)
-		return ret;
-
-        machine_ps2_common_init(model);
-		
-		ps2.planar_id = 0xfcff;
-
-        ps2_mca_board_model_70_type34_init(1, 4);
-
-	return ret;
-}
-#endif
-
-
 int
 machine_ps2_model_80_init(const machine_t *model)
 {

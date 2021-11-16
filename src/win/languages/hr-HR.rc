@@ -15,7 +15,7 @@ LANGUAGE LANG_CROATIAN, SUBLANG_DEFAULT
 
 MainMenu MENU DISCARDABLE 
 BEGIN
-    POPUP "&Action"
+    POPUP "&Akcija"
     BEGIN
         MENUITEM "&Tipkovnica zahtijeva snimanje miša",	IDM_ACTION_KBD_REQ_CAPTURE
         MENUITEM "&Desni CTRL je lijevi ALT",	IDM_ACTION_RCTRL_IS_LALT
@@ -29,7 +29,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "&Izlaz...",                       IDM_ACTION_EXIT
     END
-    POPUP "&View"
+    POPUP "&Pogled"
     BEGIN
         MENUITEM "&Sakrij statusnu traku",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM SEPARATOR
@@ -95,7 +95,7 @@ BEGIN
         MENUITEM "CGA/PCjr/Tandy/E&GA/(S)VGA overscan",     IDM_VID_OVERSCAN
         MENUITEM "Promjena kontrasta za &monokromatski ekran", IDM_VID_CGACON
     END
-    MENUITEM "&Media",				IDM_MEDIA
+    MENUITEM "&Mediji",				IDM_MEDIA
     POPUP "&Alati"
     BEGIN
         MENUITEM "&Postavke...",                IDM_CONFIG
@@ -153,7 +153,7 @@ BEGIN
 # endif
     END
 #endif
-    POPUP "&Help"
+    POPUP "&Pomoć"
     BEGIN
         MENUITEM "&Dokumentacija...",           IDM_DOCS
         MENUITEM "&O 86Box...",             IDM_ABOUT
