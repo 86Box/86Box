@@ -169,7 +169,7 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *p)
     uint32_t add2addr = 0;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
-	addr ^= 0x60;
+		addr ^= 0x60;
 
     switch (addr) {
 	case 0x3c2:
@@ -311,7 +311,7 @@ et4000w32p_in(uint16_t addr, void *p)
     svga_t *svga = &et4000->svga;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(svga->miscout & 1)) 
-	addr ^= 0x60;
+		addr ^= 0x60;
 
     switch (addr) {
 	case 0x3c5:
@@ -335,13 +335,25 @@ et4000w32p_in(uint16_t addr, void *p)
 	case 0x3d5:
 		return svga->crtc[svga->crtcreg];
 
+	case 0x3da:
+		svga->attrff = 0;
+
+		/*Bit 1 of the Input Status Register is required by OS/2 ET4000W32/I drivers to be set otherwise
+		  the guest will loop infinitely upon reaching the GUI*/
+		if (svga->cgastat & 0x01)
+			svga->cgastat &= ~0x32;
+		else
+			svga->cgastat ^= 0x32;
+		return svga->cgastat;
+
 	case 0x210a: case 0x211a: case 0x212a: case 0x213a:
 	case 0x214a: case 0x215a: case 0x216a: case 0x217a:
 		return et4000->index;
-		case 0x210B: case 0x211B: case 0x212B: case 0x213B:
-		case 0x214B: case 0x215B: case 0x216B: case 0x217B:
-		if (et4000->index == 0xec)
+	case 0x210B: case 0x211B: case 0x212B: case 0x213B:
+	case 0x214B: case 0x215B: case 0x216B: case 0x217B:
+		if (et4000->index == 0xec) {
 			return (et4000->regs[0xec] & 0xf) | (et4000->rev << 4);
+		}
 		if (et4000->index == 0xee) {
 			if (svga->bpp == 8) {
 				if ((svga->gdcreg[5] & 0x60) >= 0x40)
@@ -385,7 +397,6 @@ et4000w32p_recalctimings(svga_t *svga)
 
     svga->clock = (cpuclock * (double)(1ull << 32)) / svga->getclock((svga->miscout >> 2) & 3, svga->clock_gen);
 
-#if 0
     if (svga->adv_flags & FLAG_NOSKEW) {
 		/* On the Cardex ET4000/W32p-based cards, adjust text mode clocks by 1. */
 		if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) {	/* Text mode */
@@ -402,10 +413,10 @@ et4000w32p_recalctimings(svga_t *svga)
 					svga->hdisp += (svga->seqregs[1] & 1) ? 16 : 18;
 				else
 					svga->hdisp += (svga->seqregs[1] & 1) ? 8 : 9;
-			}
+			} else if ((svga->gdcreg[5] & 0x40) == 0)
+				svga->hdisp += (svga->seqregs[1] & 1) ? 8 : 9;
 		}
     }
-#endif
 
 	if (et4000->type == ET4000W32) {
 		if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
@@ -452,10 +463,8 @@ et4000w32p_recalctimings(svga_t *svga)
 		else
 			svga->render = svga_render_text_80;
 	} else {
-#if 0
 		if (svga->adv_flags & FLAG_NOSKEW)
 			svga->ma_latch--;
-#endif
 
 		switch (svga->gdcreg[5] & 0x60) {
 			case 0x00: 
@@ -764,7 +773,7 @@ et4000w32p_mmu_read(uint32_t addr, void *p)
     svga_t *svga = &et4000->svga;
     int bank;
     uint8_t temp;
-
+	
     switch (addr & 0x6000) {
 	case 0x0000:	/* MMU 0 */
 	case 0x2000:	/* MMU 1 */
@@ -786,7 +795,7 @@ et4000w32p_mmu_read(uint32_t addr, void *p)
 
 		if ((addr&0x1fff) + et4000->mmu.base[bank] >= svga->vram_max)
 			return 0xff;
-
+		
 		return svga->vram[(addr&0x1fff) + et4000->mmu.base[bank]];
 
 	case 0x6000:
@@ -892,7 +901,10 @@ et4000w32_blit_start(et4000w32p_t *et4000)
     }
     et4000->acl.pattern_back = et4000->acl.pattern_addr;
     if (!(et4000->acl.internal.pattern_wrap & 0x40)) {
-	et4000->acl.pattern_y = (et4000->acl.pattern_addr / (et4000w32_wrap_x[et4000->acl.internal.pattern_wrap & 7] + 1)) & (et4000w32_wrap_y[(et4000->acl.internal.pattern_wrap >> 4) & 7] - 1);
+	if ((et4000w32_wrap_x[et4000->acl.internal.pattern_wrap & 7] + 1) == 0x00)
+		et4000->acl.pattern_y = (et4000->acl.pattern_addr / (0x7f + 1)) & (et4000w32_wrap_y[(et4000->acl.internal.pattern_wrap >> 4) & 7] - 1);
+	else
+		et4000->acl.pattern_y = (et4000->acl.pattern_addr / (et4000w32_wrap_x[et4000->acl.internal.pattern_wrap & 7] + 1)) & (et4000w32_wrap_y[(et4000->acl.internal.pattern_wrap >> 4) & 7] - 1);
 	et4000->acl.pattern_back &= ~(((et4000w32_wrap_x[et4000->acl.internal.pattern_wrap & 7] + 1) * et4000w32_wrap_y[(et4000->acl.internal.pattern_wrap >> 4) & 7]) - 1);
     }
     et4000->acl.pattern_x_back = et4000->acl.pattern_x;
@@ -905,7 +917,10 @@ et4000w32_blit_start(et4000w32p_t *et4000)
     et4000->acl.source_back = et4000->acl.source_addr;
 
     if (!(et4000->acl.internal.source_wrap & 0x40)) {
-	et4000->acl.source_y = (et4000->acl.source_addr / (et4000w32_wrap_x[et4000->acl.internal.source_wrap & 7] + 1)) & (et4000w32_wrap_y[(et4000->acl.internal.source_wrap >> 4) & 7] - 1);
+	if ((et4000w32_wrap_x[et4000->acl.internal.source_wrap & 7] + 1) == 0x00)
+		et4000->acl.source_y = (et4000->acl.source_addr / (0x7f + 1)) & (et4000w32_wrap_y[(et4000->acl.internal.source_wrap >> 4) & 7] - 1);
+	else
+		et4000->acl.source_y = (et4000->acl.source_addr / (et4000w32_wrap_x[et4000->acl.internal.source_wrap & 7] + 1)) & (et4000w32_wrap_y[(et4000->acl.internal.source_wrap >> 4) & 7] - 1);
 	et4000->acl.source_back &= ~(((et4000w32_wrap_x[et4000->acl.internal.source_wrap & 7] + 1) * et4000w32_wrap_y[(et4000->acl.internal.source_wrap >> 4) & 7]) - 1);
     }
     et4000->acl.source_x_back = et4000->acl.source_x;
@@ -1658,7 +1673,7 @@ static const device_config_t et4000w32p_config[] =
 
 const device_t et4000w32_device =
 {
-        "Tseng Labs ET4000/w32",
+        "Tseng Labs ET4000/w32 ISA",
         DEVICE_ISA | DEVICE_AT, ET4000W32,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32_available },
@@ -1669,7 +1684,7 @@ const device_t et4000w32_device =
 
 const device_t et4000w32_onboard_device =
 {
-        "Tseng Labs ET4000/w32 (On-board)",
+        "Tseng Labs ET4000/w32 (ISA) (On-Board)",
         DEVICE_ISA | DEVICE_AT, ET4000W32,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32_available },
@@ -1680,7 +1695,7 @@ const device_t et4000w32_onboard_device =
 
 const device_t et4000w32i_isa_device =
 {
-        "Tseng Labs ET4000/w32i ISA",
+        "Tseng Labs ET4000/w32i Rev. B ISA",
         DEVICE_ISA | DEVICE_AT, ET4000W32I,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32i_isa_available },
@@ -1691,7 +1706,7 @@ const device_t et4000w32i_isa_device =
 
 const device_t et4000w32i_vlb_device =
 {
-        "Tseng Labs ET4000/w32i VLB",
+        "Tseng Labs ET4000/w32i Rev. B VLB",
         DEVICE_VLB, ET4000W32I,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32i_vlb_available },
@@ -1724,7 +1739,7 @@ const device_t et4000w32p_revc_pci_device =
 
 const device_t et4000w32p_noncardex_vlb_device =
 {
-        "Tseng Labs ET4000/w32p VLB",
+        "Tseng Labs ET4000/w32p Rev. D VLB",
         DEVICE_VLB, ET4000W32P,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_noncardex_available },
@@ -1735,7 +1750,7 @@ const device_t et4000w32p_noncardex_vlb_device =
 
 const device_t et4000w32p_noncardex_pci_device =
 {
-        "Tseng Labs ET4000/w32p PCI",
+        "Tseng Labs ET4000/w32p Rev. D PCI",
         DEVICE_PCI, ET4000W32P,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_noncardex_available },
@@ -1746,7 +1761,7 @@ const device_t et4000w32p_noncardex_pci_device =
 
 const device_t et4000w32p_cardex_vlb_device =
 {
-        "Tseng Labs ET4000/w32p VLB (Cardex)",
+        "Tseng Labs ET4000/w32p Rev. D VLB (Cardex)",
         DEVICE_VLB, ET4000W32P_CARDEX,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_cardex_available },
@@ -1757,7 +1772,7 @@ const device_t et4000w32p_cardex_vlb_device =
 
 const device_t et4000w32p_cardex_pci_device =
 {
-        "Tseng Labs ET4000/w32p PCI (Cardex)",
+        "Tseng Labs ET4000/w32p Rev. D PCI (Cardex)",
         DEVICE_PCI, ET4000W32P_CARDEX,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_cardex_available },
@@ -1768,7 +1783,7 @@ const device_t et4000w32p_cardex_pci_device =
 
 const device_t et4000w32p_vlb_device =
 {
-        "Tseng Labs ET4000/w32p VLB (Diamond)",
+        "Tseng Labs ET4000/w32p Rev. D VLB (Diamond Stealth32)",
         DEVICE_VLB, ET4000W32P_DIAMOND,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_available },
@@ -1779,7 +1794,7 @@ const device_t et4000w32p_vlb_device =
 
 const device_t et4000w32p_pci_device =
 {
-        "Tseng Labs ET4000/w32p PCI (Diamond)",
+        "Tseng Labs ET4000/w32p Rev. D PCI (Diamond Stealth32)",
         DEVICE_PCI, ET4000W32P_DIAMOND,
         et4000w32p_init, et4000w32p_close, NULL,
         { et4000w32p_available },

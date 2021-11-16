@@ -110,6 +110,7 @@ static const SOUND_CARD sound_cards[] =
     { "sbmcv",		&sb_mcv_device			},
     { "sbpromcv",	&sb_pro_mcv_device		},
     { "es1371",		&es1371_device			},
+    { "ad1881",		&ad1881_device			},
     { "cs4297a",	&cs4297a_device			},
     { "",		NULL				}
 };

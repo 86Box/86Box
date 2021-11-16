@@ -20,7 +20,13 @@ System requirements and recommendations
 
 Performance may vary depending on both host and guest configuration. Most emulation logic is executed in a single thread, therefore generally systems with better IPC (instructions per clock) should be able to emulate higher clock speeds.
 
-It is also recommended to use the [86Box Manager](https://github.com/86Box/86BoxManager) by [daviunic](https://github.com/daviunic) (Overdoze) to manage virtual machines. However, it is also possible to use 86Box on its own with the `--vmpath`/`-P` command line option.
+It is also recommended to use a manager application with 86Box for easier handling of multiple virtual machines.
+* [WinBox for 86Box](https://github.com/laciba96/WinBox-for-86Box) by [Laci bá'](https://github.com/laciba96)
+  * The new manager with improved new user experience; installer, automatic updates of emulator files and more.
+* [86Box Manager](https://github.com/86Box/86BoxManager) by [daviunic](https://github.com/daviunic) (Overdoze)
+  * The traditional 86Box manager with simple interface.
+
+However, it is also possible to use 86Box on its own with the `--vmpath`/`-P` command line option.
 
 Downloads
 ---------
@@ -52,7 +58,7 @@ We operate an IRC channel and a Discord server for discussing 86Box, its develop
 
 Licensing
 ---------
-86Box is released under the [GNU General Public License, version 2](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html) only. For more information, see the `COPYING` file in the root of the repository.
+86Box is released under the [GNU General Public License, version 2](https://www.gnu.org/licenses/old-licenses/gpl-2.0.html) or later. For more information, see the `COPYING` file in the root of the repository.
 
 The emulator can also optionally make use of [munt](https://github.com/munt/munt), [FluidSynth](https://www.fluidsynth.org/), [Ghostscript](https://www.ghostscript.com/) and [Discord Game SDK](https://discord.com/developers/docs/game-sdk/sdk-starter-guide), which are distributed under their respective licenses.
 

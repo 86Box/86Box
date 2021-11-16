@@ -3361,12 +3361,6 @@ voodoo_recomp++;
 void voodoo_codegen_init(voodoo_t *voodoo)
 {
         int c;
-#if defined(__linux__) || defined(__APPLE__)
-	void *start;
-	size_t len;
-	long pagesize = sysconf(_SC_PAGESIZE);
-	long pagemask = ~(pagesize - 1);
-#endif
 
         voodoo->codegen_data = plat_mmap(sizeof(voodoo_x86_data_t) * BLOCK_NUM*4, 1);
 

@@ -42,9 +42,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef GUSMAX
   GUSMAX	:= y
  endif
- ifndef HEDAKA
-  HEDAKA	:= y
- endif
  ifndef LASERXT
   LASERXT	:= y
  endif
@@ -63,9 +60,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef PAS16
   PAS16		:= n
  endif
- ifndef PS2M70T4
-  PS2M70T4	:= y
- endif
  ifndef SIO_DETECT
   SIO_DETECT	:= y
  endif
@@ -77,9 +71,6 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef XL24
   XL24		:= y
- endif
- ifndef VECT486VL
-  VECT486VL	:= y
  endif
  ifndef OLIVETTI
   OLIVETTI	:= y
@@ -103,9 +94,6 @@ else
  ifndef GUSMAX
   GUSMAX	:= n
  endif
- ifndef HEDAKA
-  HEDAKA	:= n
- endif
  ifndef LASERXT
   LASERXT	:= n
  endif
@@ -124,9 +112,6 @@ else
  ifndef PAS16
   PAS16		:= n
  endif
- ifndef PS2M70T4
-  PS2M70T4	:= n
- endif
  ifndef SIO_DETECT
   SIO_DETECT	:= n
  endif
@@ -138,9 +123,6 @@ else
  endif
  ifndef XL24
   XL24		:= n
- endif
- ifndef VECT486VL
-  VECT486VL	:= n
  endif
  ifndef OLIVETTI
   OLIVETTI	:= n
@@ -426,7 +408,7 @@ else
  UIOBJ		:= win_ui.o win_stbar.o \
 		   win_sdl.o \
 		   win_dialog.o win_about.o \
-		   win_settings.o win_devconf.o win_snd_gain.o win_specify_dim.o \
+		   win_settings.o win_devconf.o win_snd_gain.o win_specify_dim.o win_lang.o \
 		   win_new_floppy.o win_jsconf.o win_media_menu.o
 endif
 
@@ -491,10 +473,6 @@ ifeq ($(GUSMAX), y)
 OPTS		+= -DUSE_GUSMAX
 endif
 
-ifeq ($(HEDAKA), y)
-OPTS		+= -DUSE_HEDAKA
-endif
-
 ifeq ($(LASERXT), y)
 OPTS		+= -DUSE_LASERXT
 DEVBROBJ	+= m_xt_laserxt.o
@@ -522,10 +500,6 @@ endif
 ifeq ($(PAS16), y)
 OPTS		+= -DUSE_PAS16
 DEVBROBJ	+= snd_pas16.o
-endif
-
-ifeq ($(PS2M70T4), y)
-OPTS		+= -DUSE_PS2M70T4
 endif
 
 ifeq ($(SIO_DETECT), y)
@@ -723,7 +697,7 @@ SNDOBJ		:= sound.o \
 		    snd_wss.o \
 		    snd_ym7128.o
 
-VIDOBJ		:= video.o \
+VIDOBJ		:= agpgart.o video.o \
 		    vid_table.o \
 		    vid_cga.o vid_cga_comp.o \
 		    vid_compaq_cga.o \
@@ -744,7 +718,6 @@ VIDOBJ		:= video.o \
 		    vid_bt48x_ramdac.o \
 		    vid_av9194.o vid_icd2061.o vid_ics2494.o vid_ics2595.o \
 		    vid_cl54xx.o \
-		    vid_et3000.o \
 		    vid_et4000.o vid_sc1148x_ramdac.o \
 		    vid_sc1502x_ramdac.o \
 		    vid_et4000w32.o vid_stg_ramdac.o \

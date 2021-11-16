@@ -44,11 +44,15 @@
 #define gs_error_Quit		-101 
 
 #ifdef _WIN32
-#define PATH_GHOSTSCRIPT_DLL		"gsdll32.dll"
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
+# define PATH_GHOSTSCRIPT_DLL		"gsdll32.dll"
+#else
+# define PATH_GHOSTSCRIPT_DLL		"gsdll64.dll"
+#endif
 #elif defined __APPLE__
 #define PATH_GHOSTSCRIPT_DLL		"libgs.dylib"
 #else
-#define PATH_GHOSTSCRIPT_DLL		"libgs.so"
+#define PATH_GHOSTSCRIPT_DLL		"libgs.so.9"
 #endif
 
 #define POSTSCRIPT_BUFFER_LENGTH	65536
@@ -344,8 +348,6 @@ ps_init(void *lpt)
     dev->ctrl = 0x04;
     dev->lpt = lpt;
 
-    reset_ps(dev);
-
     /* Try loading the DLL. */
     ghostscript_handle = dynld_module(PATH_GHOSTSCRIPT_DLL, ghostscript_imports);
     if (ghostscript_handle == NULL)
@@ -368,6 +370,8 @@ ps_init(void *lpt)
 
     timer_add(&dev->pulse_timer, pulse_timer, dev, 0);
     timer_add(&dev->timeout_timer, timeout_timer, dev, 0);
+
+    reset_ps(dev);
 
     return(dev);
 }

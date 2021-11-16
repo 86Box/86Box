@@ -33,6 +33,7 @@
 #include <86box/pci.h>
 #include <86box/chipset.h>
 #include <86box/spd.h>
+#include <86box/video.h>
 
 #define VIA_585  0x05851000
 #define VIA_595  0x05950000
@@ -50,6 +51,7 @@ typedef struct via_apollo_t
     uint8_t	pci_conf[256];
 
     smram_t	*smram;
+    void	*agpgart;
 } via_apollo_t;
 
 
@@ -83,6 +85,25 @@ apollo_smram_map(via_apollo_t *dev, int smm, uint32_t host_base, uint32_t size, 
 
     mem_set_mem_state_smram_ex(smm, host_base, size, is_smram & 0x03);
     flushmmucache();
+}
+
+
+static void
+apollo_agp_map(via_apollo_t *dev)
+{
+    /* Make sure the aperture's base is aligned to its size. */
+    dev->pci_conf[0x12] &= dev->pci_conf[0x84] << 4;
+    dev->pci_conf[0x13] &= 0xf0 | (dev->pci_conf[0x84] >> 4);
+
+    if (!dev->agpgart)
+	return;
+
+    /* Map aperture and GART. */
+    agpgart_set_aperture(dev->agpgart,
+			 (dev->pci_conf[0x12] << 16) | (dev->pci_conf[0x13] << 24),
+			 ((uint32_t) (uint8_t) ~dev->pci_conf[0x84] + 1) << 20,
+			 !!(dev->pci_conf[0x88] & 0x02));
+    agpgart_set_gart(dev->agpgart, (dev->pci_conf[0x89] << 8) | (dev->pci_conf[0x8a] << 16) | (dev->pci_conf[0x8b] << 24));
 }
 
 
@@ -220,6 +241,8 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 	((addr >= 0xaa) && (addr < 0xac)) || ((addr > 0xad) && (addr < 0xf0)) ||
 	((addr >= 0xf8) && (addr < 0xfc)))
 	return;
+    if (((addr == 0x12) || (addr == 0x13)) && (dev->id < VIA_597))
+	return;
     if (((addr == 0x78) || (addr >= 0xad)) && (dev->id == VIA_597))
 	return;
     if (((addr == 0x67) || ((addr >= 0xf0) && (addr < 0xfc))) && (dev->id < VIA_691))
@@ -259,9 +282,11 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 		break;
 	case 0x12:	/* Graphics Aperture Base */
 		dev->pci_conf[0x12] = (val & 0xf0);
+		apollo_agp_map(dev);
 		break;
 	case 0x13:	/* Graphics Aperture Base */
 		dev->pci_conf[0x13] = val;
+		apollo_agp_map(dev);
 		break;
 
 	case 0x50:	/* Cache Control 1 */
@@ -579,20 +604,23 @@ via_apollo_host_bridge_write(int func, int addr, uint8_t val, void *priv)
 			dev->pci_conf[0x84] = val;
 		else
 			dev->pci_conf[0x84] = (dev->pci_conf[0x84] & ~0xf0) | (val & 0xf0);
+		apollo_agp_map(dev);
 		break;
 	case 0x88:
 		if((dev->id == VIA_693A) || (dev->id == VIA_8601))
 			dev->pci_conf[0x88] = (dev->pci_conf[0x88] & ~0x06) | (val & 0x06);
 		else
 			dev->pci_conf[0x88] = (dev->pci_conf[0x88] & ~0x07) | (val & 0x07);
+		apollo_agp_map(dev);
 		break;
 	case 0x89:
+		dev->pci_conf[0x89] = val & 0xf0;
+		apollo_agp_map(dev);
+		break;
 	case 0x8a:
 	case 0x8b:
-		if((dev->id == VIA_693A) || (dev->id == VIA_8601))
-			dev->pci_conf[addr] = val;
-		else
-			dev->pci_conf[0x89] = (dev->pci_conf[0x89] & ~0xf0) | (val & 0xf0);
+		dev->pci_conf[addr] = val;
+		apollo_agp_map(dev);
 		break;
 
 	case 0xa8:
@@ -704,6 +732,9 @@ via_apollo_init(const device_t *info)
 		device_add(&via_mvp3_agp_device);
 		break;
     }
+
+    if (dev->id >= VIA_597)
+	dev->agpgart = device_add(&agpgart_device);
 
     if ((dev->id >= VIA_694) && (dev->id != VIA_8601))
 	dev->drb_unit = 16;
