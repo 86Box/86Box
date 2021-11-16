@@ -103,10 +103,8 @@ progsett_fill_iconsets(HWND hdlg)
 	plat_get_icons_path(icon_path_root);
 	
 	wchar_t search[512];
-	pclog("icon_path_root: %s\n", icon_path_root);
 	mbstowcs(search, icon_path_root, strlen(icon_path_root) + 1);
 	wcscat(search, L"*.*");
-	pclog("search: %ls\n", search);
 	
 	hFind = FindFirstFile((LPCWSTR)search, &data);
 	
@@ -119,9 +117,7 @@ progsett_fill_iconsets(HWND hdlg)
 				mbstowcs(temp, icon_path_root, strlen(icon_path_root) + 1);
 				wcscat(temp, data.cFileName);
 				wcscat(temp, L"\\iconinfo.txt");
-				
-				pclog("temp: %ls\n", temp);
-				
+								
 				wcscpy(dispname, data.cFileName);
 				FILE *fp = _wfopen(temp, L"r");
 				if (fp)
@@ -129,7 +125,6 @@ progsett_fill_iconsets(HWND hdlg)
 					char line[512];
 					if (fgets(line, 511, fp))
 					{
-						pclog("found! %s\n", line);
 						mbstowcs(dispname, line, strlen(line) + 1);
 					}
 					
@@ -219,7 +214,6 @@ ProgSettDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 	    /* Language */
 		temp_language = lang_id;
 		strcpy(temp_icon_set, icon_set);
-		pclog("temp_icon_set: %s\n", temp_icon_set);
 		progsett_fill_languages(hdlg);
 		progsett_fill_iconsets(hdlg);
 		break;
@@ -246,11 +240,9 @@ ProgSettDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				
 			case IDC_COMBO_ICON:
 				if (HIWORD(wParam) == CBN_SELCHANGE) {
-					pclog("dosth\n");
 					HWND combo = GetDlgItem(hdlg, IDC_COMBO_ICON);
 					int index = SendMessage(combo, CB_GETCURSEL, 0, 0); 
 					strcpy(temp_icon_set, (char*)SendMessage(combo, CB_GETITEMDATA, index, 0));
-					pclog("temp_icon_set: %s\n", temp_icon_set);
 				}
 				break; 
 				
@@ -263,10 +255,8 @@ ProgSettDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 		
 			case IDC_BUTTON_DEFICON: {
-				pclog("dosth\n");
 				SendMessage(GetDlgItem(hdlg, IDC_COMBO_ICON), CB_SETCURSEL, 0, 0); 
 				strcpy(temp_icon_set, "");
-				pclog("temp_icon_set: %s\n", temp_icon_set);
 				break; 
 			}
 			default:
