@@ -179,7 +179,7 @@ then
 	git log --stat -1 > VERSION || rm -f VERSION
 
 	# Archive source.
-	rm -f "$tarball_name.tar*"
+	rm -f "$tarball_name.tar"*
 	make_tar "$tarball_name.tar"
 	status=$?
 
@@ -187,11 +187,11 @@ then
 	if [ $status -ne 0 ]
 	then
 		echo [!] Tarball creation failed with status [$status]
-		rm -f "$tarball_name.tar*"
+		rm -f "$tarball_name.tar"*
 		exit 1
 	else
 		echo [-] Source tarball [$tarball_name] created successfully
-		mv "$tarball_name.tar*" "$cwd/"
+		mv "$tarball_name.tar"* "$cwd/"
 		[ -z "$package_name" ] && exit 0
 	fi
 fi
