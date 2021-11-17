@@ -29,14 +29,14 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "退出(&x)...",                       IDM_ACTION_EXIT
     END
-    POPUP "视图&V"
+    POPUP "视图(&V)"
     BEGIN
         MENUITEM "隐藏状态栏(&H)",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM SEPARATOR
         MENUITEM "窗口可调整大小(&R)",          IDM_VID_RESIZE
         MENUITEM "记住窗口大小和未知(&e)",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
-        POPUP "渲染器&n"
+        POPUP "渲染器(&n)"
         BEGIN
             MENUITEM "&SDL (软件)",         IDM_VID_SDL_SW
             MENUITEM "SDL (硬件 &H)",         IDM_VID_SDL_HW
