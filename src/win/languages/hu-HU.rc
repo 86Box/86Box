@@ -395,6 +395,9 @@ END
 #define STR_BUGGER		"ISABugger eszköz"
 #define STR_POSTCARD		"POST kártya"
 
+#define FONT_SIZE		9
+#define FONT_NAME		"Segoe UI"
+
 #include "dialogs.rc"
 
 /////////////////////////////////////////////////////////////////////////////

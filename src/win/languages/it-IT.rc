@@ -392,6 +392,9 @@ END
 #define STR_BUGGER		"Dispositivo ISABugger"
 #define STR_POSTCARD		"Scheda POST"
 
+#define FONT_SIZE		9
+#define FONT_NAME		"Segoe UI"
+
 #include "dialogs.rc"
 
 /////////////////////////////////////////////////////////////////////////////
