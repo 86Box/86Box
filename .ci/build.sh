@@ -172,20 +172,26 @@ then
 	# Clean local tree of gitignored files.
 	git clean -dfX
 
+	# Recreate output directory if it was removed by git clean.
+	[ ! -d "$cwd" ] && mkdir -p "$cwd"
+
 	# Save current HEAD commit to VERSION.
 	git log --stat -1 > VERSION || rm -f VERSION
 
 	# Archive source.
-	make_tar "$cwd/$tarball_name.tar"
+	rm -f "$tarball_name.tar*"
+	make_tar "$tarball_name.tar"
 	status=$?
 
 	# Check if the archival succeeded.
 	if [ $status -ne 0 ]
 	then
 		echo [!] Tarball creation failed with status [$status]
+		rm -f "$tarball_name.tar*"
 		exit 1
 	else
 		echo [-] Source tarball [$tarball_name] created successfully
+		mv "$tarball_name.tar*" "$cwd/"
 		[ -z "$package_name" ] && exit 0
 	fi
 fi

@@ -30,6 +30,7 @@ Makefile
 /archive_tmp
 /static2dll.*
 /VERSION
+/target
 *.zip
 *.tar
 *.tar.*
