@@ -29,11 +29,11 @@ Makefile
 # Build scripts
 /archive_tmp
 /static2dll.*
-/*.zip
-/*.tar
-/*.tar.*
 /VERSION
 /target
+*.zip
+*.tar
+*.tar.*
 
 # Visual Studio Code
 /.vs

@@ -159,7 +159,10 @@ then
 fi
 
 # Switch to the correct directory.
-[ -e "build.sh" ] && cd ..
+while [ ! -e ".ci/build.sh" ]
+do
+	cd ..
+done
 
 # Make source tarball if requested.
 if [ ! -z "$tarball_name" ]
@@ -173,7 +176,7 @@ then
 	git log --stat -1 > VERSION || rm -f VERSION
 
 	# Archive source.
-	make_tar $tarball_name.tar
+	make_tar "$cwd/$tarball_name.tar"
 	status=$?
 
 	# Check if the archival succeeded.
@@ -397,7 +400,7 @@ cd archive_tmp
 if is_windows
 then
 	# Create zip.
-	"$sevenzip" a -y -mx9 "..\\$package_name.zip" *
+	"$sevenzip" a -y -mx9 "$(cygpath -w "$cwd")\\$package_name.zip" *
 	status=$?
 elif is_mac
 then
@@ -405,7 +408,7 @@ then
 	:
 else
 	# Create binary tarball.
-	VERBOSE=1 make_tar ../$package_name.tar
+	VERBOSE=1 make_tar "$cwd/$package_name.tar"
 	status=$?
 fi
 cd ..
