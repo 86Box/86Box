@@ -113,6 +113,7 @@ cwd=$(pwd)
 package_name=
 arch=
 tarball_name=
+cmake_flags=
 while [ $# -gt 0 ]
 do
 	case $1 in
@@ -131,11 +132,22 @@ do
 			;;
 
 		*)
-			break
+			if echo $1 | grep -q " "
+			then
+				cmake_flag="\"$1\""
+			else
+				cmake_flag="$1"
+			fi
+			if [ -z "$cmake_flags" ]
+			then
+				cmake_flags="$cmake_flag"
+			else
+				cmake_flags="$cmake_flags $cmake_flag"
+			fi
+			shift
 			;;
 	esac
 done
-cmake_flags=$*
 cmake_flags_extra=
 
 # Check if mandatory arguments were specified.
@@ -277,13 +289,13 @@ case $arch in
 	64 | x86_64) cmake_flags_extra="$cmake_flags_extra -D ARCH=x86_64";;
 	ARM32 | arm32) cmake_flags_extra="$cmake_flags_extra -D ARCH=arm";;
 	ARM64 | arm64) cmake_flags_extra="$cmake_flags_extra -D ARCH=arm64";;
-	*) cmake_flags_extra="$cmake_flags_extra -D ARCH=$arch";;
+	*) cmake_flags_extra="$cmake_flags_extra -D \"ARCH=$arch\"";;
 esac
 
 # Add git hash and copyright year.
-git_hash="$(git rev-parse --short HEAD 2> /dev/null)"
-[ ! -z "$git_hash" ] && cmake_flags_extra="$cmake_flags_extra -D EMU_GIT_HASH=\"$git_hash\""
-cmake_flags_extra="$cmake_flags_extra -D EMU_COPYRIGHT_YEAR=\"$(date +%Y)\""
+git_hash=$(git rev-parse --short HEAD 2> /dev/null)
+[ ! -z "$git_hash" ] && cmake_flags_extra="$cmake_flags_extra -D \"EMU_GIT_HASH=$git_hash\""
+cmake_flags_extra="$cmake_flags_extra -D \"EMU_COPYRIGHT_YEAR=$(date +%Y)\""
 
 # Run CMake.
 echo [-] Running CMake with flags [$cmake_flags $cmake_flags_extra]
