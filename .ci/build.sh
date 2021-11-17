@@ -172,6 +172,9 @@ then
 	# Clean local tree of gitignored files.
 	git clean -dfX
 
+	# Recreate output directory if it was removed by git clean.
+	[ ! -d "$cwd" ] && mkdir -p "$cwd"
+
 	# Save current HEAD commit to VERSION.
 	git log --stat -1 > VERSION || rm -f VERSION
 
