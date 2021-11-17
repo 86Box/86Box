@@ -520,7 +520,7 @@ int	ui_msgbox(int flags, void *message)
     return ui_msgbox_header(flags, message, NULL);
 }
 
-int	ui_msgbox_header(int flags, void *message, void* header)
+int	ui_msgbox_header(int flags, void *header, void* message)
 {
 	return ui_msgbox_ex(flags, header, message, NULL, NULL, NULL);
 }

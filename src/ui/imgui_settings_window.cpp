@@ -9,6 +9,7 @@
 #include <vector>
 #include <iostream>
 #include <string>
+#include <string_view>
 #include <codecvt>
 #include <locale>
 #include <algorithm>
@@ -1489,11 +1490,11 @@ namespace ImGuiSettingsWindow {
 			temp_lpt[i] = temp_lpt_b;
 		}
 	}
-	static void RenderDeviceCombo(const char* description, std::function<const device_t*(int)> get_device, std::function<char*(int)> get_internal_name, std::function<int(int)> available, int& device, int bus, uint32_t flag = 0, bool configure = false, std::function<int(int)> has_config = [](int){ return false;}, int inst = 0)
+	static void RenderDeviceCombo(const char* description, std::function<const device_t*(int)> get_device, std::function<const char*(int)> get_internal_name, std::function<int(int)> available = [](int){ return false; }, int& device = temp_midi_device, int bus = 1, uint32_t flag = 0, bool configure = false, std::function<int(int)> has_config = [](int){ return false; }, int inst = 0)
 	{
 		int c = 0;
 		ImGui::TextUnformatted(description); ImGui::SameLine();
-		if (ImGui::BeginCombo((std::string("##") + description).c_str(), GetNameOfDevice(get_device(device), get_internal_name(device), bus).c_str()))
+		if (ImGui::BeginCombo((std::string("##") + description).c_str(), GetNameOfDevice(get_device(device), (char*)get_internal_name(device), bus).c_str()))
 		{
 			while (1)
 			{
@@ -1505,7 +1506,7 @@ namespace ImGuiSettingsWindow {
 						continue;
 					}
 				}
-				auto name = GetNameOfDevice(get_device(c), get_internal_name(c), bus);
+				auto name = GetNameOfDevice(get_device(c), (char*)get_internal_name(c), bus);
 				if (name[0] == 0) break;
 				if (available(c) && device_is_valid(get_device(c), machines[temp_machine].flags))
 				{
@@ -1598,9 +1599,78 @@ namespace ImGuiSettingsWindow {
 		memcpy(temp_hdd, ihdd, HDD_NUM * sizeof(hard_disk_t));
 	}
 
+	static void
+	hard_disk_track(uint8_t id)
+	{
+		switch(temp_hdd[id].bus) {
+		case HDD_BUS_MFM:
+			mfm_tracking |= (1 << (temp_hdd[id].mfm_channel << 3));
+			break;
+		case HDD_BUS_ESDI:
+			esdi_tracking |= (1 << (temp_hdd[id].esdi_channel << 3));
+			break;
+		case HDD_BUS_XTA:
+			xta_tracking |= (1 << (temp_hdd[id].xta_channel << 3));
+			break;
+		case HDD_BUS_IDE:
+		case HDD_BUS_ATAPI:
+			ide_tracking |= (1 << (temp_hdd[id].ide_channel << 3));
+			break;
+		case HDD_BUS_SCSI:
+			scsi_tracking[temp_hdd[id].scsi_id >> 3] |= (1 << ((temp_hdd[id].scsi_id & 0x07) << 3));
+			break;
+		}
+	}
+
+	static void
+	hard_disk_untrack(uint8_t id)
+	{
+		switch(temp_hdd[id].bus) {
+		case HDD_BUS_MFM:
+			mfm_tracking &= ~(1 << (temp_hdd[id].mfm_channel << 3));
+			break;
+		case HDD_BUS_ESDI:
+			esdi_tracking &= ~(1 << (temp_hdd[id].esdi_channel << 3));
+			break;
+		case HDD_BUS_XTA:
+			xta_tracking &= ~(1 << (temp_hdd[id].xta_channel << 3));
+			break;
+		case HDD_BUS_IDE:
+		case HDD_BUS_ATAPI:
+			ide_tracking &= ~(1 << (temp_hdd[id].ide_channel << 3));
+			break;
+		case HDD_BUS_SCSI:
+			scsi_tracking[temp_hdd[id].scsi_id >> 3] &= ~(1 << ((temp_hdd[id].scsi_id & 0x07) << 3));
+			break;
+		}
+	}
+
+	static void
+	hard_disk_track_all(void)
+	{
+		int i;
+
+		for (i = 0; i < HDD_NUM; i++)
+		hard_disk_track(i);
+	}
+	
+	static void
+	hard_disk_untrack_all(void)
+	{
+		int i;
+
+		for (i = 0; i < HDD_NUM; i++)
+		hard_disk_track(i);
+	}
+	static int cur_hdd_sel = 0;
+
+	
+
 	void RenderHardDisksCategory() {
 		normalize_hd_list();
-		if (ImGui::BeginTable("hddtable", 6))
+		hard_disk_untrack_all();
+		hard_disk_track_all();
+		if (ImGui::BeginTable("hddtable", 6, 0, ImVec2(0, 92)))
 		{
 			ImGui::TableSetupScrollFreeze(0, 1);
 			ImGui::TableSetupColumn("Bus");
@@ -1610,8 +1680,20 @@ namespace ImGuiSettingsWindow {
 			ImGui::TableSetupColumn("S");
 			ImGui::TableSetupColumn(".");
 			ImGui::TableHeadersRow();
+			constexpr const std::array<std::string_view, 8> busstr
+			{
+				"",
+				"MFM/RLL",
+				"XTA",
+				"ESDI",
+				"IDE",
+				"ATAPI",
+				"SCSI",
+				"USB"
+			};
 			for (int i = 0; i < HDD_NUM; i++)
 			{
+
 				static char hddname[512] = { 0 };
 				std::fill(hddname, &hddname[sizeof(hddname)], 0);
 				if (temp_hdd[i].bus <= HDD_BUS_DISABLED) continue;
@@ -1638,21 +1720,108 @@ namespace ImGuiSettingsWindow {
 						break;
 				}
 				ImGui::TableSetColumnIndex(0);
-				ImGui::TextUnformatted(hddname);
+				if (ImGui::Button(hddname)) cur_hdd_sel = i;
 				
 				ImGui::TableSetColumnIndex(1);
-				ImGui::TextUnformatted((!strnicmp(temp_hdd[i].fn, usr_path, strlen(usr_path))) ? temp_hdd[i].fn + strlen(usr_path) : temp_hdd[i].fn);
+				if (ImGui::Button((!strnicmp(temp_hdd[i].fn, usr_path, strlen(usr_path))) ? temp_hdd[i].fn + strlen(usr_path) : temp_hdd[i].fn)) cur_hdd_sel = i;
 
 				ImGui::TableSetColumnIndex(2);
-				ImGui::Text("%i", temp_hdd[i].tracks);
+				if (ImGui::Button(std::to_string(temp_hdd[i].tracks).c_str())) cur_hdd_sel = i;
 				ImGui::TableSetColumnIndex(3);
-				ImGui::Text("%i", temp_hdd[i].hpc);
+				if (ImGui::Button(std::to_string(temp_hdd[i].hpc).c_str())) cur_hdd_sel = i;
 				ImGui::TableSetColumnIndex(4);
-				ImGui::Text("%i", temp_hdd[i].spt);
+				if (ImGui::Button(std::to_string(temp_hdd[i].spt).c_str())) cur_hdd_sel = i;
 				ImGui::TableSetColumnIndex(5);
-				ImGui::Text("%i", (temp_hdd[i].tracks * temp_hdd[i].hpc * temp_hdd[i].spt) >> 11);
+				if (ImGui::Button(std::to_string((temp_hdd[i].tracks * temp_hdd[i].hpc * temp_hdd[i].spt) >> 11).c_str())) cur_hdd_sel = i;
 			}
 			ImGui::EndTable();
+			ImGui::TextUnformatted("Bus:"); ImGui::SameLine();
+			if (ImGui::BeginCombo("##Bus:", busstr[temp_hdd[cur_hdd_sel].bus].data()))
+			{
+				for (int i = 1; i < 7; i++)
+				{
+					if (ImGui::Selectable(busstr[i].data(), i == temp_hdd[cur_hdd_sel].bus))
+					{
+						temp_hdd[cur_hdd_sel].bus = i;
+					}
+					if (i == temp_hdd[cur_hdd_sel].bus)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::SameLine();
+			if (temp_hdd[cur_hdd_sel].bus != HDD_BUS_DISABLED)
+			{
+				ImGui::TextUnformatted("Channel:"); ImGui::SameLine();
+				auto beginBinaryChannelCombo = [](uint8_t& chan, const char* str)
+				{
+					char chanstr[] = { '0', ':', (chan & 1) ? '1' : '0', 0 };
+					if (ImGui::BeginCombo(str, chanstr))
+					{
+						for (int i = 0; i < 2; i++)
+						{
+							chanstr[2] = '0' + i;
+							if (ImGui::Selectable(chanstr, chan == i))
+							{
+								chan = i;
+							}
+						}
+						ImGui::EndCombo();
+					}
+				};
+				
+				switch(temp_hdd[cur_hdd_sel].bus)
+				{
+					case HDD_BUS_IDE:
+					case HDD_BUS_ATAPI:
+					{
+						if (ImGui::BeginCombo("##IDE Channel", (std::to_string(temp_hdd[cur_hdd_sel].ide_channel >> 1) + ':' + std::to_string(temp_hdd[cur_hdd_sel].ide_channel & 1)).c_str()))
+						{
+							for (int i = 0; i < 8; i++)
+							{
+								if (ImGui::Selectable((std::to_string(i >> 1) + ':' + std::to_string(i & 1)).c_str(), temp_hdd[cur_hdd_sel].ide_channel == i))
+								{
+									temp_hdd[cur_hdd_sel].ide_channel = i;
+								}
+							}
+							ImGui::EndCombo();
+						}
+						break;
+					}
+					case HDD_BUS_MFM:
+					{
+						beginBinaryChannelCombo(temp_hdd[cur_hdd_sel].mfm_channel, "##MFM/RLL");
+						break;
+					}
+					case HDD_BUS_XTA:
+					{
+						beginBinaryChannelCombo(temp_hdd[cur_hdd_sel].xta_channel, "##XTA");
+						break;
+					}
+					case HDD_BUS_ESDI:
+					{
+						beginBinaryChannelCombo(temp_hdd[cur_hdd_sel].xta_channel, "##ESDI");
+						break;
+					}
+					case HDD_BUS_SCSI:
+					{
+						if (ImGui::BeginCombo("##SCSI ID", (std::to_string(temp_hdd[cur_hdd_sel].scsi_id >> 4) + ':' + std::to_string(temp_hdd[cur_hdd_sel].scsi_id & 15)).c_str()))
+						{
+							for (int i = 0; i < 64; i++)
+							{
+								if (ImGui::Selectable((std::to_string(i >> 4) + ':' + std::to_string(i & 15)).c_str(), temp_hdd[cur_hdd_sel].scsi_id == i))
+								{
+									temp_hdd[cur_hdd_sel].scsi_id = i;
+								}
+							}
+							ImGui::EndCombo();
+						}
+						break;
+					}
+				}
+			}
 		}
 	}
 
@@ -1665,7 +1834,14 @@ namespace ImGuiSettingsWindow {
 	}
 
 	void RenderOtherPeripheralsCategory() {
-
+		RenderDeviceCombo("ISA RTC:", isartc_get_device, isartc_get_internal_name, [](int) { return true; }, temp_isartc, 0, 0, true, [](int c) { return !!(isartc_get_device(c) && isartc_get_device(c)->config); });
+		ImGui::Text("ISA Memory Expansion");
+		for (int i = 0; i < ISAMEM_MAX; i++)
+		{
+			RenderDeviceCombo((std::string("Card ") + std::to_string(i + 1) + ':').c_str(), isamem_get_device, isamem_get_internal_name, [](int) { return true; }, temp_isamem[i], 0, 0, true, [](int c) { return c != 0; }, i + 1);
+		}
+		ImGui::CheckboxFlags("ISABugger device", &temp_bugger, 1);
+		ImGui::CheckboxFlags("POST card", &temp_postcard, 1);
 	}
 
 } // namespace ImGuiSettingsWindow
