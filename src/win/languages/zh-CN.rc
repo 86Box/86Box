@@ -391,6 +391,9 @@ END
 #define STR_BUGGER		"ISABugger device"
 #define STR_POSTCARD		"自检卡(POST)"
 
+#define FONT_SIZE		9
+#define FONT_NAME		"Microsoft YaHei"
+
 #include "dialogs.rc"
 
 /////////////////////////////////////////////////////////////////////////////

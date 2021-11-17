@@ -391,6 +391,9 @@ END
 #define STR_BUGGER          "ISABugger-laite"
 #define STR_POSTCARD        "POST-kortti"
 
+#define FONT_SIZE		9
+#define FONT_NAME		"Segoe UI"
+
 #include "dialogs.rc"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -408,7 +411,7 @@ BEGIN
     IDS_2053    "Nopeus"
     IDS_2054    "ZIP %03i %i (%s): %ls"
     IDS_2055    "ZIP-levykuvat (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056    "86Box ei löytänyt käyttökelpoisia ROM-tiedostoja.\n\Voit <a href=""https://github.com/86Box/roms/releases/latest"">ladata</a> ROM-paketin ja purkaa sen ""roms"" hakemistoon."
+    IDS_2056    "86Box ei löytänyt käyttökelpoisia ROM-tiedostoja.\n\nVoit <a href=""https://github.com/86Box/roms/releases/latest"">ladata</a> ROM-paketin ja purkaa sen ""roms"" hakemistoon."
     IDS_2057    "(tyhjä)"
     IDS_2058    "ZIP-levykuvat (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Kaikki tiedostot (*.*)\0*.*\0"
     IDS_2059    "Turbo"
