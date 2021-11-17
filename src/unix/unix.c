@@ -1245,31 +1245,6 @@ plat_language_code_r(uint32_t lcid, char* outbuf, int len)
     return;
 }
 
-void 
-plat_clear_icon_set()
-{
-	return;
-}
-
-void
-plat_system_icon_set()
-{
-	return;
-}
-
-void 
-plat_load_icon_set()
-{
-	return;
-}
-
-void
-plat_get_icons_path(char* path_root)
-{
-	return;
-}
-
-
 void joystick_init(void) {}
 void joystick_close(void) {}
 void joystick_process(void) {}

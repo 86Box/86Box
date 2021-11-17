@@ -102,7 +102,7 @@ BEGIN
         MENUITEM "&Configurações...",                IDM_CONFIG
         MENUITEM "&Atualizar ícones da barra de status",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Alterar o &idioma de exibição...",    IDM_VID_PROG_SETT
+        MENUITEM "Change program &settings...",    IDM_VID_PROG_SETT
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Ativar integração com o &Discord", IDM_DISCORD
@@ -274,7 +274,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Alterar idioma de exibição"
+#define STR_PROG_SETT		"Program Settings"
 #define STR_SND_GAIN		"Ganho de som"
 #define STR_NEW_FLOPPY		"Nova imagem de disquete"
 #define STR_CONFIG		"Configurações do 86Box"
@@ -285,7 +285,7 @@ END
 #define STR_GLOBAL		"Usar estas configurações como &padrões globais"
 #define STR_DEFAULT		"&Padrão"
 #define STR_LANGUAGE		"Idioma:"
-#define STR_ICONSET "Conjunto de ícones:"
+#define STR_ICONSET		"Iconset:"
 
 #define STR_GAIN		"Ganho"
 

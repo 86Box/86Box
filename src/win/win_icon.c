@@ -30,7 +30,7 @@
 HICON hIcon[256];		    /* icon data loaded from resources */
 char  icon_set[256] = "";  /* name of the iconset to be used */ 
 
-void plat_clear_icon_set()
+void win_clear_icon_set()
 {
 	int i;
 	
@@ -42,7 +42,7 @@ void plat_clear_icon_set()
 		}
 }
 
-void plat_system_icon_set()
+void win_system_icon_set()
 {
 	int i, x = win_get_system_metrics(SM_CXSMICON, dpi), y = win_get_system_metrics(SM_CYSMICON, dpi);
 
@@ -103,7 +103,7 @@ const _ICON_DATA icon_files[] =
 		{252, "storage_controllers.ico"}
 	};
 
-void plat_get_icons_path(char* path_root)
+void win_get_icons_path(char* path_root)
 {
 	char roms_root[1024] = {0};
 	if (rom_path[0])
@@ -115,10 +115,10 @@ void plat_get_icons_path(char* path_root)
 	plat_path_slash(path_root);
 }
 
-void plat_load_icon_set()
+void win_load_icon_set()
 {
-	plat_clear_icon_set();
-	plat_system_icon_set();
+	win_clear_icon_set();
+	win_system_icon_set();
 	
 	if (strlen(icon_set) == 0)
 		return;
@@ -126,7 +126,7 @@ void plat_load_icon_set()
 	char path_root[2048] = {0}, temp[2048] = {0};
 	wchar_t wtemp[2048] = {0};
 	
-	plat_get_icons_path(path_root);
+	win_get_icons_path(path_root);
 	strcat(path_root, icon_set);
 	plat_path_slash(path_root);
 		
@@ -141,10 +141,9 @@ void plat_load_icon_set()
 		ictemp = LoadImageW(NULL, (LPWSTR)wtemp, IMAGE_ICON, x, y, LR_LOADFROMFILE | LR_DEFAULTCOLOR);  
 		if (ictemp)
 		{
-			HICON* helper = &hIcon[icon_files[i].id]; 
-			if (*helper)
-				DestroyIcon(*helper);
-			*helper = ictemp; 
+			if (hIcon[icon_files[i].id])
+				DestroyIcon(hIcon[icon_files[i].id]);
+			hIcon[icon_files[i].id] = ictemp; 
 		}
 	}
 	

@@ -68,6 +68,7 @@ int		user_resize = 0;
 int		fixed_size_x = 0, fixed_size_y = 0;
 int		kbd_req_capture = 0;
 int		hide_status_bar = 0;
+int		dpi = 96;
 
 extern char	openfilestring[512];
 extern WCHAR	wopenfilestring[512];
@@ -77,7 +78,6 @@ extern WCHAR	wopenfilestring[512];
 static wchar_t	wTitle[512];
 static int	manager_wm = 0;
 static int	save_window_pos = 0, pause_state = 0;
-int	dpi = 96;
 static int	padded_frame = 0;
 static int	vis = -1;
 
@@ -1064,7 +1064,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_DESTROY:
-	    plat_clear_icon_set();
+		win_clear_icon_set();
 		KillTimer(hwnd, TIMER_1SEC);
 		PostQuitMessage(0);
 		break;
@@ -1395,6 +1395,9 @@ ui_init(int nCmdShow)
     /* Reset all menus to their defaults. */
     ResetAllMenus();
     media_menu_init();
+	
+	/* Load the desired iconset */
+	win_load_icon_set();
 
     /* Make the window visible on the screen. */
     ShowWindow(hwnd, nCmdShow);

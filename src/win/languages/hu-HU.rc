@@ -104,7 +104,7 @@ BEGIN
         MENUITEM "&Beállítások...",                IDM_CONFIG
         MENUITEM "Állapotsori ikonok &frissítése",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "A &program nyelvének módosítása...",    IDM_VID_PROG_SETT
+        MENUITEM "Program&beállítások...",    IDM_VID_PROG_SETT
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "&Discord integráció engedélyezése", IDM_DISCORD
@@ -276,7 +276,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Nyelvi beállítások"
+#define STR_PROG_SETT		"Programbeállítások"
 #define STR_SND_GAIN		"Hangerőszabályzó"
 #define STR_NEW_FLOPPY		"Új képfájl létrehozása"
 #define STR_CONFIG		"86Box beállítások"
@@ -287,7 +287,7 @@ END
 #define STR_GLOBAL		"Beállítások mentése &globális alapértékként"
 #define STR_DEFAULT		"&Alapértelmezett"
 #define STR_LANGUAGE		"Nyelv:"
-#define STR_ICONSET "Ikonkészlet:"
+#define STR_ICONSET		"Ikonkészlet:"
 
 #define STR_GAIN		"Hangerő"
 

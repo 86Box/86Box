@@ -6,8 +6,7 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Handle the dialog for changing the program's language.
- *
+ *		Handle the dialog for changing the program's language and other global settings.
  *
  *
  * Authors:	Laci bá'
@@ -100,7 +99,7 @@ progsett_fill_iconsets(HWND hdlg)
 	WIN32_FIND_DATA data;
 	
 	char icon_path_root[512];
-	plat_get_icons_path(icon_path_root);
+	win_get_icons_path(icon_path_root);
 	
 	wchar_t search[512];
 	mbstowcs(search, icon_path_root, strlen(icon_path_root) + 1);
@@ -187,7 +186,7 @@ progsett_settings_save(void)
 
 	/* Iconset */
 	strcpy(icon_set, temp_icon_set);
-	plat_load_icon_set(hinstance);
+	win_load_icon_set(hinstance);
 
     /* Update title bar */
 	update_mouse_msg();
