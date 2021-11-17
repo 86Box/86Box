@@ -33,6 +33,7 @@ Makefile
 /*.tar
 /*.tar.*
 /VERSION
+/target
 
 # Visual Studio Code
 /.vs
