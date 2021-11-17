@@ -583,9 +583,13 @@ usage:
 	}
 
 	if (vmrp && (path2[0] == '\0')) {
+#ifdef __APPLE__
+		strcpy(rom_path, "~/Library/Application Support/86Box/roms");
+#else
 		strcpy(path2, usr_path);
 		plat_path_slash(path2);
 		strcat(path2, "roms");
+#endif
 		plat_path_slash(path2);
 	}
 
