@@ -524,7 +524,7 @@ const machine_t machines[] = {
     { "[OPTi 597] Supermicro P5VL-PCI",		"p5vl",			MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED,					MACHINE_PCI | MACHINE_VLB,							 8192, 131072, 8192, 127,		 machine_at_p5vl_init, NULL			},
 
     /* SiS 50x */
-    /* This has an unknown AMI KBC firmware, most likely AMIKey / type 'F'. */
+    /* This has some form of AMI MegaKey as it uses keyboard controller command 0xCC. */
     { "[SiS 501] AMI Excalibur PCI-II Pentium ISA","excaliburpci2",	MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED,					MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	machine_at_excaliburpci2_init, NULL			},
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     { "[SiS 501] ASUS PCI/I-P5SP4",		"p5sp4",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED,					MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,		machine_at_p5sp4_init, NULL			},
