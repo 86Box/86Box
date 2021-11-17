@@ -1,8 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////
-// EnglishFrench (U.S.) resources
+// French (F.R.) resources
 
 #ifdef _WIN32
-LANGUAGE LANG_FRENCH, SUBLANG_ENGLISH_US
+LANGUAGE LANG_FRENCH, SUBLANG_FRENCH
 #pragma code_page(65001)
 #endif //_WIN32
 
@@ -51,7 +51,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Specify dimensions...",          IDM_VID_SPECIFY_DIM
         MENUITEM "F&orcer 4:3",    IDM_VID_FORCE43
-        POPUP "&Echelle factor"
+        POPUP "&Echelle facteurr"
         BEGIN
             MENUITEM "&0.5x",                   IDM_VID_SCALE_1X
             MENUITEM "&1x",                     IDM_VID_SCALE_2X
@@ -60,7 +60,7 @@ BEGIN
         END
         POPUP "Filtre method"
         BEGIN
-            MENUITEM "&<plud proche",                 IDM_VID_FILTER_NEAREST
+            MENUITEM "&Plus proche",                 IDM_VID_FILTER_NEAREST
             MENUITEM "&Lineaire",                  IDM_VID_FILTER_LINEAR
         END
         MENUITEM "Hi&DPI scaling",              IDM_VID_HIDPI
@@ -636,5 +636,5 @@ BEGIN
 END
 #define IDS_LANG_ENUS	IDS_7168
 
-// English (U.S.) resources
+// French (F.R.) resources
 /////////////////////////////////////////////////////////////////////////////
