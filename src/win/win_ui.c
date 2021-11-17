@@ -1396,8 +1396,8 @@ ui_init(int nCmdShow)
     ResetAllMenus();
     media_menu_init();
 	
-	/* Load the desired iconset */
-	win_load_icon_set();
+    /* Load the desired iconset */
+    win_load_icon_set();
 
     /* Make the window visible on the screen. */
     ShowWindow(hwnd, nCmdShow);

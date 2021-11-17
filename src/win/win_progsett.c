@@ -156,25 +156,25 @@ progsett_fill_iconsets(HWND hdlg)
 static int
 progsett_settings_changed(void)
 {
-	int i = 0;
+    int i = 0;
 	
     /* Language */
     i = i || has_language_changed(temp_language);
-	i = i || strcmp(temp_icon_set, icon_set);
+    i = i || strcmp(temp_icon_set, icon_set);
 	
-	return i;
+    return i;
 }
 
 /* IndexOf by ItemData */
 static int 
 progsett_indexof(HWND combo, LPARAM itemdata)
 {
-	int i;
-	for (i = 0; i < SendMessage(combo, CB_GETCOUNT, 0, 0); i++)
-		if (SendMessage(combo, CB_GETITEMDATA, i, 0) == itemdata)
-			return i;
+    int i;
+    for (i = 0; i < SendMessage(combo, CB_GETCOUNT, 0, 0); i++)
+        if (SendMessage(combo, CB_GETITEMDATA, i, 0) == itemdata)
+            return i;
 	
-	return -1;
+    return -1;
 }
 
 /* This saves the settings back to the global variables. */
@@ -184,20 +184,20 @@ progsett_settings_save(void)
     /* Language */
     set_language(temp_language);
 
-	/* Iconset */
-	strcpy(icon_set, temp_icon_set);
-	win_load_icon_set(hinstance);
+    /* Iconset */
+    strcpy(icon_set, temp_icon_set);
+    win_load_icon_set();
 
     /* Update title bar */
-	update_mouse_msg();
+    update_mouse_msg();
 	
-	/* Update status bar */
-	config_changed = 1;	
-	ui_sb_set_ready(0);
-	ui_sb_update_panes();
+    /* Update status bar */
+    config_changed = 1;	
+    ui_sb_set_ready(0);
+    ui_sb_update_panes();
 	
-	/* Save the language changes */
-	config_save();
+    /* Save the language changes */
+    config_save();
 }
 
 #if defined(__amd64__) || defined(__aarch64__)
