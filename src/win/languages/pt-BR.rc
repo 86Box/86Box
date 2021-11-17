@@ -371,7 +371,7 @@ END
 #define STR_CYLS		"Cilindros:"
 #define STR_SIZE_MB		"Tamanho (MB):"
 #define STR_TYPE		"Tipo:"
-#define STR_IMG_FORMAT		"Formato da imagem:"
+#define STR_IMG_FORMAT		"Formato:"
 #define STR_BLOCK_SIZE		"Tamanho do bloco:"
 
 #define STR_FLOPPY_DRIVES	"Unidades de disquete:"
