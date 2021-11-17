@@ -269,9 +269,11 @@ set_language(uint32_t id)
 		LoadCommonStrings();
 		
 		/* Reload main menu */
-		SetMenu(hwndMain, LoadMenu(hinstance, L"MainMenu"));
+		menuMain = LoadMenu(hinstance, L"MainMenu");
+		SetMenu(hwndMain, menuMain);
 		
-		/* Re-init media menu */
+		/* Re-init all the menus */
+		ResetAllMenus();
 		media_menu_init();
     } 
 }

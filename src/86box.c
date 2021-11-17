@@ -713,12 +713,7 @@ usage:
 	/* Load the desired language */
 	if (lang_init)
 		lang_id = lang_init;
-	
-	lang_init = lang_id;
-	lang_id = 0;
-	if (lang_init)
-		set_language(lang_init);
-	
+
 	/* All good! */
 	return(1);
 }
