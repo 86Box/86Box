@@ -1,7 +1,9 @@
 #include "SDL_syswm.h"
 #include "SDL_version.h"
+#include "SDL_video.h"
 #include <SDL.h>
 #import <AppKit/AppKit.h>
+#include <cstring>
 #include <dispatch/dispatch.h>
 #include <vector>
 #include <string>
@@ -96,5 +98,74 @@ void FileOpenSaveMacOS(FileOpenSaveRequest param)
             else if (param.save && param.filefunc2paramsalt) param.filefunc2paramsalt(NULL, 0);
         }];
         //[savePanel setAllowedFileTypes:(API_DEPRECATED("Use -allowedContentTypes instead", macos(10.3,API_TO_BE_DEPRECATED)) NSArray<NSString *> *)]
+    }
+}
+
+bool FileOpenSaveMacOSModal(char* res, size_t n, std::vector<std::pair<std::string, std::string>>& filters, bool save)
+{
+    NSMutableArray<NSString*>* array = [[NSMutableArray alloc] init];
+    bool wildcards = false;
+    std::vector<std::string> extensions;
+    NSWindow* wnd = nil;
+    auto filterstr = filters[0].second;
+    SDL_SysWMinfo info{};
+    SDL_VERSION(&info.version);
+    if (SDL_GetWindowWMInfo(sdl_win, &info))
+    {
+        wnd = info.info.cocoa.window;
+    }
+    extensions = split(filterstr);
+            
+    for (auto &ext : extensions)
+    {
+        size_t wildcardpos = std::string::npos;
+        if (ext == "*.*") wildcards = true;
+        while ((wildcardpos = ext.find('*')) != std::string::npos)
+        {
+            ext.erase(wildcardpos, 1);
+        }
+        while ((wildcardpos = ext.find('.')) != std::string::npos)
+        {
+            ext.erase(wildcardpos, 1);
+        }
+        if (ext.find('?') != std::string::npos) wildcards = true;
+        auto nstr = [[NSString alloc] initWithCString:ext.c_str() encoding:NSASCIIStringEncoding];
+        [array addObject:nstr];
+        [array addObject:[nstr lowercaseString]];
+    }
+    if (save)
+    {
+        NSSavePanel* savePanel = [NSSavePanel savePanel];
+        [savePanel setCanCreateDirectories:NO];
+        [savePanel setAllowedFileTypes: wildcards ? nil : [NSArray arrayWithArray:array]];
+        [savePanel setAllowsOtherFileTypes:YES];
+        [array release];
+        if ([savePanel runModal] == NSModalResponseOK)
+        {
+            const NSURL* url = [savePanel URL];
+            const char* utf8str = [[url path] UTF8String];
+            strncpy(res, utf8str, n);
+            SDL_RaiseWindow(sdl_win);
+            return true;
+        }
+        return false;
+    }
+    else
+    {
+        NSOpenPanel* openPanel = [NSOpenPanel openPanel];
+        [openPanel setCanChooseDirectories:NO];
+        [openPanel setCanChooseFiles:YES];
+        [openPanel setAllowsMultipleSelection:NO];
+        [openPanel setAllowedFileTypes: wildcards ? nil : [NSArray arrayWithArray:array]];
+        [array release];
+        if ([openPanel runModal] == NSModalResponseOK)
+        {
+            const NSURL* url = [openPanel URL];
+            const char* utf8str = [[url path] UTF8String];
+            strncpy(res, utf8str, n);
+            SDL_RaiseWindow(sdl_win);
+            return true;
+        }
+        return false;
     }
 }

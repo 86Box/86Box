@@ -28,3 +28,6 @@ namespace ImGuiSettingsWindow {
 	void InitSettings();
 	extern bool showSettingsWindow;
 }
+#ifdef __APPLE__
+bool FileOpenSaveMacOSModal(char* res, size_t n, std::vector<std::pair<std::string, std::string>>& filters = allfilefilter, bool save = false);
+#endif

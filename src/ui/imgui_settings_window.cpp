@@ -1,3 +1,5 @@
+#include "SDL_events.h"
+#include <chrono>
 #ifdef _WIN32
 #include <SDL2/SDL.h>
 #else
@@ -14,6 +16,8 @@
 #include <algorithm>
 #include <utility>
 #include <atomic>
+#include <thread>
+#include <future> // For non-macOS file picker.
 #include "imgui.h"
 #include <86box/imgui_settings_window.h>
 
@@ -151,22 +155,27 @@ namespace ImGuiSettingsWindow {
 	void RenderOtherRemovableDevicesCategory();
 	void RenderOtherPeripheralsCategory();
 
-	std::atomic<bool> file_choose_ok{false}, file_choose{false};
-	size_t strsize = 0;
-	char* strres = nullptr;
-	void SignalFileChoosed(uint8_t id, char* str)
+	bool OpenSettingsFileChooser(char* res, size_t n, const char* filterstr, bool save = false)
 	{
-
-	}
-	void OpenSettingsFileChooser(char* res, size_t n, const char* filterstr, bool save = false)
-	{
-		FileOpenSaveRequest filereq;
-		filereq.filefunc2params = SignalFileChoosed;
-		filereq.save = save;
-		std::vector<std::pair<std::string, std::string>> filefilter;
+		std::vector<std::pair<std::string, std::string>> filefilter{ {"", ""} };
 		assert(strstr(filterstr, "|"));
-		filefilter[0].first = std::string(filterstr).substr(0,);
-		
+		filefilter[0].first = std::string(filterstr).substr(0, std::string(filterstr).find_first_of('|') - 1);
+		filefilter[0].second = std::string(filterstr).substr(std::string(filterstr).find_first_of('|') + 1);
+		#ifdef __APPLE__
+		return FileOpenSaveMacOSModal(res, n, filefilter, save);
+		#else
+		auto ok = std::async(std::launch::async | std::launch::deferred, [&res, &n, &filefilter, &save]
+		{
+			extern bool OpenFileChooser(char*, size_t, std::vector<std::pair<std::string, std::string>>&, bool);
+			return OpenFileChooser(res, n, filefilter, save);
+		});
+		while (ok.wait_for(std::chrono::milliseconds(1000 / 60)) != std::future_status::ready)
+		{
+			SDL_PumpEvents();
+			SDL_FlushEvents(0, SDL_LASTEVENT);
+		}
+		return ok.get();
+		#endif
 	}
 	void InitSettings()
 	{
@@ -531,7 +540,12 @@ namespace ImGuiSettingsWindow {
 					case CONFIG_FNAME:
 					{
 						ImGui::TextUnformatted(config.config.description); ImGui::SameLine();
-						ImGui::InputText((std::string("##File name") + std::string(config.config.name)).c_str(), (char*)config.filestr, strlen(config.filestr), ImGuiInputTextFlags_EnterReturnsTrue);
+						ImGui::InputText((std::string("##File name") + std::string(config.config.name)).c_str(), (char*)config.filestr, sizeof(config.filestr), ImGuiInputTextFlags_EnterReturnsTrue);
+						ImGui::SameLine();
+						if (ImGui::Button("..."))
+						{
+							OpenSettingsFileChooser(config.filestr, sizeof(config.filestr), config.config.file_filter, false);
+						}
 						break;
 					}
 				}
