@@ -27,6 +27,9 @@
 #include <string.h>
 #include <time.h>
 #include <wchar.h>
+#ifndef _WIN32
+#include <pwd.h>
+#endif
 #ifdef __APPLE__
 #include <string.h>
 #include <dispatch/dispatch.h>
@@ -584,7 +587,7 @@ usage:
 
 	if (vmrp && (path2[0] == '\0')) {
 #ifdef __APPLE__
-		strcpy(rom_path, "~/Library/Application Support/86Box/roms");
+		sprintf("%s/Library/Application Support/86Box/roms", getenv("HOME") ? getenv("HOME") : getpwuid(getuid())->pw_dir);
 #else
 		strcpy(path2, usr_path);
 		plat_path_slash(path2);
@@ -713,12 +716,7 @@ usage:
 	/* Load the desired language */
 	if (lang_init)
 		lang_id = lang_init;
-	
-	lang_init = lang_id;
-	lang_id = 0;
-	if (lang_init)
-		set_language(lang_init);
-	
+
 	/* All good! */
 	return(1);
 }
