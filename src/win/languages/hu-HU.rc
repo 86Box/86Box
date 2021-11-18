@@ -492,7 +492,7 @@ BEGIN
     IDS_2123	"Mentés"
     IDS_2124	"A 86Box névjegye"
     IDS_2125	"86Box v" EMU_VERSION
-    IDS_2126	"Régi számítógépek emulátora\n\nFejlesztők: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nFordította: Laci bá'\n\nMegjelent a GNU General Public License v2 vagy újabb alatt. További információért lásd a LICENSE fájlt."
+    IDS_2126	"Régi számítógépek emulátora\n\nFejlesztők: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nFordította: Laci bá'\n\nMegjelent a GNU General Public License v2 vagy újabb alatt. További információért lásd a LICENSE fájlt."
     IDS_2127	"OK"
     IDS_2128	"Hardver nem elérhető"
 #ifdef _WIN32
