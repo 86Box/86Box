@@ -284,7 +284,7 @@ END
 #define STR_GLOBAL		"Einstellungen als &globalen Standard speichern"
 #define STR_DEFAULT		"&Standard"
 #define STR_LANGUAGE		"Sprache:"
-#define STR_ICONSET		"Iconset:"
+#define STR_ICONSET		"Icon-Satz:"
 
 #define STR_GAIN		"Verstärkung"
 

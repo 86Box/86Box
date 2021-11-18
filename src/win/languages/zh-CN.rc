@@ -284,7 +284,7 @@ END
 #define STR_GLOBAL		"将以上设定存储为全局默认值(&g)"
 #define STR_DEFAULT		"默认(&D)"
 #define STR_LANGUAGE		"语言:"
-#define STR_ICONSET		"Iconset:"
+#define STR_ICONSET		"图标集:"
 
 #define STR_GAIN		"增益"
 
