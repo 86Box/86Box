@@ -607,8 +607,6 @@ static int opF7_l_a32(uint32_t fetchdat)
 
 static int opHLT(uint32_t fetchdat)
 {
-	pclog("HLT: CS = %04X, DS = %04X, ES = %04X, SS = %04X, IP = %04X\n", CS, DS, ES, SS, cpu_state.pc);
-
         if ((CPL || (cpu_state.eflags&VM_FLAG)) && (cr0&1))
         {
                 x86gpf(NULL,0);

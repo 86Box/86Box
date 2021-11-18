@@ -59,7 +59,6 @@
 HWND		hwndMain,		/* application main window */
 		hwndRender;		/* machine render window */
 HMENU		menuMain;		/* application main menu */
-HICON		hIcon[256];		/* icon data loaded from resources */
 RECT		oldclip;		/* mouse rect */
 int		sbar_height = 23;	/* statusbar height */
 int		minimized = 0;
@@ -69,6 +68,7 @@ int		user_resize = 0;
 int		fixed_size_x = 0, fixed_size_y = 0;
 int		kbd_req_capture = 0;
 int		hide_status_bar = 0;
+int		dpi = 96;
 
 extern char	openfilestring[512];
 extern WCHAR	wopenfilestring[512];
@@ -78,7 +78,6 @@ extern WCHAR	wopenfilestring[512];
 static wchar_t	wTitle[512];
 static int	manager_wm = 0;
 static int	save_window_pos = 0, pause_state = 0;
-static int	dpi = 96;
 static int	padded_frame = 0;
 static int	vis = -1;
 
@@ -153,15 +152,6 @@ show_cursor(int val)
     vis = val;
 }
 
-
-HICON
-LoadIconEx(PCTSTR pszIconName)
-{
-    return((HICON)LoadImage(hinstance, pszIconName, IMAGE_ICON,
-						16, 16, LR_SHARED));
-}
-
-
 static void
 video_toggle_option(HMENU h, int *val, int id)
 {
@@ -203,22 +193,22 @@ delete_submenu(HMENU parent, HMENU target)
 }
 #endif
 
+static int menu_vidapi = -1;
+static HMENU cur_menu = NULL;
+
 static void
 show_render_options_menu()
 {
 #if defined(DEV_BRANCH) && defined(USE_OPENGL)
-	static int menu_vidapi = -1;
-	static HMENU cur_menu = NULL;
-	
 	if (vid_api == menu_vidapi)
 		return;
-
+	
 	if (cur_menu != NULL)
 	{
 		if (delete_submenu(menuMain, cur_menu))
 			cur_menu = NULL;
 	}
-
+	
 	if (cur_menu == NULL)
 	{
 		switch (IDM_VID_SDL_SW + vid_api)
@@ -251,7 +241,7 @@ video_set_filter_menu(HMENU menu)
 	EnableMenuItem(menu, IDM_VID_FILTER_LINEAR, vid_api == 0 ? MF_GRAYED : MF_ENABLED);
 }
 
-static void
+void
 ResetAllMenus(void)
 {
     CheckMenuItem(menuMain, IDM_ACTION_RCTRL_IS_LALT, MF_UNCHECKED);
@@ -294,6 +284,9 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_SDL_OPENGL, MF_UNCHECKED);
 #if defined(DEV_BRANCH) && defined(USE_OPENGL)
     CheckMenuItem(menuMain, IDM_VID_OPENGL_CORE, MF_UNCHECKED);
+	
+	menu_vidapi = -1;
+	cur_menu = NULL;
     show_render_options_menu();
 #endif
 #ifdef USE_VNC
@@ -1074,6 +1067,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_DESTROY:
+		win_clear_icon_set();
 		KillTimer(hwnd, TIMER_1SEC);
 		PostQuitMessage(0);
 		break;
@@ -1401,9 +1395,17 @@ ui_init(int nCmdShow)
 		ResizeWindowByClientArea(hwndMain, scrnsz_x, scrnsz_y + sbar_height);
     }
 
+  /* Load the desired language, and reset all menus to their defaults */
+    uint32_t helper_lang = lang_id;
+    lang_id = 0;
+    set_language(helper_lang);	
+
     /* Reset all menus to their defaults. */
     ResetAllMenus();
     media_menu_init();
+	
+    /* Load the desired iconset */
+    win_load_icon_set();
 
     /* Make the window visible on the screen. */
     ShowWindow(hwnd, nCmdShow);

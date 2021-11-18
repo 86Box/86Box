@@ -51,6 +51,7 @@ SDL_threadID eventthread;
 static int exit_event = 0;
 static int fullscreen_pending = 0;
 uint32_t lang_id = 0x0409, lang_sys = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
+char  icon_set[256] = "";  /* name of the iconset to be used */ 
 
 static const uint16_t sdl_to_xt[0x200] =
 {
@@ -833,7 +834,7 @@ void monitor_thread(void* param)
                 }
                 else if (strncasecmp(xargv[0], "fullscreen", 10) == 0)
                 {
-                    video_fullscreen = 1;
+                    video_fullscreen = video_fullscreen ? 0 : 1;
                     fullscreen_pending = 1;
                 }
                 else if (strncasecmp(xargv[0], "pause", 5) == 0)
@@ -1243,7 +1244,6 @@ plat_language_code_r(uint32_t lcid, char* outbuf, int len)
     /* or maybe not */ 
     return;
 }
-
 
 void joystick_init(void) {}
 void joystick_close(void) {}

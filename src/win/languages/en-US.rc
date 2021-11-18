@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "&Settings...",                IDM_CONFIG
         MENUITEM "&Update status bar icons",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Change dis&play language...",    IDM_VID_PROG_SETT
+        MENUITEM "Change program &settings...",    IDM_VID_PROG_SETT
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Enable &Discord integration", IDM_DISCORD
@@ -273,7 +273,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Change Display Language"
+#define STR_PROG_SETT		"Program Settings"
 #define STR_SND_GAIN		"Sound Gain"
 #define STR_NEW_FLOPPY		"New Image"
 #define STR_CONFIG		"86Box Settings"
@@ -284,6 +284,7 @@ END
 #define STR_GLOBAL		"Save these settings as &global defaults"
 #define STR_DEFAULT		"&Default"
 #define STR_LANGUAGE		"Language:"
+#define STR_ICONSET		"Icon set:"
 
 #define STR_GAIN		"Gain"
 
@@ -391,6 +392,9 @@ END
 #define STR_BUGGER		"ISABugger device"
 #define STR_POSTCARD		"POST card"
 
+#define FONT_SIZE		9
+#define FONT_NAME		"Segoe UI"
+
 #include "dialogs.rc"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -487,7 +491,7 @@ BEGIN
     IDS_2124	"About 86Box"
     IDS_2125	"86Box v" EMU_VERSION
 
-    IDS_2126	"An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+    IDS_2126	"An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
     IDS_2127	"OK"
     IDS_2128	"Hardware not available"
 #ifdef _WIN32

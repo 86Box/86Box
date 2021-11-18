@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "&Nastavení...",				IDM_CONFIG
         MENUITEM "&Aktualizovat ikony stavového řádku",		IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "&Změnit jazyk zobrazení...",			IDM_VID_PROG_SETT
+        MENUITEM "Change program &settings...",			IDM_VID_PROG_SETT
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Povolit integraci s &Discordem",		IDM_DISCORD
@@ -273,7 +273,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Změnit jazyk zobrazení"
+#define STR_PROG_SETT		"Program Settings"
 #define STR_SND_GAIN		"Zesílení zvuku"
 #define STR_NEW_FLOPPY		"Nový obraz"
 #define STR_CONFIG		"Nastavení emulátoru 86Box"
@@ -284,6 +284,7 @@ END
 #define STR_GLOBAL		"Uložit toto nastavení jako &globální výchozí stav"
 #define STR_DEFAULT		"&Výchozí"
 #define STR_LANGUAGE		"Jazyk:"
+#define STR_ICONSET		"Sada ikon:"
 
 #define STR_GAIN		"Zesílení"
 
@@ -391,6 +392,9 @@ END
 #define STR_BUGGER		"Zařízení ISABugger"
 #define STR_POSTCARD		"Karta pro kódy POST"
 
+#define FONT_SIZE		9
+#define FONT_NAME		"Segoe UI"
+
 #include "dialogs.rc"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -487,7 +491,7 @@ BEGIN
     IDS_2124	"O programu 86Box"
     IDS_2125	"86Box v" EMU_VERSION
 
-    IDS_2126	"Emulátor starých počítačů\n\nAutoři: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nZveřejněno pod licencí GNU General Public License verze 2 nebo novější. Viz soubor LICENSE pro více informací."
+    IDS_2126	"Emulátor starých počítačů\n\nAutoři: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nZveřejněno pod licencí GNU General Public License verze 2 nebo novější. Viz soubor LICENSE pro více informací."
     IDS_2127	"OK"
     IDS_2128	"Hardware není dostupný"
 #ifdef _WIN32

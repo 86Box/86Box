@@ -65,7 +65,6 @@ BEGIN
             MENUITEM "&Linear",                  IDM_VID_FILTER_LINEAR
         END
         MENUITEM "Escala Hi&DPI",              IDM_VID_HIDPI
-        MENUITEM "&Idioma de exibição...",    IDM_VID_PROG_SETT
         MENUITEM SEPARATOR
         MENUITEM "&Tela cheia\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
         POPUP "Modo de &redimensionamento da tela cheia"
@@ -103,7 +102,7 @@ BEGIN
         MENUITEM "&Configurações...",                IDM_CONFIG
         MENUITEM "&Atualizar ícones da barra de status",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Alterar o &idioma de exibição...",    IDM_VID_PROG_SETT
+        MENUITEM "Alterar &configurações do programa...",    IDM_VID_PROG_SETT
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Ativar integração com o &Discord", IDM_DISCORD
@@ -147,7 +146,7 @@ BEGIN
 	MENUITEM SEPARATOR
 #  endif
 #  ifdef ENABLE_LOG_BREAKPOINT
-        MENUITEM "&Registro de ponto de parada\tCtrl+F10", IDM_LOG_BREAKPOINT
+        MENUITEM "&Ponto de parada no registo\tCtrl+F10", IDM_LOG_BREAKPOINT
 #  endif
 #  ifdef ENABLE_VRAM_DUMP
         MENUITEM "Despejo da RAM de &vídeo\tCtrl+F1", IDM_DUMP_VRAM
@@ -275,7 +274,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Alterar idioma de exibição"
+#define STR_PROG_SETT		"Configurações do programa"
 #define STR_SND_GAIN		"Ganho de som"
 #define STR_NEW_FLOPPY		"Nova imagem de disquete"
 #define STR_CONFIG		"Configurações do 86Box"
@@ -283,9 +282,10 @@ END
 
 #define STR_OK			"OK"
 #define STR_CANCEL		"Cancelar"
-#define STR_GLOBAL		"Use estas configurações como &padrões globais"
+#define STR_GLOBAL		"Usar estas configurações como &padrões globais"
 #define STR_DEFAULT		"&Padrão"
 #define STR_LANGUAGE		"Idioma:"
+#define STR_ICONSET		"Pacote de ícones:"
 
 #define STR_GAIN		"Ganho"
 
@@ -296,7 +296,7 @@ END
 
 #define STR_WIDTH		"Largura:"
 #define STR_HEIGHT		"Altura:"
-#define STR_LOCK_TO_SIZE	"Trava nesse tamanho"
+#define STR_LOCK_TO_SIZE	"Travar nesse tamanho"
 
 #define STR_MACHINE_TYPE	"Tipo de máquina:"
 #define STR_MACHINE		"Máquina:"
@@ -307,25 +307,25 @@ END
 #define STR_WAIT_STATES		"Estados de espera:"
 #define STR_MB			"MB"
 #define STR_MEMORY		"Memória:"
-#define STR_TIME_SYNC		"Sincronização de tempo"
+#define STR_TIME_SYNC		"Sincronização da hora"
 #define STR_DISABLED		"Desativada"
 #define STR_ENABLED_LOCAL	"Ativada (hora local)"
 #define STR_ENABLED_UTC		"Ativada (UTC)"
 #define STR_DYNAREC		"Recompilador dinâmico"
 
-#define STR_VIDEO		"Video:"
+#define STR_VIDEO		"Vídeo:"
 #define STR_VOODOO		"3DFX Voodoo"
 
-#define STR_MOUSE		"Mouse"
+#define STR_MOUSE		"Mouse:"
 #define STR_JOYSTICK		"Joystick:"
 #define STR_JOY1		"Joystick 1..."
 #define STR_JOY2		"Joystick 2..."
 #define STR_JOY3		"Joystick 3..."
 #define STR_JOY4		"Joystick 4..."
 
-#define STR_SOUND		"Place de som:"
+#define STR_SOUND		"Placa de som:"
 #define STR_MIDI		"Disp. saída MIDI:"
-#define STR_MIDI_IN		"Disp. enrada MIDI:"
+#define STR_MIDI_IN		"Disp. entrada MIDI:"
 #define STR_MPU401		"MPU-401 autônomo"
 #define STR_SSI			"Innovation SSI-2001"
 #define STR_CMS			"CMS / Game Blaster"
@@ -362,7 +362,7 @@ END
 #define STR_NEW			"&Novo..."
 #define STR_EXISTING		"&Existente..."
 #define STR_REMOVE		"&Remover"
-#define STR_BUS			"Barram.:"
+#define STR_BUS			"Bar.:"
 #define STR_CHANNEL		"Canal:"
 #define STR_ID			"ID:"
 
@@ -372,7 +372,7 @@ END
 #define STR_CYLS		"Cilindros:"
 #define STR_SIZE_MB		"Tamanho (MB):"
 #define STR_TYPE		"Tipo:"
-#define STR_IMG_FORMAT		"Formato da imagem:"
+#define STR_IMG_FORMAT		"Formato:"
 #define STR_BLOCK_SIZE		"Tamanho do bloco:"
 
 #define STR_FLOPPY_DRIVES	"Unidades de disquete:"
@@ -393,6 +393,9 @@ END
 #define STR_BUGGER		"Dispositivo ISABugger"
 #define STR_POSTCARD		"Placa de diagnóstico"
 
+#define FONT_SIZE		9
+#define FONT_NAME		"Segoe UI"
+
 #include "dialogs.rc"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -406,7 +409,7 @@ BEGIN
     IDS_2049	"Erro"
     IDS_2050	"Erro fatal"
     IDS_2051	"<reserved>"
-    IDS_2052	"Use CTRL+ALT+PAGE DOWN para retornar ao janela"
+    IDS_2052	"Use CTRL+ALT+PAGE DOWN para retornar ao modo janela"
     IDS_2053	"Velocidade"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"Imagens ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
@@ -451,7 +454,7 @@ BEGIN
     IDS_2086	"MB"
     IDS_2087	"Verificar BPB"
     IDS_2088	"KB"
-    IDS_2089	"Não conseguiu inicializar o renderizador de vídeo."
+    IDS_2089	"Não foi possível inicializar o renderizador de vídeo."
     IDS_2090	"Padrão"
     IDS_2091	"%i estado(s) de espera"
     IDS_2092	"Tipo"
@@ -477,7 +480,7 @@ BEGIN
     IDS_2112	"Tem certeza de que deseja reiniciar completamente a máquina emulada?"
     IDS_2113	"Tem certeza de que deseja sair do 86Box?"
     IDS_2114	"Não é possível inicializar o Ghostscript"
-    IDS_2115	"MO %i (%ls): %ls"
+    IDS_2115	"Magneto-óptico %i (%ls): %ls"
     IDS_2116	"Imagens magneto-ópticas (*.IM?;*.MDI)\0*.IM?;*.MDI\0Todos os arquivos (*.*)\0*.*\0"
     IDS_2117	"Bem-vindo ao 86Box!"
     IDS_2118	"Controle interno"
@@ -488,7 +491,8 @@ BEGIN
     IDS_2123	"Salvar"
     IDS_2124	"Sobre o 86Box"
     IDS_2125	"86Box versão" EMU_VERSION
-    IDS_2126	"Um emulador de computadores antigos\n\nAutores: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva\n\nLançado sob a Licença Pública Geral GNU versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
+
+    IDS_2126	"Um emulador de computadores antigos\n\nAutores: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva\n\nLançado sob a Licença Pública Geral GNU versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
     IDS_2127	"OK"
     IDS_2128	"Hardware não disponível"
 #ifdef _WIN32
@@ -496,7 +500,7 @@ BEGIN
 #else
 #define LIB_NAME_PCAP "libpcap"
 #endif
-    IDS_2129	"Certifique-se de que " LIB_NAME_PCAP " esteja instalado e que você tenha uma " LIB_NAME_PCAP " -conexão de rede compatível."
+    IDS_2129	"Certifique-se de que " LIB_NAME_PCAP " esteja instalado e que você tenha uma conexão de rede compatível com " LIB_NAME_PCAP "."
     IDS_2130	"Configuração inválida"
 #ifdef _WIN32
 #define LIB_NAME_FREETYPE "freetype.dll"

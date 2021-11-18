@@ -265,8 +265,10 @@
 #define IDC_COMBO_RPM_MODE	1202
 
 #define IDC_COMBO_LANG		1009    /* change language dialog */
+#define IDC_COMBO_ICON		1010  
 #define IDC_CHECKBOX_GLOBAL 1300
 #define IDC_BUTTON_DEFAULT  1302
+#define IDC_BUTTON_DEFICON  1304
 
 /* For the DeviceConfig code, re-do later. */
 #define IDC_CONFIG_BASE		1300
