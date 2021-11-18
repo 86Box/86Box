@@ -1669,7 +1669,6 @@ namespace ImGuiSettingsWindow {
 	void RenderHardDisksCategory() {
 		normalize_hd_list();
 		hard_disk_untrack_all();
-		hard_disk_track_all();
 		if (ImGui::BeginTable("hddtable", 6, 0, ImVec2(0, 92)))
 		{
 			ImGui::TableSetupScrollFreeze(0, 1);
@@ -1823,6 +1822,7 @@ namespace ImGuiSettingsWindow {
 				}
 			}
 		}
+		hard_disk_track_all();
 	}
 
 	void RenderFloppyCdromDrivesCategory() {
