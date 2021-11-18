@@ -1693,11 +1693,11 @@ namespace ImGuiSettingsWindow {
 	void RenderHardDisksCategory() {
 		normalize_hd_list();
 		hard_disk_untrack_all();
-		if (ImGui::BeginTable("hddtable", 6, 0, ImVec2(0, 92)))
+		if (ImGui::BeginTable("##hddtable", 6, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY, ImVec2(0, 92)))
 		{
 			ImGui::TableSetupScrollFreeze(0, 1);
 			ImGui::TableSetupColumn("Bus");
-			ImGui::TableSetupColumn("File");
+			ImGui::TableSetupColumn("File", ImGuiTableColumnFlags_WidthStretch);
 			ImGui::TableSetupColumn("C");
 			ImGui::TableSetupColumn("H");
 			ImGui::TableSetupColumn("S");
@@ -1716,7 +1716,6 @@ namespace ImGuiSettingsWindow {
 			};
 			for (int i = 0; i < HDD_NUM; i++)
 			{
-
 				static char hddname[512] = { 0 };
 				std::fill(hddname, &hddname[sizeof(hddname)], 0);
 				if (temp_hdd[i].bus <= HDD_BUS_DISABLED) continue;
@@ -1743,19 +1742,19 @@ namespace ImGuiSettingsWindow {
 						break;
 				}
 				ImGui::TableSetColumnIndex(0);
-				if (ImGui::Button(hddname)) cur_hdd_sel = i;
+				if (ImGui::Selectable(hddname, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap, cur_hdd_sel == i)) cur_hdd_sel = i;
 				
-				ImGui::TableSetColumnIndex(1);
-				if (ImGui::Button((!strnicmp(temp_hdd[i].fn, usr_path, strlen(usr_path))) ? temp_hdd[i].fn + strlen(usr_path) : temp_hdd[i].fn)) cur_hdd_sel = i;
+				ImGui::TableNextColumn();
+				ImGui::TextUnformatted(!strnicmp(temp_hdd[i].fn, usr_path, strlen(usr_path)) ? temp_hdd[i].fn + strlen(usr_path) : temp_hdd[i].fn);
 
-				ImGui::TableSetColumnIndex(2);
-				if (ImGui::Button(std::to_string(temp_hdd[i].tracks).c_str())) cur_hdd_sel = i;
-				ImGui::TableSetColumnIndex(3);
-				if (ImGui::Button(std::to_string(temp_hdd[i].hpc).c_str())) cur_hdd_sel = i;
-				ImGui::TableSetColumnIndex(4);
-				if (ImGui::Button(std::to_string(temp_hdd[i].spt).c_str())) cur_hdd_sel = i;
-				ImGui::TableSetColumnIndex(5);
-				if (ImGui::Button(std::to_string((temp_hdd[i].tracks * temp_hdd[i].hpc * temp_hdd[i].spt) >> 11).c_str())) cur_hdd_sel = i;
+				ImGui::TableNextColumn();
+				ImGui::Text("%i", temp_hdd[i].tracks);
+				ImGui::TableNextColumn();
+				ImGui::Text("%i", temp_hdd[i].hpc);
+				ImGui::TableNextColumn();
+				ImGui::Text("%i", temp_hdd[i].spt);
+				ImGui::TableNextColumn();
+				ImGui::Text("%i", (temp_hdd[i].tracks * temp_hdd[i].hpc * temp_hdd[i].spt) >> 11);
 			}
 			ImGui::EndTable();
 			ImGui::TextUnformatted("Bus:"); ImGui::SameLine();
