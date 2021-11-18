@@ -226,24 +226,28 @@ extern const device_t compaq_ati28800_device;
 extern const device_t ati28800_wonderxl24_device;
 #endif
 
-/* Cirrus Logic CL-GD 54xx */
+/* Cirrus Logic GD54xx */
 extern const device_t gd5401_isa_device;
 extern const device_t gd5402_isa_device;
 extern const device_t gd5402_onboard_device;
 extern const device_t gd5420_isa_device;
 extern const device_t gd5422_isa_device;
 extern const device_t gd5424_vlb_device;
+extern const device_t gd5426_isa_device;
+extern const device_t gd5426_diamond_speedstar_pro_a1_isa_device;
 extern const device_t gd5426_vlb_device;
 extern const device_t gd5426_onboard_device;
 extern const device_t gd5428_isa_device;
 extern const device_t gd5428_vlb_device;
+extern const device_t gd5428_diamond_speedstar_pro_b1_vlb_device;
 extern const device_t gd5428_mca_device;
 extern const device_t gd5428_onboard_device;
 extern const device_t gd5429_isa_device;
 extern const device_t gd5429_vlb_device;
-extern const device_t gd5430_vlb_device;
+extern const device_t gd5430_diamond_speedstar_pro_se_a8_vlb_device;
 extern const device_t gd5430_pci_device;
 extern const device_t gd5434_isa_device;
+extern const device_t gd5434_diamond_speedstar_64_a3_isa_device;
 extern const device_t gd5434_onboard_pci_device;
 extern const device_t gd5434_vlb_device;
 extern const device_t gd5434_pci_device;
@@ -369,6 +373,7 @@ extern const device_t s3_mirocrystal_20sv_964_pci_device;
 extern const device_t s3_mirocrystal_20sd_864_vlb_device;
 extern const device_t s3_phoenix_vision864_pci_device;
 extern const device_t s3_phoenix_vision864_vlb_device;
+extern const device_t s3_9fx_531_pci_device;
 extern const device_t s3_phoenix_vision868_pci_device;
 extern const device_t s3_phoenix_vision868_vlb_device;
 extern const device_t s3_diamond_stealth64_pci_device;
@@ -376,6 +381,7 @@ extern const device_t s3_diamond_stealth64_vlb_device;
 extern const device_t s3_diamond_stealth64_964_pci_device;
 extern const device_t s3_diamond_stealth64_964_vlb_device;
 extern const device_t s3_mirovideo_40sv_ergo_968_pci_device;
+extern const device_t s3_9fx_771_pci_device;
 extern const device_t s3_phoenix_vision968_pci_device;
 extern const device_t s3_phoenix_vision968_vlb_device;
 extern const device_t s3_spea_mercury_p64v_pci_device;
