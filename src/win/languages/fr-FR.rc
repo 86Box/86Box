@@ -417,7 +417,7 @@ BEGIN
     IDS_2058	"Images ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Tous les fichiers (*.*)\0*.*\0"
     IDS_2059	"Turbo"
     IDS_2060	"Activé"
-    IDS_2061	"Desactivé"
+    IDS_2061	"Désactivé"
     IDS_2062	"Tous les images (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Images basiques du secteur (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Images de la surface (*.86F)\0*.86F\0"
     IDS_2063	"La machine ""%hs"" n'est pas disponible en raison de l'absence de ROMs en le répertoire roms/machines. Basculer vers une machine disponible."
 END
@@ -531,7 +531,7 @@ BEGIN
     IDS_2143	"Shaders OpenGL (*.GLSL)\0*.GLSL\0Tous les fichiers (*.*)\0*.*\0"
     IDS_2144	"Options OpenGL"
     IDS_2145	"Vous chargez une configuration non prise en charge"
-    IDS_2146	"La filtrage du type du processeur sur la base de la machine sélectionné est desactivé pur cette machine émulée.\n\nCela permet de sélectionner une processeur que est sinon incompatible avec la machine sélectionné. Cependant, il pourrait y avoir des incompatibilités avec le BIOS de la machine ou autres logiciels.\n\nL'activatione de cette configuration non est officiellement prise en charge et tout rapport de bogue peut être fermé comme étant invalide."
+    IDS_2146	"La filtrage du type du processeur sur la base de la machine sélectionné est désactivé pur cette machine émulée.\n\nCela permet de sélectionner une processeur que est sinon incompatible avec la machine sélectionné. Cependant, il pourrait y avoir des incompatibilités avec le BIOS de la machine ou autres logiciels.\n\nL'activatione de cette configuration non est officiellement prise en charge et tout rapport de bogue peut être fermé comme étant invalide."
     IDS_2147	"Continuer"
     IDS_2148	"Cassette: %s"
     IDS_2149	"Images cassette (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Tous les fichiers (*.*)\0*.*\0"
@@ -598,11 +598,11 @@ BEGIN
 
     IDS_5120	"CD-ROM %i (%s): %s"
 
-    IDS_5376	"Desactivé"
+    IDS_5376	"Désactivé"
     IDS_5381	"ATAPI"
     IDS_5382    "SCSI"
 
-    IDS_5632	"Desactivé"
+    IDS_5632	"Désactivé"
     IDS_5637	"ATAPI (%01i:%01i)"
     IDS_5638    "SCSI (%01i:%02i)"
 
