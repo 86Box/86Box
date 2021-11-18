@@ -372,5 +372,4 @@ END
 #include "languages/pt-BR.rc"
 #include "languages/pt-PT.rc"
 #include "languages/zh-CN.rc"
-#include "languages/fr-FR.rc"
-
+//#include "languages/fr-FR.rc"

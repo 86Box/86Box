@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-// French (F.R.) resources
+// French (fr-FR) resources
 
 #ifdef _WIN32
 LANGUAGE LANG_FRENCH, SUBLANG_FRENCH
