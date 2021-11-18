@@ -226,12 +226,12 @@ void* mt32emu_init(char *control_rom, char *pcm_rom)
 
 void *mt32_init(const device_t *info)
 {
-	return mt32emu_init("roms/sound/mt32/mt32_control.rom", "roms/sound/mt32/mt32_pcm.rom");
+	return mt32emu_init("roms/sound/mt32/MT32_CONTROL.ROM", "roms/sound/mt32/MT32_PCM.ROM");
 }
 
 void *cm32l_init(const device_t *info)
 {
-	return mt32emu_init("roms/sound/cm32l/cm32l_control.rom", "roms/sound/cm32l/cm32l_pcm.rom");
+	return mt32emu_init("roms/sound/cm32l/CM32L_CONTROL.ROM", "roms/sound/cm32l/CM32L_PCM.ROM");
 }
 
 void mt32_close(void* p)
