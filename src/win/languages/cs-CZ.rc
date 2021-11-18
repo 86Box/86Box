@@ -284,7 +284,7 @@ END
 #define STR_GLOBAL		"Uložit toto nastavení jako &globální výchozí stav"
 #define STR_DEFAULT		"&Výchozí"
 #define STR_LANGUAGE		"Jazyk:"
-#define STR_ICONSET		"Iconset:"
+#define STR_ICONSET		"Sada ikon:"
 
 #define STR_GAIN		"Zesílení"
 

@@ -284,6 +284,7 @@ END
 #define STR_GLOBAL		"Save these settings as &global defaults"
 #define STR_DEFAULT		"&Defaut"
 #define STR_LANGUAGE		"Langue:"
+#define STR_ICONSET		"Ensemble d'icônes:"
 
 #define STR_GAIN		"Gain"
 
