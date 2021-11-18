@@ -490,7 +490,7 @@ BEGIN
     IDS_2124	"关于 86Box"
     IDS_2125	"86Box v" EMU_VERSION
 
-    IDS_2126	"一个旧计算机模拟器\n\n作者: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\n本软件依据 GNU 通用公共许可证第二版或更新版本发布. 详情见 LICENSE 文件."
+    IDS_2126	"一个旧计算机模拟器\n\n作者: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\n本软件依据 GNU 通用公共许可证第二版或更新版本发布. 详情见 LICENSE 文件."
     IDS_2127	"确定"
     IDS_2128	"硬件不可用"
 #ifdef _WIN32
