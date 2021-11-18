@@ -491,7 +491,7 @@ BEGIN
     IDS_2124    "Tietoja 86Box:sta"
     IDS_2125    "86Box v" EMU_VERSION
 
-    IDS_2126    "Vanhojen tietokoneiden emulaattori\n\nTekijät: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho ja muut.\n\nJulkaistu GNU General Public License 2. version tai myöhemmän alaisena. Tarkempia tietoja LICENSE-tiedostossa."
+    IDS_2126    "Vanhojen tietokoneiden emulaattori\n\nTekijät: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho ja muut.\n\nJulkaistu GNU General Public License 2. version tai myöhemmän alaisena. Tarkempia tietoja LICENSE-tiedostossa."
     IDS_2127    "OK"
     IDS_2128    "Laitteisto ei ole saatavilla"
 #ifdef _WIN32

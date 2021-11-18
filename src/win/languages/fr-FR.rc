@@ -1,8 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
+// French (fr-FR) resources
 
 #ifdef _WIN32
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+LANGUAGE LANG_FRENCH, SUBLANG_FRENCH
 #pragma code_page(65001)
 #endif //_WIN32
 
@@ -17,29 +17,29 @@ MainMenu MENU DISCARDABLE
 BEGIN
     POPUP "&Action"
     BEGIN
-        MENUITEM "&Keyboard requires capture",	IDM_ACTION_KBD_REQ_CAPTURE
-        MENUITEM "&Right CTRL is left ALT",	IDM_ACTION_RCTRL_IS_LALT
+        MENUITEM "&Capturer le clavier",	IDM_ACTION_KBD_REQ_CAPTURE
+        MENUITEM "CTRL &Droite devient ALT Gauche",	IDM_ACTION_RCTRL_IS_LALT
         MENUITEM SEPARATOR
-        MENUITEM "&Hard Reset...",                 IDM_ACTION_HRESET
+        MENUITEM "&Hard Reset...",              IDM_ACTION_HRESET
         MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",     IDM_ACTION_RESET_CAD
         MENUITEM SEPARATOR
 	MENUITEM "Ctrl+Alt+&Esc",		IDM_ACTION_CTRL_ALT_ESC
         MENUITEM SEPARATOR
         MENUITEM "&Pause",                      IDM_ACTION_PAUSE
         MENUITEM SEPARATOR
-        MENUITEM "E&xit...",                       IDM_ACTION_EXIT
+        MENUITEM "&Quitter...",                       IDM_ACTION_EXIT
     END
-    POPUP "&View"
+    POPUP "&Vue"
     BEGIN
-        MENUITEM "&Hide status bar",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "&Masquer la barre de status",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM SEPARATOR
-        MENUITEM "&Resizeable window",          IDM_VID_RESIZE
-        MENUITEM "R&emember size && position",  IDM_VID_REMEMBER
+        MENUITEM "Fenètre &Retaillable",          IDM_VID_RESIZE
+        MENUITEM "S&auvegarder taille && position",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
         POPUP "Re&nderer"
         BEGIN
-            MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
-            MENUITEM "SDL (&Hardware)",         IDM_VID_SDL_HW
+            MENUITEM "&SDL (Logiciel)",         IDM_VID_SDL_SW
+            MENUITEM "SDL (&Materiel)",         IDM_VID_SDL_HW
             MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
 #if defined(DEV_BRANCH) && defined(USE_OPENGL)
             MENUITEM "Open&GL (3.3 Core)",      IDM_VID_OPENGL_CORE
@@ -49,67 +49,67 @@ BEGIN
 #endif
         END
         MENUITEM SEPARATOR
-        MENUITEM "Specify dimensions...",          IDM_VID_SPECIFY_DIM
-        MENUITEM "F&orce 4:3 display ratio",    IDM_VID_FORCE43
-        POPUP "&Window scale factor"
+        MENUITEM "Specifier dimensions...",          IDM_VID_SPECIFY_DIM
+        MENUITEM "F&orcer 4:3",    IDM_VID_FORCE43
+        POPUP "&Echelle facteurr"
         BEGIN
             MENUITEM "&0.5x",                   IDM_VID_SCALE_1X
             MENUITEM "&1x",                     IDM_VID_SCALE_2X
             MENUITEM "1.&5x",                   IDM_VID_SCALE_3X
             MENUITEM "&2x",                     IDM_VID_SCALE_4X
         END
-        POPUP "Filter method"
+        POPUP "Methode Filtre"
         BEGIN
-            MENUITEM "&Nearest",                 IDM_VID_FILTER_NEAREST
-            MENUITEM "&Linear",                  IDM_VID_FILTER_LINEAR
+            MENUITEM "&Plus proche",                 IDM_VID_FILTER_NEAREST
+            MENUITEM "&Lineaire",                  IDM_VID_FILTER_LINEAR
         END
-        MENUITEM "Hi&DPI scaling",              IDM_VID_HIDPI
+        MENUITEM "Mise à l'échelle Hi&DPI",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Fullscreen\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
-        POPUP "Fullscreen &stretch mode"
+        MENUITEM "&Plein Ecran\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        POPUP "Mode &Elargi plein écran"
         BEGIN
-            MENUITEM "&Full screen stretch",        IDM_VID_FS_FULL
+            MENUITEM "&Plein écran étiré",        IDM_VID_FS_FULL
             MENUITEM "&4:3",                        IDM_VID_FS_43
-            MENUITEM "&Square pixels (Keep ratio)", IDM_VID_FS_KEEPRATIO
-            MENUITEM "&Integer scale",              IDM_VID_FS_INT
+            MENUITEM "pixels &Carrés(Keep ratio)", IDM_VID_FS_KEEPRATIO
+            MENUITEM "Echelle &Entière",              IDM_VID_FS_INT
         END
-        POPUP "E&GA/(S)VGA settings"
+        POPUP "Réglages E&GA/(S)VGA"
         BEGIN
-            MENUITEM "&Inverted VGA monitor",   IDM_VID_INVERT
-            POPUP "VGA screen &type"
+            MENUITEM "Moniteur VGA &Inversé",   IDM_VID_INVERT
+            POPUP "&Type Ecran VGA"
             BEGIN
-                MENUITEM "RGB &Color",          IDM_VID_GRAY_RGB
-                MENUITEM "&RGB Grayscale",      IDM_VID_GRAY_MONO
-                MENUITEM "&Amber monitor",      IDM_VID_GRAY_AMBER
-                MENUITEM "&Green monitor",      IDM_VID_GRAY_GREEN
-                MENUITEM "&White monitor",      IDM_VID_GRAY_WHITE
+                MENUITEM "RGB &Couleur",          IDM_VID_GRAY_RGB
+                MENUITEM "&RGB Ton de Gris",      IDM_VID_GRAY_MONO
+                MENUITEM "Moniteur &Ambre",      IDM_VID_GRAY_AMBER
+                MENUITEM "Moniteur &Vert",      IDM_VID_GRAY_GREEN
+                MENUITEM "Moniteur &Blanc",      IDM_VID_GRAY_WHITE
             END
             POPUP "Grayscale &conversion type"
             BEGIN
                 MENUITEM "BT&601 (NTSC/PAL)",   IDM_VID_GRAYCT_601
                 MENUITEM "BT&709 (HDTV)",       IDM_VID_GRAYCT_709
-                MENUITEM "&Average",            IDM_VID_GRAYCT_AVE
+                MENUITEM "&Moyenne",            IDM_VID_GRAYCT_AVE
             END
         END
         MENUITEM SEPARATOR
         MENUITEM "CGA/PCjr/Tandy/E&GA/(S)VGA overscan",     IDM_VID_OVERSCAN
-        MENUITEM "Change contrast for &monochrome display", IDM_VID_CGACON
+        MENUITEM "Modifier contraste affichage  &monochrome", IDM_VID_CGACON
     END
     MENUITEM "&Media",				IDM_MEDIA
-    POPUP "&Tools"
+    POPUP "Ou&tils"
     BEGIN
-        MENUITEM "&Settings...",                IDM_CONFIG
-        MENUITEM "&Update status bar icons",	IDM_UPDATE_ICONS
+        MENUITEM "&Réglages...",                IDM_CONFIG
+        MENUITEM "Mettre à jour la barre de stat&us",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Change program &settings...",    IDM_VID_PROG_SETT
+        MENUITEM "Changer la &langue...",    IDM_VID_PROG_SETT
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
-        MENUITEM "Enable &Discord integration", IDM_DISCORD
+        MENUITEM "Activer intégration &Discord", IDM_DISCORD
 # endif
         MENUITEM SEPARATOR
-        MENUITEM "Take s&creenshot\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM "Copie &Ecran\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
-        MENUITEM "Sound &gain...",              IDM_SND_GAIN
+        MENUITEM "&Gain Son...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
         MENUITEM SEPARATOR
         MENUITEM "Begin trace\tCtrl+T",         IDM_ACTION_BEGIN_TRACE
@@ -153,10 +153,10 @@ BEGIN
 # endif
     END
 #endif
-    POPUP "&Help"
+    POPUP "&Aide"
     BEGIN
         MENUITEM "&Documentation...",           IDM_DOCS
-        MENUITEM "&About 86Box...",             IDM_ABOUT
+        MENUITEM "&A Propos de 86Box...",             IDM_ABOUT
     END
 END
 
@@ -169,17 +169,17 @@ CassetteSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&New image...",				IDM_CASSETTE_IMAGE_NEW
+        MENUITEM "&Nouvelle image...",				IDM_CASSETTE_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Existing image...",				IDM_CASSETTE_IMAGE_EXISTING
+        MENUITEM "Image &Existante...",				IDM_CASSETTE_IMAGE_EXISTING
         MENUITEM "Existing image (&Write-protected)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "&Record",					IDM_CASSETTE_RECORD
-        MENUITEM "&Play",					IDM_CASSETTE_PLAY
-        MENUITEM "&Rewind to the beginning",			IDM_CASSETTE_REWIND
-        MENUITEM "&Fast forward to the end",			IDM_CASSETTE_FAST_FORWARD
+        MENUITEM "En&registrer",					IDM_CASSETTE_RECORD
+        MENUITEM "&Jouer",					IDM_CASSETTE_PLAY
+        MENUITEM "&Revenir au debut",			IDM_CASSETTE_REWIND
+        MENUITEM "Aller à la &Fin",			IDM_CASSETTE_FAST_FORWARD
         MENUITEM SEPARATOR
-        MENUITEM "E&ject",					IDM_CASSETTE_EJECT
+        MENUITEM "E&jecter",					IDM_CASSETTE_EJECT
     END
 END
 
@@ -189,7 +189,7 @@ BEGIN
     BEGIN
         MENUITEM "&Image...",					IDM_CARTRIDGE_IMAGE
         MENUITEM SEPARATOR
-        MENUITEM "E&ject",					IDM_CARTRIDGE_EJECT
+        MENUITEM "E&jecter",					IDM_CARTRIDGE_EJECT
     END
 END
 
@@ -197,14 +197,14 @@ FloppySubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&New image...",				IDM_FLOPPY_IMAGE_NEW
+        MENUITEM "&Nouvelle image...",				IDM_FLOPPY_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Existing image...",				IDM_FLOPPY_IMAGE_EXISTING
+        MENUITEM "Image &Existante...",				IDM_FLOPPY_IMAGE_EXISTING
         MENUITEM "Existing image (&Write-protected)...",	IDM_FLOPPY_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "E&xport to 86F...",				IDM_FLOPPY_EXPORT_TO_86F
+        MENUITEM "E&xport vers 86F...",				IDM_FLOPPY_EXPORT_TO_86F
         MENUITEM SEPARATOR
-        MENUITEM "E&ject",					IDM_FLOPPY_EJECT
+        MENUITEM "E&jecter",					IDM_FLOPPY_EJECT
     END
 END
 
@@ -214,8 +214,8 @@ BEGIN
     BEGIN
         MENUITEM "&Mute",					IDM_CDROM_MUTE
         MENUITEM SEPARATOR
-        MENUITEM "E&mpty",					IDM_CDROM_EMPTY
-        MENUITEM "&Reload previous image",			IDM_CDROM_RELOAD
+        MENUITEM "E&jecter",					IDM_CDROM_EMPTY
+        MENUITEM "&Recharger image précedente",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
         MENUITEM "&Image",					IDM_CDROM_IMAGE
     END
@@ -225,13 +225,13 @@ ZIPSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&New image...",				IDM_ZIP_IMAGE_NEW
+        MENUITEM "&Nouvelle image...",				IDM_ZIP_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Existing image...",				IDM_ZIP_IMAGE_EXISTING
+        MENUITEM "Image &Existante...",				IDM_ZIP_IMAGE_EXISTING
         MENUITEM "Existing image (&Write-protected)...",	IDM_ZIP_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "E&ject",					IDM_ZIP_EJECT
-        MENUITEM "&Reload previous image",			IDM_ZIP_RELOAD
+        MENUITEM "E&jecter",					IDM_ZIP_EJECT
+        MENUITEM "&Recharger image précédente",			IDM_ZIP_RELOAD
     END
 END
 
@@ -239,13 +239,13 @@ MOSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&New image...",				IDM_MO_IMAGE_NEW
+        MENUITEM "&Nouvelle image...",			IDM_MO_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Existing image...",				IDM_MO_IMAGE_EXISTING
-        MENUITEM "Existing image (&Write-protected)...",	IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM "Image &Existante...",				IDM_MO_IMAGE_EXISTING
+        MENUITEM "Image Existante (&Write-protected)...",	IDM_MO_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "E&ject",					IDM_MO_EJECT
-        MENUITEM "&Reload previous image",			IDM_MO_RELOAD
+        MENUITEM "E&jecter",					IDM_MO_EJECT
+        MENUITEM "&Recharger image précédente",			IDM_MO_RELOAD
     END
 END
 
@@ -273,23 +273,22 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Program Settings"
-#define STR_SND_GAIN		"Sound Gain"
-#define STR_NEW_FLOPPY		"New Image"
-#define STR_CONFIG		"86Box Settings"
+#define STR_PROG_SETT		"Changer Langue"
+#define STR_SND_GAIN		"Gain Son"
+#define STR_NEW_FLOPPY		"Nouvelle Image"
+#define STR_CONFIG		"Réglages 86Box"
 #define STR_SPECIFY_DIM		"Specify Main Window Dimensions"
 
 #define STR_OK			"OK"
-#define STR_CANCEL		"Cancel"
+#define STR_CANCEL		"Annuler"
 #define STR_GLOBAL		"Save these settings as &global defaults"
-#define STR_DEFAULT		"&Default"
-#define STR_LANGUAGE		"Language:"
-#define STR_ICONSET		"Iconset:"
+#define STR_DEFAULT		"&Defaut"
+#define STR_LANGUAGE		"Langue:"
 
 #define STR_GAIN		"Gain"
 
-#define STR_FILE_NAME		"File name:"
-#define STR_DISK_SIZE		"Disk size:"
+#define STR_FILE_NAME		"Nom Fichier:"
+#define STR_DISK_SIZE		"Taille Disque:"
 #define STR_RPM_MODE		"RPM mode:"
 #define STR_PROGRESS		"Progress:"
 
@@ -392,9 +391,6 @@ END
 #define STR_BUGGER		"ISABugger device"
 #define STR_POSTCARD		"POST card"
 
-#define FONT_SIZE		9
-#define FONT_NAME		"Segoe UI"
-
 #include "dialogs.rc"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -491,7 +487,7 @@ BEGIN
     IDS_2124	"About 86Box"
     IDS_2125	"86Box v" EMU_VERSION
 
-    IDS_2126	"An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
+    IDS_2126	"An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
     IDS_2127	"OK"
     IDS_2128	"Hardware not available"
 #ifdef _WIN32
@@ -640,5 +636,5 @@ BEGIN
 END
 #define IDS_LANG_ENUS	IDS_7168
 
-// English (U.S.) resources
+// French (F.R.) resources
 /////////////////////////////////////////////////////////////////////////////

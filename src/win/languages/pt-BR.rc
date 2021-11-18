@@ -372,7 +372,7 @@ END
 #define STR_CYLS		"Cilindros:"
 #define STR_SIZE_MB		"Tamanho (MB):"
 #define STR_TYPE		"Tipo:"
-#define STR_IMG_FORMAT		"Formato da imagem:"
+#define STR_IMG_FORMAT		"Formato:"
 #define STR_BLOCK_SIZE		"Tamanho do bloco:"
 
 #define STR_FLOPPY_DRIVES	"Unidades de disquete:"
@@ -492,7 +492,7 @@ BEGIN
     IDS_2124	"Sobre o 86Box"
     IDS_2125	"86Box versão" EMU_VERSION
 
-    IDS_2126	"Um emulador de computadores antigos\n\nAutores: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva\n\nLançado sob a Licença Pública Geral GNU versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
+    IDS_2126	"Um emulador de computadores antigos\n\nAutores: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva\n\nLançado sob a Licença Pública Geral GNU versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
     IDS_2127	"OK"
     IDS_2128	"Hardware não disponível"
 #ifdef _WIN32

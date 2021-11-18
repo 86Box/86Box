@@ -243,6 +243,9 @@ extern void	media_menu_update_cdrom(int id);
 extern void	media_menu_update_zip(int id);
 extern void	media_menu_update_mo(int id);
 
+/* Functions in win_ui.c */
+extern HMENU	menuMain;
+extern void	ResetAllMenus();
 
 #ifdef __cplusplus
 }
