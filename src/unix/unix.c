@@ -833,7 +833,7 @@ void monitor_thread(void* param)
                 }
                 else if (strncasecmp(xargv[0], "fullscreen", 10) == 0)
                 {
-                    video_fullscreen = 1;
+                    video_fullscreen = video_fullscreen ? 0 : 1;
                     fullscreen_pending = 1;
                 }
                 else if (strncasecmp(xargv[0], "pause", 5) == 0)

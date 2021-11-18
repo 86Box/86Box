@@ -201,7 +201,7 @@ const machine_t machines[] = {
     /* Most likely has AMI 'F' KBC firmware. */
     { "[GC103] Trigem 286M",			"tg286m",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_IDE,							  512,  8192, 128,  127,	       machine_at_tg286m_init, NULL			},
     /* This has "AMI KEYBOARD BIOS", most likely 'F'. */
-    { "[NEAT] Dataexpert 286",			"ami286",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192, 128,  127,	     machine_at_neat_ami_init, NULL			},
+    { "[NEAT] DataExpert 286",			"ami286",		MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192, 128,  127,	     machine_at_neat_ami_init, NULL			},
     /* Has IBM AT KBC firmware. */
     { "[NEAT] NCR 3302",			"3302",			MACHINE_TYPE_286,		CPU_PKG_286, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_VIDEO,							  512, 16384, 128,  127,		 machine_at_3302_init, NULL			},
     /* Has IBM AT KBC firmware. */
@@ -257,7 +257,7 @@ const machine_t machines[] = {
     /* Has an unknown KBC firmware with commands B8 and BB in the style of
        Phoenix MultiKey and AMIKey-3(!), but also commands E1 and EA with
        unknown functions. */
-    { "[Intel 82335 ADI 386SX",			"adi386sx",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,	     machine_at_adi386sx_init, NULL			},
+    { "[Intel 82335] ADI 386SX",			"adi386sx",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,	     machine_at_adi386sx_init, NULL			},
     /* Has an AMI Keyboard BIOS PLUS KBC firmware ('8'). */
     { "[Intel 82335] Shuttle 386SX",		"shuttle386sx",		MACHINE_TYPE_386SX,		CPU_PKG_386SX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									  512,  8192,  128, 127,	 machine_at_shuttle386sx_init, NULL			},
     /* Uses Commodore (CBM) KBC firmware, to be implemented as identical to
@@ -319,9 +319,9 @@ const machine_t machines[] = {
        Phoenix MultiKey commands. */
     { "[OPTi 495] Award 486 clone",		"award495",		MACHINE_TYPE_386DX_486,		CPU_PKG_386DX | CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,								MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	      machine_at_opti495_init, NULL			},
     /* Has AMIKey F KBC firmware. */
-    { "[OPTi 495] Dataexpert SX495",		"ami495",		MACHINE_TYPE_386DX_486,		CPU_PKG_386DX | CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,								MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	  machine_at_opti495_ami_init, NULL			},
+    { "[OPTi 495] DataExpert SX495",		"ami495",		MACHINE_TYPE_386DX_486,		CPU_PKG_386DX | CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,								MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	  machine_at_opti495_ami_init, NULL			},
     /* Has AMIKey F KBC firmware (it's just the MR BIOS for the above machine). */
-    { "[OPTi 495] Dataexpert SX495 (MR BIOS)",	"mr495",		MACHINE_TYPE_386DX_486,		CPU_PKG_386DX | CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,								MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	   machine_at_opti495_mr_init, NULL			},
+    { "[OPTi 495] DataExpert SX495 (MR BIOS)",	"mr495",		MACHINE_TYPE_386DX_486,		CPU_PKG_386DX | CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,								MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	   machine_at_opti495_mr_init, NULL			},
 
     /* 486 machines - Socket 1 */
     /* Has JetKey 5 KBC Firmware which looks like it is a clone of AMIKey type F.
@@ -524,7 +524,7 @@ const machine_t machines[] = {
     { "[OPTi 597] Supermicro P5VL-PCI",		"p5vl",			MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED,					MACHINE_PCI | MACHINE_VLB,							 8192, 131072, 8192, 127,		 machine_at_p5vl_init, NULL			},
 
     /* SiS 50x */
-    /* This has an unknown AMI KBC firmware, most likely AMIKey / type 'F'. */
+    /* This has some form of AMI MegaKey as it uses keyboard controller command 0xCC. */
     { "[SiS 501] AMI Excalibur PCI-II Pentium ISA","excaliburpci2",	MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED,					MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	machine_at_excaliburpci2_init, NULL			},
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     { "[SiS 501] ASUS PCI/I-P5SP4",		"p5sp4",		MACHINE_TYPE_SOCKET4,		CPU_PKG_SOCKET4, 0, 60000000, 66666667, 5000, 5000, MACHINE_MULTIPLIER_FIXED,					MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,		machine_at_p5sp4_init, NULL			},
@@ -545,7 +545,7 @@ const machine_t machines[] = {
     /* Has AMIKey F KBC firmware. */
     { "[i430FX] AMI Apollo",			"apollo",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 2.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	       machine_at_apollo_init, NULL			},
     /* Has AMIKey H KBC firmware. */
-    { "[i430FX] Dataexpert EXP8551",		"exp8551",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 2.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	      machine_at_exp8551_init, NULL			},
+    { "[i430FX] DataExpert EXP8551",		"exp8551",		MACHINE_TYPE_SOCKET5,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 3380, 3520, 1.5, 2.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 131072, 8192, 127,	      machine_at_exp8551_init, NULL			},
     /* According to tests from real hardware: This has AMI MegaKey KBC firmware on the
        PC87306 Super I/O chip, command 0xA1 returns '5'.
        Command 0xA0 copyright string: (C)1994 AMI . */
