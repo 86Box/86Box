@@ -364,7 +364,7 @@ END
 #include "languages/cs-CZ.rc"
 #include "languages/de-DE.rc"
 #include "languages/en-US.rc"
-//#include "languages/fr-FR.rc"
+#include "languages/fr-FR.rc"
 #include "languages/hr-HR.rc"
 #include "languages/fi-FI.rc"
 #include "languages/hu-HU.rc"
