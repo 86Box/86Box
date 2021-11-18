@@ -15,10 +15,12 @@
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Andreas J. Reichel <webmaster@6th-dimension.com>
  *
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2017-2020 Fred N. van Kempen.
+ *		Copyright 2021      Andreas J. Reichel.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -756,4 +758,9 @@ const device_t ns16550_device = {
     serial_init, serial_close, NULL,
     { NULL }, serial_speed_changed, NULL,
     NULL
+};
+
+const char *serpt_names[SERPT_MODES_MAX] = {
+    [SERPT_VIRTUAL_CON] = "vcon",
+    [SERPT_SOCK_TCP] = "tcp"
 };

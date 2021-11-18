@@ -18,6 +18,7 @@
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2017-2020 Fred N. van Kempen.
  *		Copyright 2021 Laci bá'
+ *		Copyright 2021 Andreas J. Reichel.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -144,6 +145,7 @@ int video_vsync = 0;				/* (C) video */
 int video_framerate = -1;			/* (C) video */
 char video_shader[512] = { '\0' };		/* (C) video */
 int	serial_enabled[SERIAL_MAX] = {0,0};	/* (C) enable serial ports */
+serial_passthrough_t serial_passthrough[SERIAL_MAX] = {0}; /* (C) activation and kind of pass-through for serial ports */
 int bugger_enabled = 0;			/* (C) enable ISAbugger */
 int postcard_enabled = 0;			/* (C) enable POST card */
 int isamem_type[ISAMEM_MAX] = { 0,0,0,0 };	/* (C) enable ISA mem cards */

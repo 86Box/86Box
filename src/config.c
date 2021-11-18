@@ -51,6 +51,7 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 #include <86box/gameport.h>
+#include <86box/serial.h>
 #include <86box/machine.h>
 #include <86box/mouse.h>
 #include <86box/network.h>
@@ -1051,13 +1052,32 @@ static void
 load_ports(void)
 {
     char *cat = "Ports (COM & LPT)";
-    char *p;
+    char *p = NULL;
     char temp[512];
     int c, d;
 
+    memset(temp, 0, sizeof(temp));
+
     for (c = 0; c < SERIAL_MAX; c++) {
-	sprintf(temp, "serial%d_enabled", c + 1);
-	serial_enabled[c] = !!config_get_int(cat, temp, (c >= 2) ? 0 : 1);
+        sprintf(temp, "serial%d_enabled", c + 1);
+        serial_enabled[c] = !!config_get_int(cat, temp, (c >= 2) ? 0 : 1);
+
+        serial_passthrough[c].enabled = false;  
+        sprintf(temp, "serial%d_passthrough", c + 1);
+        p = config_get_string(cat, temp, "none");
+        if (!p) {
+            continue;
+        }
+
+        for (d = 0; d < SERPT_MODES_MAX; d++) {
+            if (strcmp(p, serpt_names[d]) == 0) {
+                serial_passthrough[c].mode = (enum serial_passthrough_mode)d;
+                serial_passthrough[c].enabled = true;
+            }
+        }
+        if (serial_passthrough[c].enabled) {    
+            config_log("Serial Port %d: passthrough enabled.\n\n", c+1);
+        }
     }
 
     for (c = 0; c < PARALLEL_MAX; c++) {
@@ -2526,11 +2546,19 @@ save_ports(void)
     int c, d;
 
     for (c = 0; c < SERIAL_MAX; c++) {
-	sprintf(temp, "serial%d_enabled", c + 1);
-	if (((c < 2) && serial_enabled[c]) || ((c >= 2) && !serial_enabled[c]))
-		config_delete_var(cat, temp);
-	else
-		config_set_int(cat, temp, serial_enabled[c]);
+        sprintf(temp, "serial%d_enabled", c + 1);
+        if (((c < 2) && serial_enabled[c]) || ((c >= 2) && !serial_enabled[c])) {
+            config_delete_var(cat, temp);
+        } else {
+            config_set_int(cat, temp, serial_enabled[c]);
+            if (serial_enabled[c]) {
+                if (serial_passthrough[c].enabled) {
+                    sprintf(temp, "serial%d_passthrough", c + 1);
+                    config_set_string(cat, temp,
+                                      serpt_names[serial_passthrough[c].mode]);
+                }    
+            }   
+        }
     }
 
     for (c = 0; c < PARALLEL_MAX; c++) {

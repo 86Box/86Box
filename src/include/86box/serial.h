@@ -13,13 +13,19 @@
  * Author:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
+ *		Andreas J. Reichel, <webmaster@6th-dimension.com>
  *
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2017-2020 Fred N. van Kempen.
+ *		Copyright 2021      Andreas J. Reichel.
  */
 #ifndef EMU_SERIAL_H
 # define EMU_SERIAL_H
+
+
+#include <stdint.h>
+#include <stdbool.h>
 
 
 #define SERIAL_8250		0
@@ -74,7 +80,19 @@ typedef struct serial_device_s
     serial_t *serial;
 } serial_device_t;
 
+#define SERPT_MODES_MAX 2
+enum serial_passthrough_mode {
+    SERPT_VIRTUAL_CON,
+    SERPT_SOCK_TCP
+};
+extern const char *serpt_names[SERPT_MODES_MAX];
 
+typedef struct serial_passthrough_s {
+    bool enabled;
+    enum serial_passthrough_mode mode;
+} serial_passthrough_t;
+
+extern serial_passthrough_t serial_passthrough[SERIAL_MAX];
 extern serial_t *	serial_attach(int port,
 			      void (*rcr_callback)(struct serial_s *serial, void *p),
 			      void (*dev_write)(struct serial_s *serial, void *p, uint8_t data),
