@@ -63,8 +63,8 @@ dynld_module(const char *name, dllimp_t *table)
     for (imp=table; imp->name!=NULL; imp++) {
 	func = GetProcAddress(h, imp->name);
 	if (func == NULL) {
-		dynld_log("DynLd(\"%s\"): function '%s' not found!\n",
-						name, imp->name);
+		dynld_log("DynLd(\"%s\"): function '%s' not found! (%08X)\n",
+						name, imp->name, GetLastError());
 		FreeLibrary(h);
 		return(NULL);
 	}
