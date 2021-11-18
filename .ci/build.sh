@@ -151,18 +151,15 @@ done
 cmake_flags_extra=
 
 # Check if mandatory arguments were specified.
-if [ -z "$package_name" -a -z "$tarball_name" ]
+if [ -z "$package_name" -a -z "$tarball_name" ] || [ ! -z "$package_name" -a -z "$arch" ]
 then
 	echo '[!] Usage: build.sh -b {package_name} {architecture} [cmake_flags...]'
 	echo '           build.sh -s {source_tarball_name}'
 	exit 100
 fi
 
-# Switch to the correct directory.
-while [ ! -e ".ci/build.sh" ]
-do
-	cd ..
-done
+# Switch to the repository root directory.
+cd "$(dirname "$0")/.."
 
 # Make source tarball if requested.
 if [ ! -z "$tarball_name" ]
@@ -172,26 +169,23 @@ then
 	# Clean local tree of gitignored files.
 	git clean -dfX
 
-	# Recreate output directory if it was removed by git clean.
+	# Recreate working directory if it was removed by git clean.
 	[ ! -d "$cwd" ] && mkdir -p "$cwd"
 
 	# Save current HEAD commit to VERSION.
 	git log --stat -1 > VERSION || rm -f VERSION
 
 	# Archive source.
-	rm -f "$tarball_name.tar"*
-	make_tar "$tarball_name.tar"
+	make_tar "$cwd/$tarball_name.tar"
 	status=$?
 
 	# Check if the archival succeeded.
 	if [ $status -ne 0 ]
 	then
 		echo [!] Tarball creation failed with status [$status]
-		rm -f "$tarball_name.tar"*
 		exit 1
 	else
 		echo [-] Source tarball [$tarball_name] created successfully
-		mv "$tarball_name.tar"* "$cwd/"
 		[ -z "$package_name" ] && exit 0
 	fi
 fi
