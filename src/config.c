@@ -14,12 +14,14 @@
  *		Miran Grca, <mgrca8@gmail.com>
  *		Fred N. van Kempen, <decwiz@yahoo.com>
  *		Overdoze,
- *		David Hrdlička, <hrdlickadavid@outlook.com>
+ *		David Hrdlička, <hrdlickadavid@outlook.com>,
+ *		Andreas J. Reichel, <webmaster@6th-dimension.com>
  *
  *		Copyright 2008-2019 Sarah Walker.
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2017-2019 Fred N. van Kempen.
  *		Copyright 2018,2019 David Hrdlička.
+ *		Copyright 2021      Andreas J. Reichel
  *
  * NOTE:	Forcing config files to be in Unicode encoding breaks
  *		it on Windows XP, and possibly also Vista. Use the
@@ -51,6 +53,8 @@
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
 #include <86box/gameport.h>
+#include <86box/serial.h>
+#include <86box/serial_passthrough.h>
 #include <86box/machine.h>
 #include <86box/mouse.h>
 #include <86box/network.h>
@@ -1061,9 +1065,18 @@ load_ports(void)
     char temp[512];
     int c, d;
 
+    memset(temp, 0, sizeof(temp));
+
     for (c = 0; c < SERIAL_MAX; c++) {
-	sprintf(temp, "serial%d_enabled", c + 1);
-	serial_enabled[c] = !!config_get_int(cat, temp, (c >= 2) ? 0 : 1);
+        sprintf(temp, "serial%d_enabled", c + 1);
+        serial_enabled[c] = !!config_get_int(cat, temp, (c >= 2) ? 0 : 1);
+
+        sprintf(temp, "serial%d_passthrough_enabled", c + 1);
+        serial_passthrough_enabled[c] = !!config_get_int(cat, temp, 0);
+
+        if (serial_passthrough_enabled[c]) {    
+            config_log("Serial Port %d: passthrough enabled.\n\n", c+1);
+        }
     }
 
     for (c = 0; c < PARALLEL_MAX; c++) {
@@ -2537,11 +2550,18 @@ save_ports(void)
     int c, d;
 
     for (c = 0; c < SERIAL_MAX; c++) {
-	sprintf(temp, "serial%d_enabled", c + 1);
-	if (((c < 2) && serial_enabled[c]) || ((c >= 2) && !serial_enabled[c]))
-		config_delete_var(cat, temp);
-	else
-		config_set_int(cat, temp, serial_enabled[c]);
+        sprintf(temp, "serial%d_enabled", c + 1);
+        if (((c < 2) && serial_enabled[c]) || ((c >= 2) && !serial_enabled[c])) {
+            config_delete_var(cat, temp);
+        } else {
+            config_set_int(cat, temp, serial_enabled[c]);
+        }
+        if (serial_enabled[c]) {
+            if (serial_passthrough_enabled[c]) {
+                sprintf(temp, "serial%d_passthrough_enabled", c + 1);
+                config_set_int(cat, temp, 1);
+            }
+        }
     }
 
     for (c = 0; c < PARALLEL_MAX; c++) {

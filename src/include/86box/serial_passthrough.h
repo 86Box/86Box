@@ -18,6 +18,7 @@
 #define SERIAL_PASSTHROUGH_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -25,13 +26,17 @@
 #include <86box/serial.h>
 
 
-enum passthrough_mode {
-        PASSTHROUGH_MODE_VCON = 1
+#define SERPT_MODES_MAX 2
+
+enum serial_passthrough_mode {
+        SERPT_MODE_VCON,
+	SERPT_MODE_TCP
 };
 
+extern const char *serpt_mode_names[SERPT_MODES_MAX];
 
 typedef struct serial_passthrough_s {
-        enum passthrough_mode mode;
+        enum serial_passthrough_mode mode;
         pc_timer_t host_to_serial_timer;
         pc_timer_t serial_to_host_timer;
         serial_t *serial;
@@ -39,5 +44,13 @@ typedef struct serial_passthrough_s {
         uint8_t port;
         uint8_t data;
 } serial_passthrough_t;
+
+
+typedef struct serial_passthrough_cfg_s {
+	bool enabled;
+	enum serial_passthrough_mode mode;
+} serial_passthrough_cfg_t;
+
+extern serial_passthrough_cfg_t serial_passthrough_cfg[SERIAL_MAX];
 
 #endif

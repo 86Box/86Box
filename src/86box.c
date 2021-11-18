@@ -19,11 +19,13 @@
  *		Copyright 2017-2020 Fred N. van Kempen.
  *		Copyright 2021 Laci bá'
  *		Copyright 2021 dob205
+ *		Copyright 2021 Andreas J. Reichel.
  */
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
@@ -67,6 +69,7 @@
 #include <86box/isartc.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
+#include <86box/serial_passthrough.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
 #include <86box/gameport.h>
@@ -149,7 +152,8 @@ int video_vsync = 0;				/* (C) video */
 int video_framerate = -1;			/* (C) video */
 char video_shader[512] = { '\0' };		/* (C) video */
 int	serial_enabled[SERIAL_MAX] = {0,0};	/* (C) enable serial ports */
-int bugger_enabled = 0;				/* (C) enable ISAbugger */
+bool serial_passthrough_enabled[SERIAL_MAX] = {0}; /* (C) activation and kind of pass-through for serial ports */
+int bugger_enabled = 0;			/* (C) enable ISAbugger */
 int postcard_enabled = 0;			/* (C) enable POST card */
 int isamem_type[ISAMEM_MAX] = { 0,0,0,0 };	/* (C) enable ISA mem cards */
 int isartc_type = 0;				/* (C) enable ISA RTC card */

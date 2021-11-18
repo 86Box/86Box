@@ -163,6 +163,12 @@ serial_passthrough_init(const device_t *info)
 }
 
 
+const char *serpt_mode_names[SERPT_MODES_MAX] = {
+        [SERPT_MODE_VCON] = "vcon",
+        [SERPT_MODE_TCP] = "tcp"
+};
+
+
 static const device_config_t serial_passthrough_config[] = {
     {
         "port", "Serial Port", CONFIG_SELECTION, "", 0, "", { 0 }, {
@@ -184,9 +190,9 @@ static const device_config_t serial_passthrough_config[] = {
         }
     },
     {
-        "mode", "Passthrough Mode", CONFIG_SELECTION, "", 1, "", { 0 }, {
+        "mode", "Passthrough Mode", CONFIG_SELECTION, "", 0, "", { 0 }, {
                 {
-                        "Pseudo Terminal/Virtual Console", 1
+                        "Pseudo Terminal/Virtual Console", 0
                 },
                 {
                         ""
