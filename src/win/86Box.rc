@@ -371,3 +371,4 @@ END
 #include "languages/ja-JP.rc"
 #include "languages/pt-BR.rc"
 #include "languages/pt-PT.rc"
+#include "languages/sl-SI.rc"
