@@ -69,7 +69,7 @@ BEGIN
         POPUP "&Stretching-Modus im Vollbildmodus"
         BEGIN
             MENUITEM "&Vollbild-Stretching",        IDM_VID_FS_FULL
-            MENUITEM "&4:3",                        IDM_VID_FS_43
+            MENUITEM "&4:3-Seitenverhältnis erzwingen",                        IDM_VID_FS_43
             MENUITEM "&Quadratische Pixel (Seitenverhältnis beibehalten)", IDM_VID_FS_KEEPRATIO
             MENUITEM "&Integer-Skalierung",              IDM_VID_FS_INT
         END
@@ -328,7 +328,7 @@ END
 #define STR_SSI			"Innovation SSI-2001"
 #define STR_CMS			"CMS / Game Blaster"
 #define STR_GUS			"Gravis Ultrasound"
-#define STR_FLOAT		"Use FLOAT32 sound"
+#define STR_FLOAT		"FLOAT32-Wiedergabe benutzen"
 
 #define STR_NET_TYPE		"Netzwerktyp:"
 #define STR_PCAP		"PCap-Gerät:"
@@ -391,6 +391,9 @@ END
 #define STR_BUGGER		"ISABugger-Gerät"
 #define STR_POSTCARD		"POST-Code-Karte"
 
+#define FONT_SIZE		9
+#define FONT_NAME		"Segoe UI"
+
 #include "dialogs.rc"
 
 /////////////////////////////////////////////////////////////////////////////
@@ -402,7 +405,7 @@ STRINGTABLE DISCARDABLE
 BEGIN
     2048	"86Box"
     IDS_2049	"Fehler"
-    IDS_2050	"Kritischer Fehler"
+    IDS_2050	"Fataler Fehler"
     IDS_2051	"<reserved>"
     IDS_2052	"Bitte Strg+Alt+Bild ab zur Rückkehr in den Fenstermodus drücken."
     IDS_2053	"Geschwindigkeit"
@@ -520,8 +523,8 @@ BEGIN
     IDS_2136	"Nicht beenden"
     IDS_2137	"Resetten"
     IDS_2138	"Nicht Resetten"
-    IDS_2139	"MO-Images (*.IM?;*.MDI)\0*.IM?;*.MDI\0Alle Dateien (*.*)\0*.*\0"
-    IDS_2140	"CD-ROM-Images (*.ISO;*.CUE)\0*.ISO;*.CUE\0Alle Dateien (*.*)\0*.*\0"
+    IDS_2139	"MO-Imagedateien (*.IM?;*.MDI)\0*.IM?;*.MDI\0Alle Dateien (*.*)\0*.*\0"
+    IDS_2140	"CD-ROM-Imagedateien (*.ISO;*.CUE)\0*.ISO;*.CUE\0Alle Dateien (*.*)\0*.*\0"
     IDS_2141	"%hs-Gerätekonfiguration"
     IDS_2142    "Monitor im Standby"
     IDS_2143	"OpenGL-Shader (*.GLSL)\0*.GLSL\0Alle Dateien (*.*)\0*.*\0"
@@ -563,9 +566,9 @@ BEGIN
     IDS_4119	"Nicht unterstütztes Disk-Image"
     IDS_4120	"Überschreiben"
     IDS_4121	"Nicht überschreiben"
-    IDS_4122	"Rohdatenimage (.img)"
-    IDS_4123	"HDI-Image (.hdi)"
-    IDS_4124	"HDX-Image (.hdx)"
+    IDS_4122	"Rohdatenimagedateien (.img)"
+    IDS_4123	"HDI-Imagedateien (.hdi)"
+    IDS_4124	"HDX-Imagedateien (.hdx)"
     IDS_4125	"VHD mit fester Größe (.vhd)"
     IDS_4126	"VHD mit dynamischer Größe (.vhd)"
     IDS_4127	"Differenzierende VHD (.vhd)"

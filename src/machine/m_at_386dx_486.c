@@ -988,7 +988,7 @@ machine_at_4dps_init(const machine_t *model)
     pci_register_slot(0x07, PCI_CARD_NORMAL, 4, 1, 2, 3);
 
     device_add(&w83787f_device);
-    device_add(&keyboard_at_ami_device);
+    device_add(&keyboard_ps2_ami_device);
 
     device_add(&intel_flash_bxt_device);
 

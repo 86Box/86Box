@@ -42,9 +42,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef GUSMAX
   GUSMAX	:= y
  endif
- ifndef HEDAKA
-  HEDAKA	:= y
- endif
  ifndef LASERXT
   LASERXT	:= y
  endif
@@ -63,9 +60,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef PAS16
   PAS16		:= n
  endif
- ifndef PS2M70T4
-  PS2M70T4	:= y
- endif
  ifndef SIO_DETECT
   SIO_DETECT	:= y
  endif
@@ -77,9 +71,6 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef XL24
   XL24		:= y
- endif
- ifndef VECT486VL
-  VECT486VL	:= y
  endif
  ifndef OLIVETTI
   OLIVETTI	:= y
@@ -103,9 +94,6 @@ else
  ifndef GUSMAX
   GUSMAX	:= n
  endif
- ifndef HEDAKA
-  HEDAKA	:= n
- endif
  ifndef LASERXT
   LASERXT	:= n
  endif
@@ -124,9 +112,6 @@ else
  ifndef PAS16
   PAS16		:= n
  endif
- ifndef PS2M70T4
-  PS2M70T4	:= n
- endif
  ifndef SIO_DETECT
   SIO_DETECT	:= n
  endif
@@ -138,9 +123,6 @@ else
  endif
  ifndef XL24
   XL24		:= n
- endif
- ifndef VECT486VL
-  VECT486VL	:= n
  endif
  ifndef OLIVETTI
   OLIVETTI	:= n
@@ -492,10 +474,6 @@ ifeq ($(GUSMAX), y)
 OPTS		+= -DUSE_GUSMAX
 endif
 
-ifeq ($(HEDAKA), y)
-OPTS		+= -DUSE_HEDAKA
-endif
-
 ifeq ($(LASERXT), y)
 OPTS		+= -DUSE_LASERXT
 DEVBROBJ	+= m_xt_laserxt.o
@@ -523,10 +501,6 @@ endif
 ifeq ($(PAS16), y)
 OPTS		+= -DUSE_PAS16
 DEVBROBJ	+= snd_pas16.o
-endif
-
-ifeq ($(PS2M70T4), y)
-OPTS		+= -DUSE_PS2M70T4
 endif
 
 ifeq ($(SIO_DETECT), y)

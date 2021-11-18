@@ -67,7 +67,7 @@
 
 
 typedef struct {
-    WCHAR str[512];
+    WCHAR str[1024];
 } rc_str_t;
 
 
@@ -180,50 +180,50 @@ LoadCommonStrings(void)
     free_string(&lpRCstr4096);
     free_string(&lpRCstr2048);
 
-    lpRCstr2048 = (rc_str_t *)malloc(STR_NUM_2048*sizeof(rc_str_t));
-    lpRCstr4096 = (rc_str_t *)malloc(STR_NUM_4096*sizeof(rc_str_t));
-    lpRCstr4352 = (rc_str_t *)malloc(STR_NUM_4352*sizeof(rc_str_t));
-    lpRCstr4608 = (rc_str_t *)malloc(STR_NUM_4608*sizeof(rc_str_t));
-    lpRCstr5120 = (rc_str_t *)malloc(STR_NUM_5120*sizeof(rc_str_t));
-    lpRCstr5376 = (rc_str_t *)malloc(STR_NUM_5376*sizeof(rc_str_t));
-    lpRCstr5632 = (rc_str_t *)malloc(STR_NUM_5632*sizeof(rc_str_t));
-    lpRCstr5888 = (rc_str_t *)malloc(STR_NUM_5888*sizeof(rc_str_t));
-    lpRCstr6144 = (rc_str_t *)malloc(STR_NUM_6144*sizeof(rc_str_t));
-    lpRCstr7168 = (rc_str_t *)malloc(STR_NUM_7168*sizeof(rc_str_t));
+    lpRCstr2048 = calloc(STR_NUM_2048, sizeof(rc_str_t));
+    lpRCstr4096 = calloc(STR_NUM_4096, sizeof(rc_str_t));
+    lpRCstr4352 = calloc(STR_NUM_4352, sizeof(rc_str_t));
+    lpRCstr4608 = calloc(STR_NUM_4608, sizeof(rc_str_t));
+    lpRCstr5120 = calloc(STR_NUM_5120, sizeof(rc_str_t));
+    lpRCstr5376 = calloc(STR_NUM_5376, sizeof(rc_str_t));
+    lpRCstr5632 = calloc(STR_NUM_5632, sizeof(rc_str_t));
+    lpRCstr5888 = calloc(STR_NUM_5888, sizeof(rc_str_t));
+    lpRCstr6144 = calloc(STR_NUM_6144, sizeof(rc_str_t));
+    lpRCstr7168 = calloc(STR_NUM_7168, sizeof(rc_str_t));
 
     for (i=0; i<STR_NUM_2048; i++)
-	LoadString(hinstance, 2048+i, lpRCstr2048[i].str, 512);
+	LoadString(hinstance, 2048+i, lpRCstr2048[i].str, 1024);
 
     for (i=0; i<STR_NUM_4096; i++)
-	LoadString(hinstance, 4096+i, lpRCstr4096[i].str, 512);
+	LoadString(hinstance, 4096+i, lpRCstr4096[i].str, 1024);
 
     for (i=0; i<STR_NUM_4352; i++)
-	LoadString(hinstance, 4352+i, lpRCstr4352[i].str, 512);
+	LoadString(hinstance, 4352+i, lpRCstr4352[i].str, 1024);
 
     for (i=0; i<STR_NUM_4608; i++)
-	LoadString(hinstance, 4608+i, lpRCstr4608[i].str, 512);
+	LoadString(hinstance, 4608+i, lpRCstr4608[i].str, 1024);
 
     for (i=0; i<STR_NUM_5120; i++)
-	LoadString(hinstance, 5120+i, lpRCstr5120[i].str, 512);
+	LoadString(hinstance, 5120+i, lpRCstr5120[i].str, 1024);
 
     for (i=0; i<STR_NUM_5376; i++) {
 	if ((i == 0) || (i > 3))
-		LoadString(hinstance, 5376+i, lpRCstr5376[i].str, 512);
+		LoadString(hinstance, 5376+i, lpRCstr5376[i].str, 1024);
     }
 
     for (i=0; i<STR_NUM_5632; i++) {
 	if ((i == 0) || (i > 3))
-		LoadString(hinstance, 5632+i, lpRCstr5632[i].str, 512);
+		LoadString(hinstance, 5632+i, lpRCstr5632[i].str, 1024);
     }
 
     for (i=0; i<STR_NUM_5888; i++)
-	LoadString(hinstance, 5888+i, lpRCstr5888[i].str, 512);
+	LoadString(hinstance, 5888+i, lpRCstr5888[i].str, 1024);
 
     for (i=0; i<STR_NUM_6144; i++)
-	LoadString(hinstance, 6144+i, lpRCstr6144[i].str, 512);
+	LoadString(hinstance, 6144+i, lpRCstr6144[i].str, 1024);
 
     for (i=0; i<STR_NUM_7168; i++)
-	LoadString(hinstance, 7168+i, lpRCstr7168[i].str, 512);
+	LoadString(hinstance, 7168+i, lpRCstr7168[i].str, 1024);
 }
 
 
@@ -284,9 +284,11 @@ set_language(uint32_t id)
 		LoadCommonStrings();
 		
 		/* Reload main menu */
-		SetMenu(hwndMain, LoadMenu(hinstance, L"MainMenu"));
+		menuMain = LoadMenu(hinstance, L"MainMenu");
+		SetMenu(hwndMain, menuMain);
 		
-		/* Re-init media menu */
+		/* Re-init all the menus */
+		ResetAllMenus();
 		media_menu_init();
     } 
 }

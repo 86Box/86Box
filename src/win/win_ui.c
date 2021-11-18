@@ -198,22 +198,22 @@ delete_submenu(HMENU parent, HMENU target)
 }
 #endif
 
+static int menu_vidapi = -1;
+static HMENU cur_menu = NULL;
+
 static void
 show_render_options_menu()
 {
 #if defined(DEV_BRANCH) && defined(USE_OPENGL)
-	static int menu_vidapi = -1;
-	static HMENU cur_menu = NULL;
-	
 	if (vid_api == menu_vidapi)
 		return;
-
+	
 	if (cur_menu != NULL)
 	{
 		if (delete_submenu(menuMain, cur_menu))
 			cur_menu = NULL;
 	}
-
+	
 	if (cur_menu == NULL)
 	{
 		switch (IDM_VID_SDL_SW + vid_api)
@@ -246,7 +246,7 @@ video_set_filter_menu(HMENU menu)
 	EnableMenuItem(menu, IDM_VID_FILTER_LINEAR, vid_api == 0 ? MF_GRAYED : MF_ENABLED);
 }
 
-static void
+void
 ResetAllMenus(void)
 {
     CheckMenuItem(menuMain, IDM_ACTION_RCTRL_IS_LALT, MF_UNCHECKED);
@@ -289,6 +289,9 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_SDL_OPENGL, MF_UNCHECKED);
 #if defined(DEV_BRANCH) && defined(USE_OPENGL)
     CheckMenuItem(menuMain, IDM_VID_OPENGL_CORE, MF_UNCHECKED);
+	
+	menu_vidapi = -1;
+	cur_menu = NULL;
     show_render_options_menu();
 #endif
 #ifdef USE_VNC
@@ -1370,9 +1373,10 @@ ui_init(int nCmdShow)
 		ResizeWindowByClientArea(hwndMain, scrnsz_x, scrnsz_y + sbar_height);
     }
 
-    /* Reset all menus to their defaults. */
-    ResetAllMenus();
-    media_menu_init();
+    /* Load the desired language, and reset all menus to their defaults */
+    uint32_t helper_lang = lang_id;
+    lang_id = 0;
+    set_language(helper_lang);	
 
     /* Make the window visible on the screen. */
     ShowWindow(hwnd, nCmdShow);
