@@ -60,6 +60,8 @@ extern "C" {
 #include "../disk/minivhd/minivhd_util.h"
 }
 
+extern bool OpenFileChooser(char*, size_t, std::vector<std::pair<std::string, std::string>>&, bool);
+
 namespace ImGuiSettingsWindow {
 
 	bool showSettingsWindow = false;
@@ -166,7 +168,6 @@ namespace ImGuiSettingsWindow {
 		#else
 		auto ok = std::async(std::launch::async | std::launch::deferred, [&res, &n, &filefilter, &save]
 		{
-			extern bool OpenFileChooser(char*, size_t, std::vector<std::pair<std::string, std::string>>&, bool);
 			return OpenFileChooser(res, n, filefilter, save);
 		});
 		while (ok.wait_for(std::chrono::milliseconds(1000 / 60)) != std::future_status::ready)
