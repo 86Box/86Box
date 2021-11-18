@@ -10,18 +10,9 @@
 #include <tuple>
 #include <iostream>
 #include <sstream>
+#include <86box/imgui_settings_window.h>
 
 extern SDL_Window* sdl_win;
-struct FileOpenSaveRequest
-{
-	std::vector<std::pair<std::string, std::string>>& filters;
-	void (*filefunc3params)(uint8_t, char*, uint8_t) = nullptr;
-	void (*filefunc2params)(uint8_t, char*) = nullptr;
-	void (*filefunc2paramsalt)(char*, uint8_t) = nullptr;
-	bool save = false;
-	bool wp = false;
-	uint8_t id = 0;
-};
 
 std::vector<std::string> split(const std::string& s)
 {

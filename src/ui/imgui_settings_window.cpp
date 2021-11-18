@@ -10,10 +10,10 @@
 #include <iostream>
 #include <string>
 #include <string_view>
-#include <codecvt>
 #include <locale>
 #include <algorithm>
 #include <utility>
+#include <atomic>
 #include "imgui.h"
 #include <86box/imgui_settings_window.h>
 
@@ -151,6 +151,23 @@ namespace ImGuiSettingsWindow {
 	void RenderOtherRemovableDevicesCategory();
 	void RenderOtherPeripheralsCategory();
 
+	std::atomic<bool> file_choose_ok{false}, file_choose{false};
+	size_t strsize = 0;
+	char* strres = nullptr;
+	void SignalFileChoosed(uint8_t id, char* str)
+	{
+
+	}
+	void OpenSettingsFileChooser(char* res, size_t n, const char* filterstr, bool save = false)
+	{
+		FileOpenSaveRequest filereq;
+		filereq.filefunc2params = SignalFileChoosed;
+		filereq.save = save;
+		std::vector<std::pair<std::string, std::string>> filefilter;
+		assert(strstr(filterstr, "|"));
+		filefilter[0].first = std::string(filterstr).substr(0,);
+		
+	}
 	void InitSettings()
 	{
 		int i = 0;
@@ -364,7 +381,7 @@ namespace ImGuiSettingsWindow {
 		device_config_t config;
 		int val;
 		char* str;
-		wchar_t filestr[512];
+		char filestr[512];
 	};
 	struct
 	{
@@ -399,8 +416,8 @@ namespace ImGuiSettingsWindow {
 								 (char *) config->name, config->default_int);
 					break;
 				case CONFIG_FNAME:
-					wcsncpy(config_device.configs.back().filestr, config_get_wstring((char *) config_device.dev.name,
-								 (char *) config->name, L""), 512);
+					strncpy(config_device.configs.back().filestr, config_get_string((char *) config_device.dev.name,
+								 (char *) config->name, ""), 512);
 					break;
 			}
 			config++;
@@ -513,15 +530,8 @@ namespace ImGuiSettingsWindow {
 					}
 					case CONFIG_FNAME:
 					{
-						std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
-						std::wstring wfilestr{config.filestr};
-						
-						std::string utf8str = converter.to_bytes(wfilestr);
-						utf8str.resize(1024);
 						ImGui::TextUnformatted(config.config.description); ImGui::SameLine();
-						ImGui::InputText((std::string("##File name") + std::string(config.config.name)).c_str(), (char*)utf8str.data(), utf8str.size(), ImGuiInputTextFlags_EnterReturnsTrue);
-						wfilestr = converter.from_bytes(utf8str);
-						wcsncpy(config.filestr, wfilestr.c_str(), 512);
+						ImGui::InputText((std::string("##File name") + std::string(config.config.name)).c_str(), (char*)config.filestr, strlen(config.filestr), ImGuiInputTextFlags_EnterReturnsTrue);
 						break;
 					}
 				}
@@ -554,7 +564,7 @@ namespace ImGuiSettingsWindow {
 						}
 						case CONFIG_FNAME:
 						{
-							config_set_wstring((char *) config_device.dev.name,
+							config_set_string((char *) config_device.dev.name,
 								(char *) config.config.name, config.filestr);
 							break;
 						}

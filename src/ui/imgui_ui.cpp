@@ -251,15 +251,6 @@ static std::vector<std::pair<std::string, std::string>> cartfilter
     { "Cartridge images", "*.A *.B *.JRC" }
 };
 
-static std::vector<std::pair<std::string, std::string>> allfilefilter
-{
-#ifdef _WIN32
-	{"All Files", "*.*"}
-#else
-    {"All Files", "*"}
-#endif
-};
-
 static bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::string, std::string>>& filters = allfilefilter, bool save = false)
 {
 #ifdef _WIN32
@@ -336,17 +327,6 @@ static bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::stri
     return boolres;
 #endif
 }
-
-struct FileOpenSaveRequest
-{
-	std::vector<std::pair<std::string, std::string>>& filters = allfilefilter;
-	void (*filefunc3params)(uint8_t, char*, uint8_t) = nullptr;
-	void (*filefunc2params)(uint8_t, char*) = nullptr;
-	void (*filefunc2paramsalt)(char*, uint8_t) = nullptr;
-	bool save = false;
-	bool wp = false;
-	uint8_t id = 0;
-};
 
 std::atomic<int> filedlgopen{ 0 };
 
