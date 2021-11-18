@@ -15,47 +15,91 @@
  *		Copyright 2021 RichardG.
  */
 
-/* Run this on /script to get all approvals required to sync build numbers across jobs:
+def osArchs = [
+	'Windows': ['32', '64'],
+	'Linux': ['x86', 'x86_64', 'arm32', 'arm64']
+]
 
-def approval = org.jenkinsci.plugins.scriptsecurity.scripts.ScriptApproval.get()
-approval.approveSignature('staticMethod jenkins.model.Jenkins getInstance')
-approval.approveSignature('method hudson.model.ItemGroup getItem java.lang.String')
-approval.approveSignature('field hudson.model.Job nextBuildNumber')
-approval.approveSignature('method hudson.model.Job saveNextBuildNumber')
+def archNames = [
+	'32': 'x86 (32-bit)',
+	'x86': 'x86 (32-bit)',
+	'64': 'x64 (64-bit)',
+	'x86_64': 'x64 (64-bit)',
+	'arm32': 'ARM (32-bit)',
+	'arm64': 'ARM (64-bit)'
+]
 
-*/
+def dynarecNames = [
+	'ODR': 'Old Recompiler (recommended)',
+	'NDR': 'New Recompiler (beta)',
+	'NoDR': 'No Dynamic Recompiler'
+]
+
+def dynarecArchs = [
+	'32': ['ODR', 'NDR'],
+	'x86': ['ODR', 'NDR'],
+	'64': ['ODR', 'NDR'],
+	'x86_64': ['ODR', 'NDR'],
+	'arm32': ['NDR'],
+	'ARM32': ['NDR'],
+	'arm64': ['NDR'],
+	'ARM64': ['NDR']
+]
+
+def dynarecFlags = [
+	'ODR': '-D NEW_DYNAREC=OFF',
+	'NDR': '-D NEW_DYNAREC=ON',
+	'NoDR': '-D DYNAREC=OFF'
+]
+
+def dynarecSlugs = [
+	'ODR': '',
+	'NDR': '-NDR',
+	'NoDR': ''
+]
+
+def presets = [
+	'Regular',
+	'Debug'
+]
+
+def presetSlugs = [
+	'Regular': '',
+	'Debug': '-Debug',
+	'Dev': '-Dev'
+]
+
+def presetFlags = [
+	'Regular': '--preset=regular',
+	'Debug': '--preset=debug',
+	'Dev': '--preset=experimental -D VNC=OFF'
+]
+
+def anyFailure = false
 
 def gitClone() {
-	cleanWs()
 	if (env.GIT_COMMIT == null)
-		env.GIT_COMMIT = BRANCH
-	println "[-] Building git tag [${env.GIT_COMMIT}]"
+		env.GIT_COMMIT = 'master'
+	println "[-] Using git tag [${env.GIT_COMMIT}]"
 	def scmVars = checkout scm: [$class: 'GitSCM',
 				     branches: [[name: env.GIT_COMMIT]],
 				     userRemoteConfigs: [[url: 'https://github.com/86Box/86Box.git']]]
 	env.GIT_COMMIT = scmVars.GIT_COMMIT
 }
 
-def windowsBuild() {
-	bat 'C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c "exec .ci/build.sh"'
+def removeDir(dir) {
+	if (isUnix())
+		sh "rm -rf \"$dir\" || exit 0"
+	else
+		bat "if exist \"$dir\" rd /s /q \"$dir\" & exit /b 0"
 }
 
-def unixBuild() {
-	sh 'chmod u+x .ci/build.sh && exec .ci/build.sh'
+def runBuild(args) {
+	if (isUnix())
+		sh "chmod u+x \"$WORKSPACE/.ci/build.sh\" && exec \"$WORKSPACE/.ci/build.sh\" $args"
+	else
+		bat "C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c 'exec \"\$(cygpath -u \\'%WORKSPACE%\\')\"/.ci/build.sh $args'"
 }
-
-def saveArtifacts() {
-	archiveArtifacts artifacts: "${env.JOB_BASE_NAME}-*"
-}
-
-def successCount = 0
-
-def buildChain = [
-	'86Box': '86Box-Dev',
-	'86Box-Dev': '86Box-DevODR',
-	'86Box-DevODR': '86Box-Debug',
-	'86Box-TestBuildPleaseIgnore': '86Box-TestBuildPleaseIgnore2'
-]
 
 pipeline {
 	agent none
@@ -64,9 +108,6 @@ pipeline {
 		string(name: 'BUILD_TYPE',
 		       defaultValue: 'beta', /* !!! CHANGE HERE !!! for build type */
 		       description: "Build type to pass on to CMake. Don't change this, you should instead change the default value on .ci/Jenkinsfile")
-		string(name: 'BRANCH',
-		       defaultValue: 'master',
-		       description: "Used internally to make sure all downstream builds use the same commit. Don't change this.")
 	}
 
 	environment {
@@ -74,41 +115,105 @@ pipeline {
 	}
 
 	stages {
-		stage('Build Windows') {
-			agent {
-				node {
-					label 'windows'
-				}
-			}
+		stage('Source Tarball') {
+			agent none
 
 			steps {
-				catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-					gitClone()
-					windowsBuild()
-					saveArtifacts()
-
-					script {
-						successCount += 1
+				script {
+					/* Run a dummy git clone on any node to try and save the latest commit regardless of executor status.
+					   This avoids a timing issue where HEAD changes between polling and the nodes being available below.
+					   I talked to a few people, and we reached the conclusion that reading the polled commit from within
+					   the pipeline is not really possible (maybe short of switching to a multi-branch pipeline), so we
+					   have to live with this hack, which shortens but doesn't fully eliminate the timing issue's window. */
+					node {
+						/* Ignore exceptions as this is not really critical. */
+						try {
+							gitClone()
+						} catch (e) {}
+						try {
+							cleanWs()
+						} catch (e) {}
 					}
-				}
-			}
-		}
 
-		stage('Build Linux') {
-			agent {
-				node {
-					label 'debian'
-				}
-			}
+					/* Create source tarball. */
+					node('Linux') {
+						try {
+							/* Run git clone. */
+							gitClone()
 
-			steps {
-				catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
-					gitClone()
-					unixBuild()
-					saveArtifacts()
+							/* Switch to temp directory. */
+							dir(WORKSPACE_TMP) {
+								/* Clean output directory of potential stale old builds. */
+								removeDir('output')
 
-					script {
-						successCount += 1
+								/* Switch to output directory. */
+								dir('output') {
+									/* Run source tarball creation process. */
+									def packageName = "${env.JOB_BASE_NAME}-Source-b${env.BUILD_NUMBER}"
+									runBuild("-s \"$packageName\"")
+
+									/* Archive resulting artifacts. */
+									archiveArtifacts artifacts: "$packageName*"
+								}
+							}
+						} catch (e) {
+							/* Mark that a failure occurred. */
+							anyFailure = true
+
+							/* Force this stage to fail. */
+							catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+								throw e;
+							}
+						}
+					}
+
+					/* Build here to avoid creating a redundant parent stage on the stage view. */
+					osArchs.each { os, thisOsArchs ->
+						thisOsArchs.each { arch ->
+							def thisArchDynarecs = dynarecArchs[arch]
+							if (!thisArchDynarecs)
+								thisArchDynarecs = ['NoDR']
+							thisArchDynarecs.each { dynarec ->
+								presets.each { preset ->
+									node(os) {
+										stage("$os $arch $dynarec $preset") {
+											try {
+												/* Run git clone. */
+												gitClone()
+
+												/* Switch to temp directory. */
+												dir(WORKSPACE_TMP) {
+													/* Clean output directory of potential stale old builds. */
+													removeDir('output')
+
+													/* Switch to output directory. */
+													dir('output') {
+														def packageName = "${env.JOB_BASE_NAME}${dynarecSlugs[dynarec]}${presetSlugs[preset]}-$os-$arch-b${env.BUILD_NUMBER}"
+														dir(dynarecNames[dynarec]) {
+															dir("$os - ${archNames[arch]}") {
+																/* Run build process. */
+																runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} -D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUMBER=${env.BUILD_NUMBER}\"")
+															}
+														}
+
+														/* Archive resulting artifacts. */
+														archiveArtifacts artifacts: "**/**/$packageName*"
+													}
+												}
+											} catch (e) {
+												/* Mark that a failure occurred. */
+												anyFailure = true
+
+												/* Force this stage to fail. */
+												catchError(buildResult: 'SUCCESS', stageResult: 'FAILURE') {
+													throw e;
+												}
+											}
+										}
+									}
+								}
+							}
+						}
 					}
 				}
 			}
@@ -118,36 +223,14 @@ pipeline {
 	post {
 		always {
 			script {
-				/* Trigger next job is applicable. */
-				if (buildChain[env.JOB_BASE_NAME]) {
-					def nextJob = buildChain[env.JOB_BASE_NAME]
-
-					/* Set next build number for the next job. */
-					try {
-						def job = Jenkins.instance.getItem(nextJob)
-						job.nextBuildNumber = env.BUILD_NUMBER as Integer
-						job.saveNextBuildNumber()
-					} catch (Exception e) {
-						println "[!] Could not set next build number for [$nextJob], make sure all required script approvals are in place"
-					}
-
-					/* Trigger next job. */
-					build propagate: false,
-					      wait: false,
-					      job: nextJob,
-					      parameters: [
-						string(name: 'BUILD_TYPE', value: BUILD_TYPE),
-						string(name: 'BRANCH', value: env.GIT_COMMIT)
-					      ]
-				}
-
-				if (successCount < 2) {
+				if (anyFailure) {
 					println "[!] Failing build because a build stage failed"
 					currentBuild.result = 'FAILURE'
 				}
 
 				if (!env.JOB_BASE_NAME.contains("TestBuildPleaseIgnore")) {
 					try {
+						/* Notify Discord. */
 						def result = currentBuild.currentResult.toLowerCase()
 						discordSend webhookURL: DISCORD_WEBHOOK_URL,
 							    title: "${env.JOB_BASE_NAME} #${env.BUILD_NUMBER}",
@@ -157,11 +240,15 @@ pipeline {
 							    enableArtifactsList: false,
 							    showChangeset: true
 
-						node { /* IRC notifications need a node for whatever reason */
+						/* Notify IRC, which needs a node for whatever reason. */
+						node {
 							ircNotify()
 						}
-					} catch (Exception e) {
-						e.printStackTrace()
+					} catch (e) {
+						/* Force this stage to fail. */
+						catchError(buildResult: currentBuild.result, stageResult: 'FAILURE') {
+							throw e;
+						}
 					}
 				}
 			}
