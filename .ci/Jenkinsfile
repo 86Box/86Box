@@ -192,7 +192,7 @@ pipeline {
 														dir(dynarecNames[dynarec]) {
 															dir("$os - ${archNames[arch]}") {
 																/* Run build process. */
-																runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} -D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUMBER=${env.BUILD_NUMBER}\"")
+																runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} -D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUM=${env.BUILD_NUMBER}\"")
 															}
 														}
 
