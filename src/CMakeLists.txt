@@ -87,6 +87,17 @@ if(MINGW)
 	set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".dll.a")
 endif()
 
+# Variables introduced by richardg867 for versioning stuff
+if(NOT CMAKE_PROJECT_VERSION_PATCH)
+	set(CMAKE_PROJECT_VERSION_PATCH 0)
+endif()
+if(NOT EMU_BUILD_NUM)
+	set(EMU_BUILD_NUM 0)
+endif()
+if(NOT EMU_COPYRIGHT_YEAR)
+	set(EMU_COPYRIGHT_YEAR 2021)
+endif()
+
 #some macOS specific configuration steps
 if(APPLE)
 # Force using the newest library if it's installed by homebrew
@@ -96,7 +107,7 @@ if(APPLE)
   # prepare stuff for macOS app bundles
   set(CMAKE_MACOSX_BUNDLE 1)
 
-  # setting our compilation target to macOS Mojave (macOS version 10.14), can be eventually changed to macOS 10.13 High Sierra
+  # setting our compilation target to macOS 10.13 High Sierra
   set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
   
   # set the Info.plist properly
@@ -104,11 +115,11 @@ if(APPLE)
   set(MACOSX_BUNDLE_GUI_IDENTIFIER net.86Box.86Box)
   set(MACOSX_BUNDLE_BUNDLE_NAME 86Box)
   set(MACOSX_BUNDLE_BUNDLE_VERSION 3.0)
-  set(MACOSX_BUNDLE_SHORT_VERSION_STRING "3.0")
-  set(MACOSX_BUNDLE_LONG_VERSION_STRING "3.0.{$EMU_BUILD_NUM}")
+  set(MACOSX_BUNDLE_SHORT_VERSION_STRING "3.0.${EMU_BUILD_NUM}")
+  set(MACOSX_BUNDLE_LONG_VERSION_STRING "3.0.${EMU_BUILD_NUM}")
   set(MACOSX_BUNDLE_ICON_FILE 86Box.icns)
   set(MACOSX_BUNDLE_INFO_STRING "A emulator of old computers")
-  set(MACOSX_BUNDLE_COPYRIGHT "© 2007-{$EMU_COPYRIGHT_YEAR} 86Box contributors")
+  set(MACOSX_BUNDLE_COPYRIGHT "© 2007-${EMU_COPYRIGHT_YEAR} 86Box contributors")
 
   
   # preparing the code signing for easier distribution, Apple dev certificate needed at one point
@@ -146,15 +157,6 @@ find_package(PNG REQUIRED)
 include_directories(${PNG_INCLUDE_DIRS})
 target_link_libraries(86Box PNG::PNG)
 
-if(NOT CMAKE_PROJECT_VERSION_PATCH)
-	set(CMAKE_PROJECT_VERSION_PATCH 0)
-endif()
-if(NOT EMU_BUILD_NUM)
-	set(EMU_BUILD_NUM 0)
-endif()
-if(NOT EMU_COPYRIGHT_YEAR)
-	set(EMU_COPYRIGHT_YEAR 2021)
-endif()
 configure_file(include/86box/version.h.in include/86box/version.h @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 
