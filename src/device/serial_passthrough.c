@@ -73,6 +73,7 @@ serpt_write(struct serial_s *serial, void *p, uint8_t data)
 {
         /* Serial port writes out data byte to the host,
            handle it platform specifically */
+	printf("Serial passthrough byte: %02X\n", data);
         plat_serpt_write(p, data);
 }
 
