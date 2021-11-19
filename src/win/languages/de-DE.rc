@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "&Einstellungen...",                IDM_CONFIG
         MENUITEM "&Statusleistenicons aktualisieren",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Change program &settings...",    IDM_VID_PROG_SETT
+        MENUITEM "Programmeinstellungen ändern...",    IDM_VID_PROG_SETT
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "&Discord-Integration aktivieren", IDM_DISCORD
@@ -244,7 +244,7 @@ BEGIN
         MENUITEM "&Bestehendes Image...",				IDM_MO_IMAGE_EXISTING
         MENUITEM "Bestehendes Image (&schreibgeschützt)...",	IDM_MO_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "E&ject",					IDM_MO_EJECT
+        MENUITEM "&Auswerfen",					IDM_MO_EJECT
         MENUITEM "&Bestehendes Image erneut laden",			IDM_MO_RELOAD
     END
 END
@@ -411,14 +411,14 @@ BEGIN
     IDS_2052	"Bitte Strg+Alt+Bild ab zur Rückkehr in den Fenstermodus drücken."
     IDS_2053	"Geschwindigkeit"
     IDS_2054	"ZIP %03i %i (%s): %ls"
-    IDS_2055	"ZIP-Imagedateien (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	"86Box konnte keine nutzbaren ROM-Images finden.\n\nBitte besuchen Sie <a href=""https://github.com/86Box/roms/releases/latest"">download</a>, laden ein ROM-Set herunter und extrahieren dies in das ""roms""-Verzeichnis."
+    IDS_2055	"ZIP-Images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
+    IDS_2056	"86Box konnte keine nutzbaren ROM-Dateien finden.\n\nBitte besuchen Sie <a href=""https://github.com/86Box/roms/releases/latest"">download</a>, laden ein ROM-Set herunter und extrahieren dies in das ""roms""-Verzeichnis."
     IDS_2057	"(leer)"
-    IDS_2058	"ZIP-Imagedateien (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Alle Dateien (*.*)\0*.*\0"
+    IDS_2058	"ZIP-Images (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Alle Dateien (*.*)\0*.*\0"
     IDS_2059	"Turbo"
     IDS_2060	"An"
     IDS_2061	"Aus"
-    IDS_2062	"Alle Imagedateien (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Basissektorimages (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Oberflächenimages (*.86F)\0*.86F\0"
+    IDS_2062	"Alle Images (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Basissektorimages (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Oberflächenimages (*.86F)\0*.86F\0"
     IDS_2063	"Die Maschine ""%hs"" ist aufgrund von fehlenden ROMs im Verzeichnis roms/machines nicht verfügbar. Es wird auf eine verfügbare Maschine gewechselt."
 END
 
@@ -447,8 +447,8 @@ BEGIN
     IDS_2080	"FluidSynth konnte nicht initialisiert werden"
     IDS_2081	"Bus"
     IDS_2082	"Datei"
-    IDS_2083	"Z"
-    IDS_2084	"K"
+    IDS_2083	"C"
+    IDS_2084	"H"
     IDS_2085	"S"
     IDS_2086	"MB"
     IDS_2087	"BPB prüfen"
@@ -467,7 +467,7 @@ BEGIN
     IDS_2100	"CH Flightstick Pro"
     IDS_2101	"Microsoft SideWinder Pad"
     IDS_2102	"Thrustmaster Flight Control System"
-    IDS_2103	"Kein(es)"
+    IDS_2103	"Ohne"
     IDS_2104	"Tastaturbeschleuniger konnten nicht geladen werden."
     IDS_2105	"Roheingaben konnten nicht registriert werden."
     IDS_2106	"%u"
@@ -522,12 +522,12 @@ BEGIN
     IDS_2134	"Vollbildmodus wird aktiviert"
     IDS_2135	"Diese Nachricht nicht mehr anzeigen"
     IDS_2136	"Nicht beenden"
-    IDS_2137	"Resetten"
-    IDS_2138	"Nicht Resetten"
-    IDS_2139	"MO-Imagedateien (*.IM?;*.MDI)\0*.IM?;*.MDI\0Alle Dateien (*.*)\0*.*\0"
-    IDS_2140	"CD-ROM-Imagedateien (*.ISO;*.CUE)\0*.ISO;*.CUE\0Alle Dateien (*.*)\0*.*\0"
+    IDS_2137	"Zurücksetzen"
+    IDS_2138	"Nicht zurücksetzen"
+    IDS_2139	"MO-Images (*.IM?;*.MDI)\0*.IM?;*.MDI\0Alle Dateien (*.*)\0*.*\0"
+    IDS_2140	"CD-ROM-Images (*.ISO;*.CUE)\0*.ISO;*.CUE\0Alle Dateien (*.*)\0*.*\0"
     IDS_2141	"%hs-Gerätekonfiguration"
-    IDS_2142    "Monitor im Standby"
+    IDS_2142    "Monitor im Standbymodus"
     IDS_2143	"OpenGL-Shader (*.GLSL)\0*.GLSL\0Alle Dateien (*.*)\0*.*\0"
     IDS_2144	"OpenGL-Optionen"
     IDS_2145	"Sie laden gerade eine nicht unterstützte Konfiguration"
@@ -544,7 +544,7 @@ BEGIN
     IDS_4096    "Festplatte (%s)"
     IDS_4097	"%01i:%01i"
     IDS_4098	"%01i"
-    IDS_4099	"MFM/RLL- oder ESDI CD-ROM-Laufwerke sind nicht existent"
+    IDS_4099	"MFM/RLL- oder ESDI CD-ROM-Laufwerke hat es niemals gegeben"
     IDS_4100	"Angepasst..."
     IDS_4101	"Angepasst (Groß)..."
     IDS_4102	"Neue Festplatte hinzufügen"
@@ -564,12 +564,12 @@ BEGIN
     IDS_4116	"Festplattenimage ist zu groß"
     IDS_4117	"Bitte denken Sie an das Partitionieren und Formatieren des neu erstellten Laufwerks."
     IDS_4118	"Die ausgewählte Datei wird überschrieben. Möchten Sie diese Datei nutzen?"
-    IDS_4119	"Nicht unterstütztes Disk-Image"
+    IDS_4119	"Nicht unterstütztes Festplattenimage"
     IDS_4120	"Überschreiben"
     IDS_4121	"Nicht überschreiben"
-    IDS_4122	"Rohdatenimagedateien (.img)"
-    IDS_4123	"HDI-Imagedateien (.hdi)"
-    IDS_4124	"HDX-Imagedateien (.hdx)"
+    IDS_4122	"Rohdatenimages (.img)"
+    IDS_4123	"HDI-Images (.hdi)"
+    IDS_4124	"HDX-Images (.hdx)"
     IDS_4125	"VHD mit fester Größe (.vhd)"
     IDS_4126	"VHD mit dynamischer Größe (.vhd)"
     IDS_4127	"Differenzierende VHD (.vhd)"
