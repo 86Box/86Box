@@ -394,6 +394,7 @@ pc_init(int argc, char *argv[])
 {
 	char path[2048], path2[2048];
 	char *cfg = NULL, *p;
+	char mac_rom_path[2048];
 	char temp[128];
 	struct tm *info;
 	time_t now;
@@ -589,23 +590,15 @@ usage:
 			plat_dir_create(usr_path);
 	}
 
-	// TODO: Path detection should be rewrite. Write function per OS rather than how it's done now
-#ifdef __APPLE__
-	//Get and create default rom path for MacOsX
-	getDefaultROMPath(path2);
-	// This will return an absolut path to ~/Library/Application Support/bundleidentifierk/roms
-#endif
 
+	#ifdef __APPLE__
+		getDefaultROMPath(mac_rom_path);
+		strcpy(path2, mac_rom_path);
+	#endif
 	if (vmrp && (path2[0] == '\0')) {
-#ifdef __APPLE__
-//NO COMMAND LINE ARG  for MacOsX when aunched from Finder, so this will never run??
-		getDefaultROMPath(path2);
-		// This will return an absolut path to ~/Library/Application Support/bundleidentifierk/roms
-#else
 		strcpy(path2, usr_path);
 		plat_path_slash(path2);
 		strcat(path2, "roms");
-#endif
 		plat_path_slash(path2);
 	}
 
