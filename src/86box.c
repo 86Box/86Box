@@ -33,6 +33,7 @@
 #ifdef __APPLE__
 #include <string.h>
 #include <dispatch/dispatch.h>
+#include <mac/macOSXGlue.h>
 #ifdef __aarch64__
 #include <pthread.h>
 #endif
@@ -147,24 +148,24 @@ int video_vsync = 0;				/* (C) video */
 int video_framerate = -1;			/* (C) video */
 char video_shader[512] = { '\0' };		/* (C) video */
 int	serial_enabled[SERIAL_MAX] = {0,0};	/* (C) enable serial ports */
-int bugger_enabled = 0;			/* (C) enable ISAbugger */
+int bugger_enabled = 0;				/* (C) enable ISAbugger */
 int postcard_enabled = 0;			/* (C) enable POST card */
 int isamem_type[ISAMEM_MAX] = { 0,0,0,0 };	/* (C) enable ISA mem cards */
-int isartc_type = 0;			/* (C) enable ISA RTC card */
+int isartc_type = 0;				/* (C) enable ISA RTC card */
 int	gfxcard = 0;				/* (C) graphics/video card */
 int	sound_is_float = 1;			/* (C) sound uses FP values */
-int GAMEBLASTER = 0;			/* (C) sound option */
-int GUS = 0;				/* (C) sound option */
+int GAMEBLASTER = 0;				/* (C) sound option */
+int GUS = 0;					/* (C) sound option */
 int SSI2001 = 0;				/* (C) sound option */
-int voodoo_enabled = 0;			/* (C) video option */
+int voodoo_enabled = 0;				/* (C) video option */
 uint32_t mem_size = 0;				/* (C) memory size */
 int	cpu_use_dynarec = 0;			/* (C) cpu uses/needs Dyna */
-int cpu = 0;				/* (C) cpu type */
+int cpu = 0;					/* (C) cpu type */
 int fpu_type = 0;				/* (C) fpu type */
 int	time_sync = 0;				/* (C) enable time sync */
 int	confirm_reset = 1;			/* (C) enable reset confirmation */
-int confirm_exit = 1;			/* (C) enable exit confirmation */
-int confirm_save = 1;			/* (C) enable save confirmation */
+int confirm_exit = 1;				/* (C) enable exit confirmation */
+int confirm_save = 1;				/* (C) enable save confirmation */
 #ifdef USE_DISCORD
 int	enable_discord = 0;			/* (C) enable Discord integration */
 #endif
@@ -188,7 +189,7 @@ char	usr_path[1024];				/* path (dir) of user data */
 char	cfg_path[1024];				/* full path of config file */
 FILE	*stdlog = NULL;				/* file to log output to */
 int	scrnsz_x = SCREEN_RES_X;		/* current screen size, X */
-int scrnsz_y = SCREEN_RES_Y;		/* current screen size, Y */
+int scrnsz_y = SCREEN_RES_Y;			/* current screen size, Y */
 int	config_changed;				/* config has changed */
 int	title_update;
 int	framecountx = 0;
@@ -587,12 +588,18 @@ usage:
 
 	if (vmrp && (path2[0] == '\0')) {
 #ifdef __APPLE__
-		sprintf("%s/Library/Application Support/86Box/roms", getenv("HOME") ? getenv("HOME") : getpwuid(getuid())->pw_dir);
+		getDefaultROMPath(path2);
+		// This will return an absolut path to ~/Library/Application Support/bundleidentifier
 #else
 		strcpy(path2, usr_path);
 		plat_path_slash(path2);
 		strcat(path2, "roms");
 #endif
+		/// <summary>
+		/// TODO: Add Plateform specific getDefaultROMPath to hide the awkfull code below
+		/// </summary>
+		/// <param name="path2></param>
+		/// <returns>Correct Path of Default roms folder</returns>
 		plat_path_slash(path2);
 	}
 
