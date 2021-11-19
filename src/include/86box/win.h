@@ -107,6 +107,7 @@ extern HWND		hwndMain,
 			hwndRender;
 extern HANDLE		ghMutex;
 extern HICON		hIcon[256];
+extern int		dpi;
 extern RECT		oldclip;
 extern int		sbar_height, user_resize;
 extern int		acp_utf8;
@@ -121,8 +122,6 @@ extern uint8_t		filterindex;
 
 extern void	ResizeWindowByClientArea(HWND hwnd, int width, int height);
 extern void	InitCrashDump(void);
-
-extern HICON	LoadIconEx(PCTSTR pszIconName);
 
 /* Emulator start/stop support functions. */
 extern void	do_start(void);
@@ -149,6 +148,11 @@ extern int      win_get_dpi(HWND hwnd);
 extern int      win_get_system_metrics(int i, int dpi);
 
 extern LPARAM	win_get_string(int id);
+
+extern void     win_clear_icon_set();
+extern void     win_system_icon_set();
+extern void     win_load_icon_set();
+extern void     win_get_icons_path(char* path_root);
 
 extern intptr_t	fdd_type_to_icon(int type);
 

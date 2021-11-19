@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "&Einstellungen...",                IDM_CONFIG
         MENUITEM "&Statusleistenicons aktualisieren",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "&Anzeigesprache ändern...",    IDM_VID_PROG_SETT
+        MENUITEM "Change program &settings...",    IDM_VID_PROG_SETT
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "&Discord-Integration aktivieren", IDM_DISCORD
@@ -273,7 +273,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Anzeigesprache ändern"
+#define STR_PROG_SETT		"Program Settings"
 #define STR_SND_GAIN		"Klangverstärkung"
 #define STR_NEW_FLOPPY		"Neues Image"
 #define STR_CONFIG		"86Box-Einstellungen"
@@ -284,6 +284,7 @@ END
 #define STR_GLOBAL		"Einstellungen als &globalen Standard speichern"
 #define STR_DEFAULT		"&Standard"
 #define STR_LANGUAGE		"Sprache:"
+#define STR_ICONSET		"Icon-Satz:"
 
 #define STR_GAIN		"Verstärkung"
 
@@ -490,7 +491,7 @@ BEGIN
     IDS_2124	"Über 86Box"
     IDS_2125	"86Box Version " EMU_VERSION
 
-    IDS_2126	"Ein Emulator für alte Computer\n\nAutoren: Sarah Walker, Miran Grča, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho sowie andere.\n\nÜbersetzt von: dob205\n\nVeröffentlicht unter der GNU General Public License in der Version 2 oder neuer. Siehe LICENSE für mehr Informationen."
+    IDS_2126	"Ein Emulator für alte Computer\n\nAutoren: Sarah Walker, Miran Grča, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho sowie andere.\n\nÜbersetzt von: dob205\n\nVeröffentlicht unter der GNU General Public License in der Version 2 oder neuer. Siehe LICENSE für mehr Informationen."
     IDS_2127	"OK"
     IDS_2128	"Hardware nicht verfügbar"
 #ifdef _WIN32

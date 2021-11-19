@@ -411,10 +411,10 @@ ifeq ($(WX), y)
  LIBS		+= $(WX_LIBS)
  UIOBJ		:= wx_main.o wx_ui.o wx_stbar.o wx_render.o
 else
- UIOBJ		:= win_ui.o win_stbar.o \
+ UIOBJ		:= win_ui.o win_icon.o win_stbar.o \
 		   win_sdl.o \
 		   win_dialog.o win_about.o \
-		   win_settings.o win_devconf.o win_snd_gain.o win_specify_dim.o win_lang.o \
+		   win_settings.o win_devconf.o win_snd_gain.o win_specify_dim.o win_progsett.o \
 		   win_new_floppy.o win_jsconf.o win_media_menu.o
 endif
 
@@ -741,6 +741,7 @@ VIDOBJ		:= agpgart.o video.o \
 		    vid_tvga.o \
 		    vid_tgui9440.o vid_tkd8001_ramdac.o \
 		    vid_att20c49x_ramdac.o \
+			vid_att2xc498_ramdac.o \
 		    vid_s3.o vid_s3_virge.o \
 		    vid_ibm_rgb528_ramdac.o vid_sdac_ramdac.o \
 			vid_ogc.o \
