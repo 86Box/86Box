@@ -395,7 +395,9 @@ pc_init(int argc, char *argv[])
 {
 	char path[2048], path2[2048];
 	char *cfg = NULL, *p;
+#ifdef __APPLE__
 	char mac_rom_path[2048];
+#endif
 	char temp[128];
 	struct tm *info;
 	time_t now;
