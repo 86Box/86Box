@@ -29,11 +29,12 @@ Makefile
 # Build scripts
 /archive_tmp
 /static2dll.*
-/*.zip
-/*.tar
-/*.tar.*
 /VERSION
+*.zip
+*.tar
+*.tar.*
 
 # Visual Studio Code
 /.vs
 /.vscode
+src/win/RCa04980

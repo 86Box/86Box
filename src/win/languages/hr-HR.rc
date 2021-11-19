@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "&Postavke...",                IDM_CONFIG
         MENUITEM "&Ažuriranje ikone statusne trake",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "&Promijeni jezik prikaza...",    IDM_VID_PROG_SETT
+        MENUITEM "Change program &settings...",    IDM_VID_PROG_SETT
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Omogući integraciju &Discord-a", IDM_DISCORD
@@ -273,7 +273,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Promjena jezika prikaza"
+#define STR_PROG_SETT		"Program Settings"
 #define STR_SND_GAIN		"Pojačavanje zvuka"
 #define STR_NEW_FLOPPY		"Nova image daoteka"
 #define STR_CONFIG		"86Box postavke"
@@ -284,6 +284,7 @@ END
 #define STR_GLOBAL		"Spremite ove postavke kao &globalne zadane postavke"
 #define STR_DEFAULT		"&Standard"
 #define STR_LANGUAGE		"Jezik:"
+#define STR_ICONSET		"Paket ikona:"
 
 #define STR_GAIN		"Pojačavanje"
 

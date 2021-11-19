@@ -59,7 +59,6 @@
 HWND		hwndMain,		/* application main window */
 		hwndRender;		/* machine render window */
 HMENU		menuMain;		/* application main menu */
-HICON		hIcon[256];		/* icon data loaded from resources */
 RECT		oldclip;		/* mouse rect */
 int		sbar_height = 23;	/* statusbar height */
 int		minimized = 0;
@@ -73,7 +72,6 @@ extern WCHAR	wopenfilestring[512];
 /* Local data. */
 static int	manager_wm = 0;
 static int	save_window_pos = 0, pause_state = 0;
-static int	dpi = 96;
 static int	padded_frame = 0;
 static int	vis = -1;
 
@@ -147,15 +145,6 @@ show_cursor(int val)
 
     vis = val;
 }
-
-
-HICON
-LoadIconEx(PCTSTR pszIconName)
-{
-    return((HICON)LoadImage(hinstance, pszIconName, IMAGE_ICON,
-						16, 16, LR_SHARED));
-}
-
 
 static void
 video_toggle_option(HMENU h, int *val, int id)
@@ -1048,6 +1037,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_DESTROY:
+		win_clear_icon_set();
 		KillTimer(hwnd, TIMER_1SEC);
 		PostQuitMessage(0);
 		break;
@@ -1373,10 +1363,17 @@ ui_init(int nCmdShow)
 		ResizeWindowByClientArea(hwndMain, scrnsz_x, scrnsz_y + sbar_height);
     }
 
-    /* Load the desired language, and reset all menus to their defaults */
+  /* Load the desired language, and reset all menus to their defaults */
     uint32_t helper_lang = lang_id;
     lang_id = 0;
     set_language(helper_lang);	
+
+    /* Reset all menus to their defaults. */
+    ResetAllMenus();
+    media_menu_init();
+	
+    /* Load the desired iconset */
+    win_load_icon_set();
 
     /* Make the window visible on the screen. */
     ShowWindow(hwnd, nCmdShow);

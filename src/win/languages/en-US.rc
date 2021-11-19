@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "&Settings...",                IDM_CONFIG
         MENUITEM "&Update status bar icons",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Change dis&play language...",    IDM_VID_PROG_SETT
+        MENUITEM "Change program &settings...",    IDM_VID_PROG_SETT
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Enable &Discord integration", IDM_DISCORD
@@ -273,7 +273,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Change Display Language"
+#define STR_PROG_SETT		"Program Settings"
 #define STR_SND_GAIN		"Sound Gain"
 #define STR_NEW_FLOPPY		"New Image"
 #define STR_CONFIG		"86Box Settings"
@@ -284,6 +284,7 @@ END
 #define STR_GLOBAL		"Save these settings as &global defaults"
 #define STR_DEFAULT		"&Default"
 #define STR_LANGUAGE		"Language:"
+#define STR_ICONSET		"Icon set:"
 
 #define STR_GAIN		"Gain"
 

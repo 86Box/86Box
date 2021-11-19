@@ -76,7 +76,6 @@
 
 
 static int first_cat = 0;
-static int dpi = 96;
 
 /* Machine category */
 static int temp_machine_type, temp_machine, temp_cpu, temp_wait_states, temp_fpu, temp_sync;
@@ -264,14 +263,9 @@ image_list_init(HWND hdlg, int id, const uint8_t *icon_ids)
     while(1) {
 	if (icon_ids[i] == 0)
 		break;
-	BITMAPINFOHEADER hdr;
-#if defined(__amd64__) || defined(__aarch64__)
-	hiconItem = LoadIcon(hinstance, (LPCWSTR) ((uint64_t) icon_ids[i]));
-#else
-	hiconItem = LoadIcon(hinstance, (LPCWSTR) ((uint32_t) icon_ids[i]));
-#endif
+
+	hiconItem = hIcon[icon_ids[i]];
 	ImageList_AddIcon(hSmall, hiconItem);
-	DestroyIcon(hiconItem);
 
 	i++;
     }

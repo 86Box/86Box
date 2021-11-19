@@ -89,7 +89,7 @@ if(APPLE)
   set(CMAKE_MACOSX_BUNDLE 1)
 
   # setting our compilation target to macOS Mojave (macOS version 10.14), can be eventually changed to macOS 10.13 High Sierra
-  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14")
+  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
   
   # set the Info.plist properly
   set_target_properties(86Box PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/mac/Info.plist.in)

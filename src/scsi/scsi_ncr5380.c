@@ -1224,8 +1224,8 @@ ncr_callback(void *priv)
 			ncr_log("Timer on! Host POS = %i, status = %02x, DMA mode = %i, Period = %lf\n", ncr_dev->t128.host_pos, ncr_dev->t128.status, ncr->dma_mode, scsi_device_get_callback(dev));
 			if (ncr_dev->t128.host_pos == MIN(512, dev->buffer_length) && ncr_dev->t128.block_count) {
 				ncr_dev->t128.status |= 0x04;
-				ncr_timer_on(ncr_dev, ncr, 0);
 			}
+			ncr_timer_on(ncr_dev, ncr, 0);
 		}
 	} else {
 		ncr_log("DMA mode=%d, status ctrl = %02x\n", ncr->dma_mode, ncr_dev->status_ctrl);
@@ -1364,7 +1364,8 @@ t128_read(uint32_t addr, void *priv)
 				ncr_log("Transfer busy read, status = %02x, period = %lf\n", ncr_dev->t128.status, ncr_dev->period);
 				if (ncr_dev->period == 0.2 || ncr_dev->period == 0.02)
 					timer_on_auto(&ncr_dev->timer, 40.2);
-			}
+			} else if (ncr_dev->t128.host_pos < MIN(512, dev->buffer_length) && scsi_device_get_callback(dev) > 100.0)
+				cycles += 100; /*Needed to avoid timer de-syncing with transfers.*/
 		}
 	}
 	

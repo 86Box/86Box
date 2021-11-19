@@ -56,6 +56,7 @@ static int exit_event = 0;
 int fullscreen_pending = 0;
 extern float menubarheight;
 uint32_t lang_id = 0x0409, lang_sys = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
+char  icon_set[256] = "";  /* name of the iconset to be used */ 
 
 static const uint16_t sdl_to_xt[0x200] =
 {
@@ -1043,7 +1044,6 @@ plat_language_code_r(uint32_t lcid, char* outbuf, int len)
     /* or maybe not */ 
     return;
 }
-
 
 void joystick_init(void) {}
 void joystick_close(void) {}

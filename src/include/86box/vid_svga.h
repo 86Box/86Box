@@ -226,6 +226,8 @@ extern void	ati68860_hwcursor_draw(svga_t *svga, int displine);
 extern void	att49x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga);
 extern uint8_t	att49x_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga);
 
+extern void	att498_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *p, svga_t *svga);
+extern uint8_t	att498_ramdac_in(uint16_t addr, int rs2, void *p, svga_t *svga);
 extern float	av9194_getclock(int clock, void *p);
 
 extern void	bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *p, svga_t *svga);
@@ -278,6 +280,7 @@ extern const device_t ati68860_ramdac_device;
 extern const device_t att490_ramdac_device;
 extern const device_t att491_ramdac_device;
 extern const device_t att492_ramdac_device;
+extern const device_t att498_ramdac_device;
 extern const device_t av9194_device;
 extern const device_t bt484_ramdac_device;
 extern const device_t att20c504_ramdac_device;

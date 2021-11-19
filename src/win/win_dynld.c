@@ -55,7 +55,7 @@ dynld_module(const char *name, dllimp_t *table)
 
     /* See if we can load the desired module. */
     if ((h = LoadLibrary(name)) == NULL) {
-	dynld_log("DynLd(\"%s\"): library not found!\n", name);
+	dynld_log("DynLd(\"%s\"): library not found! (%08X)\n", name, GetLastError());
 	return(NULL);
     }
 
@@ -63,8 +63,8 @@ dynld_module(const char *name, dllimp_t *table)
     for (imp=table; imp->name!=NULL; imp++) {
 	func = GetProcAddress(h, imp->name);
 	if (func == NULL) {
-		dynld_log("DynLd(\"%s\"): function '%s' not found!\n",
-						name, imp->name);
+		dynld_log("DynLd(\"%s\"): function '%s' not found! (%08X)\n",
+						name, imp->name, GetLastError());
 		FreeLibrary(h);
 		return(NULL);
 	}
@@ -74,6 +74,7 @@ dynld_module(const char *name, dllimp_t *table)
     }
 
     /* All good. */
+    pclog("loaded %s\n", name);
     return((void *)h);
 }
 
