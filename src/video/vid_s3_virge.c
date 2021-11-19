@@ -788,6 +788,7 @@ static void s3_virge_recalctimings(svga_t *svga)
                 svga->clock = (cpuclock * (float)(1ull << 32)) / freq;
         }
 
+		
         if ((svga->crtc[0x67] & 0xc) != 0xc) /*VGA mode*/
         {
                 svga->ma_latch |= (virge->ma_ext << 16);
@@ -982,7 +983,7 @@ s3_virge_mmio_read(uint32_t addr, void *p)
         virge_t *virge = (virge_t *)p;
         uint8_t ret = 0xff;
 
-		s3_virge_log("MMIO ReadB addr = %04x\n", addr & 0xffff);
+		s3_virge_log("[%04X:%08X]: MMIO ReadB addr = %04x\n", CS, cpu_state.pc, addr & 0xffff);
 
         switch (addr & 0xffff)
         {
@@ -1028,10 +1029,21 @@ static uint16_t
 s3_virge_mmio_read_w(uint32_t addr, void *p)
 {
 	virge_t *virge = (virge_t *)p;
+	uint32_t ret = 0xffff;
 	
-	s3_virge_log("MMIO ReadW addr = %04x\n", addr & 0xfffc);
+	s3_virge_log("[%04X:%08X]: MMIO ReadW addr = %04x\n", CS, cpu_state.pc, addr & 0xfffe);
 	
 	switch (addr & 0xfffe) {
+		case 0x8504:
+		if (!virge->fifo_slot)
+			virge->subsys_stat |= INT_FIFO_EMP;
+		ret |= virge->subsys_stat;
+		if (virge->fifo_slot)
+			virge->fifo_slot--;
+		ret |= 0x30; /*A bit of a workaround at the moment.*/
+		s3_virge_update_irqs(virge);
+		return ret;		
+		
 		case 0x859c:
 		return virge->cmd_dma;
 		
@@ -1049,6 +1061,8 @@ s3_virge_mmio_read_l(uint32_t addr, void *p)
         virge_t *virge = (virge_t *)p;
 		VIRGEDMAHeader *dmahdr = &virge->dmahdr;
         uint32_t ret = 0xffffffff;
+
+	s3_virge_log("[%04X:%08X]: MMIO ReadL addr = %04x\n", CS, cpu_state.pc, addr & 0xfffc);
 
 	switch (addr & 0xfffc) {
 		case 0x8180:
@@ -1267,8 +1281,9 @@ static void s3_virge_mmio_write(uint32_t addr, uint8_t val, void *p)
 static void
 s3_virge_mmio_write_w(uint32_t addr, uint16_t val, void *p)
 {
-        virge_t *virge = (virge_t *)p;
-	s3_virge_log("MMIO WriteW addr = %04x, val = %04x\n", addr & 0xfffe, val);
+	virge_t *virge = (virge_t *)p;
+	s3_virge_log("[%04X:%08X]: MMIO WriteW addr = %04x, val = %04x\n", CS, cpu_state.pc, addr & 0xfffe, val);
+	
 	if ((addr & 0xfffe) < 0x8000) {
 		if (virge->s3d.cmd_set & CMD_SET_MS)
 				s3_virge_bitblt(virge, 16, ((val >> 8) | (val << 8)) << 16);
@@ -4070,7 +4085,7 @@ static void *s3_virge_init(const device_t *info)
 	virge->render_thread = thread_create(render_thread, virge);
 
 	timer_add(&virge->tri_timer, s3_virge_tri_timer, virge, 0);
-
+ 
 	virge->local = info->local;
  
 	return virge;

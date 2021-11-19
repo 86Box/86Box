@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "&Asetukset...",                                       IDM_CONFIG
         MENUITEM "&Päivitä tilapalkin kuvakkeita",                      IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "&Vaihda näyttökieltä...",                             IDM_VID_PROG_SETT
+        MENUITEM "Change program &settings...",                         IDM_VID_PROG_SETT
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Käytä &Discord integraatiota",                        IDM_DISCORD
@@ -273,7 +273,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT       "Vaihda näyttökieltä"
+#define STR_PROG_SETT       "Program Settings"
 #define STR_SND_GAIN        "Äänen tulotaso"
 #define STR_NEW_FLOPPY      "Uusi levykuva"
 #define STR_CONFIG          "86Box Asetukset"
@@ -284,6 +284,7 @@ END
 #define STR_GLOBAL          "Tallenna nämä asetukset &globaaleiksi oletuksiksi"
 #define STR_DEFAULT         "&Oletus"
 #define STR_LANGUAGE        "Kieli:"
+#define STR_ICONSET         "Kuvakkeet:"
 
 #define STR_GAIN            "Taso"
 
@@ -490,7 +491,7 @@ BEGIN
     IDS_2124    "Tietoja 86Box:sta"
     IDS_2125    "86Box v" EMU_VERSION
 
-    IDS_2126    "Vanhojen tietokoneiden emulaattori\n\nTekijät: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho ja muut.\n\nJulkaistu GNU General Public License 2. version tai myöhemmän alaisena. Tarkempia tietoja LICENSE-tiedostossa."
+    IDS_2126    "Vanhojen tietokoneiden emulaattori\n\nTekijät: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho ja muut.\n\nJulkaistu GNU General Public License 2. version tai myöhemmän alaisena. Tarkempia tietoja LICENSE-tiedostossa."
     IDS_2127    "OK"
     IDS_2128    "Laitteisto ei ole saatavilla"
 #ifdef _WIN32

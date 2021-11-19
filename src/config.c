@@ -573,6 +573,12 @@ load_general(void)
 		lang_id = plat_language_code(p);
 	}	
 	
+	p = config_get_string(cat, "iconset", NULL);
+	if (p != NULL)
+		strcpy(icon_set, p);
+	else
+		strcpy(icon_set, "");
+	
 #if USE_DISCORD
     enable_discord = !!config_get_int(cat, "enable_discord", 0);
 #endif
@@ -2231,6 +2237,11 @@ save_general(void)
 		plat_language_code_r(lang_id, buffer, 511);
 		config_set_string(cat, "language", buffer);
 	  }
+	  
+	if (!strcmp(icon_set, ""))
+		config_delete_var(cat, "iconset");
+	else
+		config_set_string(cat, "iconset", icon_set);
 
 #if USE_DISCORD
     if (enable_discord)
