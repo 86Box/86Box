@@ -42,7 +42,7 @@
 
 #define BIOS_GD5401_PATH		"roms/video/cirruslogic/avga1.rom"
 #define BIOS_GD5402_PATH		"roms/video/cirruslogic/avga2.rom"
-#define BIOS_GD5402_ONBOARD_PATH	"roms/machines/cbm_sl386sx25/c000.rom"
+#define BIOS_GD5402_ONBOARD_PATH	"roms/machines/cmdsl386sx25/c000.rom"
 #define BIOS_GD5420_PATH		"roms/video/cirruslogic/5420.vbi"
 #define BIOS_GD5422_PATH		"roms/video/cirruslogic/cl5422.bin"
 #define BIOS_GD5426_DIAMOND_A1_ISA_PATH	 "roms/video/cirruslogic/diamond5426.bin"
