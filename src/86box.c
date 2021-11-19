@@ -33,6 +33,7 @@
 #ifdef __APPLE__
 #include <string.h>
 #include <dispatch/dispatch.h>
+#include "mac/macOSXGlue.h"
 #ifdef __aarch64__
 #include <pthread.h>
 #endif
@@ -393,6 +394,7 @@ pc_init(int argc, char *argv[])
 {
 	char path[2048], path2[2048];
 	char *cfg = NULL, *p;
+	char mac_rom_path[2048];
 	char temp[128];
 	struct tm *info;
 	time_t now;
@@ -585,14 +587,14 @@ usage:
 			plat_dir_create(usr_path);
 	}
 
+	#ifdef __APPLE__
+		getDefaultROMPath(mac_rom_path);
+		strcpy(path2, mac_rom_path);
+	#endif
 	if (vmrp && (path2[0] == '\0')) {
-#ifdef __APPLE__
-		sprintf("%s/Library/Application Support/86Box/roms", getenv("HOME") ? getenv("HOME") : getpwuid(getuid())->pw_dir);
-#else
 		strcpy(path2, usr_path);
 		plat_path_slash(path2);
 		strcat(path2, "roms");
-#endif
 		plat_path_slash(path2);
 	}
 
