@@ -52,6 +52,7 @@
 #include <86box/fdc_ext.h>
 #include <86box/gameport.h>
 #include <86box/serial.h>
+#include <86box/serial_passthrough.h>
 #include <86box/machine.h>
 #include <86box/mouse.h>
 #include <86box/network.h>
@@ -1073,10 +1074,8 @@ load_ports(void)
             if (strcmp(p, serpt_names[d]) == 0) {
                 serial_passthrough[c].mode = (enum serial_passthrough_mode)d;
                 serial_passthrough[c].enabled = true;
+		break;
             }
-        }
-        if (serial_passthrough[c].enabled) {    
-            config_log("Serial Port %d: passthrough enabled.\n\n", c+1);
         }
     }
 
@@ -2551,14 +2550,14 @@ save_ports(void)
             config_delete_var(cat, temp);
         } else {
             config_set_int(cat, temp, serial_enabled[c]);
-            if (serial_enabled[c]) {
-                if (serial_passthrough[c].enabled) {
-                    sprintf(temp, "serial%d_passthrough", c + 1);
-                    config_set_string(cat, temp,
-                                      serpt_names[serial_passthrough[c].mode]);
-                }    
-            }   
         }
+        if (serial_enabled[c]) {
+   	    if (serial_passthrough[c].enabled) {
+	        sprintf(temp, "serial%d_passthrough", c + 1);
+	        config_set_string(cat, temp,
+			      serpt_names[serial_passthrough[c].mode]);
+	    }    
+        }   
     }
 
     for (c = 0; c < PARALLEL_MAX; c++) {

@@ -35,13 +35,7 @@ static int num_passthrough_devs;
 static void *
 serpt_dev_init(const struct _device_ *dev)
 {
-        /* FIXME: just allocate some memory to return something.
-
-           This will be the platform specific and generic
-           interface for the host adapter to write and recv
-           data as well as to hold the SOCKET or dev name and
-           things like that */
-        return malloc(sizeof(int));
+        return malloc(sizeof(serpt_ctx_t));
 } 
 
 
@@ -84,12 +78,13 @@ serpt_write(struct serial_s *serial, void *p, uint8_t data)
 
 
 uint8_t
-serial_passthrough_create(uint8_t com_port)
+serial_passthrough_create(uint8_t com_port, serpt_mode_t mode)
 {
         device_t *sp_dev = NULL;
         char tmp[32];
         uint8_t i;
-        
+	serpt_ctx_t *priv;       
+ 
         memset(tmp, 0, sizeof(tmp));
 
         /* Get free slot in local instance list */
@@ -108,23 +103,27 @@ serial_passthrough_create(uint8_t com_port)
         serial_passthrough_devs[i].reset = serpt_dev_reset;
 
         /* Add the device to the 'device manager' */
-        void *priv = device_add(&serial_passthrough_devs[i]); 
-       
+        priv = (serpt_ctx_t *)device_add(&serial_passthrough_devs[i]); 
+ 
         if (!priv) {
                 return 1;
         } 
 
         /* Attach the device to the serial port */
-        serial_t *s = serial_attach(com_port, serpt_rcr, serpt_write, priv);
+        serial_t *s = serial_attach(0, serpt_rcr, serpt_write, priv);
 
         if (!s) {
                 /* actually we could remove the device here, but that
                  * should not matter at the moment and there is no
                  * device_remove API call, so let the dev manager
                  * clean up in the very end. */
+                warn("Attaching passthrough device to serial port failed\n");
                 return 1;
         }
 
+	priv->serial_dev = s;
+	priv->mode = mode;
+	
         return 0;
 }
 

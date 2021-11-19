@@ -37,6 +37,8 @@
 #include <86box/lpt.h>
 #include <86box/serial.h>
 #include <86box/gameport.h>
+#include <86box/serial.h>
+#include <86box/serial_passthrough.h>
 #include "cpu.h"
 #include <86box/video.h>
 #include <86box/machine.h>
@@ -66,6 +68,7 @@ machine_log(const char *fmt, ...)
 #else
 #define machine_log(fmt, ...)
 #endif
+  
 
 
 static int
@@ -106,7 +109,7 @@ machine_init_ex(int m)
     /* All good, boot the machine! */
     if (machines[m].init)
 	ret = machines[m].init(&machines[m]);
-
+ 
     if (bios_only || !ret)
 	return ret;
 

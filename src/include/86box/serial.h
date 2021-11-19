@@ -81,10 +81,11 @@ typedef struct serial_device_s
 } serial_device_t;
 
 #define SERPT_MODES_MAX 2
-enum serial_passthrough_mode {
+typedef enum serial_passthrough_mode {
     SERPT_VIRTUAL_CON,
     SERPT_SOCK_TCP
-};
+} serpt_mode_t;
+
 extern const char *serpt_names[SERPT_MODES_MAX];
 
 typedef struct serial_passthrough_s {
@@ -106,6 +107,7 @@ extern void	serial_set_next_inst(int ni);
 extern void	serial_standalone_init(void);
 extern void	serial_set_clock_src(serial_t *dev, double clock_src);
 extern void	serial_reset_port(serial_t *dev);
+extern void     serial_passthrough_enable(void);
 
 extern const device_t	i8250_device;
 extern const device_t	i8250_pcjr_device;

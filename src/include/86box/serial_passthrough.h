@@ -22,7 +22,17 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <86box/device.h>
+#include <86box/serial.h>
+
+
+typedef struct serpt_ctx_s {
+	serial_t *serial_dev;
+	serpt_mode_t mode;
+} serpt_ctx_t;
+
+
 void serial_passthrough_init(void);
-uint8_t serial_passthrough_create(uint8_t com_port);
+uint8_t serial_passthrough_create(uint8_t com_port, serpt_mode_t mode);
 
 #endif

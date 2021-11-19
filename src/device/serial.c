@@ -724,6 +724,25 @@ serial_standalone_init(void) {
 };
 
 
+void
+serial_passthrough_enable(void)
+{
+    int c;
+    
+    for (c = 0; c < SERIAL_MAX; c++) {
+        serial_log("Setting passthrough for port %d", c+1);
+	if (serial_passthrough[c].enabled) {
+            if (serial_passthrough_create(c, serial_passthrough[c].mode)) {
+                serial_log("Could not create serial passthrough for port %d",
+                           c+1);
+            } else {
+                printf("Serial Port %d: passthrough enabled.\n\n", c+1);
+            }
+        }
+    }
+}
+
+
 const device_t i8250_device = {
     "Intel 8250(-compatible) UART",
     0,
