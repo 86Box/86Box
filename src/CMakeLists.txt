@@ -43,7 +43,11 @@ endif()
 add_executable(86Box WIN32 MACOSX_BUNDLE 86box.c config.c log.c random.c timer.c io.c acpi.c apm.c
 	dma.c ddma.c nmi.c pic.c pit.c port_6x.c port_92.c ppi.c pci.c mca.c usb.c
 	device.c nvr.c nvr_at.c nvr_ps2.c ${APP_ICON_MACOSX} ${MAC_GLUE})
- 
+
+if(APPLE)
+	target_link_libraries(86Box "-framework AppKit")
+endif()
+
 if(NEW_DYNAREC)
 	add_compile_definitions(USE_NEW_DYNAREC)
 endif()
