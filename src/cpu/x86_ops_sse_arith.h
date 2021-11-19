@@ -684,9 +684,9 @@ static int opMINPS_xmm_xmm_a16(uint32_t fetchdat)
         src_real[2] = *(float*)&src[2];
         src_real[3] = *(float*)&src[3];
         XMM[cpu_reg].f[0] = fmin(XMM[cpu_reg].f[0], src_real[0]);
-        XMM[cpu_reg].f[1] = fmin(XMM[cpu_reg].f[0], src_real[1]);
-        XMM[cpu_reg].f[2] = fmin(XMM[cpu_reg].f[0], src_real[2]);
-        XMM[cpu_reg].f[3] = fmin(XMM[cpu_reg].f[0], src_real[3]);
+        XMM[cpu_reg].f[1] = fmin(XMM[cpu_reg].f[1], src_real[1]);
+        XMM[cpu_reg].f[2] = fmin(XMM[cpu_reg].f[2], src_real[2]);
+        XMM[cpu_reg].f[3] = fmin(XMM[cpu_reg].f[3], src_real[3]);
     }
     return 0;
 }
@@ -717,9 +717,9 @@ static int opMINPS_xmm_xmm_a32(uint32_t fetchdat)
         src_real[2] = *(float*)&src[2];
         src_real[3] = *(float*)&src[3];
         XMM[cpu_reg].f[0] = fmin(XMM[cpu_reg].f[0], src_real[0]);
-        XMM[cpu_reg].f[1] = fmin(XMM[cpu_reg].f[0], src_real[1]);
-        XMM[cpu_reg].f[2] = fmin(XMM[cpu_reg].f[0], src_real[2]);
-        XMM[cpu_reg].f[3] = fmin(XMM[cpu_reg].f[0], src_real[3]);
+        XMM[cpu_reg].f[1] = fmin(XMM[cpu_reg].f[1], src_real[1]);
+        XMM[cpu_reg].f[2] = fmin(XMM[cpu_reg].f[2], src_real[2]);
+        XMM[cpu_reg].f[3] = fmin(XMM[cpu_reg].f[3], src_real[3]);
     }
     return 0;
 }
@@ -900,9 +900,9 @@ static int opMAXPS_xmm_xmm_a16(uint32_t fetchdat)
         src_real[2] = *(float*)&src[2];
         src_real[3] = *(float*)&src[3];
         XMM[cpu_reg].f[0] = fmax(XMM[cpu_reg].f[0], src_real[0]);
-        XMM[cpu_reg].f[1] = fmax(XMM[cpu_reg].f[0], src_real[1]);
-        XMM[cpu_reg].f[2] = fmax(XMM[cpu_reg].f[0], src_real[2]);
-        XMM[cpu_reg].f[3] = fmax(XMM[cpu_reg].f[0], src_real[3]);
+        XMM[cpu_reg].f[1] = fmax(XMM[cpu_reg].f[1], src_real[1]);
+        XMM[cpu_reg].f[2] = fmax(XMM[cpu_reg].f[2], src_real[2]);
+        XMM[cpu_reg].f[3] = fmax(XMM[cpu_reg].f[3], src_real[3]);
     }
     return 0;
 }
@@ -933,9 +933,9 @@ static int opMAXPS_xmm_xmm_a32(uint32_t fetchdat)
         src_real[2] = *(float*)&src[2];
         src_real[3] = *(float*)&src[3];
         XMM[cpu_reg].f[0] = fmax(XMM[cpu_reg].f[0], src_real[0]);
-        XMM[cpu_reg].f[1] = fmax(XMM[cpu_reg].f[0], src_real[1]);
-        XMM[cpu_reg].f[2] = fmax(XMM[cpu_reg].f[0], src_real[2]);
-        XMM[cpu_reg].f[3] = fmax(XMM[cpu_reg].f[0], src_real[3]);
+        XMM[cpu_reg].f[1] = fmax(XMM[cpu_reg].f[1], src_real[1]);
+        XMM[cpu_reg].f[2] = fmax(XMM[cpu_reg].f[2], src_real[2]);
+        XMM[cpu_reg].f[3] = fmax(XMM[cpu_reg].f[3], src_real[3]);
     }
     return 0;
 }
