@@ -82,9 +82,12 @@ endif()
 
 #some macOS specific configuration steps
 if(APPLE)
-  # Force using the newest library if it's installed by homebrew
+  find_library(COCOA_LIBRARY Cocoa)
+  target_link_libraries (86Box ${COCOA_LIBRARY} )  
+# Force using the newest library if it's installed by homebrew
   set(CMAKE_FIND_FRAMEWORK LAST)
   
+
   # prepare stuff for macOS app bundles
   set(CMAKE_MACOSX_BUNDLE 1)
 
@@ -214,8 +217,8 @@ add_subdirectory(sound)
 add_subdirectory(video)
 if(APPLE)
 	add_subdirectory(mac)
-else()
-if (WIN32)
+	add_subdirectory(unix)
+elseif(WIN32)
 	add_subdirectory(win)
 else()
 	add_subdirectory(unix)

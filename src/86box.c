@@ -33,7 +33,7 @@
 #ifdef __APPLE__
 #include <string.h>
 #include <dispatch/dispatch.h>
-#include <mac/macOSXGlue.h>
+#include "mac/macOSXGlue.h"
 #ifdef __aarch64__
 #include <pthread.h>
 #endif
@@ -418,6 +418,9 @@ pc_init(int argc, char *argv[])
 	plat_getcwd(usr_path, sizeof(usr_path) - 1);
 	plat_getcwd(rom_path, sizeof(rom_path) - 1);
 
+	printf("JV:usr_path %s\n",usr_path);
+	printf("JV:rom_path %s\n",usr_path);
+	
 	memset(path, 0x00, sizeof(path));
 	memset(path2, 0x00, sizeof(path));
 
@@ -586,20 +589,23 @@ usage:
 			plat_dir_create(usr_path);
 	}
 
+	// TODO: Path detection should be rewrite. Write function per OS rather than how it's done now
+#ifdef __APPLE__
+	//Get and create default rom path for MacOsX
+	getDefaultROMPath(path2);
+	// This will return an absolut path to ~/Library/Application Support/bundleidentifierk/roms
+#endif
+
 	if (vmrp && (path2[0] == '\0')) {
 #ifdef __APPLE__
+//NO COMMAND LINE ARG  for MacOsX when aunched from Finder, so this will never run??
 		getDefaultROMPath(path2);
-		// This will return an absolut path to ~/Library/Application Support/bundleidentifier
+		// This will return an absolut path to ~/Library/Application Support/bundleidentifierk/roms
 #else
 		strcpy(path2, usr_path);
 		plat_path_slash(path2);
 		strcat(path2, "roms");
 #endif
-		/// <summary>
-		/// TODO: Add Plateform specific getDefaultROMPath to hide the awkfull code below
-		/// </summary>
-		/// <param name="path2></param>
-		/// <returns>Correct Path of Default roms folder</returns>
 		plat_path_slash(path2);
 	}
 
