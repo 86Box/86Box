@@ -66,7 +66,8 @@ enum {
     DEVICE_VLB = 0x200,		/* requires the PCI bus */
     DEVICE_PCI = 0x400,		/* requires the VLB bus */
     DEVICE_AGP = 0x800,		/* requires the AGP bus */
-    DEVICE_AC97 = 0x1000	/* requires the AC'97 bus */
+    DEVICE_AC97 = 0x1000,	/* requires the AC'97 bus */
+    DEVICE_COM = 0x2000		/* requires a serial port */
 };
 
 

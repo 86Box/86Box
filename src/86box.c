@@ -63,6 +63,7 @@
 #include <86box/isartc.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
+#include <86box/serial_passthrough.h>
 #include <86box/keyboard.h>
 #include <86box/mouse.h>
 #include <86box/gameport.h>
@@ -704,6 +705,7 @@ usage:
 	cdrom_global_init();
 	zip_global_init();
 	mo_global_init();
+	serial_passthrough_init();
 
 	/* Load the configuration file. */
 	config_load();
