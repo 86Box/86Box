@@ -43,7 +43,11 @@ endif()
 add_executable(86Box WIN32 MACOSX_BUNDLE 86box.c config.c log.c random.c timer.c io.c acpi.c apm.c
 	dma.c ddma.c nmi.c pic.c pit.c port_6x.c port_92.c ppi.c pci.c mca.c usb.c
 	device.c nvr.c nvr_at.c nvr_ps2.c ${APP_ICON_MACOSX} ${MAC_GLUE})
- 
+
+if(APPLE)
+	target_link_libraries(86Box "-framework AppKit")
+endif()
+
 if(NEW_DYNAREC)
 	add_compile_definitions(USE_NEW_DYNAREC)
 endif()
@@ -91,9 +95,12 @@ endif()
 
 #some macOS specific configuration steps
 if(APPLE)
-  # Force using the newest library if it's installed by homebrew
+  find_library(COCOA_LIBRARY Cocoa)
+  target_link_libraries (86Box ${COCOA_LIBRARY} )  
+# Force using the newest library if it's installed by homebrew
   set(CMAKE_FIND_FRAMEWORK LAST)
   
+
   # prepare stuff for macOS app bundles
   set(CMAKE_MACOSX_BUNDLE 1)
 
@@ -220,7 +227,10 @@ add_subdirectory(sio)
 add_subdirectory(scsi)
 add_subdirectory(sound)
 add_subdirectory(video)
-if (WIN32)
+if(APPLE)
+	add_subdirectory(mac)
+	add_subdirectory(unix)
+elseif(WIN32)
 	add_subdirectory(win)
 else()
 	add_subdirectory(unix)
