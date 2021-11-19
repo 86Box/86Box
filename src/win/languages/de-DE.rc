@@ -299,7 +299,7 @@ END
 
 #define STR_MACHINE_TYPE	"Maschinentyp:"
 #define STR_MACHINE		"Maschine:"
-#define STR_CONFIGURE		"Konfigurieren"
+#define STR_CONFIGURE		"Einstellen"
 #define STR_CPU_TYPE		"CPU-Typ:"
 #define STR_SPEED		"Takt:"
 #define STR_FPU			"FPU-Einheit:"
