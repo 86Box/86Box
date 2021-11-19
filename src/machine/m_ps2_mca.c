@@ -1019,6 +1019,8 @@ static void mem_encoding_update()
 		ps2.split_size = 0;
 		ps2_mca_log("PS/2 Model 80-111: Split memory block disabled\n");
 	}
+
+	flushmmucache_nopc();
 }
 
 static uint8_t mem_encoding_read(uint16_t addr, void *p)
