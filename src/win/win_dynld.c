@@ -74,7 +74,7 @@ dynld_module(const char *name, dllimp_t *table)
     }
 
     /* All good. */
-    pclog("loaded %s\n", name);
+    dynld_log("loaded %s\n", name);
     return((void *)h);
 }
 
