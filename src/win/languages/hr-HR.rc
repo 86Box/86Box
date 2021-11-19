@@ -65,13 +65,13 @@ BEGIN
         END
         MENUITEM "&HiDPI skaliranje",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Cijeli zaslon\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        MENUITEM "&Cijelozaslonki način\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
         POPUP "&Način rastezanja preko cijelog zaslona"
         BEGIN
             MENUITEM "&Razvlačenje preko cijelog zaslona",        IDM_VID_FS_FULL
             MENUITEM "&4:3",                        IDM_VID_FS_43
             MENUITEM "&Kvadratni pikseli (zadrži omjer)", IDM_VID_FS_KEEPRATIO
-            MENUITEM "&Integer skala",              IDM_VID_FS_INT
+            MENUITEM "&Integer skaliranje",              IDM_VID_FS_INT
         END
         POPUP "E&GA/(S)VGA postavke"
         BEGIN
@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "&Postavke...",                IDM_CONFIG
         MENUITEM "&Ažuriranje ikone statusne trake",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Change program &settings...",    IDM_VID_PROG_SETT
+        MENUITEM "&Promjeni postavke programa...",    IDM_VID_PROG_SETT
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Omogući integraciju &Discord-a", IDM_DISCORD
@@ -156,7 +156,7 @@ BEGIN
     POPUP "&Pomoć"
     BEGIN
         MENUITEM "&Dokumentacija...",           IDM_DOCS
-        MENUITEM "&O 86Box...",             IDM_ABOUT
+        MENUITEM "&O programu 86Box...",             IDM_ABOUT
     END
 END
 
@@ -169,15 +169,15 @@ CassetteSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Nova image daoteka...",				IDM_CASSETTE_IMAGE_NEW
+        MENUITEM "&Nova slika...",				IDM_CASSETTE_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Postojeća image daoteka...",				IDM_CASSETTE_IMAGE_EXISTING
-        MENUITEM "Postojeća image daoteka (&zaštićena od pisanja)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM "&Postojeća slika...",				IDM_CASSETTE_IMAGE_EXISTING
+        MENUITEM "Postojeća slika (&zaštićena od pisanja)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "&Snimi",					IDM_CASSETTE_RECORD
         MENUITEM "&Pusti",					IDM_CASSETTE_PLAY
-        MENUITEM "&Premotanje na početak",			IDM_CASSETTE_REWIND
-        MENUITEM "&Brzi naprijed do kraja",			IDM_CASSETTE_FAST_FORWARD
+        MENUITEM "&Premotajte na početak",			IDM_CASSETTE_REWIND
+        MENUITEM "&Preskočite do kraja",			IDM_CASSETTE_FAST_FORWARD
         MENUITEM SEPARATOR
         MENUITEM "&Izbaci",					IDM_CASSETTE_EJECT
     END
@@ -187,7 +187,7 @@ CartridgeSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Image daoteka...",					IDM_CARTRIDGE_IMAGE
+        MENUITEM "&Slika...",					IDM_CARTRIDGE_IMAGE
         MENUITEM SEPARATOR
         MENUITEM "&Izbaci",					IDM_CARTRIDGE_EJECT
     END
@@ -197,10 +197,10 @@ FloppySubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Nova image daoteka...",				IDM_FLOPPY_IMAGE_NEW
+        MENUITEM "&Nova slika...",				IDM_FLOPPY_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Postojeća image daoteka...",				IDM_FLOPPY_IMAGE_EXISTING
-        MENUITEM "Postojeća image daoteka (&zaštićena od pisanja)...",	IDM_FLOPPY_IMAGE_EXISTING_WP
+        MENUITEM "&Postojeća slika...",				IDM_FLOPPY_IMAGE_EXISTING
+        MENUITEM "Postojeća slika (&zaštićena od pisanja)...",	IDM_FLOPPY_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "&Exportiraj u 86F format...",				IDM_FLOPPY_EXPORT_TO_86F
         MENUITEM SEPARATOR
@@ -215,9 +215,9 @@ BEGIN
         MENUITEM "&Isključi zvuk",					IDM_CDROM_MUTE
         MENUITEM SEPARATOR
         MENUITEM "&Prazno",					IDM_CDROM_EMPTY
-        MENUITEM "&Ponovo učitaj prethodnu image daoteku",			IDM_CDROM_RELOAD
+        MENUITEM "&Ponovo učitaj prethodnu sliku",			IDM_CDROM_RELOAD
         MENUITEM SEPARATOR
-        MENUITEM "&Image daoteka",					IDM_CDROM_IMAGE
+        MENUITEM "&Slika",					IDM_CDROM_IMAGE
     END
 END
 
@@ -225,13 +225,13 @@ ZIPSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Nova image daoteka...",				IDM_ZIP_IMAGE_NEW
+        MENUITEM "&Nova slika...",				IDM_ZIP_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Postojeća image daoteka...",				IDM_ZIP_IMAGE_EXISTING
-        MENUITEM "Postojeća image daoteka (&zaštićena od pisanja)...",	IDM_ZIP_IMAGE_EXISTING_WP
+        MENUITEM "&Postojeća slika...",				IDM_ZIP_IMAGE_EXISTING
+        MENUITEM "Postojeća slika (&zaštićena od pisanja)...",	IDM_ZIP_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "&Izbaci",					IDM_ZIP_EJECT
-        MENUITEM "&Ponovo učitaj prethodnu image daoteku",			IDM_ZIP_RELOAD
+        MENUITEM "&Ponovo učitaj prethodnu sliku",			IDM_ZIP_RELOAD
     END
 END
 
@@ -239,20 +239,20 @@ MOSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Nova image daoteka...",				IDM_MO_IMAGE_NEW
+        MENUITEM "&Nova slika...",				IDM_MO_IMAGE_NEW
         MENUITEM SEPARATOR
-        MENUITEM "&Postojeća image daoteka...",				IDM_MO_IMAGE_EXISTING
-        MENUITEM "Postojeća image daoteka (&zaštićena od pisanja)...",	IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM "&Postojeća slika...",				IDM_MO_IMAGE_EXISTING
+        MENUITEM "Postojeća slika (&zaštićena od pisanja)...",	IDM_MO_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "&Izbaci",					IDM_MO_EJECT
-        MENUITEM "&Ponovo učitaj prethodnu image daoteku",			IDM_MO_RELOAD
+        MENUITEM "&Ponovo učitaj prethodnu sliku",			IDM_MO_RELOAD
     END
 END
 
 #if defined(DEV_BRANCH) && defined(USE_OPENGL)
 VidGLSubMenu MENU DISCARDABLE
 BEGIN
-    POPUP "Target &framerate"
+    POPUP "&Ciljni framerate"
     BEGIN
         MENUITEM "&Sinkronizacija s videom", IDM_VID_GL_FPS_BLITTER
         MENUITEM "&25 fps", IDM_VID_GL_FPS_25
@@ -273,22 +273,22 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Program Settings"
+#define STR_PROG_SETT		"Postavke programa"
 #define STR_SND_GAIN		"Pojačavanje zvuka"
-#define STR_NEW_FLOPPY		"Nova image daoteka"
+#define STR_NEW_FLOPPY		"Nova slika"
 #define STR_CONFIG		"86Box postavke"
 #define STR_SPECIFY_DIM		"Odredite glavne dimenzije prozora"
 
 #define STR_OK			"OK"
 #define STR_CANCEL		"Odustani"
 #define STR_GLOBAL		"Spremite ove postavke kao &globalne zadane postavke"
-#define STR_DEFAULT		"&Standard"
+#define STR_DEFAULT		"Zadano"
 #define STR_LANGUAGE		"Jezik:"
 #define STR_ICONSET		"Paket ikona:"
 
 #define STR_GAIN		"Pojačavanje"
 
-#define STR_FILE_NAME		"Ime daoteke:"
+#define STR_FILE_NAME		"Ime datoteke:"
 #define STR_DISK_SIZE		"Veličina diska:"
 #define STR_RPM_MODE		"Način rotacije:"
 #define STR_PROGRESS		"Napredak:"
@@ -297,23 +297,23 @@ END
 #define STR_HEIGHT		"Visina:"
 #define STR_LOCK_TO_SIZE	"Zaključajte na ovu veličinu"
 
-#define STR_MACHINE_TYPE	"Tip računala:"
-#define STR_MACHINE		"Računalo:"
-#define STR_CONFIGURE		"Konfigurirajte"
-#define STR_CPU_TYPE		"CPU tip:"
+#define STR_MACHINE_TYPE	"Tip sistema:"
+#define STR_MACHINE		"Sistem:"
+#define STR_CONFIGURE		"Namjesti"
+#define STR_CPU_TYPE		"Tip procesora:"
 #define STR_SPEED		"Brzina:"
 #define STR_FPU			"FPU uređaj:"
-#define STR_WAIT_STATES		"Stanja čekanje:"
+#define STR_WAIT_STATES		"Stanja čekanja:"
 #define STR_MB			"MB"
 #define STR_MEMORY		"Memorija:"
-#define STR_TIME_SYNC		"Vremenska sinkronizacija"
+#define STR_TIME_SYNC		"Sinkronizacija vremena"
 #define STR_DISABLED		"Deaktivirano"
 #define STR_ENABLED_LOCAL	"Uključeno (lokalno vrijeme)"
 #define STR_ENABLED_UTC		"Uključeno (UTC)"
 #define STR_DYNAREC		"Dinamički rekompilator"
 
 #define STR_VIDEO		"Video kartica:"
-#define STR_VOODOO		"Voodoo Graphics"
+#define STR_VOODOO		"Voodoo grafika"
 
 #define STR_MOUSE		"Miš:"
 #define STR_JOYSTICK		"Joystick:"
@@ -323,8 +323,8 @@ END
 #define STR_JOY4		"Joystick 4..."
 
 #define STR_SOUND		"Sound kartica:"
-#define STR_MIDI		"MIDI Out uređaj:"
-#define STR_MIDI_IN		"MIDI In uređaj:"
+#define STR_MIDI		"MIDI izlazni uređaj:"
+#define STR_MIDI_IN		"MIDI ulazni uređaj:"
 #define STR_MPU401		"Samostalni MPU-401 uređaj"
 #define STR_SSI			"Innovation SSI-2001"
 #define STR_CMS			"CMS / Game Blaster"
@@ -361,20 +361,20 @@ END
 #define STR_NEW			"&Novo..."
 #define STR_EXISTING		"&Postojeći..."
 #define STR_REMOVE		"&Ukloniti"
-#define STR_BUS			"Bus:"
+#define STR_BUS			"Međusklop:"
 #define STR_CHANNEL		"Kanal:"
 #define STR_ID			"ID:"
 
-#define STR_SPECIFY		"&Izaberi..."
+#define STR_SPECIFY		"&Odredite..."
 #define STR_SECTORS		"Sektori:"
 #define STR_HEADS		"Glave:"
 #define STR_CYLS		"Cilindri:"
 #define STR_SIZE_MB		"Veličina (MB):"
 #define STR_TYPE		"Tip:"
-#define STR_IMG_FORMAT		"Format image daoteke:"
-#define STR_BLOCK_SIZE		"Veličina image daoteke:"
+#define STR_IMG_FORMAT		"Format slike:"
+#define STR_BLOCK_SIZE		"Veličina slike:"
 
-#define STR_FLOPPY_DRIVES	"Floppy drives:"
+#define STR_FLOPPY_DRIVES	"Disketni pogoni:"
 #define STR_TURBO		"Turbo timingovi"
 #define STR_CHECKBPB		"Provjerite BPB"
 #define STR_CDROM_DRIVES	"CD-ROM pogoni:"
@@ -411,21 +411,21 @@ BEGIN
     IDS_2052	"Pritisnite CTRL+ALT+PAGE DOWN za povratak u prozorski način rada."
     IDS_2053	"Brzina"
     IDS_2054	"ZIP %03i %i (%s): %ls"
-    IDS_2055	"ZIP image daoteke (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	"86Box could not find any usable ROM images.\n\nPlease <a href=""https://github.com/86Box/roms/releases/latest"">download</a> a ROM set and extract it into the ""roms"" directory."
+    IDS_2055	"ZIP slike (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
+    IDS_2056	"86Box nije mogao pronaći upotrebljive ROM datoteke.\n\nMolimte posjetite <a href=""https://github.com/86Box/roms/releases/latest""></a> sknite paket s ROM datotekama i ekstrahirajte paket u ""roms"" mapu."
     IDS_2057	"(prazno)"
-    IDS_2058	"ZIP image daoteke (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Svi daoteke (*.*)\0*.*\0"
+    IDS_2058	"ZIP slike (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Sve datoteke (*.*)\0*.*\0"
     IDS_2059	"Turbo"
     IDS_2060	"Uključeno"
     IDS_2061	"Isključeno"
-    IDS_2062	"Svi image daoteke (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Bazni sektorni image daoteke (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Površne image daoteke (*.86F)\0*.86F\0"
-    IDS_2063	"Računalo ""%hs"" nije dostupan jer nedostaju ROM-ovi u mapu roms/machines. Prebacivanje na raspoloživi računalo."
+    IDS_2062	"Sve slike (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0BOsnovne sektorske slike (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Površne slike (*.86F)\0*.86F\0"
+    IDS_2063	"Sistem ""%hs"" nije dostupan jer ne postoje potrebni ROM-ovi u mapu roms/machines. Prebacivanje na dostupno računalo."
 END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_2064	"Video kartica ""%hs"" nije dostupna jer nedostaju ROM-ovi u mapu roms/video. Prebacivanje na dostupnu video karticu."
-    IDS_2065	"Računalo"
+    IDS_2064	"Video kartica ""%hs"" nije dostupna jer ne postoje potrebni ROM-ovi u mapu roms/video. Prebacivanje na dostupnu video karticu."
+    IDS_2065	"Sistem"
     IDS_2066	"Video"
     IDS_2067	"Ulazni uređaji"
     IDS_2068	"Zvuk"
@@ -436,26 +436,26 @@ BEGIN
     IDS_2073	"Floppy & CD-ROM pogoni"
     IDS_2074	"Ostali uklonjivi uređaji"
     IDS_2075	"Ostali periferni uređaji"
-    IDS_2076	"Površne image daoteke (*.86F)\0*.86F\0"
-    IDS_2077	"Kliknite za snimanje miša"
-    IDS_2078	"Pritisnite F8+F12 za otpuštanje miša"
-    IDS_2079	"Pritisnite F8+F12 ili srednji gumb za otpuštanje miša"
+    IDS_2076	"Površne slike (*.86F)\0*.86F\0"
+    IDS_2077	"Kliknite da uhvatite miš"
+    IDS_2078	"Pritisnite F8+F12 za otpustanje miša"
+    IDS_2079	"Pritisnite F8+F12 ili srednji gumb miša za otpuštanje miša"
 END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
     IDS_2080	"Nije moguće inicijalizirati FluidSynth"
     IDS_2081	"Bus"
-    IDS_2082	"Daoteka"
+    IDS_2082	"Datoteka"
     IDS_2083	"C"
-    IDS_2084	"G"
+    IDS_2084	"H"
     IDS_2085	"S"
     IDS_2086	"MB"
     IDS_2087	"Provjeri BPB"
     IDS_2088	"KB"
     IDS_2089	"Nije moguće inicijalizirati videorenderer."
     IDS_2090	"Standard"
-    IDS_2091	"%i stanja čekanja"
+    IDS_2091	"%i stanje čekanja"
     IDS_2092	"Tip"
     IDS_2093	"Postavljanje PCap-a nije uspjelo"
     IDS_2094	"Nema PCap uređaja"
@@ -463,36 +463,36 @@ BEGIN
     IDS_2096	"Standardni joystick(e) s 2 tipke"
     IDS_2097	"Standardni joystick s 4 tipke"
     IDS_2098	"Standardni joystick s 6 tipke"
-    IDS_2099	"Standardni joystick s 6 tipke"
+    IDS_2099	"Standardni joystick s 8 tipke"
     IDS_2100	"CH Flightstick Pro"
     IDS_2101	"Microsoft SideWinder Pad"
     IDS_2102	"Thrustmaster Flight Control System"
-    IDS_2103	"Nikakve"
+    IDS_2103	"Bez"
     IDS_2104	"Nije moguće učitati akceleratore tipkovnice."
     IDS_2105	"Nije moguće registrirati neobrađeni unos."
     IDS_2106	"%u"
     IDS_2107	"%u MB (CHS: %i, %i, %i)"
     IDS_2108	"Disketa %i (%s): %ls"
-    IDS_2109	"Svi image daoteke (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Napredne sektorske image daoteke (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Bazni sektorni image daoteke (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux image daoteke (*.FDI)\0*.FDI\0Površne image daoteke (*.86F;*.MFM)\0*.86F;*.MFM\0Svi daoteke (*.*)\0*.*\0"
+    IDS_2109	"Sve slike (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Napredne sektorske slike (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Osnovne sektorske slike (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux slike (*.FDI)\0*.FDI\0Površne slike (*.86F;*.MFM)\0*.86F;*.MFM\0Sve datoteke (*.*)\0*.*\0"
     IDS_2110	"Nije moguće inicijalizirati FreeType"
     IDS_2111	"Nije moguće inicijalizirati SDL, SDL2.dll je potrebno"
     IDS_2112	"Jeste li sigurni da želite hard resetirati emulirano računalo?"
     IDS_2113	"Jeste li sigurni da želite izaći iz 86Boxa?"
-    IDS_2114	"Nije moguće inicijalizirati Ghostscript"
+    IDS_2114	"Nije moguće inicijalizirati GhostScript"
     IDS_2115	"MO %i (%ls): %ls"
-    IDS_2116	"Image daoteke za MO diskovi (*.IM?;*.MDI)\0*.IM?;*.MDI\0Svi daoteke (*.*)\0*.*\0"
+    IDS_2116	"MO slike (*.IM?;*.MDI)\0*.IM?;*.MDI\0Svi datoteke (*.*)\0*.*\0"
     IDS_2117	"Dobrodošli u 86Box!"
     IDS_2118	"Interni kontroler"
     IDS_2119	"Izlazi"
-    IDS_2120	"Nisu pronađeni ROM daoteke"
+    IDS_2120	"Nisu pronađeni ROM datoteke"
     IDS_2121	"Želite li spremiti postavke?"
-    IDS_2122	"Ovo će napraviti hard resetiranje emuliranog računala."
-    IDS_2123	"Spremi"
-    IDS_2124	"O 86Box"
+    IDS_2122	"Ovo će napraviti hard resetiranje emuliranog sistema."
+    IDS_2123	"Spremaj"
+    IDS_2124	"O programu 86Box"
     IDS_2125	"86Box verzija " EMU_VERSION
 
-    IDS_2126	"Emulator starih računala\n\nAutori: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, i drugi.\n\nPreveo: dob205\n\nObjavljeno pod GNU Općom javnom licencom, verzija 2 ili kasnije. Vidi LICENSE za više informacije."
-    IDS_2127	"OK"
+    IDS_2126	"Emulator starih računala\n\nAutori: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, i drugi.\n\nPreveo: dob205\n\nObjavljeno pod licencom GNU General Public License, verzija 2 ili novije. Za više informacija pogledajte datoteku LICENCE."
+    IDS_2127	"U redu"
     IDS_2128	"Hardver nije dostupan"
 #ifdef _WIN32
 #define LIB_NAME_PCAP "WinPcap"
@@ -512,31 +512,31 @@ BEGIN
 #else
 #define LIB_NAME_GS "libgs"
 #endif
-    IDS_2132	LIB_NAME_GS " je potrebno za automatsku konverziju PostScript daoteke u PDF daoteke.\n\nSvi dokumenti poslani na generički PostScript pisač bit će spremljeni kao PostScript (.ps) datoteke."
+    IDS_2132	LIB_NAME_GS " je potrebno za automatsku konverziju PostScript datoteke u PDF datoteke.\n\nSvi dokumenti poslani na generički PostScript pisač bit će spremljeni kao PostScript (.ps) datoteke."
 #ifdef _WIN32
 #define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
 #else
 #define LIB_NAME_FLUIDSYNTH "libfluidsynth"
 #endif
     IDS_2133	LIB_NAME_FLUIDSYNTH " je potrebno za FluidSynth MIDI izlaz."
-    IDS_2134	"Ulazak u način cijelog zaslona"
+    IDS_2134	"Ulazak u cijelozaslonski način"
     IDS_2135	"Ne pokazi više ovu poruku"
     IDS_2136	"Ne izlazi"
     IDS_2137	"Resetiraj"
     IDS_2138	"Ne resetiraj"
-    IDS_2139	"Image daoteke za MO diskovi (*.IM?;*.MDI)\0*.IM?;*.MDI\0Svi daoteke (*.*)\0*.*\0"
-    IDS_2140	"Image daoteke za CD-ROM diskovi (*.ISO;*.CUE)\0*.ISO;*.CUE\0Svi daoteke (*.*)\0*.*\0"
-    IDS_2141	"%hs Konfiguracija Uređaja"
-    IDS_2142    "Monitor u stanju mirovanja"
-    IDS_2143	"OpenGL shaderi (*.GLSL)\0*.GLSL\0Svi daoteke (*.*)\0*.*\0"
+    IDS_2139	"MO slike (*.IM?;*.MDI)\0*.IM?;*.MDI\0Sve datoteke (*.*)\0*.*\0"
+    IDS_2140	"CD-ROM slike (*.ISO;*.CUE)\0*.ISO;*.CUE\0Sve datoteke (*.*)\0*.*\0"
+    IDS_2141	"Konfiguracija uređaja %hs "
+    IDS_2142    "Ekran u stanju mirovanja"
+    IDS_2143	"OpenGL shaderi (*.GLSL)\0*.GLSL\0Sve datoteke (*.*)\0*.*\0"
     IDS_2144	"OpenGL opcije"
     IDS_2145	"Učitavate nepodržanu konfiguraciju"
-    IDS_2146	"Filtriranje tipa CPU-a na temelju odabranog stroja onemogućeno je za ovaj emuliranog računalo.\n\nOvo omogućuje odabir CPU-a koji inače nije kompatibilan s odabranog računalom. Međutim, možete naići na nekompatibilnosti s BIOS-om uređaja ili drugim softverom.\n\nOmogućavanje ove postavke nije službeno podržano i sva prijava o greškama mogu biti zatvorena kao ""invalid""."
+    IDS_2146	"Filtriranje tipa CPU-a na temelju odabranog sistema onemogućeno je za ovaj emulirani sistem.\n\nOvo omogućuje odabir procesora koji inače nisu kompatibilne s odabranog sistem. Međutim, možete naići na na nekompatibilnosti s BIOS-om sustava ili drugim softverom.\n\nOmogućavanje ove postavke nije službeno podržano i sva prijava o greškama mogu biti zatvorena kao ""invalid""."
     IDS_2147	"Nastavi"
-    IDS_2148	"Audio kasete: %s"
-    IDS_2149	"Image daoteke za audio kasete (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Svi daoteke (*.*)\0*.*\0"
+    IDS_2148	"Audio kaseta: %s"
+    IDS_2149	"Slike audio kasete (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Sve datoteke (*.*)\0*.*\0"
     IDS_2150	"Kaseta %i: %ls"
-    IDS_2151	"Image daoteke za kasete (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Svi daoteke (*.*)\0*.*\0"
+    IDS_2151	"Slike kasete (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Sve datoteke (*.*)\0*.*\0"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -544,42 +544,42 @@ BEGIN
     IDS_4096    "Tvrdi disk (%s)"
     IDS_4097	"%01i:%01i"
     IDS_4098	"%01i"
-    IDS_4099	"MFM/RLL ili ESDI CD-ROM drives nisu nikada postojali"
+    IDS_4099	"MFM/RLL ili ESDI CD-ROM pogoni nisu nikada postojali"
     IDS_4100	"Prilagođeno..."
     IDS_4101	"Prilagođeno (veliko)..."
     IDS_4102	"Dodajte novi tvrdi disk"
     IDS_4103	"Dodajte postojeći tvrdi disk"
-    IDS_4104	"HDI disk image daoteke ne mogu biti veće od 4 GB."
-    IDS_4105	"Image daoteke tvrdog diska ne mogu biti veće od 127 GB."
-    IDS_4106	"Image daoteke za tvrde diskove (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0Svi daoteke (*.*)\0*.*\0"
+    IDS_4104	"HDI disk image datoteke ne mogu biti veće od 4 GB."
+    IDS_4105	"Slike tvrdog diska ne mogu biti veće od 127 GB."
+    IDS_4106	"Slike za tvrde diskove (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0Sve datoteke (*.*)\0*.*\0"
     IDS_4107	"Nije moguće pročitati datoteku"
     IDS_4108	"Nije moguće napisati datoteku"
-    IDS_4109	"HDI ili HDX image daoteke s veličinom sektora koja nije 512 kB nisu podržane."
+    IDS_4109	"HDI ili HDX slike s veličinom sektora koja nije 512 kB nisu podržane."
     IDS_4110	"USB nije još podržano"
-    IDS_4111	"Image daoteka diska već postoji"
-    IDS_4112	"Molimo unesite važeći naziv datoteke."
-    IDS_4113	"Image diska je stvorena"
+    IDS_4111	"Slika diska već postoji"
+    IDS_4112	"Molimte unesite važeći naziv datoteke."
+    IDS_4113	"Slika je stvorena"
     IDS_4114	"Provjerite je li postoji datoteka i je li je čitljiva."
     IDS_4115	"Provjerite je li se datoteka sprema u mapu s dopuštenjima za pisanje."
-    IDS_4116	"Image diska je prevelika"
-    IDS_4117	"Ne zaboravite particionirati i formatirati novostvoreni tvrdi disk."
+    IDS_4116	"Slika diska je prevelika"
+    IDS_4117	"Ne zaboravite stvoriti particije i formatirati ih na novom disku."
     IDS_4118	"Odabrana datoteka bit će prebrisana. Jeste li sigurni da želite koristiti ovu daoteku?"
-    IDS_4119	"Nepodržana image daoteka diska"
+    IDS_4119	"Nepodržana slika diska"
     IDS_4120	"Prepiši"
     IDS_4121	"Ne prepiši"
-    IDS_4122	"Image daoteka neobrađenih podataka (.img)"
-    IDS_4123	"HDI image daoteka (.hdi)"
-    IDS_4124	"HDX image daoteka (.hdx)"
+    IDS_4122	"Slika neobrađenih podataka (.img)"
+    IDS_4123	"HDI slika (.hdi)"
+    IDS_4124	"HDX slika (.hdx)"
     IDS_4125	"VHD fiksne veličine (.vhd)"
     IDS_4126	"VHD dinamičke veličine (.vhd)"
     IDS_4127	"Različiti VHD (.vhd)"
     IDS_4128	"Veliki blokovi (2 MB)"
     IDS_4129	"Mali blokovi (512 KB)"
-    IDS_4130	"VHD image daoteke (*.VHD)\0*.VHD\0Svi daoteke (*.*)\0*.*\0"
+    IDS_4130	"VHD slike (*.VHD)\0*.VHD\0Sve datoteke (*.*)\0*.*\0"
     IDS_4131	"Izaberi matični VHD"
-    IDS_4132	"To bi moglo značiti da je matična image daoteka promijenjena nakon što je stvorena različita image daoteka.\n\nTo se također može dogoditi ako su image datoteke premještene ili kopirane, ili greška u programu koji je stvorio ovaj disk.\n\nŽelite li popraviti vremenske oznake?"
+    IDS_4132	"To bi moglo značiti da je matična slika promijenjena nakon što je stvorena različita slika.\n\nTo se također može dogoditi ako su slike premještene ili kopirane, ili greška u programu koji je stvorio ovaj disk.\n\nŽelite li popraviti vremenske oznake?"
     IDS_4133	"Vremenske ozanke matične i poređenog diska ne odgovaraju."
-    IDS_4134	"Nisam mogao popraviti vremensku oznaku VHDa."
+    IDS_4134	"Nisam mogao popraviti vremensku oznaku VHD slike."
     IDS_4135	"%01i:%02i"
 
     IDS_4352    "MFM/RLL"
@@ -631,12 +631,12 @@ BEGIN
     IDS_5910	"5,25"" 1Gb M.O."
     IDS_5911	"5,25"" 1.3Gb M.O."
 
-    IDS_6144	"Savršen broj okretanja"
+    IDS_6144	"Savršeni broj okretaja u minuti"
     IDS_6145	"1%% ispod savršenog broja okretaja"
     IDS_6146	"1,5%% ispod savršenog broja okretaja"
     IDS_6147	"2%% ispod savršenog broja okretaja"
 
-    IDS_7168	"(Standard operativnog sustava)"
+    IDS_7168	"(Zadana postavka operativnog sustava)"
 END
 #define IDS_LANG_ENUS	IDS_7168
 

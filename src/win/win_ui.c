@@ -1240,6 +1240,9 @@ ui_init(int nCmdShow)
     tdconfig.pButtons = tdbuttons;
     tdconfig.pfCallback = TaskDialogProcedure;
 
+    /* Load the desired iconset */
+    win_load_icon_set();
+
     /* Start settings-only mode if requested. */
     if (settings_only) {
 	if (! pc_init_modules()) {
@@ -1374,9 +1377,6 @@ ui_init(int nCmdShow)
     ResetAllMenus();
     media_menu_init();
 	
-    /* Load the desired iconset */
-    win_load_icon_set();
-
     /* Make the window visible on the screen. */
     ShowWindow(hwnd, nCmdShow);
 

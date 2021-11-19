@@ -16,25 +16,38 @@
 #
 
 # Prepare the macOS app bundle icon depending on the release channel
-if(RELEASE_BUILD)
-	set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/release/86Box.icns)
-elseif(BETA_BUILD)
-	set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/beta/86Box.icns)
-elseif(ALPHA_BUILD)
-	set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/dev/86Box.icns)
-else()
-	set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/branch/86Box.icns)
-endif()
+set(APP_ICON_MACOSX)
+if (APPLE)
+	if(RELEASE_BUILD)
+		set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/release/86Box.icns)
+	elseif(BETA_BUILD)
+		set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/beta/86Box.icns)
+	elseif(ALPHA_BUILD)
+		set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/dev/86Box.icns)
+	else()
+		set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/branch/86Box.icns)
+	endif()
 
 set_source_files_properties(${APP_ICON_MACOSX} PROPERTIES
         MACOSX_PACKAGE_LOCATION "Resources")
+endif()
+
+#Adding the macOS glue for ROM paths
+set(MAC_GLUE)
+if (APPLE)
+    set(MAC_GLUE ${CMAKE_CURRENT_SOURCE_DIR}/mac/macOSXGlue.m)
+endif()
         
 # WIN32 marks us as a GUI app on Windows
 # MACOSX_BUNDLE prepares a macOS application bundle including with the app icon
 add_executable(86Box WIN32 MACOSX_BUNDLE 86box.c config.c log.c random.c timer.c io.c acpi.c apm.c
 	dma.c ddma.c nmi.c pic.c pit.c port_6x.c port_92.c ppi.c pci.c mca.c usb.c
-	device.c nvr.c nvr_at.c nvr_ps2.c ${APP_ICON_MACOSX})
- 
+	device.c nvr.c nvr_at.c nvr_ps2.c ${APP_ICON_MACOSX} ${MAC_GLUE})
+
+if(APPLE)
+	target_link_libraries(86Box "-framework AppKit")
+endif()
+
 if(NEW_DYNAREC)
 	add_compile_definitions(USE_NEW_DYNAREC)
 endif()
@@ -82,9 +95,12 @@ endif()
 
 #some macOS specific configuration steps
 if(APPLE)
-  # Force using the newest library if it's installed by homebrew
+  find_library(COCOA_LIBRARY Cocoa)
+  target_link_libraries (86Box ${COCOA_LIBRARY} )  
+# Force using the newest library if it's installed by homebrew
   set(CMAKE_FIND_FRAMEWORK LAST)
   
+
   # prepare stuff for macOS app bundles
   set(CMAKE_MACOSX_BUNDLE 1)
 
@@ -184,7 +200,6 @@ endif()
 if(APPLE)
 	set(APPS ${CMAKE_CURRENT_BINARY_DIR}/86Box.app)
 	install(CODE "
-        	include(InstallRequiredSystemLibraries)
         	include(BundleUtilities)
         	fixup_bundle(\"${APPS}\" \"\" \"\")"
     	COMPONENT Runtime)
@@ -213,7 +228,10 @@ add_subdirectory(scsi)
 add_subdirectory(sound)
 add_subdirectory(video)
 add_subdirectory(ui)
-if (WIN32)
+if(APPLE)
+	add_subdirectory(mac)
+	add_subdirectory(unix)
+elseif(WIN32)
 	add_subdirectory(win)
 else()
 	add_subdirectory(unix)
