@@ -282,7 +282,7 @@ set_language(uint32_t id)
 		
 		/* Load the strings table for this ID. */
 		LoadCommonStrings();
-		
+#if 0
 		/* Reload main menu */
 		menuMain = LoadMenu(hinstance, L"MainMenu");
 		SetMenu(hwndMain, menuMain);
@@ -290,6 +290,7 @@ set_language(uint32_t id)
 		/* Re-init all the menus */
 		ResetAllMenus();
 		media_menu_init();
+#endif
     } 
 }
 
@@ -1295,6 +1296,7 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
             sdl_initho(0);
             break;
     }
+    win_load_icon_set();
 
 	/* Initialize SDL2 WM structure. */
 	SDL_VERSION(&wmInfo.version);

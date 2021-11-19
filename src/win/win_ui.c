@@ -65,6 +65,8 @@ int		minimized = 0;
 int		infocus = 1, button_down = 0;
 int		user_resize = 0;
 
+int dpi = 96;
+
 extern char	openfilestring[512];
 extern WCHAR	wopenfilestring[512];
 

@@ -251,7 +251,7 @@ static std::vector<std::pair<std::string, std::string>> cartfilter
     { "Cartridge images", "*.A *.B *.JRC" }
 };
 
-static bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::string, std::string>>& filters = allfilefilter, bool save = false)
+bool OpenFileChooser(char* res, size_t n, std::vector<std::pair<std::string, std::string>>& filters = allfilefilter, bool save = false)
 {
 #ifdef _WIN32
 	std::string filterwin;
@@ -1649,6 +1649,13 @@ extern "C" void RenderImGui()
 		}
 #endif
 		ImGui::Separator();
+#ifdef _WIN32
+		if (ImGui::MenuItem("Change program settings..."))
+		{
+			std::thread thr(ProgSettDlgCreate, GetHWNDFromSDLWindow());
+			thr.detach();
+		}
+#endif
 		if (ImGui::MenuItem("Take screenshot"))
 		{
 			take_screenshot();

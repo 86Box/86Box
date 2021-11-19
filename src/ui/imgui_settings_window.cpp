@@ -1,4 +1,3 @@
-#include "SDL_events.h"
 #include <chrono>
 #ifdef _WIN32
 #include <SDL2/SDL.h>
@@ -1689,20 +1688,54 @@ namespace ImGuiSettingsWindow {
 	}
 	static int cur_hdd_sel = 0;
 
-	
+	static hard_disk_t* hdd_new = nullptr;
+	int CalcNextFreeHDD()
+	{
+		for (int i = 0; i < HDD_NUM; i++)
+		{
+			if (temp_hdd[i].bus == HDD_BUS_DISABLED) return i;
+		}
+		return -1;
+	}
+	void OpenHDDCreationDialog()
+	{
+		hdd_new = &temp_hdd[CalcNextFreeHDD()];
+		ImGui::OpenPopup("##HDD Create");
+	}
+	void RenderHDDCreationDialog()
+	{
+		ImGui::InputScalar("Cylinder", ImGuiDataType_U32, &hdd_new->tracks);
+		ImGui::InputScalar("Heads", ImGuiDataType_U32, &hdd_new->hpc);
+		ImGui::InputScalar("Sector", ImGuiDataType_U32, &hdd_new->spt);
+		hdd_new->tracks = std::clamp(hdd_new->tracks, 0ui32, (uint32_t)max_tracks);
+		hdd_new->hpc = std::clamp(hdd_new->hpc, 0ui32, (uint32_t)max_hpc);
+		hdd_new->spt = std::clamp(hdd_new->tracks, 0ui32, (uint32_t)max_spt);
+		uint32_t size_mb = (hdd_new->tracks * hdd_new->hpc * hdd_new->spt) >> 11;
+		if (ImGui::InputScalar("Size (MB)", ImGuiDataType_U32, &size_mb))
+		{
+			hdd_image_calc_chs((uint32_t *) &hdd_new->tracks, (uint32_t *) &hdd_new->hpc, (uint32_t *) &hdd_new->spt, size_mb);
+			hdd_new->tracks = std::clamp(hdd_new->tracks, 0ui32, (uint32_t)max_tracks);
+			hdd_new->hpc = std::clamp(hdd_new->hpc, 0ui32, (uint32_t)max_hpc);
+			hdd_new->spt = std::clamp(hdd_new->tracks, 0ui32, (uint32_t)max_spt);
+		}
+		if (ImGui::Button("Cancel"))
+		{
+			ImGui::CloseCurrentPopup();
+		}
+	}
 
 	void RenderHardDisksCategory() {
 		normalize_hd_list();
 		hard_disk_untrack_all();
-		if (ImGui::BeginTable("##hddtable", 6, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY, ImVec2(0, 92)))
+		if (ImGui::BeginTable("##hddtable", 6, ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY, ImVec2(0, 110)))
 		{
 			ImGui::TableSetupScrollFreeze(0, 1);
 			ImGui::TableSetupColumn("Bus");
-			ImGui::TableSetupColumn("File", ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn("File");
 			ImGui::TableSetupColumn("C");
 			ImGui::TableSetupColumn("H");
 			ImGui::TableSetupColumn("S");
-			ImGui::TableSetupColumn(".");
+			ImGui::TableSetupColumn("MB");
 			ImGui::TableHeadersRow();
 			constexpr const std::array<std::string_view, 8> busstr
 			{
@@ -1721,6 +1754,7 @@ namespace ImGuiSettingsWindow {
 				std::fill(hddname, &hddname[sizeof(hddname)], 0);
 				if (temp_hdd[i].bus <= HDD_BUS_DISABLED) continue;
 				ImGui::TableNextRow();
+				//if (cur_hdd_sel == i) ImGui::TableSetBgColor(ImGuiTableBgTarget_RowBg0, ImGui::GetColorU32(ImGuiCol_Header));
 				switch(temp_hdd[i].bus)
 				{
 					case HDD_BUS_IDE:
@@ -1743,40 +1777,40 @@ namespace ImGuiSettingsWindow {
 						break;
 				}
 				ImGui::TableSetColumnIndex(0);
-				if (ImGui::Selectable(hddname, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap, cur_hdd_sel == i)) cur_hdd_sel = i;
-				
-				ImGui::TableNextColumn();
+				if (ImGui::Selectable(hddname, cur_hdd_sel == i, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap)) cur_hdd_sel = i;;
+				ImGui::TableSetColumnIndex(1);
 				ImGui::TextUnformatted(!strnicmp(temp_hdd[i].fn, usr_path, strlen(usr_path)) ? temp_hdd[i].fn + strlen(usr_path) : temp_hdd[i].fn);
 
-				ImGui::TableNextColumn();
+				ImGui::TableSetColumnIndex(2);
 				ImGui::Text("%i", temp_hdd[i].tracks);
-				ImGui::TableNextColumn();
+				ImGui::TableSetColumnIndex(3);
 				ImGui::Text("%i", temp_hdd[i].hpc);
-				ImGui::TableNextColumn();
+				ImGui::TableSetColumnIndex(4);
 				ImGui::Text("%i", temp_hdd[i].spt);
-				ImGui::TableNextColumn();
+				ImGui::TableSetColumnIndex(5);
 				ImGui::Text("%i", (temp_hdd[i].tracks * temp_hdd[i].hpc * temp_hdd[i].spt) >> 11);
 			}
 			ImGui::EndTable();
-			ImGui::TextUnformatted("Bus:"); ImGui::SameLine();
-			if (ImGui::BeginCombo("##Bus:", busstr[temp_hdd[cur_hdd_sel].bus].data()))
-			{
-				for (int i = 1; i < 7; i++)
-				{
-					if (ImGui::Selectable(busstr[i].data(), i == temp_hdd[cur_hdd_sel].bus))
-					{
-						temp_hdd[cur_hdd_sel].bus = i;
-					}
-					if (i == temp_hdd[cur_hdd_sel].bus)
-					{
-						ImGui::SetItemDefaultFocus();
-					}
-				}
-				ImGui::EndCombo();
-			}
-			ImGui::SameLine();
 			if (temp_hdd[cur_hdd_sel].bus != HDD_BUS_DISABLED)
 			{
+				ImGui::TextUnformatted("Bus:"); ImGui::SameLine();
+				if (ImGui::BeginCombo("##Bus:", busstr[temp_hdd[cur_hdd_sel].bus].data()))
+				{
+					for (int i = 1; i < 7; i++)
+					{
+						if (ImGui::Selectable(busstr[i].data(), i == temp_hdd[cur_hdd_sel].bus))
+						{
+							temp_hdd[cur_hdd_sel].bus = i;
+						}
+						if (i == temp_hdd[cur_hdd_sel].bus)
+						{
+							ImGui::SetItemDefaultFocus();
+						}
+					}
+					ImGui::EndCombo();
+				}
+				ImGui::SameLine();
+			
 				ImGui::TextUnformatted("Channel:"); ImGui::SameLine();
 				auto beginBinaryChannelCombo = [](uint8_t& chan, const char* str)
 				{
