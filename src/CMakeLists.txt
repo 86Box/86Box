@@ -32,17 +32,11 @@ set_source_files_properties(${APP_ICON_MACOSX} PROPERTIES
         MACOSX_PACKAGE_LOCATION "Resources")
 endif()
 
-#Adding the macOS glue for ROM paths
-set(MAC_GLUE)
-if (APPLE)
-    set(MAC_GLUE ${CMAKE_CURRENT_SOURCE_DIR}/mac/macOSXGlue.m)
-endif()
-        
 # WIN32 marks us as a GUI app on Windows
 # MACOSX_BUNDLE prepares a macOS application bundle including with the app icon
 add_executable(86Box WIN32 MACOSX_BUNDLE 86box.c config.c log.c random.c timer.c io.c acpi.c apm.c
 	dma.c ddma.c nmi.c pic.c pit.c port_6x.c port_92.c ppi.c pci.c mca.c usb.c
-	device.c nvr.c nvr_at.c nvr_ps2.c ${APP_ICON_MACOSX} ${MAC_GLUE})
+	device.c nvr.c nvr_at.c nvr_ps2.c ${APP_ICON_MACOSX})
 
 if(APPLE)
 	target_link_libraries(86Box "-framework AppKit")
@@ -95,8 +89,6 @@ endif()
 
 #some macOS specific configuration steps
 if(APPLE)
-  find_library(COCOA_LIBRARY Cocoa)
-  target_link_libraries (86Box ${COCOA_LIBRARY} )  
 # Force using the newest library if it's installed by homebrew
   set(CMAKE_FIND_FRAMEWORK LAST)
   
@@ -113,10 +105,10 @@ if(APPLE)
   set(MACOSX_BUNDLE_BUNDLE_NAME 86Box)
   set(MACOSX_BUNDLE_BUNDLE_VERSION 3.0)
   set(MACOSX_BUNDLE_SHORT_VERSION_STRING "3.0")
-  set(MACOSX_BUNDLE_LONG_VERSION_STRING "3.0.0")
+  set(MACOSX_BUNDLE_LONG_VERSION_STRING "3.0.{$EMU_BUILD_NUM}")
   set(MACOSX_BUNDLE_ICON_FILE 86Box.icns)
   set(MACOSX_BUNDLE_INFO_STRING "A emulator of old computers")
-  set(MACOSX_BUNDLE_COPYRIGHT "© 2007-2021 Sarah Walker, Miran Grča, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others")
+  set(MACOSX_BUNDLE_COPYRIGHT "© 2007-{$EMU_COPYRIGHT_YEAR} 86Box contributors")
 
   
   # preparing the code signing for easier distribution, Apple dev certificate needed at one point
