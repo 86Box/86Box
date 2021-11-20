@@ -29,6 +29,8 @@
 typedef struct serpt_ctx_s {
 	serial_t *serial_dev;
 	serpt_mode_t mode;
+	char slave_pt[32];	/* used for pseudo terminal name of slave side */
+	int master_fd;		/* file desc for master pseudo termnal or socket or alike */
 } serpt_ctx_t;
 
 

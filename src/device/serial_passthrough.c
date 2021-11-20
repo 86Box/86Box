@@ -42,6 +42,7 @@ serpt_dev_init(const struct _device_ *dev)
 static void
 serpt_dev_close(void *priv)
 {
+        plat_serpt_close(priv);
         free(priv);
 }
 
@@ -73,7 +74,6 @@ serpt_write(struct serial_s *serial, void *p, uint8_t data)
 {
         /* Serial port writes out data byte to the host,
            handle it platform specifically */
-	printf("Serial passthrough byte: %02X\n", data);
         plat_serpt_write(p, data);
 }
 
@@ -84,7 +84,7 @@ serial_passthrough_create(uint8_t com_port, serpt_mode_t mode)
         device_t *sp_dev = NULL;
         char tmp[32];
         uint8_t i;
-	serpt_ctx_t *priv;       
+        serpt_ctx_t *priv;
  
         memset(tmp, 0, sizeof(tmp));
 
@@ -118,13 +118,18 @@ serial_passthrough_create(uint8_t com_port, serpt_mode_t mode)
                  * should not matter at the moment and there is no
                  * device_remove API call, so let the dev manager
                  * clean up in the very end. */
-                warn("Attaching passthrough device to serial port failed\n");
+                pclog("Attaching passthrough device to serial port failed\n");
                 return 1;
         }
 
-	priv->serial_dev = s;
-	priv->mode = mode;
-	
+        priv->serial_dev = s;
+        priv->mode = mode;
+
+        if (plat_serpt_open_device(priv)) {
+                pclog("Cold not open backend device for serial passthrough\n");
+                return 1;
+        }
+
         return 0;
 }
 
