@@ -125,6 +125,12 @@ extern void	plat_vid_reload_options(void);
 extern uint32_t plat_language_code(char* langcode);
 extern void plat_language_code_r(uint32_t lcid, char* outbuf, int len);
 
+/* Global settings (platform-dependent) */
+extern void *plat_gconf_init(int mode);
+extern void plat_gconf_close(void *context);
+extern void plat_gconf_set_string(void *context, char *key, char *val);
+extern char *plat_gconf_get_string(void *context, char *key, char *def);
+
 /* Resource management. */
 extern void	set_language(uint32_t id);
 extern wchar_t	*plat_get_string(int id);
