@@ -66,5 +66,5 @@ void plat_gconf_set_string(void *context, char *key, char *val)
 */
 char* plat_gconf_get_string(void *context, char *key, char *def)
 {
-    return strdup("none");
+    return NULL;
 }
