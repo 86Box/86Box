@@ -1,8 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
+// English (U.K.) resources
 
 #ifdef _WIN32
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_GB
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 #pragma code_page(65001)
 #endif //_WIN32
 
@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "&Settings...",                IDM_CONFIG
         MENUITEM "&Update status bar icons",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Change program &settings...",    IDM_VID_PROG_SETT
+        MENUITEM "&Preferences...",		IDM_PREFERENCES
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Enable &Discord integration", IDM_DISCORD
@@ -273,10 +273,10 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Program Settings"
+#define STR_PREFERENCES		"86Box Preferences"
 #define STR_SND_GAIN		"Sound Gain"
 #define STR_NEW_FLOPPY		"New Image"
-#define STR_CONFIG		"86Box Settings"
+#define STR_CONFIG		"Machine Settings"
 #define STR_SPECIFY_DIM		"Specify Main Window Dimensions"
 
 #define STR_OK			"OK"
@@ -640,5 +640,5 @@ BEGIN
 END
 #define IDS_LANG_ENUS	IDS_7168
 
-// English (U.S.) resources
+// English (U.K.) resources
 /////////////////////////////////////////////////////////////////////////////
