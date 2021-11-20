@@ -58,7 +58,6 @@ void* plat_gconf_init(int mode)
     else if (RegOpenKeyExW(HKEY_CURRENT_USER, L"SOFTWARE\\86Box\\Preferences", 0, KEY_READ, &hKey) != ERROR_SUCCESS)
         hKey = 0;
 
-    pclog("gconf init: 0x%.8x\n", hKey);
     return (void*)hKey;
 }
 
@@ -68,7 +67,6 @@ void* plat_gconf_init(int mode)
 */
 void plat_gconf_close(void *context)
 {
-    pclog("gconf close: 0x%.8x\n", (DWORD)context);
     RegCloseKey((HKEY)context);
 }
 
@@ -104,34 +102,28 @@ char* plat_gconf_get_string(void *context, char *key, char *def)
 {
     wchar_t *key_w = calloc(strlen(key) + 1, sizeof(wchar_t));
     mbstoc16s(key_w, key, strlen(key) + 1);
-	pclog("gconf_get_string 0x%.8x %s %s %ls\n", (DWORD)context, key, def, key_w);
 	
     DWORD cb = 0, dwType = REG_SZ;
     if (RegQueryValueExW((HKEY)context, key_w, NULL, &dwType, NULL, &cb) != ERROR_SUCCESS) {
        free(key_w);    
-	   pclog("gconf_get_string %s fail: no size\n", key);
        return def ? strdup(def) : NULL;
     }
 	
     cb += sizeof(wchar_t);
     dwType = REG_SZ;
     wchar_t* buffer = calloc(cb, 1);
-	pclog("key_w: %ls, cb: %d\n", key_w, cb);
 	
     if (RegQueryValueExW((HKEY)context, key_w, NULL, &dwType, (LPBYTE)buffer, &cb) != ERROR_SUCCESS) {
        free(key_w);    
        free(buffer);
-	   pclog("gconf_get_string %s fail: no data\n", key);
        return def ? strdup(def) : NULL;
     }
     else {
-	   pclog("buffer: %ls\n", buffer);
        char* retval = calloc(cb, sizeof(wchar_t));
        c16stombs(retval, buffer, cb - 1);
 
        free(key_w);
        free(buffer);        
-	   pclog("gconf_get_string %s = %ls - > %s\n", key, buffer, retval);
        return retval;
     }
 }

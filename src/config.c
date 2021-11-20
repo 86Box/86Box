@@ -572,7 +572,6 @@ load_general(void)
 		lang_id = plat_language_code(p);
 	else {
 		char* locale_s = plat_gconf_get_string(gconf, "language", NULL);
-		pclog("locale_s: %s\n", locale_s);
 		
 		if (locale_s != NULL) {
 		    lang_id = plat_language_code(locale_s);
@@ -589,7 +588,6 @@ load_general(void)
 	}
 	else {
 		char* gc_icset = plat_gconf_get_string(gconf, "iconset", NULL);
-		pclog("gc_icset: %s\n", gc_icset);
 		
 		if (gc_icset != NULL) {
 			strcpy(icon_set, gc_icset);
