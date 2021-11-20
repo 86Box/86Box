@@ -102,7 +102,7 @@ progsett_fill_iconsets(HWND hdlg)
 	win_get_icons_path(icon_path_root);
 	
 	wchar_t search[512];
-	mbstowcs(search, icon_path_root, strlen(icon_path_root) + 1);
+	mbstoc16s(search, icon_path_root, strlen(icon_path_root) + 1);
 	wcscat(search, L"*.*");
 	
 	hFind = FindFirstFile((LPCWSTR)search, &data);
@@ -113,7 +113,7 @@ progsett_fill_iconsets(HWND hdlg)
 			  (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
 			{
 				wchar_t temp[512] = {0}, dispname[512] = {0};
-				mbstowcs(temp, icon_path_root, strlen(icon_path_root) + 1);
+				mbstoc16s(temp, icon_path_root, strlen(icon_path_root) + 1);
 				wcscat(temp, data.cFileName);
 				wcscat(temp, L"\\iconinfo.txt");
 								
@@ -124,14 +124,14 @@ progsett_fill_iconsets(HWND hdlg)
 					char line[512] = {0};
 					if (fgets(line, 511, fp))
 					{
-						mbstowcs(dispname, line, strlen(line) + 1);
+						mbstoc16s(dispname, line, strlen(line) + 1);
 					}
 					
 					fclose(fp);
 				}
 				
 				char filename[512];
-				wcstombs(filename, data.cFileName, 511);
+				c16stombs(filename, data.cFileName, 511);
 				
 				int index = SendMessage(icon_combo, CB_ADDSTRING, 0, (LPARAM)dispname);
 				SendMessage(icon_combo, CB_SETITEMDATA, index, (LPARAM)(strdup(filename)));
