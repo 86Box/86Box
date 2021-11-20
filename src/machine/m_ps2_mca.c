@@ -483,11 +483,13 @@ static void model_55sx_write(uint16_t port, uint8_t val)
                 if (shadowbios)
                 {
                         mem_set_mem_state(0xe0000, 0x20000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
+                        mem_set_mem_state((mem_size+256) * 1024, 128 * 1024, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
                         mem_mapping_disable(&ps2.shadow_mapping);
                 }
                 else
                 {
                         mem_set_mem_state(0xe0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
+                        mem_set_mem_state((mem_size+256) * 1024, 128 * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
                         mem_mapping_enable(&ps2.shadow_mapping);
                 }
 
@@ -495,6 +497,8 @@ static void model_55sx_write(uint16_t port, uint8_t val)
                         mem_set_mem_state(mem_size * 1024, 256 * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
                 else
                         mem_set_mem_state(mem_size * 1024, 256 * 1024, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+
+		flushmmucache_nopc();
                 break;
                 case 0x106:
                 ps2.subaddr_lo = val;
