@@ -1,5 +1,4 @@
 #include <chrono>
-#include <corecrt_wstdio.h>
 #include <memory>
 #include <stdlib.h>
 #ifdef _WIN32
@@ -2105,7 +2104,7 @@ namespace ImGuiSettingsWindow {
 			}
 			if (ImGui::Button("OK"))
 			{
-				
+
 			}
 			if (ImGui::Button("Cancel"))
 			{
