@@ -1,3 +1,3 @@
 include_directories("./mac")
-target_sources(86Box PUBLIC "./macOSXGlue.m")
+target_sources(86Box PUBLIC "./macOSXGlue.m" "./macOSXPrefs.m")
 
