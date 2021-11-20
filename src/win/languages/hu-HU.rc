@@ -101,10 +101,10 @@ BEGIN
     MENUITEM "&Média",				IDM_MEDIA
     POPUP "&Eszközök"
     BEGIN
-        MENUITEM "&Beállítások...",                IDM_CONFIG
+        MENUITEM "Számítógép &beállítások...",                IDM_CONFIG
         MENUITEM "Állapotsori ikonok &frissítése",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Program&beállítások...",    IDM_VID_PROG_SETT
+        MENUITEM "&Programbeállítások...",    IDM_VID_PROG_SETT
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "&Discord integráció engedélyezése", IDM_DISCORD
@@ -279,7 +279,7 @@ END
 #define STR_PROG_SETT		"Programbeállítások"
 #define STR_SND_GAIN		"Hangerőszabályzó"
 #define STR_NEW_FLOPPY		"Új képfájl létrehozása"
-#define STR_CONFIG		"86Box beállítások"
+#define STR_CONFIG		"Számítógép beállítások"
 #define STR_SPECIFY_DIM		"Főablak méreteinek megadása"
 
 #define STR_OK			"OK"
@@ -386,7 +386,7 @@ END
 #define STR_ZIP_DRIVES		"ZIP-meghajtók:"
 #define STR_250			"ZIP 250"
 
-#define STR_ISARTC		"ISA RTC:"
+#define STR_ISARTC		"ISA RTC (óra):"
 #define STR_ISAMEM		"ISA memóriabővítők"
 #define STR_ISAMEM_1		"Kártya 1:"
 #define STR_ISAMEM_2		"Kártya 2:"
@@ -617,8 +617,8 @@ BEGIN
     IDS_5894	"1.2 MB"
     IDS_5895	"1.25 MB"
     IDS_5896	"1.44 MB"
-    IDS_5897	"DMF (klaszter 1024)"
-    IDS_5898	"DMF (klaszter 2048)"
+    IDS_5897	"DMF (1024 klaszter)"
+    IDS_5898	"DMF (2048 klaszter)"
     IDS_5899	"2.88 MB"
     IDS_5900	"ZIP 100"
     IDS_5901	"ZIP 250"
