@@ -1,4 +1,7 @@
 #include <chrono>
+#include <corecrt_wstdio.h>
+#include <memory>
+#include <stdlib.h>
 #ifdef _WIN32
 #include <SDL2/SDL.h>
 #else
@@ -16,6 +19,7 @@
 #include <utility>
 #include <atomic>
 #include <thread>
+#include <variant>
 #include <future> // For non-macOS file picker.
 #include "imgui.h"
 #include <86box/imgui_settings_window.h>
@@ -1689,6 +1693,7 @@ namespace ImGuiSettingsWindow {
 	static int cur_hdd_sel = 0;
 
 	static hard_disk_t* hdd_new = nullptr;
+	static uint32_t cur_img_type = 0;
 	int CalcNextFreeHDD()
 	{
 		for (int i = 0; i < HDD_NUM; i++)
@@ -1697,30 +1702,421 @@ namespace ImGuiSettingsWindow {
 		}
 		return -1;
 	}
+	constexpr const std::array<std::string_view, 8> busstr
+	{
+		"Disabled",
+		"MFM/RLL",
+		"XTA",
+		"ESDI",
+		"IDE",
+		"ATAPI",
+		"SCSI",
+		"USB"
+	};
+	constexpr const std::array<std::string_view, 8> imgstr
+	{
+		"Raw image (.img)",
+		"HDI image (.hdi)",
+		"HDX image (.hdx)",
+		"Fixed-size VHD (.vhd)",
+		"Dynamic-size VHD (.vhd)",
+		"Differencing VHD (.vhd)"
+	};
+	
 	void OpenHDDCreationDialog()
 	{
-		hdd_new = &temp_hdd[CalcNextFreeHDD()];
-		ImGui::OpenPopup("##HDD Create");
+		hdd_new = new hard_disk_t(temp_hdd[CalcNextFreeHDD()]);
+		hdd_new->bus = HDD_BUS_IDE;
+		ImGui::OpenPopup("Add Hard Disk");
+	}
+#pragma pack(push, 0)
+	struct HDDCreateHDI
+	{
+		uint32_t zero1 = 0, zero2 = 0;
+		uint32_t base = 0x1000, size = 0;
+		uint32_t sector_size = 512;
+		uint32_t spt = 0, hpc = 0, tracks = 0;
+		uint32_t pad[0x3f8];
+	};
+	struct HDDCreateHDX
+	{
+		uint64_t signature = 0xD778A82044445459ll;
+		uint64_t size = 0;
+		uint32_t sector_size = 512;
+		uint32_t spt = 0, hpc = 0, tracks = 0;
+		uint32_t zero1 = 0, zero2 = 0;
+	};
+#pragma pack(pop)
+	struct HDDCreateVHD
+	{
+		uint32_t spt = 0, hpc = 0, tracks = 0;
+		uint32_t differencing = 0, dynamic = 0;
+		uint32_t is_small_block = 0;
+		char diff_file[1024];
+	};
+	static std::atomic<uint32_t> progress, progress_max;
+	static std::atomic<bool> hdd_creation_ongoing{false};
+	static void adjust_86box_geometry_for_vhd(MVHDGeom *_86box_geometry, MVHDGeom *vhd_geometry)
+	{
+		if (_86box_geometry->cyl <= 65535) {
+			vhd_geometry->cyl = _86box_geometry->cyl;
+			vhd_geometry->heads = _86box_geometry->heads;
+			vhd_geometry->spt = _86box_geometry->spt;
+			return;
+		}
+
+		int desired_sectors = _86box_geometry->cyl * _86box_geometry->heads * _86box_geometry->spt;
+		if (desired_sectors > 267321600)
+			desired_sectors = 267321600;
+
+		int remainder = desired_sectors % 85680; /* 8560 is the LCM of 1008 (63*16) and 4080 (255*16) */
+		if (remainder > 0)
+			desired_sectors += (85680 - remainder);
+
+		_86box_geometry->cyl = desired_sectors / (16 * 63);
+		_86box_geometry->heads = 16;
+		_86box_geometry->spt = 63;
+
+		vhd_geometry->cyl = desired_sectors / (16 * 255);
+		vhd_geometry->heads = 16;
+		vhd_geometry->spt = 255;
+	}
+
+	static void adjust_vhd_geometry_for_86box(MVHDGeom *vhd_geometry)
+	{
+		if (vhd_geometry->spt <= 63) 
+			return;
+
+		int desired_sectors = vhd_geometry->cyl * vhd_geometry->heads * vhd_geometry->spt;
+		if (desired_sectors > 267321600)
+			desired_sectors = 267321600;
+
+		int remainder = desired_sectors % 85680; /* 8560 is the LCM of 1008 (63*16) and 4080 (255*16) */
+		if (remainder > 0)
+			desired_sectors -= remainder;
+
+		vhd_geometry->cyl = desired_sectors / (16 * 63);
+		vhd_geometry->heads = 16;
+		vhd_geometry->spt = 63;
+	}
+	static void vhd_progress_callback(uint32_t current_sector, uint32_t total_sectors)
+	{
+		progress = current_sector;
+		progress_max = total_sectors;
+	}
+	static MVHDGeom create_drive_vhd_fixed(char* filename, int cyl, int heads, int spt)
+	{
+		MVHDGeom _86box_geometry = { .cyl = (uint16_t)cyl, .heads = (uint8_t)heads, .spt = (uint8_t)spt };
+		MVHDGeom vhd_geometry;
+		adjust_86box_geometry_for_vhd(&_86box_geometry, &vhd_geometry);
+
+		int vhd_error = 0;
+		MVHDMeta *vhd = mvhd_create_fixed(filename, vhd_geometry, &vhd_error, vhd_progress_callback);
+		if (vhd == NULL) {
+			_86box_geometry.cyl = 0;
+			_86box_geometry.heads = 0;
+			_86box_geometry.spt = 0;
+		} else {
+			mvhd_close(vhd);
+		}
+
+		return _86box_geometry;
+	}
+	static MVHDGeom create_drive_vhd_dynamic(char* filename, int cyl, int heads, int spt, int blocksize)
+	{
+		MVHDGeom _86box_geometry = { .cyl = (uint16_t)cyl, .heads = (uint8_t)heads, .spt = (uint8_t)spt };
+		MVHDGeom vhd_geometry;
+		adjust_86box_geometry_for_vhd(&_86box_geometry, &vhd_geometry);
+		int vhd_error = 0;
+		MVHDCreationOptions options;
+		options.block_size_in_sectors = blocksize;
+		options.path = filename;
+		options.size_in_bytes = 0;
+		options.geometry = vhd_geometry;
+		options.type = MVHD_TYPE_DYNAMIC;
+
+		MVHDMeta *vhd = mvhd_create_ex(options, &vhd_error);
+		if (vhd == NULL) {
+			_86box_geometry.cyl = 0;
+			_86box_geometry.heads = 0;
+			_86box_geometry.spt = 0;
+		} else {
+			mvhd_close(vhd);
+		}
+
+		return _86box_geometry;
+	}
+
+	static MVHDGeom create_drive_vhd_diff(char* filename, char* parent_filename, int blocksize)
+	{
+		int vhd_error = 0;
+		MVHDCreationOptions options;
+		options.block_size_in_sectors = blocksize;
+		options.path = filename;
+		options.parent_path = parent_filename;
+		options.type = MVHD_TYPE_DIFF;
+
+		MVHDMeta *vhd = mvhd_create_ex(options, &vhd_error);
+		MVHDGeom vhd_geometry;
+		if (vhd == NULL) {
+			vhd_geometry.cyl = 0;
+			vhd_geometry.heads = 0;
+			vhd_geometry.spt = 0;
+		} else {
+			vhd_geometry = mvhd_get_geometry(vhd);
+
+			if (vhd_geometry.spt > 63) {
+				vhd_geometry.cyl = mvhd_calc_size_sectors(&vhd_geometry) / (16 * 63);
+				vhd_geometry.heads = 16;
+				vhd_geometry.spt = 63;
+			}
+
+			mvhd_close(vhd);
+		}
+
+		return vhd_geometry;
+	}
+
+	bool CreateHDD(char* fn, std::variant<HDDCreateHDI, HDDCreateHDX, HDDCreateVHD, uint64_t> creationparams)
+	{
+		FILE* f;
+#ifdef _WIN32
+		static wchar_t fnwide[260];
+		mbstoc16s((uint16_t*)fnwide, fn, 260);
+		f = _wfopen(fnwide, L"wb");
+#else
+		f = fopen(fn, "w");
+#endif
+		if (!f) return false;
+		else
+		{
+			if (std::holds_alternative<HDDCreateHDI>(creationparams))
+			{
+				void* sectsize = calloc(std::get<HDDCreateHDI>(creationparams).sector_size, 1);
+				fwrite((void*)std::addressof(std::get<HDDCreateHDI>(creationparams)), 1, sizeof(HDDCreateHDI), f);
+				auto size = std::get<HDDCreateHDI>(creationparams).size;
+				auto sectorsize = std::get<HDDCreateHDI>(creationparams).sector_size;
+				progress_max = size / sectorsize;
+				for (int i = 0; i < size / sectorsize; i++)
+				{
+					progress++;
+					fwrite(sectsize, 512, 1, f);
+				}
+				fclose(f);
+				return true;
+			}
+			else if (std::holds_alternative<HDDCreateHDX>(creationparams))
+			{
+				void* sectsize = calloc(std::get<HDDCreateHDX>(creationparams).sector_size, 1);
+				fwrite((void*)std::addressof(std::get<HDDCreateHDX>(creationparams)), 1, sizeof(HDDCreateHDX), f);
+				auto size = std::get<HDDCreateHDX>(creationparams).size;
+				auto sectorsize = std::get<HDDCreateHDX>(creationparams).sector_size;
+				progress_max = size / sectorsize;
+				for (int i = 0; i < size / sectorsize; i++)
+				{
+					progress++;
+					fwrite(sectsize, 512, 1, f);
+				}
+				fclose(f);
+				return true;
+			}
+			else if (std::holds_alternative<HDDCreateVHD>(creationparams))
+			{
+				fclose(f);
+				f = nullptr;
+				auto hddparams = std::get<HDDCreateVHD>(creationparams);
+				if (hddparams.differencing)
+				{
+					auto _86box_geometry = create_drive_vhd_diff(fn, hddparams.diff_file, !hddparams.is_small_block ? MVHD_BLOCK_LARGE : MVHD_BLOCK_SMALL);
+				}
+				else if (hddparams.dynamic)
+				{
+					auto _86box_geometry = create_drive_vhd_dynamic(fn, hddparams.tracks, hddparams.hpc, hddparams.spt, !hddparams.is_small_block ? MVHD_BLOCK_LARGE : MVHD_BLOCK_SMALL);
+				}
+				else
+				{
+					auto _86box_geometry = create_drive_vhd_fixed(fn, hddparams.tracks, hddparams.hpc, hddparams.spt);
+				}
+			}
+		};
+		return false;
 	}
 	void RenderHDDCreationDialog()
 	{
-		ImGui::InputScalar("Cylinder", ImGuiDataType_U32, &hdd_new->tracks);
-		ImGui::InputScalar("Heads", ImGuiDataType_U32, &hdd_new->hpc);
-		ImGui::InputScalar("Sector", ImGuiDataType_U32, &hdd_new->spt);
-		hdd_new->tracks = std::clamp(hdd_new->tracks, 0ui32, (uint32_t)max_tracks);
-		hdd_new->hpc = std::clamp(hdd_new->hpc, 0ui32, (uint32_t)max_hpc);
-		hdd_new->spt = std::clamp(hdd_new->tracks, 0ui32, (uint32_t)max_spt);
-		uint32_t size_mb = (hdd_new->tracks * hdd_new->hpc * hdd_new->spt) >> 11;
-		if (ImGui::InputScalar("Size (MB)", ImGuiDataType_U32, &size_mb))
+		if (ImGui::BeginPopupModal("Add Hard Disk", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
 		{
-			hdd_image_calc_chs((uint32_t *) &hdd_new->tracks, (uint32_t *) &hdd_new->hpc, (uint32_t *) &hdd_new->spt, size_mb);
-			hdd_new->tracks = std::clamp(hdd_new->tracks, 0ui32, (uint32_t)max_tracks);
-			hdd_new->hpc = std::clamp(hdd_new->hpc, 0ui32, (uint32_t)max_hpc);
-			hdd_new->spt = std::clamp(hdd_new->tracks, 0ui32, (uint32_t)max_spt);
-		}
-		if (ImGui::Button("Cancel"))
-		{
-			ImGui::CloseCurrentPopup();
+			ImGui::InputText("File name", hdd_new->fn, sizeof(hdd_new->fn));
+			ImGui::SameLine();
+			if (ImGui::Button("..."))
+			{
+				OpenSettingsFileChooser(hdd_new->fn, sizeof(hdd_new->fn), "Hard disk images (*.HD?;*.IM?;*.VHD)|*.HD?;*.IM?;*.VHD");
+			}
+			if (cur_img_type != 5)
+			{
+				ImGui::InputScalar("Cylinder", ImGuiDataType_U32, &hdd_new->tracks);
+				ImGui::SameLine();
+				ImGui::InputScalar("Heads", ImGuiDataType_U32, &hdd_new->hpc);
+				ImGui::SameLine();
+				ImGui::InputScalar("Sector", ImGuiDataType_U32, &hdd_new->spt);
+				ImGui::SameLine();
+				hdd_new->tracks = std::clamp(hdd_new->tracks, 0ui32, (uint32_t)max_tracks);
+				hdd_new->hpc = std::clamp(hdd_new->hpc, 0ui32, (uint32_t)max_hpc);
+				hdd_new->spt = std::clamp(hdd_new->tracks, 0ui32, (uint32_t)max_spt);
+				uint32_t size_mb = (hdd_new->tracks * hdd_new->hpc * hdd_new->spt) >> 20;
+				if (ImGui::InputScalar("Size (MB)", ImGuiDataType_U32, &size_mb))
+				{
+					hdd_image_calc_chs((uint32_t *) &hdd_new->tracks, (uint32_t *) &hdd_new->hpc, (uint32_t *) &hdd_new->spt, size_mb);
+					hdd_new->tracks = std::clamp(hdd_new->tracks, 0ui32, (uint32_t)max_tracks);
+					hdd_new->hpc = std::clamp(hdd_new->hpc, 0ui32, (uint32_t)max_hpc);
+					hdd_new->spt = std::clamp(hdd_new->tracks, 0ui32, (uint32_t)max_spt);
+				}
+			}
+			if (ImGui::BeginCombo("Bus", busstr[new_hdd.bus].data()))
+			{
+				for (int i = 1; i < 7; i++)
+				{
+					if (ImGui::Selectable(busstr[i].data(), i == hdd_new->bus))
+					{
+						hdd_new->bus = i;
+						switch(hdd_new->bus)
+						{
+							case HDD_BUS_DISABLED:
+							default:
+								max_spt = max_hpc = max_tracks = 0;
+								break;
+							case HDD_BUS_MFM:
+								max_spt = 26;	/* 17 for MFM, 26 for RLL. */
+								max_hpc = 15;
+								max_tracks = 2047;
+								break;
+							case HDD_BUS_XTA:
+								max_spt = 63;
+								max_hpc = 16;
+								max_tracks = 1023;
+								break;
+							case HDD_BUS_ESDI:
+								max_spt = 99;	/* ESDI drives usually had 32 to 43 sectors per track. */
+								max_hpc = 16;
+								max_tracks = 266305;
+								break;
+							case HDD_BUS_IDE:
+								max_spt = 63;
+								max_hpc = 255;
+								max_tracks = 266305;
+								break;
+							case HDD_BUS_ATAPI:
+							case HDD_BUS_SCSI:
+								max_spt = 99;
+								max_hpc = 255;
+								max_tracks = 266305;
+								break;
+						}
+					}
+					if (i == hdd_new->bus)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::SameLine();
+			ImGui::TextUnformatted("Image type:"); ImGui::SameLine();
+			if (ImGui::BeginCombo("##Image type", imgstr[cur_img_type].data()))
+			{
+				for (int i = 0; i < imgstr.size(); i++)
+				{
+					if (ImGui::Selectable(imgstr[i].data(), i == cur_img_type))
+					{
+						cur_img_type = i;
+					}
+					if (cur_img_type == i)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::TextUnformatted("Channel:"); ImGui::SameLine();
+			auto beginBinaryChannelCombo = [](uint8_t& chan, const char* str)
+			{
+				char chanstr[] = { '0', ':', (chan & 1) ? '1' : '0', 0 };
+				if (ImGui::BeginCombo(str, chanstr))
+				{
+					for (int i = 0; i < 2; i++)
+					{
+						chanstr[2] = '0' + i;
+						if (ImGui::Selectable(chanstr, chan == i))
+						{
+							chan = i;
+						}
+					}
+					ImGui::EndCombo();
+				}
+			};
+			
+			switch(hdd_new->bus)
+			{
+				case HDD_BUS_IDE:
+				case HDD_BUS_ATAPI:
+				{
+					if (ImGui::BeginCombo("##IDE Channel", (std::to_string(hdd_new->ide_channel >> 1) + ':' + std::to_string(hdd_new->ide_channel & 1)).c_str()))
+					{
+						for (int i = 0; i < 8; i++)
+						{
+							if (ImGui::Selectable((std::to_string(i >> 1) + ':' + std::to_string(i & 1)).c_str(), hdd_new->ide_channel == i))
+							{
+								hdd_new->ide_channel = i;
+							}
+						}
+						ImGui::EndCombo();
+					}
+					break;
+				}
+				case HDD_BUS_MFM:
+				{
+					beginBinaryChannelCombo(hdd_new->mfm_channel, "##MFM/RLL");
+					break;
+				}
+				case HDD_BUS_XTA:
+				{
+					beginBinaryChannelCombo(hdd_new->xta_channel, "##XTA");
+					break;
+				}
+				case HDD_BUS_ESDI:
+				{
+					beginBinaryChannelCombo(hdd_new->xta_channel, "##ESDI");
+					break;
+				}
+				case HDD_BUS_SCSI:
+				{
+					if (ImGui::BeginCombo("##SCSI ID", (std::to_string(hdd_new->scsi_id >> 4) + ':' + std::to_string(hdd_new->scsi_id & 15)).c_str()))
+					{
+						for (int i = 0; i < 64; i++)
+						{
+							if (ImGui::Selectable((std::to_string(i >> 4) + ':' + std::to_string(i & 15)).c_str(), hdd_new->scsi_id == i))
+							{
+								hdd_new->scsi_id = i;
+							}
+						}
+						ImGui::EndCombo();
+					}
+					break;
+				}
+			}
+			if (ImGui::Button("OK"))
+			{
+				
+			}
+			if (ImGui::Button("Cancel"))
+			{
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::EndPopup();
+			if (!ImGui::IsPopupOpen("Add Hard Disk"))
+			{
+				delete hdd_new;
+				hdd_new = nullptr;
+			}
 		}
 	}
 
@@ -1737,17 +2133,6 @@ namespace ImGuiSettingsWindow {
 			ImGui::TableSetupColumn("S");
 			ImGui::TableSetupColumn("MB");
 			ImGui::TableHeadersRow();
-			constexpr const std::array<std::string_view, 8> busstr
-			{
-				"",
-				"MFM/RLL",
-				"XTA",
-				"ESDI",
-				"IDE",
-				"ATAPI",
-				"SCSI",
-				"USB"
-			};
 			for (int i = 0; i < HDD_NUM; i++)
 			{
 				static char hddname[512] = { 0 };
