@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "&Einstellungen...",                IDM_CONFIG
         MENUITEM "&Statusleistenicons aktualisieren",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Programmeinstellungen ändern...",    IDM_VID_PROG_SETT
+        MENUITEM "Programmeinstellungen ändern...",    IDM_PREFERENCES
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "&Discord-Integration aktivieren", IDM_DISCORD
@@ -273,7 +273,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Programmeinstellungen"
+#define STR_PREFERENCES		"Programmeinstellungen"
 #define STR_SND_GAIN		"Klangverstärkung"
 #define STR_NEW_FLOPPY		"Neues Image"
 #define STR_CONFIG		"86Box-Einstellungen"

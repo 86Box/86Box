@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "&Nastavení...",				IDM_CONFIG
         MENUITEM "&Aktualizovat ikony stavového řádku",		IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Change program &settings...",			IDM_VID_PROG_SETT
+        MENUITEM "Change program &settings...",			IDM_PREFERENCES
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Povolit integraci s &Discordem",		IDM_DISCORD
@@ -273,7 +273,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Program Settings"
+#define STR_PREFERENCES		"Program Settings"
 #define STR_SND_GAIN		"Zesílení zvuku"
 #define STR_NEW_FLOPPY		"Nový obraz"
 #define STR_CONFIG		"Nastavení emulátoru 86Box"

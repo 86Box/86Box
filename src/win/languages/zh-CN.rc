@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "设置(&S)...",                IDM_CONFIG
         MENUITEM "更新状态栏图标(&U)",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Change program &settings...",    IDM_VID_PROG_SETT
+        MENUITEM "Change program &settings...",    IDM_PREFERENCES
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "启用 Discord 集成(&D)", IDM_DISCORD
@@ -273,7 +273,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Program Settings"
+#define STR_PREFERENCES		"Program Settings"
 #define STR_SND_GAIN		"音量增益"
 #define STR_NEW_FLOPPY		"新建镜像"
 #define STR_CONFIG		"86Box 设置"

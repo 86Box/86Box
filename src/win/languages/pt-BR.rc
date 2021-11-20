@@ -102,7 +102,7 @@ BEGIN
         MENUITEM "&Configurações...",                IDM_CONFIG
         MENUITEM "&Atualizar ícones da barra de status",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Alterar &configurações do programa...",    IDM_VID_PROG_SETT
+        MENUITEM "Alterar &configurações do programa...",    IDM_PREFERENCES
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Ativar integração com o &Discord", IDM_DISCORD
@@ -274,7 +274,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Configurações do programa"
+#define STR_PREFERENCES		"Configurações do programa"
 #define STR_SND_GAIN		"Ganho de som"
 #define STR_NEW_FLOPPY		"Nova imagem de disquete"
 #define STR_CONFIG		"Configurações do 86Box"
