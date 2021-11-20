@@ -161,6 +161,9 @@ extern void	config_set_wstring(char *head, char *name, wchar_t *val);
 extern void *	config_find_section(char *name);
 extern void	config_rename_section(void *priv, char *name);
 
+extern void config_load_gconf(void);
+extern void config_save_gconf(void);
+
 #ifdef __cplusplus
 }
 #endif

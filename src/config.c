@@ -68,7 +68,6 @@
 #include <86box/plat_dir.h>
 #include <86box/ui.h>
 
-
 typedef struct _list_ {
     struct _list_ *next;
 } list_t;
@@ -117,7 +116,6 @@ static list_t	config_head;
 /* TODO: Backwards compatibility, get rid of this when enough time has passed. */
 static int	backwards_compat = 0;
 static int	backwards_compat2 = 0;
-
 
 #ifdef ENABLE_CONFIG_LOG
 int config_do_log = ENABLE_CONFIG_LOG;
@@ -567,17 +565,41 @@ load_general(void)
     confirm_exit = config_get_int(cat, "confirm_exit", 1);
     confirm_save = config_get_int(cat, "confirm_save", 1);
 
-	p = config_get_string(cat, "language", NULL);
+	void* gconf = plat_gconf_init(0);
+
+    p = config_get_string(cat, "language", NULL);
 	if (p != NULL)
-	{
 		lang_id = plat_language_code(p);
-	}	
+	else {
+		char* locale_s = plat_gconf_get_string(gconf, "language", NULL);
+		pclog("locale_s: %s\n", locale_s);
+		
+		if (locale_s != NULL) {
+		    lang_id = plat_language_code(locale_s);
+			free(locale_s);
+		}
+	}
 	
 	p = config_get_string(cat, "iconset", NULL);
-	if (p != NULL)
-		strcpy(icon_set, p);
-	else
-		strcpy(icon_set, "");
+	if (p != NULL) {
+		if (!strcmp(p, "none"))
+			strcpy(icon_set, "");
+		else
+			strcpy(icon_set, p);
+	}
+	else {
+		char* gc_icset = plat_gconf_get_string(gconf, "iconset", NULL);
+		pclog("gc_icset: %s\n", gc_icset);
+		
+		if (gc_icset != NULL) {
+			strcpy(icon_set, gc_icset);
+			free(gc_icset);
+		}
+		else
+			strcpy(icon_set, "");
+	}
+	
+	plat_gconf_close(gconf);
 	
 #if USE_DISCORD
     enable_discord = !!config_get_int(cat, "enable_discord", 0);
@@ -2001,6 +2023,42 @@ load_other_peripherals(void)
 }
 
 
+/* Fills some settings when no config file from global defaults */
+void
+config_load_gconf(void)
+{
+	void *gconf = plat_gconf_init(0);
+	
+	char *value = plat_gconf_get_string(gconf, "language", NULL);
+	if (value != NULL) {
+		lang_id = plat_language_code(value);
+		free(value);
+	}
+	
+	value = plat_gconf_get_string(gconf, "iconset", NULL);
+	if (value != NULL) {
+		strcpy(icon_set, value);
+		free(value);
+	}
+	
+	plat_gconf_close(gconf);
+}
+
+/* Write the current settings as global defaults (for VMs with no config) */
+void 
+config_save_gconf(void)
+{
+	void *gconf = plat_gconf_init(1);
+	
+	char locale_s[512] = {0};
+	plat_language_code_r(lang_id, locale_s, 511);
+	
+	plat_gconf_set_string(gconf, "language", locale_s);  
+	plat_gconf_set_string(gconf, "iconset", icon_set);
+	
+	plat_gconf_close(gconf);	
+}
+
 /* Load the specified or a default configuration file. */
 void
 config_load(void)
@@ -2071,6 +2129,9 @@ config_load(void)
 	cassette_append = 0;
 	cassette_pcm = 0;
 	cassette_ui_writeprot = 0;
+
+	/* Load entries from global settings */
+	config_load_gconf();
 
 	config_log("Config file not present or invalid!\n");
     } else {
@@ -2224,21 +2285,16 @@ save_general(void)
 	config_delete_var(cat, "confirm_exit");
 
     if (confirm_save != 1)
-	config_set_int(cat, "confirm_save", confirm_save);
+	  config_set_int(cat, "confirm_save", confirm_save);
     else
-	config_delete_var(cat, "confirm_save");
+	  config_delete_var(cat, "confirm_save");
 
-    if (lang_id == DEFAULT_LANGUAGE)
-	config_delete_var(cat, "language");
-      else
-	  {
-		char buffer[512] = {0};
-		plat_language_code_r(lang_id, buffer, 511);
-		config_set_string(cat, "language", buffer);
-	  }
+	char locale_s[512] = {0};
+	plat_language_code_r(lang_id, locale_s, 511);
+	config_set_string(cat, "language", locale_s);
 	  
 	if (!strcmp(icon_set, ""))
-		config_delete_var(cat, "iconset");
+		config_set_string(cat, "iconset", "none");
 	else
 		config_set_string(cat, "iconset", icon_set);
 
