@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "設定(&S)...",                IDM_CONFIG
         MENUITEM "ステータスバーアイコンの更新(&U)",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "表示言語の変更(&P)...",    IDM_VID_PROG_SETT
+        MENUITEM "表示言語の変更(&P)...",    IDM_PREFERENCES
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Discordとの連携を可能にする(&D)", IDM_DISCORD
@@ -273,7 +273,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"表示言語の変更"
+#define STR_PREFERENCES		"表示言語の変更"
 #define STR_SND_GAIN		"サウンドゲイン"
 #define STR_NEW_FLOPPY		"新規のイメージ"
 #define STR_CONFIG		"86Boxの設定"

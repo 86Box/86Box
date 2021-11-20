@@ -104,7 +104,7 @@ BEGIN
         MENUITEM "&Konfigurálás...",                IDM_CONFIG
         MENUITEM "Állapotsori ikonok &frissítése",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "&Beállítások...",    IDM_VID_PROG_SETT
+        MENUITEM "&Beállítások...",    IDM_PREFERENCES
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "&Discord integráció engedélyezése", IDM_DISCORD
@@ -276,7 +276,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"86Box beállítások"
+#define STR_PREFERENCES		"86Box beállítások"
 #define STR_SND_GAIN		"Hangerőszabályzó"
 #define STR_NEW_FLOPPY		"Új képfájl létrehozása"
 #define STR_CONFIG		"Számítógép konfiguráció"

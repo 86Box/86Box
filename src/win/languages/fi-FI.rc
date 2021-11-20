@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "&Tietokoneen asetukset...",                           IDM_CONFIG
         MENUITEM "&Päivitä tilapalkin kuvakkeita",                      IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "&Ohjelman asetukset...",                              IDM_VID_PROG_SETT
+        MENUITEM "&Ohjelman asetukset...",                              IDM_PREFERENCES
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Käytä &Discord integraatiota",                        IDM_DISCORD
@@ -273,7 +273,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT       "Ohjelman asetukset"
+#define STR_PREFERENCES     "Ohjelman asetukset"
 #define STR_SND_GAIN        "Äänen tulotaso"
 #define STR_NEW_FLOPPY      "Uusi levykuva"
 #define STR_CONFIG          "Tietokoneen asetukset"

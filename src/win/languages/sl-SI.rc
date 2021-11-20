@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "&Nastavitve...",                IDM_CONFIG
         MENUITEM "&Posodabljaj ikone statusne vrstice",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "&Spremeni jezik...",    IDM_VID_PROG_SETT
+        MENUITEM "&Spremeni jezik...",    IDM_PREFERENCES
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Omogoči integracijo s programom &Discord", IDM_DISCORD
@@ -273,7 +273,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Spremeni jezik"
+#define STR_PREFERENCES		"Spremeni jezik"
 #define STR_SND_GAIN		"Ojačanje zvoka"
 #define STR_NEW_FLOPPY		"Nova slika"
 #define STR_CONFIG		"Nastavitve programa 86Box"

@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "&Réglages...",                IDM_CONFIG
         MENUITEM "Mettre à jour la barre de stat&us",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Changer la &langue...",    IDM_VID_PROG_SETT
+        MENUITEM "Changer la &langue...",    IDM_PREFERENCES
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Activer intégration &Discord", IDM_DISCORD
@@ -273,7 +273,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Changer langue"
+#define STR_PREFERENCES		"Changer langue"
 #define STR_SND_GAIN		"Gain son"
 #define STR_NEW_FLOPPY		"Nouvelle image"
 #define STR_CONFIG		"Réglages 86Box"
