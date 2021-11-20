@@ -16,6 +16,20 @@
  *
  */
 
+#include <stdlib.h>
+#include <stdbool.h>
+#include <stdio.h>
+#include <string.h>
+#include <inttypes.h>
+#include <sys/time.h>
+#include <sys/param.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <86box/86box.h>
+#include <86box/plat.h>
+
 /*
    This function will initialize the global-config environment for a one-time
    chain reading/writing session. The return value is an optional platform 
@@ -66,5 +80,5 @@ void plat_gconf_set_string(void *context, char *key, char *val)
 */
 char* plat_gconf_get_string(void *context, char *key, char *def)
 {
-    return NULL;
+    return strdup("none");
 }
