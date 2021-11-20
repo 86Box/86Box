@@ -804,8 +804,8 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				config_save();
 				break;
 				
-			case IDM_VID_PROG_SETT:
-				ProgSettDlgCreate(hwnd);
+			case IDM_PREFERENCES:
+				PreferencesDlgCreate(hwnd);
 				break;
 
 			case IDM_VID_SPECIFY_DIM:
