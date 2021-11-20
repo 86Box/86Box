@@ -2037,7 +2037,11 @@ config_load_gconf(void)
 	
 	value = plat_gconf_get_string(gconf, "iconset", NULL);
 	if (value != NULL) {
-		strcpy(icon_set, value);
+		if (!strcmp(icon_set, "none"))
+			strcpy(icon_set, "");
+		else
+			strcpy(icon_set, value);
+		
 		free(value);
 	}
 	
@@ -2054,7 +2058,11 @@ config_save_gconf(void)
 	plat_language_code_r(lang_id, locale_s, 511);
 	
 	plat_gconf_set_string(gconf, "language", locale_s);  
-	plat_gconf_set_string(gconf, "iconset", icon_set);
+	
+	if (!strcmp(icon_set, ""))
+		plat_gconf_set_string(gconf, "iconset", "none");
+	else
+		plat_gconf_set_string(gconf, "iconset", icon_set);
 	
 	plat_gconf_close(gconf);	
 }
