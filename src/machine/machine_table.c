@@ -847,10 +847,10 @@ const machine_t machines[] = {
     { "[VIA Apollo Pro] FIC KA-6130",		"ficka6130",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 100000000, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	 			 8192, 524288, 8192, 255,	    machine_at_ficka6130_init, NULL			},
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[VIA Apollo Pro133] ASUS P3V133",	"p3v133",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 150000000, 1300, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			 8192,1572864, 8192, 255,	       machine_at_p3v133_init, NULL			},
+    { "[VIA Apollo Pro 133] ASUS P3V133",	"p3v133",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 150000000, 1300, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			 8192,1572864, 8192, 255,	       machine_at_p3v133_init, NULL			},
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[VIA Apollo Pro133A] ASUS P3V4X",	"p3v4x",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 150000000, 1300, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			 8192,2097152, 8192, 255,		machine_at_p3v4x_init, NULL			},
+    { "[VIA Apollo Pro 133A] ASUS P3V4X",	"p3v4x",		MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 150000000, 1300, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,	  			 8192,2097152, 8192, 255,		machine_at_p3v4x_init, NULL			},
 
     /* Slot 1/2 machines */
     /* 440GX */
@@ -903,16 +903,16 @@ const machine_t machines[] = {
     { "[VIA Apollo Pro] PC Partner APAS3",	"apas3",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 100000000, 1800, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 786432, 8192, 255,		machine_at_apas3_init, NULL			},
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[VIA Apollo Pro133] ECS P6BAP",		"p6bap",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192,1572864, 8192, 255,		machine_at_p6bap_init, NULL			},
+    { "[VIA Apollo Pro 133] ECS P6BAP",		"p6bap",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192,1572864, 8192, 255,		machine_at_p6bap_init, NULL			},
     /* Has the VIA VT82C686B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
-    { "[VIA Apollo Pro133A] Acorp 6VIA90AP",	"6via90ap",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1300, 3500, MACHINE_MULTIPLIER_FIXED,				MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_BUS_AC97 | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_GAMEPORT, 16384,3145728, 8192, 255, machine_at_6via90ap_init, NULL	},
+    { "[VIA Apollo Pro 133A] Acorp 6VIA90AP",	"6via90ap",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1300, 3500, MACHINE_MULTIPLIER_FIXED,				MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_BUS_AC97 | MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_GAMEPORT, 16384,3145728, 8192, 255, machine_at_6via90ap_init, NULL	},
     /* Has the VIA VT82C686B southbridge with on-chip KBC identical to the VIA
        VT82C42N. */
-    { "[VIA Apollo Pro133A] ASUS CUV4X-LS",	"cuv4xls",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1300, 3500, 1.5, 8.0,						(MACHINE_AGP & ~MACHINE_AT) | MACHINE_BUS_PS2 | MACHINE_BUS_AC97 | MACHINE_IDE_DUAL,16384,4194304, 8192, 255,	      machine_at_cuv4xls_init, NULL			},
+    { "[VIA Apollo Pro 133A] ASUS CUV4X-LS",	"cuv4xls",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 150000000, 1300, 3500, 1.5, 8.0,						(MACHINE_AGP & ~MACHINE_AT) | MACHINE_BUS_PS2 | MACHINE_BUS_AC97 | MACHINE_IDE_DUAL,16384,4194304, 8192, 255,	      machine_at_cuv4xls_init, NULL			},
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[VIA Apollo Pro133A] BCM GT694VA",	"gt694va",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				16384,3145728, 8192, 255,	      machine_at_gt694va_init, at_gt694va_get_device	},
+    { "[VIA Apollo Pro 133A] BCM GT694VA",	"gt694va",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				16384,3145728, 8192, 255,	      machine_at_gt694va_init, at_gt694va_get_device	},
 
     /* Miscellaneous/Fake/Hypervisor machines */
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
