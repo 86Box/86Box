@@ -824,6 +824,9 @@ pipc_sb_handlers(pipc_t *dev, uint8_t modem)
 	sb_dsp_setirq(&dev->sb->dsp, (irq == 11) ? 10 : irq);
 
 	sb_dsp_setdma8(&dev->sb->dsp, (dev->ac97_regs[0][0x43] >> 4) & 0x03);
+
+	/* Set up CD audio filter. This might not actually work if VIAUDIO writes to CD volume through AC97. */
+	sound_set_cd_audio_filter(sbpro_filter_cd_audio, dev->sb);
     }
 
     if (dev->ac97_regs[0][0x42] & 0x02) {
