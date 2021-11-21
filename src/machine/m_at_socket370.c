@@ -104,6 +104,7 @@ machine_at_s1857_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&w83977ef_370_device);
     device_add(&intel_flash_bxt_device);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
     if (sound_card_current == SOUND_INTERNAL) {
 	device_add(&es1371_onboard_device);
@@ -142,6 +143,7 @@ machine_at_p6bap_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+
     return ret;
 }
 
