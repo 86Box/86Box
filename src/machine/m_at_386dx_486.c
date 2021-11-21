@@ -503,7 +503,7 @@ machine_at_ali1429_init(const machine_t *model)
 {
     int ret;
 
-   ret = bios_load_linear("roms/machines/ami486/ami486.bin",
+   ret = bios_load_linear("roms/machines/ali1429/ami486.BIN",
 			  0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -1490,7 +1490,7 @@ machine_at_itoxstar_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/itoxstar/stara.rom",
+    ret = bios_load_linear("roms/machines/itoxstar/STARA.ROM",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)
@@ -1548,7 +1548,7 @@ machine_at_arb1479_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/arb1479/1479a.rom",
+    ret = bios_load_linear("roms/machines/arb1479/1479A.rom",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)

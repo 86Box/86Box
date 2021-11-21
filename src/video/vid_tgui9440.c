@@ -75,7 +75,7 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
-#define ROM_TGUI_9400CXI	"roms/video/tgui9440/9400CXI.vbi"
+#define ROM_TGUI_9400CXI	"roms/video/tgui9440/9400CXI.VBI"
 #define ROM_TGUI_9440		"roms/video/tgui9440/BIOS.BIN"
 #define ROM_TGUI_96xx		"roms/video/tgui9660/Union.VBI"
 

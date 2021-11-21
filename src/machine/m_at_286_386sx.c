@@ -204,7 +204,7 @@ machine_at_neat_ami_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/ami286/amic206.bin",
+    ret = bios_load_linear("roms/machines/ami286/AMIC206.BIN",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -404,8 +404,8 @@ machine_at_spc4216p_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved("roms/machines/spc4216p/7101.u8",
-				"roms/machines/spc4216p/ac64.u10",
+    ret = bios_load_interleaved("roms/machines/spc4216p/7101.U8",
+				"roms/machines/spc4216p/AC64.U10",
 				0x000f0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -662,7 +662,7 @@ machine_at_spc6033p_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/spc6033p/phoenix.bin",
+    ret = bios_load_linear("roms/machines/spc6033p/phoenix.BIN",
 			   0x000f0000, 65536, 0x10000);
 
     if (bios_only || !ret)

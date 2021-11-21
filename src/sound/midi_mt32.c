@@ -69,14 +69,14 @@ mt32emu_return_code mt32_check(const char* func, mt32emu_return_code ret, mt32em
 int mt32_available()
 {
         if (roms_present[0] < 0)
-                roms_present[0] = (rom_present("roms/sound/mt32/mt32_control.rom") && rom_present("roms/sound/mt32/mt32_pcm.rom"));
+                roms_present[0] = (rom_present("roms/sound/mt32/MT32_CONTROL.ROM") && rom_present("roms/sound/mt32/MT32_PCM.ROM"));
         return roms_present[0];
 }
 
 int cm32l_available()
 {
         if (roms_present[1] < 0)
-                roms_present[1] = (rom_present("roms/sound/cm32l/cm32l_control.rom") && rom_present("roms/sound/cm32l/cm32l_pcm.rom"));
+                roms_present[1] = (rom_present("roms/sound/cm32l/CM32L_CONTROL.ROM") && rom_present("roms/sound/cm32l/CM32L_PCM.ROM"));
         return roms_present[1];
 }
 

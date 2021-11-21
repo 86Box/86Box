@@ -54,10 +54,10 @@
 #define BIOS_GD5430_DIAMOND_A8_VLB_PATH	"roms/video/cirruslogic/diamondvlbus.bin"
 #define BIOS_GD5430_PATH		"roms/video/cirruslogic/pci.bin"
 #define BIOS_GD5434_DIAMOND_A3_ISA_PATH	"roms/video/cirruslogic/Diamond Multimedia SpeedStar 64 v2.02 EPROM Backup from ST M27C256B-12F1.BIN"
-#define BIOS_GD5434_PATH		"roms/video/cirruslogic/gd5434.bin"
+#define BIOS_GD5434_PATH		"roms/video/cirruslogic/gd5434.BIN"
 #define BIOS_GD5436_PATH		"roms/video/cirruslogic/5436.vbi"
 #define BIOS_GD5440_PATH		"roms/video/cirruslogic/BIOS.BIN"
-#define BIOS_GD5446_PATH		"roms/video/cirruslogic/5446BV.VBI"
+#define BIOS_GD5446_PATH		"roms/video/cirruslogic/5446bv.vbi"
 #define BIOS_GD5446_STB_PATH		"roms/video/cirruslogic/stb nitro64v.BIN"
 #define BIOS_GD5480_PATH		"roms/video/cirruslogic/clgd5480.rom"
 

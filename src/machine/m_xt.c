@@ -330,7 +330,7 @@ machine_xt_pc4i_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/pc4i/NCR_PC4i_BIOSROM_1985.bin",
+    ret = bios_load_linear("roms/machines/pc4i/NCR_PC4i_BIOSROM_1985.BIN",
 			   0x000fc000, 16384, 0);
 
     if (bios_only || !ret)

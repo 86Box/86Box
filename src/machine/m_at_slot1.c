@@ -45,7 +45,7 @@ machine_at_p65up5_cpknd_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/p65up5/ndkn0218.awd",
+    ret = bios_load_linear("roms/machines/p65up5/NDKN0218.AWD",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)

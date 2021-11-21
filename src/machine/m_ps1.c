@@ -488,7 +488,7 @@ ps1_setup(int model)
 		      ps1_read, NULL, NULL, ps1_write, NULL, NULL, ps);
 
 	rom_init(&ps->high_rom,
-		 "roms/machines/ibmps1_2121/fc0000.bin",
+		 "roms/machines/ibmps1_2121/FC0000.BIN",
 		 0xfc0000, 0x40000, 0x3ffff, 0, MEM_MAPPING_EXTERNAL);
 
 	/* Initialize the video controller. */
@@ -546,7 +546,7 @@ machine_ps1_m2121_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/ibmps1_2121/fc0000.bin",
+    ret = bios_load_linear("roms/machines/ibmps1_2121/FC0000.BIN",
 			   0x000e0000, 131072, 0x20000);
 
     if (bios_only || !ret)
