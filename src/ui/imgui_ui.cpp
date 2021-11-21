@@ -1652,6 +1652,7 @@ extern "C" void RenderImGui()
 #ifdef _WIN32
 		if (ImGui::MenuItem("Change program settings..."))
 		{
+			extern void ProgSettDlgCreate(HWND hwnd);
 			std::thread thr(ProgSettDlgCreate, GetHWNDFromSDLWindow());
 			thr.detach();
 		}
