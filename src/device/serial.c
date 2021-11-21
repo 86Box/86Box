@@ -551,8 +551,11 @@ serial_read(uint16_t addr, void *p)
 			dev->int_status &= ~SERIAL_INT_RECEIVE;
 			serial_update_ints(dev);
 		}
-		/* if in passthrough mode, just override the input data */
-		passthrough_override_data(dev, &ret);
+		/* if in passthrough mode, just override the input data, but
+ 		 * not if in loopback mode */
+		if (!(dev->mctrl & MCR_LOOPBACK)) {
+			passthrough_override_data(dev, &ret);
+		}
 		serial_log("Read data: %02X\n", ret);
 		break;
 	case 1:
