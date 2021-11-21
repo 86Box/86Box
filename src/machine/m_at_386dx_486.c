@@ -459,11 +459,11 @@ machine_at_acerv10_init(const machine_t *model)
 
 
 int
-machine_at_decpc_lpv_init(const machine_t *model)
+machine_at_decpclpv_init(const machine_t *model)
 {
     int ret;
 
-   ret = bios_load_linear("roms/machines/decpc_lpv/bios.bin-5f2c71ca0a0a5135083487.bin",
+   ret = bios_load_linear("roms/machines/decpclpv/bios.bin",
 			  0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -640,11 +640,11 @@ machine_at_403tg_init(const machine_t *model)
 
 
 int
-machine_at_403tg_rev_d_init(const machine_t *model)
+machine_at_403tg_d_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/403tg_rev_d/J403TGRevD.BIN",
+    ret = bios_load_linear("roms/machines/403tg_d/J403TGRevD.BIN",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -657,11 +657,11 @@ machine_at_403tg_rev_d_init(const machine_t *model)
 
 
 int
-machine_at_403tg_rev_d_mr_init(const machine_t *model)
+machine_at_403tg_d_mr_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/403tg_rev_d/MRBiosOPT895.bin",
+    ret = bios_load_linear("roms/machines/403tg_d/MRBiosOPT895.bin",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -674,7 +674,7 @@ machine_at_403tg_rev_d_mr_init(const machine_t *model)
 
 
 int
-machine_at_pc330_6573_init(const machine_t *model)	// doesn't like every CPU other than the iDX4 and the Intel OverDrive, hangs without a PS/2 mouse
+machine_at_pc330_6573_init(const machine_t *model)	/* doesn't like every CPU other than the iDX4 and the Intel OverDrive, hangs without a PS/2 mouse */
 {
     int ret;
 
@@ -848,11 +848,11 @@ machine_at_vi15g_init(const machine_t *model)
 
 
 int
-machine_at_green_b_init(const machine_t *model)
+machine_at_greenb_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/green-b/4gpv31-ami-1993-8273517.bin",
+    ret = bios_load_linear("roms/machines/greenb/4gpv31-ami-1993-8273517.bin",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -1148,11 +1148,11 @@ machine_at_486sp3_init(const machine_t *model)
 
 
 int
-machine_at_pci400c_b_init(const machine_t *model)
+machine_at_pci400cb_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/pci400c-b/032295.ROM",
+    ret = bios_load_linear("roms/machines/pci400cb/032295.ROM",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -1167,7 +1167,7 @@ machine_at_pci400c_b_init(const machine_t *model)
     pci_register_slot(0x0E, PCI_CARD_NORMAL, 3, 4, 1, 2);	/* 0E = Slot 2 */
     pci_register_slot(0x0D, PCI_CARD_NORMAL, 2, 3, 4, 1);	/* 0D = Slot 3 */
     pci_register_slot(0x0C, PCI_CARD_NORMAL, 1, 2, 3, 4);	/* 0C = Slot 4 */
-    device_add(&keyboard_ps2_ami_pci_device);			/* Assume AMI Megakey 1993 stanalone ('P')
+    device_add(&keyboard_ps2_ami_pci_device);			/* Assume AMI Megakey 1993 standalone ('P')
 								   because of the Tekram machine below. */
 
     device_add(&ims8848_device);
@@ -1419,11 +1419,11 @@ machine_at_ms4145_init(const machine_t *model)
 
 
 int
-machine_at_sbc_490_init(const machine_t *model)
+machine_at_sbc490_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/sbc-490/07159589.rom",
+    ret = bios_load_linear("roms/machines/sbc490/07159589.rom",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -1453,18 +1453,18 @@ machine_at_sbc_490_init(const machine_t *model)
 
 
 const device_t *
-at_sbc_490_get_device(void)
+at_sbc490_get_device(void)
 {
     return &tgui9440_onboard_pci_device;
 }
 
 
 int
-machine_at_tf_486_init(const machine_t *model)
+machine_at_tf486_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/tf-486/tf486v10.BIN",
+    ret = bios_load_linear("roms/machines/tf486/tf486v10.BIN",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -1788,11 +1788,11 @@ machine_at_m919_init(const machine_t *model)
 
 
 int
-machine_at_spc7700p_lw_init(const machine_t *model)
+machine_at_spc7700plw_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/spc7700p-lw/77LW13FH.P24",
+    ret = bios_load_linear("roms/machines/spc7700plw/77LW13FH.P24",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)

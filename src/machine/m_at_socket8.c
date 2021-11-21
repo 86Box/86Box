@@ -135,11 +135,11 @@ machine_at_mb600n_init(const machine_t *model)
 }
 
 int
-machine_at_v60n_init(const machine_t *model)
+machine_at_acerv60n_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/v60n/V60NE5.BIN",
+    ret = bios_load_linear("roms/machines/acerv60n/V60NE5.BIN",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)

@@ -12,11 +12,11 @@
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
- *      EngiNerd <webmaster.crrc@yahoo.it>
+ *		EngiNerd <webmaster.crrc@yahoo.it>
  *
  *		Copyright 2010-2019 Sarah Walker.
  *		Copyright 2016-2019 Miran Grca.
- *      Copyright 2020 EngiNerd.
+ *		Copyright 2020 EngiNerd.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -721,11 +721,11 @@ machine_at_arb1374_init(const machine_t *model)
 
 
 int
-machine_at_sbc_350a_init(const machine_t *model)
+machine_at_sbc350a_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/sbc_350a/350a.rom",
+    ret = bios_load_linear("roms/machines/sbc350a/350a.rom",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
