@@ -110,7 +110,7 @@ typedef struct {
 } ac97_vendor_reg_t;
 
 typedef struct {
-    uint32_t	vendor_id, max_rate, misc_flags;
+    uint32_t	vendor_id, min_rate, max_rate, misc_flags;
     uint16_t	reset_flags, extid_flags,
 		powerdown_mask, regs[64];
     uint8_t	codec_id, vendor_reg_page_max;
