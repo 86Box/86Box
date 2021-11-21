@@ -114,6 +114,7 @@ typedef struct _device_ {
 typedef struct {
     const device_t	*dev;
     char		name[2048];
+    int		instance;
 } device_context_t;
 
 
@@ -157,6 +158,7 @@ extern void		device_set_config_hex16(const char *s, int val);
 extern void		device_set_config_hex20(const char *s, int val);
 extern void		device_set_config_mac(const char *s, int val);
 extern const char	*device_get_config_string(const char *name);
+extern int              device_get_instance(void);
 
 extern int	machine_get_config_int(char *s);
 extern char	*machine_get_config_string(char *s);

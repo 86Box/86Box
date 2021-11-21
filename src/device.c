@@ -94,6 +94,7 @@ device_set_context(device_context_t *c, const device_t *d, int inst)
 
     memset(c, 0, sizeof(device_context_t));
     c->dev = d;
+    c->instance = inst;
     if (inst) {
     	sprintf(c->name, "%s #%i", d->name, inst);
 
@@ -482,6 +483,13 @@ device_force_redraw(void)
                                 devices[c]->force_redraw(device_priv[c]);
 	}
     }
+}
+
+
+const int
+device_get_instance(void)
+{
+    return device_current.instance;
 }
 
 
