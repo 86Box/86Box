@@ -123,6 +123,7 @@ serial_passthrough_create(uint8_t com_port, serpt_mode_t mode)
         }
 
         priv->serial_dev = s;
+        priv->passthrough_dev = &serial_passthrough_devs[i];
         priv->mode = mode;
 
         if (plat_serpt_open_device(priv)) {
@@ -130,6 +131,46 @@ serial_passthrough_create(uint8_t com_port, serpt_mode_t mode)
                 return 1;
         }
 
+        num_passthrough_devs++;
         return 0;
 }
 
+
+void
+passthrough_override_data(serial_t *dev, uint8_t *data)
+{
+        int i;
+
+        /* look if there is any serial passthrough device that is connected to
+         * dev */
+        for (i = 0; i < num_passthrough_devs; i++) {
+                if (!dev->sd || !dev->sd->priv) {
+                        continue;
+                }
+                if (&serial_passthrough_devs[i] ==
+                    ((serpt_ctx_t *)dev->sd->priv)->passthrough_dev) {
+                        plat_serpt_override_data(dev->sd->priv, data);
+                        break;;
+                }
+        }
+}
+
+
+void
+passthrough_update_status(serial_t *dev)
+{
+        int i;
+
+        /* look if there is any serial passthrough device that is connected to
+         * dev */
+        for (i = 0; i < num_passthrough_devs; i++) {
+                if (!dev->sd || !dev->sd->priv) {
+                        continue;
+                }
+                if (&serial_passthrough_devs[i] ==
+                    ((serpt_ctx_t *)dev->sd->priv)->passthrough_dev) {
+                        plat_serpt_update_status(dev->sd->priv, &dev->lsr);
+                        break;
+                }
+        }
+}

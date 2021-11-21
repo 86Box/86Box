@@ -47,6 +47,9 @@
 
 #define MAX_SERIAL		4
 
+#define LSR_DATA_READY          (1 << 0)        /* Data ready to receive */
+#define LSR_THR_EMPTY           (1 << 5)        /* Transmitter holding register empty */
+
 
 struct serial_device_s;
 struct serial_s;

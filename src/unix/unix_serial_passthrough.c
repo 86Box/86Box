@@ -37,6 +37,67 @@
 
 
 void
+plat_serpt_update_status(void *p, uint8_t *lsr)
+{
+        fd_set rdfds, wrfds;
+        struct timeval tv;
+        serpt_ctx_t *ctx = (serpt_ctx_t *)p;
+
+        memset(&tv, 0, sizeof(struct timeval));
+
+        switch (ctx->mode) {
+        case SERPT_VIRTUAL_CON:
+                FD_ZERO(&rdfds);
+                FD_ZERO(&wrfds);
+                FD_SET(ctx->master_fd, &rdfds);
+                FD_SET(ctx->master_fd, &wrfds);
+
+                /* Update DATA_READY and THR_EMPTY in line status register
+                 * according to read- and writeability of the file descriptor
+                 * to the pseudo terminal */
+                if (select(ctx->master_fd + 1,
+                           &rdfds, &wrfds, NULL, &tv) > 0) {
+
+                        if (FD_ISSET(ctx->master_fd, &rdfds)) {
+                                *lsr |= LSR_DATA_READY;
+                        } else {
+                                *lsr &= ~LSR_DATA_READY;
+                        }
+                        if (FD_ISSET(ctx->master_fd, &wrfds)) {
+                                *lsr |= LSR_THR_EMPTY;
+                        } else {
+                                *lsr &= ~LSR_THR_EMPTY;
+                        }
+                } else {
+                        *lsr &= ~(LSR_THR_EMPTY | LSR_DATA_READY);
+                }
+                break;
+        default:
+
+                break; 
+        }
+}
+
+
+void
+plat_serpt_override_data(void *p, uint8_t *data)
+{
+        uint8_t byte;
+        serpt_ctx_t *ctx = (serpt_ctx_t *)p;
+
+        switch (ctx->mode) {
+        case SERPT_VIRTUAL_CON:
+                if (read(ctx->master_fd, &byte, 1) == 1) {
+                        *data = byte;
+                }
+                return;
+        default:
+                break;
+        }
+}
+
+
+void
 plat_serpt_close(void *p)
 {
         serpt_ctx_t *ctx = (serpt_ctx_t *)p;

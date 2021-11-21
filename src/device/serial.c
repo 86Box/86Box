@@ -38,6 +38,7 @@
 #include <86box/mem.h>
 #include <86box/rom.h>
 #include <86box/serial.h>
+#include <86box/serial_passthrough.h>
 #include <86box/mouse.h>
 
 
@@ -550,6 +551,8 @@ serial_read(uint16_t addr, void *p)
 			dev->int_status &= ~SERIAL_INT_RECEIVE;
 			serial_update_ints(dev);
 		}
+		/* if in passthrough mode, just override the input data */
+		passthrough_override_data(dev, &ret);
 		serial_log("Read data: %02X\n", ret);
 		break;
 	case 1:
@@ -574,6 +577,8 @@ serial_read(uint16_t addr, void *p)
 		ret = dev->mctrl;
 		break;
 	case 5:
+		/* If device is in passthrough mode, update flags accordingly */
+		passthrough_update_status(dev);
 		ret = dev->lsr;
 		if (dev->lsr & 0x1f)
 			dev->lsr &= ~0x1e;
