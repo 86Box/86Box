@@ -43,6 +43,9 @@ typedef struct serial_passthrough_s {
         uint32_t baudrate;
         uint8_t port;
         uint8_t data;
+        char slave_pt[32];      /* used for pseudo term name of slave side */ 
+        int master_fd;          /* file desc for master pseudo terminal or
+                                 * socket or alike */
 } serial_passthrough_t;
 
 extern bool serial_passthrough_enabled[SERIAL_MAX];

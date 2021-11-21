@@ -26,6 +26,7 @@
 #include <86box/timer.h>
 #include <86box/serial.h>
 #include <86box/serial_passthrough.h>
+#include <86box/plat_serial_passthrough.h>
 
 
 #ifdef ENABLE_SERIAL_PASSTHROUGH_LOG
@@ -72,7 +73,7 @@ serial_passthrough_timers_off(serial_passthrough_t *dev)
 static void
 serial_passthrough_write(serial_t * s, void *priv, uint8_t val)
 {
-    printf("%02X\n", val);
+    plat_serpt_write(priv, val);
 }
 
 
@@ -80,8 +81,27 @@ static void
 host_to_serial_cb(void *priv)
 {
     serial_passthrough_t *dev = (serial_passthrough_t *)priv;
-// serial_write_fifo(dev->serial, data);
-    timer_on(&dev->host_to_serial_timer, dev->baudrate, 1);
+
+    uint8_t byte;
+
+    /* write_fifo has no failure indication, but if we write to fast, the host
+     * can never fetch the bytes in time, so check if the fifo is full if in
+     * fifo mode or if lsr has bit 0 set if not in fifo mode */
+    if ((dev->serial->type >= SERIAL_NS16550) && dev->serial->fifo_enabled) {
+	if (dev->serial->rcvr_fifo_full) {
+            goto no_write_to_machine;
+        } 
+    } else {
+	if (dev->serial->lsr & 1) {
+            goto no_write_to_machine;
+        }
+    }
+    if (plat_serpt_read(dev, &byte)) {
+        printf("got byte %02X\n", byte);
+        serial_write_fifo(dev->serial, byte);
+    }
+no_write_to_machine:
+    timer_on_auto(&dev->host_to_serial_timer, 1000000.0/dev->baudrate);
 }
 
 
@@ -99,7 +119,7 @@ serial_passthrough_speed_changed(void *priv)
 
     timer_stop(&dev->host_to_serial_timer);
     /* FIXME: do something to dev->baudrate */
-    timer_on(&dev->host_to_serial_timer, dev->baudrate, 1);
+    timer_on_auto(&dev->host_to_serial_timer, 1000000.0/dev->baudrate);
 }
 
 
@@ -112,6 +132,7 @@ serial_passthrough_dev_close(void *priv)
     if (dev && dev->serial && dev->serial->sd)
         memset(dev->serial->sd, 0, sizeof(serial_device_t));
 
+    plat_serpt_close(dev);
     free(dev);
 }
 
@@ -137,9 +158,12 @@ serial_passthrough_dev_init(const device_t *info)
     serial_passthrough_log("%s: baud=%u\n", info->name, dev->baudrate);
     serial_passthrough_log("%s: mode=%s\n", info->name, serpt_mode_names[dev->mode]);
 
-    timer_add(&dev->host_to_serial_timer, host_to_serial_cb, dev, 0);
+    if (plat_serpt_open_device(dev)) {
+        return NULL;
+    }
 
-    timer_on(&dev->host_to_serial_timer, dev->baudrate, 1);
+    memset(&dev->host_to_serial_timer, 0, sizeof(pc_timer_t));
+    timer_add(&dev->host_to_serial_timer, host_to_serial_cb, dev, 1);
 
     /* Return our private data to the I/O layer. */
     return dev;

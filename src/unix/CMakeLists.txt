@@ -8,6 +8,9 @@ if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
 else()
     set(PLAT_SOURCES unix_midi.c)
 endif()
+
+set(PLAT_SOURCES ${PLAT_SOURCES} unix_serial_passthrough.c)
+
 add_library(plat STATIC ${PLAT_SOURCES} unix_thread.c)
 add_library(ui STATIC unix.c unix_sdl.c unix_cdrom.c)
 target_compile_definitions(ui PUBLIC _FILE_OFFSET_BITS=64)
