@@ -115,7 +115,7 @@ intel_ich2_lan_write(int func, int addr, uint8_t val, void *priv)
             break;
 
             case 0x11 ... 0x13: /* LAN Memory Base Address */
-                dev->lan_conf[addr] = (addr != 0x11) ? val : (val & 0xf0);
+                dev->lan_conf[addr] = (addr != 0x11) ? val : ((val & 0xf0) | 1);
             break;
 
             case 0x14 ... 0x15: /* LAN I/O Space */
@@ -361,7 +361,7 @@ intel_ich2_gpio(intel_ich2_t *dev)
 
     intel_ich2_log("Intel ICH2-GPIO: New Base %04x\n", dev->gpio_base);
 
-    if(dev->gpio_base && !!(dev->lpc_conf[0][0x54] & 0x10)) /* Set the new GPIO base*/
+    if(!!(dev->gpio_base) && !!(dev->lpc_conf[0][0x5c] & 0x10)) /* Set the new GPIO base*/
         io_sethandler(dev->gpio_base, 64, intel_ich2_gpio_read, NULL, NULL, intel_ich2_gpio_write, NULL, NULL, dev);
 
 }
@@ -488,18 +488,14 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
 
             case 0x40 ... 0x41: /* ACPI */
             case 0x44:
-
-                if(addr == 0x44) { /* ACPI IRQ */
-                    dev->lpc_conf[func][addr] = val & 0x17;
-                    acpi_set_irq_line(dev->acpi, ((dev->lpc_conf[0][0x44] & 7) < 3) ? (9 + (dev->lpc_conf[0][0x44] & 7)) : 9);
-                }
-                else { /* ACPI I/O Base & Enable */
-                    dev->lpc_conf[func][addr] = (addr & 1) ? val : (val & 0x80);
-
+                if(addr == 0x44) {
                     dev->lpc_conf[func][addr] = val;
+                    acpi_set_irq_line(dev->acpi, (val < 3) ? (9 + (val & 3)) : 9); /* SCI IRQ (Note: Under APIC it allows IRQ 20 to 23 to be set if the value is 4-7 respectively) */
                 }
-
+                else {
+                dev->lpc_conf[func][addr] = (addr & 1) ? val : (val & 0x80);
                 intel_ich2_acpi(dev);
+                }
             break;
 
             case 0x4e: /* BIOS Control SMI */
@@ -828,12 +824,12 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
                 dev->lpc_conf[func][addr] &= val & 0x26;
             break;
 
-            case 0x11: /* AC97 Base Address (Disabled till proper implementation) */
-//              dev->lpc_conf[func][addr] = val;
+            case 0x10 ... 0x11: /* AC97 Base Address */
+                //dev->lpc_conf[func][addr] = (addr & 1) ? val : ((val & 0xc0) | 1);
             break;
 
             case 0x14 ... 0x15: /* AC97 Bus Master Base Address */
-//              dev->lpc_conf[func][addr] = (addr & 1) ? val : ((val & 0xc0) | 1);
+                //dev->lpc_conf[func][addr] = (addr & 1) ? val : ((val & 0xc0) | 1);
             break;
 
             case 0x2c ... 0x2d:
@@ -859,8 +855,8 @@ intel_ich2_lpc_write(int func, int addr, uint8_t val, void *priv)
                 dev->lpc_conf[func][addr] &= val & 0x20;
             break;
 
-            case 0x11: /* AC97 Modem Base Address (Disabled till proper implementation) */
-//              dev->lpc_conf[func][addr] = val;
+            case 0x11: /* AC97 Modem Base Address */
+//               //dev->lpc_conf[func][addr] = (addr & 1) ? val : ((val & 0xc0) | 1);
             break;
 
             case 0x14 ... 0x15: /* AC97 Modem Bus Master Base Address */

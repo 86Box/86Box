@@ -56,7 +56,7 @@ extern uint8_t		lm78_as99127f_write(void *priv, uint8_t reg, uint8_t val);
 extern void		vt82c686_hwm_write(uint8_t addr, uint8_t val, void *priv);
 
 /* sio_w83627hf.c */
-extern void     w83627hf_stabilizer(int vcorea, int vcoreb, int fan1, int fan2, int fan3);
+extern void     w83627hf_stabilizer(int vcoreb, int fan1, int fan2, int fan3);
 
 /* Refer to specific hardware monitor implementations for the meaning of hwm_values. */
 extern hwm_values_t	hwm_values;

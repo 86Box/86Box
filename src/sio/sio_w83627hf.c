@@ -76,7 +76,7 @@ Hardware monitor (0x029a)
 
 /*
 
-Notes : ISAPnP is missing and the Hardware Monitor is not properly implemented
+Notes : ISAPnP is missing and the Hardware Monitor I2C is not implemented.
 
 */
 
@@ -141,9 +141,8 @@ typedef struct
 int fan1_rpm, fan2_rpm, fan3_rpm, vcorea_voltage, vcoreb_voltage;
 
 void
-w83627hf_stabilizer(int vcorea, int vcoreb, int fan1, int fan2, int fan3)
+w83627hf_stabilizer(int vcoreb, int fan1, int fan2, int fan3)
 {
-    vcorea_voltage = vcorea;
     vcoreb_voltage = vcoreb;
     fan1_rpm = fan1;
     fan2_rpm = fan2;
@@ -262,7 +261,7 @@ w83627hf_hwm_read(uint16_t addr, void *priv)
                     switch(dev->hwm_index & 0x1f)
                     {
                         case 0x00: /* VCOREA */
-                            return vcorea_voltage;
+                            return hwm_get_vcore() + 0x78;
 
                         case 0x01: /* VCOREB */
                             return vcoreb_voltage;
