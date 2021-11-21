@@ -164,7 +164,7 @@ static void	pipc_write(int func, int addr, uint8_t val, void *priv);
 
 
 static void
-pipc_trap_io_pact(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+pipc_io_trap_pact(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
 {
     pipc_io_trap_t *trap = (pipc_io_trap_t *) priv;
 
@@ -184,6 +184,12 @@ pipc_io_trap_glb(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv
 
     if (*(trap->en_reg) & trap->mask) {
 	*(trap->sts_reg) |= trap->mask;
+	if (trap->dev->local >= VIA_PIPC_686A) {
+		if (write)
+			trap->dev->acpi->regs.extsmi_val |= 0x1000;
+		else
+			trap->dev->acpi->regs.extsmi_val &= ~0x1000;
+	}
 	acpi_raise_smi(trap->dev->acpi, 1);
     }
 }
@@ -592,7 +598,7 @@ pipc_trap_update_paden(pipc_t *dev, uint8_t trap_id,
     /* Set up Primary Activity Detect I/O traps dynamically. */
     if (enable && !trap->trap) {
 	trap->dev = dev;
-	trap->trap = io_trap_add(pipc_trap_io_pact, trap);
+	trap->trap = io_trap_add(pipc_io_trap_pact, trap);
 	trap->sts_reg = &dev->acpi->regs.padsts;
 	trap->en_reg = &dev->acpi->regs.paden;
 	trap->mask = paden_mask;
