@@ -29,7 +29,7 @@
 #define DLG_SND_GAIN		103	/* top-level dialog */
 #define DLG_NEW_FLOPPY		104	/* top-level dialog */
 #define DLG_SPECIFY_DIM		105	/* top-level dialog */
-#define DLG_PROG_SETT		106	/* top-level dialog */
+#define DLG_PREFERENCES		106	/* top-level dialog */
 #define DLG_CONFIG		110	/* top-level dialog */
 #define  DLG_CFG_MACHINE	111	/* sub-dialog of config */
 #define  DLG_CFG_VIDEO		112	/* sub-dialog of config */
@@ -357,7 +357,7 @@
 #define IDM_DISCORD		40090
 #endif
 
-#define IDM_VID_PROG_SETT	40091
+#define IDM_PREFERENCES		40091
 
 #if defined(DEV_BRANCH) && defined(USE_OPENGL)
 #define IDM_VID_GL_FPS_BLITTER	40100

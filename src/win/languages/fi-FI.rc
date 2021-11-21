@@ -98,10 +98,10 @@ BEGIN
     MENUITEM "&Media",                                                  IDM_MEDIA
     POPUP "&Työkalut"
     BEGIN
-        MENUITEM "&Tietokoneen asetukset...",                           IDM_CONFIG
+        MENUITEM "&Kokoonpano...",                                      IDM_CONFIG
         MENUITEM "&Päivitä tilapalkin kuvakkeita",                      IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "&Ohjelman asetukset...",                              IDM_VID_PROG_SETT
+        MENUITEM "&Sovellusasetukset...",                               IDM_PREFERENCES
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Käytä &Discord integraatiota",                        IDM_DISCORD
@@ -273,10 +273,10 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT       "Ohjelman asetukset"
+#define STR_PREFERENCES     "Sovellusasetukset"
 #define STR_SND_GAIN        "Äänen tulotaso"
 #define STR_NEW_FLOPPY      "Uusi levykuva"
-#define STR_CONFIG          "Tietokoneen asetukset"
+#define STR_CONFIG          "Tietokoneen kokoonpano"
 #define STR_SPECIFY_DIM     "Määritä pääikkunan koko"
 
 #define STR_OK              "OK"
