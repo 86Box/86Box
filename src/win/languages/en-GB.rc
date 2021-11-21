@@ -1,8 +1,8 @@
 ////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
+// English (U.K.) resources
 
 #ifdef _WIN32
-LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_UK
 #pragma code_page(65001)
 #endif //_WIN32
 
@@ -78,8 +78,8 @@ BEGIN
             MENUITEM "&Inverted VGA monitor",   IDM_VID_INVERT
             POPUP "VGA screen &type"
             BEGIN
-                MENUITEM "RGB &Color",          IDM_VID_GRAY_RGB
-                MENUITEM "&RGB Grayscale",      IDM_VID_GRAY_MONO
+                MENUITEM "RGB &Colour",          IDM_VID_GRAY_RGB
+                MENUITEM "&RGB Greyscale",      IDM_VID_GRAY_MONO
                 MENUITEM "&Amber monitor",      IDM_VID_GRAY_AMBER
                 MENUITEM "&Green monitor",      IDM_VID_GRAY_GREEN
                 MENUITEM "&White monitor",      IDM_VID_GRAY_WHITE
@@ -640,5 +640,5 @@ BEGIN
 END
 #define IDS_LANG_ENUS	IDS_7168
 
-// English (U.S.) resources
+// English (U.K.) resources
 /////////////////////////////////////////////////////////////////////////////
