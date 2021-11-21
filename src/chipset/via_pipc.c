@@ -130,7 +130,7 @@ typedef struct _pipc_ {
     acpi_t	*acpi;
     pipc_io_trap_t io_traps[TRAP_MAX];
 
-    void	*gameport, *ac97;
+    void	*gameport, *ac97, *sio, *hwm;
     sb_t	*sb;
     uint16_t	midigame_base, sb_base, fmnmi_base;
 } pipc_t;
@@ -956,7 +956,6 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
     pipc_t *dev = (pipc_t *) priv;
     int c;
     uint8_t pm_func = dev->usb[1] ? 4 : 3;
-    void *subdev;
 
     if (func > dev->max_func)
 	return;
@@ -1046,8 +1045,8 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 		case 0x50: case 0x51: case 0x52: case 0x85:
 			dev->pci_isa_regs[addr] = val;
 			/* Forward Super I/O-related registers to sio_vt82c686.c */
-			if ((subdev = device_get_priv(&via_vt82c686_sio_device)))
-				vt82c686_sio_write(addr, val, subdev);
+			if (dev->sio)
+				vt82c686_sio_write(addr, val, dev->sio);
 			break;
 
 		case 0x54:
@@ -1380,8 +1379,8 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 		case 0x70: case 0x71: case 0x74:
 			dev->power_regs[addr] = val;
 			/* Forward hardware monitor-related registers to hwm_vt82c686.c */
-			if ((subdev = device_get_priv(&via_vt82c686_hwm_device)))
-				vt82c686_hwm_write(addr, val, subdev);
+			if (dev->hwm)
+				vt82c686_hwm_write(addr, val, dev->hwm);
 			break;
 
 		case 0x80: case 0x81: case 0x84: /* 596A has the SMBus I/O base and enable bit here instead. */
@@ -1579,6 +1578,9 @@ pipc_init(const device_t *info)
 	sound_add_handler(sb_get_buffer_sbpro, dev->sb);
 
 	dev->gameport = gameport_add(&gameport_sio_device);
+
+	dev->sio = device_add(&via_vt82c686_sio_device);
+	dev->hwm = device_add(&via_vt82c686_hwm_device);
     }
 
     pipc_reset_hard(dev);
