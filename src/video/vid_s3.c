@@ -62,9 +62,11 @@
 #define ROM_DIAMOND_STEALTH_SE		"roms/video/s3/DiamondStealthSE.VBI"
 #define ROM_ELSAWIN2KPROX_964		"roms/video/s3/elsaw20004m.BIN"
 #define ROM_ELSAWIN2KPROX		"roms/video/s3/elsaw20008m.BIN"
+#define ROM_NUMBER9_9FX_531		"roms/video/s3/numbernine.BIN"
 #define ROM_PHOENIX_VISION868		"roms/video/s3/1-DSV3868.BIN"
 #define ROM_MIROVIDEO40SV_ERGO_968_PCI	"roms/video/s3/S3_968PCI_TVP3026_miroVideo40SV_PCI_1.04.BIN"
 #define ROM_SPEA_MERCURY_P64V		"roms/video/s3/S3_968PCI_TVP3026_SPEAMecuryP64V_ver1.01.BIN"
+#define ROM_NUMBER9_9FX_771		"roms/video/s3/no9motionfx771.BIN"
 #define ROM_PHOENIX_VISION968	"roms/video/s3/1-DSV3968P.BIN"
 
 enum
@@ -100,7 +102,9 @@ enum
 	S3_MIROCRYSTAL20SV_964,
 	S3_MIROCRYSTAL20SD_864,
 	S3_PHOENIX_VISION968,
-	S3_MIROCRYSTAL8S_805
+	S3_MIROCRYSTAL8S_805,
+	S3_NUMBER9_9FX_531,
+	S3_NUMBER9_9FX_771
 };
 
 
@@ -1140,18 +1144,30 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 			break;
 		s3->accel.pix_trans[0] = val;
 		if (s3->accel.cmd & 0x100) {
-			if (!(s3->accel.cmd & 0x600)) {
-				if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 2)) {
-					if (((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40))
-						s3_accel_start(8, 1, s3->accel.pix_trans[0], 0, s3);
-					else
-						s3_accel_start(1, 1, 0xffffffff, s3->accel.pix_trans[0], s3);
-				} else {
-					if (s3->color_16bit)
-						s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0], s3);
-					else
-						s3_accel_start(1, 1, 0xffffffff, s3->accel.pix_trans[0], s3);
-				}
+			switch (s3->accel.cmd & 0x600) {
+				case 0x000:
+					if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 2)) {
+						if (((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40))
+							s3_accel_start(8, 1, s3->accel.pix_trans[0], 0, s3);
+						else
+							s3_accel_start(1, 1, 0xffffffff, s3->accel.pix_trans[0], s3);
+					} else {
+						if (s3->color_16bit)
+							s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0], s3);
+						else
+							s3_accel_start(1, 1, 0xffffffff, s3->accel.pix_trans[0], s3);
+					}
+					break;
+				case 0x200:
+					if (((s3->accel.multifunc[0xa] & 0xc0) == 0x80) || (s3->accel.cmd & 2)) {
+						if (((s3->accel.frgd_mix & 0x60) != 0x40) || ((s3->accel.bkgd_mix & 0x60) != 0x40))
+							s3_accel_start(16, 1, s3->accel.pix_trans[0] | (s3->accel.pix_trans[0] << 8), 0, s3);
+						else
+							s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[0] << 8), s3);
+					} else {
+						s3_accel_start(2, 1, 0xffffffff, s3->accel.pix_trans[0] | (s3->accel.pix_trans[0] << 8), s3);
+					}
+					break;
 			}
 		}
 		break;
@@ -2442,7 +2458,7 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 				rs3 = 0;
 			bt48x_ramdac_out(addr, rs2, rs3, val, svga->ramdac, svga);
 		} else if ((s3->chip == S3_VISION964 && s3->card_type == S3_ELSAWIN2KPROX_964) || (s3->chip == S3_VISION968 && (s3->card_type == S3_ELSAWIN2KPROX ||
-					s3->card_type == S3_PHOENIX_VISION968)))
+					s3->card_type == S3_PHOENIX_VISION968 || s3->card_type == S3_NUMBER9_9FX_771)))
 			ibm_rgb528_ramdac_out(addr, rs2, val, svga->ramdac, svga);
 		else if ((s3->chip == S3_VISION968 && (s3->card_type == S3_SPEA_MERCURY_P64V || s3->card_type == S3_MIROVIDEO40SV_ERGO_968))) {
 			rs3 = !!(svga->crtc[0x55] & 0x02);
@@ -2451,7 +2467,9 @@ s3_out(uint16_t addr, uint8_t val, void *p)
 			att49x_ramdac_out(addr, rs2, val, svga->ramdac, svga);
 		else if (s3->chip <= S3_86C924) {
 			sc1148x_ramdac_out(addr, rs2, val, svga->ramdac, svga);
-		} else
+		} else if (s3->card_type == S3_NUMBER9_9FX_531)
+			att498_ramdac_out(addr, rs2, val, svga->ramdac, svga);
+		else
 			sdac_ramdac_out(addr, rs2, val, svga->ramdac, svga);
 		return;
 
@@ -2728,7 +2746,7 @@ s3_in(uint16_t addr, void *p)
 			rs3 = !!(svga->crtc[0x55] & 0x02);
 			return bt48x_ramdac_in(addr, rs2, rs3, svga->ramdac, svga);
 		} else if ((s3->chip == S3_VISION964 && s3->card_type == S3_ELSAWIN2KPROX_964) || (s3->chip == S3_VISION968 && (s3->card_type == S3_ELSAWIN2KPROX || 
-					s3->card_type == S3_PHOENIX_VISION968)))
+					s3->card_type == S3_PHOENIX_VISION968 || s3->card_type == S3_NUMBER9_9FX_771)))
 			return ibm_rgb528_ramdac_in(addr, rs2, svga->ramdac, svga);
 		else if ((s3->chip == S3_VISION968 && (s3->card_type == S3_SPEA_MERCURY_P64V || s3->card_type == S3_MIROVIDEO40SV_ERGO_968))) {
 			rs3 = !!(svga->crtc[0x55] & 0x02);
@@ -2737,6 +2755,8 @@ s3_in(uint16_t addr, void *p)
 			return att49x_ramdac_in(addr, rs2, svga->ramdac, svga);
 		else if (s3->chip <= S3_86C924)
 			return sc1148x_ramdac_in(addr, rs2, svga->ramdac, svga);
+		else if (s3->card_type == S3_NUMBER9_9FX_531)
+			return att498_ramdac_in(addr, rs2, svga->ramdac, svga);		
 		else
 			return sdac_ramdac_in(addr, rs2, svga->ramdac, svga);
 		break;
@@ -2840,7 +2860,7 @@ static void s3_recalctimings(svga_t *svga)
 		else
 			ibm_rgb528_recalctimings(svga->ramdac, svga);
 	} else
-		svga->interlace = svga->crtc[0x42] & 0x20;
+		svga->interlace = !!(svga->crtc[0x42] & 0x20);
 
 	if ((((svga->miscout >> 2) & 3) == 3) && s3->chip < S3_TRIO32)
 		clk_sel = svga->crtc[0x42] & 0x0f;
@@ -2857,10 +2877,25 @@ static void s3_recalctimings(svga_t *svga)
 	
 	if (s3->card_type == S3_MIROCRYSTAL10SD_805 || s3->card_type == S3_MIROCRYSTAL20SD_864 ||
 		s3->card_type == S3_MIROCRYSTAL20SV_964 || s3->card_type == S3_SPEA_MIRAGE_86C801 ||
-		s3->card_type == S3_SPEA_MIRAGE_86C805 || s3->card_type == S3_MIROCRYSTAL8S_805) {
+		s3->card_type == S3_SPEA_MIRAGE_86C805 || s3->card_type == S3_MIROCRYSTAL8S_805 ||
+		s3->card_type == S3_NUMBER9_9FX_531) {
+		if (!(svga->crtc[0x5e] & 0x04))
+			svga->vblankstart = svga->dispend;
 		if (svga->bpp != 32) {
 			if (svga->crtc[0x31] & 2) /*This is needed if the pixel width gets set with delays*/
 				s3->width = 2048;
+			else {
+				if (s3->card_type == S3_MIROCRYSTAL10SD_805) {
+					if (svga->hdisp == 1280 && s3->width == 1024) {
+						s3->width = 1280;
+					}
+				}
+			}
+		} else {
+			if (s3->card_type == S3_NUMBER9_9FX_531) {
+				if (svga->hdisp == 1600 && s3->width == 1600)
+					s3->width = 800;
+			}
 		}
 	} else if (s3->chip == S3_86C928) {
 		if (svga->bpp == 15) {
@@ -2890,15 +2925,16 @@ static void s3_recalctimings(svga_t *svga)
 			if (s3->chip != S3_VISION868) {
 				if (s3->chip == S3_86C928) {
 					if (s3->width == 2048 || s3->width == 1280 || s3->width == 1600)
-						svga->hdisp *= 2;
+						svga->hdisp <<= 1;
 				} else if ((s3->chip != S3_86C801) && (s3->chip != S3_86C805) && (s3->chip != S3_TRIO32) &&
 							(s3->chip != S3_TRIO64) && (s3->chip != S3_VISION964) && (s3->chip != S3_VISION968)) {
 					if (s3->width == 1280 || s3->width == 1600)
-						svga->hdisp *= 2;
+						svga->hdisp <<= 1;
 				} else if (s3->card_type == S3_SPEA_MERCURY_P64V) {
 					if (s3->width == 1280 || s3->width == 1600)
-						svga->hdisp *= 2;
-				}
+						svga->hdisp <<= 1;
+				} else if (s3->card_type == S3_NUMBER9_9FX_771)
+					svga->hdisp <<= 1;
 				
 				if (s3->card_type == S3_MIROVIDEO40SV_ERGO_968 || s3->card_type == S3_MIROCRYSTAL20SD_864 ||
 					s3->card_type == S3_PHOENIX_VISION968 || s3->card_type == S3_SPEA_MERCURY_P64V) {
@@ -2949,19 +2985,21 @@ static void s3_recalctimings(svga_t *svga)
 			if ((s3->chip != S3_VISION964) && (s3->card_type != S3_SPEA_MIRAGE_86C801) && 
 				(s3->card_type != S3_SPEA_MIRAGE_86C805)) {
 				if (s3->chip == S3_86C928)
-					svga->hdisp *= 2;
+					svga->hdisp <<= 1;
 				else if (s3->chip != S3_VISION968)
-					svga->hdisp /= 2;
+					svga->hdisp >>= 1;
 			}
 			if ((s3->chip != S3_VISION868) && (s3->chip != S3_TRIO32) &&
 				(s3->chip != S3_TRIO64) && (s3->chip != S3_VISION964)) {
 				if (s3->width == 1280 || s3->width == 1600)
-					svga->hdisp *= 2;
+					svga->hdisp <<= 1;
+				else if (s3->card_type == S3_NUMBER9_9FX_771)
+					svga->hdisp <<= 1;
 			}
 			if (s3->card_type == S3_MIROVIDEO40SV_ERGO_968 || s3->card_type == S3_PHOENIX_VISION968 || 
 				s3->card_type == S3_SPEA_MERCURY_P64V) {
 				if (svga->hdisp == (1408*2))
-					svga->hdisp /= 2;
+					svga->hdisp >>= 1;
 				else
 					svga->hdisp = s3->width;
 			}
@@ -2974,21 +3012,22 @@ static void s3_recalctimings(svga_t *svga)
 			if ((s3->chip != S3_VISION964) && (s3->card_type != S3_SPEA_MIRAGE_86C801) && 
 				(s3->card_type != S3_SPEA_MIRAGE_86C805)) {
 				if (s3->chip == S3_86C928)
-					svga->hdisp *= 2;
+					svga->hdisp <<= 1;
 				else if (s3->chip != S3_VISION968)
-					svga->hdisp /= 2;
-			} else if ((s3->card_type == S3_SPEA_MIRAGE_86C801) || (s3->card_type == S3_SPEA_MIRAGE_86C805)) {
-					svga->hdisp /= 2;
-			}
+					svga->hdisp >>= 1;
+			} else if ((s3->card_type == S3_SPEA_MIRAGE_86C801) || (s3->card_type == S3_SPEA_MIRAGE_86C805))
+					svga->hdisp >>= 1;
 			if ((s3->chip != S3_VISION868) && (s3->chip != S3_TRIO32) &&
 				(s3->chip != S3_TRIO64) && (s3->chip != S3_VISION964)) {
 				if (s3->width == 1280 || s3->width == 1600)
-					svga->hdisp *= 2;
+					svga->hdisp <<= 1;
+				else if (s3->card_type == S3_NUMBER9_9FX_771)
+					svga->hdisp <<= 1;
 			}
 			if (s3->card_type == S3_MIROVIDEO40SV_ERGO_968 || s3->card_type == S3_PHOENIX_VISION968 ||
 				s3->card_type == S3_SPEA_MERCURY_P64V) {
 				if (svga->hdisp == (1408*2))
-					svga->hdisp /= 2;
+					svga->hdisp >>= 1;
 				else
 					svga->hdisp = s3->width;
 			}
@@ -3014,12 +3053,13 @@ static void s3_recalctimings(svga_t *svga)
 			if ((s3->chip < S3_TRIO32) && (s3->chip != S3_VISION964) &&
 			    (s3->chip != S3_VISION968) && (s3->chip != S3_86C928)) {
 				if (s3->chip == S3_VISION868)
-					svga->hdisp /= 2;
+					svga->hdisp >>= 1;
 				else
-					svga->hdisp /= 4;
+					svga->hdisp >>= 2;
 			}
-			if (s3->width == 1280 || s3->width == 1600 || (s3->card_type == S3_SPEA_MERCURY_P64V))
-				svga->hdisp *= 2;
+			if (s3->width == 1280 || s3->width == 1600 || (s3->card_type == S3_SPEA_MERCURY_P64V || 
+				s3->card_type == S3_NUMBER9_9FX_771))
+				svga->hdisp <<= 1;
 			if (s3->card_type == S3_MIROVIDEO40SV_ERGO_968 || s3->card_type == S3_MIROCRYSTAL20SV_964 ||
 				s3->card_type == S3_MIROCRYSTAL20SD_864 || s3->card_type == S3_PHOENIX_VISION968 || 
 				s3->card_type == S3_SPEA_MERCURY_P64V) {
@@ -3133,11 +3173,11 @@ static void s3_trio64v_recalctimings(svga_t *svga)
 				break;
 				case 15:
 				svga->render = svga_render_15bpp_highres;
-				svga->hdisp /= 2;
+				svga->hdisp >>= 1;
 				break;
 				case 16: 
 				svga->render = svga_render_16bpp_highres;
-				svga->hdisp /= 2;
+				svga->hdisp >>= 1;
 				break;
 				case 24:
 				svga->render = svga_render_24bpp_highres;
@@ -6553,6 +6593,7 @@ static void s3_reset(void *priv)
 		case S3_ELSAWIN2KPROX:
 		case S3_SPEA_MERCURY_P64V:
 		case S3_MIROVIDEO40SV_ERGO_968:
+		case S3_NUMBER9_9FX_771:
 		case S3_PHOENIX_VISION968:
 			if (s3->pci) {
 				svga->crtc[0x53] = 0x18;
@@ -6567,6 +6608,7 @@ static void s3_reset(void *priv)
 			}
 			break;
 
+		case S3_NUMBER9_9FX_531:
 		case S3_PHOENIX_VISION868:
 			if (s3->pci) {
 				svga->crtc[0x53] = 0x18;
@@ -6702,6 +6744,11 @@ static void *s3_init(const device_t *info)
 			else
 				video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision864_vlb);
 			break;
+		case S3_NUMBER9_9FX_531:
+			bios_fn = ROM_NUMBER9_9FX_531;
+			chip = S3_VISION868;
+			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision868_pci);
+			break;
 		case S3_PHOENIX_VISION868:
 			bios_fn = ROM_PHOENIX_VISION868;
 			chip = S3_VISION868;
@@ -6730,6 +6777,11 @@ static void *s3_init(const device_t *info)
 			break;
 		case S3_MIROVIDEO40SV_ERGO_968:
 			bios_fn = ROM_MIROVIDEO40SV_ERGO_968_PCI;
+			chip = S3_VISION968;
+			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_pci);
+			break;
+		case S3_NUMBER9_9FX_771:
+			bios_fn = ROM_NUMBER9_9FX_771;
 			chip = S3_VISION968;
 			video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_vision968_pci);
 			break;
@@ -6910,7 +6962,7 @@ static void *s3_init(const device_t *info)
 	if (chip == S3_VISION964 && info->local != S3_ELSAWIN2KPROX_964)
 		svga->dac_hwcursor_draw = bt48x_hwcursor_draw;
 	else if ((chip == S3_VISION964 && info->local == S3_ELSAWIN2KPROX_964) || (chip == S3_VISION968 && (info->local == S3_ELSAWIN2KPROX || 
-			info->local == S3_PHOENIX_VISION968)))
+			info->local == S3_PHOENIX_VISION968 || info->local == S3_NUMBER9_9FX_771)))
 		svga->dac_hwcursor_draw = ibm_rgb528_hwcursor_draw;
 	else if (chip == S3_VISION968 && (info->local == S3_SPEA_MERCURY_P64V || info->local == S3_MIROVIDEO40SV_ERGO_968))
 		svga->dac_hwcursor_draw = tvp3026_hwcursor_draw;
@@ -7071,7 +7123,7 @@ static void *s3_init(const device_t *info)
 			
 		case S3_PARADISE_BAHAMAS64:
 		case S3_PHOENIX_VISION864:
-		case S3_MIROCRYSTAL20SD_864:
+		case S3_MIROCRYSTAL20SD_864: /*BIOS 3.xx has a SDAC ramdac.*/
 			svga->decode_mask = (8 << 20) - 1;
 			if (info->local == S3_PARADISE_BAHAMAS64 || info->local == S3_MIROCRYSTAL20SD_864)
 				stepping = 0xc0; /*Vision864*/
@@ -7108,6 +7160,7 @@ static void *s3_init(const device_t *info)
 		case S3_ELSAWIN2KPROX:
 		case S3_SPEA_MERCURY_P64V:
 		case S3_MIROVIDEO40SV_ERGO_968:
+		case S3_NUMBER9_9FX_771:
 		case S3_PHOENIX_VISION968:
 			svga->decode_mask = (8 << 20) - 1;
 			s3->id = 0xe1; /*Vision968*/
@@ -7125,7 +7178,8 @@ static void *s3_init(const device_t *info)
 				svga->crtc[0x5a] = 0x0a;
 			}
 
-			if (info->local == S3_ELSAWIN2KPROX || info->local == S3_PHOENIX_VISION968)
+			if (info->local == S3_ELSAWIN2KPROX || info->local == S3_PHOENIX_VISION968 ||
+				info->local == S3_NUMBER9_9FX_771)
 				svga->ramdac = device_add(&ibm_rgb528_ramdac_device);
 			else
 				svga->ramdac = device_add(&tvp3026_ramdac_device);
@@ -7134,6 +7188,7 @@ static void *s3_init(const device_t *info)
 			svga->getclock = icd2061_getclock;
 			break;
 
+		case S3_NUMBER9_9FX_531:
 		case S3_PHOENIX_VISION868:
 			svga->decode_mask = (8 << 20) - 1;
 			s3->id = 0xe1; /*Vision868*/
@@ -7151,10 +7206,16 @@ static void *s3_init(const device_t *info)
 				svga->crtc[0x59] = 0x00;
 				svga->crtc[0x5a] = 0x0a;
 			}
-
-			svga->ramdac = device_add(&sdac_ramdac_device);
-			svga->clock_gen = svga->ramdac;
-			svga->getclock = sdac_getclock;
+			
+			if (info->local == S3_NUMBER9_9FX_531) {
+				svga->ramdac = device_add(&att498_ramdac_device);
+				svga->clock_gen = device_add(&icd2061_device);
+				svga->getclock = icd2061_getclock;
+			} else {
+				svga->ramdac = device_add(&sdac_ramdac_device);
+				svga->clock_gen = svga->ramdac;
+				svga->getclock = sdac_getclock;
+			}
 			break;
 
 		case S3_PHOENIX_TRIO32:
@@ -7284,6 +7345,11 @@ static int s3_phoenix_vision864_available(void)
 	return rom_present(ROM_PHOENIX_VISION864);
 }
 
+static int s3_9fx_531_available(void)
+{
+	return rom_present(ROM_NUMBER9_9FX_531);
+}
+
 static int s3_phoenix_vision868_available(void)
 {
 	return rom_present(ROM_PHOENIX_VISION868);
@@ -7307,6 +7373,11 @@ static int s3_diamond_stealth64_964_available(void)
 static int s3_mirovideo_40sv_ergo_968_pci_available(void)
 {
 	return rom_present(ROM_MIROVIDEO40SV_ERGO_968_PCI);
+}
+
+static int s3_9fx_771_available(void)
+{
+	return rom_present(ROM_NUMBER9_9FX_771);
 }
 
 static int s3_phoenix_vision968_available(void)
@@ -7471,7 +7542,7 @@ static const device_config_t s3_phoenix_trio32_config[] =
 static const device_config_t s3_standard_config[] =
 {
 	{
-		"memory", "Video memory size", CONFIG_SELECTION, "", 4, "", { 0 },
+		"memory", "Memory size", CONFIG_SELECTION, "", 4, "", { 0 },
 		{
 			{
 				"1 MB", 1
@@ -7773,6 +7844,20 @@ const device_t s3_diamond_stealth64_964_pci_device =
 	s3_standard_config
 };
 
+const device_t s3_9fx_771_pci_device =
+{
+	"S3 Vision968 PCI (Number 9 9FX 771)",
+	DEVICE_PCI,
+	S3_NUMBER9_9FX_771,
+	s3_init,
+	s3_close,
+	s3_reset,
+	{ s3_9fx_771_available },
+	s3_speed_changed,
+	s3_force_redraw,
+	s3_standard_config
+};
+
 const device_t s3_phoenix_vision968_pci_device =
 {
 	"S3 Vision968 PCI (Phoenix)",
@@ -8010,6 +8095,20 @@ const device_t s3_phoenix_vision864_pci_device =
 	s3_speed_changed,
 	s3_force_redraw,
 	s3_standard_config
+};
+
+const device_t s3_9fx_531_pci_device =
+{
+	"S3 Vision868 PCI (Number 9 9FX 531)",
+	DEVICE_PCI,
+	S3_NUMBER9_9FX_531,
+	s3_init,
+	s3_close,
+	s3_reset,
+	{ s3_9fx_531_available },
+	s3_speed_changed,
+	s3_force_redraw,
+	s3_9fx_config
 };
 
 const device_t s3_phoenix_vision868_vlb_device =

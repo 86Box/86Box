@@ -96,11 +96,23 @@ discord_update_activity(int paused)
 
     activity.timestamps.start = time(NULL);
 
+/* Icon choosing for Discord based on 86Box.rc */
+
 #ifdef RELEASE_BUILD
-    strcpy(activity.assets.large_image, "86box-rb");
+/* Icon by OBattler and laciba96 (green for release builds)*/
+    strcpy(activity.assets.large_image, "86box-green");
+#elif BETA_BUILD
+/* Icon by OBattler and laciba96 (yellow for beta builds done by Jenkins)*/
+    strcpy(activity.assets.large_image, "86box-yellow");
+#elif ALPHA_BUILD
+/* Icon by OBattler and laciba96 (red for alpha builds done by Jenkins)*/
+    strcpy(activity.assets.large_image, "86box-red");
 #else
+/* Icon by OBattler and laciba96 (gray for builds of branches and from the git master)*/
     strcpy(activity.assets.large_image, "86box");
 #endif
+
+/* End of icon choosing */
 
     if (paused)
     {
@@ -147,7 +159,7 @@ discord_init()
 	return;
 
     DiscordCreateParamsSetDefault(&params);
-    params.client_id = 651478134352248832;
+    params.client_id = 906956844956782613;
     params.flags = DiscordCreateFlags_NoRequireDiscord;
 
     result = discord_create(DISCORD_VERSION, &params, &discord_core);

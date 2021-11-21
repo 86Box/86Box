@@ -17,6 +17,7 @@
  *		Copyright 2008-2020 Sarah Walker.
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2017-2020 Fred N. van Kempen.
+ *		Copyright 2021 Laci bá'
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -26,9 +27,13 @@
 #include <string.h>
 #include <time.h>
 #include <wchar.h>
+#ifndef _WIN32
+#include <pwd.h>
+#endif
 #ifdef __APPLE__
 #include <string.h>
 #include <dispatch/dispatch.h>
+#include "mac/macOSXGlue.h"
 #ifdef __aarch64__
 #include <pthread.h>
 #endif
@@ -143,24 +148,24 @@ int video_vsync = 0;				/* (C) video */
 int video_framerate = -1;			/* (C) video */
 char video_shader[512] = { '\0' };		/* (C) video */
 int	serial_enabled[SERIAL_MAX] = {0,0};	/* (C) enable serial ports */
-int bugger_enabled = 0;			/* (C) enable ISAbugger */
+int bugger_enabled = 0;				/* (C) enable ISAbugger */
 int postcard_enabled = 0;			/* (C) enable POST card */
 int isamem_type[ISAMEM_MAX] = { 0,0,0,0 };	/* (C) enable ISA mem cards */
-int isartc_type = 0;			/* (C) enable ISA RTC card */
+int isartc_type = 0;				/* (C) enable ISA RTC card */
 int	gfxcard = 0;				/* (C) graphics/video card */
 int	sound_is_float = 1;			/* (C) sound uses FP values */
-int GAMEBLASTER = 0;			/* (C) sound option */
-int GUS = 0;				/* (C) sound option */
+int GAMEBLASTER = 0;				/* (C) sound option */
+int GUS = 0;					/* (C) sound option */
 int SSI2001 = 0;				/* (C) sound option */
-int voodoo_enabled = 0;			/* (C) video option */
+int voodoo_enabled = 0;				/* (C) video option */
 uint32_t mem_size = 0;				/* (C) memory size */
 int	cpu_use_dynarec = 0;			/* (C) cpu uses/needs Dyna */
-int cpu = 0;				/* (C) cpu type */
+int cpu = 0;					/* (C) cpu type */
 int fpu_type = 0;				/* (C) fpu type */
 int	time_sync = 0;				/* (C) enable time sync */
 int	confirm_reset = 1;			/* (C) enable reset confirmation */
-int confirm_exit = 1;			/* (C) enable exit confirmation */
-int confirm_save = 1;			/* (C) enable save confirmation */
+int confirm_exit = 1;				/* (C) enable exit confirmation */
+int confirm_save = 1;				/* (C) enable save confirmation */
 #ifdef USE_DISCORD
 int	enable_discord = 0;			/* (C) enable Discord integration */
 #endif
@@ -184,7 +189,7 @@ char	usr_path[1024];				/* path (dir) of user data */
 char	cfg_path[1024];				/* full path of config file */
 FILE	*stdlog = NULL;				/* file to log output to */
 int	scrnsz_x = SCREEN_RES_X;		/* current screen size, X */
-int scrnsz_y = SCREEN_RES_Y;		/* current screen size, Y */
+int scrnsz_y = SCREEN_RES_Y;			/* current screen size, Y */
 int	config_changed;				/* config has changed */
 int	title_update;
 int	framecountx = 0;
@@ -196,7 +201,7 @@ int unscaled_size_y = SCREEN_RES_Y;	/* current unscaled size Y */
 int efscrnsz_y = SCREEN_RES_Y;
 
 
-static wchar_t	mouse_msg[2][200];
+static wchar_t	mouse_msg[3][200];
 
 
 #ifndef RELEASE_BUILD
@@ -389,13 +394,15 @@ pc_init(int argc, char *argv[])
 {
 	char path[2048], path2[2048];
 	char *cfg = NULL, *p;
+	char mac_rom_path[2048];
 	char temp[128];
 	struct tm *info;
 	time_t now;
 	int c, vmrp = 0;
 	int ng = 0, lvmp = 0;
 	uint32_t *uid, *shwnd;
-
+	uint32_t lang_init = 0;
+	
 	/* Grab the executable's full path. */
 	plat_get_exe_name(exe_path, sizeof(exe_path)-1);
 	p = plat_get_filename(exe_path);
@@ -412,6 +419,9 @@ pc_init(int argc, char *argv[])
 	plat_getcwd(usr_path, sizeof(usr_path) - 1);
 	plat_getcwd(rom_path, sizeof(rom_path) - 1);
 
+	printf("JV:usr_path %s\n",usr_path);
+	printf("JV:rom_path %s\n",usr_path);
+	
 	memset(path, 0x00, sizeof(path));
 	memset(path2, 0x00, sizeof(path));
 
@@ -432,6 +442,7 @@ usage:
 			printf("-E or --nographic    - forces the old behavior\n");
 #endif
 			printf("-F or --fullscreen   - start in fullscreen mode\n");
+			printf("-G or --lang langid  - start with specified language (e.g. en-US, or system)\n");
 #ifdef _WIN32
 			printf("-H or --hwnd id,hwnd - sends back the main dialog's hwnd\n");
 #endif
@@ -512,7 +523,20 @@ usage:
 			uid = (uint32_t *) &unique_id;
 			shwnd = (uint32_t *) &source_hwnd;
 			sscanf(argv[++c], "%08X%08X,%08X%08X", uid + 1, uid, shwnd + 1, shwnd);
+		} else if (!strcasecmp(argv[c], "--lang") ||
+			   !strcasecmp(argv[c], "-G")) {
+
+
 #endif
+		  //This function is currently unimplemented for *nix but has placeholders.
+
+		  lang_init = plat_language_code(argv[++c]);
+		  if (!lang_init)
+			 printf("\nWarning: Invalid language code, ignoring --lang parameter.\n\n");
+
+		  //The return value of 0 only means that the code is invalid,
+		  //  not related to that translation is exists or not for the
+          //  selected language.
 		} else if (!strcasecmp(argv[c], "--test")) {
 			/* some (undocumented) test function here.. */
 
@@ -566,6 +590,11 @@ usage:
 			plat_dir_create(usr_path);
 	}
 
+
+	#ifdef __APPLE__
+		getDefaultROMPath(mac_rom_path);
+		strcpy(path2, mac_rom_path);
+	#endif
 	if (vmrp && (path2[0] == '\0')) {
 		strcpy(path2, usr_path);
 		plat_path_slash(path2);
@@ -665,7 +694,7 @@ usage:
 	info = localtime(&now);
 	strftime(temp, sizeof(temp), "%Y/%m/%d %H:%M:%S", info);
 	pclog("#\n# %ls v%ls logfile, created %s\n#\n",
-		EMU_NAME_W, EMU_VERSION_W, temp);
+		EMU_NAME_W, EMU_VERSION_FULL_W, temp);
 	pclog("# VM: %s\n#\n", vm_name);
 	pclog("# Emulator path: %s\n", exe_path);
 	pclog("# Userfiles path: %s\n", usr_path);
@@ -689,6 +718,10 @@ usage:
 
 	/* Load the configuration file. */
 	config_load();
+	
+	/* Load the desired language */
+	if (lang_init)
+		lang_id = lang_init;
 
 	/* All good! */
 	return(1);
@@ -724,6 +757,7 @@ pc_init_modules(void)
 	wchar_t temp[512];
 	char tempc[512];
 
+#ifdef PRINT_MISSING_MACHINES_AND_VIDEO_CARDS
 	c = m = 0;
 	while (machine_get_internal_name_ex(c) != NULL) {
 		m = machine_available(c);
@@ -743,6 +777,7 @@ pc_init_modules(void)
 			pclog("Missing video card: %s\n", tempc);
 		c++;
 	}
+#endif
 
 	pc_log("Scanning for ROM images:\n");
 	c = m = 0;
@@ -914,8 +949,6 @@ pc_reset_hard_close(void)
 void
 pc_reset_hard_init(void)
 {
-	wchar_t wcpufamily[2048], wcpu[2048], wmachine[2048], *wcp;
-
 	/*
 	 * First, we reset the modules that are not part of
 	 * the actual machine, but which support some of the
@@ -1017,7 +1050,14 @@ pc_reset_hard_init(void)
 	pc_full_speed();
 
 	cycles = cycles_main = 0;
+	
+	update_mouse_msg();
+}
 
+void update_mouse_msg()
+{
+	wchar_t wcpufamily[2048], wcpu[2048], wmachine[2048], *wcp;
+	
 	mbstowcs(wmachine, machine_getname(), strlen(machine_getname())+1);
 
 	if (!cpu_override)
@@ -1029,14 +1069,16 @@ pc_reset_hard_init(void)
 	if (wcp) /* remove parentheses */
 		*(wcp - 1) = L'\0';
 	mbstowcs(wcpu, cpu_s->name, strlen(cpu_s->name)+1);
+	
 	swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
-		EMU_NAME_W, EMU_VERSION_W, wmachine, wcpufamily, wcpu,
+		EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu,
 		plat_get_string(IDS_2077));
 	swprintf(mouse_msg[1], sizeof_w(mouse_msg[1]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
-		EMU_NAME_W, EMU_VERSION_W, wmachine, wcpufamily, wcpu,
+		EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu,
 		(mouse_get_buttons() > 2) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079));
+	swprintf(mouse_msg[2], sizeof_w(mouse_msg[2]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls",
+		EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu);
 }
-
 
 void
 pc_reset_hard(void)
@@ -1121,6 +1163,7 @@ static void _ui_window_title(void *s)
 void
 pc_run(void)
 {
+	int mouse_msg_idx;
 	wchar_t temp[200];
 
 	/* Trigger a hard reset if one is pending. */
@@ -1145,7 +1188,8 @@ pc_run(void)
 	}
 
 	if (title_update) {
-		swprintf(temp, sizeof_w(temp), mouse_msg[!!mouse_capture], fps);
+		mouse_msg_idx = (mouse_type == MOUSE_TYPE_NONE) ? 2 : !!mouse_capture;
+		swprintf(temp, sizeof_w(temp), mouse_msg[mouse_msg_idx], fps);
 #ifdef __APPLE__
 		/* Needed due to modifying the UI on the non-main thread is a big no-no. */
 		dispatch_async_f(dispatch_get_main_queue(), wcsdup((const wchar_t *) temp), _ui_window_title);

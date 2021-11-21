@@ -867,7 +867,7 @@ machine_pcjr_init(const machine_t *model)
     device_add(&fdc_pcjr_device);
 
     device_add(&i8250_pcjr_device);
-    serial_set_next_inst(2);	/* So that serial_standalone_init() won't do anything. */
+    serial_set_next_inst(MAX_SERIAL);	/* So that serial_standalone_init() won't do anything. */
 
     return ret;
 }

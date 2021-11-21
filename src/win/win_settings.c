@@ -15,6 +15,7 @@
  *
  *		Copyright 2016-2019 Miran Grca.
  *		Copyright 2018,2019 David Hrdlička.
+ *		Copyright 2021 Laci bá'
  */
 #define UNICODE
 #define BITMAP WINDOWS_BITMAP
@@ -75,7 +76,6 @@
 
 
 static int first_cat = 0;
-static int dpi = 96;
 
 /* Machine category */
 static int temp_machine_type, temp_machine, temp_cpu, temp_wait_states, temp_fpu, temp_sync;
@@ -264,13 +264,8 @@ image_list_init(HWND hdlg, int id, const uint8_t *icon_ids)
 	if (icon_ids[i] == 0)
 		break;
 
-#if defined(__amd64__) || defined(__aarch64__)
-	hiconItem = LoadIcon(hinstance, (LPCWSTR) ((uint64_t) icon_ids[i]));
-#else
-	hiconItem = LoadIcon(hinstance, (LPCWSTR) ((uint32_t) icon_ids[i]));
-#endif
+	hiconItem = hIcon[icon_ids[i]];
 	ImageList_AddIcon(hSmall, hiconItem);
-	DestroyIcon(hiconItem);
 
 	i++;
     }

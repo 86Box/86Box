@@ -71,7 +71,6 @@ static uint8_t	*sb_part_icons;
 static int	sb_parts = 0;
 static int	sb_ready = 0;
 static uint8_t	sb_map[256];
-static int  dpi = 96;
 static int  icon_width = 24;
 static wchar_t	sb_text[512] = L"\0";
 static wchar_t	sb_bugtext[512] = L"\0";
@@ -878,46 +877,7 @@ StatusBarPopupMenu(HWND hwnd, POINT pt, int id)
 /* API: Load status bar icons */
 void
 StatusBarLoadIcon(HINSTANCE hInst) {
-	int i;
-	int x = win_get_system_metrics(SM_CXSMICON, dpi);
-
-	for (i=0; i<256; i++) {
-		if (hIcon[i] != 0)
-			DestroyIcon(hIcon[i]);
-	}
-	
-    for (i = 16; i < 18; i++)
-	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
-    for (i = 24; i < 26; i++)
-	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
-    for (i = 32; i < 34; i++)
-	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
-    for (i = 48; i < 50; i++)
-	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
-    for (i = 56; i < 58; i++)
-	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
-    for (i = 64; i < 66; i++)
-	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
-    for (i = 80; i < 82; i++)
-	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
-    for (i = 96; i < 98; i++)
-	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
-    hIcon[104] = LoadImage(hInst, MAKEINTRESOURCE(104), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
-    for (i = 144; i < 146; i++)
-	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
-    for (i = 152; i < 154; i++)
-	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
-    for (i = 160; i < 162; i++)
-	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
-    for (i = 176; i < 178; i++)
-	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
-    for (i = 184; i < 186; i++)
-	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
-    for (i = 192; i < 194; i++)
-	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
-    hIcon[232] = LoadImage(hInst, MAKEINTRESOURCE(232), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
-    for (i = 243; i < 244; i++)
-	hIcon[i] = LoadImage(hInst, MAKEINTRESOURCE(i), IMAGE_ICON, x, x, LR_DEFAULTCOLOR);
+	win_load_icon_set();
 }
 
 /* Handle messages for the Status Bar window. */

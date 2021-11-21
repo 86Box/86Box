@@ -196,6 +196,8 @@ opti283_shadow_recalc(opti283_t *dev)
 	mem_mapping_disable(&dev->mem_mappings[0]);
 	mem_mapping_disable(&dev->mem_mappings[1]);
     }
+
+    flushmmucache_nopc();
 }
 
 

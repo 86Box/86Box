@@ -110,9 +110,9 @@ typedef struct {
     /* Ports category */
     char		parallel_devices[3][32];	/* LPT device names */
 #ifdef USE_SERIAL_DEVICES
-    char		serial_devices[2][32];		/* Serial device names */
+    char		serial_devices[4][32];		/* Serial device names */
 #endif
-    int			serial_enabled[2],		/* Serial ports 1 and 2 enabled */
+    int			serial_enabled[4],		/* Serial ports 1 and 2 enabled */
 			parallel_enabled[3];		/* LPT1, LPT2, LPT3 enabled */
 
     /* Other peripherals category */

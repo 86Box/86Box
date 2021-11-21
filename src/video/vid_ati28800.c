@@ -165,7 +165,7 @@ ati28800_out(uint16_t addr, uint8_t val, void *p)
 				ati_eeprom_write(&ati28800->eeprom, val & 8, val & 2, val & 1);
 				break;
 			case 0xb6:
-				if ((old ^ val) & 0x11)
+				if ((old ^ val) & 0x10)
 					svga_recalctimings(svga);
 				break;
 			case 0xb8:
@@ -488,8 +488,6 @@ ati28800_recalctimings(svga_t *svga)
 			}
 		}
 	}
-	
-	svga->vram_display_mask = (ati28800->regs[0xb6] & 1) ? ((ati28800->memory << 10) - 1) : 0x3ffff;
 }
 
 

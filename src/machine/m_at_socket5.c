@@ -86,8 +86,13 @@ machine_at_430nx_init(const machine_t *model)
 {
     int ret;
 
+#if 0
     ret = bios_load_linear("roms/machines/430nx/IP.20",
 			   0x000e0000, 131072, 0);
+#else
+    ret = bios_load_linear_inverted("roms/machines/430nx/IP.20",
+				    0x000e0000, 131072, 0);
+#endif
 
     if (bios_only || !ret)
 	return ret;
@@ -95,7 +100,11 @@ machine_at_430nx_init(const machine_t *model)
     machine_at_award_common_init(model);
 
     device_add(&sio_device);
+#if 1
     device_add(&intel_flash_bxt_device);
+#else
+    device_add(&intel_flash_bxt_ami_device);
+#endif
     device_add(&i430nx_device);
 
     return ret;
@@ -188,40 +197,6 @@ machine_at_exp8551_init(const machine_t *model)
     device_add(&i430fx_device);
     device_add(&piix_device);
     device_add(&w83787f_device);
-    device_add(&sst_flash_29ee010_device);
-
-    return ret;
-}
-
-
-int
-machine_at_vectra54_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/vectra54/GT0724.22",
-			   0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_at_common_init_ex(model, 2);
-
-    pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0F, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
-    pci_register_slot(0x0D, PCI_CARD_VIDEO, 0, 0, 0, 0);
-    pci_register_slot(0x06, PCI_CARD_NORMAL, 1, 2, 3, 4);
-    pci_register_slot(0x07, PCI_CARD_NORMAL, 2, 3, 4, 1);
-    pci_register_slot(0x08, PCI_CARD_NORMAL, 3, 4, 1, 2);
-
-    if (gfxcard == VID_INTERNAL)
-	device_add(&s3_phoenix_trio64_onboard_pci_device);
-
-    device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&i430fx_device);
-    device_add(&piix_device);
-    device_add(&fdc37c931apm_device);
     device_add(&sst_flash_29ee010_device);
 
     return ret;
