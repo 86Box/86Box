@@ -977,6 +977,7 @@ pc_reset_hard_init(void)
 
 	/* Reset and reconfigure the serial ports. */
 	serial_standalone_init();
+	serial_passthrough_init();
 
 	/* Reset and reconfigure the Sound Card layer. */
 	sound_card_reset();

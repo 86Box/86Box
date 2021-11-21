@@ -48,48 +48,31 @@ serial_passthrough_log(const char *fmt, ...)
 #endif
 
 
-static void
-serial_passthrough_timers_on(serial_passthrough_t *dev)
+void
+serial_passthrough_init(void)
 {
-    timer_on_auto(&dev->serial_to_host_timer, dev->baudrate);
-    timer_on_auto(&dev->host_to_serial_timer, dev->baudrate);
+    int c;
+
+    for (c = 0; c < SERIAL_MAX; c++) {
+        if (serial_passthrough_enabled[c]) {
+            /* Instance n for COM n */
+            device_add_inst(&serial_passthrough_device, c + 1);
+        }
+    }    
 }
 
 
 static void
 serial_passthrough_timers_off(serial_passthrough_t *dev)
 {
-    timer_stop(&dev->serial_to_host_timer);
     timer_stop(&dev->host_to_serial_timer);
 }
 
 
 static void
-serial_passthrough_receive_timer_cb(void *priv)
+serial_passthrough_write(serial_t * s, void *priv, uint8_t val)
 {
-    serial_passthrough_t *dev = (serial_passthrough_t *)priv;
-   
-    uint8_t data;
-
-    data = 'A';
- 
-    serial_write_fifo(dev->serial, data);
-}
-
-
-uint32_t
-passthrough_get_baudrate(serial_passthrough_t *dev, uint32_t baudrate)
-{
-    /* try to get baudrate from host, if not possible set the
-     * specified one */
-    return baudrate;  
-}
-
-
-static void
-serial_to_host_cb(void *priv)
-{
-    serial_passthrough_t *dev = (serial_passthrough_t *)priv;
+    printf("%02X\n", val);
 }
 
 
@@ -97,8 +80,8 @@ static void
 host_to_serial_cb(void *priv)
 {
     serial_passthrough_t *dev = (serial_passthrough_t *)priv;
-
-    dev->data = 'B';
+// serial_write_fifo(dev->serial, data);
+    timer_on(&dev->host_to_serial_timer, dev->baudrate, 1);
 }
 
 
@@ -106,7 +89,6 @@ static void
 serial_passthrough_rcr_cb(struct serial_s *serial, void *priv)
 {
     serial_passthrough_t *dev = (serial_passthrough_t *)priv;
-
 }
 
 
@@ -115,14 +97,14 @@ serial_passthrough_speed_changed(void *priv)
 {
     serial_passthrough_t *dev = (serial_passthrough_t *)priv;
 
+    timer_stop(&dev->host_to_serial_timer);
     /* FIXME: do something to dev->baudrate */
-    serial_passthrough_timers_off(dev);
-    serial_passthrough_timers_on(dev);
+    timer_on(&dev->host_to_serial_timer, dev->baudrate, 1);
 }
 
 
 static void
-serial_passthrough_close(void *priv)
+serial_passthrough_dev_close(void *priv)
 {
     serial_passthrough_t *dev = (serial_passthrough_t *)priv;
 
@@ -136,7 +118,7 @@ serial_passthrough_close(void *priv)
 
 /* Initialize the device for use by the user. */
 static void *
-serial_passthrough_init(const device_t *info)
+serial_passthrough_dev_init(const device_t *info)
 {
     serial_passthrough_t *dev;
 
@@ -144,19 +126,20 @@ serial_passthrough_init(const device_t *info)
     memset(dev, 0, sizeof(serial_passthrough_t));
     dev->mode = device_get_config_int("mode");
 
-    dev->baudrate = passthrough_get_baudrate(dev, 9600);
-    dev->port = device_get_config_int("port");
+    dev->port = device_get_instance() - 1;
+    dev->baudrate = device_get_config_int("baudrate");
 
     /* Attach passthrough device to a COM port */
     dev->serial = serial_attach(dev->port, serial_passthrough_rcr_cb,
-                                NULL, dev);
+                                serial_passthrough_write, dev);
 
-    serial_passthrough_log("%s: port=COM%d\n", dev->name, dev->port + 1);
+    serial_passthrough_log("%s: port=COM%d\n", info->name, dev->port + 1);
+    serial_passthrough_log("%s: baud=%u\n", info->name, dev->baudrate);
+    serial_passthrough_log("%s: mode=%s\n", info->name, serpt_mode_names[dev->mode]);
 
-    timer_add(&dev->serial_to_host_timer, serial_to_host_cb, dev, 0);
     timer_add(&dev->host_to_serial_timer, host_to_serial_cb, dev, 0);
 
-    serial_passthrough_timers_on(dev);
+    timer_on(&dev->host_to_serial_timer, dev->baudrate, 1);
 
     /* Return our private data to the I/O layer. */
     return dev;
@@ -200,6 +183,40 @@ static const device_config_t serial_passthrough_config[] = {
         }
     },
     {
+        "baudrate", "Baud Rate of Passthrough", CONFIG_SELECTION, "", 115200, "", { 0 }, {
+                {
+                        "115200", 115200
+                },
+                {
+                        "57600", 57600
+                },
+                {
+                        "38400", 38400
+                },
+                {
+                        "19200", 19200
+                },
+                {
+                        "9600", 9600
+                },
+                {
+                        "4800", 4800
+                },
+                {
+                        "2400", 2400
+                },
+                {
+                        "1200", 1200
+                },
+                {
+                        "300", 300
+                },
+                {
+                        "150", 150
+                }
+        }
+    },
+    {
         "", "", -1
     }
 };
@@ -209,8 +226,8 @@ const device_t serial_passthrough_device = {
     .name = "Serial Passthrough Device",
     .flags = 0,
     .local = 0, 
-    .init = serial_passthrough_init,
-    .close = serial_passthrough_close,
+    .init = serial_passthrough_dev_init,
+    .close = serial_passthrough_dev_close,
     .reset = NULL,
     { .poll = NULL },
     .speed_changed = serial_passthrough_speed_changed,

@@ -45,12 +45,9 @@ typedef struct serial_passthrough_s {
         uint8_t data;
 } serial_passthrough_t;
 
+extern bool serial_passthrough_enabled[SERIAL_MAX];
+extern const device_t serial_passthrough_device;
 
-typedef struct serial_passthrough_cfg_s {
-	bool enabled;
-	enum serial_passthrough_mode mode;
-} serial_passthrough_cfg_t;
-
-extern serial_passthrough_cfg_t serial_passthrough_cfg[SERIAL_MAX];
+extern void serial_passthrough_init(void);
 
 #endif
