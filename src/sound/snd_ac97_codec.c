@@ -292,6 +292,11 @@ line_gain:	val &= 0x9f1f;
 	case 0x26: /* Powerdown Control/Status */
 		i = dev->powerdown_mask << 8;
 		val = (val & i) | (prev & ~i);
+
+		/* Update status bits to reflect powerdowns. */
+		val = (val & ~0x000f) | (~(val >> 8) & 0x000f);
+		if (val & 0x0800) /* PR3 clears both ANL and REF */
+			val &= ~0x0004;
 		break;
 
 	case 0x28: /* Extended Audio ID */
