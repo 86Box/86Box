@@ -2271,7 +2271,7 @@ namespace ImGuiSettingsWindow {
 	void RenderHardDisksCategory() {
 		normalize_hd_list();
 		hard_disk_untrack_all();
-		if (ImGui::BeginTable("##hddtable", 6, ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY, ImVec2(0, 110)))
+		if (ImGui::BeginTable("##hddtable", 6, ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_ScrollX | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable, ImVec2(0, 110)))
 		{
 			ImGui::TableSetupScrollFreeze(0, 1);
 			ImGui::TableSetupColumn("Bus");
@@ -2423,9 +2423,143 @@ namespace ImGuiSettingsWindow {
 		RenderHDDCreationDialog();
 		hard_disk_track_all();
 	}
+	static int cur_fdd_sel = 0;
+	static int cur_cd_sel = 0;
+	void RenderFloppyCdromDrivesCategory()
+	{
+		if (ImGui::BeginTable("##fddtable", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_ScrollX | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable, ImVec2(0, 110)))
+		{
+			ImGui::TableSetupScrollFreeze(0, 1);
+			ImGui::TableSetupColumn("Type");
+			ImGui::TableSetupColumn("Turbo");
+			ImGui::TableSetupColumn("Check BPB");
+			ImGui::TableHeadersRow();
+			for (int i = 0; i < FDD_NUM; i++)
+			{
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				if (ImGui::Selectable((std::string(fdd_getname(temp_fdd_types[i])) + "##" + std::to_string(i)).c_str(), i == cur_fdd_sel, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap))
+				{
+					cur_fdd_sel = i;
+				}
+				ImGui::TableNextColumn();
+				ImGui::TextUnformatted(temp_fdd_turbo[i] ? "On" : "Off");
+				ImGui::TableNextColumn();
+				ImGui::TextUnformatted(temp_fdd_check_bpb[i] ? "On" : "Off");
+			}
+			ImGui::EndTable();
+		}
+		ImGui::TextUnformatted("Type:"); ImGui::SameLine();
+		if (ImGui::BeginCombo("##Type FDD", fdd_getname(temp_fdd_types[cur_fdd_sel])))
+		{
+			int c = 0;
+			char* fddtypename = nullptr;
+			while ((fddtypename = fdd_getname(c))[0] != 0)
+			{
+				if (ImGui::Selectable(fddtypename, temp_fdd_types[cur_fdd_sel] == c))
+				{
+					temp_fdd_types[cur_fdd_sel] = c;
+				}
+				if (temp_fdd_types[cur_fdd_sel] == c)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+				c++;
+			}
+			ImGui::EndCombo();
+		}
+		ImGui::CheckboxFlags("Turbo", &temp_fdd_turbo[cur_fdd_sel], 1); ImGui::SameLine();
+		ImGui::CheckboxFlags("Check BPB", &temp_fdd_check_bpb[cur_fdd_sel], 1);
 
-	void RenderFloppyCdromDrivesCategory() {
-
+		if (ImGui::BeginTable("##cdtable", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_ScrollX | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable, ImVec2(0, 110)))
+		{
+			ImGui::TableSetupScrollFreeze(0, 1);
+			ImGui::TableSetupColumn("Type");
+			ImGui::TableSetupColumn("Speed");
+			ImGui::TableHeadersRow();
+			for (int i = 0; i < 4; i++)
+			{
+				static char hddname[512] = { 0 };
+				std::fill(hddname, &hddname[sizeof(hddname)], 0);
+				ImGui::TableNextRow();
+				switch(temp_cdrom[i].bus_type)
+				{
+					default:
+					case CDROM_BUS_DISABLED:
+						strncpy(hddname, "Disabled", sizeof("Disabled"));
+						break;
+					case CDROM_BUS_ATAPI:
+						snprintf(hddname, sizeof(hddname), "ATAPI (%01i:%01i)", temp_cdrom[i].ide_channel >> 1, temp_cdrom[i].ide_channel & 1);
+						break;
+					case CDROM_BUS_SCSI:
+						snprintf(hddname, sizeof(hddname), "SCSI (%01i:%02i)", temp_cdrom[i].scsi_device_id >> 4, temp_cdrom[i].scsi_device_id & 15);
+						break;
+				}
+				strcat(hddname, ("##" + std::to_string(i)).c_str());
+				ImGui::TableSetColumnIndex(0);
+				if (ImGui::Selectable(hddname, cur_cd_sel == i, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap)) cur_cd_sel = i;
+				ImGui::TableNextColumn();
+				if (temp_cdrom[i].bus_type) ImGui::Text("%ix", temp_cdrom[i].speed);
+				else ImGui::TextUnformatted("None");
+			}
+			ImGui::EndTable();
+		}
+		ImGui::TextUnformatted("Bus:"); ImGui::SameLine();
+		if (ImGui::BeginCombo("##Bus CDROM", busstr[temp_cdrom[cur_cd_sel].bus_type].data()))
+		{
+			if (ImGui::Selectable(busstr[0].data(), temp_cdrom[cur_cd_sel].bus_type == 0)) temp_cdrom[cur_cd_sel].bus_type = 0;
+			else if (ImGui::Selectable(busstr[CDROM_BUS_ATAPI].data(), temp_cdrom[cur_cd_sel].bus_type == CDROM_BUS_ATAPI)) temp_cdrom[cur_cd_sel].bus_type = CDROM_BUS_ATAPI;
+			else if (ImGui::Selectable(busstr[CDROM_BUS_SCSI].data(), temp_cdrom[cur_cd_sel].bus_type == CDROM_BUS_SCSI)) temp_cdrom[cur_cd_sel].bus_type = CDROM_BUS_SCSI;
+			ImGui::EndCombo();
+			if (temp_cdrom[cur_cd_sel].bus_type != 0 && temp_cdrom[cur_cd_sel].speed < 1) temp_cdrom[cur_cd_sel].speed = 1;
+		}
+		if (temp_cdrom[cur_cd_sel].bus_type)
+		{
+			ImGui::TextUnformatted("Speed:"); ImGui::SameLine();
+			
+			if (ImGui::BeginCombo("##Speed CDROM", (std::to_string(temp_cdrom[cur_cd_sel].speed) + 'x').c_str()))
+			{
+				for (int i = 1; i <= 72; i++)
+				{
+					if (ImGui::Selectable((std::to_string(i) + 'x').c_str(), i == temp_cdrom[cur_cd_sel].speed)) temp_cdrom[cur_cd_sel].speed = i;
+				}
+				ImGui::EndCombo();
+			}
+			ImGui::TextUnformatted("Channel:"); ImGui::SameLine();
+			switch (temp_cdrom[cur_cd_sel].bus_type)
+			{
+				case CDROM_BUS_ATAPI:
+				{
+					if (ImGui::BeginCombo("##IDE Channel CD", (std::to_string(temp_cdrom[cur_cd_sel].ide_channel >> 1) + ':' + std::to_string(temp_cdrom[cur_cd_sel].ide_channel & 1)).c_str()))
+					{
+						for (int i = 0; i < 8; i++)
+						{
+							if (ImGui::Selectable((std::to_string(i >> 1) + ':' + std::to_string(i & 1)).c_str(), temp_cdrom[cur_cd_sel].ide_channel == i))
+							{
+								temp_cdrom[cur_cd_sel].ide_channel = i;
+							}
+						}
+						ImGui::EndCombo();
+					}
+					break;
+				}
+				case CDROM_BUS_SCSI:
+				{
+					if (ImGui::BeginCombo("##SCSI ID CD", (std::to_string(temp_cdrom[cur_cd_sel].scsi_device_id >> 4) + ':' + std::to_string(temp_cdrom[cur_cd_sel].scsi_device_id & 15)).c_str()))
+					{
+						for (int i = 0; i < 64; i++)
+						{
+							if (ImGui::Selectable((std::to_string(i >> 4) + ':' + std::to_string(i & 15)).c_str(), temp_cdrom[cur_cd_sel].scsi_device_id == i))
+							{
+								temp_cdrom[cur_cd_sel].scsi_device_id = i;
+							}
+						}
+						ImGui::EndCombo();
+					}
+					break;
+				}
+			}
+		}
 	}
 
 	void RenderOtherRemovableDevicesCategory() {
