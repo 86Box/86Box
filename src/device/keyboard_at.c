@@ -1051,11 +1051,11 @@ add_data_kbd(uint16_t val)
 static void
 write_output(atkbd_t *dev, uint8_t val)
 {
-    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
     uint8_t old = dev->output_port;
     kbd_log("ATkbc: write output port: %02X (old: %02X)\n", val, dev->output_port);
 
-    if ((kbc_ven == KBC_VEN_AMI) || ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF))
+    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
+    if ((kbc_ven != KBC_VEN_OLIVETTI) && ((kbc_ven == KBC_VEN_AMI) || ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF)))
 	val |= ((dev->mem[0] << 4) & 0x10);
 
     /*IRQ 12*/
@@ -2104,7 +2104,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 			case 0xd0:	/* read output port */
 				kbd_log("ATkbc: read output port\n");
 				mask = 0xff;
-				if (((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF) && (dev->mem[0] & 0x10))
+				if ((kbc_ven != KBC_VEN_OLIVETTI) && ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF) && (dev->mem[0] & 0x10))
 					mask &= 0xbf;
 				add_to_kbc_queue_front(dev, dev->output_port & mask, 0, 0x00);
 				break;
