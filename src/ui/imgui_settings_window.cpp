@@ -2270,7 +2270,7 @@ namespace ImGuiSettingsWindow {
 
 	void RenderHardDisksCategory() {
 		normalize_hd_list();
-		hard_disk_untrack_all();
+		hard_disk_track_all();
 		if (ImGui::BeginTable("##hddtable", 6, ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_ScrollX | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable, ImVec2(0, 110)))
 		{
 			ImGui::TableSetupScrollFreeze(0, 1);
@@ -2341,7 +2341,9 @@ namespace ImGuiSettingsWindow {
 				{
 					if (ImGui::Selectable(busstr[i].data(), i == temp_hdd[cur_hdd_sel].bus))
 					{
+						hard_disk_untrack(i);
 						temp_hdd[cur_hdd_sel].bus = i;
+						hard_disk_track(i);
 					}
 					if (i == temp_hdd[cur_hdd_sel].bus)
 					{
@@ -2421,7 +2423,6 @@ namespace ImGuiSettingsWindow {
 			}
 		}
 		RenderHDDCreationDialog();
-		hard_disk_track_all();
 	}
 	static int cur_fdd_sel = 0;
 	static int cur_cd_sel = 0;
