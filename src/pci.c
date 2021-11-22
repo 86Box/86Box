@@ -159,7 +159,7 @@ pci_writew(uint16_t port, uint16_t val, void *priv)
 	pci_log("(%i) %03x write: %02X\n", pci_enable, port, val);
 
     switch (port) {
-	case 0xcfc: case 0xcfe:
+	case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff:
 		if (! pci_enable) 
 			return;
 		   
@@ -169,7 +169,7 @@ pci_writew(uint16_t port, uint16_t val, void *priv)
 			if (pci_cards[slot].write) {
 				pci_log("Writing to PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
 				pci_cards[slot].write(pci_func, pci_index | (port & 3), val & 0xff, pci_cards[slot].priv);
-				pci_cards[slot].write(pci_func, pci_index | (port & 3) | 1, val >> 8, pci_cards[slot].priv);
+				pci_cards[slot].write(pci_func, pci_index | ((port & 3) + 1), val >> 8, pci_cards[slot].priv);
 			}
 #ifdef ENABLE_PCI_LOG
 			else
@@ -195,7 +195,7 @@ pci_writel(uint16_t port, uint32_t val, void *priv)
 	pci_log("(%i) %03x write: %02X\n", pci_enable, port, val);
 
     switch (port) {
-	case 0xcfc:
+	case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff:
 		if (! pci_enable) 
 			return;
 		   
@@ -205,9 +205,9 @@ pci_writel(uint16_t port, uint32_t val, void *priv)
 			if (pci_cards[slot].write) {
 				pci_log("Writing to PCI card on slot %02X (pci_cards[%i]) (%02X:%02X)...\n", pci_card, slot, pci_func, pci_index | (port & 3));
 				pci_cards[slot].write(pci_func, pci_index | (port & 3), val & 0xff, pci_cards[slot].priv);
-				pci_cards[slot].write(pci_func, pci_index | (port & 3) | 1, (val >> 8) & 0xff, pci_cards[slot].priv);
-				pci_cards[slot].write(pci_func, pci_index | (port & 3) | 2, (val >> 16) & 0xff, pci_cards[slot].priv);
-				pci_cards[slot].write(pci_func, pci_index | (port & 3) | 3, (val >> 24) & 0xff, pci_cards[slot].priv);
+				pci_cards[slot].write(pci_func, pci_index | ((port & 3) + 1), (val >> 8) & 0xff, pci_cards[slot].priv);
+				pci_cards[slot].write(pci_func, pci_index | ((port & 3) + 2), (val >> 16) & 0xff, pci_cards[slot].priv);
+				pci_cards[slot].write(pci_func, pci_index | ((port & 3) + 3), (val >> 24) & 0xff, pci_cards[slot].priv);
 			}
 #ifdef ENABLE_PCI_LOG
 			else
@@ -269,7 +269,7 @@ pci_readw(uint16_t port, void *priv)
 	pci_log("(%i) %03x read\n", pci_enable, port);
 
     switch (port) {
-	case 0xcfc: case 0xcfe:
+	case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff:
 		if (! pci_enable) 
 			return 0xff;
 
@@ -277,7 +277,7 @@ pci_readw(uint16_t port, void *priv)
 		if (slot != 0xff) {
 			if (pci_cards[slot].read) {
 				ret = pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
-				ret |= (pci_cards[slot].read(pci_func, pci_index | (port & 3) | 1, pci_cards[slot].priv) << 8);
+				ret |= (pci_cards[slot].read(pci_func, (pci_index | (port & 3)) + 1, pci_cards[slot].priv) << 8);
 			}
 #ifdef ENABLE_PCI_LOG
 			else
@@ -306,7 +306,7 @@ pci_readl(uint16_t port, void *priv)
 	pci_log("(%i) %03x read\n", pci_enable, port);
 
     switch (port) {
-	case 0xcfc: case 0xcfe:
+	case 0xcfc: case 0xcfd: case 0xcfe: case 0xcff: 
 		if (! pci_enable) 
 			return 0xff;
 
@@ -314,9 +314,9 @@ pci_readl(uint16_t port, void *priv)
 		if (slot != 0xff) {
 			if (pci_cards[slot].read) {
 				ret = pci_cards[slot].read(pci_func, pci_index | (port & 3), pci_cards[slot].priv);
-				ret |= (pci_cards[slot].read(pci_func, pci_index | (port & 3) | 1, pci_cards[slot].priv) << 8);
-				ret |= (pci_cards[slot].read(pci_func, pci_index | (port & 3) | 2, pci_cards[slot].priv) << 16);
-				ret |= (pci_cards[slot].read(pci_func, pci_index | (port & 3) | 3, pci_cards[slot].priv) << 24);
+				ret |= (pci_cards[slot].read(pci_func, (pci_index | (port & 3)) + 1, pci_cards[slot].priv) << 8);
+				ret |= (pci_cards[slot].read(pci_func, (pci_index | (port & 3)) + 2, pci_cards[slot].priv) << 16);
+				ret |= (pci_cards[slot].read(pci_func, (pci_index | (port & 3)) + 3, pci_cards[slot].priv) << 24);
 			}
 #ifdef ENABLE_PCI_LOG
 			else
