@@ -1766,7 +1766,7 @@ namespace ImGuiSettingsWindow {
 		uint32_t is_small_block = 0;
 		char diff_file[1024];
 	};
-	static std::atomic<uint32_t> progress, progress_max;
+	static std::atomic<uint32_t> progress{0}, progress_max{1};
 	static std::atomic<bool> hdd_creation_ongoing{false};
 	static void adjust_86box_geometry_for_vhd(MVHDGeom *_86box_geometry, MVHDGeom *vhd_geometry)
 	{
@@ -1900,6 +1900,7 @@ namespace ImGuiSettingsWindow {
 		f = fopen(fn, "w");
 #endif
 		hdd_creation_ongoing = true;
+		progress = 0;
 		if (!f) { hdd_creation_ongoing = false; return false; }
 		else
 		{
@@ -1996,6 +1997,7 @@ namespace ImGuiSettingsWindow {
 				{
 					ImGui::OpenPopup("Disk image created");
 				}
+				else ImGui::CloseCurrentPopup();
 				funcresult = std::future<bool>();
 			}
 			ImGui::Text("File name:"); ImGui::SameLine();
