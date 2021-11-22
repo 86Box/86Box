@@ -1074,8 +1074,8 @@ namespace ImGuiSettingsWindow {
 			ImGui::SameLine();
 			ImGui::InputInt("##memory", &memory_amount_mb, selected_machine.ram_granularity/1024, selected_machine.ram_granularity/1024, ImGuiInputTextFlags_EnterReturnsTrue);
 			temp_mem_size = memory_amount_mb * 1024;
-			while (temp_mem_size > selected_machine.max_ram) {
-				temp_mem_size -= selected_machine.ram_granularity;
+			if (temp_mem_size > selected_machine.max_ram) {
+				temp_mem_size = selected_machine.max_ram;
 			}
 			if (temp_mem_size < selected_machine.min_ram) {
 				temp_mem_size = selected_machine.min_ram;
@@ -1086,8 +1086,8 @@ namespace ImGuiSettingsWindow {
 			ImGui::Text("Memory (KB):");
 			ImGui::SameLine();
 			ImGui::InputInt("##memory", (int*)&temp_mem_size, selected_machine.ram_granularity, selected_machine.ram_granularity, ImGuiInputTextFlags_EnterReturnsTrue);
-			while (temp_mem_size > selected_machine.max_ram) {
-				temp_mem_size -= selected_machine.ram_granularity;
+			if (temp_mem_size > selected_machine.max_ram) {
+				temp_mem_size = selected_machine.max_ram;
 			}
 			if (temp_mem_size < selected_machine.min_ram) {
 				temp_mem_size = selected_machine.min_ram;
