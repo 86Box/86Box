@@ -2239,6 +2239,7 @@ namespace ImGuiSettingsWindow {
 					}
 				}
 			}
+			ImGui::SameLine();
 			if (ImGui::Button("Cancel"))
 			{
 				ImGui::CloseCurrentPopup();
@@ -2332,6 +2333,17 @@ namespace ImGuiSettingsWindow {
 			if (ImGui::Button("Add..."))
 			{
 				OpenHDDCreationDialog();
+			}
+		}
+		if (CalcNextFreeHDD() != 0)
+		{
+			ImGui::SameLine();
+			if (ImGui::Button("Remove"))
+			{
+				temp_hdd[cur_hdd_sel].fn[0] = '\0';
+				hard_disk_untrack(cur_hdd_sel);
+				temp_hdd[cur_hdd_sel].bus = HDD_BUS_DISABLED;
+				// Normalization will happen next time this is rendered.
 			}
 		}
 		if (temp_hdd[cur_hdd_sel].bus != HDD_BUS_DISABLED)
@@ -2567,6 +2579,105 @@ namespace ImGuiSettingsWindow {
 	static int cur_zip_sel = 0, cur_mo_sel = 0;
 	void RenderOtherRemovableDevicesCategory()
 	{
+		if (ImGui::BeginTable("##motable", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_ScrollX | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable, ImVec2(0, 110)))
+		{
+			ImGui::TableSetupScrollFreeze(0, 1);
+			ImGui::TableSetupColumn("Bus");
+			ImGui::TableSetupColumn("Type");
+			ImGui::TableHeadersRow();
+			for (int i = 0; i < MO_NUM; i++)
+			{
+				static char hddname[512] = { 0 };
+				std::fill(hddname, &hddname[sizeof(hddname)], 0);
+				ImGui::TableNextRow();
+				switch(temp_mo_drives[i].bus_type)
+				{
+					default:
+					case MO_BUS_DISABLED:
+						strncpy(hddname, "Disabled", sizeof("Disabled"));
+						break;
+					case MO_BUS_ATAPI:
+						snprintf(hddname, sizeof(hddname), "ATAPI (%01i:%01i)", temp_zip_drives[i].ide_channel >> 1, temp_zip_drives[i].ide_channel & 1);
+						break;
+					case MO_BUS_SCSI:
+						snprintf(hddname, sizeof(hddname), "SCSI (%01i:%02i)", temp_zip_drives[i].scsi_device_id >> 4, temp_zip_drives[i].scsi_device_id & 15);
+						break;
+				}
+				strcat(hddname, ("##" + std::to_string(i) + "MO").c_str());
+				ImGui::TableSetColumnIndex(0);
+				if (ImGui::Selectable(hddname, cur_mo_sel == i, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap)) cur_mo_sel = i;
+				ImGui::TableNextColumn();
+				if (!temp_mo_drives[i].bus_type) ImGui::TextUnformatted("None");
+				else ImGui::Text("%.8s %.16s %.4s", mo_drive_types[temp_mo_drives[i].type].vendor, mo_drive_types[temp_mo_drives[i].type].model, mo_drive_types[temp_mo_drives[i].type].revision);
+			}
+			ImGui::EndTable();
+		}
+		ImGui::TextUnformatted("Bus:"); ImGui::SameLine();
+		if (ImGui::BeginCombo("##Bus MO", busstr[temp_mo_drives[cur_mo_sel].bus_type].data()))
+		{
+			if (ImGui::Selectable(busstr[0].data(), temp_mo_drives[cur_mo_sel].bus_type == 0)) temp_mo_drives[cur_mo_sel].bus_type = 0;
+			else if (ImGui::Selectable(busstr[MO_BUS_ATAPI].data(), temp_mo_drives[cur_mo_sel].bus_type == MO_BUS_ATAPI)) temp_mo_drives[cur_mo_sel].bus_type = MO_BUS_ATAPI;
+			else if (ImGui::Selectable(busstr[MO_BUS_SCSI].data(), temp_mo_drives[cur_mo_sel].bus_type == MO_BUS_SCSI)) temp_mo_drives[cur_mo_sel].bus_type = MO_BUS_SCSI;
+			ImGui::EndCombo();
+		}
+		if (temp_mo_drives[cur_mo_sel].bus_type)
+		{
+			char motypenamecur[128] = { 0 };
+			ImGui::SameLine(); ImGui::TextUnformatted("Channel:"); ImGui::SameLine();
+			switch (temp_mo_drives[cur_mo_sel].bus_type)
+			{
+				case MO_BUS_ATAPI:
+				{
+					if (ImGui::BeginCombo("##IDE Channel MO", (std::to_string(temp_mo_drives[cur_mo_sel].ide_channel >> 1) + ':' + std::to_string(temp_mo_drives[cur_mo_sel].ide_channel & 1)).c_str()))
+					{
+						for (int i = 0; i < 8; i++)
+						{
+							if (ImGui::Selectable((std::to_string(i >> 1) + ':' + std::to_string(i & 1)).c_str(), temp_mo_drives[cur_mo_sel].ide_channel == i))
+							{
+								temp_mo_drives[cur_mo_sel].ide_channel = i;
+							}
+						}
+						ImGui::EndCombo();
+					}
+					break;
+				}
+				case MO_BUS_SCSI:
+				{
+					if (ImGui::BeginCombo("##SCSI ID MO", (std::to_string(temp_mo_drives[cur_mo_sel].scsi_device_id >> 4) + ':' + std::to_string(temp_mo_drives[cur_mo_sel].scsi_device_id & 15)).c_str()))
+					{
+						for (int i = 0; i < 64; i++)
+						{
+							if (ImGui::Selectable((std::to_string(i >> 4) + ':' + std::to_string(i & 15)).c_str(), temp_mo_drives[cur_mo_sel].scsi_device_id == i))
+							{
+								temp_mo_drives[cur_mo_sel].scsi_device_id = i;
+							}
+						}
+						ImGui::EndCombo();
+					}
+					break;
+				}
+			}
+			ImGui::TextUnformatted("Type:"); ImGui::SameLine();
+			snprintf(motypenamecur, sizeof(motypenamecur), "%.8s %.16s %.4s", mo_drive_types[temp_mo_drives[cur_mo_sel].type].vendor, mo_drive_types[temp_mo_drives[cur_mo_sel].type].model, mo_drive_types[temp_mo_drives[cur_mo_sel].type].revision);
+			if (ImGui::BeginCombo("Type##MO", motypenamecur))
+			{
+				for (int i = 0; i < KNOWN_MO_DRIVE_TYPES; i++)
+				{
+					char motypename[128] = { 0 };
+					snprintf(motypename, sizeof(motypename), "%.8s %.16s %.4s", mo_drive_types[i].vendor, mo_drive_types[i].model, mo_drive_types[i].revision);
+					if (ImGui::Selectable(motypename, temp_mo_drives[cur_mo_sel].type == i))
+					{
+						temp_mo_drives[cur_mo_sel].type = i;
+					}
+					if (temp_mo_drives[cur_mo_sel].type == i)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
+				}
+				ImGui::EndCombo();
+			}
+		}
+
 		if (ImGui::BeginTable("##ziptable", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_ScrollX | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable, ImVec2(0, 110)))
 		{
 			ImGui::TableSetupScrollFreeze(0, 1);
