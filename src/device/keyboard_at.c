@@ -1051,39 +1051,49 @@ add_data_kbd(uint16_t val)
 static void
 write_output(atkbd_t *dev, uint8_t val)
 {
-    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
+    uint8_t old = dev->output_port;
     kbd_log("ATkbc: write output port: %02X (old: %02X)\n", val, dev->output_port);
 
-    if ((kbc_ven == KBC_VEN_AMI) || ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF))
+    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
+    if ((kbc_ven != KBC_VEN_OLIVETTI) && ((kbc_ven == KBC_VEN_AMI) || ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF)))
 	val |= ((dev->mem[0] << 4) & 0x10);
 
-    if ((dev->output_port ^ val) & 0x20) { /*IRQ 12*/
+    /*IRQ 12*/
+    if ((dev->output_port ^ val) & 0x20) {
 	if (val & 0x20)
 		picint(1 << 12);
 	else
 		picintc(1 << 12);
     }
-    if ((dev->output_port ^ val) & 0x10) { /*IRQ 1*/
+
+    /*IRQ 1*/
+    if ((dev->output_port ^ val) & 0x10) {
 	if (val & 0x10)
 		picint(1 << 1);
 	else
 		picintc(1 << 1);
     }
+
     if ((dev->output_port ^ val) & 0x02) { /*A20 enable change*/
 	mem_a20_key = val & 0x02;
 	mem_a20_recalc();
 	flushmmucache();
     }
-    if ((dev->output_port ^ val) & 0x01) { /*Reset*/
-	if (! (val & 0x01)) {
+
+    /* Do this here to avoid an infinite reset loop. */
+    dev->output_port = val;
+
+    /* 0 holds the CPU in the RESET state, 1 releases it. To simplify this,
+       we just do everything on release. */
+    if ((val & 0x01) && !(old & 0x01)) {
+	if (val & 0x01) {
 		/* Pin 0 selected. */
-		softresetx86(); /*Pulse reset!*/
+		pclog("write_output(): Pulse reset!\n");
+		softresetx86();		/*Pulse reset!*/
 		cpu_set_edx();
-		smbase = is_am486dxl ? 0x00060000 : 0x00030000;
+		flushmmucache();
 	}
     }
-    /* Mask off the A20 stuff because we use mem_a20_key directly for that. */
-    dev->output_port = val;
 }
 
 
@@ -1372,7 +1382,7 @@ write64_ami(void *priv, uint8_t val)
 		
 	case 0xa1:	/* get controller version */
 		kbd_log("ATkbc: AMI - get controller version\n");
-		add_data(dev, 'H');
+		add_data(dev, 'Z');
 		return 0;
 
 	case 0xa2:	/* clear keyboard controller lines P22/P23 */
@@ -2094,7 +2104,7 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
 			case 0xd0:	/* read output port */
 				kbd_log("ATkbc: read output port\n");
 				mask = 0xff;
-				if (((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF) && (dev->mem[0] & 0x10))
+				if ((kbc_ven != KBC_VEN_OLIVETTI) && ((dev->flags & KBC_TYPE_MASK) < KBC_TYPE_PS2_NOREF) && (dev->mem[0] & 0x10))
 					mask &= 0xbf;
 				add_to_kbc_queue_front(dev, dev->output_port & mask, 0, 0x00);
 				break;

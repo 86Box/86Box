@@ -409,7 +409,7 @@ else
 		   win_sdl.o imgui_tables.o imgui_widgets.o imgui.o \
 		   imgui_sdl.o imgui_impl_sdl.o imgui_demo.o imgui_draw.o \
 		   win_dialog.o win_about.o \
-		   win_settings.o win_devconf.o win_snd_gain.o win_specify_dim.o win_progsett.o \
+		   win_settings.o win_devconf.o win_snd_gain.o win_specify_dim.o win_preferences.o \
 		   win_new_floppy.o win_jsconf.o win_media_menu.o
 endif
 

@@ -18,6 +18,7 @@
  *		Copyright 2016-2020 Miran Grca.
  *		Copyright 2017-2020 Fred N. van Kempen.
  *		Copyright 2021 Laci bá'
+ *		Copyright 2021 dob205
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -394,7 +395,9 @@ pc_init(int argc, char *argv[])
 {
 	char path[2048], path2[2048];
 	char *cfg = NULL, *p;
+#ifdef __APPLE__
 	char mac_rom_path[2048];
+#endif
 	char temp[128];
 	struct tm *info;
 	time_t now;
@@ -418,9 +421,6 @@ pc_init(int argc, char *argv[])
 	 */
 	plat_getcwd(usr_path, sizeof(usr_path) - 1);
 	plat_getcwd(rom_path, sizeof(rom_path) - 1);
-
-	printf("JV:usr_path %s\n",usr_path);
-	printf("JV:rom_path %s\n",usr_path);
 	
 	memset(path, 0x00, sizeof(path));
 	memset(path2, 0x00, sizeof(path));

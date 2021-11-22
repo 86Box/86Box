@@ -135,7 +135,7 @@ void win_load_icon_set()
 	for (i = 0; i < count; i++)
 	{
 		plat_append_filename(temp, path_root, icon_files[i].filename);
-		mbstowcs(wtemp, temp, strlen(temp) + 1);
+		mbstoc16s(wtemp, temp, strlen(temp) + 1);
 		
 		HICON ictemp;
 		ictemp = LoadImageW(NULL, (LPWSTR)wtemp, IMAGE_ICON, x, y, LR_LOADFROMFILE | LR_DEFAULTCOLOR);  

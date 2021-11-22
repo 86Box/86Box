@@ -379,10 +379,10 @@ END
 #endif    // not APSTUDIO_INVOKED
 
 
-#include "languages/zh-CN.rc"
 #include "languages/cs-CZ.rc"
 #include "languages/de-DE.rc"
 #include "languages/en-US.rc"
+#include "languages/en-GB.rc"
 #include "languages/fr-FR.rc"
 #include "languages/hr-HR.rc"
 #include "languages/fi-FI.rc"
@@ -392,3 +392,4 @@ END
 #include "languages/pt-BR.rc"
 #include "languages/pt-PT.rc"
 #include "languages/sl-SI.rc"
+#include "languages/zh-CN.rc"

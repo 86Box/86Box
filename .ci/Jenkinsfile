@@ -78,13 +78,26 @@ def presetFlags = [
 def anyFailure = false
 
 def gitClone() {
+	/* Read git tag from environment or set the default one. */
 	if (env.GIT_COMMIT == null)
 		env.GIT_COMMIT = 'master'
 	println "[-] Using git tag [${env.GIT_COMMIT}]"
-	def scmVars = checkout scm: [$class: 'GitSCM',
-				     branches: [[name: env.GIT_COMMIT]],
-				     userRemoteConfigs: [[url: 'https://github.com/86Box/86Box.git']]]
-	env.GIT_COMMIT = scmVars.GIT_COMMIT
+
+	/* Use stashes to avoid performing multiple clones. */
+	if (env.GIT_STASHED != 'true') {
+		/* Perform clone/checkout. */
+		def scmVars = checkout scm: [$class: 'GitSCM',
+					     branches: [[name: env.GIT_COMMIT]],
+					     userRemoteConfigs: [[url: 'https://github.com/86Box/86Box.git']]]
+		env.GIT_COMMIT = scmVars.GIT_COMMIT
+
+		/* Stash data and mark it as stashed. */
+		stash name: 'git'
+		env.GIT_STASHED = 'true'
+	} else {
+		/* Unstash data. */
+		unstash name: 'git'
+	}
 }
 
 def removeDir(dir) {
@@ -98,20 +111,25 @@ def runBuild(args) {
 	if (isUnix())
 		sh "chmod u+x \"$WORKSPACE/.ci/build.sh\" && exec \"$WORKSPACE/.ci/build.sh\" $args"
 	else
-		bat "C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c 'exec \"\$(cygpath -u \\'%WORKSPACE%\\')\"/.ci/build.sh $args'"
+		bat "C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c 'exec \"\$(cygpath -u \\'%WORKSPACE%\\')/.ci/build.sh\" $args'"
 }
 
 pipeline {
 	agent none
 
+	environment {
+		DISCORD_WEBHOOK_URL = credentials('discord-webhook-url')
+	}
+
+	options {
+		disableConcurrentBuilds()
+		quietPeriod(0)
+	}
+
 	parameters {
 		string(name: 'BUILD_TYPE',
 		       defaultValue: 'beta', /* !!! CHANGE HERE !!! for build type */
 		       description: "Build type to pass on to CMake. Don't change this, you should instead change the default value on .ci/Jenkinsfile")
-	}
-
-	environment {
-		DISCORD_WEBHOOK_URL = credentials('discord-webhook-url')
 	}
 
 	stages {
@@ -120,19 +138,41 @@ pipeline {
 
 			steps {
 				script {
-					/* Run a dummy git clone on any node to try and save the latest commit regardless of executor status.
-					   This avoids a timing issue where HEAD changes between polling and the nodes being available below.
-					   I talked to a few people, and we reached the conclusion that reading the polled commit from within
-					   the pipeline is not really possible (maybe short of switching to a multi-branch pipeline), so we
-					   have to live with this hack, which shortens but doesn't fully eliminate the timing issue's window. */
-					node {
-						/* Ignore exceptions as this is not really critical. */
-						try {
-							gitClone()
-						} catch (e) {}
-						try {
-							cleanWs()
-						} catch (e) {}
+					/* Hack to extract the current HEAD commit from this build's git polling
+					   log. This avoids a race condition where HEAD changes in the time period
+					   between Jenkins polling the git repository and the first build node
+					   performing the first git clone once ready. (See issue JENKINS-20518) */
+					if (env.GIT_COMMIT == null) {
+						/* This must run on the master node to read the polling log. */
+						node('master') {
+							/* Ignore exceptions as this is not really critical. */
+							try {
+								/* Switch to this build's directory. */
+								dir("${env.JENKINS_HOME}/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}") {
+									/* Parse polling log. */
+									def pollingLog = readFile file: 'polling.log'
+									def match = pollingLog =~ /Latest remote head revision on [^ ]+ is: ([a-zA-Z0-9]+)/
+									if (match && match[0]) {
+										env.GIT_COMMIT = match[0][1]
+										println "[-] Read git tag [${env.GIT_COMMIT}] from polling log"
+									}
+								}
+							} catch (e) {}
+						}
+
+						/* If the polling log parsing fails, perform a dummy git clone on any node.
+						   Not quite as fast as reading the polling log, but it works as a backup. */
+						if (env.GIT_COMMIT == null) {
+							node {
+								/* Ignore exceptions again as this is not really critical. */
+								try {
+									gitClone()
+								} catch (e) {}
+								try {
+									cleanWs()
+								} catch (e) {}
+							}
+						}
 					}
 
 					/* Create source tarball. */
@@ -188,12 +228,10 @@ pipeline {
 
 													/* Switch to output directory. */
 													dir('output') {
+														/* Run build process. */
 														def packageName = "${env.JOB_BASE_NAME}${dynarecSlugs[dynarec]}${presetSlugs[preset]}-$os-$arch-b${env.BUILD_NUMBER}"
-														dir(dynarecNames[dynarec]) {
-															dir("$os - ${archNames[arch]}") {
-																/* Run build process. */
-																runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} -D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUM=${env.BUILD_NUMBER}\"")
-															}
+														dir("${dynarecNames[dynarec]}/$os - ${archNames[arch]}") {
+															runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} -D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUM=${env.BUILD_NUMBER}\"")
 														}
 
 														/* Archive resulting artifacts. */
@@ -223,12 +261,14 @@ pipeline {
 	post {
 		always {
 			script {
+				/* Mark build as failed if any step has failed. */
 				if (anyFailure) {
 					println "[!] Failing build because a build stage failed"
 					currentBuild.result = 'FAILURE'
 				}
 
-				if (!env.JOB_BASE_NAME.contains("TestBuildPleaseIgnore")) {
+				/* Send out build notifications. */
+				if (!env.JOB_BASE_NAME.contains('TestBuildPleaseIgnore')) {
 					try {
 						/* Notify Discord. */
 						def result = currentBuild.currentResult.toLowerCase()
