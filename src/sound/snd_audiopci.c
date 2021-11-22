@@ -965,7 +965,7 @@ es1371_outl(uint16_t port, uint32_t val, void *p)
 	/* Sample Rate Converter Interface Register, Address 10H
 	   Addressable as longword only */
 	case 0x10:
-		dev->sr_cir = val & 0xff7fffff; /* Bits 16 to 18 are undefined but read-write. */
+		dev->sr_cir = val & 0xfff8ffff; /*Bits 16 to 18 are undefined*/
 		if (dev->sr_cir & SRC_RAM_WE) {
 			dev->sr_ram[dev->sr_cir >> 25] = val & 0xffff;
 			switch (dev->sr_cir >> 25) {
