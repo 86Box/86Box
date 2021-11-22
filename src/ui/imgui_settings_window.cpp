@@ -651,7 +651,7 @@ namespace ImGuiSettingsWindow {
 		// Right
 		{
 			ImGui::BeginGroup();
-			ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), false); // Leave room for 1 line below us
+			ImGui::BeginChild("item view", ImVec2(0, -ImGui::GetFrameHeightWithSpacing()), false, ImGuiWindowFlags_HorizontalScrollbar); // Leave room for 1 line below us
 
 			ImGui::Separator();
 
@@ -1058,7 +1058,7 @@ namespace ImGuiSettingsWindow {
 		//////////////////////////////
 		// RAM/Memory Config
 		//////////////////////////////
-		static int memory_amount_mb = 0;
+		static int memory_amount_mb = temp_mem_size / 1024;
 		
 
 		// if (memory_amount > selected_machine.max_ram) {
@@ -1085,7 +1085,7 @@ namespace ImGuiSettingsWindow {
 		else {
 			ImGui::Text("Memory (KB):");
 			ImGui::SameLine();
-			ImGui::InputInt("##memory", (int*)&temp_mem_size, selected_machine.ram_granularity, selected_machine.ram_granularity, ImGuiInputTextFlags_EnterReturnsTrue);
+			ImGui::InputScalar("##memory", ImGuiDataType_U32, &temp_mem_size, &selected_machine.ram_granularity, &selected_machine.ram_granularity, nullptr, ImGuiInputTextFlags_EnterReturnsTrue);
 			if (temp_mem_size > selected_machine.max_ram) {
 				temp_mem_size = selected_machine.max_ram;
 			}
@@ -2474,7 +2474,7 @@ namespace ImGuiSettingsWindow {
 		ImGui::CheckboxFlags("Turbo", &temp_fdd_turbo[cur_fdd_sel], 1); ImGui::SameLine();
 		ImGui::CheckboxFlags("Check BPB", &temp_fdd_check_bpb[cur_fdd_sel], 1);
 
-		if (ImGui::BeginTable("##cdtable", 3, ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_ScrollX | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable, ImVec2(0, 110)))
+		if (ImGui::BeginTable("##cdtable", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_ScrollX | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable, ImVec2(0, 110)))
 		{
 			ImGui::TableSetupScrollFreeze(0, 1);
 			ImGui::TableSetupColumn("Type");
@@ -2564,9 +2564,85 @@ namespace ImGuiSettingsWindow {
 			}
 		}
 	}
-
-	void RenderOtherRemovableDevicesCategory() {
-
+	static int cur_zip_sel = 0, cur_mo_sel = 0;
+	void RenderOtherRemovableDevicesCategory()
+	{
+		if (ImGui::BeginTable("##ziptable", 2, ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_ScrollX | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable, ImVec2(0, 110)))
+		{
+			ImGui::TableSetupScrollFreeze(0, 1);
+			ImGui::TableSetupColumn("Bus");
+			ImGui::TableSetupColumn("Type");
+			ImGui::TableHeadersRow();
+			for (int i = 0; i < ZIP_NUM; i++)
+			{
+				static char hddname[512] = { 0 };
+				std::fill(hddname, &hddname[sizeof(hddname)], 0);
+				ImGui::TableNextRow();
+				switch(temp_zip_drives[i].bus_type)
+				{
+					default:
+					case ZIP_BUS_DISABLED:
+						strncpy(hddname, "Disabled", sizeof("Disabled"));
+						break;
+					case ZIP_BUS_ATAPI:
+						snprintf(hddname, sizeof(hddname), "ATAPI (%01i:%01i)", temp_zip_drives[i].ide_channel >> 1, temp_zip_drives[i].ide_channel & 1);
+						break;
+					case ZIP_BUS_SCSI:
+						snprintf(hddname, sizeof(hddname), "SCSI (%01i:%02i)", temp_zip_drives[i].scsi_device_id >> 4, temp_zip_drives[i].scsi_device_id & 15);
+						break;
+				}
+				strcat(hddname, ("##" + std::to_string(i)).c_str());
+				ImGui::TableSetColumnIndex(0);
+				if (ImGui::Selectable(hddname, cur_zip_sel == i, ImGuiSelectableFlags_SpanAllColumns | ImGuiSelectableFlags_AllowItemOverlap)) cur_zip_sel = i;
+				ImGui::TableNextColumn();
+				ImGui::TextUnformatted(temp_zip_drives[i].is_250 ? "ZIP 250" : "ZIP 100");
+			}
+			ImGui::EndTable();
+		}
+		ImGui::TextUnformatted("Bus:"); ImGui::SameLine();
+		if (ImGui::BeginCombo("##Bus ZIP", busstr[temp_zip_drives[cur_zip_sel].bus_type].data()))
+		{
+			if (ImGui::Selectable(busstr[0].data(), temp_zip_drives[cur_zip_sel].bus_type == 0)) temp_zip_drives[cur_zip_sel].bus_type = 0;
+			else if (ImGui::Selectable(busstr[ZIP_BUS_ATAPI].data(), temp_zip_drives[cur_zip_sel].bus_type == ZIP_BUS_ATAPI)) temp_zip_drives[cur_zip_sel].bus_type = ZIP_BUS_ATAPI;
+			else if (ImGui::Selectable(busstr[ZIP_BUS_SCSI].data(), temp_zip_drives[cur_zip_sel].bus_type == ZIP_BUS_SCSI)) temp_zip_drives[cur_zip_sel].bus_type = ZIP_BUS_SCSI;
+			ImGui::EndCombo();
+		}
+		ImGui::SameLine();
+		ImGui::TextUnformatted("Channel:"); ImGui::SameLine();
+		switch (temp_zip_drives[cur_zip_sel].bus_type)
+		{
+			case ZIP_BUS_ATAPI:
+			{
+				if (ImGui::BeginCombo("##IDE Channel ZIP", (std::to_string(temp_zip_drives[cur_zip_sel].ide_channel >> 1) + ':' + std::to_string(temp_zip_drives[cur_zip_sel].ide_channel & 1)).c_str()))
+				{
+					for (int i = 0; i < 8; i++)
+					{
+						if (ImGui::Selectable((std::to_string(i >> 1) + ':' + std::to_string(i & 1)).c_str(), temp_zip_drives[cur_zip_sel].ide_channel == i))
+						{
+							temp_zip_drives[cur_zip_sel].ide_channel = i;
+						}
+					}
+					ImGui::EndCombo();
+				}
+				break;
+			}
+			case ZIP_BUS_SCSI:
+			{
+				if (ImGui::BeginCombo("##SCSI ID ZIP", (std::to_string(temp_zip_drives[cur_zip_sel].scsi_device_id >> 4) + ':' + std::to_string(temp_zip_drives[cur_zip_sel].scsi_device_id & 15)).c_str()))
+				{
+					for (int i = 0; i < 64; i++)
+					{
+						if (ImGui::Selectable((std::to_string(i >> 4) + ':' + std::to_string(i & 15)).c_str(), temp_zip_drives[cur_zip_sel].scsi_device_id == i))
+						{
+							temp_zip_drives[cur_zip_sel].scsi_device_id = i;
+						}
+					}
+					ImGui::EndCombo();
+				}
+				break;
+			}
+		}
+		ImGui::CheckboxFlags("ZIP 250", &temp_zip_drives[cur_zip_sel].is_250, 1);
 	}
 
 	void RenderOtherPeripheralsCategory() {
