@@ -46,22 +46,22 @@ static int sbe2dat[4][9] = {
 
 static int sb_commands[256]=
 {
-        -1, 2,-1,-1, 1, 2,-1, 0, 1,-1,-1,-1,-1,-1, 2, 1,
-         1,-1,-1,-1, 2,-1, 2, 2,-1,-1,-1,-1, 0,-1,-1, 0,
-         0,-1,-1,-1, 2,-1,-1,-1,-1,-1,-1,-1, 0,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-         1, 2, 2,-1,-1,-1,-1,-1, 2,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1, 2, 2, 2, 2,-1,-1,-1,-1,-1, 0,-1, 0,
-         2, 2,-1,-1,-1,-1,-1,-1, 2, 2,-1,-1,-1,-1,-1,-1,
-         0,-1,-1,-1,-1,-1,-1,-1, 0,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
-         3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-         3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
-         0, 0,-1, 0, 0, 0, 0,-1, 0, 0, 0,-1,-1,-1,-1,-1,
-         1, 0, 1, 0, 1,-1,-1, 0, 0,-1,-1,-1,-1,-1,-1,-1,
-        -1,-1, 0,-1,-1,-1,-1,-1,-1, 1, 2,-1,-1,-1,-1, 0
+		-1, 2,-1,-1, 1, 2,-1, 0, 1,-1,-1,-1,-1,-1, 2, 1,
+		 1,-1,-1,-1, 2,-1, 2, 2,-1,-1,-1,-1, 0,-1,-1, 0,
+		 0,-1,-1,-1, 2,-1,-1,-1,-1,-1,-1,-1, 0,-1,-1,-1,
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+		 1, 2, 2,-1,-1,-1,-1,-1, 2,-1,-1,-1,-1,-1,-1,-1,
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+		-1,-1,-1,-1, 2, 2, 2, 2,-1,-1,-1,-1,-1, 0,-1, 0,
+		 2, 2,-1,-1,-1,-1,-1,-1, 2, 2,-1,-1,-1,-1,-1,-1,
+		 0,-1,-1,-1,-1,-1,-1,-1, 0,-1,-1,-1,-1,-1,-1,-1,
+		-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,-1,
+		 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+		 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
+		 0, 0,-1, 0, 0, 0, 0,-1, 0, 0, 0,-1,-1,-1,-1,-1,
+		 1, 0, 1, 0, 1,-1,-1, 0, 0,-1,-1,-1,-1,-1,-1,-1,
+		-1,-1, 0,-1,-1,-1,-1,-1,-1, 1, 2,-1,-1,-1,-1, 0
 };
 
 
@@ -71,50 +71,50 @@ uint16_t sb_dsp_versions[] = {0, 0, 0x105, 0x200, 0x201, 0x300, 0x302, 0x405, 0x
 
 /*These tables were 'borrowed' from DOSBox*/
 int8_t scaleMap4[64] = {
-    0,  1,  2,  3,  4,  5,  6,  7,  0,  -1,  -2,  -3,  -4,  -5,  -6,  -7,
-    1,  3,  5,  7,  9, 11, 13, 15, -1,  -3,  -5,  -7,  -9, -11, -13, -15,
-    2,  6, 10, 14, 18, 22, 26, 30, -2,  -6, -10, -14, -18, -22, -26, -30,
-    4, 12, 20, 28, 36, 44, 52, 60, -4, -12, -20, -28, -36, -44, -52, -60
+	0,  1,  2,  3,  4,  5,  6,  7,  0,  -1,  -2,  -3,  -4,  -5,  -6,  -7,
+	1,  3,  5,  7,  9, 11, 13, 15, -1,  -3,  -5,  -7,  -9, -11, -13, -15,
+	2,  6, 10, 14, 18, 22, 26, 30, -2,  -6, -10, -14, -18, -22, -26, -30,
+	4, 12, 20, 28, 36, 44, 52, 60, -4, -12, -20, -28, -36, -44, -52, -60
 };
 
 uint8_t adjustMap4[64] = {
-      0, 0, 0, 0, 0, 16, 16, 16,
-      0, 0, 0, 0, 0, 16, 16, 16,
-    240, 0, 0, 0, 0, 16, 16, 16,
-    240, 0, 0, 0, 0, 16, 16, 16,
-    240, 0, 0, 0, 0, 16, 16, 16,
-    240, 0, 0, 0, 0, 16, 16, 16,
-    240, 0, 0, 0, 0,  0,  0,  0,
-    240, 0, 0, 0, 0,  0,  0,  0
+	  0, 0, 0, 0, 0, 16, 16, 16,
+	  0, 0, 0, 0, 0, 16, 16, 16,
+	240, 0, 0, 0, 0, 16, 16, 16,
+	240, 0, 0, 0, 0, 16, 16, 16,
+	240, 0, 0, 0, 0, 16, 16, 16,
+	240, 0, 0, 0, 0, 16, 16, 16,
+	240, 0, 0, 0, 0,  0,  0,  0,
+	240, 0, 0, 0, 0,  0,  0,  0
 };
 
 int8_t scaleMap26[40] = {
-    0,  1,  2,  3,  0,  -1,  -2,  -3,
-    1,  3,  5,  7, -1,  -3,  -5,  -7,
-    2,  6, 10, 14, -2,  -6, -10, -14,
-    4, 12, 20, 28, -4, -12, -20, -28,
-    5, 15, 25, 35, -5, -15, -25, -35
+	0,  1,  2,  3,  0,  -1,  -2,  -3,
+	1,  3,  5,  7, -1,  -3,  -5,  -7,
+	2,  6, 10, 14, -2,  -6, -10, -14,
+	4, 12, 20, 28, -4, -12, -20, -28,
+	5, 15, 25, 35, -5, -15, -25, -35
 };
 
 uint8_t adjustMap26[40] = {
-      0, 0, 0, 8,   0, 0, 0, 8,
-    248, 0, 0, 8, 248, 0, 0, 8,
-    248, 0, 0, 8, 248, 0, 0, 8,
-    248, 0, 0, 8, 248, 0, 0, 8,
-    248, 0, 0, 0, 248, 0, 0, 0
+	  0, 0, 0, 8,   0, 0, 0, 8,
+	248, 0, 0, 8, 248, 0, 0, 8,
+	248, 0, 0, 8, 248, 0, 0, 8,
+	248, 0, 0, 8, 248, 0, 0, 8,
+	248, 0, 0, 0, 248, 0, 0, 0
 };
 
 int8_t scaleMap2[24] = {
-    0,  1,  0,  -1, 1,  3,  -1,  -3,
-    2,  6, -2,  -6, 4, 12,  -4, -12,
-    8, 24, -8, -24, 6, 48, -16, -48
+	0,  1,  0,  -1, 1,  3,  -1,  -3,
+	2,  6, -2,  -6, 4, 12,  -4, -12,
+	8, 24, -8, -24, 6, 48, -16, -48
 };
 
 uint8_t adjustMap2[24] = {
-      0, 4,   0, 4,
-    252, 4, 252, 4, 252, 4, 252, 4,
-    252, 4, 252, 4, 252, 4, 252, 4,
-    252, 0, 252, 0
+	  0, 4,   0, 4,
+	252, 4, 252, 4, 252, 4, 252, 4,
+	252, 4, 252, 4, 252, 4, 252, 4,
+	252, 0, 252, 0
 };
 
 double low_fir_sb16_coef[2][SB16_NCoef];
@@ -127,13 +127,13 @@ int sb_dsp_do_log = ENABLE_SB_DSP_LOG;
 static void
 sb_dsp_log(const char *fmt, ...)
 {
-    va_list ap;
+	va_list ap;
 
-    if (sb_dsp_do_log) {
+	if (sb_dsp_do_log) {
 	va_start(ap, fmt);
 	pclog_ex(fmt, ap);
 	va_end(ap);
-    }
+	}
 }
 #else
 #define sb_dsp_log(fmt, ...)
@@ -143,19 +143,19 @@ sb_dsp_log(const char *fmt, ...)
 static __inline double
 sinc(double x)
 {
-    return sin(M_PI * x) / (M_PI * x);
+	return sin(M_PI * x) / (M_PI * x);
 }
 
 static void
 recalc_sb16_filter(int c, int playback_freq)
 {
-    /* Cutoff frequency = playback / 2 */
-    int n;
-    double w, h;
-    double fC = ((double) playback_freq) / 96000.0;
-    double gain;
+	/* Cutoff frequency = playback / 2 */
+	int n;
+	double w, h;
+	double fC = ((double) playback_freq) / 96000.0;
+	double gain;
 
-    for (n = 0; n < SB16_NCoef; n++) {
+	for (n = 0; n < SB16_NCoef; n++) {
 	/* Blackman window */
 	w = 0.42 - (0.5 * cos((2.0*n*M_PI)/(double)(SB16_NCoef-1))) + (0.08 * cos((4.0*n*M_PI)/(double)(SB16_NCoef-1)));
 	/* Sinc filter */
@@ -163,16 +163,16 @@ recalc_sb16_filter(int c, int playback_freq)
 
 	/* Create windowed-sinc filter */
 	low_fir_sb16_coef[c][n] = w * h;
-    }
+	}
 
-    low_fir_sb16_coef[c][(SB16_NCoef - 1) / 2] = 1.0;
+	low_fir_sb16_coef[c][(SB16_NCoef - 1) / 2] = 1.0;
 
-    gain = 0.0;
-    for (n = 0; n < SB16_NCoef; n++)
+	gain = 0.0;
+	for (n = 0; n < SB16_NCoef; n++)
 	gain += low_fir_sb16_coef[c][n];
 
-    /* Normalise filter, to produce unity gain */
-    for (n = 0; n < SB16_NCoef; n++)
+	/* Normalise filter, to produce unity gain */
+	for (n = 0; n < SB16_NCoef; n++)
 	low_fir_sb16_coef[c][n] /= gain;
 }
 
@@ -180,19 +180,19 @@ recalc_sb16_filter(int c, int playback_freq)
 void
 sb_update_mask(sb_dsp_t *dsp, int irqm8, int irqm16, int irqm401)
 {
-    int clear = 0;
+	int clear = 0;
 
-    if (!dsp->sb_irqm8 && irqm8)
+	if (!dsp->sb_irqm8 && irqm8)
 	clear |= 1;
-    dsp->sb_irqm8 = irqm8;
-    if (!dsp->sb_irqm16 && irqm16)
+	dsp->sb_irqm8 = irqm8;
+	if (!dsp->sb_irqm16 && irqm16)
 	clear |= 1;
-    dsp->sb_irqm16 = irqm16;
-    if (!dsp->sb_irqm401 && irqm401)
+	dsp->sb_irqm16 = irqm16;
+	if (!dsp->sb_irqm401 && irqm401)
 	clear |= 1;
-    dsp->sb_irqm401 = irqm401;
+	dsp->sb_irqm401 = irqm401;
 
-    if (clear)
+	if (clear)
 	picintc(1 << dsp->sb_irqnum);
 }
 
@@ -200,9 +200,9 @@ sb_update_mask(sb_dsp_t *dsp, int irqm8, int irqm16, int irqm401)
 void
 sb_update_status(sb_dsp_t *dsp, int bit, int set)
 {
-    int masked = 0;
+	int masked = 0;
 
-    switch (bit) {
+	switch (bit) {
 	case 0:
 	default:
 		dsp->sb_irq8  = set;
@@ -216,11 +216,11 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
 		dsp->sb_irq401 = set;
 		masked = dsp->sb_irqm401;
 		break;
-    }
+	}
 
-    if (set && !masked)
+	if (set && !masked)
 	picint(1 << dsp->sb_irqnum);
-    else if (!set)
+	else if (!set)
 	picintc(1 << dsp->sb_irqnum);
 }
 
@@ -228,41 +228,41 @@ sb_update_status(sb_dsp_t *dsp, int bit, int set)
 void
 sb_irq(sb_dsp_t *dsp, int irq8)
 {
-    sb_update_status(dsp, !irq8, 1);
+	sb_update_status(dsp, !irq8, 1);
 }
 
 
 void
 sb_irqc(sb_dsp_t *dsp, int irq8)
 {
-    sb_update_status(dsp, !irq8, 0);
+	sb_update_status(dsp, !irq8, 0);
 }
 
 
 static void
 sb_dsp_irq_update(void *priv, int set)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+	sb_dsp_t *dsp = (sb_dsp_t *) priv;
 
-    sb_update_status(dsp, 2, set);
+	sb_update_status(dsp, 2, set);
 }
 
 
 static int
 sb_dsp_irq_pending(void *priv)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+	sb_dsp_t *dsp = (sb_dsp_t *) priv;
 
-    return dsp->sb_irq401;
+	return dsp->sb_irq401;
 }
 
 
 void
 sb_dsp_set_mpu(sb_dsp_t *dsp, mpu_t *mpu)
 {
-    dsp->mpu = mpu;
+	dsp->mpu = mpu;
 
-    if (mpu != NULL)
+	if (mpu != NULL)
 	mpu401_irq_attach(mpu, sb_dsp_irq_update, sb_dsp_irq_pending, dsp);
 }
 
@@ -270,75 +270,75 @@ sb_dsp_set_mpu(sb_dsp_t *dsp, mpu_t *mpu)
 void
 sb_dsp_reset(sb_dsp_t *dsp)
 {
-    midi_clear_buffer();
+	midi_clear_buffer();
 
-    timer_disable(&dsp->output_timer);
-    timer_disable(&dsp->input_timer);
+	timer_disable(&dsp->output_timer);
+	timer_disable(&dsp->input_timer);
 
-    dsp->sb_command = 0;
+	dsp->sb_command = 0;
 
-    dsp->sb_8_length = 0xffff;
-    dsp->sb_8_autolen = 0xffff;
+	dsp->sb_8_length = 0xffff;
+	dsp->sb_8_autolen = 0xffff;
 
-    dsp->sb_irq8 = 0;
-    dsp->sb_irq16 = 0;
-    dsp->sb_irq401 = 0;
-    dsp->sb_16_pause = 0;
-    dsp->sb_read_wp = dsp->sb_read_rp = 0;
-    dsp->sb_data_stat = -1;
-    dsp->sb_speaker = 0;
-    dsp->sb_pausetime = -1LL;
-    dsp->sbe2 = 0xAA;
-    dsp->sbe2count = 0;
+	dsp->sb_irq8 = 0;
+	dsp->sb_irq16 = 0;
+	dsp->sb_irq401 = 0;
+	dsp->sb_16_pause = 0;
+	dsp->sb_read_wp = dsp->sb_read_rp = 0;
+	dsp->sb_data_stat = -1;
+	dsp->sb_speaker = 0;
+	dsp->sb_pausetime = -1LL;
+	dsp->sbe2 = 0xAA;
+	dsp->sbe2count = 0;
 
-    dsp->sbreset = 0;
+	dsp->sbreset = 0;
 
-    dsp->record_pos_read = 0;
-    dsp->record_pos_write = SB_DSP_REC_SAFEFTY_MARGIN;
+	dsp->record_pos_read = 0;
+	dsp->record_pos_write = SB_DSP_REC_SAFEFTY_MARGIN;
 
-    picintc(1 << dsp->sb_irqnum);
+	picintc(1 << dsp->sb_irqnum);
 
-    dsp->asp_data_len = 0;
+	dsp->asp_data_len = 0;
 }
 
 
 void
 sb_doreset(sb_dsp_t *dsp)
 {
-    int c;
+	int c;
 
-    sb_dsp_reset(dsp);
+	sb_dsp_reset(dsp);
 
 
-    if (IS_AZTECH(dsp)) {
-        sb_commands[8] =  1;
-        sb_commands[9] =  1;
-    } else {
-        if ((dsp->sb_type >= SB16) && (dsp->sb_type < SBAWE64))
-	    sb_commands[8] =  1;
-        else
-	    sb_commands[8] = -1;    
-    }
+	if (IS_AZTECH(dsp)) {
+		sb_commands[8] =  1;
+		sb_commands[9] =  1;
+	} else {
+		if ((dsp->sb_type >= SB16) && (dsp->sb_type < SBAWE64))
+		sb_commands[8] =  1;
+		else
+		sb_commands[8] = -1;
+	}
 
-    for (c = 0; c < 256; c++)
+	for (c = 0; c < 256; c++)
 	dsp->sb_asp_regs[c] = 0;
 
-    dsp->sb_asp_regs[5] = 0x01;
-    dsp->sb_asp_regs[9] = 0xf8;
+	dsp->sb_asp_regs[5] = 0x01;
+	dsp->sb_asp_regs[9] = 0xf8;
 }
 
 
 void
 sb_dsp_speed_changed(sb_dsp_t *dsp)
 {
-    if (dsp->sb_timeo < 256)
+	if (dsp->sb_timeo < 256)
 	dsp->sblatcho = TIMER_USEC * (256 - dsp->sb_timeo);
-    else
+	else
 	dsp->sblatcho = (uint64_t)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_timeo - 256)));
 
-    if (dsp->sb_timei < 256)
+	if (dsp->sb_timei < 256)
 	dsp->sblatchi = TIMER_USEC * (256 - dsp->sb_timei);
-    else
+	else
 	dsp->sblatchi = (uint64_t)(TIMER_USEC * (1000000.0f / (float)(dsp->sb_timei - 256)));
 }
 
@@ -346,17 +346,17 @@ sb_dsp_speed_changed(sb_dsp_t *dsp)
 void
 sb_add_data(sb_dsp_t *dsp, uint8_t v)
 {
-    dsp->sb_read_data[dsp->sb_read_wp++] = v;
-    dsp->sb_read_wp &= 0xff;
+	dsp->sb_read_data[dsp->sb_read_wp++] = v;
+	dsp->sb_read_wp &= 0xff;
 }
 
 
 void
 sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
 {
-    dsp->sb_pausetime = -1;
+	dsp->sb_pausetime = -1;
 
-    if (dma8) {
+	if (dma8) {
 	dsp->sb_8_length = len;
 	dsp->sb_8_format = format;
 	dsp->sb_8_autoinit = autoinit;
@@ -370,7 +370,7 @@ sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
 		timer_set_delay_u64(&dsp->output_timer, dsp->sblatcho);
 	dsp->sbleftright = 0;
 	dsp->sbdacpos = 0;
-    } else {
+	} else {
 	dsp->sb_16_length = len;
 	dsp->sb_16_format = format;
 	dsp->sb_16_autoinit = autoinit;
@@ -380,14 +380,14 @@ sb_start_dma(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
 	dsp->sb_16_output = 1;
 	if (!timer_is_enabled(&dsp->output_timer))
 		timer_set_delay_u64(&dsp->output_timer, dsp->sblatcho);
-    }
+	}
 }
 
 
 void
 sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
 {
-    if (dma8) {
+	if (dma8) {
 	dsp->sb_8_length = len;
 	dsp->sb_8_format = format;
 	dsp->sb_8_autoinit = autoinit;
@@ -398,7 +398,7 @@ sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
 	dsp->sb_8_output = 0;
 	if (!timer_is_enabled(&dsp->input_timer))
 		timer_set_delay_u64(&dsp->input_timer, dsp->sblatchi);
-    } else {
+	} else {
 	dsp->sb_16_length = len;
 	dsp->sb_16_format = format;
 	dsp->sb_16_autoinit = autoinit;
@@ -409,70 +409,70 @@ sb_start_dma_i(sb_dsp_t *dsp, int dma8, int autoinit, uint8_t format, int len)
 	dsp->sb_16_output = 0;
 	if (!timer_is_enabled(&dsp->input_timer))
 		timer_set_delay_u64(&dsp->input_timer, dsp->sblatchi);
-    }
+	}
 
-    memset(dsp->record_buffer,0,sizeof(dsp->record_buffer));
+	memset(dsp->record_buffer,0,sizeof(dsp->record_buffer));
 }
 
 
 int
 sb_8_read_dma(sb_dsp_t *dsp)
 {
-    return dma_channel_read(dsp->sb_8_dmanum);
+	return dma_channel_read(dsp->sb_8_dmanum);
 }
 
 
 void
 sb_8_write_dma(sb_dsp_t *dsp, uint8_t val)
 {
-    dma_channel_write(dsp->sb_8_dmanum, val);
+	dma_channel_write(dsp->sb_8_dmanum, val);
 }
 
 
 int
 sb_16_read_dma(sb_dsp_t *dsp)
 {
-    return dma_channel_read(dsp->sb_16_dmanum);
+	return dma_channel_read(dsp->sb_16_dmanum);
 }
 
 
 int
 sb_16_write_dma(sb_dsp_t *dsp, uint16_t val)
 {
-    int ret = dma_channel_write(dsp->sb_16_dmanum, val);
+	int ret = dma_channel_write(dsp->sb_16_dmanum, val);
 
-    return (ret == DMA_NODATA);
+	return (ret == DMA_NODATA);
 }
 
 
 void
 sb_dsp_setirq(sb_dsp_t *dsp, int irq)
 {
-    dsp->sb_irqnum = irq;
+	dsp->sb_irqnum = irq;
 }
 
 
 void
 sb_dsp_setdma8(sb_dsp_t *dsp, int dma)
 {
-    dsp->sb_8_dmanum = dma;
+	dsp->sb_8_dmanum = dma;
 }
 
 
 void
 sb_dsp_setdma16(sb_dsp_t *dsp, int dma)
 {
-    dsp->sb_16_dmanum = dma;
+	dsp->sb_16_dmanum = dma;
 }
 
 void
 sb_exec_command(sb_dsp_t *dsp)
 {
-    int temp, c;
+	int temp, c;
 
-    sb_dsp_log("sb_exec_command : SB command %02X\n", dsp->sb_command);
+	sb_dsp_log("sb_exec_command : SB command %02X\n", dsp->sb_command);
 
-    switch (dsp->sb_command) {
+	switch (dsp->sb_command) {
 	case 0x01:	/* ???? */
 		if (dsp->sb_type >= SB16)
 			dsp->asp_data_len = dsp->sb_data[0] + (dsp->sb_data[1] << 8) + 1;
@@ -582,7 +582,7 @@ sb_exec_command(sb_dsp_t *dsp)
 			if (dsp->sb_freq != temp && dsp->sb_type >= SB16)
 				recalc_sb16_filter(0, dsp->sb_freq);
 		}
-                break;
+		break;
 	case 0x48:	/* Set DSP block transfer size */
 		dsp->sb_8_autolen = dsp->sb_data[0] + (dsp->sb_data[1] << 8);
 		break;
@@ -655,7 +655,7 @@ sb_exec_command(sb_dsp_t *dsp)
 			sb_start_dma(dsp, 0, dsp->sb_command & 4, dsp->sb_data[0], dsp->sb_data[1] + (dsp->sb_data[2] << 8));
 			dsp->sb_16_autolen = dsp->sb_data[1] + (dsp->sb_data[2] << 8);
 		}
-                break;
+		break;
 	case 0xB8: case 0xB9: case 0xBA: case 0xBB:
 	case 0xBC: case 0xBD: case 0xBE: case 0xBF:	/* 16-bit DMA input */
 		if (dsp->sb_type >= SB16) {
@@ -763,7 +763,7 @@ sb_exec_command(sb_dsp_t *dsp)
 		sb_dsp_log("Trigger IRQ\n");
 		sb_irq(dsp, 0);
 		break;
-	case 0xE7: case 0xFA:	/* ???? */
+	case 0xE7: /* ???? */
 		break;
 	case 0x07: case 0xFF:	/* No, that's not how you program auto-init DMA */
 		break;
@@ -808,15 +808,15 @@ sb_exec_command(sb_dsp_t *dsp)
 		break;
 	case 0xF9:
 		if (dsp->sb_type >= SB16) {
-			if (dsp->sb_data[0] == 0x0e)
-				sb_add_data(dsp, 0xff);
-			else if (dsp->sb_data[0] == 0x0f)
-				sb_add_data(dsp, 0x07);
-			else if (dsp->sb_data[0] == 0x37)
-				sb_add_data(dsp, 0x38);
-			else
-				sb_add_data(dsp, 0x00);
+ 			sb_add_data(dsp, dsp->sb_8051_ram[dsp->sb_data[0]]);
 		}
+		break;
+	case 0xFA:
+		if(dsp->sb_type >= SB16)
+		{
+			dsp->sb_8051_ram[dsp->sb_data[0]] = dsp->sb_data[1];
+		}
+		break;
 	case 0x04: case 0x05:
 		break;
 
@@ -831,7 +831,7 @@ sb_exec_command(sb_dsp_t *dsp)
 			} else
 				sb_dsp_log("AZT2316A: UNKNOWN MODE! = %02x\n", dsp->sb_data[0]); // sequences 0x02->0xFF, 0x04->0xFF seen
 		}
-                break;
+		break;
 
 	/* TODO: Some more data about the DSP registeres
 	 * http://the.earth.li/~tfm/oldpage/sb_dsp.html
@@ -845,17 +845,23 @@ sb_exec_command(sb_dsp_t *dsp)
 	 *  0FBh           DSP Status                                          SB16
 	 *  0FCh           DSP Auxiliary Status                                SB16
 	 *  0FDh           DSP Command Status                                  SB16
-	 */                
-    }
+	 */
+	}
+	if(dsp->sb_type >= SB16)
+	{
+		//Update 8051 ram with the last DSP command.
+		//See https://github.com/joncampbell123/dosbox-x/issues/1044
+		dsp->sb_8051_ram[0x30] = dsp->sb_command;
+	}
 }
 
 
 void
 sb_write(uint16_t a, uint8_t v, void *priv)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) priv;
+	sb_dsp_t *dsp = (sb_dsp_t *) priv;
 
-    switch (a & 0xF) {
+	switch (a & 0xF) {
 	case 6:		/* Reset */
 		if (!dsp->uart_midi) {
 			if (!(v & 1) && (dsp->sbreset & 1)) {
@@ -907,17 +913,17 @@ sb_write(uint16_t a, uint8_t v, void *priv)
 			}
 		}
 		break;
-    }
+	}
 }
 
 
 uint8_t
 sb_read(uint16_t a, void *priv)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) priv;
-    uint8_t ret = 0x00;
+	sb_dsp_t *dsp = (sb_dsp_t *) priv;
+	uint8_t ret = 0x00;
 
-    switch (a & 0xf) {
+	switch (a & 0xf) {
 	case 0xA:	/* Read data */
 		if (dsp->mpu && dsp->uart_midi) {
 			ret = MPU401_ReadData(dsp->mpu);
@@ -972,128 +978,134 @@ sb_read(uint16_t a, void *priv)
 		sb_dsp_log("SB 16-bit ACK read 0xFF\n");
 		ret = 0xff;
 		break;
-        }
+		}
 
-        return ret;
+		return ret;
 }
 
 
 void 
 sb_dsp_input_msg(void *p, uint8_t *msg) 
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) p;
-    uint8_t len = msg[3], i = 0;
+	sb_dsp_t *dsp = (sb_dsp_t *) p;
+	uint8_t len = msg[3], i = 0;
 
-    sb_dsp_log("MIDI in sysex = %d, uart irq = %d, msg = %d\n", dsp->midi_in_sysex, dsp->uart_irq, msg[3]);
+	sb_dsp_log("MIDI in sysex = %d, uart irq = %d, msg = %d\n", dsp->midi_in_sysex, dsp->uart_irq, msg[3]);
 
-    if (!dsp->uart_irq && !dsp->midi_in_poll && (dsp->mpu != NULL)) {
+	if (!dsp->uart_irq && !dsp->midi_in_poll && (dsp->mpu != NULL)) {
 	MPU401_InputMsg(dsp->mpu, msg);
 	return;
-    }
+	}
 
-    if (dsp->midi_in_sysex)
+	if (dsp->midi_in_sysex)
 	return;
 
-    if (dsp->uart_irq) {
+	if (dsp->uart_irq) {
 	for (i = 0; i < len; i++)
 		sb_add_data(dsp, msg[i]);
 	sb_irq(dsp, 1);
-    } else if (dsp->midi_in_poll) { 
+	} else if (dsp->midi_in_poll) { 
 	for (i = 0; i < len; i++) 
 		sb_add_data(dsp, msg[i]);
-    }
+	}
 }
 
 
 int 
 sb_dsp_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort) 
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) p;
-    uint32_t i;
+	sb_dsp_t *dsp = (sb_dsp_t *) p;
+	uint32_t i;
 
-    if (!dsp->uart_irq && !dsp->midi_in_poll && (dsp->mpu != NULL))
+	if (!dsp->uart_irq && !dsp->midi_in_poll && (dsp->mpu != NULL))
 	return MPU401_InputSysex(dsp->mpu, buffer, len, abort);
 
-    if (abort) {
+	if (abort) {
 	dsp->midi_in_sysex = 0;
 	return 0;
-    }
+	}
 
-    dsp->midi_in_sysex = 1;
+	dsp->midi_in_sysex = 1;
 
-    for (i = 0; i < len; i++) {
+	for (i = 0; i < len; i++) {
 	if (dsp->sb_read_rp == dsp->sb_read_wp) {
 		sb_dsp_log("Length sysex SB = %d\n", len - i);
 		return (len - i);
 	}
 
 	sb_add_data(dsp, buffer[i]);
-    }
+	}
 
-    dsp->midi_in_sysex = 0;
+	dsp->midi_in_sysex = 0;
 
-    return 0;
+	return 0;
 }
 
 
 void
 sb_dsp_init(sb_dsp_t *dsp, int type, int subtype, void *parent)
 {
-    dsp->sb_type = type;
-    dsp->sb_subtype = subtype;
-    dsp->parent = parent;
+	dsp->sb_type = type;
+	dsp->sb_subtype = subtype;
+	dsp->parent = parent;
 
-    /* Default values. Use sb_dsp_setxxx() methods to change. */
-    dsp->sb_irqnum = 7;
-    dsp->sb_8_dmanum = 1;
-    dsp->sb_16_dmanum = 5;
-    dsp->mpu = NULL;
+	/* Default values. Use sb_dsp_setxxx() methods to change. */
+	dsp->sb_irqnum = 7;
+	dsp->sb_8_dmanum = 1;
+	dsp->sb_16_dmanum = 5;
+	dsp->mpu = NULL;
 
-    sb_doreset(dsp);
+	sb_doreset(dsp);
 
-    timer_add(&dsp->output_timer, pollsb, dsp, 0);
-    timer_add(&dsp->input_timer, sb_poll_i, dsp, 0);
-    timer_add(&dsp->wb_timer, NULL, dsp, 0);
+	timer_add(&dsp->output_timer, pollsb, dsp, 0);
+	timer_add(&dsp->input_timer, sb_poll_i, dsp, 0);
+	timer_add(&dsp->wb_timer, NULL, dsp, 0);
 
-    /* Initialise SB16 filter to same cutoff as 8-bit SBs (3.2 kHz). This will be recalculated when
-       a set frequency command is sent. */
-    recalc_sb16_filter(0, 3200*2);
-    recalc_sb16_filter(1, 44100);
+	/* Initialise SB16 filter to same cutoff as 8-bit SBs (3.2 kHz). This will be recalculated when
+	   a set frequency command is sent. */
+	recalc_sb16_filter(0, 3200*2);
+	recalc_sb16_filter(1, 44100);
+
+	// Initialize SB16 8051 RAM
+	memset(dsp->sb_8051_ram, 0, 256);
+	dsp->sb_8051_ram[0x0e] = 0xff;
+	dsp->sb_8051_ram[0x0f] = 0x07;
+	dsp->sb_8051_ram[0x37] = 0x38;
 }
 
 
 void
 sb_dsp_setaddr(sb_dsp_t *dsp, uint16_t addr)
 {
-    sb_dsp_log("sb_dsp_setaddr : %04X\n", addr);
-    if (dsp->sb_addr != 0) {
+	sb_dsp_log("sb_dsp_setaddr : %04X\n", addr);
+	if (dsp->sb_addr != 0) {
 	io_removehandler(dsp->sb_addr + 6,   0x0002, sb_read, NULL, NULL, sb_write, NULL, NULL, dsp);
-	io_removehandler(dsp->sb_addr + 0xa, 0x0006, sb_read, NULL, NULL, sb_write, NULL, NULL, dsp);        
-    }
-    dsp->sb_addr = addr;
-    if (dsp->sb_addr != 0) {
+	io_removehandler(dsp->sb_addr + 0xa, 0x0006, sb_read, NULL, NULL, sb_write, NULL, NULL, dsp);
+	}
+	dsp->sb_addr = addr;
+	if (dsp->sb_addr != 0) {
 	io_sethandler(dsp->sb_addr + 6,   0x0002, sb_read, NULL, NULL, sb_write, NULL, NULL, dsp);
-	io_sethandler(dsp->sb_addr + 0xa, 0x0006, sb_read, NULL, NULL, sb_write, NULL, NULL, dsp);        
-    }
+	io_sethandler(dsp->sb_addr + 0xa, 0x0006, sb_read, NULL, NULL, sb_write, NULL, NULL, dsp);
+	}
 }
 
 
 void
 sb_dsp_set_stereo(sb_dsp_t *dsp, int stereo)
 {
-    dsp->stereo = stereo;
+	dsp->stereo = stereo;
 }
 
 
 void
 pollsb(void *p)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) p;
-    int tempi, ref;
-    int data[2];
+	sb_dsp_t *dsp = (sb_dsp_t *) p;
+	int tempi, ref;
+	int data[2];
 
-    timer_advance_u64(&dsp->output_timer, dsp->sblatcho);
-    if (dsp->sb_8_enable && !dsp->sb_8_pause && dsp->sb_pausetime < 0 && dsp->sb_8_output) {
+	timer_advance_u64(&dsp->output_timer, dsp->sblatcho);
+	if (dsp->sb_8_enable && !dsp->sb_8_pause && dsp->sb_pausetime < 0 && dsp->sb_8_output) {
 	sb_dsp_update(dsp);
 
 	switch (dsp->sb_8_format) {
@@ -1106,7 +1118,7 @@ pollsb(void *p)
 			dsp->sbdat = (data[0] ^ 0x80) << 8;
 			if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
 				sb_dsp_log("pollsb: Mono unsigned, dsp->stereo, %s channel, %04X\n",
-				      dsp->sbleftright ? "left" : "right", dsp->sbdat);
+					  dsp->sbleftright ? "left" : "right", dsp->sbdat);
 				if (dsp->sbleftright)
 					dsp->sbdatl = dsp->sbdat;
 				else
@@ -1123,7 +1135,7 @@ pollsb(void *p)
 			dsp->sbdat = data[0] << 8;
 			if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
 				sb_dsp_log("pollsb: Mono signed, dsp->stereo, %s channel, %04X\n",
-				      dsp->sbleftright ? "left" : "right", data[0], dsp->sbdat);
+					  dsp->sbleftright ? "left" : "right", data[0], dsp->sbdat);
 				if (dsp->sbleftright)
 					dsp->sbdatl = dsp->sbdat;
 				else
@@ -1183,7 +1195,7 @@ pollsb(void *p)
 
 			if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
 				sb_dsp_log("pollsb: ADPCM 4, dsp->stereo, %s channel, %04X\n",
-				      dsp->sbleftright ? "left" : "right", dsp->sbdat);
+					  dsp->sbleftright ? "left" : "right", dsp->sbdat);
 				if (dsp->sbleftright)
 					dsp->sbdatl = dsp->sbdat;
 				else
@@ -1226,7 +1238,7 @@ pollsb(void *p)
 
 			if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
 				sb_dsp_log("pollsb: ADPCM 26, dsp->stereo, %s channel, %04X\n",
-				      dsp->sbleftright ? "left" : "right", dsp->sbdat);
+					  dsp->sbleftright ? "left" : "right", dsp->sbdat);
 				if (dsp->sbleftright)
 					dsp->sbdatl = dsp->sbdat;
 				else
@@ -1262,7 +1274,7 @@ pollsb(void *p)
 
 			if ((dsp->sb_type >= SBPRO) && (dsp->sb_type < SB16) && dsp->stereo) {
 				sb_dsp_log("pollsb: ADPCM 2, dsp->stereo, %s channel, %04X\n",
-				      dsp->sbleftright ? "left" : "right", dsp->sbdat);
+					  dsp->sbleftright ? "left" : "right", dsp->sbdat);
 				if (dsp->sbleftright)
 					dsp->sbdatl = dsp->sbdat;
 				else
@@ -1282,7 +1294,8 @@ pollsb(void *p)
 		}
 		sb_irq(dsp, 1);
 	}
-    } if (dsp->sb_16_enable && !dsp->sb_16_pause && (dsp->sb_pausetime < 0LL) && dsp->sb_16_output) {
+	}
+	if (dsp->sb_16_enable && !dsp->sb_16_pause && (dsp->sb_pausetime < 0LL) && dsp->sb_16_output) {
 	sb_dsp_update(dsp);
 
 	switch (dsp->sb_16_format) {
@@ -1330,8 +1343,8 @@ pollsb(void *p)
 		}
 		sb_irq(dsp, 0);
 	}
-    }
-    if (dsp->sb_pausetime > -1) {
+	}
+	if (dsp->sb_pausetime > -1) {
 	dsp->sb_pausetime--;
 	if (dsp->sb_pausetime < 0) {
 		sb_irq(dsp, 1);
@@ -1339,19 +1352,19 @@ pollsb(void *p)
 			timer_disable(&dsp->output_timer);
 		sb_dsp_log("SB pause over\n");
 	}
-    }
+	}
 }
 
 
 void
 sb_poll_i(void *p)
 {
-    sb_dsp_t *dsp = (sb_dsp_t *) p;
-    int processed = 0;
+	sb_dsp_t *dsp = (sb_dsp_t *) p;
+	int processed = 0;
 
-    timer_advance_u64(&dsp->input_timer, dsp->sblatchi);
+	timer_advance_u64(&dsp->input_timer, dsp->sblatchi);
 
-    if (dsp->sb_8_enable && !dsp->sb_8_pause && dsp->sb_pausetime < 0 && !dsp->sb_8_output) {
+	if (dsp->sb_8_enable && !dsp->sb_8_pause && dsp->sb_pausetime < 0 && !dsp->sb_8_output) {
 	switch (dsp->sb_8_format) {
 		case 0x00:	/* Mono unsigned As the manual says, only the left channel is recorded */
 			sb_8_write_dma(dsp, (dsp->record_buffer[dsp->record_pos_read]>>8) ^0x80);
@@ -1391,8 +1404,8 @@ sb_poll_i(void *p)
 		sb_irq(dsp, 1);
 	}
 	processed = 1;
-    }
-    if (dsp->sb_16_enable && !dsp->sb_16_pause && (dsp->sb_pausetime < 0LL) && !dsp->sb_16_output) {
+	}
+	if (dsp->sb_16_enable && !dsp->sb_16_pause && (dsp->sb_pausetime < 0LL) && !dsp->sb_16_output) {
 	switch (dsp->sb_16_format) {
 		case 0x00:	/* Unsigned mono. As the manual says, only the left channel is recorded */
 			if (sb_16_write_dma(dsp, dsp->record_buffer[dsp->record_pos_read]^0x8000))
@@ -1436,25 +1449,25 @@ sb_poll_i(void *p)
 		sb_irq(dsp, 0);
 	}
 	processed = 1;
-    }
-    /* Assume this is direct mode */
-    if (!processed) {
+	}
+	/* Assume this is direct mode */
+	if (!processed) {
 	dsp->record_pos_read += 2;
 	dsp->record_pos_read &= 0xFFFF;
-    }
+	}
 }
 
 
 void sb_dsp_update(sb_dsp_t *dsp)
 {
-    if (dsp->muted) {
+	if (dsp->muted) {
 	dsp->sbdatl = 0;
 	dsp->sbdatr = 0;
-    }
-    for (; dsp->pos < sound_pos_global; dsp->pos++) {
+	}
+	for (; dsp->pos < sound_pos_global; dsp->pos++) {
 	dsp->buffer[dsp->pos*2] = dsp->sbdatl;
 	dsp->buffer[dsp->pos*2 + 1] = dsp->sbdatr;
-    }
+	}
 }
 
 
