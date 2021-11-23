@@ -75,7 +75,7 @@ machine_at_p5a_init(const machine_t *model)
     device_add(&ali1543c_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf020_device);
-    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
     device_add(&w83781d_p5a_device); /* fans: Chassis, CPU, Power; temperatures: MB, unused, CPU */
 
     return ret;
@@ -109,7 +109,7 @@ machine_at_m579_init(const machine_t *model)
     device_add(&ali1543c_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee010_device);
-    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
     return ret;
 }
@@ -142,7 +142,7 @@ machine_at_5aa_init(const machine_t *model)
     device_add(&ali1543c_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee010_device);
-    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
     return ret;
 }
@@ -177,7 +177,7 @@ machine_at_5ax_init(const machine_t *model)
     device_add(&ali1543c_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee010_device);
-    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
     return ret;
 }

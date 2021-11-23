@@ -712,27 +712,27 @@ const machine_t machines[] = {
 
     /* SiS 5571 */
     /* Has the SiS 5571 chipset with on-chip KBC. */
-    { "[SiS 5571] Rise R534F",			"r534f",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2500, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 393216, 8192, 127,		machine_at_r534f_init, NULL			},
+    { "[SiS 5571] Rise R534F",			"r534f",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 55000000, 83333333, 2500, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 393216, 8192, 127,		machine_at_r534f_init, NULL			},
     /* Has the SiS 5571 chipset with on-chip KBC. */
-    { "[SiS 5571] MSI MS-5146",			"ms5146",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 66666667, 2500, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 262144, 8192, 127,	       machine_at_ms5146_init, NULL			},
+    { "[SiS 5571] MSI MS-5146",			"ms5146",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 75000000, 2800, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192, 262144, 8192, 127,	       machine_at_ms5146_init, NULL			},
 
     /* ALi ALADDiN IV+ */
     /* Has the ALi M1543 southbridge with on-chip KBC. */
-    { "[ALi ALADDiN IV+] PC Chips M560",	"m560",			MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 83333333, 2500, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 262144, 8192, 255,		 machine_at_m560_init, NULL			},
+    { "[ALi ALADDiN IV+] PC Chips M560",	"m560",			MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 50000000, 83333333, 2500, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 786432, 8192, 255,		 machine_at_m560_init, NULL			},
     /* Has the ALi M1543 southbridge with on-chip KBC. */
-    { "[ALi ALADDiN IV+] MSI MS-5164",		"ms5164",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 60000000, 66666667, 2100, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 262144, 8192, 255,	       machine_at_ms5164_init, NULL			},
+    { "[ALi ALADDiN IV+] MSI MS-5164",		"ms5164",		MACHINE_TYPE_SOCKET7,		CPU_PKG_SOCKET5_7, 0, 60000000, 83333333, 2100, 3520, 1.5, 3.0,							MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192,1048576, 8192, 255,	       machine_at_ms5164_init, NULL			},
 
     /* Super Socket 7 machines */
     /* ALi ALADDiN V */
     /* Has the ALi M1543C southbridge with on-chip KBC. */
-    { "[ALi ALADDiN V] ASUS P5A",		"p5a",			MACHINE_TYPE_SOCKETS7,		CPU_PKG_SOCKET5_7, 0, 60000000, 120000000, 2000, 3520, 1.5, 5.5,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,2097152, 8192, 255,		  machine_at_p5a_init, NULL			},
+    { "[ALi ALADDiN V] ASUS P5A",		"p5a",			MACHINE_TYPE_SOCKETS7,		CPU_PKG_SOCKET5_7, 0, 60000000, 120000000, 2000, 3520, 1.5, 5.5,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,1572864, 8192, 255,		  machine_at_p5a_init, NULL			},
     /* Is the exact same as the Matsonic MS6260S. Has the ALi M1543C southbridge
        with on-chip KBC. */
-    { "[ALi ALADDiN V] PC Chips M579",		"m579",			MACHINE_TYPE_SOCKETS7,		CPU_PKG_SOCKET5_7, 0, 66666667, 100000000, 2000, 3520, 1.5, 5.5,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,2097152, 8192, 255,		 machine_at_m579_init, NULL			},
+    { "[ALi ALADDiN V] PC Chips M579",		"m579",			MACHINE_TYPE_SOCKETS7,		CPU_PKG_SOCKET5_7, 0, 66666667, 100000000, 2000, 3520, 1.5, 5.5,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,1572864, 8192, 255,		 machine_at_m579_init, NULL			},
     /* Has the ALi M1543C southbridge with on-chip KBC. */
-    { "[ALi ALADDiN V] Gigabyte GA-5AA",	"5aa",			MACHINE_TYPE_SOCKETS7,		CPU_PKG_SOCKET5_7, 0, 66666667, 140000000, 1300, 3520, 1.5, 5.5,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,2097152, 8192, 255,		  machine_at_5aa_init, NULL			},
+    { "[ALi ALADDiN V] Gigabyte GA-5AA",	"5aa",			MACHINE_TYPE_SOCKETS7,		CPU_PKG_SOCKET5_7, 0, 66666667, 140000000, 1300, 3520, 1.5, 5.5,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,1572864, 8192, 255,		  machine_at_5aa_init, NULL			},
     /* Has the ALi M1543C southbridge with on-chip KBC. */
-    { "[ALi ALADDiN V] Gigabyte GA-5AX",	"5ax",			MACHINE_TYPE_SOCKETS7,		CPU_PKG_SOCKET5_7, 0, 66666667, 140000000, 1300, 3520, 1.5, 5.5,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,2097152, 8192, 255,		  machine_at_5ax_init, NULL			},
+    { "[ALi ALADDiN V] Gigabyte GA-5AX",	"5ax",			MACHINE_TYPE_SOCKETS7,		CPU_PKG_SOCKET5_7, 0, 66666667, 140000000, 1300, 3520, 1.5, 5.5,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,1572864, 8192, 255,		  machine_at_5ax_init, NULL			},
 
     /* Apollo MVP3 */
     /* Has the VIA VT82C586B southbridge with on-chip KBC identical to the VIA
@@ -780,7 +780,7 @@ const machine_t machines[] = {
     /* Slot 1 machines */
     /* ALi ALADDiN V */
     /* Has the ALi M1543C southbridge with on-chip KBC. */
-    { "[ALi ALADDiN-PRO II] PC Chips M729",	"m729",			MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 50000000, 66666667, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,2097152, 8192, 255,		 machine_at_m729_init, NULL			},
+    { "[ALi ALADDiN-PRO II] PC Chips M729",	"m729",			MACHINE_TYPE_SLOT1,		CPU_PKG_SLOT1, 0, 66666667, 100000000, 1800, 3500, 1.5, 8.0,							MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024,1572864, 8192, 255,		 machine_at_m729_init, NULL			},
 
     /* 440FX */
     /* The base board has AMIKey-2 (updated 'H') KBC firmware. */

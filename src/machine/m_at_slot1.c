@@ -727,7 +727,7 @@ machine_at_m729_init(const machine_t *model)
     device_add(&ali1543c_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee010_device);
-    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
     return ret;
 }

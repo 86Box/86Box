@@ -984,7 +984,7 @@ machine_at_m560_init(const machine_t *model)
     device_add(&ali1543_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee010_device);
-    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     return ret;
 }
@@ -1019,7 +1019,7 @@ machine_at_ms5164_init(const machine_t *model)
     device_add(&ali1543_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee010_device);
-    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     return ret;
 }
