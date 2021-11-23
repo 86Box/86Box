@@ -246,6 +246,10 @@ machine_at_ambx133_init(const machine_t *model)
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
+    device_add(&gl518sm_2d_device); /* fans: CPUFAN1, CPUFAN2; temperature: CPU */
+    hwm_values.fans[1] += 500;
+    hwm_values.temperatures[0] += 4; /* CPU offset */
+    hwm_values.voltages[1] = RESISTOR_DIVIDER(12000, 10, 2); /* different 12V divider in BIOS (10K/2K?) */
 
     return ret;
 }
