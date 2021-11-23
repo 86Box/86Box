@@ -134,7 +134,8 @@ namespace ImGuiSettingsWindow {
 	static int settings_list_to_hdc[20];
 
 	static int max_spt = 63, max_hpc = 255, max_tracks = 266305;
-	static uint64_t mfm_tracking, esdi_tracking, xta_tracking, ide_tracking, scsi_tracking[8];
+	static uint64_t mfm_tracking, esdi_tracking, xta_tracking, ide_tracking;
+	static bool scsi_tracking[64];
 	static uint64_t size;
 	static int hd_listview_items, hdc_id_to_listview_index[HDD_NUM];
 	static int no_update = 0, existing = 0, chs_enabled = 0;
@@ -243,7 +244,7 @@ namespace ImGuiSettingsWindow {
 		temp_cassette = cassette_enable;
 
 		mfm_tracking = xta_tracking = esdi_tracking = ide_tracking = 0;
-		for (i = 0; i < 8; i++)
+		for (i = 0; i < 64; i++)
 		scsi_tracking[i] = 0;
 
 		/* Hard disks category */
@@ -258,7 +259,7 @@ namespace ImGuiSettingsWindow {
 		else if ((hdd[i].bus == HDD_BUS_IDE) || (hdd[i].bus == HDD_BUS_ATAPI))
 			ide_tracking |= (1 << (hdd[i].ide_channel << 3));
 		else if (hdd[i].bus == HDD_BUS_SCSI)
-			scsi_tracking[hdd[i].scsi_id >> 3] |= (1 << ((hdd[i].scsi_id & 0x07) << 3));
+			scsi_tracking[hdd[i].scsi_id] = 1;
 		}
 
 		/* Floppy drives category */
@@ -274,21 +275,21 @@ namespace ImGuiSettingsWindow {
 		if (cdrom[i].bus_type == CDROM_BUS_ATAPI)
 			ide_tracking |= (2 << (cdrom[i].ide_channel << 3));
 		else if (cdrom[i].bus_type == CDROM_BUS_SCSI)
-			scsi_tracking[cdrom[i].scsi_device_id >> 3] |= (1 << ((cdrom[i].scsi_device_id & 0x07) << 3));
+			scsi_tracking[cdrom[i].scsi_device_id] = 1;
 		}
 		memcpy(temp_zip_drives, zip_drives, ZIP_NUM * sizeof(zip_drive_t));
 		for (i = 0; i < ZIP_NUM; i++) {
 		if (zip_drives[i].bus_type == ZIP_BUS_ATAPI)
 			ide_tracking |= (4 << (zip_drives[i].ide_channel << 3));
 		else if (zip_drives[i].bus_type == ZIP_BUS_SCSI)
-			scsi_tracking[zip_drives[i].scsi_device_id >> 3] |= (1 << ((zip_drives[i].scsi_device_id & 0x07) << 3));
+			scsi_tracking[zip_drives[i].scsi_device_id] = 1;
 		}
 		memcpy(temp_mo_drives, mo_drives, MO_NUM * sizeof(mo_drive_t));
 		for (i = 0; i < MO_NUM; i++) {
 		if (mo_drives[i].bus_type == MO_BUS_ATAPI)
 		ide_tracking |= (1 << (mo_drives[i].ide_channel << 3));
 		else if (mo_drives[i].bus_type == MO_BUS_SCSI)
-		scsi_tracking[mo_drives[i].scsi_device_id >> 3] |= (1 << ((mo_drives[i].scsi_device_id & 0x07) << 3));
+		scsi_tracking[mo_drives[i].scsi_device_id] = 1;
 		}
 
 		/* Other peripherals category */
@@ -1645,7 +1646,7 @@ namespace ImGuiSettingsWindow {
 			ide_tracking |= (1 << (temp_hdd[id].ide_channel << 3));
 			break;
 		case HDD_BUS_SCSI:
-			scsi_tracking[temp_hdd[id].scsi_id >> 3] |= (1 << ((temp_hdd[id].scsi_id & 0x07) << 3));
+			scsi_tracking[temp_hdd[id].scsi_id] = 1;
 			break;
 		}
 	}
@@ -1668,7 +1669,7 @@ namespace ImGuiSettingsWindow {
 			ide_tracking &= ~(1 << (temp_hdd[id].ide_channel << 3));
 			break;
 		case HDD_BUS_SCSI:
-			scsi_tracking[temp_hdd[id].scsi_id >> 3] &= ~(1 << ((temp_hdd[id].scsi_id & 0x07) << 3));
+			scsi_tracking[temp_hdd[id].scsi_id] = 0;
 			break;
 		}
 	}
@@ -1688,7 +1689,7 @@ namespace ImGuiSettingsWindow {
 		if (temp_cdrom[id].bus_type == CDROM_BUS_ATAPI)
 		ide_tracking |= (2 << (temp_cdrom[id].ide_channel << 3));
 		else if (temp_cdrom[id].bus_type == CDROM_BUS_SCSI)
-		scsi_tracking[temp_cdrom[id].scsi_device_id >> 3] |= (1 << (temp_cdrom[id].scsi_device_id & 0x07));
+		scsi_tracking[temp_cdrom[id].scsi_device_id] = 1;
 	}
 
 
@@ -1698,7 +1699,7 @@ namespace ImGuiSettingsWindow {
 		if (temp_cdrom[id].bus_type == CDROM_BUS_ATAPI)
 		ide_tracking &= ~(2 << (temp_cdrom[id].ide_channel << 3));
 		else if (temp_cdrom[id].bus_type == CDROM_BUS_SCSI)
-		scsi_tracking[temp_cdrom[id].scsi_device_id >> 3] &= ~(1 << (temp_cdrom[id].scsi_device_id & 0x07));
+		scsi_tracking[temp_cdrom[id].scsi_device_id] = 1;
 	}
 
 	static void
@@ -1715,7 +1716,7 @@ namespace ImGuiSettingsWindow {
 		if (temp_zip_drives[id].bus_type == ZIP_BUS_ATAPI)
 		ide_tracking |= (1 << temp_zip_drives[id].ide_channel);
 		else if (temp_zip_drives[id].bus_type == ZIP_BUS_SCSI)
-		scsi_tracking[temp_zip_drives[id].scsi_device_id >> 3] |= (1 << (temp_zip_drives[id].scsi_device_id & 0x07));
+		scsi_tracking[temp_zip_drives[id].scsi_device_id] = 1;
 	}
 
 
@@ -1725,7 +1726,7 @@ namespace ImGuiSettingsWindow {
 		if (temp_zip_drives[id].bus_type == ZIP_BUS_ATAPI)
 		ide_tracking &= ~(1 << temp_zip_drives[id].ide_channel);
 		else if (temp_zip_drives[id].bus_type == ZIP_BUS_SCSI)
-		scsi_tracking[temp_zip_drives[id].scsi_device_id >> 3] &= ~(1 << (temp_zip_drives[id].scsi_device_id & 0x07));
+		scsi_tracking[temp_zip_drives[id].scsi_device_id] = 0;
 	}
 
 	static void
@@ -1742,7 +1743,7 @@ namespace ImGuiSettingsWindow {
 		if (temp_mo_drives[id].bus_type == MO_BUS_ATAPI)
 		ide_tracking |= (1 << (temp_zip_drives[id].ide_channel << 3));
 		else if (temp_mo_drives[id].bus_type == MO_BUS_SCSI)
-		scsi_tracking[temp_mo_drives[id].scsi_device_id >> 3] |= (1 << (temp_mo_drives[id].scsi_device_id & 0x07));
+		scsi_tracking[temp_mo_drives[id].scsi_device_id] = 1;
 	}
 
 
@@ -1752,7 +1753,7 @@ namespace ImGuiSettingsWindow {
 		if (temp_mo_drives[id].bus_type == MO_BUS_ATAPI)
 		ide_tracking &= ~(1 << (temp_zip_drives[id].ide_channel << 3));
 		else if (temp_mo_drives[id].bus_type == MO_BUS_SCSI)
-		scsi_tracking[temp_mo_drives[id].scsi_device_id >> 3] &= ~(1 << (temp_mo_drives[id].scsi_device_id & 0x07));
+		scsi_tracking[temp_mo_drives[id].scsi_device_id] = 0;
 	}
 
 	static void
@@ -1830,7 +1831,7 @@ namespace ImGuiSettingsWindow {
 		int64_t i;
 
 		for (i = 0; i < 64; i++) {
-		if (!(scsi_tracking[i >> 3] & (0xffLL << ((i & 0x07) << 3LL)))) {
+		if (!scsi_tracking[i]) {
 			*id = i;
 			return;
 		}
