@@ -45,7 +45,7 @@
 
 #define LCS6821N_ROM	"roms/scsi/ncr5380/Longshine LCS-6821N - BIOS version 1.04.bin"
 #define RT1000B_810R_ROM	"roms/scsi/ncr5380/Rancho_RT1000_RTBios_version_8.10R.bin"
-#define RT1000B_820R_ROM	"roms/scsi/ncr5380/RTBIOS82.rom"
+#define RT1000B_820R_ROM	"roms/scsi/ncr5380/RTBIOS82.ROM"
 #define T130B_ROM	"roms/scsi/ncr5380/trantor_t130b_bios_v2.14.bin"
 #define T128_ROM	"roms/scsi/ncr5380/trantor_t128_bios_v1.12.bin"
 
