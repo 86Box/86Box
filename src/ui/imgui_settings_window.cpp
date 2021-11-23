@@ -1683,13 +1683,86 @@ namespace ImGuiSettingsWindow {
 	}
 	
 	static void
-	hard_disk_untrack_all(void)
+	cdrom_track(uint8_t id)
+	{
+		if (temp_cdrom[id].bus_type == CDROM_BUS_ATAPI)
+		ide_tracking |= (2 << (temp_cdrom[id].ide_channel << 3));
+		else if (temp_cdrom[id].bus_type == CDROM_BUS_SCSI)
+		scsi_tracking[temp_cdrom[id].scsi_device_id >> 3] |= (1 << (temp_cdrom[id].scsi_device_id & 0x07));
+	}
+
+
+	static void
+	cdrom_untrack(uint8_t id)
+	{
+		if (temp_cdrom[id].bus_type == CDROM_BUS_ATAPI)
+		ide_tracking &= ~(2 << (temp_cdrom[id].ide_channel << 3));
+		else if (temp_cdrom[id].bus_type == CDROM_BUS_SCSI)
+		scsi_tracking[temp_cdrom[id].scsi_device_id >> 3] &= ~(1 << (temp_cdrom[id].scsi_device_id & 0x07));
+	}
+
+	static void
+	cdrom_track_all(void)
 	{
 		int i;
-
-		for (i = 0; i < HDD_NUM; i++)
-		hard_disk_track(i);
+		for (i = 0; i < CDROM_NUM; i++)
+		cdrom_track(i);
 	}
+
+	static void
+	zip_track(uint8_t id)
+	{
+		if (temp_zip_drives[id].bus_type == ZIP_BUS_ATAPI)
+		ide_tracking |= (1 << temp_zip_drives[id].ide_channel);
+		else if (temp_zip_drives[id].bus_type == ZIP_BUS_SCSI)
+		scsi_tracking[temp_zip_drives[id].scsi_device_id >> 3] |= (1 << (temp_zip_drives[id].scsi_device_id & 0x07));
+	}
+
+
+	static void
+	zip_untrack(uint8_t id)
+	{
+		if (temp_zip_drives[id].bus_type == ZIP_BUS_ATAPI)
+		ide_tracking &= ~(1 << temp_zip_drives[id].ide_channel);
+		else if (temp_zip_drives[id].bus_type == ZIP_BUS_SCSI)
+		scsi_tracking[temp_zip_drives[id].scsi_device_id >> 3] &= ~(1 << (temp_zip_drives[id].scsi_device_id & 0x07));
+	}
+
+	static void
+	zip_track_all(void)
+	{
+		int i;
+		for (i = 0; i < ZIP_NUM; i++)
+		zip_track(i);
+	}
+
+	static void
+	mo_track(uint8_t id)
+	{
+		if (temp_mo_drives[id].bus_type == MO_BUS_ATAPI)
+		ide_tracking |= (1 << (temp_zip_drives[id].ide_channel << 3));
+		else if (temp_mo_drives[id].bus_type == MO_BUS_SCSI)
+		scsi_tracking[temp_mo_drives[id].scsi_device_id >> 3] |= (1 << (temp_mo_drives[id].scsi_device_id & 0x07));
+	}
+
+
+	static void
+	mo_untrack(uint8_t id)
+	{
+		if (temp_mo_drives[id].bus_type == MO_BUS_ATAPI)
+		ide_tracking &= ~(1 << (temp_zip_drives[id].ide_channel << 3));
+		else if (temp_mo_drives[id].bus_type == MO_BUS_SCSI)
+		scsi_tracking[temp_mo_drives[id].scsi_device_id >> 3] &= ~(1 << (temp_mo_drives[id].scsi_device_id & 0x07));
+	}
+
+	static void
+	mo_track_all(void)
+	{
+		int i;
+		for (i = 0; i < MO_NUM; i++)
+		mo_track(i);
+	}
+	
 	static int cur_hdd_sel = 0;
 
 	static hard_disk_t* hdd_new = nullptr;
@@ -1723,6 +1796,128 @@ namespace ImGuiSettingsWindow {
 		"Differencing VHD (.vhd)"
 	};
 	static std::vector<std::string> hddtypes = { "" };
+
+	static uint8_t
+	next_free_binary_channel(uint64_t *tracking)
+	{
+		int64_t i;
+
+		for (i = 0; i < 2; i++) {
+		if (!(*tracking & (0xffLL << (i << 3LL))))
+			return i;
+		}
+
+		return 2;
+	}
+
+	static uint8_t
+	next_free_ide_channel(void)
+	{
+		int64_t i;
+
+		for (i = 0; i < 8; i++) {
+		if (!(ide_tracking & (0xffLL << (i << 3LL))))
+			return i;
+		}
+
+		return 7;
+	}
+
+
+	static void
+	next_free_scsi_id(uint8_t *id)
+	{
+		int64_t i;
+
+		for (i = 0; i < 64; i++) {
+		if (!(scsi_tracking[i >> 3] & (0xffLL << ((i & 0x07) << 3LL)))) {
+			*id = i;
+			return;
+		}
+		}
+
+		*id = 6;
+	}
+	void DetermineNextFreeChannel(hard_disk_t& hdd)
+	{
+		switch (hdd.bus)
+		{
+			case HDD_BUS_IDE:
+			case HDD_BUS_ATAPI:
+			{
+				hdd.ide_channel = next_free_ide_channel();
+				break;
+			}
+			case HDD_BUS_MFM:
+			{
+				hdd.mfm_channel = next_free_binary_channel(&mfm_tracking);
+				break;
+			}
+			case HDD_BUS_ESDI:
+			{
+				hdd.esdi_channel = next_free_binary_channel(&esdi_tracking);
+				break;
+			}
+			case HDD_BUS_XTA:
+			{
+				hdd.xta_channel = next_free_binary_channel(&xta_tracking);
+				break;
+			}
+			case HDD_BUS_SCSI:
+			{
+				next_free_scsi_id(&hdd.scsi_id);
+				break;
+			}
+		}
+	}
+	void DetermineNextFreeChannel(cdrom_t& cd)
+	{
+		switch (cd.bus_type)
+		{
+			case CDROM_BUS_ATAPI:
+			{
+				cd.ide_channel = next_free_ide_channel();
+				break;
+			}
+			case CDROM_BUS_SCSI:
+			{
+				next_free_scsi_id(&cd.scsi_device_id);
+				break;
+			}
+		}
+	}
+	void DetermineNextFreeChannel(zip_drive_t& zip)
+	{
+		switch (zip.bus_type)
+		{
+			case ZIP_BUS_ATAPI:
+			{
+				zip.ide_channel = next_free_ide_channel();
+				break;
+			}
+			case ZIP_BUS_SCSI:
+			{
+				next_free_scsi_id(&zip.scsi_device_id);
+				break;
+			}
+		}
+	}
+	void DetermineNextFreeChannel(mo_drive_t& mo)
+	{
+		switch (mo.bus_type)
+		{
+			case MO_BUS_ATAPI:
+			{
+				mo.ide_channel = next_free_ide_channel();
+				break;
+			}
+			case MO_BUS_SCSI:
+			{
+				next_free_scsi_id(&mo.scsi_device_id);
+				break;
+			}
+		}
+	}
 	void OpenHDDCreationDialog()
 	{
 		hdd_new = new hard_disk_t(temp_hdd[CalcNextFreeHDD()]);
@@ -1739,6 +1934,7 @@ namespace ImGuiSettingsWindow {
 		}
 		hddtypes.push_back("Custom");
 		hddtypes.push_back("Custom (large)");
+		DetermineNextFreeChannel(*hdd_new);
 		ImGui::OpenPopup("Add Hard Disk");
 	}
 #pragma pack(push, 0)
@@ -2005,7 +2201,7 @@ namespace ImGuiSettingsWindow {
 			ImGui::SameLine();
 			if (ImGui::Button("..."))
 			{
-				OpenSettingsFileChooser(hdd_new->fn, sizeof(hdd_new->fn), "Hard disk images (*.HD?;*.IM?;*.VHD)|*.HD?;*.IM?;*.VHD", true);
+				OpenSettingsFileChooser(hdd_new->fn, sizeof(hdd_new->fn), "Hard disk images (*.HD? *.IM? *.VHD)|*.HD? *.IM? *.VHD", true);
 			}
 			if (cur_img_type != 5)
 			{
@@ -2096,6 +2292,7 @@ namespace ImGuiSettingsWindow {
 								max_tracks = 266305;
 								break;
 						}
+						DetermineNextFreeChannel(*hdd_new);
 					}
 					if (i == hdd_new->bus)
 					{
@@ -2273,7 +2470,6 @@ namespace ImGuiSettingsWindow {
 
 	void RenderHardDisksCategory() {
 		normalize_hd_list();
-		hard_disk_track_all();
 		if (ImGui::BeginTable("##hddtable", 6, ImGuiTableFlags_RowBg | ImGuiTableFlags_ScrollY | ImGuiTableFlags_ScrollX | ImGuiTableFlags_Borders | ImGuiTableFlags_Resizable, ImVec2(0, 110)))
 		{
 			ImGui::TableSetupScrollFreeze(0, 1);
@@ -2357,6 +2553,7 @@ namespace ImGuiSettingsWindow {
 					{
 						hard_disk_untrack(i);
 						temp_hdd[cur_hdd_sel].bus = i;
+						DetermineNextFreeChannel(temp_hdd[cur_hdd_sel]);
 						hard_disk_track(i);
 					}
 					if (i == temp_hdd[cur_hdd_sel].bus)
@@ -2522,11 +2719,18 @@ namespace ImGuiSettingsWindow {
 		ImGui::TextUnformatted("Bus:"); ImGui::SameLine();
 		if (ImGui::BeginCombo("##Bus CDROM", busstr[temp_cdrom[cur_cd_sel].bus_type].data()))
 		{
+			auto cur_bus_type = temp_cdrom[cur_cd_sel].bus_type;
+			cdrom_untrack(cur_cd_sel);
 			if (ImGui::Selectable(busstr[0].data(), temp_cdrom[cur_cd_sel].bus_type == 0)) temp_cdrom[cur_cd_sel].bus_type = 0;
 			else if (ImGui::Selectable(busstr[CDROM_BUS_ATAPI].data(), temp_cdrom[cur_cd_sel].bus_type == CDROM_BUS_ATAPI)) temp_cdrom[cur_cd_sel].bus_type = CDROM_BUS_ATAPI;
 			else if (ImGui::Selectable(busstr[CDROM_BUS_SCSI].data(), temp_cdrom[cur_cd_sel].bus_type == CDROM_BUS_SCSI)) temp_cdrom[cur_cd_sel].bus_type = CDROM_BUS_SCSI;
 			ImGui::EndCombo();
 			if (temp_cdrom[cur_cd_sel].bus_type != 0 && temp_cdrom[cur_cd_sel].speed < 1) temp_cdrom[cur_cd_sel].speed = 1;
+			if (temp_cdrom[cur_cd_sel].bus_type)
+			{
+				if (cur_bus_type != temp_cdrom[cur_cd_sel].bus_type) DetermineNextFreeChannel(temp_cdrom[cur_cd_sel]);
+				cdrom_track(cur_cd_sel);
+			}
 		}
 		if (temp_cdrom[cur_cd_sel].bus_type)
 		{
@@ -2597,10 +2801,10 @@ namespace ImGuiSettingsWindow {
 						strncpy(hddname, "Disabled", sizeof("Disabled"));
 						break;
 					case MO_BUS_ATAPI:
-						snprintf(hddname, sizeof(hddname), "ATAPI (%01i:%01i)", temp_zip_drives[i].ide_channel >> 1, temp_zip_drives[i].ide_channel & 1);
+						snprintf(hddname, sizeof(hddname), "ATAPI (%01i:%01i)", temp_mo_drives[i].ide_channel >> 1, temp_mo_drives[i].ide_channel & 1);
 						break;
 					case MO_BUS_SCSI:
-						snprintf(hddname, sizeof(hddname), "SCSI (%01i:%02i)", temp_zip_drives[i].scsi_device_id >> 4, temp_zip_drives[i].scsi_device_id & 15);
+						snprintf(hddname, sizeof(hddname), "SCSI (%01i:%02i)", temp_mo_drives[i].scsi_device_id >> 4, temp_mo_drives[i].scsi_device_id & 15);
 						break;
 				}
 				strcat(hddname, ("##" + std::to_string(i) + "MO").c_str());
@@ -2615,10 +2819,17 @@ namespace ImGuiSettingsWindow {
 		ImGui::TextUnformatted("Bus:"); ImGui::SameLine();
 		if (ImGui::BeginCombo("##Bus MO", busstr[temp_mo_drives[cur_mo_sel].bus_type].data()))
 		{
+			auto cur_bus_type = temp_mo_drives[cur_mo_sel].bus_type;
+			mo_untrack(cur_mo_sel);
 			if (ImGui::Selectable(busstr[0].data(), temp_mo_drives[cur_mo_sel].bus_type == 0)) temp_mo_drives[cur_mo_sel].bus_type = 0;
 			else if (ImGui::Selectable(busstr[MO_BUS_ATAPI].data(), temp_mo_drives[cur_mo_sel].bus_type == MO_BUS_ATAPI)) temp_mo_drives[cur_mo_sel].bus_type = MO_BUS_ATAPI;
 			else if (ImGui::Selectable(busstr[MO_BUS_SCSI].data(), temp_mo_drives[cur_mo_sel].bus_type == MO_BUS_SCSI)) temp_mo_drives[cur_mo_sel].bus_type = MO_BUS_SCSI;
 			ImGui::EndCombo();
+			if (temp_mo_drives[cur_mo_sel].bus_type)
+			{
+				if (cur_bus_type != temp_mo_drives[cur_mo_sel].bus_type) DetermineNextFreeChannel(temp_mo_drives[cur_mo_sel]);
+				mo_track(cur_mo_sel);
+			}
 		}
 		if (temp_mo_drives[cur_mo_sel].bus_type)
 		{
@@ -2713,10 +2924,17 @@ namespace ImGuiSettingsWindow {
 		ImGui::TextUnformatted("Bus:"); ImGui::SameLine();
 		if (ImGui::BeginCombo("##Bus ZIP", busstr[temp_zip_drives[cur_zip_sel].bus_type].data()))
 		{
+			auto cur_bus_type = temp_zip_drives[cur_zip_sel].bus_type;
+			zip_untrack(cur_zip_sel);
 			if (ImGui::Selectable(busstr[0].data(), temp_zip_drives[cur_zip_sel].bus_type == 0)) temp_zip_drives[cur_zip_sel].bus_type = 0;
 			else if (ImGui::Selectable(busstr[ZIP_BUS_ATAPI].data(), temp_zip_drives[cur_zip_sel].bus_type == ZIP_BUS_ATAPI)) temp_zip_drives[cur_zip_sel].bus_type = ZIP_BUS_ATAPI;
 			else if (ImGui::Selectable(busstr[ZIP_BUS_SCSI].data(), temp_zip_drives[cur_zip_sel].bus_type == ZIP_BUS_SCSI)) temp_zip_drives[cur_zip_sel].bus_type = ZIP_BUS_SCSI;
 			ImGui::EndCombo();
+			if (temp_zip_drives[cur_zip_sel].bus_type)
+			{
+				if (cur_bus_type != temp_zip_drives[cur_zip_sel].bus_type) DetermineNextFreeChannel(temp_zip_drives[cur_zip_sel]);
+				zip_track(cur_zip_sel);
+			}
 		}
 		ImGui::SameLine();
 		ImGui::TextUnformatted("Channel:"); ImGui::SameLine();
