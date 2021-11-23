@@ -2060,7 +2060,7 @@ config_load(void)
 
 	/* Unmute the CD audio on the first CD-ROM drive. */
 	cdrom[0].sound_on = 1;
-	mem_size = 640;
+	mem_size = 64;
 	isartc_type = 0;
 	for (i = 0; i < ISAMEM_MAX; i++)
 		isamem_type[i] = 0;
