@@ -833,8 +833,7 @@ load_machine(void)
     p = (char *)config_get_string(cat, "fpu_type", "none");
     fpu_type = fpu_get_type(cpu_f, cpu, p);
 
-    mem_size = config_get_int(cat, "mem_size", 4096);
-	
+    mem_size = config_get_int(cat, "mem_size", 64);	
 #if 0
     if (mem_size < (((machines[machine].flags & MACHINE_AT) &&
         (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram))
