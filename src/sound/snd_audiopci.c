@@ -99,6 +99,7 @@ typedef struct {
     int64_t		dac_latch, dac_time;
 
     int			master_vol_l, master_vol_r,
+			pcm_vol_l, pcm_vol_r,
 			cd_vol_l, cd_vol_r;
 
     int			card;
@@ -1019,6 +1020,7 @@ es1371_outl(uint16_t port, uint32_t val, void *p)
 			ac97_codec_writew(dev->codec, val >> 16, val);
 
 			ac97_codec_getattn(dev->codec, 0x02, &dev->master_vol_l, &dev->master_vol_r);
+			ac97_codec_getattn(dev->codec, 0x18, &dev->pcm_vol_l, &dev->pcm_vol_r);
 			ac97_codec_getattn(dev->codec, 0x12, &dev->cd_vol_l, &dev->cd_vol_r);
 		}
 		break;
@@ -1407,7 +1409,7 @@ es1371_pci_read(int func, int addr, void *p)
 	case 0x06: return 0x10;		/* Supports ACPI */
 	case 0x07: return 0x00;
 
-	case 0x08: return 0x02;		/* Revision ID */
+	case 0x08: return 0x08;		/* Revision ID - 0x02 (datasheet, VMware) has issues with the 2001 Creative WDM driver */
 	case 0x09: return 0x00;		/* Multimedia audio device */
 	case 0x0a: return 0x01;
 	case 0x0b: return 0x04;
@@ -1664,8 +1666,8 @@ es1371_update(es1371_t *dev)
     l >>= 1;
     r >>= 1;
 
-    l = (l * dev->master_vol_l) >> 15;
-    r = (r * dev->master_vol_r) >> 15;
+    l = (((l * dev->pcm_vol_l) >> 15) * dev->master_vol_l) >> 15;
+    r = (((r * dev->pcm_vol_r) >> 15) * dev->master_vol_r) >> 15;
 
     if (l < -32768)
 	l = -32768;
@@ -1694,7 +1696,7 @@ es1371_poll(void *p)
     es1371_update(dev);		
 
     if (dev->int_ctrl & INT_UART_EN) {
-	audiopci_log("UART INT Enabled\n");
+	//audiopci_log("UART INT Enabled\n");
 	if (dev->uart_ctrl & UART_CTRL_RXINTEN) {
 		/* We currently don't implement MIDI Input.
 		   But if anything sets MIDI Input and Output together we'd have to take account
@@ -1710,7 +1712,7 @@ es1371_poll(void *p)
 		dev->uart_status |= (UART_STATUS_TXINT | UART_STATUS_TXRDY);
 	}
 
-	audiopci_log("UART control = %02x\n", dev->uart_ctrl & (UART_CTRL_RXINTEN | UART_CTRL_TXINTEN));
+	//audiopci_log("UART control = %02x\n", dev->uart_ctrl & (UART_CTRL_RXINTEN | UART_CTRL_TXINTEN));
 	es1371_update_irqs(dev);
     }
 
@@ -1785,14 +1787,12 @@ static void
 es1371_filter_cd_audio(int channel, double *buffer, void *p)
 {
     es1371_t *dev = (es1371_t *)p;
-    int32_t c;
+    double c;
     int cd = channel ? dev->cd_vol_r : dev->cd_vol_l;
     int master = channel ? dev->master_vol_r : dev->master_vol_l;
 
-    c = (((int32_t) *buffer) * cd) >> 15;
-    c = (c * master) >> 15;
-
-    *buffer     = (double) c;
+    c = ((((*buffer) * cd) / 65536.0) * master) / 65536.0;
+    *buffer = c;
 }
 
 
@@ -1858,7 +1858,7 @@ es1371_init(const device_t *info)
     ac97_codec_id = 0;
     /* Let the machine decide the codec on onboard implementations. */
     if (!info->local)
-	device_add(&cs4297a_device);
+	device_add(ac97_codec_get(device_get_config_int("codec")));
 
     es1371_reset(dev);
 
@@ -1884,6 +1884,34 @@ es1371_speed_changed(void *p)
 }
 
 
+static const device_config_t es1371_config[] =
+{
+    {
+	.name = "codec",
+	.description = "CODEC",
+	.type = CONFIG_SELECTION,
+	.selection = {
+		{
+			.description = "Crystal CS4297",
+			.value = AC97_CODEC_CS4297
+		}, {
+			.description = "Crystal CS4297A",
+			.value = AC97_CODEC_CS4297A
+		}, {
+			.description = "SigmaTel STAC9708",
+			.value = AC97_CODEC_STAC9708
+		}, {
+			.description = "SigmaTel STAC9721",
+			.value = AC97_CODEC_STAC9721
+		}
+	},
+	.default_int = AC97_CODEC_CS4297A
+    }, {
+	"", "", -1
+    }
+};
+
+
 const device_t es1371_device =
 {
     "Ensoniq AudioPCI (ES1371)",
@@ -1891,11 +1919,11 @@ const device_t es1371_device =
     0,
     es1371_init,
     es1371_close,
-    NULL,
+    es1371_reset,
     { NULL },
     es1371_speed_changed,
     NULL,
-    NULL
+    es1371_config
 };
 
 const device_t es1371_onboard_device =

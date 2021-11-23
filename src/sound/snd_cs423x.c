@@ -779,9 +779,9 @@ cs423x_init(const device_t *info)
     /* Initialize ISAPnP. */
     dev->pnp_card = isapnp_add_card(NULL, 0, cs423x_pnp_config_changed, NULL, NULL, NULL, dev);
 
-    /* Initialize SBPro codec first to get the correct CD audio filter for the default
-       context, which is SBPro. The WSS codec is initialized later by cs423x_reset */
+    /* Initialize SBPro codec. The WSS codec is initialized later by cs423x_reset */
     dev->sb = device_add(&sb_pro_compat_device);
+    sound_set_cd_audio_filter(sbpro_filter_cd_audio, dev->sb); /* CD audio filter for the default context */
 
     /* Initialize RAM, registers and WSS codec. */
     cs423x_reset(dev);

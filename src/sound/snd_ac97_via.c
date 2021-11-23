@@ -87,6 +87,7 @@ ac97_via_log(const char *fmt, ...)
 static void	ac97_via_sgd_process(void *priv);
 static void	ac97_via_update_codec(ac97_via_t *dev);
 static void	ac97_via_speed_changed(void *priv);
+static void	ac97_via_filter_cd_audio(int channel, double *buffer, void *priv);
 
 
 void
@@ -390,8 +391,15 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
 						*((uint16_t *) &dev->codec_shadow[modem].regs_codec[i][val & 0x7f]) = *((uint16_t *) &dev->sgd_regs[0x80]));
 
 					/* Update primary audio codec state if that codec was written to. */
-					if (!modem && !i)
+					if (!modem && !i) {
 						ac97_via_update_codec(dev);
+
+						/* Set up CD audio filter if CD volume was written to. Setting it
+						   up at init prevents CD audio from working on other cards, but
+						   this works as the CD channel is muted by default per AC97 spec. */
+						if (val == 0x12)
+							sound_set_cd_audio_filter(ac97_via_filter_cd_audio, dev);
+					}
 				}
 			}
 
@@ -741,7 +749,7 @@ ac97_via_get_buffer(int32_t *buffer, int len, void *priv)
 
 
 static void
-via_ac97_filter_cd_audio(int channel, double *buffer, void *priv)
+ac97_via_filter_cd_audio(int channel, double *buffer, void *priv)
 {
     ac97_via_t *dev = (ac97_via_t *) priv;
     double c, volume = channel ? dev->cd_vol_r : dev->cd_vol_l;
@@ -805,9 +813,6 @@ ac97_via_init(const device_t *info)
 
     /* Set up playback handler. */
     sound_add_handler(ac97_via_get_buffer, dev);
-
-    /* Set up CD audio filter. */
-    sound_set_cd_audio_filter(via_ac97_filter_cd_audio, dev);
 
     return dev;
 }

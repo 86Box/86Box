@@ -231,7 +231,7 @@ typedef struct {
 
 
 enum {
-	CHIP_BUSLOGIC_ISA_542_1991,
+    CHIP_BUSLOGIC_ISA_542_1991,
     CHIP_BUSLOGIC_ISA_542,
     CHIP_BUSLOGIC_ISA,
     CHIP_BUSLOGIC_MCA,
@@ -1586,7 +1586,7 @@ buslogic_init(const device_t *info)
     {
 	case CHIP_BUSLOGIC_ISA_542_1991:
 		strcpy(dev->name, "BT-542B");
-		bios_rom_name = "roms/scsi/buslogic/BT-542B_BIOS.rom";
+		bios_rom_name = "roms/scsi/buslogic/BT-542B_BIOS.ROM";
 		bios_rom_size = 0x4000;
 		bios_rom_mask = 0x3fff;
 		has_autoscsi_rom = 0;

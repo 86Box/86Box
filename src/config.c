@@ -641,6 +641,8 @@ load_machine(void)
 		machine = machine_get_machine_from_internal_name("p54tp4xe_mr");
 	else if (! strcmp(p, "pcv240"))
 		machine = machine_get_machine_from_internal_name("pcv90");
+	else if (! strcmp(p, "v60n"))
+		machine = machine_get_machine_from_internal_name("acerv60n");
 	else if (! strcmp(p, "tsunamiatx"))
 		machine = machine_get_machine_from_internal_name("s1846");
 	else if (! strcmp(p, "trinity371"))

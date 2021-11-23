@@ -119,7 +119,7 @@ machine_at_fw6400gx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/fw6400gx/fwgx1211.rom",
+    ret = bios_load_linear("roms/machines/fw6400gx/FWGX1211.ROM",
 			   0x000c0000, 262144, 0);
 
     if (bios_only || !ret)

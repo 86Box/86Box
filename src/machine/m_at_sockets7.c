@@ -75,7 +75,7 @@ machine_at_p5a_init(const machine_t *model)
     device_add(&ali1543c_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_39sf020_device);
-    spd_register(SPD_TYPE_SDRAM, 0xF, 256);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
     device_add(&w83781d_p5a_device); /* fans: Chassis, CPU, Power; temperatures: MB, unused, CPU */
 
     return ret;
@@ -109,18 +109,18 @@ machine_at_m579_init(const machine_t *model)
     device_add(&ali1543c_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee010_device);
-    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
     return ret;
 }
 
 
 int
-machine_at_ga_5aa_init(const machine_t *model)
+machine_at_5aa_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/ga-5aa/GA-5AA.F7b",
+    ret = bios_load_linear("roms/machines/5aa/GA-5AA.F7b",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -142,18 +142,18 @@ machine_at_ga_5aa_init(const machine_t *model)
     device_add(&ali1543c_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee010_device);
-    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
     return ret;
 }
 
 
 int
-machine_at_ga_5ax_init(const machine_t *model)
+machine_at_5ax_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/ga-5ax/5AX.F4",
+    ret = bios_load_linear("roms/machines/5ax/5AX.F4",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -177,7 +177,7 @@ machine_at_ga_5ax_init(const machine_t *model)
     device_add(&ali1543c_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee010_device);
-    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
+    spd_register(SPD_TYPE_SDRAM, 0x7, 512);
 
     return ret;
 }
@@ -271,12 +271,10 @@ machine_at_ficva503a_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&via_mvp3_device);
-    device_add(&via_vt82c686a_device);
+    device_add(&via_vt82c686a_device); /* fans: CPU1, Chassis; temperatures: CPU, System, unused */
     device_add(&keyboard_ps2_ami_pci_device);
-    device_add(&via_vt82c686_sio_device);
     device_add(&sst_flash_39sf020_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
-    device_add(&via_vt82c686_hwm_device); /* fans: CPU1, Chassis; temperatures: CPU, System, unused */
     hwm_values.temperatures[0] += 2; /* CPU offset */
     hwm_values.temperatures[1] += 2; /* System offset */
     hwm_values.temperatures[2] = 0; /* unused */
@@ -289,11 +287,11 @@ machine_at_ficva503a_init(const machine_t *model)
 
 
 int
-machine_at_sy_5ema_pro_init(const machine_t *model)
+machine_at_5emapro_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/sy-5ema_pro/5emo1aa2.bin",
+    ret = bios_load_linear("roms/machines/5emapro/5emo1aa2.bin",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -311,19 +309,15 @@ machine_at_sy_5ema_pro_init(const machine_t *model)
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
-    device_add(&via_mvp3_device);
+    device_add(&via_mvp3_device); /* Rebranded as EQ82C6638 */
     device_add(&via_vt82c686a_device);
     device_add(&keyboard_ps2_ami_pci_device);
-    // device_add(&via_vt82c686_sio_device);
-    device_add(&fdc37c669_device);
     device_add(&sst_flash_39sf010_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
     device_add(&via_vt82c686_hwm_device); /* fans: CPU1, Chassis; temperatures: CPU, System, unused */
     hwm_values.temperatures[0] += 2; /* CPU offset */
     hwm_values.temperatures[1] += 2; /* System offset */
     hwm_values.temperatures[2] = 0; /* unused */
-
-    device_add(&wm9701a_device); /* on daughtercard */
 
     return ret;
 }

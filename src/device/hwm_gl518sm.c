@@ -14,6 +14,7 @@
  *
  *		Copyright 2020 RichardG.
  */
+#include <math.h>
 #include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -28,10 +29,12 @@
 #include <86box/hwm.h>
 
  
-#define CLAMP(a, min, max)		(((a)< (min)) ? (min) : (((a) > (max)) ? (max) : (a)))
-#define GL518SM_RPM_TO_REG(r, d)	((r) ? CLAMP(480000 / (r * d), 1, 255) : 0)
-#define GL518SM_VOLTAGE_TO_REG(v)	(((v) / 19) & 0xff)
-#define GL518SM_VDD_TO_REG(v)		((((v) * 4) / 95) & 0xff)
+#define CLAMP(a, min, max)		(((a) < (min)) ? (min) : (((a) > (max)) ? (max) : (a)))
+/* Formulas and factors derived from Linux's gl518sm.c driver. */
+#define GL518SM_RPMDIV(r, d)		(CLAMP((r), 1, 960000) * (d))
+#define GL518SM_RPM_TO_REG(r, d)	((r) ? CLAMP((480000 + GL518SM_RPMDIV(r, d) / 2) / GL518SM_RPMDIV(r, d), 1, 255) : 0)
+#define GL518SM_VOLTAGE_TO_REG(v)	((uint8_t) round((v) / 19.0))
+#define GL518SM_VDD_TO_REG(v)		((uint8_t) (((v) * 4) / 95.0))
 
 
 typedef struct {
@@ -139,20 +142,20 @@ gl518sm_read(gl518sm_t *dev, uint8_t reg)
 		ret |= GL518SM_RPM_TO_REG(dev->values->fans[1], 1 << ((dev->regs[0x0f] >> 4) & 0x3));
 		break;
 
-	case 0x0d: /* VIN3 - AOpen System Monitor requires an approximate voltage offset of 13 at least here */
-		ret = 13 + GL518SM_VOLTAGE_TO_REG(dev->values->voltages[2]);
+	case 0x0d: /* VIN3 */
+		ret = GL518SM_VOLTAGE_TO_REG(dev->values->voltages[2]);
 		break;
 
 	case 0x13: /* VIN2 */
-		ret = 13 + GL518SM_VOLTAGE_TO_REG(dev->values->voltages[1]);
+		ret = GL518SM_VOLTAGE_TO_REG(dev->values->voltages[1]);
 		break;
 
 	case 0x14: /* VIN1 */
-		ret = 13 + GL518SM_VOLTAGE_TO_REG(dev->values->voltages[0]);
+		ret = GL518SM_VOLTAGE_TO_REG(dev->values->voltages[0]);
 		break;
 
 	case 0x15: /* VDD */
-		ret = 13 + GL518SM_VDD_TO_REG(dev->values->voltages[3]);
+		ret = GL518SM_VDD_TO_REG(dev->values->voltages[3]);
 		break;
 
 	default: /* other registers */
@@ -245,7 +248,7 @@ gl518sm_reset(gl518sm_t *dev)
     dev->regs[0x0a] = 0xdac5;
     dev->regs[0x0b] = 0xdac5;
     dev->regs[0x0c] = 0xdac5;
-    dev->regs[0x0f] = 0xf8;
+    dev->regs[0x0f] = 0x00;
 
     gl518sm_remap(dev, dev->i2c_addr | (dev->i2c_enabled ? 0x00 : 0x80));
 }
