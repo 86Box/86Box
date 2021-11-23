@@ -30,11 +30,11 @@
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
-#define BIOS_037C_PATH			"roms/video/oti/bios.bin"
-#define BIOS_067_AMA932J_PATH	"roms/machines/ama932j/oti067.bin"
-#define BIOS_067_M300_08_PATH	"roms/machines/olivetti_m300_08/EVC_BIOS.ROM"
-#define BIOS_067_M300_15_PATH	"roms/machines/olivetti_m300_15/EVC_BIOS.ROM"
-#define BIOS_077_PATH			"roms/video/oti/oti077.vbi"
+#define BIOS_037C_PATH		"roms/video/oti/bios.bin"
+#define BIOS_067_AMA932J_PATH	"roms/machines/ama932j/OTI067.BIN"
+#define BIOS_067_M300_08_PATH	"roms/machines/m30008/EVC_BIOS.ROM"
+#define BIOS_067_M300_15_PATH	"roms/machines/m30015/EVC_BIOS.ROM"
+#define BIOS_077_PATH		"roms/video/oti/oti077.vbi"
 
 
 enum {

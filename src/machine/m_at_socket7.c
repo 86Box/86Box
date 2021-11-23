@@ -179,11 +179,11 @@ machine_at_tc430hx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined2("roms/machines/tc430hx/1007dh0_.bio",
-				     "roms/machines/tc430hx/1007dh0_.bi1",
-				     "roms/machines/tc430hx/1007dh0_.bi2",
-				     "roms/machines/tc430hx/1007dh0_.bi3",
-				     "roms/machines/tc430hx/1007dh0_.rcv",
+    ret = bios_load_linear_combined2("roms/machines/tc430hx/1007DH0_.BIO",
+				     "roms/machines/tc430hx/1007DH0_.BI1",
+				     "roms/machines/tc430hx/1007DH0_.BI2",
+				     "roms/machines/tc430hx/1007DH0_.BI3",
+				     "roms/machines/tc430hx/1007DH0_.RCV",
 				     0x3a000, 128);
 
     if (bios_only || !ret)
@@ -285,7 +285,7 @@ machine_at_p65up5_cp55t2d_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/p65up5/td5i0201.awd",
+    ret = bios_load_linear("roms/machines/p65up5/TD5I0201.AWD",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -586,7 +586,7 @@ machine_at_i430vx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/430vx/55xwuq0e.bin",
+    ret = bios_load_linear("roms/machines/430vx/55XWUQ0E.BIN",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -984,7 +984,7 @@ machine_at_m560_init(const machine_t *model)
     device_add(&ali1543_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee010_device);
-    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     return ret;
 }
@@ -1019,7 +1019,7 @@ machine_at_ms5164_init(const machine_t *model)
     device_add(&ali1543_device);
     device_add(&keyboard_ps2_ami_pci_device);
     device_add(&sst_flash_29ee010_device);
-    spd_register(SPD_TYPE_SDRAM, 0x3, 128);
+    spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
     return ret;
 }

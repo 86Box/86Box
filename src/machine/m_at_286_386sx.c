@@ -12,11 +12,11 @@
  *
  * Authors:	Sarah Walker, <http://pcem-emulator.co.uk/>
  *		Miran Grca, <mgrca8@gmail.com>
- *      EngiNerd <webmaster.crrc@yahoo.it>
+ *		EngiNerd <webmaster.crrc@yahoo.it>
  *
  *		Copyright 2010-2019 Sarah Walker.
  *		Copyright 2016-2019 Miran Grca.
- *      Copyright 2020 EngiNerd.
+ *		Copyright 2020 EngiNerd.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -204,7 +204,7 @@ machine_at_neat_ami_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/ami286/amic206.bin",
+    ret = bios_load_linear("roms/machines/ami286/AMIC206.BIN",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
@@ -404,8 +404,8 @@ machine_at_spc4216p_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_interleaved("roms/machines/spc4216p/7101.u8",
-				"roms/machines/spc4216p/ac64.u10",
+    ret = bios_load_interleaved("roms/machines/spc4216p/7101.U8",
+				"roms/machines/spc4216p/AC64.U10",
 				0x000f0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -662,7 +662,7 @@ machine_at_spc6033p_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/spc6033p/phoenix.bin",
+    ret = bios_load_linear("roms/machines/spc6033p/phoenix.BIN",
 			   0x000f0000, 65536, 0x10000);
 
     if (bios_only || !ret)
@@ -721,11 +721,11 @@ machine_at_arb1374_init(const machine_t *model)
 
 
 int
-machine_at_sbc_350a_init(const machine_t *model)
+machine_at_sbc350a_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/sbc_350a/350a.rom",
+    ret = bios_load_linear("roms/machines/sbc350a/350a.rom",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)
