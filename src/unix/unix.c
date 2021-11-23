@@ -1,3 +1,5 @@
+#include <SDL_messagebox.h>
+#include <SDL_stdinc.h>
 #ifdef __linux__
 #define _FILE_OFFSET_BITS 64
 #define _LARGEFILE64_SOURCE 1
@@ -582,22 +584,108 @@ int	ui_msgbox(int flags, void *message)
 
 int	ui_msgbox_header(int flags, void *header, void* message)
 {
+    return ui_msgbox_ex(flags, header, message, NULL, NULL, NULL);
+}
+
+int	ui_msgbox_ex(int flags, void *header, void* message, void* btn1, void* btn2, void* btn3)
+{
     SDL_MessageBoxData msgdata;
-    SDL_MessageBoxButtonData msgbtn;
+    SDL_MessageBoxButtonData msgbtn[3];
+    char btn1ansi[1024] = { 0 };
+    char btn2ansi[1024] = { 0 };
+    char btn3ansi[1024] = { 0 };
     if (!header) header = (flags & MBX_ANSI) ? "86Box" : L"86Box";
     if (header <= (void*)7168) header = plat_get_string(header);
     if (message <= (void*)7168) message = plat_get_string(message);
-    msgbtn.buttonid = 1;
-    msgbtn.text = "OK";
-    msgbtn.flags = 0;
+    if (btn1 <= (void*)7168 && btn1 != NULL) btn1 = plat_get_string(btn1);
+    if (btn2 <= (void*)7168 && btn2 != NULL) btn2 = plat_get_string(btn2);
+    if (btn3 <= (void*)7168 && btn3 != NULL) btn3 = plat_get_string(btn3);
+    if (flags & MBX_ANSI)
+    {
+        strcpy(btn1ansi, btn1 ? btn1 : "");
+        strcpy(btn2ansi, btn2 ? btn2 : "");
+        strcpy(btn3ansi, btn3 ? btn3 : "");
+    }
+    else
+    {
+        char* finalres = NULL;
+        if (btn1) 
+        {
+            finalres = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char*)btn1, wcslen(btn1) * sizeof(wchar_t) + sizeof(wchar_t));
+            strcpy(btn1ansi, finalres ? finalres : "");
+            SDL_free(finalres);
+        }
+        if (btn2) 
+        {
+            finalres = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char*)btn2, wcslen(btn2) * sizeof(wchar_t) + sizeof(wchar_t));
+            strcpy(btn2ansi, finalres ? finalres : "");
+            SDL_free(finalres);
+        }
+        if (btn3) 
+        {
+            finalres = SDL_iconv_string("UTF-8", sizeof(wchar_t) == 2 ? "UTF-16LE" : "UTF-32LE", (char*)btn3, wcslen(btn3) * sizeof(wchar_t) + sizeof(wchar_t));
+            strcpy(btn3ansi, finalres ? finalres : "");
+            SDL_free(finalres);
+        }
+    }
+    msgbtn[0].buttonid = 1;
+    msgbtn[0].text = btn1 ? btn1ansi : "OK";
+    msgbtn[0].flags = 0;
     memset(&msgdata, 0, sizeof(SDL_MessageBoxData));
     msgdata.numbuttons = 1;
-    msgdata.buttons = &msgbtn;
-    int msgflags = 0;
-    if (msgflags & MBX_FATAL) msgflags |= SDL_MESSAGEBOX_ERROR;
-    else if (msgflags & MBX_ERROR || msgflags & MBX_WARNING) msgflags |= SDL_MESSAGEBOX_WARNING;
-    else msgflags |= SDL_MESSAGEBOX_INFORMATION;
-    msgdata.flags = msgflags;
+    msgdata.buttons = msgbtn;
+    switch (flags & 0x1F)
+    {
+        case MBX_INFO:
+        {
+            msgdata.flags |= SDL_MESSAGEBOX_INFORMATION;
+            break;
+        }
+        case MBX_ERROR:
+        {
+            if (flags & MBX_FATAL)
+            {
+                if (btn1) msgbtn[0].text = btn1ansi;
+                else
+                {
+                    msgbtn[1].text = "Exit";
+                    msgbtn[1].buttonid = 0;
+                    msgdata.numbuttons++;
+                }
+                msgdata.flags |= SDL_MESSAGEBOX_ERROR;
+            }
+            else
+            {
+                msgdata.flags |= SDL_MESSAGEBOX_WARNING;
+            }
+            break;
+        }
+        case MBX_QUESTION:
+        case MBX_QUESTION_YN:
+        case MBX_QUESTION_OK:
+        {
+            if (!btn1)
+                msgbtn[0].text = (flags & MBX_QUESTION_OK) ? "OK" : "Yes";
+            else msgbtn[0].text = btn1ansi;
+            msgbtn[0].buttonid = 0;
+            msgdata.numbuttons++;
+            if (!btn2)
+                msgbtn[1].text = (flags & MBX_QUESTION_OK) ? "Cancel" : "No";
+            else msgbtn[1].text = btn2ansi;
+            msgbtn[1].buttonid = (flags & MBX_QUESTION_OK) ? -1 : 1;
+            if (flags & MBX_QUESTION)
+            {
+                if (btn3) msgbtn[2].text = btn3ansi;
+                else msgbtn[2].text = "Cancel";
+                msgbtn[2].buttonid = -1;
+                msgdata.buttons++;
+            }
+            if (flags & MBX_WARNING) msgdata.flags |= SDL_MESSAGEBOX_WARNING;
+            else msgdata.flags |= SDL_MESSAGEBOX_INFORMATION;
+            break;
+        }
+    }
+
     if (flags & MBX_ANSI)
     {
         int button = 0;

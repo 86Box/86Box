@@ -1,3 +1,7 @@
+#ifdef __linux__
+#define _FILE_OFFSET_BITS 64
+#define _LARGEFILE64_SOURCE 1
+#endif
 #include <chrono>
 #include <memory>
 #include <stdint.h>
@@ -1919,8 +1923,10 @@ namespace ImGuiSettingsWindow {
 			}
 		}
 	}
-	void OpenHDDCreationDialog()
+	static bool hdd_existing = false;
+	void OpenHDDCreationDialog(bool existing = false)
 	{
+		hdd_existing = existing;
 		hdd_new = new hard_disk_t(temp_hdd[CalcNextFreeHDD()]);
 		hdd_new->bus = HDD_BUS_IDE;
 		max_hpc = 255;
@@ -2204,7 +2210,7 @@ namespace ImGuiSettingsWindow {
 			{
 				OpenSettingsFileChooser(hdd_new->fn, sizeof(hdd_new->fn), "Hard disk images (*.HD? *.IM? *.VHD)|*.HD? *.IM? *.VHD", true);
 			}
-			if (cur_img_type != 5)
+			if (cur_img_type != 5 || (existing && hdd_new->fn[0] != 0))
 			{
 				ImGui::Text("Cylinder:"); ImGui::SameLine();
 				ImGui::InputScalar("##Cylinder", ImGuiDataType_U32, &hdd_new->tracks);
@@ -2388,52 +2394,59 @@ namespace ImGuiSettingsWindow {
 			}
 			if (ImGui::Button("OK"))
 			{
-				if (cur_img_type == 0)
+				if (hdd_new->fn[0] == '\0')
 				{
-					funcresult = std::async(std::launch::async, []() { return CreateHDD(hdd_new->fn, (hdd_new->tracks * hdd_new->hpc * hdd_new->spt) << 9LL); });
+					ui_msgbox_header(MBX_ERROR, (void*)L"Invalid configuration", (void*)L"Please specify a valid file name.");
 				}
-				if (cur_img_type == 1)
+				else
 				{
-					HDDCreateHDI creationparams;
-					creationparams.base = 0x1000;
-					creationparams.size = (hdd_new->tracks * hdd_new->hpc * hdd_new->spt) << 9LL;
-					creationparams.sector_size = 512;
-					creationparams.tracks = hdd_new->tracks;
-					creationparams.hpc = hdd_new->hpc;
-					creationparams.spt = hdd_new->spt;
-					creationparams.zero1 = creationparams.zero2 = 0;
-					memset(&creationparams.pad, 0, sizeof(creationparams.pad));
-					funcresult = std::async(std::launch::async, [creationparams]() { return CreateHDD(hdd_new->fn, creationparams); });
-				}
-				if (cur_img_type == 2)
-				{
-					HDDCreateHDX creationparams;
-					creationparams.size = (hdd_new->tracks * hdd_new->hpc * hdd_new->spt) << 9LL;
-					creationparams.sector_size = 512;
-					creationparams.tracks = hdd_new->tracks;
-					creationparams.hpc = hdd_new->hpc;
-					creationparams.spt = hdd_new->spt;
-					creationparams.zero1 = creationparams.zero2 = 0;
-					funcresult = std::async(std::launch::async, [creationparams]() { return CreateHDD(hdd_new->fn, creationparams); });
-				}
-				if (cur_img_type >= 3)
-				{
-					HDDCreateVHD creationparams;
-					creationparams.dynamic = cur_img_type == 4;
-					creationparams.differencing = cur_img_type == 5;
-					if (cur_img_type == 5)
+					if (cur_img_type == 0)
 					{
-						if (OpenSettingsFileChooser(creationparams.diff_file, sizeof(creationparams.diff_file), "VHD Files (*.VHD)|*.VHD", false))
-						{
-							funcresult = std::async(std::launch::async, [creationparams]() { return CreateHDD(hdd_new->fn, creationparams); });
-						}
+						funcresult = std::async(std::launch::async, []() { return CreateHDD(hdd_new->fn, (hdd_new->tracks * hdd_new->hpc * hdd_new->spt) << 9LL); });
 					}
-					else
+					if (cur_img_type == 1)
 					{
+						HDDCreateHDI creationparams;
+						creationparams.base = 0x1000;
+						creationparams.size = (hdd_new->tracks * hdd_new->hpc * hdd_new->spt) << 9LL;
+						creationparams.sector_size = 512;
+						creationparams.tracks = hdd_new->tracks;
 						creationparams.hpc = hdd_new->hpc;
 						creationparams.spt = hdd_new->spt;
-						creationparams.tracks = hdd_new->tracks;
+						creationparams.zero1 = creationparams.zero2 = 0;
+						memset(&creationparams.pad, 0, sizeof(creationparams.pad));
 						funcresult = std::async(std::launch::async, [creationparams]() { return CreateHDD(hdd_new->fn, creationparams); });
+					}
+					if (cur_img_type == 2)
+					{
+						HDDCreateHDX creationparams;
+						creationparams.size = (hdd_new->tracks * hdd_new->hpc * hdd_new->spt) << 9LL;
+						creationparams.sector_size = 512;
+						creationparams.tracks = hdd_new->tracks;
+						creationparams.hpc = hdd_new->hpc;
+						creationparams.spt = hdd_new->spt;
+						creationparams.zero1 = creationparams.zero2 = 0;
+						funcresult = std::async(std::launch::async, [creationparams]() { return CreateHDD(hdd_new->fn, creationparams); });
+					}
+					if (cur_img_type >= 3)
+					{
+						HDDCreateVHD creationparams;
+						creationparams.dynamic = cur_img_type == 4;
+						creationparams.differencing = cur_img_type == 5;
+						if (cur_img_type == 5)
+						{
+							if (OpenSettingsFileChooser(creationparams.diff_file, sizeof(creationparams.diff_file), "VHD Files (*.VHD)|*.VHD", false))
+							{
+								funcresult = std::async(std::launch::async, [creationparams]() { return CreateHDD(hdd_new->fn, creationparams); });
+							}
+						}
+						else
+						{
+							creationparams.hpc = hdd_new->hpc;
+							creationparams.spt = hdd_new->spt;
+							creationparams.tracks = hdd_new->tracks;
+							funcresult = std::async(std::launch::async, [creationparams]() { return CreateHDD(hdd_new->fn, creationparams); });
+						}
 					}
 				}
 			}
