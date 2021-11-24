@@ -7,7 +7,7 @@
  *		This file is part of the 86Box distribution.
  *
  *		Emulation of nVidia's RIVA TNT graphics card.
- *		Special thanks to Marcin Kościelnicki, without whom this
+ *		Special thanks to Marcelina Kościelnicka, without whom this
  *		would not have been possible.
  *
  * Version:	@(#)vid_rivatnt.c	1.0.0	2019/09/13
@@ -507,7 +507,7 @@ void
 rivatnt_ptimer_tick(void *p)
 {
 	rivatnt_t *rivatnt = (rivatnt_t *)p;
-	//pclog("[RIVA TNT] PTIMER tick! mul %04x div %04x\n", rivatnt->ptimer.clock_mul, rivatnt->ptimer.clock_div);
+	pclog("[RIVA TNT] PTIMER tick! mul %04x div %04x\n", rivatnt->ptimer.clock_mul, rivatnt->ptimer.clock_div);
 
 	double time = ((double)rivatnt->ptimer.clock_mul * 10.0) / (double)rivatnt->ptimer.clock_div; //Multiply by 10 to avoid timer system limitations.
 	uint32_t tmp;
@@ -518,9 +518,11 @@ rivatnt_ptimer_tick(void *p)
 	tmp = rivatnt->ptimer.time;
 	rivatnt->ptimer.time += (uint64_t)time;
 
-	alarm_check = ((uint32_t)rivatnt->ptimer.time >= (uint32_t)rivatnt->ptimer.alarm);
+	alarm_check = (uint32_t)(rivatnt->ptimer.time - rivatnt->ptimer.alarm) & 0x80000000;
 
-	//pclog("[RIVA TNT] Timer %08x %016llx %08x %d\n", rivatnt->ptimer.alarm, rivatnt->ptimer.time, tmp, alarm_check);
+	//alarm_check = ((uint32_t)rivatnt->ptimer.time >= (uint32_t)rivatnt->ptimer.alarm);
+
+	pclog("[RIVA TNT] Timer %08x %016llx %08x %d\n", rivatnt->ptimer.alarm, rivatnt->ptimer.time, tmp, alarm_check);
 
 	if(alarm_check)
 	{
@@ -533,7 +535,7 @@ void
 rivatnt_nvclk_poll(void *p)
 {
 	rivatnt_t *rivatnt = (rivatnt_t *)p;
-	if(rivatnt->pmc.enable & (1 << 16)) rivatnt_ptimer_tick(rivatnt);
+	rivatnt_ptimer_tick(rivatnt);
 	timer_on_auto(&rivatnt->nvtimer, rivatnt->nvtime);
 }
 
@@ -1053,6 +1055,9 @@ static void
 	rivatnt->pramdac.mpll = 0x03c20d;
 	rivatnt->pramdac.nvpll = 0x03c20d;
 	rivatnt->pramdac.vpll = 0x03c20d;
+
+	timer_add(&rivatnt->nvtimer, rivatnt_nvclk_poll, rivatnt, 0);
+	timer_add(&rivatnt->mtimer, rivatnt_mclk_poll, rivatnt, 0);
 
 	return rivatnt;
 }
