@@ -566,6 +566,7 @@ ac97_codec_init(const device_t *info)
     dev->vendor_id = ac97_codecs[info->local].vendor_id;
     dev->min_rate = ac97_codecs[info->local].min_rate;
     dev->max_rate = ac97_codecs[info->local].max_rate;
+    dev->reset_flags = ac97_codecs[info->local].reset_flags;
     dev->extid_flags = ac97_codecs[info->local].extid_flags;
     dev->misc_flags = ac97_codecs[info->local].misc_flags;
     dev->powerdown_mask = ac97_codecs[info->local].powerdown_mask;
