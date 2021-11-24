@@ -919,6 +919,7 @@ namespace ImGuiSettingsWindow {
 			if (!cpu_is_eligible(temp_cpu_f, temp_cpu, temp_machine))
 			{
 				int c = 0;
+				temp_cpu = temp_cpu_f->cpus[0].cpu_type;
 				while (temp_cpu_f->cpus[c].cpu_type != 0)
 				{
 					if (cpu_is_eligible(temp_cpu_f, c, temp_machine))
@@ -987,51 +988,56 @@ namespace ImGuiSettingsWindow {
 		//////////////////////////////
 		// FPU Combo Drop Down
 		//////////////////////////////
-		ImGui::Text("FPU:");
-		ImGui::SameLine();
-		auto getFPUIndex = [&]()
+		if (temp_cpu_f->cpus[temp_cpu].fpus)
 		{
-			int c = 0;
-			size_t i = 0;
-			while (1)
+			ImGui::Text("FPU:");
+			ImGui::SameLine();
+			auto getFPUCount = [&]()
 			{
-				if (temp_cpu_f->cpus[temp_cpu].fpus[c].type == temp_fpu)
+				int c = 0;
+				while (1)
 				{
-					i = c;
-					break;
+					if (!fpu_get_name_from_index(temp_cpu_f, temp_cpu, c)) break;
+					c++;
 				}
-				if (temp_cpu_f->cpus[temp_cpu].fpus[c].name == NULL) break;
-				c++;
-			}
-			if (i == 0) temp_fpu = temp_cpu_f->cpus[temp_cpu].fpus[0].type;
-			return i;
-		};
-		auto getFPUCount = [&]()
-		{
-			int c = 0;
-			while (1)
+				return c;
+			};
+			auto getFPUIndex = [&]()
 			{
-				if (!fpu_get_name_from_index(temp_cpu_f, temp_cpu, c)) break;
-				c++;
-			}
-			return c;
-		};
-		const char* fpustr = temp_cpu_f->cpus[temp_cpu].fpus[getFPUIndex()].name;
-		
-		if (ImGui::BeginCombo("##FPU", fpustr))
-		{
-			for (int i = 0; i < getFPUCount(); i++)
+				int c = 0;
+				size_t i = 0;
+				while (1)
+				{
+					if (c >= getFPUCount()) break;
+					if (temp_cpu_f->cpus[temp_cpu].fpus[c].name == NULL) break;
+					if (temp_cpu_f->cpus[temp_cpu].fpus[c].type == temp_fpu)
+					{
+						i = c;
+						break;
+					}
+					c++;
+				}
+				if (i == 0 || temp_cpu_f->cpus[temp_cpu].fpus[0].type == FPU_INTERNAL) temp_fpu = temp_cpu_f->cpus[temp_cpu].fpus[0].type;
+				return i;
+			};
+
+			const char* fpustr = temp_cpu_f->cpus[temp_cpu].fpus[getFPUIndex()].name;
+			
+			if (ImGui::BeginCombo("##FPU", fpustr))
 			{
-				if (ImGui::Selectable(temp_cpu_f->cpus[temp_cpu].fpus[i].name, temp_cpu_f->cpus[temp_cpu].fpus[i].type == temp_fpu))
+				for (int i = 0; i < getFPUCount(); i++)
 				{
-					temp_fpu = temp_cpu_f->cpus[temp_cpu].fpus[i].type;
+					if (ImGui::Selectable(temp_cpu_f->cpus[temp_cpu].fpus[i].name, temp_cpu_f->cpus[temp_cpu].fpus[i].type == temp_fpu))
+					{
+						temp_fpu = temp_cpu_f->cpus[temp_cpu].fpus[i].type;
+					}
+					if (temp_fpu == temp_cpu_f->cpus[temp_cpu].fpus[i].type)
+					{
+						ImGui::SetItemDefaultFocus();
+					}
 				}
-				if (temp_fpu == temp_cpu_f->cpus[temp_cpu].fpus[i].type)
-				{
-					ImGui::SetItemDefaultFocus();
-				}
+				ImGui::EndCombo();
 			}
-			ImGui::EndCombo();
 		}
 		//////////////////////////////
 		// Wait States Combo Drop Down
@@ -1924,6 +1930,7 @@ namespace ImGuiSettingsWindow {
 		}
 	}
 	static bool hdd_existing = false;
+	static bool vhd_block_is_small = false;
 	void OpenHDDCreationDialog(bool existing = false)
 	{
 		hdd_existing = existing;
@@ -2095,6 +2102,7 @@ namespace ImGuiSettingsWindow {
 	bool CreateHDD(char* fn, std::variant<HDDCreateHDI, HDDCreateHDX, HDDCreateVHD, uint64_t> creationparams)
 	{
 		FILE* f;
+		size_t i = 0;
 #ifdef _WIN32
 		static wchar_t fnwide[260];
 		mbstoc16s((uint16_t*)fnwide, fn, 260);
@@ -2109,15 +2117,18 @@ namespace ImGuiSettingsWindow {
 		{
 			if (std::holds_alternative<HDDCreateHDI>(creationparams))
 			{
-				void* sectsize = calloc(std::get<HDDCreateHDI>(creationparams).sector_size, 1);
+				void* sectsize = calloc(std::get<HDDCreateHDI>(creationparams).sector_size, 2048);
 				fwrite((void*)std::addressof(std::get<HDDCreateHDI>(creationparams)), 1, sizeof(HDDCreateHDI), f);
 				auto size = std::get<HDDCreateHDI>(creationparams).size;
 				auto sectorsize = std::get<HDDCreateHDI>(creationparams).sector_size;
 				progress_max = size / sectorsize;
-				for (int i = 0; i < size / sectorsize; i++)
+				while (i < (size / sectorsize))
 				{
-					progress++;
-					fwrite(sectsize, sectorsize, 1, f);
+					size_t elemcount = 2048;
+					if (((size / sectorsize) - i) < 2048) elemcount = (size / sectorsize) - i;
+					fwrite(sectsize, sectorsize, elemcount, f);
+					progress += elemcount;
+					i += elemcount;
 				}
 				free(sectsize);
 				fclose(f);
@@ -2125,15 +2136,18 @@ namespace ImGuiSettingsWindow {
 			}
 			else if (std::holds_alternative<HDDCreateHDX>(creationparams))
 			{
-				void* sectsize = calloc(std::get<HDDCreateHDX>(creationparams).sector_size, 1);
+				void* sectsize = calloc(std::get<HDDCreateHDX>(creationparams).sector_size, 2048);
 				fwrite((void*)std::addressof(std::get<HDDCreateHDX>(creationparams)), 1, sizeof(HDDCreateHDX), f);
 				auto size = std::get<HDDCreateHDX>(creationparams).size;
 				auto sectorsize = std::get<HDDCreateHDX>(creationparams).sector_size;
 				progress_max = size / sectorsize;
-				for (int i = 0; i < size / sectorsize; i++)
+				while (i < (size / sectorsize))
 				{
-					progress++;
-					fwrite(sectsize, sectorsize, 1, f);
+					size_t elemcount = 2048;
+					if (((size / sectorsize) - i) < 2048) elemcount = (size / sectorsize) - i;
+					fwrite(sectsize, sectorsize, elemcount, f);
+					progress += elemcount;
+					i += elemcount;
 				}
 				free(sectsize);
 				fclose(f);
@@ -2160,12 +2174,15 @@ namespace ImGuiSettingsWindow {
 			else
 			{
 				auto size = std::get<uint64_t>(creationparams);
-				void* sectsize = calloc(512, 1);
+				void* sectsize = calloc(512, 2048);
 				progress_max = size / 512;
-				for (int i = 0; i < size / 512; i++)
+				while (i < (size / 512))
 				{
-					progress++;
-					fwrite(sectsize, 512, 1, f);
+					size_t elemcount = 2048;
+					if (((size / 512) - i) < 2048) elemcount = (size / 512) - i;
+					fwrite(sectsize, 512, elemcount, f);
+					progress += elemcount;
+					i += elemcount;
 				}
 				free(sectsize);
 				fclose(f);
@@ -2187,6 +2204,121 @@ namespace ImGuiSettingsWindow {
 		}
 		return head == 16 && sect == 63 ? 128 : 127;
 	}
+	bool ParseHDD(char* fn)
+	{
+		FILE* f;
+		int vhd_error = 0;
+#ifdef _WIN32
+		static wchar_t fnwide[260];
+		mbstoc16s((uint16_t*)fnwide, fn, 260);
+		f = _wfopen(fnwide, hdd_existing ? L"rb" : L"wb");
+#else
+		f = fopen(fn, hdd_existing ? "r" : "w");
+#endif
+		char* openfilestring = fn;
+		if (!f) return false;
+        if (image_is_hdi(openfilestring) ||
+            image_is_hdx(openfilestring, 1))
+		{
+			int sector_size = 0;
+			fseeko64(f, 0x10, SEEK_SET);
+			fread(&sector_size, 1, 4, f);
+			if (sector_size != 512)
+			{
+				ui_msgbox_header(MBX_ERROR, (wchar_t *)IDS_4119,
+								(wchar_t *)IDS_4109);
+				fclose(f);
+				return false;
+			}
+			spt = hpc = tracks = 0;
+			fread(&spt, 1, 4, f);
+			fread(&hpc, 1, 4, f);
+			fread(&tracks, 1, 4, f);
+        }
+		else if (image_is_vhd(openfilestring, 1))
+		{
+			fclose(f);
+			MVHDMeta *vhd = mvhd_open(openfilestring, 0, &vhd_error);
+			if (vhd == NULL)
+			{
+				ui_msgbox_header(MBX_ERROR,
+									(hdd_existing & 1) ? (wchar_t *)IDS_4114
+													: (wchar_t *)IDS_4115,
+									(hdd_existing & 1)
+										? (wchar_t *)IDS_4107
+										: (wchar_t *)IDS_4108);
+				return false;
+			}
+			else if (vhd_error == MVHD_ERR_TIMESTAMP)
+			{
+				if (ui_msgbox_ex(MBX_QUESTION_YN | MBX_WARNING,
+									plat_get_string(IDS_4133),
+									plat_get_string(IDS_4132), NULL,
+									NULL, NULL) != 0)
+				{
+					int ts_res =
+						mvhd_diff_update_par_timestamp(vhd, &vhd_error);
+					if (ts_res != 0)
+					{
+						ui_msgbox_header(MBX_ERROR,
+											plat_get_string(IDS_2049),
+											plat_get_string(IDS_4134));
+						mvhd_close(vhd);
+						return false;
+					}
+				}
+				else
+				{
+					mvhd_close(vhd);
+					return false;
+				}
+			}
+			MVHDGeom vhd_geom = mvhd_get_geometry(vhd);
+			adjust_vhd_geometry_for_86box(&vhd_geom);
+			tracks = vhd_geom.cyl;
+			hpc = vhd_geom.heads;
+			spt = vhd_geom.spt;
+			size = (uint64_t)tracks * hpc * spt * 512;
+			mvhd_close(vhd);
+        }
+		else
+		{
+			fseeko64(f, 0, SEEK_END);
+			size = ftello64(f);
+			int i = 0;
+			if (((size % 17) == 0) && (size <= 142606336))
+			{
+				spt = 17;
+				if (size <= 26738688)
+					hpc = 4;
+				else if (((size % 3072) == 0) && (size <= 53477376))
+					hpc = 6;
+				else
+				{
+					for (i = 5; i < 16; i++)
+					{
+						if (((size % (i << 9)) == 0) &&
+							(size <= ((i * 17) << 19)))
+							break;
+						if (i == 5)
+							i++;
+					}
+					hpc = i;
+				}
+			}
+			else
+			{
+				spt = 63;
+				hpc = 16;
+			}
+
+            tracks = ((size >> 9) / hpc) / spt;
+        }
+		hdd_new->spt = spt;
+		hdd_new->hpc = hpc;
+		hdd_new->tracks = tracks;
+		return true;
+    }
 	void RenderHDDCreationDialog()
 	{
 		if (ImGui::BeginPopupModal("Add Hard Disk", nullptr, ImGuiWindowFlags_AlwaysAutoResize))
@@ -2208,9 +2340,16 @@ namespace ImGuiSettingsWindow {
 			ImGui::SameLine();
 			if (ImGui::Button("..."))
 			{
-				OpenSettingsFileChooser(hdd_new->fn, sizeof(hdd_new->fn), "Hard disk images (*.HD? *.IM? *.VHD)|*.HD? *.IM? *.VHD", true);
+				bool ok = OpenSettingsFileChooser(hdd_new->fn, sizeof(hdd_new->fn), "Hard disk images (*.HD? *.IM? *.VHD)|*.HD? *.IM? *.VHD", !hdd_existing);
+				if (hdd_existing && ok)
+				{
+					if (!ParseHDD(hdd_new->fn))
+					{
+						hdd_new->fn[0] = '\0';
+					}
+				}
 			}
-			if (cur_img_type != 5 || (existing && hdd_new->fn[0] != 0))
+			if ((cur_img_type != 5 && !hdd_existing) || (hdd_existing && hdd_new->fn[0] != 0))
 			{
 				ImGui::Text("Cylinder:"); ImGui::SameLine();
 				ImGui::InputScalar("##Cylinder", ImGuiDataType_U32, &hdd_new->tracks);
@@ -2309,21 +2448,24 @@ namespace ImGuiSettingsWindow {
 				ImGui::EndCombo();
 			}
 			ImGui::SameLine();
-			ImGui::TextUnformatted("Image type:"); ImGui::SameLine();
-			if (ImGui::BeginCombo("##Image type", imgstr[cur_img_type].data()))
+			if (!hdd_existing)
 			{
-				for (int i = 0; i < imgstr.size(); i++)
+				ImGui::TextUnformatted("Image type:"); ImGui::SameLine();
+				if (ImGui::BeginCombo("##Image type", imgstr[cur_img_type].data()))
 				{
-					if (ImGui::Selectable(imgstr[i].data(), i == cur_img_type))
+					for (int i = 0; i < imgstr.size(); i++)
 					{
-						cur_img_type = i;
+						if (ImGui::Selectable(imgstr[i].data(), i == cur_img_type))
+						{
+							cur_img_type = i;
+						}
+						if (cur_img_type == i)
+						{
+							ImGui::SetItemDefaultFocus();
+						}
 					}
-					if (cur_img_type == i)
-					{
-						ImGui::SetItemDefaultFocus();
-					}
+					ImGui::EndCombo();
 				}
-				ImGui::EndCombo();
 			}
 			ImGui::TextUnformatted("Channel:"); ImGui::SameLine();
 			auto beginBinaryChannelCombo = [](uint8_t& chan, const char* str)
@@ -2392,11 +2534,26 @@ namespace ImGuiSettingsWindow {
 					break;
 				}
 			}
+			if (cur_img_type >= 4)
+			{
+				ImGui::TextUnformatted("Block size:"); ImGui::SameLine();
+				if (ImGui::BeginCombo("##Block size", vhd_block_is_small ? "Small blocks (512 KB)" : "Large blocks (2 MB)"))
+				{
+					if (ImGui::Selectable("Small blocks (512 KB)", vhd_block_is_small)) vhd_block_is_small = true;
+					if (ImGui::Selectable("Large blocks (2 MB)", !vhd_block_is_small)) vhd_block_is_small = false;
+					ImGui::EndCombo();
+				}
+			}
 			if (ImGui::Button("OK"))
 			{
 				if (hdd_new->fn[0] == '\0')
 				{
 					ui_msgbox_header(MBX_ERROR, (void*)L"Invalid configuration", (void*)L"Please specify a valid file name.");
+				}
+				else if (hdd_existing)
+				{
+					temp_hdd[CalcNextFreeHDD()] = *hdd_new;
+					ImGui::CloseCurrentPopup();
 				}
 				else
 				{
@@ -2431,6 +2588,7 @@ namespace ImGuiSettingsWindow {
 					if (cur_img_type >= 3)
 					{
 						HDDCreateVHD creationparams;
+						creationparams.is_small_block = vhd_block_is_small;
 						creationparams.dynamic = cur_img_type == 4;
 						creationparams.differencing = cur_img_type == 5;
 						if (cur_img_type == 5)
@@ -2543,6 +2701,11 @@ namespace ImGuiSettingsWindow {
 			if (ImGui::Button("Add..."))
 			{
 				OpenHDDCreationDialog();
+			}
+			ImGui::SameLine();
+			if (ImGui::Button("Existing..."))
+			{
+				OpenHDDCreationDialog(true);
 			}
 		}
 		if (CalcNextFreeHDD() != 0)

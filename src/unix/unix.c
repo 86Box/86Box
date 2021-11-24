@@ -268,6 +268,22 @@ wchar_t* plat_get_string(int i)
             return L"Hardware not available";
         case IDS_2142:
             return L"Monitor in sleep mode";
+        case IDS_4119:
+            return L"Unsupported disk image";
+        case IDS_4109:
+            return L"HDI or HDX images with a sector size other than 512 are not supported.";
+        case IDS_4114:
+            return L"Make sure the file exists and is readable.";
+        case IDS_4115:
+            return L"Make sure the file is being saved to a writable directory.";
+        case IDS_4133:
+            return L"Parent and child disk timestamps do not match";
+        case IDS_4132:
+            return L"This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?";
+        case IDS_2049:
+            return L"Error";
+        case 0:
+            return NULL;
     }
     return L"";
 }
