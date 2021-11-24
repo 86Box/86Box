@@ -54,7 +54,7 @@
 #include <86box/vid_svga_render.h>
 
 
-#define BIOS_ROM_PATH		"roms/video/et4000/et4000.bin"
+#define BIOS_ROM_PATH		"roms/video/et4000/ET4000.BIN"
 #define KOREAN_BIOS_ROM_PATH 	"roms/video/et4000/tgkorvga.bin"
 #define KOREAN_FONT_ROM_PATH 	"roms/video/et4000/tg_ksc5601.rom"
 #define KASAN_BIOS_ROM_PATH 	"roms/video/et4000/et4000_kasan16.bin"

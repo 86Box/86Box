@@ -98,10 +98,10 @@ BEGIN
     MENUITEM "&Media",                                                  IDM_MEDIA
     POPUP "&Työkalut"
     BEGIN
-        MENUITEM "&Asetukset...",                                       IDM_CONFIG
+        MENUITEM "&Kokoonpano...",                                      IDM_CONFIG
         MENUITEM "&Päivitä tilapalkin kuvakkeita",                      IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Change program &settings...",                         IDM_VID_PROG_SETT
+        MENUITEM "&Sovellusasetukset...",                               IDM_PREFERENCES
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Käytä &Discord integraatiota",                        IDM_DISCORD
@@ -273,10 +273,10 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT       "Program Settings"
+#define STR_PREFERENCES     "Sovellusasetukset"
 #define STR_SND_GAIN        "Äänen tulotaso"
 #define STR_NEW_FLOPPY      "Uusi levykuva"
-#define STR_CONFIG          "86Box Asetukset"
+#define STR_CONFIG          "Tietokoneen kokoonpano"
 #define STR_SPECIFY_DIM     "Määritä pääikkunan koko"
 
 #define STR_OK              "OK"
@@ -307,7 +307,7 @@ END
 #define STR_MB              "Mt"
 #define STR_MEMORY          "Muisti:"
 #define STR_TIME_SYNC       "Kellon synkronointi"
-#define STR_DISABLED        "Poistettu käytöstä"
+#define STR_DISABLED        "Ei käytössä"
 #define STR_ENABLED_LOCAL   "Käytössä (paikallinen)"
 #define STR_ENABLED_UTC     "Käytössä (UTC)"
 #define STR_DYNAREC         "Dynaaminen uudelleenkääntäjä"
@@ -383,7 +383,7 @@ END
 #define STR_ZIP_DRIVES      "ZIP-asemat:"
 #define STR_250             "ZIP 250"
 
-#define STR_ISARTC          "ISA-reaaliaikakello:"
+#define STR_ISARTC          "ISA-RTC (kello):"
 #define STR_ISAMEM          "ISA-muistilaajennus"
 #define STR_ISAMEM_1        "Kortti 1:"
 #define STR_ISAMEM_2        "Kortti 2:"
@@ -598,11 +598,11 @@ BEGIN
 
     IDS_5120    "CD-ROM %i (%s): %s"
 
-    IDS_5376    "Poistettu käytöstä"
+    IDS_5376    "Ei käytössä"
     IDS_5381    "ATAPI"
     IDS_5382    "SCSI"
 
-    IDS_5632    "Poistettu käytöstä"
+    IDS_5632    "Ei käytössä"
     IDS_5637    "ATAPI (%01i:%01i)"
     IDS_5638    "SCSI (%01i:%02i)"
 

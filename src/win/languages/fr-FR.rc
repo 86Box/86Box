@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "&Réglages...",                IDM_CONFIG
         MENUITEM "Mettre à jour la barre de stat&us",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Changer la &langue...",    IDM_VID_PROG_SETT
+        MENUITEM "&Preferences...",    IDM_PREFERENCES
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Activer intégration &Discord", IDM_DISCORD
@@ -135,10 +135,10 @@ BEGIN
         MENUITEM "Activer journaux de IDE\tCtrl+F8", IDM_LOG_IDE
 # endif
 # ifdef ENABLE_SERIAL_LOG
-        MENUITEM "Activer journaux de porte sériel\tCtrl+F3", IDM_LOG_SERIAL
+        MENUITEM "Activer journaux de port série\tCtrl+F3", IDM_LOG_SERIAL
 # endif
 # ifdef ENABLE_NIC_LOG
-        MENUITEM "Activer journaux de réseau\tCtrl+F9", IDM_LOG_NIC
+        MENUITEM "Activer journaux du réseau\tCtrl+F9", IDM_LOG_NIC
 # endif
 # ifdef ENABLE_LOG_COMMANDS
 #  ifdef ENABLE_LOG_TOGGLES
@@ -172,7 +172,7 @@ BEGIN
         MENUITEM "&Nouvelle image...",				IDM_CASSETTE_IMAGE_NEW
         MENUITEM SEPARATOR
         MENUITEM "Image &Existante...",				IDM_CASSETTE_IMAGE_EXISTING
-        MENUITEM "Existing image (&Write-protected)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM "Image Exsistane(&Lecture seule)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "En&registrer",					IDM_CASSETTE_RECORD
         MENUITEM "&Jouer",					IDM_CASSETTE_PLAY
@@ -200,7 +200,7 @@ BEGIN
         MENUITEM "&Nouvelle image...",				IDM_FLOPPY_IMAGE_NEW
         MENUITEM SEPARATOR
         MENUITEM "Image &Existante...",				IDM_FLOPPY_IMAGE_EXISTING
-        MENUITEM "Existing image (&Write-protected)...",	IDM_FLOPPY_IMAGE_EXISTING_WP
+        MENUITEM "Image Existante(&Lecture seule)...",	IDM_FLOPPY_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "E&xport vers 86F...",				IDM_FLOPPY_EXPORT_TO_86F
         MENUITEM SEPARATOR
@@ -212,7 +212,7 @@ CdromSubmenu MENU DISCARDABLE
 BEGIN
     POPUP ""
     BEGIN
-        MENUITEM "&Mute",					IDM_CDROM_MUTE
+        MENUITEM "&Couper",					IDM_CDROM_MUTE
         MENUITEM SEPARATOR
         MENUITEM "E&jecter",					IDM_CDROM_EMPTY
         MENUITEM "&Recharger image précedente",			IDM_CDROM_RELOAD
@@ -228,7 +228,7 @@ BEGIN
         MENUITEM "&Nouvelle image...",				IDM_ZIP_IMAGE_NEW
         MENUITEM SEPARATOR
         MENUITEM "Image &Existante...",				IDM_ZIP_IMAGE_EXISTING
-        MENUITEM "Existing image (&Write-protected)...",	IDM_ZIP_IMAGE_EXISTING_WP
+        MENUITEM "Image Existante (&Lecture Seule)...",	IDM_ZIP_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "E&jecter",					IDM_ZIP_EJECT
         MENUITEM "&Recharger image précédente",			IDM_ZIP_RELOAD
@@ -242,7 +242,7 @@ BEGIN
         MENUITEM "&Nouvelle image...",			IDM_MO_IMAGE_NEW
         MENUITEM SEPARATOR
         MENUITEM "Image &Existante...",				IDM_MO_IMAGE_EXISTING
-        MENUITEM "Image Existante (&Write-protected)...",	IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM "Image Existante (&Lecture Seule)...",	IDM_MO_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "E&jecter",					IDM_MO_EJECT
         MENUITEM "&Recharger image précédente",			IDM_MO_RELOAD
@@ -273,7 +273,7 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Changer langue"
+#define STR_PREFERENCES		"86Box Preferences"
 #define STR_SND_GAIN		"Gain son"
 #define STR_NEW_FLOPPY		"Nouvelle image"
 #define STR_CONFIG		"Réglages 86Box"
@@ -281,7 +281,7 @@ END
 
 #define STR_OK			"OK"
 #define STR_CANCEL		"Annuler"
-#define STR_GLOBAL		"Salve ces paramètres comme valeurs par défaut &globales"
+#define STR_GLOBAL		"Sauver ces paramètres comme valeurs par défaut &globales"
 #define STR_DEFAULT		"&Défaut"
 #define STR_LANGUAGE		"Langue:"
 #define STR_ICONSET		"Ensemble d'icônes:"
@@ -297,10 +297,10 @@ END
 #define STR_HEIGHT		"Hauteur:"
 #define STR_LOCK_TO_SIZE	"Verrouiller à cette taille"
 
-#define STR_MACHINE_TYPE	"Type de la machine:"
+#define STR_MACHINE_TYPE	"Type de machine:"
 #define STR_MACHINE		"Machine:"
 #define STR_CONFIGURE		"Configurer"
-#define STR_CPU_TYPE		"Typ du processeur:"
+#define STR_CPU_TYPE		"Type du processeur:"
 #define STR_SPEED		"Vitesse:"
 #define STR_FPU			"FPU:"
 #define STR_WAIT_STATES		"États d'attente:"
@@ -338,10 +338,10 @@ END
 #define STR_LPT1		"Dispositif LPT1:"
 #define STR_LPT2		"Dispositif LPT2:"
 #define STR_LPT3		"Dispositif LPT3:"
-#define STR_SERIAL1		"Port sériel 1"
-#define STR_SERIAL2		"Port sériel 2"
-#define STR_SERIAL3		"Port sériel 3"
-#define STR_SERIAL4		"Port sériel 4"
+#define STR_SERIAL1		"Port série 1"
+#define STR_SERIAL2		"Port série 2"
+#define STR_SERIAL3		"Port série 3"
+#define STR_SERIAL4		"Port série 4"
 #define STR_PARALLEL1		"Port parallèle 1"
 #define STR_PARALLEL2		"Port parallèle 2"
 #define STR_PARALLEL3		"Port parallèle 3"
@@ -375,12 +375,12 @@ END
 #define STR_BLOCK_SIZE		"Taille du bloc:"
 
 #define STR_FLOPPY_DRIVES	"Lecteurs de disquettes:"
-#define STR_TURBO		"Temps de turbo"
+#define STR_TURBO		"Turbo"
 #define STR_CHECKBPB		"Vérifier BPB"
 #define STR_CDROM_DRIVES	"Lecterus CD-ROM:"
 
 #define STR_MO_DRIVES		"Lecteurs magnéto-optiques:"
-#define STR_ZIP_DRIVES		"Lecterus ZIP:"
+#define STR_ZIP_DRIVES		"Lecteurs ZIP:"
 #define STR_250			"ZIP 250"
 
 #define STR_ISARTC		"Horloge temps réel ISA:"
@@ -406,7 +406,7 @@ STRINGTABLE DISCARDABLE
 BEGIN
     2048	"86Box"
     IDS_2049	"Erreur"
-    IDS_2050	"Erreur fatal"
+    IDS_2050	"Erreur fatale"
     IDS_2051	"<reservée>"
     IDS_2052	"Appuyez sur CTRL+ALT+PAGE ↓ pour revenir au mode fenêtré."
     IDS_2053	"Vitesse"
@@ -419,12 +419,12 @@ BEGIN
     IDS_2060	"Activé"
     IDS_2061	"Désactivé"
     IDS_2062	"Tous les images (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Images basiques du secteur (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Images de la surface (*.86F)\0*.86F\0"
-    IDS_2063	"La machine ""%hs"" n'est pas disponible en raison de l'absence de ROMs en le répertoire roms/machines. Basculer vers une machine disponible."
+    IDS_2063	"La machine ""%hs"" n'est pas disponible en raison de l'absence de ROMs dans le répertoire roms/machines. Basculer vers une machine disponible."
 END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_2064	"La carte vidéo ""%hs"" n'est pas disponible en raison de l'absence de ROMs en le répertoire roms/video. Basculer vers une carte vidéo disponible."
+    IDS_2064	"La carte vidéo ""%hs"" n'est pas disponible en raison de l'absence de ROMs dans le répertoire roms/video. Basculer vers une carte vidéo disponible."
     IDS_2065	"Machine"
     IDS_2066	"Affichage"
     IDS_2067	"Dispositifs d'entrée"
@@ -460,10 +460,10 @@ BEGIN
     IDS_2093	"Impossible d'initialiser PCap"
     IDS_2094	"Aucun dispositif PCap trouvé"
     IDS_2095	"Dispositif PCap non valide"
-    IDS_2096	"Manette(s) de command standard avec 2 boutons"
-    IDS_2097	"Manette de command standard avec 4 boutons"
-    IDS_2098	"Manette de command standard avec 6 boutons"
-    IDS_2099	"Manette de command standard avec 6 boutons"
+    IDS_2096	"Manette(s) standard avec 2 boutons"
+    IDS_2097	"Manette standard avec 4 boutons"
+    IDS_2098	"Manette standard avec 6 boutons"
+    IDS_2099	"Manette standard avec 6 boutons"
     IDS_2100	"CH Flightstick Pro"
     IDS_2101	"Microsoft SideWinder Pad"
     IDS_2102	"Système de contrôle de vol Thrustmaster"
@@ -477,16 +477,16 @@ BEGIN
     IDS_2110	"Impossible d'initialiser FreeType"
     IDS_2111	"Impossible d'initialiser SDL, SDL2.dll est nécessaire"
     IDS_2112	"Etes-vous sûr de vouloir réinitialiser la machine émulée ?"
-    IDS_2113	"Etes-vous sûr de vouloir sortir du86Box?"
+    IDS_2113	"Etes-vous sûr de vouloir quitter 86Box?"
     IDS_2114	"Impossible d'initialiser Ghostscript"
     IDS_2115	"Magnéto-optique %i (%ls): %ls"
     IDS_2116	"Images magnéto-optiques (*.IM?;*.MDI)\0*.IM?;*.MDI\0Tous les fichiers (*.*)\0*.*\0"
-    IDS_2117	"Bienvenues dans 86Box !"
+    IDS_2117	"Bienvenue dans 86Box !"
     IDS_2118	"Côntrolleur interne"
     IDS_2119	"Sortir"
     IDS_2120	"Pas de ROMs trouvées"
     IDS_2121	"Voulez-vous sauver les paramètres ?"
-    IDS_2122	"Ce entraînera la réinitialisation complète de la machine émulée."
+    IDS_2122	"Cela entraînera la réinitialisation complète de la machine émulée."
     IDS_2123	"Sauver"
     IDS_2124	"À propos de 86Box"
     IDS_2125	"86Box v" EMU_VERSION
@@ -499,7 +499,7 @@ BEGIN
 #else
 #define LIB_NAME_PCAP "libpcap"
 #endif
-    IDS_2129	"Assurez-vous que " LIB_NAME_PCAP " est installé e que vou utilizes une connexion de réseau compatible avec " LIB_NAME_PCAP "."
+    IDS_2129	"Assurez-vous que " LIB_NAME_PCAP " est installé et que vou utilisez une connexion réseau compatible avec " LIB_NAME_PCAP "."
     IDS_2130	"Configuration non valide"
 #ifdef _WIN32
 #define LIB_NAME_FREETYPE "freetype.dll"
@@ -549,22 +549,22 @@ BEGIN
     IDS_4101	"Personnalisé (grand)..."
     IDS_4102	"Ajouter un nouveau disque dur"
     IDS_4103	"Ajouter un disque dur existant"
-    IDS_4104	"Les images de disque HDI ne peuvent pas être plus grandes de 4 Go."
-    IDS_4105	"Les images de disque ne peuvent pas être plus grandes de 127 Go."
+    IDS_4104	"Les images de disque HDI ne peuvent pas avoir une taille supériure à Go."
+    IDS_4105	"Les images de disque ne peuvent pas avoir un taille supérieure à 127 Go."
     IDS_4106	"Images de dique dur (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0Tous les fichiers (*.*)\0*.*\0"
     IDS_4107	"Impossible de lire le fichier"
     IDS_4108	"Impossible d'écrire le fichier"
-    IDS_4109	"Les images HDI ou HDX avec une taille de secteur que non est 512 non sont pas prises en charge."
-    IDS_4110	"USB n'est pas encore pris en charge"
-    IDS_4111	"Le fichier de la image du sique déjà existe"
+    IDS_4109	"Les images HDI ou HDX avec une taille de secteur différente de 512 non sont pas prises en charge."
+    IDS_4110	"USB n'est pas encore pris en charge."
+    IDS_4111	"Le fichier de l'image disque existe déjà."
     IDS_4112	"Veuillez spécifier un nom de fichier valide."
     IDS_4113	"Image de disque créée"
     IDS_4114	"Assurez-vous que le fichier existe et est lisible."
-    IDS_4115	"Assurez-vous que est en train d'être sauvé dans une répertoire accessible en écriture."
-    IDS_4116	"Image de disque trop grande"
+    IDS_4115	"Assurez-vous que le fichier en cours d'enregistrement se trouve dans un répertoire accessible en écriture."
+    IDS_4116	"Image disque trop grande"
     IDS_4117	"N'oubliez pas de partitionner et de formater le nouveau disque créé."
     IDS_4118	"Le fichier sélectionné sera écrasé. Etes-vous sûr de vouloir l'utiliser?"
-    IDS_4119	"Image de sique non prise en charge"
+    IDS_4119	"Image disque non prise en charge"
     IDS_4120	"Écraser"
     IDS_4121	"Ne pas écraser"
     IDS_4122	"Image brute (.img)"
@@ -577,7 +577,7 @@ BEGIN
     IDS_4129	"Blocs petits (512 KB)"
     IDS_4130	"Fichiers VHD (*.VHD)\0*.VHD\0Tous les fichiers (*.*)\0*.*\0"
     IDS_4131	"Sélectionnez le VHD parent"
-    IDS_4132	"Est possible que la image parente a été modifié après la création de la image à différenciation.\n\nEst même possible que les fichiers de la image ont été déplacés ou copiés ou il était une bogue dans le programme que a créé ce disque.\n\nVoulez-vous Do you want to réparer l'horodatage?"
+    IDS_4132	"Il est possible que l'image parente a été modifié après la création de l'image à différenciation.\n\nIl est même possible que les fichiers de l'mage ont été déplacés ou copiés ou il existe un bogue dans le programme que a créé ce disque.\n\nVoulez-vous réparer l'horodatage?"
     IDS_4133	"Les horodatages des disques parent et enfant ne correspondent pas"
     IDS_4134	"Impossible de réparer l'horodatage du VHD."
     IDS_4135	"%01i:%02i"

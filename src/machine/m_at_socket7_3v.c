@@ -114,7 +114,7 @@ machine_at_p54tp4xe_mr_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/p54tp4xe_mr/TRITON.BIO",
+    ret = bios_load_linear("roms/machines/p54tp4xe/TRITON.BIO",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)
@@ -131,8 +131,8 @@ machine_at_gw2katx_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear_combined("roms/machines/gw2katx/1003cn0t.bio",
-				    "roms/machines/gw2katx/1003cn0t.bi1", 0x20000, 128);
+    ret = bios_load_linear_combined("roms/machines/gw2katx/1003CN0T.BIO",
+				    "roms/machines/gw2katx/1003CN0T.BI1", 0x20000, 128);
 
     if (bios_only || !ret)
 	return ret;

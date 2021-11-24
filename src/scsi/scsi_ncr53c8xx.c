@@ -47,7 +47,7 @@
 
 
 #define NCR53C8XX_SDMS3_ROM	"roms/scsi/ncr53c8xx/NCR307.BIN"
-#define SYM53C8XX_SDMS4_ROM	"roms/scsi/ncr53c8xx/8xx_64.ROM"
+#define SYM53C8XX_SDMS4_ROM	"roms/scsi/ncr53c8xx/8xx_64.rom"
 
 #define HA_ID		  7
 

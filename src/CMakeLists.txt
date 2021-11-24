@@ -16,25 +16,32 @@
 #
 
 # Prepare the macOS app bundle icon depending on the release channel
-if(RELEASE_BUILD)
-	set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/release/86Box.icns)
-elseif(BETA_BUILD)
-	set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/beta/86Box.icns)
-elseif(ALPHA_BUILD)
-	set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/dev/86Box.icns)
-else()
-	set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/branch/86Box.icns)
-endif()
+set(APP_ICON_MACOSX)
+if (APPLE)
+	if(RELEASE_BUILD)
+		set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/release/86Box.icns)
+	elseif(BETA_BUILD)
+		set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/beta/86Box.icns)
+	elseif(ALPHA_BUILD)
+		set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/dev/86Box.icns)
+	else()
+		set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/branch/86Box.icns)
+	endif()
 
 set_source_files_properties(${APP_ICON_MACOSX} PROPERTIES
         MACOSX_PACKAGE_LOCATION "Resources")
-        
+endif()
+
 # WIN32 marks us as a GUI app on Windows
 # MACOSX_BUNDLE prepares a macOS application bundle including with the app icon
 add_executable(86Box WIN32 MACOSX_BUNDLE 86box.c config.c log.c random.c timer.c io.c acpi.c apm.c
 	dma.c ddma.c nmi.c pic.c pit.c port_6x.c port_92.c ppi.c pci.c mca.c usb.c
 	device.c nvr.c nvr_at.c nvr_ps2.c ${APP_ICON_MACOSX})
- 
+
+if(APPLE)
+	target_link_libraries(86Box "-framework AppKit")
+endif()
+
 if(NEW_DYNAREC)
 	add_compile_definitions(USE_NEW_DYNAREC)
 endif()
@@ -80,27 +87,39 @@ if(MINGW)
 	set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".dll.a")
 endif()
 
+# Variables introduced by richardg867 for versioning stuff
+if(NOT CMAKE_PROJECT_VERSION_PATCH)
+	set(CMAKE_PROJECT_VERSION_PATCH 0)
+endif()
+if(NOT EMU_BUILD_NUM)
+	set(EMU_BUILD_NUM 0)
+endif()
+if(NOT EMU_COPYRIGHT_YEAR)
+	set(EMU_COPYRIGHT_YEAR 2021)
+endif()
+
 #some macOS specific configuration steps
 if(APPLE)
-  # Force using the newest library if it's installed by homebrew
+# Force using the newest library if it's installed by homebrew
   set(CMAKE_FIND_FRAMEWORK LAST)
   
+
   # prepare stuff for macOS app bundles
   set(CMAKE_MACOSX_BUNDLE 1)
 
-  # setting our compilation target to macOS Mojave (macOS version 10.14), can be eventually changed to macOS 10.13 High Sierra
+  # setting our compilation target to macOS 10.13 High Sierra
   set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
   
   # set the Info.plist properly
   set_target_properties(86Box PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/mac/Info.plist.in)
   set(MACOSX_BUNDLE_GUI_IDENTIFIER net.86Box.86Box)
   set(MACOSX_BUNDLE_BUNDLE_NAME 86Box)
-  set(MACOSX_BUNDLE_BUNDLE_VERSION 3.0)
-  set(MACOSX_BUNDLE_SHORT_VERSION_STRING "3.0")
-  set(MACOSX_BUNDLE_LONG_VERSION_STRING "3.0.0")
+  set(MACOSX_BUNDLE_BUNDLE_VERSION 3.0.${EMU_BUILD_NUM})
+  set(MACOSX_BUNDLE_SHORT_VERSION_STRING "3.0.${EMU_BUILD_NUM}")
+  set(MACOSX_BUNDLE_LONG_VERSION_STRING "3.0.${EMU_BUILD_NUM}")
   set(MACOSX_BUNDLE_ICON_FILE 86Box.icns)
   set(MACOSX_BUNDLE_INFO_STRING "A emulator of old computers")
-  set(MACOSX_BUNDLE_COPYRIGHT "© 2007-2021 Sarah Walker, Miran Grča, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others")
+  set(MACOSX_BUNDLE_COPYRIGHT "© 2007-${EMU_COPYRIGHT_YEAR} 86Box contributors")
 
   
   # preparing the code signing for easier distribution, Apple dev certificate needed at one point
@@ -138,15 +157,6 @@ find_package(PNG REQUIRED)
 include_directories(${PNG_INCLUDE_DIRS})
 target_link_libraries(86Box PNG::PNG)
 
-if(NOT CMAKE_PROJECT_VERSION_PATCH)
-	set(CMAKE_PROJECT_VERSION_PATCH 0)
-endif()
-if(NOT EMU_BUILD_NUM)
-	set(EMU_BUILD_NUM 0)
-endif()
-if(NOT EMU_COPYRIGHT_YEAR)
-	set(EMU_COPYRIGHT_YEAR 2021)
-endif()
 configure_file(include/86box/version.h.in include/86box/version.h @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 
@@ -184,7 +194,6 @@ endif()
 if(APPLE)
 	set(APPS ${CMAKE_CURRENT_BINARY_DIR}/86Box.app)
 	install(CODE "
-        	include(InstallRequiredSystemLibraries)
         	include(BundleUtilities)
         	fixup_bundle(\"${APPS}\" \"\" \"\")"
     	COMPONENT Runtime)
@@ -212,7 +221,10 @@ add_subdirectory(sio)
 add_subdirectory(scsi)
 add_subdirectory(sound)
 add_subdirectory(video)
-if (WIN32)
+if(APPLE)
+	add_subdirectory(mac)
+	add_subdirectory(unix)
+elseif(WIN32)
 	add_subdirectory(win)
 else()
 	add_subdirectory(unix)

@@ -641,6 +641,8 @@ load_machine(void)
 		machine = machine_get_machine_from_internal_name("p54tp4xe_mr");
 	else if (! strcmp(p, "pcv240"))
 		machine = machine_get_machine_from_internal_name("pcv90");
+	else if (! strcmp(p, "v60n"))
+		machine = machine_get_machine_from_internal_name("acerv60n");
 	else if (! strcmp(p, "tsunamiatx"))
 		machine = machine_get_machine_from_internal_name("s1846");
 	else if (! strcmp(p, "trinity371"))
@@ -832,8 +834,7 @@ load_machine(void)
     p = (char *)config_get_string(cat, "fpu_type", "none");
     fpu_type = fpu_get_type(cpu_f, cpu, p);
 
-    mem_size = config_get_int(cat, "mem_size", 4096);
-	
+    mem_size = config_get_int(cat, "mem_size", 64);	
 #if 0
     if (mem_size < (((machines[machine].flags & MACHINE_AT) &&
         (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram))
@@ -2059,7 +2060,7 @@ config_load(void)
 
 	/* Unmute the CD audio on the first CD-ROM drive. */
 	cdrom[0].sound_on = 1;
-	mem_size = 640;
+	mem_size = 64;
 	isartc_type = 0;
 	for (i = 0; i < ISAMEM_MAX; i++)
 		isamem_type[i] = 0;
