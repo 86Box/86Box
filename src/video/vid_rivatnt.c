@@ -33,6 +33,8 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/video.h>
+#include <86box/i2c.h>
+#include <86box/vid_ddc.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_svga_render.h>
 
@@ -59,11 +61,6 @@ typedef struct rivatnt_t
 	uint8_t		int_line;
 
 	int			card;
-
-	struct
-	{
-		int sda, scl;
-	} i2c;
 
 	struct
 	{
@@ -112,6 +109,12 @@ typedef struct rivatnt_t
 
 	struct
 	{
+		uint32_t fifo_enable;
+	} pgraph;
+	
+
+	struct
+	{
 		uint32_t nvpll, mpll, vpll;
 	} pramdac;
 
@@ -120,9 +123,13 @@ typedef struct rivatnt_t
 	pc_timer_t nvtimer;
 	pc_timer_t mtimer;
 
-	uint64_t nvtime;
-	uint64_t mtime;
+	double nvtime;
+	double mtime;
+
+	void *i2c, *ddc;
 } rivatnt_t;
+
+static video_timings_t timing_rivatnt		= {VIDEO_PCI, 2,  2,  1,  20, 20, 21};
 
 static uint8_t rivatnt_in(uint16_t addr, void *p);
 static void rivatnt_out(uint16_t addr, uint8_t val, void *p);
@@ -507,7 +514,7 @@ void
 rivatnt_ptimer_tick(void *p)
 {
 	rivatnt_t *rivatnt = (rivatnt_t *)p;
-	pclog("[RIVA TNT] PTIMER tick! mul %04x div %04x\n", rivatnt->ptimer.clock_mul, rivatnt->ptimer.clock_div);
+	//pclog("[RIVA TNT] PTIMER tick! mul %04x div %04x\n", rivatnt->ptimer.clock_mul, rivatnt->ptimer.clock_div);
 
 	double time = ((double)rivatnt->ptimer.clock_mul * 10.0) / (double)rivatnt->ptimer.clock_div; //Multiply by 10 to avoid timer system limitations.
 	uint32_t tmp;
@@ -522,7 +529,7 @@ rivatnt_ptimer_tick(void *p)
 
 	//alarm_check = ((uint32_t)rivatnt->ptimer.time >= (uint32_t)rivatnt->ptimer.alarm);
 
-	pclog("[RIVA TNT] Timer %08x %016llx %08x %d\n", rivatnt->ptimer.alarm, rivatnt->ptimer.time, tmp, alarm_check);
+	//pclog("[RIVA TNT] Timer %08x %016llx %08x %d\n", rivatnt->ptimer.alarm, rivatnt->ptimer.time, tmp, alarm_check);
 
 	if(alarm_check)
 	{
@@ -580,7 +587,7 @@ rivatnt_mmio_read_l(uint32_t addr, void *p)
 	if ((addr >= 0x1800) && (addr <= 0x18ff))
 		ret = (rivatnt_pci_read(0,(addr+0) & 0xff,p) << 0) | (rivatnt_pci_read(0,(addr+1) & 0xff,p) << 8) | (rivatnt_pci_read(0,(addr+2) & 0xff,p) << 16) | (rivatnt_pci_read(0,(addr+3) & 0xff,p) << 24);
 
-	pclog("[RIVA TNT] MMIO read %08x returns value %08x\n", addr, ret);
+	if(addr != 0x9400) pclog("[RIVA TNT] MMIO read %08x returns value %08x\n", addr, ret);
 
 	return ret;
 }
@@ -873,8 +880,7 @@ rivatnt_out(uint16_t addr, uint8_t val, void *p)
 					rivatnt->rma.rma_mode = val & 0xf;
 					break;
 				case 0x3f:
-					rivatnt->i2c.sda = (val >> 4) & 1;
-					rivatnt->i2c.scl = (val >> 5) & 1;
+					i2c_gpio_set(rivatnt->i2c, !!(val & 0x20), !!(val & 0x10));
 					break;
 			}
 		}
@@ -916,7 +922,7 @@ rivatnt_in(uint16_t addr, void *p)
 		switch(svga->crtcreg) {
 			case 0x3e:
 					/* DDC status register */
-				temp = (rivatnt->i2c.sda << 3) | (rivatnt->i2c.scl << 2);
+				temp = (i2c_gpio_get_sda(rivatnt->i2c) << 3) | (i2c_gpio_get_scl(rivatnt->i2c) << 2);
 				break;
 			default:
 				temp = svga->crtc[svga->crtcreg];
@@ -1058,6 +1064,11 @@ static void
 
 	timer_add(&rivatnt->nvtimer, rivatnt_nvclk_poll, rivatnt, 0);
 	timer_add(&rivatnt->mtimer, rivatnt_mclk_poll, rivatnt, 0);
+
+	video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_rivatnt);
+
+	rivatnt->i2c = i2c_gpio_init("ddc_rivatnt");
+	rivatnt->ddc = ddc_init(i2c_gpio_get_bus(rivatnt->i2c));
 
 	return rivatnt;
 }

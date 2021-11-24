@@ -220,7 +220,7 @@ typedef struct riva128_t
 	void *i2c, *ddc;
 } riva128_t;
 
-static video_timings_t timing_riva128		= {VIDEO_BUS, 2,  2,  1,  20, 20, 21};
+static video_timings_t timing_riva128		= {VIDEO_PCI, 2,  2,  1,  20, 20, 21};
 
 static uint8_t riva128_in(uint16_t addr, void *p);
 static void riva128_out(uint16_t addr, uint8_t val, void *p);
