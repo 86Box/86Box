@@ -83,7 +83,7 @@ def anyFailure = false
 def gitClone(branch) {
 	/* Read git tag from environment or set the default one. */
 	if (env.GIT_COMMIT == null)
-		env.GIT_COMMIT = branch
+		env.GIT_COMMIT = "*/$branch"
 	println "[-] Using git tag [${env.GIT_COMMIT}]"
 
 	/* Clean workspace. */
