@@ -44,7 +44,7 @@ typedef struct sb_dsp_t
 	uint8_t sb_data[8];
 
 	int sb_freq;
-        
+
 	int16_t sbdat;
 	int sbdat2;
 	int16_t sbdatl, sbdatr;
@@ -69,9 +69,9 @@ typedef struct sb_dsp_t
 	uint8_t sb_8051_ram[256];
         
 	int sbenable, sb_enable_i;
-        
+
 	pc_timer_t output_timer, input_timer;
-        
+
 	uint64_t sblatcho, sblatchi;
 
 	uint16_t sb_addr;
