@@ -15,6 +15,9 @@
  *		Copyright 2021 RichardG.
  */
 
+def repository = 'https://github.com/86Box/86Box.git'
+def branch = 'master'
+
 def osArchs = [
 	'Windows': ['32', '64'],
 	'Linux': ['x86', 'x86_64', 'arm32', 'arm64']
@@ -77,11 +80,10 @@ def presetFlags = [
 
 def anyFailure = false
 
-def gitClone() {
+def gitClone(repository, branch) {
 	/* Read git tag from environment or set the default one. */
-	def branch = 'master'
 	if (env.GIT_COMMIT == null)
-		env.GIT_COMMIT = branch
+		env.GIT_COMMIT = "*/$branch"
 	println "[-] Using git tag [${env.GIT_COMMIT}]"
 
 	/* Clean workspace. */
@@ -90,10 +92,12 @@ def gitClone() {
 	/* Use stashes to avoid performing multiple clones. */
 	if (env.GIT_STASHED != 'true') {
 		/* Perform clone/checkout. */
-		def scmVars = checkout scm: [$class: 'GitSCM',
+		def scmVars = checkout poll: false,
+				       changelog: true,
+				       scm: [$class: 'GitSCM',
 					     branches: [[name: env.GIT_COMMIT]],
 					     extensions: [[$class: 'LocalBranch', localBranch: branch]],
-					     userRemoteConfigs: [[url: 'https://github.com/86Box/86Box.git']]]
+					     userRemoteConfigs: [[url: repository]]]
 		env.GIT_COMMIT = scmVars.GIT_COMMIT
 
 		/* Stash data and mark it as stashed. */
@@ -165,15 +169,23 @@ pipeline {
 							} catch (e) {}
 						}
 
-						/* If the polling log parsing fails, perform a dummy git clone on any node.
-						   Not quite as fast as reading the polling log, but it works as a backup. */
-						if (env.GIT_COMMIT == null) {
-							node {
-								/* Ignore exceptions again as this is not really critical. */
-								try {
-									gitClone()
-								} catch (e) {}
-							}
+						/* Perform a git clone on any node to save polling data and,
+						   if polling log parsing failed, get the current HEAD commit. */
+						node {
+							/* Clean workspace. */
+							cleanWs()
+
+							/* Perform clone/checkout. */
+							def scmVars = checkout poll: true,
+									       changelog: false,
+									       scm: [$class: 'GitSCM',
+										     branches: [[name: branch]],
+										     userRemoteConfigs: [[url: repository]]]
+							if (env.GIT_COMMIT == null)
+								env.GIT_COMMIT = scmVars.GIT_COMMIT
+
+							/* Clean workspace again. */
+							cleanWs()
 						}
 					}
 
@@ -181,7 +193,7 @@ pipeline {
 					node('Linux') {
 						try {
 							/* Run git clone. */
-							gitClone()
+							gitClone(repository, branch)
 
 							/* Switch to temp directory. */
 							dir("${env.WORKSPACE_TMP}/output") {
@@ -215,7 +227,7 @@ pipeline {
 										stage("$os $arch $dynarec $preset") {
 											try {
 												/* Run git clone. */
-												gitClone()
+												gitClone(repository, branch)
 
 												/* Switch to output directory. */
 												dir("${env.WORKSPACE_TMP}/output") {
