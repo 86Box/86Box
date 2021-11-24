@@ -96,7 +96,7 @@ def gitClone(repository, branch) {
 		if (env.GIT_COMMIT == null) {
 			/* Save the current HEAD commit. */
 			env.GIT_COMMIT = scmVars.GIT_COMMIT
-		} else {
+		} else if (env.GIT_COMMIT != scmVars.GIT_COMMIT) {
 			/* Checkout the commit read from the polling log. */
 			if (isUnix())
 				sh "git checkout ${env.GIT_COMMIT} || exit 0"
