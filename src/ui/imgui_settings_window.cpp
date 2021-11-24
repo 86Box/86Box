@@ -63,6 +63,9 @@ extern "C" {
 #include <86box/plat.h>
 #include <86box/plat_midi.h>
 #include <86box/ui.h>
+#ifdef _WIN32
+#include <86box/win.h>
+#endif
 #include "../disk/minivhd/minivhd.h"
 #include "../disk/minivhd/minivhd_util.h"
 }
@@ -1265,6 +1268,36 @@ namespace ImGuiSettingsWindow {
 			OpenDeviceWindow(mouse_get_device(temp_mouse));
 		}
 		ImGui::EndDisabled();
+#ifdef _WIN32
+		ImGui::TextUnformatted("Joystick:"); ImGui::SameLine();
+
+		if (ImGui::BeginCombo("##Joystick", joystick_get_name(temp_joystick)))
+		{
+			c = 0;
+			for (c = 0;;c++)
+			{
+				if (!joystick_get_name(c)) break;
+				if (ImGui::Selectable(joystick_get_name(c), c == temp_joystick))
+				{
+					temp_joystick = c;
+				}
+				if (temp_joystick == c)
+				{
+					ImGui::SetItemDefaultFocus();
+				}
+			}
+			ImGui::EndCombo();
+		}
+		for (int i = 0; i < joystick_get_max_joysticks(temp_joystick); i++)
+		{
+			if (ImGui::Button(("Joystick " + std::to_string(i + 1) + "...").c_str()))
+			{
+				extern "C" HWND GetHWNDFromSDLWindow();
+				temp_deviceconfig |= joystickconfig_open(GetHWNDFromSDLWindow(), i, temp_joystick);
+			}
+			ImGui::SameLine();
+		}
+#endif
 	}
 	int
 	mpu401_standalone_allow(void)
