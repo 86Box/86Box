@@ -2249,7 +2249,13 @@ namespace ImGuiSettingsWindow {
 		f = fopen(fn, hdd_existing ? "r" : "w");
 #endif
 		char* openfilestring = fn;
-		if (!f) return false;
+		if (!f)
+		{
+hdd_add_file_open_error:
+			fclose(f);
+			ui_msgbox_header(MBX_ERROR, (hdd_existing & 1) ? (wchar_t *) IDS_4114 : (wchar_t *) IDS_4115, (hdd_existing & 1) ? (wchar_t *) IDS_4107 : (wchar_t *) IDS_4108);
+			return false;
+		}
         if (image_is_hdi(openfilestring) ||
             image_is_hdx(openfilestring, 1))
 		{
@@ -2346,7 +2352,10 @@ namespace ImGuiSettingsWindow {
 			}
 
             tracks = ((size >> 9) / hpc) / spt;
+			if ((spt > max_spt) || (hpc > max_hpc) || (tracks > max_tracks))
+				goto hdd_add_file_open_error;
         }
+		fclose(f);
 		hdd_new->spt = spt;
 		hdd_new->hpc = hpc;
 		hdd_new->tracks = tracks;
