@@ -325,7 +325,7 @@ machine_at_pat54pv_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/pat54pv/pat54pv.bin",
+    ret = bios_load_linear("roms/machines/pat54pv/PAT54PV.bin",
 			   0x000f0000, 65536, 0);
 
     if (bios_only || !ret)

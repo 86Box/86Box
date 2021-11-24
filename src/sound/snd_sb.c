@@ -1615,7 +1615,6 @@ sb_pro_compat_init(const device_t *info)
  
     sb->mixer_enabled = 1;
     sound_add_handler(sb_get_buffer_sbpro, sb);
-    sound_set_cd_audio_filter(sbpro_filter_cd_audio, sb);
 
     sb->mpu = (mpu_t *) malloc(sizeof(mpu_t));
     memset(sb->mpu, 0, sizeof(mpu_t));

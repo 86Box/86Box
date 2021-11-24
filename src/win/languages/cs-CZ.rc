@@ -1,5 +1,5 @@
 ////////////////////////////////////////////////////////////////////////////
-// English (U.S.) resources
+// Czech (Czech Republic) resources
 
 #ifdef _WIN32
 LANGUAGE LANG_CZECH, SUBLANG_DEFAULT
@@ -58,7 +58,7 @@ BEGIN
             MENUITEM "1.&5x",					IDM_VID_SCALE_3X
             MENUITEM "&2x",					IDM_VID_SCALE_4X
         END
-        POPUP "Metoda filtrování"
+        POPUP "Metoda &filtrování"
         BEGIN
             MENUITEM "&Nejbližší",				IDM_VID_FILTER_NEAREST
             MENUITEM "&Lineární",				IDM_VID_FILTER_LINEAR
@@ -66,12 +66,12 @@ BEGIN
         MENUITEM "Š&kálování HiDPI",				IDM_VID_HIDPI
         MENUITEM SEPARATOR
         MENUITEM "&Celá obrazovka\tCtrl+Alt+PageUP",		IDM_VID_FULLSCREEN
-        POPUP "Fullscreen &stretch mode"
+        POPUP "Režím roztá&hnutí při celé obrazovce"
         BEGIN
             MENUITEM "&Roztáhnout",				IDM_VID_FS_FULL
             MENUITEM "&4:3",					IDM_VID_FS_43
             MENUITEM "&Zachovat poměr stran",			IDM_VID_FS_KEEPRATIO
-            MENUITEM "&Integer scale",				IDM_VID_FS_INT
+            MENUITEM "&Celočíselné škálování",			IDM_VID_FS_INT
         END
         POPUP "Nastavení pro E&GA a (S)VGA"
         BEGIN
@@ -79,7 +79,7 @@ BEGIN
             POPUP "&Typ VGA monitoru"
             BEGIN
                 MENUITEM "RGB &barevný",			IDM_VID_GRAY_RGB
-                MENUITEM "&RGB odstíny šedi",			IDM_VID_GRAY_MONO
+                MENUITEM "&Odstíny šedi",			IDM_VID_GRAY_MONO
                 MENUITEM "&Jantarová obrazovka",		IDM_VID_GRAY_AMBER
                 MENUITEM "&Zelená obrazovka",			IDM_VID_GRAY_GREEN
                 MENUITEM "&Bílá obrazovka",			IDM_VID_GRAY_WHITE
@@ -92,8 +92,8 @@ BEGIN
             END
         END
         MENUITEM SEPARATOR
-        MENUITEM "CGA/PCjr/Tandy/E&GA/(S)VGA overscan",		IDM_VID_OVERSCAN
-        MENUITEM "&Upravit kontrast černobílých obrazovek",	IDM_VID_CGACON
+        MENUITEM "Přesah obrazu CGA/PCjr/Tandy/E&GA/(S)VGA",	IDM_VID_OVERSCAN
+        MENUITEM "&Upravit kontrast černobílé obrazovky",	IDM_VID_CGACON
     END
     MENUITEM "&Média",						IDM_MEDIA
     POPUP "&Nástroje"
@@ -101,13 +101,13 @@ BEGIN
         MENUITEM "&Nastavení...",				IDM_CONFIG
         MENUITEM "&Aktualizovat ikony stavového řádku",		IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Change program &settings...",			IDM_VID_PROG_SETT
+        MENUITEM "&Předvolby...",				IDM_PREFERENCES
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Povolit integraci s &Discordem",		IDM_DISCORD
 # endif
         MENUITEM SEPARATOR
-        MENUITEM "Pořídit s&creenshot\tCtrl+F11",		IDM_ACTION_SCREENSHOT
+        MENUITEM "Pořídit &screenshot\tCtrl+F11",		IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Zesílení zvuku",				IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -117,38 +117,38 @@ BEGIN
 #endif
     END
 #if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
-    POPUP "&Logging"
+    POPUP "&Záznamy"
     BEGIN
 # ifdef ENABLE_BUSLOGIC_LOG
-        MENUITEM "Enable BusLogic logs\tCtrl+F4",		IDM_LOG_BUSLOGIC
+        MENUITEM "Povolit záznamy BusLogic\tCtrl+F4",		IDM_LOG_BUSLOGIC
 # endif
 # ifdef ENABLE_CDROM_LOG
-        MENUITEM "Enable CD-ROM logs\tCtrl+F5",			IDM_LOG_CDROM
+        MENUITEM "Povolit záznamy CD-ROM\tCtrl+F5",		IDM_LOG_CDROM
 # endif
 # ifdef ENABLE_D86F_LOG
-        MENUITEM "Enable floppy (86F) logs\tCtrl+F6",		IDM_LOG_D86F
+        MENUITEM "Povolit záznamy diskety (86F)\tCtrl+F6",	IDM_LOG_D86F
 # endif
 # ifdef ENABLE_FDC_LOG
-        MENUITEM "Enable floppy controller logs\tCtrl+F7",	IDM_LOG_FDC
+        MENUITEM "Povolit záznamy disketového řadiče\tCtrl+F7",	IDM_LOG_FDC
 # endif
 # ifdef ENABLE_IDE_LOG
-        MENUITEM "Enable IDE logs\tCtrl+F8",			IDM_LOG_IDE
+        MENUITEM "Povolit záznamy IDE\tCtrl+F8",		IDM_LOG_IDE
 # endif
 # ifdef ENABLE_SERIAL_LOG
-        MENUITEM "Enable Serial Port logs\tCtrl+F3",		IDM_LOG_SERIAL
+        MENUITEM "Povolit záznamy sériového portu\tCtrl+F3",	IDM_LOG_SERIAL
 # endif
 # ifdef ENABLE_NIC_LOG
-        MENUITEM "Enable Network logs\tCtrl+F9",		IDM_LOG_NIC
+        MENUITEM "Povolit záznamy sítě\tCtrl+F9",		IDM_LOG_NIC
 # endif
 # ifdef ENABLE_LOG_COMMANDS
 #  ifdef ENABLE_LOG_TOGGLES
 	MENUITEM SEPARATOR
 #  endif
 #  ifdef ENABLE_LOG_BREAKPOINT
-        MENUITEM "&Log breakpoint\tCtrl+F10",			IDM_LOG_BREAKPOINT
+        MENUITEM "Zaznamenat do &logu zarážku\tCtrl+F10",	IDM_LOG_BREAKPOINT
 #  endif
 #  ifdef ENABLE_VRAM_DUMP
-        MENUITEM "Dump &video RAM\tCtrl+F1",			IDM_DUMP_VRAM
+        MENUITEM "Zaznamenat obsah &video RAM\tCtrl+F1",	IDM_DUMP_VRAM
 #  endif
 # endif
     END
@@ -273,10 +273,10 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Program Settings"
+#define STR_PREFERENCES		"Předvolby programu 86Box"
 #define STR_SND_GAIN		"Zesílení zvuku"
 #define STR_NEW_FLOPPY		"Nový obraz"
-#define STR_CONFIG		"Nastavení emulátoru 86Box"
+#define STR_CONFIG		"Nastavení počítače"
 #define STR_SPECIFY_DIM		"Zadat rozměry hlavního okna"
 
 #define STR_OK			"OK"
@@ -299,7 +299,7 @@ END
 
 #define STR_MACHINE_TYPE	"Typ počítače:"
 #define STR_MACHINE		"Počítač:"
-#define STR_CONFIGURE		"Konfigurovat"
+#define STR_CONFIGURE		"Nastavit"
 #define STR_CPU_TYPE		"Procesor:"
 #define STR_SPEED		"Rychlost:"
 #define STR_FPU			"Koprocesor:"
@@ -406,7 +406,7 @@ STRINGTABLE DISCARDABLE
 BEGIN
     2048	"86Box"
     IDS_2049	"Chyba"
-    IDS_2050	"Závažná chyba"
+    IDS_2050	"Kritická chyba"
     IDS_2051	"<rezervováno>"
     IDS_2052	"Stiskněte Ctrl+Alt+Page Down pro návrat z režimu celé obrazovky."
     IDS_2053	"Rychlost"
@@ -418,7 +418,7 @@ BEGIN
     IDS_2059	"Turbo"
     IDS_2060	"Zap."
     IDS_2061	"Vyp."
-    IDS_2062	"Všechny obrazy disků (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Základní sektorové obrazy (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Povrchové obrazy (*.86F)\0*.86F\0"
+    IDS_2062	"Všechny obrazy disků (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Základní sektorové obrazy (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Obrazy povrchu (*.86F)\0*.86F\0"
     IDS_2063	"Počítač ""%hs"" není dostupný, jelikož chybí obraz jeho paměti ROM ve složce ""roms/machines"". Konfigurace se přepne na jiný dostupný počítač."
 END
 
@@ -436,7 +436,7 @@ BEGIN
     IDS_2073	"Disketové a CD-ROM mechaniky"
     IDS_2074	"Další vyměnitelná zařízení"
     IDS_2075	"Jiné příslušenství"
-    IDS_2076	"Image povrchu (*.86F)\0*.86F\0"
+    IDS_2076	"Obrazy povrchu (*.86F)\0*.86F\0"
     IDS_2077	"Klikněte pro zabraní myši"
     IDS_2078	"Stiskněte F8+F12 pro uvolnění myši"
     IDS_2079	"Stiskněte F8+F12 nebo prostřední tlačítko pro uvolnění myši"
@@ -444,7 +444,7 @@ END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
-    IDS_2080	"Nebylo možné spustit FluidSynth."
+    IDS_2080	"Nastala chyba při inicializaci knihovny FluidSynth."
     IDS_2081	"Sběrnice"
     IDS_2082	"Soubor"
     IDS_2083	"C"
@@ -453,11 +453,11 @@ BEGIN
     IDS_2086	"MB"
     IDS_2087	"Kontrola BPB"
     IDS_2088	"KB"
-    IDS_2089	"Nebylo možné spustit video renderer."
+    IDS_2089	"Nastala chyba při inicializaci video rendereru."
     IDS_2090	"Výchozí"
     IDS_2091	"%i čekací stav(y)"
     IDS_2092	"Typ"
-    IDS_2093	"Nebylo možné spustit PCap"
+    IDS_2093	"Nastala chyba při inicializaci knihovny PCap"
     IDS_2094	"Nebyla nalezena žádná PCap zařízení"
     IDS_2095	"Neplatné PCap zařízení"
     IDS_2096	"Standardní 2tlačítkový joystick"
@@ -467,21 +467,21 @@ BEGIN
     IDS_2100	"CH Flightstick Pro"
     IDS_2101	"Microsoft SideWinder Pad"
     IDS_2102	"Thrustmaster Flight Control System"
-    IDS_2103	"Žadný"
+    IDS_2103	"Žadné"
     IDS_2104	"Nebylo možné nahrát klávesnicové zkratky."
     IDS_2105	"Nebylo možné zaregistrovat raw input."
     IDS_2106	"%u"
     IDS_2107	"%u MB (CHS: %i, %i, %i)"
     IDS_2108	"Disketová mechanika %i (%s): %ls"
     IDS_2109	"Všechny obrazy (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Rozšířené sektorové obrazy (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Základní sektorové obrazy (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Obrazy magnetického toku (*.FDI)\0*.FDI\0Obrazy povrchu (*.86F;*.MFM)\0*.86F;*.MFM\0Všechny soubory (*.*)\0*.*\0"
-    IDS_2110	"Nebylo možné spustit FreeType"
-    IDS_2111	"Nebylo možné spustit SDL, je potřeba SDL2.dll"
+    IDS_2110	"Nastala chyba při inicializaci knihovny FreeType"
+    IDS_2111	"Nastala chyba při inicializaci knihovny SDL, je potřeba SDL2.dll"
     IDS_2112	"Opravdu chcete resetovat emulovaný počítač?"
     IDS_2113	"Opravdu chcete ukončit 86Box?"
-    IDS_2114	"Nebylo možné spustit Ghostscript"
+    IDS_2114	"Nastala chyba při inicializaci knihovny Ghostscript"
     IDS_2115	"MO %i (%ls): %ls"
     IDS_2116	"Obrazy MO (*.IM?;*.MDI)\0*.IM?;*.MDI\0Všechny soubory (*.*)\0*.*\0"
-    IDS_2117	"Vítejte v emulátoru 86Box!"
+    IDS_2117	"Vítejte v programu 86Box!"
     IDS_2118	"Vestavěný řadič"
     IDS_2119	"Ukončit"
     IDS_2120	"Nebyly nalezeny žádné obrazy ROM"
@@ -506,7 +506,7 @@ BEGIN
 #else
 #define LIB_NAME_FREETYPE "libfreetype"
 #endif
-    IDS_2131	LIB_NAME_FREETYPE " je potřeba pro emulaci ESC/P tiskárny."
+    IDS_2131	LIB_NAME_FREETYPE " je potřeba pro emulaci ESC/P tiskáren."
 #ifdef _WIN32
 #define LIB_NAME_GS "gsdll32.dll"
 #else
@@ -577,7 +577,7 @@ BEGIN
     IDS_4129	"Malé bloky (512 KB)"
     IDS_4130	"Soubory VHD (*.VHD)\0*.VHD\0Všechny soubory (*.*)\0*.*\0"
     IDS_4131	"Vyberte nadřazený virtuální disk"
-    IDS_4132	"To může znamenat, že se obsahy nadřazeného disku změnily po vytvoření rozdílového disku.\n\nTato chyba také může nastat, pokud byl soubor s image disku kopírován nebo přesunut, nebo kvůli chybě v programu, který tento disk vytvořil.\n\nChcete časová razítka opravit?"
+    IDS_4132	"To může znamenat, že se obsahy nadřazeného disku změnily po vytvoření rozdílového disku.\n\nTato chyba také může nastat, pokud byl obraz disku kopírován nebo přesunut, nebo kvůli chybě v programu, který jej vytvořil.\n\nChcete časová razítka opravit?"
     IDS_4133	"Časová razítka nadřazeného a podřazeného disku nesouhlasí"
     IDS_4134	"Nebylo možné opravit časové razítko VHD."
     IDS_4135	"%01i:%02i"
@@ -631,12 +631,12 @@ BEGIN
     IDS_5910	"5.25"" 1Gb M.O."
     IDS_5911	"5.25"" 1.3Gb M.O."
 
-    IDS_6144	"Dokonalé ot./m"
+    IDS_6144	"Dokonalé otáčky za minutu"
     IDS_6145	"1%% pod dokonalými ot./m"
     IDS_6146	"1.5%% pod dokonalými ot./m"
     IDS_6147	"2%% pod dokonalými ot./m"
 
-    IDS_7168	"(výchozí nastavení systému)"
+    IDS_7168	"(Výchozí nastavení systému)"
 END
 #define IDS_LANG_ENUS	IDS_7168
 
