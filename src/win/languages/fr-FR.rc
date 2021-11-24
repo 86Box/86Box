@@ -153,7 +153,7 @@ BEGIN
 # endif
     END
 #endif
-    POPUP "&Aide"
+    POPUP "&?"
     BEGIN
         MENUITEM "&Documentation...",           IDM_DOCS
         MENUITEM "&A Propos de 86Box...",             IDM_ABOUT
