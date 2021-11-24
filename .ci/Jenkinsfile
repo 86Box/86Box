@@ -79,8 +79,9 @@ def anyFailure = false
 
 def gitClone() {
 	/* Read git tag from environment or set the default one. */
+	def branch = 'master'
 	if (env.GIT_COMMIT == null)
-		env.GIT_COMMIT = 'master'
+		env.GIT_COMMIT = branch
 	println "[-] Using git tag [${env.GIT_COMMIT}]"
 
 	/* Clean workspace. */
@@ -91,6 +92,7 @@ def gitClone() {
 		/* Perform clone/checkout. */
 		def scmVars = checkout scm: [$class: 'GitSCM',
 					     branches: [[name: env.GIT_COMMIT]],
+					     extensions: [[$class: 'LocalBranch', localBranch: branch]],
 					     userRemoteConfigs: [[url: 'https://github.com/86Box/86Box.git']]]
 		env.GIT_COMMIT = scmVars.GIT_COMMIT
 
