@@ -1413,7 +1413,7 @@ es1371_pci_read(int func, int addr, void *p)
 	case 0x06: return 0x10;		/* Supports ACPI */
 	case 0x07: return 0x00;
 
-	case 0x08: return 0x02;		/* Revision ID - 0x02 (datasheet, VMware) has issues with the 2001 Creative WDM driver */
+	case 0x08: return 0x08;		/* Revision ID - 0x02 (datasheet, VMware) has issues with the 2001 Creative WDM driver */
 	case 0x09: return 0x00;		/* Multimedia audio device */
 	case 0x0a: return 0x01;
 	case 0x0b: return 0x04;
