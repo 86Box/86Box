@@ -83,6 +83,9 @@ def gitClone() {
 		env.GIT_COMMIT = 'master'
 	println "[-] Using git tag [${env.GIT_COMMIT}]"
 
+	/* Clean workspace. */
+	cleanWs()
+
 	/* Use stashes to avoid performing multiple clones. */
 	if (env.GIT_STASHED != 'true') {
 		/* Perform clone/checkout. */
@@ -168,9 +171,6 @@ pipeline {
 								try {
 									gitClone()
 								} catch (e) {}
-								try {
-									cleanWs()
-								} catch (e) {}
 							}
 						}
 					}
@@ -182,19 +182,13 @@ pipeline {
 							gitClone()
 
 							/* Switch to temp directory. */
-							dir(WORKSPACE_TMP) {
-								/* Clean output directory of potential stale old builds. */
-								removeDir('output')
+							dir("${env.WORKSPACE_TMP}/output") {
+								/* Run source tarball creation process. */
+								def packageName = "${env.JOB_BASE_NAME}-Source-b${env.BUILD_NUMBER}"
+								runBuild("-s \"$packageName\"")
 
-								/* Switch to output directory. */
-								dir('output') {
-									/* Run source tarball creation process. */
-									def packageName = "${env.JOB_BASE_NAME}-Source-b${env.BUILD_NUMBER}"
-									runBuild("-s \"$packageName\"")
-
-									/* Archive resulting artifacts. */
-									archiveArtifacts artifacts: "$packageName*"
-								}
+								/* Archive resulting artifacts. */
+								archiveArtifacts artifacts: "$packageName*"
 							}
 						} catch (e) {
 							/* Mark that a failure occurred. */
@@ -221,22 +215,16 @@ pipeline {
 												/* Run git clone. */
 												gitClone()
 
-												/* Switch to temp directory. */
-												dir(WORKSPACE_TMP) {
-													/* Clean output directory of potential stale old builds. */
-													removeDir('output')
-
-													/* Switch to output directory. */
-													dir('output') {
-														/* Run build process. */
-														def packageName = "${env.JOB_BASE_NAME}${dynarecSlugs[dynarec]}${presetSlugs[preset]}-$os-$arch-b${env.BUILD_NUMBER}"
-														dir("${dynarecNames[dynarec]}/$os - ${archNames[arch]}") {
-															runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} -D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUM=${env.BUILD_NUMBER}\"")
-														}
-
-														/* Archive resulting artifacts. */
-														archiveArtifacts artifacts: "**/**/$packageName*"
+												/* Switch to output directory. */
+												dir("${env.WORKSPACE_TMP}/output") {
+													/* Run build process. */
+													def packageName = "${env.JOB_BASE_NAME}${dynarecSlugs[dynarec]}${presetSlugs[preset]}-$os-$arch-b${env.BUILD_NUMBER}"
+													dir("${dynarecNames[dynarec]}/$os - ${archNames[arch]}") {
+														runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} -D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUM=${env.BUILD_NUMBER}\"")
 													}
+
+													/* Archive resulting artifacts. */
+													archiveArtifacts artifacts: "**/**/$packageName*"
 												}
 											} catch (e) {
 												/* Mark that a failure occurred. */
