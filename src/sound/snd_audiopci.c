@@ -1896,6 +1896,9 @@ static const device_config_t es1371_config[] =
 	.type = CONFIG_SELECTION,
 	.selection = {
 		{
+			.description = "Asahi Kasei AK4540",
+			.value = AC97_CODEC_AK4540
+		}, {
 			.description = "Crystal CS4297",
 			.value = AC97_CODEC_CS4297
 		}, {

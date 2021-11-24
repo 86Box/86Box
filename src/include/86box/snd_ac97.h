@@ -101,7 +101,8 @@ enum {
     AC97_CODEC_CS4297A,
     AC97_CODEC_WM9701A,
     AC97_CODEC_STAC9708,
-    AC97_CODEC_STAC9721
+    AC97_CODEC_STAC9721,
+    AC97_CODEC_AK4540
 };
 
 
@@ -141,6 +142,7 @@ extern int		ac97_codec_count, ac97_modem_codec_count,
 
 #ifdef EMU_DEVICE_H
 extern const device_t	ad1881_device;
+extern const device_t	ak4540_device;
 extern const device_t	alc100_device;
 extern const device_t	cs4297_device;
 extern const device_t	cs4297a_device;
