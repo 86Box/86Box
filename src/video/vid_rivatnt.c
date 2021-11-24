@@ -82,6 +82,14 @@ typedef struct rivatnt_t
 	{
 		uint32_t intr;
 		uint32_t intr_en;
+		uint32_t cache_error;
+
+		struct
+		{
+			uint32_t push_enabled, pull_enabled;
+			uint32_t status0, status1;
+			uint32_t put, get;
+		} caches[2];
 	} pfifo;
 
 	struct
@@ -338,6 +346,67 @@ rivatnt_pmc_write(uint32_t addr, uint32_t val, void *p)
 	}
 }
 
+uint32_t
+rivatnt_pfifo_read(uint32_t addr, void *p)
+{
+	rivatnt_t *rivatnt = (rivatnt_t *)p;
+
+	switch(addr)
+	{
+	case 0x002080:
+		return rivatnt->pfifo.cache_error;
+	case 0x002100:
+		return rivatnt->pfifo.intr;
+	case 0x002140:
+		return rivatnt->pfifo.intr_en;
+	}
+	return 0;
+}
+
+void
+rivatnt_pfifo_write(uint32_t addr, uint32_t val, void *p)
+{
+	rivatnt_t *rivatnt = (rivatnt_t *)p;
+
+	switch(addr)
+	{
+	case 0x002100:
+		uint32_t tmp = rivatnt->pfifo.intr & ~val;
+		rivatnt->pfifo.intr = tmp;
+		pci_clear_irq(rivatnt->card, PCI_INTA);
+		if(!(rivatnt->pfifo.intr & 1)) rivatnt->pfifo.cache_error = 0;
+		break;
+	case 0x002140:
+		rivatnt->pfifo.intr_en = val & 0x11111;
+		rivatnt_pmc_recompute_intr(1, rivatnt);
+		break;
+	case 0x003000:
+		rivatnt->pfifo.caches[0].push_enabled = val & 1;
+		break;
+	case 0x003010:
+		rivatnt->pfifo.caches[0].put = val;
+		break;
+	case 0x003050:
+		rivatnt->pfifo.caches[0].pull_enabled = val & 1;
+		break;
+	case 0x003070:
+		rivatnt->pfifo.caches[0].get = val;
+		break;
+	case 0x003200:
+		rivatnt->pfifo.caches[1].push_enabled = val & 1;
+		break;
+	case 0x003210:
+		rivatnt->pfifo.caches[1].put = val;
+		break;
+	case 0x003250:
+		rivatnt->pfifo.caches[1].pull_enabled = val & 1;
+		break;
+	case 0x003270:
+		rivatnt->pfifo.caches[1].get = val;
+		break;
+	}
+}
+
 void
 rivatnt_ptimer_interrupt(int num, void *p)
 {
@@ -576,6 +645,7 @@ rivatnt_mmio_read_l(uint32_t addr, void *p)
 	addr &= 0xfffffc;
 
 	if ((addr >= 0x000000) && (addr <= 0x000fff)) ret = rivatnt_pmc_read(addr, rivatnt);
+	if ((addr >= 0x002000) && (addr <= 0x003fff)) ret = rivatnt_pfifo_read(addr, rivatnt);
 	if ((addr >= 0x009000) && (addr <= 0x009fff)) ret = rivatnt_ptimer_read(addr, rivatnt);
 	if ((addr >= 0x100000) && (addr <= 0x100fff)) ret = rivatnt_pfb_read(addr, rivatnt);
 	if ((addr >= 0x101000) && (addr <= 0x101fff)) ret = rivatnt_pextdev_read(addr, rivatnt);
@@ -663,6 +733,7 @@ rivatnt_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 	}
 
 	if((addr >= 0x000000) && (addr <= 0x000fff)) rivatnt_pmc_write(addr, val, rivatnt);
+	if((addr >= 0x002000) && (addr <= 0x003fff)) rivatnt_pfifo_write(addr, val, rivatnt);
 	if((addr >= 0x009000) && (addr <= 0x009fff)) rivatnt_ptimer_write(addr, val, rivatnt);
 	if((addr >= 0x600000) && (addr <= 0x600fff)) rivatnt_pcrtc_write(addr, val, rivatnt);
 	if((addr >= 0x680000) && (addr <= 0x680fff)) rivatnt_pramdac_write(addr, val, rivatnt);
