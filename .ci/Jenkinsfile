@@ -80,7 +80,7 @@ def presetFlags = [
 
 def anyFailure = false
 
-def gitClone(branch) {
+def gitClone(repository, branch) {
 	/* Read git tag from environment or set the default one. */
 	if (env.GIT_COMMIT == null)
 		env.GIT_COMMIT = "*/$branch"
@@ -193,7 +193,7 @@ pipeline {
 					node('Linux') {
 						try {
 							/* Run git clone. */
-							gitClone(branch)
+							gitClone(repository, branch)
 
 							/* Switch to temp directory. */
 							dir("${env.WORKSPACE_TMP}/output") {
@@ -227,7 +227,7 @@ pipeline {
 										stage("$os $arch $dynarec $preset") {
 											try {
 												/* Run git clone. */
-												gitClone(branch)
+												gitClone(repository, branch)
 
 												/* Switch to output directory. */
 												dir("${env.WORKSPACE_TMP}/output") {
