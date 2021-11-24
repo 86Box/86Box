@@ -71,6 +71,9 @@ extern "C" {
 }
 
 extern bool OpenFileChooser(char*, size_t, std::vector<std::pair<std::string, std::string>>&, bool);
+#ifdef _WIN32
+extern "C" HWND GetHWNDFromSDLWindow();
+#endif
 
 namespace ImGuiSettingsWindow {
 
@@ -1292,7 +1295,6 @@ namespace ImGuiSettingsWindow {
 		{
 			if (ImGui::Button(("Joystick " + std::to_string(i + 1) + "...").c_str()))
 			{
-				extern "C" HWND GetHWNDFromSDLWindow();
 				temp_deviceconfig |= joystickconfig_open(GetHWNDFromSDLWindow(), i, temp_joystick);
 			}
 			ImGui::SameLine();
