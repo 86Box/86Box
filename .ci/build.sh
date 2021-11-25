@@ -297,7 +297,7 @@ esac
 
 # Add git hash and copyright year.
 git_hash=$(git rev-parse --short HEAD 2> /dev/null)
-[ -z "$git_hash" ] && git_hash=$(echo $GIT_COMMIT | cut -c 1-8)
+[ -z "$git_hash" -a "$CI" = "true" ] && git_hash=$(echo $GIT_COMMIT | cut -c 1-8)
 [ ! -z "$git_hash" ] && cmake_flags_extra="$cmake_flags_extra -D \"EMU_GIT_HASH=$git_hash\""
 cmake_flags_extra="$cmake_flags_extra -D \"EMU_COPYRIGHT_YEAR=$(date +%Y)\""
 
