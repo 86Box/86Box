@@ -1212,7 +1212,7 @@ namespace ImGuiSettingsWindow {
 			ImGui::EndCombo();
 		}
 		ImGui::SameLine();
-		ImGui::BeginDisabled(video_card_getdevice(temp_gfxcard)->config == NULL);
+		ImGui::BeginDisabled(!video_card_has_config(temp_gfxcard));
 		if (ImGui::Button("Configure"))
 		{
 			OpenDeviceWindow(video_card_getdevice(temp_gfxcard));
