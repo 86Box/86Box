@@ -299,9 +299,11 @@ esac
 git_hash=$(git rev-parse --short HEAD 2> /dev/null)
 if [ "$CI" = "true" ]
 then
+	# Backup strategy when running under Jenkins.
 	[ -z "$git_hash" ] && git_hash=$(echo $GIT_COMMIT | cut -c 1-8)
 elif [ ! -z "$git_hash" ]
 then
+	# Append + to denote a dirty tree.
 	git diff --quiet 2> /dev/null || git_hash="$git_hash+"
 fi
 [ ! -z "$git_hash" ] && cmake_flags_extra="$cmake_flags_extra -D \"EMU_GIT_HASH=$git_hash\""
