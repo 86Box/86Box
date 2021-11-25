@@ -15,6 +15,9 @@
  *		Copyright 2021 RichardG.
  */
 
+def repository = 'https://github.com/86Box/86Box.git'
+def branch = 'master'
+
 def osArchs = [
 	'Windows': ['32', '64'],
 	'Linux': ['x86', 'x86_64', 'arm32', 'arm64']
@@ -77,24 +80,30 @@ def presetFlags = [
 
 def anyFailure = false
 
-def gitClone() {
-	/* Read git tag from environment or set the default one. */
-	def branch = 'master'
-	if (env.GIT_COMMIT == null)
-		env.GIT_COMMIT = branch
-	println "[-] Using git tag [${env.GIT_COMMIT}]"
-
+def gitClone(repository, branch) {
 	/* Clean workspace. */
 	cleanWs()
 
 	/* Use stashes to avoid performing multiple clones. */
 	if (env.GIT_STASHED != 'true') {
 		/* Perform clone/checkout. */
-		def scmVars = checkout scm: [$class: 'GitSCM',
-					     branches: [[name: env.GIT_COMMIT]],
-					     extensions: [[$class: 'LocalBranch', localBranch: branch]],
-					     userRemoteConfigs: [[url: 'https://github.com/86Box/86Box.git']]]
-		env.GIT_COMMIT = scmVars.GIT_COMMIT
+		def scmVars = checkout poll: true,
+				       changelog: true,
+				       scm: [$class: 'GitSCM',
+					     branches: [[name: branch]],
+					     userRemoteConfigs: [[url: repository]]]
+
+		if (env.GIT_COMMIT == null) {
+			/* Save the current HEAD commit. */
+			env.GIT_COMMIT = scmVars.GIT_COMMIT
+		} else if (env.GIT_COMMIT != scmVars.GIT_COMMIT) {
+			/* Checkout the commit read from the polling log. */
+			if (isUnix())
+				sh "git checkout ${env.GIT_COMMIT} || exit 0"
+			else
+				bat "git checkout ${env.GIT_COMMIT} || exit /b 0"
+		}
+		println "[-] Using git commit [${env.GIT_COMMIT}]"
 
 		/* Stash data and mark it as stashed. */
 		stash name: 'git'
@@ -143,45 +152,39 @@ pipeline {
 
 			steps {
 				script {
-					/* Hack to extract the current HEAD commit from this build's git polling
-					   log. This avoids a race condition where HEAD changes in the time period
-					   between Jenkins polling the git repository and the first build node
-					   performing the first git clone once ready. (See issue JENKINS-20518) */
-					if (env.GIT_COMMIT == null) {
-						/* This must run on the master node to read the polling log. */
-						node('master') {
-							/* Ignore exceptions as this is not really critical. */
-							try {
-								/* Switch to this build's directory. */
-								dir("${env.JENKINS_HOME}/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}") {
-									/* Parse polling log. */
-									def pollingLog = readFile file: 'polling.log'
-									def match = pollingLog =~ /Latest remote head revision on [^ ]+ is: ([a-zA-Z0-9]+)/
-									if (match && match[0]) {
-										env.GIT_COMMIT = match[0][1]
-										println "[-] Read git tag [${env.GIT_COMMIT}] from polling log"
-									}
+					/* Extract the polled commit from the polling log, so that git checkout can be used
+					   to avoid JENKINS-20518 race conditions caused by two pushes too close together. */
+					node('master') { /* must run on master node to read polling log */
+						/* Ignore exceptions as this is not really critical. */
+						try {
+							/* Switch to this build's directory. */
+							dir("${env.JENKINS_HOME}/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}") {
+								/* Parse polling log. */
+								def pollingLog = readFile file: 'polling.log'
+								def match = pollingLog =~ /Latest remote head revision on [^ ]+ is: ([a-zA-Z0-9]+)/
+								if (match && match[0]) {
+									env.GIT_COMMIT = match[0][1]
+									println "[-] Read git commit [${env.GIT_COMMIT}] from polling log"
 								}
-							} catch (e) {}
-						}
-
-						/* If the polling log parsing fails, perform a dummy git clone on any node.
-						   Not quite as fast as reading the polling log, but it works as a backup. */
-						if (env.GIT_COMMIT == null) {
-							node {
-								/* Ignore exceptions again as this is not really critical. */
-								try {
-									gitClone()
-								} catch (e) {}
 							}
-						}
+						} catch (e) {}
+					}
+
+					/* Adding to the above, run a git clone as soon as possible on any node
+					   to further avoid race conditions caused by busy node executor delays. */
+					node {
+						/* Run git clone. */
+						gitClone(repository, branch)
+
+						/* Clean workspace, in case this is running in a non-build node. */
+						cleanWs()
 					}
 
 					/* Create source tarball. */
 					node('Linux') {
 						try {
 							/* Run git clone. */
-							gitClone()
+							gitClone(repository, branch)
 
 							/* Switch to temp directory. */
 							dir("${env.WORKSPACE_TMP}/output") {
@@ -215,7 +218,7 @@ pipeline {
 										stage("$os $arch $dynarec $preset") {
 											try {
 												/* Run git clone. */
-												gitClone()
+												gitClone(repository, branch)
 
 												/* Switch to output directory. */
 												dir("${env.WORKSPACE_TMP}/output") {

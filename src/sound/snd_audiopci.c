@@ -58,6 +58,7 @@ typedef struct {
 
     uint32_t		int_ctrl, int_status,
 			legacy_ctrl;
+    void *		gameport;
 
     int			mem_page;
 
@@ -772,6 +773,7 @@ es1371_outb(uint16_t port, uint8_t val, void *p)
 		break;
 	case 0x03:
 		dev->int_ctrl = (dev->int_ctrl & 0x00ffffff) | (val << 24);
+		gameport_remap(dev->gameport, 0x200 | ((val & 0x03) << 3));
 		break;
 
 	/* UART Data Register, Address 08H
@@ -867,6 +869,7 @@ es1371_outw(uint16_t port, uint16_t val, void *p)
 		break;
 	case 0x02:
 		dev->int_ctrl = (dev->int_ctrl & 0x0000ffff) | (val << 16);
+		gameport_remap(dev->gameport, 0x200 | ((val & 0x0300) >> 5));
 		break;
 
 	/* Memory Page Register, Address 0CH
@@ -949,6 +952,7 @@ es1371_outl(uint16_t port, uint32_t val, void *p)
 			es1371_fetch(dev, 1);
 		}
 		dev->int_ctrl = val;
+		gameport_remap(dev->gameport, 0x200 | ((val & 0x03000000) >> 21));
 		break;
 
 	/* Interrupt/Chip Select Status Register, Address 04H
@@ -1844,8 +1848,8 @@ es1371_init(const device_t *info)
     sound_add_handler(es1371_get_buffer, dev);
     sound_set_cd_audio_filter(es1371_filter_cd_audio, dev);
 
-    /* Add our own always-present game port to override the standalone ISAPnP one. */
-    gameport_remap(gameport_add(&gameport_pnp_device), 0x200);
+    dev->gameport = gameport_add(&gameport_pnp_device);
+    gameport_remap(dev->gameport, 0x200);
 
     dev->card = pci_add_card(info->local ? PCI_ADD_SOUND : PCI_ADD_NORMAL, es1371_pci_read, es1371_pci_write, dev);
 
@@ -1892,6 +1896,9 @@ static const device_config_t es1371_config[] =
 	.type = CONFIG_SELECTION,
 	.selection = {
 		{
+			.description = "Asahi Kasei AK4540",
+			.value = AC97_CODEC_AK4540
+		}, {
 			.description = "Crystal CS4297",
 			.value = AC97_CODEC_CS4297
 		}, {
