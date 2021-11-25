@@ -44,6 +44,12 @@ static const struct {
 	.vendor_regs = (const ac97_vendor_reg_t[]) {{0x74, 0x0000, 0xff07}, {0x76, 0x0404, 0xdde5}, {0x78, 48000, 0x0000}, {0x7a, 48000, 0x0000}, {0}},
 	.device = &ad1881_device
     },
+    [AC97_CODEC_AK4540] = {
+	.vendor_id = AC97_VENDOR_ID('A', 'K', 'M', 0x00),
+	.misc_flags = AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+	.powerdown_mask = 0x01f,
+	.device = &ak4540_device
+    },
     [AC97_CODEC_ALC100] = {
 	.vendor_id = AC97_VENDOR_ID('A', 'L', 'C', 0x20),
 	.misc_flags = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_POP | AC97_MS | AC97_LPBK,
@@ -642,6 +648,18 @@ const device_t ad1881_device =
     "Analog Devices AD1881",
     DEVICE_AC97,
     AC97_CODEC_AD1881,
+    ac97_codec_init, ac97_codec_close, ac97_codec_reset,
+    { NULL },
+    NULL,
+    NULL,
+    NULL
+};
+
+const device_t ak4540_device =
+{
+    "Asahi Kasei AK4540",
+    DEVICE_AC97,
+    AC97_CODEC_AK4540,
     ac97_codec_init, ac97_codec_close, ac97_codec_reset,
     { NULL },
     NULL,
