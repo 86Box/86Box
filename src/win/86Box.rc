@@ -331,7 +331,7 @@ BEGIN
             VALUE "FileDescription", EMU_NAME "\0"
             VALUE "FileVersion", EMU_VERSION "\0"
             VALUE "InternalName", EMU_NAME "\0"
-            VALUE "LegalCopyright", "Copyright \xc2\xa9 2007-" COPYRIGHT_YEAR " " EMU_NAME " contributors\0"
+            VALUE "LegalCopyright", "Copyright \xa9 2007-" COPYRIGHT_YEAR " " EMU_NAME " contributors\0"
             VALUE "OriginalFilename", "86box.exe\0"
             VALUE "ProductName", EMU_NAME "\0"
             VALUE "ProductVersion", EMU_VERSION "\0"
