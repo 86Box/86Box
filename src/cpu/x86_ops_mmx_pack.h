@@ -1,5 +1,6 @@
 static int opPUNPCKLDQ_a16(uint32_t fetchdat)
 {
+        if((cpu_features & CPU_FEATURE_SSE2) && sse_xmm) return opPUNPCKLDQ_xmm_a16(fetchdat);
         MMX_ENTER();
         
         fetch_ea_16(fetchdat);
@@ -22,6 +23,8 @@ static int opPUNPCKLDQ_a16(uint32_t fetchdat)
 }
 static int opPUNPCKLDQ_a32(uint32_t fetchdat)
 {
+        if((cpu_features & CPU_FEATURE_SSE2) && sse_xmm) return opPUNPCKLDQ_xmm_a32(fetchdat);
+
         MMX_ENTER();
         
         fetch_ea_32(fetchdat);
@@ -72,6 +75,7 @@ static int opPUNPCKHDQ_a32(uint32_t fetchdat)
 
 static int opPUNPCKLBW_a16(uint32_t fetchdat)
 {
+        if((cpu_features & CPU_FEATURE_SSE2) && sse_xmm) return opPUNPCKLBW_xmm_a16(fetchdat);
         MMX_REG src;
         MMX_ENTER();
         
@@ -91,6 +95,7 @@ static int opPUNPCKLBW_a16(uint32_t fetchdat)
 }
 static int opPUNPCKLBW_a32(uint32_t fetchdat)
 {
+        if((cpu_features & CPU_FEATURE_SSE2) && sse_xmm) return opPUNPCKLBW_xmm_a32(fetchdat);
         MMX_REG src;
         MMX_ENTER();
         
@@ -150,6 +155,8 @@ static int opPUNPCKHBW_a32(uint32_t fetchdat)
 
 static int opPUNPCKLWD_a16(uint32_t fetchdat)
 {
+        if((cpu_features & CPU_FEATURE_SSE2) && sse_xmm) return opPUNPCKLWD_xmm_a16(fetchdat);
+
         MMX_REG src;
         MMX_ENTER();
         
@@ -165,6 +172,8 @@ static int opPUNPCKLWD_a16(uint32_t fetchdat)
 }
 static int opPUNPCKLWD_a32(uint32_t fetchdat)
 {
+        if((cpu_features & CPU_FEATURE_SSE2) && sse_xmm) return opPUNPCKLWD_xmm_a32(fetchdat);
+
         MMX_REG src;
         MMX_ENTER();
         
@@ -212,6 +221,8 @@ static int opPUNPCKHWD_a32(uint32_t fetchdat)
 
 static int opPACKSSWB_a16(uint32_t fetchdat)
 {
+        if((cpu_features & CPU_FEATURE_SSE2) && sse_xmm) return opPACKSSWB_xmm_a16(fetchdat);
+
         MMX_REG src, dst;
         MMX_ENTER();
         
@@ -232,6 +243,8 @@ static int opPACKSSWB_a16(uint32_t fetchdat)
 }
 static int opPACKSSWB_a32(uint32_t fetchdat)
 {
+        if((cpu_features & CPU_FEATURE_SSE2) && sse_xmm) return opPACKSSWB_xmm_a32(fetchdat);
+
         MMX_REG src, dst;
         MMX_ENTER();
         

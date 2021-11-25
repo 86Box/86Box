@@ -522,6 +522,7 @@ extern int	hasfpu;
 #define CPU_FEATURE_3DNOW (1 << 6)
 #define CPU_FEATURE_SSE   (1 << 7)
 #define CPU_FEATURE_PGE   (1 << 8)
+#define CPU_FEATURE_SSE2  (1 << 9)
 
 extern uint32_t	cpu_features;
 
