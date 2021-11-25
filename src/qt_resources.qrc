@@ -1,0 +1,24 @@
+<RCC>
+    <qresource prefix="/settings">
+        <file>win/icons/machine.ico</file>
+        <file>win/icons/display.ico</file>
+        <file>win/icons/input_devices.ico</file>
+        <file>win/icons/sound.ico</file>
+        <file>win/icons/network.ico</file>
+        <file>win/icons/ports.ico</file>
+        <file>win/icons/storage_controllers.ico</file>
+        <file>win/icons/hard_disk.ico</file>
+        <file>win/icons/floppy_and_cdrom_drives.ico</file>
+        <file>win/icons/other_peripherals.ico</file>
+        <file>win/icons/other_removable_devices.ico</file>
+        <file>win/icons/floppy_35.ico</file>
+        <file>win/icons/floppy_525.ico</file>
+        <file>win/icons/floppy_disabled.ico</file>
+        <file>win/icons/cdrom_disabled.ico</file>
+        <file>win/icons/cdrom.ico</file>
+        <file>win/icons/mo.ico</file>
+        <file>win/icons/mo_disabled.ico</file>
+        <file>win/icons/zip.ico</file>
+        <file>win/icons/zip_disabled.ico</file>
+    </qresource>
+</RCC>
