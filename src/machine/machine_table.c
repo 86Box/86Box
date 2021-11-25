@@ -54,6 +54,7 @@ const machine_type_t machine_types[] = {
     { "Socket 8",			MACHINE_TYPE_SOCKET8	},
     { "Slot 1",				MACHINE_TYPE_SLOT1	},
     { "Slot 1/2",			MACHINE_TYPE_SLOT1_2	},
+    { "Slot 1/Socket 370",		MACHINE_TYPE_SLOT1_370	},
     { "Slot 2",				MACHINE_TYPE_SLOT2	},
     { "Socket 370",			MACHINE_TYPE_SOCKET370	},
     { "Miscellaneous",			MACHINE_TYPE_MISC    	}
@@ -858,6 +859,12 @@ const machine_t machines[] = {
        with most likely AMIKey-2 KBC firmware. */
     { "[i440GX] Freeway FW-6400GX",		"fw6400gx",		MACHINE_TYPE_SLOT1_2,		CPU_PKG_SLOT1 | CPU_PKG_SLOT2, 0, 100000000, 150000000, 1800, 3500, 3.0, 8.0,					(MACHINE_AGP & ~MACHINE_AT) | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		16384,2080768,16384, 511,	     machine_at_fw6400gx_init, NULL			},
 
+    /* Slot 1/Socket 370 machines */
+    /* 440BX */
+    /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
+       firmware. */
+    { "[i440BX] Tyan Trinity 371",		"s1857",		MACHINE_TYPE_SLOT1_370,		CPU_PKG_SLOT1 | CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,				MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 786432, 8192, 255,		machine_at_s1857_init, at_s1857_get_device	},
+
     /* Slot 2 machines */
     /* 440GX */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
@@ -883,9 +890,6 @@ const machine_t machines[] = {
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     { "[i440BX] AmazePC AM-BX133",		"ambx133",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0, /* limits assumed */				MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 786432, 8192, 255,	      machine_at_ambx133_init, NULL			},
-    /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
-       firmware. */
-    { "[i440BX] Tyan Trinity 371",		"s1857",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		 		 8192, 786432, 8192, 255,		machine_at_s1857_init, at_s1857_get_device	},
 
     /* 440ZX */
     /* Has a Winbond W83977TF Super I/O chip with on-chip KBC with AMIKey-2 KBC
