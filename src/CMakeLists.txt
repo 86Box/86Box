@@ -15,32 +15,12 @@
 #		Copyright 2021 dob205.
 #
 
-# Prepare the macOS app bundle icon depending on the release channel
-set(APP_ICON_MACOSX)
-if (APPLE)
-	if(RELEASE_BUILD)
-		set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/release/86Box.icns)
-	elseif(BETA_BUILD)
-		set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/beta/86Box.icns)
-	elseif(ALPHA_BUILD)
-		set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/dev/86Box.icns)
-	else()
-		set(APP_ICON_MACOSX ${CMAKE_CURRENT_SOURCE_DIR}/mac/icons/branch/86Box.icns)
-	endif()
-
-set_source_files_properties(${APP_ICON_MACOSX} PROPERTIES
-        MACOSX_PACKAGE_LOCATION "Resources")
-endif()
 
 # WIN32 marks us as a GUI app on Windows
 # MACOSX_BUNDLE prepares a macOS application bundle including with the app icon
 add_executable(86Box WIN32 MACOSX_BUNDLE 86box.c config.c log.c random.c timer.c io.c acpi.c apm.c
 	dma.c ddma.c nmi.c pic.c pit.c port_6x.c port_92.c ppi.c pci.c mca.c usb.c
 	device.c nvr.c nvr_at.c nvr_ps2.c ${APP_ICON_MACOSX})
-
-if(APPLE)
-	target_link_libraries(86Box "-framework AppKit")
-endif()
 
 if(NEW_DYNAREC)
 	add_compile_definitions(USE_NEW_DYNAREC)
@@ -98,36 +78,6 @@ if(NOT EMU_COPYRIGHT_YEAR)
 	set(EMU_COPYRIGHT_YEAR 2021)
 endif()
 
-#some macOS specific configuration steps
-if(APPLE)
-# Force using the newest library if it's installed by homebrew
-  set(CMAKE_FIND_FRAMEWORK LAST)
-  
-
-  # prepare stuff for macOS app bundles
-  set(CMAKE_MACOSX_BUNDLE 1)
-
-  # setting our compilation target to macOS 10.13 High Sierra
-  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
-  
-  # set the Info.plist properly
-  set_target_properties(86Box PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/mac/Info.plist.in)
-  set(MACOSX_BUNDLE_GUI_IDENTIFIER net.86Box.86Box)
-  set(MACOSX_BUNDLE_BUNDLE_NAME 86Box)
-  set(MACOSX_BUNDLE_BUNDLE_VERSION 3.0.${EMU_BUILD_NUM})
-  set(MACOSX_BUNDLE_SHORT_VERSION_STRING "3.0.${EMU_BUILD_NUM}")
-  set(MACOSX_BUNDLE_LONG_VERSION_STRING "3.0.${EMU_BUILD_NUM}")
-  set(MACOSX_BUNDLE_ICON_FILE 86Box.icns)
-  set(MACOSX_BUNDLE_INFO_STRING "A emulator of old computers")
-  set(MACOSX_BUNDLE_COPYRIGHT "© 2007-${EMU_COPYRIGHT_YEAR} 86Box contributors")
-
-  
-  # preparing the code signing for easier distribution, Apple dev certificate needed at one point
-  #set(XCODE_ATTRIBUTE_CODE_SIGNING_REQUIRED "YES")
-  #set(XCODE_ATTRIBUTE_CODE_SIGN_IDENTITY "-")
-  #set(XCODE_ATTRIBUTE_CODE_SIGN_ENTITLEMENTS ${CMAKE_CURRENT_SOURCE_DIR}/mac/codesign/dev/app.entitlements)
-  
-endif()
 
 find_package(Freetype REQUIRED)
 include_directories(${FREETYPE_INCLUDE_DIRS})
@@ -190,14 +140,6 @@ else()
 endif()
 
 
-# adjustments for macOS app bundles
-if(APPLE)
-	set(APPS ${CMAKE_CURRENT_BINARY_DIR}/86Box.app)
-	install(CODE "
-        	include(BundleUtilities)
-        	fixup_bundle(\"${APPS}\" \"\" \"\")"
-    	COMPONENT Runtime)
-endif()
 
 if(VCPKG_TOOLCHAIN)
 	x_vcpkg_install_local_dependencies(TARGETS 86Box DESTINATION "bin")
