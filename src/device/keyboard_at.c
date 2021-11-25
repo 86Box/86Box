@@ -1088,7 +1088,7 @@ write_output(atkbd_t *dev, uint8_t val)
     if ((val & 0x01) && !(old & 0x01)) {
 	if (val & 0x01) {
 		/* Pin 0 selected. */
-		pclog("write_output(): Pulse reset!\n");
+		kbd_log("write_output(): Pulse reset!\n");
 		softresetx86();		/*Pulse reset!*/
 		cpu_set_edx();
 		flushmmucache();
