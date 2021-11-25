@@ -862,7 +862,7 @@ int main(int argc, char** argv)
     void* libedithandle;
 
     SDL_Init(0);
-    pc_init(argc, argv);
+    if (!pc_init(argc, argv)) return 0;
     if (! pc_init_modules()) {
         ui_msgbox_header(MBX_FATAL, L"No ROMs found.", L"86Box could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory.");
         SDL_Quit();
@@ -897,6 +897,7 @@ int main(int argc, char** argv)
         video_fullscreen = 1;
 	    sdl_set_fs(1);
     }
+    if (settings_only) plat_pause(1);
     /* Fire up the machine. */
     pc_reset_hard_init();
 

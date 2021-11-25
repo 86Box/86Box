@@ -1225,6 +1225,7 @@ extern "C" void RenderImGui()
 	bool settingsopen = false;
     if (!imrendererinit) HandleSizeChange();
     if (!mouse_capture) ImGui_ImplSDL2_NewFrame(sdl_win);
+	if (settings_only) settingsopen = true;
     ImGui::NewFrame();
     if (ImGui::BeginMainMenuBar())
     {

@@ -501,8 +501,7 @@ namespace ImGuiSettingsWindow {
 					}
 					case CONFIG_SPINNER:
 					{
-						ImGui::TextUnformatted(config.config.description); ImGui::SameLine();
-						ImGui::InputInt(std::to_string(config.val).c_str(), &config.val, config.config.spinner.step, config.config.spinner.step, ImGuiInputTextFlags_EnterReturnsTrue);
+						ImGui::InputInt(config.config.description, &config.val, config.config.spinner.step, config.config.spinner.step, ImGuiInputTextFlags_EnterReturnsTrue);
 						config.val = (int)std::clamp((int16_t)config.val, config.config.spinner.min, config.config.spinner.max);
 						break;
 					}
@@ -721,7 +720,13 @@ namespace ImGuiSettingsWindow {
 		ImGui::EndPopup();
 		if (!ImGui::IsPopupOpen("Settings Window"))
 		{
-			plat_pause(0);
+			if (settings_only)
+			{
+				SDL_Event evt{};
+				evt.type = SDL_QUIT;
+				SDL_PushEvent(&evt);
+			}
+			else plat_pause(0);
 		}
 	}
 	
