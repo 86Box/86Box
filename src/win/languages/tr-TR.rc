@@ -393,7 +393,7 @@ END
 #define STR_POSTCARD		"POST kartı"
 
 #define FONT_SIZE		9
-#define FONT_NAME		"Meiryo UI"
+#define FONT_NAME		"Segoe UI"
 
 #include "dialogs.rc"
 
