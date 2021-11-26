@@ -276,7 +276,7 @@ END
 #define STR_PREFERENCES		"86Box 偏好选项"
 #define STR_SND_GAIN		"音量增益"
 #define STR_NEW_FLOPPY		"新建镜像"
-#define STR_CONFIG		"86Box 设置"
+#define STR_CONFIG		"机型设置"
 #define STR_SPECIFY_DIM		"指定主窗口大小"
 
 #define STR_OK			"确定"

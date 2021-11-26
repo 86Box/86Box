@@ -277,7 +277,7 @@ END
 #define STR_PREFERENCES		"Preferências do 86Box"
 #define STR_SND_GAIN		"Ganho de som"
 #define STR_NEW_FLOPPY		"Nova imagem de disquete"
-#define STR_CONFIG		"Configurações do 86Box"
+#define STR_CONFIG		"Configurações da máquina"
 #define STR_SPECIFY_DIM		"Especifique as dimensões da janela principal"
 
 #define STR_OK			"OK"

@@ -101,7 +101,7 @@ BEGIN
         MENUITEM "&Impostazioni...",                IDM_CONFIG
         MENUITEM "&Aggiorna icone della barra di stato",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Change program &settings...",    IDM_PREFERENCES
+        MENUITEM "&Preferenze...",    IDM_PREFERENCES
 # ifdef USE_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Abilita &integrazione Discord", IDM_DISCORD
@@ -273,10 +273,10 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES		"Program Settings"
+#define STR_PREFERENCES		"Preferenze di 86Box"
 #define STR_SND_GAIN		"Guadagno del suono"
 #define STR_NEW_FLOPPY		"Nuova immagine"
-#define STR_CONFIG		"Impostazioni di 86Box"
+#define STR_CONFIG		"Impostazioni della piastra madre"
 #define STR_SPECIFY_DIM		"Specifica dimensioni della finestra principale"
 
 #define STR_OK			"OK"
@@ -297,8 +297,8 @@ END
 #define STR_HEIGHT		"Altezza:"
 #define STR_LOCK_TO_SIZE	"Blocca in queste dimensioni"
 
-#define STR_MACHINE_TYPE	"Tipo di macchina:"
-#define STR_MACHINE		"Macchina:"
+#define STR_MACHINE_TYPE	"Tipo di piastra madre:"
+#define STR_MACHINE		"Piastra madre:"
 #define STR_CONFIGURE		"Configura"
 #define STR_CPU_TYPE		"Tipo del CPU:"
 #define STR_SPEED		"Veloc.:"
@@ -425,7 +425,7 @@ END
 STRINGTABLE DISCARDABLE 
 BEGIN
     IDS_2064	"La scheda video ""%hs"" non è disponibile a causa di immagini ROM mancanti nella directory roms/video. Cambiando ad una scheda video disponibile."
-    IDS_2065	"Macchina"
+    IDS_2065	"Piastra madre"
     IDS_2066	"Schermo"
     IDS_2067	"Dispositivi di entrata"
     IDS_2068	"Audio"
