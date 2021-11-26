@@ -276,10 +276,10 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES		"86Box beállítások"
+#define STR_PREFERENCES		"Beállítások"
 #define STR_SND_GAIN		"Hangerőszabályzó"
 #define STR_NEW_FLOPPY		"Új képfájl létrehozása"
-#define STR_CONFIG		"Számítógép konfiguráció"
+#define STR_CONFIG		"Konfigurálás"
 #define STR_SPECIFY_DIM		"Főablak méreteinek megadása"
 
 #define STR_OK			"OK"

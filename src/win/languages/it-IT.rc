@@ -273,10 +273,10 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES		"Preferenze di 86Box"
+#define STR_PREFERENCES		"Preferenze"
 #define STR_SND_GAIN		"Guadagno del suono"
 #define STR_NEW_FLOPPY		"Nuova immagine"
-#define STR_CONFIG		"Impostazioni della piastra madre"
+#define STR_CONFIG		"Impostazioni"
 #define STR_SPECIFY_DIM		"Specifica dimensioni della finestra principale"
 
 #define STR_OK			"OK"

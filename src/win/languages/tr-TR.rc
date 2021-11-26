@@ -273,10 +273,10 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES		"86Box Tercihleri"
+#define STR_PREFERENCES		"Tercihler"
 #define STR_SND_GAIN		"Ses Artırma"
 #define STR_NEW_FLOPPY		"Yeni İmaj"
-#define STR_CONFIG		"Makine Ayarları"
+#define STR_CONFIG		"Ayarlar"
 #define STR_SPECIFY_DIM		"Ana Pencere Boyutunu Belirle"
 
 #define STR_OK			"Tamam"

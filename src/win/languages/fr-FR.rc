@@ -273,10 +273,10 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES		"Préférences de 86Box"
+#define STR_PREFERENCES		"Préférences"
 #define STR_SND_GAIN		"Gain son"
 #define STR_NEW_FLOPPY		"Nouvelle image"
-#define STR_CONFIG		"Réglages de la machine"
+#define STR_CONFIG		"Réglages"
 #define STR_SPECIFY_DIM		"Spécifier le détournement de la fenêtre principale"
 
 #define STR_OK			"OK"

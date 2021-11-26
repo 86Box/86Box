@@ -276,7 +276,7 @@ END
 #define STR_PREFERENCES     "Sovellusasetukset"
 #define STR_SND_GAIN        "Äänen tulotaso"
 #define STR_NEW_FLOPPY      "Uusi levykuva"
-#define STR_CONFIG          "Tietokoneen kokoonpano"
+#define STR_CONFIG          "Kokoonpano"
 #define STR_SPECIFY_DIM     "Määritä pääikkunan koko"
 
 #define STR_OK              "OK"
