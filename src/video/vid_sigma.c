@@ -416,10 +416,10 @@ static void sigma_text80(sigma_t *sigma)
     int x, c;
     uint8_t chr, attr;
     uint16_t ca = (sigma->crtc[15] | (sigma->crtc[14] << 8));
-    uint16_t ma = ((sigma->ma << 1) & 0x3FFF);
+    uint16_t ma = ((sigma->ma & 0x3FFF) << 1);
     int drawcursor;
     uint32_t cols[4];
-    uint8_t *vram = sigma->vram + (ma & 0x3FFF);
+    uint8_t *vram = sigma->vram + (ma << 1);
 
     ca = ca << 1;
     if (sigma->sigma_ctl & CTL_CURSOR)
@@ -472,10 +472,10 @@ sigma_text40(sigma_t *sigma)
     int x, c;
     uint8_t chr, attr;
     uint16_t ca = (sigma->crtc[15] | (sigma->crtc[14] << 8));
-    uint16_t ma = ((sigma->ma << 1) & 0x3FFF);
+    uint16_t ma = ((sigma->ma & 0x3FFF) << 1);
     int drawcursor;
     uint32_t cols[4];
-    uint8_t *vram = sigma->vram + (ma & 0x3FFF);
+    uint8_t *vram = sigma->vram + ((ma << 1) & 0x3FFF);
 
     ca = ca << 1;
     if (sigma->sigma_ctl & CTL_CURSOR)
