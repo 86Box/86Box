@@ -273,10 +273,10 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES		"86Box postavke"
+#define STR_PREFERENCES		"Postavke"
 #define STR_SND_GAIN		"Pojačavanje zvuka"
 #define STR_NEW_FLOPPY		"Nova slika"
-#define STR_CONFIG		"Opcije sistema"
+#define STR_CONFIG		"Opcije"
 #define STR_SPECIFY_DIM		"Odredite glavne dimenzije prozora"
 
 #define STR_OK			"OK"

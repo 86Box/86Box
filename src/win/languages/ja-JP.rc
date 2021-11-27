@@ -273,10 +273,10 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES		"86Boxの環境設定"
+#define STR_PREFERENCES		"環境設定"
 #define STR_SND_GAIN		"サウンドゲイン"
 #define STR_NEW_FLOPPY		"新規のイメージ"
-#define STR_CONFIG		"マシンの設定"
+#define STR_CONFIG		"設定"
 #define STR_SPECIFY_DIM		"メインウィンドウの寸法指定"
 
 #define STR_OK			"OK"

@@ -273,10 +273,10 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES		"Preferencias de 86Box"
+#define STR_PREFERENCES		"Preferencias"
 #define STR_SND_GAIN		"Ganancia de Sonido"
 #define STR_NEW_FLOPPY		"Nueva Imagen"
-#define STR_CONFIG		"Ajustes de Máquina"
+#define STR_CONFIG		"Ajustes"
 #define STR_SPECIFY_DIM		"Especificar Dimensiones de la Ventana Principal"
 
 #define STR_OK			"Aceptar"

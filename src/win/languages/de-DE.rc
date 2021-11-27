@@ -273,10 +273,10 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES		"86Box-Einstellungen"
+#define STR_PREFERENCES		"Einstellungen"
 #define STR_SND_GAIN		"Klangverstärkung"
 #define STR_NEW_FLOPPY		"Neues Image"
-#define STR_CONFIG		"Maschinenoptionen"
+#define STR_CONFIG		"Optionen"
 #define STR_SPECIFY_DIM		"Abmessungen des Hauptfensters einstellen"
 
 #define STR_OK			"OK"
