@@ -129,6 +129,10 @@ if(APPLE)
   
 endif()
 
+if(QT)
+  find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
+endif()
+
 find_package(Freetype REQUIRED)
 include_directories(${FREETYPE_INCLUDE_DIRS})
 if(APPLE)
@@ -189,14 +193,28 @@ else()
 	install(TARGETS 86Box)
 endif()
 
-
 # adjustments for macOS app bundles
 if(APPLE)
 	set(APPS ${CMAKE_CURRENT_BINARY_DIR}/86Box.app)
 	install(CODE "
+		include(InstallRequiredSystemLibraries)
         	include(BundleUtilities)
         	fixup_bundle(\"${APPS}\" \"\" \"\")"
     	COMPONENT Runtime)
+
+	# needed for Qt packaging
+	# get the macdeployqt path
+	get_target_property(_qmake_executable Qt5::qmake IMPORTED_LOCATION)
+	get_filename_component(_qt_bin_dir "${_qmake_executable}" DIRECTORY)
+	find_program(MACDEPLOYQT_EXECUTABLE macdeployqt HINTS "${_qt_bin_dir}")
+
+	# excecute macdeployqt
+	add_custom_command(TARGET 86Box POST_BUILD
+		COMMAND "${MACDEPLOYQT_EXECUTABLE}"
+			"$<TARGET_FILE_DIR:86Box>/../.."
+			-always-overwrite
+		COMMENT "Running macdeployqt..."
+		)
 endif()
 
 if(VCPKG_TOOLCHAIN)
@@ -221,12 +239,12 @@ add_subdirectory(sio)
 add_subdirectory(scsi)
 add_subdirectory(sound)
 add_subdirectory(video)
+if (APPLE)
+	add_subdirectory(mac)
+endif()
 
 if (QT)
         add_subdirectory(qt)
-elseif(APPLE)
-	add_subdirectory(mac)
-	add_subdirectory(unix)
 elseif(WIN32)
 	add_subdirectory(win)
 else()
