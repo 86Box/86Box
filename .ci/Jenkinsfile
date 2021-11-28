@@ -73,7 +73,7 @@ def presetSlugs = [
 ]
 
 def presetFlags = [
-	'Regular': '--preset=regular',
+	'Regular': '-t --preset=regular',
 	'Debug': '--preset=debug',
 	'Dev': '--preset=experimental -D VNC=OFF'
 ]
