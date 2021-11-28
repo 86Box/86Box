@@ -1,5 +1,6 @@
 #include <cstdint>
 
+#include <QDebug>
 #include <QThread>
 #include <QMessageBox>
 
@@ -18,41 +19,10 @@ extern "C" {
 #include <86box/plat.h>
 
 void
-ui_sb_update_icon_state(int tag, int state)
-{
-
-}
-
-void
-ui_sb_update_icon(int tag, int active)
-{
-
-}
-
-void
 plat_delay_ms(uint32_t count)
 {
     QThread::msleep(count);
 }
-
-void
-ui_sb_update_tip(int arg)
-{
-
-}
-
-void
-ui_sb_update_panes()
-{
-
-}
-
-void ui_sb_bugui(char *str)
-{
-
-}
-
-void ui_sb_set_ready(int ready) {}
 
 wchar_t* ui_window_title(wchar_t* str)
 {
@@ -106,6 +76,37 @@ int	ui_msgbox(int flags, void *message) {
 
 void ui_sb_set_text_w(wchar_t *wstr) {
     main_window->statusBar()->showMessage(QString::fromWCharArray(wstr));
+}
+
+void
+ui_sb_update_tip(int arg) {
+    qDebug() << Q_FUNC_INFO << arg;
+}
+
+void
+ui_sb_update_panes() {
+    main_window->updateStatusBarPanes();
+}
+
+void ui_sb_bugui(char *str) {
+    main_window->statusBar()->showMessage(str);
+}
+
+void ui_sb_set_ready(int ready) {
+    qDebug() << Q_FUNC_INFO << ready;
+}
+
+void
+ui_sb_update_icon_state(int tag, int state) {
+    if (main_window == nullptr) {
+        return;
+    }
+    main_window->updateStatusBarEmpty(tag, state > 0 ? true : false);
+}
+
+void
+ui_sb_update_icon(int tag, int active) {
+    main_window->updateStatusBarActivity(tag, active > 0 ? true : false);
 }
 
 }

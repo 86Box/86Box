@@ -3,8 +3,8 @@
 
 extern "C" {
 #include <86box/86box.h>
-#include <86box/keyboard.h>
-#include <86box/mouse.h>
+//#include <86box/keyboard.h>
+//#include <86box/mouse.h>
 #include <86box/config.h>
 #include <86box/plat.h>
 
@@ -17,23 +17,6 @@ extern "C" {
 #include <QKeyEvent>
 
 #include "qt_settings.hpp"
-
-CentralWidget::CentralWidget(QWidget *parent) : QWidget(parent) {}
-CentralWidget::~CentralWidget() = default;
-
-MainWindowLabel::MainWindowLabel(QWidget *parent) : QLabel(parent) {
-    setMouseTracking(true);
-}
-MainWindowLabel::~MainWindowLabel() = default;
-void MainWindowLabel::mouseMoveEvent(QMouseEvent *event) {
-    pos_ = event->pos();
-}
-void MainWindowLabel::mousePressEvent(QMouseEvent *event) {
-    buttons_ = event->buttons();
-}
-void MainWindowLabel::mouseReleaseEvent(QMouseEvent *event) {
-    buttons_ = event->buttons();
-}
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -64,6 +47,10 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(ui->menubar, &QMenuBar::triggered, this, [] {
         config_save();
     });
+
+    connect(this, &MainWindow::updateStatusBarPanes, ui->machineStatus, &MachineStatus::refresh);
+    connect(this, &MainWindow::updateStatusBarActivity, ui->machineStatus, &MachineStatus::setActivity);
+    connect(this, &MainWindow::updateStatusBarEmpty, ui->machineStatus, &MachineStatus::setEmpty);
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
     ui->actionRight_CTRL_is_left_ALT->setChecked(rctrl_is_lalt);
@@ -275,24 +262,24 @@ static const uint16_t xfree86_keycode_table[keycode_entries] = {
     /* 135 */ 0x15d, // Application
 };
 
-static void handle_keypress_event(int state, quint32 native_scancode) {
-    if (native_scancode > keycode_entries) {
-        return;
-    }
-    uint16_t translated_code = xfree86_keycode_table[native_scancode];
-    if (translated_code == 0) {
-        return;
-    }
-    keyboard_input(state, translated_code);
+//static void handle_keypress_event(int state, quint32 native_scancode) {
+//    if (native_scancode > keycode_entries) {
+//        return;
+//    }
+//    uint16_t translated_code = xfree86_keycode_table[native_scancode];
+//    if (translated_code == 0) {
+//        return;
+//    }
+//    keyboard_input(state, translated_code);
 
-    if (keyboard_isfsexit() > 0) {
-        plat_setfullscreen(0);
-    }
+//    if (keyboard_isfsexit() > 0) {
+//        plat_setfullscreen(0);
+//    }
 
-    if (keyboard_ismsexit() > 0) {
-        plat_mouse_capture(0);
-    }
-}
+//    if (keyboard_ismsexit() > 0) {
+//        plat_mouse_capture(0);
+//    }
+//}
 
 void MainWindow::on_actionFullscreen_triggered() {
     setFullscreen(true);

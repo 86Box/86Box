@@ -8,37 +8,6 @@ namespace Ui {
 class MainWindow;
 }
 
-class MainWindowLabel : public QLabel
-{
-    Q_OBJECT
-public:
-    explicit MainWindowLabel(QWidget *parent = nullptr);
-    ~MainWindowLabel();
-
-    const QPoint& pos() { return pos_; }
-    Qt::MouseButtons buttons() { return buttons_; }
-protected:
-    void mouseMoveEvent(QMouseEvent *event) override;
-    void mousePressEvent(QMouseEvent *event) override;
-    void mouseReleaseEvent(QMouseEvent *event) override;
-private:
-    QPoint pos_;
-    Qt::MouseButtons buttons_;
-};
-
-class CentralWidget : public QWidget
-{
-    Q_OBJECT
-public:
-    explicit CentralWidget(QWidget *parent = nullptr);
-    ~CentralWidget();
-
-    void setSizeHint(QSize size) { size_ = size; }
-    QSize sizeHint() const override { return size_; }
-private:
-    QSize size_;
-};
-
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -50,14 +19,15 @@ signals:
     void paint(const QImage& image);
     void resizeContents(int w, int h);
     void pollMouse();
+    void updateStatusBarPanes();
+    void updateStatusBarActivity(int tag, bool active);
+    void updateStatusBarEmpty(int tag, bool empty);
 
     void setFullscreen(bool state);
     void setMouseCapture(bool state);
 
 private slots:
     void on_actionFullscreen_triggered();
-
-private slots:
     void on_actionSettings_triggered();
     void on_actionExit_triggered();
     void on_actionPause_triggered();

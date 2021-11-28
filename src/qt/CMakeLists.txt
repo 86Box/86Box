@@ -1,5 +1,3 @@
-find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
-
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
@@ -15,6 +13,9 @@ add_library(ui STATIC
     qt_mainwindow.cpp
     qt_mainwindow.hpp
     qt_mainwindow.ui
+    qt_machinestatus.cpp
+    qt_machinestatus.hpp
+    qt_machinestatus.ui
 
     qt_settings.cpp
     qt_settings.hpp
