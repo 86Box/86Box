@@ -4,6 +4,8 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
+find_package(Threads REQUIRED)
+
 add_library(plat STATIC qt.c qt_main.cpp qt_platform.cpp qt_midi.cpp cpp11_thread.cpp)
 add_library(ui STATIC
     qt_ui.cpp
@@ -78,10 +80,12 @@ target_link_libraries(
     plat
     PRIVATE
     Qt5::Widgets
+    Threads::Threads
 )
 
 target_link_libraries(
     ui
     PRIVATE
     Qt5::Widgets
+    Threads::Threads
 )
