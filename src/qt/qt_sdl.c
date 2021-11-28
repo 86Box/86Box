@@ -85,7 +85,6 @@ static int		cur_w, cur_h;
 static int		cur_ww = 0, cur_wh = 0;
 static volatile int	sdl_enabled = 0;
 static SDL_mutex*	sdl_mutex = NULL;
-static int blit_w = 0, blit_h = 0, blit_tex_updated = 0;
 
 static const uint16_t sdl_to_xt[0x200] =
     {
@@ -302,8 +301,9 @@ sdl_stretch(int *w, int *h, int *x, int *y)
 static void
 sdl_blit(int x, int y, int w, int h)
 {
+    SDL_Rect r_src;
     void *pixeldata;
-    int pitch;
+    int ret, pitch;
 
     if (!sdl_enabled || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
         video_blit_complete();
@@ -318,13 +318,24 @@ sdl_blit(int x, int y, int w, int h)
     if (screenshots)
         video_screenshot((uint32_t *) pixeldata, 0, 0, (2048 + 64));
 
-    blit_w = w;
-    blit_h = h;
-    blit_tex_updated = 1;
-
     SDL_UnlockTexture(sdl_tex);
-    SDL_UnlockMutex(sdl_mutex);
+
     video_blit_complete();
+
+    SDL_RenderClear(sdl_render);
+
+    r_src.x = 0;
+    r_src.y = 0;
+    r_src.w = w;
+    r_src.h = h;
+
+    ret = SDL_RenderCopy(sdl_render, sdl_tex, &r_src, 0);
+    if (ret)
+        sdl_log("SDL: unable to copy texture to renderer (%s)\n", sdl_GetError());
+
+    SDL_RenderPresent(sdl_render);
+
+    SDL_UnlockMutex(sdl_mutex);
 }
 
 
@@ -696,28 +707,6 @@ enum sdl_main_status sdl_main() {
             }
         }
         }
-    }
-
-    if (blit_tex_updated > 0) {
-        SDL_LockMutex(sdl_mutex);
-        int status = SDL_RenderClear(sdl_render);
-        if (status) {
-            sdl_log("SDL: unable to SDL_RenderClear (%s)\n", SDL_GetError());
-        }
-
-        r_src.x = 0;
-        r_src.y = 0;
-        r_src.w = blit_w;
-        r_src.h = blit_h;
-
-        status = SDL_RenderCopy(sdl_render, sdl_tex, &r_src, 0);
-        if (status) {
-            sdl_log("SDL: unable to copy texture to renderer (%s)\n", SDL_GetError());
-        }
-
-        SDL_RenderPresent(sdl_render);
-        blit_tex_updated = 0;
-        SDL_UnlockMutex(sdl_mutex);
     }
 
     if (mouse_capture && keyboard_ismsexit()) {
