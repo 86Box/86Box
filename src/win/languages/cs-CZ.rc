@@ -273,10 +273,10 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES		"Předvolby programu 86Box"
+#define STR_PREFERENCES		"Předvolby"
 #define STR_SND_GAIN		"Zesílení zvuku"
 #define STR_NEW_FLOPPY		"Nový obraz"
-#define STR_CONFIG		"Nastavení počítače"
+#define STR_CONFIG		"Nastavení"
 #define STR_SPECIFY_DIM		"Zadat rozměry hlavního okna"
 
 #define STR_OK			"OK"

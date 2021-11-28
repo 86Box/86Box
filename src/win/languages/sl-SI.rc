@@ -273,10 +273,10 @@ END
 // Dialog
 //
 
-#define STR_PREFERENCES		"Možnosti programa 86Box"
+#define STR_PREFERENCES		"Možnosti"
 #define STR_SND_GAIN		"Ojačanje zvoka"
 #define STR_NEW_FLOPPY		"Nova slika"
-#define STR_CONFIG		"Nastavitve sistema"
+#define STR_CONFIG		"Nastavitve"
 #define STR_SPECIFY_DIM		"Določi velikost glavnega okna"
 
 #define STR_OK			"V redu"
