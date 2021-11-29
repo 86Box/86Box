@@ -12,6 +12,7 @@ extern "C" {
 #include <QWindow>
 #include <QDebug>
 #include <QTimer>
+#include <QThread>
 #include <QKeyEvent>
 #include <QMessageBox>
 
@@ -25,10 +26,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->setupUi(this);
 
-    connect(this, &MainWindow::showMessage, this, [this](const QString& header, const QString& message) {
-        QMessageBox box(QMessageBox::Warning, header, message, QMessageBox::NoButton, this);
-        box.exec();
-    }, Qt::BlockingQueuedConnection);
+    connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
     connect(this, &MainWindow::pollMouse, this, [] {
         sdl_mouse_poll();
@@ -287,4 +285,17 @@ static const uint16_t xfree86_keycode_table[keycode_entries] = {
 
 void MainWindow::on_actionFullscreen_triggered() {
     setFullscreen(true);
+}
+
+void MainWindow::showMessage(const QString& header, const QString& message) {
+    if (QThread::currentThread() == this->thread()) {
+        showMessage_(header, message);
+    } else {
+        emit showMessageForNonQtThread(header, message);
+    }
+}
+
+void MainWindow::showMessage_(const QString &header, const QString &message) {
+    QMessageBox box(QMessageBox::Warning, header, message, QMessageBox::NoButton, this);
+    box.exec();
 }

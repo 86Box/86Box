@@ -15,6 +15,8 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
+
+    void showMessage(const QString& header, const QString& message);
 signals:
     void paint(const QImage& image);
     void resizeContents(int w, int h);
@@ -25,8 +27,8 @@ signals:
 
     void setFullscreen(bool state);
     void setMouseCapture(bool state);
-    void showMessage(const QString& header, const QString& message);
 
+    void showMessageForNonQtThread(const QString& header, const QString& message);
 private slots:
     void on_actionFullscreen_triggered();
     void on_actionSettings_triggered();
