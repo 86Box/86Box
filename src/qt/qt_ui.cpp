@@ -2,7 +2,6 @@
 
 #include <QDebug>
 #include <QThread>
-#include <QMessageBox>
 
 #include <QStatusBar>
 
@@ -57,16 +56,14 @@ void plat_mouse_capture(int on) {
     main_window->setMouseCapture(on > 0 ? true : false);
 }
 
-int	ui_msgbox_header(int flags, void *header, void* message)
-{
+int	ui_msgbox_header(int flags, void *header, void* message) {
     if (header <= (void*)7168) header = plat_get_string(reinterpret_cast<long>(header));
     if (message <= (void*)7168) message = plat_get_string(reinterpret_cast<long>(message));
 
     auto hdr = QString::fromWCharArray(reinterpret_cast<const wchar_t*>(header));
     auto msg = QString::fromWCharArray(reinterpret_cast<const wchar_t*>(message));
 
-    QMessageBox box(QMessageBox::Warning, hdr, msg);
-    box.exec();
+    main_window->showMessage(hdr, msg);
     return 0;
 }
 

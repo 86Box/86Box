@@ -77,15 +77,14 @@ int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     elapsed_timer.start();
 
+    main_window = new MainWindow();
+    main_window->show();
+
     pc_init(argc, argv);
     if (! pc_init_modules()) {
         ui_msgbox_header(MBX_FATAL, VC(L"No ROMs found."), VC(L"86Box could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory."));
         return 6;
     }
-
-    main_window = new MainWindow();
-    main_window->show();
-
     pc_reset_hard_init();
 
     /* Set the PAUSE mode depending on the renderer. */

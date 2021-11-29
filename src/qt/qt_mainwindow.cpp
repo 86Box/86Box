@@ -3,8 +3,6 @@
 
 extern "C" {
 #include <86box/86box.h>
-//#include <86box/keyboard.h>
-//#include <86box/mouse.h>
 #include <86box/config.h>
 #include <86box/plat.h>
 
@@ -15,6 +13,7 @@ extern "C" {
 #include <QDebug>
 #include <QTimer>
 #include <QKeyEvent>
+#include <QMessageBox>
 
 #include "qt_settings.hpp"
 
@@ -25,6 +24,11 @@ MainWindow::MainWindow(QWidget *parent) :
     Q_INIT_RESOURCE(qt_resources);
 
     ui->setupUi(this);
+
+    connect(this, &MainWindow::showMessage, this, [this](const QString& header, const QString& message) {
+        QMessageBox box(QMessageBox::Warning, header, message, QMessageBox::NoButton, this);
+        box.exec();
+    }, Qt::BlockingQueuedConnection);
 
     connect(this, &MainWindow::pollMouse, this, [] {
         sdl_mouse_poll();

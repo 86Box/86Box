@@ -25,6 +25,7 @@ signals:
 
     void setFullscreen(bool state);
     void setMouseCapture(bool state);
+    void showMessage(const QString& header, const QString& message);
 
 private slots:
     void on_actionFullscreen_triggered();
