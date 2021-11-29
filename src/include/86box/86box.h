@@ -134,9 +134,7 @@ extern int	hdd_format_type;		/* (C) hard disk file format */
 extern int	confirm_reset,			/* (C) enable reset confirmation */
 		confirm_exit,			/* (C) enable exit confirmation */
 		confirm_save;			/* (C) enable save confirmation */
-#ifdef USE_DISCORD
 extern int	enable_discord;			/* (C) enable Discord integration */
-#endif
 extern int	enable_crashdump;		/* (C) enable crash dump */
 
 extern int	is_pentium;			/* TODO: Move back to cpu/cpu.h when it's figured out,
