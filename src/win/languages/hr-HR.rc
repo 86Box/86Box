@@ -41,9 +41,7 @@ BEGIN
             MENUITEM "&SDL (Softver)",         IDM_VID_SDL_SW
             MENUITEM "SDL (&Hardver)",         IDM_VID_SDL_HW
             MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
             MENUITEM "Open&GL (3.3 jezgra)",      IDM_VID_OPENGL_CORE
-#endif
 #ifdef USE_VNC
             MENUITEM "&VNC",                    IDM_VID_VNC
 #endif
@@ -101,13 +99,10 @@ BEGIN
         MENUITEM "&Opcije...",                IDM_CONFIG
         MENUITEM "&Ažuriranje ikone statusne trake",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "&Postavke...",    IDM_PREFERENCES
-# ifdef USE_DISCORD
-        MENUITEM SEPARATOR
-        MENUITEM "Omogući integraciju &Discord-a", IDM_DISCORD
-# endif
-        MENUITEM SEPARATOR
         MENUITEM "Napravite &snimku zaslona\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM SEPARATOR
+        MENUITEM "&Postavke...",    IDM_PREFERENCES
+        MENUITEM "Omogući integraciju &Discord-a", IDM_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "&Pojačanje zvuka...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -249,7 +244,6 @@ BEGIN
     END
 END
 
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 VidGLSubMenu MENU DISCARDABLE
 BEGIN
     POPUP "&Ciljni framerate"
@@ -265,7 +259,6 @@ BEGIN
     MENUITEM "&Odaberi shader...", IDM_VID_GL_SHADER
     MENUITEM "&Ukloni shader", IDM_VID_GL_NOSHADER
 END
-#endif
 
 
 /////////////////////////////////////////////////////////////////////////////
