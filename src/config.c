@@ -583,7 +583,7 @@ load_general(void)
 
     video_framerate = config_get_int(cat, "video_gl_framerate", -1);
     video_vsync = config_get_int(cat, "video_gl_vsync", 0);
-    strcpy_s(video_shader, sizeof(video_shader), config_get_string(cat, "video_gl_shader", ""));
+    strcpy(video_shader, config_get_string(cat, "video_gl_shader", ""), sizeof(video_shader));
 }
 
 
