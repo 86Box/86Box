@@ -54,9 +54,6 @@ ifeq ($(DEV_BUILD), y)
  ifndef OPEN_AT
   OPEN_AT	:= y
  endif
- ifndef OPENGL
-  OPENGL	:= y
- endif
  ifndef PAS16
   PAS16		:= n
  endif
@@ -106,9 +103,6 @@ else
  ifndef OPEN_AT
   OPEN_AT	:= n
  endif
- ifndef OPENGL
-  OPENGL	:= n
- endif
  ifndef PAS16
   PAS16		:= n
  endif
@@ -151,9 +145,6 @@ endif
 ifndef ARM64
 ARM64 := n
 endif
-ifndef WX
-WX		:= n
-endif
 ifndef DINPUT
  DINPUT		:= n
 endif
@@ -184,9 +175,6 @@ ifeq ($(DYNAREC), y)
   endif
  endif
 endif
-ifndef DISCORD
- DISCORD	:= y
-endif
 
 
 # Path to the dynamic recompiler code.
@@ -198,45 +186,7 @@ endif
 
 
 # Name of the executable.
-ifndef PROG
- ifneq ($(WX), n)
-  PROG		:= Wx86Box
- else
-  PROG		:= 86Box
- endif
-endif
-
-# WxWidgets basic info. Extract using the config program.
-ifneq ($(WX), n)
- EXPATH		+= wx
- WX_CONFIG	:= wx-config.exe
- ifeq ($(WX), y)
-  WX_PATH	:= C:/MinGW32/WxWidgets
-  WX_FLAGS	:= -I$(WX_PATH)/lib/wx/include/msw-unicode-3.0 \
-		   -I$(WX_PATH)/include/wx-3.0 \
-		   -D__WXMSW__ -DWX_PRECOMP -D_FILE_OFFSET_BITS=64 -pthread
-#		   -lwx_mswu_gl-3.0 -lwxtiff-3.0 -llzma
-  WX_LIBS	:= -mwindows -mthreads -L$(WX_PATH)/lib \
-		   -lwx_mswu-3.0.dll \
-		   -lrpcrt4 -loleaut32 -lole32 -luuid \
-		   -lwinspool -lwinmm -lshell32 -lcomctl32 \
-		   -lcomdlg32 -ladvapi32 -lwsock32 -lgdi32
- endif
- ifeq ($(WX), static)
-  WX_PATH	:= C:/MinGW32/WxWidgets
-  WX_FLAGS	:= -I$(WX_PATH)/lib/wx/include/msw-unicode-3.0 \
-		   -I$(WX_PATH)/include/wx-3.0 \
-		   -D__WXMSW__ -DWX_PRECOMP -D_FILE_OFFSET_BITS=64 -pthread
-#		   -lwx_mswu_gl-3.0 -lwxtiff-3.0 -llzma
-  WX_LIBS	:= -mwindows -mthreads -L$(WX_PATH)/lib \
-		   -lwx_mswu-3.0 -lwxscintilla-3.0 \
-		   -lwxjpeg-3.0 -lwxpng-3.0 -lwxzlib-3.0 \
-		   -lwxregexu-3.0 -lwxexpat-3.0 \
-		   -lrpcrt4 -loleaut32 -lole32 -luuid \
-		   -lwinspool -lwinmm -lshell32 -lcomctl32 \
-		   -lcomdlg32 -ladvapi32 -lwsock32 -lgdi32
- endif
-endif
+PROG		:= 86Box
 
 
 #########################################################################
@@ -400,18 +350,6 @@ else
  endif
 endif
 
-ifeq ($(WX), y)
- OPTS		+= -DUSE_WX $(WX_FLAGS)
- LIBS		+= $(WX_LIBS)
- UIOBJ		:= wx_main.o wx_ui.o wx_stbar.o wx_render.o
-else
- UIOBJ		:= win_ui.o win_icon.o win_stbar.o \
-		   win_sdl.o \
-		   win_dialog.o win_about.o \
-		   win_settings.o win_devconf.o win_snd_gain.o win_specify_dim.o win_preferences.o \
-		   win_new_floppy.o win_jsconf.o win_media_menu.o
-endif
-
 ifeq ($(OPENAL), y)
 OPTS		+= -DUSE_OPENAL
 endif
@@ -441,12 +379,6 @@ RFLAGS		+= -DUSE_VNC
  endif
 VNCLIB		+=  -lvncserver
 VNCOBJ		:= vnc.o vnc_keymap.o
-endif
-
-ifeq ($(DISCORD), y)
-OPTS		+= -DUSE_DISCORD
-RFLAGS		+= -DUSE_DISCORD
-DISCORDOBJ	:= win_discord.o
 endif
 
 ifeq ($(MINITRACE), y)
@@ -491,12 +423,6 @@ ifeq ($(OPEN_AT), y)
 OPTS		+= -DUSE_OPEN_AT
 endif
 
-ifeq ($(OPENGL), y)
-OPTS		+= -DUSE_OPENGL
-RFLAGS		+= -DUSE_OPENGL
-DEVBROBJ	+= win_opengl.o win_opengl_glslp.o glad.o
-endif
-
 ifeq ($(PAS16), y)
 OPTS		+= -DUSE_PAS16
 DEVBROBJ	+= snd_pas16.o
@@ -525,7 +451,7 @@ endif
 
 
 # Final versions of the toolchain flags.
-CFLAGS		:= $(WX_FLAGS) $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
+CFLAGS		:= $(OPTS) $(DFLAGS) $(COPTIM) $(AOPTIM) \
 		   $(AFLAGS) -fomit-frame-pointer -mstackrealign -Wall \
 		   -fno-strict-aliasing
 
@@ -753,6 +679,13 @@ PLATOBJ		:= win.o \
 		    win_crashdump.o win_midi.o \
 		    win_mouse.o
 
+UIOBJ		:= win_ui.o win_icon.o win_stbar.o win_discord.o \
+		   win_sdl.o win_opengl.o win_opengl_glslp.o glad.o \
+		   win_dialog.o win_about.o \
+		   win_settings.o win_devconf.o win_snd_gain.o win_specify_dim.o win_preferences.o \
+		   win_new_floppy.o win_jsconf.o \
+		   win_media_menu.o
+
 ifeq ($(DINPUT), y)
  PLATOBJ	+= win_joystick.o
 else
@@ -762,8 +695,7 @@ endif
 OBJ		:= $(MAINOBJ) $(CPUOBJ) $(CHIPSETOBJ) $(MCHOBJ) $(DEVOBJ) $(MEMOBJ) \
 		   $(FDDOBJ) $(GAMEOBJ) $(CDROMOBJ) $(ZIPOBJ) $(MOOBJ) $(HDDOBJ) $(MINIVHDOBJ) \
 		   $(NETOBJ) $(PRINTOBJ) $(SCSIOBJ) $(SIOOBJ) $(SNDOBJ) $(VIDOBJ) $(VOODOOOBJ) \
-		   $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) $(DEVBROBJ) \
-		   $(DISCORDOBJ) $(MINITRACEOBJ)
+		   $(PLATOBJ) $(UIOBJ) $(FSYNTHOBJ) $(MUNTOBJ) $(DEVBROBJ) $(MINITRACEOBJ)
 ifdef EXOBJ
 OBJ		+= $(EXOBJ)
 endif
@@ -773,9 +705,6 @@ LIBS		:= -mwindows -lcomctl32 \
 
 ifeq ($(VNC), y)
 LIBS		+= $(VNCLIB) -lws2_32
-endif
-ifneq ($(WX), n)
-LIBS		+= $(WX_LIBS) -lm
 endif
 LIBS		+= -lpng -lz -lwsock32 -lshell32 -liphlpapi -lpsapi -lSDL2 -limm32 -lhid -lsetupapi -loleaut32 -luxtheme -lversion -lwinmm -static -lstdc++
 ifneq ($(X64), y)
@@ -863,7 +792,7 @@ ifneq ($(DEBUG), y)
 endif
 
 hello.exe:	hello.o
-		$(CXX) $(LDFLAGS) -o hello.exe hello.o $(WXLIBS) $(LIBS)
+		$(CXX) $(LDFLAGS) -o hello.exe hello.o $(LIBS)
 ifneq ($(DEBUG), y)
 		@$(STRIP) hello.exe
 endif

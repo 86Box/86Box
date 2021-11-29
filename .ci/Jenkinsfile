@@ -73,7 +73,7 @@ def presetSlugs = [
 ]
 
 def presetFlags = [
-	'Regular': '--preset=regular',
+	'Regular': '-t --preset=regular',
 	'Debug': '--preset=debug',
 	'Dev': '--preset=experimental -D VNC=OFF'
 ]
@@ -106,7 +106,7 @@ def gitClone(repository, branch) {
 		println "[-] Using git commit [${env.GIT_COMMIT}]"
 
 		/* Stash data and mark it as stashed. */
-		stash name: 'git'
+		stash name: 'git', useDefaultExcludes: false
 		env.GIT_STASHED = 'true'
 	} else {
 		/* Unstash data. */

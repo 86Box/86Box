@@ -80,8 +80,8 @@ enum {
     TRAP_COM3,
     TRAP_COM2,
     TRAP_COM4,
-    TRAP_LPT_LPT1,
-    TRAP_LPT_LPT2,
+    TRAP_LPT1,
+    TRAP_LPT2,
     TRAP_VGA,
     TRAP_KBC,
     TRAP_AUD_MIDI_0,
@@ -623,8 +623,8 @@ pipc_trap_update_586(void *priv)
     pipc_trap_update_paden(dev, TRAP_VGA, 0x00000010, 1, 0x3b0, 48);
     /* [A0000:BFFFF] memory trap not implemented. */
 
-    pipc_trap_update_paden(dev, TRAP_LPT_LPT1, 0x00000020, 1, 0x378, 8);
-    pipc_trap_update_paden(dev, TRAP_LPT_LPT2, 0x00000020, 1, 0x278, 8);
+    pipc_trap_update_paden(dev, TRAP_LPT1, 0x00000020, 1, 0x378, 8);
+    pipc_trap_update_paden(dev, TRAP_LPT2, 0x00000020, 1, 0x278, 8);
 
     pipc_trap_update_paden(dev, TRAP_COM1, 0x00000040, 1, 0x3f8, 8);
     pipc_trap_update_paden(dev, TRAP_COM2, 0x00000040, 1, 0x2f8, 8);
@@ -658,8 +658,8 @@ pipc_trap_update_596(void *priv)
     pipc_trap_update_paden(dev, TRAP_COM2, 0x00000040, 1, 0x2f8, 8);
     pipc_trap_update_paden(dev, TRAP_COM4, 0x00000040, 1, 0x2e8, 8);
 
-    pipc_trap_update_paden(dev, TRAP_LPT_LPT1, 0x00000080, 1, 0x378, 8);
-    pipc_trap_update_paden(dev, TRAP_LPT_LPT2, 0x00000080, 1, 0x278, 8);
+    pipc_trap_update_paden(dev, TRAP_LPT1, 0x00000080, 1, 0x378, 8);
+    pipc_trap_update_paden(dev, TRAP_LPT2, 0x00000080, 1, 0x278, 8);
 
     pipc_trap_update_paden(dev, TRAP_VGA, 0x00000100, 1, 0x3b0, 48);
     /* [A0000:BFFFF] memory trap not implemented. */
