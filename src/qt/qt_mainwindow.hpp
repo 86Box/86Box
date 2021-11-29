@@ -40,6 +40,7 @@ private slots:
     void on_actionRight_CTRL_is_left_ALT_triggered();
     void on_actionKeyboard_requires_capture_triggered();
 
+    void showMessage_(const QString& header, const QString& message);
 private:
     struct DeltaPos {
         int x = 0;
