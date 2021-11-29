@@ -1382,7 +1382,7 @@ write64_ami(void *priv, uint8_t val)
 		
 	case 0xa1:	/* get controller version */
 		kbd_log("ATkbc: AMI - get controller version\n");
-		add_data(dev, 'Z');
+		add_data(dev, 'H');
 		return 0;
 
 	case 0xa2:	/* clear keyboard controller lines P22/P23 */
