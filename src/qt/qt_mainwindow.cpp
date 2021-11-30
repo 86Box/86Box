@@ -57,12 +57,6 @@ MainWindow::MainWindow(QWidget *parent) :
         else ui->glesWidget->releaseMouse();
     });
 
-    connect(this, &MainWindow::setFullscreen, this, [this](bool state) {
-        video_fullscreen = state ? 1 : 0;
-        //sdl_set_fs(video_fullscreen);
-        this->setFullscreen(state);
-    });
-
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
         ui->glesWidget->resize(w, h);
         resize(w, h + menuBar()->height() + statusBar()->height());
@@ -627,7 +621,13 @@ uint16_t x11_keycode_to_keysym(uint32_t keycode)
 }
 
 void MainWindow::on_actionFullscreen_triggered() {
-    setFullscreen(true);
+    if (video_fullscreen > 0) {
+        showNormal();
+        video_fullscreen = 0;
+    } else {
+        showFullScreen();
+        video_fullscreen = 1;
+    }
 }
 
 void MainWindow::showMessage(const QString& header, const QString& message) {
