@@ -67,7 +67,6 @@ void GLESWidget::paintGL()
     //painter.fillRect(rect, QColor(0, 0, 0));
     painter.drawImage(QRect(0, 0, width(), height()), m_image.convertToFormat(QImage::Format_RGBA8888), QRect(sx, sy, sw, sh));
     painter.end();
-    update();
 }
 
 void GLESWidget::mouseReleaseEvent(QMouseEvent *event)
@@ -151,4 +150,5 @@ void GLESWidget::qt_real_blit(int x, int y, int w, int h)
         video_screenshot((uint32_t *)imagebits, 0, 0, 2048 + 64);
     }
     video_blit_complete();
+    update();
 }
