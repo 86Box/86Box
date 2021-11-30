@@ -25,7 +25,8 @@
         else                                                                    \
         {                                                                       \
                 SEG_CHECK_READ(cpu_state.ea_seg);                               \
-                src.q = readmemq(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;            \
+                src.q[0] = readmemq(easeg, cpu_state.eaaddr); if (cpu_state.abrt) return 1;            \
+                src.q[1] = readmemq(easeg, cpu_state.eaaddr + 8); if (cpu_state.abrt) return 1;            \
                 CLOCK_CYCLES(2);                                                \
         }
 
