@@ -378,7 +378,7 @@ rivatnt_pfifo_write(uint32_t addr, uint32_t val, void *p)
 		break;
 	case 0x002140:
 		rivatnt->pfifo.intr_en = val & 0x11111;
-		rivatnt_pmc_recompute_intr(1, rivatnt);
+		rivatnt_pmc_recompute_intr(rivatnt);
 		break;
 	case 0x003000:
 		rivatnt->pfifo.caches[0].push_enabled = val & 1;
