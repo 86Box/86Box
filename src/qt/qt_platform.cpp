@@ -347,14 +347,23 @@ void plat_language_code_r(uint32_t lcid, char* outbuf, int len) {
 
 void* dynld_module(const char *name, dllimp_t *table)
 {
-    auto lib = std::unique_ptr<QLibrary>(new QLibrary(name));
+    QString libraryName = name;
+    QFileInfo fi(libraryName);
+    QStringList removeSuffixes = {"dll", "dylib", "so"};
+    if (removeSuffixes.contains(fi.suffix())) {
+        libraryName = fi.completeBaseName();
+    }
+
+    auto lib = std::unique_ptr<QLibrary>(new QLibrary(libraryName));
     if (lib->load()) {
         for (auto imp = table; imp->name != nullptr; imp++)
         {
-            if ((imp->func = reinterpret_cast<void*>(lib->resolve(imp->name))) != nullptr)
-            {
+            auto ptr = lib->resolve(imp->name);
+            if (ptr == nullptr) {
                 return nullptr;
             }
+            auto imp_ptr = reinterpret_cast<void**>(imp->func);
+            *imp_ptr = reinterpret_cast<void*>(ptr);
         }
     } else {
         return nullptr;
