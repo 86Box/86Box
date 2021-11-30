@@ -51,9 +51,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
-    connect(this, &MainWindow::pollMouse, this, [] {
-        qt_mouse_poll();
-    });
+    connect(this, &MainWindow::pollMouse, hw_widget, &GLESWidget::qt_mouse_poll);
 
     connect(this, &MainWindow::setMouseCapture, this, [this](bool state) {
         mouse_capture = state ? 1 : 0;
@@ -83,17 +81,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
     ui->actionRight_CTRL_is_left_ALT->setChecked(rctrl_is_lalt);
-#if 0
-    sdl_inits();
-    sdl_timer = new QTimer(this);
-    connect(sdl_timer, &QTimer::timeout, this, [] {
-        auto status = sdl_main();
-        if (status == SdlMainQuit) {
-            QApplication::quit();
-        }
-    });
-    sdl_timer->start(5);
-#endif
 }
 
 MainWindow::~MainWindow() {

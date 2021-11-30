@@ -1,4 +1,3 @@
-#include <SDL.h>
 #include <QApplication>
 #include "qt_gleswidget.hpp"
 #ifdef __APPLE__
@@ -12,14 +11,6 @@ extern "C"
 #include <86box/video.h>
 }
 
-typedef struct mouseinputdata
-{
-    int deltax, deltay, deltaz;
-    int mousebuttons;
-} mouseinputdata;
-
-mouseinputdata mousedata;
-SDL_mutex* mousemutex;
 
 void
 qt_mouse_capture(int on)
@@ -41,15 +32,13 @@ qt_mouse_capture(int on)
     return;
 }
 
-void qt_mouse_poll()
+void GLESWidget::qt_mouse_poll()
 {
-    SDL_LockMutex(mousemutex);
     mouse_x = mousedata.deltax;
     mouse_y = mousedata.deltay;
     mouse_z = mousedata.deltaz;
     mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
     mouse_buttons = mousedata.mousebuttons;
-    SDL_UnlockMutex(mousemutex);
 }
 
 void GLESWidget::resizeGL(int w, int h)
@@ -83,27 +72,21 @@ void GLESWidget::mouseReleaseEvent(QMouseEvent *event)
     }
     if (mouse_capture)
     {
-        SDL_LockMutex(mousemutex);
         mousedata.mousebuttons &= ~event->button();
-        SDL_UnlockMutex(mousemutex);
     }
 }
 void GLESWidget::mousePressEvent(QMouseEvent *event)
 {
     if (mouse_capture)
     {
-        SDL_LockMutex(mousemutex);
         mousedata.mousebuttons |= event->button();
-        SDL_UnlockMutex(mousemutex);
     }
 }
 void GLESWidget::wheelEvent(QWheelEvent *event)
 {
     if (mouse_capture)
     {
-        SDL_LockMutex(mousemutex);
         mousedata.deltay += event->pixelDelta().y();
-        SDL_UnlockMutex(mousemutex);
     }
 }
 
@@ -117,10 +100,8 @@ void GLESWidget::mouseMoveEvent(QMouseEvent *event)
 #else
     static QPoint oldPos = QCursor::pos();
     if (ignoreNextMouseEvent) { oldPos = event->pos(); ignoreNextMouseEvent--; event->accept(); return; }
-    SDL_LockMutex(mousemutex);
     mousedata.deltax += event->pos().x() - oldPos.x();
     mousedata.deltay += event->pos().y() - oldPos.y();
-    SDL_UnlockMutex(mousemutex);
     QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
     oldPos = event->pos();
     ignoreNextMouseEvent = 1;

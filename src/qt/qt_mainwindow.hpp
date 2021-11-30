@@ -9,6 +9,8 @@ namespace Ui {
 class MainWindow;
 }
 
+class GLESWidget;
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -56,7 +58,7 @@ private:
     DeltaPos mouseDelta;
     QWindow* sdl_wrapped_window;
     QWidget* sdl_wrapped_widget;
-    QWidget* hw_widget;
+    GLESWidget* hw_widget;
     QTimer* sdl_timer;
 };
 

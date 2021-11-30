@@ -76,7 +76,6 @@ main_thread_fn()
     is_quit = 1;
 }
 
-extern SDL_mutex* mousemutex;
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
 #ifdef __APPLE__
@@ -85,7 +84,6 @@ int main(int argc, char* argv[]) {
 #endif
     elapsed_timer.start();
     SDL_Init(SDL_INIT_TIMER);
-    mousemutex = SDL_CreateMutex();
 
     main_window = new MainWindow();
     main_window->show();

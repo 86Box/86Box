@@ -38,4 +38,13 @@ public:
     }
 public slots:
 	void qt_real_blit(int x, int y, int w, int h);
+    void qt_mouse_poll();
+
+private:
+    struct mouseinputdata {
+        int deltax, deltay, deltaz;
+        int mousebuttons;
+    };
+    mouseinputdata mousedata;
+
 };
