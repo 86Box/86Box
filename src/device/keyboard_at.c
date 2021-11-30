@@ -679,17 +679,21 @@ add_to_kbc_queue_front(atkbd_t *dev, uint8_t val, uint8_t channel, uint8_t stat_
     if (channel == 2) {
 	if (dev->mem[0] & 0x02)
 		picint(0x1000);
-	dev->last_irq = 0x1000;
+	if (kbc_ven != KBC_VEN_OLIVETTI)
+		dev->last_irq = 0x1000;
     } else {
 	if (dev->mem[0] & 0x01)
 		picint(2);
-	dev->last_irq = 2;
+	if (kbc_ven != KBC_VEN_OLIVETTI)
+		dev->last_irq = 2;
     }
     dev->out = val;
     if (channel == 2)
 	dev->status = (dev->status & ~STAT_IFULL) | (STAT_OFULL | STAT_MFULL) | stat_hi;
     else
 	dev->status = (dev->status & ~(STAT_IFULL | STAT_MFULL)) | STAT_OFULL | stat_hi;
+    if (kbc_ven == KBC_VEN_OLIVETTI)
+	dev->last_irq = 0x0000;
 }
 
 
