@@ -210,7 +210,7 @@ show_render_options_menu()
 		{
 		case IDM_VID_OPENGL_CORE:
 			cur_menu = LoadMenu(hinstance, VID_GL_SUBMENU);
-			InsertMenu(GetSubMenu(menuMain, 1), 4, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)cur_menu, plat_get_string(IDS_2144));
+			InsertMenu(GetSubMenu(menuMain, 1), 6, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)cur_menu, plat_get_string(IDS_2144));
 			CheckMenuItem(menuMain, IDM_VID_GL_FPS_BLITTER, video_framerate == -1 ? MF_CHECKED : MF_UNCHECKED);
 			CheckMenuItem(menuMain, IDM_VID_GL_FPS_25, video_framerate == 25 ? MF_CHECKED : MF_UNCHECKED);
 			CheckMenuItem(menuMain, IDM_VID_GL_FPS_30, video_framerate == 30 ? MF_CHECKED : MF_UNCHECKED);

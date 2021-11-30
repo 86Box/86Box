@@ -608,7 +608,7 @@ static void
     ide_sec_disable();
 
     if (info->local)
-	dev->nvr = device_add(&ls486e_nvr_device);
+	dev->nvr = device_add(&ami_1994_nvr_device);
     else
 	dev->nvr = device_add(&at_nvr_device);
 
