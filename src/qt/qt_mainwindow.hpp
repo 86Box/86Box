@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QLabel>
+#include <qevent.h>
 
 namespace Ui {
 class MainWindow;
@@ -19,6 +20,7 @@ public:
     void showMessage(const QString& header, const QString& message);
 signals:
     void paint(const QImage& image);
+    void blitToWidget(int x, int y, int w, int h);
     void resizeContents(int w, int h);
     void pollMouse();
     void updateStatusBarPanes();
@@ -41,6 +43,9 @@ private slots:
     void on_actionKeyboard_requires_capture_triggered();
 
     void showMessage_(const QString& header, const QString& message);
+protected:
+    void keyPressEvent(QKeyEvent* event) override;
+    void keyReleaseEvent(QKeyEvent* event) override;
 private:
     struct DeltaPos {
         int x = 0;
@@ -51,6 +56,7 @@ private:
     DeltaPos mouseDelta;
     QWindow* sdl_wrapped_window;
     QWidget* sdl_wrapped_widget;
+    QWidget* hw_widget;
     QTimer* sdl_timer;
 };
 

@@ -1,10 +1,14 @@
 #include "qt_mainwindow.hpp"
+#include "ui_qt_machinestatus.h"
 #include "ui_qt_mainwindow.h"
+#include <qevent.h>
 
 extern "C" {
 #include <86box/86box.h>
 #include <86box/config.h>
+#include <86box/keyboard.h>
 #include <86box/plat.h>
+#include <86box/video.h>
 
 #include "qt_sdl.h"
 };
@@ -16,7 +20,19 @@ extern "C" {
 #include <QKeyEvent>
 #include <QMessageBox>
 
+#include <array>
+
 #include "qt_settings.hpp"
+#include "qt_gleswidget.hpp"
+
+#ifdef __unix__
+#include <X11/Xlib.h>
+#include <X11/keysym.h>
+#endif
+
+extern void qt_mouse_poll();
+extern void qt_mouse_capture(int);
+extern "C" void qt_blit(int x, int y, int w, int h);
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -25,25 +41,36 @@ MainWindow::MainWindow(QWidget *parent) :
     Q_INIT_RESOURCE(qt_resources);
 
     ui->setupUi(this);
+    video_setblit(qt_blit);
+
+    this->hw_widget = new GLESWidget(this);
+    this->hw_widget->setMouseTracking(true);
+    this->hw_widget->setGeometry(QRect(this->menuWidget() ? QPoint(0,this->menuWidget()->size().height()) : QPoint(0,0), QSize(640, 480)));
+    this->setCentralWidget(this->hw_widget);
+    connect(this, &MainWindow::blitToWidget, (GLESWidget*)this->hw_widget, &GLESWidget::qt_real_blit);
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
     connect(this, &MainWindow::pollMouse, this, [] {
-        sdl_mouse_poll();
+        qt_mouse_poll();
     });
 
-    connect(this, &MainWindow::setMouseCapture, this, [](bool state) {
+    connect(this, &MainWindow::setMouseCapture, this, [this](bool state) {
         mouse_capture = state ? 1 : 0;
-        sdl_mouse_capture(mouse_capture);
+        qt_mouse_capture(mouse_capture);
+        if (mouse_capture) hw_widget->grabMouse();
+        else hw_widget->releaseMouse();
     });
 
-    connect(this, &MainWindow::setFullscreen, this, [](bool state) {
+    connect(this, &MainWindow::setFullscreen, this, [this](bool state) {
         video_fullscreen = state ? 1 : 0;
-        sdl_set_fs(video_fullscreen);
+        //sdl_set_fs(video_fullscreen);
+        this->setFullscreen(state);
     });
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
-        sdl_resize(w, h);
+        this->hw_widget->resize(w, h);
+        this->resize(w, h + menuBar()->height() + statusBar()->height());
     });
 
     connect(ui->menubar, &QMenuBar::triggered, this, [] {
@@ -56,7 +83,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
     ui->actionRight_CTRL_is_left_ALT->setChecked(rctrl_is_lalt);
-
+#if 0
     sdl_inits();
     sdl_timer = new QTimer(this);
     connect(sdl_timer, &QTimer::timeout, this, [] {
@@ -66,10 +93,13 @@ MainWindow::MainWindow(QWidget *parent) :
         }
     });
     sdl_timer->start(5);
+#endif
 }
 
 MainWindow::~MainWindow() {
-    sdl_close();
+    //sdl_close();
+    startblit();
+    //delete hw_widget;
     delete ui;
 }
 
@@ -123,165 +153,494 @@ void MainWindow::on_actionSettings_triggered() {
     }
 }
 
-static const int keycode_entries = 136;
-// xmodmap -pk
-static const uint16_t xfree86_keycode_table[keycode_entries] = {
-    /*   0 */ 0,
-    /*   1 */ 0,
-    /*   2 */ 0,
-    /*   3 */ 0,
-    /*   4 */ 0,
-    /*   5 */ 0,
-    /*   6 */ 0,
-    /*   7 */ 0,
-    /*   8 */ 0,
-    /*   9 */ 0x01, // Esc
-    /*  10 */ 0x02, // 1
-    /*  11 */ 0x03, // 2
-    /*  12 */ 0x04, // 3
-    /*  13 */ 0x05, // 4
-    /*  14 */ 0x06, // 5
-    /*  15 */ 0x07, // 6
-    /*  16 */ 0x08, // 7
-    /*  17 */ 0x09, // 8
-    /*  18 */ 0x0a, // 9
-    /*  19 */ 0x0b, // 0
-    /*  20 */ 0x0c, // -
-    /*  21 */ 0x0d, // =
-    /*  22 */ 0x0e, // BackSpace
-    /*  23 */ 0x0f, // Tab
-    /*  24 */ 0x10, // Q
-    /*  25 */ 0x11, // W
-    /*  26 */ 0x12, // E
-    /*  27 */ 0x13, // R
-    /*  28 */ 0x14, // T
-    /*  29 */ 0x15, // Y
-    /*  30 */ 0x16, // U
-    /*  31 */ 0x17, // I
-    /*  32 */ 0x18, // O
-    /*  33 */ 0x19, // P
-    /*  34 */ 0x1a, // [
-    /*  35 */ 0x1b, // ]
-    /*  36 */ 0x1c, // Return
-    /*  37 */ 0x1d, // LeftControl
-    /*  38 */ 0x1e, // A
-    /*  39 */ 0x1f, // S
-    /*  40 */ 0x20, // D
-    /*  41 */ 0x21, // F
-    /*  42 */ 0x22, // G
-    /*  43 */ 0x23, // H
-    /*  44 */ 0x24, // J
-    /*  45 */ 0x25, // K
-    /*  46 */ 0x26, // L
-    /*  47 */ 0x27, // ;
-    /*  48 */ 0x28, // '
-    /*  49 */ 0x29, // ` (???)
-    /*  50 */ 0x2a, // LeftShift
-    /*  51 */ 0x2b, // BackSlash
-    /*  52 */ 0x2c, // Z
-    /*  53 */ 0x2d, // X
-    /*  54 */ 0x2e, // C
-    /*  55 */ 0x2f, // V
-    /*  56 */ 0x30, // B
-    /*  57 */ 0x31, // N
-    /*  58 */ 0x32, // M
-    /*  59 */ 0x33, // ,
-    /*  60 */ 0x34, // .
-    /*  61 */ 0x35, // -
-    /*  62 */ 0x36, // RightShift
-    /*  63 */ 0x37, // KeyPad Multiply
-    /*  64 */ 0x38, // LeftAlt
-    /*  65 */ 0x39, // Space
-    /*  66 */ 0x3a, // CapsLock
-    /*  67 */ 0x3b, // F01
-    /*  68 */ 0x3c, // F02
-    /*  69 */ 0x3d, // F03
-    /*  70 */ 0x3e, // F04
-    /*  71 */ 0x3f, // F05
-    /*  72 */ 0x40, // F06
-    /*  73 */ 0x41, // F07
-    /*  74 */ 0x42, // F08
-    /*  75 */ 0x43, // F09
-    /*  76 */ 0x44, // F10
-    /*  77 */ 0x45, // NumLock
-    /*  78 */ 0x46, // ScrollLock
-    /*  79 */ 0x47, // KeyPad7
-    /*  80 */ 0x48, // KeyPad8
-    /*  81 */ 0x49, // KeyPad9
-    /*  82 */ 0x4a, // KeyPad Minus
-    /*  83 */ 0x4b, // KeyPad4
-    /*  84 */ 0x4c, // KeyPad5
-    /*  85 */ 0x4d, // KeyPad6
-    /*  86 */ 0x4e, // KeyPad Plus
-    /*  87 */ 0x4f, // KeyPad1
-    /*  88 */ 0x50, // KeyPad2
-    /*  89 */ 0x51, // KeyPad3
-    /*  90 */ 0x52, // KeyPad0
-    /*  91 */ 0x53, // KeyPad .
-    /*  92 */ 0,
-    /*  93 */ 0,
-    /*  94 */ 0x56, // Less/Great
-    /*  95 */ 0x57, // F11
-    /*  96 */ 0x58, // F12
-    /*  97 */ 0,
-    /*  98 */ 0,
-    /*  99 */ 0,
-    /* 100 */ 0,
-    /* 101 */ 0,
-    /* 102 */ 0,
-    /* 103 */ 0,
-    /* 104 */ 0x11c, // KeyPad Enter
-    /* 105 */ 0x11d, // RightControl
-    /* 106 */ 0x135, // KeyPad Divide
-    /* 107 */ 0x137, // PrintScreen / SysReq
-    /* 108 */ 0x138, // RightAlt
-    /* 109 */ 0,
-    /* 110 */ 0x147, // Home
-    /* 111 */ 0x148, // Up
-    /* 112 */ 0x149, // PageUp
-    /* 113 */ 0x14b, // Left
-    /* 114 */ 0x14d, // Right
-    /* 115 */ 0x14f, // End
-    /* 116 */ 0x150, // Down
-    /* 117 */ 0x151, // PageDown
-    /* 118 */ 0x152, // Insert
-    /* 119 */ 0x153, // Delete
-    /* 120 */ 0,
-    /* 121 */ 0,
-    /* 122 */ 0,
-    /* 123 */ 0,
-    /* 124 */ 0,
-    /* 125 */ 0,
-    /* 126 */ 0,
-    /* 127 */ 0,
-    /* 128 */ 0,
-    /* 129 */ 0,
-    /* 130 */ 0,
-    /* 131 */ 0,
-    /* 132 */ 0,
-    /* 133 */ 0x15b, // SuperLeft
-    /* 134 */ 0x15c, // SuperRight
-    /* 135 */ 0x15d, // Application
+std::array<uint32_t, 256> x11_to_xt_base
+{
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0x01,
+    0x02,
+    0x03,
+    0x04,
+    0x05,
+    0x06,
+    0x07,
+    0x08,
+    0x09,
+    0x0A,
+    0x0B,
+    0x0C,
+    0x0D,
+    0x0E,
+    0x0F,
+    0x10,
+    0x11,
+    0x12,
+    0x13,
+    0x14,
+    0x15,
+    0x16,
+    0x17,
+    0x18,
+    0x19,
+    0x1A,
+    0x1B,
+    0x1C,
+    0x1D,
+    0x1E,
+    0x1F,
+    0x20,
+    0x21,
+    0x22,
+    0x23,
+    0x24,
+    0x25,
+    0x26,
+    0x27,
+    0x28,
+    0x29,
+    0x2A,
+    0x2B,
+    0x2C,
+    0x2D,
+    0x2E,
+    0x2F,
+    0x30,
+    0x31,
+    0x32,
+    0x33,
+    0x34,
+    0x35,
+    0x36,
+    0x37,
+    0x38,
+    0x39,
+    0x3A,
+    0x3B,
+    0x3C,
+    0x3D,
+    0x3E,
+    0x3F,
+    0x40,
+    0x41,
+    0x42,
+    0x43,
+    0x44,
+    0x45,
+    0x46,
+    0x47,
+    0x48,
+    0x49,
+    0x4A,
+    0x4B,
+    0x4C,
+    0x4D,
+    0x4E,
+    0x4F,
+    0x50,
+    0x51,
+    0x52,
+    0x53,
+    0x54,
+    0x55,
+    0x56,
+    0x57,
+    0x58,
+    0x147,
+    0x148,
+    0x149,
+    0,
+    0x14B,
+    0,
+    0x14D,
+    0x14F,
+    0x150,
+    0x151,
+    0x152,
+    0x153,
+    0x11C,
+    0x11D,
+    0, // Pause/Break key.
+    0x137,
+    0x135,
+    0x138,
+    0, // Ditto as above comment.
+    0x15B,
+    0x15C,
+    0x15D,
 };
 
-//static void handle_keypress_event(int state, quint32 native_scancode) {
-//    if (native_scancode > keycode_entries) {
-//        return;
-//    }
-//    uint16_t translated_code = xfree86_keycode_table[native_scancode];
-//    if (translated_code == 0) {
-//        return;
-//    }
-//    keyboard_input(state, translated_code);
+std::array<uint32_t, 256> x11_to_xt_2
+{
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0x01,
+    0x02,
+    0x03,
+    0x04,
+    0x05,
+    0x06,
+    0x07,
+    0x08,
+    0x09,
+    0x0A,
+    0x0B,
+    0x0C,
+    0x0D,
+    0x0E,
+    0x0F,
+    0x10,
+    0x11,
+    0x12,
+    0x13,
+    0x14,
+    0x15,
+    0x16,
+    0x17,
+    0x18,
+    0x19,
+    0x1A,
+    0x1B,
+    0x1C,
+    0x1D,
+    0x1E,
+    0x1F,
+    0x20,
+    0x21,
+    0x22,
+    0x23,
+    0x24,
+    0x25,
+    0x26,
+    0x27,
+    0x28,
+    0x29,
+    0x2A,
+    0x2B,
+    0x2C,
+    0x2D,
+    0x2E,
+    0x2F,
+    0x30,
+    0x31,
+    0x32,
+    0x33,
+    0x34,
+    0x35,
+    0x36,
+    0x37,
+    0x38,
+    0x39,
+    0x3A,
+    0x3B,
+    0x3C,
+    0x3D,
+    0x3E,
+    0x3F,
+    0x40,
+    0x41,
+    0x42,
+    0x43,
+    0x44,
+    0x45,
+    0x46,
+    0x47,
+    0x48,
+    0x49,
+    0x4A,
+    0x4B,
+    0x4C,
+    0x4D,
+    0x4E,
+    0x4F,
+    0x50,
+    0x51,
+    0x52,
+    0x53,
+    0x54,
+    0x55,
+    0x56,
+    0x57,
+    0x58,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0x11C,
+    0x11D,
+    0x135,
+    0x137,
+    0x138,
+    0,
+    0x147,
+    0x148,
+    0x149,
+    0x14B,
+    0x14D,
+    0x14F,
+    0x150,
+    0x151,
+    0x152,
+    0x153
+};
 
-//    if (keyboard_isfsexit() > 0) {
-//        plat_setfullscreen(0);
-//    }
+std::array<uint32_t, 256> x11_to_xt_vnc
+{
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0x1D,
+    0x11D,
+    0x2A,
+    0x36,
+    0,
+    0,
+    0x38,
+    0x138,
+    0x39,
+    0x0B,
+    0x02,
+    0x03,
+    0x04,
+    0x05,
+    0x06,
+    0x07,
+    0x08,
+    0x09,
+    0x0A,
+    0x0C,
+    0x0D,
+    0x1A,
+    0x1B,
+    0x27,
+    0x28,
+    0x29,
+    0x33,
+    0x34,
+    0x35,
+    0x2B,
+    0x1E,
+    0x30,
+    0x2E,
+    0x20,
+    0x12,
+    0x21,
+    0x22,
+    0x23,
+    0x17,
+    0x24,
+    0x25,
+    0x26,
+    0x32,
+    0x31,
+    0x18,
+    0x19,
+    0x10,
+    0x13,
+    0x1F,
+    0x14,
+    0x16,
+    0x2F,
+    0x11,
+    0x2D,
+    0x15,
+    0x2C,
+    0x0E,
+    0x1C,
+    0x0F,
+    0x01,
+    0x153,
+    0x147,
+    0x14F,
+    0x149,
+    0x151,
+    0x148,
+    0x150,
+    0x14B,
+    0x14D,
+};
 
-//    if (keyboard_ismsexit() > 0) {
-//        plat_mouse_capture(0);
-//    }
-//}
+std::array<uint32_t, 256> darwin_to_xt
+{
+    0x1E,
+    0x1F,
+    0x20,
+    0x21,
+    0x23,
+    0x22,
+    0x2C,
+    0x2D,
+    0x2E,
+    0x2F,
+    0x2B,
+    0x30,
+    0x10,
+    0x11,
+    0x12,
+    0x13,
+    0x15,
+    0x14,
+    0x02,
+    0x03,
+    0x04,
+    0x05,
+    0x07,
+    0x06,
+    0x0D,
+    0x0A,
+    0x08,
+    0x0C,
+    0x09,
+    0x0B,
+    0x1B,
+    0x18,
+    0x16,
+    0x1A,
+    0x17,
+    0x19,
+    0x1C,
+    0x26,
+    0x24,
+    0x28,
+    0x25,
+    0x27,
+    0x2B,
+    0x33,
+    0x35,
+    0x31,
+    0x32,
+    0x34,
+    0x0F,
+    0x39,
+    0x29,
+    0x0E,
+    0x11C,
+    0x01,
+    0x15C,
+    0x15B,
+    0x2A,
+    0x3A,
+    0x38,
+    0x1D,
+    0x36,
+    0x138,
+    0x11D,
+    0x15C,
+    0,
+    0x53,
+    0,
+    0x37,
+    0,
+    0x4E,
+    0,
+    0x45,
+    0x130,
+    0x12E,
+    0x120,
+    0x135,
+    0x11C,
+    0,
+    0x4A,
+    0,
+    0,
+    0,
+    0x52,
+    0x4F,
+    0x50,
+    0x51,
+    0x4B,
+    0x4C,
+    0x4D,
+    0x47,
+    0,
+    0x48,
+    0x49,
+    0,
+    0,
+    0,
+    0x3F,
+    0x40,
+    0x41,
+    0x3D,
+    0x42,
+    0x43,
+    0,
+    0x57,
+    0,
+    0x137,
+    0,
+    0x46,
+    0,
+    0x44,
+    0x15D,
+    0x58,
+    0,
+    0, // Pause/Break key.
+    0x152,
+    0x147,
+    0x149,
+    0x153,
+    0x3E,
+    0x14F,
+    0x3C,
+    0x151,
+    0x3B,
+    0x14B,
+    0x14D,
+    0x150,
+    0x148,
+    0,
+};
+
+static std::array<uint32_t, 256>& selected_keycode = x11_to_xt_base;
+
+uint16_t x11_keycode_to_keysym(uint32_t keycode)
+{
+#ifdef __APPLE__
+    return darwin_to_xt[keycode];
+#else
+    static Display* x11display = nullptr;
+    if (QApplication::platformName().contains("wayland"))
+    {
+        selected_keycode = x11_to_xt_2;
+    }
+    else if (!x11display)
+    {
+        x11display = XOpenDisplay(nullptr);
+        if (XKeysymToKeycode(x11display, XK_Home) == 110)
+        {
+            selected_keycode = x11_to_xt_2;
+        }
+        else if (XKeysymToKeycode(x11display, XK_Home) == 69)
+        {
+            selected_keycode = x11_to_xt_vnc;
+        }
+    }
+    return selected_keycode[keycode];
+#endif
+}
 
 void MainWindow::on_actionFullscreen_triggered() {
     setFullscreen(true);
@@ -298,4 +657,22 @@ void MainWindow::showMessage(const QString& header, const QString& message) {
 void MainWindow::showMessage_(const QString &header, const QString &message) {
     QMessageBox box(QMessageBox::Warning, header, message, QMessageBox::NoButton, this);
     box.exec();
+}
+
+void MainWindow::keyPressEvent(QKeyEvent* event)
+{
+#ifdef __APPLE__
+    keyboard_input(1, x11_keycode_to_keysym(event->nativeVirtualKey()));
+#else
+    keyboard_input(1, x11_keycode_to_keysym(event->nativeScanCode()));
+#endif
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent* event)
+{
+#ifdef __APPLE__
+    keyboard_input(0, x11_keycode_to_keysym(event->nativeVirtualKey()));
+#else
+    keyboard_input(0, x11_keycode_to_keysym(event->nativeScanCode()));
+#endif
 }
