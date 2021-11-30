@@ -242,7 +242,7 @@ static int opPUNPCKLDQ_xmm_a32(uint32_t fetchdat)
     return 0;
 }
 
-static int opPACKSSWB_a16(uint32_t fetchdat)
+static int opPACKSSWB_xmm_a16(uint32_t fetchdat)
 {
         SSE_REG src, dst;
         
@@ -262,7 +262,7 @@ static int opPACKSSWB_a16(uint32_t fetchdat)
         return 0;
 }
 
-static int opPACKSSWB_a32(uint32_t fetchdat)
+static int opPACKSSWB_xmm_a32(uint32_t fetchdat)
 {
         SSE_REG src, dst;
         
