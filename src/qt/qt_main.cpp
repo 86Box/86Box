@@ -11,8 +11,11 @@
 
 #include <thread>
 
+#include "SDL.h"
+#include "SDL_mutex.h"
 #include "qt_mainwindow.hpp"
 #include "qt_sdl.h"
+#include "cocoa_mouse.hpp"
 
 
 // Void Cast
@@ -73,9 +76,16 @@ main_thread_fn()
     is_quit = 1;
 }
 
+extern SDL_mutex* mousemutex;
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
+#ifdef __APPLE__
+    CocoaEventFilter cocoafilter;
+    app.installNativeEventFilter(&cocoafilter);
+#endif
     elapsed_timer.start();
+    SDL_Init(SDL_INIT_TIMER);
+    mousemutex = SDL_CreateMutex();
 
     main_window = new MainWindow();
     main_window->show();
@@ -91,6 +101,7 @@ int main(int argc, char* argv[]) {
     // plat_pause(0);
 
     /* Initialize the rendering window, or fullscreen. */
+    QTimer::singleShot(50, []() { plat_resize(640, 480); } );
     auto main_thread = std::thread([] {
        main_thread_fn();
     });

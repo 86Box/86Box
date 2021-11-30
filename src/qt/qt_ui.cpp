@@ -36,6 +36,11 @@ wchar_t* ui_window_title(wchar_t* str)
     return str;
 }
 
+extern "C" void qt_blit(int x, int y, int w, int h)
+{
+    main_window->blitToWidget(x, y, w, h);
+}
+
 void mouse_poll() {
     main_window->pollMouse();
 }
