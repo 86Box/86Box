@@ -1,7 +1,5 @@
 #include "qt_mainwindow.hpp"
-#include "ui_qt_machinestatus.h"
 #include "ui_qt_mainwindow.h"
-#include <qevent.h>
 
 extern "C" {
 #include <86box/86box.h>
@@ -24,6 +22,7 @@ extern "C" {
 
 #include "qt_settings.hpp"
 #include "qt_gleswidget.hpp"
+#include "qt_machinestatus.hpp"
 
 #ifdef __unix__
 #include <X11/Xlib.h>
@@ -39,6 +38,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     Q_INIT_RESOURCE(qt_resources);
+    status = std::make_unique<MachineStatus>(this);
 
     ui->setupUi(this);
     video_setblit(qt_blit);
@@ -66,9 +66,15 @@ MainWindow::MainWindow(QWidget *parent) :
         config_save();
     });
 
-//    connect(this, &MainWindow::updateStatusBarPanes, ui->machineStatus, &MachineStatus::refresh);
-//    connect(this, &MainWindow::updateStatusBarActivity, ui->machineStatus, &MachineStatus::setActivity);
-//    connect(this, &MainWindow::updateStatusBarEmpty, ui->machineStatus, &MachineStatus::setEmpty);
+    connect(this, &MainWindow::updateStatusBarPanes, this, [this] {
+        status->refresh(ui->statusbar);
+    });
+    connect(this, &MainWindow::updateStatusBarActivity, this, [this](int i, bool b) {
+        status->setActivity(i, b);
+    });
+    connect(this, &MainWindow::updateStatusBarEmpty, this, [this](int i, bool b) {
+        status->setEmpty(i, b);
+    });
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
     ui->actionRight_CTRL_is_left_ALT->setChecked(rctrl_is_lalt);

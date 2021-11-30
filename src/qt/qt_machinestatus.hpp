@@ -3,28 +3,22 @@
 
 #include <QWidget>
 
-class QLabel;
+class QStatusBar;
 
-namespace Ui {
-class MachineStatus;
-}
-
-class MachineStatus : public QWidget
+class MachineStatus : public QObject
 {
     Q_OBJECT
 
 public:
-    explicit MachineStatus(QWidget *parent = nullptr);
+    explicit MachineStatus(QObject *parent = nullptr);
     ~MachineStatus();
 
 public slots:
-    void refresh();
+    void refresh(QStatusBar* sbar);
     void setActivity(int tag, bool active);
     void setEmpty(int tag, bool active);
 
 private:
-    Ui::MachineStatus *ui;
-
     struct States;
     std::unique_ptr<States> d;
 };

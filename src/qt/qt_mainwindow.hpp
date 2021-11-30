@@ -3,11 +3,13 @@
 
 #include <QMainWindow>
 #include <QLabel>
-#include <qevent.h>
+#include <QEvent>
 
 namespace Ui {
 class MainWindow;
 }
+
+class MachineStatus;
 
 class MainWindow : public QMainWindow
 {
@@ -48,6 +50,7 @@ protected:
     void keyReleaseEvent(QKeyEvent* event) override;
 private:
     Ui::MainWindow *ui;
+    std::unique_ptr<MachineStatus> status;
 };
 
 #endif // QT_MAINWINDOW_HPP
