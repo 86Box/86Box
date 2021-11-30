@@ -356,6 +356,8 @@ void* dynld_module(const char *name, dllimp_t *table)
                 return nullptr;
             }
         }
+    } else {
+        return nullptr;
     }
 
     return lib.release();
