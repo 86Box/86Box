@@ -253,7 +253,7 @@ machine_at_rycleopardlx_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
 
     device_add(&opti283_device);
     device_add(&keyboard_at_ami_device);

@@ -294,7 +294,7 @@ const machine_t machines[] = {
     /* 486SLC machines */
     /* 486SLC machines with just the ISA slot */
     /* Has AMIKey H KBC firmware. */
-    { "[OPTi 283] RYC Leopard LX",		"rycleopardlx",		MACHINE_TYPE_486SLC,		CPU_PKG_486SLC_IBM, 0, 0, 0, 0, 0, 0, 0,									MACHINE_AT | MACHINE_IDE,							 1024, 16384, 1024, 127,	 machine_at_rycleopardlx_init, NULL			},
+    { "[OPTi 283] RYC Leopard LX",		"rycleopardlx",		MACHINE_TYPE_486SLC,		CPU_PKG_486SLC_IBM, 0, 0, 0, 0, 0, 0, 0,									MACHINE_AT,									 1024, 16384, 1024, 127,	 machine_at_rycleopardlx_init, NULL			},
 
     /* 386DX machines */
     { "[ACC 2168] AMI 386DX clone",		"acc386",		MACHINE_TYPE_386DX,		CPU_PKG_386DX, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT,									 1024, 16384, 1024, 127,	       machine_at_acc386_init, NULL			},
