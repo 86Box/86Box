@@ -42,22 +42,19 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->setupUi(this);
     video_setblit(qt_blit);
+    ui->glesWidget->setMouseTracking(true);
 
-    this->hw_widget = new GLESWidget(this);
-    this->hw_widget->setMouseTracking(true);
-    this->hw_widget->setGeometry(QRect(this->menuWidget() ? QPoint(0,this->menuWidget()->size().height()) : QPoint(0,0), QSize(640, 480)));
-    this->setCentralWidget(this->hw_widget);
-    connect(this, &MainWindow::blitToWidget, (GLESWidget*)this->hw_widget, &GLESWidget::qt_real_blit);
+    connect(this, &MainWindow::blitToWidget, ui->glesWidget, &GLESWidget::qt_real_blit);
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
-    connect(this, &MainWindow::pollMouse, hw_widget, &GLESWidget::qt_mouse_poll);
+    connect(this, &MainWindow::pollMouse, ui->glesWidget, &GLESWidget::qt_mouse_poll);
 
     connect(this, &MainWindow::setMouseCapture, this, [this](bool state) {
         mouse_capture = state ? 1 : 0;
         qt_mouse_capture(mouse_capture);
-        if (mouse_capture) hw_widget->grabMouse();
-        else hw_widget->releaseMouse();
+        if (mouse_capture) ui->glesWidget->grabMouse();
+        else ui->glesWidget->releaseMouse();
     });
 
     connect(this, &MainWindow::setFullscreen, this, [this](bool state) {
@@ -67,17 +64,17 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
-        this->hw_widget->resize(w, h);
-        this->resize(w, h + menuBar()->height() + statusBar()->height());
+        ui->glesWidget->resize(w, h);
+        resize(w, h + menuBar()->height() + statusBar()->height());
     });
 
     connect(ui->menubar, &QMenuBar::triggered, this, [] {
         config_save();
     });
 
-    connect(this, &MainWindow::updateStatusBarPanes, ui->machineStatus, &MachineStatus::refresh);
-    connect(this, &MainWindow::updateStatusBarActivity, ui->machineStatus, &MachineStatus::setActivity);
-    connect(this, &MainWindow::updateStatusBarEmpty, ui->machineStatus, &MachineStatus::setEmpty);
+//    connect(this, &MainWindow::updateStatusBarPanes, ui->machineStatus, &MachineStatus::refresh);
+//    connect(this, &MainWindow::updateStatusBarActivity, ui->machineStatus, &MachineStatus::setActivity);
+//    connect(this, &MainWindow::updateStatusBarEmpty, ui->machineStatus, &MachineStatus::setEmpty);
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
     ui->actionRight_CTRL_is_left_ALT->setChecked(rctrl_is_lalt);

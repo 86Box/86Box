@@ -37,7 +37,7 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="MachineStatus" name="machineStatus" native="true"/>
+     <widget class="GLESWidget" name="glesWidget"/>
     </item>
    </layout>
   </widget>
@@ -143,10 +143,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>MachineStatus</class>
-   <extends>QWidget</extends>
-   <header>qt_machinestatus.hpp</header>
-   <container>1</container>
+   <class>GLESWidget</class>
+   <extends>QOpenGLWidget</extends>
+   <header>qt_gleswidget.hpp</header>
   </customwidget>
  </customwidgets>
  <resources/>

@@ -9,8 +9,6 @@ namespace Ui {
 class MainWindow;
 }
 
-class GLESWidget;
-
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -49,17 +47,7 @@ protected:
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;
 private:
-    struct DeltaPos {
-        int x = 0;
-        int y = 0;
-        int z = 0;
-    };
     Ui::MainWindow *ui;
-    DeltaPos mouseDelta;
-    QWindow* sdl_wrapped_window;
-    QWidget* sdl_wrapped_widget;
-    GLESWidget* hw_widget;
-    QTimer* sdl_timer;
 };
 
 #endif // QT_MAINWINDOW_HPP

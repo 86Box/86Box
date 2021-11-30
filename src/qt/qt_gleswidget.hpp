@@ -1,3 +1,5 @@
+#pragma once
+
 #include <QOpenGLFunctions>
 #include <QOpenGLWidget>
 #include <QPainter>
@@ -16,7 +18,7 @@ public:
     void initializeGL() override;
     void paintGL() override;
     GLESWidget(QWidget* parent = nullptr)
-    : QOpenGLWidget(parent)
+    : QOpenGLWidget(parent), QOpenGLFunctions()
     {
         setMinimumSize(16, 16);
     }
