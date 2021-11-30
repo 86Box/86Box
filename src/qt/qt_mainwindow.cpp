@@ -650,6 +650,14 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
 #else
     keyboard_input(1, x11_keycode_to_keysym(event->nativeScanCode()));
 #endif
+
+    if (keyboard_isfsexit()) {
+        ui->actionFullscreen->trigger();
+    }
+
+    if (keyboard_ismsexit()) {
+        plat_mouse_capture(0);
+    }
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent* event)
