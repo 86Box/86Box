@@ -6,11 +6,6 @@ set(CMAKE_AUTORCC ON)
 
 find_package(Threads REQUIRED)
 
-set(UI_EXTRA_FILES)
-if (APPLE)
-    set(UI_EXTRA_FILES "macos_event_filter.mm")
-endif()
-
 add_library(plat STATIC qt.c qt_main.cpp qt_platform.cpp qt_midi.cpp cpp11_thread.cpp)
 add_library(ui STATIC
     qt_ui.cpp
@@ -25,8 +20,6 @@ add_library(ui STATIC
     qt_machinestatus.ui
     qt_gleswidget.cpp
     qt_gleswidget.hpp
-
-    ${UI_EXTRA_FILES}
 
     qt_settings.cpp
     qt_settings.hpp
@@ -84,6 +77,9 @@ add_library(ui STATIC
 
     ../qt_resources.qrc
 )
+if (APPLE)
+    target_sources(ui PRIVATE macos_event_filter.mm)
+endif()
 
 target_link_libraries(
     plat
@@ -99,7 +95,7 @@ target_link_libraries(
     Threads::Threads
 )
 
-if (NOT APPLE)
+if (UNIX AND NOT APPLE)
     find_package(X11 REQUIRED)
     target_link_libraries(ui PRIVATE X11::X11)
 endif()
