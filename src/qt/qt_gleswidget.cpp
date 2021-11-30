@@ -74,12 +74,12 @@ void GLESWidget::mouseReleaseEvent(QMouseEvent *event)
 {
     if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture)
     {
-        this->grabMouse();
+        plat_mouse_capture(1);
         return;
     }
     if (mouse_capture && event->button() == Qt::MiddleButton && mouse_get_buttons() < 3)
     {
-        this->releaseMouse();
+        plat_mouse_capture(0);
         return;
     }
     if (mouse_capture)
