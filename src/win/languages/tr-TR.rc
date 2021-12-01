@@ -41,9 +41,7 @@ BEGIN
             MENUITEM "&SDL (Yazılım)",         IDM_VID_SDL_SW
             MENUITEM "SDL (&Donanım)",         IDM_VID_SDL_HW
             MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
             MENUITEM "Open&GL (3.3 Core)",      IDM_VID_OPENGL_CORE
-#endif
 #ifdef USE_VNC
             MENUITEM "&VNC",                    IDM_VID_VNC
 #endif
@@ -101,13 +99,10 @@ BEGIN
         MENUITEM "&Ayarlar...",                IDM_CONFIG
         MENUITEM "Durum &çubuğu ikonlarını güncelle",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "&Tercihler...",    IDM_PREFERENCES
-# ifdef USE_DISCORD
-        MENUITEM SEPARATOR
-        MENUITEM "&Discord entegrasyonunu etkinleştir", IDM_DISCORD
-# endif
-        MENUITEM SEPARATOR
         MENUITEM "&Ekran görüntüsü al\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM SEPARATOR
+        MENUITEM "&Tercihler...",    IDM_PREFERENCES
+        MENUITEM "&Discord entegrasyonunu etkinleştir", IDM_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "&Ses yükseltici...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -249,7 +244,6 @@ BEGIN
     END
 END
 
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 VidGLSubMenu MENU DISCARDABLE
 BEGIN
     POPUP "Hedef &kare oranı"
@@ -265,7 +259,6 @@ BEGIN
     MENUITEM "Gölgelendirici &seç...", IDM_VID_GL_SHADER
     MENUITEM "&Gölgelendiriciyi kaldır", IDM_VID_GL_NOSHADER
 END
-#endif
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -485,7 +478,7 @@ BEGIN
     IDS_2118	"Dahili kontrolcü"
     IDS_2119	"Çıkış"
     IDS_2120	"Hiçbir ROM imajı bulunamadı"
-    IDS_2121	"Ayarlary kaydetmek istediğinizden emin misiniz?"
+    IDS_2121	"Ayarları kaydetmek istediğinizden emin misiniz?"
     IDS_2122	"Bu makineyi yeniden başlatacak."
     IDS_2123	"Kaydet"
     IDS_2124	"86Box Hakkında"

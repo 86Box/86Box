@@ -131,18 +131,25 @@ opti283_shadow_recalc(opti283_t *dev)
     shadowbios = shadowbios_write = 0;
     dev->shadow_high = 0;
 
+    opti283_log("OPTI 283: %02X %02X %02X %02X\n", dev->regs[0x11], dev->regs[0x12], dev->regs[0x13], dev->regs[0x14]);
+
     if (dev->regs[0x11] & 0x80) {
 	mem_set_mem_state_both(0xf0000, 0x10000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
+	opti283_log("OPTI 283: F0000-FFFFF READ_EXTANY, WRITE_INTERNAL\n");
 	shadowbios_write = 1;
     } else {
 	shadowbios = 1;
 	if (dev->regs[0x14] & 0x80) {
 		mem_set_mem_state_both(0xf0000, 0x01000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+		opti283_log("OPTI 283: F0000-F0FFF READ_INTERNAL, WRITE_INTERNAL\n");
 		shadowbios_write = 1;
-	} else
+	} else {
 		mem_set_mem_state_both(0xf0000, 0x01000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
+		opti283_log("OPTI 283: F0000-F0FFF READ_INTERNAL, WRITE_DISABLED\n");
+	}
 
 	mem_set_mem_state_both(0xf1000, 0x0f000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
+	opti283_log("OPTI 283: F1000-FFFFF READ_INTERNAL, WRITE_DISABLED\n");
     }
 
     sh_copy = dev->regs[0x11] & 0x08;
@@ -154,7 +161,7 @@ opti283_shadow_recalc(opti283_t *dev)
 		sh_enable = dev->regs[0x13] & (1 << (i + 4));
 	sh_mode = dev->regs[0x11] & (1 << (i >> 2));
 	rom = dev->regs[0x11] & (1 << ((i >> 2) + 4));
-	pclog("OPTI 283: %i/%08X: %i, %i, %i\n", i, base, (i >= 4) ? (1 << (i - 4)) : (1 << (i + 4)), (1 << (i >> 2)), (1 << ((i >> 2) + 4)));
+	opti283_log("OPTI 283: %i/%08X: %i, %i, %i\n", i, base, (i >= 4) ? (1 << (i - 4)) : (1 << (i + 4)), (1 << (i >> 2)), (1 << ((i >> 2) + 4)));
 
 	if (sh_enable && rom) {
 		if (base >= 0x000e0000)
@@ -163,20 +170,28 @@ opti283_shadow_recalc(opti283_t *dev)
 			dev->shadow_high |= 1;
 
 		if (sh_mode) {
+			mem_set_mem_state_both(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
+			opti283_log("OPTI 283: %08X-%08X READ_INTERNAL, WRITE_DISABLED\n", base, base + 0x3fff);
+		} else {
 			if (base >= 0x000e0000)
 				shadowbios_write |= 1;
 
-			if (sh_copy)
+			if (sh_copy) {
 				mem_set_mem_state_both(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-			else
+				opti283_log("OPTI 283: %08X-%08X READ_INTERNAL, WRITE_INTERNAL\n", base, base + 0x3fff);
+			} else {
 				mem_set_mem_state_both(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_EXTERNAL);
-		} else
-			mem_set_mem_state_both(base, 0x4000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
+				opti283_log("OPTI 283: %08X-%08X READ_INTERNAL, WRITE_EXTERNAL\n", base, base + 0x3fff);
+			}
+		}
 	} else {
-		if (base >= 0xe0000)
+		if (base >= 0xe0000) {
 			mem_set_mem_state_both(base, 0x4000, MEM_READ_EXTANY | MEM_WRITE_DISABLED);
-		else
+			opti283_log("OPTI 283: %08X-%08X READ_EXTANY, WRITE_DISABLED\n", base, base + 0x3fff);
+		} else {
 			mem_set_mem_state_both(base, 0x4000, MEM_READ_EXTERNAL | MEM_WRITE_DISABLED);
+			opti283_log("OPTI 283: %08X-%08X READ_EXTERNAL, WRITE_DISABLED\n", base, base + 0x3fff);
+		}
 	}
     }
 
@@ -196,6 +211,8 @@ opti283_shadow_recalc(opti283_t *dev)
 	mem_mapping_disable(&dev->mem_mappings[0]);
 	mem_mapping_disable(&dev->mem_mappings[1]);
     }
+
+    flushmmucache_nopc();
 }
 
 

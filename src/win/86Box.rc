@@ -373,6 +373,7 @@ END
 #include "languages/ja-JP.rc"
 #include "languages/pt-BR.rc"
 #include "languages/pt-PT.rc"
+#include "languages/ru-RU.rc"
 #include "languages/sl-SI.rc"
 #include "languages/es-ES.rc"
 #include "languages/tr-TR.rc"
