@@ -685,7 +685,7 @@ kbd_init(const device_t *info)
 
     video_reset(gfxcard);
 
-    if ((kbd->type <= 3) || (kbd->type == 4) || (kbd->type == 6)) {
+    if ((kbd->type <= 3) || (kbd->type == 4) || (kbd->type == 6) || (kbd->type == 8)) {
         /* DIP switch readout: bit set = OFF, clear = ON. */
         if (kbd->type == 8)
 		/* Olivetti M19
