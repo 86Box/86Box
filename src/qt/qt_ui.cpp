@@ -27,11 +27,11 @@ wchar_t* ui_window_title(wchar_t* str)
 {
     if (str == nullptr) {
         static wchar_t title[512];
-        int chars = main_window->windowTitle().toWCharArray(title);
-        title[chars] = 0;
+        memset(title, 0, sizeof(title));
+        main_window->getTitle(title);
         str = title;
     } else {
-        main_window->setWindowTitle(QString::fromWCharArray(str));
+        main_window->setTitle(str);
     }
     return str;
 }

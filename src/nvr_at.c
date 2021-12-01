@@ -290,10 +290,11 @@
 
 #define RTC_REGS	14		/* number of registers */
 
-#define FLAG_LS_HACK		0x01
-#define FLAG_APOLLO_HACK	0x02
-#define FLAG_P6RP4_HACK		0x04
-#define FLAG_PIIX4		0x08
+#define FLAG_AMI_1992_HACK	0x01
+#define FLAG_AMI_1994_HACK	0x02
+#define FLAG_AMI_1995_HACK	0x04
+#define FLAG_P6RP4_HACK		0x08
+#define FLAG_PIIX4		0x10
 
 
 typedef struct {
@@ -563,9 +564,11 @@ timer_tick(nvr_t *nvr)
 static void
 nvr_reg_common_write(uint16_t reg, uint8_t val, nvr_t *nvr, local_t *local)
 {
-    if ((reg == 0x2c) && (local->flags & FLAG_LS_HACK))
+    if ((reg == 0x2c) && (local->flags & FLAG_AMI_1994_HACK))
 	nvr->new = 0;
-    if ((reg == 0x52) && (local->flags & FLAG_APOLLO_HACK))
+    if ((reg == 0x2d) && (local->flags & FLAG_AMI_1992_HACK))
+	nvr->new = 0;
+    if ((reg == 0x52) && (local->flags & FLAG_AMI_1995_HACK))
 	nvr->new = 0;
     if ((reg >= 0x38) && (reg <= 0x3f) && local->wp[0])
 	return;
@@ -587,8 +590,7 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
     nvr_t *nvr = (nvr_t *)priv;
     local_t *local = (local_t *)nvr->data;
     struct tm tm;
-    uint8_t old, i;
-    uint16_t checksum = 0x0000;
+    uint8_t old;
 
     old = nvr->regs[reg];
     switch(reg) {
@@ -599,7 +601,7 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
 
 	case RTC_REGB:
 		nvr->regs[RTC_REGB] = val;
-		if (((old^val) & REGB_SET) && (val&REGB_SET)) {
+		if (((old^val) & REGB_SET) && (val & REGB_SET)) {
 			/* According to the datasheet... */
 			nvr->regs[RTC_REGA] &= ~REGA_UIP;
 			nvr->regs[RTC_REGB] &= ~REGB_UIE;
@@ -613,19 +615,6 @@ nvr_reg_write(uint16_t reg, uint8_t val, void *priv)
 		/* This is needed for VIA, where writing to this register changes a write-only
 		   bit whose value is read from power management register 42. */
 		nvr->regs[RTC_REGD] = val & 0x80;
-		break;
-
-	case 0x2e:
-	case 0x2f:
-		if (local->flags & FLAG_LS_HACK) {
-			/* 2E and 2F are a simple sum of the values of 0E to 2D. */
-			for (i = 0x0e; i < 0x2e; i++)
-				checksum += (uint16_t) nvr->regs[i];
-			nvr->regs[0x2e] = checksum >> 8;
-			nvr->regs[0x2f] = checksum & 0xff;
-			break;
-		}
-		nvr_reg_common_write(reg, val, nvr, local);
 		break;
 
 	case 0x32:
@@ -717,15 +706,33 @@ nvr_read(uint16_t addr, void *priv)
 		break;
 
 	case 0x2c:
-		if (!nvr->new && (local->flags & FLAG_LS_HACK))
+		if (!nvr->new && (local->flags & FLAG_AMI_1994_HACK))
 			ret = nvr->regs[local->addr[addr_id]] & 0x7f;
+		else
+			ret = nvr->regs[local->addr[addr_id]];
+		break;
+
+	case 0x2d:
+		if (!nvr->new && (local->flags & FLAG_AMI_1992_HACK))
+			ret = nvr->regs[local->addr[addr_id]] & 0xf7;
 		else
 			ret = nvr->regs[local->addr[addr_id]];
 		break;
 
 	case 0x2e:
 	case 0x2f:
-		if (!nvr->new && (local->flags & FLAG_LS_HACK)) {
+		if (!nvr->new && (local->flags & FLAG_AMI_1992_HACK)) {
+			for (i = 0x10; i <= 0x2d; i++) {
+				if (i == 0x2d)
+					checksum += (nvr->regs[i] & 0xf7);
+				else
+					checksum += nvr->regs[i];
+			}
+			if (local->addr[addr_id] == 0x2e)
+				ret = checksum >> 8;
+			else
+				ret = checksum & 0xff;
+		} else if (!nvr->new && (local->flags & FLAG_AMI_1994_HACK)) {
 			for (i = 0x10; i <= 0x2d; i++) {
 				if (i == 0x2c)
 					checksum += (nvr->regs[i] & 0x7f);
@@ -742,7 +749,7 @@ nvr_read(uint16_t addr, void *priv)
 
 	case 0x3e:
 	case 0x3f:
-		if (!nvr->new && (local->flags & FLAG_APOLLO_HACK)) {
+		if (!nvr->new && (local->flags & FLAG_AMI_1995_HACK)) {
 			/* The checksum at 3E-3F is for 37-3D and 40-7F. */
 			for (i = 0x37; i <= 0x3d; i++)
 				checksum += nvr->regs[i];
@@ -782,7 +789,7 @@ nvr_read(uint16_t addr, void *priv)
 		break;
 
 	case 0x52:
-		if (!nvr->new && (local->flags & FLAG_APOLLO_HACK))
+		if (!nvr->new && (local->flags & FLAG_AMI_1995_HACK))
 			ret = nvr->regs[local->addr[addr_id]] & 0xf3;
 		else
 			ret = nvr->regs[local->addr[addr_id]];
@@ -1005,16 +1012,16 @@ nvr_at_init(const device_t *info)
 		break;
 
 	case 1:		/* standard AT */
-	case 5:		/* Lucky Star LS-486E */
-	case 6:		/* AMI Apollo */
+	case 5:		/* AMI WinBIOS 1994 */
+	case 6:		/* AMI BIOS 1995 */
 		if (info->local == 9)
 			local->flags |= FLAG_PIIX4;
 		else {
 			local->def = 0x00;
 			if ((info->local & 7) == 5)
-				local->flags |= FLAG_LS_HACK;
+				local->flags |= FLAG_AMI_1994_HACK;
 			else if ((info->local & 7) == 6)
-				local->flags |= FLAG_APOLLO_HACK;
+				local->flags |= FLAG_AMI_1995_HACK;
 			else
 				local->def = 0xff;
 		}
@@ -1035,9 +1042,13 @@ nvr_at_init(const device_t *info)
 		break;
 
 	case 4:		/* IBM AT */
+		if (info->local == 12) {
+			local->def = 0x00;
+			local->flags |= FLAG_AMI_1992_HACK;
+		} else
+			local->def = 0xff;
 		nvr->irq = 8;
 		local->cent = RTC_CENTURY_AT;
-		local->def = 0xff;
 		break;
 
 	case 7:		/* VIA VT82C586B */
@@ -1164,8 +1175,17 @@ const device_t piix4_nvr_device = {
     NULL
 };
 
-const device_t ls486e_nvr_device = {
-    "Lucky Star LS-486E PC/AT NVRAM",
+const device_t ami_1992_nvr_device = {
+    "AMI Color 1992 PC/AT NVRAM",
+    DEVICE_ISA | DEVICE_AT,
+    12,
+    nvr_at_init, nvr_at_close, nvr_at_reset,
+    { NULL }, nvr_at_speed_changed,
+    NULL
+};
+
+const device_t ami_1994_nvr_device = {
+    "AMI WinBIOS 1994 PC/AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
     13,
     nvr_at_init, nvr_at_close, nvr_at_reset,
@@ -1173,8 +1193,8 @@ const device_t ls486e_nvr_device = {
     NULL
 };
 
-const device_t ami_apollo_nvr_device = {
-    "AMI Apollo PC/AT NVRAM",
+const device_t ami_1995_nvr_device = {
+    "AMI WinBIOS 1995 PC/AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
     14,
     nvr_at_init, nvr_at_close, nvr_at_reset,

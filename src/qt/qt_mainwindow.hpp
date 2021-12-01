@@ -20,9 +20,11 @@ public:
     ~MainWindow();
 
     void showMessage(const QString& header, const QString& message);
+    void setTitle(const wchar_t* title);
+    void getTitle(wchar_t* title);
+    void blitToWidget(int x, int y, int w, int h);
 signals:
     void paint(const QImage& image);
-    void blitToWidget(int x, int y, int w, int h);
     void resizeContents(int w, int h);
     void pollMouse();
     void updateStatusBarPanes();
@@ -33,6 +35,8 @@ signals:
     void setMouseCapture(bool state);
 
     void showMessageForNonQtThread(const QString& header, const QString& message);
+    void setTitleForNonQtThread(const wchar_t* title);
+    void getTitleForNonQtThread(wchar_t* title);
 private slots:
     void on_actionFullscreen_triggered();
     void on_actionSettings_triggered();
@@ -45,6 +49,8 @@ private slots:
     void on_actionKeyboard_requires_capture_triggered();
 
     void showMessage_(const QString& header, const QString& message);
+    void setTitle_(const wchar_t* title);
+    void getTitle_(wchar_t* title);
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;

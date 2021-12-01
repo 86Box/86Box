@@ -29,6 +29,8 @@ extern uint64_t		tsc;
 #include <QTimer>
 #include <QStatusBar>
 
+#include <array>
+
 namespace {
     struct PixmapSetActive {
         QPixmap normal;

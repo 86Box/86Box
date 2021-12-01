@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QImage>
 #include "qt_gleswidget.hpp"
 #ifdef __APPLE__
 #include <CoreGraphics/CoreGraphics.h>
@@ -11,7 +12,7 @@ extern "C"
 #include <86box/video.h>
 }
 
-
+extern "C" void macos_poll_mouse();
 void
 qt_mouse_capture(int on)
 {
@@ -34,11 +35,15 @@ qt_mouse_capture(int on)
 
 void GLESWidget::qt_mouse_poll()
 {
+#ifdef __APPLE__
+    return macos_poll_mouse();
+#else
     mouse_x = mousedata.deltax;
     mouse_y = mousedata.deltay;
     mouse_z = mousedata.deltaz;
     mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
     mouse_buttons = mousedata.mousebuttons;
+#endif
 }
 
 void GLESWidget::resizeGL(int w, int h)
@@ -49,13 +54,20 @@ void GLESWidget::resizeGL(int w, int h)
 void GLESWidget::initializeGL()
 {
     initializeOpenGLFunctions();
+    connect(this, &GLESWidget::reqUpdate, this, &GLESWidget::reqUpdate_);
 }
+
 void GLESWidget::paintGL()
 {
     QPainter painter(this);
-    //painter.fillRect(rect, QColor(0, 0, 0));
-    painter.drawImage(QRect(0, 0, width(), height()), m_image.convertToFormat(QImage::Format_RGBA8888), QRect(sx, sy, sw, sh));
+    painter.drawImage(QRect(0, 0, width(), height()), m_image.convertToFormat(QImage::Format_RGBX8888), QRect(sx, sy, sw, sh));
     painter.end();
+    firstupdate = true;
+}
+
+void GLESWidget::reqUpdate_()
+{
+    update();
 }
 
 void GLESWidget::mouseReleaseEvent(QMouseEvent *event)
@@ -110,8 +122,7 @@ void GLESWidget::mouseMoveEvent(QMouseEvent *event)
 
 void GLESWidget::qt_real_blit(int x, int y, int w, int h)
 {
-    // printf("Offpainter thread ID: %X\n", SDL_ThreadID());
-    if ((w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL))
+    if ((w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || !firstupdate)
     {
         video_blit_complete();
         return;
@@ -120,7 +131,7 @@ void GLESWidget::qt_real_blit(int x, int y, int w, int h)
     sy = y;
     sw = this->w = w;
     sh = this->h = h;
-    auto imagebits = m_image.bits();
+    static auto imagebits = m_image.bits();
     for (int y1 = y; y1 < (y + h - 1); y1++)
     {
         auto scanline = imagebits + (y1 * (2048 + 64) * 4);
@@ -131,5 +142,5 @@ void GLESWidget::qt_real_blit(int x, int y, int w, int h)
         video_screenshot((uint32_t *)imagebits, 0, 0, 2048 + 64);
     }
     video_blit_complete();
-    update();
+    this->reqUpdate();
 }

@@ -44,9 +44,10 @@ MainWindow::MainWindow(QWidget *parent) :
     video_setblit(qt_blit);
     ui->glesWidget->setMouseTracking(true);
 
-    connect(this, &MainWindow::blitToWidget, ui->glesWidget, &GLESWidget::qt_real_blit);
-
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
+
+    connect(this, &MainWindow::setTitleForNonQtThread, this, &MainWindow::setTitle_, Qt::BlockingQueuedConnection);
+    connect(this, &MainWindow::getTitleForNonQtThread, this, &MainWindow::getTitle_, Qt::BlockingQueuedConnection);
 
     connect(this, &MainWindow::pollMouse, ui->glesWidget, &GLESWidget::qt_mouse_poll);
 
@@ -116,7 +117,11 @@ void MainWindow::on_actionExit_triggered() {
 }
 
 void MainWindow::on_actionSettings_triggered() {
-    Settings settings;
+    int currentPause = dopause;
+    plat_pause(1);
+    Settings settings(this);
+    settings.setModal(true);
+    settings.setWindowModality(Qt::WindowModal);
     settings.exec();
 
     switch (settings.result()) {
@@ -135,6 +140,7 @@ void MainWindow::on_actionSettings_triggered() {
     case QDialog::Rejected:
         break;
     }
+    plat_pause(currentPause);
 }
 
 std::array<uint32_t, 256> x11_to_xt_base
@@ -636,6 +642,34 @@ void MainWindow::on_actionFullscreen_triggered() {
     }
 }
 
+void MainWindow::setTitle_(const wchar_t *title)
+{
+    this->setWindowTitle(QString::fromWCharArray(title));
+}
+
+void MainWindow::setTitle(const wchar_t *title)
+{
+    if (QThread::currentThread() == this->thread()) {
+        setTitle_(title);
+    } else {
+        emit setTitleForNonQtThread(title);
+    }
+}
+
+void MainWindow::getTitle_(wchar_t *title)
+{
+    this->windowTitle().toWCharArray(title);
+}
+
+void MainWindow::getTitle(wchar_t *title)
+{
+    if (QThread::currentThread() == this->thread()) {
+        getTitle_(title);
+    } else {
+        emit getTitleForNonQtThread(title);
+    }
+}
+
 void MainWindow::showMessage(const QString& header, const QString& message) {
     if (QThread::currentThread() == this->thread()) {
         showMessage_(header, message);
@@ -664,6 +698,11 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
     if (keyboard_ismsexit()) {
         plat_mouse_capture(0);
     }
+}
+
+void MainWindow::blitToWidget(int x, int y, int w, int h)
+{
+    ui->glesWidget->qt_real_blit(x, y, w, h);
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent* event)

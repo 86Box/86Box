@@ -167,9 +167,7 @@ int	time_sync = 0;				/* (C) enable time sync */
 int	confirm_reset = 1;			/* (C) enable reset confirmation */
 int confirm_exit = 1;				/* (C) enable exit confirmation */
 int confirm_save = 1;				/* (C) enable save confirmation */
-#ifdef USE_DISCORD
 int	enable_discord = 0;			/* (C) enable Discord integration */
-#endif
 int	enable_crashdump = 0;			/* (C) enable crash dump */
 
 /* Statistics. */

@@ -13,6 +13,7 @@
 
 #include "SDL.h"
 #include "SDL_mutex.h"
+#include "SDL_timer.h"
 #include "qt_mainwindow.hpp"
 #include "qt_sdl.h"
 #include "cocoa_mouse.hpp"
@@ -76,6 +77,12 @@ main_thread_fn()
     is_quit = 1;
 }
 
+uint32_t timer_onesec(uint32_t interval, void* param)
+{
+    pc_onesec();
+    return interval;
+}
+
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
 #ifdef __APPLE__
@@ -97,6 +104,7 @@ int main(int argc, char* argv[]) {
 
     /* Set the PAUSE mode depending on the renderer. */
     // plat_pause(0);
+    SDL_AddTimer(1000, timer_onesec, nullptr);
 
     /* Initialize the rendering window, or fullscreen. */
     QTimer::singleShot(50, []() { plat_resize(640, 480); } );

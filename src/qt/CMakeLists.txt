@@ -17,7 +17,7 @@ add_library(ui STATIC
     qt_mainwindow.ui
     qt_machinestatus.cpp
     qt_machinestatus.hpp
-    qt_machinestatus.ui
+    #qt_machinestatus.ui
     qt_gleswidget.cpp
     qt_gleswidget.hpp
 
