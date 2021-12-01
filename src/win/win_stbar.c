@@ -131,6 +131,8 @@ ui_sb_timer_callback(int pane)
 	}
     } else
 	reset_occurred &= ~1;
+
+    reset_occurred &= ~2;
 }
 
 
