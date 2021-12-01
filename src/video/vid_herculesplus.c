@@ -475,9 +475,9 @@ graphics_line(herculesplus_t *dev)
 
 	dev->ma++;
 	for (c = 0; c < 16; c++) {
-		val >>= 1;
+		buffer32->line[dev->displine][(x << 4) + c] = (val & 0x8000) ? 7 : 0;
 
-		buffer32->line[dev->displine][(x << 4) + c] = (val & 1) ? 7 : 0;
+		val <<= 1;
 	}
 
 	for (c = 0; c < 16; c += 8)

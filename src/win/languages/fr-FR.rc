@@ -41,9 +41,7 @@ BEGIN
             MENUITEM "&SDL (Logiciel)",         IDM_VID_SDL_SW
             MENUITEM "SDL (&Materiel)",         IDM_VID_SDL_HW
             MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
             MENUITEM "Open&GL (3.3 Core)",      IDM_VID_OPENGL_CORE
-#endif
 #ifdef USE_VNC
             MENUITEM "&VNC",                    IDM_VID_VNC
 #endif
@@ -101,13 +99,10 @@ BEGIN
         MENUITEM "&Réglages...",                IDM_CONFIG
         MENUITEM "Mettre à jour la barre de stat&us",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "&Préférences...",    IDM_PREFERENCES
-# ifdef USE_DISCORD
-        MENUITEM SEPARATOR
-        MENUITEM "Activer intégration &Discord", IDM_DISCORD
-# endif
-        MENUITEM SEPARATOR
         MENUITEM "Copie &Ecran\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM SEPARATOR
+        MENUITEM "&Préférences...",    IDM_PREFERENCES
+        MENUITEM "Activer intégration &Discord", IDM_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "&Gain Son...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -249,7 +244,6 @@ BEGIN
     END
 END
 
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 VidGLSubMenu MENU DISCARDABLE
 BEGIN
     POPUP "&Taux de rafraîchissement cible"
@@ -265,7 +259,6 @@ BEGIN
     MENUITEM "Sé&lectionnez le shader...", IDM_VID_GL_SHADER
     MENUITEM "S&upprimer le shader", IDM_VID_GL_NOSHADER
 END
-#endif
 
 
 /////////////////////////////////////////////////////////////////////////////

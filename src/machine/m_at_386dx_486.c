@@ -253,7 +253,7 @@ machine_at_rycleopardlx_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_ide_init(model);
+    machine_at_common_init(model);
 
     device_add(&opti283_device);
     device_add(&keyboard_at_ami_device);
@@ -609,7 +609,7 @@ machine_at_403tg_common_init(const machine_t *model, int nvr_hack)
 {
     if (nvr_hack) {
 	machine_at_common_init_ex(model, 2);
-	device_add(&ls486e_nvr_device);
+	device_add(&ami_1994_nvr_device);
     } else
 	machine_at_common_init(model);
 
@@ -1158,7 +1158,8 @@ machine_at_pci400cb_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    device_add(&ami_1994_nvr_device);
     device_add(&ide_isa_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
@@ -1190,7 +1191,8 @@ machine_at_g486ip_init(const machine_t *model)
     if (bios_only || !ret)
 	return ret;
 
-    machine_at_common_init(model);
+    machine_at_common_init_ex(model, 2);
+    device_add(&ami_1992_nvr_device);
     device_add(&ide_isa_device);
 
     pci_init(PCI_CONFIG_TYPE_1);
