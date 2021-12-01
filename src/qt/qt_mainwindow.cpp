@@ -48,6 +48,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
+    connect(this, &MainWindow::setTitleForNonQtThread, this, &MainWindow::setTitle_, Qt::BlockingQueuedConnection);
+    connect(this, &MainWindow::getTitleForNonQtThread, this, &MainWindow::getTitle_, Qt::BlockingQueuedConnection);
+
     connect(this, &MainWindow::pollMouse, ui->glesWidget, &GLESWidget::qt_mouse_poll);
 
     connect(this, &MainWindow::setMouseCapture, this, [this](bool state) {
@@ -638,6 +641,34 @@ void MainWindow::on_actionFullscreen_triggered() {
     } else {
         showFullScreen();
         video_fullscreen = 1;
+    }
+}
+
+void MainWindow::setTitle_(const wchar_t *title)
+{
+    this->setWindowTitle(QString::fromWCharArray(title));
+}
+
+void MainWindow::setTitle(const wchar_t *title)
+{
+    if (QThread::currentThread() == this->thread()) {
+        setTitle_(title);
+    } else {
+        emit setTitleForNonQtThread(title);
+    }
+}
+
+void MainWindow::getTitle_(wchar_t *title)
+{
+    this->windowTitle().toWCharArray(title);
+}
+
+void MainWindow::getTitle(wchar_t *title)
+{
+    if (QThread::currentThread() == this->thread()) {
+        getTitle_(title);
+    } else {
+        emit getTitleForNonQtThread(title);
     }
 }
 
