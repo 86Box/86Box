@@ -1,5 +1,5 @@
 #include <SDL.h>
-#include "86box/plat.h"
+//#include "86box/plat.h"
 #include "cocoa_mouse.hpp"
 #import <AppKit/AppKit.h>
 extern "C"
@@ -15,6 +15,7 @@ extern "C"
 #include <86box/ui.h>
 #include <86box/video.h>
 extern int mouse_capture;
+extern void plat_mouse_capture(int);
 }
 
 typedef struct mouseinputdata
@@ -23,8 +24,7 @@ typedef struct mouseinputdata
     int mousebuttons;
 } mouseinputdata;
 
-extern SDL_mutex* mousemutex;
-extern mouseinputdata mousedata;
+static mouseinputdata mousedata;
 
 CocoaEventFilter::~CocoaEventFilter()
 {
@@ -40,17 +40,13 @@ bool CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *mess
             NSEvent* event = (NSEvent*)message;
             if ([event type] == NSEventTypeMouseMoved)
             {
-                SDL_LockMutex(mousemutex);
                 mousedata.deltax += [event deltaX];
                 mousedata.deltay += [event deltaY];
-                SDL_UnlockMutex(mousemutex);
                 return true;
             }
             if ([event type] == NSEventTypeScrollWheel)
             {
-                SDL_LockMutex(mousemutex);
                 mousedata.deltaz += [event deltaY];
-                SDL_UnlockMutex(mousemutex);
                 return true;
             }
             switch ([event type])
@@ -58,45 +54,33 @@ bool CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *mess
                 default: return false;
                 case NSEventTypeLeftMouseDown:
                 {
-                    SDL_LockMutex(mousemutex);
                     mousedata.mousebuttons |= 1;
-                    SDL_UnlockMutex(mousemutex);
                     break;
                 }
                 case NSEventTypeLeftMouseUp:
                 {
-                    SDL_LockMutex(mousemutex);
                     mousedata.mousebuttons &= ~1;
-                    SDL_UnlockMutex(mousemutex);
                     break;
                 }
                 case NSEventTypeRightMouseDown:
                 {
-                    SDL_LockMutex(mousemutex);
                     mousedata.mousebuttons |= 2;
-                    SDL_UnlockMutex(mousemutex);
                     break;
                 }
                 case NSEventTypeRightMouseUp:
                 {
-                    SDL_LockMutex(mousemutex);
                     mousedata.mousebuttons &= ~2;
-                    SDL_UnlockMutex(mousemutex);
                     break;
                 }
                 case NSEventTypeOtherMouseDown:
                 {
-                    SDL_LockMutex(mousemutex);
                     mousedata.mousebuttons |= 4;
-                    SDL_UnlockMutex(mousemutex);
                     break;
                 }
                 case NSEventTypeOtherMouseUp:
                 {
                     if (mouse_get_buttons() < 3) { plat_mouse_capture(0); return true; }
-                    SDL_LockMutex(mousemutex);
                     mousedata.mousebuttons &= ~4;
-                    SDL_UnlockMutex(mousemutex);
                     break;
                 }
             }
@@ -104,4 +88,13 @@ bool CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *mess
         }
     }
     return false;
+}
+
+extern "C" void macos_poll_mouse()
+{
+    mouse_x = mousedata.deltax;
+    mouse_y = mousedata.deltay;
+    mouse_z = mousedata.deltaz;
+    mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
+    mouse_buttons = mousedata.mousebuttons;
 }

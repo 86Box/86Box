@@ -11,7 +11,7 @@ extern "C"
 #include <86box/video.h>
 }
 
-
+extern "C" void macos_poll_mouse();
 void
 qt_mouse_capture(int on)
 {
@@ -34,11 +34,15 @@ qt_mouse_capture(int on)
 
 void GLESWidget::qt_mouse_poll()
 {
+#ifdef __APPLE__
+    return macos_poll_mouse();
+#else
     mouse_x = mousedata.deltax;
     mouse_y = mousedata.deltay;
     mouse_z = mousedata.deltaz;
     mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
     mouse_buttons = mousedata.mousebuttons;
+#endif
 }
 
 void GLESWidget::resizeGL(int w, int h)
