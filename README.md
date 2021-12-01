@@ -30,7 +30,7 @@ However, it is also possible to use 86Box on its own with the `--vmpath`/`-P` co
 
 Downloads
 ---------
-The latest stable version of 86Box is version 2.07, which was released on November 20, 2019, and is available from our [GitHub repository](https://github.com/86Box/86Box/releases/tag/v2.07).
+The latest stable version of 86Box is **v3.0**, which was released on December 1, 2021, and is available from our [GitHub repository](https://github.com/86Box/86Box/releases/tag/v3.0).
 
 ### Automatic builds
 We also offer automatic builds, which are built from the latest source code and contain the latest bugfixes and improvements, but may not be as stable and/or optimized as stable builds.
