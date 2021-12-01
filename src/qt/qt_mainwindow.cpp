@@ -44,8 +44,6 @@ MainWindow::MainWindow(QWidget *parent) :
     video_setblit(qt_blit);
     ui->glesWidget->setMouseTracking(true);
 
-    connect(this, &MainWindow::blitToWidget, ui->glesWidget, &GLESWidget::qt_real_blit);
-
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
     connect(this, &MainWindow::setTitleForNonQtThread, this, &MainWindow::setTitle_, Qt::BlockingQueuedConnection);
@@ -700,6 +698,11 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
     if (keyboard_ismsexit()) {
         plat_mouse_capture(0);
     }
+}
+
+void MainWindow::blitToWidget(int x, int y, int w, int h)
+{
+    ui->glesWidget->qt_real_blit(x, y, w, h);
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent* event)

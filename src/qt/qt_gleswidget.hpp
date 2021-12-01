@@ -6,6 +6,8 @@
 #include <QEvent>
 #include <QKeyEvent>
 
+#include <atomic>
+
 class GLESWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
 	Q_OBJECT
@@ -38,9 +40,13 @@ public:
     {
         event->ignore();
     }
+signals:
+    void reqUpdate();
+
 public slots:
 	void qt_real_blit(int x, int y, int w, int h);
     void qt_mouse_poll();
+    void reqUpdate_();
 
 private:
     struct mouseinputdata {
@@ -48,5 +54,5 @@ private:
         int mousebuttons;
     };
     mouseinputdata mousedata;
-
+    std::atomic<bool> firstupdate{false};
 };

@@ -22,9 +22,9 @@ public:
     void showMessage(const QString& header, const QString& message);
     void setTitle(const wchar_t* title);
     void getTitle(wchar_t* title);
+    void blitToWidget(int x, int y, int w, int h);
 signals:
     void paint(const QImage& image);
-    void blitToWidget(int x, int y, int w, int h);
     void resizeContents(int w, int h);
     void pollMouse();
     void updateStatusBarPanes();
