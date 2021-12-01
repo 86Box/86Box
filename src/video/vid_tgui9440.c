@@ -465,7 +465,6 @@ tgui_out(uint16_t addr, uint8_t val, void *p)
 								tgui->linear_size = (val & 0x10) ? 0x200000 : 0x100000;
 								svga->decode_mask = (val & 0x10) ? 0x1fffff : 0xfffff;
 							}
-							pclog("Linear base = %08x, size = %08x, mask = %08x\n", tgui->linear_base, tgui->linear_size, svga->decode_mask);
 							tgui_recalcmapping(tgui);
 						}
 						break;
@@ -1379,7 +1378,6 @@ tgui_accel_command(int count, uint32_t cpu_dat, tgui_t *tgui)
 	}
 
 	/*Other than mode stuff, this bit is undocumented*/
-	pclog("TGUI ger22 = %04x, cmd = %i, hdisp = %i, svga = %i, bpp = %i\n", tgui->accel.ger22, tgui->accel.command, svga->hdisp, svga->bpp, tgui->accel.bpp);
 	switch (tgui->accel.ger22 & 0xff) {
 		case 0:
 			switch (tgui->accel.ger22 >> 8) {
