@@ -371,11 +371,13 @@ rivatnt_pfifo_write(uint32_t addr, uint32_t val, void *p)
 	switch(addr)
 	{
 	case 0x002100:
+	{
 		uint32_t tmp = rivatnt->pfifo.intr & ~val;
 		rivatnt->pfifo.intr = tmp;
 		pci_clear_irq(rivatnt->card, PCI_INTA);
 		if(!(rivatnt->pfifo.intr & 1)) rivatnt->pfifo.cache_error = 0;
 		break;
+	}
 	case 0x002140:
 		rivatnt->pfifo.intr_en = val & 0x11111;
 		rivatnt_pmc_recompute_intr(rivatnt);
