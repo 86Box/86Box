@@ -116,7 +116,11 @@ void MainWindow::on_actionExit_triggered() {
 }
 
 void MainWindow::on_actionSettings_triggered() {
-    Settings settings;
+    int currentPause = dopause;
+    plat_pause(1);
+    Settings settings(this);
+    settings.setModal(true);
+    settings.setWindowModality(Qt::WindowModal);
     settings.exec();
 
     switch (settings.result()) {
@@ -135,6 +139,7 @@ void MainWindow::on_actionSettings_triggered() {
     case QDialog::Rejected:
         break;
     }
+    plat_pause(currentPause);
 }
 
 std::array<uint32_t, 256> x11_to_xt_base
