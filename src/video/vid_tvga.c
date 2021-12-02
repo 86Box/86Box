@@ -35,7 +35,7 @@
 #define TVGA9000B_ID		0x23
 #define TVGA8900CLD_ID		0x33
 
-#define ROM_TVGA_8900B		"roms/video/tvga/tvga8900B.VBI"
+#define ROM_TVGA_8900B		"roms/video/tvga/tvga8900b.vbi"
 #define ROM_TVGA_8900CLD	"roms/video/tvga/trident.bin"
 #define ROM_TVGA_9000B		"roms/video/tvga/tvga9000b.bin"
 

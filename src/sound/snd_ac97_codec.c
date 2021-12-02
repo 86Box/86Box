@@ -26,61 +26,81 @@
 #include <86box/snd_ac97.h>
 
 
-enum {
-    AC97_CODEC_AD1881,
-    AC97_CODEC_ALC100,
-    AC97_CODEC_CS4297,
-    AC97_CODEC_CS4297A,
-    AC97_CODEC_WM9701A
-};
-
 static const struct {
-    const uint32_t	vendor_id, max_rate, misc_flags; /* definitions for misc_flags in snd_ac97.h */
+    const uint32_t	vendor_id, min_rate, max_rate, misc_flags; /* definitions for misc_flags in snd_ac97.h */
     const uint16_t	reset_flags, extid_flags, /* definitions in snd_ac97.h */
 			powerdown_mask; /* bits [7:0] => register 26 bits [15:8]; bits [11:8] => register 2A bits [14:11] */
     const ac97_vendor_reg_t *vendor_regs; /* bits [11:8] of index are the page number if applicable (registers [60:6F]) */
+    const device_t	*device;
 } ac97_codecs[] = {
     [AC97_CODEC_AD1881] = {
 	.vendor_id = AC97_VENDOR_ID('A', 'D', 'S', 0x40),
+	.min_rate = 7000,
 	.max_rate = 48000,
 	.misc_flags = AC97_MASTER_6B | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_POP | AC97_MS | AC97_LPBK,
 	.reset_flags = (1 << AC97_3D_SHIFT), /* datasheet contradicts itself on AC97_HPOUT */
 	.extid_flags = AC97_VRA,
-	.powerdown_mask = 0x0bf
+	.powerdown_mask = 0x0bf,
+	.vendor_regs = (const ac97_vendor_reg_t[]) {{0x74, 0x0000, 0xff07}, {0x76, 0x0404, 0xdde5}, {0x78, 48000, 0x0000}, {0x7a, 48000, 0x0000}, {0}},
+	.device = &ad1881_device
+    },
+    [AC97_CODEC_AK4540] = {
+	.vendor_id = AC97_VENDOR_ID('A', 'K', 'M', 0x00),
+	.misc_flags = AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+	.powerdown_mask = 0x01f,
+	.device = &ak4540_device
     },
     [AC97_CODEC_ALC100] = {
 	.vendor_id = AC97_VENDOR_ID('A', 'L', 'C', 0x20),
-	.max_rate = 48000,
 	.misc_flags = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_POP | AC97_MS | AC97_LPBK,
 	.reset_flags = (22 << AC97_3D_SHIFT),
 	.extid_flags = AC97_AMAP,
-	.powerdown_mask = 0x0bf
+	.powerdown_mask = 0x0bf,
+	.device = &alc100_device
     },
     [AC97_CODEC_CS4297] = {
 	.vendor_id = AC97_VENDOR_ID('C', 'R', 'Y', 0x03),
-	.max_rate = 48000,
 	.misc_flags = AC97_MASTER_6B | AC97_AUXOUT | AC97_AUXOUT_6B | AC97_MONOOUT | AC97_MONOOUT_6B | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
 	.reset_flags = AC97_HPOUT | AC97_DAC_18B | AC97_ADC_18B,
 	.extid_flags = 0,
 	.powerdown_mask = 0x07f,
-	.vendor_regs = (const ac97_vendor_reg_t[]) {{0x05a, 0x0301, 0x0000}, {0}}
+	.vendor_regs = (const ac97_vendor_reg_t[]) {{0x5a, 0x0301, 0x0000}, {0}},
+	.device = &cs4297_device
     },
     [AC97_CODEC_CS4297A] = {
 	.vendor_id = AC97_VENDOR_ID('C', 'R', 'Y', 0x11),
-	.max_rate = 48000,
 	.misc_flags = AC97_MASTER_6B | AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
 	.reset_flags = AC97_HPOUT | AC97_DAC_20B | AC97_ADC_18B | (6 << AC97_3D_SHIFT),
 	.extid_flags = AC97_AMAP,
 	.powerdown_mask = 0x0ff,
-	.vendor_regs = (const ac97_vendor_reg_t[]) {{0x05e, 0x0000, 0x01b0}, {0x060, 0x0023, 0x0001}, {0x068, 0x0000, 0xdfff}, {0}}
+	.vendor_regs = (const ac97_vendor_reg_t[]) {{0x5e, 0x0000, 0x01b0}, {0x60, 0x0023, 0x0001}, {0x68, 0x0000, 0xdfff}, {0}},
+	.device = &cs4297a_device
+    },
+    [AC97_CODEC_STAC9708] = {
+	.vendor_id = AC97_VENDOR_ID(0x83, 0x84, 0x76, 0x08),
+	.misc_flags = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+	.reset_flags = (26 << AC97_3D_SHIFT) | AC97_DAC_18B | AC97_ADC_18B,
+	.extid_flags = AC97_SDAC,
+	.powerdown_mask = 0x2ff,
+	.vendor_regs = (const ac97_vendor_reg_t []) {{0x6c, 0x0000, 0x0003}, {0x74, 0x0000, 0x0003}, {0}},
+	.device = &stac9708_device
+    },
+    [AC97_CODEC_STAC9721] = {
+	.vendor_id = AC97_VENDOR_ID(0x83, 0x84, 0x76, 0x09),
+	.misc_flags = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
+	.reset_flags = (26 << AC97_3D_SHIFT) | AC97_DAC_18B | AC97_ADC_18B,
+	.extid_flags = AC97_AMAP,
+	.powerdown_mask = 0x0ff,
+	.vendor_regs = (const ac97_vendor_reg_t []) {{0x6c, 0x0000, 0x0000}, {0x6e, 0x0000, 0x0003}, {0x70, 0x0000, 0xffff}, {0x72, 0x0000, 0x0006}, {0x74, 0x0000, 0x0003}, {0x76, 0x0000, 0xffff}, {0x78, 0x0000, 0x3802}, {0}},
+	.device = &stac9721_device
     },
     [AC97_CODEC_WM9701A] = {
 	.vendor_id = AC97_VENDOR_ID('W', 'M', 'L', 0x00),
-	.max_rate = 48000,
 	.misc_flags = AC97_AUXOUT | AC97_MONOOUT | AC97_PCBEEP | AC97_PHONE | AC97_VIDEO | AC97_AUXIN | AC97_MS | AC97_LPBK,
 	.reset_flags = AC97_DAC_18B | AC97_ADC_18B,
 	.extid_flags = 0,
-	.powerdown_mask = 0x03f
+	.powerdown_mask = 0x03f,
+	.device = &wm9701a_device
     }
 };
 
@@ -257,6 +277,13 @@ line_gain:	val &= 0x9f1f;
 				val &= 0x0003;
 				break;
 
+			case 26: /* SigmaTel */
+				i = 0x0003;
+				if (dev->extid_flags & AC97_SDAC)
+					i |= 0x000c;
+				val &= i;
+				break;
+
 			default:
 				return;
 		}
@@ -271,6 +298,11 @@ line_gain:	val &= 0x9f1f;
 	case 0x26: /* Powerdown Control/Status */
 		i = dev->powerdown_mask << 8;
 		val = (val & i) | (prev & ~i);
+
+		/* Update status bits to reflect powerdowns. */
+		val = (val & ~0x000f) | (~(val >> 8) & 0x000f);
+		if (val & 0x0800) /* PR3 clears both ANL and REF */
+			val &= ~0x0004;
 		break;
 
 	case 0x28: /* Extended Audio ID */
@@ -306,8 +338,10 @@ rate:		/* Writable only if VRA/VRM is set. */
 		if (!(dev->extid_flags & i))
 			return;
 
-		/* Limit to maximum rate. */
-		if (val > dev->max_rate)
+		/* Limit to supported sample rate range. */
+		if (val < dev->min_rate)
+			val = dev->min_rate;
+		else if (val > dev->max_rate)
 			val = dev->max_rate;
 		break;
 
@@ -433,6 +467,9 @@ ac97_codec_reset(void *priv)
 	dev->regs[0x14 >> 1] = AC97_MUTE | 0x0808;
     if (dev->misc_flags & AC97_AUXIN)
 	dev->regs[0x14 >> 1] = AC97_MUTE | 0x0808;
+    dev->regs[0x1c] = AC97_MUTE; /* record gain */
+    if (dev->reset_flags & AC97_MICPCM)
+	dev->regs[0x1e] = AC97_MUTE; /* mic record gain */
     if (dev->misc_flags & AC97_LDAC)
 	dev->regs[0x36 >> 1] = AC97_MUTE_L;
     if (dev->misc_flags & AC97_CDAC)
@@ -533,7 +570,9 @@ ac97_codec_init(const device_t *info)
     memset(dev, 0, sizeof(ac97_codec_t));
 
     dev->vendor_id = ac97_codecs[info->local].vendor_id;
+    dev->min_rate = ac97_codecs[info->local].min_rate;
     dev->max_rate = ac97_codecs[info->local].max_rate;
+    dev->reset_flags = ac97_codecs[info->local].reset_flags;
     dev->extid_flags = ac97_codecs[info->local].extid_flags;
     dev->misc_flags = ac97_codecs[info->local].misc_flags;
     dev->powerdown_mask = ac97_codecs[info->local].powerdown_mask;
@@ -542,7 +581,7 @@ ac97_codec_init(const device_t *info)
 
     /* Associate this codec to the current controller. */
     if (!ac97_codec || (ac97_codec_count <= 0)) {
-	fatal("AC97 Codec %d: No controller to associate codec\n", ac97_codec_id);
+	pclog("AC97 Codec %d: No controller to associate codec\n", ac97_codec_id);
 	return NULL;
     }
     *ac97_codec = dev;
@@ -583,6 +622,8 @@ static void
 ac97_codec_close(void *priv)
 {
     ac97_codec_t *dev = (ac97_codec_t *) priv;
+    if (!dev)
+	return;
 
     ac97_codec_log("AC97 Codec %d: close()\n", dev->codec_id);
 
@@ -592,11 +633,33 @@ ac97_codec_close(void *priv)
 }
 
 
+const device_t *
+ac97_codec_get(int model)
+{
+    if ((model >= 0) && (model < (sizeof(ac97_codecs) / sizeof(ac97_codecs[0]))))
+	return ac97_codecs[model].device;
+    else
+	return &cs4297a_device; /* fallback */
+}
+
+
 const device_t ad1881_device =
 {
     "Analog Devices AD1881",
     DEVICE_AC97,
     AC97_CODEC_AD1881,
+    ac97_codec_init, ac97_codec_close, ac97_codec_reset,
+    { NULL },
+    NULL,
+    NULL,
+    NULL
+};
+
+const device_t ak4540_device =
+{
+    "Asahi Kasei AK4540",
+    DEVICE_AC97,
+    AC97_CODEC_AK4540,
     ac97_codec_init, ac97_codec_close, ac97_codec_reset,
     { NULL },
     NULL,
@@ -633,6 +696,30 @@ const device_t cs4297a_device =
     "Crystal CS4297A",
     DEVICE_AC97,
     AC97_CODEC_CS4297A,
+    ac97_codec_init, ac97_codec_close, ac97_codec_reset,
+    { NULL },
+    NULL,
+    NULL,
+    NULL
+};
+
+const device_t stac9708_device =
+{
+    "SigmaTel STAC9708",
+    DEVICE_AC97,
+    AC97_CODEC_STAC9708,
+    ac97_codec_init, ac97_codec_close, ac97_codec_reset,
+    { NULL },
+    NULL,
+    NULL,
+    NULL
+};
+
+const device_t stac9721_device =
+{
+    "SigmaTel STAC9721",
+    DEVICE_AC97,
+    AC97_CODEC_STAC9721,
     ac97_codec_init, ac97_codec_close, ac97_codec_reset,
     { NULL },
     NULL,

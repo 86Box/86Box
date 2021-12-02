@@ -15,6 +15,9 @@
  *		Copyright 2021 RichardG.
  */
 
+def repository = 'https://github.com/86Box/86Box.git'
+def branch = 'master'
+
 def osArchs = [
 	'Windows': ['32', '64'],
 	'Linux': ['x86', 'x86_64', 'arm32', 'arm64']
@@ -70,21 +73,45 @@ def presetSlugs = [
 ]
 
 def presetFlags = [
-	'Regular': '--preset=regular',
+	'Regular': '-t --preset=regular',
 	'Debug': '--preset=debug',
 	'Dev': '--preset=experimental -D VNC=OFF'
 ]
 
 def anyFailure = false
 
-def gitClone() {
-	if (env.GIT_COMMIT == null)
-		env.GIT_COMMIT = 'master'
-	println "[-] Using git tag [${env.GIT_COMMIT}]"
-	def scmVars = checkout scm: [$class: 'GitSCM',
-				     branches: [[name: env.GIT_COMMIT]],
-				     userRemoteConfigs: [[url: 'https://github.com/86Box/86Box.git']]]
-	env.GIT_COMMIT = scmVars.GIT_COMMIT
+def gitClone(repository, branch) {
+	/* Clean workspace. */
+	cleanWs()
+
+	/* Use stashes to avoid performing multiple clones. */
+	if (env.GIT_STASHED != 'true') {
+		/* Perform clone/checkout. */
+		def scmVars = checkout poll: true,
+				       changelog: true,
+				       scm: [$class: 'GitSCM',
+					     branches: [[name: branch]],
+					     userRemoteConfigs: [[url: repository]]]
+
+		if (env.GIT_COMMIT == null) {
+			/* Save the current HEAD commit. */
+			env.GIT_COMMIT = scmVars.GIT_COMMIT
+		} else if (env.GIT_COMMIT != scmVars.GIT_COMMIT) {
+			/* Checkout the commit read from the polling log. */
+			if (isUnix())
+				sh "git checkout ${env.GIT_COMMIT} || exit 0"
+			else
+				bat "git checkout ${env.GIT_COMMIT} || exit /b 0"
+		}
+		println "[-] Using git commit [${env.GIT_COMMIT}]"
+
+		/* Stash data and mark it as stashed. */
+		stash name: 'git', useDefaultExcludes: false
+		env.GIT_STASHED = 'true'
+	} else {
+		/* Unstash data. */
+		unstash name: 'git'
+	}
 }
 
 def removeDir(dir) {
@@ -98,20 +125,25 @@ def runBuild(args) {
 	if (isUnix())
 		sh "chmod u+x \"$WORKSPACE/.ci/build.sh\" && exec \"$WORKSPACE/.ci/build.sh\" $args"
 	else
-		bat "C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c 'exec \"\$(cygpath -u \\'%WORKSPACE%\\')\"/.ci/build.sh $args'"
+		bat "C:\\msys64\\msys2_shell.cmd -msys2 -defterm -here -no-start -c 'exec \"\$(cygpath -u \\'%WORKSPACE%\\')/.ci/build.sh\" $args'"
 }
 
 pipeline {
 	agent none
 
+	environment {
+		DISCORD_WEBHOOK_URL = credentials('discord-webhook-url')
+	}
+
+	options {
+		disableConcurrentBuilds()
+		quietPeriod(0)
+	}
+
 	parameters {
 		string(name: 'BUILD_TYPE',
 		       defaultValue: 'beta', /* !!! CHANGE HERE !!! for build type */
 		       description: "Build type to pass on to CMake. Don't change this, you should instead change the default value on .ci/Jenkinsfile")
-	}
-
-	environment {
-		DISCORD_WEBHOOK_URL = credentials('discord-webhook-url')
 	}
 
 	stages {
@@ -120,41 +152,48 @@ pipeline {
 
 			steps {
 				script {
-					/* Run a dummy git clone on any node to try and save the latest commit regardless of executor status.
-					   This avoids a timing issue where HEAD changes between polling and the nodes being available below.
-					   I talked to a few people, and we reached the conclusion that reading the polled commit from within
-					   the pipeline is not really possible (maybe short of switching to a multi-branch pipeline), so we
-					   have to live with this hack, which shortens but doesn't fully eliminate the timing issue's window. */
-					node {
+					/* Extract the polled commit from the polling log, so that git checkout can be used
+					   to avoid JENKINS-20518 race conditions caused by two pushes too close together. */
+					node('master') { /* must run on master node to read polling log */
 						/* Ignore exceptions as this is not really critical. */
 						try {
-							gitClone()
+							/* Switch to this build's directory. */
+							dir("${env.JENKINS_HOME}/jobs/${env.JOB_NAME}/builds/${env.BUILD_NUMBER}") {
+								/* Parse polling log. */
+								def pollingLog = readFile file: 'polling.log'
+								def match = pollingLog =~ /Latest remote head revision on [^ ]+ is: ([a-zA-Z0-9]+)/
+								if (match && match[0]) {
+									env.GIT_COMMIT = match[0][1]
+									println "[-] Read git commit [${env.GIT_COMMIT}] from polling log"
+								}
+							}
 						} catch (e) {}
-						try {
-							cleanWs()
-						} catch (e) {}
+					}
+
+					/* Adding to the above, run a git clone as soon as possible on any node
+					   to further avoid race conditions caused by busy node executor delays. */
+					node {
+						/* Run git clone. */
+						gitClone(repository, branch)
+
+						/* Clean workspace, in case this is running in a non-build node. */
+						cleanWs()
 					}
 
 					/* Create source tarball. */
 					node('Linux') {
 						try {
 							/* Run git clone. */
-							gitClone()
+							gitClone(repository, branch)
 
 							/* Switch to temp directory. */
-							dir(WORKSPACE_TMP) {
-								/* Clean output directory of potential stale old builds. */
-								removeDir('output')
+							dir("${env.WORKSPACE_TMP}/output") {
+								/* Run source tarball creation process. */
+								def packageName = "${env.JOB_BASE_NAME}-Source-b${env.BUILD_NUMBER}"
+								runBuild("-s \"$packageName\"")
 
-								/* Switch to output directory. */
-								dir('output') {
-									/* Run source tarball creation process. */
-									def packageName = "${env.JOB_BASE_NAME}-Source-b${env.BUILD_NUMBER}"
-									runBuild("-s \"$packageName\"")
-
-									/* Archive resulting artifacts. */
-									archiveArtifacts artifacts: "$packageName*"
-								}
+								/* Archive resulting artifacts. */
+								archiveArtifacts artifacts: "$packageName*"
 							}
 						} catch (e) {
 							/* Mark that a failure occurred. */
@@ -179,26 +218,18 @@ pipeline {
 										stage("$os $arch $dynarec $preset") {
 											try {
 												/* Run git clone. */
-												gitClone()
+												gitClone(repository, branch)
 
-												/* Switch to temp directory. */
-												dir(WORKSPACE_TMP) {
-													/* Clean output directory of potential stale old builds. */
-													removeDir('output')
-
-													/* Switch to output directory. */
-													dir('output') {
-														def packageName = "${env.JOB_BASE_NAME}${dynarecSlugs[dynarec]}${presetSlugs[preset]}-$os-$arch-b${env.BUILD_NUMBER}"
-														dir(dynarecNames[dynarec]) {
-															dir("$os - ${archNames[arch]}") {
-																/* Run build process. */
-																runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} -D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUM=${env.BUILD_NUMBER}\"")
-															}
-														}
-
-														/* Archive resulting artifacts. */
-														archiveArtifacts artifacts: "**/**/$packageName*"
+												/* Switch to output directory. */
+												dir("${env.WORKSPACE_TMP}/output") {
+													/* Run build process. */
+													def packageName = "${env.JOB_BASE_NAME}${dynarecSlugs[dynarec]}${presetSlugs[preset]}-$os-$arch-b${env.BUILD_NUMBER}"
+													dir("${dynarecNames[dynarec]}/$os - ${archNames[arch]}") {
+														runBuild("-b \"$packageName\" \"$arch\" ${presetFlags[preset]} ${dynarecFlags[dynarec]} -D \"BUILD_TYPE=$BUILD_TYPE\" -D \"EMU_BUILD=build ${env.BUILD_NUMBER}\" -D \"EMU_BUILD_NUM=${env.BUILD_NUMBER}\"")
 													}
+
+													/* Archive resulting artifacts. */
+													archiveArtifacts artifacts: "**/**/$packageName*"
 												}
 											} catch (e) {
 												/* Mark that a failure occurred. */
@@ -223,12 +254,14 @@ pipeline {
 	post {
 		always {
 			script {
+				/* Mark build as failed if any step has failed. */
 				if (anyFailure) {
 					println "[!] Failing build because a build stage failed"
 					currentBuild.result = 'FAILURE'
 				}
 
-				if (!env.JOB_BASE_NAME.contains("TestBuildPleaseIgnore")) {
+				/* Send out build notifications. */
+				if (!env.JOB_BASE_NAME.contains('TestBuildPleaseIgnore')) {
 					try {
 						/* Notify Discord. */
 						def result = currentBuild.currentResult.toLowerCase()

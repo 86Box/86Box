@@ -41,9 +41,7 @@ BEGIN
             MENUITEM "SDL (ソフトウェア)(&S)",         IDM_VID_SDL_SW
             MENUITEM "SDL (ハードウェア)(&H)",         IDM_VID_SDL_HW
             MENUITEM "SDL (OpenGL)(&O)",           IDM_VID_SDL_OPENGL
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
             MENUITEM "OpenGL (3.3コア)(&G)",      IDM_VID_OPENGL_CORE
-#endif
 #ifdef USE_VNC
             MENUITEM "VNC(&V)",                    IDM_VID_VNC
 #endif
@@ -101,13 +99,10 @@ BEGIN
         MENUITEM "設定(&S)...",                IDM_CONFIG
         MENUITEM "ステータスバーアイコンの更新(&U)",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "表示言語の変更(&P)...",    IDM_VID_PROG_SETT
-# ifdef USE_DISCORD
-        MENUITEM SEPARATOR
-        MENUITEM "Discordとの連携を可能にする(&D)", IDM_DISCORD
-# endif
-        MENUITEM SEPARATOR
         MENUITEM "クリーンショットを撮る(&C)\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM SEPARATOR
+        MENUITEM "環境設定(&P)...",    IDM_PREFERENCES
+        MENUITEM "Discordとの連携を可能にする(&D)", IDM_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "サウンドゲイン(&G)...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -249,7 +244,6 @@ BEGIN
     END
 END
 
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 VidGLSubMenu MENU DISCARDABLE
 BEGIN
     POPUP "目標フレームレート(&F)"
@@ -265,7 +259,6 @@ BEGIN
     MENUITEM "シェーダの選択(&S)...", IDM_VID_GL_SHADER
     MENUITEM "シェーダの削除(&R)", IDM_VID_GL_NOSHADER
 END
-#endif
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -273,10 +266,10 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"表示言語の変更"
+#define STR_PREFERENCES		"環境設定"
 #define STR_SND_GAIN		"サウンドゲイン"
 #define STR_NEW_FLOPPY		"新規のイメージ"
-#define STR_CONFIG		"86Boxの設定"
+#define STR_CONFIG		"設定"
 #define STR_SPECIFY_DIM		"メインウィンドウの寸法指定"
 
 #define STR_OK			"OK"

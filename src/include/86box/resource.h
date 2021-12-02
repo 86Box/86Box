@@ -29,7 +29,7 @@
 #define DLG_SND_GAIN		103	/* top-level dialog */
 #define DLG_NEW_FLOPPY		104	/* top-level dialog */
 #define DLG_SPECIFY_DIM		105	/* top-level dialog */
-#define DLG_PROG_SETT		106	/* top-level dialog */
+#define DLG_PREFERENCES		106	/* top-level dialog */
 #define DLG_CONFIG		110	/* top-level dialog */
 #define  DLG_CFG_MACHINE	111	/* sub-dialog of config */
 #define  DLG_CFG_VIDEO		112	/* sub-dialog of config */
@@ -353,13 +353,10 @@
 #define IDM_MEDIA		40087
 #define IDM_DOCS		40088
 
-#ifdef USE_DISCORD
 #define IDM_DISCORD		40090
-#endif
 
-#define IDM_VID_PROG_SETT	40091
+#define IDM_PREFERENCES		40091
 
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 #define IDM_VID_GL_FPS_BLITTER	40100
 #define IDM_VID_GL_FPS_25	40101
 #define IDM_VID_GL_FPS_30	40102
@@ -369,7 +366,6 @@
 #define IDM_VID_GL_VSYNC	40106
 #define IDM_VID_GL_SHADER	40107
 #define IDM_VID_GL_NOSHADER	40108
-#endif
 
 #define IDM_LOG_BREAKPOINT	51201
 #define IDM_DUMP_VRAM		51202	// should be an Action

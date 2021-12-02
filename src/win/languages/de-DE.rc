@@ -41,9 +41,7 @@ BEGIN
             MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
             MENUITEM "SDL (&Hardware)",         IDM_VID_SDL_HW
             MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
             MENUITEM "Open&GL (3.3-Kern)",      IDM_VID_OPENGL_CORE
-#endif
 #ifdef USE_VNC
             MENUITEM "&VNC",                    IDM_VID_VNC
 #endif
@@ -98,16 +96,13 @@ BEGIN
     MENUITEM "&Medien",				IDM_MEDIA
     POPUP "&Werkzeuge"
     BEGIN
-        MENUITEM "&Einstellungen...",                IDM_CONFIG
+        MENUITEM "&Optionen...",                IDM_CONFIG
         MENUITEM "&Statusleistenicons aktualisieren",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Programmeinstellungen ändern...",    IDM_VID_PROG_SETT
-# ifdef USE_DISCORD
-        MENUITEM SEPARATOR
-        MENUITEM "&Discord-Integration aktivieren", IDM_DISCORD
-# endif
-        MENUITEM SEPARATOR
         MENUITEM "S&creenshot aufnehmen\tStrg+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM SEPARATOR
+        MENUITEM "&Einstellungen...",    IDM_PREFERENCES
+        MENUITEM "&Discord-Integration aktivieren", IDM_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "&Schallverstärkung...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -249,7 +244,6 @@ BEGIN
     END
 END
 
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 VidGLSubMenu MENU DISCARDABLE
 BEGIN
     POPUP "Ziel&framerate"
@@ -265,7 +259,6 @@ BEGIN
     MENUITEM "&Shader auswählen...", IDM_VID_GL_SHADER
     MENUITEM "&Shader entfernen", IDM_VID_GL_NOSHADER
 END
-#endif
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -273,10 +266,10 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Programmeinstellungen"
+#define STR_PREFERENCES		"Einstellungen"
 #define STR_SND_GAIN		"Klangverstärkung"
 #define STR_NEW_FLOPPY		"Neues Image"
-#define STR_CONFIG		"86Box-Einstellungen"
+#define STR_CONFIG		"Optionen"
 #define STR_SPECIFY_DIM		"Abmessungen des Hauptfensters einstellen"
 
 #define STR_OK			"OK"

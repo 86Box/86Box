@@ -39,7 +39,7 @@ static char temp_icon_set[256] = {0};
 
 int enum_helper, c;
 
-HWND hwndProgSett;
+HWND hwndPreferences;
 
 BOOL CALLBACK 
 EnumResLangProc(HMODULE hModule, LPCTSTR lpszType, LPCTSTR lpszName, WORD wIDLanguage, LONG_PTR lParam)
@@ -60,7 +60,7 @@ EnumResLangProc(HMODULE hModule, LPCTSTR lpszType, LPCTSTR lpszName, WORD wIDLan
 
 /* Load available languages */
 static void
-progsett_fill_languages(HWND hdlg)
+preferences_fill_languages(HWND hdlg)
 {
 	temp_language = GetThreadUILanguage();
 	HWND lang_combo = GetDlgItem(hdlg, IDC_COMBO_LANG); 
@@ -79,7 +79,7 @@ progsett_fill_languages(HWND hdlg)
 
 /* Load available iconsets */
 static void
-progsett_fill_iconsets(HWND hdlg)
+preferences_fill_iconsets(HWND hdlg)
 {
 	HWND icon_combo = GetDlgItem(hdlg, IDC_COMBO_ICON); 
 	
@@ -102,7 +102,7 @@ progsett_fill_iconsets(HWND hdlg)
 	win_get_icons_path(icon_path_root);
 	
 	wchar_t search[512];
-	mbstowcs(search, icon_path_root, strlen(icon_path_root) + 1);
+	mbstoc16s(search, icon_path_root, strlen(icon_path_root) + 1);
 	wcscat(search, L"*.*");
 	
 	hFind = FindFirstFile((LPCWSTR)search, &data);
@@ -113,7 +113,7 @@ progsett_fill_iconsets(HWND hdlg)
 			  (data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY))
 			{
 				wchar_t temp[512] = {0}, dispname[512] = {0};
-				mbstowcs(temp, icon_path_root, strlen(icon_path_root) + 1);
+				mbstoc16s(temp, icon_path_root, strlen(icon_path_root) + 1);
 				wcscat(temp, data.cFileName);
 				wcscat(temp, L"\\iconinfo.txt");
 								
@@ -124,14 +124,14 @@ progsett_fill_iconsets(HWND hdlg)
 					char line[512] = {0};
 					if (fgets(line, 511, fp))
 					{
-						mbstowcs(dispname, line, strlen(line) + 1);
+						mbstoc16s(dispname, line, strlen(line) + 1);
 					}
 					
 					fclose(fp);
 				}
 				
 				char filename[512];
-				wcstombs(filename, data.cFileName, 511);
+				c16stombs(filename, data.cFileName, 511);
 				
 				int index = SendMessage(icon_combo, CB_ADDSTRING, 0, (LPARAM)dispname);
 				SendMessage(icon_combo, CB_SETITEMDATA, index, (LPARAM)(strdup(filename)));
@@ -154,7 +154,7 @@ progsett_fill_iconsets(HWND hdlg)
 
 /* This returns 1 if any variable has changed, 0 if not. */
 static int
-progsett_settings_changed(void)
+preferences_settings_changed(void)
 {
     int i = 0;
 	
@@ -167,7 +167,7 @@ progsett_settings_changed(void)
 
 /* IndexOf by ItemData */
 static int 
-progsett_indexof(HWND combo, LPARAM itemdata)
+preferences_indexof(HWND combo, LPARAM itemdata)
 {
     int i;
     for (i = 0; i < SendMessage(combo, CB_GETCOUNT, 0, 0); i++)
@@ -179,7 +179,7 @@ progsett_indexof(HWND combo, LPARAM itemdata)
 
 /* This saves the settings back to the global variables. */
 static void
-progsett_settings_save(void)
+preferences_settings_save(void)
 {	
     /* Language */
     set_language(temp_language);
@@ -205,23 +205,23 @@ static LRESULT CALLBACK
 #else
 static BOOL CALLBACK
 #endif
-ProgSettDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
+PreferencesDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 {
     switch (message) {
 	case WM_INITDIALOG:
-	    hwndProgSett = hdlg;
+	    hwndPreferences = hdlg;
 	    /* Language */
 		temp_language = lang_id;
 		strcpy(temp_icon_set, icon_set);
-		progsett_fill_languages(hdlg);
-		progsett_fill_iconsets(hdlg);
+		preferences_fill_languages(hdlg);
+		preferences_fill_iconsets(hdlg);
 		break;
 
 	case WM_COMMAND:
         switch (LOWORD(wParam)) {
 			case IDOK:				
-				if (progsett_settings_changed()) 
-				  progsett_settings_save();
+				if (preferences_settings_changed()) 
+				  preferences_settings_save();
 				EndDialog(hdlg, 0);
 				return TRUE;
 
@@ -247,7 +247,7 @@ ProgSettDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				
 			case IDC_BUTTON_DEFAULT: {
 				HWND combo = GetDlgItem(hdlg, IDC_COMBO_LANG);
-				int index = progsett_indexof(combo, DEFAULT_LANGUAGE);
+				int index = preferences_indexof(combo, DEFAULT_LANGUAGE);
 				SendMessage(combo, CB_SETCURSEL, index, 0); 
 				temp_language = DEFAULT_LANGUAGE;
 				break; 
@@ -286,7 +286,7 @@ ProgSettDlgProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 void
-ProgSettDlgCreate(HWND hwnd)
+PreferencesDlgCreate(HWND hwnd)
 {
-    DialogBox(hinstance, (LPCTSTR)DLG_PROG_SETT, hwnd, ProgSettDlgProcedure);
+    DialogBox(hinstance, (LPCTSTR)DLG_PREFERENCES, hwnd, PreferencesDlgProcedure);
 }

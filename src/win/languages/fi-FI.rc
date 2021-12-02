@@ -41,9 +41,7 @@ BEGIN
             MENUITEM "&SDL (ohjelmistopohjainen)",                      IDM_VID_SDL_SW
             MENUITEM "SDL (&laitteistokiihdytetty)",                    IDM_VID_SDL_HW
             MENUITEM "SDL (&OpenGL)",                                   IDM_VID_SDL_OPENGL
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
             MENUITEM "Open&GL (3.3 Core)",                              IDM_VID_OPENGL_CORE
-#endif
 #ifdef USE_VNC
             MENUITEM "&VNC",                                            IDM_VID_VNC
 #endif
@@ -98,16 +96,13 @@ BEGIN
     MENUITEM "&Media",                                                  IDM_MEDIA
     POPUP "&Työkalut"
     BEGIN
-        MENUITEM "&Asetukset...",                                       IDM_CONFIG
+        MENUITEM "&Kokoonpano...",                                      IDM_CONFIG
         MENUITEM "&Päivitä tilapalkin kuvakkeita",                      IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Change program &settings...",                         IDM_VID_PROG_SETT
-# ifdef USE_DISCORD
-        MENUITEM SEPARATOR
-        MENUITEM "Käytä &Discord integraatiota",                        IDM_DISCORD
-# endif
-        MENUITEM SEPARATOR
         MENUITEM "Ota &kuvakaappaus\tCtrl+F11",                         IDM_ACTION_SCREENSHOT
+        MENUITEM SEPARATOR
+        MENUITEM "&Sovellusasetukset...",                               IDM_PREFERENCES
+        MENUITEM "Käytä &Discord integraatiota",                        IDM_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "&Äänen tulotaso...",                                  IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -249,7 +244,6 @@ BEGIN
     END
 END
 
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 VidGLSubMenu MENU DISCARDABLE
 BEGIN
     POPUP "&Kuvataajuustavoite"
@@ -265,7 +259,6 @@ BEGIN
     MENUITEM "Valitse varjostin&ohjelma...",    IDM_VID_GL_SHADER
     MENUITEM "&Poista varjostinohjelma",        IDM_VID_GL_NOSHADER
 END
-#endif
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -273,10 +266,10 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT       "Program Settings"
+#define STR_PREFERENCES     "Sovellusasetukset"
 #define STR_SND_GAIN        "Äänen tulotaso"
 #define STR_NEW_FLOPPY      "Uusi levykuva"
-#define STR_CONFIG          "86Box Asetukset"
+#define STR_CONFIG          "Kokoonpano"
 #define STR_SPECIFY_DIM     "Määritä pääikkunan koko"
 
 #define STR_OK              "OK"
@@ -307,7 +300,7 @@ END
 #define STR_MB              "Mt"
 #define STR_MEMORY          "Muisti:"
 #define STR_TIME_SYNC       "Kellon synkronointi"
-#define STR_DISABLED        "Poistettu käytöstä"
+#define STR_DISABLED        "Ei käytössä"
 #define STR_ENABLED_LOCAL   "Käytössä (paikallinen)"
 #define STR_ENABLED_UTC     "Käytössä (UTC)"
 #define STR_DYNAREC         "Dynaaminen uudelleenkääntäjä"
@@ -383,7 +376,7 @@ END
 #define STR_ZIP_DRIVES      "ZIP-asemat:"
 #define STR_250             "ZIP 250"
 
-#define STR_ISARTC          "ISA-reaaliaikakello:"
+#define STR_ISARTC          "ISA-RTC (kello):"
 #define STR_ISAMEM          "ISA-muistilaajennus"
 #define STR_ISAMEM_1        "Kortti 1:"
 #define STR_ISAMEM_2        "Kortti 2:"
@@ -598,11 +591,11 @@ BEGIN
 
     IDS_5120    "CD-ROM %i (%s): %s"
 
-    IDS_5376    "Poistettu käytöstä"
+    IDS_5376    "Ei käytössä"
     IDS_5381    "ATAPI"
     IDS_5382    "SCSI"
 
-    IDS_5632    "Poistettu käytöstä"
+    IDS_5632    "Ei käytössä"
     IDS_5637    "ATAPI (%01i:%01i)"
     IDS_5638    "SCSI (%01i:%02i)"
 

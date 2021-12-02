@@ -41,9 +41,7 @@ BEGIN
             MENUITEM "&SDL (Logiciel)",         IDM_VID_SDL_SW
             MENUITEM "SDL (&Materiel)",         IDM_VID_SDL_HW
             MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
             MENUITEM "Open&GL (3.3 Core)",      IDM_VID_OPENGL_CORE
-#endif
 #ifdef USE_VNC
             MENUITEM "&VNC",                    IDM_VID_VNC
 #endif
@@ -101,13 +99,10 @@ BEGIN
         MENUITEM "&Réglages...",                IDM_CONFIG
         MENUITEM "Mettre à jour la barre de stat&us",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Changer la &langue...",    IDM_VID_PROG_SETT
-# ifdef USE_DISCORD
-        MENUITEM SEPARATOR
-        MENUITEM "Activer intégration &Discord", IDM_DISCORD
-# endif
-        MENUITEM SEPARATOR
         MENUITEM "Copie &Ecran\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM SEPARATOR
+        MENUITEM "&Préférences...",    IDM_PREFERENCES
+        MENUITEM "Activer intégration &Discord", IDM_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "&Gain Son...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -153,7 +148,7 @@ BEGIN
 # endif
     END
 #endif
-    POPUP "&Aide"
+    POPUP "&?"
     BEGIN
         MENUITEM "&Documentation...",           IDM_DOCS
         MENUITEM "&A Propos de 86Box...",             IDM_ABOUT
@@ -249,7 +244,6 @@ BEGIN
     END
 END
 
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 VidGLSubMenu MENU DISCARDABLE
 BEGIN
     POPUP "&Taux de rafraîchissement cible"
@@ -265,7 +259,6 @@ BEGIN
     MENUITEM "Sé&lectionnez le shader...", IDM_VID_GL_SHADER
     MENUITEM "S&upprimer le shader", IDM_VID_GL_NOSHADER
 END
-#endif
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -273,10 +266,10 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Changer langue"
+#define STR_PREFERENCES		"Préférences"
 #define STR_SND_GAIN		"Gain son"
 #define STR_NEW_FLOPPY		"Nouvelle image"
-#define STR_CONFIG		"Réglages 86Box"
+#define STR_CONFIG		"Réglages"
 #define STR_SPECIFY_DIM		"Spécifier le détournement de la fenêtre principale"
 
 #define STR_OK			"OK"
@@ -491,7 +484,7 @@ BEGIN
     IDS_2124	"À propos de 86Box"
     IDS_2125	"86Box v" EMU_VERSION
 
-    IDS_2126	"Un émulateur de vieux ordinateurs\n\nAuteurs: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, MoochMcGee, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nLibéré sous la licence GNU General Public License version 2 ou ultérieure. Pour plus d'informations, voir le fichier LICENSE."
+    IDS_2126	"Un émulateur de vieux ordinateurs\n\nAuteurs: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nLibéré sous la licence GNU General Public License version 2 ou ultérieure. Pour plus d'informations, voir le fichier LICENSE."
     IDS_2127	"OK"
     IDS_2128	"Matériel non disponible"
 #ifdef _WIN32

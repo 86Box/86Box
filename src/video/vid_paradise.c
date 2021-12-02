@@ -599,7 +599,7 @@ static void *paradise_pvga1a_ncr3302_init(const device_t *info)
         paradise_t *paradise = paradise_init(info, 1 << 18);
         
         if (paradise)
-                rom_init(&paradise->bios_rom, "roms/machines/ncr_3302/c000-wd_1987-1989-740011-003058-019c.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
+                rom_init(&paradise->bios_rom, "roms/machines/3302/c000-wd_1987-1989-740011-003058-019c.bin", 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
                 
         return paradise;
 }

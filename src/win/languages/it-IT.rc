@@ -41,9 +41,7 @@ BEGIN
             MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
             MENUITEM "SDL (&Hardware)",         IDM_VID_SDL_HW
             MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
             MENUITEM "Open&GL (3.3 Core)",      IDM_VID_OPENGL_CORE
-#endif
 #ifdef USE_VNC
             MENUITEM "&VNC",                    IDM_VID_VNC
 #endif
@@ -101,13 +99,10 @@ BEGIN
         MENUITEM "&Impostazioni...",                IDM_CONFIG
         MENUITEM "&Aggiorna icone della barra di stato",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Change program &settings...",    IDM_VID_PROG_SETT
-# ifdef USE_DISCORD
-        MENUITEM SEPARATOR
-        MENUITEM "Abilita &integrazione Discord", IDM_DISCORD
-# endif
-        MENUITEM SEPARATOR
         MENUITEM "Cattura schermata\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM SEPARATOR
+        MENUITEM "&Preferenze...",    IDM_PREFERENCES
+        MENUITEM "Abilita &integrazione Discord", IDM_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "Guadagno &suono...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -153,7 +148,7 @@ BEGIN
 # endif
     END
 #endif
-    POPUP "&Aiuto"
+    POPUP "&?"
     BEGIN
         MENUITEM "&Documentazione...",           IDM_DOCS
         MENUITEM "&Informazioni su 86Box...",             IDM_ABOUT
@@ -249,7 +244,6 @@ BEGIN
     END
 END
 
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 VidGLSubMenu MENU DISCARDABLE
 BEGIN
     POPUP "Imposta obiettivo &fotogrammi"
@@ -265,7 +259,6 @@ BEGIN
     MENUITEM "&Seleziona shader...", IDM_VID_GL_SHADER
     MENUITEM "&Rimuovi shader", IDM_VID_GL_NOSHADER
 END
-#endif
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -273,10 +266,10 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Program Settings"
+#define STR_PREFERENCES		"Preferenze"
 #define STR_SND_GAIN		"Guadagno del suono"
 #define STR_NEW_FLOPPY		"Nuova immagine"
-#define STR_CONFIG		"Impostazioni di 86Box"
+#define STR_CONFIG		"Impostazioni"
 #define STR_SPECIFY_DIM		"Specifica dimensioni della finestra principale"
 
 #define STR_OK			"OK"
@@ -297,8 +290,8 @@ END
 #define STR_HEIGHT		"Altezza:"
 #define STR_LOCK_TO_SIZE	"Blocca in queste dimensioni"
 
-#define STR_MACHINE_TYPE	"Tipo di macchina:"
-#define STR_MACHINE		"Macchina:"
+#define STR_MACHINE_TYPE	"Tipo di piastra madre:"
+#define STR_MACHINE		"Piastra madre:"
 #define STR_CONFIGURE		"Configura"
 #define STR_CPU_TYPE		"Tipo del CPU:"
 #define STR_SPEED		"Veloc.:"
@@ -425,7 +418,7 @@ END
 STRINGTABLE DISCARDABLE 
 BEGIN
     IDS_2064	"La scheda video ""%hs"" non è disponibile a causa di immagini ROM mancanti nella directory roms/video. Cambiando ad una scheda video disponibile."
-    IDS_2065	"Macchina"
+    IDS_2065	"Piastra madre"
     IDS_2066	"Schermo"
     IDS_2067	"Dispositivi di entrata"
     IDS_2068	"Audio"

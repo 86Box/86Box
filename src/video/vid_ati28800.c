@@ -43,9 +43,9 @@
 #endif
 
 #define BIOS_ATIKOR_PATH	"roms/video/ati28800/atikorvga.bin"
-#define BIOS_ATIKOR_4620P_PATH_L	"roms/machines/spc4620p/31005h.u8"
-#define BIOS_ATIKOR_4620P_PATH_H	"roms/machines/spc4620p/31005h.u10"
-#define BIOS_ATIKOR_6033P_PATH	"roms/machines/spc6033p/phoenix.bin"
+#define BIOS_ATIKOR_4620P_PATH_L "roms/machines/spc4620p/31005h.u8"
+#define BIOS_ATIKOR_4620P_PATH_H "roms/machines/spc4620p/31005h.u10"
+#define BIOS_ATIKOR_6033P_PATH	"roms/machines/spc6033p/phoenix.BIN"
 #define FONT_ATIKOR_PATH	"roms/video/ati28800/ati_ksc5601.rom"
 #define FONT_ATIKOR_4620P_PATH	"roms/machines/spc4620p/svb6120a_font.rom"
 #define FONT_ATIKOR_6033P_PATH	"roms/machines/spc6033p/svb6120a_font.rom"

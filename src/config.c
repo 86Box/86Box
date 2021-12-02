@@ -579,15 +579,11 @@ load_general(void)
 	else
 		strcpy(icon_set, "");
 	
-#if USE_DISCORD
     enable_discord = !!config_get_int(cat, "enable_discord", 0);
-#endif
 
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
     video_framerate = config_get_int(cat, "video_gl_framerate", -1);
     video_vsync = config_get_int(cat, "video_gl_vsync", 0);
-    strcpy_s(video_shader, sizeof(video_shader), config_get_string(cat, "video_gl_shader", ""));
-#endif
+    strncpy(video_shader, config_get_string(cat, "video_gl_shader", ""), sizeof(video_shader));
 }
 
 
@@ -641,6 +637,8 @@ load_machine(void)
 		machine = machine_get_machine_from_internal_name("p54tp4xe_mr");
 	else if (! strcmp(p, "pcv240"))
 		machine = machine_get_machine_from_internal_name("pcv90");
+	else if (! strcmp(p, "v60n"))
+		machine = machine_get_machine_from_internal_name("acerv60n");
 	else if (! strcmp(p, "tsunamiatx"))
 		machine = machine_get_machine_from_internal_name("s1846");
 	else if (! strcmp(p, "trinity371"))
@@ -831,8 +829,7 @@ load_machine(void)
     p = (char *)config_get_string(cat, "fpu_type", "none");
     fpu_type = fpu_get_type(cpu_f, cpu, p);
 
-    mem_size = config_get_int(cat, "mem_size", 4096);
-	
+    mem_size = config_get_int(cat, "mem_size", 64);	
 #if 0
     if (mem_size < (((machines[machine].flags & MACHINE_AT) &&
         (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram))
@@ -1158,12 +1155,12 @@ load_storage_controllers(void)
     if (strlen(p) > 511)
 	fatal("load_storage_controllers(): strlen(p) > 511\n");
     else
-	strncpy(cassette_fname, p, MIN(511, strlen(p) + 1));
+	strncpy(cassette_fname, p, MIN(512, strlen(p) + 1));
     p = config_get_string(cat, "cassette_mode", "");
     if (strlen(p) > 511)
 	fatal("load_storage_controllers(): strlen(p) > 511\n");
     else
-	strncpy(cassette_mode, p, MIN(511, strlen(p) + 1));
+	strncpy(cassette_mode, p, MIN(512, strlen(p) + 1));
     cassette_pos = config_get_int(cat, "cassette_position", 0);
     cassette_srate = config_get_int(cat, "cassette_srate", 44100);
     cassette_append = !!config_get_int(cat, "cassette_append", 0);
@@ -2058,7 +2055,7 @@ config_load(void)
 
 	/* Unmute the CD audio on the first CD-ROM drive. */
 	cdrom[0].sound_on = 1;
-	mem_size = 640;
+	mem_size = 64;
 	isartc_type = 0;
 	for (i = 0; i < ISAMEM_MAX; i++)
 		isamem_type[i] = 0;
@@ -2242,14 +2239,11 @@ save_general(void)
 	else
 		config_set_string(cat, "iconset", icon_set);
 
-#if USE_DISCORD
     if (enable_discord)
 	config_set_int(cat, "enable_discord", enable_discord);
     else
 	config_delete_var(cat, "enable_discord");
-#endif
 
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
     if (video_framerate != -1)
 	    config_set_int(cat, "video_gl_framerate", video_framerate);
     else
@@ -2262,7 +2256,6 @@ save_general(void)
 	    config_set_string(cat, "video_gl_shader", video_shader);
     else
 	    config_delete_var(cat, "video_gl_shader");
-#endif
 
     delete_section_if_empty(cat);
 }

@@ -41,9 +41,7 @@ BEGIN
             MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
             MENUITEM "SDL (&Hardware)",         IDM_VID_SDL_HW
             MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
             MENUITEM "Open&GL (Núcleo 3.3)",    IDM_VID_OPENGL_CORE
-#endif
 #ifdef USE_VNC
             MENUITEM "&VNC",                    IDM_VID_VNC
 #endif
@@ -101,13 +99,10 @@ BEGIN
         MENUITEM "&Definições...",              IDM_CONFIG
         MENUITEM "&Atualizar ícones da barra de estado",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Change program &settings...",    IDM_VID_PROG_SETT
-# ifdef USE_DISCORD
-        MENUITEM SEPARATOR
-        MENUITEM "Ativar integração com &Discord", IDM_DISCORD
-# endif
-        MENUITEM SEPARATOR
         MENUITEM "Gravar imagem de ecrã\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM SEPARATOR
+        MENUITEM "&Preferências...",    IDM_PREFERENCES
+        MENUITEM "Ativar integração com &Discord", IDM_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "&Ganho de som...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
@@ -249,7 +244,6 @@ BEGIN
     END
 END
 
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 VidGLSubMenu MENU DISCARDABLE
 BEGIN
     POPUP "&Taxa de quadros de destino"
@@ -265,7 +259,6 @@ BEGIN
     MENUITEM "&Selecionar shader...", IDM_VID_GL_SHADER
     MENUITEM "&Remover shader", IDM_VID_GL_NOSHADER
 END
-#endif
 
 
 /////////////////////////////////////////////////////////////////////////////
@@ -273,10 +266,10 @@ END
 // Dialog
 //
 
-#define STR_PROG_SETT		"Program Settings"
+#define STR_PREFERENCES		"Preferências"
 #define STR_SND_GAIN		"Ganho de som"
 #define STR_NEW_FLOPPY		"Nova imagem"
-#define STR_CONFIG		"Definições do 86Box"
+#define STR_CONFIG		"Definições"
 #define STR_SPECIFY_DIM		"Especificar dimensões da janela principal"
 
 #define STR_OK			"OK"

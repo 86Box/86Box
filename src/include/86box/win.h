@@ -66,9 +66,7 @@ DECLARE_HANDLE(DPI_AWARENESS_CONTEXT);
 #define ZIP_SUBMENU_NAME	L"ZIPSubmenu"
 #define MO_SUBMENU_NAME		L"MOSubmenu"
 
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 #define VID_GL_SUBMENU		L"VidGLSubMenu"
-#endif
 
 /* Application-specific window messages.
 
@@ -188,8 +186,8 @@ extern void	NewFloppyDialogCreate(HWND hwnd, int id, int part);
 /* Functions in win_specify_dim.c: */
 extern void	SpecifyDimensionsDialogCreate(HWND hwnd);
 
-/* Functions in win_lang.c: */
-extern void	ProgSettDlgCreate(HWND hwnd);
+/* Functions in win_preferences.c: */
+extern void	PreferencesDlgCreate(HWND hwnd);
 
 
 /* Functions in win_settings.c: */

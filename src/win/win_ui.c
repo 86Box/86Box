@@ -44,9 +44,7 @@
 #include <86box/ui.h>
 #include <86box/win.h>
 #include <86box/version.h>
-#ifdef USE_DISCORD
 # include <86box/win_discord.h>
-#endif
 
 #ifdef MTR_ENABLED
 #include <minitrace/minitrace.h>
@@ -163,7 +161,6 @@ video_toggle_option(HMENU h, int *val, int id)
     device_force_redraw();
 }
 
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 /* Recursively finds and deletes target submenu */
 static int
 delete_submenu(HMENU parent, HMENU target)
@@ -191,7 +188,6 @@ delete_submenu(HMENU parent, HMENU target)
 
 	return 0;
 }
-#endif
 
 static int menu_vidapi = -1;
 static HMENU cur_menu = NULL;
@@ -199,7 +195,6 @@ static HMENU cur_menu = NULL;
 static void
 show_render_options_menu()
 {
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 	if (vid_api == menu_vidapi)
 		return;
 	
@@ -215,7 +210,7 @@ show_render_options_menu()
 		{
 		case IDM_VID_OPENGL_CORE:
 			cur_menu = LoadMenu(hinstance, VID_GL_SUBMENU);
-			InsertMenu(GetSubMenu(menuMain, 1), 4, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)cur_menu, plat_get_string(IDS_2144));
+			InsertMenu(GetSubMenu(menuMain, 1), 6, MF_BYPOSITION | MF_STRING | MF_POPUP, (UINT_PTR)cur_menu, plat_get_string(IDS_2144));
 			CheckMenuItem(menuMain, IDM_VID_GL_FPS_BLITTER, video_framerate == -1 ? MF_CHECKED : MF_UNCHECKED);
 			CheckMenuItem(menuMain, IDM_VID_GL_FPS_25, video_framerate == 25 ? MF_CHECKED : MF_UNCHECKED);
 			CheckMenuItem(menuMain, IDM_VID_GL_FPS_30, video_framerate == 30 ? MF_CHECKED : MF_UNCHECKED);
@@ -229,7 +224,6 @@ show_render_options_menu()
 	}
 
 	menu_vidapi = vid_api;
-#endif
 }
 
 static void
@@ -282,13 +276,11 @@ ResetAllMenus(void)
     CheckMenuItem(menuMain, IDM_VID_SDL_SW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_HW, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_SDL_OPENGL, MF_UNCHECKED);
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
     CheckMenuItem(menuMain, IDM_VID_OPENGL_CORE, MF_UNCHECKED);
 	
-	menu_vidapi = -1;
-	cur_menu = NULL;
+    menu_vidapi = -1;
+    cur_menu = NULL;
     show_render_options_menu();
-#endif
 #ifdef USE_VNC
     CheckMenuItem(menuMain, IDM_VID_VNC, MF_UNCHECKED);
 #endif
@@ -362,12 +354,10 @@ ResetAllMenus(void)
 
     video_set_filter_menu(menuMain);
 
-#ifdef USE_DISCORD
     if (discord_loaded)
 	CheckMenuItem(menuMain, IDM_DISCORD, enable_discord ? MF_CHECKED : MF_UNCHECKED);
     else
 	EnableMenuItem(menuMain, IDM_DISCORD, MF_DISABLED);
-#endif
 #ifdef MTR_ENABLED
     EnableMenuItem(menuMain, IDM_ACTION_END_TRACE, MF_DISABLED);
 #endif
@@ -704,9 +694,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_SDL_SW:
 			case IDM_VID_SDL_HW:
 			case IDM_VID_SDL_OPENGL:
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 			case IDM_VID_OPENGL_CORE:
-#endif
 #ifdef USE_VNC
 			case IDM_VID_VNC:
 #endif
@@ -718,7 +706,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				show_render_options_menu();
 				break;
 
-#if defined(DEV_BRANCH) && defined(USE_OPENGL)
 			case IDM_VID_GL_FPS_BLITTER:
 			case IDM_VID_GL_FPS_25:
 			case IDM_VID_GL_FPS_30:
@@ -757,7 +744,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				EnableMenuItem(menuMain, IDM_VID_GL_NOSHADER, MF_DISABLED);
 				plat_vid_reload_options();
 				break;
-#endif
 
 			case IDM_VID_FULLSCREEN:
 				plat_setfullscreen(1);
@@ -804,8 +790,8 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				config_save();
 				break;
 				
-			case IDM_VID_PROG_SETT:
-				ProgSettDlgCreate(hwnd);
+			case IDM_PREFERENCES:
+				PreferencesDlgCreate(hwnd);
 				break;
 
 			case IDM_VID_SPECIFY_DIM:
@@ -858,7 +844,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				config_save();
 				break;
 
-#ifdef USE_DISCORD
 			case IDM_DISCORD:
 				if (! discord_loaded) break;
 				enable_discord ^= 1;
@@ -869,7 +854,6 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				} else
 					discord_close();
 				break;
-#endif
 
 #ifdef ENABLE_LOG_TOGGLES
 # ifdef ENABLE_BUSLOGIC_LOG
@@ -1287,7 +1271,6 @@ ui_init(int nCmdShow)
 	return(0);
     }
 
-#ifdef USE_DISCORD
     if(! discord_load()) {
 	enable_discord = 0;
     } else if (enable_discord) {
@@ -1297,7 +1280,6 @@ ui_init(int nCmdShow)
 	/* Update Discord status */
 	discord_update_activity(dopause);
     }
-#endif
 
     /* Create our main window's class and register it. */
     wincl.hInstance = hinstance;
@@ -1534,11 +1516,9 @@ ui_init(int nCmdShow)
 		plat_setfullscreen(0);
 	}
 
-#ifdef USE_DISCORD
 	/* Run Discord API callbacks */
 	if (enable_discord)
 		discord_run_callbacks();
-#endif
     }
 
     timeEndPeriod(1);
@@ -1556,13 +1536,11 @@ ui_init(int nCmdShow)
 
     win_mouse_close();
 
-#ifdef USE_DISCORD
     /* Shut down the Discord integration */
     discord_close();
-#endif
 
-	if (user32_handle != NULL)
-    	dynld_close(user32_handle);
+    if (user32_handle != NULL)
+	dynld_close(user32_handle);
 
     return(messages.wParam);
 }
@@ -1622,11 +1600,9 @@ plat_pause(int p)
     CheckMenuItem(menuMain, IDM_ACTION_PAUSE,
 		  (dopause) ? MF_CHECKED : MF_UNCHECKED);
 
-#if USE_DISCORD
     /* Update Discord status */
-    if(enable_discord)
+    if (enable_discord)
 	discord_update_activity(dopause);
-#endif
 
     /* Send the WM to a manager if needed. */
     if (source_hwnd)

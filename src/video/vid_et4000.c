@@ -54,7 +54,7 @@
 #include <86box/vid_svga_render.h>
 
 
-#define BIOS_ROM_PATH		"roms/video/et4000/et4000.bin"
+#define BIOS_ROM_PATH		"roms/video/et4000/ET4000.BIN"
 #define TC6058AF_BIOS_ROM_PATH	"roms/video/et4000/Tseng_Labs_VGA-4000_BIOS_V1.1.bin"
 #define KOREAN_BIOS_ROM_PATH 	"roms/video/et4000/tgkorvga.bin"
 #define KOREAN_FONT_ROM_PATH 	"roms/video/et4000/tg_ksc5601.rom"

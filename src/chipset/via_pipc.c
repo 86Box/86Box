@@ -80,8 +80,8 @@ enum {
     TRAP_COM3,
     TRAP_COM2,
     TRAP_COM4,
-    TRAP_LPT_LPT1,
-    TRAP_LPT_LPT2,
+    TRAP_LPT1,
+    TRAP_LPT2,
     TRAP_VGA,
     TRAP_KBC,
     TRAP_AUD_MIDI_0,
@@ -130,7 +130,7 @@ typedef struct _pipc_ {
     acpi_t	*acpi;
     pipc_io_trap_t io_traps[TRAP_MAX];
 
-    void	*gameport, *ac97;
+    void	*gameport, *ac97, *sio, *hwm;
     sb_t	*sb;
     uint16_t	midigame_base, sb_base, fmnmi_base;
 } pipc_t;
@@ -164,7 +164,7 @@ static void	pipc_write(int func, int addr, uint8_t val, void *priv);
 
 
 static void
-pipc_trap_io_pact(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
+pipc_io_trap_pact(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv)
 {
     pipc_io_trap_t *trap = (pipc_io_trap_t *) priv;
 
@@ -184,6 +184,12 @@ pipc_io_trap_glb(int size, uint16_t addr, uint8_t write, uint8_t val, void *priv
 
     if (*(trap->en_reg) & trap->mask) {
 	*(trap->sts_reg) |= trap->mask;
+	if (trap->dev->local >= VIA_PIPC_686A) {
+		if (write)
+			trap->dev->acpi->regs.extsmi_val |= 0x1000;
+		else
+			trap->dev->acpi->regs.extsmi_val &= ~0x1000;
+	}
 	acpi_raise_smi(trap->dev->acpi, 1);
     }
 }
@@ -592,7 +598,7 @@ pipc_trap_update_paden(pipc_t *dev, uint8_t trap_id,
     /* Set up Primary Activity Detect I/O traps dynamically. */
     if (enable && !trap->trap) {
 	trap->dev = dev;
-	trap->trap = io_trap_add(pipc_trap_io_pact, trap);
+	trap->trap = io_trap_add(pipc_io_trap_pact, trap);
 	trap->sts_reg = &dev->acpi->regs.padsts;
 	trap->en_reg = &dev->acpi->regs.paden;
 	trap->mask = paden_mask;
@@ -617,8 +623,8 @@ pipc_trap_update_586(void *priv)
     pipc_trap_update_paden(dev, TRAP_VGA, 0x00000010, 1, 0x3b0, 48);
     /* [A0000:BFFFF] memory trap not implemented. */
 
-    pipc_trap_update_paden(dev, TRAP_LPT_LPT1, 0x00000020, 1, 0x378, 8);
-    pipc_trap_update_paden(dev, TRAP_LPT_LPT2, 0x00000020, 1, 0x278, 8);
+    pipc_trap_update_paden(dev, TRAP_LPT1, 0x00000020, 1, 0x378, 8);
+    pipc_trap_update_paden(dev, TRAP_LPT2, 0x00000020, 1, 0x278, 8);
 
     pipc_trap_update_paden(dev, TRAP_COM1, 0x00000040, 1, 0x3f8, 8);
     pipc_trap_update_paden(dev, TRAP_COM2, 0x00000040, 1, 0x2f8, 8);
@@ -652,8 +658,8 @@ pipc_trap_update_596(void *priv)
     pipc_trap_update_paden(dev, TRAP_COM2, 0x00000040, 1, 0x2f8, 8);
     pipc_trap_update_paden(dev, TRAP_COM4, 0x00000040, 1, 0x2e8, 8);
 
-    pipc_trap_update_paden(dev, TRAP_LPT_LPT1, 0x00000080, 1, 0x378, 8);
-    pipc_trap_update_paden(dev, TRAP_LPT_LPT2, 0x00000080, 1, 0x278, 8);
+    pipc_trap_update_paden(dev, TRAP_LPT1, 0x00000080, 1, 0x378, 8);
+    pipc_trap_update_paden(dev, TRAP_LPT2, 0x00000080, 1, 0x278, 8);
 
     pipc_trap_update_paden(dev, TRAP_VGA, 0x00000100, 1, 0x3b0, 48);
     /* [A0000:BFFFF] memory trap not implemented. */
@@ -824,6 +830,9 @@ pipc_sb_handlers(pipc_t *dev, uint8_t modem)
 	sb_dsp_setirq(&dev->sb->dsp, (irq == 11) ? 10 : irq);
 
 	sb_dsp_setdma8(&dev->sb->dsp, (dev->ac97_regs[0][0x43] >> 4) & 0x03);
+
+	/* Set up CD audio filter. This might not actually work if VIAUDIO writes to CD volume through AC97. */
+	sound_set_cd_audio_filter(sbpro_filter_cd_audio, dev->sb);
     }
 
     if (dev->ac97_regs[0][0x42] & 0x02) {
@@ -953,7 +962,6 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
     pipc_t *dev = (pipc_t *) priv;
     int c;
     uint8_t pm_func = dev->usb[1] ? 4 : 3;
-    void *subdev;
 
     if (func > dev->max_func)
 	return;
@@ -1043,8 +1051,8 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 		case 0x50: case 0x51: case 0x52: case 0x85:
 			dev->pci_isa_regs[addr] = val;
 			/* Forward Super I/O-related registers to sio_vt82c686.c */
-			if ((subdev = device_get_priv(&via_vt82c686_sio_device)))
-				vt82c686_sio_write(addr, val, subdev);
+			if (dev->sio)
+				vt82c686_sio_write(addr, val, dev->sio);
 			break;
 
 		case 0x54:
@@ -1377,8 +1385,8 @@ pipc_write(int func, int addr, uint8_t val, void *priv)
 		case 0x70: case 0x71: case 0x74:
 			dev->power_regs[addr] = val;
 			/* Forward hardware monitor-related registers to hwm_vt82c686.c */
-			if ((subdev = device_get_priv(&via_vt82c686_hwm_device)))
-				vt82c686_hwm_write(addr, val, subdev);
+			if (dev->hwm)
+				vt82c686_hwm_write(addr, val, dev->hwm);
 			break;
 
 		case 0x80: case 0x81: case 0x84: /* 596A has the SMBus I/O base and enable bit here instead. */
@@ -1576,6 +1584,9 @@ pipc_init(const device_t *info)
 	sound_add_handler(sb_get_buffer_sbpro, dev->sb);
 
 	dev->gameport = gameport_add(&gameport_sio_device);
+
+	dev->sio = device_add(&via_vt82c686_sio_device);
+	dev->hwm = device_add(&via_vt82c686_hwm_device);
     }
 
     pipc_reset_hard(dev);

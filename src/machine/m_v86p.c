@@ -69,7 +69,6 @@ machine_v86p_init(const machine_t *model)
 		rom = 2;
 		ret = bios_load_linear("roms/machines/v86p/V86P.ROM",
 				       0x000f0000, 65536, 0);
-
 	}
 
 	if (bios_only || !ret)

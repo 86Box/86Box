@@ -93,12 +93,25 @@
 #define AC97_PRL	(1 << 14)
 
 
+/* New codecs should be added to the end of this enum to avoid breaking configs. */
+enum {
+    AC97_CODEC_AD1881 = 0,
+    AC97_CODEC_ALC100,
+    AC97_CODEC_CS4297,
+    AC97_CODEC_CS4297A,
+    AC97_CODEC_WM9701A,
+    AC97_CODEC_STAC9708,
+    AC97_CODEC_STAC9721,
+    AC97_CODEC_AK4540
+};
+
+
 typedef struct {
     const uint16_t index, value, write_mask;
 } ac97_vendor_reg_t;
 
 typedef struct {
-    uint32_t	vendor_id, max_rate, misc_flags;
+    uint32_t	vendor_id, min_rate, max_rate, misc_flags;
     uint16_t	reset_flags, extid_flags,
 		powerdown_mask, regs[64];
     uint8_t	codec_id, vendor_reg_page_max;
@@ -112,6 +125,7 @@ extern void	ac97_codec_writew(ac97_codec_t *dev, uint8_t reg, uint16_t val);
 extern void	ac97_codec_reset(void *priv);
 extern void	ac97_codec_getattn(void *priv, uint8_t reg, int *l, int *r);
 extern uint32_t	ac97_codec_getrate(void *priv, uint8_t reg);
+extern const device_t *ac97_codec_get(int model);
 
 extern void	ac97_via_set_slot(void *priv, int slot, int irq_pin);
 extern uint8_t	ac97_via_read_status(void *priv, uint8_t modem);
@@ -122,15 +136,18 @@ extern void	ac97_via_remap_audio_codec(void *priv, uint16_t new_io_base, uint8_t
 extern void	ac97_via_remap_modem_codec(void *priv, uint16_t new_io_base, uint8_t enable);
 
 
-#ifdef EMU_DEVICE_H
 extern ac97_codec_t	**ac97_codec, **ac97_modem_codec;
 extern int		ac97_codec_count, ac97_modem_codec_count,
 			ac97_codec_id, ac97_modem_codec_id;
 
+#ifdef EMU_DEVICE_H
 extern const device_t	ad1881_device;
+extern const device_t	ak4540_device;
 extern const device_t	alc100_device;
 extern const device_t	cs4297_device;
 extern const device_t	cs4297a_device;
+extern const device_t	stac9708_device;
+extern const device_t	stac9721_device;
 extern const device_t	wm9701a_device;
 
 extern const device_t	ac97_via_device;

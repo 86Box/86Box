@@ -37,28 +37,6 @@
 alias is_windows='[ ! -z "$MSYSTEM" ]'
 alias is_mac='uname -s | grep -q Darwin'
 
-try_make() {
-	# Try makefiles on two locations. I don't know what causes
-	# CMake to pick ./ instead of build/, but :worksonmymachine:
-	if [ -e "build/Makefile" ]
-	then
-		build_dir="$(pwd)/build"
-		cd build
-		make -j$(nproc) $*
-		local status=$?
-		cd ..
-		return $status
-	elif [ -e "Makefile" ]
-	then
-		build_dir="$(pwd)"
-		make -j$(nproc) $*
-		return $?
-	else
-		echo [!] No makefile found
-		return 1
-	fi
-}
-
 make_tar() {
 	# Install dependencies.
 	if ! which tar xz > /dev/null 2>&1
@@ -113,6 +91,7 @@ cwd=$(pwd)
 package_name=
 arch=
 tarball_name=
+strip=0
 cmake_flags=
 while [ $# -gt 0 ]
 do
@@ -129,6 +108,11 @@ do
 			shift
 			tarball_name="$1"
 			shift
+			;;
+
+		-t)
+			shift
+			strip=1
 			;;
 
 		*)
@@ -153,7 +137,7 @@ cmake_flags_extra=
 # Check if mandatory arguments were specified.
 if [ -z "$package_name" -a -z "$tarball_name" ] || [ ! -z "$package_name" -a -z "$arch" ]
 then
-	echo '[!] Usage: build.sh -b {package_name} {architecture} [cmake_flags...]'
+	echo '[!] Usage: build.sh -b {package_name} {architecture} [-t] [cmake_flags...]'
 	echo '           build.sh -s {source_tarball_name}'
 	exit 100
 fi
@@ -193,6 +177,7 @@ fi
 echo [-] Building [$package_name] for [$arch] with flags [$cmake_flags]
 
 # Perform platform-specific setup.
+strip_binary=strip
 if is_windows
 then
 	# Switch into the correct MSYSTEM if required.
@@ -240,7 +225,7 @@ else
 	for pkg in libc6-dev linux-libc-dev libopenal-dev libfreetype6-dev libsdl2-dev libpng-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
-		length=$(echo -n $pkg | sed 's/-dev$//g' | wc -c)
+		length=$(echo -n $pkg | sed 's/-dev$//' | wc -c)
 		[ $length -gt $longest_libpkg ] && longest_libpkg=$length
 	done
 
@@ -272,6 +257,7 @@ set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 EOF
 	cmake_flags_extra="$cmake_flags_extra -D CMAKE_TOOLCHAIN_FILE=toolchain.cmake"
+	strip_binary="$arch_gnu-strip"
 
 	# Install or update dependencies.
 	echo [-] Installing dependencies through apt
@@ -282,11 +268,14 @@ fi
 
 # Clean workspace.
 echo [-] Cleaning workspace
-try_make clean > /dev/null
-rm -rf build
+if [ -d "build" ]
+then
+	MAKEFLAGS=-j$(nproc) cmake --build build --target clean 2> /dev/null
+	rm -rf build
+fi
 find . \( -name Makefile -o -name CMakeCache.txt -o -name CMakeFiles \) -exec rm -rf "{}" \; 2> /dev/null
 
-# Determine ARCH to skip the arch_detect process.
+# Add ARCH to skip the arch_detect process.
 case $arch in
 	32 | x86)    cmake_flags_extra="$cmake_flags_extra -D ARCH=i386";;
 	64 | x86_64) cmake_flags_extra="$cmake_flags_extra -D ARCH=x86_64";;
@@ -295,14 +284,26 @@ case $arch in
 	*) cmake_flags_extra="$cmake_flags_extra -D \"ARCH=$arch\"";;
 esac
 
-# Add git hash and copyright year.
+# Add git hash.
 git_hash=$(git rev-parse --short HEAD 2> /dev/null)
+if [ "$CI" = "true" ]
+then
+	# Backup strategy when running under Jenkins.
+	[ -z "$git_hash" ] && git_hash=$(echo $GIT_COMMIT | cut -c 1-8)
+elif [ ! -z "$git_hash" ]
+then
+	# Append + to denote a dirty tree.
+	git diff --quiet 2> /dev/null || git_hash="$git_hash+"
+fi
 [ ! -z "$git_hash" ] && cmake_flags_extra="$cmake_flags_extra -D \"EMU_GIT_HASH=$git_hash\""
-cmake_flags_extra="$cmake_flags_extra -D \"EMU_COPYRIGHT_YEAR=$(date +%Y)\""
+
+# Add copyright year.
+year=$(date +%Y)
+[ ! -z "$year" ] && cmake_flags_extra="$cmake_flags_extra -D \"EMU_COPYRIGHT_YEAR=$year\""
 
 # Run CMake.
 echo [-] Running CMake with flags [$cmake_flags $cmake_flags_extra]
-eval cmake -G \"Unix Makefiles\" $cmake_flags $cmake_flags_extra .
+eval cmake -G \"Unix Makefiles\" -B build $cmake_flags $cmake_flags_extra .
 status=$?
 if [ $status -ne 0 ]
 then
@@ -311,8 +312,9 @@ then
 fi
 
 # Run actual build.
-echo [-] Running build
-try_make
+make_flags=-j$(nproc)
+echo [-] Running build with make flags [$make_flags]
+MAKEFLAGS=$make_flags cmake --build build
 status=$?
 if [ $status -ne 0 ]
 then
@@ -361,11 +363,17 @@ then
 	fi
 
 	# Archive other DLLs from local directory.
-	cp -p /home/$project/dll$arch/* archive_tmp/
+	cp -p "/home/$project/dll$arch/"* archive_tmp/
 
-	# Archive executable.
-	mv "$build_dir"/src/$project.exe archive_tmp/
-	status=$?
+	# Archive executable, while also stripping it if requested.
+	if [ $strip -ne 0 ]
+	then
+		"$strip_binary" -o "archive_tmp/$project.exe" "build/src/$project.exe"
+		status=$?
+	else
+		mv "build/src/$project.exe" "archive_tmp/$project.exe"
+		status=$?
+	fi
 elif is_mac
 then
 	# TBD
@@ -373,7 +381,7 @@ then
 else
 	# Archive readme with library package versions.
 	echo Libraries used to compile this $arch build of $project: > archive_tmp/README
-	dpkg-query -f '${Package} ${Version}\n' -W $libpkgs | sed "s/-dev / /g" | while IFS=" " read pkg version
+	dpkg-query -f '${Package} ${Version}\n' -W $libpkgs | sed "s/-dev / /" | while IFS=" " read pkg version
 	do
 		for i in $(seq $(expr $longest_libpkg - $(echo -n $pkg | wc -c)))
 		do
@@ -382,15 +390,21 @@ else
 		echo $pkg $version >> archive_tmp/README
 	done
 
-	# Archive executable.
-	mv "$build_dir"/src/$project archive_tmp/
-	status=$?
+	# Archive executable, while also stripping it if requested.
+	if [ $strip -ne 0 ]
+	then
+		"$strip_binary" -o "archive_tmp/$project" "build/src/$project"
+		status=$?
+	else
+		mv "build/src/$project" "archive_tmp/$project"
+		status=$?
+	fi
 fi
 
-# Check if the executable move succeeded.
+# Check if the executable strip/move succeeded.
 if [ $status -ne 0 ]
 then
-	echo [!] Executable move failed with status [$status]
+	echo [!] Executable strip/move failed with status [$status]
 	exit 6
 fi
 

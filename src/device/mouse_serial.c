@@ -174,7 +174,7 @@ sermouse_callback(struct serial_s *serial, void *priv)
     dev->transmit_period = sermouse_transmit_period(dev, 1200, -1);
     timer_stop(&dev->command_timer);
 #ifdef USE_NEW_DYNAREC
-    sermouse_timer_on(dev, 5000.0, 0);
+    sermouse_timer_on(dev, cpu_use_dynarec ? 5000.0 : dev->transmit_period, 0);
 #else
     sermouse_timer_on(dev, dev->transmit_period, 0);
 #endif
