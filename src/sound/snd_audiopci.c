@@ -317,6 +317,9 @@ es1371_reset(void *p)
     /* UART FIFO Register, Address 30H, 34H, 38H, 3CH, Memory Page 1110b, 1111b
        Addressable as longword only */
     dev->uart_fifo = 0xfffffe00;
+
+    /* Update interrupts to ensure they're all correctly cleared. */
+    es1371_update_irqs(dev);
 }
 
 
