@@ -1,0 +1,230 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>HarddiskDialog</class>
+ <widget class="QDialog" name="HarddiskDialog">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>400</width>
+    <height>300</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Dialog</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <layout class="QVBoxLayout" name="verticalLayout_2">
+     <property name="spacing">
+      <number>0</number>
+     </property>
+     <item>
+      <widget class="QLabel" name="label">
+       <property name="text">
+        <string>File name</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="FileField" name="fileField" native="true"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QGridLayout" name="gridLayout">
+     <item row="0" column="0">
+      <widget class="QLabel" name="label_2">
+       <property name="text">
+        <string>Cylinders</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="4">
+      <widget class="QLabel" name="label_5">
+       <property name="text">
+        <string>Sectors</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="1">
+      <widget class="QLineEdit" name="lineEditCylinders"/>
+     </item>
+     <item row="1" column="1">
+      <widget class="QLineEdit" name="lineEditSize"/>
+     </item>
+     <item row="1" column="0">
+      <widget class="QLabel" name="label_3">
+       <property name="text">
+        <string>Size (MiB)</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="2">
+      <widget class="QLabel" name="label_4">
+       <property name="text">
+        <string>Heads</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="3">
+      <widget class="QLineEdit" name="lineEditHeads">
+       <property name="maxLength">
+        <number>32767</number>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="2">
+      <widget class="QLabel" name="label_6">
+       <property name="text">
+        <string>Type</string>
+       </property>
+      </widget>
+     </item>
+     <item row="0" column="5">
+      <widget class="QLineEdit" name="lineEditSectors">
+       <property name="maxLength">
+        <number>32767</number>
+       </property>
+      </widget>
+     </item>
+     <item row="1" column="3" colspan="3">
+      <widget class="QComboBox" name="comboBoxType"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <widget class="QLabel" name="label_8">
+       <property name="text">
+        <string>Bus</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboBoxBus"/>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_7">
+       <property name="text">
+        <string>Channel</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboBoxChannel"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayoutFormat">
+     <item>
+      <widget class="QLabel" name="labelFormat">
+       <property name="text">
+        <string>Format</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboBoxFormat"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <property name="topMargin">
+      <number>5</number>
+     </property>
+     <item>
+      <widget class="QLabel" name="labelBlockSize">
+       <property name="text">
+        <string>Block Size</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboBoxBlockSize"/>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <spacer name="verticalSpacer">
+     <property name="orientation">
+      <enum>Qt::Vertical</enum>
+     </property>
+     <property name="sizeHint" stdset="0">
+      <size>
+       <width>20</width>
+       <height>40</height>
+      </size>
+     </property>
+    </spacer>
+   </item>
+   <item>
+    <widget class="QDialogButtonBox" name="buttonBox">
+     <property name="orientation">
+      <enum>Qt::Horizontal</enum>
+     </property>
+     <property name="standardButtons">
+      <set>QDialogButtonBox::Cancel|QDialogButtonBox::Ok</set>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>FileField</class>
+   <extends>QWidget</extends>
+   <header>qt_filefield.hpp</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
+ <tabstops>
+  <tabstop>lineEditCylinders</tabstop>
+  <tabstop>lineEditHeads</tabstop>
+  <tabstop>lineEditSectors</tabstop>
+  <tabstop>lineEditSize</tabstop>
+  <tabstop>comboBoxType</tabstop>
+  <tabstop>comboBoxBus</tabstop>
+  <tabstop>comboBoxChannel</tabstop>
+  <tabstop>comboBoxFormat</tabstop>
+  <tabstop>comboBoxBlockSize</tabstop>
+ </tabstops>
+ <resources/>
+ <connections>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>accepted()</signal>
+   <receiver>HarddiskDialog</receiver>
+   <slot>accept()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>248</x>
+     <y>254</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>157</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>buttonBox</sender>
+   <signal>rejected()</signal>
+   <receiver>HarddiskDialog</receiver>
+   <slot>reject()</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>316</x>
+     <y>260</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>286</x>
+     <y>274</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
+</ui>

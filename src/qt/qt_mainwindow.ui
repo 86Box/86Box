@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>724</width>
+    <height>427</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>86Box</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="spacing">
+     <number>0</number>
+    </property>
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <item>
+     <widget class="GLESWidget" name="glesWidget"/>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QMenuBar" name="menubar">
+   <property name="geometry">
+    <rect>
+     <x>0</x>
+     <y>0</y>
+     <width>724</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <widget class="QMenu" name="menuAction">
+    <property name="title">
+     <string>Action</string>
+    </property>
+    <addaction name="actionKeyboard_requires_capture"/>
+    <addaction name="actionRight_CTRL_is_left_ALT"/>
+    <addaction name="separator"/>
+    <addaction name="actionHard_Reset"/>
+    <addaction name="actionCtrl_Alt_Del"/>
+    <addaction name="separator"/>
+    <addaction name="actionCtrl_Alt_Esc"/>
+    <addaction name="separator"/>
+    <addaction name="actionPause"/>
+    <addaction name="separator"/>
+    <addaction name="actionExit"/>
+   </widget>
+   <widget class="QMenu" name="menuTools">
+    <property name="title">
+     <string>Tools</string>
+    </property>
+    <addaction name="actionSettings"/>
+   </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="actionFullscreen"/>
+   </widget>
+   <addaction name="menuAction"/>
+   <addaction name="menuView"/>
+   <addaction name="menuTools"/>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+  <action name="actionKeyboard_requires_capture">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Keyboard requires capture</string>
+   </property>
+  </action>
+  <action name="actionRight_CTRL_is_left_ALT">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Right CTRL is left ALT</string>
+   </property>
+  </action>
+  <action name="actionHard_Reset">
+   <property name="text">
+    <string>Hard Reset</string>
+   </property>
+  </action>
+  <action name="actionCtrl_Alt_Del">
+   <property name="text">
+    <string>Ctrl+Alt+Del</string>
+   </property>
+  </action>
+  <action name="actionCtrl_Alt_Esc">
+   <property name="text">
+    <string>Ctrl+Alt+Esc</string>
+   </property>
+  </action>
+  <action name="actionPause">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Pause</string>
+   </property>
+  </action>
+  <action name="actionExit">
+   <property name="text">
+    <string>Exit</string>
+   </property>
+  </action>
+  <action name="actionSettings">
+   <property name="text">
+    <string>Settings</string>
+   </property>
+  </action>
+  <action name="actionFullscreen">
+   <property name="text">
+    <string>Fullscreen</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+Alt+PgUp</string>
+   </property>
+  </action>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>GLESWidget</class>
+   <extends>QOpenGLWidget</extends>
+   <header>qt_gleswidget.hpp</header>
+  </customwidget>
+ </customwidgets>
+ <resources/>
+ <connections/>
+</ui>

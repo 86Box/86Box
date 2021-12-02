@@ -11,7 +11,7 @@
 #ifdef BSD
 #define g_strlcpy strlcpy
 #else
-extern int g_strlcpy(gchar* dest, const gchar* src, gsize dest_size);
+extern gsize g_strlcpy(gchar* dest, const gchar* src, gsize dest_size);
 #endif
 #endif
 
