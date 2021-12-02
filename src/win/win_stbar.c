@@ -60,7 +60,7 @@
 
 
 HWND		hwndSBAR;
-int		update_icons = 1;
+int		update_icons = 1, reset_occurred = 1;
 
 
 static LONG_PTR	OriginalProcedure;
@@ -122,12 +122,17 @@ hdd_count(int bus)
 void
 ui_sb_timer_callback(int pane)
 {
-    sb_part_icons[pane] &= ~1;
+    if (!(reset_occurred & 1)) {
+	sb_part_icons[pane] &= ~1;
 
-    if (sb_part_icons && sb_part_icons[pane]) {
-	SendMessage(hwndSBAR, SB_SETICON, pane,
-		    (LPARAM)hIcon[sb_part_icons[pane]]);
-    }
+	if (sb_part_icons && sb_part_icons[pane]) {
+		SendMessage(hwndSBAR, SB_SETICON, pane,
+			    (LPARAM)hIcon[sb_part_icons[pane]]);
+	}
+    } else
+	reset_occurred &= ~1;
+
+    reset_occurred &= ~2;
 }
 
 
@@ -152,6 +157,7 @@ ui_sb_update_icon(int tag, int active)
 	PostMessage(hwndSBAR, SB_SETICON, found,
 		    (LPARAM)hIcon[sb_part_icons[found]]);
 
+	reset_occurred = 2;
 	SetTimer(hwndMain, 0x8000 | found, 75, NULL);
     }
 }
@@ -832,6 +838,8 @@ ui_sb_update_panes(void)
     }
 
     sb_ready = 1;
+    if (reset_occurred & 2)
+	reset_occurred |= 1;
 }
 
 
