@@ -11,6 +11,7 @@ extern "C" {
 #include <86box/86box.h>
 #include <86box/config.h>
 #include <86box/device.h>
+#include <86box/plat_midi.h>
 }
 
 #include "qt_filefield.hpp"
@@ -58,19 +59,50 @@ void DeviceConfig::ConfigureDevice(const _device_* device) {
             int currentIndex = -1;
             int selected = config_get_int(device_context.name, const_cast<char*>(config->name), config->default_int);
 
-            for (auto* sel = config->selection; (sel->description != nullptr) && (strlen(sel->description) > 0); ++sel) {
-                int rows = model->rowCount();
-                model->insertRow(rows);
-                auto idx = model->index(rows, 0);
+            if (config->type == CONFIG_MIDI) {
+                for (int i = 0; i < plat_midi_get_num_devs(); i++) {
+                    char midiName[512] = { 0 };
+                    plat_midi_get_dev_name(i, midiName);
 
-                model->setData(idx, sel->description, Qt::DisplayRole);
-                model->setData(idx, sel->value, Qt::UserRole);
+                    int rows = model->rowCount();
+                    model->insertRow(rows);
+                    auto idx = model->index(rows, 0);
 
-                if (selected == sel->value) {
-                    currentIndex = idx.row();
+                    model->setData(idx, midiName, Qt::DisplayRole);
+                    model->setData(idx, i, Qt::UserRole);
+                    if (selected == i) {
+                        currentIndex = idx.row();
+                    }
+                }
+            } else if (config->type == CONFIG_MIDI_IN) {
+                for (int i = 0; i < plat_midi_in_get_num_devs(); i++) {
+                    char midiName[512] = { 0 };
+                    plat_midi_in_get_dev_name(i, midiName);
+
+                    int rows = model->rowCount();
+                    model->insertRow(rows);
+                    auto idx = model->index(rows, 0);
+
+                    model->setData(idx, midiName, Qt::DisplayRole);
+                    model->setData(idx, i, Qt::UserRole);
+                    if (selected == i) {
+                        currentIndex = idx.row();
+                    }
+                }
+            } else {
+                for (auto* sel = config->selection; (sel->description != nullptr) && (strlen(sel->description) > 0); ++sel) {
+                    int rows = model->rowCount();
+                    model->insertRow(rows);
+                    auto idx = model->index(rows, 0);
+
+                    model->setData(idx, sel->description, Qt::DisplayRole);
+                    model->setData(idx, sel->value, Qt::UserRole);
+
+                    if (selected == sel->value) {
+                        currentIndex = idx.row();
+                    }
                 }
             }
-
             dc.ui->formLayout->addRow(config->description, cbox);
             cbox->setCurrentIndex(currentIndex);
             break;
