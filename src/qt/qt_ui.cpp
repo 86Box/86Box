@@ -62,8 +62,8 @@ void plat_mouse_capture(int on) {
 }
 
 int	ui_msgbox_header(int flags, void *header, void* message) {
-    if (header <= (void*)7168) header = plat_get_string(reinterpret_cast<long>(header));
-    if (message <= (void*)7168) message = plat_get_string(reinterpret_cast<long>(message));
+    if (header <= (void*)7168) header = plat_get_string((uintptr_t)header);
+    if (message <= (void*)7168) message = plat_get_string((uintptr_t)message);
 
     auto hdr = QString::fromWCharArray(reinterpret_cast<const wchar_t*>(header));
     auto msg = QString::fromWCharArray(reinterpret_cast<const wchar_t*>(message));

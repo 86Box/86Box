@@ -44,6 +44,9 @@ private:
 };
 
 extern "C" {
+#ifdef Q_OS_WINDOWS
+#include <windows.h>
+#endif
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/gameport.h>
@@ -87,7 +90,11 @@ do_stop(void)
 
 void plat_get_exe_name(char *s, int size)
 {
-    CharPointer(s, size) = QCoreApplication::applicationFilePath().toUtf8();
+    QByteArray exepath_temp = QCoreApplication::applicationDirPath().toLocal8Bit();
+
+    memcpy(s, exepath_temp.data(), std::min(exepath_temp.size(),size));
+
+    plat_path_slash(s);
 }
 
 uint32_t
@@ -140,6 +147,8 @@ plat_fopen(const char *path, const char *mode)
         return nullptr;
     }
     */
+
+/* Not sure if any this is necessary, fopen seems to work on Windows -Manaatti
 #ifdef Q_OS_WINDOWS
     wchar_t *pathw, *modew;
     int len;
@@ -165,8 +174,9 @@ plat_fopen(const char *path, const char *mode)
     }
 #endif
 #ifdef Q_OS_UNIX
+*/
     return fopen(path, mode);
-#endif
+//#endif
 }
 
 FILE *
@@ -216,11 +226,23 @@ plat_get_extension(char *s)
 char *
 plat_get_filename(char *s)
 {
+#ifdef Q_OS_WINDOWS
+    int c = strlen(s) - 1;
+
+    while (c > 0) {
+	if (s[c] == '/' || s[c] == '\\')
+	   return(&s[c+1]);
+       c--;
+    }
+
+    return(s);
+#else
     auto idx = QByteArray::fromRawData(s, strlen(s)).lastIndexOf(QDir::separator().toLatin1());
     if (idx >= 0) {
         return s+idx+1;
     }
     return s;
+#endif
 }
 
 int
@@ -292,7 +314,11 @@ plat_mmap(size_t size, uint8_t executable)
 void
 plat_munmap(void *ptr, size_t size)
 {
+#if defined Q_OS_WINDOWS
+    VirtualFree(ptr, 0, MEM_RELEASE);
+#else
     munmap(ptr, size);
+#endif
 }
 
 void
@@ -390,4 +416,40 @@ void endblit()
     blitmx.unlock();
 }
 
+}
+
+#ifdef Q_OS_WINDOWS
+size_t mbstoc16s(uint16_t dst[], const char src[], int len)
+{
+    if (src == NULL) return 0;
+    if (len < 0) return 0;
+
+    size_t ret = MultiByteToWideChar(CP_UTF8, 0, src, -1, reinterpret_cast<LPWSTR>(dst), dst == NULL ? 0 : len);
+
+    if (!ret) {
+	return -1;
+    }
+
+    return ret;
+}
+
+size_t c16stombs(char dst[], const uint16_t src[], int len)
+{
+    if (src == NULL) return 0;
+    if (len < 0) return 0;
+
+    size_t ret = WideCharToMultiByte(CP_UTF8, 0, reinterpret_cast<LPCWCH>(src), -1, dst, dst == NULL ? 0 : len, NULL, NULL);
+
+    if (!ret) {
+	return -1;
+    }
+
+    return ret;
+}
+#endif
+
+int
+plat_chdir(char *path)
+{
+    return QDir::setCurrent(QString(path)) ? 0 : -1;
 }

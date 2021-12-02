@@ -622,7 +622,9 @@ static std::array<uint32_t, 256>& selected_keycode = x11_to_xt_base;
 
 uint16_t x11_keycode_to_keysym(uint32_t keycode)
 {
-#ifdef __APPLE__
+#if defined(Q_OS_WINDOWS)
+    return keycode & 0xFFFF;
+#elif defined(__APPLE__)
     return darwin_to_xt[keycode];
 #else
     static Display* x11display = nullptr;
