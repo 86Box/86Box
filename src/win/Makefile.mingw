@@ -1,4 +1,5 @@
 #
+#
 # 86Box		A hypervisor and IBM PC system emulator that specializes in
 #		running old operating systems and software designed for IBM
 #		PC systems and compatibles from 1981 through fairly recent
@@ -41,6 +42,9 @@ ifeq ($(DEV_BUILD), y)
  endif
  ifndef GUSMAX
   GUSMAX	:= y
+ endif
+ ifndef INTEL_ICH2
+  INTEL_ICH2	:= y
  endif
  ifndef LASERXT
   LASERXT	:= y
@@ -90,6 +94,9 @@ else
  endif
  ifndef GUSMAX
   GUSMAX	:= n
+ endif
+ ifndef INTEL_ICH2
+  INTEL_ICH2	:= n
  endif
  ifndef LASERXT
   LASERXT	:= n
@@ -405,6 +412,11 @@ ifeq ($(GUSMAX), y)
 OPTS		+= -DUSE_GUSMAX
 endif
 
+ifeq ($(INTEL_ICH2), y)
+OPTS		+= -DUSE_INTEL_ICH2
+DEVBROBJ	+= intel_mch_p4.o intel_gmch.o intel_ich2.o intel_ich2_setup.o
+endif
+
 ifeq ($(LASERXT), y)
 OPTS		+= -DUSE_LASERXT
 DEVBROBJ	+= m_xt_laserxt.o
@@ -541,7 +553,7 @@ SIOOBJ		:= sio_acc3221.o \
 			sio_it8661f.o \
 		    sio_pc87306.o sio_pc87307.o sio_pc87309.o sio_pc87310.o sio_pc87311.o sio_pc87332.o \
 			sio_prime3b.o sio_prime3c.o \
-		    sio_w83787f.o \
+		    sio_w83627hf.o sio_w83787f.o \
 		    sio_w83877f.o sio_w83977f.o \
 		    sio_um8669f.o \
 		    sio_vt82c686.o

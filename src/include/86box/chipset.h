@@ -86,6 +86,12 @@ extern const device_t	i440gx_device;
 extern const device_t	i440zx_device;
 extern const device_t	i450kx_device;
 
+#if defined(DEV_BRANCH) && defined(INTEL_ICH2)
+extern const device_t	intel_gmch_device;
+extern const device_t	intel_mch_p4_device;
+extern const device_t	intel_mch_p4_ddr_device;
+#endif
+
 extern const device_t	sio_device;
 extern const device_t	sio_zb_device;
 
@@ -96,6 +102,11 @@ extern const device_t	piix3_device;
 extern const device_t	piix4_device;
 extern const device_t	piix4e_device;
 extern const device_t	slc90e66_device;
+
+#if defined(DEV_BRANCH) && defined(INTEL_ICH2)
+extern const device_t	intel_ich2_device;
+extern const device_t	intel_ich2_no_lan_device;
+#endif
 
 extern const device_t	ioapic_device;
 
@@ -131,7 +142,6 @@ extern const device_t	stpc_serial_device;
 extern const device_t	stpc_lpt_device;
 
 /* UMC */
-extern const device_t	umc_um82c49x_device;
 extern const device_t	umc_8886f_device;
 extern const device_t	umc_8886af_device;
 extern const device_t	umc_hb4_device;

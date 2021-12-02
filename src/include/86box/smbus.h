@@ -27,6 +27,7 @@
 
 enum {
     SMBUS_PIIX4 = 0,
+    SMBUS_ICH2,
     SMBUS_VIA
 };
 
@@ -37,7 +38,8 @@ typedef struct {
     double	bit_period;
     uint8_t	stat, next_stat, ctl, cmd, addr,
 		data0, data1,
-		index, data[SMBUS_PIIX4_BLOCK_DATA_SIZE];
+		index, data[SMBUS_PIIX4_BLOCK_DATA_SIZE],
+    smlink_pin_ctl, smbus_pin_ctl;
     pc_timer_t	response_timer;
     void	*i2c;
 } smbus_piix4_t;
@@ -61,6 +63,7 @@ extern void	smbus_ali7101_remap(smbus_ali7101_t *dev, uint16_t new_io_base, uint
 
 #ifdef EMU_DEVICE_H
 extern const device_t piix4_smbus_device;
+extern const device_t ich2_smbus_device;
 extern const device_t via_smbus_device;
 
 extern const device_t ali7101_smbus_device;

@@ -28,7 +28,6 @@
 #include <86box/i2c.h>
 #include <86box/smbus.h>
 
-
 #ifdef ENABLE_SMBUS_PIIX4_LOG
 int smbus_piix4_do_log = ENABLE_SMBUS_PIIX4_LOG;
 
@@ -107,9 +106,14 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
     dev->next_stat = 0x00;
     switch (addr - dev->io_base) {
 	case 0x00:
-		for (smbus_addr = 0x02; smbus_addr <= 0x10; smbus_addr <<= 1) { /* handle clearable bits */
-			if (val & smbus_addr)
-				dev->stat &= ~smbus_addr;
+		if(dev->local == SMBUS_ICH2)
+			dev->stat &= ~val;
+		else
+		{
+			for (smbus_addr = 0x02; smbus_addr <= 0x10; smbus_addr <<= 1) { /* handle clearable bits */
+				if (val & smbus_addr)
+					dev->stat &= ~smbus_addr;
+			}
 		}
 		break;
 
@@ -213,6 +217,9 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 					/* fall-through */
 
 				case 0xd: /* I2C block R/W */
+					if((dev->local == SMBUS_ICH2) && !!(dev->stat & 0x80))
+						dev->stat &= 0x80;
+
 					i2c_write(i2c_smbus, smbus_addr, dev->cmd);
 					timer_bytes++;
 
@@ -233,6 +240,8 @@ smbus_piix4_write(uint16_t addr, uint8_t val, void *priv)
 					}
 					timer_bytes += i;
 
+					if(dev->local == SMBUS_ICH2)
+						dev->next_stat |= 0x80;
 					break;
 
 				case 0x6: /* I2C with 10-bit address */
@@ -363,9 +372,7 @@ smbus_piix4_init(const device_t *info)
     /* We save the I2C bus handle on dev but use i2c_smbus for all operations because
        dev and therefore dev->i2c will be invalidated if a device triggers a hard reset. */
     i2c_smbus = dev->i2c = i2c_addbus((dev->local == SMBUS_VIA) ? "smbus_vt82c686b" : "smbus_piix4");
-
     timer_add(&dev->response_timer, smbus_piix4_response, dev, 0);
-
     smbus_piix4_setclock(dev, 16384); /* default to 16.384 KHz */
 
     return dev;
@@ -389,6 +396,15 @@ const device_t piix4_smbus_device = {
     "PIIX4-compatible SMBus Host Controller",
     DEVICE_AT,
     SMBUS_PIIX4,
+    smbus_piix4_init, smbus_piix4_close, NULL,
+    { NULL }, NULL, NULL,
+    NULL
+};
+
+const device_t ich2_smbus_device = {
+    "Intel ICH2 SMBus Host Controller",
+    DEVICE_AT,
+    SMBUS_ICH2,
     smbus_piix4_init, smbus_piix4_close, NULL,
     { NULL }, NULL, NULL,
     NULL

@@ -104,8 +104,7 @@ enum {
     CPU_PKG_SOCKET8 = (1 << 18),
     CPU_PKG_SLOT1 = (1 << 19),
     CPU_PKG_SLOT2 = (1 << 20),
-    CPU_PKG_SOCKET370 = (1 << 21),
-    CPU_PKG_EBGA368 = (1 << 22)
+    CPU_PKG_SOCKET370 = (1 << 21)
 };
 
 
@@ -281,6 +280,12 @@ typedef struct {
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's that are also
        on the VIA Cyrix III */
     uint64_t	mtrr_deftype;		/* 0x000002ff */
+
+    /* Pentium II/III/IV MSR's needed for late BIOS */
+    uint64_t	ecx1a0;			/* 0x000001a0 */
+    uint64_t    ecx198;         /* 0x00000198 */
+    uint64_t    ecx19a;         /* 0x0000019a */
+    uint64_t    ecx19d;         /* 0x0000019d */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t	ecx404;			/* 0x00000404 - Model Identification MSR's used by some Acer BIOSes */

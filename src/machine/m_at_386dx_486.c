@@ -1818,25 +1818,3 @@ machine_at_spc7700plw_init(const machine_t *model)
     return ret;
 }
 
-
-int
-machine_at_actiontower3000_init(const machine_t *model)
-{
-    int ret;
-
-    ret = bios_load_linear("roms/machines/actiontower3000/PHOEN12V.BIN",
-			   0x000e0000, 131072, 0);
-
-    if (bios_only || !ret)
-	return ret;
-
-    machine_at_common_init(model);
-
-    device_add(&umc_um82c49x_device);
-    /* Actually has an Intel 82C42PE with Phoenix MultiKey KBC firmware. */
-    device_add(&keyboard_at_ami_device);
-
-    device_add(&um8669f_device);
-
-    return ret;
-}
