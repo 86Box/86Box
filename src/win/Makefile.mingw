@@ -482,14 +482,13 @@ CHIPSETOBJ	:= 82c100.o acc2168.o \
 		    cs4031.o cs8230.o \
 		    ali1429.o ali1489.o ali1531.o ali1541.o ali1543.o ali1621.o ali6117.o \
 		    gc100.o headland.o \
-		    ims8848.o intel_82335.o intel_420ex.o intel_4x0.o intel_430tx.o intel_i450kx.o intel_sio.o intel_piix.o \
+		    ims8848.o intel_82335.o intel_420ex.o intel_4x0.o intel_i450kx.o intel_sio.o intel_piix.o \
 		    ioapic.o \
 		    neat.o \
 		    opti283.o opti291.o opti391.o opti495.o opti822.o opti895.o opti5x7.o \
 		    scamp.o scat.o \
 		    stpc.o \
 		    wd76c10.o vl82c480.o \
-		    umc49x.o \
 		    umc_8886.o umc_hb4.o \
 		    via_vt82c49x.o via_vt82c505.o via_apollo.o via_pipc.o \
 		    sis_85c310.o sis_85c4xx.o sis_85c496.o sis_85c50x.o sis_5511.o sis_5571.o
