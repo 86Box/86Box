@@ -1315,9 +1315,6 @@ ui_init(int nCmdShow)
     if (! RegisterClassEx(&wincl))
 			return(2);
 
-    /* Load the Window Menu(s) from the resources. */
-    menuMain = LoadMenu(hinstance, MENU_NAME);
-
     /* Now create our main window. */
     mbstowcs(title, emu_version, sizeof_w(title));
     hwnd = CreateWindowEx (
@@ -1330,7 +1327,7 @@ ui_init(int nCmdShow)
 		scrnsz_x+(GetSystemMetrics(SM_CXFIXEDFRAME)*2),	/* width */
 		scrnsz_y+(GetSystemMetrics(SM_CYFIXEDFRAME)*2)+GetSystemMetrics(SM_CYMENUSIZE)+GetSystemMetrics(SM_CYCAPTION)+1,	/* and height in pixels */
 		HWND_DESKTOP,		/* window is a child to desktop */
-		menuMain,		/* menu */
+		NULL,			/* no menu (yet) */
 		hinstance,		/* Program Instance handler */
 		NULL);			/* no Window Creation data */
     hwndMain = tdconfig.hwndParent = hwnd;
@@ -1380,14 +1377,10 @@ ui_init(int nCmdShow)
 		ResizeWindowByClientArea(hwndMain, scrnsz_x, scrnsz_y + sbar_height);
     }
 
-  /* Load the desired language, and reset all menus to their defaults */
+    /* Load the desired language */
     uint32_t helper_lang = lang_id;
     lang_id = 0;
-    set_language(helper_lang);	
-
-    /* Reset all menus to their defaults. */
-    ResetAllMenus();
-    media_menu_init();
+    set_language(helper_lang);
 	
     /* Make the window visible on the screen. */
     ShowWindow(hwnd, nCmdShow);
