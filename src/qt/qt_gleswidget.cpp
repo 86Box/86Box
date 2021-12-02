@@ -156,5 +156,6 @@ void GLESWidget::qt_real_blit(int x, int y, int w, int h)
         video_screenshot((uint32_t *)imagebits, 0, 0, 2048 + 64);
     }
     video_blit_complete();
+    firstupdate = false;
     this->reqUpdate();
 }
