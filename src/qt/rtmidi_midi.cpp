@@ -24,7 +24,7 @@ void plat_midi_init()
 {
     try
     {
-        midiout = new RtMidiOut;
+        if (!midiout) midiout = new RtMidiOut;
     }
     catch (RtMidiError& error)
     {
@@ -63,6 +63,17 @@ void plat_midi_close()
 
 int plat_midi_get_num_devs()
 {
+    if (!midiout)
+    {
+        try
+        {
+            midiout = new RtMidiOut;
+        }
+        catch (RtMidiError& error)
+        {
+            pclog("Failed to initialize MIDI output: %s\n", error.getMessage().c_str());
+        }
+    }
     return midiout ? midiout->getPortCount() : 0;
 }
 
@@ -91,7 +102,7 @@ void plat_midi_input_init(void)
 {
     try
     {
-        midiin = new RtMidiIn;
+        if (!midiin) midiin = new RtMidiIn;
     }
     catch (RtMidiError& error)
     {
@@ -132,6 +143,17 @@ void plat_midi_input_close(void)
 
 int plat_midi_in_get_num_devs(void)
 {
+    if (!midiin)
+    {
+        try
+        {
+            midiin = new RtMidiIn;
+        }
+        catch (RtMidiError& error)
+        {
+            pclog("Failed to initialize MIDI input: %s\n", error.getMessage().c_str());
+        }
+    }
     return midiin ? midiin->getPortCount() : 0;
 }
 

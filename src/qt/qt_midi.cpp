@@ -29,4 +29,16 @@ int plat_midi_get_num_devs()
 int plat_midi_in_get_num_devs(void)
 { return 0; }
 
+void plat_midi_get_dev_name(int num, char *s)
+{
+    s[0] = ' ';
+    s[1] = 0;
+}
+
+void plat_midi_in_get_dev_name(int num, char *s)
+{
+    s[0] = ' ';
+    s[1] = 0;
+}
+
 }
