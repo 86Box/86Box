@@ -29,6 +29,10 @@ if(LASERXT)
 	target_compile_definitions(mch PRIVATE USE_LASERXT)
 endif()
 
+if(INTEL_ICH2)
+	target_compile_definitions(mch PRIVATE INTEL_ICH2)
+endif()
+
 if(NO_SIO)
 	target_compile_definitions(mch PRIVATE NO_SIO)
 endif()

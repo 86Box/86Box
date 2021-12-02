@@ -396,94 +396,6 @@ acpi_reg_read_intel_ich2(int size, uint16_t addr, void *p)
 }
 
 static uint32_t
-acpi_reg_read_sis(int size, uint16_t addr, void *p)
-{
-    acpi_t *dev = (acpi_t *) p;
-    uint32_t ret = 0x00000000;
-    int shift16, shift32;
-
-    addr &= 0x2f;
-    shift16 = (addr & 1) << 3;
-    shift32 = (addr & 3) << 3;
-
-	switch(addr)
-	{
-	case 0x0c:
-	case 0x0d:
-	case 0x0e:
-	case 0x0f:
-	ret = (dev->regs.pcntrl >> shift32) & 0xff;
-	break;
-
-	case 0x12:
-	ret = dev->regs.p2cntrl;
-	break;
-
-	case 0x13:
-	ret = dev->regs.gptimer;
-	break;
-
-	case 0x14: case 0x15:
-	ret = (dev->regs.gpsts >> shift16) & 0xff;
-	break;
-
-	case 0x16: case 0x17:
-	ret = (dev->regs.gpen >> shift16) & 0xff;
-	break;
-
-	case 0x18: case 0x19:
-	ret = (dev->regs.gpcntrl >> shift16) & 0xff;
-	break;
-
-	case 0x1a: case 0x1b:
-	ret = (dev->regs.gpen >> shift16) & 0xff;
-	break;
-
-	case 0x1c: case 0x1d:
-	ret = (dev->regs.gpmux >> shift16) & 0xff;
-	break;
-
-	case 0x1e: case 0x1f:
-	ret = (dev->regs.gplvl >> shift16) & 0xff;
-	break;
-
-	case 0x20:
-	ret = dev->regs.smicmd;
-	break;
-
-	case 0x24:
-	ret = dev->regs.muxcntrl;
-	break;
-
-	case 0x25:
-	ret = dev->regs.auxsts;
-	break;
-
-	case 0x26:
-	ret = dev->regs.auxen;
-	break;
-
-	case 0x2a:
-	ret = dev->regs.smireg;
-	break;
-
-	case 0x2b:
-	ret = dev->regs.acpitst;
-	break;
-
-	default:
-	acpi_reg_read_common_regs(size, addr, p);
-	break;
-	}
-#ifdef ENABLE_ACPI_LOG
-    if (size != 1)
-		acpi_log("(%i) ACPI Read  (%i) %02X: %02X\n", in_smm, size, addr, ret);
-#endif
-    return ret;
-}
-
-
-static uint32_t
 acpi_reg_read_via_common(int size, uint16_t addr, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
@@ -1175,94 +1087,6 @@ acpi_reg_write_intel_ich2(int size, uint16_t addr, uint8_t val, void *p)
 }
 
 static void
-acpi_reg_write_sis(int size, uint16_t addr, uint8_t val, void *p)
-{
-    acpi_t *dev = (acpi_t *) p;
-    int shift16, shift32;
-
-    addr &= 0x2f;
-    shift16 = (addr & 1) << 3;
-    shift32 = (addr & 3) << 3;
-
-switch(addr)
-{
-	case 0x0c:
-	case 0x0d:
-	case 0x0e:
-	case 0x0f:
-	dev->regs.pcntrl = ((dev->regs.pcntrl & ~(0xff << shift32)) | (val << shift32)) & 0x0000007e;
-	break;
-
-	case 0x12:
-	dev->regs.p2cntrl = val & 1;
-	break;
-
-	case 0x13:
-	dev->regs.gptimer = val;
-	break;
-
-	case 0x14: case 0x15:
-	dev->regs.gpsts &= ~((val << shift16) & 0xff9f);
-	break;
-
-	case 0x16: case 0x17:
-	dev->regs.gpen = ((dev->regs.gpen & ~(0xff << shift16)) | (val << shift16)) & 0xef1f;
-	break;
-
-	case 0x18: case 0x19:
-	dev->regs.gpcntrl &= ~((val << shift16) & 0x07ff);
-	break;
-
-	case 0x1a: case 0x1b:
-	dev->regs.gpen = ((dev->regs.gpen & ~(0xff << shift16)) | (val << shift16)) & 0x0187;
-	break;
-
-	case 0x1c: case 0x1d:
-	dev->regs.gpmux = ((dev->regs.gpmux & ~(0xff << shift16)) | (val << shift16)) & 0x3f7f;
-	if(dev->regs.gpmux & 0x0400)
-	dev->regs.pmsts |= 0x0020;
-	break;
-
-	case 0x1e: case 0x1f:
-	dev->regs.gplvl = ((dev->regs.gplvl & ~(0xff << shift16)) | (val << shift16)) & 0x0fb7;
-	break;
-
-	case 0x20:
-	dev->regs.smicmd = val;
-	break;
-
-	case 0x24:
-	dev->regs.muxcntrl = val & 0xc3;
-	break;
-
-	case 0x25:
-	dev->regs.auxsts &= val & 0x1f;
-	break;
-
-	case 0x26:
-	dev->regs.auxen = val & 0x3f;
-	break;
-
-	case 0x2a:
-	dev->regs.smireg = val;
-	break;
-
-	case 0x2b:
-	dev->regs.acpitst = val;
-	break;
-
-	default:
-	acpi_reg_write_common_regs(size, addr, val, p);
-	break;
-}
-
-#ifdef ENABLE_ACPI_LOG
-    if (size != 1)
-	acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
-#endif
-}
-
-static void
 acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *p)
 {
     acpi_t *dev = (acpi_t *) p;
@@ -1531,8 +1355,6 @@ acpi_reg_read_common(int size, uint16_t addr, void *p)
 	ret = acpi_reg_read_intel(size, addr, p);
     else if (dev->vendor == VEN_INTEL_ICH2)
 	ret = acpi_reg_read_intel_ich2(size, addr, p);
-    else if (dev->vendor == VEN_SIS)
-	ret = acpi_reg_read_sis(size, addr, p);
     else if (dev->vendor == VEN_SMC)
 	ret = acpi_reg_read_smc(size, addr, p);
 
@@ -1555,8 +1377,6 @@ acpi_reg_write_common(int size, uint16_t addr, uint8_t val, void *p)
 	acpi_reg_write_intel(size, addr, val, p);
     else if (dev->vendor == VEN_INTEL_ICH2)
 	acpi_reg_write_intel_ich2(size, addr, val, p);
-    else if (dev->vendor == VEN_SIS)
-	acpi_reg_write_sis(size, addr, val, p);
     else if (dev->vendor == VEN_SMC)
 	acpi_reg_write_smc(size, addr, val, p);
 }
@@ -1746,9 +1566,6 @@ acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en)
 		break;
 	case VEN_INTEL_ICH2:
 		size = 0x080;
-		break;
-	case VEN_SIS:
-		size = 0x030;
 		break;
 	case VEN_SMC:
 		size = 0x010;
@@ -2143,11 +1960,6 @@ acpi_init(const device_t *info)
 		dev->suspend_types[6] = SUS_POWER_OFF;
 		dev->suspend_types[7] = SUS_POWER_OFF;
 		break;
-
-	case VEN_SIS:
-		dev->suspend_types[0] = SUS_SUSPEND;
-		dev->suspend_types[4] = SUS_POWER_OFF;
-		break;
     }
 
     timer_add(&dev->timer, acpi_timer_count, dev, 0);
@@ -2192,20 +2004,6 @@ const device_t acpi_intel_ich2_device =
     "Intel ICH2 ACPI",
     DEVICE_PCI,
     VEN_INTEL_ICH2,
-    acpi_init, 
-    acpi_close, 
-    acpi_reset,
-    { NULL },
-    acpi_speed_changed,
-    NULL,
-    NULL
-};
-
-const device_t acpi_sis_device =
-{
-    "SiS ACPI",
-    DEVICE_PCI,
-    VEN_SIS,
     acpi_init, 
     acpi_close, 
     acpi_reset,

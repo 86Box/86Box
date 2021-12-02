@@ -472,6 +472,7 @@ machine_at_6via90ap_init(const machine_t *model)
     return ret;
 }
 
+#if defined(DEV_BRANCH) && defined(INTEL_ICH2)
 int
 machine_at_cusl2cbp_init(const machine_t *model)
 {
@@ -534,3 +535,4 @@ machine_at_j815epda_init(const machine_t *model)
 
     return ret;
 }
+#endif

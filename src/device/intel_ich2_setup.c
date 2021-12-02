@@ -35,6 +35,7 @@ dimm_type: Selects the type of Memory the board has (1 for DDR / 0 for SDRAM).
 dimm_slots: Selects the amount of DIMM slots the board has from 1 to 4.
 
 */
+#if defined(DEV_BRANCH) && defined(INTEL_ICH2)
 void
 intel_ich2_setup(int northbridge, int lan, int dimm_type, int dimm_slots, const machine_t *model)
 {
@@ -93,3 +94,4 @@ intel_ich2_setup(int northbridge, int lan, int dimm_type, int dimm_slots, const 
     }
     else pclog("Intel ICH2-SETUP: Incorrect amount of DIMM's (%d) were given! SPD won't be added.\n", dimm_slots);
 }
+#endif

@@ -399,8 +399,6 @@ const machine_t machines[] = {
     { "[SiS 471] DTK PKM-0038S E-2",		"dtk486",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 65536, 1024, 127,	       machine_at_dtk486_init, NULL			},
     /* Unknown Epox VLB Socket 3 board, has AMIKey F keyboard BIOS. */
     { "[SiS 471] Epox 486SX/DX Green",		"ami471",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 65536, 1024, 127,	       machine_at_ami471_init, NULL			},
-    /* Has an Intel 82C42PE with Phoenix MultiKey KBC firmware. */
-    { "[UMC 491/493] Epson Action Tower 3000",	"actiontower3000",	MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 262144, 1024, 255,     machine_at_actiontower3000_init, NULL			},
 
     /* 486 machines which utilize the PCI bus */
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
@@ -898,13 +896,15 @@ const machine_t machines[] = {
        firmware. */
     { "[i440ZX] Soltek SL-63A1",		"63a1",			MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 100000000, 1800, 3500, 1.5, 8.0,						MACHINE_AGP | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 8192, 524288, 8192, 255,		 machine_at_63a1_init, NULL			},
 
+#if defined(DEV_BRANCH) && defined(INTEL_ICH2)
     /* Intel i815 + ICH2 */
     /* Has a Winbond W83627HF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[Intel i815EP] ASUS CUSL2-C BP",          "cusl2cbp",	        MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						(MACHINE_AGP & ~MACHINE_AT) | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		32768, 524288, 32768, 255,	     machine_at_cusl2cbp_init, NULL			},
+    { "[Intel i815EP] ASUS CUSL2-C Black Pearl","cusl2cbp",		MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						(MACHINE_AGP & ~MACHINE_AT) | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		32768, 524288, 32768, 255,	     machine_at_cusl2cbp_init, NULL			},
     /* Has a Winbond W83627HF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     { "[Intel i815EP] Jetway J-815EPDA",         "j815epda",	        MACHINE_TYPE_SOCKET370,		CPU_PKG_SOCKET370, 0, 66666667, 133333333, 1300, 3500, 1.5, 8.0,						(MACHINE_AGP & ~MACHINE_AT) | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		32768, 524288, 32768, 255,	     machine_at_j815epda_init, NULL			},
+#endif
 
     /* SMSC VictoryBX-66 */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
