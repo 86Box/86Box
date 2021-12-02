@@ -7,6 +7,11 @@
 #include <QKeyEvent>
 
 #include <atomic>
+#include <qapplication.h>
+
+#ifdef WAYLAND
+#include "wl_mouse.hpp"
+#endif
 
 class GLESWidget : public QOpenGLWidget, protected QOpenGLFunctions
 {
@@ -15,6 +20,7 @@ class GLESWidget : public QOpenGLWidget, protected QOpenGLFunctions
 private:
     QImage m_image{QSize(2048 + 64, 2048 + 64), QImage::Format_RGB32};
     int x, y, w, h, sx, sy, sw, sh;
+    bool wayland = false;
 public:
     void resizeGL(int w, int h) override;
     void initializeGL() override;
@@ -23,6 +29,12 @@ public:
     : QOpenGLWidget(parent), QOpenGLFunctions()
     {
         setMinimumSize(16, 16);
+#ifdef WAYLAND
+        if (QApplication::platformName().contains("wayland")) {
+            wayland = true;
+            wl_init();
+        }
+#endif
     }
     ~GLESWidget()
     {

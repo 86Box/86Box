@@ -1,5 +1,7 @@
 #include <QApplication>
 #include <QImage>
+#include <QGuiApplication>
+#include <qnamespace.h>
 #include "qt_gleswidget.hpp"
 #ifdef __APPLE__
 #include <CoreGraphics/CoreGraphics.h>
@@ -43,6 +45,10 @@ void GLESWidget::qt_mouse_poll()
     mouse_z = mousedata.deltaz;
     mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
     mouse_buttons = mousedata.mousebuttons;
+#ifdef WAYLAND
+    if (wayland)
+        wl_mouse_poll();
+#endif
 #endif
 }
 
@@ -75,11 +81,13 @@ void GLESWidget::mouseReleaseEvent(QMouseEvent *event)
     if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture)
     {
         plat_mouse_capture(1);
+        this->setCursor(Qt::BlankCursor);
         return;
     }
     if (mouse_capture && event->button() == Qt::MiddleButton && mouse_get_buttons() < 3)
     {
         plat_mouse_capture(0);
+        this->setCursor(Qt::ArrowCursor);
         return;
     }
     if (mouse_capture)
@@ -93,6 +101,7 @@ void GLESWidget::mousePressEvent(QMouseEvent *event)
     {
         mousedata.mousebuttons |= event->button();
     }
+    event->accept();
 }
 void GLESWidget::wheelEvent(QWheelEvent *event)
 {
@@ -105,6 +114,11 @@ void GLESWidget::wheelEvent(QWheelEvent *event)
 int ignoreNextMouseEvent = 0;
 void GLESWidget::mouseMoveEvent(QMouseEvent *event)
 {
+    if (QApplication::platformName().contains("wayland"))
+    {
+        event->accept();
+        return;
+    }
     if (!mouse_capture) { event->ignore(); return; }
 #ifdef __APPLE__
     event->accept();

@@ -75,7 +75,7 @@ def presetSlugs = [
 def presetFlags = [
 	'Regular': '-t --preset=regular',
 	'Debug': '--preset=debug',
-	'Dev': '--preset=experimental -D VNC=OFF'
+	'Dev': '-t --preset=experimental -D VNC=OFF'
 ]
 
 def anyFailure = false

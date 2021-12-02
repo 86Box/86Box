@@ -1,5 +1,6 @@
 #include "qt_mainwindow.hpp"
 #include "ui_qt_mainwindow.h"
+#include <qguiapplication.h>
 
 extern "C" {
 #include <86box/86box.h>
@@ -42,7 +43,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->setupUi(this);
     video_setblit(qt_blit);
-    ui->glesWidget->setMouseTracking(true);
+    //ui->glesWidget->setMouseTracking(true);
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
@@ -54,8 +55,21 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::setMouseCapture, this, [this](bool state) {
         mouse_capture = state ? 1 : 0;
         qt_mouse_capture(mouse_capture);
-        if (mouse_capture) ui->glesWidget->grabMouse();
-        else ui->glesWidget->releaseMouse();
+        if (mouse_capture) {
+            ui->glesWidget->grabMouse();
+#ifdef WAYLAND
+            if (QGuiApplication::platformName().contains("wayland")) {
+                wl_mouse_capture(this->windowHandle());
+            }
+#endif
+        } else {
+            ui->glesWidget->releaseMouse();
+#ifdef WAYLAND
+            if (QGuiApplication::platformName().contains("wayland")) {
+                wl_mouse_uncapture();
+            }
+#endif
+        }
     });
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {

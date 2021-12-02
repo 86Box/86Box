@@ -38,7 +38,10 @@ bool CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *mess
         if (eventType == "mac_generic_NSEvent")
         {
             NSEvent* event = (NSEvent*)message;
-            if ([event type] == NSEventTypeMouseMoved)
+            if ([event type] == NSEventTypeMouseMoved
+                || [event type] == NSEventTypeLeftMouseDragged
+                || [event type] == NSEventTypeRightMouseDragged
+                || [event type] == NSEventTypeOtherMouseDragged)
             {
                 mousedata.deltax += [event deltaX];
                 mousedata.deltay += [event deltaY];
