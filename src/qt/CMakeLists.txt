@@ -85,6 +85,7 @@ target_link_libraries(
     plat
     PRIVATE
     Qt5::Widgets
+    Qt5::Gui
     Threads::Threads
 )
 
@@ -92,10 +93,28 @@ target_link_libraries(
     ui
     PRIVATE
     Qt5::Widgets
+    Qt5::Gui
     Threads::Threads
 )
 
 if (UNIX AND NOT APPLE)
     find_package(X11 REQUIRED)
     target_link_libraries(ui PRIVATE X11::X11)
+    find_package(ECM NO_MODULE)
+    if (ECM_FOUND)
+        list(APPEND CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
+        find_package(Wayland COMPONENTS Client)
+        if (Wayland_FOUND)
+            target_link_libraries(ui PRIVATE Wayland::Client)
+            find_package(WaylandScanner REQUIRED)
+            if (WaylandScanner_FOUND)
+                set(WL_SOURCE_VAR)
+                ecm_add_wayland_client_protocol(WL_SOURCE_VAR PROTOCOL ${CMAKE_SOURCE_DIR}/wl_protocols/relative-pointer-unstable-v1.xml BASENAME relative-pointer-unstable-v1)
+                ecm_add_wayland_client_protocol(WL_SOURCE_VAR PROTOCOL ${CMAKE_SOURCE_DIR}/wl_protocols/pointer-constraints-unstable-v1.xml BASENAME pointer-constraints-unstable-v1)
+                target_include_directories(ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${Qt5Gui_PRIVATE_INCLUDE_DIRS})
+                target_sources(ui PRIVATE ${WL_SOURCE_VAR} wl_mouse.cpp)
+                target_compile_definitions(ui PRIVATE WAYLAND)
+            endif()
+        endif()
+    endif()
 endif()
