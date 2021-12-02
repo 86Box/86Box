@@ -1404,7 +1404,7 @@ es1371_pci_read(int func, int addr, void *p)
     if (func > 0)
 	return 0xff;
 
-    if (addr > 0x3f)
+    if ((addr > 0x3f) && ((addr < 0xdc) || (addr > 0xe1)))
 	return 0x00;
 
     switch (addr) {
