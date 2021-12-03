@@ -71,7 +71,7 @@ jobs:
           ${{ matrix.environment.prefix }}-zlib
           ${{ matrix.environment.prefix }}-libpng
           ${{ matrix.environment.prefix }}-libvncserver
-          ${{ matrix.environment.prefix }}-winpthreads
+          ${{ matrix.environment.prefix }}-rtmidi
     - uses: actions/checkout@v2
     - name: Configure CMake
       run: >-

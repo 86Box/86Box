@@ -9,6 +9,6 @@
 		"libpng",
 		"openal-soft",
 		"sdl2",
-		"pthreads"
+		"rtmidi"
 	]
 }
