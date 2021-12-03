@@ -67,7 +67,7 @@ void GLESWidget::paintGL()
 {
     std::scoped_lock lock(image_mx);
     QPainter painter(this);
-    painter.drawImage(QRect(0, 0, width(), height()), m_image.convertToFormat(QImage::Format_RGBX8888), QRect(sx, sy, sw, sh));
+    painter.drawImage(QRect(0, 0, width(), height()), m_image, QRect(sx, sy, sw, sh));
 }
 
 void GLESWidget::mouseReleaseEvent(QMouseEvent *event)
@@ -141,12 +141,9 @@ void GLESWidget::qt_real_blit(int x, int y, int w, int h)
         sy = y;
         sw = this->w = w;
         sh = this->h = h;
-        static auto imagebits = m_image.bits();
-        for (int y1 = y; y1 < (y + h - 1); y1++)
-        {
-            auto scanline = imagebits + (y1 * (2048 + 64) * 4);
-            video_copy(scanline + (x * 4), &(buffer32->line[y1][x]), w * 4);
-        }
+        auto imagebits = m_image.bits();
+        video_copy(imagebits + y * ((2048 + 64) * 4) + x * 4, &(buffer32->line[y][x]), h * (2048 + 64) * sizeof(uint32_t));
+
         if (screenshots)
         {
             video_screenshot((uint32_t *)imagebits, 0, 0, 2048 + 64);
