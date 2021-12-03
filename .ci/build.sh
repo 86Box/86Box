@@ -224,7 +224,7 @@ else
 	fi
 	libpkgs=""
 	longest_libpkg=0
-	for pkg in libc6-dev linux-libc-dev libopenal-dev libfreetype6-dev libsdl2-dev libpng-dev
+	for pkg in libc6-dev linux-libc-dev libopenal-dev libfreetype6-dev libsdl2-dev libpng-dev librtmidi-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
 		length=$(echo -n $pkg | sed 's/-dev$//' | wc -c)
