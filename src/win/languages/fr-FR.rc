@@ -167,7 +167,7 @@ BEGIN
         MENUITEM "&Nouvelle image...",				IDM_CASSETTE_IMAGE_NEW
         MENUITEM SEPARATOR
         MENUITEM "Image &Existante...",				IDM_CASSETTE_IMAGE_EXISTING
-        MENUITEM "Image Exsistane(&Lecture seule)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM "Image Existante(&Lecture seule)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "En&registrer",					IDM_CASSETTE_RECORD
         MENUITEM "&Jouer",					IDM_CASSETTE_PLAY
