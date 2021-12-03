@@ -158,7 +158,7 @@ typedef struct {
 #define INT_STATUS_DAC2			(1<<1)
 
 #define UART_CTRL_RXINTEN		(1<<7)
-#define UART_CTRL_TXINTEN		(1<<5)
+#define UART_CTRL_TXINTEN		(3<<5)
 
 #define UART_STATUS_RXINT		(1<<7)
 #define UART_STATUS_TXINT		(1<<2)
@@ -206,7 +206,8 @@ es1371_update_irqs(es1371_t *dev)
 	irq = 1;
 
     /* MIDI input is unsupported for now */
-    if ((dev->int_status & INT_STATUS_UART) && (dev->uart_status & UART_STATUS_TXINT))
+    if ((dev->int_status & INT_STATUS_UART) && (dev->uart_status & UART_STATUS_TXINT) &&
+	((dev->uart_ctrl & UART_CTRL_TXINTEN) != 0x20))
 	irq = 1;
 
     if (irq)
@@ -316,6 +317,9 @@ es1371_reset(void *p)
     /* UART FIFO Register, Address 30H, 34H, 38H, 3CH, Memory Page 1110b, 1111b
        Addressable as longword only */
     dev->uart_fifo = 0xfffffe00;
+
+    /* Update interrupts to ensure they're all correctly cleared. */
+    es1371_update_irqs(dev);
 }
 
 
@@ -786,6 +790,9 @@ es1371_outb(uint16_t port, uint8_t val, void *p)
 	   Addressable as byte only */
 	case 0x09:
 		dev->uart_ctrl = val & 0xe3;
+		if ((dev->uart_ctrl & UART_CTRL_TXINTEN) != 0x20)
+			dev->int_status &= ~INT_STATUS_UART;
+		es1371_update_irqs(dev);
 		audiopci_log("ES1371 UART Cntrl = %02x\n", dev->uart_ctrl);
 		break;
 
@@ -1397,7 +1404,7 @@ es1371_pci_read(int func, int addr, void *p)
     if (func > 0)
 	return 0xff;
 
-    if (addr > 0x3f)
+    if ((addr > 0x3f) && ((addr < 0xdc) || (addr > 0xe1)))
 	return 0x00;
 
     switch (addr) {

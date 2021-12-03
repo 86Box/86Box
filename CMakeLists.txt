@@ -21,7 +21,7 @@ cmake_policy(SET CMP0079 NEW)
 set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 
 project(PCBox
-	VERSION 3.0
+	VERSION 3.1
 	DESCRIPTION "Emulator of x86-based systems"
 	HOMEPAGE_URL "https://pcbox.github.io/"
 	LANGUAGES C CXX)
