@@ -23,9 +23,9 @@ void FileField::setFileName(const QString &fileName) {
 void FileField::on_pushButton_clicked() {
     QString fileName;
     if (createFile_) {
-        fileName = QFileDialog::getSaveFileName(this, "Create...");
+        fileName = QFileDialog::getSaveFileName(this, "Create...", QString(), filter_, &selectedFilter_);
     } else {
-        fileName = QFileDialog::getOpenFileName(this, "Open...");
+        fileName = QFileDialog::getOpenFileName(this, "Open...", QString(), filter_, &selectedFilter_);
     }
 
     fileName_ = fileName;

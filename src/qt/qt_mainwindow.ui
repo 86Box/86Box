@@ -78,8 +78,14 @@
     </property>
     <addaction name="actionFullscreen"/>
    </widget>
+   <widget class="QMenu" name="menuMedia">
+    <property name="title">
+     <string>Media</string>
+    </property>
+   </widget>
    <addaction name="menuAction"/>
    <addaction name="menuView"/>
+   <addaction name="menuMedia"/>
    <addaction name="menuTools"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>

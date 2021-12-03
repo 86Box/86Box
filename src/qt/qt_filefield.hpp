@@ -18,6 +18,9 @@ public:
     QString fileName() const { return fileName_; }
     void setFileName(const QString& fileName);
 
+    void setFilter(const QString& filter) { filter_ = filter; }
+    QString selectedFilter() const { return selectedFilter_; }
+
     void setCreateFile(bool createFile) { createFile_ = createFile; }
 
 signals:
@@ -29,6 +32,8 @@ private slots:
 private:
     Ui::FileField *ui;
     QString fileName_;
+    QString selectedFilter_;
+    QString filter_;
     bool createFile_ = false;
 };
 

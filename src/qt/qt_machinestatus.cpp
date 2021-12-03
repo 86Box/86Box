@@ -196,6 +196,7 @@ struct MachineStatus::States {
     std::array<StateActive, HDD_BUS_USB> hdds;
     StateActive net;
     std::unique_ptr<QLabel> sound;
+    std::unique_ptr<QLabel> text;
 };
 
 MachineStatus::MachineStatus(QObject *parent) :
@@ -205,6 +206,81 @@ MachineStatus::MachineStatus(QObject *parent) :
 }
 
 MachineStatus::~MachineStatus() = default;
+
+bool MachineStatus::hasCassette() {
+    return cassette_enable > 0 ? true : false;
+}
+
+bool MachineStatus::hasCartridge() {
+    return machines[machine].flags & MACHINE_CARTRIDGE;
+}
+
+bool MachineStatus::hasIDE() {
+    return machines[machine].flags & MACHINE_IDE_QUAD;
+}
+
+bool MachineStatus::hasSCSI() {
+    return machines[machine].flags & MACHINE_SCSI_DUAL;
+}
+
+void MachineStatus::iterateFDD(const std::function<void (int)> &cb) {
+    for (int i = 0; i < FDD_NUM; ++i) {
+        if (fdd_get_type(i) != 0) {
+            cb(i);
+        }
+    }
+}
+
+void MachineStatus::iterateCDROM(const std::function<void (int)> &cb) {
+    auto hdc_name = QString(hdc_get_internal_name(hdc_current));
+    for (size_t i = 0; i < CDROM_NUM; i++) {
+        /* Could be Internal or External IDE.. */
+        if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) &&
+            !hasIDE() && hdc_name != QStringLiteral("ide"))
+            continue;
+        if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !hasSCSI() &&
+            (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
+            (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
+            continue;
+        if (cdrom[i].bus_type != 0) {
+            cb(i);
+        }
+    }
+}
+
+void MachineStatus::iterateZIP(const std::function<void (int)> &cb) {
+    auto hdc_name = QString(hdc_get_internal_name(hdc_current));
+    for (size_t i = 0; i < ZIP_NUM; i++) {
+        /* Could be Internal or External IDE.. */
+        if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) &&
+            !hasIDE() && hdc_name != QStringLiteral("ide"))
+            continue;
+        if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && !hasSCSI() &&
+            (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
+            (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
+            continue;
+        if (zip_drives[i].bus_type != 0) {
+            cb(i);
+        }
+    }
+}
+
+void MachineStatus::iterateMO(const std::function<void (int)> &cb) {
+    auto hdc_name = QString(hdc_get_internal_name(hdc_current));
+    for (size_t i = 0; i < MO_NUM; i++) {
+        /* Could be Internal or External IDE.. */
+        if ((mo_drives[i].bus_type == MO_BUS_ATAPI) &&
+            !hasIDE() && hdc_name != QStringLiteral("ide"))
+            continue;
+        if ((mo_drives[i].bus_type == MO_BUS_SCSI) && !hasSCSI() &&
+            (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
+            (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
+            continue;
+        if (mo_drives[i].bus_type != 0) {
+            cb(i);
+        }
+    }
+}
 
 static int hdd_count(int bus) {
     int c = 0;
@@ -220,12 +296,9 @@ static int hdd_count(int bus) {
 }
 
 void MachineStatus::refresh(QStatusBar* sbar) {
-    bool has_cart = machines[machine].flags & MACHINE_CARTRIDGE;
     bool has_mfm = machines[machine].flags & MACHINE_MFM;
     bool has_xta = machines[machine].flags & MACHINE_XTA;
     bool has_esdi = machines[machine].flags & MACHINE_ESDI;
-    bool has_ide = machines[machine].flags & MACHINE_IDE_QUAD;
-    bool has_scsi = machines[machine].flags & MACHINE_SCSI_DUAL;
 
     int c_mfm = hdd_count(HDD_BUS_MFM);
     int c_esdi = hdd_count(HDD_BUS_ESDI);
@@ -262,7 +335,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         sbar->addWidget(d->cassette.label.get());
     }
 
-    if (has_cart) {
+    if (hasCartridge()) {
         for (int i = 0; i < 2; ++i) {
             d->cartridge[i].label = std::make_unique<QLabel>();
             d->cartridge[i].setEmpty(QString(cart_fns[i]).isEmpty());
@@ -270,73 +343,43 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         }
     }
 
-    for (size_t i = 0; i < FDD_NUM; ++i) {
-        if (fdd_get_type(i) != 0) {
-            d->fdd[i].label = std::make_unique<QLabel>();
-            int t = fdd_get_type(i);
-            if (t == 0) {
-                d->fdd[i].pixmaps = &d->pixmaps.floppy_disabled;
-            } else if (t >= 1 && t <= 6) {
-                d->fdd[i].pixmaps = &d->pixmaps.floppy_525;
-            } else {
-                d->fdd[i].pixmaps = &d->pixmaps.floppy_35;
-            }
-            d->fdd[i].setEmpty(QString(floppyfns[i]).isEmpty());
-            d->fdd[i].setActive(false);
-            sbar->addWidget(d->fdd[i].label.get());
+    iterateFDD([this, sbar](int i) {
+        int t = fdd_get_type(i);
+        if (t == 0) {
+            d->fdd[i].pixmaps = &d->pixmaps.floppy_disabled;
+        } else if (t >= 1 && t <= 6) {
+            d->fdd[i].pixmaps = &d->pixmaps.floppy_525;
+        } else {
+            d->fdd[i].pixmaps = &d->pixmaps.floppy_35;
         }
-    }
+        d->fdd[i].label = std::make_unique<QLabel>();
+        d->fdd[i].setEmpty(QString(floppyfns[i]).isEmpty());
+        d->fdd[i].setActive(false);
+        sbar->addWidget(d->fdd[i].label.get());
+    });
+
+    iterateCDROM([this, sbar](int i) {
+        d->cdrom[i].label = std::make_unique<QLabel>();
+        d->cdrom[i].setEmpty(cdrom[i].host_drive != 200 || QString(cdrom[i].image_path).isEmpty());
+        d->cdrom[i].setActive(false);
+        sbar->addWidget(d->cdrom[i].label.get());
+    });
+
+    iterateZIP([this, sbar](int i) {
+        d->zip[i].label = std::make_unique<QLabel>();
+        d->zip[i].setEmpty(QString(zip_drives[i].image_path).isEmpty());
+        d->zip[i].setActive(false);
+        sbar->addWidget(d->zip[i].label.get());
+    });
+
+    iterateMO([this, sbar](int i) {
+        d->mo[i].label = std::make_unique<QLabel>();
+        d->mo[i].setEmpty(QString(mo_drives[i].image_path).isEmpty());
+        d->mo[i].setActive(false);
+        sbar->addWidget(d->mo[i].label.get());
+    });
 
     auto hdc_name = QString(hdc_get_internal_name(hdc_current));
-    for (size_t i = 0; i < CDROM_NUM; i++) {
-        /* Could be Internal or External IDE.. */
-        if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) &&
-            !has_ide && hdc_name != QStringLiteral("ide"))
-            continue;
-        if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !has_scsi &&
-            (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
-            (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
-            continue;
-        if (cdrom[i].bus_type != 0) {
-            d->cdrom[i].label = std::make_unique<QLabel>();
-            d->cdrom[i].setEmpty(cdrom[i].host_drive != 200 || QString(cdrom[i].image_path).isEmpty());
-            d->cdrom[i].setActive(false);
-            sbar->addWidget(d->cdrom[i].label.get());
-        }
-    }
-    for (size_t i = 0; i < ZIP_NUM; i++) {
-        /* Could be Internal or External IDE.. */
-        if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) &&
-            !has_ide && hdc_name != QStringLiteral("ide"))
-            continue;
-        if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && !has_scsi &&
-            (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
-            (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
-            continue;
-        if (zip_drives[i].bus_type != 0) {
-            d->zip[i].label = std::make_unique<QLabel>();
-            d->zip[i].setEmpty(QString(zip_drives[i].image_path).isEmpty());
-            d->zip[i].setActive(false);
-            sbar->addWidget(d->zip[i].label.get());
-        }
-    }
-    for (size_t i = 0; i < MO_NUM; i++) {
-        /* Could be Internal or External IDE.. */
-        if ((mo_drives[i].bus_type == MO_BUS_ATAPI) &&
-            !has_ide && hdc_name != QStringLiteral("ide"))
-            continue;
-        if ((mo_drives[i].bus_type == MO_BUS_SCSI) && !has_scsi &&
-            (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
-            (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
-            continue;
-        if (mo_drives[i].bus_type != 0) {
-            d->mo[i].label = std::make_unique<QLabel>();
-            d->mo[i].setEmpty(QString(mo_drives[i].image_path).isEmpty());
-            d->mo[i].setActive(false);
-            sbar->addWidget(d->mo[i].label.get());
-        }
-    }
-
     if ((has_mfm || hdc_name == QStringLiteral("st506")) && c_mfm > 0) {
         d->hdds[HDD_BUS_MFM].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_MFM].setActive(false);
@@ -352,12 +395,12 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         d->hdds[HDD_BUS_XTA].setActive(false);
         sbar->addWidget(d->hdds[HDD_BUS_XTA].label.get());
     }
-    if ((has_ide || hdc_name == QStringLiteral("xtide") || hdc_name == QStringLiteral("ide")) && c_ide > 0) {
+    if ((hasIDE() || hdc_name == QStringLiteral("xtide") || hdc_name == QStringLiteral("ide")) && c_ide > 0) {
         d->hdds[HDD_BUS_IDE].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_IDE].setActive(false);
         sbar->addWidget(d->hdds[HDD_BUS_IDE].label.get());
     }
-    if ((has_scsi || (scsi_card_current[0] != 0) || (scsi_card_current[1] != 0) ||
+    if ((hasSCSI() || (scsi_card_current[0] != 0) || (scsi_card_current[1] != 0) ||
          (scsi_card_current[2] != 0) || (scsi_card_current[3] != 0)) && c_scsi > 0) {
         d->hdds[HDD_BUS_SCSI].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_SCSI].setActive(false);
@@ -372,6 +415,8 @@ void MachineStatus::refresh(QStatusBar* sbar) {
     d->sound = std::make_unique<QLabel>();
     d->sound->setPixmap(d->pixmaps.sound);
     sbar->addWidget(d->sound.get());
+    d->text = std::make_unique<QLabel>();
+    sbar->addWidget(d->text.get());
 }
 
 void MachineStatus::setActivity(int tag, bool active) {
@@ -438,5 +483,9 @@ void MachineStatus::setEmpty(int tag, bool empty) {
     case SB_TEXT:
         break;
     }
+}
+
+void MachineStatus::message(const QString &msg) {
+    d->text->setText(msg);
 }
 

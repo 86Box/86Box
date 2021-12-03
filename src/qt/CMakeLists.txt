@@ -18,7 +18,8 @@ add_library(ui STATIC
     qt_mainwindow.ui
     qt_machinestatus.cpp
     qt_machinestatus.hpp
-    #qt_machinestatus.ui
+    qt_mediamenu.cpp
+    qt_mediamenu.hpp
     qt_gleswidget.cpp
     qt_gleswidget.hpp
 
@@ -67,6 +68,9 @@ add_library(ui STATIC
     qt_filefield.cpp
     qt_filefield.hpp
     qt_filefield.ui
+    qt_newfloppydialog.cpp
+    qt_newfloppydialog.hpp
+    qt_newfloppydialog.ui
     qt_harddiskdialog.cpp
     qt_harddiskdialog.hpp
     qt_harddiskdialog.ui

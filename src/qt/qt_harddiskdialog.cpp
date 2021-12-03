@@ -337,7 +337,7 @@ void HarddiskDialog::onCreateNewFile() {
             _86box_geometry = create_drive_vhd_dynamic(fileName, cylinders_, heads_, sectors_, block_size);
             break;
         case 5:
-            QString vhdParent = QFileDialog::getOpenFileName(this, "Select the parent VHD", QString(), "VHD files (*.vhd);;All files (*.*)");
+            QString vhdParent = QFileDialog::getOpenFileName(this, "Select the parent VHD", QString(), "VHD files (*.vhd);;All files (*)");
             if (vhdParent.isEmpty()) {
                 return;
             }

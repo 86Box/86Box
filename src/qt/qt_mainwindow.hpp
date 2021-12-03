@@ -5,6 +5,10 @@
 #include <QLabel>
 #include <QEvent>
 
+#include <memory>
+
+class MediaMenu;
+
 namespace Ui {
 class MainWindow;
 }
@@ -27,6 +31,7 @@ signals:
     void paint(const QImage& image);
     void resizeContents(int w, int h);
     void pollMouse();
+    void statusBarMessage(const QString& msg);
     void updateStatusBarPanes();
     void updateStatusBarActivity(int tag, bool active);
     void updateStatusBarEmpty(int tag, bool empty);
@@ -48,6 +53,7 @@ private slots:
     void on_actionRight_CTRL_is_left_ALT_triggered();
     void on_actionKeyboard_requires_capture_triggered();
 
+    void refreshMediaMenu();
     void showMessage_(const QString& header, const QString& message);
     void setTitle_(const wchar_t* title);
     void getTitle_(wchar_t* title);
@@ -57,6 +63,7 @@ protected:
 private:
     Ui::MainWindow *ui;
     std::unique_ptr<MachineStatus> status;
+    std::shared_ptr<MediaMenu> mm;
 };
 
 #endif // QT_MAINWINDOW_HPP

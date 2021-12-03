@@ -24,6 +24,7 @@ extern "C" {
 #include "qt_settings.hpp"
 #include "qt_gleswidget.hpp"
 #include "qt_machinestatus.hpp"
+#include "qt_mediamenu.hpp"
 
 #ifdef __unix__
 #include <X11/Xlib.h>
@@ -40,6 +41,8 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     Q_INIT_RESOURCE(qt_resources);
     status = std::make_unique<MachineStatus>(this);
+    mm = std::make_shared<MediaMenu>(this);
+    MediaMenu::ptr = mm;
 
     ui->setupUi(this);
     video_setblit(qt_blit);
@@ -84,12 +87,10 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::updateStatusBarPanes, this, [this] {
         status->refresh(ui->statusbar);
     });
-    connect(this, &MainWindow::updateStatusBarActivity, this, [this](int i, bool b) {
-        status->setActivity(i, b);
-    });
-    connect(this, &MainWindow::updateStatusBarEmpty, this, [this](int i, bool b) {
-        status->setEmpty(i, b);
-    });
+    connect(this, &MainWindow::updateStatusBarPanes, this, &MainWindow::refreshMediaMenu);
+    connect(this, &MainWindow::updateStatusBarActivity, status.get(), &MachineStatus::setActivity);
+    connect(this, &MainWindow::updateStatusBarEmpty, status.get(), &MachineStatus::setEmpty);
+    connect(this, &MainWindow::statusBarMessage, status.get(), &MachineStatus::message);
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
     ui->actionRight_CTRL_is_left_ALT->setChecked(rctrl_is_lalt);
@@ -682,6 +683,10 @@ void MainWindow::getTitle(wchar_t *title)
     } else {
         emit getTitleForNonQtThread(title);
     }
+}
+
+void MainWindow::refreshMediaMenu() {
+    mm->refresh(ui->menuMedia);
 }
 
 void MainWindow::showMessage(const QString& header, const QString& message) {
