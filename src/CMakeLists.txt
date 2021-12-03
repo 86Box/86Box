@@ -36,7 +36,12 @@ endif()
 # MACOSX_BUNDLE prepares a macOS application bundle including with the app icon
 add_executable(86Box WIN32 MACOSX_BUNDLE 86box.c config.c log.c random.c timer.c io.c acpi.c apm.c
 	dma.c ddma.c nmi.c pic.c pit.c port_6x.c port_92.c ppi.c pci.c mca.c usb.c
-	device.c nvr.c nvr_at.c nvr_ps2.c ${APP_ICON_MACOSX})
+	device.c nvr.c nvr_at.c nvr_ps2.c rtmidi_midi.cpp ${APP_ICON_MACOSX})
+
+find_package(RTMIDI REQUIRED)
+target_include_directories(86Box ${RTMIDI_INCLUDE_DIRS})
+target_link_directories(86Box INTERFACE ${RTMIDI_LIBRARY_DIRS})
+target_link_libraries(86Box ${RTMIDI_LIBRARY_DIRS})
 
 if(APPLE)
 	target_link_libraries(86Box "-framework AppKit")
