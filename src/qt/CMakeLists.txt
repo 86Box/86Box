@@ -119,6 +119,7 @@ endif()
 if (UNIX AND NOT APPLE)
     find_package(X11 REQUIRED)
     target_link_libraries(ui PRIVATE X11::X11)
+
     find_package(ECM NO_MODULE)
     if (ECM_FOUND)
         list(APPEND CMAKE_MODULE_PATH ${ECM_MODULE_PATH})
