@@ -1,5 +1,4 @@
 #include <mutex>
-#include <atomic>
 #include <thread>
 #include <condition_variable>
 
@@ -9,7 +8,7 @@ struct event_cpp11_t
 {
     std::condition_variable cond;
     std::mutex mutex;
-    std::atomic_bool state = false;
+    bool state = false;
 };
 
 extern "C" {
@@ -89,7 +88,7 @@ thread_wait_event(event_t *handle, int timeout)
     auto lock = std::unique_lock<std::mutex>(event->mutex);
 
     if (timeout < 0) {
-        event->cond.wait(lock, [=] { return event->state.load(); });
+        event->cond.wait(lock, [event] { return event->state; });
     } else {
         auto to = std::chrono::system_clock::now() + std::chrono::milliseconds(timeout);
         std::cv_status status;
@@ -109,7 +108,10 @@ void
 thread_set_event(event_t *handle)
 {
     auto event = reinterpret_cast<event_cpp11_t*>(handle);
-    event->state = true;
+    {
+        auto lock = std::unique_lock<std::mutex>(event->mutex);
+        event->state = true;
+    }
     event->cond.notify_all();
 }
 
@@ -117,6 +119,7 @@ void
 thread_reset_event(event_t *handle)
 {
     auto event = reinterpret_cast<event_cpp11_t*>(handle);
+    auto lock = std::unique_lock<std::mutex>(event->mutex);
     event->state = false;
 }
 
