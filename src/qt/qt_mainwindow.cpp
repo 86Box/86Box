@@ -46,7 +46,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->setupUi(this);
     video_setblit(qt_blit);
-    //ui->glesWidget->setMouseTracking(true);
+    ui->glesWidget->setMouseTracking(true);
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
