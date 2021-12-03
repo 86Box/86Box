@@ -54,6 +54,8 @@ if(WIN32)
 	add_compile_definitions(_WINSOCK_DEPRECATED_NO_WARNINGS)
 endif()
 
+set(CMAKE_CXX_STANDARD 11)
+
 option(RELEASE "Release build" OFF)
 option(USB "USB support" OFF)
 option(DYNAREC "Dynamic recompiler" ON)
