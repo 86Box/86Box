@@ -36,7 +36,7 @@ endif()
 # MACOSX_BUNDLE prepares a macOS application bundle including with the app icon
 add_executable(86Box WIN32 MACOSX_BUNDLE 86box.c config.c log.c random.c timer.c io.c acpi.c apm.c
 	dma.c ddma.c nmi.c pic.c pit.c port_6x.c port_92.c ppi.c pci.c mca.c usb.c
-	device.c nvr.c nvr_at.c nvr_ps2.c ${APP_ICON_MACOSX})
+	device.c nvr.c nvr_at.c nvr_ps2.c rtmidi_midi.cpp ${APP_ICON_MACOSX})
 
 if(APPLE)
 	target_link_libraries(86Box "-framework AppKit")
@@ -156,6 +156,20 @@ endif()
 find_package(PNG REQUIRED)
 include_directories(${PNG_INCLUDE_DIRS})
 target_link_libraries(86Box PNG::PNG)
+
+if(VCPKG_TOOLCHAIN)
+	# vcpkg includes a config file for rtmidi
+	find_package(RtMidi REQUIRED)
+	target_link_libraries(86Box RtMidi::rtmidi)
+else()
+	find_package(PkgConfig REQUIRED)
+	pkg_check_modules(RTMIDI REQUIRED IMPORTED_TARGET rtmidi)
+	target_link_libraries(86Box PkgConfig::RTMIDI)
+
+	if(WIN32)
+		target_link_libraries(PkgConfig::RTMIDI INTERFACE winmm)
+	endif()
+endif()
 
 configure_file(include/86box/version.h.in include/86box/version.h @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
