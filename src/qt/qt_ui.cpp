@@ -91,7 +91,7 @@ ui_sb_update_panes() {
 }
 
 void ui_sb_bugui(char *str) {
-    main_window->statusBar()->showMessage(str);
+    main_window->statusBarMessage(str);
 }
 
 void ui_sb_set_ready(int ready) {

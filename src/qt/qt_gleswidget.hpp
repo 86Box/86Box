@@ -7,7 +7,8 @@
 #include <QKeyEvent>
 
 #include <atomic>
-#include <qapplication.h>
+#include <mutex>
+#include <QApplication>
 
 #ifdef WAYLAND
 #include "wl_mouse.hpp"
@@ -19,6 +20,7 @@ class GLESWidget : public QOpenGLWidget, protected QOpenGLFunctions
 
 private:
     QImage m_image{QSize(2048 + 64, 2048 + 64), QImage::Format_RGB32};
+    std::mutex image_mx;
     int x, y, w, h, sx, sy, sw, sh;
     bool wayland = false;
 public:
@@ -58,7 +60,6 @@ signals:
 public slots:
 	void qt_real_blit(int x, int y, int w, int h);
     void qt_mouse_poll();
-    void reqUpdate_();
 
 private:
     struct mouseinputdata {
@@ -66,5 +67,4 @@ private:
         int mousebuttons;
     };
     mouseinputdata mousedata;
-    std::atomic<bool> firstupdate{false};
 };

@@ -60,20 +60,14 @@ void GLESWidget::resizeGL(int w, int h)
 void GLESWidget::initializeGL()
 {
     initializeOpenGLFunctions();
-    connect(this, &GLESWidget::reqUpdate, this, &GLESWidget::reqUpdate_);
+    connect(this, &GLESWidget::reqUpdate, this, static_cast<void (GLESWidget::*)()>(&GLESWidget::update));
 }
 
 void GLESWidget::paintGL()
 {
+    std::scoped_lock lock(image_mx);
     QPainter painter(this);
     painter.drawImage(QRect(0, 0, width(), height()), m_image.convertToFormat(QImage::Format_RGBX8888), QRect(sx, sy, sw, sh));
-    painter.end();
-    firstupdate = true;
-}
-
-void GLESWidget::reqUpdate_()
-{
-    update();
 }
 
 void GLESWidget::mouseReleaseEvent(QMouseEvent *event)
@@ -136,26 +130,28 @@ void GLESWidget::mouseMoveEvent(QMouseEvent *event)
 
 void GLESWidget::qt_real_blit(int x, int y, int w, int h)
 {
-    if ((w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || !firstupdate)
     {
+        std::scoped_lock lock(image_mx);
+        if ((w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL))
+        {
+            video_blit_complete();
+            return;
+        }
+        sx = x;
+        sy = y;
+        sw = this->w = w;
+        sh = this->h = h;
+        static auto imagebits = m_image.bits();
+        for (int y1 = y; y1 < (y + h - 1); y1++)
+        {
+            auto scanline = imagebits + (y1 * (2048 + 64) * 4);
+            video_copy(scanline + (x * 4), &(buffer32->line[y1][x]), w * 4);
+        }
+        if (screenshots)
+        {
+            video_screenshot((uint32_t *)imagebits, 0, 0, 2048 + 64);
+        }
         video_blit_complete();
-        return;
     }
-    sx = x;
-    sy = y;
-    sw = this->w = w;
-    sh = this->h = h;
-    static auto imagebits = m_image.bits();
-    for (int y1 = y; y1 < (y + h - 1); y1++)
-    {
-        auto scanline = imagebits + (y1 * (2048 + 64) * 4);
-        video_copy(scanline + (x * 4), &(buffer32->line[y1][x]), w * 4);
-    }
-    if (screenshots)
-    {
-        video_screenshot((uint32_t *)imagebits, 0, 0, 2048 + 64);
-    }
-    video_blit_complete();
-    firstupdate = false;
-    this->reqUpdate();
+    reqUpdate();
 }
