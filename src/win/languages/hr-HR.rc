@@ -552,7 +552,7 @@ BEGIN
     IDS_4111	"Slika diska već postoji"
     IDS_4112	"Molimte unesite važeći naziv datoteke."
     IDS_4113	"Slika je stvorena"
-    IDS_4114	"Provjerite je li postoji datoteka i je li je čitljiva."
+    IDS_4114	"Provjerite je li postoji datoteka i je li čitljiva."
     IDS_4115	"Provjerite je li se datoteka sprema u mapu s dopuštenjima za pisanje."
     IDS_4116	"Slika diska je prevelika"
     IDS_4117	"Ne zaboravite stvoriti particije i formatirati ih na novom disku."
