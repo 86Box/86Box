@@ -239,6 +239,12 @@ else
 		*)	arch_gnu="$arch-linux-gnu";;
 	esac
 
+	# Determine library directory name for this architecture.
+	case $arch in
+		x86)	libdir="i386-linux-gnu";;
+		*)	libdir="$arch_gnu";;
+	esac
+
 	# Create CMake toolchain file.
 	cat << EOF > toolchain.cmake
 set(CMAKE_SYSTEM_NAME Linux)
@@ -257,6 +263,9 @@ set(CMAKE_STRIP $arch_gnu-strip)
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+set(ENV{PKG_CONFIG_PATH} "")
+set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/$libdir/pkgconfig:/usr/share/$libdir/pkgconfig")
 EOF
 	cmake_flags_extra="$cmake_flags_extra -D CMAKE_TOOLCHAIN_FILE=toolchain.cmake"
 	strip_binary="$arch_gnu-strip"
