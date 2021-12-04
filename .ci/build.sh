@@ -214,7 +214,7 @@ else
 	esac
 
 	# Establish general and architecture-specific dependencies.
-	pkgs="cmake git tar xz-utils dpkg-dev rpm"
+	pkgs="cmake pkg-config git tar xz-utils dpkg-dev rpm"
 	if [ "$(dpkg --print-architecture)" = "$arch_deb" ]
 	then
 		pkgs="$pkgs build-essential"
