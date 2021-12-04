@@ -423,7 +423,7 @@ BEGIN
     IDS_2067	"Ulazni uređaji"
     IDS_2068	"Zvuk"
     IDS_2069	"Mreža"
-    IDS_2070	"Priključci (COM & LPT)"
+    IDS_2070	"Vrata (COM & LPT)"
     IDS_2071	"Kontroleri za diskove"
     IDS_2072	"Tvrdi diskovi"
     IDS_2073	"Floppy & CD-ROM pogoni"
