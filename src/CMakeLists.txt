@@ -164,8 +164,6 @@ if(VCPKG_TOOLCHAIN)
 else()
 	find_package(PkgConfig REQUIRED)
 	pkg_check_modules(RTMIDI REQUIRED IMPORTED_TARGET rtmidi)
-	if (NOT RTMIDI_FOUND)
-		pkg_check_modules(RTMIDI REQUIRED IMPORTED_TARGET librtmidi)
 	target_link_libraries(86Box PkgConfig::RTMIDI)
 
 	if(WIN32)
