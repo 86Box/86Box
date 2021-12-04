@@ -572,7 +572,7 @@ BEGIN
     IDS_4131	"Izaberi matičnu sliku VHD"
     IDS_4132	"To bi moglo značiti da je matična slika promijenjena nakon što je stvorena različita slika.\n\nTo se također može dogoditi ako su slike premještene ili kopirane, ili greška u programu koji je stvorio ovaj disk.\n\nŽelite li popraviti vremenske oznake?"
     IDS_4133	"Vremenske ozanke matične i poređenog diska ne odgovaraju."
-    IDS_4134	"Ne možem popraviti vremensku oznaku slike VHD."
+    IDS_4134	"Ne mogu popraviti vremensku oznaku slike VHD."
     IDS_4135	"%01i:%02i"
 
     IDS_4352    "MFM/RLL"
