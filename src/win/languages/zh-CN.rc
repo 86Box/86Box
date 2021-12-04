@@ -18,7 +18,7 @@ BEGIN
     POPUP "操作(&A)"
     BEGIN
         MENUITEM "键盘需要捕捉(&K)",	IDM_ACTION_KBD_REQ_CAPTURE
-        MENUITEM "右CTRL作为左ALT(&R)",	IDM_ACTION_RCTRL_IS_LALT
+        MENUITEM "将右 CTRL 键映射为左 ALT 键(&R)",	IDM_ACTION_RCTRL_IS_LALT
         MENUITEM SEPARATOR
         MENUITEM "硬重置(&H)...",                 IDM_ACTION_HRESET
         MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",     IDM_ACTION_RESET_CAD
@@ -33,8 +33,8 @@ BEGIN
     BEGIN
         MENUITEM "隐藏状态栏(&H)",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM SEPARATOR
-        MENUITEM "窗口可调整大小(&R)",          IDM_VID_RESIZE
-        MENUITEM "记住窗口大小和未知(&e)",  IDM_VID_REMEMBER
+        MENUITEM "窗口尺寸可调(&R)",          IDM_VID_RESIZE
+        MENUITEM "记忆窗口尺寸和位置(&e)",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
         POPUP "渲染器(&n)"
         BEGIN
@@ -48,7 +48,7 @@ BEGIN
         END
         MENUITEM SEPARATOR
         MENUITEM "指定窗口大小...",          IDM_VID_SPECIFY_DIM
-        MENUITEM "强制 4:3 显示比例(&o)",    IDM_VID_FORCE43
+        MENUITEM "强制以 4:3 显示画面(&o)",    IDM_VID_FORCE43
         POPUP "窗口缩放比例(&W)"
         BEGIN
             MENUITEM "&0.5x",                   IDM_VID_SCALE_1X
@@ -73,7 +73,7 @@ BEGIN
         END
         POPUP "E&GA/(S)VGA 设置"
         BEGIN
-            MENUITEM "反转 VGA 显示器(&I)",   IDM_VID_INVERT
+            MENUITEM "反色 VGA 显示器(&I)",   IDM_VID_INVERT
             POPUP "VGA 屏幕类型(&t)"
             BEGIN
                 MENUITEM "RGB 彩色(&C)",          IDM_VID_GRAY_RGB
@@ -399,7 +399,7 @@ STRINGTABLE DISCARDABLE
 BEGIN
     2048	"86Box"
     IDS_2049	"错误"
-    IDS_2050	"关键错误"
+    IDS_2050	"致命错误"
     IDS_2051	"<保留>"
     IDS_2052	"按 CTRL+ALT+PAGE DOWN 组合键返回窗口模式."
     IDS_2053	"速度"
@@ -411,7 +411,7 @@ BEGIN
     IDS_2059	"Turbo"
     IDS_2060	"开"
     IDS_2061	"关"
-    IDS_2062	"所以镜像 (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0基本扇区镜像 (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0表面镜像 (*.86F)\0*.86F\0"
+    IDS_2062	"所有镜像 (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0基本扇区镜像 (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0表面镜像 (*.86F)\0*.86F\0"
     IDS_2063	"由于 roms/machines 文件夹中缺少合适的ROM, ""%hs"" 机型不可用. 将切换到其他可用机型."
 END
 
@@ -453,10 +453,10 @@ BEGIN
     IDS_2093	"设置 PCap 失败"
     IDS_2094	"未找到 PCap 设备"
     IDS_2095	"无效 PCap 设备"
-    IDS_2096	"标准 2键操纵杆"
-    IDS_2097	"标准 4键操纵杆"
-    IDS_2098	"标准 6键操纵杆"
-    IDS_2099	"标准 8键操纵杆"
+    IDS_2096	"标准 2 键操纵杆"
+    IDS_2097	"标准 4 键操纵杆"
+    IDS_2098	"标准 6 键操纵杆"
+    IDS_2099	"标准 8 键操纵杆"
     IDS_2100	"CH Flightstick Pro"
     IDS_2101	"Microsoft SideWinder Pad"
     IDS_2102	"Thrustmaster Flight Control System"
@@ -513,7 +513,7 @@ BEGIN
 #endif
     IDS_2133	"FluidSynth MIDI 输出需要" LIB_NAME_FLUIDSYNTH 
     IDS_2134	"即将进入全屏模式"
-    IDS_2135	"请勿在显示此提示"
+    IDS_2135	"请勿再显示此提示"
     IDS_2136	"不退出"
     IDS_2137	"重置"
     IDS_2138	"不重置"
@@ -537,7 +537,7 @@ BEGIN
     IDS_4096    "硬盘 (%s)"
     IDS_4097	"%01i:%01i"
     IDS_4098	"%01i"
-    IDS_4099	"没有 MFM/RLL 或 ESDI CD-ROM 驱动器"
+    IDS_4099	"历史上没有出现过 MFM/RLL 或 ESDI CD-ROM 驱动器"
     IDS_4100	"自定义..."
     IDS_4101	"自定义 (large)..."
     IDS_4102	"添加新硬盘"
@@ -548,7 +548,7 @@ BEGIN
     IDS_4107	"无法读取文件"
     IDS_4108	"无法写入文件"
     IDS_4109	"不支持非 512 字节扇区的 HDI 或 HDX 镜像."
-    IDS_4110	"USB 目前还不支持"
+    IDS_4110	"尚不支持 USB"
     IDS_4111	"磁盘镜像文件已存在"
     IDS_4112	"请指定有效的文件名."
     IDS_4113	"磁盘镜像创建完成"
@@ -572,7 +572,7 @@ BEGIN
     IDS_4131	"选择父 VHD 文件"
     IDS_4132	"这可能因为在创建差异镜像后修改了父映像. \n\n如果镜像文件被移动或复制, 或由于创建此磁盘的程序中的错误, 也可能发生这种情况. \n\n是否需要修复时间戳?"
     IDS_4133	"父盘与子盘的时间戳不匹配."
-    IDS_4134	"无法固定 VHD 时间戳."
+    IDS_4134	"无法修复 VHD 时间戳."
     IDS_4135	"%01i:%02i"
 
     IDS_4352    "MFM/RLL"
@@ -624,10 +624,10 @@ BEGIN
     IDS_5910	"5.25"" 1Gb M.O."
     IDS_5911	"5.25"" 1.3Gb M.O."
 
-    IDS_6144	"完美转速(RPM)"
-    IDS_6145	"低于完美转速 1%%"
-    IDS_6146	"低于完美转速 1.5%%"
-    IDS_6147	"低于完美转速 2%%"
+    IDS_6144	"标准转速(RPM)"
+    IDS_6145	"低于标准转速 1%%"
+    IDS_6146	"低于标准转速 1.5%%"
+    IDS_6147	"低于标准转速 2%%"
 
     IDS_7168	"(系统默认)"
 END
