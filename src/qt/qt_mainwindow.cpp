@@ -22,7 +22,6 @@ extern "C" {
 #include <array>
 
 #include "qt_settings.hpp"
-#include "qt_gleswidget.hpp"
 #include "qt_machinestatus.hpp"
 #include "qt_mediamenu.hpp"
 
@@ -31,7 +30,6 @@ extern "C" {
 #include <X11/keysym.h>
 #endif
 
-extern void qt_mouse_poll();
 extern void qt_mouse_capture(int);
 extern "C" void qt_blit(int x, int y, int w, int h);
 
@@ -45,28 +43,29 @@ MainWindow::MainWindow(QWidget *parent) :
     MediaMenu::ptr = mm;
 
     ui->setupUi(this);
-    video_setblit(qt_blit);
-    ui->glesWidget->setMouseTracking(true);
+    ui->stackedWidget->setMouseTracking(true);
+    ui->ogl->setRenderType(HardwareRenderer::RenderType::OpenGL);
+    ui->gles->setRenderType(HardwareRenderer::RenderType::OpenGLES);
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
     connect(this, &MainWindow::setTitleForNonQtThread, this, &MainWindow::setTitle_, Qt::BlockingQueuedConnection);
     connect(this, &MainWindow::getTitleForNonQtThread, this, &MainWindow::getTitle_, Qt::BlockingQueuedConnection);
 
-    connect(this, &MainWindow::pollMouse, ui->glesWidget, &GLESWidget::qt_mouse_poll);
+    connect(this, &MainWindow::pollMouse, ui->stackedWidget, &RendererStack::mousePoll);
 
     connect(this, &MainWindow::setMouseCapture, this, [this](bool state) {
         mouse_capture = state ? 1 : 0;
         qt_mouse_capture(mouse_capture);
         if (mouse_capture) {
-            ui->glesWidget->grabMouse();
+            ui->stackedWidget->grabMouse();
 #ifdef WAYLAND
             if (QGuiApplication::platformName().contains("wayland")) {
                 wl_mouse_capture(this->windowHandle());
             }
 #endif
         } else {
-            ui->glesWidget->releaseMouse();
+            ui->stackedWidget->releaseMouse();
 #ifdef WAYLAND
             if (QGuiApplication::platformName().contains("wayland")) {
                 wl_mouse_uncapture();
@@ -76,7 +75,7 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
-        ui->glesWidget->resize(w, h);
+        ui->stackedWidget->resize(w, h);
         resize(w, h + menuBar()->height() + statusBar()->height());
     });
 
@@ -94,12 +93,11 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
     ui->actionRight_CTRL_is_left_ALT->setChecked(rctrl_is_lalt);
+
+    video_setblit(qt_blit);
 }
 
 MainWindow::~MainWindow() {
-    //sdl_close();
-    startblit();
-    //delete hw_widget;
     delete ui;
 }
 
@@ -721,7 +719,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
 
 void MainWindow::blitToWidget(int x, int y, int w, int h)
 {
-    ui->glesWidget->qt_real_blit(x, y, w, h);
+    ui->stackedWidget->blit(x, y, w, h);
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent* event)
@@ -731,4 +729,16 @@ void MainWindow::keyReleaseEvent(QKeyEvent* event)
 #else
     keyboard_input(0, x11_keycode_to_keysym(event->nativeScanCode()));
 #endif
+}
+
+void MainWindow::on_actionSoftware_Renderer_triggered() {
+    ui->stackedWidget->setCurrentIndex(0);
+}
+
+void MainWindow::on_actionHardware_Renderer_OpenGL_triggered() {
+    ui->stackedWidget->setCurrentIndex(1);
+}
+
+void MainWindow::on_actionHardware_Renderer_OpenGL_ES_triggered() {
+    ui->stackedWidget->setCurrentIndex(2);
 }

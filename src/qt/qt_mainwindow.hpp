@@ -52,6 +52,9 @@ private slots:
     void on_actionHard_Reset_triggered();
     void on_actionRight_CTRL_is_left_ALT_triggered();
     void on_actionKeyboard_requires_capture_triggered();
+    void on_actionHardware_Renderer_OpenGL_ES_triggered();
+    void on_actionHardware_Renderer_OpenGL_triggered();
+    void on_actionSoftware_Renderer_triggered();
 
     void refreshMediaMenu();
     void showMessage_(const QString& header, const QString& message);
@@ -60,6 +63,7 @@ private slots:
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;
+
 private:
     Ui::MainWindow *ui;
     std::unique_ptr<MachineStatus> status;
