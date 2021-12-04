@@ -18,7 +18,9 @@ cmake_minimum_required(VERSION 3.15)
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
 
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+if(VCPKG_TOOLCHAIN AND VCPKG_TARGET_TRIPLET MATCHES "static")
+	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
 
 project(PCBox
 	VERSION 3.1
@@ -51,6 +53,8 @@ if(WIN32)
 	# Disables WinSock deprecation warnings
 	add_compile_definitions(_WINSOCK_DEPRECATED_NO_WARNINGS)
 endif()
+
+set(CMAKE_CXX_STANDARD 11)
 
 option(RELEASE "Release build" OFF)
 option(USB "USB support" OFF)

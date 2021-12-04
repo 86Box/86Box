@@ -36,7 +36,7 @@ endif()
 # MACOSX_BUNDLE prepares a macOS application bundle including with the app icon
 add_executable(86Box WIN32 MACOSX_BUNDLE 86box.c config.c log.c random.c timer.c io.c acpi.c apm.c
 	dma.c ddma.c nmi.c pic.c pit.c port_6x.c port_92.c ppi.c pci.c mca.c usb.c
-	device.c nvr.c nvr_at.c nvr_ps2.c ${APP_ICON_MACOSX})
+	device.c nvr.c nvr_at.c nvr_ps2.c rtmidi_midi.cpp ${APP_ICON_MACOSX})
 
 if(APPLE)
 	target_link_libraries(86Box "-framework AppKit")
@@ -114,9 +114,9 @@ if(APPLE)
   set_target_properties(86Box PROPERTIES MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_SOURCE_DIR}/mac/Info.plist.in)
   set(MACOSX_BUNDLE_GUI_IDENTIFIER net.86Box.86Box)
   set(MACOSX_BUNDLE_BUNDLE_NAME 86Box)
-  set(MACOSX_BUNDLE_BUNDLE_VERSION 3.0.${EMU_BUILD_NUM})
-  set(MACOSX_BUNDLE_SHORT_VERSION_STRING "3.0.${EMU_BUILD_NUM}")
-  set(MACOSX_BUNDLE_LONG_VERSION_STRING "3.0.${EMU_BUILD_NUM}")
+  set(MACOSX_BUNDLE_BUNDLE_VERSION 3.1.${EMU_BUILD_NUM})
+  set(MACOSX_BUNDLE_SHORT_VERSION_STRING "3.1.${EMU_BUILD_NUM}")
+  set(MACOSX_BUNDLE_LONG_VERSION_STRING "3.1.${EMU_BUILD_NUM}")
   set(MACOSX_BUNDLE_ICON_FILE 86Box.icns)
   set(MACOSX_BUNDLE_INFO_STRING "A emulator of old computers")
   set(MACOSX_BUNDLE_COPYRIGHT "© 2007-${EMU_COPYRIGHT_YEAR} 86Box contributors")
@@ -156,6 +156,20 @@ endif()
 find_package(PNG REQUIRED)
 include_directories(${PNG_INCLUDE_DIRS})
 target_link_libraries(86Box PNG::PNG)
+
+if(VCPKG_TOOLCHAIN)
+	# vcpkg includes a config file for rtmidi
+	find_package(RtMidi REQUIRED)
+	target_link_libraries(86Box RtMidi::rtmidi)
+else()
+	find_package(PkgConfig REQUIRED)
+	pkg_check_modules(RTMIDI REQUIRED IMPORTED_TARGET rtmidi)
+	target_link_libraries(86Box PkgConfig::RTMIDI)
+
+	if(WIN32)
+		target_link_libraries(PkgConfig::RTMIDI INTERFACE winmm)
+	endif()
+endif()
 
 configure_file(include/86box/version.h.in include/86box/version.h @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)

@@ -115,25 +115,25 @@ BEGIN
     POPUP "&Beleženje"
     BEGIN
 # ifdef ENABLE_BUSLOGIC_LOG
-        MENUITEM "Omogoči beležnje za BusLogic\tCtrl+F4", IDM_LOG_BUSLOGIC
+        MENUITEM "Omogoči beleženje za BusLogic\tCtrl+F4", IDM_LOG_BUSLOGIC
 # endif
 # ifdef ENABLE_CDROM_LOG
-        MENUITEM "Omogoči beležnje za CD-ROM\tCtrl+F5", IDM_LOG_CDROM
+        MENUITEM "Omogoči beleženje za CD-ROM\tCtrl+F5", IDM_LOG_CDROM
 # endif
 # ifdef ENABLE_D86F_LOG
-        MENUITEM "Omogoči beležnje za diskete (86F)\tCtrl+F6", IDM_LOG_D86F
+        MENUITEM "Omogoči beleženje za diskete (86F)\tCtrl+F6", IDM_LOG_D86F
 # endif
 # ifdef ENABLE_FDC_LOG
-        MENUITEM "Omogoči beležnje za disketni krmilnik\tCtrl+F7", IDM_LOG_FDC
+        MENUITEM "Omogoči beleženje za disketni krmilnik\tCtrl+F7", IDM_LOG_FDC
 # endif
 # ifdef ENABLE_IDE_LOG
-        MENUITEM "Omogoči beležnje za IDE\tCtrl+F8", IDM_LOG_IDE
+        MENUITEM "Omogoči beleženje za IDE\tCtrl+F8", IDM_LOG_IDE
 # endif
 # ifdef ENABLE_SERIAL_LOG
-        MENUITEM "Omogoči beležnje za serijska vrata\tCtrl+F3", IDM_LOG_SERIAL
+        MENUITEM "Omogoči beleženje za serijska vrata\tCtrl+F3", IDM_LOG_SERIAL
 # endif
 # ifdef ENABLE_NIC_LOG
-        MENUITEM "Omogoči beležnje za omrežje\tCtrl+F9", IDM_LOG_NIC
+        MENUITEM "Omogoči beleženje za omrežje\tCtrl+F9", IDM_LOG_NIC
 # endif
 # ifdef ENABLE_LOG_COMMANDS
 #  ifdef ENABLE_LOG_TOGGLES
@@ -369,7 +369,7 @@ END
 
 #define STR_FLOPPY_DRIVES	"Disketni pogoni:"
 #define STR_TURBO		"Turbo časovniki"
-#define STR_CHECKBPB		"Preveri BPB"
+#define STR_CHECKBPB		"Preverjaj BPB"
 #define STR_CDROM_DRIVES	"Pogoni CD-ROM:"
 
 #define STR_MO_DRIVES		"Magnetno-optični pogoni:"
@@ -462,7 +462,7 @@ BEGIN
     IDS_2102	"Thrustmaster Flight Control System"
     IDS_2103	"Brez"
     IDS_2104	"Ne morem naložiti pospeševalnikov tipkovnice."
-    IDS_2105	"Ne morem registrirati surovega vnosa."
+    IDS_2105	"Ne morem registrirati neobdelanega vnosa."
     IDS_2106	"%u"
     IDS_2107	"%u MB (CHS: %i, %i, %i)"
     IDS_2108	"Disketa %i (%s): %ls"
@@ -492,7 +492,7 @@ BEGIN
 #else
 #define LIB_NAME_PCAP "libpcap"
 #endif
-    IDS_2129	"Prepičajte se, da je nameščen " LIB_NAME_PCAP " in da ste na omrežni povezavi, ki je združljiva z " LIB_NAME_PCAP
+    IDS_2129	"Prepičajte se, da je nameščen " LIB_NAME_PCAP " in da ste na omrežni povezavi, združljivi z " LIB_NAME_PCAP
     IDS_2130	"Neveljavna konfiguracija"
 #ifdef _WIN32
 #define LIB_NAME_FREETYPE "freetype.dll"
@@ -572,7 +572,7 @@ BEGIN
     IDS_4131	"Izberite starševsko sliko VHD"
     IDS_4132	"To lahko pomeni, da je bila starševska slika spremenjena potem, ko je že bila ustvarjena diferencialna slika.\n\nDo tega lahko pride tudi kadar so datoteke slik diska premaknjene ali kopirane, ali pa gre za hrošča v programu, ki je ustvaril ta disk.\n\nŽelite popraviti časovni žig?"
     IDS_4133	"Časovna žiga starševske slike diska in slike diska otroka se ne ujemata"
-    IDS_4134	"Ne morem popraviti časovnega žiga VHD."
+    IDS_4134	"Ne morem popraviti časovnega žiga slike VHD."
     IDS_4135	"%01i:%02i"
 
     IDS_4352    "MFM/RLL"

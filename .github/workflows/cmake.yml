@@ -71,7 +71,7 @@ jobs:
           ${{ matrix.environment.prefix }}-zlib
           ${{ matrix.environment.prefix }}-libpng
           ${{ matrix.environment.prefix }}-libvncserver
-          ${{ matrix.environment.prefix }}-winpthreads
+          ${{ matrix.environment.prefix }}-rtmidi
     - uses: actions/checkout@v2
     - name: Configure CMake
       run: >-
@@ -152,7 +152,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: sudo apt update && sudo apt install gcc-11 g++-11 libfreetype-dev libsdl2-dev libpng-dev libopenal-dev libc6-dev
+        run: sudo apt update && sudo apt install gcc-11 g++-11 libfreetype-dev libsdl2-dev libpng-dev libopenal-dev libc6-dev librtmidi-dev
       - name: Configure CMake
         run: >-
           cmake -S . -B build
@@ -185,7 +185,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Install dependencies
-        run: brew install freetype sdl2 libpng openal-soft
+        run: brew install freetype sdl2 libpng openal-soft rtmidi
       - name: Configure CMake
         run: >-
           cmake -S . -B build
