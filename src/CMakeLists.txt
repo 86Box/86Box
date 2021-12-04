@@ -166,6 +166,7 @@ else()
 	pkg_check_modules(RTMIDI REQUIRED IMPORTED_TARGET rtmidi)
 	if (NOT RTMIDI_FOUND)
 		pkg_check_modules(RTMIDI REQUIRED IMPORTED_TARGET librtmidi)
+	endif()
 	target_link_libraries(86Box PkgConfig::RTMIDI)
 
 	if(WIN32)
