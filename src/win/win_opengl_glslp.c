@@ -43,7 +43,7 @@
  /**
   * @brief Default vertex shader.
  */
-static const GLchar* vertex_shader = "#version 330 core\n\
+static const GLchar* vertex_shader = "#version 130\n\
 in vec2 VertexCoord;\n\
 in vec2 TexCoord;\n\
 out vec2 tex;\n\
@@ -55,7 +55,7 @@ void main(){\n\
 /**
  * @brief Default fragment shader.
  */
-static const GLchar* fragment_shader = "#version 330 core\n\
+static const GLchar* fragment_shader = "#version 130\n\
 in vec2 tex;\n\
 uniform sampler2D texsampler;\n\
 out vec4 color;\n\
@@ -173,8 +173,8 @@ GLuint load_custom_shaders(const char* path)
 	{
 		int success = 1;
 
-		const char* vertex_sources[2] = { "#version 330 core\n#define VERTEX\n", shader };
-		const char* fragment_sources[2] = { "#version 330 core\n#define FRAGMENT\n", shader };
+		const char* vertex_sources[2] = { "#version 130\n#define VERTEX\n", shader };
+		const char* fragment_sources[2] = { "#version 130\n#define FRAGMENT\n", shader };
 
 		GLuint vertex_id = glCreateShader(GL_VERTEX_SHADER);
 		GLuint fragment_id = glCreateShader(GL_FRAGMENT_SHADER);
