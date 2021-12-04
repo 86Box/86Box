@@ -411,7 +411,7 @@ BEGIN
     IDS_2059	"Turbo"
     IDS_2060	"Uključeno"
     IDS_2061	"Isključeno"
-    IDS_2062	"Sve slike (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0BOsnovne sektorske slike (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Površne slike (*.86F)\0*.86F\0"
+    IDS_2062	"Sve slike (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0BOsnovne sektorske slike (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Površinske slike (*.86F)\0*.86F\0"
     IDS_2063	"Sistem ""%hs"" nije dostupan jer ne postoje potrebni ROM-ovi u mapu roms/machines. Prebacivanje na dostupno računalo."
 END
 
@@ -429,7 +429,7 @@ BEGIN
     IDS_2073	"Floppy & CD-ROM pogoni"
     IDS_2074	"Ostali uklonjivi uređaji"
     IDS_2075	"Ostali periferni uređaji"
-    IDS_2076	"Površne slike (*.86F)\0*.86F\0"
+    IDS_2076	"Površinske slike (*.86F)\0*.86F\0"
     IDS_2077	"Kliknite da uhvatite miš"
     IDS_2078	"Pritisnite F8+F12 za otpustanje miša"
     IDS_2079	"Pritisnite F8+F12 ili srednji gumb miša za otpuštanje miša"
@@ -466,7 +466,7 @@ BEGIN
     IDS_2106	"%u"
     IDS_2107	"%u MB (CHS: %i, %i, %i)"
     IDS_2108	"Disketa %i (%s): %ls"
-    IDS_2109	"Sve slike (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Napredne sektorske slike (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Osnovne sektorske slike (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux slike (*.FDI)\0*.FDI\0Površne slike (*.86F;*.MFM)\0*.86F;*.MFM\0Sve datoteke (*.*)\0*.*\0"
+    IDS_2109	"Sve slike (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Napredne sektorske slike (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Osnovne sektorske slike (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux slike (*.FDI)\0*.FDI\0Površinske slike (*.86F;*.MFM)\0*.86F;*.MFM\0Sve datoteke (*.*)\0*.*\0"
     IDS_2110	"Nije moguće inicijalizirati FreeType"
     IDS_2111	"Nije moguće inicijalizirati SDL, SDL2.dll je potrebno"
     IDS_2112	"Jeste li sigurni da želite hard resetirati emulirani sistem?"
