@@ -15,26 +15,26 @@ LANGUAGE LANG_CROATIAN, SUBLANG_DEFAULT
 
 MainMenu MENU DISCARDABLE 
 BEGIN
-    POPUP "&Akcija"
+    POPUP "&Radnje"
     BEGIN
-        MENUITEM "&Tipkovnica zahtijeva snimanje miša",	IDM_ACTION_KBD_REQ_CAPTURE
+        MENUITEM "&Tipkovnica zahtijeva hvatanje miša",	IDM_ACTION_KBD_REQ_CAPTURE
         MENUITEM "&Desni CTRL je lijevi ALT",	IDM_ACTION_RCTRL_IS_LALT
         MENUITEM SEPARATOR
-        MENUITEM "&Hard Reset...",                 IDM_ACTION_HRESET
+        MENUITEM "&Ponovno pokretanje...",                 IDM_ACTION_HRESET
         MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",     IDM_ACTION_RESET_CAD
         MENUITEM SEPARATOR
 	MENUITEM "Ctrl+Alt+&Esc",		IDM_ACTION_CTRL_ALT_ESC
         MENUITEM SEPARATOR
         MENUITEM "&Pauza",                      IDM_ACTION_PAUSE
         MENUITEM SEPARATOR
-        MENUITEM "&Izlaz...",                       IDM_ACTION_EXIT
+        MENUITEM "Iz&laz...",                       IDM_ACTION_EXIT
     END
     POPUP "&Pogled"
     BEGIN
-        MENUITEM "&Sakrij statusnu traku",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "&Sakrij statusni redak",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM SEPARATOR
         MENUITEM "&Prozor s promjenjivim veličinama",          IDM_VID_RESIZE
-        MENUITEM "&Zapamtite veličinu && poziciju",  IDM_VID_REMEMBER
+        MENUITEM "&Zapamtite veličinu i položaj",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
         POPUP "&Renderer"
         BEGIN
@@ -47,9 +47,9 @@ BEGIN
 #endif
         END
         MENUITEM SEPARATOR
-        MENUITEM "Odrediti dimenzije...",          IDM_VID_SPECIFY_DIM
+        MENUITEM "Odrediti veličinu...",          IDM_VID_SPECIFY_DIM
         MENUITEM "&4:3 omjer prikaza",    IDM_VID_FORCE43
-        POPUP "&Faktor skaliranje prozora"
+        POPUP "&Faktor skaliranja prozora"
         BEGIN
             MENUITEM "&0,5x",                   IDM_VID_SCALE_1X
             MENUITEM "&1x",                     IDM_VID_SCALE_2X
@@ -58,92 +58,92 @@ BEGIN
         END
         POPUP "Metoda filtriranja"
         BEGIN
-            MENUITEM "&Nearest",                 IDM_VID_FILTER_NEAREST
-            MENUITEM "&Linear",                  IDM_VID_FILTER_LINEAR
+            MENUITEM "&Najbliža",                 IDM_VID_FILTER_NEAREST
+            MENUITEM "&Linearna",                  IDM_VID_FILTER_LINEAR
         END
         MENUITEM "&HiDPI skaliranje",              IDM_VID_HIDPI
         MENUITEM SEPARATOR
-        MENUITEM "&Cijelozaslonki način\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
-        POPUP "&Način rastezanja preko cijelog zaslona"
+        MENUITEM "&Cijelozaslonski način\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        POPUP "&Način cijelozaslonskog rastezanja"
         BEGIN
-            MENUITEM "&Razvlačenje preko cijelog zaslona",        IDM_VID_FS_FULL
+            MENUITEM "&Razvuci na cijeli zaslona",        IDM_VID_FS_FULL
             MENUITEM "&4:3",                        IDM_VID_FS_43
             MENUITEM "&Kvadratni pikseli (zadrži omjer)", IDM_VID_FS_KEEPRATIO
-            MENUITEM "&Integer skaliranje",              IDM_VID_FS_INT
+            MENUITEM "&Cijelobrojno skaliranje",              IDM_VID_FS_INT
         END
         POPUP "E&GA/(S)VGA postavke"
         BEGIN
-            MENUITEM "&Invertirani VGA monitor",   IDM_VID_INVERT
-            POPUP "&Tip VGA monitora"
+            MENUITEM "&Obrni boje zaslona VGA",   IDM_VID_INVERT
+            POPUP "&Tip zaslona VGA"
             BEGIN
-                MENUITEM "RGB &Boja",          IDM_VID_GRAY_RGB
-                MENUITEM "&RGB s sivih tonova",      IDM_VID_GRAY_MONO
-                MENUITEM "&Jantarni monitor",      IDM_VID_GRAY_AMBER
-                MENUITEM "&Zeleni monitor",      IDM_VID_GRAY_GREEN
-                MENUITEM "&Bijeli monitor",      IDM_VID_GRAY_WHITE
+                MENUITEM "RGB u &boji",          IDM_VID_GRAY_RGB
+                MENUITEM "&RGB u nijansama sive boje",      IDM_VID_GRAY_MONO
+                MENUITEM "&Jantarni zaslon",      IDM_VID_GRAY_AMBER
+                MENUITEM "&Zeleni zaslon",      IDM_VID_GRAY_GREEN
+                MENUITEM "&Bijeli zaslon",      IDM_VID_GRAY_WHITE
             END
-            POPUP "&Vrsta konverzije sivih tonova"
+            POPUP "&Vrsta konverzije nijansa sive boje"
             BEGIN
                 MENUITEM "BT&601 (NTSC/PAL)",   IDM_VID_GRAYCT_601
                 MENUITEM "BT&709 (HDTV)",       IDM_VID_GRAYCT_709
-                MENUITEM "&Prosječno",            IDM_VID_GRAYCT_AVE
+                MENUITEM "&Prosjek",            IDM_VID_GRAYCT_AVE
             END
         END
         MENUITEM SEPARATOR
-        MENUITEM "CGA/PCjr/Tandy/E&GA/(S)VGA overscan",     IDM_VID_OVERSCAN
-        MENUITEM "Promjena kontrasta za &monokromatski ekran", IDM_VID_CGACON
+        MENUITEM "&Višak slike CGA/PCjr/Tandy/EGA/(S)VGA",     IDM_VID_OVERSCAN
+        MENUITEM "&Promjeni kontrast za crno-bijeli zaslon", IDM_VID_CGACON
     END
     MENUITEM "&Mediji",				IDM_MEDIA
     POPUP "&Alati"
     BEGIN
         MENUITEM "&Opcije...",                IDM_CONFIG
-        MENUITEM "&Ažuriranje ikone statusne trake",	IDM_UPDATE_ICONS
+        MENUITEM "&Ažuriraj ikone statusnog redka",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
-        MENUITEM "Napravite &snimku zaslona\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM "Napravi &snimku zaslona\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
         MENUITEM "&Postavke...",    IDM_PREFERENCES
-        MENUITEM "Omogući integraciju &Discord-a", IDM_DISCORD
+        MENUITEM "Omogući integraciju sa programom &Discord", IDM_DISCORD
         MENUITEM SEPARATOR
         MENUITEM "&Pojačanje zvuka...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
         MENUITEM SEPARATOR
-        MENUITEM "Započni tracing\tCtrl+T",         IDM_ACTION_BEGIN_TRACE
-        MENUITEM "Prestani tracing\tCtrl+T",           IDM_ACTION_END_TRACE
+        MENUITEM "Z&apočni praćenje\tCtrl+T",         IDM_ACTION_BEGIN_TRACE
+        MENUITEM "&Svrši praćenje\tCtrl+T",           IDM_ACTION_END_TRACE
 #endif
     END
 #if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
     POPUP "&Logging"
     BEGIN
 # ifdef ENABLE_BUSLOGIC_LOG
-        MENUITEM "Omogući BusLogic logging\tCtrl+F4", IDM_LOG_BUSLOGIC
+        MENUITEM "Omogući bilježenje za BusLogic\tCtrl+F4", IDM_LOG_BUSLOGIC
 # endif
 # ifdef ENABLE_CDROM_LOG
-        MENUITEM "Omogući logging CD-ROM-a\tCtrl+F5", IDM_LOG_CDROM
+        MENUITEM "Omogući bilježenje za CD-ROM\tCtrl+F5", IDM_LOG_CDROM
 # endif
 # ifdef ENABLE_D86F_LOG
-        MENUITEM "Omogući logging disketa (86F)\tCtrl+F6", IDM_LOG_D86F
+        MENUITEM "Omogući bilježenje za diskete (86F)\tCtrl+F6", IDM_LOG_D86F
 # endif
 # ifdef ENABLE_FDC_LOG
-        MENUITEM "Omogući logging floppy kontrolera\tCtrl+F7", IDM_LOG_FDC
+        MENUITEM "Omogući bilježenje za disketni krmilnik\tCtrl+F7", IDM_LOG_FDC
 # endif
 # ifdef ENABLE_IDE_LOG
-        MENUITEM "Omogući IDE logging\tCtrl+F8", IDM_LOG_IDE
+        MENUITEM "Omogući bilježenje za IDE\tCtrl+F8", IDM_LOG_IDE
 # endif
 # ifdef ENABLE_SERIAL_LOG
-        MENUITEM "Omogući logging serijskog porta\tCtrl+F3", IDM_LOG_SERIAL
+        MENUITEM "Omogući bilježenje za serijska vrata\tCtrl+F3", IDM_LOG_SERIAL
 # endif
 # ifdef ENABLE_NIC_LOG
-        MENUITEM "Omogući mrežni logging\tCtrl+F9", IDM_LOG_NIC
+        MENUITEM "Omogući bilježenje za omrežje\tCtrl+F9", IDM_LOG_NIC
 # endif
 # ifdef ENABLE_LOG_COMMANDS
 #  ifdef ENABLE_LOG_TOGGLES
 	MENUITEM SEPARATOR
 #  endif
 #  ifdef ENABLE_LOG_BREAKPOINT
-        MENUITEM "&Breakpoint za logging\tCtrl+F10", IDM_LOG_BREAKPOINT
+        MENUITEM "&Zabilježi prekidnu točku\tCtrl+F10", IDM_LOG_BREAKPOINT
 #  endif
 #  ifdef ENABLE_VRAM_DUMP
-        MENUITEM "Dump od &video RAM-a\tCtrl+F1", IDM_DUMP_VRAM
+        MENUITEM "&Ispiši memoriju zaslona\tCtrl+F1", IDM_DUMP_VRAM
 #  endif
 # endif
     END
@@ -170,9 +170,9 @@ BEGIN
         MENUITEM "Postojeća slika (&zaštićena od pisanja)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "&Snimi",					IDM_CASSETTE_RECORD
-        MENUITEM "&Pusti",					IDM_CASSETTE_PLAY
-        MENUITEM "&Premotajte na početak",			IDM_CASSETTE_REWIND
-        MENUITEM "&Preskočite do kraja",			IDM_CASSETTE_FAST_FORWARD
+        MENUITEM "&Pokreni",					IDM_CASSETTE_PLAY
+        MENUITEM "P&remotaj na početak",			IDM_CASSETTE_REWIND
+        MENUITEM "&Preskoči do kraja",			IDM_CASSETTE_FAST_FORWARD
         MENUITEM SEPARATOR
         MENUITEM "&Izbaci",					IDM_CASSETTE_EJECT
     END
@@ -197,7 +197,7 @@ BEGIN
         MENUITEM "&Postojeća slika...",				IDM_FLOPPY_IMAGE_EXISTING
         MENUITEM "Postojeća slika (&zaštićena od pisanja)...",	IDM_FLOPPY_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
-        MENUITEM "&Exportiraj u 86F format...",				IDM_FLOPPY_EXPORT_TO_86F
+        MENUITEM "&Izvozi u 86F...",				IDM_FLOPPY_EXPORT_TO_86F
         MENUITEM SEPARATOR
         MENUITEM "&Izbaci",					IDM_FLOPPY_EJECT
     END
@@ -246,9 +246,9 @@ END
 
 VidGLSubMenu MENU DISCARDABLE
 BEGIN
-    POPUP "&Ciljni framerate"
+    POPUP "&Ciljni broj okvira u sekundi"
     BEGIN
-        MENUITEM "&Sinkronizacija s videom", IDM_VID_GL_FPS_BLITTER
+        MENUITEM "&Sinkroniziraj s videom", IDM_VID_GL_FPS_BLITTER
         MENUITEM "&25 fps", IDM_VID_GL_FPS_25
         MENUITEM "&30 fps", IDM_VID_GL_FPS_30
         MENUITEM "&50 fps", IDM_VID_GL_FPS_50
@@ -272,8 +272,8 @@ END
 #define STR_CONFIG		"Opcije"
 #define STR_SPECIFY_DIM		"Odredite glavne dimenzije prozora"
 
-#define STR_OK			"OK"
-#define STR_CANCEL		"Odustani"
+#define STR_OK			"U redu"
+#define STR_CANCEL		"Otkaži"
 #define STR_GLOBAL		"Spremite ove postavke kao &globalne zadane postavke"
 #define STR_DEFAULT		"Zadano"
 #define STR_LANGUAGE		"Jezik:"
@@ -283,7 +283,7 @@ END
 
 #define STR_FILE_NAME		"Ime datoteke:"
 #define STR_DISK_SIZE		"Veličina diska:"
-#define STR_RPM_MODE		"Način rotacije:"
+#define STR_RPM_MODE		"Način broja okretaja:"
 #define STR_PROGRESS		"Napredak:"
 
 #define STR_WIDTH		"Širina:"
@@ -300,44 +300,44 @@ END
 #define STR_MB			"MB"
 #define STR_MEMORY		"Memorija:"
 #define STR_TIME_SYNC		"Sinkronizacija vremena"
-#define STR_DISABLED		"Deaktivirano"
+#define STR_DISABLED		"Isključeno"
 #define STR_ENABLED_LOCAL	"Uključeno (lokalno vrijeme)"
 #define STR_ENABLED_UTC		"Uključeno (UTC)"
 #define STR_DYNAREC		"Dinamički rekompilator"
 
-#define STR_VIDEO		"Video kartica:"
+#define STR_VIDEO		"Video:"
 #define STR_VOODOO		"Voodoo grafika"
 
 #define STR_MOUSE		"Miš:"
-#define STR_JOYSTICK		"Joystick:"
-#define STR_JOY1		"Joystick 1..."
-#define STR_JOY2		"Joystick 2..."
-#define STR_JOY3		"Joystick 3..."
-#define STR_JOY4		"Joystick 4..."
+#define STR_JOYSTICK		"Palica za igru:"
+#define STR_JOY1		"Palica za igru 1..."
+#define STR_JOY2		"Palica za igru 2..."
+#define STR_JOY3		"Palica za igru 3..."
+#define STR_JOY4		"Palica za igru 4..."
 
-#define STR_SOUND		"Sound kartica:"
-#define STR_MIDI		"MIDI izlazni uređaj:"
-#define STR_MIDI_IN		"MIDI ulazni uređaj:"
-#define STR_MPU401		"Samostalni MPU-401 uređaj"
+#define STR_SOUND		"Zvučna kartica:"
+#define STR_MIDI		"Izlazni uređaj MIDI:"
+#define STR_MIDI_IN		"Ulazni uređaj MIDI:"
+#define STR_MPU401		"Samostalni MPU-401"
 #define STR_SSI			"Innovation SSI-2001"
 #define STR_CMS			"CMS / Game Blaster"
 #define STR_GUS			"Gravis Ultrasound"
-#define STR_FLOAT		"Koristi FLOAT32 zvuk"
+#define STR_FLOAT		"Koristi FLOAT32 za zvuk"
 
 #define STR_NET_TYPE		"Tip mreže:"
-#define STR_PCAP		"PCap uređaj:"
-#define STR_NET			"Mrežni adapter:"
+#define STR_PCAP		"Uređaj PCap:"
+#define STR_NET			"Mrežna kartica:"
 
-#define STR_LPT1		"LPT1 uređaj:"
-#define STR_LPT2		"LPT2 uređaj:"
-#define STR_LPT3		"LPT3 uređaj:"
-#define STR_SERIAL1		"Serijski port 1"
-#define STR_SERIAL2		"Serijski port 2"
-#define STR_SERIAL3		"Serijski port 3"
-#define STR_SERIAL4		"Serijski port 4"
-#define STR_PARALLEL1		"Paralelni priključak 1"
-#define STR_PARALLEL2		"Paralelni priključak 2"
-#define STR_PARALLEL3		"Paralelni priključak 3"
+#define STR_LPT1		"Uređaj LPT1:"
+#define STR_LPT2		"Uređaj LPT2:"
+#define STR_LPT3		"Uređaj LPT3:"
+#define STR_SERIAL1		"Serijska vrata 1"
+#define STR_SERIAL2		"Serijska vrata 2"
+#define STR_SERIAL3		"Serijska vrata 3"
+#define STR_SERIAL4		"Serijska vrata 4"
+#define STR_PARALLEL1		"Paralelna vrata 1"
+#define STR_PARALLEL2		"Paralelna vrata 2"
+#define STR_PARALLEL3		"Paralelna vrata 3"
 
 #define STR_HDC			"Kontroler tvrdog diska:"
 #define STR_FDC			"Kontroler diskete:"
@@ -351,14 +351,14 @@ END
 #define STR_CASSETTE		"Audio kaseta"
 
 #define STR_HDD			"Tvrdi diskovi:"
-#define STR_NEW			"&Novo..."
+#define STR_NEW			"&Novi..."
 #define STR_EXISTING		"&Postojeći..."
-#define STR_REMOVE		"&Ukloniti"
-#define STR_BUS			"Međusklop:"
+#define STR_REMOVE		"&Ukloni"
+#define STR_BUS			"Sabirnica:"
 #define STR_CHANNEL		"Kanal:"
 #define STR_ID			"ID:"
 
-#define STR_SPECIFY		"&Odredite..."
+#define STR_SPECIFY		"&Odredi..."
 #define STR_SECTORS		"Sektori:"
 #define STR_HEADS		"Glave:"
 #define STR_CYLS		"Cilindri:"
@@ -368,22 +368,22 @@ END
 #define STR_BLOCK_SIZE		"Veličina slike:"
 
 #define STR_FLOPPY_DRIVES	"Disketni pogoni:"
-#define STR_TURBO		"Turbo timingovi"
-#define STR_CHECKBPB		"Provjerite BPB"
+#define STR_TURBO		"Turbo vrijemena"
+#define STR_CHECKBPB		"Provjeraj BPB"
 #define STR_CDROM_DRIVES	"CD-ROM pogoni:"
 
 #define STR_MO_DRIVES		"MO pogoni:"
 #define STR_ZIP_DRIVES		"ZIP pogoni:"
 #define STR_250			"ZIP 250"
 
-#define STR_ISARTC		"ISA RTC:"
-#define STR_ISAMEM		"ISA proširenje memorije"
+#define STR_ISARTC		"Ura u stvarnom vrijemenu RTC:"
+#define STR_ISAMEM		"Proširenje memorije ISA"
 #define STR_ISAMEM_1		"Kartica 1:"
 #define STR_ISAMEM_2		"Kartica 2:"
 #define STR_ISAMEM_3		"Kartica 3:"
 #define STR_ISAMEM_4		"Kartica 4:"
-#define STR_BUGGER		"ISABugger uređaj"
-#define STR_POSTCARD		"POST kartica"
+#define STR_BUGGER		"Uređaj ISABugger"
+#define STR_POSTCARD		"Kartica POST"
 
 #define FONT_SIZE		9
 #define FONT_NAME		"Segoe UI"
@@ -400,7 +400,7 @@ BEGIN
     2048	"86Box"
     IDS_2049	"Greška"
     IDS_2050	"Fatalna greška"
-    IDS_2051	"<reserved>"
+    IDS_2051	"<rezervirano>"
     IDS_2052	"Pritisnite CTRL+ALT+PAGE DOWN za povratak u prozorski način rada."
     IDS_2053	"Brzina"
     IDS_2054	"ZIP %03i %i (%s): %ls"
@@ -424,7 +424,7 @@ BEGIN
     IDS_2068	"Zvuk"
     IDS_2069	"Mreža"
     IDS_2070	"Priključci (COM & LPT)"
-    IDS_2071	"Kontroleri za diskovi"
+    IDS_2071	"Kontroleri za diskove"
     IDS_2072	"Tvrdi diskovi"
     IDS_2073	"Floppy & CD-ROM pogoni"
     IDS_2074	"Ostali uklonjivi uređaji"
@@ -446,22 +446,22 @@ BEGIN
     IDS_2086	"MB"
     IDS_2087	"Provjeri BPB"
     IDS_2088	"KB"
-    IDS_2089	"Nije moguće inicijalizirati videorenderer."
+    IDS_2089	"Nije moguće inicijalizirati renderer."
     IDS_2090	"Standard"
     IDS_2091	"%i stanje čekanja"
     IDS_2092	"Tip"
     IDS_2093	"Postavljanje PCap-a nije uspjelo"
     IDS_2094	"Nema PCap uređaja"
     IDS_2095	"Nevažeći PCap uređaj"
-    IDS_2096	"Standardni joystick(e) s 2 tipke"
-    IDS_2097	"Standardni joystick s 4 tipke"
-    IDS_2098	"Standardni joystick s 6 tipke"
-    IDS_2099	"Standardni joystick s 8 tipke"
+    IDS_2096	"Standardna palica za igru s 2 tipke"
+    IDS_2097	"Standardna palica za igru s 4 tipke"
+    IDS_2098	"Standardna palica za igru s 6 tipke"
+    IDS_2099	"Standardna palica za igru s 8 tipke"
     IDS_2100	"CH Flightstick Pro"
     IDS_2101	"Microsoft SideWinder Pad"
     IDS_2102	"Thrustmaster Flight Control System"
     IDS_2103	"Bez"
-    IDS_2104	"Nije moguće učitati akceleratore tipkovnice."
+    IDS_2104	"Nije moguće učitati ubrzivače tipkovnice."
     IDS_2105	"Nije moguće registrirati neobrađeni unos."
     IDS_2106	"%u"
     IDS_2107	"%u MB (CHS: %i, %i, %i)"
@@ -469,15 +469,15 @@ BEGIN
     IDS_2109	"Sve slike (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Napredne sektorske slike (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Osnovne sektorske slike (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux slike (*.FDI)\0*.FDI\0Površne slike (*.86F;*.MFM)\0*.86F;*.MFM\0Sve datoteke (*.*)\0*.*\0"
     IDS_2110	"Nije moguće inicijalizirati FreeType"
     IDS_2111	"Nije moguće inicijalizirati SDL, SDL2.dll je potrebno"
-    IDS_2112	"Jeste li sigurni da želite hard resetirati emulirano računalo?"
-    IDS_2113	"Jeste li sigurni da želite izaći iz 86Boxa?"
+    IDS_2112	"Jeste li sigurni da želite hard resetirati emulirani sistem?"
+    IDS_2113	"Jeste li sigurni da želite zatvoriti 86Box?"
     IDS_2114	"Nije moguće inicijalizirati GhostScript"
     IDS_2115	"MO %i (%ls): %ls"
     IDS_2116	"MO slike (*.IM?;*.MDI)\0*.IM?;*.MDI\0Svi datoteke (*.*)\0*.*\0"
     IDS_2117	"Dobrodošli u 86Box!"
-    IDS_2118	"Interni kontroler"
+    IDS_2118	"Uunutarnji kontroler"
     IDS_2119	"Izlazi"
-    IDS_2120	"Nisu pronađeni ROM datoteke"
+    IDS_2120	"Nisu pronađene ROM datoteke"
     IDS_2121	"Želite li spremiti postavke?"
     IDS_2122	"Ovo će napraviti hard resetiranje emuliranog sistema."
     IDS_2123	"Spremaj"
@@ -492,7 +492,7 @@ BEGIN
 #else
 #define LIB_NAME_PCAP "libpcap"
 #endif
-    IDS_2129	"Provjerite je li " LIB_NAME_PCAP " instaliran i jeste li na " LIB_NAME_PCAP "-kompatibilnoj mrežnoj vezi."
+    IDS_2129	"Provjerite je li " LIB_NAME_PCAP " instaliran i jeste li na mreži, kompadibilnoj s " LIB_NAME_PCAP "."
     IDS_2130	"Nevažeća konfiguracija"
 #ifdef _WIN32
 #define LIB_NAME_FREETYPE "freetype.dll"
@@ -512,7 +512,7 @@ BEGIN
 #define LIB_NAME_FLUIDSYNTH "libfluidsynth"
 #endif
     IDS_2133	LIB_NAME_FLUIDSYNTH " je potrebno za FluidSynth MIDI izlaz."
-    IDS_2134	"Ulazak u cijelozaslonski način"
+    IDS_2134	"Ulazim u cijelozaslonski način"
     IDS_2135	"Ne pokazi više ovu poruku"
     IDS_2136	"Ne izlazi"
     IDS_2137	"Resetiraj"
@@ -569,10 +569,10 @@ BEGIN
     IDS_4128	"Veliki blokovi (2 MB)"
     IDS_4129	"Mali blokovi (512 KB)"
     IDS_4130	"VHD slike (*.VHD)\0*.VHD\0Sve datoteke (*.*)\0*.*\0"
-    IDS_4131	"Izaberi matični VHD"
+    IDS_4131	"Izaberi matičnu sliku VHD"
     IDS_4132	"To bi moglo značiti da je matična slika promijenjena nakon što je stvorena različita slika.\n\nTo se također može dogoditi ako su slike premještene ili kopirane, ili greška u programu koji je stvorio ovaj disk.\n\nŽelite li popraviti vremenske oznake?"
     IDS_4133	"Vremenske ozanke matične i poređenog diska ne odgovaraju."
-    IDS_4134	"Nisam mogao popraviti vremensku oznaku VHD slike."
+    IDS_4134	"Ne možem popraviti vremensku oznaku slike VHD."
     IDS_4135	"%01i:%02i"
 
     IDS_4352    "MFM/RLL"
