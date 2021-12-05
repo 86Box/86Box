@@ -13,11 +13,11 @@ extern "C" {
 };
 
 #include <QWindow>
-#include <QDebug>
 #include <QTimer>
 #include <QThread>
 #include <QKeyEvent>
 #include <QMessageBox>
+#include <QFocusEvent>
 
 #include <array>
 
@@ -28,6 +28,8 @@ extern "C" {
 #ifdef __unix__
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
+#undef KeyPress
+#undef KeyRelease
 #endif
 
 extern void qt_mouse_capture(int);
@@ -93,6 +95,16 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
     ui->actionRight_CTRL_is_left_ALT->setChecked(rctrl_is_lalt);
+
+    setFocusPolicy(Qt::StrongFocus);
+    ui->gles->setFocusPolicy(Qt::NoFocus);
+    ui->sw->setFocusPolicy(Qt::NoFocus);
+    ui->ogl->setFocusPolicy(Qt::NoFocus);
+    ui->stackedWidget->setFocusPolicy(Qt::NoFocus);
+    ui->centralwidget->setFocusPolicy(Qt::NoFocus);
+    menuBar()->setFocusPolicy(Qt::NoFocus);
+    menuWidget()->setFocusPolicy(Qt::NoFocus);
+    statusBar()->setFocusPolicy(Qt::NoFocus);
 
     video_setblit(qt_blit);
 }
@@ -683,6 +695,23 @@ void MainWindow::getTitle(wchar_t *title)
     }
 }
 
+bool MainWindow::eventFilter(QObject* receiver, QEvent* event)
+{
+    if (this->keyboardGrabber() == this) {
+        if (event->type() == QEvent::KeyPress) {
+            event->accept();
+            this->keyPressEvent((QKeyEvent*)event);
+            return true;
+        }
+        if (event->type() == QEvent::KeyRelease) {
+            event->accept();
+            this->keyReleaseEvent((QKeyEvent*)event);
+            return true;
+        }
+    }
+    return QMainWindow::eventFilter(receiver, event);
+}
+
 void MainWindow::refreshMediaMenu() {
     mm->refresh(ui->menuMedia);
 }
@@ -715,6 +744,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
     if (keyboard_ismsexit()) {
         plat_mouse_capture(0);
     }
+    event->accept();
 }
 
 void MainWindow::blitToWidget(int x, int y, int w, int h)
@@ -741,4 +771,14 @@ void MainWindow::on_actionHardware_Renderer_OpenGL_triggered() {
 
 void MainWindow::on_actionHardware_Renderer_OpenGL_ES_triggered() {
     ui->stackedWidget->setCurrentIndex(2);
+}
+
+void MainWindow::focusInEvent(QFocusEvent* event)
+{
+    this->grabKeyboard();
+}
+
+void MainWindow::focusOutEvent(QFocusEvent* event)
+{
+    this->releaseKeyboard();
 }
