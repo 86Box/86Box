@@ -193,8 +193,9 @@ preferences_settings_save(void)
 	
     /* Update status bar */
     config_changed = 1;	
-    ui_sb_set_ready(0);
+    ui_sb_set_ready(-1);
     ui_sb_update_panes();
+    ui_sb_update_text();
 	
     /* Save the language changes */
     config_save();
