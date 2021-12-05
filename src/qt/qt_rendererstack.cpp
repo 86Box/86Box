@@ -1,8 +1,9 @@
-#include <QApplication>
-#include <QImage>
-#include <QGuiApplication>
-#include <qnamespace.h>
-#include "qt_gleswidget.hpp"
+#include "qt_rendererstack.hpp"
+#include "ui_qt_rendererstack.h"
+
+#include "qt_softwarerenderer.hpp"
+#include "qt_hardwarerenderer.hpp"
+
 #ifdef __APPLE__
 #include <CoreGraphics/CoreGraphics.h>
 #endif
@@ -12,6 +13,21 @@ extern "C"
 #include <86box/mouse.h>
 #include <86box/plat.h>
 #include <86box/video.h>
+}
+
+RendererStack::RendererStack(QWidget *parent) :
+    QStackedWidget(parent),
+    ui(new Ui::RendererStack)
+{
+    ui->setupUi(this);
+    imagebufs = QVector<QImage>(2);
+    imagebufs[0] = QImage{QSize(2048 + 64, 2048 + 64), QImage::Format_RGB32};
+    imagebufs[1] = QImage{QSize(2048 + 64, 2048 + 64), QImage::Format_RGB32};
+}
+
+RendererStack::~RendererStack()
+{
+    delete ui;
 }
 
 extern "C" void macos_poll_mouse();
@@ -35,7 +51,7 @@ qt_mouse_capture(int on)
     return;
 }
 
-void GLESWidget::qt_mouse_poll()
+void RendererStack::mousePoll()
 {
 #ifdef __APPLE__
     return macos_poll_mouse();
@@ -52,25 +68,7 @@ void GLESWidget::qt_mouse_poll()
 #endif
 }
 
-void GLESWidget::resizeGL(int w, int h)
-{
-    glViewport(0, 0, w, h);
-}
-
-void GLESWidget::initializeGL()
-{
-    initializeOpenGLFunctions();
-    connect(this, &GLESWidget::reqUpdate, this, static_cast<void (GLESWidget::*)()>(&GLESWidget::update));
-}
-
-void GLESWidget::paintGL()
-{
-    std::scoped_lock lock(image_mx);
-    QPainter painter(this);
-    painter.drawImage(QRect(0, 0, width(), height()), m_image, QRect(sx, sy, sw, sh));
-}
-
-void GLESWidget::mouseReleaseEvent(QMouseEvent *event)
+void RendererStack::mouseReleaseEvent(QMouseEvent *event)
 {
     if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture)
     {
@@ -89,7 +87,7 @@ void GLESWidget::mouseReleaseEvent(QMouseEvent *event)
         mousedata.mousebuttons &= ~event->button();
     }
 }
-void GLESWidget::mousePressEvent(QMouseEvent *event)
+void RendererStack::mousePressEvent(QMouseEvent *event)
 {
     if (mouse_capture)
     {
@@ -97,7 +95,7 @@ void GLESWidget::mousePressEvent(QMouseEvent *event)
     }
     event->accept();
 }
-void GLESWidget::wheelEvent(QWheelEvent *event)
+void RendererStack::wheelEvent(QWheelEvent *event)
 {
     if (mouse_capture)
     {
@@ -106,7 +104,7 @@ void GLESWidget::wheelEvent(QWheelEvent *event)
 }
 
 int ignoreNextMouseEvent = 0;
-void GLESWidget::mouseMoveEvent(QMouseEvent *event)
+void RendererStack::mouseMoveEvent(QMouseEvent *event)
 {
     if (QApplication::platformName().contains("wayland"))
     {
@@ -128,27 +126,39 @@ void GLESWidget::mouseMoveEvent(QMouseEvent *event)
 #endif
 }
 
-void GLESWidget::qt_real_blit(int x, int y, int w, int h)
+// called from blitter thread
+void RendererStack::blit(int x, int y, int w, int h)
 {
+    if ((w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL))
     {
-        std::scoped_lock lock(image_mx);
-        if ((w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL))
-        {
-            video_blit_complete();
-            return;
-        }
-        sx = x;
-        sy = y;
-        sw = this->w = w;
-        sh = this->h = h;
-        auto imagebits = m_image.bits();
-        video_copy(imagebits + y * ((2048 + 64) * 4) + x * 4, &(buffer32->line[y][x]), h * (2048 + 64) * sizeof(uint32_t));
-
-        if (screenshots)
-        {
-            video_screenshot((uint32_t *)imagebits, 0, 0, 2048 + 64);
-        }
         video_blit_complete();
+        return;
     }
-    reqUpdate();
+    sx = x;
+    sy = y;
+    sw = this->w = w;
+    sh = this->h = h;
+    auto imagebits = imagebufs[currentBuf].bits();
+    video_copy(imagebits + y * ((2048 + 64) * 4) + x * 4, &(buffer32->line[y][x]), h * (2048 + 64) * sizeof(uint32_t));
+
+    if (screenshots)
+    {
+        video_screenshot((uint32_t *)imagebits, 0, 0, 2048 + 64);
+    }
+    video_blit_complete();
+    blitToRenderer(imagebufs[currentBuf], sx, sy, sw, sh);
+    currentBuf = (currentBuf + 1) % 2;
+}
+
+void RendererStack::on_RendererStack_currentChanged(int arg1) {
+    disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
+    switch (arg1) {
+    case 0:
+        connect(this, &RendererStack::blitToRenderer, dynamic_cast<SoftwareRenderer*>(currentWidget()), &SoftwareRenderer::onBlit);
+        break;
+    case 1:
+    case 2:
+        connect(this, &RendererStack::blitToRenderer, dynamic_cast<HardwareRenderer*>(currentWidget()), &HardwareRenderer::onBlit);
+        break;
+    }
 }

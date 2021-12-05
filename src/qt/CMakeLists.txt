@@ -20,8 +20,13 @@ add_library(ui STATIC
     qt_machinestatus.hpp
     qt_mediamenu.cpp
     qt_mediamenu.hpp
-    qt_gleswidget.cpp
-    qt_gleswidget.hpp
+    qt_rendererstack.cpp
+    qt_rendererstack.hpp
+    qt_rendererstack.ui
+    qt_softwarerenderer.cpp
+    qt_softwarerenderer.hpp
+    qt_hardwarerenderer.cpp
+    qt_hardwarerenderer.hpp
 
     qt_settings.cpp
     qt_settings.hpp
