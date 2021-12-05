@@ -485,6 +485,9 @@ StatusBarDestroyTips(void)
 
 
 /* API: mark the status bar as not ready. */
+/* Values: -1 - not ready, but don't clear POST text
+            0 - not ready 
+            1 - ready */
 void
 ui_sb_set_ready(int ready)
 {
@@ -493,6 +496,9 @@ ui_sb_set_ready(int ready)
 	ui_sb_set_text(NULL);
     }
 
+    if (ready == -1)
+      ready = 0;
+	
     sb_ready = ready;
 }
 
@@ -1022,7 +1028,7 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
 }
 
 
-static void
+void
 ui_sb_update_text()
 {
     uint8_t part = 0xff;
