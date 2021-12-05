@@ -77,8 +77,10 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
-        ui->stackedWidget->resize(w, h);
-        resize(w, h + menuBar()->height() + statusBar()->height());
+        if (!QApplication::platformName().contains("eglfs")) {
+            ui->stackedWidget->resize(w, h);
+            resize(w, h + menuBar()->height() + statusBar()->height());
+        }
     });
 
     connect(ui->menubar, &QMenuBar::triggered, this, [] {
@@ -629,6 +631,26 @@ std::array<uint32_t, 256> darwin_to_xt
     0,
 };
 
+static std::unordered_map<uint32_t, uint16_t> evdev_to_xt =
+    {
+        {96, 0x11C},
+        {97, 0x11D},
+        {98, 0x135},
+        {99, 0x71},
+        {100, 0x138},
+        {101, 0x1C},
+        {102, 0x147},
+        {103, 0x148},
+        {104, 0x149},
+        {105, 0x14B},
+        {106, 0x14D},
+        {107, 0x14F},
+        {108, 0x150},
+        {109, 0x151},
+        {110, 0x152},
+        {111, 0x153}
+};
+
 static std::array<uint32_t, 256>& selected_keycode = x11_to_xt_base;
 
 uint16_t x11_keycode_to_keysym(uint32_t keycode)
@@ -640,6 +662,12 @@ uint16_t x11_keycode_to_keysym(uint32_t keycode)
     if (QApplication::platformName().contains("wayland"))
     {
         selected_keycode = x11_to_xt_2;
+    }
+    else if (QApplication::platformName().contains("eglfs"))
+    {
+        keycode -= 8;
+        if (keycode <= 88) return keycode;
+        else return evdev_to_xt[keycode];
     }
     else if (!x11display)
     {
