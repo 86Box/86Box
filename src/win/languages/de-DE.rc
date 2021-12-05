@@ -41,7 +41,7 @@ BEGIN
             MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
             MENUITEM "SDL (&Hardware)",         IDM_VID_SDL_HW
             MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
-            MENUITEM "Open&GL (3.3-Kern)",      IDM_VID_OPENGL_CORE
+            MENUITEM "Open&GL (3.0-Kern)",      IDM_VID_OPENGL_CORE
 #ifdef USE_VNC
             MENUITEM "&VNC",                    IDM_VID_VNC
 #endif

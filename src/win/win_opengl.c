@@ -473,7 +473,7 @@ static void opengl_main(void* param)
 	SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1"); /* Is this actually doing anything...? */
 
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	
 	if (GLAD_GL_ARB_debug_output)
@@ -526,7 +526,7 @@ static void opengl_main(void* param)
 		SDL_GL_DeleteContext(context);
 		opengl_fail();
 	}
-	
+
 	if (GLAD_GL_ARB_debug_output)
 	{
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
@@ -592,14 +592,17 @@ static void opengl_main(void* param)
 				}
 			}
 
-			/* Check if commands that use buffers have been completed. */
-			for (int i = 0; i < BUFFERCOUNT; i++)
+			if (GLAD_GL_ARB_sync)
 			{
-				if (blit_info[i].sync != NULL && glClientWaitSync(blit_info[i].sync, GL_SYNC_FLUSH_COMMANDS_BIT, 0) != GL_TIMEOUT_EXPIRED)
+				/* Check if commands that use buffers have been completed. */
+				for (int i = 0; i < BUFFERCOUNT; i++)
 				{
-					glDeleteSync(blit_info[i].sync);
-					blit_info[i].sync = NULL;
-					atomic_flag_clear(&blit_info[i].in_use);
+					if (blit_info[i].sync != NULL && glClientWaitSync(blit_info[i].sync, GL_SYNC_FLUSH_COMMANDS_BIT, 0) != GL_TIMEOUT_EXPIRED)
+					{
+						glDeleteSync(blit_info[i].sync);
+						blit_info[i].sync = NULL;
+						atomic_flag_clear(&blit_info[i].in_use);
+					}
 				}
 			}
 
@@ -653,8 +656,17 @@ static void opengl_main(void* param)
 			glPixelStorei(GL_UNPACK_ROW_LENGTH, ROW_LENGTH);
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, info->w, info->h, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
 
-			/* Add fence to track when above gl commands are complete. */
-			info->sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+			if (GLAD_GL_ARB_sync)
+			{
+				/* Add fence to track when above gl commands are complete. */
+				info->sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+			}
+			else
+			{
+				/* No sync objects; block until commands are complete. */
+				glFinish();
+				atomic_flag_clear(&info->in_use);
+			}
 
 			read_pos = (read_pos + 1) % BUFFERCOUNT;
 
@@ -788,10 +800,13 @@ static void opengl_main(void* param)
 				SDL_ShowCursor(show_cursor);
 	}
 
-	for (int i = 0; i < BUFFERCOUNT; i++)
+	if (GLAD_GL_ARB_sync)
 	{
-		if (blit_info[i].sync != NULL)
-			glDeleteSync(blit_info[i].sync);
+		for (int i = 0; i < BUFFERCOUNT; i++)
+		{
+			if (blit_info[i].sync != NULL)
+				glDeleteSync(blit_info[i].sync);
+		}
 	}
 
 	finalize_glcontext(&gl);
