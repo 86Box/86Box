@@ -188,13 +188,11 @@ GLuint load_custom_shaders(const char* path)
 
 			if (version_end != NULL)
 			{
-				char version[30];
+				char version[30] = "";
 
 				size_t version_len = MIN(version_end - version_start + 1, 29);
 
-				memcpy(version, version_start, version_len);
-
-				version[version_len] = 0; /* string null terminator */
+				strncat(version, version_start, version_len);
 
 				/* replace the default version directive */
 				vertex_sources[0] = version;
