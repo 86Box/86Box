@@ -62,7 +62,7 @@ void RendererStack::mousePoll()
     mousedata.deltax = mousedata.deltay = mousedata.deltaz = 0;
     mouse_buttons = mousedata.mousebuttons;
 #ifdef WAYLAND
-    if (wayland)
+    if (QApplication::platformName().contains("wayland"))
         wl_mouse_poll();
 #endif
 #endif
