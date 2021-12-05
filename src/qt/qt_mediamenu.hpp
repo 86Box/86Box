@@ -63,6 +63,17 @@ private:
     QList<QMenu*> zipMenus;
     QList<QMenu*> moMenus;
 
+    int cassetteRecordPos;
+    int cassettePlayPos;
+    int cassetteRewindPos;
+    int cassetteFastFwdPos;
+    int cassetteEjectPos;
+
+    int cartridgeEjectPos;
+
+    int floppyExportPos;
+    int floppyEjectPos;
+
     int cdromMutePos;
     int cdromEmptyPos;
     int cdromReloadPos;

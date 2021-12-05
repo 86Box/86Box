@@ -41,11 +41,16 @@ void MediaMenu::refresh(QMenu *parentMenu) {
         cassetteMenu->addAction("Existing Image", [this]() { cassetteSelectImage(false); });
         cassetteMenu->addAction("Existing Image (Write Protected)", [this]() { cassetteSelectImage(true); });
         cassetteMenu->addSeparator();
-        cassetteMenu->addAction("Record")->setCheckable(true);
-        cassetteMenu->addAction("Play")->setCheckable(true);
-        cassetteMenu->addAction("Rewing");
-        cassetteMenu->addAction("Fast Forward");
+        cassetteRecordPos = cassetteMenu->children().count();
+        cassetteMenu->addAction("Record", [this] { pc_cas_set_mode(cassette, 1); cassetteUpdateMenu(); })->setCheckable(true);
+        cassettePlayPos = cassetteMenu->children().count();
+        cassetteMenu->addAction("Play", [this] { pc_cas_set_mode(cassette, 0); cassetteUpdateMenu(); })->setCheckable(true);
+        cassetteRewindPos = cassetteMenu->children().count();
+        cassetteMenu->addAction("Rewind", [] { pc_cas_rewind(cassette); });
+        cassetteFastFwdPos = cassetteMenu->children().count();
+        cassetteMenu->addAction("Fast Forward", [] { pc_cas_append(cassette); });
         cassetteMenu->addSeparator();
+        cassetteEjectPos = cassetteMenu->children().count();
         cassetteMenu->addAction("Eject", [this]() { cassetteEject(); });
         cassetteUpdateMenu();
     }
@@ -56,6 +61,7 @@ void MediaMenu::refresh(QMenu *parentMenu) {
             auto* menu = parentMenu->addMenu("");
             menu->addAction("Image", [this, i]() { cartridgeSelectImage(i); });
             menu->addSeparator();
+            cartridgeEjectPos = menu->children().count();
             menu->addAction("Eject", [this, i]() { cartridgeEject(i); });
             cartridgeMenus.append(menu);
             cartridgeUpdateMenu(i);
@@ -70,8 +76,10 @@ void MediaMenu::refresh(QMenu *parentMenu) {
         menu->addAction("Existing Image", [this, i]() { floppySelectImage(i, false); });
         menu->addAction("Existing Image (Write Protected)", [this, i]() { floppySelectImage(i, true); });
         menu->addSeparator();
+        floppyExportPos = menu->children().count();
         menu->addAction("Export to 86F", [this, i]() { floppyExportTo86f(i); });
         menu->addSeparator();
+        floppyEjectPos = menu->children().count();
         menu->addAction("Eject", [this, i]() { floppyEject(i); });
         floppyMenus.append(menu);
         floppyUpdateMenu(i);
@@ -169,6 +177,24 @@ void MediaMenu::cassetteEject() {
 
 void MediaMenu::cassetteUpdateMenu() {
     QString name = cassette_fname;
+    QString mode = cassette_mode;
+    auto childs = cassetteMenu->children();
+    auto* recordMenu = dynamic_cast<QAction*>(childs[cassetteRecordPos]);
+    auto* playMenu = dynamic_cast<QAction*>(childs[cassettePlayPos]);
+    auto* rewindMenu = dynamic_cast<QAction*>(childs[cassetteRewindPos]);
+    auto* fastFwdMenu = dynamic_cast<QAction*>(childs[cassetteFastFwdPos]);
+    auto* ejectMenu = dynamic_cast<QAction*>(childs[cassetteEjectPos]);
+
+    recordMenu->setEnabled(!name.isEmpty());
+    playMenu->setEnabled(!name.isEmpty());
+    rewindMenu->setEnabled(!name.isEmpty());
+    fastFwdMenu->setEnabled(!name.isEmpty());
+    ejectMenu->setEnabled(!name.isEmpty());
+
+    bool isSaving = mode == QStringLiteral("save");
+    recordMenu->setChecked(isSaving);
+    playMenu->setChecked(! isSaving);
+
     cassetteMenu->setTitle(QString("Cassette: %1").arg(name.isEmpty() ? "(empty)" : name));
 }
 
@@ -197,7 +223,11 @@ void MediaMenu::cartridgeEject(int i) {
 
 void MediaMenu::cartridgeUpdateMenu(int i) {
     QString name = cart_fns[i];
-    cartridgeMenus[i]->setTitle(QString("Cartridge %1: %2").arg(QString::number(i+1), name.isEmpty() ? "(empty)" : name));
+    auto* menu = cartridgeMenus[i];
+    auto childs = menu->children();
+    auto* ejectMenu = dynamic_cast<QAction*>(childs[cartridgeEjectPos]);
+    ejectMenu->setEnabled(!name.isEmpty());
+    menu->setTitle(QString("Cartridge %1: %2").arg(QString::number(i+1), name.isEmpty() ? "(empty)" : name));
 }
 
 void MediaMenu::floppyNewImage(int i) {
@@ -250,6 +280,15 @@ void MediaMenu::floppyExportTo86f(int i) {
 
 void MediaMenu::floppyUpdateMenu(int i) {
     QString name = floppyfns[i];
+
+    auto* menu = floppyMenus[i];
+    auto childs = menu->children();
+
+    auto* ejectMenu = dynamic_cast<QAction*>(childs[floppyEjectPos]);
+    auto* exportMenu = dynamic_cast<QAction*>(childs[floppyExportPos]);
+    ejectMenu->setEnabled(!name.isEmpty());
+    exportMenu->setEnabled(!name.isEmpty());
+
     int type = fdd_get_type(i);
     floppyMenus[i]->setTitle(QString("Floppy %1 (%2): %3").arg(QString::number(i+1), fdd_getname(type), name.isEmpty() ? "(empty)" : name));
 }
