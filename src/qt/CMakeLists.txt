@@ -107,6 +107,13 @@ target_link_libraries(
     Threads::Threads
 )
 
+# needed for static builds
+if (WIN32)
+    qt_import_plugins(plat INCLUDE Qt5::QWindowsIntegrationPlugin Qt5::QICOPlugin QWindowsVistaStylePlugin)
+else()
+    qt_import_plugins(plat INCLUDE Qt5::QICOPlugin)
+endif()
+
 if (PkgConfig_FOUND)
     pkg_check_modules(RTMIDI rtmidi)
     if (RTMIDI_FOUND)

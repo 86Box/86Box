@@ -4,6 +4,16 @@
 #include <QThread>
 #include <QTimer>
 
+#ifdef QT_STATIC
+/* Static builds need plugin imports */
+#include <QtPlugin>
+Q_IMPORT_PLUGIN(QICOPlugin)
+#ifdef Q_OS_WINDOWS
+Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
+Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
+#endif
+#endif
+
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/ui.h>

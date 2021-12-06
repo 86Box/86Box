@@ -133,6 +133,12 @@ if(QT)
   set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
   set(CMAKE_CXX_EXTENSIONS OFF)
+  
+  # if we want to use qt5-static to eliminate need for bundling qt dlls (windows)
+  #set(QT_STATIC ON)
+  # needed to build with qt5-static if both qt5 and qt5-static are installed
+  #set(CMAKE_PREFIX_PATH "path/to/qt5-static")
+  
   find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
 endif()
 
