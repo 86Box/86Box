@@ -1,6 +1,5 @@
 #include "qt_mainwindow.hpp"
 #include "ui_qt_mainwindow.h"
-#include <qguiapplication.h>
 
 extern "C" {
 #include <86box/86box.h>
@@ -12,6 +11,7 @@ extern "C" {
 #include "qt_sdl.h"
 };
 
+#include <QGuiApplication>
 #include <QWindow>
 #include <QTimer>
 #include <QThread>
@@ -20,6 +20,7 @@ extern "C" {
 #include <QFocusEvent>
 
 #include <array>
+#include <unordered_map>
 
 #include "qt_settings.hpp"
 #include "qt_machinestatus.hpp"
