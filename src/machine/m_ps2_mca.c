@@ -432,6 +432,8 @@ static void model_50_write(uint16_t port, uint8_t val)
 
 static void model_55sx_write(uint16_t port, uint8_t val)
 {
+	int remap_size;
+
         switch (port)
         {
                 case 0x100:
@@ -477,26 +479,26 @@ static void model_55sx_write(uint16_t port, uint8_t val)
                 case 0x105:
                 ps2_mca_log("Write POS3 %02x\n", val);
                 ps2.option[3] = val;
-                shadowbios = !(val & 0x10);
-                shadowbios_write = val & 0x10;
+                shadowbios = !(val & 0x10) && !(val & 0x20);
+                shadowbios_write = (val & 0x10) && !(val & 0x20);
 
                 if (shadowbios)
                 {
                         mem_set_mem_state(0xe0000, 0x20000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
-                        mem_set_mem_state((mem_size+256) * 1024, 128 * 1024, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
                         mem_mapping_disable(&ps2.shadow_mapping);
                 }
                 else
                 {
-                        mem_set_mem_state(0xe0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-                        mem_set_mem_state((mem_size+256) * 1024, 128 * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+                        mem_set_mem_state(0xe0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_DISABLED);
                         mem_mapping_enable(&ps2.shadow_mapping);
                 }
 
-                if ((ps2.option[1] & 1) && !(ps2.option[3] & 0x20))
-                        mem_set_mem_state(mem_size * 1024, 256 * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+		remap_size = (val & 0x10) ? 384 : 256;
+
+                if (val & 0x20)
+                        mem_set_mem_state(mem_size * 1024, remap_size * 1024, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
                 else
-                        mem_set_mem_state(mem_size * 1024, 256 * 1024, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
+                        mem_set_mem_state(mem_size * 1024, remap_size * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 
 		flushmmucache_nopc();
                 break;
