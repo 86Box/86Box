@@ -261,7 +261,7 @@ w83787f_write(uint16_t port, uint8_t val, void *priv)
 
     switch (dev->cur_reg) {
 	case 0:
-		pclog("REG 00: %02X\n", val);
+		w83787_log("REG 00: %02X\n", val);
 		if ((valxor & 0xc0) && (HAS_IDE_FUNCTIONALITY))
 			w83787f_ide_handler(dev);
 		if (valxor & 0x30)

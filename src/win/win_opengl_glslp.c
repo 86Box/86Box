@@ -43,7 +43,7 @@
  /**
   * @brief Default vertex shader.
  */
-static const GLchar* vertex_shader = "#version 330 core\n\
+static const GLchar* vertex_shader = "#version 130\n\
 in vec2 VertexCoord;\n\
 in vec2 TexCoord;\n\
 out vec2 tex;\n\
@@ -55,7 +55,7 @@ void main(){\n\
 /**
  * @brief Default fragment shader.
  */
-static const GLchar* fragment_shader = "#version 330 core\n\
+static const GLchar* fragment_shader = "#version 130\n\
 in vec2 tex;\n\
 uniform sampler2D texsampler;\n\
 out vec4 color;\n\
@@ -173,17 +173,45 @@ GLuint load_custom_shaders(const char* path)
 	{
 		int success = 1;
 
-		const char* vertex_sources[2] = { "#version 330 core\n#define VERTEX\n", shader };
-		const char* fragment_sources[2] = { "#version 330 core\n#define FRAGMENT\n", shader };
+		const char* vertex_sources[3] = { "#version 130\n", "#define VERTEX\n", shader };
+		const char* fragment_sources[3] = { "#version 130\n", "#define FRAGMENT\n", shader };
+
+		/* Check if the shader program defines version directive */
+		char* version_start = strstr(shader, "#version");
+
+		/*	If the shader program contains a version directive,
+			it must be captured and placed as the first statement. */
+		if (version_start != NULL)
+		{
+			/* Version directive found, search the line end */
+			char* version_end = strchr(version_start, '\n');
+
+			if (version_end != NULL)
+			{
+				char version[30] = "";
+
+				size_t version_len = MIN(version_end - version_start + 1, 29);
+
+				strncat(version, version_start, version_len);
+
+				/* replace the default version directive */
+				vertex_sources[0] = version;
+				fragment_sources[0] = version;
+			}
+
+			/*	Comment out the original version directive
+				as only one is allowed. */
+			memset(version_start, '/', 2);
+		}
 
 		GLuint vertex_id = glCreateShader(GL_VERTEX_SHADER);
 		GLuint fragment_id = glCreateShader(GL_FRAGMENT_SHADER);
 
-		glShaderSource(vertex_id, 2, vertex_sources, NULL);
+		glShaderSource(vertex_id, 3, vertex_sources, NULL);
 		glCompileShader(vertex_id);
 		success *= check_status(vertex_id, OPENGL_BUILD_TARGET_VERTEX, path);
 
-		glShaderSource(fragment_id, 2, fragment_sources, NULL);
+		glShaderSource(fragment_id, 3, fragment_sources, NULL);
 		glCompileShader(fragment_id);
 		success *= check_status(fragment_id, OPENGL_BUILD_TARGET_FRAGMENT, path);
 

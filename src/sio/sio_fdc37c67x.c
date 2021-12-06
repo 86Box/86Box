@@ -471,13 +471,13 @@ fdc37c67x_read(uint16_t port, void *priv)
 
 			/* TODO: 8042 P1.2 SMI#. */
 			if ((dev->regs[7] == 8) && (dev->cur_reg == 0xb6)) {
-				ret = dev->regs[dev->cur_reg] & 0xe1;
+				ret = dev->ld_regs[dev->regs[7]][dev->cur_reg] & 0xe1;
 				ret |= ((!!(smi_stat & (1 << p_irq))) << 1);
 				ret |= ((!!(smi_stat & (1 << s2_irq))) << 2);
 				ret |= ((!!(smi_stat & (1 << s1_irq))) << 3);
 				ret |= ((!!(smi_stat & (1 << f_irq))) << 4);
 			} else if ((dev->regs[7] == 8) && (dev->cur_reg == 0xb7)) {
-				ret = dev->regs[dev->cur_reg] & 0xec;
+				ret = dev->ld_regs[dev->regs[7]][dev->cur_reg] & 0xec;
 				ret |= ((!!(smi_stat & (1 << 12))) << 0);
 				ret |= ((!!(smi_stat & (1 << 1))) << 1);
 				ret |= ((!!(smi_stat & (1 << 10))) << 4);
