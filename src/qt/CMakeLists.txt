@@ -10,7 +10,6 @@ add_library(plat STATIC qt.c qt_main.cpp qt_platform.cpp cpp11_thread.cpp)
 add_library(ui STATIC
     qt_ui.cpp
     qt_cdrom.c
-    qt_sdl.c
 
     qt_mainwindow.cpp
     qt_mainwindow.hpp

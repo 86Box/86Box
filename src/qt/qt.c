@@ -13,8 +13,6 @@
 #include <86box/timer.h>
 #include <86box/nvr.h>
 
-#include "qt_sdl.h"
-
 int qt_nvr_save(void) {
     return nvr_save();
 }
