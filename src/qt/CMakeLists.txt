@@ -4,7 +4,6 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(PkgConfig)
 find_package(Threads REQUIRED)
 
 add_library(plat STATIC qt.c qt_main.cpp qt_platform.cpp cpp11_thread.cpp)
@@ -106,20 +105,6 @@ target_link_libraries(
     Qt5::Gui
     Threads::Threads
 )
-
-if (PkgConfig_FOUND)
-    pkg_check_modules(RTMIDI rtmidi)
-    if (RTMIDI_FOUND)
-        target_include_directories(plat PRIVATE ${RTMIDI_INCLUDE_DIRS})
-        target_link_directories(plat INTERFACE ${RTMIDI_LIBRARY_DIRS})
-        target_link_libraries(plat PRIVATE ${RTMIDI_LIBRARIES})
-        target_sources(plat PRIVATE rtmidi_midi.cpp)
-    else()
-        target_sources(plat PRIVATE qt_midi.cpp)
-    endif()
-else()
-    target_sources(plat PRIVATE qt_midi.cpp)
-endif()
 
 if (UNIX AND NOT APPLE)
     find_package(X11 REQUIRED)
