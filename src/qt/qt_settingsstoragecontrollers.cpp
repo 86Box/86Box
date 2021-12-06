@@ -217,17 +217,17 @@ void SettingsStorageControllers::on_comboBoxSCSI4_currentIndexChanged(int index)
 
 
 void SettingsStorageControllers::on_pushButtonSCSI1_clicked() {
-    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI1->currentData().toInt()));
+    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI1->currentData().toInt()), 1);
 }
 
 void SettingsStorageControllers::on_pushButtonSCSI2_clicked() {
-    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI2->currentData().toInt()));
+    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI2->currentData().toInt()), 2);
 }
 
 void SettingsStorageControllers::on_pushButtonSCSI3_clicked() {
-    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI3->currentData().toInt()));
+    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI3->currentData().toInt()), 3);
 }
 
 void SettingsStorageControllers::on_pushButtonSCSI4_clicked() {
-    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI4->currentData().toInt()));
+    DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI4->currentData().toInt()), 4);
 }

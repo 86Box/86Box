@@ -15,6 +15,7 @@ extern "C" {
 }
 
 #include "qt_filefield.hpp"
+#include "qt_models_common.hpp"
 
 DeviceConfig::DeviceConfig(QWidget *parent) :
     QDialog(parent),
@@ -28,12 +29,12 @@ DeviceConfig::~DeviceConfig()
     delete ui;
 }
 
-void DeviceConfig::ConfigureDevice(const _device_* device) {
+void DeviceConfig::ConfigureDevice(const _device_* device, int instance) {
     DeviceConfig dc;
     dc.setWindowTitle(QString("%1 Device Configuration").arg(device->name));
 
     device_context_t device_context;
-    device_set_context(&device_context, device, 0);
+    device_set_context(&device_context, device, instance);
 
     const auto* config = device->config;
     while (config->type != -1) {
@@ -47,9 +48,47 @@ void DeviceConfig::ConfigureDevice(const _device_* device) {
             dc.ui->formLayout->addRow(config->description, cbox);
             break;
         }
-        case CONFIG_SELECTION:
         case CONFIG_MIDI:
+        {
+            auto* cbox = new QComboBox();
+            cbox->setObjectName(config->name);
+            auto* model = cbox->model();
+            int currentIndex = -1;
+            int selected = config_get_int(device_context.name, const_cast<char*>(config->name), config->default_int);
+            for (int i = 0; i < plat_midi_get_num_devs(); i++) {
+                char midiName[512] = { 0 };
+                plat_midi_get_dev_name(i, midiName);
+
+                Models::AddEntry(model, midiName, i);
+                if (selected == i) {
+                    currentIndex = i;
+                }
+            }
+            dc.ui->formLayout->addRow(config->description, cbox);
+            cbox->setCurrentIndex(currentIndex);
+            break;
+        }
         case CONFIG_MIDI_IN:
+        {
+            auto* cbox = new QComboBox();
+            cbox->setObjectName(config->name);
+            auto* model = cbox->model();
+            int currentIndex = -1;
+            int selected = config_get_int(device_context.name, const_cast<char*>(config->name), config->default_int);
+            for (int i = 0; i < plat_midi_in_get_num_devs(); i++) {
+                char midiName[512] = { 0 };
+                plat_midi_in_get_dev_name(i, midiName);
+
+                Models::AddEntry(model, midiName, i);
+                if (selected == i) {
+                    currentIndex = i;
+                }
+            }
+            dc.ui->formLayout->addRow(config->description, cbox);
+            cbox->setCurrentIndex(currentIndex);
+            break;
+        }
+        case CONFIG_SELECTION:
         case CONFIG_HEX16:
         case CONFIG_HEX20:
         {
@@ -57,50 +96,23 @@ void DeviceConfig::ConfigureDevice(const _device_* device) {
             cbox->setObjectName(config->name);
             auto* model = cbox->model();
             int currentIndex = -1;
-            int selected = config_get_int(device_context.name, const_cast<char*>(config->name), config->default_int);
+            int selected;
+            switch (config->type) {
+            case CONFIG_SELECTION:
+                selected = config_get_int(device_context.name, const_cast<char*>(config->name), config->default_int);
+                break;
+            case CONFIG_HEX16:
+                selected = config_get_hex16(device_context.name, const_cast<char*>(config->name), config->default_int);
+                break;
+            case CONFIG_HEX20:
+                selected = config_get_hex20(device_context.name, const_cast<char*>(config->name), config->default_int);
+                break;
+            }
 
-            if (config->type == CONFIG_MIDI) {
-                for (int i = 0; i < plat_midi_get_num_devs(); i++) {
-                    char midiName[512] = { 0 };
-                    plat_midi_get_dev_name(i, midiName);
-
-                    int rows = model->rowCount();
-                    model->insertRow(rows);
-                    auto idx = model->index(rows, 0);
-
-                    model->setData(idx, midiName, Qt::DisplayRole);
-                    model->setData(idx, i, Qt::UserRole);
-                    if (selected == i) {
-                        currentIndex = idx.row();
-                    }
-                }
-            } else if (config->type == CONFIG_MIDI_IN) {
-                for (int i = 0; i < plat_midi_in_get_num_devs(); i++) {
-                    char midiName[512] = { 0 };
-                    plat_midi_in_get_dev_name(i, midiName);
-
-                    int rows = model->rowCount();
-                    model->insertRow(rows);
-                    auto idx = model->index(rows, 0);
-
-                    model->setData(idx, midiName, Qt::DisplayRole);
-                    model->setData(idx, i, Qt::UserRole);
-                    if (selected == i) {
-                        currentIndex = idx.row();
-                    }
-                }
-            } else {
-                for (auto* sel = config->selection; (sel->description != nullptr) && (strlen(sel->description) > 0); ++sel) {
-                    int rows = model->rowCount();
-                    model->insertRow(rows);
-                    auto idx = model->index(rows, 0);
-
-                    model->setData(idx, sel->description, Qt::DisplayRole);
-                    model->setData(idx, sel->value, Qt::UserRole);
-
-                    if (selected == sel->value) {
-                        currentIndex = idx.row();
-                    }
+            for (auto* sel = config->selection; (sel->description != nullptr) && (strlen(sel->description) > 0); ++sel) {
+                int row = Models::AddEntry(model, sel->description, sel->value);
+                if (selected == sel->value) {
+                    currentIndex = row;
                 }
             }
             dc.ui->formLayout->addRow(config->description, cbox);
@@ -145,14 +157,24 @@ void DeviceConfig::ConfigureDevice(const _device_* device) {
                 config_set_int(device_context.name, const_cast<char*>(config->name), cbox->isChecked() ? 1 : 0);
                 break;
             }
-            case CONFIG_SELECTION:
             case CONFIG_MIDI:
             case CONFIG_MIDI_IN:
-            case CONFIG_HEX16:
-            case CONFIG_HEX20:
+            case CONFIG_SELECTION:
             {
                 auto* cbox = dc.findChild<QComboBox*>(config->name);
                 config_set_int(device_context.name, const_cast<char*>(config->name), cbox->currentData().toInt());
+                break;
+            }
+            case CONFIG_HEX16:
+            {
+                auto* cbox = dc.findChild<QComboBox*>(config->name);
+                config_set_hex16(device_context.name, const_cast<char*>(config->name), cbox->currentData().toInt());
+                break;
+            }
+            case CONFIG_HEX20:
+            {
+                auto* cbox = dc.findChild<QComboBox*>(config->name);
+                config_set_hex20(device_context.name, const_cast<char*>(config->name), cbox->currentData().toInt());
                 break;
             }
             case CONFIG_FNAME:
