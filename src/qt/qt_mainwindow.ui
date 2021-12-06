@@ -347,11 +347,17 @@
    </property>
   </action>
   <action name="actionNearest">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Nearest</string>
    </property>
   </action>
   <action name="actionLinear">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Linear</string>
    </property>

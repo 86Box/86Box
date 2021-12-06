@@ -131,6 +131,14 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->action2x->setChecked(true);
         break;
     }
+    switch (video_filter_method) {
+    case 0:
+        ui->actionNearest->setChecked(true);
+        break;
+    case 1:
+        ui->actionLinear->setChecked(true);
+        break;
+    }
 
     setFocusPolicy(Qt::StrongFocus);
     ui->gles->setFocusPolicy(Qt::NoFocus);
@@ -915,3 +923,12 @@ void MainWindow::on_action2x_triggered() {
     update_scaled_checkboxes(ui, ui->action2x);
 }
 
+void MainWindow::on_actionNearest_triggered() {
+    video_filter_method = 0;
+    ui->actionLinear->setChecked(false);
+}
+
+void MainWindow::on_actionLinear_triggered() {
+    video_filter_method = 1;
+    ui->actionNearest->setChecked(false);
+}

@@ -62,6 +62,8 @@ private slots:
     void on_action1x_triggered();
     void on_action1_5x_triggered();
     void on_action2x_triggered();
+    void on_actionLinear_triggered();
+    void on_actionNearest_triggered();
 
     void refreshMediaMenu();
     void showMessage_(const QString& header, const QString& message);
