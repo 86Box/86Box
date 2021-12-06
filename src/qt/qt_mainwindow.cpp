@@ -850,3 +850,18 @@ void MainWindow::on_actionResizable_window_triggered(bool checked) {
     emit resizeContents(scrnsz_x, scrnsz_y);
 }
 
+static void
+video_toggle_option(QAction* action, int *val)
+{
+    startblit();
+    *val ^= 1;
+    action->setChecked(*val > 0 ? true : false);
+    endblit();
+    config_save();
+    device_force_redraw();
+}
+
+void MainWindow::on_actionInverted_VGA_monitor_triggered() {
+    video_toggle_option(ui->actionInverted_VGA_monitor, &invert_display);
+    video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
+}
