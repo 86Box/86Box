@@ -1,6 +1,5 @@
 #include "qt_mainwindow.hpp"
 #include "ui_qt_mainwindow.h"
-#include <qguiapplication.h>
 
 extern "C" {
 #include <86box/86box.h>
@@ -12,14 +11,16 @@ extern "C" {
 #include "qt_sdl.h"
 };
 
+#include <QGuiApplication>
 #include <QWindow>
-#include <QDebug>
 #include <QTimer>
 #include <QThread>
 #include <QKeyEvent>
 #include <QMessageBox>
+#include <QFocusEvent>
 
 #include <array>
+#include <unordered_map>
 
 #include "qt_settings.hpp"
 #include "qt_machinestatus.hpp"
@@ -28,6 +29,8 @@ extern "C" {
 #ifdef __unix__
 #include <X11/Xlib.h>
 #include <X11/keysym.h>
+#undef KeyPress
+#undef KeyRelease
 #endif
 
 extern void qt_mouse_capture(int);
@@ -75,8 +78,10 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
-        ui->stackedWidget->resize(w, h);
-        resize(w, h + menuBar()->height() + statusBar()->height());
+        if (!QApplication::platformName().contains("eglfs")) {
+            ui->stackedWidget->resize(w, h);
+            resize(w, h + menuBar()->height() + statusBar()->height());
+        }
     });
 
     connect(ui->menubar, &QMenuBar::triggered, this, [] {
@@ -93,6 +98,16 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
     ui->actionRight_CTRL_is_left_ALT->setChecked(rctrl_is_lalt);
+
+    setFocusPolicy(Qt::StrongFocus);
+    ui->gles->setFocusPolicy(Qt::NoFocus);
+    ui->sw->setFocusPolicy(Qt::NoFocus);
+    ui->ogl->setFocusPolicy(Qt::NoFocus);
+    ui->stackedWidget->setFocusPolicy(Qt::NoFocus);
+    ui->centralwidget->setFocusPolicy(Qt::NoFocus);
+    menuBar()->setFocusPolicy(Qt::NoFocus);
+    menuWidget()->setFocusPolicy(Qt::NoFocus);
+    statusBar()->setFocusPolicy(Qt::NoFocus);
 
     video_setblit(qt_blit);
 }
@@ -617,6 +632,26 @@ std::array<uint32_t, 256> darwin_to_xt
     0,
 };
 
+static std::unordered_map<uint32_t, uint16_t> evdev_to_xt =
+    {
+        {96, 0x11C},
+        {97, 0x11D},
+        {98, 0x135},
+        {99, 0x71},
+        {100, 0x138},
+        {101, 0x1C},
+        {102, 0x147},
+        {103, 0x148},
+        {104, 0x149},
+        {105, 0x14B},
+        {106, 0x14D},
+        {107, 0x14F},
+        {108, 0x150},
+        {109, 0x151},
+        {110, 0x152},
+        {111, 0x153}
+};
+
 static std::array<uint32_t, 256>& selected_keycode = x11_to_xt_base;
 
 uint16_t x11_keycode_to_keysym(uint32_t keycode)
@@ -630,6 +665,12 @@ uint16_t x11_keycode_to_keysym(uint32_t keycode)
     if (QApplication::platformName().contains("wayland"))
     {
         selected_keycode = x11_to_xt_2;
+    }
+    else if (QApplication::platformName().contains("eglfs"))
+    {
+        keycode -= 8;
+        if (keycode <= 88) return keycode;
+        else return evdev_to_xt[keycode];
     }
     else if (!x11display)
     {
@@ -685,6 +726,23 @@ void MainWindow::getTitle(wchar_t *title)
     }
 }
 
+bool MainWindow::eventFilter(QObject* receiver, QEvent* event)
+{
+    if (this->keyboardGrabber() == this) {
+        if (event->type() == QEvent::KeyPress) {
+            event->accept();
+            this->keyPressEvent((QKeyEvent*)event);
+            return true;
+        }
+        if (event->type() == QEvent::KeyRelease) {
+            event->accept();
+            this->keyReleaseEvent((QKeyEvent*)event);
+            return true;
+        }
+    }
+    return QMainWindow::eventFilter(receiver, event);
+}
+
 void MainWindow::refreshMediaMenu() {
     mm->refresh(ui->menuMedia);
 }
@@ -717,6 +775,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
     if (keyboard_ismsexit()) {
         plat_mouse_capture(0);
     }
+    event->accept();
 }
 
 void MainWindow::blitToWidget(int x, int y, int w, int h)
@@ -743,4 +802,14 @@ void MainWindow::on_actionHardware_Renderer_OpenGL_triggered() {
 
 void MainWindow::on_actionHardware_Renderer_OpenGL_ES_triggered() {
     ui->stackedWidget->setCurrentIndex(2);
+}
+
+void MainWindow::focusInEvent(QFocusEvent* event)
+{
+    this->grabKeyboard();
+}
+
+void MainWindow::focusOutEvent(QFocusEvent* event)
+{
+    this->releaseKeyboard();
 }

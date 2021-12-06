@@ -271,6 +271,7 @@ bool NewFloppyDialog::create86f(const QString& filename, const disk_size_t& disk
         return false;
     }
     QDataStream stream(&file);
+    stream.setByteOrder(QDataStream::LittleEndian);
 
     stream << magic;
     stream << version;
@@ -314,6 +315,7 @@ bool NewFloppyDialog::createSectorImage(const QString &filename, const disk_size
         return false;
     }
     QDataStream stream(&file);
+    stream.setByteOrder(QDataStream::LittleEndian);
 
     sector_bytes = (128 << disk_size.sector_len);
     total_sectors = disk_size.sides * disk_size.tracks * disk_size.sectors;
@@ -411,6 +413,7 @@ bool NewFloppyDialog::createZipSectorImage(const QString &filename, const disk_s
         return false;
     }
     QDataStream stream(&file);
+    stream.setByteOrder(QDataStream::LittleEndian);
 
     sector_bytes = (128 << disk_size.sector_len);
     total_sectors = disk_size.sides * disk_size.tracks * disk_size.sectors;
@@ -599,6 +602,7 @@ bool NewFloppyDialog::createMoSectorImage(const QString& filename, int8_t disk_s
         return false;
     }
     QDataStream stream(&file);
+    stream.setByteOrder(QDataStream::LittleEndian);
 
     sector_bytes = dp->bytes_per_sector;
     total_sectors = dp->sectors;

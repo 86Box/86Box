@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QLabel>
 #include <QEvent>
+#include <QFocusEvent>
 
 #include <memory>
 
@@ -63,6 +64,9 @@ private slots:
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;
+    void focusInEvent(QFocusEvent* event) override;
+    void focusOutEvent(QFocusEvent* event) override;
+    bool eventFilter(QObject* receiver, QEvent* event) override;
 
 private:
     Ui::MainWindow *ui;

@@ -1,5 +1,9 @@
 #include "qt_hardwarerenderer.hpp"
 
+extern "C" {
+#include <86box/86box.h>
+}
+
 void HardwareRenderer::resizeGL(int w, int h)
 {
     glViewport(0, 0, w, h);
@@ -13,6 +17,7 @@ void HardwareRenderer::initializeGL()
 void HardwareRenderer::paintGL()
 {
     QPainter painter(this);
+    painter.setRenderHint(QPainter::SmoothPixmapTransform, video_filter_method > 0 ? true : false);
     painter.drawImage(QRect(0, 0, width(), height()), image, QRect(sx, sy, sw, sh));
     // "release" image, reducing it's refcount, so renderstack::blit()
     // won't have to reallocate

@@ -18,32 +18,14 @@ public:
     void save();
 private slots:
     void on_pushButtonConfigureCard4_clicked();
-
-private slots:
     void on_comboBoxCard4_currentIndexChanged(int index);
-
-private slots:
     void on_pushButtonConfigureCard3_clicked();
-
-private slots:
     void on_comboBoxCard3_currentIndexChanged(int index);
-
-private slots:
     void on_pushButtonConfigureCard2_clicked();
-
-private slots:
     void on_comboBoxCard2_currentIndexChanged(int index);
-
-private slots:
     void on_pushButtonConfigureCard1_clicked();
-
-private slots:
     void on_comboBoxCard1_currentIndexChanged(int index);
-
-private slots:
     void on_pushButtonConfigureRTC_clicked();
-
-private slots:
     void on_comboBoxRTC_currentIndexChanged(int index);
 
 private:

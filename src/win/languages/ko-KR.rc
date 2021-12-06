@@ -31,24 +31,24 @@ BEGIN
     END
     POPUP "표시(&V)"
     BEGIN
-        MENUITEM "상태 바 숨김(&H)",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "상태 바 숨기기(&H)",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM SEPARATOR
-        MENUITEM "창 크기 변경 가능(&R)",          IDM_VID_RESIZE
-        MENUITEM "창 크기와 위치를 기억(&E)",  IDM_VID_REMEMBER
+        MENUITEM "창 크기 조절 가능하게 하기(&R)",          IDM_VID_RESIZE
+        MENUITEM "창 크기와 위치를 기억하기(&E)",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
         POPUP "렌더러(&N)"
         BEGIN
             MENUITEM "SDL (소프트웨어)(&S)",         IDM_VID_SDL_SW
             MENUITEM "SDL (하드웨어)(&H)",         IDM_VID_SDL_HW
             MENUITEM "SDL (OpenGL)(&O)",           IDM_VID_SDL_OPENGL
-            MENUITEM "OpenGL (3.3 코어)(&G)",      IDM_VID_OPENGL_CORE
+            MENUITEM "OpenGL (3.0 코어)(&G)",      IDM_VID_OPENGL_CORE
 #ifdef USE_VNC
             MENUITEM "VNC(&V)",                    IDM_VID_VNC
 #endif
         END
         MENUITEM SEPARATOR
         MENUITEM "창 크기 지정하기...",          IDM_VID_SPECIFY_DIM
-        MENUITEM "4:3으로 맞추기(&O)",    IDM_VID_FORCE43
+        MENUITEM "화면 비율을 4:3으로 맞추기(&O)",    IDM_VID_FORCE43
         POPUP "창 표시 배율(&W)"
         BEGIN
             MENUITEM "0.5배(&0)",                   IDM_VID_SCALE_1X
@@ -73,8 +73,8 @@ BEGIN
         END
         POPUP "E&GA/(S)VGA 설정"
         BEGIN
-            MENUITEM "색상 반전된 VGA 모니터(&)",   IDM_VID_INVERT
-            POPUP "VGA 화면 유형(&T)"
+            MENUITEM "색상 반전된 VGA 모니터(&I)",   IDM_VID_INVERT
+            POPUP "VGA 화면 종류(&T)"
             BEGIN
                 MENUITEM "RGB 천연색(&C)",         IDM_VID_GRAY_RGB
                 MENUITEM "RGB 회색조(&R)",   IDM_VID_GRAY_MONO
@@ -97,7 +97,7 @@ BEGIN
     POPUP "도구(&T)"
     BEGIN
         MENUITEM "설정(&S)...",                IDM_CONFIG
-        MENUITEM "상태 바 아이콘 업데이트(&U)",	IDM_UPDATE_ICONS
+        MENUITEM "상태 바 아이콘 갱신하기(&U)",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
         MENUITEM "스크린샷 찍기(&C)\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
@@ -130,7 +130,7 @@ BEGIN
         MENUITEM "IDE 로그 켜기\tCtrl+F8", IDM_LOG_IDE
 # endif
 # ifdef ENABLE_SERIAL_LOG
-        MENUITEM "시리얼 포트 로그 켜기\tCtrl+F3", IDM_LOG_SERIAL
+        MENUITEM "직렬 포트 로그 켜기\tCtrl+F3", IDM_LOG_SERIAL
 # endif
 # ifdef ENABLE_NIC_LOG
         MENUITEM "네트워크 로그 켜기\tCtrl+F9", IDM_LOG_NIC
@@ -288,7 +288,7 @@ END
 
 #define STR_WIDTH		"가로:"
 #define STR_HEIGHT		"세로:"
-#define STR_LOCK_TO_SIZE	"이 크기를 고정"
+#define STR_LOCK_TO_SIZE	"크기 고정"
 
 #define STR_MACHINE_TYPE	"머신 종류:"
 #define STR_MACHINE		"기종:"
@@ -296,7 +296,7 @@ END
 #define STR_CPU_TYPE		"CPU 종류:"
 #define STR_SPEED		"속도:"
 #define STR_FPU			"FPU:"
-#define STR_WAIT_STATES		"지연 시간:"
+#define STR_WAIT_STATES		"대기 상태:"
 #define STR_MB			"MB"
 #define STR_MEMORY		"메모리:"
 #define STR_TIME_SYNC		"시간 동기화"
@@ -339,8 +339,8 @@ END
 #define STR_PARALLEL2		"병렬 포트 2"
 #define STR_PARALLEL3		"병렬 포트 3"
 
-#define STR_HDC			"HD컨트롤러:"
-#define STR_FDC			"FD컨트롤러:"
+#define STR_HDC			"HD 컨트롤러:"
+#define STR_FDC			"FD 컨트롤러:"
 #define STR_IDE_TER		"제3의 IDE 컨트롤러"
 #define STR_IDE_QUA		"제4의 IDE 컨트롤러"
 #define STR_SCSI		"SCSI"
@@ -365,7 +365,7 @@ END
 #define STR_SIZE_MB		"용량(MB):"
 #define STR_TYPE		"형식:"
 #define STR_IMG_FORMAT		"이미지 포맷:"
-#define STR_BLOCK_SIZE		"블럭 사이즈:"
+#define STR_BLOCK_SIZE		"블록 크기:"
 
 #define STR_FLOPPY_DRIVES	"플로피 드라이브:"
 #define STR_TURBO		"고속 동작"
@@ -426,7 +426,7 @@ BEGIN
     IDS_2070	"포트 (COM & LPT)"
     IDS_2071	"장치 컨트롤러"
     IDS_2072	"하드 디스크"
-    IDS_2073	"플로피 / CD-ROM 드라이브"
+    IDS_2073	"플로피 / CD-ROM"
     IDS_2074	"기타 이동식 저장장치"
     IDS_2075	"기타 주변기기"
     IDS_2076	"표면 이미지 (*.86F)\0*.86F\0"
@@ -448,7 +448,7 @@ BEGIN
     IDS_2088	"KB"
     IDS_2089	"비디오 렌더러를 초기화할 수 없습니다."
     IDS_2090	"기본값"
-    IDS_2091	"지연 시간 %i"
+    IDS_2091	"%i 대기 상태"
     IDS_2092	"형식"
     IDS_2093	"PCap 설정에 실패했습니다"
     IDS_2094	"PCap 장치가 없습니다"
@@ -524,7 +524,7 @@ BEGIN
     IDS_2143	"OpenGL 쉐이더 (*.GLSL)\0*.GLSL\0모든 파일 (*.*)\0*.*\0"
     IDS_2144	"OpenGL 설정"
     IDS_2145	"지원하지 않는 설정입니다"
-    IDS_2146	"이 에뮬레이트된 기종에 대해 선택한 기종을 기반으로 하는 CPU 타입 필터링이 사용되지 않도록 설정되었습니다.\n\n따라서 선택된 머신과 호환되지 않는 CPU를 선택하실 수 있습니다. 하지만 BIOS 또는 다른 소프트웨어와 호환되지 않을 수 있습니다.\n\n이 설정을 활성화하는 것은 공식적으로 지원되지 않으며, 제출된 버그 보고서는 유효하지 않음으로 닫힐 수 있습니다."
+    IDS_2146	"이 에뮬레이트된 기종에 대해 선택한 기종을 기반으로 하는 CPU 종류 필터링이 사용되지 않도록 설정되었습니다.\n\n따라서 선택된 머신과 호환되지 않는 CPU를 선택하실 수 있습니다. 하지만 BIOS 또는 다른 소프트웨어와 호환되지 않을 수 있습니다.\n\n이 설정을 활성화하는 것은 공식적으로 지원되지 않으며, 제출된 버그 보고서는 유효하지 않음으로 닫힐 수 있습니다."
     IDS_2147	"계속"
     IDS_2148	"카세트: %s"
     IDS_2149	"카세트 이미지 (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0모든 파일 (*.*)\0*.*\0"
@@ -547,7 +547,7 @@ BEGIN
     IDS_4106	"하드 디스크 이미지 (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0모든 파일 (*.*)\0*.*\0"
     IDS_4107	"파일을 읽을 수 없습니다"
     IDS_4108	"파일을 저장할 수 없습니다"
-    IDS_4109	"512 바이트 이외의 섹터 용량을 가진 HDI 또는 HDX 형식의 이미지를 생성할 수 없습니다"
+    IDS_4109	"512 바이트 이외의 섹터 크기를 가진 HDI 또는 HDX 형식의 이미지를 생성할 수 없습니다"
     IDS_4110	"USB는 아직 지원하지 않습니다"
     IDS_4111	"디스크 이미지 파일이 이미 존재합니다"
     IDS_4112	"올바른 파일명을 지정해 주세요."
@@ -557,7 +557,7 @@ BEGIN
     IDS_4116	"디스크 이미지가 너무 큽니다"
     IDS_4117	"새로 생성한 드라이브의 파티션 설정과 포맷을 꼭 해주세요."
     IDS_4118	"선택하신 파일을 덮어씌웁니다. 사용하시겠습니까?"
-    IDS_4119	"지원하지 않는 디스크 이미지"
+    IDS_4119	"지원하지 않는 디스크 이미지입니다"
     IDS_4120	"덮어쓰기"
     IDS_4121	"덮어쓰지 않음"
     IDS_4122	"Raw 이미지 (.img)"
@@ -566,8 +566,8 @@ BEGIN
     IDS_4125	"고정 사이즈 VHD (.vhd)"
     IDS_4126	"동적 사이즈 VHD (.vhd)"
     IDS_4127	"디퍼런싱 VHD (.vhd)"
-    IDS_4128	"대형 블럭 (2 MB)"
-    IDS_4129	"소형 블럭 (512 KB)"
+    IDS_4128	"대형 블록 (2 MB)"
+    IDS_4129	"소형 블록 (512 KB)"
     IDS_4130	"VHD 파일 (*.VHD)\0*.VHD\0모든 파일 (*.*)\0*.*\0"
     IDS_4131	"부모 VHD 선택"
     IDS_4132	"이는 디퍼런싱 이미지가 생성된 후 부모 이미지가 수정되었음을 의미할 수 있습니다.\n\n이미지 파일이 이동 또는 복사된 경우 또는 이 디스크를 만든 프로그램의 버그로 인해 발생할 수도 있습니다.\n\n타임스탬프를 수정하시겠습니까?"

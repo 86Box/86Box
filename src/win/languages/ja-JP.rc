@@ -33,22 +33,22 @@ BEGIN
     BEGIN
         MENUITEM "ステータスバーを隠す(&H)",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM SEPARATOR
-        MENUITEM "ウィンドウのサイズを変更できるようにする(&R)",          IDM_VID_RESIZE
-        MENUITEM "ウィンドウのサイズと位置を記憶(&E)",  IDM_VID_REMEMBER
+        MENUITEM "ウィンドウのサイズを変更可能にする(&R)",          IDM_VID_RESIZE
+        MENUITEM "ウィンドウのサイズと位置を記憶する(&E)",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
         POPUP "レンダラー(&N)"
         BEGIN
             MENUITEM "SDL (ソフトウェア)(&S)",         IDM_VID_SDL_SW
             MENUITEM "SDL (ハードウェア)(&H)",         IDM_VID_SDL_HW
             MENUITEM "SDL (OpenGL)(&O)",           IDM_VID_SDL_OPENGL
-            MENUITEM "OpenGL (3.3コア)(&G)",      IDM_VID_OPENGL_CORE
+            MENUITEM "OpenGL (3.0コア)(&G)",      IDM_VID_OPENGL_CORE
 #ifdef USE_VNC
             MENUITEM "VNC(&V)",                    IDM_VID_VNC
 #endif
         END
         MENUITEM SEPARATOR
         MENUITEM "ウィンドウのサイズを指定する...",          IDM_VID_SPECIFY_DIM
-        MENUITEM "4:3に合わせる(&O)",    IDM_VID_FORCE43
+        MENUITEM "画面比率を4:3に合わせる(&O)",    IDM_VID_FORCE43
         POPUP "ウィンドウの倍率(&W)"
         BEGIN
             MENUITEM "0.5x(&0)",                   IDM_VID_SCALE_1X
@@ -73,7 +73,7 @@ BEGIN
         END
         POPUP "E&GA/(S)VGAの設定"
         BEGIN
-            MENUITEM "色反転VGAモニター(&)",   IDM_VID_INVERT
+            MENUITEM "色反転VGAモニター(&I)",   IDM_VID_INVERT
             POPUP "VGA画面タイプ(&T)"
             BEGIN
                 MENUITEM "RGBカラー(&C)",         IDM_VID_GRAY_RGB
@@ -97,7 +97,7 @@ BEGIN
     POPUP "ツール(&T)"
     BEGIN
         MENUITEM "設定(&S)...",                IDM_CONFIG
-        MENUITEM "ステータスバーアイコンの更新(&U)",	IDM_UPDATE_ICONS
+        MENUITEM "ステータスバーのアイコンを更新する(&U)",	IDM_UPDATE_ICONS
         MENUITEM SEPARATOR
         MENUITEM "スクリーンショットを撮る(&C)\tCtrl+F11",  IDM_ACTION_SCREENSHOT
         MENUITEM SEPARATOR
@@ -249,11 +249,11 @@ BEGIN
     POPUP "目標フレームレート(&F)"
     BEGIN
         MENUITEM "ビデオとの同期(&S)", IDM_VID_GL_FPS_BLITTER
-        MENUITEM "25フレーム/秒(&2)", IDM_VID_GL_FPS_25
-        MENUITEM "30フレーム/秒(&3)", IDM_VID_GL_FPS_30
-        MENUITEM "50フレーム/秒(&5)", IDM_VID_GL_FPS_50
-        MENUITEM "60フレーム/秒(&6)", IDM_VID_GL_FPS_60
-        MENUITEM "75フレーム/秒(&7)", IDM_VID_GL_FPS_75
+        MENUITEM "25 fps(&2)", IDM_VID_GL_FPS_25
+        MENUITEM "30 fps(&3)", IDM_VID_GL_FPS_30
+        MENUITEM "50 fps(&5)", IDM_VID_GL_FPS_50
+        MENUITEM "60 fps(&6)", IDM_VID_GL_FPS_60
+        MENUITEM "75 fps(&7)", IDM_VID_GL_FPS_75
     END
     MENUITEM "VSync(&V)", IDM_VID_GL_VSYNC
     MENUITEM "シェーダの選択(&S)...", IDM_VID_GL_SHADER
@@ -284,7 +284,7 @@ END
 #define STR_FILE_NAME		"ファイル名:"
 #define STR_DISK_SIZE		"ディスクの容量:"
 #define STR_RPM_MODE		"RPMモード:"
-#define STR_PROGRESS		"プログレス:"
+#define STR_PROGRESS		"進行:"
 
 #define STR_WIDTH		"幅:"
 #define STR_HEIGHT		"高さ:"
@@ -324,9 +324,9 @@ END
 #define STR_GUS			"Gravis Ultrasound"
 #define STR_FLOAT		"FLOAT32サウンドを使用"
 
-#define STR_NET_TYPE		"ﾈｯﾄﾜｰｸﾀｲﾌﾟ:"
+#define STR_NET_TYPE		"ネットワークタイプ:"
 #define STR_PCAP		"PCapデバイス:"
-#define STR_NET			"ﾈｯﾄﾜｰｸｱﾀﾞﾌﾟﾀｰ:"
+#define STR_NET			"ネットワークカード:"
 
 #define STR_LPT1		"LPT1デバイス:"
 #define STR_LPT2		"LPT2デバイス:"
@@ -339,15 +339,15 @@ END
 #define STR_PARALLEL2		"パラレルポート2"
 #define STR_PARALLEL3		"パラレルポート3"
 
-#define STR_HDC			"HDｺﾝﾄﾛｰﾗｰ:"
-#define STR_FDC			"FDｺﾝﾄﾛｰﾗｰ:"
+#define STR_HDC			"HDコントローラー:"
+#define STR_FDC			"FDコントローラー:"
 #define STR_IDE_TER		"第三のIDEコントローラー"
 #define STR_IDE_QUA		"第四のIDEコントローラー"
 #define STR_SCSI		"SCSI"
-#define STR_SCSI_1		"ｺﾝﾄﾛｰﾗｰ1:"
-#define STR_SCSI_2		"ｺﾝﾄﾛｰﾗｰ2:"
-#define STR_SCSI_3		"ｺﾝﾄﾛｰﾗｰ3:"
-#define STR_SCSI_4		"ｺﾝﾄﾛｰﾗｰ4:"
+#define STR_SCSI_1		"コントローラー1:"
+#define STR_SCSI_2		"コントローラー2:"
+#define STR_SCSI_3		"コントローラー3:"
+#define STR_SCSI_4		"コントローラー4:"
 #define STR_CASSETTE		"カセット"
 
 #define STR_HDD			"ハードディスク:"
@@ -359,13 +359,13 @@ END
 #define STR_ID			"ID:"
 
 #define STR_SPECIFY		"参照(&S)..."
-#define STR_SECTORS		"ｾｸﾀｰ:"
-#define STR_HEADS		"ﾍｯﾄﾞ:"
-#define STR_CYLS		"ｼﾘﾝﾀﾞｰ:"
+#define STR_SECTORS		"セクター:"
+#define STR_HEADS		"ヘッド:"
+#define STR_CYLS		"シリンダー:"
 #define STR_SIZE_MB		"容量(MB):"
 #define STR_TYPE		"形式:"
-#define STR_IMG_FORMAT		"ｲﾒｰｼﾞﾌｫｰﾏｯﾄ:"
-#define STR_BLOCK_SIZE		"ﾌﾞﾛｯｸｻｲｽﾞ:"
+#define STR_IMG_FORMAT		"イメージ形式:"
+#define STR_BLOCK_SIZE		"ブロックサイズ:"
 
 #define STR_FLOPPY_DRIVES	"フロッピードライブ:"
 #define STR_TURBO		"高速タイミング"
@@ -376,8 +376,8 @@ END
 #define STR_ZIP_DRIVES		"ZIPドライブ:"
 #define STR_250			"ZIP 250"
 
-#define STR_ISARTC		"ISA RTCｶｰﾄﾞ:"
-#define STR_ISAMEM		"ISAメモリー拡張ボード"
+#define STR_ISARTC		"ISA RTCカード:"
+#define STR_ISAMEM		"ISAメモリー拡張カード"
 #define STR_ISAMEM_1		"カード1:"
 #define STR_ISAMEM_2		"カード2:"
 #define STR_ISAMEM_3		"カード3:"
@@ -405,7 +405,7 @@ BEGIN
     IDS_2053	"速度"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIPイメージ (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
-    IDS_2056	"86Boxでは、使用可能なROMイメージが見つかりませんでした。\n\nROMセットを<a href=""https://github.com/86Box/roms/releases/latest"">ダウンロード</a>して、《roms》ディレクトリに解凍してください。"
+    IDS_2056	"86Boxで使用可能なROMイメージが見つかりませんでした。\n\nROMセットを<a href=""https://github.com/86Box/roms/releases/latest"">ダウンロード</a>して、《roms》ディレクトリに解凍してください。"
     IDS_2057	"(空)"
     IDS_2058	"ZIPイメージ (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0すべてのファイル (*.*)\0*.*\0"
     IDS_2059	"高速"
@@ -426,7 +426,7 @@ BEGIN
     IDS_2070	"ポート (COM & LPT)"
     IDS_2071	"ストレージコントローラ"
     IDS_2072	"ハードディスク"
-    IDS_2073	"フロッピー・CD-ROMドライブ"
+    IDS_2073	"フロッピー/CD-ROMドライブ"
     IDS_2074	"その他のリムーバブルデバイス"
     IDS_2075	"その他の周辺機器"
     IDS_2076	"表面イメージ (*.86F)\0*.86F\0"
@@ -479,7 +479,7 @@ BEGIN
     IDS_2119	"終了"
     IDS_2120	"ROMが見つかりません"
     IDS_2121	"設定を保存しますか？"
-    IDS_2122	"これにより、エミュレートされたマシンが再起動されます。"
+    IDS_2122	"保存すると使用中のマシンが再起動されます。"
     IDS_2123	"保存"
     IDS_2124	"86Boxについて"
     IDS_2125	"86Box v" EMU_VERSION
@@ -492,7 +492,7 @@ BEGIN
 #else
 #define LIB_NAME_PCAP "libpcap"
 #endif
-    IDS_2129	LIB_NAME_PCAP "がインストールされてるか、" LIB_NAME_PCAP "に対応したネットワークに接続されてるかを確認してください。"
+    IDS_2129	LIB_NAME_PCAP "がインストールされてるか、" LIB_NAME_PCAP "に対応したネットワークに接続されてるか確認してください。"
     IDS_2130	"不正な設定です"
 #ifdef _WIN32
 #define LIB_NAME_FREETYPE "freetype.dll"
@@ -524,7 +524,7 @@ BEGIN
     IDS_2143	"OpenGLシェーダー (*.GLSL)\0*.GLSL\0すべてのファイル (*.*)\0*.*\0"
     IDS_2144	"OpenGLの設定"
     IDS_2145	"サポートされていない設定を読み込んでいます"
-    IDS_2146	"選択したマシンに基づくCPUタイプのフィルタリングは、このエミュレートされたマシンでは無効になっています。\n\nこれにより、選択したマシンと互換性のないCPUが選択できます。 ただし、マシンBIOSまたは他のソフトウェアとの互換性が失われる可能性があります。\n\nこの設定の有効化は正式的にサポートされていません。また、バグレポートが無効として閉じられる場合があります。"
+    IDS_2146	"選択したマシンに基づくCPUタイプのフィルタリングは、このエミュレートされたマシンでは無効になっています。\n\nこれにより、選択したマシンと互換性のないCPUが選択できます。 ただし、マシンのBIOSまたは他のソフトウェアとの互換性が失われる可能性があります。\n\nこの設定の有効化は公式サポートができません。また、バグレポートが無効として閉じられる場合があります。"
     IDS_2147	"つづく"
     IDS_2148	"カセット: %s"
     IDS_2149	"カセットイメージ (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0すべてのファイル (*.*)\0*.*\0"

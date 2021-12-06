@@ -87,7 +87,7 @@ void SettingsSound::onCurrentMachineChanged(int machineId) {
 
         if (midi_device_available(c)) {
             int row = Models::AddEntry(model, name, c);
-            if (c == midi_input_device_current) {
+            if (c == midi_device_current) {
                 selectedRow = row - removeRows;
             }
         }
@@ -110,7 +110,7 @@ void SettingsSound::onCurrentMachineChanged(int machineId) {
 
         if (midi_in_device_available(c)) {
             int row = Models::AddEntry(model, name, c);
-            if (c == midi_device_current) {
+            if (c == midi_input_device_current) {
                 selectedRow = row - removeRows;
             }
         }

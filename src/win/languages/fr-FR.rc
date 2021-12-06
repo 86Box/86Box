@@ -41,7 +41,7 @@ BEGIN
             MENUITEM "&SDL (Logiciel)",         IDM_VID_SDL_SW
             MENUITEM "SDL (&Materiel)",         IDM_VID_SDL_HW
             MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
-            MENUITEM "Open&GL (3.3 Core)",      IDM_VID_OPENGL_CORE
+            MENUITEM "Open&GL (3.0 Core)",      IDM_VID_OPENGL_CORE
 #ifdef USE_VNC
             MENUITEM "&VNC",                    IDM_VID_VNC
 #endif
@@ -49,7 +49,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "Specifier dimensions...",          IDM_VID_SPECIFY_DIM
         MENUITEM "F&orcer 4:3",    IDM_VID_FORCE43
-        POPUP "&Echelle facteurr"
+        POPUP "&Echelle facteur"
         BEGIN
             MENUITEM "&0.5x",                   IDM_VID_SCALE_1X
             MENUITEM "&1x",                     IDM_VID_SCALE_2X
@@ -148,7 +148,7 @@ BEGIN
 # endif
     END
 #endif
-    POPUP "&?"
+    POPUP "&Aide"
     BEGIN
         MENUITEM "&Documentation...",           IDM_DOCS
         MENUITEM "&A Propos de 86Box...",             IDM_ABOUT
@@ -167,7 +167,7 @@ BEGIN
         MENUITEM "&Nouvelle image...",				IDM_CASSETTE_IMAGE_NEW
         MENUITEM SEPARATOR
         MENUITEM "Image &Existante...",				IDM_CASSETTE_IMAGE_EXISTING
-        MENUITEM "Image Exsistane(&Lecture seule)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM "Image Existante(&Lecture seule)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
         MENUITEM SEPARATOR
         MENUITEM "En&registrer",					IDM_CASSETTE_RECORD
         MENUITEM "&Jouer",					IDM_CASSETTE_PLAY

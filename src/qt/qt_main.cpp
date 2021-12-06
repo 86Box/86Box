@@ -95,6 +95,14 @@ int main(int argc, char* argv[]) {
 
     main_window = new MainWindow();
     main_window->show();
+    main_window->setFocus();
+    app.installEventFilter(main_window);
+    auto widgetList = app.allWidgets();
+    for (auto curWidget : widgetList)
+    {
+        curWidget->setFocusPolicy(Qt::NoFocus);
+    }
+    main_window->setFocusPolicy(Qt::StrongFocus);
 
     pc_init(argc, argv);
     if (! pc_init_modules()) {
