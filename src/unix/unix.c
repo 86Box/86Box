@@ -454,6 +454,12 @@ ui_sb_update_panes()
 }
 
 void
+ui_sb_update_text()
+{
+
+}
+
+void
 plat_get_dirname(char *dest, const char *path)
 {
     int c = (int)strlen(path);
