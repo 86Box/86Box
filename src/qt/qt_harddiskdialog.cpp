@@ -371,12 +371,12 @@ void HarddiskDialog::onCreateNewFile() {
         uint64_t restBlock = size & 0xfffff;
 
         if (restBlock) {
-            stream << QByteArray::fromRawData(buf.data(), restBlock);
+            stream.writeRawData(buf.data(), restBlock);
         }
 
         if (mibBlocks) {
             for (uint64_t i = 0; i < mibBlocks; ++i) {
-                stream << buf;
+                stream.writeRawData(buf.data(), buf.size());
                 emit fileProgress(static_cast<int>((i * 100) / mibBlocks));
             }
         }
