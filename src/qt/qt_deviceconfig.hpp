@@ -19,7 +19,7 @@ public:
     explicit DeviceConfig(QWidget *parent = nullptr);
     ~DeviceConfig();
 
-    static void ConfigureDevice(const _device_* device);
+    static void ConfigureDevice(const _device_* device, int instance = 0);
     static QString DeviceName(const _device_* device, const char* internalName, int bus);
 private:
     Ui::DeviceConfig *ui;
