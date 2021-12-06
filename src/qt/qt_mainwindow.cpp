@@ -102,6 +102,20 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
     ui->actionRight_CTRL_is_left_ALT->setChecked(rctrl_is_lalt);
     ui->actionResizable_window->setChecked(vid_resize > 0);
+    switch (vid_api) {
+    case 0:
+        ui->stackedWidget->setCurrentIndex(0);
+        ui->actionSoftware_Renderer->setChecked(true);
+        break;
+    case 1:
+        ui->stackedWidget->setCurrentIndex(1);
+        ui->actionHardware_Renderer_OpenGL->setChecked(true);
+        break;
+    case 2:
+        ui->stackedWidget->setCurrentIndex(2);
+        ui->actionHardware_Renderer_OpenGL_ES->setChecked(true);
+        break;
+    }
 
     setFocusPolicy(Qt::StrongFocus);
     ui->gles->setFocusPolicy(Qt::NoFocus);
@@ -797,14 +811,23 @@ void MainWindow::keyReleaseEvent(QKeyEvent* event)
 
 void MainWindow::on_actionSoftware_Renderer_triggered() {
     ui->stackedWidget->setCurrentIndex(0);
+    ui->actionHardware_Renderer_OpenGL->setChecked(false);
+    ui->actionHardware_Renderer_OpenGL_ES->setChecked(false);
+    vid_api = 0;
 }
 
 void MainWindow::on_actionHardware_Renderer_OpenGL_triggered() {
     ui->stackedWidget->setCurrentIndex(1);
+    ui->actionSoftware_Renderer->setChecked(false);
+    ui->actionHardware_Renderer_OpenGL_ES->setChecked(false);
+    vid_api = 1;
 }
 
 void MainWindow::on_actionHardware_Renderer_OpenGL_ES_triggered() {
     ui->stackedWidget->setCurrentIndex(2);
+    ui->actionSoftware_Renderer->setChecked(false);
+    ui->actionHardware_Renderer_OpenGL->setChecked(false);
+    vid_api = 2;
 }
 
 void MainWindow::focusInEvent(QFocusEvent* event)
