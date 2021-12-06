@@ -7,10 +7,6 @@
 
 #include "qt_mainwindow.hpp"
 
-std::atomic_int resize_pending = 0;
-std::atomic_int resize_w = 0;
-std::atomic_int resize_h = 0;
-
 MainWindow* main_window = nullptr;
 
 extern "C" {
@@ -46,10 +42,6 @@ void mouse_poll() {
 }
 
 void plat_resize(int w, int h) {
-    resize_w = w;
-    resize_h = h;
-    resize_pending = 1;
-
     main_window->resizeContents(w, h);
 }
 

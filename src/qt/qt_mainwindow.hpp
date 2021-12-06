@@ -56,6 +56,7 @@ private slots:
     void on_actionHardware_Renderer_OpenGL_ES_triggered();
     void on_actionHardware_Renderer_OpenGL_triggered();
     void on_actionSoftware_Renderer_triggered();
+    void on_actionResizable_window_triggered(bool checked);
 
     void refreshMediaMenu();
     void showMessage_(const QString& header, const QString& message);

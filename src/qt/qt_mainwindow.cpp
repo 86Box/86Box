@@ -79,8 +79,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
         if (!QApplication::platformName().contains("eglfs")) {
+            int modifiedHeight = h + menuBar()->height() + statusBar()->height();
             ui->stackedWidget->resize(w, h);
-            resize(w, h + menuBar()->height() + statusBar()->height());
+            if (vid_resize == 0) {
+                setFixedSize(w, modifiedHeight);
+            } else {
+                resize(w, modifiedHeight);
+            }
         }
     });
 
@@ -98,6 +103,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
     ui->actionRight_CTRL_is_left_ALT->setChecked(rctrl_is_lalt);
+    ui->actionResizable_window->setChecked(vid_resize > 0);
 
     setFocusPolicy(Qt::StrongFocus);
     ui->gles->setFocusPolicy(Qt::NoFocus);
@@ -738,6 +744,7 @@ bool MainWindow::eventFilter(QObject* receiver, QEvent* event)
             return true;
         }
     }
+
     return QMainWindow::eventFilter(receiver, event);
 }
 
@@ -811,3 +818,14 @@ void MainWindow::focusOutEvent(QFocusEvent* event)
 {
     this->releaseKeyboard();
 }
+
+void MainWindow::on_actionResizable_window_triggered(bool checked) {
+    if (checked) {
+        vid_resize = 1;
+        setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+    } else {
+        vid_resize = 0;
+    }
+    emit resizeContents(scrnsz_x, scrnsz_y);
+}
+
