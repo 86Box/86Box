@@ -224,7 +224,7 @@ else
 	fi
 	libpkgs=""
 	longest_libpkg=0
-	for pkg in libc6-dev linux-libc-dev libopenal-dev libfreetype6-dev libsdl2-dev libpng-dev
+	for pkg in libc6-dev linux-libc-dev libopenal-dev libfreetype6-dev libsdl2-dev libpng-dev librtmidi-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
 		length=$(echo -n $pkg | sed 's/-dev$//' | wc -c)
@@ -237,6 +237,12 @@ else
 		arm32)	arch_gnu="arm-linux-gnueabihf";;
 		arm64)	arch_gnu="aarch64-linux-gnu";;
 		*)	arch_gnu="$arch-linux-gnu";;
+	esac
+
+	# Determine library directory name for this architecture.
+	case $arch in
+		x86)	libdir="i386-linux-gnu";;
+		*)	libdir="$arch_gnu";;
 	esac
 
 	# Create CMake toolchain file.
@@ -257,6 +263,9 @@ set(CMAKE_STRIP $arch_gnu-strip)
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
 set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+
+set(ENV{PKG_CONFIG_PATH} "")
+set(ENV{PKG_CONFIG_LIBDIR} "/usr/lib/$libdir/pkgconfig:/usr/share/$libdir/pkgconfig")
 EOF
 	cmake_flags_extra="$cmake_flags_extra -D CMAKE_TOOLCHAIN_FILE=toolchain.cmake"
 	strip_binary="$arch_gnu-strip"

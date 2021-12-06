@@ -18,10 +18,12 @@ cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
 
-set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+if(VCPKG_TOOLCHAIN AND VCPKG_TARGET_TRIPLET MATCHES "static")
+	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif()
 
 project(86Box
-	VERSION 3.0
+	VERSION 3.1
 	DESCRIPTION "Emulator of x86-based systems"
 	HOMEPAGE_URL "https://86box.net"
 	LANGUAGES C CXX)
@@ -52,6 +54,8 @@ if(WIN32)
 	add_compile_definitions(_WINSOCK_DEPRECATED_NO_WARNINGS)
 endif()
 
+set(CMAKE_CXX_STANDARD 11)
+
 option(RELEASE "Release build" OFF)
 option(USB "USB support" OFF)
 option(DYNAREC "Dynamic recompiler" ON)
@@ -77,7 +81,7 @@ CMAKE_DEPENDENT_OPTION(MGA "Matrox Mystique graphics adapters" ON "DEV_BRANCH" O
 CMAKE_DEPENDENT_OPTION(NO_SIO "Machines without emulated Super I/O chips" ON "DEV_BRANCH" OFF)
 CMAKE_DEPENDENT_OPTION(OLIVETTI "Olivetti M290" ON "DEV_BRANCH" OFF)
 CMAKE_DEPENDENT_OPTION(OPEN_AT "OpenAT" ON "DEV_BRANCH" OFF)
-CMAKE_DEPENDENT_OPTION(OPENGL "OpenGL 3.3 Core renderer" ON "DEV_BRANCH" OFF)
+CMAKE_DEPENDENT_OPTION(OPENGL "OpenGL 3.0 Core renderer" ON "DEV_BRANCH" OFF)
 CMAKE_DEPENDENT_OPTION(PAS16 "Pro Audio Spectrum 16" OFF "DEV_BRANCH" OFF)
 CMAKE_DEPENDENT_OPTION(PS2M70T4 "IBM PS/2 model 70 (type 4)" ON "DEV_BRANCH" OFF)
 CMAKE_DEPENDENT_OPTION(S3TRIO3D2X "S3 Trio3D/2X" ON "DEV_BRANCH" OFF)
