@@ -477,6 +477,11 @@ rivatnt_ptimer_write(uint32_t addr, uint32_t val, void *p)
 		break;
 	case 0x009420:
 		rivatnt->ptimer.alarm = val & 0xffffffe0;
+		//HACK to make wfw3.11 not take forever to start
+		if(val == 0xffffffff)
+		{
+			rivatnt_ptimer_interrupt(0, rivatnt);
+		}
 		break;
 	}
 }
