@@ -99,7 +99,7 @@ void RendererStack::wheelEvent(QWheelEvent *event)
 {
     if (mouse_capture)
     {
-        mousedata.deltay += event->pixelDelta().y();
+        mousedata.deltaz += event->pixelDelta().y();
     }
 }
 
