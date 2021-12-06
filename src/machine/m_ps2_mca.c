@@ -494,6 +494,7 @@ static void model_55sx_write(uint16_t port, uint8_t val)
                 }
 
 		remap_size = (val & 0x10) ? 384 : 256;
+		mem_set_mem_state(mem_size * 1024, 384 * 1024, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
 
                 if (val & 0x20)
                         mem_set_mem_state(mem_size * 1024, remap_size * 1024, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
