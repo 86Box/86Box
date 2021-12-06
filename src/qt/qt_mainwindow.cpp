@@ -102,6 +102,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
     ui->actionRight_CTRL_is_left_ALT->setChecked(rctrl_is_lalt);
     ui->actionResizable_window->setChecked(vid_resize > 0);
+    ui->menuWindow_scale_factor->setEnabled(vid_resize == 0);
     switch (vid_api) {
     case 0:
         ui->stackedWidget->setCurrentIndex(0);
@@ -114,6 +115,20 @@ MainWindow::MainWindow(QWidget *parent) :
     case 2:
         ui->stackedWidget->setCurrentIndex(2);
         ui->actionHardware_Renderer_OpenGL_ES->setChecked(true);
+        break;
+    }
+    switch (scale) {
+    case 0:
+        ui->action0_5x->setChecked(true);
+        break;
+    case 1:
+        ui->action1x->setChecked(true);
+        break;
+    case 2:
+        ui->action1_5x->setChecked(true);
+        break;
+    case 3:
+        ui->action2x->setChecked(true);
         break;
     }
 
@@ -847,6 +862,7 @@ void MainWindow::on_actionResizable_window_triggered(bool checked) {
     } else {
         vid_resize = 0;
     }
+    ui->menuWindow_scale_factor->setEnabled(! checked);
     emit resizeContents(scrnsz_x, scrnsz_y);
 }
 
@@ -865,3 +881,37 @@ void MainWindow::on_actionInverted_VGA_monitor_triggered() {
     video_toggle_option(ui->actionInverted_VGA_monitor, &invert_display);
     video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
 }
+
+static void update_scaled_checkboxes(Ui::MainWindow* ui, QAction* selected) {
+    ui->action0_5x->setChecked(ui->action0_5x == selected);
+    ui->action1x->setChecked(ui->action1x == selected);
+    ui->action1_5x->setChecked(ui->action1_5x == selected);
+    ui->action2x->setChecked(ui->action2x == selected);
+
+    reset_screen_size();
+    device_force_redraw();
+    video_force_resize_set(1);
+    doresize = 1;
+    config_save();
+}
+
+void MainWindow::on_action0_5x_triggered() {
+    scale = 0;
+    update_scaled_checkboxes(ui, ui->action0_5x);
+}
+
+void MainWindow::on_action1x_triggered() {
+    scale = 1;
+    update_scaled_checkboxes(ui, ui->action1x);
+}
+
+void MainWindow::on_action1_5x_triggered() {
+    scale = 2;
+    update_scaled_checkboxes(ui, ui->action1_5x);
+}
+
+void MainWindow::on_action2x_triggered() {
+    scale = 3;
+    update_scaled_checkboxes(ui, ui->action2x);
+}
+

@@ -315,21 +315,33 @@
    </property>
   </action>
   <action name="action0_5x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>0.5x</string>
    </property>
   </action>
   <action name="action1x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>1x</string>
    </property>
   </action>
   <action name="action1_5x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>1.5x</string>
    </property>
   </action>
   <action name="action2x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>2x</string>
    </property>

@@ -58,6 +58,10 @@ private slots:
     void on_actionSoftware_Renderer_triggered();
     void on_actionResizable_window_triggered(bool checked);
     void on_actionInverted_VGA_monitor_triggered();
+    void on_action0_5x_triggered();
+    void on_action1x_triggered();
+    void on_action1_5x_triggered();
+    void on_action2x_triggered();
 
     void refreshMediaMenu();
     void showMessage_(const QString& header, const QString& message);
