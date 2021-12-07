@@ -29,7 +29,7 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "退出(&x)...",                       IDM_ACTION_EXIT
     END
-    POPUP "视图(&V)"
+    POPUP "显示(&V)"
     BEGIN
         MENUITEM "隐藏状态栏(&H)",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM SEPARATOR
@@ -69,7 +69,7 @@ BEGIN
             MENUITEM "全屏拉伸(&F)",        IDM_VID_FS_FULL
             MENUITEM "&4:3",                        IDM_VID_FS_43
             MENUITEM "保持比例(&S)", IDM_VID_FS_KEEPRATIO
-            MENUITEM "整数倍放大&I",              IDM_VID_FS_INT
+            MENUITEM "整数倍放大(&I)",              IDM_VID_FS_INT
         END
         POPUP "E&GA/(S)VGA 设置"
         BEGIN
@@ -115,7 +115,7 @@ BEGIN
     POPUP "记录日志(&L)"
     BEGIN
 # ifdef ENABLE_BUSLOGIC_LOG
-        MENUITEM "启用 总线Logic 日志\tCtrl+F4", IDM_LOG_BUSLOGIC
+        MENUITEM "启用 BusLogic 日志\tCtrl+F4", IDM_LOG_BUSLOGIC
 # endif
 # ifdef ENABLE_CDROM_LOG
         MENUITEM "启用 CD-ROM 日志\tCtrl+F5", IDM_LOG_CDROM
@@ -382,7 +382,7 @@ END
 #define STR_ISAMEM_2		"扩展卡 2:"
 #define STR_ISAMEM_3		"扩展卡 3:"
 #define STR_ISAMEM_4		"扩展卡 4:"
-#define STR_BUGGER		"ISABugger device"
+#define STR_BUGGER		"ISABugger 设备"
 #define STR_POSTCARD		"自检卡(POST)"
 
 #define FONT_SIZE		9
@@ -408,7 +408,7 @@ BEGIN
     IDS_2056	"86Box 找不到支持的 ROM 镜像.\n\n请<a href=""https://github.com/86Box/roms/releases/latest"">下载</a>ROM包并解压到 ""roms"" 文件夹."
     IDS_2057	"(空)"
     IDS_2058	"ZIP 镜像 (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0所有文件 (*.*)\0*.*\0"
-    IDS_2059	"Turbo"
+    IDS_2059	"加速"
     IDS_2060	"开"
     IDS_2061	"关"
     IDS_2062	"所有镜像 (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0基本扇区镜像 (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0表面镜像 (*.86F)\0*.86F\0"
@@ -530,6 +530,8 @@ BEGIN
     IDS_2149	"磁带镜像 (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0所有文件 (*.*)\0*.*\0"
     IDS_2150	"卡带 %i: %ls"
     IDS_2151	"卡带镜像 (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0所有文件 (*.*)\0*.*\0"
+    IDS_2152	"Error initializing renderer"
+    IDS_2153	"OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
 END
 
 STRINGTABLE DISCARDABLE 
