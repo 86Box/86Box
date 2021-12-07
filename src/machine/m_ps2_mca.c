@@ -82,9 +82,8 @@ static struct
         uint8_t memory_bank[8];
  
         uint8_t io_id;
-		uint16_t planar_id;
-        
-        mem_mapping_t shadow_mapping;
+	uint16_t planar_id;
+
         mem_mapping_t split_mapping;
         mem_mapping_t expansion_mapping;
 	mem_mapping_t cache_mapping;
@@ -210,37 +209,6 @@ static void ps2_write_cache_ram(uint32_t addr, uint8_t val, void *priv)
 void ps2_cache_clean(void)
 {
         memset(ps2_cache_valid, 0, sizeof(ps2_cache_valid));
-}
-
-static uint8_t ps2_read_shadow_ram(uint32_t addr, void *priv)
-{
-        addr = (addr & 0x1ffff) + 0xe0000;
-        return mem_read_ram(addr, priv);
-}
-static uint16_t ps2_read_shadow_ramw(uint32_t addr, void *priv)
-{
-        addr = (addr & 0x1ffff) + 0xe0000;
-        return mem_read_ramw(addr, priv);
-}
-static uint32_t ps2_read_shadow_raml(uint32_t addr, void *priv)
-{
-        addr = (addr & 0x1ffff) + 0xe0000;
-        return mem_read_raml(addr, priv);
-}
-static void ps2_write_shadow_ram(uint32_t addr, uint8_t val, void *priv)
-{
-        addr = (addr & 0x1ffff) + 0xe0000;
-        mem_write_ram(addr, val, priv);
-}
-static void ps2_write_shadow_ramw(uint32_t addr, uint16_t val, void *priv)
-{
-        addr = (addr & 0x1ffff) + 0xe0000;
-        mem_write_ramw(addr, val, priv);
-}
-static void ps2_write_shadow_raml(uint32_t addr, uint32_t val, void *priv)
-{
-        addr = (addr & 0x1ffff) + 0xe0000;
-        mem_write_raml(addr, val, priv);
 }
 
 static uint8_t ps2_read_split_ram(uint32_t addr, void *priv)
@@ -430,6 +398,81 @@ static void model_50_write(uint16_t port, uint8_t val)
         }
 }
 
+
+static void model_55sx_mem_recalc(void)
+{
+	int i, j, state, enabled_mem = 0;
+	/* WARNING: Undocumented behavior - when bit 3 of POS5 is set (ie. memory has been configured),
+		    bit 1 of POS5 behaves like bit 4. */
+	int base = 0, remap_size = (ps2.option[3] & 0x11) ? 384 : 256;
+	int bit_mask = 0x00;
+
+	ps2_mca_log("%02X %02X\n", ps2.option[1], ps2.option[3]);
+
+	mem_remap_top(remap_size);
+	mem_set_mem_state(0x00000000, (mem_size + 384) * 1024, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
+	mem_set_mem_state(0x000e0000, 0x00020000, MEM_READ_EXTANY | MEM_WRITE_DISABLED);
+
+	if (!(ps2.option[3] & 0x08))
+	{
+		ps2_mca_log("Memory not yet configured\n");
+		return;
+	}
+
+	for (i = 0; i < 2; i++)
+	{
+		for (j = 0; j < 4; j++)
+		{
+			if (ps2.memory_bank[i] & (1 << j)) {
+				ps2_mca_log("Set memory at %06X-%06X to internal\n", (base * 1024), (base * 1024) + (((base > 0) ? 1024 : 640) * 1024) - 1);
+				mem_set_mem_state(base * 1024, ((base > 0) ? 1024 : 640) * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+				enabled_mem += 1024;
+				bit_mask |= (1 << (j + (i << 2)));
+			}
+			base += 1024;
+		}
+	}
+
+	ps2_mca_log("Enabled memory: %i kB (%02X)\n", enabled_mem, bit_mask);
+
+	if (ps2.option[3] & 0x11)
+	{
+		/* Enable ROM. */
+		ps2_mca_log("Enable ROM\n");
+		state = MEM_READ_EXTANY;
+	}
+	else
+	{
+		/* Disable ROM. */
+		if ((ps2.option[1] & 1) && !(ps2.option[3] & 0x20) && (bit_mask & 0x01) && (ps2.option[3] & 0x08))
+		{
+			/* Disable RAM between 640 kB and 1 MB. */
+			ps2_mca_log("Disable ROM, enable RAM\n");
+			state = MEM_READ_INTERNAL;
+		}
+		else
+		{
+			ps2_mca_log("Disable ROM, disable RAM\n");
+			state = MEM_READ_DISABLED;
+		}
+	}
+
+	/* Write always disabled. */
+	state |= MEM_WRITE_DISABLED;
+
+	mem_set_mem_state(0xe0000, 0x20000, state);
+
+	ps2_mca_log("Enable shadow mapping at %06X-%06X\n", (mem_size * 1024), (mem_size * 1024) + (remap_size * 1024) - 1);
+
+	if ((ps2.option[1] & 1) && !(ps2.option[3] & 0x20)) {
+		ps2_mca_log("Set memory at %06X-%06X to internal\n", (mem_size * 1024), (mem_size * 1024) + (remap_size * 1024) - 1);
+		mem_set_mem_state(mem_size * 1024, remap_size * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
+	}
+
+	flushmmucache_nopc();
+}
+
+
 static void model_55sx_write(uint16_t port, uint8_t val)
 {
         switch (port)
@@ -467,38 +510,20 @@ static void model_55sx_write(uint16_t port, uint8_t val)
                 ps2.option[0] = val;
                 break;
                 case 0x103:
+                ps2_mca_log("Write POS1: %02X\n", val);
                 ps2.option[1] = val;
-                break;
+		model_55sx_mem_recalc();
+		break;
                 case 0x104:
                 ps2.memory_bank[ps2.option[3] & 7] &= ~0xf;
                 ps2.memory_bank[ps2.option[3] & 7] |= (val & 0xf);
-                ps2_mca_log("Write memory bank %i %02x\n", ps2.option[3] & 7, val);
+                ps2_mca_log("Write memory bank %i: %02X\n", ps2.option[3] & 7, val);
+		model_55sx_mem_recalc();
                 break;
                 case 0x105:
-                ps2_mca_log("Write POS3 %02x\n", val);
+                ps2_mca_log("Write POS3: %02X\n", val);
                 ps2.option[3] = val;
-                shadowbios = !(val & 0x10);
-                shadowbios_write = val & 0x10;
-
-                if (shadowbios)
-                {
-                        mem_set_mem_state(0xe0000, 0x20000, MEM_READ_INTERNAL | MEM_WRITE_DISABLED);
-                        mem_set_mem_state((mem_size+256) * 1024, 128 * 1024, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-                        mem_mapping_disable(&ps2.shadow_mapping);
-                }
-                else
-                {
-                        mem_set_mem_state(0xe0000, 0x20000, MEM_READ_EXTANY | MEM_WRITE_INTERNAL);
-                        mem_set_mem_state((mem_size+256) * 1024, 128 * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                        mem_mapping_enable(&ps2.shadow_mapping);
-                }
-
-                if ((ps2.option[1] & 1) && !(ps2.option[3] & 0x20))
-                        mem_set_mem_state(mem_size * 1024, 256 * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
-                else
-                        mem_set_mem_state(mem_size * 1024, 256 * 1024, MEM_READ_EXTANY | MEM_WRITE_EXTANY);
-
-		flushmmucache_nopc();
+		model_55sx_mem_recalc();
                 break;
                 case 0x106:
                 ps2.subaddr_lo = val;
@@ -914,23 +939,10 @@ static void ps2_mca_board_model_50_init()
 static void ps2_mca_board_model_55sx_init()
 {        
         ps2_mca_board_common_init();
-        
-        mem_mapping_add(&ps2.shadow_mapping,
-                    (mem_size+256) * 1024, 
-                    128*1024,
-                    ps2_read_shadow_ram,
-                    ps2_read_shadow_ramw,
-                    ps2_read_shadow_raml,
-                    ps2_write_shadow_ram,
-                    ps2_write_shadow_ramw,
-                    ps2_write_shadow_raml,
-                    &ram[0xe0000],
-                    MEM_MAPPING_INTERNAL,
-                    NULL);
 
-
-        mem_remap_top(256);
-        ps2.option[3] = 0x10;
+	ps2.option[1] = 0x00;
+	ps2.option[2] = 0x00;
+        ps2.option[3] = 0x30;
         
         memset(ps2.memory_bank, 0xf0, 8);
         switch (mem_size/1024)
@@ -975,6 +987,8 @@ static void ps2_mca_board_model_55sx_init()
 
 	if (gfxcard == VID_INTERNAL)
 		device_add(&ps1vga_mca_device);
+
+	model_55sx_mem_recalc();
 }
 
 static void mem_encoding_update()
