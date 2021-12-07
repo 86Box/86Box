@@ -115,7 +115,7 @@ BEGIN
     POPUP "记录日志(&L)"
     BEGIN
 # ifdef ENABLE_BUSLOGIC_LOG
-        MENUITEM "启用 总线Logic 日志\tCtrl+F4", IDM_LOG_BUSLOGIC
+        MENUITEM "启用 BusLogic 日志\tCtrl+F4", IDM_LOG_BUSLOGIC
 # endif
 # ifdef ENABLE_CDROM_LOG
         MENUITEM "启用 CD-ROM 日志\tCtrl+F5", IDM_LOG_CDROM
