@@ -21,6 +21,8 @@ add_library(ui STATIC
     qt_rendererstack.cpp
     qt_rendererstack.hpp
     qt_rendererstack.ui
+    qt_renderercomon.cpp
+    qt_renderercomon.hpp
     qt_softwarerenderer.cpp
     qt_softwarerenderer.hpp
     qt_hardwarerenderer.cpp

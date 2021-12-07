@@ -111,10 +111,10 @@
      <property name="title">
       <string>Fullscreen stretch mode</string>
      </property>
-     <addaction name="actionFull_screen_stretch"/>
-     <addaction name="action4_3"/>
-     <addaction name="actionSquare_pixels_Keep_ratio"/>
-     <addaction name="actionInteger_scale"/>
+     <addaction name="actionFullScreen_stretch"/>
+     <addaction name="actionFullScreen_43"/>
+     <addaction name="actionFullScreen_keepRatio"/>
+     <addaction name="actionFullScreen_int"/>
     </widget>
     <widget class="QMenu" name="menuEGA_S_VGA_settings">
      <property name="title">
@@ -362,7 +362,7 @@
     <string>Linear</string>
    </property>
   </action>
-  <action name="actionFull_screen_stretch">
+  <action name="actionFullScreen_stretch">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -370,7 +370,7 @@
     <string>Full screen stretch</string>
    </property>
   </action>
-  <action name="action4_3">
+  <action name="actionFullScreen_43">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -378,7 +378,7 @@
     <string>4:3</string>
    </property>
   </action>
-  <action name="actionSquare_pixels_Keep_ratio">
+  <action name="actionFullScreen_keepRatio">
    <property name="checkable">
     <bool>true</bool>
    </property>
@@ -386,7 +386,7 @@
     <string>Square pixels (Keep ratio)</string>
    </property>
   </action>
-  <action name="actionInteger_scale">
+  <action name="actionFullScreen_int">
    <property name="checkable">
     <bool>true</bool>
    </property>

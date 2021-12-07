@@ -64,6 +64,10 @@ private slots:
     void on_action2x_triggered();
     void on_actionLinear_triggered();
     void on_actionNearest_triggered();
+    void on_actionFullScreen_int_triggered();
+    void on_actionFullScreen_keepRatio_triggered();
+    void on_actionFullScreen_43_triggered();
+    void on_actionFullScreen_stretch_triggered();
 
     void refreshMediaMenu();
     void showMessage_(const QString& header, const QString& message);

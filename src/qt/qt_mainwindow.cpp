@@ -139,6 +139,20 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->actionLinear->setChecked(true);
         break;
     }
+    switch (video_fullscreen_scale) {
+    case FULLSCR_SCALE_FULL:
+        ui->actionFullScreen_stretch->setChecked(true);
+        break;
+    case FULLSCR_SCALE_43:
+        ui->actionFullScreen_43->setChecked(true);
+        break;
+    case FULLSCR_SCALE_KEEPRATIO:
+        ui->actionFullScreen_keepRatio->setChecked(true);
+        break;
+    case FULLSCR_SCALE_INT:
+        ui->actionFullScreen_int->setChecked(true);
+        break;
+    }
 
     setFocusPolicy(Qt::StrongFocus);
     ui->gles->setFocusPolicy(Qt::NoFocus);
@@ -735,6 +749,10 @@ void MainWindow::on_actionFullscreen_triggered() {
         showFullScreen();
         video_fullscreen = 1;
     }
+
+    auto widget = ui->stackedWidget->currentWidget();
+    auto rc = dynamic_cast<RendererCommon*>(widget);
+    rc->onResize(widget->width(), widget->height());
 }
 
 void MainWindow::setTitle_(const wchar_t *title)
@@ -932,3 +950,40 @@ void MainWindow::on_actionLinear_triggered() {
     video_filter_method = 1;
     ui->actionNearest->setChecked(false);
 }
+
+static void update_fullscreen_scale_checkboxes(Ui::MainWindow* ui, QAction* selected) {
+    ui->actionFullScreen_stretch->setChecked(ui->actionFullScreen_stretch == selected);
+    ui->actionFullScreen_43->setChecked(ui->actionFullScreen_43 == selected);
+    ui->actionFullScreen_keepRatio->setChecked(ui->actionFullScreen_keepRatio == selected);
+    ui->actionFullScreen_int->setChecked(ui->actionFullScreen_int == selected);
+
+    if (video_fullscreen > 0) {
+        auto widget = ui->stackedWidget->currentWidget();
+        auto rc = dynamic_cast<RendererCommon*>(widget);
+        rc->onResize(widget->width(), widget->height());
+    }
+
+    device_force_redraw();
+    config_save();
+}
+
+void MainWindow::on_actionFullScreen_stretch_triggered() {
+    video_fullscreen_scale = FULLSCR_SCALE_FULL;
+    update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_stretch);
+}
+
+void MainWindow::on_actionFullScreen_43_triggered() {
+    video_fullscreen_scale = FULLSCR_SCALE_43;
+    update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_43);
+}
+
+void MainWindow::on_actionFullScreen_keepRatio_triggered() {
+    video_fullscreen_scale = FULLSCR_SCALE_KEEPRATIO;
+    update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_keepRatio);
+}
+
+void MainWindow::on_actionFullScreen_int_triggered() {
+    video_fullscreen_scale = FULLSCR_SCALE_INT;
+    update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_int);
+}
+

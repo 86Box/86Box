@@ -2,21 +2,20 @@
 #define SOFTWARERENDERER_HPP
 
 #include <QWidget>
+#include "qt_renderercomon.hpp"
 
-class SoftwareRenderer : public QWidget
+class SoftwareRenderer : public QWidget, public RendererCommon
 {
     Q_OBJECT
 public:
     explicit SoftwareRenderer(QWidget *parent = nullptr);
 
     void paintEvent(QPaintEvent *event) override;
-
 public slots:
     void onBlit(const QImage& img, int, int, int, int);
 
-private:
-    QImage image;
-    int sx, sy, sw, sh;
+protected:
+    void resizeEvent(QResizeEvent *event) override;
 };
 
 #endif // SOFTWARERENDERER_HPP
