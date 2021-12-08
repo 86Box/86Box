@@ -7,8 +7,6 @@ extern "C" {
 #include <86box/keyboard.h>
 #include <86box/plat.h>
 #include <86box/video.h>
-
-#include "qt_sdl.h"
 };
 
 #include <QGuiApplication>
@@ -79,8 +77,13 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
         if (!QApplication::platformName().contains("eglfs")) {
+            int modifiedHeight = h + menuBar()->height() + statusBar()->height();
             ui->stackedWidget->resize(w, h);
-            resize(w, h + menuBar()->height() + statusBar()->height());
+            if (vid_resize == 0) {
+                setFixedSize(w, modifiedHeight);
+            } else {
+                resize(w, modifiedHeight);
+            }
         }
     });
 
@@ -98,6 +101,86 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
     ui->actionRight_CTRL_is_left_ALT->setChecked(rctrl_is_lalt);
+    ui->actionResizable_window->setChecked(vid_resize > 0);
+    ui->menuWindow_scale_factor->setEnabled(vid_resize == 0);
+    switch (vid_api) {
+    case 0:
+        ui->stackedWidget->setCurrentIndex(0);
+        ui->actionSoftware_Renderer->setChecked(true);
+        break;
+    case 1:
+        ui->stackedWidget->setCurrentIndex(1);
+        ui->actionHardware_Renderer_OpenGL->setChecked(true);
+        break;
+    case 2:
+        ui->stackedWidget->setCurrentIndex(2);
+        ui->actionHardware_Renderer_OpenGL_ES->setChecked(true);
+        break;
+    }
+    switch (scale) {
+    case 0:
+        ui->action0_5x->setChecked(true);
+        break;
+    case 1:
+        ui->action1x->setChecked(true);
+        break;
+    case 2:
+        ui->action1_5x->setChecked(true);
+        break;
+    case 3:
+        ui->action2x->setChecked(true);
+        break;
+    }
+    switch (video_filter_method) {
+    case 0:
+        ui->actionNearest->setChecked(true);
+        break;
+    case 1:
+        ui->actionLinear->setChecked(true);
+        break;
+    }
+    switch (video_fullscreen_scale) {
+    case FULLSCR_SCALE_FULL:
+        ui->actionFullScreen_stretch->setChecked(true);
+        break;
+    case FULLSCR_SCALE_43:
+        ui->actionFullScreen_43->setChecked(true);
+        break;
+    case FULLSCR_SCALE_KEEPRATIO:
+        ui->actionFullScreen_keepRatio->setChecked(true);
+        break;
+    case FULLSCR_SCALE_INT:
+        ui->actionFullScreen_int->setChecked(true);
+        break;
+    }
+    switch (video_grayscale) {
+    case 0:
+        ui->actionRGB_Color->setChecked(true);
+        break;
+    case 1:
+        ui->actionRGB_Grayscale->setChecked(true);
+        break;
+    case 2:
+        ui->actionAmber_monitor->setChecked(true);
+        break;
+    case 3:
+        ui->actionGreen_monitor->setChecked(true);
+        break;
+    case 4:
+        ui->actionWhite_monitor->setChecked(true);
+        break;
+    }
+    switch (video_graytype) {
+    case 0:
+        ui->actionBT601_NTSC_PAL->setChecked(true);
+        break;
+    case 1:
+        ui->actionBT709_HDTV->setChecked(true);
+        break;
+    case 2:
+        ui->actionAverage->setChecked(true);
+        break;
+    }
 
     setFocusPolicy(Qt::StrongFocus);
     ui->gles->setFocusPolicy(Qt::NoFocus);
@@ -696,6 +779,10 @@ void MainWindow::on_actionFullscreen_triggered() {
         showFullScreen();
         video_fullscreen = 1;
     }
+
+    auto widget = ui->stackedWidget->currentWidget();
+    auto rc = dynamic_cast<RendererCommon*>(widget);
+    rc->onResize(widget->width(), widget->height());
 }
 
 void MainWindow::setTitle_(const wchar_t *title)
@@ -740,6 +827,7 @@ bool MainWindow::eventFilter(QObject* receiver, QEvent* event)
             return true;
         }
     }
+
     return QMainWindow::eventFilter(receiver, event);
 }
 
@@ -794,14 +882,23 @@ void MainWindow::keyReleaseEvent(QKeyEvent* event)
 
 void MainWindow::on_actionSoftware_Renderer_triggered() {
     ui->stackedWidget->setCurrentIndex(0);
+    ui->actionHardware_Renderer_OpenGL->setChecked(false);
+    ui->actionHardware_Renderer_OpenGL_ES->setChecked(false);
+    vid_api = 0;
 }
 
 void MainWindow::on_actionHardware_Renderer_OpenGL_triggered() {
     ui->stackedWidget->setCurrentIndex(1);
+    ui->actionSoftware_Renderer->setChecked(false);
+    ui->actionHardware_Renderer_OpenGL_ES->setChecked(false);
+    vid_api = 1;
 }
 
 void MainWindow::on_actionHardware_Renderer_OpenGL_ES_triggered() {
     ui->stackedWidget->setCurrentIndex(2);
+    ui->actionSoftware_Renderer->setChecked(false);
+    ui->actionHardware_Renderer_OpenGL->setChecked(false);
+    vid_api = 2;
 }
 
 void MainWindow::focusInEvent(QFocusEvent* event)
@@ -812,4 +909,167 @@ void MainWindow::focusInEvent(QFocusEvent* event)
 void MainWindow::focusOutEvent(QFocusEvent* event)
 {
     this->releaseKeyboard();
+}
+
+void MainWindow::on_actionResizable_window_triggered(bool checked) {
+    if (checked) {
+        vid_resize = 1;
+        setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+    } else {
+        vid_resize = 0;
+    }
+    ui->menuWindow_scale_factor->setEnabled(! checked);
+    emit resizeContents(scrnsz_x, scrnsz_y);
+}
+
+static void
+video_toggle_option(QAction* action, int *val)
+{
+    startblit();
+    *val ^= 1;
+    video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
+    action->setChecked(*val > 0 ? true : false);
+    endblit();
+    config_save();
+    device_force_redraw();
+}
+
+void MainWindow::on_actionInverted_VGA_monitor_triggered() {
+    video_toggle_option(ui->actionInverted_VGA_monitor, &invert_display);
+}
+
+static void update_scaled_checkboxes(Ui::MainWindow* ui, QAction* selected) {
+    ui->action0_5x->setChecked(ui->action0_5x == selected);
+    ui->action1x->setChecked(ui->action1x == selected);
+    ui->action1_5x->setChecked(ui->action1_5x == selected);
+    ui->action2x->setChecked(ui->action2x == selected);
+
+    reset_screen_size();
+    device_force_redraw();
+    video_force_resize_set(1);
+    doresize = 1;
+    config_save();
+}
+
+void MainWindow::on_action0_5x_triggered() {
+    scale = 0;
+    update_scaled_checkboxes(ui, ui->action0_5x);
+}
+
+void MainWindow::on_action1x_triggered() {
+    scale = 1;
+    update_scaled_checkboxes(ui, ui->action1x);
+}
+
+void MainWindow::on_action1_5x_triggered() {
+    scale = 2;
+    update_scaled_checkboxes(ui, ui->action1_5x);
+}
+
+void MainWindow::on_action2x_triggered() {
+    scale = 3;
+    update_scaled_checkboxes(ui, ui->action2x);
+}
+
+void MainWindow::on_actionNearest_triggered() {
+    video_filter_method = 0;
+    ui->actionLinear->setChecked(false);
+}
+
+void MainWindow::on_actionLinear_triggered() {
+    video_filter_method = 1;
+    ui->actionNearest->setChecked(false);
+}
+
+static void update_fullscreen_scale_checkboxes(Ui::MainWindow* ui, QAction* selected) {
+    ui->actionFullScreen_stretch->setChecked(ui->actionFullScreen_stretch == selected);
+    ui->actionFullScreen_43->setChecked(ui->actionFullScreen_43 == selected);
+    ui->actionFullScreen_keepRatio->setChecked(ui->actionFullScreen_keepRatio == selected);
+    ui->actionFullScreen_int->setChecked(ui->actionFullScreen_int == selected);
+
+    if (video_fullscreen > 0) {
+        auto widget = ui->stackedWidget->currentWidget();
+        auto rc = dynamic_cast<RendererCommon*>(widget);
+        rc->onResize(widget->width(), widget->height());
+    }
+
+    device_force_redraw();
+    config_save();
+}
+
+void MainWindow::on_actionFullScreen_stretch_triggered() {
+    video_fullscreen_scale = FULLSCR_SCALE_FULL;
+    update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_stretch);
+}
+
+void MainWindow::on_actionFullScreen_43_triggered() {
+    video_fullscreen_scale = FULLSCR_SCALE_43;
+    update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_43);
+}
+
+void MainWindow::on_actionFullScreen_keepRatio_triggered() {
+    video_fullscreen_scale = FULLSCR_SCALE_KEEPRATIO;
+    update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_keepRatio);
+}
+
+void MainWindow::on_actionFullScreen_int_triggered() {
+    video_fullscreen_scale = FULLSCR_SCALE_INT;
+    update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_int);
+}
+
+static void update_greyscale_checkboxes(Ui::MainWindow* ui, QAction* selected, int value) {
+    ui->actionRGB_Color->setChecked(ui->actionRGB_Color == selected);
+    ui->actionRGB_Grayscale->setChecked(ui->actionRGB_Grayscale == selected);
+    ui->actionAmber_monitor->setChecked(ui->actionAmber_monitor == selected);
+    ui->actionGreen_monitor->setChecked(ui->actionGreen_monitor == selected);
+    ui->actionWhite_monitor->setChecked(ui->actionWhite_monitor == selected);
+
+    startblit();
+    video_grayscale = value;
+    video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
+    endblit();
+    device_force_redraw();
+    config_save();
+}
+
+void MainWindow::on_actionRGB_Color_triggered() {
+    update_greyscale_checkboxes(ui, ui->actionRGB_Color, 0);
+}
+
+void MainWindow::on_actionRGB_Grayscale_triggered() {
+    update_greyscale_checkboxes(ui, ui->actionRGB_Grayscale, 1);
+}
+
+void MainWindow::on_actionAmber_monitor_triggered() {
+    update_greyscale_checkboxes(ui, ui->actionAmber_monitor, 2);
+}
+
+void MainWindow::on_actionGreen_monitor_triggered() {
+    update_greyscale_checkboxes(ui, ui->actionGreen_monitor, 3);
+}
+
+void MainWindow::on_actionWhite_monitor_triggered() {
+    update_greyscale_checkboxes(ui, ui->actionWhite_monitor, 4);
+}
+
+static void update_greyscale_type_checkboxes(Ui::MainWindow* ui, QAction* selected, int value) {
+    ui->actionBT601_NTSC_PAL->setChecked(ui->actionBT601_NTSC_PAL == selected);
+    ui->actionBT709_HDTV->setChecked(ui->actionBT709_HDTV == selected);
+    ui->actionAverage->setChecked(ui->actionAverage == selected);
+
+    video_graytype = value;
+    device_force_redraw();
+    config_save();
+}
+
+void MainWindow::on_actionBT601_NTSC_PAL_triggered() {
+    update_greyscale_type_checkboxes(ui, ui->actionBT601_NTSC_PAL, 0);
+}
+
+void MainWindow::on_actionBT709_HDTV_triggered() {
+    update_greyscale_type_checkboxes(ui, ui->actionBT709_HDTV, 1);
+}
+
+void MainWindow::on_actionAverage_triggered() {
+    update_greyscale_type_checkboxes(ui, ui->actionAverage, 2);
 }

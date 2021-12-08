@@ -3,6 +3,7 @@
 
 #include <QStackedWidget>
 #include <QKeyEvent>
+#include <QEvent>
 
 namespace Ui {
 class RendererStack;
@@ -20,6 +21,7 @@ public:
     void mouseReleaseEvent(QMouseEvent* event) override;
     void mouseMoveEvent(QMouseEvent* event) override;
     void wheelEvent(QWheelEvent *event) override;
+    void leaveEvent(QEvent *event) override;
     void keyPressEvent(QKeyEvent* event) override
     {
         event->ignore();

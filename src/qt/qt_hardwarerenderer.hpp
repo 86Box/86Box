@@ -10,11 +10,13 @@
 #include <mutex>
 #include <QApplication>
 
+#include "qt_renderercomon.hpp"
+
 #ifdef WAYLAND
 #include "wl_mouse.hpp"
 #endif
 
-class HardwareRenderer : public QOpenGLWidget, protected QOpenGLFunctions
+class HardwareRenderer : public QOpenGLWidget, protected QOpenGLFunctions, public RendererCommon
 {
 	Q_OBJECT
 
@@ -49,7 +51,6 @@ public:
 public slots:
     void onBlit(const QImage& img, int, int, int, int);
 
-private:
-    QImage image;
-    int sx, sy, sw, sh;
+protected:
+    void resizeEvent(QResizeEvent *event) override;
 };

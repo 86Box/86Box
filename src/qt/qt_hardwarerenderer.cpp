@@ -1,4 +1,5 @@
 #include "qt_hardwarerenderer.hpp"
+#include <QApplication>
 
 extern "C" {
 #include <86box/86box.h>
@@ -14,14 +15,8 @@ void HardwareRenderer::initializeGL()
     initializeOpenGLFunctions();
 }
 
-void HardwareRenderer::paintGL()
-{
-    QPainter painter(this);
-    painter.setRenderHint(QPainter::SmoothPixmapTransform, video_filter_method > 0 ? true : false);
-    painter.drawImage(QRect(0, 0, width(), height()), image, QRect(sx, sy, sw, sh));
-    // "release" image, reducing it's refcount, so renderstack::blit()
-    // won't have to reallocate
-    image = QImage();
+void HardwareRenderer::paintGL() {
+    onPaint(this);
 }
 
 void HardwareRenderer::setRenderType(RenderType type) {
@@ -32,7 +27,7 @@ void HardwareRenderer::setRenderType(RenderType type) {
         format.setRenderableType(QSurfaceFormat::OpenGL);
         break;
     case RenderType::OpenGLES:
-        setTextureFormat(GL_RGBA);
+        setTextureFormat((QApplication::platformName().contains("wayland") || QApplication::platformName() == "cocoa") ? GL_RGB : GL_RGBA);
         format.setRenderableType(QSurfaceFormat::OpenGLES);
         break;
     }
@@ -41,9 +36,11 @@ void HardwareRenderer::setRenderType(RenderType type) {
 
 void HardwareRenderer::onBlit(const QImage& img, int x, int y, int w, int h) {
     image = img;
-    sx = x;
-    sy = y;
-    sw = w;
-    sh = h;
+    source.setRect(x, y, w, h);
     update();
+}
+
+void HardwareRenderer::resizeEvent(QResizeEvent *event) {
+    onResize(width(), height());
+    QOpenGLWidget::resizeEvent(event);
 }

@@ -21,12 +21,7 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 
 #include <thread>
 
-#define SDL_MAIN_HANDLED
-#include "SDL.h"
-#include "SDL_mutex.h"
-#include "SDL_timer.h"
 #include "qt_mainwindow.hpp"
-#include "qt_sdl.h"
 #include "cocoa_mouse.hpp"
 
 
@@ -88,12 +83,6 @@ main_thread_fn()
     is_quit = 1;
 }
 
-uint32_t timer_onesec(uint32_t interval, void* param)
-{
-    pc_onesec();
-    return interval;
-}
-
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
 #ifdef __APPLE__
@@ -101,7 +90,12 @@ int main(int argc, char* argv[]) {
     app.installNativeEventFilter(&cocoafilter);
 #endif
     elapsed_timer.start();
-    SDL_Init(SDL_INIT_TIMER);
+
+    pc_init(argc, argv);
+    if (! pc_init_modules()) {
+        ui_msgbox_header(MBX_FATAL, VC(L"No ROMs found."), VC(L"86Box could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory."));
+        return 6;
+    }
 
     main_window = new MainWindow();
     main_window->show();
@@ -114,16 +108,15 @@ int main(int argc, char* argv[]) {
     }
     main_window->setFocusPolicy(Qt::StrongFocus);
 
-    pc_init(argc, argv);
-    if (! pc_init_modules()) {
-        ui_msgbox_header(MBX_FATAL, VC(L"No ROMs found."), VC(L"86Box could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory."));
-        return 6;
-    }
     pc_reset_hard_init();
 
     /* Set the PAUSE mode depending on the renderer. */
     // plat_pause(0);
-    SDL_AddTimer(1000, timer_onesec, nullptr);
+    QTimer onesec;
+    QObject::connect(&onesec, &QTimer::timeout, &app, [] {
+        pc_onesec();
+    });
+    onesec.start(1000);
 
     /* Initialize the rendering window, or fullscreen. */
     QTimer::singleShot(50, []() { plat_resize(640, 480); } );

@@ -2,14 +2,11 @@
 
 #include <QDebug>
 #include <QThread>
+#include <QMessageBox>
 
 #include <QStatusBar>
 
 #include "qt_mainwindow.hpp"
-
-std::atomic_int resize_pending = 0;
-std::atomic_int resize_w = 0;
-std::atomic_int resize_h = 0;
 
 MainWindow* main_window = nullptr;
 
@@ -46,10 +43,6 @@ void mouse_poll() {
 }
 
 void plat_resize(int w, int h) {
-    resize_w = w;
-    resize_h = h;
-    resize_pending = 1;
-
     main_window->resizeContents(w, h);
 }
 
@@ -68,7 +61,13 @@ int	ui_msgbox_header(int flags, void *header, void* message) {
     auto hdr = QString::fromWCharArray(reinterpret_cast<const wchar_t*>(header));
     auto msg = QString::fromWCharArray(reinterpret_cast<const wchar_t*>(message));
 
-    main_window->showMessage(hdr, msg);
+    // any error in early init
+    if (main_window == nullptr) {
+        QMessageBox::critical(nullptr, hdr, msg);
+    } else {
+        // else scope it to main_window
+        main_window->showMessage(hdr, msg);
+    }
     return 0;
 }
 

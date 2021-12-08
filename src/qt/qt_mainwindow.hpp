@@ -56,6 +56,26 @@ private slots:
     void on_actionHardware_Renderer_OpenGL_ES_triggered();
     void on_actionHardware_Renderer_OpenGL_triggered();
     void on_actionSoftware_Renderer_triggered();
+    void on_actionResizable_window_triggered(bool checked);
+    void on_actionInverted_VGA_monitor_triggered();
+    void on_action0_5x_triggered();
+    void on_action1x_triggered();
+    void on_action1_5x_triggered();
+    void on_action2x_triggered();
+    void on_actionLinear_triggered();
+    void on_actionNearest_triggered();
+    void on_actionFullScreen_int_triggered();
+    void on_actionFullScreen_keepRatio_triggered();
+    void on_actionFullScreen_43_triggered();
+    void on_actionFullScreen_stretch_triggered();
+    void on_actionWhite_monitor_triggered();
+    void on_actionGreen_monitor_triggered();
+    void on_actionAmber_monitor_triggered();
+    void on_actionRGB_Grayscale_triggered();
+    void on_actionRGB_Color_triggered();
+    void on_actionAverage_triggered();
+    void on_actionBT709_HDTV_triggered();
+    void on_actionBT601_NTSC_PAL_triggered();
 
     void refreshMediaMenu();
     void showMessage_(const QString& header, const QString& message);

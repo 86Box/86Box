@@ -4,14 +4,12 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
-find_package(PkgConfig)
 find_package(Threads REQUIRED)
 
 add_library(plat STATIC qt.c qt_main.cpp qt_platform.cpp cpp11_thread.cpp)
 add_library(ui STATIC
     qt_ui.cpp
     qt_cdrom.c
-    qt_sdl.c
 
     qt_mainwindow.cpp
     qt_mainwindow.hpp
@@ -23,6 +21,8 @@ add_library(ui STATIC
     qt_rendererstack.cpp
     qt_rendererstack.hpp
     qt_rendererstack.ui
+    qt_renderercomon.cpp
+    qt_renderercomon.hpp
     qt_softwarerenderer.cpp
     qt_softwarerenderer.hpp
     qt_hardwarerenderer.cpp
@@ -112,20 +112,6 @@ if (WIN32)
     qt_import_plugins(plat INCLUDE Qt5::QWindowsIntegrationPlugin Qt5::QICOPlugin QWindowsVistaStylePlugin)
 else()
     qt_import_plugins(plat INCLUDE Qt5::QICOPlugin)
-endif()
-
-if (PkgConfig_FOUND)
-    pkg_check_modules(RTMIDI rtmidi)
-    if (RTMIDI_FOUND)
-        target_include_directories(plat PRIVATE ${RTMIDI_INCLUDE_DIRS})
-        target_link_directories(plat INTERFACE ${RTMIDI_LIBRARY_DIRS})
-        target_link_libraries(plat PRIVATE ${RTMIDI_LIBRARIES})
-        target_sources(plat PRIVATE rtmidi_midi.cpp)
-    else()
-        target_sources(plat PRIVATE qt_midi.cpp)
-    endif()
-else()
-    target_sources(plat PRIVATE qt_midi.cpp)
 endif()
 
 if (UNIX AND NOT APPLE)

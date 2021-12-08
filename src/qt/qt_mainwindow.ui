@@ -54,7 +54,7 @@
      <x>0</x>
      <y>0</y>
      <width>724</width>
-     <height>20</height>
+     <height>19</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAction">
@@ -83,10 +83,83 @@
     <property name="title">
      <string>View</string>
     </property>
+    <widget class="QMenu" name="menuRenderer">
+     <property name="title">
+      <string>Renderer</string>
+     </property>
+     <addaction name="actionSoftware_Renderer"/>
+     <addaction name="actionHardware_Renderer_OpenGL"/>
+     <addaction name="actionHardware_Renderer_OpenGL_ES"/>
+    </widget>
+    <widget class="QMenu" name="menuWindow_scale_factor">
+     <property name="title">
+      <string>Window scale factor</string>
+     </property>
+     <addaction name="action0_5x"/>
+     <addaction name="action1x"/>
+     <addaction name="action1_5x"/>
+     <addaction name="action2x"/>
+    </widget>
+    <widget class="QMenu" name="menuFilter_method">
+     <property name="title">
+      <string>Filter method</string>
+     </property>
+     <addaction name="actionNearest"/>
+     <addaction name="actionLinear"/>
+    </widget>
+    <widget class="QMenu" name="menuFullscreen_stretch_mode">
+     <property name="title">
+      <string>Fullscreen stretch mode</string>
+     </property>
+     <addaction name="actionFullScreen_stretch"/>
+     <addaction name="actionFullScreen_43"/>
+     <addaction name="actionFullScreen_keepRatio"/>
+     <addaction name="actionFullScreen_int"/>
+    </widget>
+    <widget class="QMenu" name="menuEGA_S_VGA_settings">
+     <property name="title">
+      <string>EGA/(S)VGA settings</string>
+     </property>
+     <widget class="QMenu" name="menuVGA_screen_type">
+      <property name="title">
+       <string>VGA screen type</string>
+      </property>
+      <addaction name="actionRGB_Color"/>
+      <addaction name="actionRGB_Grayscale"/>
+      <addaction name="actionAmber_monitor"/>
+      <addaction name="actionGreen_monitor"/>
+      <addaction name="actionWhite_monitor"/>
+     </widget>
+     <widget class="QMenu" name="menuGrayscale_conversion_type">
+      <property name="title">
+       <string>Grayscale conversion type</string>
+      </property>
+      <addaction name="actionBT601_NTSC_PAL"/>
+      <addaction name="actionBT709_HDTV"/>
+      <addaction name="actionAverage"/>
+     </widget>
+     <addaction name="actionInverted_VGA_monitor"/>
+     <addaction name="menuVGA_screen_type"/>
+     <addaction name="menuGrayscale_conversion_type"/>
+    </widget>
+    <addaction name="actionHide_status_bar"/>
+    <addaction name="separator"/>
+    <addaction name="actionResizable_window"/>
+    <addaction name="actionRemember_size_and_position"/>
+    <addaction name="separator"/>
+    <addaction name="menuRenderer"/>
+    <addaction name="actionSpecify_dimensions"/>
+    <addaction name="actionForce_4_3_display_ratio"/>
+    <addaction name="menuWindow_scale_factor"/>
+    <addaction name="menuFilter_method"/>
+    <addaction name="actionHiDPI_scaling"/>
+    <addaction name="separator"/>
     <addaction name="actionFullscreen"/>
-    <addaction name="actionSoftware_Renderer"/>
-    <addaction name="actionHardware_Renderer_OpenGL"/>
-    <addaction name="actionHardware_Renderer_OpenGL_ES"/>
+    <addaction name="menuFullscreen_stretch_mode"/>
+    <addaction name="menuEGA_S_VGA_settings"/>
+    <addaction name="separator"/>
+    <addaction name="actionCGA_PCjr_Tandy_EGA_S_VGA_overscan"/>
+    <addaction name="actionChange_contrast_for_monochrome_display"/>
    </widget>
    <widget class="QMenu" name="menuMedia">
     <property name="title">
@@ -157,18 +230,240 @@
    </property>
   </action>
   <action name="actionSoftware_Renderer">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Software Renderer</string>
    </property>
   </action>
   <action name="actionHardware_Renderer_OpenGL">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Hardware Renderer (OpenGL)</string>
    </property>
   </action>
   <action name="actionHardware_Renderer_OpenGL_ES">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Hardware Renderer (OpenGL ES)</string>
+   </property>
+  </action>
+  <action name="actionHide_status_bar">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Hide status bar</string>
+   </property>
+  </action>
+  <action name="actionResizable_window">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Resizable window</string>
+   </property>
+  </action>
+  <action name="actionRemember_size_and_position">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Remember size and position</string>
+   </property>
+  </action>
+  <action name="actionSpecify_dimensions">
+   <property name="text">
+    <string>Specify dimensions...</string>
+   </property>
+  </action>
+  <action name="actionForce_4_3_display_ratio">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Force 4:3 display ratio</string>
+   </property>
+  </action>
+  <action name="actionHiDPI_scaling">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>HiDPI scaling</string>
+   </property>
+  </action>
+  <action name="actionCGA_PCjr_Tandy_EGA_S_VGA_overscan">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>CGA/PCjr/Tandy/EGA/(S)VGA overscan</string>
+   </property>
+  </action>
+  <action name="actionChange_contrast_for_monochrome_display">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Change contrast for monochrome display</string>
+   </property>
+  </action>
+  <action name="action0_5x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>0.5x</string>
+   </property>
+  </action>
+  <action name="action1x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>1x</string>
+   </property>
+  </action>
+  <action name="action1_5x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>1.5x</string>
+   </property>
+  </action>
+  <action name="action2x">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>2x</string>
+   </property>
+  </action>
+  <action name="actionNearest">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Nearest</string>
+   </property>
+  </action>
+  <action name="actionLinear">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Linear</string>
+   </property>
+  </action>
+  <action name="actionFullScreen_stretch">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Full screen stretch</string>
+   </property>
+  </action>
+  <action name="actionFullScreen_43">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>4:3</string>
+   </property>
+  </action>
+  <action name="actionFullScreen_keepRatio">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Square pixels (Keep ratio)</string>
+   </property>
+  </action>
+  <action name="actionFullScreen_int">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Integer scale</string>
+   </property>
+  </action>
+  <action name="actionInverted_VGA_monitor">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Inverted VGA monitor</string>
+   </property>
+  </action>
+  <action name="actionRGB_Color">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>RGB Color</string>
+   </property>
+  </action>
+  <action name="actionRGB_Grayscale">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>RGB Grayscale</string>
+   </property>
+  </action>
+  <action name="actionAmber_monitor">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Amber monitor</string>
+   </property>
+  </action>
+  <action name="actionGreen_monitor">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Green monitor</string>
+   </property>
+  </action>
+  <action name="actionWhite_monitor">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>White monitor</string>
+   </property>
+  </action>
+  <action name="actionBT601_NTSC_PAL">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>BT601 (NTSC/PAL)</string>
+   </property>
+  </action>
+  <action name="actionBT709_HDTV">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>BT709 (HDTV)</string>
+   </property>
+  </action>
+  <action name="actionAverage">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Average</string>
    </property>
   </action>
  </widget>

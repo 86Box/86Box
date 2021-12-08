@@ -3,6 +3,7 @@
  * implemented in Qt
  */
 
+#include <strings.h>
 #include <stdint.h>
 #include <wchar.h>
 
@@ -11,8 +12,6 @@
 #include <86box/plat.h>
 #include <86box/timer.h>
 #include <86box/nvr.h>
-
-#include "qt_sdl.h"
 
 int qt_nvr_save(void) {
     return nvr_save();
@@ -62,9 +61,36 @@ wchar_t* plat_get_string(int i)
 
 int
 plat_vidapi(char* api) {
+    if (!strcasecmp(api, "default") || !strcasecmp(api, "system")) {
+        return 0;
+    } else if (!strcasecmp(api, "qt_software")) {
+        return 0;
+    } else if (!strcasecmp(api, "qt_opengl")) {
+        return 1;
+    } else if (!strcasecmp(api, "qt_opengles")) {
+        return 2;
+    }
+
     return 0;
 }
 
 char* plat_vidapi_name(int api) {
-    return "default";
+    char* name = "default";
+
+    switch (api) {
+    case 0:
+        name = "qt_software";
+        break;
+    case 1:
+        name = "qt_opengl";
+        break;
+    case 2:
+        name = "qt_opengles";
+        break;
+    default:
+        fatal("Unknown renderer: %i\n", api);
+        break;
+    }
+
+    return name;
 }
