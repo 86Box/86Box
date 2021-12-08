@@ -4,6 +4,8 @@
 #include "qt_softwarerenderer.hpp"
 #include "qt_hardwarerenderer.hpp"
 
+#include <QScreen>
+
 #ifdef __APPLE__
 #include <CoreGraphics/CoreGraphics.h>
 #endif
@@ -103,7 +105,7 @@ void RendererStack::wheelEvent(QWheelEvent *event)
     }
 }
 
-int ignoreNextMouseEvent = 0;
+int ignoreNextMouseEvent = 1;
 void RendererStack::mouseMoveEvent(QMouseEvent *event)
 {
     if (QApplication::platformName().contains("wayland"))
@@ -120,10 +122,23 @@ void RendererStack::mouseMoveEvent(QMouseEvent *event)
     if (ignoreNextMouseEvent) { oldPos = event->pos(); ignoreNextMouseEvent--; event->accept(); return; }
     mousedata.deltax += event->pos().x() - oldPos.x();
     mousedata.deltay += event->pos().y() - oldPos.y();
-    QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
+    if (event->globalPos().x() == 0 || event->globalPos().y() == 0) leaveEvent((QEvent*)event);
+    if (event->globalPos().x() == (screen()->geometry().width() - 1) || event->globalPos().y() == (screen()->geometry().height() - 1)) leaveEvent((QEvent*)event);
     oldPos = event->pos();
-    ignoreNextMouseEvent = 1;
 #endif
+}
+
+void RendererStack::leaveEvent(QEvent* event)
+{
+    if (QApplication::platformName().contains("wayland"))
+    {
+        event->accept();
+        return;
+    }
+    if (!mouse_capture) return;
+    QCursor::setPos(mapToGlobal(QPoint(width() / 2, height() / 2)));
+    ignoreNextMouseEvent = 2;
+    event->accept();
 }
 
 // called from blitter thread
