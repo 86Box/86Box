@@ -69,6 +69,9 @@ int			egaswitchread, egaswitches=9;
 int			update_overscan = 0;
 
 
+uint8_t			ega_in(uint16_t addr, void *p);
+
+
 void
 ega_out(uint16_t addr, uint8_t val, void *p)
 {
@@ -145,6 +148,9 @@ ega_out(uint16_t addr, uint8_t val, void *p)
 		ega->vidclock = val & 4;
 		ega->miscout = val;
 		ega->overscan_color = ega->vres ? pallook16[ega->attrregs[0x11] & 0x0f] : pallook64[ega->attrregs[0x11] & 0x3f];
+		io_removehandler(0x03a0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
+		if (!(val & 1))
+			io_sethandler(0x03a0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
 		if ((o ^ val) & 0x80)
 			ega_recalctimings(ega);
 		break;
@@ -237,10 +243,13 @@ ega_out(uint16_t addr, uint8_t val, void *p)
     }
 }
 
-uint8_t ega_in(uint16_t addr, void *p)
+
+uint8_t
+ega_in(uint16_t addr, void *p)
 {
     ega_t *ega = (ega_t *)p;
     uint8_t ret = 0xff;
+    uint16_t port = addr;
 
     if (((addr & 0xfff0) == 0x3d0 || (addr & 0xfff0) == 0x3b0) && !(ega->miscout & 1)) 
 	addr ^= 0x60;
@@ -979,6 +988,8 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
 				break;
 		}
 	}
+
+	io_sethandler(0x03a0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
     } else {
 	for (c = 0; c < 256; c++) {
 		pallook64[c]  = makecol32(((c >> 2) & 1) * 0xaa, ((c >> 1) & 1) * 0xaa, (c & 1) * 0xaa);
@@ -988,6 +999,8 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
 		if ((c & 0x17) == 6) 
 			pallook16[c] = makecol32(0xaa, 0x55, 0);
 	}
+
+	ega->miscout |= 1;
     }
 
     ega->pallook = pallook16;
@@ -1078,7 +1091,7 @@ ega_standalone_init(const device_t *info)
     ega->vrammask = ega->vram_limit - 1;
 
     mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
-    io_sethandler(0x03a0, 0x0040, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
+    io_sethandler(0x03c0, 0x0020, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
 
     if (info->local == EGA_ATI) {
 	io_sethandler(0x01ce, 0x0002, ega_in, NULL, NULL, ega_out, NULL, NULL, ega);
