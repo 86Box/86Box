@@ -153,6 +153,23 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->actionFullScreen_int->setChecked(true);
         break;
     }
+    switch (video_grayscale) {
+    case 0:
+        ui->actionRGB_Color->setChecked(true);
+        break;
+    case 1:
+        ui->actionRGB_Grayscale->setChecked(true);
+        break;
+    case 2:
+        ui->actionAmber_monitor->setChecked(true);
+        break;
+    case 3:
+        ui->actionGreen_monitor->setChecked(true);
+        break;
+    case 4:
+        ui->actionWhite_monitor->setChecked(true);
+        break;
+    }
 
     setFocusPolicy(Qt::StrongFocus);
     ui->gles->setFocusPolicy(Qt::NoFocus);
@@ -897,6 +914,7 @@ video_toggle_option(QAction* action, int *val)
 {
     startblit();
     *val ^= 1;
+    video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
     action->setChecked(*val > 0 ? true : false);
     endblit();
     config_save();
@@ -905,9 +923,6 @@ video_toggle_option(QAction* action, int *val)
 
 void MainWindow::on_actionInverted_VGA_monitor_triggered() {
     video_toggle_option(ui->actionInverted_VGA_monitor, &invert_display);
-    startblit();
-    video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
-    endblit();
 }
 
 static void update_scaled_checkboxes(Ui::MainWindow* ui, QAction* selected) {
@@ -989,3 +1004,37 @@ void MainWindow::on_actionFullScreen_int_triggered() {
     update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_int);
 }
 
+static void update_greyscale_checkboxes(Ui::MainWindow* ui, QAction* selected, int value) {
+    ui->actionRGB_Color->setChecked(ui->actionRGB_Color == selected);
+    ui->actionRGB_Grayscale->setChecked(ui->actionRGB_Grayscale == selected);
+    ui->actionAmber_monitor->setChecked(ui->actionAmber_monitor == selected);
+    ui->actionGreen_monitor->setChecked(ui->actionGreen_monitor == selected);
+    ui->actionWhite_monitor->setChecked(ui->actionWhite_monitor == selected);
+
+    startblit();
+    video_grayscale = value;
+    video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
+    endblit();
+    device_force_redraw();
+    config_save();
+}
+
+void MainWindow::on_actionRGB_Color_triggered() {
+    update_greyscale_checkboxes(ui, ui->actionRGB_Color, 0);
+}
+
+void MainWindow::on_actionRGB_Grayscale_triggered() {
+    update_greyscale_checkboxes(ui, ui->actionRGB_Grayscale, 1);
+}
+
+void MainWindow::on_actionAmber_monitor_triggered() {
+    update_greyscale_checkboxes(ui, ui->actionAmber_monitor, 2);
+}
+
+void MainWindow::on_actionGreen_monitor_triggered() {
+    update_greyscale_checkboxes(ui, ui->actionGreen_monitor, 3);
+}
+
+void MainWindow::on_actionWhite_monitor_triggered() {
+    update_greyscale_checkboxes(ui, ui->actionWhite_monitor, 4);
+}
