@@ -1,6 +1,7 @@
 #include <cstdio>
 
 #include <mutex>
+#include <thread>
 #include <memory>
 #include <algorithm>
 
@@ -21,6 +22,8 @@
 // static QByteArray buf;
 extern QElapsedTimer elapsed_timer;
 QElapsedTimer elapsed_timer;
+
+static std::atomic_int blitmx_contention = 0;
 static std::mutex blitmx;
 
 class CharPointer {
@@ -382,12 +385,24 @@ void joystick_close(void) {}
 void joystick_process(void) {}
 void startblit()
 {
+    blitmx_contention++;
+    if (blitmx.try_lock()) {
+        return;
+    }
+
     blitmx.lock();
 }
 
 void endblit()
 {
+    blitmx_contention--;
     blitmx.unlock();
+    if (blitmx_contention > 0) {
+        // a deadlock has been observed on linux when toggling via video_toggle_option
+        // because the mutex is typically unfair on linux
+        // => sleep if there's contention
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
 }
 
 }

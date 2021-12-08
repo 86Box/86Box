@@ -905,7 +905,9 @@ video_toggle_option(QAction* action, int *val)
 
 void MainWindow::on_actionInverted_VGA_monitor_triggered() {
     video_toggle_option(ui->actionInverted_VGA_monitor, &invert_display);
+    startblit();
     video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
+    endblit();
 }
 
 static void update_scaled_checkboxes(Ui::MainWindow* ui, QAction* selected) {
