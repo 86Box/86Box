@@ -1,4 +1,5 @@
 #include "qt_hardwarerenderer.hpp"
+#include <QApplication>
 
 extern "C" {
 #include <86box/86box.h>
@@ -26,7 +27,7 @@ void HardwareRenderer::setRenderType(RenderType type) {
         format.setRenderableType(QSurfaceFormat::OpenGL);
         break;
     case RenderType::OpenGLES:
-        setTextureFormat(GL_RGBA);
+        setTextureFormat((QApplication::platformName().contains("wayland") || QApplication::platformName() == "cocoa") ? GL_RGB : GL_RGBA);
         format.setRenderableType(QSurfaceFormat::OpenGLES);
         break;
     }
