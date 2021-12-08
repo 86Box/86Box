@@ -66,6 +66,7 @@ extern void	ui_status_update(void);
 extern int	ui_sb_find_part(int tag);
 extern void	ui_sb_set_ready(int ready);
 extern void	ui_sb_update_panes(void);
+extern void	ui_sb_update_text(void);
 extern void	ui_sb_update_tip(int meaning);
 extern void	ui_sb_timer_callback(int pane);
 extern void	ui_sb_update_icon(int tag, int val);
