@@ -56,6 +56,7 @@ typedef LONG atomic_flag;
 #include <86box/plat.h>
 #include <86box/video.h>
 #include <86box/win.h>
+#include <86box/language.h>
 #include <86box/win_opengl.h>
 #include <86box/win_opengl_glslp.h>
 
@@ -445,7 +446,9 @@ static void opengl_fail()
 		window = NULL;
 	}
 
-	/* TODO: Notify user. */
+	wchar_t* message = plat_get_string(IDS_2152);
+	wchar_t* header = plat_get_string(IDS_2153);
+	MessageBox(parent, header, message, MB_OK);
 
 	WaitForSingleObject(sync_objects.closing, INFINITE);
 
@@ -476,7 +479,7 @@ static void opengl_main(void* param)
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	
-	if (GLAD_GL_ARB_debug_output)
+	if (GLAD_GL_ARB_debug_output && log_path[0] != '\0')
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG | SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
 	else
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
@@ -527,7 +530,7 @@ static void opengl_main(void* param)
 		opengl_fail();
 	}
 
-	if (GLAD_GL_ARB_debug_output)
+	if (GLAD_GL_ARB_debug_output && log_path[0] != '\0')
 	{
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
 		glDebugMessageControlARB(GL_DONT_CARE, GL_DEBUG_TYPE_PERFORMANCE_ARB, GL_DONT_CARE, 0, 0, GL_FALSE);
@@ -538,6 +541,33 @@ static void opengl_main(void* param)
 	pclog("OpenGL renderer: %s\n", glGetString(GL_RENDERER));
 	pclog("OpenGL version: %s\n", glGetString(GL_VERSION));
 	pclog("OpenGL shader language version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+
+	/* Check that the driver actually reports version 3.0 or later */
+	GLint major = -1;
+	glGetIntegerv(GL_MAJOR_VERSION, &major);
+	if (major < 3)
+	{
+		pclog("OpenGL: Minimum OpenGL version 3.0 is required.\n");
+		SDL_GL_DeleteContext(context);
+		opengl_fail();
+	}
+
+	/* Check if errors have been generated at this point */
+	GLenum gl_error = glGetError();
+	if (gl_error != GL_NO_ERROR)
+	{
+		/* Log up to 10 errors */
+		int i = 0;
+		do
+		{
+			pclog("OpenGL: Error %u\n", gl_error);
+			i++;
+		}
+		while((gl_error = glGetError()) != GL_NO_ERROR && i < 10);
+
+		SDL_GL_DeleteContext(context);
+		opengl_fail();
+	}
 
 	gl_identifiers gl = { 0 };
 	

@@ -530,6 +530,8 @@ BEGIN
     IDS_2149    "Kasetti-tiedostot (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Kaikki tiedostot (*.*)\0*.*\0"
     IDS_2150    "ROM-moduuli %i: %ls"
     IDS_2151    "ROM-moduulikuvat (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Kaikki tiedostot (*.*)\0*.*\0"
+    IDS_2152	"Virhe renderöijän alustuksessa"
+    IDS_2153	"OpenGL (3.0 Core) renderöijän alustus epäonnistui. Käytä toista renderöijää."
 END
 
 STRINGTABLE DISCARDABLE
