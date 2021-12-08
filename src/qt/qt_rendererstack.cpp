@@ -123,7 +123,7 @@ void RendererStack::mouseMoveEvent(QMouseEvent *event)
     mousedata.deltax += event->pos().x() - oldPos.x();
     mousedata.deltay += event->pos().y() - oldPos.y();
     if (event->globalPos().x() == 0 || event->globalPos().y() == 0) leaveEvent((QEvent*)event);
-    if (event->globalPos().x() == screen()->geometry().width() || event->globalPos().y() == screen()->geometry().height()) leaveEvent((QEvent*)event);
+    if (event->globalPos().x() == (screen()->geometry().width() - 1) || event->globalPos().y() == (screen()->geometry().height() - 1)) leaveEvent((QEvent*)event);
     oldPos = event->pos();
 #endif
 }
