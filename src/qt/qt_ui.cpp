@@ -2,6 +2,7 @@
 
 #include <QDebug>
 #include <QThread>
+#include <QMessageBox>
 
 #include <QStatusBar>
 
@@ -60,7 +61,13 @@ int	ui_msgbox_header(int flags, void *header, void* message) {
     auto hdr = QString::fromWCharArray(reinterpret_cast<const wchar_t*>(header));
     auto msg = QString::fromWCharArray(reinterpret_cast<const wchar_t*>(message));
 
-    main_window->showMessage(hdr, msg);
+    // any error in early init
+    if (main_window == nullptr) {
+        QMessageBox::critical(nullptr, hdr, msg);
+    } else {
+        // else scope it to main_window
+        main_window->showMessage(hdr, msg);
+    }
     return 0;
 }
 
