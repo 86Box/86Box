@@ -202,7 +202,7 @@ static uint32_t ps2_read_cache_raml(uint32_t addr, void *priv)
 }
 static void ps2_write_cache_ram(uint32_t addr, uint8_t val, void *priv)
 {
-        ps2_mca_log("ps2_write_cache_ram: addr=%08x val=%02x %04x:%04x %i\n", addr, val, CS,cpu_state.pc, ins);
+        ps2_mca_log("ps2_write_cache_ram: addr=%08x val=%02x %04x:%04x %i\n", addr, val, CS,cpu_state.pc);
         ps2_cache[addr] = val;
 }
 
@@ -402,10 +402,9 @@ static void model_50_write(uint16_t port, uint8_t val)
 static void model_55sx_mem_recalc(void)
 {
 	int i, j, state, enabled_mem = 0;
-	/* WARNING: Undocumented behavior - when bit 3 of POS5 is set (ie. memory has been configured),
-		    bit 1 of POS5 behaves like bit 4. */
-	int base = 0, remap_size = (ps2.option[3] & 0x11) ? 384 : 256;
-	int bit_mask = 0x00;
+	int base = 0, remap_size = (ps2.option[3] & 0x10) ? 384 : 256;
+	int bit_mask = 0x00, max_rows = 4;
+	int bank_to_rows[16] = { 4, 2, 1, 0, 0, 2, 1, 0, 0, 0, 0, 0, 0, 2, 1, 0 };
 
 	ps2_mca_log("%02X %02X\n", ps2.option[1], ps2.option[3]);
 
@@ -413,15 +412,14 @@ static void model_55sx_mem_recalc(void)
 	mem_set_mem_state(0x00000000, (mem_size + 384) * 1024, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
 	mem_set_mem_state(0x000e0000, 0x00020000, MEM_READ_EXTANY | MEM_WRITE_DISABLED);
 
-	if (!(ps2.option[3] & 0x08))
-	{
-		ps2_mca_log("Memory not yet configured\n");
-		return;
-	}
-
 	for (i = 0; i < 2; i++)
 	{
-		for (j = 0; j < 4; j++)
+		max_rows = bank_to_rows[(ps2.memory_bank[i] >> 4) & 0x0f];
+
+		if (max_rows == 0)
+			continue;
+
+		for (j = 0; j < max_rows; j++)
 		{
 			if (ps2.memory_bank[i] & (1 << j)) {
 				ps2_mca_log("Set memory at %06X-%06X to internal\n", (base * 1024), (base * 1024) + (((base > 0) ? 1024 : 640) * 1024) - 1);
@@ -435,7 +433,7 @@ static void model_55sx_mem_recalc(void)
 
 	ps2_mca_log("Enabled memory: %i kB (%02X)\n", enabled_mem, bit_mask);
 
-	if (ps2.option[3] & 0x11)
+	if (ps2.option[3] & 0x10)
 	{
 		/* Enable ROM. */
 		ps2_mca_log("Enable ROM\n");
@@ -444,7 +442,7 @@ static void model_55sx_mem_recalc(void)
 	else
 	{
 		/* Disable ROM. */
-		if ((ps2.option[1] & 1) && !(ps2.option[3] & 0x20) && (bit_mask & 0x01) && (ps2.option[3] & 0x08))
+		if ((ps2.option[1] & 1) && !(ps2.option[3] & 0x20) && (bit_mask & 0x01))
 		{
 			/* Disable RAM between 640 kB and 1 MB. */
 			ps2_mca_log("Disable ROM, enable RAM\n");
@@ -462,9 +460,15 @@ static void model_55sx_mem_recalc(void)
 
 	mem_set_mem_state(0xe0000, 0x20000, state);
 
+	/* if (!(ps2.option[3] & 0x08))
+	{
+		ps2_mca_log("Memory not yet configured\n");
+		return;
+	} */
+
 	ps2_mca_log("Enable shadow mapping at %06X-%06X\n", (mem_size * 1024), (mem_size * 1024) + (remap_size * 1024) - 1);
 
-	if ((ps2.option[1] & 1) && !(ps2.option[3] & 0x20)) {
+	if ((ps2.option[1] & 1) && !(ps2.option[3] & 0x20) && (bit_mask & 0x01)) {
 		ps2_mca_log("Set memory at %06X-%06X to internal\n", (mem_size * 1024), (mem_size * 1024) + (remap_size * 1024) - 1);
 		mem_set_mem_state(mem_size * 1024, remap_size * 1024, MEM_READ_INTERNAL | MEM_WRITE_INTERNAL);
 	}
@@ -942,7 +946,7 @@ static void ps2_mca_board_model_55sx_init()
 
 	ps2.option[1] = 0x00;
 	ps2.option[2] = 0x00;
-        ps2.option[3] = 0x30;
+        ps2.option[3] = 0x10;
         
         memset(ps2.memory_bank, 0xf0, 8);
         switch (mem_size/1024)

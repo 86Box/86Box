@@ -1084,13 +1084,10 @@ write_output(atkbd_t *dev, uint8_t val)
 	flushmmucache();
     }
 
-    /* Do this here to avoid an infinite reset loop. */
-    dev->output_port = val;
-
     /* 0 holds the CPU in the RESET state, 1 releases it. To simplify this,
        we just do everything on release. */
-    if ((val & 0x01) && !(old & 0x01)) {
-	if (val & 0x01) {
+    if ((dev->output_port ^ val) & 0x01) { /*Reset*/
+	if (! (val & 0x01)) {		/* Pin 0 selected. */
 		/* Pin 0 selected. */
 		kbd_log("write_output(): Pulse reset!\n");
 		softresetx86();		/*Pulse reset!*/
@@ -1098,6 +1095,9 @@ write_output(atkbd_t *dev, uint8_t val)
 		flushmmucache();
 	}
     }
+
+    /* Do this here to avoid an infinite reset loop. */
+    dev->output_port = val;
 }
 
 
