@@ -122,8 +122,8 @@ void RendererStack::mouseMoveEvent(QMouseEvent *event)
     if (ignoreNextMouseEvent) { oldPos = event->pos(); ignoreNextMouseEvent--; event->accept(); return; }
     mousedata.deltax += event->pos().x() - oldPos.x();
     mousedata.deltay += event->pos().y() - oldPos.y();
-    if (event->pos().x() == 0 || event->pos().y() == 0) leaveEvent((QEvent*)event);
-    if (event->pos().x() == screen()->geometry().width() || event->pos().y() == screen()->geometry().height()) leaveEvent((QEvent*)event);
+    if (event->globalPos().x() == 0 || event->globalPos().y() == 0) leaveEvent((QEvent*)event);
+    if (event->globalPos().x() == screen()->geometry().width() || event->globalPos().y() == screen()->geometry().height()) leaveEvent((QEvent*)event);
     oldPos = event->pos();
 #endif
 }
