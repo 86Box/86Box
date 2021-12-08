@@ -54,8 +54,8 @@
 
 
 /* Platform Public data, specific. */
-HWND		hwndMain,		/* application main window */
-		hwndRender;		/* machine render window */
+HWND		hwndMain = NULL,	/* application main window */
+		hwndRender = NULL;	/* machine render window */
 HMENU		menuMain;		/* application main menu */
 RECT		oldclip;		/* mouse rect */
 int		sbar_height = 23;	/* statusbar height */
