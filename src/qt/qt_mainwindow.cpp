@@ -170,6 +170,17 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->actionWhite_monitor->setChecked(true);
         break;
     }
+    switch (video_graytype) {
+    case 0:
+        ui->actionBT601_NTSC_PAL->setChecked(true);
+        break;
+    case 1:
+        ui->actionBT709_HDTV->setChecked(true);
+        break;
+    case 2:
+        ui->actionAverage->setChecked(true);
+        break;
+    }
 
     setFocusPolicy(Qt::StrongFocus);
     ui->gles->setFocusPolicy(Qt::NoFocus);
@@ -1037,4 +1048,26 @@ void MainWindow::on_actionGreen_monitor_triggered() {
 
 void MainWindow::on_actionWhite_monitor_triggered() {
     update_greyscale_checkboxes(ui, ui->actionWhite_monitor, 4);
+}
+
+static void update_greyscale_type_checkboxes(Ui::MainWindow* ui, QAction* selected, int value) {
+    ui->actionBT601_NTSC_PAL->setChecked(ui->actionBT601_NTSC_PAL == selected);
+    ui->actionBT709_HDTV->setChecked(ui->actionBT709_HDTV == selected);
+    ui->actionAverage->setChecked(ui->actionAverage == selected);
+
+    video_graytype = value;
+    device_force_redraw();
+    config_save();
+}
+
+void MainWindow::on_actionBT601_NTSC_PAL_triggered() {
+    update_greyscale_type_checkboxes(ui, ui->actionBT601_NTSC_PAL, 0);
+}
+
+void MainWindow::on_actionBT709_HDTV_triggered() {
+    update_greyscale_type_checkboxes(ui, ui->actionBT709_HDTV, 1);
+}
+
+void MainWindow::on_actionAverage_triggered() {
+    update_greyscale_type_checkboxes(ui, ui->actionAverage, 2);
 }

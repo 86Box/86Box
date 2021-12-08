@@ -73,6 +73,9 @@ private slots:
     void on_actionAmber_monitor_triggered();
     void on_actionRGB_Grayscale_triggered();
     void on_actionRGB_Color_triggered();
+    void on_actionAverage_triggered();
+    void on_actionBT709_HDTV_triggered();
+    void on_actionBT601_NTSC_PAL_triggered();
 
     void refreshMediaMenu();
     void showMessage_(const QString& header, const QString& message);
