@@ -17,6 +17,10 @@ extern "C" {
 #include <QKeyEvent>
 #include <QMessageBox>
 #include <QFocusEvent>
+#include <QApplication>
+#include <QPushButton>
+#include <QDesktopServices>
+#include <QUrl>
 
 #include <array>
 #include <unordered_map>
@@ -48,6 +52,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->stackedWidget->setMouseTracking(true);
     ui->ogl->setRenderType(HardwareRenderer::RenderType::OpenGL);
     ui->gles->setRenderType(HardwareRenderer::RenderType::OpenGLES);
+
+    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
@@ -1082,6 +1088,39 @@ void MainWindow::on_actionAverage_triggered() {
     update_greyscale_type_checkboxes(ui, ui->actionAverage, 2);
 }
 
+void MainWindow::on_actionAbout_Qt_triggered()
+{
+    QApplication::aboutQt();
+}
+
+void MainWindow::on_actionAbout_86Box_triggered()
+{
+    QMessageBox msgBox;
+    msgBox.setTextFormat(Qt::RichText);
+    msgBox.setText("<b>About 86Box</b>");
+    msgBox.setInformativeText(R"(
+An emulator of old computers
+
+Authors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.
+
+Released under the GNU General Public License version 2 or later. See LICENSE for more information.
+)");
+    msgBox.setWindowTitle("About 86Box");
+    msgBox.addButton("OK", QMessageBox::ButtonRole::AcceptRole);
+    auto webSiteButton = msgBox.addButton("86box.net", QMessageBox::ButtonRole::HelpRole);
+    webSiteButton->connect(webSiteButton, &QPushButton::released, []()
+    {
+        QDesktopServices::openUrl(QUrl("https://86box.net/"));
+    });
+    msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-yellow.ico").pixmap(32, 32));
+    msgBox.exec();
+}
+
+void MainWindow::on_actionDocumentation_triggered()
+{
+     QDesktopServices::openUrl(QUrl("https://86box.readthedocs.io"));
+}
+
 void MainWindow::on_actionCGA_PCjr_Tandy_EGA_S_VGA_overscan_triggered() {
     update_overscan = 1;
     video_toggle_option(ui->actionCGA_PCjr_Tandy_EGA_S_VGA_overscan, &enable_overscan);
@@ -1097,4 +1136,3 @@ void MainWindow::on_actionForce_4_3_display_ratio_triggered() {
     video_toggle_option(ui->actionForce_4_3_display_ratio, &force_43);
     video_force_resize_set(1);
 }
-
