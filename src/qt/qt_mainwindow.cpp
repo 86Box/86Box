@@ -7,6 +7,7 @@ extern "C" {
 #include <86box/keyboard.h>
 #include <86box/plat.h>
 #include <86box/video.h>
+#include <86box/vid_ega.h>
 };
 
 #include <QGuiApplication>
@@ -16,6 +17,10 @@ extern "C" {
 #include <QKeyEvent>
 #include <QMessageBox>
 #include <QFocusEvent>
+#include <QApplication>
+#include <QPushButton>
+#include <QDesktopServices>
+#include <QUrl>
 
 #include <array>
 #include <unordered_map>
@@ -47,6 +52,8 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->stackedWidget->setMouseTracking(true);
     ui->ogl->setRenderType(HardwareRenderer::RenderType::OpenGL);
     ui->gles->setRenderType(HardwareRenderer::RenderType::OpenGLES);
+
+    this->setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
@@ -180,6 +187,15 @@ MainWindow::MainWindow(QWidget *parent) :
     case 2:
         ui->actionAverage->setChecked(true);
         break;
+    }
+    if (force_43 > 0) {
+        ui->actionForce_4_3_display_ratio->setChecked(true);
+    }
+    if (enable_overscan > 0) {
+        ui->actionCGA_PCjr_Tandy_EGA_S_VGA_overscan->setChecked(true);
+    }
+    if (vid_cga_contrast > 0) {
+        ui->actionChange_contrast_for_monochrome_display->setChecked(true);
     }
 
     setFocusPolicy(Qt::StrongFocus);
@@ -773,9 +789,13 @@ uint16_t x11_keycode_to_keysym(uint32_t keycode)
 
 void MainWindow::on_actionFullscreen_triggered() {
     if (video_fullscreen > 0) {
+        ui->menubar->show();
+        ui->statusbar->show();
         showNormal();
         video_fullscreen = 0;
     } else {
+        ui->menubar->hide();
+        ui->statusbar->hide();
         showFullScreen();
         video_fullscreen = 1;
     }
@@ -859,7 +879,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
 #endif
     }
 
-    if (keyboard_isfsexit()) {
+    if ((video_fullscreen > 0) && keyboard_isfsexit()) {
         ui->actionFullscreen->trigger();
     }
 
@@ -1078,6 +1098,55 @@ void MainWindow::on_actionBT709_HDTV_triggered() {
 
 void MainWindow::on_actionAverage_triggered() {
     update_greyscale_type_checkboxes(ui, ui->actionAverage, 2);
+}
+
+void MainWindow::on_actionAbout_Qt_triggered()
+{
+    QApplication::aboutQt();
+}
+
+void MainWindow::on_actionAbout_86Box_triggered()
+{
+    QMessageBox msgBox;
+    msgBox.setTextFormat(Qt::RichText);
+    msgBox.setText("<b>About 86Box</b>");
+    msgBox.setInformativeText(R"(
+An emulator of old computers
+
+Authors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.
+
+Released under the GNU General Public License version 2 or later. See LICENSE for more information.
+)");
+    msgBox.setWindowTitle("About 86Box");
+    msgBox.addButton("OK", QMessageBox::ButtonRole::AcceptRole);
+    auto webSiteButton = msgBox.addButton("86box.net", QMessageBox::ButtonRole::HelpRole);
+    webSiteButton->connect(webSiteButton, &QPushButton::released, []()
+    {
+        QDesktopServices::openUrl(QUrl("https://86box.net/"));
+    });
+    msgBox.setIconPixmap(QIcon(":/settings/win/icons/86Box-yellow.ico").pixmap(32, 32));
+    msgBox.exec();
+}
+
+void MainWindow::on_actionDocumentation_triggered()
+{
+     QDesktopServices::openUrl(QUrl("https://86box.readthedocs.io"));
+}
+
+void MainWindow::on_actionCGA_PCjr_Tandy_EGA_S_VGA_overscan_triggered() {
+    update_overscan = 1;
+    video_toggle_option(ui->actionCGA_PCjr_Tandy_EGA_S_VGA_overscan, &enable_overscan);
+}
+
+void MainWindow::on_actionChange_contrast_for_monochrome_display_triggered() {
+    vid_cga_contrast ^= 1;
+    cgapal_rebuild();
+    config_save();
+}
+
+void MainWindow::on_actionForce_4_3_display_ratio_triggered() {
+    video_toggle_option(ui->actionForce_4_3_display_ratio, &force_43);
+    video_force_resize_set(1);
 }
 
 void MainWindow::setSendKeyboardInput(bool enabled)

@@ -166,10 +166,19 @@
      <string>Media</string>
     </property>
    </widget>
+   <widget class="QMenu" name="menuAbout">
+    <property name="title">
+     <string>Help</string>
+    </property>
+    <addaction name="actionDocumentation"/>
+    <addaction name="actionAbout_86Box"/>
+    <addaction name="actionAbout_Qt"/>
+   </widget>
    <addaction name="menuAction"/>
    <addaction name="menuView"/>
    <addaction name="menuMedia"/>
    <addaction name="menuTools"/>
+   <addaction name="menuAbout"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
   <action name="actionKeyboard_requires_capture">
@@ -464,6 +473,27 @@
    </property>
    <property name="text">
     <string>Average</string>
+   </property>
+  </action>
+  <action name="actionAbout_Qt">
+   <property name="text">
+    <string>About Qt...</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::AboutQtRole</enum>
+   </property>
+  </action>
+  <action name="actionAbout_86Box">
+   <property name="text">
+    <string>About 86Box...</string>
+   </property>
+   <property name="menuRole">
+    <enum>QAction::AboutRole</enum>
+   </property>
+  </action>
+  <action name="actionDocumentation">
+   <property name="text">
+    <string>Documentation...</string>
    </property>
   </action>
  </widget>

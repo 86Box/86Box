@@ -70,12 +70,14 @@ void RendererStack::mousePoll()
 #endif
 }
 
+int ignoreNextMouseEvent = 1;
 void RendererStack::mouseReleaseEvent(QMouseEvent *event)
 {
     if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture)
     {
         plat_mouse_capture(1);
         this->setCursor(Qt::BlankCursor);
+        if (!ignoreNextMouseEvent) ignoreNextMouseEvent++; // Avoid jumping cursor when moved.
         return;
     }
     if (mouse_capture && event->button() == Qt::MiddleButton && mouse_get_buttons() < 3)
@@ -105,7 +107,6 @@ void RendererStack::wheelEvent(QWheelEvent *event)
     }
 }
 
-int ignoreNextMouseEvent = 1;
 void RendererStack::mouseMoveEvent(QMouseEvent *event)
 {
     if (QApplication::platformName().contains("wayland"))
@@ -122,8 +123,13 @@ void RendererStack::mouseMoveEvent(QMouseEvent *event)
     if (ignoreNextMouseEvent) { oldPos = event->pos(); ignoreNextMouseEvent--; event->accept(); return; }
     mousedata.deltax += event->pos().x() - oldPos.x();
     mousedata.deltay += event->pos().y() - oldPos.y();
-    if (event->globalPos().x() == 0 || event->globalPos().y() == 0) leaveEvent((QEvent*)event);
-    if (event->globalPos().x() == (screen()->geometry().width() - 1) || event->globalPos().y() == (screen()->geometry().height() - 1)) leaveEvent((QEvent*)event);
+    if (QApplication::platformName() == "eglfs")
+    {
+        leaveEvent((QEvent*)event);
+        ignoreNextMouseEvent--;
+    }
+    else if (event->globalPos().x() == 0 || event->globalPos().y() == 0) leaveEvent((QEvent*)event);
+    else if (event->globalPos().x() == (screen()->geometry().width() - 1) || event->globalPos().y() == (screen()->geometry().height() - 1)) leaveEvent((QEvent*)event);
     oldPos = event->pos();
 #endif
 }
