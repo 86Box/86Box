@@ -787,9 +787,13 @@ uint16_t x11_keycode_to_keysym(uint32_t keycode)
 
 void MainWindow::on_actionFullscreen_triggered() {
     if (video_fullscreen > 0) {
+        ui->menubar->show();
+        ui->statusbar->show();
         showNormal();
         video_fullscreen = 0;
     } else {
+        ui->menubar->hide();
+        ui->statusbar->hide();
         showFullScreen();
         video_fullscreen = 1;
     }
@@ -870,7 +874,7 @@ void MainWindow::keyPressEvent(QKeyEvent* event)
     keyboard_input(1, x11_keycode_to_keysym(event->nativeScanCode()));
 #endif
 
-    if (keyboard_isfsexit()) {
+    if ((video_fullscreen > 0) && keyboard_isfsexit()) {
         ui->actionFullscreen->trigger();
     }
 
