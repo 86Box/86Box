@@ -249,28 +249,28 @@ has_language_changed(uint32_t id)
 void
 set_language(uint32_t id)
 {
-	if (id == 0xFFFF)
-	{
-		set_language(lang_sys);
-		lang_id = id;
-		return;
-	}
-	
+    if (id == 0xFFFF) {
+	set_language(lang_sys);
+	lang_id = id;
+	return;
+    }
+
     if (lang_id != id) {
-		/* Set our new language ID. */
-		lang_id = id;
-		SetThreadUILanguage(lang_id);
+	/* Set our new language ID. */
+	lang_id = id;
+	SetThreadUILanguage(lang_id);
 		
-		/* Load the strings table for this ID. */
-		LoadCommonStrings();
+	/* Load the strings table for this ID. */
+	LoadCommonStrings();
 		
-		/* Reload main menu */
-		menuMain = LoadMenu(hinstance, L"MainMenu");
+	/* Reload main menu */
+	menuMain = LoadMenu(hinstance, L"MainMenu");
+	if (hwndMain != NULL)
 		SetMenu(hwndMain, menuMain);
-		
-		/* Re-init all the menus */
-		ResetAllMenus();
-		media_menu_init();
+
+	/* Re-init all the menus */
+	ResetAllMenus();
+	media_menu_init();
     } 
 }
 
