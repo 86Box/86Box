@@ -30,12 +30,6 @@ public:
     : QOpenGLWidget(parent), QOpenGLFunctions()
     {
         setMinimumSize(16, 16);
-#ifdef WAYLAND
-        if (QApplication::platformName().contains("wayland")) {
-            wayland = true;
-            wl_init();
-        }
-#endif
     }
     ~HardwareRenderer()
     {
