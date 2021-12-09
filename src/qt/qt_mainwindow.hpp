@@ -79,6 +79,9 @@ private slots:
     void on_actionDocumentation_triggered();
     void on_actionAbout_86Box_triggered();
     void on_actionAbout_Qt_triggered();
+    void on_actionForce_4_3_display_ratio_triggered();
+    void on_actionChange_contrast_for_monochrome_display_triggered();
+    void on_actionCGA_PCjr_Tandy_EGA_S_VGA_overscan_triggered();
 
     void refreshMediaMenu();
     void showMessage_(const QString& header, const QString& message);
