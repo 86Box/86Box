@@ -14,6 +14,10 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #endif
 #endif
 
+#ifdef Q_OS_WINDOWS
+#include "qt_winrawinputfilter.hpp"
+#endif
+
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
@@ -101,6 +105,18 @@ int main(int argc, char* argv[]) {
     main_window->show();
     main_window->setFocus();
     app.installEventFilter(main_window);
+
+#ifdef Q_OS_WINDOWS
+    auto rawInputFilter = WindowsRawInputFilter::Register();
+    if (rawInputFilter)
+    {
+        app.installNativeEventFilter(rawInputFilter.get());
+        QObject::disconnect(main_window, &MainWindow::pollMouse, 0, 0);
+        QObject::connect(main_window, &MainWindow::pollMouse, (WindowsRawInputFilter*)rawInputFilter.get(), &WindowsRawInputFilter::mousePoll);
+        main_window->setSendKeyboardInput(false);
+    }
+#endif
+
     auto widgetList = app.allWidgets();
     for (auto curWidget : widgetList)
     {

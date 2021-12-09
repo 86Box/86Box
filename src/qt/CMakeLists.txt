@@ -91,6 +91,10 @@ if (APPLE)
     target_sources(ui PRIVATE macos_event_filter.mm)
 endif()
 
+if (WIN32)
+    target_sources(ui PRIVATE qt_winrawinputfilter.hpp qt_winrawinputfilter.cpp)
+endif()
+
 target_link_libraries(
     plat
     PRIVATE

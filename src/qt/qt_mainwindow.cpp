@@ -850,11 +850,14 @@ void MainWindow::showMessage_(const QString &header, const QString &message) {
 
 void MainWindow::keyPressEvent(QKeyEvent* event)
 {
+    if (send_keyboard_input)
+    {
 #ifdef __APPLE__
-    keyboard_input(1, x11_keycode_to_keysym(event->nativeVirtualKey()));
+        keyboard_input(1, x11_keycode_to_keysym(event->nativeVirtualKey()));
 #else
-    keyboard_input(1, x11_keycode_to_keysym(event->nativeScanCode()));
+        keyboard_input(1, x11_keycode_to_keysym(event->nativeScanCode()));
 #endif
+    }
 
     if (keyboard_isfsexit()) {
         ui->actionFullscreen->trigger();
@@ -873,6 +876,9 @@ void MainWindow::blitToWidget(int x, int y, int w, int h)
 
 void MainWindow::keyReleaseEvent(QKeyEvent* event)
 {
+    if (!send_keyboard_input)
+        return;
+
 #ifdef __APPLE__
     keyboard_input(0, x11_keycode_to_keysym(event->nativeVirtualKey()));
 #else
@@ -1072,4 +1078,9 @@ void MainWindow::on_actionBT709_HDTV_triggered() {
 
 void MainWindow::on_actionAverage_triggered() {
     update_greyscale_type_checkboxes(ui, ui->actionAverage, 2);
+}
+
+void MainWindow::setSendKeyboardInput(bool enabled)
+{
+    send_keyboard_input = enabled;
 }
