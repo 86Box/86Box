@@ -76,6 +76,9 @@ private slots:
     void on_actionAverage_triggered();
     void on_actionBT709_HDTV_triggered();
     void on_actionBT601_NTSC_PAL_triggered();
+    void on_actionDocumentation_triggered();
+    void on_actionAbout_86Box_triggered();
+    void on_actionAbout_Qt_triggered();
 
     void refreshMediaMenu();
     void showMessage_(const QString& header, const QString& message);

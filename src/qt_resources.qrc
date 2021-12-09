@@ -43,5 +43,9 @@
         <file>win/icons/zip_disabled.ico</file>
         <file>win/icons/zip_empty.ico</file>
         <file>win/icons/zip_empty_active.ico</file>
+        <file>win/icons/86Box-gray.ico</file>
+        <file>win/icons/86Box-green.ico</file>
+        <file>win/icons/86Box-red.ico</file>
+        <file>win/icons/86Box-yellow.ico</file>
     </qresource>
 </RCC>
