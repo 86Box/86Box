@@ -7,6 +7,7 @@ extern "C" {
 #include <86box/keyboard.h>
 #include <86box/plat.h>
 #include <86box/video.h>
+#include <86box/vid_ega.h>
 };
 
 #include <QGuiApplication>
@@ -180,6 +181,15 @@ MainWindow::MainWindow(QWidget *parent) :
     case 2:
         ui->actionAverage->setChecked(true);
         break;
+    }
+    if (force_43 > 0) {
+        ui->actionForce_4_3_display_ratio->setChecked(true);
+    }
+    if (enable_overscan > 0) {
+        ui->actionCGA_PCjr_Tandy_EGA_S_VGA_overscan->setChecked(true);
+    }
+    if (vid_cga_contrast > 0) {
+        ui->actionChange_contrast_for_monochrome_display->setChecked(true);
     }
 
     setFocusPolicy(Qt::StrongFocus);
@@ -1071,3 +1081,20 @@ void MainWindow::on_actionBT709_HDTV_triggered() {
 void MainWindow::on_actionAverage_triggered() {
     update_greyscale_type_checkboxes(ui, ui->actionAverage, 2);
 }
+
+void MainWindow::on_actionCGA_PCjr_Tandy_EGA_S_VGA_overscan_triggered() {
+    update_overscan = 1;
+    video_toggle_option(ui->actionCGA_PCjr_Tandy_EGA_S_VGA_overscan, &enable_overscan);
+}
+
+void MainWindow::on_actionChange_contrast_for_monochrome_display_triggered() {
+    vid_cga_contrast ^= 1;
+    cgapal_rebuild();
+    config_save();
+}
+
+void MainWindow::on_actionForce_4_3_display_ratio_triggered() {
+    video_toggle_option(ui->actionForce_4_3_display_ratio, &force_43);
+    video_force_resize_set(1);
+}
+
