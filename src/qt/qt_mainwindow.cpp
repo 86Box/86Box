@@ -8,6 +8,7 @@ extern "C" {
 #include <86box/plat.h>
 #include <86box/video.h>
 #include <86box/vid_ega.h>
+#include <86box/version.h>
 };
 
 #include <QGuiApplication>
@@ -1101,7 +1102,11 @@ void MainWindow::on_actionAbout_86Box_triggered()
 {
     QMessageBox msgBox;
     msgBox.setTextFormat(Qt::RichText);
-    msgBox.setText("<b>About 86Box</b>");
+    QString githash;
+#ifdef EMU_GIT_HASH
+    githash = QString(" [%1]").arg(EMU_GIT_HASH);
+#endif
+    msgBox.setText(QString("<b>86Box %1%2</b>").arg(EMU_VERSION_FULL, githash));
     msgBox.setInformativeText(R"(
 An emulator of old computers
 
