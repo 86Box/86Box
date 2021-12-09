@@ -232,6 +232,8 @@ riva128_pci_read(int func, int addr, void *p)
 	riva128_t *riva128 = (riva128_t *)p;
 	// svga_t *svga = &riva128->svga;
 
+	pclog("RIVA 128 PCI reg read %02x\n", addr);
+
 	switch (addr) {
 	case 0x00: return 0xd2; /*nVidia*/
 	case 0x01: return 0x12;
@@ -336,6 +338,8 @@ riva128_pci_write(int func, int addr, uint8_t val, void *p)
 {
 	riva128_t *riva128 = (riva128_t *)p;
 
+	pclog("RIVA 128 PCI reg write %02x val %02x\n", addr, val);
+
 	switch (addr) {
 	case PCI_REG_COMMAND:
 		riva128->pci_regs[PCI_REG_COMMAND] = val & 0x37;
@@ -389,7 +393,7 @@ riva128_ramin_read(uint32_t addr, void *p)
 	riva128_t *riva128 = (riva128_t *)p;
 	svga_t *svga = &riva128->svga;
 
-	addr &= 0x7fff;
+	addr &= 0x3fffff;
 
 	return svga->vram[addr ^ 0x3ffff0];
 }
@@ -402,7 +406,7 @@ riva128_ramin_read_w(uint32_t addr, void *p)
 	svga_t *svga = &riva128->svga;
 	uint16_t *vram_w = (uint16_t *)svga->vram;
 
-	addr &= 0x7fff;
+	addr &= 0x3fffff;
 
 	return vram_w[(addr ^ 0x3ffff0) >> 1];
 }
@@ -415,7 +419,7 @@ riva128_ramin_read_l(uint32_t addr, void *p)
 	svga_t *svga = &riva128->svga;
 	uint32_t *vram_l = (uint32_t *)svga->vram;
 
-	addr &= 0x7fff;
+	addr &= 0x3fffff;
 
 	return vram_l[(addr ^ 0x3ffff0) >> 2];
 }
@@ -427,7 +431,7 @@ riva128_ramin_write(uint32_t addr, uint8_t val, void *p)
 	riva128_t *riva128 = (riva128_t *)p;
 	svga_t *svga = &riva128->svga;
 
-	addr &= 0x7fff;
+	addr &= 0x3fffff;
 
 	pclog("[RIVA 128] RAMIN write %08x %02x\n", addr, val);
 
@@ -442,7 +446,7 @@ riva128_ramin_write_w(uint32_t addr, uint16_t val, void *p)
 	svga_t *svga = &riva128->svga;
 	uint16_t *vram_w = (uint16_t *)svga->vram;
 
-	addr &= 0x7fff;
+	addr &= 0x3fffff;
 
 	pclog("[RIVA 128] RAMIN write %08x %04x\n", addr, val);
 
@@ -457,7 +461,7 @@ riva128_ramin_write_l(uint32_t addr, uint32_t val, void *p)
 	svga_t *svga = &riva128->svga;
 	uint32_t *vram_l = (uint32_t *)svga->vram;
 
-	addr &= 0x7fff;
+	addr &= 0x3fffff;
 
 	pclog("[RIVA 128] RAMIN write %08x %08x\n", addr, val);
 
@@ -1902,7 +1906,7 @@ riva128_mmio_read_l(uint32_t addr, void *p)
 	if ((addr >= 0x1800) && (addr <= 0x18ff))
 		ret = (riva128_pci_read(0,(addr+0) & 0xff,p) << 0) | (riva128_pci_read(0,(addr+1) & 0xff,p) << 8) | (riva128_pci_read(0,(addr+2) & 0xff,p) << 16) | (riva128_pci_read(0,(addr+3) & 0xff,p) << 24);
 
-	/*if(!(addr <= 0x000fff) && !((addr >= 0x009000) && (addr <= 0x009fff))) pclog("[RIVA 128] MMIO read %08x returns value %08x\n", addr, ret);*/
+	if(!(addr <= 0x000fff) && !((addr >= 0x009000) && (addr <= 0x009fff))) pclog("[RIVA 128] MMIO read %08x returns value %08x\n", addr, ret);
 
 	riva128_do_gpu_work(riva128);
 
@@ -1969,7 +1973,7 @@ riva128_mmio_write_l(uint32_t addr, uint32_t val, void *p)
 
 	addr &= 0xffffff;
 
-	/*if(!(addr == 0x400100) && !(addr == 0x000140)) pclog("[RIVA 128] MMIO write %08x %08x\n", addr, val);*/
+	if(!(addr == 0x400100) && !(addr == 0x000140)) pclog("[RIVA 128] MMIO write %08x %08x\n", addr, val);
 
 	if ((addr >= 0x1800) && (addr <= 0x18ff)) {
 	riva128_pci_write(0, addr & 0xff, val & 0xff, p);
