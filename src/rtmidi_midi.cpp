@@ -8,9 +8,9 @@
  *
  *		MIDI backend implemented using the RtMidi library.
  *
- * Author:	jgilje,
+ * Author:	Cacodemon345,
  *		Miran Grca, <mgrca8@gmail.com>
- *		Copyright 2021 jgilje.
+ *		Copyright 2021 Cacodemon345.
  *		Copyright 2021 Miran Grca.
  */
 #if defined __has_include

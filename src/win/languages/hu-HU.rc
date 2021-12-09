@@ -532,6 +532,8 @@ BEGIN
     IDS_2149	"Magnókazetta-képek (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Minden fájl (*.*)\0*.*\0"
     IDS_2150	"ROM-kazetta %i: %ls"
     IDS_2151	"ROM-kazetta képek (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Minden fájl (*.*)\0*.*\0"
+    IDS_2152	"Error initializing renderer"
+    IDS_2153	"OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
 END
 
 STRINGTABLE DISCARDABLE 
