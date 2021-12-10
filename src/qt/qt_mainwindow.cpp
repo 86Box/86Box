@@ -864,6 +864,7 @@ void MainWindow::showMessage(const QString& header, const QString& message) {
 
 void MainWindow::showMessage_(const QString &header, const QString &message) {
     QMessageBox box(QMessageBox::Warning, header, message, QMessageBox::NoButton, this);
+    box.setTextFormat(Qt::TextFormat::RichText);
     box.exec();
 }
 
