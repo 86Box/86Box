@@ -274,7 +274,7 @@ END
 
 #define STR_OK			"OK"
 #define STR_CANCEL		"Annuler"
-#define STR_GLOBAL		"Sauver ces paramètres comme valeurs par défaut &globales"
+#define STR_GLOBAL		"Sauvegarder ces paramètres comme valeurs par défaut &globales"
 #define STR_DEFAULT		"&Défaut"
 #define STR_LANGUAGE		"Langue:"
 #define STR_ICONSET		"Ensemble d'icônes:"
@@ -478,9 +478,9 @@ BEGIN
     IDS_2118	"Côntrolleur interne"
     IDS_2119	"Sortir"
     IDS_2120	"Pas de ROMs trouvées"
-    IDS_2121	"Voulez-vous sauver les paramètres ?"
+    IDS_2121	"Voulez-vous sauvegarder les paramètres ?"
     IDS_2122	"Cela entraînera la réinitialisation complète de la machine émulée."
-    IDS_2123	"Sauver"
+    IDS_2123	"Sauvegarder"
     IDS_2124	"À propos de 86Box"
     IDS_2125	"86Box v" EMU_VERSION
 
