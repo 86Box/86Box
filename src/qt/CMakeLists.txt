@@ -85,6 +85,10 @@ add_library(ui STATIC
     qt_models_common.cpp
     qt_models_common.hpp
 
+    qt_specifydimensions.h
+    qt_specifydimensions.cpp
+    qt_specifydimensions.ui
+
     ../qt_resources.qrc
 )
 if (APPLE)

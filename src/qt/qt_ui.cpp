@@ -109,6 +109,7 @@ ui_sb_update_icon_state(int tag, int state) {
 
 void
 ui_sb_update_icon(int tag, int active) {
+    if (!update_icons) return;
     main_window->updateStatusBarActivity(tag, active > 0 ? true : false);
 }
 
