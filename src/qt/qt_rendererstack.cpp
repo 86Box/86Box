@@ -4,6 +4,8 @@
 #include "qt_softwarerenderer.hpp"
 #include "qt_hardwarerenderer.hpp"
 
+#include "evdev_mouse.hpp"
+
 #include <QScreen>
 
 #ifdef __APPLE__
@@ -25,6 +27,16 @@ RendererStack::RendererStack(QWidget *parent) :
     imagebufs = QVector<QImage>(2);
     imagebufs[0] = QImage{QSize(2048 + 64, 2048 + 64), QImage::Format_RGB32};
     imagebufs[1] = QImage{QSize(2048 + 64, 2048 + 64), QImage::Format_RGB32};
+#ifdef WAYLAND
+    if (QApplication::platformName().contains("wayland")) {
+        wl_init();
+    }
+#endif
+#ifdef EVDEV_INPUT
+    if (QApplication::platformName() == "xcb" || QApplication::platformName() == "eglfs") {
+        evdev_init();
+    }
+#endif
 }
 
 RendererStack::~RendererStack()
@@ -66,6 +78,9 @@ void RendererStack::mousePoll()
 #ifdef WAYLAND
     if (QApplication::platformName().contains("wayland"))
         wl_mouse_poll();
+#endif
+#ifdef EVDEV_INPUT
+    evdev_mouse_poll();
 #endif
 #endif
 }

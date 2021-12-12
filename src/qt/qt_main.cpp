@@ -97,7 +97,7 @@ int main(int argc, char* argv[]) {
 
     pc_init(argc, argv);
     if (! pc_init_modules()) {
-        ui_msgbox_header(MBX_FATAL, VC(L"No ROMs found."), VC(L"86Box could not find any usable ROM images.\n\nPlease download a ROM set and extract it into the \"roms\" directory."));
+        ui_msgbox_header(MBX_FATAL, VC(L"No ROMs found."), VC(L"86Box could not find any usable ROM images.\n\nPlease <a href='https://github.com/86Box/roms/releases/latest'>download</a> a ROM set and extract it into the \"roms\" directory."));
         return 6;
     }
 
@@ -135,7 +135,6 @@ int main(int argc, char* argv[]) {
     onesec.start(1000);
 
     /* Initialize the rendering window, or fullscreen. */
-    QTimer::singleShot(50, []() { plat_resize(640, 480); } );
     auto main_thread = std::thread([] {
        main_thread_fn();
     });

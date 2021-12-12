@@ -63,7 +63,9 @@ int	ui_msgbox_header(int flags, void *header, void* message) {
 
     // any error in early init
     if (main_window == nullptr) {
-        QMessageBox::critical(nullptr, hdr, msg);
+        QMessageBox msgBox(QMessageBox::Icon::Critical, hdr, msg);
+        msgBox.setTextFormat(Qt::TextFormat::RichText);
+        msgBox.exec();
     } else {
         // else scope it to main_window
         main_window->showMessage(hdr, msg);
@@ -107,6 +109,7 @@ ui_sb_update_icon_state(int tag, int state) {
 
 void
 ui_sb_update_icon(int tag, int active) {
+    if (!update_icons) return;
     main_window->updateStatusBarActivity(tag, active > 0 ? true : false);
 }
 

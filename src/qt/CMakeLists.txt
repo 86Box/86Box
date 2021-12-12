@@ -85,6 +85,13 @@ add_library(ui STATIC
     qt_models_common.cpp
     qt_models_common.hpp
 
+    qt_specifydimensions.h
+    qt_specifydimensions.cpp
+    qt_specifydimensions.ui
+    qt_soundgain.hpp
+    qt_soundgain.cpp
+    qt_soundgain.ui
+
     ../qt_resources.qrc
 )
 if (APPLE)
@@ -121,6 +128,13 @@ endif()
 if (UNIX AND NOT APPLE)
     find_package(X11 REQUIRED)
     target_link_libraries(ui PRIVATE X11::X11)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(LIBEVDEV IMPORTED_TARGET libevdev)
+    if (LIBEVDEV_FOUND)
+        target_compile_definitions(ui PRIVATE EVDEV_INPUT)
+        target_link_libraries(ui PUBLIC PkgConfig::LIBEVDEV)
+        target_sources(ui PRIVATE evdev_mouse.cpp)
+    endif()
 
     find_package(ECM NO_MODULE)
     if (ECM_FOUND)

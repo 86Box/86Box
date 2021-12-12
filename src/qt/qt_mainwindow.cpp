@@ -1,6 +1,9 @@
 #include "qt_mainwindow.hpp"
 #include "ui_qt_mainwindow.h"
 
+#include "qt_specifydimensions.h"
+#include "qt_soundgain.hpp"
+
 extern "C" {
 #include <86box/86box.h>
 #include <86box/config.h>
@@ -8,6 +11,7 @@ extern "C" {
 #include <86box/plat.h>
 #include <86box/video.h>
 #include <86box/vid_ega.h>
+#include <86box/version.h>
 };
 
 #include <QGuiApplication>
@@ -21,6 +25,7 @@ extern "C" {
 #include <QPushButton>
 #include <QDesktopServices>
 #include <QUrl>
+#include <QCheckBox>
 
 #include <array>
 #include <unordered_map>
@@ -52,6 +57,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->stackedWidget->setMouseTracking(true);
     ui->ogl->setRenderType(HardwareRenderer::RenderType::OpenGL);
     ui->gles->setRenderType(HardwareRenderer::RenderType::OpenGLES);
+    statusBar()->setVisible(!hide_status_bar);
 
     this->setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
 
@@ -59,6 +65,18 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(this, &MainWindow::setTitleForNonQtThread, this, &MainWindow::setTitle_, Qt::BlockingQueuedConnection);
     connect(this, &MainWindow::getTitleForNonQtThread, this, &MainWindow::getTitle_, Qt::BlockingQueuedConnection);
+
+    connect(this, &MainWindow::updateMenuResizeOptions, [this]() {
+        ui->actionResizable_window->setEnabled(vid_resize != 2);
+        ui->actionResizable_window->setChecked(vid_resize == 1);
+        ui->menuWindow_scale_factor->setEnabled(vid_resize == 0);
+    });
+
+    connect(this, &MainWindow::updateWindowRememberOption, [this]() {
+        ui->actionRemember_size_and_position->setChecked(window_remember);
+    });
+
+    emit updateMenuResizeOptions();
 
     connect(this, &MainWindow::pollMouse, ui->stackedWidget, &RendererStack::mousePoll);
 
@@ -83,8 +101,9 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
-        if (!QApplication::platformName().contains("eglfs")) {
-            int modifiedHeight = h + menuBar()->height() + statusBar()->height();
+        if (!QApplication::platformName().contains("eglfs") && vid_resize == 0) {
+            w = w / (!dpi_scale ? devicePixelRatio() : 1);
+            int modifiedHeight = (h / (!dpi_scale ? devicePixelRatio() : 1)) + menuBar()->height() + (statusBar()->height() * !hide_status_bar);
             ui->stackedWidget->resize(w, h);
             if (vid_resize == 0) {
                 setFixedSize(w, modifiedHeight);
@@ -108,8 +127,12 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->actionKeyboard_requires_capture->setChecked(kbd_req_capture);
     ui->actionRight_CTRL_is_left_ALT->setChecked(rctrl_is_lalt);
-    ui->actionResizable_window->setChecked(vid_resize > 0);
+    ui->actionResizable_window->setChecked(vid_resize == 1);
+    ui->actionRemember_size_and_position->setChecked(window_remember);
     ui->menuWindow_scale_factor->setEnabled(vid_resize == 0);
+    ui->actionHiDPI_scaling->setChecked(dpi_scale);
+    ui->actionHide_status_bar->setChecked(hide_status_bar);
+    ui->actionUpdate_status_bar_icons->setChecked(update_icons);
     switch (vid_api) {
     case 0:
         ui->stackedWidget->setCurrentIndex(0);
@@ -211,8 +234,54 @@ MainWindow::MainWindow(QWidget *parent) :
     video_setblit(qt_blit);
 }
 
+void MainWindow::closeEvent(QCloseEvent *event) {
+    if (confirm_exit)
+    {
+        QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", "Are you sure you want to exit 86Box?", QMessageBox::Yes | QMessageBox::No, this);
+        QCheckBox *chkbox = new QCheckBox("Do not ask me again");
+        questionbox.setCheckBox(chkbox);
+        chkbox->setChecked(!confirm_exit);
+        bool confirm_exit_temp = false;
+        QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
+            confirm_exit = (state == Qt::CheckState::Unchecked);
+        });
+        questionbox.exec();
+        if (questionbox.result() == QMessageBox::No) {
+            confirm_exit = true;
+            event->ignore();
+            return;
+        }
+        config_save();
+    }
+    if (window_remember) {
+        window_w = ui->stackedWidget->width();
+        window_h = ui->stackedWidget->height();
+        if (!QApplication::platformName().contains("wayland")) {
+            window_x = this->geometry().x();
+            window_y = this->geometry().y();
+        }
+    }
+    event->accept();
+}
+
 MainWindow::~MainWindow() {
     delete ui;
+}
+
+void MainWindow::showEvent(QShowEvent *event) {
+    if (window_remember && !QApplication::platformName().contains("wayland")) {
+        setGeometry(window_x, window_y, window_w, window_h);
+    }
+    if (vid_resize == 2) {
+        setFixedSize(fixed_size_x, fixed_size_y + this->menuBar()->height() + this->statusBar()->height());
+        scrnsz_x = fixed_size_x;
+        scrnsz_y = fixed_size_y;
+    }
+    else if (window_remember) {
+        emit resizeContents(window_w, window_h);
+        scrnsz_x = window_w;
+        scrnsz_y = window_h;
+    }
 }
 
 void MainWindow::on_actionKeyboard_requires_capture_triggered() {
@@ -865,6 +934,7 @@ void MainWindow::showMessage(const QString& header, const QString& message) {
 
 void MainWindow::showMessage_(const QString &header, const QString &message) {
     QMessageBox box(QMessageBox::Warning, header, message, QMessageBox::NoButton, this);
+    box.setTextFormat(Qt::TextFormat::RichText);
     box.exec();
 }
 
@@ -904,6 +974,11 @@ void MainWindow::keyReleaseEvent(QKeyEvent* event)
 #else
     keyboard_input(0, x11_keycode_to_keysym(event->nativeScanCode()));
 #endif
+}
+
+QSize MainWindow::getRenderWidgetSize()
+{
+    return ui->stackedWidget->size();
 }
 
 void MainWindow::on_actionSoftware_Renderer_triggered() {
@@ -1109,7 +1184,11 @@ void MainWindow::on_actionAbout_86Box_triggered()
 {
     QMessageBox msgBox;
     msgBox.setTextFormat(Qt::RichText);
-    msgBox.setText("<b>About 86Box</b>");
+    QString githash;
+#ifdef EMU_GIT_HASH
+    githash = QString(" [%1]").arg(EMU_GIT_HASH);
+#endif
+    msgBox.setText(QString("<b>86Box v%1%2</b>").arg(EMU_VERSION_FULL, githash));
     msgBox.setInformativeText(R"(
 An emulator of old computers
 
@@ -1147,6 +1226,66 @@ void MainWindow::on_actionChange_contrast_for_monochrome_display_triggered() {
 void MainWindow::on_actionForce_4_3_display_ratio_triggered() {
     video_toggle_option(ui->actionForce_4_3_display_ratio, &force_43);
     video_force_resize_set(1);
+}
+
+void MainWindow::on_actionRemember_size_and_position_triggered()
+{
+    window_remember ^= 1;
+    window_w = ui->stackedWidget->width();
+    window_h = ui->stackedWidget->height();
+    if (!QApplication::platformName().contains("wayland")) {
+        window_x = geometry().x();
+        window_y = geometry().y();
+    }
+    ui->actionRemember_size_and_position->setChecked(window_remember);
+}
+
+void MainWindow::on_actionSpecify_dimensions_triggered()
+{
+    SpecifyDimensions dialog(this);
+    dialog.setWindowModality(Qt::WindowModal);
+    dialog.exec();
+}
+
+void MainWindow::on_actionHiDPI_scaling_triggered()
+{
+    dpi_scale ^= 1;
+    ui->actionHiDPI_scaling->setChecked(dpi_scale);
+    emit resizeContents(scrnsz_x, scrnsz_y);
+}
+
+void MainWindow::on_actionHide_status_bar_triggered()
+{
+    hide_status_bar ^= 1;
+    ui->actionHide_status_bar->setChecked(hide_status_bar);
+    statusBar()->setVisible(!hide_status_bar);
+    if (vid_resize >= 2) setFixedSize(fixed_size_x, fixed_size_y + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()));
+    else {
+        int vid_resize_orig = vid_resize;
+        vid_resize = 0;
+        emit resizeContents(scrnsz_x, scrnsz_y);
+        vid_resize = vid_resize_orig;
+    }
+}
+
+void MainWindow::on_actionUpdate_status_bar_icons_triggered()
+{
+    update_icons ^= 1;
+    ui->actionUpdate_status_bar_icons->setChecked(update_icons);
+}
+
+void MainWindow::on_actionTake_screenshot_triggered()
+{
+    startblit();
+    screenshots++;
+    endblit();
+    device_force_redraw();
+}
+
+void MainWindow::on_actionSound_gain_triggered()
+{
+    SoundGain gain(this);
+    gain.exec();
 }
 
 void MainWindow::setSendKeyboardInput(bool enabled)
