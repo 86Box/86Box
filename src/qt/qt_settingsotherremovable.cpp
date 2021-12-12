@@ -128,7 +128,6 @@ SettingsOtherRemovable::~SettingsOtherRemovable()
 
 void SettingsOtherRemovable::save() {
     auto* model = ui->tableViewMO->model();
-    memset(mo_drives, 0, sizeof(mo_drives));
     for (int i = 0; i < MO_NUM; i++) {
         mo_drives[i].f = NULL;
         mo_drives[i].priv = NULL;
@@ -138,7 +137,6 @@ void SettingsOtherRemovable::save() {
     }
 
     model = ui->tableViewZIP->model();
-    memset(zip_drives, 0, sizeof(zip_drives));
     for (int i = 0; i < ZIP_NUM; i++) {
         zip_drives[i].f = NULL;
         zip_drives[i].priv = NULL;
