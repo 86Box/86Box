@@ -92,6 +92,9 @@ add_library(ui STATIC
     qt_soundgain.cpp
     qt_soundgain.ui
 
+    qt_styleoverride.cpp
+    qt_styleoverride.hpp
+
     ../qt_resources.qrc
 )
 if (APPLE)

@@ -27,7 +27,7 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 
 #include "qt_mainwindow.hpp"
 #include "cocoa_mouse.hpp"
-
+#include "qt_styleoverride.hpp"
 
 // Void Cast
 #define VC(x) const_cast<wchar_t*>(x)
@@ -89,6 +89,7 @@ main_thread_fn()
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
+    app.setStyle(new StyleOverride());
 #ifdef __APPLE__
     CocoaEventFilter cocoafilter;
     app.installNativeEventFilter(&cocoafilter);
