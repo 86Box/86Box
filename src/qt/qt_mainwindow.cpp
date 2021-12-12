@@ -2,6 +2,7 @@
 #include "ui_qt_mainwindow.h"
 
 #include "qt_specifydimensions.h"
+#include "qt_soundgain.hpp"
 
 extern "C" {
 #include <86box/86box.h>
@@ -1271,4 +1272,10 @@ void MainWindow::on_actionTake_screenshot_triggered()
     screenshots++;
     endblit();
     device_force_redraw();
+}
+
+void MainWindow::on_actionSound_gain_triggered()
+{
+    SoundGain gain(this);
+    gain.exec();
 }

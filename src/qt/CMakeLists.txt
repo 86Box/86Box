@@ -88,6 +88,9 @@ add_library(ui STATIC
     qt_specifydimensions.h
     qt_specifydimensions.cpp
     qt_specifydimensions.ui
+    qt_soundgain.hpp
+    qt_soundgain.cpp
+    qt_soundgain.ui
 
     ../qt_resources.qrc
 )

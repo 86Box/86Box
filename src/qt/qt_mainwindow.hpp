@@ -97,6 +97,8 @@ private slots:
     void getTitle_(wchar_t* title);
     void on_actionTake_screenshot_triggered();
 
+    void on_actionSound_gain_triggered();
+
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;

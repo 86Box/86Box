@@ -81,6 +81,7 @@
     <addaction name="actionUpdate_status_bar_icons"/>
     <addaction name="separator"/>
     <addaction name="actionTake_screenshot"/>
+    <addaction name="actionSound_gain"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -510,6 +511,11 @@
   <action name="actionTake_screenshot">
    <property name="text">
     <string>Take screenshot...</string>
+   </property>
+  </action>
+  <action name="actionSound_gain">
+   <property name="text">
+    <string>Sound gain...</string>
    </property>
   </action>
  </widget>
