@@ -131,8 +131,15 @@ void SettingsFloppyCDROM::save() {
 
     /* Removable devices category */
     model = ui->tableViewCDROM->model();
-    memset(cdrom, 0, sizeof(cdrom));
     for (int i = 0; i < CDROM_NUM; i++) {
+	cdrom[i].img_fp = NULL;
+        cdrom[i].priv = NULL;
+        cdrom[i].ops = NULL;
+        cdrom[i].image = NULL;
+        cdrom[i].insert = NULL;
+        cdrom[i].close = NULL;
+        cdrom[i].get_volume = NULL;
+        cdrom[i].get_channel = NULL;
         cdrom[i].bus_type = model->index(i, 0).data(Qt::UserRole).toUInt();
         cdrom[i].res = model->index(i, 0).data(Qt::UserRole + 1).toUInt();
         cdrom[i].speed = model->index(i, 1).data(Qt::UserRole).toUInt();
