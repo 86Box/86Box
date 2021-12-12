@@ -107,7 +107,7 @@ int main(int argc, char* argv[]) {
     app.installEventFilter(main_window);
 
 #ifdef Q_OS_WINDOWS
-    auto rawInputFilter = WindowsRawInputFilter::Register();
+    auto rawInputFilter = WindowsRawInputFilter::Register(main_window);
     if (rawInputFilter)
     {
         app.installNativeEventFilter(rawInputFilter.get());

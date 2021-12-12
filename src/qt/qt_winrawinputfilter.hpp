@@ -32,6 +32,7 @@
 #define QT_WINDOWSRAWINPUTFILTER_HPP
 
 #include <QObject>
+#include <QMainWindow>
 #include <QAbstractNativeEventFilter>
 #include <QByteArray>
 
@@ -44,7 +45,7 @@ class WindowsRawInputFilter : public QObject, public QAbstractNativeEventFilter
     Q_OBJECT
 
 public:
-    static std::unique_ptr<WindowsRawInputFilter> Register();
+    static std::unique_ptr<WindowsRawInputFilter> Register(QMainWindow *window);
 
     bool nativeEventFilter(const QByteArray &eventType, void *message, long *result) override;
 
@@ -54,13 +55,15 @@ public slots:
     void mousePoll();
 
 private:
+    QMainWindow *window;
     uint16_t scancode_map[768];
     int buttons = 0;
 	int dx = 0;
 	int dy = 0;
 	int dwheel = 0;
+    int menus_open = 0;
 
-    WindowsRawInputFilter();
+    WindowsRawInputFilter(QMainWindow *window);
 
     void handle_input(HRAWINPUT input);
     void keyboard_handle(PRAWINPUT raw);

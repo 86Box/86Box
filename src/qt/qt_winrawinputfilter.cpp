@@ -32,6 +32,8 @@
 
 #include "qt_winrawinputfilter.hpp"
 
+#include <QMenuBar>
+
 #include <Windows.h>
 
 #include <86box/keyboard.h>
@@ -42,34 +44,44 @@
 #include <array>
 #include <memory>
 
-std::unique_ptr<WindowsRawInputFilter> WindowsRawInputFilter::Register()
+std::unique_ptr<WindowsRawInputFilter> WindowsRawInputFilter::Register(QMainWindow *window)
 {
+    HWND wnd = (HWND)window->winId();
+
     RAWINPUTDEVICE rid[2] =
     {
         {
             .usUsagePage = 0x01,
             .usUsage = 0x06,
             .dwFlags = RIDEV_NOHOTKEYS,
-            .hwndTarget = NULL
+            .hwndTarget = wnd
         },
         {
             .usUsagePage = 0x01,
             .usUsage = 0x02,
             .dwFlags = 0,
-            .hwndTarget = NULL
+            .hwndTarget = wnd
         }
     };
 
     if (RegisterRawInputDevices(rid, 2, sizeof(rid[0])) == FALSE)
         return std::unique_ptr<WindowsRawInputFilter>(nullptr);
 
-    std::unique_ptr<WindowsRawInputFilter> inputfilter(new WindowsRawInputFilter());
+    std::unique_ptr<WindowsRawInputFilter> inputfilter(new WindowsRawInputFilter(window));
 
     return inputfilter;
 }
 
-WindowsRawInputFilter::WindowsRawInputFilter()
+WindowsRawInputFilter::WindowsRawInputFilter(QMainWindow *window)
 {
+    this->window = window;
+
+    for (auto menu : window->findChildren<QMenu*>())
+    {
+        connect(menu, &QMenu::aboutToShow, this, [=]() { menus_open++; });
+        connect(menu, &QMenu::aboutToHide, this, [=]() { menus_open--; });
+    }
+
     for (size_t i = 0; i < sizeof(scancode_map) / sizeof(scancode_map[0]); i++)
         scancode_map[i] = i;
 
@@ -105,7 +117,7 @@ bool WindowsRawInputFilter::nativeEventFilter(const QByteArray &eventType, void 
 
         if (msg->message == WM_INPUT)
         {
-            //if (infocus) /* TODO: Need way to tell if in menu or settings dialog */
+            if (window->isActiveWindow() && menus_open == 0)
                 handle_input((HRAWINPUT)msg->lParam);
             
             return true;
