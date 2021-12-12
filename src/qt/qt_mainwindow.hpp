@@ -28,6 +28,7 @@ public:
     void setTitle(const wchar_t* title);
     void getTitle(wchar_t* title);
     void blitToWidget(int x, int y, int w, int h);
+    QSize getRenderWidgetSize();
 signals:
     void paint(const QImage& image);
     void resizeContents(int w, int h);
@@ -36,6 +37,8 @@ signals:
     void updateStatusBarPanes();
     void updateStatusBarActivity(int tag, bool active);
     void updateStatusBarEmpty(int tag, bool empty);
+    void updateMenuResizeOptions();
+    void updateWindowRememberOption();
 
     void setFullscreen(bool state);
     void setMouseCapture(bool state);
@@ -82,17 +85,28 @@ private slots:
     void on_actionForce_4_3_display_ratio_triggered();
     void on_actionChange_contrast_for_monochrome_display_triggered();
     void on_actionCGA_PCjr_Tandy_EGA_S_VGA_overscan_triggered();
+    void on_actionRemember_size_and_position_triggered();
+    void on_actionSpecify_dimensions_triggered();
+    void on_actionHiDPI_scaling_triggered();
+    void on_actionHide_status_bar_triggered();
+    void on_actionUpdate_status_bar_icons_triggered();
 
     void refreshMediaMenu();
     void showMessage_(const QString& header, const QString& message);
     void setTitle_(const wchar_t* title);
     void getTitle_(wchar_t* title);
+    void on_actionTake_screenshot_triggered();
+
+    void on_actionSound_gain_triggered();
+
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;
     void focusInEvent(QFocusEvent* event) override;
     void focusOutEvent(QFocusEvent* event) override;
     bool eventFilter(QObject* receiver, QEvent* event) override;
+    void showEvent(QShowEvent* event) override;
+    void closeEvent(QCloseEvent* event) override;
 
 private:
     Ui::MainWindow *ui;

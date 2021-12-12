@@ -109,7 +109,6 @@ int main(int argc, char* argv[]) {
     onesec.start(1000);
 
     /* Initialize the rendering window, or fullscreen. */
-    QTimer::singleShot(50, []() { plat_resize(640, 480); } );
     auto main_thread = std::thread([] {
        main_thread_fn();
     });
