@@ -531,6 +531,8 @@ BEGIN
     IDS_2149	"Imagens de cassete (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Todos os arquivos (*.*)\0*.*\0"
     IDS_2150	"Cartucho %i: %ls"
     IDS_2151	"Imagens de cartucho (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Todos os arquivos (*.*)\0*.*\0"
+    IDS_2152	"Error initializing renderer"
+    IDS_2153	"OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
 END
 
 STRINGTABLE DISCARDABLE 

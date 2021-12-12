@@ -125,6 +125,8 @@
 #define IDS_2149	2149		// "Cassette images (*.PCM;*.RAW;*..."
 #define IDS_2150	2150		// "Cartridge %i: %ls"
 #define IDS_2151	2151		// "Cartridge images (*.JRC)\0*.JRC\0..."
+#define IDS_2152	2152		// "Error initializing renderer"
+#define IDS_2153	2153		// "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"
@@ -233,7 +235,7 @@
 
 #define IDS_LANG_ENUS	IDS_7168
 
-#define STR_NUM_2048	104
+#define STR_NUM_2048	106
 #define STR_NUM_3072	11
 #define STR_NUM_4096	40
 #define STR_NUM_4352	6
