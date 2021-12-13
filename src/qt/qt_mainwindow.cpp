@@ -49,9 +49,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     Q_INIT_RESOURCE(qt_resources);
-    status = std::make_unique<MachineStatus>(this);
     mm = std::make_shared<MediaMenu>(this);
     MediaMenu::ptr = mm;
+    status = std::make_unique<MachineStatus>(this);
 
     ui->setupUi(this);
     ui->stackedWidget->setMouseTracking(true);
@@ -118,9 +118,10 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(this, &MainWindow::updateStatusBarPanes, this, [this] {
-        status->refresh(ui->statusbar);
+        refreshMediaMenu();
     });
     connect(this, &MainWindow::updateStatusBarPanes, this, &MainWindow::refreshMediaMenu);
+    connect(this, &MainWindow::updateStatusBarTip, status.get(), &MachineStatus::updateTip);
     connect(this, &MainWindow::updateStatusBarActivity, status.get(), &MachineStatus::setActivity);
     connect(this, &MainWindow::updateStatusBarEmpty, status.get(), &MachineStatus::setEmpty);
     connect(this, &MainWindow::statusBarMessage, status.get(), &MachineStatus::message);
@@ -920,6 +921,7 @@ bool MainWindow::eventFilter(QObject* receiver, QEvent* event)
 
 void MainWindow::refreshMediaMenu() {
     mm->refresh(ui->menuMedia);
+    status->refresh(ui->statusbar);
 }
 
 void MainWindow::showMessage(const QString& header, const QString& message) {
