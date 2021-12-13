@@ -201,6 +201,10 @@ extern int	machine_get_nvrmask(int m);
 extern int	machine_has_flags(int m, int flags);
 extern int	machine_has_bus(int m, int bus_flags);
 extern int	machine_has_cartridge(int m);
+extern int	machine_get_min_ram(int m);
+extern int	machine_get_max_ram(int m);
+extern int	machine_get_ram_granularity(int m);
+extern int	machine_get_type(int m);
 extern void	machine_close(void);
 
 

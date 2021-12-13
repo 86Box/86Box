@@ -318,7 +318,7 @@ win_settings_init(void)
     int i = 0;
 
     /* Machine category */
-    temp_machine_type = machines[machine].type;
+    temp_machine_type = machine_get_type(machine);
     temp_machine = machine;
     temp_cpu_f = cpu_f;
     temp_wait_states = cpu_waitstates;
@@ -786,13 +786,13 @@ win_settings_machine_recalc_machine(HWND hdlg)
 
     win_settings_machine_recalc_cpu_m(hdlg);
 
-    if ((machines[temp_machine].ram_granularity & 1023)) {
+    if (machine_get_ram_granularity(temp_machine) & 1023) {
 	/* KB granularity */
 	h = GetDlgItem(hdlg, IDC_MEMSPIN);
-	SendMessage(h, UDM_SETRANGE, 0, (machines[temp_machine].min_ram << 16) | machines[temp_machine].max_ram);
+	SendMessage(h, UDM_SETRANGE, 0, (machine_get_min_ram(temp_machine) << 16) | machine_get_max_ram(temp_machine));
 
 	accel.nSec = 0;
-	accel.nInc = machines[temp_machine].ram_granularity;
+	accel.nInc = machine_get_ram_granularity(temp_machine);
 	SendMessage(h, UDM_SETACCEL, 1, (LPARAM)&accel);
 
 	SendMessage(h, UDM_SETPOS, 0, temp_mem_size);
@@ -803,14 +803,14 @@ win_settings_machine_recalc_machine(HWND hdlg)
 	/* MB granularity */
 	h = GetDlgItem(hdlg, IDC_MEMSPIN);
 #if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-	i = MIN(machines[temp_machine].max_ram, 2097152);
+	i = MIN(machine_get_max_ram(temp_machine), 2097152);
 #else
-	i = MIN(machines[temp_machine].max_ram, 3145728);
+	i = MIN(machine_get_max_ram(temp_machine), 3145728);
 #endif
-	SendMessage(h, UDM_SETRANGE, 0, (machines[temp_machine].min_ram << 6) | (i >> 10));
+	SendMessage(h, UDM_SETRANGE, 0, (machine_get_min_ram(temp_machine) << 6) | (i >> 10));
 
 	accel.nSec = 0;
-	accel.nInc = machines[temp_machine].ram_granularity >> 10;
+	accel.nInc = machine_get_ram_granularity(temp_machine) >> 10;
 
 	SendMessage(h, UDM_SETACCEL, 1, (LPARAM)&accel);
 
@@ -820,8 +820,8 @@ win_settings_machine_recalc_machine(HWND hdlg)
 	SendMessage(h, WM_SETTEXT, 0, win_get_string(IDS_2086));
     }
 
-    settings_enable_window(hdlg, IDC_MEMSPIN, machines[temp_machine].min_ram != machines[temp_machine].max_ram);
-    settings_enable_window(hdlg, IDC_MEMTEXT, machines[temp_machine].min_ram != machines[temp_machine].max_ram);
+    settings_enable_window(hdlg, IDC_MEMSPIN, machine_get_min_ram(temp_machine) != machine_get_max_ram(temp_machine));
+    settings_enable_window(hdlg, IDC_MEMTEXT, machine_get_min_ram(temp_machine) != machine_get_max_ram(temp_machine));
 
     free(lptsTemp);
 }
@@ -844,7 +844,7 @@ machine_type_available(int id)
 
     if ((id > 0) && (id < MACHINE_TYPE_MAX)) {
 	while (machine_get_internal_name_ex(c) != NULL) {
-		if (machine_available(c) && (machines[c].type == id))
+		if (machine_available(c) && (machine_get_type(c) == id))
 			return 1;
 		c++;
 	}
@@ -891,8 +891,8 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		settings_reset_content(hdlg, IDC_COMBO_MACHINE);
 		memset(listtomachine, 0x00, sizeof(listtomachine));
 		while (machine_get_internal_name_ex(c) != NULL) {
-			if (machine_available(c) && (machines[c].type == temp_machine_type)) {
-				stransi = (char *)machines[c].name;
+			if (machine_available(c) && (machine_get_type(c) == temp_machine_type)) {
+				stransi = machine_getname_ex(c);
 				mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 				settings_add_string(hdlg, IDC_COMBO_MACHINE, (LPARAM) lptsTemp);
 				listtomachine[d] = c;
@@ -946,8 +946,8 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					c = d = 0;
 					memset(listtomachine, 0x00, sizeof(listtomachine));
 					while (machine_get_internal_name_ex(c) != NULL) {
-						if (machine_available(c) && (machines[c].type == temp_machine_type)) {
-							stransi = (char *)machines[c].name;
+						if (machine_available(c) && (machine_get_type(c) == temp_machine_type)) {
+							stransi = machine_getname_ex(c);
 							mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
 							settings_add_string(hdlg, IDC_COMBO_MACHINE, (LPARAM) lptsTemp);
 							listtomachine[d] = c;
@@ -1023,13 +1023,13 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		SendMessage(h, WM_GETTEXT, 255, (LPARAM) lptsTemp);
 		wcstombs(stransi, lptsTemp, 512);
 		sscanf(stransi, "%u", &temp_mem_size);
-		if (!(machines[temp_machine].ram_granularity & 1023))
+		if (!(machine_get_ram_granularity(temp_machine) & 1023))
 			temp_mem_size = temp_mem_size << 10;
-		temp_mem_size &= ~(machines[temp_machine].ram_granularity - 1);
-		if (temp_mem_size < machines[temp_machine].min_ram)
-			temp_mem_size = machines[temp_machine].min_ram;
-		else if (temp_mem_size > machines[temp_machine].max_ram)
-			temp_mem_size = machines[temp_machine].max_ram;
+		temp_mem_size &= ~(machine_get_ram_granularity(temp_machine) - 1);
+		if (temp_mem_size < machine_get_min_ram(temp_machine))
+			temp_mem_size = machine_get_min_ram(temp_machine);
+		else if (temp_mem_size > machine_get_max_ram(temp_machine))
+			temp_mem_size = machine_get_max_ram(temp_machine);
 		free(stransi);
 		free(lptsTemp);
 
