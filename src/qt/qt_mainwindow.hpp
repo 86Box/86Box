@@ -37,6 +37,7 @@ signals:
     void updateStatusBarPanes();
     void updateStatusBarActivity(int tag, bool active);
     void updateStatusBarEmpty(int tag, bool empty);
+    void updateStatusBarTip(int tag);
     void updateMenuResizeOptions();
     void updateWindowRememberOption();
 

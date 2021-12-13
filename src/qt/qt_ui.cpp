@@ -83,7 +83,7 @@ void ui_sb_set_text_w(wchar_t *wstr) {
 
 void
 ui_sb_update_tip(int arg) {
-    qDebug() << Q_FUNC_INFO << arg;
+    main_window->updateStatusBarTip(arg);
 }
 
 void
