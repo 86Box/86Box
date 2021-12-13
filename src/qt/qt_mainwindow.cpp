@@ -221,6 +221,11 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->actionChange_contrast_for_monochrome_display->setChecked(true);
     }
 
+#ifdef Q_OS_WINDOWS
+    /* qt opengles doesn't work (yet?) so hide the menu option */
+    ui->actionHardware_Renderer_OpenGL_ES->setVisible(false);
+#endif
+
     setFocusPolicy(Qt::StrongFocus);
     ui->gles->setFocusPolicy(Qt::NoFocus);
     ui->sw->setFocusPolicy(Qt::NoFocus);
