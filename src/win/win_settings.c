@@ -1080,7 +1080,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 
 		while (1) {
 			/* Skip "internal" if machine doesn't have it. */
-			if ((c == 1) && !(machines[temp_machine].flags & MACHINE_VIDEO)) {
+			if ((c == 1) && !machine_has_flags(temp_machine, MACHINE_VIDEO)) {
 				c++;
 				continue;
 			}
@@ -1091,7 +1091,7 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			if (video_card_available(c) &&
-			    device_is_valid(video_card_getdevice(c), machines[temp_machine].flags)) {
+			    device_is_valid(video_card_getdevice(c), temp_machine)) {
 				if (c == 0)
 					settings_add_string(hdlg, IDC_COMBO_VIDEO, win_get_string(IDS_2103));
 				else if (c == 1)
@@ -1109,12 +1109,12 @@ win_settings_video_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			settings_process_messages();
 		}
 
-		settings_enable_window(hdlg, IDC_COMBO_VIDEO, !(machines[temp_machine].flags & MACHINE_VIDEO_ONLY));
+		settings_enable_window(hdlg, IDC_COMBO_VIDEO, !machine_has_flags(temp_machine, MACHINE_VIDEO_ONLY));
 		e = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_VIDEO)];
 		settings_enable_window(hdlg, IDC_CONFIGURE_VID, video_card_has_config(e));
-		settings_enable_window(hdlg, IDC_CHECK_VOODOO, (machines[temp_machine].flags & MACHINE_BUS_PCI));
+		settings_enable_window(hdlg, IDC_CHECK_VOODOO, machine_has_bus(temp_machine, MACHINE_BUS_PCI));
 		settings_set_check(hdlg, IDC_CHECK_VOODOO, temp_voodoo);
-		settings_enable_window(hdlg, IDC_BUTTON_VOODOO, (machines[temp_machine].flags & MACHINE_BUS_PCI) && temp_voodoo);
+		settings_enable_window(hdlg, IDC_BUTTON_VOODOO, machine_has_bus(temp_machine, MACHINE_BUS_PCI) && temp_voodoo);
 		return TRUE;
 
 	case WM_COMMAND:
@@ -1157,10 +1157,10 @@ mouse_valid(int num, int m)
     const device_t *dev;
 
     if ((num == MOUSE_TYPE_INTERNAL) &&
-	!(machines[m].flags & MACHINE_MOUSE)) return(0);
+	!machine_has_flags(m, MACHINE_MOUSE)) return(0);
 
     dev = mouse_get_device(num);
-    return(device_is_valid(dev, machines[m].flags));
+    return(device_is_valid(dev, m));
 }
 
 
@@ -1294,7 +1294,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		settings_reset_content(hdlg, IDC_COMBO_SOUND);
 		while (1) {
 			/* Skip "internal" if machine doesn't have it. */
-			if ((c == 1) && !(machines[temp_machine].flags & MACHINE_SOUND)) {
+			if ((c == 1) && !machine_has_flags(temp_machine, MACHINE_SOUND)) {
 				c++;
 				continue;
 			}
@@ -1307,7 +1307,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			if (sound_card_available(c)) {
 				sound_dev = sound_card_getdevice(c);
 
-				if (device_is_valid(sound_dev, machines[temp_machine].flags)) {
+				if (device_is_valid(sound_dev, temp_machine)) {
 					if (c == 0)
 						settings_add_string(hdlg, IDC_COMBO_SOUND, win_get_string(IDS_2103));
 					else if (c == 1)
@@ -1377,15 +1377,15 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		settings_set_check(hdlg, IDC_CHECK_MPU401, temp_mpu401);
 		settings_enable_window(hdlg, IDC_CHECK_MPU401, mpu401_standalone_allow());
 		settings_enable_window(hdlg, IDC_CONFIGURE_MPU401, mpu401_standalone_allow() && temp_mpu401);
-		settings_enable_window(hdlg, IDC_CHECK_CMS, (machines[temp_machine].flags & MACHINE_BUS_ISA));
+		settings_enable_window(hdlg, IDC_CHECK_CMS, machine_has_bus(temp_machine, MACHINE_BUS_ISA));
 		settings_set_check(hdlg, IDC_CHECK_CMS, temp_GAMEBLASTER);
-		settings_enable_window(hdlg, IDC_CONFIGURE_CMS, (machines[temp_machine].flags & MACHINE_BUS_ISA) && temp_GAMEBLASTER);		
-		settings_enable_window(hdlg, IDC_CHECK_GUS, (machines[temp_machine].flags & MACHINE_BUS_ISA16));
+		settings_enable_window(hdlg, IDC_CONFIGURE_CMS, machine_has_bus(temp_machine, MACHINE_BUS_ISA) && temp_GAMEBLASTER);
+		settings_enable_window(hdlg, IDC_CHECK_GUS, machine_has_bus(temp_machine, MACHINE_BUS_ISA16));
 		settings_set_check(hdlg, IDC_CHECK_GUS, temp_GUS);
-		settings_enable_window(hdlg, IDC_CONFIGURE_GUS, (machines[temp_machine].flags & MACHINE_BUS_ISA16) && temp_GUS);	
-		settings_enable_window(hdlg, IDC_CHECK_SSI, (machines[temp_machine].flags & MACHINE_BUS_ISA));
+		settings_enable_window(hdlg, IDC_CONFIGURE_GUS, machine_has_bus(temp_machine, MACHINE_BUS_ISA16) && temp_GUS);
+		settings_enable_window(hdlg, IDC_CHECK_SSI, machine_has_bus(temp_machine, MACHINE_BUS_ISA));
 		settings_set_check(hdlg, IDC_CHECK_SSI, temp_SSI2001);
-		settings_enable_window(hdlg, IDC_CONFIGURE_SSI, (machines[temp_machine].flags & MACHINE_BUS_ISA) && temp_SSI2001);
+		settings_enable_window(hdlg, IDC_CONFIGURE_SSI, machine_has_bus(temp_machine, MACHINE_BUS_ISA) && temp_SSI2001);
 		settings_set_check(hdlg, IDC_CHECK_FLOAT, temp_float);
 
 		free(lptsTemp);
@@ -1440,7 +1440,7 @@ win_settings_sound_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 				break;
 
 			case IDC_CONFIGURE_MPU401:
-				temp_deviceconfig |= deviceconfig_open(hdlg, (machines[temp_machine].flags & MACHINE_MCA) ?
+				temp_deviceconfig |= deviceconfig_open(hdlg, machine_has_bus(temp_machine, MACHINE_BUS_MCA) ?
 								       (void *)&mpu401_mca_device : (void *)&mpu401_device);
 				break;
 
@@ -1589,7 +1589,7 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 		settings_reset_content(hdlg, IDC_COMBO_HDC);
 		while (1) {
 			/* Skip "internal" if machine doesn't have it. */
-			if ((c == 1) && !(machines[temp_machine].flags & MACHINE_HDC)) {
+			if ((c == 1) && !machine_has_flags(temp_machine, MACHINE_HDC)) {
 				c++;
 				continue;
 			}
@@ -1602,7 +1602,7 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			if (hdc_available(c)) {
 				hdc_dev = hdc_get_device(c);
 
-				if (device_is_valid(hdc_dev, machines[temp_machine].flags)) {
+				if (device_is_valid(hdc_dev, temp_machine)) {
 					if (c == 0)
 						settings_add_string(hdlg, IDC_COMBO_HDC, win_get_string(IDS_2103));
 					else if (c == 1)
@@ -1634,7 +1634,7 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			if (fdc_card_available(c)) {
 				fdc_dev = fdc_card_getdevice(c);
 
-				if (device_is_valid(fdc_dev, machines[temp_machine].flags)) {
+				if (device_is_valid(fdc_dev, temp_machine)) {
 					if (c == 0)
 						settings_add_string(hdlg, IDC_COMBO_FDC, win_get_string(IDS_2118));
 					else
@@ -1665,7 +1665,7 @@ win_settings_storage_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			if (scsi_card_available(c)) {
 				scsi_dev = scsi_card_getdevice(c);
 
-				if (device_is_valid(scsi_dev, machines[temp_machine].flags)) {
+				if (device_is_valid(scsi_dev, temp_machine)) {
 					for (e = 0; e < SCSI_BUS_MAX; e++) {
 						if (c == 0)
 							settings_add_string(hdlg, IDC_COMBO_SCSI_1 + e, win_get_string(IDS_2103));
@@ -1823,7 +1823,7 @@ win_settings_network_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			if (device_name[0] == L'\0')
 				break;
 
-			if (network_card_available(c) && device_is_valid(network_card_getdevice(c), machines[temp_machine].flags)) {
+			if (network_card_available(c) && device_is_valid(network_card_getdevice(c), temp_machine)) {
 				if (c == 0)
 					settings_add_string(hdlg, IDC_COMBO_NET, win_get_string(IDS_2103));
 				else

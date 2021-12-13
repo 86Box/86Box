@@ -406,7 +406,7 @@ spd_write_drbs_interleaved(uint8_t *regs, uint8_t reg_min, uint8_t reg_max, uint
 {
     uint8_t row, dimm;
     uint8_t drb;
-    uint16_t size, size_acc;
+    uint16_t size, size_acc = 0;
     uint16_t rows[SPD_MAX_SLOTS];
 
     /* No SPD: split SIMMs into pairs as if they were "DIMM"s. */

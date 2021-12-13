@@ -980,6 +980,27 @@ machine_get_nvrmask(int m)
 
 
 int
+machine_has_flags(int m, int flags)
+{
+    return(machines[m].flags & flags);
+}
+
+
+int
+machine_has_bus(int m, int bus_flags)
+{
+    return(machines[m].flags & bus_flags);
+}
+
+
+int
+machine_has_cartridge(int m)
+{
+    return(machine_has_flags(m, MACHINE_CARTRIDGE) ? 1 : 0);
+}
+
+
+int
 machine_get_machine_from_internal_name(char *s)
 {
     int c = 0;
