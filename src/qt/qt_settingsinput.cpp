@@ -11,7 +11,9 @@ extern "C" {
 #include <86box/gameport.h>
 }
 
+#include "qt_models_common.hpp"
 #include "qt_deviceconfig.hpp"
+#include "qt_joystickconfiguration.hpp"
 
 SettingsInput::SettingsInput(QWidget *parent) :
     QWidget(parent),
@@ -73,13 +75,7 @@ void SettingsInput::onCurrentMachineChanged(int machineId) {
     removeRows = joystickModel->rowCount();
     selectedRow = 0;
     while (joyName) {
-        int row = joystickModel->rowCount();
-        joystickModel->insertRow(row);
-        auto idx = joystickModel->index(row, 0);
-
-        joystickModel->setData(idx, joyName, Qt::DisplayRole);
-        joystickModel->setData(idx, i, Qt::UserRole);
-
+        int row = Models::AddEntry(joystickModel, joyName, i);
         if (i == joystick_type) {
             selectedRow = row - removeRows;
         }
@@ -112,3 +108,80 @@ void SettingsInput::on_pushButtonConfigureMouse_clicked() {
     int mouseId = ui->comboBoxMouse->currentData().toInt();
     DeviceConfig::ConfigureDevice(mouse_get_device(mouseId));
 }
+
+static int get_axis(JoystickConfiguration& jc, int axis, int joystick_nr) {
+    int axis_sel = jc.selectedAxis(axis);
+    int nr_axes = plat_joystick_state[joystick_state[joystick_nr].plat_joystick_nr - 1].nr_axes;
+    int nr_povs = plat_joystick_state[joystick_state[joystick_nr].plat_joystick_nr - 1].nr_povs;
+
+    if (axis_sel < nr_axes) {
+        return axis_sel;
+    }
+
+    axis_sel -= nr_axes;
+    if (axis_sel < nr_povs * 2) {
+        if (axis_sel & 1)
+            return POV_Y | (axis_sel >> 1);
+        else
+            return POV_X | (axis_sel >> 1);
+    }
+    axis_sel -= nr_povs;
+
+    return SLIDER | (axis_sel >> 1);
+}
+
+static int get_pov(JoystickConfiguration& jc, int pov, int joystick_nr) {
+    int pov_sel = jc.selectedPov(pov);
+    int nr_povs = plat_joystick_state[joystick_state[joystick_nr].plat_joystick_nr-1].nr_povs*2;
+
+    if (pov_sel < nr_povs)
+    {
+        if (pov_sel & 1)
+            return POV_Y | (pov_sel >> 1);
+        else
+            return POV_X | (pov_sel >> 1);
+    }
+
+    return pov_sel - nr_povs;
+}
+
+static void updateJoystickConfig(int type, int joystick_nr, QWidget* parent) {
+    JoystickConfiguration jc(type, joystick_nr, parent);
+    switch (jc.exec()) {
+    case QDialog::Rejected:
+        return;
+    case QDialog::Accepted:
+        break;
+    }
+
+    joystick_state[joystick_nr].plat_joystick_nr = jc.selectedDevice();
+    if (joystick_state[joystick_nr].plat_joystick_nr) {
+        for (int c = 0; c < joystick_get_axis_count(type); c++) {
+            joystick_state[joystick_nr].axis_mapping[c] = get_axis(jc, c, joystick_nr);
+        }
+        for (int c = 0; c < joystick_get_button_count(type); c++) {
+            joystick_state[joystick_nr].button_mapping[c] = jc.selectedButton(c);
+        }
+        for (int c = 0; c < joystick_get_button_count(type); c++) {
+            joystick_state[joystick_nr].pov_mapping[c][0] = get_pov(jc, c, joystick_nr);
+            joystick_state[joystick_nr].pov_mapping[c][1] = get_pov(jc, c, joystick_nr);
+        }
+    }
+}
+
+void SettingsInput::on_pushButtonJoystick1_clicked() {
+    updateJoystickConfig(ui->comboBoxJoystick->currentData().toInt(), 0, this);
+}
+
+void SettingsInput::on_pushButtonJoystick2_clicked() {
+    updateJoystickConfig(ui->comboBoxJoystick->currentData().toInt(), 1, this);
+}
+
+void SettingsInput::on_pushButtonJoystick3_clicked() {
+    updateJoystickConfig(ui->comboBoxJoystick->currentData().toInt(), 2, this);
+}
+
+void SettingsInput::on_pushButtonJoystick4_clicked() {
+    updateJoystickConfig(ui->comboBoxJoystick->currentData().toInt(), 3, this);
+}
+

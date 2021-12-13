@@ -67,9 +67,6 @@ int	kbd_req_capture = 0;
 int hide_status_bar = 0;
 uint32_t lang_id = 0x0409, lang_sys = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
 
-plat_joystick_t	plat_joystick_state[MAX_PLAT_JOYSTICKS];
-joystick_t	joystick_state[MAX_JOYSTICKS];
-
 int stricmp(const char* s1, const char* s2)
 {
     return QByteArray(s1).compare(s2, Qt::CaseInsensitive);
@@ -380,9 +377,6 @@ void dynld_close(void *handle)
     delete reinterpret_cast<QLibrary*>(handle);
 }
 
-void joystick_init(void) {}
-void joystick_close(void) {}
-void joystick_process(void) {}
 void startblit()
 {
     blitmx_contention++;
