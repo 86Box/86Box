@@ -57,8 +57,13 @@ main_thread_fn()
                 nvr_dosave = 0;
                 frames = 0;
             }
-        } else	/* Just so we dont overload the host OS. */
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        } else {
+            /* Just so we dont overload the host OS. */
+            if (drawits < -1)
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            else
+                std::this_thread::yield();
+        }
 
         /* If needed, handle a screen resize. */
         if (doresize && !video_fullscreen && !is_quit) {
