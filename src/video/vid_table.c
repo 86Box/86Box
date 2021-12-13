@@ -279,7 +279,7 @@ void
 video_pre_reset(int card)
 {
     if ((card == VID_NONE) || \
-	(card == VID_INTERNAL) || (machines[machine].flags & MACHINE_VIDEO_ONLY))
+	(card == VID_INTERNAL) || machine_has_flags(machine, MACHINE_VIDEO_ONLY))
 	video_prepare();
 }
 
@@ -292,13 +292,13 @@ video_reset(int card)
 	return;
 
     vid_table_log("VIDEO: reset (gfxcard=%d, internal=%d)\n",
-		  card, (machines[machine].flags & MACHINE_VIDEO)?1:0);
+		  card, machine_has_flags(machine, MACHINE_VIDEO) ? 1 : 0);
 
     loadfont("roms/video/mda/mda.rom", 0);
 
     /* Do not initialize internal cards here. */
     if (!(card == VID_NONE) && \
-	!(card == VID_INTERNAL) && !(machines[machine].flags & MACHINE_VIDEO_ONLY)) {
+	!(card == VID_INTERNAL) && !machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
 	vid_table_log("VIDEO: initializing '%s'\n", video_cards[card].name);
 
 	video_prepare();

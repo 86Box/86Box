@@ -198,6 +198,9 @@ extern const device_t	*machine_getdevice(int m);
 #endif
 extern char	*machine_get_internal_name_ex(int m);
 extern int	machine_get_nvrmask(int m);
+extern int	machine_has_flags(int m, int flags);
+extern int	machine_has_bus(int m, int bus_flags);
+extern int	machine_has_cartridge(int m);
 extern void	machine_close(void);
 
 

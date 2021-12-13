@@ -24,8 +24,8 @@
 #include <86box/zip.h>
 #include <86box/win.h>
 
-#define MACHINE_HAS_IDE		(machines[machine].flags & MACHINE_IDE_QUAD)
-#define MACHINE_HAS_SCSI	(machines[machine].flags & MACHINE_SCSI_DUAL)
+#define MACHINE_HAS_IDE		(machine_has_flags(machine, MACHINE_IDE_QUAD))
+#define MACHINE_HAS_SCSI	(machine_has_flags(machine, MACHINE_SCSI_DUAL))
 
 #define CASSETTE_FIRST		0
 #define CARTRIDGE_FIRST		CASSETTE_FIRST + 1
@@ -403,7 +403,7 @@ media_menu_load_submenus()
 static inline int
 is_valid_cartridge(void)
 {
-    return ((machines[machine].flags & MACHINE_CARTRIDGE) ? 1 : 0);
+    return (machine_has_cartridge(machine));
 }
 
 

@@ -1063,7 +1063,7 @@ write_output(atkbd_t *dev, uint8_t val)
 	val |= ((dev->mem[0] << 4) & 0x10);
 
     /*IRQ 12*/
-    if ((dev->output_port ^ val) & 0x20) {
+    if ((old ^ val) & 0x20) {
 	if (val & 0x20)
 		picint(1 << 12);
 	else
@@ -1071,14 +1071,14 @@ write_output(atkbd_t *dev, uint8_t val)
     }
 
     /*IRQ 1*/
-    if ((dev->output_port ^ val) & 0x10) {
+    if ((old ^ val) & 0x10) {
 	if (val & 0x10)
 		picint(1 << 1);
 	else
 		picintc(1 << 1);
     }
 
-    if ((dev->output_port ^ val) & 0x02) { /*A20 enable change*/
+    if ((old ^ val) & 0x02) { /*A20 enable change*/
 	mem_a20_key = val & 0x02;
 	mem_a20_recalc();
 	flushmmucache();
@@ -1086,7 +1086,7 @@ write_output(atkbd_t *dev, uint8_t val)
 
     /* 0 holds the CPU in the RESET state, 1 releases it. To simplify this,
        we just do everything on release. */
-    if ((dev->output_port ^ val) & 0x01) { /*Reset*/
+    if ((old ^ val) & 0x01) { /*Reset*/
 	if (! (val & 0x01)) {		/* Pin 0 selected. */
 		/* Pin 0 selected. */
 		kbd_log("write_output(): Pulse reset!\n");
