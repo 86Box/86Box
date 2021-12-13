@@ -16,11 +16,11 @@ class ClickableLabel : public QLabel {
 
     signals:
         void clicked(QPoint);
-        void clickedRelease(QPoint);
+        void doubleClicked(QPoint);
 
     protected:
         void mousePressEvent(QMouseEvent* event) override { emit clicked(event->globalPos()); }
-        void mouseReleaseEvent(QMouseEvent* event) override { emit clickedRelease(event->globalPos()); }
+        void mouseDoubleClickEvent(QMouseEvent* event) override { emit doubleClicked(event->globalPos()); }
 };
 
 class MachineStatus : public QObject

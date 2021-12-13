@@ -452,7 +452,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
     d->sound = std::make_unique<ClickableLabel>();
     d->sound->setPixmap(d->pixmaps.sound);
     // Triggering on click makes the mouse move the window when the button is releases. Do it on button release instead.
-    connect(d->sound.get(), &ClickableLabel::clickedRelease, d->sound.get(), [this](QPoint pos) {
+    connect(d->sound.get(), &ClickableLabel::doubleClicked, d->sound.get(), [this](QPoint pos) {
         SoundGain gain(main_window);
         gain.exec();
     });
