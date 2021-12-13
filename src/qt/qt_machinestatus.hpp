@@ -2,8 +2,26 @@
 #define QT_MACHINESTATUS_HPP
 
 #include <QWidget>
+#include <QLabel>
+#include <QMouseEvent>
 
 class QStatusBar;
+
+class ClickableLabel : public QLabel {
+    Q_OBJECT;
+    public:
+        explicit ClickableLabel(QWidget* parent = nullptr)
+        : QLabel(parent) {}
+        ~ClickableLabel() {};
+
+    signals:
+        void clicked(QPoint);
+        void doubleClicked(QPoint);
+
+    protected:
+        void mousePressEvent(QMouseEvent* event) override { emit clicked(event->globalPos()); }
+        void mouseDoubleClickEvent(QMouseEvent* event) override { emit doubleClicked(event->globalPos()); }
+};
 
 class MachineStatus : public QObject
 {
@@ -26,6 +44,7 @@ public slots:
     void setActivity(int tag, bool active);
     void setEmpty(int tag, bool active);
     void message(const QString& msg);
+    void updateTip(int tag);
 
 private:
     struct States;

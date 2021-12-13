@@ -28,8 +28,15 @@ extern uint64_t		tsc;
 #include <QLabel>
 #include <QTimer>
 #include <QStatusBar>
+#include <QMenu>
+
+#include "qt_mediamenu.hpp"
+#include "qt_mainwindow.hpp"
+#include "qt_soundgain.hpp"
 
 #include <array>
+
+extern MainWindow* main_window;
 
 namespace {
     struct PixmapSetActive {
@@ -195,7 +202,7 @@ struct MachineStatus::States {
     std::array<StateEmptyActive, MO_NUM> mo;
     std::array<StateActive, HDD_BUS_USB> hdds;
     StateActive net;
-    std::unique_ptr<QLabel> sound;
+    std::unique_ptr<ClickableLabel> sound;
     std::unique_ptr<QLabel> text;
 };
 
@@ -330,8 +337,12 @@ void MachineStatus::refresh(QStatusBar* sbar) {
     sbar->removeWidget(d->sound.get());
 
     if (cassette_enable) {
-        d->cassette.label = std::make_unique<QLabel>();
+        d->cassette.label = std::make_unique<ClickableLabel>();
         d->cassette.setEmpty(QString(cassette_fname).isEmpty());
+        connect((ClickableLabel*)d->cassette.label.get(), &ClickableLabel::clicked, [this](QPoint pos) {
+            MediaMenu::ptr->cassetteMenu->popup(pos);
+        });
+        d->cassette.label->setToolTip(MediaMenu::ptr->cassetteMenu->title());
         sbar->addWidget(d->cassette.label.get());
     }
 
@@ -339,6 +350,10 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         for (int i = 0; i < 2; ++i) {
             d->cartridge[i].label = std::make_unique<QLabel>();
             d->cartridge[i].setEmpty(QString(cart_fns[i]).isEmpty());
+            connect((ClickableLabel*)d->cartridge[i].label.get(), &ClickableLabel::clicked, [this, i](QPoint pos) {
+                MediaMenu::ptr->cartridgeMenus[i]->popup(pos);
+            });
+            d->cartridge[i].label->setToolTip(MediaMenu::ptr->cartridgeMenus[i]->title());
             sbar->addWidget(d->cartridge[i].label.get());
         }
     }
@@ -352,68 +367,96 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         } else {
             d->fdd[i].pixmaps = &d->pixmaps.floppy_35;
         }
-        d->fdd[i].label = std::make_unique<QLabel>();
+        d->fdd[i].label = std::make_unique<ClickableLabel>();
         d->fdd[i].setEmpty(QString(floppyfns[i]).isEmpty());
         d->fdd[i].setActive(false);
+        connect((ClickableLabel*)d->fdd[i].label.get(), &ClickableLabel::clicked, [this, i](QPoint pos) {
+            MediaMenu::ptr->floppyMenus[i]->popup(pos);
+        });
+        d->fdd[i].label->setToolTip(MediaMenu::ptr->floppyMenus[i]->title());
         sbar->addWidget(d->fdd[i].label.get());
     });
 
     iterateCDROM([this, sbar](int i) {
-        d->cdrom[i].label = std::make_unique<QLabel>();
+        d->cdrom[i].label = std::make_unique<ClickableLabel>();
         d->cdrom[i].setEmpty(cdrom[i].host_drive != 200 || QString(cdrom[i].image_path).isEmpty());
         d->cdrom[i].setActive(false);
+        connect((ClickableLabel*)d->cdrom[i].label.get(), &ClickableLabel::clicked, [this, i](QPoint pos) {
+            MediaMenu::ptr->cdromMenus[i]->popup(pos);
+        });
+        d->cdrom[i].label->setToolTip(MediaMenu::ptr->cdromMenus[i]->title());
         sbar->addWidget(d->cdrom[i].label.get());
     });
 
     iterateZIP([this, sbar](int i) {
-        d->zip[i].label = std::make_unique<QLabel>();
+        d->zip[i].label = std::make_unique<ClickableLabel>();
         d->zip[i].setEmpty(QString(zip_drives[i].image_path).isEmpty());
         d->zip[i].setActive(false);
+        connect((ClickableLabel*)d->zip[i].label.get(), &ClickableLabel::clicked, [this, i](QPoint pos) {
+            MediaMenu::ptr->zipMenus[i]->popup(pos);
+        });
+        d->zip[i].label->setToolTip(MediaMenu::ptr->zipMenus[i]->title());
         sbar->addWidget(d->zip[i].label.get());
     });
 
     iterateMO([this, sbar](int i) {
-        d->mo[i].label = std::make_unique<QLabel>();
+        d->mo[i].label = std::make_unique<ClickableLabel>();
         d->mo[i].setEmpty(QString(mo_drives[i].image_path).isEmpty());
         d->mo[i].setActive(false);
+        connect((ClickableLabel*)d->mo[i].label.get(), &ClickableLabel::clicked, [this, i](QPoint pos) {
+            MediaMenu::ptr->moMenus[i]->popup(pos);
+        });
+        d->mo[i].label->setToolTip(MediaMenu::ptr->moMenus[i]->title());
         sbar->addWidget(d->mo[i].label.get());
     });
 
     auto hdc_name = QString(hdc_get_internal_name(hdc_current));
-    if ((has_mfm || hdc_name == QStringLiteral("st506")) && c_mfm > 0) {
+    if ((has_mfm || hdc_name.left(5) == QStringLiteral("st506")) && c_mfm > 0) {
         d->hdds[HDD_BUS_MFM].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_MFM].setActive(false);
+        d->hdds[HDD_BUS_MFM].label->setToolTip(QStringLiteral("Hard Disk (%1)").arg("MFM/RLL"));
         sbar->addWidget(d->hdds[HDD_BUS_MFM].label.get());
     }
-    if ((has_esdi || hdc_name == QStringLiteral("esdi")) && c_esdi > 0) {
+    if ((has_esdi || hdc_name.left(4) == QStringLiteral("esdi")) && c_esdi > 0) {
         d->hdds[HDD_BUS_ESDI].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_ESDI].setActive(false);
+        d->hdds[HDD_BUS_ESDI].label->setToolTip(QStringLiteral("Hard Disk (%1)").arg("ESDI"));
         sbar->addWidget(d->hdds[HDD_BUS_ESDI].label.get());
     }
-    if ((has_xta || hdc_name == QStringLiteral("xta")) && c_xta > 0) {
+    if ((has_xta || hdc_name.left(3) == QStringLiteral("xta")) && c_xta > 0) {
         d->hdds[HDD_BUS_XTA].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_XTA].setActive(false);
+        d->hdds[HDD_BUS_XTA].label->setToolTip(QStringLiteral("Hard Disk (%1)").arg("XTA"));
         sbar->addWidget(d->hdds[HDD_BUS_XTA].label.get());
     }
-    if ((hasIDE() || hdc_name == QStringLiteral("xtide") || hdc_name == QStringLiteral("ide")) && c_ide > 0) {
+    if ((hasIDE() || hdc_name.left(5) == QStringLiteral("xtide") || hdc_name.left(3) == QStringLiteral("ide")) && c_ide > 0) {
         d->hdds[HDD_BUS_IDE].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_IDE].setActive(false);
+        d->hdds[HDD_BUS_IDE].label->setToolTip(QStringLiteral("Hard Disk (%1)").arg("IDE"));
         sbar->addWidget(d->hdds[HDD_BUS_IDE].label.get());
     }
     if ((hasSCSI() || (scsi_card_current[0] != 0) || (scsi_card_current[1] != 0) ||
          (scsi_card_current[2] != 0) || (scsi_card_current[3] != 0)) && c_scsi > 0) {
         d->hdds[HDD_BUS_SCSI].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_SCSI].setActive(false);
+        d->hdds[HDD_BUS_SCSI].label->setToolTip(QStringLiteral("Hard Disk (%1)").arg("SCSI"));
         sbar->addWidget(d->hdds[HDD_BUS_SCSI].label.get());
     }
 
     if (do_net) {
         d->net.label = std::make_unique<QLabel>();
         d->net.setActive(false);
+        d->net.label->setToolTip("Network");
         sbar->addWidget(d->net.label.get());
     }
-    d->sound = std::make_unique<QLabel>();
+    d->sound = std::make_unique<ClickableLabel>();
     d->sound->setPixmap(d->pixmaps.sound);
+
+    connect(d->sound.get(), &ClickableLabel::doubleClicked, d->sound.get(), [this](QPoint pos) {
+        SoundGain gain(main_window);
+        gain.exec();
+    });
+    d->sound->setToolTip("Sound");
     sbar->addWidget(d->sound.get());
     d->text = std::make_unique<QLabel>();
     sbar->addWidget(d->text.get());
@@ -489,3 +532,36 @@ void MachineStatus::message(const QString &msg) {
     d->text->setText(msg);
 }
 
+void MachineStatus::updateTip(int tag)
+{
+    int category = tag & 0xfffffff0;
+    int item = tag & 0xf;
+    switch (category) {
+    case SB_CASSETTE:
+        d->cassette.label->setToolTip(MediaMenu::ptr->cassetteMenu->title());
+        break;
+    case SB_CARTRIDGE:
+        d->cartridge[item].label->setToolTip(MediaMenu::ptr->cartridgeMenus[item]->title());
+        break;
+    case SB_FLOPPY:
+        d->fdd[item].label->setToolTip(MediaMenu::ptr->floppyMenus[item]->title());
+        break;
+    case SB_CDROM:
+        d->cdrom[item].label->setToolTip(MediaMenu::ptr->cdromMenus[item]->title());
+        break;
+    case SB_ZIP:
+        d->zip[item].label->setToolTip(MediaMenu::ptr->zipMenus[item]->title());
+        break;
+    case SB_MO:
+        d->mo[item].label->setToolTip(MediaMenu::ptr->moMenus[item]->title());
+        break;
+    case SB_HDD:
+        break;
+    case SB_NETWORK:
+        break;
+    case SB_SOUND:
+        break;
+    case SB_TEXT:
+        break;
+    }
+}
