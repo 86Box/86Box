@@ -12,6 +12,8 @@ plat_joystick_t plat_joystick_state[MAX_PLAT_JOYSTICKS];
 static SDL_Joystick *sdl_joy[MAX_PLAT_JOYSTICKS];
 }
 
+#include <algorithm>
+
 void joystick_init() {
     if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) != 0) {
         return;
