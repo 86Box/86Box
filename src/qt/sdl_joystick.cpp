@@ -14,6 +14,10 @@ static SDL_Joystick *sdl_joy[MAX_PLAT_JOYSTICKS];
 
 #include <algorithm>
 
+#ifndef M_PI
+#define M_PI    3.14159265358979323846
+#endif
+
 void joystick_init() {
     if (SDL_InitSubSystem(SDL_INIT_JOYSTICK) != 0) {
         return;
