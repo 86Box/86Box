@@ -76,7 +76,7 @@ void SettingsNetwork::onCurrentMachineChanged(int machineId) {
             break;
         }
 
-        if (network_card_available(c) && device_is_valid(network_card_getdevice(c), machine->flags)) {
+        if (network_card_available(c) && device_is_valid(network_card_getdevice(c), machineId)) {
             int row = Models::AddEntry(model, name, c);
             if (c == network_card) {
                 selectedRow = row - removeRows;

@@ -6,7 +6,13 @@ set(CMAKE_AUTORCC ON)
 
 find_package(Threads REQUIRED)
 
-add_library(plat STATIC qt.c qt_main.cpp qt_platform.cpp cpp11_thread.cpp)
+add_library(plat STATIC
+    qt.c
+    qt_main.cpp
+    qt_platform.cpp
+    sdl_joystick.cpp
+    cpp11_thread.cpp
+)
 add_library(ui STATIC
     qt_ui.cpp
     qt_cdrom.c
@@ -69,6 +75,9 @@ add_library(ui STATIC
     qt_deviceconfig.cpp
     qt_deviceconfig.hpp
     qt_deviceconfig.ui
+    qt_joystickconfiguration.cpp
+    qt_joystickconfiguration.hpp
+    qt_joystickconfiguration.ui
 
     qt_filefield.cpp
     qt_filefield.hpp

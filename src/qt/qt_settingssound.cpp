@@ -40,7 +40,6 @@ void SettingsSound::save() {
 
 void SettingsSound::onCurrentMachineChanged(int machineId) {
     this->machineId = machineId;
-    auto* machine = &machines[machineId];
 
     auto* model = ui->comboBoxSoundCard->model();
     auto removeRows = model->rowCount();
@@ -48,7 +47,7 @@ void SettingsSound::onCurrentMachineChanged(int machineId) {
     int selectedRow = 0;
     while (true) {
         /* Skip "internal" if machine doesn't have it. */
-        if ((c == 1) && !(machine->flags & MACHINE_SOUND)) {
+        if ((c == 1) && (machine_has_flags(machineId, MACHINE_SOUND) == 0)) {
             c++;
             continue;
         }
@@ -60,7 +59,7 @@ void SettingsSound::onCurrentMachineChanged(int machineId) {
         }
 
         if (sound_card_available(c)) {
-            if (device_is_valid(sound_dev, machine->flags)) {
+            if (device_is_valid(sound_dev, machineId)) {
                 int row = Models::AddEntry(model, name, c);
                 if (c == sound_card_current) {
                     selectedRow = row - removeRows;
@@ -128,9 +127,14 @@ void SettingsSound::onCurrentMachineChanged(int machineId) {
     ui->checkBoxGUS->setChecked(GUS > 0);
     ui->checkBoxFloat32->setChecked(sound_is_float > 0);
 
-    ui->pushButtonConfigureSSI2001->setEnabled((SSI2001 > 0) && (machine->flags & MACHINE_BUS_ISA));
-    ui->pushButtonConfigureCMS->setEnabled((GAMEBLASTER > 0) && (machine->flags & MACHINE_BUS_ISA));
-    ui->pushButtonConfigureGUS->setEnabled((GUS > 0) && (machine->flags & MACHINE_BUS_ISA16));
+    bool hasIsa = machine_has_bus(machineId, MACHINE_BUS_ISA) > 0;
+    bool hasIsa16 = machine_has_bus(machineId, MACHINE_BUS_ISA) > 0;
+    ui->checkBoxCMS->setEnabled(hasIsa);
+    ui->pushButtonConfigureCMS->setEnabled((GAMEBLASTER > 0) && hasIsa);
+    ui->checkBoxGUS->setEnabled(hasIsa16);
+    ui->pushButtonConfigureGUS->setEnabled((GUS > 0) && hasIsa16);
+    ui->checkBoxSSI2001->setEnabled(hasIsa);
+    ui->pushButtonConfigureSSI2001->setEnabled((SSI2001 > 0) && hasIsa);
 }
 
 static bool allowMpu401(Ui::SettingsSound *ui) {
@@ -203,7 +207,7 @@ void SettingsSound::on_checkBoxGUS_stateChanged(int state) {
 }
 
 void SettingsSound::on_pushButtonConfigureMPU401_clicked() {
-    if (machines[machineId].flags & MACHINE_MCA) {
+    if (machine_has_bus(machineId, MACHINE_BUS_MCA) > 0) {
         DeviceConfig::ConfigureDevice(&mpu401_mca_device);
     } else {
         DeviceConfig::ConfigureDevice(&mpu401_device);

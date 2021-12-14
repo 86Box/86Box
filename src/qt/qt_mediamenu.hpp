@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <QObject>
+#include <QMap>
 
 class QMenu;
 
@@ -57,11 +58,11 @@ private:
     QWidget* parentWidget = nullptr;
 
     QMenu* cassetteMenu = nullptr;
-    QList<QMenu*> cartridgeMenus;
-    QList<QMenu*> floppyMenus;
-    QList<QMenu*> cdromMenus;
-    QList<QMenu*> zipMenus;
-    QList<QMenu*> moMenus;
+    QMap<int, QMenu*> cartridgeMenus;
+    QMap<int, QMenu*> floppyMenus;
+    QMap<int, QMenu*> cdromMenus;
+    QMap<int, QMenu*> zipMenus;
+    QMap<int, QMenu*> moMenus;
 
     int cassetteRecordPos;
     int cassettePlayPos;
@@ -84,4 +85,6 @@ private:
 
     int moEjectPos;
     int moReloadPos;
+
+    friend class MachineStatus;
 };

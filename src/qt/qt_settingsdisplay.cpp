@@ -36,7 +36,6 @@ void SettingsDisplay::onCurrentMachineChanged(int machineId) {
     // win_settings_video_proc, WM_INITDIALOG
     this->machineId = machineId;
 
-    auto* machine = &machines[machineId];
     auto* model = ui->comboBoxVideo->model();
     auto removeRows = model->rowCount();
 
@@ -44,7 +43,7 @@ void SettingsDisplay::onCurrentMachineChanged(int machineId) {
     int selectedRow = 0;
     while (true) {
         /* Skip "internal" if machine doesn't have it. */
-        if ((c == 1) && !(machine->flags & MACHINE_VIDEO)) {
+        if ((c == 1) && (machine_has_flags(machineId, MACHINE_VIDEO) == 0)) {
             c++;
             continue;
         }
@@ -56,7 +55,7 @@ void SettingsDisplay::onCurrentMachineChanged(int machineId) {
         }
 
         if (video_card_available(c) &&
-            device_is_valid(video_dev, machine->flags)) {
+            device_is_valid(video_dev, machineId)) {
             int row = Models::AddEntry(model, name, c);
             if (c == gfxcard) {
                 selectedRow = row - removeRows;
@@ -67,7 +66,7 @@ void SettingsDisplay::onCurrentMachineChanged(int machineId) {
     }
     model->removeRows(0, removeRows);
 
-    if (machine->flags & MACHINE_VIDEO_ONLY) {
+    if (machine_has_flags(machineId, MACHINE_VIDEO_ONLY) > 0) {
         ui->comboBoxVideo->setEnabled(false);
         selectedRow = 1;
     } else {
@@ -92,7 +91,7 @@ void SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index) {
     int videoCard = ui->comboBoxVideo->currentData().toInt();
     ui->pushButtonConfigure->setEnabled(video_card_has_config(videoCard) > 0);
 
-    bool machineHasPci = machines[machineId].flags & MACHINE_BUS_PCI;
+    bool machineHasPci = machine_has_bus(machineId, MACHINE_BUS_PCI) > 0;
     ui->checkBoxVoodoo->setEnabled(machineHasPci);
     if (machineHasPci) {
         ui->checkBoxVoodoo->setChecked(voodoo_enabled);

@@ -57,7 +57,7 @@ void SettingsStorageControllers::onCurrentMachineChanged(int machineId) {
     int selectedRow = 0;
     while (true) {
         /* Skip "internal" if machine doesn't have it. */
-        if ((c == 1) && !(machine->flags & MACHINE_HDC)) {
+        if ((c == 1) && (machine_has_flags(machineId, MACHINE_HDC) == 0)) {
             c++;
             continue;
         }
@@ -70,7 +70,7 @@ void SettingsStorageControllers::onCurrentMachineChanged(int machineId) {
         if (hdc_available(c)) {
             auto* hdc_dev = hdc_get_device(c);
 
-            if (device_is_valid(hdc_dev, machine->flags)) {
+            if (device_is_valid(hdc_dev, machineId)) {
                 int row = Models::AddEntry(model, name, c);
                 if (c == hdc_current) {
                     selectedRow = row - removeRows;
@@ -98,7 +98,7 @@ void SettingsStorageControllers::onCurrentMachineChanged(int machineId) {
         if (fdc_card_available(c)) {
             auto* fdc_dev = fdc_card_getdevice(c);
 
-            if (device_is_valid(fdc_dev, machine->flags)) {
+            if (device_is_valid(fdc_dev, machineId)) {
                 int row = Models::AddEntry(model, name, c);
                 if (c == fdc_type) {
                     selectedRow = row - removeRows;
@@ -127,7 +127,7 @@ void SettingsStorageControllers::onCurrentMachineChanged(int machineId) {
 
             if (scsi_card_available(c)) {
                 auto* scsi_dev = scsi_card_getdevice(c);
-                if (device_is_valid(scsi_dev, machine->flags)) {
+                if (device_is_valid(scsi_dev, machineId)) {
                     int row = Models::AddEntry(model, name, c);
                     if (c == scsi_card_current[i]) {
                         selectedRow = row - removeRows;

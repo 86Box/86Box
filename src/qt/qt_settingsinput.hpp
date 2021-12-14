@@ -24,6 +24,10 @@ private slots:
     void on_pushButtonConfigureMouse_clicked();
     void on_comboBoxJoystick_currentIndexChanged(int index);
     void on_comboBoxMouse_currentIndexChanged(int index);
+    void on_pushButtonJoystick1_clicked();
+    void on_pushButtonJoystick2_clicked();
+    void on_pushButtonJoystick3_clicked();
+    void on_pushButtonJoystick4_clicked();
 
 private:
     Ui::SettingsInput *ui;

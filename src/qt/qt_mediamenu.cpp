@@ -56,14 +56,14 @@ void MediaMenu::refresh(QMenu *parentMenu) {
     }
 
     cartridgeMenus.clear();
-    if (MachineStatus::hasCartridge()) {
+    if (machine_has_cartridge(machine)) {
         for(int i = 0; i < 2; i++) {
             auto* menu = parentMenu->addMenu("");
             menu->addAction("Image", [this, i]() { cartridgeSelectImage(i); });
             menu->addSeparator();
             cartridgeEjectPos = menu->children().count();
             menu->addAction("Eject", [this, i]() { cartridgeEject(i); });
-            cartridgeMenus.append(menu);
+            cartridgeMenus[i] = menu;
             cartridgeUpdateMenu(i);
         }
     }
@@ -81,7 +81,7 @@ void MediaMenu::refresh(QMenu *parentMenu) {
         menu->addSeparator();
         floppyEjectPos = menu->children().count();
         menu->addAction("Eject", [this, i]() { floppyEject(i); });
-        floppyMenus.append(menu);
+        floppyMenus[i] = menu;
         floppyUpdateMenu(i);
     });
 
@@ -98,7 +98,7 @@ void MediaMenu::refresh(QMenu *parentMenu) {
         menu->addSeparator();
         cdromImagePos = menu->children().count();
         menu->addAction("Image", [this, i]() { cdromMount(i); })->setCheckable(true);
-        cdromMenus.append(menu);
+        cdromMenus[i] = menu;
         cdromUpdateMenu(i);
     });
 
@@ -114,7 +114,7 @@ void MediaMenu::refresh(QMenu *parentMenu) {
         menu->addAction("Eject", [this, i]() { zipEject(i); });
         zipReloadPos = menu->children().count();
         menu->addAction("Reload previous image", [this, i]() { zipReload(i); });
-        zipMenus.append(menu);
+        zipMenus[i] = menu;
         zipUpdateMenu(i);
     });
 
@@ -130,7 +130,7 @@ void MediaMenu::refresh(QMenu *parentMenu) {
         menu->addAction("Eject", [this, i]() { moEject(i); });
         moReloadPos = menu->children().count();
         menu->addAction("Reload previous image", [this, i]() { moReload(i); });
-        moMenus.append(menu);
+        moMenus[i] = menu;
         moUpdateMenu(i);
     });
 }
@@ -161,8 +161,8 @@ void MediaMenu::cassetteMount(const QString& filename, bool wp) {
     }
 
     ui_sb_update_icon_state(SB_CASSETTE, filename.isEmpty() ? 1 : 0);
-    ui_sb_update_tip(SB_CASSETTE);
     cassetteUpdateMenu();
+    ui_sb_update_tip(SB_CASSETTE);
     config_save();
 }
 
@@ -170,8 +170,8 @@ void MediaMenu::cassetteEject() {
     pc_cas_set_fname(cassette, nullptr);
     memset(cassette_fname, 0, sizeof(cassette_fname));
     ui_sb_update_icon_state(SB_CASSETTE, 1);
-    ui_sb_update_tip(SB_CASSETTE);
     cassetteUpdateMenu();
+    ui_sb_update_tip(SB_CASSETTE);
     config_save();
 }
 
@@ -208,16 +208,16 @@ void MediaMenu::cartridgeSelectImage(int i) {
     cart_load(i, filenameBytes.data());
 
     ui_sb_update_icon_state(SB_CARTRIDGE | i, filename.isEmpty() ? 1 : 0);
-    ui_sb_update_tip(SB_CARTRIDGE | i);
     cartridgeUpdateMenu(i);
+    ui_sb_update_tip(SB_CARTRIDGE | i);
     config_save();
 }
 
 void MediaMenu::cartridgeEject(int i) {
     cart_close(i);
     ui_sb_update_icon_state(SB_CARTRIDGE | i, 1);
-    ui_sb_update_tip(SB_CARTRIDGE | i);
     cartridgeUpdateMenu(i);
+    ui_sb_update_tip(SB_CARTRIDGE | i);
     config_save();
 }
 
@@ -253,16 +253,16 @@ void MediaMenu::floppyMount(int i, const QString &filename, bool wp) {
         fdd_load(i, filenameBytes.data());
     }
     ui_sb_update_icon_state(SB_FLOPPY | i, filename.isEmpty() ? 1 : 0);
-    ui_sb_update_tip(SB_FLOPPY | i);
     floppyUpdateMenu(i);
+    ui_sb_update_tip(SB_FLOPPY | i);
     config_save();
 }
 
 void MediaMenu::floppyEject(int i) {
     fdd_close(i);
     ui_sb_update_icon_state(SB_FLOPPY | i, 1);
-    ui_sb_update_tip(SB_FLOPPY | i);
     floppyUpdateMenu(i);
+    ui_sb_update_tip(SB_FLOPPY | i);
     config_save();
 }
 
@@ -329,19 +329,21 @@ void MediaMenu::cdromMount(int i) {
     } else {
         ui_sb_update_icon_state(SB_CDROM | i, 1);
     }
-    ui_sb_update_tip(SB_CDROM | i);
     cdromUpdateMenu(i);
+    ui_sb_update_tip(SB_CDROM | i);
     config_save();
 }
 
 void MediaMenu::cdromEject(int i) {
     cdrom_eject(i);
     cdromUpdateMenu(i);
+    ui_sb_update_tip(SB_CDROM | i);
 }
 
 void MediaMenu::cdromReload(int i) {
     cdrom_reload(i);
     cdromUpdateMenu(i);
+    ui_sb_update_tip(SB_CDROM | i);
 }
 
 void MediaMenu::cdromUpdateMenu(int i) {
@@ -400,8 +402,8 @@ void MediaMenu::zipMount(int i, const QString &filename, bool wp) {
     }
 
     ui_sb_update_icon_state(SB_ZIP | i, filename.isEmpty() ? 1 : 0);
-    ui_sb_update_tip(SB_ZIP | i);
     zipUpdateMenu(i);
+    ui_sb_update_tip(SB_ZIP | i);
 
     config_save();
 }
@@ -416,8 +418,8 @@ void MediaMenu::zipEject(int i) {
     }
 
     ui_sb_update_icon_state(SB_ZIP | i, 1);
-    ui_sb_update_tip(SB_ZIP | i);
     zipUpdateMenu(i);
+    ui_sb_update_tip(SB_ZIP | i);
     config_save();
 }
 
@@ -431,8 +433,8 @@ void MediaMenu::zipReload(int i) {
         ui_sb_update_icon_state(SB_ZIP|i, 0);
     }
 
-    ui_sb_update_tip(SB_ZIP|i);
     zipUpdateMenu(i);
+    ui_sb_update_tip(SB_ZIP|i);
 
     config_save();
 }
@@ -488,8 +490,8 @@ void MediaMenu::moMount(int i, const QString &filename, bool wp) {
     }
 
     ui_sb_update_icon_state(SB_MO | i, filename.isEmpty() ? 1 : 0);
-    ui_sb_update_tip(SB_MO | i);
     moUpdateMenu(i);
+    ui_sb_update_tip(SB_MO | i);
 
     config_save();
 }
@@ -504,8 +506,8 @@ void MediaMenu::moEject(int i) {
     }
 
     ui_sb_update_icon_state(SB_MO | i, 1);
-    ui_sb_update_tip(SB_MO | i);
     moUpdateMenu(i);
+    ui_sb_update_tip(SB_MO | i);
     config_save();
 }
 
@@ -519,8 +521,8 @@ void MediaMenu::moReload(int i) {
         ui_sb_update_icon_state(SB_MO|i, 0);
     }
 
-    ui_sb_update_tip(SB_MO|i);
     moUpdateMenu(i);
+    ui_sb_update_tip(SB_MO|i);
 
     config_save();
 }

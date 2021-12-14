@@ -49,9 +49,9 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     Q_INIT_RESOURCE(qt_resources);
-    status = std::make_unique<MachineStatus>(this);
     mm = std::make_shared<MediaMenu>(this);
     MediaMenu::ptr = mm;
+    status = std::make_unique<MachineStatus>(this);
 
     ui->setupUi(this);
     ui->stackedWidget->setMouseTracking(true);
@@ -63,7 +63,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
-    connect(this, &MainWindow::setTitleForNonQtThread, this, &MainWindow::setTitle_, Qt::BlockingQueuedConnection);
+    connect(this, &MainWindow::setTitle, this, [this](const QString& title) {
+        setWindowTitle(title);
+    });
     connect(this, &MainWindow::getTitleForNonQtThread, this, &MainWindow::getTitle_, Qt::BlockingQueuedConnection);
 
     connect(this, &MainWindow::updateMenuResizeOptions, [this]() {
@@ -118,9 +120,10 @@ MainWindow::MainWindow(QWidget *parent) :
     });
 
     connect(this, &MainWindow::updateStatusBarPanes, this, [this] {
-        status->refresh(ui->statusbar);
+        refreshMediaMenu();
     });
     connect(this, &MainWindow::updateStatusBarPanes, this, &MainWindow::refreshMediaMenu);
+    connect(this, &MainWindow::updateStatusBarTip, status.get(), &MachineStatus::updateTip);
     connect(this, &MainWindow::updateStatusBarActivity, status.get(), &MachineStatus::setActivity);
     connect(this, &MainWindow::updateStatusBarEmpty, status.get(), &MachineStatus::setEmpty);
     connect(this, &MainWindow::statusBarMessage, status.get(), &MachineStatus::message);
@@ -879,20 +882,6 @@ void MainWindow::on_actionFullscreen_triggered() {
     rc->onResize(widget->width(), widget->height());
 }
 
-void MainWindow::setTitle_(const wchar_t *title)
-{
-    this->setWindowTitle(QString::fromWCharArray(title));
-}
-
-void MainWindow::setTitle(const wchar_t *title)
-{
-    if (QThread::currentThread() == this->thread()) {
-        setTitle_(title);
-    } else {
-        emit setTitleForNonQtThread(title);
-    }
-}
-
 void MainWindow::getTitle_(wchar_t *title)
 {
     this->windowTitle().toWCharArray(title);
@@ -927,6 +916,7 @@ bool MainWindow::eventFilter(QObject* receiver, QEvent* event)
 
 void MainWindow::refreshMediaMenu() {
     mm->refresh(ui->menuMedia);
+    status->refresh(ui->statusbar);
 }
 
 void MainWindow::showMessage(const QString& header, const QString& message) {

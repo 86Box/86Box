@@ -1703,7 +1703,7 @@ mpu401_device_add(void)
     if (!mpu401_standalone_enable)
 	return;
 
-    if (machines[machine].flags & MACHINE_MCA)
+    if (machine_has_bus(machine, MACHINE_BUS_MCA))
 	device_add(&mpu401_mca_device);
     else
 	device_add(&mpu401_device);

@@ -28,7 +28,7 @@ wchar_t* ui_window_title(wchar_t* str)
         main_window->getTitle(title);
         str = title;
     } else {
-        main_window->setTitle(str);
+        emit main_window->setTitle(QString::fromWCharArray(str));
     }
     return str;
 }
@@ -83,7 +83,7 @@ void ui_sb_set_text_w(wchar_t *wstr) {
 
 void
 ui_sb_update_tip(int arg) {
-    qDebug() << Q_FUNC_INFO << arg;
+    main_window->updateStatusBarTip(arg);
 }
 
 void

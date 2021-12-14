@@ -194,7 +194,7 @@ cart_reset(void)
     cart_image_close(1);
     cart_image_close(0);
 
-    if (!(machines[machine].flags & MACHINE_CARTRIDGE))
+    if (!machine_has_cartridge(machine))
 	return;
 
     for (i = 0; i < 2; i++) {
