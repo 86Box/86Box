@@ -63,7 +63,9 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
-    connect(this, &MainWindow::setTitleForNonQtThread, this, &MainWindow::setTitle_, Qt::BlockingQueuedConnection);
+    connect(this, &MainWindow::setTitle, this, [this](const QString& title) {
+        setWindowTitle(title);
+    });
     connect(this, &MainWindow::getTitleForNonQtThread, this, &MainWindow::getTitle_, Qt::BlockingQueuedConnection);
 
     connect(this, &MainWindow::updateMenuResizeOptions, [this]() {
@@ -871,20 +873,6 @@ void MainWindow::on_actionFullscreen_triggered() {
     auto widget = ui->stackedWidget->currentWidget();
     auto rc = dynamic_cast<RendererCommon*>(widget);
     rc->onResize(widget->width(), widget->height());
-}
-
-void MainWindow::setTitle_(const wchar_t *title)
-{
-    this->setWindowTitle(QString::fromWCharArray(title));
-}
-
-void MainWindow::setTitle(const wchar_t *title)
-{
-    if (QThread::currentThread() == this->thread()) {
-        setTitle_(title);
-    } else {
-        emit setTitleForNonQtThread(title);
-    }
 }
 
 void MainWindow::getTitle_(wchar_t *title)

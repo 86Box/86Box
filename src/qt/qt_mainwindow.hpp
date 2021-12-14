@@ -25,7 +25,6 @@ public:
     ~MainWindow();
 
     void showMessage(const QString& header, const QString& message);
-    void setTitle(const wchar_t* title);
     void getTitle(wchar_t* title);
     void blitToWidget(int x, int y, int w, int h);
     QSize getRenderWidgetSize();
@@ -41,11 +40,11 @@ signals:
     void updateMenuResizeOptions();
     void updateWindowRememberOption();
 
+    void setTitle(const QString& title);
     void setFullscreen(bool state);
     void setMouseCapture(bool state);
 
     void showMessageForNonQtThread(const QString& header, const QString& message);
-    void setTitleForNonQtThread(const wchar_t* title);
     void getTitleForNonQtThread(wchar_t* title);
 private slots:
     void on_actionFullscreen_triggered();
@@ -94,7 +93,6 @@ private slots:
 
     void refreshMediaMenu();
     void showMessage_(const QString& header, const QString& message);
-    void setTitle_(const wchar_t* title);
     void getTitle_(wchar_t* title);
     void on_actionTake_screenshot_triggered();
 

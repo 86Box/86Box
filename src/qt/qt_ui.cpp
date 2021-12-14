@@ -28,7 +28,7 @@ wchar_t* ui_window_title(wchar_t* str)
         main_window->getTitle(title);
         str = title;
     } else {
-        main_window->setTitle(str);
+        emit main_window->setTitle(QString::fromWCharArray(str));
     }
     return str;
 }
