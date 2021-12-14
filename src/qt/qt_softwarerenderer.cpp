@@ -7,10 +7,11 @@ void SoftwareRenderer::paintEvent(QPaintEvent *event) {
     onPaint(this);
 }
 
-void SoftwareRenderer::onBlit(const QImage& img, int x, int y, int w, int h) {
+void SoftwareRenderer::onBlit(const QImage& img, int x, int y, int w, int h, std::atomic_flag* in_use) {
     image = img;
     source.setRect(x, y, w, h);
     update();
+    in_use->clear();
 }
 
 void SoftwareRenderer::resizeEvent(QResizeEvent *event) {

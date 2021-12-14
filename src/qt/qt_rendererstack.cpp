@@ -27,6 +27,11 @@ RendererStack::RendererStack(QWidget *parent) :
     imagebufs = QVector<QImage>(2);
     imagebufs[0] = QImage{QSize(2048 + 64, 2048 + 64), QImage::Format_RGB32};
     imagebufs[1] = QImage{QSize(2048 + 64, 2048 + 64), QImage::Format_RGB32};
+
+    buffers_in_use = std::vector<std::atomic_flag>(2);
+    buffers_in_use[0].clear();
+    buffers_in_use[1].clear();
+
 #ifdef WAYLAND
     if (QApplication::platformName().contains("wayland")) {
         wl_init();
@@ -165,7 +170,7 @@ void RendererStack::leaveEvent(QEvent* event)
 // called from blitter thread
 void RendererStack::blit(int x, int y, int w, int h)
 {
-    if ((w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL))
+    if ((w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || buffers_in_use[currentBuf].test_and_set())
     {
         video_blit_complete();
         return;
@@ -182,7 +187,7 @@ void RendererStack::blit(int x, int y, int w, int h)
         video_screenshot((uint32_t *)imagebits, 0, 0, 2048 + 64);
     }
     video_blit_complete();
-    blitToRenderer(imagebufs[currentBuf], sx, sy, sw, sh);
+    blitToRenderer(imagebufs[currentBuf], sx, sy, sw, sh, &buffers_in_use[currentBuf]);
     currentBuf = (currentBuf + 1) % 2;
 }
 
@@ -190,11 +195,11 @@ void RendererStack::on_RendererStack_currentChanged(int arg1) {
     disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
     switch (arg1) {
     case 0:
-        connect(this, &RendererStack::blitToRenderer, dynamic_cast<SoftwareRenderer*>(currentWidget()), &SoftwareRenderer::onBlit);
+        connect(this, &RendererStack::blitToRenderer, dynamic_cast<SoftwareRenderer*>(currentWidget()), &SoftwareRenderer::onBlit, Qt::QueuedConnection);
         break;
     case 1:
     case 2:
-        connect(this, &RendererStack::blitToRenderer, dynamic_cast<HardwareRenderer*>(currentWidget()), &HardwareRenderer::onBlit);
+        connect(this, &RendererStack::blitToRenderer, dynamic_cast<HardwareRenderer*>(currentWidget()), &HardwareRenderer::onBlit, Qt::QueuedConnection);
         break;
     }
 }

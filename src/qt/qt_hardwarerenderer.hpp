@@ -43,7 +43,7 @@ public:
     void setRenderType(RenderType type);
 
 public slots:
-    void onBlit(const QImage& img, int, int, int, int);
+    void onBlit(const QImage& img, int, int, int, int, std::atomic_flag* in_use);
 
 protected:
     void resizeEvent(QResizeEvent *event) override;

@@ -2,6 +2,7 @@
 #define SOFTWARERENDERER_HPP
 
 #include <QWidget>
+#include <atomic>
 #include "qt_renderercomon.hpp"
 
 class SoftwareRenderer : public QWidget, public RendererCommon
@@ -12,7 +13,7 @@ public:
 
     void paintEvent(QPaintEvent *event) override;
 public slots:
-    void onBlit(const QImage& img, int, int, int, int);
+    void onBlit(const QImage& img, int, int, int, int, std::atomic_flag* in_use);
 
 protected:
     void resizeEvent(QResizeEvent *event) override;

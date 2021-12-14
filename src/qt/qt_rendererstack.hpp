@@ -4,6 +4,8 @@
 #include <QStackedWidget>
 #include <QKeyEvent>
 #include <QEvent>
+#include <vector>
+#include <atomic>
 
 namespace Ui {
 class RendererStack;
@@ -32,7 +34,7 @@ public:
     }
 
 signals:
-    void blitToRenderer(const QImage& img, int, int, int, int);
+    void blitToRenderer(const QImage& img, int, int, int, int, std::atomic_flag* in_use);
 
 public slots:
     void blit(int x, int y, int w, int h);
@@ -57,6 +59,9 @@ private:
     // when calling bits();
     int currentBuf = 0;
     QVector<QImage> imagebufs;
+
+    /* atomic flag for each buffer to not overload the renderer */
+    std::vector<std::atomic_flag> buffers_in_use;
 };
 
 #endif // QT_RENDERERCONTAINER_HPP
