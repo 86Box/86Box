@@ -189,6 +189,7 @@ extern int			AT, PCI;
 extern int	machine_count(void);
 extern int	machine_available(int m);
 extern char	*machine_getname(void);
+extern char	*machine_getname_ex(int m);
 extern char	*machine_get_internal_name(void);
 extern int	machine_get_machine_from_internal_name(char *s);
 extern void	machine_init(void);
@@ -197,6 +198,13 @@ extern const device_t	*machine_getdevice(int m);
 #endif
 extern char	*machine_get_internal_name_ex(int m);
 extern int	machine_get_nvrmask(int m);
+extern int	machine_has_flags(int m, int flags);
+extern int	machine_has_bus(int m, int bus_flags);
+extern int	machine_has_cartridge(int m);
+extern int	machine_get_min_ram(int m);
+extern int	machine_get_max_ram(int m);
+extern int	machine_get_ram_granularity(int m);
+extern int	machine_get_type(int m);
 extern void	machine_close(void);
 
 

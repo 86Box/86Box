@@ -360,7 +360,7 @@ gameport_add(const device_t *gameport_type)
 {
     /* Prevent a standalone game port from being added later on, unless this
        is an unused Super I/O game port (no MACHINE_GAMEPORT machine flag). */
-    if (!(gameport_type->local & GAMEPORT_SIO) || (machines[machine].flags & MACHINE_GAMEPORT))
+    if (!(gameport_type->local & GAMEPORT_SIO) || machine_has_flags(machine, MACHINE_GAMEPORT))
 	standalone_gameport_type = NULL;
 
     /* Add game port device. */

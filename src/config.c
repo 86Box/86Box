@@ -831,9 +831,9 @@ load_machine(void)
 
     mem_size = config_get_int(cat, "mem_size", 64);	
 #if 0
-    if (mem_size < (((machines[machine].flags & MACHINE_AT) &&
+    if (mem_size < ((machine_has_bus(machine, MACHINE_AT) &&
         (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram))
-	mem_size = (((machines[machine].flags & MACHINE_AT) && (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram);
+	mem_size = (((machine_has_bus(machine, MACHINE_AT) && (machines[machine].ram_granularity < 128)) ? machines[machine].min_ram*1024 : machines[machine].min_ram);
 #endif
 	
     if (mem_size > 2097152)
@@ -874,13 +874,13 @@ load_video(void)
     char *p;
     int free_p = 0;
 
-    if (machines[machine].flags & MACHINE_VIDEO_ONLY) {
+    if (machine_has_flags(machine, MACHINE_VIDEO_ONLY)) {
 	config_delete_var(cat, "gfxcard");
 	gfxcard = VID_INTERNAL;
     } else {
 	p = config_get_string(cat, "gfxcard", NULL);
 	if (p == NULL) {
-		if (machines[machine].flags & MACHINE_VIDEO) {
+		if (machine_has_flags(machine, MACHINE_VIDEO)) {
 			p = (char *)malloc((strlen("internal")+1)*sizeof(char));
 			strcpy(p, "internal");
 		} else {
@@ -1120,7 +1120,7 @@ load_storage_controllers(void)
 
     p = config_get_string(cat, "hdc", NULL);
     if (p == NULL) {
-	if (machines[machine].flags & MACHINE_HDC) {
+	if (machine_has_flags(machine, MACHINE_HDC)) {
 		p = (char *)malloc((strlen("internal")+1)*sizeof(char));
 		strcpy(p, "internal");
 	} else {
@@ -1948,7 +1948,7 @@ load_other_peripherals(void)
 
 	p = config_get_string(cat, "hdc", NULL);
 	if (p == NULL) {
-		if (machines[machine].flags & MACHINE_HDC) {
+		if (machine_has_flags(machine, MACHINE_HDC)) {
 			p = (char *)malloc((strlen("internal")+1)*sizeof(char));
 			strcpy(p, "internal");
 		} else {

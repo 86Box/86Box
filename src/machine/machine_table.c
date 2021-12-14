@@ -980,6 +980,55 @@ machine_get_nvrmask(int m)
 
 
 int
+machine_has_flags(int m, int flags)
+{
+    return(machines[m].flags & flags);
+}
+
+
+int
+machine_has_bus(int m, int bus_flags)
+{
+    return(machines[m].flags & bus_flags);
+}
+
+
+int
+machine_has_cartridge(int m)
+{
+    return(machine_has_flags(m, MACHINE_CARTRIDGE) ? 1 : 0);
+}
+
+
+int
+machine_get_min_ram(int m)
+{
+    return(machines[m].min_ram);
+}
+
+
+int
+machine_get_max_ram(int m)
+{
+    return(machines[m].max_ram);
+}
+
+
+int
+machine_get_ram_granularity(int m)
+{
+    return(machines[m].ram_granularity);
+}
+
+
+int
+machine_get_type(int m)
+{
+    return(machines[m].type);
+}
+
+
+int
 machine_get_machine_from_internal_name(char *s)
 {
     int c = 0;
