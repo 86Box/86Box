@@ -32,7 +32,6 @@ public:
     ~MachineStatus();
 
     static bool hasCassette();
-    static bool hasCartridge();
     static bool hasIDE();
     static bool hasSCSI();
     static void iterateFDD(const std::function<void(int i)>& cb);

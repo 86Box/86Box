@@ -56,7 +56,7 @@ void MediaMenu::refresh(QMenu *parentMenu) {
     }
 
     cartridgeMenus.clear();
-    if (MachineStatus::hasCartridge()) {
+    if (machine_has_cartridge(machine)) {
         for(int i = 0; i < 2; i++) {
             auto* menu = parentMenu->addMenu("");
             menu->addAction("Image", [this, i]() { cartridgeSelectImage(i); });

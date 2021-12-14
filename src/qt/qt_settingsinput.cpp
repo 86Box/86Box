@@ -45,11 +45,11 @@ void SettingsInput::onCurrentMachineChanged(int machineId) {
     int selectedRow = 0;
     for (int i = 0; i < mouse_get_ndev(); ++i) {
         const auto* dev = mouse_get_device(i);
-        if ((i == MOUSE_TYPE_INTERNAL) && !(machines[machineId].flags & MACHINE_MOUSE)) {
+        if ((i == MOUSE_TYPE_INTERNAL) && (machine_has_flags(machineId, MACHINE_MOUSE) == 0)) {
             continue;
         }
 
-        if (device_is_valid(dev, machine->flags) == 0) {
+        if (device_is_valid(dev, machineId) == 0) {
             continue;
         }
 

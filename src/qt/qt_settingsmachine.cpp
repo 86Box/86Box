@@ -57,8 +57,8 @@ SettingsMachine::SettingsMachine(QWidget *parent) :
     int selectedMachineType = 0;
     auto* machineTypesModel = ui->comboBoxMachineType->model();
     for (int i = 0; i < MACHINE_TYPE_MAX; ++i) {
-        Models::AddEntry(machineTypesModel, machine_types[i].name, machine_types[i].id);
-        if (machine_types[i].id == machines[machine].type) {
+        Models::AddEntry(machineTypesModel, machine_getname_ex(i), machine_types[i].id);
+        if (machine_types[i].id == machine_get_type(machine)) {
             selectedMachineType  = i;
         }
     }
@@ -75,11 +75,21 @@ void SettingsMachine::save() {
     cpu = ui->comboBoxSpeed->currentData().toInt();
     fpu_type = ui->comboBoxFPU->currentData().toInt();
     cpu_use_dynarec = ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0;
-    if (machines[machine].ram_granularity < 1024) {
-        mem_size = ui->spinBoxRAM->value();
+    int64_t temp_mem_size;
+    if (machine_get_ram_granularity(machine) < 1024) {
+        temp_mem_size = ui->spinBoxRAM->value();
     } else {
-        mem_size = ui->spinBoxRAM->value() * 1024;
+        temp_mem_size = ui->spinBoxRAM->value() * 1024;
     }
+
+    temp_mem_size &= ~(machine_get_ram_granularity(machine) - 1);
+    if (temp_mem_size < machine_get_min_ram(machine)) {
+        temp_mem_size = machine_get_min_ram(machine);
+    } else if (temp_mem_size > machine_get_max_ram(machine)) {
+        temp_mem_size = machine_get_max_ram(machine);
+    }
+    mem_size = static_cast<uint32_t>(temp_mem_size);
+
     if (ui->comboBoxWaitStates->isEnabled()) {
         cpu_waitstates = ui->comboBoxWaitStates->currentData().toInt();
     } else {
@@ -101,7 +111,7 @@ void SettingsMachine::on_comboBoxMachineType_currentIndexChanged(int index) {
 
     int selectedMachineRow = 0;
     for (int i = 0; i < machine_count(); ++i) {
-        if ((machines[i].type == index) && machine_available(i)) {
+        if ((machine_get_type(i) == index) && machine_available(i)) {
             int row = Models::AddEntry(model, machines[i].name, i);
             if (i == machine) {
                 selectedMachineRow = row - removeRows;
@@ -148,26 +158,25 @@ void SettingsMachine::on_comboBoxMachine_currentIndexChanged(int index) {
 
     auto* machine = &machines[machineId];
     if ((machine->ram_granularity < 1024)) {
-        ui->spinBoxRAM->setMinimum(machine->min_ram);
-        ui->spinBoxRAM->setMaximum(machine->max_ram);
-        ui->spinBoxRAM->setSingleStep(machine->ram_granularity);
+        ui->spinBoxRAM->setMinimum(machine_get_min_ram(machineId));
+        ui->spinBoxRAM->setMaximum(machine_get_max_ram(machineId));
+        ui->spinBoxRAM->setSingleStep(machine_get_ram_granularity(machineId));
         ui->spinBoxRAM->setSuffix(" KiB");
         ui->spinBoxRAM->setValue(mem_size);
     } else {
-        uint maxram;
+        int maxram;
 #if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-        maxram = std::min(machine->max_ram, 2097152U);
+        maxram = std::min(machine->max_ram, 2097152);
 #else
-        maxram = std::min(machine->max_ram, 3145728U);
+        maxram = std::min(machine_get_max_ram(machineId), 3145728);
 #endif
-        ui->spinBoxRAM->setMinimum(machine->min_ram / 1024);
+        ui->spinBoxRAM->setMinimum(machine_get_min_ram(machineId) / 1024);
         ui->spinBoxRAM->setMaximum(maxram / 1024);
-        ui->spinBoxRAM->setSingleStep(machine->ram_granularity / 1024);
+        ui->spinBoxRAM->setSingleStep(machine_get_ram_granularity(machineId) / 1024);
         ui->spinBoxRAM->setSuffix(" MiB");
         ui->spinBoxRAM->setValue(mem_size / 1024);
     }
-    ui->spinBoxRAM->setEnabled(machine->min_ram != machine->max_ram);
-    ui->spinBoxRAM->setEnabled(machine->min_ram != machine->max_ram);
+    ui->spinBoxRAM->setEnabled(machine_get_min_ram(machineId) != machine_get_max_ram(machineId));
 
     emit currentMachineChanged(machineId);
 }

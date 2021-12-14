@@ -218,16 +218,12 @@ bool MachineStatus::hasCassette() {
     return cassette_enable > 0 ? true : false;
 }
 
-bool MachineStatus::hasCartridge() {
-    return machines[machine].flags & MACHINE_CARTRIDGE;
-}
-
 bool MachineStatus::hasIDE() {
-    return machines[machine].flags & MACHINE_IDE_QUAD;
+    return machine_has_flags(machine, MACHINE_IDE_QUAD) > 0;
 }
 
 bool MachineStatus::hasSCSI() {
-    return machines[machine].flags & MACHINE_SCSI_DUAL;
+    return machine_has_flags(machine, MACHINE_SCSI_DUAL) > 0;
 }
 
 void MachineStatus::iterateFDD(const std::function<void (int)> &cb) {
@@ -303,9 +299,9 @@ static int hdd_count(int bus) {
 }
 
 void MachineStatus::refresh(QStatusBar* sbar) {
-    bool has_mfm = machines[machine].flags & MACHINE_MFM;
-    bool has_xta = machines[machine].flags & MACHINE_XTA;
-    bool has_esdi = machines[machine].flags & MACHINE_ESDI;
+    bool has_mfm = machine_has_flags(machine, MACHINE_MFM) > 0;
+    bool has_xta = machine_has_flags(machine, MACHINE_XTA) > 0;
+    bool has_esdi = machine_has_flags(machine, MACHINE_ESDI) > 0;
 
     int c_mfm = hdd_count(HDD_BUS_MFM);
     int c_esdi = hdd_count(HDD_BUS_ESDI);
@@ -346,7 +342,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         sbar->addWidget(d->cassette.label.get());
     }
 
-    if (hasCartridge()) {
+    if (machine_has_cartridge(machine)) {
         for (int i = 0; i < 2; ++i) {
             d->cartridge[i].label = std::make_unique<QLabel>();
             d->cartridge[i].setEmpty(QString(cart_fns[i]).isEmpty());
