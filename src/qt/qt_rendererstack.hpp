@@ -4,6 +4,7 @@
 #include <QStackedWidget>
 #include <QKeyEvent>
 #include <QEvent>
+#include <memory>
 
 namespace Ui {
 class RendererStack;
@@ -62,7 +63,7 @@ private:
     int currentBuf = 0;
     QVector<QImage> imagebufs;
 
-    QWidget* current = nullptr;
+    std::unique_ptr<QWidget> current;
 };
 
 #endif // QT_RENDERERCONTAINER_HPP

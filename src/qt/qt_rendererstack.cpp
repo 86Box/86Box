@@ -164,8 +164,8 @@ void RendererStack::leaveEvent(QEvent* event)
 
 void RendererStack::switchRenderer(Renderer renderer) {
     startblit();
-    if (current != nullptr) {
-        removeWidget(current);
+    if (current) {
+        removeWidget(current.get());
     }
 
     switch (renderer) {
@@ -173,7 +173,7 @@ void RendererStack::switchRenderer(Renderer renderer) {
     {
         auto sw = new SoftwareRenderer(this);
         connect(this, &RendererStack::blitToRenderer, sw, &SoftwareRenderer::onBlit);
-        current = sw;
+        current.reset(sw);
     }
         break;
     case Renderer::OpenGL:
@@ -181,7 +181,7 @@ void RendererStack::switchRenderer(Renderer renderer) {
         auto hw = new HardwareRenderer(this);
         connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit);
         hw->setRenderType(HardwareRenderer::RenderType::OpenGL);
-        current = hw;
+        current.reset(hw);
         break;
     }
     case Renderer::OpenGLES:
@@ -189,12 +189,12 @@ void RendererStack::switchRenderer(Renderer renderer) {
         auto hw = new HardwareRenderer(this);
         connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit);
         hw->setRenderType(HardwareRenderer::RenderType::OpenGLES);
-        current = hw;
+        current.reset(hw);
         break;
     }
     }
     current->setFocusPolicy(Qt::NoFocus);
-    addWidget(current);
+    addWidget(current.get());
     endblit();
 }
 
