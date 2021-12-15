@@ -162,6 +162,42 @@ void RendererStack::leaveEvent(QEvent* event)
     event->accept();
 }
 
+void RendererStack::switchRenderer(Renderer renderer) {
+    startblit();
+    if (current != nullptr) {
+        removeWidget(current);
+    }
+
+    switch (renderer) {
+    case Renderer::Software:
+    {
+        auto sw = new SoftwareRenderer(this);
+        connect(this, &RendererStack::blitToRenderer, sw, &SoftwareRenderer::onBlit);
+        current = sw;
+    }
+        break;
+    case Renderer::OpenGL:
+    {
+        auto hw = new HardwareRenderer(this);
+        connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit);
+        hw->setRenderType(HardwareRenderer::RenderType::OpenGL);
+        current = hw;
+        break;
+    }
+    case Renderer::OpenGLES:
+    {
+        auto hw = new HardwareRenderer(this);
+        connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit);
+        hw->setRenderType(HardwareRenderer::RenderType::OpenGLES);
+        current = hw;
+        break;
+    }
+    }
+    current->setFocusPolicy(Qt::NoFocus);
+    addWidget(current);
+    endblit();
+}
+
 // called from blitter thread
 void RendererStack::blit(int x, int y, int w, int h)
 {
@@ -184,17 +220,4 @@ void RendererStack::blit(int x, int y, int w, int h)
     video_blit_complete();
     blitToRenderer(imagebufs[currentBuf], sx, sy, sw, sh);
     currentBuf = (currentBuf + 1) % 2;
-}
-
-void RendererStack::on_RendererStack_currentChanged(int arg1) {
-    disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
-    switch (arg1) {
-    case 0:
-        connect(this, &RendererStack::blitToRenderer, dynamic_cast<SoftwareRenderer*>(currentWidget()), &SoftwareRenderer::onBlit);
-        break;
-    case 1:
-    case 2:
-        connect(this, &RendererStack::blitToRenderer, dynamic_cast<HardwareRenderer*>(currentWidget()), &HardwareRenderer::onBlit);
-        break;
-    }
 }

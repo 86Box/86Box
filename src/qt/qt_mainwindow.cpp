@@ -55,8 +55,6 @@ MainWindow::MainWindow(QWidget *parent) :
 
     ui->setupUi(this);
     ui->stackedWidget->setMouseTracking(true);
-    ui->ogl->setRenderType(HardwareRenderer::RenderType::OpenGL);
-    ui->gles->setRenderType(HardwareRenderer::RenderType::OpenGLES);
     statusBar()->setVisible(!hide_status_bar);
 
     this->setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
@@ -138,15 +136,15 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
     switch (vid_api) {
     case 0:
-        ui->stackedWidget->setCurrentIndex(0);
+        ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
         ui->actionSoftware_Renderer->setChecked(true);
         break;
     case 1:
-        ui->stackedWidget->setCurrentIndex(1);
+        ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL);
         ui->actionHardware_Renderer_OpenGL->setChecked(true);
         break;
     case 2:
-        ui->stackedWidget->setCurrentIndex(2);
+        ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGLES);
         ui->actionHardware_Renderer_OpenGL_ES->setChecked(true);
         break;
     }
@@ -225,9 +223,6 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 
     setFocusPolicy(Qt::StrongFocus);
-    ui->gles->setFocusPolicy(Qt::NoFocus);
-    ui->sw->setFocusPolicy(Qt::NoFocus);
-    ui->ogl->setFocusPolicy(Qt::NoFocus);
     ui->stackedWidget->setFocusPolicy(Qt::NoFocus);
     ui->centralwidget->setFocusPolicy(Qt::NoFocus);
     menuBar()->setFocusPolicy(Qt::NoFocus);
@@ -964,21 +959,21 @@ QSize MainWindow::getRenderWidgetSize()
 }
 
 void MainWindow::on_actionSoftware_Renderer_triggered() {
-    ui->stackedWidget->setCurrentIndex(0);
+    ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
     ui->actionHardware_Renderer_OpenGL->setChecked(false);
     ui->actionHardware_Renderer_OpenGL_ES->setChecked(false);
     vid_api = 0;
 }
 
 void MainWindow::on_actionHardware_Renderer_OpenGL_triggered() {
-    ui->stackedWidget->setCurrentIndex(1);
+    ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGL);
     ui->actionSoftware_Renderer->setChecked(false);
     ui->actionHardware_Renderer_OpenGL_ES->setChecked(false);
     vid_api = 1;
 }
 
 void MainWindow::on_actionHardware_Renderer_OpenGL_ES_triggered() {
-    ui->stackedWidget->setCurrentIndex(2);
+    ui->stackedWidget->switchRenderer(RendererStack::Renderer::OpenGLES);
     ui->actionSoftware_Renderer->setChecked(false);
     ui->actionHardware_Renderer_OpenGL->setChecked(false);
     vid_api = 2;

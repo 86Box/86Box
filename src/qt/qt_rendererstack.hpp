@@ -31,15 +31,19 @@ public:
         event->ignore();
     }
 
+    enum class Renderer {
+        Software,
+        OpenGL,
+        OpenGLES,
+    };
+    void switchRenderer(Renderer renderer);
+
 signals:
     void blitToRenderer(const QImage& img, int, int, int, int);
 
 public slots:
     void blit(int x, int y, int w, int h);
     void mousePoll();
-
-private slots:
-    void on_RendererStack_currentChanged(int arg1);
 
 private:
     Ui::RendererStack *ui;
@@ -57,6 +61,8 @@ private:
     // when calling bits();
     int currentBuf = 0;
     QVector<QImage> imagebufs;
+
+    QWidget* current = nullptr;
 };
 
 #endif // QT_RENDERERCONTAINER_HPP
