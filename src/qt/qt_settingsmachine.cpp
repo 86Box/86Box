@@ -57,7 +57,7 @@ SettingsMachine::SettingsMachine(QWidget *parent) :
     int selectedMachineType = 0;
     auto* machineTypesModel = ui->comboBoxMachineType->model();
     for (int i = 0; i < MACHINE_TYPE_MAX; ++i) {
-        Models::AddEntry(machineTypesModel, machine_getname_ex(i), machine_types[i].id);
+        Models::AddEntry(machineTypesModel, machine_types[i].name, machine_types[i].id);
         if (machine_types[i].id == machine_get_type(machine)) {
             selectedMachineType  = i;
         }
