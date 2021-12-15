@@ -37,14 +37,7 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="RendererStack" name="stackedWidget">
-      <property name="currentIndex">
-       <number>0</number>
-      </property>
-      <widget class="SoftwareRenderer" name="sw"/>
-      <widget class="HardwareRenderer" name="ogl"/>
-      <widget class="HardwareRenderer" name="gles"/>
-     </widget>
+     <widget class="RendererStack" name="stackedWidget" />
     </item>
    </layout>
   </widget>

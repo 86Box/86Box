@@ -167,6 +167,42 @@ void RendererStack::leaveEvent(QEvent* event)
     event->accept();
 }
 
+void RendererStack::switchRenderer(Renderer renderer) {
+    startblit();
+    if (current) {
+        removeWidget(current.get());
+    }
+
+    switch (renderer) {
+    case Renderer::Software:
+    {
+        auto sw = new SoftwareRenderer(this);
+        connect(this, &RendererStack::blitToRenderer, sw, &SoftwareRenderer::onBlit, Qt::QueuedConnection);
+        current.reset(sw);
+    }
+        break;
+    case Renderer::OpenGL:
+    {
+        auto hw = new HardwareRenderer(this);
+        connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
+        hw->setRenderType(HardwareRenderer::RenderType::OpenGL);
+        current.reset(hw);
+        break;
+    }
+    case Renderer::OpenGLES:
+    {
+        auto hw = new HardwareRenderer(this);
+        connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
+        hw->setRenderType(HardwareRenderer::RenderType::OpenGLES);
+        current.reset(hw);
+        break;
+    }
+    }
+    current->setFocusPolicy(Qt::NoFocus);
+    addWidget(current.get());
+    endblit();
+}
+
 // called from blitter thread
 void RendererStack::blit(int x, int y, int w, int h)
 {
@@ -189,17 +225,4 @@ void RendererStack::blit(int x, int y, int w, int h)
     video_blit_complete();
     blitToRenderer(imagebufs[currentBuf], sx, sy, sw, sh, &buffers_in_use[currentBuf]);
     currentBuf = (currentBuf + 1) % 2;
-}
-
-void RendererStack::on_RendererStack_currentChanged(int arg1) {
-    disconnect(this, &RendererStack::blitToRenderer, nullptr, nullptr);
-    switch (arg1) {
-    case 0:
-        connect(this, &RendererStack::blitToRenderer, dynamic_cast<SoftwareRenderer*>(currentWidget()), &SoftwareRenderer::onBlit, Qt::QueuedConnection);
-        break;
-    case 1:
-    case 2:
-        connect(this, &RendererStack::blitToRenderer, dynamic_cast<HardwareRenderer*>(currentWidget()), &HardwareRenderer::onBlit, Qt::QueuedConnection);
-        break;
-    }
 }
