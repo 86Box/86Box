@@ -200,6 +200,10 @@ void RendererStack::switchRenderer(Renderer renderer) {
     }
     current->setFocusPolicy(Qt::NoFocus);
     addWidget(current.get());
+
+    for (auto& in_use : buffers_in_use)
+        in_use.clear();
+
     endblit();
 }
 
