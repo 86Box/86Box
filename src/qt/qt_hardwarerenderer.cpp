@@ -32,6 +32,7 @@ void HardwareRenderer::setRenderType(RenderType type) {
         format.setRenderableType(QSurfaceFormat::OpenGLES);
         break;
     }
+    format.setSwapInterval(0);
     setFormat(format);
 }
 
