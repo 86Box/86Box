@@ -2,6 +2,8 @@
 
 #include <SDL2/SDL.h>
 
+#include <algorithm>
+
 extern "C" {
 #include <86box/device.h>
 #include <86box/gameport.h>

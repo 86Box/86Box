@@ -7,6 +7,8 @@
 #include <QVBoxLayout>
 #include <QDialogButtonBox>
 
+#include <algorithm>
+
 extern "C" {
 #include "../cpu/cpu.h"
 
