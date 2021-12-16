@@ -158,26 +158,18 @@ void SettingsMachine::on_comboBoxMachine_currentIndexChanged(int index) {
     ui->comboBoxCPU->setCurrentIndex(-1);
     ui->comboBoxCPU->setCurrentIndex(selectedCpuFamilyRow);
 
-    auto* machine = &machines[machineId];
-    if ((machine->ram_granularity < 1024)) {
-        ui->spinBoxRAM->setMinimum(machine_get_min_ram(machineId));
-        ui->spinBoxRAM->setMaximum(machine_get_max_ram(machineId));
-        ui->spinBoxRAM->setSingleStep(machine_get_ram_granularity(machineId));
-        ui->spinBoxRAM->setSuffix(" KiB");
-        ui->spinBoxRAM->setValue(mem_size);
+    int divisor;
+    if ((machine_get_ram_granularity(machineId) < 1024)) {
+        divisor = 1;
+        ui->spinBoxRAM->setSuffix(" KB");
     } else {
-        int maxram;
-#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-        maxram = std::min(machine->max_ram, 2097152);
-#else
-        maxram = std::min(machine_get_max_ram(machineId), 3145728);
-#endif
-        ui->spinBoxRAM->setMinimum(machine_get_min_ram(machineId) / 1024);
-        ui->spinBoxRAM->setMaximum(maxram / 1024);
-        ui->spinBoxRAM->setSingleStep(machine_get_ram_granularity(machineId) / 1024);
-        ui->spinBoxRAM->setSuffix(" MiB");
-        ui->spinBoxRAM->setValue(mem_size / 1024);
+        divisor = 1024;
+        ui->spinBoxRAM->setSuffix(" MB");
     }
+    ui->spinBoxRAM->setMinimum(machine_get_min_ram(machineId) / divisor);
+    ui->spinBoxRAM->setMaximum(machine_get_max_ram(machineId) / divisor);
+    ui->spinBoxRAM->setSingleStep(machine_get_ram_granularity(machineId) / divisor);
+    ui->spinBoxRAM->setValue(mem_size / divisor);
     ui->spinBoxRAM->setEnabled(machine_get_min_ram(machineId) != machine_get_max_ram(machineId));
 
     emit currentMachineChanged(machineId);
