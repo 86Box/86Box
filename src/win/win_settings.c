@@ -802,12 +802,7 @@ win_settings_machine_recalc_machine(HWND hdlg)
     } else {
 	/* MB granularity */
 	h = GetDlgItem(hdlg, IDC_MEMSPIN);
-#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
-	i = MIN(machine_get_max_ram(temp_machine), 2097152);
-#else
-	i = MIN(machine_get_max_ram(temp_machine), 3145728);
-#endif
-	SendMessage(h, UDM_SETRANGE, 0, (machine_get_min_ram(temp_machine) << 6) | (i >> 10));
+	SendMessage(h, UDM_SETRANGE, 0, (machine_get_min_ram(temp_machine) << 6) | (machine_get_max_ram(temp_machine) >> 10));
 
 	accel.nSec = 0;
 	accel.nInc = machine_get_ram_granularity(temp_machine) >> 10;
