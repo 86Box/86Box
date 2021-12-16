@@ -133,8 +133,6 @@ target_link_libraries(
 # needed for static builds
 if (WIN32)
     qt_import_plugins(plat INCLUDE Qt5::QWindowsIntegrationPlugin Qt5::QICOPlugin QWindowsVistaStylePlugin)
-else()
-    qt_import_plugins(plat INCLUDE Qt5::QICOPlugin)
 endif()
 
 if (UNIX AND NOT APPLE)
