@@ -1009,7 +1009,11 @@ machine_get_min_ram(int m)
 int
 machine_get_max_ram(int m)
 {
-    return(machines[m].max_ram);
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
+    return MIN(((int) machines[m].max_ram), 2097152);
+#else
+    return MIN(((int) machines[m].max_ram), 3145728);
+#endif
 }
 
 
