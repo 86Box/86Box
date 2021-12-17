@@ -99,13 +99,35 @@ CMAKE_DEPENDENT_OPTION(VNC "VNC renderer" ON "DEV_BRANCH" OFF)
 CMAKE_DEPENDENT_OPTION(XL24 "ATI VGA Wonder XL24 (ATI-28800-6)" ON "DEV_BRANCH" OFF)
 CMAKE_DEPENDENT_OPTION(VECT486VL "HP Vectra 486VL" ON "DEV_BRANCH" OFF)
 
+# Determine the build type
+set(RELEASE_BUILD	OFF)
+set(BETA_BUILD		OFF)
+set(ALPHA_BUILD		OFF)
+
 string(TOLOWER "${BUILD_TYPE}" BUILD_TYPE_LOWER)
 if(BUILD_TYPE_LOWER STREQUAL "release")
+	# Release build
+	set(RELEASE_BUILD ON)
 	add_compile_definitions(RELEASE_BUILD)
 elseif(BUILD_TYPE_LOWER STREQUAL "beta")
+	# Beta build
+	set(BETA_BUILD ON)
 	add_compile_definitions(BETA_BUILD)
 elseif(BUILD_TYPE_LOWER STREQUAL "alpha")
+	# Alpha build
+	set(ALPHA_BUILD ON)
 	add_compile_definitions(ALPHA_BUILD)
+endif()
+
+# Variables introduced by richardg867 for versioning stuff
+if(NOT CMAKE_PROJECT_VERSION_PATCH)
+	set(CMAKE_PROJECT_VERSION_PATCH 0)
+endif()
+if(NOT EMU_BUILD_NUM)
+	set(EMU_BUILD_NUM 0)
+endif()
+if(NOT EMU_COPYRIGHT_YEAR)
+	set(EMU_COPYRIGHT_YEAR 2021)
 endif()
 
 # HACK: Avoid a MSVC2019 compiler bug on ARM64 Debug builds

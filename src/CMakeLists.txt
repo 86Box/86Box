@@ -69,24 +69,13 @@ if(MINGW)
 	set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".dll.a")
 endif()
 
-# Variables introduced by richardg867 for versioning stuff
-if(NOT CMAKE_PROJECT_VERSION_PATCH)
-	set(CMAKE_PROJECT_VERSION_PATCH 0)
-endif()
-if(NOT EMU_BUILD_NUM)
-	set(EMU_BUILD_NUM 0)
-endif()
-if(NOT EMU_COPYRIGHT_YEAR)
-	set(EMU_COPYRIGHT_YEAR 2021)
-endif()
-
 #some macOS specific configuration steps
 if(APPLE)
-# Force using the newest library if it's installed by homebrew
-  set(CMAKE_FIND_FRAMEWORK LAST)
-  
-  # setting our compilation target to macOS 10.13 High Sierra
-  set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
+	# Force using the newest library if it's installed by homebrew
+	set(CMAKE_FIND_FRAMEWORK LAST)
+
+	# setting our compilation target to macOS 10.13 High Sierra
+	set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
 endif()
 
 find_package(Freetype REQUIRED)
@@ -107,10 +96,10 @@ elseif(WIN32)
 	target_link_libraries(86Box SDL2::SDL2)
 else()
         if (TARGET SDL2::SDL2)
-                target_link_libraries(86Box SDL2::SDL2)
-        else()
-	        target_link_libraries(86Box ${SDL2_LIBRARIES})
-        endif()
+	target_link_libraries(86Box SDL2::SDL2)
+else()
+	target_link_libraries(86Box ${SDL2_LIBRARIES})
+endif()
 endif()
 
 find_package(PNG REQUIRED)
@@ -168,10 +157,10 @@ endif()
 if(APPLE)
 	set(APPS ${CMAKE_CURRENT_BINARY_DIR}/86Box.app)
 	install(CODE "
-        	include(BundleUtilities)
+		include(BundleUtilities)
 		get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \${CMAKE_INSTALL_PREFIX} ABSOLUTE)
 		fixup_bundle(\"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/bin/86Box.app\" \"\" \"\")"
-    	COMPONENT Runtime)
+	COMPONENT Runtime)
 endif()
 
 if(VCPKG_TOOLCHAIN)
