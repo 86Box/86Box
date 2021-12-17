@@ -26,6 +26,7 @@ extern "C" {
 #include <QDesktopServices>
 #include <QUrl>
 #include <QCheckBox>
+#include <QActionGroup>
 
 #include <array>
 #include <unordered_map>
@@ -134,6 +135,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionHiDPI_scaling->setChecked(dpi_scale);
     ui->actionHide_status_bar->setChecked(hide_status_bar);
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
+    QActionGroup* actGroup = nullptr;
     switch (vid_api) {
     case 0:
         ui->stackedWidget->switchRenderer(RendererStack::Renderer::Software);
@@ -148,6 +150,10 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->actionHardware_Renderer_OpenGL_ES->setChecked(true);
         break;
     }
+    actGroup = new QActionGroup(this);
+    actGroup->addAction(ui->actionSoftware_Renderer);
+    actGroup->addAction(ui->actionHardware_Renderer_OpenGL);
+    actGroup->addAction(ui->actionHardware_Renderer_OpenGL_ES);
     switch (scale) {
     case 0:
         ui->action0_5x->setChecked(true);
@@ -162,6 +168,11 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->action2x->setChecked(true);
         break;
     }
+    actGroup = new QActionGroup(this);
+    actGroup->addAction(ui->action0_5x);
+    actGroup->addAction(ui->action1x);
+    actGroup->addAction(ui->action1_5x);
+    actGroup->addAction(ui->action2x);
     switch (video_filter_method) {
     case 0:
         ui->actionNearest->setChecked(true);
@@ -170,6 +181,9 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->actionLinear->setChecked(true);
         break;
     }
+    actGroup = new QActionGroup(this);
+    actGroup->addAction(ui->actionNearest);
+    actGroup->addAction(ui->actionLinear);
     switch (video_fullscreen_scale) {
     case FULLSCR_SCALE_FULL:
         ui->actionFullScreen_stretch->setChecked(true);
@@ -184,6 +198,11 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->actionFullScreen_int->setChecked(true);
         break;
     }
+    actGroup = new QActionGroup(this);
+    actGroup->addAction(ui->actionFullScreen_stretch);
+    actGroup->addAction(ui->actionFullScreen_43);
+    actGroup->addAction(ui->actionFullScreen_keepRatio);
+    actGroup->addAction(ui->actionFullScreen_int);
     switch (video_grayscale) {
     case 0:
         ui->actionRGB_Color->setChecked(true);
@@ -201,6 +220,12 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->actionWhite_monitor->setChecked(true);
         break;
     }
+    actGroup = new QActionGroup(this);
+    actGroup->addAction(ui->actionRGB_Grayscale);
+    actGroup->addAction(ui->actionAmber_monitor);
+    actGroup->addAction(ui->actionGreen_monitor);
+    actGroup->addAction(ui->actionWhite_monitor);
+    actGroup->addAction(ui->actionRGB_Color);
     switch (video_graytype) {
     case 0:
         ui->actionBT601_NTSC_PAL->setChecked(true);
@@ -212,6 +237,10 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->actionAverage->setChecked(true);
         break;
     }
+    actGroup = new QActionGroup(this);
+    actGroup->addAction(ui->actionBT601_NTSC_PAL);
+    actGroup->addAction(ui->actionBT709_HDTV);
+    actGroup->addAction(ui->actionAverage);
     if (force_43 > 0) {
         ui->actionForce_4_3_display_ratio->setChecked(true);
     }
