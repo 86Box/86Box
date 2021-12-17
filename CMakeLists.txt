@@ -18,15 +18,21 @@ cmake_minimum_required(VERSION 3.15)
 cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
 
-if(VCPKG_TOOLCHAIN AND VCPKG_TARGET_TRIPLET MATCHES "static")
-	set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-endif()
-
 project(86Box
 	VERSION 3.1
 	DESCRIPTION "Emulator of x86-based systems"
 	HOMEPAGE_URL "https://86box.net"
 	LANGUAGES C CXX)
+
+if(WIN32 AND VCPKG_TOOLCHAIN)
+	if(VCPKG_TARGET_TRIPLET MATCHES "-windows-static$")
+		# `-static` triplet, use the statically linked CRT
+		set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+	else()
+		# Regular triplet (or `-static-md`), use the dynamically linked CRT
+		set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+	endif()
+endif()
 
 # Detect the target architecture by trying to compile `src/arch_detect.c`
 try_compile(RESULT_VAR ${CMAKE_BINARY_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/src/arch_detect.c" OUTPUT_VARIABLE ARCH)
