@@ -1,6 +1,7 @@
 #include <mutex>
 #include <thread>
 #include <condition_variable>
+#include <atomic>
 
 #include <86box/plat.h>
 
@@ -77,25 +78,25 @@ thread_close_mutex(mutex_t *_mutex)
 event_t *
 thread_create_event()
 {
-    auto ev = new event_cpp11_t;
-    return ev;
+    auto event = new event_cpp11_t;
+    return event;
 }
 
 int
 thread_wait_event(event_t *handle, int timeout)
 {
     auto event = reinterpret_cast<event_cpp11_t*>(handle);
-    auto lock = std::unique_lock<std::mutex>(event->mutex);
+    std::unique_lock<std::mutex> lock(event->mutex);
 
     if (timeout < 0) {
-        event->cond.wait(lock, [event] { return event->state; });
+        event->cond.wait(lock, [event] { return (event->state == true); });
     } else {
         auto to = std::chrono::system_clock::now() + std::chrono::milliseconds(timeout);
         std::cv_status status;
 
         do {
             status = event->cond.wait_until(lock, to);
-        } while ((status != std::cv_status::timeout) && !event->state);
+        } while ((status != std::cv_status::timeout) && (event->state == false));
 
         if (status == std::cv_status::timeout) {
             return 1;
@@ -108,10 +109,9 @@ void
 thread_set_event(event_t *handle)
 {
     auto event = reinterpret_cast<event_cpp11_t*>(handle);
-    {
-        auto lock = std::unique_lock<std::mutex>(event->mutex);
-        event->state = true;
-    }
+    std::lock_guard<std::mutex> lock(event->mutex);
+
+    event->state = true;
     event->cond.notify_all();
 }
 
@@ -119,8 +119,10 @@ void
 thread_reset_event(event_t *handle)
 {
     auto event = reinterpret_cast<event_cpp11_t*>(handle);
-    auto lock = std::unique_lock<std::mutex>(event->mutex);
+    std::lock_guard<std::mutex> lock(event->mutex);
+
     event->state = false;
+    // event->cond.notify_all();
 }
 
 void
