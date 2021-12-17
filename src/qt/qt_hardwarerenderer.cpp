@@ -47,18 +47,21 @@ void HardwareRenderer::resizeEvent(QResizeEvent *event) {
     QOpenGLWindow::resizeEvent(event);
 }
 
-void HardwareRenderer::mouseReleaseEvent(QMouseEvent *event)
+bool HardwareRenderer::event(QEvent *event)
 {
-    if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture)
+    switch (event->type())
     {
-        plat_mouse_capture(1);
-        this->setCursor(Qt::BlankCursor);
-        return;
+        default:
+            return QOpenGLWindow::event(event);
+        case QEvent::MouseButtonPress:
+        case QEvent::MouseMove:
+        case QEvent::MouseButtonRelease:
+        case QEvent::KeyPress:
+        case QEvent::KeyRelease:
+        case QEvent::Wheel:
+        case QEvent::Enter:
+        case QEvent::Leave:
+            return QApplication::sendEvent(parentWidget, event);
     }
-    if (mouse_capture && event->button() == Qt::MiddleButton)
-    {
-        plat_mouse_capture(0);
-        this->setCursor(Qt::ArrowCursor);
-        return;
-    }
+    return false;
 }

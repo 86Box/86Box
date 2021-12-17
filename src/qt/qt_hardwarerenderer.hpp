@@ -23,15 +23,17 @@ class HardwareRenderer : public QOpenGLWindow, protected QOpenGLFunctions, publi
 
 private:
     bool wayland = false;
+    QWidget* parentWidget{nullptr};
 public:
     void resizeGL(int w, int h) override;
     void initializeGL() override;
     void paintGL() override;
-    HardwareRenderer(QWindow* parent = nullptr)
-    : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate, parent), QOpenGLFunctions()
+    HardwareRenderer(QWidget* parent = nullptr)
+    : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate, parent->windowHandle()), QOpenGLFunctions()
     {
         setMinimumSize(QSize(16, 16));
         setFlags(Qt::FramelessWindowHint);
+        parentWidget = parent;
     }
     ~HardwareRenderer()
     {
@@ -49,5 +51,5 @@ public slots:
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
-    void mouseReleaseEvent(QMouseEvent* event) override;
+    bool event(QEvent* event) override;
 };

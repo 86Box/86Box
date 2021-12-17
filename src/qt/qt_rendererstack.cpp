@@ -184,7 +184,7 @@ void RendererStack::switchRenderer(Renderer renderer) {
     case Renderer::OpenGL:
     {
         this->createWinId();
-        auto hw = new HardwareRenderer(this->windowHandle());
+        auto hw = new HardwareRenderer(this);
         connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
         hw->setRenderType(HardwareRenderer::RenderType::OpenGL);
         current.reset(this->createWindowContainer(hw, this));
@@ -193,7 +193,7 @@ void RendererStack::switchRenderer(Renderer renderer) {
     case Renderer::OpenGLES:
     {
         this->createWinId();
-        auto hw = new HardwareRenderer(this->windowHandle());
+        auto hw = new HardwareRenderer(this);
         connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
         hw->setRenderType(HardwareRenderer::RenderType::OpenGLES);
         current.reset(this->createWindowContainer(hw, this));
@@ -201,6 +201,7 @@ void RendererStack::switchRenderer(Renderer renderer) {
     }
     }
     current->setFocusPolicy(Qt::NoFocus);
+    current->setFocusProxy(this);
     addWidget(current.get());
 
     for (auto& in_use : buffers_in_use)
