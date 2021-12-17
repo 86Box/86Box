@@ -5,6 +5,8 @@
 #include <QLabel>
 #include <QMouseEvent>
 
+#include <memory>
+
 class QStatusBar;
 
 class ClickableLabel : public QLabel {
