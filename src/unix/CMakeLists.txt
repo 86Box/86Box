@@ -30,8 +30,8 @@ endif()
 
 if (NOT CPPTHREADS)
     target_sources(plat PRIVATE unix_thread.c)
-
-    set(THREADS_PREFER_PTHREAD_FLAG TRUE)
-    find_package(Threads REQUIRED)
-    target_link_libraries(86Box Threads::Threads)
 endif()
+
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads REQUIRED)
+target_link_libraries(86Box Threads::Threads)

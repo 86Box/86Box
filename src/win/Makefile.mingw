@@ -164,7 +164,7 @@ ifndef DYNAREC
  DYNAREC	:= y
 endif
 ifndef CPPTHREADS
- CPPTHREADS	:= cpp11
+ CPPTHREADS	:= y
 endif
 ifeq ($(DYNAREC), y)
  ifeq ($(ARM), y)
