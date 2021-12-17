@@ -1067,7 +1067,7 @@ static void update_scaled_checkboxes(Ui::MainWindow* ui, QAction* selected) {
     reset_screen_size();
     device_force_redraw();
     video_force_resize_set(1);
-    doresize = 1;
+    atomic_flag_clear(&doresize);
     config_save();
 }
 
