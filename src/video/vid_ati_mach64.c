@@ -3459,7 +3459,7 @@ void mach64_close(void *p)
         
 	mach64->thread_run = 0;
         thread_set_event(mach64->wake_fifo_thread);
-	thread_wait(mach64->fifo_thread, -1);
+	thread_wait(mach64->fifo_thread);
         thread_destroy_event(mach64->wake_fifo_thread);
         thread_destroy_event(mach64->fifo_not_full_event);
 

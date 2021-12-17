@@ -39,7 +39,7 @@ add_executable(86Box WIN32 MACOSX_BUNDLE 86box.c config.c log.c random.c timer.c
 	device.c nvr.c nvr_at.c nvr_ps2.c ${APP_ICON_MACOSX})
 
 if(CPPTHREADS)
-	target_sources(86Box PRIVATE cpp11_thread.cpp)
+	target_sources(86Box PRIVATE thread.cpp)
 endif()
 
 if(APPLE)

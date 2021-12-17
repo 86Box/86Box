@@ -947,7 +947,7 @@ void opengl_close(void)
 
 	SetEvent(sync_objects.closing);
 
-	thread_wait(thread, -1);
+	thread_wait(thread);
 
 	thread_close_mutex(resize_info.mutex);
 	thread_close_mutex(options.mutex);

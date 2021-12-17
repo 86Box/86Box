@@ -346,7 +346,7 @@ void fluidsynth_close(void* p)
 
 	data->on = 0;
 	thread_set_event(data->event);
-	thread_wait(data->thread_h, -1);
+	thread_wait(data->thread_h);
 
 	if (data->synth) {
 	        f_delete_fluid_synth(data->synth);

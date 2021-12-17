@@ -17,22 +17,14 @@ thread_t *
 thread_create(void (*thread_rout)(void *param), void *param)
 {
     auto thread = new std::thread([thread_rout, param] {
-        thread_rout(param);
+	thread_rout(param);
     });
     return thread;
 }
 
-mutex_t *
-thread_create_mutex_with_spin_count(unsigned int spin_count)
-{
-    /* Setting spin count of a mutex is not possible with pthreads. */
-    return thread_create_mutex();
-}
-
 int
-thread_wait(thread_t *arg, int timeout)
+thread_wait(thread_t *arg)
 {
-    (void) timeout;
     auto thread = reinterpret_cast<std::thread*>(arg);
     thread->join();
     return 0;
@@ -41,7 +33,7 @@ thread_wait(thread_t *arg, int timeout)
 mutex_t *
 thread_create_mutex(void)
 {
-    auto mutex = new std::recursive_mutex;
+    auto mutex = new std::mutex;
     return mutex;
 }
 
@@ -49,8 +41,9 @@ int
 thread_wait_mutex(mutex_t *_mutex)
 {
     if (_mutex == nullptr)
-        return(0);
-    auto mutex = reinterpret_cast<std::recursive_mutex*>(_mutex);
+	return 0;
+
+    auto mutex = reinterpret_cast<std::mutex*>(_mutex);
     mutex->lock();
     return 1;
 }
@@ -60,8 +53,9 @@ int
 thread_release_mutex(mutex_t *_mutex)
 {
     if (_mutex == nullptr)
-        return(0);
-    auto mutex = reinterpret_cast<std::recursive_mutex*>(_mutex);
+	return 0;
+
+    auto mutex = reinterpret_cast<std::mutex*>(_mutex);
     mutex->unlock();
     return 1;
 }
@@ -70,7 +64,7 @@ thread_release_mutex(mutex_t *_mutex)
 void
 thread_close_mutex(mutex_t *_mutex)
 {
-    auto mutex = reinterpret_cast<std::recursive_mutex*>(_mutex);
+    auto mutex = reinterpret_cast<std::mutex*>(_mutex);
     delete mutex;
 }
 

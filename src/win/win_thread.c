@@ -45,14 +45,11 @@ thread_create(void (*func)(void *param), void *param)
 
 
 int
-thread_wait(thread_t *arg, int timeout)
+thread_wait(thread_t *arg)
 {
     if (arg == NULL) return(0);
 
-    if (timeout == -1)
-	timeout = INFINITE;
-
-    if (WaitForSingleObject(arg, timeout)) return(1);
+    if (WaitForSingleObject(arg, INFINITE)) return(1);
 
     return(0);
 }
@@ -128,17 +125,6 @@ thread_create_mutex(void)
     mutex_t *mutex = malloc(sizeof(CRITICAL_SECTION));
 
     InitializeCriticalSection(mutex);
-
-    return mutex;
-}
-
-
-mutex_t *
-thread_create_mutex_with_spin_count(unsigned int spin_count)
-{
-    mutex_t *mutex = malloc(sizeof(CRITICAL_SECTION));
-
-    InitializeCriticalSectionAndSpinCount(mutex, spin_count);
 
     return mutex;
 }

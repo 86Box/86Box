@@ -172,6 +172,7 @@ poll_thread(void *arg)
     thread_set_event(poll_state);
 
     /* Create a waitable event. */
+    pcap_log("PCAP: Creating event...\n");
     evt = thread_create_event();
 
     /* As long as the channel is open.. */
@@ -185,8 +186,6 @@ poll_thread(void *arg)
 	if (pcap == NULL)
 		break;
 
-	/* Wait for the next packet to arrive. */
-	tx = network_tx_queue_check();
 	if (network_get_wait() || (poll_card->set_link_state && poll_card->set_link_state(poll_card->priv)) || (poll_card->wait && poll_card->wait(poll_card->priv)))
 		data = NULL;
 	else
@@ -208,11 +207,14 @@ poll_thread(void *arg)
 		}
 	}
 
+	/* Wait for the next packet to arrive. */
+	tx = network_tx_queue_check();
+
 	if (tx)
 		network_do_tx();
 
 	/* If we did not get anything, wait a while. */
-	if ((data == NULL) && !tx)
+	if (!tx)
 		thread_wait_event(evt, 10);
 
 	/* Release ownership of the device. */
@@ -224,7 +226,8 @@ poll_thread(void *arg)
 	thread_destroy_event(evt);
 
     pcap_log("PCAP: polling stopped.\n");
-    thread_set_event(poll_state);
+    if (poll_state != NULL)
+	thread_set_event(poll_state);
 }
 
 
