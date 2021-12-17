@@ -226,7 +226,8 @@ poll_thread(void *arg)
 	thread_destroy_event(evt);
 
     pcap_log("PCAP: polling stopped.\n");
-    thread_set_event(poll_state);
+    if (poll_state != NULL)
+	thread_set_event(poll_state);
 }
 
 
