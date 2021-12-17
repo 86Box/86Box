@@ -4,6 +4,7 @@
 
 extern "C" {
 #include <86box/86box.h>
+#include <86box/plat.h>
 }
 
 void HardwareRenderer::resizeGL(int w, int h)
@@ -44,4 +45,20 @@ void HardwareRenderer::onBlit(const QImage& img, int x, int y, int w, int h, std
 void HardwareRenderer::resizeEvent(QResizeEvent *event) {
     onResize(width(), height());
     QOpenGLWindow::resizeEvent(event);
+}
+
+void HardwareRenderer::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (this->geometry().contains(event->pos()) && event->button() == Qt::LeftButton && !mouse_capture)
+    {
+        plat_mouse_capture(1);
+        this->setCursor(Qt::BlankCursor);
+        return;
+    }
+    if (mouse_capture && event->button() == Qt::MiddleButton)
+    {
+        plat_mouse_capture(0);
+        this->setCursor(Qt::ArrowCursor);
+        return;
+    }
 }
