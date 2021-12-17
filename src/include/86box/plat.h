@@ -63,13 +63,18 @@ extern int strnicmp(const char* s1, const char* s2, size_t n);
 
 
 #ifdef __cplusplus
+#include <atomic>
+#define atomic_flag_t std::atomic_flag
 extern "C" {
+#else
+#include <stdatomic.h>
+#define atomic_flag_t atomic_flag
 #endif
 
 /* Global variables residing in the platform module. */
 extern int	dopause,			/* system is paused */
-		doresize,			/* screen resize requested */
 		mouse_capture;			/* mouse is captured in app */
+extern atomic_flag_t doresize;			/* screen resize requested */
 extern volatile int	is_quit;				/* system exit requested */
 
 #ifdef MTR_ENABLED
