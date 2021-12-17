@@ -2,6 +2,7 @@
 
 #include <QOpenGLFunctions>
 #include <QOpenGLWidget>
+#include <QOpenGLWindow>
 #include <QPainter>
 #include <QEvent>
 #include <QKeyEvent>
@@ -16,7 +17,7 @@
 #include "wl_mouse.hpp"
 #endif
 
-class HardwareRenderer : public QOpenGLWidget, protected QOpenGLFunctions, public RendererCommon
+class HardwareRenderer : public QOpenGLWindow, protected QOpenGLFunctions, public RendererCommon
 {
 	Q_OBJECT
 
@@ -26,10 +27,11 @@ public:
     void resizeGL(int w, int h) override;
     void initializeGL() override;
     void paintGL() override;
-    HardwareRenderer(QWidget* parent = nullptr)
-    : QOpenGLWidget(parent), QOpenGLFunctions()
+    HardwareRenderer(QWindow* parent = nullptr)
+    : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate, parent), QOpenGLFunctions()
     {
-        setMinimumSize(16, 16);
+        setMinimumSize(QSize(16, 16));
+        setFlags(Qt::FramelessWindowHint);
     }
     ~HardwareRenderer()
     {

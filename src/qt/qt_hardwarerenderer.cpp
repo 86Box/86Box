@@ -24,11 +24,9 @@ void HardwareRenderer::setRenderType(RenderType type) {
     QSurfaceFormat format;
     switch (type) {
     case RenderType::OpenGL:
-        setTextureFormat(GL_RGB);
         format.setRenderableType(QSurfaceFormat::OpenGL);
         break;
     case RenderType::OpenGLES:
-        setTextureFormat((QApplication::platformName().contains("wayland") || QApplication::platformName() == "cocoa") ? GL_RGB : GL_RGBA);
         format.setRenderableType(QSurfaceFormat::OpenGLES);
         break;
     }
@@ -45,5 +43,5 @@ void HardwareRenderer::onBlit(const QImage& img, int x, int y, int w, int h, std
 
 void HardwareRenderer::resizeEvent(QResizeEvent *event) {
     onResize(width(), height());
-    QOpenGLWidget::resizeEvent(event);
+    QOpenGLWindow::resizeEvent(event);
 }
