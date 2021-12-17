@@ -374,7 +374,7 @@ MUNTOBJ		:= midi_mt32.o \
 endif
 
 ifeq ($(CPPTHREADS), y)
-THREADOBJ	:= cpp11_thread.o
+THREADOBJ	:= thread.o
 else
 THREADOBJ	:= win_thread.o
 endif

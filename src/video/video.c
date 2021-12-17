@@ -889,7 +889,7 @@ video_close(void)
 {
     thread_run = 0;
     thread_set_event(blit_data.wake_blit_thread);
-    thread_wait(blit_data.blit_thread, -1);
+    thread_wait(blit_data.blit_thread);
     thread_destroy_event(blit_data.buffer_not_in_use);
     thread_destroy_event(blit_data.blit_complete);
     thread_destroy_event(blit_data.wake_blit_thread);
