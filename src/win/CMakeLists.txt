@@ -23,6 +23,10 @@ add_library(ui OBJECT win_ui.c win_icon.c win_stbar.c win_sdl.c win_dialog.c win
 	win_jsconf.c win_media_menu.c win_preferences.c win_discord.c glad.c win_opengl.c
 	win_opengl_glslp.c 86Box.rc)
 
+if(NOT CPPTHREADS)
+	target_sources(plat PRIVATE win_thread.c)
+endif()
+
 if(MSVC)
 	# MSVC complains when we include the manifest from 86Box.rc...
 	# On the bright side, CMake supports passing the manifest as a source

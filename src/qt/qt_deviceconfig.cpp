@@ -11,7 +11,7 @@ extern "C" {
 #include <86box/86box.h>
 #include <86box/config.h>
 #include <86box/device.h>
-#include <86box/plat_midi.h>
+#include <86box/midi_rtmidi.h>
 }
 
 #include "qt_filefield.hpp"
@@ -55,9 +55,9 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance) {
             auto* model = cbox->model();
             int currentIndex = -1;
             int selected = config_get_int(device_context.name, const_cast<char*>(config->name), config->default_int);
-            for (int i = 0; i < plat_midi_get_num_devs(); i++) {
+            for (int i = 0; i < rtmidi_get_num_devs(); i++) {
                 char midiName[512] = { 0 };
-                plat_midi_get_dev_name(i, midiName);
+                rtmidi_get_dev_name(i, midiName);
 
                 Models::AddEntry(model, midiName, i);
                 if (selected == i) {
@@ -75,9 +75,9 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance) {
             auto* model = cbox->model();
             int currentIndex = -1;
             int selected = config_get_int(device_context.name, const_cast<char*>(config->name), config->default_int);
-            for (int i = 0; i < plat_midi_in_get_num_devs(); i++) {
+            for (int i = 0; i < rtmidi_in_get_num_devs(); i++) {
                 char midiName[512] = { 0 };
-                plat_midi_in_get_dev_name(i, midiName);
+                rtmidi_in_get_dev_name(i, midiName);
 
                 Models::AddEntry(model, midiName, i);
                 if (selected == i) {

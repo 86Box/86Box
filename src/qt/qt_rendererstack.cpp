@@ -220,7 +220,7 @@ void RendererStack::blit(int x, int y, int w, int h)
     sw = this->w = w;
     sh = this->h = h;
     auto imagebits = imagebufs[currentBuf].bits();
-    video_copy(imagebits + y * ((2048) * 4) + x * 4, &(buffer32->line[y][x]), h * (2048) * sizeof(uint32_t));
+    video_copy(imagebits + y * (2048 * 4) + x * 4, &(buffer32->line[y][x]), h * 2048 * sizeof(uint32_t));
 
     if (screenshots)
     {

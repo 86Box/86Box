@@ -64,7 +64,6 @@
 #include <86box/snd_mpu401.h>
 #include <86box/video.h>
 #include <86box/plat.h>
-#include <86box/plat_midi.h>
 #include <86box/plat_dir.h>
 #include <86box/ui.h>
 
