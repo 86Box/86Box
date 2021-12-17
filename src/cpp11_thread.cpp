@@ -41,7 +41,7 @@ thread_wait(thread_t *arg, int timeout)
 mutex_t *
 thread_create_mutex(void)
 {
-    auto mutex = new std::mutex;
+    auto mutex = new std::recursive_mutex;
     return mutex;
 }
 
@@ -50,7 +50,7 @@ thread_wait_mutex(mutex_t *_mutex)
 {
     if (_mutex == nullptr)
         return(0);
-    auto mutex = reinterpret_cast<std::mutex*>(_mutex);
+    auto mutex = reinterpret_cast<std::recursive_mutex*>(_mutex);
     mutex->lock();
     return 1;
 }
@@ -61,7 +61,7 @@ thread_release_mutex(mutex_t *_mutex)
 {
     if (_mutex == nullptr)
         return(0);
-    auto mutex = reinterpret_cast<std::mutex*>(_mutex);
+    auto mutex = reinterpret_cast<std::recursive_mutex*>(_mutex);
     mutex->unlock();
     return 1;
 }
@@ -70,7 +70,7 @@ thread_release_mutex(mutex_t *_mutex)
 void
 thread_close_mutex(mutex_t *_mutex)
 {
-    auto mutex = reinterpret_cast<std::mutex*>(_mutex);
+    auto mutex = reinterpret_cast<std::recursive_mutex*>(_mutex);
     delete mutex;
 }
 
