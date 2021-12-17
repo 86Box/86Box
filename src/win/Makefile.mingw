@@ -475,7 +475,7 @@ CXXFLAGS	:= $(CFLAGS)
 #########################################################################
 MAINOBJ		:= 86box.o config.o log.o random.o timer.o io.o acpi.o apm.o dma.o ddma.o \
 		   nmi.o pic.o pit.o port_6x.o port_92.o ppi.o pci.o mca.o \
-		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o rtmidi_midi.o \
+		   usb.o device.o nvr.o nvr_at.o nvr_ps2.o \
 		   $(VNCOBJ)
 
 MEMOBJ		:= catalyst_flash.o i2c_eeprom.o intel_flash.o mem.o rom.o smram.o spd.o sst_flash.o
@@ -617,7 +617,7 @@ SNDOBJ		:= sound.o \
 		     wave6581_P_T.o wave6581_PS_.o wave6581_PST.o \
 		     wave8580__ST.o wave8580_P_T.o wave8580_PS_.o \
 		     wave8580_PST.o wave.o \
-		    midi.o midi_system.o \
+		    midi.o midi_rtmidi.o \
 		    snd_speaker.o \
 		    snd_pssj.o \
 		    snd_lpt_dac.o snd_lpt_dss.o \

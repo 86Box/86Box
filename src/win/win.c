@@ -46,7 +46,6 @@
 #include <86box/video.h>
 #define GLOBAL
 #include <86box/plat.h>
-#include <86box/plat_midi.h>
 #include <86box/ui.h>
 #ifdef USE_VNC
 # include <86box/vnc.h>
