@@ -183,18 +183,20 @@ void RendererStack::switchRenderer(Renderer renderer) {
         break;
     case Renderer::OpenGL:
     {
-        auto hw = new HardwareRenderer(this);
+        this->createWinId();
+        auto hw = new HardwareRenderer(this->windowHandle());
         connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
         hw->setRenderType(HardwareRenderer::RenderType::OpenGL);
-        current.reset(hw);
+        current.reset(this->createWindowContainer(hw, this));
         break;
     }
     case Renderer::OpenGLES:
     {
-        auto hw = new HardwareRenderer(this);
+        this->createWinId();
+        auto hw = new HardwareRenderer(this->windowHandle());
         connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
         hw->setRenderType(HardwareRenderer::RenderType::OpenGLES);
-        current.reset(hw);
+        current.reset(this->createWindowContainer(hw, this));
         break;
     }
     }
