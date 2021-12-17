@@ -11,8 +11,8 @@ add_library(plat STATIC
     qt_main.cpp
     qt_platform.cpp
     sdl_joystick.cpp
-    cpp11_thread.cpp
 )
+
 add_library(ui STATIC
     qt_ui.cpp
     qt_cdrom.c
@@ -106,6 +106,7 @@ add_library(ui STATIC
 
     ../qt_resources.qrc
 )
+
 if (APPLE)
     target_sources(ui PRIVATE macos_event_filter.mm)
 endif()
