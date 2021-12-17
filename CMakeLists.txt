@@ -65,6 +65,7 @@ option(VRAMDUMP "Video RAM dumping" OFF)
 option(DINPUT "DirectInput" OFF)
 option(DISCORD "Discord integration" ON)
 option(QT "QT GUI" ON)
+option(CPPTHREADS "C++11 threads" ON)
 
 option(NEW_DYNAREC "Use the PCem v15 (\"new\") dynamic recompiler" OFF)
 
