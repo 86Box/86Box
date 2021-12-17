@@ -28,9 +28,7 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/plat.h>
-#include <86box/plat_midi.h>
 #include <86box/midi.h>
-#include <86box/midi_input.h>
 
 
 int midi_device_current = 0;
@@ -84,14 +82,14 @@ static const MIDI_DEVICE devices[] =
     { "mt32",				&mt32_device		},
     { "cm32l",				&cm32l_device		},
 #endif
-    { SYSTEM_MIDI_INTERNAL_NAME,	&system_midi_device	},
+    { SYSTEM_MIDI_INTERNAL_NAME,	&rtmidi_device	},
     { "",				NULL			}
 };
 
 static const MIDI_IN_DEVICE midi_in_devices[] =
 {
     { "none",				NULL			},
-    { MIDI_INPUT_INTERNAL_NAME,		&midi_input_device	},
+    { MIDI_INPUT_INTERNAL_NAME,		&rtmidi_input_device	},
     { "",				NULL			}
 };
 

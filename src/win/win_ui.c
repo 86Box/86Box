@@ -39,7 +39,6 @@
 #include <86box/nvr.h>
 #include <86box/video.h>
 #include <86box/vid_ega.h>		// for update_overscan
-#include <86box/plat_midi.h>
 #include <86box/plat_dynld.h>
 #include <86box/ui.h>
 #include <86box/win.h>

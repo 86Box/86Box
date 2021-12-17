@@ -831,7 +831,7 @@ video_init(void)
     }
 
     /* Account for overscan. */
-    buffer32 = create_bitmap(2048 + 64, 2048 + 64);
+    buffer32 = create_bitmap(2048, 2048);
 
     for (c = 0; c < 64; c++) {
 	cgapal[c + 64].r = (((c & 4) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
