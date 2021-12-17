@@ -133,7 +133,7 @@ SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 
 				scrnsz_x = fixed_size_x;
 				scrnsz_y = fixed_size_y;
-				doresize = 1;
+				atomic_flag_clear(&doresize);
 
 				GetWindowRect(hwndMain, &r);
 
