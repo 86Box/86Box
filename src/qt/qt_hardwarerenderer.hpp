@@ -27,9 +27,8 @@ public:
     void resizeGL(int w, int h) override;
     void initializeGL() override;
     void paintGL() override;
-    void paintUnderGL() override;
     HardwareRenderer(QWindow* parent = nullptr)
-    : QOpenGLWindow(QOpenGLWindow::PartialUpdateBlend, parent), QOpenGLFunctions()
+    : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate, parent), QOpenGLFunctions()
     {
         setMinimumSize(QSize(16, 16));
         setFlags(Qt::FramelessWindowHint);

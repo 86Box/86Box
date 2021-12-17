@@ -25,8 +25,8 @@ RendererStack::RendererStack(QWidget *parent) :
 {
     ui->setupUi(this);
     imagebufs = QVector<QImage>(2);
-    imagebufs[0] = QImage{QSize(2048 + 64, 2048 + 64), QImage::Format_RGB32};
-    imagebufs[1] = QImage{QSize(2048 + 64, 2048 + 64), QImage::Format_RGB32};
+    imagebufs[0] = QImage{QSize(2048, 2048), QImage::Format_RGB32};
+    imagebufs[1] = QImage{QSize(2048, 2048), QImage::Format_RGB32};
 
     buffers_in_use = std::vector<std::atomic_flag>(2);
     buffers_in_use[0].clear();
@@ -222,11 +222,11 @@ void RendererStack::blit(int x, int y, int w, int h)
     sw = this->w = w;
     sh = this->h = h;
     auto imagebits = imagebufs[currentBuf].bits();
-    video_copy(imagebits + y * ((2048 + 64) * 4) + x * 4, &(buffer32->line[y][x]), h * (2048 + 64) * sizeof(uint32_t));
+    video_copy(imagebits + y * ((2048) * 4) + x * 4, &(buffer32->line[y][x]), h * (2048) * sizeof(uint32_t));
 
     if (screenshots)
     {
-        video_screenshot((uint32_t *)imagebits, 0, 0, 2048 + 64);
+        video_screenshot((uint32_t *)imagebits, 0, 0, 2048);
     }
     video_blit_complete();
     blitToRenderer(imagebufs[currentBuf], sx, sy, sw, sh, &buffers_in_use[currentBuf]);

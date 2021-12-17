@@ -22,9 +22,9 @@ SpecifyDimensions::SpecifyDimensions(QWidget *parent) :
 {
     ui->setupUi(this);
     ui->checkBox->setChecked(vid_resize == 2);
-    ui->spinBoxWidth->setRange(16, 2048 + 64);
+    ui->spinBoxWidth->setRange(16, 2048);
     ui->spinBoxWidth->setValue(main_window->getRenderWidgetSize().width());
-    ui->spinBoxHeight->setRange(16, 2048 + 64);
+    ui->spinBoxHeight->setRange(16, 2048);
     ui->spinBoxHeight->setValue(main_window->getRenderWidgetSize().height());
 }
 

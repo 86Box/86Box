@@ -17,12 +17,6 @@ void HardwareRenderer::initializeGL()
 }
 
 void HardwareRenderer::paintGL() {
-    //onPaint(this);
-}
-
-void HardwareRenderer::paintUnderGL() {
-    glClearColor(0.f, 0.f, 0.f, 1.f);
-    glClear(GL_COLOR_BUFFER_BIT);
     onPaint(this);
 }
 
