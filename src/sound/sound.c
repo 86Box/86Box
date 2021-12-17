@@ -506,7 +506,7 @@ sound_cd_thread_end(void)
 
 	sound_log("Waiting for CD Audio thread to terminate...\n");
 	thread_set_event(sound_cd_event);
-	thread_wait(sound_cd_thread_h, -1);
+	thread_wait(sound_cd_thread_h);
 	sound_log("CD Audio thread terminated...\n");
 
 	if (sound_cd_event) {

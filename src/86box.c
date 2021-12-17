@@ -92,7 +92,6 @@
 #include <86box/video.h>
 #include <86box/ui.h>
 #include <86box/plat.h>
-#include <86box/plat_midi.h>
 #include <86box/version.h>
 
 

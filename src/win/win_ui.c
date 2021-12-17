@@ -39,7 +39,6 @@
 #include <86box/nvr.h>
 #include <86box/video.h>
 #include <86box/vid_ega.h>		// for update_overscan
-#include <86box/plat_midi.h>
 #include <86box/plat_dynld.h>
 #include <86box/ui.h>
 #include <86box/win.h>
@@ -54,8 +53,8 @@
 
 
 /* Platform Public data, specific. */
-HWND		hwndMain,		/* application main window */
-		hwndRender;		/* machine render window */
+HWND		hwndMain = NULL,	/* application main window */
+		hwndRender = NULL;	/* machine render window */
 HMENU		menuMain;		/* application main menu */
 RECT		oldclip;		/* mouse rect */
 int		sbar_height = 23;	/* statusbar height */

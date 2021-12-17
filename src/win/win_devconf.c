@@ -25,7 +25,7 @@
 #include <86box/config.h>
 #include <86box/device.h>
 #include <86box/plat.h>
-#include <86box/plat_midi.h>
+#include <86box/midi_rtmidi.h>
 #include <86box/ui.h>
 #include <86box/win.h>
 #include <windowsx.h>
@@ -97,9 +97,9 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					val_int = config_get_int((char *) config_device.name,
 								 (char *) config->name, config->default_int);
 
-					num  = plat_midi_get_num_devs();
+					num  = rtmidi_get_num_devs();
 					for (c = 0; c < num; c++) {
-						plat_midi_get_dev_name(c, s);
+						rtmidi_get_dev_name(c, s);
 						mbstowcs(lptsTemp, s, strlen(s) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
 						if (val_int == c)
@@ -112,9 +112,9 @@ deviceconfig_dlgproc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					val_int = config_get_int((char *) config_device.name,
 								 (char *) config->name, config->default_int);
 
-					num  = plat_midi_in_get_num_devs();
+					num  = rtmidi_in_get_num_devs();
 					for (c = 0; c < num; c++) {
-						plat_midi_in_get_dev_name(c, s);
+						rtmidi_in_get_dev_name(c, s);
 						mbstowcs(lptsTemp, s, strlen(s) + 1);
 						SendMessage(h, CB_ADDSTRING, 0, (LPARAM)(LPCSTR)lptsTemp);
 						if (val_int == c)

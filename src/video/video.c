@@ -831,7 +831,7 @@ video_init(void)
     }
 
     /* Account for overscan. */
-    buffer32 = create_bitmap(2048 + 64, 2048 + 64);
+    buffer32 = create_bitmap(2048, 2048);
 
     for (c = 0; c < 64; c++) {
 	cgapal[c + 64].r = (((c & 4) ? 2 : 0) | ((c & 0x10) ? 1 : 0)) * 21;
@@ -889,7 +889,7 @@ video_close(void)
 {
     thread_run = 0;
     thread_set_event(blit_data.wake_blit_thread);
-    thread_wait(blit_data.blit_thread, -1);
+    thread_wait(blit_data.blit_thread);
     thread_destroy_event(blit_data.buffer_not_in_use);
     thread_destroy_event(blit_data.blit_complete);
     thread_destroy_event(blit_data.wake_blit_thread);

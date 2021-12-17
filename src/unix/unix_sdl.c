@@ -134,9 +134,9 @@ sdl_blit_shim(int x, int y, int w, int h)
     params.w = w;
     params.h = h;
     if (!(!sdl_enabled || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)))
-	video_copy(interpixels, &(buffer32->line[y][x]), h * (2048 + 64) * sizeof(uint32_t));
+	video_copy(interpixels, &(buffer32->line[y][x]), h * 2048 * sizeof(uint32_t));
     if (screenshots)
-	video_screenshot(interpixels, 0, 0, (2048 + 64));
+	video_screenshot(interpixels, 0, 0, 2048);
     blitreq = 1;
     video_blit_complete();
 }
@@ -198,7 +198,7 @@ sdl_blit(int x, int y, int w, int h)
     r_src.y = y;
     r_src.w = w;
     r_src.h = h;
-    SDL_UpdateTexture(sdl_tex, &r_src, interpixels, (2048 + 64) * 4);
+    SDL_UpdateTexture(sdl_tex, &r_src, interpixels, 2048 * 4);
     blitreq = 0;
 
     sdl_real_blit(&r_src);

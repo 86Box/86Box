@@ -154,6 +154,8 @@ ctr_tick(ctr_t *ctr)
 	/* This is true for all modes */
 	ctr_load_count(ctr);
 	ctr->state = 2;
+	if ((ctr->m & 0x07) == 0x01)
+		ctr_set_out(ctr, 0);
 	return;
     }
 
