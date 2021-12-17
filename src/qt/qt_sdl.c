@@ -313,10 +313,10 @@ sdl_blit(int x, int y, int w, int h)
     SDL_LockMutex(sdl_mutex);
     SDL_LockTexture(sdl_tex, 0, &pixeldata, &pitch);
 
-    video_copy(pixeldata, &(buffer32->line[y][x]), h * (2048 + 64) * sizeof(uint32_t));
+    video_copy(pixeldata, &(buffer32->line[y][x]), h * (2048) * sizeof(uint32_t));
 
     if (screenshots)
-        video_screenshot((uint32_t *) pixeldata, 0, 0, (2048 + 64));
+        video_screenshot((uint32_t *) pixeldata, 0, 0, (2048));
 
     SDL_UnlockTexture(sdl_tex);
 
@@ -414,7 +414,7 @@ sdl_init_texture(void)
     }
 
     sdl_tex = SDL_CreateTexture(sdl_render, SDL_PIXELFORMAT_ARGB8888,
-				SDL_TEXTUREACCESS_STREAMING, (2048 + 64), (2048 + 64));
+				SDL_TEXTUREACCESS_STREAMING, (2048), (2048));
 
     if (sdl_render == NULL) {
         sdl_log("SDL: unable to SDL_CreateRenderer (%s)\n", SDL_GetError());
