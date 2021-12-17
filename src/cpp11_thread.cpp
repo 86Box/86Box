@@ -109,7 +109,7 @@ void
 thread_set_event(event_t *handle)
 {
     auto event = reinterpret_cast<event_cpp11_t*>(handle);
-    std::lock_guard<std::mutex> lock(event->mutex);
+    std::unique_lock<std::mutex> lock(event->mutex);
 
     event->state = true;
     event->cond.notify_all();
@@ -119,7 +119,7 @@ void
 thread_reset_event(event_t *handle)
 {
     auto event = reinterpret_cast<event_cpp11_t*>(handle);
-    std::lock_guard<std::mutex> lock(event->mutex);
+    std::unique_lock<std::mutex> lock(event->mutex);
 
     event->state = false;
 }
