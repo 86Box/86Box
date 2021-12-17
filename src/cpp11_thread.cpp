@@ -122,7 +122,6 @@ thread_reset_event(event_t *handle)
     std::lock_guard<std::mutex> lock(event->mutex);
 
     event->state = false;
-    event->cond.notify_all();
 }
 
 void
