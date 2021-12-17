@@ -130,23 +130,4 @@ if(NOT EMU_COPYRIGHT_YEAR)
 	set(EMU_COPYRIGHT_YEAR 2021)
 endif()
 
-# HACK: Avoid a MSVC2019 compiler bug on ARM64 Debug builds
-if(MSVC_TOOLSET_VERSION GREATER_EQUAL 142 AND ARCH STREQUAL "arm64")
-	# Define a cache option in case somebody wants to disable this workaround
-	set(AVOID_LNK1322 ON CACHE BOOL "Prevent LNK1322 on MSVC2019 ARM64 debug builds")
-
-	if(AVOID_LNK1322)
-		message(STATUS "Working around LNK1322 (86Box#1268)")
-		set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /Gy")
-		set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Gy")
-	endif()
-endif()
-
-# HACK: MinGW and macOS <10.15 does not have `timespec_get`
-include(CheckSymbolExists)
-check_symbol_exists(timespec_get time.h HAS_TIMESPEC_GET)
-if(HAS_TIMESPEC_GET)
-	add_compile_definitions(HAS_TIMESPEC_GET)
-endif()
-
 add_subdirectory(src)

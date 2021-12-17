@@ -69,7 +69,6 @@ if(MINGW)
 	set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".dll.a")
 endif()
 
-#some macOS specific configuration steps
 if(APPLE)
 	# Force using the newest library if it's installed by homebrew
 	set(CMAKE_FIND_FRAMEWORK LAST)
@@ -81,7 +80,9 @@ endif()
 find_package(Freetype REQUIRED)
 include_directories(${FREETYPE_INCLUDE_DIRS})
 if(APPLE)
-	target_link_libraries(86Box Freetype::Freetype) # bundles freetype for the macOS app bundle
+	# Freetype is dynamically loaded by the emulator, however, we link it
+	# on macOS so it gets copied to the bundle by the installation process
+	target_link_libraries(86Box Freetype::Freetype)
 endif()
 
 find_package(OpenAL REQUIRED)
@@ -90,16 +91,12 @@ target_link_libraries(86Box ${OPENAL_LIBRARY})
 
 find_package(SDL2 REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})
-if(MINGW)
+if(WIN32 AND TARGET SDL2::SDL2-static)
 	target_link_libraries(86Box SDL2::SDL2-static)
-elseif(WIN32)
-	target_link_libraries(86Box SDL2::SDL2)
-else()
-        if (TARGET SDL2::SDL2)
+elseif(TARGET SDL2::SDL2)
 	target_link_libraries(86Box SDL2::SDL2)
 else()
 	target_link_libraries(86Box ${SDL2_LIBRARIES})
-endif()
 endif()
 
 find_package(PNG REQUIRED)
@@ -147,15 +144,14 @@ if(MINITRACE)
 endif()
 
 if(APPLE)
+	# `install` fails on Mac if the destination is omitted
 	install(TARGETS 86Box DESTINATION "bin")
 else()
 	install(TARGETS 86Box)
 endif()
 
-
-# adjustments for macOS app bundles
+# Install our dependencies to the macOS bundle
 if(APPLE)
-	set(APPS ${CMAKE_CURRENT_BINARY_DIR}/86Box.app)
 	install(CODE "
 		include(BundleUtilities)
 		get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \${CMAKE_INSTALL_PREFIX} ABSOLUTE)
@@ -163,10 +159,12 @@ if(APPLE)
 	COMPONENT Runtime)
 endif()
 
+# Install our dependencies if using vcpkg
 if(VCPKG_TOOLCHAIN)
 	x_vcpkg_install_local_dependencies(TARGETS 86Box DESTINATION "bin")
 endif()
 
+# Install the PDB file on MSVC builds (i.e. LLVM on Windows+vcpkg)
 if(MSVC)
 	install(FILES $<TARGET_PDB_FILE:86Box>
 		CONFIGURATIONS Debug RelWithDebInfo
