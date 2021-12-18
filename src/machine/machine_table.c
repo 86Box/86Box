@@ -144,8 +144,8 @@ const machine_t machines[] = {
     { "[8086] Amstrad PC1640",			"pc1640",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO | MACHINE_MOUSE,					  640,   640, 640,   63,		  machine_pc1640_init, pc1640_get_device	},
     { "[8086] Amstrad PC2086",			"pc2086",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO_FIXED | MACHINE_MOUSE,				  640,   640, 640,   63,		  machine_pc2086_init, pc2086_get_device	},
     { "[8086] Amstrad PC3086",			"pc3086",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO_FIXED | MACHINE_MOUSE,				  640,   640, 640,   63,		  machine_pc3086_init, pc3086_get_device	},
-    { "[8086] Amstrad PC20(0)",			"pc200",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO | MACHINE_MOUSE | MACHINE_NONMI,			  512,   640, 128,   63,		   machine_pc200_init, pc200_get_device		},
-    { "[8086] Amstrad PPC512/640",		"ppc512",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO | MACHINE_MOUSE | MACHINE_NONMI,			  512,   640, 128,   63,		  machine_ppc512_init, ppc512_get_device	},
+    { "[8086] Amstrad PC20(0)",			"pc200",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO | MACHINE_MOUSE,					  512,   640, 128,   63,		   machine_pc200_init, pc200_get_device		},
+    { "[8086] Amstrad PPC512/640",		"ppc512",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO | MACHINE_MOUSE,					  512,   640, 128,   63,		  machine_ppc512_init, ppc512_get_device	},
     { "[8086] Compaq Deskpro",			"deskpro",		MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC,									  128,   640, 128,    0,       machine_xt_compaq_deskpro_init, NULL			},
     { "[8086] Olivetti M21/24/24SP",		"m24",			MACHINE_TYPE_8086,		CPU_PKG_8086, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PC | MACHINE_VIDEO | MACHINE_MOUSE,					  128,   640, 128,    0,		  machine_xt_m24_init, m24_get_device		},
     /* Has Olivetti KBC firmware. */
@@ -322,7 +322,7 @@ const machine_t machines[] = {
     /* Has AMIKey F KBC firmware. */
     { "[OPTi 495] DataExpert SX495",		"ami495",		MACHINE_TYPE_386DX_486,		CPU_PKG_386DX | CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,								MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	  machine_at_opti495_ami_init, NULL			},
     /* Has AMIKey F KBC firmware (it's just the MR BIOS for the above machine). */
-    { "[OPTi 495] DataExpert SX495 (MR BIOS)",	"mr495",		MACHINE_TYPE_386DX_486,		CPU_PKG_386DX | CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,								MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	   machine_at_opti495_mr_init, NULL			},
+    { "[OPTi 495] DataExpert SX495 (MR BIOS)",	"mr495",		MACHINE_TYPE_386DX_486,		CPU_PKG_386DX | CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,								MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	   machine_at_opti495_mr_init, NULL			},
 
     /* 486 machines - Socket 1 */
     /* Has JetKey 5 KBC Firmware which looks like it is a clone of AMIKey type F.

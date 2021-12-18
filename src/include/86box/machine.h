@@ -24,66 +24,89 @@
 
 /* Machine feature flags. */
 // #define MACHINE_PC		0x00000000	/* PC architecture */
-/* Feature flags for features. */
-#define MACHINE_NONMI		0x00000001	/* sys does not have NMI's */
 /* Feature flags for BUS'es. */
-#define MACHINE_BUS_ISA		0x00000004	/* sys has ISA bus */
-#define MACHINE_BUS_ISA16	0x00000008	/* sys has ISA16 bus - PC/AT architecture */
-#define MACHINE_BUS_CBUS	0x00000010	/* sys has C-BUS bus */
-#define MACHINE_BUS_PS2		0x00000020	/* system has PS/2 keyboard and mouse ports */
-#define MACHINE_BUS_EISA	0x00000040	/* sys has EISA bus */
-#define MACHINE_BUS_VLB		0x00000080	/* sys has VL bus */
-#define MACHINE_BUS_MCA		0x00000100	/* sys has MCA bus */
-#define MACHINE_BUS_PCI		0x00000200	/* sys has PCI bus */
-#define MACHINE_BUS_PCMCIA	0x00000400	/* sys has PCMCIA bus */
-#define MACHINE_BUS_AGP		0x00000800	/* sys has AGP bus */
-#define MACHINE_BUS_AC97	0x00080000	/* sys has AC97 bus (ACR/AMR/CNR slot) */
+#define MACHINE_BUS_ISA		0x00000001	/* sys has ISA bus */
+#define MACHINE_BUS_CARTRIDGE	0x00000002	/* sys has two cartridge bays */
+#define MACHINE_BUS_ISA16	0x00000004	/* sys has ISA16 bus - PC/AT architecture */
+#define MACHINE_BUS_CBUS	0x00000008	/* sys has C-BUS bus */
+#define MACHINE_BUS_PS2		0x00000010	/* system has PS/2 keyboard and mouse ports */
+#define MACHINE_BUS_EISA	0x00000020	/* sys has EISA bus */
+#define MACHINE_BUS_VLB		0x00000040	/* sys has VL bus */
+#define MACHINE_BUS_MCA		0x00000080	/* sys has MCA bus */
+#define MACHINE_BUS_PCI		0x00000100	/* sys has PCI bus */
+#define MACHINE_BUS_PCMCIA	0x00000200	/* sys has PCMCIA bus */
+#define MACHINE_BUS_AGP		0x00000400	/* sys has AGP bus */
+#define MACHINE_BUS_AC97	0x00000800	/* sys has AC97 bus (ACR/AMR/CNR slot) */
+/* Aliases. */
+#define MACHINE_CARTRIDGE	(MACHINE_BUS_CARTRIDGE)			/* sys has two cartridge bays */
 /* Combined flags. */
-#define MACHINE_PC		0x00000004	/* sys is PC/XT-compatible (ISA) */
-#define MACHINE_AT		0x0000000C	/* sys is AT-compatible (ISA + ISA16) */
-#define MACHINE_PC98		0x00000010	/* sys is NEC PC-98x1 series */
-#define MACHINE_EISA		0x0000004C	/* sys is AT-compatible with EISA */
-#define MACHINE_VLB		0x0000008C	/* sys is AT-compatible with VLB */
-#define MACHINE_VLB98		0x00000090	/* sys is NEC PC-98x1 series with VLB (did that even exist?) */
-#define MACHINE_VLBE		0x000000CC	/* sys is AT-compatible with EISA and VLB */
-#define MACHINE_MCA		0x00000100	/* sys is MCA */
-#define MACHINE_PCI		0x0000020C	/* sys is AT-compatible with PCI */
-#define MACHINE_PCI98		0x00000210	/* sys is NEC PC-98x1 series with PCI */
-#define MACHINE_PCIE		0x0000024C	/* sys is AT-compatible with PCI, and EISA */
-#define MACHINE_PCIV		0x0000028C	/* sys is AT-compatible with PCI and VLB */
-#define MACHINE_PCIVE		0x000002CC	/* sys is AT-compatible with PCI, VLB, and EISA */
-#define MACHINE_PCMCIA		0x00000400	/* sys is AT-compatible laptop with PCMCIA */
-#define MACHINE_AGP		0x00000A0C	/* sys is AT-compatible with AGP  */
-#define MACHINE_AGP98		0x00000A10	/* sys is NEC PC-98x1 series with AGP (did that even exist?) */
+#define MACHINE_PC		(MACHINE_BUS_ISA)			/* sys is PC/XT-compatible (ISA) */
+#define MACHINE_AT		(MACHINE_BUS_ISA | MACHINE_BUS_ISA16)	/* sys is AT-compatible (ISA + ISA16) */
+#define MACHINE_PC98		(MACHINE_BUS_CBUS)			/* sys is NEC PC-98x1 series */
+#define MACHINE_EISA		(MACHINE_BUS_EISA | MACHINE_AT)		/* sys is AT-compatible with EISA */
+#define MACHINE_VLB		(MACHINE_BUS_VLB | MACHINE_AT)		/* sys is AT-compatible with VLB */
+#define MACHINE_VLB98		(MACHINE_BUS_VLB | MACHINE_PC98)	/* sys is NEC PC-98x1 series with VLB (did that even exist?) */
+#define MACHINE_VLBE		(MACHINE_BUS_VLB | MACHINE_EISA)	/* sys is AT-compatible with EISA and VLB */
+#define MACHINE_MCA		(MACHINE_BUS_MCA)			/* sys is MCA */
+#define MACHINE_PCI		(MACHINE_BUS_PCI | MACHINE_AT)		/* sys is AT-compatible with PCI */
+#define MACHINE_PCI98		(MACHINE_BUS_PCI | MACHINE_PC98)	/* sys is NEC PC-98x1 series with PCI */
+#define MACHINE_PCIE		(MACHINE_BUS_PCI | MACHINE_EISA)	/* sys is AT-compatible with PCI, and EISA */
+#define MACHINE_PCIV		(MACHINE_BUS_PCI | MACHINE_VLB)		/* sys is AT-compatible with PCI and VLB */
+#define MACHINE_PCIVE		(MACHINE_BUS_PCI | MACHINE_VLBE)	/* sys is AT-compatible with PCI, VLB, and EISA */
+#define MACHINE_PCMCIA		(MACHINE_BUS_PCMCIA | MACHINE_AT)	/* sys is AT-compatible laptop with PCMCIA */
+#define MACHINE_AGP		(MACHINE_BUS_AGP | MACHINE_PCI)		/* sys is AT-compatible with AGP  */
+#define MACHINE_AGP98		(MACHINE_BUS_AGP | MACHINE_PCI98)	/* sys is NEC PC-98x1 series with AGP (did that even exist?) */
 /* Feature flags for miscellaneous internal devices. */
 #define MACHINE_VIDEO		0x00001000	/* sys has int video */
 #define MACHINE_VIDEO_ONLY	0x00002000	/* sys has fixed video */
 #define MACHINE_MOUSE		0x00004000	/* sys has int mouse */
-#define MACHINE_SOUND		0x00008000	/* sys has int sound */
-#define MACHINE_FDC		0x00010000	/* sys has int FDC */
-#define MACHINE_NIC		0x00020000	/* sys has int NIC */
-#define MACHINE_GAMEPORT	0x00040000	/* sys has int game port */
+#define MACHINE_FDC		0x00008000	/* sys has int FDC */
+#define MACHINE_LPT_PRI		0x00010000	/* sys has int pri LPT */
+#define MACHINE_LPT_SEC		0x00000000	/* sys has int sec LPT */
+#define MACHINE_UART_PRI	0x00000000	/* sys has int pri UART */
+#define MACHINE_UART_SEC	0x00000000	/* sys has int sec UART */
+#define MACHINE_UART_TER	0x00000000	/* sys has int ter UART */
+#define MACHINE_UART_QUA	0x00000000	/* sys has int qua UART */
+#define MACHINE_GAMEPORT	0x00020000	/* sys has int game port */
+#define MACHINE_SOUND		0x00040000	/* sys has int sound */
+#define MACHINE_NIC		0x00080000	/* sys has int NIC */
+#define MACHINE_MODEM		0x00100000	/* sys has int modem */
 /* Combined flags. */
-#define MACHINE_VIDEO_FIXED	0x00003000	/* sys has fixed int video */
+#define MACHINE_VIDEO_FIXED	(MACHINE_VIDEO | MACHINE_VIDEO_ONLY)	/* sys has fixed int video */
+#define MACHINE_SUPER_IO	(MACHINE_FDC | MACHINE_LPT_PRI | MACHINE_UART_PRI | MACHINE_UART_SEC)
+#define MACHINE_SUPER_IO_GAME	(MACHINE_SUPER_IO | MACHINE_GAMEPORT)
+#define MACHINE_SUPER_IO_DUAL	(MACHINE_SUPER_IO | MACHINE_LPT_SEC | MACHINE_UART_TER | MACHINE_UART_QUA)
 /* Feature flags for internal storage controllers. */
-#define MACHINE_HDC		0x07FC0000	/* sys has int HDC */
-#define MACHINE_MFM		0x00100000	/* sys has int MFM/RLL */
-#define MACHINE_XTA		0x00200000	/* sys has int XTA */
-#define MACHINE_ESDI		0x00400000	/* sys has int ESDI */
-#define MACHINE_IDE_PRI		0x00800000	/* sys has int pri IDE/ATAPI */
-#define MACHINE_IDE_SEC		0x01000000	/* sys has int sec IDE/ATAPI */
-#define MACHINE_IDE_TER		0x02000000	/* sys has int ter IDE/ATAPI */
-#define MACHINE_IDE_QUA		0x04000000	/* sys has int qua IDE/ATAPI */
-#define MACHINE_SCSI_PRI	0x08000000	/* sys has int pri SCSI */
-#define MACHINE_SCSI_SEC	0x10000000	/* sys has int sec SCSI */
-#define MACHINE_USB		0x20000000	/* sys has int USB */
+#define MACHINE_HDC		0x7FE00000	/* sys has int HDC */
+#define MACHINE_MFM		0x00200000	/* sys has int MFM/RLL */
+#define MACHINE_XTA		0x00400000	/* sys has int XTA */
+#define MACHINE_ESDI		0x00800000	/* sys has int ESDI */
+#define MACHINE_IDE_PRI		0x01000000	/* sys has int pri IDE/ATAPI */
+#define MACHINE_IDE_SEC		0x02000000	/* sys has int sec IDE/ATAPI */
+#define MACHINE_IDE_TER		0x04000000	/* sys has int ter IDE/ATAPI */
+#define MACHINE_IDE_QUA		0x08000000	/* sys has int qua IDE/ATAPI */
+#define MACHINE_SCSI_PRI	0x10000000	/* sys has int pri SCSI */
+#define MACHINE_SCSI_SEC	0x20000000	/* sys has int sec SCSI */
+#define MACHINE_USB_PRI		0x40000000	/* sys has int pri USB */
+#define MACHINE_USB_SEC		0x80000000	/* sys has int sec USB */
 /* Combined flags. */
-#define MACHINE_IDE		0x00800000	/* sys has int single IDE/ATAPI - mark as pri IDE/ATAPI */
-#define MACHINE_IDE_DUAL	0x01800000	/* sys has int dual IDE/ATAPI - mark as both pri and sec IDE/ATAPI */
-#define MACHINE_IDE_QUAD	0x07800000	/* sys has int quad IDE/ATAPI - mark as dual + both ter and and qua IDE/ATAPI */
-#define MACHINE_SCSI		0x08000000	/* sys has int single SCSI - mark as pri SCSI */
-#define MACHINE_SCSI_DUAL	0x18000000	/* sys has int dual SCSI - mark as both pri and sec SCSI */
-#define MACHINE_CARTRIDGE	0x20000000	/* sys has two cartridge bays */
+#define MACHINE_IDE		(MACHINE_IDE_PRI)			/* sys has int single IDE/ATAPI - mark as pri IDE/ATAPI */
+#define MACHINE_IDE_DUAL	(MACHINE_IDE_PRI | MACHINE_IDE_SEC)	/* sys has int dual IDE/ATAPI - mark as both pri and sec IDE/ATAPI */
+#define MACHINE_IDE_DUALTQ	(MACHINE_IDE_TER | MACHINE_IDE_QUA)
+#define MACHINE_IDE_QUAD	(MACHINE_IDE_DUAL | MACHINE_IDE_DUALTQ)	/* sys has int quad IDE/ATAPI - mark as dual + both ter and and qua IDE/ATAPI */
+#define MACHINE_SCSI		(MACHINE_SCSI_PRI)			/* sys has int single SCSI - mark as pri SCSI */
+#define MACHINE_SCSI_DUAL	(MACHINE_SCSI_PRI | MACHINE_SCSI_SEC)	/* sys has int dual SCSI - mark as both pri and sec SCSI */
+#define MACHINE_USB		(MACHINE_USB_PRI)
+#define MACHINE_USB_DUAL	(MACHINE_USB_PRI | MACHINE_USB_SEC)
+/* Feature flags for advanced devices. */
+#define MACHINE_APM		0x00000000	/* sys has APM */
+#define MACHINE_ACPI		0x00000000	/* sys has ACPI */
+#define MACHINE_HWM		0x00000000	/* sys has hw monitor */
+/* Special combined flags. */
+#define MACHINE_PIIX		(MACHINE_IDE_DUAL)
+#define MACHINE_PIIX3		(MACHINE_PIIX | MACHINE_USB)
+/* TODO: ACPI flag. */
+#define MACHINE_PIIX4		(MACHINE_PIIX3)
 
 #define IS_ARCH(m, a)		(machines[m].flags & (a)) ? 1 : 0;
 #define IS_AT(m)		((machines[m].flags & 0x00000FC8) && !(machines[m].flags & MACHINE_PC98)) ? 1 : 0;

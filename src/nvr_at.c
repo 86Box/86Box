@@ -290,11 +290,12 @@
 
 #define RTC_REGS	14		/* number of registers */
 
-#define FLAG_AMI_1992_HACK	0x01
-#define FLAG_AMI_1994_HACK	0x02
-#define FLAG_AMI_1995_HACK	0x04
-#define FLAG_P6RP4_HACK		0x08
-#define FLAG_PIIX4		0x10
+#define FLAG_NO_NMI		0x01
+#define FLAG_AMI_1992_HACK	0x02
+#define FLAG_AMI_1994_HACK	0x04
+#define FLAG_AMI_1995_HACK	0x08
+#define FLAG_P6RP4_HACK		0x10
+#define FLAG_PIIX4		0x20
 
 
 typedef struct {
@@ -667,8 +668,7 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
 		local->addr[addr_id] = (local->addr[addr_id] & 0x7f) | 0x80;
 	if (local->bank[addr_id] > 0)
 		local->addr[addr_id] = (local->addr[addr_id] & 0x7f) | (0x80 * local->bank[addr_id]);
-	if (!(machines[machine].flags & MACHINE_MCA) &&
-	    !(machines[machine].flags & MACHINE_NONMI))
+	if (!(local->flags & FLAG_NONMI))
 		nmi_mask = (~val & 0x80);
     }
 }
@@ -1033,12 +1033,16 @@ nvr_at_init(const device_t *info)
 		nvr->irq = 8;
 		local->cent = RTC_CENTURY_PS;
 		local->def = 0x00;
+		if (info->local & 8)
+			local->flags |= FLAG_NO_NMI;
 		break;
 
 	case 3:		/* Amstrad PC's */
 		nvr->irq = 1;
 		local->cent = RTC_CENTURY_AT;
 		local->def = 0xff;
+		if (info->local & 8)
+			local->flags |= FLAG_NO_NMI;
 		break;
 
 	case 4:		/* IBM AT */
@@ -1170,6 +1174,24 @@ const device_t piix4_nvr_device = {
     "Intel PIIX4 PC/AT NVRAM",
     DEVICE_ISA | DEVICE_AT,
     9,
+    nvr_at_init, nvr_at_close, nvr_at_reset,
+    { NULL }, nvr_at_speed_changed,
+    NULL
+};
+
+const device_t ps_no_nmi_nvr_device = {
+    "PS/1 or PS/2 NVRAM (No NMI)",
+    DEVICE_PS2,
+    10,
+    nvr_at_init, nvr_at_close, nvr_at_reset,
+    { NULL }, nvr_at_speed_changed,
+    NULL
+};
+
+const device_t amstrad_no_nmi_nvr_device = {
+    "Amstrad NVRAM (No NMI)",
+    DEVICE_ISA | DEVICE_AT,
+    11,
     nvr_at_init, nvr_at_close, nvr_at_reset,
     { NULL }, nvr_at_speed_changed,
     NULL

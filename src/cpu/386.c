@@ -122,6 +122,8 @@ exec386(int cycs)
 		fetchdat = fastreadl(cs + cpu_state.pc);
 
 		if (!cpu_state.abrt) {
+			if ((CS == 0xf000) && ((cpu_state.pc & 0xffffff00) == 0x0000db00))
+				pclog("[%04X:%08X] %08X\n", CS, cpu_state.pc, fetchdat);
 #ifdef ENABLE_386_LOG
 			if (in_smm)
 				x386_log("[%04X:%08X] %08X\n", CS, cpu_state.pc, fetchdat);
