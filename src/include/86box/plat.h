@@ -63,13 +63,18 @@ extern int strnicmp(const char* s1, const char* s2, size_t n);
 
 
 #ifdef __cplusplus
+#include <atomic>
+#define atomic_flag_t std::atomic_flag
 extern "C" {
+#else
+#include <stdatomic.h>
+#define atomic_flag_t atomic_flag
 #endif
 
 /* Global variables residing in the platform module. */
 extern int	dopause,			/* system is paused */
-		doresize,			/* screen resize requested */
 		mouse_capture;			/* mouse is captured in app */
+extern atomic_flag_t doresize;			/* screen resize requested */
 extern volatile int	is_quit;				/* system exit requested */
 
 #ifdef MTR_ENABLED
@@ -165,7 +170,7 @@ typedef void event_t;
 typedef void mutex_t;
 
 extern thread_t	*thread_create(void (*thread_func)(void *param), void *param);
-extern int	thread_wait(thread_t *arg, int timeout);
+extern int	thread_wait(thread_t *arg);
 extern event_t	*thread_create_event(void);
 extern void	thread_set_event(event_t *arg);
 extern void	thread_reset_event(event_t *arg);
@@ -175,7 +180,6 @@ extern void	thread_destroy_event(event_t *arg);
 #define MUTEX_DEFAULT_SPIN_COUNT 1024
 
 extern mutex_t	*thread_create_mutex(void);
-extern mutex_t	*thread_create_mutex_with_spin_count(unsigned int spin_count);
 extern void	thread_close_mutex(mutex_t *arg);
 extern int	thread_wait_mutex(mutex_t *arg);
 extern int	thread_release_mutex(mutex_t *mutex);

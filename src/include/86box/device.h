@@ -145,7 +145,7 @@ extern void		device_speed_changed(void);
 extern void		device_force_redraw(void);
 extern void		device_get_name(const device_t *d, int bus, char *name);
 
-extern int		device_is_valid(const device_t *, int machine_flags);
+extern int		device_is_valid(const device_t *, int m);
 
 extern int		device_get_config_int(const char *name);
 extern int		device_get_config_int_ex(const char *s, int dflt_int);

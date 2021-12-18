@@ -53,9 +53,9 @@ thread_create(void (*thread_rout)(void *param), void *param)
 
 
 int
-thread_wait(thread_t *arg, int timeout)
+thread_wait(thread_t *arg)
 {
-    return pthread_join(*(pthread_t*)(arg), NULL) != 0;
+    return pthread_join(*(pthread_t*)(arg), NULL);
 }
 
 
@@ -141,14 +141,6 @@ thread_create_mutex(void)
     pthread_mutex_init(&mutex->mutex, NULL);
 
     return mutex;
-}
-
-
-mutex_t *
-thread_create_mutex_with_spin_count(unsigned int spin_count)
-{
-    /* Setting spin count of a mutex is not possible with pthreads. */
-    return thread_create_mutex();
 }
 
 

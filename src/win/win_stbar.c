@@ -522,12 +522,12 @@ ui_sb_update_panes(void)
 	sb_ready = 0;
     }
 
-    cart_int = (machines[machine].flags & MACHINE_CARTRIDGE) ? 1 : 0;
-    mfm_int = (machines[machine].flags & MACHINE_MFM) ? 1 : 0;
-    xta_int = (machines[machine].flags & MACHINE_XTA) ? 1 : 0;
-    esdi_int = (machines[machine].flags & MACHINE_ESDI) ? 1 : 0;
-    ide_int = (machines[machine].flags & MACHINE_IDE_QUAD) ? 1 : 0;
-    scsi_int = (machines[machine].flags & MACHINE_SCSI_DUAL) ? 1 : 0;
+    cart_int = machine_has_cartridge(machine) ? 1 : 0;
+    mfm_int = machine_has_flags(machine, MACHINE_MFM) ? 1 : 0;
+    xta_int = machine_has_flags(machine, MACHINE_XTA) ? 1 : 0;
+    esdi_int = machine_has_flags(machine, MACHINE_ESDI) ? 1 : 0;
+    ide_int = machine_has_flags(machine, MACHINE_IDE_QUAD) ? 1 : 0;
+    scsi_int = machine_has_flags(machine, MACHINE_SCSI_DUAL) ? 1 : 0;
 
     c_mfm = hdd_count(HDD_BUS_MFM);
     c_esdi = hdd_count(HDD_BUS_ESDI);

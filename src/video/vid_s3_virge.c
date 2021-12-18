@@ -4097,7 +4097,7 @@ static void s3_virge_close(void *p)
 
 		virge->render_thread_run = 0;
         thread_set_event(virge->wake_render_thread);
-        thread_wait(virge->render_thread, -1);
+        thread_wait(virge->render_thread);
 		thread_destroy_event(virge->not_full_event);
 		thread_destroy_event(virge->wake_main_thread);
         thread_destroy_event(virge->wake_render_thread);

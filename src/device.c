@@ -646,29 +646,29 @@ device_set_config_mac(const char *s, int val)
 
 
 int
-device_is_valid(const device_t *device, int mflags)
+device_is_valid(const device_t *device, int m)
 {
     if (device == NULL) return(1);
 
-    if ((device->flags & DEVICE_AT) && !(mflags & MACHINE_BUS_ISA16)) return(0);
+    if ((device->flags & DEVICE_AT) && !machine_has_bus(m, MACHINE_BUS_ISA16)) return(0);
 
-    if ((device->flags & DEVICE_CBUS) && !(mflags & MACHINE_BUS_CBUS)) return(0);
+    if ((device->flags & DEVICE_CBUS) && !machine_has_bus(m, MACHINE_BUS_CBUS)) return(0);
 
-    if ((device->flags & DEVICE_ISA) && !(mflags & MACHINE_BUS_ISA)) return(0);
+    if ((device->flags & DEVICE_ISA) && !machine_has_bus(m, MACHINE_BUS_ISA)) return(0);
 
-    if ((device->flags & DEVICE_MCA) && !(mflags & MACHINE_BUS_MCA)) return(0);
+    if ((device->flags & DEVICE_MCA) && !machine_has_bus(m, MACHINE_BUS_MCA)) return(0);
 
-    if ((device->flags & DEVICE_EISA) && !(mflags & MACHINE_BUS_EISA)) return(0);
+    if ((device->flags & DEVICE_EISA) && !machine_has_bus(m, MACHINE_BUS_EISA)) return(0);
 
-    if ((device->flags & DEVICE_VLB) && !(mflags & MACHINE_BUS_VLB)) return(0);
+    if ((device->flags & DEVICE_VLB) && !machine_has_bus(m, MACHINE_BUS_VLB)) return(0);
 
-    if ((device->flags & DEVICE_PCI) && !(mflags & MACHINE_BUS_PCI)) return(0);
+    if ((device->flags & DEVICE_PCI) && !machine_has_bus(m, MACHINE_BUS_PCI)) return(0);
 
-    if ((device->flags & DEVICE_AGP) && !(mflags & MACHINE_BUS_AGP)) return(0);
+    if ((device->flags & DEVICE_AGP) && !machine_has_bus(m, MACHINE_BUS_AGP)) return(0);
 
-    if ((device->flags & DEVICE_PS2) && !(mflags & MACHINE_BUS_PS2)) return(0);
+    if ((device->flags & DEVICE_PS2) && !machine_has_bus(m, MACHINE_BUS_PS2)) return(0);
 
-    if ((device->flags & DEVICE_AC97) && !(mflags & MACHINE_BUS_AC97)) return(0);
+    if ((device->flags & DEVICE_AC97) && !machine_has_bus(m, MACHINE_BUS_AC97)) return(0);
 
     return(1);
 }

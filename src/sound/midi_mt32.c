@@ -240,7 +240,7 @@ void mt32_close(void* p)
 
 	mt32_on = 0;
 	thread_set_event(event);
-	thread_wait(thread_h, -1);
+	thread_wait(thread_h);
 
         event = NULL;
 	start_event = NULL;

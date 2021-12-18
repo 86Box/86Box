@@ -366,9 +366,8 @@ const machine_t machines[] = {
     { "[ACC 2168] Packard Bell PB410A",		"pb410a",		MACHINE_TYPE_486_S2,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 4096, 36864, 1024, 127,	       machine_at_pb410a_init, NULL			},
     /* Uses an ACER/NEC 90M002A (UPD82C42C, 8042 clone) with unknown firmware (V4.01H). */
     { "[ALi M1429G] Acer A1G",			"acera1g",		MACHINE_TYPE_486_S2,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO,		 4096, 36864, 1024, 127,	      machine_at_acera1g_init, at_acera1g_get_device	},
-    /* There are two similar BIOS strings with -H, and one with -U, so I'm going to
-        give it an AMIKey H KBC firmware. */
-    { "[ALi M1429G] Kaimei 486",		"win486",		MACHINE_TYPE_486_S2,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	  machine_at_winbios1429_init, NULL			},
+    /* This has an AMIKey-2, which is an updated version of type 'H'. */
+    { "[ALi M1429G] Kaimei SA-486 VL-BUS M.B.",	"win486",		MACHINE_TYPE_486_S2,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	  machine_at_winbios1429_init, NULL			},
     /* Uses an Intel KBC with Phoenix MultiKey KBC firmware. */
     { "[SiS 461] DEC DECpc LPV",		"decpclpv",		MACHINE_TYPE_486_S2,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO,		 1024, 32768, 1024, 127,	     machine_at_decpclpv_init, NULL			},
     /* Uses an NEC 90M002A (UPD82C42C, 8042 clone) with unknown firmware. */
@@ -986,6 +985,59 @@ int
 machine_get_nvrmask(int m)
 {
     return(machines[m].nvrmask);
+}
+
+
+int
+machine_has_flags(int m, int flags)
+{
+    return(machines[m].flags & flags);
+}
+
+
+int
+machine_has_bus(int m, int bus_flags)
+{
+    return(machines[m].flags & bus_flags);
+}
+
+
+int
+machine_has_cartridge(int m)
+{
+    return(machine_has_flags(m, MACHINE_CARTRIDGE) ? 1 : 0);
+}
+
+
+int
+machine_get_min_ram(int m)
+{
+    return(machines[m].min_ram);
+}
+
+
+int
+machine_get_max_ram(int m)
+{
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
+    return MIN(((int) machines[m].max_ram), 2097152);
+#else
+    return MIN(((int) machines[m].max_ram), 3145728);
+#endif
+}
+
+
+int
+machine_get_ram_granularity(int m)
+{
+    return(machines[m].ram_granularity);
+}
+
+
+int
+machine_get_type(int m)
+{
+    return(machines[m].type);
 }
 
 

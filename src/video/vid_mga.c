@@ -5036,7 +5036,7 @@ mystique_close(void *p)
 
     mystique->thread_run = 0;
     thread_set_event(mystique->wake_fifo_thread);
-    thread_wait(mystique->fifo_thread, -1);
+    thread_wait(mystique->fifo_thread);
     thread_destroy_event(mystique->wake_fifo_thread);
     thread_destroy_event(mystique->fifo_not_full_event);
     thread_close_mutex(mystique->dma.lock);

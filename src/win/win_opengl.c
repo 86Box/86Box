@@ -62,10 +62,10 @@ typedef LONG atomic_flag;
 
 static const int INIT_WIDTH = 640;
 static const int INIT_HEIGHT = 400;
-static const int BUFFERPIXELS = 4460544;	/* Same size as render_buffer, pow(2048+64,2). */
-static const int BUFFERBYTES = 17842176;	/* Pixel is 4 bytes. */
+static const int BUFFERPIXELS = 4194304;	/* Same size as render_buffer, pow(2048+64,2). */
+static const int BUFFERBYTES = 16777216;	/* Pixel is 4 bytes. */
 static const int BUFFERCOUNT = 3;		/* How many buffers to use for pixel transfer (2-3 is commonly recommended). */
-static const int ROW_LENGTH = 2112;		/* Source buffer row lenght (including padding) */
+static const int ROW_LENGTH = 2048;		/* Source buffer row lenght (including padding) */
 
 /**
  * @brief A dedicated OpenGL thread.
@@ -947,7 +947,7 @@ void opengl_close(void)
 
 	SetEvent(sync_objects.closing);
 
-	thread_wait(thread, -1);
+	thread_wait(thread);
 
 	thread_close_mutex(resize_info.mutex);
 	thread_close_mutex(options.mutex);

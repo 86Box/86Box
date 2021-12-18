@@ -2624,7 +2624,7 @@ pgc_close(void *priv)
     pgc_log("PGC: waiting for thread to stop...\n");
 #endif
     // while (dev->stopped);
-    thread_wait(dev->pgc_thread, -1);
+    thread_wait(dev->pgc_thread);
 #ifdef ENABLE_PGC_LOG
     pgc_log("PGC: thread stopped, closing up.\n");
 #endif
