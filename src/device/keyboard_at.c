@@ -673,7 +673,6 @@ kbd_status(const char *fmt, ...)
 }
 
 
-// #define ENABLE_KEYBOARD_AT_LOG 1
 #ifdef ENABLE_KEYBOARD_AT_LOG
 int keyboard_at_do_log = ENABLE_KEYBOARD_AT_LOG;
 
@@ -1378,9 +1377,11 @@ kbc_command(atkbd_t *dev)
 		case 0xcb:	/* set keyboard mode */
 			kbd_log("New AMIKey mode: %02X\n", val);
 			dev->ami_mode = val;
+#ifdef NON_ALI
 			dev->flags &= ~KBC_FLAG_PS2;
 			if (val & 1)
 				dev->flags |= KBC_FLAG_PS2;
+#endif
 			break;
 
 		case 0xd1: /* write output port */
@@ -1508,6 +1509,12 @@ kbc_command(atkbd_t *dev)
 			kbc_transmit(dev, dev->ami_mode);
 			break;
 
+		/* NOTE: Not present on the ALi M148x on-chip keyboard controller, only 0xCA exists there.
+			 This is confirmed by the BIOS' keyboard controller revision string where the
+			 output of command 0x20 (read command byte from memory) gets erroneouly read by
+			 the BIOS, thinking it's the readout of command 0xA1 (get controller version).
+			 With this command disabled, the AMI WinBIOS 486 PCI still shows 'U', but the MSI
+			 MS-4145 shows 'E', matching exactly the observations on the real boards. */
 		case 0xcb:	/* set keyboard mode */
 			kbd_log("ATkbc: AMI - set keyboard mode\n");
 			dev->kbc_in = 1;
@@ -2330,8 +2337,57 @@ write64_ami(void *priv, uint8_t val)
 		
 	case 0xa1:	/* get controller version */
 		kbd_log("ATkbc: AMI - get controller version\n");
+		/*	ASCII		Character	Controller
+			------------------------------------------
+			N/A		N/A		Keyboard controllers not implementing this command, including
+							the Access Methods AMI keyboard controller;
+			0x00		N/A		Various early keyboard controllers, including Award;
+			0x1D		<->*		Ju-Jet keyboard controller, this characters appears on a
+							photo of an AMIBIOS screen where a CTRL key press has been
+							mistaken for this command's output;
+			0x30		0*		Not actually returned by a keyboard controller, seen on AMI
+							Color or later BIOS'es when the command 0xA1 has not returned
+							any character;
+			0x35		5		AMI MEGAKEY keyboard controller, 1994 revision, the variant
+							found on Super I/O chips from National Semiconductors and,
+							most likely, SM(S)C as well;
+			0x37		7		Unknown keyboard controller, possibly AMI;
+			0x38		8		The earliest American Megatrends AMI keyboard controller,
+							also has a later revision that adds command 0xA0;
+			0x41		A		Likely the keyboard controller on the HiNT chipset;
+			0x42		B		AMI B keyboard controller;
+			0x44		D		AMI D keyboard controller;
+			0x45		E		AMI E keyboard controller, presumably from 1989, also seen on
+							some ALi M148x AMIBIOS'es due to the keyboard controller's
+							command byte from the preceding read command having been
+							mixed in;
+			0x46		F		AMI F / AMIKEY keyboard controller, from 1990, also used by
+							clones;
+			0x47		G		Unknown keyboard controller, known from an AMIBIOS string;
+			0x48		H		AMI H / AMIKEY-2 keyboard controller, from 1992, also used by
+							clones;
+			0x4C		L		Unknown keyboard controller, known from an AMIBIOS string;
+			0x4D		M		MR (Microid Research) keyboard controller from 1991, a later
+							one seems to actually be AMIKEY-2;
+			0x4E		N		Unknown keyboard controller;
+			0x50		P		AMI MEGAKEY keyboard controller, original 1993 version;
+			0x51		Q*		Seen on 86Box on some ALi M148x AMIBIOS'es due to the keyboard
+							controller emulation being incorrect and causing an even worse
+							input mix-up than on real hardware;
+			0x52		R		AMI MEGAKEY keyboard controller, 1994 revision;
+			0x53		S		Unknown keyboard controller, known from an AMIBIOS string;
+			0x54		T*		Seen on one screenshot from PCem, due to the command not
+							being implemented and some other output having been mixed in;
+			0x55		U		SARC 6042 keyboard controller, also seen on some ALi M148x
+							AMIBIOS'es due to the keyboard controller's command byte from
+							the preceding read command having been mixed in;
+			0x5A		Z		TriGem keyboard controller, usually on a square 8742, may or
+							may not be a fork of an AMI keyboard controller.
+
+			* Never returned by an actual keyboard controller, or at least has not been seen returned by
+			  one thus far.
+		 */
 		kbc_transmit(dev, 'H');
-		// kbc_transmit(dev, 'Z');
 		return 0;
 
 	case 0xa2:	/* clear keyboard controller lines P22/P23 */
