@@ -108,8 +108,8 @@
 /* TODO: ACPI flag. */
 #define MACHINE_PIIX4		(MACHINE_PIIX3)
 
-#define IS_ARCH(m, a)		(machines[m].flags & (a)) ? 1 : 0;
-#define IS_AT(m)		((machines[m].flags & 0x00000FC8) && !(machines[m].flags & MACHINE_PC98)) ? 1 : 0;
+#define IS_ARCH(m, a)		((machines[m].flags & (a)) ? 1 : 0)
+#define IS_AT(m)		(((machines[m].flags & 0x00000FC8) && !(machines[m].flags & MACHINE_PC98)) ? 1 : 0)
 
 #define CPU_BLOCK(...)		(const uint8_t[]) {__VA_ARGS__, 0}
 #define MACHINE_MULTIPLIER_FIXED -1, -1
@@ -205,7 +205,6 @@ extern const machine_type_t	machine_types[];
 extern const machine_t		machines[];
 extern int			bios_only;
 extern int			machine;
-extern int			AT, PCI;
 
 
 /* Core functions. */

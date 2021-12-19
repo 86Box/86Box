@@ -52,7 +52,8 @@ pic_t		pic, pic2;
 static pc_timer_t	pic_timer;
 
 static int	shadow = 0, elcr_enabled = 0,
-		tmr_inited = 0, latched = 0;
+		tmr_inited = 0, latched = 0,
+		pic_pci = 0;
 
 static uint16_t	smi_irq_mask = 0x0000,
 		smi_irq_status = 0x0000;
@@ -292,6 +293,9 @@ pic_reset()
     pic.at = pic2.at = is_at;
 
     smi_irq_mask = smi_irq_status = 0x0000;
+
+    shadow = 0;
+    pic_pci = 0;
 }
 
 
@@ -299,6 +303,13 @@ void
 pic_set_shadow(int sh)
 {
     shadow = sh;
+}
+
+
+void
+pic_set_pci_flag(int pci)
+{
+    pic_pci = pci;
 }
 
 
@@ -487,7 +498,7 @@ pic_write(uint16_t addr, uint8_t val, void *priv)
     } else {
 	if (val & 0x10) {
 		/* Treat any write with any of the bits 7 to 5 set as invalid if PCI. */
-		if (PCI && (val & 0xe0))
+		if (pic_pci && (val & 0xe0))
 			return;
 
 		dev->icw1 = val;

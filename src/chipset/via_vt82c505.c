@@ -180,6 +180,7 @@ vt82c505_reset(void *priv)
     }
 
     pic_reset();
+    pic_set_pci_flag(1);
 }
 
 

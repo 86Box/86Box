@@ -1042,7 +1042,7 @@ pc_reset_hard_init(void)
 	/* Reset the CPU module. */
 	resetx86();
 	dma_reset();
-	pic_reset();
+	pci_pic_reset();
 	cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
 
 	atfullspeed = 0;
