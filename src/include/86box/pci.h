@@ -125,6 +125,8 @@ extern void	trc_write(uint16_t port, uint8_t val, void *priv);
 
 extern void	pci_bridge_set_ctl(void *priv, uint8_t ctl);
 
+extern void	pci_pic_reset(void);
+
 
 #ifdef EMU_DEVICE_H
 extern const device_t dec21150_device;

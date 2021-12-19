@@ -1039,6 +1039,12 @@ pc_reset_hard_init(void)
 	if (postcard_enabled)
 		device_add(&postcard_device);
 
+	/* Reset the CPU module. */
+	resetx86();
+	dma_reset();
+	pci_pic_reset();
+	cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
+
 	atfullspeed = 0;
 	pc_full_speed();
 
