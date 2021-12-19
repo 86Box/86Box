@@ -859,10 +859,6 @@ load_machine(void)
     /* Remove this after a while.. */
     config_delete_var(cat, "nvr_path");
     config_delete_var(cat, "enable_sync");
-
-    /* Set up the architecture flags. */
-    AT = IS_AT(machine);
-    PCI = IS_ARCH(machine, MACHINE_BUS_PCI);
 }
 
 
@@ -1150,7 +1146,8 @@ load_storage_controllers(void)
     ide_ter_enabled = !!config_get_int(cat, "ide_ter", 0);
     ide_qua_enabled = !!config_get_int(cat, "ide_qua", 0);
 
-    cassette_enable = !!config_get_int(cat, "cassette_enabled", AT ? 0 : 1);
+    /* TODO: Re-enable by default after we actually have a proper machine flag for this. */
+    cassette_enable = !!config_get_int(cat, "cassette_enabled", 0);
     p = config_get_string(cat, "cassette_file", "");
     if (strlen(p) > 511)
 	fatal("load_storage_controllers(): strlen(p) > 511\n");
@@ -2025,10 +2022,6 @@ config_load(void)
 	machine = machine_get_machine_from_internal_name("ibmpc");
 	dpi_scale = 1;
 
-	/* Set up the architecture flags. */
-	AT = IS_AT(machine);
-	PCI = IS_ARCH(machine, MACHINE_BUS_PCI);
-
 	fpu_type = fpu_get_type(cpu_f, cpu, "none");
 	gfxcard = video_get_video_from_internal_name("cga");
 	vid_api = plat_vidapi("default");
@@ -2060,7 +2053,8 @@ config_load(void)
 	for (i = 0; i < ISAMEM_MAX; i++)
 		isamem_type[i] = 0;
 
-	cassette_enable = AT ? 0 : 1;
+        /* TODO: Re-enable by default when we have a proper machine flag for this. */
+	cassette_enable = 0;
 	memset(cassette_fname, 0x00, sizeof(cassette_fname));
 	memcpy(cassette_mode, "load", strlen("load") + 1);
 	cassette_pos = 0;

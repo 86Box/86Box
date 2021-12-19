@@ -44,7 +44,7 @@
 
 int bios_only = 0;
 int machine;
-int AT, PCI;
+// int AT, PCI;
 
 
 #ifdef ENABLE_MACHINE_LOG
@@ -81,8 +81,8 @@ machine_init_ex(int m)
 	gameport_instance_id = 0;
 
 	/* Set up the architecture flags. */
-	AT = IS_AT(machine);
-	PCI = IS_ARCH(machine, MACHINE_BUS_PCI);
+	// AT = IS_AT(machine);
+	// PCI = IS_ARCH(machine, MACHINE_BUS_PCI);
 
 	cpu_set();
 	pc_speed_changed();
@@ -113,6 +113,15 @@ machine_init_ex(int m)
     /* Reset the graphics card (or do nothing if it was already done
        by the machine's init function). */
     video_reset(gfxcard);
+
+    /* Reset the CPU module. */
+    resetx86();
+    dma_reset();
+    pic_reset();
+    cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
+
+    dma_set_at(IS_AT(machine));
+    pic_set_pci_flag(IS_ARCH(machine, MACHINE_BUS_PCI));
 
     return ret;
 }
@@ -146,5 +155,5 @@ machine_common_init(const machine_t *model)
     pic_init();
     dma_init();
 
-    pit_common_init(!!AT, pit_irq0_timer, NULL);
+    pit_common_init(!!IS_AT(machine), pit_irq0_timer, NULL);
 }

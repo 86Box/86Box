@@ -444,7 +444,7 @@ bios_add(void)
 			       MEM_READ_ROMCS | MEM_WRITE_ROMCS);
     }
 
-    if (temp_is286 || AT) {
+    if (temp_is286) {
 	mem_mapping_add(&bios_high_mapping, biosaddr | (temp_cpu_16bitbus ? 0x00f00000 : 0xfff00000), biosmask + 1,
 			bios_read,bios_readw,bios_readl,
 			NULL,NULL,NULL,
