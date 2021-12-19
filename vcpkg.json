@@ -9,6 +9,7 @@
 		"libpng",
 		"openal-soft",
 		"sdl2",
-		"rtmidi"
+		"rtmidi",
+		"qt5"
 	]
 }

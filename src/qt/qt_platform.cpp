@@ -48,6 +48,7 @@ private:
 
 extern "C" {
 #ifdef Q_OS_WINDOWS
+#define NOMINMAX
 #include <windows.h>
 #endif
 #include <86box/86box.h>

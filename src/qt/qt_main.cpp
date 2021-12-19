@@ -33,10 +33,13 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #define VC(x) const_cast<wchar_t*>(x)
 
 extern QElapsedTimer elapsed_timer;
-extern int nvr_dosave;
 extern MainWindow* main_window;
 
 extern "C" {
+#define new not_new
+#include <86box/timer.h>
+#include <86box/nvr.h>
+#undef new
     extern int qt_nvr_save(void);
 }
 
