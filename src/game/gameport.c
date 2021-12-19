@@ -80,16 +80,18 @@ static const struct {
     const char		*internal_name;
     const joystick_if_t	*joystick;
 } joysticks[] = {
-    { "none",			&joystick_none			},
-    { "standard_2button",	&joystick_standard		},
-    { "standard_4button",	&joystick_standard_4button	},
-    { "standard_6button",	&joystick_standard_6button	},
-    { "standard_8button",	&joystick_standard_8button	},
-    { "4axis_4button",		&joystick_4axis_4button		},
+    { "none",				&joystick_none			},
+    { "2axis_2button",		&joystick_2axis_2button	},
+    { "2axis_4button",		&joystick_2axis_4button	},
+    { "2axis_6button",		&joystick_2axis_6button	},
+    { "2axis_8button",		&joystick_2axis_8button	},
+    { "3axis_2button",		&joystick_3axis_2button	},
+    { "3axis_4button",		&joystick_3axis_4button	},
+    { "4axis_4button",		&joystick_4axis_4button	},
     { "ch_flighstick_pro",	&joystick_ch_flightstick_pro	},
     { "sidewinder_pad",		&joystick_sw_pad		},
     { "thrustmaster_fcs",	&joystick_tm_fcs		},
-    { "",			NULL				}
+    { "",					NULL					}
 };
 static joystick_instance_t *joystick_instance = NULL;
 
