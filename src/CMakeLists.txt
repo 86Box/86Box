@@ -143,10 +143,11 @@ if(MINITRACE)
     target_link_libraries(86Box minitrace)
 endif()
 
-if(APPLE)
-	# `install` fails on Mac if the destination is omitted
-	install(TARGETS 86Box DESTINATION "bin")
+if(WIN32 OR APPLE)
+	# Copy the binary to the root of the install prefix on Windows and macOS
+	install(TARGETS 86Box DESTINATION ".")
 else()
+	# On Linux we want to copy the binary to the `bin` folder.
 	install(TARGETS 86Box)
 endif()
 
@@ -155,20 +156,30 @@ if(APPLE)
 	install(CODE "
 		include(BundleUtilities)
 		get_filename_component(CMAKE_INSTALL_PREFIX_ABSOLUTE \${CMAKE_INSTALL_PREFIX} ABSOLUTE)
-		fixup_bundle(\"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/bin/86Box.app\" \"\" \"\")"
+		fixup_bundle(\"\${CMAKE_INSTALL_PREFIX_ABSOLUTE}/86Box.app\" \"\" \"\")"
 	COMPONENT Runtime)
 endif()
 
 # Install our dependencies if using vcpkg
 if(VCPKG_TOOLCHAIN)
-	x_vcpkg_install_local_dependencies(TARGETS 86Box DESTINATION "bin")
+	x_vcpkg_install_local_dependencies(TARGETS 86Box DESTINATION ".")
 endif()
 
-# Install the PDB file on MSVC builds (i.e. LLVM on Windows+vcpkg)
+# Install the PDB file on Windows builds
 if(MSVC)
+	# CMake fully supports PDB files on MSVC-compatible compilers
 	install(FILES $<TARGET_PDB_FILE:86Box>
 		CONFIGURATIONS Debug RelWithDebInfo
-		DESTINATION "bin")
+		DESTINATION ".")
+elseif(WIN32)
+	# Other compilers/linkers (such as Clang in GCC-compatible mode) also
+	# emit PDB files when targeting Windows, however, CMake only supports
+	# the relevant properties with MSVC and clones. Try to install
+	# the PDB file assuming it's in the same path as the EXE.
+	install(FILES "$<TARGET_FILE_DIR:86Box>/$<TARGET_FILE_BASE_NAME:86Box>.pdb"
+		CONFIGURATIONS Debug RelWithDebInfo
+		DESTINATION "."
+		OPTIONAL)
 endif()
 
 add_subdirectory(device)
