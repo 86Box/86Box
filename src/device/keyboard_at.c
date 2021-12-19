@@ -218,8 +218,10 @@ static int	key_queue_start = 0, key_queue_end = 0;
 uint8_t		mouse_queue[16];
 int		mouse_queue_start = 0, mouse_queue_end = 0;
 static uint8_t	kbd_last_scan_code;
+#ifdef ENABLE_MOUSE
 static void	(*mouse_write)(uint8_t val, void *priv) = NULL;
 static void	*mouse_p = NULL;
+#endif
 static uint8_t	sc_or = 0;
 static atkbd_t	*SavedKbd = NULL;		// FIXME: remove!!! --FvK
 
@@ -654,23 +656,7 @@ static const scancode scancode_set3[512] = {
 
 
 #define UISTR_LEN	256
-static char	kbd_str[UISTR_LEN];	/* UI output string */
 static void	add_data_kbd(uint16_t val);
-
-
-extern void	ui_sb_bugui(char *__str);
-
-
-static void
-kbd_status(const char *fmt, ...)
-{
-    va_list ap;
-
-    va_start(ap, fmt);
-    vsprintf(kbd_str, fmt, ap);
-    ui_sb_bugui(kbd_str);
-    va_end(ap);
-}
 
 
 #ifdef ENABLE_KEYBOARD_AT_LOG
@@ -1180,7 +1166,6 @@ kbc_send_to_ob(atkbd_t *dev, uint8_t val, uint8_t channel, uint8_t stat_hi)
 static void
 write_output(atkbd_t *dev, uint8_t val)
 {
-    uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
     uint8_t old = dev->p2;
 
     kbd_log("ATkbc: write output port: %02X (old: %02X)\n", val, dev->p2);
@@ -1311,7 +1296,9 @@ kbc_command(atkbd_t *dev)
 {
     uint8_t mask, val = dev->ib;
     uint8_t kbc_ven = dev->flags & KBC_VEN_MASK;
+#ifdef ENABLE_KEYBOARD_AT_LOG
     int bad = 1;
+#endif
 
     if ((dev->kbc_phase > 0) && (dev->kbc_cmd == 0xac)) {
 	if (dev-> kbc_phase < 16)
@@ -1415,6 +1402,7 @@ kbc_command(atkbd_t *dev)
 			if (dev->flags & KBC_FLAG_PS2) {
 				set_enable_mouse(dev, 1);
 				dev->mem[0x20] &= ~0x20;
+#ifdef ENABLE_MOUSE
 				if (mouse_write && !dev->kbc_written[2]) {
 					kbd_log("ATkbc: Sending %02X to mouse...\n", dev->ib);
 					dev->mouse_data = val;
@@ -1422,6 +1410,9 @@ kbc_command(atkbd_t *dev)
 					dev->kbc_wait_for_response = 2;
 				} else
 					kbc_send_to_ob(dev, 0xfe, 2, 0x40);
+#else
+				kbc_send_to_ob(dev, 0xfe, 2, 0x40);
+#endif
 			}
 			break;
 
@@ -1432,12 +1423,15 @@ kbc_command(atkbd_t *dev)
 			 * it returns an error, log a bad
 			 * controller command.
 			 */
+#ifdef ENABLE_KEYBOARD_AT_LOG
 			if (dev->write60_ven)
 				bad = dev->write60_ven(dev, val);
 
-#ifdef ENABLE_KEYBOARD_AT_LOG
 			if (bad)
 				kbd_log("ATkbc: bad controller command %02x data %02x\n", dev->kbc_cmd, val);
+#else
+			if (dev->write60_ven)
+				(void) dev->write60_ven(dev, val);
 #endif
 	}
     } else {
@@ -1565,10 +1559,15 @@ kbc_command(atkbd_t *dev)
 			 * that. Otherwise, or if that handler fails,
 			 * log a bad command.
 			 */
+#ifdef ENABLE_KEYBOARD_AT_LOG
 			if (dev->write64_ven)
 				bad = dev->write64_ven(dev, val);
 
 			kbd_log(bad ? "ATkbc: bad controller command %02X\n" : "", val);
+#else
+			if (dev->write64_ven)
+				(void) dev->write64_ven(dev, val);
+#endif
 	}
 
 	/* If the command needs data, remember the command. */
