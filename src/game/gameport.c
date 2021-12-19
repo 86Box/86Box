@@ -454,6 +454,15 @@ const device_t gameport_201_device = {
     NULL
 };
 
+const device_t gameport_208_device = {
+    "Game port (Port 208h-20fh)",
+    0, 0x080208,
+    gameport_init,
+    gameport_close,
+    NULL, { NULL }, NULL,
+    NULL
+};
+
 const device_t gameport_pnp_device = {
     "Game port (Plug and Play only)",
     0, 0x080000,
