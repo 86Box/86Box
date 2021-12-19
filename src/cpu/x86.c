@@ -264,15 +264,9 @@ reset_common(int hard)
     cpu_state.eflags = 0;
     cgate32 = 0;
     if (is286) {
-	if (AT) {
-		loadcs(0xF000);
-		cpu_state.pc = 0xFFF0;
-		rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
-	} else {
-		loadcs(0xFFFF);
-		cpu_state.pc = 0;
-		rammask = 0xfffff;
-	}
+	loadcs(0xF000);
+	cpu_state.pc = 0xFFF0;
+	rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
     }
     idt.base = 0;
     cpu_state.flags = 2;
