@@ -241,7 +241,7 @@ void MediaMenu::floppyNewImage(int i) {
 }
 
 void MediaMenu::floppySelectImage(int i, bool wp) {
-    auto filename = QFileDialog::getOpenFileName(parentWidget, "Open", QString(), "All images (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF);;Advanced sector images (*.IMD;*.JSON;*.TD0);;Basic sector images (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?);;Flux images (*.FDI);;Surface images (*.86F;*.MFM);;All files (*)");
+    auto filename = QFileDialog::getOpenFileName(parentWidget, "Open", QString(), "All images (*.0?? *.1?? *.??0 *.86F *.BIN *.CQ? *.D?? *.FLP *.HDM *.IM? *.JSON *.TD0 *.*FD? *.MFM *.XDF);;Advanced sector images (*.IMD *.JSON *.TD0);;Basic sector images (*.0?? *.1?? *.??0 *.BIN *.CQ? *.D?? *.FLP *.HDM *.IM? *.XDF *.*FD?);;Flux images (*.FDI);;Surface images (*.86F *.MFM);;All files (*)");
     floppyMount(i, filename, wp);
 }
 
@@ -304,7 +304,7 @@ void MediaMenu::cdromMount(int i) {
     QString dir;
     QFileInfo fi(cdrom[i].image_path);
 
-    auto filename = QFileDialog::getOpenFileName(parentWidget, "CD-ROM images (*.ISO;*.CUE)\0*.ISO;*.CUE\0All files (*.*)\0*.*\0", fi.canonicalPath());
+    auto filename = QFileDialog::getOpenFileName(parentWidget, "Open", QString(), "CD-ROM images (*.ISO *.CUE *.iso *.cue);;All files (*)");
     if (filename.isEmpty()) {
         auto* imageMenu = dynamic_cast<QAction*>(cdromMenus[i]->children()[cdromImagePos]);
         imageMenu->setChecked(false);
@@ -386,7 +386,7 @@ void MediaMenu::zipNewImage(int i) {
 }
 
 void MediaMenu::zipSelectImage(int i, bool wp) {
-    auto filename = QFileDialog::getOpenFileName(parentWidget, "Open", QString(), "ZIP images (*.im?;*.zdi);;All files (*)");
+    auto filename = QFileDialog::getOpenFileName(parentWidget, "Open", QString(), "ZIP images (*.im? *.zdi *.IM? *.ZDI);;All files (*)");
     zipMount(i, filename, wp);
 }
 
@@ -474,7 +474,7 @@ void MediaMenu::moNewImage(int i) {
 }
 
 void MediaMenu::moSelectImage(int i, bool wp) {
-    auto filename = QFileDialog::getOpenFileName(parentWidget, "Open", QString(), "MO images (*.im?;*.mdi);;All files (*)");
+    auto filename = QFileDialog::getOpenFileName(parentWidget, "Open", QString(), "MO images (*.im? *.mdi *.IM? *.MDI);;All files (*)");
     moMount(i, filename, wp);
 }
 
