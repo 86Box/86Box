@@ -27,18 +27,18 @@ if(NOT CPPTHREADS)
 	target_sources(plat PRIVATE win_thread.c)
 endif()
 
-if(MSVC)
-	# MSVC complains when we include the manifest from 86Box.rc...
-	# On the bright side, CMake supports passing the manifest as a source
-	# file when using MSVC, so we might just as well do that!
-	target_compile_definitions(ui PRIVATE NO_INCLUDE_MANIFEST)
+if(NOT MINGW)
+	# MSVC linker adds its own manifest to the executable, which fails if
+	# we include ours in 86Box.rc. We therefore need to pass the manifest
+	# directly as as a source file, so the linker can use that instead.
+	set_property(SOURCE 86Box.rc PROPERTY COMPILE_DEFINITIONS NO_INCLUDE_MANIFEST)
 	target_sources(86Box PRIVATE 86Box.manifest)
 
 	# Append null to resource strings (fixes file dialogs)
 	set_property(SOURCE 86Box.rc PROPERTY COMPILE_FLAGS -n)
-endif()
 
-if(NOT MINGW)
+	# `opendir` is only included in MinGW, so include an implementation
+	# for other builds.
 	target_sources(plat PRIVATE win_opendir.c)
 endif()
 
