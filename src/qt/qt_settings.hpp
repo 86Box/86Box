@@ -28,6 +28,9 @@ public:
     ~Settings();
      void save();
 
+protected slots:
+     void accept() override;
+
 private:
     Ui::Settings *ui;
     SettingsMachine* machine;

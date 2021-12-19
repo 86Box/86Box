@@ -49,7 +49,7 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent) :
             }
 
             int row = Models::AddEntry(model, name, d);
-            if (d == isartc_type) {
+            if (d == isamem_type[c]) {
                 selectedRow = row;
             }
             ++d;
