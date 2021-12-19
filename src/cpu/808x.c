@@ -570,15 +570,9 @@ reset_808x(int hard)
 	pfq_clear();
     }
 
-    if (AT) {
-	load_cs(0xF000);
-	cpu_state.pc = 0xFFF0;
-	rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
-    } else {
-	load_cs(0xFFFF);
-	cpu_state.pc = 0;
-	rammask = 0xfffff;
-    }
+    load_cs(0xFFFF);
+    cpu_state.pc = 0;
+    rammask = 0xfffff;
 
     prefetching = 1;
     cpu_alu_op = 0;

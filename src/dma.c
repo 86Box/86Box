@@ -46,6 +46,7 @@ static uint8_t	dma_stat_rq_pc;
 static uint8_t	dma_command[2];
 static uint8_t	dma_req_is_soft;
 static uint8_t	dma_advanced;
+static uint8_t	dma_at;
 static uint8_t	dma_buffer[65536];
 static uint16_t	dma_sg_base;
 static uint16_t	dma16_buffer[65536];
@@ -910,7 +911,7 @@ dma_page_write(uint16_t addr, uint8_t val, void *priv)
 		dma[addr].ab = (dma[addr].ab & 0xff01ffff & dma_mask) | (dma[addr].page << 16);
 		dma[addr].ac = (dma[addr].ac & 0xff01ffff & dma_mask) | (dma[addr].page << 16);
 	} else {
-		dma[addr].page = (AT) ? val : val & 0xf;
+		dma[addr].page = (dma_at) ? val : val & 0xf;
 		dma[addr].ab = (dma[addr].ab & 0xff00ffff & dma_mask) | (dma[addr].page << 16);
 		dma[addr].ac = (dma[addr].ac & 0xff00ffff & dma_mask) | (dma[addr].page << 16);
 	}
@@ -1003,6 +1004,13 @@ dma_set_mask(uint32_t mask)
 
 
 void
+dma_set_at(uint8_t at)
+{
+    dma_at = at;
+}
+
+
+void
 dma_reset(void)
 {
     int c;
@@ -1034,6 +1042,8 @@ dma_reset(void)
     dma_sg_base = 0x0400;
 
     dma_mask = 0x00ffffff;
+
+    dma_at = is286;
 }
 
 
@@ -1310,7 +1320,7 @@ _dma_write(uint32_t addr, uint8_t val, dma_t *dma_c)
 		dma_bm_write(addr, &val, 1, dma_transfer_size(dma_c));
     } else {
 	mem_writeb_phys(addr, val);
-	if (AT)
+	if (dma_at)
 		mem_invalidate_range(addr, addr);
     }
 }
@@ -1387,7 +1397,7 @@ dma_channel_read(int channel)
     if ((dma_c->mode & 0xC) != 8)
 	return(DMA_NODATA);
 
-    if (!AT && !channel)
+    if (!dma_at && !channel)
 	refreshread();
 
     if (! dma_c->size) {
@@ -1689,6 +1699,6 @@ dma_bm_write(uint32_t PhysAddress, const uint8_t *DataWrite, uint32_t TotalSize,
 	mem_write_phys((void *) bytes, PhysAddress + n, TransferSize);
     }
 
-    if (AT)
+    if (dma_at)
 	mem_invalidate_range(PhysAddress, PhysAddress + TotalSize - 1);
 }
