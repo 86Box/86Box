@@ -245,6 +245,9 @@ reset_common(int hard)
 	pci_reset();
 	if (!hard && soft_reset_pci) {
 		dma_reset();
+		/* TODO: Hack, but will do for time being, because all AT machines currently are 286+,
+			 and vice-versa. */
+		dma_set_at(is286);
 		device_reset_all();
 	}
     }
@@ -347,6 +350,9 @@ void
 hardresetx86(void)
 {
     dma_reset();
+    /* TODO: Hack, but will do for time being, because all AT machines currently are 286+,
+       and vice-versa. */
+    dma_set_at(is286);
     device_reset_all();
 
     cpu_alt_reset = 0;

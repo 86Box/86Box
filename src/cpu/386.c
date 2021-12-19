@@ -189,7 +189,7 @@ exec386(int cycs)
 				loadcs(readmemw(0, addr + 2));
 			}
 		} else if (nmi && nmi_enable && nmi_mask) {
-			if (AT && (cpu_fast_off_flags & 0x20000000))
+			if (is486 && (cpu_fast_off_flags & 0x20000000))
 				cpu_fast_off_count = cpu_fast_off_val + 1;
 
 			cpu_state.oldpc = cpu_state.pc;

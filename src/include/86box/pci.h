@@ -98,8 +98,6 @@ extern void	pci_set_irq_level(int pci_int, int level);
 extern void	pci_enable_mirq(int mirq);
 extern void	pci_set_mirq_routing(int mirq, int irq);
 
-extern uint8_t	pci_use_mirq(uint8_t mirq);
-
 extern int	pci_irq_is_level(int irq);
 
 extern void	pci_set_mirq(uint8_t mirq, int level);

@@ -1464,7 +1464,7 @@ write64_ami(void *priv, uint8_t val)
 	case 0xb0: case 0xb1: case 0xb2: case 0xb3:
 		/* set KBC lines P10-P13 (input port bits 0-3) low */
 		kbd_log("ATkbc: set KBC lines P10-P13 (input port bits 0-3) low\n");
-		if (!PCI || (val > 0xb1))
+		if (!(dev->flags & DEVICE_PCI) || (val > 0xb1))
 			dev->input_port &= ~(1 << (val & 0x03));
 		add_data(dev, 0x00);
 		return 0;
@@ -1472,7 +1472,7 @@ write64_ami(void *priv, uint8_t val)
 	case 0xb4: case 0xb5:
 		/* set KBC lines P22-P23 (output port bits 2-3) low */
 		kbd_log("ATkbc: set KBC lines P22-P23 (output port bits 2-3) low\n");
-		if (! PCI)
+		if (! (dev->flags & DEVICE_PCI))
 			write_output(dev, dev->output_port & ~(4 << (val & 0x01)));
 		add_data(dev, 0x00);
 		return 0;
@@ -1480,7 +1480,7 @@ write64_ami(void *priv, uint8_t val)
 	case 0xb8: case 0xb9: case 0xba: case 0xbb:
 		/* set KBC lines P10-P13 (input port bits 0-3) high */
 		kbd_log("ATkbc: set KBC lines P10-P13 (input port bits 0-3) high\n");
-		if (!PCI || (val > 0xb9)) {
+		if (!(dev->flags & DEVICE_PCI) || (val > 0xb9)) {
 			dev->input_port |= (1 << (val & 0x03));
 			add_data(dev, 0x00);
 		}
@@ -1489,7 +1489,7 @@ write64_ami(void *priv, uint8_t val)
 	case 0xbc: case 0xbd:
 		/* set KBC lines P22-P23 (output port bits 2-3) high */
 		kbd_log("ATkbc: set KBC lines P22-P23 (output port bits 2-3) high\n");
-		if (! PCI)
+		if (! (dev->flags & DEVICE_PCI))
 			write_output(dev, dev->output_port | (4 << (val & 0x01)));
 		add_data(dev, 0x00);
 		return 0;
