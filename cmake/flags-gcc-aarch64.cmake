@@ -7,7 +7,7 @@
 #           This file is part of the 86Box distribution.
 #
 #           CMake toolchain file defining GCC compiler flags
-#           for 64-bit x86 targets.
+#           for AArch64 (ARM64) targets.
 #
 # Authors:  David Hrdlička, <hrdlickadavid@outlook.com>
 #
@@ -16,5 +16,5 @@
 
 include(${CMAKE_CURRENT_LIST_DIR}/flags-gcc.cmake)
 
-set(CMAKE_C_FLAGS_INIT      "-m64 -march=x86-64 -msse2 -mfpmath=sse ${CMAKE_C_FLAGS_INIT}")
-set(CMAKE_CXX_FLAGS_INIT    "-m64 -march=x86-64 -msse2 -mfpmath=sse ${CMAKE_CXX_FLAGS_INIT}")
+set(CMAKE_C_FLAGS_INIT      "-march=armv8-a -mfloat-abi=hard ${CMAKE_C_FLAGS_INIT}")
+set(CMAKE_CXX_FLAGS_INIT    "-march=armv8-a -mfloat-abi=hard ${CMAKE_CXX_FLAGS_INIT}")

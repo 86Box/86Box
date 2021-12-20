@@ -6,7 +6,8 @@
  *
  *		This file is part of the 86Box distribution.
  *
- *		Definitions for the NS8250/16450/16550 UART emulation.
+ *		Definitions for the NS8250/16450/16550/16650/16750/16850/16950
+ *      UART emulation.
  *
  *
  *
@@ -22,10 +23,14 @@
 # define EMU_SERIAL_H
 
 
-#define SERIAL_8250		0
+#define SERIAL_8250			0
 #define SERIAL_8250_PCJR	1
-#define SERIAL_NS16450		2
-#define SERIAL_NS16550		3
+#define SERIAL_16450		2
+#define SERIAL_16550		3
+#define SERIAL_16650		4
+#define SERIAL_16750		5
+#define SERIAL_16850		6
+#define SERIAL_16950		7
 
 #define SERIAL_FIFO_SIZE	16
 
@@ -38,8 +43,6 @@
 #define SERIAL3_IRQ		4
 #define SERIAL4_ADDR		0x02e8
 #define SERIAL4_IRQ		3
-
-#define MAX_SERIAL		4
 
 
 struct serial_device_s;
@@ -89,10 +92,14 @@ extern void	serial_standalone_init(void);
 extern void	serial_set_clock_src(serial_t *dev, double clock_src);
 extern void	serial_reset_port(serial_t *dev);
 
-extern const device_t	i8250_device;
-extern const device_t	i8250_pcjr_device;
+extern const device_t	ns8250_device;
+extern const device_t	ns8250_pcjr_device;
 extern const device_t	ns16450_device;
 extern const device_t	ns16550_device;
+extern const device_t	ns16650_device;
+extern const device_t	ns16750_device;
+extern const device_t	ns16850_device;
+extern const device_t	ns16950_device;
 
 
 #endif	/*EMU_SERIAL_H*/
