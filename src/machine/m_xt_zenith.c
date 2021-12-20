@@ -153,8 +153,8 @@ machine_xt_z184_init(const machine_t *model)
     lpt1_remove();	/* only one parallel port */
     lpt2_remove();
     lpt1_init(0x278);
-    device_add(&i8250_device);
-    serial_set_next_inst(MAX_SERIAL);	/* So that serial_standalone_init() won't do anything. */
+    device_add(&ns8250_device);
+    serial_set_next_inst(SERIAL_MAX);	/* So that serial_standalone_init() won't do anything. */
         
     device_add(&cga_device);
     
