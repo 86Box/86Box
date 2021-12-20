@@ -23,10 +23,10 @@
 # define EMU_SERIAL_H
 
 
-#define SERIAL_8250		0
+#define SERIAL_8250			0
 #define SERIAL_8250_PCJR	1
-#define SERIAL_NS16450		2
-#define SERIAL_NS16550		3
+#define SERIAL_16450		2
+#define SERIAL_16550		3
 #define SERIAL_16650		4
 #define SERIAL_16750		5
 #define SERIAL_16850		6
@@ -92,8 +92,8 @@ extern void	serial_standalone_init(void);
 extern void	serial_set_clock_src(serial_t *dev, double clock_src);
 extern void	serial_reset_port(serial_t *dev);
 
-extern const device_t	i8250_device;
-extern const device_t	i8250_pcjr_device;
+extern const device_t	ns8250_device;
+extern const device_t	ns8250_pcjr_device;
 extern const device_t	ns16450_device;
 extern const device_t	ns16550_device;
 extern const device_t	ns16650_device;
