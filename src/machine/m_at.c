@@ -47,6 +47,7 @@
 #include <86box/dma.h>
 #include <86box/mem.h>
 #include <86box/device.h>
+#include <86box/serial.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
@@ -78,6 +79,9 @@ machine_at_common_init_ex(const machine_t *model, int type)
 	device_add(&ibmat_nvr_device);
     else if (type == 0)
 	device_add(&at_nvr_device);
+
+	device_add_inst(&ns16450_device, 1);
+	device_add_inst(&ns16450_device, 2);
 
     standalone_gameport_type = &gameport_device;
 }
