@@ -84,7 +84,7 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: '86Box-${{ matrix.build.name }}-MSYS2-${{ matrix.environment.msystem }}-${{ github.sha }}'
-        path: build/artifacts/bin/**
+        path: build/artifacts/**
 
   vs2019:
     name: VS2019 ${{ matrix.build.name }} ${{ matrix.target-arch }} build (${{ matrix.toolset }})
@@ -130,7 +130,7 @@ jobs:
     - uses: actions/upload-artifact@v2
       with:
         name: '86Box-${{ matrix.build.name }}-VS2019-${{ matrix.target-arch }}-${{ matrix.toolset }}-${{ github.sha }}'
-        path: build/artifacts/bin/**
+        path: build/artifacts/**
 
   linux:
     name: "Linux GCC 11"
