@@ -446,7 +446,7 @@ const device_t gameport_device = {
 };
 
 const device_t gameport_201_device = {
-    "Game port (port 201h only)",
+    "Game port (Port 201h only)",
     0, 0x010201,
     gameport_init,
     gameport_close,
@@ -457,6 +457,15 @@ const device_t gameport_201_device = {
 const device_t gameport_208_device = {
     "Game port (Port 208h-20fh)",
     0, 0x080208,
+    gameport_init,
+    gameport_close,
+    NULL, { NULL }, NULL,
+    NULL
+};
+
+const device_t gameport_209_device = {
+    "Game port (Port 209h only)",
+    0, 0x010209,
     gameport_init,
     gameport_close,
     NULL, { NULL }, NULL,
