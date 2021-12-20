@@ -10,6 +10,6 @@
 		"openal-soft",
 		"sdl2",
 		"rtmidi",
-		"qt5"
+		"qt5-base"
 	]
 }

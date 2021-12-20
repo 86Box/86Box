@@ -2,7 +2,7 @@
  * C functionality for Qt platform, where the C equivalent is not easily
  * implemented in Qt
  */
-#ifdef __MINGW32__
+#if !defined(_WIN32) && !defined(__clang__)
 #include <strings.h>
 #endif
 #include <stdint.h>

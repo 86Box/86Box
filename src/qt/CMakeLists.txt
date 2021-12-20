@@ -107,9 +107,8 @@ add_library(ui STATIC
     ../qt_resources.qrc
 )
 
-if(NOT MINGW)
+if(WIN32 AND NOT MINGW)
     target_sources(plat PRIVATE ../win/win_opendir.c)
-    target_sources(plat PRIVATE ../nvr.c)
 endif()
 
 if (APPLE)
