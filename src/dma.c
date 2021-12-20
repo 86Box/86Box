@@ -1043,7 +1043,7 @@ dma_reset(void)
 
     dma_mask = 0x00ffffff;
 
-    dma_at = 0;
+    dma_at = is286;
 }
 
 

@@ -114,15 +114,6 @@ machine_init_ex(int m)
        by the machine's init function). */
     video_reset(gfxcard);
 
-    /* Reset the CPU module. */
-    resetx86();
-    dma_reset();
-    pic_reset();
-    cpu_cache_int_enabled = cpu_cache_ext_enabled = 0;
-
-    dma_set_at(IS_AT(machine));
-    pic_set_pci_flag(IS_ARCH(machine, MACHINE_BUS_PCI));
-
     return ret;
 }
 
