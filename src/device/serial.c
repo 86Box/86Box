@@ -129,7 +129,7 @@ serial_update_ints(serial_t *dev)
     }
 
     if (stat && (dev->irq != 0xff) && ((dev->mctrl & 8) || (dev->type == SERIAL_8250_PCJR))) {
-	if (dev->type >= SERIAL_NS16450)
+	if (dev->type >= SERIAL_16450)
 		picintlevel(1 << dev->irq);
 	else
 		picint(1 << dev->irq);
@@ -151,9 +151,9 @@ serial_clear_timeout(serial_t *dev)
 static void
 write_fifo(serial_t *dev, uint8_t dat)
 {
-    serial_log("write_fifo(%08X, %02X, %i, %i)\n", dev, dat, (dev->type >= SERIAL_NS16550) && dev->fifo_enabled, dev->rcvr_fifo_pos & 0x0f);
+    serial_log("write_fifo(%08X, %02X, %i, %i)\n", dev, dat, (dev->type >= SERIAL_16550) && dev->fifo_enabled, dev->rcvr_fifo_pos & 0x0f);
 
-    if ((dev->type >= SERIAL_NS16550) && dev->fifo_enabled) {
+    if ((dev->type >= SERIAL_16550) && dev->fifo_enabled) {
 	/* FIFO mode. */
 	timer_disable(&dev->timeout_timer);
 	/* Indicate overrun. */
@@ -189,7 +189,7 @@ write_fifo(serial_t *dev, uint8_t dat)
 void
 serial_write_fifo(serial_t *dev, uint8_t dat)
 {
-    serial_log("serial_write_fifo(%08X, %02X, %i, %i)\n", dev, dat, (dev->type >= SERIAL_NS16550) && dev->fifo_enabled, dev->rcvr_fifo_pos & 0x0f);
+    serial_log("serial_write_fifo(%08X, %02X, %i, %i)\n", dev, dat, (dev->type >= SERIAL_16550) && dev->fifo_enabled, dev->rcvr_fifo_pos & 0x0f);
 
     if (!(dev->mctrl & 0x10))
 	write_fifo(dev, dat);
@@ -371,7 +371,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 		dev->int_status &= ~SERIAL_INT_TRANSMIT;
 		serial_update_ints(dev);
 
-		if ((dev->type >= SERIAL_NS16550) && dev->fifo_enabled && (dev->xmit_fifo_pos < 16)) {
+		if ((dev->type >= SERIAL_16550) && dev->fifo_enabled && (dev->xmit_fifo_pos < 16)) {
 			/* FIFO mode, begin transmitting. */
 			timer_on_auto(&dev->transmit_timer, dev->transmit_period);
 			dev->transmit_enabled |= 1;	/* Start moving. */
@@ -396,7 +396,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 		serial_update_ints(dev);
 		break;
 	case 2:
-		if (dev->type >= SERIAL_NS16550) {
+		if (dev->type >= SERIAL_16550) {
 			if ((val ^ dev->fcr) & 0x01)
 				serial_reset_fifo(dev);
 			dev->fcr = val & 0xf9;
@@ -500,7 +500,7 @@ serial_write(uint16_t addr, uint8_t val, void *p)
 		serial_update_ints(dev);
 		break;
 	case 7:
-		if (dev->type >= SERIAL_NS16450)
+		if (dev->type >= SERIAL_16450)
 			dev->scratch = val;
 		break;
     }
@@ -522,7 +522,7 @@ serial_read(uint16_t addr, void *p)
 			break;
 		}
 
-		if ((dev->type >= SERIAL_NS16550) && dev->fifo_enabled) {
+		if ((dev->type >= SERIAL_16550) && dev->fifo_enabled) {
 			/* FIFO mode. */
 
 			serial_clear_timeout(dev);
@@ -718,12 +718,12 @@ serial_set_next_inst(int ni)
 void
 serial_standalone_init(void) {
 	for ( ; next_inst < 4; )
-		device_add_inst(&i8250_device, next_inst + 1);
+		device_add_inst(&ns8250_device, next_inst + 1);
 };
 
 
-const device_t i8250_device = {
-    "Intel 8250(-compatible) UART",
+const device_t ns8250_device = {
+    "National Semiconductor 8250(-compatible) UART",
     0,
     SERIAL_8250,
     serial_init, serial_close, NULL,
@@ -731,8 +731,8 @@ const device_t i8250_device = {
     NULL
 };
 
-const device_t i8250_pcjr_device = {
-    "Intel 8250(-compatible) UART for PCjr",
+const device_t ns8250_pcjr_device = {
+    "National Semiconductor 8250(-compatible) UART for PCjr",
     DEVICE_PCJR,
     SERIAL_8250_PCJR,
     serial_init, serial_close, NULL,
@@ -743,7 +743,7 @@ const device_t i8250_pcjr_device = {
 const device_t ns16450_device = {
     "National Semiconductor NS16450(-compatible) UART",
     0,
-    SERIAL_NS16450,
+    SERIAL_16450,
     serial_init, serial_close, NULL,
     { NULL }, serial_speed_changed, NULL,
     NULL
@@ -752,7 +752,43 @@ const device_t ns16450_device = {
 const device_t ns16550_device = {
     "National Semiconductor NS16550(-compatible) UART",
     0,
-    SERIAL_NS16550,
+    SERIAL_16550,
+    serial_init, serial_close, NULL,
+    { NULL }, serial_speed_changed, NULL,
+    NULL
+};
+
+const device_t ns16650_device = {
+    "Startech Semiconductor 16650(-compatible) UART",
+    0,
+    SERIAL_16650,
+    serial_init, serial_close, NULL,
+    { NULL }, serial_speed_changed, NULL,
+    NULL
+};
+
+const device_t ns16750_device = {
+    "Texas Instruments 16750(-compatible) UART",
+    0,
+    SERIAL_16750,
+    serial_init, serial_close, NULL,
+    { NULL }, serial_speed_changed, NULL,
+    NULL
+};
+
+const device_t ns16850_device = {
+    "Exar Corporation NS16850(-compatible) UART",
+    0,
+    SERIAL_16850,
+    serial_init, serial_close, NULL,
+    { NULL }, serial_speed_changed, NULL,
+    NULL
+};
+
+const device_t ns16950_device = {
+    "Oxford Semiconductor NS16950(-compatible) UART",
+    0,
+    SERIAL_16950,
     serial_init, serial_close, NULL,
     { NULL }, serial_speed_changed, NULL,
     NULL
