@@ -757,3 +757,39 @@ const device_t ns16550_device = {
     { NULL }, serial_speed_changed, NULL,
     NULL
 };
+
+const device_t ns16650_device = {
+    "Startech Semiconductor 16650(-compatible) UART",
+    0,
+    SERIAL_16650,
+    serial_init, serial_close, NULL,
+    { NULL }, serial_speed_changed, NULL,
+    NULL
+};
+
+const device_t ns16750_device = {
+    "Texas Instruments 16750(-compatible) UART",
+    0,
+    SERIAL_16750,
+    serial_init, serial_close, NULL,
+    { NULL }, serial_speed_changed, NULL,
+    NULL
+};
+
+const device_t ns16850_device = {
+    "Exar Corporation NS16850(-compatible) UART",
+    0,
+    SERIAL_16850,
+    serial_init, serial_close, NULL,
+    { NULL }, serial_speed_changed, NULL,
+    NULL
+};
+
+const device_t ns16950_device = {
+    "Oxford Semiconductor NS16950(-compatible) UART",
+    0,
+    SERIAL_16950,
+    serial_init, serial_close, NULL,
+    { NULL }, serial_speed_changed, NULL,
+    NULL
+};
