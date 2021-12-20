@@ -422,7 +422,7 @@ bios_add(void)
     if (/*AT && */cpu_s) {
 	temp_cpu_type = cpu_s->cpu_type;
 	temp_cpu_16bitbus = (temp_cpu_type == CPU_286 || temp_cpu_type == CPU_386SX || temp_cpu_type == CPU_486SLC || temp_cpu_type == CPU_IBM386SLC || temp_cpu_type == CPU_IBM486SLC );
-	temp_is286 = (temp_cpu_type == CPU_286);
+	temp_is286 = (temp_cpu_type >= CPU_286);
     }
 
     if (biosmask > 0x1ffff) {

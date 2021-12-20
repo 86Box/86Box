@@ -754,6 +754,14 @@ pci_reset_regs(void)
 }
 
 
+void
+pci_pic_reset(void)
+{
+    pic_reset();
+    pic_set_pci_flag(last_pci_card > 0);
+}
+
+
 static void
 pci_reset_hard(void)
 {
@@ -769,8 +777,7 @@ pci_reset_hard(void)
 	}
     }
 
-    pic_reset();
-    pic_set_pci_flag(1);
+    pci_pic_reset();
 }
 
 

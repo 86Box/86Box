@@ -1,0 +1,10 @@
+set(CMAKE_CONFIGURATION_TYPES	Debug;Release;Optimized)
+
+set(CMAKE_C_FLAGS_INIT              "-fomit-frame-pointer -mstackrealign -Wall -fno-strict-aliasing")
+set(CMAKE_CXX_FLAGS_INIT            ${CMAKE_C_FLAGS_INIT})
+set(CMAKE_C_FLAGS_RELEASE_INIT      "-g0 -O3")
+set(CMAKE_CXX_FLAGS_RELEASE_INIT    ${CMAKE_C_FLAGS_RELEASE_INIT})
+set(CMAKE_C_FLAGS_DEBUG_INIT        "-ggdb -Og")
+set(CMAKE_CXX_FLAGS_DEBUG_INIT      ${CMAKE_C_FLAGS_DEBUG_INIT})
+set(CMAKE_C_FLAGS_OPTIMIZED_INIT    "-march=native -mtune=native -O3 -ffp-contract=fast -flto")
+set(CMAKE_CXX_FLAGS_OPTIMIZED_INIT  ${CMAKE_C_FLAGS_OPTIMIZED_INIT})
