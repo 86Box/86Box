@@ -8,6 +8,7 @@
 #include <86box/pit.h>
 #include <86box/mem.h>
 #include <86box/device.h>
+#include <86box/serial.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/fdc_ext.h>
@@ -30,6 +31,10 @@ machine_xt_common_init(const machine_t *model)
 	    device_add(&fdc_xt_device);
     
     nmi_init();
+
+	device_add_inst(&i8250_device, 1);
+	device_add_inst(&i8250_device, 2);
+
     standalone_gameport_type = &gameport_device;
 }
 
