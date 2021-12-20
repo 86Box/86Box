@@ -28,3 +28,7 @@ indent_size = 2
 [**/CMakeLists.txt]
 indent_style = space
 indent_size = 4
+
+[*.cmake]
+indent_style = space
+indent_size = 4
