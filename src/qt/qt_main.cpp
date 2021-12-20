@@ -36,10 +36,8 @@ extern QElapsedTimer elapsed_timer;
 extern MainWindow* main_window;
 
 extern "C" {
-#define new not_new
 #include <86box/timer.h>
 #include <86box/nvr.h>
-#undef new
     extern int qt_nvr_save(void);
 }
 
