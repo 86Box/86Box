@@ -718,7 +718,7 @@ serial_set_next_inst(int ni)
 void
 serial_standalone_init(void) {
 	for ( ; next_inst < 4; )
-		device_add_inst(&i8250_device, next_inst + 1);
+		device_add_inst(&ns8250_device, next_inst + 1);
 };
 
 
@@ -731,7 +731,7 @@ const device_t ns8250_device = {
     NULL
 };
 
-const device_t i8250_pcjr_device = {
+const device_t ns8250_pcjr_device = {
     "National Semiconductor 8250(-compatible) UART for PCjr",
     DEVICE_PCJR,
     SERIAL_8250_PCJR,
