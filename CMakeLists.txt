@@ -1,16 +1,16 @@
 #
-# 86Box		A hypervisor and IBM PC system emulator that specializes in
-#		running old operating systems and software designed for IBM
-#		PC systems and compatibles from 1981 through fairly recent
-#		system designs based on the PCI bus.
+# 86Box     A hypervisor and IBM PC system emulator that specializes in
+#           running old operating systems and software designed for IBM
+#           PC systems and compatibles from 1981 through fairly recent
+#           system designs based on the PCI bus.
 #
-#		This file is part of the 86Box distribution.
+#           This file is part of the 86Box distribution.
 #
-#		CMake build script.
+#           CMake build script.
 #
-# Authors:	David Hrdlička, <hrdlickadavid@outlook.com>
+# Authors:  David Hrdlička, <hrdlickadavid@outlook.com>
 #
-#		Copyright 2020,2021 David Hrdlička.
+#           Copyright 2020,2021 David Hrdlička.
 #
 
 cmake_minimum_required(VERSION 3.15)
@@ -19,19 +19,19 @@ cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
 
 project(86Box
-	VERSION 3.1
-	DESCRIPTION "Emulator of x86-based systems"
-	HOMEPAGE_URL "https://86box.net"
-	LANGUAGES C CXX)
+    VERSION 3.1
+    DESCRIPTION "Emulator of x86-based systems"
+    HOMEPAGE_URL "https://86box.net"
+    LANGUAGES C CXX)
 
 if(WIN32 AND VCPKG_TOOLCHAIN)
-	if(VCPKG_TARGET_TRIPLET MATCHES "-windows-static$")
-		# `-static` triplet, use the statically linked CRT
-		set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-	else()
-		# Regular triplet (or `-static-md`), use the dynamically linked CRT
-		set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-	endif()
+    if(VCPKG_TARGET_TRIPLET MATCHES "-windows-static$")
+        # `-static` triplet, use the statically linked CRT
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    else()
+        # Regular triplet (or `-static-md`), use the dynamically linked CRT
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    endif()
 endif()
 
 # Detect the target architecture by trying to compile `src/arch_detect.c`
@@ -39,7 +39,7 @@ try_compile(RESULT_VAR ${CMAKE_BINARY_DIR} "${CMAKE_CURRENT_SOURCE_DIR}/src/arch
 string(REGEX MATCH "ARCH ([a-zA-Z0-9_]+)" ARCH "${ARCH}")
 string(REPLACE "ARCH " "" ARCH "${ARCH}")
 if (NOT ARCH)
-	set(ARCH unknown)
+    set(ARCH unknown)
 endif()
 
 include(CPack)
@@ -50,14 +50,14 @@ add_compile_definitions(CMAKE)
 add_compile_definitions("$<$<CONFIG:Debug>:DEBUG>")
 
 if(WIN32)
-	# Disables *_s function warnings
-	add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
+    # Disables *_s function warnings
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 
-	# Disables POSIX name warnings
-	add_compile_definitions(_CRT_NONSTDC_NO_WARNINGS)
+    # Disables POSIX name warnings
+    add_compile_definitions(_CRT_NONSTDC_NO_WARNINGS)
 
-	# Disables WinSock deprecation warnings
-	add_compile_definitions(_WINSOCK_DEPRECATED_NO_WARNINGS)
+    # Disables WinSock deprecation warnings
+    add_compile_definitions(_WINSOCK_DEPRECATED_NO_WARNINGS)
 endif()
 
 set(CMAKE_CXX_STANDARD 11)
@@ -100,34 +100,34 @@ CMAKE_DEPENDENT_OPTION(XL24 "ATI VGA Wonder XL24 (ATI-28800-6)" ON "DEV_BRANCH" 
 CMAKE_DEPENDENT_OPTION(VECT486VL "HP Vectra 486VL" ON "DEV_BRANCH" OFF)
 
 # Determine the build type
-set(RELEASE_BUILD	OFF)
-set(BETA_BUILD		OFF)
-set(ALPHA_BUILD		OFF)
+set(RELEASE_BUILD   OFF)
+set(BETA_BUILD      OFF)
+set(ALPHA_BUILD     OFF)
 
 string(TOLOWER "${BUILD_TYPE}" BUILD_TYPE_LOWER)
 if(BUILD_TYPE_LOWER STREQUAL "release")
-	# Release build
-	set(RELEASE_BUILD ON)
-	add_compile_definitions(RELEASE_BUILD)
+    # Release build
+    set(RELEASE_BUILD ON)
+    add_compile_definitions(RELEASE_BUILD)
 elseif(BUILD_TYPE_LOWER STREQUAL "beta")
-	# Beta build
-	set(BETA_BUILD ON)
-	add_compile_definitions(BETA_BUILD)
+    # Beta build
+    set(BETA_BUILD ON)
+    add_compile_definitions(BETA_BUILD)
 elseif(BUILD_TYPE_LOWER STREQUAL "alpha")
-	# Alpha build
-	set(ALPHA_BUILD ON)
-	add_compile_definitions(ALPHA_BUILD)
+    # Alpha build
+    set(ALPHA_BUILD ON)
+    add_compile_definitions(ALPHA_BUILD)
 endif()
 
 # Variables introduced by richardg867 for versioning stuff
 if(NOT CMAKE_PROJECT_VERSION_PATCH)
-	set(CMAKE_PROJECT_VERSION_PATCH 0)
+    set(CMAKE_PROJECT_VERSION_PATCH 0)
 endif()
 if(NOT EMU_BUILD_NUM)
-	set(EMU_BUILD_NUM 0)
+    set(EMU_BUILD_NUM 0)
 endif()
 if(NOT EMU_COPYRIGHT_YEAR)
-	set(EMU_COPYRIGHT_YEAR 2021)
+    set(EMU_COPYRIGHT_YEAR 2021)
 endif()
 
 add_subdirectory(src)

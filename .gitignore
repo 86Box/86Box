@@ -22,7 +22,6 @@ Makefile
 /src/*.log
 /src/*.dmp
 /src/nvr/
-/src/printer/
 /src/roms/
 /src/screenshots/
 
