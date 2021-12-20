@@ -718,7 +718,7 @@ serial_set_next_inst(int ni)
 void
 serial_standalone_init(void) {
 	for ( ; next_inst < 4; )
-		device_add_inst(&ns16550_device, next_inst + 1);
+		device_add_inst(&i8250_device, next_inst + 1);
 };
 
 
