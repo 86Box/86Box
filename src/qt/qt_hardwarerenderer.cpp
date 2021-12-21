@@ -35,11 +35,11 @@ void HardwareRenderer::setRenderType(RenderType type) {
     setFormat(format);
 }
 
-void HardwareRenderer::onBlit(const QImage& img, int x, int y, int w, int h, std::atomic_flag* in_use) {
-    image = img;
+void HardwareRenderer::onBlit(const std::unique_ptr<uint8_t>* img, int x, int y, int w, int h, std::atomic_flag* in_use) {
+    memcpy(image.bits(), img->get(), 2048 * 2048 * 4);
+    in_use->clear();
     source.setRect(x, y, w, h);
     update();
-    in_use->clear();
 }
 
 void HardwareRenderer::resizeEvent(QResizeEvent *event) {

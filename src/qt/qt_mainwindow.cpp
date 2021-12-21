@@ -901,9 +901,7 @@ void MainWindow::on_actionFullscreen_triggered() {
         video_fullscreen = 1;
     }
 
-    auto widget = ui->stackedWidget->currentWidget();
-    auto rc = dynamic_cast<RendererCommon*>(widget);
-    rc->onResize(widget->width(), widget->height());
+    ui->stackedWidget->switchRenderer((RendererStack::Renderer)vid_api);
 }
 
 void MainWindow::getTitle_(wchar_t *title)

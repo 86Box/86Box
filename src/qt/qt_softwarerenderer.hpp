@@ -13,7 +13,7 @@ public:
 
     void paintEvent(QPaintEvent *event) override;
 public slots:
-    void onBlit(const QImage& img, int, int, int, int, std::atomic_flag* in_use);
+    void onBlit(const std::unique_ptr<uint8_t>* img, int, int, int, int, std::atomic_flag* in_use);
 
 protected:
     void resizeEvent(QResizeEvent *event) override;

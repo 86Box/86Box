@@ -14,6 +14,6 @@ public:
 protected:
     void onPaint(QPaintDevice* device);
 
-    QImage image;
+    QImage image{QSize(2048, 2048), QImage::Format_RGB32};
     QRect source, destination;
 };
