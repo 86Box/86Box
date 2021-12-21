@@ -26,8 +26,10 @@ string(APPEND CMAKE_CXX_FLAGS_OPTIMIZED_INIT    " -march=native -mtune=native -O
 # Set up the variables
 foreach(LANG C;CXX)
     set(CMAKE_${LANG}_FLAGS "$ENV{${LANG}FLAGS} ${CMAKE_${LANG}_FLAGS_INIT}" CACHE STRING "Flags used by the ${LANG} compiler during all build types.")
+    mark_as_advanced(CMAKE_${LANG}_FLAGS)
 
     foreach(CONFIG RELEASE;DEBUG;OPTIMIZED)
         set(CMAKE_${LANG}_FLAGS_${CONFIG} "${CMAKE_${LANG}_FLAGS_${CONFIG}_INIT}" CACHE STRING "Flags used by the ${LANG} compiler during ${CONFIG} builds.")
+        mark_as_advanced(CMAKE_${LANG}_FLAGS_${CONFIG})
     endforeach()
 endforeach()
