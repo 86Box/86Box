@@ -13,13 +13,21 @@
 #           Copyright 2021 David Hrdlička.
 #
 
-set(CMAKE_CONFIGURATION_TYPES       Debug;Release;Optimized)
+# Define our flags
+string(APPEND CMAKE_C_FLAGS_INIT                " -fomit-frame-pointer -mstackrealign -Wall -fno-strict-aliasing")
+string(APPEND CMAKE_CXX_FLAGS_INIT              " -fomit-frame-pointer -mstackrealign -Wall -fno-strict-aliasing")
+string(APPEND CMAKE_C_FLAGS_RELEASE_INIT        " -g0 -O3")
+string(APPEND CMAKE_CXX_FLAGS_RELEASE_INIT      " -g0 -O3")
+string(APPEND CMAKE_C_FLAGS_DEBUG_INIT          " -ggdb -Og")
+string(APPEND CMAKE_CXX_FLAGS_DEBUG_INIT        " -ggdb -Og")
+string(APPEND CMAKE_C_FLAGS_OPTIMIZED_INIT      " -march=native -mtune=native -O3 -ffp-contract=fast -flto")
+string(APPEND CMAKE_CXX_FLAGS_OPTIMIZED_INIT    " -march=native -mtune=native -O3 -ffp-contract=fast -flto")
 
-set(CMAKE_C_FLAGS_INIT              "-fomit-frame-pointer -mstackrealign -Wall -fno-strict-aliasing")
-set(CMAKE_CXX_FLAGS_INIT            ${CMAKE_C_FLAGS_INIT})
-set(CMAKE_C_FLAGS_RELEASE_INIT      "-g0 -O3")
-set(CMAKE_CXX_FLAGS_RELEASE_INIT    ${CMAKE_C_FLAGS_RELEASE_INIT})
-set(CMAKE_C_FLAGS_DEBUG_INIT        "-ggdb -Og")
-set(CMAKE_CXX_FLAGS_DEBUG_INIT      ${CMAKE_C_FLAGS_DEBUG_INIT})
-set(CMAKE_C_FLAGS_OPTIMIZED_INIT    "-march=native -mtune=native -O3 -ffp-contract=fast -flto")
-set(CMAKE_CXX_FLAGS_OPTIMIZED_INIT  ${CMAKE_C_FLAGS_OPTIMIZED_INIT})
+# Set up the variables
+foreach(LANG C;CXX)
+    set(CMAKE_${LANG}_FLAGS "$ENV{${LANG}FLAGS} ${CMAKE_${LANG}_FLAGS_INIT}" CACHE STRING "Flags used by the ${LANG} compiler during all build types.")
+
+    foreach(CONFIG RELEASE;DEBUG;OPTIMIZED)
+        set(CMAKE_${LANG}_FLAGS_${CONFIG} "${CMAKE_${LANG}_FLAGS_${CONFIG}_INIT}" CACHE STRING "Flags used by the ${LANG} compiler during ${CONFIG} builds.")
+    endforeach()
+endforeach()
