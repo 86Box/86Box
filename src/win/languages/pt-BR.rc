@@ -80,12 +80,12 @@ BEGIN
             POPUP "&Tipo de tela VGA"
             BEGIN
                 MENUITEM "&Cor RGB",          IDM_VID_GRAY_RGB
-                MENUITEM "Escala de cinza &RGB",      IDM_VID_GRAY_MONO
+                MENUITEM "Tons de cinza &RGB",      IDM_VID_GRAY_MONO
                 MENUITEM "Monitor &âmbar",      IDM_VID_GRAY_AMBER
                 MENUITEM "Monitor &verde",      IDM_VID_GRAY_GREEN
                 MENUITEM "Monitor &branco",      IDM_VID_GRAY_WHITE
             END
-            POPUP "Tipo de &conversão de escala de cinza"
+            POPUP "Tipo de &conversão de tons de cinza"
             BEGIN
                 MENUITEM "BT&601 (NTSC/PAL)",   IDM_VID_GRAYCT_601
                 MENUITEM "BT&709 (HDTV)",       IDM_VID_GRAYCT_709
