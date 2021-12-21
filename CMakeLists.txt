@@ -24,13 +24,50 @@ project(86Box
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
 
-if(WIN32 AND VCPKG_TOOLCHAIN)
-    if(VCPKG_TARGET_TRIPLET MATCHES "-windows-static$")
-        # `-static` triplet, use the statically linked CRT
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+include(CPack)
+include(CMakeDependentOption)
+
+# Basic build options
+if(WIN32)
+    if(VCPKG_TOOLCHAIN)
+        # For vcpkg builds we have to respect the linking method used by the
+        # specified triplet.
+        set(NO_STATIC_OPTION ON)
+        if(VCPKG_TARGET_TRIPLET MATCHES "-windows-static$")
+            # `-static` triplet, use static linking
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+            set(STATIC_BUILD ON)
+        elseif(VCPKG_TARGET_TRIPLET MATCHES "-windows-static-md$")
+            # `-static-md` triplet, use static linking with dynamic CRT
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+            set(STATIC_BUILD ON)
+        elseif()
+            # Regular triplet, use dynamic linking
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+            set(STATIC_BUILD OFF)
+        endif()
+    endif()
+
+    # Prefer static builds on Windows
+    set(PREFER_STATIC ON)
+
+    # Default value for the `WIN32` target property, which specifies whether
+    # to build the application for the Windows GUI or console subsystem
+    option(CMAKE_WIN32_EXECUTABLE "Build a Windows GUI executable" ON)
+else()
+    # Prefer dynamic builds everywhere else
+    set(PREFER_STATIC OFF)
+endif()
+
+if(APPLE)
+    option(CMAKE_MACOSX_BUNDLE "Build a macOS bundle (.app)" ON)
+endif()
+
+if(NOT NO_STATIC_OPTION)
+    if(PREFER_STATIC)
+        option(STATIC_BUILD "Static build" ON)
     else()
-        # Regular triplet (or `-static-md`), use the dynamically linked CRT
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+        option(STATIC_BUILD "Static build" OFF)
     endif()
 endif()
 
@@ -41,10 +78,6 @@ string(REPLACE "ARCH " "" ARCH "${ARCH}")
 if (NOT ARCH)
     set(ARCH unknown)
 endif()
-
-include(CPack)
-
-include(CMakeDependentOption)
 
 add_compile_definitions(CMAKE)
 add_compile_definitions("$<$<CONFIG:Debug>:DEBUG>")
