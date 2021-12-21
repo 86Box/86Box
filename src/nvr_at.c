@@ -566,11 +566,11 @@ static void
 nvr_reg_common_write(uint16_t reg, uint8_t val, nvr_t *nvr, local_t *local)
 {
     if ((reg == 0x2c) && (local->flags & FLAG_AMI_1994_HACK))
-	nvr->new = 0;
+	nvr->is_new = 0;
     if ((reg == 0x2d) && (local->flags & FLAG_AMI_1992_HACK))
-	nvr->new = 0;
+	nvr->is_new = 0;
     if ((reg == 0x52) && (local->flags & FLAG_AMI_1995_HACK))
-	nvr->new = 0;
+	nvr->is_new = 0;
     if ((reg >= 0x38) && (reg <= 0x3f) && local->wp[0])
 	return;
     if ((reg >= 0xb8) && (reg <= 0xbf) && local->wp[1])
@@ -706,14 +706,14 @@ nvr_read(uint16_t addr, void *priv)
 		break;
 
 	case 0x2c:
-		if (!nvr->new && (local->flags & FLAG_AMI_1994_HACK))
+		if (!nvr->is_new && (local->flags & FLAG_AMI_1994_HACK))
 			ret = nvr->regs[local->addr[addr_id]] & 0x7f;
 		else
 			ret = nvr->regs[local->addr[addr_id]];
 		break;
 
 	case 0x2d:
-		if (!nvr->new && (local->flags & FLAG_AMI_1992_HACK))
+		if (!nvr->is_new && (local->flags & FLAG_AMI_1992_HACK))
 			ret = nvr->regs[local->addr[addr_id]] & 0xf7;
 		else
 			ret = nvr->regs[local->addr[addr_id]];
@@ -721,7 +721,7 @@ nvr_read(uint16_t addr, void *priv)
 
 	case 0x2e:
 	case 0x2f:
-		if (!nvr->new && (local->flags & FLAG_AMI_1992_HACK)) {
+		if (!nvr->is_new && (local->flags & FLAG_AMI_1992_HACK)) {
 			for (i = 0x10; i <= 0x2d; i++) {
 				if (i == 0x2d)
 					checksum += (nvr->regs[i] & 0xf7);
@@ -732,7 +732,7 @@ nvr_read(uint16_t addr, void *priv)
 				ret = checksum >> 8;
 			else
 				ret = checksum & 0xff;
-		} else if (!nvr->new && (local->flags & FLAG_AMI_1994_HACK)) {
+		} else if (!nvr->is_new && (local->flags & FLAG_AMI_1994_HACK)) {
 			for (i = 0x10; i <= 0x2d; i++) {
 				if (i == 0x2c)
 					checksum += (nvr->regs[i] & 0x7f);
@@ -749,7 +749,7 @@ nvr_read(uint16_t addr, void *priv)
 
 	case 0x3e:
 	case 0x3f:
-		if (!nvr->new && (local->flags & FLAG_AMI_1995_HACK)) {
+		if (!nvr->is_new && (local->flags & FLAG_AMI_1995_HACK)) {
 			/* The checksum at 3E-3F is for 37-3D and 40-7F. */
 			for (i = 0x37; i <= 0x3d; i++)
 				checksum += nvr->regs[i];
@@ -763,7 +763,7 @@ nvr_read(uint16_t addr, void *priv)
 				ret = checksum >> 8;
 			else
 				ret = checksum & 0xff;
-		} else if (!nvr->new && (local->flags & FLAG_P6RP4_HACK)) {
+		} else if (!nvr->is_new && (local->flags & FLAG_P6RP4_HACK)) {
 			/* The checksum at 3E-3F is for 37-3D and 40-51. */
 			for (i = 0x37; i <= 0x3d; i++)
 				checksum += nvr->regs[i];
@@ -782,14 +782,14 @@ nvr_read(uint16_t addr, void *priv)
 		break;
 
 	case 0x43:
-		if (!nvr->new && (local->flags & FLAG_P6RP4_HACK))
+		if (!nvr->is_new && (local->flags & FLAG_P6RP4_HACK))
 			ret = nvr->regs[local->addr[addr_id]] | 0x02;
 		else
 			ret = nvr->regs[local->addr[addr_id]];
 		break;
 
 	case 0x52:
-		if (!nvr->new && (local->flags & FLAG_AMI_1995_HACK))
+		if (!nvr->is_new && (local->flags & FLAG_AMI_1995_HACK))
 			ret = nvr->regs[local->addr[addr_id]] & 0xf3;
 		else
 			ret = nvr->regs[local->addr[addr_id]];
