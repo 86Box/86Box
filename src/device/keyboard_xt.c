@@ -755,9 +755,6 @@ kbd_init(const device_t *info)
         /* Switch 2 - 8087 FPU. */
         if (hasfpu)
             kbd->pd |= 0x02;
-
-        /* Switch 1 - always off. */
-        kbd->pd |= 0x01;
     } else if (kbd-> type == 9) {
         /* Zenith Data Systems Z-151
         * SW2 switch settings:
