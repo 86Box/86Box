@@ -644,6 +644,8 @@ load_machine(void)
 		machine = machine_get_machine_from_internal_name("s1857");
 	else if (! strcmp(p, "63a"))
 		machine = machine_get_machine_from_internal_name("63a1");
+	else if (! strcmp(p, "4sa2"))
+		machine = machine_get_machine_from_internal_name("4saw2");
 	else if (! strcmp(p, "award386dx")) /* ...merged machines... */
 		machine = machine_get_machine_from_internal_name("award495");
 	else if (! strcmp(p, "ami386dx"))
@@ -656,6 +658,8 @@ load_machine(void)
 		machine = machine_get_machine_from_internal_name("ami495");
 	else if (! strcmp(p, "mr486"))
 		machine = machine_get_machine_from_internal_name("mr495");
+	else if (! strcmp(p, "ibmps1_2121_isa"))
+		machine = machine_get_machine_from_internal_name("ibmps1_2121");
 	else if (! strcmp(p, "fw6400gx_s1"))
 		machine = machine_get_machine_from_internal_name("fw6400gx");
 	else if (! strcmp(p, "p54vl"))
@@ -911,15 +915,30 @@ load_input_devices(void)
 
     p = config_get_string(cat, "joystick_type", NULL);
     if (p != NULL) {
+	if (!strcmp(p, "standard_2button"))
+		joystick_type = joystick_get_from_internal_name("2axis_2button");
+	else if (!strcmp(p, "standard_4button"))
+		joystick_type = joystick_get_from_internal_name("2axis_4button");
+	else if (!strcmp(p, "standard_6button"))
+		joystick_type = joystick_get_from_internal_name("2axis_6button");
+	else if (!strcmp(p, "standard_8button"))
+		joystick_type = joystick_get_from_internal_name("2axis_8button");
+
 	joystick_type = joystick_get_from_internal_name(p);
 	if (!joystick_type) {
 		/* Try to read an integer for backwards compatibility with old configs */
 		c = config_get_int(cat, "joystick_type", 8);
-		if ((c >= 0) && (c < 8))
-			/* "None" was type 8 instead of 0 previously, shift the number accordingly */
-			joystick_type = c + 1;
-		else
-			joystick_type = 0;
+		switch (c) {
+			case 0: case 1: case 2: case 3: /* 2-axis joysticks */
+				joystick_type = c + 1;
+				break;
+			case 4: case 5: case 6: case 7: /* other joysticks */
+				joystick_type = c + 3;
+				break;
+			default: /* "None" (8) or invalid value */
+				joystick_type = 0;
+				break;
+		}
 	}
     } else
 	joystick_type = 0;

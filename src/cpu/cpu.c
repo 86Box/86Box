@@ -59,11 +59,13 @@ enum {
         CPUID_TSC = (1 << 4),
         CPUID_MSR = (1 << 5),
         CPUID_PAE = (1 << 6),
+        CPUID_MCE = (1 << 7),
         CPUID_CMPXCHG8B = (1 << 8),
 	CPUID_AMDSEP = (1 << 10),
 	CPUID_SEP = (1 << 11),
 	CPUID_MTRR = (1 << 12),
 	CPUID_PGE = (1 << 13),
+        CPUID_MCA = (1 << 14),
         CPUID_CMOV = (1 << 15),
         CPUID_MMX = (1 << 23),
 	CPUID_FXSR = (1 << 24),
@@ -1695,7 +1697,7 @@ cpu_CPUID(void)
 		} else if (EAX == 1) {
 			EAX = CPUID;
 			EBX = ECX = 0;
-			EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
+			EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B;
 		} else
 			EAX = EBX = ECX = EDX = 0;
 		break;
@@ -1710,7 +1712,7 @@ cpu_CPUID(void)
 		} else if (EAX == 1) {
 			EAX = CPUID;
 			EBX = ECX = 0;
-			EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
+			EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B;
 		} else
 			EAX = EBX = ECX = EDX = 0;
 		break;
@@ -1724,14 +1726,14 @@ cpu_CPUID(void)
 		} else if (EAX == 1) {
 			EAX = CPUID;
 			EBX = ECX = 0;
-			EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
+			EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B;
 		} else if (EAX == 0x80000000) {
 			EAX = 0x80000005;
 			EBX = ECX = EDX = 0;
 		} else if (EAX == 0x80000001) {
 			EAX = CPUID;
 			EBX = ECX = 0;
-			EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
+			EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B;
 		} else if (EAX == 0x80000002) {
 			EAX = 0x2D444D41;
 			EBX = 0x7428354B;
@@ -1761,14 +1763,14 @@ cpu_CPUID(void)
 		} else if (EAX == 1) {
 			EAX = CPUID;
 			EBX = ECX = 0;
-			EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX;
+			EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX;
 		} else if (EAX == 0x80000000) {
 			EAX = 0x80000005;
 			EBX = ECX = EDX = 0;
 		} else if (EAX == 0x80000001) {
 			EAX = CPUID + 0x100;
 			EBX = ECX = 0;
-			EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX;
+			EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX;
 		} else if (EAX == 0x80000002) {
 			EAX = 0x2D444D41;
 			EBX = 0x6D74364B;
@@ -1808,14 +1810,14 @@ cpu_CPUID(void)
 			case 1:
 				EAX = CPUID;
 				EBX = ECX = 0;
-				EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX;
+				EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX;
 				break;
 			case 0x80000000:
 				EAX = 0x80000005;
 				break;
 			case 0x80000001:
 				EAX = CPUID + 0x100;
-				EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX | CPUID_3DNOW;
+				EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX | CPUID_3DNOW;
 				break;
 			case 0x80000002:	/* Processor name string */
 				EAX = 0x2d444d41;	/* AMD-K6(tm) 3D pr */
@@ -1851,14 +1853,14 @@ cpu_CPUID(void)
 			case 1:
 				EAX = CPUID;
 				EBX = ECX = 0;
-				EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX;
+				EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX;
 				break;
 			case 0x80000000:
 				EAX = 0x80000006;
 				break;
 			case 0x80000001:
 				EAX = CPUID + 0x100;
-				EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX | CPUID_3DNOW;
+				EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX | CPUID_3DNOW;
 				break;
 			case 0x80000002:	/* Processor name string */
 				EAX = 0x2d444d41;	/* AMD-K6(tm) 3D+ P */
@@ -1898,14 +1900,14 @@ cpu_CPUID(void)
 			case 1:
 				EAX = CPUID;
 				EBX = ECX = 0;
-				EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX;
+				EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX;
 				break;
 			case 0x80000000:
 				EAX = 0x80000007;
 				break;
 			case 0x80000001:
 				EAX = CPUID + 0x100;
-				EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX | CPUID_3DNOW;
+				EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_AMDSEP | CPUID_MMX | CPUID_3DNOW;
 				break;
 			case 0x80000002:	/* Processor name string */
 				EAX = 0x2d444d41;	/* AMD-K6(tm)-III P */
@@ -1948,7 +1950,7 @@ cpu_CPUID(void)
 		} else if (EAX == 1) {
 			EAX = CPUID;
 			EBX = ECX = 0;
-			EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_MMX;
+			EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX;
 		} else
 			EAX = EBX = ECX = EDX = 0;
 		break;
@@ -2020,7 +2022,11 @@ cpu_CPUID(void)
 		} else if (EAX == 1) {
 			EAX = CPUID;
 			EBX = ECX = 0;
+<<<<<<< HEAD
 			EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_CMPXCHG8B | CPUID_MTRR | CPUID_PGE | CPUID_SEP | CPUID_CMOV;
+=======
+			EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MTRR | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
+>>>>>>> 0126d7dbefed83e1dc9684a3fd9c9531c37b8916
 		} else if (EAX == 2) {
 			EAX = 0x00000001;
 			EBX = ECX = 0;
@@ -2038,7 +2044,11 @@ cpu_CPUID(void)
 		} else if (EAX == 1) {
 			EAX = CPUID;
 			EBX = ECX = 0;
+<<<<<<< HEAD
 			EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_SEP | CPUID_CMOV;
+=======
+			EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
+>>>>>>> 0126d7dbefed83e1dc9684a3fd9c9531c37b8916
 		} else if (EAX == 2) {
 			EAX = 0x00000001;
 			EBX = ECX = 0;
@@ -2056,6 +2066,7 @@ cpu_CPUID(void)
 		} else if (EAX == 1) {
 			EAX = CPUID;
 			EBX = ECX = 0;
+<<<<<<< HEAD
 			EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_SEP | CPUID_FXSR | CPUID_CMOV;
 		} else if (EAX == 2) {
 			EAX = 0x00000001;
@@ -2075,6 +2086,9 @@ cpu_CPUID(void)
 			EAX = CPUID;
 			EBX = ECX = 0;
 			EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_SEP | CPUID_FXSR | CPUID_CMOV | CPUID_SSE;
+=======
+			EDX = CPUID_FPU | CPUID_VME | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_MCA | CPUID_SEP | CPUID_FXSR | CPUID_CMOV;
+>>>>>>> 0126d7dbefed83e1dc9684a3fd9c9531c37b8916
 		} else if (EAX == 2) {
 			EAX = 0x00000001;
 			EBX = ECX = 0;
@@ -2100,7 +2114,7 @@ cpu_CPUID(void)
 			case 1:
 				EAX = CPUID;
 				EBX = ECX = 0;
-				EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MMX | CPUID_MTRR;
+				EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_MMX | CPUID_MTRR;
 				if (cpu_has_feature(CPU_FEATURE_CX8))
 					EDX |= CPUID_CMPXCHG8B;							
 				break;
@@ -2109,7 +2123,7 @@ cpu_CPUID(void)
 				break;
 			case 0x80000001:
 				EAX = CPUID;
-				EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MMX | CPUID_MTRR | CPUID_3DNOW;
+				EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_MMX | CPUID_MTRR | CPUID_3DNOW;
 				if (cpu_has_feature(CPU_FEATURE_CX8))
 					EDX |= CPUID_CMPXCHG8B;
 				break;                                
@@ -2222,6 +2236,8 @@ cpu_RDMSR(void)
 	case CPU_CYRIX3S:
 		EAX = EDX = 0;
 		switch (ECX) {
+			case 0x00: case 0x01:
+				break;
 			case 0x10:
 				EAX = tsc & 0xffffffff;
 				EDX = tsc >> 32;
@@ -2307,6 +2323,9 @@ cpu_RDMSR(void)
 	case CPU_K6_3P:
 		EAX = EDX = 0;
 		switch (ECX) {
+			case 0x00000000:
+			case 0x00000001:
+				break;
 			case 0x0000000e:
 				EAX = msr.tr12;
 				break;
@@ -2387,6 +2406,8 @@ amd_k_invalid_rdmsr:
 #endif
 			EAX = EDX = 0;
 		switch (ECX) {
+			case 0x00: case 0x01:
+				break;
 			case 0x10:
 				EAX = tsc & 0xffffffff;
 				EDX = tsc >> 32;
@@ -2401,6 +2422,8 @@ amd_k_invalid_rdmsr:
 	case CPU_PENTIUM3:
 		EAX = EDX = 0;
 		switch (ECX) {
+			case 0x00: case 0x01:
+				break;
 			case 0x10:
 				EAX = tsc & 0xffffffff;
 				EDX = tsc >> 32;
@@ -2409,8 +2432,10 @@ amd_k_invalid_rdmsr:
 				if (cpu_s->cpu_type != CPU_PENTIUM2D && cpu_s->cpu_type != CPU_PENTIUM3)
 					goto i686_invalid_rdmsr;
 
-				EAX = msr.ecx17 & 0xffffffff;
-				EDX = msr.ecx17 >> 32;
+				if (cpu_f->package == CPU_PKG_SLOT2)
+					EDX |= 0x80000;
+				else if (cpu_f->package == CPU_PKG_SOCKET370)
+					EDX |= 0x100000;
 				break;
 			case 0x1B:
 				EAX = msr.apic_base & 0xffffffff;
@@ -2503,7 +2528,14 @@ amd_k_invalid_rdmsr:
 				EDX = 0x00000000;
 				break;
 			case 0x179:
-				EAX = EDX = 0x00000000;
+				EAX = 0x00000105;
+				EDX = 0x00000000;
+				break;
+			case 0x17a:
+				break;
+			case 0x17b:
+				EAX = msr.mcg_ctl & 0xffffffff;
+				EDX = msr.mcg_ctl >> 32;
 				break;
 			case 0x186:
 				EAX = msr.ecx186 & 0xffffffff;
@@ -2554,21 +2586,14 @@ amd_k_invalid_rdmsr:
 				EAX = msr.mtrr_deftype & 0xffffffff;
 				EDX = msr.mtrr_deftype >> 32;
 				break;
-			case 0x404:
-				EAX = msr.ecx404 & 0xffffffff;
-				EDX = msr.ecx404 >> 32;
-				break;
-			case 0x408:
-				EAX = msr.ecx408 & 0xffffffff;
-				EDX = msr.ecx408 >> 32;
-				break;
-			case 0x40c:
-				EAX = msr.ecx40c & 0xffffffff;
-				EDX = msr.ecx40c >> 32;
-				break;
+			case 0x400: case 0x404: case 0x408: case 0x40c:
 			case 0x410:
-				EAX = msr.ecx410 & 0xffffffff;
-				EDX = msr.ecx410 >> 32;
+				EAX = msr.mca_ctl[(ECX - 0x400) >> 2] & 0xffffffff;
+				EDX = msr.mca_ctl[(ECX - 0x400) >> 2] >> 32;
+				break;
+			case 0x401: case 0x402: case 0x405: case 0x406:
+			case 0x407: case 0x409: case 0x40d: case 0x40e:
+			case 0x411: case 0x412:
 				break;
 			case 0x570:
 				EAX = msr.ecx570 & 0xffffffff;
@@ -2674,6 +2699,8 @@ cpu_WRMSR(void)
 
 	case CPU_CYRIX3S:
 		switch (ECX) {
+			case 0x00: case 0x01:
+				break;
 			case 0x10:
 				tsc = EAX | ((uint64_t)EDX << 32);
 				break;
@@ -2728,6 +2755,8 @@ cpu_WRMSR(void)
 	case CPU_K6_2P:
 	case CPU_K6_3P:
 		switch (ECX) {
+			case 0x00: case 0x01:
+				break;
 			case 0x0e:
 				msr.tr12 = EAX & 0x228;
 				break;
@@ -2801,6 +2830,8 @@ amd_k_invalid_wrmsr:
 #endif
 		cpu_log("WRMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
 		switch (ECX) {
+			case 0x00: case 0x01:
+				break;
 			case 0x10:
 				tsc = EAX | ((uint64_t)EDX << 32);
 				break;
@@ -2822,15 +2853,22 @@ amd_k_invalid_wrmsr:
 	case CPU_PENTIUM2D:
 	case CPU_PENTIUM3:
 		switch (ECX) {
+			case 0x00: case 0x01:
+				if (EAX || EDX)
+					x86gpf(NULL, 0);
+				break;
 			case 0x10:
 				tsc = EAX | ((uint64_t)EDX << 32);
 				break;
+<<<<<<< HEAD
 			case 0x17:
 				if (cpu_s->cpu_type != CPU_PENTIUM2D && cpu_s->cpu_type != CPU_PENTIUM3)
 					goto i686_invalid_wrmsr;
 
 				msr.ecx17 = EAX | ((uint64_t)EDX << 32);
 				break;
+=======
+>>>>>>> 0126d7dbefed83e1dc9684a3fd9c9531c37b8916
 			case 0x1b:
 				cpu_log("APIC_BASE write: %08X%08X\n", EDX, EAX);
 				// msr.apic_base = EAX | ((uint64_t)EDX << 32);
@@ -2879,6 +2917,13 @@ amd_k_invalid_wrmsr:
 				break;
 			case 0x179:
 				break;
+			case 0x17a:
+				if (EAX || EDX)
+					x86gpf(NULL, 0);
+				break;
+			case 0x17b:
+				msr.mcg_ctl = EAX | ((uint64_t)EDX << 32);
+				break;
 			case 0x186:
 				msr.ecx186 = EAX | ((uint64_t)EDX << 32);
 				break;
@@ -2916,17 +2961,15 @@ amd_k_invalid_wrmsr:
 			case 0x2ff:
 				msr.mtrr_deftype = EAX | ((uint64_t)EDX << 32);
 				break;
-			case 0x404:
-				msr.ecx404 = EAX | ((uint64_t)EDX << 32);
-				break;
-			case 0x408:
-				msr.ecx408 = EAX | ((uint64_t)EDX << 32);
-				break;
-			case 0x40c:
-				msr.ecx40c = EAX | ((uint64_t)EDX << 32);
-				break;
+			case 0x400: case 0x404: case 0x408: case 0x40c:
 			case 0x410:
-				msr.ecx410 = EAX | ((uint64_t)EDX << 32);
+				msr.mca_ctl[(ECX - 0x400) >> 2] = EAX | ((uint64_t)EDX << 32);
+				break;
+			case 0x401: case 0x402: case 0x405: case 0x406:
+			case 0x407: case 0x409: case 0x40d: case 0x40e:
+			case 0x411: case 0x412:
+				if (EAX || EDX)
+					x86gpf(NULL, 0);
 				break;
 			case 0x570:
 				msr.ecx570 = EAX | ((uint64_t)EDX << 32);

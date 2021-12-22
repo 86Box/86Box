@@ -445,7 +445,7 @@ ide_get_max(ide_t *ide, int type)
     switch(type) {
 	case TYPE_PIO:	/* PIO */
 		if (!ide_boards[ide->board]->force_ata3 && (ide_bm[ide->board] != NULL))
-			return 1;
+			return 4;
 
 		return 0;	/* Maximum PIO 0 for legacy PIO-only drive. */
 	case TYPE_SDMA:	/* SDMA */
