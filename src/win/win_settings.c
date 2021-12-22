@@ -1258,6 +1258,9 @@ mpu401_standalone_allow(void)
 {
     char *md, *mdin;
 
+    if (!machine_has_bus(temp_machine, MACHINE_BUS_ISA) && !machine_has_bus(temp_machine, MACHINE_BUS_MCA))
+	return 0;
+
     md = midi_device_get_internal_name(temp_midi_device);
     mdin = midi_in_device_get_internal_name(temp_midi_input_device);
 
@@ -4902,21 +4905,25 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 
 			if (!device_name[0])
 				break;
-
-			if (d == 0) {
-				settings_add_string(hdlg, IDC_COMBO_ISARTC, win_get_string(IDS_2103));
-				settings_set_cur_sel(hdlg, IDC_COMBO_ISARTC, 0);
-			} else
-				settings_add_string(hdlg, IDC_COMBO_ISARTC, (LPARAM) device_name);
-			settings_list_to_device[1][e] = d;
-			if (d == temp_isartc)
-				settings_set_cur_sel(hdlg, IDC_COMBO_ISARTC, e);
-			e++;
+			dev = isartc_get_device(d);
+			if (device_is_valid(dev, temp_machine)) {
+				if (d == 0) {
+					settings_add_string(hdlg, IDC_COMBO_ISARTC, win_get_string(IDS_2103));
+					settings_set_cur_sel(hdlg, IDC_COMBO_ISARTC, 0);
+				} else
+					settings_add_string(hdlg, IDC_COMBO_ISARTC, (LPARAM) device_name);
+				settings_list_to_device[1][e] = d;
+				if (d == temp_isartc)
+					settings_set_cur_sel(hdlg, IDC_COMBO_ISARTC, e);
+				e++;
+			}
 		}
-		settings_enable_window(hdlg, IDC_CONFIGURE_ISARTC, temp_isartc != 0);
+		settings_enable_window(hdlg, IDC_COMBO_ISARTC, machine_has_bus(temp_machine, MACHINE_BUS_ISA));
+		settings_enable_window(hdlg, IDC_CONFIGURE_ISARTC, ((temp_isartc != 0) && machine_has_bus(temp_machine, MACHINE_BUS_ISA)));
 
 		/* Populate the ISA memory card dropdowns. */
 		for (c = 0; c < ISAMEM_MAX; c++) {
+			e = 0;
 			settings_reset_content(hdlg, IDC_COMBO_ISAMEM_1 + c);
 			for (d = 0; ; d++) {
 				generate_device_name(isamem_get_device(d), (char *) isamem_get_internal_name(d), 0);
@@ -4924,16 +4931,24 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 				if (!device_name[0])
 					break;
 
-				if (d == 0) {
-					settings_add_string(hdlg, IDC_COMBO_ISAMEM_1 + c, win_get_string(IDS_2103));
-					settings_set_cur_sel(hdlg, IDC_COMBO_ISAMEM_1 + c, 0);
-				} else
-					settings_add_string(hdlg, IDC_COMBO_ISAMEM_1 + c, (LPARAM) device_name);
+				dev = isamem_get_device(d);
+				if (device_is_valid(dev, temp_machine)) {
+					if (d == 0) {
+						settings_add_string(hdlg, IDC_COMBO_ISAMEM_1 + c, win_get_string(IDS_2103));
+						settings_set_cur_sel(hdlg, IDC_COMBO_ISAMEM_1 + c, 0);
+					} else
+						settings_add_string(hdlg, IDC_COMBO_ISAMEM_1 + c, (LPARAM) device_name);
+					settings_list_to_device[0][e] = d;
+					if (d == temp_isamem[c])
+						settings_set_cur_sel(hdlg, IDC_COMBO_ISAMEM_1 + c, e);
+					e++;
+				}
 			}
-			settings_set_cur_sel(hdlg, IDC_COMBO_ISAMEM_1 + c, temp_isamem[c]);
-			settings_enable_window(hdlg, IDC_CONFIGURE_ISAMEM_1 + c, temp_isamem[c] != 0);
+			settings_enable_window(hdlg, IDC_COMBO_ISAMEM_1 + c, machine_has_bus(temp_machine, MACHINE_BUS_ISA));
+			settings_enable_window(hdlg, IDC_CONFIGURE_ISAMEM_1 + c, ((temp_isamem[c] != 0) && machine_has_bus(temp_machine, MACHINE_BUS_ISA)));
 		}
 
+		settings_enable_window(hdlg, IDC_CHECK_BUGGER, machine_has_bus(temp_machine, MACHINE_BUS_ISA));
 		settings_set_check(hdlg, IDC_CHECK_BUGGER, temp_bugger);
 		settings_set_check(hdlg, IDC_CHECK_POSTCARD, temp_postcard);
 
@@ -4957,21 +4972,23 @@ win_settings_peripherals_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lPa
 			case IDC_COMBO_ISAMEM_1: case IDC_COMBO_ISAMEM_2:
 			case IDC_COMBO_ISAMEM_3: case IDC_COMBO_ISAMEM_4:
 				c = LOWORD(wParam) - IDC_COMBO_ISAMEM_1;
-				temp_isamem[c] = settings_get_cur_sel(hdlg, LOWORD(wParam));
+				temp_isamem[c] = settings_list_to_device[0][settings_get_cur_sel(hdlg, LOWORD(wParam))];
 				settings_enable_window(hdlg, IDC_CONFIGURE_ISAMEM_1 + c, temp_isamem[c] != 0);
 				break;
 
 			case IDC_CONFIGURE_ISAMEM_1: case IDC_CONFIGURE_ISAMEM_2:
 			case IDC_CONFIGURE_ISAMEM_3: case IDC_CONFIGURE_ISAMEM_4:
 				c = LOWORD(wParam) - IDC_CONFIGURE_ISAMEM_1;
-				dev = isamem_get_device(temp_isamem[c]);
-				temp_deviceconfig |= deviceconfig_inst_open(hdlg, (void *)dev, c + 1);
+				temp_deviceconfig |= deviceconfig_inst_open(hdlg, (void *)isamem_get_device(temp_isamem[c]), c + 1);
 				break;
 		}
 		return FALSE;
 
 	case WM_SAVESETTINGS:
 		temp_isartc = settings_list_to_device[1][settings_get_cur_sel(hdlg, IDC_COMBO_ISARTC)];
+		for (c = 0; c < ISAMEM_MAX; c++) {
+			temp_isamem[c] = settings_list_to_device[0][settings_get_cur_sel(hdlg, IDC_COMBO_ISAMEM_1 + c)];
+		}
 		temp_bugger = settings_get_check(hdlg, IDC_CHECK_BUGGER);
 		temp_postcard = settings_get_check(hdlg, IDC_CHECK_POSTCARD);
 

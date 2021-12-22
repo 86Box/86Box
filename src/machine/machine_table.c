@@ -448,7 +448,7 @@ const machine_t machines[] = {
     { "[SiS 496] Rise Computer R418",		"r418",			MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 261120, 1024, 255,		 machine_at_r418_init, NULL			},
     /* This has a Holtek KBC and the BIOS does not send a single non-standard KBC command, so it
        must be an ASIC that clones the standard IBM PS/2 KBC. */
-    { "[SiS 496] Soyo 4SA2",			"4sa2",			MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, CPU_BLOCK(CPU_i486SX, CPU_i486DX, CPU_Am486SX, CPU_Am486DX), 0, 0, 0, 0, 0, 0,			MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 261120, 1024, 255,		 machine_at_4sa2_init, NULL			},
+    { "[SiS 496] Soyo 4SAW2",			"4saw2",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, CPU_BLOCK(CPU_i486SX, CPU_i486DX, CPU_Am486SX, CPU_Am486DX), 0, 0, 0, 0, 0, 0,			MACHINE_PCIV | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024, 261120, 1024, 255,		machine_at_4saw2_init, NULL			},
     /* According to MrKsoft, his real 4DPS has an AMIKey-2, which is an updated version
        of type 'H'. */
     { "[SiS 496] Zida Tomato 4DP",		"4dps",			MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024, 261120, 1024, 255,		 machine_at_4dps_init, NULL			},
@@ -922,7 +922,7 @@ const machine_t machines[] = {
     /* Miscellaneous/Fake/Hypervisor machines */
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440BX] Microsoft Virtual PC 2007",	"vpc2007",		MACHINE_TYPE_MISC,		CPU_PKG_SLOT1, CPU_BLOCK(CPU_PENTIUM2, CPU_CYRIX3S), 0, 0, 0, 0, 0, 0,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192,1048576, 8192, 255,	      machine_at_vpc2007_init, NULL			},
+    { "[i440BX] Microsoft Virtual PC 2007",	"vpc2007",		MACHINE_TYPE_MISC,		CPU_PKG_SLOT1, CPU_BLOCK(CPU_PENTIUM2, CPU_CYRIX3S), 0, 66666667, 0, 0, 0, 0,					MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192,1048576, 8192, 255,	      machine_at_vpc2007_init, NULL			},
 
     { NULL,					NULL,			MACHINE_TYPE_NONE,		0, 0, 0, 0, 0, 0, 0, 0,												0,										    0,      0,    0,   0,				 NULL, NULL			}
 };

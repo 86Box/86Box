@@ -573,7 +573,7 @@ ui_sb_update_panes(void)
     for (i=0; i<CDROM_NUM; i++) {
 	/* Could be Internal or External IDE.. */
 	if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) &&
-	    !ide_int && memcmp(hdc_name, "ide", 3))
+	    !ide_int && memcmp(hdc_name, "xtide", 5) && memcmp(hdc_name, "ide", 3))
 		continue;
 
 	if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !scsi_int &&
@@ -586,7 +586,7 @@ ui_sb_update_panes(void)
     for (i=0; i<ZIP_NUM; i++) {
 	/* Could be Internal or External IDE.. */
 	if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) &&
-	    !ide_int && memcmp(hdc_name, "ide", 3))
+	    !ide_int && memcmp(hdc_name, "xtide", 5) && memcmp(hdc_name, "ide", 3))
 		continue;
 
 	if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && !scsi_int &&
@@ -599,7 +599,7 @@ ui_sb_update_panes(void)
     for (i=0; i<MO_NUM; i++) {
 	/* Could be Internal or External IDE.. */
 	if ((mo_drives[i].bus_type == MO_BUS_ATAPI) &&
-	    !ide_int && memcmp(hdc_name, "ide", 3))
+	    !ide_int && memcmp(hdc_name, "xtide", 5) && memcmp(hdc_name, "ide", 3))
 		continue;
 
 	if ((mo_drives[i].bus_type == MO_BUS_SCSI) && !scsi_int &&
@@ -666,7 +666,7 @@ ui_sb_update_panes(void)
     for (i=0; i<CDROM_NUM; i++) {
 	/* Could be Internal or External IDE.. */
 	if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) &&
-	    !ide_int && memcmp(hdc_name, "ide", 3))
+	    !ide_int && memcmp(hdc_name, "xtide", 5) && memcmp(hdc_name, "ide", 3))
 		continue;
 	if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !scsi_int &&
 	    (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -683,7 +683,7 @@ ui_sb_update_panes(void)
     for (i=0; i<ZIP_NUM; i++) {
 	/* Could be Internal or External IDE.. */
 	if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) &&
-	    !ide_int && memcmp(hdc_name, "ide", 3))
+	    !ide_int && memcmp(hdc_name, "xtide", 5) && memcmp(hdc_name, "ide", 3))
 		continue;
 	if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && !scsi_int &&
 	    (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -700,7 +700,7 @@ ui_sb_update_panes(void)
     for (i=0; i<MO_NUM; i++) {
 	/* Could be Internal or External IDE.. */
 	if ((mo_drives[i].bus_type == MO_BUS_ATAPI) &&
-	    !ide_int && memcmp(hdc_name, "ide", 3))
+	    !ide_int && memcmp(hdc_name, "xtide", 5) && memcmp(hdc_name, "ide", 3))
 		continue;
 	if ((mo_drives[i].bus_type == MO_BUS_SCSI) && !scsi_int &&
 	    (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
