@@ -235,7 +235,6 @@ typedef struct {
     uint32_t	cesr;			/* 0x00000011 */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t	ecx17;			/* 0x00000017 - Only on Pentium II Deschutes */
     uint64_t	apic_base;		/* 0x0000001b - Should the Pentium not also have this? */
     uint64_t	ecx79;			/* 0x00000079 */
 
@@ -260,6 +259,9 @@ typedef struct {
     uint16_t	sysenter_cs;		/* 0x00000174 - SYSENTER/SYSEXIT MSR's */
     uint32_t	sysenter_esp;		/* 0x00000175 - SYSENTER/SYSEXIT MSR's */
     uint32_t	sysenter_eip;		/* 0x00000176 - SYSENTER/SYSEXIT MSR's */
+
+    /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
+    uint64_t	mcg_ctl;		/* 0x0000017b - Machine Check Architecture */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
     uint64_t	ecx186, ecx187;		/* 0x00000186, 0x00000187 */
@@ -288,10 +290,7 @@ typedef struct {
     uint64_t    ecx19d;         /* 0x0000019d */
 
     /* Pentium Pro, Pentium II Klamath, and Pentium II Deschutes MSR's */
-    uint64_t	ecx404;			/* 0x00000404 - Model Identification MSR's used by some Acer BIOSes */
-    uint64_t	ecx408;			/* 0x00000408 */
-    uint64_t	ecx40c;			/* 0x0000040c */
-    uint64_t	ecx410;			/* 0x00000410 */
+    uint64_t	mca_ctl[5];		/* 0x00000400, 0x00000404, 0x00000408, 0x0000040c, 0x00000410 - Machine Check Architecture */
     uint64_t	ecx570;			/* 0x00000570 */
 
     /* IBM 386SLC, 486SLC, and 486BL MSR's */

@@ -24,13 +24,50 @@ project(86Box
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
 
-if(WIN32 AND VCPKG_TOOLCHAIN)
-    if(VCPKG_TARGET_TRIPLET MATCHES "-windows-static$")
-        # `-static` triplet, use the statically linked CRT
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+include(CPack)
+include(CMakeDependentOption)
+
+# Basic build options
+if(WIN32)
+    if(VCPKG_TOOLCHAIN)
+        # For vcpkg builds we have to respect the linking method used by the
+        # specified triplet.
+        set(NO_STATIC_OPTION ON)
+        if(VCPKG_TARGET_TRIPLET MATCHES "-windows-static$")
+            # `-static` triplet, use static linking
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+            set(STATIC_BUILD ON)
+        elseif(VCPKG_TARGET_TRIPLET MATCHES "-windows-static-md$")
+            # `-static-md` triplet, use static linking with dynamic CRT
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+            set(STATIC_BUILD ON)
+        elseif()
+            # Regular triplet, use dynamic linking
+            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+            set(STATIC_BUILD OFF)
+        endif()
+    endif()
+
+    # Prefer static builds on Windows
+    set(PREFER_STATIC ON)
+
+    # Default value for the `WIN32` target property, which specifies whether
+    # to build the application for the Windows GUI or console subsystem
+    option(CMAKE_WIN32_EXECUTABLE "Build a Windows GUI executable" ON)
+else()
+    # Prefer dynamic builds everywhere else
+    set(PREFER_STATIC OFF)
+endif()
+
+if(APPLE)
+    option(CMAKE_MACOSX_BUNDLE "Build a macOS bundle (.app)" ON)
+endif()
+
+if(NOT NO_STATIC_OPTION)
+    if(PREFER_STATIC)
+        option(STATIC_BUILD "Static build" ON)
     else()
-        # Regular triplet (or `-static-md`), use the dynamically linked CRT
-        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+        option(STATIC_BUILD "Static build" OFF)
     endif()
 endif()
 
@@ -41,10 +78,6 @@ string(REPLACE "ARCH " "" ARCH "${ARCH}")
 if (NOT ARCH)
     set(ARCH unknown)
 endif()
-
-include(CPack)
-
-include(CMakeDependentOption)
 
 add_compile_definitions(CMAKE)
 add_compile_definitions("$<$<CONFIG:Debug>:DEBUG>")
@@ -73,7 +106,6 @@ option(FLUIDSYNTH   "FluidSynth"                                                
 option(MUNT         "MUNT"                                                          ON)
 option(VRAMDUMP     "Video RAM dumping"                                             OFF)
 option(DINPUT       "DirectInput"                                                   OFF)
-option(DISCORD      "Discord integration"                                           ON)
 option(CPPTHREADS   "C++11 threads"                                                 ON)
 option(NEW_DYNAREC  "Use the PCem v15 (\"new\") dynamic recompiler"                 OFF)
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library"    OFF)
@@ -86,24 +118,16 @@ option(DEV_BRANCH   "Development branch"                                        
 cmake_dependent_option(AMD_K5       "AMD K5"                                        ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(CYRIX_6X86   "Cyrix 6x86"                                    ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(GUSMAX       "Gravis UltraSound MAX"                         ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(HEDAKA       "Hedaka HED-919"                                ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(I450KX       "Intel i450KX"                                  ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(LASERXT      "VTech Laser XT"                                ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(MGA          "Matrox Mystique graphics adapters"             ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(NO_SIO       "Machines without emulated Super I/O chips"     ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(OLIVETTI     "Olivetti M290"                                 ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(OPEN_AT      "OpenAT"                                        ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(OPENGL       "OpenGL 3.0 Core renderer"                      ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(PAS16        "Pro Audio Spectrum 16"                         OFF     "DEV_BRANCH"    OFF)
-cmake_dependent_option(PS2M70T4     "IBM PS/2 model 70 (type 4)"                    ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(S3TRIO3D2X   "S3 Trio3D/2X"                                  ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(SIO_DETECT   "Super I/O Detection Helper"                    ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(M154X        "ALi ALADDiN IV"                                ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(M6117        "ALi M6117"                                     ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(VGAWONDER    "ATI VGA Wonder (ATI-18800)"                    ON      "DEV_BRANCH"    OFF)
 cmake_dependent_option(VNC          "VNC renderer"                                  OFF     "DEV_BRANCH"    OFF)
 cmake_dependent_option(XL24         "ATI VGA Wonder XL24 (ATI-28800-6)"             ON      "DEV_BRANCH"    OFF)
-cmake_dependent_option(VECT486VL    "HP Vectra 486VL"                               ON      "DEV_BRANCH"    OFF)
 
 # Determine the build type
 set(RELEASE_BUILD   OFF)

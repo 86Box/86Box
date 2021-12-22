@@ -1586,6 +1586,10 @@ plat_pause(int p)
 	ui_window_title(oldtitle);
     }
 
+    /* If un-pausing, synchronize the internal clock with the host's time. */
+    if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
+	nvr_time_sync();
+
     dopause = p;
 
     /* Update the actual menu. */
