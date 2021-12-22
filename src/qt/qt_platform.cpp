@@ -54,6 +54,8 @@ extern "C" {
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/gameport.h>
+#include <86box/timer.h>
+#include <86box/nvr.h>
 #include <86box/plat_dynld.h>
 #include <86box/config.h>
 #include <86box/ui.h>
@@ -327,6 +329,9 @@ plat_pause(int p)
 {
     static wchar_t oldtitle[512];
     wchar_t title[512];
+
+    if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
+    nvr_time_sync();
 
     dopause = p;
     if (p) {

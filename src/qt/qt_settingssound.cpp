@@ -169,7 +169,7 @@ void SettingsSound::on_comboBoxMidiOut_currentIndexChanged(int index) {
         return;
     }
     ui->pushButtonConfigureMidiOut->setEnabled(midi_device_has_config(ui->comboBoxMidiOut->currentData().toInt()));
-    ui->checkBoxMPU401->setEnabled(allowMpu401(ui));
+    ui->checkBoxMPU401->setEnabled(allowMpu401(ui) && (machine_has_bus(machineId, MACHINE_BUS_ISA) || machine_has_bus(machineId, MACHINE_BUS_MCA)));
     ui->pushButtonConfigureMPU401->setEnabled(allowMpu401(ui) && ui->checkBoxMPU401->isChecked());
 }
 
@@ -182,7 +182,7 @@ void SettingsSound::on_comboBoxMidiIn_currentIndexChanged(int index) {
         return;
     }
     ui->pushButtonConfigureMidiIn->setEnabled(midi_in_device_has_config(ui->comboBoxMidiIn->currentData().toInt()));
-    ui->checkBoxMPU401->setEnabled(allowMpu401(ui));
+    ui->checkBoxMPU401->setEnabled(allowMpu401(ui) && (machine_has_bus(machineId, MACHINE_BUS_ISA) || machine_has_bus(machineId, MACHINE_BUS_MCA)));
     ui->pushButtonConfigureMPU401->setEnabled(allowMpu401(ui) && ui->checkBoxMPU401->isChecked());
 }
 
