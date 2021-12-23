@@ -252,7 +252,7 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->actionChange_contrast_for_monochrome_display->setChecked(true);
     }
 
-#ifdef Q_OS_WINDOWS
+#if defined Q_OS_WINDOWS || defined Q_OS_MACOS
     /* Make the option visible only if ANGLE is loaded. */
     ui->actionHardware_Renderer_OpenGL_ES->setVisible(QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES);
 #endif
