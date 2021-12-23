@@ -16,6 +16,10 @@ public:
     ~SettingsOtherPeripherals();
 
     void save();
+
+public slots:
+    void onCurrentMachineChanged(int machineId);
+
 private slots:
     void on_pushButtonConfigureCard4_clicked();
     void on_comboBoxCard4_currentIndexChanged(int index);
@@ -30,6 +34,7 @@ private slots:
 
 private:
     Ui::SettingsOtherPeripherals *ui;
+    int machineId{0};
 };
 
 #endif // QT_SETTINGSOTHERPERIPHERALS_HPP

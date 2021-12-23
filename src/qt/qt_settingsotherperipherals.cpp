@@ -4,6 +4,7 @@
 extern "C" {
 #include <86box/86box.h>
 #include <86box/device.h>
+#include <86box/machine.h>
 #include <86box/isamem.h>
 #include <86box/isartc.h>
 }
@@ -16,9 +17,18 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent) :
     ui(new Ui::SettingsOtherPeripherals)
 {
     ui->setupUi(this);
+    onCurrentMachineChanged(machine);
+}
+
+void SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
+{
+    this->machineId = machineId;
 
     ui->checkBoxISABugger->setChecked(bugger_enabled > 0 ? true : false);
     ui->checkBoxPOSTCard->setChecked(postcard_enabled > 0 ? true : false);
+    ui->checkBoxISABugger->setEnabled(machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->comboBoxRTC->setEnabled(machine_has_bus(machineId, MACHINE_BUS_ISA));
+    ui->pushButtonConfigureRTC->setEnabled(machine_has_bus(machineId, MACHINE_BUS_ISA));
 
     auto* model = ui->comboBoxRTC->model();
     int d = 0;
@@ -26,6 +36,10 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent) :
     while (true) {
         QString name = DeviceConfig::DeviceName(isartc_get_device(d), isartc_get_internal_name(d), 0);
         if (name.isEmpty()) {
+            break;
+        }
+
+        if (!device_is_valid(isartc_get_device(d), machineId)) {
             break;
         }
 
@@ -48,6 +62,10 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent) :
                 break;
             }
 
+            if (!device_is_valid(isamem_get_device(d), machineId)) {
+                break;
+            }
+
             int row = Models::AddEntry(model, name, d);
             if (d == isamem_type[c]) {
                 selectedRow = row;
@@ -56,6 +74,8 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent) :
         }
         cbox->setCurrentIndex(-1);
         cbox->setCurrentIndex(selectedRow);
+        cbox->setEnabled(machine_has_bus(machineId, MACHINE_BUS_ISA));
+        findChild<QPushButton*>(QString("pushButtonConfigureCard%1").arg(c + 1))->setEnabled(isamem_type[c] != 0 && machine_has_bus(machineId, MACHINE_BUS_ISA));
     }
 }
 
@@ -81,7 +101,7 @@ void SettingsOtherPeripherals::on_comboBoxRTC_currentIndexChanged(int index) {
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureRTC->setEnabled(index != 0);
+    ui->pushButtonConfigureRTC->setEnabled(index != 0 && machine_has_bus(machineId, MACHINE_BUS_ISA));
 }
 
 void SettingsOtherPeripherals::on_pushButtonConfigureRTC_clicked() {
@@ -92,7 +112,7 @@ void SettingsOtherPeripherals::on_comboBoxCard1_currentIndexChanged(int index) {
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureCard1->setEnabled(index != 0);
+    ui->pushButtonConfigureCard1->setEnabled(index != 0 && machine_has_bus(machineId, MACHINE_BUS_ISA));
 }
 
 void SettingsOtherPeripherals::on_pushButtonConfigureCard1_clicked() {
@@ -103,7 +123,7 @@ void SettingsOtherPeripherals::on_comboBoxCard2_currentIndexChanged(int index) {
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureCard2->setEnabled(index != 0);
+    ui->pushButtonConfigureCard2->setEnabled(index != 0 && machine_has_bus(machineId, MACHINE_BUS_ISA));
 }
 
 void SettingsOtherPeripherals::on_pushButtonConfigureCard2_clicked() {
@@ -114,7 +134,7 @@ void SettingsOtherPeripherals::on_comboBoxCard3_currentIndexChanged(int index) {
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureCard3->setEnabled(index != 0);
+    ui->pushButtonConfigureCard3->setEnabled(index != 0 && machine_has_bus(machineId, MACHINE_BUS_ISA));
 }
 
 void SettingsOtherPeripherals::on_pushButtonConfigureCard3_clicked() {
@@ -125,7 +145,7 @@ void SettingsOtherPeripherals::on_comboBoxCard4_currentIndexChanged(int index) {
     if (index < 0) {
         return;
     }
-    ui->pushButtonConfigureCard4->setEnabled(index != 0);
+    ui->pushButtonConfigureCard4->setEnabled(index != 0 && machine_has_bus(machineId, MACHINE_BUS_ISA));
 }
 
 void SettingsOtherPeripherals::on_pushButtonConfigureCard4_clicked() {

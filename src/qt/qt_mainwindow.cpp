@@ -57,6 +57,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
+    statusBar()->setStyleSheet("QStatusBar::item {border: None;}");
 
     this->setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
 
@@ -252,8 +253,8 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 
 #ifdef Q_OS_WINDOWS
-    /* qt opengles doesn't work (yet?) so hide the menu option */
-    ui->actionHardware_Renderer_OpenGL_ES->setVisible(false);
+    /* Make the option visible only if ANGLE is loaded. */
+    ui->actionHardware_Renderer_OpenGL_ES->setVisible(QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES);
 #endif
 
     setFocusPolicy(Qt::StrongFocus);
@@ -890,10 +891,11 @@ uint16_t x11_keycode_to_keysym(uint32_t keycode)
 
 void MainWindow::on_actionFullscreen_triggered() {
     if (video_fullscreen > 0) {
+        showNormal();
         ui->menubar->show();
         ui->statusbar->show();
-        showNormal();
         video_fullscreen = 0;
+        setGeometry(geometry());
     } else {
         ui->menubar->hide();
         ui->statusbar->hide();

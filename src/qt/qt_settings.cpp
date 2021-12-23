@@ -112,6 +112,7 @@ Settings::Settings(QWidget *parent) :
     connect(machine, &SettingsMachine::currentMachineChanged, sound, &SettingsSound::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, network, &SettingsNetwork::onCurrentMachineChanged);
     connect(machine, &SettingsMachine::currentMachineChanged, storageControllers, &SettingsStorageControllers::onCurrentMachineChanged);
+    connect(machine, &SettingsMachine::currentMachineChanged, otherPeripherals, &SettingsOtherPeripherals::onCurrentMachineChanged);
 
     connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this, [this](const QModelIndex &current, const QModelIndex &previous) {
         ui->stackedWidget->setCurrentIndex(current.row());
