@@ -21,9 +21,9 @@ BEGIN
         MENUITEM "将右 CTRL 键映射为左 ALT 键(&R)",	IDM_ACTION_RCTRL_IS_LALT
         MENUITEM SEPARATOR
         MENUITEM "硬重置(&H)...",                 IDM_ACTION_HRESET
-        MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",     IDM_ACTION_RESET_CAD
+        MENUITEM "Ctrl+Alt+Del(&C)\tCtrl+F12",     IDM_ACTION_RESET_CAD
         MENUITEM SEPARATOR
-	MENUITEM "Ctrl+Alt+&Esc",		IDM_ACTION_CTRL_ALT_ESC
+	MENUITEM "Ctrl+Alt+Esc(&E)",		IDM_ACTION_CTRL_ALT_ESC
         MENUITEM SEPARATOR
         MENUITEM "暂停(&P)",                      IDM_ACTION_PAUSE
         MENUITEM SEPARATOR
@@ -34,14 +34,14 @@ BEGIN
         MENUITEM "隐藏状态栏(&H)",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM SEPARATOR
         MENUITEM "窗口尺寸可调(&R)",          IDM_VID_RESIZE
-        MENUITEM "记忆窗口尺寸和位置(&e)",  IDM_VID_REMEMBER
+        MENUITEM "记忆窗口尺寸和位置(&E)",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
         POPUP "渲染器(&N)"
         BEGIN
-            MENUITEM "&SDL (软件)",         IDM_VID_SDL_SW
-            MENUITEM "SDL (硬件 &H)",         IDM_VID_SDL_HW
-            MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
-            MENUITEM "Open&GL (3.0 Core)",      IDM_VID_OPENGL_CORE
+            MENUITEM "SDL (软件)(&S)",         IDM_VID_SDL_SW
+            MENUITEM "SDL (硬件)(&H)",         IDM_VID_SDL_HW
+            MENUITEM "SDL (OpenGL)(&O)",           IDM_VID_SDL_OPENGL
+            MENUITEM "OpenGL (3.0 Core)(&G)",      IDM_VID_OPENGL_CORE
 #ifdef USE_VNC
             MENUITEM "VNC(&V)",                    IDM_VID_VNC
 #endif
@@ -67,11 +67,11 @@ BEGIN
         POPUP "全屏拉伸模式(&S)"
         BEGIN
             MENUITEM "全屏拉伸(&F)",        IDM_VID_FS_FULL
-            MENUITEM "4:3(&$)",                        IDM_VID_FS_43
+            MENUITEM "4:3(&4)",                        IDM_VID_FS_43
             MENUITEM "保持比例(&S)", IDM_VID_FS_KEEPRATIO
             MENUITEM "整数倍放大(&I)",              IDM_VID_FS_INT
         END
-        POPUP "E&GA/(S)VGA 设置"
+        POPUP "EGA/(S)VGA 设置(&G)"
         BEGIN
             MENUITEM "VGA 显示器反色显示(&I)",   IDM_VID_INVERT
             POPUP "VGA 屏幕类型(&T)"
@@ -82,7 +82,7 @@ BEGIN
                 MENUITEM "绿色单色显示器(&G)",      IDM_VID_GRAY_GREEN
                 MENUITEM "白色单色显示器(&W)",      IDM_VID_GRAY_WHITE
             END
-            POPUP "灰度转换类型(&c)"
+            POPUP "灰度转换类型(&C)"
             BEGIN
                 MENUITEM "BT601 (NTSC/PAL)(&6)",   IDM_VID_GRAYCT_601
                 MENUITEM "BT709 (HDTV)(&7)",       IDM_VID_GRAYCT_709
