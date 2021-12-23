@@ -315,8 +315,8 @@ compaq_cga_poll(void *p)
 				compaq_cga_log("Lastline %i Firstline %i  %i\n", self->cga.lastline,
 					       self->cga.firstline ,self->cga.lastline - self->cga.firstline);
 
-				if (self->cga.cgamode & 1)	x = (self->cga.crtc[1] << 3);
-				else				x = (self->cga.crtc[1] << 4);
+				if (self->cga.cgamode & 1)	x = (self->cga.crtc[1] << 3) + 16;
+				else				x = (self->cga.crtc[1] << 4) + 16;
 
 				self->cga.lastline++;
 
