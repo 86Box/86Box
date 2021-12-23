@@ -24,6 +24,7 @@ class HardwareRenderer : public QOpenGLWindow, protected QOpenGLFunctions, publi
 private:
     bool wayland = false;
     QWidget* parentWidget{nullptr};
+    QOpenGLContext* m_context;
 public:
     void resizeGL(int w, int h) override;
     void initializeGL() override;
@@ -34,6 +35,9 @@ public:
         setMinimumSize(QSize(16, 16));
         setFlags(Qt::FramelessWindowHint);
         parentWidget = parent;
+
+        m_context = new QOpenGLContext();
+        m_context->create();
     }
     ~HardwareRenderer()
     {

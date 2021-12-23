@@ -14,6 +14,7 @@ void HardwareRenderer::resizeGL(int w, int h)
 
 void HardwareRenderer::initializeGL()
 {
+    m_context->makeCurrent(this);
     initializeOpenGLFunctions();
 }
 
@@ -44,6 +45,7 @@ void HardwareRenderer::onBlit(const std::unique_ptr<uint8_t>* img, int x, int y,
 
 void HardwareRenderer::resizeEvent(QResizeEvent *event) {
     onResize(width(), height());
+    
     QOpenGLWindow::resizeEvent(event);
 }
 
