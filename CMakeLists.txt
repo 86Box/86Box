@@ -129,7 +129,6 @@ cmake_dependent_option(VGAWONDER    "ATI VGA Wonder (ATI-18800)"                
 cmake_dependent_option(VNC          "VNC renderer"                                  OFF     "DEV_BRANCH"    OFF)
 cmake_dependent_option(XL24         "ATI VGA Wonder XL24 (ATI-28800-6)"             ON      "DEV_BRANCH"    OFF)
 
-<<<<<<< HEAD
 option(MINITRACE "Enable Chrome tracing using the modified minitrace library" OFF)
 
 option(DEV_BRANCH "Development branch" OFF)
@@ -155,12 +154,10 @@ CMAKE_DEPENDENT_OPTION(VGAWONDER "ATI VGA Wonder (ATI-18800)" ON "DEV_BRANCH" OF
 CMAKE_DEPENDENT_OPTION(VNC "VNC renderer" ON "DEV_BRANCH" OFF)
 CMAKE_DEPENDENT_OPTION(XL24 "ATI VGA Wonder XL24 (ATI-28800-6)" ON "DEV_BRANCH" OFF)
 CMAKE_DEPENDENT_OPTION(VECT486VL "HP Vectra 486VL" ON "DEV_BRANCH" OFF)
-=======
 # Determine the build type
 set(RELEASE_BUILD   OFF)
 set(BETA_BUILD      OFF)
 set(ALPHA_BUILD     OFF)
->>>>>>> 3f576ce6cab525e555cbda55221f7714a25d9e8e
 
 string(TOLOWER "${BUILD_TYPE}" BUILD_TYPE_LOWER)
 if(BUILD_TYPE_LOWER STREQUAL "release")
