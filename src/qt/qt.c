@@ -27,9 +27,17 @@ wchar_t* plat_get_string(int i)
     case IDS_2077:
         return L"Click to capture mouse.";
     case IDS_2078:
+#ifdef _WIN32
+        return L"Press F8+F12 to release mouse";
+#else
         return L"Press CTRL-END to release mouse";
+#endif
     case IDS_2079:
+#ifdef _WIN32
+        return L"Press F8+F12 or middle button to release mouse";
+#else
         return L"Press CTRL-END or middle button to release mouse";
+#endif
     case IDS_2080:
         return L"Failed to initialize FluidSynth";
     case IDS_4099:
