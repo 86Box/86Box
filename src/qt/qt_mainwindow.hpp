@@ -115,6 +115,9 @@ private:
     
     /* If main window should send keyboard input */
     bool send_keyboard_input = true;
+    bool shownonce = false;
+
+    friend class SpecifyDimensions;
 };
 
 #endif // QT_MAINWINDOW_HPP

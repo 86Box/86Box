@@ -60,6 +60,8 @@ MainWindow::MainWindow(QWidget *parent) :
     statusBar()->setStyleSheet("QStatusBar::item {border: None;}");
 
     this->setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
+    this->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, vid_resize != 1);
+    this->setWindowFlag(Qt::WindowMaximizeButtonHint, vid_resize == 1);
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
@@ -284,7 +286,6 @@ void MainWindow::closeEvent(QCloseEvent *event) {
             event->ignore();
             return;
         }
-        config_save();
     }
     if (window_remember) {
         window_w = ui->stackedWidget->width();
@@ -294,6 +295,7 @@ void MainWindow::closeEvent(QCloseEvent *event) {
             window_y = this->geometry().y();
         }
     }
+    config_save();
     event->accept();
 }
 
@@ -302,8 +304,10 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::showEvent(QShowEvent *event) {
+    if (shownonce) return;
+    shownonce = true;
     if (window_remember && !QApplication::platformName().contains("wayland")) {
-        setGeometry(window_x, window_y, window_w, window_h);
+        setGeometry(window_x, window_y, window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()));
     }
     if (vid_resize == 2) {
         setFixedSize(fixed_size_x, fixed_size_y + this->menuBar()->height() + this->statusBar()->height());
@@ -1034,10 +1038,16 @@ void MainWindow::focusOutEvent(QFocusEvent* event)
 void MainWindow::on_actionResizable_window_triggered(bool checked) {
     if (checked) {
         vid_resize = 1;
+        setWindowFlag(Qt::WindowMaximizeButtonHint);
+        setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, false);
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
     } else {
         vid_resize = 0;
+        setWindowFlag(Qt::WindowMaximizeButtonHint, false);
+        setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
     }
+    show();
+
     ui->menuWindow_scale_factor->setEnabled(! checked);
     emit resizeContents(scrnsz_x, scrnsz_y);
 }

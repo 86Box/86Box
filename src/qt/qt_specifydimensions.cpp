@@ -2,9 +2,11 @@
 #include "ui_qt_specifydimensions.h"
 
 #include "qt_mainwindow.hpp"
+#include "ui_qt_mainwindow.h"
 
 #include <QStatusBar>
 #include <QMenuBar>
+#include <QTimer>
 
 extern "C"
 {
@@ -38,14 +40,18 @@ void SpecifyDimensions::on_SpecifyDimensions_accepted()
     if (ui->checkBox->isChecked())
     {
         vid_resize = 2;
+        main_window->setWindowFlag(Qt::WindowMaximizeButtonHint, false);
+        main_window->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
         window_remember = 0;
         fixed_size_x = ui->spinBoxWidth->value();
         fixed_size_y = ui->spinBoxHeight->value();
         main_window->setFixedSize(ui->spinBoxWidth->value(), ui->spinBoxHeight->value() + (hide_status_bar ? main_window->statusBar()->height() : 0) + main_window->menuBar()->height());
         emit main_window->updateMenuResizeOptions();
+        main_window->show();
     }
     else
     {
+        if (vid_resize != 1) main_window->ui->actionResizable_window->trigger();
         vid_resize = 0;
         window_remember = 1;
         window_w = ui->spinBoxWidth->value();
@@ -55,6 +61,7 @@ void SpecifyDimensions::on_SpecifyDimensions_accepted()
         vid_resize = 1;
         emit main_window->updateMenuResizeOptions();
     }
+    main_window->show();
     emit main_window->updateWindowRememberOption();
 }
 
