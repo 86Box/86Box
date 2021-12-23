@@ -1,26 +1,5 @@
 86Box
 =====
-**This Branch:** I've added initial Qt support to 86Box because I wanted to
-have the configuration dialogs available on Linux, similar to what was
-available on PCem.
-
-This is work-in-progress!
-
-Implemented
------------
-* The settings dialog
-* Full screen switching
-* Keyboard and mouse 
-* Status updates (activity lights)
-
-TODO
-----
-* Emulation state and updates (titlebar in windows)
-* Display output options (like forced 4:3)
-* Entering full screen from within the emulated screen
-
-Original Readme
-===============
 **86Box** is a low level x86 emulator that runs older operating systems and software designed for IBM PC systems and compatibles from 1981 through fairly recent system designs based on the PCI bus.
 
 Features
