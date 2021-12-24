@@ -11,6 +11,7 @@
 #include <QFileInfo>
 #include <QTemporaryFile>
 #include <QCoreApplication>
+#include <QDateTime>
 
 #include <QLibrary>
 #include <QElapsedTimer>
@@ -283,14 +284,9 @@ plat_tempfile(char *bufp, char *prefix, char *suffix)
         name.append(QString("%1-").arg(prefix));
     }
 
-    name.append("XXXXXX");
-
-    if (suffix != nullptr) {
-        name.append(suffix);
-    }
-    QTemporaryFile temp(name);
-    QByteArray buf(bufp);
-    buf = temp.fileName().toUtf8();
+     name.append(QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzzz"));
+     if (suffix) name.append(suffix);
+     sprintf(&bufp[strlen(bufp)], "%s", name.toUtf8().data());
 }
 
 void plat_remove(char* path)
