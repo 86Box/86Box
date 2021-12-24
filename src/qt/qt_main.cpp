@@ -101,9 +101,16 @@ int main(int argc, char* argv[]) {
 #endif
     elapsed_timer.start();
 
-    pc_init(argc, argv);
+    if (!pc_init(argc, argv))
+    {
+        return 0;
+    }
     if (! pc_init_modules()) {
+#ifdef Q_OS_MACOS
+        ui_msgbox_header(MBX_FATAL, VC(L"No ROMs found."), VC(L"86Box could not find any usable ROM images.\n\nPlease <a href='https://github.com/86Box/roms/releases/latest'>download</a> a ROM set and extract it into the \"~/Library/Application Support/net.86box.86box/roms\" directory."));
+#else
         ui_msgbox_header(MBX_FATAL, VC(L"No ROMs found."), VC(L"86Box could not find any usable ROM images.\n\nPlease <a href='https://github.com/86Box/roms/releases/latest'>download</a> a ROM set and extract it into the \"roms\" directory."));
+#endif
         return 6;
     }
 
@@ -134,6 +141,7 @@ int main(int argc, char* argv[]) {
 
     /* Set the PAUSE mode depending on the renderer. */
     // plat_pause(0);
+    if (settings_only) dopause = 1;
     QTimer onesec;
     QObject::connect(&onesec, &QTimer::timeout, &app, [] {
         pc_onesec();

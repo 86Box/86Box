@@ -374,6 +374,10 @@ void MainWindow::on_actionSettings_triggered() {
         break;
     }
     plat_pause(currentPause);
+    if (settings_only) {
+        cpu_thread_run = 0;
+        close();
+    }
 }
 
 std::array<uint32_t, 256> x11_to_xt_base
@@ -1027,7 +1031,8 @@ void MainWindow::on_actionHardware_Renderer_OpenGL_ES_triggered() {
 
 void MainWindow::focusInEvent(QFocusEvent* event)
 {
-    this->grabKeyboard();
+    if (settings_only) ui->actionSettings->trigger();
+    else this->grabKeyboard();
 }
 
 void MainWindow::focusOutEvent(QFocusEvent* event)
