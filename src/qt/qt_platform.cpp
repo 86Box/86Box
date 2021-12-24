@@ -54,6 +54,8 @@ extern "C" {
 #ifdef Q_OS_WINDOWS
 #define NOMINMAX
 #include <windows.h>
+#else
+#include <strings.h>
 #endif
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -79,14 +81,20 @@ uint32_t lang_id = 0x0409, lang_sys = 0x0409; // Multilangual UI variables, for 
 
 int stricmp(const char* s1, const char* s2)
 {
-    return QByteArray(s1).compare(s2, Qt::CaseInsensitive);
+#ifdef Q_OS_WINDOWS
+    return _stricmp(s1, s2);
+#else
+    return strcasecmp(s1, s2);
+#endif
 }
 
 int strnicmp(const char *s1, const char *s2, size_t n)
 {
-    QByteArray b1(s1, std::min(strlen(s1), n));
-    QByteArray b2(s2, std::min(strlen(s2), n));
-    return b1.compare(b2, Qt::CaseInsensitive);
+#ifdef Q_OS_WINDOWS
+    return _strnicmp(s1, s2, n);
+#else
+    return strncasecmp(s1, s2, n);
+#endif
 }
 
 void

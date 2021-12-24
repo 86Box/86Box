@@ -5,6 +5,7 @@
 #if !defined(_WIN32) || !defined(__clang__)
 #include <strings.h>
 #endif
+#include <string.h>
 #include <stdint.h>
 #include <wchar.h>
 
