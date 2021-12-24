@@ -16,12 +16,15 @@
 #include <QLibrary>
 #include <QElapsedTimer>
 
+#include "qt_mainwindow.hpp"
+
 #ifdef Q_OS_UNIX
 #include <sys/mman.h>
 #endif
 
 // static QByteArray buf;
 extern QElapsedTimer elapsed_timer;
+extern MainWindow* main_window;
 QElapsedTimer elapsed_timer;
 
 static std::atomic_int blitmx_contention = 0;
@@ -355,6 +358,7 @@ plat_power_off(void)
     cycles -= 99999999;
 
     cpu_thread_run = 0;
+    main_window->close();
 }
 
 void set_language(uint32_t id) {
