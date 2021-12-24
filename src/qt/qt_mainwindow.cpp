@@ -138,6 +138,17 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionHiDPI_scaling->setChecked(dpi_scale);
     ui->actionHide_status_bar->setChecked(hide_status_bar);
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
+
+#if defined Q_OS_WINDOWS || defined Q_OS_MACOS
+    /* Make the option visible only if ANGLE is loaded. */
+    ui->actionHardware_Renderer_OpenGL_ES->setVisible(QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES);
+    if (QOpenGLContext::openGLModuleType() != QOpenGLContext::LibGLES && vid_api == 2) vid_api = 1;
+#endif
+
+    if (QApplication::platformName().contains("eglfs") && vid_api >= 1) {
+        fprintf(stderr, "OpenGL renderers are unsupported on EGLFS.\n");
+        vid_api = 0;
+    }
     QActionGroup* actGroup = nullptr;
     switch (vid_api) {
     case 0:
@@ -253,11 +264,6 @@ MainWindow::MainWindow(QWidget *parent) :
     if (vid_cga_contrast > 0) {
         ui->actionChange_contrast_for_monochrome_display->setChecked(true);
     }
-
-#if defined Q_OS_WINDOWS || defined Q_OS_MACOS
-    /* Make the option visible only if ANGLE is loaded. */
-    ui->actionHardware_Renderer_OpenGL_ES->setVisible(QOpenGLContext::openGLModuleType() == QOpenGLContext::LibGLES);
-#endif
 
     setFocusPolicy(Qt::StrongFocus);
     ui->stackedWidget->setFocusPolicy(Qt::NoFocus);
@@ -865,10 +871,11 @@ static std::array<uint32_t, 256>& selected_keycode = x11_to_xt_base;
 
 uint16_t x11_keycode_to_keysym(uint32_t keycode)
 {
+    uint16_t finalkeycode = 0;
 #if defined(Q_OS_WINDOWS)
-    return keycode & 0xFFFF;
+    finalkeycode = (keycode & 0xFFFF);
 #elif defined(__APPLE__)
-    return darwin_to_xt[keycode];
+    finalkeycode = darwin_to_xt[keycode];
 #else
     static Display* x11display = nullptr;
     if (QApplication::platformName().contains("wayland"))
@@ -878,8 +885,8 @@ uint16_t x11_keycode_to_keysym(uint32_t keycode)
     else if (QApplication::platformName().contains("eglfs"))
     {
         keycode -= 8;
-        if (keycode <= 88) return keycode;
-        else return evdev_to_xt[keycode];
+        if (keycode <= 88) finalkeycode = keycode;
+        else finalkeycode = evdev_to_xt[keycode];
     }
     else if (!x11display)
     {
@@ -893,8 +900,13 @@ uint16_t x11_keycode_to_keysym(uint32_t keycode)
             selected_keycode = x11_to_xt_vnc;
         }
     }
-    return selected_keycode[keycode];
+    if (!QApplication::platformName().contains("eglfs")) finalkeycode =  selected_keycode[keycode];
 #endif
+    if (rctrl_is_lalt && finalkeycode == 0x11D)
+    {
+        finalkeycode = 0x38;
+    }
+    return finalkeycode;
 }
 
 void MainWindow::on_actionFullscreen_triggered() {
@@ -967,7 +979,7 @@ void MainWindow::showMessage_(const QString &header, const QString &message) {
 
 void MainWindow::keyPressEvent(QKeyEvent* event)
 {
-    if (send_keyboard_input)
+    if (send_keyboard_input && !(kbd_req_capture && !mouse_capture && !video_fullscreen))
     {
 #ifdef __APPLE__
         keyboard_input(1, x11_keycode_to_keysym(event->nativeVirtualKey()));
