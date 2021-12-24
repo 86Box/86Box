@@ -27,13 +27,17 @@ if(NOT CPPTHREADS)
     target_sources(plat PRIVATE win_thread.c)
 endif()
 
-if(NOT MINGW)
+# CMake 3.22 messed this up for clang/clang++
+# See https://gitlab.kitware.com/cmake/cmake/-/issues/22611
+if(MSVC OR (NOT MINGW AND CMAKE_VERSION VERSION_GREATER_EQUAL 3.22))
     # MSVC linker adds its own manifest to the executable, which fails if
     # we include ours in 86Box.rc. We therefore need to pass the manifest
     # directly as as a source file, so the linker can use that instead.
     set_property(SOURCE 86Box.rc PROPERTY COMPILE_DEFINITIONS NO_INCLUDE_MANIFEST)
     target_sources(86Box PRIVATE 86Box.manifest)
+endif()
 
+if(NOT MINGW)
     # Append null to resource strings (fixes file dialogs)
     set_property(SOURCE 86Box.rc PROPERTY COMPILE_FLAGS -n)
 
