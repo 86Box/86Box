@@ -316,7 +316,7 @@ void MainWindow::showEvent(QShowEvent *event) {
         setGeometry(window_x, window_y, window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()));
     }
     if (vid_resize == 2) {
-        setFixedSize(fixed_size_x, fixed_size_y + this->menuBar()->height() + this->statusBar()->height());
+        setFixedSize(fixed_size_x, fixed_size_y + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()));
         scrnsz_x = fixed_size_x;
         scrnsz_y = fixed_size_y;
     }
@@ -913,10 +913,14 @@ void MainWindow::on_actionFullscreen_triggered() {
     if (video_fullscreen > 0) {
         showNormal();
         ui->menubar->show();
-        ui->statusbar->show();
+        if (!hide_status_bar) ui->statusbar->show();
         video_fullscreen = 0;
-        setGeometry(geometry());
+        if (vid_resize != 1) {
+            if (vid_resize == 2) setFixedSize(fixed_size_x, fixed_size_y + menuBar()->height() + (!hide_status_bar ? statusBar()->height() : 0));
+            emit resizeContents(scrnsz_x, scrnsz_y);
+        }
     } else {
+        setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         ui->menubar->hide();
         ui->statusbar->hide();
         showFullScreen();
@@ -1064,6 +1068,7 @@ void MainWindow::on_actionResizable_window_triggered(bool checked) {
         setWindowFlag(Qt::MSWindowsFixedSizeDialogHint);
     }
     show();
+    ui->stackedWidget->switchRenderer((RendererStack::Renderer)vid_api);
 
     ui->menuWindow_scale_factor->setEnabled(! checked);
     emit resizeContents(scrnsz_x, scrnsz_y);

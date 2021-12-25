@@ -45,14 +45,17 @@ void SpecifyDimensions::on_SpecifyDimensions_accepted()
         window_remember = 0;
         fixed_size_x = ui->spinBoxWidth->value();
         fixed_size_y = ui->spinBoxHeight->value();
-        main_window->setFixedSize(ui->spinBoxWidth->value(), ui->spinBoxHeight->value() + (hide_status_bar ? main_window->statusBar()->height() : 0) + main_window->menuBar()->height());
+        main_window->setFixedSize(ui->spinBoxWidth->value(), ui->spinBoxHeight->value() + (!hide_status_bar ? main_window->statusBar()->height() : 0) + main_window->menuBar()->height());
         emit main_window->updateMenuResizeOptions();
         main_window->show();
+        main_window->ui->stackedWidget->switchRenderer((RendererStack::Renderer)vid_api);
     }
     else
     {
-        if (vid_resize != 1) main_window->ui->actionResizable_window->trigger();
+        main_window->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        main_window->ui->actionResizable_window->setChecked(false);
         vid_resize = 0;
+        main_window->ui->actionResizable_window->trigger();
         window_remember = 1;
         window_w = ui->spinBoxWidth->value();
         window_h = ui->spinBoxHeight->value();
