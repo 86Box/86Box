@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QSurfaceFormat>
 #include <QDebug>
 #include <QElapsedTimer>
 #include <QThread>
@@ -94,6 +95,9 @@ main_thread_fn()
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
+    QSurfaceFormat fmt = QSurfaceFormat::defaultFormat();
+    fmt.setSwapInterval(0);
+    QSurfaceFormat::setDefaultFormat(fmt);
     app.setStyle(new StyleOverride());
 #ifdef __APPLE__
     CocoaEventFilter cocoafilter;

@@ -8,6 +8,9 @@ void SoftwareRenderer::paintEvent(QPaintEvent *event) {
 }
 
 void SoftwareRenderer::onBlit(const std::unique_ptr<uint8_t>* img, int x, int y, int w, int h, std::atomic_flag* in_use) {
+    auto tval = this;
+    void* nuldata = 0;
+    if (memcmp(&tval, &nuldata, sizeof(void*)) == 0) return;
     memcpy(image.bits(), img->get(), 2048 * 2048 * 4);
     in_use->clear();
     source.setRect(x, y, w, h);

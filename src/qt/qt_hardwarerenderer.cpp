@@ -16,10 +16,18 @@ void HardwareRenderer::initializeGL()
 {
     m_context->makeCurrent(this);
     initializeOpenGLFunctions();
+    m_texture = new QOpenGLTexture(image);
+    m_blt = new QOpenGLTextureBlitter;
+    m_blt->setRedBlueSwizzle(true);
+    m_blt->create();
 }
 
 void HardwareRenderer::paintGL() {
-    onPaint(this);
+    m_context->makeCurrent(this);
+    m_blt->bind();
+    QMatrix4x4 target = QOpenGLTextureBlitter::targetTransform(QRect(0, 0, 2048, 2048), source);
+    m_blt->blit(m_texture->textureId(), target, QOpenGLTextureBlitter::Origin::OriginTopLeft);
+    m_blt->release();
 }
 
 void HardwareRenderer::setRenderType(RenderType type) {
@@ -37,7 +45,11 @@ void HardwareRenderer::setRenderType(RenderType type) {
 }
 
 void HardwareRenderer::onBlit(const std::unique_ptr<uint8_t>* img, int x, int y, int w, int h, std::atomic_flag* in_use) {
-    memcpy(image.bits(), img->get(), 2048 * 2048 * 4);
+    auto tval = this;
+    void* nuldata = 0;
+    if (memcmp(&tval, &nuldata, sizeof(void*)) == 0) return;
+    m_context->makeCurrent(this);
+    m_texture->setData(QOpenGLTexture::PixelFormat::RGBA, QOpenGLTexture::PixelType::UInt8, (const void*)img->get());
     in_use->clear();
     source.setRect(x, y, w, h);
     update();

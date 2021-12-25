@@ -203,6 +203,7 @@ void RendererStack::switchRenderer(Renderer renderer) {
     current->setFocusProxy(this);
     addWidget(current.get());
 
+    this->setStyleSheet("background-color: black");
     for (auto& in_use : buffers_in_use)
         in_use.clear();
 
