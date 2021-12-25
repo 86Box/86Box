@@ -6,6 +6,7 @@
 extern "C" {
 #include <86box/86box.h>
 #include <86box/plat.h>
+#include <86box/video.h>
 }
 
 void HardwareRenderer::resizeGL(int w, int h)
@@ -79,6 +80,7 @@ void HardwareRenderer::paintGL() {
     m_prog->setAttributeArray(PROGRAM_VERTEX_ATTRIBUTE, verts.data());
     m_prog->setAttributeArray(PROGRAM_TEXCOORD_ATTRIBUTE, texcoords.data());
     m_texture->bind();
+    m_texture->setMinMagFilters(video_filter_method ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest, video_filter_method ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest);
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 }
 
