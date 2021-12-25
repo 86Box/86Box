@@ -1,5 +1,6 @@
 #include "qt_hardwarerenderer.hpp"
 #include <QApplication>
+#include <QVector2D>
 #include <atomic>
 
 extern "C" {
@@ -12,6 +13,9 @@ void HardwareRenderer::resizeGL(int w, int h)
     glViewport(0, 0, w, h);
 }
 
+#define PROGRAM_VERTEX_ATTRIBUTE 0
+#define PROGRAM_TEXCOORD_ATTRIBUTE 1
+
 void HardwareRenderer::initializeGL()
 {
     m_context->makeCurrent(this);
@@ -20,14 +24,62 @@ void HardwareRenderer::initializeGL()
     m_blt = new QOpenGLTextureBlitter;
     m_blt->setRedBlueSwizzle(true);
     m_blt->create();
+    QOpenGLShader *vshader = new QOpenGLShader(QOpenGLShader::Vertex, this);
+    const char *vsrc =
+        "attribute highp vec4 vertex;\n"
+        "attribute mediump vec4 texCoord;\n"
+        "varying mediump vec4 texc;\n"
+        "uniform mediump mat4 matrix;\n"
+        "void main(void)\n"
+        "{\n"
+        "    gl_Position = matrix * vertex;\n"
+        "    texc = texCoord;\n"
+        "}\n";
+    vshader->compileSourceCode(vsrc);
+
+    QOpenGLShader *fshader = new QOpenGLShader(QOpenGLShader::Fragment, this);
+    const char *fsrc =
+        "uniform sampler2D texture;\n"
+        "varying mediump vec4 texc;\n"
+        "void main(void)\n"
+        "{\n"
+        "    gl_FragColor = texture2D(texture, texc.st).bgra;\n"
+        "}\n";
+    fshader->compileSourceCode(fsrc);
+
+    m_prog = new QOpenGLShaderProgram;
+    m_prog->addShader(vshader);
+    m_prog->addShader(fshader);
+    m_prog->bindAttributeLocation("vertex", PROGRAM_VERTEX_ATTRIBUTE);
+    m_prog->bindAttributeLocation("texCoord", PROGRAM_TEXCOORD_ATTRIBUTE);
+    m_prog->link();
+
+    m_prog->bind();
+    m_prog->setUniformValue("texture", 0);
 }
 
 void HardwareRenderer::paintGL() {
     m_context->makeCurrent(this);
-    m_blt->bind();
-    QMatrix4x4 target = QOpenGLTextureBlitter::targetTransform(QRect(0, 0, 2048, 2048), source);
-    m_blt->blit(m_texture->textureId(), target, QOpenGLTextureBlitter::Origin::OriginTopLeft);
-    m_blt->release();
+    QVector<QVector2D> verts, texcoords;
+    QMatrix4x4 mat;
+    mat.setToIdentity();
+    mat.ortho(QRect(0, 0, width(), height()));
+    verts.push_back(QVector2D((float)destination.x(), (float)destination.y()));
+    verts.push_back(QVector2D((float)destination.x(), (float)destination.y() + destination.height()));
+    verts.push_back(QVector2D((float)destination.x() + destination.width(), (float)destination.y() + destination.height()));
+    verts.push_back(QVector2D((float)destination.x() + destination.width(), (float)destination.y()));
+    texcoords.push_back(QVector2D((float)source.x() / 2048.f, (float)(source.y()) / 2048.f));
+    texcoords.push_back(QVector2D((float)source.x() / 2048.f, (float)(source.y() + source.height()) / 2048.f));
+    texcoords.push_back(QVector2D((float)(source.x() + source.width()) / 2048.f, (float)(source.y() + source.height()) / 2048.f));
+    texcoords.push_back(QVector2D((float)(source.x() + source.width()) / 2048.f, (float)(source.y()) / 2048.f));
+
+    m_prog->setUniformValue("matrix", mat);
+    m_prog->enableAttributeArray(PROGRAM_VERTEX_ATTRIBUTE);
+    m_prog->enableAttributeArray(PROGRAM_TEXCOORD_ATTRIBUTE);
+    m_prog->setAttributeArray(PROGRAM_VERTEX_ATTRIBUTE, verts.data());
+    m_prog->setAttributeArray(PROGRAM_TEXCOORD_ATTRIBUTE, texcoords.data());
+    m_texture->bind();
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 }
 
 void HardwareRenderer::setRenderType(RenderType type) {
