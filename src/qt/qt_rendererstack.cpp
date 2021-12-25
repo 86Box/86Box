@@ -227,7 +227,7 @@ void RendererStack::blit(int x, int y, int w, int h)
 
     if (screenshots)
     {
-        video_screenshot((uint32_t *)imagebits, 0, 0, 2048);
+        video_screenshot((uint32_t *)imagebits, x, y, 2048);
     }
     video_blit_complete();
     blitToRenderer(&imagebufs[currentBuf], sx, sy, sw, sh, &buffers_in_use[currentBuf]);
