@@ -19,7 +19,7 @@ cmake_policy(SET CMP0091 NEW)
 cmake_policy(SET CMP0079 NEW)
 
 project(86Box
-    VERSION 3.1
+    VERSION 3.2
     DESCRIPTION "Emulator of x86-based systems"
     HOMEPAGE_URL "https://86box.net"
     LANGUAGES C CXX)
