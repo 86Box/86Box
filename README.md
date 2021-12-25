@@ -1,4 +1,4 @@
-86Box
+86Box [![Build Status](http://ci.86box.net/job/86Box/badge/icon)](http://ci.86box.net/job/86Box)
 =====
 **86Box** is a low level x86 emulator that runs older operating systems and software designed for IBM PC systems and compatibles from 1981 through fairly recent system designs based on the PCI bus.
 
@@ -27,15 +27,6 @@ It is also recommended to use a manager application with 86Box for easier handli
   * The traditional 86Box manager with simple interface.
 
 However, it is also possible to use 86Box on its own with the `--vmpath`/`-P` command line option.
-
-Downloads
----------
-The latest stable version of 86Box is **v3.0**, which was released on December 1, 2021, and is available from our [GitHub repository](https://github.com/86Box/86Box/releases/tag/v3.0).
-
-### Automatic builds
-We also offer automatic builds, which are built from the latest source code and contain the latest bugfixes and improvements, but may not be as stable and/or optimized as stable builds.
-
-[![Build Status](http://ci.86box.net/job/86Box/badge/icon)](http://ci.86box.net/job/86Box)
 
 Getting started
 ---------------
