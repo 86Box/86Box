@@ -11,9 +11,12 @@
 #include <QFileInfo>
 #include <QTemporaryFile>
 #include <QCoreApplication>
+#include <QDateTime>
 
 #include <QLibrary>
 #include <QElapsedTimer>
+
+#include "qt_mainwindow.hpp"
 
 #ifdef Q_OS_UNIX
 #include <sys/mman.h>
@@ -21,6 +24,7 @@
 
 // static QByteArray buf;
 extern QElapsedTimer elapsed_timer;
+extern MainWindow* main_window;
 QElapsedTimer elapsed_timer;
 
 static std::atomic_int blitmx_contention = 0;
@@ -50,6 +54,8 @@ extern "C" {
 #ifdef Q_OS_WINDOWS
 #define NOMINMAX
 #include <windows.h>
+#else
+#include <strings.h>
 #endif
 #include <86box/86box.h>
 #include <86box/device.h>
@@ -75,14 +81,20 @@ uint32_t lang_id = 0x0409, lang_sys = 0x0409; // Multilangual UI variables, for 
 
 int stricmp(const char* s1, const char* s2)
 {
-    return QByteArray(s1).compare(s2, Qt::CaseInsensitive);
+#ifdef Q_OS_WINDOWS
+    return _stricmp(s1, s2);
+#else
+    return strcasecmp(s1, s2);
+#endif
 }
 
 int strnicmp(const char *s1, const char *s2, size_t n)
 {
-    QByteArray b1(s1, std::min(strlen(s1), n));
-    QByteArray b2(s2, std::min(strlen(s2), n));
-    return b1.compare(b2, Qt::CaseInsensitive);
+#ifdef Q_OS_WINDOWS
+    return _strnicmp(s1, s2, n);
+#else
+    return strncasecmp(s1, s2, n);
+#endif
 }
 
 void
@@ -283,14 +295,9 @@ plat_tempfile(char *bufp, char *prefix, char *suffix)
         name.append(QString("%1-").arg(prefix));
     }
 
-    name.append("XXXXXX");
-
-    if (suffix != nullptr) {
-        name.append(suffix);
-    }
-    QTemporaryFile temp(name);
-    QByteArray buf(bufp);
-    buf = temp.fileName().toUtf8();
+     name.append(QDateTime::currentDateTime().toString("yyyyMMdd-hhmmss-zzzz"));
+     if (suffix) name.append(suffix);
+     sprintf(&bufp[strlen(bufp)], "%s", name.toUtf8().data());
 }
 
 void plat_remove(char* path)
@@ -359,6 +366,7 @@ plat_power_off(void)
     cycles -= 99999999;
 
     cpu_thread_run = 0;
+    main_window->close();
 }
 
 void set_language(uint32_t id) {
