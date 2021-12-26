@@ -316,8 +316,7 @@ plat_mmap(size_t size, uint8_t executable)
 #else
     void *ret = mmap(0, size, PROT_READ | PROT_WRITE | (executable ? PROT_EXEC : 0), MAP_ANON | MAP_PRIVATE, 0, 0);
 #endif
-    auto retval = *reinterpret_cast<int*>(ret);
-    return (retval < 0) ? nullptr : ret;
+    return (ret == MAP_FAILED) ? nullptr : ret;
 #endif
 }
 
