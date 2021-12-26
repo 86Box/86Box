@@ -57,6 +57,11 @@ void HardwareRenderer::initializeGL()
 
     m_prog->bind();
     m_prog->setUniformValue("texture", 0);
+
+    pclog("OpenGL vendor: %s\n", glGetString(GL_VENDOR));
+    pclog("OpenGL renderer: %s\n", glGetString(GL_RENDERER));
+    pclog("OpenGL version: %s\n", glGetString(GL_VERSION));
+    pclog("OpenGL shader language version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
 }
 
 void HardwareRenderer::paintGL() {
