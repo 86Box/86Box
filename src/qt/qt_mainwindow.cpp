@@ -30,6 +30,7 @@ extern "C" {
 #include <QUrl>
 #include <QCheckBox>
 #include <QActionGroup>
+#include <QOpenGLContext>
 
 #include <array>
 #include <unordered_map>
