@@ -37,7 +37,7 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="RendererStack" name="stackedWidget" />
+     <widget class="RendererStack" name="stackedWidget"/>
     </item>
    </layout>
   </widget>
@@ -47,7 +47,7 @@
      <x>0</x>
      <y>0</y>
      <width>724</width>
-     <height>19</height>
+     <height>22</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAction">
@@ -87,6 +87,7 @@
      <addaction name="actionSoftware_Renderer"/>
      <addaction name="actionHardware_Renderer_OpenGL"/>
      <addaction name="actionHardware_Renderer_OpenGL_ES"/>
+     <addaction name="actionOpenGL_3_0_Core"/>
     </widget>
     <widget class="QMenu" name="menuWindow_scale_factor">
      <property name="title">
@@ -511,19 +512,16 @@
     <string>Sound gain...</string>
    </property>
   </action>
+  <action name="actionOpenGL_3_0_Core">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>OpenGL 3.0 Core</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>HardwareRenderer</class>
-   <extends>QOpenGLWidget</extends>
-   <header>qt_hardwarerenderer.hpp</header>
-  </customwidget>
-  <customwidget>
-   <class>SoftwareRenderer</class>
-   <extends>QWidget</extends>
-   <header>qt_softwarerenderer.hpp</header>
-   <container>1</container>
-  </customwidget>
   <customwidget>
    <class>RendererStack</class>
    <extends>QStackedWidget</extends>

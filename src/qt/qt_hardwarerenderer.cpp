@@ -27,16 +27,36 @@ void HardwareRenderer::initializeGL()
     m_blt->create();
     QOpenGLShader *vshader = new QOpenGLShader(QOpenGLShader::Vertex, this);
     const char *vsrc =
-        "attribute highp vec4 vertex;\n"
-        "attribute mediump vec4 texCoord;\n"
+        "attribute highp vec4 VertexCoord;\n"
+        "attribute mediump vec4 TexCoord;\n"
         "varying mediump vec4 texc;\n"
-        "uniform mediump mat4 matrix;\n"
+        "uniform mediump mat4 MVPMatrix;\n"
         "void main(void)\n"
         "{\n"
-        "    gl_Position = matrix * vertex;\n"
-        "    texc = texCoord;\n"
+        "    gl_Position = MVPMatrix * VertexCoord;\n"
+        "    texc = TexCoord;\n"
         "}\n";
-    vshader->compileSourceCode(vsrc);
+    QString vsrccore =
+        "in highp vec4 VertexCoord;\n"
+        "in mediump vec4 TexCoord;\n"
+        "out mediump vec4 texc;\n"
+        "uniform mediump mat4 MVPMatrix;\n"
+        "void main(void)\n"
+        "{\n"
+        "    gl_Position = MVPMatrix * VertexCoord;\n"
+        "    texc = TexCoord;\n"
+        "}\n";
+    if (m_context->isOpenGLES() && m_context->format().version() >= qMakePair(3, 0))
+    {
+        vsrccore.prepend("#version 300 es\n");
+        vshader->compileSourceCode(vsrccore);
+    }
+    else if (m_context->format().version() >= qMakePair(3, 0) && m_context->format().profile() == QSurfaceFormat::CoreProfile)
+    {
+        vsrccore.prepend("#version 130\n");
+        vshader->compileSourceCode(vsrccore);
+    }
+    else vshader->compileSourceCode(vsrc);
 
     QOpenGLShader *fshader = new QOpenGLShader(QOpenGLShader::Fragment, this);
     const char *fsrc =
@@ -46,17 +66,46 @@ void HardwareRenderer::initializeGL()
         "{\n"
         "    gl_FragColor = texture2D(texture, texc.st).bgra;\n"
         "}\n";
-    fshader->compileSourceCode(fsrc);
+    QString fsrccore =
+        "uniform sampler2D texture;\n"
+        "in mediump vec4 texc;\n"
+        "out highp vec4 FragColor;\n"
+        "void main(void)\n"
+        "{\n"
+        "    FragColor = texture2D(texture, texc.st).bgra;\n"
+        "}\n";
+    if (m_context->isOpenGLES() && m_context->format().version() >= qMakePair(3, 0))
+    {
+        fsrccore.prepend("#version 300 es\n");
+        fshader->compileSourceCode(fsrccore);
+    }
+    else if (m_context->format().version() >= qMakePair(3, 0) && m_context->format().profile() == QSurfaceFormat::CoreProfile)
+    {
+        fsrccore.prepend("#version 130\n");
+        fshader->compileSourceCode(fsrccore);
+    }
+    else fshader->compileSourceCode(fsrc);
 
     m_prog = new QOpenGLShaderProgram;
     m_prog->addShader(vshader);
     m_prog->addShader(fshader);
-    m_prog->bindAttributeLocation("vertex", PROGRAM_VERTEX_ATTRIBUTE);
-    m_prog->bindAttributeLocation("texCoord", PROGRAM_TEXCOORD_ATTRIBUTE);
+    m_prog->bindAttributeLocation("VertexCoord", PROGRAM_VERTEX_ATTRIBUTE);
+    m_prog->bindAttributeLocation("TexCoord", PROGRAM_TEXCOORD_ATTRIBUTE);
     m_prog->link();
 
     m_prog->bind();
     m_prog->setUniformValue("texture", 0);
+
+    if (m_context->format().version() >= qMakePair(3, 0) && m_vao.create()) {
+        m_vao.bind();
+    }
+
+    m_vbo[PROGRAM_VERTEX_ATTRIBUTE].create();
+    m_vbo[PROGRAM_VERTEX_ATTRIBUTE].bind();
+    m_vbo[PROGRAM_VERTEX_ATTRIBUTE].allocate(sizeof(QVector2D) * 4);
+    m_vbo[PROGRAM_TEXCOORD_ATTRIBUTE].create();
+    m_vbo[PROGRAM_TEXCOORD_ATTRIBUTE].bind();
+    m_vbo[PROGRAM_TEXCOORD_ATTRIBUTE].allocate(sizeof(QVector2D) * 4);
 
     pclog("OpenGL vendor: %s\n", glGetString(GL_VENDOR));
     pclog("OpenGL renderer: %s\n", glGetString(GL_RENDERER));
@@ -78,12 +127,15 @@ void HardwareRenderer::paintGL() {
     texcoords.push_back(QVector2D((float)source.x() / 2048.f, (float)(source.y() + source.height()) / 2048.f));
     texcoords.push_back(QVector2D((float)(source.x() + source.width()) / 2048.f, (float)(source.y() + source.height()) / 2048.f));
     texcoords.push_back(QVector2D((float)(source.x() + source.width()) / 2048.f, (float)(source.y()) / 2048.f));
+    m_vbo[PROGRAM_VERTEX_ATTRIBUTE].bind(); m_vbo[PROGRAM_VERTEX_ATTRIBUTE].write(0, verts.data(), sizeof(QVector2D) * 4); m_vbo[PROGRAM_VERTEX_ATTRIBUTE].release();
+    m_vbo[PROGRAM_TEXCOORD_ATTRIBUTE].bind(); m_vbo[PROGRAM_TEXCOORD_ATTRIBUTE].write(0, texcoords.data(), sizeof(QVector2D) * 4);  m_vbo[PROGRAM_TEXCOORD_ATTRIBUTE].release();
 
-    m_prog->setUniformValue("matrix", mat);
+    m_prog->setUniformValue("MVPMatrix", mat);
     m_prog->enableAttributeArray(PROGRAM_VERTEX_ATTRIBUTE);
     m_prog->enableAttributeArray(PROGRAM_TEXCOORD_ATTRIBUTE);
-    m_prog->setAttributeArray(PROGRAM_VERTEX_ATTRIBUTE, verts.data());
-    m_prog->setAttributeArray(PROGRAM_TEXCOORD_ATTRIBUTE, texcoords.data());
+
+    m_vbo[PROGRAM_VERTEX_ATTRIBUTE].bind(); m_prog->setAttributeBuffer(PROGRAM_VERTEX_ATTRIBUTE, GL_FLOAT, 0, 2, 0); m_vbo[PROGRAM_VERTEX_ATTRIBUTE].release();
+    m_vbo[PROGRAM_TEXCOORD_ATTRIBUTE].bind(); m_prog->setAttributeBuffer(PROGRAM_TEXCOORD_ATTRIBUTE, GL_FLOAT, 0, 2, 0); m_vbo[PROGRAM_TEXCOORD_ATTRIBUTE].release();
     m_texture->bind();
     m_texture->setMinMagFilters(video_filter_method ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest, video_filter_method ? QOpenGLTexture::Linear : QOpenGLTexture::Nearest);
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
@@ -92,6 +144,9 @@ void HardwareRenderer::paintGL() {
 void HardwareRenderer::setRenderType(RenderType type) {
     QSurfaceFormat format;
     switch (type) {
+    case RenderType::OpenGL3:
+        format.setVersion(3, 0);
+        format.setProfile(QSurfaceFormat::CoreProfile);
     case RenderType::OpenGL:
         format.setRenderableType(QSurfaceFormat::OpenGL);
         break;
@@ -107,6 +162,12 @@ void HardwareRenderer::onBlit(const std::unique_ptr<uint8_t>* img, int x, int y,
     auto tval = this;
     void* nuldata = 0;
     if (memcmp(&tval, &nuldata, sizeof(void*)) == 0) return;
+    if (!m_texture || !img || !img->get() || (m_texture && !m_texture->isCreated()))
+    {
+        in_use->clear();
+        source.setRect(x, y, w, h);
+        return;
+    }
     m_context->makeCurrent(this);
     m_texture->setData(QOpenGLTexture::PixelFormat::RGBA, QOpenGLTexture::PixelType::UInt8, (const void*)img->get());
     in_use->clear();

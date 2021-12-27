@@ -1,8 +1,10 @@
 #pragma once
 
 #include <QOpenGLFunctions>
+#include <QOpenGLBuffer>
 #include <QOpenGLWidget>
 #include <QOpenGLWindow>
+#include <QOpenGLVertexArrayObject>
 #include <QOpenGLTexture>
 #include <QOpenGLShader>
 #include <QOpenGLShaderProgram>
@@ -29,13 +31,16 @@ private:
     bool wayland = false;
     QWidget* parentWidget{nullptr};
     QOpenGLContext* m_context;
-    QOpenGLTexture* m_texture;
-    QOpenGLShaderProgram* m_prog;
-    QOpenGLTextureBlitter* m_blt;
+    QOpenGLTexture* m_texture{nullptr};
+    QOpenGLShaderProgram* m_prog{nullptr};
+    QOpenGLTextureBlitter* m_blt{nullptr};
+    QOpenGLBuffer m_vbo[2];
+    QOpenGLVertexArrayObject m_vao;
 public:
     enum class RenderType {
         OpenGL,
         OpenGLES,
+        OpenGL3,
     };
     void resizeGL(int w, int h) override;
     void initializeGL() override;
@@ -56,6 +61,11 @@ public:
     {
         m_context->makeCurrent(this);
         if (m_blt) m_blt->destroy();
+        m_prog->release();
+        delete m_prog;
+        m_prog = nullptr;
+        m_context->doneCurrent();
+        delete m_context;
     }
 
 

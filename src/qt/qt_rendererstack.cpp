@@ -196,6 +196,14 @@ void RendererStack::switchRenderer(Renderer renderer) {
         current.reset(this->createWindowContainer(hw, this));
         break;
     }
+    case Renderer::OpenGL3:
+    {
+        this->createWinId();
+        auto hw = new HardwareRenderer(this, HardwareRenderer::RenderType::OpenGL3);
+        connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
+        current.reset(this->createWindowContainer(hw, this));
+        break;
+    }
     }
     current->setFocusPolicy(Qt::NoFocus);
     current->setFocusProxy(this);

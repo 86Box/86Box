@@ -39,6 +39,7 @@ public:
         Software,
         OpenGL,
         OpenGLES,
+        OpenGL3
     };
     void switchRenderer(Renderer renderer);
 
