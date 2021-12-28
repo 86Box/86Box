@@ -56,15 +56,16 @@ typedef LONG atomic_flag;
 #include <86box/plat.h>
 #include <86box/video.h>
 #include <86box/win.h>
+#include <86box/language.h>
 #include <86box/win_opengl.h>
 #include <86box/win_opengl_glslp.h>
 
 static const int INIT_WIDTH = 640;
 static const int INIT_HEIGHT = 400;
-static const int BUFFERPIXELS = 4460544;	/* Same size as render_buffer, pow(2048+64,2). */
-static const int BUFFERBYTES = 17842176;	/* Pixel is 4 bytes. */
+static const int BUFFERPIXELS = 4194304;	/* Same size as render_buffer, pow(2048+64,2). */
+static const int BUFFERBYTES = 16777216;	/* Pixel is 4 bytes. */
 static const int BUFFERCOUNT = 3;		/* How many buffers to use for pixel transfer (2-3 is commonly recommended). */
-static const int ROW_LENGTH = 2112;		/* Source buffer row lenght (including padding) */
+static const int ROW_LENGTH = 2048;		/* Source buffer row lenght (including padding) */
 
 /**
  * @brief A dedicated OpenGL thread.
@@ -445,7 +446,9 @@ static void opengl_fail()
 		window = NULL;
 	}
 
-	/* TODO: Notify user. */
+	wchar_t* message = plat_get_string(IDS_2152);
+	wchar_t* header = plat_get_string(IDS_2153);
+	MessageBox(parent, header, message, MB_OK);
 
 	WaitForSingleObject(sync_objects.closing, INFINITE);
 
@@ -473,10 +476,10 @@ static void opengl_main(void* param)
 	SDL_SetHint(SDL_HINT_MOUSE_FOCUS_CLICKTHROUGH, "1"); /* Is this actually doing anything...? */
 
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 	
-	if (GLAD_GL_ARB_debug_output)
+	if (GLAD_GL_ARB_debug_output && log_path[0] != '\0')
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG | SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
 	else
 		SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
@@ -526,8 +529,8 @@ static void opengl_main(void* param)
 		SDL_GL_DeleteContext(context);
 		opengl_fail();
 	}
-	
-	if (GLAD_GL_ARB_debug_output)
+
+	if (GLAD_GL_ARB_debug_output && log_path[0] != '\0')
 	{
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS_ARB);
 		glDebugMessageControlARB(GL_DONT_CARE, GL_DEBUG_TYPE_PERFORMANCE_ARB, GL_DONT_CARE, 0, 0, GL_FALSE);
@@ -538,6 +541,33 @@ static void opengl_main(void* param)
 	pclog("OpenGL renderer: %s\n", glGetString(GL_RENDERER));
 	pclog("OpenGL version: %s\n", glGetString(GL_VERSION));
 	pclog("OpenGL shader language version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+
+	/* Check that the driver actually reports version 3.0 or later */
+	GLint major = -1;
+	glGetIntegerv(GL_MAJOR_VERSION, &major);
+	if (major < 3)
+	{
+		pclog("OpenGL: Minimum OpenGL version 3.0 is required.\n");
+		SDL_GL_DeleteContext(context);
+		opengl_fail();
+	}
+
+	/* Check if errors have been generated at this point */
+	GLenum gl_error = glGetError();
+	if (gl_error != GL_NO_ERROR)
+	{
+		/* Log up to 10 errors */
+		int i = 0;
+		do
+		{
+			pclog("OpenGL: Error %u\n", gl_error);
+			i++;
+		}
+		while((gl_error = glGetError()) != GL_NO_ERROR && i < 10);
+
+		SDL_GL_DeleteContext(context);
+		opengl_fail();
+	}
 
 	gl_identifiers gl = { 0 };
 	
@@ -592,14 +622,17 @@ static void opengl_main(void* param)
 				}
 			}
 
-			/* Check if commands that use buffers have been completed. */
-			for (int i = 0; i < BUFFERCOUNT; i++)
+			if (GLAD_GL_ARB_sync)
 			{
-				if (blit_info[i].sync != NULL && glClientWaitSync(blit_info[i].sync, GL_SYNC_FLUSH_COMMANDS_BIT, 0) != GL_TIMEOUT_EXPIRED)
+				/* Check if commands that use buffers have been completed. */
+				for (int i = 0; i < BUFFERCOUNT; i++)
 				{
-					glDeleteSync(blit_info[i].sync);
-					blit_info[i].sync = NULL;
-					atomic_flag_clear(&blit_info[i].in_use);
+					if (blit_info[i].sync != NULL && glClientWaitSync(blit_info[i].sync, GL_SYNC_FLUSH_COMMANDS_BIT, 0) != GL_TIMEOUT_EXPIRED)
+					{
+						glDeleteSync(blit_info[i].sync);
+						blit_info[i].sync = NULL;
+						atomic_flag_clear(&blit_info[i].in_use);
+					}
 				}
 			}
 
@@ -653,8 +686,17 @@ static void opengl_main(void* param)
 			glPixelStorei(GL_UNPACK_ROW_LENGTH, ROW_LENGTH);
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, info->w, info->h, GL_BGRA, GL_UNSIGNED_INT_8_8_8_8_REV, NULL);
 
-			/* Add fence to track when above gl commands are complete. */
-			info->sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+			if (GLAD_GL_ARB_sync)
+			{
+				/* Add fence to track when above gl commands are complete. */
+				info->sync = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+			}
+			else
+			{
+				/* No sync objects; block until commands are complete. */
+				glFinish();
+				atomic_flag_clear(&info->in_use);
+			}
 
 			read_pos = (read_pos + 1) % BUFFERCOUNT;
 
@@ -788,10 +830,13 @@ static void opengl_main(void* param)
 				SDL_ShowCursor(show_cursor);
 	}
 
-	for (int i = 0; i < BUFFERCOUNT; i++)
+	if (GLAD_GL_ARB_sync)
 	{
-		if (blit_info[i].sync != NULL)
-			glDeleteSync(blit_info[i].sync);
+		for (int i = 0; i < BUFFERCOUNT; i++)
+		{
+			if (blit_info[i].sync != NULL)
+				glDeleteSync(blit_info[i].sync);
+		}
 	}
 
 	finalize_glcontext(&gl);
@@ -902,7 +947,7 @@ void opengl_close(void)
 
 	SetEvent(sync_objects.closing);
 
-	thread_wait(thread, -1);
+	thread_wait(thread);
 
 	thread_close_mutex(resize_info.mutex);
 	thread_close_mutex(options.mutex);

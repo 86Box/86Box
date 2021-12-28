@@ -72,11 +72,11 @@ static SCSI_CARD scsi_cards[] = {
     { "t128",		&scsi_t128_device,	},
     { "t130b",		&scsi_t130b_device,	},
 #ifdef WALTJE
-    { "scsiat",		&scsi_scsiat_device,	},
     { "wd33c93",	&scsi_wd33c93_device,	},
 #endif
     { "aha1640",	&aha1640_device,	},
     { "bt640a",		&buslogic_640a_device,	},
+    { "ncr53c90",	&ncr53c90_mca_device,	},
     { "spock",		&spock_device,		},
     { "bt958d",		&buslogic_pci_device,	},
     { "ncr53c810",	&ncr53c810_pci_device,	},
@@ -167,7 +167,7 @@ scsi_card_init(void)
 
     /* On-board SCSI controllers get the first bus, so if one is present,
        increase our instance number here. */
-    if (machines[machine].flags & MACHINE_SCSI)
+    if (machine_has_flags(machine, MACHINE_SCSI))
 	max--;
 
     /* Do not initialize any controllers if we have do not have any SCSI

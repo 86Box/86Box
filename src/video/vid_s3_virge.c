@@ -189,6 +189,7 @@ typedef struct virge_t
 
 	int pci;
         int chip;
+	int is_agp;
 
         int bilinear_enabled;
         int dithering_enabled;
@@ -3711,7 +3712,7 @@ static uint8_t s3_virge_pci_read(int func, int addr, void *p)
                 
                 case 0x07: ret = virge->pci_regs[0x07] & 0x36; break;
                                 
-                case 0x08: ret = 0; break; /*Revision ID*/
+                case 0x08: ret = virge->virge_rev; break; /*Revision ID*/
                 case 0x09: ret = 0; break; /*Programming interface*/
                 
                 case 0x0a: ret = 0x00; break; /*Supports VGA interface*/
@@ -3734,6 +3735,8 @@ static uint8_t s3_virge_pci_read(int func, int addr, void *p)
                 case 0x32: ret = virge->pci_regs[0x32]; break;
                 case 0x33: ret = virge->pci_regs[0x33]; break;
 
+                case 0x34: ret = (virge->chip >= S3_VIRGEGX2) ? 0xdc : 0x00; break;
+
                 case 0x3c: ret = virge->pci_regs[0x3c]; break;
                                 
                 case 0x3d: ret = PCI_INTA; break; /*INTA*/
@@ -3741,6 +3744,26 @@ static uint8_t s3_virge_pci_read(int func, int addr, void *p)
                 case 0x3e: ret = 0x04; break;
                 case 0x3f: ret = 0xff; break;
                 
+                case 0x80: ret = 0x02; break; /* AGP capability */
+                case 0x81: ret = 0x00; break;
+                case 0x82: ret = 0x10; break; /* assumed AGP 1.0 */
+
+                case 0x84: ret = (virge->chip >= S3_TRIO3D2X) ? 0x03 : 0x01; break;
+                case 0x87: ret = 0x1f; break;
+
+                case 0x88: ret = virge->pci_regs[0x88]; break;
+                case 0x89: ret = virge->pci_regs[0x89]; break;
+                case 0x8a: ret = virge->pci_regs[0x8a]; break;
+                case 0x8b: ret = virge->pci_regs[0x8b]; break;
+
+                case 0xdc: ret = 0x01; break; /* PCI Power Management capability */
+                case 0xdd: ret = virge->is_agp ? 0x80 : 0x00; break;
+                case 0xde: ret = 0x21; break;
+
+                case 0xe0: ret = virge->pci_regs[0xe0]; break;
+                case 0xe1: ret = virge->pci_regs[0xe1]; break;
+                case 0xe2: ret = virge->pci_regs[0xe2]; break;
+                case 0xe3: ret = virge->pci_regs[0xe3]; break;
         }
         return ret;
 }
@@ -3797,6 +3820,26 @@ static void s3_virge_pci_write(int func, int addr, uint8_t val, void *p)
                 case 0x3c: 
                 virge->pci_regs[0x3c] = val;
                 return;
+
+                case 0x88:
+                virge->pci_regs[0x5c] = val & 0x27;
+                return;
+
+                case 0x89:
+                virge->pci_regs[0x89] = val & 0x03;
+                return;
+
+                case 0x8b: case 0xe1: case 0xe3:
+                virge->pci_regs[addr] = val;
+                return;
+
+                case 0xe0:
+                virge->pci_regs[0xe0] = val & 0x03;
+                return;
+
+                case 0xe2:
+                virge->pci_regs[0xe2] = val & 0xc0;
+                return;
         }
 }
 
@@ -3852,7 +3895,7 @@ static void s3_virge_reset(void *priv)
 	}
 
 	if (virge->chip >= S3_VIRGEGX2)
-		virge->svga.crtc[0x36] = 2 | (0 << 2) | (1 << 4) | (0 << 5);
+		virge->svga.crtc[0x36] = 2 | (2 << 2) | (1 << 4) | (0 << 5);
 	else {
 		switch (virge->memory_size) {
 			case 2:
@@ -3865,6 +3908,8 @@ static void s3_virge_reset(void *priv)
 				virge->svga.crtc[0x36] = 2 | (0 << 2) | (1 << 4) | (0 << 5);
 				break;
 		}	
+		if (virge->local == S3_VIRGE_GX)
+			virge->svga.crtc[0x36] |= (1 << 2);
 	}
 
 	virge->svga.crtc[0x37] = 1 | (7 << 5);
@@ -3983,6 +4028,7 @@ static void *s3_virge_init(const device_t *info)
         
         virge->virge_rev = 0;
         virge->virge_id = 0xe1;
+        virge->is_agp = !!(info->flags & DEVICE_AGP);
 
 	switch(info->local) {
 		case S3_VIRGE_325:
@@ -4011,7 +4057,7 @@ static void *s3_virge_init(const device_t *info)
 			virge->svga.crtc[0x59] = 0x70;
 			virge->svga.vblank_start = s3_virge_vblank_start;
 			virge->chip = S3_VIRGEGX2;
-			video_inform(VIDEO_FLAG_TYPE_SPECIAL, (info->flags & DEVICE_AGP) ? &timing_virge_agp : &timing_virge_dx_pci);
+			video_inform(VIDEO_FLAG_TYPE_SPECIAL, virge->is_agp ? &timing_virge_agp : &timing_virge_dx_pci);
 			break;
 
 		case S3_TRIO_3D2X:
@@ -4023,9 +4069,12 @@ static void *s3_virge_init(const device_t *info)
 			virge->svga.crtc[0x59] = 0x70;
 			virge->svga.vblank_start = s3_virge_vblank_start;
 			virge->chip = S3_TRIO3D2X;
-			video_inform(VIDEO_FLAG_TYPE_SPECIAL, (info->flags & DEVICE_AGP) ? &timing_virge_agp : &timing_virge_dx_pci);
+			video_inform(VIDEO_FLAG_TYPE_SPECIAL, virge->is_agp ? &timing_virge_agp : &timing_virge_dx_pci);
 			break;
 
+		case S3_VIRGE_GX:
+			virge->virge_rev = 0x01;
+			/*FALLTHROUGH*/
 		default:
 			virge->svga.decode_mask = (4 << 20) - 1;
 			virge->virge_id_high = 0x8a;
@@ -4042,7 +4091,7 @@ static void *s3_virge_init(const device_t *info)
 		virge->vram_mask = (4 << 20) - 1;
 		virge->svga.vram_mask = (4 << 20) - 1;
 		virge->svga.vram_max = 4 << 20;
-		virge->svga.crtc[0x36] = 2 | (0 << 2) | (1 << 4) | (0 << 5);
+		virge->svga.crtc[0x36] = 2 | (2 << 2) | (1 << 4) | (0 << 5);
 	} else {
 		switch (virge->memory_size) {
 			case 2:
@@ -4064,6 +4113,8 @@ static void *s3_virge_init(const device_t *info)
 				virge->svga.crtc[0x36] = 2 | (0 << 2) | (1 << 4) | (0 << 5);
 				break;
 		}	
+		if (info->local == S3_VIRGE_GX)
+			virge->svga.crtc[0x36] |= (1 << 2);
 	}
 
 	virge->svga.crtc[0x37] = 1 | (7 << 5);
@@ -4071,7 +4122,7 @@ static void *s3_virge_init(const device_t *info)
 
 	memset(virge->dmabuffer, 0, 65536);
 
-    virge->card = pci_add_card((info->flags & DEVICE_AGP) ? PCI_ADD_AGP : PCI_ADD_VIDEO, s3_virge_pci_read, s3_virge_pci_write, virge);
+	virge->card = pci_add_card(virge->is_agp ? PCI_ADD_AGP : PCI_ADD_VIDEO, s3_virge_pci_read, s3_virge_pci_write, virge);
 
 	virge->i2c = i2c_gpio_init("ddc_s3_virge");
 	virge->ddc = ddc_init(i2c_gpio_get_bus(virge->i2c));
@@ -4097,7 +4148,7 @@ static void s3_virge_close(void *p)
 
 		virge->render_thread_run = 0;
         thread_set_event(virge->wake_render_thread);
-        thread_wait(virge->render_thread, -1);
+        thread_wait(virge->render_thread);
 		thread_destroy_event(virge->not_full_event);
 		thread_destroy_event(virge->wake_main_thread);
         thread_destroy_event(virge->wake_render_thread);

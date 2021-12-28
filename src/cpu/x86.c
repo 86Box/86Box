@@ -245,6 +245,9 @@ reset_common(int hard)
 	pci_reset();
 	if (!hard && soft_reset_pci) {
 		dma_reset();
+		/* TODO: Hack, but will do for time being, because all AT machines currently are 286+,
+			 and vice-versa. */
+		dma_set_at(is286);
 		device_reset_all();
 	}
     }
@@ -264,15 +267,9 @@ reset_common(int hard)
     cpu_state.eflags = 0;
     cgate32 = 0;
     if (is286) {
-	if (AT) {
-		loadcs(0xF000);
-		cpu_state.pc = 0xFFF0;
-		rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
-	} else {
-		loadcs(0xFFFF);
-		cpu_state.pc = 0;
-		rammask = 0xfffff;
-	}
+	loadcs(0xF000);
+	cpu_state.pc = 0xFFF0;
+	rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
     }
     idt.base = 0;
     cpu_state.flags = 2;
@@ -353,6 +350,9 @@ void
 hardresetx86(void)
 {
     dma_reset();
+    /* TODO: Hack, but will do for time being, because all AT machines currently are 286+,
+       and vice-versa. */
+    dma_set_at(is286);
     device_reset_all();
 
     cpu_alt_reset = 0;

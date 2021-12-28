@@ -49,6 +49,7 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 #include <stdarg.h>
+#include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
@@ -107,7 +108,7 @@ int		nic_do_log = ENABLE_NIC_LOG;
 
 
 /* Local variables. */
-static volatile int	net_wait = 0;
+static volatile atomic_int	net_wait = 0;
 static mutex_t		*network_mutex;
 static uint8_t		*network_mac;
 static uint8_t		network_timer_active = 0;
@@ -388,8 +389,8 @@ network_attach(void *dev, uint8_t *mac, NETRXCB rx, NETWAITCB wait, NETSETLINKST
     network_set_wait(0);
 
     /* Create the network events. */
-    poll_data.wake_poll_thread = thread_create_event();
     poll_data.poll_complete = thread_create_event();
+    poll_data.wake_poll_thread = thread_create_event();
 
     /* Activate the platform module. */
     switch(network_type) {
@@ -671,9 +672,7 @@ network_card_get_from_internal_name(char *s)
 void
 network_set_wait(int wait)
 {
-    network_wait(1);
     net_wait = wait;
-    network_wait(0);
 }
 
 
@@ -682,8 +681,6 @@ network_get_wait(void)
 {
     int ret;
 
-    network_wait(1);
     ret = net_wait;
-    network_wait(0);
     return ret;
 }

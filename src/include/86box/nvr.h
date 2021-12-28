@@ -67,7 +67,7 @@
 typedef struct _nvr_ {
     char	*fn;			/* pathname of image file */
     uint16_t	size;			/* device configuration */
-    int8_t	irq, new;
+    int8_t	irq, is_new;
 
     uint8_t	onesec_cnt;
     pc_timer_t	onesec_time;
@@ -112,6 +112,7 @@ extern int	nvr_save(void);
 
 extern int	nvr_is_leap(int year);
 extern int	nvr_get_days(int month, int year);
+extern void	nvr_time_sync();
 extern void	nvr_time_get(struct tm *);
 extern void	nvr_time_set(struct tm *);
 

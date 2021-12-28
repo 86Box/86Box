@@ -158,7 +158,7 @@ enum
 #define FIFO_ENTRY_SIZE (1 << 31)
 
 #define FIFO_ENTRIES (s3->fifo_write_idx - s3->fifo_read_idx)
-#define FIFO_FULL    ((s3->fifo_write_idx - s3->fifo_read_idx) >= FIFO_SIZE)
+#define FIFO_FULL    ((s3->fifo_write_idx - s3->fifo_read_idx) >= (FIFO_SIZE - 4))
 #define FIFO_EMPTY   (s3->fifo_read_idx == s3->fifo_write_idx)
 
 #define FIFO_TYPE 0xff000000
@@ -337,6 +337,8 @@ typedef struct s3_t
 	fifo_entry_t fifo[FIFO_SIZE];
 	volatile int fifo_read_idx, fifo_write_idx;
 
+	uint8_t fifo_thread_run;
+	
 	thread_t *fifo_thread;
 	event_t *wake_fifo_thread;
 	event_t *fifo_not_full_event;
@@ -424,6 +426,42 @@ dword_remap_l(svga_t *svga, uint32_t in_addr)
         return ((in_addr << 2) & 0xfffc) |
                 ((in_addr >> 14) & 0x3) |
                 (in_addr & ~0xffff);
+}
+
+static __inline void
+wake_fifo_thread(s3_t *s3)
+{
+	thread_set_event(s3->wake_fifo_thread); /*Wake up FIFO thread if moving from idle*/
+}
+
+static void
+s3_wait_fifo_idle(s3_t *s3)
+{
+	while (!FIFO_EMPTY) {
+		wake_fifo_thread(s3);
+		thread_wait_event(s3->fifo_not_full_event, 1);
+	}
+}
+
+static void
+s3_queue(s3_t *s3, uint32_t addr, uint32_t val, uint32_t type)
+{
+	fifo_entry_t *fifo = &s3->fifo[s3->fifo_write_idx & FIFO_MASK];
+
+	if (FIFO_FULL) {
+		thread_reset_event(s3->fifo_not_full_event);
+		if (FIFO_FULL) {
+			thread_wait_event(s3->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
+		}
+	}
+
+	fifo->val = val;
+	fifo->addr_type = (addr & FIFO_ADDR) | type;
+
+	s3->fifo_write_idx++;
+        
+	if (FIFO_ENTRIES > 0xe000 || FIFO_ENTRIES < 8)
+		wake_fifo_thread(s3);
 }
 
 static void
@@ -666,7 +704,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 
     switch (port) {
 	case 0x8148: case 0x82e8:
-		s3->accel.draw_fifo_slot++;
 		s3->accel.cur_y_bitres = (s3->accel.cur_y_bitres & 0xff00) | val;
 		s3->accel.cur_y = (s3->accel.cur_y & 0xf00) | val;
 		s3->accel.poly_cy = s3->accel.cur_y;
@@ -678,7 +715,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		s3->accel.poly_cy = s3->accel.cur_y;
 		break;
 	case 0x814a: case 0x82ea:
-		s3->accel.draw_fifo_slot++;
 		s3->accel.cur_y2 = (s3->accel.cur_y2 & 0xf00) | val;
 		s3->accel.poly_cy2 = s3->accel.cur_y2;
 		break;
@@ -688,7 +724,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		break;
 		
 	case 0x8548: case 0x86e8:
-		s3->accel.draw_fifo_slot++;
 		s3->accel.cur_x_bitres = (s3->accel.cur_x_bitres & 0xff00) | val;
 		s3->accel.cur_x = (s3->accel.cur_x & 0xf00) | val;
 		s3->accel.poly_cx = s3->accel.cur_x << 20;
@@ -702,7 +737,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		s3->accel.poly_x = s3->accel.poly_cx >> 20;
 		break;
 	case 0x854a: case 0x86ea:
-		s3->accel.draw_fifo_slot++;
 		s3->accel.cur_x2 = (s3->accel.cur_x2 & 0xf00) | val;
 		s3->accel.poly_cx2 = s3->accel.cur_x2 << 20;
 		break;
@@ -713,7 +747,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 	
 	case 0xcae8:
 	case 0x8948: case 0x8ae8:
-		s3->accel.draw_fifo_slot++;
 		s3->accel.desty_axstp = (s3->accel.desty_axstp & 0x3f00) | val;
 		s3->accel.point_1_updated = 1;
 		break;
@@ -725,7 +758,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		s3->accel.point_1_updated = 1;
 		break;
 	case 0x894a: case 0x8aea:
-		s3->accel.draw_fifo_slot++;
 		s3->accel.desty_axstp2 = (s3->accel.desty_axstp2 & 0x3f00) | val;
 		s3->accel.point_2_updated = 1;
 		break;
@@ -737,7 +769,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		break;
 		
 	case 0x8d48: case 0x8ee8:
-		s3->accel.draw_fifo_slot++;
 		s3->accel.destx_distp = (s3->accel.destx_distp & 0x3f00) | val;
 		s3->accel.point_1_updated = 1;
 		break;
@@ -748,7 +779,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		s3->accel.point_1_updated = 1;
 		break;
 	case 0x8d4a: case 0x8eea:
-		s3->accel.draw_fifo_slot++;
 		s3->accel.x2 = (s3->accel.x2 & 0xf00) | val;
 		s3->accel.point_2_updated = 1;
 		break;
@@ -758,7 +788,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		break;
 		
 	case 0x9148: case 0x92e8:
-		s3->accel.draw_fifo_slot++;
 		s3->accel.err_term = (s3->accel.err_term & 0x3f00) | val;
 		break;
 	case 0x9149: case 0x92e9:
@@ -776,7 +805,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		break;
 
 	case 0x9548: case 0x96e8:
-		s3->accel.draw_fifo_slot++;
 		s3->accel.maj_axis_pcnt = (s3->accel.maj_axis_pcnt & 0xf00) | val;
 		break;
 	case 0x9459: case 0x96e9:
@@ -794,7 +822,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		break;
 
 	case 0x9948: case 0x9ae8:
-		s3->accel.draw_fifo_slot++;
 		s3->accel.cmd = (s3->accel.cmd & 0xff00) | val;
 		s3->data_available = 0;
 		s3->accel.b2e8_pix = 0;
@@ -835,7 +862,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		break;
 
 	case 0xa148: case 0xa2e8:
-		s3->accel.setup_fifo_slot++;
 		if (s3->bpp == 3 && s3->accel.multifunc[0xe] & 0x10 && !(s3->accel.multifunc[0xe] & 0x200))
 			s3->accel.bkgd_color = (s3->accel.bkgd_color & ~0x00ff0000) | (val << 16);
 		else
@@ -872,7 +898,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		break;
 
 	case 0xa548: case 0xa6e8:
-		s3->accel.setup_fifo_slot++;
 		if (s3->bpp == 3 && s3->accel.multifunc[0xe] & 0x10 && !(s3->accel.multifunc[0xe] & 0x200))
 			s3->accel.frgd_color = (s3->accel.frgd_color & ~0x00ff0000) | (val << 16);
 		else
@@ -909,7 +934,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		break;
 
 	case 0xa948: case 0xaae8:
-		s3->accel.setup_fifo_slot++;
 		if (s3->bpp == 3 && s3->accel.multifunc[0xe] & 0x10 && !(s3->accel.multifunc[0xe] & 0x200))
 			s3->accel.wrt_mask = (s3->accel.wrt_mask & ~0x00ff0000) | (val << 16);
 		else
@@ -946,7 +970,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		break;
 
 	case 0xad48: case 0xaee8:
-		s3->accel.setup_fifo_slot++;
 		if (s3->bpp == 3 && s3->accel.multifunc[0xe] & 0x10 && !(s3->accel.multifunc[0xe] & 0x200))
 			s3->accel.rd_mask = (s3->accel.rd_mask & ~0x00ff0000) | (val << 16);
 		else
@@ -1019,12 +1042,10 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		break;
 
 	case 0xb548: case 0xb6e8:
-		s3->accel.setup_fifo_slot++;
 		s3->accel.bkgd_mix = val;
 		break;
 
 	case 0xb948: case 0xbae8:
-		s3->accel.setup_fifo_slot++;
 		s3->accel.frgd_mix = val;
 		break;
 	
@@ -1034,25 +1055,15 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 	case 0xbd49: case 0xbee9:
 		s3->accel.multifunc_cntl = (s3->accel.multifunc_cntl & 0xff) | (val << 8);
 		s3->accel.multifunc[s3->accel.multifunc_cntl >> 12] = s3->accel.multifunc_cntl & 0xfff;
-		switch (s3->accel.multifunc_cntl >> 12) {
-			case 0:
-			s3->accel.draw_fifo_slot++;
-			break;
-			case 0xa:
-			s3->accel.setup_fifo_slot++;
-			break;
-		}
 		break;
 
 	case 0xd148: case 0xd2e8:
-		s3->accel.setup_fifo_slot++;
 		s3->accel.ropmix = (s3->accel.ropmix & 0xff00) | val;
 		break;
 	case 0xd149: case 0xd2e9:
 		s3->accel.ropmix = (s3->accel.ropmix & 0x00ff) | (val << 8);
 		break;
 	case 0xe548: case 0xe6e8:
-		s3->accel.setup_fifo_slot++;
 		if (s3->bpp == 3 && s3->accel.multifunc[0xe] & 0x10 && !(s3->accel.multifunc[0xe] & 0x200))
 			s3->accel.pat_bg_color = (s3->accel.pat_bg_color & ~0x00ff0000) | (val << 16);
 		else
@@ -1088,21 +1099,18 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 		}
 		break;
 	case 0xe948: case 0xeae8:
-		s3->accel.draw_fifo_slot++;
 		s3->accel.pat_y = (s3->accel.pat_y & 0xf00) | val;
 		break;
 	case 0xe949: case 0xeae9:
 		s3->accel.pat_y = (s3->accel.pat_y & 0xff) | ((val & 0x1f) << 8);
 		break;
 	case 0xe94a: case 0xeaea:
-		s3->accel.draw_fifo_slot++;
 		s3->accel.pat_x = (s3->accel.pat_x & 0xf00) | val;
 		break;
 	case 0xe94b: case 0xeaeb:
 		s3->accel.pat_x = (s3->accel.pat_x & 0xff) | ((val & 0x1f) << 8);
 		break;
 	case 0xed48: case 0xeee8:
-		s3->accel.setup_fifo_slot++;
 		if (s3->bpp == 3 && s3->accel.multifunc[0xe] & 0x10 && !(s3->accel.multifunc[0xe] & 0x200))
 			s3->accel.pat_fg_color = (s3->accel.pat_fg_color & ~0x00ff0000) | (val << 16);
 		else
@@ -1296,11 +1304,6 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 			}
 		}
 		break;
-	}
-	
-	if (s3_enable_fifo(s3) == 0) {
-		s3->accel.setup_fifo_slot = 0;
-		s3->accel.draw_fifo_slot = 0;
 	}
 }
 
@@ -3366,7 +3369,10 @@ s3_accel_out(uint16_t port, uint8_t val, void *p)
 		if (!s3->enable_8514)
 			return;
 
-		s3_accel_out_fifo(s3, port, val);
+		if (s3_enable_fifo(s3))
+			s3_queue(s3, port, val, FIFO_OUT_BYTE);
+		else
+			s3_accel_out_fifo(s3, port, val);
 	} else {
 		switch (port)
 		{
@@ -3406,7 +3412,10 @@ s3_accel_out_w(uint16_t port, uint16_t val, void *p)
 	if (!s3->enable_8514)
 		return;	
 
-	s3_accel_out_fifo_w(s3, port, val);
+	if (s3_enable_fifo(s3))
+		s3_queue(s3, port, val, FIFO_OUT_WORD);
+	else
+		s3_accel_out_fifo_w(s3, port, val);
 }
 
 static void
@@ -3417,7 +3426,10 @@ s3_accel_out_l(uint16_t port, uint32_t val, void *p)
 	if (!s3->enable_8514)
 		return;	
 
-	s3_accel_out_fifo_l(s3, port, val);
+	if (s3_enable_fifo(s3))
+		s3_queue(s3, port, val, FIFO_OUT_DWORD);
+	else
+		s3_accel_out_fifo_l(s3, port, val);
 }
 
 static uint8_t
@@ -3437,40 +3449,60 @@ s3_accel_in(uint16_t port, void *p)
 		return s3->subsys_cntl;
 
 		case 0x8148: case 0x82e8:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.cur_y & 0xff;
 		case 0x8149: case 0x82e9:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.cur_y >> 8;
 
 		case 0x8548: case 0x86e8:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.cur_x & 0xff;
 		case 0x8549: case 0x86e9:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.cur_x >> 8;
 
 		case 0x8948: case 0x8ae8:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.desty_axstp & 0xff;
 		}
 		break;
 		case 0x8949: case 0x8ae9:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.desty_axstp >> 8;
 		}
 		break;
 		
 		case 0x8d48: case 0x8ee8:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.destx_distp & 0xff;
 		}
 		break;
 		case 0x8d49: case 0x8ee9:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.destx_distp >> 8;
 		}
 		break;
 
 		case 0x9148: case 0x92e8:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.err_term & 0xff;
 		case 0x9149: case 0x92e9:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.err_term >> 8;
 
 		case 0x9548: case 0x96e8:
@@ -3480,6 +3512,8 @@ s3_accel_in(uint16_t port, void *p)
 		break;
 		case 0x9549: case 0x96e9:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.maj_axis_pcnt >> 8;
 		}
 		break;
@@ -3488,43 +3522,29 @@ s3_accel_in(uint16_t port, void *p)
 		case 0x9948: case 0x9ae8:
 		temp = 0;	/* FIFO empty */
 		if (s3_enable_fifo(s3)) {
-			if (s3->accel.setup_fifo_slot) {
-				temp = s3->accel.setup_fifo;
-				s3->accel.setup_fifo = 0;
-			} else if (s3->accel.draw_fifo_slot) {
-				temp = s3->accel.draw_fifo;
-				s3->accel.draw_fifo = 0;
-			}
+			if (!s3->blitter_busy)
+				wake_fifo_thread(s3);
+			if (FIFO_FULL)
+				temp = 0xff;
 		}
 		return temp;
 		case 0x8119:
 		case 0x9949: case 0x9ae9:
 		temp = 0;
 		if (s3_enable_fifo(s3)) {
-			if ((s3->accel.setup_fifo_slot && s3->accel.draw_fifo_slot) || s3->force_busy) {
+			if (!s3->blitter_busy)
+				wake_fifo_thread(s3);			
+			
+			if (!FIFO_EMPTY || s3->force_busy)
 				temp |= 0x02; /*Hardware busy*/
-			} else {
+			else
 				temp |= 0x04; /*FIFO empty*/
-				s3->subsys_stat |= INT_FIFO_EMP;
-				s3_update_irqs(s3);
-			}
-
 			s3->force_busy = 0;
 
 			if (s3->chip >= S3_VISION964) {
-				if (s3->accel.setup_fifo_slot > 8) {
-					temp |= s3->accel.setup_fifo2;
-					s3->accel.setup_fifo2 = 0;
-				} else if (s3->accel.draw_fifo_slot > 8) {
-					temp |= s3->accel.draw_fifo2;
-					s3->accel.draw_fifo2 = 0;
-				}
+                if (FIFO_FULL)
+					temp |= 0xf8; /*FIFO full*/
 			}
-			
-			if (s3->accel.setup_fifo_slot)
-				s3->accel.setup_fifo_slot--;
-			if (s3->accel.draw_fifo_slot)	
-				s3->accel.draw_fifo_slot--;
 
 			if (s3->data_available) {
 				temp |= 0x01; /*Read Data available*/
@@ -3544,101 +3564,151 @@ s3_accel_in(uint16_t port, void *p)
 
 		case 0x9d48: case 0x9ee8:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.short_stroke & 0xff;
 		}
 		break;
 		case 0x9d49: case 0x9ee9:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.short_stroke >> 8;
 		}
 		break;
 
 		case 0xa148: case 0xa2e8:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.bkgd_color & 0xff;
 		}
 		break;
 		case 0xa149: case 0xa2e9:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.bkgd_color >> 8;
 		}
 		break;
 		case 0xa14a: case 0xa2ea:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.bkgd_color >> 16;
 		case 0xa14b: case 0xa2eb:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.bkgd_color >> 24;
 
 		case 0xa548: case 0xa6e8:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.frgd_color & 0xff;
 		}
 		break;
 		case 0xa549: case 0xa6e9:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.frgd_color >> 8;
 		}
 		break;
 		case 0xa54a: case 0xa6ea:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.frgd_color >> 16;
 		case 0xa54b: case 0xa6eb:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.frgd_color >> 24;
 
 		case 0xa948: case 0xaae8:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.wrt_mask & 0xff;
 		}
 		break;
 		case 0xa949: case 0xaae9:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.wrt_mask >> 8;
 		}
 		break;
 		case 0xa94a: case 0xaaea:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.wrt_mask >> 16;
 		case 0xa94b: case 0xaaeb:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.wrt_mask >> 24;
 
 		case 0xad48: case 0xaee8:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.rd_mask & 0xff;
 		}
 		break;
 		case 0xad49: case 0xaee9:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.rd_mask >> 8;
 		case 0xad4a: case 0xaeea:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.rd_mask >> 16;
 		case 0xad4b: case 0xaeeb:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.rd_mask >> 24;
 
 		case 0xb148: case 0xb2e8:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.color_cmp & 0xff;
 		}
 		break;
 		case 0xb149: case 0xb2e9:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.color_cmp >> 8;
 		}
 		break;
 		case 0xb14a: case 0xb2ea:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.color_cmp >> 16;
 		case 0xb14b: case 0xb2eb:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.color_cmp >> 24;
 
 		case 0xb548: case 0xb6e8:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.bkgd_mix;
 		}
 		break;
 
 		case 0xb948: case 0xbae8:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			return s3->accel.frgd_mix;
 		}
 		break;
 
 		case 0xbd48: case 0xbee8:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			temp = s3->accel.multifunc[0xf] & 0xf;
 			switch (temp)
 			{
@@ -3659,6 +3729,8 @@ s3_accel_in(uint16_t port, void *p)
 		break;
 		case 0xbd49: case 0xbee9:
 		if (s3->chip >= S3_86C928) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			temp = s3->accel.multifunc[0xf] & 0xf;
 			s3->accel.multifunc[0xf]++;
 			switch (temp)
@@ -3680,45 +3752,73 @@ s3_accel_in(uint16_t port, void *p)
 		break;
 
 		case 0xd148: case 0xd2e8:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.ropmix & 0xff;
 
 		case 0xd149: case 0xd2e9:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.ropmix >> 8;
 
 		case 0xe548: case 0xe6e8:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.pat_bg_color & 0xff;
 
 		case 0xe549: case 0xe6e9:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.pat_bg_color >> 8;
 
 		case 0xe54a: case 0xe6ea:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.pat_bg_color >> 16;
 	
 		case 0xe54b: case 0xe6eb:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.pat_bg_color >> 24;
 
 		case 0xe948: case 0xeae8:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.pat_y & 0xff;
 
 		case 0xe949: case 0xeae9:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.pat_y >> 8;
 		
 		case 0xe94a: case 0xeaea:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.pat_x & 0xff;
 	
 		case 0xe94b: case 0xeaeb:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.pat_x >> 8;
 
 		case 0xed48: case 0xeee8:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.pat_fg_color & 0xff;
 
 		case 0xed49: case 0xeee9:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.pat_fg_color >> 8;
 
 		case 0xed4a: case 0xeeea:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.pat_fg_color >> 16;
 	
 		case 0xed4b: case 0xeeeb:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.pat_fg_color >> 24;
 
 		case 0xe148: case 0xe2e8:
@@ -3882,6 +3982,8 @@ s3_accel_in_w(uint16_t port, void *p)
 			}
 		}
 	} else {
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		temp = s3->accel.short_stroke;
 	}
 
@@ -3950,10 +4052,13 @@ s3_accel_write(uint32_t addr, uint8_t val, void *p)
 
 	if (!s3->enable_8514)
 		return;
-
-	if (svga->crtc[0x53] & 0x08)
-		s3_accel_write_fifo(s3, addr & 0x1ffff, val);
-	else
+	
+	if (s3_enable_fifo(s3)) {
+		if (svga->crtc[0x53] & 0x08)
+			s3_queue(s3, addr & 0x1ffff, val, FIFO_WRITE_BYTE);
+		else
+			s3_queue(s3, addr & 0xffff, val, FIFO_WRITE_BYTE);
+	} else
 		s3_accel_write_fifo(s3, addr & 0xffff, val);
 }
 
@@ -3966,9 +4071,12 @@ s3_accel_write_w(uint32_t addr, uint16_t val, void *p)
 	if (!s3->enable_8514)
 		return;
 
-	if (svga->crtc[0x53] & 0x08)
-		s3_accel_write_fifo_w(s3, addr & 0x1ffff, val);
-	else
+	if (s3_enable_fifo(s3)) {
+		if (svga->crtc[0x53] & 0x08)
+			s3_queue(s3, addr & 0x1ffff, val, FIFO_WRITE_WORD);
+		else
+			s3_queue(s3, addr & 0xffff, val, FIFO_WRITE_WORD);
+	} else
 		s3_accel_write_fifo_w(s3, addr & 0xffff, val);
 }
 
@@ -3981,9 +4089,12 @@ s3_accel_write_l(uint32_t addr, uint32_t val, void *p)
 	if (!s3->enable_8514)
 		return;
 
-	if (svga->crtc[0x53] & 0x08)
-		s3_accel_write_fifo_l(s3, addr & 0x1ffff, val);
-	else
+	if (s3_enable_fifo(s3)) {
+		if (svga->crtc[0x53] & 0x08)
+			s3_queue(s3, addr & 0x1ffff, val, FIFO_WRITE_DWORD);
+		else
+			s3_queue(s3, addr & 0xffff, val, FIFO_WRITE_DWORD);
+	} else
 		s3_accel_write_fifo_l(s3, addr & 0xffff, val);
 }
 
@@ -4068,6 +4179,8 @@ s3_accel_read_w(uint32_t addr, void *p)
     if (svga->crtc[0x53] & 0x08) {
 	switch (addr & 0x1fffe) {
 		case 0x811c:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		return s3->accel.short_stroke;
 		
 	    default:
@@ -4077,9 +4190,11 @@ s3_accel_read_w(uint32_t addr, void *p)
 	return 0xffff;
     } else {
 	if (addr & 0x8000) {
-		if (addr == 0x811c)
+		if (addr == 0x811c) {
+			if (s3_enable_fifo(s3))
+				s3_wait_fifo_idle(s3);
 			temp = s3->accel.short_stroke;
-		else {
+		} else {
 			temp = s3_accel_read((addr & 0xfffe), p);
 			temp |= s3_accel_read((addr & 0xfffe) + 1, p) << 8;
 		}
@@ -4194,9 +4309,13 @@ s3_accel_read_l(uint32_t addr, void *p)
 		break;
 
 		case 0x18080:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		temp = 0;
 		break;
 		case 0x18088:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		temp = s3->videoengine.cntl;
 		if (s3->bpp == 1) { /*The actual bpp is decided by the guest when idf is the same as odf*/
 			if (s3->videoengine.idf == 0 && s3->videoengine.odf == 0) {
@@ -4211,18 +4330,28 @@ s3_accel_read_l(uint32_t addr, void *p)
 		}
 		break;
 		case 0x1808c:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		temp = s3->videoengine.stretch_filt_const;
 		break;
 		case 0x18090:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		temp = s3->videoengine.src_dst_step;
 		break;
 		case 0x18094:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		temp = s3->videoengine.crop;
 		break;
 		case 0x18098:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		temp = s3->videoengine.src_base;
 		break;
 		case 0x1809c:
+		if (s3_enable_fifo(s3))
+			s3_wait_fifo_idle(s3);
 		temp = s3->videoengine.dest_base;
 		if (s3->videoengine.busy) {
 			temp |= (1 << 31);
@@ -5002,104 +5131,6 @@ s3_visionx68_video_engine_op(uint32_t cpu_dat, s3_t *s3)
 	}
 }
 
-static void
-s3_fifo_slots(s3_t *s3)
-{
-	switch (s3->accel.setup_fifo_slot) {
-		case 1:
-			s3->accel.setup_fifo |= 1;
-			break;
-		case 2:
-			s3->accel.setup_fifo |= 3;
-			break;
-		case 3:
-			s3->accel.setup_fifo |= 7;
-			break;
-		case 4:
-			s3->accel.setup_fifo |= 0x0f;
-			break;
-		case 5:
-			s3->accel.setup_fifo |= 0x1f;
-			break;
-		case 6:
-			s3->accel.setup_fifo |= 0x3f;
-			break;
-		case 7:
-			s3->accel.setup_fifo |= 0x7f;
-			break;
-		case 8:
-			s3->accel.setup_fifo |= 0xff; /* FIFO full */
-			break;
-		case 9:
-			s3->accel.setup_fifo |= 0xff; 
-			s3->accel.setup_fifo2 |= 0x08;
-			break;
-		case 10:
-			s3->accel.setup_fifo |= 0xff;
-			s3->accel.setup_fifo2 |= 0x18;
-			break;
-		case 11:
-			s3->accel.setup_fifo |= 0xff;
-			s3->accel.setup_fifo2 |= 0x38;
-			break;
-		case 12:
-			s3->accel.setup_fifo |= 0xff;
-			s3->accel.setup_fifo2 |= 0x78;
-			break;
-		case 13:
-			s3->accel.setup_fifo |= 0xff;
-			s3->accel.setup_fifo2 |= 0xf8; /* FIFO full */
-			break;
-	}
-
-	switch (s3->accel.draw_fifo_slot) {
-		case 1:
-			s3->accel.draw_fifo |= 1;
-			break;
-		case 2:
-			s3->accel.draw_fifo |= 3;
-			break;
-		case 3:
-			s3->accel.draw_fifo |= 7;
-			break;
-		case 4:
-			s3->accel.draw_fifo |= 0x0f;
-			break;
-		case 5:
-			s3->accel.draw_fifo |= 0x1f;
-			break;
-		case 6:
-			s3->accel.draw_fifo |= 0x3f;
-			break;
-		case 7:
-			s3->accel.draw_fifo |= 0x7f;
-			break;
-		case 8:
-			s3->accel.draw_fifo |= 0xff; /* FIFO full */
-			break;
-		case 9:
-			s3->accel.draw_fifo |= 0xff;
-			s3->accel.draw_fifo2 |= 0x08;
-			break;
-		case 10:
-			s3->accel.draw_fifo |= 0xff;
-			s3->accel.draw_fifo2 |= 0x18;
-			break;
-		case 11:
-			s3->accel.draw_fifo |= 0xff;
-			s3->accel.draw_fifo2 |= 0x38;
-			break;
-		case 12:
-			s3->accel.draw_fifo |= 0xff;
-			s3->accel.draw_fifo2 |= 0x78;
-			break;
-		case 13:
-			s3->accel.draw_fifo |= 0xff;
-			s3->accel.draw_fifo2 |= 0xf8; /* FIFO full */
-			break;
-	}
-}
-
 void
 s3_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_t *s3, uint8_t ssv)
 {	
@@ -5107,9 +5138,7 @@ s3_short_stroke_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_d
 		s3->accel.ssv_len = ssv & 0x0f;
 		s3->accel.ssv_dir = ssv & 0xe0;
 		s3->accel.ssv_draw = ssv & 0x10;
-		
-		s3_fifo_slots(s3);
-		
+
 		if (s3_cpu_src(s3)) {
 			return; /*Wait for data from CPU*/
 		}
@@ -5280,9 +5309,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 			if (s3->accel.cur_y_bit12) s3->accel.cy |= ~0xfff;
 
 			s3->accel.sy = s3->accel.maj_axis_pcnt;
-			
-			s3_fifo_slots(s3);
-			
+
 			if (s3_cpu_src(s3)) {
 				return; /*Wait for data from CPU*/
 			}
@@ -5464,8 +5491,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 
 			s3->accel.dest = dstbase + s3->accel.cy * s3->width;
 
-			s3_fifo_slots(s3);
-
 			if (s3_cpu_src(s3)) {
 				s3->data_available = 0;
 				return; /*Wait for data from CPU*/
@@ -5593,8 +5618,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 
 			polygon_setup(s3);
 
-			s3_fifo_slots(s3);
-
 			if ((s3->accel.cmd & 0x100) && !cpu_input) return; /*Wait for data from CPU*/
 			
 			end_y1 = s3->accel.desty_axstp;
@@ -5707,8 +5730,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 
 			s3->accel.src  = srcbase + s3->accel.cy * s3->width;
 			s3->accel.dest = dstbase + s3->accel.dy * s3->width;
-			
-			s3_fifo_slots(s3);
 		}
 
 		if ((s3->accel.cmd & 0x100) && !cpu_input) {
@@ -5886,8 +5907,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 			s3->accel.cy = s3->accel.dy & 7;
 			
 			s3->accel.src  = srcbase + s3->accel.pattern + (s3->accel.cy * s3->width);
-			
-			s3_fifo_slots(s3);	
 		}
 
 		if ((s3->accel.cmd & 0x100) && !cpu_input) {
@@ -6010,8 +6029,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 				s3->accel.cy = s3->accel.cur_y;
 				if (s3->accel.cur_y_bit12) 
 					s3->accel.cy |= ~0xfff;
-				
-				s3_fifo_slots(s3);
 			}
 
 			if ((s3->accel.cmd & 0x100) && !cpu_input) return; /*Wait for data from CPU*/			
@@ -6103,8 +6120,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 				break;
 
 			polygon_setup(s3);
-
-			s3_fifo_slots(s3);
 
 			if ((s3->accel.cmd & 0x100) && !cpu_input) return; /*Wait for data from CPU*/
 			
@@ -6217,8 +6232,6 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_dat, s3_
 			s3->accel.dest  = dstbase + (s3->accel.dy * s3->width);
 			s3->accel.src  = srcbase + (s3->accel.cy * s3->width);
 			s3->accel.pattern  = (s3->accel.py * s3->width);
-
-			s3_fifo_slots(s3);
 		}
 		
 		if ((s3->accel.cmd & 0x100) && !cpu_input) return; /*Wait for data from CPU*/
@@ -6481,6 +6494,56 @@ s3_pci_write(int func, int addr, uint8_t val, void *p)
 	}
 }
 
+static void
+fifo_thread(void *param)
+{
+	s3_t *s3 = (s3_t *)param;
+	uint64_t start_time, end_time;
+        
+	while (s3->fifo_thread_run) {
+		thread_set_event(s3->fifo_not_full_event);
+		thread_wait_event(s3->wake_fifo_thread, -1);
+		thread_reset_event(s3->wake_fifo_thread);
+		s3->blitter_busy = 1;
+		while (!FIFO_EMPTY) {
+			start_time = plat_timer_read();
+			fifo_entry_t *fifo = &s3->fifo[s3->fifo_read_idx & FIFO_MASK];
+
+			switch (fifo->addr_type & FIFO_TYPE) {
+				case FIFO_WRITE_BYTE:
+					s3_accel_write_fifo(s3, fifo->addr_type & FIFO_ADDR, fifo->val);
+					break;
+				case FIFO_WRITE_WORD:
+					s3_accel_write_fifo_w(s3, fifo->addr_type & FIFO_ADDR, fifo->val);
+					break;
+				case FIFO_WRITE_DWORD:
+					s3_accel_write_fifo_l(s3, fifo->addr_type & FIFO_ADDR, fifo->val);
+					break;
+				case FIFO_OUT_BYTE:
+					s3_accel_out_fifo(s3, fifo->addr_type & FIFO_ADDR, fifo->val);
+					break;
+				case FIFO_OUT_WORD:
+					s3_accel_out_fifo_w(s3, fifo->addr_type & FIFO_ADDR, fifo->val);
+					break;
+				case FIFO_OUT_DWORD:
+					s3_accel_out_fifo_l(s3, fifo->addr_type & FIFO_ADDR, fifo->val);
+					break;
+			}
+                                                
+			s3->fifo_read_idx++;
+			fifo->addr_type = FIFO_INVALID;
+
+			if (FIFO_ENTRIES > 0xe000)
+				thread_set_event(s3->fifo_not_full_event);
+
+			end_time = plat_timer_read();
+			s3->blitter_time += (end_time - start_time);
+		}
+		s3->blitter_busy = 0;
+		s3->subsys_stat |= INT_FIFO_EMP;
+		s3_update_irqs(s3);
+	}
+}
 
 static int vram_sizes[] =
 {
@@ -7264,6 +7327,11 @@ static void *s3_init(const device_t *info)
 	s3->i2c = i2c_gpio_init("ddc_s3");
 	s3->ddc = ddc_init(i2c_gpio_get_bus(s3->i2c));
 
+	s3->wake_fifo_thread = thread_create_event();
+	s3->fifo_not_full_event = thread_create_event();
+	s3->fifo_thread_run = 1;
+	s3->fifo_thread = thread_create(fifo_thread, s3);
+
 	return s3;
 }
 
@@ -7425,6 +7493,12 @@ static int s3_trio64v2_dx_available(void)
 static void s3_close(void *p)
 {
 	s3_t *s3 = (s3_t *)p;
+
+	s3->fifo_thread_run = 0;
+	thread_set_event(s3->wake_fifo_thread);
+	thread_wait(s3->fifo_thread);
+	thread_destroy_event(s3->fifo_not_full_event);
+	thread_destroy_event(s3->wake_fifo_thread);
 
 	svga_close(&s3->svga);
 

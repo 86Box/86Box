@@ -166,8 +166,6 @@ onesec_timer(void *priv)
 void
 nvr_init(nvr_t *nvr)
 {
-    struct tm *tm;
-    time_t now;
     int c;
 
     /* Set up the NVR file's name. */
@@ -178,15 +176,7 @@ nvr_init(nvr_t *nvr)
     /* Initialize the internal clock as needed. */
     memset(&intclk, 0x00, sizeof(intclk));
     if (time_sync & TIME_SYNC_ENABLED) {
-	/* Get the current time of day, and convert to local time. */
-	(void)time(&now);
-	if(time_sync & TIME_SYNC_UTC)
-		tm = gmtime(&now);
-	else
-		tm = localtime(&now);
-
-	/* Set the internal clock. */
-	nvr_time_set(tm);
+	nvr_time_sync();
     } else {
 	/* Reset the internal clock to 1980/01/01 00:00. */
 	intclk.tm_mon = 1;
@@ -262,7 +252,7 @@ nvr_load(void)
 	path = nvr_path(saved_nvr->fn);
 	nvr_log("NVR: loading from '%s'\n", path);
 	fp = plat_fopen(path, "rb");
-	saved_nvr->new = (fp == NULL);
+	saved_nvr->is_new = (fp == NULL);
 	if (fp != NULL) {
 		/* Read NVR contents from file. */
 		if (fread(saved_nvr->regs, 1, saved_nvr->size, fp) != saved_nvr->size)
@@ -270,7 +260,7 @@ nvr_load(void)
 		(void)fclose(fp);
 	}
     } else
-	saved_nvr->new = 1;
+	saved_nvr->is_new = 1;
 
     /* Get the local RTC running! */
     if (saved_nvr->start != NULL)
@@ -322,6 +312,24 @@ void
 nvr_close(void)
 {
     saved_nvr = NULL;
+}
+
+
+void
+nvr_time_sync(void)
+{
+    struct tm *tm;
+    time_t now;
+
+    /* Get the current time of day, and convert to local time. */
+    (void)time(&now);
+    if(time_sync & TIME_SYNC_UTC)
+	tm = gmtime(&now);
+    else
+	tm = localtime(&now);
+
+    /* Set the internal clock. */
+    nvr_time_set(tm);
 }
 
 

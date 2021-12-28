@@ -309,11 +309,11 @@ const machine_t machines[] = {
 
     /* 386DX machines which utilize the MCA bus */
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[MCA] IBM PS/2 model 70 (type 3)",	"ibmps2_m70_type3",	MACHINE_TYPE_386DX,		CPU_PKG_386DX | CPU_PKG_486BL, 0, 0, 0, 0, 0, 0, 0,								MACHINE_MCA | MACHINE_BUS_PS2 | MACHINE_VIDEO,					 2048, 16384, 2048,  63,      machine_ps2_model_70_type3_init, NULL			},
+    { "[MCA] IBM PS/2 model 70 (type 3)",	"ibmps2_m70_type3",	MACHINE_TYPE_386DX,		CPU_PKG_386DX | CPU_PKG_486BL, 0, 0, 0, 0, 0, 0, 0,								MACHINE_MCA | MACHINE_BUS_PS2 | MACHINE_VIDEO,					 2048, 65536, 2048,  63,      machine_ps2_model_70_type3_init, NULL			},
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[MCA] IBM PS/2 model 80",		"ibmps2_m80",		MACHINE_TYPE_386DX,		CPU_PKG_386DX | CPU_PKG_486BL, 0, 0, 0, 0, 0, 0, 0,								MACHINE_MCA | MACHINE_BUS_PS2 | MACHINE_VIDEO,					 1024, 12288, 1024,  63,	    machine_ps2_model_80_init, NULL			},
+    { "[MCA] IBM PS/2 model 80 (type 2)",		"ibmps2_m80",		MACHINE_TYPE_386DX,		CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,								MACHINE_MCA | MACHINE_BUS_PS2 | MACHINE_VIDEO,					 1024, 65536, 1024,  63,	    machine_ps2_model_80_init, NULL			},
     /* Has IBM PS/2 Type 1 KBC firmware. */
-    { "[MCA] IBM PS/2 model 80 (type 3)",	"ibmps2_m80_type3",	MACHINE_TYPE_386DX,		CPU_PKG_386DX | CPU_PKG_486BL, 0, 0, 0, 0, 0, 0, 0,								MACHINE_MCA | MACHINE_BUS_PS2 | MACHINE_VIDEO,					 2048, 12288, 2048,  63,	machine_ps2_model_80_axx_init, NULL			},
+    { "[MCA] IBM PS/2 model 80 (type 3)",	"ibmps2_m80_type3",	MACHINE_TYPE_386DX,		CPU_PKG_386DX | CPU_PKG_486BL | CPU_PKG_SOCKET1, 0, 0, 0, 0, 0, 0, 0,								MACHINE_MCA | MACHINE_BUS_PS2 | MACHINE_VIDEO,					 2048, 65536, 2048,  63,	machine_ps2_model_80_axx_init, NULL			},
 
     /* 386DX/486 machines */
     /* The BIOS sends commands C9 without a parameter and D5, both of which are
@@ -366,9 +366,8 @@ const machine_t machines[] = {
     { "[ACC 2168] Packard Bell PB410A",		"pb410a",		MACHINE_TYPE_486_S2,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE | MACHINE_VIDEO,			 4096, 36864, 1024, 127,	       machine_at_pb410a_init, NULL			},
     /* Uses an ACER/NEC 90M002A (UPD82C42C, 8042 clone) with unknown firmware (V4.01H). */
     { "[ALi M1429G] Acer A1G",			"acera1g",		MACHINE_TYPE_486_S2,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO,		 4096, 36864, 1024, 127,	      machine_at_acera1g_init, at_acera1g_get_device	},
-    /* There are two similar BIOS strings with -H, and one with -U, so I'm going to
-        give it an AMIKey H KBC firmware. */
-    { "[ALi M1429G] Kaimei 486",		"win486",		MACHINE_TYPE_486_S2,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	  machine_at_winbios1429_init, NULL			},
+    /* This has an AMIKey-2, which is an updated version of type 'H'. */
+    { "[ALi M1429G] Kaimei SA-486 VL-BUS M.B.",	"win486",		MACHINE_TYPE_486_S2,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_VLB | MACHINE_IDE,							 1024, 32768, 1024, 127,	  machine_at_winbios1429_init, NULL			},
     /* Uses an Intel KBC with Phoenix MultiKey KBC firmware. */
     { "[SiS 461] DEC DECpc LPV",		"decpclpv",		MACHINE_TYPE_486_S2,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_AT | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL | MACHINE_VIDEO,		 1024, 32768, 1024, 127,	     machine_at_decpclpv_init, NULL			},
     /* Uses an NEC 90M002A (UPD82C42C, 8042 clone) with unknown firmware. */
@@ -447,7 +446,7 @@ const machine_t machines[] = {
     { "[SiS 496] Rise Computer R418",		"r418",			MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 261120, 1024, 255,		 machine_at_r418_init, NULL			},
     /* This has a Holtek KBC and the BIOS does not send a single non-standard KBC command, so it
        must be an ASIC that clones the standard IBM PS/2 KBC. */
-    { "[SiS 496] Soyo 4SA2",			"4sa2",			MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, CPU_BLOCK(CPU_i486SX, CPU_i486DX, CPU_Am486SX, CPU_Am486DX), 0, 0, 0, 0, 0, 0,			MACHINE_PCI | MACHINE_IDE_DUAL,							 1024, 261120, 1024, 255,		 machine_at_4sa2_init, NULL			},
+    { "[SiS 496] Soyo 4SAW2",			"4saw2",		MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, CPU_BLOCK(CPU_i486SX, CPU_i486DX, CPU_Am486SX, CPU_Am486DX), 0, 0, 0, 0, 0, 0,			MACHINE_PCIV | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024, 261120, 1024, 255,		machine_at_4saw2_init, NULL			},
     /* According to MrKsoft, his real 4DPS has an AMIKey-2, which is an updated version
        of type 'H'. */
     { "[SiS 496] Zida Tomato 4DP",		"4dps",			MACHINE_TYPE_486_S3,		CPU_PKG_SOCKET3, 0, 0, 0, 0, 0, 0, 0,										MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,				 1024, 261120, 1024, 255,		 machine_at_4dps_init, NULL			},
@@ -921,7 +920,7 @@ const machine_t machines[] = {
     /* Miscellaneous/Fake/Hypervisor machines */
     /* Has a Winbond W83977F Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
-    { "[i440BX] Microsoft Virtual PC 2007",	"vpc2007",		MACHINE_TYPE_MISC,		CPU_PKG_SLOT1, CPU_BLOCK(CPU_PENTIUM2, CPU_CYRIX3S), 0, 0, 0, 0, 0, 0,						MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192,1048576, 8192, 255,	      machine_at_vpc2007_init, NULL			},
+    { "[i440BX] Microsoft Virtual PC 2007",	"vpc2007",		MACHINE_TYPE_MISC,		CPU_PKG_SLOT1, CPU_BLOCK(CPU_PENTIUM2, CPU_CYRIX3S), 0, 66666667, 0, 0, 0, 0,					MACHINE_PCI | MACHINE_BUS_PS2 | MACHINE_IDE_DUAL,		  		 8192,1048576, 8192, 255,	      machine_at_vpc2007_init, NULL			},
 
     { NULL,					NULL,			MACHINE_TYPE_NONE,		0, 0, 0, 0, 0, 0, 0, 0,												0,										    0,      0,    0,   0,				 NULL, NULL			}
 };
@@ -976,6 +975,59 @@ int
 machine_get_nvrmask(int m)
 {
     return(machines[m].nvrmask);
+}
+
+
+int
+machine_has_flags(int m, int flags)
+{
+    return(machines[m].flags & flags);
+}
+
+
+int
+machine_has_bus(int m, int bus_flags)
+{
+    return(machines[m].flags & bus_flags);
+}
+
+
+int
+machine_has_cartridge(int m)
+{
+    return(machine_has_flags(m, MACHINE_CARTRIDGE) ? 1 : 0);
+}
+
+
+int
+machine_get_min_ram(int m)
+{
+    return(machines[m].min_ram);
+}
+
+
+int
+machine_get_max_ram(int m)
+{
+#if (!(defined __amd64__ || defined _M_X64 || defined __aarch64__ || defined _M_ARM64))
+    return MIN(((int) machines[m].max_ram), 2097152);
+#else
+    return MIN(((int) machines[m].max_ram), 3145728);
+#endif
+}
+
+
+int
+machine_get_ram_granularity(int m)
+{
+    return(machines[m].ram_granularity);
+}
+
+
+int
+machine_get_type(int m)
+{
+    return(machines[m].type);
 }
 
 

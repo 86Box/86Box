@@ -1025,11 +1025,11 @@ machine_at_486sp3c_init(const machine_t *model)
 
 
 int
-machine_at_4sa2_init(const machine_t *model)
+machine_at_4saw2_init(const machine_t *model)
 {
     int ret;
 
-    ret = bios_load_linear("roms/machines/4sa2/4saw0911.bin",
+    ret = bios_load_linear("roms/machines/4saw2/4saw0911.bin",
 			   0x000e0000, 131072, 0);
 
     if (bios_only || !ret)

@@ -82,6 +82,8 @@
 #include <86box/plat.h>
 #include <86box/isamem.h>
 
+#include "cpu.h"
+
 
 #define ISAMEM_DEBUG	0
 
@@ -455,7 +457,7 @@ dev->frame_addr = 0xE0000;
     isamem_log(")\n");
 
     /* Force (back to) 8-bit bus if needed. */
-    if ((!AT) && (dev->flags & FLAG_WIDE)) {
+    if ((!is286) && (dev->flags & FLAG_WIDE)) {
 	isamem_log("ISAMEM: not AT+ system, forcing 8-bit mode!\n");
 	dev->flags &= ~FLAG_WIDE;
     }
@@ -559,7 +561,7 @@ dev->frame_addr = 0xE0000;
      * real mode (so, not by DOS, for example) but it can be used in
      * protected mode.
      */
-    if (AT && addr > 0 && tot > 0) {
+    if (is286 && addr > 0 && tot > 0) {
 	t = tot;
 	isamem_log("ISAMEM: RAM at %05iKB (%iKB)\n", addr>>10, t>>10);
 

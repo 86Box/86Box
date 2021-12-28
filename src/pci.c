@@ -74,7 +74,6 @@ static int		trc_reg = 0;
 static void		pci_reset_regs(void);
 
 
-// #define ENABLE_PCI_LOG 1
 #ifdef ENABLE_PCI_LOG
 int pci_do_log = ENABLE_PCI_LOG;
 
@@ -487,19 +486,6 @@ pci_set_mirq_routing(int mirq, int irq)
 }
 
 
-uint8_t
-pci_use_mirq(uint8_t mirq)
-{
-    if (!PCI || !pci_mirqs[mirq].enabled)
-	return 0;
-
-    if (pci_mirqs[mirq].irq_line & 0x80)
-	return 0;
-
-    return 1;
-}
-
-
 void
 pci_set_mirq(uint8_t mirq, int level)
 {
@@ -768,6 +754,14 @@ pci_reset_regs(void)
 }
 
 
+void
+pci_pic_reset(void)
+{
+    pic_reset();
+    pic_set_pci_flag(last_pci_card > 0);
+}
+
+
 static void
 pci_reset_hard(void)
 {
@@ -783,7 +777,7 @@ pci_reset_hard(void)
 	}
     }
 
-    pic_reset();
+    pci_pic_reset();
 }
 
 
@@ -864,6 +858,8 @@ trc_reset(uint8_t val)
 {
     if (val & 2) {
 	dma_reset();
+	dma_set_at(1);
+
 	device_reset_all();
 
 	cpu_alt_reset = 0;
@@ -923,8 +919,6 @@ pci_init(int type)
 {
     int c;
 
-    PCI = 1;
-
     pci_slots_clear();
 
     pci_reset_hard();
@@ -972,6 +966,8 @@ pci_init(int type)
 	pci_mirqs[c].enabled = 0;
 	pci_mirqs[c].irq_line = PCI_IRQ_DISABLED;
     }
+
+    pic_set_pci_flag(1);
 }
 
 
@@ -1065,11 +1061,6 @@ pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, void *priv), 
 
     if (add_type < PCI_ADD_AGP)
 	pci_log("pci_add_card(): Adding PCI CARD at specific slot %02X [SPECIFIC]\n", add_type);
-
-    if (! PCI) {
-	pci_log("pci_add_card(): Adding PCI CARD failed (non-PCI machine) [%s]\n", (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_AGP) ? "AGP" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC")))));
-	return 0xff;
-    }
 
     if (! last_pci_card) {
 	pci_log("pci_add_card(): Adding PCI CARD failed (no PCI slots) [%s]\n", (add_type == PCI_ADD_NORMAL) ? "NORMAL" : ((add_type == PCI_ADD_AGP) ? "AGP" : ((add_type == PCI_ADD_VIDEO) ? "VIDEO" : ((add_type == PCI_ADD_SCSI) ? "SCSI" : ((add_type == PCI_ADD_SOUND) ? "SOUND" : "SPECIFIC")))));

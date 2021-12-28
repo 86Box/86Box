@@ -63,6 +63,8 @@
 #include <86box/net_wd8003.h>
 #include <86box/bswap.h>
 
+#include "cpu.h"
+
 /* Board type codes in card ID */
 #define WE_TYPE_WD8003		0x01
 #define WE_TYPE_WD8003S		0x02
@@ -668,7 +670,7 @@ wd_init(const device_t *info)
 			dev->board_chip |= WE_ID_EXTRA_RAM;
 
 		dev->bit16 = 2;
-		if (AT)
+		if (is286)
 			dev->bit16 |= 1;
 		else {
 			dev->bit16 |= 0;

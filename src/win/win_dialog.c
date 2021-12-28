@@ -172,6 +172,7 @@ file_dlg_w(HWND hwnd, WCHAR *f, WCHAR *fn, WCHAR *title, int save)
      * Set lpstrFile[0] to '\0' so that GetOpenFileName does
      * not use the contents of szFile to initialize itself.
      */
+    memset(ofn.lpstrFile, 0x00, 512 * sizeof(WCHAR));
     memcpy(ofn.lpstrFile, fn, (wcslen(fn) << 1) + 2);
     ofn.nMaxFile = sizeof_w(wopenfilestring);
     ofn.lpstrFilter = f;

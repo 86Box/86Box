@@ -39,7 +39,6 @@
 #include <86box/nvr.h>
 #include <86box/video.h>
 #include <86box/vid_ega.h>		// for update_overscan
-#include <86box/plat_midi.h>
 #include <86box/plat_dynld.h>
 #include <86box/ui.h>
 #include <86box/win.h>
@@ -54,8 +53,8 @@
 
 
 /* Platform Public data, specific. */
-HWND		hwndMain,		/* application main window */
-		hwndRender;		/* machine render window */
+HWND		hwndMain = NULL,	/* application main window */
+		hwndRender = NULL;	/* machine render window */
 HMENU		menuMain;		/* application main menu */
 RECT		oldclip;		/* mouse rect */
 int		sbar_height = 23;	/* statusbar height */
@@ -672,7 +671,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 				scrnsz_x = unscaled_size_x;
 				scrnsz_y = unscaled_size_y;
-				doresize = 1;
+				atomic_flag_clear(&doresize);
 				config_save();
 				break;
 
@@ -771,7 +770,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				reset_screen_size();
 				device_force_redraw();
 				video_force_resize_set(1);
-				doresize = 1;
+				atomic_flag_clear(&doresize);
 				config_save();
 				break;
 
@@ -786,7 +785,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_HIDPI:
 				dpi_scale = !dpi_scale;
 				CheckMenuItem(hmenu, IDM_VID_HIDPI, dpi_scale ? MF_CHECKED : MF_UNCHECKED);
-				doresize = 1;
+				atomic_flag_clear(&doresize);
 				config_save();
 				break;
 				
@@ -947,7 +946,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			else
 				ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
 		} else if (!user_resize)
-			doresize = 1;
+			atomic_flag_clear(&doresize);
 		break;
 
 	case WM_WINDOWPOSCHANGED:
@@ -992,13 +991,13 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				if (temp_x != scrnsz_x || temp_y != scrnsz_y) {
 					scrnsz_x = temp_x;
 					scrnsz_y = temp_y;
-					doresize = 1;
+					atomic_flag_clear(&doresize);
 				}
 			} else {
 				if (rect.right != scrnsz_x || rect.bottom != scrnsz_y) {
 					scrnsz_x = rect.right;
 					scrnsz_y = rect.bottom;
-					doresize = 1;
+					atomic_flag_clear(&doresize);
 				}
 			}
 
@@ -1160,7 +1159,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		/* If window is not resizable, then tell the main thread to
 		   resize it, as sometimes, moves can mess up the window size. */
 		if (!vid_resize)
-			doresize = 1;
+			atomic_flag_clear(&doresize);
 		break;
     }
 
@@ -1586,6 +1585,10 @@ plat_pause(int p)
     } else {
 	ui_window_title(oldtitle);
     }
+
+    /* If un-pausing, synchronize the internal clock with the host's time. */
+    if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
+	nvr_time_sync();
 
     dopause = p;
 

@@ -1,33 +1,30 @@
-if (${CMAKE_SYSTEM_NAME} MATCHES "Linux")
-    find_package(ALSA)
-    if (ALSA_FOUND)
-        set(PLAT_SOURCES linux_midi_alsa.c)
-    else()
-        set(PLAT_SOURCES unix_midi.c)
-    endif()
-else()
-    set(PLAT_SOURCES unix_midi.c)
-endif()
-add_library(plat STATIC ${PLAT_SOURCES} unix_thread.c)
-add_library(ui STATIC unix.c unix_sdl.c unix_cdrom.c)
-target_compile_definitions(ui PUBLIC _FILE_OFFSET_BITS=64)
-target_link_libraries(ui dl)
+#
+# 86Box     A hypervisor and IBM PC system emulator that specializes in
+#           running old operating systems and software designed for IBM
+#           PC systems and compatibles from 1981 through fairly recent
+#           system designs based on the PCI bus.
+#
+#           This file is part of the 86Box distribution.
+#
+#           CMake build script.
+#
+# Authors:  Cacodemon345
+#           David Hrdlička, <hrdlickadavid@outlook.com>
+#
+#           Copyright 2021 Cacodemon345.
+#           Copyright 2021 David Hrdlička.
+#
 
-find_package(SDL2 REQUIRED)
-include_directories(${SDL2_INCLUDE_DIRS})
-if(MINGW)
-	target_link_libraries(ui SDL2::SDL2-static)
-else()
-        if (TARGET SDL2::SDL2)
-                target_link_libraries(ui SDL2::SDL2)
-        else()
-                target_link_libraries(ui ${SDL2_LIBRARIES})
-        endif()
-endif()
-if (ALSA_FOUND)
-    target_link_libraries(plat ALSA::ALSA)
+add_library(plat OBJECT unix.c)
+
+if (NOT CPPTHREADS)
+    target_sources(plat PRIVATE unix_thread.c)
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED)
 target_link_libraries(86Box Threads::Threads)
+
+add_library(ui OBJECT unix_sdl.c unix_cdrom.c)
+target_compile_definitions(ui PUBLIC _FILE_OFFSET_BITS=64)
+target_link_libraries(ui dl)

@@ -1802,7 +1802,7 @@ mem_read_ram(uint32_t addr, void *priv)
 	mem_log("Read  B       %02X from %08X\n", ram[addr], addr);
 #endif
 
-    if (is286 || AT)
+    if (is286)
 	addreadlookup(mem_logical_addr, addr);
 
     return ram[addr];
@@ -1817,7 +1817,7 @@ mem_read_ramw(uint32_t addr, void *priv)
 	mem_log("Read  W     %04X from %08X\n", *(uint16_t *)&ram[addr], addr);
 #endif
 
-    if (is286 || AT)
+    if (is286)
 	addreadlookup(mem_logical_addr, addr);
 
     return *(uint16_t *)&ram[addr];
@@ -1832,7 +1832,7 @@ mem_read_raml(uint32_t addr, void *priv)
 	mem_log("Read  L %08X from %08X\n", *(uint32_t *)&ram[addr], addr);
 #endif
 
-    if (is286 || AT)
+    if (is286)
 	addreadlookup(mem_logical_addr, addr);
 
     return *(uint32_t *)&ram[addr];
@@ -2076,7 +2076,7 @@ mem_write_ram(uint32_t addr, uint8_t val, void *priv)
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
 	mem_log("Write B       %02X to   %08X\n", val, addr);
 #endif
-    if (is286 || AT) {	
+    if (is286) {	
 	addwritelookup(mem_logical_addr, addr);
 	mem_write_ramb_page(addr, val, &pages[addr >> 12]);
     } else
@@ -2091,7 +2091,7 @@ mem_write_ramw(uint32_t addr, uint16_t val, void *priv)
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
 	mem_log("Write W     %04X to   %08X\n", val, addr);
 #endif
-    if (is286 || AT) {
+    if (is286) {
 	addwritelookup(mem_logical_addr, addr);
 	mem_write_ramw_page(addr, val, &pages[addr >> 12]);
     } else
@@ -2106,7 +2106,7 @@ mem_write_raml(uint32_t addr, uint32_t val, void *priv)
     if ((addr >= 0xa0000) && (addr <= 0xbffff))
 	mem_log("Write L %08X to   %08X\n", val, addr);
 #endif
-    if (is286 || AT) {
+    if (is286) {
 	addwritelookup(mem_logical_addr, addr);
 	mem_write_raml_page(addr, val, &pages[addr >> 12]);
     } else
@@ -2118,7 +2118,7 @@ static uint8_t
 mem_read_remapped(uint32_t addr, void *priv)
 {
     addr = 0xA0000 + (addr - remap_start_addr);
-    if (is286 || AT)
+    if (is286)
 	addreadlookup(mem_logical_addr, addr);
     return ram[addr];
 }
@@ -2128,7 +2128,7 @@ static uint16_t
 mem_read_remappedw(uint32_t addr, void *priv)
 {
     addr = 0xA0000 + (addr - remap_start_addr);
-    if (is286 || AT)
+    if (is286)
 	addreadlookup(mem_logical_addr, addr);
     return *(uint16_t *)&ram[addr];
 }
@@ -2138,7 +2138,7 @@ static uint32_t
 mem_read_remappedl(uint32_t addr, void *priv)
 {
     addr = 0xA0000 + (addr - remap_start_addr);
-    if (is286 || AT)
+    if (is286)
 	addreadlookup(mem_logical_addr, addr);
     return *(uint32_t *)&ram[addr];
 }
@@ -2149,7 +2149,7 @@ mem_write_remapped(uint32_t addr, uint8_t val, void *priv)
 {
     uint32_t oldaddr = addr;
     addr = 0xA0000 + (addr - remap_start_addr);
-    if (is286 || AT) {
+    if (is286) {
 	addwritelookup(mem_logical_addr, addr);
 	mem_write_ramb_page(addr, val, &pages[oldaddr >> 12]);
     } else
@@ -2162,7 +2162,7 @@ mem_write_remappedw(uint32_t addr, uint16_t val, void *priv)
 {
     uint32_t oldaddr = addr;
     addr = 0xA0000 + (addr - remap_start_addr);
-    if (is286 || AT) {
+    if (is286) {
 	addwritelookup(mem_logical_addr, addr);
 	mem_write_ramw_page(addr, val, &pages[oldaddr >> 12]);
     } else
@@ -2175,7 +2175,7 @@ mem_write_remappedl(uint32_t addr, uint32_t val, void *priv)
 {
     uint32_t oldaddr = addr;
     addr = 0xA0000 + (addr - remap_start_addr);
-    if (is286 || AT) {
+    if (is286) {
 	addwritelookup(mem_logical_addr, addr);
 	mem_write_raml_page(addr, val, &pages[oldaddr >> 12]);
     } else
@@ -2537,12 +2537,12 @@ mem_set_access(uint8_t bitmap, int mode, uint32_t base, uint32_t size, uint16_t 
 void
 mem_a20_init(void)
 {
-    if (AT) {
+    if (is286) {
 	rammask = cpu_16bitbus ? 0xefffff : 0xffefffff;
 	flushmmucache();
 	mem_a20_state = mem_a20_key | mem_a20_alt;
     } else {
-	rammask = is286 ? 0xffffff : 0xfffff;
+	rammask = 0xfffff;
 	flushmmucache();
 	mem_a20_key = mem_a20_alt = mem_a20_state = 0;
     }
@@ -2665,7 +2665,7 @@ mem_reset(void)
      * We re-allocate the table on each (hard) reset, as the
      * memory amount could have changed.
      */
-    if (AT) {
+    if (is286) {
 	if (cpu_16bitbus) {
 		/* 80286/386SX; maximum address space is 16MB. */
 		m = 4096;
@@ -2674,13 +2674,8 @@ mem_reset(void)
 		m = 1048576;
 	}
     } else {
-	if (is286) {
-		/* 80286; maximum address space is 16MB. */
-		m = 4096;
-	} else {
-		/* 8088/86; maximum address space is 1MB. */
-		m = 256;
-	}
+	/* 8088/86; maximum address space is 1MB. */
+	m = 256;
     }
 
     /*
@@ -2877,8 +2872,8 @@ mem_a20_recalc(void)
 {
     int state;
 
-    if (! AT) {
-	rammask = is286 ? 0xffffff : 0xfffff;
+    if (! is286) {
+	rammask = 0xfffff;
 	flushmmucache();
 	mem_a20_key = mem_a20_alt = mem_a20_state = 0;
 
@@ -2887,10 +2882,10 @@ mem_a20_recalc(void)
 
     state = mem_a20_key | mem_a20_alt;
     if (state && !mem_a20_state) {
-	rammask = (AT && cpu_16bitbus) ? 0xffffff : 0xffffffff;
+	rammask = (cpu_16bitbus) ? 0xffffff : 0xffffffff;
 	flushmmucache();
     } else if (!state && mem_a20_state) {
-	rammask = (AT && cpu_16bitbus) ? 0xefffff : 0xffefffff;
+	rammask = (cpu_16bitbus) ? 0xefffff : 0xffefffff;
 	flushmmucache();
     }
 

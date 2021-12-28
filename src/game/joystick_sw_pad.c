@@ -15,7 +15,7 @@
  *		  connected
  *		- Packet preceeded by high data (currently 50us), and
  *		  followed by low data (currently 160us) - timings are
- *		  probably wrong, but good enoughfor everything I've tried
+ *		  probably wrong, but good enough for everything I've tried
  *		- Analog inputs are only used to time ID packet request.
  *		  If A0 timing out is followed after ~64us by another 0x201
  *		  write then an ID packet is triggered
@@ -259,7 +259,7 @@ static void sw_a0_over(void *p)
 {
         sw_data *sw = (sw_data *)p;
 
-		timer_set_delay_u64(&sw->trigger_timer, TIMER_USEC * 10000);
+        timer_set_delay_u64(&sw->trigger_timer, TIMER_USEC * 10000);
 }
         
 const joystick_if_t joystick_sw_pad =
@@ -273,7 +273,7 @@ const joystick_if_t joystick_sw_pad =
         sw_a0_over,
         2,
         10,
-	0,
+        0,
         4,
         {"X axis", "Y axis"},
         {"A", "B", "C", "X", "Y", "Z", "L", "R", "Start", "M"}

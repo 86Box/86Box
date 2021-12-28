@@ -18,6 +18,7 @@
 #include <inttypes.h>
 #include <dlfcn.h>
 #include <wchar.h>
+#include <stdatomic.h>
 
 #include <86box/86box.h>
 #include <86box/keyboard.h>
@@ -454,6 +455,12 @@ ui_sb_update_panes()
 }
 
 void
+ui_sb_update_text()
+{
+
+}
+
+void
 plat_get_dirname(char *dest, const char *path)
 {
     int c = (int)strlen(path);
@@ -525,12 +532,11 @@ main_thread(void *param)
 		SDL_Delay(1);
 
 	/* If needed, handle a screen resize. */
-	if (doresize && !video_fullscreen && !is_quit) {
+	if (!atomic_flag_test_and_set(&doresize) && !video_fullscreen && !is_quit) {
 		if (vid_resize & 2)
 			plat_resize(fixed_size_x, fixed_size_y);
 		else
 			plat_resize(scrnsz_x, scrnsz_y);
-		doresize = 0;
 	}
     }
 
@@ -701,6 +707,9 @@ plat_pause(int p)
 {
     static wchar_t oldtitle[512];
     wchar_t title[512];
+
+    if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
+	nvr_time_sync();
 
     dopause = p;
     if (p) {

@@ -95,7 +95,8 @@ extern void	midi_in_sysex(uint8_t *buffer, uint32_t len);
 #define MIDI_INPUT_INTERNAL_NAME "midi_in"
 
 #ifdef EMU_DEVICE_H
-extern const device_t system_midi_device;
+extern const device_t rtmidi_device;
+extern const device_t rtmidi_input_device;
 #ifdef USE_FLUIDSYNTH
 extern const device_t fluidsynth_device;
 #endif

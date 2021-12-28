@@ -112,7 +112,7 @@ machine_at_cmdpc_init(const machine_t *model)
     if (fdc_type == FDC_INTERNAL)
     device_add(&fdc_at_device);
 
-    cmd_uart = device_add(&i8250_device);
+    cmd_uart = device_add(&ns8250_device);
 
     cbm_io_init();
 

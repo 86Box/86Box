@@ -80,16 +80,18 @@ static const struct {
     const char		*internal_name;
     const joystick_if_t	*joystick;
 } joysticks[] = {
-    { "none",			&joystick_none			},
-    { "standard_2button",	&joystick_standard		},
-    { "standard_4button",	&joystick_standard_4button	},
-    { "standard_6button",	&joystick_standard_6button	},
-    { "standard_8button",	&joystick_standard_8button	},
-    { "4axis_4button",		&joystick_4axis_4button		},
+    { "none",				&joystick_none			},
+    { "2axis_2button",		&joystick_2axis_2button	},
+    { "2axis_4button",		&joystick_2axis_4button	},
+    { "2axis_6button",		&joystick_2axis_6button	},
+    { "2axis_8button",		&joystick_2axis_8button	},
+    { "3axis_2button",		&joystick_3axis_2button	},
+    { "3axis_4button",		&joystick_3axis_4button	},
+    { "4axis_4button",		&joystick_4axis_4button	},
     { "ch_flighstick_pro",	&joystick_ch_flightstick_pro	},
     { "sidewinder_pad",		&joystick_sw_pad		},
     { "thrustmaster_fcs",	&joystick_tm_fcs		},
-    { "",			NULL				}
+    { "",					NULL					}
 };
 static joystick_instance_t *joystick_instance = NULL;
 
@@ -360,7 +362,7 @@ gameport_add(const device_t *gameport_type)
 {
     /* Prevent a standalone game port from being added later on, unless this
        is an unused Super I/O game port (no MACHINE_GAMEPORT machine flag). */
-    if (!(gameport_type->local & GAMEPORT_SIO) || (machines[machine].flags & MACHINE_GAMEPORT))
+    if (!(gameport_type->local & GAMEPORT_SIO) || machine_has_flags(machine, MACHINE_GAMEPORT))
 	standalone_gameport_type = NULL;
 
     /* Add game port device. */
@@ -444,8 +446,26 @@ const device_t gameport_device = {
 };
 
 const device_t gameport_201_device = {
-    "Game port (port 201h only)",
+    "Game port (Port 201h only)",
     0, 0x010201,
+    gameport_init,
+    gameport_close,
+    NULL, { NULL }, NULL,
+    NULL
+};
+
+const device_t gameport_208_device = {
+    "Game port (Port 208h-20fh)",
+    0, 0x080208,
+    gameport_init,
+    gameport_close,
+    NULL, { NULL }, NULL,
+    NULL
+};
+
+const device_t gameport_209_device = {
+    "Game port (Port 209h only)",
+    0, 0x010209,
     gameport_init,
     gameport_close,
     NULL, { NULL }, NULL,

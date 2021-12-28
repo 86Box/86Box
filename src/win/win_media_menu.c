@@ -24,8 +24,8 @@
 #include <86box/zip.h>
 #include <86box/win.h>
 
-#define MACHINE_HAS_IDE		(machines[machine].flags & MACHINE_IDE_QUAD)
-#define MACHINE_HAS_SCSI	(machines[machine].flags & MACHINE_SCSI_DUAL)
+#define MACHINE_HAS_IDE		(machine_has_flags(machine, MACHINE_IDE_QUAD))
+#define MACHINE_HAS_SCSI	(machine_has_flags(machine, MACHINE_SCSI_DUAL))
 
 #define CASSETTE_FIRST		0
 #define CARTRIDGE_FIRST		CASSETTE_FIRST + 1
@@ -403,7 +403,7 @@ media_menu_load_submenus()
 static inline int
 is_valid_cartridge(void)
 {
-    return ((machines[machine].flags & MACHINE_CARTRIDGE) ? 1 : 0);
+    return (machine_has_cartridge(machine));
 }
 
 
@@ -417,7 +417,9 @@ is_valid_fdd(int i)
 static inline int
 is_valid_cdrom(int i)
 {
-    if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && !MACHINE_HAS_IDE && memcmp(hdc_get_internal_name(hdc_current), "ide", 3))
+    if ((cdrom[i].bus_type == CDROM_BUS_ATAPI) && !MACHINE_HAS_IDE &&
+	memcmp(hdc_get_internal_name(hdc_current), "xtide", 5) &&
+	memcmp(hdc_get_internal_name(hdc_current), "ide", 3))
 	return 0;
     if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !MACHINE_HAS_SCSI &&
 	(scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -430,7 +432,9 @@ is_valid_cdrom(int i)
 static inline int
 is_valid_zip(int i)
 {
-    if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && !MACHINE_HAS_IDE && memcmp(hdc_get_internal_name(hdc_current), "ide", 3))
+    if ((zip_drives[i].bus_type == ZIP_BUS_ATAPI) && !MACHINE_HAS_IDE &&
+	memcmp(hdc_get_internal_name(hdc_current), "xtide", 5) &&
+	memcmp(hdc_get_internal_name(hdc_current), "ide", 3))
 	return 0;
     if ((zip_drives[i].bus_type == ZIP_BUS_SCSI) && !MACHINE_HAS_SCSI &&
 	(scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
@@ -443,7 +447,9 @@ is_valid_zip(int i)
 static inline int
 is_valid_mo(int i)
 {
-    if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && !MACHINE_HAS_IDE && memcmp(hdc_get_internal_name(hdc_current), "ide", 3))
+    if ((mo_drives[i].bus_type == MO_BUS_ATAPI) && !MACHINE_HAS_IDE &&
+	memcmp(hdc_get_internal_name(hdc_current), "xtide", 5) &&
+	memcmp(hdc_get_internal_name(hdc_current), "ide", 3))
 	return 0;
     if ((mo_drives[i].bus_type == MO_BUS_SCSI) && !MACHINE_HAS_SCSI &&
 	(scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&

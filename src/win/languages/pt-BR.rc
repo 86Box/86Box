@@ -9,6 +9,8 @@ LANGUAGE LANG_PORTUGUESE, SUBLANG_PORTUGUESE_BRAZILIAN
 #pragma code_page(65001)
 #endif //_WIN32
 
+#define AUTHORS
+
 /////////////////////////////////////////////////////////////////////////////
 //
 // Menu
@@ -42,7 +44,7 @@ BEGIN
             MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
             MENUITEM "SDL (&Hardware)",         IDM_VID_SDL_HW
             MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
-            MENUITEM "Open&GL (Núcleo 3.3)",      IDM_VID_OPENGL_CORE
+            MENUITEM "Open&GL (Núcleo 3.0)",      IDM_VID_OPENGL_CORE
 #ifdef USE_VNC
             MENUITEM "&VNC",                    IDM_VID_VNC
 #endif
@@ -78,12 +80,12 @@ BEGIN
             POPUP "&Tipo de tela VGA"
             BEGIN
                 MENUITEM "&Cor RGB",          IDM_VID_GRAY_RGB
-                MENUITEM "Escala de cinza &RGB",      IDM_VID_GRAY_MONO
+                MENUITEM "Tons de cinza &RGB",      IDM_VID_GRAY_MONO
                 MENUITEM "Monitor &âmbar",      IDM_VID_GRAY_AMBER
                 MENUITEM "Monitor &verde",      IDM_VID_GRAY_GREEN
                 MENUITEM "Monitor &branco",      IDM_VID_GRAY_WHITE
             END
-            POPUP "Tipo de &conversão de escala de cinza"
+            POPUP "Tipo de &conversão de tons de cinza"
             BEGIN
                 MENUITEM "BT&601 (NTSC/PAL)",   IDM_VID_GRAYCT_601
                 MENUITEM "BT&709 (HDTV)",       IDM_VID_GRAYCT_709
@@ -531,6 +533,8 @@ BEGIN
     IDS_2149	"Imagens de cassete (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Todos os arquivos (*.*)\0*.*\0"
     IDS_2150	"Cartucho %i: %ls"
     IDS_2151	"Imagens de cartucho (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Todos os arquivos (*.*)\0*.*\0"
+    IDS_2152	"Erro ao inicializar o renderizador"
+    IDS_2153	"O renderizador OpenGL (Núcleo 3.0) não pôde ser inicializado. Use outro renderizador."
 END
 
 STRINGTABLE DISCARDABLE 

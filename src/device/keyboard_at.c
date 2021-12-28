@@ -1063,7 +1063,7 @@ write_output(atkbd_t *dev, uint8_t val)
 	val |= ((dev->mem[0] << 4) & 0x10);
 
     /*IRQ 12*/
-    if ((dev->output_port ^ val) & 0x20) {
+    if ((old ^ val) & 0x20) {
 	if (val & 0x20)
 		picint(1 << 12);
 	else
@@ -1071,26 +1071,23 @@ write_output(atkbd_t *dev, uint8_t val)
     }
 
     /*IRQ 1*/
-    if ((dev->output_port ^ val) & 0x10) {
+    if ((old ^ val) & 0x10) {
 	if (val & 0x10)
 		picint(1 << 1);
 	else
 		picintc(1 << 1);
     }
 
-    if ((dev->output_port ^ val) & 0x02) { /*A20 enable change*/
+    if ((old ^ val) & 0x02) { /*A20 enable change*/
 	mem_a20_key = val & 0x02;
 	mem_a20_recalc();
 	flushmmucache();
     }
 
-    /* Do this here to avoid an infinite reset loop. */
-    dev->output_port = val;
-
     /* 0 holds the CPU in the RESET state, 1 releases it. To simplify this,
        we just do everything on release. */
-    if ((val & 0x01) && !(old & 0x01)) {
-	if (val & 0x01) {
+    if ((old ^ val) & 0x01) { /*Reset*/
+	if (! (val & 0x01)) {		/* Pin 0 selected. */
 		/* Pin 0 selected. */
 		kbd_log("write_output(): Pulse reset!\n");
 		softresetx86();		/*Pulse reset!*/
@@ -1098,6 +1095,9 @@ write_output(atkbd_t *dev, uint8_t val)
 		flushmmucache();
 	}
     }
+
+    /* Do this here to avoid an infinite reset loop. */
+    dev->output_port = val;
 }
 
 
@@ -1464,7 +1464,7 @@ write64_ami(void *priv, uint8_t val)
 	case 0xb0: case 0xb1: case 0xb2: case 0xb3:
 		/* set KBC lines P10-P13 (input port bits 0-3) low */
 		kbd_log("ATkbc: set KBC lines P10-P13 (input port bits 0-3) low\n");
-		if (!PCI || (val > 0xb1))
+		if (!(dev->flags & DEVICE_PCI) || (val > 0xb1))
 			dev->input_port &= ~(1 << (val & 0x03));
 		add_data(dev, 0x00);
 		return 0;
@@ -1472,7 +1472,7 @@ write64_ami(void *priv, uint8_t val)
 	case 0xb4: case 0xb5:
 		/* set KBC lines P22-P23 (output port bits 2-3) low */
 		kbd_log("ATkbc: set KBC lines P22-P23 (output port bits 2-3) low\n");
-		if (! PCI)
+		if (! (dev->flags & DEVICE_PCI))
 			write_output(dev, dev->output_port & ~(4 << (val & 0x01)));
 		add_data(dev, 0x00);
 		return 0;
@@ -1480,7 +1480,7 @@ write64_ami(void *priv, uint8_t val)
 	case 0xb8: case 0xb9: case 0xba: case 0xbb:
 		/* set KBC lines P10-P13 (input port bits 0-3) high */
 		kbd_log("ATkbc: set KBC lines P10-P13 (input port bits 0-3) high\n");
-		if (!PCI || (val > 0xb9)) {
+		if (!(dev->flags & DEVICE_PCI) || (val > 0xb9)) {
 			dev->input_port |= (1 << (val & 0x03));
 			add_data(dev, 0x00);
 		}
@@ -1489,7 +1489,7 @@ write64_ami(void *priv, uint8_t val)
 	case 0xbc: case 0xbd:
 		/* set KBC lines P22-P23 (output port bits 2-3) high */
 		kbd_log("ATkbc: set KBC lines P22-P23 (output port bits 2-3) high\n");
-		if (! PCI)
+		if (! (dev->flags & DEVICE_PCI))
 			write_output(dev, dev->output_port | (4 << (val & 0x01)));
 		add_data(dev, 0x00);
 		return 0;

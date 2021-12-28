@@ -98,8 +98,6 @@ extern void	pci_set_irq_level(int pci_int, int level);
 extern void	pci_enable_mirq(int mirq);
 extern void	pci_set_mirq_routing(int mirq, int irq);
 
-extern uint8_t	pci_use_mirq(uint8_t mirq);
-
 extern int	pci_irq_is_level(int irq);
 
 extern void	pci_set_mirq(uint8_t mirq, int level);
@@ -126,6 +124,8 @@ extern uint8_t	trc_read(uint16_t port, void *priv);
 extern void	trc_write(uint16_t port, uint8_t val, void *priv);
 
 extern void	pci_bridge_set_ctl(void *priv, uint8_t ctl);
+
+extern void	pci_pic_reset(void);
 
 
 #ifdef EMU_DEVICE_H

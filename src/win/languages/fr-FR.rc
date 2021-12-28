@@ -41,7 +41,7 @@ BEGIN
             MENUITEM "&SDL (Logiciel)",         IDM_VID_SDL_SW
             MENUITEM "SDL (&Materiel)",         IDM_VID_SDL_HW
             MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
-            MENUITEM "Open&GL (3.3 Core)",      IDM_VID_OPENGL_CORE
+            MENUITEM "Open&GL (3.0 Core)",      IDM_VID_OPENGL_CORE
 #ifdef USE_VNC
             MENUITEM "&VNC",                    IDM_VID_VNC
 #endif
@@ -274,7 +274,7 @@ END
 
 #define STR_OK			"OK"
 #define STR_CANCEL		"Annuler"
-#define STR_GLOBAL		"Sauver ces paramètres comme valeurs par défaut &globales"
+#define STR_GLOBAL		"Sauvegarder ces paramètres comme valeurs par défaut &globales"
 #define STR_DEFAULT		"&Défaut"
 #define STR_LANGUAGE		"Langue:"
 #define STR_ICONSET		"Ensemble d'icônes:"
@@ -478,9 +478,9 @@ BEGIN
     IDS_2118	"Côntrolleur interne"
     IDS_2119	"Sortir"
     IDS_2120	"Pas de ROMs trouvées"
-    IDS_2121	"Voulez-vous sauver les paramètres ?"
+    IDS_2121	"Voulez-vous sauvegarder les paramètres ?"
     IDS_2122	"Cela entraînera la réinitialisation complète de la machine émulée."
-    IDS_2123	"Sauver"
+    IDS_2123	"Sauvegarder"
     IDS_2124	"À propos de 86Box"
     IDS_2125	"86Box v" EMU_VERSION
 
@@ -530,6 +530,8 @@ BEGIN
     IDS_2149	"Images cassette (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Tous les fichiers (*.*)\0*.*\0"
     IDS_2150	"Cartouche %i: %ls"
     IDS_2151	"Images cartouche (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Tous les fichiers (*.*)\0*.*\0"
+    IDS_2152	"Error initializing renderer"
+    IDS_2153	"OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
 END
 
 STRINGTABLE DISCARDABLE 
