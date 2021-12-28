@@ -12,6 +12,7 @@ extern "C" {
 
 #include "qt_models_common.hpp"
 #include "qt_harddrive_common.hpp"
+#include "qt_progsettings.hpp"
 
 static QString moDriveTypeName(int i) {
     return QString("%1 %2 %3").arg(mo_drive_types[i].vendor, mo_drive_types[i].model, mo_drive_types[i].revision);
@@ -21,11 +22,11 @@ static void setMOBus(QAbstractItemModel* model, const QModelIndex& idx, uint8_t 
     QIcon icon;
     switch (bus) {
     case MO_BUS_DISABLED:
-        icon = QIcon(":/settings/win/icons/mo_disabled.ico");
+        icon = QIcon(ProgSettings::getIconSetPath() + "/mo_disabled.ico");
         break;
     case MO_BUS_ATAPI:
     case MO_BUS_SCSI:
-        icon = QIcon(":/settings/win/icons/mo.ico");
+        icon = QIcon(ProgSettings::getIconSetPath() + "/mo.ico");
         break;
     }
 
@@ -50,11 +51,11 @@ static void setZIPBus(QAbstractItemModel* model, const QModelIndex& idx, uint8_t
     QIcon icon;
     switch (bus) {
     case ZIP_BUS_DISABLED:
-        icon = QIcon(":/settings/win/icons/zip_disabled.ico");
+        icon = QIcon(ProgSettings::getIconSetPath() + "/zip_disabled.ico");
         break;
     case ZIP_BUS_ATAPI:
     case ZIP_BUS_SCSI:
-        icon = QIcon(":/settings/win/icons/zip.ico");
+        icon = QIcon(ProgSettings::getIconSetPath() + "/zip.ico");
         break;
     }
 

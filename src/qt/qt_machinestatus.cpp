@@ -33,6 +33,7 @@ extern uint64_t		tsc;
 #include "qt_mediamenu.hpp"
 #include "qt_mainwindow.hpp"
 #include "qt_soundgain.hpp"
+#include "qt_progsettings.hpp"
 
 #include <array>
 
@@ -152,20 +153,20 @@ struct MachineStatus::States {
     Pixmaps pixmaps;
 
     States(QObject* parent) {
-        pixmaps.cartridge.load(":/settings/win/icons/cartridge%1.ico");
-        pixmaps.cassette.load(":/settings/win/icons/cassette%1.ico");
-        pixmaps.floppy_disabled.normal = QIcon(QStringLiteral(":/settings/win/icons/floppy_disabled.ico")).pixmap(pixmap_size);
+        pixmaps.cartridge.load(ProgSettings::getIconSetPath() + "/cartridge%1.ico");
+        pixmaps.cassette.load(ProgSettings::getIconSetPath() + "/cassette%1.ico");
+        pixmaps.floppy_disabled.normal = QIcon(ProgSettings::getIconSetPath() + QStringLiteral("/floppy_disabled.ico")).pixmap(pixmap_size);
         pixmaps.floppy_disabled.active = pixmaps.floppy_disabled.normal;
         pixmaps.floppy_disabled.empty = pixmaps.floppy_disabled.normal;
         pixmaps.floppy_disabled.empty_active = pixmaps.floppy_disabled.normal;
-        pixmaps.floppy_525.load(":/settings/win/icons/floppy_525%1.ico");
-        pixmaps.floppy_35.load(":/settings/win/icons/floppy_35%1.ico");
-        pixmaps.cdrom.load(":/settings/win/icons/cdrom%1.ico");
-        pixmaps.zip.load(":/settings/win/icons/zip%1.ico");
-        pixmaps.mo.load(":/settings/win/icons/mo%1.ico");
-        pixmaps.hd.load(":/settings/win/icons/hard_disk%1.ico");
-        pixmaps.net.load(":/settings/win/icons/network%1.ico");
-        pixmaps.sound = QIcon(":/settings/win/icons/sound.ico").pixmap(pixmap_size);
+        pixmaps.floppy_525.load(ProgSettings::getIconSetPath() + "/floppy_525%1.ico");
+        pixmaps.floppy_35.load(ProgSettings::getIconSetPath() + "/floppy_35%1.ico");
+        pixmaps.cdrom.load(ProgSettings::getIconSetPath() + "/cdrom%1.ico");
+        pixmaps.zip.load(ProgSettings::getIconSetPath() + "/zip%1.ico");
+        pixmaps.mo.load(ProgSettings::getIconSetPath() + "/mo%1.ico");
+        pixmaps.hd.load(ProgSettings::getIconSetPath() + "/hard_disk%1.ico");
+        pixmaps.net.load(ProgSettings::getIconSetPath() + "/network%1.ico");
+        pixmaps.sound = QIcon(ProgSettings::getIconSetPath() + "/sound.ico").pixmap(pixmap_size);
 
         cartridge[0].pixmaps = &pixmaps.cartridge;
         cartridge[1].pixmaps = &pixmaps.cartridge;
@@ -529,6 +530,10 @@ void MachineStatus::setEmpty(int tag, bool empty) {
 
 void MachineStatus::message(const QString &msg) {
     d->text->setText(msg);
+}
+
+QString MachineStatus::getMessage() {
+    return d->text->text();
 }
 
 void MachineStatus::updateTip(int tag)

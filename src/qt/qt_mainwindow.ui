@@ -75,6 +75,8 @@
     <addaction name="separator"/>
     <addaction name="actionTake_screenshot"/>
     <addaction name="actionSound_gain"/>
+    <addaction name="separator"/>
+    <addaction name="actionPreferences"/>
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
@@ -518,6 +520,11 @@
    </property>
    <property name="text">
     <string>OpenGL 3.0 Core</string>
+   </property>
+  </action>
+  <action name="actionPreferences">
+   <property name="text">
+    <string>Preferences</string>
    </property>
   </action>
  </widget>

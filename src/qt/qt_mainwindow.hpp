@@ -101,6 +101,8 @@ private slots:
 
     void on_actionOpenGL_3_0_Core_triggered();
 
+    void on_actionPreferences_triggered();
+
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;
@@ -120,6 +122,7 @@ private:
     bool shownonce = false;
 
     friend class SpecifyDimensions;
+    friend class ProgSettings;
 };
 
 #endif // QT_MAINWINDOW_HPP

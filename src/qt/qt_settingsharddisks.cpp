@@ -10,6 +10,7 @@ extern "C" {
 
 #include "qt_harddiskdialog.hpp"
 #include "qt_harddrive_common.hpp"
+#include "qt_progsettings.hpp"
 
 const int ColumnBus         = 0;
 const int ColumnFilename    = 1;
@@ -54,7 +55,7 @@ static void addRow(QAbstractItemModel* model, hard_disk_t* hd) {
 
     QString busName = Harddrives::BusChannelName(hd->bus, hd->channel);
     model->setData(model->index(row, ColumnBus), busName);
-    model->setData(model->index(row, ColumnBus), QIcon(":/settings/win/icons/hard_disk.ico"), Qt::DecorationRole);
+    model->setData(model->index(row, ColumnBus), QIcon(ProgSettings::getIconSetPath() + "/hard_disk.ico"), Qt::DecorationRole);
     model->setData(model->index(row, ColumnBus), hd->bus, DataBus);
     model->setData(model->index(row, ColumnBus), hd->channel, DataBusChannel);
     QString fileName = hd->fn;

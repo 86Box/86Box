@@ -40,6 +40,8 @@ public:
     static void iterateCDROM(const std::function<void(int i)>& cb);
     static void iterateZIP(const std::function<void(int i)>& cb);
     static void iterateMO(const std::function<void(int i)>& cb);
+
+    QString getMessage();
 public slots:
     void refresh(QStatusBar* sbar);
     void setActivity(int tag, bool active);

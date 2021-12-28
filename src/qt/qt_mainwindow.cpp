@@ -3,6 +3,7 @@
 
 #include "qt_specifydimensions.h"
 #include "qt_soundgain.hpp"
+#include "qt_progsettings.hpp"
 
 #include "qt_rendererstack.hpp"
 #include "qt_renderercomon.hpp"
@@ -1368,3 +1369,10 @@ void MainWindow::on_actionOpenGL_3_0_Core_triggered()
     ui->actionOpenGL_3_0_Core->setChecked(true);
     vid_api = 3;
 }
+
+void MainWindow::on_actionPreferences_triggered()
+{
+    ProgSettings progsettings(this);
+    progsettings.exec();
+}
+

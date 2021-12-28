@@ -13,6 +13,8 @@
 #include "qt_settingsotherremovable.hpp"
 #include "qt_settingsotherperipherals.hpp"
 
+#include "qt_progsettings.hpp"
+
 extern "C"
 {
 #include <86box/86box.h>
@@ -64,7 +66,7 @@ QVariant SettingsModel::data(const QModelIndex &index, int role) const {
     case Qt::DisplayRole:
         return pages.at(index.row());
     case Qt::DecorationRole:
-        return QIcon(QString(":/settings/win/icons/%1.ico").arg(page_icons[index.row()]));
+        return QIcon(QString("%1/%2.ico").arg(ProgSettings::getIconSetPath(), page_icons[index.row()]));
     default:
         return {};
     }

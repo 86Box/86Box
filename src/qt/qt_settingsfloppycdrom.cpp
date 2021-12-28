@@ -11,15 +11,16 @@ extern "C" {
 
 #include "qt_models_common.hpp"
 #include "qt_harddrive_common.hpp"
+#include "qt_progsettings.hpp"
 
 static void setFloppyType(QAbstractItemModel* model, const QModelIndex& idx, int type) {
     QIcon icon;
     if (type == 0) {
-        icon = QIcon(":/settings/win/icons/floppy_disabled.ico");
+        icon = QIcon(ProgSettings::getIconSetPath() + "/floppy_disabled.ico");
     } else if (type >= 1 && type <= 6) {
-        icon = QIcon(":/settings/win/icons/floppy_525.ico");
+        icon = QIcon(ProgSettings::getIconSetPath() + "/floppy_525.ico");
     } else {
-        icon = QIcon(":/settings/win/icons/floppy_35.ico");
+        icon = QIcon(ProgSettings::getIconSetPath() + "/floppy_35.ico");
     }
 
     model->setData(idx, fdd_getname(type));
@@ -31,11 +32,11 @@ static void setCDROMBus(QAbstractItemModel* model, const QModelIndex& idx, uint8
     QIcon icon;
     switch (bus) {
     case CDROM_BUS_DISABLED:
-        icon = QIcon(":/settings/win/icons/cdrom_disabled.ico");
+        icon = QIcon(ProgSettings::getIconSetPath() + "/cdrom_disabled.ico");
         break;
     case CDROM_BUS_ATAPI:
     case CDROM_BUS_SCSI:
-        icon = QIcon(":/settings/win/icons/cdrom.ico");
+        icon = QIcon(ProgSettings::getIconSetPath() + "/cdrom.ico");
         break;
     }
 

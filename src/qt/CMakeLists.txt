@@ -103,6 +103,9 @@ add_library(ui STATIC
 
     qt_styleoverride.cpp
     qt_styleoverride.hpp
+    qt_progsettings.hpp
+    qt_progsettings.cpp
+    qt_progsettings.ui
 
     ../qt_resources.qrc
 )
