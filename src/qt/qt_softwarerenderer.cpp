@@ -1,6 +1,7 @@
 #include "qt_softwarerenderer.hpp"
+#include <QApplication>
 
-SoftwareRenderer::SoftwareRenderer(QWidget *parent) : QWidget(parent) {}
+SoftwareRenderer::SoftwareRenderer(QWidget *parent) : QRasterWindow(parent->windowHandle()) { parentWidget = parent; }
 
 void SoftwareRenderer::paintEvent(QPaintEvent *event) {
     (void) event;
@@ -19,5 +20,12 @@ void SoftwareRenderer::onBlit(const std::unique_ptr<uint8_t>* img, int x, int y,
 
 void SoftwareRenderer::resizeEvent(QResizeEvent *event) {
     onResize(width(), height());
-    QWidget::resizeEvent(event);
+    QRasterWindow::resizeEvent(event);
+}
+
+bool SoftwareRenderer::event(QEvent *event)
+{
+    bool res = false;
+    if (!eventDelegate(event, res)) return QRasterWindow::event(event);
+    return res;
 }

@@ -1,7 +1,10 @@
 #include "qt_renderercomon.hpp"
+#include "qt_mainwindow.hpp"
 
 #include <QPainter>
 #include <QWidget>
+#include <QEvent>
+#include <QApplication>
 
 #include <cmath>
 
@@ -12,6 +15,7 @@ extern "C" {
 
 RendererCommon::RendererCommon() = default;
 
+extern MainWindow* main_window;
 void RendererCommon::onPaint(QPaintDevice* device) {
     QPainter painter(device);
     painter.setRenderHint(QPainter::SmoothPixmapTransform, video_filter_method > 0 ? true : false);
@@ -85,4 +89,26 @@ void RendererCommon::onResize(int width, int height) {
         destination.setRect(0, 0, hw, hh);
         break;
     }
+}
+
+bool RendererCommon::eventDelegate(QEvent *event, bool& result)
+{
+    switch (event->type())
+    {
+        default:
+            return false;
+        case QEvent::KeyPress:
+        case QEvent::KeyRelease:
+            result = QApplication::sendEvent(main_window, event);
+            return true;
+        case QEvent::MouseButtonPress:
+        case QEvent::MouseMove:
+        case QEvent::MouseButtonRelease:
+        case QEvent::Wheel:
+        case QEvent::Enter:
+        case QEvent::Leave:
+            result = QApplication::sendEvent(parentWidget, event);
+            return true;
+    }
+    return false;
 }

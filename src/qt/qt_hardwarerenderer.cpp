@@ -183,19 +183,7 @@ void HardwareRenderer::resizeEvent(QResizeEvent *event) {
 
 bool HardwareRenderer::event(QEvent *event)
 {
-    switch (event->type())
-    {
-        default:
-            return QOpenGLWindow::event(event);
-        case QEvent::MouseButtonPress:
-        case QEvent::MouseMove:
-        case QEvent::MouseButtonRelease:
-        case QEvent::KeyPress:
-        case QEvent::KeyRelease:
-        case QEvent::Wheel:
-        case QEvent::Enter:
-        case QEvent::Leave:
-            return QApplication::sendEvent(parentWidget, event);
-    }
-    return false;
+    bool res = false;
+    if (!eventDelegate(event, res)) return QOpenGLWindow::event(event);
+    return res;
 }
