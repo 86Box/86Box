@@ -11,7 +11,7 @@ extern "C" {
 
 void HardwareRenderer::resizeGL(int w, int h)
 {
-    glViewport(0, 0, w, h);
+    glViewport(0, 0, w * devicePixelRatio(), h * devicePixelRatio());
 }
 
 #define PROGRAM_VERTEX_ATTRIBUTE 0
