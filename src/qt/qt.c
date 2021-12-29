@@ -21,6 +21,12 @@ int qt_nvr_save(void) {
 
 char  icon_set[256] = "";  /* name of the iconset to be used */
 
+#ifdef _WIN32
+#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
+#else
+#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
+#endif
+
 wchar_t* plat_get_string(int i)
 {
     switch (i)
@@ -55,6 +61,8 @@ wchar_t* plat_get_string(int i)
         return L"libfreetype is required for ESC/P printer emulation.";
     case IDS_2132:
         return L"libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.";
+    case IDS_2133:
+        return L""LIB_NAME_FLUIDSYNTH" is required for FluidSynth MIDI output.";
     case IDS_2129:
         return L"Make sure libpcap is installed and that you are on a libpcap-compatible network connection.";
     case IDS_2114:
