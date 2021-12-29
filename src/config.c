@@ -889,7 +889,10 @@ load_video(void)
 		}
 		free_p = 1;
 	}
-	gfxcard = video_get_video_from_internal_name(p);
+	if (!strcmp(p, "virge375_vbe20_pci")) /* migrate renamed cards */
+		gfxcard = video_get_video_from_internal_name("virge385_pci");
+	else
+		gfxcard = video_get_video_from_internal_name(p);
 	if (free_p)
 		free(p);
     }
