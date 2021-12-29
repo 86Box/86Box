@@ -938,8 +938,6 @@ void MainWindow::on_actionFullscreen_triggered() {
         showFullScreen();
         video_fullscreen = 1;
     }
-
-    ui->stackedWidget->switchRenderer((RendererStack::Renderer)vid_api);
 }
 
 void MainWindow::getTitle_(wchar_t *title)
