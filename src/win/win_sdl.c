@@ -246,6 +246,10 @@ sdl_blit(int x, int y, int w, int h)
     r_src.w = w;
     r_src.h = h;
     SDL_UpdateTexture(sdl_tex, &r_src, &(buffer32->line[y][x]), 2048 * sizeof(uint32_t));
+
+    if (screenshots)
+	video_screenshot((uint32_t *) buffer32->dat, x, y, 2048);
+
     video_blit_complete();
 
     SDL_RenderClear(sdl_render);
