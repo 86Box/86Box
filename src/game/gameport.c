@@ -88,7 +88,7 @@ static const struct {
     { "3axis_2button",		&joystick_3axis_2button	},
     { "3axis_4button",		&joystick_3axis_4button	},
     { "4axis_4button",		&joystick_4axis_4button	},
-    { "ch_flighstick_pro",	&joystick_ch_flightstick_pro	},
+    { "ch_flightstick_pro",	&joystick_ch_flightstick_pro	},
     { "sidewinder_pad",		&joystick_sw_pad		},
     { "thrustmaster_fcs",	&joystick_tm_fcs		},
     { "",					NULL					}

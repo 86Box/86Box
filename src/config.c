@@ -888,7 +888,10 @@ load_video(void)
 		}
 		free_p = 1;
 	}
-	gfxcard = video_get_video_from_internal_name(p);
+	if (!strcmp(p, "virge375_vbe20_pci")) /* migrate renamed cards */
+		gfxcard = video_get_video_from_internal_name("virge385_pci");
+	else
+		gfxcard = video_get_video_from_internal_name(p);
 	if (free_p)
 		free(p);
     }
@@ -914,7 +917,7 @@ load_input_devices(void)
 
     p = config_get_string(cat, "joystick_type", NULL);
     if (p != NULL) {
-	if (!strcmp(p, "standard_2button"))
+	if (!strcmp(p, "standard_2button")) /* migrate renamed types */
 		joystick_type = joystick_get_from_internal_name("2axis_2button");
 	else if (!strcmp(p, "standard_4button"))
 		joystick_type = joystick_get_from_internal_name("2axis_4button");
@@ -922,21 +925,43 @@ load_input_devices(void)
 		joystick_type = joystick_get_from_internal_name("2axis_6button");
 	else if (!strcmp(p, "standard_8button"))
 		joystick_type = joystick_get_from_internal_name("2axis_8button");
+	else if (!strcmp(p, "ch_flighstick_pro"))
+		joystick_type = joystick_get_from_internal_name("ch_flightstick_pro");
+	else
+		joystick_type = joystick_get_from_internal_name(p);
 
-	joystick_type = joystick_get_from_internal_name(p);
 	if (!joystick_type) {
 		/* Try to read an integer for backwards compatibility with old configs */
-		c = config_get_int(cat, "joystick_type", 8);
-		switch (c) {
-			case 0: case 1: case 2: case 3: /* 2-axis joysticks */
-				joystick_type = c + 1;
-				break;
-			case 4: case 5: case 6: case 7: /* other joysticks */
-				joystick_type = c + 3;
-				break;
-			default: /* "None" (8) or invalid value */
-				joystick_type = 0;
-				break;
+		if (!strcmp(p, "0")) /* workaround for config_get_int returning 0 on non-integer data */
+			joystick_type = joystick_get_from_internal_name("2axis_2button");
+		else {
+			c = config_get_int(cat, "joystick_type", 8);
+			switch (c) {
+				case 1:
+					joystick_type = joystick_get_from_internal_name("2axis_4button");
+					break;
+				case 2:
+					joystick_type = joystick_get_from_internal_name("2axis_6button");
+					break;
+				case 3:
+					joystick_type = joystick_get_from_internal_name("2axis_8button");
+					break;
+				case 4:
+					joystick_type = joystick_get_from_internal_name("4axis_4button");
+					break;
+				case 5:
+					joystick_type = joystick_get_from_internal_name("ch_flightstick_pro");
+					break;
+				case 6:
+					joystick_type = joystick_get_from_internal_name("sidewinder_pad");
+					break;
+				case 7:
+					joystick_type = joystick_get_from_internal_name("thrustmaster_fcs");
+					break;
+				default:
+					joystick_type = 0;
+					break;
+			}
 		}
 	}
     } else
