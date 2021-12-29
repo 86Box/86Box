@@ -1007,7 +1007,7 @@ im1024_close(void *priv)
 {
     im1024_t *dev = (im1024_t *)priv;
 
-    pgc_close(&dev->pgc);
+    pgc_close_common(&dev->pgc);
 
     free(dev);
 }
