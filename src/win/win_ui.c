@@ -805,6 +805,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case IDM_VID_INVERT:
 				video_toggle_option(hmenu, &invert_display, IDM_VID_INVERT);
 				video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
+				plat_vidapi_reload();
 				break;
 
 			case IDM_VID_OVERSCAN:
@@ -838,6 +839,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				CheckMenuItem(hmenu, IDM_VID_GRAY_RGB+video_grayscale, MF_UNCHECKED);
 				video_grayscale = LOWORD(wParam) - IDM_VID_GRAY_RGB;
 				video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
+				plat_vidapi_reload();
 				CheckMenuItem(hmenu, IDM_VID_GRAY_RGB+video_grayscale, MF_CHECKED);
 				device_force_redraw();
 				config_save();
