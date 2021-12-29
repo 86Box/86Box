@@ -152,7 +152,7 @@ opti495_write(uint16_t addr, uint8_t val, void *priv)
 
 	case 0xe1:
 	case 0xe2:
-		dev->scratch[addr] = val;
+		dev->scratch[~addr & 0x01] = val;
 		break;
     }
 }
@@ -176,7 +176,7 @@ opti495_read(uint16_t addr, void *priv)
 		break;
 	case 0xe1:
 	case 0xe2:
-		ret = dev->scratch[addr];
+		ret = dev->scratch[~addr & 0x01];
 		break;
     }
 
