@@ -18,11 +18,11 @@
 #
 
 # Pick the bundle icon depending on the release channel
-if(RELEASE_BUILD)
+if(BUILD_TYPE STREQUAL "release")
     set(APP_ICON_MACOSX icons/release/86Box.icns)
-elseif(BETA_BUILD)
+elseif(BUILD_TYPE STREQUAL "beta")
     set(APP_ICON_MACOSX icons/beta/86Box.icns)
-elseif(ALPHA_BUILD)
+elseif(BUILD_TYPE STREQUAL "alpha")
     set(APP_ICON_MACOSX icons/dev/86Box.icns)
 else()
     set(APP_ICON_MACOSX icons/branch/86Box.icns)
