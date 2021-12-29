@@ -79,6 +79,10 @@ void ProgSettings::accept()
     main_window->status.reset(new MachineStatus(main_window));
     main_window->refreshMediaMenu();
     main_window->status->message(msg);
+    connect(main_window, &MainWindow::updateStatusBarTip, main_window->status.get(), &MachineStatus::updateTip);
+    connect(main_window, &MainWindow::updateStatusBarActivity, main_window->status.get(), &MachineStatus::setActivity);
+    connect(main_window, &MainWindow::updateStatusBarEmpty, main_window->status.get(), &MachineStatus::setEmpty);
+    connect(main_window, &MainWindow::statusBarMessage, main_window->status.get(), &MachineStatus::message);
     QDialog::accept();
 }
 

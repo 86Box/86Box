@@ -2,10 +2,11 @@
 #define SOFTWARERENDERER_HPP
 
 #include <QWidget>
+#include <QRasterWindow>
 #include <atomic>
 #include "qt_renderercomon.hpp"
 
-class SoftwareRenderer : public QWidget, public RendererCommon
+class SoftwareRenderer : public QRasterWindow, public RendererCommon
 {
     Q_OBJECT
 public:
@@ -17,6 +18,7 @@ public slots:
 
 protected:
     void resizeEvent(QResizeEvent *event) override;
+    bool event(QEvent *event) override;
 };
 
 #endif // SOFTWARERENDERER_HPP

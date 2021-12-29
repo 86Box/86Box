@@ -4,6 +4,8 @@
 #include "qt_softwarerenderer.hpp"
 #include "qt_hardwarerenderer.hpp"
 
+#include "qt_mainwindow.hpp"
+
 #include "evdev_mouse.hpp"
 
 #include <QScreen>
@@ -19,6 +21,7 @@ extern "C"
 #include <86box/video.h>
 }
 
+extern MainWindow* main_window;
 RendererStack::RendererStack(QWidget *parent) :
     QStackedWidget(parent),
     ui(new Ui::RendererStack)
@@ -116,6 +119,10 @@ void RendererStack::mousePressEvent(QMouseEvent *event)
     {
         mousedata.mousebuttons |= event->button();
     }
+    if (main_window->frameGeometry().contains(event->pos()) && !geometry().contains(event->pos()))
+    {
+        main_window->windowHandle()->startSystemMove();
+    }
     event->accept();
 }
 void RendererStack::wheelEvent(QWheelEvent *event)
@@ -177,7 +184,7 @@ void RendererStack::switchRenderer(Renderer renderer) {
     {
         auto sw = new SoftwareRenderer(this);
         connect(this, &RendererStack::blitToRenderer, sw, &SoftwareRenderer::onBlit, Qt::QueuedConnection);
-        current.reset(sw);
+        current.reset(this->createWindowContainer(sw, this));
     }
         break;
     case Renderer::OpenGL:

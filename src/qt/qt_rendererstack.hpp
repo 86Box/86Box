@@ -68,6 +68,8 @@ private:
 
     /* atomic flag for each buffer to not overload the renderer */
     std::vector<std::atomic_flag> buffers_in_use;
+
+    friend class MainWindow;
 };
 
 #endif // QT_RENDERERCONTAINER_HPP

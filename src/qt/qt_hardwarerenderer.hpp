@@ -29,7 +29,6 @@ class HardwareRenderer : public QOpenGLWindow, protected QOpenGLFunctions, publi
 
 private:
     bool wayland = false;
-    QWidget* parentWidget{nullptr};
     QOpenGLContext* m_context;
     QOpenGLTexture* m_texture{nullptr};
     QOpenGLShaderProgram* m_prog{nullptr};

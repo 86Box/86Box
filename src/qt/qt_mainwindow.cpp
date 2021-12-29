@@ -97,6 +97,7 @@ MainWindow::MainWindow(QWidget *parent) :
         qt_mouse_capture(mouse_capture);
         if (mouse_capture) {
             ui->stackedWidget->grabMouse();
+            this->grabKeyboard();
 #ifdef WAYLAND
             if (QGuiApplication::platformName().contains("wayland")) {
                 wl_mouse_capture(this->windowHandle());
@@ -104,6 +105,7 @@ MainWindow::MainWindow(QWidget *parent) :
 #endif
         } else {
             ui->stackedWidget->releaseMouse();
+            this->releaseKeyboard();
 #ifdef WAYLAND
             if (QGuiApplication::platformName().contains("wayland")) {
                 wl_mouse_uncapture();
@@ -125,8 +127,12 @@ MainWindow::MainWindow(QWidget *parent) :
         }
     });
 
-    connect(ui->menubar, &QMenuBar::triggered, this, [] {
+    connect(ui->menubar, &QMenuBar::triggered, this, [this] {
         config_save();
+        if (QApplication::activeWindow() == this)
+        {
+            ui->stackedWidget->current->setFocus();
+        }
     });
 
     connect(this, &MainWindow::updateStatusBarPanes, this, [this] {
@@ -277,13 +283,6 @@ MainWindow::MainWindow(QWidget *parent) :
     if (vid_cga_contrast > 0) {
         ui->actionChange_contrast_for_monochrome_display->setChecked(true);
     }
-
-    setFocusPolicy(Qt::StrongFocus);
-    ui->stackedWidget->setFocusPolicy(Qt::NoFocus);
-    ui->centralwidget->setFocusPolicy(Qt::NoFocus);
-    menuBar()->setFocusPolicy(Qt::NoFocus);
-    menuWidget()->setFocusPolicy(Qt::NoFocus);
-    statusBar()->setFocusPolicy(Qt::NoFocus);
 
     video_setblit(qt_blit);
 }

@@ -120,7 +120,6 @@ int main(int argc, char* argv[]) {
 
     main_window = new MainWindow();
     main_window->show();
-    main_window->setFocus();
     app.installEventFilter(main_window);
 
 #ifdef Q_OS_WINDOWS
@@ -133,13 +132,6 @@ int main(int argc, char* argv[]) {
         main_window->setSendKeyboardInput(false);
     }
 #endif
-
-    auto widgetList = app.allWidgets();
-    for (auto curWidget : widgetList)
-    {
-        curWidget->setFocusPolicy(Qt::NoFocus);
-    }
-    main_window->setFocusPolicy(Qt::StrongFocus);
 
     pc_reset_hard_init();
 
