@@ -32,6 +32,7 @@ extern "C" {
 #include <QCheckBox>
 #include <QActionGroup>
 #include <QOpenGLContext>
+#include <QScreen>
 
 #include <array>
 #include <unordered_map>
@@ -116,8 +117,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
         if (!QApplication::platformName().contains("eglfs") && vid_resize == 0) {
-            w = w / (!dpi_scale ? devicePixelRatio() : 1);
-            int modifiedHeight = (h / (!dpi_scale ? devicePixelRatio() : 1)) + menuBar()->height() + (statusBar()->height() * !hide_status_bar);
+            w = w / (!dpi_scale ? this->screen()->devicePixelRatio() : 1);
+            int modifiedHeight = (h / (!dpi_scale ? this->screen()->devicePixelRatio() : 1)) + menuBar()->height() + (statusBar()->height() * !hide_status_bar);
             ui->stackedWidget->resize(w, h);
             if (vid_resize == 0) {
                 setFixedSize(w, modifiedHeight);
