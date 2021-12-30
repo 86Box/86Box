@@ -133,6 +133,7 @@ extern void	pgc_wake(pgc_t *);
 extern void	pgc_sleep(pgc_t *);
 extern void	pgc_setdisplay(pgc_t *, int cga);
 extern void	pgc_speed_changed(void *priv);
+extern void	pgc_close_common(void *priv);
 extern void	pgc_close(void *priv);
 extern void	pgc_init(pgc_t *,
 			 int maxw, int maxh, int visw, int vish,

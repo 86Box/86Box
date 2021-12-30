@@ -29,32 +29,32 @@ BEGIN
         MENUITEM SEPARATOR
         MENUITEM "退出(&X)...",                       IDM_ACTION_EXIT
     END
-    POPUP "显示(&V)"
+    POPUP "查看(&V)"
     BEGIN
         MENUITEM "隐藏状态栏(&H)",		IDM_VID_HIDE_STATUS_BAR
         MENUITEM SEPARATOR
-        MENUITEM "窗口尺寸可调(&R)",          IDM_VID_RESIZE
-        MENUITEM "记忆窗口尺寸和位置(&E)",  IDM_VID_REMEMBER
+        MENUITEM "窗口大小可调(&R)",          IDM_VID_RESIZE
+        MENUITEM "记住窗口大小和位置(&E)",  IDM_VID_REMEMBER
         MENUITEM SEPARATOR
         POPUP "渲染器(&N)"
         BEGIN
             MENUITEM "SDL (软件)(&S)",         IDM_VID_SDL_SW
             MENUITEM "SDL (硬件)(&H)",         IDM_VID_SDL_HW
             MENUITEM "SDL (OpenGL)(&O)",           IDM_VID_SDL_OPENGL
-            MENUITEM "OpenGL (3.0 Core)(&G)",      IDM_VID_OPENGL_CORE
+            MENUITEM "OpenGL (3.0 核心)(&G)",      IDM_VID_OPENGL_CORE
 #ifdef USE_VNC
             MENUITEM "VNC(&V)",                    IDM_VID_VNC
 #endif
         END
         MENUITEM SEPARATOR
         MENUITEM "指定窗口大小...",          IDM_VID_SPECIFY_DIM
-        MENUITEM "强制以 4:3 显示画面(&O)",    IDM_VID_FORCE43
-        POPUP "窗口缩放比例(&W)"
+        MENUITEM "强制 4:3 显示比例(&O)",    IDM_VID_FORCE43
+        POPUP "窗口缩放系数(&W)"
         BEGIN
-            MENUITEM "&0.5x",                   IDM_VID_SCALE_1X
-            MENUITEM "&1x",                     IDM_VID_SCALE_2X
-            MENUITEM "1.&5x",                   IDM_VID_SCALE_3X
-            MENUITEM "&2x",                     IDM_VID_SCALE_4X
+            MENUITEM "0.5x(&0)",                   IDM_VID_SCALE_1X
+            MENUITEM "1x(&1)",                     IDM_VID_SCALE_2X
+            MENUITEM "1.5x(&5)",                   IDM_VID_SCALE_3X
+            MENUITEM "2x(&2)",                     IDM_VID_SCALE_4X
         END
         POPUP "过滤方式"
         BEGIN
@@ -69,7 +69,7 @@ BEGIN
             MENUITEM "全屏拉伸(&F)",        IDM_VID_FS_FULL
             MENUITEM "4:3(&4)",                        IDM_VID_FS_43
             MENUITEM "保持比例(&S)", IDM_VID_FS_KEEPRATIO
-            MENUITEM "整数倍放大(&I)",              IDM_VID_FS_INT
+            MENUITEM "整数比例(&I)",              IDM_VID_FS_INT
         END
         POPUP "EGA/(S)VGA 设置(&G)"
         BEGIN
@@ -91,7 +91,7 @@ BEGIN
         END
         MENUITEM SEPARATOR
         MENUITEM "CGA/PCjr/Tandy/EGA/(S)VGA 过扫描(&G)",     IDM_VID_OVERSCAN
-        MENUITEM "更改灰度显示器对比度(&M)", IDM_VID_CGACON
+        MENUITEM "更改单色显示对比度(&M)", IDM_VID_CGACON
     END
     MENUITEM "介质(&M)",				IDM_MEDIA
     POPUP "工具(&T)"
@@ -306,7 +306,7 @@ END
 #define STR_DYNAREC		"动态重编译器"
 
 #define STR_VIDEO		"显卡:"
-#define STR_VOODOO		"Voodoo 显卡"
+#define STR_VOODOO		"Voodoo Graphics"
 
 #define STR_MOUSE		"鼠标:"
 #define STR_JOYSTICK		"操纵杆:"
@@ -322,7 +322,7 @@ END
 #define STR_SSI			"Innovation SSI-2001"
 #define STR_CMS			"CMS / Game Blaster"
 #define STR_GUS			"Gravis Ultrasound"
-#define STR_FLOAT		"使用单精度浮点 (FLOAT32) 音频"
+#define STR_FLOAT		"使用单精度浮点 (FLOAT32)"
 
 #define STR_NET_TYPE		"网络类型:"
 #define STR_PCAP		"PCap 设备:"
@@ -348,7 +348,7 @@ END
 #define STR_SCSI_2		"控制器 2:"
 #define STR_SCSI_3		"控制器 3:"
 #define STR_SCSI_4		"控制器 4:"
-#define STR_CASSETTE		"卡带"
+#define STR_CASSETTE		"磁带"
 
 #define STR_HDD			"硬盘:"
 #define STR_NEW			"新建(&N)..."
@@ -370,13 +370,13 @@ END
 #define STR_FLOPPY_DRIVES	"软盘驱动器:"
 #define STR_TURBO		"加速时序"
 #define STR_CHECKBPB		"检查 BPB"
-#define STR_CDROM_DRIVES	"CD-ROM 设备:"
+#define STR_CDROM_DRIVES	"光盘驱动器:"
 
-#define STR_MO_DRIVES		"MO 设备:"
-#define STR_ZIP_DRIVES		"ZIP 设备:"
+#define STR_MO_DRIVES		"磁光盘驱动器:"
+#define STR_ZIP_DRIVES		"ZIP 驱动器:"
 #define STR_250			"ZIP 250"
 
-#define STR_ISARTC		"ISA 实时时钟 (RTC):"
+#define STR_ISARTC		"ISA 实时时钟:"
 #define STR_ISAMEM		"ISA 内存扩充"
 #define STR_ISAMEM_1		"扩展卡 1:"
 #define STR_ISAMEM_2		"扩展卡 2:"
@@ -401,7 +401,7 @@ BEGIN
     IDS_2049	"错误"
     IDS_2050	"致命错误"
     IDS_2051	"<reserved>"
-    IDS_2052	"按 CTRL+ALT+PAGE DOWN 组合键返回窗口模式。"
+    IDS_2052	"按 CTRL+ALT+PAGE DOWN 组合键返回到窗口模式。"
     IDS_2053	"速度"
     IDS_2054	"ZIP %03i %i (%s): %ls"
     IDS_2055	"ZIP 镜像 (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
@@ -423,11 +423,11 @@ BEGIN
     IDS_2067	"输入设备"
     IDS_2068	"声音"
     IDS_2069	"网络"
-    IDS_2070	"端口 (COM / LPT)"
+    IDS_2070	"端口 (COM 和 LPT)"
     IDS_2071	"存储控制器"
     IDS_2072	"硬盘"
-    IDS_2073	"软驱和光驱"
-    IDS_2074	"其他可移动存储设备"
+    IDS_2073	"软盘/光盘驱动器"
+    IDS_2074	"其他可移动设备"
     IDS_2075	"其他外围设备"
     IDS_2076	"表面镜像 (*.86F)\0*.86F\0"
     IDS_2077	"单击窗口捕捉鼠标"
@@ -466,20 +466,20 @@ BEGIN
     IDS_2106	"%u"
     IDS_2107	"%u MB (CHS: %i, %i, %i)"
     IDS_2108	"软盘 %i (%s): %ls"
-    IDS_2109	"所有镜像 (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0高级扇区镜像 (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0基本扇区镜像 (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux images (*.FDI)\0*.FDI\0表面镜像 (*.86F;*.MFM)\0*.86F;*.MFM\0所有文件 (*.*)\0*.*\0"
+    IDS_2109	"所有镜像 (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0高级扇区镜像 (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0基本扇区镜像 (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux 镜像 (*.FDI)\0*.FDI\0表面镜像 (*.86F;*.MFM)\0*.86F;*.MFM\0所有文件 (*.*)\0*.*\0"
     IDS_2110	"无法初始化 FreeType"
     IDS_2111	"无法初始化 SDL，需要 SDL2.dll"
     IDS_2112	"确定要硬重置模拟器吗？"
     IDS_2113	"确定要退出 86Box 吗？"
     IDS_2114	"无法初始化 Ghostscript"
-    IDS_2115	"MO %i (%ls): %ls"
-    IDS_2116	"MO 镜像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有文件 (*.*)\0*.*\0"
-    IDS_2117	"欢迎使用 86Box!"
+    IDS_2115	"磁光盘 %i (%ls): %ls"
+    IDS_2116	"磁光盘镜像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有文件 (*.*)\0*.*\0"
+    IDS_2117	"欢迎使用 86Box！"
     IDS_2118	"内部控制器"
     IDS_2119	"退出"
-    IDS_2120	"未找到 ROM"
+    IDS_2120	"找不到 ROM"
     IDS_2121	"要保存设置吗？"
-    IDS_2122	"此操作将硬重置模拟器."
+    IDS_2122	"此操作将硬重置模拟器。"
     IDS_2123	"保存"
     IDS_2124	"关于 86Box"
     IDS_2125	"86Box v" EMU_VERSION
@@ -505,7 +505,7 @@ BEGIN
 #else
 #define LIB_NAME_GS "libgs"
 #endif
-    IDS_2132	LIB_NAME_GS " 是将 PostScript 文件转换为 PDF 所需要的库。\n\n所有通用 PostScript 打印机所打印的文件将被保存为 PostScript (.ps) 文件。"
+    IDS_2132	LIB_NAME_GS " 是将 PostScript 文件转换为 PDF 所需要的库。\n\n使用通用 PostScript 打印机打印的文档将被保存为 PostScript (.ps) 文件。"
 #ifdef _WIN32
 #define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
 #else
@@ -517,8 +517,8 @@ BEGIN
     IDS_2136	"不退出"
     IDS_2137	"重置"
     IDS_2138	"不重置"
-    IDS_2139	"MO 镜像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有文件 (*.*)\0*.*\0"
-    IDS_2140	"CD-ROM 镜像 (*.ISO;*.CUE)\0*.ISO;*.CUE\0所有文件 (*.*)\0*.*\0"
+    IDS_2139	"磁光盘镜像 (*.IM?;*.MDI)\0*.IM?;*.MDI\0所有文件 (*.*)\0*.*\0"
+    IDS_2140	"光盘镜像 (*.ISO;*.CUE)\0*.ISO;*.CUE\0所有文件 (*.*)\0*.*\0"
     IDS_2141	"%hs 设备配置"
     IDS_2142    "显示器处在睡眠状态"
     IDS_2143	"OpenGL 着色器 (*.GLSL)\0*.GLSL\0所有文件 (*.*)\0*.*\0"
@@ -531,7 +531,7 @@ BEGIN
     IDS_2150	"卡带 %i: %ls"
     IDS_2151	"卡带镜像 (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0所有文件 (*.*)\0*.*\0"
     IDS_2152	"初始化渲染器时出错"
-    IDS_2153	"无法初始化 OpenGL (3.0 Core) 渲染器。请使用其他渲染器。"
+    IDS_2153	"无法初始化 OpenGL (3.0 核心) 渲染器。请使用其他渲染器。"
 END
 
 STRINGTABLE DISCARDABLE 
@@ -549,16 +549,16 @@ BEGIN
     IDS_4106	"硬盘镜像 (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0所有文件 (*.*)\0*.*\0"
     IDS_4107	"无法读取文件"
     IDS_4108	"无法写入文件"
-    IDS_4109	"不支持非 512 字节扇区的 HDI 或 HDX 镜像。"
+    IDS_4109	"不支持非 512 字节扇区大小的 HDI 或 HDX 镜像。"
     IDS_4110	"尚未支持 USB"
     IDS_4111	"磁盘镜像文件已存在"
     IDS_4112	"请指定有效的文件名。"
     IDS_4113	"已创建磁盘镜像"
-    IDS_4114	"请确定此文件已存在并可读取"
-    IDS_4115	"请确定此文件保存在可写的文件夹中。"
+    IDS_4114	"请确定此文件已存在并可读取。"
+    IDS_4115	"请确定此文件保存在可写目录中。"
     IDS_4116	"磁盘镜像太大"
     IDS_4117	"请记得为新创建的镜像分区并格式化。"
-    IDS_4118	"选定的文件将被覆盖。您确定继续使用此文件吗？"
+    IDS_4118	"选定的文件将被覆盖。确定继续使用此文件吗？"
     IDS_4119	"不支持的磁盘镜像"
     IDS_4120	"覆盖"
     IDS_4121	"不覆盖"
@@ -572,8 +572,8 @@ BEGIN
     IDS_4129	"小块 (512 KB)"
     IDS_4130	"VHD 文件 (*.VHD)\0*.VHD\0所有文件 (*.*)\0*.*\0"
     IDS_4131	"选择父 VHD 文件"
-    IDS_4132	"父映像可能在创建差异镜像后被修改。\n\n如果镜像文件被移动或复制，或由于创建此磁盘的程序中存在错误，也可能发生这种情况。\n\n是否需要修复时间戳？"
-    IDS_4133	"父盘与子盘的时间戳不匹配。"
+    IDS_4132	"父映像可能在创建差异镜像后被修改。\n\n如果镜像文件被移动或复制，或创建此磁盘的程序中存在错误，也可能发生这种情况。\n\n是否需要修复时间戳？"
+    IDS_4133	"父盘与子盘的时间戳不匹配"
     IDS_4134	"无法修复 VHD 时间戳。"
     IDS_4135	"%01i:%02i"
 
@@ -591,13 +591,13 @@ BEGIN
     IDS_4612	"ATAPI (%01i:%01i)"
     IDS_4613	"SCSI (%01i:%02i)"
 
-    IDS_5120	"CD-ROM %i (%s): %s"
+    IDS_5120	"光盘 %i (%s): %s"
 
-    IDS_5376	"已禁用"
+    IDS_5376	"禁用"
     IDS_5381	"ATAPI"
     IDS_5382    "SCSI"
 
-    IDS_5632	"已禁用"
+    IDS_5632	"禁用"
     IDS_5637	"ATAPI (%01i:%01i)"
     IDS_5638    "SCSI (%01i:%02i)"
 
@@ -615,16 +615,16 @@ BEGIN
     IDS_5899	"2.88 MB"
     IDS_5900	"ZIP 100"
     IDS_5901	"ZIP 250"
-    IDS_5902	"3.5"" 128Mb M.O. (ISO 10090)"
-    IDS_5903	"3.5"" 230Mb M.O. (ISO 13963)"
-    IDS_5904	"3.5"" 540Mb M.O. (ISO 15498)"
-    IDS_5905	"3.5"" 640Mb M.O. (ISO 15498)"
-    IDS_5906	"3.5"" 1.3Gb M.O. (GigaMO)"
-    IDS_5907	"3.5"" 2.3Gb M.O. (GigaMO 2)"
-    IDS_5908	"5.25"" 600Mb M.O."
-    IDS_5909	"5.25"" 650Mb M.O."
-    IDS_5910	"5.25"" 1Gb M.O."
-    IDS_5911	"5.25"" 1.3Gb M.O."
+    IDS_5902	"3.5 英寸 128Mb 磁光盘 (ISO 10090)"
+    IDS_5903	"3.5 英寸 230Mb 磁光盘 (ISO 13963)"
+    IDS_5904	"3.5 英寸 540Mb 磁光盘 (ISO 15498)"
+    IDS_5905	"3.5 英寸 640Mb 磁光盘 (ISO 15498)"
+    IDS_5906	"3.5 英寸 1.3Gb 磁光盘 (GigaMO)"
+    IDS_5907	"3.5 英寸 2.3Gb 磁光盘 (GigaMO 2)"
+    IDS_5908	"5.25 英寸 600Mb 磁光盘"
+    IDS_5909	"5.25 英寸 650Mb 磁光盘"
+    IDS_5910	"5.25 英寸 1Gb 磁光盘"
+    IDS_5911	"5.25 英寸 1.3Gb 磁光盘"
 
     IDS_6144	"标准转速 (RPM)"
     IDS_6145	"低于标准转速的 1%%"
