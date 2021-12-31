@@ -111,10 +111,12 @@ void HardwareRenderer::initializeGL()
     pclog("OpenGL renderer: %s\n", glGetString(GL_RENDERER));
     pclog("OpenGL version: %s\n", glGetString(GL_VERSION));
     pclog("OpenGL shader language version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+    glClearColor(0, 0, 0, 1);
 }
 
 void HardwareRenderer::paintGL() {
     m_context->makeCurrent(this);
+    glClear(GL_COLOR_BUFFER_BIT);
     QVector<QVector2D> verts, texcoords;
     QMatrix4x4 mat;
     mat.setToIdentity();
