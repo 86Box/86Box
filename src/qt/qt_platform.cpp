@@ -4,6 +4,7 @@
 #include <thread>
 #include <memory>
 #include <algorithm>
+#include <map>
 
 #include <QDebug>
 
@@ -469,6 +470,52 @@ size_t c16stombs(char dst[], const uint16_t src[], int len)
     return ret;
 }
 #endif
+
+#ifdef _WIN32
+#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
+#define MOUSE_CAPTURE_KEYSEQ "F8+F12"
+#else
+#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
+#define MOUSE_CAPTURE_KEYSEQ "CTRL-END"
+#endif
+#ifdef Q_OS_MACOS
+#define ROMDIR "~/Library/Application Support/net.86box.86box/roms"
+#else
+#define ROMDIR "roms"
+#endif
+
+
+static std::map<int, std::wstring> translatedstrings;
+
+static void reload_strings()
+{
+    translatedstrings.clear();
+    translatedstrings[IDS_2077] = QObject::tr("Click to capture mouse.").toStdWString();
+    translatedstrings[IDS_2078] = QObject::tr("Press %1 to release mouse").arg(MOUSE_CAPTURE_KEYSEQ).toStdWString();
+    translatedstrings[IDS_2079] = QObject::tr("Press %1 or middle button to release mouse").arg(MOUSE_CAPTURE_KEYSEQ).toStdWString();
+    translatedstrings[IDS_2080] = QObject::tr("Failed to initialize FluidSynth").toStdWString();
+    translatedstrings[IDS_4099] = QObject::tr("MFM/RLL or ESDI CD-ROM drives never existed").toStdWString();
+    translatedstrings[IDS_2093] = QObject::tr("Failed to set up PCap").toStdWString();
+    translatedstrings[IDS_2094] = QObject::tr("No PCap devices found").toStdWString();
+    translatedstrings[IDS_2110] = QObject::tr("Unable to initialize FreeType").toStdWString();
+    translatedstrings[IDS_2111] = QObject::tr("Unable to initialize SDL, libsdl2 is required").toStdWString();
+    translatedstrings[IDS_2131] = QObject::tr("libfreetype is required for ESC/P printer emulation.").toStdWString();
+    translatedstrings[IDS_2132] = QObject::tr("libgs is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files.").toStdWString();
+    translatedstrings[IDS_2133] = QObject::tr("%1 is required for FluidSynth MIDI output.").arg(LIB_NAME_FLUIDSYNTH).toStdWString();
+    translatedstrings[IDS_2129] = QObject::tr("Make sure libpcap is installed and that you are on a libpcap-compatible network connection.").toStdWString();
+    translatedstrings[IDS_2114] = QObject::tr("Unable to initialize Ghostscript").toStdWString();
+    translatedstrings[IDS_2063] = QObject::tr("Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine.").toStdWString();
+    translatedstrings[IDS_2064] = QObject::tr("Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.").toStdWString();
+    translatedstrings[IDS_2128] = QObject::tr("Hardware not available").toStdWString();
+    translatedstrings[IDS_2120] = QObject::tr("No ROMs found.").toStdWString();
+    translatedstrings[IDS_2056] = QObject::tr("86Box could not find any usable ROM images.\n\nPlease <a href='https://github.com/86Box/roms/releases/latest'>download</a> a ROM set and extract it into the \"%1\" directory.").arg(ROMDIR).toStdWString();
+}
+
+wchar_t* plat_get_string(int i)
+{
+    if (translatedstrings.empty()) reload_strings();
+    return translatedstrings[i].data();
+}
 
 int
 plat_chdir(char *path)

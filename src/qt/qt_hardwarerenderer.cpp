@@ -11,7 +11,7 @@ extern "C" {
 
 void HardwareRenderer::resizeGL(int w, int h)
 {
-    glViewport(0, 0, w, h);
+    glViewport(0, 0, w * devicePixelRatio(), h * devicePixelRatio());
 }
 
 #define PROGRAM_VERTEX_ATTRIBUTE 0
@@ -111,10 +111,12 @@ void HardwareRenderer::initializeGL()
     pclog("OpenGL renderer: %s\n", glGetString(GL_RENDERER));
     pclog("OpenGL version: %s\n", glGetString(GL_VERSION));
     pclog("OpenGL shader language version: %s\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+    glClearColor(0, 0, 0, 1);
 }
 
 void HardwareRenderer::paintGL() {
     m_context->makeCurrent(this);
+    glClear(GL_COLOR_BUFFER_BIT);
     QVector<QVector2D> verts, texcoords;
     QMatrix4x4 mat;
     mat.setToIdentity();

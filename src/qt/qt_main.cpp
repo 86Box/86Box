@@ -4,6 +4,9 @@
 #include <QElapsedTimer>
 #include <QThread>
 #include <QTimer>
+#include <QTranslator>
+#include <QDirIterator>
+#include <QLibraryInfo>
 
 #ifdef QT_STATIC
 /* Static builds need plugin imports */
@@ -25,6 +28,7 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #include <86box/video.h>
 
 #include <thread>
+#include <iostream>
 
 #include "qt_mainwindow.hpp"
 #include "cocoa_mouse.hpp"
@@ -95,10 +99,21 @@ main_thread_fn()
 
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
+    Q_INIT_RESOURCE(qt_resources);
+    Q_INIT_RESOURCE(qt_translations);
     QSurfaceFormat fmt = QSurfaceFormat::defaultFormat();
     fmt.setSwapInterval(0);
     QSurfaceFormat::setDefaultFormat(fmt);
     app.setStyle(new StyleOverride());
+
+    QTranslator translator;
+    if (translator.load(QLocale(), QLatin1String("86box"), QLatin1String("_"), QLatin1String(":/")))
+    {
+        translator.load(QLocale(), QLatin1String("qt"), QLatin1String("_"), QLibraryInfo::location(QLibraryInfo::TranslationsPath));
+        translator.load(QLocale(), QLatin1String("qt_help"), QLatin1String("_"), QLibraryInfo::location(QLibraryInfo::TranslationsPath));
+        translator.load(QLocale(), QLatin1String("qtbase"), QLatin1String("_"), QLibraryInfo::location(QLibraryInfo::TranslationsPath));
+        QCoreApplication::installTranslator(&translator);
+    }
 #ifdef __APPLE__
     CocoaEventFilter cocoafilter;
     app.installNativeEventFilter(&cocoafilter);
@@ -110,11 +125,7 @@ int main(int argc, char* argv[]) {
         return 0;
     }
     if (! pc_init_modules()) {
-#ifdef Q_OS_MACOS
-        ui_msgbox_header(MBX_FATAL, VC(L"No ROMs found."), VC(L"86Box could not find any usable ROM images.\n\nPlease <a href='https://github.com/86Box/roms/releases/latest'>download</a> a ROM set and extract it into the \"~/Library/Application Support/net.86box.86box/roms\" directory."));
-#else
-        ui_msgbox_header(MBX_FATAL, VC(L"No ROMs found."), VC(L"86Box could not find any usable ROM images.\n\nPlease <a href='https://github.com/86Box/roms/releases/latest'>download</a> a ROM set and extract it into the \"roms\" directory."));
-#endif
+        ui_msgbox_header(MBX_FATAL, (void*)IDS_2120, (void*)IDS_2056);
         return 6;
     }
 

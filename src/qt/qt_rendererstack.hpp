@@ -13,6 +13,7 @@ namespace Ui {
 class RendererStack;
 }
 
+class RendererCommon;
 class RendererStack : public QStackedWidget
 {
     Q_OBJECT
@@ -43,6 +44,7 @@ public:
     };
     void switchRenderer(Renderer renderer);
 
+    RendererCommon* rendererWindow{nullptr};
 signals:
     void blitToRenderer(const std::unique_ptr<uint8_t>* img, int, int, int, int, std::atomic_flag* in_use);
 

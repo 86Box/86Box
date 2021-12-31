@@ -90,6 +90,7 @@ if(QT)
   #set(CMAKE_PREFIX_PATH "path/to/qt5-static")
   
   find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
+  find_package(Qt5LinguistTools REQUIRED)
 endif()
 
 find_package(Freetype REQUIRED)

@@ -32,6 +32,7 @@ extern "C" {
 #include <QCheckBox>
 #include <QActionGroup>
 #include <QOpenGLContext>
+#include <QScreen>
 
 #include <array>
 #include <unordered_map>
@@ -57,7 +58,6 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-    Q_INIT_RESOURCE(qt_resources);
     mm = std::make_shared<MediaMenu>(this);
     MediaMenu::ptr = mm;
     status = std::make_unique<MachineStatus>(this);
@@ -116,8 +116,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
         if (!QApplication::platformName().contains("eglfs") && vid_resize == 0) {
-            w = w / (!dpi_scale ? devicePixelRatio() : 1);
-            int modifiedHeight = (h / (!dpi_scale ? devicePixelRatio() : 1)) + menuBar()->height() + (statusBar()->height() * !hide_status_bar);
+            w = w / (!dpi_scale ? this->screen()->devicePixelRatio() : 1);
+            int modifiedHeight = (h / (!dpi_scale ? this->screen()->devicePixelRatio() : 1)) + menuBar()->height() + (statusBar()->height() * !hide_status_bar);
             ui->stackedWidget->resize(w, h);
             if (vid_resize == 0) {
                 setFixedSize(w, modifiedHeight);
@@ -1154,7 +1154,7 @@ static void update_fullscreen_scale_checkboxes(Ui::MainWindow* ui, QAction* sele
 
     if (video_fullscreen > 0) {
         auto widget = ui->stackedWidget->currentWidget();
-        auto rc = dynamic_cast<RendererCommon*>(widget);
+        auto rc = ui->stackedWidget->rendererWindow;
         rc->onResize(widget->width(), widget->height());
     }
 
