@@ -58,7 +58,6 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
-    Q_INIT_RESOURCE(qt_resources);
     mm = std::make_shared<MediaMenu>(this);
     MediaMenu::ptr = mm;
     status = std::make_unique<MachineStatus>(this);
