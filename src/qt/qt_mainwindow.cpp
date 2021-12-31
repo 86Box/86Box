@@ -1154,7 +1154,7 @@ static void update_fullscreen_scale_checkboxes(Ui::MainWindow* ui, QAction* sele
 
     if (video_fullscreen > 0) {
         auto widget = ui->stackedWidget->currentWidget();
-        auto rc = dynamic_cast<RendererCommon*>(widget);
+        auto rc = ui->stackedWidget->rendererWindow;
         rc->onResize(widget->width(), widget->height());
     }
 

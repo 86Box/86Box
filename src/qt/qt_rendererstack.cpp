@@ -183,6 +183,7 @@ void RendererStack::switchRenderer(Renderer renderer) {
     case Renderer::Software:
     {
         auto sw = new SoftwareRenderer(this);
+        rendererWindow = sw;
         connect(this, &RendererStack::blitToRenderer, sw, &SoftwareRenderer::onBlit, Qt::QueuedConnection);
         current.reset(this->createWindowContainer(sw, this));
     }
@@ -191,6 +192,7 @@ void RendererStack::switchRenderer(Renderer renderer) {
     {
         this->createWinId();
         auto hw = new HardwareRenderer(this);
+        rendererWindow = hw;
         connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
         current.reset(this->createWindowContainer(hw, this));
         break;
@@ -199,6 +201,7 @@ void RendererStack::switchRenderer(Renderer renderer) {
     {
         this->createWinId();
         auto hw = new HardwareRenderer(this, HardwareRenderer::RenderType::OpenGLES);
+        rendererWindow = hw;
         connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
         current.reset(this->createWindowContainer(hw, this));
         break;
@@ -207,6 +210,7 @@ void RendererStack::switchRenderer(Renderer renderer) {
     {
         this->createWinId();
         auto hw = new HardwareRenderer(this, HardwareRenderer::RenderType::OpenGL3);
+        rendererWindow = hw;
         connect(this, &RendererStack::blitToRenderer, hw, &HardwareRenderer::onBlit, Qt::QueuedConnection);
         current.reset(this->createWindowContainer(hw, this));
         break;
