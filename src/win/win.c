@@ -1194,6 +1194,14 @@ plat_vid_reload_options(void)
 	vid_apis[vid_api].reload();
 }
 
+
+void
+plat_vidapi_reload(void)
+{
+    vid_apis[vid_api].reload();
+}
+
+
 /* Sets up the program language before initialization. */
 uint32_t 
 plat_language_code(char* langcode)
