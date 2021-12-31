@@ -31,7 +31,7 @@ CocoaEventFilter::~CocoaEventFilter()
 
 }
 
-bool CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, long *result)
+bool CocoaEventFilter::nativeEventFilter(const QByteArray &eventType, void *message, result_t *result)
 {
     if (mouse_capture)
     {

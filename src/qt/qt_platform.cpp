@@ -108,7 +108,7 @@ void plat_get_exe_name(char *s, int size)
 {
     QByteArray exepath_temp = QCoreApplication::applicationDirPath().toLocal8Bit();
 
-    memcpy(s, exepath_temp.data(), std::min(exepath_temp.size(),size));
+    memcpy(s, exepath_temp.data(), std::min((qsizetype)exepath_temp.size(),(qsizetype)size));
 
     plat_path_slash(s);
 }

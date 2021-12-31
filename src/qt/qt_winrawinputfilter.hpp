@@ -40,6 +40,13 @@
 
 #include <memory>
 
+#if QT_VERSION_MAJOR >= 6
+#define result_t qintptr
+#else 
+#define result_t long
+#endif
+
+
 class WindowsRawInputFilter : public QObject, public QAbstractNativeEventFilter
 {
     Q_OBJECT
@@ -47,7 +54,7 @@ class WindowsRawInputFilter : public QObject, public QAbstractNativeEventFilter
 public:
     static std::unique_ptr<WindowsRawInputFilter> Register(QMainWindow *window);
 
-    bool nativeEventFilter(const QByteArray &eventType, void *message, long *result) override;
+    bool nativeEventFilter(const QByteArray &eventType, void *message, result_t *result) override;
 
     ~WindowsRawInputFilter();
 
