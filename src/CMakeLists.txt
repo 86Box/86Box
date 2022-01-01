@@ -75,22 +75,31 @@ if(APPLE)
     # Force using the newest library if it's installed by homebrew
     set(CMAKE_FIND_FRAMEWORK LAST)
 
-    # setting our compilation target to macOS 10.13 High Sierra
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
+    # setting our compilation target to macOS 10.15 Catalina if targetting Qt6, macOS 10.13 High Sierra otherwise
+    if (USE_QT6)
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15")
+    else()
+        set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13")
+    endif()
 endif()
 
 if(QT)
   set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
   set(CMAKE_CXX_EXTENSIONS OFF)
+  if (USE_QT6)
+      set(QT_MAJOR 6)
+  else()
+      set(QT_MAJOR 5)
+  endif()
   
   # if we want to use qt5-static to eliminate need for bundling qt dlls (windows)
   #set(QT_STATIC ON)
   # needed to build with qt5-static if both qt5 and qt5-static are installed
   #set(CMAKE_PREFIX_PATH "path/to/qt5-static")
   
-  find_package(Qt5 COMPONENTS Core Widgets REQUIRED)
-  find_package(Qt5LinguistTools REQUIRED)
+  find_package(Qt${QT_MAJOR} COMPONENTS Core Widgets OpenGL REQUIRED)
+  find_package(Qt${QT_MAJOR}LinguistTools REQUIRED)
 endif()
 
 find_package(Freetype REQUIRED)
@@ -178,7 +187,7 @@ if(APPLE)
     if (QT)
     # needed for Qt packaging
 	# get the macdeployqt path
-	get_target_property(_qmake_executable Qt5::qmake IMPORTED_LOCATION)
+        get_target_property(_qmake_executable Qt${QT_MAJOR}::qmake IMPORTED_LOCATION)
 	get_filename_component(_qt_bin_dir "${_qmake_executable}" DIRECTORY)
 	find_program(MACDEPLOYQT_EXECUTABLE macdeployqt HINTS "${_qt_bin_dir}")
 

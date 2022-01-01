@@ -2,6 +2,7 @@
 
 #include <QRect>
 #include <QImage>
+#include <QEvent>
 
 class QWidget;
 

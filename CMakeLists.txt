@@ -130,6 +130,11 @@ cmake_dependent_option(VGAWONDER    "ATI VGA Wonder (ATI-18800)"                
 cmake_dependent_option(VNC          "VNC renderer"                                  OFF     "DEV_BRANCH"    OFF)
 cmake_dependent_option(XL24         "ATI VGA Wonder XL24 (ATI-28800-6)"             ON      "DEV_BRANCH"    OFF)
 
+# Ditto but for Qt
+if (QT)
+    option(USE_QT6 "Use Qt6 instead of Qt5" OFF)
+endif()
+
 # Determine the build type
 set(RELEASE_BUILD   OFF)
 set(BETA_BUILD      OFF)

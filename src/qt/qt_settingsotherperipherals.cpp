@@ -30,6 +30,12 @@ void SettingsOtherPeripherals::onCurrentMachineChanged(int machineId)
     ui->comboBoxRTC->setEnabled(machine_has_bus(machineId, MACHINE_BUS_ISA));
     ui->pushButtonConfigureRTC->setEnabled(machine_has_bus(machineId, MACHINE_BUS_ISA));
 
+    ui->comboBoxCard1->clear();
+    ui->comboBoxCard2->clear();
+    ui->comboBoxCard3->clear();
+    ui->comboBoxCard4->clear();
+    ui->comboBoxRTC->clear();
+
     auto* model = ui->comboBoxRTC->model();
     int d = 0;
     int selectedRow = 0;

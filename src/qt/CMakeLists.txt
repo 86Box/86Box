@@ -125,22 +125,23 @@ endif()
 target_link_libraries(
     plat
     PRIVATE
-    Qt5::Widgets
-    Qt5::Gui
+    Qt${QT_MAJOR}::Widgets
+    Qt${QT_MAJOR}::Gui
     Threads::Threads
 )
 
 target_link_libraries(
     ui
     PRIVATE
-    Qt5::Widgets
-    Qt5::Gui
+    Qt${QT_MAJOR}::Widgets
+    Qt${QT_MAJOR}::Gui
+    Qt${QT_MAJOR}::OpenGL
     Threads::Threads
 )
 
 # needed for static builds
 if (WIN32)
-    qt_import_plugins(plat INCLUDE Qt5::QWindowsIntegrationPlugin Qt5::QICOPlugin QWindowsVistaStylePlugin)
+    qt_import_plugins(plat INCLUDE Qt${QT_MAJOR}::QWindowsIntegrationPlugin Qt${QT_MAJOR}::QICOPlugin QWindowsVistaStylePlugin)
 endif()
 
 if (UNIX AND NOT APPLE)
@@ -165,13 +166,13 @@ if (UNIX AND NOT APPLE)
                 set(WL_SOURCE_VAR)
                 ecm_add_wayland_client_protocol(WL_SOURCE_VAR PROTOCOL ${CMAKE_SOURCE_DIR}/wl_protocols/relative-pointer-unstable-v1.xml BASENAME relative-pointer-unstable-v1)
                 ecm_add_wayland_client_protocol(WL_SOURCE_VAR PROTOCOL ${CMAKE_SOURCE_DIR}/wl_protocols/pointer-constraints-unstable-v1.xml BASENAME pointer-constraints-unstable-v1)
-                target_include_directories(ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${Qt5Gui_PRIVATE_INCLUDE_DIRS})
+                target_include_directories(ui PRIVATE ${CMAKE_CURRENT_BINARY_DIR} ${Qt${QT_MAJOR}Gui_PRIVATE_INCLUDE_DIRS})
                 target_sources(ui PRIVATE ${WL_SOURCE_VAR} wl_mouse.cpp)
                 target_compile_definitions(ui PRIVATE WAYLAND)
             endif()
         endif()
     endif()
 endif()
-qt5_create_translation(QM_FILES ${CMAKE_CURRENT_SOURCE_DIR} 86box_en.ts 86box_en-GB.ts 86box_de.ts 86box_es.ts 86box_fi.ts 86box_fr.ts 86box_hr.ts 86box_hu.ts 86box_it.ts 86box_ja.ts 86box_ko.ts 86box_pt-BR.ts 86box_pt-PT.ts 86box_ru.ts 86box_sl.ts 86box_tr.ts 86box_zh.ts)
+qt_create_translation(QM_FILES ${CMAKE_CURRENT_SOURCE_DIR} 86box_en.ts 86box_en-GB.ts 86box_de.ts 86box_es.ts 86box_fi.ts 86box_fr.ts 86box_hr.ts 86box_hu.ts 86box_it.ts 86box_ja.ts 86box_ko.ts 86box_pt-BR.ts 86box_pt-PT.ts 86box_ru.ts 86box_sl.ts 86box_tr.ts 86box_zh.ts)
 configure_file(qt_translations.qrc ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 target_sources(ui PRIVATE ${QM_FILES} ${CMAKE_CURRENT_BINARY_DIR}/qt_translations.qrc)

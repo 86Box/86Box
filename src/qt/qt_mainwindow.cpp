@@ -337,6 +337,7 @@ void MainWindow::showEvent(QShowEvent *event) {
         scrnsz_x = window_w;
         scrnsz_y = window_h;
     }
+    if (settings_only) QTimer::singleShot(0, this, [this] () { ui->actionSettings->trigger(); });
 }
 
 void MainWindow::on_actionKeyboard_requires_capture_triggered() {
@@ -1060,8 +1061,7 @@ void MainWindow::on_actionHardware_Renderer_OpenGL_ES_triggered() {
 
 void MainWindow::focusInEvent(QFocusEvent* event)
 {
-    if (settings_only) ui->actionSettings->trigger();
-    else this->grabKeyboard();
+    this->grabKeyboard();
 }
 
 void MainWindow::focusOutEvent(QFocusEvent* event)

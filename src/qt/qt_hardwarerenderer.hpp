@@ -2,7 +2,6 @@
 
 #include <QOpenGLFunctions>
 #include <QOpenGLBuffer>
-#include <QOpenGLWidget>
 #include <QOpenGLWindow>
 #include <QOpenGLVertexArrayObject>
 #include <QOpenGLTexture>
@@ -12,6 +11,7 @@
 #include <QPainter>
 #include <QEvent>
 #include <QKeyEvent>
+#include <QWidget>
 
 #include <atomic>
 #include <mutex>
