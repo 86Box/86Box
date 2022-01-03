@@ -511,6 +511,7 @@ void voodoo_fifo_thread(void *param)
                                                 addr += 4;
                                         }
                                         break;
+                                        case 1: /*Planar YUV*/
                                         case 2: /*Framebuffer*/
                                         while (num--)
                                         {
