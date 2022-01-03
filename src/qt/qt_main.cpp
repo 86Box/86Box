@@ -97,6 +97,16 @@ main_thread_fn()
     is_quit = 1;
 }
 
+class CustomTranslator : public QTranslator
+{
+protected:
+    QString translate(const char *context, const char *sourceText,
+                                  const char *disambiguation = nullptr, int n = -1) const override
+    {
+        return QTranslator::translate("", sourceText, disambiguation, n);
+    }
+};
+
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     Q_INIT_RESOURCE(qt_resources);
@@ -105,13 +115,16 @@ int main(int argc, char* argv[]) {
     fmt.setSwapInterval(0);
     QSurfaceFormat::setDefaultFormat(fmt);
     app.setStyle(new StyleOverride());
+    QDirIterator it(":", QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        qDebug() << it.next() << "\n";
+    }
 
-    QTranslator translator;
-    if (translator.load(QLocale(), QLatin1String("86box"), QLatin1String("_"), QLatin1String(":/")))
+    CustomTranslator translator;
+    qDebug() << QLocale::system().name() << "\n";
+    if (translator.load(QLatin1String("86box_"), QLatin1String(":/"), QString(), "de_DE.qm"))
     {
-        translator.load(QLocale(), QLatin1String("qt"), QLatin1String("_"), QLibraryInfo::location(QLibraryInfo::TranslationsPath));
-        translator.load(QLocale(), QLatin1String("qt_help"), QLatin1String("_"), QLibraryInfo::location(QLibraryInfo::TranslationsPath));
-        translator.load(QLocale(), QLatin1String("qtbase"), QLatin1String("_"), QLibraryInfo::location(QLibraryInfo::TranslationsPath));
+        qDebug() << "Translations loaded.\n";
         QCoreApplication::installTranslator(&translator);
     }
 #ifdef __APPLE__

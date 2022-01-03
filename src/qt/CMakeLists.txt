@@ -173,6 +173,16 @@ if (UNIX AND NOT APPLE)
         endif()
     endif()
 endif()
-qt_create_translation(QM_FILES ${CMAKE_CURRENT_SOURCE_DIR} 86box_en.ts 86box_en-GB.ts 86box_de.ts 86box_es.ts 86box_fi.ts 86box_fr.ts 86box_hr.ts 86box_hu.ts 86box_it.ts 86box_ja.ts 86box_ko.ts 86box_pt-BR.ts 86box_pt-PT.ts 86box_ru.ts 86box_sl.ts 86box_tr.ts 86box_zh.ts)
+set(QM_FILES)
+file(GLOB po_files "${CMAKE_CURRENT_SOURCE_DIR}/languages/*.po")
+foreach(po_file ${po_files})
+    get_target_property(LCONVERT_EXECUTABLE Qt${QT_MAJOR}::lconvert IMPORTED_LOCATION)
+
+    get_filename_component(PO_FILE_NAME ${po_file} NAME_WE)
+    add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm"
+                       COMMAND ${LCONVERT_EXECUTABLE} -i ${po_file} -o ${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm
+                       WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    list(APPEND QM_FILES "${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm")
+endforeach()
 configure_file(qt_translations.qrc ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 target_sources(ui PRIVATE ${QM_FILES} ${CMAKE_CURRENT_BINARY_DIR}/qt_translations.qrc)
