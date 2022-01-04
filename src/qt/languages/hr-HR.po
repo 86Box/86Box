@@ -217,9 +217,6 @@ msgstr "&Dokumentacija..."
 msgid "&About 86Box..."
 msgstr "&O programu 86Box..."
 
-msgid ""
-msgstr ""
-
 msgid "&New image..."
 msgstr "&Nova slika..."
 
@@ -625,8 +622,8 @@ msgstr "ZIP %03i %i (%s): %ls"
 msgid "ZIP images (*.IM? *.im? *.ZDI *.zdi)"
 msgstr "ZIP slike (*.IM? *.im? *.ZDI *.zdi)"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=""https://github.com/86Box/roms/releases/latest"">download</a> a ROM set and extract it into the ""roms"" directory."
-msgstr "86Box nije mogao pronaći upotrebljive ROM datoteke.\n\nMolimte posjetite <a href=""https://github.com/86Box/roms/releases/latest""></a> sknite paket s ROM datotekama i ekstrahirajte paket u ""roms"" mapu."
+msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "86Box nije mogao pronaći upotrebljive ROM datoteke.\n\nMolimte posjetite <a href=\"https://github.com/86Box/roms/releases/latest\"></a> sknite paket s ROM datotekama i ekstrahirajte paket u \"roms\" mapu."
 
 msgid "(empty)"
 msgstr "(prazno)"
@@ -646,11 +643,11 @@ msgstr "Isključeno"
 msgid "All images (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basic sector images (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Surface images (*.86F *.86f)"
 msgstr "Sve slike (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;BOsnovne sektorske slike (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Površinske slike (*.86F *.86f)"
 
-msgid "Machine ""%hs"" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Sistem ""%hs"" nije dostupan jer ne postoje potrebni ROM-ovi u mapu roms/machines. Prebacivanje na dostupno računalo."
+msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "Sistem \"%hs\" nije dostupan jer ne postoje potrebni ROM-ovi u mapu roms/machines. Prebacivanje na dostupno računalo."
 
-msgid "Video card ""%hs"" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Video kartica ""%hs"" nije dostupna jer ne postoje potrebni ROM-ovi u mapu roms/video. Prebacivanje na dostupnu video karticu."
+msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Video kartica \"%hs\" nije dostupna jer ne postoje potrebni ROM-ovi u mapu roms/video. Prebacivanje na dostupnu video karticu."
 
 msgid "Machine"
 msgstr "Sistem"
@@ -908,7 +905,7 @@ msgid "You are loading an unsupported configuration"
 msgstr "Učitavate nepodržanu konfiguraciju"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Filtriranje tipa CPU-a na temelju odabranog sistema onemogućeno je za ovaj emulirani sistem.\n\nOvo omogućuje odabir procesora koji inače nisu kompatibilne s odabranog sistem. Međutim, možete naići na na nekompatibilnosti s BIOS-om sustava ili drugim softverom.\n\nOmogućavanje ove postavke nije službeno podržano i sva prijava o greškama mogu biti zatvorena kao ""invalid""."
+msgstr "Filtriranje tipa CPU-a na temelju odabranog sistema onemogućeno je za ovaj emulirani sistem.\n\nOvo omogućuje odabir procesora koji inače nisu kompatibilne s odabranog sistem. Međutim, možete naići na na nekompatibilnosti s BIOS-om sustava ili drugim softverom.\n\nOmogućavanje ove postavke nije službeno podržano i sva prijava o greškama mogu biti zatvorena kao \"invalid\"."
 
 msgid "Continue"
 msgstr "Nastavi"
@@ -1126,35 +1123,35 @@ msgstr "2,88 MB"
 msgid "ZIP 100"
 msgstr "ZIP 100"
 
-msgid "3.5"" 128Mb M.O. (ISO 10090)"
-msgstr "3,5"" 128Mb M.O. (ISO 10090)"
+msgid "3.5\" 128Mb M.O. (ISO 10090)"
+msgstr "3,5\" 128Mb M.O. (ISO 10090)"
 
-msgid "3.5"" 230Mb M.O. (ISO 13963)"
-msgstr "3,5"" 230Mb M.O. (ISO 13963)"
+msgid "3.5\" 230Mb M.O. (ISO 13963)"
+msgstr "3,5\" 230Mb M.O. (ISO 13963)"
 
-msgid "3.5"" 540Mb M.O. (ISO 15498)"
-msgstr "3,5"" 540Mb M.O. (ISO 15498)"
+msgid "3.5\" 540Mb M.O. (ISO 15498)"
+msgstr "3,5\" 540Mb M.O. (ISO 15498)"
 
-msgid "3.5"" 640Mb M.O. (ISO 15498)"
-msgstr "3,5"" 640Mb M.O. (ISO 15498)"
+msgid "3.5\" 640Mb M.O. (ISO 15498)"
+msgstr "3,5\" 640Mb M.O. (ISO 15498)"
 
-msgid "3.5"" 1.3Gb M.O. (GigaMO)"
-msgstr "3,5"" 1.3Gb M.O. (GigaMO)"
+msgid "3.5\" 1.3Gb M.O. (GigaMO)"
+msgstr "3,5\" 1.3Gb M.O. (GigaMO)"
 
-msgid "3.5"" 2.3Gb M.O. (GigaMO 2)"
-msgstr "3,5"" 2.3Gb M.O. (GigaMO 2)"
+msgid "3.5\" 2.3Gb M.O. (GigaMO 2)"
+msgstr "3,5\" 2.3Gb M.O. (GigaMO 2)"
 
-msgid "5.25"" 600Mb M.O."
-msgstr "5,25"" 600Mb M.O."
+msgid "5.25\" 600Mb M.O."
+msgstr "5,25\" 600Mb M.O."
 
-msgid "5.25"" 650Mb M.O."
-msgstr "5,25"" 650Mb M.O."
+msgid "5.25\" 650Mb M.O."
+msgstr "5,25\" 650Mb M.O."
 
-msgid "5.25"" 1Gb M.O."
-msgstr "5,25"" 1Gb M.O."
+msgid "5.25\" 1Gb M.O."
+msgstr "5,25\" 1Gb M.O."
 
-msgid "5.25"" 1.3Gb M.O."
-msgstr "5,25"" 1.3Gb M.O."
+msgid "5.25\" 1.3Gb M.O."
+msgstr "5,25\" 1.3Gb M.O."
 
 msgid "Perfect RPM"
 msgstr "Savršeni broj okretaja u minuti"

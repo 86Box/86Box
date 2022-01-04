@@ -217,9 +217,6 @@ msgstr "文档(&D)..."
 msgid "&About 86Box..."
 msgstr "关于 86Box(&A)..."
 
-msgid ""
-msgstr ""
-
 msgid "&New image..."
 msgstr "新建镜像(&N)..."
 
@@ -625,8 +622,8 @@ msgstr "ZIP %03i %i (%s): %ls"
 msgid "ZIP images (*.IM? *.im? *.ZDI *.zdi)"
 msgstr "ZIP 镜像 (*.IM? *.im? *.ZDI *.zdi)"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=""https://github.com/86Box/roms/releases/latest"">download</a> a ROM set and extract it into the ""roms"" directory."
-msgstr "86Box 找不到任何可用的 ROM 镜像。\n\n请<a href=""https://github.com/86Box/roms/releases/latest"">下载</a>ROM 包并将其解压到 ""roms"" 文件夹。"
+msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "86Box 找不到任何可用的 ROM 镜像。\n\n请<a href=\"https://github.com/86Box/roms/releases/latest\">下载</a>ROM 包并将其解压到 \"roms\" 文件夹。"
 
 msgid "(empty)"
 msgstr "(空)"
@@ -646,11 +643,11 @@ msgstr "关"
 msgid "All images (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basic sector images (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Surface images (*.86F *.86f)"
 msgstr "所有镜像 (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;基本扇区镜像 (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;表面镜像 (*.86F *.86f)"
 
-msgid "Machine ""%hs"" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "由于 roms/machines 文件夹中缺少合适的 ROM，机型 ""%hs"" 不可用。将切换到其他可用机型。"
+msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "由于 roms/machines 文件夹中缺少合适的 ROM，机型 \"%hs\" 不可用。将切换到其他可用机型。"
 
-msgid "Video card ""%hs"" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "由于 roms/video 文件夹中缺少合适的 ROM，显卡 ""%hs"" 不可用。将切换到其他可用显卡。"
+msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "由于 roms/video 文件夹中缺少合适的 ROM，显卡 \"%hs\" 不可用。将切换到其他可用显卡。"
 
 msgid "Machine"
 msgstr "机型"
@@ -1126,34 +1123,34 @@ msgstr "2.88 MB"
 msgid "ZIP 100"
 msgstr "ZIP 100"
 
-msgid "3.5"" 128Mb M.O. (ISO 10090)"
+msgid "3.5\" 128Mb M.O. (ISO 10090)"
 msgstr "3.5 英寸 128Mb 磁光盘 (ISO 10090)"
 
-msgid "3.5"" 230Mb M.O. (ISO 13963)"
+msgid "3.5\" 230Mb M.O. (ISO 13963)"
 msgstr "3.5 英寸 230Mb 磁光盘 (ISO 13963)"
 
-msgid "3.5"" 540Mb M.O. (ISO 15498)"
+msgid "3.5\" 540Mb M.O. (ISO 15498)"
 msgstr "3.5 英寸 540Mb 磁光盘 (ISO 15498)"
 
-msgid "3.5"" 640Mb M.O. (ISO 15498)"
+msgid "3.5\" 640Mb M.O. (ISO 15498)"
 msgstr "3.5 英寸 640Mb 磁光盘 (ISO 15498)"
 
-msgid "3.5"" 1.3Gb M.O. (GigaMO)"
+msgid "3.5\" 1.3Gb M.O. (GigaMO)"
 msgstr "3.5 英寸 1.3Gb 磁光盘 (GigaMO)"
 
-msgid "3.5"" 2.3Gb M.O. (GigaMO 2)"
+msgid "3.5\" 2.3Gb M.O. (GigaMO 2)"
 msgstr "3.5 英寸 2.3Gb 磁光盘 (GigaMO 2)"
 
-msgid "5.25"" 600Mb M.O."
+msgid "5.25\" 600Mb M.O."
 msgstr "5.25 英寸 600Mb 磁光盘"
 
-msgid "5.25"" 650Mb M.O."
+msgid "5.25\" 650Mb M.O."
 msgstr "5.25 英寸 650Mb 磁光盘"
 
-msgid "5.25"" 1Gb M.O."
+msgid "5.25\" 1Gb M.O."
 msgstr "5.25 英寸 1Gb 磁光盘"
 
-msgid "5.25"" 1.3Gb M.O."
+msgid "5.25\" 1.3Gb M.O."
 msgstr "5.25 英寸 1.3Gb 磁光盘"
 
 msgid "Perfect RPM"

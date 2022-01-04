@@ -509,7 +509,7 @@ static void reload_strings()
     translatedstrings[IDS_2064] = QCoreApplication::translate("", "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.").toStdWString();
     translatedstrings[IDS_2128] = QCoreApplication::translate("", "Hardware not available").toStdWString();
     translatedstrings[IDS_2120] = QCoreApplication::translate("", "No ROMs found").toStdWString();
-    translatedstrings[IDS_2056] = QCoreApplication::translate("", "86Box could not find any usable ROM images.\n\nPlease <a href=https://github.com/86Box/roms/releases/latest>download</a> a ROM set and extract it into the roms directory.").replace("roms", "\"" ROMDIR "\"").toStdWString();
+    translatedstrings[IDS_2056] = QCoreApplication::translate("", "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory.").replace("roms", ROMDIR).toStdWString();
 
     auto flsynthstr = QCoreApplication::translate("", " is required for FluidSynth MIDI output.");
     if (flsynthstr.contains("libfluidsynth"))

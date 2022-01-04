@@ -68,7 +68,7 @@
    </widget>
    <widget class="QMenu" name="menuTools">
     <property name="title">
-     <string>Tools</string>
+     <string>&amp;Tools</string>
     </property>
     <addaction name="actionSettings"/>
     <addaction name="actionUpdate_status_bar_icons"/>
@@ -84,7 +84,7 @@
     </property>
     <widget class="QMenu" name="menuRenderer">
      <property name="title">
-      <string>Renderer</string>
+      <string>Re&amp;nderer</string>
      </property>
      <addaction name="actionSoftware_Renderer"/>
      <addaction name="actionHardware_Renderer_OpenGL"/>
@@ -93,7 +93,7 @@
     </widget>
     <widget class="QMenu" name="menuWindow_scale_factor">
      <property name="title">
-      <string>Window scale factor</string>
+      <string>&amp;Window scale factor</string>
      </property>
      <addaction name="action0_5x"/>
      <addaction name="action1x"/>
@@ -109,7 +109,7 @@
     </widget>
     <widget class="QMenu" name="menuFullscreen_stretch_mode">
      <property name="title">
-      <string>Fullscreen stretch mode</string>
+      <string>Fullscreen &amp;stretch mode</string>
      </property>
      <addaction name="actionFullScreen_stretch"/>
      <addaction name="actionFullScreen_43"/>
@@ -118,11 +118,11 @@
     </widget>
     <widget class="QMenu" name="menuEGA_S_VGA_settings">
      <property name="title">
-      <string>EGA/(S)VGA settings</string>
+      <string>E&amp;GA/(S)VGA settings</string>
      </property>
      <widget class="QMenu" name="menuVGA_screen_type">
       <property name="title">
-       <string>VGA screen type</string>
+       <string>VGA screen &amp;type</string>
       </property>
       <addaction name="actionRGB_Color"/>
       <addaction name="actionRGB_Grayscale"/>
@@ -132,7 +132,7 @@
      </widget>
      <widget class="QMenu" name="menuGrayscale_conversion_type">
       <property name="title">
-       <string>Grayscale conversion type</string>
+       <string>Grayscale &amp;conversion type</string>
       </property>
       <addaction name="actionBT601_NTSC_PAL"/>
       <addaction name="actionBT709_HDTV"/>
@@ -163,12 +163,12 @@
    </widget>
    <widget class="QMenu" name="menuMedia">
     <property name="title">
-     <string>Media</string>
+     <string>&amp;Media</string>
     </property>
    </widget>
    <widget class="QMenu" name="menuAbout">
     <property name="title">
-     <string>Help</string>
+     <string>&amp;Help</string>
     </property>
     <addaction name="actionDocumentation"/>
     <addaction name="actionAbout_86Box"/>
@@ -238,7 +238,7 @@
   </action>
   <action name="actionFullscreen">
    <property name="text">
-    <string>Fullscreen</string>
+    <string>&amp;Fullscreen</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+PgUp</string>
@@ -249,7 +249,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Software Renderer</string>
+    <string>Qt (Software)</string>
    </property>
   </action>
   <action name="actionHardware_Renderer_OpenGL">
@@ -257,7 +257,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Hardware Renderer (OpenGL)</string>
+    <string>Qt (OpenGL)</string>
    </property>
   </action>
   <action name="actionHardware_Renderer_OpenGL_ES">
@@ -265,7 +265,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Hardware Renderer (OpenGL ES)</string>
+    <string>Qt (OpenGL ES)</string>
    </property>
   </action>
   <action name="actionHide_status_bar">
@@ -273,7 +273,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Hide status bar</string>
+    <string>&amp;Hide status bar</string>
    </property>
   </action>
   <action name="actionResizable_window">
@@ -281,7 +281,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Resizable window</string>
+    <string>&amp;Resizeable window</string>
    </property>
   </action>
   <action name="actionRemember_size_and_position">
@@ -289,7 +289,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Remember size and position</string>
+    <string>R&amp;emember size &amp;&amp; position</string>
    </property>
   </action>
   <action name="actionSpecify_dimensions">
@@ -302,7 +302,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Force 4:3 display ratio</string>
+    <string>F&amp;orce 4:3 display ratio</string>
    </property>
   </action>
   <action name="actionHiDPI_scaling">
@@ -310,7 +310,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>HiDPI scaling</string>
+    <string>Hi&amp;DPI scaling</string>
    </property>
   </action>
   <action name="actionCGA_PCjr_Tandy_EGA_S_VGA_overscan">
@@ -318,7 +318,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>CGA/PCjr/Tandy/EGA/(S)VGA overscan</string>
+    <string>CGA/PCjr/Tandy/E&amp;GA/(S)VGA overscan</string>
    </property>
   </action>
   <action name="actionChange_contrast_for_monochrome_display">
@@ -326,7 +326,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Change contrast for monochrome display</string>
+    <string>Change contrast for &amp;monochrome display</string>
    </property>
   </action>
   <action name="action0_5x">
@@ -334,7 +334,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>0.5x</string>
+    <string>&amp;0.5x</string>
    </property>
   </action>
   <action name="action1x">
@@ -342,7 +342,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>1x</string>
+    <string>&amp;1x</string>
    </property>
   </action>
   <action name="action1_5x">
@@ -350,7 +350,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>1.5x</string>
+    <string>1.&amp;5x</string>
    </property>
   </action>
   <action name="action2x">
@@ -358,7 +358,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>2x</string>
+    <string>&amp;2x</string>
    </property>
   </action>
   <action name="actionNearest">
@@ -366,7 +366,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Nearest</string>
+    <string>&amp;Nearest</string>
    </property>
   </action>
   <action name="actionLinear">
@@ -374,7 +374,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Linear</string>
+    <string>&amp;Linear</string>
    </property>
   </action>
   <action name="actionFullScreen_stretch">
@@ -382,7 +382,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Full screen stretch</string>
+    <string>&amp;Full screen stretch</string>
    </property>
   </action>
   <action name="actionFullScreen_43">
@@ -390,7 +390,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>4:3</string>
+    <string>&amp;4:3</string>
    </property>
   </action>
   <action name="actionFullScreen_keepRatio">
@@ -398,7 +398,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Square pixels (Keep ratio)</string>
+    <string>&amp;Square pixels (Keep ratio)</string>
    </property>
   </action>
   <action name="actionFullScreen_int">
@@ -406,7 +406,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Integer scale</string>
+    <string>&amp;Integer scale</string>
    </property>
   </action>
   <action name="actionInverted_VGA_monitor">
@@ -414,7 +414,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Inverted VGA monitor</string>
+    <string>&amp;Inverted VGA monitor</string>
    </property>
   </action>
   <action name="actionRGB_Color">
@@ -422,7 +422,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>RGB Color</string>
+    <string>RGB &amp;Color</string>
    </property>
   </action>
   <action name="actionRGB_Grayscale">
@@ -430,7 +430,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>RGB Grayscale</string>
+    <string>&amp;RGB Grayscale</string>
    </property>
   </action>
   <action name="actionAmber_monitor">
@@ -438,7 +438,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Amber monitor</string>
+    <string>&amp;Amber monitor</string>
    </property>
   </action>
   <action name="actionGreen_monitor">
@@ -446,7 +446,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Green monitor</string>
+    <string>&amp;Green monitor</string>
    </property>
   </action>
   <action name="actionWhite_monitor">
@@ -454,7 +454,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>White monitor</string>
+    <string>&amp;White monitor</string>
    </property>
   </action>
   <action name="actionBT601_NTSC_PAL">
@@ -462,7 +462,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>BT601 (NTSC/PAL)</string>
+    <string>BT&amp;601 (NTSC/PAL)</string>
    </property>
   </action>
   <action name="actionBT709_HDTV">
@@ -470,7 +470,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>BT709 (HDTV)</string>
+    <string>BT&amp;709 (HDTV)</string>
    </property>
   </action>
   <action name="actionAverage">
@@ -478,12 +478,15 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Average</string>
+    <string>&amp;Average</string>
    </property>
   </action>
   <action name="actionAbout_Qt">
    <property name="text">
-    <string>About Qt...</string>
+    <string>About Qt</string>
+   </property>
+   <property name="visible">
+    <bool>false</bool>
    </property>
    <property name="menuRole">
     <enum>QAction::AboutQtRole</enum>
@@ -499,7 +502,7 @@
   </action>
   <action name="actionDocumentation">
    <property name="text">
-    <string>Documentation...</string>
+    <string>&amp;Documentation...</string>
    </property>
   </action>
   <action name="actionUpdate_status_bar_icons">
@@ -507,17 +510,17 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Update status bar icons</string>
+    <string>&amp;Update status bar icons</string>
    </property>
   </action>
   <action name="actionTake_screenshot">
    <property name="text">
-    <string>Take screenshot...</string>
+    <string>Take s&amp;creenshot...</string>
    </property>
   </action>
   <action name="actionSound_gain">
    <property name="text">
-    <string>Sound gain...</string>
+    <string>Sound &amp;gain...</string>
    </property>
   </action>
   <action name="actionOpenGL_3_0_Core">
@@ -525,12 +528,12 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>OpenGL 3.0 Core</string>
+    <string>Open&amp;GL (3.0 Core)</string>
    </property>
   </action>
   <action name="actionPreferences">
    <property name="text">
-    <string>Program preferences...</string>
+    <string>&amp;Preferences...</string>
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>

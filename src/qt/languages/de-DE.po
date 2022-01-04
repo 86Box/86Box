@@ -217,9 +217,6 @@ msgstr "&Dokumentation..."
 msgid "&About 86Box..."
 msgstr "&Über 86Box..."
 
-msgid ""
-msgstr ""
-
 msgid "&New image..."
 msgstr "&Neues Image..."
 
@@ -625,8 +622,8 @@ msgstr "ZIP %03i %i (%s): %ls"
 msgid "ZIP images (*.IM? *.im? *.ZDI *.zdi)"
 msgstr "ZIP-Images (*.IM? *.im? *.ZDI *.zdi)"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=""https://github.com/86Box/roms/releases/latest"">download</a> a ROM set and extract it into the ""roms"" directory."
-msgstr "86Box konnte keine nutzbaren ROM-Dateien finden.\n\nBitte besuchen Sie <a href=""https://github.com/86Box/roms/releases/latest"">download</a>, laden ein ROM-Set herunter und extrahieren dies in das ""roms""-Verzeichnis."
+msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "86Box konnte keine nutzbaren ROM-Dateien finden.\n\nBitte besuchen Sie <a href=\"https://github.com/86Box/roms/releases/latest\">download</a>, laden ein ROM-Set herunter und extrahieren dies in das \"roms\"-Verzeichnis."
 
 msgid "(empty)"
 msgstr "(leer)"
@@ -646,11 +643,11 @@ msgstr "Aus"
 msgid "All images (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basic sector images (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Surface images (*.86F *.86f)"
 msgstr "Alle Images (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basissektorimages (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Oberflächenimages (*.86F *.86f)"
 
-msgid "Machine ""%hs"" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Die Maschine ""%hs"" ist aufgrund von fehlenden ROMs im Verzeichnis roms/machines nicht verfügbar. Es wird auf eine verfügbare Maschine gewechselt."
+msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "Die Maschine \"%hs\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/machines nicht verfügbar. Es wird auf eine verfügbare Maschine gewechselt."
 
-msgid "Video card ""%hs"" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Die Videokarte ""%hs"" ist aufgrund von fehlenden ROMs im Verzeichnis roms/video nicht verfügbar. Es wird auf eine verfügbare Videokarte gewechselt."
+msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Die Videokarte \"%hs\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/video nicht verfügbar. Es wird auf eine verfügbare Videokarte gewechselt."
 
 msgid "Machine"
 msgstr "Maschine"
@@ -908,7 +905,7 @@ msgid "You are loading an unsupported configuration"
 msgstr "Sie laden gerade eine nicht unterstützte Konfiguration"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Das Filtern der CPU-Typen basierend auf der ausgewählten Maschine ist für diese Maschine deaktiviert.\n\nDies ermöglicht es, dass man eine sonst nicht mit der ausgewählten Maschine inkompatible CPU auswählen kann. Allerdings kann dies zu Inkompatiblilitäten mit dem BIOS der Maschine oder anderen Programmen kommen.\n\nDas Aktivieren dieser Einstellung wird nicht unterstützt und sämtliche Bugreports können als ""invalid"" geschlossen werden."
+msgstr "Das Filtern der CPU-Typen basierend auf der ausgewählten Maschine ist für diese Maschine deaktiviert.\n\nDies ermöglicht es, dass man eine sonst nicht mit der ausgewählten Maschine inkompatible CPU auswählen kann. Allerdings kann dies zu Inkompatiblilitäten mit dem BIOS der Maschine oder anderen Programmen kommen.\n\nDas Aktivieren dieser Einstellung wird nicht unterstützt und sämtliche Bugreports können als \"invalid\" geschlossen werden."
 
 msgid "Continue"
 msgstr "Fortfahren"
@@ -1126,34 +1123,34 @@ msgstr "2,88 MB"
 msgid "ZIP 100"
 msgstr "ZIP 100"
 
-msgid "3.5"" 128Mb M.O. (ISO 10090)"
+msgid "3.5\" 128Mb M.O. (ISO 10090)"
 msgstr "3,5-Zoll 128 MB M.O. (ISO 10090)"
 
-msgid "3.5"" 230Mb M.O. (ISO 13963)"
+msgid "3.5\" 230Mb M.O. (ISO 13963)"
 msgstr "3,5-Zoll 230 MB M.O. (ISO 13963)"
 
-msgid "3.5"" 540Mb M.O. (ISO 15498)"
+msgid "3.5\" 540Mb M.O. (ISO 15498)"
 msgstr "3,5-Zoll 540 MB M.O. (ISO 15498)"
 
-msgid "3.5"" 640Mb M.O. (ISO 15498)"
+msgid "3.5\" 640Mb M.O. (ISO 15498)"
 msgstr "3,5-Zoll 640 MB M.O. (ISO 15498)"
 
-msgid "3.5"" 1.3Gb M.O. (GigaMO)"
+msgid "3.5\" 1.3Gb M.O. (GigaMO)"
 msgstr "3,5-Zoll 1,3 GB M.O. (GigaMO)"
 
-msgid "3.5"" 2.3Gb M.O. (GigaMO 2)"
+msgid "3.5\" 2.3Gb M.O. (GigaMO 2)"
 msgstr "3,5-Zoll 2,3 GB M.O. (GigaMO 2)"
 
-msgid "5.25"" 600Mb M.O."
+msgid "5.25\" 600Mb M.O."
 msgstr "5,25-Zoll 600 MB M.O."
 
-msgid "5.25"" 650Mb M.O."
+msgid "5.25\" 650Mb M.O."
 msgstr "5,25-Zoll 650 MB M.O."
 
-msgid "5.25"" 1Gb M.O."
+msgid "5.25\" 1Gb M.O."
 msgstr "5,25-Zoll 1 GB M.O."
 
-msgid "5.25"" 1.3Gb M.O."
+msgid "5.25\" 1.3Gb M.O."
 msgstr "5,25-Zoll 1,3 GB M.O."
 
 msgid "Perfect RPM"

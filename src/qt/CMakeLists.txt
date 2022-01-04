@@ -183,6 +183,7 @@ foreach(po_file ${po_files})
                        COMMAND ${LCONVERT_EXECUTABLE} -i ${po_file} -o ${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm
                        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
     list(APPEND QM_FILES "${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm")
+    list(APPEND QM_FILES "${po_file}")
 endforeach()
 configure_file(qt_translations.qrc ${CMAKE_CURRENT_BINARY_DIR} COPYONLY)
 target_sources(ui PRIVATE ${QM_FILES} ${CMAKE_CURRENT_BINARY_DIR}/qt_translations.qrc)

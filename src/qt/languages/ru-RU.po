@@ -217,9 +217,6 @@ msgstr "&Документация..."
 msgid "&About 86Box..."
 msgstr "&О программе 86Box..."
 
-msgid ""
-msgstr ""
-
 msgid "&New image..."
 msgstr "&Новый образ..."
 
@@ -625,8 +622,8 @@ msgstr "ZIP %03i %i (%s): %ls"
 msgid "ZIP images (*.IM? *.im? *.ZDI *.zdi)"
 msgstr "Образы ZIP (*.IM? *.im? *.ZDI *.zdi)"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=""https://github.com/86Box/roms/releases/latest"">download</a> a ROM set and extract it into the ""roms"" directory."
-msgstr "86Box не смог найти ни одного подходящего для использования файла с ПЗУ.\n\nПожалуйста <a href=""https://github.com/86Box/roms/releases/latest"">скачайте</a> набор ПЗУ и извлеките его в каталог ""roms""."
+msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "86Box не смог найти ни одного подходящего для использования файла с ПЗУ.\n\nПожалуйста <a href=\"https://github.com/86Box/roms/releases/latest\">скачайте</a> набор ПЗУ и извлеките его в каталог \"roms\"."
 
 msgid "(empty)"
 msgstr "(пусто)"
@@ -646,11 +643,11 @@ msgstr "Выкл"
 msgid "All images (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basic sector images (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Surface images (*.86F *.86f)"
 msgstr "Все образы (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Простые посекторные образы (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Surface образы (*.86F *.86f)"
 
-msgid "Machine ""%hs"" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Системная плата ""%hs"" недоступна из-за отсутствия файла её ПЗУ в каталоге roms/machines. Переключение на доступную системную плату."
+msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "Системная плата \"%hs\" недоступна из-за отсутствия файла её ПЗУ в каталоге roms/machines. Переключение на доступную системную плату."
 
-msgid "Video card ""%hs"" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Видеокарта ""%hs"" недоступна из-за отсутствия файла её ПЗУ в каталоге roms/video. Переключение на доступную видеокарту."
+msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "Видеокарта \"%hs\" недоступна из-за отсутствия файла её ПЗУ в каталоге roms/video. Переключение на доступную видеокарту."
 
 msgid "Machine"
 msgstr "Компьютер"
@@ -1126,35 +1123,35 @@ msgstr "2.88 МБ"
 msgid "ZIP 100"
 msgstr "ZIP 100"
 
-msgid "3.5"" 128Mb M.O. (ISO 10090)"
-msgstr "3.5"" 128Мб M.O. (ISO 10090)"
+msgid "3.5\" 128Mb M.O. (ISO 10090)"
+msgstr "3.5\" 128Мб M.O. (ISO 10090)"
 
-msgid "3.5"" 230Mb M.O. (ISO 13963)"
-msgstr "3.5"" 230Мб M.O. (ISO 13963)"
+msgid "3.5\" 230Mb M.O. (ISO 13963)"
+msgstr "3.5\" 230Мб M.O. (ISO 13963)"
 
-msgid "3.5"" 540Mb M.O. (ISO 15498)"
-msgstr "3.5"" 540Мб M.O. (ISO 15498)"
+msgid "3.5\" 540Mb M.O. (ISO 15498)"
+msgstr "3.5\" 540Мб M.O. (ISO 15498)"
 
-msgid "3.5"" 640Mb M.O. (ISO 15498)"
-msgstr "3.5"" 640Мб M.O. (ISO 15498)"
+msgid "3.5\" 640Mb M.O. (ISO 15498)"
+msgstr "3.5\" 640Мб M.O. (ISO 15498)"
 
-msgid "3.5"" 1.3Gb M.O. (GigaMO)"
-msgstr "3.5"" 1.3Гб M.O. (GigaMO)"
+msgid "3.5\" 1.3Gb M.O. (GigaMO)"
+msgstr "3.5\" 1.3Гб M.O. (GigaMO)"
 
-msgid "3.5"" 2.3Gb M.O. (GigaMO 2)"
-msgstr "3.5"" 2.3Гб M.O. (GigaMO 2)"
+msgid "3.5\" 2.3Gb M.O. (GigaMO 2)"
+msgstr "3.5\" 2.3Гб M.O. (GigaMO 2)"
 
-msgid "5.25"" 600Mb M.O."
-msgstr "5.25"" 600Мб M.O."
+msgid "5.25\" 600Mb M.O."
+msgstr "5.25\" 600Мб M.O."
 
-msgid "5.25"" 650Mb M.O."
-msgstr "5.25"" 650Мб M.O."
+msgid "5.25\" 650Mb M.O."
+msgstr "5.25\" 650Мб M.O."
 
-msgid "5.25"" 1Gb M.O."
-msgstr "5.25"" 1Гб M.O."
+msgid "5.25\" 1Gb M.O."
+msgstr "5.25\" 1Гб M.O."
 
-msgid "5.25"" 1.3Gb M.O."
-msgstr "5.25"" 1.3Гб M.O."
+msgid "5.25\" 1.3Gb M.O."
+msgstr "5.25\" 1.3Гб M.O."
 
 msgid "Perfect RPM"
 msgstr "Точный RPM"

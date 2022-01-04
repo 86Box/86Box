@@ -217,9 +217,6 @@ msgstr "&Documentación..."
 msgid "&About 86Box..."
 msgstr "&Acerca de 86Box..."
 
-msgid ""
-msgstr ""
-
 msgid "&New image..."
 msgstr "&Nueva imagen..."
 
@@ -625,8 +622,8 @@ msgstr "ZIP %03i %i (%s): %ls"
 msgid "ZIP images (*.IM? *.im? *.ZDI *.zdi)"
 msgstr "Imagenes ZIP (*.IM? *.im? *.ZDI *.zdi)"
 
-msgid "86Box could not find any usable ROM images.\n\nPlease <a href=""https://github.com/86Box/roms/releases/latest"">download</a> a ROM set and extract it into the ""roms"" directory."
-msgstr "86Box no pudo encontrar ninguna imagen ROM usable.\n\nPor favor <a href=""https://github.com/86Box/roms/releases/latest"">descarga</a> un grupo de imágenes y extráelas en el directorio ""roms""."
+msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
+msgstr "86Box no pudo encontrar ninguna imagen ROM usable.\n\nPor favor <a href=\"https://github.com/86Box/roms/releases/latest\">descarga</a> un grupo de imágenes y extráelas en el directorio \"roms\"."
 
 msgid "(empty)"
 msgstr "(vacío)"
@@ -646,11 +643,11 @@ msgstr "Off"
 msgid "All images (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basic sector images (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Surface images (*.86F *.86f)"
 msgstr "Todas las imagenes (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basic sector images (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Surface images (*.86F *.86f)"
 
-msgid "Machine ""%hs"" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "La máquina ""%hs"" no está disponible debido a ROMs faltantes en el directorio roms/machines. Cambiando a una máquina disponible."
+msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
+msgstr "La máquina \"%hs\" no está disponible debido a ROMs faltantes en el directorio roms/machines. Cambiando a una máquina disponible."
 
-msgid "Video card ""%hs"" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "La tarjeta de vídeo ""%hs"" no está disponible debido a ROMs faltantes en el directorio roms/machines. Cambiando a una tarjeta de vídeo disponible."
+msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
+msgstr "La tarjeta de vídeo \"%hs\" no está disponible debido a ROMs faltantes en el directorio roms/machines. Cambiando a una tarjeta de vídeo disponible."
 
 msgid "Machine"
 msgstr "Máquina"
@@ -1126,35 +1123,35 @@ msgstr "2.88 MB"
 msgid "ZIP 100"
 msgstr "ZIP 100"
 
-msgid "3.5"" 128Mb M.O. (ISO 10090)"
-msgstr "3.5"" 128Mb M.O. (ISO 10090)"
+msgid "3.5\" 128Mb M.O. (ISO 10090)"
+msgstr "3.5\" 128Mb M.O. (ISO 10090)"
 
-msgid "3.5"" 230Mb M.O. (ISO 13963)"
-msgstr "3.5"" 230Mb M.O. (ISO 13963)"
+msgid "3.5\" 230Mb M.O. (ISO 13963)"
+msgstr "3.5\" 230Mb M.O. (ISO 13963)"
 
-msgid "3.5"" 540Mb M.O. (ISO 15498)"
-msgstr "3.5"" 540Mb M.O. (ISO 15498)"
+msgid "3.5\" 540Mb M.O. (ISO 15498)"
+msgstr "3.5\" 540Mb M.O. (ISO 15498)"
 
-msgid "3.5"" 640Mb M.O. (ISO 15498)"
-msgstr "3.5"" 640Mb M.O. (ISO 15498)"
+msgid "3.5\" 640Mb M.O. (ISO 15498)"
+msgstr "3.5\" 640Mb M.O. (ISO 15498)"
 
-msgid "3.5"" 1.3Gb M.O. (GigaMO)"
-msgstr "3.5"" 1.3Gb M.O. (GigaMO)"
+msgid "3.5\" 1.3Gb M.O. (GigaMO)"
+msgstr "3.5\" 1.3Gb M.O. (GigaMO)"
 
-msgid "3.5"" 2.3Gb M.O. (GigaMO 2)"
-msgstr "3.5"" 2.3Gb M.O. (GigaMO 2)"
+msgid "3.5\" 2.3Gb M.O. (GigaMO 2)"
+msgstr "3.5\" 2.3Gb M.O. (GigaMO 2)"
 
-msgid "5.25"" 600Mb M.O."
-msgstr "5.25"" 600Mb M.O."
+msgid "5.25\" 600Mb M.O."
+msgstr "5.25\" 600Mb M.O."
 
-msgid "5.25"" 650Mb M.O."
-msgstr "5.25"" 650Mb M.O."
+msgid "5.25\" 650Mb M.O."
+msgstr "5.25\" 650Mb M.O."
 
-msgid "5.25"" 1Gb M.O."
-msgstr "5.25"" 1Gb M.O."
+msgid "5.25\" 1Gb M.O."
+msgstr "5.25\" 1Gb M.O."
 
-msgid "5.25"" 1.3Gb M.O."
-msgstr "5.25"" 1.3Gb M.O."
+msgid "5.25\" 1.3Gb M.O."
+msgstr "5.25\" 1.3Gb M.O."
 
 msgid "Perfect RPM"
 msgstr "RPM perfectas"
