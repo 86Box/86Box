@@ -522,9 +522,14 @@ END
 #undef STR_PCAP
 #undef STR_NET
 
+#undef STR_COM1
+#undef STR_COM2
+#undef STR_COM3
+#undef STR_COM4
 #undef STR_LPT1
 #undef STR_LPT2
 #undef STR_LPT3
+#undef STR_LPT4
 #undef STR_SERIAL1
 #undef STR_SERIAL2
 #undef STR_SERIAL3
@@ -532,6 +537,7 @@ END
 #undef STR_PARALLEL1
 #undef STR_PARALLEL2
 #undef STR_PARALLEL3
+#undef STR_PARALLEL4
 
 #undef STR_HDC
 #undef STR_FDC

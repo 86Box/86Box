@@ -328,9 +328,14 @@ END
 #define STR_PCAP		"Uređaj PCap:"
 #define STR_NET			"Mrežna kartica:"
 
+#define STR_COM1		"Uređaj COM1:"
+#define STR_COM2		"Uređaj COM2:"
+#define STR_COM3		"Uređaj COM3:"
+#define STR_COM4		"Uređaj COM4:"
 #define STR_LPT1		"Uređaj LPT1:"
 #define STR_LPT2		"Uređaj LPT2:"
 #define STR_LPT3		"Uređaj LPT3:"
+#define STR_LPT4		"Uređaj LPT4:"
 #define STR_SERIAL1		"Serijska vrata 1"
 #define STR_SERIAL2		"Serijska vrata 2"
 #define STR_SERIAL3		"Serijska vrata 3"
@@ -338,6 +343,7 @@ END
 #define STR_PARALLEL1		"Paralelna vrata 1"
 #define STR_PARALLEL2		"Paralelna vrata 2"
 #define STR_PARALLEL3		"Paralelna vrata 3"
+#define STR_PARALLEL4		"Paralelna vrata 4"
 
 #define STR_HDC			"Kontroler tvrdog diska:"
 #define STR_FDC			"Kontroler diskete:"

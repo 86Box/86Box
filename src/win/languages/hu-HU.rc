@@ -331,9 +331,14 @@ END
 #define STR_PCAP		"PCap eszköz:"
 #define STR_NET			"Hálózati kártya:"
 
+#define STR_COM1		"COM1 eszköz:"
+#define STR_COM2		"COM2 eszköz:"
+#define STR_COM3		"COM3 eszköz:"
+#define STR_COM4		"COM4 eszköz:"
 #define STR_LPT1		"LPT1 eszköz:"
 #define STR_LPT2		"LPT2 eszköz:"
 #define STR_LPT3		"LPT3 eszköz:"
+#define STR_LPT4		"LPT4 eszköz:"
 #define STR_SERIAL1		"Soros port 1"
 #define STR_SERIAL2		"Soros port 2"
 #define STR_SERIAL3		"Soros port 3"
@@ -341,6 +346,7 @@ END
 #define STR_PARALLEL1		"Párhuzamos port 1"
 #define STR_PARALLEL2		"Párhuzamos port 2"
 #define STR_PARALLEL3		"Párhuzamos port 3"
+#define STR_PARALLEL4		"Párhuzamos port 4"
 
 #define STR_HDC			"Merevl.-vezérlő:"
 #define STR_FDC			"Floppy-vezérlő:"
