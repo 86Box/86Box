@@ -119,10 +119,16 @@ int main(int argc, char* argv[]) {
     while (it.hasNext()) {
         qDebug() << it.next() << "\n";
     }
-
+    QTranslator qtTranslator;
+    qtTranslator.load(QLocale::system(), QStringLiteral("qt_"), QString(), QLibraryInfo::location(QLibraryInfo::TranslationsPath));
+    if (app.installTranslator(&qtTranslator))
+    {
+        qDebug() << "Qt translations loaded." << "\n";
+    }
     CustomTranslator translator;
     qDebug() << QLocale::system().name() << "\n";
-    if (translator.load(QLatin1String("86box_"), QLatin1String(":/"), QString(), "de_DE.qm"))
+    auto localetofilename = QLocale::system().name().replace('_', '-');
+    if (translator.load(QLatin1String("86box_"), QLatin1String(":/"), QString(), localetofilename + ".qm"))
     {
         qDebug() << "Translations loaded.\n";
         QCoreApplication::installTranslator(&translator);

@@ -1,20 +1,20 @@
 <RCC>
     <qresource prefix="/">
-	<file>86box_de_DE.qm</file>
-	<file>86box_en_GB.qm</file>
-	<file>86box_es_ES.qm</file>
-	<file>86box_fi_FI.qm</file>
-	<file>86box_fr_FR.qm</file>
-	<file>86box_hr_HR.qm</file>
-	<file>86box_hu_HU.qm</file>
-	<file>86box_it_IT.qm</file>
-	<file>86box_ja_JP.qm</file>
-	<file>86box_ko_KR.qm</file>
-	<file>86box_pt_BR.qm</file>
-	<file>86box_pt_PT.qm</file>
-	<file>86box_ru_RU.qm</file>
-	<file>86box_sl_SI.qm</file>
-	<file>86box_tr_TR.qm</file>
-	<file>86box_zh_CN.qm</file>
+	<file>86box_de-DE.qm</file>
+	<file>86box_en-GB.qm</file>
+	<file>86box_es-ES.qm</file>
+	<file>86box_fi-FI.qm</file>
+	<file>86box_fr-FR.qm</file>
+	<file>86box_hr-HR.qm</file>
+	<file>86box_hu-HU.qm</file>
+	<file>86box_it-IT.qm</file>
+	<file>86box_ja-JP.qm</file>
+	<file>86box_ko-KR.qm</file>
+	<file>86box_pt-BR.qm</file>
+	<file>86box_pt-PT.qm</file>
+	<file>86box_ru-RU.qm</file>
+	<file>86box_sl-SI.qm</file>
+	<file>86box_tr-TR.qm</file>
+	<file>86box_zh-CN.qm</file>
     </qresource>
 </RCC>

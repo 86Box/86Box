@@ -2,16 +2,16 @@ msgid "Translated by"
 msgstr "Unknown"
 
 msgid "&Action"
-msgstr "&Akce"
+msgstr "&Azione"
 
 msgid "&Keyboard requires capture"
-msgstr "&Klávesnice vyžaduje záběr"
+msgstr "&Tastiera richiede la cattura"
 
 msgid "&Right CTRL is left ALT"
-msgstr "&Pravý Ctrl je levý Alt"
+msgstr "&CTRL destro è ALT sinistro"
 
 msgid "&Hard Reset..."
-msgstr "&Resetovat"
+msgstr "&Riavvia..."
 
 msgid "&Ctrl+Alt+Del\tCtrl+F12"
 msgstr "&Ctrl+Alt+Del\tCtrl+F12"
@@ -20,34 +20,34 @@ msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
 
 msgid "&Pause"
-msgstr "P&ozastavit"
+msgstr "&Pausa"
 
 msgid "E&xit..."
-msgstr "&Ukončit"
+msgstr "E&sci..."
 
 msgid "&View"
-msgstr "&Zobrazení"
+msgstr "&Visualizza"
 
 msgid "&Hide status bar"
-msgstr "&Schovat stavový řádek"
+msgstr "&Nascondi barra di stato"
 
 msgid "&Resizeable window"
-msgstr "&Měnitelná velikost okna"
+msgstr "&Finestra ridimensionabile"
 
 msgid "R&emember size && position"
-msgstr "&Pamatovat velikost a pozici"
+msgstr "R&icorda dimensioni e posizione"
 
 msgid "Re&nderer"
-msgstr "&Renderer"
+msgstr "Re&nderer"
 
-msgid "&Qt (Software)"
-msgstr "&Qt (Software)"
+msgid "&SDL (Software)"
+msgstr "&SDL (Software)"
 
-msgid "Qt (&Hardware)"
-msgstr "Qt (&Hardware)"
+msgid "SDL (&Hardware)"
+msgstr "SDL (&Hardware)"
 
-msgid "Qt (&OpenGL)"
-msgstr "Qt (&OpenGL)"
+msgid "SDL (&OpenGL)"
+msgstr "SDL (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0 Core)"
@@ -56,13 +56,13 @@ msgid "&VNC"
 msgstr "&VNC"
 
 msgid "Specify dimensions..."
-msgstr "&Zadat velikost..."
+msgstr "Specifica dimensioni..."
 
 msgid "F&orce 4:3 display ratio"
-msgstr "&Dodržovat poměr stran 4:3"
+msgstr "F&orza display 4:3"
 
 msgid "&Window scale factor"
-msgstr "&Násobek zvětšení okna"
+msgstr "&Fattore scalare della finestra"
 
 msgid "&0.5x"
 msgstr "&0.5x"
@@ -77,61 +77,61 @@ msgid "&2x"
 msgstr "&2x"
 
 msgid "Filter method"
-msgstr "Metoda &filtrování"
+msgstr "Metodo filtro"
 
 msgid "&Nearest"
-msgstr "&Nejbližší"
+msgstr "&Dal più vicino"
 
 msgid "&Linear"
-msgstr "&Lineární"
+msgstr "&Lineare"
 
 msgid "Hi&DPI scaling"
-msgstr "Š&kálování HiDPI"
+msgstr "Scala Hi&DPI"
 
 msgid "&Fullscreen\tCtrl+Alt+PageUP"
-msgstr "&Celá obrazovka\tCtrl+Alt+PageUP"
+msgstr "&Schermo intero\tCtrl+Alt+PageUP"
 
 msgid "Fullscreen &stretch mode"
-msgstr "Režím roztá&hnutí při celé obrazovce"
+msgstr "Modalità adattamento &schermo intero"
 
 msgid "&Full screen stretch"
-msgstr "&Roztáhnout"
+msgstr "&Adatta a schermo intero"
 
 msgid "&4:3"
 msgstr "&4:3"
 
 msgid "&Square pixels (Keep ratio)"
-msgstr "&Zachovat poměr stran"
+msgstr "&Pixel quadrati (mantiene l'aspetto)"
 
 msgid "&Integer scale"
-msgstr "&Celočíselné škálování"
+msgstr "&Scala intera"
 
 msgid "E&GA/(S)VGA settings"
-msgstr "Nastavení pro E&GA a (S)VGA"
+msgstr "Impostazioni E&GA/(S)VGA"
 
 msgid "&Inverted VGA monitor"
-msgstr "&Převrátit barvy"
+msgstr "&Invertire monitor VGA"
 
 msgid "VGA screen &type"
-msgstr "&Typ VGA monitoru"
+msgstr "Schermi VGA &"
 
 msgid "RGB &Color"
-msgstr "RGB &barevný"
+msgstr "RGB &Color"
 
 msgid "&RGB Grayscale"
-msgstr "&Odstíny šedi"
+msgstr "&RGB Monocroma"
 
 msgid "&Amber monitor"
-msgstr "&Jantarová obrazovka"
+msgstr "&Monitor ambra"
 
 msgid "&Green monitor"
-msgstr "&Zelená obrazovka"
+msgstr "&Monitor verde"
 
 msgid "&White monitor"
-msgstr "&Bílá obrazovka"
+msgstr "&Monitor bianco"
 
 msgid "Grayscale &conversion type"
-msgstr "Převod na &odstíny šedi"
+msgstr "Conversione &scala grigia"
 
 msgid "BT&601 (NTSC/PAL)"
 msgstr "BT&601 (NTSC/PAL)"
@@ -140,265 +140,265 @@ msgid "BT&709 (HDTV)"
 msgstr "BT&709 (HDTV)"
 
 msgid "&Average"
-msgstr "&Průměr"
+msgstr "&AMedia"
 
 msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "Přesah obrazu CGA/PCjr/Tandy/E&GA/(S)VGA"
+msgstr "Sovrascansione CGA/PCjr/Tandy/E&GA/(S)VGA"
 
 msgid "Change contrast for &monochrome display"
-msgstr "&Upravit kontrast černobílé obrazovky"
+msgstr "Cambia il contrasto per &display monocromatici"
 
 msgid "&Media"
-msgstr "&Média"
+msgstr "&Dispositivi"
 
 msgid "&Tools"
-msgstr "&Nástroje"
+msgstr "&Strumenti"
 
 msgid "&Settings..."
-msgstr "&Nastavení..."
+msgstr "&Impostazioni..."
 
 msgid "&Update status bar icons"
-msgstr "&Aktualizovat ikony stavového řádku"
+msgstr "&Aggiorna icone della barra di stato"
 
 msgid "Take s&creenshot\tCtrl+F11"
-msgstr "Pořídit &screenshot\tCtrl+F11"
+msgstr "Cattura schermata\tCtrl+F11"
 
 msgid "&Preferences..."
-msgstr "&Předvolby..."
+msgstr "&Preferenze..."
 
 msgid "Enable &Discord integration"
-msgstr "Povolit integraci s &Discordem"
+msgstr "Abilita &integrazione Discord"
 
 msgid "Sound &gain..."
-msgstr "&Zesílení zvuku"
+msgstr "Guadagno &suono..."
 
 msgid "Begin trace\tCtrl+T"
-msgstr "Začít trace\tCtrl+T"
+msgstr "Inizia traccia\tCtrl+T"
 
 msgid "End trace\tCtrl+T"
-msgstr "Zastavit trace\tCtrl+T"
+msgstr "Ferma traccia\tCtrl+T"
 
 msgid "&Logging"
-msgstr "&Záznamy"
+msgstr "&Registra"
 
 msgid "Enable BusLogic logs\tCtrl+F4"
-msgstr "Povolit záznamy BusLogic\tCtrl+F4"
+msgstr "Attiva registrazione di BusLogic\tCtrl+F4"
 
 msgid "Enable CD-ROM logs\tCtrl+F5"
-msgstr "Povolit záznamy CD-ROM\tCtrl+F5"
+msgstr "Attiva registrazione del CD-ROM\tCtrl+F5"
 
 msgid "Enable floppy (86F) logs\tCtrl+F6"
-msgstr "Povolit záznamy diskety (86F)\tCtrl+F6"
+msgstr "Attiva registrazione del floppy (86F)\tCtrl+F6"
 
 msgid "Enable floppy controller logs\tCtrl+F7"
-msgstr "Povolit záznamy disketového řadiče\tCtrl+F7"
+msgstr "Attiva registrazione del controller floppy\tCtrl+F7"
 
 msgid "Enable IDE logs\tCtrl+F8"
-msgstr "Povolit záznamy IDE\tCtrl+F8"
+msgstr "Attiva registrazione di IDE\tCtrl+F8"
 
 msgid "Enable Serial Port logs\tCtrl+F3"
-msgstr "Povolit záznamy sériového portu\tCtrl+F3"
+msgstr "Attiva registrazione della porta seriale\tCtrl+F3"
 
 msgid "Enable Network logs\tCtrl+F9"
-msgstr "Povolit záznamy sítě\tCtrl+F9"
+msgstr "Attiva registrazione della rete\tCtrl+F9"
 
 msgid "&Log breakpoint\tCtrl+F10"
-msgstr "Zaznamenat do &logu zarážku\tCtrl+F10"
+msgstr "&Punto di interruzione del registro\tCtrl+F10"
 
 msgid "Dump &video RAM\tCtrl+F1"
-msgstr "Zaznamenat obsah &video RAM\tCtrl+F1"
+msgstr "Scarica &la RAM video\tCtrl+F1"
 
 msgid "&Help"
-msgstr "Ná&pověda"
+msgstr "&?"
 
 msgid "&Documentation..."
-msgstr "&Dokumentace"
+msgstr "&Documentazione..."
 
 msgid "&About 86Box..."
-msgstr "&O programu 86Box"
+msgstr "&Informazioni su 86Box..."
 
 msgid ""
 msgstr ""
 
 msgid "&New image..."
-msgstr "&Nový obraz..."
+msgstr "&Nuova immagine..."
 
 msgid "&Existing image..."
-msgstr "&Existující obraz..."
+msgstr "&Immagine esistente..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "Existující obraz (&ochrana proti zápisu)..."
+msgstr "Immagine esistente (&protezione contro scrittura)..."
 
 msgid "&Record"
-msgstr "&Nahrávat"
+msgstr "&Registra"
 
 msgid "&Play"
-msgstr "&Přehrát"
+msgstr "R&iproduci"
 
 msgid "&Rewind to the beginning"
-msgstr "Přetočit na &začátek"
+msgstr "Ri&avvolgi all'inizio"
 
 msgid "&Fast forward to the end"
-msgstr "Přetočit na &konec"
+msgstr "A&vanti veloce alla fine"
 
 msgid "E&ject"
-msgstr "&Vyjmout"
+msgstr "&Espelli"
 
 msgid "&Image..."
-msgstr "&Obraz..."
+msgstr "&Immagine..."
 
 msgid "E&xport to 86F..."
-msgstr "E&xportovat do 86F..."
+msgstr "E&sporta in 86F..."
 
 msgid "&Mute"
-msgstr "&Ztišit"
+msgstr "&Muto"
 
 msgid "E&mpty"
-msgstr "&Vyjmout"
+msgstr "&Espelli"
 
 msgid "&Reload previous image"
-msgstr "&Načíst znova předchozí obraz"
+msgstr "&Ricarica l'immagine precedente"
 
 msgid "&Image"
-msgstr "&Obraz..."
+msgstr "&Immagine"
 
 msgid "Target &framerate"
-msgstr "&Cílová snímková frekvence"
+msgstr "Imposta obiettivo &fotogrammi"
 
 msgid "&Sync with video"
-msgstr "&Synchronizovat s obrazem"
+msgstr "&Sincronizza col video"
 
 msgid "&25 fps"
-msgstr "&25 fps"
+msgstr "&25 FPS"
 
 msgid "&30 fps"
-msgstr "&30 fps"
+msgstr "&30 FPS"
 
 msgid "&50 fps"
-msgstr "&50 fps"
+msgstr "&50 FPS"
 
 msgid "&60 fps"
-msgstr "&60 fps"
+msgstr "&60 FPS"
 
 msgid "&75 fps"
-msgstr "&75 fps"
+msgstr "&75 FPS"
 
 msgid "&VSync"
 msgstr "&VSync"
 
 msgid "&Select shader..."
-msgstr "&Zvolit shader..."
+msgstr "&Seleziona shader..."
 
 msgid "&Remove shader"
-msgstr "&Odebrat shader"
+msgstr "&Rimuovi shader"
 
 msgid "Preferences"
-msgstr "Předvolby"
+msgstr "Preferenze"
 
 msgid "Sound Gain"
-msgstr "Zesílení zvuku"
+msgstr "Guadagno del suono"
 
 msgid "New Image"
-msgstr "Nový obraz"
+msgstr "Nuova immagine"
 
 msgid "Settings"
-msgstr "Nastavení"
+msgstr "Impostazioni"
 
 msgid "Specify Main Window Dimensions"
-msgstr "Zadat rozměry hlavního okna"
+msgstr "Specifica dimensioni della finestra principale"
 
 msgid "OK"
 msgstr "OK"
 
 msgid "Cancel"
-msgstr "Storno"
+msgstr "Annulla"
 
 msgid "Save these settings as &global defaults"
-msgstr "Uložit toto nastavení jako &globální výchozí stav"
+msgstr "Salva queste impostazioni come &predefinite globali"
 
 msgid "&Default"
-msgstr "&Výchozí"
+msgstr "&Predefinito"
 
 msgid "Language:"
-msgstr "Jazyk:"
+msgstr "Lingua:"
 
 msgid "Icon set:"
-msgstr "Sada ikon:"
+msgstr "Pacchetto di icone:"
 
 msgid "Gain"
-msgstr "Zesílení"
+msgstr "Guadagno"
 
 msgid "File name:"
-msgstr "Název souboru:"
+msgstr "Nome file:"
 
 msgid "Disk size:"
-msgstr "Velikost disku:"
+msgstr "Dimensioni disco:"
 
 msgid "RPM mode:"
-msgstr "Režím ot./m:"
+msgstr "Modalità RPM:"
 
 msgid "Progress:"
-msgstr "Průběh:"
+msgstr "Progresso:"
 
 msgid "Width:"
-msgstr "Šířka:"
+msgstr "Larghezza:"
 
 msgid "Height:"
-msgstr "Výška:"
+msgstr "Altezza:"
 
 msgid "Lock to this size"
-msgstr "Uzamknout na tyto rozměry"
+msgstr "Blocca in queste dimensioni"
 
 msgid "Machine type:"
-msgstr "Typ počítače:"
+msgstr "Tipo di piastra madre:"
 
 msgid "Machine:"
-msgstr "Počítač:"
+msgstr "Piastra madre:"
 
 msgid "Configure"
-msgstr "Nastavit"
+msgstr "Configura"
 
 msgid "CPU type:"
-msgstr "Procesor:"
+msgstr "Tipo del CPU:"
 
 msgid "Speed:"
-msgstr "Rychlost:"
+msgstr "Veloc.:"
 
 msgid "FPU:"
-msgstr "Koprocesor:"
+msgstr "FPU:"
 
 msgid "Wait states:"
-msgstr "Čekací stavy:"
+msgstr "Stati di attesa:"
 
 msgid "MB"
 msgstr "MB"
 
 msgid "Memory:"
-msgstr "Pamět:"
+msgstr "Memoria:"
 
 msgid "Time synchronization"
-msgstr "Synchronizace času"
+msgstr "Sincronizzazione dell'ora"
 
 msgid "Disabled"
-msgstr "Vypnuta"
+msgstr "Disabilitata"
 
 msgid "Enabled (local time)"
-msgstr "Zapnuta (místní čas)"
+msgstr "Abilitata (ora locale)"
 
 msgid "Enabled (UTC)"
-msgstr "Zapnuta (UTC)"
+msgstr "Abilitata (UTC)"
 
 msgid "Dynamic Recompiler"
-msgstr "Dynamický překladač"
+msgstr "Ricompilatore dinamico"
 
 msgid "Video:"
-msgstr "Grafika:"
+msgstr "Video:"
 
 msgid "Voodoo Graphics"
-msgstr "Použít grafický akcelerátor Voodoo"
+msgstr "Grafica Voodoo"
 
 msgid "Mouse:"
-msgstr "Myš:"
+msgstr "Mouse:"
 
 msgid "Joystick:"
 msgstr "Joystick:"
@@ -416,16 +416,16 @@ msgid "Joystick 4..."
 msgstr "Joystick 4..."
 
 msgid "Sound card:"
-msgstr "Zvuková karta:"
+msgstr "Scheda audio:"
 
 msgid "MIDI Out Device:"
-msgstr "MIDI výstup:"
+msgstr "Uscita MIDI:"
 
 msgid "MIDI In Device:"
-msgstr "MIDI vstup:"
+msgstr "Entrata MIDI:"
 
 msgid "Standalone MPU-401"
-msgstr "Samostatný MPU-401"
+msgstr "MPU-401 autonomo"
 
 msgid "Innovation SSI-2001"
 msgstr "Innovation SSI-2001"
@@ -437,166 +437,166 @@ msgid "Gravis Ultrasound"
 msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
-msgstr "Použít zvuk FLOAT32"
+msgstr "Usa suono FLOAT32"
 
 msgid "Network type:"
-msgstr "Druh sítě:"
+msgstr "Tipo di rete:"
 
 msgid "PCap device:"
-msgstr "PCap zařízení:"
+msgstr "Dispositivo PCap:"
 
 msgid "Network adapter:"
-msgstr "Síťový adaptér:"
+msgstr "Scheda di rete:"
 
 msgid "LPT1 Device:"
-msgstr "Zařízení na LPT1"
+msgstr "Dispositivo LPT1:"
 
 msgid "LPT2 Device:"
-msgstr "Zařízení na LPT2"
+msgstr "Dispositivo LPT2:"
 
 msgid "LPT3 Device:"
-msgstr "Zařízení na LPT3"
+msgstr "Dispositivo LPT3:"
 
 msgid "Serial port 1"
-msgstr "Povolit port COM1"
+msgstr "Porta seriale 1"
 
 msgid "Serial port 2"
-msgstr "Povolit port COM2"
+msgstr "Porta seriale 2"
 
 msgid "Serial port 3"
-msgstr "Povolit port COM3"
+msgstr "Porta seriale 3"
 
 msgid "Serial port 4"
-msgstr "Povolit port COM4"
+msgstr "Porta seriale 4"
 
 msgid "Parallel port 1"
-msgstr "Povolit port LPT1"
+msgstr "Porta parallela 1"
 
 msgid "Parallel port 2"
-msgstr "Povolit port LPT2"
+msgstr "Porta parallela 2"
 
 msgid "Parallel port 3"
-msgstr "Povolit port LPT3"
+msgstr "Porta parallela 3"
 
 msgid "HD Controller:"
-msgstr "Řadič disku:"
+msgstr "Controller HD:"
 
 msgid "FD Controller:"
-msgstr "Disketový řadič:"
+msgstr "Controller FD:"
 
 msgid "Tertiary IDE Controller"
-msgstr "Třetí řadič IDE"
+msgstr "Controller IDE terziario"
 
 msgid "Quaternary IDE Controller"
-msgstr "Čtvrtý řadič IDE"
+msgstr "Controller IDE quaternario"
 
 msgid "SCSI"
 msgstr "SCSI"
 
 msgid "Controller 1:"
-msgstr "Řadič 1:"
+msgstr "Controller 1:"
 
 msgid "Controller 2:"
-msgstr "Řadič 2:"
+msgstr "Controller 2:"
 
 msgid "Controller 3:"
-msgstr "Řadič 3:"
+msgstr "Controller 3:"
 
 msgid "Controller 4:"
-msgstr "Řadič 4:"
+msgstr "Controller 4:"
 
 msgid "Cassette"
-msgstr "Kazeta"
+msgstr "Cassetta"
 
 msgid "Hard disks:"
-msgstr "Pevné disky:"
+msgstr "Hard disk:"
 
 msgid "&New..."
-msgstr "&Nový..."
+msgstr "&Nuovo..."
 
 msgid "&Existing..."
-msgstr "&Existující..."
+msgstr "&Esistente..."
 
 msgid "&Remove"
-msgstr "&Odebrat"
+msgstr "&Rimouvi"
 
 msgid "Bus:"
-msgstr "Sběrnice:"
+msgstr "Bus:"
 
 msgid "Channel:"
-msgstr "Kanál:"
+msgstr "Canale:"
 
 msgid "ID:"
 msgstr "ID:"
 
 msgid "&Specify..."
-msgstr "&Zadat..."
+msgstr "&Specifica..."
 
 msgid "Sectors:"
-msgstr "Sektory:"
+msgstr "Settori:"
 
 msgid "Heads:"
-msgstr "Hlavy:"
+msgstr "Testine:"
 
 msgid "Cylinders:"
-msgstr "Cylindry:"
+msgstr "Cilindri:"
 
 msgid "Size (MB):"
-msgstr "Velikost (MB):"
+msgstr "Dimensioni (MB):"
 
 msgid "Type:"
-msgstr "Typ:"
+msgstr "Tipo:"
 
 msgid "Image Format:"
-msgstr "Formát obrazu:"
+msgstr "Formato immagine:"
 
 msgid "Block Size:"
-msgstr "Velikost bloků:"
+msgstr "Dimensioni blocco:"
 
 msgid "Floppy drives:"
-msgstr "Disketové mechaniky:"
+msgstr "Unità floppy:"
 
 msgid "Turbo timings"
-msgstr "Turbo časování"
+msgstr "Turbo"
 
 msgid "Check BPB"
-msgstr "Kontrola BPB"
+msgstr "Verifica BPB"
 
 msgid "CD-ROM drives:"
-msgstr "Mechaniky CD-ROM:"
+msgstr "Unità CD-ROM:"
 
 msgid "MO drives:"
-msgstr "Magnetooptické mechaniky:"
+msgstr "Unità magneto-ottiche:"
 
 msgid "ZIP drives:"
-msgstr "Mechaniky ZIP:"
+msgstr "Unità ZIP:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
 
 msgid "ISA RTC:"
-msgstr "ISA hodiny:"
+msgstr "RTC ISA:"
 
 msgid "ISA Memory Expansion"
-msgstr "ISA rozšíření paměti"
+msgstr "Espansione memoria ISA"
 
 msgid "Card 1:"
-msgstr "Karta 1:"
+msgstr "Scheda 1:"
 
 msgid "Card 2:"
-msgstr "Karta 2:"
+msgstr "Scheda 2:"
 
 msgid "Card 3:"
-msgstr "Karta 3:"
+msgstr "Scheda 3:"
 
 msgid "Card 4:"
-msgstr "Karta 4:"
+msgstr "Scheda 4:"
 
 msgid "ISABugger device"
-msgstr "Zařízení ISABugger"
+msgstr "Dispositivo ISABugger"
 
 msgid "POST card"
-msgstr "Karta pro kódy POST"
+msgstr "Scheda POST"
 
 msgid "Segoe UI"
 msgstr "Segoe UI"
@@ -605,106 +605,106 @@ msgid "86Box"
 msgstr "86Box"
 
 msgid "Error"
-msgstr "Chyba"
+msgstr "Errore"
 
 msgid "Fatal error"
-msgstr "Kritická chyba"
+msgstr "Errore fatale"
 
 msgid "<reserved>"
-msgstr "<rezervováno>"
+msgstr "<reserved>"
 
 msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
-msgstr "Stiskněte Ctrl+Alt+Page Down pro návrat z režimu celé obrazovky."
+msgstr "Usa CTRL+ALT+PAGE DOWN per tornare alla modalità finestra."
 
 msgid "Speed"
-msgstr "Rychlost"
+msgstr "Velocità"
 
 msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
 msgid "ZIP images (*.IM? *.im? *.ZDI *.zdi)"
-msgstr "Obrazy ZIP disků (*.IM? *.im? *.ZDI *.zdi)"
+msgstr "Immagini ZIP (*.IM? *.im? *.ZDI *.zdi)"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=""https://github.com/86Box/roms/releases/latest"">download</a> a ROM set and extract it into the ""roms"" directory."
-msgstr "86Box nenalezl žádné použitelné image pamětí ROM.\n\n<a href=""https://github.com/86Box/roms/releases/latest"">Stáhněte</a> sadu obrazů ROM a extrahujte ji do složky ""roms""."
+msgstr "86Box non può trovare immagini ROM utilizzabili.\n\nPlease <a href=""https://github.com/86Box/roms/releases/latest"">download</a> a ROM set and extract it into the ""roms"" directory."
 
 msgid "(empty)"
-msgstr "(prázdné)"
+msgstr "(empty)"
 
 msgid "ZIP images (*.IM? *.im? *.ZDI *.zdi);;All files (*)"
-msgstr "Obrazy ZIP disků (*.IM? *.im? *.ZDI *.zdi);;All files (*)"
+msgstr "Immagini ZIP (*.IM? *.im? *.ZDI *.zdi);;Tutti i file (*)"
 
 msgid "Turbo"
 msgstr "Turbo"
 
 msgid "On"
-msgstr "Zap."
+msgstr "Acceso"
 
 msgid "Off"
-msgstr "Vyp."
+msgstr "Spento"
 
 msgid "All images (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basic sector images (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Surface images (*.86F *.86f)"
-msgstr "Všechny obrazy disků (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Základní sektorové obrazy (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Obrazy povrchu (*.86F *.86f)"
+msgstr "Tutte le immagini (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Immagini di settori base (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Immagini di superficie (*.86F *.86f)"
 
 msgid "Machine ""%hs"" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Počítač ""%hs"" není dostupný, jelikož chybí obraz jeho paměti ROM ve složce ""roms/machines"". Konfigurace se přepne na jiný dostupný počítač."
+msgstr "La macchina ""%hs"" non è disponibile a causa di immagini ROM mancanti nella directory roms/machines. Cambiando ad una macchina disponibile."
 
 msgid "Video card ""%hs"" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Video adaptér ""%hs"" není dostupný, jelikož chybí obraz jeho paměti ROM ve složce ""roms/video"". Konfigurace se přepne na jiný dostupný adaptér."
+msgstr "La scheda video ""%hs"" non è disponibile a causa di immagini ROM mancanti nella directory roms/video. Cambiando ad una scheda video disponibile."
 
 msgid "Machine"
-msgstr "Počítač"
+msgstr "Piastra madre"
 
 msgid "Display"
-msgstr "Obraz"
+msgstr "Schermo"
 
 msgid "Input devices"
-msgstr "Vstupní zařízení"
+msgstr "Dispositivi di entrata"
 
 msgid "Sound"
-msgstr "Zvuk"
+msgstr "Audio"
 
 msgid "Network"
-msgstr "Síť"
+msgstr "Rete"
 
 msgid "Ports (COM & LPT)"
-msgstr "COM a LPT porty"
+msgstr "Porte (COM & LPT)"
 
 msgid "Storage controllers"
-msgstr "Řadiče úložiště"
+msgstr "Controller memoria"
 
 msgid "Hard disks"
-msgstr "Pevné disky"
+msgstr "Hard disk"
 
 msgid "Floppy & CD-ROM drives"
-msgstr "Disketové a CD-ROM mechaniky"
+msgstr "Unità CD-ROM e Floppy"
 
 msgid "Other removable devices"
-msgstr "Další vyměnitelná zařízení"
+msgstr "Altri dispositivi rimuovibili"
 
 msgid "Other peripherals"
-msgstr "Jiné příslušenství"
+msgstr "Altre periferiche"
 
 msgid "Surface images (*.86F *.86f)"
-msgstr "Obrazy povrchu (*.86F *.86f)"
+msgstr "Immagini di superficie (*.86F *.86f)"
 
 msgid "Click to capture mouse"
-msgstr "Klikněte pro zabraní myši"
+msgstr "Fare clic per catturare mouse"
 
 msgid "Press F8+F12 to release mouse"
-msgstr "Stiskněte F8+F12 pro uvolnění myši"
+msgstr "Premi F8+F12 per rilasciare il mouse"
 
 msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Stiskněte F8+F12 nebo prostřední tlačítko pro uvolnění myši"
+msgstr "Premi F8+F12 o pulsante centrale per rilasciare il mouse"
 
 msgid "Unable to initialize FluidSynth"
-msgstr "Nastala chyba při inicializaci knihovny FluidSynth."
+msgstr "Impossibile inizializzare FluidSynth"
 
 msgid "Bus"
-msgstr "Sběrnice"
+msgstr "Bus"
 
 msgid "File"
-msgstr "Soubor"
+msgstr "File"
 
 msgid "C"
 msgstr "C"
@@ -719,37 +719,37 @@ msgid "KB"
 msgstr "KB"
 
 msgid "Could not initialize the video renderer."
-msgstr "Nastala chyba při inicializaci video rendereru."
+msgstr "Impossibile inizializzare il renderer video."
 
 msgid "Default"
-msgstr "Výchozí"
+msgstr "Predefinito"
 
 msgid "%i Wait state(s)"
-msgstr "%i čekací stav(y)"
+msgstr "%i stati d'attesa"
 
 msgid "Type"
-msgstr "Typ"
+msgstr "Tipo"
 
 msgid "Failed to set up PCap"
-msgstr "Nastala chyba při inicializaci knihovny PCap"
+msgstr "Impossibile impostare PCap"
 
 msgid "No PCap devices found"
-msgstr "Nebyla nalezena žádná PCap zařízení"
+msgstr "Nessun dispositivo PCap trovato"
 
 msgid "Invalid PCap device"
-msgstr "Neplatné PCap zařízení"
+msgstr "Dispositivo PCap invalido"
 
 msgid "Standard 2-button joystick(s)"
-msgstr "Standardní 2tlačítkový joystick"
+msgstr "Joystick comune da 2 pulsanti"
 
 msgid "Standard 4-button joystick"
-msgstr "Standardní 4tlačítkový joystick"
+msgstr "Joystick comune da 4 pulsanti"
 
 msgid "Standard 6-button joystick"
-msgstr "Standardní 6tlačítkový joystick"
+msgstr "Joystick comune da 6 pulsanti"
 
 msgid "Standard 8-button joystick"
-msgstr "Standardní 8tlačítkový joystick"
+msgstr "Joystick comune da 8 pulsanti"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
@@ -761,13 +761,13 @@ msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
 
 msgid "None"
-msgstr "Žadné"
+msgstr "Nessuno"
 
 msgid "Unable to load keyboard accelerators."
-msgstr "Nebylo možné nahrát klávesnicové zkratky."
+msgstr "Impossibile caricare gli acceleratori da tastiera."
 
 msgid "Unable to register raw input."
-msgstr "Nebylo možné zaregistrovat raw input."
+msgstr "Impossibile registrare input raw."
 
 msgid "%u"
 msgstr "%u"
@@ -776,64 +776,64 @@ msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u MB (CHS: %i, %i, %i)"
 
 msgid "Floppy %i (%s): %ls"
-msgstr "Disketová mechanika %i (%s): %ls"
+msgstr "Floppy %i (%s): %ls"
 
 msgid "All images (*.0?? *.1?? *.??0 *.86F *.86f *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.JSON *.json *.TD0 *.td0 *.*FD? *.*fd? *.MFM *.mfm *.XDF *.xdf);;Advanced sector images (*.IMD *.imd *.JSON *.json *.TD0 *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.XDF *.xdf *.*FD? *.*fd?);;Flux images (*.FDI *.fdi);;Surface images (*.86F *.86f *.MFM *.mfm);;All files (*)"
-msgstr "Všechny obrazy (*.0?? *.1?? *.??0 *.86F *.86f *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.JSON *.json *.TD0 *.td0 *.*FD? *.*fd? *.MFM *.mfm *.XDF *.xdf);;Rozšířené sektorové obrazy (*.IMD *.imd *.JSON *.json *.TD0 *.td0);;Základní sektorové obrazy (*.0?? *.1?? *.??0 *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.XDF *.xdf *.*FD? *.*fd?);;Obrazy magnetického toku (*.FDI *.fdi);;Obrazy povrchu (*.86F *.86f *.MFM *.mfm);;Všechny soubory (*)"
+msgstr "Tutte le immagini (*.0?? *.1?? *.??0 *.86F *.86f *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.JSON *.json *.TD0 *.td0 *.*FD? *.*fd? *.MFM *.mfm *.XDF *.xdf);;Immagini da settori avanzati (*.IMD *.imd *.JSON *.json *.TD0 *.td0);;Imagini da settori basilari (*.0?? *.1?? *.??0 *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.XDF *.xdf *.*FD? *.*fd?);;Immagini flusso (*.FDI *.fdi);;Immagini da superficie (*.86F *.86f *.MFM *.mfm);;Tutti i file (*)"
 
 msgid "Unable to initialize FreeType"
-msgstr "Nastala chyba při inicializaci knihovny FreeType"
+msgstr "Impossibile inizializzare FreeType"
 
 msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "Nastala chyba při inicializaci knihovny SDL, je potřeba SDL2.dll"
+msgstr "Impossibile inizializzare SDL, SDL2.dll è necessario"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
-msgstr "Opravdu chcete resetovat emulovaný počítač?"
+msgstr "Sei sicuro di voler riavviare la macchina emulata?"
 
 msgid "Are you sure you want to exit 86Box?"
-msgstr "Opravdu chcete ukončit 86Box?"
+msgstr "Sei sicuro di voler uscire da 86Box?"
 
 msgid "Unable to initialize Ghostscript"
-msgstr "Nastala chyba při inicializaci knihovny Ghostscript"
+msgstr "Impossibile inizializzare Ghostscript"
 
 msgid "MO %i (%ls): %ls"
 msgstr "MO %i (%ls): %ls"
 
 msgid "MO images (*.IM? *.im? *.MDI *.mdi);;All files (*)"
-msgstr "Obrazy MO (*.IM? *.im? *.MDI *.mdi);;Všechny soubory (*)"
+msgstr "Immagini MO (*.IM? *.im? *.MDI *.mdi);;Tutti i file (*)"
 
 msgid "Welcome to 86Box!"
-msgstr "Vítejte v programu 86Box!"
+msgstr "Benvenuti in 86Box!"
 
 msgid "Internal controller"
-msgstr "Vestavěný řadič"
+msgstr "Controller interno"
 
 msgid "Exit"
-msgstr "Ukončit"
+msgstr "Esci"
 
 msgid "No ROMs found"
-msgstr "Nebyly nalezeny žádné obrazy ROM"
+msgstr "Nessune immagini ROM trovate"
 
 msgid "Do you want to save the settings?"
-msgstr "Chcete uložit nastavení?"
+msgstr "Vuole salvare queste impostazioni?"
 
 msgid "This will hard reset the emulated machine."
-msgstr "Pokračováním se resetuje emulovaný počítač."
+msgstr "Questo riavvierà la macchina emulata."
 
 msgid "Save"
-msgstr "Uložit"
+msgstr "Salva"
 
 msgid "About 86Box"
-msgstr "O programu 86Box"
+msgstr "Informazioni su 86Box"
 
 msgid "86Box v"
 msgstr "86Box v"
 
 msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Emulátor starých počítačů\n\nAutoři: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nZveřejněno pod licencí GNU General Public License verze 2 nebo novější. Viz soubor LICENSE pro více informací."
+msgstr "Un emulatore di computer vecchi\n\nAutori: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nTradotto da: explorerdotexe\n\nRilasciato sotto la Licenza Pubblica GNU versione 2 o dopo. Vedi LICENSE per maggior informazioni."
 
 msgid "Hardware not available"
-msgstr "Hardware není dostupný"
+msgstr "Hardware non disponibile"
 
 msgid "WinPcap"
 msgstr "WinPcap"
@@ -842,10 +842,10 @@ msgid "libpcap"
 msgstr "libpcap"
 
 msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "Ujistěte se, že je nainstalován libpcap a používáte síťové připojení s ním kompatibilní."
+msgstr "Controlla se libpcap è installato e che tu sia connesso ad una connessione libpcap compatibile."
 
 msgid "Invalid configuration"
-msgstr "Neplatná konfigurace"
+msgstr "Configurazione invalida"
 
 msgid "freetype.dll"
 msgstr "freetype.dll"
@@ -854,7 +854,7 @@ msgid "libfreetype"
 msgstr "libfreetype"
 
 msgid " is required for ESC/P printer emulation."
-msgstr " je potřeba pro emulaci ESC/P tiskáren."
+msgstr " è richesto per l'emuazione di stampanti ESC/P."
 
 msgid "gsdll32.dll"
 msgstr "gsdll32.dll"
@@ -863,7 +863,7 @@ msgid "libgs"
 msgstr "libgs"
 
 msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " je potřeba pro automatický převod PostScript dokumentů do PDF.\n\nJakékoliv dokumenty vytisknuté přes obecnou PostScriptovou tiskárnu budou uloženy jako PostScript (.ps) soubory."
+msgstr " è richiesto per la conversione automatica di file PostScript a file PDF.\n\nQualsiasi documento mandato alla stampante generica PostScript sarà salvato come file PostScript. (.ps)"
 
 msgid "libfluidsynth.dll"
 msgstr "libfluidsynth.dll"
@@ -872,58 +872,58 @@ msgid "libfluidsynth"
 msgstr "libfluidsynth"
 
 msgid " is required for FluidSynth MIDI output."
-msgstr " je potřeba pro MIDI výstup přes knihovnu FluidSynth."
+msgstr " è richiesto per l'output FluidSynth MIDI."
 
 msgid "Entering fullscreen mode"
-msgstr "Vstup do režimu celé obrazovky"
+msgstr "Entrando nella modalità schermo intero"
 
 msgid "Don't show this message again"
-msgstr "Nezobrazovat dále tuto zprávu"
+msgstr "Non mostrare più questo messaggio"
 
 msgid "Don't exit"
-msgstr "Neukončovat"
+msgstr "Non uscire"
 
 msgid "Reset"
-msgstr "Resetovat"
+msgstr "Riavvia"
 
 msgid "Don't reset"
-msgstr "Neresetovat"
+msgstr "Non riavviare"
 
 msgid "CD-ROM images (*.ISO *.iso *.CUE *.cue);;All files (*)"
-msgstr "Obraz CD-ROM disku (*.ISO *.iso *.CUE *.cue);;Všechny soubory (*)"
+msgstr "Immagini CD-ROM (*.ISO *.iso *.CUE *.cue);;Tutti i file (*)"
 
 msgid "%hs Device Configuration"
-msgstr "Konfigurace zařízení %hs"
+msgstr "Configurazione del dispositivo %hs"
 
 msgid "Monitor in sleep mode"
-msgstr "Monitor je v režimu spánku"
+msgstr "Monitor in modalità riposo"
 
 msgid "OpenGL Shaders (*.GLSL *.glsl);;All files (*)"
-msgstr "Shadery OpenGL (*.GLSL *.glsl);;All files (*)"
+msgstr "Shader OpenGL (*.GLSL *.glsl);;Tutti i file (*)"
 
 msgid "OpenGL options"
-msgstr "Možnosti OpenGL"
+msgstr "Impostazioni OpenGL"
 
 msgid "You are loading an unsupported configuration"
-msgstr "Pokoušíte se spustit nepodporovanou konfiguraci"
+msgstr "Stai caricando una configurazione non supportata"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Pro tuto konfiguraci bylo vypnuto filtrování procesorů podle zvoleného počítače.\n\nToto umožňuje zvolit procesor, který by jinak se zvoleným počítačem nebyl kompatibilní. Můžou však nastat potíže s BIOSem nebo jiným softwarem.\n\nPovolení tohoto nastavení není oficiálně podporováno a jakákoliv hlášení o chybách mohou být uzavřeny jako neplatné."
+msgstr "Il filtraggio della tipologia di CPU è disabilitato per la macchina selezionata.\n\nQuesto lo rende possibile scegliere un CPU che è altrimenti incompatibile con la macchina selezionata. Tuttavia, portresti incorrere in incompatibilità con il BIOS della macchina o altri programmi. \n\nL'abilitare di questa impostazione non è ufficialmente supportato e tutte le segnalazioni di errori saranno considerate invalide."
 
 msgid "Continue"
-msgstr "Pokračovat"
+msgstr "Continua"
 
 msgid "Cassette: %s"
-msgstr "Kazeta: %s"
+msgstr "Cassetta: %s"
 
 msgid "Cassette images (*.PCM *.pcm *.RAW *.raw *.WAV *.wav *.CAS *.cas);;All files (*)"
-msgstr "Kazetové nahrávky (*.PCM *.pcm *.RAW *.raw *.WAV *.wav *.CAS *.cas);;Všechny soubory (*)"
+msgstr "Immagini cassetta (*.PCM *.pcm *.RAW *.raw *.WAV *.wav *.CAS *.cas);;Tutti i file (*)"
 
 msgid "Cartridge %i: %ls"
-msgstr "Cartridge %i: %ls"
+msgstr "Cartuccia %i: %ls"
 
 msgid "Cartridge images (*.A *.a *.B *.b *.JRC *.jrc);;All files (*)"
-msgstr "Obrazy cartridge (*.A *.a *.B *.b *.JRC *.jrc);;Všechny soubory (*)"
+msgstr "Immagini cartuccia (*.A *.a *.B *.b *.JRC *.jrc);;Tutti i file (*)"
 
 msgid "Error initializing renderer"
 msgstr "Error initializing renderer"
@@ -932,7 +932,7 @@ msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer
 msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
 
 msgid "Hard disk (%s)"
-msgstr "Pevný disk (%s)"
+msgstr "Hard disk (%s)"
 
 msgid "%01i:%01i"
 msgstr "%01i:%01i"
@@ -941,112 +941,112 @@ msgid "%01i"
 msgstr "%01i"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "CD-ROM mechaniky pro rozhraní MFM/RLL nebo ESDI nikdy neexistovaly"
+msgstr "Le unità CD-ROM MFM/RLL o ESDI non sono mai esistite."
 
 msgid "Custom..."
-msgstr "Vlastní..."
+msgstr "Personalizzata..."
 
 msgid "Custom (large)..."
-msgstr "Vlastní (velký)..."
+msgstr "Personalizzata (grande)..."
 
 msgid "Add New Hard Disk"
-msgstr "Přidat nový pevný disk"
+msgstr "Aggiungi un nuovo disco rigido"
 
 msgid "Add Existing Hard Disk"
-msgstr "Přidat existující pevný disk"
+msgstr "Aggiungi un disco rigido esistente"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "Obraz disku formátu HDI nemůžou být větší než 4 GB."
+msgstr "Le immagini HDI non possono essere più grandi di 4 GB."
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "Obraz disku nemůžou být větší než 127 GB."
+msgstr "Le immmagini disco non possono essere più grandi di 127 GB."
 
 msgid "Hard disk images (*.HD? *.hd? *.IM? *.im? *.VHD *.vhd);;All files (*)"
-msgstr "Obrazy pevného disku (*.HD? *.hd? *.IM? *.im? *.VHD *.vhd);;Všechny soubory (*)"
+msgstr "Immagini disco rigido (*.HD? *.hd? *.IM? *.im? *.VHD *.vhd);;Tutti i file (*)"
 
 msgid "Unable to read file"
-msgstr "Nebylo možné přečíst soubor"
+msgstr "Impossibile leggere il file"
 
 msgid "Unable to write file"
-msgstr "Nebylo možné zapisovat do souboru"
+msgstr "Impossibile scrivere al file"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "Obraz disku ve formátu HDI nebo HDX s velikostí sektoru jinou než 512 bajtů nejsou podporovány."
+msgstr "Le immagini HDI o HDX con settori di dimensioni diverse da 512 non sono supportati."
 
 msgid "USB is not yet supported"
-msgstr "USB zatím není podporováno."
+msgstr "USB non è ancora supportato"
 
 msgid "Disk image file already exists"
-msgstr "Soubor obrazu disku již existuje"
+msgstr "Immagine disco già esiste"
 
 msgid "Please specify a valid file name."
-msgstr "Zadejte platný název souboru."
+msgstr "Specifica un nome file valido."
 
 msgid "Disk image created"
-msgstr "Obraz disku byl vytvořen"
+msgstr "Immagine disco creata"
 
 msgid "Make sure the file exists and is readable."
-msgstr "Ujistěte se, že soubor existuje a lze jej přečíst."
+msgstr "Controlla che il file esiste e che sia leggibile."
 
 msgid "Make sure the file is being saved to a writable directory."
-msgstr "Ujistěte se, že se do složky, kde se má soubor uložit, dá zapisovat."
+msgstr "Controlla che il file viene salvato ad un percorso con diritti di scrittura"
 
 msgid "Disk image too large"
-msgstr "Obraz disku je příliš velký"
+msgstr "Immagine disco troppo grande"
 
 msgid "Remember to partition and format the newly-created drive."
-msgstr "Nezapomeňte nově vytvořený disk rozdělit a naformátovat."
+msgstr "Ricordati di partizionare e formattare il disco appena creato."
 
 msgid "The selected file will be overwritten. Are you sure you want to use it?"
-msgstr "Zvolený soubor bude přepsán. Opravdu jej chcete použít?"
+msgstr "Il file selezionato sarà sovrascritto, sei sicuro di volerlo usare?"
 
 msgid "Unsupported disk image"
-msgstr "Nepodporovaný obraz disku"
+msgstr "Immagine disco non supportata"
 
 msgid "Overwrite"
-msgstr "Přepsat"
+msgstr "Sovrascrivi"
 
 msgid "Don't overwrite"
-msgstr "Nepřepisovat"
+msgstr "Non sovrascrivere"
 
 msgid "Raw image (.img)"
-msgstr "Surový obraz (.img)"
+msgstr "Immagine raw (.img)"
 
 msgid "HDI image (.hdi)"
-msgstr "HDI obraz (.hdi)"
+msgstr "Immagine HDI (.hdi)"
 
 msgid "HDX image (.hdx)"
-msgstr "HDX obraz (.hdx)"
+msgstr "Immagine HDX (.hdx)"
 
 msgid "Fixed-size VHD (.vhd)"
-msgstr "VHD s pevnou velikostí (.vhd)"
+msgstr "VHD di dimensioni fisse (.vhd)"
 
 msgid "Dynamic-size VHD (.vhd)"
-msgstr "VHD s dynamickou velikostí (.vhd)"
+msgstr "VHD di dimensioni dinamiche (.vhd)"
 
 msgid "Differencing VHD (.vhd)"
-msgstr "Rozdílový VHD (.vhd)"
+msgstr "VHD differenziato (.vhd)"
 
 msgid "Large blocks (2 MB)"
-msgstr "Velké bloky (2 MB)"
+msgstr "Blocchi larghi (2 MB)"
 
 msgid "Small blocks (512 KB)"
-msgstr "Malé bloky (512 KB)"
+msgstr "Blocchi piccoli (512 KB)"
 
 msgid "VHD files (*.VHD *.vhd);;All files (*)"
-msgstr "Soubory VHD (*.VHD *.vhd);;Všechny soubory (*)"
+msgstr "File VHD (*.VHD *.vhd);;Tutti i file (*)"
 
 msgid "Select the parent VHD"
-msgstr "Vyberte nadřazený virtuální disk"
+msgstr "Seleziona il VHD padre."
 
 msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "To může znamenat, že se obsahy nadřazeného disku změnily po vytvoření rozdílového disku.\n\nTato chyba také může nastat, pokud byl obraz disku kopírován nebo přesunut, nebo kvůli chybě v programu, který jej vytvořil.\n\nChcete časová razítka opravit?"
+msgstr "Questo potrebbe significare che l'immagine padre sia stata modificata dopo la creazione dell'immagine  di differenziazione.\n\nPuò anche succedere se i file immagini sono stati spostati o copiati, o da un errore nel programma che ha creato questo disco.\n\nVuoi aggiustare le marcature di tempo?"
 
 msgid "Parent and child disk timestamps do not match"
-msgstr "Časová razítka nadřazeného a podřazeného disku nesouhlasí"
+msgstr "Le marcature di tempo padre e figlio non corrispondono"
 
 msgid "Could not fix VHD timestamp."
-msgstr "Nebylo možné opravit časové razítko VHD."
+msgstr "Impossibile aggiustare marcature di tempo VHD."
 
 msgid "%01i:%02i"
 msgstr "%01i:%02i"
@@ -1157,17 +1157,17 @@ msgid "5.25"" 1.3Gb M.O."
 msgstr "5.25"" 1.3Gb M.O."
 
 msgid "Perfect RPM"
-msgstr "Dokonalé otáčky za minutu"
+msgstr "RPM perfette"
 
 msgid "1%% below perfect RPM"
-msgstr "1%% pod dokonalými ot./m"
+msgstr "RPM 1%% sotto perfezione"
 
 msgid "1.5%% below perfect RPM"
-msgstr "1.5%% pod dokonalými ot./m"
+msgstr "RPM 1.5%% sotto perfezione"
 
 msgid "2%% below perfect RPM"
-msgstr "2%% pod dokonalými ot./m"
+msgstr "RPM 2%% sotto perfezione"
 
 msgid "(System Default)"
-msgstr "(Výchozí nastavení systému)"
+msgstr "(Predefinito del sistema)"
 

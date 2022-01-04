@@ -40,14 +40,14 @@ msgstr "&Запомнить размер и положение"
 msgid "Re&nderer"
 msgstr "&Рендерер"
 
-msgid "&Qt (Software)"
-msgstr "&Qt (Software)"
+msgid "&SDL (Software)"
+msgstr "&SDL (Software)"
 
-msgid "Qt (&Hardware)"
-msgstr "Qt (&Hardware)"
+msgid "SDL (&Hardware)"
+msgstr "SDL (&Hardware)"
 
-msgid "Qt (&OpenGL)"
-msgstr "Qt (&OpenGL)"
+msgid "SDL (&OpenGL)"
+msgstr "SDL (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0)"

@@ -1,17 +1,17 @@
 msgid "Translated by"
-msgstr "Laci bá'"
+msgstr "Unknown"
 
 msgid "&Action"
-msgstr "&Művelet"
+msgstr "&Ação"
 
 msgid "&Keyboard requires capture"
-msgstr "A &billentyűzet elfogást igényel"
+msgstr "&Teclado requer captura"
 
 msgid "&Right CTRL is left ALT"
-msgstr "A &jobb oldali CTRL a bal ALT"
+msgstr "CTRL &direito é o ALT esquerdo"
 
 msgid "&Hard Reset..."
-msgstr "Hardveres &újraindítás..."
+msgstr "&Reinicialização completa..."
 
 msgid "&Ctrl+Alt+Del\tCtrl+F12"
 msgstr "&Ctrl+Alt+Del\tCtrl+F12"
@@ -20,49 +20,49 @@ msgid "Ctrl+Alt+&Esc"
 msgstr "Ctrl+Alt+&Esc"
 
 msgid "&Pause"
-msgstr "&Szüneteltetés"
+msgstr "&Pausar"
 
 msgid "E&xit..."
-msgstr "&Kilépés..."
+msgstr "&Sair..."
 
 msgid "&View"
-msgstr "&Nézet"
+msgstr "&Exibir"
 
 msgid "&Hide status bar"
-msgstr "Állapotsor &elrejtése"
+msgstr "&Ocultar barra de status"
 
 msgid "&Resizeable window"
-msgstr "&Átméretezhető ablak"
+msgstr "&Janela redimensionável"
 
 msgid "R&emember size && position"
-msgstr "Méret és pozíció &megjegyzése"
+msgstr "&Lembrar tamanho e posição"
 
 msgid "Re&nderer"
-msgstr "&Megjelenítő"
+msgstr "&Renderizador"
 
-msgid "&Qt (Software)"
-msgstr "&Qt (Szoftveres)"
+msgid "&SDL (Software)"
+msgstr "&SDL (Software)"
 
-msgid "Qt (&Hardware)"
-msgstr "Qt (&Hardveres)"
+msgid "SDL (&Hardware)"
+msgstr "SDL (&Hardware)"
 
-msgid "Qt (&OpenGL)"
-msgstr "Qt (&OpenGL)"
+msgid "SDL (&OpenGL)"
+msgstr "SDL (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
-msgstr "Open&GL (3.0 Core)"
+msgstr "Open&GL (Núcleo 3.0)"
 
 msgid "&VNC"
 msgstr "&VNC"
 
 msgid "Specify dimensions..."
-msgstr "Méretek kézi megadása..."
+msgstr "Especificar as dimensões..."
 
 msgid "F&orce 4:3 display ratio"
-msgstr "&Rögzített 4:3 képarány"
+msgstr "F&orçar proporção de tela em 4:3"
 
 msgid "&Window scale factor"
-msgstr "&Ablak méretezési tényező"
+msgstr "&Fator de redimensionamento da janela"
 
 msgid "&0.5x"
 msgstr "&0,5x"
@@ -77,61 +77,61 @@ msgid "&2x"
 msgstr "&2x"
 
 msgid "Filter method"
-msgstr "Szűrési mód"
+msgstr "Método de filtragem"
 
 msgid "&Nearest"
-msgstr "&Szomszédos"
+msgstr "&Mais próximo"
 
 msgid "&Linear"
-msgstr "&Lineáris"
+msgstr "&Linear"
 
 msgid "Hi&DPI scaling"
-msgstr "Hi&DPI méretezés"
+msgstr "Escala Hi&DPI"
 
 msgid "&Fullscreen\tCtrl+Alt+PageUP"
-msgstr "&Teljes képernyő\tCtrl+Alt+PageUP"
+msgstr "&Tela cheia\tCtrl+Alt+PageUP"
 
 msgid "Fullscreen &stretch mode"
-msgstr "Teljes képernyős &méretezés"
+msgstr "Modo de &redimensionamento da tela cheia"
 
 msgid "&Full screen stretch"
-msgstr "&Nyújtás a teljes képernyőre"
+msgstr "&Tela cheia esticada"
 
 msgid "&4:3"
 msgstr "&4:3"
 
 msgid "&Square pixels (Keep ratio)"
-msgstr "&Négyzetes képpontok (aránytartás)"
+msgstr "Pixel&s quadrados (manter proporção)"
 
 msgid "&Integer scale"
-msgstr "&Egész tényezős nagyítás"
+msgstr "&Redimensionamento com valores inteiros"
 
 msgid "E&GA/(S)VGA settings"
-msgstr "E&GA/(S)VGA beállítások"
+msgstr "Configurações E&GA/(S)VGA"
 
 msgid "&Inverted VGA monitor"
-msgstr "&Invertált VGA kijelző"
+msgstr "Monitor VGA &invertido"
 
 msgid "VGA screen &type"
-msgstr "VGA képernyő &típusa"
+msgstr "&Tipo de tela VGA"
 
 msgid "RGB &Color"
-msgstr "RGB &színes"
+msgstr "&Cor RGB"
 
 msgid "&RGB Grayscale"
-msgstr "&RGB szürkeárnyalatos"
+msgstr "Tons de cinza &RGB"
 
 msgid "&Amber monitor"
-msgstr "&Gyömbér kijelző"
+msgstr "Monitor &âmbar"
 
 msgid "&Green monitor"
-msgstr "&Zöld kijelző"
+msgstr "Monitor &verde"
 
 msgid "&White monitor"
-msgstr "&Fehér kijelző"
+msgstr "Monitor &branco"
 
 msgid "Grayscale &conversion type"
-msgstr "Szürkéskála &konzerziós eljárás"
+msgstr "Tipo de &conversão de tons de cinza"
 
 msgid "BT&601 (NTSC/PAL)"
 msgstr "BT&601 (NTSC/PAL)"
@@ -140,235 +140,235 @@ msgid "BT&709 (HDTV)"
 msgstr "BT&709 (HDTV)"
 
 msgid "&Average"
-msgstr "&Átlag szerint"
-
-msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
-msgstr "CGA/PCjr/Tandy/E&GA/(S)VGA túlpásztázás"
-
-msgid "Change contrast for &monochrome display"
-msgstr "Kontraszt illesztése &monokróm kijelzőhöz"
-
-msgid "&Media"
 msgstr "&Média"
 
+msgid "CGA/PCjr/Tandy/E&GA/(S)VGA overscan"
+msgstr "Overscan do CGA/PCjr/Tandy/E&GA/(S)VGA"
+
+msgid "Change contrast for &monochrome display"
+msgstr "Alterar contraste para exibição &monocromática"
+
+msgid "&Media"
+msgstr "&Mídia"
+
 msgid "&Tools"
-msgstr "&Eszközök"
+msgstr "&Ferramentas"
 
 msgid "&Settings..."
-msgstr "&Konfigurálás..."
+msgstr "&Configurações..."
 
 msgid "&Update status bar icons"
-msgstr "Állapotsori ikonok &frissítése"
+msgstr "&Atualizar ícones da barra de status"
 
 msgid "Take s&creenshot\tCtrl+F11"
-msgstr "&Képernyőkép készítése\tCtrl+F11"
+msgstr "Capturar &tela\tCtrl+F11"
 
 msgid "&Preferences..."
-msgstr "&Beállítások..."
+msgstr "&Preferências..."
 
 msgid "Enable &Discord integration"
-msgstr "&Discord integráció engedélyezése"
+msgstr "Ativar integração com o &Discord"
 
 msgid "Sound &gain..."
-msgstr "&Hangerőszabályzó..."
+msgstr "&Ganho de som..."
 
 msgid "Begin trace\tCtrl+T"
-msgstr "Nyomkövetés megkezdése\tCtrl+T"
+msgstr "Inicio do rastreamento\tCtrl+T"
 
 msgid "End trace\tCtrl+T"
-msgstr "Nyomkövetés befejezése\tCtrl+T"
+msgstr "Fim do rastreamento\tCtrl+T"
 
 msgid "&Logging"
-msgstr "&Naplózás"
+msgstr "&Registros"
 
 msgid "Enable BusLogic logs\tCtrl+F4"
-msgstr "BusLogic naplók engedélyezése\tCtrl+F4"
+msgstr "Ativar registros da BusLogic\tCtrl+F4"
 
 msgid "Enable CD-ROM logs\tCtrl+F5"
-msgstr "CD-ROM naplók engedélyezése\tCtrl+F5"
+msgstr "Ativar registros do CD-ROM\tCtrl+F5"
 
 msgid "Enable floppy (86F) logs\tCtrl+F6"
-msgstr "Hajlékonylemez (86F) naplók engedélyezése\tCtrl+F6"
+msgstr "Ativar registros do disquete (86F)\tCtrl+F6"
 
 msgid "Enable floppy controller logs\tCtrl+F7"
-msgstr "Hajlékonylemez-vezérlő naplók engedélyezése\tCtrl+F7"
+msgstr "Ativar registros do controlador de disquete\tCtrl+F7"
 
 msgid "Enable IDE logs\tCtrl+F8"
-msgstr "IDE naplók engedélyezése\tCtrl+F8"
+msgstr "Ativar registros da IDE\tCtrl+F8"
 
 msgid "Enable Serial Port logs\tCtrl+F3"
-msgstr "Soros port naplók engedélyezése\tCtrl+F3"
+msgstr "Ativar registros da porta serial\tCtrl+F3"
 
 msgid "Enable Network logs\tCtrl+F9"
-msgstr "Hálózati naplók engedélyezése\tCtrl+F9"
+msgstr "Ativar registros da rede\tCtrl+F9"
 
 msgid "&Log breakpoint\tCtrl+F10"
-msgstr "Töréspontok &naplózása\tCtrl+F10"
+msgstr "&Ponto de parada no registo\tCtrl+F10"
 
 msgid "Dump &video RAM\tCtrl+F1"
-msgstr "&Videómemória lementése\tCtrl+F1"
+msgstr "Despejo da RAM de &vídeo\tCtrl+F1"
 
 msgid "&Help"
-msgstr "&Súgó"
+msgstr "&Ajuda"
 
 msgid "&Documentation..."
-msgstr "&Dokumentáció..."
+msgstr "&Documentação..."
 
 msgid "&About 86Box..."
-msgstr "A 86Box &névjegye..."
+msgstr "&Sobre o 86Box..."
 
 msgid ""
 msgstr ""
 
 msgid "&New image..."
-msgstr "&Új képfájl létrehozása..."
+msgstr "&Nova imagem..."
 
 msgid "&Existing image..."
-msgstr "Meglévő képfájl &megnyitása..."
+msgstr "&Imagem existente..."
 
 msgid "Existing image (&Write-protected)..."
-msgstr "Meglévő képfájl megnyitása (&írásvédett)..."
+msgstr "Imagem existente (&protegida contra escrita)..."
 
 msgid "&Record"
-msgstr "&Felvétel"
+msgstr "&Gravar"
 
 msgid "&Play"
-msgstr "&Lejátszás"
+msgstr "&Reproduzir"
 
 msgid "&Rewind to the beginning"
-msgstr "&Visszatekerés az elejére"
+msgstr "&Rebobinar até o começo"
 
 msgid "&Fast forward to the end"
-msgstr "&Előretekerés a végére"
+msgstr "&Avançar até o fim"
 
 msgid "E&ject"
-msgstr "&Kiadás"
+msgstr "E&jetar"
 
 msgid "&Image..."
-msgstr "Kép&fájl..."
+msgstr "&Imagem..."
 
 msgid "E&xport to 86F..."
-msgstr "E&xportálás 86F formátumba..."
+msgstr "E&xportar para 86F..."
 
 msgid "&Mute"
-msgstr "&Némítás"
+msgstr "&Sem som"
 
 msgid "E&mpty"
-msgstr "&Kiadás"
+msgstr "&Vazio"
 
 msgid "&Reload previous image"
-msgstr "Előző képfájl &újratöltése"
+msgstr "&Recarregar imagem anterior"
 
 msgid "&Image"
-msgstr "&Meglévő képfájl &megnyitása..."
+msgstr "&Imagem"
 
 msgid "Target &framerate"
-msgstr "Cél &képkockasebesség"
+msgstr "&Taxa de quadro pretendida"
 
 msgid "&Sync with video"
-msgstr "&Szinkronizálás a videóval "
+msgstr "&Sincronizar com vídeo"
 
 msgid "&25 fps"
-msgstr "&25 fps"
+msgstr "&25 qps"
 
 msgid "&30 fps"
-msgstr "&30 fps"
+msgstr "&30 qps"
 
 msgid "&50 fps"
-msgstr "&50 fps"
+msgstr "&50 qps"
 
 msgid "&60 fps"
-msgstr "&60 fps"
+msgstr "&60 qps"
 
 msgid "&75 fps"
-msgstr "&75 fps"
+msgstr "&75 qps"
 
 msgid "&VSync"
-msgstr "&VSync"
+msgstr "Sincronização &vertical"
 
 msgid "&Select shader..."
-msgstr "Shader &kiválasztása..."
+msgstr "&Selecionar shader..."
 
 msgid "&Remove shader"
-msgstr "Shader &eltávolítása"
+msgstr "&Remover shader"
 
 msgid "Preferences"
-msgstr "Beállítások"
+msgstr "Preferências"
 
 msgid "Sound Gain"
-msgstr "Hangerőszabályzó"
+msgstr "Ganho de som"
 
 msgid "New Image"
-msgstr "Új képfájl létrehozása"
+msgstr "Nova imagem de disquete"
 
 msgid "Settings"
-msgstr "Konfigurálás"
+msgstr "Configurações"
 
 msgid "Specify Main Window Dimensions"
-msgstr "Főablak méreteinek megadása"
+msgstr "Especifique as dimensões da janela principal"
 
 msgid "OK"
 msgstr "OK"
 
 msgid "Cancel"
-msgstr "Mégse"
+msgstr "Cancelar"
 
 msgid "Save these settings as &global defaults"
-msgstr "Beállítások mentése &globális alapértékként"
+msgstr "Usar estas configurações como &padrões globais"
 
 msgid "&Default"
-msgstr "&Alapértelmezett"
+msgstr "&Padrão"
 
 msgid "Language:"
-msgstr "Nyelv:"
+msgstr "Idioma:"
 
 msgid "Icon set:"
-msgstr "Ikonkészlet:"
+msgstr "Pacote de ícones:"
 
 msgid "Gain"
-msgstr "Hangerő"
+msgstr "Ganho"
 
 msgid "File name:"
-msgstr "Fájlnév:"
+msgstr "Nome:"
 
 msgid "Disk size:"
-msgstr "Méret:"
+msgstr "Tamanho:"
 
 msgid "RPM mode:"
-msgstr "RPM-mód:"
+msgstr "Modo RPM:"
 
 msgid "Progress:"
-msgstr "Folyamat:"
+msgstr "Progresso:"
 
 msgid "Width:"
-msgstr "Szélesség:"
+msgstr "Largura:"
 
 msgid "Height:"
-msgstr "Magasság:"
+msgstr "Altura:"
 
 msgid "Lock to this size"
-msgstr "Rögzítés a megadott méretre"
+msgstr "Travar nesse tamanho"
 
 msgid "Machine type:"
-msgstr "Géptípus:"
+msgstr "Tipo de máquina:"
 
 msgid "Machine:"
-msgstr "Számítógép:"
+msgstr "Máquina:"
 
 msgid "Configure"
-msgstr "Beállítások..."
+msgstr "Configurar"
 
 msgid "CPU type:"
-msgstr "Processzor:"
+msgstr "Tipo de CPU:"
 
 msgid "Speed:"
-msgstr "Seb.:"
+msgstr "Veloc.:"
 
 msgid "FPU:"
-msgstr "FPU-egység:"
+msgstr "FPU:"
 
 msgid "Wait states:"
-msgstr "Várak. ciklusok:"
+msgstr "Estados de espera:"
 
 msgid "MB"
 msgstr "MB"
@@ -377,55 +377,55 @@ msgid "Memory:"
 msgstr "Memória:"
 
 msgid "Time synchronization"
-msgstr "Idő szinkronizáció"
+msgstr "Sincronização da hora"
 
 msgid "Disabled"
-msgstr "Letiltva"
+msgstr "Desativada"
 
 msgid "Enabled (local time)"
-msgstr "Engedélyezve (helyi idő)"
+msgstr "Ativada (hora local)"
 
 msgid "Enabled (UTC)"
-msgstr "Engedélyezve (UTC)"
+msgstr "Ativada (UTC)"
 
 msgid "Dynamic Recompiler"
-msgstr "Dinamikus újrafordítás"
+msgstr "Recompilador dinâmico"
 
 msgid "Video:"
-msgstr "Videokártya:"
+msgstr "Vídeo:"
 
 msgid "Voodoo Graphics"
-msgstr "Voodoo-gyorsítókártya"
+msgstr "3DFX Voodoo"
 
 msgid "Mouse:"
-msgstr "Egér:"
+msgstr "Mouse:"
 
 msgid "Joystick:"
-msgstr "Játékvezérlő:"
+msgstr "Joystick:"
 
 msgid "Joystick 1..."
-msgstr "Játékvez. 1..."
+msgstr "Joystick 1..."
 
 msgid "Joystick 2..."
-msgstr "Játékvez. 2..."
+msgstr "Joystick 2..."
 
 msgid "Joystick 3..."
-msgstr "Játékvez. 3..."
+msgstr "Joystick 3..."
 
 msgid "Joystick 4..."
-msgstr "Játékvez. 4..."
+msgstr "Joystick 4..."
 
 msgid "Sound card:"
-msgstr "Hangkártya:"
+msgstr "Placa de som:"
 
 msgid "MIDI Out Device:"
-msgstr "MIDI-kimenet:"
+msgstr "Disp. saída MIDI:"
 
 msgid "MIDI In Device:"
-msgstr "MIDI-bemenet:"
+msgstr "Disp. entrada MIDI:"
 
 msgid "Standalone MPU-401"
-msgstr "Különálló MPU-401"
+msgstr "MPU-401 autônomo"
 
 msgid "Innovation SSI-2001"
 msgstr "Innovation SSI-2001"
@@ -437,166 +437,166 @@ msgid "Gravis Ultrasound"
 msgstr "Gravis Ultrasound"
 
 msgid "Use FLOAT32 sound"
-msgstr "FLOAT32 használata"
+msgstr "Usar som FLOAT32"
 
 msgid "Network type:"
-msgstr "Hálózati típusa:"
+msgstr "Tipo de rede:"
 
 msgid "PCap device:"
-msgstr "PCap eszköz:"
+msgstr "Dispositivo PCap:"
 
 msgid "Network adapter:"
-msgstr "Hálózati kártya:"
+msgstr "Adaptador de rede:"
 
 msgid "LPT1 Device:"
-msgstr "LPT1 eszköz:"
+msgstr "Dispositivo LPT1:"
 
 msgid "LPT2 Device:"
-msgstr "LPT2 eszköz:"
+msgstr "Dispositivo LPT2:"
 
 msgid "LPT3 Device:"
-msgstr "LPT3 eszköz:"
+msgstr "Dispositivo LPT3:"
 
 msgid "Serial port 1"
-msgstr "Soros port 1"
+msgstr "Porta serial 1"
 
 msgid "Serial port 2"
-msgstr "Soros port 2"
+msgstr "Porta serial 2"
 
 msgid "Serial port 3"
-msgstr "Soros port 3"
+msgstr "Porta serial 3"
 
 msgid "Serial port 4"
-msgstr "Soros port 4"
+msgstr "Porta serial 4"
 
 msgid "Parallel port 1"
-msgstr "Párhuzamos port 1"
+msgstr "Porta paralela 1"
 
 msgid "Parallel port 2"
-msgstr "Párhuzamos port 2"
+msgstr "Porta paralela 2"
 
 msgid "Parallel port 3"
-msgstr "Párhuzamos port 3"
+msgstr "Porta paralela 3"
 
 msgid "HD Controller:"
-msgstr "Merevl.-vezérlő:"
+msgstr "Controlador HD:"
 
 msgid "FD Controller:"
-msgstr "Floppy-vezérlő:"
+msgstr "Controlador FD:"
 
 msgid "Tertiary IDE Controller"
-msgstr "Harmadlagos IDE-vezérlő"
+msgstr "Controlador IDE terciário"
 
 msgid "Quaternary IDE Controller"
-msgstr "Negyedleges IDE-vezérlő"
+msgstr "Controlador IDE quaternário"
 
 msgid "SCSI"
 msgstr "SCSI"
 
 msgid "Controller 1:"
-msgstr "Gazdaadapt. 1:"
+msgstr "Controlador 1:"
 
 msgid "Controller 2:"
-msgstr "Gazdaadapt. 2:"
+msgstr "Controlador 2:"
 
 msgid "Controller 3:"
-msgstr "Gazdaadapt. 3:"
+msgstr "Controlador 3:"
 
 msgid "Controller 4:"
-msgstr "Gazdaadapt. 4:"
+msgstr "Controlador 4:"
 
 msgid "Cassette"
-msgstr "Magnókazetta"
+msgstr "Cassete"
 
 msgid "Hard disks:"
-msgstr "Merevlemezek:"
+msgstr "Discos rígidos:"
 
 msgid "&New..."
-msgstr "&Új..."
+msgstr "&Novo..."
 
 msgid "&Existing..."
-msgstr "&Megnyitás..."
+msgstr "&Existente..."
 
 msgid "&Remove"
-msgstr "&Eltávolítás"
+msgstr "&Remover"
 
 msgid "Bus:"
-msgstr "Busz:"
+msgstr "Bar.:"
 
 msgid "Channel:"
-msgstr "Csatorna:"
+msgstr "Canal:"
 
 msgid "ID:"
 msgstr "ID:"
 
 msgid "&Specify..."
-msgstr "&Kiválasztás..."
+msgstr "&Especificar..."
 
 msgid "Sectors:"
-msgstr "Szektor:"
+msgstr "Setores:"
 
 msgid "Heads:"
-msgstr "Fej:"
+msgstr "Cabeças:"
 
 msgid "Cylinders:"
-msgstr "Cilinder:"
+msgstr "Cilindros:"
 
 msgid "Size (MB):"
-msgstr "Méret (MB):"
+msgstr "Tamanho (MB):"
 
 msgid "Type:"
-msgstr "Típus:"
+msgstr "Tipo:"
 
 msgid "Image Format:"
-msgstr "Formátum:"
+msgstr "Formato:"
 
 msgid "Block Size:"
-msgstr "Blokkméret:"
+msgstr "Tamanho do bloco:"
 
 msgid "Floppy drives:"
-msgstr "Floppy-meghajtók:"
+msgstr "Unidades de disquete:"
 
 msgid "Turbo timings"
-msgstr "Turbó időzítés"
+msgstr "Turbo"
 
 msgid "Check BPB"
-msgstr "BPB ellenőrzés"
+msgstr "Verificar BPB"
 
 msgid "CD-ROM drives:"
-msgstr "CD-ROM meghajtók:"
+msgstr "Unidades de CD-ROM:"
 
 msgid "MO drives:"
-msgstr "MO-meghajtók:"
+msgstr "Unidades magneto-ópticas:"
 
 msgid "ZIP drives:"
-msgstr "ZIP-meghajtók:"
+msgstr "Unidades ZIP:"
 
 msgid "ZIP 250"
 msgstr "ZIP 250"
 
 msgid "ISA RTC:"
-msgstr "ISA RTC (óra):"
+msgstr "RTC ISA:"
 
 msgid "ISA Memory Expansion"
-msgstr "ISA memóriabővítők"
+msgstr "Expansão de memória ISA"
 
 msgid "Card 1:"
-msgstr "Kártya 1:"
+msgstr "Placa 1:"
 
 msgid "Card 2:"
-msgstr "Kártya 2:"
+msgstr "Placa 2:"
 
 msgid "Card 3:"
-msgstr "Kártya 3:"
+msgstr "Placa 3:"
 
 msgid "Card 4:"
-msgstr "Kártya 4:"
+msgstr "Placa 4:"
 
 msgid "ISABugger device"
-msgstr "ISABugger eszköz"
+msgstr "Dispositivo ISABugger"
 
 msgid "POST card"
-msgstr "POST kártya"
+msgstr "Placa de diagnóstico"
 
 msgid "Segoe UI"
 msgstr "Segoe UI"
@@ -605,151 +605,151 @@ msgid "86Box"
 msgstr "86Box"
 
 msgid "Error"
-msgstr "Hiba"
+msgstr "Erro"
 
 msgid "Fatal error"
-msgstr "Végzetes hiba"
+msgstr "Erro fatal"
 
 msgid "<reserved>"
-msgstr "<fenntartva>"
+msgstr "<reserved>"
 
 msgid "Press CTRL+ALT+PAGE DOWN to return to windowed mode."
-msgstr "Használja a CTRL+ALT+PAGE DOWN gombokat az ablakhoz való visszatéréshez."
+msgstr "Use CTRL+ALT+PAGE DOWN para retornar ao modo janela"
 
 msgid "Speed"
-msgstr "Sebesség"
+msgstr "Velocidade"
 
 msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
 msgid "ZIP images (*.IM? *.im? *.ZDI *.zdi)"
-msgstr "ZIP-lemezképek (*.IM? *.im? *.ZDI *.zdi)"
+msgstr "Imagens ZIP (*.IM? *.im? *.ZDI *.zdi)"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=""https://github.com/86Box/roms/releases/latest"">download</a> a ROM set and extract it into the ""roms"" directory."
-msgstr "A 86Box nem talált használható ROM-képeket\n\nKérem <a href=""https://github.com/86Box/roms/releases/latest"">töltse le</a> a ROM készletet és bontsa ki a ""roms"" könyvtárba."
+msgstr "O 86Box não conseguiu encontrar nenhuma imagem de ROM utilizável.\n\nPor favor, <a href=""https://github.com/86Box/roms/releases/latest"">baixe</a> um conjunto de ROM e extraia no diretório ""roms""."
 
 msgid "(empty)"
-msgstr "(üres)"
+msgstr "(vazio)"
 
 msgid "ZIP images (*.IM? *.im? *.ZDI *.zdi);;All files (*)"
-msgstr "ZIP-lemezképek (*.IM? *.im? *.ZDI *.zdi);;Minden fájl (*)"
+msgstr "Imagens ZIP (*.IM? *.im? *.ZDI *.zdi);;Todos os arquivos (*)"
 
 msgid "Turbo"
-msgstr "Turbó"
+msgstr "Turbo"
 
 msgid "On"
-msgstr "Bekapcsolva"
+msgstr "Lig."
 
 msgid "Off"
-msgstr "Kikapcsolva"
+msgstr "Desl."
 
 msgid "All images (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basic sector images (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Surface images (*.86F *.86f)"
-msgstr "Minden képfájl (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Alapvető szektor képfájlok (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Felületi képfájlok (*.86F *.86f)"
+msgstr "Todas as imagens (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Imagens de setor básico (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Imagens de superfície (*.86F *.86f)"
 
 msgid "Machine ""%hs"" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "A számítógép ""%hs"" nem elérhető a ""roms/machines"" mappából hiányzó ROM-képek miatt. Ehelyett egy másik gép kerül futtatásra."
+msgstr "A máquina ""%hs"" não está disponível devido à falta de ROMs no diretório roms/machines. Mudando para uma máquina disponível."
 
 msgid "Video card ""%hs"" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "A videokártya ""%hs"" nem elérhető a ""roms/video"" mappából hiányzó ROM-képek miatt. Ehelyett egy másik kártya kerül futtatásra."
+msgstr "A placa de vídeo ""%hs"" não está disponível devido à falta de ROMs no diretório roms/video. Mudando para uma placa de vídeo disponível."
 
 msgid "Machine"
-msgstr "Számítógép"
+msgstr "Máquina"
 
 msgid "Display"
-msgstr "Megjelenítő"
+msgstr "Vídeo"
 
 msgid "Input devices"
-msgstr "Beviteli eszközök"
+msgstr "Dispositivos de entrada"
 
 msgid "Sound"
-msgstr "Hang"
+msgstr "Som"
 
 msgid "Network"
-msgstr "Hálózat"
+msgstr "Rede"
 
 msgid "Ports (COM & LPT)"
-msgstr "Portok (COM és LPT)"
+msgstr "Portas (COM & LPT)"
 
 msgid "Storage controllers"
-msgstr "Tárolóvezérlők"
+msgstr "Controladores de armaz."
 
 msgid "Hard disks"
-msgstr "Merevlemezek"
+msgstr "Discos rígidos"
 
 msgid "Floppy & CD-ROM drives"
-msgstr "Floppy és CD-ROM meghajtók"
+msgstr "Disquete & CD-ROM"
 
 msgid "Other removable devices"
-msgstr "Egyéb cserélhető tárolók"
+msgstr "Dispos. removíveis"
 
 msgid "Other peripherals"
-msgstr "Egyéb perifériák"
+msgstr "Outros periféricos"
 
 msgid "Surface images (*.86F *.86f)"
-msgstr "Felületi képfájlok (*.86F *.86f)"
+msgstr "Imagens de superfície (*.86F *.86f)"
 
 msgid "Click to capture mouse"
-msgstr "Kattintson az egér elfogásához"
+msgstr "Clique para capturar o mouse"
 
 msgid "Press F8+F12 to release mouse"
-msgstr "Nyomja meg az F8+F12-t az egér elengédéséhez"
+msgstr "Aperte F8+F12 para liberar o mouse"
 
 msgid "Press F8+F12 or middle button to release mouse"
-msgstr "Nyomja meg az F8+F12-t vagy a középső gombot az egér elengédéséhez"
+msgstr "Aperte F8+F12 ou botão do meio para liberar o mouse"
 
 msgid "Unable to initialize FluidSynth"
-msgstr "Nem sikerült a FluidSynth inicializálása"
+msgstr "Não foi possível inicializar o FluidSynth"
 
 msgid "Bus"
-msgstr "Busz"
+msgstr "Barramento"
 
 msgid "File"
-msgstr "Fájl"
+msgstr "Arquivo"
 
 msgid "C"
-msgstr "C"
+msgstr "CI"
 
 msgid "H"
-msgstr "H"
+msgstr "CA"
 
 msgid "S"
-msgstr "S"
+msgstr "SE"
 
 msgid "KB"
 msgstr "KB"
 
 msgid "Could not initialize the video renderer."
-msgstr "Nem sikerült inicializálni a videó megjelenítőt."
+msgstr "Não foi possível inicializar o renderizador de vídeo."
 
 msgid "Default"
-msgstr "Alapértelmezett"
+msgstr "Padrão"
 
 msgid "%i Wait state(s)"
-msgstr "%i várakozási ciklus(ok)"
+msgstr "%i estado(s) de espera"
 
 msgid "Type"
-msgstr "Típus"
+msgstr "Tipo"
 
 msgid "Failed to set up PCap"
-msgstr "Nem sikerült a PCap beállítása"
+msgstr "Não foi possível configurar o PCap"
 
 msgid "No PCap devices found"
-msgstr "Nem találhatóak PCap eszközök"
+msgstr "Nenhum dispositivo PCap encontrado"
 
 msgid "Invalid PCap device"
-msgstr "Érvénytelen PCap eszköz"
+msgstr "Dispositivo PCap inválido"
 
 msgid "Standard 2-button joystick(s)"
-msgstr "Szabványos 2-gombos játékvezérlő(k)"
+msgstr "Joystick padrão de 2 botões"
 
 msgid "Standard 4-button joystick"
-msgstr "Szabványos 4-gombos játékvezérlő"
+msgstr "Joystick padrão de 4 botões"
 
 msgid "Standard 6-button joystick"
-msgstr "Szabványos 6-gombos játékvezérlő"
+msgstr "Joystick padrão de 6 botões"
 
 msgid "Standard 8-button joystick"
-msgstr "Szabványos 8-gombos játékvezérlő"
+msgstr "Joystick padrão de 8 botões"
 
 msgid "CH Flightstick Pro"
 msgstr "CH Flightstick Pro"
@@ -761,13 +761,13 @@ msgid "Thrustmaster Flight Control System"
 msgstr "Thrustmaster Flight Control System"
 
 msgid "None"
-msgstr "Nincs"
+msgstr "Nada"
 
 msgid "Unable to load keyboard accelerators."
-msgstr "Nem lehet betölteni a billentyűzetgyorsítókat."
+msgstr "Não foi possível carregar os aceleradores do teclado."
 
 msgid "Unable to register raw input."
-msgstr "A közvetlen nyers bevitel regisztrálása nem sikerült."
+msgstr "Não foi possível registrar a entrada bruta."
 
 msgid "%u"
 msgstr "%u"
@@ -776,64 +776,64 @@ msgid "%u MB (CHS: %i, %i, %i)"
 msgstr "%u MB (CHS: %i, %i, %i)"
 
 msgid "Floppy %i (%s): %ls"
-msgstr "Floppy %i (%s): %ls"
+msgstr "Disquete %i (%s): %ls"
 
 msgid "All images (*.0?? *.1?? *.??0 *.86F *.86f *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.JSON *.json *.TD0 *.td0 *.*FD? *.*fd? *.MFM *.mfm *.XDF *.xdf);;Advanced sector images (*.IMD *.imd *.JSON *.json *.TD0 *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.XDF *.xdf *.*FD? *.*fd?);;Flux images (*.FDI *.fdi);;Surface images (*.86F *.86f *.MFM *.mfm);;All files (*)"
-msgstr "Minden képfájl (*.0?? *.1?? *.??0 *.86F *.86f *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.JSON *.json *.TD0 *.td0 *.*FD? *.*fd? *.MFM *.mfm *.XDF *.xdf);;Továbbfejlesztett szektor képek (*.IMD *.imd *.JSON *.json *.TD0 *.td0);;Alapvető szektor képek  (*.0?? *.1?? *.??0 *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.XDF *.xdf *.*FD? *.*fd?);;Flux képekfájlok (*.FDI *.fdi);;Felületi képfájlok (*.86F *.86f *.MFM *.mfm);;Minden fájl (*)"
+msgstr "Todas as imagens (*.0?? *.1?? *.??0 *.86F *.86f *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.JSON *.json *.TD0 *.td0 *.*FD? *.*fd? *.MFM *.mfm *.XDF *.xdf);;Imagens de setor avançado (*.IMD *.imd *.JSON *.json *.TD0 *.td0);;Imagens de setor básico (*.0?? *.1?? *.??0 *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.XDF *.xdf *.*FD? *.*fd?);;Imagens de fluxo (*.FDI *.fdi);;Imagens de superfície (*.86F *.86f *.MFM *.mfm);;Todos os arquivos (*)"
 
 msgid "Unable to initialize FreeType"
-msgstr "A FreeType inicializálása nem lehetséges"
+msgstr "Não foi possível inicializar o FreeType"
 
 msgid "Unable to initialize SDL, SDL2.dll is required"
-msgstr "Az SDL inicializálása nem lehetséges, az SDL2.dll fájl szükséges"
+msgstr "Não é possível inicializar o SDL, é necessário o SDL2.dll"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
-msgstr "Biztosan szeretné újraindítani az emulált gépet?"
+msgstr "Tem certeza de que deseja reiniciar completamente a máquina emulada?"
 
 msgid "Are you sure you want to exit 86Box?"
-msgstr "Biztos benne, hogy ki szeretne lépni a 86Box-ból?"
+msgstr "Tem certeza de que deseja sair do 86Box?"
 
 msgid "Unable to initialize Ghostscript"
-msgstr "Nem sikerült inicializálni a Ghostscript-et"
+msgstr "Não é possível inicializar o Ghostscript"
 
 msgid "MO %i (%ls): %ls"
-msgstr "MO %i (%ls): %ls"
+msgstr "Magneto-óptico %i (%ls): %ls"
 
 msgid "MO images (*.IM? *.im? *.MDI *.mdi);;All files (*)"
-msgstr "MO-képfájlok (*.IM? *.im? *.MDI *.mdi);;Minden fájl (*)"
+msgstr "Imagens magneto-ópticas (*.IM? *.im? *.MDI *.mdi);;Todos os arquivos (*)"
 
 msgid "Welcome to 86Box!"
-msgstr "Üdvözli önt az 86Box!"
+msgstr "Bem-vindo ao 86Box!"
 
 msgid "Internal controller"
-msgstr "Integrált vezérlő"
+msgstr "Controle interno"
 
 msgid "Exit"
-msgstr "Kilépés"
+msgstr "Sair"
 
 msgid "No ROMs found"
-msgstr "Nem találhatóak meg a ROM-képek"
+msgstr "Nenhum ROM encontrada"
 
 msgid "Do you want to save the settings?"
-msgstr "Szeretné menteni a beállításokat?"
+msgstr "Você deseja salvar as configurações?"
 
 msgid "This will hard reset the emulated machine."
-msgstr "Ezzel hardveresen újraindítja az emulált gépet."
+msgstr "Isto fará com que a máquina emulada seja reinicializada."
 
 msgid "Save"
-msgstr "Mentés"
+msgstr "Salvar"
 
 msgid "About 86Box"
-msgstr "A 86Box névjegye"
+msgstr "Sobre o 86Box"
 
 msgid "86Box v"
-msgstr "86Box v"
+msgstr "86Box versão"
 
 msgid "An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Régi számítógépek emulátora\n\nFejlesztők: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nFordította: Laci bá'\n\nMegjelent a GNU General Public License v2 vagy újabb alatt. További információért lásd a LICENSE fájlt."
+msgstr "Um emulador de computadores antigos\n\nAutores: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, e outros.\n\nTraduzido por: Altieres Lima da Silva\n\nLançado sob a Licença Pública Geral GNU versão 2 ou posterior. Veja o arquivo LICENSE para mais informações."
 
 msgid "Hardware not available"
-msgstr "Hardver nem elérhető"
+msgstr "Hardware não disponível"
 
 msgid "WinPcap"
 msgstr "WinPcap"
@@ -842,10 +842,10 @@ msgid "libpcap"
 msgstr "libpcap"
 
 msgid "Make sure libpcap is installed and that you are on a libpcap-compatible network connection."
-msgstr "Győződjön meg hogy a(z) libpcap telepítve van és jelenleg a libpcap-kompatibilis kapcsolatot használja."
+msgstr "Certifique-se de que libpcap esteja instalado e que você tenha uma conexão de rede compatível com libpcap."
 
 msgid "Invalid configuration"
-msgstr "Érvénytelen konfiguráció"
+msgstr "Configuração inválida"
 
 msgid "freetype.dll"
 msgstr "freetype.dll"
@@ -854,7 +854,7 @@ msgid "libfreetype"
 msgstr "libfreetype"
 
 msgid " is required for ESC/P printer emulation."
-msgstr " szükséges az ESC/P nyomtató emulációhoz."
+msgstr " é necessário para emulação de impressora ESC/P."
 
 msgid "gsdll32.dll"
 msgstr "gsdll32.dll"
@@ -863,7 +863,7 @@ msgid "libgs"
 msgstr "libgs"
 
 msgid " is required for automatic conversion of PostScript files to PDF.\n\nAny documents sent to the generic PostScript printer will be saved as PostScript (.ps) files."
-msgstr " szükséges a PostScript fájlok PDF formátumba való automatikus konvertálásához.\n\nAz általános PostScript nyomtatóra küldött dokumentumok PostScript (.ps) fájlként kerülnek mentésre."
+msgstr " é necessário para a conversão automática de arquivos PostScript para PDF.\n\nQualquer documento enviado para a impressora genérica PostScript será salvo como arquivos PostScript (.ps)."
 
 msgid "libfluidsynth.dll"
 msgstr "libfluidsynth.dll"
@@ -872,67 +872,67 @@ msgid "libfluidsynth"
 msgstr "libfluidsynth"
 
 msgid " is required for FluidSynth MIDI output."
-msgstr " szükséges a FluidSynth MIDI kimenethez."
+msgstr " é necessário para a saída MIDI FluidSynth."
 
 msgid "Entering fullscreen mode"
-msgstr "Teljes képernyős módra váltás"
+msgstr "Entrando no modo de tela cheia"
 
 msgid "Don't show this message again"
-msgstr "Ne jelenítse meg újra ezt az üzenetet "
+msgstr "Não exibir esta mensagem novamente"
 
 msgid "Don't exit"
-msgstr "Ne lépjen ki"
+msgstr "Não sair"
 
 msgid "Reset"
-msgstr "Újraindítás"
+msgstr "Reiniciar"
 
 msgid "Don't reset"
-msgstr "Ne indítsa újra"
+msgstr "Não reiniciar"
 
 msgid "CD-ROM images (*.ISO *.iso *.CUE *.cue);;All files (*)"
-msgstr "CD-ROM-képek (*.ISO *.iso *.CUE *.cue);;Minden fájl (*)"
+msgstr "Imagens de CD-ROM (*.ISO *.iso *.CUE *.cue);;Todos os arquivos (*)"
 
 msgid "%hs Device Configuration"
-msgstr "%hs eszközkonfiguráció"
+msgstr "Configuração do dispositivo %hs"
 
 msgid "Monitor in sleep mode"
-msgstr "Képernyő alvó módban"
+msgstr "Monitor em modo de suspensão"
 
 msgid "OpenGL Shaders (*.GLSL *.glsl);;All files (*)"
-msgstr "OpenGL Shaderek (*.GLSL *.glsl);;Minden fájl (*)"
+msgstr "Shaders OpenGL (*.GLSL *.glsl);;Todos os arquivos (*)"
 
 msgid "OpenGL options"
-msgstr "OpenGL beállítások"
+msgstr "Opções do OpenGL"
 
 msgid "You are loading an unsupported configuration"
-msgstr "Egy nem támogatott konfigurációt tölt be"
+msgstr "Você está carregando uma configuração não suportada"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "A kiválasztott gépen alapuló CPU-típusszűrés le van tiltva ezen az emulált gépen.\n\nEz lehetővé teszi olyan CPU kiválasztását, amely egyébként nem kompatibilis a kiválasztott géppel. Előfordulhat azonban, hogy nem kompatibilis a gép BIOS-ával vagy más szoftverekkel.\n\nA beállítás engedélyezése hivatalosan nem támogatott, és a benyújtott hibajelentéseket érvénytelenként lezárhatjuk."
+msgstr "A filtragem do tipo CPU baseada na máquina selecionada é desativada para esta máquina emulada.\n\nIsto torna possível escolher uma CPU que de outra forma seria incompatível com a máquina selecionada. Entretanto, você pode encontrar incompatibilidades com a BIOS da máquina ou outro software.\n\nA ativação desta configuração não é oficialmente suportada e qualquer relatório de erro arquivado pode ser fechado como inválido."
 
 msgid "Continue"
-msgstr "Folytatás"
+msgstr "Continuar"
 
 msgid "Cassette: %s"
-msgstr "Magnókazetta: %s"
+msgstr "Cassete: %s"
 
 msgid "Cassette images (*.PCM *.pcm *.RAW *.raw *.WAV *.wav *.CAS *.cas);;All files (*)"
-msgstr "Magnókazetta-képek (*.PCM *.pcm *.RAW *.raw *.WAV *.wav *.CAS *.cas);;Minden fájl (*)"
+msgstr "Imagens de cassete (*.PCM *.pcm *.RAW *.raw *.WAV *.wav *.CAS *.cas);;Todos os arquivos (*)"
 
 msgid "Cartridge %i: %ls"
-msgstr "ROM-kazetta %i: %ls"
+msgstr "Cartucho %i: %ls"
 
 msgid "Cartridge images (*.A *.a *.B *.b *.JRC *.jrc);;All files (*)"
-msgstr "ROM-kazetta képek (*.A *.a *.B *.b *.JRC *.jrc);;Minden fájl (*)"
+msgstr "Imagens de cartucho (*.A *.a *.B *.b *.JRC *.jrc);;Todos os arquivos (*)"
 
 msgid "Error initializing renderer"
-msgstr "Error initializing renderer"
+msgstr "Erro ao inicializar o renderizador"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "O renderizador OpenGL (Núcleo 3.0) não pôde ser inicializado. Use outro renderizador."
 
 msgid "Hard disk (%s)"
-msgstr "Merevlemez (%s)"
+msgstr "Disco rígido (%s)"
 
 msgid "%01i:%01i"
 msgstr "%01i:%01i"
@@ -941,112 +941,112 @@ msgid "%01i"
 msgstr "%01i"
 
 msgid "MFM/RLL or ESDI CD-ROM drives never existed"
-msgstr "MFM/RLL vagy ESDI CD-ROM meghajtók soha nem léteztek"
+msgstr "As unidades de CD-ROM MFM/RLL ou ESDI nunca existiram"
 
 msgid "Custom..."
-msgstr "Egyéni..."
+msgstr "Personalizado..."
 
 msgid "Custom (large)..."
-msgstr "Egyéni (nagy)..."
+msgstr "Personalizado (grande)..."
 
 msgid "Add New Hard Disk"
-msgstr "Új merevlemez hozzáadása"
+msgstr "Adicionar novo disco rígido"
 
 msgid "Add Existing Hard Disk"
-msgstr "Meglévő merevlemez hozzáadása"
+msgstr "Adicionar disco rígido existente"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "A HDI lemezképek nem lehetnek nagyobbak 4 GB-nál."
+msgstr "As imagens de disco HDI não podem ser maiores do que 4GB."
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "A lemezképek mérete nem haladhatja meg a 127 GB-ot."
+msgstr "As imagens de disco não podem ser maiores do que 127GB."
 
 msgid "Hard disk images (*.HD? *.hd? *.IM? *.im? *.VHD *.vhd);;All files (*)"
-msgstr "Merevlemez-képfájlok (*.HD? *.hd? *.IM? *.im? *.VHD *.vhd);;Minden fájl (*)"
+msgstr "Imagens de disco rígido (*.HD? *.hd? *.IM? *.im? *.VHD *.vhd);;Todos os arquivos (*)"
 
 msgid "Unable to read file"
-msgstr "A fájl nem olvasható"
+msgstr "Não foi possível ler o arquivo"
 
 msgid "Unable to write file"
-msgstr "A fájl nem írható"
+msgstr "Não foi possível escrever o arquivo"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "Az 512-től eltérő szektorméretű HDI vagy HDX képek nem támogatottak."
+msgstr "Imagens HDI ou HDX com um tamanho de setor que não seja 512 não são suportadas."
 
 msgid "USB is not yet supported"
-msgstr "Az USB még nem támogatott"
+msgstr "O USB ainda não é suportado"
 
 msgid "Disk image file already exists"
-msgstr "A lemezképfájl már létezik"
+msgstr "Esta imagem existe"
 
 msgid "Please specify a valid file name."
-msgstr "Adjon meg egy érvényes fájlnevet."
+msgstr "Digite um nome de arquivo válido."
 
 msgid "Disk image created"
-msgstr "A lemezképfájl létrehozásra került"
+msgstr "A imagem foi criada com sucesso"
 
 msgid "Make sure the file exists and is readable."
-msgstr "Győződjön meg arról, hogy a fájl létezik és olvasható."
+msgstr "Certifique-se de que o arquivo existe e é legível."
 
 msgid "Make sure the file is being saved to a writable directory."
-msgstr "Győződjön meg arról, hogy a fájlt egy írható könyvtárba menti."
+msgstr "Certifique-se de que o arquivo está sendo salvo em um diretório gravável."
 
 msgid "Disk image too large"
-msgstr "A lemezképfájl túl nagy"
+msgstr "A imagem do disco é muito grande"
 
 msgid "Remember to partition and format the newly-created drive."
-msgstr "Ne felejtse el particionálni és formázni az újonnan létrehozott meghajtót."
+msgstr "Lembre-se de particionar e formatar a unidade recém-criada."
 
 msgid "The selected file will be overwritten. Are you sure you want to use it?"
-msgstr "A kiválasztott fájl felülírásra kerül. Biztos, hogy ezt kívánja használni?"
+msgstr "O arquivo selecionado será sobrescrito. Você tem certeza de que deseja usá-lo?"
 
 msgid "Unsupported disk image"
-msgstr "Nem támogatott lemezkép"
+msgstr "Imagem de disco sem suporte"
 
 msgid "Overwrite"
-msgstr "Felülírás"
+msgstr "Sobrescrever"
 
 msgid "Don't overwrite"
-msgstr "Ne írja felül"
+msgstr "Não sobrescrever"
 
 msgid "Raw image (.img)"
-msgstr "Nyers lemezkép (.img)"
+msgstr "Imagem bruta (.img)"
 
 msgid "HDI image (.hdi)"
-msgstr "HDI-lemezkép (.hdi)"
+msgstr "Imagem HDI (.hdi)"
 
 msgid "HDX image (.hdx)"
-msgstr "HDX-lemezkép (.hdx)"
+msgstr "Imagem HDX (.hdx)"
 
 msgid "Fixed-size VHD (.vhd)"
-msgstr "Rögzített méretű VHD (.vhd)"
+msgstr "VHD de tamanho fixo (.vhd)"
 
 msgid "Dynamic-size VHD (.vhd)"
-msgstr "Dinamikusan bővülő VHD (.vhd)"
+msgstr "VHD de tamanho dinâmico (.vhd)"
 
 msgid "Differencing VHD (.vhd)"
-msgstr "Különbség-VHD (.vhd)"
+msgstr "VHD diferencial (.vhd)"
 
 msgid "Large blocks (2 MB)"
-msgstr "Nagy blokkméret (2 MB)"
+msgstr "Blocos grandes (2 MB)"
 
 msgid "Small blocks (512 KB)"
-msgstr "Kis blokkméret (512 KB)"
+msgstr "Blocos pequenos (512 KB)"
 
 msgid "VHD files (*.VHD *.vhd);;All files (*)"
-msgstr "VHD fájlok (*.VHD *.vhd);;Minden fájl (*)"
+msgstr "Arquivos VHD (*.VHD *.vhd);;Todos os arquivos (*)"
 
 msgid "Select the parent VHD"
-msgstr "Válassza ki a szülő VHD-t"
+msgstr "Selecione o VHD pai"
 
 msgid "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"
-msgstr "Ez azt jelentheti, hogy a szülőkép módosult az eltérő kép létrehozása után.\n\nEz akkor is előfordulhat, ha a képfájlokat áthelyezték vagy másolták, vagy a lemezt létrehozó program hibája miatt.\n\nSzeretné kijavítani az időbélyegeket?"
+msgstr "Isto pode significar que a imagem de origem foi modificada após a criação da imagem diferencial.\n\nTambém pode acontecer caso os arquivos de imagem tenham sido movidos ou copiados, ou por um erro no programa que criou este disco.\n\nVocê quer consertar os marcadores de tempo?"
 
 msgid "Parent and child disk timestamps do not match"
-msgstr "A szülő- és a gyermeklemez időbélyegei nem egyeznek"
+msgstr "A data/hora dos arquivos de pais e filhos não correspondem"
 
 msgid "Could not fix VHD timestamp."
-msgstr "Nem sikerült kijavítani a VHD időbélyegét."
+msgstr "Não foi possível consertar o carimbo de data/hora da VHD."
 
 msgid "%01i:%02i"
 msgstr "%01i:%02i"
@@ -1115,10 +1115,10 @@ msgid "1.44 MB"
 msgstr "1.44 MB"
 
 msgid "DMF (cluster 1024)"
-msgstr "DMF (1024 klaszter)"
+msgstr "DMF (cluster 1024)"
 
 msgid "DMF (cluster 2048)"
-msgstr "DMF (2048 klaszter)"
+msgstr "DMF (cluster 2048)"
 
 msgid "2.88 MB"
 msgstr "2.88 MB"
@@ -1157,17 +1157,17 @@ msgid "5.25"" 1.3Gb M.O."
 msgstr "5.25"" 1.3Gb M.O."
 
 msgid "Perfect RPM"
-msgstr "Tökéletes RPM"
+msgstr "RPM perfeita"
 
 msgid "1%% below perfect RPM"
-msgstr "1%%-kal a tökéletes RPM alatt"
+msgstr "1%% abaixo das RPM perfeita"
 
 msgid "1.5%% below perfect RPM"
-msgstr "1.5%%-kal a tökéletes RPM alatt"
+msgstr "1.5%% abaixo das RPM perfeita"
 
 msgid "2%% below perfect RPM"
-msgstr "2%%-kal a tökéletes RPM alatt"
+msgstr "2%% abaixo das RPM perfeita"
 
 msgid "(System Default)"
-msgstr "(A rendszer nyelve)"
+msgstr "(Padrão do sistema)"
 

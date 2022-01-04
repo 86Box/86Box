@@ -52,7 +52,7 @@
    </property>
    <widget class="QMenu" name="menuAction">
     <property name="title">
-     <string>Action</string>
+     <string>&amp;Action</string>
     </property>
     <addaction name="actionKeyboard_requires_capture"/>
     <addaction name="actionRight_CTRL_is_left_ALT"/>
@@ -80,7 +80,7 @@
    </widget>
    <widget class="QMenu" name="menuView">
     <property name="title">
-     <string>View</string>
+     <string>&amp;View</string>
     </property>
     <widget class="QMenu" name="menuRenderer">
      <property name="title">
@@ -186,7 +186,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Keyboard requires capture</string>
+    <string>&amp;Keyboard requires capture</string>
    </property>
   </action>
   <action name="actionRight_CTRL_is_left_ALT">
@@ -194,22 +194,25 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Right CTRL is left ALT</string>
+    <string>&amp;Right CTRL is left ALT</string>
    </property>
   </action>
   <action name="actionHard_Reset">
    <property name="text">
-    <string>Hard Reset</string>
+    <string>&amp;Hard Reset...</string>
    </property>
   </action>
   <action name="actionCtrl_Alt_Del">
    <property name="text">
+    <string>&amp;Ctrl+Alt+Del</string>
+   </property>
+   <property name="toolTip">
     <string>Ctrl+Alt+Del</string>
    </property>
   </action>
   <action name="actionCtrl_Alt_Esc">
    <property name="text">
-    <string>Ctrl+Alt+Esc</string>
+    <string>Ctrl+Alt+&amp;Esc</string>
    </property>
   </action>
   <action name="actionPause">
@@ -217,7 +220,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Pause</string>
+    <string>&amp;Pause</string>
    </property>
   </action>
   <action name="actionExit">
@@ -227,7 +230,7 @@
   </action>
   <action name="actionSettings">
    <property name="text">
-    <string>Settings</string>
+    <string>&amp;Settings...</string>
    </property>
    <property name="menuRole">
     <enum>QAction::PreferencesRole</enum>

@@ -40,14 +40,14 @@ msgstr "&Pencere boyut ve pozisyonunu hatırla"
 msgid "Re&nderer"
 msgstr "&İşleyici"
 
-msgid "&Qt (Software)"
-msgstr "&Qt (Yazılım)"
+msgid "&SDL (Software)"
+msgstr "&SDL (Yazılım)"
 
-msgid "Qt (&Hardware)"
-msgstr "Qt (&Donanım)"
+msgid "SDL (&Hardware)"
+msgstr "SDL (&Donanım)"
 
-msgid "Qt (&OpenGL)"
-msgstr "Qt (&OpenGL)"
+msgid "SDL (&OpenGL)"
+msgstr "SDL (&OpenGL)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "Open&GL (3.0 Core)"

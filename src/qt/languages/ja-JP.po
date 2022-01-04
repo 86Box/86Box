@@ -40,17 +40,14 @@ msgstr "ウィンドウのサイズと位置を記憶する(&E)"
 msgid "Re&nderer"
 msgstr "レンダラー(&N)"
 
-msgid "&Qt (Software)"
-msgstr "Qt (ソフトウェア)(&Q)"
+msgid "&SDL (Software)"
+msgstr "SDL (ソフトウェア)(&S)"
 
-msgid "Qt (&Hardware)"
-msgstr "Qt (ハードウェア)(&H)"
+msgid "SDL (&Hardware)"
+msgstr "SDL (ハードウェア)(&H)"
 
-msgid "Qt (&OpenGL)"
-msgstr "Qt (OpenGL)(&O)"
-
-msgid "Qt (OpenGL &ES)"
-msgstr "Qt (OpenGL ES)(&E)"
+msgid "SDL (&OpenGL)"
+msgstr "SDL (OpenGL)(&O)"
 
 msgid "Open&GL (3.0 Core)"
 msgstr "OpenGL (3.0コア)(&G)"
