@@ -36,22 +36,22 @@ void MediaMenu::refresh(QMenu *parentMenu) {
 
     if(MachineStatus::hasCassette()) {
         cassetteMenu = parentMenu->addMenu("");
-        cassetteMenu->addAction(tr("New Image"), [this]() { cassetteNewImage(); });
+        cassetteMenu->addAction(tr("&New image..."), [this]() { cassetteNewImage(); });
         cassetteMenu->addSeparator();
-        cassetteMenu->addAction(tr("Existing Image"), [this]() { cassetteSelectImage(false); });
-        cassetteMenu->addAction(tr("Existing Image (Write Protected)"), [this]() { cassetteSelectImage(true); });
+        cassetteMenu->addAction(tr("&Existing image.."), [this]() { cassetteSelectImage(false); });
+        cassetteMenu->addAction(tr("&Existing image (&Write-protected)..."), [this]() { cassetteSelectImage(true); });
         cassetteMenu->addSeparator();
         cassetteRecordPos = cassetteMenu->children().count();
-        cassetteMenu->addAction(tr("Record"), [this] { pc_cas_set_mode(cassette, 1); cassetteUpdateMenu(); })->setCheckable(true);
+        cassetteMenu->addAction(tr("&Record"), [this] { pc_cas_set_mode(cassette, 1); cassetteUpdateMenu(); })->setCheckable(true);
         cassettePlayPos = cassetteMenu->children().count();
-        cassetteMenu->addAction(tr("Play"), [this] { pc_cas_set_mode(cassette, 0); cassetteUpdateMenu(); })->setCheckable(true);
+        cassetteMenu->addAction(tr("&Play"), [this] { pc_cas_set_mode(cassette, 0); cassetteUpdateMenu(); })->setCheckable(true);
         cassetteRewindPos = cassetteMenu->children().count();
-        cassetteMenu->addAction(tr("Rewind"), [] { pc_cas_rewind(cassette); });
+        cassetteMenu->addAction(tr("&Rewind to the beginning"), [] { pc_cas_rewind(cassette); });
         cassetteFastFwdPos = cassetteMenu->children().count();
-        cassetteMenu->addAction(tr("Fast Forward"), [] { pc_cas_append(cassette); });
+        cassetteMenu->addAction(tr("&Fast forward to the end"), [] { pc_cas_append(cassette); });
         cassetteMenu->addSeparator();
         cassetteEjectPos = cassetteMenu->children().count();
-        cassetteMenu->addAction(tr("Eject"), [this]() { cassetteEject(); });
+        cassetteMenu->addAction(tr("E&ject"), [this]() { cassetteEject(); });
         cassetteUpdateMenu();
     }
 
