@@ -161,10 +161,10 @@ void SettingsMachine::on_comboBoxMachine_currentIndexChanged(int index) {
     int divisor;
     if ((machine_get_ram_granularity(machineId) < 1024)) {
         divisor = 1;
-        ui->spinBoxRAM->setSuffix(" KB");
+        ui->spinBoxRAM->setSuffix(QCoreApplication::translate("", "KB").prepend(' '));
     } else {
         divisor = 1024;
-        ui->spinBoxRAM->setSuffix(" MB");
+        ui->spinBoxRAM->setSuffix(QCoreApplication::translate("", "MB").prepend(' '));
     }
     ui->spinBoxRAM->setMinimum(machine_get_min_ram(machineId) / divisor);
     ui->spinBoxRAM->setMaximum(machine_get_max_ram(machineId) / divisor);

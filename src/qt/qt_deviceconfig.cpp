@@ -198,9 +198,9 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance) {
 
 QString DeviceConfig::DeviceName(const _device_* device, const char *internalName, int bus) {
     if (QStringLiteral("none") == internalName) {
-        return "None";
+        return tr("None");
     } else if (QStringLiteral("internal") == internalName) {
-        return "Internal";
+        return tr("Internal controller");
     } else if (device == nullptr) {
         return QString();
     } else {

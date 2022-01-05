@@ -34,15 +34,15 @@ private:
     QStringList pages = {
         "Machine",
         "Display",
-        "Input Devices",
+        "Input devices",
         "Sound",
         "Network",
         "Ports (COM & LPT)",
-        "Storage Controllers",
-        "Hard Disks",
-        "Floppy & CD-ROM Drives",
-        "Other Removable Devices",
-        "Other Peripherals",
+        "Storage controllers",
+        "Hard disks",
+        "Floppy & CD-ROM drives",
+        "Other removable devices",
+        "Other peripherals",
     };
     QStringList page_icons = {
         "machine",
@@ -64,7 +64,7 @@ QVariant SettingsModel::data(const QModelIndex &index, int role) const {
 
     switch (role) {
     case Qt::DisplayRole:
-        return pages.at(index.row());
+        return tr(pages.at(index.row()).toUtf8().data());
     case Qt::DecorationRole:
         return QIcon(QString("%1/%2.ico").arg(ProgSettings::getIconSetPath(), page_icons[index.row()]));
     default:

@@ -75,7 +75,7 @@ void SettingsInput::onCurrentMachineChanged(int machineId) {
     removeRows = joystickModel->rowCount();
     selectedRow = 0;
     while (joyName) {
-        int row = Models::AddEntry(joystickModel, joyName, i);
+        int row = Models::AddEntry(joystickModel, tr(joyName).toUtf8().data(), i);
         if (i == joystick_type) {
             selectedRow = row - removeRows;
         }

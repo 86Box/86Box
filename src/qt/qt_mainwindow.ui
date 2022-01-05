@@ -47,7 +47,7 @@
      <x>0</x>
      <y>0</y>
      <width>724</width>
-     <height>23</height>
+     <height>21</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAction">
@@ -209,6 +209,12 @@
    <property name="toolTip">
     <string>Ctrl+Alt+Del</string>
    </property>
+   <property name="shortcut">
+    <string>Ctrl+F12</string>
+   </property>
+   <property name="shortcutVisibleInContextMenu">
+    <bool>false</bool>
+   </property>
   </action>
   <action name="actionCtrl_Alt_Esc">
    <property name="text">
@@ -242,6 +248,9 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+Alt+PgUp</string>
+   </property>
+   <property name="shortcutVisibleInContextMenu">
+    <bool>false</bool>
    </property>
   </action>
   <action name="actionSoftware_Renderer">
@@ -515,7 +524,13 @@
   </action>
   <action name="actionTake_screenshot">
    <property name="text">
-    <string>Take s&amp;creenshot...</string>
+    <string>Take s&amp;creenshot</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+F11</string>
+   </property>
+   <property name="shortcutVisibleInContextMenu">
+    <bool>false</bool>
    </property>
   </action>
   <action name="actionSound_gain">

@@ -180,7 +180,7 @@ foreach(po_file ${po_files})
 
     get_filename_component(PO_FILE_NAME ${po_file} NAME_WE)
     add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm"
-                       COMMAND ${LCONVERT_EXECUTABLE} -i ${po_file} -o ${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm
+                       COMMAND ${LCONVERT_EXECUTABLE} -input-format po -input-file ${po_file} -output-format qm -output-file ${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm
                        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
                        DEPENDS "${po_file}")
     list(APPEND QM_FILES "${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm")

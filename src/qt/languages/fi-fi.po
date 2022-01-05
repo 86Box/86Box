@@ -217,9 +217,6 @@ msgstr "&Dokumentaatio..."
 msgid "&About 86Box..."
 msgstr "&Tietoja 86Box:sta..."
 
- 
- 
-
 msgid "&New image..."
 msgstr "&Uusi kasettikuva..."
 

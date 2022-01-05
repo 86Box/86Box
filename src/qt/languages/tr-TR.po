@@ -644,10 +644,10 @@ msgid "All images (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?
 msgstr "Tüm imajlar (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basit sektör imajları (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Yüzey imajları (*.86F *.86f)"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr \""%hs\" makinesi roms/machines klasöründe mevcut olmayan ROM imajı yüzünden mevcut değil. Mevcut olan bir makineye geçiş yapılıyor."
+msgstr "\"%hs\" makinesi roms/machines klasöründe mevcut olmayan ROM imajı yüzünden mevcut değil. Mevcut olan bir makineye geçiş yapılıyor."
 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr \""%hs\" ekran kartı roms/video klasöründe mevcut olmayan ROM imajı yüzünden mevcut değil. Mevcut olan bir ekran kartına geçiş yapılıyor."
+msgstr "\"%hs\" ekran kartı roms/video klasöründe mevcut olmayan ROM imajı yüzünden mevcut değil. Mevcut olan bir ekran kartına geçiş yapılıyor."
 
 msgid "Machine"
 msgstr "Makine"

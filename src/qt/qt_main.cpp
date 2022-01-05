@@ -103,6 +103,9 @@ protected:
     QString translate(const char *context, const char *sourceText,
                                   const char *disambiguation = nullptr, int n = -1) const override
     {
+        if (strcmp(sourceText, "&Fullscreen") == 0) sourceText = "&Fullscreen\tCtrl+Alt+PageUP";
+        if (strcmp(sourceText, "&Ctrl+Alt+Del") == 0) sourceText = "&Ctrl+Alt+Del\tCtrl+F12";
+        if (strcmp(sourceText, "Take s&creenshot") == 0) sourceText = "Take s&creenshot\tCtrl+F11";
         return QTranslator::translate("", sourceText, disambiguation, n);
     }
 };
