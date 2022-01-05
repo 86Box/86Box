@@ -707,13 +707,13 @@ win_settings_machine_recalc_cpu_m(HWND hdlg)
 
     lptsTemp = (LPTSTR) malloc(512 * sizeof(WCHAR));
 
-    settings_reset_content(hdlg, IDC_COMBO_CPU);
+    settings_reset_content(hdlg, IDC_COMBO_CPU_SPEED);
     c = i = 0;
     while (temp_cpu_f->cpus[c].cpu_type != 0) {
 	if (cpu_is_eligible(temp_cpu_f, c, temp_machine)) {
 		stransi = (char *) temp_cpu_f->cpus[c].name;
 		mbstowcs(lptsTemp, stransi, strlen(stransi) + 1);
-		settings_add_string(hdlg, IDC_COMBO_CPU, (LPARAM)(LPCSTR)lptsTemp);
+		settings_add_string(hdlg, IDC_COMBO_CPU_SPEED, (LPARAM)(LPCSTR)lptsTemp);
 
 		if (first_eligible == -1)
 			first_eligible = i;
@@ -727,13 +727,13 @@ win_settings_machine_recalc_cpu_m(HWND hdlg)
     }
     if (i == 0)
     	fatal("No eligible CPUs for the selected family\n");
-    settings_enable_window(hdlg, IDC_COMBO_CPU, i != 1);
+    settings_enable_window(hdlg, IDC_COMBO_CPU_SPEED, i != 1);
     if (current_eligible < first_eligible)
     	current_eligible = first_eligible;
     else if (current_eligible > last_eligible)
 	current_eligible = last_eligible;
     temp_cpu = listtocpu[current_eligible];
-    settings_set_cur_sel(hdlg, IDC_COMBO_CPU, current_eligible);
+    settings_set_cur_sel(hdlg, IDC_COMBO_CPU_SPEED, current_eligible);
 
     win_settings_machine_recalc_cpu(hdlg);
 
@@ -974,9 +974,9 @@ win_settings_machine_proc(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 					win_settings_machine_recalc_cpu_m(hdlg);
 				}
 				break;
-			case IDC_COMBO_CPU:
+			case IDC_COMBO_CPU_SPEED:
 				if (HIWORD(wParam) == CBN_SELCHANGE) {
-					temp_cpu = listtocpu[settings_get_cur_sel(hdlg, IDC_COMBO_CPU)];
+					temp_cpu = listtocpu[settings_get_cur_sel(hdlg, IDC_COMBO_CPU_SPEED)];
 					win_settings_machine_recalc_cpu(hdlg);
 				}
 				break;

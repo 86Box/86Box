@@ -128,7 +128,7 @@
 #define IDC_COMBO_MACHINE	1011	/* machine/cpu config */
 #define IDC_CONFIGURE_MACHINE	1012
 #define IDC_COMBO_CPU_TYPE	1013
-#define IDC_COMBO_CPU		1014
+#define IDC_COMBO_CPU_SPEED		1014
 #define IDC_COMBO_FPU		1015
 #define IDC_COMBO_WS		1016
 #ifdef USE_DYNAREC
