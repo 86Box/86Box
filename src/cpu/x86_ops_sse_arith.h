@@ -2359,7 +2359,7 @@ static int opPAVGW_xmm_xmm_a32(uint32_t fetchdat)
 static int opPAVGW_a16(uint32_t fetchdat)
 {
     if(sse_xmm) return opPAVGW_xmm_xmm_a16(fetchdat);
-    else return opPAVGB_mm_mm_a16(fetchdat);
+    else return opPAVGW_mm_mm_a16(fetchdat);
 }
 
 static int opPAVGW_a32(uint32_t fetchdat)
