@@ -2807,7 +2807,7 @@ static int opPMAXSW_xmm_xmm_a32(uint32_t fetchdat)
 static int opPMAXSW_a16(uint32_t fetchdat)
 {
     if(sse_xmm) return opPMAXSW_xmm_xmm_a16(fetchdat);
-    else return opPMULHUW_mm_mm_a16(fetchdat);
+    else return opPMAXSW_mm_mm_a16(fetchdat);
 }
 
 static int opPMAXSW_a32(uint32_t fetchdat)
