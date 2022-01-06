@@ -48,7 +48,7 @@ SettingsMachine::SettingsMachine(QWidget *parent) :
     auto* waitStatesModel = ui->comboBoxWaitStates->model();
     waitStatesModel->insertRows(0, 9);
     auto idx = waitStatesModel->index(0, 0);
-    waitStatesModel->setData(idx, "Default", Qt::DisplayRole);
+    waitStatesModel->setData(idx, tr("Default"), Qt::DisplayRole);
     waitStatesModel->setData(idx, 0, Qt::UserRole);
     for (int i = 0; i < 8; ++i) {
         idx = waitStatesModel->index(i+1, 0);

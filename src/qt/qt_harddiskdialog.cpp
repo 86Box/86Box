@@ -58,8 +58,8 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent) :
 
     model = ui->comboBoxBlockSize->model();
     model->insertRows(0, 2);
-    model->setData(model->index(0, 0), tr("Large blocks (2 MiB)"));
-    model->setData(model->index(1, 0), tr("Small blocks (512 KiB)"));
+    model->setData(model->index(0, 0), tr("Large blocks (2 MB)"));
+    model->setData(model->index(1, 0), tr("Small blocks (512 KB)"));
 
     ui->comboBoxBlockSize->hide();
     ui->labelBlockSize->hide();
@@ -71,7 +71,8 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent) :
     for (int i = 0; i < 127; i++) {
         uint64_t size = ((uint64_t) hdd_table[i][0]) * hdd_table[i][1] * hdd_table[i][2];
         uint64_t size_mb = size >> 11LL;
-        QString text = QString("%1 MiB (CHS: %2, %3, %4)").arg(size_mb).arg(hdd_table[i][0]).arg(hdd_table[i][1]).arg(hdd_table[i][2]);
+        //QString text = QString("%1 MiB (CHS: %2, %3, %4)").arg(size_mb).arg(hdd_table[i][0]).arg(hdd_table[i][1]).arg(hdd_table[i][2]);
+        QString text = QString::asprintf(tr("%u MB (CHS: %i, %i, %i)").toUtf8().constData(), (size_mb), (hdd_table[i][0]), (hdd_table[i][1]), (hdd_table[i][2]));
         Models::AddEntry(model, text, i);
     }
     Models::AddEntry(model, tr("Custom..."), 127);
@@ -246,7 +247,7 @@ static MVHDGeom create_drive_vhd_diff(const QString& fileName, const QString& pa
 void HarddiskDialog::onCreateNewFile() {
     qint64 size = ui->lineEditSize->text().toUInt() << 20U;
     if (size > 0x1FFFFFFE00ll) {
-        QMessageBox::critical(this, tr("Disk image too large"), tr("Disk images cannot be larger than 127 GiB"));
+        QMessageBox::critical(this, tr("Disk image too large"), tr("Disk images cannot be larger than 127 GB."));
         return;
     }
 
@@ -280,7 +281,7 @@ void HarddiskDialog::onCreateNewFile() {
 
     QFile file(fileName);
     if (! file.open(QIODevice::WriteOnly)) {
-        QMessageBox::critical(this, tr("Unable to write file"), tr("Make sure the file is being saved to a writable directory"));
+        QMessageBox::critical(this, tr("Unable to write file"), tr("Make sure the file is being saved to a writable directory."));
         return;
     }
 
@@ -288,7 +289,7 @@ void HarddiskDialog::onCreateNewFile() {
         QDataStream stream(&file);
         stream.setByteOrder(QDataStream::LittleEndian);
         if (size >= 0x100000000ll) {
-            QMessageBox::critical(this, tr("Disk image too large"), tr("HDI disk images cannot be larger than 4 GiB"));
+            QMessageBox::critical(this, tr("Disk image too large"), tr("HDI disk images cannot be larger than 4 GB."));
             return;
         }
         uint32_t s = static_cast<uint32_t>(size);
@@ -337,7 +338,7 @@ void HarddiskDialog::onCreateNewFile() {
             _86box_geometry = create_drive_vhd_dynamic(fileName, cylinders_, heads_, sectors_, block_size);
             break;
         case 5:
-            QString vhdParent = QFileDialog::getOpenFileName(this, tr("Select the parent VHD"), QString(), tr("VHD files (*.vhd);;All files (*)"));
+            QString vhdParent = QFileDialog::getOpenFileName(this, tr("Select the parent VHD"), QString(), tr("VHD files (*.VHD *.vhd);;All files (*)"));
             if (vhdParent.isEmpty()) {
                 return;
             }
@@ -346,7 +347,7 @@ void HarddiskDialog::onCreateNewFile() {
         }
 
         if (img_format != 5) {
-            QMessageBox::information(this, tr("Disk image created"), tr("Remember to partition and format the newly-created drive"));
+            QMessageBox::information(this, tr("Disk image created"), tr("Remember to partition and format the newly-created drive."));
         }
 
         ui->lineEditCylinders->setText(QString::number(_86box_geometry.cyl));
@@ -385,7 +386,7 @@ void HarddiskDialog::onCreateNewFile() {
 
     progress.exec();
     writer.join();
-    QMessageBox::information(this, tr("Disk image created"), tr("Remember to partition and format the newly-created drive"));
+    QMessageBox::information(this, tr("Disk image created"), tr("Remember to partition and format the newly-created drive."));
 }
 
 static void adjust_vhd_geometry_for_86box(MVHDGeom *vhd_geometry) {
@@ -449,7 +450,7 @@ void HarddiskDialog::onExistingFileSelected(const QString &fileName) {
 
     QFile file(fileName);
     if (! file.open(QIODevice::ReadOnly)) {
-        QMessageBox::critical(this, tr("Unable to read file"), tr("Make sure the file exists and is readable"));
+        QMessageBox::critical(this, tr("Unable to read file"), tr("Make sure the file exists and is readable."));
         return;
     }
     QByteArray fileNameUtf8 = fileName.toUtf8();
@@ -461,7 +462,7 @@ void HarddiskDialog::onExistingFileSelected(const QString &fileName) {
         stream.setByteOrder(QDataStream::LittleEndian);
         stream >> sector_size;
         if (sector_size != 512) {
-            QMessageBox::critical(this, tr("Unsupported disk image"), tr("HDI or HDX images with a sector size other than 512 are not supported"));
+            QMessageBox::critical(this, tr("Unsupported disk image"), tr("HDI or HDX images with a sector size other than 512 are not supported."));
             return;
         }
 

@@ -68,21 +68,21 @@
      <item>
       <widget class="QPushButton" name="pushButtonNew">
        <property name="text">
-        <string>New</string>
+        <string>&amp;New...</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="pushButtonExisting">
        <property name="text">
-        <string>Existing</string>
+        <string>&amp;Existing...</string>
        </property>
       </widget>
      </item>
      <item>
       <widget class="QPushButton" name="pushButtonRemove">
        <property name="text">
-        <string>Remove</string>
+        <string>&amp;Remove</string>
        </property>
       </widget>
      </item>

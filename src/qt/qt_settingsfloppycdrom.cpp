@@ -23,7 +23,7 @@ static void setFloppyType(QAbstractItemModel* model, const QModelIndex& idx, int
         icon = QIcon(ProgSettings::getIconSetPath() + "/floppy_35.ico");
     }
 
-    model->setData(idx, fdd_getname(type));
+    model->setData(idx, QObject::tr(fdd_getname(type)));
     model->setData(idx, type, Qt::UserRole);
     model->setData(idx, icon, Qt::DecorationRole);
 }
@@ -62,7 +62,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent) :
     auto* model = ui->comboBoxFloppyType->model();
     int i = 0;
     while (true) {
-        QString name = fdd_getname(i);
+        QString name = tr(fdd_getname(i));
         if (name.isEmpty()) {
             break;
         }

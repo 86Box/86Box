@@ -40,7 +40,7 @@ static void setMOBus(QAbstractItemModel* model, const QModelIndex& idx, uint8_t 
 static void setMOType(QAbstractItemModel* model, const QModelIndex& idx, uint32_t type) {
     auto i = idx.siblingAtColumn(1);
     if (idx.siblingAtColumn(0).data(Qt::UserRole).toUInt() == MO_BUS_DISABLED) {
-        model->setData(i, "None");
+        model->setData(i, QCoreApplication::translate("", "None"));
     } else {
         model->setData(i, moDriveTypeName(type));
     }
@@ -86,8 +86,8 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent) :
 
     model = new QStandardItemModel(0, 2, this);
     ui->tableViewMO->setModel(model);
-    model->setHeaderData(0, Qt::Horizontal, "Bus");
-    model->setHeaderData(1, Qt::Horizontal, "Type");
+    model->setHeaderData(0, Qt::Horizontal, tr("Bus"));
+    model->setHeaderData(1, Qt::Horizontal, tr("Type"));
     model->insertRows(0, MO_NUM);
     for (int i = 0; i < MO_NUM; i++) {
         auto idx = model->index(i, 0);

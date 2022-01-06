@@ -38,8 +38,8 @@ void MediaMenu::refresh(QMenu *parentMenu) {
         cassetteMenu = parentMenu->addMenu("");
         cassetteMenu->addAction(tr("&New image..."), [this]() { cassetteNewImage(); });
         cassetteMenu->addSeparator();
-        cassetteMenu->addAction(tr("&Existing image.."), [this]() { cassetteSelectImage(false); });
-        cassetteMenu->addAction(tr("&Existing image (&Write-protected)..."), [this]() { cassetteSelectImage(true); });
+        cassetteMenu->addAction(tr("&Existing image..."), [this]() { cassetteSelectImage(false); });
+        cassetteMenu->addAction(tr("Existing image (&Write-protected)..."), [this]() { cassetteSelectImage(true); });
         cassetteMenu->addSeparator();
         cassetteRecordPos = cassetteMenu->children().count();
         cassetteMenu->addAction(tr("&Record"), [this] { pc_cas_set_mode(cassette, 1); cassetteUpdateMenu(); })->setCheckable(true);
@@ -59,10 +59,10 @@ void MediaMenu::refresh(QMenu *parentMenu) {
     if (machine_has_cartridge(machine)) {
         for(int i = 0; i < 2; i++) {
             auto* menu = parentMenu->addMenu("");
-            menu->addAction(tr("Image"), [this, i]() { cartridgeSelectImage(i); });
+            menu->addAction(tr("&Image..."), [this, i]() { cartridgeSelectImage(i); });
             menu->addSeparator();
             cartridgeEjectPos = menu->children().count();
-            menu->addAction(tr("Eject"), [this, i]() { cartridgeEject(i); });
+            menu->addAction(tr("E&ject"), [this, i]() { cartridgeEject(i); });
             cartridgeMenus[i] = menu;
             cartridgeUpdateMenu(i);
         }
@@ -71,16 +71,16 @@ void MediaMenu::refresh(QMenu *parentMenu) {
     floppyMenus.clear();
     MachineStatus::iterateFDD([this, parentMenu](int i) {
         auto* menu = parentMenu->addMenu("");
-        menu->addAction(tr("New Image"), [this, i]() { floppyNewImage(i); });
+        menu->addAction(tr("&New image..."), [this, i]() { floppyNewImage(i); });
         menu->addSeparator();
-        menu->addAction(tr("Existing Image"), [this, i]() { floppySelectImage(i, false); });
-        menu->addAction(tr("Existing Image (Write Protected)"), [this, i]() { floppySelectImage(i, true); });
+        menu->addAction(tr("&Existing image..."), [this, i]() { floppySelectImage(i, false); });
+        menu->addAction(tr("Existing image (&Write-protected)..."), [this, i]() { floppySelectImage(i, true); });
         menu->addSeparator();
         floppyExportPos = menu->children().count();
-        menu->addAction(tr("Export to 86F"), [this, i]() { floppyExportTo86f(i); });
+        menu->addAction(tr("E&xport to 86F..."), [this, i]() { floppyExportTo86f(i); });
         menu->addSeparator();
         floppyEjectPos = menu->children().count();
-        menu->addAction(tr("Eject"), [this, i]() { floppyEject(i); });
+        menu->addAction(tr("E&ject"), [this, i]() { floppyEject(i); });
         floppyMenus[i] = menu;
         floppyUpdateMenu(i);
     });
@@ -89,15 +89,15 @@ void MediaMenu::refresh(QMenu *parentMenu) {
     MachineStatus::iterateCDROM([this, parentMenu](int i) {
         auto* menu = parentMenu->addMenu("");
         cdromMutePos = menu->children().count();
-        menu->addAction(tr("Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
+        menu->addAction(tr("&Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
         menu->addSeparator();
         cdromEmptyPos = menu->children().count();
-        menu->addAction(tr("Empty"), [this, i]() { cdromEject(i); })->setCheckable(true);
+        menu->addAction(tr("E&mpty"), [this, i]() { cdromEject(i); })->setCheckable(true);
         cdromReloadPos = menu->children().count();
-        menu->addAction(tr("Reload previous image"), [this, i]() { cdromReload(i); });
+        menu->addAction(tr("&Reload previous image"), [this, i]() { cdromReload(i); });
         menu->addSeparator();
         cdromImagePos = menu->children().count();
-        menu->addAction(tr("Image"), [this, i]() { cdromMount(i); })->setCheckable(true);
+        menu->addAction(tr("&Image"), [this, i]() { cdromMount(i); })->setCheckable(true);
         cdromMenus[i] = menu;
         cdromUpdateMenu(i);
     });
@@ -105,15 +105,15 @@ void MediaMenu::refresh(QMenu *parentMenu) {
     zipMenus.clear();
     MachineStatus::iterateZIP([this, parentMenu](int i) {
         auto* menu = parentMenu->addMenu("");
-        menu->addAction(tr("New Image"), [this, i]() { zipNewImage(i); });
+        menu->addAction(tr("&New image..."), [this, i]() { zipNewImage(i); });
         menu->addSeparator();
-        menu->addAction(tr("Existing Image"), [this, i]() { zipSelectImage(i, false); });
-        menu->addAction(tr("Existing Image (Write Protected)"), [this, i]() { zipSelectImage(i, true); });
+        menu->addAction(tr("&Existing image..."), [this, i]() { zipSelectImage(i, false); });
+        menu->addAction(tr("Existing image (&Write-protected)..."), [this, i]() { zipSelectImage(i, true); });
         menu->addSeparator();
         zipEjectPos = menu->children().count();
-        menu->addAction(tr("Eject"), [this, i]() { zipEject(i); });
+        menu->addAction(tr("E&ject"), [this, i]() { zipEject(i); });
         zipReloadPos = menu->children().count();
-        menu->addAction(tr("Reload previous image"), [this, i]() { zipReload(i); });
+        menu->addAction(tr("&Reload previous image"), [this, i]() { zipReload(i); });
         zipMenus[i] = menu;
         zipUpdateMenu(i);
     });
@@ -121,15 +121,15 @@ void MediaMenu::refresh(QMenu *parentMenu) {
     moMenus.clear();
     MachineStatus::iterateMO([this, parentMenu](int i) {
         auto* menu = parentMenu->addMenu("");
-        menu->addAction(tr("New Image"), [this, i]() { moNewImage(i); });
+        menu->addAction(tr("&New image..."), [this, i]() { moNewImage(i); });
         menu->addSeparator();
-        menu->addAction(tr("Existing Image"), [this, i]() { moSelectImage(i, false); });
-        menu->addAction(tr("Existing Image (Write Protected)"), [this, i]() { moSelectImage(i, true); });
+        menu->addAction(tr("&Existing image..."), [this, i]() { moSelectImage(i, false); });
+        menu->addAction(tr("Existing image (&Write-protected)..."), [this, i]() { moSelectImage(i, true); });
         menu->addSeparator();
         moEjectPos = menu->children().count();
-        menu->addAction(tr("Eject"), [this, i]() { moEject(i); });
+        menu->addAction(tr("E&ject"), [this, i]() { moEject(i); });
         moReloadPos = menu->children().count();
-        menu->addAction(tr("Reload previous image"), [this, i]() { moReload(i); });
+        menu->addAction(tr("&Reload previous image"), [this, i]() { moReload(i); });
         moMenus[i] = menu;
         moUpdateMenu(i);
     });
@@ -195,7 +195,7 @@ void MediaMenu::cassetteUpdateMenu() {
     recordMenu->setChecked(isSaving);
     playMenu->setChecked(! isSaving);
 
-    cassetteMenu->setTitle(tr("Cassette: %1").arg(name.isEmpty() ? tr("(empty)") : name));
+    cassetteMenu->setTitle(QString::asprintf(tr("Cassette: %s").toUtf8().constData(), (name.isEmpty() ? tr("(empty)") : name).toUtf8().constData()));
 }
 
 void MediaMenu::cartridgeSelectImage(int i) {
@@ -227,7 +227,8 @@ void MediaMenu::cartridgeUpdateMenu(int i) {
     auto childs = menu->children();
     auto* ejectMenu = dynamic_cast<QAction*>(childs[cartridgeEjectPos]);
     ejectMenu->setEnabled(!name.isEmpty());
-    menu->setTitle(tr("Cartridge %1: %2").arg(QString::number(i+1), name.isEmpty() ? tr("(empty)") : name));
+    //menu->setTitle(tr("Cartridge %1: %2").arg(QString::number(i+1), name.isEmpty() ? tr("(empty)") : name));
+    menu->setTitle(QString::asprintf(tr("Cartridge %i: %ls").toUtf8().constData(), i + 1, name.isEmpty() ? tr("(empty)").toStdU16String().data() : name.toStdU16String().data()));
 }
 
 void MediaMenu::floppyNewImage(int i) {
@@ -241,7 +242,7 @@ void MediaMenu::floppyNewImage(int i) {
 }
 
 void MediaMenu::floppySelectImage(int i, bool wp) {
-    auto filename = QFileDialog::getOpenFileName(parentWidget, "Open", QString(), tr("All images (*.0?? *.1?? *.??0 *.86F *.86f *.BIN *.bin *.CQ? *.CQ *.D?? *.d *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.JSON *.json *.TD0 *.td0 *.*FD? *.*fd? *.MFM *.mfm *.XDF *.xdf);;Advanced sector images (*.IMD *.imd *.JSON *.json *.TD0 *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.XDF *.xdf *.*FD? *.*fd?);;Flux images (*.FDI *.fdi);;Surface images (*.86F *.86f *.MFM *.mfm);;All files (*)"));
+    auto filename = QFileDialog::getOpenFileName(parentWidget, "Open", QString(), tr("All images (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basic sector images (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Surface images (*.86F *.86f)"));
     floppyMount(i, filename, wp);
 }
 
@@ -267,7 +268,7 @@ void MediaMenu::floppyEject(int i) {
 }
 
 void MediaMenu::floppyExportTo86f(int i) {
-    auto filename = QFileDialog::getSaveFileName(parentWidget, tr("Save as 86f"), QString(), tr("Surface images (*.86f)"));
+    auto filename = QFileDialog::getSaveFileName(parentWidget, tr("Save as 86f"), QString(), tr("Surface images (*.86F *.86f)"));
     if (! filename.isEmpty()) {
         QByteArray filenameBytes = filename.toUtf8();
         plat_pause(1);
@@ -290,7 +291,8 @@ void MediaMenu::floppyUpdateMenu(int i) {
     exportMenu->setEnabled(!name.isEmpty());
 
     int type = fdd_get_type(i);
-    floppyMenus[i]->setTitle(tr("Floppy %1 (%2): %3").arg(QString::number(i+1), fdd_getname(type), name.isEmpty() ? tr("(empty)") : name));
+    //floppyMenus[i]->setTitle(tr("Floppy %1 (%2): %3").arg(QString::number(i+1), fdd_getname(type), name.isEmpty() ? tr("(empty)") : name));
+    floppyMenus[i]->setTitle(QString::asprintf("Floppy %i (%s): %ls", i + 1, fdd_getname(type), name.isEmpty() ? tr("(empty)").toStdU16String().data() : name.toStdU16String().data()));
 }
 
 void MediaMenu::cdromMute(int i) {
@@ -304,7 +306,7 @@ void MediaMenu::cdromMount(int i) {
     QString dir;
     QFileInfo fi(cdrom[i].image_path);
 
-    auto filename = QFileDialog::getOpenFileName(parentWidget, tr("Open"), QString(), tr("CD-ROM images (*.ISO *.CUE *.iso *.cue);;All files (*)"));
+    auto filename = QFileDialog::getOpenFileName(parentWidget, tr("Open"), QString(), tr("CD-ROM images (*.ISO *.iso *.CUE *.cue);;All files (*)"));
     if (filename.isEmpty()) {
         auto* imageMenu = dynamic_cast<QAction*>(cdromMenus[i]->children()[cdromImagePos]);
         imageMenu->setChecked(false);

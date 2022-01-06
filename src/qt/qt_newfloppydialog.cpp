@@ -99,17 +99,17 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent) :
     switch (type) {
     case MediaType::Floppy:
         for (int i = 0; i < floppyTypes.size(); ++i) {
-            Models::AddEntry(model, floppyTypes[i], i);
+            Models::AddEntry(model, tr(floppyTypes[i].toUtf8().data()), i);
         }
         break;
     case MediaType::Zip:
         for (int i = 0; i < zipTypes.size(); ++i) {
-            Models::AddEntry(model, zipTypes[i], i);
+            Models::AddEntry(model, tr(zipTypes[i].toUtf8().data()), i);
         }
         break;
     case MediaType::Mo:
         for (int i = 0; i < moTypes.size(); ++i) {
-            Models::AddEntry(model, moTypes[i], i);
+            Models::AddEntry(model, tr(moTypes[i].toUtf8().data()), i);
         }
         break;
     }
@@ -198,7 +198,7 @@ void NewFloppyDialog::onCreate() {
         break;
     }
 
-    QMessageBox::critical(this, "Unable to write file", "Make sure the file is being saved to a writable directory");
+    QMessageBox::critical(this, tr("Unable to write file"), tr("Make sure the file is being saved to a writable directory"));
     reject();
 }
 
