@@ -29,7 +29,7 @@ SettingsPorts::SettingsPorts(QWidget *parent) :
                 break;
             }
 
-            Models::AddEntry(model, lptName, c);
+            Models::AddEntry(model, tr(lptName), c);
             if (c == lpt_ports[i].device) {
                 selectedRow = c;
             }

@@ -31,7 +31,7 @@
      <item row="0" column="0">
       <widget class="QLabel" name="label">
        <property name="text">
-        <string>LPT1 Device</string>
+        <string>LPT1 Device:</string>
        </property>
       </widget>
      </item>
@@ -41,7 +41,7 @@
      <item row="1" column="0">
       <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>LPT2 Device</string>
+        <string>LPT2 Device:</string>
        </property>
       </widget>
      </item>
@@ -51,7 +51,7 @@
      <item row="2" column="0">
       <widget class="QLabel" name="label_3">
        <property name="text">
-        <string>LPT3 Device</string>
+        <string>LPT3 Device:</string>
        </property>
       </widget>
      </item>
@@ -65,49 +65,49 @@
      <item row="0" column="0">
       <widget class="QCheckBox" name="checkBoxSerial1">
        <property name="text">
-        <string>Serial Port 1</string>
+        <string>Serial port 1</string>
        </property>
       </widget>
      </item>
      <item row="0" column="1">
       <widget class="QCheckBox" name="checkBoxParallel1">
        <property name="text">
-        <string>Parallel Port 1</string>
+        <string>Parallel port 1</string>
        </property>
       </widget>
      </item>
      <item row="1" column="0">
       <widget class="QCheckBox" name="checkBoxSerial2">
        <property name="text">
-        <string>Serial Port 2</string>
+        <string>Serial port 2</string>
        </property>
       </widget>
      </item>
      <item row="1" column="1">
       <widget class="QCheckBox" name="checkBoxParallel2">
        <property name="text">
-        <string>Parallel Port 2</string>
+        <string>Parallel port 2</string>
        </property>
       </widget>
      </item>
      <item row="2" column="0">
       <widget class="QCheckBox" name="checkBoxSerial3">
        <property name="text">
-        <string>Serial Port 3</string>
+        <string>Serial port 3</string>
        </property>
       </widget>
      </item>
      <item row="2" column="1">
       <widget class="QCheckBox" name="checkBoxParallel3">
        <property name="text">
-        <string>Parallel Port 3</string>
+        <string>Parallel port 3</string>
        </property>
       </widget>
      </item>
      <item row="3" column="0">
       <widget class="QCheckBox" name="checkBoxSerial4">
        <property name="text">
-        <string>Serial Port 4</string>
+        <string>Serial port 4</string>
        </property>
       </widget>
      </item>

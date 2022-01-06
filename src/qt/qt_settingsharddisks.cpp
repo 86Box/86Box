@@ -79,12 +79,12 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent) :
     ui->setupUi(this);
 
     QAbstractItemModel* model = new QStandardItemModel(0, 6, this);
-    model->setHeaderData(ColumnBus, Qt::Horizontal, "Bus");
-    model->setHeaderData(ColumnFilename, Qt::Horizontal, "File");
-    model->setHeaderData(ColumnCylinders, Qt::Horizontal, "C");
-    model->setHeaderData(ColumnHeads, Qt::Horizontal, "H");
-    model->setHeaderData(ColumnSectors, Qt::Horizontal, "S");
-    model->setHeaderData(ColumnSize, Qt::Horizontal, "MiB");
+    model->setHeaderData(ColumnBus, Qt::Horizontal, tr("Bus"));
+    model->setHeaderData(ColumnFilename, Qt::Horizontal, tr("File"));
+    model->setHeaderData(ColumnCylinders, Qt::Horizontal, tr("C"));
+    model->setHeaderData(ColumnHeads, Qt::Horizontal, tr("H"));
+    model->setHeaderData(ColumnSectors, Qt::Horizontal, tr("S"));
+    model->setHeaderData(ColumnSize, Qt::Horizontal, tr("MiB"));
     ui->tableView->setModel(model);
 
     for (int i = 0; i < HDD_NUM; i++) {

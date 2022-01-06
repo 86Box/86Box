@@ -206,6 +206,6 @@ QString DeviceConfig::DeviceName(const _device_* device, const char *internalNam
     } else {
         char temp[512];
         device_get_name(device, bus, temp);
-        return temp;
+        return tr(temp, nullptr, 512);
     }
 }

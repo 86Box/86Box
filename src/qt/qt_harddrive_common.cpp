@@ -29,9 +29,9 @@ void Harddrives::populateBuses(QAbstractItemModel *model) {
 void Harddrives::populateRemovableBuses(QAbstractItemModel *model) {
     model->removeRows(0, model->rowCount());
     model->insertRows(0, 3);
-    model->setData(model->index(0, 0), "Disabled");
-    model->setData(model->index(1, 0), "ATAPI");
-    model->setData(model->index(2, 0), "SCSI");
+    model->setData(model->index(0, 0), QObject::tr("Disabled"));
+    model->setData(model->index(1, 0), QObject::tr("ATAPI"));
+    model->setData(model->index(2, 0), QObject::tr("SCSI"));
 
     model->setData(model->index(0, 0), HDD_BUS_DISABLED, Qt::UserRole);
     model->setData(model->index(1, 0), HDD_BUS_ATAPI, Qt::UserRole);
@@ -75,7 +75,7 @@ QString Harddrives::BusChannelName(uint8_t bus, uint8_t channel) {
     QString busName;
     switch(bus) {
     case HDD_BUS_DISABLED:
-        busName = QString("Disabled");
+        busName = QString(QObject::tr("Disabled"));
         break;
     case HDD_BUS_MFM:
         busName = QString("MFM/RLL (%1:%2)").arg(channel >> 1).arg(channel & 1);

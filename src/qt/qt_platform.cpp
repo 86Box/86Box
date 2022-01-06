@@ -495,8 +495,8 @@ static void reload_strings()
 {
     translatedstrings.clear();
     translatedstrings[IDS_2077] = QCoreApplication::translate("", "Click to capture mouse").toStdWString();
-    translatedstrings[IDS_2078] = QCoreApplication::translate("", "Press F8+F12 to release mouse").replace("F8+F12", MOUSE_CAPTURE_KEYSEQ).toStdWString();
-    translatedstrings[IDS_2079] = QCoreApplication::translate("", "Press F8+F12 or middle button to release mouse").replace("F8+F12", MOUSE_CAPTURE_KEYSEQ).toStdWString();
+    translatedstrings[IDS_2078] = QCoreApplication::translate("", "Press F8+F12 to release mouse").replace("F8+F12", MOUSE_CAPTURE_KEYSEQ).replace("CTRL-END", QLocale::system().name() == "de_DE" ? "Strg+Ende" : "CTRL-END").toStdWString();
+    translatedstrings[IDS_2079] = QCoreApplication::translate("", "Press F8+F12 or middle button to release mouse").replace("F8+F12", MOUSE_CAPTURE_KEYSEQ).replace("CTRL-END", QLocale::system().name() == "de_DE" ? "Strg+Ende" : "CTRL-END").toStdWString();
     translatedstrings[IDS_2080] = QCoreApplication::translate("", "Failed to initialize FluidSynth").toStdWString();
     translatedstrings[IDS_4099] = QCoreApplication::translate("", "MFM/RLL or ESDI CD-ROM drives never existed").toStdWString();
     translatedstrings[IDS_2093] = QCoreApplication::translate("", "Failed to set up PCap").toStdWString();

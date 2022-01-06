@@ -28,7 +28,7 @@ SettingsNetwork::SettingsNetwork(QWidget *parent) :
     ui->setupUi(this);
 
     auto* model = ui->comboBoxNetwork->model();
-    Models::AddEntry(model, "None", NET_TYPE_NONE);
+    Models::AddEntry(model, tr("None"), NET_TYPE_NONE);
     Models::AddEntry(model, "PCap", NET_TYPE_PCAP);
     Models::AddEntry(model, "SLiRP", NET_TYPE_SLIRP);
     ui->comboBoxNetwork->setCurrentIndex(network_type);
@@ -38,7 +38,7 @@ SettingsNetwork::SettingsNetwork(QWidget *parent) :
     QString currentPcapDevice = network_host;
     for (int c = 0; c < network_ndev; c++) {
 
-        Models::AddEntry(model, network_devs[c].description, c);
+        Models::AddEntry(model, tr(network_devs[c].description), c);
         if (QString(network_devs[c].device) == currentPcapDevice) {
             selectedRow = c;
         }

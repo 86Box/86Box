@@ -44,7 +44,7 @@
      <item>
       <widget class="QLabel" name="labelBus">
        <property name="text">
-        <string>Bus</string>
+        <string>Bus:</string>
        </property>
       </widget>
      </item>
@@ -54,7 +54,7 @@
      <item>
       <widget class="QLabel" name="labelChannel">
        <property name="text">
-        <string>ID</string>
+        <string>ID:</string>
        </property>
       </widget>
      </item>

@@ -177,10 +177,12 @@ set(QM_FILES)
 file(GLOB po_files "${CMAKE_CURRENT_SOURCE_DIR}/languages/*.po")
 foreach(po_file ${po_files})
     get_target_property(LCONVERT_EXECUTABLE Qt${QT_MAJOR}::lconvert IMPORTED_LOCATION)
+    get_filename_component(_lconvert_bin_dir "${LCONVERT_EXECUTABLE}" DIRECTORY)
+    find_program(LCONVERT_EXECUTABLE lconvert HINTS "${_lconvert_bin_dir}")
 
     get_filename_component(PO_FILE_NAME ${po_file} NAME_WE)
     add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm"
-                       COMMAND ${LCONVERT_EXECUTABLE} -input-format po -input-file ${po_file} -output-format qm -output-file ${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm
+                       COMMAND ${LCONVERT_EXECUTABLE} -i ${po_file} -o ${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm
                        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
                        DEPENDS "${po_file}")
     list(APPEND QM_FILES "${CMAKE_CURRENT_BINARY_DIR}/86box_${PO_FILE_NAME}.qm")

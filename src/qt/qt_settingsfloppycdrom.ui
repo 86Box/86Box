@@ -29,7 +29,7 @@
    <item>
     <widget class="QLabel" name="label">
      <property name="text">
-      <string>Floppy Drives</string>
+      <string>Floppy drives:</string>
      </property>
     </widget>
    </item>
@@ -51,7 +51,7 @@
      <item>
       <widget class="QLabel" name="label_2">
        <property name="text">
-        <string>Type</string>
+        <string>Type:</string>
        </property>
       </widget>
      </item>
@@ -61,7 +61,7 @@
      <item>
       <widget class="QCheckBox" name="checkBoxTurboTimings">
        <property name="text">
-        <string>Turbo Timings</string>
+        <string>Turbo timings</string>
        </property>
       </widget>
      </item>
@@ -90,7 +90,7 @@
    <item>
     <widget class="QLabel" name="label_6">
      <property name="text">
-      <string>CD-ROM Drives</string>
+      <string>CD-ROM drives:</string>
      </property>
     </widget>
    </item>
@@ -112,7 +112,7 @@
      <item row="0" column="2">
       <widget class="QLabel" name="label_5">
        <property name="text">
-        <string>Channel</string>
+        <string>Channel:</string>
        </property>
       </widget>
      </item>
@@ -122,14 +122,14 @@
      <item row="1" column="0">
       <widget class="QLabel" name="label_4">
        <property name="text">
-        <string>Speed</string>
+        <string>Speed:</string>
        </property>
       </widget>
      </item>
      <item row="0" column="0">
       <widget class="QLabel" name="label_3">
        <property name="text">
-        <string>Bus</string>
+        <string>Bus:</string>
        </property>
       </widget>
      </item>

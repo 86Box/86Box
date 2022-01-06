@@ -73,9 +73,9 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent) :
 
     model = new QStandardItemModel(0, 3, this);
     ui->tableViewFloppy->setModel(model);
-    model->setHeaderData(0, Qt::Horizontal, "Type");
-    model->setHeaderData(1, Qt::Horizontal, "Turbo");
-    model->setHeaderData(2, Qt::Horizontal, "Check BPB");
+    model->setHeaderData(0, Qt::Horizontal, tr("Type"));
+    model->setHeaderData(1, Qt::Horizontal, tr("Turbo"));
+    model->setHeaderData(2, Qt::Horizontal, tr("Check BPB"));
 
     model->insertRows(0, FDD_NUM);
     /* Floppy drives category */
@@ -83,8 +83,8 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent) :
         auto idx = model->index(i, 0);
         int type = fdd_get_type(i);
         setFloppyType(model, idx, type);
-        model->setData(idx.siblingAtColumn(1), fdd_get_turbo(i) > 0 ? "On" : "Off");
-        model->setData(idx.siblingAtColumn(2), fdd_get_check_bpb(i) > 0 ? "On" : "Off");
+        model->setData(idx.siblingAtColumn(1), fdd_get_turbo(i) > 0 ? tr("On") : tr("Off"));
+        model->setData(idx.siblingAtColumn(2), fdd_get_check_bpb(i) > 0 ? tr("On") : tr("Off"));
     }
 
     ui->tableViewFloppy->resizeColumnsToContents();
@@ -102,8 +102,8 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent) :
 
     model = new QStandardItemModel(0, 2, this);
     ui->tableViewCDROM->setModel(model);
-    model->setHeaderData(0, Qt::Horizontal, "Bus");
-    model->setHeaderData(1, Qt::Horizontal, "Speed");
+    model->setHeaderData(0, Qt::Horizontal, tr("Bus"));
+    model->setHeaderData(1, Qt::Horizontal, tr("Speed"));
     model->insertRows(0, CDROM_NUM);
     for (int i = 0; i < CDROM_NUM; i++) {
         auto idx = model->index(i, 0);
@@ -126,8 +126,8 @@ void SettingsFloppyCDROM::save() {
     auto* model = ui->tableViewFloppy->model();
     for (int i = 0; i < FDD_NUM; i++) {
         fdd_set_type(i, model->index(i, 0).data(Qt::UserRole).toInt());
-        fdd_set_turbo(i, model->index(i, 1).data() == "On" ? 1 : 0);
-        fdd_set_check_bpb(i, model->index(i, 2).data() == "On" ? 1 : 0);
+        fdd_set_turbo(i, model->index(i, 1).data() == tr("On") ? 1 : 0);
+        fdd_set_check_bpb(i, model->index(i, 2).data() == tr("On") ? 1 : 0);
     }
 
     /* Removable devices category */
@@ -150,8 +150,8 @@ void SettingsFloppyCDROM::save() {
 void SettingsFloppyCDROM::onFloppyRowChanged(const QModelIndex &current) {
     int type = current.siblingAtColumn(0).data(Qt::UserRole).toInt();
     ui->comboBoxFloppyType->setCurrentIndex(type);
-    ui->checkBoxTurboTimings->setChecked(current.siblingAtColumn(1).data() == "On");
-    ui->checkBoxCheckBPB->setChecked(current.siblingAtColumn(2).data() == "On");
+    ui->checkBoxTurboTimings->setChecked(current.siblingAtColumn(1).data() == tr("On"));
+    ui->checkBoxCheckBPB->setChecked(current.siblingAtColumn(2).data() == tr("On"));
 }
 
 void SettingsFloppyCDROM::onCDROMRowChanged(const QModelIndex &current) {
@@ -176,12 +176,12 @@ void SettingsFloppyCDROM::onCDROMRowChanged(const QModelIndex &current) {
 
 void SettingsFloppyCDROM::on_checkBoxTurboTimings_stateChanged(int arg1) {
     auto idx = ui->tableViewFloppy->selectionModel()->currentIndex();
-    ui->tableViewFloppy->model()->setData(idx.siblingAtColumn(1), arg1 == Qt::Checked ? "On" : "Off");
+    ui->tableViewFloppy->model()->setData(idx.siblingAtColumn(1), arg1 == Qt::Checked ? tr("On") : tr("Off"));
 }
 
 void SettingsFloppyCDROM::on_checkBoxCheckBPB_stateChanged(int arg1) {
     auto idx = ui->tableViewFloppy->selectionModel()->currentIndex();
-    ui->tableViewFloppy->model()->setData(idx.siblingAtColumn(2), arg1 == Qt::Checked ? "On" : "Off");
+    ui->tableViewFloppy->model()->setData(idx.siblingAtColumn(2), arg1 == Qt::Checked ? tr("On") : tr("Off"));
 }
 
 void SettingsFloppyCDROM::on_comboBoxFloppyType_activated(int index) {

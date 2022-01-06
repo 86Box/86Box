@@ -30,7 +30,7 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent) :
     ui->setupUi(this);
 
     if (existing) {
-        setWindowTitle("Add Existing Hard Disk");
+        setWindowTitle(tr("Add Existing Hard Disk"));
         ui->lineEditCylinders->setEnabled(false);
         ui->lineEditHeads->setEnabled(false);
         ui->lineEditSectors->setEnabled(false);
@@ -42,24 +42,24 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent) :
 
         connect(ui->fileField, &FileField::fileSelected, this, &HarddiskDialog::onExistingFileSelected);
     } else {
-        setWindowTitle("Add New Hard Disk");
+        setWindowTitle(tr("Add New Hard Disk"));
         ui->fileField->setCreateFile(true);
         connect(ui->buttonBox, &QDialogButtonBox::accepted, this, &HarddiskDialog::onCreateNewFile);
     }
 
     auto* model = ui->comboBoxFormat->model();
     model->insertRows(0, 6);
-    model->setData(model->index(0, 0), "Raw image (.img)");
-    model->setData(model->index(1, 0), "HDI image (.hdi)");
-    model->setData(model->index(2, 0), "HDX image (.hdx)");
-    model->setData(model->index(3, 0), "Fixed-size VHD (.vhd)");
-    model->setData(model->index(4, 0), "Dynamic-size VHD (.vhd)");
-    model->setData(model->index(5, 0), "Differencing VHD (.vhd)");
+    model->setData(model->index(0, 0), tr("Raw image (.img)"));
+    model->setData(model->index(1, 0), tr("HDI image (.hdi)"));
+    model->setData(model->index(2, 0), tr("HDX image (.hdx)"));
+    model->setData(model->index(3, 0), tr("Fixed-size VHD (.vhd)"));
+    model->setData(model->index(4, 0), tr("Dynamic-size VHD (.vhd)"));
+    model->setData(model->index(5, 0), tr("Differencing VHD (.vhd)"));
 
     model = ui->comboBoxBlockSize->model();
     model->insertRows(0, 2);
-    model->setData(model->index(0, 0), "Large blocks (2 MiB)");
-    model->setData(model->index(1, 0), "Small blocks (512 KiB)");
+    model->setData(model->index(0, 0), tr("Large blocks (2 MiB)"));
+    model->setData(model->index(1, 0), tr("Small blocks (512 KiB)"));
 
     ui->comboBoxBlockSize->hide();
     ui->labelBlockSize->hide();
@@ -74,8 +74,8 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent) :
         QString text = QString("%1 MiB (CHS: %2, %3, %4)").arg(size_mb).arg(hdd_table[i][0]).arg(hdd_table[i][1]).arg(hdd_table[i][2]);
         Models::AddEntry(model, text, i);
     }
-    Models::AddEntry(model, "Custom...", 127);
-    Models::AddEntry(model, "Custom (large)...", 128);
+    Models::AddEntry(model, tr("Custom..."), 127);
+    Models::AddEntry(model, tr("Custom (large)..."), 128);
 
     ui->lineEditSize->setValidator(new QIntValidator());
     ui->buttonBox->button(QDialogButtonBox::Ok)->setEnabled(false);
@@ -105,10 +105,10 @@ void HarddiskDialog::on_comboBoxFormat_currentIndexChanged(int index) {
     bool enabled;
     if (index == 5) { /* They switched to a diff VHD; disable the geometry fields. */
         enabled = false;
-        ui->lineEditCylinders->setText(QStringLiteral("(N/A)"));
-        ui->lineEditHeads->setText(QStringLiteral("(N/A)"));
-        ui->lineEditSectors->setText(QStringLiteral("(N/A)"));
-        ui->lineEditSize->setText(QStringLiteral("(N/A)"));
+        ui->lineEditCylinders->setText(tr("(N/A)"));
+        ui->lineEditHeads->setText(tr("(N/A)"));
+        ui->lineEditSectors->setText(tr("(N/A)"));
+        ui->lineEditSize->setText(tr("(N/A)"));
     } else {
         enabled = true;
         ui->lineEditCylinders->setText(QString::number(cylinders_));
@@ -246,7 +246,7 @@ static MVHDGeom create_drive_vhd_diff(const QString& fileName, const QString& pa
 void HarddiskDialog::onCreateNewFile() {
     qint64 size = ui->lineEditSize->text().toUInt() << 20U;
     if (size > 0x1FFFFFFE00ll) {
-        QMessageBox::critical(this, "Disk image too large", "Disk images cannot be larger than 127 GiB");
+        QMessageBox::critical(this, tr("Disk image too large"), tr("Disk images cannot be larger than 127 GiB"));
         return;
     }
 
@@ -280,7 +280,7 @@ void HarddiskDialog::onCreateNewFile() {
 
     QFile file(fileName);
     if (! file.open(QIODevice::WriteOnly)) {
-        QMessageBox::critical(this, "Unable to write file", "Make sure the file is being saved to a writable directory");
+        QMessageBox::critical(this, tr("Unable to write file"), tr("Make sure the file is being saved to a writable directory"));
         return;
     }
 
@@ -288,7 +288,7 @@ void HarddiskDialog::onCreateNewFile() {
         QDataStream stream(&file);
         stream.setByteOrder(QDataStream::LittleEndian);
         if (size >= 0x100000000ll) {
-            QMessageBox::critical(this, "Disk image too large", "HDI disk images cannot be larger than 4 GiB");
+            QMessageBox::critical(this, tr("Disk image too large"), tr("HDI disk images cannot be larger than 4 GiB"));
             return;
         }
         uint32_t s = static_cast<uint32_t>(size);
@@ -324,7 +324,7 @@ void HarddiskDialog::onCreateNewFile() {
         switch (img_format) {
         case 3:
         {
-            QProgressDialog progress("Creating disk image", QString(), 0, 100, this);
+            QProgressDialog progress(tr("Creating disk image"), QString(), 0, 100, this);
             connect(this, &HarddiskDialog::fileProgress, &progress, &QProgressDialog::setValue);
             std::thread writer([&_86box_geometry, fileName, this] {
                 _86box_geometry = create_drive_vhd_fixed(fileName, this, cylinders_, heads_, sectors_);
@@ -337,7 +337,7 @@ void HarddiskDialog::onCreateNewFile() {
             _86box_geometry = create_drive_vhd_dynamic(fileName, cylinders_, heads_, sectors_, block_size);
             break;
         case 5:
-            QString vhdParent = QFileDialog::getOpenFileName(this, "Select the parent VHD", QString(), "VHD files (*.vhd);;All files (*)");
+            QString vhdParent = QFileDialog::getOpenFileName(this, tr("Select the parent VHD"), QString(), tr("VHD files (*.vhd);;All files (*)"));
             if (vhdParent.isEmpty()) {
                 return;
             }
@@ -346,7 +346,7 @@ void HarddiskDialog::onCreateNewFile() {
         }
 
         if (img_format != 5) {
-            QMessageBox::information(this, "Disk image created", "Remember to partition and format the newly-created drive");
+            QMessageBox::information(this, tr("Disk image created"), tr("Remember to partition and format the newly-created drive"));
         }
 
         ui->lineEditCylinders->setText(QString::number(_86box_geometry.cyl));
@@ -360,7 +360,7 @@ void HarddiskDialog::onCreateNewFile() {
     }
 
     // formats 0, 1 and 2
-    QProgressDialog progress("Creating disk image", QString(), 0, 100, this);
+    QProgressDialog progress(tr("Creating disk image"), QString(), 0, 100, this);
     connect(this, &HarddiskDialog::fileProgress, &progress, &QProgressDialog::setValue);
     std::thread writer([size, &file, this] {
         QDataStream stream(&file);
@@ -385,7 +385,7 @@ void HarddiskDialog::onCreateNewFile() {
 
     progress.exec();
     writer.join();
-    QMessageBox::information(this, "Disk image created", "Remember to partition and format the newly-created drive");
+    QMessageBox::information(this, tr("Disk image created"), tr("Remember to partition and format the newly-created drive"));
 }
 
 static void adjust_vhd_geometry_for_86box(MVHDGeom *vhd_geometry) {
@@ -449,7 +449,7 @@ void HarddiskDialog::onExistingFileSelected(const QString &fileName) {
 
     QFile file(fileName);
     if (! file.open(QIODevice::ReadOnly)) {
-        QMessageBox::critical(this, "Unable to read file", "Make sure the file exists and is readable");
+        QMessageBox::critical(this, tr("Unable to read file"), tr("Make sure the file exists and is readable"));
         return;
     }
     QByteArray fileNameUtf8 = fileName.toUtf8();
@@ -461,7 +461,7 @@ void HarddiskDialog::onExistingFileSelected(const QString &fileName) {
         stream.setByteOrder(QDataStream::LittleEndian);
         stream >> sector_size;
         if (sector_size != 512) {
-            QMessageBox::critical(this, "Unsupported disk image", "HDI or HDX images with a sector size other than 512 are not supported");
+            QMessageBox::critical(this, tr("Unsupported disk image"), tr("HDI or HDX images with a sector size other than 512 are not supported"));
             return;
         }
 
@@ -472,14 +472,14 @@ void HarddiskDialog::onExistingFileSelected(const QString &fileName) {
     } else if (image_is_vhd(fileNameUtf8.data(), 1)) {
         MVHDMeta* vhd = mvhd_open(fileNameUtf8.data(), 0, &vhd_error);
         if (vhd == nullptr) {
-            QMessageBox::critical(this, "Unable to read file", "Make sure the file exists and is readable");
+            QMessageBox::critical(this, tr("Unable to read file"), tr("Make sure the file exists and is readable"));
             return;
         } else if (vhd_error == MVHD_ERR_TIMESTAMP) {
-            QMessageBox::StandardButton btn = QMessageBox::warning(this, "Parent and child disk timestamps do not match", "This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?", QMessageBox::Yes | QMessageBox::No);
+            QMessageBox::StandardButton btn = QMessageBox::warning(this, tr("Parent and child disk timestamps do not match"), tr("This could mean that the parent image was modified after the differencing image was created.\n\nIt can also happen if the image files were moved or copied, or by a bug in the program that created this disk.\n\nDo you want to fix the timestamps?"), QMessageBox::Yes | QMessageBox::No);
             if (btn == QMessageBox::Yes) {
                 int ts_res = mvhd_diff_update_par_timestamp(vhd, &vhd_error);
                 if (ts_res != 0) {
-                    QMessageBox::critical(this, "Error", "Could not fix VHD timestamp");
+                    QMessageBox::critical(this, tr("Error"), tr("Could not fix VHD timestamp"));
                     mvhd_close(vhd);
                     return;
                 }
@@ -523,7 +523,7 @@ void HarddiskDialog::onExistingFileSelected(const QString &fileName) {
     }
 
     if ((sectors > max_sectors) || (heads > max_heads) || (cylinders > max_cylinders)) {
-        QMessageBox::critical(this, "Unable to read file", "Make sure the file exists and is readable");
+        QMessageBox::critical(this, tr("Unable to read file"), tr("Make sure the file exists and is readable"));
         return;
     }
 
