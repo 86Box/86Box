@@ -166,7 +166,7 @@ rtmidi_input_init(const device_t *info)
 	return nullptr;
     }
 
-    midi_in_id = config_get_int((char*)SYSTEM_MIDI_NAME, (char*)"midi_input", 0);
+    midi_in_id = config_get_int((char*)MIDI_INPUT_NAME, (char*)"midi_input", 0);
 
     try {
 	midiin->openPort(midi_in_id);
@@ -183,7 +183,10 @@ rtmidi_input_init(const device_t *info)
 	}
     }
 
-    midiin->setCallback(rtmidi_input_callback);
+    midiin->setCallback(&rtmidi_input_callback);
+
+    // Don't ignore sysex, timing, or active sensing messages.
+    midiin->ignoreTypes(false, false, false);
 
     midi_in_init(dev, &midi_in);
 
