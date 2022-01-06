@@ -67,7 +67,7 @@
     </rect>
    </property>
    <property name="text">
-    <string>Gain:</string>
+    <string>Gain</string>
    </property>
   </widget>
  </widget>
