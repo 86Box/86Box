@@ -47,7 +47,7 @@ BEGIN
 #endif
         END
         MENUITEM SEPARATOR
-        MENUITEM "Dimensionen spezifizieren...",          IDM_VID_SPECIFY_DIM
+        MENUITEM "Fenstergröße einstellen...",          IDM_VID_SPECIFY_DIM
         MENUITEM "&4:3-Seitenverhältnis erzwingen",    IDM_VID_FORCE43
         POPUP "&Fensterskalierungsfaktor"
         BEGIN
@@ -104,7 +104,7 @@ BEGIN
         MENUITEM "&Einstellungen...",    IDM_PREFERENCES
         MENUITEM "&Discord-Integration aktivieren", IDM_DISCORD
         MENUITEM SEPARATOR
-        MENUITEM "&Schallverstärkung...",              IDM_SND_GAIN
+        MENUITEM "&Klangverstärkung...",              IDM_SND_GAIN
 #ifdef MTR_ENABLED
         MENUITEM SEPARATOR
         MENUITEM "Tracing starten\tStrg+T",         IDM_ACTION_BEGIN_TRACE
@@ -270,7 +270,7 @@ END
 #define STR_SND_GAIN		"Klangverstärkung"
 #define STR_NEW_FLOPPY		"Neues Image"
 #define STR_CONFIG		"Optionen"
-#define STR_SPECIFY_DIM		"Abmessungen des Hauptfensters einstellen"
+#define STR_SPECIFY_DIM		"Fenstergröße einstellen"
 
 #define STR_OK			"OK"
 #define STR_CANCEL		"Abbrechen"
@@ -288,13 +288,13 @@ END
 
 #define STR_WIDTH		"Breite:"
 #define STR_HEIGHT		"Höhe:"
-#define STR_LOCK_TO_SIZE	"Auf diese Größe festlegen"
+#define STR_LOCK_TO_SIZE	"Feste Größe"
 
-#define STR_MACHINE_TYPE	"Maschinentyp:"
+#define STR_MACHINE_TYPE	"Systemtyp:"
 #define STR_MACHINE		"Maschine:"
 #define STR_CONFIGURE		"Einstellen"
 #define STR_CPU_TYPE		"CPU-Typ:"
-#define STR_SPEED		"Takt:"
+#define STR_SPEED		"Geschwindigkeit:"
 #define STR_FPU			"FPU-Einheit:"
 #define STR_WAIT_STATES		"Wartezustände:"
 #define STR_MB			"MB"
@@ -377,13 +377,13 @@ END
 #define STR_250			"ZIP 250"
 
 #define STR_ISARTC		"ISA-Echtzeituhr:"
-#define STR_ISAMEM		"ISA-Speichererweiterung"
+#define STR_ISAMEM		"ISA-Speichererweiterung:"
 #define STR_ISAMEM_1		"Steckkarte 1:"
 #define STR_ISAMEM_2		"Steckkarte 2:"
 #define STR_ISAMEM_3		"Steckkarte 3:"
 #define STR_ISAMEM_4		"Steckkarte 4:"
-#define STR_BUGGER		"ISABugger-Gerät"
-#define STR_POSTCARD		"POST-Code-Karte"
+#define STR_BUGGER		"ISABugger-Gerät:"
+#define STR_POSTCARD		"POST-Code-Karte:"
 
 #define FONT_SIZE		9
 #define FONT_NAME		"Segoe UI"
@@ -412,13 +412,13 @@ BEGIN
     IDS_2060	"An"
     IDS_2061	"Aus"
     IDS_2062	"Alle Images (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Basissektorimages (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Oberflächenimages (*.86F)\0*.86F\0"
-    IDS_2063	"Die Maschine ""%hs"" ist aufgrund von fehlenden ROMs im Verzeichnis roms/machines nicht verfügbar. Es wird auf eine verfügbare Maschine gewechselt."
+    IDS_2063	"Das System ""%hs"" ist aufgrund von fehlenden ROMs im Verzeichnis roms/machines nicht verfügbar. Es wird auf ein verfügbares System gewechselt."
 END
 
 STRINGTABLE DISCARDABLE 
 BEGIN
     IDS_2064	"Die Videokarte ""%hs"" ist aufgrund von fehlenden ROMs im Verzeichnis roms/video nicht verfügbar. Es wird auf eine verfügbare Videokarte gewechselt."
-    IDS_2065	"Maschine"
+    IDS_2065	"System"
     IDS_2066	"Anzeige"
     IDS_2067	"Eingabegeräte"
     IDS_2068	"Multimedia"
@@ -469,7 +469,7 @@ BEGIN
     IDS_2109	"Alle Images (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Fortgeschrittene Sektorimages (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Basissektorimages (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Fluximages (*.FDI)\0*.FDI\0Oberflächenimages (*.86F;*.MFM)\0*.86F;*.MFM\0Alle Dateien (*.*)\0*.*\0"
     IDS_2110	"FreeType konnte nicht initialisiert werden"
     IDS_2111	"SDL konnte nicht initialisiert werden, die Datei SDL2.dll wird benötigt"
-    IDS_2112	"Sind Sie sich sicher, dass Sie einen Hard-Reset für die emulierte Maschine durchführen wollen?"
+    IDS_2112	"Sind Sie sich sicher, dass Sie einen Hard-Reset für das emulierte System durchführen wollen?"
     IDS_2113	"Sind Sie sich sicher, dass Sie 86Box beenden wollen?"
     IDS_2114	"Ghostscript konnte nicht initialisiert werden"
     IDS_2115	"MO %i (%ls): %ls"
@@ -524,14 +524,14 @@ BEGIN
     IDS_2143	"OpenGL-Shader (*.GLSL)\0*.GLSL\0Alle Dateien (*.*)\0*.*\0"
     IDS_2144	"OpenGL-Optionen"
     IDS_2145	"Sie laden gerade eine nicht unterstützte Konfiguration"
-    IDS_2146	"Das Filtern der CPU-Typen basierend auf der ausgewählten Maschine ist für diese Maschine deaktiviert.\n\nDies ermöglicht es, dass man eine sonst nicht mit der ausgewählten Maschine inkompatible CPU auswählen kann. Allerdings kann dies zu Inkompatiblilitäten mit dem BIOS der Maschine oder anderen Programmen kommen.\n\nDas Aktivieren dieser Einstellung wird nicht unterstützt und sämtliche Bugreports können als ""invalid"" geschlossen werden."
+    IDS_2146	"Das Filtern der CPU-Typen basierend auf dem ausgewählten System ist für dieses System deaktiviert.\n\nDies ermöglicht es, dass man eine sonst nicht mit dem ausgewählten System inkompatible CPU auswählen kann. Allerdings kann dies zu Inkompatiblilitäten mit dem BIOS des Systems oder anderen Programmen kommen.\n\nDas Aktivieren dieser Einstellung wird nicht unterstützt und sämtliche Bugreports können als ""invalid"" geschlossen werden."
     IDS_2147	"Fortfahren"
     IDS_2148	"Kassette: %s"
     IDS_2149	"Kassettenimages (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Alle Dateien (*.*)\0*.*\0"
     IDS_2150	"Cartridge %i: %ls"
     IDS_2151	"Cartridgeimages (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Alle Dateien (*.*)\0*.*\0"
-    IDS_2152	"Error initializing renderer"
-    IDS_2153	"OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+    IDS_2152	"Fehler bei der Rendererinitialisierung"
+    IDS_2153	"Der OpenGL (3.0-Kern)-Renderer konnte nicht initialisiert werden. Bitte benutzen Sie einen anderen Renderer."
 END
 
 STRINGTABLE DISCARDABLE 
