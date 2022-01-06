@@ -270,7 +270,7 @@ END
 #define STR_SND_GAIN		"Klangverstärkung"
 #define STR_NEW_FLOPPY		"Neues Image"
 #define STR_CONFIG		"Optionen"
-#define STR_SPECIFY_DIM		"Abmessungen des Hauptfensters einstellen"
+#define STR_SPECIFY_DIM		"Fenstergröße einstellen"
 
 #define STR_OK			"OK"
 #define STR_CANCEL		"Abbrechen"
@@ -290,7 +290,7 @@ END
 #define STR_HEIGHT		"Höhe:"
 #define STR_LOCK_TO_SIZE	"Feste Größe"
 
-#define STR_MACHINE_TYPE	"Maschinentyp:"
+#define STR_MACHINE_TYPE	"Systemtyp:"
 #define STR_MACHINE		"Maschine:"
 #define STR_CONFIGURE		"Einstellen"
 #define STR_CPU_TYPE		"CPU-Typ:"
@@ -412,7 +412,7 @@ BEGIN
     IDS_2060	"An"
     IDS_2061	"Aus"
     IDS_2062	"Alle Images (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Basissektorimages (*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Oberflächenimages (*.86F)\0*.86F\0"
-    IDS_2063	"Die Maschine ""%hs"" ist aufgrund von fehlenden ROMs im Verzeichnis roms/machines nicht verfügbar. Es wird auf eine verfügbare Maschine gewechselt."
+    IDS_2063	"Das System ""%hs"" ist aufgrund von fehlenden ROMs im Verzeichnis roms/machines nicht verfügbar. Es wird auf ein verfügbares System gewechselt."
 END
 
 STRINGTABLE DISCARDABLE 
