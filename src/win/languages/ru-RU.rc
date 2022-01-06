@@ -481,8 +481,8 @@ BEGIN
     IDS_2121	"Хотите ли вы сохранить настройки?"
     IDS_2122	"Это приведет к холодной перезагрузке эмулируемой машины."
     IDS_2123	"Сохранить"
-    IDS_2124	"О программе 86Box"
-    IDS_2125	"86Box v" EMU_VERSION
+    IDS_2124	"О 86Box"
+    IDS_2125	"86Box v." EMU_VERSION
 
     IDS_2126	"Эмулятор старых компьютеров\n\nАвторы: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nВыпускается под лицензией GNU General Public License версии 2 или более поздней. Дополнительную информацию см. в файле LICENSE."
     IDS_2127	"OK"
