@@ -326,7 +326,7 @@ void HarddiskDialog::onCreateNewFile() {
         switch (img_format) {
         case 3:
         {
-            QProgressDialog progress(tr("Creating disk image"), QString(), 0, 100, this);
+            QProgressDialog progress(tr("86Box"), QString(), 0, 100, this);
             connect(this, &HarddiskDialog::fileProgress, &progress, &QProgressDialog::setValue);
             std::thread writer([&_86box_geometry, fileName, this] {
                 _86box_geometry = create_drive_vhd_fixed(fileName, this, cylinders_, heads_, sectors_);
@@ -362,7 +362,7 @@ void HarddiskDialog::onCreateNewFile() {
     }
 
     // formats 0, 1 and 2
-    QProgressDialog progress(tr("Creating disk image"), QString(), 0, 100, this);
+    QProgressDialog progress(tr("86Box"), QString(), 0, 100, this);
     connect(this, &HarddiskDialog::fileProgress, &progress, &QProgressDialog::setValue);
     std::thread writer([size, &file, this] {
         QDataStream stream(&file);
