@@ -292,7 +292,7 @@ void MediaMenu::floppyUpdateMenu(int i) {
 
     int type = fdd_get_type(i);
     //floppyMenus[i]->setTitle(tr("Floppy %1 (%2): %3").arg(QString::number(i+1), fdd_getname(type), name.isEmpty() ? tr("(empty)") : name));
-    floppyMenus[i]->setTitle(QString::asprintf("Floppy %i (%s): %ls", i + 1, fdd_getname(type), name.isEmpty() ? tr("(empty)").toStdU16String().data() : name.toStdU16String().data()));
+    floppyMenus[i]->setTitle(QString::asprintf(tr("Floppy %i (%s): %ls").toUtf8().constData(), i + 1, fdd_getname(type), name.isEmpty() ? tr("(empty)").toStdU16String().data() : name.toStdU16String().data()));
 }
 
 void MediaMenu::cdromMute(int i) {
