@@ -116,7 +116,7 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent) :
 
     model = ui->comboBoxRpm->model();
     for (int i = 0; i < rpmModes.size(); ++i) {
-        Models::AddEntry(model, rpmModes[i], i);
+        Models::AddEntry(model, tr(rpmModes[i].toUtf8().data()), i);
     }
 
     connect(ui->fileField, &FileField::fileSelected, this, [this](const QString& filename) {

@@ -106,7 +106,18 @@ protected:
         if (strcmp(sourceText, "&Fullscreen") == 0) sourceText = "&Fullscreen\tCtrl+Alt+PageUP";
         if (strcmp(sourceText, "&Ctrl+Alt+Del") == 0) sourceText = "&Ctrl+Alt+Del\tCtrl+F12";
         if (strcmp(sourceText, "Take s&creenshot") == 0) sourceText = "Take s&creenshot\tCtrl+F11";
-        return QTranslator::translate("", sourceText, disambiguation, n);
+        if (strcmp(sourceText, "&Qt (Software)") == 0)
+        {
+            QString finalstr = QTranslator::translate("", "&SDL (Software)", disambiguation, n);
+            finalstr.replace("SDL", "Qt");
+            finalstr.replace("(&S)", "(&Q)");
+            return finalstr;
+        }
+        QString finalstr = QTranslator::translate("", sourceText, disambiguation, n);
+#ifdef Q_OS_MACOS
+        if (finalstr.contains('\t')) finalstr.truncate(finalstr.indexOf('\t'));
+#endif
+        return finalstr;
     }
 };
 

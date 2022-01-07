@@ -284,6 +284,11 @@ MainWindow::MainWindow(QWidget *parent) :
         ui->actionChange_contrast_for_monochrome_display->setChecked(true);
     }
 
+#ifdef Q_OS_MACOS
+    ui->actionFullscreen->setShortcutVisibleInContextMenu(true);
+    ui->actionCtrl_Alt_Del->setShortcutVisibleInContextMenu(true);
+    ui->actionTake_screenshot->setShortcutVisibleInContextMenu(true);
+#endif
     video_setblit(qt_blit);
 }
 
@@ -1272,7 +1277,7 @@ void MainWindow::on_actionAbout_86Box_triggered()
 #ifdef EMU_GIT_HASH
     githash = QString(" [%1]").arg(EMU_GIT_HASH);
 #endif
-    msgBox.setText(QString("<b>86Box v%1%2</b>").arg(EMU_VERSION_FULL, githash));
+    msgBox.setText(QString("<b>%3%1%2</b>").arg(EMU_VERSION_FULL, githash, tr("86Box v")));
     msgBox.setInformativeText(tr("An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."));
     msgBox.setWindowTitle("About 86Box");
     msgBox.addButton("OK", QMessageBox::ButtonRole::AcceptRole);

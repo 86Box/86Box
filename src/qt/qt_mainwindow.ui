@@ -47,7 +47,7 @@
      <x>0</x>
      <y>0</y>
      <width>724</width>
-     <height>21</height>
+     <height>20</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuAction">
@@ -258,7 +258,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Qt (Software)</string>
+    <string>&amp;Qt (Software)</string>
    </property>
   </action>
   <action name="actionHardware_Renderer_OpenGL">
@@ -266,7 +266,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Qt (OpenGL)</string>
+    <string>Qt (&amp;OpenGL)</string>
    </property>
   </action>
   <action name="actionHardware_Renderer_OpenGL_ES">
@@ -274,7 +274,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>Qt (OpenGL ES)</string>
+    <string>Qt (OpenGL &amp;ES)</string>
    </property>
   </action>
   <action name="actionHide_status_bar">

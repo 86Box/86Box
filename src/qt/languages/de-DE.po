@@ -56,7 +56,7 @@ msgid "&VNC"
 msgstr "&VNC"
 
 msgid "Specify dimensions..."
-msgstr "Dimensionen spezifizieren..."
+msgstr "Fenstergröße einstellen..."
 
 msgid "F&orce 4:3 display ratio"
 msgstr "&4:3-Seitenverhältnis erzwingen"
@@ -170,7 +170,7 @@ msgid "Enable &Discord integration"
 msgstr "&Discord-Integration aktivieren"
 
 msgid "Sound &gain..."
-msgstr "&Schallverstärkung..."
+msgstr "&Klangverstärkung..."
 
 msgid "Begin trace\tCtrl+T"
 msgstr "Tracing starten\tStrg+T"
@@ -302,7 +302,7 @@ msgid "Settings"
 msgstr "Optionen"
 
 msgid "Specify Main Window Dimensions"
-msgstr "Abmessungen des Hauptfensters einstellen"
+msgstr "Fenstergröße einstellen"
 
 msgid "OK"
 msgstr "OK"
@@ -344,10 +344,10 @@ msgid "Height:"
 msgstr "Höhe:"
 
 msgid "Lock to this size"
-msgstr "Auf diese Größe festlegen"
+msgstr "Feste Größe"
 
 msgid "Machine type:"
-msgstr "Maschinentyp:"
+msgstr "Systemtyp:"
 
 msgid "Machine:"
 msgstr "Maschine:"
@@ -359,7 +359,7 @@ msgid "CPU type:"
 msgstr "CPU-Typ:"
 
 msgid "Speed:"
-msgstr "Takt:"
+msgstr "Geschwindigkeit:"
 
 msgid "FPU:"
 msgstr "FPU-Einheit:"
@@ -575,7 +575,7 @@ msgid "ISA RTC:"
 msgstr "ISA-Echtzeituhr:"
 
 msgid "ISA Memory Expansion"
-msgstr "ISA-Speichererweiterung"
+msgstr "ISA-Speichererweiterung:"
 
 msgid "Card 1:"
 msgstr "Steckkarte 1:"
@@ -590,10 +590,10 @@ msgid "Card 4:"
 msgstr "Steckkarte 4:"
 
 msgid "ISABugger device"
-msgstr "ISABugger-Gerät"
+msgstr "ISABugger-Gerät:"
 
 msgid "POST card"
-msgstr "POST-Code-Karte"
+msgstr "POST-Code-Karte:"
 
 msgid "Segoe UI"
 msgstr "Segoe UI"
@@ -644,13 +644,13 @@ msgid "All images (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?
 msgstr "Alle Images (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basissektorimages (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Oberflächenimages (*.86F *.86f)"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Die Maschine \"%hs\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/machines nicht verfügbar. Es wird auf eine verfügbare Maschine gewechselt."
+msgstr "Das System \"%hs\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/machines nicht verfügbar. Es wird auf ein verfügbares System gewechselt."
 
 msgid "Video card \"%hs\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
 msgstr "Die Videokarte \"%hs\" ist aufgrund von fehlenden ROMs im Verzeichnis roms/video nicht verfügbar. Es wird auf eine verfügbare Videokarte gewechselt."
 
 msgid "Machine"
-msgstr "Maschine"
+msgstr "System"
 
 msgid "Display"
 msgstr "Anzeige"
@@ -785,7 +785,7 @@ msgid "Unable to initialize SDL, SDL2.dll is required"
 msgstr "SDL konnte nicht initialisiert werden, die Datei SDL2.dll wird benötigt"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
-msgstr "Sind Sie sich sicher, dass Sie einen Hard-Reset für die emulierte Maschine durchführen wollen?"
+msgstr "Sind Sie sich sicher, dass Sie einen Hard-Reset für das emulierte System durchführen wollen?"
 
 msgid "Are you sure you want to exit 86Box?"
 msgstr "Sind Sie sich sicher, dass Sie 86Box beenden wollen?"
@@ -905,7 +905,7 @@ msgid "You are loading an unsupported configuration"
 msgstr "Sie laden gerade eine nicht unterstützte Konfiguration"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Das Filtern der CPU-Typen basierend auf der ausgewählten Maschine ist für diese Maschine deaktiviert.\n\nDies ermöglicht es, dass man eine sonst nicht mit der ausgewählten Maschine inkompatible CPU auswählen kann. Allerdings kann dies zu Inkompatiblilitäten mit dem BIOS der Maschine oder anderen Programmen kommen.\n\nDas Aktivieren dieser Einstellung wird nicht unterstützt und sämtliche Bugreports können als \"invalid\" geschlossen werden."
+msgstr "Das Filtern der CPU-Typen basierend auf dem ausgewählten System ist für dieses System deaktiviert.\n\nDies ermöglicht es, dass man eine sonst nicht mit dem ausgewählten System inkompatible CPU auswählen kann. Allerdings kann dies zu Inkompatiblilitäten mit dem BIOS des Systems oder anderen Programmen kommen.\n\nDas Aktivieren dieser Einstellung wird nicht unterstützt und sämtliche Bugreports können als \"invalid\" geschlossen werden."
 
 msgid "Continue"
 msgstr "Fortfahren"
@@ -923,10 +923,10 @@ msgid "Cartridge images (*.A *.a *.B *.b *.JRC *.jrc);;All files (*)"
 msgstr "Cartridgeimages (*.A *.a *.B *.b *.JRC *.jrc);;Alle Dateien (*)"
 
 msgid "Error initializing renderer"
-msgstr "Error initializing renderer"
+msgstr "Fehler bei der Rendererinitialisierung"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
-msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+msgstr "Der OpenGL (3.0-Kern)-Renderer konnte nicht initialisiert werden. Bitte benutzen Sie einen anderen Renderer."
 
 msgid "Hard disk (%s)"
 msgstr "Festplatte (%s)"

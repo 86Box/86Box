@@ -2,6 +2,7 @@
 #define QT_PROGSETTINGS_HPP
 
 #include <QDialog>
+#include <QTranslator>
 
 namespace Ui {
 class ProgSettings;
