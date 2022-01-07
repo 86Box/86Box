@@ -1036,15 +1036,15 @@ sb_read(uint16_t a, void *priv)
 
 
 void 
-sb_dsp_input_msg(void *p, uint8_t *msg) 
+sb_dsp_input_msg(void *p, uint8_t *msg, uint32_t len)
 {
     sb_dsp_t *dsp = (sb_dsp_t *) p;
-    uint8_t len = msg[3], i = 0;
+    uint8_t i = 0;
 
-    sb_dsp_log("MIDI in sysex = %d, uart irq = %d, msg = %d\n", dsp->midi_in_sysex, dsp->uart_irq, msg[3]);
+    sb_dsp_log("MIDI in sysex = %d, uart irq = %d, msg = %d\n", dsp->midi_in_sysex, dsp->uart_irq, len);
 
     if (!dsp->uart_irq && !dsp->midi_in_poll && (dsp->mpu != NULL)) {
-	MPU401_InputMsg(dsp->mpu, msg);
+	MPU401_InputMsg(dsp->mpu, msg, len);
 	return;
     }
 
