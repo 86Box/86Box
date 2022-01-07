@@ -349,6 +349,26 @@ void MainWindow::on_actionRight_CTRL_is_left_ALT_triggered() {
 }
 
 void MainWindow::on_actionHard_Reset_triggered() {
+    if (confirm_reset)
+    {
+        QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", tr("Are you sure you want to hard reset the emulated machine?"), QMessageBox::NoButton, this);
+        questionbox.addButton(tr("Don't reset"), QMessageBox::AcceptRole);
+        questionbox.addButton(tr("Reset"), QMessageBox::RejectRole);
+        QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
+        questionbox.setCheckBox(chkbox);
+        chkbox->setChecked(!confirm_reset);
+        bool confirm_exit_temp = false;
+        QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
+            confirm_reset = (state == Qt::CheckState::Unchecked);
+        });
+        questionbox.exec();
+        if (questionbox.result() == QDialog::Rejected)
+        {
+            confirm_reset = true;
+            return;
+        }
+    }
+    config_changed = 2;
     pc_reset_hard();
 }
 
@@ -1253,13 +1273,7 @@ void MainWindow::on_actionAbout_86Box_triggered()
     githash = QString(" [%1]").arg(EMU_GIT_HASH);
 #endif
     msgBox.setText(QString("<b>86Box v%1%2</b>").arg(EMU_VERSION_FULL, githash));
-    msgBox.setInformativeText(R"(
-An emulator of old computers
-
-Authors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.
-
-Released under the GNU General Public License version 2 or later. See LICENSE for more information.
-)");
+    msgBox.setInformativeText(tr("An emulator of old computers\n\nAuthors: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."));
     msgBox.setWindowTitle("About 86Box");
     msgBox.addButton("OK", QMessageBox::ButtonRole::AcceptRole);
     auto webSiteButton = msgBox.addButton("86box.net", QMessageBox::ButtonRole::HelpRole);
