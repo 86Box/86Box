@@ -1385,6 +1385,17 @@ MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 
     mpu401_log("MPU401 Input Sysex\n");
 
+#ifdef DOSBOX_CODE
+    if (mpu->mode == M_UART) {
+#else
+    if (!mpu->intelligent && mpu->mode == M_UART) {
+#endif
+	/* UART mode input. */
+	for (i = 0; i < len; i++)
+		MPU401_QueueByte(mpu, buffer[i]);
+	return 0;
+    }
+
     if (mpu->filter.sysex_in) {
 	if (abort) {
 		mpu->state.sysex_in_finished=1;
