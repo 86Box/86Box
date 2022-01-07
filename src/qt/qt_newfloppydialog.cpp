@@ -101,22 +101,25 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent) :
         for (int i = 0; i < floppyTypes.size(); ++i) {
             Models::AddEntry(model, tr(floppyTypes[i].toUtf8().data()), i);
         }
+        ui->fileField->setFilter(tr("All images (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basic sector images (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Surface images (*.86F *.86f)"));
         break;
     case MediaType::Zip:
         for (int i = 0; i < zipTypes.size(); ++i) {
             Models::AddEntry(model, tr(zipTypes[i].toUtf8().data()), i);
         }
+        ui->fileField->setFilter(tr("ZIP images (*.IM? *.im? *.ZDI *.zdi)"));
         break;
     case MediaType::Mo:
         for (int i = 0; i < moTypes.size(); ++i) {
             Models::AddEntry(model, tr(moTypes[i].toUtf8().data()), i);
         }
+        ui->fileField->setFilter(tr("MO images (*.IM? *.im? *.MDI *.mdi);;All files (*)"));
         break;
     }
 
     model = ui->comboBoxRpm->model();
     for (int i = 0; i < rpmModes.size(); ++i) {
-        Models::AddEntry(model, tr(rpmModes[i].toUtf8().data()), i);
+        Models::AddEntry(model, tr(rpmModes[i].toUtf8().data()).replace("%%", "%"), i);
     }
 
     connect(ui->fileField, &FileField::fileSelected, this, [this](const QString& filename) {
