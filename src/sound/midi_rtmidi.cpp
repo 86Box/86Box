@@ -145,10 +145,10 @@ rtmidi_get_dev_name(int num, char *s)
 void
 rtmidi_input_callback(double timeStamp, std::vector<unsigned char> *message, void *userData)
 {
-    if (message->size() <= 3)
-	midi_in_msg(message->data());
+    if (message->front() == 0xF0)
+        midi_in_sysex(message->data(), message->size());
     else
-	midi_in_sysex(message->data(), message->size());
+	midi_in_msg(message->data(), message->size());
 }
 
 

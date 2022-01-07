@@ -396,7 +396,7 @@ midi_clear_buffer(void)
 
 
 void
-midi_in_handler(int set, void (*msg)(void *p, uint8_t *msg), int (*sysex)(void *p, uint8_t *buffer, uint32_t len, int abort), void *p)
+midi_in_handler(int set, void (*msg)(void *p, uint8_t *msg, uint32_t len), int (*sysex)(void *p, uint8_t *buffer, uint32_t len, int abort), void *p)
 {
     midi_in_handler_t *temp = NULL, *next;
 
@@ -479,7 +479,7 @@ midi_in_handlers_clear(void)
 
 
 void
-midi_in_msg(uint8_t *msg)
+midi_in_msg(uint8_t *msg, uint32_t len)
 {
     midi_in_handler_t *temp = mih_first;
 
@@ -488,7 +488,7 @@ midi_in_msg(uint8_t *msg)
 		break;
 
 	if (temp->msg)
-		temp->msg(temp->p, msg);
+		temp->msg(temp->p, msg, len);
 
 	temp = temp->next;
 
