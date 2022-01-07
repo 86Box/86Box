@@ -139,6 +139,7 @@ void DeviceConfig::ConfigureDevice(const _device_* device, int instance) {
             auto* fileField = new FileField();
             fileField->setObjectName(config->name);
             fileField->setFileName(fileName);
+            fileField->setFilter(QString(config->file_filter).left(strcspn(config->file_filter, "|")));
             dc.ui->formLayout->addRow(config->description, fileField);
             break;
         }

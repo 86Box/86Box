@@ -60,14 +60,17 @@
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>30</x>
+     <x>-20</x>
      <y>10</y>
-     <width>54</width>
-     <height>17</height>
+     <width>131</width>
+     <height>20</height>
     </rect>
    </property>
    <property name="text">
     <string>Gain</string>
+   </property>
+   <property name="alignment">
+    <set>Qt::AlignCenter</set>
    </property>
   </widget>
  </widget>

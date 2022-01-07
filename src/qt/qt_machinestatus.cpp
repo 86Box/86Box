@@ -414,39 +414,39 @@ void MachineStatus::refresh(QStatusBar* sbar) {
     if ((has_mfm || hdc_name.left(5) == QStringLiteral("st506")) && c_mfm > 0) {
         d->hdds[HDD_BUS_MFM].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_MFM].setActive(false);
-        d->hdds[HDD_BUS_MFM].label->setToolTip(QStringLiteral("Hard Disk (%1)").arg("MFM/RLL"));
+        d->hdds[HDD_BUS_MFM].label->setToolTip(tr("Hard disk (%s)").replace("%s", "MFM/RLL"));
         sbar->addWidget(d->hdds[HDD_BUS_MFM].label.get());
     }
     if ((has_esdi || hdc_name.left(4) == QStringLiteral("esdi")) && c_esdi > 0) {
         d->hdds[HDD_BUS_ESDI].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_ESDI].setActive(false);
-        d->hdds[HDD_BUS_ESDI].label->setToolTip(QStringLiteral("Hard Disk (%1)").arg("ESDI"));
+        d->hdds[HDD_BUS_ESDI].label->setToolTip(tr("Hard disk (%s)").replace("%s", "ESDI"));
         sbar->addWidget(d->hdds[HDD_BUS_ESDI].label.get());
     }
     if ((has_xta || hdc_name.left(3) == QStringLiteral("xta")) && c_xta > 0) {
         d->hdds[HDD_BUS_XTA].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_XTA].setActive(false);
-        d->hdds[HDD_BUS_XTA].label->setToolTip(QStringLiteral("Hard Disk (%1)").arg("XTA"));
+        d->hdds[HDD_BUS_XTA].label->setToolTip(tr("Hard disk (%s)").replace("%s", "XTA"));
         sbar->addWidget(d->hdds[HDD_BUS_XTA].label.get());
     }
     if ((hasIDE() || hdc_name.left(5) == QStringLiteral("xtide") || hdc_name.left(3) == QStringLiteral("ide")) && c_ide > 0) {
         d->hdds[HDD_BUS_IDE].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_IDE].setActive(false);
-        d->hdds[HDD_BUS_IDE].label->setToolTip(QStringLiteral("Hard Disk (%1)").arg("IDE"));
+        d->hdds[HDD_BUS_IDE].label->setToolTip(tr("Hard disk (%s)").replace("%s", "IDE"));
         sbar->addWidget(d->hdds[HDD_BUS_IDE].label.get());
     }
     if ((hasSCSI() || (scsi_card_current[0] != 0) || (scsi_card_current[1] != 0) ||
          (scsi_card_current[2] != 0) || (scsi_card_current[3] != 0)) && c_scsi > 0) {
         d->hdds[HDD_BUS_SCSI].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_SCSI].setActive(false);
-        d->hdds[HDD_BUS_SCSI].label->setToolTip(QStringLiteral("Hard Disk (%1)").arg("SCSI"));
+        d->hdds[HDD_BUS_SCSI].label->setToolTip(tr("Hard disk (%s)").replace("%s", "SCSI"));
         sbar->addWidget(d->hdds[HDD_BUS_SCSI].label.get());
     }
 
     if (do_net) {
         d->net.label = std::make_unique<QLabel>();
         d->net.setActive(false);
-        d->net.label->setToolTip("Network");
+        d->net.label->setToolTip(tr("Network"));
         sbar->addWidget(d->net.label.get());
     }
     d->sound = std::make_unique<ClickableLabel>();
@@ -456,7 +456,7 @@ void MachineStatus::refresh(QStatusBar* sbar) {
         SoundGain gain(main_window);
         gain.exec();
     });
-    d->sound->setToolTip("Sound");
+    d->sound->setToolTip(tr("Sound"));
     sbar->addWidget(d->sound.get());
     d->text = std::make_unique<QLabel>();
     sbar->addWidget(d->text.get());

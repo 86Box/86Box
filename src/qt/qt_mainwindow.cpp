@@ -290,8 +290,8 @@ MainWindow::MainWindow(QWidget *parent) :
 void MainWindow::closeEvent(QCloseEvent *event) {
     if (confirm_exit && cpu_thread_run)
     {
-        QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", "Are you sure you want to exit 86Box?", QMessageBox::Yes | QMessageBox::No, this);
-        QCheckBox *chkbox = new QCheckBox("Do not ask me again");
+        QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", tr("Are you sure you want to exit 86Box?"), QMessageBox::Yes | QMessageBox::No, this);
+        QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
         chkbox->setChecked(!confirm_exit);
         bool confirm_exit_temp = false;

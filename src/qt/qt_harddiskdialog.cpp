@@ -29,6 +29,7 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent) :
 {
     ui->setupUi(this);
 
+    ui->fileField->setFilter(tr("Hard disk images (*.HD? *.hd? *.IM? *.im? *.VHD *.vhd);;All files (*)"));
     if (existing) {
         setWindowTitle(tr("Add Existing Hard Disk"));
         ui->lineEditCylinders->setEnabled(false);

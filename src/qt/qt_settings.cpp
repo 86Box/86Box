@@ -144,8 +144,8 @@ void Settings::accept()
 {
     if (confirm_save)
     {
-        QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", "Do you want to save the settings?\n\nThis will hard reset the emulated machine.", QMessageBox::Save | QMessageBox::Cancel, this);
-        QCheckBox *chkbox = new QCheckBox("Do not ask me again");
+        QMessageBox questionbox(QMessageBox::Icon::Question, "86Box", QStringLiteral("%1\n\n%2").arg(tr("Do you want to save the settings?"), tr("This will hard reset the emulated machine.")), QMessageBox::Save | QMessageBox::Cancel, this);
+        QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
         questionbox.setCheckBox(chkbox);
         chkbox->setChecked(!confirm_save);
         QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
