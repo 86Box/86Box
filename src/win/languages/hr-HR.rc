@@ -376,7 +376,7 @@ END
 #define STR_ZIP_DRIVES		"ZIP pogoni:"
 #define STR_250			"ZIP 250"
 
-#define STR_ISARTC		"Ura u stvarnom vrijemenu RTC:"
+#define STR_ISARTC		"Sat stvarnog vremena (RTC):"
 #define STR_ISAMEM		"Proširenje memorije ISA"
 #define STR_ISAMEM_1		"Kartica 1:"
 #define STR_ISAMEM_2		"Kartica 2:"
@@ -530,8 +530,8 @@ BEGIN
     IDS_2149	"Slike audio kasete (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Sve datoteke (*.*)\0*.*\0"
     IDS_2150	"Kaseta %i: %ls"
     IDS_2151	"Slike kasete (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Sve datoteke (*.*)\0*.*\0"
-    IDS_2152	"Error initializing renderer"
-    IDS_2153	"OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+    IDS_2152	"Nije moguće inicijalizirati renderer"
+    IDS_2153	"Nije moguće inicijalizirati OpenGL (3.0 jezgra) renderer. Molimte koristite drugi renderer."
 END
 
 STRINGTABLE DISCARDABLE 
