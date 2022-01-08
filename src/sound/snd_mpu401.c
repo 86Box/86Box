@@ -1388,7 +1388,7 @@ MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 #ifdef DOSBOX_CODE
     if (mpu->mode == M_UART) {
 #else
-    if (!mpu->intelligent && mpu->mode == M_UART) {
+    if (!mpu->intelligent || mpu->mode == M_UART) {
 #endif
 	/* UART mode input. */
 	for (i = 0; i < len; i++)

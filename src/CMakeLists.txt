@@ -240,7 +240,7 @@ if (APPLE)
 endif()
 
 if (QT)
-        add_subdirectory(qt)
+    add_subdirectory(qt)
 elseif(WIN32)
     add_subdirectory(win)
 else()
