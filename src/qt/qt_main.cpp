@@ -26,6 +26,7 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/video.h>
+#include <86box/discord.h>
 
 #include <thread>
 #include <iostream>
@@ -127,6 +128,7 @@ int main(int argc, char* argv[]) {
         return 6;
     }
 
+    discord_load();
     main_window = new MainWindow();
     main_window->show();
     app.installEventFilter(main_window);
@@ -148,10 +150,24 @@ int main(int argc, char* argv[]) {
     // plat_pause(0);
     if (settings_only) dopause = 1;
     QTimer onesec;
+    QTimer discordupdate;
     QObject::connect(&onesec, &QTimer::timeout, &app, [] {
         pc_onesec();
     });
     onesec.start(1000);
+    if (discord_loaded) {
+        QTimer::singleShot(1000, &app, [] {
+            if (enable_discord) {
+                discord_init();
+                discord_update_activity(dopause);
+            } else
+                discord_close();
+        });
+        QObject::connect(&discordupdate, &QTimer::timeout, &app, [] {
+            discord_run_callbacks();
+        });
+        discordupdate.start(0);
+    }
 
     /* Initialize the rendering window, or fullscreen. */
     auto main_thread = std::thread([] {

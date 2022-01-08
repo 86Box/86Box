@@ -73,6 +73,8 @@
     <addaction name="actionSettings"/>
     <addaction name="actionUpdate_status_bar_icons"/>
     <addaction name="separator"/>
+    <addaction name="actionEnable_Discord_integration"/>
+    <addaction name="separator"/>
     <addaction name="actionTake_screenshot"/>
     <addaction name="actionSound_gain"/>
     <addaction name="separator"/>
@@ -552,6 +554,14 @@
    </property>
    <property name="menuRole">
     <enum>QAction::NoRole</enum>
+   </property>
+  </action>
+  <action name="actionEnable_Discord_integration">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Enable &amp;Discord integration</string>
    </property>
   </action>
  </widget>

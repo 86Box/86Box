@@ -67,6 +67,7 @@ extern "C" {
 #include <86box/plat_dynld.h>
 #include <86box/config.h>
 #include <86box/ui.h>
+#include <86box/discord.h>
 
 #include "../cpu/cpu.h"
 #include <86box/plat.h>
@@ -339,7 +340,7 @@ plat_pause(int p)
     wchar_t title[512];
 
     if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
-    nvr_time_sync();
+        nvr_time_sync();
 
     dopause = p;
     if (p) {
@@ -350,6 +351,7 @@ plat_pause(int p)
     } else {
         ui_window_title(oldtitle);
     }
+    discord_update_activity(dopause);
 }
 
 // because we can't include nvr.h because it's got fields named new

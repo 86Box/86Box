@@ -103,6 +103,8 @@ private slots:
 
     void on_actionPreferences_triggered();
 
+    void on_actionEnable_Discord_integration_triggered(bool checked);
+
 protected:
     void keyPressEvent(QKeyEvent* event) override;
     void keyReleaseEvent(QKeyEvent* event) override;

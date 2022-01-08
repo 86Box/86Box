@@ -13,6 +13,7 @@ extern "C" {
 #include <86box/config.h>
 #include <86box/keyboard.h>
 #include <86box/plat.h>
+#include <86box/discord.h>
 #include <86box/video.h>
 #include <86box/vid_ega.h>
 #include <86box/version.h>
@@ -152,6 +153,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionHiDPI_scaling->setChecked(dpi_scale);
     ui->actionHide_status_bar->setChecked(hide_status_bar);
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
+    ui->actionEnable_Discord_integration->setChecked(enable_discord);
 
 #if defined Q_OS_WINDOWS || defined Q_OS_MACOS
     /* Make the option visible only if ANGLE is loaded. */
@@ -420,7 +422,8 @@ void MainWindow::on_actionSettings_triggered() {
     plat_pause(currentPause);
     if (settings_only) {
         cpu_thread_run = 0;
-        close();
+        config_save();
+        QApplication::quit();
     }
 }
 
@@ -1390,5 +1393,16 @@ void MainWindow::on_actionPreferences_triggered()
 {
     ProgSettings progsettings(this);
     progsettings.exec();
+}
+
+
+void MainWindow::on_actionEnable_Discord_integration_triggered(bool checked)
+{
+    enable_discord = checked;
+    if(enable_discord) {
+        discord_init();
+        discord_update_activity(dopause);
+    } else
+        discord_close();
 }
 
