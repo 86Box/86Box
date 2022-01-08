@@ -55,7 +55,7 @@ namespace {
         QPixmap active;
         QPixmap empty;
         QPixmap empty_active;
-        void load(const QString& basePath);
+        void load(QString basePath);
     };
     struct Pixmaps {
         PixmapSetEmpty cartridge;
@@ -132,20 +132,20 @@ namespace {
     static const QString pixmap_active = QStringLiteral("_active");
     static const QString pixmap_empty_active = QStringLiteral("_empty_active");
     void PixmapSetEmpty::load(const QString &basePath) {
-        normal = QIcon(basePath.arg(QStringLiteral(""))).pixmap(pixmap_size);
-        empty = QIcon(basePath.arg(pixmap_empty)).pixmap(pixmap_size);
+        normal = ProgSettings::loadIcon(basePath.arg(QStringLiteral(""))).pixmap(pixmap_size);
+        empty = ProgSettings::loadIcon(basePath.arg(pixmap_empty)).pixmap(pixmap_size);
     }
 
     void PixmapSetActive::load(const QString &basePath) {
-        normal = QIcon(basePath.arg(QStringLiteral(""))).pixmap(pixmap_size);
-        active = QIcon(basePath.arg(pixmap_active)).pixmap(pixmap_size);
+        normal = ProgSettings::loadIcon(basePath.arg(QStringLiteral(""))).pixmap(pixmap_size);
+        active = ProgSettings::loadIcon(basePath.arg(pixmap_active)).pixmap(pixmap_size);
     }
 
-    void PixmapSetEmptyActive::load(const QString &basePath) {
-        normal = QIcon(basePath.arg(QStringLiteral(""))).pixmap(pixmap_size);
-        active = QIcon(basePath.arg(pixmap_active)).pixmap(pixmap_size);
-        empty = QIcon(basePath.arg(pixmap_empty)).pixmap(pixmap_size);
-        empty_active = QIcon(basePath.arg(pixmap_empty_active)).pixmap(pixmap_size);
+    void PixmapSetEmptyActive::load(QString basePath) {
+        normal = ProgSettings::loadIcon(basePath.arg(QStringLiteral(""))).pixmap(pixmap_size);
+        active = ProgSettings::loadIcon(basePath.arg(pixmap_active)).pixmap(pixmap_size);
+        empty = ProgSettings::loadIcon(basePath.arg(pixmap_empty)).pixmap(pixmap_size);
+        empty_active = ProgSettings::loadIcon(basePath.arg(pixmap_empty_active)).pixmap(pixmap_size);
     }
 }
 
@@ -153,20 +153,20 @@ struct MachineStatus::States {
     Pixmaps pixmaps;
 
     States(QObject* parent) {
-        pixmaps.cartridge.load(ProgSettings::getIconSetPath() + "/cartridge%1.ico");
-        pixmaps.cassette.load(ProgSettings::getIconSetPath() + "/cassette%1.ico");
-        pixmaps.floppy_disabled.normal = QIcon(ProgSettings::getIconSetPath() + QStringLiteral("/floppy_disabled.ico")).pixmap(pixmap_size);
+        pixmaps.cartridge.load("/cartridge%1.ico");
+        pixmaps.cassette.load("/cassette%1.ico");
+        pixmaps.floppy_disabled.normal = ProgSettings::loadIcon(QStringLiteral("/floppy_disabled.ico")).pixmap(pixmap_size);
         pixmaps.floppy_disabled.active = pixmaps.floppy_disabled.normal;
         pixmaps.floppy_disabled.empty = pixmaps.floppy_disabled.normal;
         pixmaps.floppy_disabled.empty_active = pixmaps.floppy_disabled.normal;
-        pixmaps.floppy_525.load(ProgSettings::getIconSetPath() + "/floppy_525%1.ico");
-        pixmaps.floppy_35.load(ProgSettings::getIconSetPath() + "/floppy_35%1.ico");
-        pixmaps.cdrom.load(ProgSettings::getIconSetPath() + "/cdrom%1.ico");
-        pixmaps.zip.load(ProgSettings::getIconSetPath() + "/zip%1.ico");
-        pixmaps.mo.load(ProgSettings::getIconSetPath() + "/mo%1.ico");
-        pixmaps.hd.load(ProgSettings::getIconSetPath() + "/hard_disk%1.ico");
-        pixmaps.net.load(ProgSettings::getIconSetPath() + "/network%1.ico");
-        pixmaps.sound = QIcon(ProgSettings::getIconSetPath() + "/sound.ico").pixmap(pixmap_size);
+        pixmaps.floppy_525.load("/floppy_525%1.ico");
+        pixmaps.floppy_35.load("/floppy_35%1.ico");
+        pixmaps.cdrom.load("/cdrom%1.ico");
+        pixmaps.zip.load("/zip%1.ico");
+        pixmaps.mo.load("/mo%1.ico");
+        pixmaps.hd.load("/hard_disk%1.ico");
+        pixmaps.net.load("/network%1.ico");
+        pixmaps.sound = ProgSettings::loadIcon("/sound.ico").pixmap(pixmap_size);
 
         cartridge[0].pixmaps = &pixmaps.cartridge;
         cartridge[1].pixmaps = &pixmaps.cartridge;

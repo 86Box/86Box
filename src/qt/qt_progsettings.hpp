@@ -16,6 +16,7 @@ public:
     explicit ProgSettings(QWidget *parent = nullptr);
     ~ProgSettings();
     static QString getIconSetPath();
+    static QIcon loadIcon(QString file);
     static void loadTranslators(QObject* parent = nullptr);
     static void reloadStrings();
     class CustomTranslator : public QTranslator

@@ -50,6 +50,13 @@ QString ProgSettings::getIconSetPath()
     return iconset_to_qt[icon_set];
 }
 
+QIcon ProgSettings::loadIcon(QString file)
+{
+    (void)getIconSetPath();
+    if (!QFile::exists(iconset_to_qt[icon_set] + file)) return QIcon(iconset_to_qt[""] + file);
+    return QIcon(iconset_to_qt[icon_set] + file);
+}
+
 ProgSettings::ProgSettings(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::ProgSettings)
