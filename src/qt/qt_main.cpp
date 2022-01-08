@@ -31,6 +31,7 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #include <iostream>
 
 #include "qt_mainwindow.hpp"
+#include "qt_progsettings.hpp"
 #include "cocoa_mouse.hpp"
 #include "qt_styleoverride.hpp"
 
@@ -97,30 +98,6 @@ main_thread_fn()
     is_quit = 1;
 }
 
-class CustomTranslator : public QTranslator
-{
-protected:
-    QString translate(const char *context, const char *sourceText,
-                                  const char *disambiguation = nullptr, int n = -1) const override
-    {
-        if (strcmp(sourceText, "&Fullscreen") == 0) sourceText = "&Fullscreen\tCtrl+Alt+PageUP";
-        if (strcmp(sourceText, "&Ctrl+Alt+Del") == 0) sourceText = "&Ctrl+Alt+Del\tCtrl+F12";
-        if (strcmp(sourceText, "Take s&creenshot") == 0) sourceText = "Take s&creenshot\tCtrl+F11";
-        if (strcmp(sourceText, "&Qt (Software)") == 0)
-        {
-            QString finalstr = QTranslator::translate("", "&SDL (Software)", disambiguation, n);
-            finalstr.replace("SDL", "Qt");
-            finalstr.replace("(&S)", "(&Q)");
-            return finalstr;
-        }
-        QString finalstr = QTranslator::translate("", sourceText, disambiguation, n);
-#ifdef Q_OS_MACOS
-        if (finalstr.contains('\t')) finalstr.truncate(finalstr.indexOf('\t'));
-#endif
-        return finalstr;
-    }
-};
-
 int main(int argc, char* argv[]) {
     QApplication app(argc, argv);
     Q_INIT_RESOURCE(qt_resources);
@@ -133,20 +110,7 @@ int main(int argc, char* argv[]) {
     while (it.hasNext()) {
         qDebug() << it.next() << "\n";
     }
-    QTranslator qtTranslator;
-    qtTranslator.load(QLocale::system(), QStringLiteral("qt_"), QString(), QLibraryInfo::location(QLibraryInfo::TranslationsPath));
-    if (app.installTranslator(&qtTranslator))
-    {
-        qDebug() << "Qt translations loaded." << "\n";
-    }
-    CustomTranslator translator;
-    qDebug() << QLocale::system().name() << "\n";
-    auto localetofilename = QLocale::system().name().replace('_', '-');
-    if (translator.load(QLatin1String("86box_"), QLatin1String(":/"), QString(), localetofilename + ".qm"))
-    {
-        qDebug() << "Translations loaded.\n";
-        QCoreApplication::installTranslator(&translator);
-    }
+
 #ifdef __APPLE__
     CocoaEventFilter cocoafilter;
     app.installNativeEventFilter(&cocoafilter);
@@ -157,6 +121,7 @@ int main(int argc, char* argv[]) {
     {
         return 0;
     }
+    ProgSettings::loadTranslators(&app);
     if (! pc_init_modules()) {
         ui_msgbox_header(MBX_FATAL, (void*)IDS_2120, (void*)IDS_2056);
         return 6;

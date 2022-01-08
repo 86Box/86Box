@@ -18,6 +18,7 @@
 #include <QElapsedTimer>
 
 #include "qt_mainwindow.hpp"
+#include "qt_progsettings.hpp"
 
 #ifdef Q_OS_UNIX
 #include <sys/mman.h>
@@ -373,15 +374,49 @@ void set_language(uint32_t id) {
     lang_id = id;
 }
 
+QMap<uint32_t, QPair<QString, QString>> ProgSettings::lcid_langcode =
+{
+    {0x0405, {"cs-CZ", "Czech (Czech Republic)"} },
+    {0x0407, {"de-DE", "German (Germany)"} },
+    {0x0408, {"en-US", "English (United States)"} },
+    {0x0809, {"en-GB", "English (United Kingdom)"} },
+    {0x0C0A, {"es-ES", "Spanish (Spain)"} },
+    {0x040B, {"fi-FI", "Finnish (Finland)"} },
+    {0x040C, {"fr-FR", "French (France)"} },
+    {0x041A, {"hr-HR", "Croatian (Croatia)"} },
+    {0x040E, {"hu-HU", "Hungarian (Hungary)"} },
+    {0x0410, {"it-IT", "Italian (Italy)"} },
+    {0x0411, {"ja-JP", "Japanese (Japan)"} },
+    {0x0412, {"ko-KR", "Korean (Korea)"} },
+    {0x0416, {"pt-BR", "Portuguese (Brazil)"} },
+    {0x0816, {"pt-PT", "Portuguese (Portugal)"} },
+    {0x0419, {"ru-RU", "Russian (Russia)"} },
+    {0x0424, {"sl-SI", "Slovenian (Slovenia)"} },
+    {0x041F, {"tr-TR", "Turkish (Turkey)"} },
+    {0x0804, {"zh-CN", "Chinese (China)"} },
+    {0xFFFF, {"system", "(System Default)"} },
+};
+
 /* Sets up the program language before initialization. */
 uint32_t plat_language_code(char* langcode) {
-    /* or maybe not */
-    return 0;
+    for (auto& curKey : ProgSettings::lcid_langcode.keys())
+    {
+        if (ProgSettings::lcid_langcode[curKey].first == langcode)
+        {
+            return curKey;
+        }
+    }
+    return 0xFFFF;
 }
 
 /* Converts back the language code to LCID */
 void plat_language_code_r(uint32_t lcid, char* outbuf, int len) {
-    /* or maybe not */
+    if (!ProgSettings::lcid_langcode.contains(lcid))
+    {
+        qstrncpy(outbuf, "system", len);
+        return;
+    }
+    qstrncpy(outbuf, ProgSettings::lcid_langcode[lcid].first.toUtf8().constData(), len);
     return;
 }
 
@@ -489,9 +524,9 @@ size_t c16stombs(char dst[], const uint16_t src[], int len)
 #endif
 
 
-static std::map<int, std::wstring> translatedstrings;
+QMap<int, std::wstring> ProgSettings::translatedstrings;
 
-static void reload_strings()
+void ProgSettings::reloadStrings()
 {
     translatedstrings.clear();
     translatedstrings[IDS_2077] = QCoreApplication::translate("", "Click to capture mouse").toStdWString();
@@ -536,8 +571,8 @@ static void reload_strings()
 
 wchar_t* plat_get_string(int i)
 {
-    if (translatedstrings.empty()) reload_strings();
-    return translatedstrings[i].data();
+    if (ProgSettings::translatedstrings.empty()) ProgSettings::reloadStrings();
+    return ProgSettings::translatedstrings[i].data();
 }
 
 int
