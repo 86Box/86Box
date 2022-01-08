@@ -450,9 +450,6 @@ WinMain(HINSTANCE hInst, HINSTANCE hPrev, LPSTR lpszArg, int nCmdShow)
 {
     char **argv = NULL;
     int	argc, i;
-    wchar_t * AppID = L"86Box.86Box\0";
-
-    SetCurrentProcessExplicitAppUserModelID(AppID);
 
     /* Initialize the COM library for the main thread. */
     CoInitializeEx(NULL, COINIT_MULTITHREADED);

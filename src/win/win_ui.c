@@ -92,6 +92,13 @@ static dllimp_t user32_imports[] = {
 { NULL,		NULL		}
 };
 
+/* Taskbar application ID API, Windows 7+ */
+void* shell32_handle = NULL;
+static HRESULT (WINAPI *pSetCurrentProcessExplicitAppUserModelID)(PCWSTR AppID);
+static dllimp_t shell32_imports[]= {
+{ "SetCurrentProcessExplicitAppUserModelID", &pSetCurrentProcessExplicitAppUserModelID }
+};
+
 int
 win_get_dpi(HWND hwnd) {
     if (user32_handle != NULL) {
@@ -1243,6 +1250,11 @@ ui_init(int nCmdShow)
 
     /* Load DPI related Windows 10 APIs */
     user32_handle = dynld_module("user32.dll", user32_imports);
+
+    /* Set the application ID for the taskbar. */
+    shell32_handle = dynld_module("shell32.dll", shell32_imports);
+    if (shell32_handle)
+	pSetCurrentProcessExplicitAppUserModelID(L"86Box.86Box");
 
     /* Set up TaskDialog configuration. */
     tdconfig.cbSize = sizeof(tdconfig);
