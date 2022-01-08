@@ -84,7 +84,7 @@ ProgSettings::ProgSettings(QWidget *parent) :
     ui->comboBox->setItemData(0, '(' + tr("Default") + ')', Qt::DisplayRole);
 
     ui->comboBoxLanguage->setItemData(0, 0xFFFF);
-    for (auto i = lcid_langcode.begin() + 1; i != lcid_langcode.end(); i++)
+    for (auto i = lcid_langcode.begin(); i != lcid_langcode.end(); i++)
     {
         if (i.key() == 0xFFFF) continue;
         ui->comboBoxLanguage->addItem(lcid_langcode[i.key()].second, i.key());
