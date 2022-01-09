@@ -90,7 +90,7 @@ extern int	update_icons;
 extern int	unscaled_size_x,		/* current unscaled size X */
 		unscaled_size_y;		/* current unscaled size Y */
 
-extern int	kbd_req_capture, hide_status_bar;
+extern int	kbd_req_capture, hide_status_bar, hide_tool_bar;
 
 /* System-related functions. */
 extern char	*fix_exe_path(char *str);
