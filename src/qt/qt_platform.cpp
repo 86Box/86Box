@@ -80,6 +80,7 @@ int rctrl_is_lalt = 0;
 int	update_icons = 0;
 int	kbd_req_capture = 0;
 int hide_status_bar = 0;
+int hide_tool_bar = 0;
 uint32_t lang_id = 0x0409, lang_sys = 0x0409; // Multilangual UI variables, for now all set to LCID of en-US
 
 int stricmp(const char* s1, const char* s2)
