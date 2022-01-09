@@ -171,6 +171,7 @@ void SettingsFloppyCDROM::onCDROMRowChanged(const QModelIndex &current) {
     if (! match.isEmpty()) {
         ui->comboBoxChannel->setCurrentIndex(match.first().row());
     }
+    else ui->comboBoxChannel->setCurrentIndex(8);
     ui->comboBoxSpeed->setCurrentIndex(speed);
 }
 
