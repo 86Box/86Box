@@ -67,6 +67,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
     statusBar()->setStyleSheet("QStatusBar::item {border: None;}");
+    ui->toolBar->setVisible(!hide_tool_bar);
 
     this->setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
     this->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, vid_resize != 1);
@@ -118,7 +119,12 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
         if (!QApplication::platformName().contains("eglfs") && vid_resize == 0) {
             w = w / (!dpi_scale ? this->screen()->devicePixelRatio() : 1);
-            int modifiedHeight = (h / (!dpi_scale ? this->screen()->devicePixelRatio() : 1)) + menuBar()->height() + (statusBar()->height() * !hide_status_bar);
+            
+            int modifiedHeight = (h / (!dpi_scale ? this->screen()->devicePixelRatio() : 1))
+                + menuBar()->height()
+                + (statusBar()->height() * !hide_status_bar)
+                + (ui->toolBar->height() * !hide_tool_bar);
+            
             ui->stackedWidget->resize(w, h);
             if (vid_resize == 0) {
                 setFixedSize(w, modifiedHeight);
@@ -152,6 +158,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->menuWindow_scale_factor->setEnabled(vid_resize == 0);
     ui->actionHiDPI_scaling->setChecked(dpi_scale);
     ui->actionHide_status_bar->setChecked(hide_status_bar);
+    ui->actionHide_tool_bar->setChecked(hide_tool_bar);
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
     ui->actionEnable_Discord_integration->setChecked(enable_discord);
 
@@ -335,7 +342,11 @@ void MainWindow::showEvent(QShowEvent *event) {
         setGeometry(window_x, window_y, window_w, window_h + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()));
     }
     if (vid_resize == 2) {
-        setFixedSize(fixed_size_x, fixed_size_y + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()));
+        setFixedSize(fixed_size_x, fixed_size_y
+            + menuBar()->height()
+            + (hide_status_bar ? 0 : statusBar()->height())
+            + (hide_tool_bar ? 0 : ui->toolBar->height()));
+
         scrnsz_x = fixed_size_x;
         scrnsz_y = fixed_size_y;
     }
@@ -955,15 +966,21 @@ void MainWindow::on_actionFullscreen_triggered() {
         showNormal();
         ui->menubar->show();
         if (!hide_status_bar) ui->statusbar->show();
+        if (!hide_tool_bar) ui->toolBar->show();
         video_fullscreen = 0;
         if (vid_resize != 1) {
-            if (vid_resize == 2) setFixedSize(fixed_size_x, fixed_size_y + menuBar()->height() + (!hide_status_bar ? statusBar()->height() : 0));
+            if (vid_resize == 2) setFixedSize(fixed_size_x, fixed_size_y
+                + menuBar()->height()
+                + (!hide_status_bar ? statusBar()->height() : 0)
+                + (!hide_tool_bar ? ui->toolBar->height() : 0));
+
             emit resizeContents(scrnsz_x, scrnsz_y);
         }
     } else {
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         ui->menubar->hide();
         ui->statusbar->hide();
+        ui->toolBar->hide();
         showFullScreen();
         video_fullscreen = 1;
     }
@@ -1345,8 +1362,30 @@ void MainWindow::on_actionHide_status_bar_triggered()
     hide_status_bar ^= 1;
     ui->actionHide_status_bar->setChecked(hide_status_bar);
     statusBar()->setVisible(!hide_status_bar);
-    if (vid_resize >= 2) setFixedSize(fixed_size_x, fixed_size_y + menuBar()->height() + (hide_status_bar ? 0 : statusBar()->height()));
-    else {
+    if (vid_resize >= 2) {
+         setFixedSize(fixed_size_x, fixed_size_y
+            + menuBar()->height()
+            + (hide_status_bar ? 0 : statusBar()->height())
+            + (hide_tool_bar ? 0 : ui->toolBar->height()));
+    } else {
+        int vid_resize_orig = vid_resize;
+        vid_resize = 0;
+        emit resizeContents(scrnsz_x, scrnsz_y);
+        vid_resize = vid_resize_orig;
+    }
+}
+
+void MainWindow::on_actionHide_tool_bar_triggered()
+{
+    hide_tool_bar ^= 1;
+    ui->actionHide_tool_bar->setChecked(hide_tool_bar);
+    ui->toolBar->setVisible(!hide_tool_bar);
+    if (vid_resize >= 2) {
+         setFixedSize(fixed_size_x, fixed_size_y
+            + menuBar()->height()
+            + (hide_status_bar ? 0 : statusBar()->height())
+            + (hide_tool_bar ? 0 : ui->toolBar->height()));
+    } else {
         int vid_resize_orig = vid_resize;
         vid_resize = 0;
         emit resizeContents(scrnsz_x, scrnsz_y);

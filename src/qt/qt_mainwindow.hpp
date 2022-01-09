@@ -90,6 +90,7 @@ private slots:
     void on_actionSpecify_dimensions_triggered();
     void on_actionHiDPI_scaling_triggered();
     void on_actionHide_status_bar_triggered();
+    void on_actionHide_tool_bar_triggered();
     void on_actionUpdate_status_bar_icons_triggered();
 
     void refreshMediaMenu();

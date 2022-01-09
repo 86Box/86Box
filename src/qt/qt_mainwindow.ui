@@ -144,6 +144,7 @@
      <addaction name="menuVGA_screen_type"/>
      <addaction name="menuGrayscale_conversion_type"/>
     </widget>
+    <addaction name="actionHide_tool_bar"/>
     <addaction name="actionHide_status_bar"/>
     <addaction name="separator"/>
     <addaction name="actionResizable_window"/>
@@ -183,6 +184,27 @@
    <addaction name="menuAbout"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
+  <widget class="QToolBar" name="toolBar">
+   <property name="windowTitle">
+    <string>toolBar</string>
+   </property>
+   <property name="movable">
+    <bool>false</bool>
+   </property>
+   <property name="floatable">
+    <bool>false</bool>
+   </property>
+   <attribute name="toolBarArea">
+    <enum>TopToolBarArea</enum>
+   </attribute>
+   <attribute name="toolBarBreak">
+    <bool>false</bool>
+   </attribute>
+   <addaction name="actionHard_Reset"/>
+   <addaction name="actionCtrl_Alt_Del"/>
+   <addaction name="actionCtrl_Alt_Esc"/>
+   <addaction name="actionPause"/>
+  </widget>
   <action name="actionKeyboard_requires_capture">
    <property name="checkable">
     <bool>true</bool>
@@ -562,6 +584,17 @@
    </property>
    <property name="text">
     <string>Enable &amp;Discord integration</string>
+   </property>
+  </action>
+  <action name="actionHide_tool_bar">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Hide tool bar</string>
+   </property>
+   <property name="toolTip">
+    <string>Hide tool bar</string>
    </property>
   </action>
  </widget>
