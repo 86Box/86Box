@@ -98,6 +98,11 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent) :
             addRow(model, &hdd[i]);
         }
     }
+    if (model->rowCount() == HDD_NUM)
+    {
+        ui->pushButtonNew->setEnabled(false);
+        ui->pushButtonExisting->setEnabled(false);
+    }
     ui->tableView->resizeColumnsToContents();
     ui->tableView->horizontalHeader()->setSectionResizeMode(ColumnFilename, QHeaderView::Stretch);
 
@@ -234,6 +239,11 @@ static void addDriveFromDialog(Ui::SettingsHarddisks* ui, const HarddiskDialog& 
     addRow(ui->tableView->model(), &hd);
     ui->tableView->resizeColumnsToContents();
     ui->tableView->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Stretch);
+    if (ui->tableView->model()->rowCount() == HDD_NUM)
+    {
+        ui->pushButtonNew->setEnabled(false);
+        ui->pushButtonExisting->setEnabled(false);
+    }
 }
 
 void SettingsHarddisks::on_pushButtonNew_clicked() {
@@ -263,5 +273,7 @@ void SettingsHarddisks::on_pushButtonRemove_clicked() {
 
     auto* model = ui->tableView->model();
     model->removeRow(idx.row());
+    ui->pushButtonNew->setEnabled(true);
+    ui->pushButtonExisting->setEnabled(true);
 }
 
