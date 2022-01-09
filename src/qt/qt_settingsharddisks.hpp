@@ -30,6 +30,7 @@ private slots:
 
 private:
     Ui::SettingsHarddisks *ui;
+    bool buschangeinprogress = false;
 };
 
 #endif // QT_SETTINGSHARDDISKS_HPP

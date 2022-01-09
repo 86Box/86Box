@@ -14,6 +14,8 @@
 #include "qt_settingsotherperipherals.hpp"
 
 #include "qt_progsettings.hpp"
+#include "qt_harddrive_common.hpp"
+#include "qt_settings_bus_tracking.hpp"
 
 extern "C"
 {
@@ -85,6 +87,7 @@ Settings::Settings(QWidget *parent) :
 
     ui->listView->setModel(new SettingsModel(this));
 
+    Harddrives::busTrackClass = new SettingsBusTracking;
     machine = new SettingsMachine(this);
     display = new SettingsDisplay(this);
     input = new SettingsInput(this);
@@ -124,6 +127,8 @@ Settings::Settings(QWidget *parent) :
 Settings::~Settings()
 {
     delete ui;
+    delete Harddrives::busTrackClass;
+    Harddrives::busTrackClass = nullptr;
 }
 
 void Settings::save() {
