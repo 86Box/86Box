@@ -222,11 +222,19 @@
    </property>
   </action>
   <action name="actionHard_Reset">
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/placeholder.png</normaloff>:/menuicons/qt/icons/placeholder.png</iconset>
+   </property>
    <property name="text">
     <string>&amp;Hard Reset...</string>
    </property>
   </action>
   <action name="actionCtrl_Alt_Del">
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/placeholder.png</normaloff>:/menuicons/qt/icons/placeholder.png</iconset>
+   </property>
    <property name="text">
     <string>&amp;Ctrl+Alt+Del</string>
    </property>
@@ -241,6 +249,10 @@
    </property>
   </action>
   <action name="actionCtrl_Alt_Esc">
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/placeholder.png</normaloff>:/menuicons/qt/icons/placeholder.png</iconset>
+   </property>
    <property name="text">
     <string>Ctrl+Alt+&amp;Esc</string>
    </property>
@@ -248,6 +260,10 @@
   <action name="actionPause">
    <property name="checkable">
     <bool>true</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/qt/icons/placeholder.png</normaloff>:/menuicons/qt/icons/placeholder.png</iconset>
    </property>
    <property name="text">
     <string>&amp;Pause</string>
@@ -606,6 +622,8 @@
    <container>1</container>
   </customwidget>
  </customwidgets>
- <resources/>
+ <resources>
+  <include location="../qt_resources.qrc"/>
+ </resources>
  <connections/>
 </ui>

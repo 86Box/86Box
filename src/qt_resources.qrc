@@ -48,4 +48,7 @@
         <file>win/icons/86Box-red.ico</file>
         <file>win/icons/86Box-yellow.ico</file>
     </qresource>
+    <qresource prefix="/menuicons">
+        <file>qt/icons/placeholder.png</file>
+    </qresource>
 </RCC>
