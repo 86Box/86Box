@@ -28,10 +28,10 @@ uint8_t
 SettingsBusTracking::next_free_mfm_channel()
 {
     if ((mfm_tracking & 0xff00ULL) && !(mfm_tracking & 0x00ffULL))
-        return 0;
+        return 1;
 
     if (!(mfm_tracking & 0xff00ULL) && (mfm_tracking & 0x00ffULL))
-        return 1;
+        return 0;
 
     return CHANNEL_NONE;
 }
@@ -41,10 +41,10 @@ uint8_t
 SettingsBusTracking::next_free_esdi_channel()
 {
     if ((esdi_tracking & 0xff00ULL) && !(esdi_tracking & 0x00ffULL))
-        return 0;
+        return 1;
 
     if (!(esdi_tracking & 0xff00ULL) && (esdi_tracking & 0x00ffULL))
-        return 1;
+        return 0;
 
     return CHANNEL_NONE;
 }
@@ -54,10 +54,10 @@ uint8_t
 SettingsBusTracking::next_free_xta_channel()
 {
     if ((xta_tracking & 0xff00ULL) && !(xta_tracking & 0x00ffULL))
-        return 0;
+        return 1;
 
     if (!(xta_tracking & 0xff00ULL) && (xta_tracking & 0x00ffULL))
-        return 1;
+        return 0;
 
     return CHANNEL_NONE;
 }
