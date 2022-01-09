@@ -12,6 +12,7 @@ extern "C" {
 
 #include "qt_models_common.hpp"
 #include "qt_harddrive_common.hpp"
+#include "qt_settings_bus_tracking.hpp"
 #include "qt_progsettings.hpp"
 
 static QString moDriveTypeName(int i) {
@@ -93,6 +94,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent) :
         auto idx = model->index(i, 0);
         setMOBus(model, idx, mo_drives[i].bus_type, mo_drives[i].res);
         setMOType(model, idx.siblingAtColumn(1), mo_drives[i].type);
+        Harddrives::busTrackClass->device_track(1, DEV_MO, mo_drives[i].bus_type, mo_drives[i].bus_type == MO_BUS_ATAPI ? mo_drives[i].ide_channel : mo_drives[i].scsi_device_id);
     }
     ui->tableViewMO->resizeColumnsToContents();
     ui->tableViewMO->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
@@ -114,6 +116,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent) :
         auto idx = model->index(i, 0);
         setZIPBus(model, idx, zip_drives[i].bus_type, zip_drives[i].res);
         setZIPType(model, idx, zip_drives[i].is_250 > 0);
+        Harddrives::busTrackClass->device_track(1, DEV_ZIP, zip_drives[i].bus_type, zip_drives[i].bus_type == ZIP_BUS_ATAPI ? zip_drives[i].ide_channel : zip_drives[i].scsi_device_id);
     }
     ui->tableViewZIP->resizeColumnsToContents();
     ui->tableViewZIP->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
@@ -200,6 +203,10 @@ void SettingsOtherRemovable::on_comboBoxMOBus_currentIndexChanged(int index) {
 }
 
 void SettingsOtherRemovable::on_comboBoxMOBus_activated(int) {
+    auto i = ui->tableViewMO->selectionModel()->currentIndex().siblingAtColumn(0);
+    Harddrives::busTrackClass->device_track(0, DEV_MO, ui->tableViewMO->model()->data(i, Qt::UserRole).toInt(), ui->tableViewMO->model()->data(i, Qt::UserRole + 1).toInt());
+    ui->comboBoxMOChannel->setCurrentIndex(ui->comboBoxMOBus->currentData().toUInt() == MO_BUS_ATAPI ? Harddrives::busTrackClass->next_free_ide_channel() : Harddrives::busTrackClass->next_free_scsi_id());
+    ui->tableViewMO->model()->data(i, Qt::UserRole + 1);
     setMOBus(
         ui->tableViewMO->model(),
         ui->tableViewMO->selectionModel()->currentIndex(),
@@ -211,14 +218,18 @@ void SettingsOtherRemovable::on_comboBoxMOBus_activated(int) {
         ui->comboBoxMOType->currentData().toUInt());
     ui->tableViewMO->resizeColumnsToContents();
     ui->tableViewMO->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    Harddrives::busTrackClass->device_track(1, DEV_MO, ui->tableViewMO->model()->data(i, Qt::UserRole).toInt(), ui->tableViewMO->model()->data(i, Qt::UserRole + 1).toInt());
 }
 
 void SettingsOtherRemovable::on_comboBoxMOChannel_activated(int) {
+    auto i = ui->tableViewMO->selectionModel()->currentIndex().siblingAtColumn(0);
+    Harddrives::busTrackClass->device_track(0, DEV_MO, ui->tableViewMO->model()->data(i, Qt::UserRole).toInt(), ui->tableViewMO->model()->data(i, Qt::UserRole + 1).toInt());
     setMOBus(
         ui->tableViewMO->model(),
         ui->tableViewMO->selectionModel()->currentIndex(),
         ui->comboBoxMOBus->currentData().toUInt(),
         ui->comboBoxMOChannel->currentData().toUInt());
+    Harddrives::busTrackClass->device_track(1, DEV_MO, ui->tableViewMO->model()->data(i, Qt::UserRole).toInt(), ui->tableViewMO->model()->data(i, Qt::UserRole + 1).toInt());
 }
 
 void SettingsOtherRemovable::on_comboBoxMOType_activated(int) {
@@ -243,19 +254,26 @@ void SettingsOtherRemovable::on_comboBoxZIPBus_currentIndexChanged(int index) {
 }
 
 void SettingsOtherRemovable::on_comboBoxZIPBus_activated(int) {
+    auto i = ui->tableViewZIP->selectionModel()->currentIndex().siblingAtColumn(0);
+    Harddrives::busTrackClass->device_track(0, DEV_ZIP, ui->tableViewZIP->model()->data(i, Qt::UserRole).toInt(), ui->tableViewZIP->model()->data(i, Qt::UserRole + 1).toInt());
+    ui->comboBoxZIPChannel->setCurrentIndex(ui->comboBoxZIPBus->currentData().toUInt() == ZIP_BUS_ATAPI ? Harddrives::busTrackClass->next_free_ide_channel() : Harddrives::busTrackClass->next_free_scsi_id());
     setZIPBus(
         ui->tableViewZIP->model(),
         ui->tableViewZIP->selectionModel()->currentIndex(),
         ui->comboBoxZIPBus->currentData().toUInt(),
         ui->comboBoxZIPChannel->currentData().toUInt());
+    Harddrives::busTrackClass->device_track(1, DEV_ZIP, ui->tableViewZIP->model()->data(i, Qt::UserRole).toInt(), ui->tableViewZIP->model()->data(i, Qt::UserRole + 1).toInt());
 }
 
 void SettingsOtherRemovable::on_comboBoxZIPChannel_activated(int) {
+    auto i = ui->tableViewZIP->selectionModel()->currentIndex().siblingAtColumn(0);
+    Harddrives::busTrackClass->device_track(0, DEV_ZIP, ui->tableViewZIP->model()->data(i, Qt::UserRole).toInt(), ui->tableViewZIP->model()->data(i, Qt::UserRole + 1).toInt());
     setZIPBus(
         ui->tableViewZIP->model(),
         ui->tableViewZIP->selectionModel()->currentIndex(),
         ui->comboBoxZIPBus->currentData().toUInt(),
         ui->comboBoxZIPChannel->currentData().toUInt());
+    Harddrives::busTrackClass->device_track(1, DEV_ZIP, ui->tableViewZIP->model()->data(i, Qt::UserRole).toInt(), ui->tableViewZIP->model()->data(i, Qt::UserRole + 1).toInt());
 }
 
 void SettingsOtherRemovable::on_checkBoxZIP250_stateChanged(int state) {
