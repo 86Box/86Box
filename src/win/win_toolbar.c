@@ -5,6 +5,7 @@
 #include <Windows.h>
 #include <CommCtrl.h>
 #include <86box/86box.h>
+#include <86box/plat.h>
 #include <86box/resource.h>
 #include <86box/ui.h>
 #include <86box/win.h>
@@ -12,6 +13,7 @@
 HWND			hwndRebar;
 static HWND		hwndToolbar;
 static HIMAGELIST	hImageList;
+static wchar_t		wTitle[512];
 
 static TBBUTTON buttons[] = {
     { 0,	IDM_ACTION_PAUSE,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Pause
@@ -61,8 +63,7 @@ ToolBarCreate(HWND hwndParent, HINSTANCE hInst)
     hwndRebar = CreateWindowEx(0, REBARCLASSNAME, NULL,
 				WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | 
 				WS_CLIPCHILDREN | RBS_VARHEIGHT |
-				RBS_BANDBORDERS | CCS_NODIVIDER |
-				CCS_NOPARENTALIGN,
+				CCS_NODIVIDER | CCS_NOPARENTALIGN,
 				0, 0, 0, 0,
 				hwndParent, NULL, hInst, NULL);
 
@@ -72,14 +73,43 @@ ToolBarCreate(HWND hwndParent, HINSTANCE hInst)
 
     // Add the toolbar to the rebar.
     rbbi.cbSize = sizeof(rbbi);
-    rbbi.fMask = RBBIM_CHILD | RBBIM_CHILDSIZE;
+    rbbi.fMask = RBBIM_CHILD | RBBIM_CHILDSIZE | RBBIM_STYLE;
     rbbi.hwndChild = hwndToolbar;
     rbbi.cxMinChild = 0;
     rbbi.cyMinChild = btnSize;
+    rbbi.fStyle = RBBS_NOGRIPPER;
     SendMessage(hwndRebar, RB_INSERTBAND, -1, (LPARAM)&rbbi);
-    SendMessage(hwndRebar, RB_MAXIMIZEBAND, 0, 0);
 
+    // Add a label for machine information.
+    rbbi.fMask = RBBIM_TEXT | RBBIM_STYLE;
+    rbbi.lpText = TEXT("Test");
+    rbbi.fStyle = RBBS_NOGRIPPER;
+    SendMessage(hwndRebar, RB_INSERTBAND, -1, (LPARAM)&rbbi);
+
+    SendMessage(hwndRebar, RB_MAXIMIZEBAND, 0, 0);
     ShowWindow(hwndRebar, TRUE);
 
     return;
+}
+
+wchar_t *
+ui_window_title(wchar_t *s)
+{
+    REBARBANDINFO rbbi = { 0 };
+    if (! video_fullscreen) {
+	if (s != NULL) {
+		wcsncpy(wTitle, s, sizeof_w(wTitle) - 1);
+	} else
+		s = wTitle;
+
+	rbbi.cbSize = sizeof(rbbi);
+	rbbi.fMask = RBBIM_TEXT;
+	rbbi.lpText = s;
+	SendMessage(hwndRebar, RB_SETBANDINFO, 1, (LPARAM) &rbbi);
+    } else {
+	if (s == NULL)
+		s = wTitle;
+    }
+
+    return(s);
 }

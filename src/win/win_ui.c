@@ -74,7 +74,6 @@ extern WCHAR	wopenfilestring[512];
 
 
 /* Local data. */
-static wchar_t	wTitle[512];
 static int	manager_wm = 0;
 static int	save_window_pos = 0, pause_state = 0;
 static int	padded_frame = 0;
@@ -1328,7 +1327,7 @@ ui_init(int nCmdShow)
 			return(2);
 
     /* Now create our main window. */
-    mbstowcs(title, emu_version, sizeof_w(title));
+    swprintf_s(title, sizeof_w(title), L"%hs - %hs", vm_name, EMU_NAME);
     hwnd = CreateWindowEx (
 		0,			/* no extended possibilites */
 		CLASS_NAME,		/* class name */
@@ -1557,25 +1556,6 @@ ui_init(int nCmdShow)
 	dynld_close(user32_handle);
 
     return(messages.wParam);
-}
-
-
-wchar_t *
-ui_window_title(wchar_t *s)
-{
-    if (! video_fullscreen) {
-	if (s != NULL) {
-		wcsncpy(wTitle, s, sizeof_w(wTitle) - 1);
-	} else
-		s = wTitle;
-
-       	SetWindowText(hwndMain, s);
-    } else {
-	if (s == NULL)
-		s = wTitle;
-    }
-
-    return(s);
 }
 
 
