@@ -561,6 +561,7 @@ load_general(void)
 
     kbd_req_capture = config_get_int(cat, "kbd_req_capture", 0);
     hide_status_bar = config_get_int(cat, "hide_status_bar", 0);
+    hide_tool_bar = config_get_int(cat, "hide_tool_bar", 0);
 
     confirm_reset = config_get_int(cat, "confirm_reset", 1);
     confirm_exit = config_get_int(cat, "confirm_exit", 1);
@@ -2036,6 +2037,7 @@ config_load(void)
 
 	kbd_req_capture = 0;
 	hide_status_bar = 0;
+	hide_tool_bar = 0;
 	scale = 1;
 	machine = machine_get_machine_from_internal_name("ibmpc");
 	dpi_scale = 1;
@@ -2221,6 +2223,11 @@ save_general(void)
 	config_set_int(cat, "hide_status_bar", hide_status_bar);
     else
 	config_delete_var(cat, "hide_status_bar");
+
+    if (hide_tool_bar != 0)
+	config_set_int(cat, "hide_tool_bar", hide_tool_bar);
+    else
+	config_delete_var(cat, "hide_tool_bar");	
 
     if (confirm_reset != 1)
 	config_set_int(cat, "confirm_reset", confirm_reset);
