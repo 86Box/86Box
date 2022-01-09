@@ -49,15 +49,15 @@ public:
 
 private:
     /* 1 channel, 2 devices per channel, 8 bits per device = 16 bits. */
-    uint64_t mfm_tracking;
+    uint64_t mfm_tracking{0};
     /* 1 channel, 2 devices per channel, 8 bits per device = 16 bits. */
-    uint64_t esdi_tracking;
+    uint64_t esdi_tracking{0};
     /* 1 channel, 2 devices per channel, 8 bits per device = 16 bits. */
-    uint64_t xta_tracking;
+    uint64_t xta_tracking{0};
     /* 16 channels (prepatation for that weird IDE card), 2 devices per channel, 8 bits per device = 256 bits. */
-    uint64_t ide_tracking[4];
+    uint64_t ide_tracking[4]{0, 0, 0, 0};
     /* 4 buses, 16 devices per bus, 8 bits per device (future-proofing) = 512 bits. */
-    uint64_t scsi_tracking[8];
+    uint64_t scsi_tracking[8]{0, 0, 0, 0, 0, 0, 0, 0};
 };
 
 #endif // QT_SETTINGS_BUS_TRACKING_HPP

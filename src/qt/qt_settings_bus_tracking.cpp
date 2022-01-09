@@ -74,7 +74,7 @@ SettingsBusTracking::next_free_ide_channel()
         element = ((i << 3) >> 6);
         mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
-        if (ide_tracking[element] & mask) {
+        if (!(ide_tracking[element] & mask)) {
 		ret = (uint8_t) i;
                 break;
         }
@@ -95,7 +95,7 @@ SettingsBusTracking::next_free_scsi_id()
         element = ((i << 3) >> 6);
         mask = 0xffULL << ((uint64_t) ((i << 3) & 0x3f));
 
-        if (scsi_tracking[element] & mask) {
+        if (!(scsi_tracking[element] & mask)) {
 		ret = (uint8_t) i;
                 break;
         }

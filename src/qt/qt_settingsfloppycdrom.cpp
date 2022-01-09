@@ -11,6 +11,7 @@ extern "C" {
 
 #include "qt_models_common.hpp"
 #include "qt_harddrive_common.hpp"
+#include "qt_settings_bus_tracking.hpp"
 #include "qt_progsettings.hpp"
 
 static void setFloppyType(QAbstractItemModel* model, const QModelIndex& idx, int type) {
@@ -109,6 +110,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent) :
         auto idx = model->index(i, 0);
         setCDROMBus(model, idx, cdrom[i].bus_type, cdrom[i].res);
         setCDROMSpeed(model, idx.siblingAtColumn(1), cdrom[i].speed);
+        Harddrives::busTrackClass->device_track(1, DEV_CDROM, cdrom[i].bus_type, cdrom[i].bus_type == CDROM_BUS_ATAPI ? cdrom[i].ide_channel : cdrom[i].scsi_device_id);
     }
     ui->tableViewCDROM->resizeColumnsToContents();
     ui->tableViewCDROM->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
@@ -208,19 +210,26 @@ void SettingsFloppyCDROM::on_comboBoxSpeed_activated(int index) {
 
 
 void SettingsFloppyCDROM::on_comboBoxBus_activated(int) {
+    auto i = ui->tableViewCDROM->selectionModel()->currentIndex().siblingAtColumn(0);
+    Harddrives::busTrackClass->device_track(0, DEV_CDROM, ui->tableViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->tableViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
+    ui->comboBoxChannel->setCurrentIndex(ui->comboBoxBus->currentData().toUInt() == CDROM_BUS_ATAPI ? Harddrives::busTrackClass->next_free_ide_channel() : Harddrives::busTrackClass->next_free_scsi_id());
     setCDROMBus(
         ui->tableViewCDROM->model(),
         ui->tableViewCDROM->selectionModel()->currentIndex(),
         ui->comboBoxBus->currentData().toUInt(),
         ui->comboBoxChannel->currentData().toUInt());
+    Harddrives::busTrackClass->device_track(1, DEV_CDROM, ui->tableViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->tableViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
 }
 
 
 void SettingsFloppyCDROM::on_comboBoxChannel_activated(int) {
+    auto i = ui->tableViewCDROM->selectionModel()->currentIndex().siblingAtColumn(0);
+    Harddrives::busTrackClass->device_track(0, DEV_CDROM, ui->tableViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->tableViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
     setCDROMBus(
         ui->tableViewCDROM->model(),
         ui->tableViewCDROM->selectionModel()->currentIndex(),
         ui->comboBoxBus->currentData().toUInt(),
         ui->comboBoxChannel->currentData().toUInt());
+    Harddrives::busTrackClass->device_track(1, DEV_CDROM, ui->tableViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->tableViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
 }
 
