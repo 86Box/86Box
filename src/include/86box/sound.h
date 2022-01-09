@@ -99,6 +99,9 @@ extern const device_t gus_device;
 extern const device_t pas16_device;
 #endif
 
+/* IBM PS/1 Audio Card */
+extern const device_t ps1snd_device;
+
 /* Tandy PSSJ */
 extern const device_t pssj_device;
 extern const device_t pssj_isa_device;
