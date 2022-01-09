@@ -64,7 +64,7 @@ ToolBarCreate(HWND hwndParent, HINSTANCE hInst)
 				WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | 
 				WS_CLIPCHILDREN | RBS_VARHEIGHT |
 				CCS_NODIVIDER | CCS_NOPARENTALIGN,
-				0, 0, 0, 0,
+				0, 0, scrnsz_x, 0,
 				hwndParent, NULL, hInst, NULL);
 
     // Create and send the REBARINFO structure.
