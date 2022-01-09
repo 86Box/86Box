@@ -97,7 +97,8 @@ static dllimp_t user32_imports[] = {
 void* shell32_handle = NULL;
 static HRESULT (WINAPI *pSetCurrentProcessExplicitAppUserModelID)(PCWSTR AppID);
 static dllimp_t shell32_imports[]= {
-{ "SetCurrentProcessExplicitAppUserModelID", &pSetCurrentProcessExplicitAppUserModelID }
+{ "SetCurrentProcessExplicitAppUserModelID", &pSetCurrentProcessExplicitAppUserModelID },
+{ NULL, NULL }
 };
 
 int
