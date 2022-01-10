@@ -737,8 +737,8 @@ cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, in
 static int
 track_type_is_valid(uint8_t id, int type, int flags, int audio, int mode2)
 {
-    if (!(flags & 0x70)) {		/* 0x00/0x08/0x80/0x88 are illegal modes */
-	cdrom_log("CD-ROM %i: [Any Mode] 0x00/0x08/0x80/0x88 are illegal modes\n", id);
+    if (!(flags & 0x70) && (flags & 0xf8)) {		/* 0x08/0x80/0x88 are illegal modes */
+	cdrom_log("CD-ROM %i: [Any Mode] 0x08/0x80/0x88 are illegal modes\n", id);
 	return 0;
     }
 
