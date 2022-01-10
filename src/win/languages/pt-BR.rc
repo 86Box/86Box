@@ -478,7 +478,7 @@ BEGIN
     IDS_2115	"Magneto-óptico %i (%ls): %ls"
     IDS_2116	"Imagens magneto-ópticas (*.IM?;*.MDI)\0*.IM?;*.MDI\0Todos os arquivos (*.*)\0*.*\0"
     IDS_2117	"Bem-vindo ao 86Box!"
-    IDS_2118	"Controle interno"
+    IDS_2118	"Controlador interno"
     IDS_2119	"Sair"
     IDS_2120	"Nenhum ROM encontrada"
     IDS_2121	"Você deseja salvar as configurações?"
