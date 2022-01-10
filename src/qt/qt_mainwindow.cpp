@@ -66,7 +66,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
-    statusBar()->setStyleSheet("QStatusBar::item {border: None; } QStatusBar QLabel { margin-right: 4px; }");
+    statusBar()->setStyleSheet("QStatusBar::item {border: None; } QStatusBar QLabel { margin-right: 2px; margin-bottom: 1px; }");
     ui->toolBar->setVisible(!hide_tool_bar);
 
     this->setWindowIcon(QIcon(":/settings/win/icons/86Box-yellow.ico"));
