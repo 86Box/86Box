@@ -32,6 +32,7 @@ BEGIN
     POPUP "&Vista"
     BEGIN
         MENUITEM "&Ocultar barra de estado",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Ventana redimensionable",          IDM_VID_RESIZE
         MENUITEM "&Recordar tamaño y posición",  IDM_VID_REMEMBER

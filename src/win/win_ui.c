@@ -276,6 +276,7 @@ ResetAllMenus(void)
 #endif
 
     CheckMenuItem(menuMain, IDM_VID_HIDE_STATUS_BAR, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_HIDE_TOOLBAR, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_FORCE43, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_OVERSCAN, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_INVERT, MF_UNCHECKED);
@@ -344,6 +345,7 @@ ResetAllMenus(void)
 #endif
 
     CheckMenuItem(menuMain, IDM_VID_HIDE_STATUS_BAR, hide_status_bar ? MF_CHECKED : MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_HIDE_TOOLBAR, hide_tool_bar ? MF_CHECKED : MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_FORCE43, force_43?MF_CHECKED:MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_OVERSCAN, enable_overscan?MF_CHECKED:MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_INVERT, invert_display ? MF_CHECKED : MF_UNCHECKED);
@@ -638,6 +640,21 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 					MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top - sbar_height, TRUE);
 				else
 					MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top + sbar_height, TRUE);
+				config_save();
+				break;
+
+			case IDM_VID_HIDE_TOOLBAR:
+				hide_tool_bar ^= 1;
+				CheckMenuItem(hmenu, IDM_VID_HIDE_TOOLBAR, hide_tool_bar ? MF_CHECKED : MF_UNCHECKED);
+				ShowWindow(hwndRebar, hide_tool_bar ? SW_HIDE : SW_SHOW);
+				GetWindowRect(hwnd, &rect);
+				if (hide_tool_bar) {
+					MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top - tbar_height, TRUE);
+					SetWindowPos(hwndRender, NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+				} else {
+					MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top + tbar_height, TRUE);
+					SetWindowPos(hwndRender, NULL, 0, tbar_height, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+				}
 				config_save();
 				break;
 

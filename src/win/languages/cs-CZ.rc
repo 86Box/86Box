@@ -32,6 +32,7 @@ BEGIN
     POPUP "&Zobrazení"
     BEGIN
         MENUITEM "&Schovat stavový řádek",			IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Schovat panel &nástrojů",			IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Měnitelná velikost okna",			IDM_VID_RESIZE
         MENUITEM "&Pamatovat velikost a pozici",		IDM_VID_REMEMBER

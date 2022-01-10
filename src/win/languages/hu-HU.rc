@@ -35,6 +35,7 @@ BEGIN
     POPUP "&Nézet"
     BEGIN
         MENUITEM "Állapotsor &elrejtése",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Átméretezhető ablak",          IDM_VID_RESIZE
         MENUITEM "Méret és pozíció &megjegyzése",  IDM_VID_REMEMBER

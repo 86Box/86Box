@@ -32,6 +32,7 @@ BEGIN
     POPUP "&Görüntüleme"
     BEGIN
         MENUITEM "&Durum çubuğunu gizle",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Yeniden boyutlandırılabilir pencere",          IDM_VID_RESIZE
         MENUITEM "&Pencere boyut ve pozisyonunu hatırla",  IDM_VID_REMEMBER

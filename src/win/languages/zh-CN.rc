@@ -32,6 +32,7 @@ BEGIN
     POPUP "查看(&V)"
     BEGIN
         MENUITEM "隐藏状态栏(&H)",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "窗口大小可调(&R)",          IDM_VID_RESIZE
         MENUITEM "记住窗口大小和位置(&E)",  IDM_VID_REMEMBER

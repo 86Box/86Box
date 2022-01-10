@@ -32,6 +32,7 @@ BEGIN
     POPUP "&Vue"
     BEGIN
         MENUITEM "&Masquer la barre de status",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "Fenètre &Retaillable",          IDM_VID_RESIZE
         MENUITEM "S&auvegarder taille && position",  IDM_VID_REMEMBER

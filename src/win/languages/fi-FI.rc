@@ -32,6 +32,7 @@ BEGIN
     POPUP "&Näytä"
     BEGIN
         MENUITEM "&Piilota tilapalkki",                                 IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Hide &toolbar",                                       IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Salli koon muuttaminen",                             IDM_VID_RESIZE
         MENUITEM "&Muista koko ja sijainti",                            IDM_VID_REMEMBER

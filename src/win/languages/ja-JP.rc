@@ -32,6 +32,7 @@ BEGIN
     POPUP "表示(&V)"
     BEGIN
         MENUITEM "ステータスバーを隠す(&H)",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "ウィンドウのサイズを変更可能にする(&R)",          IDM_VID_RESIZE
         MENUITEM "ウィンドウのサイズと位置を記憶する(&E)",  IDM_VID_REMEMBER

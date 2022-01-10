@@ -32,6 +32,7 @@ BEGIN
     POPUP "&Ansicht"
     BEGIN
         MENUITEM "&Statusleiste ausblenden",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Größenverstellbares Fenster",          IDM_VID_RESIZE
         MENUITEM "&Größe && Position merken",  IDM_VID_REMEMBER

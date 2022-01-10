@@ -32,6 +32,7 @@ BEGIN
     POPUP "&View"
     BEGIN
         MENUITEM "&Hide status bar",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Resizeable window",          IDM_VID_RESIZE
         MENUITEM "R&emember size && position",  IDM_VID_REMEMBER
