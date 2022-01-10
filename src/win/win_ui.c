@@ -1328,7 +1328,7 @@ ui_init(int nCmdShow)
 			return(2);
 
     /* Now create our main window. */
-    swprintf_s(title, sizeof_w(title), L"%hs - %hs", vm_name, EMU_NAME);
+    swprintf_s(title, sizeof_w(title), L"%hs - %s %s", vm_name, EMU_NAME_W, EMU_VERSION_FULL_W);
     hwnd = CreateWindowEx (
 		0,			/* no extended possibilites */
 		CLASS_NAME,		/* class name */
