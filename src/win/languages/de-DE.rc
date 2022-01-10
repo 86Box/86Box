@@ -382,8 +382,8 @@ END
 #define STR_ISAMEM_2		"Steckkarte 2:"
 #define STR_ISAMEM_3		"Steckkarte 3:"
 #define STR_ISAMEM_4		"Steckkarte 4:"
-#define STR_BUGGER		"ISABugger-Gerät:"
-#define STR_POSTCARD		"POST-Code-Karte:"
+#define STR_BUGGER		"ISABugger-Gerät"
+#define STR_POSTCARD		"POST-Code-Karte"
 
 #define FONT_SIZE		9
 #define FONT_NAME		"Segoe UI"
@@ -464,7 +464,7 @@ BEGIN
     IDS_2104	"Tastaturbeschleuniger konnten nicht geladen werden."
     IDS_2105	"Roheingaben konnten nicht registriert werden."
     IDS_2106	"%u"
-    IDS_2107	"%u MB (ZKS: %i, %i, %i)"
+    IDS_2107	"%u MB (CHS: %i, %i, %i)"
     IDS_2108	"Diskette %i (%s): %ls"
     IDS_2109	"Alle Images (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Fortgeschrittene Sektorimages (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Basissektorimages (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Fluximages (*.FDI)\0*.FDI\0Oberflächenimages (*.86F;*.MFM)\0*.86F;*.MFM\0Alle Dateien (*.*)\0*.*\0"
     IDS_2110	"FreeType konnte nicht initialisiert werden"
