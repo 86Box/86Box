@@ -191,6 +191,12 @@
    <property name="movable">
     <bool>false</bool>
    </property>
+   <property name="iconSize">
+    <size>
+     <width>16</width>
+     <height>16</height>
+    </size>
+   </property>
    <property name="floatable">
     <bool>false</bool>
    </property>
@@ -232,6 +238,9 @@
    <property name="text">
     <string>&amp;Hard Reset...</string>
    </property>
+   <property name="iconVisibleInMenu">
+    <bool>false</bool>
+   </property>
   </action>
   <action name="actionCtrl_Alt_Del">
    <property name="icon">
@@ -247,6 +256,9 @@
    <property name="shortcut">
     <string>Ctrl+F12</string>
    </property>
+   <property name="iconVisibleInMenu">
+    <bool>false</bool>
+   </property>
    <property name="shortcutVisibleInContextMenu">
     <bool>false</bool>
    </property>
@@ -259,6 +271,9 @@
    <property name="text">
     <string>Ctrl+Alt+&amp;Esc</string>
    </property>
+   <property name="iconVisibleInMenu">
+    <bool>false</bool>
+   </property>
   </action>
   <action name="actionPause">
    <property name="checkable">
@@ -270,6 +285,9 @@
    </property>
    <property name="text">
     <string>&amp;Pause</string>
+   </property>
+   <property name="iconVisibleInMenu">
+    <bool>false</bool>
    </property>
   </action>
   <action name="actionExit">
@@ -287,6 +305,9 @@
    </property>
    <property name="menuRole">
     <enum>QAction::PreferencesRole</enum>
+   </property>
+   <property name="iconVisibleInMenu">
+    <bool>false</bool>
    </property>
   </action>
   <action name="actionFullscreen">
