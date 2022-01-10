@@ -32,26 +32,26 @@ include(CPack)
 include(CMakeDependentOption)
 
 # Basic build options
-if(WIN32)
-    if(VCPKG_TOOLCHAIN)
-        # For vcpkg builds we have to respect the linking method used by the
-        # specified triplet.
-        set(NO_STATIC_OPTION ON)
-        if(VCPKG_TARGET_TRIPLET MATCHES "-windows-static$")
-            # `-static` triplet, use static linking
-            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
-            set(STATIC_BUILD ON)
-        elseif(VCPKG_TARGET_TRIPLET MATCHES "-windows-static-md$")
-            # `-static-md` triplet, use static linking with dynamic CRT
-            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-            set(STATIC_BUILD ON)
-        elseif()
-            # Regular triplet, use dynamic linking
-            set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
-            set(STATIC_BUILD OFF)
-        endif()
+if(VCPKG_TOOLCHAIN)
+    # For vcpkg builds we have to respect the linking method used by the
+    # specified triplet.
+    set(NO_STATIC_OPTION ON)
+    if(VCPKG_TARGET_TRIPLET MATCHES "-static$")
+        # `-static` triplet, use static linking
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+        set(STATIC_BUILD ON)
+    elseif(VCPKG_TARGET_TRIPLET MATCHES "-static-md$")
+        # `-static-md` triplet, use static linking with dynamic CRT
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+        set(STATIC_BUILD ON)
+    elseif()
+        # Regular triplet, use dynamic linking
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+        set(STATIC_BUILD OFF)
     endif()
+endif()
 
+if(WIN32)
     # Prefer static builds on Windows
     set(PREFER_STATIC ON)
 
