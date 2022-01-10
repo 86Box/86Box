@@ -1626,8 +1626,14 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 
 				msf = 1;
 
+				if ((cdb[9] & 0xf8) == 0x08) {
+					/* 0x08 is an illegal mode */
+					scsi_cdrom_invalid_field(dev);
+					break;
+				}
+
 				/* If all the flag bits are cleared, then treat it as a non-data command. */
-				if (cdb[9] == 0x00)
+				if ((cdb[9] == 0x00) && ((cdb[10] & 0x07) == 0x00))
 					dev->sector_len = 0;
 				break;
 			case GPCMD_READ_CD_OLD:
@@ -1638,8 +1644,14 @@ scsi_cdrom_command(scsi_common_t *sc, uint8_t *cdb)
 
 				msf = 0;
 
+				if ((cdb[9] & 0xf8) == 0x08) {
+					/* 0x08 is an illegal mode */
+					scsi_cdrom_invalid_field(dev);
+					break;
+				}
+
 				/* If all the flag bits are cleared, then treat it as a non-data command. */
-				if (cdb[9] == 0x00)
+				if ((cdb[9] == 0x00) && ((cdb[10] & 0x07) == 0x00))
 					dev->sector_len = 0;
 				break;
 		}
