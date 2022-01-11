@@ -368,7 +368,7 @@ END
 #define STR_SIZE_MB		"Tamanho (MB):"
 #define STR_TYPE		"Tipo:"
 #define STR_IMG_FORMAT		"Formato:"
-#define STR_BLOCK_SIZE		"Tamanho do bloco:"
+#define STR_BLOCK_SIZE		"Bloco:"
 
 #define STR_FLOPPY_DRIVES	"Unidades de disquete:"
 #define STR_TURBO		"Turbo"
