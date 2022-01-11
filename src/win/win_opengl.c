@@ -200,8 +200,9 @@ static void set_parent_binding(int enable)
  * @param wParam
  * @param lParam 
  * @param fullscreen
+ * @return Was message handled
 */
-static void handle_window_messages(UINT message, WPARAM wParam, LPARAM lParam, int fullscreen)
+static int handle_window_messages(UINT message, WPARAM wParam, LPARAM lParam, int fullscreen)
 {
 	switch (message)
 	{
@@ -219,7 +220,7 @@ static void handle_window_messages(UINT message, WPARAM wParam, LPARAM lParam, i
 			/* Mouse events that enter and exit capture. */
 			PostMessage(parent, message, wParam, lParam);
 		}
-		break;
+		return 1;
 	case WM_KEYDOWN:
 	case WM_KEYUP:
 	case WM_SYSKEYDOWN:
@@ -228,7 +229,7 @@ static void handle_window_messages(UINT message, WPARAM wParam, LPARAM lParam, i
 		{
 			PostMessage(parent, message, wParam, lParam);
 		}
-		break;
+		return 1;
 	case WM_INPUT:
 		if (fullscreen)
 		{
@@ -256,8 +257,10 @@ static void handle_window_messages(UINT message, WPARAM wParam, LPARAM lParam, i
 			}
 			free(raw);
 		}
-		break;
+		return 1;
 	}
+
+	return 0;
 }
 
 /**
@@ -638,12 +641,13 @@ static void opengl_main(void* param)
 
 			/* Handle window messages */
 			MSG msg;
-			if (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
+			while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
 			{
-				if (msg.hwnd == window_hwnd)
-					handle_window_messages(msg.message, msg.wParam, msg.lParam, fullscreen);
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
+				if (msg.hwnd != window_hwnd || !handle_window_messages(msg.message, msg.wParam, msg.lParam, fullscreen))
+				{
+					TranslateMessage(&msg);
+					DispatchMessage(&msg);
+				}
 			}
 
 			/* Wait for synchronized events for 1ms before going back to window events */
