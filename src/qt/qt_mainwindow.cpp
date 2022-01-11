@@ -970,6 +970,19 @@ void MainWindow::on_actionFullscreen_triggered() {
             emit resizeContents(scrnsz_x, scrnsz_y);
         }
     } else {
+        if (video_fullscreen_first)
+        {
+            QMessageBox questionbox(QMessageBox::Icon::Information, tr("Entering fullscreen mode"), tr("Press CTRL+ALT+PAGE DOWN to return to windowed mode."), QMessageBox::Ok, this);
+            QCheckBox *chkbox = new QCheckBox(tr("Don't show this message again"));
+            questionbox.setCheckBox(chkbox);
+            chkbox->setChecked(!video_fullscreen_first);
+            bool confirm_exit_temp = false;
+            QObject::connect(chkbox, &QCheckBox::stateChanged, [](int state) {
+                video_fullscreen_first = (state == Qt::CheckState::Unchecked);
+            });
+            questionbox.exec();
+            config_save();
+        }
         setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
         ui->menubar->hide();
         ui->statusbar->hide();
