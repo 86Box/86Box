@@ -89,13 +89,13 @@ ToolBarLoadIcons()
 				  win_get_system_metrics(SM_CYSMICON, dpi),
 				  ILC_MASK | ILC_COLOR32, 1, 1);
 
-    ImageList_AddIcon(hImageList, hIcon[16]); // Run
-    ImageList_AddIcon(hImageList, hIcon[24]); // Pause
-    ImageList_AddIcon(hImageList, hIcon[32]); // Ctrl+Alt+Delete
-    ImageList_AddIcon(hImageList, hIcon[40]); // Ctrl+Alt+Esc
-    ImageList_AddIcon(hImageList, hIcon[48]); // Hard reset
-    ImageList_AddIcon(hImageList, hIcon[56]); // ACPI shutdown
-    ImageList_AddIcon(hImageList, hIcon[64]); // Settings
+    ImageList_AddIcon(hImageList, hIcon[200]); // Run
+    ImageList_AddIcon(hImageList, hIcon[201]); // Pause
+    ImageList_AddIcon(hImageList, hIcon[202]); // Ctrl+Alt+Delete
+    ImageList_AddIcon(hImageList, hIcon[203]); // Ctrl+Alt+Esc
+    ImageList_AddIcon(hImageList, hIcon[204]); // Hard reset
+    ImageList_AddIcon(hImageList, hIcon[205]); // ACPI shutdown
+    ImageList_AddIcon(hImageList, hIcon[206]); // Settings
 
     SendMessage(hwndToolbar, TB_SETIMAGELIST, 0, (LPARAM) hImageList);
 }
