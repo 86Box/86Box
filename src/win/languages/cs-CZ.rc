@@ -533,6 +533,13 @@ BEGIN
     IDS_2151	"Obrazy cartridge (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Všechny soubory (*.*)\0*.*\0"
     IDS_2152	"Error initializing renderer"
     IDS_2153	"OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+    IDS_2154	"Obnovit"
+    IDS_2155	"Pozastavit"
+    IDS_2156	"Stisknout Ctrl+Alt+Delete"
+    IDS_2157	"Stisknout Ctrl+Alt+Esc"
+    IDS_2158	"Resetovat"
+    IDS_2159	"Vypnout skrze rozhraní ACPI"
+    IDS_2159	"Nastavení"
 END
 
 STRINGTABLE DISCARDABLE 

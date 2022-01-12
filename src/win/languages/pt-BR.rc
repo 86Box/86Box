@@ -536,6 +536,13 @@ BEGIN
     IDS_2151	"Imagens de cartucho (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Todos os arquivos (*.*)\0*.*\0"
     IDS_2152	"Erro ao inicializar o renderizador"
     IDS_2153	"O renderizador OpenGL (Núcleo 3.0) não pôde ser inicializado. Use outro renderizador."
+    IDS_2154	"Resume execution"
+    IDS_2155	"Pause execution"
+    IDS_2156	"Press Ctrl+Alt+Del"
+    IDS_2157	"Press Ctrl+Alt+Esc"
+    IDS_2158	"Hard reset"
+    IDS_2159	"ACPI shutdown"
+    IDS_2160	"Settings"
 END
 
 STRINGTABLE DISCARDABLE 

@@ -44,23 +44,23 @@ ToolBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				
 				switch (idButton) { 
 					case IDM_ACTION_PAUSE: 
-						lpttt->lpszText = L"Pause execution";
+						lpttt->lpszText = MAKEINTRESOURCE(IDS_2155);
 						break; 
 					
 					case IDM_ACTION_RESET_CAD: 
-						lpttt->lpszText = L"Press Ctrl+Alt+Delete"; 
+						lpttt->lpszText = MAKEINTRESOURCE(IDS_2156);
 						break;
 
 					case IDM_ACTION_CTRL_ALT_ESC:
-						lpttt->lpszText = L"Press Ctrl+Alt+Esc"; 
+						lpttt->lpszText = MAKEINTRESOURCE(IDS_2157);
 						break;
 
 					case IDM_ACTION_HRESET:
-						lpttt->lpszText = L"Hard reset"; 
+						lpttt->lpszText = MAKEINTRESOURCE(IDS_2158);
 						break;
 					
 					case IDM_CONFIG: 
-						lpttt->lpszText = L"Settings"; 
+						lpttt->lpszText = MAKEINTRESOURCE(IDS_2160);
 						break; 
 				}
 				
