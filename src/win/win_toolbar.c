@@ -142,7 +142,7 @@ ToolBarCreate(HWND hwndParent, HINSTANCE hInst)
 
     // Replace the original procedure with ours.
     pOriginalProcedure = (WNDPROC) GetWindowLongPtr(hwndToolbar, GWLP_WNDPROC);
-    SetWindowLongPtr(hwndToolbar, GWL_WNDPROC, (LONG_PTR)&ToolBarProcedure);
+    SetWindowLongPtr(hwndToolbar, GWLP_WNDPROC, (LONG_PTR)&ToolBarProcedure);
 
     // Create the containing Rebar.
     hwndRebar = CreateWindowEx(0, REBARCLASSNAME, NULL,
