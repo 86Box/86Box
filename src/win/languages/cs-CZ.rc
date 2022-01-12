@@ -539,7 +539,7 @@ BEGIN
     IDS_2157	"Stisknout Ctrl+Alt+Esc"
     IDS_2158	"Resetovat"
     IDS_2159	"Vypnout skrze rozhraní ACPI"
-    IDS_2159	"Nastavení"
+    IDS_2160	"Nastavení"
 END
 
 STRINGTABLE DISCARDABLE 
