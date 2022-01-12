@@ -144,6 +144,9 @@ ToolBarCreate(HWND hwndParent, HINSTANCE hInst)
     pOriginalProcedure = (WNDPROC) GetWindowLongPtr(hwndToolbar, GWLP_WNDPROC);
     SetWindowLongPtr(hwndToolbar, GWLP_WNDPROC, (LONG_PTR)&ToolBarProcedure);
 
+    // Make sure the Pause button is in the correct state.
+    ToolBarUpdatePause(dopause);
+
     // Create the containing Rebar.
     hwndRebar = CreateWindowEx(0, REBARCLASSNAME, NULL,
 				WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | 
