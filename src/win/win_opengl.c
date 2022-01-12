@@ -258,6 +258,13 @@ static int handle_window_messages(UINT message, WPARAM wParam, LPARAM lParam, in
 			free(raw);
 		}
 		return 1;
+	case WM_MOUSELEAVE:
+		if (fullscreen)
+		{
+			/* Leave fullscreen if mouse leaves the renderer window. */
+			PostMessage(GetAncestor(parent, GA_ROOT), WM_LEAVEFULLSCREEN, 0, 0);
+		}
+		return 0;
 	}
 
 	return 0;
@@ -726,7 +733,14 @@ static void opengl_main(void* param)
 				{
 					SetForegroundWindow(window_hwnd);
 					SetFocus(window_hwnd);
+
+					/* Clip cursor to prevent it moving to another monitor. */
+					RECT rect;
+					GetWindowRect(window_hwnd, &rect);
+					ClipCursor(&rect);
 				}
+				else
+					ClipCursor(NULL);
 			}
 
 			if (fullscreen)
