@@ -368,7 +368,7 @@ END
 #define STR_SIZE_MB		"Tamanho (MB):"
 #define STR_TYPE		"Tipo:"
 #define STR_IMG_FORMAT		"Formato:"
-#define STR_BLOCK_SIZE		"Tamanho do bloco:"
+#define STR_BLOCK_SIZE		"Bloco:"
 
 #define STR_FLOPPY_DRIVES	"Unidades de disquete:"
 #define STR_TURBO		"Turbo"
@@ -478,7 +478,7 @@ BEGIN
     IDS_2115	"Magneto-óptico %i (%ls): %ls"
     IDS_2116	"Imagens magneto-ópticas (*.IM?;*.MDI)\0*.IM?;*.MDI\0Todos os arquivos (*.*)\0*.*\0"
     IDS_2117	"Bem-vindo ao 86Box!"
-    IDS_2118	"Controle interno"
+    IDS_2118	"Controlador interno"
     IDS_2119	"Sair"
     IDS_2120	"Nenhum ROM encontrada"
     IDS_2121	"Você deseja salvar as configurações?"
