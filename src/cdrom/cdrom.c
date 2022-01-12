@@ -737,8 +737,8 @@ cdrom_read_disc_info_toc(cdrom_t *dev, unsigned char *b, unsigned char track, in
 static int
 track_type_is_valid(uint8_t id, int type, int flags, int audio, int mode2)
 {
-    if (!(flags & 0x70)) {		/* 0x00/0x08/0x80/0x88 are illegal modes */
-	cdrom_log("CD-ROM %i: [Any Mode] 0x00/0x08/0x80/0x88 are illegal modes\n", id);
+    if (!(flags & 0x70) && (flags & 0xf8)) {		/* 0x08/0x80/0x88 are illegal modes */
+	cdrom_log("CD-ROM %i: [Any Mode] 0x08/0x80/0x88 are illegal modes\n", id);
 	return 0;
     }
 
@@ -1031,8 +1031,8 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, int sector, int ismsf, int c
     memset(raw_buffer, 0, 2448);
     memset(extra_buffer, 0, 296);
 
-    if (!(cdrom_sector_flags & 0xf0)) {		/* 0x00 and 0x08 are illegal modes */
-	cdrom_log("CD-ROM %i: [Mode 1] 0x00 and 0x08 are illegal modes\n", dev->id);
+    if ((cdrom_sector_flags & 0xf8) == 0x08) {		/* 0x08 is an illegal mode */
+	cdrom_log("CD-ROM %i: [Mode 1] 0x08 is an illegal mode\n", dev->id);
 	return 0;
     }
 

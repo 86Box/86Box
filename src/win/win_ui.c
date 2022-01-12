@@ -97,7 +97,8 @@ static dllimp_t user32_imports[] = {
 void* shell32_handle = NULL;
 static HRESULT (WINAPI *pSetCurrentProcessExplicitAppUserModelID)(PCWSTR AppID);
 static dllimp_t shell32_imports[]= {
-{ "SetCurrentProcessExplicitAppUserModelID", &pSetCurrentProcessExplicitAppUserModelID }
+{ "SetCurrentProcessExplicitAppUserModelID", &pSetCurrentProcessExplicitAppUserModelID },
+{ NULL, NULL }
 };
 
 int
@@ -960,6 +961,9 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 
 	case WM_WINDOWPOSCHANGED:
+		if (video_fullscreen & 1)
+			PostMessage(hwndMain, WM_LEAVEFULLSCREEN, 0, 0);
+
 		pos = (WINDOWPOS*)lParam;
 		GetClientRect(hwndMain, &rect);
 
@@ -1157,6 +1161,13 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			plat_vidapi_enable(0);
 			plat_vidapi_enable(1);
 		}
+		break;
+
+	case WM_ACTIVATEAPP:
+		/* Leave full screen on switching application except
+		   for OpenGL Core and VNC renderers. */
+		if (video_fullscreen & 1 && wParam == FALSE && vid_api < 3)
+			PostMessage(hwndMain, WM_LEAVEFULLSCREEN, 0, 0);
 		break;
 
 	case WM_ENTERSIZEMOVE:
