@@ -14,6 +14,7 @@ HWND			hwndRebar;
 static HWND		hwndToolbar;
 static HIMAGELIST	hImageList;
 static wchar_t		wTitle[512];
+static WNDPROC		pOriginalProcedure;
 
 static TBBUTTON buttons[] = {
     { 0,	IDM_ACTION_PAUSE,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Pause
@@ -25,6 +26,52 @@ static TBBUTTON buttons[] = {
     { 0,	0,				TBSTATE_INDETERMINATE,	BTNS_SEP,	{ 0 }, 0, 0 },
     { 0,	IDM_CONFIG,			TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 }	// Settings
 };
+
+
+int
+ToolBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    switch (message) {
+	case WM_NOTIFY:
+		switch (((LPNMHDR) lParam)->code) {
+			case TTN_GETDISPINFO: { 
+				LPTOOLTIPTEXT lpttt = (LPTOOLTIPTEXT)lParam; 
+				
+				// Set the instance of the module that contains the resource.
+				lpttt->hinst = hinstance;
+				
+				uintptr_t idButton = lpttt->hdr.idFrom;
+				
+				switch (idButton) { 
+					case IDM_ACTION_PAUSE: 
+						lpttt->lpszText = L"Pause execution";
+						break; 
+					
+					case IDM_ACTION_RESET_CAD: 
+						lpttt->lpszText = L"Press Ctrl+Alt+Delete"; 
+						break;
+
+					case IDM_ACTION_CTRL_ALT_ESC:
+						lpttt->lpszText = L"Press Ctrl+Alt+Esc"; 
+						break;
+
+					case IDM_ACTION_HRESET:
+						lpttt->lpszText = L"Hard reset"; 
+						break;
+					
+					case IDM_CONFIG: 
+						lpttt->lpszText = L"Settings"; 
+						break; 
+				}
+				
+				return TRUE; 
+			} 
+		}
+    }
+
+    return(CallWindowProc(pOriginalProcedure, hwnd, message, wParam, lParam));
+}
+
 
 void
 ToolBarCreate(HWND hwndParent, HINSTANCE hInst)
@@ -59,6 +106,10 @@ ToolBarCreate(HWND hwndParent, HINSTANCE hInst)
     // Autosize the toolbar and determine its size.
     btnSize = LOWORD(SendMessage(hwndToolbar, TB_GETBUTTONSIZE, 0,0));
 
+    // Replace the original procedure with ours.
+    pOriginalProcedure = (WNDPROC) GetWindowLongPtr(hwndToolbar, GWLP_WNDPROC);
+    SetWindowLongPtr(hwndToolbar, GWL_WNDPROC, (LONG_PTR)&ToolBarProcedure);
+
     // Create the containing Rebar.
     hwndRebar = CreateWindowEx(0, REBARCLASSNAME, NULL,
 				WS_CHILD | WS_VISIBLE | WS_CLIPSIBLINGS | 
@@ -91,6 +142,7 @@ ToolBarCreate(HWND hwndParent, HINSTANCE hInst)
 
     return;
 }
+
 
 wchar_t *
 ui_window_title(wchar_t *s)
