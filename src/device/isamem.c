@@ -598,6 +598,8 @@ dev->frame_addr = 0xE0000;
 	addr += t;
     }
 
+    isa_mem_size += dev->total_size - (k >> 10);
+
     /* If EMS is enabled, use the remainder for EMS. */
     if (dev->flags & FLAG_EMS) {
 	/* EMS 3.2 cannot have more than 2048KB per board. */
@@ -1186,6 +1188,9 @@ void
 isamem_reset(void)
 {
     int k, i;
+
+    /* We explicitly set to zero here or bad things happen */
+    isa_mem_size = 0;
 
     for (i = 0; i < ISAMEM_MAX; i++) {
 	k = isamem_type[i];

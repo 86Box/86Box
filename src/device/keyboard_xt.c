@@ -566,8 +566,10 @@ kbd_read(uint16_t port, void *priv)
 
     switch (port) {
 	case 0x60: /* Keyboard Data Register  (aka Port A) */
-		if ((kbd->pb & 0x80) && ((kbd->type <= KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_ZENITH))) {
-			if (kbd->type <= KBD_TYPE_PC82)
+		if ((kbd->pb & 0x80) && ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)
+                || (kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86)
+                || (kbd->type == KBD_TYPE_ZENITH))) {
+			if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82))
 				ret = (kbd->pd & ~0x02) | (hasfpu ? 0x02 : 0x00);
 			else if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86))
 				ret = 0xff;	/* According to Ruud on the PCem forum, this is supposed to return 0xFF on the XT. */
@@ -599,14 +601,23 @@ kbd_read(uint16_t port, void *priv)
 		break;
 
 	case 0x62: /* Switch Register (aka Port C) */
-		if (kbd->type == KBD_TYPE_PC81)
-            ret = 0x00;
-		else if (kbd->type == KBD_TYPE_PC82) {
+		if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)) {
 			if (kbd->pb & 0x04) /* PB2 */
-				ret = ((mem_size - 64) / 32) & 0x0f;
+                switch (mem_size + isa_mem_size) {
+                    case 64:
+                    case 48:
+                    case 32:
+                    case 16:
+                        ret = 0x00;
+                        break;
+                    default:
+                        ret = (((mem_size + isa_mem_size) - 64) / 32) & 0x0f;
+                        break;
+                }
 			else
-				ret = ((mem_size - 64) / 32) >> 4;
-		}  else if (kbd->type == KBD_TYPE_OLIVETTI || kbd->type == KBD_TYPE_ZENITH) {
+				ret = (((mem_size + isa_mem_size) - 64) / 32) >> 4;
+		}  else if (kbd->type == KBD_TYPE_OLIVETTI
+                        || kbd->type == KBD_TYPE_ZENITH) {
 			/* Olivetti M19 or Zenith Data Systems Z-151 */
 			if (kbd->pb & 0x04) /* PB2 */
 				ret = kbd->pd & 0xbf;
@@ -643,7 +654,8 @@ kbd_read(uint16_t port, void *priv)
 
 	case 0x63: /* Keyboard Configuration Register (aka Port D) */
 		if ((kbd->type == KBD_TYPE_XT82) || (kbd->type == KBD_TYPE_XT86)
-            || (kbd->type == KBD_TYPE_COMPAQ) || (kbd->type == KBD_TYPE_TOSHIBA))
+                || (kbd->type == KBD_TYPE_COMPAQ)
+                || (kbd->type == KBD_TYPE_TOSHIBA))
 			ret = kbd->pd;
 		break;
     }
@@ -694,8 +706,12 @@ kbd_init(const device_t *info)
 
     video_reset(gfxcard);
 
-    if ((kbd->type <= KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_COMPAQ)
-           || (kbd->type == KBD_TYPE_TOSHIBA) || (kbd->type == KBD_TYPE_OLIVETTI)) {
+    if ((kbd->type == KBD_TYPE_PC81) || (kbd->type == KBD_TYPE_PC82)
+            || (kbd->type == KBD_TYPE_XT82) || (kbd->type <= KBD_TYPE_XT86)
+            || (kbd->type == KBD_TYPE_COMPAQ)
+            || (kbd->type == KBD_TYPE_TOSHIBA)
+            || (kbd->type == KBD_TYPE_OLIVETTI)) {
+
         /* DIP switch readout: bit set = OFF, clear = ON. */
         if (kbd->type == KBD_TYPE_OLIVETTI)
 		/* Olivetti M19
@@ -713,7 +729,8 @@ kbd_init(const device_t *info)
 	    kbd->pd |= get_videomode_switch_settings();
 
         /* Switches 3, 4 - memory size. */
-        if ((kbd->type == KBD_TYPE_XT86) || (kbd->type == KBD_TYPE_COMPAQ)
+        if ((kbd->type == KBD_TYPE_XT86)
+                || (kbd->type == KBD_TYPE_COMPAQ)
                 || (kbd->type == KBD_TYPE_TOSHIBA)) {
             switch (mem_size) {
                 case 256:
