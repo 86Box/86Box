@@ -43,8 +43,11 @@ ToolBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				uintptr_t idButton = lpttt->hdr.idFrom;
 				
 				switch (idButton) { 
-					case IDM_ACTION_PAUSE: 
-						lpttt->lpszText = MAKEINTRESOURCE(IDS_2155);
+					case IDM_ACTION_PAUSE:
+						if (dopause)
+							lpttt->lpszText = MAKEINTRESOURCE(IDS_2154);
+						else
+							lpttt->lpszText = MAKEINTRESOURCE(IDS_2155);
 						break; 
 					
 					case IDM_ACTION_RESET_CAD: 
