@@ -17,14 +17,14 @@ static wchar_t		wTitle[512] = { 0 };
 static WNDPROC		pOriginalProcedure = NULL;
 
 static TBBUTTON buttons[] = {
-    { 0,	IDM_ACTION_PAUSE,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Pause
+    { 1,	IDM_ACTION_PAUSE,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Pause
     { 0,	0,				TBSTATE_INDETERMINATE,	BTNS_SEP,	{ 0 }, 0, 0 },
-    { 1,	IDM_ACTION_RESET_CAD,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Ctrl+Alt+Del
-    { 2,	IDM_ACTION_CTRL_ALT_ESC,	TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Ctrl+Alt+Esc
-    { 3,	IDM_ACTION_HRESET,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Hard reset
-    { 4,	0,				TBSTATE_INDETERMINATE,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// ACPI shutdown
+    { 2,	IDM_ACTION_RESET_CAD,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Ctrl+Alt+Del
+    { 3,	IDM_ACTION_CTRL_ALT_ESC,	TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Ctrl+Alt+Esc
+    { 4,	IDM_ACTION_HRESET,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Hard reset
+    { 5,	0,				TBSTATE_INDETERMINATE,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// ACPI shutdown
     { 0,	0,				TBSTATE_INDETERMINATE,	BTNS_SEP,	{ 0 }, 0, 0 },
-    { 5,	IDM_CONFIG,			TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 }	// Settings
+    { 6,	IDM_CONFIG,			TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 }	// Settings
 };
 
 
@@ -95,6 +95,19 @@ ToolBarLoadIcons()
     ImageList_AddIcon(hImageList, hIcon[64]); // Settings
 
     SendMessage(hwndToolbar, TB_SETIMAGELIST, 0, (LPARAM) hImageList);
+}
+
+
+void
+ToolBarUpdatePause(int pause)
+{
+    TBBUTTONINFO tbbi;
+
+    tbbi.cbSize = sizeof(tbbi);
+    tbbi.dwMask = TBIF_IMAGE;
+    tbbi.iImage = pause ? 0 : 1;
+
+    SendMessage(hwndToolbar, TB_SETBUTTONINFO, IDM_ACTION_PAUSE, (LPARAM) &tbbi);
 }
 
 

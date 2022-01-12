@@ -1630,6 +1630,9 @@ plat_pause(int p)
     if (enable_discord)
 	discord_update_activity(dopause);
 
+    /* Update the toolbar */
+    ToolBarUpdatePause(p);
+
     /* Send the WM to a manager if needed. */
     if (source_hwnd)
 	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSTATUS, (WPARAM) !!dopause, (LPARAM) hwndMain);
