@@ -10,21 +10,21 @@
 #include <86box/ui.h>
 #include <86box/win.h>
 
-HWND			hwndRebar;
-static HWND		hwndToolbar;
-static HIMAGELIST	hImageList;
-static wchar_t		wTitle[512];
-static WNDPROC		pOriginalProcedure;
+HWND			hwndRebar = NULL;
+static HWND		hwndToolbar = NULL;
+static HIMAGELIST	hImageList = NULL;
+static wchar_t		wTitle[512] = { 0 };
+static WNDPROC		pOriginalProcedure = NULL;
 
 static TBBUTTON buttons[] = {
     { 0,	IDM_ACTION_PAUSE,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Pause
     { 0,	0,				TBSTATE_INDETERMINATE,	BTNS_SEP,	{ 0 }, 0, 0 },
-    { 0,	IDM_ACTION_RESET_CAD,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Ctrl+Alt+Del
-    { 0,	IDM_ACTION_CTRL_ALT_ESC,	TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Ctrl+Alt+Esc
-    { 0,	IDM_ACTION_HRESET,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Hard reset
-    { 0,	0,				TBSTATE_INDETERMINATE,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// ACPI shutdown
+    { 1,	IDM_ACTION_RESET_CAD,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Ctrl+Alt+Del
+    { 2,	IDM_ACTION_CTRL_ALT_ESC,	TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Ctrl+Alt+Esc
+    { 3,	IDM_ACTION_HRESET,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Hard reset
+    { 4,	0,				TBSTATE_INDETERMINATE,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// ACPI shutdown
     { 0,	0,				TBSTATE_INDETERMINATE,	BTNS_SEP,	{ 0 }, 0, 0 },
-    { 0,	IDM_CONFIG,			TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 }	// Settings
+    { 5,	IDM_CONFIG,			TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 }	// Settings
 };
 
 
@@ -74,6 +74,31 @@ ToolBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 void
+ToolBarLoadIcons()
+{
+    if (!hwndToolbar)
+	return;
+
+    if (hImageList)
+	ImageList_Destroy(hImageList);
+
+    hImageList = ImageList_Create(win_get_system_metrics(SM_CXSMICON, dpi),
+				  win_get_system_metrics(SM_CYSMICON, dpi),
+				  ILC_MASK | ILC_COLOR32, 1, 1);
+
+    ImageList_AddIcon(hImageList, hIcon[16]); // Run
+    ImageList_AddIcon(hImageList, hIcon[24]); // Pause
+    ImageList_AddIcon(hImageList, hIcon[32]); // Ctrl+Alt+Delete
+    ImageList_AddIcon(hImageList, hIcon[40]); // Ctrl+Alt+Esc
+    ImageList_AddIcon(hImageList, hIcon[48]); // Hard reset
+    ImageList_AddIcon(hImageList, hIcon[56]); // ACPI shutdown
+    ImageList_AddIcon(hImageList, hIcon[64]); // Settings
+
+    SendMessage(hwndToolbar, TB_SETIMAGELIST, 0, (LPARAM) hImageList);
+}
+
+
+void
 ToolBarCreate(HWND hwndParent, HINSTANCE hInst)
 {
     REBARINFO rbi = { 0 };
@@ -90,14 +115,7 @@ ToolBarCreate(HWND hwndParent, HINSTANCE hInst)
 				0, 0, 0, 0,
 				hwndParent, NULL, hInst, NULL);
 
-    // Create the image list.
-    hImageList = ImageList_Create(win_get_system_metrics(SM_CXSMICON, dpi),
-				  win_get_system_metrics(SM_CYSMICON, dpi),
-				  ILC_MASK | ILC_COLOR32, 1, 1);
-
-    ImageList_AddIcon(hImageList, hIcon[241]);
-
-    SendMessage(hwndToolbar, TB_SETIMAGELIST, 0, (LPARAM) hImageList);
+    ToolBarLoadIcons();
 
     // Add buttons.
     SendMessage(hwndToolbar, TB_BUTTONSTRUCTSIZE, sizeof(TBBUTTON), 0);

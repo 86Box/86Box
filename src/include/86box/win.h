@@ -216,6 +216,7 @@ extern int	MediaMenuHandler(HWND hwnd, UINT message, WPARAM wParam, LPARAM lPara
 /* Functions in win_toolbar.c */
 extern HWND	hwndRebar;
 extern void	ToolBarCreate(HWND hwndParent, HINSTANCE hInst);
+extern void	ToolBarLoadIcons();
 
 
 /* Functions in win_dialog.c: */
