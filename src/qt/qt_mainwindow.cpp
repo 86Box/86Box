@@ -299,6 +299,15 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->actionTake_screenshot->setShortcutVisibleInContextMenu(true);
 #endif
     video_setblit(qt_blit);
+
+    if (start_in_fullscreen) {
+        connect(ui->stackedWidget, &RendererStack::blitToRenderer, this, [this] () {
+            if (start_in_fullscreen) {
+                QTimer::singleShot(100, ui->actionFullscreen, &QAction::trigger);
+                start_in_fullscreen = 0;
+            }
+        });
+    }
 }
 
 void MainWindow::closeEvent(QCloseEvent *event) {
@@ -984,6 +993,7 @@ void MainWindow::on_actionFullscreen_triggered() {
         showFullScreen();
         video_fullscreen = 1;
     }
+    ui->stackedWidget->rendererWindow->onResize(width(), height());
 }
 
 void MainWindow::getTitle_(wchar_t *title)
