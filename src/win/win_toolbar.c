@@ -16,8 +16,7 @@ static HIMAGELIST	hImageList = NULL;
 static wchar_t		wTitle[512] = { 0 };
 static WNDPROC		pOriginalProcedure = NULL;
 
-// Used for image list indices
-// Don't shuffle the values up without updating `ToolBarLoadIcons` to follow suit!
+
 enum image_index {
 	RUN,
 	PAUSE,
@@ -28,16 +27,33 @@ enum image_index {
 	SETTINGS
 };
 
-static TBBUTTON buttons[] = {
-    { PAUSE,		IDM_ACTION_PAUSE,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },
-    { HARD_RESET,	IDM_ACTION_HRESET,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },
-    { ACPI_SHUTDOWN,	0,				TBSTATE_INDETERMINATE,	BTNS_BUTTON,	{ 0 }, 0, 0 },
-    { 0,		0,				TBSTATE_INDETERMINATE,	BTNS_SEP,	{ 0 }, 0, 0 },
-    { CTRL_ALT_DEL,	IDM_ACTION_RESET_CAD,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },
-    { CTRL_ALT_ESC,	IDM_ACTION_CTRL_ALT_ESC,	TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },
-    { 0,		0,				TBSTATE_INDETERMINATE,	BTNS_SEP,	{ 0 }, 0, 0 },
-    { SETTINGS,		IDM_CONFIG,			TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 }
-};
+
+void
+ToolBarLoadIcons()
+{
+    if (!hwndToolbar)
+	return;
+
+    if (hImageList)
+	ImageList_Destroy(hImageList);
+
+    hImageList = ImageList_Create(win_get_system_metrics(SM_CXSMICON, dpi),
+				  win_get_system_metrics(SM_CYSMICON, dpi),
+				  ILC_MASK | ILC_COLOR32, 1, 1);
+
+    // The icons must be loaded in the same order as the `image_index`
+    // enumeration above.
+
+    ImageList_AddIcon(hImageList, hIcon[200]); // Run
+    ImageList_AddIcon(hImageList, hIcon[201]); // Pause
+    ImageList_AddIcon(hImageList, hIcon[202]); // Ctrl+Alt+Delete
+    ImageList_AddIcon(hImageList, hIcon[203]); // Ctrl+Alt+Esc
+    ImageList_AddIcon(hImageList, hIcon[204]); // Hard reset
+    ImageList_AddIcon(hImageList, hIcon[205]); // ACPI shutdown
+    ImageList_AddIcon(hImageList, hIcon[206]); // Settings
+
+    SendMessage(hwndToolbar, TB_SETIMAGELIST, 0, (LPARAM) hImageList);
+}
 
 
 int
@@ -89,34 +105,6 @@ ToolBarProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 void
-ToolBarLoadIcons()
-{
-    if (!hwndToolbar)
-	return;
-
-    if (hImageList)
-	ImageList_Destroy(hImageList);
-
-    hImageList = ImageList_Create(win_get_system_metrics(SM_CXSMICON, dpi),
-				  win_get_system_metrics(SM_CYSMICON, dpi),
-				  ILC_MASK | ILC_COLOR32, 1, 1);
-
-    // The icons must be loaded in the same order as the `image_index`
-    // enumeration on top of the source file.
-
-    ImageList_AddIcon(hImageList, hIcon[200]); // Run
-    ImageList_AddIcon(hImageList, hIcon[201]); // Pause
-    ImageList_AddIcon(hImageList, hIcon[202]); // Ctrl+Alt+Delete
-    ImageList_AddIcon(hImageList, hIcon[203]); // Ctrl+Alt+Esc
-    ImageList_AddIcon(hImageList, hIcon[204]); // Hard reset
-    ImageList_AddIcon(hImageList, hIcon[205]); // ACPI shutdown
-    ImageList_AddIcon(hImageList, hIcon[206]); // Settings
-
-    SendMessage(hwndToolbar, TB_SETIMAGELIST, 0, (LPARAM) hImageList);
-}
-
-
-void
 ToolBarUpdatePause(int pause)
 {
     TBBUTTONINFO tbbi;
@@ -127,6 +115,18 @@ ToolBarUpdatePause(int pause)
 
     SendMessage(hwndToolbar, TB_SETBUTTONINFO, IDM_ACTION_PAUSE, (LPARAM) &tbbi);
 }
+
+
+static TBBUTTON buttons[] = {
+    { PAUSE,		IDM_ACTION_PAUSE,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },
+    { HARD_RESET,	IDM_ACTION_HRESET,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },
+    { ACPI_SHUTDOWN,	0,				TBSTATE_INDETERMINATE,	BTNS_BUTTON,	{ 0 }, 0, 0 },
+    { 0,		0,				TBSTATE_INDETERMINATE,	BTNS_SEP,	{ 0 }, 0, 0 },
+    { CTRL_ALT_DEL,	IDM_ACTION_RESET_CAD,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },
+    { CTRL_ALT_ESC,	IDM_ACTION_CTRL_ALT_ESC,	TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },
+    { 0,		0,				TBSTATE_INDETERMINATE,	BTNS_SEP,	{ 0 }, 0, 0 },
+    { SETTINGS,		IDM_CONFIG,			TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 }
+};
 
 
 void
