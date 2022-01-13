@@ -35,6 +35,7 @@ BEGIN
     POPUP "&Nézet"
     BEGIN
         MENUITEM "Állapotsor &elrejtése",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Átméretezhető ablak",          IDM_VID_RESIZE
         MENUITEM "Méret és pozíció &megjegyzése",  IDM_VID_REMEMBER
@@ -534,6 +535,13 @@ BEGIN
     IDS_2151	"ROM-kazetta képek (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Minden fájl (*.*)\0*.*\0"
     IDS_2152	"Hiba történt a renderelő inicializálásakor"
     IDS_2153	"Az OpenGL (3.0 Core) megjelenítő-motort nem sikerült inicializálni. Kérem használjon másik renderelőt."
+    IDS_2154	"Resume execution"
+    IDS_2155	"Pause execution"
+    IDS_2156	"Press Ctrl+Alt+Del"
+    IDS_2157	"Press Ctrl+Alt+Esc"
+    IDS_2158	"Hard reset"
+    IDS_2159	"ACPI shutdown"
+    IDS_2160	"Settings"
 END
 
 STRINGTABLE DISCARDABLE 
