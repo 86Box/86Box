@@ -1118,10 +1118,7 @@ plat_setfullscreen(int on)
 			GetClientRect(hwndMain, &rect);
 
 			temp_x = rect.right - rect.left + 1;
-			if (hide_status_bar)
-				temp_y = rect.bottom - rect.top + 1;
-			else
-				temp_y = rect.bottom - rect.top + 1 - sbar_height;
+			temp_y = rect.bottom - rect.top + 1 - (hide_status_bar ? 0 : sbar_height) - (hide_tool_bar ? 0 : tbar_height);
 		} else {
 			if (dpi_scale) {
 				temp_x = MulDiv((vid_resize & 2) ? fixed_size_x : unscaled_size_x, dpi, 96);
@@ -1135,10 +1132,7 @@ plat_setfullscreen(int on)
 			if (vid_resize >= 2)
 				MoveWindow(hwndMain, window_x, window_y, window_w, window_h, TRUE);
 
-			if (hide_status_bar)
-				ResizeWindowByClientArea(hwndMain, temp_x, temp_y);
-			else
-				ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
+			ResizeWindowByClientArea(hwndMain, temp_x, temp_y + (hide_status_bar ? 0 : sbar_height) + (hide_tool_bar ? 0 : tbar_height));
 		}
 
 		/* Render window. */
