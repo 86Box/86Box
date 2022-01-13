@@ -203,6 +203,9 @@
      <height>16</height>
     </size>
    </property>
+   <property name="toolButtonStyle">
+    <enum>Qt::ToolButtonIconOnly</enum>
+   </property>
    <property name="floatable">
     <bool>false</bool>
    </property>
@@ -213,10 +216,11 @@
     <bool>false</bool>
    </attribute>
    <addaction name="actionPause"/>
+   <addaction name="actionHard_Reset"/>
+   <addaction name="actionACPI_Shutdown"/>
    <addaction name="separator"/>
    <addaction name="actionCtrl_Alt_Del"/>
    <addaction name="actionCtrl_Alt_Esc"/>
-   <addaction name="actionHard_Reset"/>
    <addaction name="separator"/>
    <addaction name="actionSettings"/>
   </widget>
@@ -239,7 +243,7 @@
   <action name="actionHard_Reset">
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
-     <normaloff>:/menuicons/qt/icons/placeholder.png</normaloff>:/menuicons/qt/icons/placeholder.png</iconset>
+     <normaloff>:/menuicons/win/icons/hard_reset.ico</normaloff>:/menuicons/win/icons/hard_reset.ico</iconset>
    </property>
    <property name="text">
     <string>&amp;Hard Reset...</string>
@@ -251,7 +255,7 @@
   <action name="actionCtrl_Alt_Del">
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
-     <normaloff>:/menuicons/qt/icons/placeholder.png</normaloff>:/menuicons/qt/icons/placeholder.png</iconset>
+     <normaloff>:/menuicons/win/icons/send_cad.ico</normaloff>:/menuicons/win/icons/send_cad.ico</iconset>
    </property>
    <property name="text">
     <string>&amp;Ctrl+Alt+Del</string>
@@ -272,7 +276,7 @@
   <action name="actionCtrl_Alt_Esc">
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
-     <normaloff>:/menuicons/qt/icons/placeholder.png</normaloff>:/menuicons/qt/icons/placeholder.png</iconset>
+     <normaloff>:/menuicons/win/icons/send_cae.ico</normaloff>:/menuicons/win/icons/send_cae.ico</iconset>
    </property>
    <property name="text">
     <string>Ctrl+Alt+&amp;Esc</string>
@@ -287,7 +291,7 @@
    </property>
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
-     <normaloff>:/menuicons/qt/icons/placeholder.png</normaloff>:/menuicons/qt/icons/placeholder.png</iconset>
+     <normaloff>:/menuicons/win/icons/pause.ico</normaloff>:/menuicons/win/icons/pause.ico</iconset>
    </property>
    <property name="text">
     <string>&amp;Pause</string>
@@ -304,7 +308,7 @@
   <action name="actionSettings">
    <property name="icon">
     <iconset resource="../qt_resources.qrc">
-     <normaloff>:/menuicons/qt/icons/placeholder.png</normaloff>:/menuicons/qt/icons/placeholder.png</iconset>
+     <normaloff>:/menuicons/win/icons/settings.ico</normaloff>:/menuicons/win/icons/settings.ico</iconset>
    </property>
    <property name="text">
     <string>&amp;Settings...</string>
@@ -645,6 +649,21 @@
    </property>
    <property name="toolTip">
     <string>Hide tool bar</string>
+   </property>
+  </action>
+  <action name="actionACPI_Shutdown">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
+   <property name="icon">
+    <iconset resource="../qt_resources.qrc">
+     <normaloff>:/menuicons/win/icons/acpi_shutdown.ico</normaloff>:/menuicons/win/icons/acpi_shutdown.ico</iconset>
+   </property>
+   <property name="text">
+    <string>ACPI Shutdown</string>
+   </property>
+   <property name="toolTip">
+    <string>ACPI Shutdown</string>
    </property>
   </action>
  </widget>
