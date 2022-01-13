@@ -32,6 +32,7 @@ BEGIN
     POPUP "&Вид"
     BEGIN
         MENUITEM "&Скрыть строку статуса",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "&Изменяемый размер окна",          IDM_VID_RESIZE
         MENUITEM "&Запомнить размер и положение",  IDM_VID_REMEMBER
@@ -532,6 +533,13 @@ BEGIN
     IDS_2151	"Образы картриджей (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Все файлы (*.*)\0*.*\0"
     IDS_2152	"Error initializing renderer"
     IDS_2153	"OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+    IDS_2154	"Resume execution"
+    IDS_2155	"Pause execution"
+    IDS_2156	"Press Ctrl+Alt+Del"
+    IDS_2157	"Press Ctrl+Alt+Esc"
+    IDS_2158	"Hard reset"
+    IDS_2159	"ACPI shutdown"
+    IDS_2160	"Settings"
 END
 
 STRINGTABLE DISCARDABLE 
