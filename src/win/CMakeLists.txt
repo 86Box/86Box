@@ -54,4 +54,4 @@ else()
 endif()
 
 target_link_libraries(86Box advapi32 comctl32 comdlg32 gdi32 shell32 iphlpapi
-    dxguid imm32 hid setupapi uxtheme version winmm psapi)
+    dxguid imm32 hid setupapi uxtheme version winmm psapi ws2_32)
