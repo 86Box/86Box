@@ -34,6 +34,7 @@ extern "C" {
 #include <QActionGroup>
 #include <QOpenGLContext>
 #include <QScreen>
+#include <QString>
 
 #include <array>
 #include <unordered_map>
