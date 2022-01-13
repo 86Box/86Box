@@ -16,15 +16,27 @@ static HIMAGELIST	hImageList = NULL;
 static wchar_t		wTitle[512] = { 0 };
 static WNDPROC		pOriginalProcedure = NULL;
 
+// Used for image list indices
+// Don't shuffle the values up without updating `ToolBarLoadIcons` to follow suit!
+enum image_index {
+	RUN,
+	PAUSE,
+	CTRL_ALT_DEL,
+	CTRL_ALT_ESC,
+	HARD_RESET,
+	ACPI_SHUTDOWN,
+	SETTINGS
+};
+
 static TBBUTTON buttons[] = {
-    { 1,	IDM_ACTION_PAUSE,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Pause
-    { 0,	0,				TBSTATE_INDETERMINATE,	BTNS_SEP,	{ 0 }, 0, 0 },
-    { 2,	IDM_ACTION_RESET_CAD,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Ctrl+Alt+Del
-    { 3,	IDM_ACTION_CTRL_ALT_ESC,	TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Ctrl+Alt+Esc
-    { 4,	IDM_ACTION_HRESET,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// Hard reset
-    { 5,	0,				TBSTATE_INDETERMINATE,	BTNS_BUTTON,	{ 0 }, 0, 0 },	// ACPI shutdown
-    { 0,	0,				TBSTATE_INDETERMINATE,	BTNS_SEP,	{ 0 }, 0, 0 },
-    { 6,	IDM_CONFIG,			TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 }	// Settings
+    { PAUSE,		IDM_ACTION_PAUSE,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },
+    { HARD_RESET,	IDM_ACTION_HRESET,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },
+    { ACPI_SHUTDOWN,	0,				TBSTATE_INDETERMINATE,	BTNS_BUTTON,	{ 0 }, 0, 0 },
+    { 0,		0,				TBSTATE_INDETERMINATE,	BTNS_SEP,	{ 0 }, 0, 0 },
+    { CTRL_ALT_DEL,	IDM_ACTION_RESET_CAD,		TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },
+    { CTRL_ALT_ESC,	IDM_ACTION_CTRL_ALT_ESC,	TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 },
+    { 0,		0,				TBSTATE_INDETERMINATE,	BTNS_SEP,	{ 0 }, 0, 0 },
+    { SETTINGS,		IDM_CONFIG,			TBSTATE_ENABLED,	BTNS_BUTTON,	{ 0 }, 0, 0 }
 };
 
 
@@ -89,6 +101,9 @@ ToolBarLoadIcons()
 				  win_get_system_metrics(SM_CYSMICON, dpi),
 				  ILC_MASK | ILC_COLOR32, 1, 1);
 
+    // The icons must be loaded in the same order as the `image_index`
+    // enumeration on top of the source file.
+
     ImageList_AddIcon(hImageList, hIcon[200]); // Run
     ImageList_AddIcon(hImageList, hIcon[201]); // Pause
     ImageList_AddIcon(hImageList, hIcon[202]); // Ctrl+Alt+Delete
@@ -108,7 +123,7 @@ ToolBarUpdatePause(int pause)
 
     tbbi.cbSize = sizeof(tbbi);
     tbbi.dwMask = TBIF_IMAGE;
-    tbbi.iImage = pause ? 0 : 1;
+    tbbi.iImage = pause ? RUN : PAUSE;
 
     SendMessage(hwndToolbar, TB_SETBUTTONINFO, IDM_ACTION_PAUSE, (LPARAM) &tbbi);
 }
