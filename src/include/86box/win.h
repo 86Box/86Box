@@ -107,7 +107,7 @@ extern HANDLE		ghMutex;
 extern HICON		hIcon[256];
 extern int		dpi;
 extern RECT		oldclip;
-extern int		sbar_height, user_resize;
+extern int		sbar_height, tbar_height, user_resize;
 extern int		acp_utf8;
 
 // extern int		status_is_open;
@@ -211,6 +211,13 @@ extern void	win_settings_open_ex(HWND hwnd, int category);
 extern HWND	hwndSBAR;
 extern void	StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst);
 extern int	MediaMenuHandler(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam);
+
+
+/* Functions in win_toolbar.c */
+extern HWND	hwndRebar;
+extern void	ToolBarCreate(HWND hwndParent, HINSTANCE hInst);
+extern void	ToolBarLoadIcons();
+extern void	ToolBarUpdatePause(int paused);
 
 
 /* Functions in win_dialog.c: */

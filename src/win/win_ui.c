@@ -58,6 +58,7 @@ HWND		hwndMain = NULL,	/* application main window */
 HMENU		menuMain;		/* application main menu */
 RECT		oldclip;		/* mouse rect */
 int		sbar_height = 23;	/* statusbar height */
+int		tbar_height = 23;	/* toolbar height */
 int		minimized = 0;
 int		infocus = 1, button_down = 0;
 int		rctrl_is_lalt = 0;
@@ -73,7 +74,6 @@ extern WCHAR	wopenfilestring[512];
 
 
 /* Local data. */
-static wchar_t	wTitle[512];
 static int	manager_wm = 0;
 static int	save_window_pos = 0, pause_state = 0;
 static int	padded_frame = 0;
@@ -276,6 +276,7 @@ ResetAllMenus(void)
 #endif
 
     CheckMenuItem(menuMain, IDM_VID_HIDE_STATUS_BAR, MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_HIDE_TOOLBAR, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_FORCE43, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_OVERSCAN, MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_INVERT, MF_UNCHECKED);
@@ -344,6 +345,7 @@ ResetAllMenus(void)
 #endif
 
     CheckMenuItem(menuMain, IDM_VID_HIDE_STATUS_BAR, hide_status_bar ? MF_CHECKED : MF_UNCHECKED);
+    CheckMenuItem(menuMain, IDM_VID_HIDE_TOOLBAR, hide_tool_bar ? MF_CHECKED : MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_FORCE43, force_43?MF_CHECKED:MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_OVERSCAN, enable_overscan?MF_CHECKED:MF_UNCHECKED);
     CheckMenuItem(menuMain, IDM_VID_INVERT, invert_display ? MF_CHECKED : MF_UNCHECKED);
@@ -641,6 +643,21 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				config_save();
 				break;
 
+			case IDM_VID_HIDE_TOOLBAR:
+				hide_tool_bar ^= 1;
+				CheckMenuItem(hmenu, IDM_VID_HIDE_TOOLBAR, hide_tool_bar ? MF_CHECKED : MF_UNCHECKED);
+				ShowWindow(hwndRebar, hide_tool_bar ? SW_HIDE : SW_SHOW);
+				GetWindowRect(hwnd, &rect);
+				if (hide_tool_bar) {
+					MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top - tbar_height, TRUE);
+					SetWindowPos(hwndRender, NULL, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+				} else {
+					MoveWindow(hwnd, rect.left, rect.top, rect.right - rect.left, rect.bottom - rect.top + tbar_height, TRUE);
+					SetWindowPos(hwndRender, NULL, 0, tbar_height, 0, 0, SWP_NOSIZE | SWP_NOZORDER | SWP_NOACTIVATE);
+				}
+				config_save();
+				break;
+
 			case IDM_VID_RESIZE:
 				vid_resize ^= 1;
 				CheckMenuItem(hmenu, IDM_VID_RESIZE, (vid_resize & 1) ? MF_CHECKED : MF_UNCHECKED);
@@ -659,10 +676,7 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 					temp_y = unscaled_size_y;
 				}
 
-				if (hide_status_bar)
-					ResizeWindowByClientArea(hwnd, temp_x, temp_y);
-				else
-					ResizeWindowByClientArea(hwnd, temp_x, temp_y + sbar_height);
+				ResizeWindowByClientArea(hwnd, temp_x, temp_y + (hide_status_bar ? 0 : sbar_height) + (hide_tool_bar ? 0 : tbar_height));
 
 				if (mouse_capture) {
 					ClipCursor(&rect);
@@ -940,6 +954,8 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		dpi = HIWORD(wParam);
 		GetWindowRect(hwndSBAR, &rect);
 		sbar_height = rect.bottom - rect.top;
+		GetWindowRect(hwndRebar, &rect);
+		tbar_height = rect.bottom - rect.top;
 		rect_p = (RECT*)lParam;
 		if (vid_resize == 1)
 			MoveWindow(hwnd, rect_p->left, rect_p->top, rect_p->right - rect_p->left, rect_p->bottom - rect_p->top, TRUE);
@@ -952,15 +968,15 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			}
 
 			/* Main Window. */
-			if (hide_status_bar)
-				ResizeWindowByClientArea(hwndMain, temp_x, temp_y);
-			else
-				ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
+			ResizeWindowByClientArea(hwndMain, temp_x, temp_y + (hide_status_bar ? 0 : sbar_height) + (hide_tool_bar ? 0 : tbar_height));
 		} else if (!user_resize)
 			atomic_flag_clear(&doresize);
 		break;
 
 	case WM_WINDOWPOSCHANGED:
+		if (video_fullscreen & 1)
+			PostMessage(hwndMain, WM_LEAVEFULLSCREEN, 0, 0);
+
 		pos = (WINDOWPOS*)lParam;
 		GetClientRect(hwndMain, &rect);
 
@@ -987,12 +1003,13 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if (!(pos->flags & SWP_NOSIZE) || !user_resize) {
 			plat_vidapi_enable(0);
 
-			if (hide_status_bar)
-				MoveWindow(hwndRender, 0, 0, rect.right, rect.bottom, TRUE);
-			else {
+			if (!hide_status_bar)
 				MoveWindow(hwndSBAR, 0, rect.bottom - sbar_height, sbar_height, rect.right, TRUE);
-				MoveWindow(hwndRender, 0, 0, rect.right, rect.bottom - sbar_height, TRUE);
-			}
+
+			if (!hide_tool_bar)
+				MoveWindow(hwndRebar, 0, 0, rect.right, tbar_height, TRUE);
+
+			MoveWindow(hwndRender, 0, hide_tool_bar ? 0 : tbar_height, rect.right, rect.bottom - (hide_status_bar ? 0 : sbar_height) - (hide_tool_bar ? 0 : tbar_height), TRUE);
 
 			GetClientRect(hwndRender, &rect);
 			if (dpi_scale) {
@@ -1160,6 +1177,13 @@ MainWindowProcedure(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		break;
 
+	case WM_ACTIVATEAPP:
+		/* Leave full screen on switching application except
+		   for OpenGL Core and VNC renderers. */
+		if (video_fullscreen & 1 && wParam == FALSE && vid_api < 3)
+			PostMessage(hwndMain, WM_LEAVEFULLSCREEN, 0, 0);
+		break;
+
 	case WM_ENTERSIZEMOVE:
 		user_resize = 1;
 		break;
@@ -1245,7 +1269,7 @@ ui_init(int nCmdShow)
     MSG messages = {0};			/* received-messages buffer */
     HWND hwnd = NULL;			/* handle for our window */
     HACCEL haccel;			/* handle to accelerator table */
-    RECT sbar_rect;			/* RECT of the status bar */
+    RECT rect;
     int bRet;
     TASKDIALOGCONFIG tdconfig = {0};
     TASKDIALOG_BUTTON tdbuttons[] = {{IDCANCEL, MAKEINTRESOURCE(IDS_2119)}};
@@ -1331,7 +1355,7 @@ ui_init(int nCmdShow)
 			return(2);
 
     /* Now create our main window. */
-    mbstowcs(title, emu_version, sizeof_w(title));
+    swprintf_s(title, sizeof_w(title), L"%hs - %s %s", vm_name, EMU_NAME_W, EMU_VERSION_FULL_W);
     hwnd = CreateWindowEx (
 		0,			/* no extended possibilites */
 		CLASS_NAME,		/* class name */
@@ -1359,10 +1383,19 @@ ui_init(int nCmdShow)
     StatusBarCreate(hwndMain, IDC_STATUS, hinstance);
 
     /* Get the actual height of the status bar */
-    GetWindowRect(hwndSBAR, &sbar_rect);
-    sbar_height = sbar_rect.bottom - sbar_rect.top;
+    GetWindowRect(hwndSBAR, &rect);
+    sbar_height = rect.bottom - rect.top;
     if (hide_status_bar)
 	ShowWindow(hwndSBAR, SW_HIDE);
+
+    /* Create the toolbar window. */
+    ToolBarCreate(hwndMain, hinstance);
+
+    /* Get the actual height of the toolbar */
+    GetWindowRect(hwndRebar, &rect);
+    tbar_height = rect.bottom - rect.top;
+    if (hide_tool_bar)
+	ShowWindow(hwndRebar, SW_HIDE);
 
     /* Set up main window for resizing if configured. */
     if (vid_resize == 1)
@@ -1554,25 +1587,6 @@ ui_init(int nCmdShow)
 }
 
 
-wchar_t *
-ui_window_title(wchar_t *s)
-{
-    if (! video_fullscreen) {
-	if (s != NULL) {
-		wcsncpy(wTitle, s, sizeof_w(wTitle) - 1);
-	} else
-		s = wTitle;
-
-       	SetWindowText(hwndMain, s);
-    } else {
-	if (s == NULL)
-		s = wTitle;
-    }
-
-    return(s);
-}
-
-
 /* We should have the language ID as a parameter. */
 void
 plat_pause(int p)
@@ -1616,6 +1630,9 @@ plat_pause(int p)
     if (enable_discord)
 	discord_update_activity(dopause);
 
+    /* Update the toolbar */
+    ToolBarUpdatePause(p);
+
     /* Send the WM to a manager if needed. */
     if (source_hwnd)
 	PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSTATUS, (WPARAM) !!dopause, (LPARAM) hwndMain);
@@ -1633,10 +1650,7 @@ plat_resize(int x, int y)
 		x = MulDiv(x, dpi, 96);
 		y = MulDiv(y, dpi, 96);
 	}
-	if (hide_status_bar)
-		ResizeWindowByClientArea(hwndMain, x, y);
-	else
-		ResizeWindowByClientArea(hwndMain, x, y + sbar_height);
+	ResizeWindowByClientArea(hwndMain, x, y + (hide_status_bar ? 0 : sbar_height) + (hide_tool_bar ? 0 : tbar_height));
     }
 }
 

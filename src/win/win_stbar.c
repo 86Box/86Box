@@ -54,10 +54,6 @@
 #include <86box/ui.h>
 #include <86box/win.h>
 
-#ifndef GWL_WNDPROC
-#define GWL_WNDPROC GWLP_WNDPROC
-#endif
-
 
 HWND		hwndSBAR;
 int		update_icons = 1, reset_occurred = 1;
@@ -992,7 +988,7 @@ StatusBarCreate(HWND hwndParent, uintptr_t idStatus, HINSTANCE hInst)
 
     /* Replace the original procedure with ours. */
     OriginalProcedure = GetWindowLongPtr(hwndSBAR, GWLP_WNDPROC);
-    SetWindowLongPtr(hwndSBAR, GWL_WNDPROC, (LONG_PTR)&StatusBarProcedure);
+    SetWindowLongPtr(hwndSBAR, GWLP_WNDPROC, (LONG_PTR)&StatusBarProcedure);
 
     SendMessage(hwndSBAR, SB_SETMINHEIGHT, (WPARAM)17, (LPARAM)0);
 
