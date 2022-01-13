@@ -98,6 +98,7 @@ if(WIN32)
 endif()
 
 set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_FIND_PACKAGE_PREFER_CONFIG ON)
 
 # Optional features
 #
