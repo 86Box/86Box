@@ -81,7 +81,7 @@ MainWindow::MainWindow(QWidget *parent) :
     this->setWindowFlag(Qt::MSWindowsFixedSizeDialogHint, vid_resize != 1);
     this->setWindowFlag(Qt::WindowMaximizeButtonHint, vid_resize == 1);
 
-    this->setWindowTitle(QString("%1 - %2 %3").arg(vm_name, EMU_NAME_W, EMU_VERSION_FULL_W));
+    this->setWindowTitle(QString("%1 - %2 %3").arg(vm_name, EMU_NAME, EMU_VERSION_FULL));
 
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::BlockingQueuedConnection);
 
