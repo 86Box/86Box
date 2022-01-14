@@ -131,71 +131,7 @@ plat_timer_read(void)
 FILE *
 plat_fopen(const char *path, const char *mode)
 {
-    /*
-    QString filepath(path);
-    if (filepath.isEmpty()) {
-        return nullptr;
-    }
-
-    qWarning() << "plat_fopen" << filepath;
-    bool ok = false;
-    QFile file(filepath);
-    auto mode_len = strlen(mode);
-    for (size_t i = 0; i < mode_len; ++i) {
-        switch (mode[i]) {
-        case 'r':
-            ok = file.open(QIODevice::ReadOnly);
-            break;
-        case 'w':
-            ok = file.open(QIODevice::ReadWrite);
-            break;
-        case 'b':
-        case 't':
-            break;
-        default:
-            qWarning() << "Unhandled open mode" << mode[i];
-        }
-    }
-
-    if (ok) {
-        qDebug() << "filehandle" << file.handle();
-        QFile returned;
-        qDebug() << "\t" << returned.open(file.handle(), file.openMode(), QFileDevice::FileHandleFlag::DontCloseHandle);
-        return fdopen(returned.handle(), mode);
-    } else {
-        return nullptr;
-    }
-    */
-
-/* Not sure if any this is necessary, fopen seems to work on Windows -Manaatti
-#ifdef Q_OS_WINDOWS
-    wchar_t *pathw, *modew;
-    int len;
-    FILE *fp;
-
-    if (acp_utf8)
-        return fopen(path, mode);
-    else {
-        len = mbstoc16s(NULL, path, 0) + 1;
-        pathw = malloc(sizeof(wchar_t) * len);
-        mbstoc16s(pathw, path, len);
-
-        len = mbstoc16s(NULL, mode, 0) + 1;
-        modew = malloc(sizeof(wchar_t) * len);
-        mbstoc16s(modew, mode, len);
-
-        fp = _wfopen(pathw, modew);
-
-        free(pathw);
-        free(modew);
-
-        return fp;
-    }
-#endif
-#ifdef Q_OS_UNIX
-*/
-    return fopen(path, mode);
-//#endif
+    return fopen(QString::fromUtf8(path).toLocal8Bit(), mode);
 }
 
 FILE *
