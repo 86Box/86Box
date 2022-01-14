@@ -1635,6 +1635,7 @@ pipc_close(void *p)
 const device_t via_vt82c586b_device =
 {
     "VIA VT82C586B",
+    "via_vt82c586b",
     DEVICE_PCI,
     VIA_PIPC_586B,
     pipc_init,
@@ -1649,6 +1650,7 @@ const device_t via_vt82c586b_device =
 const device_t via_vt82c596a_device =
 {
     "VIA VT82C596A",
+    "via_vt82c596a",
     DEVICE_PCI,
     VIA_PIPC_596A,
     pipc_init,
@@ -1664,6 +1666,7 @@ const device_t via_vt82c596a_device =
 const device_t via_vt82c596b_device =
 {
     "VIA VT82C596B",
+    "via_vt82c596b",
     DEVICE_PCI,
     VIA_PIPC_596B,
     pipc_init,
@@ -1679,6 +1682,7 @@ const device_t via_vt82c596b_device =
 const device_t via_vt82c686a_device =
 {
     "VIA VT82C686A",
+    "via_vt82c686a",
     DEVICE_PCI,
     VIA_PIPC_686A,
     pipc_init,
@@ -1694,6 +1698,7 @@ const device_t via_vt82c686a_device =
 const device_t via_vt82c686b_device =
 {
     "VIA VT82C686B",
+    "via_vt82c686b",
     DEVICE_PCI,
     VIA_PIPC_686B,
     pipc_init,
@@ -1709,6 +1714,7 @@ const device_t via_vt82c686b_device =
 const device_t via_vt8231_device =
 {
     "VIA VT8231",
+    "via_vt8231",
     DEVICE_PCI,
     VIA_PIPC_8231,
     pipc_init,

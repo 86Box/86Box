@@ -1803,6 +1803,7 @@ acpi_init(const device_t *info)
 const device_t acpi_ali_device =
 {
     "ALi M7101 ACPI",
+    "acpi_ali",
     DEVICE_PCI,
     VEN_ALI,
     acpi_init, 
@@ -1817,6 +1818,7 @@ const device_t acpi_ali_device =
 const device_t acpi_intel_device =
 {
     "Intel ACPI",
+    "acpi_intel",
     DEVICE_PCI,
     VEN_INTEL,
     acpi_init, 
@@ -1831,6 +1833,7 @@ const device_t acpi_intel_device =
 const device_t acpi_sis_device =
 {
     "SiS ACPI",
+    "acpi_sis",
     DEVICE_PCI,
     VEN_SIS,
     acpi_init, 
@@ -1845,6 +1848,7 @@ const device_t acpi_sis_device =
 const device_t acpi_via_device =
 {
     "VIA ACPI",
+    "acpi_via",
     DEVICE_PCI,
     VEN_VIA,
     acpi_init, 
@@ -1860,6 +1864,7 @@ const device_t acpi_via_device =
 const device_t acpi_via_596b_device =
 {
     "VIA VT82C596 ACPI",
+    "acpi_via_596b",
     DEVICE_PCI,
     VEN_VIA_596B,
     acpi_init, 
@@ -1875,6 +1880,7 @@ const device_t acpi_via_596b_device =
 const device_t acpi_smc_device =
 {
     "SMC FDC73C931APM ACPI",
+    "acpi_smc",
     DEVICE_PCI,
     VEN_SMC,
     acpi_init, 

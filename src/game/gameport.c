@@ -438,6 +438,7 @@ gameport_close(void *priv)
 
 const device_t gameport_device = {
     "Game port",
+    "gameport",
     0, 0x080200,
     gameport_init,
     gameport_close,
@@ -447,6 +448,7 @@ const device_t gameport_device = {
 
 const device_t gameport_201_device = {
     "Game port (Port 201h only)",
+    "gameport_201",
     0, 0x010201,
     gameport_init,
     gameport_close,
@@ -456,6 +458,7 @@ const device_t gameport_201_device = {
 
 const device_t gameport_208_device = {
     "Game port (Port 208h-20fh)",
+    "gameport_208",
     0, 0x080208,
     gameport_init,
     gameport_close,
@@ -465,6 +468,7 @@ const device_t gameport_208_device = {
 
 const device_t gameport_209_device = {
     "Game port (Port 209h only)",
+    "gameport_209",
     0, 0x010209,
     gameport_init,
     gameport_close,
@@ -474,6 +478,7 @@ const device_t gameport_209_device = {
 
 const device_t gameport_pnp_device = {
     "Game port (Plug and Play only)",
+    "gameport_pnp",
     0, 0x080000,
     gameport_init,
     gameport_close,
@@ -483,6 +488,7 @@ const device_t gameport_pnp_device = {
 
 const device_t gameport_pnp_6io_device = {
     "Game port (Plug and Play only, 6 I/O ports)",
+    "gameport_pnp_6io",
     0, 0x060000,
     gameport_init,
     gameport_close,
@@ -492,6 +498,7 @@ const device_t gameport_pnp_6io_device = {
 
 const device_t gameport_sio_device = {
     "Game port (Super I/O)",
+    "gameport_sio",
     0, 0x1080000,
     gameport_init,
     gameport_close,

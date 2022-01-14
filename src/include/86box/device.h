@@ -95,6 +95,7 @@ typedef struct {
 
 typedef struct _device_ {
     const char	*name;
+    const char *internal_name;
     uint32_t	flags;		/* system flags */
     uint32_t	local;		/* flags local to device */
 
@@ -102,9 +103,9 @@ typedef struct _device_ {
     void	(*close)(void *priv);
     void	(*reset)(void *priv);
     union {
-	int		(*available)(void);
-	int		(*poll)(int x, int y, int z, int b, void *priv);
-	void		(*register_pci_slot)(int device, int type, int inta, int intb, int intc, int intd, void *priv);
+    int		(*available)(void);
+    int		(*poll)(int x, int y, int z, int b, void *priv);
+    void		(*register_pci_slot)(int device, int type, int inta, int intb, int intc, int intd, void *priv);
     };
     void	(*speed_changed)(void *priv);
     void	(*force_redraw)(void *priv);

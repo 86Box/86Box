@@ -234,6 +234,7 @@ void sn76489_device_close(void *p)
 const device_t sn76489_device =
 {
         "TI SN74689 PSG",
+        "sn76489",
         0,
 	0,
         sn76489_device_init,
@@ -244,6 +245,7 @@ const device_t sn76489_device =
 const device_t ncr8496_device =
 {
         "NCR8496 PSG",
+        "ncr8496",
         0,
 	0,
         ncr8496_device_init,

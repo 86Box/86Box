@@ -874,6 +874,7 @@ kbd_close(void *priv)
 
 const device_t keyboard_pc_device = {
     "IBM PC Keyboard (1981)",
+    "keyboard_pc",
     0,
     KBD_TYPE_PC81,
     kbd_init,
@@ -884,6 +885,7 @@ const device_t keyboard_pc_device = {
 
 const device_t keyboard_pc82_device = {
     "IBM PC Keyboard (1982)",
+    "keyboard_pc82",
     0,
     KBD_TYPE_PC82,
     kbd_init,
@@ -894,6 +896,7 @@ const device_t keyboard_pc82_device = {
 
 const device_t keyboard_xt_device = {
     "XT (1982) Keyboard",
+    "keyboard_xt",
     0,
     KBD_TYPE_XT82,
     kbd_init,
@@ -904,6 +907,7 @@ const device_t keyboard_xt_device = {
 
 const device_t keyboard_xt86_device = {
     "XT (1986) Keyboard",
+    "keyboard_xt86",
     0,
     KBD_TYPE_XT86,
     kbd_init,
@@ -914,6 +918,7 @@ const device_t keyboard_xt86_device = {
 
 const device_t keyboard_xt_compaq_device = {
     "Compaq Portable Keyboard",
+    "keyboard_xt_compaq",
     0,
     KBD_TYPE_COMPAQ,
     kbd_init,
@@ -924,6 +929,7 @@ const device_t keyboard_xt_compaq_device = {
 
 const device_t keyboard_tandy_device = {
     "Tandy 1000 Keyboard",
+    "keyboard_tandy",
     0,
     KBD_TYPE_TANDY,
     kbd_init,
@@ -934,6 +940,7 @@ const device_t keyboard_tandy_device = {
 
 const device_t keyboard_xt_t1x00_device = {
     "Toshiba T1x00 Keyboard",
+    "keyboard_xt_t1x00",
     0,
     KBD_TYPE_TOSHIBA,
     kbd_init,
@@ -945,6 +952,7 @@ const device_t keyboard_xt_t1x00_device = {
 #if defined(DEV_BRANCH) && defined(USE_LASERXT)
 const device_t keyboard_xt_lxt3_device = {
     "VTech Laser XT3 Keyboard",
+    "keyboard_xt_lxt3",
     0,
     KBD_TYPE_VTECH,
     kbd_init,
@@ -956,6 +964,7 @@ const device_t keyboard_xt_lxt3_device = {
 
 const device_t keyboard_xt_olivetti_device = {
     "Olivetti XT Keyboard",
+    "keyboard_xt_olivetti",
     0,
     KBD_TYPE_OLIVETTI,
     kbd_init,
@@ -966,6 +975,7 @@ const device_t keyboard_xt_olivetti_device = {
 
 const device_t keyboard_xt_zenith_device = {
     "Zenith XT Keyboard",
+    "keyboard_xt_zenith",
     0,
     KBD_TYPE_ZENITH,
     kbd_init,

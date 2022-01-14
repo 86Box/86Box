@@ -3035,6 +3035,7 @@ ide_close(void *priv)
 
 const device_t ide_isa_device = {
     "ISA PC/AT IDE Controller",
+    "ide_isa",
     DEVICE_ISA | DEVICE_AT,
     0,
     ide_init, ide_close, ide_reset,
@@ -3043,6 +3044,7 @@ const device_t ide_isa_device = {
 
 const device_t ide_isa_2ch_device = {
     "ISA PC/AT IDE Controller (Dual-Channel)",
+    "ide_isa_2ch",
     DEVICE_ISA | DEVICE_AT,
     1,
     ide_init, ide_close, ide_reset,
@@ -3051,6 +3053,7 @@ const device_t ide_isa_2ch_device = {
 
 const device_t ide_vlb_device = {
     "VLB IDE Controller",
+    "ide_vlb",
     DEVICE_VLB | DEVICE_AT,
     2,
     ide_init, ide_close, ide_reset,
@@ -3059,6 +3062,7 @@ const device_t ide_vlb_device = {
 
 const device_t ide_vlb_2ch_device = {
     "VLB IDE Controller (Dual-Channel)",
+    "ide_vlb_2ch",
     DEVICE_VLB | DEVICE_AT,
     3,
     ide_init, ide_close, ide_reset,
@@ -3067,6 +3071,7 @@ const device_t ide_vlb_2ch_device = {
 
 const device_t ide_pci_device = {
     "PCI IDE Controller",
+    "ide_pci",
     DEVICE_PCI | DEVICE_AT,
     4,
     ide_init, ide_close, ide_reset,
@@ -3075,6 +3080,7 @@ const device_t ide_pci_device = {
 
 const device_t ide_pci_2ch_device = {
     "PCI IDE Controller (Dual-Channel)",
+    "ide_pci_2ch",
     DEVICE_PCI | DEVICE_AT,
     5,
     ide_init, ide_close, ide_reset,
@@ -3173,6 +3179,7 @@ static const device_config_t ide_qua_config[] =
 
 const device_t ide_ter_device = {
     "Tertiary IDE Controller",
+    "ide_ter",
     DEVICE_AT,
     0,
     ide_ter_init, ide_ter_close, NULL,
@@ -3182,6 +3189,7 @@ const device_t ide_ter_device = {
 
 const device_t ide_ter_pnp_device = {
     "Tertiary IDE Controller (Plug and Play only)",
+    "ide_ter_pnp",
     DEVICE_AT,
     1,
     ide_ter_init, ide_ter_close, NULL,
@@ -3191,6 +3199,7 @@ const device_t ide_ter_pnp_device = {
 
 const device_t ide_qua_device = {
     "Quaternary IDE Controller",
+    "ide_qua",
     DEVICE_AT,
     0,
     ide_qua_init, ide_qua_close, NULL,
@@ -3200,6 +3209,7 @@ const device_t ide_qua_device = {
 
 const device_t ide_qua_pnp_device = {
     "Quaternary IDE Controller (Plug and Play only)",
+    "ide_qua_pnp",
     DEVICE_AT,
     1,
     ide_qua_init, ide_qua_close, NULL,

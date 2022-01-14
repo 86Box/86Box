@@ -340,6 +340,7 @@ ali1429_init(const device_t *info)
 
 const device_t ali1429_device = {
     "ALi M1429",
+    "ali1429",
     0,
     0,
     ali1429_init, ali1429_close, NULL,
@@ -349,6 +350,7 @@ const device_t ali1429_device = {
 
 const device_t ali1429g_device = {
     "ALi M1429G",
+    "ali1429g",
     0,
     1,
     ali1429_init, ali1429_close, NULL,

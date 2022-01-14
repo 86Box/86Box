@@ -663,6 +663,7 @@ static void f82c425_speed_changed(void *p)
 
 const device_t f82c425_video_device = {
 	"82C425 CGA LCD/CRT Controller",
+	"f82c425_video",
 	0, 0,
 	f82c425_init, f82c425_close, NULL,
 	{ NULL },

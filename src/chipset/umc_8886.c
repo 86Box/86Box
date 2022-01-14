@@ -380,6 +380,7 @@ umc_8886_init(const device_t *info)
 
 const device_t umc_8886f_device = {
     "UMC 8886F",
+    "umc_8886f",
     DEVICE_PCI,
     0x8886,
     umc_8886_init, umc_8886_close, umc_8886_reset,
@@ -389,6 +390,7 @@ const device_t umc_8886f_device = {
 
 const device_t umc_8886af_device = {
     "UMC 8886AF/8886BF",
+    "umc_8886af",
     DEVICE_PCI,
     0x886a,
     umc_8886_init, umc_8886_close, umc_8886_reset,

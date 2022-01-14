@@ -45,6 +45,7 @@ int	mouse_x,
 
 static const device_t mouse_none_device = {
     "None",
+    "mouse_none",
     0, MOUSE_TYPE_NONE,
     NULL, NULL, NULL,
     { NULL }, NULL, NULL,
@@ -52,6 +53,7 @@ static const device_t mouse_none_device = {
 };
 static const device_t mouse_internal_device = {
     "Internal Mouse",
+    "mouse_internal",
     0, MOUSE_TYPE_INTERNAL,
     NULL, NULL, NULL,
     { NULL }, NULL, NULL,

@@ -158,6 +158,7 @@ olivetti_eva_init(const device_t *info)
 
 const device_t olivetti_eva_device = {
     "Olivetti EVA Gate Array",
+    "olivetta_eva",
     0,
     0,
     olivetti_eva_init, olivetti_eva_close, NULL,

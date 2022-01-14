@@ -494,6 +494,7 @@ cmd640_init(const device_t *info)
 
 const device_t ide_cmd640_vlb_device = {
     "CMD PCI-0640B VLB",
+    "ide_cmd640_vlb",
     DEVICE_VLB,
     0x0078,
     cmd640_init, cmd640_close, cmd640_reset,
@@ -503,6 +504,7 @@ const device_t ide_cmd640_vlb_device = {
 
 const device_t ide_cmd640_vlb_178_device = {
     "CMD PCI-0640B VLB (Port 178h)",
+    "ide_cmd640_vlb_178",
     DEVICE_VLB,
     0x0178,
     cmd640_init, cmd640_close, cmd640_reset,
@@ -512,6 +514,7 @@ const device_t ide_cmd640_vlb_178_device = {
 
 const device_t ide_cmd640_pci_device = {
     "CMD PCI-0640B PCI",
+    "ide_cmd640_pci",
     DEVICE_PCI,
     0x0a,
     cmd640_init, cmd640_close, cmd640_reset,
@@ -521,6 +524,7 @@ const device_t ide_cmd640_pci_device = {
 
 const device_t ide_cmd640_pci_legacy_only_device = {
     "CMD PCI-0640B PCI (Legacy Mode Only)",
+    "ide_cmd640_pci_legacy_only",
     DEVICE_PCI,
     0x00,
     cmd640_init, cmd640_close, cmd640_reset,
@@ -530,6 +534,7 @@ const device_t ide_cmd640_pci_legacy_only_device = {
 
 const device_t ide_cmd640_pci_single_channel_device = {
     "CMD PCI-0640B PCI",
+    "ide_cmd640_pci_single_channel",
     DEVICE_PCI,
     0x2000a,
     cmd640_init, cmd640_close, cmd640_reset,

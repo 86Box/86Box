@@ -632,6 +632,7 @@ static const device_config_t ev170_config[] = {
 
 static const device_t ev170_device = {
     "Everex EV-170 Magic I/O",
+    "ev170",
     DEVICE_ISA,
     ISARTC_EV170,
     isartc_init, isartc_close, NULL,
@@ -662,6 +663,7 @@ static const device_config_t pii147_config[] = {
 
 static const device_t pii147_device = {
     "DTK PII-147 Hexa I/O Plus",
+    "pii147",
     DEVICE_ISA,
     ISARTC_DTK,
     isartc_init, isartc_close, NULL,
@@ -698,6 +700,7 @@ static const device_config_t p5pak_config[] = {
 
 static const device_t p5pak_device = {
     "Paradise Systems 5-PAK",
+    "p5pak",
     DEVICE_ISA,
     ISARTC_P5PAK,
     isartc_init, isartc_close, NULL,

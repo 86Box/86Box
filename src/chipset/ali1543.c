@@ -1739,6 +1739,7 @@ ali1543_init(const device_t *info)
 
 const device_t ali1543_device = {
     "ALi M1543 Desktop South Bridge",
+    "ali1543",
     DEVICE_PCI,
     0,
     ali1543_init,
@@ -1752,6 +1753,7 @@ const device_t ali1543_device = {
 
 const device_t ali1543c_device = {
     "ALi M1543C Desktop South Bridge",
+    "ali1543c",
     DEVICE_PCI,
     1,
     ali1543_init,

@@ -1247,6 +1247,7 @@ static const device_config_t ega_config[] =
 const device_t ega_device =
 {
         "EGA",
+        "ega",
         DEVICE_ISA,
 	EGA_IBM,
         ega_standalone_init, ega_close, NULL,
@@ -1259,6 +1260,7 @@ const device_t ega_device =
 const device_t cpqega_device =
 {
         "Compaq EGA",
+        "cpqega",
         DEVICE_ISA,
 	EGA_COMPAQ,
         ega_standalone_init, ega_close, NULL,
@@ -1271,6 +1273,7 @@ const device_t cpqega_device =
 const device_t sega_device =
 {
         "SuperEGA",
+        "sega",
         DEVICE_ISA,
 	EGA_SUPEREGA,
         ega_standalone_init, ega_close, NULL,
@@ -1283,6 +1286,7 @@ const device_t sega_device =
 const device_t atiega_device =
 {
         "ATI EGA Wonder 800+",
+        "atiega",
         DEVICE_ISA,
 	EGA_ATI,
         ega_standalone_init, ega_close, NULL,
@@ -1295,6 +1299,7 @@ const device_t atiega_device =
 const device_t iskra_ega_device =
 {
         "Iskra EGA (Cyrillic ROM)",
+        "iskra_ega",
         DEVICE_ISA,
 	EGA_ISKRA,
         ega_standalone_init, ega_close, NULL,
@@ -1307,6 +1312,7 @@ const device_t iskra_ega_device =
 const device_t et2000_device =
 {
         "Tseng Labs ET2000",
+        "et2000",
         DEVICE_ISA,
 	EGA_TSENG,
         ega_standalone_init, ega_close, NULL,

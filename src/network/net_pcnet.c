@@ -3219,6 +3219,7 @@ static const device_config_t pcnet_vlb_config[] =
 
 const device_t pcnet_am79c960_device = {
     "AMD PCnet-ISA ",
+    "pcnet_am79c960",
     DEVICE_AT | DEVICE_ISA,
     DEV_AM79C960,
     pcnet_init, pcnet_close, NULL,
@@ -3228,6 +3229,7 @@ const device_t pcnet_am79c960_device = {
 
 const device_t pcnet_am79c960_eb_device = {
     "Racal Interlan EtherBlaster",
+    "pcnet_am79c960_eb",
     DEVICE_AT | DEVICE_ISA,
     DEV_AM79C960_EB,
     pcnet_init, pcnet_close, NULL,
@@ -3237,6 +3239,7 @@ const device_t pcnet_am79c960_eb_device = {
 
 const device_t pcnet_am79c960_vlb_device = {
     "AMD PCnet-VL",
+    "pcnet_am79c960_vlb",
     DEVICE_VLB,
     DEV_AM79C960_VLB,
     pcnet_init, pcnet_close, NULL,
@@ -3246,6 +3249,7 @@ const device_t pcnet_am79c960_vlb_device = {
 
 const device_t pcnet_am79c961_device = {
     "AMD PCnet-ISA+",
+    "pcnet_am79c961",
     DEVICE_AT | DEVICE_ISA,
     DEV_AM79C961,
     pcnet_init, pcnet_close, NULL,
@@ -3255,6 +3259,7 @@ const device_t pcnet_am79c961_device = {
 
 const device_t pcnet_am79c970a_device = {
     "AMD PCnet-PCI II",
+    "pcnet_am79c970a",
     DEVICE_PCI,
     DEV_AM79C970A,
     pcnet_init, pcnet_close, NULL,
@@ -3264,6 +3269,7 @@ const device_t pcnet_am79c970a_device = {
 
 const device_t pcnet_am79c973_device = {
     "AMD PCnet-FAST III",
+    "pcnet_am79c973",
     DEVICE_PCI,
     DEV_AM79C973,
     pcnet_init, pcnet_close, NULL,

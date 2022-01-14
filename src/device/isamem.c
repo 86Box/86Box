@@ -694,6 +694,7 @@ static const device_config_t ibmxt_config[] =
 
 static const device_t ibmxt_device = {
     "IBM PC/XT Memory Expansion",
+    "ibmxt",
     DEVICE_ISA,
     ISAMEM_IBMXT_CARD,
     isamem_init, isamem_close, NULL,
@@ -748,6 +749,7 @@ static const device_config_t ibmat_config[] =
 
 static const device_t ibmat_device = {
     "IBM PC/AT Memory Expansion",
+    "ibmat",
     DEVICE_ISA,
     ISAMEM_IBMAT_CARD,
     isamem_init, isamem_close, NULL,
@@ -802,6 +804,7 @@ static const device_config_t p5pak_config[] =
 
 static const device_t p5pak_device = {
     "Paradise Systems 5-PAK",
+    "p5pak",
     DEVICE_ISA,
     ISAMEM_P5PAK_CARD,
     isamem_init, isamem_close, NULL,
@@ -875,6 +878,7 @@ static const device_config_t ems5150_config[] =
 
 static const device_t ems5150_device = {
     "Micro Mainframe EMS-5150(T)",
+    "ems5150",
     DEVICE_ISA,
     ISAMEM_EMS5150_CARD,
     isamem_init, isamem_close, NULL,
@@ -978,6 +982,7 @@ static const device_config_t ev159_config[] =
 
 static const device_t ev159_device = {
     "Everex EV-159 RAM 3000 Deluxe",
+    "ev159",
     DEVICE_ISA,
     ISAMEM_EV159_CARD,
     isamem_init, isamem_close, NULL,
@@ -1169,6 +1174,7 @@ static const device_config_t rampage_config[] =
 
 static const device_t rampage_device = {
     "AST RAMpage/XT",
+    "isamem_rampage",
     DEVICE_ISA,
     ISAMEM_RAMPAGEXT_CARD,
     isamem_init, isamem_close, NULL,

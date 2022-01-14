@@ -529,6 +529,7 @@ spd_write_drbs_ali1621(uint8_t *regs, uint8_t reg_min, uint8_t reg_max)
 
 static const device_t spd_device = {
     "Serial Presence Detect ROMs",
+    "spd",
     DEVICE_ISA,
     0,
     spd_init, spd_close, NULL,

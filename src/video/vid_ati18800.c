@@ -298,6 +298,7 @@ const device_t ati18800_wonder_device =
 const device_t ati18800_vga88_device =
 {
         "ATI-18800-1",
+        "ati18800_vga88",
         DEVICE_ISA, ATI18800_VGA88,
         ati18800_init,
         ati18800_close,
@@ -311,6 +312,7 @@ const device_t ati18800_vga88_device =
 const device_t ati18800_device =
 {
         "ATI-18800-5",
+        "ati18800",
         DEVICE_ISA, ATI18800_EDGE16,
         ati18800_init,
         ati18800_close,

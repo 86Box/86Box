@@ -87,7 +87,7 @@ inthdc_close(void *priv)
 
 
 static const device_t inthdc_device = {
-    "Internal controller", 0, 0,
+    "Internal controller", "inthdc", 0, 0,
     inthdc_init, inthdc_close, NULL,
     { NULL }, NULL, NULL, NULL
 };

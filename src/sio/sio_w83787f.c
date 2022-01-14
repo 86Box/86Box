@@ -447,6 +447,7 @@ w83787f_init(const device_t *info)
 
 const device_t w83787f_device = {
     "Winbond W83787F/IF Super I/O",
+    "w83787f",
     0,
     0x09,
     w83787f_init, w83787f_close, NULL,
@@ -456,6 +457,7 @@ const device_t w83787f_device = {
 
 const device_t w83787f_ide_device = {
     "Winbond W83787F/IF Super I/O (With IDE)",
+    "w83787f_ide",
     0,
     0x19,
     w83787f_init, w83787f_close, NULL,
@@ -465,6 +467,7 @@ const device_t w83787f_ide_device = {
 
 const device_t w83787f_ide_en_device = {
     "Winbond W83787F/IF Super I/O (With IDE Enabled)",
+    "w83787f_ide_en",
     0,
     0x59,
     w83787f_init, w83787f_close, NULL,
@@ -474,6 +477,7 @@ const device_t w83787f_ide_en_device = {
 
 const device_t w83787f_ide_sec_device = {
     "Winbond W83787F/IF Super I/O (With Secondary IDE)",
+    "w83787f_ide_sec",
     0,
     0x39,
     w83787f_init, w83787f_close, NULL,

@@ -1910,6 +1910,7 @@ static const device_config_t BT958D_Config[] = {
 
 const device_t buslogic_542b_device = {
 	"BusLogic BT-542B ISA",
+    "buslogic_542b_1991",
 	DEVICE_ISA | DEVICE_AT,
 	CHIP_BUSLOGIC_ISA_542B_1991_12_14,
 	buslogic_init, x54x_close, NULL,
@@ -1928,6 +1929,7 @@ const device_t buslogic_545s_device = {
 
 const device_t buslogic_542bh_device = {
 	"BusLogic BT-542BH ISA",
+    "buslogic",
 	DEVICE_ISA | DEVICE_AT,
 	CHIP_BUSLOGIC_ISA_542BH_1993_05_23,
 	buslogic_init, x54x_close, NULL,
@@ -1935,8 +1937,9 @@ const device_t buslogic_542bh_device = {
 	BT_ISA_Config
 };
 
-const device_t buslogic_545c_device = {
+const device_t buslogic_545s_device = {
 	"BusLogic BT-545C ISA",
+    "buslogic_545c",
 	DEVICE_ISA | DEVICE_AT,
 	CHIP_BUSLOGIC_ISA_545C_1994_12_01,
 	buslogic_init, x54x_close, NULL,
@@ -1946,6 +1949,7 @@ const device_t buslogic_545c_device = {
 
 const device_t buslogic_640a_device = {
 	"BusLogic BT-640A MCA",
+    "buslogic_640a",
 	DEVICE_MCA,
 	CHIP_BUSLOGIC_MCA_640A_1993_05_23,
 	buslogic_init, x54x_close, NULL,
@@ -1955,6 +1959,7 @@ const device_t buslogic_640a_device = {
 
 const device_t buslogic_445s_device = {
 	"BusLogic BT-445S VLB",
+    "buslogic_445s",
 	DEVICE_VLB,
 	CHIP_BUSLOGIC_VLB_445S_1993_11_16,
 	buslogic_init, x54x_close, NULL,
@@ -1973,6 +1978,7 @@ const device_t buslogic_445c_device = {
 
 const device_t buslogic_958d_pci_device = {
 	"BusLogic BT-958D PCI",
+    "buslogic_pci",
 	DEVICE_PCI,
 	CHIP_BUSLOGIC_PCI_958D_1995_12_30,
 	buslogic_init, x54x_close, NULL,

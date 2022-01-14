@@ -759,6 +759,7 @@ static void pas16_close(void *p)
 const device_t pas16_device =
 {
         "Pro Audio Spectrum 16",
+        "pas16",
         DEVICE_ISA | DEVICE_NOT_WORKING,
 	0,
         pas16_init, pas16_close, NULL,

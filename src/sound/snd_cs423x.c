@@ -820,6 +820,7 @@ cs423x_speed_changed(void *priv)
 const device_t cs4236b_device =
 {
     "Crystal CS4236B",
+    "cs4236b",
     DEVICE_ISA | DEVICE_AT,
     CRYSTAL_CS4236B,
     cs423x_init, cs423x_close, cs423x_reset,
@@ -832,6 +833,7 @@ const device_t cs4236b_device =
 const device_t cs4237b_device =
 {
     "Crystal CS4237B",
+    "cs4237b",
     DEVICE_ISA | DEVICE_AT,
     CRYSTAL_CS4237B,
     cs423x_init, cs423x_close, cs423x_reset,
@@ -844,6 +846,7 @@ const device_t cs4237b_device =
 const device_t cs4238b_device =
 {
     "Crystal CS4238B",
+    "cs4238b",
     DEVICE_ISA | DEVICE_AT,
     CRYSTAL_CS4238B,
     cs423x_init, cs423x_close, cs423x_reset,
