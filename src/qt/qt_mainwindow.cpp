@@ -93,7 +93,10 @@ MainWindow::MainWindow(QWidget *parent) :
         {
             /* get the percentage and mouse message, TODO: refactor ui_window_title() */
             auto parts = title.split(" - ");
-            toolbar_label->setText(QString("%1 - %2").arg(parts[1],parts.last()));
+            if (parts.size() < 5)
+                toolbar_label->setText(parts[1]);
+            else
+                toolbar_label->setText(QString("%1 - %2").arg(parts[1], parts.last()));
         }
 #endif
     });
