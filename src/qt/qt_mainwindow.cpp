@@ -87,7 +87,15 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(this, &MainWindow::setTitle, this, [this,toolbar_label](const QString& title) {
         if (!hide_tool_bar)
+#ifdef _WIN32        
             toolbar_label->setText(title);
+#else
+        {
+            /* get the percentage and mouse message, TODO: refactor ui_window_title() */
+            auto parts = title.split(" - ");
+            toolbar_label->setText(QString("%1 - %2").arg(parts[1],parts.last()));
+        }
+#endif
     });
     connect(this, &MainWindow::getTitleForNonQtThread, this, &MainWindow::getTitle_, Qt::BlockingQueuedConnection);
 
