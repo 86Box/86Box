@@ -2,6 +2,7 @@
 #include <QApplication>
 #include <QVector2D>
 #include <atomic>
+#include <vector>
 
 extern "C" {
 #include <86box/86box.h>
@@ -21,7 +22,7 @@ void HardwareRenderer::initializeGL()
 {
     m_context->makeCurrent(this);
     initializeOpenGLFunctions();
-    m_texture = new QOpenGLTexture(image);
+    m_texture = new QOpenGLTexture(QImage(2048,2048, QImage::Format::Format_RGB32));
     m_blt = new QOpenGLTextureBlitter;
     m_blt->setRedBlueSwizzle(true);
     m_blt->create();
@@ -160,19 +161,19 @@ void HardwareRenderer::setRenderType(RenderType type) {
     setFormat(format);
 }
 
-void HardwareRenderer::onBlit(const std::unique_ptr<uint8_t>* img, int x, int y, int w, int h, std::atomic_flag* in_use) {
+void HardwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h) {
     auto tval = this;
     void* nuldata = 0;
     if (memcmp(&tval, &nuldata, sizeof(void*)) == 0) return;
-    if (!m_texture || !img || !img->get() || (m_texture && !m_texture->isCreated()))
+    if (!m_texture || !m_texture->isCreated())
     {
-        in_use->clear();
+        buf_usage[buf_idx].clear();
         source.setRect(x, y, w, h);
         return;
     }
     m_context->makeCurrent(this);
-    m_texture->setData(QOpenGLTexture::PixelFormat::RGBA, QOpenGLTexture::PixelType::UInt8, (const void*)img->get());
-    in_use->clear();
+    m_texture->setData(QOpenGLTexture::PixelFormat::RGBA, QOpenGLTexture::PixelType::UInt8, (const void*)imagebufs[buf_idx].get());
+    buf_usage[buf_idx].clear();
     source.setRect(x, y, w, h);
     update();
 }
@@ -188,4 +189,14 @@ bool HardwareRenderer::event(QEvent *event)
     bool res = false;
     if (!eventDelegate(event, res)) return QOpenGLWindow::event(event);
     return res;
+}
+
+std::vector<std::tuple<uint8_t*, std::atomic_flag*>> HardwareRenderer::getBuffers()
+{
+    std::vector<std::tuple<uint8_t*, std::atomic_flag*>> buffers;
+    
+    buffers.push_back(std::make_tuple(imagebufs[0].get(), &buf_usage[0]));
+    buffers.push_back(std::make_tuple(imagebufs[1].get(), &buf_usage[1]));
+
+    return buffers;
 }

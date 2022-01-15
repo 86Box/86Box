@@ -15,6 +15,9 @@
 
 #include <atomic>
 #include <mutex>
+#include <array>
+#include <vector>
+#include <memory>
 #include <QApplication>
 
 #include "qt_renderercomon.hpp"
@@ -44,9 +47,17 @@ public:
     void resizeGL(int w, int h) override;
     void initializeGL() override;
     void paintGL() override;
+    std::vector<std::tuple<uint8_t*, std::atomic_flag*>> getBuffers() override;
     HardwareRenderer(QWidget* parent = nullptr, RenderType rtype = RenderType::OpenGL)
     : QOpenGLWindow(QOpenGLWindow::NoPartialUpdate, parent->windowHandle()), QOpenGLFunctions()
     {
+        imagebufs[0] = std::unique_ptr<uint8_t>(new uint8_t[2048 * 2048 * 4]);
+        imagebufs[1] = std::unique_ptr<uint8_t>(new uint8_t[2048 * 2048 * 4]);
+
+        buf_usage = std::vector<std::atomic_flag>(2);
+        buf_usage[0].clear();
+        buf_usage[1].clear();
+
         setMinimumSize(QSize(16, 16));
         setFlags(Qt::FramelessWindowHint);
         parentWidget = parent;
@@ -71,9 +82,11 @@ public:
     void setRenderType(RenderType type);
 
 public slots:
-    void onBlit(const std::unique_ptr<uint8_t>* img, int, int, int, int, std::atomic_flag* in_use);
+    void onBlit(int buf_idx, int x, int y, int w, int h);
 
 protected:
+    std::array<std::unique_ptr<uint8_t>, 2> imagebufs;
+
     void resizeEvent(QResizeEvent *event) override;
     bool event(QEvent* event) override;
 };
