@@ -85,7 +85,9 @@
 #include "cpu.h"
 
 #define ISAMEM_IBMXT_CARD 0
+#define ISAMEM_GENXT_CARD 1
 #define ISAMEM_IBMAT_CARD 2
+#define ISAMEM_GENAT_CARD 3
 #define ISAMEM_P5PAK_CARD 4
 #define ISAMEM_EMS5150_CARD 6
 #define ISAMEM_EV159_CARD 10
@@ -408,6 +410,7 @@ isamem_init(const device_t *info)
     tot = 0;
     switch(dev->board) {
 	case ISAMEM_IBMXT_CARD:		/* IBM PC/XT Memory Expansion Card */
+	case ISAMEM_GENXT_CARD:		/* Generic PC/XT Memory Expansion Card */
 	case ISAMEM_P5PAK_CARD:		/* Paradise Systems 5-PAK */
 		dev->total_size = device_get_config_int("size");
 		dev->start_addr = device_get_config_int("start");
@@ -415,6 +418,7 @@ isamem_init(const device_t *info)
 		break;
 
 	case ISAMEM_IBMAT_CARD:		/* IBM PC/AT Memory Expansion Card */
+	case ISAMEM_GENAT_CARD:		/* Generic PC/AT Memory Expansion Card */
 		dev->total_size = device_get_config_int("size");
 		dev->start_addr = device_get_config_int("start");
 		tot = dev->total_size;
@@ -690,6 +694,33 @@ static const device_t ibmxt_device = {
 };
 
 
+static const device_config_t genericxt_config[] =
+{
+	{
+		"size", "Memory Size", CONFIG_SPINNER, "", 16, "",
+		{ 0, 640, 16 },
+		{ { 0 } }
+	},
+	{
+		"start", "Start Address", CONFIG_SPINNER, "", 0, "",
+		{ 0, 624, 16 },
+		{ { 0 } }
+	},
+	{
+		"", "", -1
+	}
+};
+
+static const device_t genericxt_device = {
+    "Generic PC/XT Memory Expansion",
+    DEVICE_ISA,
+    ISAMEM_GENXT_CARD,
+    isamem_init, isamem_close, NULL,
+    { NULL }, NULL, NULL,
+    genericxt_config
+};
+
+
 static const device_config_t ibmat_config[] =
 {
 	{
@@ -714,6 +745,33 @@ static const device_t ibmat_device = {
     isamem_init, isamem_close, NULL,
     { NULL }, NULL, NULL,
     ibmat_config
+};
+
+
+static const device_config_t genericat_config[] =
+{
+	{
+		"size", "Memory Size", CONFIG_SPINNER, "", 512, "",
+		{ 0, 16384, 512 },
+		{ { 0 } }
+	},
+	{
+		"start", "Start Address", CONFIG_SPINNER, "", 512, "",
+		{ 0, 15872, 128 },
+		{ { 0 } }
+	},
+	{
+		"", "", -1
+	}
+};
+
+static const device_t genericat_device = {
+    "Generic PC/AT Memory Expansion",
+    DEVICE_ISA,
+    ISAMEM_GENAT_CARD,
+    isamem_init, isamem_close, NULL,
+    { NULL }, NULL, NULL,
+    genericat_config
 };
 
 
@@ -1001,7 +1059,9 @@ static const struct {
 } boards[] = {
     { "none",		NULL				},
     { "ibmxt",		&ibmxt_device		},
+    { "genericxt",	&genericxt_device	},
     { "ibmat",		&ibmat_device		},
+    { "genericat",	&genericat_device	},
     { "p5pak",		&p5pak_device		},
     { "ems5150",	&ems5150_device		},
     { "ev159",		&ev159_device		},
