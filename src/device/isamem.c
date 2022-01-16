@@ -84,6 +84,12 @@
 
 #include "cpu.h"
 
+#define ISAMEM_IBMXT_CARD 0
+#define ISAMEM_IBMAT_CARD 2
+#define ISAMEM_P5PAK_CARD 4
+#define ISAMEM_EMS5150_CARD 6
+#define ISAMEM_EV159_CARD 10
+#define ISAMEM_RAMPAGEXT_CARD 11
 
 #define ISAMEM_DEBUG	0
 
@@ -95,6 +101,9 @@
 #define EMS_PGSIZE	(16 << 10)		/* one page is this big */
 #define EMS_MAXPAGE	4			/* number of viewport pages */
 
+#define EXTRAM_CONVENTIONAL 0
+#define EXTRAM_HIGH 1
+#define EXTRAM_XMS 2
 
 typedef struct {
     int8_t	enabled;			/* 1=ENABLED */
@@ -398,28 +407,28 @@ isamem_init(const device_t *info)
     /* Do per-board initialization. */
     tot = 0;
     switch(dev->board) {
-	case 0:		/* IBM PC/XT Memory Expansion Card */
-	case 2:		/* Paradise Systems 5-PAK */
+	case ISAMEM_IBMXT_CARD:		/* IBM PC/XT Memory Expansion Card */
+	case ISAMEM_P5PAK_CARD:		/* Paradise Systems 5-PAK */
 		dev->total_size = device_get_config_int("size");
 		dev->start_addr = device_get_config_int("start");
 		tot = dev->total_size;
 		break;
 
-	case 1:		/* IBM PC/AT Memory Expansion Card */
+	case ISAMEM_IBMAT_CARD:		/* IBM PC/AT Memory Expansion Card */
 		dev->total_size = device_get_config_int("size");
 		dev->start_addr = device_get_config_int("start");
 		tot = dev->total_size;
 		dev->flags |= FLAG_WIDE;
 		break;
 
-	case 3:		/* Micro Mainframe EMS-5150(T) */
+	case ISAMEM_EMS5150_CARD:		/* Micro Mainframe EMS-5150(T) */
 		dev->base_addr = device_get_config_hex16("base");
 		dev->total_size = device_get_config_int("size");
 		dev->frame_addr = 0xD0000;
 		dev->flags |= (FLAG_EMS | FLAG_CONFIG);
 		break;
 
-	case 10:	/* Everex EV-159 RAM 3000 */
+	case ISAMEM_EV159_CARD:	/* Everex EV-159 RAM 3000 */
 		dev->base_addr = device_get_config_hex16("base");
 		dev->total_size = device_get_config_int("size");
 		dev->start_addr = device_get_config_int("start");
@@ -433,7 +442,7 @@ isamem_init(const device_t *info)
 dev->frame_addr = 0xE0000;
 		break;
 
-	case 11:
+	case ISAMEM_RAMPAGEXT_CARD: /* AST RAMpage/XT */
 		dev->base_addr = device_get_config_hex16("base");
 		dev->total_size = device_get_config_int("size");
 		dev->start_addr = device_get_config_int("start");
@@ -496,8 +505,8 @@ dev->frame_addr = 0xE0000;
 			t = tot;
 		isamem_log("ISAMEM: RAM at %05iKB (%iKB)\n", addr>>10, t>>10);
 
-		dev->ext_ram[0].ptr = ptr;
-		dev->ext_ram[0].base = addr;
+		dev->ext_ram[EXTRAM_CONVENTIONAL].ptr = ptr;
+		dev->ext_ram[EXTRAM_CONVENTIONAL].base = addr;
 
 		/* Create, initialize and enable the low-memory mapping. */
 		mem_mapping_add(&dev->low_mapping, addr, t,
@@ -507,7 +516,7 @@ dev->frame_addr = 0xE0000;
 				ram_writeb, 
 				(dev->flags&FLAG_WIDE) ? ram_writew : NULL,
 				NULL,
-				ptr, MEM_MAPPING_EXTERNAL, &dev->ext_ram[0]);
+				ptr, MEM_MAPPING_EXTERNAL, &dev->ext_ram[EXTRAM_CONVENTIONAL]);
 
 		/* Tell the memory system this is external RAM. */
 		mem_set_mem_state(addr, t,
@@ -531,8 +540,8 @@ dev->frame_addr = 0xE0000;
 
 		isamem_log("ISAMEM: RAM at %05iKB (%iKB)\n", addr>>10, t>>10);
 
-		dev->ext_ram[1].ptr = ptr;
-		dev->ext_ram[1].base = addr + tot;
+		dev->ext_ram[EXTRAM_HIGH].ptr = ptr;
+		dev->ext_ram[EXTRAM_HIGH].base = addr + tot;
 
 		/* Update and enable the remap. */
 		mem_mapping_set(&ram_remapped_mapping,
@@ -540,7 +549,7 @@ dev->frame_addr = 0xE0000;
 				ram_readb, ram_readw, NULL,
 				ram_writeb, ram_writew, NULL,
 				ptr, MEM_MAPPING_EXTERNAL,
-				&dev->ext_ram[1]);
+				&dev->ext_ram[EXTRAM_HIGH]);
 		mem_mapping_disable(&ram_remapped_mapping);
 
 		/* Tell the memory system this is external RAM. */
@@ -565,14 +574,14 @@ dev->frame_addr = 0xE0000;
 	t = tot;
 	isamem_log("ISAMEM: RAM at %05iKB (%iKB)\n", addr>>10, t>>10);
 
-	dev->ext_ram[2].ptr = ptr;
-	dev->ext_ram[2].base = addr;
+	dev->ext_ram[EXTRAM_XMS].ptr = ptr;
+	dev->ext_ram[EXTRAM_XMS].base = addr;
 
 	/* Create, initialize and enable the high-memory mapping. */
 	mem_mapping_add(&dev->high_mapping, addr, t,
 			ram_readb, ram_readw, NULL,
 			ram_writeb, ram_writew, NULL,
-			ptr, MEM_MAPPING_EXTERNAL, &dev->ext_ram[2]);
+			ptr, MEM_MAPPING_EXTERNAL, &dev->ext_ram[EXTRAM_XMS]);
 
 	/* Tell the memory system this is external RAM. */
 	mem_set_mem_state(addr, t, MEM_READ_EXTERNAL | MEM_WRITE_EXTERNAL);
@@ -663,7 +672,7 @@ static const device_config_t ibmxt_config[] =
 	},
 	{
 		"start", "Start Address", CONFIG_SPINNER, "", 256, "",
-		{ 0, 640-64, 64 },
+		{ 0, 576, 64 },
 		{ { 0 } }
 	},
 	{
@@ -674,7 +683,7 @@ static const device_config_t ibmxt_config[] =
 static const device_t ibmxt_device = {
     "IBM PC/XT Memory Expansion",
     DEVICE_ISA,
-    0,
+    ISAMEM_IBMXT_CARD,
     isamem_init, isamem_close, NULL,
     { NULL }, NULL, NULL,
     ibmxt_config
@@ -685,12 +694,12 @@ static const device_config_t ibmat_config[] =
 {
 	{
 		"size", "Memory Size", CONFIG_SPINNER, "", 512, "",
-		{ 0, 4096, 512 },
+		{ 0, 12288, 512 },
 		{ { 0 } }
 	},
 	{
 		"start", "Start Address", CONFIG_SPINNER, "", 512, "",
-		{ 0, 16128, 128 },
+		{ 0, 15872, 512 },
 		{ { 0 } }
 	},
 	{
@@ -701,7 +710,7 @@ static const device_config_t ibmat_config[] =
 static const device_t ibmat_device = {
     "IBM PC/AT Memory Expansion",
     DEVICE_ISA,
-    1,
+    ISAMEM_IBMAT_CARD,
     isamem_init, isamem_close, NULL,
     { NULL }, NULL, NULL,
     ibmat_config
@@ -728,7 +737,7 @@ static const device_config_t p5pak_config[] =
 static const device_t p5pak_device = {
     "Paradise Systems 5-PAK",
     DEVICE_ISA,
-    2,
+    ISAMEM_P5PAK_CARD,
     isamem_init, isamem_close, NULL,
     { NULL }, NULL, NULL,
     p5pak_config
@@ -774,7 +783,7 @@ static const device_config_t ems5150_config[] =
 static const device_t ems5150_device = {
     "Micro Mainframe EMS-5150(T)",
     DEVICE_ISA,
-    3,
+    ISAMEM_EMS5150_CARD,
     isamem_init, isamem_close, NULL,
     { NULL }, NULL, NULL,
     ems5150_config
@@ -877,7 +886,7 @@ static const device_config_t ev159_config[] =
 static const device_t ev159_device = {
     "Everex EV-159 RAM 3000 Deluxe",
     DEVICE_ISA,
-    10,
+    ISAMEM_EV159_CARD,
     isamem_init, isamem_close, NULL,
     { NULL }, NULL, NULL,
     ev159_config
@@ -978,7 +987,7 @@ static const device_config_t rampage_config[] =
 static const device_t isamem_rampage_device = {
     "AST RAMpage/XT",
     DEVICE_ISA,
-    11,
+    ISAMEM_RAMPAGEXT_CARD,
     isamem_init, isamem_close, NULL,
     { NULL }, NULL, NULL,
     rampage_config
@@ -990,7 +999,7 @@ static const struct {
     const char		*internal_name;
     const device_t	*dev;
 } boards[] = {
-    { "none",		NULL			},
+    { "none",		NULL				},
     { "ibmxt",		&ibmxt_device		},
     { "ibmat",		&ibmat_device		},
     { "p5pak",		&p5pak_device		},
@@ -1003,9 +1012,9 @@ static const struct {
     { "rampage",	&rampage_device		},
 #endif
 #ifdef USE_ISAMEM_IAB
-    { "iab",		&iab_device		},
+    { "iab",		&iab_device			},
 #endif
-    { "",		NULL			}
+    { "",			NULL				}
 };
 
 
