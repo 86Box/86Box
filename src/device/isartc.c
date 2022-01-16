@@ -86,6 +86,7 @@
 #define ISARTC_EV170	0
 #define ISARTC_DTK		1
 #define ISARTC_P5PAK	2
+#define ISARTC_A6PAK	3
 
 #define ISARTC_DEBUG	0
 
@@ -536,6 +537,7 @@ isartc_init(const device_t *info)
 		break;
 
 	case ISARTC_P5PAK:		/* Paradise Systems 5PAK */
+	case ISARTC_A6PAK:		/* AST SixPakPlus */
 		dev->flags |= FLAG_YEAR80;
 		dev->base_addr = 0x02c0;
 		dev->base_addrsz = 32;
@@ -704,6 +706,42 @@ static const device_t p5pak_device = {
 };
 
 
+static const device_config_t a6pak_config[] = {
+	{
+		"irq", "IRQ", CONFIG_SELECTION, "", -1, "", { 0 },
+		{
+			{
+				"Disabled", -1
+			},
+			{
+				"IRQ2", 2
+			},
+			{
+				"IRQ3", 3
+			},
+			{
+				"IRQ5", 5
+			},
+			{
+				""
+			}
+		},
+	},
+	{
+		"", "", -1
+	}
+};
+
+static const device_t a6pak_device = {
+    "AST SixPakPlus",
+    DEVICE_ISA,
+    ISARTC_A6PAK,
+    isartc_init, isartc_close, NULL,
+    { NULL }, NULL, NULL,
+    a6pak_config
+};
+
+
 static const struct {
     const char		*internal_name;
     const device_t	*dev;
@@ -712,6 +750,7 @@ static const struct {
     { "ev170",	&ev170_device	},
     { "pii147",	&pii147_device	},
     { "p5pak",	&p5pak_device	},
+    { "a6pak",	&a6pak_device	},
     { "",	NULL		},
 };
 

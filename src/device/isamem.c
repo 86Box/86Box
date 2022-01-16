@@ -89,6 +89,7 @@
 #define ISAMEM_IBMAT_CARD 2
 #define ISAMEM_GENAT_CARD 3
 #define ISAMEM_P5PAK_CARD 4
+#define ISAMEM_A6PAK_CARD 5
 #define ISAMEM_EMS5150_CARD 6
 #define ISAMEM_EV159_CARD 10
 #define ISAMEM_RAMPAGEXT_CARD 11
@@ -413,6 +414,7 @@ isamem_init(const device_t *info)
 	case ISAMEM_IBMXT_CARD:		/* IBM PC/XT Memory Expansion Card */
 	case ISAMEM_GENXT_CARD:		/* Generic PC/XT Memory Expansion Card */
 	case ISAMEM_P5PAK_CARD:		/* Paradise Systems 5-PAK */
+	case ISAMEM_A6PAK_CARD:		/* AST SixPakPlus */
 		dev->total_size = device_get_config_int("size");
 		dev->start_addr = device_get_config_int("start");
 		tot = dev->total_size;
@@ -806,6 +808,33 @@ static const device_t p5pak_device = {
 };
 
 
+static const device_config_t a6pak_config[] =
+{
+	{
+		"size", "Memory Size", CONFIG_SPINNER, "", 64, "",
+		{ 0, 576, 64 },
+		{ { 0 } }
+	},
+	{
+		"start", "Start Address", CONFIG_SPINNER, "", 256, "",
+		{ 64, 512, 64 },
+		{ { 0 } }
+	},
+	{
+		"", "", -1
+	}
+};
+
+static const device_t a6pak_device = {
+    "AST SixPakPlus",
+    DEVICE_ISA,
+    ISAMEM_A6PAK_CARD,
+    isamem_init, isamem_close, NULL,
+    { NULL }, NULL, NULL,
+    a6pak_config
+};
+
+
 static const device_config_t ems5150_config[] =
 {
 	{
@@ -1169,6 +1198,7 @@ static const struct {
     { "ibmat",		&ibmat_device		},
     { "genericat",	&genericat_device	},
     { "p5pak",		&p5pak_device		},
+    { "a6pak",		&a6pak_device		},
     { "ems5150",	&ems5150_device		},
     { "ev159",		&ev159_device		},
 #ifdef USE_ISAMEM_BRAT
