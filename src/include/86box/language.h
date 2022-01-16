@@ -127,6 +127,13 @@
 #define IDS_2151	2151		// "Cartridge images (*.JRC)\0*.JRC\0..."
 #define IDS_2152	2152		// "Error initializing renderer"
 #define IDS_2153	2153		// "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+#define IDS_2154	2154		// "Resume execution"
+#define IDS_2155	2155		// "Pause execution"
+#define IDS_2156	2156		// "Press Ctrl+Alt+Del"
+#define IDS_2157	2157		// "Press Ctrl+Alt+Esc"
+#define IDS_2158	2158		// "Hard reset"
+#define IDS_2159	2159		// "ACPI shutdown"
+#define IDS_2160	2160		// "Settings"
 
 #define IDS_4096	4096		// "Hard disk (%s)"
 #define IDS_4097	4097		// "%01i:%01i"

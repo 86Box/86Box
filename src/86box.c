@@ -1068,7 +1068,13 @@ void update_mouse_msg()
 	if (wcp) /* remove parentheses */
 		*(wcp - 1) = L'\0';
 	mbstowcs(wcpu, cpu_s->name, strlen(cpu_s->name)+1);
-	
+#ifdef _WIN32
+	swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%%i%%%% - %ls",
+		plat_get_string(IDS_2077));
+	swprintf(mouse_msg[1], sizeof_w(mouse_msg[1]), L"%%i%%%% - %ls",
+		(mouse_get_buttons() > 2) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079));
+	wcsncpy(mouse_msg[2], L"%i%%", sizeof_w(mouse_msg[2]));
+#else
 	swprintf(mouse_msg[0], sizeof_w(mouse_msg[0]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls - %ls",
 		EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu,
 		plat_get_string(IDS_2077));
@@ -1077,6 +1083,7 @@ void update_mouse_msg()
 		(mouse_get_buttons() > 2) ? plat_get_string(IDS_2078) : plat_get_string(IDS_2079));
 	swprintf(mouse_msg[2], sizeof_w(mouse_msg[2]), L"%ls v%ls - %%i%%%% - %ls - %ls/%ls",
 		EMU_NAME_W, EMU_VERSION_FULL_W, wmachine, wcpufamily, wcpu);
+#endif
 }
 
 void
