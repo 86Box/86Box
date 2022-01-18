@@ -872,6 +872,8 @@ static void opengl_main(void* param)
 
 static void opengl_blit(int x, int y, int w, int h)
 {
+	int row;
+
 	if ((x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (thread == NULL) ||
 		atomic_flag_test_and_set(&blit_info[write_pos].in_use))
 	{
@@ -879,7 +881,8 @@ static void opengl_blit(int x, int y, int w, int h)
 		return;
 	}
 
-	video_copy(blit_info[write_pos].buffer, &(buffer32->line[y][x]), h * ROW_LENGTH * sizeof(uint32_t));
+	for (row = 0; row < h; ++row)
+		video_copy(&(((uint8_t *) blit_info[write_pos].buffer)[row * ROW_LENGTH * sizeof(uint32_t)]), &(buffer32->line[y + row][x]), w * sizeof(uint32_t));
 
 	if (screenshots)
 		video_screenshot(blit_info[write_pos].buffer, 0, 0, ROW_LENGTH);
