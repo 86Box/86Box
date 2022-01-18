@@ -274,6 +274,7 @@ sdl_blit_ex(int x, int y, int w, int h)
     SDL_Rect r_src;
     void *pixeldata;
     int pitch, ret;
+    int row;
 
     if (!sdl_enabled || (x < 0) || (y < 0) || (w <= 0) || (h <= 0) || (w > 2048) || (h > 2048) || (buffer32 == NULL) || (sdl_render == NULL) || (sdl_tex == NULL)) {
 	video_blit_complete();
@@ -284,7 +285,8 @@ sdl_blit_ex(int x, int y, int w, int h)
 
     SDL_LockTexture(sdl_tex, 0, &pixeldata, &pitch);
 
-    video_copy(pixeldata, &(buffer32->line[y][x]), h * 2048 * sizeof(uint32_t));
+    for (row = 0; row < h; ++row)
+	video_copy(&(((uint8_t *) pixeldata)[row * 2048 * sizeof(uint32_t)]), &(buffer32->line[y + row][x]), w * sizeof(uint32_t));
 
     if (screenshots)
 	video_screenshot((uint32_t *) pixeldata, 0, 0, 2048);
