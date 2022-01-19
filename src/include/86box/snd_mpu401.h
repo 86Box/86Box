@@ -159,4 +159,4 @@ extern void	mpu401_device_add(void);
 extern void	mpu401_irq_attach(mpu_t *mpu, void (*ext_irq_update)(void *priv, int set), int (*ext_irq_pending)(void *priv), void *priv);
 
 extern int	MPU401_InputSysex(void *p, uint8_t *buffer, uint32_t len, int abort);
-extern void	MPU401_InputMsg(void *p, uint8_t *msg);
+extern void	MPU401_InputMsg(void *p, uint8_t *msg, uint32_t len);

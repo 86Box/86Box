@@ -691,7 +691,7 @@ UIOBJ		:= win_ui.o win_icon.o win_stbar.o win_discord.o \
 		   win_dialog.o win_about.o \
 		   win_settings.o win_devconf.o win_snd_gain.o win_specify_dim.o win_preferences.o \
 		   win_new_floppy.o win_jsconf.o \
-		   win_media_menu.o
+		   win_media_menu.o win_toolbar.o
 
 ifeq ($(DINPUT), y)
  PLATOBJ	+= win_joystick.o

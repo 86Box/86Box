@@ -32,6 +32,7 @@ BEGIN
     POPUP "查看(&V)"
     BEGIN
         MENUITEM "隐藏状态栏(&H)",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "隐藏工具栏(&T)",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "窗口大小可调(&R)",          IDM_VID_RESIZE
         MENUITEM "记住窗口大小和位置(&E)",  IDM_VID_REMEMBER
@@ -532,6 +533,13 @@ BEGIN
     IDS_2151	"卡带镜像 (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0所有文件 (*.*)\0*.*\0"
     IDS_2152	"初始化渲染器时出错"
     IDS_2153	"无法初始化 OpenGL (3.0 核心) 渲染器。请使用其他渲染器。"
+    IDS_2154	"恢复执行"
+    IDS_2155	"暂停执行"
+    IDS_2156	"按 Ctrl+Alt+Del"
+    IDS_2157	"按 Ctrl+Alt+Esc"
+    IDS_2158	"硬重置"
+    IDS_2159	"ACPI 关机"
+    IDS_2160	"设置"
 END
 
 STRINGTABLE DISCARDABLE 

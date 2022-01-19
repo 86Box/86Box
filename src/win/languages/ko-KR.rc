@@ -32,6 +32,7 @@ BEGIN
     POPUP "표시(&V)"
     BEGIN
         MENUITEM "상태 바 숨기기(&H)",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Hide &toolbar",		IDM_VID_HIDE_TOOLBAR
         MENUITEM SEPARATOR
         MENUITEM "창 크기 조절 가능하게 하기(&R)",          IDM_VID_RESIZE
         MENUITEM "창 크기와 위치를 기억하기(&E)",  IDM_VID_REMEMBER
@@ -532,6 +533,13 @@ BEGIN
     IDS_2151	"카트리지 이미지 (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0모든 파일 (*.*)\0*.*\0"
     IDS_2152	"Error initializing renderer"
     IDS_2153	"OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+    IDS_2154	"Resume execution"
+    IDS_2155	"Pause execution"
+    IDS_2156	"Press Ctrl+Alt+Del"
+    IDS_2157	"Press Ctrl+Alt+Esc"
+    IDS_2158	"Hard reset"
+    IDS_2159	"ACPI shutdown"
+    IDS_2160	"Settings"
 END
 
 STRINGTABLE DISCARDABLE 

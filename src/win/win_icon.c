@@ -87,6 +87,13 @@ const _ICON_DATA icon_files[] =
 		{185, "mo_empty_active.ico"},
 		{192, "cassette_empty.ico"},
 		{193, "cassette_empty_active.ico"},
+		{200, "run.ico"},
+		{201, "pause.ico"},
+		{202, "send_cad.ico"},
+		{203, "send_cae.ico"},
+		{204, "hard_reset.ico"},
+		{205, "acpi_shutdown.ico"},
+		{206, "settings.ico"},
 		{232, "cartridge_empty.ico"},
 		{240, "machine.ico"},
 		{241, "display.ico"},
@@ -120,9 +127,11 @@ void win_load_icon_set()
 	win_clear_icon_set();
 	win_system_icon_set();
 	
-	if (strlen(icon_set) == 0)
+	if (strlen(icon_set) == 0) {
+		ToolBarLoadIcons();
 		return;
-		
+	}
+
 	char path_root[2048] = {0}, temp[2048] = {0};
 	wchar_t wtemp[2048] = {0};
 	
@@ -150,4 +159,6 @@ void win_load_icon_set()
 	uint32_t curr_lang = lang_id;
 	lang_id = 0;
 	set_language(curr_lang);
+
+	ToolBarLoadIcons();
 }

@@ -119,7 +119,7 @@ SpecifyDimensionsDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM 
 					temp_y = MulDiv(temp_y, dpi, 96);
 				}
 
-				ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height);
+				ResizeWindowByClientArea(hwndMain, temp_x, temp_y + sbar_height + tbar_height);
 
 				if (vid_resize) {
 					CheckMenuItem(hmenu, IDM_VID_SCALE_1X + scale, MF_UNCHECKED);
