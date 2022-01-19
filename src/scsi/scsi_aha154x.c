@@ -1260,6 +1260,9 @@ static const device_config_t aha_154xb_config[] = {
                                 "D800H", 0xd8000
                         },
                         {
+                                "DC00H", 0xdc000
+                        },
+                        {
                                 ""
                         }
                 },
@@ -1358,6 +1361,9 @@ static const device_config_t aha_154x_config[] = {
                                 "D800H", 0xd8000
                         },
                         {
+                                "DC00H", 0xdc000
+                        },
+                        {
                                 ""
                         }
                 },
@@ -1451,10 +1457,19 @@ static const device_config_t aha_154xcf_config[] = {
                                 "C800H", 0xc8000
                         },
                         {
+                                "CC00H", 0xcc000
+                        },
+                        {
                                 "D000H", 0xd0000
                         },
                         {
+                                "D400H", 0xd4000
+                        },
+                        {
                                 "D800H", 0xd8000
+                        },
+                        {
+                                "DC00H", 0xdc000
                         },
                         {
                                 ""
