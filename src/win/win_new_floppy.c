@@ -698,7 +698,7 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
     uint8_t disk_size, rpm_mode;
     int ret;
     FILE *f;
-    int zip_types, mo_types;
+    int zip_types, mo_types, floppy_types;
     wchar_t *twcs;
 
     switch (message) {
@@ -716,7 +716,8 @@ NewFloppyDialogProcedure(HWND hdlg, UINT message, WPARAM wParam, LPARAM lParam)
 			for (i = 0; i < mo_types; i++)
 		                SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_5902 + i));
 		} else {
-			for (i = 0; i < 12; i++)
+			floppy_types = 12;
+			for (i = 0; i < floppy_types; i++)
 		                SendMessage(h, CB_ADDSTRING, 0, win_get_string(IDS_5888 + i));
 		}
                 SendMessage(h, CB_SETCURSEL, 0, 0);
