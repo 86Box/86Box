@@ -24,6 +24,22 @@
 
 extern int fdc_type;
 
+#define FDC_PRIMARY_ADDR		0x03f0
+#define FDC_PRIMARY_IRQ			6
+#define FDC_PRIMARY_DMA			2
+#define FDC_PRIMARY_PCJR_ADDR	0x00f0
+#define FDC_PRIMARY_PCJR_IRQ	6
+#define FDC_PRIMARY_PCJR_DMA	2
+#define FDC_SECONDARY_ADDR		0x0370
+#define FDC_SECONDARY_IRQ		6
+#define FDC_SECONDARY_DMA		2
+#define FDC_TERTIARY_ADDR		0x0360
+#define FDC_TERTIARY_IRQ		6
+#define FDC_TERTIARY_DMA		2
+#define FDC_QUATERNARY_ADDR		0x03e0
+#define FDC_QUATERNARY_IRQ		6
+#define FDC_QUATERNARY_DMA		2
+
 #define FDC_FLAG_PCJR		0x01	/* PCjr */
 #define FDC_FLAG_DISKCHG_ACTLOW	0x02	/* Amstrad, PS/1, PS/2 ISA */
 #define FDC_FLAG_AT		0x04	/* AT+, PS/x */
