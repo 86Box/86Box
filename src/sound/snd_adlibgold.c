@@ -939,12 +939,12 @@ static const device_config_t adgold_config[] =
         {
                 "gameport", "Enable Game port", CONFIG_BINARY, "", 1
         },
-		{
+        {
 				"surround", "Surround module", CONFIG_BINARY, "", 1
-		},
-		{
+        },
+        {
 				"receive_input", "Receive input (MIDI)", CONFIG_BINARY, "", 1
-		},
+        },
         {
                 "", "", -1
         }
