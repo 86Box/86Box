@@ -819,7 +819,17 @@ static void adgold_get_buffer(int32_t *buffer, int len, void *p)
 	free(adgold_buffer);
 }
 
-/*CD audio filter goes here*/
+static void
+adgold_filter_cd_audio(int channel, double *buffer, void *p)
+{
+    adgold_t *adgold = (adgold_t *)p;
+    double c;
+    int aux = channel ? adgold->aux_vol_r : adgold->aux_vol_l;
+	int vol = channel ? adgold->vol_r : adgold->vol_l;
+
+    c = ((((*buffer) * aux) / 4096.0) * vol) / 4096.0;
+    *buffer = c;
+}
 
 
 static void adgold_input_msg(void *p, uint8_t *msg, uint32_t len)
@@ -926,7 +936,7 @@ void *adgold_init(const device_t *info)
 
         sound_add_handler(adgold_get_buffer, adgold);
         
-        /*sound_set_cd_audio_filter(adgold_filter_cd_audio, adgold);*/
+        sound_set_cd_audio_filter(adgold_filter_cd_audio, adgold);
         
 	if (device_get_config_int("receive_input"))
 		midi_in_handler(1, adgold_input_msg, adgold_input_sysex, adgold);		
