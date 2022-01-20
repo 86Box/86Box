@@ -825,7 +825,7 @@ adgold_filter_cd_audio(int channel, double *buffer, void *p)
     adgold_t *adgold = (adgold_t *)p;
     double c;
     int aux = channel ? adgold->aux_vol_r : adgold->aux_vol_l;
-	int vol = channel ? adgold->vol_r : adgold->vol_l;
+    int vol = channel ? adgold->vol_r : adgold->vol_l;
 
     c = ((((*buffer) * aux) / 4096.0) * vol) / 4096.0;
     *buffer = c;
