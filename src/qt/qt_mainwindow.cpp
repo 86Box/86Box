@@ -64,6 +64,7 @@ MainWindow::MainWindow(QWidget *parent) :
     MediaMenu::ptr = mm;
     status = std::make_unique<MachineStatus>(this);
 
+    setUnifiedTitleAndToolBarOnMac(true);
     ui->setupUi(this);
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
