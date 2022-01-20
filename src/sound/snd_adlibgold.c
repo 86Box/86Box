@@ -498,9 +498,9 @@ uint8_t adgold_read(uint16_t addr, void *p)
                         {
                                 case 0x00: /*Control/ID*/
                                 if (adgold->surround_enabled)
-                                        temp = 0x50; /*16-bit ISA, surround module, no telephone/CDROM*/
+                                        temp = 0x51; /*8-bit ISA, surround module, no telephone/CD-ROM*/
                                 else
-                                        temp = 0x70; /*16-bit ISA, no telephone/surround/CD-ROM*/
+                                        temp = 0x71; /*8-bit ISA, no telephone/surround/CD-ROM*/
                                 break;
                                 
                                 default:
