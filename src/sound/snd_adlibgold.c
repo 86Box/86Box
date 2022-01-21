@@ -9,6 +9,7 @@
 #include <86box/dma.h>
 #include <86box/pic.h>
 #include <86box/device.h>
+#include <86box/gameport.h>
 #include <86box/nvr.h>
 #include <86box/sound.h>
 #include <86box/filters.h>
@@ -66,7 +67,9 @@ typedef struct adgold_t
         int16_t mma_buffer[2][SOUNDBUFLEN];
 
         int pos;
-        
+
+        int gameport_enabled;
+
         int surround_enabled;
 } adgold_t;
 
@@ -858,6 +861,8 @@ void *adgold_init(const device_t *info)
         memset(adgold, 0, sizeof(adgold_t));
 
         adgold->surround_enabled = device_get_config_int("surround");
+
+        adgold->gameport_enabled = device_get_config_int("gameport");
         
         opl3_init(&adgold->opl);
         if (adgold->surround_enabled)
@@ -901,6 +906,9 @@ void *adgold_init(const device_t *info)
         /*388/389 are handled by adlib_init*/
         io_sethandler(0x0388, 0x0008, adgold_read, NULL, NULL, adgold_write, NULL, NULL, adgold);
         
+        if (adgold->gameport_enabled)
+        gameport_remap(gameport_add(&gameport_201_device), 0x201);
+        
 		timer_add(&adgold->adgold_mma_timer_count, adgold_timer_poll, adgold, 1);
 
         sound_add_handler(adgold_get_buffer, adgold);
@@ -929,11 +937,14 @@ void adgold_close(void *p)
 static const device_config_t adgold_config[] =
 {
         {
+                "gameport", "Enable Game port", CONFIG_BINARY, "", 1
+        },
+        {
                 "surround", "Surround module", CONFIG_BINARY, "", 1
         },
-		{
-				"receive_input", "Receive input (MIDI)", CONFIG_BINARY, "", 1
-		},
+        {
+                "receive_input", "Receive input (MIDI)", CONFIG_BINARY, "", 1
+        },
         {
                 "", "", -1
         }
