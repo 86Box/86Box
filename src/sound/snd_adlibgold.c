@@ -60,6 +60,7 @@ typedef struct adgold_t
         
         int fm_vol_l, fm_vol_r;
         int samp_vol_l, samp_vol_r;
+        int aux_vol_l, aux_vol_r;
         int vol_l, vol_r;
         int treble, bass;
 
@@ -259,6 +260,14 @@ void adgold_write(uint16_t addr, uint8_t val, void *p)
                                 case 0x0c: /*Sample volume right*/
                                 adgold->adgold_38x_regs[0x0c] = val;
                                 adgold->samp_vol_r = (int)(int8_t)(val - 128);
+                                break;
+                                case 0x0d: /*Aux volume left*/
+                                adgold->adgold_38x_regs[0x0d] = val;
+                                adgold->aux_vol_l = (int)(int8_t)(val - 128);
+                                break;
+                                case 0x0e: /*Aux volume right*/
+                                adgold->adgold_38x_regs[0x0e] = val;
+                                adgold->aux_vol_r = (int)(int8_t)(val - 128);
                                 break;
                                 
                                 case 0x18: /*Surround*/
@@ -498,9 +507,9 @@ uint8_t adgold_read(uint16_t addr, void *p)
                         {
                                 case 0x00: /*Control/ID*/
                                 if (adgold->surround_enabled)
-                                        temp = 0x50; /*16-bit ISA, surround module, no telephone/CDROM*/
+                                        temp = 0x51; /*8-bit ISA, surround module, no telephone/CD-ROM*/
                                 else
-                                        temp = 0x70; /*16-bit ISA, no telephone/surround/CD-ROM*/
+                                        temp = 0x71; /*8-bit ISA, no telephone/surround/CD-ROM*/
                                 break;
                                 
                                 default:
@@ -810,6 +819,18 @@ static void adgold_get_buffer(int32_t *buffer, int len, void *p)
 	free(adgold_buffer);
 }
 
+static void
+adgold_filter_cd_audio(int channel, double *buffer, void *p)
+{
+    adgold_t *adgold = (adgold_t *)p;
+    double c;
+    int aux = channel ? adgold->aux_vol_r : adgold->aux_vol_l;
+    int vol = channel ? adgold->vol_r : adgold->vol_l;
+
+    c = ((((*buffer) * aux) / 4096.0) * vol) / 4096.0;
+    *buffer = c;
+}
+
 
 static void adgold_input_msg(void *p, uint8_t *msg, uint32_t len)
 {
@@ -899,6 +920,8 @@ void *adgold_init(const device_t *info)
         adgold->fm_vol_r = (int)(int8_t)(adgold->adgold_eeprom[0x0a] - 128);
         adgold->samp_vol_l = (int)(int8_t)(adgold->adgold_eeprom[0x0b] - 128);
         adgold->samp_vol_r = (int)(int8_t)(adgold->adgold_eeprom[0x0c] - 128);
+        adgold->aux_vol_l = (int)(int8_t)(adgold->adgold_eeprom[0x0d] - 128);
+        adgold->aux_vol_r = (int)(int8_t)(adgold->adgold_eeprom[0x0e] - 128);	
 
         adgold->adgold_mma_enable[0] = 0;
         adgold->adgold_mma_fifo_start[0] = adgold->adgold_mma_fifo_end[0] = 0;
@@ -912,6 +935,8 @@ void *adgold_init(const device_t *info)
 		timer_add(&adgold->adgold_mma_timer_count, adgold_timer_poll, adgold, 1);
 
         sound_add_handler(adgold_get_buffer, adgold);
+        
+        sound_set_cd_audio_filter(adgold_filter_cd_audio, adgold);
         
 	if (device_get_config_int("receive_input"))
 		midi_in_handler(1, adgold_input_msg, adgold_input_sysex, adgold);		
