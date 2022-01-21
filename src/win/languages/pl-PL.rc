@@ -1,0 +1,647 @@
+////////////////////////////////////////////////////////////////////////////
+// Polish (pl-PL) resources
+
+#ifdef _WIN32
+LANGUAGE LANG_POLISH, SUBLANG_DEFAULT
+#pragma code_page(65001)
+#endif //_WIN32
+
+#define AUTHORS
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+MainMenu MENU DISCARDABLE 
+BEGIN
+    POPUP "&Akcje"
+    BEGIN
+        MENUITEM "&Klawaitura wymaga przechwytu myszy",	IDM_ACTION_KBD_REQ_CAPTURE
+        MENUITEM "&Prawy CTRL to lewy Alt",	IDM_ACTION_RCTRL_IS_LALT
+        MENUITEM SEPARATOR
+        MENUITEM "&Twardy reset...",                 IDM_ACTION_HRESET
+        MENUITEM "&Ctrl+Alt+Del\tCtrl+F12",     IDM_ACTION_RESET_CAD
+        MENUITEM SEPARATOR
+	MENUITEM "Ctrl+Alt+&Esc",		IDM_ACTION_CTRL_ALT_ESC
+        MENUITEM SEPARATOR
+        MENUITEM "&Pauza",                      IDM_ACTION_PAUSE
+        MENUITEM SEPARATOR
+        MENUITEM "W&yjdź...",                       IDM_ACTION_EXIT
+    END
+    POPUP "&Widok"
+    BEGIN
+        MENUITEM "&Ukryj pasek statusu",		IDM_VID_HIDE_STATUS_BAR
+        MENUITEM "Ukryj &pasek narzędzi",		IDM_VID_HIDE_TOOLBAR
+        MENUITEM SEPARATOR
+        MENUITEM "&Okno o zmiennym rozmiarze",          IDM_VID_RESIZE
+        MENUITEM "P&amiętaj rozmiar &i pozycję",  IDM_VID_REMEMBER
+        MENUITEM SEPARATOR
+        POPUP "Re&nderer"
+        BEGIN
+            MENUITEM "&SDL (Software)",         IDM_VID_SDL_SW
+            MENUITEM "SDL (&Hardware)",         IDM_VID_SDL_HW
+            MENUITEM "SDL (&OpenGL)",           IDM_VID_SDL_OPENGL
+            MENUITEM "Open&GL (3.0 Core)",      IDM_VID_OPENGL_CORE
+#ifdef USE_VNC
+            MENUITEM "&VNC",                    IDM_VID_VNC
+#endif
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "Określ rozmiary...",          IDM_VID_SPECIFY_DIM
+        MENUITEM "&Wymuś proporcje wyświetlania 4:3",    IDM_VID_FORCE43
+        POPUP "&Czynnik skalowania okna"
+        BEGIN
+            MENUITEM "&0.5x",                   IDM_VID_SCALE_1X
+            MENUITEM "&1x",                     IDM_VID_SCALE_2X
+            MENUITEM "1.&5x",                   IDM_VID_SCALE_3X
+            MENUITEM "&2x",                     IDM_VID_SCALE_4X
+        END
+        POPUP "Metoda filtrowania"
+        BEGIN
+            MENUITEM "&Nearest",                 IDM_VID_FILTER_NEAREST
+            MENUITEM "&Linear",                  IDM_VID_FILTER_LINEAR
+        END
+        MENUITEM "Skalowanie Hi&DPI",              IDM_VID_HIDPI
+        MENUITEM SEPARATOR
+        MENUITEM "&Pełny ekran\tCtrl+Alt+PageUP",    IDM_VID_FULLSCREEN
+        POPUP "Fullscreen &stretch mode"
+        BEGIN
+            MENUITEM "&Tryb rozciągania na pełnym ekranie",        IDM_VID_FS_FULL
+            MENUITEM "&4:3",                        IDM_VID_FS_43
+            MENUITEM "&Kwadratowe piksele (Zachowaj proporcje)", IDM_VID_FS_KEEPRATIO
+            MENUITEM "&Skalowanie całkowite",              IDM_VID_FS_INT
+        END
+        POPUP "Ustawienia E&GA/(S)VGA"
+        BEGIN
+            MENUITEM "&Odwrócony monitor VGA",   IDM_VID_INVERT
+            POPUP "Rodzaj ekranu &VGA"
+            BEGIN
+                MENUITEM "RGB - &Kolorowy",          IDM_VID_GRAY_RGB
+                MENUITEM "&RGB - Skala szarości",      IDM_VID_GRAY_MONO
+                MENUITEM "&Bursztynowy monitor",      IDM_VID_GRAY_AMBER
+                MENUITEM "&Zielony monitor",      IDM_VID_GRAY_GREEN
+                MENUITEM "&Biały monitor",      IDM_VID_GRAY_WHITE
+            END
+            POPUP "Typ konwersji &w skali szarości"
+            BEGIN
+                MENUITEM "BT&601 (NTSC/PAL)",   IDM_VID_GRAYCT_601
+                MENUITEM "BT&709 (HDTV)",       IDM_VID_GRAYCT_709
+                MENUITEM "&Średni",            IDM_VID_GRAYCT_AVE
+            END
+        END
+        MENUITEM SEPARATOR
+        MENUITEM "Overscan dla CGA/PCjr/Tandy/E&GA/(S)VGA",     IDM_VID_OVERSCAN
+        MENUITEM "Zmień kontrast dla &monochromatycznego ekranu", IDM_VID_CGACON
+    END
+    MENUITEM "&Nośnik",				IDM_MEDIA
+    POPUP "&Narzędzia"
+    BEGIN
+        MENUITEM "&Ustawienia...",                IDM_CONFIG
+        MENUITEM "&Aktualizuj ikony na pasku statusu",	IDM_UPDATE_ICONS
+        MENUITEM SEPARATOR
+        MENUITEM "Zrób &zrzut ekranu\tCtrl+F11",  IDM_ACTION_SCREENSHOT
+        MENUITEM SEPARATOR
+        MENUITEM "&Preferencje...",		IDM_PREFERENCES
+        MENUITEM "Włącz integrację z &Discord", IDM_DISCORD
+        MENUITEM SEPARATOR
+        MENUITEM "Wzmocnienie &dźwięku...",              IDM_SND_GAIN
+#ifdef MTR_ENABLED
+        MENUITEM SEPARATOR
+        MENUITEM "Rozpocznij śledzenie\tCtrl+T",         IDM_ACTION_BEGIN_TRACE
+        MENUITEM "Zakończ śledzenie\tCtrl+T",           IDM_ACTION_END_TRACE
+#endif
+    END
+#if defined(ENABLE_LOG_TOGGLES) || defined(ENABLE_LOG_COMMANDS)
+    POPUP "&Logowanie"
+    BEGIN
+# ifdef ENABLE_BUSLOGIC_LOG
+        MENUITEM "Włącz logu BusLogic\tCtrl+F4", IDM_LOG_BUSLOGIC
+# endif
+# ifdef ENABLE_CDROM_LOG
+        MENUITEM "Włącz logi CD-ROM\tCtrl+F5", IDM_LOG_CDROM
+# endif
+# ifdef ENABLE_D86F_LOG
+        MENUITEM "Włącz logi dyskietek (86F)\tCtrl+F6", IDM_LOG_D86F
+# endif
+# ifdef ENABLE_FDC_LOG
+        MENUITEM "Włącz logi kontrolera dyskietek\tCtrl+F7", IDM_LOG_FDC
+# endif
+# ifdef ENABLE_IDE_LOG
+        MENUITEM "Włącz logi IDE\tCtrl+F8", IDM_LOG_IDE
+# endif
+# ifdef ENABLE_SERIAL_LOG
+        MENUITEM "Włącz logi portu szeregowego\tCtrl+F3", IDM_LOG_SERIAL
+# endif
+# ifdef ENABLE_NIC_LOG
+        MENUITEM "Włącz logi sieci\tCtrl+F9", IDM_LOG_NIC
+# endif
+# ifdef ENABLE_LOG_COMMANDS
+#  ifdef ENABLE_LOG_TOGGLES
+	MENUITEM SEPARATOR
+#  endif
+#  ifdef ENABLE_LOG_BREAKPOINT
+        MENUITEM "&Punkt przerwania dziennika\tCtrl+F10", IDM_LOG_BREAKPOINT
+#  endif
+#  ifdef ENABLE_VRAM_DUMP
+        MENUITEM "Zrzuć pamięć &wideo\tCtrl+F1", IDM_DUMP_VRAM
+#  endif
+# endif
+    END
+#endif
+    POPUP "&Pomoc"
+    BEGIN
+        MENUITEM "&Dokumentacja...",           IDM_DOCS
+        MENUITEM "&O 86Box...",             IDM_ABOUT
+    END
+END
+
+StatusBarMenu MENU DISCARDABLE 
+BEGIN
+    MENUITEM SEPARATOR
+END
+
+CassetteSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Nowy obraz...",				IDM_CASSETTE_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "&Istniejący obraz...",				IDM_CASSETTE_IMAGE_EXISTING
+        MENUITEM "Istniejący obraz (&Chroniony przed zapisem)...",	IDM_CASSETTE_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "&Nagraj",					IDM_CASSETTE_RECORD
+        MENUITEM "&Odtwórz",					IDM_CASSETTE_PLAY
+        MENUITEM "&Przewiń do początku",			IDM_CASSETTE_REWIND
+        MENUITEM "&Przewiń do końca",			IDM_CASSETTE_FAST_FORWARD
+        MENUITEM SEPARATOR
+        MENUITEM "W&yjmij",					IDM_CASSETTE_EJECT
+    END
+END
+
+CartridgeSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Obraz...",					IDM_CARTRIDGE_IMAGE
+        MENUITEM SEPARATOR
+        MENUITEM "W&yjmij",					IDM_CARTRIDGE_EJECT
+    END
+END
+
+FloppySubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Nowy obraz...",				IDM_FLOPPY_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "&Istniejący obraz...",				IDM_FLOPPY_IMAGE_EXISTING
+        MENUITEM "Istniejący obraz (&Chroniony przed zapisem)...",	IDM_FLOPPY_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "E&ksportuj do 86F...",				IDM_FLOPPY_EXPORT_TO_86F
+        MENUITEM SEPARATOR
+        MENUITEM "W&yjmij",					IDM_FLOPPY_EJECT
+    END
+END
+
+CdromSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Ścisz",					IDM_CDROM_MUTE
+        MENUITEM SEPARATOR
+        MENUITEM "P&usty",					IDM_CDROM_EMPTY
+        MENUITEM "&Przeładuj poprzedni obraz",			IDM_CDROM_RELOAD
+        MENUITEM SEPARATOR
+        MENUITEM "&Obraz",					IDM_CDROM_IMAGE
+    END
+END
+
+ZIPSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Nowy obraz...",				IDM_ZIP_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "&Istniejący obraz...",				IDM_ZIP_IMAGE_EXISTING
+        MENUITEM "Istniejący obraz (&Chroniony przed zapisem)...",	IDM_ZIP_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "W&yjmij",					IDM_ZIP_EJECT
+        MENUITEM "&Przeładuj poprzedni obraz",			IDM_ZIP_RELOAD
+    END
+END
+
+MOSubmenu MENU DISCARDABLE
+BEGIN
+    POPUP ""
+    BEGIN
+        MENUITEM "&Nowy obraz...",				IDM_MO_IMAGE_NEW
+        MENUITEM SEPARATOR
+        MENUITEM "&Istniejący obraz...",				IDM_MO_IMAGE_EXISTING
+        MENUITEM "Istniejący obraz (&Chroniony przed zapisem)...",	IDM_MO_IMAGE_EXISTING_WP
+        MENUITEM SEPARATOR
+        MENUITEM "W&yjmij",					IDM_MO_EJECT
+        MENUITEM "&Przeładuj poprzedni obraz",			IDM_MO_RELOAD
+    END
+END
+
+VidGLSubMenu MENU DISCARDABLE
+BEGIN
+    POPUP "Docelowa &liczba klatek na sekundę"
+    BEGIN
+        MENUITEM "&Zsynchronizuj z wideo", IDM_VID_GL_FPS_BLITTER
+        MENUITEM "&25 fps", IDM_VID_GL_FPS_25
+        MENUITEM "&30 fps", IDM_VID_GL_FPS_30
+        MENUITEM "&50 fps", IDM_VID_GL_FPS_50
+        MENUITEM "&60 fps", IDM_VID_GL_FPS_60
+        MENUITEM "&75 fps", IDM_VID_GL_FPS_75
+    END
+    MENUITEM "&VSync", IDM_VID_GL_VSYNC
+    MENUITEM "&Wybierz shader...", IDM_VID_GL_SHADER
+    MENUITEM "&Usuń shader", IDM_VID_GL_NOSHADER
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+#define STR_PREFERENCES		"Preferencje"
+#define STR_SND_GAIN		"Wzmocnienie dźwięku"
+#define STR_NEW_FLOPPY		"Nowy obraz"
+#define STR_CONFIG		"Ustawienia"
+#define STR_SPECIFY_DIM		"Określ rozmiary okna"
+
+#define STR_OK			"OK"
+#define STR_CANCEL		"Anuluj"
+#define STR_GLOBAL		"Zapisz ustawienia jako &globalne ustawienia domyślne"
+#define STR_DEFAULT		"&Domyślny"
+#define STR_LANGUAGE		"Język:"
+#define STR_ICONSET		"Zestaw ikon:"
+
+#define STR_GAIN		"Wzmacniacz"
+
+#define STR_FILE_NAME		"Nazwa pliku:"
+#define STR_DISK_SIZE		"Rozmiar dysku:"
+#define STR_RPM_MODE		"Tryb RPM:"
+#define STR_PROGRESS		"Postęp:"
+
+#define STR_WIDTH		"Szerokość:"
+#define STR_HEIGHT		"Wysokość:"
+#define STR_LOCK_TO_SIZE	"Stały rozmiar"
+
+#define STR_MACHINE_TYPE	"Rodzaj maszyny:"
+#define STR_MACHINE		"Maszyna:"
+#define STR_CONFIGURE		"Konfiguruj"
+#define STR_CPU_TYPE		"Rodzaj procesora:"
+#define STR_SPEED		"Szybkość:"
+#define STR_FPU			"Jednostka FPU:"
+#define STR_WAIT_STATES		"Stany oczekiwania:"
+#define STR_MB			"MB"
+#define STR_MEMORY		"Pamięć:"
+#define STR_TIME_SYNC		"Synchronizacja czasu"
+#define STR_DISABLED		"Wyłączona"
+#define STR_ENABLED_LOCAL	"Włączona (czas lokalny)"
+#define STR_ENABLED_UTC		"Włączona (UTC)"
+#define STR_DYNAREC		"Dynamiczny rekompilator"
+
+#define STR_VIDEO		"Wideo:"
+#define STR_VOODOO		"Grafika Voodoo"
+
+#define STR_MOUSE		"Mysz:"
+#define STR_JOYSTICK		"Joystick:"
+#define STR_JOY1		"Joystick 1..."
+#define STR_JOY2		"Joystick 2..."
+#define STR_JOY3		"Joystick 3..."
+#define STR_JOY4		"Joystick 4..."
+
+#define STR_SOUND		"Karta dźwiękowa:"
+#define STR_MIDI		"Urządzenie wyjściowe MIDI:"
+#define STR_MIDI_IN		"Urządzenie wejściowe MIDI:"
+#define STR_MPU401		"Samodzielne urządzenie MPU-401"
+#define STR_SSI			"Innovation SSI-2001"
+#define STR_CMS			"CMS / Game Blaster"
+#define STR_GUS			"Gravis Ultrasound"
+#define STR_FLOAT		"Użyj dźwięku FLOAT32"
+
+#define STR_NET_TYPE		"Rodzaj sieci:"
+#define STR_PCAP		"Urządzenie PCap:"
+#define STR_NET			"Karta sieciowa:"
+
+#define STR_LPT1		"Urządzenie LPT1:"
+#define STR_LPT2		"Urządzenie LPT2:"
+#define STR_LPT3		"Urządzenie LPT3:"
+#define STR_SERIAL1		"Port szeregowy 1"
+#define STR_SERIAL2		"Port szeregowy 2"
+#define STR_SERIAL3		"Port szeregowy 3"
+#define STR_SERIAL4		"Port Szeregowy 4"
+#define STR_PARALLEL1		"Port równoległy 1"
+#define STR_PARALLEL2		"Port równoległy 2"
+#define STR_PARALLEL3		"Port równoległy 3"
+
+#define STR_HDC			"Kontroler dysku twardego:"
+#define STR_FDC			"Kontroler dyskietek:"
+#define STR_IDE_TER		"Trzeciorzędowy kontroler IDE"
+#define STR_IDE_QUA		"Czwartorzędowy kontroler IDE"
+#define STR_SCSI		"SCSI"
+#define STR_SCSI_1		"Kontroler 1:"
+#define STR_SCSI_2		"Kontroler 2:"
+#define STR_SCSI_3		"Kontroler 3:"
+#define STR_SCSI_4		"Kontroler 4:"
+#define STR_CASSETTE		"Kaseta"
+
+#define STR_HDD			"Dyski twarde:"
+#define STR_NEW			"&Nowy..."
+#define STR_EXISTING		"&Istniejący..."
+#define STR_REMOVE		"&Usuń"
+#define STR_BUS			"Magistrala:"
+#define STR_CHANNEL		"Kanał:"
+#define STR_ID			"ID:"
+
+#define STR_SPECIFY		"&Określ..."
+#define STR_SECTORS		"Sektory:"
+#define STR_HEADS		"Głowice:"
+#define STR_CYLS		"Cylindry:"
+#define STR_SIZE_MB		"Rozmiar (MB):"
+#define STR_TYPE		"Rodzaj:"
+#define STR_IMG_FORMAT		"Format obrazu:"
+#define STR_BLOCK_SIZE		"Rozmiar bloku:"
+
+#define STR_FLOPPY_DRIVES	"Napędy dyskietek:"
+#define STR_TURBO		"Rozrządy Turbo"
+#define STR_CHECKBPB		"Sprawdzaj BPB"
+#define STR_CDROM_DRIVES	"Napędy CD-ROM:"
+
+#define STR_MO_DRIVES		"Napędy MO:"
+#define STR_ZIP_DRIVES		"Napędy ZIP:"
+#define STR_250			"ZIP 250"
+
+#define STR_ISARTC		"ISA RTC:"
+#define STR_ISAMEM		"Rozszerzenie pamięci ISA"
+#define STR_ISAMEM_1		"Karta 1:"
+#define STR_ISAMEM_2		"Karta 2:"
+#define STR_ISAMEM_3		"Karta 3:"
+#define STR_ISAMEM_4		"Karta 4:"
+#define STR_BUGGER		"Urządzenie ISABugger"
+#define STR_POSTCARD		"Karta POST"
+
+#define FONT_SIZE		9
+#define FONT_NAME		"Segoe UI"
+
+#include "dialogs.rc"
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    2048	"86Box"
+    IDS_2049	"Błąd"
+    IDS_2050	"Fatalny błąd"
+    IDS_2051	"<reserved>"
+    IDS_2052	"Naciśnij klawisze CTRL+ALT+PAGE DOWN aby wrócić to trybu okna."
+    IDS_2053	"Szybkość"
+    IDS_2054	"ZIP %03i %i (%s): %ls"
+    IDS_2055	"Obrazy ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0"
+    IDS_2056	"86Box nie może znaleźć obrazów ROM nadających się do użytku.\n\nProszę pobrać zestaw obrazów ROM ze strony <a href=""https://github.com/86Box/roms/releases/latest"">download</a>, i rozpakować je do katalogu ""roms""."
+    IDS_2057	"(pusty)"
+    IDS_2058	"Obrazy ZIP (*.IM?;*.ZDI)\0*.IM?;*.ZDI\0Wszystkie pliki (*.*)\0*.*\0"
+    IDS_2059	"Turbo"
+    IDS_2060	"Włącz"
+    IDS_2061	"Wyłącz"
+    IDS_2062	"Wszystkie obrazy (*.86F;*.DSK;*.FLP;*.IM?;*.*FD?)\0*.86F;*.DSK;*.FLP;*.IM?;*.*FD?\0Podstawowe obrazy sektorów(*.DSK;*.FLP;*.IM?;*.*FD?)\0*.DSK;*.FLP;*.IM?;*.IMG;*.*FD?\0Obrazy powierzchniowe (*.86F)\0*.86F\0"
+    IDS_2063	"Maszyna ""%hs"" nie jest dostępna, ponieważ brakuje obrazów ROM w katalogu roms/machines. Przełączanie na dostępną maszynę."
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_2064	"Karta wideo ""%hs"" nie jest dostępna, ponieważ brakuje obrazów ROM w katalogu roms/video. Przełączanie na dostępną kartę wideo."
+    IDS_2065	"Maszyna"
+    IDS_2066	"Ekran"
+    IDS_2067	"Urządzenia wejściowe"
+    IDS_2068	"Dźwięk"
+    IDS_2069	"Sieć"
+    IDS_2070	"Porty (COM & LPT)"
+    IDS_2071	"Kontrolery pamięci"
+    IDS_2072	"Dyski twarde"
+    IDS_2073	"Napędy dyskietek i CD-ROM"
+    IDS_2074	"Inne urządzenia wymienne"
+    IDS_2075	"Inne urządzenia peryferyjne"
+    IDS_2076	"Obrazy powierzchniowe (*.86F)\0*.86F\0"
+    IDS_2077	"Kliknij w celu przechwycenia myszy"
+    IDS_2078	"Naciśnij klawisze F8+F12 w celu uwolnienia myszy"
+    IDS_2079	"Naciśnij klawisze F8+F12 lub środkowy przycisk w celu uwolnienia myszy"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_2080	"Nie można zainicjować FluidSynth"
+    IDS_2081	"Magistrala"
+    IDS_2082	"Plik"
+    IDS_2083	"C"
+    IDS_2084	"H"
+    IDS_2085	"S"
+    IDS_2086	"MB"
+    IDS_2087	"Sprawdzaj BPB"
+    IDS_2088	"KB"
+    IDS_2089	"Nie można zainicjować renderera wideo."
+    IDS_2090	"Domyślny"
+    IDS_2091	"%i Stany oczekiwania"
+    IDS_2092	"Rodzaj"
+    IDS_2093	"Nie udało się ustawić PCap"
+    IDS_2094	"Nie znaleziono urządzeń PCap"
+    IDS_2095	"Nieprawidłowe urządzenie PCap"
+    IDS_2096	"Standardowe joysticki 2-przyciskowe"
+    IDS_2097	"Standardowy joystick 4-przyciskowy"
+    IDS_2098	"Standardowy joystick 6-przyciskowy"
+    IDS_2099	"Standardowy joystick 8-przyciskowy"
+    IDS_2100	"CH Flightstick Pro"
+    IDS_2101	"Microsoft SideWinder Pad"
+    IDS_2102	"Thrustmaster Flight Control System"
+    IDS_2103	"Żaden"
+    IDS_2104	"Nie można załadować akceleratorów klawiaturowych."
+    IDS_2105	"Nie można zarejestrować surowych danych wejściowych."
+    IDS_2106	"%u"
+    IDS_2107	"%u MB (CHS: %i, %i, %i)"
+    IDS_2108	"Dyskietka %i (%s): %ls"
+    IDS_2109	"Wszystkie obrazy (*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF)\0*.0??;*.1??;*.??0;*.86F;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.JSON;*.TD0;*.*FD?;*.MFM;*.XDF\0Zaawansowane obrazy sektorów (*.IMD;*.JSON;*.TD0)\0*.IMD;*.JSON;*.TD0\0Podstawowe obrazy sektorów (*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?)\0*.0??;*.1??;*.??0;*.BIN;*.CQ?;*.D??;*.FLP;*.HDM;*.IM?;*.XDF;*.*FD?\0Flux images (*.FDI)\0*.FDI\0Obrazy powierzchniowe (*.86F;*.MFM)\0*.86F;*.MFM\0All files (*.*)\0*.*\0"
+    IDS_2110	"Nie można zainicjować FreeType"
+    IDS_2111	"Nie można zainicjować SDL, wymagany SDL2.dll"
+    IDS_2112	"Jesteś pewien że chcesz wykonać twardy reset emulowanej maszyny?"
+    IDS_2113	"Jesteś pewien że chcesz zakończyć 86Box?"
+    IDS_2114	"Nie można zainicjować Ghostscript"
+    IDS_2115	"MO %i (%ls): %ls"
+    IDS_2116	"Obrazy MO (*.IM?;*.MDI)\0*.IM?;*.MDI\0All files (*.*)\0*.*\0"
+    IDS_2117	"Witamy w 86Box!"
+    IDS_2118	"Kontroler wewnętrzny"
+    IDS_2119	"Zakończ"
+    IDS_2120	"Nie znaleziono obrazów ROM"
+    IDS_2121	"Czy chcesz zapisać ustawienia?"
+    IDS_2122	"To spowoduje twardy reset wirtualnej maszyny."
+    IDS_2123	"Zapisz"
+    IDS_2124	"O 86Box"
+    IDS_2125	"86Box v" EMU_VERSION
+
+    IDS_2126	"Emulator starych komputerów\n\nAutorzy: Sarah Walker, Miran Grca, Fred N. van Kempen (waltje), SA1988, Tiseno100, reenigne, leilei, JohnElliott, greatpsycho, i inni.\n\nPrzetłumaczony przez: Fanta-Shokata\n\nWydany na licencji GNU General Public License w wersji 2 lub nowszej. Zobacz LICENSE aby uzyskać więcej informacji."
+    IDS_2127	"OK"
+    IDS_2128	"Sprzęt niedostępny"
+#ifdef _WIN32
+#define LIB_NAME_PCAP "WinPcap"
+#else
+#define LIB_NAME_PCAP "libpcap"
+#endif
+    IDS_2129	"Sprawdź, czy " LIB_NAME_PCAP " jest zainstalowany i czy posiadasz połączenie sieciowe kompatybilne z " LIB_NAME_PCAP "."
+    IDS_2130	"Nieprawidłowa konfiguracja"
+#ifdef _WIN32
+#define LIB_NAME_FREETYPE "freetype.dll"
+#else
+#define LIB_NAME_FREETYPE "libfreetype"
+#endif
+    IDS_2131	LIB_NAME_FREETYPE " jest wymagany do emulacji drukarki ESC-P."
+#ifdef _WIN32
+#define LIB_NAME_GS "gsdll32.dll"
+#else
+#define LIB_NAME_GS "libgs"
+#endif
+    IDS_2132	LIB_NAME_GS " jest wymagany do automatycznej konwersji plików PostScript do PDF.\n\nDokumenty wysłane do ogólnej drukarki PostScript zostaną zapisane jako pliki PostScript (.ps)."
+#ifdef _WIN32
+#define LIB_NAME_FLUIDSYNTH "libfluidsynth.dll"
+#else
+#define LIB_NAME_FLUIDSYNTH "libfluidsynth"
+#endif
+    IDS_2133	LIB_NAME_FLUIDSYNTH " jest wymagany dla wyjścia FluidSynth MIDI."
+    IDS_2134	"Przechodzenie do trybu pełnoekranowego"
+    IDS_2135	"Nie pokazuj więcej tego komunikatu"
+    IDS_2136	"Nie kończ"
+    IDS_2137	"Przywróć"
+    IDS_2138	"Nie przywracaj"
+    IDS_2139	"Obrazy MO (*.IM?;*.MDI)\0*.IM?;*.MDI\0All files (*.*)\0*.*\0"
+    IDS_2140	"Obrazy CD-ROM (*.ISO;*.CUE)\0*.ISO;*.CUE\0All files (*.*)\0*.*\0"
+    IDS_2141	"Konfiguracja urządzenia %hs"
+    IDS_2142    "Monitor w trybie czuwania"
+    IDS_2143	"Shadery OpenGL (*.GLSL)\0*.GLSL\0Wszystkie pliki (*.*)\0*.*\0"
+    IDS_2144	"Opcje OpenGL"
+    IDS_2145	"Ładujesz nieobsługiwaną konfigurację"
+    IDS_2146	"Wybór rodzaju procesora oparty na wybranej maszynie jest wyłączony dla tej emulowanej maszyny.\n\nPozwala to na wybór procesora który jest niekompatybilny z wybraną maszyną. Jednak możesz napotkać niezgodności z BIOS-em maszyny lub innym oprogramowaniem.\n\nAktywacja tego ustawienia nie jest wspierana i każde zgłoszenie błędu może zostać zamknięte jako nieważne."
+    IDS_2147	"Kontynuuj"
+    IDS_2148	"Kaseta: %s"
+    IDS_2149	"Obrazy kaset (*.PCM;*.RAW;*.WAV;*.CAS)\0*.PCM;*.RAW;*.WAV;*.CAS\0Wszystkie pliki (*.*)\0*.*\0"
+    IDS_2150	"Kartrydż %i: %ls"
+    IDS_2151	"Obrazy kartrydżu (*.A;*.B;*.JRC)\0*.A;*.B;*.JRC\0Wszystkie pliki (*.*)\0*.*\0"
+    IDS_2152	"Błąd inicjalizacji renderera"
+    IDS_2153	"Nie można zainicjować renderera OpenGL (3.0 Core). Użyj innego."
+    IDS_2154	"Wznów wykonywanie"
+    IDS_2155	"Zatrzymaj wykonywanie"
+    IDS_2156	"Naciśnij Ctrl+Alt+Del"
+    IDS_2157	"Naciśnij Ctrl+Alt+Esc"
+    IDS_2158	"Twardy reset"
+    IDS_2159	"Wyłączenie ACPI"
+    IDS_2160	"Ustawienia"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_4096    "Dysk twardy (%s)"
+    IDS_4097	"%01i:%01i"
+    IDS_4098	"%01i"
+    IDS_4099	"Napędy CD-ROM MFM/RLL lub ESDI nigdy nie istniały"
+    IDS_4100	"Niestandardowy..."
+    IDS_4101	"Niestandardowy (duży)..."
+    IDS_4102	"Dodaj nowy dysk twardy"
+    IDS_4103	"Dodaj istniejący dysk twardy"
+    IDS_4104	"Obrazy dysków HDI nie mogą być większe niż 4 GB."
+    IDS_4105	"Obrazy dysków nie mogą być większe niż 127 GB."
+    IDS_4106	"Obrazy dysku twardego (*.HD?;*.IM?;*.VHD)\0*.HD?;*.IM?;*.VHD\0Wszystkie pliki (*.*)\0*.*\0"
+    IDS_4107	"Nie można odczytać pliku"
+    IDS_4108	"Nie można zapisać pliku"
+    IDS_4109	"Obrazy HDI lub HDX z rozmiarem sektora innym niż 512 nie są wspierane."
+    IDS_4110	"USB nie jest jeszcze wspierane"
+    IDS_4111	"Plik obrazu dysku już istnieje"
+    IDS_4112	"Określ prawidłową nazwę pliku."
+    IDS_4113	"Utworzono obraz dysku"
+    IDS_4114	"Sprawdź, czy plik istnieje i nadaje się do odczytu."
+    IDS_4115	"Sprawdź, czy plik jest zapiyswany w katalogu z możliwością zapisu."
+    IDS_4116	"Obraz dysku jest za duży"
+    IDS_4117	"Nie zapomnij o partycjonowaniu u sformatowaniu nowo utworzego dysku"
+    IDS_4118	"Wybrany plik zostanie nadpisany. Czy na pewno chcesz użyć tego pliku?"
+    IDS_4119	"Niewspierany obraz dysku"
+    IDS_4120	"Nadpisz"
+    IDS_4121	"Nie nadpisuj"
+    IDS_4122	"Obraz surowy (.img)"
+    IDS_4123	"Obraz HDI (.hdi)"
+    IDS_4124	"Obraz HDX (.hdx)"
+    IDS_4125	"VHD o stałym rozmiarze (.vhd)"
+    IDS_4126	"VHD o dynamicznym rozmiarze (.vhd)"
+    IDS_4127	"VHD różnicujący (.vhd)"
+    IDS_4128	"Duże bloki (2 MB)"
+    IDS_4129	"Małe bloki (512 KB)"
+    IDS_4130	"Pliki VHD (*.VHD)\0*.VHD\0Wszystkie pliki (*.*)\0*.*\0"
+    IDS_4131	"Wybierz nadrzędny plik VHD"
+    IDS_4132	"Może to oznaczać, że obraz nadrzędny został zmodyfikowany po utworzeniu obrazu różnicującego.\n\nMoże się to również zdarzyć, jeśli pliki obrazów przeniesione lub skopiowane, lub wystąpił błąd w programie, który utworzył ten dysk\n\nCzy chcesz naprawić sygnatury czasowe?"
+    IDS_4133	"Sygnatury czasowe dysku nadrzędnego i podrzędnego nie zgadzają się"
+    IDS_4134	"Nie można naprawić sygnatury czasowej VHD."
+    IDS_4135	"%01i:%02i"
+
+    IDS_4352    "MFM/RLL"
+    IDS_4353    "XTA"
+    IDS_4354    "ESDI"
+    IDS_4355    "IDE"
+    IDS_4356    "ATAPI"
+    IDS_4357    "SCSI"
+
+    IDS_4608	"MFM/RLL (%01i:%01i)"
+    IDS_4609	"XTA (%01i:%01i)"
+    IDS_4610	"ESDI (%01i:%01i)"
+    IDS_4611	"IDE (%01i:%01i)"
+    IDS_4612	"ATAPI (%01i:%01i)"
+    IDS_4613	"SCSI (%01i:%02i)"
+
+    IDS_5120	"CD-ROM %i (%s): %s"
+
+    IDS_5376	"Wyłączony"
+    IDS_5381	"ATAPI"
+    IDS_5382    "SCSI"
+
+    IDS_5632	"Wyłączony"
+    IDS_5637	"ATAPI (%01i:%01i)"
+    IDS_5638    "SCSI (%01i:%02i)"
+
+    IDS_5888	"160 kB"
+    IDS_5889	"180 kB"
+    IDS_5890	"320 kB"
+    IDS_5891	"360 kB"
+    IDS_5892	"640 kB"
+    IDS_5893	"720 kB"
+    IDS_5894	"1,2 MB"
+    IDS_5895	"1,25 MB"
+    IDS_5896	"1,44 MB"
+    IDS_5897	"DMF (klaster 1024)"
+    IDS_5898	"DMF (klaster 2048)"
+    IDS_5899	"2,88 MB"
+    IDS_5900	"ZIP 100"
+    IDS_5901	"ZIP 250"
+    IDS_5902	"3.5"" 128Mb M.O. (ISO 10090)"
+    IDS_5903	"3.5"" 230Mb M.O. (ISO 13963)"
+    IDS_5904	"3.5"" 540Mb M.O. (ISO 15498)"
+    IDS_5905	"3.5"" 640Mb M.O. (ISO 15498)"
+    IDS_5906	"3.5"" 1,3Gb M.O. (GigaMO)"
+    IDS_5907	"3.5"" 2,3Gb M.O. (GigaMO 2)"
+    IDS_5908	"5.25"" 600Mb M.O."
+    IDS_5909	"5.25"" 650Mb M.O."
+    IDS_5910	"5.25"" 1Gb M.O."
+    IDS_5911	"5.25"" 1,3Gb M.O."
+
+    IDS_6144	"Idealne obroty"
+    IDS_6145	"1%% poniżej idealnych obrotów"
+    IDS_6146	"1.5%% poniżej idealnych obrotów"
+    IDS_6147	"2%% poniżej idealnych obrotów"
+
+    IDS_7168	"(Domyślne ustawienie systemowe)"
+END
+#define IDS_LANG_ENUS	IDS_7168
+
+// Polish (pl-PL) resources
+/////////////////////////////////////////////////////////////////////////////
