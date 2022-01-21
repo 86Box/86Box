@@ -31,6 +31,9 @@ msgstr "표시(&V)"
 msgid "&Hide status bar"
 msgstr "상태 바 숨기기(&H)"
 
+msgid "Hide &toolbar"
+msgstr "Hide &toolbar"
+
 msgid "&Resizeable window"
 msgstr "창 크기 조절 가능하게 하기(&R)"
 
@@ -927,6 +930,24 @@ msgstr "Error initializing renderer"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
 msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+
+msgid "Resume execution"
+msgstr "Resume execution"
+
+msgid "Pause execution"
+msgstr "Pause execution"
+
+msgid "Press Ctrl+Alt+Del"
+msgstr "Press Ctrl+Alt+Del"
+
+msgid "Press Ctrl+Alt+Esc"
+msgstr "Press Ctrl+Alt+Esc"
+
+msgid "Hard reset"
+msgstr "Hard reset"
+
+msgid "ACPI shutdown"
+msgstr "ACPI shutdown"
 
 msgid "Hard disk (%s)"
 msgstr "하드 디스크 (%s)"

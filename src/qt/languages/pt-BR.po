@@ -31,6 +31,9 @@ msgstr "&Exibir"
 msgid "&Hide status bar"
 msgstr "&Ocultar barra de status"
 
+msgid "Hide &toolbar"
+msgstr "Ocultar &barra de ferramenta"
+
 msgid "&Resizeable window"
 msgstr "&Janela redimensionável"
 
@@ -548,7 +551,7 @@ msgid "Image Format:"
 msgstr "Formato:"
 
 msgid "Block Size:"
-msgstr "Tamanho do bloco:"
+msgstr "Bloco:"
 
 msgid "Floppy drives:"
 msgstr "Unidades de disquete:"
@@ -803,7 +806,7 @@ msgid "Welcome to 86Box!"
 msgstr "Bem-vindo ao 86Box!"
 
 msgid "Internal controller"
-msgstr "Controle interno"
+msgstr "Controlador interno"
 
 msgid "Exit"
 msgstr "Sair"
@@ -927,6 +930,24 @@ msgstr "Erro ao inicializar o renderizador"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
 msgstr "O renderizador OpenGL (Núcleo 3.0) não pôde ser inicializado. Use outro renderizador."
+
+msgid "Resume execution"
+msgstr "Continuar a execução"
+
+msgid "Pause execution"
+msgstr "Pausar a execução"
+
+msgid "Press Ctrl+Alt+Del"
+msgstr "Pressionar Ctrl+Alt+Del"
+
+msgid "Press Ctrl+Alt+Esc"
+msgstr "Pressionar Ctrl+Alt+Esc"
+
+msgid "Hard reset"
+msgstr "Reinicialização completa"
+
+msgid "ACPI shutdown"
+msgstr "Desligamento por ACPI"
 
 msgid "Hard disk (%s)"
 msgstr "Disco rígido (%s)"

@@ -31,6 +31,9 @@ msgstr "查看(&V)"
 msgid "&Hide status bar"
 msgstr "隐藏状态栏(&H)"
 
+msgid "Hide &toolbar"
+msgstr "隐藏工具栏(&T)"
+
 msgid "&Resizeable window"
 msgstr "窗口大小可调(&R)"
 
@@ -927,6 +930,24 @@ msgstr "初始化渲染器时出错"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
 msgstr "无法初始化 OpenGL (3.0 核心) 渲染器。请使用其他渲染器。"
+
+msgid "Resume execution"
+msgstr "恢复执行"
+
+msgid "Pause execution"
+msgstr "暂停执行"
+
+msgid "Press Ctrl+Alt+Del"
+msgstr "按 Ctrl+Alt+Del"
+
+msgid "Press Ctrl+Alt+Esc"
+msgstr "按 Ctrl+Alt+Esc"
+
+msgid "Hard reset"
+msgstr "硬重置"
+
+msgid "ACPI shutdown"
+msgstr "ACPI 关机"
 
 msgid "Hard disk (%s)"
 msgstr "硬盘 (%s)"

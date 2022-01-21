@@ -31,6 +31,9 @@ msgstr "&Ansicht"
 msgid "&Hide status bar"
 msgstr "&Statusleiste ausblenden"
 
+msgid "Hide &toolbar"
+msgstr "Hide &toolbar"
+
 msgid "&Resizeable window"
 msgstr "&Größenverstellbares Fenster"
 
@@ -590,10 +593,10 @@ msgid "Card 4:"
 msgstr "Steckkarte 4:"
 
 msgid "ISABugger device"
-msgstr "ISABugger-Gerät:"
+msgstr "ISABugger-Gerät"
 
 msgid "POST card"
-msgstr "POST-Code-Karte:"
+msgstr "POST-Code-Karte"
 
 msgid "Segoe UI"
 msgstr "Segoe UI"
@@ -770,7 +773,7 @@ msgid "%u"
 msgstr "%u"
 
 msgid "%u MB (CHS: %i, %i, %i)"
-msgstr "%u MB (ZKS: %i, %i, %i)"
+msgstr "%u MB (CHS: %i, %i, %i)"
 
 msgid "Floppy %i (%s): %ls"
 msgstr "Diskette %i (%s): %ls"
@@ -927,6 +930,24 @@ msgstr "Fehler bei der Rendererinitialisierung"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
 msgstr "Der OpenGL (3.0-Kern)-Renderer konnte nicht initialisiert werden. Bitte benutzen Sie einen anderen Renderer."
+
+msgid "Resume execution"
+msgstr "Resume execution"
+
+msgid "Pause execution"
+msgstr "Pause execution"
+
+msgid "Press Ctrl+Alt+Del"
+msgstr "Press Ctrl+Alt+Del"
+
+msgid "Press Ctrl+Alt+Esc"
+msgstr "Press Ctrl+Alt+Esc"
+
+msgid "Hard reset"
+msgstr "Hard reset"
+
+msgid "ACPI shutdown"
+msgstr "ACPI shutdown"
 
 msgid "Hard disk (%s)"
 msgstr "Festplatte (%s)"

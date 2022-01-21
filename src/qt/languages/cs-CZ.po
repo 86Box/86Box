@@ -31,6 +31,9 @@ msgstr "&Zobrazení"
 msgid "&Hide status bar"
 msgstr "&Schovat stavový řádek"
 
+msgid "Hide &toolbar"
+msgstr "Schovat panel &nástrojů"
+
 msgid "&Resizeable window"
 msgstr "&Měnitelná velikost okna"
 
@@ -927,6 +930,24 @@ msgstr "Error initializing renderer"
 
 msgid "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
 msgstr "OpenGL (3.0 Core) renderer could not be initialized. Use another renderer."
+
+msgid "Resume execution"
+msgstr "Obnovit"
+
+msgid "Pause execution"
+msgstr "Pozastavit"
+
+msgid "Press Ctrl+Alt+Del"
+msgstr "Stisknout Ctrl+Alt+Delete"
+
+msgid "Press Ctrl+Alt+Esc"
+msgstr "Stisknout Ctrl+Alt+Esc"
+
+msgid "Hard reset"
+msgstr "Resetovat"
+
+msgid "ACPI shutdown"
+msgstr "Vypnout skrze rozhraní ACPI"
 
 msgid "Hard disk (%s)"
 msgstr "Pevný disk (%s)"

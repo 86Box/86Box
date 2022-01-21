@@ -329,6 +329,7 @@ extern "C++"
         {0x0410, {"it-IT", "Italian (Italy)"} },
         {0x0411, {"ja-JP", "Japanese (Japan)"} },
         {0x0412, {"ko-KR", "Korean (Korea)"} },
+        {0x0415, {"pl-PL", "Polish (Poland)"} },
         {0x0416, {"pt-BR", "Portuguese (Brazil)"} },
         {0x0816, {"pt-PT", "Portuguese (Portugal)"} },
         {0x0419, {"ru-RU", "Russian (Russia)"} },
