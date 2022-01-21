@@ -121,7 +121,12 @@ if (APPLE)
 endif()
 
 if (WIN32)
-    target_sources(ui PRIVATE qt_winrawinputfilter.hpp qt_winrawinputfilter.cpp)
+    target_sources(ui PRIVATE
+        qt_winrawinputfilter.hpp
+        qt_winrawinputfilter.cpp
+        qt_winmanagerfilter.hpp
+        qt_winmanagerfilter.cpp
+    )
 endif()
 
 target_link_libraries(

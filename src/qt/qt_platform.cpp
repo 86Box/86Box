@@ -56,6 +56,7 @@ extern "C" {
 #ifdef Q_OS_WINDOWS
 #define NOMINMAX
 #include <windows.h>
+#include <86box/win.h>
 #else
 #include <strings.h>
 #endif
@@ -289,6 +290,11 @@ plat_pause(int p)
         ui_window_title(oldtitle);
     }
     discord_update_activity(dopause);
+
+#ifdef Q_OS_WINDOWS
+    if (source_hwnd)
+        PostMessage((HWND)(uintptr_t)source_hwnd, WM_SENDSTATUS, (WPARAM)!!p, (LPARAM)(HWND)main_window->winId());
+#endif
 }
 
 // because we can't include nvr.h because it's got fields named new

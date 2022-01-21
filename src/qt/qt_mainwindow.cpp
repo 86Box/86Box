@@ -1491,3 +1491,13 @@ void MainWindow::on_actionEnable_Discord_integration_triggered(bool checked)
         discord_close();
 }
 
+void MainWindow::showSettings()
+{
+    if (findChild<Settings*>() == nullptr)
+        ui->actionSettings->trigger();
+}
+
+void MainWindow::hardReset()
+{
+    ui->actionHard_Reset->trigger();
+}
