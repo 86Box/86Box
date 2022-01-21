@@ -62,7 +62,6 @@ typedef struct adgold_t
         int samp_vol_l, samp_vol_r;
         int aux_vol_l, aux_vol_r;
         int vol_l, vol_r;
-		int aux_vol_l, aux_vol_r;
         int treble, bass;
 
         int16_t opl_buffer[SOUNDBUFLEN * 2];
@@ -892,16 +891,6 @@ static int adgold_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 	return 0;
 }
 
-static void
-adgold_filter_cd_audio(int channel, double *buffer, void *p)
-{
-    adgold_t *adgold = (adgold_t *)p;
-    double c;
-    double volume = channel ? adgold->aux_vol_r : adgold->aux_vol_l;
-
-    c = ((*buffer) * volume) / 128.0; /*Workaround to the low volume*/
-    *buffer = c;
-}
 
 void *adgold_init(const device_t *info)
 {
@@ -966,8 +955,6 @@ void *adgold_init(const device_t *info)
 
         sound_add_handler(adgold_get_buffer, adgold);
 		sound_set_cd_audio_filter(adgold_filter_cd_audio, adgold);
-        
-        sound_set_cd_audio_filter(adgold_filter_cd_audio, adgold);
         
 	if (device_get_config_int("receive_input"))
 		midi_in_handler(1, adgold_input_msg, adgold_input_sysex, adgold);		
