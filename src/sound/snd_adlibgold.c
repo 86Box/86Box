@@ -62,6 +62,7 @@ typedef struct adgold_t
         int samp_vol_l, samp_vol_r;
         int aux_vol_l, aux_vol_r;
         int vol_l, vol_r;
+		int aux_vol_l, aux_vol_r;
         int treble, bass;
 
         int16_t opl_buffer[SOUNDBUFLEN * 2];
@@ -151,6 +152,8 @@ void adgold_update_irq_status(adgold_t *adgold)
 		if (!(adgold->adgold_mma_regs[0][0xd] & 0x01) && (adgold->adgold_mma_status & 0x04))
 				temp &= ~2;
 		if (!(adgold->adgold_mma_regs[0][0xd] & 0x04) && (adgold->adgold_mma_status & 0x08))
+				temp &= ~2;
+		if (!(adgold->adgold_mma_regs[0][0xd] & 0x10) && (adgold->adgold_mma_status & 0x80))
 				temp &= ~2;
         if ((adgold->adgold_mma_status & 0x01) &&  !(adgold->adgold_mma_regs[0][0xc] & 2))
                 temp &= ~2;
@@ -403,22 +406,41 @@ void adgold_write(uint16_t addr, uint8_t val, void *p)
 						
 						case 0xd:
 						adgold->adgold_midi_ctrl = val & 0x3f;
-
-						if ((val & 0x0f) == 0x0f) {
-							adgold->uart_in = 0;
-							adgold->midi_w = 0;
-							adgold->midi_r = 0;
-							adgold->adgold_mma_status &= ~0x0c;			
-						} else if (adgold->adgold_midi_ctrl & 0x05) {
-							adgold->uart_in = 1;
+						
+						if ((adgold->adgold_midi_ctrl & 0x0f) != 0x0f) {
+							if ((adgold->adgold_midi_ctrl & 0x0f) == 0x00) {
+								adgold->uart_out = 0;
+								adgold->uart_in = 0;
+								adgold->midi_w = 0;
+								adgold->midi_r = 0;
+								adgold->adgold_mma_status &= ~0x8c;
+							} else {
+								if (adgold->adgold_midi_ctrl & 0x01)
+									adgold->uart_in = 1;
+								if (adgold->adgold_midi_ctrl & 0x04)
+									adgold->uart_out = 1;
+								if (adgold->adgold_midi_ctrl & 0x02) {
+									adgold->uart_in = 0;
+									adgold->midi_w = 0;
+									adgold->midi_r = 0;
+								}
+								if (adgold->adgold_midi_ctrl & 0x08)
+									adgold->uart_out = 0;
+								adgold->adgold_mma_status &= ~0x80;
+							}
 						} else
-							adgold->uart_in = 0;
+							adgold->adgold_mma_status &= ~0x8c;
 
 						adgold_update_irq_status(adgold);
 						break;
 						
 						case 0xe:
-						midi_raw_out_byte(val);
+						if (adgold->uart_out) {
+							midi_raw_out_byte(val);
+							
+							adgold->adgold_mma_status &= ~0x08;
+							adgold_update_irq_status(adgold);
+						}
 						break;
                 }
                 adgold->adgold_mma_regs[0][adgold->adgold_mma_addr] = val;
@@ -549,7 +571,7 @@ uint8_t adgold_read(uint16_t addr, void *p)
 							adgold->adgold_mma_status &= ~0x04;
 							adgold_update_irq_status(adgold);
 						}
-						break;						
+						break;
 						
                         default:
                         temp = adgold->adgold_mma_regs[0][adgold->adgold_mma_addr];
@@ -634,14 +656,12 @@ void adgold_timer_poll(void *p)
         
 		timer_advance_u64(&adgold->adgold_mma_timer_count, (uint64_t)((double)TIMER_USEC * 1.88964));
 		
-		if (adgold->adgold_midi_ctrl & 0x0f) {
-			if ((adgold->adgold_midi_ctrl & 0x0f) == 0x05) {
-				adgold->adgold_mma_status |= 0x08;
-			} else {
-				if ((adgold->adgold_midi_ctrl & 0x0f) == 0x02)
-					adgold->adgold_mma_status &= ~0x04;
-				else if ((adgold->adgold_midi_ctrl & 0x0f) == 0x08)
-					adgold->adgold_mma_status &= ~0x08;
+		if (adgold->adgold_midi_ctrl & 0x3f) {
+			if ((adgold->adgold_midi_ctrl & 0x3f) != 0x3f) {
+				if (adgold->uart_out)
+					adgold->adgold_mma_status |= 0x08;
+				if (adgold->adgold_midi_ctrl & 0x10)
+					adgold->adgold_mma_status |= 0x80;
 			}
 			adgold_update_irq_status(adgold);
 		}
@@ -872,6 +892,16 @@ static int adgold_input_sysex(void *p, uint8_t *buffer, uint32_t len, int abort)
 	return 0;
 }
 
+static void
+adgold_filter_cd_audio(int channel, double *buffer, void *p)
+{
+    adgold_t *adgold = (adgold_t *)p;
+    double c;
+    double volume = channel ? adgold->aux_vol_r : adgold->aux_vol_l;
+
+    c = ((*buffer) * volume) / 128.0; /*Workaround to the low volume*/
+    *buffer = c;
+}
 
 void *adgold_init(const device_t *info)
 {
@@ -935,6 +965,7 @@ void *adgold_init(const device_t *info)
 		timer_add(&adgold->adgold_mma_timer_count, adgold_timer_poll, adgold, 1);
 
         sound_add_handler(adgold_get_buffer, adgold);
+		sound_set_cd_audio_filter(adgold_filter_cd_audio, adgold);
         
         sound_set_cd_audio_filter(adgold_filter_cd_audio, adgold);
         
