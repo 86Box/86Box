@@ -60,6 +60,10 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow)
 {
+    auto font_name = tr("FONT_NAME");
+    auto font_size = tr("FONT_SIZE");
+    setFont(QFont(font_name, font_size.toInt()));
+
     mm = std::make_shared<MediaMenu>(this);
     MediaMenu::ptr = mm;
     status = std::make_unique<MachineStatus>(this);
@@ -1505,4 +1509,16 @@ void MainWindow::hardReset()
 void MainWindow::togglePause()
 {
     ui->actionPause->trigger();
+}
+
+void MainWindow::changeEvent(QEvent* event)
+{
+    if (event->type() == QEvent::LanguageChange)
+    {
+        auto font_name = tr("FONT_NAME");
+        auto font_size = tr("FONT_SIZE");
+        setFont(QFont(font_name, font_size.toInt()));
+    }
+
+    QWidget::changeEvent(event);
 }

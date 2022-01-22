@@ -1,6 +1,3 @@
-msgid "Translated by"
-msgstr "Unknown"
-
 msgid "&Action"
 msgstr "&Acción"
 
@@ -598,7 +595,10 @@ msgstr "Dispositivo ISABugger"
 msgid "POST card"
 msgstr "Tarjeta POST"
 
-msgid "Segoe UI"
+msgid "FONT_SIZE"
+msgstr "9"
+
+msgid "FONT_NAME"
 msgstr "Segoe UI"
 
 msgid "86Box"
@@ -622,8 +622,8 @@ msgstr "Velocidad"
 msgid "ZIP %03i %i (%s): %ls"
 msgstr "ZIP %03i %i (%s): %ls"
 
-msgid "ZIP images (*.IM? *.im? *.ZDI *.zdi)"
-msgstr "Imagenes ZIP (*.IM? *.im? *.ZDI *.zdi)"
+msgid "ZIP images (*.im? *.zdi)"
+msgstr "Imagenes ZIP (*.im? *.zdi)"
 
 msgid "86Box could not find any usable ROM images.\n\nPlease <a href=\"https://github.com/86Box/roms/releases/latest\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "86Box no pudo encontrar ninguna imagen ROM usable.\n\nPor favor <a href=\"https://github.com/86Box/roms/releases/latest\">descarga</a> un grupo de imágenes y extráelas en el directorio \"roms\"."
@@ -631,8 +631,8 @@ msgstr "86Box no pudo encontrar ninguna imagen ROM usable.\n\nPor favor <a href=
 msgid "(empty)"
 msgstr "(vacío)"
 
-msgid "ZIP images (*.IM? *.im? *.ZDI *.zdi);;All files (*)"
-msgstr "Imagenes ZIP (*.IM? *.im? *.ZDI *.zdi);;All files (*)"
+msgid "ZIP images (*.im? *.zdi);;All files (*.*)"
+msgstr "Imagenes ZIP (*.im? *.zdi);;All files (*.*)"
 
 msgid "Turbo"
 msgstr "Turbo"
@@ -643,8 +643,8 @@ msgstr "On"
 msgid "Off"
 msgstr "Off"
 
-msgid "All images (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basic sector images (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Surface images (*.86F *.86f)"
-msgstr "Todas las imagenes (*.86F *.86f *.DSK *.dsk *.FLP *.flp *.IM? *.im? *.*FD? *.*fd?);;Basic sector images (*.DSK *.dsk *.FLP *.flp *.IM? *.im? *.IMG *.img *.*FD? *.*fd?);;Surface images (*.86F *.86f)"
+msgid "All images (*.86f *.dsk *.flp *.im? *.*fd?);;Basic sector images (*.dsk *.flp *.im? *.img *.*fd?);;Surface images (*.86f)"
+msgstr "Todas las imagenes (*.86f *.dsk *.flp *.im? *.*fd?);;Basic sector images (*.dsk *.flp *.im? *.img *.*fd?);;Surface images (*.86f)"
 
 msgid "Machine \"%hs\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "La máquina \"%hs\" no está disponible debido a ROMs faltantes en el directorio roms/machines. Cambiando a una máquina disponible."
@@ -685,8 +685,8 @@ msgstr "Otros dispositivos extraíbles"
 msgid "Other peripherals"
 msgstr "Otros periféricos"
 
-msgid "Surface images (*.86F *.86f)"
-msgstr "Imágenes de superficie (*.86F *.86f)"
+msgid "Surface images (*.86f)"
+msgstr "Imágenes de superficie (*.86f)"
 
 msgid "Click to capture mouse"
 msgstr "Haz click para capturar el ratón"
@@ -778,8 +778,8 @@ msgstr "%u MB (CHS: %i, %i, %i)"
 msgid "Floppy %i (%s): %ls"
 msgstr "Disquete %i (%s): %ls"
 
-msgid "All images (*.0?? *.1?? *.??0 *.86F *.86f *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.JSON *.json *.TD0 *.td0 *.*FD? *.*fd? *.MFM *.mfm *.XDF *.xdf);;Advanced sector images (*.IMD *.imd *.JSON *.json *.TD0 *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.XDF *.xdf *.*FD? *.*fd?);;Flux images (*.FDI *.fdi);;Surface images (*.86F *.86f *.MFM *.mfm);;All files (*)"
-msgstr "Todas las Imágenes (*.0?? *.1?? *.??0 *.86F *.86f *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.JSON *.json *.TD0 *.td0 *.*FD? *.*fd? *.MFM *.mfm *.XDF *.xdf);;Advanced sector images (*.IMD *.imd *.JSON *.json *.TD0 *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.BIN *.bin *.CQ? *.cq? *.D?? *.d?? *.FLP *.flp *.HDM *.hdm *.IM? *.im? *.XDF *.xdf *.*FD? *.*fd?);;Flux images (*.FDI *.fdi);;Surface images (*.86F *.86f *.MFM *.mfm);;All files (*)"
+msgid "All images (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;Advanced sector images (*.imd *.json *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Flux images (*.fdi);;Surface images (*.86f *.mfm);;All files (*.*)"
+msgstr "Todas las Imágenes (*.0?? *.1?? *.??0 *.86f *.bin *.cq? *.d?? *.flp *.hdm *.im? *.json *.td0 *.*fd? *.mfm *.xdf);;Advanced sector images (*.imd *.json *.td0);;Basic sector images (*.0?? *.1?? *.??0 *.bin *.cq? *.d?? *.flp *.hdm *.im? *.xdf *.*fd?);;Flux images (*.fdi);;Surface images (*.86f *.mfm);;All files (*.*)"
 
 msgid "Unable to initialize FreeType"
 msgstr "Incapaz de inicializar FreeType"
@@ -799,8 +799,8 @@ msgstr "Incapaz de inicializar Ghostscript"
 msgid "MO %i (%ls): %ls"
 msgstr "MO %i (%ls): %ls"
 
-msgid "MO images (*.IM? *.im? *.MDI *.mdi);;All files (*)"
-msgstr "Imágenes de MO (*.IM? *.im? *.MDI *.mdi);;All files (*)"
+msgid "MO images (*.im? *.mdi);;All files (*.*)"
+msgstr "Imágenes de MO (*.im? *.mdi);;All files (*.*)"
 
 msgid "Welcome to 86Box!"
 msgstr "¡Bienvenido a 86Box!"
@@ -889,8 +889,8 @@ msgstr "Resetear"
 msgid "Don't reset"
 msgstr "No resetear"
 
-msgid "CD-ROM images (*.ISO *.iso *.CUE *.cue);;All files (*)"
-msgstr "Imágenes de CD-ROM (*.ISO *.iso *.CUE *.cue);;All files (*)"
+msgid "CD-ROM images (*.iso *.cue);;All files (*.*)"
+msgstr "Imágenes de CD-ROM (*.iso *.cue);;All files (*.*)"
 
 msgid "%hs Device Configuration"
 msgstr "%hs Configuración de Dispositivo"
@@ -898,8 +898,8 @@ msgstr "%hs Configuración de Dispositivo"
 msgid "Monitor in sleep mode"
 msgstr "Monitor en modo ahorro"
 
-msgid "OpenGL Shaders (*.GLSL *.glsl);;All files (*)"
-msgstr "Shaders OpenGL (*.GLSL *.glsl);;All files (*)"
+msgid "OpenGL Shaders (*.glsl);;All files (*.*)"
+msgstr "Shaders OpenGL (*.glsl);;All files (*.*)"
 
 msgid "OpenGL options"
 msgstr "Opciones OpenGL"
@@ -916,14 +916,14 @@ msgstr "Continuar"
 msgid "Cassette: %s"
 msgstr "Cassette: %s"
 
-msgid "Cassette images (*.PCM *.pcm *.RAW *.raw *.WAV *.wav *.CAS *.cas);;All files (*)"
-msgstr "Imágenes de Cassette (*.PCM *.pcm *.RAW *.raw *.WAV *.wav *.CAS *.cas);;All files (*)"
+msgid "Cassette images (*.pcm *.raw *.wav *.cas);;All files (*.*)"
+msgstr "Imágenes de Cassette (*.pcm *.raw *.wav *.cas);;All files (*.*)"
 
 msgid "Cartridge %i: %ls"
 msgstr "Cartucho %i: %ls"
 
-msgid "Cartridge images (*.A *.a *.B *.b *.JRC *.jrc);;All files (*)"
-msgstr "Imágenes de Cartucho (*.A *.a *.B *.b *.JRC *.jrc);;All files (*)"
+msgid "Cartridge images (*.a *.b *.jrc);;All files (*.*)"
+msgstr "Imágenes de Cartucho (*.a *.b *.jrc);;All files (*.*)"
 
 msgid "Error initializing renderer"
 msgstr "Error initializing renderer"
@@ -979,8 +979,8 @@ msgstr "Las imágenes de disco HDI no pueden superar los 4 GB."
 msgid "Disk images cannot be larger than 127 GB."
 msgstr "Las imágenes de disco no pueden superar los 127 GB."
 
-msgid "Hard disk images (*.HD? *.hd? *.IM? *.im? *.VHD *.vhd);;All files (*)"
-msgstr "Imágenes de Disco Duro (*.HD? *.hd? *.IM? *.im? *.VHD *.vhd);;All files (*)"
+msgid "Hard disk images (*.hd? *.im? *.vhd);;All files (*.*)"
+msgstr "Imágenes de Disco Duro (*.hd? *.im? *.vhd);;All files (*.*)"
 
 msgid "Unable to read file"
 msgstr "No se pudo leer el archivo"
@@ -1051,8 +1051,8 @@ msgstr "Bloques grandes (2 MB)"
 msgid "Small blocks (512 KB)"
 msgstr "Bloques pequeños (512 KB)"
 
-msgid "VHD files (*.VHD *.vhd);;All files (*)"
-msgstr "Archivos VHD (*.VHD *.vhd);;All files (*)"
+msgid "VHD files (*.vhd);;All files (*.*)"
+msgstr "Archivos VHD (*.vhd);;All files (*.*)"
 
 msgid "Select the parent VHD"
 msgstr "Seleccione el VHD padre"

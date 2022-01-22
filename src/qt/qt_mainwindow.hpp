@@ -118,6 +118,7 @@ protected:
     bool eventFilter(QObject* receiver, QEvent* event) override;
     void showEvent(QShowEvent* event) override;
     void closeEvent(QCloseEvent* event) override;
+    void changeEvent(QEvent* event) override;
 
 private:
     Ui::MainWindow *ui;
